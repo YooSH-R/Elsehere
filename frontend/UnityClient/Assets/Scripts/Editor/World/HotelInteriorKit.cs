@@ -14,6 +14,9 @@ namespace A305.EditorTools.World
     {
         internal const string Folder = "Assets/Prefabs/Hotel/MapleHouse";
 
+        // 소파와 탁자의 충돌체 사이에 약 1m를 남겨 캐릭터가 걸어서 지나간다.
+        internal const float LoungeTableForwardMeters = 1.15f;
+
         internal static GameObject Save(string name, Func<GameObject> build, bool combine = false)
         {
             return BuilderTools.CreatePrefabIfMissing(
@@ -261,7 +264,11 @@ namespace A305.EditorTools.World
             var root = new GameObject("LoungeSet");
             Transform p = root.transform;
             Put(HomeInteriorKit.Asset("SageSofa", Sofa), p, V(0, 0, -.8f));
-            Put(HomeInteriorKit.Asset("CoffeeTable", CoffeeTable), p, V(0, 0, .7f));
+            Put(
+                HomeInteriorKit.Asset("CoffeeTable", CoffeeTable),
+                p,
+                V(0, 0, LoungeTableForwardMeters)
+            );
             Block("RugBorder", p, V(0, .015f, .1f), V(3.8f, .03f, 3.3f), Coral, .014f);
             Block(
                 "RugCenter",

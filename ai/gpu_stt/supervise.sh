@@ -1,6 +1,6 @@
 #!/bin/sh
 # GPU STT 시제품 감시: STT 서버(127.0.0.1:18431)와 배포 서버로 거는 역방향 SSH 터널이 죽으면 30초 안에 다시 띄운다.
-# 터널 입구는 배포 서버의 도커 게이트웨이(개발 172.19.0.1:18431, 운영 172.20.0.1:18431)라 워커 컨테이너만 닿고 인터넷에는 열리지 않는다.
+# 터널 입구는 배포 서버의 도커 게이트웨이(개발 172.19.0.1:18431, 운영 172.30.0.1:18431)라 워커 컨테이너만 닿고 인터넷에는 열리지 않는다.
 # 운영 터널은 배포 서버가 운영 입구 전달과 방화벽을 허용한 뒤 만드는 prod_tunnel_enabled 파일이 있을 때만 건다.
 # 배포 서버가 tunnel_key.pub를 포트 전달 전용으로 등록하고 GatewayPorts clientspecified를 켠 뒤에만 실행한다.
 # 실행: setsid nohup ~/stt/gpu_stt/supervise.sh > ~/stt/gpu_stt/supervise.log 2>&1 &
@@ -8,7 +8,7 @@
 DIR="$HOME/stt/gpu_stt"
 DEPLOY="a305-stt-tunnel@k15a305.p.ssafy.io"  # 포트 전달만 되는 전용 계정 (셸·명령·SFTP 차단)
 DEV_BIND="172.19.0.1:18431"
-PROD_BIND="172.20.0.1:18431"
+PROD_BIND="172.30.0.1:18431"
 ROUNDS=0
 
 open_tunnel() {

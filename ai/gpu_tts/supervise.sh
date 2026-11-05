@@ -1,14 +1,14 @@
 #!/bin/sh
 # GPU 서버 음성 합성 감시 (S15P31A305-371): 합성 서버(127.0.0.1:18433)와 배포 서버로 거는 역방향 SSH 터널이 죽으면 30초 안에 다시 띄운다.
 # 터널은 배포 서버가 a305-stt-tunnel 계정에 입구 전달과 방화벽을 허용한 뒤에만 건다.
-# 개발 172.19.0.1:18433은 ~/tts/gpu_tts/tunnel_enabled, 운영 172.20.0.1:18433은 ~/tts/gpu_tts/prod_tunnel_enabled 파일이 있을 때.
+# 개발 172.19.0.1:18433은 ~/tts/gpu_tts/tunnel_enabled, 운영 172.30.0.1:18433은 ~/tts/gpu_tts/prod_tunnel_enabled 파일이 있을 때.
 # Jupyter 활동 기록은 STT 감시(~/stt/gpu_stt/supervise.sh)가 한다. Jupyter 세션이 꺼지면 같이 꺼지고, 그동안 워커는 CPU 합성으로 넘긴다.
 # 실행: setsid nohup ~/tts/gpu_tts/supervise.sh > ~/tts/gpu_tts/supervise.log 2>&1 &
 DIR="$HOME/tts/gpu_tts"
 STT="$HOME/stt/gpu_stt"
 DEPLOY="a305-stt-tunnel@k15a305.p.ssafy.io"  # 포트 전달만 되는 전용 계정 (셸·명령·SFTP 차단)
 DEV_BIND="172.19.0.1:18433"
-PROD_BIND="172.20.0.1:18433"
+PROD_BIND="172.30.0.1:18433"
 
 open_tunnel() {
   if ! pgrep -u "$(id -un)" -f "ssh .*-R $1:" > /dev/null; then

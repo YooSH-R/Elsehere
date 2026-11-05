@@ -5,9 +5,9 @@ GPU 서버는 학원 방화벽 때문에 바깥에서 들어갈 수 없어서, G
 | 항목 | 개발 | 운영 |
 | --- | --- | --- |
 | Docker 네트워크 | `a305-dev_default` | `a305-prod_default` |
-| 대역·게이트웨이(터널 입구) | `172.19.0.0/16` · `172.19.0.1` | `172.20.0.0/16` · `172.20.0.1` |
-| 워커 주소 | `172.19.0.2` | `172.20.0.2` |
-| 나머지 컨테이너 자동 할당 범위 | `172.19.128.0/17` | `172.20.128.0/17` |
+| 대역·게이트웨이(터널 입구) | `172.19.0.0/16` · `172.19.0.1` | `172.30.0.0/16` · `172.30.0.1` |
+| 워커 주소 | `172.19.0.2` | `172.30.0.2` |
+| 나머지 컨테이너 자동 할당 범위 | `172.19.128.0/17` | `172.30.128.0/17` |
 | 호스트 브리지 | `br-a305-dev` | `br-a305-prod` |
 | 추가 Compose | `infra/compose/compose.dev-worker-network.yaml` | `infra/compose/compose.prod-worker-network.yaml` |
 
@@ -25,11 +25,11 @@ python3 infra/scripts/dev_worker_network.py --create
 
 네트워크가 없으면 생성하고 이미 있으면 설정만 검사합니다. 설정이 다른 기존 네트워크를 자동 삭제하지 않습니다.
 
-운영 네트워크는 서버에서 다른 네트워크가 `172.20.0.0/16`을 쓰지 않는지 확인한 뒤 직접 만듭니다. 대역을 바꿔야 하면 추가 Compose·방화벽·GPU 서버 터널 주소·운영 환경 파일을 같은 값으로 함께 바꿉니다.
+운영 네트워크는 서버에서 다른 네트워크가 `172.30.0.0/16`을 쓰지 않는지 확인한 뒤 직접 만듭니다. 대역을 바꿔야 하면 추가 Compose·방화벽·GPU 서버 터널 주소·운영 환경 파일을 같은 값으로 함께 바꿉니다.
 
 ```bash
 sudo docker network create --driver bridge \
-  --subnet 172.20.0.0/16 --gateway 172.20.0.1 --ip-range 172.20.128.0/17 \
+  --subnet 172.30.0.0/16 --gateway 172.30.0.1 --ip-range 172.30.128.0/17 \
   -o com.docker.network.bridge.name=br-a305-prod a305-prod_default
 ```
 
@@ -68,14 +68,14 @@ sudo ufw insert 1 allow in on br-a305-dev from 172.19.0.2 to 172.19.0.1 port 184
 ```
 
 ```bash
-sudo ufw insert 1 allow in on br-a305-prod from 172.20.0.2 to 172.20.0.1 port 18431 proto tcp comment 'a305 prod GPU STT worker only'
-sudo ufw insert 1 allow in on br-a305-prod from 172.20.0.2 to 172.20.0.1 port 18432 proto tcp comment 'a305 prod GPU guard worker only'
-sudo ufw insert 1 allow in on br-a305-prod from 172.20.0.2 to 172.20.0.1 port 18433 proto tcp comment 'a305 prod GPU TTS worker only'
+sudo ufw insert 1 allow in on br-a305-prod from 172.30.0.2 to 172.30.0.1 port 18431 proto tcp comment 'a305 prod GPU STT worker only'
+sudo ufw insert 1 allow in on br-a305-prod from 172.30.0.2 to 172.30.0.1 port 18432 proto tcp comment 'a305 prod GPU guard worker only'
+sudo ufw insert 1 allow in on br-a305-prod from 172.30.0.2 to 172.30.0.1 port 18433 proto tcp comment 'a305 prod GPU TTS worker only'
 ```
 
 다른 주소에서 각 게이트웨이의 세 포트로 들어오는 DENY 규칙을 유지합니다. 이전 브리지 허용은 전환 검증 후 정확히 일치하는 규칙만 제거합니다. SSH·HTTP·HTTPS와 다른 환경의 방화벽은 기존 정책을 유지합니다.
 
-터널 전용 계정 `a305-stt-tunnel`은 포트 전달만 허용합니다. 운영 터널을 받으려면 기존 개발 입구와 같은 방식으로 `172.20.0.1:18431`, `172.20.0.1:18432`, `172.20.0.1:18433`의 원격 전달을 추가로 허용하고 sshd 설정을 다시 읽습니다.
+터널 전용 계정 `a305-stt-tunnel`은 포트 전달만 허용합니다. 운영 터널을 받으려면 기존 개발 입구와 같은 방식으로 `172.30.0.1:18431`, `172.30.0.1:18432`, `172.30.0.1:18433`의 원격 전달을 추가로 허용하고 sshd 설정을 다시 읽습니다.
 
 ## GPU 서버 터널
 
@@ -83,7 +83,7 @@ GPU 서버의 감시 스크립트([`ai/gpu_stt`](../ai/gpu_stt/README.md), [`ai/
 
 ## 환경 파일
 
-GPU 경로는 각 환경 `deploy.env`의 `STT_CHAIN`, `STT_GPU_*`, `GUARD_GPU_*`, `TTS_GPU_*`로 켭니다. 주소는 해당 환경의 게이트웨이를 사용하고(개발 `172.19.0.1`, 운영 `172.20.0.1`), 토큰은 GPU 서버가 하나이므로 두 환경에 같은 값을 넣습니다. 값이 비어 있으면 해당 GPU 경로를 쓰지 않습니다.
+GPU 경로는 각 환경 `deploy.env`의 `STT_CHAIN`, `STT_GPU_*`, `GUARD_GPU_*`, `TTS_GPU_*`로 켭니다. 주소는 해당 환경의 게이트웨이를 사용하고(개발 `172.19.0.1`, 운영 `172.30.0.1`), 토큰은 GPU 서버가 하나이므로 두 환경에 같은 값을 넣습니다. 값이 비어 있으면 해당 GPU 경로를 쓰지 않습니다.
 
 ## 재배포 검증
 

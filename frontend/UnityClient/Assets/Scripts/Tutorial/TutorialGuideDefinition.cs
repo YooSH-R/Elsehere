@@ -154,8 +154,9 @@ namespace A305.Tutorial
             "Ben과 나눈 대화를 돌아보는 대화 노트예요. 탭을 눌러 {요약}·{문장}·{회화}·{표현}을 봐요";
 
         [SerializeField]
-        [Tooltip("대화 노트 티칭의 둘째. 요약 탭 제목 옆 쪽 넘김 화살표를 밝히며 보인다.")]
-        private string feedbackPagesCaption = "표현과 요약은 제목 옆 화살표로 따로 넘겨 봐요";
+        [Tooltip("대화 노트 티칭의 둘째. 본문 스크롤 영역을 밝히며 보인다.")]
+        private string feedbackPagesCaption =
+            "표현과 요약이 길면 이 영역을 위아래로 스크롤해 보세요";
 
         [SerializeField]
         [Tooltip("대화 노트 티칭 끝에 오른쪽 위 X를 밝히며 보이는 설명")]

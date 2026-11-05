@@ -103,10 +103,11 @@ public class FirstDayMissionService {
                       ? new WorkerState(
                           "first_day_" + mission.getStage(),
                           stageInstruction
-                              + " Recognize only the learner's current utterance in context. Do not credit NPC lines, quoted examples, negatives, wishes without action or future hypothetical actions. One utterance may match several intents.",
+                              + " Evaluate the learner's current utterance together with explicit facts they gave earlier in this conversation. The current utterance must contribute to completing an objective; details may be spread across turns. Do not credit NPC lines, quoted examples, negatives, wishes without action or future hypothetical actions. One utterance may match several intents.",
                           stage.goals().stream()
                               .map(goal -> new WorkerState.Intent(goal.id(), goal.description()))
-                              .toList())
+                              .toList(),
+                          true)
                       : null;
               String instruction;
               if (!matches) {
@@ -263,8 +264,8 @@ public class FirstDayMissionService {
    */
   static final String LEARNER_LEADS =
       " Never be the first to bring up the learner's remaining tasks, the things they need or what happened to them; wait for the learner to raise them in their own words."
-          + " After the learner raises a request, you may ask only the follow-up question your role needs to complete it, such as size, payment method or a description."
-          + " If the learner seems unsure what to say, ask an open question such as \"Is there anything else I can help you with?\" without naming any task.";
+          + " After the learner raises a mission request, ask the follow-up question your role needs to complete it, such as size, payment method or a description."
+          + " In ordinary small talk, react to their topic and share brief details fitting your personality and current situation. If they seem unsure what to say, offer a small observation or an easy question in your own voice without naming undisclosed mission tasks.";
 
   /** 지금 단계 담당이 아닌 NPC에게 보내는 안내. 지금 할 일을 물으면 모른다고 하지 않고 담당 NPC와 장소를 알려 주게 한다. 이름을 찾지 못하면 장소만 알린다. */
   static String sendToOwner(String place, String owner) {

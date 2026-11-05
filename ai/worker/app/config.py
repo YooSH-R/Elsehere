@@ -136,6 +136,7 @@ class Settings:
     # (2026-10-29 i7-13700H Docker 2 CPU 상한: 기본 20스레드 대신 2스레드로 6초 소리 문장 합성 약 3초)
     kokoro_threads: int = 0
     tts_chunk_budget_s: float = 2.5  # NPC 대답 한 조각의 합성이 이보다 늦으면 tts: false (턴 전체 음성에는 기다려 넣음)
+    tts_full_budget_s: float = 6.0  # 마지막 음성 조각을 요청한 뒤 턴 전체 음성을 기다리는 상한
     tts_gpu_base_url: str = ""  # GPU 서버 합성 서버(ai/gpu_tts) 주소. 있으면 먼저 부르고 실패하면 CPU Kokoro. 비면 끔
     tts_gpu_token: str = ""
     # GPU 서버 합성 응답을 기다리는 상한. 대사 하나 0.4~0.6초지만 여러 사람이 동시에 말하면 줄이 서고(20명분 동시 60조각 최대 약 4~6초),
@@ -226,6 +227,7 @@ class Settings:
             tts_require_timing=e.get("TTS_REQUIRE_TIMING", "false").lower() == "true",
             kokoro_threads=int(e.get("KOKORO_THREADS", cls.kokoro_threads)),
             tts_chunk_budget_s=float(e.get("TTS_CHUNK_BUDGET_S", cls.tts_chunk_budget_s)),
+            tts_full_budget_s=float(e.get("TTS_FULL_BUDGET_S", cls.tts_full_budget_s)),
             tts_gpu_base_url=tts_gpu_base_url,
             tts_gpu_token=e.get("TTS_GPU_TOKEN", ""),
             tts_gpu_timeout_s=float(e.get("TTS_GPU_TIMEOUT_S", cls.tts_gpu_timeout_s)),

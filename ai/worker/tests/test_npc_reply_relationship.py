@@ -134,3 +134,11 @@ def test_a_relationship_out_of_range_is_an_invalid_request(client, field, value)
     r = client.post("/v1/npc/reply", json={"npc": NPC, "history": [], "text": "hi", "tts": False, "relationship": {field: value}})
 
     assert r.status_code == 400
+
+
+@pytest.mark.parametrize("npc", [NPC, WITH_PROFILE], ids=["role-line", "profile"])
+def test_free_conversation_can_lead_or_follow_without_service_assumptions(client, provider, npc):
+    prompt = system(client, provider, npc)
+    assert "take the conversational lead" in prompt
+    assert "follow their lead" in prompt
+    assert "not a service encounter" in prompt

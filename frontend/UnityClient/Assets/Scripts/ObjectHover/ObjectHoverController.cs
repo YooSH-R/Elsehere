@@ -371,7 +371,10 @@ namespace A305.ObjectHover
         private WordCardButtons PinnedButtons()
         {
             return cards != null && cards.TryGet(pinnedWordKey, out WordCard card)
-                ? WordCardButtons.For(card)
+                ? WordCardButtons.For(
+                    card,
+                    serverLink != null && serverLink.BrowserPronunciationAvailable
+                )
                 : WordCardButtons.None;
         }
 
@@ -383,7 +386,15 @@ namespace A305.ObjectHover
                 return;
             }
 
-            tooltip.ShowPinned(card.Word, pinnedAnchor, settings, WordCardButtons.For(card));
+            tooltip.ShowPinned(
+                card.Word,
+                pinnedAnchor,
+                settings,
+                WordCardButtons.For(
+                    card,
+                    serverLink != null && serverLink.BrowserPronunciationAvailable
+                )
+            );
         }
 
         // 단어장에서 지운 단어는 이 장소에 머무는 동안에도 카드에서 다시 저장할 수 있게 한다.
@@ -435,16 +446,15 @@ namespace A305.ObjectHover
 
         private async void PlayPronunciation()
         {
-            if (
-                cards == null
-                || !cards.TryGet(pinnedWordKey, out WordCard card)
-                || !card.HasPronunciation
-            )
+            if (cards == null || !cards.TryGet(pinnedWordKey, out WordCard card))
             {
                 return;
             }
 
-            bool played = await serverLink.PlayPronunciationAsync(card.VocabId);
+            bool played =
+                card.HasPronunciation && await serverLink.PlayPronunciationAsync(card.VocabId);
+            if (!played && this != null)
+                played = serverLink.PronounceInBrowser(card.Word.Text);
             if (!played && this != null && state.IsPinned)
             {
                 tooltip.ShowStatus("발음을 불러오지 못했어요. 잠시 후 다시 눌러 주세요.");

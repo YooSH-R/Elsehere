@@ -65,11 +65,44 @@ namespace A305.Learning.PlayModeTests
             AssertMissionHudClears(Single<LearningHudView>().HistoryView.PanelRect);
         }
 
+        [UnityTest]
+        public IEnumerator VocabularyAndHistory_PauseTheClockWhileOpen()
+        {
+            yield return LoadTown();
+            foreach (string app in new[] { "VocabularyButton", "HistoryButton" })
+            {
+                yield return Open(app);
+                Assert.That(GameClock.Shared.IsLearningWindowOpen, Is.True);
+                double stopped = GameClock.Shared.Minutes;
+                GameClock.Shared.Flow(60);
+                Assert.That(GameClock.Shared.Minutes, Is.EqualTo(stopped));
+                LearningController learning = Single<LearningController>();
+                RectTransform window =
+                    app == "VocabularyButton"
+                        ? Single<VocabularyView>().PanelRect
+                        : Single<LearningHudView>().HistoryView.PanelRect;
+                window
+                    .GetComponentsInChildren<Button>(true)
+                    .First(button => button.name == "CloseButton")
+                    .onClick.Invoke();
+                yield return null;
+                Assert.That(learning.IsShowingScreen, Is.False);
+                Assert.That(GameClock.Shared.IsLearningWindowOpen, Is.False);
+            }
+        }
+
         private static IEnumerator LoadTown()
         {
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
             yield return null;
+            // 창 경계 신호는 즉시 보내므로 실제 서버 대신 이 시험이 정한 시계만 사용한다.
+            foreach (
+                GameClockDriver driver in Object.FindObjectsByType<GameClockDriver>(
+                    FindObjectsSortMode.None
+                )
+            )
+                driver.enabled = false;
             Assert.That(QuestCard().gameObject.activeInHierarchy, Is.True, "준비: 퀘스트 카드");
             Assert.That(MiniMap().gameObject.activeInHierarchy, Is.True, "준비: 미니맵");
         }
@@ -135,7 +168,11 @@ namespace A305.Learning.PlayModeTests
         // 1일차 오전 8시로 바로 답하는 게임 시계 신호
         private sealed class FixedGameClockApi : IGameClockApi
         {
-            public Task<GameClockTime> BeatAsync()
+            public Task<GameClockTime> BeatAsync(
+                bool interactionPaused = false,
+                bool interactionWasPaused = false,
+                long? activeSeconds = null
+            )
             {
                 return Task.FromResult(new GameClockTime { Day = 1, MinuteOfDay = 8 * 60 });
             }

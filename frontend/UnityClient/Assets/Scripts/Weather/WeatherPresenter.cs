@@ -73,6 +73,24 @@ namespace A305.Weather
         private Quaternion designedSunRotation;
         private NightLights nightLights;
         private NightLights shopLights;
+        private readonly Dictionary<Transform, NightLights> buildingLights =
+            new Dictionary<Transform, NightLights>();
+        private readonly Dictionary<Transform, bool> buildingOpen =
+            new Dictionary<Transform, bool>();
+
+        public IReadOnlyList<Transform> LitBuildings => litBuildings;
+
+        public void SetBuildingOpen(Transform building, bool open)
+        {
+            if (buildingOpen.TryGetValue(building, out bool previous) && previous == open)
+                return;
+            buildingOpen[building] = open;
+            if (prepared && shownMinutes.HasValue)
+                WriteScene();
+        }
+
+        private bool IsInLitBuilding(Transform item) =>
+            litBuildings.Any(building => building != null && item.IsChildOf(building));
 
         /// <summary>
         /// 방문할 때 로드한 실내도 마을과 같은 시각을 따르게 하고, 나올 때 재질 사본을 정리한다.
@@ -206,6 +224,8 @@ namespace A305.Weather
             Destroy(sky);
             Destroy(cloud);
             nightLights?.Restore();
+            foreach (NightLights lights in buildingLights.Values)
+                lights.Restore();
             shopLights?.Restore();
             if (shownMinutes.HasValue)
                 UiBackdropLift.Show(0f);
@@ -239,27 +259,34 @@ namespace A305.Weather
             if (daylight != null)
             {
                 // 입점 건물 안의 실내등은 마을의 어두운 밤 환경광을 그대로 받는 방을 밝히므로 따로 배율을 둔다.
-                Light[] shopLamps = lamps
-                    .Where(lamp =>
-                        lamp != null
-                        && lamp.name == ShopRoomLampName
-                        && litBuildings.Any(building =>
-                            building != null && lamp.transform.IsChildOf(building)
-                        )
-                    )
+                Renderer[] renderers = gameObject
+                    .scene.GetRootGameObjects()
+                    .SelectMany(root => root.GetComponentsInChildren<Renderer>(true))
                     .ToArray();
                 nightLights = new NightLights(
                     daylight,
-                    lamps.Except(shopLamps),
-                    gameObject
-                        .scene.GetRootGameObjects()
-                        .SelectMany(root => root.GetComponentsInChildren<Renderer>(true)),
-                    litBuildings
-                        .Where(building => building != null)
-                        .SelectMany(building => building.GetComponentsInChildren<Renderer>(true)),
-                    streetLamps,
-                    shopLamps: shopLamps
+                    lamps.Where(lamp => lamp != null && !IsInLitBuilding(lamp.transform)),
+                    renderers.Where(renderer => !IsInLitBuilding(renderer.transform)),
+                    streetLamps: streetLamps
                 );
+                foreach (
+                    Transform building in litBuildings
+                        .Where(building => building != null)
+                        .Distinct()
+                )
+                {
+                    Renderer[] surfaces = building.GetComponentsInChildren<Renderer>(true);
+                    Light[] lights = lamps
+                        .Where(lamp => lamp != null && lamp.transform.IsChildOf(building))
+                        .ToArray();
+                    buildingLights[building] = new NightLights(
+                        daylight,
+                        lights.Where(lamp => lamp.name != ShopRoomLampName),
+                        surfaces,
+                        surfaces,
+                        shopLamps: lights.Where(lamp => lamp.name == ShopRoomLampName)
+                    );
+                }
             }
 
             if (designedSky != null)
@@ -388,6 +415,12 @@ namespace A305.Weather
                 sun.transform.rotation = daylight.SunRotation(designedSunRotation, minutes);
                 float night = daylight.NightAmount(minutes);
                 nightLights.Apply(daylight, night);
+                foreach (var entry in buildingLights)
+                    entry.Value.Apply(
+                        daylight,
+                        night,
+                        !buildingOpen.TryGetValue(entry.Key, out bool open) || open
+                    );
                 UiBackdropLift.Show(night);
                 if (shopLights != null)
                 {

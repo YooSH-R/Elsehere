@@ -6,13 +6,12 @@ using A305.Theme;
 using A305.World;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace A305.Learning
 {
     /// <summary>
-    /// 대화가 끝난 뒤의 피드백을 주제별로 나누고 문장·표현을 한 장씩 보여 준다.
+    /// 대화가 끝난 뒤의 피드백을 주제별로 나누고 문장·표현을 고정 영역 안에서 세로 스크롤로 보여 준다.
     /// 피드백을 받지 못했으면 평가를 지어내지 않고 [다시 만들기]와 [대화 기록 보기]를 보여 준다(기능 명세 F-32).
     /// </summary>
     public class FeedbackView : MonoBehaviour
@@ -96,11 +95,11 @@ namespace A305.Learning
         private TMP_Text summaryTitle;
 
         [SerializeField]
-        [Tooltip("요약 탭 '이 상황에서 자주 써요' 제목 오른쪽의 쪽 넘김. 표현을 두 개씩 넘긴다")]
+        [Tooltip("이전 프리팹의 표현 쪽 넘김 참조. 스크롤 화면에서는 숨긴다")]
         private RectTransform situationPager;
 
         [SerializeField]
-        [Tooltip("요약 탭 '대화 요약' 제목 오른쪽의 쪽 넘김. 요약 글이 길면 요약 칸 안에서 넘긴다")]
+        [Tooltip("이전 프리팹의 요약 쪽 넘김 참조. 스크롤 화면에서는 숨긴다")]
         private RectTransform summaryPager;
 
         [SerializeField]
@@ -146,19 +145,85 @@ namespace A305.Learning
         );
         private IReadOnlyList<FeedbackPage> pages;
         private FeedbackSection section;
-        private int pageIndex;
-        private int textPage = 1;
         private bool isRegenerating;
         private Rect lastFreeArea;
         private bool isTranscriptShown;
 
-        // 요약 탭 위 칸("이 상황에서 자주 써요")에 한 장에 보이는 표현 수와, 지금 보이는 표현 장(0부터)
-        private const int SituationsPerPage = 2;
-        private int situationPage;
+        // 고정된 본문 영역 안에서 모든 내용이 세로로 흐른다.
+        private ScrollRect scroll;
+        private readonly List<GameObject> additionalBodies = new List<GameObject>();
 
-        // 요약 탭 두 칸의 제목 옆 쪽 넘김. 프리팹에 없으면(예전 프리팹) null이다.
-        private SectionPaging situationPaging;
-        private SectionPaging summaryPaging;
+        /// <summary>Builder와 실행 화면이 같은 고정 스크롤 영역을 쓴다.</summary>
+        public void ConfigureScroll()
+        {
+            var card = (RectTransform)panel.transform.Find("PageCard");
+            scroll = card.GetComponent<ScrollRect>();
+            if (scroll == null)
+                scroll = card.gameObject.AddComponent<ScrollRect>();
+            if (card.GetComponent<RectMask2D>() == null)
+                card.gameObject.AddComponent<RectMask2D>();
+            var hit = card.GetComponent<Image>();
+            hit.raycastTarget = true;
+            RectTransform content = card.Find("Content") as RectTransform;
+            if (content == null)
+            {
+                content = new GameObject(
+                    "Content",
+                    typeof(RectTransform)
+                ).GetComponent<RectTransform>();
+                content.SetParent(card, false);
+                foreach (Transform child in card.Cast<Transform>().ToArray())
+                    if (child != content && child.name != "Scrollbar")
+                        child.SetParent(content, false);
+            }
+            content.anchorMin = new Vector2(0, 1);
+            content.anchorMax = Vector2.one;
+            content.pivot = new Vector2(.5f, 1);
+            content.anchoredPosition = Vector2.zero;
+            content.sizeDelta = new Vector2(-18, card.rect.height);
+            scroll.viewport = card;
+            scroll.content = content;
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 45;
+            Scrollbar bar = card.Find("Scrollbar")?.GetComponent<Scrollbar>();
+            if (bar == null)
+            {
+                bar = new GameObject(
+                    "Scrollbar",
+                    typeof(RectTransform),
+                    typeof(Image),
+                    typeof(Scrollbar)
+                ).GetComponent<Scrollbar>();
+                bar.transform.SetParent(card, false);
+                var track = (RectTransform)bar.transform;
+                track.anchorMin = new Vector2(1, 0);
+                track.anchorMax = Vector2.one;
+                track.pivot = new Vector2(1, .5f);
+                track.offsetMin = new Vector2(-9, 8);
+                track.offsetMax = new Vector2(-1, -8);
+                bar.GetComponent<Image>().color = new Color(0, 0, 0, .05f);
+                var handle = new GameObject(
+                    "Handle",
+                    typeof(RectTransform),
+                    typeof(Image)
+                ).GetComponent<Image>();
+                handle.transform.SetParent(bar.transform, false);
+                handle.rectTransform.anchorMin = Vector2.zero;
+                handle.rectTransform.anchorMax = Vector2.one;
+                handle.rectTransform.sizeDelta = Vector2.zero;
+                handle.color = new Color(.49f, .43f, .36f, .5f);
+                bar.handleRect = handle.rectTransform;
+                bar.targetGraphic = handle;
+                bar.direction = Scrollbar.Direction.BottomToTop;
+            }
+            scroll.verticalScrollbar = bar;
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+
+            bodyText.overflowMode = TextOverflowModes.Overflow;
+        }
+
         private bool isSaveAvailable = true;
 
         /// <summary>[닫기]를 누르면 알린다.</summary>
@@ -181,11 +246,14 @@ namespace A305.Learning
         /// <summary>[요약]·[문장]·[회화]·[표현] 탭 줄. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
         public RectTransform SectionRowRect => sectionRow;
 
-        /// <summary>요약 탭 "이 상황에서 자주 써요" 제목 옆 쪽 넘김. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
-        public RectTransform SituationPagerRect => situationPager;
+        /// <summary>피드백 본문의 스크롤 영역. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
+        public RectTransform ScrollAreaRect => PageCardRect;
 
         /// <summary>탭·화살표를 누르면 바뀌는 결과 칸. 튜토리얼 코치 마크가 피드백 티칭에서 탭과 함께 밝힌다.</summary>
-        public RectTransform PageCardRect => (RectTransform)bodyText.transform.parent;
+        public RectTransform PageCardRect =>
+            scroll != null
+                ? (RectTransform)scroll.transform
+                : (RectTransform)bodyText.transform.parent;
 
         /// <summary>오른쪽 위 X. 튜토리얼 코치 마크가 피드백 티칭 끝에 밝힌다.</summary>
         public RectTransform CloseButtonRect => (RectTransform)topCloseButton.transform;
@@ -232,6 +300,8 @@ namespace A305.Learning
             navigationRow.gameObject.SetActive(false);
             regenerateButton.interactable = false;
             transcriptButton.interactable = false;
+            ShowSituationRows(Array.Empty<SituationExpressionData>(), false);
+            UpdateLayout();
         }
 
         public void Hide()
@@ -244,6 +314,7 @@ namespace A305.Learning
 
         private void Awake()
         {
+            ConfigureScroll();
             saveButton.onClick.AddListener(RequestSave);
             detailButton.onClick.AddListener(ToggleDetail);
             vocabularyButton.onClick.AddListener(() => VocabularyRequested?.Invoke());
@@ -253,18 +324,6 @@ namespace A305.Learning
             transcriptButton.onClick.AddListener(ToggleTranscript);
             previousButton.onClick.AddListener(PreviousPage);
             nextButton.onClick.AddListener(NextPage);
-            if (situationPager != null)
-                situationPaging = new SectionPaging(
-                    situationPager,
-                    () => MoveSituationPage(-1),
-                    () => MoveSituationPage(1)
-                );
-            if (summaryPager != null)
-                summaryPaging = new SectionPaging(
-                    summaryPager,
-                    () => MoveSummaryPage(-1),
-                    () => MoveSummaryPage(1)
-                );
             for (int i = 0; i < sectionButtons.Length; i++)
             {
                 FeedbackSection selected = (FeedbackSection)i;
@@ -278,11 +337,11 @@ namespace A305.Learning
             titleText.text = feedback.IsFailed ? feedback.Title : "대화 피드백";
             summaryText.text = FeedbackText.Partner(feedback.NpcName);
             PlaceSubtitle();
-            pageTitleText.text = isTranscriptShown ? "주고받은 대화" : pages[pageIndex].Title;
+            pageTitleText.text = isTranscriptShown ? "주고받은 대화" : pages[0].Title;
             bodyText.text = isTranscriptShown
                 ? FeedbackText.Transcript(feedback.NpcName, lines)
-                : pages[pageIndex].Body;
-            bodyText.pageToDisplay = textPage;
+                : pages[0].Body;
+            bodyText.pageToDisplay = 1;
             transcriptButtonLabel.text = isTranscriptShown ? "돌아가기" : "대화 기록";
             pageTitleText.gameObject.SetActive(feedback.IsFailed || isTranscriptShown);
             sectionRow.gameObject.SetActive(!feedback.IsFailed);
@@ -303,7 +362,7 @@ namespace A305.Learning
                     && !feedback.IsFailed
                     && !isTranscriptShown
                     && CurrentExpression != null
-                    && pages[pageIndex].Situations == null
+                    && pages[0].Situations == null
             );
             saveButton.interactable = CurrentExpression != null;
             saveButton.GetComponentInChildren<TMP_Text>(true).text = "담기";
@@ -312,30 +371,28 @@ namespace A305.Learning
             regenerateButton.interactable = true;
             transcriptButton.gameObject.SetActive(feedback.IsFailed);
             transcriptButton.interactable = true;
-            // 요약 탭은 두 칸을 제목 옆 쪽 넘김으로 따로 넘기므로 아래쪽 줄을 숨긴다.
-            navigationRow.gameObject.SetActive(
-                !isRegenerating && (!feedback.IsFailed || isTranscriptShown) && !IsSummarySplit
-            );
+            // 모든 탭은 같은 본문 영역을 스크롤하므로 이전 쪽 넘김 줄을 숨긴다.
+            navigationRow.gameObject.SetActive(false);
             // 표현 줄 높이는 패널 너비에 따라 달라지므로 화면에 맞춘 패널 크기부터 정한다.
             FitFrameToCanvas();
             ShowSituationRows(SituationsShown(), section == FeedbackSection.Conversation);
             UpdateLayout();
         }
 
-        // 요약 탭은 받은 추천 표현을 두 개씩, 회화 표현 탭은 현재 장에 담긴 표현을 보여 준다.
+        // 요약 탭과 회화 표현 탭 모두 받은 표현을 빠짐없이 보여 준다.
         private IReadOnlyList<SituationExpressionData> SituationsShown()
         {
             if (feedback.IsFailed || isTranscriptShown)
                 return Array.Empty<SituationExpressionData>();
-            if (section == FeedbackSection.Summary)
-                return SummarySituations
-                    .Skip(situationPage * SituationsPerPage)
-                    .Take(SituationsPerPage)
+            return section == FeedbackSection.Summary
+                ? SummarySituations.ToList()
+                : pages
+                    .Where(page => page.Situations != null)
+                    .SelectMany(page => page.Situations)
                     .ToList();
-            return pages[pageIndex].Situations ?? Array.Empty<SituationExpressionData>();
         }
 
-        // 요약 탭이 위 표현 칸과 아래 요약 칸으로 나뉘어 따로 넘기는 상태인지
+        // 요약 탭이 위 표현 칸과 아래 요약 칸으로 나뉘는 상태인지
         private bool IsSummarySplit =>
             section == FeedbackSection.Summary && !feedback.IsFailed && !isTranscriptShown;
 
@@ -343,9 +400,6 @@ namespace A305.Learning
             feedback.SituationExpressions.Where(expression =>
                 !string.IsNullOrWhiteSpace(expression.Expression)
             );
-
-        private int SituationPageCount =>
-            Mathf.Max(1, Mathf.CeilToInt(SummarySituations.Count() / (float)SituationsPerPage));
 
         // 부제(○○와 나눈 대화)는 제목 글자 바로 뒤에 둔다. 제목은 피드백을 받지 못하면 길어진다.
         private void PlaceSubtitle()
@@ -361,7 +415,7 @@ namespace A305.Learning
         }
 
         /// <summary>
-        /// 피드백을 열자마자 보이도록 요약 탭 위쪽에 이 상황에서 자주 쓰는 표현을 두 칸씩 보이고, 칸마다 [담기]로 그 표현과 뜻을 담게 한다.
+        /// 피드백을 열자마자 보이도록 요약 탭 위쪽에 이 상황에서 자주 쓰는 표현을 모두 보이고, 칸마다 [담기]로 그 표현과 뜻을 담게 한다.
         /// 회화 표현 탭도 같은 칸을 쓰고 예문을 한 줄 더 둔다. 요약 글은 표현 칸 아래 '대화 요약' 제목 밑의 따뜻한 색 칸에서 시작한다.
         /// </summary>
         private void ShowSituationRows(
@@ -427,7 +481,7 @@ namespace A305.Learning
                     - RowShadowBottom
                     + GapBelowRows;
             }
-            // '대화 요약' 제목 옆에 요약 칸의 쪽 넘김이 있으므로, 표현 칸이 없어도 요약 글이 있으면 제목을 둔다.
+            // 표현 칸이 없어도 요약 글이 있으면 '대화 요약' 제목을 둔다.
             bool summaryHeading = IsSummarySplit && !string.IsNullOrEmpty(bodyText.text);
             summaryTitle.gameObject.SetActive(summaryHeading);
             // 받지 못한 피드백·대화 기록의 장 제목도 같은 자리(본문 칸 위)에 둔다.
@@ -526,7 +580,7 @@ namespace A305.Learning
         }
 
         private ReferenceExpression CurrentExpression =>
-            pages != null && pages.Count > 0 ? pages[pageIndex].Expression : null;
+            pages != null && pages.Count > 0 ? pages[0].Expression : null;
 
         // 화면 크기가 바뀌거나 마을 HUD가 나타나고 사라져 빈 곳이 바뀌면 판을 다시 맞춘다.
         private void LateUpdate()
@@ -541,7 +595,7 @@ namespace A305.Learning
         }
 
         // 마을 HUD(퀘스트 카드·미니맵)를 함께 볼 수 있게 그 오른쪽 빈 곳 가운데에 둔다.
-        // 빈 곳이 좁거나 낮으면 배치하는 판을 줄여(본문은 쪽을 더 나눈다) 빈 곳에 맞춘다.
+        // 빈 곳이 좁거나 낮으면 판을 줄이고 긴 본문은 안에서 스크롤한다.
         private void FitFrameToCanvas()
         {
             var frame = (RectTransform)panel.transform;
@@ -558,88 +612,116 @@ namespace A305.Learning
             FitFrameToCanvas();
             if (feedback == null || !panel.activeInHierarchy)
                 return;
+            if (scroll == null)
+                ConfigureScroll();
             Canvas.ForceUpdateCanvases();
-            int count = isTranscriptShown ? 1 : pages.Count;
-            // 대화 기록을 펼치면 기록 한 장만 센다.
-            int current = isTranscriptShown ? 0 : pageIndex;
-            var pagesPerCard = new List<int>();
-            string shown = bodyText.text;
-            for (int i = 0; i < count; i++)
-                pagesPerCard.Add(
-                    i == current ? 1 : Mathf.Max(1, bodyText.GetTextInfo(pages[i].Body).pageCount)
-                );
-            // 다른 카드 쪽수를 재느라 바뀐 글을 지금 카드로 되돌린다.
-            bodyText.text = shown;
+            foreach (GameObject block in additionalBodies)
+            {
+                block.SetActive(false);
+                if (Application.isPlaying)
+                    Destroy(block);
+                else
+                    DestroyImmediate(block);
+            }
+            additionalBodies.Clear();
+            navigationRow.gameObject.SetActive(false);
+            situationPager?.gameObject.SetActive(false);
+            summaryPager?.gameObject.SetActive(false);
+            float width = scroll.content.rect.width;
+            // 줄바꿈이 끝난 표현 칸 아래부터 제목과 본문을 차례로 쌓는다.
+            if (situationRows.gameObject.activeSelf)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(situationRows);
+                foreach (GameObject row in situationRowItems)
+                    ArrangeFirstLine((RectTransform)row.transform.Find("Texts/Line"));
+                LayoutRebuilder.ForceRebuildLayoutImmediate(situationRows);
+            }
+            float top = situationRows.gameObject.activeSelf
+                ? situationRows.rect.height - RowShadowBottom + GapBelowRows
+                : 0;
+            bool summaryHeading = IsSummarySplit && !string.IsNullOrEmpty(bodyText.text);
+            summaryTitle.gameObject.SetActive(summaryHeading);
+            if (summaryHeading)
+            {
+                Pin(summaryTitle.rectTransform, 0, top, width, SummaryTitleHeight);
+                top += SummaryTitleHeight + GapBelowHeading;
+            }
+            top = LayoutBody(bodyText, bodyTile, saveButton, top, width);
+            if (!isTranscriptShown && !isRegenerating)
+            {
+                foreach (FeedbackPage page in pages.Skip(1))
+                {
+                    if (string.IsNullOrEmpty(page.Body))
+                        continue;
+                    Image tile = Instantiate(bodyTile, scroll.content);
+                    TMP_Text text = Instantiate(bodyText, scroll.content);
+                    Button save = tile.GetComponentInChildren<Button>(true);
+                    additionalBodies.Add(tile.gameObject);
+                    additionalBodies.Add(text.gameObject);
+                    text.text = page.Body;
+                    if (save != null)
+                    {
+                        save.onClick.RemoveAllListeners();
+                        ReferenceExpression expression = page.Expression;
+                        save.gameObject.SetActive(isSaveAvailable && expression != null);
+                        save.interactable = true;
+                        if (expression != null)
+                        {
+                            save.onClick.AddListener(() =>
+                                SaveRequested?.Invoke(expression.English, expression.Korean)
+                            );
+                            saveButtons[expression.English] = save;
+                        }
+                    }
+                    top = LayoutBody(text, tile, save, top, width);
+                }
+            }
+            scroll.content.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Vertical,
+                Mathf.Max(scroll.viewport.rect.height, top)
+            );
             bodyText.ForceMeshUpdate();
-            int textPages = Mathf.Max(1, bodyText.textInfo.pageCount);
-            pagesPerCard[current] = textPages;
-            textPage = Mathf.Clamp(textPage, 1, textPages);
-            bodyText.pageToDisplay = textPage;
-            pageNumberText.text = FeedbackPageNumber.Format(pagesPerCard, current, textPage);
-            previousButton.interactable = pageIndex > 0 || textPage > 1;
-            nextButton.interactable = pageIndex + 1 < count || textPage < textPages;
-            ShowSectionPaging(textPages);
         }
 
-        // 요약 탭은 두 칸을 제목 옆 쪽 넘김으로 따로 넘기고, 다른 탭에서는 숨긴다.
-        private void ShowSectionPaging(int summaryPages)
+        private float LayoutBody(TMP_Text text, Image tile, Button save, float top, float width)
         {
-            if (IsSummarySplit)
-            {
-                situationPaging?.Show(situationPage + 1, SituationPageCount);
-                summaryPaging?.Show(textPage, summaryPages);
-            }
-            else
-            {
-                situationPaging?.Hide();
-                summaryPaging?.Hide();
-            }
+            bool shown = !string.IsNullOrEmpty(text.text);
+            tile.gameObject.SetActive(shown);
+            if (!shown)
+                return top;
+            text.overflowMode = TextOverflowModes.Overflow;
+            float saveRoom =
+                save != null && save.gameObject.activeSelf
+                    ? ((RectTransform)save.transform).sizeDelta.x + 24
+                    : 0;
+            float textWidth = Mathf.Max(1, width - TileSide * 2 - saveRoom);
+            float height = text.GetPreferredValues(text.text, textWidth, 0).y;
+            if (save != null && save.gameObject.activeSelf)
+                height = Mathf.Max(height, ((RectTransform)save.transform).sizeDelta.y);
+            Pin(text.rectTransform, TileSide, top + TileTop, textWidth, height);
+            Pin(tile.rectTransform, 0, top, width, height + TileTop + TileBottom);
+            if (save != null)
+                ((RectTransform)save.transform).anchoredPosition = new Vector2(-TileSide, -TileTop);
+            return top + height + TileTop + TileBottom + GapBelowRows;
         }
 
         public void SelectSection(FeedbackSection selected)
         {
             section = selected;
-            pageIndex = 0;
-            textPage = 1;
-            situationPage = 0;
             pages = FeedbackPages.Create(feedback, section);
             Refresh();
+            scroll.verticalNormalizedPosition = 1;
         }
 
-        // 요약 탭 위 칸의 표현을 두 개씩 넘긴다. 아래 요약 칸은 지금 장을 그대로 둔다.
-        private void MoveSituationPage(int step)
-        {
-            situationPage = Mathf.Clamp(situationPage + step, 0, SituationPageCount - 1);
-            Refresh();
-        }
+        public void PreviousPage() =>
+            scroll.verticalNormalizedPosition = Mathf.Clamp01(
+                scroll.verticalNormalizedPosition + .75f
+            );
 
-        // 요약 탭 아래 칸의 요약 글을 칸 안에서 넘긴다.
-        private void MoveSummaryPage(int step)
-        {
-            textPage = Mathf.Clamp(textPage + step, 1, Mathf.Max(1, bodyText.textInfo.pageCount));
-            Refresh();
-        }
-
-        public void PreviousPage()
-        {
-            if (textPage > 1)
-                textPage--;
-            else if (!isTranscriptShown && pageIndex > 0)
-                pageIndex--;
-            Refresh();
-        }
-
-        public void NextPage()
-        {
-            if (textPage < Mathf.Max(1, bodyText.textInfo.pageCount))
-                textPage++;
-            else if (!isTranscriptShown && pageIndex + 1 < pages.Count)
-            {
-                pageIndex++;
-                textPage = 1;
-            }
-            Refresh();
-        }
+        public void NextPage() =>
+            scroll.verticalNormalizedPosition = Mathf.Clamp01(
+                scroll.verticalNormalizedPosition - .75f
+            );
 
         private void RequestSave()
         {
@@ -662,37 +744,7 @@ namespace A305.Learning
         private void ToggleTranscript()
         {
             isTranscriptShown = !isTranscriptShown;
-            textPage = 1;
             Refresh();
-        }
-
-        // 제목 옆 쪽 넘김(‹ 1 / 2 ›) 하나. 장이 하나뿐이어도 숫자는 보이고 화살표만 누를 수 없다.
-        private sealed class SectionPaging
-        {
-            private readonly GameObject root;
-            private readonly Button previous;
-            private readonly Button next;
-            private readonly TMP_Text number;
-
-            public SectionPaging(RectTransform pager, UnityAction back, UnityAction forward)
-            {
-                root = pager.gameObject;
-                previous = pager.Find("PreviousButton").GetComponent<Button>();
-                next = pager.Find("NextButton").GetComponent<Button>();
-                number = pager.Find("PageNumber").GetComponent<TMP_Text>();
-                previous.onClick.AddListener(back);
-                next.onClick.AddListener(forward);
-            }
-
-            public void Show(int page, int count)
-            {
-                root.SetActive(true);
-                number.text = $"{page} / {count}";
-                previous.interactable = page > 1;
-                next.interactable = page < count;
-            }
-
-            public void Hide() => root.SetActive(false);
         }
     }
 }

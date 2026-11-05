@@ -59,7 +59,7 @@ def test_stages_match_spring_first_day_mission(stage):
     instruction, goals = E.STAGES[stage]
     assert f'"{instruction}"' in re.sub(r'"\s*\+\s*"', "", JAVA_STAGES)
     block = re.split(r"\n  [A-Z_]+\(|;\n", JAVA_STAGES.split(f"\n  {stage}(", 1)[1], maxsplit=1)[0]
-    java_goals = re.findall(r'goal\(\s*"(\w+)",\s*"[^"]*",\s*"([^"]*)"\)', block)
+    java_goals = re.findall(r'goal\(\s*"(\w+)",\s*"[^"]*",\s*"([^"]*)"(?:,\s*"[^"]*")?\s*\)', block)
     assert dict(java_goals) == goals
 
 

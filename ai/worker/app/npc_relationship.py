@@ -136,21 +136,22 @@ def person_state(relationship: dict, learner_turns: list[LearnerTurn], profile: 
     """대답 지시문에 말로 풀어 넣을 지금 상태. 숫자는 지시문에 넣지 않는다.
     - known: 얼마나 알아보는지 new(처음 봄)·familiar(본 적 있음)·regular(단골). 오래 안 온 날만큼 줄어든 알아봄으로 정한다
     - feeling: liked·disliked·None(티 나지 않음)
-    - personal: 자기 이야기를 조금 할 만큼 가까운지
+    - personal: 자기 이야기를 조금 할 만큼 가까운지. 기준(알아봄·호감)에 NPC의 personalTalkScale을 곱한다(거리를 두는 성격은 늦게)
     - annoyed·pleased: 이번 대화의 사건으로 짜증 나 있는지·기분이 좋은지. 둘 다면 더 큰 쪽만 (반대인 말투 지시를 함께 주지 않음)"""
     thresholds = rules["relationship"]
+    rates = npc_rates(profile, rules, library)
     recognition = recognition_today(relationship.get("recognition", 0), relationship.get("days_since_last_talk", 0), rules)
     affinity = relationship.get("affinity", 0)
     known = "regular" if recognition >= thresholds["regular"] else "familiar" if recognition >= thresholds["seenBefore"] else "new"
     feeling = "liked" if affinity >= thresholds["liked"] else "disliked" if affinity <= thresholds["disliked"] else None
-    personal = thresholds["personalTalk"]
-    now = moods(learner_turns, npc_rates(profile, rules, library), rules)
+    personal, personal_scale = thresholds["personalTalk"], rates.get("personalTalkScale", 1)
+    now = moods(learner_turns, rates, rules)
     annoyed, pleased = now.get("ANNOYED", 0), now.get("PLEASED", 0)
     shows = rules["mood"]["showsAt"]
     return {
         "known": known,
         "feeling": feeling,
-        "personal": recognition >= personal["recognition"] and affinity >= personal["affinity"],
+        "personal": recognition >= personal["recognition"] * personal_scale and affinity >= personal["affinity"] * personal_scale,
         "annoyed": annoyed >= shows and annoyed >= pleased,
         "pleased": pleased >= shows and pleased > annoyed,
     }

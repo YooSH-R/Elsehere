@@ -36,12 +36,8 @@ namespace A305.EditorTools.World
         private const string OfficerSettingsPath = "Assets/Data/Npc/PoliceOfficerSettings.asset";
         private const string MockLinesPath = "Assets/Data/Npc/MockNpcLines.asset";
         private const string OfficerCode = "POLICE_OFFICER";
-        private const string HotelierPath =
-            "Assets/Prefabs/Characters/Tripo/LittleMung_HotelStaff_male.prefab";
         private const string HotelierFolder =
             "Assets/Art/Characters/Tripo/LittleMung_HotelStaff_male";
-        private const string UniformTexturePath = ArtFolder + "/PoliceOfficerUniform.png";
-        private const string UniformMaterialPath = ArtFolder + "/PoliceOfficerUniform.mat";
 
         // 순찰차가 도는 본길. 남쪽 끝은 택시와 같이 주차 트럭 우회가 끝나는 z=-25다.
         private const float SouthEnd = -25f;
@@ -487,10 +483,7 @@ namespace A305.EditorTools.World
                 Transform placeholder = staff.transform.Find("Visual");
                 placeholder.gameObject.SetActive(false);
                 PrefabUtility.RecordPrefabInstancePropertyModifications(placeholder.gameObject);
-                Dress(staff.transform);
                 var controller = staff.GetComponent<CharacterController>();
-                controller.height = 1.6f;
-                controller.center = new Vector3(0, .8f, 0);
                 controller.radius = .36f;
                 PrefabUtility.RecordPrefabInstancePropertyModifications(controller);
                 BuilderTools.SetReference(
@@ -502,7 +495,7 @@ namespace A305.EditorTools.World
                 );
             }
 
-            NpcVisualBuilder.FitFooting(officer.GetComponent<CharacterController>());
+            NpcVisualBuilder.Connect(officer, NpcCast.Find(code).Look.PrefabPath, true);
             Passerby passerby = officer.GetComponent<Passerby>();
             BuilderTools.SetReference(passerby, "settings", OfficerSettings());
             BuilderTools.SetReference(
@@ -513,7 +506,7 @@ namespace A305.EditorTools.World
             BuilderTools.SetReference(
                 officer.GetComponent<CharacterAnimationDriver>(),
                 "animator",
-                officer.transform.Find("OfficerVisual").GetComponentInChildren<Animator>()
+                officer.GetComponentInChildren<Animator>()
             );
             NpcCastDresser.Dress(officer.gameObject, NpcCast.Find(code));
             NpcBuilder.ConnectToScene(
@@ -540,175 +533,6 @@ namespace A305.EditorTools.World
             fields.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.CreateAsset(settings, OfficerSettingsPath);
             return settings;
-        }
-
-        private static void Dress(Transform staff)
-        {
-            GameObject visual = BuilderTools.InstantiatePrefab(
-                BuilderTools.LoadRequiredAsset<GameObject>(
-                    HotelierPath,
-                    "Tripo hotelier character"
-                ),
-                staff,
-                Vector3.zero,
-                Quaternion.identity
-            );
-            visual.name = "OfficerVisual";
-            Material uniform = UniformMaterial();
-            foreach (Renderer renderer in visual.GetComponentsInChildren<Renderer>(true))
-            {
-                if (
-                    renderer.sharedMaterials.Any(material =>
-                        material != null && material.name == "Material_0"
-                    )
-                )
-                {
-                    renderer.sharedMaterials = renderer
-                        .sharedMaterials.Select(material =>
-                            material != null && material.name == "Material_0" ? uniform : material
-                        )
-                        .ToArray();
-                    PrefabUtility.RecordPrefabInstancePropertyModifications(renderer);
-                }
-            }
-            Cap(visual);
-        }
-
-        // 호텔리어 텍스처에서 어두운 갈색(바지·구두)만 남색으로 바꾼 사본. 피부·머리털처럼 밝은 갈색과 눈동자처럼 거의 검은 색은 두다.
-        private static Material UniformMaterial()
-        {
-            var material = AssetDatabase.LoadAssetAtPath<Material>(UniformMaterialPath);
-            if (material != null)
-                return material;
-            if (!File.Exists(UniformTexturePath))
-            {
-                var texture = new Texture2D(2, 2, TextureFormat.RGB24, false);
-                texture.LoadImage(
-                    File.ReadAllBytes(HotelierFolder + "/Textures/Material_0_color.png")
-                );
-                Color32[] pixels = texture.GetPixels32();
-                for (int index = 0; index < pixels.Length; index++)
-                {
-                    UnityEngine.Color.RGBToHSV(
-                        pixels[index],
-                        out float hue,
-                        out float saturation,
-                        out float value
-                    );
-                    bool darkBrown =
-                        (hue < .11f || hue > .97f)
-                        && saturation > .3f
-                        && value > .12f
-                        && value < .45f;
-                    if (darkBrown)
-                        pixels[index] = UnityEngine.Color.HSVToRGB(.62f, .5f, value * .95f);
-                }
-                texture.SetPixels32(pixels);
-                File.WriteAllBytes(UniformTexturePath, texture.EncodeToPNG());
-                Object.DestroyImmediate(texture);
-                AssetDatabase.ImportAsset(UniformTexturePath);
-            }
-            material = new Material(
-                AssetDatabase.LoadAssetAtPath<Material>(
-                    HotelierFolder + "/Materials/Material_0.mat"
-                )
-            );
-            material.name = "PoliceOfficerUniform";
-            material.SetTexture(
-                "_BaseMap",
-                AssetDatabase.LoadAssetAtPath<Texture2D>(UniformTexturePath)
-            );
-            AssetDatabase.CreateAsset(material, UniformMaterialPath);
-            return material;
-        }
-
-        // 머리 꼭대기에 남색 모자, 앞쪽에 검은 챙과 금색 휘장을 얹고 머리 뼈를 따라 움직이게 한다.
-        // 편집 화면에 저장된 자세는 고개가 돌아가 있을 수 있어 모델의 원래 자세(바인드 포즈)로 자리를 정하고,
-        // 원래 자세의 머리 뼈 기준으로 붙인다. 플레이에서 서 있기 동작으로 고개가 돌아와도 모자가 머리 앞을 본다.
-        private static void Cap(GameObject visual)
-        {
-            Transform head = visual
-                .GetComponentInChildren<Animator>()
-                .GetBoneTransform(HumanBodyBones.Head);
-            SkinnedMeshRenderer skin = visual
-                .GetComponentsInChildren<SkinnedMeshRenderer>()
-                .First(renderer => Array.IndexOf(renderer.bones, head) >= 0);
-            Animator animator = visual.GetComponentInChildren<Animator>();
-            Matrix4x4 headAtBind = AtBind(skin, head);
-            Bounds skull = BindHeadBounds(skin, headAtBind.GetColumn(3).y);
-            // 원래 자세에서 얼굴이 보는 쪽: 왼쪽 위팔에서 오른쪽 위팔로 가는 방향에 수직인 앞
-            Vector3 right =
-                AtBind(skin, animator.GetBoneTransform(HumanBodyBones.RightUpperArm)).GetColumn(3)
-                - AtBind(skin, animator.GetBoneTransform(HumanBodyBones.LeftUpperArm)).GetColumn(3);
-            right.y = 0;
-            Transform cap = BuilderTools.CreateEmpty(
-                "PoliceCap",
-                visual.transform,
-                Vector3.zero,
-                Quaternion.identity
-            );
-            cap.SetPositionAndRotation(
-                new Vector3(skull.center.x, skull.max.y - skull.size.y * .28f, skull.center.z),
-                Quaternion.LookRotation(Vector3.Cross(right.normalized, Vector3.up))
-            );
-            float width = Mathf.Min(skull.size.x, skull.size.z);
-            Material navy = Color("PoliceCapNavy", "#22314A");
-            Material brim = Color("PoliceCapBrim", "#15181C");
-            Post("Crown", cap, Vector3.up * width * .13f, width * .36f, width * .26f, navy);
-            Post("Top", cap, Vector3.up * width * .28f, width * .39f, width * .05f, navy);
-            Post("Band", cap, Vector3.up * width * .03f, width * .365f, width * .06f, brim);
-            Transform visor = Post(
-                "Visor",
-                cap,
-                new Vector3(0, 0, width * .3f),
-                width * .24f,
-                width * .02f,
-                brim
-            );
-            visor.localScale = new Vector3(
-                visor.localScale.x * 1.3f,
-                visor.localScale.y,
-                visor.localScale.z * .8f
-            );
-            Ball(
-                "Badge",
-                cap,
-                new Vector3(0, width * .15f, width * .36f),
-                new Vector3(width * .12f, width * .12f, width * .03f),
-                Color("PoliceCapBadge", "#D8B24A")
-            );
-            Matrix4x4 onHead = headAtBind.inverse * cap.localToWorldMatrix;
-            cap.SetParent(head, false);
-            cap.SetLocalPositionAndRotation(onHead.GetColumn(3), onHead.rotation);
-            cap.localScale = onHead.lossyScale;
-        }
-
-        // 바인드 포즈에서 뼈의 월드 행렬. 메시를 만들 때의 렌더러 기준 자세다.
-        private static Matrix4x4 AtBind(SkinnedMeshRenderer skin, Transform bone) =>
-            skin.transform.localToWorldMatrix
-            * skin.sharedMesh.bindposes[Array.IndexOf(skin.bones, bone)].inverse;
-
-        // 원래 자세에서 머리 뼈보다 높은 꼭짓점의 경계
-        private static Bounds BindHeadBounds(SkinnedMeshRenderer skin, float neck)
-        {
-            Bounds? bounds = null;
-            foreach (Vector3 vertex in skin.sharedMesh.vertices)
-            {
-                Vector3 point = skin.transform.TransformPoint(vertex);
-                if (point.y < neck)
-                    continue;
-                if (bounds == null)
-                    bounds = new Bounds(point, Vector3.zero);
-                else
-                {
-                    Bounds grown = bounds.Value;
-                    grown.Encapsulate(point);
-                    bounds = grown;
-                }
-            }
-            if (bounds == null)
-                throw new InvalidOperationException("경찰관 머리 모양을 찾지 못했습니다.");
-            return bounds.Value;
         }
 
         // ---------- 창구 ----------

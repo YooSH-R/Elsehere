@@ -70,7 +70,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 
 | API | 설명 |
 | --- | --- |
-| `DialogueController.TryStart(string npcCode, Transform lookTarget, ConversationInitiator initiatedBy = Npc)` | 대화를 시작합니다. 이미 대화 중이면 false를 돌려줍니다. 플레이어가 [말 걸기]로 먼저 건 대화는 `ConversationInitiator.User`로 넘기고, 서버 대화 시작(CONV-01)에 `initiatedBy: USER`로 보냅니다. NPC가 제안한 대화는 기본값(`NPC`)입니다. |
+| `DialogueController.TryStart(string npcCode, Transform lookTarget, ConversationInitiator initiatedBy = Npc)` | 대화를 시작합니다. 이미 대화 중이면 false를 돌려줍니다. 플레이어가 [말 걸기]나 NPC 클릭·탭으로 먼저 건 대화는 `ConversationInitiator.User`로 넘기고, 서버 대화 시작(CONV-01)에 `initiatedBy: USER`로 보냅니다. NPC가 제안한 대화는 기본값(`NPC`)입니다. |
 | `DialogueController.End()` | 대화를 끝내고 플레이어를 대화하던 NPC 쪽으로 돌린 뒤 시점과 이동을 되돌립니다. [대화 종료] 버튼과 Esc도 이 동작을 합니다. |
 | `DialogueController.RegenerateFeedbackAsync(ServerFeedback)` | 만들지 못한 피드백을 다시 만듭니다. 서버 대화가 아니거나 대화 ID가 없으면 받은 피드백을 그대로 돌려줍니다. |
 | `DialogueController.IsTalking` | 대화 중인지 |
@@ -118,6 +118,8 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 대화 시점·이동 잠금·[대화 종료]는 Npc 모듈의 PlayMode 테스트에서 함께 확인합니다. Esc 종료는 키 입력을 그대로 전달하는 연결이라 Play에서 확인합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.
 
 ## NPC 얼굴과 음성 재생
+
+공통 감정을 적용한 12종 NPC 외형은 `CharacterSpeechPlayer`의 기본 기분으로 새 음성 대사를 재생합니다. `ConfigureMood` 또는 Inspector로 다음 발화의 기분·강도를 설정하고, 발화별 감정 시간표가 있으면 그것이 우선합니다. 기본값은 인자한 미소이며, LLM 감정 추론·서버 감정 매핑은 별도 연결이 필요합니다. 지원 외형과 검수 씬은 [말하기 중 NPC 감정 표정 검수](../../../../../docs/unity/npc-speaking-emotions.md)를 참고합니다.
 
 대화 시작 시 `LookTarget`의 부모 `DialogueSpeaker`가 선택된 NPC의 얼굴·재생기를 준비합니다. `NpcIdentity`가 화자 컴포넌트를 자동으로 제공하므로 NPC별 Builder 연결을 반복하지 않습니다. 얼굴 채널이 부족하면 `LipSyncNotice`에 이유를 남기고 기존 음성 재생을 유지합니다. 지원되는 모델은 같은 WAV의 음소 시간표와 AudioSource 샘플 위치를 사용하며, 화자 변경·종료·늦은 음성 응답 취소는 기존 수명 처리를 따릅니다. 표정 메시 생성이나 LLM 감정 추론 기능은 아닙니다.
 

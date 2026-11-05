@@ -40,7 +40,14 @@ namespace A305.Mission
         public long FollowUpId { get; set; }
 
         /// <summary>줄 끝 X: 이 줄을 닫는다. 연결은 QuestCardBuilder가 넣는다.</summary>
-        public void Close() => GetComponentInParent<FollowUpCardView>(true)?.Dismiss(FollowUpId);
+        public void Close()
+        {
+            var card = GetComponentInParent<FollowUpCardView>(true);
+            if (card != null)
+            {
+                card.Dismiss(FollowUpId);
+            }
+        }
 
         public void Show(FollowUpCardRow row, Sprite markSprite)
         {

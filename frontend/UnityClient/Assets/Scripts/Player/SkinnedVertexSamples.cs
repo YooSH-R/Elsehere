@@ -19,7 +19,11 @@ namespace A305.Player
 
         private readonly List<Surface> surfaces = new();
 
-        public SkinnedVertexSamples(Animator animator, Func<string, bool> includesBone)
+        public SkinnedVertexSamples(
+            Animator animator,
+            Func<string, bool> includesBone,
+            float minimumInfluence = .5f
+        )
         {
             foreach (var skin in animator.GetComponentsInChildren<SkinnedMeshRenderer>())
             {
@@ -39,7 +43,7 @@ namespace A305.Player
                         + (flags[w.boneIndex1] ? w.weight1 : 0)
                         + (flags[w.boneIndex2] ? w.weight2 : 0)
                         + (flags[w.boneIndex3] ? w.weight3 : 0);
-                    if (influence < 0.5f)
+                    if (influence < minimumInfluence)
                         continue;
                     selectedVertices.Add(vertices[i]);
                     selectedWeights.Add(w);
@@ -80,6 +84,43 @@ namespace A305.Player
                         + surface.matrices[w.boneIndex2].MultiplyPoint3x4(v) * w.weight2
                         + surface.matrices[w.boneIndex3].MultiplyPoint3x4(v) * w.weight3;
                     minimum = Mathf.Min(minimum, Vector3.Dot(point - planePoint, planeNormal));
+                }
+            }
+            return minimum;
+        }
+
+        public float ClearanceFrom(Bounds head, Bounds torso, Transform space)
+        {
+            float minimum = float.PositiveInfinity;
+            float Distance(Vector3 point, Bounds bounds)
+            {
+                var offset = point - bounds.center;
+                var radius = bounds.extents;
+                return new Vector3(
+                    offset.x / radius.x,
+                    offset.y / radius.y,
+                    offset.z / radius.z
+                ).magnitude;
+            }
+            foreach (var surface in surfaces)
+            {
+                for (int i = 0; i < surface.matrices.Length; i++)
+                    surface.matrices[i] =
+                        surface.bones[i].localToWorldMatrix * surface.bindPoses[i];
+                for (int i = 0; i < surface.vertices.Length; i++)
+                {
+                    var v = surface.vertices[i];
+                    var w = surface.weights[i];
+                    var point = space.InverseTransformPoint(
+                        surface.matrices[w.boneIndex0].MultiplyPoint3x4(v) * w.weight0
+                            + surface.matrices[w.boneIndex1].MultiplyPoint3x4(v) * w.weight1
+                            + surface.matrices[w.boneIndex2].MultiplyPoint3x4(v) * w.weight2
+                            + surface.matrices[w.boneIndex3].MultiplyPoint3x4(v) * w.weight3
+                    );
+                    minimum = Mathf.Min(
+                        minimum,
+                        Mathf.Min(Distance(point, head), Distance(point, torso))
+                    );
                 }
             }
             return minimum;

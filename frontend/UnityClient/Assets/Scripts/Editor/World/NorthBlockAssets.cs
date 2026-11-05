@@ -29,10 +29,10 @@ namespace A305.EditorTools.World
             AddWord("toy", "toy", "장난감", "I like this toy.", "이 장난감이 마음에 들어요.");
             AddWord(
                 "game_console",
-                "game console",
-                "게임기",
-                "Where is the game console?",
-                "게임기는 어디에 있나요?"
+                "arcade game",
+                "오락실 게임기",
+                "Let's play an arcade game.",
+                "오락실 게임을 해 봐요."
             );
             ObjectWordRegistration.PrepareSource();
             Prop("ClawMachine", "ClawMachine/Toy_Claw_01.fbx", 2.1f, "claw_machine");

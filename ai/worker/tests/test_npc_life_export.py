@@ -44,6 +44,11 @@ def test_need_rates_come_from_the_personality_and_default_to_one():
     assert jake["needRates"] == {need: rates.get(need, 1) for need in NEEDS}
 
 
+def test_street_staff_keeps_its_workplace_separate_from_the_town_scene():
+    assert exported("BANK_STAFF")["workplace"] == "BANK"
+    assert exported("BANK_STAFF")["scene"] == "TOWN"
+
+
 def test_shared_rules_are_copied_as_they_are_with_the_simulation_threshold():
     data, rules = npc_life_export.unity_life_data(), service_rules()
 

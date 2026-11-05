@@ -190,18 +190,16 @@ namespace A305.EditorTools.Learning
             Render(camera, view, Path.Combine(output, "feedback-long-first.png"), 1600, 1000);
             var body = (TMPro.TMP_Text)
                 new SerializedObject(view).FindProperty("bodyText").objectReferenceValue;
-            if (body.textInfo.pageCount < 2)
-                throw new System.InvalidOperationException("Long feedback did not paginate.");
-            view.NextPage();
-            if (body.pageToDisplay != 2)
-                throw new System.InvalidOperationException("Next page did not advance.");
-            Render(camera, view, Path.Combine(output, "feedback-long-second.png"), 1600, 1000);
-            view.PreviousPage();
-            if (body.pageToDisplay != 1)
-                throw new System.InvalidOperationException("Previous page did not return.");
+            var scroll = view.GetComponentInChildren<UnityEngine.UI.ScrollRect>();
+            if (scroll.content.rect.height <= scroll.viewport.rect.height)
+                throw new System.InvalidOperationException(
+                    "Long feedback did not expand for scrolling."
+                );
+            scroll.verticalNormalizedPosition = 0;
+            Render(camera, view, Path.Combine(output, "feedback-long-bottom.png"), 1600, 1000);
             File.WriteAllText(
-                Path.Combine(output, "pagination-check.txt"),
-                $"Long feedback pages: {body.textInfo.pageCount}; next/previous: passed; external model calls: 0"
+                Path.Combine(output, "scroll-check.txt"),
+                $"Content height: {scroll.content.rect.height}; viewport: {scroll.viewport.rect.height}; external model calls: 0"
             );
         }
 

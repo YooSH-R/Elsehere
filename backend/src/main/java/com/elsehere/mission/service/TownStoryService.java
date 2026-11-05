@@ -90,10 +90,11 @@ public class TownStoryService {
                   new WorkerState(
                       "town_story_" + story.getStage(),
                       current.instruction()
-                          + " Recognize only the learner's own current request, not a quoted example or hypothetical.",
+                          + " Combine explicit facts across learner turns; the current utterance must contribute. Never credit NPC lines, quoted examples, negatives or hypotheticals.",
                       current.goalIds().stream()
                           .map(id -> new WorkerState.Intent(id, TownStoryStage.goalDescription(id)))
-                          .toList());
+                          .toList(),
+                      true);
               return new FirstDayMissionService.Context(
                   story.getStage(),
                   state,
@@ -123,7 +124,9 @@ public class TownStoryService {
       for (int goal = 0; goal < stage.goalIds().size(); goal++) {
         String id = stage.goalIds().get(goal);
         boolean done = started && (index < current || (index == current && story.hasGoal(goal)));
-        goals.add(new FirstDayMissionResponse.Goal(id, TownStoryStage.goalTitle(id), done));
+        goals.add(
+            new FirstDayMissionResponse.Goal(
+                id, TownStoryStage.goalTitle(id), done, TownStoryStage.goalHint(id)));
       }
       String stepStatus =
           !started || index > current ? "UPCOMING" : index < current ? "DONE" : "CURRENT";

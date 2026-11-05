@@ -19,5 +19,5 @@ public record FirstDayMissionResponse(
   public record Step(
       int index, String title, String scene, String npcCode, String status, List<Goal> goals) {}
 
-  public record Goal(String id, String title, boolean completed) {}
+  public record Goal(String id, String title, boolean completed, String hint) {}
 }

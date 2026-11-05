@@ -32,7 +32,9 @@ namespace A305.EditorTools.Learning
 
         internal static void SetUp(GameObject root, FeedbackView view)
         {
-            Transform card = root.transform.Find("Panel/PageCard");
+            Transform card =
+                root.transform.Find("Panel/PageCard/Content")
+                ?? root.transform.Find("Panel/PageCard");
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
 

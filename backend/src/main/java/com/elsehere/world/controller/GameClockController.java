@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -21,7 +22,23 @@ public class GameClockController {
   }
 
   @PostMapping("/api/v1/me/game-clock/beats")
-  public GameClockResponse beat(@AuthenticationPrincipal LoginUser loginUser) {
-    return gameClockService.beat(loginUser.userId());
+  public GameClockResponse beat(
+      @AuthenticationPrincipal LoginUser loginUser,
+      @RequestBody(required = false) InteractionPause request) {
+    if (request == null) {
+      return gameClockService.beat(loginUser.userId());
+    }
+    if (request.activeSeconds() == null) {
+      return gameClockService.beat(
+          loginUser.userId(), request.interactionPaused(), request.interactionWasPaused());
+    }
+    return gameClockService.beat(
+        loginUser.userId(),
+        request.interactionPaused(),
+        request.interactionWasPaused(),
+        request.activeSeconds());
   }
+
+  public record InteractionPause(
+      boolean interactionPaused, boolean interactionWasPaused, Long activeSeconds) {}
 }

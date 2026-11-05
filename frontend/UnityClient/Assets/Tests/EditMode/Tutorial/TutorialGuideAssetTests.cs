@@ -99,7 +99,7 @@ namespace A305.Tutorial.Tests
             Assert.That(guide.DialogueToolsCaption, Does.Contain("{예시 문장}"));
             Assert.That(guide.DialogueEndCaption, Does.Contain("{대화 종료}"));
             Assert.That(guide.FeedbackSectionsCaption, Does.Contain("{요약}"));
-            Assert.That(guide.FeedbackPagesCaption, Does.Contain("화살표"));
+            Assert.That(guide.FeedbackPagesCaption, Does.Contain("스크롤"));
             Assert.That(
                 guide.FeedbackCloseCaption,
                 Does.Contain("{X}"),

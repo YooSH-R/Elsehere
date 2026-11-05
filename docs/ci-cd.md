@@ -8,7 +8,7 @@
 
 저장소의 CI 설정과 연결된 Runner는 자동 검사를 실행합니다. dev 자동 배포는 별도 구현·연결 시험 중이며 실제 성공 배포를 확인하기 전까지 수동 배포 상태로 관리합니다. 앱 교체 시 [관측 운영 문서](observability.md)의 관리 포트·수집 인증·추가 Compose·로그 설정을 보존합니다. 설치와 누적 판정·모니터링 보존·실패 복구·재실행은 [dev 자동 배포 운영](dev-auto-deployment.md)을 따릅니다.
 
-현재 검사 설정에는 백엔드 검사·빌드, Unity 포맷·EditMode·PlayMode, AI 검사·단위 테스트, 인프라 문법·누적 배포 판정과 실제 앱 컨테이너 실행 검사가 포함됩니다. Unity 관련 MR은 바뀐 영역에 맞는 실제 Editor 테스트까지 필수로 통과해야 병합할 수 있습니다. dev 배포용 자식 파이프라인은 마지막 성공 배포를 기준으로 검사를 선택하고, 병합된 결과의 Unity Editor 검사·필요한 WebGL 빌드를 Windows 노트북 전용 Runner에서 수행합니다. 보호된 후보의 수동 시험도 유지합니다. MR 검사 적용에는 Windows Runner가 프로젝트 작업 브랜치 작업을 받을 수 있어야 하며, 실행 조건·산출물·연결 조건은 [검사 파이프라인 문서](ci-runner.md)를 따릅니다.
+현재 검사 설정에는 백엔드 검사·빌드, Unity 포맷·EditMode·PlayMode·브라우저 연동 회귀 검사, AI 검사·단위 테스트, 인프라 문법·누적 배포 판정과 실제 앱 컨테이너 실행 검사가 포함됩니다. Unity 관련 MR은 바뀐 영역에 맞는 실제 Editor 테스트까지 필수로 통과해야 병합할 수 있습니다. dev 배포용 자식 파이프라인은 마지막 성공 배포를 기준으로 검사를 선택하고, 병합된 결과의 Unity Editor 검사·필요한 WebGL 빌드를 Windows 노트북 전용 Runner에서 수행합니다. 보호된 후보의 수동 시험도 유지합니다. MR 검사 적용에는 Windows Runner가 프로젝트 작업 브랜치 작업을 받을 수 있어야 하며, 실행 조건·산출물·연결 조건은 [검사 파이프라인 문서](ci-runner.md)를 따릅니다.
 
 - 개발 배포 대상: `dev`, Compose 프로젝트 `a305-dev`.
 - 운영 배포 대상: `main`, Compose 프로젝트 `a305-prod`.
@@ -84,7 +84,7 @@ python infra/scripts/deployment_plan.py \
 
 일반 문서는 앱 빌드·배포를 생략합니다. `ai/feedback/prompts/`의 Markdown은 AI 실행 자산이므로 AI 검사와 이미지 빌드를 선택합니다. 테스트만 바꾸면 해당 영역 검사만 선택하고, API 명세·공통 CI 변경은 관련 전체 검사를 선택합니다. Compose 변경은 기존 이미지를 유지하며 전체 검사와 실행 구성 반영을 선택합니다. Dockerfile·Web 응답 설정 변경은 해당 이미지의 빌드를 선택합니다. 공유 호스트 Nginx는 검사 대상으로만 처리하며 자동으로 덮어쓰지 않습니다.
 
-`infra/scripts/prepare-unity-test-inputs.ps1`과 `infra/tests/tripo/`는 Unity 테스트의 실행 입력이므로 인프라와 Unity 검사를 함께 선택합니다. 테스트 입력만 바뀌면 앱 이미지는 재빌드하지 않습니다. Blender·생성 FBX의 준비와 미실행 판정은 [Windows Unity Runner](unity/windows-runner.md#blender와-fbx-테스트-입력)를 따릅니다.
+`infra/scripts/prepare-unity-test-inputs.ps1`과 `infra/tests/tripo/`는 Unity 테스트의 실행 입력이므로 인프라와 Unity 검사를 함께 선택합니다. `infra/tests/webgl_*.test.cjs`도 두 검사를 선택하며 Linux의 `unity:browser-tests`에서 실행합니다. 테스트 입력만 바뀌면 앱 이미지는 재빌드하지 않습니다. Blender·생성 FBX의 준비와 미실행 판정은 [Windows Unity Runner](unity/windows-runner.md#blender와-fbx-테스트-입력)를 따릅니다.
 
 판정 도구는 `infra:deployment-plan-tests` 작업에서 임시 Git 저장소를 사용해 검증합니다. 로컬에서도 다음 명령으로 실행할 수 있습니다.
 

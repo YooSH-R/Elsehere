@@ -71,21 +71,21 @@ unity:browser-tests:
     paths:
       - dist/unity-ci/
 
-unity:editor-tests:
-  extends: .unity-editor
-  needs: ["ci:yaml", "unity:format"]
+# Keep fork changes subject to project-branch review and local verification.
+unity:external-mr:
+  extends: .linux-light-job
+  stage: verify
+  image: alpine:3.22
+  needs: ["ci:yaml"]
   allow_failure: false
-  # Shared input changes still require the full suite and may trigger an asset import.
-  timeout: 45m
   script:
-    # Select changed test assemblies and tests of dependent runtime assemblies.
-    - powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action test -ChangedSince "$env:CI_MERGE_REQUEST_DIFF_BASE_SHA"
+    - echo "Review and copy fork Unity changes into a project branch for local verification before merging."
+    - exit 1
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_PROJECT_ID == $CI_MERGE_REQUEST_PROJECT_ID'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_PROJECT_ID != $CI_MERGE_REQUEST_PROJECT_ID'
       changes:
         compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
-        # Convention documents cannot change Editor results, so they only select the format check.
-        paths: &unity_editor_change_paths
+        paths:
           - frontend/**/*
           - docs/api/**/*
           - infra/scripts/unity-test-scope.ps1
@@ -94,23 +94,6 @@ unity:editor-tests:
           - infra/scripts/prepare-unity-test-inputs.ps1
           - infra/tests/tripo/**/*
           - .gitlab/ci/unity.yml
-
-# Fork code must not run under the notebook's licensed Windows account.
-# Keep affected fork MRs blocked rather than silently omitting their required test.
-unity:external-mr:
-  extends: .linux-light-job
-  stage: verify
-  image: alpine:3.22
-  needs: ["ci:yaml"]
-  allow_failure: false
-  script:
-    - echo "Unity tests require a branch in this project. Review and copy the fork changes into a project branch before merging."
-    - exit 1
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_PROJECT_ID != $CI_MERGE_REQUEST_PROJECT_ID'
-      changes:
-        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
-        paths: *unity_editor_change_paths
 
 unity:editor-and-webgl:
   extends: .unity-editor

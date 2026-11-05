@@ -89,6 +89,16 @@ namespace A305.EditorTools.Npc
         {
             var entry = (Prefab: prefabPath, TalkGesture: talkGesture);
             GameObject prefab = BuilderTools.LoadRequiredAsset<GameObject>(entry.Prefab, MenuPath);
+            var driver = npc.GetComponent<CharacterAnimationDriver>();
+            var previousAnimator =
+                new SerializedObject(driver).FindProperty("animator").objectReferenceValue
+                as Animator;
+            Transform previousVisual = previousAnimator != null ? previousAnimator.transform : null;
+            while (previousVisual != null && previousVisual.parent != npc.transform)
+                previousVisual = previousVisual.parent;
+            // 연결된 이전 외형만 교체한다. 소지품·시선 타깃·NPC 루트 설정은 보존한다.
+            if (previousVisual != null && !IsInstanceOf(previousVisual, entry.Prefab))
+                Object.DestroyImmediate(previousVisual.gameObject);
             foreach (Transform child in npc.transform.Cast<Transform>().ToArray())
             {
                 if (
@@ -189,12 +199,42 @@ namespace A305.EditorTools.Npc
                     Object.DestroyImmediate(baked);
                 }
 
-                Transform[] bones = copy.GetComponentsInChildren<Transform>(true);
-                float eyes =
-                    (
-                        bones.Single(bone => bone.name == "Left_Eye").position.y
-                        + bones.Single(bone => bone.name == "Right_Eye").position.y
-                    ) / 2;
+                // 머리 비율을 바꿔도 마스터 본은 유지하므로, 이식한 눈의 실제 표면을 먼저 잰다.
+                var eyeSurfaces = copy.GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .Where(skin =>
+                        skin.sharedMesh.name == "LeftEye" || skin.sharedMesh.name == "RightEye"
+                    )
+                    .ToArray();
+                float eyes;
+                if (eyeSurfaces.Length == 2)
+                {
+                    eyes = 0;
+                    var eyeMesh = new Mesh();
+                    try
+                    {
+                        foreach (var eye in eyeSurfaces)
+                        {
+                            eye.BakeMesh(eyeMesh, true);
+                            var heights = eyeMesh
+                                .vertices.Select(v => eye.transform.TransformPoint(v).y)
+                                .ToArray();
+                            eyes += (heights.Min() + heights.Max()) * .25f;
+                        }
+                    }
+                    finally
+                    {
+                        Object.DestroyImmediate(eyeMesh);
+                    }
+                }
+                else
+                {
+                    Transform[] bones = copy.GetComponentsInChildren<Transform>(true);
+                    eyes =
+                        (
+                            bones.Single(bone => bone.name == "Left_Eye").position.y
+                            + bones.Single(bone => bone.name == "Right_Eye").position.y
+                        ) / 2;
+                }
                 return (sole, eyes, top - sole);
             }
             finally

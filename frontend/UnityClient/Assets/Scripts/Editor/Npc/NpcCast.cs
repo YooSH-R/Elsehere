@@ -24,14 +24,7 @@ namespace A305.EditorTools.Npc
                 shoes: Palette.BlackShoes,
                 eyes: Palette.BrownEyes
             ),
-            Member(
-                "CAFE_SERVER",
-                NpcLooks.BlackYoungMale,
-                hair: Palette.BlackHair,
-                clothes: Palette.Black,
-                secondClothes: Palette.White,
-                eyes: Palette.BrownEyes
-            ),
+            Member("CAFE_SERVER", NpcLooks.CafeMale),
             // ---------- 호텔: 호텔 유니폼은 호텔 직원만 ----------
             Member("HOTEL_STAFF", NpcLooks.Hotelier),
             Member(
@@ -55,13 +48,7 @@ namespace A305.EditorTools.Npc
                 clothes: Palette.Charcoal,
                 eyes: Palette.GreenEyes
             ),
-            Member(
-                "HOTEL_NIGHT_MANAGER",
-                NpcLooks.MiddleAgeFemale,
-                hair: Palette.GreyHair,
-                clothes: Palette.Navy,
-                eyes: Palette.GreyEyes
-            ),
+            Member("HOTEL_NIGHT_MANAGER", NpcLooks.HotelierFemale),
             // ---------- 드럭스토어 ----------
             Member("SHOP_STAFF", NpcLooks.BlackYoungMale),
             Member(
@@ -84,7 +71,7 @@ namespace A305.EditorTools.Npc
                 "POLICE_SERGEANT",
                 NpcLooks.PoliceOfficer,
                 hair: Palette.GreyHair,
-                shoes: Palette.BlackShoes,
+                shoes: Palette.Navy,
                 eyes: Palette.BlueEyes
             ),
             Member(
@@ -159,13 +146,7 @@ namespace A305.EditorTools.Npc
                 secondClothes: Palette.Charcoal,
                 eyes: Palette.GreenEyes
             ),
-            // 할아버지 외형이 없어 중년 남성 외형을 흰 머리·크림색 셔츠로 나이 들어 보이게 한다. 함께 걷는 개(Pepper) 모델은 없다.
-            Member(
-                "TOWN_GRANDFATHER",
-                NpcLooks.MiddleAgeMale,
-                hair: Palette.WhiteHair,
-                clothes: Palette.Cream
-            ),
+            Member("TOWN_GRANDFATHER", NpcLooks.Grandfather),
             Member(
                 "TOWN_GRANDMOTHER",
                 NpcLooks.Grandmother,

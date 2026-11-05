@@ -882,11 +882,11 @@ namespace A305.Dialogue
             new Entry
             {
                 npcCode = "POLICE_ROOKIE",
-                npcName = "Tyler",
+                npcName = "Taylor",
                 roleLabel = "신입 경찰관",
                 opening = new LineEntry(
-                    "Hello! I'm Tyler. I just started here. How can I help?",
-                    "안녕하세요! 저는 Tyler예요. 여기 막 왔어요. 무엇을 도와드릴까요?"
+                    "Hello! I'm Taylor. I just started here. How can I help?",
+                    "안녕하세요! 저는 Taylor예요. 여기 막 왔어요. 무엇을 도와드릴까요?"
                 ),
                 keywordReplies = new List<KeywordReplyEntry>
                 {

@@ -101378,6 +101378,10 @@ Mesh:
       vertexCount: 905
       hasNormals: 1
       hasTangents: 0
+    - firstVertex: 25324
+      vertexCount: 0
+      hasNormals: 0
+      hasTangents: 0
     channels:
     - name: eyeBlinkRight
       nameHash: 1642583361
@@ -101407,6 +101411,10 @@ Mesh:
       nameHash: 3825295131
       frameIndex: 14
       frameCount: 1
+    - name: mouthLaughOpen
+      nameHash: 4030678429
+      frameIndex: 15
+      frameCount: 1
     fullWeights:
     - 25
     - 50
@@ -101417,6 +101425,7 @@ Mesh:
     - 50
     - 75
     - 90
+    - 100
     - 100
     - 100
     - 100

@@ -26,6 +26,8 @@ namespace A305.EditorTools.Npc
         public const string PasserbyPrefabPath = "Assets/Prefabs/Npc/Passerby.prefab";
 
         private const string OfferPrefabPath = "Assets/Prefabs/Npc/PasserbyOffer.prefab";
+        private const string HoverOutlineShaderPath = "Assets/Art/Npc/NpcHoverOutline.shader";
+        private const string HoverOutlineMaterialPath = "Assets/Art/Npc/NpcHoverOutline.mat";
         private const string TutorialSettingsPath =
             "Assets/Data/Npc/TutorialPasserbySettings.asset";
         private const string TownSettingsPath = "Assets/Data/Npc/TownPasserbySettings.asset";
@@ -477,6 +479,25 @@ namespace A305.EditorTools.Npc
 
             // 제안할 때만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.
             panel.gameObject.SetActive(false);
+
+            // NPC 클릭·탭으로 말 걸기. 이 화면은 NPC가 있는 장소마다 하나씩 있어 장면을 고치지 않고도 모든 장소에 붙는다.
+            var clickTalk = BuilderTools.GetOrAddComponent<NpcClickTalk>(root);
+            BuilderTools.SetReference(clickTalk, "outlineMaterial", LoadOrCreateHoverOutline());
+        }
+
+        // 커서를 올린 NPC에 덧그릴 테두리 재질. 이미 있으면 색·두께를 바꾼 디자인을 그대로 둔다.
+        private static Material LoadOrCreateHoverOutline()
+        {
+            var material = AssetDatabase.LoadAssetAtPath<Material>(HoverOutlineMaterialPath);
+            if (material != null)
+            {
+                return material;
+            }
+
+            var shader = BuilderTools.LoadRequiredAsset<Shader>(HoverOutlineShaderPath, MenuPath);
+            material = new Material(shader) { name = "NpcHoverOutline" };
+            AssetDatabase.CreateAsset(material, HoverOutlineMaterialPath);
+            return material;
         }
 
         /// <summary>

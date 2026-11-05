@@ -8,7 +8,7 @@ namespace A305.Npc
     /// <summary>
     /// 플레이어가 가까이 오면 먼저 다가와 대화를 제안하는 행인. 수락하면 대화를 시작하고,
     /// 거절하거나 무시하고 멀어지면 제자리로 돌아가 정해진 시간 동안 쉰다. 제안 중에는 카메라·이동을 잠그지 않는다.
-    /// 쉬는 동안에도 플레이어가 가까이 가면 [말 걸기]로 먼저 대화를 걸 수 있다.
+    /// 쉬는 동안에도 플레이어가 가까이 가면 [말 걸기]로 먼저 대화를 걸 수 있다. 조금 떨어져 있어도 몸을 클릭·탭해 말을 걸 수 있다(<see cref="NpcClickTalk"/>).
     /// 생활(<see cref="NpcRoutine"/>)이 붙은 NPC는 다가오지 않는 동안 제자리로 돌아가는 대신 일과와 욕구에 따라 지낸다.
     /// 튜토리얼에서 길을 묻는 행인(Ben)은 튜토리얼 동안 튜토리얼 대본·설정으로 말하고 생활하지 않는다(<see cref="SetTutorialScript"/>).
     /// 대화에서 준비해 주기로 한 것(<see cref="FollowUpStore"/>)이 다 되면 부르는 거리 안의 플레이어를 자리를 떠나지 않고 부른다.
@@ -195,12 +195,7 @@ namespace A305.Npc
         private void Update()
         {
             Vector3 toPlayer = HorizontalOffsetToPlayer();
-            // 다가오면 안 되는 때도 플레이어가 바쁠 때와 같게 다룬다. 이 행인을 기다리느라 잠긴 플레이어는 바쁘지 않다.
-            bool isPlayerBusy =
-                !IsApproachAllowed
-                || dialogue.IsTalking
-                || (player.IsMovementLocked && !IsPlayerWaiting)
-                || (offerView.IsShowing && !offerView.IsShownBy(this));
+            bool isPlayerBusy = IsPlayerOccupied || IsOtherOfferShowing;
             // 새 대화를 시작할 수 없으면(게스트 대화 횟수를 다 씀) 먼저 다가오지 않는다(기능 명세 F-39). [말 걸기] 자리에는 이유를 보인다.
             bool cannotStartConversation = !dialogue.Allowance.CanStartConversation;
             // 교대 밖의 직원은 다가오지 않고 [말 걸기]만 받는다. 카운터를 맡은 직원은 그 카운터를 응대하는 한 명이고,
@@ -372,20 +367,94 @@ namespace A305.Npc
             }
 
             offerView.HideTalkPrompt(this);
+            StartConversation(ConversationInitiator.User);
+        }
+
+        /// <summary>
+        /// 플레이어가 클릭·탭으로 이 NPC에게 말을 걸 수 있는지(기능 명세 F-22). 커서를 올렸을 때 테두리도 이 값으로 그린다.
+        /// [말 걸기]처럼 다른 대화·창·진행 흐름이 막으면 걸 수 없고, 클릭 거리 안이면 다가오거나 제안하는 중에도 걸 수 있다.
+        /// 대화를 다 쓴 게스트는 가입 안내 창을 열 수 있으므로 걸 수 있다고 본다. 다른 NPC가 거절할 수 없는 제안을 하는 중이면 걸 수 없다.
+        /// </summary>
+        /// <param name="reachMeters">클릭으로 말을 걸 수 있는 수평 거리</param>
+        public bool CanTalkByClick(float reachMeters)
+        {
+            if (!enabled || IsPlayerOccupied)
+            {
+                return false;
+            }
+
+            if (!approach.CanTalkByClick(HorizontalOffsetToPlayer().magnitude, reachMeters))
+            {
+                return false;
+            }
+
+            ConversationAllowance allowance = dialogue.Allowance;
+            if (!allowance.CanStartConversation)
+            {
+                return PasserbyOfferText.OffersSignup(allowance.RemainingConversations);
+            }
+
+            return !IsOtherOfferShowing || offerView.IsDeclineShown;
+        }
+
+        /// <summary>
+        /// 플레이어가 이 NPC를 클릭·탭했다(<see cref="CanTalkByClick"/>). 제안 중이면 [대화하기]를 누른 것과 같고, 아니면 플레이어가 먼저 말을 건다.
+        /// 다른 NPC의 제안은 [지금은 안 할래요]를 누른 것처럼 닫는다. 대화를 다 쓴 게스트에게는 가입 안내 창을 연다.
+        /// </summary>
+        /// <returns>대화를 시작했거나 가입 안내 창을 열었으면 true</returns>
+        public bool TalkByClick(float reachMeters)
+        {
+            if (!CanTalkByClick(reachMeters))
+            {
+                return false;
+            }
+
+            if (!dialogue.Allowance.CanStartConversation)
+            {
+                offerView.ShowSignupDialog();
+                return true;
+            }
+
+            if (approach.Phase == PasserbyPhase.Offering)
+            {
+                Accept();
+                return true;
+            }
+
+            approach.TryTalkByClick(HorizontalOffsetToPlayer().magnitude, reachMeters);
+            offerView.DeclineShownOffer();
+            offerView.HideTalkPrompt(this);
+            StartConversation(ConversationInitiator.User);
+            return true;
+        }
+
+        // 다른 대화 중이거나 창이 열려 이동이 잠겼거나, 진행 흐름(튜토리얼)이 다가오기를 막았는지.
+        // 다가오면 안 되는 때도 플레이어가 바쁠 때와 같게 다룬다. 이 행인을 기다리느라 잠긴 플레이어는 바쁘지 않다.
+        private bool IsPlayerOccupied =>
+            !IsApproachAllowed
+            || dialogue.IsTalking
+            || (player.IsMovementLocked && !IsPlayerWaiting);
+
+        private bool IsOtherOfferShowing => offerView.IsShowing && !offerView.IsShownBy(this);
+
+        // 대화를 시작한다. 다른 대화가 진행 중이면 대화 없이 쉬게 한다.
+        private void StartConversation(ConversationInitiator initiatedBy)
+        {
             if (
-                !dialogue.TryStart(
+                dialogue.TryStart(
                     identity.Code,
                     identity.LookTarget,
-                    ConversationInitiator.User,
+                    initiatedBy,
                     ScriptKey,
                     IsOffDuty
                 )
             )
             {
-                // 다른 대화가 진행 중이면 대화 없이 쉬게 한다.
-                approach.EndTalk(Now);
-                PasserbyRestRecord.Save(identity.Code, approach.RestUntilSeconds);
+                return;
             }
+
+            approach.EndTalk(Now);
+            PasserbyRestRecord.Save(identity.Code, approach.RestUntilSeconds);
         }
 
         private Vector3 HorizontalOffsetToPlayer()
@@ -435,20 +504,7 @@ namespace A305.Npc
             }
 
             offerView.Hide(this);
-            if (
-                !dialogue.TryStart(
-                    identity.Code,
-                    identity.LookTarget,
-                    ConversationInitiator.Npc,
-                    ScriptKey,
-                    IsOffDuty
-                )
-            )
-            {
-                // 다른 대화가 진행 중이면 대화 없이 쉬게 한다.
-                approach.EndTalk(Now);
-                PasserbyRestRecord.Save(identity.Code, approach.RestUntilSeconds);
-            }
+            StartConversation(ConversationInitiator.Npc);
         }
 
         private void Decline()

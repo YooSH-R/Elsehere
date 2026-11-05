@@ -8,6 +8,7 @@ namespace A305.Npc.Tests
         private const float OfferDistance = 2f;
         private const float DismissDistance = 6f;
         private const float RestSeconds = 60f;
+        private const float ClickReach = 8f;
 
         private static readonly PasserbyRules TownPasserby = new PasserbyRules(
             DetectRadius,
@@ -256,6 +257,60 @@ namespace A305.Npc.Tests
             PasserbyApproach passerby = Resting(TownPasserby);
 
             bool isStarted = passerby.TryTalkByPlayer(OfferDistance + 0.1f);
+
+            Assert.That(isStarted, Is.False);
+            Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Resting));
+        }
+
+        [Test]
+        public void CanTalkByClick_WithinReach_IsTrueUnlessAlreadyTalking()
+        {
+            // 클릭·탭은 [말 걸기]보다 멀리서 걸 수 있고, 다가오거나 제안하는 중에도 걸 수 있다.
+            var waiting = new PasserbyApproach(TownPasserby);
+            PasserbyApproach resting = Resting(TownPasserby);
+            var approaching = new PasserbyApproach(TownPasserby);
+            approaching.Tick(0d, 5f, isPlayerBusy: false);
+            PasserbyApproach offering = Offering(TownPasserby);
+            PasserbyApproach talking = Offering(TownPasserby);
+            talking.TryAccept();
+
+            Assert.That(waiting.CanTalkByClick(ClickReach, ClickReach), Is.True);
+            Assert.That(resting.CanTalkByClick(ClickReach, ClickReach), Is.True);
+            Assert.That(approaching.CanTalkByClick(ClickReach, ClickReach), Is.True);
+            Assert.That(offering.CanTalkByClick(ClickReach, ClickReach), Is.True);
+            Assert.That(talking.CanTalkByClick(1f, ClickReach), Is.False);
+        }
+
+        [Test]
+        public void CanTalkByClick_BeyondReach_IsFalse()
+        {
+            PasserbyApproach passerby = Resting(TownPasserby);
+
+            Assert.That(passerby.CanTalkByClick(ClickReach + 0.1f, ClickReach), Is.False);
+        }
+
+        [Test]
+        public void TryTalkByClick_ApproachingNpc_StartsTalkingAndRestsAfterTalk()
+        {
+            var passerby = new PasserbyApproach(TownPasserby);
+            passerby.Tick(0d, 5f, isPlayerBusy: false);
+
+            bool isStarted = passerby.TryTalkByClick(5f, ClickReach);
+            PasserbyPhase whileTalking = passerby.Phase;
+            passerby.EndTalk(30d);
+
+            Assert.That(isStarted, Is.True);
+            Assert.That(whileTalking, Is.EqualTo(PasserbyPhase.Talking));
+            Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Resting));
+            Assert.That(passerby.RestUntilSeconds, Is.EqualTo(30d + RestSeconds));
+        }
+
+        [Test]
+        public void TryTalkByClick_BeyondReach_KeepsResting()
+        {
+            PasserbyApproach passerby = Resting(TownPasserby);
+
+            bool isStarted = passerby.TryTalkByClick(ClickReach + 0.1f, ClickReach);
 
             Assert.That(isStarted, Is.False);
             Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Resting));

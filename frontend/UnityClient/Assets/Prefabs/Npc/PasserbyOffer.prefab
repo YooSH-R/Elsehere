@@ -3182,6 +3182,7 @@ GameObject:
   - component: {fileID: 1383034060586079576}
   - component: {fileID: 2103655709265759305}
   - component: {fileID: 1723366853775614807}
+  - component: {fileID: 7023539307271839876}
   m_Layer: 0
   m_Name: PasserbyOffer
   m_TagString: Untagged
@@ -3316,6 +3317,19 @@ MonoBehaviour:
   dialog: {fileID: 5102611956592381666}
   signupButton: {fileID: 5362173642679594610}
   closeButton: {fileID: 1398178514323385953}
+--- !u!114 &7023539307271839876
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4990735513435284744}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ad6678d2bb04a442a7710d0467d4a19, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcClickTalk
+  outlineMaterial: {fileID: 2100000, guid: 9f61cab21218b2a46933b6b7bbef4ad8, type: 2}
 --- !u!1 &5102611956592381666
 GameObject:
   m_ObjectHideFlags: 0

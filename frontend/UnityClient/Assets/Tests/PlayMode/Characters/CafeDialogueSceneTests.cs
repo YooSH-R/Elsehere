@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System.Collections;
+using System.Linq;
 using A305.Dialogue;
 using NUnit.Framework;
 using UnityEditor.SceneManagement;
@@ -40,10 +41,20 @@ namespace A305.Characters.PlayModeTests
             source.timeSamples = Mathf.RoundToInt(1.33f * source.clip.frequency);
             speaker.Pause();
             yield return null;
-            Assert.That(
-                skin.GetBlendShapeWeight(skin.sharedMesh.GetBlendShapeIndex("eyeBlinkLeft")),
-                Is.GreaterThan(95)
-            );
+            var lids = speaker
+                .GetComponentsInChildren<SkinnedMeshRenderer>()
+                .Where(s => s.name is "LeftUpperLid" or "RightUpperLid")
+                .ToArray();
+            Assert.That(lids, Has.Length.EqualTo(2));
+            foreach (var lid in lids)
+            {
+                string channel = lid.name == "LeftUpperLid" ? "eyeBlinkLeft" : "eyeBlinkRight";
+                Assert.That(
+                    lid.GetBlendShapeWeight(lid.sharedMesh.GetBlendShapeIndex(channel)),
+                    Is.GreaterThan(95),
+                    lid.name
+                );
+            }
             foreach (var renderer in speaker.GetComponentsInChildren<SkinnedMeshRenderer>())
             {
                 Assert.That(renderer.bones, Has.None.Null);
@@ -60,10 +71,14 @@ namespace A305.Characters.PlayModeTests
             }
             preview.Stop();
             Assert.That(speaker.IsPlaying, Is.False);
-            Assert.That(
-                skin.GetBlendShapeWeight(skin.sharedMesh.GetBlendShapeIndex("eyeBlinkLeft")),
-                Is.Zero
-            );
+            foreach (var lid in lids)
+            {
+                string channel = lid.name == "LeftUpperLid" ? "eyeBlinkLeft" : "eyeBlinkRight";
+                Assert.That(
+                    lid.GetBlendShapeWeight(lid.sharedMesh.GetBlendShapeIndex(channel)),
+                    Is.Zero
+                );
+            }
         }
     }
 }

@@ -131,3 +131,15 @@ def test_score_counts_precision_recall_and_false_alarms():
     assert s["empty_lines"] == 4 and s["empty_false_alarm"] == 0.25
     assert s["exact"] == 4 / 6
     assert s["intent_n"] == 2 and s["intent_exact"] == 0.5
+
+
+def test_score_reports_latency_of_answered_calls():
+    rows = [{"events": [], "got_events": [], "latency_s": t} for t in (0.2, 0.4, 0.6, 0.8, 1.0)]
+    rows.append({"events": [], "error": "ReadTimeout", "latency_s": 30.0})  # 실패한 호출은 지연에서 뺀다
+    s = E.score(rows)
+    assert s["latency_p50"] == 0.6 and s["latency_p90"] == 1.0 and s["latency_max"] == 1.0
+
+
+def test_batches_send_cases_by_concurrency():
+    assert E.batches([1, 2, 3, 4, 5], 2) == [[1, 2], [3, 4], [5]]
+    assert E.batches([1, 2, 3], 1) == [[1], [2], [3]]

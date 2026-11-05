@@ -27,3 +27,15 @@ python ai/tools/guard_eval.py --data dev.jsonl --base-url http://<vLLM 주소>/v
 - `--micro`는 한 번에 GPU에 넣는 문장 수입니다. Qwen3.8의 선형 어텐션은 중간값이 커서 한 번에 여러 문장을 넣으면 메모리가 부족합니다. 기울기를 모아 `--batch`(기본 8) 문장마다 갱신합니다.
 - 학습에는 `torch`, `transformers`, `peft`, `flash-linear-attention`이 필요합니다. 자동 테스트와 CI 의존성에는 넣지 않습니다.
 - `guard_eval.py`는 화면에 집계만 찍고, 문장별 결과는 문장 없이 `id`·정답·예측만 `--out`에 남깁니다.
+
+## 서비스 실행
+
+GPU 서버에서는 `serve.sh`가 5번 GPU에 vLLM(127.0.0.1:18432)을 띄우고, `supervise.sh`가 30초마다 vLLM과 배포 서버로 가는 역방향 SSH 터널을 확인해 다시 띄웁니다. 두 파일을 `~/guard/`에 두고, vLLM 키는 `~/guard/vllm_token`(권한 600)에 둡니다.
+
+```sh
+setsid nohup ~/guard/supervise.sh >> ~/guard/supervise.log 2>&1 &
+```
+
+- 개발 터널(`172.19.0.1:18432`)은 `~/guard/tunnel_enabled`, 운영 터널(`172.30.0.1:18432`)은 `~/guard/prod_tunnel_enabled` 파일이 있을 때만 겁니다. 입구 허용과 방화벽은 [GPU 터널 네트워크](../../docs/gpu-worker-network.md)를 따릅니다.
+- 기본 모델과 어댑터를 읽는 데 약 3분이 걸립니다. 그동안 워커는 프로필의 판정 모델로 대체합니다.
+- Jupyter 서버가 다시 시작되면 [`ai/gpu_autostart`](../gpu_autostart/README.md) 훅이 감시 스크립트를 다시 띄웁니다.

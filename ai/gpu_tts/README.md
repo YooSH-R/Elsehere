@@ -46,7 +46,7 @@ setsid nohup ~/tts/gpu_tts/supervise.sh > ~/tts/gpu_tts/supervise.log 2>&1 &
 
 - 감시 스크립트가 30초마다 합성 서버와 터널을 확인하고, 죽어 있으면 다시 띄웁니다. 서버는 시작할 때 몇 문장을 순서대로, 그리고 동시 합성 수(8)만큼 동시에 미리 합성해 첫 호출 준비를 끝내 둡니다. 동시 예열이 없으면 다시 띄운 직후 처음 몰린 요청들이 다 같이 5~13초 걸렸습니다. 예열에는 약 13초가 더 들어 시작까지 약 1분입니다.
 - 개발 터널은 `~/tts/gpu_tts/tunnel_enabled`, 운영 터널은 `~/tts/gpu_tts/prod_tunnel_enabled` 파일이 있을 때만 겁니다. 배포 서버 담당자가 `a305-stt-tunnel` 계정에 해당 입구 전달과 워커 컨테이너 방화벽을 허용한 뒤에 만듭니다([GPU 터널 네트워크](../../docs/gpu-worker-network.md)).
-- JupyterHub 세션이 꺼지면(서버 점검·재부팅) 감시 스크립트와 합성 서버도 같이 꺼집니다. 그동안 워커는 CPU 합성으로 넘어가므로 음성은 계속 나옵니다. 로그인 후 위 명령으로 다시 띄웁니다.
+- JupyterHub 세션이 꺼지면 감시 스크립트와 합성 서버도 같이 꺼지고, 그동안 워커는 CPU 합성으로 넘어가므로 음성은 계속 나옵니다. Jupyter 서버가 다시 시작되면(자동 보안 업데이트 뒤 서비스 재시작 등) [`ai/gpu_autostart`](../gpu_autostart/README.md) 훅이 감시 스크립트를 자동으로 다시 띄웁니다. 서버 재부팅처럼 Jupyter 서버가 뜨지 않으면 JupyterHub에 로그인할 때 같은 훅이 띄웁니다.
 - 공용 서버라 `server.py`가 onnxruntime을 불러오기 전에 5번 GPU만 보이게 정합니다. 다른 번호를 쓰지 않습니다.
 
 ## 확인

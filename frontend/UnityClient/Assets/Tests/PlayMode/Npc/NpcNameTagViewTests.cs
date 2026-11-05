@@ -14,9 +14,9 @@ using UnityEngine.TestTools;
 namespace A305.Npc.PlayModeTests
 {
     /// <summary>
-    /// 마을에서 가까운 NPC 머리 위에 이름표가 뜬다. 근무 중인 직원은 역할 칩(예: 경찰관)을 함께 달고, 행인과 쉬는 직원은 이름만 보인다.
+    /// 가까운 NPC 머리 위에 이름표가 뜬다. 근무 중인 직원은 역할 칩(예: 경찰서의 경찰관)을 함께 달고, 마을 행인과 쉬는 직원은 이름만 보인다.
     /// 멀리 있는 NPC와 플레이어가 대화·창으로 움직이지 못하는 동안에는 이름표를 띄우지 않는다.
-    /// 게임 시각은 Dan이 근무하는 12:15로 고정하고, 쉬는 시간 표시는 10:15로 바꿔 확인한다.
+    /// 시험 시계는 12:15(NpcTestClock.SetDaytime)이므로 경찰관 Dan(06:00~14:30 근무, 10:00~10:30 쉬는 시간)은 근무 중이다.
     /// </summary>
     public class NpcNameTagViewTests
     {
@@ -27,7 +27,7 @@ namespace A305.Npc.PlayModeTests
         private const string PasserbyName = "Ruby";
 
         // 경찰관 Dan의 쉬는 시간(10:00~10:30) 한가운데
-        private const int StaffBreakMinutes = 10 * 60 + 15;
+        private const int StaffBreakMinuteOfDay = 10 * 60 + 15;
 
         // 카메라가 플레이어를 따라와 자리 잡을 때까지 기다리는 프레임 수
         private const int SettleFrames = 10;
@@ -40,14 +40,6 @@ namespace A305.Npc.PlayModeTests
             TutorialState.MarkFinishedOnServer();
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
-            yield return NpcTestClock.OpenPoliceStation();
-            // 이름표의 근무 표시만 검사하므로 출퇴근에 따른 직원 교체는 멈춘다.
-            foreach (
-                NpcPopulation population in Object.FindObjectsByType<NpcPopulation>(
-                    FindObjectsSortMode.None
-                )
-            )
-                population.enabled = false;
         }
 
         [UnityTearDown]
@@ -71,6 +63,9 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator NearbyStaff_ShowsNameWithRoleChipAboveTheHead()
         {
+            // 경찰관은 경찰서 장면에서 일한다.
+            yield return SceneManager.LoadSceneAsync("PoliceStationScene", LoadSceneMode.Single);
+            yield return null;
             NpcIdentity staff = HoldStill(StaffCode);
             yield return StandFacing(staff, 3f);
 
@@ -84,9 +79,9 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator NearbyStaffOnBreak_ShowsNameOnly()
         {
-            // 시계를 쉬는 시간으로 흘리고, Dan의 생활이 그 시각을 읽은 뒤에 세워 둔다.
-            // 생활 시각은 되감지 않으므로 다음 날의 쉬는 시간으로 전진한다.
-            NpcTestClock.SetTime(StaffBreakMinutes, day: 2);
+            // 시계를 Dan의 쉬는 시간에 맞춘 뒤 경찰서 장면을 열어, Dan의 생활이 그 시각을 읽은 뒤에 세워 둔다.
+            NpcTestClock.SetTime(StaffBreakMinuteOfDay);
+            yield return SceneManager.LoadSceneAsync("PoliceStationScene", LoadSceneMode.Single);
             yield return null;
             NpcIdentity staff = HoldStill(StaffCode);
             Assert.That(staff.GetComponent<NpcRoutine>().IsOffDuty, Is.True, "준비: Dan이 쉬는 중");
@@ -111,18 +106,18 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator FarNpc_HasNoTag()
         {
-            NpcIdentity staff = HoldStill(StaffCode);
-            yield return StandFacing(staff, NpcNameTags.ShowRadiusMeters + 6f);
+            NpcIdentity passerby = HoldStill(PasserbyCode);
+            yield return StandFacing(passerby, NpcNameTags.ShowRadiusMeters + 6f);
 
-            Assert.That(ShownTags().Select(shown => shown.Name), Does.Not.Contain(StaffName));
+            Assert.That(ShownTags().Select(shown => shown.Name), Does.Not.Contain(PasserbyName));
         }
 
         [UnityTest]
         public IEnumerator PlayerWhoCannotMove_SeesNoTags()
         {
-            NpcIdentity staff = HoldStill(StaffCode);
-            yield return StandFacing(staff, 3f);
-            Assume.That(ShownTags().Select(shown => shown.Name), Does.Contain(StaffName));
+            NpcIdentity passerby = HoldStill(PasserbyCode);
+            yield return StandFacing(passerby, 3f);
+            Assume.That(ShownTags().Select(shown => shown.Name), Does.Contain(PasserbyName));
 
             Object.FindFirstObjectByType<PlayerMover>().SetMovementLocked(true);
             yield return null;

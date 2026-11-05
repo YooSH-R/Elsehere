@@ -216,13 +216,18 @@ namespace A305.EditorTools.Npc
             BuildScene(CafeScenePath);
             BuildScene(HotelScenePath);
             BuildScene(ShopScenePath);
-            BuildScene(TownScenePath, PoliceStationBuilder.PlaceOfficers);
+            BuildScene(TownScenePath);
+            // 경찰관은 경찰서 장면에서 일한다.
+            BuildScene(PoliceStationBuilder.StationScenePath, PoliceStationBuilder.PlaceOfficers);
 
             // 생활 데이터가 있는 NPC에 생활을 붙이고 바닥을 다시 굽는다. 그 뒤 경찰관이 경찰서 안에서만 지내게 한다.
             NpcLifeBuilder.Build();
-            Scene town = EditorSceneManager.OpenScene(TownScenePath, OpenSceneMode.Single);
-            PoliceStationBuilder.KeepOfficersInStation(town);
-            BuilderTools.SaveScene(town, TownScenePath);
+            Scene station = EditorSceneManager.OpenScene(
+                PoliceStationBuilder.StationScenePath,
+                OpenSceneMode.Single
+            );
+            PoliceStationBuilder.KeepOfficersInStation(station);
+            BuilderTools.SaveScene(station, PoliceStationBuilder.StationScenePath);
             AssetDatabase.SaveAssets();
             Debug.Log("외형 표의 NPC를 장면에 두고 배색과 생활을 입혔습니다.");
         }
@@ -259,7 +264,15 @@ namespace A305.EditorTools.Npc
                         "검사를 통과한 외형만 연결할 수 있습니다: " + look.Name
                     );
             }
-            foreach (string path in new[] { CafeScenePath, HotelScenePath, TownScenePath })
+            foreach (
+                string path in new[]
+                {
+                    CafeScenePath,
+                    HotelScenePath,
+                    TownScenePath,
+                    PoliceStationBuilder.StationScenePath,
+                }
+            )
             {
                 var scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
                 foreach (var npc in BuilderTools.FindAllInScene<NpcIdentity>(scene))

@@ -42,6 +42,7 @@ namespace A305.EditorTools.World
             "CafeScene",
             "HotelScene",
             "ShopScene",
+            "PoliceStationScene",
         };
 
         /// <summary>열려 있는 씬에 기능 연결을 적용하고 저장한 뒤 Scene List에 추가한다.</summary>

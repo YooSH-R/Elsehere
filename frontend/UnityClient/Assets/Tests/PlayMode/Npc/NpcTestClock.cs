@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using A305.World;
@@ -13,28 +11,17 @@ namespace A305.Npc.PlayModeTests
         // Ben·Ruby·Dan이 일과 중이고, 거리 매장도 문을 연 시각이다.
         public static void SetDaytime() => SetTime(12 * 60 + 15);
 
-        public static void SetTime(int minuteOfDay, int day = 1)
+        // 서버가 이 시각에 시계를 멈춰 두었다고 알려 준 상태로 맞춘다. 서버가 멈춘 시계는 GameClock.Flow로 흐르지 않는다.
+        public static void SetTime(int minuteOfDay)
         {
             typeof(GameClock)
                 .GetMethod("ResetShared", BindingFlags.NonPublic | BindingFlags.Static)
                 .Invoke(null, null);
-            var api = new FixedClock(minuteOfDay, day);
+            var api = new FixedClock(minuteOfDay);
             Assert.That(
                 GameClock.Shared.TickAsync(api, Time.realtimeSinceStartupAsDouble + 1e5).Result,
                 Is.EqualTo(GameClockBeatStatus.Updated)
             );
-        }
-
-        public static IEnumerator OpenPoliceStation()
-        {
-            var station = Object
-                .FindObjectsByType<ShopInterior>(FindObjectsSortMode.None)
-                .Single(room => room.PlaceCode == "POLICE_STATION");
-            yield return (IEnumerator)
-                typeof(ShopInterior)
-                    .GetMethod("SetOccupied", BindingFlags.Instance | BindingFlags.NonPublic)
-                    .Invoke(station, new object[] { true });
-            yield return null;
         }
 
         public static void Restore()
@@ -51,12 +38,10 @@ namespace A305.Npc.PlayModeTests
         private sealed class FixedClock : IGameClockApi
         {
             private readonly int minuteOfDay;
-            private readonly int day;
 
-            public FixedClock(int minuteOfDay, int day)
+            public FixedClock(int minuteOfDay)
             {
                 this.minuteOfDay = minuteOfDay;
-                this.day = day;
             }
 
             public Task<GameClockTime> BeatAsync(
@@ -67,7 +52,7 @@ namespace A305.Npc.PlayModeTests
                 Task.FromResult(
                     new GameClockTime
                     {
-                        Day = day,
+                        Day = 1,
                         MinuteOfDay = minuteOfDay,
                         Paused = true,
                     }

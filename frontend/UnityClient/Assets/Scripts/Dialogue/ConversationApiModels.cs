@@ -94,6 +94,15 @@ namespace A305.Dialogue
 
         /// <summary>이 NPC의 지금 호감도(-100~100). 이 칸을 보내지 않는 서버면 null이다.</summary>
         public int? Affinity { get; set; }
+
+        /// <summary>서버가 계산한 기본 대화 제한 시각(ISO 8601).</summary>
+        public string TimeLimitAt { get; set; }
+
+        /// <summary>마지막 발화도 새로 받을 수 없는 시각(ISO 8601).</summary>
+        public string GraceUntil { get; set; }
+
+        public bool Closing { get; set; }
+        public int FinalTurnsRemaining { get; set; }
     }
 
     public sealed class EndBody
@@ -221,6 +230,7 @@ namespace A305.Dialogue
         public NpcSummary Npc { get; set; }
         public int? RudeCount { get; set; }
         public int? RudeLimit { get; set; }
+        public string StartedAt { get; set; }
         public List<ActiveTurn> Turns { get; set; }
     }
 

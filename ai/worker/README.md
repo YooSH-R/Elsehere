@@ -155,7 +155,7 @@ NPC가 첫 대사를 먼저 하고 이후 한 줄마다 대답합니다. 턴마�
 .venv/Scripts/python ../tools/npc_help_eval.py --rejudge ../tools/results/npc_help.jsonl   # 채점 기준만 고쳤을 때
 ```
 
-- 테스트셋은 `ai/tools/npc_help_eval/cases.json`입니다. `help` 줄은 막다른 거절을, 모든 줄은 알 만한 걸 모름과 지어내기를 셉니다.
+- 테스트셋은 `ai/tools/npc_help_eval/cases.json`입니다. `help` 줄은 막다른 거절을, 모든 줄은 알 만한 걸 모름·지어내기·길 틀림(마을 배치와 다른 길 안내)을 셉니다.
 - 줄마다 대답 하나에 한 글자(`X` 막다른 거절, `?` 알 만한 걸 모름, `F` 지어내기, `.` 통과)를 찍습니다. 판정 모델은 보조 채점이라 대답 원문(`--out`)도 읽어 봅니다.
 - 실제 모델을 부르므로 팀 공용 GMS 크레딧을 씁니다. 한 줄씩 순서대로 보냅니다.
 

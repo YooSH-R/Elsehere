@@ -15,10 +15,10 @@ MonoBehaviour:
   details:
     key: shop
     languageCode: en-US
-    text: shop
+    text: store
     meaningKo: "\uAC00\uAC8C"
-    example: The shop opens at nine.
+    example: The store opens at nine.
     exampleKo: "\uADF8 \uAC00\uAC8C\uB294 \uC544\uD649 \uC2DC\uC5D0 \uBB38\uC744
       \uC5F4\uC5B4\uC694."
-    pronunciationAudioKey: 
+    pronunciationAudioKey: store.wav
   assetGuid: 292d94fd1136697459fffaa9690c2350

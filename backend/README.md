@@ -114,6 +114,7 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 - `code`, `unity_key`는 Unity 씬·빌더에 쓴 값과 같아야 합니다. 행을 추가하거나 고치면 `WorldSeedLoaderTest`의 기대값도 함께 고칩니다.
 - 공용 목록의 어휘 전체를 `vocabularies`에 적재합니다. SQL을 실행한 뒤 `WorldSeedLoader`가 단어 JSON의 공용 키를 `vocabularies.word_key`에 넣고, 연결 JSON의 씬별 공용 키 목록으로 `scene_words`(장소별 단어)를 맞춥니다. 연결 JSON에서 빠진 단어는 그 장소의 `scene_words`에서 지웁니다. WORLD-02 단어 카드, WORLD-03 숨김, VOCAB-02 사물 저장은 모두 이 공용 키(`wordKey`)를 씁니다. 사용자별 저장·숨김 상태(`user_vocab`, `user_word_prefs`)는 공용 에셋에 넣지 않습니다.
 - 사물 단어 발음 음성(WORLD-04)은 음성 볼륨의 하위 폴더(`elsehere.pronunciation.dir`, 기본 `${NPC_AUDIO_DIR}/pronunciation`)에 `{공용 키}.wav`로 둡니다. 관리자가 발음 생성 API(`POST /api/v1/admin/pronunciations`)로 발음 파일이 없는 단어만 AI 워커 TTS로 만듭니다([운영자 어드민](../docs/admin.md)). 시드 SQL이 발음 키를 Unity 에셋 값(대부분 비어 있음)으로 되돌리므로, `WorldSeedLoader`가 서버를 시작할 때마다 Unity 에셋에 발음 키가 없는 단어 중 이 폴더에 파일이 있는 단어에 파일 이름을 `pronunciation_audio_key`로 다시 넣습니다. 볼륨은 환경마다 따로라 개발·운영에서 각각 한 번 만듭니다.
+- 영어 표현을 바꿀 때는 기존 발음 파일과 구분되는 `pronunciationAudioKey`를 Unity 에셋에 지정하고, 배포 후 관리자 발음 생성으로 새 WAV를 준비합니다. 명시한 발음 키가 있으면 생성기는 `{공용 키}.wav` 대신 그 파일 이름을 사용합니다. 공용 키가 같다는 이유로 예전 표현의 음성을 재사용하지 않습니다.
 - Spring의 SQL 초기화(`spring.sql.init`)는 `@DataJpaTest`에서도 실행되어 테스트 데이터와 겹치므로 쓰지 않습니다. DB 테스트에서 시드가 필요하면 `WorldSeedLoader`를 `@Import`합니다.
 
 ## 인증과 오류 응답

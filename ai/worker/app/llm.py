@@ -391,11 +391,12 @@ class LLM:
             count = 0
         self.stt_failures[provider] = count
 
-    async def guard_chat(self, messages: list[dict], usage: Usage) -> str:
+    async def guard_chat(self, messages: list[dict], usage: Usage, gpu: bool = True) -> str:
         """무례 판정 호출. GPU 서버 판정 모델(guard_gpu_model)이 있으면 먼저 한 번(짧은 상한, 재시도 없음) 부르고,
-        실패·시간 초과면 구성의 guard 모델로 넘긴다. 연속 실패가 guard_breaker_failures에 닿으면 GPU를 잠시 건너뛴다."""
+        실패·시간 초과면 구성의 guard 모델로 넘긴다. 연속 실패가 guard_breaker_failures에 닿으면 GPU를 잠시 건너뛴다.
+        gpu=False면 GPU 모델이 잘못 읽는 줄이라 처음부터 구성의 guard 모델로 판정한다."""
         model = self.s.guard_gpu_model
-        if model and self.guard_gpu_skip_until <= self.clock():
+        if gpu and model and self.guard_gpu_skip_until <= self.clock():
             try:
                 out = await within(self._chat_once("gpu_llm", model, "guard", messages, usage), self.s.guard_gpu_timeout_s)
             except ProviderError as e:

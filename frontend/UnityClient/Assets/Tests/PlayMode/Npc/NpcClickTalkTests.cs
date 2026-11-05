@@ -321,6 +321,9 @@ namespace A305.Npc.PlayModeTests
             TutorialState.MarkFinishedOnServer();
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
+            // 클릭 준비 중 출퇴근 관리자가 수동 배치한 NPC를 경로로 되돌리지 않게 한다.
+            // 출퇴근 전환과 이동은 NpcPopulationTests에서 검증한다.
+            Single<NpcPopulation>().enabled = false;
             Passerby ben = FindPasserby(BenCode);
             ben.GetComponent<NpcRoutine>().enabled = false;
             foreach (Passerby other in Object.FindObjectsByType<Passerby>(FindObjectsSortMode.None))
@@ -346,11 +349,11 @@ namespace A305.Npc.PlayModeTests
             PasserbyOfferRecord.Save(passerby.GetComponent<NpcIdentity>().Code, DateTime.Today);
         }
 
-        // 플레이어를 NPC 앞 주어진 거리에 NPC를 보게 세운다.
+        // Ben이 고개를 돌린 방향과 무관하게 남북 인도를 따라 세운다. 회전 방향을 따르면 건물 벽 안에 놓일 수 있다.
         private static IEnumerator FaceFrom(Passerby passerby, float distanceMeters)
         {
             Vector3 npcPosition = passerby.transform.position;
-            Vector3 standAt = npcPosition + passerby.transform.forward * distanceMeters;
+            Vector3 standAt = npcPosition + Vector3.back * distanceMeters;
             Vector3 towardNpc = npcPosition - standAt;
             towardNpc.y = 0f;
             Single<PlayerMover>().Teleport(standAt, Quaternion.LookRotation(towardNpc));
@@ -361,19 +364,13 @@ namespace A305.Npc.PlayModeTests
         // 마을 밖으로 옮겨 둔 다른 행인 하나를 Ben 옆 1.5m에 세운다. 생활은 끈 채로 두고 먼저 다가오지 않게 한다.
         private static Passerby PlaceAnotherNpcBeside(Passerby ben)
         {
-            Passerby neighbor = Object
-                .FindObjectsByType<Passerby>(FindObjectsSortMode.None)
-                .First(candidate => candidate != ben && !candidate.enabled);
-            KeepFromApproaching(neighbor);
-            PlaceAt(
-                neighbor,
+            return BringNpc(
+                RubyCode,
                 new Pose(
                     ben.transform.position + ben.transform.right * 1.5f,
                     ben.transform.rotation
                 )
             );
-            neighbor.enabled = true;
-            return neighbor;
         }
 
         // 마을 밖으로 옮겨 둔 행인 하나를 주어진 자리에 세운다. 생활은 끈 채로 두고 먼저 다가오지 않게 한다.
@@ -428,7 +425,15 @@ namespace A305.Npc.PlayModeTests
             Assert.That(
                 new NpcPointerRaycast().Find(camera.ScreenPointToRay(onScreen), 30f),
                 Is.SameAs(passerby),
-                $"준비: {passerby.name}이(가) 맨 앞에 보여야 합니다."
+                $"준비: {passerby.name}이(가) 맨 앞에 보여야 합니다. 눈 {eye}, 가슴 {chest}, "
+                    + $"캡슐 {passerby.GetComponent<CharacterController>().bounds}, "
+                    + string.Join(
+                        ", ",
+                        Physics
+                            .RaycastAll(camera.ScreenPointToRay(onScreen), 30f)
+                            .OrderBy(hit => hit.distance)
+                            .Select(hit => $"{hit.collider.name}:{hit.distance:F3}")
+                    )
             );
             return onScreen;
         }

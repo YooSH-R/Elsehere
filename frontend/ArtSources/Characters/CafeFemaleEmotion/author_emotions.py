@@ -18,8 +18,13 @@ from mathutils.bvhtree import BVHTree
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--output", type=Path, required=True)
+parser.add_argument("--input", type=Path)
+parser.add_argument("--eyes", type=Path)
+parser.add_argument("--keep-eye-textures", action="store_true")
+parser.add_argument("--settings", type=Path)
 args = parser.parse_args(sys.argv[sys.argv.index("--") + 1 :])
-source = Path(__file__).resolve().parent.parent / "CafeFemaleFace"
+settings = json.loads(args.settings.read_text()) if args.settings else {}
+source = args.input or Path(__file__).resolve().parent.parent / "CafeFemaleFace"
 output = args.output.resolve()
 output.mkdir(parents=True, exist_ok=True)
 blend_path = output / "LittleMung_Cafe_Female_Emotions.blend"
@@ -96,12 +101,14 @@ def displacement(points, family, side):
     if family == "mouthLaughOpen":
         return result
     elif family.startswith("brow"):
-        r = np.sqrt((dy / 0.080) ** 2 + ((z - 0.681) / 0.080) ** 2)
+        brow_z = settings.get("brow" + side, 0.681)
+        shift = brow_z - 0.681
+        r = np.sqrt((dy / 0.080) ** 2 + ((z - brow_z) / 0.080) ** 2)
         influence = fade(r, 0.75, 1.55) * front
         # Brows may rotate strongly, but the lid rim and eyeball must not be
         # dragged down with the forehead. Keep the shared eye boundary fixed.
-        influence *= 1 - fade(z, 0.600, 0.700)
-        influence *= fade(z, 0.710, 0.755)
+        influence *= 1 - fade(z, 0.600 + shift, 0.700 + shift)
+        influence *= fade(z, 0.710 + shift, 0.755 + shift)
         outward = np.clip(0.5 + direction * dy / 0.07, 0, 1)
         if family == "browInnerUp":
             result[:, 2] = 0.044 * (1 - outward) * influence
@@ -113,7 +120,7 @@ def displacement(points, family, side):
         if family != "browDown":
             # Ease raised brows below the fixed hairline instead of pulling
             # the hair and upper forehead into a fold.
-            limit = 0.65 * np.maximum(0.735 - z, 0)
+            limit = 0.65 * np.maximum(0.735 + shift - z, 0)
             ratio = np.divide(
                 result[:, 2], limit, out=np.zeros_like(z), where=limit > 0
             )
@@ -206,7 +213,7 @@ def match_lip_boundary(
             normal_delta[ring * count + i] += normal_correction * amount * amount
 
 
-eye_folder = Path(__file__).parent / "BaseEyes"
+eye_folder = args.eyes or Path(__file__).parent / "BaseEyes"
 eye_data = json.loads((eye_folder / "Blink.json").read_text(encoding="utf-8"))
 export = {
     "sourceVertexCount": len(data["vertices"]),
@@ -296,7 +303,8 @@ for name in ["eyeBlinkLeft", "eyeBlinkRight", "eyeWideLeft", "eyeWideRight"]:
         ):
             point.co = basis.co
 for name in ["ClosedLeftLid", "ClosedRightLid"]:
-    bpy.data.objects.remove(bpy.data.objects[name], do_unlink=True)
+    if name in bpy.data.objects:
+        bpy.data.objects.remove(bpy.data.objects[name], do_unlink=True)
 with bpy.data.libraries.load(
     str(eye_folder / "LittleMung_Cafe_Female_Blink.blend"), link=False
 ) as (source_library, target_library):
@@ -627,7 +635,7 @@ for mesh_data in export["meshes"] + export["parts"]:
     for point, value in zip(key.data, positions + delta):
         point.co = value
 
-for side in ("Left", "Right"):
+for side in () if args.keep_eye_textures else ("Left", "Right"):
     texture_name = side + "LidSkin.png"
     image = bpy.data.images.load(str(output / texture_name), check_existing=False)
     pixels = np.array(image.pixels[:]).reshape(image.size[1], image.size[0], 4)

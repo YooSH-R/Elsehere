@@ -117,7 +117,7 @@ namespace A305.Characters
                 new Rect(12, 12, width, Mathf.Min(540, Screen.height - 24)),
                 GUI.skin.box
             );
-            GUILayout.Label("카페 여자 · 말하기 표정 검수");
+            GUILayout.Label(player.name + " · 말하기 표정 검수");
             GUILayout.Label("로컬 녹음·검수용 표정 구간 / 서버 호출 없음");
             for (int row = 0; row < (Labels.Length + 2) / 3; row++)
             {

@@ -5,7 +5,8 @@ using UnityEngine.UI;
 namespace A305.Npc
 {
     /// <summary>
-    /// 대화를 다 쓴 게스트가 [가입하고 계속 대화하기]를 누르면 뜨는 가입 안내 창. [Google로 가입하기]는 Google 로그인(AUTH-01)으로
+    /// 대화를 다 쓴 게스트가 [가입하고 계속 대화하기]를 누르거나 마지막 대화의 피드백을 닫으면(<see cref="GuestSignupPrompt"/>)
+    /// 뜨는 가입 안내 창. [Google로 가입하기]는 Google 로그인(AUTH-01)으로
     /// 페이지를 옮기고, 가입하면 게스트 때 기록이 그대로 이어진다(AUTH-04). 창이 열릴 때 설문을 권한다(<see cref="SurveyPrompt"/>).
     /// 설문 카드는 이 창과 따로 화면 위에 내려온다.
     /// </summary>
@@ -48,5 +49,9 @@ namespace A305.Npc
             );
             dialog.SetActive(false);
         }
+
+        private void OnEnable() => GuestSignupPrompt.Requested += Show;
+
+        private void OnDisable() => GuestSignupPrompt.Requested -= Show;
     }
 }

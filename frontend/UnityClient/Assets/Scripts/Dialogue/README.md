@@ -23,7 +23,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 | `TextLinkClicks` | 대사 칸 글자의 `<link>`를 누르면 링크 ID를 알립니다. 링크가 아닌 곳은 무시합니다. |
 | `DialogueRecord` | 끝난 대화의 기록. 피드백·미션·튜토리얼이 대화 결과를 판단할 때 씁니다. |
 | `DialogueScriptSource`, `MockDialogueScriptSource` | NPC 키로 대본을 찾는 곳과 서버 연동 전 확인용 대본입니다. |
-| `ServerConversation`, `IConversationApi`, `ConversationApi` | 서버 AI 자유 대화 한 번. 대화 시작(CONV-01)·발화(CONV-03)·녹음 전사(CONV-02)·뜻 보기(CONV-04)·힌트(CONV-05)·종료(CONV-08)를 부릅니다. 끝내지 못한 대화가 남아 있으면 같은 NPC와의 대화는 이어서 하고(CONV-11의 턴으로 지난 대사를 다시 보임), 다른 NPC와의 대화는 피드백 없이 끝내고 새로 시작합니다. 종료 응답의 `followUp`은 `FollowUpStore`에 남기고, 시작 응답의 `deliveredFollowUpId`는 지웁니다. 가짜 API로 Unity 객체 없이 테스트합니다. |
+| `ServerConversation`, `IConversationApi`, `ConversationApi` | 서버 AI 자유 대화 한 번. 대화 시작(CONV-01)·발화(CONV-03)·녹음 전사(CONV-02)·뜻 보기(CONV-04)·힌트(CONV-05)·종료(CONV-08)를 부릅니다. 끝내지 못한 대화가 남아 있으면 같은 NPC와의 대화는 이어서 하고(CONV-11의 턴으로 지난 대사를 다시 보임), 다른 NPC와의 대화는 피드백 없이 끝내고 새로 시작합니다. 종료 응답의 `followUp`은 `FollowUpStore`에 남기고, 시작 응답의 `deliveredFollowUpId`는 지웁니다. 발화는 스트리밍(CONV-03 `Accept: text/event-stream`)으로 받아, 대사 글자가 오기 시작하면 로딩을 걷고 보낸 문장과 온 만큼의 NPC 대사를 보이며 문장 조각 음성(`NpcSpeechChunk`)을 넘깁니다. 저장된 턴을 받으면 그 줄들을 저장된 턴으로 다시 그리고, 실패하면 지웁니다. 스트림이 저장된 턴 없이 끊기면 `ConversationApi`(`TurnEventReader`)가 같은 요청 ID로 JSON 요청을 한 번 더 보내 서버가 끝까지 저장한 턴을 받습니다. 가짜 API로 Unity 객체 없이 테스트합니다. |
 | `FollowUpStore`, `WaitingFollowUp`, `IFollowUpApi`, `FollowUpApi` | 대화를 마친 NPC가 준비해 곧 건네기로 한 것(아이스 라테·아침 식사·빨래 등, CONV-08 `followUp`)의 목록. 공간 씬이 바뀌어도 남도록 씬 밖(`FollowUpStore.Shared`)에 두고, 씬마다 `DialogueController`가 시작할 때 아직 건네지 않은 것 전부(CONV-13 `GET /api/v1/follow-ups`)로 다시 맞춥니다. 받지 못하면 기억하던 것을 둡니다. 서버처럼 NPC마다 하나만 기다리므로, 같은 NPC의 새 `followUp`(다른 ID)을 받으면 그 NPC의 줄을 바꿉니다. NPC가 첫 대사로 건네면(CONV-01 `deliveredFollowUpId`) 그 ID와 그 NPC의 줄을 지웁니다. 남은 시간은 서버가 센 `remainingSeconds`를 받은 때부터 이 기기의 실제 시간으로 줄이고, 기기 시계로 `readyAt`을 다시 세지 않습니다. 같은 것을 다시 받으면 바꾸고, 먼저 되는 것부터 늘어놓으며, 다 됐다는 알림은 한 번만 꺼내 줍니다(`TakeNewlyReady`). Play를 시작할 때마다 비웁니다. 가짜 API와 시계로 Unity 객체 없이 테스트합니다. |
 | `ConversationStanding` | 서버 대화의 NPC 호감도와 무례 경고 칸(3아웃) 값. CONV-01·03 응답의 `conversation`(`affinity`, `rudeCount`, `rudeLimit`)으로 바뀌며, 호감도가 바뀐 턴에는 변화량을 한 번 냅니다(무례로 센 턴은 예: -6과 "무례한 말 1/3 · 3번이면 대화가 끝나요" 문구, 칭찬·인사 같은 사건이 있는 턴은 예: +4). 이 칸을 보내지 않는 서버면 `IsKnown`이 false입니다. Unity 객체 없이 테스트합니다. |
 | `ConversationStandingDisplay` | 대화창 NPC 이름 옆 한 줄 "♥ 12   ○○○". 새 상태를 받은 뒤 4초 동안 변화량(깎이면 빨강, 오르면 초록)과 무례 경고 문구를 붙였다가 지웁니다. 글자는 서비스 글꼴(NanumSquareRound)에 있는 ♥·●·○를 씁니다. Unity 객체 없이 테스트합니다. |
@@ -122,6 +122,8 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 공통 감정을 적용한 12종 NPC 외형은 `CharacterSpeechPlayer`의 기본 기분으로 새 음성 대사를 재생합니다. `ConfigureMood` 또는 Inspector로 다음 발화의 기분·강도를 설정하고, 발화별 감정 시간표가 있으면 그것이 우선합니다. 기본값은 인자한 미소이며, LLM 감정 추론·서버 감정 매핑은 별도 연결이 필요합니다. 지원 외형과 검수 씬은 [말하기 중 NPC 감정 표정 검수](../../../../../docs/unity/npc-speaking-emotions.md)를 참고합니다.
 
 대화 시작 시 `LookTarget`의 부모 `DialogueSpeaker`가 선택된 NPC의 얼굴·재생기를 준비합니다. `NpcIdentity`가 화자 컴포넌트를 자동으로 제공하므로 NPC별 Builder 연결을 반복하지 않습니다. 얼굴 채널이 부족하면 `LipSyncNotice`에 이유를 남기고 기존 음성 재생을 유지합니다. 지원되는 모델은 같은 WAV의 음소 시간표와 AudioSource 샘플 위치를 사용하며, 화자 변경·종료·늦은 음성 응답 취소는 기존 수명 처리를 따릅니다. 표정 메시 생성이나 LLM 감정 추론 기능은 아닙니다.
+
+스트리밍으로 받은 문장 조각 음성은 `DialogueServerLink.QueueSpeechChunk`가 받은 순서대로 이어 재생합니다(앞 조각이 끝나면 다음 조각, 같은 립싱크 경로). 새 대답의 조각이 오면 지난 대사의 음성과 지난 대답의 남은 조각을 버리고, 녹음 시작처럼 음성을 멈추면 남은 조각도 버립니다. 조각으로 들려준 턴은 저장된 턴을 받은 뒤 턴 전체 음성을 다시 자동 재생하지 않으며, [다시 듣기]는 턴 전체 음성(CONV-06)을 받아 재생합니다.
 
 새 대사에 음성이 없으면 `ForgetSpeech`가 이전 음성과 발음 시간표를 함께 버리고 얼굴을 중립으로 되돌립니다. 화자 연결은 유지하므로 다음 정상 음성은 같은 NPC에서 재생됩니다. 대화 종료는 화자 연결도 해제합니다. 내려받는 중 대사가 바뀌거나 종료되면 이전 응답을 재생하지 않습니다.
 

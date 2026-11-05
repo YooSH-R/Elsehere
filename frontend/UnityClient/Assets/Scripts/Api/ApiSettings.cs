@@ -32,7 +32,21 @@ namespace A305.Api
         /// <param name="timeoutSeconds">AI 응답처럼 오래 걸리는 요청에 쓰는 대기 시간</param>
         public ApiClient CreateClient(int timeoutSeconds)
         {
-            return new ApiClient(BaseUrl, new UnityWebRequestTransport(timeoutSeconds));
+            return new ApiClient(
+                BaseUrl,
+                new UnityWebRequestTransport(timeoutSeconds),
+                CreateStreamTransport(timeoutSeconds)
+            );
+        }
+
+        // Web 빌드의 UnityWebRequest는 응답이 끝나야 본문을 넘겨줘 이벤트 스트림은 브라우저 fetch로 받는다.
+        private static IApiStreamTransport CreateStreamTransport(int timeoutSeconds)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return new BrowserStreamTransport(timeoutSeconds);
+#else
+            return new UnityWebRequestStreamTransport(timeoutSeconds);
+#endif
         }
     }
 }

@@ -278,15 +278,11 @@ namespace A305.Npc.PlayModeTests
             Passerby ben = FindPasserby(BenCode);
             KeepFromApproaching(ben);
             yield return FaceFrom(ben, 5f);
-            Passerby ruby = BringNpc(
-                RubyCode,
-                new Pose(
-                    ben.transform.position - ben.transform.forward * 1.5f,
-                    ben.transform.rotation
-                )
-            );
+            yield return LetCameraSettle();
+            Passerby ruby = HoldNpcAlongCameraLine(ben, 1.5f);
             yield return LetCameraSettle();
 
+            ruby.IsApproachAllowed = true;
             Single<NpcClickTalk>().Click(WhereNameTagsOverlap(BenName, RubyName));
             yield return null;
 
@@ -301,15 +297,11 @@ namespace A305.Npc.PlayModeTests
             Passerby ben = FindPasserby(BenCode);
             KeepFromApproaching(ben);
             yield return FaceFrom(ben, 6.5f);
-            Passerby ruby = BringNpc(
-                RubyCode,
-                new Pose(
-                    ben.transform.position + ben.transform.forward * 1.5f,
-                    ben.transform.rotation
-                )
-            );
+            yield return LetCameraSettle();
+            Passerby ruby = HoldNpcAlongCameraLine(ben, -1.5f);
             yield return LetCameraSettle();
 
+            ruby.IsApproachAllowed = true;
             Single<NpcClickTalk>().Click(WhereNameTagsOverlap(RubyName, BenName));
             yield return null;
 
@@ -357,6 +349,7 @@ namespace A305.Npc.PlayModeTests
             Vector3 towardNpc = npcPosition - standAt;
             towardNpc.y = 0f;
             Single<PlayerMover>().Teleport(standAt, Quaternion.LookRotation(towardNpc));
+            Single<PlayerCameraRig>().SnapBehindTarget();
             yield return null;
         }
 
@@ -385,6 +378,22 @@ namespace A305.Npc.PlayModeTests
             KeepFromApproaching(npc);
             PlaceAt(npc, pose);
             npc.enabled = true;
+            return npc;
+        }
+
+        // 이름표가 겹치도록 카메라와 Ben을 잇는 선에 세우고, 준비 중 원래 자리로 돌아가지 않게 한다.
+        private static Passerby HoldNpcAlongCameraLine(Passerby ben, float distanceFromBen)
+        {
+            Vector3 towardBen = Vector3
+                .ProjectOnPlane(ben.transform.position - Camera.main.transform.position, Vector3.up)
+                .normalized;
+            var pose = new Pose(
+                ben.transform.position + towardBen * distanceFromBen,
+                ben.transform.rotation
+            );
+            Passerby npc = BringNpc(RubyCode, pose);
+            npc.IsApproachAllowed = false;
+            npc.WaitAt(pose);
             return npc;
         }
 

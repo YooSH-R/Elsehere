@@ -46,6 +46,30 @@ class RequestLoggingFilterTest {
   }
 
   @Test
+  void successfulHealthCheck_keepsRequestIdWithoutWritingRequestLog() throws Exception {
+    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/health");
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    filter.doFilter(request, response, (incoming, outgoing) -> {});
+
+    assertThat(response.getHeader("X-Request-ID")).matches("[a-f0-9]{32}");
+    assertThat(requestLogs.list).isEmpty();
+    assertThat(MDC.get("requestId")).isNull();
+  }
+
+  @Test
+  void failedHealthCheck_isLogged() throws Exception {
+    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/health");
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    filter.doFilter(request, response, (incoming, outgoing) -> response.setStatus(503));
+
+    assertThat(requestLogs.list)
+        .singleElement()
+        .satisfies(event -> assertThat(event.getFormattedMessage()).contains("status=503"));
+  }
+
+  @Test
   void requestWithoutId_returnsGeneratedId() throws Exception {
     MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/bootstrap");
     MockHttpServletResponse response = new MockHttpServletResponse();

@@ -1,6 +1,6 @@
 # Npc 모듈
 
-플레이어에게 먼저 다가와 대화를 제안하는 행인과, 다가오지 않는 동안 NPC가 게임 시각의 일과와 욕구에 따라 지내는 [생활](#생활)을 담당합니다. 튜토리얼에서는 집 밖으로 나오면 행인이 다가와 카페 위치를 묻고, 일반 행인은 마을을 걷다 가까이 가면 말을 겁니다. 수락하면 [Dialogue 모듈](../Dialogue/README.md)로 대화를 시작합니다. NPC가 다가오지 않는 동안(대화를 마치고 쉬는 중 등)에는 플레이어가 가까이 가서 [말 걸기]로 먼저 대화를 걸 수 있습니다(기능 명세 F-22). NPC가 많아 [말 걸기]만으로 원하는 NPC를 고르기 어려우므로, 8m 안의 NPC는 몸을 클릭·탭해도 말을 걸 수 있고 PC에서는 커서를 올린 NPC에 테두리를 그립니다([클릭·탭으로 말 걸기](#클릭탭으로-말-걸기)).
+플레이어에게 먼저 다가와 대화를 제안하는 행인과, 다가오지 않는 동안 NPC가 게임 시각의 일과와 욕구에 따라 지내는 [생활](#생활)을 담당합니다. 튜토리얼에서는 집 밖으로 나오면 행인이 다가와 카페 위치를 묻고, 일반 행인은 마을을 걷다 가까이 가면 말을 겁니다. 수락하면 [Dialogue 모듈](../Dialogue/README.md)로 대화를 시작합니다. NPC가 다가오지 않는 동안(대화를 마치고 쉬는 중 등)에는 플레이어가 가까이 가서 [말 걸기]로 먼저 대화를 걸 수 있습니다(기능 명세 F-22). NPC가 많아 [말 걸기]만으로 원하는 NPC를 고르기 어려우므로, 8m 안의 NPC는 몸이나 머리 위 이름표를 클릭·탭해도 말을 걸 수 있고 PC에서는 커서를 올린 NPC에 테두리를 그립니다([클릭·탭으로 말 걸기](#클릭탭으로-말-걸기)).
 
 이 서비스의 진행 흐름을 다루는 게임 전용 기능입니다. 플레이어 위치·이동 잠금은 `A305.Player`, 대화 시작·종료는 `A305.Dialogue`의 공개 API로 요청합니다.
 
@@ -13,7 +13,7 @@
 | `Passerby` | 행인을 걷게 하고 제안 화면·대화와 연결합니다. 다가오지 않는 동안 `NpcRoutine`이 있으면 생활을 맡깁니다. 모델은 `Visual` 아래, 이동은 루트의 `CharacterController`가 맡습니다. |
 | `NpcIdentity` | NPC 키(ERD `npcs.code`)와 머리 위치(`LookTarget`). 실행 시 해당 NPC의 공통 음성·표정 연결을 준비합니다. |
 | `PasserbyOfferView` | 누가 말을 걸었는지, 건넨 말과 [대화하기]·[지금은 안 할래요] 버튼. 한 번에 한 행인만 제안합니다. 같은 자리에 플레이어가 먼저 말을 거는 [말 걸기]와 키 안내(E)를 두며, 둘은 함께 뜨지 않습니다. 보이는 제안은 E로 수락하고 Esc로 거절합니다. 거절할 수 없는 튜토리얼 제안은 Esc로 닫히지 않습니다. 데스크톱 버튼에는 [E]·[Esc] 안내를 붙이고 터치 화면에서는 숨깁니다. 안내와 버튼 폭만 기존 프리팹에 적용할 때는 **Tools → A305 → Npc → Apply Offer Shortcuts**를 씁니다. 제안 창은 다른 창과 같은 테마 바탕을 쓰고, [말 걸기]·[택시 세우기]는 바탕 상자 없이 버튼만 보입니다. 대화를 다 쓴 게스트에게는 같은 자리에 [가입하고 계속 대화하기]를 보이고, 누르거나 E를 누르면 가입 안내 창을 엽니다. |
-| `NpcClickTalk` | NPC 몸을 클릭·탭하면 말을 겁니다. 8m(`ReachMeters`) 안에서 말을 걸 수 있는 NPC만 받고, PC에서는 커서를 올린 그 NPC에 테두리를 그립니다. 제안 화면 프리팹(`PasserbyOffer`)에 붙어 있어 장소 씬을 고치지 않고도 NPC가 있는 모든 장소에서 동작합니다(`NpcBuilder.PrepareAssets`). |
+| `NpcClickTalk` | NPC 몸이나 머리 위 이름표를 클릭·탭하면 말을 겁니다. 8m(`ReachMeters`) 안에서 말을 걸 수 있는 NPC만 받고, PC에서는 커서를 올린 그 NPC에 테두리를 그립니다. 누른 자리의 맨 위 UI가 이름표면 그 이름표의 NPC를(`NpcNameTagView.NpcOf`), 다른 UI면 막고, UI가 없으면 맨 앞에 보이는 NPC 몸을 고릅니다. 제안 화면 프리팹(`PasserbyOffer`)에 붙어 있어 장소 씬을 고치지 않고도 NPC가 있는 모든 장소에서 동작합니다(`NpcBuilder.PrepareAssets`). |
 | `NpcPointerRaycast` | 클릭·탭한 방향에서 맨 앞에 보이는 것이 NPC 몸일 때만 그 NPC를 찾습니다. 플레이어 몸과 보이지 않는 감지 영역은 지나치고, 사물 카드가 뜨는 영역(`ObjectHoverHitArea`)이 앞에 있으면 사물을 누른 것으로 봅니다. |
 | `RendererOutline` | 대상 아래 모든 몸 그림에 테두리 재질(`Art/Npc/NpcHoverOutline.mat`, 셰이더 `A305/NpcHoverOutline`)을 하나 더 붙였다가 원래 재질 목록으로 되돌립니다. 재질 에셋은 바꾸지 않습니다. 테두리 색·두께는 재질에서 조정합니다. |
 | `GuestSignupDialogView` | 대화를 다 쓴 게스트의 가입 안내 창. 가입하면 대화·단어·NPC와의 사이가 그대로 이어진다고 알리고, [Google로 가입하기]는 같은 탭에서 Google 로그인(AUTH-01, `A305.Api`의 `BrowserRedirect`)으로 갑니다. 창이 열릴 때 설문을 권해(`A305.Api`의 `SurveyPrompt.Request`) 화면 위 가운데에 설문 카드가 따로 내려옵니다(창 안에는 설문 링크를 두지 않음). 제안 화면 프리팹(`PasserbyOffer`)에 있어 장소 씬마다 배치하지 않습니다(**Tools → A305 → Npc → Apply Guest Signup Dialog**). |
@@ -26,7 +26,7 @@
 | `NpcRoutine` | 다가오지 않는 동안 `NpcLife`가 고른 사물까지 걸어가 쓰고, 의자·벤치·소파면 앉습니다. 걷기·애니메이션은 `Passerby`의 것을 씁니다. 구역(`stayInArea`·`area`)을 켜면 그 안의 사물·자리만 고릅니다. |
 | `NpcDuty` | 직원이 지금 근무 중인지(교대 밖이면 근무 외)와 같은 카운터를 맡은 직원 중 누가 응대할지 정합니다([일터와 응대](#일터와-응대)). Unity 객체 없이 테스트합니다. |
 | `NpcDetailDistance` | 카메라가 12m 안에 있을 때만 NPC의 팔 관통 보정(`LittleMungArmClearance`)을 켭니다. 이 보정은 매 프레임 피부 정점을 계산해 캐릭터 하나에 수 ms가 들어, 마을을 걷는 NPC 모두에게 돌리면 마을이 느려집니다(마을 NPC 16명 기준 한 프레임 약 125ms). 공용 `Passerby.prefab`에 붙어 있어 이 프리팹으로 놓는 NPC가 모두 받습니다. 앉아 있는 동안에는 `StandingPoseCorrections`가 보정을 꺼 두므로 건드리지 않고, 일어선 뒤 거리에 맞춥니다. |
-| `NpcNameTags`, `NpcNameTagView` | 플레이어에서 8m 안의 NPC 머리 위 이름표. 직원(생활 데이터 역할 `STAFF`)은 이름 위 파란 칩에 역할(예: 벨보이·경찰관)을 함께 보이고, 행인은 이름만 보입니다. 근무 시간과 상관없이 직원은 직원으로 보입니다. 이름·역할은 대화 대본(`Data/Dialogue/MockDialogueScripts.asset`)에서 읽고, 이름이 없는 NPC는 띄우지 않습니다. 대화나 창 때문에 플레이어가 움직이지 못하는 동안에는 숨깁니다. NPC마다 3D 글자판을 두지 않고 제안 화면 프리팹(`PasserbyOffer`)의 `NameTags` 층 한 장에서 그리며, 단어 카드(90)·HUD(95) 아래(80)에 놓여 클릭을 받지 않습니다(**Tools → A305 → Npc → Apply Name Tags**). 나란히 선 NPC의 이름표는 서로 겹칠 수 있습니다. 매 프레임 NPC를 훑을 때 장면 전체를 찾지 않도록 `NpcIdentity.Active`(지금 켜진 NPC 목록)를 씁니다. 판단은 EditMode `NpcNameTagsTests`가 Unity 객체 없이, 제안 화면 프리팹의 이름표 층 연결·그리는 순서는 `NpcNameTagPrefabTests`가, 실제 마을 장면은 PlayMode `NpcNameTagViewTests`가 확인합니다(가까운 경찰관의 역할 칩, 행인은 이름만, 먼 NPC·움직이지 못할 때는 없음). |
+| `NpcNameTags`, `NpcNameTagView` | 플레이어에서 8m 안의 NPC 머리 위 이름표. 직원(생활 데이터 역할 `STAFF`)은 이름 위 파란 칩에 역할(예: 벨보이·경찰관)을 함께 보이고, 행인은 이름만 보입니다. 근무 시간과 상관없이 직원은 직원으로 보입니다. 이름·역할은 대화 대본(`Data/Dialogue/MockDialogueScripts.asset`)에서 읽고, 이름이 없는 NPC는 띄우지 않습니다. 대화나 창 때문에 플레이어가 움직이지 못하는 동안에는 숨깁니다. NPC마다 3D 글자판을 두지 않고 제안 화면 프리팹(`PasserbyOffer`)의 `NameTags` 층 한 장에서 그립니다. 이 층은 다른 화면 UI와 휴대폰 터치 조작판(-10)보다 아래(-20)에 놓이고, 이름표 바탕 전체가 클릭을 받아 그 NPC에게 말을 겁니다([클릭·탭으로 말 걸기](#클릭탭으로-말-걸기), **Tools → A305 → Npc → Apply Name Tags**). 나란히 선 NPC의 이름표는 서로 겹칠 수 있으며, 카메라에서 가까운 NPC 이름표를 위에 그립니다. 매 프레임 NPC를 훑을 때 장면 전체를 찾지 않도록 `NpcIdentity.Active`(지금 켜진 NPC 목록)를 씁니다. 판단은 EditMode `NpcNameTagsTests`가 Unity 객체 없이, 제안 화면 프리팹의 이름표 층 연결·그리는 순서·클릭 받기는 `NpcNameTagPrefabTests`가, 실제 마을 장면은 PlayMode `NpcNameTagViewTests`가 확인합니다(가까운 경찰관의 역할 칩, 행인은 이름만, 먼 NPC·움직이지 못할 때는 없음). 이름표 클릭과 겹친 이름표는 `NpcClickTalkTests`가 확인합니다. |
 | `NpcStayArea` | 구역을 켠 NPC가 고를 수 있는 위치인지 정합니다. Unity 장면 없이 테스트합니다. |
 | `NpcWalkArea` | Builder가 장면마다 구운 NPC 바닥(NavMesh)을 장면이 켜져 있는 동안 등록합니다. |
 | `NpcAnimation`, `NpcAnimations` | 사물을 쓰는 동안 재생할 동작(일하기·물건 집기·앉기)을 행동 이름으로 고릅니다. 값은 NPC 전용 Animator의 `Action` 번호와 같습니다. |
@@ -92,11 +92,11 @@
 
 ### 클릭·탭으로 말 걸기
 
-마을에 NPC가 많아 가까이 가서 뜨는 [말 걸기]만으로는 원하는 NPC를 고르기 어렵습니다. 그래서 NPC 몸을 클릭(휴대폰·태블릿은 탭)해도 말을 걸 수 있습니다(`NpcClickTalk`). 머리 위 이름표는 아직 클릭 대상이 아닙니다.
+마을에 NPC가 많아 가까이 가서 뜨는 [말 걸기]만으로는 원하는 NPC를 고르기 어렵습니다. 그래서 NPC 몸이나 머리 위 이름표를 클릭(휴대폰·태블릿은 탭)해도 말을 걸 수 있습니다(`NpcClickTalk`). 이름표를 누르면 그 이름표의 NPC 몸을 누른 것과 같아, 아래 표의 동작이 모두 같습니다.
 
 | 상황 | 동작 |
 | --- | --- |
-| PC에서 8m 안의 말을 걸 수 있는 NPC에 커서를 올림 | 그 NPC의 몸·옷·머리 둘레에 옅은 노란 테두리를 그립니다. 커서가 떠나거나, 8m 밖이거나, 말을 걸 수 없는 상태가 되면 지웁니다. 휴대폰·태블릿에는 커서가 없어 테두리를 그리지 않습니다. |
+| PC에서 8m 안의 말을 걸 수 있는 NPC나 그 이름표에 커서를 올림 | 그 NPC의 몸·옷·머리 둘레에 옅은 노란 테두리를 그립니다. 커서가 떠나거나, 8m 밖이거나, 말을 걸 수 없는 상태가 되면 지웁니다. 휴대폰·태블릿에는 커서가 없어 테두리를 그리지 않습니다. |
 | 8m 안의 기다리거나 쉬는 NPC, 다가오는 NPC를 클릭·탭 | 그 자리에서 바로 사용자가 먼저 건 대화(CONV-01 `initiatedBy: USER`)로 시작합니다. 대화 화면은 NPC 얼굴 기준이라 떨어져 있어도 구도가 같습니다. 끝나면 [말 걸기]로 건 대화처럼 다시 쉽니다. |
 | 다가와 제안하는 NPC를 클릭·탭 | [대화하기]를 누른 것과 같습니다(`ConversationInitiator.Npc`). |
 | 다른 NPC가 제안하는 중에 다른 NPC를 클릭·탭 | 제안한 NPC는 [지금은 안 할래요]를 누른 것처럼 쉬고, 누른 NPC와 대화합니다. 거절할 수 없는 제안(튜토리얼 Ben)이 떠 있으면 반응하지 않습니다. |
@@ -104,6 +104,11 @@
 | 8m보다 멀거나, 다른 대화 중이거나, 창이 열려 이동이 잠겼거나, 진행 흐름이 막은 NPC(`IsApproachAllowed` false) | 반응하지 않고 테두리도 그리지 않습니다. [말 걸기]를 보이지 않는 때와 같은 기준입니다. |
 | 화면을 끌어 시점을 돌림, UI 위를 누름 | 사물 카드와 같은 기준으로 클릭으로 보지 않습니다. 화면을 덮는 터치 조작판 위의 탭은 받습니다. |
 | NPC 앞을 벽이나 사물 카드가 뜨는 사물이 가림 | NPC를 고르지 않습니다. 사물이면 사물 카드가 뜹니다. 플레이어 몸과 문턱 같은 보이지 않는 감지 영역은 지나칩니다. |
+| 이름표 위에 커서를 올리거나 이름표를 누름 | 이름표 바탕 전체(이름·역할 칩 포함)가 클릭을 받습니다. 이름표가 사물 앞에 떠 있어도 사물 카드는 뜨지 않고 그 이름표의 NPC만 고릅니다. |
+| 나란히 선 NPC의 이름표가 겹친 곳을 누름 | 카메라에서 가까운 NPC 이름표가 위에 그려지고, 그 NPC에게 말을 겁니다. |
+| 메뉴·창·HUD 버튼이 이름표를 덮음 | 이름표는 다른 화면 UI보다 아래에 그려지므로 덮은 UI를 누른 것으로 보고 말을 걸지 않습니다. |
+
+이름표 층(`NameTags`)은 휴대폰 터치 조작판(정렬 -10)보다 아래(-20)에 그립니다. 이름표가 클릭을 받아도 이름표 위에서 시작한 끌기는 조작판이 받아 시점·이동이 그대로 되고, 탭만 이름표 클릭으로 봅니다. PC의 시점 끌기는 끌기를 받는 UI(스크롤 목록 등)만 막으므로 이름표 위에서도 됩니다(`UiDragTarget`).
 
 거리는 [말 걸기]와 같이 수평 거리로 재고, 8m는 사물 카드를 띄우는 최대 거리와 같습니다. 택시 기사는 지금처럼 [택시 세우기]·[기사에게 말 걸기]로만 부릅니다(`Passerby`가 아닌 NPC는 클릭 대상이 아닙니다).
 
@@ -217,14 +222,14 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 | 규칙 | 내용 |
 | --- | --- |
-| 쓰는 외형 | 플레이어(기본) 외형은 NPC에 쓰지 않습니다. 바리스타 유니폼(`Prefabs/Npc/Barista.prefab`)은 카페 직원만, 호텔 유니폼(`Prefabs/Characters/Tripo/LittleMung_HotelStaff_male.prefab`)은 호텔 직원만, 호텔 유니폼에서 바지·구두를 남색으로 바꾼 경찰 제복은 경찰관만 입습니다. 서비스 NPC 외형(`Prefabs/Npc/Review/`의 흑인 청년·비즈니스맨·중년 남성·중년 여성·할머니)은 어디서나 씁니다. |
-| 성별·나이 | 인격 카드(`ai/npcs/<NPC 키>.json`)의 나이대·배경에 맞는 외형을 고릅니다. 할아버지 외형이 없어 Arthur는 중년 남성 외형에 흰 머리·크림색 셔츠를 입혀 나이 들어 보이게 합니다. |
+| 쓰는 외형 | 플레이어(기본) 외형은 NPC에 쓰지 않습니다. 바리스타·카페 남자 유니폼은 카페 직원만, 남녀 호텔 유니폼은 호텔 직원만, 검수한 남녀 경찰 제복은 경찰관만 입습니다. 일반 행인 외형은 다른 역할에서도 쓸 수 있습니다. 경로와 배정은 `NpcLooks`·`NpcCast`가 관리합니다. |
+| 성별·나이 | 인격 카드(`ai/npcs/<NPC 키>.json`)의 나이대·배경에 맞는 외형을 고릅니다. Arthur는 전용 할아버지 검수 사본을 씁니다. 역할이 정해지지 않은 외형을 기존 NPC의 성별 변경으로 임의 배정하지 않습니다. |
 | 서로 다른 사람 | 같은 외형을 쓰는 두 NPC의 눈동자 색이 같으면 머리와 옷 색이 모두 달라야 하고, 옷 색이 같으면 눈동자·머리·신발 색이 모두 달라야 합니다. 경찰관 네 명은 같은 제복이라 눈동자·머리·신발로 구분합니다. |
 | 색 이름 | 같은 색인지는 `NpcCast.Palette`의 색 이름으로 가립니다. 같은 이름에는 같은 값을 씁니다. |
 
 - 머리카락과 피부·바지가 비슷한 색인 외형(중년 남녀·할머니·바리스타)은 몸 높이로 머리만 고르고(머리 꼭대기 1, 발바닥 0), 가닥 사이에 남는 가는 선은 같은 색으로 메웁니다(`NpcColorSwap.FillGaps`).
 - 배색이 같으면 텍스처를 다시 쓰지 않습니다(가져오기 설정의 userData에 배색을 적어 둠). 색을 칠하는 규칙을 바꾸면 `NpcCastMember`의 `RecipeVersion`을 올립니다.
-- **Tools → A305 → Npc → Render Cast Lineups**는 같은 외형의 NPC를 외형 표 순서대로 세워 몸 전체·얼굴·뒤통수를 찍은 그림을 외형마다 저장합니다(기본 `artifacts/unity/npc-cast/`, 환경 변수 `NPC_CAST_LINEUP_OUTPUT`로 바꿈). 외형 표를 바꾸면 이 그림으로 서로 다른 사람으로 보이는지 확인합니다. 경찰 모자는 찍지 않습니다.
+- **Tools → A305 → Npc → Render Cast Lineups**는 같은 외형의 NPC를 외형 표 순서대로 세워 몸 전체·얼굴·뒤통수를 찍은 그림을 외형마다 저장합니다(기본 `artifacts/unity/npc-cast/`, 환경 변수 `NPC_CAST_LINEUP_OUTPUT`로 바꿈). 외형 표를 바꾸면 이 그림으로 서로 다른 사람으로 보이는지 확인합니다. 경찰 검수 사본에는 모자까지 포함됩니다.
 
 ## NPC 추가
 
@@ -238,6 +243,8 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 ## Builder
 
+**Tools → A305 → Npc → Connect Reviewed Staff Visuals**는 기존 카페 Leo, 호텔 Clara, 행인 Arthur, 경찰 직원의 외형만 검수 프리팹으로 갱신합니다. 골격·동작·13개 얼굴 채널 검사 후 연결하며, 새 NPC 생성·배치 이동·생활 데이터·NavMesh 재생성을 하지 않습니다. 이전에 연결된 외형은 교체하여 얼굴과 Animator가 하나씩 남게 합니다. 캡슐은 실제 몸 높이, 대화 시선은 이식한 눈 메시의 실제 위치에 맞춥니다. 경찰 여자 프리팹은 외형 표에 등록되어 있지만 기존 역할의 성별을 바꾸지 않도록 미배정 상태입니다. 원래 배치부터 새로 만드는 경우는 아래 **Build Cast**를 사용합니다.
+
 **Tools → A305 → Npc → Build**(`Scripts/Editor/Npc/NpcBuilder.cs`)가 다음을 준비합니다. 공간 Builder(**World → Build Spaces**)도 함께 실행합니다.
 
 - 설정(`Data/Npc/`): 없을 때만 만들고, 있으면 값을 유지합니다.
@@ -248,7 +255,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 **Tools → A305 → Npc → Build Building Staff**(`Scripts/Editor/Npc/BuildingStaffBuilder.cs`)는 [거리 매장 직원](#거리-매장-직원)을 `TownScene`의 각 건물 1층에 둡니다. 정한 자리가 카운터·가구와 겹치면 1층 안의 가장 가까운 빈자리로 옮기고(`NpcPlacement`), 문 쪽을 보게 세웁니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않습니다. 외형은 [외형 표](#외형-표)의 외형을 `NpcVisualBuilder`로 붙이고, 배색은 `NpcCastDresser`가 입힙니다(몸 텍스처는 1024로 줄임, 머티리얼 사본은 실행할 때마다 외형의 원래 머티리얼 설정에 맞춤). 확인용 인사말·설정(`Data/Npc/BuildingStaffSettings.asset`)도 연결합니다. 이어서 **Build Daily Life**를 실행해 생활을 붙이고, 직원마다 구역을 자기 건물 1층으로 정합니다. 생활 데이터에 직원이 없으면 내보내기(`npc_life_export.py`)를 먼저 하라고 알리고 멈춥니다.
 
-**Tools → A305 → Npc → Build Cast**(`Scripts/Editor/Npc/NpcCastBuilder.cs`)는 다른 Builder가 두지 않는 카페·호텔·드럭스토어 직원과 마을 행인을 [일터](#일터와-응대)에 두고, 경찰관은 `PoliceStationBuilder.PlaceOfficers`로 창구 뒤에 둡니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않고, 정한 자리가 가구와 겹치면 가까운 빈자리로 옮깁니다. 설정은 같은 일터의 원래 NPC를 따르고, 카페·호텔 유니폼은 Mia·Jake와 같은 대화 얼굴 외형과 캡슐·시선 높이를 씁니다. 이어서 네 장면의 모든 NPC에 외형 표의 배색을 입히고 **Build Daily Life**를 실행한 뒤 경찰관이 경찰서 1층 안에서만 지내게 합니다. 확인용 인사말도 덧붙입니다.
+**Tools → A305 → Npc → Build Cast**(`Scripts/Editor/Npc/NpcCastBuilder.cs`)는 다른 Builder가 두지 않는 카페·호텔·드럭스토어 직원과 마을 행인을 [일터](#일터와-응대)에 두고, 경찰관은 `PoliceStationBuilder.PlaceOfficers`로 창구 뒤에 둡니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않고, 정한 자리가 가구와 겹치면 가까운 빈자리로 옮깁니다. 설정은 같은 일터의 원래 NPC를 따르고, Mia·Jake와 같은 외형을 쓰는 직원은 기존 연결을 재사용하고, 새 검수 외형을 쓰는 직원은 자기 메시에서 캡슐·시선 높이를 측정합니다. 이어서 네 장면의 모든 NPC에 외형 표의 배색을 입히고 **Build Daily Life**를 실행한 뒤 경찰관이 경찰서 1층 안에서만 지내게 합니다. 확인용 인사말도 덧붙입니다.
 
 **Tools → A305 → Npc → Build Daily Life**(`Scripts/Editor/Npc/NpcLifeBuilder.cs`)는 카페·호텔·드럭스토어·마을에서 생활 데이터가 있는 NPC에 `NpcRoutine`을 붙이고, NPC 몸 크기(반지름 0.3m, 키 1.8m, 턱 0.3m)로 바닥을 구워 `Data/Npc/WalkAreas/`에 저장한 뒤 `NpcWalkArea`로 연결합니다. 사람·차·트리거 콜라이더는 굽지 않습니다. 장면의 `NavMeshModifier`·`NavMeshModifierVolume`이 정한 바닥 구역을 따르며, 마을의 차도(`Road`)·횡단보도(`Crosswalk`) 구역은 [길 안내](../Wayfinding/README.md#횡단보도로-건너기)가 두고 비용은 보통 바닥과 같아 NPC 걸음은 바뀌지 않습니다. 가구 배치를 바꾸면 다시 실행합니다. 같은 메뉴가 `NpcAnimationBuilder`로 동작 FBX를 Humanoid로 가져오고 NPC 전용 Animator(`Art/Characters/Npc/NpcLife.controller`)를 만들어 `NpcRoutine`에 연결합니다. 장면에 저장된 모델은 플레이어와 같은 이동 컨트롤러 그대로 두고, 생활이 켜질 때 Humanoid 모델에 바꿔 끼웁니다(장면 모델의 키·발 높이 검사가 그대로 유지됩니다). 모델이 자기 Idle처럼 캐릭터 전용 클립을 덮어쓴 컨트롤러(`AnimatorOverrideController`)를 쓰면 `NpcLifeAnimator`가 그 클립을 생활 컨트롤러에 이어받습니다. 컨트롤러는 없을 때만 만들므로 구성을 바꾸려면 지우고 다시 실행합니다.
 
@@ -257,7 +264,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
 | `A305.Npc.Tests` | `Assets/Tests/EditMode/Npc/` | 행인의 다가감·제안·부르기·[말 걸기]·클릭으로 말 걸기와 게스트 안내, 클릭한 NPC 고르기(`NpcPointerRaycastTests`)·테두리(`RendererOutlineTests`), 택시 버튼, 생활 일과·욕구·행동 고르기, 근무와 카운터 응대(`NpcDutyTests`), 외형 표(`NpcCastTests`), 동작 고르기, 카메라에서 먼 NPC의 팔 관통 보정 끄기, 앉아 있는 동안 다시 켜지 않기와 네 장면의 보정 쓰는 NPC가 모두 거리 끄기를 가졌는지(`NpcDetailDistanceTests`·`NpcDetailDistanceSceneTests`) |
-| `A305.Npc.PlayModeTests` | `Assets/Tests/PlayMode/Npc/` | 실제 장면의 행인·튜토리얼 행인 대화 흐름, NPC 클릭·탭으로 말 걸기와 커서 테두리(`NpcClickTalkTests`), 택시 주행과 세우기, 경찰 신고와 순찰차 출동, 직원의 생활·카운터 응대와 동작 재생 |
+| `A305.Npc.PlayModeTests` | `Assets/Tests/PlayMode/Npc/` | 실제 장면의 행인·튜토리얼 행인 대화 흐름, NPC 몸·이름표 클릭·탭으로 말 걸기와 커서 테두리, 겹친 이름표(`NpcClickTalkTests`), 택시 주행과 세우기, 경찰 신고와 순찰차 출동, 직원의 생활·카운터 응대와 동작 재생 |
 
 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.
 

@@ -81,7 +81,11 @@ namespace A305.EditorTools.Characters
             }
         }
 
-        public static void Export()
+        public static void Export() => Export(false);
+
+        internal static void ExportRebuiltFace() => Export(true);
+
+        private static void Export(bool rebuild)
         {
             Directory.CreateDirectory(Output);
             var root = PrefabUtility.LoadPrefabContents(Prefab);
@@ -90,7 +94,15 @@ namespace A305.EditorTools.Characters
                 var skin = root.GetComponentsInChildren<SkinnedMeshRenderer>()
                     .OrderByDescending(s => s.sharedMesh.vertexCount)
                     .First();
-                if (File.Exists(Path.Combine(Output, "Surface.json")))
+                if (
+                    rebuild
+                    && root.GetComponent<CharacterFaceController>()
+                        .SupportsPose(CharacterFacePose.Blink)
+                )
+                    throw new IOException(
+                        "Re-export eyes only after rebuilding the mouth from its prepared source."
+                    );
+                if (!rebuild && File.Exists(Path.Combine(Output, "Surface.json")))
                     throw new IOException(
                         "Preserve the existing eye fitting source: " + CharacterName
                     );
@@ -187,6 +199,11 @@ namespace A305.EditorTools.Characters
                     cutBody.name = "FaceWithBaseEyes";
                     AssetDatabase.CreateAsset(cutBody, bodyPath);
                 }
+                else if (cutBody != body.sharedMesh)
+                    cutBody = CharacterFaceReviewBuilder.SaveMesh(
+                        Object.Instantiate(body.sharedMesh),
+                        bodyPath
+                    );
                 cutBody.triangles = data.bodyTriangles;
                 EditorUtility.SetDirty(cutBody);
                 body.sharedMesh = cutBody;

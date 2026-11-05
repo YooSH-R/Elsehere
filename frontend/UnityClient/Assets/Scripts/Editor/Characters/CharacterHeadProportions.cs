@@ -19,6 +19,149 @@ namespace A305.EditorTools.Characters
 
         public static float Ratio(GameObject model) => Ratio(Capture(model), Vector3.zero, 1);
 
+        // 모자 높이만 맞추면 좁은 얼굴이 남을 수 있어, 좌우 폭/머리 높이를 별도로 맞춘다.
+        public static float MatchWidth(GameObject candidate, GameObject reference)
+        {
+            if (EditorUtility.IsPersistent(candidate))
+                throw new ArgumentException(
+                    "Instantiate a review copy before changing proportions."
+                );
+            var surfaces = Capture(candidate);
+            var rig = candidate.GetComponentInChildren<Animator>();
+            var axis = WidthAxis(rig);
+            float target = WidthRatio(
+                Capture(reference),
+                WidthAxis(reference.GetComponentInChildren<Animator>()),
+                Vector3.zero,
+                1
+            );
+            var pivot = rig.GetBoneTransform(HumanBodyBones.Neck).position;
+            if (
+                !float.IsFinite(target)
+                || WidthRatio(surfaces, axis, pivot, .5f) > target
+                || WidthRatio(surfaces, axis, pivot, 2) < target
+            )
+                throw new InvalidOperationException(
+                    "Reference head width is outside the supported range."
+                );
+            float low = .5f,
+                high = 2;
+            for (int i = 0; i < 32; i++)
+            {
+                float middle = (low + high) * .5f;
+                if (WidthRatio(surfaces, axis, pivot, middle) < target)
+                    low = middle;
+                else
+                    high = middle;
+            }
+            float scale = (low + high) * .5f;
+            if (Mathf.Abs(scale - 1) < .00001f)
+                return 1;
+            foreach (var surface in surfaces)
+            {
+                var original = surface.skin.sharedMesh;
+                var mesh = Object.Instantiate(original);
+                var vertices = mesh.vertices;
+                var normals = mesh.normals;
+                var transforms = new Matrix4x4[vertices.Length];
+                var normalTransforms = new Matrix4x4[vertices.Length];
+                for (int i = 0; i < vertices.Length; i++)
+                {
+                    float amount = (scale - 1) * surface.influence[i];
+                    var world = Matrix4x4.identity;
+                    for (int row = 0; row < 3; row++)
+                    for (int column = 0; column < 3; column++)
+                        world[row, column] += amount * axis[row] * axis[column];
+                    transforms[i] = surface.rest[i].inverse * world * surface.rest[i];
+                    normalTransforms[i] = transforms[i].inverse.transpose;
+                    var shift = axis * (Vector3.Dot(surface.world[i] - pivot, axis) * amount);
+                    vertices[i] += surface.rest[i].inverse.MultiplyVector(shift);
+                    if (normals.Length == vertices.Length)
+                        normals[i] = normalTransforms[i].MultiplyVector(normals[i]).normalized;
+                }
+                mesh.vertices = vertices;
+                if (normals.Length == vertices.Length)
+                    mesh.normals = normals;
+                var tangents = mesh.tangents;
+                for (int i = 0; i < tangents.Length; i++)
+                {
+                    var direction = transforms[i].MultiplyVector(tangents[i]).normalized;
+                    tangents[i] = new Vector4(direction.x, direction.y, direction.z, tangents[i].w);
+                }
+                mesh.tangents = tangents;
+                mesh.ClearBlendShapes();
+                var delta = new Vector3[mesh.vertexCount];
+                var normal = new Vector3[mesh.vertexCount];
+                var tangent = new Vector3[mesh.vertexCount];
+                var sourceNormals = original.normals;
+                var sourceTangents = original.tangents;
+                for (int shape = 0; shape < original.blendShapeCount; shape++)
+                for (int frame = 0; frame < original.GetBlendShapeFrameCount(shape); frame++)
+                {
+                    original.GetBlendShapeFrameVertices(shape, frame, delta, normal, tangent);
+                    for (int i = 0; i < delta.Length; i++)
+                    {
+                        delta[i] = transforms[i].MultiplyVector(delta[i]);
+                        normal[i] =
+                            sourceNormals.Length == delta.Length
+                                ? normalTransforms[i]
+                                    .MultiplyVector(sourceNormals[i] + normal[i])
+                                    .normalized - normals[i]
+                                : Vector3.zero;
+                        tangent[i] =
+                            sourceTangents.Length == delta.Length
+                                ? transforms[i]
+                                    .MultiplyVector((Vector3)sourceTangents[i] + tangent[i])
+                                    .normalized - (Vector3)tangents[i]
+                                : Vector3.zero;
+                    }
+                    mesh.AddBlendShapeFrame(
+                        original.GetBlendShapeName(shape),
+                        original.GetBlendShapeFrameWeight(shape, frame),
+                        delta,
+                        normal,
+                        tangent
+                    );
+                }
+                mesh.RecalculateBounds();
+                surface.skin.sharedMesh = mesh;
+                surface.skin.localBounds = mesh.bounds;
+            }
+            return scale;
+        }
+
+        private static Vector3 WidthAxis(Animator rig) =>
+            Vector3
+                .ProjectOnPlane(
+                    rig.GetBoneTransform(HumanBodyBones.RightUpperLeg).position
+                        - rig.GetBoneTransform(HumanBodyBones.LeftUpperLeg).position,
+                    Vector3.up
+                )
+                .normalized;
+
+        private static float WidthRatio(
+            Surface[] surfaces,
+            Vector3 axis,
+            Vector3 pivot,
+            float scale
+        )
+        {
+            var points = surfaces
+                .SelectMany(s =>
+                    s.world.Select((p, i) => (point: p, weight: s.influence[i]))
+                        .Where(v => v.weight > .8f)
+                )
+                .ToArray();
+            var widths = points
+                .Select(v =>
+                    Vector3.Dot(v.point, axis)
+                    + Vector3.Dot(v.point - pivot, axis) * (scale - 1) * v.weight
+                )
+                .ToArray();
+            float width = widths.Max() - widths.Min();
+            return width / (points.Max(v => v.point.y) - points.Min(v => v.point.y));
+        }
+
         public static Bounds HeadBounds(GameObject model)
         {
             var points = Capture(model)

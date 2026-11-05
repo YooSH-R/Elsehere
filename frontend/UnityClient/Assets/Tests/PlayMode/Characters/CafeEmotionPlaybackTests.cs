@@ -1,0 +1,257 @@
+#if UNITY_EDITOR
+using System.Collections;
+using System.Linq;
+using NUnit.Framework;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.TestTools;
+using Object = UnityEngine.Object;
+
+namespace A305.Characters.PlayModeTests
+{
+    public sealed class CafeEmotionPlaybackTests
+    {
+        [UnityTest]
+        public IEnumerator SelectedSadEmotionIsRetainedDuringSpeechAndSeeking()
+        {
+            var root = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/Prefabs/Npc/Review/LittleMung_Cafe_Female_Emotions.prefab"
+                )
+            );
+            var cameraObject = new GameObject("감정 검수 카메라");
+            var profile = ScriptableObject.CreateInstance<EmotionExpressionProfile>();
+            try
+            {
+                var player = root.GetComponent<CharacterSpeechPlayer>();
+                root.GetComponent<AudioSource>().mute = true;
+                var panel = root.AddComponent<EmotionPreviewPanel>();
+                panel.Configure(
+                    player,
+                    profile,
+                    new[] { player.Speech },
+                    cameraObject.AddComponent<Camera>(),
+                    Vector3.zero
+                );
+                panel.ShowEmotion(CharacterEmotion.Sad);
+                panel.PlaySelectedEmotion();
+                Assert.That(player.IsPlaying, Is.True);
+                yield return new WaitForSecondsRealtime(.08f);
+                player.Pause();
+                panel.Scrub(.8f);
+                var lid = root.GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .Single(s => s.name == "LeftUpperLid");
+                Assert.That(
+                    lid.GetBlendShapeWeight(lid.sharedMesh.GetBlendShapeIndex("eyeBlinkLeft")),
+                    Is.GreaterThanOrEqualTo(41.9f)
+                );
+                panel.ShowEmotion(CharacterEmotion.BigLaugh);
+                var mouth = root.GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .Single(s => s.sharedMesh.name == "SpeakingLips");
+                Assert.That(
+                    mouth.GetBlendShapeWeight(
+                        mouth.sharedMesh.GetBlendShapeIndex("mouthLaughOpen")
+                    ),
+                    Is.EqualTo(100)
+                );
+                panel.ShowEmotion(CharacterEmotion.Calm);
+                Assert.That(
+                    mouth.GetBlendShapeWeight(
+                        mouth.sharedMesh.GetBlendShapeIndex("mouthLaughOpen")
+                    ),
+                    Is.Zero
+                );
+            }
+            finally
+            {
+                Object.Destroy(root);
+                Object.Destroy(cameraObject);
+                Object.Destroy(profile);
+            }
+        }
+
+        [Test]
+        public void EmotionCopyPreservesEverySourceVisemeFrame()
+        {
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Npc/CafeFemaleExpressiveSpeechPreview.prefab"
+            );
+            var copy = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Npc/Review/LittleMung_Cafe_Female_Emotions.prefab"
+            );
+            var copies = copy.GetComponentsInChildren<SkinnedMeshRenderer>();
+            int checkedFrames = 0;
+            foreach (var skin in source.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                var oldMesh = skin.sharedMesh;
+                for (int shape = 0; shape < oldMesh.blendShapeCount; shape++)
+                {
+                    string channel = oldMesh.GetBlendShapeName(shape);
+                    if (!channel.StartsWith("viseme_", System.StringComparison.Ordinal))
+                        continue;
+                    var newMesh = copies.Single(s => s.sharedMesh.name == oldMesh.name).sharedMesh;
+                    int newShape = newMesh.GetBlendShapeIndex(channel);
+                    Assert.That(newShape, Is.GreaterThanOrEqualTo(0), oldMesh.name + "/" + channel);
+                    Assert.That(
+                        newMesh.GetBlendShapeFrameCount(newShape),
+                        Is.EqualTo(oldMesh.GetBlendShapeFrameCount(shape))
+                    );
+                    for (int frame = 0; frame < oldMesh.GetBlendShapeFrameCount(shape); frame++)
+                    {
+                        var oldVertices = new Vector3[oldMesh.vertexCount];
+                        var oldNormals = new Vector3[oldMesh.vertexCount];
+                        var newVertices = new Vector3[newMesh.vertexCount];
+                        var newNormals = new Vector3[newMesh.vertexCount];
+                        oldMesh.GetBlendShapeFrameVertices(
+                            shape,
+                            frame,
+                            oldVertices,
+                            oldNormals,
+                            null
+                        );
+                        newMesh.GetBlendShapeFrameVertices(
+                            newShape,
+                            frame,
+                            newVertices,
+                            newNormals,
+                            null
+                        );
+                        Assert.That(
+                            newMesh.GetBlendShapeFrameWeight(newShape, frame),
+                            Is.EqualTo(oldMesh.GetBlendShapeFrameWeight(shape, frame))
+                        );
+                        Assert.That(
+                            newVertices,
+                            Is.EqualTo(oldVertices),
+                            oldMesh.name + "/" + channel + " 정점"
+                        );
+                        Assert.That(
+                            newNormals,
+                            Is.EqualTo(oldNormals),
+                            oldMesh.name + "/" + channel + " 법선"
+                        );
+                        checkedFrames++;
+                    }
+                }
+            }
+            Assert.That(checkedFrames, Is.GreaterThanOrEqualTo(9));
+        }
+
+        [UnityTest]
+        public IEnumerator PreviewCanScrubBeforePlayAndResumeFromThatTime()
+        {
+            var root = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/Prefabs/Npc/Review/LittleMung_Cafe_Female_Emotions.prefab"
+                )
+            );
+            var cameraObject = new GameObject("검수 카메라");
+            try
+            {
+                var player = root.GetComponent<CharacterSpeechPlayer>();
+                root.GetComponent<AudioSource>().mute = true;
+                var panel = root.AddComponent<EmotionPreviewPanel>();
+                panel.Configure(
+                    player,
+                    player.Speech.EmotionProfile,
+                    new[] { player.Speech },
+                    cameraObject.AddComponent<Camera>(),
+                    Vector3.zero
+                );
+                panel.Scrub(.8f);
+                Assert.That(player.IsPaused, Is.True);
+                Assert.That(player.PlaybackTime, Is.EqualTo(.8f).Within(.01));
+                player.Resume();
+                yield return new WaitForSecondsRealtime(.08f);
+                Assert.That(player.PlaybackTime, Is.GreaterThan(.8f));
+            }
+            finally
+            {
+                Object.Destroy(root);
+                Object.Destroy(cameraObject);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator CafeCopyUsesEmotionAudioClockAndPreservesEyesAndSourceRig()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Npc/Review/LittleMung_Cafe_Female_Emotions.prefab"
+            );
+            Assert.That(prefab, Is.Not.Null);
+            var root = Object.Instantiate(prefab);
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Npc/CafeFemaleExpressiveSpeechPreview.prefab"
+            );
+            var oldBody = source
+                .GetComponentsInChildren<SkinnedMeshRenderer>()
+                .Single(s => s.sharedMesh.name == "CafeFemaleFace");
+            var body = root.GetComponentsInChildren<SkinnedMeshRenderer>()
+                .Single(s => s.sharedMesh.name == "CafeFemaleFace");
+            var player = root.GetComponent<CharacterSpeechPlayer>();
+            root.GetComponent<AudioSource>().mute = true;
+            try
+            {
+                Assert.That(body.sharedMesh, Is.Not.SameAs(oldBody.sharedMesh));
+                Assert.That(body.sharedMesh.vertices, Is.EqualTo(oldBody.sharedMesh.vertices));
+                Assert.That(body.sharedMesh.bindposes, Is.EqualTo(oldBody.sharedMesh.bindposes));
+                Assert.That(
+                    body.sharedMesh.boneWeights,
+                    Is.EqualTo(oldBody.sharedMesh.boneWeights)
+                );
+                Assert.That(
+                    CharacterFaceController.MissingEmotionChannels(root.transform),
+                    Is.Empty
+                );
+                Assert.That(CharacterFaceController.MissingChannels(root.transform), Is.Empty);
+                var eyes = root.GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .Where(s => s.name == "LeftEye" || s.name == "RightEye")
+                    .ToArray();
+                Assert.That(eyes, Has.Length.EqualTo(2));
+                foreach (var eye in eyes)
+                    Assert.That(
+                        eye.sharedMesh.blendShapeCount,
+                        Is.Zero,
+                        "눈동자는 표정으로 축소·압축하지 않습니다."
+                    );
+                player.Play();
+                yield return new WaitForSecondsRealtime(.4f);
+                player.Pause();
+                player.Seek(.8f);
+                Assert.That(
+                    body.GetBlendShapeWeight(body.sharedMesh.GetBlendShapeIndex("browOuterUpLeft")),
+                    Is.GreaterThan(80)
+                );
+                player.Seek(5.5f);
+                var lids = root.GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .Where(s => s.sharedMesh.GetBlendShapeIndex("eyeSquintLeft") >= 0)
+                    .ToArray();
+                Assert.That(lids.Length, Is.GreaterThan(0));
+                Assert.That(
+                    lids.Max(s =>
+                        s.GetBlendShapeWeight(s.sharedMesh.GetBlendShapeIndex("eyeSquintLeft"))
+                    ),
+                    Is.GreaterThan(80)
+                );
+                player.Resume();
+                yield return new WaitForSecondsRealtime(.08f);
+                Assert.That(player.PlaybackTime, Is.GreaterThan(5.5f));
+                player.Stop();
+                foreach (var skin in root.GetComponentsInChildren<SkinnedMeshRenderer>())
+                    for (int i = 0; i < skin.sharedMesh.blendShapeCount; i++)
+                        Assert.That(
+                            skin.GetBlendShapeWeight(i),
+                            Is.Zero,
+                            skin.name + "/" + skin.sharedMesh.GetBlendShapeName(i)
+                        );
+                root.SetActive(false);
+                Assert.That(player.IsPlaying, Is.False);
+            }
+            finally
+            {
+                Object.Destroy(root);
+            }
+        }
+    }
+}
+#endif

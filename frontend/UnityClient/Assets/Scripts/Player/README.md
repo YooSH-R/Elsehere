@@ -29,6 +29,7 @@ PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동
 | `UmbrellaHold`, `HeldUmbrella` | 플레이어 루트에 붙어 우산을 펴 듭니다. 펼 때 지금 외형의 오른팔 뼈대와 머리 크기(머리뼈 아래 정점)를 읽고, 팔이 닿는 데까지 몸 옆 어깨 높이로 손을 뻗어 손잡이를 쥐게 한 뒤(`TwoBonePose`) 우산대를 머리 쪽으로 14° 기울여 세웁니다. 우산대 길이는 캐노피 아랫면이 머리 꼭대기보다 6cm 위에 오도록 맞춥니다. 펴고 접는 일은 [Mission 모듈](../Mission/README.md)이 정합니다. 우산 모델(`Prefabs/Player/HeldUmbrella.prefab`, 살 8개 돔 `Art/Player/HeldUmbrellaCanopy.asset`)과 마을 플레이어 연결은 **Tools → A305 → Player → Add Umbrella Hold**(`PlayerUmbrellaBuilder`)가 만들며, 우산 모델은 없을 때만 만듭니다. |
 | `SeatedLegs` | Humanoid 다리 뼈를 찾아 앉는 면 높이에 맞춰 구부리는 계산입니다. `PlayerSeatPose`와 쉬는 NPC([Npc 모듈](../Npc/README.md#생활)의 `NpcRoutine`)가 함께 씁니다. |
 | `StandingPoseCorrections` | 리틀 멍 외형의 서 있는 자세 보정(`LittleMungGroundContact`·`LittleMungTerrainContact`·`LittleMungStairLocomotion`·`LittleMungArmClearance`)을 앉아 있는 동안 끄고, 일어서면 켜져 있던 것만 다시 켭니다. `PlayerSeatPose`와 `NpcRoutine`이 함께 씁니다. |
+| `LittleMungArmClearance` | 손·전완의 중심을 머리·몸통 밖으로 옮깁니다. 선택적 `refineSurfaceContact`는 기존 검사에 실패한 NPC 검수 사본에서만 켜며 플레이어는 기존 설정을 유지합니다. 이 추가 보정은 소매의 실제 스킨 정점으로 확인하고 상완·전완을 작은 각도로 조정합니다. 최대 12회로 제한하며 더 나은 자세를 찾지 못하면 중단합니다. 본 위치와 손목 로컬 회전은 바꾸지 않습니다. 전체 옷의 삼각형 충돌을 푸는 기능은 아니므로 캐릭터별 동작·외관 검수가 필요합니다. |
 | `SeatView` | 앉은 캐릭터를 플레이어가 다가온 쪽에서 보도록 카메라 수평 방향을 정합니다. 자리 바로 위에서 앉아 다가온 방향을 알 수 없으면 자리 앞쪽에서 봅니다. Unity 객체 없이 테스트합니다. |
 | `DialogueViewProbe` | Sandbox 씬에서 T 키로 대화 시점과 이동 잠금을 확인하는 확인용 컴포넌트입니다. 배포용 프리팹에는 붙이지 않습니다. |
 

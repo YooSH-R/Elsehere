@@ -187,7 +187,9 @@ namespace A305.Learning
             scroll.vertical = true;
             scroll.movementType = ScrollRect.MovementType.Clamped;
             scroll.scrollSensitivity = 45;
-            Scrollbar bar = card.Find("Scrollbar")?.GetComponent<Scrollbar>();
+            Transform scrollbarTransform = card.Find("Scrollbar");
+            Scrollbar bar =
+                scrollbarTransform != null ? scrollbarTransform.GetComponent<Scrollbar>() : null;
             if (bar == null)
             {
                 bar = new GameObject(
@@ -625,8 +627,14 @@ namespace A305.Learning
             }
             additionalBodies.Clear();
             navigationRow.gameObject.SetActive(false);
-            situationPager?.gameObject.SetActive(false);
-            summaryPager?.gameObject.SetActive(false);
+            if (situationPager != null)
+            {
+                situationPager.gameObject.SetActive(false);
+            }
+            if (summaryPager != null)
+            {
+                summaryPager.gameObject.SetActive(false);
+            }
             float width = scroll.content.rect.width;
             // 줄바꿈이 끝난 표현 칸 아래부터 제목과 본문을 차례로 쌓는다.
             if (situationRows.gameObject.activeSelf)

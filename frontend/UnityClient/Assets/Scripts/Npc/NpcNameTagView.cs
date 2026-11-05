@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using A305.Dialogue;
 using A305.Player;
@@ -10,6 +11,7 @@ namespace A305.Npc
     /// 플레이어 가까이 있는 NPC 머리 위에 이름표를 띄운다(<see cref="NpcNameTags"/>). 이름·역할은 대본에서, 직원인지는 생활 데이터에서 읽는다.
     /// NPC마다 3D 글자판을 두지 않고 화면 한 장에서 머리 위치에 맞춰 그리며, 숨겨 둔 본보기 이름표를 복제해 돌려 쓴다.
     /// 이름표의 아래 가운데가 머리 위 자리에 오도록 본보기의 기준점을 아래 가운데에 둔다.
+    /// 이름표를 누르면 그 NPC를 누른 것으로 보도록(<see cref="NpcClickTalk"/>) 띄운 이름표마다 어느 NPC 것인지 기억한다.
     /// </summary>
     public sealed class NpcNameTagView : MonoBehaviour
     {
@@ -31,9 +33,14 @@ namespace A305.Npc
         )]
         private float headClearanceMeters = .7f;
 
+        // 카메라에서 먼 이름표부터 놓는다. 화면 좌표의 z가 카메라에서의 거리다.
+        private static readonly Comparison<ShownTag> FartherFirst = (one, other) =>
+            other.ScreenPoint.z.CompareTo(one.ScreenPoint.z);
+
         private readonly Dictionary<string, NpcNameTag?> tagsByCode =
             new Dictionary<string, NpcNameTag?>();
         private readonly List<TagSlot> slots = new List<TagSlot>();
+        private readonly List<ShownTag> shownTags = new List<ShownTag>();
         private NpcLifeData life;
         private PlayerMover player;
         private Canvas layerCanvas;
@@ -46,38 +53,65 @@ namespace A305.Npc
 
         private void LateUpdate()
         {
-            int shown = 0;
+            CollectShownTags();
+            // 복제한 이름표는 뒤에 만든 것일수록 위에 그려진다. 먼 NPC 이름표부터 놓아, 겹치면 가까운 NPC 이름표가
+            // 위에 보이고 클릭도 받게 한다.
+            shownTags.Sort(FartherFirst);
+            for (int i = 0; i < shownTags.Count; i++)
+            {
+                ShownTag shown = shownTags[i];
+                SlotAt(i).Show(shown.Npc, shown.Tag, ToLayer(shown.ScreenPoint));
+            }
+
+            for (int i = shownTags.Count; i < slots.Count; i++)
+            {
+                slots[i].Hide();
+            }
+        }
+
+        /// <summary>화면에 띄운 이름표(또는 그 안의 글자·칩)가 가리키는 NPC. 띄운 이름표가 아니면 null</summary>
+        public NpcIdentity NpcOf(GameObject tagPart)
+        {
+            foreach (TagSlot slot in slots)
+            {
+                if (slot.Npc != null && tagPart.transform.IsChildOf(slot.Rect))
+                {
+                    return slot.Npc;
+                }
+            }
+
+            return null;
+        }
+
+        // 플레이어 가까이 있고 카메라 앞에 있는 NPC의 이름표와 머리 위 화면 좌표를 모은다.
+        private void CollectShownTags()
+        {
+            shownTags.Clear();
             Camera viewer = Camera.main;
             if (player == null)
             {
                 player = FindFirstObjectByType<PlayerMover>();
             }
 
-            if (viewer != null && player != null)
+            if (viewer == null || player == null)
             {
-                foreach (NpcIdentity npc in NpcIdentity.Active)
-                {
-                    float meters = Vector3.Distance(
-                        npc.transform.position,
-                        player.transform.position
-                    );
-                    NpcNameTag? tag = NpcNameTags.IsShown(meters, player.IsMovementLocked)
-                        ? TagOf(npc.Code)
-                        : null;
-                    Vector3 screen = viewer.WorldToScreenPoint(HeadTopOf(npc));
-                    // 카메라 뒤에 있는 NPC는 화면에 거꾸로 찍히므로 띄우지 않는다.
-                    if (tag == null || screen.z <= 0f)
-                    {
-                        continue;
-                    }
-
-                    SlotAt(shown++).Show(tag.Value, ToLayer(new Vector2(screen.x, screen.y)));
-                }
+                return;
             }
 
-            for (int i = shown; i < slots.Count; i++)
+            foreach (NpcIdentity npc in NpcIdentity.Active)
             {
-                slots[i].Hide();
+                float meters = Vector3.Distance(npc.transform.position, player.transform.position);
+                NpcNameTag? tag = NpcNameTags.IsShown(meters, player.IsMovementLocked)
+                    ? TagOf(npc.Code)
+                    : null;
+                Vector3 screen = viewer.WorldToScreenPoint(HeadTopOf(npc));
+                // 카메라 뒤에 있는 NPC는 화면에 거꾸로 찍히므로 띄우지 않는다.
+                if (tag == null || screen.z <= 0f)
+                {
+                    continue;
+                }
+
+                shownTags.Add(new ShownTag(npc, tag.Value, screen));
             }
         }
 
@@ -134,24 +168,47 @@ namespace A305.Npc
             return slots[index];
         }
 
+        /// <summary>이번 프레임에 띄울 이름표 하나</summary>
+        private readonly struct ShownTag
+        {
+            public ShownTag(NpcIdentity npc, NpcNameTag tag, Vector3 screenPoint)
+            {
+                Npc = npc;
+                Tag = tag;
+                ScreenPoint = screenPoint;
+            }
+
+            public NpcIdentity Npc { get; }
+
+            public NpcNameTag Tag { get; }
+
+            /// <summary>머리 위 자리의 화면 좌표. z는 카메라에서의 거리</summary>
+            public Vector3 ScreenPoint { get; }
+        }
+
         /// <summary>복제한 이름표 하나. 글자가 바뀔 때만 다시 써서 매 프레임 글자 배치를 새로 하지 않는다.</summary>
         private sealed class TagSlot
         {
-            private readonly RectTransform rect;
             private readonly TMP_Text nameLabel;
             private readonly GameObject roleChip;
             private readonly TMP_Text roleLabel;
 
             public TagSlot(RectTransform rect)
             {
-                this.rect = rect;
+                Rect = rect;
                 nameLabel = rect.Find("Name").GetComponent<TMP_Text>();
                 roleChip = rect.Find("RoleChip").gameObject;
                 roleLabel = roleChip.transform.Find("Label").GetComponent<TMP_Text>();
             }
 
-            public void Show(NpcNameTag tag, Vector2 layerPoint)
+            public RectTransform Rect { get; }
+
+            /// <summary>이 이름표를 띄운 NPC. 숨겼으면 null</summary>
+            public NpcIdentity Npc { get; private set; }
+
+            public void Show(NpcIdentity npc, NpcNameTag tag, Vector2 layerPoint)
             {
+                Npc = npc;
                 if (nameLabel.text != tag.Name)
                 {
                     nameLabel.text = tag.Name;
@@ -168,18 +225,19 @@ namespace A305.Npc
                     roleLabel.text = tag.StaffRole;
                 }
 
-                rect.localPosition = layerPoint;
-                if (!rect.gameObject.activeSelf)
+                Rect.localPosition = layerPoint;
+                if (!Rect.gameObject.activeSelf)
                 {
-                    rect.gameObject.SetActive(true);
+                    Rect.gameObject.SetActive(true);
                 }
             }
 
             public void Hide()
             {
-                if (rect.gameObject.activeSelf)
+                Npc = null;
+                if (Rect.gameObject.activeSelf)
                 {
-                    rect.gameObject.SetActive(false);
+                    Rect.gameObject.SetActive(false);
                 }
             }
         }

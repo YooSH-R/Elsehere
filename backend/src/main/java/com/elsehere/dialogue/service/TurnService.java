@@ -79,8 +79,14 @@ public class TurnService {
   private final TransactionTemplate transactionTemplate;
   private final MissionDialogueService missionDialogueService;
   private final Clock clock;
+  private final DialogueRequestLocks requestLocks;
 
   public TurnResponse send(Long userId, Long conversationId, TurnRequest request) {
+    return requestLocks.execute(
+        userId, request.requestId(), () -> sendOnce(userId, conversationId, request));
+  }
+
+  private TurnResponse sendOnce(Long userId, Long conversationId, TurnRequest request) {
     // 같은 요청 ID로 다시 보내면 턴을 새로 만들지 않고 저장된 결과를 돌려준다.
     Optional<TurnResponse> replayed =
         transactionTemplate.execute(status -> replay(userId, conversationId, request));

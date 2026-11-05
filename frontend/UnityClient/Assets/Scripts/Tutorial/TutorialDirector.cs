@@ -654,9 +654,11 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.TalkOffer:
                     return guide.TalkOfferCaption;
                 case TutorialCoachTarget.DialogueLines:
-                    return guide.DialogueLinesCaption;
+                    return guide.DialogueLinesCaption
+                        + "\n\n<b>NPC와 친해지기</b>\n일반 NPC와 자유 대화할 때는 이름 옆에서 호감도를 확인할 수 있어요. 인사하거나 칭찬하는 등 긍정적인 대화를 나누면 호감도가 오를 수 있어요.";
                 case TutorialCoachTarget.DialogueTools:
-                    return guide.DialogueToolsCaption;
+                    return guide.DialogueToolsCaption
+                        + "\n\n<b>서로 배려하며 대화해요</b>\n일반 NPC와 자유 대화할 때 무례한 말을 하면 호감도가 내려가고 경고가 쌓여요. 표시된 경고 한도에 도달하면 대화가 끝나요. 지금 Ben과는 정해진 대사로 길 안내를 연습해요.";
                 case TutorialCoachTarget.SuggestedWords:
                     return guide.SuggestedWordsCaption;
                 case TutorialCoachTarget.SuggestedSentence:

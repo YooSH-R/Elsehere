@@ -47,6 +47,15 @@ namespace A305.Theme
 
         public UiThemeRole Role => role;
 
+        public UiThemeCatalog Catalog => catalog;
+
+        public void Use(UiThemeCatalog themeCatalog, UiThemeRole themeRole)
+        {
+            catalog = themeCatalog;
+            role = themeRole;
+            ApplyCurrent();
+        }
+
         /// <summary>고른 카드나 목록 줄을 지금 테마의 강조색 쪽으로 옅게 칠한다. 테마가 바뀌어도 고른 표시를 유지한다.</summary>
         public void SetSelected(bool selected)
         {

@@ -165,7 +165,33 @@ namespace A305.EditorTools.Tripo
                     .ToArray();
                 foreach (int i in oldRing.Concat(bridgeRing).Concat(newRing))
                     seam.Add(i);
-                Bridge(geometry, bridgeRing, newRing, axis.normalized, added, seam);
+                Bridge(geometry, bridgeRing, newRing, axis.normalized, hand, added, seam);
+                for (int i = 0; i < geometry.Points.Count; i++)
+                {
+                    float along = Vector3.Dot(geometry.Points[i] - elbow, axis) / axis.sqrMagnitude;
+                    if (along <= .15f || along >= 1.35f)
+                        continue;
+                    var w = geometry.Weights[i];
+                    if (
+                        !(group[w.boneIndex0] && w.weight0 > 0)
+                        && !(group[w.boneIndex1] && w.weight1 > 0)
+                        && !(group[w.boneIndex2] && w.weight2 > 0)
+                        && !(group[w.boneIndex3] && w.weight3 > 0)
+                    )
+                        continue;
+                    var fixedWeight = ForearmWeight(
+                        w,
+                        group,
+                        lower,
+                        wrist,
+                        Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.75f, 1.2f, along))
+                    );
+                    geometry.Weights[i] = MixWeights(
+                        fixedWeight,
+                        w,
+                        Mathf.SmoothStep(0, 1, Mathf.InverseLerp(1.05f, 1.35f, along))
+                    );
+                }
             }
             var shapes =
                 new List<(
@@ -336,6 +362,7 @@ namespace A305.EditorTools.Tripo
             int[] source,
             int[] target,
             Vector3 axis,
+            Vector3 wrist,
             List<int> triangles,
             HashSet<int> seam
         )
@@ -348,10 +375,12 @@ namespace A305.EditorTools.Tripo
             if (across.sqrMagnitude < .1f)
                 across = Vector3.Cross(axis, Vector3.right).normalized;
             Vector3 depth = Vector3.Cross(axis, across);
+            Vector3 span = centerB - centerA;
+            float wristTime = Mathf.Clamp01(Vector3.Dot(wrist - centerA, span) / span.sqrMagnitude);
             var previous = source;
-            for (int step = 1; step <= 3; step++)
+            for (int step = 1; step <= 7; step++)
             {
-                float t = step / 4f;
+                float t = step / 8f;
                 var ring = new int[16];
                 for (int j = 0; j < ring.Length; j++)
                 {
@@ -374,9 +403,14 @@ namespace A305.EditorTools.Tripo
                         .ProjectOnPlane(geometry.Points[b] - centerB, axis)
                         .magnitude;
                     var weight = MixWeights(geometry.Weights[a], geometry.Weights[b], t);
+                    float taper =
+                        1
+                        - .38f
+                            * Mathf.Sin(Mathf.PI * t)
+                            * Mathf.Exp(-Mathf.Pow((t - wristTime) / .28f, 2));
                     ring[j] = geometry.Add(
                         Vector3.Lerp(centerA, centerB, t)
-                            + radial * Mathf.Lerp(radiusA, radiusB, t),
+                            + radial * Mathf.Lerp(radiusA, radiusB, t) * taper,
                         radial,
                         geometry.Uv[a],
                         weight
@@ -406,6 +440,40 @@ namespace A305.EditorTools.Tripo
             }
             Add(a, 1 - t);
             Add(b, t);
+            return PackWeights(weights);
+        }
+
+        private static BoneWeight ForearmWeight(
+            BoneWeight original,
+            bool[] armGroup,
+            int forearm,
+            int hand,
+            float handWeight
+        )
+        {
+            var weights = new Dictionary<int, float>();
+            float amount = 0;
+            void Add(int index, float weight)
+            {
+                if (armGroup[index])
+                    amount += weight;
+                else
+                {
+                    weights.TryGetValue(index, out float total);
+                    weights[index] = total + weight;
+                }
+            }
+            Add(original.boneIndex0, original.weight0);
+            Add(original.boneIndex1, original.weight1);
+            Add(original.boneIndex2, original.weight2);
+            Add(original.boneIndex3, original.weight3);
+            weights[forearm] = amount * (1 - handWeight);
+            weights[hand] = amount * handWeight;
+            return PackWeights(weights);
+        }
+
+        private static BoneWeight PackWeights(Dictionary<int, float> weights)
+        {
             var sorted = weights.OrderByDescending(p => p.Value).Take(4).ToArray();
             float sum = sorted.Sum(p => p.Value);
             var result = new BoneWeight();

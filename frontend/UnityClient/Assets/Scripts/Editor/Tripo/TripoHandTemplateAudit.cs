@@ -70,6 +70,24 @@ namespace A305.EditorTools.Tripo
                 )
                     report.Errors.Add(side + " 마스터 손가락 형태 또는 관절 가중치가 다릅니다.");
                 CheckSeam(skin, mesh, lower, elbow, axis, report);
+                var wrist = skin.bones[hand];
+                bool finger(int bone) =>
+                    skin.bones[bone] != wrist && skin.bones[bone].IsChildOf(wrist);
+                if (
+                    used.Any(i =>
+                    {
+                        float along = Vector3.Dot(actual[i] - elbow, axis) / axis.sqrMagnitude;
+                        if (along < .4f || along > 1f)
+                            return false;
+                        var w = weights[i];
+                        return (finger(w.boneIndex0) ? w.weight0 : 0)
+                                + (finger(w.boneIndex1) ? w.weight1 : 0)
+                                + (finger(w.boneIndex2) ? w.weight2 : 0)
+                                + (finger(w.boneIndex3) ? w.weight3 : 0)
+                            > .00001f;
+                    })
+                )
+                    report.Errors.Add(side + " 전완에 손가락 가중치가 남아 있습니다.");
             }
             return report;
         }

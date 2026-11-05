@@ -52,7 +52,7 @@ namespace A305.EditorTools.Characters
                     var original = AssetDatabase.LoadAssetAtPath<Mesh>(
                         AssetDatabase.GUIDToAssetPath(guid)
                     );
-                    if (original.vertexCount != fresh.sharedMesh.vertexCount)
+                    if (!HasHeadAndBothHands(original, fresh))
                         continue;
                     var repaired = Object.Instantiate(original);
                     repaired.name = original.name;
@@ -162,6 +162,28 @@ namespace A305.EditorTools.Characters
                     if (mesh != null && !EditorUtility.IsPersistent(mesh))
                         Object.DestroyImmediate(mesh);
             }
+        }
+
+        private static bool HasHeadAndBothHands(Mesh mesh, SkinnedMeshRenderer skin)
+        {
+            if (mesh.bindposes.Length != skin.bones.Length)
+                return false;
+            var head = skin.bones.First(b => b.name == "Head");
+            var left = skin.bones.First(b => b.name == "Left_Hand");
+            var right = skin.bones.First(b => b.name == "Right_Hand");
+            var weights = mesh.boneWeights;
+            bool Contains(Transform root)
+            {
+                bool[] group = skin.bones.Select(b => b.IsChildOf(root)).ToArray();
+                return weights.Any(w =>
+                    (group[w.boneIndex0] ? w.weight0 : 0)
+                        + (group[w.boneIndex1] ? w.weight1 : 0)
+                        + (group[w.boneIndex2] ? w.weight2 : 0)
+                        + (group[w.boneIndex3] ? w.weight3 : 0)
+                    > .5f
+                );
+            }
+            return Contains(head) && Contains(left) && Contains(right);
         }
     }
 }

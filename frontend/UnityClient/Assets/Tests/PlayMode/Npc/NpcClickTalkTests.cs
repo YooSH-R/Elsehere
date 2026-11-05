@@ -439,6 +439,12 @@ namespace A305.Npc.PlayModeTests
             TutorialState.MarkFinishedOnServer();
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
+            foreach (
+                NpcPopulation population in Object.FindObjectsByType<NpcPopulation>(
+                    FindObjectsSortMode.None
+                )
+            )
+                population.enabled = false;
             Passerby ben = FindPasserby(BenCode);
             ben.GetComponent<NpcRoutine>().enabled = false;
             foreach (Passerby other in Object.FindObjectsByType<Passerby>(FindObjectsSortMode.None))
@@ -496,9 +502,7 @@ namespace A305.Npc.PlayModeTests
         // 마을 밖으로 옮겨 둔 다른 행인 하나를 Ben 옆 1.5m에 세운다. 생활은 끈 채로 두고 먼저 다가오지 않게 한다.
         private static Passerby PlaceAnotherNpcBeside(Passerby ben)
         {
-            Passerby neighbor = Object
-                .FindObjectsByType<Passerby>(FindObjectsSortMode.None)
-                .First(candidate => candidate != ben && !candidate.enabled);
+            Passerby neighbor = FindPasserby(RubyCode);
             KeepFromApproaching(neighbor);
             PlaceAt(
                 neighbor,

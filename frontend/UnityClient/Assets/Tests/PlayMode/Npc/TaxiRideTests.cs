@@ -271,10 +271,9 @@ namespace A305.Npc.PlayModeTests
                         Is.LessThan(deadline),
                         "목적지에 도착하지 못했습니다."
                     );
-                    MeshRenderer body = taxi.GetComponentsInChildren<MeshRenderer>()
-                        .First(renderer => renderer.name == "default");
+                    Bounds body = BoundsOf(taxi.gameObject);
                     Assert.That(
-                        body.bounds.Intersects(truck),
+                        body.Intersects(truck),
                         Is.False,
                         $"주차 트럭과 겹침: {taxi.transform.position}"
                     );
@@ -371,6 +370,13 @@ namespace A305.Npc.PlayModeTests
 
         private static void ConfigureOfflineScene(Scene scene, LoadSceneMode mode)
         {
+            // 택시의 이동·종료를 검사할 때 새 행인을 생성하거나 제거하지 않게 한다.
+            foreach (
+                NpcPopulation population in Object.FindObjectsByType<NpcPopulation>(
+                    FindObjectsSortMode.None
+                )
+            )
+                population.enabled = false;
             const System.Reflection.BindingFlags flags =
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
             typeof(DialogueController)

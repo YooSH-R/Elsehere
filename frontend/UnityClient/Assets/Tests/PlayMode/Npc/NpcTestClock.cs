@@ -11,12 +11,14 @@ namespace A305.Npc.PlayModeTests
     internal static class NpcTestClock
     {
         // Ben·Ruby·Dan이 일과 중이고, 거리 매장도 문을 연 시각이다.
-        public static void SetDaytime()
+        public static void SetDaytime() => SetTime(12 * 60 + 15);
+
+        public static void SetTime(int minuteOfDay, int day = 1)
         {
             typeof(GameClock)
                 .GetMethod("ResetShared", BindingFlags.NonPublic | BindingFlags.Static)
                 .Invoke(null, null);
-            var api = new FixedClock();
+            var api = new FixedClock(minuteOfDay, day);
             Assert.That(
                 GameClock.Shared.TickAsync(api, Time.realtimeSinceStartupAsDouble + 1e5).Result,
                 Is.EqualTo(GameClockBeatStatus.Updated)
@@ -48,6 +50,15 @@ namespace A305.Npc.PlayModeTests
 
         private sealed class FixedClock : IGameClockApi
         {
+            private readonly int minuteOfDay;
+            private readonly int day;
+
+            public FixedClock(int minuteOfDay, int day)
+            {
+                this.minuteOfDay = minuteOfDay;
+                this.day = day;
+            }
+
             public Task<GameClockTime> BeatAsync(
                 bool interactionPaused = false,
                 bool interactionWasPaused = false,
@@ -56,8 +67,8 @@ namespace A305.Npc.PlayModeTests
                 Task.FromResult(
                     new GameClockTime
                     {
-                        Day = 1,
-                        MinuteOfDay = 12 * 60 + 15,
+                        Day = day,
+                        MinuteOfDay = minuteOfDay,
                         Paused = true,
                     }
                 );

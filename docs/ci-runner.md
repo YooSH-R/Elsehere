@@ -81,6 +81,8 @@ Unity 관련 MR은 **포맷 검사와 바뀐 영역에 맞는 실제 Editor 실�
 
 ### Unity 테스트 범위
 
+EditMode에서는 씬 파일의 배치·직렬화 연결과 씬 구성 Builder를 검사하지 않습니다. 일반 로직·프리팹·빌드 입력 검증을 실행하며, 씬 배치와 기능 연결은 직접 Play 실행과 브라우저 검수로 확인합니다. PlayMode 검사와 WebGL 빌드의 실행 정책은 유지합니다.
+
 `unity:editor-tests`는 MR의 merge base(`CI_MERGE_REQUEST_DIFF_BASE_SHA`)를 `run-unity-ci.ps1 -ChangedSince`로 넘깁니다. 스크립트는 merge base와 MR 커밋의 차이로 실행 범위를 정합니다.
 
 | 바뀐 파일 | 실행하는 테스트 |

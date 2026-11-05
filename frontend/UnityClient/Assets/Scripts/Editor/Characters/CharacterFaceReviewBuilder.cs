@@ -66,15 +66,29 @@ namespace A305.EditorTools.Characters
             public Part[] parts;
         }
 
-        public void Build()
+        private bool rebuilding;
+
+        public void Build() => Build(false);
+
+        public void Rebuild() => Build(true);
+
+        private void Build(bool rebuild)
         {
+            rebuilding = rebuild;
             BuilderTools.ThrowIfPlaying();
             string input = paths.Data;
             if (string.IsNullOrEmpty(input))
                 throw new ArgumentException("Set the authored face data path.");
-            if (AssetDatabase.IsValidFolder(Art) || File.Exists(Prefab) || File.Exists(Scene))
+            if (
+                !rebuild
+                && (AssetDatabase.IsValidFolder(Art) || File.Exists(Prefab) || File.Exists(Scene))
+            )
                 throw new IOException(
                     "Preserve the existing reviewed copy. Choose an explicit refresh first."
+                );
+            if (rebuild && (Source == Prefab || !File.Exists(Prefab)))
+                throw new IOException(
+                    "Rebuild requires a separate prepared source and an existing review prefab."
                 );
             var data = JsonUtility.FromJson<FaceData>(File.ReadAllText(input));
             var source = AssetDatabase.LoadAssetAtPath<GameObject>(Source);
@@ -114,8 +128,7 @@ namespace A305.EditorTools.Characters
                     || !mesh.bindposes.SequenceEqual(original.bindposes)
                 )
                     throw new InvalidOperationException("Body skin weights or bind poses changed.");
-                AssetDatabase.CreateAsset(mesh, Art + "/" + paths.SurfaceName + ".asset");
-                body.sharedMesh = mesh;
+                body.sharedMesh = SaveMesh(mesh, Art + "/" + paths.SurfaceName + ".asset");
                 foreach (var part in data.parts)
                     CreatePart(body, part, head, Path.GetDirectoryName(input));
                 var face = instance.AddComponent<CharacterFaceController>();
@@ -217,7 +230,7 @@ namespace A305.EditorTools.Characters
                 );
             }
             mesh.RecalculateBounds();
-            AssetDatabase.CreateAsset(mesh, Art + "/" + part.name + ".asset");
+            mesh = SaveMesh(mesh, Art + "/" + part.name + ".asset");
             var material = new Material(
                 Shader.Find(
                     part.name == "MouthInterior"
@@ -238,14 +251,24 @@ namespace A305.EditorTools.Characters
                 if (Path.GetFileName(part.textureFile) != part.textureFile)
                     throw new IOException("Invalid texture filename.");
                 string destination = Art + "/" + part.textureFile;
-                File.Copy(Path.Combine(input, part.textureFile), destination, false);
+                File.Copy(Path.Combine(input, part.textureFile), destination, rebuilding);
                 AssetDatabase.ImportAsset(destination, ImportAssetOptions.ForceSynchronousImport);
                 material.SetTexture(
                     "_BaseMap",
                     AssetDatabase.LoadAssetAtPath<Texture2D>(destination)
                 );
             }
-            AssetDatabase.CreateAsset(material, Art + "/" + part.name + ".mat");
+            string materialPath = Art + "/" + part.name + ".mat";
+            var existingMaterial = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            if (existingMaterial == null)
+                AssetDatabase.CreateAsset(material, materialPath);
+            else
+            {
+                EditorUtility.CopySerialized(material, existingMaterial);
+                Object.DestroyImmediate(material);
+                material = existingMaterial;
+                EditorUtility.SetDirty(material);
+            }
             var child = new GameObject(part.name);
             child.transform.SetParent(body.transform, false);
             var skin = child.AddComponent<SkinnedMeshRenderer>();
@@ -255,6 +278,52 @@ namespace A305.EditorTools.Characters
             skin.rootBone = body.rootBone;
             skin.updateWhenOffscreen = true;
             skin.localBounds = body.localBounds;
+        }
+
+        // 같은 저작 메시 GUID를 유지한다. Mesh의 네이티브 버퍼는 CopySerialized로 갱신하지 않는다.
+        internal static Mesh SaveMesh(Mesh source, string path)
+        {
+            var target = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (target == null)
+            {
+                AssetDatabase.CreateAsset(source, path);
+                return source;
+            }
+            if (target == source)
+                return target;
+            target.Clear();
+            target.ClearBlendShapes();
+            target.indexFormat = source.indexFormat;
+            target.vertices = source.vertices;
+            target.normals = source.normals;
+            target.tangents = source.tangents;
+            target.uv = source.uv;
+            target.uv2 = source.uv2;
+            target.colors = source.colors;
+            target.boneWeights = source.boneWeights;
+            target.bindposes = source.bindposes;
+            target.subMeshCount = source.subMeshCount;
+            for (int i = 0; i < source.subMeshCount; i++)
+                target.SetIndices(source.GetIndices(i), source.GetTopology(i), i);
+            var vertices = new Vector3[source.vertexCount];
+            var normals = new Vector3[source.vertexCount];
+            var tangents = new Vector3[source.vertexCount];
+            for (int shape = 0; shape < source.blendShapeCount; shape++)
+            for (int frame = 0; frame < source.GetBlendShapeFrameCount(shape); frame++)
+            {
+                source.GetBlendShapeFrameVertices(shape, frame, vertices, normals, tangents);
+                target.AddBlendShapeFrame(
+                    source.GetBlendShapeName(shape),
+                    source.GetBlendShapeFrameWeight(shape, frame),
+                    vertices,
+                    normals,
+                    tangents
+                );
+            }
+            target.bounds = source.bounds;
+            EditorUtility.SetDirty(target);
+            Object.DestroyImmediate(source);
+            return target;
         }
 
         private void NormalizeHeight(GameObject instance)

@@ -165,6 +165,76 @@ namespace A305.EditorTools.Characters
             );
         }
 
+        // 승인된 사본의 비율 재저작. 기존 GUID를 유지하고 입·눈은 새 Surface에서 다시 만든다.
+        public static void RefitSelectedWidth()
+        {
+            string name = SelectedForRebuild();
+            var paths = Paths(name);
+            string output =
+                Environment.GetEnvironmentVariable("NPC_RENDER_OUTPUT")
+                ?? throw new InvalidOperationException("Set NPC_RENDER_OUTPUT.");
+            ServiceNpcComparisonRenderer.RenderModel(
+                paths.Prefab,
+                Path.Combine(output, name, "BeforeWidth")
+            );
+            var instance = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(paths.Source)
+            );
+            var reference = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(TripoMasterWorkflow.VisualTemplate)
+            );
+            try
+            {
+                var skins = instance.GetComponentsInChildren<SkinnedMeshRenderer>();
+                var meshPaths = skins
+                    .Select(s => AssetDatabase.GetAssetPath(s.sharedMesh))
+                    .ToArray();
+                if (
+                    meshPaths.Any(p =>
+                        !p.StartsWith(Root + "/" + name + "/", StringComparison.Ordinal)
+                    )
+                )
+                    throw new InvalidOperationException("Only review-owned meshes can be rebuilt.");
+                float scale = CharacterHeadProportions.MatchWidth(instance, reference);
+                for (int i = 0; i < skins.Length; i++)
+                    skins[i].sharedMesh = CharacterFaceReviewBuilder.SaveMesh(
+                        skins[i].sharedMesh,
+                        meshPaths[i]
+                    );
+                instance.name = name;
+                PrefabUtility.SaveAsPrefabAsset(instance, paths.Source);
+                ExportSurface(instance, paths.Output);
+                File.WriteAllText(
+                    Path.Combine(paths.Output, "Width.txt"),
+                    $"Reference={TripoMasterWorkflow.VisualTemplate}\nWidthScale={scale:R}\nHeadRatio={CharacterHeadProportions.Ratio(instance):R}"
+                );
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                Object.DestroyImmediate(instance);
+                Object.DestroyImmediate(reference);
+            }
+        }
+
+        public static void RebuildSelectedMouthAndExportEyes()
+        {
+            string name = SelectedForRebuild();
+            new CharacterFaceReviewBuilder(Paths(name)).Rebuild();
+            Environment.SetEnvironmentVariable("NPC_BASE_EYE_NAME", name);
+            BusinessBlinkBuilder.ExportRebuiltFace();
+        }
+
+        private static string SelectedForRebuild()
+        {
+            string name = Environment.GetEnvironmentVariable("NPC_REBUILD_NAME");
+            if (name == Business || !Names.Contains(name))
+                throw new ArgumentException(
+                    "Select an existing NPC with a separate prepared source using NPC_REBUILD_NAME."
+                );
+            return name;
+        }
+
         private static void NormalizeHeight(GameObject instance, float target)
         {
             Bounds bounds = BodyBounds(instance);

@@ -16,6 +16,15 @@ namespace A305.Characters
 
         [SerializeField]
         private SpeechExpressionProfile expressions;
+
+        [SerializeField]
+        private EmotionExpressionProfile emotionProfile;
+
+        [SerializeField]
+        private CharacterEmotion speakingMood = CharacterEmotion.WarmSmile;
+
+        [SerializeField, Range(0, 1)]
+        private float moodIntensity = 1;
         private SpeechVisemeTimeline timeline;
         private SpeechEmotionTrack emotionTrack;
         private EmotionExpressionProfile activeEmotions;
@@ -48,6 +57,29 @@ namespace A305.Characters
         }
 
         public void ConfigureExpressions(SpeechExpressionProfile profile) => expressions = profile;
+
+        // Sets the mood for subsequent utterances. An explicit per-utterance
+        // emotion track always takes priority, including its neutral gaps.
+        public void ConfigureMood(
+            EmotionExpressionProfile profile,
+            CharacterEmotion mood,
+            float intensity = 1
+        )
+        {
+            if (
+                !Enum.IsDefined(typeof(CharacterEmotion), mood)
+                || !float.IsFinite(intensity)
+                || intensity < 0
+                || intensity > 1
+            )
+                throw new ArgumentOutOfRangeException(
+                    nameof(intensity),
+                    "기분 종류와 강도를 확인하세요."
+                );
+            emotionProfile = profile;
+            speakingMood = mood;
+            moodIntensity = intensity;
+        }
 
         private SpeechVisemeTimeline ReadTimeline()
         {
@@ -87,6 +119,23 @@ namespace A305.Characters
                 );
             if (phonemes != null && Mathf.Abs(phonemes.Duration - audio.length) > .02f)
                 throw new ArgumentException("Phoneme timing does not match the voice length.");
+            if (reactions == null && emotionProfile != null)
+            {
+                reactions = new SpeechEmotionTrack(
+                    new[]
+                    {
+                        new SpeechEmotionCue
+                        {
+                            start = 0,
+                            end = audio.length,
+                            emotion = speakingMood,
+                            intensity = moodIntensity,
+                        },
+                    },
+                    audio.length
+                );
+                profile = emotionProfile;
+            }
             if (
                 reactions != null
                 && (profile == null || Mathf.Abs(reactions.Duration - audio.length) > .02f)

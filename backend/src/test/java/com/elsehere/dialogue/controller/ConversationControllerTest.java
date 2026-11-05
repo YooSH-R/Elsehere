@@ -62,6 +62,10 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 class ConversationControllerTest {
 
   private static final UUID REQUEST_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+  private static final OffsetDateTime TIME_LIMIT_AT =
+      OffsetDateTime.parse("2026-11-05T14:05:00+09:00");
+  private static final OffsetDateTime GRACE_UNTIL =
+      OffsetDateTime.parse("2026-11-05T14:05:30+09:00");
   private static final NpcSummaryResponse NPC =
       new NpcSummaryResponse("CAFE_STAFF", "Mia", "카페 직원");
 
@@ -133,7 +137,16 @@ class ConversationControllerTest {
                 NPC,
                 List.of(),
                 npcTurn(10L, 1, "Hi!"),
-                new ConversationStateResponse(ConversationStatus.ACTIVE, null, 0, 3, 12),
+                new ConversationStateResponse(
+                    ConversationStatus.ACTIVE,
+                    null,
+                    0,
+                    3,
+                    12,
+                    TIME_LIMIT_AT,
+                    GRACE_UNTIL,
+                    false,
+                    0),
                 7L));
 
     mockMvc
@@ -153,6 +166,10 @@ class ConversationControllerTest {
         .andExpect(jsonPath("$.conversation.rudeCount").value(0))
         .andExpect(jsonPath("$.conversation.rudeLimit").value(3))
         .andExpect(jsonPath("$.conversation.affinity").value(12))
+        .andExpect(jsonPath("$.conversation.timeLimitAt").value("2026-11-05T14:05:00+09:00"))
+        .andExpect(jsonPath("$.conversation.graceUntil").value("2026-11-05T14:05:30+09:00"))
+        .andExpect(jsonPath("$.conversation.closing").value(false))
+        .andExpect(jsonPath("$.conversation.finalTurnsRemaining").value(0))
         .andExpect(jsonPath("$.deliveredFollowUpId").value(7));
   }
 
@@ -242,7 +259,16 @@ class ConversationControllerTest {
             new TurnResponse(
                 new UserTurnResponse(11L, 2, Speaker.USER, "A latte", false, null),
                 npcTurn(12L, 3, "Sure!"),
-                new ConversationStateResponse(ConversationStatus.ACTIVE, null, 0, 3, -4),
+                new ConversationStateResponse(
+                    ConversationStatus.ACTIVE,
+                    null,
+                    0,
+                    3,
+                    -4,
+                    TIME_LIMIT_AT,
+                    GRACE_UNTIL,
+                    false,
+                    0),
                 List.of()));
 
     mockMvc
@@ -258,7 +284,8 @@ class ConversationControllerTest {
         .andExpect(jsonPath("$.npcTurn.seq").value(3))
         .andExpect(jsonPath("$.conversation.status").value("ACTIVE"))
         .andExpect(jsonPath("$.conversation.rudeLimit").value(3))
-        .andExpect(jsonPath("$.conversation.affinity").value(-4));
+        .andExpect(jsonPath("$.conversation.affinity").value(-4))
+        .andExpect(jsonPath("$.conversation.timeLimitAt").value("2026-11-05T14:05:00+09:00"));
   }
 
   @Test
@@ -374,7 +401,8 @@ class ConversationControllerTest {
         NPC,
         List.of(),
         npcTurn(10L, 1, "Hi!"),
-        new ConversationStateResponse(ConversationStatus.ACTIVE, null, 0, 3, 0),
+        new ConversationStateResponse(
+            ConversationStatus.ACTIVE, null, 0, 3, 0, TIME_LIMIT_AT, GRACE_UNTIL, false, 0),
         null);
   }
 

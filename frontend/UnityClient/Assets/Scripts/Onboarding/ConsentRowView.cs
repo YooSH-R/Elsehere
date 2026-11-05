@@ -27,6 +27,14 @@ namespace A305.Onboarding
             viewButton.gameObject.SetActive(!string.IsNullOrEmpty(term.Url));
         }
 
+        /// <summary>약관이 아닌 줄([전체 동의] 등). [필수]·[선택] 표시와 [보기] 없이 문구만 보인다.</summary>
+        public void ShowPlain(string label)
+        {
+            labelText.text = label;
+            labelText.raycastTarget = true;
+            viewButton.gameObject.SetActive(false);
+        }
+
         public void OnPointerClick(PointerEventData eventData)
         {
             toggle.OnPointerClick(eventData);

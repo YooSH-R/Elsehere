@@ -5,11 +5,12 @@ namespace A305.Onboarding.Tests
     public class EntryRouterTests
     {
         [Test]
-        public void SignupRequired_GoesToSignup()
+        public void SignupRequired_GoesToTermsFirst()
         {
             var boot = new BootstrapResponse { AuthState = AuthState.SignupRequired };
 
-            Assert.That(EntryRouter.Route(boot, null), Is.EqualTo(EntryScreen.Signup));
+            // S15P31A305-596: 가입은 약관 동의부터 받는다.
+            Assert.That(EntryRouter.Route(boot, null), Is.EqualTo(EntryScreen.Terms));
         }
 
         [TestCase(OnboardingStep.Language, EntryScreen.Language)]

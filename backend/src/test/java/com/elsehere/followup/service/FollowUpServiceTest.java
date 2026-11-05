@@ -169,6 +169,37 @@ class FollowUpServiceTest {
     assertThat(followUpService.deliveredIn(handover.getId())).contains(followUpId);
   }
 
+  @Test
+  @DisplayName("가게에서 물건을 바로 건네는 직원(드럭스토어 우산 등)과의 대화는 워커에 묻지 않고 기다리는 것도 만들지 않는다")
+  void afterConversation_goodsHandedOverOnTheSpot_owesNothing() {
+    owes(new WorkerFollowUp("umbrella", "우산", "QUICK"));
+
+    assertThat(judge(endedConversation("SHOP_STAFF", "I'll buy this umbrella. Cash, please.")))
+        .isEmpty();
+    assertThat(followUpService.waiting(userId)).isEmpty();
+    then(aiGateway).should(never()).followUp(any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("학습자가 카드를 닫으면 기다리는 목록에서 빠지고 그 NPC가 다시 부르지 않는다. 다른 사용자는 닫을 수 없다")
+  void dismiss_removesTheCardAndTheCall() {
+    owes(LATTE);
+    Long followUpId =
+        judge(endedConversation("One iced latte, please.")).orElseThrow().followUpId();
+    Long otherUser =
+        UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-2", "Moon");
+
+    followUpService.dismiss(otherUser, followUpId);
+    assertThat(followUpService.waiting(userId)).hasSize(1);
+
+    followUpService.dismiss(userId, followUpId);
+    entityManager.flush();
+
+    assertThat(followUpService.waiting(userId)).isEmpty();
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(60));
+    assertThat(followUpService.readyFor(userId, cafeStaffId)).isEmpty();
+  }
+
   private void isWaitingLatte(FollowUpResponse followUp) {
     assertThat(followUp.npc().npcCode()).isEqualTo("CAFE_STAFF");
     assertThat(followUp.sceneCode()).isEqualTo("CAFE");
@@ -191,7 +222,11 @@ class FollowUpServiceTest {
   }
 
   private Conversation endedConversation(String userText) {
-    Conversation conversation = conversation(entityManager, userId, "CAFE_STAFF");
+    return endedConversation("CAFE_STAFF", userText);
+  }
+
+  private Conversation endedConversation(String npcCode, String userText) {
+    Conversation conversation = conversation(entityManager, userId, npcCode);
     npcTurn(entityManager, conversation, 1, "Hi! What can I get for you?");
     textTurn(entityManager, conversation, 2, userText);
     npcTurn(entityManager, conversation, 3, "Coming right up.");

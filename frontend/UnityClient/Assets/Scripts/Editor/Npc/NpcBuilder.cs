@@ -309,6 +309,8 @@ namespace A305.EditorTools.Npc
             var identity = BuilderTools.GetOrAddComponent<NpcIdentity>(root);
             var animationDriver = BuilderTools.GetOrAddComponent<CharacterAnimationDriver>(root);
             var passerby = BuilderTools.GetOrAddComponent<Passerby>(root);
+            // 팔 관통 보정은 캐릭터 하나에 수 ms가 들어, 카메라에서 먼 동안에는 끈다. 이 프리팹으로 놓는 NPC가 모두 받는다.
+            BuilderTools.GetOrAddComponent<NpcDetailDistance>(root);
 
             Transform lookTarget = root.transform.Find("LookTarget");
             if (lookTarget == null)

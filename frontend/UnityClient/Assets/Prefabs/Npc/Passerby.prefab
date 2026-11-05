@@ -226,6 +226,7 @@ GameObject:
   - component: {fileID: 6144241278140229757}
   - component: {fileID: 7306442443597707082}
   - component: {fileID: 439480038333156538}
+  - component: {fileID: 3873046490802643570}
   m_Layer: 0
   m_Name: Passerby
   m_TagString: Untagged
@@ -321,6 +322,20 @@ MonoBehaviour:
   dialogue: {fileID: 0}
   offerView: {fileID: 0}
   animationDriver: {fileID: 7306442443597707082}
+  talkGesture: 1
+--- !u!114 &3873046490802643570
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7889363713850615736}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f4d8764f93b53449972b6ea67364ab3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcDetailDistance
+  detailRadiusMeters: 12
 --- !u!1 &8791528328279629890
 GameObject:
   m_ObjectHideFlags: 0

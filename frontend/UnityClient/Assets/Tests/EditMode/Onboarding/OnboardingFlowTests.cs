@@ -213,15 +213,50 @@ namespace A305.Onboarding.Tests
             Assert.That(flow.ErrorMessage, Is.Null);
         }
 
+        // S15P31A305-596: 가입은 약관 동의 단계부터 시작한다.
         [Test]
-        public async Task StartWhileSignupRequired_ShowsSignupWithTerms()
+        public async Task StartWhileSignupRequired_ShowsTermsFirst()
         {
             api.Bootstrap = new BootstrapResponse { AuthState = AuthState.SignupRequired };
 
             await flow.StartAsync();
 
-            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Signup));
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Terms));
             Assert.That(flow.SignupForm.Terms, Is.EqualTo(api.SignupForm.Consents));
+        }
+
+        [Test]
+        public async Task ContinueWithoutRequiredTerms_StaysOnTerms()
+        {
+            api.Bootstrap = new BootstrapResponse { AuthState = AuthState.SignupRequired };
+            await flow.StartAsync();
+
+            flow.ContinueToProfile();
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Terms));
+        }
+
+        [Test]
+        public async Task ContinueWithRequiredTerms_ShowsNicknameAndCharacter()
+        {
+            api.Bootstrap = new BootstrapResponse { AuthState = AuthState.SignupRequired };
+            await flow.StartAsync();
+            flow.SignupForm.SetAgreed("TERMS", true);
+
+            flow.ContinueToProfile();
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Signup));
+        }
+
+        [Test]
+        public async Task BackFromNicknameAndCharacter_ShowsTermsKeepingTheAgreements()
+        {
+            await StartAtSignup();
+
+            flow.BackToTerms();
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Terms));
+            Assert.That(flow.SignupForm.IsAgreed("TERMS"), Is.True);
         }
 
         [Test]
@@ -576,10 +611,13 @@ namespace A305.Onboarding.Tests
             api.BootstrapError = null;
         }
 
+        // 약관 단계에서 필수 약관에 동의하고 가입 정보(닉네임·캐릭터) 단계로 넘어간다(S15P31A305-596).
         private async Task StartAtSignup()
         {
             api.Bootstrap = new BootstrapResponse { AuthState = AuthState.SignupRequired };
             await flow.StartAsync();
+            flow.SignupForm.SetAgreed("TERMS", true);
+            flow.ContinueToProfile();
         }
 
         private static BootstrapResponse SignedIn(OnboardingStep step, string currentLanguage)

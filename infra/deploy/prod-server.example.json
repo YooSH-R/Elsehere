@@ -4,7 +4,8 @@
   "environment_file": "/home/ubuntu/apps/a305/prod/deploy.env",
   "initial_compose_file": "/home/ubuntu/apps/a305/prod/compose.app.yaml",
   "overlays": [
-    "/home/ubuntu/apps/a305/monitoring/config/compose.observability.yaml"
+    "/home/ubuntu/apps/a305/monitoring/config/compose.observability.yaml",
+    "/home/ubuntu/apps/a305/prod/config/compose.prod-worker-network.yaml"
   ],
   "public_health_url": "https://elsehere.kr/api/health",
   "public_version_url": "https://elsehere.kr/version.json",

@@ -9,5 +9,8 @@ namespace A305.Dialogue
     {
         /// <summary>CONV-13 아직 건네지 않은 것 전부. 준비가 먼저 끝나는 것부터 온다.</summary>
         Task<FollowUpList> GetFollowUpsAsync();
+
+        /// <summary>CONV-14 학습자가 기다림 카드를 닫았다.</summary>
+        Task DismissAsync(long followUpId);
     }
 }

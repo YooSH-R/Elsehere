@@ -347,6 +347,8 @@ namespace A305.Dialogue.Tests
                     ? Task.FromException<FollowUpList>(Error)
                     : Task.FromResult(Response);
             }
+
+            public Task DismissAsync(long followUpId) => Task.CompletedTask;
         }
     }
 }

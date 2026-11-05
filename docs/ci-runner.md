@@ -67,7 +67,7 @@ MR의 `rules:changes:compare_to`에 실제 대상 브랜치를 명시하여 대�
 
 `infra/tests/webgl_*.test.cjs` 변경은 Linux의 `unity:browser-tests`를 실행합니다. 배포 자식 파이프라인에서는 인프라·Unity 검사를 선택하고 테스트 변경만으로 이미지를 재빌드하지 않습니다.
 
-Unity 검사 스크립트 `run-unity-ci.ps1`·`prepare-unity-test-inputs.ps1`와 `infra/tests/tripo/` 변경도 MR의 포맷·실행 테스트를 선택합니다. 실행 테스트는 Draft를 포함한 MR의 각 Push에서 대상 브랜치와 남은 차이를 기준으로 다시 실행합니다. 외부 프로젝트 MR에는 같은 변경 경로에서 `unity:editor-tests` 대신 실패하는 `unity:external-mr`을 선택하므로 필수 검사를 생략한 성공 결과로 병합하지 않습니다.
+Unity 검사 스크립트 `run-unity-ci.ps1`·`unity-test-scope.ps1`·`prepare-unity-test-inputs.ps1`와 `infra/tests/tripo/` 변경도 MR의 포맷·실행 테스트를 선택합니다. 실행 테스트는 Draft를 포함한 MR의 각 Push에서 대상 브랜치와 남은 차이를 기준으로 다시 실행합니다. 외부 프로젝트 MR에는 같은 변경 경로에서 `unity:editor-tests` 대신 실패하는 `unity:external-mr`을 선택하므로 필수 검사를 생략한 성공 결과로 병합하지 않습니다.
 
 MR의 Unity 작업은 공통 workflow나 다른 영역의 CI 파일 변경만으로 선택하지 않습니다. 자동 취소 정책을 담은 `.gitlab-ci.yml`과 백엔드·AI·인프라 CI 파일은 YAML·설정 회귀 검사와 각 영역의 작업으로 검증합니다. Unity CI 파일인 `.gitlab/ci/unity.yml`을 바꾸거나 같은 MR에 Unity 관련 변경이 함께 있으면 포맷·실행 테스트를 모두 선택합니다. 이 기준은 MR의 작업 선택 범위이며, dev 배포 자식의 누적 검사 판정과 운영 배포의 전체 검사는 별도 기준을 유지합니다.
 
@@ -81,21 +81,24 @@ Unity 관련 MR은 **포맷 검사와 바뀐 영역에 맞는 실제 Editor 실�
 
 ### Unity 테스트 범위
 
-EditMode에서는 씬 파일의 배치·직렬화 연결과 씬 구성 Builder를 검사하지 않습니다. 일반 로직·프리팹·빌드 입력 검증을 실행하며, 씬 배치와 기능 연결은 직접 Play 실행과 브라우저 검수로 확인합니다. PlayMode 검사와 WebGL 빌드의 실행 정책은 유지합니다.
+이미 병합·검증된 고정 씬의 배치·직렬화 연결·Builder 회귀 검사는 정리했습니다. 새 기능이나 변경한 씬을 검증하는 테스트는 추가·수정할 수 있으며 아래 범위 판정에 따라 실행합니다. 씬 배치의 시각적 결과는 직접 Play 실행과 브라우저에서 확인합니다.
 
 `unity:editor-tests`는 MR의 merge base(`CI_MERGE_REQUEST_DIFF_BASE_SHA`)를 `run-unity-ci.ps1 -ChangedSince`로 넘깁니다. 스크립트는 merge base와 MR 커밋의 차이로 실행 범위를 정합니다.
 
 | 바뀐 파일 | 실행하는 테스트 |
 | --- | --- |
 | 모두 Web 템플릿(`frontend/UnityClient/Assets/WebGLTemplates/`), `frontend/design/` 또는 문서(`docs/`·`.md`. `docs/api/`와 Unity 프로젝트 안 문서는 제외) | EditMode 배포 검사 `A305.Deployment.Tests`. PlayMode와 Blender 테스트 입력 준비는 생략 |
-| 그 밖의 파일이 하나라도 포함 | EditMode·PlayMode 전체 |
+| Unity 프로젝트 `Assets/`의 `.cs`·`.cs.meta` | 가장 가까운 상위 asmdef가 소유한 어셈블리와 이를 직접·간접 참조하는 어셈블리의 EditMode·PlayMode 테스트. 테스트 코드만 바꾸면 해당 테스트 어셈블리 선택 |
+| 씬·프리팹·리소스·asmdef·패키지·프로젝트 설정·API 계약·검사 스크립트 등 공유 입력 또는 소유 어셈블리를 찾을 수 없는 코드 | EditMode·PlayMode 전체 |
 
-- 표에 없는 경로는 모두 전체 실행으로 처리합니다. 백엔드·AI·CI 파일이 섞여도 전체를 실행하며, 새 폴더를 추가해도 검사 범위가 줄지 않습니다. `frontend/ArtSources/`는 Tripo EditMode 테스트가 읽으므로 전체 실행 대상입니다.
+- `infra/scripts/unity-test-scope.ps1`이 asmdef의 이름·GUID 참조를 읽어 영향받는 테스트를 고릅니다. 선택된 플랫폼의 테스트가 없으면 그 플랫폼 실행을 생략하며, 선택 범위를 로그와 `dist/unity-ci/test-plan.json`에 기록합니다.
+- Web 템플릿·디자인과 코드가 함께 바뀌면 연관 테스트와 배포 검사를 합칩니다. 백엔드·AI 파일과 일반 문서는 Unity 선택 범위를 넓히지 않으며 각 영역의 CI 검사로 확인합니다.
+- 표에 없는 경로, 잘못된 asmdef, 대응하는 테스트가 없는 코드와 범위 판정 오류는 전체 실행으로 처리합니다. `frontend/ArtSources/`는 Tripo EditMode 테스트가 읽으므로 전체 실행 대상입니다.
 - 얕은 clone에 merge base가 없으면 해당 커밋만 가져옵니다. 가져오기나 비교에 실패하면 전체를 실행합니다.
 - 이름 바꾸기도 삭제와 추가로 나눠 비교하므로, 스크립트를 템플릿 폴더로 옮긴 변경은 전체를 실행합니다.
-- 배포 검사만 실행해도 Unity는 프로젝트 전체를 컴파일합니다. 작업 로그의 `Unity test scope:` 줄에서 선택한 범위와 전체 실행을 일으킨 파일을 확인합니다.
+- 일부 테스트만 실행해도 Unity는 프로젝트 전체를 컴파일합니다. Blender 입력은 전체 검사 또는 `A305.Tripo.*` 테스트를 선택했을 때 준비합니다.
 - 규약 문서(`AGENTS.md`, `docs/code-conventions.md`, `docs/unity/`)만 바뀐 MR에는 `unity:editor-tests`를 만들지 않습니다. 이 문서가 Unity 변경과 함께 바뀌면 위 표를 따릅니다.
-- 실행 코드 영역 안에서는 asmdef 단위로 테스트 어셈블리를 고르지 않습니다. 기준은 [변경 영역별 CI/CD 구성 기준](ci-cd.md#1-변경-영역별-기본-검증과-배포)을 따릅니다.
+- asmdef 참조는 씬의 직렬화 연결을 모두 표현하지 못하므로 씬·프리팹 변경은 전체 검사와 직접 Play 검수로 확인합니다. 기준은 [변경 영역별 CI/CD 구성 기준](ci-cd.md#1-변경-영역별-기본-검증과-배포)을 따릅니다.
 - `unity:editor-and-webgl`과 `-ChangedSince` 없이 실행한 `run-unity-ci.ps1 -Action test`는 항상 전체를 실행합니다.
 
 범위 판정 테스트 `infra/scripts/tests/test_unity_test_scope.py`는 Windows 전용이라 Linux CI에서는 건너뜁니다. 실행 명령은 [Windows Unity Runner](unity/windows-runner.md#실행-스크립트와-결과)를 따릅니다.

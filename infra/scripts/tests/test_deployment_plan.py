@@ -60,6 +60,7 @@ class DeploymentPlanTest(unittest.TestCase):
 
     def test_unity_test_input_changes_run_unity_without_rebuilding_images(self):
         for path in [
+            "infra/scripts/unity-test-scope.ps1",
             "infra/scripts/prepare-unity-test-inputs.ps1",
             "infra/tests/tripo/create_ci_fixtures.py",
             "infra/tests/tripo/test_ci_fixtures.py",

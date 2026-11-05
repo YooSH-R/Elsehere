@@ -9,7 +9,8 @@
         "A305.ObjectHover",
         "A305.Player",
         "A305.EditorTools",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [
         "Editor"

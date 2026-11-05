@@ -5,22 +5,30 @@ using A305.Dialogue;
 using A305.Player;
 using A305.Tutorial;
 using NUnit.Framework;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 namespace A305.Npc.PlayModeTests
 {
     /// <summary>
-    /// 마을(TownScene)에서 NPC 몸을 클릭·탭해 말을 거는지 확인한다(기능 명세 F-22).
+    /// 마을(TownScene)에서 NPC 몸이나 머리 위 이름표를 클릭·탭해 말을 거는지 확인한다(기능 명세 F-22).
     /// 8m 안의 NPC만 클릭으로 대화를 시작하고, PC에서는 커서를 올린 NPC에 테두리를 그린다.
-    /// 실제 마우스 대신 NPC 가슴의 화면 좌표를 넣어 확인한다.
+    /// 실제 마우스 대신 NPC 가슴이나 이름표 가운데의 화면 좌표를 넣어 확인한다.
     /// </summary>
     public class NpcClickTalkTests
     {
         private const string BenCode = "TOWN_PASSERBY";
+        private const string BenName = "Ben";
+        private const string RubyCode = "TOWN_RETIREE";
+        private const string RubyName = "Ruby";
         private const float WaitTimeoutSeconds = 15f;
+
+        // 카메라가 플레이어를 따라와 자리 잡을 때까지 기다리는 프레임 수
+        private const int SettleFrames = 10;
         private static readonly Vector3 OutOfTown = new Vector3(0f, -200f, 0f);
 
         [SetUp]
@@ -158,6 +166,157 @@ namespace A305.Npc.PlayModeTests
             Assert.That(clickTalk.HighlightedNpc, Is.Null);
         }
 
+        [UnityTest]
+        public IEnumerator ClickingBensNameTag_StartsConversation()
+        {
+            // 머리 위 이름표를 눌러도 몸을 누른 것과 같다.
+            yield return LoadTownAfterTutorial();
+            Passerby ben = FindPasserby(BenCode);
+            KeepFromApproaching(ben);
+            yield return FaceFrom(ben, 6f);
+            yield return LetCameraSettle();
+
+            Single<NpcClickTalk>().Click(NameTagOf(ben, BenName));
+            yield return null;
+
+            Assert.That(Single<DialogueController>().IsTalking, Is.True);
+            Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Talking));
+        }
+
+        [UnityTest]
+        public IEnumerator ClickingRubysNameTagWhileBenOffers_DeclinesBenAndTalksToRuby()
+        {
+            yield return LoadTownAfterTutorial();
+            Passerby ben = FindPasserby(BenCode);
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return FaceFrom(ben, 4f);
+            yield return WaitUntil(() => offer.IsShownBy(ben));
+            Passerby ruby = BringNpc(
+                RubyCode,
+                new Pose(
+                    ben.transform.position + ben.transform.right * 1.5f,
+                    ben.transform.rotation
+                )
+            );
+            yield return LetCameraSettle();
+
+            Single<NpcClickTalk>().Click(NameTagOf(ruby, RubyName));
+            yield return null;
+
+            Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Resting));
+            Assert.That(offer.IsShowing, Is.False);
+            Assert.That(ruby.Phase, Is.EqualTo(PasserbyPhase.Talking));
+            Assert.That(Single<DialogueController>().IsTalking, Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator GuestWhoUsedAllConversations_ClickingBensNameTag_OpensSignupDialog()
+        {
+            yield return LoadTownAfterTutorial();
+            Single<DialogueController>().Allowance.Apply(GuestOutOfConversations());
+            Passerby ben = FindPasserby(BenCode);
+            KeepFromApproaching(ben);
+            yield return FaceFrom(ben, 6f);
+            yield return LetCameraSettle();
+
+            Single<NpcClickTalk>().Click(NameTagOf(ben, BenName));
+            yield return null;
+
+            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.True);
+            Assert.That(Single<DialogueController>().IsTalking, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator PointerOverBensNameTag_OutlinesBen()
+        {
+            yield return LoadTownAfterTutorial();
+            Passerby ben = FindPasserby(BenCode);
+            KeepFromApproaching(ben);
+            yield return FaceFrom(ben, 6f);
+            yield return LetCameraSettle();
+            var clickTalk = Single<NpcClickTalk>();
+            Renderer[] parts = ben.GetComponentsInChildren<Renderer>()
+                .Where(part => part is SkinnedMeshRenderer || part is MeshRenderer)
+                .ToArray();
+
+            clickTalk.RefreshHighlight(NameTagOf(ben, BenName));
+
+            Assert.That(clickTalk.HighlightedNpc, Is.SameAs(ben));
+            Assert.That(
+                parts.All(HasOutline),
+                Is.True,
+                "이름표의 NPC 몸에 테두리가 있어야 합니다."
+            );
+        }
+
+        [UnityTest]
+        public IEnumerator UiCoveringBensNameTag_KeepsTheClickFromReachingBen()
+        {
+            // 이름표는 다른 화면 UI보다 아래에 그려진다. 메뉴·창이 이름표를 덮었으면 그 UI를 누른 것이다.
+            yield return LoadTownAfterTutorial();
+            Passerby ben = FindPasserby(BenCode);
+            KeepFromApproaching(ben);
+            yield return FaceFrom(ben, 6f);
+            yield return LetCameraSettle();
+            Vector2 tag = NameTagOf(ben, BenName);
+            CoverScreenWithUi();
+            yield return null;
+
+            Single<NpcClickTalk>().Click(tag);
+            yield return null;
+
+            Assert.That(Single<DialogueController>().IsTalking, Is.False);
+            Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Waiting));
+        }
+
+        // 겹친 이름표는 카메라에서 가까운 NPC 것이 위에 그려지고, 겹친 곳을 누르면 그 NPC에게 말을 건다.
+        // 이름표를 그리는 순서가 NPC 목록 순서에 따르지 않는지 보려고 앞뒤를 바꿔 두 번 확인한다.
+        [UnityTest]
+        public IEnumerator ClickingWhereNameTagsOverlap_TalksToTheNearerNpc_BenInFront()
+        {
+            yield return LoadTownAfterTutorial();
+            Passerby ben = FindPasserby(BenCode);
+            KeepFromApproaching(ben);
+            yield return FaceFrom(ben, 5f);
+            Passerby ruby = BringNpc(
+                RubyCode,
+                new Pose(
+                    ben.transform.position - ben.transform.forward * 1.5f,
+                    ben.transform.rotation
+                )
+            );
+            yield return LetCameraSettle();
+
+            Single<NpcClickTalk>().Click(WhereNameTagsOverlap(BenName, RubyName));
+            yield return null;
+
+            Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Talking));
+            Assert.That(ruby.Phase, Is.Not.EqualTo(PasserbyPhase.Talking));
+        }
+
+        [UnityTest]
+        public IEnumerator ClickingWhereNameTagsOverlap_TalksToTheNearerNpc_RubyInFront()
+        {
+            yield return LoadTownAfterTutorial();
+            Passerby ben = FindPasserby(BenCode);
+            KeepFromApproaching(ben);
+            yield return FaceFrom(ben, 6.5f);
+            Passerby ruby = BringNpc(
+                RubyCode,
+                new Pose(
+                    ben.transform.position + ben.transform.forward * 1.5f,
+                    ben.transform.rotation
+                )
+            );
+            yield return LetCameraSettle();
+
+            Single<NpcClickTalk>().Click(WhereNameTagsOverlap(RubyName, BenName));
+            yield return null;
+
+            Assert.That(ruby.Phase, Is.EqualTo(PasserbyPhase.Talking));
+            Assert.That(ben.Phase, Is.Not.EqualTo(PasserbyPhase.Talking));
+        }
+
         // 튜토리얼을 마친 사용자로 마을을 불러온다. 다가오기·말 걸기만 보려고 Ben의 생활은 끈다(생활은 NpcRoutineTests).
         // 길을 지나는 다른 NPC가 누른 자리를 가리지 않도록, 다른 NPC는 멈춰 마을 밖으로 옮긴다.
         private static IEnumerator LoadTownAfterTutorial()
@@ -219,6 +378,16 @@ namespace A305.Npc.PlayModeTests
             return neighbor;
         }
 
+        // 마을 밖으로 옮겨 둔 행인 하나를 주어진 자리에 세운다. 생활은 끈 채로 두고 먼저 다가오지 않게 한다.
+        private static Passerby BringNpc(string code, Pose pose)
+        {
+            Passerby npc = FindPasserby(code);
+            KeepFromApproaching(npc);
+            PlaceAt(npc, pose);
+            npc.enabled = true;
+            return npc;
+        }
+
         private static void PlaceAt(Passerby npc, Pose pose)
         {
             var body = npc.GetComponent<CharacterController>();
@@ -243,6 +412,82 @@ namespace A305.Npc.PlayModeTests
                 $"준비: {passerby.name}이(가) 맨 앞에 보여야 합니다."
             );
             return onScreen;
+        }
+
+        // 카메라가 플레이어를 따라와 자리 잡고, 이름표가 그 화면에서 머리 위에 놓일 때까지 기다린다.
+        private static IEnumerator LetCameraSettle()
+        {
+            for (int frame = 0; frame < SettleFrames; frame++)
+            {
+                yield return null;
+            }
+        }
+
+        // NPC 머리 위 이름표 가운데의 화면 좌표. 몸 클릭이 아니라 이름표 클릭을 보도록,
+        // 그 자리로 쏜 광선이 그 NPC 몸에 닿지 않는지 먼저 확인한다.
+        private static Vector2 NameTagOf(Passerby passerby, string shownName)
+        {
+            Vector2 center = ShownNameTagRect(shownName).center;
+            Physics.SyncTransforms();
+            Assert.That(
+                new NpcPointerRaycast().Find(Camera.main.ScreenPointToRay(center), 30f),
+                Is.Not.SameAs(passerby),
+                $"준비: {shownName}의 이름표 자리는 몸 밖이어야 합니다."
+            );
+            return center;
+        }
+
+        // 두 NPC 이름표가 겹친 곳의 가운데 화면 좌표
+        private static Vector2 WhereNameTagsOverlap(string oneName, string otherName)
+        {
+            Rect one = ShownNameTagRect(oneName);
+            Rect other = ShownNameTagRect(otherName);
+            Rect overlap = Rect.MinMaxRect(
+                Mathf.Max(one.xMin, other.xMin),
+                Mathf.Max(one.yMin, other.yMin),
+                Mathf.Min(one.xMax, other.xMax),
+                Mathf.Min(one.yMax, other.yMax)
+            );
+            Assert.That(
+                overlap.width > 0f && overlap.height > 0f,
+                Is.True,
+                $"준비: {oneName}와 {otherName}의 이름표가 겹쳐야 합니다. ({one} / {other})"
+            );
+            return overlap.center;
+        }
+
+        // 화면에 보이는 이름표의 화면 영역. 이름표는 화면을 덮는 캔버스에 있어 꼭짓점 위치가 곧 화면 좌표다.
+        private static Rect ShownNameTagRect(string shownName)
+        {
+            RectTransform tag = Single<NpcNameTagView>()
+                .GetComponentsInChildren<TMP_Text>()
+                .Where(text => text.name == "Name" && text.text == shownName)
+                .Select(text => (RectTransform)text.transform.parent)
+                .SingleOrDefault();
+            Assert.That(tag, Is.Not.Null, $"준비: {shownName}의 이름표가 보여야 합니다.");
+            var corners = new Vector3[4];
+            tag.GetWorldCorners(corners);
+            Rect onScreen = Rect.MinMaxRect(corners[0].x, corners[0].y, corners[2].x, corners[2].y);
+            Assert.That(
+                new Rect(0f, 0f, Screen.width, Screen.height).Contains(onScreen.center),
+                Is.True,
+                $"준비: {shownName}의 이름표가 화면 안에 있어야 합니다."
+            );
+            return onScreen;
+        }
+
+        // 화면 전체를 덮는 창 하나를 띄운다. 정렬 0은 다른 화면 UI 캔버스의 기본값이다. 다음 시험에서 마을을 다시 불러오면 사라진다.
+        private static void CoverScreenWithUi()
+        {
+            var cover = new GameObject("Cover", typeof(Canvas), typeof(GraphicRaycaster));
+            cover.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+            var panel = new GameObject("Panel", typeof(RectTransform), typeof(Image));
+            var rect = (RectTransform)panel.transform;
+            rect.SetParent(cover.transform, false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
         }
 
         private static bool HasOutline(Renderer renderer)

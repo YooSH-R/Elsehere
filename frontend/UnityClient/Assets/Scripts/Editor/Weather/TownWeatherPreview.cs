@@ -38,6 +38,7 @@ namespace A305.EditorTools.Weather
             "CafeScene",
             "HotelScene",
             "ShopScene",
+            "PoliceStationScene",
         };
 
         [MenuItem("Tools/A305/Weather/Weather Preview")]

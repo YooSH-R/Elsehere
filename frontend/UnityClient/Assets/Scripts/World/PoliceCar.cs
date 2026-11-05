@@ -7,7 +7,7 @@ namespace A305.World
     /// <summary>
     /// 경찰서 옆 주차 칸에 서 있다가 신고를 받으면 출동하는 순찰차. 주차 칸과 본길 사이는 진입로(<see cref="DrivePath"/>)로,
     /// 본길은 다른 차처럼 <see cref="LoopingCar"/>로 신호를 지키며 달린다. 출동 흐름은 <see cref="PoliceDispatch"/>가 정하고,
-    /// 경광등은 출동해서 돌아오기 전까지 빨강·파랑을 번갈아 켠다.
+    /// 경광등은 출동해서 돌아오기 전까지 빨강·파랑을 번갈아 켠다. 경찰서 창구가 남긴 신고(<see cref="PoliceDispatchOrder"/>)는 마을이 열릴 때 가져가 출동한다.
     /// 진입로 조절점은 Builder가 마을 배치에 맞춰 넣는다. 나가는 길은 본길 북행 차로 시작점에서, 들어오는 길은 남행 차로 끝에서 이어진다.
     /// </summary>
     [RequireComponent(typeof(LoopingCar))]
@@ -90,6 +90,13 @@ namespace A305.World
             // 주차 칸·진입로에서는 본길을 따라 움직이지 않지만, 본길 차들은 이 차를 피한다.
             car.IsHeld = true;
             Place(entryPath.PoseAt(entryPath.Length));
+        }
+
+        // 경찰서는 마을과 다른 장면이라, 플레이어가 경찰서에서 신고하고 나와 마을이 열리면 남겨 둔 신고로 출동한다.
+        private void Start()
+        {
+            if (PoliceDispatchOrder.TryTake(out string place))
+                Dispatch(place);
         }
 
         private void Update()

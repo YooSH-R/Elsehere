@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 using A305.Player;
 using A305.Tutorial;
 using A305.World;
@@ -15,9 +14,9 @@ using UnityEngine.TestTools;
 namespace A305.Npc.PlayModeTests
 {
     /// <summary>
-    /// 마을에서 가까운 NPC 머리 위에 이름표가 뜬다. 근무 중인 직원은 역할 칩(예: 경찰관)을 함께 달고, 행인과 쉬는 직원은 이름만 보인다.
+    /// 가까운 NPC 머리 위에 이름표가 뜬다. 근무 중인 직원은 역할 칩(예: 경찰서의 경찰관)을 함께 달고, 마을 행인과 쉬는 직원은 이름만 보인다.
     /// 멀리 있는 NPC와 플레이어가 대화·창으로 움직이지 못하는 동안에는 이름표를 띄우지 않는다.
-    /// 준비에서 마을 시계를 서버가 멈춘 12:15로 맞추므로 경찰관 Dan(10:30~14:30 근무)은 근무 중이다(<see cref="NpcTestClock"/>).
+    /// 시험 시계는 12:15(NpcTestClock.SetDaytime)이므로 경찰관 Dan(06:00~14:30 근무, 10:00~10:30 쉬는 시간)은 근무 중이다.
     /// </summary>
     public class NpcNameTagViewTests
     {
@@ -41,7 +40,6 @@ namespace A305.Npc.PlayModeTests
             TutorialState.MarkFinishedOnServer();
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
-            yield return NpcTestClock.OpenPoliceStation();
         }
 
         [UnityTearDown]
@@ -65,6 +63,9 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator NearbyStaff_ShowsNameWithRoleChipAboveTheHead()
         {
+            // 경찰관은 경찰서 장면에서 일한다.
+            yield return SceneManager.LoadSceneAsync("PoliceStationScene", LoadSceneMode.Single);
+            yield return null;
             NpcIdentity staff = HoldStill(StaffCode);
             yield return StandFacing(staff, 3f);
 
@@ -78,19 +79,12 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator NearbyStaffOnBreak_ShowsNameOnly()
         {
-            // 준비가 연 마을의 시계는 12:15에 멈춰 흐르지 않고, NPC 생활은 지난 시각으로 돌아가지 않는다.
-            // 그래서 시계를 Dan의 쉬는 시간에 맞춘 뒤 마을을 다시 불러온다.
-            SetPausedClock(StaffBreakMinuteOfDay);
-            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            // 시계를 Dan의 쉬는 시간에 맞춘 뒤 경찰서 장면을 열어, Dan의 생활이 그 시각을 읽은 뒤에 세워 둔다.
+            NpcTestClock.SetTime(StaffBreakMinuteOfDay);
+            yield return SceneManager.LoadSceneAsync("PoliceStationScene", LoadSceneMode.Single);
             yield return null;
-            yield return NpcTestClock.OpenPoliceStation();
             NpcIdentity staff = HoldStill(StaffCode);
-            // 근무 밖 직원은 일터의 몸 대신 마을을 걷는 몸(NpcPopulation의 TownBody)으로 나온다.
-            Assert.That(
-                staff.GetComponent<NpcTownWalker>(),
-                Is.Not.Null,
-                "준비: 쉬는 시간의 Dan은 마을을 걷는 몸입니다."
-            );
+            Assert.That(staff.GetComponent<NpcRoutine>().IsOffDuty, Is.True, "준비: Dan이 쉬는 중");
             yield return StandFacing(staff, 3f);
 
             TagView tag = ShownTags().SingleOrDefault(shown => shown.Name == StaffName);
@@ -112,64 +106,23 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator FarNpc_HasNoTag()
         {
-            NpcIdentity staff = HoldStill(StaffCode);
-            yield return StandFacing(staff, NpcNameTags.ShowRadiusMeters + 6f);
+            NpcIdentity passerby = HoldStill(PasserbyCode);
+            yield return StandFacing(passerby, NpcNameTags.ShowRadiusMeters + 6f);
 
-            Assert.That(ShownTags().Select(shown => shown.Name), Does.Not.Contain(StaffName));
+            Assert.That(ShownTags().Select(shown => shown.Name), Does.Not.Contain(PasserbyName));
         }
 
         [UnityTest]
         public IEnumerator PlayerWhoCannotMove_SeesNoTags()
         {
-            NpcIdentity staff = HoldStill(StaffCode);
-            yield return StandFacing(staff, 3f);
-            Assume.That(ShownTags().Select(shown => shown.Name), Does.Contain(StaffName));
+            NpcIdentity passerby = HoldStill(PasserbyCode);
+            yield return StandFacing(passerby, 3f);
+            Assume.That(ShownTags().Select(shown => shown.Name), Does.Contain(PasserbyName));
 
             Object.FindFirstObjectByType<PlayerMover>().SetMovementLocked(true);
             yield return null;
 
             Assert.That(ShownTags(), Is.Empty);
-        }
-
-        // 서버가 이 시각에서 시계를 멈췄다고 알린 것처럼 마을 시계를 맞춘다(NpcTestClock.SetDaytime과 같은 방법).
-        private static void SetPausedClock(int minuteOfDay)
-        {
-            typeof(GameClock)
-                .GetMethod("ResetShared", BindingFlags.NonPublic | BindingFlags.Static)
-                .Invoke(null, null);
-            Assert.That(
-                GameClock
-                    .Shared.TickAsync(
-                        new PausedClock(minuteOfDay),
-                        Time.realtimeSinceStartupAsDouble + 1e5
-                    )
-                    .Result,
-                Is.EqualTo(GameClockBeatStatus.Updated)
-            );
-        }
-
-        private sealed class PausedClock : IGameClockApi
-        {
-            private readonly int minuteOfDay;
-
-            public PausedClock(int minuteOfDay)
-            {
-                this.minuteOfDay = minuteOfDay;
-            }
-
-            public Task<GameClockTime> BeatAsync(
-                bool interactionPaused = false,
-                bool interactionWasPaused = false,
-                long? activeSeconds = null
-            ) =>
-                Task.FromResult(
-                    new GameClockTime
-                    {
-                        Day = 1,
-                        MinuteOfDay = minuteOfDay,
-                        Paused = true,
-                    }
-                );
         }
 
         // 다가와 말을 걸거나 일하러 걸어가지 않게 세워 둔다. 이름표는 NPC 키(NpcIdentity)로 그대로 찾는다.

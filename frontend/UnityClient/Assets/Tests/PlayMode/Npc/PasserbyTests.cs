@@ -27,6 +27,14 @@ namespace A305.Npc.PlayModeTests
         [TearDown]
         public void ResetCrossSceneRecords()
         {
+            // 장면 교체 중 이전 행인이 제안 기록을 다시 남기지 않게 먼저 멈춘다.
+            foreach (
+                Passerby passerby in Object.FindObjectsByType<Passerby>(FindObjectsSortMode.None)
+            )
+            {
+                passerby.enabled = false;
+            }
+
             PasserbyRestRecord.Clear();
             PasserbyOfferRecord.Clear();
             // 하루 한 번 기록은 이 기기에 남으므로 끝난 뒤에도 지워 Editor에서 플레이할 때 남지 않게 한다.
@@ -322,14 +330,28 @@ namespace A305.Npc.PlayModeTests
             // 쉬는 동안 행인은 다가오지 않으므로 플레이어가 [말 걸기]로 먼저 다시 말을 건다(기능 명세 F-22).
             yield return LoadTownWithPlayerNearBen(afterTutorial: true);
             PasserbyOfferView offer = Single<PasserbyOfferView>();
-            yield return WaitUntil(() => offer.IsShowing);
+            yield return WaitUntil(
+                () => offer.IsShowing,
+                () =>
+                    $"대화 제안 대기: 상태={FindPasserby(BenCode).Phase}, "
+                    + $"오늘 제안 기록={PasserbyOfferRecord.HasOfferedOn(BenCode, System.DateTime.Today)}, "
+                    + $"거리={HorizontalDistance(FindPasserby(BenCode).transform, Single<PlayerMover>().transform)}, "
+                    + $"이동 잠금={Single<PlayerMover>().IsMovementLocked}, 다른 제안={offer.IsShowing}"
+            );
             Click(offer, "DeclineButton");
             Passerby passerby = FindPasserby(BenCode);
             // 제자리로 돌아갈 때까지 기다린 뒤 바로 앞에 선다.
             yield return new WaitForSeconds(3f);
             StandNear(BenCode, 1.5f);
 
-            yield return WaitUntil(() => offer.IsTalkPromptShowing);
+            yield return WaitUntil(
+                () => offer.IsTalkPromptShowing,
+                () =>
+                    $"말 걸기 대기: 상태={passerby.Phase}, "
+                    + $"거리={HorizontalDistance(passerby.transform, Single<PlayerMover>().transform)}, "
+                    + $"이동 잠금={Single<PlayerMover>().IsMovementLocked}, 제안={offer.IsShowing}, "
+                    + $"행인 위치={passerby.transform.position}, 플레이어 위치={Single<PlayerMover>().transform.position}"
+            );
             Assert.That(offer.IsShowing, Is.False);
             Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Resting));
             Click(offer, "TalkButton");
@@ -458,14 +480,17 @@ namespace A305.Npc.PlayModeTests
             yield return null;
         }
 
-        private static IEnumerator WaitUntil(System.Func<bool> condition)
+        private static IEnumerator WaitUntil(
+            System.Func<bool> condition,
+            System.Func<string> diagnostics = null
+        )
         {
             float deadline = Time.realtimeSinceStartup + WaitTimeoutSeconds;
             while (!condition())
             {
                 if (Time.realtimeSinceStartup > deadline)
                 {
-                    Assert.Fail("기다리는 상태가 되지 않았습니다.");
+                    Assert.Fail($"기다리는 상태가 되지 않았습니다. {diagnostics?.Invoke()}");
                 }
 
                 yield return null;

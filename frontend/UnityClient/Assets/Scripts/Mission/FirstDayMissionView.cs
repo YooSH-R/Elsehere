@@ -357,7 +357,8 @@ namespace A305.Mission
         }
 
         /// <summary>
-        /// 이번 단계 목표를 한 줄에 하나씩 보인다. 시안처럼 끝낸 목표는 초록 체크·옅은 글자·취소선, 남은 목표는 빈 동그라미다.
+        /// 이번 단계 목표를 한 줄에 하나씩 보인다. 시안처럼 끝낸 목표는 초록 체크·옅은 글자·취소선, 남은 목표는 빈 동그라미이고
+        /// 이름 아래에 말해야 할 정보를 작게 보인다.
         /// 목표가 없으면(쉬는 차례 등) 목표 칸을 숨긴다.
         /// </summary>
         private void ShowGoals(IReadOnlyList<FirstDayMissionGoal> current)
@@ -381,6 +382,13 @@ namespace A305.Mission
                 label.text = goal.Title;
                 label.color = goal.Completed ? Muted : Ink;
                 label.fontStyle = goal.Completed ? FontStyles.Strikethrough : FontStyles.Normal;
+                // 아직 하지 않은 목표는 이름 아래에 말해야 할 정보(예: 예약자 이름, 가방 모양)를 작게 보인다.
+                Transform hint = row.transform.Find("Text/Hint");
+                if (hint == null)
+                    continue;
+                bool showsHint = !goal.Completed && !string.IsNullOrEmpty(goal.Hint);
+                hint.gameObject.SetActive(showsHint);
+                hint.GetComponent<TMP_Text>().text = showsHint ? goal.Hint : "";
             }
         }
 

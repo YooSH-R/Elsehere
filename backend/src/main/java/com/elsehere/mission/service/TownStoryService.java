@@ -124,7 +124,9 @@ public class TownStoryService {
       for (int goal = 0; goal < stage.goalIds().size(); goal++) {
         String id = stage.goalIds().get(goal);
         boolean done = started && (index < current || (index == current && story.hasGoal(goal)));
-        goals.add(new FirstDayMissionResponse.Goal(id, TownStoryStage.goalTitle(id), done));
+        goals.add(
+            new FirstDayMissionResponse.Goal(
+                id, TownStoryStage.goalTitle(id), done, TownStoryStage.goalHint(id)));
       }
       String stepStatus =
           !started || index > current ? "UPCOMING" : index < current ? "DONE" : "CURRENT";

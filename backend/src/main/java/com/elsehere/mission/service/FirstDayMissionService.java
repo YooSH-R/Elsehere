@@ -36,7 +36,7 @@ public class FirstDayMissionService {
 
   @Transactional(readOnly = true)
   public FirstDayMissionResponse status(Long userId) {
-    return response(repository.findById(userId).orElse(null));
+    return response(repository.findById(userId).orElse(null), reservationHolder(userId));
   }
 
   public FirstDayMissionResponse start(Long userId) {
@@ -44,7 +44,7 @@ public class FirstDayMissionService {
     users.findForUpdate(userId).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     FirstDayMission mission =
         repository.findById(userId).orElseGet(() -> repository.save(FirstDayMission.start(userId)));
-    return response(mission);
+    return response(mission, reservationHolder(userId));
   }
 
   public FirstDayMissionResponse visit(Long userId, String scene) {
@@ -53,7 +53,7 @@ public class FirstDayMissionService {
     }
     Optional<FirstDayMission> mission = repository.findForUpdate(userId);
     mission.ifPresent(value -> value.visit(scene));
-    return response(mission.orElse(null));
+    return response(mission.orElse(null), reservationHolder(userId));
   }
 
   public FirstDayMissionResponse rest(Long userId) {
@@ -62,7 +62,7 @@ public class FirstDayMissionService {
             .findForUpdate(userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.MISSION_NOT_READY));
     if (mission.getStage() == 2) {
-      return response(mission); // 성공한 휴식의 재전송
+      return response(mission, reservationHolder(userId)); // 성공한 휴식의 재전송
     }
     if (!"CAFE".equals(mission.getScene())
         || !mission.canRest()
@@ -72,7 +72,7 @@ public class FirstDayMissionService {
       throw new BusinessException(ErrorCode.MISSION_NOT_READY);
     }
     mission.restAtCafe();
-    return response(mission);
+    return response(mission, reservationHolder(userId));
   }
 
   @Transactional(readOnly = true)
@@ -176,7 +176,16 @@ public class FirstDayMissionService {
   // 시작 전과 여정 완료 뒤의 마을 날씨.
   private static final String CLEAR_WEATHER = "CLEAR";
 
-  private static FirstDayMissionResponse response(FirstDayMission mission) {
+  /** 퀘스트 카드에 보일 예약자 이름. 손님 계정의 닉네임은 사람 이름이 아니라 대조하지 않으므로 아무 이름이나 되게 '내 이름'이라 쓴다. */
+  private String reservationHolder(Long userId) {
+    return users
+        .findById(userId)
+        .filter(user -> user.getProvider() != AuthProvider.GUEST)
+        .map(user -> user.getNickname())
+        .orElse("내 이름");
+  }
+
+  private static FirstDayMissionResponse response(FirstDayMission mission, String holder) {
     boolean started = mission != null;
     int current = started ? mission.getStage() : 0;
     List<FirstDayMissionResponse.Step> steps =
@@ -191,7 +200,10 @@ public class FirstDayMissionService {
                         started && (index < current || (index == current && mission.hasGoal(goal)));
                     goals.add(
                         new FirstDayMissionResponse.Goal(
-                            definition.id(), definition.title(), done));
+                            definition.id(),
+                            definition.title(),
+                            done,
+                            definition.hint().replace("{name}", holder)));
                   }
                   String status =
                       !started || index > current

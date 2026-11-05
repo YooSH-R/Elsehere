@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.conversation.repository.ConversationRepository;
+import com.elsehere.mission.dto.FirstDayMissionResponse;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
@@ -354,6 +355,31 @@ class FirstDayMissionServiceTest {
     FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
 
     assertThat(context.instruction()).doesNotContain("under the name");
+  }
+
+  // 목표마다 무엇을 말해야 하는지 카드에 보인다. 예약자 이름은 계정 닉네임이고, 가방 모양·내용물은 찾을 가방 그대로다.
+  @Test
+  void everyGoalTellsTheLearnerWhatToSay() {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.EARLY_ARRIVAL)));
+    signedIn(AuthProvider.GOOGLE, "MinjiKim");
+
+    FirstDayMissionResponse status = service.status(8L);
+
+    assertThat(status.steps())
+        .flatExtracting(FirstDayMissionResponse.Step::goals)
+        .allSatisfy(goal -> assertThat(goal.hint()).as(goal.id()).isNotBlank());
+    assertThat(goal(status, "confirm_reservation").hint()).contains("MinjiKim");
+    assertThat(goal(status, "show_reservation").hint()).contains("MinjiKim");
+    assertThat(goal(status, "describe_bag").hint()).contains("파란", "빨간 열쇠고리");
+    assertThat(goal(status, "describe_contents").hint()).contains("여권", "책");
+  }
+
+  private static FirstDayMissionResponse.Goal goal(FirstDayMissionResponse status, String id) {
+    return status.steps().stream()
+        .flatMap(step -> step.goals().stream())
+        .filter(goal -> goal.id().equals(id))
+        .findFirst()
+        .orElseThrow();
   }
 
   private void signedIn(AuthProvider provider, String nickname) {

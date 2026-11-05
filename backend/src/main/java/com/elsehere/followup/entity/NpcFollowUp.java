@@ -88,6 +88,11 @@ public class NpcFollowUp extends BaseEntity {
     return deliveredAt != null;
   }
 
+  /** 학습자가 카드를 닫았다. 건넨 대화 없이 건넨 것으로 둔다. */
+  public void dismiss(Instant now) {
+    deliveredAt = now;
+  }
+
   public void deliver(Long conversationId, Instant now) {
     deliveredConversationId = conversationId;
     deliveredAt = now;

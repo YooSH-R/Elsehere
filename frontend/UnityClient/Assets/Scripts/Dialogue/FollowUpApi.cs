@@ -17,5 +17,10 @@ namespace A305.Dialogue
         {
             return client.GetAsync<FollowUpList>("/api/v1/follow-ups");
         }
+
+        public Task DismissAsync(long followUpId)
+        {
+            return client.PostAsync($"/api/v1/follow-ups/{followUpId}/dismiss", null);
+        }
     }
 }

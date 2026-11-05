@@ -62,6 +62,10 @@ namespace A305.Mission
             waitSpots = FindObjectsByType<QuestNpcWaitSpot>(FindObjectsSortMode.None);
             view.BindMap(sceneCode, player.transform);
             umbrella = player.GetComponent<UmbrellaHold>();
+            // 기다리는 카드의 X로 닫은 것을 서버에 알린다.
+            var followUps = view.GetComponent<FollowUpCardView>();
+            if (followUps != null)
+                followUps.Bind(new FollowUpApi(apiSettings.CreateClient()));
             view.StartRequested += StartMission;
             view.RestRequested += Rest;
             view.RetryRequested += RequestRefresh;

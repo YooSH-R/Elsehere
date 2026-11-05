@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace A305.Mission
 {
     /// <summary>
-    /// 기다리는 카드의 한 줄. 동그라미 표시, 받을 것, 누가 어디서, 남은 시간을 보이고, 다 되면 한 번 반짝여 알린다.
+    /// 기다리는 카드의 한 줄. 동그라미 표시, 받을 것, 누가 어디서, 남은 시간, 닫기 X를 보이고, 다 되면 한 번 반짝여 알린다.
     /// 글자는 <see cref="FollowUpCardText"/>가 만든다.
     /// </summary>
     public sealed class FollowUpRowView : MonoBehaviour
@@ -35,6 +35,12 @@ namespace A305.Mission
         private Image flash;
 
         private Coroutine flashing;
+
+        /// <summary>이 줄이 보이는 것. 카드가 줄을 채울 때 정한다.</summary>
+        public long FollowUpId { get; set; }
+
+        /// <summary>줄 끝 X: 이 줄을 닫는다. 연결은 QuestCardBuilder가 넣는다.</summary>
+        public void Close() => GetComponentInParent<FollowUpCardView>(true)?.Dismiss(FollowUpId);
 
         public void Show(FollowUpCardRow row, Sprite markSprite)
         {

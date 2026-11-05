@@ -34,6 +34,7 @@ namespace A305.Npc.PlayModeTests
         [SetUp]
         public void ResetCrossSceneRecords()
         {
+            NpcTestClock.SetDaytime();
             PasserbyRestRecord.Clear();
             TutorialState.Clear();
         }
@@ -42,6 +43,7 @@ namespace A305.Npc.PlayModeTests
         [TearDown]
         public void RestoreSharedState()
         {
+            NpcTestClock.Restore();
             Time.timeScale = 1;
             Time.captureDeltaTime = 0;
             TutorialState.Clear();
@@ -57,6 +59,7 @@ namespace A305.Npc.PlayModeTests
             Assert.That(car.Phase, Is.EqualTo(PolicePhase.Parked));
             Assert.That(car.LightsOn, Is.False);
 
+            yield return NpcTestClock.OpenPoliceStation();
             TalkToOfficerAndReport("PARK");
 
             Assert.That(car.Phase, Is.EqualTo(PolicePhase.Parked), "대화 중에는 접수만 합니다.");
@@ -97,6 +100,7 @@ namespace A305.Npc.PlayModeTests
             yield return LoadTown();
             PoliceCar car = Single<PoliceCar>();
             HoldOtherTraffic(car);
+            yield return NpcTestClock.OpenPoliceStation();
             GameObject officer = Officer().gameObject;
             GameObject atTheWheel = car.transform.Find("Drivers/" + OfficerCode).gameObject;
             Assert.That(
@@ -143,6 +147,7 @@ namespace A305.Npc.PlayModeTests
             HoldOtherTraffic(car);
             Vector3 bay = car.transform.position;
 
+            yield return NpcTestClock.OpenPoliceStation();
             TalkToOfficerAndReport(null);
             Assert.That(VehicleStatus(), Does.Contain("신고 접수"));
             yield return EndTalk();
@@ -231,6 +236,7 @@ namespace A305.Npc.PlayModeTests
             HoldOtherTraffic(car);
             Vector3 bay = car.transform.position;
 
+            yield return NpcTestClock.OpenPoliceStation();
             TalkToOfficer();
             yield return EndTalk();
             yield return new WaitForSeconds(1);

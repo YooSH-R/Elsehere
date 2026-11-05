@@ -484,10 +484,10 @@ namespace A305.EditorTools.World
                             Fit.Height,
                             Word(
                                 "parasol",
-                                "parasol",
-                                "파라솔",
-                                "Let's sit under the parasol.",
-                                "파라솔 아래에 앉아요."
+                                "patio umbrella",
+                                "야외 파라솔",
+                                "Let's sit under the patio umbrella.",
+                                "야외 파라솔 아래에 앉아요."
                             )
                         ),
                         "Bicycle" => Build(

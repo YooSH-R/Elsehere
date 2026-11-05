@@ -1,0 +1,11 @@
+# Install as a persistent prod server overlay; do not use for dev or disposable CI projects.
+services:
+  ai-worker:
+    networks:
+      default:
+        ipv4_address: 172.30.0.2
+
+networks:
+  default:
+    name: a305-prod_default
+    external: true

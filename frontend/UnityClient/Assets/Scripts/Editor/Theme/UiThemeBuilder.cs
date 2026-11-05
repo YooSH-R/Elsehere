@@ -520,6 +520,35 @@ namespace A305.EditorTools.Theme
             ActionPill(root, rowPath + "/ViewButton", UiIcon.None, UiTone.Neutral, 110);
         }
 
+        /// <summary>
+        /// 가입 두 단계(약관 동의·가입 정보, S15P31A305-596)만 칠하고 시안 창으로 배치한 뒤 동의 체크를 맞춘다. 이미 시안 창이 된 다른 입구 화면은
+        /// 건드리지 않는다(입구 전체 테마는 시안 배치 전의 세로 줄 배치를 전제로 한다).
+        /// </summary>
+        public static void ApplyTermsStepTheme()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(
+                EntryPath,
+                root =>
+                {
+                    StyleTermsStep(root);
+                    // 시안 배치가 체크 동그라미(Box)를 줄 가운데에 두므로, 새로 만든 [전체 동의] 줄에 먼저 체크 모양을 입힌다.
+                    ConsentCheck(root.Find("TermsPanel/AllAgreeRow/Toggle"));
+                    A305.EditorTools.Onboarding.EntryScreensBuilder.ApplyTermsStep(root);
+                }
+            );
+            ApplyConsentChecks();
+        }
+
+        // 약관 줄·[전체 동의]·[다음]·[뒤로]는 시안 배치(EntryScreensBuilder)가 그림과 글자 모양을 모두 입힌다.
+        // 가입 정보 창에서 옮겨 온 약관 줄은 이미 시안 모양이라 테마 버튼 모양을 다시 입히지 않는다.
+        private static void StyleTermsStep(Transform root)
+        {
+            Role(root, "TermsPanel", UiThemeRole.Panel);
+            Role(root, "TermsPanel/Title", UiThemeRole.Title);
+            Role(root, "TermsPanel/VoiceConsentNote", UiThemeRole.Muted);
+        }
+
         /// <summary>약관·선택 동의 줄의 체크만 시안 모양으로 바꾼다. 입구 화면과 내 정보 창의 다른 요소는 건드리지 않는다.</summary>
         [MenuItem("Tools/A305/UI/Apply Consent Checks")]
         public static void ApplyConsentChecks()
@@ -529,7 +558,8 @@ namespace A305.EditorTools.Theme
                 EntryPath,
                 root =>
                 {
-                    ConsentCheck(root.Find("SignupPanel/Consents/ConsentRowTemplate/Toggle"));
+                    ConsentCheck(root.Find("TermsPanel/Consents/ConsentRowTemplate/Toggle"));
+                    ConsentCheck(root.Find("TermsPanel/AllAgreeRow/Toggle"));
                     ConsentCheck(root.Find("GuestPanel/VoiceConsentRow/Toggle"));
                 }
             );
@@ -766,6 +796,7 @@ namespace A305.EditorTools.Theme
                 string panel in new[]
                 {
                     "GuestPanel",
+                    "TermsPanel",
                     "SignupPanel",
                     "LanguagePanel",
                     "LevelSettingPanel",
@@ -810,11 +841,14 @@ namespace A305.EditorTools.Theme
             Role(root, "SignupPanel/AvatarLabel", UiThemeRole.Caption);
             QuietButton(root, "SignupPanel/AvatarRow/FemaleButton", "여성");
             QuietButton(root, "SignupPanel/AvatarRow/MaleButton", "남성");
-            Role(root, "SignupPanel/ConsentsLabel", UiThemeRole.Caption);
-            ConsentRow(root, "SignupPanel/Consents/ConsentRowTemplate");
-            if (root.Find("SignupPanel/VoiceConsentNote") != null)
-                Role(root, "SignupPanel/VoiceConsentNote", UiThemeRole.Muted);
+            ActionPill(root, "SignupPanel/BackButton", UiIcon.Previous, UiTone.Neutral, 280);
             ActionPill(root, "SignupPanel/SubmitButton", UiIcon.Check, UiTone.Primary, 280);
+
+            // 가입의 첫 단계(S15P31A305-596): [전체 동의]·약관 줄·음성 안내·[다음]
+            ConsentRow(root, "TermsPanel/AllAgreeRow");
+            ConsentRow(root, "TermsPanel/Consents/ConsentRowTemplate");
+            Role(root, "TermsPanel/VoiceConsentNote", UiThemeRole.Muted);
+            ActionPill(root, "TermsPanel/NextButton", UiIcon.None, UiTone.Primary, 280);
 
             foreach (string cards in new[] { "LanguagePanel/Cards", "LevelSettingPanel/Cards" })
             {

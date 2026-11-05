@@ -6,8 +6,11 @@ namespace A305.Onboarding
         /// <summary>화면 01 사이트 접속·로그인</summary>
         Login,
 
-        /// <summary>화면 02 가입 정보 입력</summary>
+        /// <summary>화면 02 가입의 두 번째 단계: 닉네임·캐릭터(가입 정보 입력)</summary>
         Signup,
+
+        /// <summary>화면 02 가입의 첫 단계: 약관 동의. 필수 약관에 동의해야 가입 정보 입력으로 넘어간다.</summary>
+        Terms,
 
         /// <summary>게스트로 시작하기 전 캐릭터 선택. 서버 상태와 관계없이 화면 01에서만 들어온다.</summary>
         GuestCharacter,

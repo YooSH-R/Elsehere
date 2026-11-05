@@ -3223,8 +3223,8 @@ GameObject:
   - component: {fileID: 4103457718933328742}
   - component: {fileID: 5471683472057321814}
   - component: {fileID: 4477272242610007390}
-  - component: {fileID: 4094979600645415345}
-  - component: {fileID: 2311193742192506623}
+  - component: {fileID: 5794071360568091978}
+  - component: {fileID: 4827475197372451183}
   m_Layer: 0
   m_Name: LittleMung_MiddleAge_Female
   m_TagString: Untagged
@@ -3272,7 +3272,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 98fef14844693b34095c3d3b89ba3577, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.Characters::A305.Characters.CharacterIdleBlink
---- !u!114 &4094979600645415345
+--- !u!114 &5794071360568091978
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -3285,13 +3285,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.Characters::A305.Characters.CharacterSpeechPlayer
   face: {fileID: 5471683472057321814}
-  speechSource: {fileID: 2311193742192506623}
+  speechSource: {fileID: 4827475197372451183}
   speech: {fileID: 0}
   expressions: {fileID: 11400000, guid: d971682af4970ba40801242aadc35ea0, type: 2}
   emotionProfile: {fileID: 11400000, guid: 6c28dde4cfe379e4a899fb9cd031990d, type: 2}
   speakingMood: 1
   moodIntensity: 1
---- !u!82 &2311193742192506623
+--- !u!82 &4827475197372451183
 AudioSource:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

@@ -38,8 +38,12 @@ namespace A305.Npc.Tests
             var template = (RectTransform)view.FindProperty("tagTemplate").objectReferenceValue;
             Assert.That(template, Is.Not.Null);
             Assert.That(template.gameObject.activeSelf, Is.False, "본보기 이름표는 숨겨 둡니다.");
-            Assert.That(template.Find("Name")?.GetComponent<TMP_Text>(), Is.Not.Null);
-            Assert.That(template.Find("RoleChip/Label")?.GetComponent<TMP_Text>(), Is.Not.Null);
+            Transform name = template.Find("Name");
+            Transform roleLabel = template.Find("RoleChip/Label");
+            Assert.That(name, Is.Not.Null);
+            Assert.That(roleLabel, Is.Not.Null);
+            Assert.That(name.GetComponent<TMP_Text>(), Is.Not.Null);
+            Assert.That(roleLabel.GetComponent<TMP_Text>(), Is.Not.Null);
         }
     }
 }

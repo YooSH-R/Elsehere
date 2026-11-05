@@ -15,6 +15,8 @@ namespace A305.Characters
             "장난기",
             "웃음",
             "걱정·공감",
+            "슬픔",
+            "폭소",
         };
 
         [SerializeField]
@@ -73,6 +75,28 @@ namespace A305.Characters
             player.Play();
         }
 
+        public void PlaySelectedEmotion()
+        {
+            manual = false;
+            var clip = clips[selected];
+            player.Configure(player.Face, player.GetComponent<AudioSource>(), clip);
+            var timeline = SpeechVisemeTimeline.Parse(clip.Timeline.text, clip.Audio.length);
+            var reactions = new SpeechEmotionTrack(
+                new[]
+                {
+                    new SpeechEmotionCue
+                    {
+                        start = 0,
+                        end = clip.Audio.length,
+                        emotion = pose,
+                        intensity = strength,
+                    },
+                },
+                clip.Audio.length
+            );
+            player.Play(clip.Audio, timeline, reactions, emotions);
+        }
+
         public void Scrub(float seconds)
         {
             if (!player.IsPlaying && !player.IsPaused)
@@ -94,12 +118,14 @@ namespace A305.Characters
             );
             GUILayout.Label("카페 여자 · 말하기 표정 검수");
             GUILayout.Label("로컬 녹음·검수용 표정 구간 / 서버 호출 없음");
-            for (int row = 0; row < 3; row++)
+            for (int row = 0; row < (Labels.Length + 2) / 3; row++)
             {
                 GUILayout.BeginHorizontal();
                 for (int column = 0; column < 3; column++)
                 {
                     int index = row * 3 + column;
+                    if (index >= Labels.Length)
+                        break;
                     if (GUILayout.Button(Labels[index]))
                         ShowEmotion((CharacterEmotion)index, strength);
                 }
@@ -110,6 +136,8 @@ namespace A305.Characters
             if (manual && !Mathf.Approximately(value, strength))
                 ShowEmotion(pose, value);
             strength = value;
+            if (GUILayout.Button(Labels[(int)pose] + " 표정으로 대사 재생"))
+                PlaySelectedEmotion();
             if (GUILayout.Button("의문 → 장난기 → 웃음 재생"))
                 PlayExample(0);
             if (GUILayout.Button("찡그림 → 공감 → 평온 재생"))
@@ -154,6 +182,15 @@ namespace A305.Characters
                 missing.Length == 0
                     ? "감정 채널 14개 연결됨"
                     : "누락: " + string.Join(", ", missing)
+            );
+            bool hasLaughOpening = System.Array.Exists(
+                player.Face.GetComponentsInChildren<SkinnedMeshRenderer>(),
+                skin =>
+                    skin.sharedMesh != null
+                    && skin.sharedMesh.GetBlendShapeIndex("mouthLaughOpen") >= 0
+            );
+            GUILayout.Label(
+                hasLaughOpening ? "폭소용 입 연결됨" : "폭소용 입 없음 · 기본 입 벌림 사용"
             );
             GUILayout.Label(
                 "웃음 음성 합성은 포함하지 않습니다. 말하는 동안 입은 발음 시간표를 따릅니다."

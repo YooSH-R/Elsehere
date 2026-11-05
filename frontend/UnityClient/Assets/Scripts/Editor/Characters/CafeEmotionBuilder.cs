@@ -500,6 +500,11 @@ namespace A305.EditorTools.Characters
                 }
                 if (Environment.GetEnvironmentVariable("NPC_EMOTION_STILLS_ONLY") == "1")
                     return;
+                if (Environment.GetEnvironmentVariable("NPC_EMOTION_REACTION_REVIEW") == "1")
+                {
+                    RenderReactions(player, profile, camera, target, image, output);
+                    return;
+                }
                 foreach (string name in ClipNames)
                 {
                     var clip = AssetDatabase.LoadAssetAtPath<CharacterSpeechClip>(
@@ -570,6 +575,75 @@ namespace A305.EditorTools.Characters
                 RenderTexture.active = previous;
                 Object.DestroyImmediate(image);
                 Object.DestroyImmediate(target);
+            }
+        }
+
+        private static void RenderReactions(
+            CharacterSpeechPlayer player,
+            EmotionExpressionProfile profile,
+            Camera camera,
+            RenderTexture target,
+            Texture2D image,
+            string output
+        )
+        {
+            var clip = AssetDatabase.LoadAssetAtPath<CharacterSpeechClip>(
+                DataFolder + "/" + ClipNames[0] + ".asset"
+            );
+            var timeline = SpeechVisemeTimeline.Parse(clip.Timeline.text, clip.Audio.length);
+            player.GetComponent<AudioSource>().mute = true;
+            foreach (
+                var emotion in new[]
+                {
+                    CharacterEmotion.BigLaugh,
+                    CharacterEmotion.Sad,
+                    CharacterEmotion.Confused,
+                    CharacterEmotion.Playful,
+                }
+            )
+            {
+                string folder = Path.Combine(output, emotion.ToString());
+                Directory.CreateDirectory(Path.Combine(folder, "Reaction"));
+                Directory.CreateDirectory(Path.Combine(folder, "Speech"));
+                for (int frame = 0; frame < 90; frame++)
+                {
+                    float time = frame / 30f;
+                    float strength =
+                        Mathf.SmoothStep(0, 1, (time - .2f) / .6f)
+                        * (1 - Mathf.SmoothStep(0, 1, (time - 2.3f) / .6f));
+                    player.Face.ApplySpeech(
+                        SpeechMouthSample.Rest,
+                        profile.Sample(emotion, strength),
+                        0
+                    );
+                    SaveFrame(
+                        player.Face,
+                        camera,
+                        target,
+                        image,
+                        Path.Combine(folder, "Reaction", frame.ToString("D4") + ".png")
+                    );
+                }
+                player.Configure(player.Face, player.GetComponent<AudioSource>(), clip);
+                var reactions = new SpeechEmotionTrack(
+                    new[] { Cue(0, clip.Audio.length, emotion) },
+                    clip.Audio.length
+                );
+                player.Play(clip.Audio, timeline, reactions, profile);
+                player.Pause();
+                int count = Mathf.CeilToInt((clip.Audio.length + .8f) * 30);
+                for (int frame = 0; frame < count; frame++)
+                {
+                    player.ApplyAtAudioTime(frame / 30f - .3f);
+                    SaveFrame(
+                        player.Face,
+                        camera,
+                        target,
+                        image,
+                        Path.Combine(folder, "Speech", frame.ToString("D4") + ".png")
+                    );
+                }
+                player.Stop();
             }
         }
 

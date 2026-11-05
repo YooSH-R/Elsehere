@@ -11,6 +11,65 @@ namespace A305.Characters.PlayModeTests
 {
     public sealed class CafeEmotionPlaybackTests
     {
+        [UnityTest]
+        public IEnumerator SelectedSadEmotionIsRetainedDuringSpeechAndSeeking()
+        {
+            var root = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/Prefabs/Npc/Review/LittleMung_Cafe_Female_Emotions.prefab"
+                )
+            );
+            var cameraObject = new GameObject("감정 검수 카메라");
+            var profile = ScriptableObject.CreateInstance<EmotionExpressionProfile>();
+            try
+            {
+                var player = root.GetComponent<CharacterSpeechPlayer>();
+                root.GetComponent<AudioSource>().mute = true;
+                var panel = root.AddComponent<EmotionPreviewPanel>();
+                panel.Configure(
+                    player,
+                    profile,
+                    new[] { player.Speech },
+                    cameraObject.AddComponent<Camera>(),
+                    Vector3.zero
+                );
+                panel.ShowEmotion(CharacterEmotion.Sad);
+                panel.PlaySelectedEmotion();
+                Assert.That(player.IsPlaying, Is.True);
+                yield return new WaitForSecondsRealtime(.08f);
+                player.Pause();
+                panel.Scrub(.8f);
+                var lid = root.GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .Single(s => s.name == "LeftUpperLid");
+                Assert.That(
+                    lid.GetBlendShapeWeight(lid.sharedMesh.GetBlendShapeIndex("eyeBlinkLeft")),
+                    Is.GreaterThanOrEqualTo(41.9f)
+                );
+                panel.ShowEmotion(CharacterEmotion.BigLaugh);
+                var mouth = root.GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .Single(s => s.sharedMesh.name == "SpeakingLips");
+                Assert.That(
+                    mouth.GetBlendShapeWeight(
+                        mouth.sharedMesh.GetBlendShapeIndex("mouthLaughOpen")
+                    ),
+                    Is.EqualTo(100)
+                );
+                panel.ShowEmotion(CharacterEmotion.Calm);
+                Assert.That(
+                    mouth.GetBlendShapeWeight(
+                        mouth.sharedMesh.GetBlendShapeIndex("mouthLaughOpen")
+                    ),
+                    Is.Zero
+                );
+            }
+            finally
+            {
+                Object.Destroy(root);
+                Object.Destroy(cameraObject);
+                Object.Destroy(profile);
+            }
+        }
+
         [Test]
         public void EmotionCopyPreservesEverySourceVisemeFrame()
         {

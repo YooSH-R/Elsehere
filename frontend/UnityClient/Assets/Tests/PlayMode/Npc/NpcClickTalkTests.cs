@@ -34,6 +34,9 @@ namespace A305.Npc.PlayModeTests
         private static Vector3 standDirection;
         private static readonly Vector3 OutOfTown = new Vector3(0f, -200f, 0f);
 
+        [TearDown]
+        public void RestoreClock() => NpcTestClock.Restore();
+
         [SetUp]
         public void SetUp()
         {
@@ -385,15 +388,11 @@ namespace A305.Npc.PlayModeTests
             Passerby ben = FindPasserby(BenCode);
             KeepFromApproaching(ben);
             yield return FaceFrom(ben, 5f);
-            Passerby ruby = BringNpc(
-                RubyCode,
-                new Pose(
-                    ben.transform.position - DirectionToCamera(ben) * 1.5f,
-                    ben.transform.rotation
-                )
-            );
+            yield return LetCameraSettle();
+            Passerby ruby = HoldNpcAlongCameraLine(ben, 1.5f);
             yield return LetCameraSettle();
 
+            ruby.IsApproachAllowed = true;
             Single<NpcClickTalk>().Click(WhereNameTagsOverlap(BenName, RubyName));
             yield return null;
             Assert.That(Single<DialogueController>().IsTalking, Is.False);
@@ -414,15 +413,11 @@ namespace A305.Npc.PlayModeTests
             Passerby ben = FindPasserby(BenCode);
             KeepFromApproaching(ben);
             yield return FaceFrom(ben, 6.5f);
-            Passerby ruby = BringNpc(
-                RubyCode,
-                new Pose(
-                    ben.transform.position + DirectionToCamera(ben) * 1.5f,
-                    ben.transform.rotation
-                )
-            );
+            yield return LetCameraSettle();
+            Passerby ruby = HoldNpcAlongCameraLine(ben, -1.5f);
             yield return LetCameraSettle();
 
+            ruby.IsApproachAllowed = true;
             Single<NpcClickTalk>().Click(WhereNameTagsOverlap(RubyName, BenName));
             yield return null;
             Assert.That(Single<DialogueController>().IsTalking, Is.False);
@@ -440,6 +435,7 @@ namespace A305.Npc.PlayModeTests
         // 길을 지나는 다른 NPC가 누른 자리를 가리지 않도록, 다른 NPC는 멈춰 마을 밖으로 옮긴다.
         private static IEnumerator LoadTownAfterTutorial()
         {
+            NpcTestClock.SetDaytime();
             TutorialState.MarkFinishedOnServer();
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
@@ -497,13 +493,6 @@ namespace A305.Npc.PlayModeTests
             yield return null;
         }
 
-        private static Vector3 DirectionToCamera(Passerby npc)
-        {
-            Vector3 direction = Camera.main.transform.position - npc.transform.position;
-            direction.y = 0;
-            return direction.normalized;
-        }
-
         // 마을 밖으로 옮겨 둔 다른 행인 하나를 Ben 옆 1.5m에 세운다. 생활은 끈 채로 두고 먼저 다가오지 않게 한다.
         private static Passerby PlaceAnotherNpcBeside(Passerby ben)
         {
@@ -523,12 +512,33 @@ namespace A305.Npc.PlayModeTests
         }
 
         // 마을 밖으로 옮겨 둔 행인 하나를 주어진 자리에 세운다. 생활은 끈 채로 두고 먼저 다가오지 않게 한다.
+        // 옮긴 자리를 그 NPC의 제자리로도 정한다. 생활을 끈 행인은 처음 놓인 자리(Passerby.homePose)로 걸어 돌아가므로,
+        // 제자리가 마을 밖에 남아 있으면 확인하는 동안 NPC가 걸어가 이름표가 움직이거나 보이는 거리 밖으로 나간다.
         private static Passerby BringNpc(string code, Pose pose)
         {
             Passerby npc = FindPasserby(code);
             KeepFromApproaching(npc);
             PlaceAt(npc, pose);
+            typeof(Passerby)
+                .GetField("homePose", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(npc, pose);
             npc.enabled = true;
+            return npc;
+        }
+
+        // 이름표가 겹치도록 카메라와 Ben을 잇는 선에 세우고, 준비 중 원래 자리로 돌아가지 않게 한다.
+        private static Passerby HoldNpcAlongCameraLine(Passerby ben, float distanceFromBen)
+        {
+            Vector3 towardBen = Vector3
+                .ProjectOnPlane(ben.transform.position - Camera.main.transform.position, Vector3.up)
+                .normalized;
+            var pose = new Pose(
+                ben.transform.position + towardBen * distanceFromBen,
+                ben.transform.rotation
+            );
+            Passerby npc = BringNpc(RubyCode, pose);
+            npc.IsApproachAllowed = false;
+            npc.WaitAt(pose);
             return npc;
         }
 

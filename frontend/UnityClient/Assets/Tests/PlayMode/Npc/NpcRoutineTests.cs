@@ -212,21 +212,11 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator CafeStaff_OnBreak_WalksToTheMuffinAndEatsIt()
+        public IEnumerator CafeStaff_OnBreak_LeavesTheWorkplace()
         {
-            // 쉬는 시간, 욕구가 모두 시작값(70)이면 배고픔을 채우는 머핀이 가장 급하다(40 > 커피 25 > 의자 15).
             yield return LoadAt("CafeScene", BreakStartMinute("CAFE_STAFF"), paused: true);
-            NpcRoutine mia = Routine("CAFE_STAFF");
-            KeepOnlyNpc(mia);
-
-            yield return WaitUntil(() => mia.IsUsing);
-
-            Assert.That(mia.Doing.Action, Is.EqualTo("EAT"));
-            Assert.That(
-                HorizontalDistance(mia.transform, NearestPlaced("muffin", mia.transform)),
-                Is.LessThan(NearObjectMeters)
-            );
-            yield return WaitUntil(() => IsPlaying(mia, "PickUp"));
+            yield return null;
+            Assert.That(NpcIdentity.Active.Any(npc => npc.Code == "CAFE_STAFF"), Is.False);
         }
 
         [UnityTest]
@@ -309,26 +299,11 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator HotelStaff_OnBreak_GoesAroundTheDeskAndSitsOnALobbySofa()
+        public IEnumerator HotelStaff_OnBreak_LeavesTheWorkplace()
         {
             yield return LoadAt("HotelScene", BreakStartMinute("HOTEL_STAFF"), paused: true);
-            NpcRoutine jake = Routine("HOTEL_STAFF");
-            // 다른 직원의 자리·몸 충돌과 분리해 Jake 자신의 휴식 동작을 확인한다.
-            KeepOnlyNpc(jake);
-
-            yield return WaitUntil(() => jake.IsSeated);
-
-            Assert.That(jake.Doing.Action, Is.EqualTo("REST"));
-            INpcSeat seat = Seats()
-                .OrderBy(candidate => HorizontalDistance(jake.transform, candidate.SeatPoint))
-                .First();
-            Assert.That(
-                HorizontalDistance(jake.transform, seat.SeatPoint),
-                Is.LessThan(.1f),
-                "소파 자리에 앉아야 합니다."
-            );
-            Assert.That(seat.IsTaken, Is.True, "NPC가 앉은 자리에는 플레이어가 앉을 수 없습니다.");
-            yield return WaitUntil(() => IsPlaying(jake, "Sit"));
+            yield return null;
+            Assert.That(NpcIdentity.Active.Any(npc => npc.Code == "HOTEL_STAFF"), Is.False);
         }
 
         [UnityTest]

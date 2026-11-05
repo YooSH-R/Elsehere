@@ -3,10 +3,33 @@ using NUnit.Framework;
 namespace A305.Npc.Tests
 {
     /// <summary>
-    /// NPC 머리 위 이름표. 가까운 NPC만 이름을 보이고, 직원은 역할(예: 벨보이)을 칩으로 함께 보여 행인과 구분한다.
+    /// NPC 머리 위 이름표. 가까운 NPC만 이름을 보이고, 근무 중인 직원은 역할(예: 벨보이)을 칩으로 함께 보여 행인과 구분한다.
     /// </summary>
     public class NpcNameTagsTests
     {
+        [Test]
+        public void StaffOffDuty_ShowsNameOnly()
+        {
+            // 쉬는 시간·퇴근한 직원은 역할 칩을 떼고 이름만 보인다.
+            NpcNameTag onDuty = NpcNameTags.Describe("Dan", "경찰관", "STAFF").Value;
+
+            NpcNameTag shown = NpcNameTags.ForDuty(onDuty, isOffDuty: true);
+
+            Assert.That(shown.Name, Is.EqualTo("Dan"));
+            Assert.That(shown.StaffRole, Is.Null);
+        }
+
+        [Test]
+        public void StaffOnDuty_KeepsRoleChip()
+        {
+            NpcNameTag onDuty = NpcNameTags.Describe("Dan", "경찰관", "STAFF").Value;
+
+            NpcNameTag shown = NpcNameTags.ForDuty(onDuty, isOffDuty: false);
+
+            Assert.That(shown.Name, Is.EqualTo("Dan"));
+            Assert.That(shown.StaffRole, Is.EqualTo("경찰관"));
+        }
+
         [Test]
         public void Staff_ShowsNameWithRoleChip()
         {

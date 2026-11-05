@@ -71,8 +71,11 @@ namespace A305.Npc
         public string NpcId { get; set; }
         public string Role { get; set; }
 
-        /// <summary>기본 장소(장면 코드). 지금은 이 장소 밖으로 나가지 않는다.</summary>
+        /// <summary>사물 행동을 고를 기본 장면 코드</summary>
         public string Scene { get; set; }
+
+        /// <summary>출퇴근할 장소 코드. 거리 매장은 Scene이 TOWN이어도 근무지는 매장별로 다르다.</summary>
+        public string Workplace { get; set; }
 
         /// <summary>욕구마다 줄어드는 속도 배수. 없는 욕구는 1</summary>
         public Dictionary<string, float> NeedRates { get; set; } = new Dictionary<string, float>();
@@ -124,6 +127,8 @@ namespace A305.Npc
         public string Activity { get; set; }
 
         internal double StartMinute => MinuteOf(From);
+
+        internal double EndMinute => MinuteOf(To);
 
         internal bool Covers(double minuteOfDay)
         {

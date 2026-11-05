@@ -65,6 +65,18 @@
     {"id": "taxi-eat", "kind": "help", "npc": "TAXI_DRIVER", "stage": "free",
      "history": [{"who": "npc", "text": "Hey there! Where are we headed?"}], "text": "I'm hungry. Where can I eat?"},
     {"id": "taxi-umbrella", "kind": "help", "npc": "TAXI_DRIVER", "stage": "free",
-     "history": [{"who": "npc", "text": "Hey there! Where are we headed?"}], "text": "I need to buy an umbrella. Where should I go?"}
+     "history": [{"who": "npc", "text": "Hey there! Where are we headed?"}], "text": "I need to buy an umbrella. Where should I go?"},
+    {"id": "student-fountain-where", "kind": "help", "npc": "TOWN_STUDENT", "stage": "free",
+     "history": [], "text": "Excuse me, where is the fountain?"},
+    {"id": "student-bookshop", "kind": "help", "npc": "TOWN_STUDENT", "stage": "free",
+     "history": [], "text": "I want to buy a book. Is there a bookstore?"},
+    {"id": "hotel-fountain-where", "kind": "help", "npc": "HOTEL_STAFF", "stage": "free",
+     "history": [], "text": "Is there a fountain in this town? How do I get there?"},
+    {"id": "cafe-park-sit", "kind": "help", "npc": "CAFE_STAFF", "stage": "free",
+     "history": [], "text": "Is there a park near here? I want to sit outside."},
+    {"id": "bank-bakery-where", "kind": "help", "npc": "BANK_STAFF", "stage": "free",
+     "history": [], "text": "Where is the bakery?"},
+    {"id": "student-zoo", "kind": "no_fabricate", "npc": "TOWN_STUDENT", "stage": "free",
+     "history": [], "text": "Is there a zoo or a museum around here?"}
   ]
 }

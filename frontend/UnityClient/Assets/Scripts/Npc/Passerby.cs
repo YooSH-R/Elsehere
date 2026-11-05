@@ -116,13 +116,30 @@ namespace A305.Npc
         private string ScriptKey => tutorialScriptKey ?? identity.Code;
 
         // 교대 밖이라 일하지 않는 직원인지. 생활이 없는 NPC와 행인은 근무 외로 보내지 않는다.
-        private bool IsOffDuty => routine != null && routine.enabled && routine.IsOffDuty;
+        private bool IsTownResident => TryGetComponent(out NpcTownWalker walker) && walker.enabled;
+
+        private bool IsOffDuty =>
+            IsTownResident
+                ? GetComponent<NpcTownWalker>().IsStaff
+                : routine != null && routine.enabled && routine.IsOffDuty;
 
         private PasserbySettings CurrentSettings =>
             IsGuidingTutorial && tutorialSettings != null ? tutorialSettings : settings;
 
         /// <summary>처음 놓인 자리와 방향. 다가왔다가 돌아갈 곳이고, 직원은 근무 자리다.</summary>
         internal Pose HomePose => homePose;
+
+        /// <summary>꺼진 출퇴근 프리팹을 현재 타운의 대화·플레이어에 연결한 다음 켠다.</summary>
+        public void ConnectToTown(
+            PlayerMover townPlayer,
+            DialogueController townDialogue,
+            PasserbyOfferView townOffer
+        )
+        {
+            player = townPlayer;
+            dialogue = townDialogue;
+            offerView = townOffer;
+        }
 
         private static double Now => Time.realtimeSinceStartupAsDouble;
 
@@ -214,8 +231,7 @@ namespace A305.Npc
             bool isPlayerBusy = IsPlayerOccupied || IsOtherOfferShowing;
             // 새 대화를 시작할 수 없으면(게스트 대화 횟수를 다 씀) 먼저 다가오지 않는다(기능 명세 F-39). [말 걸기] 자리에는 이유를 보인다.
             bool cannotStartConversation = !dialogue.Allowance.CanStartConversation;
-            // 교대 밖의 직원은 다가오지 않고 [말 걸기]만 받는다. 카운터를 맡은 직원은 그 카운터를 응대하는 한 명이고,
-            // 손님이 카운터 가까이 와서 카운터 뒤 자리로 돌아갔을 때만 다가와 제안한다.
+            // 튜토리얼·퀘스트처럼 용건이 있는 경우에만 먼저 제안한다. 직원은 응대할 수 있는 자리인지도 확인한다.
             bool notReadyToOffer =
                 (!IsGuidingTutorial && !IsWaitingForQuest)
                 || routine != null
@@ -295,7 +311,11 @@ namespace A305.Npc
                     ShowAnimation(TalkAnimation);
                     break;
                 default:
-                    if (
+                    if (IsTownResident)
+                    {
+                        GetComponent<NpcTownWalker>().Walk();
+                    }
+                    else if (
                         routine != null
                         && routine.enabled
                         && !IsGuidingTutorial

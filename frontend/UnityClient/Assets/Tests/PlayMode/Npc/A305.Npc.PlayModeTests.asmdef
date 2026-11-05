@@ -6,6 +6,7 @@
         "UnityEditor.TestRunner",
         "A305.Npc",
         "A305.Dialogue",
+        "A305.Learning",
         "A305.Player",
         "A305.World",
         "A305.ObjectHover",

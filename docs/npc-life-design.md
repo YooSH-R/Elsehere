@@ -116,7 +116,7 @@ NPC 일과는 손으로 적지 않고, 장소마다 정한 영업시간·교대�
   | 카페 | 오픈 Mia, 한낮 Leo, 마감 Zoe |
   | 호텔 | 낮 Jake, 한낮 Walter·Diego, 저녁 Owen, 야간 Clara |
   | 드럭스토어 | 낮 Alex, 저녁 Hannah, 야간 Samuel |
-  | 경찰서 | 낮 Dan, 한낮 Tyler, 저녁 Kevin, 야간 Victor |
+  | 경찰서 | 낮 Dan, 한낮 Taylor, 저녁 Kevin, 야간 Victor |
   | 마을(행인) | 아침 Ruby·Ray·Arthur·Margaret, 낮 Ben, 한낮 Helen·Frank, 오후 Ethan·Rachel, 저녁 Maya·Andre |
   | 거리 매장·택시 | 장소마다 한 명이 `ALL_DAY` |
 
@@ -192,7 +192,7 @@ NPC마다 생활 값을 손으로 적지 않습니다. 사람이나 랜덤 생�
 
 성격을 만드는 일은 NPC를 만들 때 한 번 하고, 결과인 인격 카드(공통 인격 스키마 `NpcProfile`)는 저장해 두고 대화할 때마다 그대로 씁니다. 대화 중에 바뀌는 것은 사용자별 상태(알아봄·호감·기억)뿐입니다.
 
-- **손으로 쓴 인격 카드(Mia·Jake·Ben·Alex·Joe·Dan, 거리 매장 직원 Linda·Rosa·Henry·Gus·Lily·Tony·Grace·Max·Nina, 교대를 나눠 맡는 Zoe·Leo·Owen·Clara·Walter·Diego·Hannah·Samuel·Victor·Kevin·Tyler·Ruby·Ethan·Maya·Helen·Frank·Arthur·Margaret·Ray·Rachel·Andre):** 검수한 문장은 그대로 두고 자동 칸만 더합니다. 생활 파일의 MBTI로 계산한 성격 5축을 `personality.dimensions`에 넣고, 뽑힌 행동 조각 문장을 손으로 쓴 `behaviorRules` 뒤에 붙입니다. `ai/tools/npc_derive.py ai/npcs`가 인격 파일에 다시 쓰며, 다시 계산해도 조각이 겹치지 않고, 테스트가 인격 파일과 다시 계산한 결과가 같은지 지킵니다.
+- **손으로 쓴 인격 카드(Mia·Jake·Ben·Alex·Joe·Dan, 거리 매장 직원 Linda·Rosa·Henry·Gus·Lily·Tony·Grace·Max·Nina, 교대를 나눠 맡는 Zoe·Leo·Owen·Clara·Walter·Diego·Hannah·Samuel·Victor·Kevin·Taylor·Ruby·Ethan·Maya·Helen·Frank·Arthur·Margaret·Ray·Rachel·Andre):** 검수한 문장은 그대로 두고 자동 칸만 더합니다. 생활 파일의 MBTI로 계산한 성격 5축을 `personality.dimensions`에 넣고, 뽑힌 행동 조각 문장을 손으로 쓴 `behaviorRules` 뒤에 붙입니다. `ai/tools/npc_derive.py ai/npcs`가 인격 파일에 다시 쓰며, 다시 계산해도 조각이 겹치지 않고, 테스트가 인격 파일과 다시 계산한 결과가 같은지 지킵니다.
 - **새 NPC 생성:** 조합 규칙은 AI 워커(`ai/worker/app/npc_persona.py`) 한 곳에 있고, 저장소 명령(`ai/tools/npc_generate.py`)과 워커 API(`/v1/npc/persona/generate`, [워커 계약](api/ai-worker.md) 2.9절)가 함께 씁니다. 역할·장소를 받아 재료에서 규칙으로 뼈대를 고르고, MBTI와 이름·직업·나이대·가치관·동기·관심사는 직접 고정할 수 있어 비운 칸만 고릅니다. 저장소 명령은 그 장소에서 맡을 교대도 받아, 장소를 근무지로 생활 파일에 적습니다(공통 규칙에 없는 장소·교대면 쓰지 않음). LLM을 쓰지 않고 npcId가 씨앗이라 재료가 같을 때 같은 NPC가 나옵니다. 칸마다 씨앗을 따로 써서 한 칸을 고정해도 다른 칸은 그대로입니다. 어드민에서 후보를 고쳐 재료가 바뀌면 같은 npcId라도 다른 NPC가 나오지만, 만든 카드는 저장해 두므로 이미 만든 NPC는 바뀌지 않습니다.
 
   | 인격 카드 칸 | 고르는 방법 |

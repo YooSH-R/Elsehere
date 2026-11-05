@@ -369,7 +369,7 @@ def test_the_service_npcs_each_have_a_voice_that_fits_the_character():
         "LAUNDROMAT_STAFF": "am_adam",  # Gus: 느긋하고 농담을 좋아하는 남자
         "POLICE_OFFICER": "am_eric",  # Dan: 차분하고 믿음직한 남자
         "POLICE_PATROL_OFFICER": "am_michael",  # Kevin: 다정한 30대 남자. 드럭스토어 Alex와 같은 목소리(다른 곳)
-        "POLICE_ROOKIE": "bm_fable",  # Tyler: 긴장한 20대 남자(영국식). 오락실 Max와 같은 목소리(다른 곳)
+        "POLICE_ROOKIE": "af_nova",  # Taylor: 긴장한 20대 여성. 경찰서의 다른 목소리와 구분
         "POLICE_SERGEANT": "am_onyx",  # Victor: 낮은 목소리의 40대 남자. 드럭스토어 Samuel과 같은 목소리(다른 곳)
         "POST_OFFICE_STAFF": "af_sarah",  # Linda: 꼼꼼하고 원칙을 지키는 여자
         "SHOP_NIGHT_CLERK": "am_onyx",  # Samuel: 낮은 목소리의 중년 남자

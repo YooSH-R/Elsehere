@@ -174,13 +174,15 @@ class Kokoro:
         k.gpu = gpu
         return k
 
-    def synth(self, text: str, voice: str, speed: float) -> tuple[bytes, float, bool]:
+    def synth(self, text: str, voice: str, speed: float, cancelled: threading.Event | None = None) -> tuple[bytes, float, bool]:
         """반환: (wav, 소리 길이 초, 저장본인지). 읽을 것이 없으면(한글만 있는 조각 등) 짧은 무음."""
         spoken = for_speech(text)
         if not spoken:
             return silent_wav(self.NOTHING_TO_READ_S), self.NOTHING_TO_READ_S, False
         key = (spoken, voice, speed)
         with self.lock:
+            if cancelled is not None and cancelled.is_set():
+                raise asyncio.CancelledError
             if key in self.cache:
                 self.cache.move_to_end(key)
                 wav, dur = self.cache[key]
@@ -189,6 +191,9 @@ class Kokoro:
         # Keep the GPU wait outside the CPU synthesis lock.
         made = self.gpu.try_synth(spoken_phonemes, voice, speed) if self.gpu else None
         with self.lock:
+            # 실행 중인 추론 자체는 멈출 수 없지만, 연결 종료 뒤 대체 합성은 시작하지 않는다.
+            if cancelled is not None and cancelled.is_set():
+                raise asyncio.CancelledError
             if made is None:
                 if getattr(self.engine, "has_timings", False):
                     audio, sr, phonemes = self.engine.create_timed(
@@ -216,7 +221,12 @@ class Kokoro:
         return wav, dur, False
 
     async def asynth(self, text: str, voice: str, speed: float = 1.0) -> tuple[bytes, float, bool]:
-        return await asyncio.to_thread(self.synth, text, voice, speed)
+        cancelled = threading.Event()
+        try:
+            return await asyncio.to_thread(self.synth, text, voice, speed, cancelled)
+        except asyncio.CancelledError:
+            cancelled.set()
+            raise
 
 
 class AudioStore:
@@ -239,7 +249,11 @@ class AudioStore:
         return audio_id
 
     def get(self, audio_id: str) -> bytes | None:
+        self.expire()
         item = self.items.get(audio_id)
-        if not item or item[0] < time.time():
-            return None
-        return item[1]
+        return item[1] if item else None
+
+    def expire(self) -> None:
+        now = time.time()
+        while self.items and next(iter(self.items.values()))[0] <= now:
+            self.total -= len(self.items.popitem(last=False)[1][1])

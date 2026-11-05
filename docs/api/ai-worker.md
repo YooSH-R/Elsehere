@@ -38,7 +38,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 - **행동 묘사**: `*...*`는 지우고 말만 판정합니다. 행동 묘사만 있으면 `dropped: true`이고 턴으로 세지 않습니다.
 - **난이도**: 1.1절 `level` 표. 판정에는 영향이 없습니다.
 - **한 턴 구조**: NPC 한 턴은 `turnId` 하나, 대답 한 줄(난이도에 따라 1~3문장)입니다. 문장으로 쪼개 저장하지 않습니다(뜻 보기·힌트·추천 단어가 턴 단위).
-  - 음성은 두 가지입니다. 문장 조각(`audio` 이벤트)은 바로 재생용이고, 다시 듣기용은 `done`의 턴 전체 음성(`audio_full_id`) 하나입니다.
+  - 음성은 두 가지입니다. 문장 조각(`audio` 이벤트)은 바로 재생용이고, 다시 듣기용은 `done`의 턴 전체 음성(`audio_full_id`) 하나입니다. Spring은 `stream_chunks: false`로 조각 이벤트·보관을 생략하고 전체 음성만 받습니다. 이 옵션의 기본값은 `true`여서 기존 스트리밍 사용처는 유지됩니다.
   - 추천 단어는 `suggest_words: true`면 대답이 끝난 뒤 남은 음성 합성과 동시에 만들어 `words` 이벤트로 옵니다. 다만 `done`이 추천 단어를 최대 `WORDS_BUDGET_S`까지 기다리므로, Spring은 `suggest_words: false`로 부르고 추천 단어는 CONV-12에서 `/v1/suggest`로 따로 받습니다.
   - 전송: Spring이 `done`까지 받은 뒤 한 번에 응답(REST)해도 되고, `delta`·`audio`·`words`를 Unity로 바로 중계(스트리밍)해도 됩니다. 워커 계약은 같습니다. 첫 음성까지의 시간은 스트리밍이 짧습니다.
 
@@ -268,7 +268,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 delta*  →  audio*  →  words?  →  done | error
 ```
 
-`delta`와 `audio`는 섞여서 옵니다. `words`는 `suggest_words: true`이고 대답이 성공했을 때만 `done` 바로 앞에 한 번 옵니다. 마지막은 항상 `done` 또는 `error` 중 하나입니다.
+`stream_chunks`는 선택 boolean이며 기본값은 `true`입니다. `true`이면 `delta`와 `audio`는 섞여서 옵니다. `false`이면 두 이벤트의 전송과 조각 음성 보관만 생략하고 `done`의 전체 음성·사용량은 유지합니다. `words`는 `suggest_words: true`이고 대답이 성공했을 때만 `done` 바로 앞에 한 번 옵니다. 마지막은 항상 `done` 또는 `error` 중 하나입니다.
 
 | 이벤트 | data | 뜻 |
 |---|---|---|
@@ -296,6 +296,8 @@ delta*  →  audio*  →  words?  →  done | error
 ### 2.4 `GET /v1/audio/{audio_id}`
 
 `audio/wav`를 돌려줍니다. 보관 시간은 600초(설정 `audio_ttl_s`, 환경 변수로는 아직 못 바꿈)이며 **워커 프로세스 메모리**에 있습니다. 전체 크기가 `AUDIO_MAX_MB`(기본 200MB)를 넘으면 오래된 것부터 버립니다. 워커를 여러 대 띄우면 같은 대답의 음성은 그 대답을 만든 워커에서 받아야 합니다. 없으면 404 `not_found`입니다.
+
+만료 항목은 조회·저장 시 제거하고, 요청이 없어도 최대 30초 간격으로 메모리에서 정리합니다. 연결 종료 시 대기 중인 합성도 취소하지만, 이미 실행 중인 동기 GPU 요청·CPU 추론의 즉시 중단은 보장하지 않습니다.
 
 Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아 중계합니다.
 

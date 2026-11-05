@@ -70,6 +70,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   ConversationService.class,
   ConversationHistoryService.class,
   TurnService.class,
+  DialogueRequestLocks.class,
   SpeechService.class,
   TurnHelpService.class,
   ConversationLookup.class,

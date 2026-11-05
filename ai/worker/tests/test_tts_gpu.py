@@ -2,7 +2,9 @@
 
 CPU 합성은 대사 하나에 약 2~3초(dev 2코어)라 NPC 대답 조각이 2.5초 상한에 걸려 음성이 빠졌다. GPU는 약 0.4~0.6초 (S15P31A305-370)."""
 
+import asyncio
 import json
+import threading
 
 import httpx
 import pytest
@@ -99,6 +101,32 @@ def test_gpu_timeout_falls_back_to_cpu():
         kokoro.synth("Hello there.", "af_heart", 1.0)
 
     assert engine.texts == ["Hello there."]
+
+
+def test_cancelled_gpu_request_does_not_start_cpu_fallback():
+    started, release = threading.Event(), threading.Event()
+
+    class WaitingGpu:
+        def try_synth(self, *args):
+            started.set()
+            assert release.wait(2)
+            return None
+
+    engine = RecordingEngine()
+    kokoro = Kokoro(engine, "fake.onnx", WaitingGpu())
+
+    async def scenario():
+        task = asyncio.create_task(kokoro.asynth("Hello there.", "af_heart", 1.0))
+        try:
+            assert await asyncio.to_thread(started.wait, 1)
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await task
+        finally:
+            release.set()
+
+    asyncio.run(scenario())
+    assert engine.texts == []
 
 
 def test_gpu_waits_long_for_a_busy_server_but_gives_up_connecting_quickly():

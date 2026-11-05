@@ -107,7 +107,8 @@ class TownStoryTurnTest {
             mock(NpcAffinityService.class),
             transactions,
             missions,
-            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
+            new DialogueRequestLocks());
     TurnRequest request = new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null);
 
     assertThatThrownBy(() -> service.send(8L, 10L, request)).isInstanceOf(BusinessException.class);

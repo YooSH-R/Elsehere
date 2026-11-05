@@ -49,6 +49,19 @@ def test_done_has_whole_turn_audio_joined_from_chunks(provider):
     assert done["audio_full_s"] == round(frames(full.content) / 24000, 2)
 
 
+def test_reply_can_skip_chunk_stream_and_keep_only_whole_audio(provider):
+    provider.answers["npc"] = lambda body: stream(["Sure! ", "One latte. ", "Anything else?"])
+    tts = FakeTts(wav=True)
+    with make_client(provider, tts) as client:
+        response = client.post("/v1/npc/reply", json={"npc": NPC, "text": "one latte", "stream_chunks": False})
+        received = events(response)
+        assert [name for name, _ in received] == ["done"]
+        done = received[0][1]
+        full = client.get(f"/v1/audio/{done['audio_full_id']}")
+        assert frames(full.content) == sum(len(text) * 100 for text in tts.texts)
+        assert len(client.app.state.audio.items) == 1
+
+
 def test_no_whole_turn_audio_when_a_chunk_failed(provider):
     """조각 하나라도 합성하지 못하면 다시 듣기용 음성은 없음 (Spring은 /v1/tts로 다시 만든다)."""
     ev, done, _ = reply(provider, FakeTts(wav=True, fail_on="One latte."))

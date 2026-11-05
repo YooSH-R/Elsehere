@@ -123,6 +123,7 @@ class ReplyRequest(BaseModel):
     text: str = Field(max_length=500)  # 학습자 원문 그대로 (한국어 섞인 채)
     instruction: str = Field(default="", max_length=1000)  # Spring 규칙이 정한 이번 대답에서 할 일
     tts: bool = True
+    stream_chunks: bool = True  # false면 조각 이벤트·보관을 생략하고 done의 전체 음성만 만든다
     level: Level = 2
     suggest_words: bool = False  # true면 대답이 끝난 뒤 추천 단어를 만들어 스트림의 words 이벤트로 (음성 합성과 동시에)
     goal: str = Field(default="", max_length=300)  # 추천 단어용: 지금 상태에서 학습자가 할 일

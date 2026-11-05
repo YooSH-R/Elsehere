@@ -92,7 +92,9 @@ GPU 서버에는 발음 사전을 적용한 음소를 한 번 보내고, 반환�
   단가는 `llm_profiles.json`의 `prices_per_1m_tokens_usd`.
 - 오류는 `{"error": {"code", "message"}}`: `invalid_request` 400, `unauthorized` 401, `not_found` 404, `method_not_allowed` 405, `provider_limit` 429, `internal_error` 500, `invalid_output` 502(모델 출력 형식 오류), `provider_unavailable` 503, `tts_unavailable` 503.
   판정·대화 종료는 일부가 실패해도 200으로 이어 갑니다 (의도 → `unclear`, 무례 → `abusive: null` 미판정, 기억 카드 → `null` + `errors`).
-- 추적: `X-Request-Id`(없으면 만들어 응답 헤더로 돌려줌), `X-User-Id`, `X-Conv-Id`를 요청마다 로그 한 줄(JSON)로 남깁니다. 대화 원문은 로그에 남기지 않습니다.
+- 추적: `X-Request-Id`(없으면 만들어 응답 헤더로 돌려줌), `X-User-Id`, `X-Conv-Id`를 요청마다 로그 한 줄(JSON)로 남깁니다. 성공한 `/health`는 생략하며 실패와 다른 요청은 기록합니다. 대화 원문은 로그에 남기지 않습니다. 배포 이미지는 Uvicorn 접근 로그를 끄고 이 요약을 사용하며, HTTPX의 정상 호출 로그는 생략합니다.
+- Spring은 `/v1/npc/reply`에 `stream_chunks: false`를 보내 `delta`·`audio` 전송과 조각 음성 보관을 생략합니다. `done`의 전체 음성·사용량은 그대로 받습니다. 옵션을 생략하면 기존 스트리밍 동작을 유지합니다.
+- 워커 음성 보관소는 조회·저장 시 만료 항목을 제거하며, 요청이 없어도 최대 30초 간격으로 정리합니다. 연결이 끝나면 대기 중인 합성 작업을 취소합니다. 이미 실행 중인 GPU 요청·CPU 추론은 강제로 중단할 수 없지만, 이후 대체 합성은 시작하지 않습니다.
 
 ### 구성 바꾸기
 

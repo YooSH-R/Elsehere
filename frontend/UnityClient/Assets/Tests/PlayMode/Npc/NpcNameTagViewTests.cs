@@ -16,7 +16,7 @@ namespace A305.Npc.PlayModeTests
     /// <summary>
     /// 마을에서 가까운 NPC 머리 위에 이름표가 뜬다. 근무 중인 직원은 역할 칩(예: 경찰관)을 함께 달고, 행인과 쉬는 직원은 이름만 보인다.
     /// 멀리 있는 NPC와 플레이어가 대화·창으로 움직이지 못하는 동안에는 이름표를 띄우지 않는다.
-    /// 마을 시계는 08:00에 시작하므로 경찰관 Dan(06:00~10:00 근무, 10:00~10:30 쉬는 시간)은 근무 중이다.
+    /// 기본 시각은 12:15 근무 중으로 고정하고, 휴식 검사는 10:15에 나타나는 출퇴근 캐릭터를 확인한다.
     /// </summary>
     public class NpcNameTagViewTests
     {
@@ -27,7 +27,7 @@ namespace A305.Npc.PlayModeTests
         private const string PasserbyName = "Ruby";
 
         // 경찰관 Dan의 쉬는 시간(10:00~10:30) 한가운데
-        private const double StaffBreakMinutes = 10 * 60 + 15;
+        private const int StaffBreakMinutes = 10 * 60 + 15;
 
         // 카메라가 플레이어를 따라와 자리 잡을 때까지 기다리는 프레임 수
         private const int SettleFrames = 10;
@@ -77,13 +77,15 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator NearbyStaffOnBreak_ShowsNameOnly()
         {
-            // 시계를 쉬는 시간으로 흘리고, Dan의 생활이 그 시각을 읽은 뒤에 세워 둔다.
-            GameClock.Shared.Flow(
-                (StaffBreakMinutes - GameClock.Shared.Minutes) / GameClock.GameMinutesPerRealSecond
-            );
+            // 고정 시계에 휴식 시각을 주고 근무지 직원이 출퇴근 캐릭터로 전환될 때까지 기다린다.
+            NpcTestClock.SetTime(StaffBreakMinutes);
+            yield return null;
             yield return null;
             NpcIdentity staff = HoldStill(StaffCode);
-            Assert.That(staff.GetComponent<NpcRoutine>().IsOffDuty, Is.True, "준비: Dan이 쉬는 중");
+            Assert.That(GameClock.Shared.Minutes, Is.EqualTo(StaffBreakMinutes));
+            var commuter = staff.GetComponent<NpcTownWalker>();
+            Assert.That(commuter, Is.Not.Null, "준비: 쉬는 Dan은 근무지 대신 거리에서 지냅니다.");
+            Assert.That(commuter.IsStaff, Is.True);
             yield return StandFacing(staff, 3f);
 
             TagView tag = ShownTags().SingleOrDefault(shown => shown.Name == StaffName);

@@ -185,8 +185,8 @@ class LLM:
         self.clock = time.monotonic  # 음성 인식 공급자 건너뛰기 시각 (테스트에서 바꿔 끼움)
         self.stt_failures: dict[str, int] = {}  # 음성 인식 공급자 → 연속 실패 수
         self.stt_skip_until: dict[str, float] = {}  # 음성 인식 공급자 → 이 시각(clock)까지 건너뜀
-        self.guard_gpu_failures = 0  # GPU 서버 판정 모델의 연속 실패 수
-        self.guard_gpu_skip_until = 0.0  # 이 시각(clock)까지 GPU 서버 판정 모델을 건너뜀
+        self.gpu_failures: dict[str, int] = {}  # GPU 서버 판정("guard"·"judge") → 연속 실패 수
+        self.gpu_skip_until: dict[str, float] = {}  # GPU 서버 판정 → 이 시각(clock)까지 건너뜀
 
     async def aclose(self):
         for c in (self.client, *self.others.values()):
@@ -395,28 +395,72 @@ class LLM:
         self.stt_failures[provider] = count
 
     async def guard_chat(self, messages: list[dict], usage: Usage, gpu_messages: list[dict] | None = None) -> str:
-        """무례 판정 호출. GPU 서버 판정 모델(guard_gpu_model)이 있으면 gpu_messages로 먼저 한 번(짧은 상한, 재시도 없음) 부르고,
-        실패·시간 초과면 구성의 guard 모델에 messages로 넘긴다. 연속 실패가 guard_breaker_failures에 닿으면 GPU를 잠시 건너뛴다.
-        gpu_messages가 없으면(GPU 모델이 잘못 읽는 줄) 처음부터 구성의 guard 모델로 판정한다."""
-        model = self.s.guard_gpu_model
-        if gpu_messages and model and self.guard_gpu_skip_until <= self.clock():
-            try:
-                out = await within(self._chat_once("gpu_llm", model, "guard", gpu_messages, usage), self.s.guard_gpu_timeout_s)
-            except ProviderError as e:
-                self._note_guard_gpu_failure()
-                log.warning(
-                    json.dumps({"event": "guard_fallback", "model": model, "to": self.model("guard"), "why": e.message}, ensure_ascii=False)
-                )
-                out = await self.chat("guard", "guard", messages, usage, 0.0, 5)
-                usage.items[-1]["fallback"] = True
-                return out
-            self.guard_gpu_failures = 0
-            return out
-        return await self.chat("guard", "guard", messages, usage, 0.0, 5)
+        """무례 판정 호출. GPU 서버 판정 모델(guard_gpu_model)이 있으면 gpu_messages로 먼저 부르고 실패하면 구성의 guard 모델에
+        messages로 넘긴다 (_gpu_first). gpu_messages가 없으면(GPU 모델이 잘못 읽는 줄) 처음부터 구성의 guard 모델로 판정한다."""
+        s = self.s
+        return await self._gpu_first(
+            "guard",
+            s.guard_gpu_model if gpu_messages else "",
+            s.guard_gpu_timeout_s,
+            (s.guard_breaker_failures, s.guard_breaker_skip_s),
+            lambda: self._chat_once("gpu_llm", s.guard_gpu_model, "guard", gpu_messages, usage),
+            lambda: self.chat("guard", "guard", messages, usage, 0.0, 5),
+            usage,
+        )
 
-    async def _chat_once(self, provider: str, model: str, step: str, messages: list[dict], usage: Usage) -> str:
+    async def intent_chat(self, messages: list[dict], usage: Usage, schema: dict, hedge_after_s: float | None = None) -> str:
+        """의도 판정 호출 (JSON 문자열). GPU 서버 의도 판정 모델(judge_gpu_model)이 있으면 먼저 부르고 실패하거나
+        JSON이 아닌 답이면 구성의 intent 모델 (_gpu_first). 형식 강제는 둘 다 같은 schema로 한다.
+        hedge_after_s는 구성의 intent 모델 호출에만 쓴다 (GPU 호출은 짧은 상한 하나)."""
+        s = self.s
+        return await self._gpu_first(
+            "judge",
+            s.judge_gpu_model,
+            s.judge_gpu_timeout_s,
+            (s.judge_breaker_failures, s.judge_breaker_skip_s),
+            lambda: self._chat_once("gpu_llm", s.judge_gpu_model, "intent", messages, usage, 200, schema),
+            lambda: self.chat("intent", "intent", messages, usage, 0.0, 200, schema, hedge_after_s=hedge_after_s),
+            usage,
+            check=json.loads,
+        )
+
+    async def _gpu_first(
+        self,
+        name: str,
+        model: str,
+        timeout_s: float,
+        breaker: tuple[int, float],
+        gpu_call: Callable[[], Awaitable[str]],
+        profile_call: Callable[[], Awaitable[str]],
+        usage: Usage,
+        check: Callable[[str], object] = lambda out: None,
+    ) -> str:
+        """GPU 서버 모델(model)이 있으면 먼저 한 번(짧은 상한 timeout_s, 재시도 없음) 부르고, 실패·시간 초과·check가
+        ValueError를 낸 답이면 구성의 모델(profile_call)로 넘긴다. 연속 실패가 breaker[0]에 닿으면 GPU를 breaker[1]초 건너뛴다.
+        GPU 서버는 역방향 SSH 터널로만 닿고 사용 허용도 확정 전이라, 끊겨도 판정은 GMS 모델로 이어 간다."""
+        if not model or self.gpu_skip_until.get(name, 0.0) > self.clock():
+            return await profile_call()
+        try:
+            out = await within(gpu_call(), timeout_s)
+            check(out)
+        except (ProviderError, ValueError) as e:
+            self._note_gpu_failure(name, *breaker)
+            why = e.message if isinstance(e, ProviderError) else f"형식이 맞지 않는 답: {e}"[:160]
+            log.warning(json.dumps({"event": f"{name}_fallback", "model": model, "why": why}, ensure_ascii=False))
+            out = await profile_call()
+            usage.items[-1]["fallback"] = True
+            return out
+        self.gpu_failures[name] = 0
+        return out
+
+    async def _chat_once(
+        self, provider: str, model: str, step: str, messages: list[dict], usage: Usage, max_tokens: int = 5, schema: dict | None = None
+    ) -> str:
         """다른 공급자의 모델 하나를 재시도·대체 모델 없이 한 번 부른다 (실패하면 부른 쪽이 다음으로 넘긴다)."""
-        b = model_body({"model": model, "temperature": 0.0, "max_tokens": 5, "messages": messages}, self.s.model_params)
+        body = {"model": model, "temperature": 0.0, "max_tokens": max_tokens, "messages": messages}
+        if schema:
+            body["response_format"] = {"type": "json_schema", "json_schema": {"name": "out", "schema": schema, "strict": True}}
+        b = model_body(body, self.s.model_params)
         t = time.perf_counter()
         try:
             r = await self.others[provider].post("/chat/completions", json=b)
@@ -428,14 +472,15 @@ class LLM:
         usage.add(step, model, model, data, time.perf_counter() - t)
         return message_text(data)
 
-    def _note_guard_gpu_failure(self):
-        if self.s.guard_breaker_failures <= 0:
+    def _note_gpu_failure(self, name: str, failures: int, skip_s: float):
+        if failures <= 0:
             return
-        self.guard_gpu_failures += 1
-        if self.guard_gpu_failures >= self.s.guard_breaker_failures:
-            self.guard_gpu_skip_until = self.clock() + self.s.guard_breaker_skip_s
-            log.warning(json.dumps({"event": "guard_gpu_skip", "skip_s": self.s.guard_breaker_skip_s}, ensure_ascii=False))
-            self.guard_gpu_failures = 0
+        count = self.gpu_failures.get(name, 0) + 1
+        if count >= failures:
+            self.gpu_skip_until[name] = self.clock() + skip_s
+            log.warning(json.dumps({"event": f"{name}_gpu_skip", "skip_s": skip_s}, ensure_ascii=False))
+            count = 0
+        self.gpu_failures[name] = count
 
     async def transcribe(self, audio: bytes, filename: str, mime: str, prompt: str, usage: Usage) -> dict:
         """음성 인식 (Whisper). 공급자를 순서대로 부르고, 한도·오류·응답 없음이면 다음 공급자로 넘긴다

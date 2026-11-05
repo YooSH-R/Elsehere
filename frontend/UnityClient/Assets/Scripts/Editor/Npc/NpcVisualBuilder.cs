@@ -145,11 +145,13 @@ namespace A305.EditorTools.Npc
             passerby.FindProperty("talkGesture").boolValue = entry.TalkGesture;
             passerby.ApplyModifiedPropertiesWithoutUndo();
             var capsule = npc.GetComponent<CharacterController>();
-            capsule.height = height;
-            capsule.center = new Vector3(capsule.center.x, height / 2, capsule.center.z);
+            // 기존 씬에서 조절한 외형 배율을 측정값에도 반영한다.
+            float scale = visual.localScale.y / prefab.transform.localScale.y;
+            capsule.height = height * scale;
+            capsule.center = new Vector3(capsule.center.x, capsule.height / 2, capsule.center.z);
             FitFooting(capsule);
             Vector3 look = npc.LookTarget.localPosition;
-            look.y = visual.localPosition.y + eyes;
+            look.y = visual.localPosition.y + eyes * scale;
             npc.LookTarget.localPosition = look;
             PrefabUtility.RecordPrefabInstancePropertyModifications(npc.LookTarget);
         }

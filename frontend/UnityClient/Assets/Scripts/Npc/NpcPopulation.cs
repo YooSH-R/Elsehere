@@ -94,7 +94,12 @@ namespace A305.Npc
                     bool roomLoaded =
                         string.IsNullOrEmpty(resident.InteriorScene)
                         || SceneManager.GetSceneByName(resident.InteriorScene).isLoaded;
-                    resident.Worker.SetActive(plan.Phase == NpcDayPhase.Working && roomLoaded);
+                    // 순찰차를 몰고 나간 경찰관은 돌아와 주차할 때까지 창구에 두지 않는다(PoliceCar).
+                    resident.Worker.SetActive(
+                        plan.Phase == NpcDayPhase.Working
+                            && roomLoaded
+                            && !PoliceCar.IsOutOnPatrol(resident.Life.NpcId)
+                    );
                 }
                 if (resident.TownBody == null || IsTalking(resident.TownBody))
                     continue;

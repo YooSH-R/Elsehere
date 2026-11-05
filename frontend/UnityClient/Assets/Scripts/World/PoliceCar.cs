@@ -51,6 +51,9 @@ namespace A305.World
         [SerializeField]
         private PlayerMover player;
 
+        // 순찰차를 몰고 나가 창구를 비운 경찰관. 직원 근무 관리(NpcPopulation)는 근무 시간이어도 이 경찰관을 창구에 켜지 않는다.
+        private static readonly HashSet<string> OfficersOut = new HashSet<string>();
+
         private readonly PoliceDispatch dispatch = new PoliceDispatch();
         private LoopingCar car;
         private DrivePath exitPath;
@@ -58,8 +61,9 @@ namespace A305.World
         private float pathDistance;
         private float height;
 
-        // 운전하러 나가 잠시 끈 창구의 경찰관. 주차 칸에 다시 서면 켠다.
+        // 운전하러 나가 잠시 끈 창구의 경찰관과 그 NPC 코드. 주차 칸에 다시 서면 켠다.
         private GameObject officerAwayFromDesk;
+        private string officerOutCode;
 
         public PolicePhase Phase => dispatch.Phase;
 
@@ -67,6 +71,10 @@ namespace A305.World
         public string SceneCode => dispatch.SceneCode;
 
         public bool LightsOn => dispatch.LightsOn;
+
+        /// <summary>이 경찰관이 지금 순찰차를 몰고 나가 창구를 비웠는지</summary>
+        public static bool IsOutOnPatrol(string npcCode) =>
+            npcCode != null && OfficersOut.Contains(npcCode);
 
         /// <summary>장소를 정할 수 있는 장소 코드면 그 장소의 화면 이름, 아니면 null</summary>
         public string DisplayNameOf(string sceneCode)
@@ -89,6 +97,11 @@ namespace A305.World
             if (!dispatch.TryDispatch(Find(sceneCode)?.Code, driverCode))
                 return false;
             pathDistance = 0;
+            if (driverCode != null)
+            {
+                officerOutCode = driverCode;
+                OfficersOut.Add(driverCode);
+            }
             if (driverCode != null && officerAtDesk != null)
             {
                 officerAwayFromDesk = officerAtDesk;
@@ -96,6 +109,16 @@ namespace A305.World
             }
             ShowDriver();
             return true;
+        }
+
+        // 장면을 떠나 순찰차가 사라지면 나가 있던 경찰관도 창구로 돌려 둔다.
+        private void OnDestroy() => ReleaseOfficer();
+
+        private void ReleaseOfficer()
+        {
+            if (officerOutCode != null)
+                OfficersOut.Remove(officerOutCode);
+            officerOutCode = null;
         }
 
         private void Awake()
@@ -246,6 +269,7 @@ namespace A305.World
 
         private void BackToTheDesk()
         {
+            ReleaseOfficer();
             ShowDriver();
             if (officerAwayFromDesk != null)
                 officerAwayFromDesk.SetActive(true);

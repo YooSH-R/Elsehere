@@ -272,6 +272,15 @@ namespace A305.Dialogue
         {
             ShowVoiceInput();
             if (
+                serverConversation != null
+                && serverConversation.Tick(DateTimeOffset.UtcNow)
+            )
+            {
+                End();
+                return;
+            }
+
+            if (
                 session.IsActive
                 && Keyboard.current != null
                 && Keyboard.current.escapeKey.wasPressedThisFrame

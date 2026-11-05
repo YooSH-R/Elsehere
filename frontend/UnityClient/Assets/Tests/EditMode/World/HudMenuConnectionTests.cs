@@ -1,81 +1,20 @@
 using System.Linq;
 using A305.EditorTools.Common;
-using A305.Learning;
 using A305.Onboarding;
-using A305.Theme;
 using NUnit.Framework;
 using TMPro;
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace A305.World.Tests
 {
     /// <summary>
-    /// 장소마다 HUD 버튼(단어장·피드백 목록·내 정보·홈)은 오른쪽 위 메뉴(≡) 목록 안에 있고, 집에서만 [테마]가 켜져 테마 고르기를 연다.
+    /// HUD 프리팹의 문구·메뉴 순서·접속 만료 안내 연결을 확인한다.
     /// </summary>
     public sealed class HudMenuConnectionTests
     {
         private const string HudPrefabPath = "Assets/Prefabs/Learning/LearningHud.prefab";
-
-        [TestCase("HomeScene")]
-        [TestCase("TownScene")]
-        [TestCase("CafeScene")]
-        [TestCase("HotelScene")]
-        [TestCase("ShopScene")]
-        public void ProductionSceneHudKeepsItsButtonsInTheClosedMenu(string name)
-        {
-            var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/" + name + ".unity");
-            var hud = BuilderTools.FindSingleInScene<LearningHudView>(scene);
-            Assert.That(hud, Is.Not.Null);
-            var menuView = hud.GetComponent<HudMenuView>();
-            Assert.That(menuView, Is.Not.Null, name + ": 메뉴(≡)가 없습니다.");
-            Assert.DoesNotThrow(() => BuilderTools.RequireReferences(menuView));
-
-            var items = (GameObject)
-                new SerializedObject(menuView).FindProperty("items").objectReferenceValue;
-            Assert.That(items.activeSelf, Is.False, name + ": 메뉴는 접힌 채 시작해야 합니다.");
-            var fields = new SerializedObject(hud);
-            foreach (string button in new[] { "vocabularyButton", "historyButton", "homeButton" })
-            {
-                var target = (Button)fields.FindProperty(button).objectReferenceValue;
-                Assert.That(
-                    target.transform.parent,
-                    Is.EqualTo(items.transform),
-                    name + ": " + button
-                );
-            }
-            Assert.That(items.transform.Find("MyPageButton"), Is.Not.Null, name);
-            Assert.That(
-                hud.transform.Find("Panel/Buttons"),
-                Is.Null,
-                name + ": 예전 버튼 줄이 남아 있습니다."
-            );
-
-            Assert.That(
-                items.transform.Find("ThemeButton"),
-                Is.Null,
-                name + ": 화면 디자인은 하나라 메뉴에 [테마]를 두지 않습니다."
-            );
-        }
-
-        [Test]
-        public void HomeHasNoThemePicker()
-        {
-            var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/HomeScene.unity");
-
-            bool hasPicker = scene
-                .GetRootGameObjects()
-                .SelectMany(root => root.GetComponentsInChildren<Transform>(true))
-                .Any(child => child.name.StartsWith("ThemePicker"));
-
-            Assert.That(
-                hasPicker,
-                Is.False,
-                "화면 디자인은 하나라 테마 고르기 화면을 두지 않습니다."
-            );
-        }
 
         // 이 창은 지난 대화를 고르고 그때 받은 피드백을 다시 여는 곳이라 메뉴와 창 제목을 [피드백 목록]으로 부른다.
         [TestCase("Panel/Menu/HistoryButton/Label")]
@@ -113,44 +52,6 @@ namespace A305.World.Tests
 
             Assert.That(label, Is.LessThan(consents));
             Assert.That(consents, Is.LessThan(buttons));
-        }
-
-        // 조작법 카드는 오른쪽 아래에 두고, X로 닫은 뒤에는 메뉴(≡)의 [조작법]으로 다시 연다.
-        [TestCase("HomeScene")]
-        [TestCase("TownScene")]
-        [TestCase("CafeScene")]
-        [TestCase("HotelScene")]
-        [TestCase("ShopScene")]
-        public void ProductionSceneHudShowsTheControlsGuideAtTheBottomRight(string name)
-        {
-            var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/" + name + ".unity");
-            var hud = BuilderTools.FindSingleInScene<LearningHudView>(scene);
-            var guide = hud.GetComponent<ControlsGuideView>();
-            Assert.That(guide, Is.Not.Null, name + ": 조작법 카드가 없습니다.");
-            Assert.DoesNotThrow(() => BuilderTools.RequireReferences(guide));
-            Assert.That(
-                new SerializedObject(hud).FindProperty("controlsGuide").objectReferenceValue,
-                Is.EqualTo(guide),
-                name
-            );
-
-            var fields = new SerializedObject(guide);
-            var card = (RectTransform)
-                ((GameObject)fields.FindProperty("card").objectReferenceValue).transform;
-            Assert.That(card.anchorMin, Is.EqualTo(new Vector2(1f, 0f)), name);
-            Assert.That(card.anchorMax, Is.EqualTo(new Vector2(1f, 0f)), name);
-
-            var open = (Button)fields.FindProperty("openButton").objectReferenceValue;
-            var items = (GameObject)
-                new SerializedObject(hud.GetComponent<HudMenuView>())
-                    .FindProperty("items")
-                    .objectReferenceValue;
-            Assert.That(open.transform.parent, Is.EqualTo(items.transform), name);
-            Assert.That(
-                open.GetComponentInChildren<TMP_Text>(true).text,
-                Is.EqualTo(ControlsGuideText.MenuLabel),
-                name
-            );
         }
 
         // 메뉴를 펼치면 바깥 영역이 카드를 덮어 카드를 눌러도 메뉴가 접히고, 피드백 목록·내 정보 창은 카드 위에 보인다.

@@ -227,7 +227,7 @@ namespace A305.EditorTools.ObjectHover
 
         private static void EnsureWords()
         {
-            AddWord("duvet", "duvet", "이불", "Pull the duvet over you.", "이불을 덮으세요.");
+            AddWord("duvet", "comforter", "이불", "This comforter is warm.", "이 이불은 따뜻해요.");
             AddWord(
                 "mattress",
                 "mattress",

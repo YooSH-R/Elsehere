@@ -15,9 +15,9 @@ MonoBehaviour:
   details:
     key: word_3f1b31e72fbacea48bed046e884e6255
     languageCode: en-US
-    text: parasol
-    meaningKo: "\uD30C\uB77C\uC194"
-    example: Let's sit under the parasol.
-    exampleKo: "\uD30C\uB77C\uC194 \uC544\uB798\uC5D0 \uC549\uC544\uC694."
-    pronunciationAudioKey: 
+    text: patio umbrella
+    meaningKo: "\uC57C\uC678 \uD30C\uB77C\uC194"
+    example: Let's sit under the patio umbrella.
+    exampleKo: "\uC57C\uC678 \uD30C\uB77C\uC194 \uC544\uB798\uC5D0 \uC549\uC544\uC694."
+    pronunciationAudioKey: patio_umbrella.wav
   assetGuid: 3f1b31e72fbacea48bed046e884e6255

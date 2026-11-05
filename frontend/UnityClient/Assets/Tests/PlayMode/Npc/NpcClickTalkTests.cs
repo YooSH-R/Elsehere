@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Linq;
+using System.Reflection;
 using A305.Dialogue;
 using A305.Player;
 using A305.Tutorial;
@@ -379,11 +380,16 @@ namespace A305.Npc.PlayModeTests
         }
 
         // 마을 밖으로 옮겨 둔 행인 하나를 주어진 자리에 세운다. 생활은 끈 채로 두고 먼저 다가오지 않게 한다.
+        // 옮긴 자리를 그 NPC의 제자리로도 정한다. 생활을 끈 행인은 처음 놓인 자리(Passerby.homePose)로 걸어 돌아가므로,
+        // 제자리가 마을 밖에 남아 있으면 확인하는 동안 NPC가 걸어가 이름표가 움직이거나 보이는 거리 밖으로 나간다.
         private static Passerby BringNpc(string code, Pose pose)
         {
             Passerby npc = FindPasserby(code);
             KeepFromApproaching(npc);
             PlaceAt(npc, pose);
+            typeof(Passerby)
+                .GetField("homePose", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(npc, pose);
             npc.enabled = true;
             return npc;
         }

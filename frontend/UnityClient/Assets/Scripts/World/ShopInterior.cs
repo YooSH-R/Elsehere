@@ -58,13 +58,6 @@ namespace A305.World
             if (nearestDoor != null)
                 return nearestDoor.TryLeave(player, this);
 
-            // 경찰서처럼 실내 쪽 출입구와 문 밖 출입구를 한 쌍으로 둔 건물
-            foreach (InteriorDoorway doorway in GetComponentsInChildren<InteriorDoorway>())
-            {
-                if (doorway.LeadsOutOf(this))
-                    return doorway.TryLeave(player, this);
-            }
-
             Debug.LogError($"{name}에 밖으로 나가는 문이 없습니다.", this);
             return false;
         }

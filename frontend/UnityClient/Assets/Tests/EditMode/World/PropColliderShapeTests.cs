@@ -88,6 +88,7 @@ namespace A305.World.Tests
         [TestCase("CafeScene")]
         [TestCase("HotelScene")]
         [TestCase("ShopScene")]
+        [TestCase("PoliceStationScene")]
         public void ProductionScene_HasNoPropColliderFloatingAboveItsShape(string name)
         {
             var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/" + name + ".unity");

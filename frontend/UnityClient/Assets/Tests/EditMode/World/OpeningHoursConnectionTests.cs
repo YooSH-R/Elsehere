@@ -27,6 +27,7 @@ namespace A305.World.Tests
         [TestCase("CafeScene")]
         [TestCase("HotelScene")]
         [TestCase("ShopScene")]
+        [TestCase("PoliceStationScene")]
         public void ProductionScene_ReadsPlaceHoursAndShowsNoticesForItsPlayer(string name)
         {
             Scene scene = OpenProductionScene(name);
@@ -87,7 +88,6 @@ namespace A305.World.Tests
                         "SudsLaundromat=LAUNDROMAT",
                         "BloomFlowers=FLOWER_SHOP",
                         "MainStreetBarber=BARBER",
-                        "PoliceStation=POLICE_STATION",
                         "MapleBakery=BAKERY",
                         "LittleArcade=ARCADE",
                         "LittleArcade=ARCADE",
@@ -99,7 +99,7 @@ namespace A305.World.Tests
             foreach (ShopInterior shop in shops)
             {
                 Assert.That(shop.PlaceName, Is.Not.Empty, shop.name);
-                // 경찰서처럼 24시간 여는 곳은 안내할 영업시간 문구가 없으므로, 영업시간 파일에 그 장소가 있는지 본다.
+                // 24시간 여는 곳은 안내할 영업시간 문구가 없으므로, 영업시간 파일에 그 장소가 있는지 본다.
                 Assert.That(listedCodes, Does.Contain(shop.PlaceCode), shop.name);
             }
         }

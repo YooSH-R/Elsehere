@@ -71,6 +71,7 @@ namespace A305.Wayfinding.Tests
         [TestCase("CAFE", "CafeDoor")]
         [TestCase("HOTEL", "HotelDoor")]
         [TestCase("SHOP", "ShopDoor")]
+        [TestCase("POLICE_STATION", "PoliceStationDoor")]
         public void EveryTownPlace_HasItsDoorFrontAsTheEntrance(string placeCode, string doorwayId)
         {
             SpaceDoorway door = System.Array.Find(
@@ -85,7 +86,6 @@ namespace A305.Wayfinding.Tests
         }
 
         [TestCase("TOWN")]
-        [TestCase("POLICE_STATION")]
         [TestCase(null)]
         public void PlaceWithoutATownDoor_HasNoEntrance(string placeCode)
         {

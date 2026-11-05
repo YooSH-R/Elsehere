@@ -231,10 +231,11 @@ namespace A305.EditorTools.World
             {
                 string path = Folder + "/" + storefront.Name + ".prefab";
                 BuilderTools.CreatePrefabIfMissing(path, () => Build(storefront));
+                // 예전 출입구를 먼저 지운다. 지운 스크립트가 붙은 출입구가 남아 있으면 프리팹을 저장하지 못한다.
+                if (storefront.Name == "PoliceStation")
+                    BuilderTools.UpdatePrefabIfExists(path, CloseEntrance);
                 // 천장 충돌을 넣기 전에 만든 매장도 디자인은 그대로 두고 충돌만 더한다.
                 BuilderTools.UpdatePrefabIfExists(path, BlockCameraAtCeiling);
-                if (storefront.Name == "PoliceStation")
-                    BuilderTools.UpdatePrefabIfExists(path, EnterThroughInteriorDoorways);
             }
             AssetDatabase.SaveAssets();
         }
@@ -246,9 +247,10 @@ namespace A305.EditorTools.World
             BuilderTools.GetOrAddComponent<BoxCollider>(ceiling);
         }
 
-        // 경찰서는 문을 여닫지 않고 다른 장소처럼 문에 닿으면 화면을 덮었다가 실내(또는 문 밖)에 세운다.
-        // 문짝은 닫힌 채 통로를 막고, 문 앞뒤 감지 영역이 서로의 도착 지점을 가리킨다.
-        private static void EnterThroughInteriorDoorways(GameObject storefront)
+        // 경찰서는 카페·호텔처럼 다른 장면이라 문을 여닫지 않는다. 문에 닿으면 장면을 옮기는 출입구(SpaceDoorway)는
+        // 장면마다 따로 붙인다(마을에는 경찰서로 들어가는 문, 경찰서 장면에는 마을로 나가는 문, PoliceStationBuilder).
+        // 예전에 같은 장면 안에서 실내와 문 밖을 잇던 출입구 한 쌍이 남아 있으면 지운다.
+        private static void CloseEntrance(GameObject storefront)
         {
             Transform entrance = storefront.transform.Find("Entrance");
             Transform door = entrance.Find(storefront.name + "Door");
@@ -257,30 +259,12 @@ namespace A305.EditorTools.World
                 Object.DestroyImmediate(swing);
                 Object.DestroyImmediate(door.GetComponent<BoxCollider>());
             }
-            InteriorDoorway outside = Doorway(entrance, "OutsideDoorway", 1);
-            InteriorDoorway inside = Doorway(entrance, "InsideDoorway", -1);
-            BuilderTools.SetReference(outside, "destination", inside);
-            BuilderTools.SetReference(inside, "destination", outside);
-        }
-
-        // side가 1이면 문 밖 보도, -1이면 실내다. 감지 영역은 문 앞 0.2~1m, 도착 지점은 문에서 2m 떨어져 문을 등진다.
-        private static InteriorDoorway Doorway(Transform entrance, string name, int side)
-        {
-            Transform doorway = entrance.Find(name);
-            if (doorway == null)
-                doorway = Group(name, entrance, new Vector3(0, 0, side * .6f));
-            var sensor = BuilderTools.GetOrAddComponent<BoxCollider>(doorway.gameObject);
-            sensor.isTrigger = true;
-            sensor.center = new Vector3(0, 1.3f, 0);
-            sensor.size = new Vector3(1.8f, 2.6f, .8f);
-            Transform arrival = doorway.Find("ArrivalPoint");
-            if (arrival == null)
-                arrival = Group("ArrivalPoint", doorway, Vector3.zero);
-            arrival.localPosition = new Vector3(0, 0, side * 1.4f);
-            arrival.localRotation = Quaternion.Euler(0, side > 0 ? 0 : 180, 0);
-            var component = BuilderTools.GetOrAddComponent<InteriorDoorway>(doorway.gameObject);
-            BuilderTools.SetReference(component, "arrivalPoint", arrival);
-            return component;
+            foreach (string oldDoorway in new[] { "OutsideDoorway", "InsideDoorway" })
+            {
+                Transform doorway = entrance.Find(oldDoorway);
+                if (doorway != null)
+                    Object.DestroyImmediate(doorway.gameObject);
+            }
         }
 
         private static void Prepare()

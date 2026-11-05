@@ -19,7 +19,6 @@
 - 새 씬은 `sceneLoaded` 때(새 씬의 `Awake`·`OnEnable` 뒤, `Start` 전) 활성 씬으로 바꿉니다. 하늘·환경광·안개(`RenderSettings`)와 부모 없이 새로 만드는 오브젝트는 활성 씬을 따르므로, 이 값을 읽거나 오브젝트를 만드는 코드는 `Awake`가 아니라 `Start`에 둡니다(예: `WeatherPresenter`).
 - 이전 씬의 에셋은 비우지 않습니다(`Resources.UnloadUnusedAssets`를 부르지 않음). 한 번 들른 공간에 다시 들어갈 때 에셋을 다시 읽지 않아 빠른 대신, 들른 공간의 에셋만큼 메모리를 더 씁니다.
 | `SpaceDoorway` | 다른 공간으로 이어지는 출입구입니다. 플레이어가 문 앞 감지 영역에 들어오면 문으로 들어가는 방향 기준의 카메라 각도를 넘기며 이동하고, 다른 공간에서 들어오면 `ArrivalPoint`에 문을 등지고 섭니다. |
-| `InteriorDoorway` | 같은 씬 안에서 건물 실내와 문 밖을 잇는 출입구입니다. 감지 영역에 들어오면 `SpaceTravelCurtain`으로 화면을 덮고, 그동안 짝 출입구의 `ArrivalPoint`로 플레이어를 옮긴 뒤 화면을 걷습니다. 카메라 각도는 `SpaceDoorway`와 같은 기준으로 이어 갑니다. 지금은 경찰서만 씁니다. |
 | `SpaceArrival` | 공간 씬에 들어오면 플레이어를 도착 출입구 앞으로 옮기고, 문에 들어갈 때의 카메라 각도를 나오는 방향 기준으로 이어 맞춥니다. 앞으로 걸어 들어오면 카메라가 플레이어 뒤에, 뒤로 걸어 들어오면 문을 바라보는 쪽에 와서 누르던 키로 계속 문에서 멀어집니다. 장소 씬이면 재접속 위치로 저장합니다(WORLD-05). `apiSettings`가 비어 있으면 저장하지 않습니다. |
 | `CarLoopRoute` | 마을 본길을 도는 차의 길. 동쪽 차로로 북쪽 끝까지 가서 유턴하고 서쪽 차로로 내려와 다시 유턴합니다. 길 위 거리로 위치·방향을 구하고, 정지 지점 앞에서 서며, 차 앞을 막은 사람이 있으면 설지 정합니다. Unity 객체 없이 테스트합니다. |
 | `TrafficSignalCycle`, `TrafficLights`, `TrafficSignalHead` | 교차로 신호 주기(본길 초록 12초·노랑 3초, 가로길 초록 7초·노랑 3초)와 신호등 렌즈 켜기. 주기는 `TrafficLights` Inspector에서 조절합니다. |
@@ -30,7 +29,8 @@
 | `PoliceReportIntake` | 경찰관과 한 번 대화하는 동안 신고를 접수하고, 접수한 뒤 말한 장소로 출동 장소를 바꿉니다. 대화를 마치면 출동할 장소를 꺼내고 비웁니다. Unity 객체 없이 테스트합니다. |
 | `PoliceDispatch` | 순찰차 출동 흐름. 주차 칸 → 진입로로 나가기 → 장소로 출동(장소가 없으면 본길 한 바퀴 순찰) → 장소 앞 20초 → 돌아오기 → 주차 칸. 나가 있는 동안 새 신고는 받지 않고, 돌아올 때 경광등을 끕니다. Unity 객체 없이 테스트합니다. |
 | `DrivePath` | 주차 칸과 본길 사이처럼 `CarLoopRoute` 밖을 잇는 3차 베지어 곡선 길. 길 위 거리로 위치·방향을 구합니다. Unity 객체 없이 테스트합니다. |
-| `PoliceCar` | 경찰서 옆 주차 칸의 순찰차. 진입로는 `DrivePath`로 직접 움직이고 본길은 `LoopingCar`로 신호를 지키며 달립니다. 주차 칸·진입로에서는 `LoopingCar.IsHeld`로 붙잡아 두어 본길 차들이 계속 피하게 하고, 진입로에서는 사람만 피합니다(차끼리 서로 기다리다 멈추지 않도록). 진입로는 트럭 옆 한 대씩 구간에 이어지므로, 다른 차가 그 구간에 있으면 주차 칸에서 기다렸다 나가고 진입로를 지나는 동안에는 구간을 차지합니다. 경광등은 출동해서 돌아오기 전까지 빨강·파랑을 번갈아 켭니다. |
+| `PoliceCar` | 경찰서 옆 주차 칸의 순찰차. 진입로는 `DrivePath`로 직접 움직이고 본길은 `LoopingCar`로 신호를 지키며 달립니다. 주차 칸·진입로에서는 `LoopingCar.IsHeld`로 붙잡아 두어 본길 차들이 계속 피하게 하고, 진입로에서는 사람만 피합니다(차끼리 서로 기다리다 멈추지 않도록). 진입로는 트럭 옆 한 대씩 구간에 이어지므로, 다른 차가 그 구간에 있으면 주차 칸에서 기다렸다 나가고 진입로를 지나는 동안에는 구간을 차지합니다. 경광등은 출동해서 돌아오기 전까지 빨강·파랑을 번갈아 켭니다. 경찰서는 다른 장면이라, 마을이 열릴 때 경찰서 창구가 남긴 신고(`PoliceDispatchOrder`)를 가져가 출동합니다. |
+| `PoliceDispatchOrder` | 경찰서 창구에서 받은 아직 출발하지 않은 신고 한 건(장소 코드, 없으면 본길 순찰). 순찰차가 한 대라 한 건만 받고, 순찰차가 가져가면 없어집니다. 게임을 새로 시작하면 비웁니다. Unity 객체 없이 테스트합니다. |
 | `PlaceScenes` | 서버 장소 코드와 Unity 씬 이름(`HOME`↔`HomeScene`, `TOWN`↔`TownScene`, `CAFE`↔`CafeScene`, `HOTEL`↔`HotelScene`, `SHOP`↔`ShopScene`), 영업시간 안내에 쓰는 한국어 이름(집·마을·카페·호텔·드럭스토어). 재접속 위치 저장과 [길 안내](../Wayfinding/README.md)가 함께 씁니다. 새 장소 씬을 추가하면 이 표와 서버 시드(`scenes`)에 함께 추가합니다. Unity 객체 없이 테스트합니다. |
 | `PlaceHours`, `OpeningHours` | 장소별 영업시간 파일(`Data/World/PlaceHours.json`)을 읽고, 장소가 하루 중 그 시각에 열려 있는지 판정합니다. `OpeningHours`는 게임 전체가 같은 영업시간을 보도록 정적으로 두고 지금 게임 시각(`GameClock.Shared`)으로 묻습니다. `PlaceHours`는 Unity 객체 없이 테스트합니다. |
 | `ClosingCountdown`, `ClosingPhase` | 머무는 장소의 영업이 끝난 뒤 마을로 옮기기까지 남은 게임 시간(30분, `GraceMinutes`)을 셉니다. 다시 열거나 다른 장소로 옮기면 멈춥니다. Unity 객체 없이 테스트합니다. |
@@ -67,6 +67,8 @@
 | `HotelScene` | `TownDoor` | `TownScene`의 `HotelDoor` |
 | `TownScene` | `ShopDoor` | `ShopScene`의 `TownDoor` |
 | `ShopScene` | `TownDoor` | `TownScene`의 `ShopDoor` |
+| `TownScene` | `PoliceStationDoor` | `PoliceStationScene`의 `TownDoor` |
+| `PoliceStationScene` | `TownDoor` | `TownScene`의 `PoliceStationDoor` |
 
 상점 연결과 연계 미션은 **Tools → A305 → Mission → Build First Day Journey**로 준비합니다. 카페 옆 빈 건물 앞의 DRUGSTORE 간판에서 들어갑니다. 다른 기존 건물과 씬 아트는 유지합니다.
 
@@ -91,7 +93,7 @@
 
 ## 거리 매장
 
-`TownStorefrontBuilder`는 기존 배경 건물 7곳(북쪽 거리 6곳과 남서쪽 끝 경찰서)을 간판과 실내가 있는 매장으로 구성합니다. 마을에서 원래 문을 밟으면 화면을 덮고 해당 건물의 실내 씬을 추가 로드합니다. 퇴장하면 실내 씬을 해제합니다. 결제 기능은 포함하지 않습니다. 매장 직원 NPC는 `BuildingStaffBuilder`가 따로 둡니다([Npc 모듈](../Npc/README.md#거리-매장-직원)). 경찰서의 경찰관 4명은 `PoliceStationBuilder`가 둡니다.
+`TownStorefrontBuilder`는 기존 배경 건물 7곳(북쪽 거리 6곳과 남서쪽 끝 경찰서)을 간판과 실내가 있는 매장으로 구성합니다. 마을에서 원래 문을 밟으면 화면을 덮고 해당 건물의 실내 씬을 추가 로드합니다. 퇴장하면 실내 씬을 해제합니다. 결제 기능은 포함하지 않습니다. 매장 직원 NPC는 `BuildingStaffBuilder`가 따로 둡니다([Npc 모듈](../Npc/README.md#거리-매장-직원)). 경찰서는 카페·호텔처럼 따로 장면(`PoliceStationScene`)이라 실내 씬을 추가 로드하지 않고 장면을 옮깁니다([경찰서와 순찰차](#경찰서와-순찰차)).
 
 | 프리팹 | 간판 | 건물 앞 위치(x, z) |
 | --- | --- | --- |
@@ -107,14 +109,14 @@
 
 ### 경찰서와 순찰차
 
-**Tools → A305 → World → Apply Police Station**(`PoliceStationBuilder`)이 경찰서를 한 번에 적용합니다. 경찰서 매장(창구·대기 의자·게시판·서류함·국기)을 놓고, 경찰서 남쪽 잔디에 주차장(`TownMainstreet/PoliceParking`)과 본길 끝으로 이어지는 진입 포장을 깔아 순찰차를 세웁니다. 창구 뒤에는 경찰관 Dan(`POLICE_OFFICER`)·Victor·Kevin·Tyler를 세우고(창구에 가장 가까운 Dan이 근무 중이면 먼저 응대) 경찰관마다 신고 창구(`PoliceReportDesk`)와 순찰차를 잇습니다. 새 경찰관은 창구 뒤 자리가 가구와 겹치면 가까운 빈자리로 옮기고, 외형 표의 배색을 입힙니다. 마지막으로 **Apply Taxi Cabin**과 같은 구성으로 택시 목적지에 경찰서를 더합니다.
+**Tools → A305 → World → Apply Police Station**(`PoliceStationBuilder`)이 경찰서를 한 번에 적용합니다. 마을에는 경찰서 매장 건물을 놓고, 경찰서 남쪽 잔디에 주차장(`TownMainstreet/PoliceParking`)과 본길 끝으로 이어지는 진입 포장을 깔아 순찰차를 세웁니다. 경찰서 안은 카페·호텔처럼 따로 장면(`Scenes/Production/PoliceStationScene`, 장소 코드 `POLICE_STATION`)이고 **Build Police Station Scene**이 만듭니다. 마을과 같은 경찰서 건물 프리팹을 두어 실내(창구·대기 의자·게시판·서류함·국기)는 그대로이고, 창구 뒤에 경찰관 Dan(`POLICE_OFFICER`)·Victor·Kevin·Tyler를 세워(창구에 가장 가까운 Dan이 근무 중이면 먼저 응대) 경찰관마다 신고 창구(`PoliceReportDesk`)를 붙입니다. 창구는 순찰차와 다른 장면이라 접수 문구에 쓸 장소 이름(순찰차 출동 장소와 같은 목록)을 옮겨 두고, 신고는 `PoliceDispatchOrder`에 남깁니다. 경찰관에 생활을 붙이고 경찰서 바닥을 구운 뒤 경찰서 1층 안에서만 지내게 합니다. 새 경찰관은 창구 뒤 자리가 가구와 겹치면 가까운 빈자리로 옮기고, 외형 표의 배색을 입힙니다. 마지막으로 **Apply Taxi Cabin**과 같은 구성으로 택시 목적지에 경찰서를 더합니다.
 
 - 순찰차 모델은 KayKit City Builder Bits의 `car_police`이고 프리팹은 `Prefabs/World/PoliceStation/PoliceCar.prefab`입니다. 지붕 경광등 위에 빨강·파랑 발광 조각과 불빛(`LightBar/RedLights`, `LightBar/BlueLights`)을 얹어 두었습니다.
 - 경찰관 외형은 모자·제복을 포함한 `Prefabs/Npc/Review/LittleMung_Police_Male.prefab`입니다. 공통 마스터 골격과 입·미소·눈 감기 채널을 사용하며, `NpcVisualBuilder`가 실제 몸·눈 높이에 캡슐과 시선을 맞춥니다. 별도의 모자를 중복해서 붙이지 않습니다. 경찰 여자 검수 사본도 준비되어 있지만 기존 네 경찰의 역할에는 배정하지 않습니다.
 - 순찰차는 택시와 같은 본길(남쪽 끝 z=-25, 북쪽 끝 z=66)을 달리고, 택시 목적지와 같은 정차 지점을 씁니다(경찰서 자신은 빼고 10곳). 주차 칸은 (-9, -28.8)이고, 진입로는 동쪽 끝 정원수(-3.7, -27.8)를 피해 그 북쪽으로 지납니다.
 - 주차장·순찰차 프리팹·경찰관 외형은 없을 때만 만들고, 이미 있으면 배치를 두고 연결(본길 설정·진입로 조절점·목적지·경광등·창구)만 맞춥니다. **Capture Police Station**은 검토용 화면을 `artifacts/unity/police-station/`에 저장합니다.
 - 새 사물 단어는 경찰차·경찰관·주차장입니다.
-- 경찰서 출입은 `InteriorDoorway` 한 쌍이 맡습니다. 문 밖 보도 쪽 `Entrance/OutsideDoorway`에 닿으면 실내 `Entrance/InsideDoorway`의 도착 지점(문 안쪽 2m, 창구를 봄)에, 실내 쪽에 닿으면 문 밖 2m(본길을 봄)에 섭니다. 문짝(`PoliceStationDoor`)은 여닫지 않고 닫힌 채 통로를 막습니다. 마을 씬과 경찰관의 근무 자리는 로드된 채로 유지하므로 경찰관 대화를 마치고 나오면 순찰차 출동을 그대로 봅니다. 매장 Builder가 기존 경찰서 프리팹의 여닫이 문 기능을 빼고 출입구 한 쌍을 더합니다.
+- 경찰서 출입은 다른 장소처럼 `SpaceDoorway`가 맡습니다. 마을 경찰서 정면의 `Entrance/PoliceStationDoorway`(출입구 이름 `PoliceStationDoor`)에 닿으면 경찰서 장면의 `Entrance/TownDoorway`(`TownDoor`) 도착 지점(문 안쪽 2m, 창구를 봄)에 서고, 경찰서에서 그 문에 닿으면 마을 문 앞 1m(본길을 봄)에 나옵니다. 건물에 그려진 문짝(`PoliceStationDoor`)은 여닫지 않고, 출입구 프리팹의 문 그림은 끄고 막는 충돌만 남깁니다. 경찰관과 대화하며 신고하고 나오면 마을이 열릴 때 순찰차가 출발해 출동하는 모습을 봅니다. 매장 Builder는 경찰서 프리팹의 여닫이 문 기능과 예전 같은 장면 출입구 한 쌍을 지웁니다.
 - 거리 매장 천장에는 카메라를 막는 충돌이 있습니다. 위층이 없는 경찰서는 천장이 막지 않으면 내려다볼 때 카메라가 천장 위로 빠집니다(드럭스토어와 같은 문제). 매장 Builder는 충돌이 없는 기존 매장 프리팹에 충돌만 더합니다.
 
 ## 매장 실내 소품
@@ -206,7 +208,7 @@
 
 장소마다 게임 시각 기준 영업시간이 있습니다. `Data/World/PlaceHours.json`은 `ai/tools/npc_life_export.py`가 NPC 생활 규칙에서 만들며, 장소 코드마다 늘 여는지(`alwaysOpen`)와 여는 시각·닫는 시각(`"HH:MM"`)을 둡니다. 여는 시각부터 열고 닫는 시각부터 닫습니다. 닫는 시각이 여는 시각보다 이르면 자정을 넘겨 다음 날 닫습니다. 파일에 없는 장소(플레이어의 집 `HOME`)는 늘 열려 있고, 마을(`TOWN`)·호텔·드럭스토어는 늘 엽니다.
 
-- **들어가기 거절**: 영업시간이 아닌 장소의 문에 닿으면 들어가지 않고 화면 위 가운데에 "카페는 지금 영업시간이 아니에요 · 07:00–21:00"을 3초 띄웁니다. 카페·호텔·드럭스토어 문(`SpaceDoorway`)은 이동할 씬의 장소 코드(`PlaceScenes`)로, 마을 매장 문(`ShopDoorway`, 경찰서의 `InteriorDoorway`)은 들어갈 때 그 건물 `ShopInterior`의 장소 코드로 판정합니다. 나오는 문은 막지 않습니다. 튜토리얼이 이동을 잠근 동안에는 튜토리얼의 잠금 안내가 먼저 나옵니다.
+- **들어가기 거절**: 영업시간이 아닌 장소의 문에 닿으면 들어가지 않고 화면 위 가운데에 "카페는 지금 영업시간이 아니에요 · 07:00–21:00"을 3초 띄웁니다. 카페·호텔·드럭스토어·경찰서 문(`SpaceDoorway`)은 이동할 씬의 장소 코드(`PlaceScenes`)로, 마을 매장 문(`ShopDoorway`)은 들어갈 때 그 건물 `ShopInterior`의 장소 코드로 판정합니다. 나오는 문은 막지 않습니다. 튜토리얼이 이동을 잠근 동안에는 튜토리얼의 잠금 안내가 먼저 나옵니다.
 - **영업 마감**: 머무는 장소가 닫히면 그때부터 게임 시간으로 30분(`ClosingCountdown.GraceMinutes`)을 세며 "영업이 끝났어요. N분 후 마을로 이동합니다"를 띄웁니다. 게임 시계를 따르므로 대화·튜토리얼로 시계가 멈춘 동안에는 줄지 않습니다. 그 사이 다시 열거나 장소를 나오면 안내를 끕니다. 남은 시간이 다 지나면 공간 씬은 그 씬의 마을 출입구(`exitToTown`)로 마을의 그 장소 문 앞에, 마을 매장은 플레이어와 가장 가까운 매장 문 밖에 세웁니다. 튜토리얼 잠금과 상관없이 옮기지만, 대화 중처럼 플레이어가 움직일 수 없는 동안에는 기다렸다가 옮깁니다.
 - **마을 매장의 장소 코드**: Play·빌드 때 `ShopInteriorScenes`가 `ShopInterior`를 붙이면서 장소 코드와 안내 이름을 넣습니다. 거리 매장은 `TownStorefrontBuilder.Storefronts`의 `PlaceCode`·`KoreanName`(택시 목적지와 같은 코드)을, 북쪽 상가는 1층 매장(`BAKERY` 베이커리, `ARCADE` 오락실, `HOME_STORE` 생활용품점)을 씁니다. 같은 건물 2층의 서점·찻집은 그 건물의 영업시간을 따릅니다. 새 매장 건물을 더하면 이 코드도 함께 더합니다.
 - **연결**: 장소 씬 5곳에는 **Tools → A305 → World → Connect Opening Hours**(`OpeningHoursBuilder`)가 `Systems/OpeningHours`와 `UI/HudNotice`를 하나씩 두고 플레이어·영업시간 파일·마을 출입구를 연결합니다. 이 메뉴는 영업시간 연결만 바꾸도록 사물 단어 등록 없이 씬을 저장합니다. 새로 꾸미는 씬은 **Set Up Open Scene**이 함께 붙입니다.

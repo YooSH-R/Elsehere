@@ -43,6 +43,7 @@ namespace A305.EditorTools.Mission
                     "CafeScene",
                     "HotelScene",
                     "ShopScene",
+                    "PoliceStationScene",
                 }
             )
             {
@@ -361,7 +362,7 @@ namespace A305.EditorTools.Mission
             BuilderTools.SetReference(controller, "view", view);
             BuilderTools.SetReference(controller, "dialogue", dialogue);
             BuilderTools.SetReference(controller, "player", player);
-            string sceneCode = groups.Scene.name.Replace("Scene", "").ToUpperInvariant();
+            string sceneCode = A305.World.PlaceScenes.CodeOf(groups.Scene.name);
             BuilderTools.SetText(controller, "sceneCode", sceneCode);
             var legacy = BuilderTools.FindSingleInScene<MissionController>(groups.Scene);
             if (legacy != null)

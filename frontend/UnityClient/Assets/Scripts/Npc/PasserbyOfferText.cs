@@ -3,14 +3,27 @@ namespace A305.Npc
     /// <summary>대화 제안 화면에 보일 문구.</summary>
     public static class PasserbyOfferText
     {
+        /// <summary>대화 수락 버튼. 키보드를 쓰는 화면에만 E 안내를 붙인다.</summary>
+        public static string AcceptLabel(bool showKeyHint) =>
+            showKeyHint ? "대화하기 <size=75%>[E]</size>" : "대화하기";
+
+        /// <summary>대화 거절 버튼. 키보드를 쓰는 화면에만 Esc 안내를 붙인다.</summary>
+        public static string DeclineLabel(bool showKeyHint) =>
+            showKeyHint ? "지금은 안 할래요 <size=75%>[Esc]</size>" : "지금은 안 할래요";
+
         /// <summary>
         /// 누가 말을 걸었는지 알리는 머리말. 행인과 직원이 같은 제안 화면을 쓰므로 "행인이"로 고정하지 않는다.
-        /// 영어 이름만으로는 누구인지 알기 어려워 역할(드럭스토어 직원 등)이 있으면 역할로, 없으면 이름으로 알린다.
+        /// 이름과 역할이 있으면 함께 보이고, 이름을 받지 못했으면 역할로 알린다.
         /// </summary>
         /// <param name="npcName">대화 대본의 NPC 이름. 모르면 null.</param>
         /// <param name="roleLabel">대화 대본의 NPC 역할. 모르면 null.</param>
         public static string Hint(string npcName, string roleLabel = null)
         {
+            if (!string.IsNullOrEmpty(npcName) && !string.IsNullOrEmpty(roleLabel))
+            {
+                return $"{npcName}({roleLabel})의 대화 제안";
+            }
+
             string speaker = string.IsNullOrEmpty(roleLabel) ? npcName : roleLabel;
             return string.IsNullOrEmpty(speaker)
                 ? "누군가 말을 걸었어요"

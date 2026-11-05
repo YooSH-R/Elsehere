@@ -82,7 +82,9 @@ powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1
 ```
 
 - Editor 경로는 프로젝트 버전에서 구하며, 다른 설치 경로는 `UNITY_EDITOR_PATH`로 지정합니다.
-- 전체 실행에서는 EditMode 전에 Blender와 테스트 FBX를 준비하고 같은 프로세스에서 테스트 입력 변수를 지정합니다. MR에서 배포 검사만 실행할 때는 준비하지 않습니다.
+- 이미 병합·검증된 고정 씬의 배치·연결·Builder 회귀 검사는 정리했으며, 새 기능이나 변경한 씬의 테스트는 추가·수정할 수 있습니다. 씬 배치의 시각적 결과는 직접 Play 실행과 브라우저에서 확인합니다.
+- MR은 `-ChangedSince <merge-base SHA>`로 변경한 어셈블리와 이를 참조하는 모듈의 테스트를 선택합니다. 씬·프리팹·패키지 등 공유 입력 변경과 범위 판정 실패 시 전체를 실행하며, 선택 결과는 `dist/unity-ci/test-plan.json`에 남깁니다. 구체적인 기준은 [Unity 테스트 범위](../ci-runner.md#unity-테스트-범위)를 따릅니다.
+- 전체 실행 또는 `A305.Tripo.*` 테스트를 선택한 경우 Blender와 테스트 FBX를 준비하고 같은 프로세스에서 테스트 입력 변수를 지정합니다. 다른 모듈만 검사할 때는 준비하지 않습니다.
 - 공통 캐릭터의 목 경계·머리 크기 검사는 저장된 조합과 부품을 메모리에 복제하고 현재 가져오기 환경의 의존성 정보를 설정한 뒤, 원래의 불일치 메시가 각각의 오류로 검출되는지 확인합니다. 저장된 조합의 승인 상태나 검사 기준은 변경하지 않습니다.
 - 테스트는 `-runTests`로 종료하고 `-quit`을 함께 사용하지 않습니다. WebGL 빌드에는 `-quit`과 저장소의 빌드 진입점을 사용합니다.
 - Editor 프로세스의 실제 종료까지 기다립니다. 크래시 후 남은 컴파일 보조 프로세스 때문에 작업 종료가 지연되지 않도록 Editor의 종료 코드를 직접 확인하고 로그를 보존합니다. 테스트 XML 누락·실패·미실행·성공 테스트 0개 또는 빌드 실패를 성공으로 처리하지 않습니다.
@@ -92,7 +94,7 @@ powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1
 - 일반 GitLab 산출물에는 `dist/unity-ci/`의 테스트·로그와 `dist/webgl-package.json`의 커밋·파이프라인·SHA256·크기만 넣습니다. 큰 WebGL 파일을 일반 산출물 ZIP에 함께 넣지 않으므로 해당 ZIP의 용량 상한을 올릴 필요가 없습니다. 전달과 임시 패키지 정리는 [개발 자동 배포](../dev-auto-deployment.md#webgl-빌드-전달과-정리)를 따릅니다.
 - 동시에 최대 두 작업을 실행하도록 Runner 제한을 사용합니다. 동시 실행 번호별 CI 작업 폴더의 `Library`를 유지해 다시 가져오는 비용을 줄이며, 빌드 결과·로그는 새 작업에서 정리합니다. 두 번째 작업 폴더의 최초 실행에는 별도의 에셋 가져오기·패키지 준비·Blender 설치 시간이 필요합니다.
 
-Editor 종료 대기와 MR 테스트 범위 판정의 회귀 검사는 Windows에서 `python -m unittest discover -s infra/scripts/tests -p "test_unity_*.py" -v`로 실행합니다. 가짜 Editor가 실패한 뒤 보조 프로세스가 남아도 실패와 로그가 즉시 전달되는지, 바뀐 파일에 따라 배포 검사나 전체 실행을 고르는지 검사하며 실제 Unity 테스트를 대신하지 않습니다. Linux의 인프라 검사에서는 이 Windows 전용 검사를 건너뜁니다.
+Editor 종료 대기와 MR 테스트 범위 판정의 회귀 검사는 Windows에서 `python -m unittest discover -s infra/scripts/tests -p "test_unity_*.py" -v`로 실행합니다. 가짜 Editor가 실패한 뒤 보조 프로세스가 남아도 실패와 로그가 즉시 전달되는지, 변경한 테스트·실행 코드의 전이 의존 관계·공유 입력·비교 실패에 따라 범위를 고르는지 검사하며 실제 Unity 테스트를 대신하지 않습니다. Linux의 인프라 검사에서는 이 Windows 전용 검사를 건너뜁니다.
 
 ## Blender와 FBX 테스트 입력
 

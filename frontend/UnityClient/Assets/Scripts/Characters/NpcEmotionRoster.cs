@@ -31,6 +31,7 @@ namespace A305.Characters
 
         [SerializeField]
         private Camera previewCamera;
+        private Vector2 scroll;
 
         public void Configure(
             Entry[] entries,
@@ -72,13 +73,20 @@ namespace A305.Characters
             if (characters == null || characters.Length == 0)
                 return;
             GUILayout.BeginArea(
-                new Rect(Mathf.Max(12, Screen.width - 272), 12, 260, 290),
+                new Rect(
+                    Mathf.Max(12, Screen.width - 272),
+                    12,
+                    260,
+                    Mathf.Min(Screen.height - 24, characters.Length * 30 + 48)
+                ),
                 GUI.skin.box
             );
             GUILayout.Label("캐릭터 선택 · 같은 표정과 음성 비교");
+            scroll = GUILayout.BeginScrollView(scroll);
             for (int i = 0; i < characters.Length; i++)
                 if (GUILayout.Button(characters[i].label))
                     Select(i);
+            GUILayout.EndScrollView();
             GUILayout.EndArea();
         }
     }

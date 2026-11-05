@@ -24,6 +24,11 @@ namespace A305.EditorTools.Characters
                 "흑인 청년 남성",
                 "할머니",
                 "호텔리어 남성",
+                "카페 남성",
+                "할아버지",
+                "호텔리어 여성",
+                "경찰 여성",
+                "경찰 남성",
                 "카페 여성",
             };
             var entries = new NpcEmotionRoster.Entry[names.Length];

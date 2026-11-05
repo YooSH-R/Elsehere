@@ -216,19 +216,8 @@ namespace A305.EditorTools.Characters
             }
         }
 
-        private static Mesh SaveMesh(Mesh mesh, string path)
-        {
-            var saved = AssetDatabase.LoadAssetAtPath<Mesh>(path);
-            if (saved == null)
-            {
-                AssetDatabase.CreateAsset(mesh, path);
-                return mesh;
-            }
-            EditorUtility.CopySerialized(mesh, saved);
-            EditorUtility.SetDirty(saved);
-            Object.DestroyImmediate(mesh);
-            return saved;
-        }
+        private static Mesh SaveMesh(Mesh mesh, string path) =>
+            CharacterFaceReviewBuilder.SaveMesh(mesh, path);
 
         private static void ApplyShapes(
             Mesh mesh,

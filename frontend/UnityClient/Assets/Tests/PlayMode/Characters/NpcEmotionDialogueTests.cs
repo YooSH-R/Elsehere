@@ -27,7 +27,7 @@ namespace A305.Characters.PlayModeTests
             var roster = Object.FindFirstObjectByType<NpcEmotionRoster>();
             var panel = Object.FindFirstObjectByType<EmotionPreviewPanel>();
             CharacterSpeechPlayer previous = null;
-            for (int i = 0; i < 7; i++)
+            for (int i = 0; i < 12; i++)
             {
                 roster.Select(i);
                 if (previous != null)
@@ -80,6 +80,11 @@ namespace A305.Characters.PlayModeTests
                         "Assets/Prefabs/Npc/Review/LittleMung_Grandmother.prefab",
                         "Assets/Prefabs/Npc/LittleMung_HotelStaff_male_Dialogue.prefab",
                         "Assets/Prefabs/Npc/CafeFemaleDialogue.prefab",
+                        "Assets/Prefabs/Npc/Review/LittleMung_Cafe_Male.prefab",
+                        "Assets/Prefabs/Npc/Review/LittleMung_Grandfather.prefab",
+                        "Assets/Prefabs/Npc/Review/LittleMung_HotelStaff_Female.prefab",
+                        "Assets/Prefabs/Npc/Review/LittleMung_Police_Female.prefab",
+                        "Assets/Prefabs/Npc/Review/LittleMung_Police_Male.prefab",
                     }
                 )
                 {

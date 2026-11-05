@@ -18,6 +18,11 @@ namespace A305.EditorTools.Characters
             "LittleMung_BlackYoung_Male",
             "LittleMung_Grandmother",
             "LittleMung_HotelStaff_male",
+            "LittleMung_Cafe_Male",
+            "LittleMung_Grandfather",
+            "LittleMung_HotelStaff_Female",
+            "LittleMung_Police_Female",
+            "LittleMung_Police_Male",
         };
 
         public static string PrefabPath(string name) =>

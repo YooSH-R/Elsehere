@@ -58,6 +58,34 @@ def fade(value, inner, outer):
     return 1 - t * t * (3 - 2 * t)
 
 
+face_points = array(data["vertices"])
+mouth_u, mouth_v = face_points[:, 1] + 0.043, face_points[:, 2] - 0.477
+skin_samples = (
+    (face_points[:, 0] < -0.15)
+    & (abs(mouth_u) < 0.11)
+    & (abs(mouth_v) < 0.07)
+    & ((mouth_u / 0.045) ** 2 + (mouth_v / 0.025) ** 2 > 1)
+)
+mouth_fit = np.column_stack(
+    [
+        np.ones(len(face_points)),
+        mouth_u,
+        mouth_v,
+        mouth_u**2,
+        mouth_u * mouth_v,
+        mouth_v**2,
+    ]
+)
+mouth_surface = np.linalg.lstsq(
+    mouth_fit[skin_samples], face_points[skin_samples, 0], rcond=None
+)[0]
+
+
+def mouth_depth(u, v):
+    c = mouth_surface
+    return c[0] + c[1] * u + c[2] * v + c[3] * u * u + c[4] * u * v + c[5] * v * v
+
+
 def displacement(points, family, side):
     x, y, z = points.T
     direction = 1 if side == "Left" else -1
@@ -65,7 +93,30 @@ def displacement(points, family, side):
     dy = y - eye_y
     front = fade(x, -0.12, 0.01)
     result = np.zeros_like(points)
-    if family.startswith("brow"):
+    if family == "mouthLaughOpen":
+        # This is an additive correction on the existing AA pose, not a
+        # replacement viseme. Expand the oral region and let the cheeks follow.
+        u, v = y + 0.043, z - 0.477
+        influence = (
+            fade(abs(u), 0.055, 0.155)
+            * fade(-v, 0.040, 0.120)
+            * fade(v, 0.006, 0.030)
+            * front
+        )
+        # Saturate the displacement before fading it. Multiplying v by a large
+        # scale inside a narrow radial falloff folds the surrounding face.
+        result[:, 1] = 0.040 * np.tanh(u / 0.024) * influence
+        # Open mainly through the lower lip and chin. Leave the nose and all
+        # moving eyelid vertices above this region completely untouched.
+        result[:, 2] = (
+            0.018 * np.tanh(v / 0.010) - 0.018 + 0.008 * np.tanh(u / 0.026) ** 2
+        ) * influence
+        # Keep the expanded lips and oral parts on the measured rounded cheek
+        # and chin surface instead of extruding a flat rectangular mouth patch.
+        result[:, 0] = mouth_depth(u + result[:, 1], v + result[:, 2]) - mouth_depth(
+            u, v
+        )
+    elif family.startswith("brow"):
         r = np.sqrt((dy / 0.080) ** 2 + ((z - 0.681) / 0.080) ** 2)
         influence = fade(r, 0.75, 1.55) * front
         # Brows may rotate strongly, but the lid rim and eyeball must not be
@@ -140,7 +191,9 @@ def normal_offsets(points, normals, family, side):
     return changed - normals
 
 
-def match_lip_boundary(points, delta, normal_delta, family, side):
+def match_lip_boundary(
+    points, delta, normal_delta, family, side, face_delta=None, face_normal_delta=None
+):
     """Keep subdivided lip-border points on the deformed original face edges."""
     face = array(data["vertices"])
     face_normals = array(surface["normals"])
@@ -150,8 +203,12 @@ def match_lip_boundary(points, delta, normal_delta, family, side):
     )
     first, direction = face[edges[:, 0]], face[edges[:, 1]] - face[edges[:, 0]]
     length2 = np.maximum(np.sum(direction * direction, axis=1), 1e-20)
-    moved = displacement(face, family, side)
-    normals_moved = normal_offsets(face, face_normals, family, side)
+    moved = displacement(face, family, side) if face_delta is None else face_delta
+    normals_moved = (
+        normal_offsets(face, face_normals, family, side)
+        if face_normal_delta is None
+        else face_normal_delta
+    )
     count = len(points) // 6
     for i, point in enumerate(points[:count]):
         fraction = np.clip(np.sum((point - first) * direction, axis=1) / length2, 0, 1)
@@ -453,6 +510,70 @@ for part in eye_data["parts"]:
 
     if not (output / part["texture"]).exists():
         shutil.copyfile(eye_folder / part["texture"], output / part["texture"])
+
+# The laugh aperture, teeth and tongue use the same correction and head binding.
+# Original AA/PP/FV/TH and the other articulation keys remain byte-for-byte intact.
+face_laugh_delta = None
+face_laugh_normal_delta = None
+for mesh_data in export["meshes"] + export["parts"]:
+    name = mesh_data["name"]
+    if name.endswith("Eye") or name in ("ClosedLeftLid", "ClosedRightLid"):
+        continue
+    original = data if name == "CafeFemaleFace" else parts.get(name, mesh_data)
+    positions = array(mesh_data["vertices"])
+    ob = body if name == "CafeFemaleFace" else bpy.data.objects[name]
+    normals = array(
+        surface["normals"] if name == "CafeFemaleFace" else original["normals"]
+    )
+    if len(normals) != len(positions):
+        normals = np.array([tuple(vertex.normal) for vertex in ob.data.vertices])
+    original_shapes = {s["name"]: s for s in original["shapes"]}
+    aa = original_shapes.get("viseme_AA")
+    aa_positions = positions + (array(aa["deltaVertices"]) if aa else 0)
+    aa_normals = normals + (
+        array(aa["deltaNormals"])
+        if aa and len(aa["deltaNormals"]) == len(positions)
+        else 0
+    )
+    delta = displacement(aa_positions, "mouthLaughOpen", "")
+    normal_delta = normal_offsets(aa_positions, aa_normals, "mouthLaughOpen", "")
+    if name == "UpperTeeth":
+        teeth = original_shapes["viseme_E"]
+        visible = positions + array(teeth["deltaVertices"])
+        target = visible + displacement(visible, "mouthLaughOpen", "")
+        tooth_u, tooth_v = target[:, 1] + 0.043, target[:, 2] - 0.477
+        target[:, 0] += mouth_depth(tooth_u, tooth_v + 0.010) - mouth_depth(
+            tooth_u, tooth_v
+        )
+        target[:, 2] += 0.010
+        delta = target - aa_positions
+        normal_delta = normal_offsets(visible, normals, "mouthLaughOpen", "")
+    if name == "CafeFemaleFace":
+        face_laugh_delta, face_laugh_normal_delta = delta, normal_delta
+    if name == "SpeakingLips":
+        match_lip_boundary(
+            positions,
+            delta,
+            normal_delta,
+            "mouthLaughOpen",
+            "",
+            face_laugh_delta,
+            face_laugh_normal_delta,
+        )
+    if np.max(np.linalg.norm(delta, axis=1)) < 1e-7:
+        continue
+    mesh_data["shapes"].append(
+        {
+            "name": "mouthLaughOpen",
+            "weight": 100,
+            "deltaVertices": vectors(delta),
+            "deltaNormals": vectors(normal_delta),
+        }
+    )
+    key = ob.shape_key_add(name="mouthLaughOpen")
+    for point, value in zip(key.data, positions + delta):
+        point.co = value
+
 for side in ("Left", "Right"):
     texture_name = side + "LidSkin.png"
     image = bpy.data.images.load(str(output / texture_name), check_existing=False)

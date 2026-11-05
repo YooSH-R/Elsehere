@@ -7,7 +7,7 @@
 Blender의 백그라운드 Python에서 실행합니다. 외부 Python 패키지나 네트워크는 사용하지 않습니다.
 
 ```powershell
-& '<Blender 설치 폴더>/blender.exe' --background --factory-startup --python frontend/ArtSources/Characters/CafeFemaleEmotion/author_emotions.py -- --output '<새 출력 폴더>'
+& '<Blender 설치 폴더>/blender.exe' --background --factory-startup --python-exit-code 1 --python frontend/ArtSources/Characters/CafeFemaleEmotion/author_emotions.py -- --output '<새 출력 폴더>'
 ```
 
 출력 폴더에 같은 제작 파일이 있으면 중단합니다. 생성된 `.blend`, JSON, PNG를 검수한 후 이 폴더의 제작 복사본으로 옮깁니다. 원본 `CafeFemaleFace/`는 변경하지 않습니다. Unity 에셋은 `CafeEmotionBuilder`로 생성하며 자세한 사용법은 [말하기 표정 검수](../../../../docs/unity/npc-speaking-emotions.md)에 있습니다.
@@ -21,3 +21,5 @@ Blender의 백그라운드 Python에서 실행합니다. 외부 Python 패키지
 눈썹 변형은 눈꺼풀 쪽에서 완만하게 줄이고 머리카락 경계 아래에서 제한합니다. 입꼬리는 가운데가 꺾이지 않는 이차 곡선으로 만들며, 몸·입술·눈 접합 면에 동일한 변위장을 적용합니다. 검수 복사본의 미소 채널은 새 곡선으로 교체하지만 원본 모델과 발음별 변형은 보존합니다.
 
 `eyeSquintLeft/Right`는 `eyeBlink`에 더하는 웃는 눈 곡선 보정입니다. Blender에서 웃는 눈을 보려면 해당 `eyeBlink`와 `eyeSquint`를 함께 적용합니다. 부분 깜박임에서는 닫힘을 유지하고 곡선만 줄이며, Unity 재생기가 이를 계산합니다.
+
+`mouthLaughOpen`은 `viseme_AA`에 더하는 폭소용 입 벌림 보정입니다. Blender에서는 두 키를 함께 적용합니다. 아래 입술과 턱을 중심으로 입을 열며 위쪽 영향은 눈꺼풀 아래에서 끝납니다. 입 주변 피부에서 측정한 곡면을 따라 앞뒤 깊이를 조정해 넓어진 입과 턱이 평평하게 돌출되지 않도록 합니다. 입술 외곽은 원본 얼굴 변의 보간점에 맞추고, 구강·위 치아·혀도 같은 좌표 변형을 사용합니다. 기존 9개 발음 키와 중립 정점은 보존합니다.

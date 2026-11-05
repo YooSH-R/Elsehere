@@ -897,6 +897,10 @@ Mesh:
       normal: {x: -0.007939036, y: -0.026925946, z: -0.0075939894}
       tangent: {x: 0, y: 0, z: 0}
       index: 170
+    - vertex: {x: 0.0035490524, y: 0.0008320669, z: 0.0043300646}
+      normal: {x: 0.0057601267, y: -0.23749036, z: 0.0157439}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 168
     shapes:
     - firstVertex: 0
       vertexCount: 42
@@ -920,6 +924,10 @@ Mesh:
       hasTangents: 0
     - firstVertex: 216
       vertexCount: 3
+      hasNormals: 1
+      hasTangents: 0
+    - firstVertex: 219
+      vertexCount: 1
       hasNormals: 1
       hasTangents: 0
     channels:
@@ -947,7 +955,12 @@ Mesh:
       nameHash: 889720471
       frameIndex: 5
       frameCount: 1
+    - name: mouthLaughOpen
+      nameHash: 4030678429
+      frameIndex: 6
+      frameCount: 1
     fullWeights:
+    - 100
     - 100
     - 100
     - 100

@@ -592,7 +592,11 @@ API Character 자동 리깅과 다운로드 완료 시 마스터 적용·보정�
 
 ### 손 변형 원인 비교용 배치 검사
 
-기존 NPC 검수 사본의 손을 원본에서 복원할 때는 `ServiceNpcHandRepairBuilder.PreviewSelected`로 비교한 뒤 `RepairSelected`를 실행한다. `NPC_REBUILD_NAME`은 검수 캐릭터 이름, `NPC_HAND_OUTPUT`은 비교 결과를 저장할 프로젝트 밖 폴더다. 원본 FBX·이전 마스터 적용본을 보존하고 검수 폴더의 손·전완 정점만 갱신한다. 얼굴·눈·입 Blend Shape, 프리팹 경로와 GUID는 유지한다. 정점·UV 대응이 다르거나 손에 별도 Blend Shape가 있으면 중단한다. 생성 API와 운영 씬 재배치는 실행하지 않는다. 이전 마스터 바인딩은 버전 검사에서 재연결 대상으로 표시되므로 새 생성 없이 로컬 마스터 적용부터 다시 진행한다.
+생성 원본의 손가락이 붙었거나 관절과 표면이 맞지 않는 검수 사본은 `ServiceNpcHandRepairBuilder.PreviewSelected`로 마스터 손 교체 후보를 비교한 뒤 `RepairSelected`로 적용한다. `NPC_REBUILD_NAME`은 검수 캐릭터 이름, `NPC_HAND_OUTPUT`은 비교 결과를 저장할 프로젝트 밖 폴더다. `TripoHandTemplate`이 마스터의 손 표면과 손가락 가중치를 가져오고 전완에 연결면을 만든다. 마스터의 소매 끝은 제외하고, 피부 UV 표본을 양손에 함께 사용한다. 손목 경계는 실제 연결 순서대로 이어 붙이며, 삭제한 손의 미사용 정점은 제거한다.
+
+원본 FBX·마스터·이전 마스터 적용본은 보존하고 검수 폴더의 몸 메시만 갱신한다. 얼굴·눈·입 Blend Shape의 변형값을 새 정점 순서에 맞춰 유지하며, 기존 메시와 프리팹의 경로·GUID도 유지한다. `TripoHandTemplateAudit`은 마스터 손가락 표면·가중치, 손목의 열린 면·뒤집힌 면과 경계 가중치 불일치를 검사한다. 검사 실패, 여러 손목 경계, 손 영역에 별도로 저작한 Blend Shape가 있으면 적용을 중단한다. 같은 결과에 재실행해도 손을 다시 바꾸지 않는다.
+
+이 도구는 서비스 마스터로 이미 연결된 검수 사본을 위한 명시적인 손 교체 단계다. 새 생성의 원본 보존 단계나 모든 NPC의 손을 일괄 덮어쓰지 않는다. 현재 연결 범위는 리틀 멍 마스터와 경찰 남성 검수 사본으로 검증하며, 다른 소매·장갑은 별도 외관 검수가 필요하다. 생성 API와 운영 씬 재배치는 실행하지 않는다.
 
 Unity를 닫은 상태에서 `-batchmode -quit -executeMethod A305.EditorTools.Tripo.TripoHandReview.Render`로 원본·이전 후보·수정 후보를 같은 손 구도로 렌더할 수 있다. 화면 조작이나 생성 API 호출은 하지 않는다.
 

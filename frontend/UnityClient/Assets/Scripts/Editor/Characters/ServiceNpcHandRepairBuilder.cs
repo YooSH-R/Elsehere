@@ -11,7 +11,7 @@ using Object = UnityEngine.Object;
 
 namespace A305.EditorTools.Characters
 {
-    // 원본과 얼굴 저작 결과는 보존하고 검수 사본의 손 영역만 새 마스터 변환으로 갱신한다.
+    // 검수 사본에 마스터 손과 손목 연결면을 이식한다. 원본과 얼굴 저작 결과는 보존한다.
     public static class ServiceNpcHandRepairBuilder
     {
         public static void PreviewSelected() => ProcessSelected(false);
@@ -31,29 +31,17 @@ namespace A305.EditorTools.Characters
             if (AssetDatabase.IsValidFolder(staging))
                 throw new IOException("기존 검수 자료를 덮어쓰지 않습니다: " + staging);
             string sourcePath = $"Assets/Art/Characters/Tripo/NPC/{name}/{name}.fbx";
-            var source = AssetDatabase.LoadAssetAtPath<GameObject>(sourcePath);
             string prefabPath = "Assets/Prefabs/Npc/Review/" + name + ".prefab";
             var changes = new Dictionary<Mesh, Mesh>();
             GameObject preview = null;
             BuilderTools.EnsureFolder(staging);
             try
             {
-                var bound = TripoMasterRig.Build(
-                    source,
-                    TripoMasterWorkflow.RequireMaster(),
-                    staging + "/Master"
-                );
-                var fresh = bound.GetComponentsInChildren<SkinnedMeshRenderer>().Single();
-                var animator = bound.GetComponentInChildren<Animator>();
-                var left = animator.GetBoneTransform(HumanBodyBones.LeftLowerArm);
-                var right = animator.GetBoneTransform(HumanBodyBones.RightLowerArm);
-                bool[] hands = fresh
-                    .bones.Select(b => b.IsChildOf(left) || b.IsChildOf(right))
-                    .ToArray();
-                int hip = Array.IndexOf(
-                    fresh.bones,
-                    animator.GetBoneTransform(HumanBodyBones.Hips)
-                );
+                preview = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath));
+                var fresh = preview
+                    .GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .OrderByDescending(s => s.sharedMesh.vertexCount)
+                    .First();
                 foreach (
                     string guid in AssetDatabase.FindAssets(
                         "t:Mesh",
@@ -66,18 +54,24 @@ namespace A305.EditorTools.Characters
                     );
                     if (original.vertexCount != fresh.sharedMesh.vertexCount)
                         continue;
-                    var repaired = RepairSurface(original, fresh.sharedMesh, hands, hip);
+                    var repaired = Object.Instantiate(original);
+                    repaired.name = original.name;
                     changes.Add(original, repaired);
+                    TripoHandTemplate.Apply(TripoMasterWorkflow.RequireMaster(), fresh, repaired);
+                    var handReport = TripoHandTemplateAudit.Inspect(
+                        TripoMasterWorkflow.RequireMaster(),
+                        fresh,
+                        repaired
+                    );
+                    if (!handReport.Passed)
+                        throw new InvalidOperationException(string.Join("\n", handReport.Errors));
                     AssetDatabase.CreateAsset(
                         repaired,
                         staging + "/Surface" + changes.Count + ".asset"
                     );
                 }
                 if (changes.Count == 0)
-                    throw new InvalidOperationException(
-                        "원본과 정점 순서가 같은 검수 몸 메시가 없습니다."
-                    );
-                preview = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath));
+                    throw new InvalidOperationException("손을 교체할 검수 몸 메시가 없습니다.");
                 int replacements = 0;
                 foreach (var skin in preview.GetComponentsInChildren<SkinnedMeshRenderer>())
                     if (changes.TryGetValue(skin.sharedMesh, out var repaired))
@@ -99,7 +93,6 @@ namespace A305.EditorTools.Characters
                         "손을 갱신할 본체 스킨을 하나로 식별하지 못했습니다."
                     );
                 var report = TripoMasterRig.Inspect(preview, TripoMasterWorkflow.RequireMaster());
-                report.Errors.AddRange(TripoMasterHandAudit.Inspect(source, bound).Errors);
                 report.Errors.AddRange(
                     CharacterFaceController.MissingChannels(preview.transform, true)
                 );
@@ -107,7 +100,15 @@ namespace A305.EditorTools.Characters
                 Directory.CreateDirectory(output);
                 File.WriteAllText(
                     Path.Combine(output, "Validation.txt"),
-                    string.Join("\n", report.Errors)
+                    $"검사 통과: {report.Passed}\n"
+                        + string.Join(
+                            "\n",
+                            changes.Select(pair =>
+                                $"{AssetDatabase.GetAssetPath(pair.Key)}: {pair.Key.vertexCount} → {pair.Value.vertexCount} 정점; 표정 채널 {pair.Value.blendShapeCount}"
+                            )
+                        )
+                        + "\n"
+                        + string.Join("\n", report.Errors)
                 );
                 string candidatePath = staging + "/" + name + ".prefab";
                 PrefabUtility.SaveAsPrefabAsset(preview, candidatePath);
@@ -133,7 +134,7 @@ namespace A305.EditorTools.Characters
                     Environment.SetEnvironmentVariable("TRIPO_HAND_OUTPUT", previousOutput);
                     Environment.SetEnvironmentVariable("TRIPO_HAND_FULL", previousFull);
                 }
-                if (!report.Passed)
+                if (!report.Passed && apply)
                     throw new InvalidOperationException(string.Join("\n", report.Errors));
                 ServiceNpcComparisonRenderer.RenderModel(
                     prefabPath,
@@ -157,74 +158,10 @@ namespace A305.EditorTools.Characters
                 if (preview != null)
                     Object.DestroyImmediate(preview);
                 AssetDatabase.DeleteAsset(staging);
+                foreach (var mesh in changes.Values)
+                    if (mesh != null && !EditorUtility.IsPersistent(mesh))
+                        Object.DestroyImmediate(mesh);
             }
-        }
-
-        private static Mesh RepairSurface(Mesh original, Mesh bound, bool[] handBones, int hip)
-        {
-            if (original.bindposes.Length != bound.bindposes.Length)
-                throw new InvalidOperationException("검수 메시의 바인딩 구조가 다릅니다.");
-            var result = Object.Instantiate(original);
-            result.name = original.name;
-            var mapping = original.bindposes[hip].inverse * bound.bindposes[hip];
-            var normalMapping = mapping.inverse.transpose;
-            var vertices = result.vertices;
-            var normals = result.normals;
-            var tangents = result.tangents;
-            var sourceVertices = bound.vertices;
-            var sourceNormals = bound.normals;
-            var sourceTangents = bound.tangents;
-            var weights = bound.boneWeights;
-            var uv = original.uv;
-            var sourceUv = bound.uv;
-            var changed = new List<int>();
-            for (int i = 0; i < vertices.Length; i++)
-            {
-                var w = weights[i];
-                bool affected =
-                    (handBones[w.boneIndex0] && w.weight0 > 0)
-                    || (handBones[w.boneIndex1] && w.weight1 > 0)
-                    || (handBones[w.boneIndex2] && w.weight2 > 0)
-                    || (handBones[w.boneIndex3] && w.weight3 > 0);
-                if (!affected)
-                    continue;
-                if (
-                    uv.Length != vertices.Length
-                    || sourceUv.Length != vertices.Length
-                    || Vector2.Distance(uv[i], sourceUv[i]) > .000001f
-                )
-                    throw new InvalidOperationException(
-                        "손 영역의 정점·UV 대응이 달라 자동 복원을 중단합니다."
-                    );
-                changed.Add(i);
-                vertices[i] = mapping.MultiplyPoint3x4(sourceVertices[i]);
-                normals[i] = normalMapping.MultiplyVector(sourceNormals[i]).normalized;
-                if (tangents.Length == vertices.Length && sourceTangents.Length == vertices.Length)
-                {
-                    Vector3 direction = mapping.MultiplyVector(sourceTangents[i]).normalized;
-                    tangents[i] = new Vector4(
-                        direction.x,
-                        direction.y,
-                        direction.z,
-                        sourceTangents[i].w
-                    );
-                }
-            }
-            result.vertices = vertices;
-            result.normals = normals;
-            result.tangents = tangents;
-            var delta = new Vector3[vertices.Length];
-            for (int shape = 0; shape < original.blendShapeCount; shape++)
-            for (int frame = 0; frame < original.GetBlendShapeFrameCount(shape); frame++)
-            {
-                original.GetBlendShapeFrameVertices(shape, frame, delta, null, null);
-                if (changed.Any(i => delta[i].sqrMagnitude > 1e-14f))
-                    throw new InvalidOperationException(
-                        "손 영역에 별도로 저작한 Blend Shape가 있어 자동 복원을 중단합니다."
-                    );
-            }
-            result.RecalculateBounds();
-            return result;
         }
     }
 }

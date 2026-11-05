@@ -14,6 +14,23 @@ namespace A305.Npc.Tests
         private const string SeedRelativePath = "backend/src/main/resources/db/seed/world.sql";
 
         [Test]
+        public void PoliceHairRecolorIncludesTheNapeAndKeepsSkinAndUniform()
+        {
+            Color32 hair = new Color32(80, 46, 30, 255);
+            Color32 skin = new Color32(232, 164, 115, 255);
+            Color32 uniform = new Color32(24, 35, 60, 255);
+            var result = NpcColorSwap.Recolor(
+                new[] { hair, hair, skin, uniform },
+                NpcCast.Find("POLICE_SERGEANT").BodySwaps(),
+                new[] { .46f, .75f, .5f, .7f }
+            );
+            Assert.That(result[0], Is.Not.EqualTo(hair), "목덜미에도 같은 머리 배색을 적용합니다.");
+            Assert.That(result[0], Is.EqualTo(result[1]));
+            Assert.That(result[2], Is.EqualTo(skin));
+            Assert.That(result[3], Is.EqualTo(uniform));
+        }
+
+        [Test]
         public void NpcsOnTheSameLook_WithTheSameEyes_DifferInHairAndClothes()
         {
             var lookAlikes = new List<string>();

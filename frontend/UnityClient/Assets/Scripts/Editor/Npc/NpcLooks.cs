@@ -68,7 +68,7 @@ namespace A305.EditorTools.Npc
 
         public static readonly NpcLook PoliceOfficer = Review("Police_Male", "POLICE_")
             .Originally("brown", "navy", "black", "brown")
-            .WithHair(new NpcColorRange((0f, .13f), (.2f, .85f), (.12f, .6f), Head))
+            .WithHair(new NpcColorRange((0f, .13f), (.2f, .85f), (.12f, .6f), HeadAndNape))
             .WithShoes(new NpcColorRange((0f, 1f), (0f, 1f), (.02f, .4f), Feet))
             .WithEyes(false, SeparateIris);
 

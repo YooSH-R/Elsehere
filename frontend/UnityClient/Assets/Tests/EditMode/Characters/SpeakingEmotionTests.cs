@@ -5,6 +5,117 @@ namespace A305.Characters.Tests
 {
     public sealed class SpeakingEmotionTests
     {
+        [TestCase(CharacterFacePose.Neutral, 0f, 100f)]
+        [TestCase(CharacterFacePose.ClosedLips, 1f, 0f)]
+        [TestCase(CharacterFacePose.FV, 1f, 0f)]
+        [TestCase(CharacterFacePose.TH, 1f, 0f)]
+        [TestCase(CharacterFacePose.OpenMouth, 1f, 0f)]
+        [TestCase(CharacterFacePose.ClosedLips, .5f, 50f)]
+        public void BigLaughCorrectionUsesOnlyRestAndClearsOnNeutral(
+            CharacterFacePose pose,
+            float articulation,
+            float expectedCorrection
+        )
+        {
+            var root = new GameObject("폭소와 발음 혼합");
+            var mesh = new Mesh
+            {
+                vertices = new[] { Vector3.zero, Vector3.up, Vector3.right },
+                triangles = new[] { 0, 1, 2 },
+            };
+            foreach (
+                string name in new[]
+                {
+                    "viseme_AA",
+                    "viseme_PP",
+                    "viseme_FF",
+                    "viseme_TH",
+                    "mouthLaughOpen",
+                }
+            )
+                mesh.AddBlendShapeFrame(
+                    name,
+                    100,
+                    new[] { Vector3.up * .01f, Vector3.zero, Vector3.zero },
+                    null,
+                    null
+                );
+            try
+            {
+                var skin = root.AddComponent<SkinnedMeshRenderer>();
+                skin.sharedMesh = mesh;
+                var face = root.AddComponent<CharacterFaceController>();
+                face.ApplySpeech(
+                    SpeechMouthSample.Pose(pose, articulation),
+                    new FaceEmotionSample { restMouthOpen = 1, restLaughOpen = 1 },
+                    0
+                );
+                Assert.That(
+                    skin.GetBlendShapeWeight(4),
+                    Is.EqualTo(expectedCorrection).Within(.01)
+                );
+                face.SetPose(CharacterFacePose.Neutral);
+                Assert.That(skin.GetBlendShapeWeight(4), Is.Zero);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+                Object.DestroyImmediate(mesh);
+            }
+        }
+
+        [TestCase(0, 60)]
+        [TestCase(.5f, 60)]
+        [TestCase(1, 100)]
+        public void SadLidClosureDoesNotAddTheSmilingEyeCurve(float blink, float expected)
+        {
+            var root = new GameObject("슬픔 눈꺼풀");
+            var mesh = new Mesh
+            {
+                vertices = new[] { Vector3.zero, Vector3.up, Vector3.right },
+                triangles = new[] { 0, 1, 2 },
+            };
+            foreach (string name in new[] { "eyeBlinkLeft", "eyeBlinkRight", "eyeSquintLeft" })
+                mesh.AddBlendShapeFrame(
+                    name,
+                    100,
+                    new[] { Vector3.up * .01f, Vector3.zero, Vector3.zero },
+                    null,
+                    null
+                );
+            try
+            {
+                var skin = root.AddComponent<SkinnedMeshRenderer>();
+                skin.sharedMesh = mesh;
+                var face = root.AddComponent<CharacterFaceController>();
+                face.ApplySpeech(
+                    SpeechMouthSample.Rest,
+                    new FaceEmotionSample { eyeClosure = Vector2.one * .6f },
+                    blink
+                );
+                Assert.That(skin.GetBlendShapeWeight(0), Is.EqualTo(expected).Within(.01));
+                Assert.That(skin.GetBlendShapeWeight(1), Is.EqualTo(expected).Within(.01));
+                Assert.That(skin.GetBlendShapeWeight(2), Is.Zero);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+                Object.DestroyImmediate(mesh);
+            }
+        }
+
+        [Test]
+        public void NewReactionsInterpolateTheirMouthAndLids()
+        {
+            var result = FaceEmotionSample.Lerp(
+                default,
+                new FaceEmotionSample { restLaughOpen = 1, eyeClosure = new Vector2(.6f, 1) },
+                .5f
+            );
+            Assert.That(result.restLaughOpen, Is.EqualTo(.5f));
+            Assert.That(result.eyeClosure, Is.EqualTo(new Vector2(.3f, .5f)));
+        }
+
         [TestCase(CharacterFacePose.Neutral, 0f, .45f)]
         [TestCase(CharacterFacePose.ClosedLips, 1f, 0f)]
         [TestCase(CharacterFacePose.FV, 1f, 0f)]

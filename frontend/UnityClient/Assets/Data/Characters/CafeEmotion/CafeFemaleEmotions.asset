@@ -24,6 +24,8 @@ MonoBehaviour:
       cheekRaise: {x: 0, y: 0}
       mouthFrown: {x: 0, y: 0}
       restMouthOpen: 0
+      restLaughOpen: 0
+      eyeClosure: {x: 0, y: 0}
   - emotion: 1
     face:
       smile: {x: 0.55, y: 0.55}
@@ -35,6 +37,8 @@ MonoBehaviour:
       cheekRaise: {x: 0.25, y: 0.25}
       mouthFrown: {x: 0, y: 0}
       restMouthOpen: 0
+      restLaughOpen: 0
+      eyeClosure: {x: 0, y: 0}
   - emotion: 2
     face:
       smile: {x: 0.12, y: 0.12}
@@ -46,17 +50,21 @@ MonoBehaviour:
       cheekRaise: {x: 0, y: 0}
       mouthFrown: {x: 0, y: 0}
       restMouthOpen: 0
+      restLaughOpen: 0
+      eyeClosure: {x: 0, y: 0}
   - emotion: 3
     face:
       smile: {x: 0, y: 0}
-      browInnerUp: {x: 0.6, y: 0.1}
-      browOuterUp: {x: 0.45, y: 0}
-      browDown: {x: 0, y: 0.5}
-      eyeSquint: {x: 0, y: 0.35}
-      eyeWide: {x: 0, y: 0}
+      browInnerUp: {x: 0.8, y: 0.8}
+      browOuterUp: {x: 0.3, y: 0.3}
+      browDown: {x: 0, y: 0}
+      eyeSquint: {x: 0, y: 0}
+      eyeWide: {x: 0.85, y: 0.85}
       cheekRaise: {x: 0, y: 0}
-      mouthFrown: {x: 0.15, y: 0.4}
-      restMouthOpen: 0
+      mouthFrown: {x: 0.7, y: 0.7}
+      restMouthOpen: 0.3
+      restLaughOpen: 0
+      eyeClosure: {x: 0, y: 0}
   - emotion: 4
     face:
       smile: {x: 0, y: 0}
@@ -68,6 +76,8 @@ MonoBehaviour:
       cheekRaise: {x: 0, y: 0}
       mouthFrown: {x: 0.65, y: 0.65}
       restMouthOpen: 0
+      restLaughOpen: 0
+      eyeClosure: {x: 0, y: 0}
   - emotion: 5
     face:
       smile: {x: 0, y: 0}
@@ -79,17 +89,21 @@ MonoBehaviour:
       cheekRaise: {x: 0, y: 0}
       mouthFrown: {x: 0, y: 0}
       restMouthOpen: 0.35
+      restLaughOpen: 0
+      eyeClosure: {x: 0, y: 0}
   - emotion: 6
     face:
-      smile: {x: 0.7, y: 0.2}
+      smile: {x: 1, y: 0.15}
       browInnerUp: {x: 0, y: 0}
-      browOuterUp: {x: 0.4, y: 0}
+      browOuterUp: {x: 0.7, y: 0}
       browDown: {x: 0, y: 0}
-      eyeSquint: {x: 0.2, y: 0.5}
+      eyeSquint: {x: 0, y: 0}
       eyeWide: {x: 0, y: 0}
-      cheekRaise: {x: 0.25, y: 0.15}
+      cheekRaise: {x: 0.3, y: 0.1}
       mouthFrown: {x: 0, y: 0}
       restMouthOpen: 0
+      restLaughOpen: 0
+      eyeClosure: {x: 0, y: 1}
   - emotion: 7
     face:
       smile: {x: 0.9, y: 0.9}
@@ -101,6 +115,8 @@ MonoBehaviour:
       cheekRaise: {x: 0.8, y: 0.8}
       mouthFrown: {x: 0, y: 0}
       restMouthOpen: 0.55
+      restLaughOpen: 0
+      eyeClosure: {x: 0, y: 0}
   - emotion: 8
     face:
       smile: {x: 0, y: 0}
@@ -112,3 +128,31 @@ MonoBehaviour:
       cheekRaise: {x: 0, y: 0}
       mouthFrown: {x: 0.3, y: 0.3}
       restMouthOpen: 0
+      restLaughOpen: 0
+      eyeClosure: {x: 0, y: 0}
+  - emotion: 9
+    face:
+      smile: {x: 0, y: 0}
+      browInnerUp: {x: 1, y: 1}
+      browOuterUp: {x: 0, y: 0}
+      browDown: {x: 0, y: 0}
+      eyeSquint: {x: 0, y: 0}
+      eyeWide: {x: 0, y: 0}
+      cheekRaise: {x: 0, y: 0}
+      mouthFrown: {x: 1, y: 1}
+      restMouthOpen: 0.05
+      restLaughOpen: 0
+      eyeClosure: {x: 0.42, y: 0.42}
+  - emotion: 10
+    face:
+      smile: {x: 1, y: 1}
+      browInnerUp: {x: 0, y: 0}
+      browOuterUp: {x: 0.4, y: 0.4}
+      browDown: {x: 0, y: 0}
+      eyeSquint: {x: 1, y: 1}
+      eyeWide: {x: 0, y: 0}
+      cheekRaise: {x: 0.6, y: 0.6}
+      mouthFrown: {x: 0, y: 0}
+      restMouthOpen: 1
+      restLaughOpen: 1
+      eyeClosure: {x: 0, y: 0}

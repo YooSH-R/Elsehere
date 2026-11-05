@@ -14,6 +14,8 @@ namespace A305.Characters
         Playful,
         Laugh,
         Concerned,
+        Sad,
+        BigLaugh,
     }
 
     [Serializable]
@@ -28,6 +30,8 @@ namespace A305.Characters
         public Vector2 cheekRaise;
         public Vector2 mouthFrown;
         public float restMouthOpen;
+        public float restLaughOpen;
+        public Vector2 eyeClosure;
 
         public FaceEmotionSample(float browDown)
             : this()
@@ -51,6 +55,8 @@ namespace A305.Characters
                 cheekRaise = Vector2.Lerp(from.cheekRaise, to.cheekRaise, progress),
                 mouthFrown = Vector2.Lerp(from.mouthFrown, to.mouthFrown, progress),
                 restMouthOpen = Mathf.Lerp(from.restMouthOpen, to.restMouthOpen, progress),
+                restLaughOpen = Mathf.Lerp(from.restLaughOpen, to.restLaughOpen, progress),
+                eyeClosure = Vector2.Lerp(from.eyeClosure, to.eyeClosure, progress),
             };
     }
 }

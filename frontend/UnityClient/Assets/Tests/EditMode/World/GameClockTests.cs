@@ -7,6 +7,52 @@ namespace A305.World.Tests
     public class GameClockTests
     {
         [Test]
+        public async Task TutorialHoldReleased_RequestsTheServerTimeImmediately()
+        {
+            var clock = new GameClock { IsHeld = true };
+            var api = new FakeGameClockApi
+            {
+                Reply = new GameClockTime
+                {
+                    Day = 1,
+                    MinuteOfDay = 480,
+                    Paused = true,
+                },
+            };
+            await clock.TickAsync(api, 5);
+
+            clock.IsHeld = false;
+
+            Assert.That(clock.IsDue(6), Is.True, "튜토리얼 종료 후 30초를 기다리지 않는다");
+        }
+
+        [Test]
+        public async Task ClosedInteraction_IgnoresThePausedStateFromAnOlderRequest()
+        {
+            var clock = new GameClock { IsTalking = true };
+            var api = new FakeGameClockApi { Gate = new TaskCompletionSource<GameClockTime>() };
+            Task<GameClockBeatStatus> pending = clock.TickAsync(api, 5);
+            clock.IsTalking = false;
+            api.Gate.SetResult(
+                new GameClockTime
+                {
+                    Day = 1,
+                    MinuteOfDay = 480,
+                    Paused = true,
+                }
+            );
+            await pending;
+
+            clock.Flow(1);
+
+            Assert.That(
+                clock.Minutes,
+                Is.GreaterThan(480),
+                "지난 정지 응답으로 다시 멈추지 않는다"
+            );
+        }
+
+        [Test]
         public async Task TickAsync_FirstTick_SendsBeatAndKeepsServerTime()
         {
             var api = new FakeGameClockApi { Reply = Time(1, 480) };
@@ -90,6 +136,54 @@ namespace A305.World.Tests
         }
 
         [Test]
+        public void Flow_WhileReadingInteractionPause_StandsStillWithoutReleasingTutorialHold()
+        {
+            var clock = new GameClock { IsLearningWindowOpen = true };
+            clock.Flow(30);
+            Assert.That(clock.Minutes, Is.EqualTo(480));
+
+            clock.IsHeld = true;
+            clock.IsLearningWindowOpen = false;
+            clock.Flow(30);
+            Assert.That(clock.Minutes, Is.EqualTo(480));
+        }
+
+        [Test]
+        public async Task InteractionPauseTransitions_SendABeatWithoutWaitingThirtySeconds()
+        {
+            var api = new FakeGameClockApi { Reply = Time(1, 480) };
+            var clock = new GameClock();
+            await clock.TickAsync(api, 5);
+
+            clock.IsLearningWindowOpen = true;
+            Assert.That(clock.IsDue(6), Is.True);
+            await clock.TickAsync(api, 6);
+            clock.IsLearningWindowOpen = false;
+            Assert.That(clock.IsDue(7), Is.True);
+            await clock.TickAsync(api, 7);
+
+            Assert.That(api.Calls, Is.EqualTo(3));
+        }
+
+        [Test]
+        public async Task BeatAsync_ReportsTheInteractionPauseAndThePausedInterval()
+        {
+            var transport = new RecordingTransport();
+            var api = new GameClockApi(new ApiClient("", transport));
+
+            await api.BeatAsync(interactionPaused: false, interactionWasPaused: true);
+
+            Assert.That(
+                transport.Request.JsonBody,
+                Does.Match("\"interactionPaused\"\\s*:\\s*false")
+            );
+            Assert.That(
+                transport.Request.JsonBody,
+                Does.Match("\"interactionWasPaused\"\\s*:\\s*true")
+            );
+        }
+
+        [Test]
         public void Minutes_BeforeServerTime_StartsAtEightOnDayOneLikeANewUser()
         {
             var clock = new GameClock();
@@ -156,6 +250,56 @@ namespace A305.World.Tests
             Assert.That(clock.Minutes, Is.EqualTo(8 * 60 + 144).Within(.001));
         }
 
+        [Test]
+        public void Flow_WhileTalking_StopsBeforeAnyServerResponse()
+        {
+            var clock = new GameClock { IsTalking = true };
+            clock.Flow(60);
+            Assert.That(clock.Minutes, Is.EqualTo(480));
+            clock.IsTalking = false;
+            clock.Flow(1);
+            Assert.That(clock.Minutes, Is.GreaterThan(480));
+        }
+
+        [Test]
+        public async Task WindowOpenedAndClosedDuringARequest_DiscardsTheStaleTimeAndFlushesThePause()
+        {
+            var api = new FakeGameClockApi { Gate = new TaskCompletionSource<GameClockTime>() };
+            var clock = new GameClock();
+            Task<GameClockBeatStatus> pending = clock.TickAsync(api, 5);
+            clock.IsLearningWindowOpen = true;
+            clock.IsLearningWindowOpen = false;
+            api.Gate.SetResult(Time(1, 500));
+            await pending;
+            Assert.That(clock.Minutes, Is.EqualTo(480));
+            Assert.That(clock.IsDue(6), Is.True);
+        }
+
+        [Test]
+        public async Task OpeningWindow_ReportsOnlyTheTimeThatActuallyFlowed()
+        {
+            var api = new FakeGameClockApi { Reply = Time(1, 480) };
+            var clock = new GameClock();
+            await clock.TickAsync(api, 1);
+            clock.Flow(25);
+            clock.IsLearningWindowOpen = true;
+            await clock.TickAsync(api, 26);
+            Assert.That(api.ActiveSeconds, Is.EqualTo(25));
+            clock.Flow(60);
+            clock.IsLearningWindowOpen = false;
+            await clock.TickAsync(api, 86);
+            Assert.That(api.ActiveSeconds, Is.Zero);
+        }
+
+        [Test]
+        public async Task BeatAsync_ReportsActiveSecondsBeforeTheWindowOpened()
+        {
+            var transport = new RecordingTransport();
+            var api = new GameClockApi(new ApiClient("", transport));
+            await api.BeatAsync(true, false, 25);
+            Assert.That(transport.Request.JsonBody, Does.Match("\"activeSeconds\"\\s*:\\s*25"));
+        }
+
         private static GameClockTime Time(int day, int minuteOfDay)
         {
             return new GameClockTime { Day = day, MinuteOfDay = minuteOfDay };
@@ -164,6 +308,7 @@ namespace A305.World.Tests
         private sealed class FakeGameClockApi : IGameClockApi
         {
             public int Calls { get; private set; }
+            public long? ActiveSeconds { get; private set; }
 
             public GameClockTime Reply { get; set; }
 
@@ -172,9 +317,14 @@ namespace A305.World.Tests
             // 정해 두면 응답을 SetResult할 때까지 붙잡아 둔다.
             public TaskCompletionSource<GameClockTime> Gate { get; set; }
 
-            public Task<GameClockTime> BeatAsync()
+            public Task<GameClockTime> BeatAsync(
+                bool interactionPaused = false,
+                bool interactionWasPaused = false,
+                long? activeSeconds = null
+            )
             {
                 Calls++;
+                ActiveSeconds = activeSeconds;
                 if (Failure != null)
                 {
                     return Task.FromException<GameClockTime>(Failure);

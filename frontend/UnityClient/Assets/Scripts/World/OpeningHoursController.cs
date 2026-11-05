@@ -1,4 +1,7 @@
+using System.Collections.Generic;
+using System.Linq;
 using A305.Player;
+using A305.Weather;
 using UnityEngine;
 
 namespace A305.World
@@ -46,6 +49,39 @@ namespace A305.World
             }
 
             OpeningHours.Use(PlaceHours.FromJson(placeHours.text));
+        }
+
+        private WeatherPresenter weather;
+        private readonly Dictionary<Transform, string> buildings =
+            new Dictionary<Transform, string>();
+
+        private void Start()
+        {
+            weather = gameObject
+                .scene.GetRootGameObjects()
+                .SelectMany(root => root.GetComponentsInChildren<WeatherPresenter>())
+                .FirstOrDefault();
+            if (weather == null)
+                return;
+            foreach (Transform building in weather.LitBuildings)
+            {
+                if (building == null)
+                    continue;
+                ShopInterior shop = building.GetComponentInChildren<ShopInterior>(true);
+                SpaceDoorway door = building.GetComponentInChildren<SpaceDoorway>(true);
+                string code =
+                    shop != null ? shop.PlaceCode
+                    : door != null ? PlaceScenes.CodeOf(door.DestinationScene)
+                    : null;
+                if (code != null)
+                    buildings[building] = code;
+            }
+        }
+
+        private void LateUpdate()
+        {
+            foreach (var entry in buildings)
+                weather.SetBuildingOpen(entry.Key, OpeningHours.IsOpenNow(entry.Value));
         }
 
         private void OnEnable()

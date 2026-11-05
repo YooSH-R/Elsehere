@@ -110,15 +110,15 @@ namespace A305.Weather
         }
 
         /// <param name="night">밤인 정도. 0이면 가로등은 꺼지고 나머지는 씬 디자인 그대로다.</param>
-        public void Apply(DaylightSettings settings, float night)
+        public void Apply(DaylightSettings settings, float night, bool open = true)
         {
-            float lampScale = Mathf.Lerp(1f, settings.NightLampScale, night);
+            float lampScale = open ? Mathf.Lerp(1f, settings.NightLampScale, night) : 0;
             for (int index = 0; index < lamps.Length; index++)
                 lamps[index].intensity = lampIntensities[index] * lampScale;
-            float shopLampScale = Mathf.Lerp(1f, settings.NightShopLampScale, night);
+            float shopLampScale = open ? Mathf.Lerp(1f, settings.NightShopLampScale, night) : 0;
             for (int index = 0; index < shopLamps.Length; index++)
                 shopLamps[index].intensity = shopLampIntensities[index] * shopLampScale;
-            float glowScale = Mathf.Lerp(1f, settings.NightGlowScale, night);
+            float glowScale = open ? Mathf.Lerp(1f, settings.NightGlowScale, night) : 0;
             foreach (Glow glow in glows)
                 glow.Apply(glowScale);
             // 가로등은 해가 지면서 켜져 한밤에 다른 등과 같은 배율로 밝다. 낮에 꺼진 빛은 그리지 않는다.
@@ -130,11 +130,18 @@ namespace A305.Weather
             }
             foreach (Glow glow in streetLampGlows)
                 glow.Apply(settings.NightGlowScale * night);
-            float windowEmission = Mathf.Lerp(1f, settings.NightWindowEmissionScale, night);
+            float windowEmission = open
+                ? Mathf.Lerp(1f, settings.NightWindowEmissionScale, night)
+                : 0;
             foreach (Window window in windows)
                 window.Apply(settings.NightWindowColor, night, windowEmission);
             foreach (LitWindow window in litWindows)
-                window.Apply(settings.LitWindowColor, settings.LitWindowEmission, night);
+                window.Apply(
+                    open ? settings.LitWindowColor : settings.NightWindowColor,
+                    open ? settings.LitWindowEmission : Color.black,
+                    night,
+                    open
+                );
         }
 
         public void Restore()
@@ -272,13 +279,16 @@ namespace A305.Weather
                 material.EnableKeyword("_EMISSION");
             }
 
-            public void Apply(Color litColor, Color litEmission, float night)
+            public void Apply(Color litColor, Color litEmission, float night, bool open)
             {
                 Color painted = Color.Lerp(color, litColor, night);
                 painted.a = color.a;
                 material.color = painted;
                 if (material.HasProperty(EmissionId))
-                    material.SetColor(EmissionId, Color.Lerp(emission, litEmission, night));
+                    material.SetColor(
+                        EmissionId,
+                        open ? Color.Lerp(emission, litEmission, night) : Color.black
+                    );
             }
         }
     }

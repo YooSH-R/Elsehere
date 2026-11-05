@@ -13,9 +13,21 @@ namespace A305.World
             this.client = client;
         }
 
-        public Task<GameClockTime> BeatAsync()
+        public Task<GameClockTime> BeatAsync(
+            bool interactionPaused = false,
+            bool interactionWasPaused = false,
+            long? activeSeconds = null
+        )
         {
-            return client.PostAsync<GameClockTime>("/api/v1/me/game-clock/beats", null);
+            return client.PostAsync<GameClockTime>(
+                "/api/v1/me/game-clock/beats",
+                new
+                {
+                    interactionPaused,
+                    interactionWasPaused,
+                    activeSeconds,
+                }
+            );
         }
     }
 }

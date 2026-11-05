@@ -392,6 +392,36 @@ namespace A305.Mission.Tests
             Assert.That(direction.GetTextInfo(direction.text).lineCount, Is.EqualTo(1));
         }
 
+        // 목표 아래에 무엇을 말해야 하는지 작게 보인다. 말할 내용이 없는 목표는 이름만 보인다.
+        [Test]
+        public void Goal_ShowsWhatToSayUnderItsName()
+        {
+            FirstDayMissionState state = Journey(current: 3);
+            state.Steps[3].Goals[0].Hint = "파란색 숄더백, 빨간 열쇠고리";
+            state
+                .Steps[3]
+                .Goals.Add(new FirstDayMissionGoal { Id = "own", Title = "본인 물건 확인" });
+
+            Refresh(state);
+
+            RectTransform goals = Field<RectTransform>("goals");
+            TMP_Text first = HintOf(goals.GetChild(0));
+            Assert.That(first.text, Is.EqualTo("파란색 숄더백, 빨간 열쇠고리"));
+            Assert.That(first.gameObject.activeSelf, Is.True);
+            Assert.That(HintOf(goals.GetChild(1)).gameObject.activeSelf, Is.False);
+        }
+
+        private static TMP_Text HintOf(Transform row)
+        {
+            foreach (TMP_Text text in row.GetComponentsInChildren<TMP_Text>(true))
+            {
+                if (text.name == "Hint")
+                    return text;
+            }
+            Assert.Fail("목표 줄에 Hint 글자가 없습니다.");
+            return null;
+        }
+
         private void Refresh(FirstDayMissionState state)
         {
             instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));

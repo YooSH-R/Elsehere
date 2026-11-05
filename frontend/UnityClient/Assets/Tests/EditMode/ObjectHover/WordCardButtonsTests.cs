@@ -68,6 +68,17 @@ namespace A305.ObjectHover.Tests
         }
 
         [Test]
+        public async Task For_WordWithoutAudio_BrowserPronunciationKeepsTheListenButton()
+        {
+            WordCard card = await LoadAsync(hasPronunciation: false);
+
+            Assert.That(
+                WordCardButtons.For(card, browserPronunciationAvailable: true).HasPronunciation,
+                Is.True
+            );
+        }
+
+        [Test]
         public async Task For_WhileSaving_BlocksSaveAndHide()
         {
             api.AddWord("sofa");

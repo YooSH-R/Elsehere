@@ -13,10 +13,9 @@ using UnityEngine.UI;
 namespace A305.Learning.PlayModeTests
 {
     /// <summary>
-    /// 요약 탭은 위 "이 상황에서 자주 써요"와 아래 "대화 요약"으로 나뉘고, 두 칸은 제목 줄 오른쪽의 작은 쪽 넘김으로 따로 넘긴다.
-    /// 표현은 한 장에 두 개씩 보이고, 요약 글이 길면 요약 칸 안에서만 넘긴다. 아래쪽 쪽 넘김 줄은 요약 탭에서 숨긴다.
+    /// 긴 피드백은 고정된 본문 영역 안에서 스크롤한다. 표현을 잘라 숨기지 않고 하단 버튼은 본문 밖에 둔다.
     /// </summary>
-    public class FeedbackSummaryPagingTests
+    public class FeedbackScrollTests
     {
         private const string PrefabPath = "Assets/Prefabs/Learning/FeedbackScreen.prefab";
         private const string Summary =
@@ -29,47 +28,46 @@ namespace A305.Learning.PlayModeTests
         public void DestroyScreen() => Object.Destroy(instance);
 
         [UnityTest]
-        public IEnumerator ManySituations_PageTwoAtATime_WithTheirOwnArrows()
+        public IEnumerator ManySituations_AllRemainInTheScrollableContent()
         {
             yield return Show(situationCount: 5, summary: Summary);
-            RectTransform situations = Field<RectTransform>("situationPager");
-
-            Assert.That(VisibleRows(), Has.Count.EqualTo(2), "표현은 한 장에 두 개씩");
-            Assert.That(PageText(situations), Is.EqualTo("1 / 3"));
+            Assert.That(
+                VisibleRows(),
+                Has.Count.EqualTo(5),
+                "스크롤로 모든 표현을 볼 수 있어야 합니다."
+            );
             Assert.That(
                 Field<RectTransform>("navigationRow").gameObject.activeInHierarchy,
                 Is.False,
-                "요약 탭에서는 아래쪽 쪽 넘김 줄을 숨깁니다."
+                "스크롤 화면에 쪽 넘김을 함께 보이지 않습니다."
             );
             AssertSummaryShownWhole();
 
-            ClickNext(situations);
+            ScrollRect scroll = instance.GetComponentInChildren<ScrollRect>();
+            Assert.That(scroll, Is.Not.Null);
+            Assert.That(scroll.viewport.GetComponent<RectMask2D>(), Is.Not.Null);
+            Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
+            scroll.verticalNormalizedPosition = 0;
             yield return null;
-
-            Assert.That(PageText(situations), Is.EqualTo("2 / 3"));
-            Assert.That(VisibleRows(), Has.Count.EqualTo(2));
-            Assert.That(RowText(VisibleRows()[0]), Does.Contain("number 3"));
+            Assert.That(RowText(VisibleRows()[4]), Does.Contain("number 5"));
             AssertSummaryShownWhole();
         }
 
         [UnityTest]
-        public IEnumerator LongSummary_PagesInsideItsOwnBox()
+        public IEnumerator LongSummary_HasItsFullHeightInsideTheScrollView()
         {
             string longSummary = string.Join(" ", Enumerable.Repeat(Summary, 12));
             yield return Show(situationCount: 2, summary: longSummary);
-            RectTransform situations = Field<RectTransform>("situationPager");
-            RectTransform summary = Field<RectTransform>("summaryPager");
-            string[] firstPage = PageText(summary).Split('/');
-
-            Assert.That(PageText(situations), Is.EqualTo("1 / 1"));
-            Assert.That(firstPage[0].Trim(), Is.EqualTo("1"));
-            Assert.That(int.Parse(firstPage[1].Trim()), Is.GreaterThan(1), "긴 요약은 여러 장");
-
-            ClickNext(summary);
+            ScrollRect scroll = instance.GetComponentInChildren<ScrollRect>();
+            Assert.That(scroll, Is.Not.Null);
+            Assert.That(
+                Field<TMP_Text>("bodyText").overflowMode,
+                Is.EqualTo(TextOverflowModes.Overflow)
+            );
+            Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
+            AssertSummaryShownWhole();
+            scroll.verticalNormalizedPosition = 0;
             yield return null;
-
-            Assert.That(PageText(summary), Does.StartWith("2 /"));
-            Assert.That(PageText(situations), Is.EqualTo("1 / 1"), "표현 칸은 그대로");
             Assert.That(VisibleRows(), Has.Count.EqualTo(2));
         }
 
@@ -79,7 +77,6 @@ namespace A305.Learning.PlayModeTests
             yield return Show(situationCount: 2, summary: Summary);
 
             Assert.That(VisibleRows(), Has.Count.EqualTo(2));
-            Assert.That(PageText(Field<RectTransform>("summaryPager")), Is.EqualTo("1 / 1"));
             AssertSummaryShownWhole();
         }
 
@@ -136,12 +133,6 @@ namespace A305.Learning.PlayModeTests
             Assert.That(body.text, Does.Contain(Summary));
             Assert.That(body.rectTransform.rect.height + 1f, Is.GreaterThanOrEqualTo(needed));
         }
-
-        private static string PageText(RectTransform pager) =>
-            pager.Find("PageNumber").GetComponent<TMP_Text>().text;
-
-        private static void ClickNext(RectTransform pager) =>
-            pager.Find("NextButton").GetComponent<Button>().onClick.Invoke();
 
         private static string RowText(GameObject row) =>
             string.Join(" ", row.GetComponentsInChildren<TMP_Text>().Select(text => text.text));

@@ -16,6 +16,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -57,6 +58,38 @@ class GameClockControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.day").value(1))
         .andExpect(jsonPath("$.minuteOfDay").value(552))
+        .andExpect(jsonPath("$.paused").value(true));
+  }
+
+  @Test
+  void beatWithInteractionPause_reportsTheAuthenticatedUsersPause() throws Exception {
+    given(gameClockService.beat(1L, true, false)).willReturn(new GameClockResponse(1, 480, true));
+    mockMvc
+        .perform(
+            post(PATH + "/beats")
+                .header(CsrfHeaderFilter.HEADER_NAME, "ElsehereClient")
+                .with(authentication(loggedIn(1L)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"interactionPaused\":true,\"interactionWasPaused\":false}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.minuteOfDay").value(480))
+        .andExpect(jsonPath("$.paused").value(true));
+  }
+
+  @Test
+  void beatWithActiveSecondsPreservesProgressBeforeOpening() throws Exception {
+    given(gameClockService.beat(1L, true, false, 25L))
+        .willReturn(new GameClockResponse(1, 540, true));
+    mockMvc
+        .perform(
+            post(PATH + "/beats")
+                .header(CsrfHeaderFilter.HEADER_NAME, "ElsehereClient")
+                .with(authentication(loggedIn(1L)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"interactionPaused\":true,\"interactionWasPaused\":false,\"activeSeconds\":25}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.minuteOfDay").value(540))
         .andExpect(jsonPath("$.paused").value(true));
   }
 

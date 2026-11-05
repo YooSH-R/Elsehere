@@ -26,6 +26,20 @@ namespace A305.Learning.Tests
         public void DestroyScreen() => Object.DestroyImmediate(instance);
 
         [Test]
+        public void SummaryHeadings_AlignTheirVisibleLeftMarkers()
+        {
+            Show();
+            Canvas.ForceUpdateCanvases();
+            Transform summaryMarker = Field<TMP_Text>("summaryTitle").transform.Find("Bar");
+            Transform situationMarker = SituationTitle().transform.Find("Bar");
+            Assert.That(
+                summaryMarker.position.x,
+                Is.EqualTo(situationMarker.position.x).Within(.1f),
+                "두 제목의 왼쪽 기준선을 맞춘다"
+            );
+        }
+
+        [Test]
         public void Header_ShowsTheMockupTitleAndTabNames()
         {
             Show();
@@ -109,7 +123,7 @@ namespace A305.Learning.Tests
         {
             Show();
             Canvas.ForceUpdateCanvases();
-            Transform tile = Panel().Find("PageCard/BodyTile");
+            Transform tile = Panel().Find("PageCard/Content/BodyTile");
 
             Assert.That(tile.gameObject.activeInHierarchy, Is.True);
             Assert.That(tile.GetComponent<Image>().sprite.name, Is.EqualTo("FeedbackSummaryTile"));

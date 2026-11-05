@@ -232,7 +232,7 @@ namespace A305.EditorTools.Learning
                 22f,
                 SubTextColor
             );
-            Transform bodyParent = panel.Find("PageCard");
+            Transform bodyParent = panel.Find("PageCard/Content") ?? panel.Find("PageCard");
             if (bodyParent == null)
                 bodyParent = panel;
             TMP_Text body = UiBuilderTools.FindOrCreateText(
@@ -243,7 +243,9 @@ namespace A305.EditorTools.Learning
                 Color.white
             );
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
-            Transform savedButton = panel.Find("PageCard/BodyTile/SaveButton");
+            Transform savedButton =
+                panel.Find("PageCard/Content/BodyTile/SaveButton")
+                ?? panel.Find("PageCard/BodyTile/SaveButton");
             Button saveButton = UiBuilderTools.FindOrCreateButton(
                 savedButton != null ? savedButton.parent : buttons,
                 "SaveButton",

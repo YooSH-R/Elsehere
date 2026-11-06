@@ -155,6 +155,8 @@ namespace A305.Npc
 
         private NpcNameTag? TagOf(string npcCode)
         {
+            if (string.IsNullOrEmpty(npcCode))
+                return null;
             if (!tagsByCode.TryGetValue(npcCode, out NpcNameTag? tag))
             {
                 DialogueScript script = null;

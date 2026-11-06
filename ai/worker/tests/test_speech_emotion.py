@@ -92,3 +92,37 @@ def test_invalid_emotion_duration_is_rejected_without_losing_joined_voice():
     joined, duration = join_wavs([invalid, first])
     assert duration == 2
     assert read_emotions(joined)["cues"] == [{"start": 1, "end": 2, "emotion": "curious", "intensity": 0.6}]
+
+
+def test_timed_out_reply_retains_phrases_for_later_synthesis_without_another_llm_call(provider):
+    provider.answers["npc"] = lambda body: stream(["[[concerned:0.7]]Are you okay? [[warm_smile:0.6]]Let me help."])
+    with make_client(provider, FakeTts(wav=True, delay=0.1), tts_chunk_budget_s=0.001, tts_full_budget_s=0.002) as client:
+        reply = events(client.post("/v1/npc/reply", json={**REPLY, "suggest_words": False}))
+        done = next(data for name, data in reply if name == "done")
+        assert done["audio_full_id"] is None
+        phrases = done["speech_phrases"]
+        assert phrases == [
+            {"text": "Are you okay?", "emotion": "concerned", "intensity": 0.7},
+            {"text": "Let me help.", "emotion": "warm_smile", "intensity": 0.6},
+        ]
+        response = client.post("/v1/tts", json={"text": done["text"], "phrases": phrases})
+        assert response.status_code == 200
+        cues = read_emotions(response.content)["cues"]
+        assert [cue["emotion"] for cue in cues] == ["concerned", "warm_smile"]
+        assert cues[1]["start"] == cues[0]["end"]
+        assert len(provider.calls) == 1
+
+
+@pytest.mark.parametrize(
+    "phrases",
+    [
+        [{"text": "Unrelated words", "emotion": "sad", "intensity": 0.7}],
+        [{"text": "Hello.", "emotion": "unknown", "intensity": 0.5}],
+        [{"text": "Hello.", "emotion": "sad", "intensity": 2}],
+    ],
+)
+def test_recreated_speech_rejects_mismatched_or_invalid_emotion_phrases(provider, phrases):
+    tts = FakeTts(wav=True)
+    with make_client(provider, tts) as client:
+        assert client.post("/v1/tts", json={"text": "Hello.", "phrases": phrases}).status_code == 400
+        assert tts.texts == []

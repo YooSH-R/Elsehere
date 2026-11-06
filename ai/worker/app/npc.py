@@ -72,6 +72,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
     use_tts = req.tts and tts is not None
     closing = False
     moods = {}
+    speech_phrases = []
 
     def schedule(text: str, mood=None):
         nonlocal last_audio_requested_at
@@ -82,6 +83,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
             synthesis_tasks.append(task)
         chunks.put_nowait((st["seq"], text, task, time.perf_counter()))
         moods[st["seq"]] = mood
+        speech_phrases.append({"text": text, "emotion": mood.emotion if mood else None, "intensity": mood.intensity if mood else 0})
         st["seq"] += 1
 
     async def run_llm():
@@ -236,6 +238,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
                 "done",
                 {
                     "text": st["full"].strip().strip('"'),
+                    "speech_phrases": speech_phrases,
                     "first_token_s": st["first"],
                     "total_s": round(time.perf_counter() - t0, 2),
                     **full_audio,

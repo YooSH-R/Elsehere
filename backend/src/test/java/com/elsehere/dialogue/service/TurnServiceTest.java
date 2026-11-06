@@ -20,6 +20,8 @@ import com.elsehere.ai.client.NpcReply;
 import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.common.config.AdjustableClock;
+import com.elsehere.common.config.TestClockConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.logging.LogCapture;
@@ -46,6 +48,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -71,6 +74,8 @@ class TurnServiceTest {
 
   @Autowired private EntityManager entityManager;
 
+  @Autowired private AdjustableClock clock;
+
   private Long userId;
   private Long conversationId;
   private UUID lastRequestId;
@@ -79,6 +84,139 @@ class TurnServiceTest {
   void setUp() {
     userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
     conversationId = startPasserby(userId).conversationId();
+  }
+
+  @AfterEach
+  void resetClock() {
+    clock.setInstant(TestClockConfig.NOW);
+  }
+
+  @Test
+  @DisplayName("정확히 5분 뒤의 마지막 발화는 받아 마무리 답변 뒤 TIME_LIMIT으로 끝낸다")
+  void send_atTimeLimit_acceptsFinalTurnAndEnds() {
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(300));
+    judges("By card, please.", "By card, please.", null);
+    given(
+            aiGateway.reply(
+                any(),
+                any(),
+                any(),
+                any(),
+                eq("By card, please."),
+                eq(TurnService.TIME_LIMIT_WRAP_UP),
+                anyInt(),
+                any()))
+        .willReturn(reply("You're all set. Have a nice day!", null));
+
+    TurnResponse response = send("By card, please.");
+
+    assertThat(response.npcTurn().text()).isEqualTo("You're all set. Have a nice day!");
+    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ENDED_BY_NPC);
+    assertThat(response.conversation().endReason()).isEqualTo(ConversationEndReason.TIME_LIMIT);
+    assertThat(response.conversation().finalTurnsRemaining()).isZero();
+  }
+
+  @Test
+  @DisplayName("대화 시작 후 5분이 되기 전의 새 발화는 정상 처리한다")
+  void send_beforeTimeLimit_acceptsTurn() {
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(299));
+    judges("One last question.", "One last question.", null);
+    repliesTo("One last question.", reply("Sure, go ahead.", null));
+
+    TurnResponse response = send("One last question.");
+
+    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
+    assertThat(response.npcTurn().text()).isEqualTo("Sure, go ahead.");
+  }
+
+  @Test
+  @DisplayName("5분 전에 받은 발화는 NPC 답변을 저장한 뒤 마지막 발화 한 번을 남긴다")
+  void send_startedBeforeTimeLimit_completesReplyThenWaitsForFinalTurn() {
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(299));
+    judges("One last question.", "One last question.", null);
+    given(
+            aiGateway.reply(
+                any(), any(), any(), any(), eq("One last question."), eq(""), anyInt(), any()))
+        .willAnswer(
+            invocation -> {
+              clock.setInstant(TestClockConfig.NOW.plusSeconds(301));
+              return reply("Sure, go ahead.", null);
+            });
+
+    TurnResponse response = send("One last question.");
+
+    assertThat(response.npcTurn().text()).isEqualTo("Sure, go ahead.");
+    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
+    assertThat(response.conversation().closing()).isTrue();
+    assertThat(response.conversation().finalTurnsRemaining()).isEqualTo(1);
+    assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(3);
+  }
+
+  @Test
+  @DisplayName("5분 전에 받은 발화의 답변이 5분 30초를 넘기면 답변 저장 뒤 TIME_LIMIT으로 끝낸다")
+  void send_startedBeforeTimeLimit_completesAfterGraceThenEnds() {
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(299));
+    judges("One last question.", "One last question.", null);
+    given(
+            aiGateway.reply(
+                any(), any(), any(), any(), eq("One last question."), eq(""), anyInt(), any()))
+        .willAnswer(
+            invocation -> {
+              clock.setInstant(TestClockConfig.NOW.plusSeconds(331));
+              return reply("Sure, here is the answer.", null);
+            });
+
+    TurnResponse response = send("One last question.");
+
+    assertThat(response.npcTurn().text()).isEqualTo("Sure, here is the answer.");
+    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ENDED_BY_NPC);
+    assertThat(response.conversation().endReason()).isEqualTo(ConversationEndReason.TIME_LIMIT);
+  }
+
+  @Test
+  @DisplayName("시간 제한으로 끝낸 마지막 발화를 재시도하면 저장된 답변을 그대로 돌려준다")
+  void send_retryFinalTimeLimitedTurn_replaysSavedResponse() {
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(300));
+    judges("One last question.", "One last question.", null);
+    given(
+            aiGateway.reply(
+                any(),
+                any(),
+                any(),
+                any(),
+                eq("One last question."),
+                eq(TurnService.TIME_LIMIT_WRAP_UP),
+                anyInt(),
+                any()))
+        .willAnswer(
+            invocation -> {
+              return reply("Sure, go ahead.", null);
+            });
+    TurnRequest request =
+        new TurnRequest(UUID.randomUUID(), InputType.TEXT, "One last question.", null);
+    TurnResponse first = turnService.send(userId, conversationId, request);
+
+    TurnResponse replayed = turnService.send(userId, conversationId, request);
+
+    assertThat(replayed).isEqualTo(first);
+    assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(3);
+    then(aiGateway).should().judge(any(), any(), any(), any(), eq("One last question."));
+  }
+
+  @Test
+  @DisplayName("5분 30초가 지나면 새 발화를 AI에 보내지 않고 TIME_LIMIT으로 끝낸다")
+  void send_afterGracePeriod_endsBeforeCallingAi() {
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(330));
+
+    assertThatThrownBy(() -> send("Can we keep talking?"))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.CONVERSATION_NOT_ACTIVE));
+
+    assertThat(conversationService.detail(userId, conversationId).endReason())
+        .isEqualTo(ConversationEndReason.TIME_LIMIT);
+    then(aiGateway).shouldHaveNoInteractions();
   }
 
   @Test

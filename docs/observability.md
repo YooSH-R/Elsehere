@@ -30,7 +30,7 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 | 레벨 | 이벤트 | 키 | 남기는 때 |
 | --- | --- | --- | --- |
 | INFO | `conversation_started` | `conversation_id`, `npc`, `initiated_by` | 대화 시작(CONV-01) 저장 뒤 |
-| INFO | `conversation_ended` | `conversation_id`, `status`, `end_reason`, (사용자 종료면) `user_turns` | 사용자가 끝냄(CONV-08), 무례 누적으로 NPC가 끝냄(CONV-03). 이미 끝난 대화를 다시 끝내면 남기지 않음 |
+| INFO | `conversation_ended` | `conversation_id`, `status`, `end_reason`, (사용자 종료면) `user_turns` | 사용자가 끝냄(CONV-08), 무례 누적·5분 제한으로 NPC가 끝냄(CONV-03). 이미 끝난 대화를 다시 끝내면 남기지 않음 |
 | WARN | `feedback_failed` | `conversation_id`, `reason` | 짧은 피드백을 만들지 못함(AI 시간 초과 등) |
 | INFO | `feedback_skipped` | `conversation_id`, `reason` | 피드백을 건너뜀. 사용자가 건너뛰면 `USER_SKIPPED` |
 | INFO | `guest_conversation_limit_reached` | `user_id`, `limit` | 게스트 대화 한도로 대화 시작을 거절 |

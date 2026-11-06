@@ -34,6 +34,7 @@ import com.elsehere.user.entity.User;
 import com.elsehere.user.repository.UserRepository;
 import com.elsehere.world.service.PoliceOfficers;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -283,7 +284,12 @@ public class ConversationService {
         status -> {
           Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
           boolean endingNow = conversation.isActive();
-          conversation.endByUser(clock.instant());
+          Instant now = clock.instant();
+          if (conversation.reachedTimeLimit(now)) {
+            conversation.endByTimeLimit(now);
+          } else {
+            conversation.endByUser(now);
+          }
           NpcContext npc = dialogueContexts.npcById(conversation.getNpcId());
           long userTurnCount =
               turnRepository.countByConversationIdAndSpeaker(conversationId, Speaker.USER);

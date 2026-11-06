@@ -3,10 +3,12 @@ using System.Collections;
 using NUnit.Framework;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 namespace A305.Player.Tests
@@ -48,6 +50,128 @@ namespace A305.Player.Tests
             Time.captureDeltaTime = oldDelta;
             InputSystem.settings.backgroundBehavior = oldBackground;
             InputSystem.settings.editorInputBehaviorInPlayMode = oldEditorInput;
+        }
+
+        [UnityTest]
+        public IEnumerator ScrollingAUiList_DoesNotZoomTheCamera()
+        {
+            var rig = Object.FindFirstObjectByType<PlayerCameraRig>();
+            Mouse mouse = InputSystem.AddDevice<Mouse>();
+            GameObject events =
+                EventSystem.current == null
+                    ? new GameObject("ScrollTestEvents", typeof(EventSystem))
+                    : null;
+            GameObject layer = new GameObject(
+                "ScrollTestCanvas",
+                typeof(Canvas),
+                typeof(GraphicRaycaster)
+            );
+            Canvas canvas = layer.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 10000;
+            var area = new GameObject(
+                "ScrollableList",
+                typeof(RectTransform),
+                typeof(Image),
+                typeof(ScrollRect)
+            );
+            area.transform.SetParent(layer.transform, false);
+            var viewport = (RectTransform)area.transform;
+            viewport.anchorMin = viewport.anchorMax = viewport.pivot = new Vector2(.5f, .5f);
+            viewport.sizeDelta = new Vector2(320, 240);
+            var content = new GameObject(
+                "Content",
+                typeof(RectTransform)
+            ).GetComponent<RectTransform>();
+            content.SetParent(viewport, false);
+            content.anchorMin = new Vector2(0, 1);
+            content.anchorMax = Vector2.one;
+            content.pivot = new Vector2(.5f, 1);
+            content.sizeDelta = new Vector2(0, 1200);
+            ScrollRect scroll = area.GetComponent<ScrollRect>();
+            scroll.viewport = viewport;
+            scroll.content = content;
+            scroll.horizontal = false;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            Canvas.ForceUpdateCanvases();
+            scroll.verticalNormalizedPosition = .5f;
+            try
+            {
+                Vector2 position = new Vector2(Screen.width / 2f, Screen.height / 2f);
+                foreach (float direction in new[] { -120f, 120f })
+                {
+                    float previous = scroll.verticalNormalizedPosition;
+                    ExecuteEvents.Execute(
+                        area,
+                        new PointerEventData(EventSystem.current)
+                        {
+                            position = position,
+                            scrollDelta = new Vector2(0, direction),
+                        },
+                        ExecuteEvents.scrollHandler
+                    );
+                    for (int frame = 0; frame < 3; frame++)
+                    {
+                        InputSystem.QueueStateEvent(
+                            mouse,
+                            new MouseState
+                            {
+                                position = position,
+                                scroll = new Vector2(0, direction),
+                            }
+                        );
+                        yield return null;
+                    }
+                    Assert.That(
+                        scroll.verticalNormalizedPosition,
+                        Is.Not.EqualTo(previous),
+                        "목록의 스크롤은 동작해야 합니다."
+                    );
+                    Assert.That(
+                        rig.ZoomedByUserThisFrame,
+                        Is.False,
+                        "UI가 받은 휠 입력은 카메라 줌에 쓰지 않습니다."
+                    );
+                }
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(mouse);
+                Object.Destroy(layer);
+                if (events != null)
+                    Object.Destroy(events);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator ScrollingOverTheWorld_StillZoomsTheCamera()
+        {
+            var rig = Object.FindFirstObjectByType<PlayerCameraRig>();
+            Mouse mouse = InputSystem.AddDevice<Mouse>();
+            try
+            {
+                for (int frame = 0; frame < 3; frame++)
+                {
+                    InputSystem.QueueStateEvent(
+                        mouse,
+                        new MouseState
+                        {
+                            position = new Vector2(Screen.width / 2f, Screen.height / 2f),
+                            scroll = new Vector2(0, -120),
+                        }
+                    );
+                    yield return null;
+                }
+                Assert.That(
+                    rig.ZoomedByUserThisFrame,
+                    Is.True,
+                    "월드 위에서는 기존 휠 줌을 유지합니다."
+                );
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(mouse);
+            }
         }
 
         [UnityTest]

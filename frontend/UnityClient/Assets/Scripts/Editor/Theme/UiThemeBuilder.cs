@@ -6,6 +6,7 @@ using A305.Api;
 using A305.EditorTools.Common;
 using A305.EditorTools.Learning;
 using A305.EditorTools.Mission;
+using A305.EditorTools.Npc;
 using A305.EditorTools.UI;
 using A305.Learning;
 using A305.Npc;
@@ -660,6 +661,7 @@ namespace A305.EditorTools.Theme
             ActionPill(root, "Panel/Buttons/AcceptButton", UiIcon.Talk, UiTone.Primary, 220);
             ActionPill(root, "Panel/Buttons/DeclineButton", UiIcon.None, UiTone.Neutral, 220);
             Roomy(root, "Panel");
+            OfferShortcutsBuilder.SetUp(root.gameObject);
             // [말 걸기]·[택시 세우기]는 바탕 상자 없이 버튼 하나와 키 안내만 보인다.
             Transform prompt = root.Find("TalkPrompt");
             var promptTheme = prompt.GetComponent<ThemedElement>();

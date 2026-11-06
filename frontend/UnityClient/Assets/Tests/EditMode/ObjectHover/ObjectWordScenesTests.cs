@@ -9,6 +9,7 @@ namespace A305.ObjectHover.Tests
         [TestCase("CafeScene", "CAFE")]
         [TestCase("HotelScene", "HOTEL")]
         [TestCase("ShopScene", "SHOP")]
+        [TestCase("PoliceStationScene", "POLICE_STATION")]
         public void TryGetSceneCode_PlaceScene_ReturnsServerSceneCode(
             string unitySceneName,
             string expected

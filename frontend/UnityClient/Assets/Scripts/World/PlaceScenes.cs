@@ -18,6 +18,7 @@ namespace A305.World
             { "CAFE", "CafeScene" },
             { "HOTEL", "HotelScene" },
             { "SHOP", "ShopScene" },
+            { "POLICE_STATION", "PoliceStationScene" },
         };
 
         // 영업시간 안내("카페는 지금 영업시간이 아니에요")에 쓰는 짧은 이름
@@ -31,6 +32,7 @@ namespace A305.World
             { "CAFE", "카페" },
             { "HOTEL", "호텔" },
             { "SHOP", "드럭스토어" },
+            { "POLICE_STATION", "경찰서" },
         };
 
         /// <summary>장소의 Unity 씬 이름. 씬이 없는 장소면 null.</summary>

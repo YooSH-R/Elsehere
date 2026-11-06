@@ -79,10 +79,7 @@ namespace A305.EditorTools.World
             )
             {
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-                if (
-                    prefab.GetComponentInChildren<ShopSwingDoor>(true) == null
-                    && prefab.GetComponentInChildren<InteriorDoorway>(true) == null
-                )
+                if (prefab.GetComponentInChildren<ShopSwingDoor>(true) == null)
                     continue;
                 RegisterScene(prefab, $"{Folder}/{prefab.name}Interior.unity");
                 // 2층이 다른 가게면 그 층만 담은 씬을 따로 둔다.
@@ -152,11 +149,7 @@ namespace A305.EditorTools.World
                 if (!building.gameObject.activeInHierarchy)
                     continue;
                 var swings = building.GetComponentsInChildren<ShopSwingDoor>(true);
-                var pairedDoor = building.Find("Entrance/OutsideDoorway");
-                if (
-                    swings.Length == 0
-                    && (pairedDoor == null || !pairedDoor.GetComponent<InteriorDoorway>())
-                )
+                if (swings.Length == 0)
                     continue;
 
                 bool hasUpperShop = HasUpperShop(building);
@@ -285,10 +278,7 @@ namespace A305.EditorTools.World
                         or "Ceiling"
                         or "Stairs"
                         or "StairDirection";
-                // 경찰관과 순찰차는 거리에서도 신고를 처리하므로 경찰관의 근무 자리도 같은 씬에 둔다.
-                bool policeDesk =
-                    building.name == "PoliceStation" && part.name is "FrontDesk" or "FrontDeskTop";
-                if ((structure || policeDesk) != keepStructure)
+                if (structure != keepStructure)
                     Object.DestroyImmediate(part.gameObject);
             }
         }

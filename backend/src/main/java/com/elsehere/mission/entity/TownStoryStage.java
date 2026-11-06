@@ -140,24 +140,24 @@ public enum TownStoryStage {
   public static String goalHint(String id) {
     return switch (id) {
       case "order_breakfast" -> "음식과 음료를 함께 (예: pancakes and orange juice)";
-      case "explain_spill" -> "무엇을 어디에 쏟았는지 (예: coffee on my shirt)";
-      case "ask_laundry" -> "옷을 어떻게 빨 수 있는지";
+      case "explain_spill" -> "무엇을 어디에 쏟았는지 설명하기 (예: coffee on my shirt)";
+      case "ask_laundry" -> "옷을 어떻게 빨 수 있는지 묻기";
       case "ask_cost" -> "세탁 가격";
-      case "ask_atm" -> "ATM이 어디 있는지";
+      case "ask_atm" -> "ATM이 어디 있는지 묻기";
       case "ask_withdrawal" -> "현금 뽑는 방법과 금액 (예: 20 dollars)";
-      case "request_wash" -> "직접 세탁기를 쓰겠다고 말하거나 시작 방법을 물어보세요 (예: How do I start this washer?)";
-      case "ask_haircut" -> "머리를 자르고 싶다고";
+      case "request_wash" -> "직접 세탁기를 쓰겠다고 말하거나 시작 방법 묻기 (예: How do I start this washer?)";
+      case "ask_haircut" -> "머리를 자르고 싶다고 말하기";
       case "describe_style" -> "길이와 부위 (예: a little shorter on the sides)";
-      case "choose_flower" -> "꽃과 누구에게 왜 주는지 (예: roses for Tony, to say thanks)";
-      case "ask_wrapping" -> "꽃을 포장해 달라고";
-      case "offer_flower" -> "꽃을 선물로 드린다고";
-      case "thank_barber" -> "무엇이 고마운지 (예: thanks for the haircut)";
+      case "choose_flower" -> "어떤 꽃을 누구에게 왜 주는지 말하기 (예: roses for Tony, to say thanks)";
+      case "ask_wrapping" -> "꽃을 포장해 달라고 하기";
+      case "offer_flower" -> "꽃을 선물로 드린다고 말하기";
+      case "thank_barber" -> "무엇이 고마운지 말하기 (예: thanks for the haircut)";
       case "choose_snack" -> "간식과 개수, 받을 사람 (예: two cookies for Gus)";
-      case "collect_laundry" -> "빨래를 꺼내도 되는지, 어떻게 꺼내는지 물어보세요 (예: Can I take my clothes out now?)";
+      case "collect_laundry" -> "빨래를 꺼내도 되는지, 어떻게 꺼내는지 묻기 (예: Can I take my clothes out now?)";
       case "thank_laundromat" ->
-          "기계 사용을 도와준 것에 감사해요 (예: Thanks for showing me how to use the washer.)";
+          "기계 사용을 도와준 것에 감사하기 (예: Thanks for showing me how to use the washer.)";
       case "ask_lamp" -> "램프와 선물 받을 사람 (예: for my family back home)";
-      case "ask_shipping" -> "램프를 포장하거나 보낼 수 있는지";
+      case "ask_shipping" -> "램프를 포장하거나 보낼 수 있는지 묻기";
       case "ask_game" -> "인형뽑기 하는 방법";
       case "ask_parcel" -> "소포를 보낼 곳 (예: to Seoul, Korea)";
       case "ask_price" -> "소포 값";

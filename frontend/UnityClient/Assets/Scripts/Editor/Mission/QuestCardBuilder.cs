@@ -19,6 +19,7 @@ namespace A305.EditorTools.Mission
     public static class QuestCardBuilder
     {
         private const string MenuPath = "Tools/A305/Mission/Apply Quest Card";
+        private const string CompactMenuPath = "Tools/A305/Mission/Apply Compact Quest Card";
         private const string PlaceholderMenuPath =
             "Tools/A305/Mission/Apply Quest Card Placeholder";
         private const string CoinChangeMenuPath = "Tools/A305/Mission/Apply Coin Change Labels";
@@ -31,7 +32,7 @@ namespace A305.EditorTools.Mission
         private const string ClosePath = "Assets/Art/UI/Feedback/FeedbackClose.png";
 
         // 서버 상태를 받기 전 카드의 할 일. 카드 자체를 눌러 수첩을 열며, 카드가 커지지 않게 한 줄에 들어가는 길이로 쓴다.
-        internal const string DirectionPlaceholder = "카드를 눌러 퀘스트를 확인하세요.";
+        internal const string DirectionPlaceholder = "카드를 눌러 확인하세요.";
         private const string PrefabPath = "Assets/Prefabs/Mission/FirstDayMission.prefab";
         private const string CatalogPath = "Assets/Data/Theme/UiThemeCatalog.asset";
         private const string ArtFolder = "Assets/Art/UI/Hud";
@@ -51,6 +52,20 @@ namespace A305.EditorTools.Mission
         public static void ApplyToPrefab()
         {
             BuilderTools.UpdatePrefabIfExists(PrefabPath, Apply);
+            AssetDatabase.SaveAssets();
+        }
+
+        [MenuItem(CompactMenuPath)]
+        public static void ApplyCompactToPrefab()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                PrefabPath,
+                root =>
+                    CompactQuestCard(
+                        root.GetComponent<FirstDayMissionView>(),
+                        (RectTransform)root.transform.Find("Content/CurrentGoal")
+                    )
+            );
             AssetDatabase.SaveAssets();
         }
 
@@ -299,14 +314,14 @@ namespace A305.EditorTools.Mission
 
             // 단계 칩(64.19×32, 코랄) + 장소(Jua 18, 칩과 10 간격)
             RectTransform header = Row(card, "Header", 10);
-            Height(header, 32);
-            RectTransform chip = Box(header, "StepChip", 64.19f, 32);
-            Art(chip, "QuestChip", 64.19f + 2 * ArtPad, 32 + 2 * ArtPad, ArtPad, ArtPad);
-            TMP_Text chipLabel = Text(chip, "Label", DisplayFontPath, 16, Color.white, "1 / 7");
+            Height(header, 40);
+            RectTransform chip = Box(header, "StepChip", 80, 40);
+            Art(chip, "QuestChip", 80 + 2 * ArtPad, 40 + 2 * ArtPad, ArtPad, ArtPad);
+            TMP_Text chipLabel = Text(chip, "Label", DisplayFontPath, 20, Color.white, "1 / 7");
             Fill(chipLabel.rectTransform);
             chipLabel.alignment = TextAlignmentOptions.Center;
             chipLabel.margin = new Vector4(0, 1 * Px, 0, 0);
-            TMP_Text place = Text(header, "Place", DisplayFontPath, 18, Muted, "호텔에 도착");
+            TMP_Text place = Text(header, "Place", DisplayFontPath, 22, Muted, "호텔에 도착");
             place.alignment = TextAlignmentOptions.MidlineLeft;
             place.margin = new Vector4(0, 2 * Px, 0, 0);
             place.overflowMode = TextOverflowModes.Ellipsis;
@@ -314,19 +329,19 @@ namespace A305.EditorTools.Mission
 
             // 할 일(Jua 26, 위 12), 상황(Pretendard 16, 위 4)
             var direction = card.Find("Direction").GetComponent<TMP_Text>();
-            Style(direction, DisplayFontPath, 26, Ink);
+            Style(direction, DisplayFontPath, 30, Ink);
             direction.text = DirectionPlaceholder;
             direction.margin = new Vector4(0, 12 * Px, 0, 0);
             direction.textWrappingMode = TextWrappingModes.Normal;
             direction.alignment = TextAlignmentOptions.MidlineLeft;
             // 시안 줄 높이(글자 크기의 1.2배)를 지켜 아래 줄들이 시안 자리에 온다.
-            LineBox(direction, 12, 26 * 1.2f);
+            LineBox(direction, 12, 30 * 1.2f);
             var situation = card.Find("Situation").GetComponent<TMP_Text>();
-            Style(situation, BodyFontPath, 16, Muted);
+            Style(situation, BodyFontPath, 19, Muted);
             situation.margin = new Vector4(0, 4 * Px, 0, 0);
             situation.textWrappingMode = TextWrappingModes.Normal;
             situation.alignment = TextAlignmentOptions.MidlineLeft;
-            LineBox(situation, 4, 19);
+            LineBox(situation, 4, 24);
 
             // 진행 칸(46.86×8, 칸 사이 6, 위 14). 칸 그림은 빛 번짐 자리만큼 겹쳐 놓는다.
             RectTransform progress = Rect("Progress", card);
@@ -375,6 +390,53 @@ namespace A305.EditorTools.Mission
             BuilderTools.SetReference(view, "upcomingMark", Sprite("QuestStepUpcoming"));
             BuilderTools.SetReference(view, "goalOpen", Sprite("CheckEmpty"));
             BuilderTools.SetReference(view, "goalDone", Sprite("CheckDone"));
+            CompactQuestCard(view, card);
+        }
+
+        // 기존 프리팹의 목표·진행 칸을 다시 만들지 않고 카드 글자와 접기 버튼만 갱신한다.
+        private static void CompactQuestCard(FirstDayMissionView view, RectTransform card)
+        {
+            RectTransform header = (RectTransform)card.Find("Header");
+            Height(header, 40);
+            RectTransform chip = (RectTransform)header.Find("StepChip");
+            Box(header, "StepChip", 80, 40);
+            ((RectTransform)chip.Find("Art")).sizeDelta = new Vector2(
+                (80 + 2 * ArtPad) * Px,
+                (40 + 2 * ArtPad) * Px
+            );
+            Style(chip.Find("Label").GetComponent<TMP_Text>(), DisplayFontPath, 20, Color.white);
+            Style(header.Find("Place").GetComponent<TMP_Text>(), DisplayFontPath, 22, Muted);
+
+            RectTransform collapseRect = Box(header, "CollapseButton", 72, 40);
+            var collapseImage = BuilderTools.GetOrAddComponent<Image>(collapseRect.gameObject);
+            collapseImage.sprite = Design().InputSprite;
+            collapseImage.type = Image.Type.Sliced;
+            collapseImage.color = Design().CardTint;
+            collapseImage.material = Design().GlassMaterial;
+            var collapseButton = BuilderTools.GetOrAddComponent<Button>(collapseRect.gameObject);
+            collapseButton.targetGraphic = collapseImage;
+            if (collapseButton.onClick.GetPersistentEventCount() == 0)
+                QuestBoardBuilder.Listen(collapseButton, view.ToggleQuestCard);
+            TMP_Text collapseLabel = Text(collapseRect, "Label", DisplayFontPath, 18, Ink, "접기");
+            Fill(collapseLabel.rectTransform);
+            collapseLabel.alignment = TextAlignmentOptions.Center;
+            BuilderTools.SetReference(view, "collapseButton", collapseButton);
+            BuilderTools.SetReference(view, "collapseLabel", collapseLabel);
+
+            TMP_Text direction = card.Find("Direction").GetComponent<TMP_Text>();
+            Style(direction, DisplayFontPath, 30, Ink);
+            direction.text = DirectionPlaceholder;
+            LineBox(direction, 12, 30 * 1.2f);
+            TMP_Text situation = card.Find("Situation").GetComponent<TMP_Text>();
+            Style(situation, BodyFontPath, 19, Muted);
+            LineBox(situation, 4, 24);
+
+            RectTransform goal = (RectTransform)card.Find("Goals").GetChild(0);
+            BuilderTools.GetOrAddComponent<LayoutElement>(goal.gameObject).minHeight = 28 * Px;
+            TMP_Text label = goal.Find("Text/Label").GetComponent<TMP_Text>();
+            Style(label, BodyFontPath, 21, Ink);
+            BuilderTools.GetOrAddComponent<LayoutElement>(label.gameObject).minHeight = 28 * Px;
+            Style(goal.Find("Text/Hint").GetComponent<TMP_Text>(), BodyFontPath, 16, Muted);
         }
 
         // 하는 퀘스트가 없을 때(시작 전, 끝낸 뒤) 카드 대신 두는 퀘스트 아이콘: 카드 자리(왼쪽·위 28)에 시계·코인 칩과 같은 유리 알약(높이 64),
@@ -428,7 +490,7 @@ namespace A305.EditorTools.Mission
                 Object.DestroyImmediate(goals.GetChild(i).gameObject);
             RectTransform goal = Row(goals, "Goal", 10);
             goal.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.UpperLeft;
-            BuilderTools.GetOrAddComponent<LayoutElement>(goal.gameObject).minHeight = 24 * Px;
+            BuilderTools.GetOrAddComponent<LayoutElement>(goal.gameObject).minHeight = 28 * Px;
             RectTransform check = Box(goal, "Check", 24, 24);
             Art(check, "CheckEmpty", 24 + 2 * ArtPad, 28 + 2 * ArtPad, ArtPad, ArtPad);
             RectTransform text = Rect("Text", goal);
@@ -439,11 +501,11 @@ namespace A305.EditorTools.Mission
             lines.childForceExpandWidth = true;
             lines.childForceExpandHeight = false;
             BuilderTools.GetOrAddComponent<LayoutElement>(text.gameObject).flexibleWidth = 1;
-            TMP_Text label = Text(text, "Label", BodyFontPath, 17, Ink, "예약 확인");
+            TMP_Text label = Text(text, "Label", BodyFontPath, 21, Ink, "예약 확인");
             label.alignment = TextAlignmentOptions.MidlineLeft;
             label.textWrappingMode = TextWrappingModes.Normal;
-            BuilderTools.GetOrAddComponent<LayoutElement>(label.gameObject).minHeight = 24 * Px;
-            TMP_Text hint = Text(text, "Hint", BodyFontPath, 14, Muted, "예약자 이름: 내 이름");
+            BuilderTools.GetOrAddComponent<LayoutElement>(label.gameObject).minHeight = 28 * Px;
+            TMP_Text hint = Text(text, "Hint", BodyFontPath, 16, Muted, "예약자 이름: 내 이름");
             hint.alignment = TextAlignmentOptions.TopLeft;
             hint.textWrappingMode = TextWrappingModes.Normal;
             hint.gameObject.SetActive(false);

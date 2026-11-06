@@ -56,7 +56,7 @@ namespace A305.World.Tests
         {
             dispatch.TryDispatch("DINER", "POLICE_OFFICER");
 
-            dispatch.TryDispatch("BANK", "POLICE_ROOKIE");
+            dispatch.TryDispatch("BANK", "POLICE_PATROL_OFFICER");
 
             Assert.That(dispatch.DriverCode, Is.EqualTo("POLICE_OFFICER"));
         }

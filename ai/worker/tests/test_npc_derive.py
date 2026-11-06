@@ -164,7 +164,10 @@ def test_an_npc_life_comes_from_its_mbti_and_npc_id():
 def test_an_npc_schedule_comes_from_its_shift_in_its_own_place():
     """맡은 교대(카페 오픈 07:00~15:00)를 역할 규칙으로 하루 일과로 바꾸고 NPC의 기본 장소를 넣는다.
     NPC가 적은 지금은 자리를 비우지 않아(canLeave false) 스스로 채우지 못하는 욕구는 모두 부탁이 된다. 퇴근(OFF)에는 장소가 없다."""
-    assert life_values("CAFE_STAFF")["schedule"] == [
+    rules = service_rules()
+    rules["places"]["CAFE"]["shifts"]["OPENING"] = {"from": "07:00", "to": "15:00"}
+    values = npc_derive.npc_life_values(load_life("CAFE_STAFF"), rules, service_behaviors(), place="CAFE")
+    assert values["schedule"] == [
         {"from": "07:00", "to": "11:00", "activity": "WORK", "scene": "CAFE", "canLeave": False},
         {"from": "11:00", "to": "11:30", "activity": "BREAK", "scene": "CAFE", "canLeave": False},
         {"from": "11:30", "to": "15:00", "activity": "WORK", "scene": "CAFE", "canLeave": False},
@@ -174,6 +177,19 @@ def test_an_npc_schedule_comes_from_its_shift_in_its_own_place():
 
 def staff_day(start: str, end: str) -> list[dict]:
     return npc_derive.shift_day({"from": start, "to": end}, service_rules()["roles"]["STAFF"])
+
+
+def test_handover_break_can_end_at_the_end_of_a_night_shift():
+    shift = {"from": "22:00", "to": "06:30", "breakAt": "06:00"}
+
+    assert npc_derive.shift_day(shift, service_rules()["roles"]["STAFF"]) == day(
+        ("22:00", "06:00", "WORK"), ("06:00", "06:30", "BREAK"), ("06:30", "22:00", "OFF")
+    )
+
+
+def test_a_break_must_fit_inside_its_shift():
+    with pytest.raises(ValueError, match="교대 안"):
+        npc_derive.shift_day({"from": "06:00", "to": "14:30", "breakAt": "14:15"}, service_rules()["roles"]["STAFF"])
 
 
 def day(*blocks: tuple[str, str, str]) -> list[dict]:

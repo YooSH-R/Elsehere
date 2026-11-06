@@ -137,12 +137,13 @@ namespace A305.EditorTools.World
                 .GetRootGameObjects()
                 .Single(root => root.name == "Environment")
                 .transform.Find(BuildingsPath);
+            NpcLifeData life = NpcLifeData.Parse(
+                AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Data/Npc/NpcLife.json").text
+            );
             var staff = scene
                 .GetRootGameObjects()
                 .SelectMany(root => root.GetComponentsInChildren<NpcIdentity>(true))
-                .Where(npc =>
-                    npc.Code != null && npc.Code.EndsWith("_STAFF", StringComparison.Ordinal)
-                )
+                .Where(npc => life.FindNpc(npc.Code)?.Role == "STAFF")
                 .ToArray();
             foreach (Transform building in buildings)
             {

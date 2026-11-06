@@ -127,6 +127,11 @@ def test_a_break_that_does_not_fit_in_the_shift_is_reported_with_the_role_and_th
 def rules_with_cafe_hours() -> dict:
     rules = load_world_rules()
     rules["places"]["CAFE"]["hours"] = {"from": "07:00", "to": "21:00"}
+    rules["places"]["CAFE"]["shifts"] = {
+        "OPENING": {"from": "07:00", "to": "15:00"},
+        "MIDDAY": {"from": "10:00", "to": "18:00"},
+        "CLOSING": {"from": "13:00", "to": "21:00"},
+    }
     return rules
 
 
@@ -170,9 +175,9 @@ def service_lives() -> list[dict]:
     return [json.loads(path.read_text(encoding="utf-8")) for path in sorted(npc_life_rules.LIFE_FOLDER.glob("*.json"))]
 
 
-@pytest.mark.parametrize(("workplace", "at_least"), [("CAFE", 2), ("HOTEL", 3), ("POLICE_STATION", 2), ("TOWN", 4)])
+@pytest.mark.parametrize(("workplace", "at_least"), [("CAFE", 2), ("HOTEL", 3)])
 def test_busy_daytime_has_enough_npcs_on_shift_at_once(workplace, at_least):
-    """10:00~18:00에는 카페 2명·호텔 3명·경찰서 2명이 함께 일하고 마을에 행인 4명이 나와 있다. 맡은 교대 시간으로 센다(쉬는 시간 포함)."""
+    """직원을 재배치해도 낮의 카페 2명·호텔 3명은 유지한다."""
     assert npc_life_rules.understaffed(service_lives(), load_world_rules(), workplace, BUSY_HOURS, at_least) == []
 
 
@@ -188,10 +193,38 @@ def test_too_few_npcs_on_shift_at_once_is_reported_with_the_time():
     """낮 교대(Leo)가 없으면 카페에는 오픈(07:00~15:00)과 마감(13:00~21:00)이 겹치는 13:00~15:00에만 둘이다."""
     lives = [life for life in service_lives() if life["npcId"] != "CAFE_SERVER"]
 
-    assert npc_life_rules.understaffed(lives, load_world_rules(), "CAFE", BUSY_HOURS, 2) == [
+    assert npc_life_rules.understaffed(lives, rules_with_cafe_hours(), "CAFE", BUSY_HOURS, 2) == [
         "CAFE: 10:00~13:00에 교대 중인 NPC가 2명보다 적음",
         "CAFE: 15:00~18:00에 교대 중인 NPC가 2명보다 적음",
     ]
+
+
+@pytest.mark.parametrize(
+    "workplace",
+    [
+        "CAFE",
+        "HOTEL",
+        "SHOP",
+        "BANK",
+        "POST_OFFICE",
+        "DINER",
+        "BAKERY",
+        "LAUNDROMAT",
+        "FLOWER_SHOP",
+        "BARBER",
+        "ARCADE",
+        "HOME_STORE",
+        "POLICE_STATION",
+    ],
+)
+def test_open_stores_have_someone_working_even_during_breaks(workplace):
+    assert npc_life_rules.working_staff_gaps(service_lives(), load_world_rules(), workplace) == []
+
+
+def test_reassignment_keeps_the_population_and_the_tutorial_and_couple():
+    lives = service_lives()
+    assert len(lives) == 36
+    assert {life["npcId"] for life in lives if life["role"] == "PASSERBY"} == {"TOWN_PASSERBY", "TOWN_GRANDFATHER", "TOWN_GRANDMOTHER"}
 
 
 def test_the_service_actions_use_objects_placed_in_their_scene():

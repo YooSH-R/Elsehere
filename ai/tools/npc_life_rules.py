@@ -59,7 +59,12 @@ def shift_day_problems(rules: dict) -> list[str]:
         for place_code, place in rules["places"].items():
             for shift_name, shift in place["shifts"].items():
                 where = f"roles.{role_name} × places.{place_code}.shifts.{shift_name}"
-                problems += [f"{where}: {problem}" for problem in schedule_problems(npc_derive.shift_day(shift, role))]
+                try:
+                    schedule = npc_derive.shift_day(shift, role)
+                except ValueError as error:
+                    problems.append(f"{where}: {error}")
+                    continue
+                problems += [f"{where}: {problem}" for problem in schedule_problems(schedule)]
     return problems
 
 
@@ -89,6 +94,21 @@ def understaffed(lives: list[dict], rules: dict, workplace: str, span: dict, at_
     on_shift = _painted(shifts[life["shift"]] for life in lives if life["workplace"] == workplace)
     short = [inside > 0 and count < at_least for inside, count in zip(_painted([span]), on_shift)]
     return [f"{workplace}: {_clock(start)}~{_clock(end)}에 교대 중인 NPC가 {at_least}명보다 적음" for start, end in _runs(short, bool)]
+
+
+def working_staff_gaps(lives: list[dict], rules: dict, workplace: str) -> list[str]:
+    """휴식 중인 직원을 제외하고 실제 응대할 직원이 없는 영업 시간을 찾는다."""
+    place = rules["places"][workplace]
+    working = []
+    for life in lives:
+        if life["workplace"] != workplace or life["role"] != "STAFF":
+            continue
+        schedule = npc_derive.shift_day(place["shifts"][life["shift"]], rules["roles"]["STAFF"])
+        working.extend(block for block in schedule if block["activity"] == "WORK")
+    opened = _painted([place.get("hours", {"from": "00:00", "to": "00:00"})])
+    staffed = _painted(working)
+    gaps = [open_count > 0 and count == 0 for open_count, count in zip(opened, staffed)]
+    return [f"{workplace}: {_clock(start)}~{_clock(end)}에 응대할 직원이 없음" for start, end in _runs(gaps, bool)]
 
 
 DAY_MINUTES = 24 * 60

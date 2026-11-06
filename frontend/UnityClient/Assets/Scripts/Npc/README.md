@@ -157,14 +157,19 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 `NpcDayPlan`은 근무 한 시간 전부터 숙소에서 일터로 이동하고, 퇴근 후 30분은 공원으로 이동, 이후 90분은 공원에서 지내기, 다음 30분은 숙소로 돌아가기로 나눕니다(모두 게임 분). 짧은 휴식은 일터 앞에서 쉬고 돌아옵니다. 행인은 `FREE` 일과 동안 기존 타운 생활을 하고, 일과 밖에는 같은 방식으로 숙소를 이용합니다. 이동 중인 직원에게 먼저 말을 걸면 근무 외 일상 대화로 이어집니다.
 
-이동은 타운의 NavMesh 경로를 따릅니다. 다른 씬에 다녀와도 현재 게임 시각에 해당하는 경로 위치에서 이어집니다. 베이커리 뒤 `NpcResidence`는 막힌 주거 외관과 NPC 출입 위치만 있으며, 플레이어 출입구나 실내 씬은 없습니다. **Tools → A305 → Npc → Build Population And Housing**으로 기존 외형을 재사용한 출퇴근 프리팹, 네 장소 씬의 출현 연결, 숙소와 타운 NavMesh를 생성합니다. 거리 실내 로드가 비번 직원을 다시 켜지 않도록 `NpcWorkPresence`가 출현을 확인합니다.
+이동은 타운의 NavMesh 경로를 따릅니다. 다른 씬에 다녀와도 현재 게임 시각에 해당하는 경로 위치에서 이어집니다. 베이커리 뒤 `NpcResidence`는 막힌 주거 외관과 NPC 출입 위치만 있으며, 플레이어 출입구나 실내 씬은 없습니다. **Tools → A305 → Npc → Build Population And Housing**으로 기존 외형을 재사용한 출퇴근 프리팹, 카페·호텔·드럭스토어·마을·경찰서의 출현 연결, 숙소와 타운 NavMesh를 생성합니다. 거리 실내 로드가 비번 직원을 다시 켜지 않도록 `NpcWorkPresence`가 출현을 확인합니다.
 
 | 일터 | 직원(교대 순) | 자리 |
 | --- | --- | --- |
-| 카페 `CafeScene` | Mia(아침)·Leo(한낮)·Zoe(오후~저녁) | Mia는 카운터 뒤, Leo·Zoe는 카운터 양 끝의 손님 쪽 모서리 |
-| 호텔 `HotelScene` | Jake(아침)·Walter·Diego(한낮)·Owen(오후~저녁)·Clara(밤) | Jake는 데스크 뒤, Owen·Clara는 데스크 손님 쪽 양옆, Walter·Diego는 데스크 뒤쪽 양 끝 |
+| 카페 `CafeScene` | Mia(06~18)·Leo(10~18)·Zoe(18~06) | Mia는 카운터 뒤, Leo·Zoe는 카운터 양 끝의 손님 쪽 모서리 |
+| 호텔 `HotelScene` | Jake(06~18)·Diego·Owen(10~22)·Clara(18~06) | Jake는 데스크 뒤, Owen·Clara는 데스크 손님 쪽 양옆, Diego는 데스크 뒤쪽 끝 |
 | 드럭스토어 `ShopScene` | Alex(아침)·Hannah(오후~밤)·Samuel(밤~새벽) | 모두 계산대 뒤. Alex가 계산대에 가장 가깝다 |
-| 경찰서 `PoliceStationScene` | Dan(아침)·Tyler(한낮)·Kevin(오후~저녁)·Victor(밤) | 모두 창구 뒤나 창구 끝. Dan이 창구에 가장 가깝다 |
+| 경찰서 `PoliceStationScene` | Dan(06~14)·Kevin(14~22)·Victor(22~06) | 모두 창구 뒤나 창구 끝. Dan이 창구에 가장 가깝다 |
+
+은행은 Henry 06~14, Maya 14~22, Helen 22~06의 3교대입니다. 나머지 거리 매장은 기존 직원 06~18과 야간 직원 18~06의 2교대입니다. 야간 직원은 우체국 Ruby, 식당 Ray, 베이커리 Tyler, 빨래방 Rachel, 꽃집 Walter, 이발소 Andre, 오락실 Ethan, 생활용품점 Frank입니다. 소방관 세 명은 소방서 개관 전 아르바이트라는 배경을 유지합니다. 총 인원과 ID는 바꾸지 않고, 실제 `WORK` 시간 기준으로 응대 공백이 없도록 인계 시간에 휴식을 둡니다.
+
+원본 일정을 내보낸 뒤 **Tools → A305 → Npc → Apply 24 Hour Roster**로 기존 인물의 배치·업무 대본·출퇴근 프리팹을 갱신합니다. Tyler는 사복을 입고 빵집에서 일하며, 경찰 신고를 받지 않습니다.
+
 
 | 상황 | 동작 |
 | --- | --- |
@@ -197,7 +202,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 ## 경찰서
 
-마을 남서쪽 끝 경찰서(카페·호텔처럼 따로 장면인 `PoliceStationScene`) 창구 뒤에 경찰관 Dan(`POLICE_OFFICER`)·Victor(`POLICE_SERGEANT`)·Kevin(`POLICE_PATROL_OFFICER`)·Tyler(`POLICE_ROOKIE`)가 24시간 교대로 있습니다([일터와 응대](#일터와-응대)). 카페 직원처럼 행인 프리팹을 쓰고 플레이어에게 걸어가지 않으며, 경찰서 1층 안에서만 지냅니다. 경찰관마다 신고 창구(`PoliceReportDesk`)가 있어 누구에게 신고해도 순찰차가 출동합니다. 신고 여부와 목적지는 서버의 `PoliceDesk`가 문맥으로 판정합니다. 창구는 턴 응답의 출동 정보를 받아, 대화를 마치면 신고한 경찰관·목적지·사용자 턴 ID를 `PoliceDispatchOrder`에 보관합니다. 같은 턴 ID는 한 번만 접수하며, 추가 신고는 순서대로 기다립니다. 신고한 경찰관은 순찰차가 돌아와 주차할 때까지 창구와 마을의 생활 모습에 나타나지 않습니다.
+마을 남서쪽 끝 경찰서(카페·호텔처럼 따로 장면인 `PoliceStationScene`) 창구 뒤에 경찰관 Dan(`POLICE_OFFICER`)·Victor(`POLICE_SERGEANT`)·Kevin(`POLICE_PATROL_OFFICER`)가 24시간 교대로 있습니다([일터와 응대](#일터와-응대)). 카페 직원처럼 행인 프리팹을 쓰고 플레이어에게 걸어가지 않으며, 경찰서 1층 안에서만 지냅니다. 경찰관마다 신고 창구(`PoliceReportDesk`)가 있어 누구에게 신고해도 순찰차가 출동합니다. 신고 여부와 목적지는 서버의 `PoliceDesk`가 문맥으로 판정합니다. 창구는 턴 응답의 출동 정보를 받아, 대화를 마치면 신고한 경찰관·목적지·사용자 턴 ID를 `PoliceDispatchOrder`에 보관합니다. 같은 턴 ID는 한 번만 접수하며, 추가 신고는 순서대로 기다립니다. 신고한 경찰관은 순찰차가 돌아와 주차할 때까지 창구와 마을의 생활 모습에 나타나지 않습니다.
 
 | 대화에서 말한 내용 | 대화를 마친 뒤 순찰차 |
 | --- | --- |

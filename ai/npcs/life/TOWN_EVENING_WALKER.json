@@ -2,7 +2,7 @@
   "schemaVersion": "1.0",
   "npcId": "TOWN_EVENING_WALKER",
   "mbti": "INTJ-T",
-  "role": "PASSERBY",
-  "workplace": "TOWN",
+  "role": "STAFF",
+  "workplace": "BANK",
   "shift": "EVENING"
 }

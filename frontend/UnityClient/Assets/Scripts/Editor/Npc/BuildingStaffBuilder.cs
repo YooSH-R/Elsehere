@@ -1,19 +1,22 @@
 using System.Linq;
 using A305.Dialogue;
 using A305.EditorTools.Common;
+using A305.EditorTools.World;
 using A305.Npc;
 using A305.Player;
+using A305.Tutorial;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace A305.EditorTools.Npc
 {
     /// <summary>
-    /// 마을의 들어갈 수 있는 건물 9곳(1층 매장 6곳·북쪽 블록 3곳)에 직원 NPC를 한 명씩 두고, 생활하며 자기 건물 1층 안에서만 지내게 한다.
+    /// 마을의 들어갈 수 있는 건물 9곳(1층 매장 6곳·북쪽 블록 3곳)에 주·야간 직원 NPC를 두고, 생활하며 자기 건물 1층 안에서만 지내게 한다.
     /// 외형과 배색은 외형 표(<see cref="NpcCast"/>)를 따르고, 색을 바꾼 재질 사본은 <see cref="NpcCastDresser"/>가 입힌다.
-    /// 같은 NPC가 이미 있으면 위치는 그대로 두고 연결·색·구역만 맞춘다.
+    /// 기존 직원의 위치는 유지하고, 전직한 인물은 새 일터 안으로 옮겨 연결·색·구역을 맞춘다.
     /// </summary>
     public static class BuildingStaffBuilder
     {
@@ -63,7 +66,156 @@ namespace A305.EditorTools.Npc
                 "HomeLiving",
                 new Vector3(-.3f, 0, -6.6f)
             ),
+            new Staff(
+                "TOWN_EVENING_WALKER",
+                "BankEveningStaff",
+                "TownBank",
+                new Vector3(2.5f, 0, -4.6f),
+                true
+            ),
+            new Staff(
+                "TOWN_SHOPPER",
+                "BankNightStaff",
+                "TownBank",
+                new Vector3(2.5f, 0, -4.6f),
+                true
+            ),
+            new Staff(
+                "TOWN_RETIREE",
+                "PostOfficeNightStaff",
+                "PostOffice",
+                new Vector3(-1.5f, 0, -4.5f),
+                true
+            ),
+            new Staff(
+                "TOWN_STUDENT",
+                "ArcadeNightStaff",
+                "LittleArcade",
+                new Vector3(-1.4f, 0, -4.6f),
+                true
+            ),
+            new Staff(
+                "TOWN_HANDYMAN",
+                "HomeStoreNightStaff",
+                "HomeLiving",
+                new Vector3(-.3f, 0, -6.6f),
+                true
+            ),
+            new Staff(
+                "FIRE_CAPTAIN",
+                "DinerNightStaff",
+                "MapleDiner",
+                new Vector3(.4f, 0, -6.4f),
+                true
+            ),
+            new Staff(
+                "FIRE_FIGHTER",
+                "LaundromatNightStaff",
+                "SudsLaundromat",
+                new Vector3(.2f, 0, -5f),
+                true
+            ),
+            new Staff(
+                "FIRE_ROOKIE",
+                "BarberNightStaff",
+                "MainStreetBarber",
+                new Vector3(-1.6f, 0, -4.1f),
+                true
+            ),
+            new Staff(
+                "HOTEL_CONCIERGE",
+                "FlowerShopNightStaff",
+                "BloomFlowers",
+                new Vector3(.9f, 0, -6.4f),
+                true,
+                "HotelScene"
+            ),
+            new Staff(
+                "POLICE_ROOKIE",
+                "BakeryNightStaff",
+                "MapleBakery",
+                new Vector3(-1.6f, 0, -4.4f),
+                true,
+                "PoliceStationScene"
+            ),
         };
+
+        internal static bool IsReassigned(string code)
+        {
+            return Staffs.Any(staff => staff.Code == code && staff.Reassigned);
+        }
+
+        [MenuItem("Tools/A305/Npc/Apply 24 Hour Roster")]
+        public static void Apply24HourRoster()
+        {
+            BuilderTools.ThrowIfPlaying();
+            Build();
+            UpdateReassignedScripts();
+            ApplyReassignedVisuals();
+            NpcPopulationBuilder.Build();
+        }
+
+        public static void ApplyReassignedVisuals()
+        {
+            BuilderTools.ThrowIfPlaying();
+            NpcCastMember member = NpcCast.Find("POLICE_ROOKIE");
+            Scene town = EditorSceneManager.OpenScene(TownScenePath);
+            NpcIdentity worker = BuilderTools
+                .FindAllInScene<NpcIdentity>(town)
+                .Single(npc => npc.Code == member.Code);
+            NpcVisualBuilder.Connect(worker, member.Look.PrefabPath, true);
+            NpcCastDresser.Dress(worker.gameObject, member);
+            RefreshTutorialPassersby(town);
+            BuilderTools.SaveScene(town, TownScenePath);
+            // 재배치한 Tyler는 제복 대신 현재 외형 표의 사복을 출퇴근 프리팹에도 반영한다.
+            string path = "Assets/Prefabs/Npc/Commuters/POLICE_ROOKIE.prefab";
+            GameObject prefab = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                NpcVisualBuilder.Connect(
+                    prefab.GetComponent<NpcIdentity>(),
+                    member.Look.PrefabPath,
+                    true
+                );
+                NpcCastDresser.Dress(prefab, member);
+                Object.DestroyImmediate(prefab.GetComponent<PoliceReportDesk>());
+                PrefabUtility.SaveAsPrefabAsset(prefab, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(prefab);
+            }
+            AssetDatabase.SaveAssets();
+            foreach (
+                string sceneName in Staffs
+                    .Where(staff => staff.SourceScene != null)
+                    .Select(staff => staff.SourceScene)
+                    .Distinct()
+            )
+            {
+                Scene source = EditorSceneManager.OpenScene(
+                    "Assets/Scenes/Production/" + sceneName + ".unity",
+                    OpenSceneMode.Additive
+                );
+                RefreshTutorialPassersby(source);
+                BuilderTools.SaveScene(source, source.path);
+                EditorSceneManager.CloseScene(source, true);
+            }
+        }
+
+        private static void RefreshTutorialPassersby(Scene scene)
+        {
+            TutorialDirector tutorial = BuilderTools.FindSingleInScene<TutorialDirector>(scene);
+            if (tutorial == null)
+                return;
+            Passerby[] bodies = BuilderTools.FindAllInScene<Passerby>(scene);
+            var fields = new SerializedObject(tutorial);
+            SerializedProperty list = fields.FindProperty("passersby");
+            list.arraySize = bodies.Length;
+            for (int i = 0; i < bodies.Length; i++)
+                list.GetArrayElementAtIndex(i).objectReferenceValue = bodies[i];
+            fields.ApplyModifiedPropertiesWithoutUndo();
+        }
 
         [MenuItem(MenuPath)]
         public static void Build()
@@ -86,6 +238,8 @@ namespace A305.EditorTools.Npc
             BuilderTools.ThrowIfPlaying();
             NpcBuilder.PrepareMockLines();
             Scene town = EditorSceneManager.OpenScene(TownScenePath, OpenSceneMode.Single);
+            foreach (Staff staff in Staffs.Where(item => item.SourceScene != null))
+                TransferFromScene(town, staff);
             foreach (Staff staff in Staffs)
             {
                 Place(town, staff);
@@ -95,8 +249,84 @@ namespace A305.EditorTools.Npc
                 BuilderTools.FindSingleInScene<PlayerMover>(town),
                 BuilderTools.FindSingleInScene<DialogueController>(town)
             );
+            RefreshTutorialPassersby(town);
             BuilderTools.SaveScene(town, TownScenePath);
             AssetDatabase.SaveAssets();
+        }
+
+        private static void TransferFromScene(Scene town, Staff staff)
+        {
+            if (BuilderTools.FindAllInScene<NpcIdentity>(town).Any(npc => npc.Code == staff.Code))
+                return;
+            Scene source = EditorSceneManager.OpenScene(
+                "Assets/Scenes/Production/" + staff.SourceScene + ".unity",
+                OpenSceneMode.Additive
+            );
+            NpcIdentity npc = BuilderTools
+                .FindAllInScene<NpcIdentity>(source)
+                .Single(candidate => candidate.Code == staff.Code);
+            npc.transform.SetParent(null, true);
+            SceneManager.MoveGameObjectToScene(npc.gameObject, town);
+            npc.transform.SetParent(BuilderTools.EnsureGroups(town).Characters, true);
+            // 외부 장면으로 옮긴 NPC에 대한 생활 관리 참조도 함께 제거한다.
+            NpcPopulation population = BuilderTools.FindSingleInScene<NpcPopulation>(source);
+            if (population != null)
+            {
+                var fields = new SerializedObject(population);
+                SerializedProperty residents = fields.FindProperty("residents");
+                for (int i = residents.arraySize - 1; i >= 0; i--)
+                    if (
+                        residents
+                            .GetArrayElementAtIndex(i)
+                            .FindPropertyRelative("Worker")
+                            .objectReferenceValue == npc.gameObject
+                    )
+                        residents.DeleteArrayElementAtIndex(i);
+                fields.ApplyModifiedPropertiesWithoutUndo();
+            }
+            RefreshTutorialPassersby(source);
+            BuilderTools.SaveScene(source, source.path);
+            EditorSceneManager.CloseScene(source, true);
+        }
+
+        private static void UpdateReassignedScripts()
+        {
+            var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(
+                "Assets/Data/Dialogue/MockDialogueScripts.asset"
+            );
+            var defaults = ScriptableObject.CreateInstance<MockDialogueScriptSource>();
+            try
+            {
+                var fields = new SerializedObject(scripts);
+                SerializedProperty entries = fields.FindProperty("entries");
+                SerializedProperty templates = new SerializedObject(defaults).FindProperty(
+                    "entries"
+                );
+                foreach (Staff staff in Staffs.Where(item => item.Reassigned))
+                {
+                    for (int i = 0; i < templates.arraySize; i++)
+                    {
+                        SerializedProperty template = templates.GetArrayElementAtIndex(i);
+                        if (template.FindPropertyRelative("npcCode").stringValue != staff.Code)
+                            continue;
+                        for (int j = 0; j < entries.arraySize; j++)
+                            if (
+                                entries
+                                    .GetArrayElementAtIndex(j)
+                                    .FindPropertyRelative("npcCode")
+                                    .stringValue == staff.Code
+                            )
+                                entries.GetArrayElementAtIndex(j).boxedValue = template.boxedValue;
+                    }
+                }
+                fields.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(scripts);
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                Object.DestroyImmediate(defaults);
+            }
         }
 
         /// <summary>생활이 붙은 직원마다 자기 건물 1층 구역 안에서만 사물·자리를 고르게 한다.</summary>
@@ -173,6 +403,17 @@ namespace A305.EditorTools.Npc
             }
 
             Passerby passerby = npc.GetComponent<Passerby>();
+            if (staff.Reassigned)
+            {
+                // 같은 인물을 옮기고 이전 직장의 신고 기능은 제거한다. ID와 목소리는 유지한다.
+                Object.DestroyImmediate(npc.GetComponent<PoliceReportDesk>());
+                if (!GroundFloor.Contains(building.InverseTransformPoint(npc.transform.position)))
+                    npc.transform.SetPositionAndRotation(
+                        NpcPlacement.FreeSpot(building, staff.Stand, GroundFloor),
+                        building.rotation
+                    );
+                npc.gameObject.name = staff.ObjectName;
+            }
             BuilderTools.SetReference(passerby, "settings", Settings());
             BuilderTools.SetReference(
                 passerby,
@@ -223,12 +464,21 @@ namespace A305.EditorTools.Npc
 
         private sealed class Staff
         {
-            public Staff(string code, string objectName, string building, Vector3 stand)
+            public Staff(
+                string code,
+                string objectName,
+                string building,
+                Vector3 stand,
+                bool reassigned = false,
+                string sourceScene = null
+            )
             {
                 Code = code;
                 ObjectName = objectName;
                 Building = building;
                 Stand = stand;
+                Reassigned = reassigned;
+                SourceScene = sourceScene;
             }
 
             public string Code { get; }
@@ -237,6 +487,8 @@ namespace A305.EditorTools.Npc
 
             /// <summary>건물 기준 서 있을 자리. 가구와 겹치면 가까운 빈자리로 옮긴다.</summary>
             public Vector3 Stand { get; }
+            public bool Reassigned { get; }
+            public string SourceScene { get; }
         }
     }
 }

@@ -1241,9 +1241,6 @@ namespace A305.EditorTools.Theme
             Role(root, "HelpPanel/Viewport/Content/WordsCard", UiThemeRole.Card);
             Role(root, "HelpPanel/Viewport/Content/WordsCard/Title", UiThemeRole.Title);
             Role(root, "HelpPanel/Viewport/Content/WordsCard/SuggestWords", UiThemeRole.Body);
-            Role(root, "HelpPanel/Viewport/Content/HintCard", UiThemeRole.Card);
-            Role(root, "HelpPanel/Viewport/Content/HintCard/Title", UiThemeRole.Title);
-            Role(root, "HelpPanel/Viewport/Content/HintCard/Body", UiThemeRole.Body);
             A305.EditorTools.Dialogue.DialogueDockBuilder.Apply(root.gameObject);
             StyleDialogueWaiting(root);
             StyleVoiceConsentDialog(root);

@@ -112,9 +112,6 @@ namespace A305.Tutorial.Tests
                 Does.Contain("피드백"),
                 "누르면 무엇이 이어지는지"
             );
-            Assert.That(guide.SuggestedSentenceCaption, Does.Contain("{문장}"));
-            Assert.That(guide.SuggestedSentenceCaption, Does.Contain("추천 문장"));
-            Assert.That(guide.SuggestedSentenceCaption, Does.Contain("{넣기}"));
             Assert.That(guide.SuggestedWordsCaption, Does.Contain("{단어}"));
             Assert.That(guide.SuggestedWordsCaption, Does.Contain("추천 단어"));
         }

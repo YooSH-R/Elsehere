@@ -6,6 +6,7 @@ using A305.EditorTools.Common;
 using A305.EditorTools.ObjectHover;
 using A305.ObjectHover;
 using A305.World;
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -40,6 +41,12 @@ namespace A305.EditorTools.World
         private const string CoolerModel =
             "Assets/ThirdParty/MilkAndBananaCoolerBox/appliance_cooler_box.obj";
         private const string TinyTreats = "Assets/Prefabs/World/TinyTreats/";
+        private static readonly Vector3 RainyDaySignPosition = new Vector3(1.55f, 0, -6.5f);
+        private static readonly Vector3[] UmbrellaBinPositions =
+        {
+            new Vector3(2.45f, 0, -6.4f),
+            new Vector3(3.25f, 0, -6.4f),
+        };
 
         // 매장 바닥(ShopFloor) 윗면과 계산대(ShopCounter) 상판 높이
         private const float CounterTop = .8f;
@@ -109,6 +116,39 @@ namespace A305.EditorTools.World
             Scene scene = EditorSceneManager.OpenScene(ScenePath);
             Apply(scene);
             BuilderTools.SaveScene(scene, ScenePath);
+        }
+
+        [MenuItem("Tools/A305/World/Apply Drugstore Entrance Display")]
+        public static void ApplyEntranceDisplay()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            BuilderTools.UpdatePrefabIfExists(
+                PrefabFolder + "/RainyDaySign.prefab",
+                FitRainyDaySignLabel
+            );
+            BuilderTools.UpdatePrefabIfExists(
+                PrefabFolder + "/" + InteriorName + ".prefab",
+                ArrangeEntranceDisplay
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        private static void ArrangeEntranceDisplay(GameObject interior)
+        {
+            Transform root = interior.transform;
+            root.Find("RainyDaySign").localPosition = RainyDaySignPosition;
+            Transform openUmbrella = root.Find("OpenUmbrella");
+            if (openUmbrella != null)
+                Object.DestroyImmediate(openUmbrella.gameObject);
+
+            // 두 통을 창가에 나란히 붙여 진열대 앞 통로를 확보한다.
+            Transform[] bins = root.Cast<Transform>()
+                .Where(child => child.name == "UmbrellaBin")
+                .OrderBy(child => child.localPosition.x)
+                .ToArray();
+            for (int i = 0; i < bins.Length; i++)
+                bins[i].localPosition = UmbrellaBinPositions[i];
         }
 
         /// <summary>상점 씬에 드럭스토어 실내가 없으면 놓고, 예전 초록 우산 선반은 입구 우산 통으로 대신한다.</summary>
@@ -269,10 +309,9 @@ namespace A305.EditorTools.World
             Piece("CoffeeCounter", BuildCoffeeCounter, t, new Vector3(-5.5f, 0, 1.9f), -90);
             Piece("ProduceStand", BuildProduceStand, t, new Vector3(-4.15f, 0, -5.45f), 0);
 
-            Piece("UmbrellaBin", () => BuildUmbrellaBin(7), t, new Vector3(1.75f, 0, -5.9f), 0);
-            Piece("UmbrellaBin", () => BuildUmbrellaBin(7), t, new Vector3(2.45f, 0, -5.6f), 140);
-            Piece("OpenUmbrella", BuildOpenUmbrella, t, new Vector3(3.05f, 0, -6.2f), 0);
-            Piece("RainyDaySign", BuildRainyDaySign, t, new Vector3(1.1f, 0, -6.35f), 0);
+            Piece("UmbrellaBin", () => BuildUmbrellaBin(7), t, UmbrellaBinPositions[0], 0);
+            Piece("UmbrellaBin", () => BuildUmbrellaBin(7), t, UmbrellaBinPositions[1], 140);
+            Piece("RainyDaySign", BuildRainyDaySign, t, RainyDaySignPosition, 0);
 
             Model(
                 Furniture + "rugDoormat.obj",
@@ -920,48 +959,6 @@ namespace A305.EditorTools.World
             return root;
         }
 
-        private static GameObject BuildOpenUmbrella()
-        {
-            var root = new GameObject("OpenUmbrella");
-            Transform t = root.transform;
-            Material steel = Paint("DrugstoreDarkSteel", "#3A3F44");
-            Prim(
-                PrimitiveType.Cylinder,
-                "Base",
-                t,
-                new Vector3(0, .02f, 0),
-                new Vector3(.4f, .02f, .4f),
-                steel
-            );
-            Prim(
-                PrimitiveType.Cylinder,
-                "Shaft",
-                t,
-                new Vector3(0, .95f, 0),
-                new Vector3(.025f, .95f, .025f),
-                steel
-            );
-            Prim(
-                PrimitiveType.Sphere,
-                "Canopy",
-                t,
-                new Vector3(0, 1.85f, 0),
-                new Vector3(1.05f, .36f, 1.05f),
-                Paint("DrugstoreUmbrella2E6B57", "#2E6B57")
-            );
-            Prim(
-                PrimitiveType.Sphere,
-                "Tip",
-                t,
-                new Vector3(0, 2.05f, 0),
-                new Vector3(.05f, .08f, .05f),
-                steel
-            );
-            AddBlocker(root);
-            ConnectUmbrellaWord(root);
-            return root;
-        }
-
         // 우산 단어는 미션 상점 Builder가 만든 공용 단어를 그대로 쓴다.
         private static void ConnectUmbrellaWord(GameObject root)
         {
@@ -1005,7 +1002,20 @@ namespace A305.EditorTools.World
                     .15f
                 )
                 .color = Hex("#2A2A2A");
+            FitRainyDaySignLabel(root);
             return root;
+        }
+
+        private static void FitRainyDaySignLabel(GameObject sign)
+        {
+            var label = sign.transform.Find("Label").GetComponent<TextMeshPro>();
+            Vector3 boardSize = sign.transform.Find("Board").localScale;
+            // 공용 Label의 넓은 기본 영역 대신 실제 판의 안쪽 여백 안에서 두 줄을 맞춘다.
+            label.rectTransform.sizeDelta = new Vector2(boardSize.x - .12f, boardSize.y - .12f);
+            label.enableAutoSizing = true;
+            label.fontSizeMin = .5f;
+            label.fontSizeMax = 1.5f;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
         }
 
         // 앞벽(z=-7)의 문 구멍(x=-1~1, 높이 4m)을 미국 드럭스토어 정면처럼 알루미늄 문틀과 문 위 벽으로 채운다.

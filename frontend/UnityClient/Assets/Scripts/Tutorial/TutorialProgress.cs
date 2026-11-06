@@ -28,6 +28,10 @@ namespace A305.Tutorial
         private readonly HashSet<TutorialAction> doneActions = new HashSet<TutorialAction>();
         private bool isFinishSaved;
 
+        public bool NeedsBenDialogueSave { get; private set; }
+
+        public void MarkBenDialogueSaved() => NeedsBenDialogueSave = false;
+
         /// <param name="tutorialNpcCode">길을 묻는 튜토리얼 행인의 NPC 키(ERD npcs.code)</param>
         public TutorialProgress(string tutorialNpcCode)
         {
@@ -80,6 +84,7 @@ namespace A305.Tutorial
         /// <summary>서버에서 이미 튜토리얼을 끝낸 사용자. 안내 없이 끝난 상태로 시작하며 서버에 다시 알리지 않는다.</summary>
         public void MarkFinishedOnServer()
         {
+            NeedsBenDialogueSave = false;
             Step = TutorialStep.Completed;
             Finish = null;
         }
@@ -178,6 +183,10 @@ namespace A305.Tutorial
             }
 
             Step = isGuidedCompleted ? TutorialStep.BenFeedback : TutorialStep.MeetBen;
+            if (isGuidedCompleted)
+            {
+                NeedsBenDialogueSave = true;
+            }
         }
 
         public void CloseFeedback(string npcCode)

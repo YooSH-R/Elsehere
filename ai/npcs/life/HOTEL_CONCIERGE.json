@@ -3,6 +3,6 @@
   "npcId": "HOTEL_CONCIERGE",
   "mbti": "ENFJ-A",
   "role": "STAFF",
-  "workplace": "HOTEL",
-  "shift": "MIDDAY"
+  "workplace": "FLOWER_SHOP",
+  "shift": "NIGHT"
 }

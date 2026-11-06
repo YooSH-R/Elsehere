@@ -86,6 +86,21 @@ public class UserNpcRelation extends BaseEntity {
     return true;
   }
 
+  /** 서버 대화를 만들지 않는 첫 길 안내도 방문으로 센다. 이미 대화 기록이 있으면 다시 올리지 않는다. */
+  public boolean recordTutorialVisit(
+      Instant endedAt, int gameDay, int recognitionGain, int affinityGain, String card) {
+    if (talkCount > 0) {
+      return false;
+    }
+    talkCount = 1;
+    lastTalkedAt = endedAt;
+    lastTalkGameDay = gameDay;
+    recognition = Math.max(0, Math.min(100, recognition + recognitionGain));
+    affinity = Math.max(-100, Math.min(100, affinity + affinityGain));
+    memoryCard = card;
+    return true;
+  }
+
   /** 마지막 대화 뒤 지난 게임 날 수. 게임 시계 도입 전 대화만 있으면 0이다. */
   public int daysSinceLastTalk(int today) {
     return lastTalkGameDay == null ? 0 : Math.max(0, today - lastTalkGameDay);

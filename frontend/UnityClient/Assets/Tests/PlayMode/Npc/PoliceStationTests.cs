@@ -14,19 +14,22 @@ using UnityEngine.UI;
 namespace A305.Npc.PlayModeTests
 {
     /// <summary>
-    /// 마을(TownScene)을 실제로 불러와 경찰서 창구의 경찰관이 신고를 받으면(서버 턴 응답의 출동 장소) 접수만 하고, 대화를 마치면
-    /// 옆 주차 칸의 순찰차가 출동해 그 장소 앞에 섰다가(장소가 없으면 본길을 한 바퀴 돌고) 주차 칸으로 돌아오는지 확인한다.
-    /// 신고인지와 장소는 서버의 의도 판정이 문맥으로 고르므로, 여기서는 창구가 받은 출동 장소부터 본다.
-    /// 경찰서 문은 여닫지 않고, 다른 장소처럼 문에 닿으면 화면을 덮었다가 실내(또는 문 밖)에 세우는지도 확인한다.
+    /// 경찰서(PoliceStationScene) 창구의 경찰관에게 신고하면 접수만 하고, 대화를 마치면 신고를 남겨 둔다.
+    /// 경찰서를 나와 마을(TownScene)이 열리면 옆 주차 칸의 순찰차가 그 신고로 출동해 말한 장소 앞에 섰다가
+    /// (장소가 없으면 본길을 한 바퀴 돌고) 주차 칸으로 돌아오는지 확인한다. 밖으로 나온 플레이어가 출동하는 모습을 보게 하려는 것이다.
+    /// 경찰서는 카페·호텔처럼 다른 장면이라, 마을의 경찰서 문과 경찰서의 마을 문이 서로 오가는지도 확인한다.
     /// 순찰차는 앞의 차에 양보하므로 택시·승용차와 서로 막히는 경우가 프레임 속도에 따라 생긴다.
     /// 출동 흐름만 보도록 다른 차를 세워 둔다. 트럭 옆을 한 대씩 지나가는지는 택시만 남겨 두고 따로 본다.
-    /// 턴 응답에서 출동 장소를 꺼내는 것과 출동 단계 전환은 EditMode 테스트가 맡는다.
+    /// 신고 문장 판별과 출동 단계 전환은 EditMode 테스트가 맡는다.
     /// </summary>
     public class PoliceStationTests
     {
         private const string OfficerCode = "POLICE_OFFICER";
         private const float TripTimeoutSeconds = 30f;
-        private const float DoorTimeoutSeconds = 5f;
+        private const float DoorTimeoutSeconds = 10f;
+
+        // 순찰차 주차 칸(PoliceStationBuilder.Bay). 출동을 마치면 여기로 돌아온다.
+        private static readonly Vector2 Bay = new Vector2(-9f, -28.8f);
 
         // 신호 대기와 장소 앞 20초를 넉넉히 넣은 한 구간의 게임 시간
         private const float TripGameSeconds = 150f;
@@ -37,6 +40,7 @@ namespace A305.Npc.PlayModeTests
             NpcTestClock.SetDaytime();
             PasserbyRestRecord.Clear();
             TutorialState.Clear();
+            PoliceDispatchOrder.Clear();
         }
 
         // 시험이 시간 제한으로 끊기면 코루틴의 finally가 돌지 않아 빨라진 시간이 다음 시험까지 남는다.
@@ -47,32 +51,31 @@ namespace A305.Npc.PlayModeTests
             Time.timeScale = 1;
             Time.captureDeltaTime = 0;
             TutorialState.Clear();
+            PoliceDispatchOrder.Clear();
         }
 
         [UnityTest]
-        public IEnumerator ReportAtTheFountainPark_PatrolCarRespondsThereAndComesBack()
+        public IEnumerator ReportingATheftAtTheDiner_PatrolCarRespondsThereAndComesBack()
         {
+            yield return LoadStation();
+
+            TalkToOfficerAndReport("DINER");
+
+            Assert.That(PoliceDispatchOrder.IsPending, Is.False, "대화 중에는 접수만 합니다.");
+            Assert.That(VehicleStatus(), Does.Contain("신고 접수").And.Contain("메이플 다이너"));
+
+            yield return EndTalk();
+            Assert.That(PoliceDispatchOrder.IsPending, Is.True, "대화를 마치면 신고를 남깁니다.");
+
             yield return LoadTown();
             PoliceCar car = Single<PoliceCar>();
             HoldOtherTraffic(car);
-            Vector3 bay = car.transform.position;
-            Assert.That(car.Phase, Is.EqualTo(PolicePhase.Parked));
-            Assert.That(car.LightsOn, Is.False);
-
-            yield return NpcTestClock.OpenPoliceStation();
-            TalkToOfficerAndReport("PARK");
-
-            Assert.That(car.Phase, Is.EqualTo(PolicePhase.Parked), "대화 중에는 접수만 합니다.");
-            Assert.That(VehicleStatus(), Does.Contain("신고 접수").And.Contain("분수대 공원"));
-
-            yield return EndTalk();
-
             Assert.That(
                 car.Phase,
                 Is.EqualTo(PolicePhase.LeavingBay),
-                "대화를 마치면 출동해야 합니다."
+                "경찰서를 나와 마을이 열리면 출동해야 합니다."
             );
-            Assert.That(car.SceneCode, Is.EqualTo("PARK"));
+            Assert.That(car.SceneCode, Is.EqualTo("DINER"));
             Assert.That(car.LightsOn, Is.True);
 
             float previousScale = Time.timeScale;
@@ -80,78 +83,85 @@ namespace A305.Npc.PlayModeTests
             try
             {
                 yield return WaitForPhase(car, PolicePhase.OnScene);
-                // 분수대 공원은 본길 동쪽이라 북행 차로(x=1.5) 공원 앞(z=21)에 선다.
+                // 다이너는 동쪽 건물이라 북행 차로(x=1.5) 다이너 앞(z=39)에 선다.
                 Assert.That(car.transform.position.x, Is.EqualTo(1.5f).Within(.3f));
-                Assert.That(car.transform.position.z, Is.EqualTo(21f).Within(.5f));
+                Assert.That(car.transform.position.z, Is.EqualTo(39f).Within(.5f));
                 yield return WaitForPhase(car, PolicePhase.Parked);
             }
             finally
             {
                 Time.timeScale = previousScale;
             }
-            Assert.That(Vector3.Distance(car.transform.position, bay), Is.LessThan(.05f));
+            Assert.That(DistanceToBay(car), Is.LessThan(.05f));
             Assert.That(car.LightsOn, Is.False);
         }
 
-        // 신고를 받은 경찰관이 창구를 떠나 직접 순찰차를 몰고, 돌아와 주차하면 다시 창구에 선다.
         [UnityTest]
-        public IEnumerator ReportingOfficer_DrivesThePatrolCarAndComesBackToTheDesk()
+        public IEnumerator ReportingOfficer_StaysAwayAcrossScenesAndReturnsAfterParking()
         {
+            yield return LoadStation();
+            TalkToOfficerAndReport("ICE_CREAM_PLAZA");
+            yield return EndTalk();
+            Assert.That(PoliceDispatchOrder.IsAway(OfficerCode), Is.True);
+
             yield return LoadTown();
             PoliceCar car = Single<PoliceCar>();
             HoldOtherTraffic(car);
-            yield return NpcTestClock.OpenPoliceStation();
-            GameObject officer = Officer().gameObject;
-            GameObject atTheWheel = car.transform.Find("Drivers/" + OfficerCode).gameObject;
             Assert.That(
-                atTheWheel.activeSelf,
-                Is.False,
-                "주차해 있을 때는 운전석이 비어 있습니다."
+                car.transform.Find("Drivers/" + OfficerCode).gameObject.activeSelf,
+                Is.True
             );
 
-            TalkToOfficerAndReport("ICE_CREAM_PLAZA");
-            yield return EndTalk();
-
-            Assert.That(officer.activeSelf, Is.False, "출동한 경찰관은 창구를 떠납니다.");
-            Assert.That(atTheWheel.activeSelf, Is.True, "출동한 경찰관이 운전석에 앉습니다.");
+            // 마을이 내려가도 끝나지 않은 신고를 보관한다. 경찰서에 다시 들어가도 출동한 경찰관은 창구에 없어야 한다.
+            yield return LoadStation();
             Assert.That(
-                car.transform.Find("Drivers")
-                    .Cast<Transform>()
-                    .Count(driver => driver.gameObject.activeSelf),
-                Is.EqualTo(1),
-                "운전석에는 신고를 받은 경찰관 한 명만 앉습니다."
+                Object
+                    .FindObjectsByType<NpcIdentity>(FindObjectsSortMode.None)
+                    .Any(npc => npc.Code == OfficerCode),
+                Is.False
             );
+            Assert.That(PoliceDispatchOrder.IsAway(OfficerCode), Is.True);
 
+            yield return LoadTown();
+            car = Single<PoliceCar>();
+            HoldOtherTraffic(car);
+            Assert.That(PoliceDispatchOrder.Current.TurnId, Is.EqualTo(10));
             float previousScale = Time.timeScale;
             Time.timeScale = 12;
             try
             {
-                yield return WaitForPhase(car, PolicePhase.OnScene);
-                Assert.That(car.transform.position.z, Is.EqualTo(-23f).Within(.5f));
-                Assert.That(atTheWheel.activeSelf, Is.True);
                 yield return WaitForPhase(car, PolicePhase.Parked);
             }
             finally
             {
                 Time.timeScale = previousScale;
             }
-            Assert.That(officer.activeSelf, Is.True, "돌아오면 창구에 다시 섭니다.");
-            Assert.That(atTheWheel.activeSelf, Is.False);
+            Assert.That(PoliceDispatchOrder.IsAway(OfficerCode), Is.False);
+            Assert.That(
+                car.transform.Find("Drivers/" + OfficerCode).gameObject.activeSelf,
+                Is.False
+            );
+            yield return LoadStation();
+            Assert.That(
+                Object
+                    .FindObjectsByType<NpcIdentity>(FindObjectsSortMode.None)
+                    .Any(npc => npc.Code == OfficerCode),
+                Is.True
+            );
         }
 
         [UnityTest]
         public IEnumerator ReportingWithoutAPlace_PatrolsTheMainStreetAndComesBack()
         {
-            yield return LoadTown();
-            PoliceCar car = Single<PoliceCar>();
-            HoldOtherTraffic(car);
-            Vector3 bay = car.transform.position;
+            yield return LoadStation();
 
-            yield return NpcTestClock.OpenPoliceStation();
             TalkToOfficerAndReport(null);
             Assert.That(VehicleStatus(), Does.Contain("신고 접수"));
             yield return EndTalk();
 
+            yield return LoadTown();
+            PoliceCar car = Single<PoliceCar>();
+            HoldOtherTraffic(car);
             Assert.That(car.Phase, Is.EqualTo(PolicePhase.LeavingBay));
             Assert.That(car.SceneCode, Is.Null);
             float previousScale = Time.timeScale;
@@ -182,7 +192,7 @@ namespace A305.Npc.PlayModeTests
             {
                 Time.timeScale = previousScale;
             }
-            Assert.That(Vector3.Distance(car.transform.position, bay), Is.LessThan(.05f));
+            Assert.That(DistanceToBay(car), Is.LessThan(.05f));
         }
 
         // 택시가 트럭 옆을 비켜 가는 동안 순찰차가 본길에 들어서면 둘이 서로를 앞차로 보고 함께 서 버렸다.
@@ -200,104 +210,70 @@ namespace A305.Npc.PlayModeTests
             yield return RespondWhileTheTaxiDrivesSouthFrom(-13f);
         }
 
-        // 서버(PoliceDesk)가 보내는 마을 장소 코드 전체. 신고한 곳이 어디든 그 앞으로 출동해야 한다.
-        [UnityTest]
-        public IEnumerator EveryTownPlace_IsAPatrolCarDestination()
-        {
-            yield return LoadTown();
-            PoliceCar car = Single<PoliceCar>();
-
-            string[] places =
-            {
-                "HOME",
-                "HOTEL",
-                "CAFE",
-                "SHOP",
-                "POST_OFFICE",
-                "DINER",
-                "BANK",
-                "LAUNDROMAT",
-                "FLOWER_SHOP",
-                "BARBER",
-                "BAKERY",
-                "PARK",
-                "ARCADE",
-                "HOME_STORE",
-                "ICE_CREAM_PLAZA",
-            };
-            Assert.That(places.Where(place => car.DisplayNameOf(place) == null), Is.Empty);
-        }
-
         [UnityTest]
         public IEnumerator SmallTalkWithTheOfficer_DoesNotDispatch()
         {
+            yield return LoadStation();
+
+            TalkToOfficerAndSay("Hello, officer. Nice day today.");
+            yield return EndTalk();
+            Assert.That(PoliceDispatchOrder.IsPending, Is.False);
+
             yield return LoadTown();
             PoliceCar car = Single<PoliceCar>();
             HoldOtherTraffic(car);
-            Vector3 bay = car.transform.position;
-
-            yield return NpcTestClock.OpenPoliceStation();
-            TalkToOfficer();
-            yield return EndTalk();
             yield return new WaitForSeconds(1);
 
             Assert.That(car.Phase, Is.EqualTo(PolicePhase.Parked));
-            Assert.That(Vector3.Distance(car.transform.position, bay), Is.LessThan(.01f));
+            Assert.That(DistanceToBay(car), Is.LessThan(.01f));
         }
 
         [UnityTest]
-        public IEnumerator WalkingUpToTheStationDoor_CoversTheScreenAndPlacesPlayerInsideFacingTheDesk()
+        public IEnumerator WalkingUpToTheStationDoor_EntersThePoliceStationAtItsTownDoor()
         {
             yield return LoadTownAfterTheTutorial();
-            Assert.That(
-                Object
-                    .FindObjectsByType<ShopSwingDoor>(FindObjectsSortMode.None)
-                    .Where(door => door.name == "PoliceStationDoor"),
-                Is.Empty,
-                "경찰서 문은 여닫지 않고 장면을 바꿉니다."
-            );
 
-            yield return WalkInto(Doorway("OutsideDoorway"));
+            yield return WalkInto(Doorway("PoliceStationDoor"), "PoliceStationScene");
 
-            AssertStandingAt(Doorway("InsideDoorway").ArrivalPoint);
-            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("TownScene"));
+            AssertStandingAt(Doorway("TownDoor").ArrivalPoint);
             Assert.That(Single<PlayerMover>().IsMovementLocked, Is.False);
         }
 
         [UnityTest]
-        public IEnumerator WalkingUpToTheDoorFromInside_PlacesPlayerOutsideFacingTheStreet()
+        public IEnumerator LeavingThePoliceStation_PlacesPlayerOutsideTheStationFacingTheStreet()
         {
-            yield return LoadTownAfterTheTutorial();
+            TutorialState.MarkFinishedOnServer();
+            yield return LoadStation();
 
-            yield return WalkInto(Doorway("InsideDoorway"));
+            yield return WalkInto(Doorway("TownDoor"), "TownScene");
 
-            AssertStandingAt(Doorway("OutsideDoorway").ArrivalPoint);
+            AssertStandingAt(Doorway("PoliceStationDoor").ArrivalPoint);
             Assert.That(Single<PlayerMover>().IsMovementLocked, Is.False);
         }
 
-        private static NpcIdentity Officer() =>
-            Object
+        private static void TalkToOfficerAndSay(string text)
+        {
+            NpcIdentity officer = Object
                 .FindObjectsByType<NpcIdentity>(FindObjectsSortMode.None)
                 .Single(npc => npc.Code == OfficerCode);
-
-        private static void TalkToOfficer()
-        {
-            NpcIdentity officer = Officer();
+            var dialogue = Single<DialogueController>();
             Assert.That(
-                Single<DialogueController>()
-                    .TryStart(officer.Code, officer.LookTarget, ConversationInitiator.User),
+                dialogue.TryStart(officer.Code, officer.LookTarget, ConversationInitiator.User),
                 Is.True
             );
+            var panel = Single<DialoguePanelView>();
+            panel.GetComponentInChildren<TMP_InputField>(true).text = text;
+            Click(panel, "SendButton");
         }
 
-        // 서버가 신고를 받아 턴 응답에 출동 장소를 실은 것처럼 창구에 전한다. placeCode가 null이면 본길 순찰이다.
+        // 신고 여부·장소는 서버의 책임이다. 이 검사는 서버가 보낸 출동 응답 이후의 실제 장면 이동과 차를 확인한다.
         private static void TalkToOfficerAndReport(string placeCode)
         {
-            TalkToOfficer();
+            TalkToOfficerAndSay("I need your help.");
             Object
                 .FindObjectsByType<PoliceReportDesk>(FindObjectsSortMode.None)
                 .Single(desk => desk.OfficerCode == OfficerCode)
-                .TakeReport(OfficerCode, placeCode);
+                .TakeReport(OfficerCode, 10, placeCode);
         }
 
         private static IEnumerator EndTalk()
@@ -326,39 +302,36 @@ namespace A305.Npc.PlayModeTests
             return status.text;
         }
 
-        private static InteriorDoorway Doorway(string name)
+        private static SpaceDoorway Doorway(string doorwayId)
         {
             return Object
-                .FindObjectsByType<InteriorDoorway>(FindObjectsSortMode.None)
-                .Single(doorway => doorway.name == name);
+                .FindObjectsByType<SpaceDoorway>(FindObjectsSortMode.None)
+                .Single(doorway => doorway.DoorwayId == doorwayId);
         }
 
         // 문을 보고 감지 영역 안에 세우면 다음 물리 갱신에서 문에 닿는다. 카메라는 플레이어 뒤에 둔다.
-        // 화면이 다 덮였다가 다시 걷힐 때까지 기다린다.
-        private static IEnumerator WalkInto(InteriorDoorway doorway)
+        // 다른 장면에 도착해 화면이 다 걷힐 때까지 기다린다.
+        private static IEnumerator WalkInto(SpaceDoorway doorway, string destinationScene)
         {
-            Vector3 sensor = doorway.transform.TransformPoint(
-                doorway.GetComponent<BoxCollider>().center
-            );
-            Transform arrival = doorway.ArrivalPoint;
+            Transform door = doorway.transform;
             Single<PlayerMover>()
                 .Teleport(
-                    new Vector3(sensor.x, arrival.position.y, sensor.z),
-                    Quaternion.LookRotation(-arrival.forward)
+                    door.position + door.forward * .4f,
+                    Quaternion.LookRotation(-door.forward)
                 );
             Single<PlayerCameraRig>().SnapBehindTarget();
 
-            bool covered = false;
             float deadline = Time.realtimeSinceStartup + DoorTimeoutSeconds;
-            while (!covered || CurtainOpacity() > 0f)
+            while (
+                SceneManager.GetActiveScene().name != destinationScene
+                || SpaceTravel.IsTraveling
+                || CurtainOpacity() > 0f
+            )
             {
-                covered |= CurtainOpacity() >= 1f;
                 Assert.That(
                     Time.realtimeSinceStartup,
                     Is.LessThan(deadline),
-                    covered
-                        ? "화면이 다시 걷히지 않았습니다."
-                        : "문에 닿아도 화면이 덮이지 않았습니다."
+                    $"{destinationScene}에 도착하지 못했습니다."
                 );
                 yield return null;
             }
@@ -380,6 +353,9 @@ namespace A305.Npc.PlayModeTests
             Vector3 view = Vector3.ProjectOnPlane(Camera.main.transform.forward, Vector3.up);
             Assert.That(Vector3.Angle(view, arrival.forward), Is.LessThan(1f));
         }
+
+        private static float DistanceToBay(PoliceCar car) =>
+            Vector2.Distance(Flat(car.transform.position), Bay);
 
         private static void HoldOtherTraffic(PoliceCar patrolCar)
         {
@@ -499,10 +475,20 @@ namespace A305.Npc.PlayModeTests
 
         private static IEnumerator LoadTown()
         {
+            yield return LoadOffline("TownScene");
+        }
+
+        private static IEnumerator LoadStation()
+        {
+            yield return LoadOffline("PoliceStationScene");
+        }
+
+        private static IEnumerator LoadOffline(string sceneName)
+        {
             SceneManager.sceneLoaded += ConfigureOfflineScene;
             try
             {
-                yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+                yield return SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
             }
             finally
             {

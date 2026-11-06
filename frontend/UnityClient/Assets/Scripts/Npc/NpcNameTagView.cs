@@ -117,9 +117,15 @@ namespace A305.Npc
             }
         }
 
-        // 생활(NpcRoutine)이 없는 NPC는 맡은 근무가 없어 쉬는 중이 아니다.
+        // 출퇴근·쉬는 시간에 마을을 걷는 몸(NpcTownWalker)은 근무 단계가 아닐 때만 나오므로 늘 근무 밖이다.
+        // 일터의 몸은 생활(NpcRoutine)이 교대를 보고, 생활이 없는 NPC는 맡은 근무가 없어 쉬는 중이 아니다.
         private static bool IsOffDuty(NpcIdentity npc)
         {
+            if (npc.TryGetComponent(out NpcTownWalker _))
+            {
+                return true;
+            }
+
             return npc.TryGetComponent(out NpcRoutine routine) && routine.IsOffDuty;
         }
 

@@ -101,6 +101,11 @@ namespace A305.Npc
                             && !PoliceCar.IsOutOnPatrol(resident.Life.NpcId)
                     );
                 }
+                if (resident.TownBody != null && PoliceDispatchOrder.IsAway(resident.Life.NpcId))
+                {
+                    resident.TownBody.SetActive(false);
+                    continue;
+                }
                 if (resident.TownBody == null || IsTalking(resident.TownBody))
                     continue;
                 bool appeared = !resident.TownBody.activeSelf;

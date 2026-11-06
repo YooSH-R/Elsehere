@@ -17,12 +17,16 @@ namespace A305.Dialogue
         );
 
         /// <summary>CONV-03 발화 전송.</summary>
+        /// <param name="stream">
+        /// NPC 대사 글자와 문장 조각 음성을 만들어지는 대로 받을 쪽(스트리밍). null이면 저장된 턴만 한 번에 받는다.
+        /// </param>
         Task<TurnResult> SendTurnAsync(
             long conversationId,
             string requestId,
             string inputType,
             string text,
-            string sttRawText
+            string sttRawText,
+            ITurnStream stream
         );
 
         /// <summary>CONV-08 대화 종료와 짧은 피드백.</summary>

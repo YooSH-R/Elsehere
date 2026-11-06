@@ -58,7 +58,7 @@ namespace A305.Dialogue
         public event Action<string, string> UserTurnAccepted;
 
         /// <summary>경찰관이 신고를 받아 순찰차를 출동시킨 턴. NPC 코드와 출동할 장소 코드(null이면 본길 순찰)를 넘긴다.</summary>
-        public event Action<string, string> PoliceDispatchRequested;
+        public event Action<string, long, string> PoliceDispatchRequested;
 
         /// <summary>
         /// 대화가 끝나면 대화 기록을 알린다. 시점과 이동을 되돌린 뒤 가장 마지막에 알리므로,
@@ -421,6 +421,7 @@ namespace A305.Dialogue
             );
             serverConversation.Changed += panel.Refresh;
             serverConversation.NpcSpoke += PlayNpcSpeech;
+            serverConversation.NpcSpeechChunk += PlayNpcSpeechChunk;
             serverConversation.UserTurnAccepted += ForwardAcceptedTurn;
             serverConversation.PoliceDispatchRequested += ForwardPoliceDispatch;
             panel.Show(serverConversation);
@@ -456,6 +457,7 @@ namespace A305.Dialogue
             {
                 serverConversation.Changed -= panel.Refresh;
                 serverConversation.NpcSpoke -= PlayNpcSpeech;
+                serverConversation.NpcSpeechChunk -= PlayNpcSpeechChunk;
                 serverConversation.UserTurnAccepted -= ForwardAcceptedTurn;
                 serverConversation.PoliceDispatchRequested -= ForwardPoliceDispatch;
             }
@@ -521,9 +523,9 @@ namespace A305.Dialogue
             }
         }
 
-        private void ForwardPoliceDispatch(string placeCode)
+        private void ForwardPoliceDispatch(long turnId, string placeCode)
         {
-            PoliceDispatchRequested?.Invoke(serverConversation.NpcCode, placeCode);
+            PoliceDispatchRequested?.Invoke(serverConversation.NpcCode, turnId, placeCode);
         }
 
         private void ForwardAcceptedTurn(string text)
@@ -539,6 +541,12 @@ namespace A305.Dialogue
         private void PlayNpcSpeech(NpcTurnData turn)
         {
             NpcResponded?.Invoke();
+            // 대답을 받는 동안 문장 조각 음성으로 이미 들려줬다. [다시 듣기]는 턴 전체 음성을 받아 재생한다.
+            if (serverConversation.LastTurnSpokenInChunks)
+            {
+                return;
+            }
+
             if (!isEnding && turn.Speech != null && turn.Speech.IsReady)
             {
                 _ = serverConversation.PlaySpeechAsync(serverLink.PlaySpeechAsync);
@@ -546,6 +554,14 @@ namespace A305.Dialogue
             }
 
             serverLink.ForgetSpeech();
+        }
+
+        private void PlayNpcSpeechChunk(NpcSpeechChunkData chunk)
+        {
+            if (!isEnding)
+            {
+                serverLink.QueueSpeechChunk(chunk.Reply, chunk.Wav);
+            }
         }
 
         // 대본 대화는 뜻을 대본에 가지고 있어 서버 대화만 받아 온다(CONV-04).

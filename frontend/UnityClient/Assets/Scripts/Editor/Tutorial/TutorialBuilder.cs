@@ -36,6 +36,7 @@ namespace A305.EditorTools.Tutorial
             "CafeScene",
             "HotelScene",
             "ShopScene",
+            "PoliceStationScene",
         };
 
         private const string SandboxFolder = "Assets/Scenes/Sandbox";

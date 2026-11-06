@@ -1,4 +1,5 @@
 using A305.Dialogue;
+using A305.World;
 using NUnit.Framework;
 
 namespace A305.Mission.Tests
@@ -8,6 +9,27 @@ namespace A305.Mission.Tests
     /// </summary>
     public class FollowUpCardTextTests
     {
+        [TearDown]
+        public void ClearPatrolReports() => PoliceDispatchOrder.Clear();
+
+        [Test]
+        public void Row_WhileOfficerIsAway_DoesNotAnnounceTheResultAsReady()
+        {
+            PoliceDispatchOrder.TryRequest(10, "POLICE_OFFICER", "DINER");
+            WaitingFollowUp result = Waiting(
+                "POLICE_OFFICER",
+                "Dan",
+                "POLICE_STATION",
+                "지갑 수색 결과",
+                0
+            );
+
+            FollowUpCardRow row = FollowUpCardText.Row(result, Received);
+
+            Assert.That(row.IsReady, Is.False);
+            Assert.That(row.Detail, Does.Contain("돌아오면"));
+        }
+
         private const double Received = 100d;
 
         [TestCase(45, "0:45")]

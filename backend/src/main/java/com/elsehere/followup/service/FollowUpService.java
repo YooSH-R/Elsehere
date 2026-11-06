@@ -194,9 +194,11 @@ public class FollowUpService {
     if (turns.stream().noneMatch(turn -> turn.getSpeaker() == Speaker.USER)) {
       return null;
     }
+    boolean policeDispatch = turns.stream().anyMatch(Turn::isPoliceDispatch);
     return npcRepository
         .findById(conversation.getNpcId())
         .filter(npc -> !HANDS_OVER_ON_THE_SPOT.contains(npc.getCode()))
+        .filter(npc -> !PoliceOfficers.includes(npc.getCode()) || policeDispatch)
         .map(
             npc ->
                 new Job(

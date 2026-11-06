@@ -1,5 +1,6 @@
 using A305.Dialogue;
 using A305.Npc;
+using A305.World;
 
 namespace A305.Mission
 {
@@ -51,6 +52,13 @@ namespace A305.Mission
         {
             string place = Place(followUp);
             string name = followUp.NpcName;
+            if (IsPoliceCall(followUp) && PoliceDispatchOrder.IsAway(followUp.NpcCode))
+                return new FollowUpCardRow(
+                    followUp.ItemKo,
+                    $"순찰차가 돌아오면 {place} {name}에게 들으러 가세요",
+                    null,
+                    false
+                );
             if (!followUp.IsReady(nowSeconds))
             {
                 return new FollowUpCardRow(

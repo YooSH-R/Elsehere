@@ -8,7 +8,7 @@ namespace A305.World
     /// <summary>
     /// 경찰서 옆 주차 칸에 서 있다가 신고를 받으면 출동하는 순찰차. 주차 칸과 본길 사이는 진입로(<see cref="DrivePath"/>)로,
     /// 본길은 다른 차처럼 <see cref="LoopingCar"/>로 신호를 지키며 달린다. 출동 흐름은 <see cref="PoliceDispatch"/>가 정하고,
-    /// 경광등은 출동해서 돌아오기 전까지 빨강·파랑을 번갈아 켠다.
+    /// 경광등은 출동해서 돌아오기 전까지 빨강·파랑을 번갈아 켠다. 경찰서 창구가 남긴 신고(<see cref="PoliceDispatchOrder"/>)는 마을이 열릴 때 가져가 출동한다.
     /// 진입로 조절점은 Builder가 마을 배치에 맞춰 넣는다. 나가는 길은 본길 북행 차로 시작점에서, 들어오는 길은 남행 차로 끝에서 이어진다.
     /// 신고를 받은 경찰관이 직접 운전한다. 출동하는 동안 창구의 그 경찰관을 끄고 운전석에 앉힌 같은 경찰관 모습을 켰다가,
     /// 주차 칸에 다시 서면 되돌린다. 운전석 모습은 Builder가 경찰관마다 미리 앉혀 둔다.
@@ -51,19 +51,12 @@ namespace A305.World
         [SerializeField]
         private PlayerMover player;
 
-        // 순찰차를 몰고 나가 창구를 비운 경찰관. 직원 근무 관리(NpcPopulation)는 근무 시간이어도 이 경찰관을 창구에 켜지 않는다.
-        private static readonly HashSet<string> OfficersOut = new HashSet<string>();
-
         private readonly PoliceDispatch dispatch = new PoliceDispatch();
         private LoopingCar car;
         private DrivePath exitPath;
         private DrivePath entryPath;
         private float pathDistance;
         private float height;
-
-        // 운전하러 나가 잠시 끈 창구의 경찰관과 그 NPC 코드. 주차 칸에 다시 서면 켠다.
-        private GameObject officerAwayFromDesk;
-        private string officerOutCode;
 
         public PolicePhase Phase => dispatch.Phase;
 
@@ -73,8 +66,7 @@ namespace A305.World
         public bool LightsOn => dispatch.LightsOn;
 
         /// <summary>이 경찰관이 지금 순찰차를 몰고 나가 창구를 비웠는지</summary>
-        public static bool IsOutOnPatrol(string npcCode) =>
-            npcCode != null && OfficersOut.Contains(npcCode);
+        public static bool IsOutOnPatrol(string npcCode) => PoliceDispatchOrder.IsAway(npcCode);
 
         /// <summary>장소를 정할 수 있는 장소 코드면 그 장소의 화면 이름, 아니면 null</summary>
         public string DisplayNameOf(string sceneCode)
@@ -85,40 +77,15 @@ namespace A305.World
 
         /// <param name="sceneCode">신고한 장소 코드. null이거나 출동할 수 없는 장소면 본길을 순찰한다.</param>
         /// <param name="officerCode">신고를 받아 직접 운전할 경찰관의 NPC 코드. 운전석 모습이 없으면 경찰관 없이 나간다.</param>
-        /// <param name="officerAtDesk">출동하는 동안 끌 창구의 그 경찰관</param>
         /// <returns>서 있다가 출동했으면 true</returns>
-        public bool Dispatch(
-            string sceneCode,
-            string officerCode = null,
-            GameObject officerAtDesk = null
-        )
+        public bool Dispatch(string sceneCode, string officerCode = null)
         {
             string driverCode = SeatOf(officerCode) != null ? officerCode : null;
             if (!dispatch.TryDispatch(Find(sceneCode)?.Code, driverCode))
                 return false;
             pathDistance = 0;
-            if (driverCode != null)
-            {
-                officerOutCode = driverCode;
-                OfficersOut.Add(driverCode);
-            }
-            if (driverCode != null && officerAtDesk != null)
-            {
-                officerAwayFromDesk = officerAtDesk;
-                officerAtDesk.SetActive(false);
-            }
             ShowDriver();
             return true;
-        }
-
-        // 장면을 떠나 순찰차가 사라지면 나가 있던 경찰관도 창구로 돌려 둔다.
-        private void OnDestroy() => ReleaseOfficer();
-
-        private void ReleaseOfficer()
-        {
-            if (officerOutCode != null)
-                OfficersOut.Remove(officerOutCode);
-            officerOutCode = null;
         }
 
         private void Awake()
@@ -139,8 +106,18 @@ namespace A305.World
             Place(entryPath.PoseAt(entryPath.Length));
         }
 
+        // 경찰서는 마을과 다른 장면이라, 플레이어가 경찰서에서 신고하고 나와 마을이 열리면 남겨 둔 신고로 출동한다.
+        private void Start() => StartNextReport();
+
+        private void StartNextReport()
+        {
+            if (Phase == PolicePhase.Parked && PoliceDispatchOrder.TryBegin(out var report))
+                Dispatch(report.PlaceCode, report.OfficerCode);
+        }
+
         private void Update()
         {
+            StartNextReport();
             PolicePhase before = dispatch.Phase;
             dispatch.Tick(ReachedLegEnd(), Time.deltaTime);
             if (dispatch.Phase != before)
@@ -269,11 +246,9 @@ namespace A305.World
 
         private void BackToTheDesk()
         {
-            ReleaseOfficer();
+            if (PoliceDispatchOrder.Current != null)
+                PoliceDispatchOrder.Complete(PoliceDispatchOrder.Current.TurnId);
             ShowDriver();
-            if (officerAwayFromDesk != null)
-                officerAwayFromDesk.SetActive(true);
-            officerAwayFromDesk = null;
         }
 
         private TaxiDestination Find(string sceneCode) =>

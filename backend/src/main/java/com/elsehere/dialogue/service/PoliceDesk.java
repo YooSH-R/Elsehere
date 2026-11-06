@@ -108,9 +108,10 @@ final class PoliceDesk {
           dispatch.get().placeCode() == null
               ? "along the main street to look around"
               : "to " + dispatch.get().placeLabel();
-      return "They reported trouble. Tell them you are driving out "
+      return "They reported trouble. Tell them you will drive out "
           + where
-          + " yourself in the patrol car right now to handle it, and say goodbye.";
+          + " yourself in the patrol car to handle it, and say goodbye. Do not promise an exact"
+          + " departure time: the patrol car may be finishing another call first.";
     }
     JudgeResult.Intent intent = judge.intent();
     if (intent != null

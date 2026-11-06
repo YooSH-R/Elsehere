@@ -18,6 +18,7 @@ import com.elsehere.conversation.dto.NpcSummaryResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.InitiatedBy;
 import com.elsehere.conversation.entity.InputType;
+import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.dialogue.dto.TurnRequest;
@@ -33,6 +34,7 @@ import com.elsehere.world.repository.NpcRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,6 +42,10 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -50,18 +56,18 @@ class PoliceDeskTurnTest {
   private static final String REPORT = "A man is shouting at people near the bakery.";
 
   private final AiGateway worker = mock(AiGateway.class);
+  private final TurnRepository turns = mock(TurnRepository.class);
+  private final DialogueContexts contexts = mock(DialogueContexts.class);
   private Conversation conversation;
   private TurnService service;
 
   @BeforeEach
   void setUp() {
-    TurnRepository turns = mock(TurnRepository.class);
     when(turns.findByRequestId(any())).thenReturn(Optional.empty());
     when(turns.save(any())).thenAnswer(call -> call.getArgument(0));
     conversation = Conversation.start(8L, 6L, InitiatedBy.USER, 1, Instant.EPOCH);
     ConversationLookup lookup = mock(ConversationLookup.class);
     when(lookup.ownedConversation(8L, 10L)).thenReturn(conversation);
-    DialogueContexts contexts = mock(DialogueContexts.class);
     WorkerNpc officer =
         new WorkerNpc("POLICE_OFFICER", "Dan", "officer", "", "police station", "voice", 1);
     when(contexts.npcOf(any()))
@@ -129,7 +135,14 @@ class PoliceDeskTurnTest {
     assertThat(conversation.isActive()).isFalse();
     verify(worker)
         .reply(
-            any(), any(), any(), any(), any(), contains("patrol car right now"), anyInt(), any());
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            contains("yourself in the patrol car"),
+            anyInt(),
+            any());
   }
 
   @Test
@@ -153,6 +166,50 @@ class PoliceDeskTurnTest {
     TurnResponse response = send();
 
     assertThat(response.policeDispatch()).isNull();
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(strings = "Maple Bakery")
+  @DisplayName("첫 출동 응답을 잃고 같은 요청을 다시 보내도 출동 장소를 돌려준다")
+  void send_sameDispatchRequest_replaysTheDispatch(String place) {
+    judges("report_incident", place == null ? "the main street" : place);
+    ReflectionTestUtils.setField(conversation, "id", 10L);
+    var saved = new ArrayList<Turn>();
+    when(turns.save(any()))
+        .thenAnswer(
+            call -> {
+              Turn turn = call.getArgument(0);
+              saved.add(turn);
+              return turn;
+            });
+    when(turns.findByRequestId(any()))
+        .thenAnswer(
+            call ->
+                saved.stream()
+                    .filter(turn -> call.getArgument(0).equals(turn.getRequestId()))
+                    .findFirst());
+    when(turns.findByConversationIdAndSeq(any(), anyInt()))
+        .thenAnswer(
+            call ->
+                saved.stream()
+                    .filter(turn -> turn.getSeq().equals(call.getArgument(1)))
+                    .findFirst());
+    TurnRequest request = new TurnRequest(UUID.randomUUID(), InputType.TEXT, REPORT, null);
+    TurnResponse first = service.send(8L, 10L, request);
+    assertThat(first.policeDispatch()).isNotNull();
+    assertThat(service.send(8L, 10L, request).policeDispatch()).isEqualTo(first.policeDispatch());
+  }
+
+  @Test
+  @DisplayName("비번 경찰관은 창구 신고를 받거나 출동하지 않는다")
+  void send_offDutyOfficer_doesNotDispatch() {
+    conversation.markNpcOffDuty();
+    NpcContext offDuty = contexts.npcOf(conversation).offDuty();
+    when(contexts.npcOf(any())).thenReturn(offDuty);
+    judges("report_incident", "Maple Bakery");
+    assertThat(send().policeDispatch()).isNull();
+    assertThat(conversation.isActive()).isTrue();
   }
 
   private void judges(String intent, String place) {

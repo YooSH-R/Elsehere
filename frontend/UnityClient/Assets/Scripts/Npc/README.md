@@ -12,20 +12,20 @@
 | `PasserbyRules`, `PasserbySettings` | 감지·제안·무시 거리, 쉬는 시간, 거절 가능 여부, 하루에 한 번만 다가오기, 준비해 둔 것을 건네려고 부르는 거리(기본 6m), 걷는 속도. 설정은 데이터 에셋입니다. |
 | `Passerby` | 행인을 걷게 하고 제안 화면·대화와 연결합니다. 다가오지 않는 동안 `NpcRoutine`이 있으면 생활을 맡깁니다. 모델은 `Visual` 아래, 이동은 루트의 `CharacterController`가 맡습니다. |
 | `NpcIdentity` | NPC 키(ERD `npcs.code`)와 머리 위치(`LookTarget`). 실행 시 해당 NPC의 공통 음성·표정 연결을 준비합니다. |
-| `PasserbyOfferView` | 누가 말을 걸었는지, 건넨 말과 [대화하기]·[지금은 안 할래요] 버튼. 한 번에 한 행인만 제안합니다. 같은 자리에 플레이어가 먼저 말을 거는 [말 걸기]와 키 안내(E)를 두며, 둘은 함께 뜨지 않습니다. 보이는 [대화하기] 제안도 E로 수락할 수 있습니다. 제안 창은 다른 창과 같은 테마 바탕을 쓰고, [말 걸기]·[택시 세우기]는 바탕 상자 없이 버튼만 보입니다. 대화를 다 쓴 게스트에게는 같은 자리에 [가입하고 계속 대화하기]를 보이고, 누르거나 E를 누르면 가입 안내 창을 엽니다. |
+| `PasserbyOfferView` | 누가 말을 걸었는지, 건넨 말과 [대화하기]·[지금은 안 할래요] 버튼. 한 번에 한 행인만 제안합니다. 같은 자리에 플레이어가 먼저 말을 거는 [말 걸기]와 키 안내(E)를 두며, 둘은 함께 뜨지 않습니다. 보이는 제안은 E로 수락하고 Esc로 거절합니다. 거절할 수 없는 튜토리얼 제안은 Esc로 닫히지 않습니다. 데스크톱 버튼에는 [E]·[Esc] 안내를 붙이고 터치 화면에서는 숨깁니다. 안내와 버튼 폭만 기존 프리팹에 적용할 때는 **Tools → A305 → Npc → Apply Offer Shortcuts**를 씁니다. 제안 창은 다른 창과 같은 테마 바탕을 쓰고, [말 걸기]·[택시 세우기]는 바탕 상자 없이 버튼만 보입니다. 대화를 다 쓴 게스트에게는 같은 자리에 [가입하고 계속 대화하기]를 보이고, 누르거나 E를 누르면 가입 안내 창을 엽니다. |
 | `NpcClickTalk` | NPC 몸이나 머리 위 이름표를 클릭·탭하면 말을 겁니다. 8m(`ReachMeters`) 안에서 말을 걸 수 있는 NPC만 받고, PC에서는 커서를 올린 그 NPC에 테두리를 그립니다. 누른 자리의 맨 위 UI가 이름표면 그 이름표의 NPC를(`NpcNameTagView.NpcOf`), 다른 UI면 막고, UI가 없으면 맨 앞에 보이는 NPC 몸을 고릅니다. 제안 화면 프리팹(`PasserbyOffer`)에 붙어 있어 장소 씬을 고치지 않고도 NPC가 있는 모든 장소에서 동작합니다(`NpcBuilder.PrepareAssets`). |
 | `NpcPointerRaycast` | 클릭·탭한 방향에서 맨 앞에 보이는 것이 NPC 몸일 때만 그 NPC를 찾습니다. 플레이어 몸과 보이지 않는 감지 영역은 지나치고, 사물 카드가 뜨는 영역(`ObjectHoverHitArea`)이 앞에 있으면 사물을 누른 것으로 봅니다. |
 | `RendererOutline` | 대상 아래 모든 몸 그림에 테두리 재질(`Art/Npc/NpcHoverOutline.mat`, 셰이더 `A305/NpcHoverOutline`)을 하나 더 붙였다가 원래 재질 목록으로 되돌립니다. 재질 에셋은 바꾸지 않습니다. 테두리 색·두께는 재질에서 조정합니다. |
 | `GuestSignupDialogView` | 대화를 다 쓴 게스트의 가입 안내 창. [가입하고 계속 대화하기]를 누를 때와, 마지막 대화의 피드백을 닫아 가입을 권할 때(`A305.Api`의 `GuestSignupPrompt`) 열립니다. 가입하면 대화·단어·NPC와의 사이가 그대로 이어진다고 알리고, [Google로 가입하기]는 같은 탭에서 Google 로그인(AUTH-01, `A305.Api`의 `BrowserRedirect`)으로 갑니다. 창이 열릴 때 설문을 권해(`A305.Api`의 `SurveyPrompt.Request`) 화면 위 가운데에 설문 카드가 따로 내려옵니다(창 안에는 설문 링크를 두지 않음). 제안 화면 프리팹(`PasserbyOffer`)에 있어 장소 씬마다 배치하지 않습니다(**Tools → A305 → Npc → Apply Guest Signup Dialog**). |
-| `PasserbyOfferText` | 제안 화면 문구. 머리말은 대화 대본의 NPC 이름으로 "Emma이(가) 말을 걸었어요", 이름이 없으면 "누군가 말을 걸었어요"이고, 먼저 말 걸기 버튼은 "Emma에게 말 걸기", 이름이 없으면 "말 걸기"입니다. 준비해 둔 것을 건네려고 부를 때는 "Mia이(가) 불러요"와 "기다리던 아이스 라테가 준비됐어요"이고, 조사는 받침에 맞춥니다(`SubjectParticle`). |
+| `PasserbyOfferText` | 제안 화면 문구. 머리말은 대화 대본의 이름과 역할을 함께 받아 "Mia(카페 직원)의 대화 제안"으로 보입니다. 이름이나 역할만 있으면 그 이름·역할 뒤에 받침에 맞는 조사를 붙여 "카페 직원이 말을 걸었어요"처럼 보이고, 둘 다 없으면 "누군가 말을 걸었어요"입니다. 먼저 말 걸기 버튼은 "Emma에게 말 걸기", 이름이 없으면 "말 걸기"입니다. 준비해 둔 것을 건네려고 부를 때는 "Mia이(가) 불러요"와 "기다리던 아이스 라테가 준비됐어요"이고, 조사는 받침에 맞춥니다(`SubjectParticle`). |
 | `PasserbyRestRecord` | 행인별로 다시 다가올 수 있는 시각을 공간이 바뀌어도 기억합니다. |
 | `PasserbyOfferRecord` | 하루에 한 번만 다가오는 행인이 마지막으로 먼저 말을 건 날짜(기기 날짜)를 기억합니다. 게임을 껐다 켜도 이어지게 이 기기(Web 빌드는 브라우저)의 `PlayerPrefs`에 저장합니다. |
-| `PoliceReportDesk` | 경찰서 창구. 신고인지와 장소는 서버 의도 판정이 정해진 단어가 아니라 문맥으로 고르고, 신고를 받은 턴 응답의 `policeDispatch`가 `DialogueController.PoliceDispatchRequested`로 옵니다. 창구는 화면 위쪽 상태 판에 "신고 접수 · 장소"를 보이고, 경찰관이 대화를 마치면(신고를 받은 경찰관이 직접 가려고 그 턴에 대화를 마침) 그 경찰관이 창구를 떠나 순찰차(`PoliceCar`)를 직접 몰고 그 장소로, 장소가 없으면 본길 순찰로 출동합니다. 돌아와 주차하면 창구에 다시 섭니다. 신고가 아닌 말·무례한 말에는 서버가 출동 장소를 보내지 않습니다. |
+| `PoliceReportDesk` | 경찰서 창구. 경찰관과 대화하는 동안 서버가 받아들인 발화로 신고를 접수하고(`PoliceReportIntake`) 화면 위쪽 상태 판에 "신고 접수 · 장소"를 보입니다. 경찰서는 마을과 다른 장면이라 대화를 마치면 신고를 남기고(`PoliceDispatchOrder`), 경찰서를 나와 마을이 열리면 순찰차(`PoliceCar`)가 그 신고로 출동합니다. 접수 문구에 쓸 장소 이름은 순찰차 출동 장소와 같은 목록을 Builder가 옮겨 둡니다. 서버 오류·무례한 발화·NPC의 대화 종료는 출동을 일으키지 않습니다(택시와 같은 기준). |
 | `TaxiRide` | 본길을 도는 택시를 인도에서 세우면 손님 옆에 세워 바로 태우고 기사와 대화하게 합니다. 버튼은 [말 걸기]와 같은 자리에 뜹니다. 태우지 못하면 선 택시 곁에 [기사에게 말 걸기]를 보입니다. `IsHailAllowed`가 false면(튜토리얼 동안) [택시 세우기]를 보이지 않습니다. 어떤 버튼을 보일지는 `TaxiPrompt`가 고릅니다. |
 | `NpcLifeData`, `NpcLife` | 생활 데이터(`Data/Npc/NpcLife.json`)와 NPC 한 명의 일과 활동·욕구·할 일 고르기. AI 하루 시뮬레이션과 같은 규칙이며 Unity 객체 없이 테스트합니다. |
 | `NpcRoutine` | 다가오지 않는 동안 `NpcLife`가 고른 사물까지 걸어가 쓰고, 의자·벤치·소파면 앉습니다. 걷기·애니메이션은 `Passerby`의 것을 씁니다. 구역(`stayInArea`·`area`)을 켜면 그 안의 사물·자리만 고릅니다. |
 | `NpcDuty` | 직원이 지금 근무 중인지(교대 밖이면 근무 외)와 같은 카운터를 맡은 직원 중 누가 응대할지 정합니다([일터와 응대](#일터와-응대)). Unity 객체 없이 테스트합니다. |
-| `NpcDetailDistance` | 카메라가 12m 안에 있을 때만 NPC의 팔 관통 보정(`LittleMungArmClearance`)을 켭니다. 이 보정은 매 프레임 피부 정점을 계산해 캐릭터 하나에 수 ms가 들어, 마을을 걷는 NPC 모두에게 돌리면 마을이 느려집니다(마을 NPC 16명 기준 한 프레임 약 125ms). 공용 `Passerby.prefab`에 붙어 있어 이 프리팹으로 놓는 NPC가 모두 받습니다. 앉아 있는 동안에는 `StandingPoseCorrections`가 보정을 꺼 두므로 건드리지 않고, 일어선 뒤 거리에 맞춥니다. |
+| `NpcDetailDistance` | 카메라가 12m 안에 있을 때만 NPC의 팔 관통 보정(`LittleMungArmClearance`)을 켭니다. 이 보정은 매 프레임 피부 정점을 계산합니다. 머리 정점을 모두 계산하던 때는 캐릭터 하나에 수 ms가 들어 마을을 걷는 NPC 모두에게 돌리면 마을이 느려졌습니다(마을 NPC 16명 기준 한 프레임 약 125ms). 지금은 머리·몸통의 바깥 끝 정점만 계산합니다([Player 모듈](../Player/README.md)). 공용 `Passerby.prefab`에 붙어 있어 이 프리팹으로 놓는 NPC가 모두 받습니다. 앉아 있는 동안에는 `StandingPoseCorrections`가 보정을 꺼 두므로 건드리지 않고, 일어선 뒤 거리에 맞춥니다. |
 | `NpcNameTags`, `NpcNameTagView` | 플레이어에서 8m 안의 NPC 머리 위 이름표. 근무 중인 직원(생활 데이터 역할 `STAFF`, 일과 `WORK`)은 이름 위 파란 칩에 역할(예: 벨보이·경찰관)을 함께 보이고, 행인과 쉬는 시간·퇴근한 직원은 이름만 보입니다(`NpcRoutine.IsOffDuty`, 첫날 미션이 찾아가라는 직원은 근무 중으로 봄). 이름·역할은 대화 대본(`Data/Dialogue/MockDialogueScripts.asset`)에서 읽고, 이름이 없는 NPC는 띄우지 않습니다. 대화나 창 때문에 플레이어가 움직이지 못하는 동안에는 숨깁니다. NPC마다 3D 글자판을 두지 않고 제안 화면 프리팹(`PasserbyOffer`)의 `NameTags` 층 한 장에서 그립니다. 이 층은 다른 화면 UI와 휴대폰 터치 조작판(-10)보다 아래(-20)에 놓이고, 이름표 바탕 전체가 클릭을 받아 그 NPC에게 말을 겁니다([클릭·탭으로 말 걸기](#클릭탭으로-말-걸기), **Tools → A305 → Npc → Apply Name Tags**). 나란히 선 NPC의 이름표는 서로 겹칠 수 있으며, 카메라에서 가까운 NPC 이름표를 위에 그립니다. 매 프레임 NPC를 훑을 때 장면 전체를 찾지 않도록 `NpcIdentity.Active`(지금 켜진 NPC 목록)를 씁니다. 판단은 EditMode `NpcNameTagsTests`가 Unity 객체 없이, 제안 화면 프리팹의 이름표 층 연결·그리는 순서·클릭 받기는 `NpcNameTagPrefabTests`가, 실제 마을 장면은 PlayMode `NpcNameTagViewTests`가 확인합니다(가까운 경찰관의 역할 칩, 쉬는 시간의 경찰관과 행인은 이름만, 먼 NPC·움직이지 못할 때는 없음). 이름표 클릭과 겹친 이름표는 `NpcClickTalkTests`가 확인합니다. |
 | `NpcStayArea` | 구역을 켠 NPC가 고를 수 있는 위치인지 정합니다. Unity 장면 없이 테스트합니다. |
 | `NpcWalkArea` | Builder가 장면마다 구운 NPC 바닥(NavMesh)을 장면이 켜져 있는 동안 등록합니다. |
@@ -79,11 +79,11 @@
 | `CAFE_STAFF`(Mia)·`CAFE_BARISTA`(Zoe)·`CAFE_SERVER`(Leo) | 카페 카운터 뒤와 양 끝 | `CafeStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
 | `HOTEL_STAFF`(Jake)·`HOTEL_RECEPTIONIST`(Owen)·`HOTEL_NIGHT_MANAGER`(Clara)·`HOTEL_CONCIERGE`(Walter)·`HOTEL_BELLHOP`(Diego) | 호텔 리셉션 데스크 뒤와 양옆 | `Data/Hotel/HotelStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
 | `SHOP_STAFF`(Alex)·`SHOP_PHARMACIST`(Hannah)·`SHOP_NIGHT_CLERK`(Samuel) | 드럭스토어 계산대 뒤 | `Data/Mission/ShopStaffSettings` | 4m | 5초 | 가능 | 제한 없음 |
-| `POLICE_OFFICER`(Dan)·`POLICE_SERGEANT`(Victor)·`POLICE_PATROL_OFFICER`(Kevin)·`POLICE_ROOKIE`(Tyler) | 마을 경찰서 창구 뒤, 경찰서 1층 안에서 생활 | `PoliceOfficerSettings` | 4m | 5초 | 가능 | 제한 없음 |
+| `POLICE_OFFICER`(Dan)·`POLICE_SERGEANT`(Victor)·`POLICE_PATROL_OFFICER`(Kevin)·`POLICE_ROOKIE`(Tyler) | 경찰서 장면(`PoliceStationScene`) 창구 뒤, 경찰서 1층 안에서 생활 | `PoliceOfficerSettings` | 4m | 5초 | 가능 | 제한 없음 |
 | 거리 매장 직원 9명([아래](#거리-매장-직원)) | 마을 매장 1층 안에서 생활 | `BuildingStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
 
 - 마을 행인 Ben은 튜토리얼에서 길을 묻는 사람과 같은 사람입니다. 튜토리얼 진행(`TutorialDirector`)이 단계마다 `Passerby.SetTutorialScript`를 불러, 튜토리얼 중에는 튜토리얼 대본·인사말(키 `TUTORIAL_PASSERBY`)과 튜토리얼 설정으로 집 앞에서 길을 묻고 생활하지 않게 합니다. 튜토리얼을 마치면 NPC 키로 평소 대화하고 평소 설정으로 생활합니다. 튜토리얼에서 길을 물은 것도 그날 먼저 말을 건 것으로 세므로, 튜토리얼을 마친 그 게임 날에는 다시 다가오지 않습니다.
-- 카페 직원은 새 컴포넌트 없이 행인 프리팹을 쓰고, 걷는 속도 0이라 플레이어에게 걸어가지 않습니다. 플레이어가 카운터 앞 2m 안에 오면 카운터 뒤 자리로 돌아가([생활](#생활)) 제안 거리 2.5m에서 대화를 제안합니다. 행인과 직원이 같은 제안 화면을 쓰므로 머리말은 NPC 종류 대신 대화 대본의 이름으로 누가 말을 걸었는지 보여 줍니다.
+- 카페 직원은 새 컴포넌트 없이 행인 프리팹을 쓰고, 걷는 속도 0이라 플레이어에게 걸어가지 않습니다. 플레이어가 카운터 앞 2m 안에 오면 카운터 뒤 자리로 돌아가([생활](#생활)) 제안 거리 2.5m에서 대화를 제안합니다. 행인과 직원이 같은 제안 화면을 쓰므로 머리말은 대화 대본의 이름과 역할을 함께 보여 누가 말을 걸었는지 알립니다.
 
 - NPC 키는 ERD `npcs.code`와 같아야 하므로 서버 시드 데이터와 맞춥니다. 이름·성격·대사는 서버 데이터입니다.
 - 퀘스트에서 이 행인을 만나야 하는 동안에는 `Passerby.WaitAt`으로 정한 자리에 붙잡아 둡니다. 그 자리로 옮겨 생활 대신 그 자리를 지키고, 거절하면 그 자리로 돌아가며, 그날 이미 말을 걸었어도 다가와 제안합니다. `StopWaiting`으로 풀면 평소 생활로 돌아갑니다. 자리는 [Mission 모듈](../Mission/README.md)의 `QuestNpcWaitSpot`이 정합니다.
@@ -158,7 +158,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 | 카페 `CafeScene` | Mia(아침)·Leo(한낮)·Zoe(오후~저녁) | Mia는 카운터 뒤, Leo·Zoe는 카운터 양 끝의 손님 쪽 모서리 |
 | 호텔 `HotelScene` | Jake(아침)·Walter·Diego(한낮)·Owen(오후~저녁)·Clara(밤) | Jake는 데스크 뒤, Owen·Clara는 데스크 손님 쪽 양옆, Walter·Diego는 데스크 뒤쪽 양 끝 |
 | 드럭스토어 `ShopScene` | Alex(아침)·Hannah(오후~밤)·Samuel(밤~새벽) | 모두 계산대 뒤. Alex가 계산대에 가장 가깝다 |
-| 경찰서 `TownScene` | Dan(아침)·Tyler(한낮)·Kevin(오후~저녁)·Victor(밤) | 모두 창구 뒤나 창구 끝. Dan이 창구에 가장 가깝다 |
+| 경찰서 `PoliceStationScene` | Dan(아침)·Tyler(한낮)·Kevin(오후~저녁)·Victor(밤) | 모두 창구 뒤나 창구 끝. Dan이 창구에 가장 가깝다 |
 
 | 상황 | 동작 |
 | --- | --- |
@@ -191,7 +191,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 ## 경찰서
 
-마을 남서쪽 끝 경찰서 창구 뒤에 경찰관 Dan(`POLICE_OFFICER`)·Victor(`POLICE_SERGEANT`)·Kevin(`POLICE_PATROL_OFFICER`)·Tyler(`POLICE_ROOKIE`)가 24시간 교대로 있습니다([일터와 응대](#일터와-응대)). 카페 직원처럼 행인 프리팹을 쓰고 플레이어에게 걸어가지 않으며, 경찰서 1층 안에서만 지냅니다. 경찰관마다 신고 창구(`PoliceReportDesk`)가 있어 누구에게 신고해도 순찰차가 출동합니다. 신고와 장소는 서버의 의도 판정(백엔드 `PoliceDesk`)이 문맥으로 고릅니다([MVP API 명세의 경찰 신고](../../../../../docs/api/mvp-api.md)).
+마을 남서쪽 끝 경찰서(카페·호텔처럼 따로 장면인 `PoliceStationScene`) 창구 뒤에 경찰관 Dan(`POLICE_OFFICER`)·Victor(`POLICE_SERGEANT`)·Kevin(`POLICE_PATROL_OFFICER`)·Tyler(`POLICE_ROOKIE`)가 24시간 교대로 있습니다([일터와 응대](#일터와-응대)). 카페 직원처럼 행인 프리팹을 쓰고 플레이어에게 걸어가지 않으며, 경찰서 1층 안에서만 지냅니다. 경찰관마다 신고 창구(`PoliceReportDesk`)가 있어 누구에게 신고해도 순찰차가 출동합니다. 신고 여부와 목적지는 서버의 `PoliceDesk`가 문맥으로 판정합니다. 창구는 턴 응답의 출동 정보를 받아, 대화를 마치면 신고한 경찰관·목적지·사용자 턴 ID를 `PoliceDispatchOrder`에 보관합니다. 같은 턴 ID는 한 번만 접수하며, 추가 신고는 순서대로 기다립니다. 신고한 경찰관은 순찰차가 돌아와 주차할 때까지 창구와 마을의 생활 모습에 나타나지 않습니다.
 
 | 대화에서 말한 내용 | 대화를 마친 뒤 순찰차 |
 | --- | --- |
@@ -199,9 +199,9 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 | 신고한 뒤에 장소를 하나 말함 (My bag was stolen. → It was the cafe.) | 마지막에 말한 장소로 출동합니다. |
 | 장소 없는 신고 (I lost my wallet.) 또는 장소를 여럿 말한 신고 | 경광등을 켜고 본길을 한 바퀴 순찰하고 돌아옵니다. |
 | 신고가 아닌 말 (Hello, officer.), 부정·가정 (Nothing was stolen.) | 출동하지 않습니다. 신고 전에 말한 장소는 기억하지 않습니다. |
-| 순찰차가 나가 있을 때 한 신고 | 출동하지 않고 "신고 접수 · 순찰차가 이미 출동해 있어요"를 보입니다. |
+| 아직 출발하지 않은 신고가 있을 때 한 신고 | 새로 받지 않고 "신고 접수 · 순찰차가 이미 출동하기로 했어요"를 보입니다. 순찰차는 먼저 받은 신고로 출동합니다. |
 
-신고는 대화 중에 접수만 하고, 대화를 마친 뒤 출발해 밖으로 나온 플레이어가 출동하는 모습을 보게 합니다. 카페는 배우는 사람이 자주 틀리는 caffe·caffee도 알아봅니다(택시 목적지와 같은 장소 이름). 배치와 연결은 **Tools → A305 → World → Apply Police Station**이 합니다([World 모듈](../World/README.md#경찰서와-순찰차)).
+신고는 대화 중에 접수만 하고, 경찰서를 나와 마을이 열리면 순찰차가 출발해 밖으로 나온 플레이어가 출동하는 모습을 보게 합니다. 신고하고 문이 아닌 다른 길(집 버튼 등)로 나가도 다음에 마을이 열릴 때 출동합니다. 카페는 배우는 사람이 자주 틀리는 caffe·caffee도 알아봅니다(택시 목적지와 같은 장소 이름). 배치와 연결은 **Tools → A305 → World → Apply Police Station**이 합니다([World 모듈](../World/README.md#경찰서와-순찰차)).
 
 ## 거리 매장 직원
 
@@ -261,7 +261,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 **Tools → A305 → Npc → Build Building Staff**(`Scripts/Editor/Npc/BuildingStaffBuilder.cs`)는 [거리 매장 직원](#거리-매장-직원)을 `TownScene`의 각 건물 1층에 둡니다. 정한 자리가 카운터·가구와 겹치면 1층 안의 가장 가까운 빈자리로 옮기고(`NpcPlacement`), 문 쪽을 보게 세웁니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않습니다. 외형은 [외형 표](#외형-표)의 외형을 `NpcVisualBuilder`로 붙이고, 배색은 `NpcCastDresser`가 입힙니다(몸 텍스처는 1024로 줄임, 머티리얼 사본은 실행할 때마다 외형의 원래 머티리얼 설정에 맞춤). 확인용 인사말·설정(`Data/Npc/BuildingStaffSettings.asset`)도 연결합니다. 이어서 **Build Daily Life**를 실행해 생활을 붙이고, 직원마다 구역을 자기 건물 1층으로 정합니다. 생활 데이터에 직원이 없으면 내보내기(`npc_life_export.py`)를 먼저 하라고 알리고 멈춥니다.
 
-**Tools → A305 → Npc → Build Cast**(`Scripts/Editor/Npc/NpcCastBuilder.cs`)는 다른 Builder가 두지 않는 카페·호텔·드럭스토어 직원과 마을 행인을 [일터](#일터와-응대)에 두고, 경찰관은 `PoliceStationBuilder.PlaceOfficers`로 창구 뒤에 둡니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않고, 정한 자리가 가구와 겹치면 가까운 빈자리로 옮깁니다. 설정은 같은 일터의 원래 NPC를 따르고, Mia·Jake와 같은 외형을 쓰는 직원은 기존 연결을 재사용하고, 새 검수 외형을 쓰는 직원은 자기 메시에서 캡슐·시선 높이를 측정합니다. 이어서 네 장면의 모든 NPC에 외형 표의 배색을 입히고 **Build Daily Life**를 실행한 뒤 경찰관이 경찰서 1층 안에서만 지내게 합니다. 확인용 인사말도 덧붙입니다.
+**Tools → A305 → Npc → Build Cast**(`Scripts/Editor/Npc/NpcCastBuilder.cs`)는 다른 Builder가 두지 않는 카페·호텔·드럭스토어 직원과 마을 행인을 [일터](#일터와-응대)에 두고, 경찰관은 `PoliceStationBuilder.PlaceOfficers`로 경찰서 장면의 창구 뒤에 둡니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않고, 정한 자리가 가구와 겹치면 가까운 빈자리로 옮깁니다. 설정은 같은 일터의 원래 NPC를 따르고, Mia·Jake와 같은 외형을 쓰는 직원은 기존 연결을 재사용하고, 새 검수 외형을 쓰는 직원은 자기 메시에서 캡슐·시선 높이를 측정합니다. 이어서 다섯 장면의 모든 NPC에 외형 표의 배색을 입히고 **Build Daily Life**를 실행한 뒤 경찰관이 경찰서 1층 안에서만 지내게 합니다. 확인용 인사말도 덧붙입니다.
 
 **Tools → A305 → Npc → Build Daily Life**(`Scripts/Editor/Npc/NpcLifeBuilder.cs`)는 카페·호텔·드럭스토어·마을에서 생활 데이터가 있는 NPC에 `NpcRoutine`을 붙이고, NPC 몸 크기(반지름 0.3m, 키 1.8m, 턱 0.3m)로 바닥을 구워 `Data/Npc/WalkAreas/`에 저장한 뒤 `NpcWalkArea`로 연결합니다. 사람·차·트리거 콜라이더는 굽지 않습니다. 장면의 `NavMeshModifier`·`NavMeshModifierVolume`이 정한 바닥 구역을 따르며, 마을의 차도(`Road`)·횡단보도(`Crosswalk`) 구역은 [길 안내](../Wayfinding/README.md#횡단보도로-건너기)가 두고 비용은 보통 바닥과 같아 NPC 걸음은 바뀌지 않습니다. 가구 배치를 바꾸면 다시 실행합니다. 같은 메뉴가 `NpcAnimationBuilder`로 동작 FBX를 Humanoid로 가져오고 NPC 전용 Animator(`Art/Characters/Npc/NpcLife.controller`)를 만들어 `NpcRoutine`에 연결합니다. 장면에 저장된 모델은 플레이어와 같은 이동 컨트롤러 그대로 두고, 생활이 켜질 때 Humanoid 모델에 바꿔 끼웁니다(장면 모델의 키·발 높이 검사가 그대로 유지됩니다). 모델이 자기 Idle처럼 캐릭터 전용 클립을 덮어쓴 컨트롤러(`AnimatorOverrideController`)를 쓰면 `NpcLifeAnimator`가 그 클립을 생활 컨트롤러에 이어받습니다. 컨트롤러는 없을 때만 만들므로 구성을 바꾸려면 지우고 다시 실행합니다.
 

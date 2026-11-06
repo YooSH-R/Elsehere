@@ -33,7 +33,7 @@ public class UserNpcRelation extends BaseEntity {
 
   @EmbeddedId private UserNpcRelationId id;
 
-  // 호감도(-100~100). 무례로 센 말마다 깎고(NpcAffinityService), 대화가 끝나면 관계 갱신 변화량을 더한다.
+  // 호감도(-100~100). 대화 중 발화마다 바꾸고(NpcAffinityService), 대화가 끝나면 좋은 대화 몫을 더한다(MemoryService).
   @ColumnDefault("0")
   @JdbcTypeCode(SqlTypes.SMALLINT)
   @Column(nullable = false)

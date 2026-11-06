@@ -181,6 +181,13 @@ class FollowUpServiceTest {
   }
 
   @Test
+  @DisplayName("실제로 신고를 접수하지 않은 경찰 대화는 출동 결과를 만들지 않는다")
+  void afterConversation_policeTalkWithoutDispatch_doesNotJudgeAnOutcome() {
+    assertThat(judge(endedConversation("POLICE_OFFICER", "Hello, officer."))).isEmpty();
+    then(aiGateway).should(never()).policeCallOutcome(any(), any(), any());
+  }
+
+  @Test
   @DisplayName("경찰관에게 신고해 출동한 대화는 출동 결과로 판정해, 순찰을 마치고 돌아올 즈음(90초) 결과를 알릴 수 있게 저장한다")
   void afterConversation_policeCall_savesTheResultTheOfficerWillReport() {
     given(aiGateway.policeCallOutcome(any(), any(), any()))
@@ -189,8 +196,17 @@ class FollowUpServiceTest {
                 new WorkerFollowUp("your wallet, found at Maple Diner", "지갑 수색 결과", "SHORT"),
                 List.of(usage("follow_up"))));
 
-    Optional<FollowUpResponse> result =
-        judge(endedConversation("POLICE_OFFICER", "Someone took my wallet at the diner."));
+    Conversation reported =
+        endedConversation("POLICE_OFFICER", "Someone took my wallet at the diner.");
+    entityManager
+        .createQuery(
+            "select t from Turn t where t.conversation.id = :id and t.seq = 2",
+            com.elsehere.conversation.entity.Turn.class)
+        .setParameter("id", reported.getId())
+        .getSingleResult()
+        .recordPoliceDispatch("DINER");
+    entityManager.flush();
+    Optional<FollowUpResponse> result = judge(reported);
 
     assertThat(result)
         .hasValueSatisfying(

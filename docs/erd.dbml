@@ -240,6 +240,8 @@ Table turns [headercolor: #2E6B4F] {
   guard_abusive boolean [note: '무례 판정 · true 무례, false 아님, null 판정 실패(무례로 세지 않음) · 사용자 턴만']
   guard_error_code varchar(30) [note: '판정 실패 이유 · empty · unparsed · timeout · provider_unavailable · provider_limit · worker_unavailable(Spring이 워커에 닿지 못함)']
   events jsonb [note: '의도 판정(/v1/judge)이 고른 대화 사건 문자열 배열 (GREETING · APOLOGY 등) · 다음 요청의 history[].events · 사용자 턴만, 워커가 보내지 않으면 null']
+  police_dispatch boolean [not null, default: false, note: '이 사용자 턴이 접수한 경찰 출동 · 재시도에도 동일한 출동 정보를 반환']
+  police_dispatch_place_code varchar(40) [note: '경찰 출동 목적지 · 접수됐는데 NULL이면 본길 순찰']
   meaning_ko text [note: '뜻 보기']
   glossary jsonb [note: '단어 호버 뜻']
   suggest_words jsonb [note: '추천 단어 3개']

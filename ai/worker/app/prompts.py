@@ -431,6 +431,9 @@ You get what the character remembered before and the conversation that just ende
 - events: what happened between them, short, from the character's view ("was rude and threatened me, so I asked them to leave"). Max 5, newest first; keep important old ones.
 - attitude: how the character feels about them now: friendly, neutral, or wary; this is a tone hint, not a penalty or affinity score.
 - struggled: English expressions the customer clearly had trouble with in this conversation (short phrases). Max 5.
+- impression: how this conversation alone went for the character, ignoring earlier visits. good only when it was clearly pleasant
+  beyond the business: friendly chat, warmth, kind words, real interest in the character. A polite but plain order or request is neutral.
+  bad when the customer was unpleasant or dismissive. English mistakes, Korean words and short answers never make it worse.
 Rude classifications come from Spring: [RUDE: content withheld] means a confirmed rude turn, not a new profile fact.
 Do not infer new rude classifications from unmarked text. Absence of a marker is not confirmation of polite behavior.
 Never store abusive wording in name, claims, or struggled. A confirmed rude event may be summarized without quoting it;
@@ -448,8 +451,9 @@ MEMORY_SCHEMA = {
         "events": {"type": "array", "items": {"type": "string"}},
         "attitude": {"type": "string", "enum": ["friendly", "neutral", "wary"]},
         "struggled": {"type": "array", "items": {"type": "string"}},
+        "impression": {"type": "string", "enum": ["good", "neutral", "bad"]},
     },
-    "required": ["name", "claims", "events", "attitude", "struggled"],
+    "required": ["name", "claims", "events", "attitude", "struggled", "impression"],
     "additionalProperties": False,
 }
 CARD_LISTS = {"claims": 5, "events": 5, "struggled": 5}
@@ -481,8 +485,19 @@ def memory_messages(npc: Npc, old: dict | None, outcome: str, history: list[Line
     return [{"role": "system", "content": MEMORY_SYSTEM}, {"role": "user", "content": user}]
 
 
-def parse_memory_card(raw: str) -> dict:
-    """카드 생성 결과만 엄격하게 읽는다. 중복 JSON 키·비표준 상수를 허용하지 않는다."""
+IMPRESSIONS = ("good", "neutral", "bad")
+
+
+def parse_memory_output(raw: str) -> tuple[dict, str]:
+    """기억 카드 생성 결과를 카드와 이번 대화의 인상으로 나눠 읽는다. 카드는 엄격하게 검사하고(clean_card),
+    인상이 없거나 정해진 값이 아니면 neutral로 본다(인상 하나 때문에 카드 갱신까지 실패하지 않게)."""
+    output = strict_json(raw)
+    impression = output.pop("impression", None) if isinstance(output, dict) else None
+    return clean_card(output), impression if impression in IMPRESSIONS else "neutral"
+
+
+def strict_json(raw: str) -> object:
+    """카드 생성 결과를 엄격하게 읽는다. 중복 JSON 키·비표준 상수를 허용하지 않는다."""
 
     def unique_object(pairs):
         result = {}
@@ -496,10 +511,9 @@ def parse_memory_card(raw: str) -> dict:
         raise ValueError("비표준 JSON 상수")
 
     try:
-        card = json.loads(raw, object_pairs_hook=unique_object, parse_constant=reject_constant)
+        return json.loads(raw, object_pairs_hook=unique_object, parse_constant=reject_constant)
     except (ValueError, TypeError) as error:
         raise ModelOutputError("기억 카드 출력이 유효한 JSON이 아님") from error
-    return clean_card(card)
 
 
 def clean_card(card: object) -> dict:
@@ -555,7 +569,8 @@ FOLLOW_UP_SCHEMA = {
 # 순찰을 마치고 돌아온 경찰관이 다음 대화 첫마디로 결과를 알리고, 학습자의 물건이면 돌려준다. 출력 형식은 건넬 것과 같고 기다림은 순찰 시간(SHORT)이다
 POLICE_CALL_SYSTEM = """You decide how a police call ends in a small-town role-play game for a Korean learner of English.
 In the conversation, the learner reported trouble to a police officer at the town police station.
-owes = true only when the officer said they were driving or heading out (in the patrol car) to handle it. Otherwise owes = false.
+The server has confirmed that this report was accepted for a patrol-car trip. The officer may finish another call before departing.
+owes = true for this accepted report. Decide the result they will report after completing the trip.
 When owes is true, decide one believable, good outcome that solves what was reported, as the officer will tell it after they drove out in the patrol car and came back:
 - a lost or stolen thing is found and brought back, so the officer hands it over;
 - a fight or a loud, angry person is calmed down and sent on their way;

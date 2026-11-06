@@ -111,7 +111,7 @@ class PoliceDeskTest {
 
     String instruction = PoliceDesk.instruction(judge, PoliceDesk.dispatch(judge));
 
-    assertThat(instruction).contains("Maple Bakery").contains("patrol car right now");
+    assertThat(instruction).contains("Maple Bakery").contains("yourself in the patrol car");
   }
 
   private static JudgeResult judged(String intent, String place) {

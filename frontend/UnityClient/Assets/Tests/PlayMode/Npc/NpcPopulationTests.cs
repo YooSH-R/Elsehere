@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using A305.Dialogue;
 using A305.Tutorial;
 using A305.World;
 using NUnit.Framework;
@@ -28,6 +29,58 @@ namespace A305.Npc.PlayModeTests
             TutorialState.Clear();
             NpcDuty.MissionNpcCode = null;
             SetClock(8 * 60);
+        }
+
+        [UnityTest]
+        public IEnumerator DialogueDestroyedDuringSceneTeardown_DoesNotWakeUnconnectedCommuters()
+        {
+            SetClock(12 * 60 + 15);
+            yield return SceneManager.LoadSceneAsync("TownScene");
+            yield return null;
+            var officer = Object
+                .FindObjectsByType<NpcTownWalker>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+                .Single(npc => npc.GetComponent<NpcIdentity>().Code == "POLICE_OFFICER");
+            Assert.That(
+                officer.gameObject.activeSelf,
+                Is.False,
+                "근무 중인 경찰관의 출퇴근 모습은 아직 켜지지 않습니다."
+            );
+
+            Object.DestroyImmediate(Object.FindFirstObjectByType<DialogueController>());
+            SetClock(15 * 60);
+            yield return null;
+            yield return null;
+
+            Assert.That(
+                officer.gameObject.activeSelf,
+                Is.False,
+                "장면 종료 중에는 연결이 끊긴 NPC를 새로 깨우지 않습니다."
+            );
+        }
+
+        [UnityTest]
+        public IEnumerator OfferViewDestroyedDuringSceneTeardown_DoesNotWakeUnconnectedCommuters()
+        {
+            SetClock(12 * 60 + 15);
+            yield return SceneManager.LoadSceneAsync("TownScene");
+            yield return null;
+            var officer = Object
+                .FindObjectsByType<NpcTownWalker>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+                .Single(npc => npc.GetComponent<NpcIdentity>().Code == "POLICE_OFFICER");
+            Assert.That(officer.gameObject.activeSelf, Is.False);
+
+            Object.DestroyImmediate(Object.FindFirstObjectByType<PasserbyOfferView>());
+            SetClock(15 * 60);
+            yield return null;
+            yield return null;
+
+            Assert.That(officer.gameObject.activeSelf, Is.False);
         }
 
         [UnityTest]

@@ -12,6 +12,7 @@ namespace A305.World.Tests
         [TestCase("CafeScene", "CAFE")]
         [TestCase("HotelScene", "HOTEL")]
         [TestCase("ShopScene", "SHOP")]
+        [TestCase("PoliceStationScene", "POLICE_STATION")]
         public async Task RecordAsync_PlaceScene_SavesItsSceneCode(
             string unitySceneName,
             string sceneCode

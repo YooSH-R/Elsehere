@@ -14,7 +14,7 @@ using UnityEngine.TestTools;
 namespace A305.Npc.PlayModeTests
 {
     /// <summary>
-    /// 마을에서 가까운 NPC 머리 위에 이름표가 뜬다. 근무 중인 직원은 역할 칩(예: 경찰관)을 함께 달고, 행인과 쉬는 직원은 이름만 보인다.
+    /// 가까운 NPC 머리 위에 이름표가 뜬다. 근무 중인 직원은 역할 칩(예: 경찰서의 경찰관)을 함께 달고, 마을 행인과 쉬는 직원은 이름만 보인다.
     /// 멀리 있는 NPC와 플레이어가 대화·창으로 움직이지 못하는 동안에는 이름표를 띄우지 않는다.
     /// 기본 시각은 12:15 근무 중으로 고정하고, 휴식 검사는 10:15에 나타나는 출퇴근 캐릭터를 확인한다.
     /// </summary>
@@ -40,7 +40,6 @@ namespace A305.Npc.PlayModeTests
             TutorialState.MarkFinishedOnServer();
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
-            yield return NpcTestClock.OpenPoliceStation();
         }
 
         [UnityTearDown]
@@ -64,6 +63,9 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator NearbyStaff_ShowsNameWithRoleChipAboveTheHead()
         {
+            // 경찰관은 경찰서 장면에서 일한다.
+            yield return SceneManager.LoadSceneAsync("PoliceStationScene", LoadSceneMode.Single);
+            yield return null;
             NpcIdentity staff = HoldStill(StaffCode);
             yield return StandFacing(staff, 3f);
 
@@ -107,18 +109,18 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator FarNpc_HasNoTag()
         {
-            NpcIdentity staff = HoldStill(StaffCode);
-            yield return StandFacing(staff, NpcNameTags.ShowRadiusMeters + 6f);
+            NpcIdentity passerby = HoldStill(PasserbyCode);
+            yield return StandFacing(passerby, NpcNameTags.ShowRadiusMeters + 6f);
 
-            Assert.That(ShownTags().Select(shown => shown.Name), Does.Not.Contain(StaffName));
+            Assert.That(ShownTags().Select(shown => shown.Name), Does.Not.Contain(PasserbyName));
         }
 
         [UnityTest]
         public IEnumerator PlayerWhoCannotMove_SeesNoTags()
         {
-            NpcIdentity staff = HoldStill(StaffCode);
-            yield return StandFacing(staff, 3f);
-            Assume.That(ShownTags().Select(shown => shown.Name), Does.Contain(StaffName));
+            NpcIdentity passerby = HoldStill(PasserbyCode);
+            yield return StandFacing(passerby, 3f);
+            Assume.That(ShownTags().Select(shown => shown.Name), Does.Contain(PasserbyName));
 
             Object.FindFirstObjectByType<PlayerMover>().SetMovementLocked(true);
             yield return null;

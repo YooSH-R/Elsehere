@@ -10,7 +10,8 @@ VALUES
   ('TOWN', '마을', 'TownScene', true),
   ('CAFE', '모퉁이 카페', 'CafeScene', true),
   ('HOTEL', '호텔', 'HotelScene', true),
-  ('SHOP', '드럭스토어', 'ShopScene', true)
+  ('SHOP', '드럭스토어', 'ShopScene', true),
+  ('POLICE_STATION', '경찰서', 'PoliceStationScene', true)
 ON CONFLICT (code) DO UPDATE
 SET name = EXCLUDED.name,
     unity_key = EXCLUDED.unity_key,

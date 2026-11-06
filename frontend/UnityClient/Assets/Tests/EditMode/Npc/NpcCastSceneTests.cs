@@ -47,6 +47,7 @@ namespace A305.Npc.Tests
         [TestCase("CafeScene")]
         [TestCase("HotelScene")]
         [TestCase("ShopScene")]
+        [TestCase("PoliceStationScene")]
         public void SceneUsesCastVisualAndOnlyItsDialogueFace(string sceneName)
         {
             var scene = EditorSceneManager.OpenScene(

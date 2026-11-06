@@ -4,7 +4,7 @@ using UnityEngine;
 namespace A305.World.Tests
 {
     /// <summary>
-    /// 택시는 인도에서 손님이 세우면 그 옆 길가에 서서 기다리고, 대화를 마치거나 손님이 떠나면 다시 달린다.
+    /// 택시는 가까우면 어느 방향에서도 탈 수 있고, 대화를 마치거나 손님이 떠나면 다시 달린다.
     /// </summary>
     public class TaxiFareTests
     {
@@ -22,47 +22,82 @@ namespace A305.World.Tests
             fare = new TaxiFare();
         }
 
+        [TestCase(0f, -5f)]
+        [TestCase(-5f, 0f)]
+        [TestCase(5f, 0f)]
+        [TestCase(0f, 5f)]
+        public void CustomerWithinRadius_CanHailFromAnyDirection(float x, float z)
+        {
+            Vector3 taxi = route.PoseAt(10f).Position;
+
+            Assert.That(TaxiFare.CanHail(taxi, taxi + new Vector3(x, 0f, z)), Is.True);
+        }
+
         [Test]
         public void SomeoneOnTheCurbsideSidewalkAhead_CanHail()
         {
-            Assert.That(TaxiFare.CanHail(route, 10f, new Vector3(4f, 0f, SouthZ + 20f)), Is.True);
+            Assert.That(
+                TaxiFare.CanHail(route.PoseAt(10f).Position, new Vector3(4f, 0f, SouthZ + 15f)),
+                Is.True
+            );
         }
 
         [Test]
-        public void SomeoneBehindTheTaxi_CannotHail()
+        public void SomeoneBehindTheTaxi_CanHail()
         {
-            Assert.That(TaxiFare.CanHail(route, 10f, new Vector3(4f, 0f, SouthZ + 5f)), Is.False);
+            Assert.That(
+                TaxiFare.CanHail(route.PoseAt(10f).Position, new Vector3(4f, 0f, SouthZ + 5f)),
+                Is.True
+            );
         }
 
         [Test]
-        public void SomeoneAcrossTheRoad_CannotHail()
+        public void SomeoneAcrossTheRoad_CanHail()
         {
-            Assert.That(TaxiFare.CanHail(route, 10f, new Vector3(-4f, 0f, SouthZ + 20f)), Is.False);
+            Assert.That(
+                TaxiFare.CanHail(route.PoseAt(10f).Position, new Vector3(-4f, 0f, SouthZ + 10f)),
+                Is.True
+            );
         }
 
         [Test]
         public void SomeoneTooFarAhead_CannotHailYet()
         {
-            Assert.That(TaxiFare.CanHail(route, 10f, new Vector3(4f, 0f, SouthZ + 40f)), Is.False);
-        }
-
-        [Test]
-        public void SomeoneBeyondTheUTurn_CannotHail()
-        {
-            float nearNorthEnd = route.NorthboundDistance(NorthZ - 3f);
-
             Assert.That(
-                TaxiFare.CanHail(route, nearNorthEnd, new Vector3(4f, 0f, NorthZ + 8f)),
+                TaxiFare.CanHail(route.PoseAt(10f).Position, new Vector3(4f, 0f, SouthZ + 40f)),
                 Is.False
             );
         }
 
         [Test]
-        public void PullOver_StopsBesideTheCustomer()
+        public void SomeoneBeyondTheUTurnWithinRadius_CanHail()
         {
-            float stop = TaxiFare.PullOverDistance(route, 10f, new Vector3(4f, 0f, SouthZ + 20f));
+            float nearNorthEnd = route.NorthboundDistance(NorthZ - 3f);
 
-            Assert.That(stop, Is.EqualTo(20f).Within(.001f));
+            Assert.That(
+                TaxiFare.CanHail(
+                    route.PoseAt(nearNorthEnd).Position,
+                    new Vector3(4f, 0f, NorthZ + 2f)
+                ),
+                Is.True
+            );
+        }
+
+        [TestCase(8f, 0f, true)]
+        [TestCase(-8f, 0f, true)]
+        [TestCase(0f, 8f, true)]
+        [TestCase(0f, -8f, true)]
+        [TestCase(8.01f, 0f, false)]
+        [TestCase(-8.01f, 0f, false)]
+        [TestCase(0f, 8.01f, false)]
+        [TestCase(0f, -8.01f, false)]
+        [TestCase(6f, 6f, false)]
+        [TestCase(0f, 0f, true)]
+        public void BoardingRadius_UsesCircularHorizontalDistance(float x, float z, bool expected)
+        {
+            Vector3 taxi = new Vector3(-3f, .2f, 12f);
+            Vector3 customer = taxi + new Vector3(x, .5f, z);
+            Assert.That(TaxiFare.CanHail(taxi, customer), Is.EqualTo(expected));
         }
 
         [Test]

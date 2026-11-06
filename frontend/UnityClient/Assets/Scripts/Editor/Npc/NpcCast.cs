@@ -285,7 +285,7 @@ namespace A305.EditorTools.Npc
     public sealed class NpcCastMember
     {
         // 배색을 바꾸지 않았어도 색을 칠하는 규칙이 바뀌면 이 값을 올려 텍스처를 다시 쓴다.
-        private const int RecipeVersion = 4;
+        private const int RecipeVersion = 5;
 
         public NpcCastMember(
             string code,

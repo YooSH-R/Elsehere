@@ -13,8 +13,7 @@ namespace A305.EditorTools.Npc
         private const string HotelierTexture =
             "Assets/Art/Characters/Tripo/LittleMung_HotelStaff_male/Textures/Material_0_color.png";
 
-        // 머리(얼굴·머리카락)가 그려진 몸 높이와 발(신발) 높이. 리틀 멍은 머리가 커서 몸 높이의 0.6 위가 머리다.
-        private static readonly (float, float) Head = (.6f, 1f);
+        // 신발이 그려진 몸 높이.
         private static readonly (float, float) Feet = (0f, .1f);
 
         // 목덜미·어깨까지 내려오는 뒷머리를 포함한 높이. 머리카락과 색이 비슷한 바지(몸 높이 0.3 아래)는 뺀다.
@@ -48,7 +47,7 @@ namespace A305.EditorTools.Npc
             .WithClothes(new NpcColorRange((.22f, .48f), (.12f, .6f), (.25f, .85f)))
             .WithSecondClothes(new NpcColorRange((.98f, .06f), (.45f, .85f), (.3f, .85f), Torso))
             .WithShoes(new NpcColorRange((.03f, .1f), (.25f, .7f), (.2f, .65f), Feet))
-            .WithEyes(true, new NpcColorRange((.15f, .5f), (.15f, 1f), (.05f, .5f), Head, 1.4f));
+            .WithEyes(false, SeparateIris);
 
         public static readonly NpcLook Hotelier = new NpcLook(
             "HotelStaff",
@@ -63,7 +62,7 @@ namespace A305.EditorTools.Npc
                 new NpcColorRange((.98f, .09f), (.3f, .75f), (.08f, .42f), (.1f, .6f))
             )
             .WithShoes(new NpcColorRange((.98f, .09f), (.2f, .8f), (.05f, .42f), Feet))
-            .WithEyes(true, new NpcColorRange((.02f, .12f), (.2f, 1f), (.05f, .32f), Head, 1.8f));
+            .WithEyes(false, SeparateIris);
 
         public static readonly NpcLook PoliceOfficer = Review("Police_Male", "POLICE_")
             .Originally("brown", "navy", "black", "brown")

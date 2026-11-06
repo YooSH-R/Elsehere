@@ -287,3 +287,5 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 마을 행인 Ben(비즈니스맨), 드럭스토어 직원 Alex(흑인 청년 남성), 택시 기사 Joe(중년 남성)의 외형은 입 모양 9개, 좌우 미소, 좌우 눈 감기를 모두 갖춰 대화 중 같은 방식으로 립싱크·미소·눈 깜박임을 적용합니다. 서 있는 Ben·Alex의 대기 중 깜박임은 외형의 `CharacterIdleBlink`가 맡습니다([행인 눈 감기](../../../../ArtSources/Characters/ServiceNpcs/README.md#나머지-행인의-base-눈-이식)).
 
 서비스 매대 높이는 Tools/A305/World/Lower Service Counters로 배포 씬 전체에 적용합니다. 매대 높이를 0.45m로 낮추며 바닥 위치와 충돌을 유지하고 상판 위 별도 소품도 함께 내립니다. 매장 디자인을 다시 생성했다면 이 메뉴를 다시 실행합니다.
+
+카페 직원 통로는 **Tools/A305/Cafe/Widen Staff Aisle**로 앞 매대와 뒤 작업대 사이에 2.4m를 확보합니다. 앞 매대·상판 소품·계산 담당의 응대 위치를 함께 옮기고 카페 NavMesh를 다시 굽습니다. 두 캐릭터가 나란히 지날 6m 경로를 검사한 뒤 씬을 저장하며, 반복 실행해도 통로가 더 넓어지지 않습니다. 카페 디자인을 다시 생성했다면 매대 높이를 적용한 다음 실행합니다.

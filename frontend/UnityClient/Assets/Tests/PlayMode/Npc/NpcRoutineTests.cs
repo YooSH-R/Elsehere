@@ -324,6 +324,53 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator CafeStaff_TwoCharacters_CanPassBehindTheCounter()
+        {
+            yield return LoadAt("CafeScene", 9 * 60, paused: true);
+            // 공간의 충돌 검사 중에는 교대 일정이 두 번째 직원을 숨기지 않게 한다.
+            Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
+            var staff = Object.FindObjectsByType<NpcIdentity>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+            foreach (var npc in staff)
+            {
+                npc.GetComponent<NpcRoutine>().enabled = false;
+                npc.GetComponent<Passerby>().enabled = false;
+            }
+            var first = staff
+                .Single(npc => npc.Code == "CAFE_STAFF")
+                .GetComponent<CharacterController>();
+            var second = staff
+                .Single(npc => npc.Code == "CAFE_BARISTA")
+                .GetComponent<CharacterController>();
+            Bounds counter = SolidBounds(NearestPlaced("counter", first.transform));
+            float frontLane = counter.max.z + .6f;
+            float backLane = frontLane + 1.2f;
+            first.enabled = false;
+            second.enabled = false;
+            first.transform.position = new Vector3(-3f, .05f, frontLane);
+            second.transform.position = new Vector3(3f, .05f, backLane);
+            first.gameObject.SetActive(true);
+            second.gameObject.SetActive(true);
+            first.enabled = true;
+            second.enabled = true;
+            Physics.SyncTransforms();
+
+            // 일과 선택 대신 실제 캐릭터의 충돌 몸체를 반대 방향으로 움직여 가구·상대 몸에 막히지 않는지 확인한다.
+            for (int step = 0; step < 60; step++)
+            {
+                first.Move(Vector3.right * .1f);
+                second.Move(Vector3.left * .1f);
+                yield return null;
+            }
+            Assert.That(first.transform.position.x, Is.EqualTo(3f).Within(.1f));
+            Assert.That(second.transform.position.x, Is.EqualTo(-3f).Within(.1f));
+            Assert.That(first.transform.position.z, Is.EqualTo(frontLane).Within(.1f));
+            Assert.That(second.transform.position.z, Is.EqualTo(backLane).Within(.1f));
+        }
+
+        [UnityTest]
         public IEnumerator CafeStaff_WhenThePlayerComesNearTheCounter_OffersConversation()
         {
             yield return LoadAt("CafeScene", 9 * 60, paused: true);

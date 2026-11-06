@@ -404,7 +404,14 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator Town_CommuterWaitsForTrafficAndFinishesCrossingBeforeTalking()
+        public IEnumerator Town_CommuterWaitsForTrafficAndFinishesCrossingBeforeTalking() =>
+            CheckCrossingSignalChange(.3f, false);
+
+        [UnityTest]
+        public IEnumerator Town_CommuterReturnsToDepartureSideWhenSignalChangesEarly() =>
+            CheckCrossingSignalChange(.1f, true);
+
+        private static IEnumerator CheckCrossingSignalChange(float changeAtProgress, bool returns)
         {
             SetClock(21 * 60);
             SceneManager.sceneLoaded += DisableWalkingTestApis;
@@ -453,6 +460,34 @@ namespace A305.Npc.PlayModeTests
                 }
             );
             var navInstance = NavMesh.AddNavMeshData(navData);
+            int crosswalk = 1 << NavMesh.GetAreaFromName("Crosswalk");
+            Assert.That(
+                NavMesh.SamplePosition(
+                    new Vector3(500, 0, 500),
+                    out NavMeshHit middle,
+                    .5f,
+                    crosswalk
+                ),
+                Is.True
+            );
+            Assert.That(
+                NavMesh.Raycast(
+                    middle.position,
+                    new Vector3(497, 0, 500),
+                    out NavMeshHit entrance,
+                    crosswalk
+                ),
+                Is.True
+            );
+            Assert.That(
+                NavMesh.Raycast(
+                    middle.position,
+                    new Vector3(503, 0, 500),
+                    out NavMeshHit exit,
+                    crosswalk
+                ),
+                Is.True
+            );
             float previousDeltaTime = Time.captureDeltaTime;
             try
             {
@@ -479,6 +514,7 @@ namespace A305.Npc.PlayModeTests
                 phase.SetValue(lights, 15f);
                 Assert.That(lights.CanCross(true, 8), Is.True);
                 bool crossed = false;
+                bool changed = false;
                 for (int frame = 0; frame < 300; frame++)
                 {
                     yield return null;
@@ -490,21 +526,32 @@ namespace A305.Npc.PlayModeTests
                         Is.False,
                         "횡단 중에는 대화로 멈추면 안 됩니다."
                     );
-                    // 건너는 도중 신호가 바뀌더라도 다음 인도까지 걸어 나간다.
-                    phase.SetValue(lights, 0f);
+                    float progress =
+                        (walker.transform.position.x - entrance.position.x)
+                        / (exit.position.x - entrance.position.x);
+                    if (!changed && progress >= changeAtProgress)
+                    {
+                        phase.SetValue(lights, 0f);
+                        changed = true;
+                    }
                 }
                 Assert.That(crossed, Is.True);
-                NavMesh.SamplePosition(
-                    walker.transform.position,
-                    out NavMeshHit floorHit,
-                    .5f,
-                    NavMesh.AllAreas
-                );
-                Assert.That(
-                    HorizontalDistance(walker.transform.position, walker.Destination),
-                    Is.LessThan(.12f),
-                    $"횡단 종료 위치: {walker.transform.position}, 보행면: {floorHit.position}, 횡단 중: {walker.IsCrossing}"
-                );
+                Assert.That(changed, Is.True);
+                if (returns)
+                {
+                    Assert.That(
+                        walker.transform.position.x,
+                        Is.InRange(entrance.position.x - 1f, entrance.position.x - .2f),
+                        "20% 이하에서 신호가 바뀌면 출발한 인도로 돌아가 기다려야 합니다."
+                    );
+                    Assert.That(walker.IsCrossing, Is.False);
+                }
+                else
+                    Assert.That(
+                        HorizontalDistance(walker.transform.position, walker.Destination),
+                        Is.LessThan(.12f),
+                        "20%를 넘었으면 횡단 중 신호가 바뀌어도 반대편까지 건너야 합니다."
+                    );
             }
             finally
             {

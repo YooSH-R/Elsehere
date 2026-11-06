@@ -100,21 +100,25 @@ namespace A305.Npc
             Vector3 ahead = position + direction.normalized * CrossingLookAheadMeters;
             if (!OnCrosswalk(ahead, .2f))
                 return false;
-            bool controlled = false;
+            bool crossesMainRoad = Mathf.Abs(direction.x) >= Mathf.Abs(direction.z);
+            return HasNearbySignal(lights, ahead)
+                && !lights.CanCross(crossesMainRoad, RequiredRedSeconds);
+        }
+
+        internal static bool HasNearbySignal(TrafficLights lights, Vector3 position)
+        {
+            if (lights == null)
+                return false;
             foreach (TrafficSignalHead head in lights.Heads)
             {
                 if (head == null)
                     continue;
-                Vector3 offset = head.transform.position - ahead;
+                Vector3 offset = head.transform.position - position;
                 offset.y = 0;
                 if (offset.sqrMagnitude <= SignalRadiusMeters * SignalRadiusMeters)
-                {
-                    controlled = true;
-                    break;
-                }
+                    return true;
             }
-            bool crossesMainRoad = Mathf.Abs(direction.x) >= Mathf.Abs(direction.z);
-            return controlled && !lights.CanCross(crossesMainRoad, RequiredRedSeconds);
+            return false;
         }
 
         internal static bool IsRoadSurface(Vector3 point, float distance)

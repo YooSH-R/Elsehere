@@ -119,7 +119,12 @@ namespace A305.Npc
         // 교대 밖이라 일하지 않는 직원인지. 생활이 없는 NPC와 행인은 근무 외로 보내지 않는다.
         private bool IsTownResident => TryGetComponent(out NpcTownWalker walker) && walker.enabled;
 
-        private bool IsCrossing => NpcTownWalker.IsRoadSurface(transform.position, .1f);
+        private readonly NpcCrosswalk crossing = new NpcCrosswalk();
+
+        private bool IsCrossing =>
+            crossing.IsActive || NpcTownWalker.IsRoadSurface(transform.position, .1f);
+
+        internal bool IsHandlingCrossing => crossing.IsActive;
 
         private TrafficLights trafficLights;
 
@@ -205,6 +210,7 @@ namespace A305.Npc
 
         private void OnDisable()
         {
+            crossing.Clear();
             NpcWalkingSpace.Unregister(this);
             if (dialogue != null)
             {
@@ -551,7 +557,15 @@ namespace A305.Npc
         /// <summary>그 방향으로 한 프레임 걷는다. 생활(NpcRoutine)은 다가올 때와 다른 속도로 걷는다.</summary>
         internal void WalkToward(Vector3 horizontalDirection, float speedMetersPerSecond)
         {
-            if (IsWaitingForSignal(horizontalDirection))
+            horizontalDirection = crossing.Direction(
+                trafficLights,
+                transform.position,
+                horizontalDirection
+            );
+            if (
+                horizontalDirection.sqrMagnitude < .0001f
+                || (!crossing.IsActive && IsWaitingForSignal(horizontalDirection))
+            )
             {
                 Stand();
                 return;

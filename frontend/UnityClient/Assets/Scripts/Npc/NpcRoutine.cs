@@ -682,7 +682,7 @@ namespace A305.Npc
             }
 
             Vector3 direction = Flat(route[routeCorner] - transform.position);
-            if (body.IsWaitingForSignal(direction))
+            if (body.IsWaitingForSignal(direction) || body.IsHandlingCrossing)
             {
                 stuckSeconds = 0f;
                 body.WalkToward(direction, walkSpeedMetersPerSecond);

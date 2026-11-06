@@ -185,7 +185,7 @@ public class FirstDayMissionService {
         .orElse("내 이름");
   }
 
-  private static FirstDayMissionResponse response(FirstDayMission mission, String holder) {
+  private FirstDayMissionResponse response(FirstDayMission mission, String holder) {
     boolean started = mission != null;
     int current = started ? mission.getStage() : 0;
     List<FirstDayMissionResponse.Step> steps =
@@ -222,7 +222,7 @@ public class FirstDayMissionService {
                 ? "체크인 완료! 오늘의 작은 소동을 모두 해결했어요."
                 : !scene.equals(mission.current().scene())
                     // 다른 장소에 있으면 갈 곳에서 누구에게 무엇을 할지 알린다.
-                    ? at(mission.current().scene()) + " " + mission.current().direction()
+                    ? at(mission.current().scene()) + " " + directionWithNpc(mission.current())
                     : mission.current().situation();
     String direction =
         !started
@@ -231,7 +231,7 @@ public class FirstDayMissionService {
                 ? "다른 NPC와 자유롭게 대화해 보세요."
                 : !scene.equals(mission.current().scene())
                     ? destination(mission.current().scene()) + " 이동하세요."
-                    : mission.current().direction();
+                    : directionWithNpc(mission.current());
     return new FirstDayMissionResponse(
         started,
         current,
@@ -247,6 +247,18 @@ public class FirstDayMissionService {
         situation,
         direction,
         steps);
+  }
+
+  private String directionWithNpc(FirstDayStage stage) {
+    String direction = stage.direction();
+    String name = ownerName(stage.npc());
+    if (name == null || name.isBlank()) {
+      return direction;
+    }
+    if (stage == FirstDayStage.RAINY_STREET) {
+      return direction.replace("행인 Ben에게", "행인 " + name + "에게");
+    }
+    return direction + " (대화 상대: " + name + ")";
   }
 
   private static String destination(String scene) {

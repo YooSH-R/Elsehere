@@ -34,6 +34,7 @@ namespace A305.World.PlayModeTests
         {
             TestGameClock.Restore();
             TutorialState.Clear();
+            OpeningHours.Use(PlaceHours.AlwaysOpen);
         }
 
         [UnityTest]
@@ -187,6 +188,14 @@ namespace A305.World.PlayModeTests
             yield return SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
             // 새 씬의 Start가 실행되도록 한 프레임 넘긴다.
             yield return null;
+            // 운영 데이터는 24시간 영업이다. 닫힘·마감 처리는 별도의 시간표로 검증한다.
+            OpeningHours.Use(
+                PlaceHours.FromJson(
+                    "{\"places\":["
+                        + "{\"code\":\"CAFE\",\"alwaysOpen\":false,\"from\":\"07:00\",\"to\":\"21:00\"},"
+                        + "{\"code\":\"POST_OFFICE\",\"alwaysOpen\":false,\"from\":\"09:00\",\"to\":\"17:00\"}]}"
+                )
+            );
         }
 
         private static IEnumerator WaitForFixedUpdates(int count)

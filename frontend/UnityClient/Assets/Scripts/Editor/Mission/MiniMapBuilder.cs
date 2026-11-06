@@ -27,11 +27,11 @@ namespace A305.EditorTools.Mission
         // 시안 미니맵 창은 지도 860단위를 318px에 담는다.
         private const float MapScale = 318f / 860f * Px;
 
-        // 지도 그림의 작은 글씨 대신 약 16 캔버스 단위로 읽히는 이름표를 얹는다.
-        private const float BuildingLabelFontSize = 36;
-        private const float BuildingLabelHeight = 68;
-        private const float BuildingLabelHorizontalPadding = 22;
-        private const float BuildingLabelVerticalPadding = 8;
+        // 지도 그림의 작은 글씨 대신 약 14 캔버스 단위로 읽히는 이름표를 얹는다.
+        private const float BuildingLabelFontSize = 32;
+        private const float BuildingLabelHeight = 60;
+        private const float BuildingLabelHorizontalPadding = 18;
+        private const float BuildingLabelVerticalPadding = 6;
 
         // 유리 판 그림의 모서리(44)를 미니맵 모서리(시안 40 = 48)로 키운다.
         private const float PanelCornerScale = 44f / (40f * Px);
@@ -128,12 +128,14 @@ namespace A305.EditorTools.Mission
             BuildingLabel(labels, "CAFE", "카페", TownMapArt.Tile("CAFE").Value);
             BuildingLabel(labels, "SHOP", "드럭스토어", TownMapArt.Tile("SHOP").Value);
             BuildingLabel(labels, "HOTEL", "호텔", TownMapArt.Tile("HOTEL").Value);
+            // 지도 그림에 남아 있는 공원 글씨도 같은 이름표로 가린다.
+            BuildingLabel(labels, "PARK", "공원", new Rect(980, 540, 160, 160));
             foreach (var shop in TownMapArt.Shops)
             {
                 string name = shop.Key switch
                 {
                     "HOME_STORE_STAFF" => "생활용품",
-                    "DINER_STAFF" => "다이너",
+                    "DINER_STAFF" => "식당",
                     _ => shop.Value.Name,
                 };
                 BuildingLabel(labels, shop.Key, name, shop.Value.Tile);
@@ -151,18 +153,27 @@ namespace A305.EditorTools.Mission
             if (code == "SHOP")
                 plate.anchoredPosition += Vector2.right * 14;
             Image background = plate.gameObject.AddComponent<Image>();
-            background.sprite = TownMapBuilder.RoundedSprite();
+            background.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(
+                "Assets/Art/UI/Mission/GlassPanel.png"
+            );
             background.type = Image.Type.Sliced;
-            background.pixelsPerUnitMultiplier = .2f;
-            background.color = Color.white;
+            background.pixelsPerUnitMultiplier = 2.2f;
+            background.color = new Color32(231, 242, 249, 255);
             background.raycastTarget = false;
+
+            var shadow = plate.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color32(35, 59, 85, 35);
+            shadow.effectDistance = new Vector2(0, -3);
+            var outline = plate.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color32(170, 193, 215, 210);
+            outline.effectDistance = new Vector2(1.2f, -1.2f);
 
             TMP_Text label = UiBuilderTools.FindOrCreateText(
                 plate,
                 "Label",
                 UiBuilderTools.BoldFont(),
                 BuildingLabelFontSize,
-                new Color32(40, 56, 80, 255),
+                new Color32(47, 67, 88, 255),
                 name
             );
             label.fontStyle = FontStyles.Bold;

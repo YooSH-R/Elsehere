@@ -1,5 +1,6 @@
 using A305.Dialogue;
 using A305.Npc;
+using A305.World;
 
 namespace A305.Mission
 {
@@ -37,6 +38,10 @@ namespace A305.Mission
         // 마을 매장은 모두 마을 씬이라 가게 이름이 없는 마을 NPC(행인 등)만 씬 이름으로 쓴다.
         private const string TownName = "마을";
 
+        // 경찰서 창구의 경찰관(서버 PoliceDesk). 기다리는 것은 출동해 다녀온 결과라 받을 물건이 아니라 들을 이야기다.
+        private const string PolicePrefix = "POLICE_";
+        private const string PoliceStation = "경찰서";
+
         /// <summary>남은 시간을 분:초로 쓴다. 기다리는 시간은 몇 분 안이라 시는 쓰지 않는다.</summary>
         public static string Countdown(int seconds)
         {
@@ -47,6 +52,13 @@ namespace A305.Mission
         {
             string place = Place(followUp);
             string name = followUp.NpcName;
+            if (IsPoliceCall(followUp) && PoliceDispatchOrder.IsAway(followUp.NpcCode))
+                return new FollowUpCardRow(
+                    followUp.ItemKo,
+                    $"순찰차가 돌아오면 {place} {name}에게 들으러 가세요",
+                    null,
+                    false
+                );
             if (!followUp.IsReady(nowSeconds))
             {
                 return new FollowUpCardRow(
@@ -60,14 +72,24 @@ namespace A305.Mission
             string item = followUp.ItemKo;
             return new FollowUpCardRow(
                 $"{item}{PasserbyOfferText.SubjectParticle(item)} 준비됐어요",
-                PickUpGuide(name, place),
+                IsPoliceCall(followUp)
+                    ? $"{place} {name}에게 들으러 가세요"
+                    : PickUpGuide(name, place),
                 null,
                 true
             );
         }
 
+        private static bool IsPoliceCall(WaitingFollowUp followUp) =>
+            followUp.NpcCode != null && followUp.NpcCode.StartsWith(PolicePrefix);
+
         private static string Place(WaitingFollowUp followUp)
         {
+            if (IsPoliceCall(followUp))
+            {
+                return PoliceStation;
+            }
+
             string shop = TownMapArt.PlaceName(followUp.NpcCode);
             if (shop != null)
             {

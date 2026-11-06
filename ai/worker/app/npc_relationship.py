@@ -3,7 +3,8 @@
 계산은 코드, 표현은 LLM이 맡는다. AI 워커는 관계를 저장하지 않는다: 요청에 지금 관계가 들어오고 응답에 변화량이 나가며,
 백엔드가 저장값에 더한다. 날짜는 모두 게임 속 날짜(마지막 대화 뒤 지난 날 수)다.
 - 알아봄(0~100): 얼굴을 아는 정도. 정상 종료된 대화마다 갈수록 덜 오르고, 며칠 여유 뒤 하루씩 준다
-- 호감(−100~100): 좋게 보는 정도. 대화 중 발화마다 바로 바뀐다: 무례는 /v1/guard가 깎고, 칭찬·인사 같은 사건은 /v1/judge가 올린다
+- 호감(−100~100): 좋게 보는 정도. 대화 중 발화마다 바로 바뀐다: 무례는 /v1/guard가 깎고, 칭찬·인사 같은 사건은 /v1/judge가 올린다.
+  대화가 끝난 뒤 이번 대화가 좋았으면 /v1/memory가 한 번 더 올린다
 """
 
 import json
@@ -107,6 +108,16 @@ def line_affinity_delta(earlier_events: list[str], events: list[str], rates: dic
     return round(after * follow) - round(before * follow)
 
 
+def good_conversation_affinity_delta(impression: str, learner_turns: list["LearnerTurn"], rules: dict) -> int:
+    """대화가 끝난 뒤 이번 대화의 인상(/v1/memory 모델이 고름)으로 올리는 호감. 좋았고(good) 학습자가 충분히 말했으며
+    무례로 확정된 줄이 없을 때만 공통 규칙의 값을 준다. 나쁜 대화도 깎지 않는다(무례는 대화 중에 이미 깎음).
+    백엔드가 기억 카드를 저장하면서 함께 더한다(상한 100은 백엔드가 지킨다)."""
+    relationship = rules["relationship"]
+    long_enough = len(learner_turns) >= relationship["goodConversationMinLearnerLines"]
+    polite = not any(rude for rude, _ in learner_turns)
+    return relationship["goodConversationAffinity"] if impression == "good" and long_enough and polite else 0
+
+
 MOOD_MAX = 3  # 기분 세기 0~3
 
 
@@ -166,7 +177,8 @@ def service_rules() -> tuple[dict, dict]:
 def after_conversation(relationship: dict | None, rates: dict, rules: dict) -> dict:
     """정상 종료된 대화 하나로 바뀌는 알아봄의 변화량. 백엔드는 저장값에 더한다(종료 처리가 겹쳐도 앞 대화 결과를 덮어쓰지 않게).
     새 값을 정수로 반올림한 뒤 저장값을 빼므로, 더한 결과는 새 값을 그대로 저장할 때와 같다.
-    호감은 대화 중에 발화마다 이미 바꿨으므로(line_affinity_delta, rude_affinity_delta) 여기서는 계산하지 않는다.
+    호감은 대화 중에 발화마다 바꾸고(line_affinity_delta, rude_affinity_delta) 좋은 대화 몫은 /v1/memory가 주므로(good_conversation_affinity_delta)
+    여기서는 계산하지 않는다.
     relationship: 저장된 관계와 마지막 대화 뒤 지난 게임 날 수 {recognition, affinity, days_since_last_talk}. 처음 만나면 None."""
     before = relationship or {}
     stored = before.get("recognition", 0)

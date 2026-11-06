@@ -4,6 +4,7 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
+        "UnityEngine.UI",
         "Unity.InputSystem",
         "A305.Player",
         "A305.Characters",

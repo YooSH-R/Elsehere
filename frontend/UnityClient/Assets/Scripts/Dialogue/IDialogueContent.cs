@@ -9,6 +9,9 @@ namespace A305.Dialogue
     public interface IDialogueContent
     {
         string NpcName { get; }
+
+        /// <summary>방금 전달한 학습자 말의 영어 표현. 없으면 카드를 숨긴다.</summary>
+        string UserTranslation { get; }
         IReadOnlyList<DialogueLine> Lines { get; }
 
         /// <summary>가장 최근 NPC 대사. [뜻 보기]·[표현 저장]이 쓴다.</summary>

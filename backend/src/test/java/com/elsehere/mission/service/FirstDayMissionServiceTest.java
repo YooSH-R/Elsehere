@@ -26,6 +26,48 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 class FirstDayMissionServiceTest {
+  @ParameterizedTest
+  @EnumSource(FirstDayStage.class)
+  void activeStageShowsTheAssignedNpcName(FirstDayStage stage) {
+    FirstDayMission mission = missionAt(stage);
+    mission.visit(stage.scene());
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+
+    assertThat(service.status(8L).direction()).contains(NAMES.get(stage.npc()));
+  }
+
+  @ParameterizedTest
+  @EnumSource(FirstDayStage.class)
+  void awayFromTheDestinationTheCardNamesTheAssignedNpc(FirstDayStage stage) {
+    FirstDayMission mission = missionAt(stage);
+    mission.visit("HOME");
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+
+    assertThat(service.status(8L).situation()).contains(NAMES.get(stage.npc()));
+  }
+
+  @Test
+  void rainyStreetUsesTheCurrentNpcNameInsteadOfTheOldFixedName() {
+    FirstDayMission mission = missionAt(FirstDayStage.RAINY_STREET);
+    mission.visit("TOWN");
+    Npc npc = mock(Npc.class);
+    when(npc.getName()).thenReturn("Robin");
+    when(npcs.findByCode("TOWN_PASSERBY")).thenReturn(Optional.of(npc));
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+
+    assertThat(service.status(8L).direction()).contains("Robin").doesNotContain("Ben");
+  }
+
+  @Test
+  void missingNpcKeepsTheOriginalDirection() {
+    FirstDayMission mission = missionAt(FirstDayStage.EARLY_ARRIVAL);
+    mission.visit("HOTEL");
+    when(npcs.findByCode("HOTEL_STAFF")).thenReturn(Optional.empty());
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+
+    assertThat(service.status(8L).direction()).isEqualTo(FirstDayStage.EARLY_ARRIVAL.direction());
+  }
+
   @Test
   void missionContextLeavesRoomForOrdinarySmallTalkWithoutSpoilingTasks() {
     when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.MISSING_BAG)));

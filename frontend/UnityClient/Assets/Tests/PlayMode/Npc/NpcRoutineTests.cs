@@ -103,6 +103,45 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator HotelJake_StaysAtTheCenterOfTheReceptionDesk()
+        {
+            yield return LoadAt("HotelScene", 12 * 60, paused: true);
+            Object
+                .FindFirstObjectByType<PlayerMover>()
+                .Teleport(new Vector3(0, .12f, -20), Quaternion.identity);
+            NpcRoutine jake = Routine("HOTEL_STAFF");
+            Bounds desk = SolidBounds(NearestPlaced("reception_desk", jake.transform));
+            Vector3 startingPosition = jake.transform.position;
+
+            yield return WaitUntil(() => jake.IsUsing);
+            SetClock(13 * 60, paused: true);
+            yield return new WaitForSeconds(20);
+
+            Assert.That(
+                Mathf.Abs(jake.transform.position.x - desk.center.x),
+                Is.LessThan(.3f),
+                "Jake는 프런트 데스크 가운데에 있어야 합니다."
+            );
+            Assert.That(
+                HorizontalDistance(jake.transform.position, startingPosition),
+                Is.LessThan(.1f),
+                "Jake는 프런트 데스크에서 돌아다니지 않아야 합니다."
+            );
+
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+            player.Teleport(
+                new Vector3(desk.center.x, player.transform.position.y, desk.min.z - .8f),
+                Quaternion.identity
+            );
+            yield return new WaitForSeconds(8);
+            Assert.That(
+                HorizontalDistance(jake.transform.position, startingPosition),
+                Is.LessThan(.1f),
+                "손님을 응대할 때도 Jake는 자기 자리를 지켜야 합니다."
+            );
+        }
+
+        [UnityTest]
         public IEnumerator HotelStaff_UsingTheReceptionDesk_KeepSeparateStandingPlaces()
         {
             yield return LoadAt("HotelScene", 12 * 60, paused: true);
@@ -251,40 +290,29 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator CafeStaff_WhenThePlayerComesNearTheCounter_GoesBackBehindItAndOffers()
+        public IEnumerator CafeStaff_WhenThePlayerComesNearTheCounter_WaitsForThePlayerToChooseConversation()
         {
-            // 아침에는 Mia 혼자 근무한다(Leo는 10시, Zoe는 13시 출근). 함께 근무하면 하는 일이 없는 직원이 응대한다(NpcDutyTests).
             yield return LoadAt("CafeScene", 8 * 60, paused: true);
             NpcRoutine mia = Routine("CAFE_STAFF");
             KeepOnlyNpc(mia);
-            Vector3 post = mia.transform.position;
             Bounds counter = SolidBounds(NearestPlaced("counter", mia.transform));
             PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
             PasserbyOfferView offer = Object.FindFirstObjectByType<PasserbyOfferView>();
-            yield return WaitUntil(() => mia.IsUsing);
-
-            // 손님 쪽에서 카운터와 3m 떨어져 있으면 하던 일(근무 중이라 음료 만들기)을 계속한다.
             player.Teleport(
-                new Vector3(counter.center.x, post.y, counter.min.z - 3f),
+                new Vector3(counter.center.x, mia.transform.position.y, counter.min.z - .8f),
                 Quaternion.identity
             );
-            yield return new WaitForSeconds(1f);
-            Assert.That(mia.IsUsing, Is.True, "카운터에서 멀면 하던 일을 계속합니다.");
-            Assert.That(offer.IsShowing, Is.False);
-
-            // 카운터 앞 2m 안으로 오면 카운터 뒤 자리로 돌아가 응대한다.
-            player.Teleport(
-                new Vector3(counter.center.x, post.y, counter.min.z - .8f),
-                Quaternion.identity
-            );
-            yield return WaitUntil(() => offer.IsShowing);
-
-            Assert.That(mia.Doing, Is.Null);
-            Assert.That(
-                HorizontalDistance(mia.transform.position, post),
-                Is.LessThan(.3f),
-                "카운터 뒤 자리에서 응대해야 합니다."
-            );
+            yield return new WaitForSeconds(2f);
+            Assert.That(offer.IsShowing, Is.False, "카운터 접근만으로 제안하지 않습니다.");
+            Assert.That(mia.GetComponent<Passerby>().TalkByClick(8f), Is.True);
+            Assert.That(Object.FindFirstObjectByType<DialogueController>().IsTalking, Is.False);
+            offer
+                .GetComponentsInChildren<Button>()
+                .Single(button => button.name == "AcceptButton")
+                .onClick.Invoke();
+            yield return null;
+            Assert.That(Object.FindFirstObjectByType<DialogueController>().IsTalking, Is.True);
+            Assert.That(mia.Doing, Is.Null, "선택해 대화가 시작되면 하던 일을 멈춥니다.");
             yield return WaitUntil(() => IsPlaying(mia, "Talk"));
         }
 

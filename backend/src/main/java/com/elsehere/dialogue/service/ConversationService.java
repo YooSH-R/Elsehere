@@ -32,7 +32,9 @@ import com.elsehere.onboarding.entity.UserLanguageProfileId;
 import com.elsehere.onboarding.repository.UserLanguageProfileRepository;
 import com.elsehere.user.entity.User;
 import com.elsehere.user.repository.UserRepository;
+import com.elsehere.world.service.PoliceOfficers;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -83,6 +85,13 @@ public class ConversationService {
   private static final String HANDOVER_INSTRUCTION =
       "The %s the learner asked you for is ready now. Call them and hand it over warmly in your own"
           + " way, in one or two short sentences. Do not ask them to order again.";
+  // 경찰관이 신고를 받아 직접 순찰차로 다녀온 결과(PoliceDesk, FollowUpService). 학습자의 물건을 찾았으면 돌려준다.
+  private static final String POLICE_CALL_TEXT =
+      "(The learner who reported the trouble is back at the police station.)";
+  private static final String POLICE_CALL_INSTRUCTION =
+      "You are back from the call the learner reported, and this is how it ended: %s. Tell them in"
+          + " your own way in one or two short sentences, and if you found something of theirs,"
+          + " hand it back. Do not ask them to report it again.";
 
   private final ConversationRepository conversationRepository;
   private final TurnRepository turnRepository;
@@ -126,12 +135,19 @@ public class ConversationService {
             .followUp()
             .map(
                 ready ->
-                    greetingOpening(
-                        trace,
-                        npc,
-                        context,
-                        HANDOVER_TEXT,
-                        HANDOVER_INSTRUCTION.formatted(ready.item())))
+                    PoliceOfficers.includes(npc.summary().npcCode())
+                        ? greetingOpening(
+                            trace,
+                            npc,
+                            context,
+                            POLICE_CALL_TEXT,
+                            POLICE_CALL_INSTRUCTION.formatted(ready.item()))
+                        : greetingOpening(
+                            trace,
+                            npc,
+                            context,
+                            HANDOVER_TEXT,
+                            HANDOVER_INSTRUCTION.formatted(ready.item())))
             .orElseGet(
                 () ->
                     context.mission().isEmpty()
@@ -268,7 +284,12 @@ public class ConversationService {
         status -> {
           Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
           boolean endingNow = conversation.isActive();
-          conversation.endByUser(clock.instant());
+          Instant now = clock.instant();
+          if (conversation.reachedTimeLimit(now)) {
+            conversation.endByTimeLimit(now);
+          } else {
+            conversation.endByUser(now);
+          }
           NpcContext npc = dialogueContexts.npcById(conversation.getNpcId());
           long userTurnCount =
               turnRepository.countByConversationIdAndSpeaker(conversationId, Speaker.USER);
@@ -317,7 +338,7 @@ public class ConversationService {
             .findById(userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     ensureCanStart(user);
-    NpcContext npc = dialogueContexts.npcByCode(npcCode, npcOffDuty);
+    NpcContext npc = dialogueContexts.npcByCode(userId, npcCode, npcOffDuty);
     if (!npc.sceneOpen()) {
       throw new BusinessException(ErrorCode.SCENE_CLOSED);
     }

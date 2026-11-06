@@ -304,7 +304,7 @@ MonoBehaviour:
     roleLabel: "\uC2DD\uB2F9 \uC885\uC5C5\uC6D0"
     opening:
       english: Hi, honey! Welcome to Maple Diner. What can I get you?
-      korean: "\uC5B4\uC11C \uC640\uC694! \uBA54\uC774\uD50C \uB2E4\uC774\uB108\uC608\uC694.
+      korean: "\uC5B4\uC11C \uC640\uC694! \uBA54\uC774\uD50C \uC2DD\uB2F9\uC774\uC5D0\uC694.
         \uBB58 \uB4DC\uB9B4\uAE4C\uC694?"
       voice: {fileID: 0}
     guidedTurns: []
@@ -630,7 +630,7 @@ MonoBehaviour:
       - restaurant
       reply:
         english: Maple Diner is a short walk up the main street.
-        korean: "\uBA54\uC774\uD50C \uB2E4\uC774\uB108\uB294 \uD070\uAE38\uC744 \uB530\uB77C
+        korean: "\uBA54\uC774\uD50C \uC2DD\uB2F9\uC740 \uD070\uAE38\uC744 \uB530\uB77C
           \uC870\uAE08\uB9CC \uAC78\uC73C\uBA74 \uC788\uC5B4\uC694."
         voice: {fileID: 0}
     - keywords:

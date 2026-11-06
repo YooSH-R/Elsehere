@@ -4,7 +4,10 @@ import com.elsehere.memory.repository.UserNpcRelationRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-/** 사용자별 NPC 호감도(-100~100). 대화 중 발화마다 바꾸고(무례면 깎고, 칭찬·인사 같은 사건이면 올림) 대화 화면에 지금 값을 보여 준다. */
+/**
+ * 사용자별 NPC 호감도(-100~100). 대화 중 발화마다 바꾸고(무례면 깎고, 칭찬·인사 같은 사건이면 올림) 대화 화면에 지금 값을 보여 준다. 대화가 끝난 뒤 좋은
+ * 대화 몫은 기억 카드를 저장하면서 올린다(MemoryService).
+ */
 @Service
 public class NpcAffinityService {
 

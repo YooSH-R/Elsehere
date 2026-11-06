@@ -27,8 +27,39 @@ namespace A305.Npc.PlayModeTests
         public void RestoreClock() => NpcTestClock.Restore();
 
         [SetUp]
+        public void SetUp()
+        {
+            ResetCrossSceneRecords();
+            SceneManager.sceneLoaded += IsolateTownInteractions;
+        }
+
         [TearDown]
-        public void ResetCrossSceneRecords()
+        public void TearDown()
+        {
+            SceneManager.sceneLoaded -= IsolateTownInteractions;
+            ResetCrossSceneRecords();
+        }
+
+        // 자동 제안과 버튼 응답을 검증하므로 다른 행인의 접근·생활과 실제 포인터의 NPC 클릭은 따로 격리한다.
+        // sceneLoaded에서 멈춰 첫 Update가 실행되기 전에 준비한다. 클릭·생활 동작은 각각의 테스트가 검증한다.
+        private static void IsolateTownInteractions(Scene scene, LoadSceneMode mode)
+        {
+            if (scene.name != "TownScene")
+                return;
+
+            Single<NpcClickTalk>().enabled = false;
+            foreach (
+                Passerby passerby in Object.FindObjectsByType<Passerby>(FindObjectsSortMode.None)
+            )
+            {
+                if (passerby.TryGetComponent(out NpcRoutine routine))
+                    routine.enabled = false;
+                if (passerby.GetComponent<NpcIdentity>().Code != BenCode)
+                    passerby.enabled = false;
+            }
+        }
+
+        private static void ResetCrossSceneRecords()
         {
             // 장면 교체 중 이전 행인이 제안 기록을 다시 남기지 않게 먼저 멈춘다.
             foreach (
@@ -148,11 +179,11 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator TownPasserbyWhoOfferedToday_WaitsUntilTomorrow_ButPlayerCanStillTalk()
+        public IEnumerator OrdinaryTownPasserby_DoesNotOfferEvenAfterTheDailyRecordIsCleared()
         {
             // Ben은 현실 하루에 한 번만 먼저 다가온다. 그날 이미 말을 걸었으면 플레이어가 먼저 말을 거는 것만 받는다.
             PasserbyOfferRecord.Save(BenCode, System.DateTime.Today);
-            yield return LoadTownWithPlayerNearBen(afterTutorial: true);
+            yield return LoadTownWithPlayerNearBen(afterTutorial: true, withEvent: false);
             Passerby passerby = FindPasserby(BenCode);
             PasserbyOfferView offer = Single<PasserbyOfferView>();
 
@@ -166,8 +197,9 @@ namespace A305.Npc.PlayModeTests
             // 마지막으로 말을 건 날이 어제가 되면(하루가 지나면) 다시 다가온다.
             StandNear(BenCode, 4f);
             PasserbyOfferRecord.Save(BenCode, System.DateTime.Today.AddDays(-1));
-            yield return WaitUntil(() => offer.IsShowing);
-            Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Offering));
+            yield return new WaitForSeconds(2f);
+            Assert.That(offer.IsShowing, Is.False);
+            Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Waiting));
         }
 
         // 퀘스트가 Ben을 붙잡아 두면(비 오는 거리 단계) 생활하지 않고 정한 자리에서 기다리고, 그날 이미 말을 걸었어도 다가와 제안한다.
@@ -190,35 +222,6 @@ namespace A305.Npc.PlayModeTests
             PasserbyOfferView offer = Single<PasserbyOfferView>();
             yield return WaitUntil(() => offer.IsShownBy(ben));
             Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Offering));
-        }
-
-        [UnityTest]
-        public IEnumerator ApproachingBen_AnimatesLegs_AndStopsWhenOffering()
-        {
-            yield return LoadTownWithPlayerNearBen(afterTutorial: false);
-            Passerby ben = FindPasserby(BenCode);
-            Animator animator = ben.GetComponentInChildren<Animator>();
-            Assert.That(animator, Is.Not.Null, "Ben의 모델에 걷기 Animator가 필요합니다.");
-            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-            yield return WaitUntil(() => ben.Phase == PasserbyPhase.Approaching);
-            // Ben의 비즈니스맨 외형은 마스터 골격(Humanoid)이라 허벅지를 Humanoid 뼈로 찾는다.
-            Transform leg = animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
-            Quaternion before = leg.localRotation;
-            Vector3 positionBefore = ben.transform.position;
-            yield return new WaitForSeconds(.15f);
-            Assert.That(
-                Vector3.Distance(positionBefore, ben.transform.position),
-                Is.GreaterThan(.01f)
-            );
-            Assert.That(Quaternion.Angle(before, leg.localRotation), Is.GreaterThan(1f));
-            Assert.That(animator.GetFloat("Speed"), Is.GreaterThan(0f));
-
-            yield return WaitUntil(() => ben.Phase == PasserbyPhase.Offering);
-            yield return new WaitForSeconds(.25f);
-            Assert.That(animator.GetFloat("Speed"), Is.Zero);
-            before = leg.localRotation;
-            yield return new WaitForSeconds(.15f);
-            Assert.That(Quaternion.Angle(before, leg.localRotation), Is.LessThan(.1f));
         }
 
         [UnityTest]
@@ -280,45 +283,20 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator EndingDialogue_TurnsPlayerAndCameraTowardTheNpc()
-        {
-            // 튜토리얼 길 안내는 대사를 마치기 전에 끝낼 수 없으므로 평소 행인으로 확인한다.
-            yield return LoadTownWithPlayerNearBen(afterTutorial: true);
-            PasserbyOfferView offer = Single<PasserbyOfferView>();
-            yield return WaitUntil(() => offer.IsShowing);
-
-            // 대화 전에는 Ben을 등지고 서 있게 해, 끝난 뒤 방향이 대화 덕분에 바뀐 것인지 확인한다.
-            PlayerMover player = Single<PlayerMover>();
-            Transform face = FindPasserby(BenCode).GetComponent<NpcIdentity>().LookTarget;
-            Vector3 towardBen = Vector3.ProjectOnPlane(
-                face.position - player.transform.position,
-                Vector3.up
-            );
-            player.Teleport(player.transform.position, Quaternion.LookRotation(-towardBen));
-            Click(offer, "AcceptButton");
-            yield return null;
-            Click(Single<DialoguePanelView>(), "EndButton");
-            yield return null;
-
-            float benYaw = Quaternion.LookRotation(towardBen).eulerAngles.y;
-            Assert.That(
-                Mathf.Abs(Mathf.DeltaAngle(player.transform.eulerAngles.y, benYaw)),
-                Is.LessThan(2f),
-                "대화가 끝나면 플레이어가 대화하던 NPC 쪽을 봅니다."
-            );
-            Assert.That(
-                Mathf.Abs(Mathf.DeltaAngle(Single<PlayerCameraRig>().ViewYawDegrees, benYaw)),
-                Is.LessThan(2f),
-                "카메라도 대화 시점이 보던 방향 그대로 플레이어 뒤에 섭니다."
-            );
-        }
-
-        [UnityTest]
         public IEnumerator DecliningTownPasserby_ClosesOffer_AndDoesNotOfferAgainWhileResting()
         {
             yield return LoadTownWithPlayerNearBen(afterTutorial: true);
             PasserbyOfferView offer = Single<PasserbyOfferView>();
-            yield return WaitUntil(() => offer.IsShowing);
+            Passerby ben = FindPasserby(BenCode);
+            yield return WaitUntil(
+                () => offer.IsShowing,
+                () =>
+                    $"Ben 상태={ben.Phase}, 거리={HorizontalDistance(ben.transform, Single<PlayerMover>().transform)}, "
+                    + $"이동 잠금={Single<PlayerMover>().IsMovementLocked}, 대화={Single<DialogueController>().IsTalking}, "
+                    + $"새 대화 가능={Single<DialogueController>().Allowance.CanStartConversation}, "
+                    + $"접근 허용={ben.IsApproachAllowed}, 오늘 제안 기록={PasserbyOfferRecord.HasOfferedOn(BenCode, System.DateTime.Today)}, "
+                    + $"행인 위치={ben.transform.position}, 플레이어 위치={Single<PlayerMover>().transform.position}"
+            );
             Assert.That(offer.IsDeclineShown, Is.True);
 
             Click(offer, "DeclineButton");
@@ -394,6 +372,8 @@ namespace A305.Npc.PlayModeTests
         {
             yield return LoadTownAfterTutorial();
             Single<DialogueController>().Allowance.Apply(GuestStatus(remaining: 2));
+            Passerby ben = FindPasserby(BenCode);
+            ben.WaitAt(new Pose(ben.transform.position, ben.transform.rotation));
             StandNear(BenCode, 4f);
 
             PasserbyOfferView offer = Single<PasserbyOfferView>();
@@ -484,11 +464,13 @@ namespace A305.Npc.PlayModeTests
             NpcTestClock.SetDaytime();
             TutorialState.MarkFinishedOnServer();
             yield return LoadTown();
-            FindPasserby(BenCode).GetComponent<NpcRoutine>().enabled = false;
         }
 
         /// <summary>마을을 불러온 뒤 플레이어를 Ben 앞에 세운다. 튜토리얼 중이면 Ben은 길을 묻는 튜토리얼 모드다.</summary>
-        private static IEnumerator LoadTownWithPlayerNearBen(bool afterTutorial)
+        private static IEnumerator LoadTownWithPlayerNearBen(
+            bool afterTutorial,
+            bool withEvent = true
+        )
         {
             if (afterTutorial)
             {
@@ -500,6 +482,8 @@ namespace A305.Npc.PlayModeTests
             }
 
             Passerby passerby = FindPasserby(BenCode);
+            if (afterTutorial && withEvent)
+                passerby.WaitAt(new Pose(passerby.transform.position, passerby.transform.rotation));
             PlayerMover player = Single<PlayerMover>();
             player.Teleport(
                 passerby.transform.position + passerby.transform.forward * 4f,

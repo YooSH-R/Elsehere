@@ -23,6 +23,7 @@ import com.elsehere.ai.client.HintResult;
 import com.elsehere.ai.client.MeaningResult;
 import com.elsehere.ai.client.SuggestResult;
 import com.elsehere.ai.client.WorkerLine;
+import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
@@ -129,14 +130,11 @@ class TurnHelpServiceTest {
 
     turnHelpService.hint(userId, npcTurn.getId(), UUID.randomUUID());
 
-    then(aiGateway)
-        .should()
-        .hint(
-            any(),
-            argThat(npc -> "The counter of the corner cafe.".equals(npc.scene())),
-            anyList(),
-            anyString(),
-            anyInt());
+    ArgumentCaptor<WorkerNpc> npc = ArgumentCaptor.forClass(WorkerNpc.class);
+    then(aiGateway).should().hint(any(), npc.capture(), anyList(), anyString(), anyInt());
+    assertThat(npc.getValue().scene())
+        .startsWith("The counter of the corner cafe.")
+        .contains("Current game time: day 1, 08:00");
   }
 
   @Test

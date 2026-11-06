@@ -28,6 +28,12 @@ public class ConversationLookup {
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
   }
 
+  public Conversation ownedConversationForUpdate(Long userId, Long conversationId) {
+    return conversationRepository
+        .findByIdAndUserIdForUpdate(conversationId, userId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
   public Turn ownedTurn(Long userId, Long turnId) {
     return turnRepository
         .findById(turnId)

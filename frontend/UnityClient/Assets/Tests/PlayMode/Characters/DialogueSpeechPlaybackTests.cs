@@ -172,6 +172,62 @@ namespace A305.Characters.PlayModeTests
             Assert.That(link.HasSpeech, Is.False);
             Assert.That(player.IsPlaying, Is.False);
         }
+
+        // NPC 대답 스트리밍(CONV-03): 문장 조각 음성을 받는 대로 이어 재생한다.
+        [UnityTest]
+        public IEnumerator StreamedChunksPlayOneAfterAnotherOnTheActiveNpc()
+        {
+            link.QueueSpeechChunk(1, VoiceBytes("CoffeeChoiceSpeech"));
+            float firstLength = voice.clip.length;
+            link.QueueSpeechChunk(1, VoiceBytes("CafeThanksSpeech"));
+            Assert.That(player.IsPlaying, Is.True);
+            Assert.That(
+                voice.clip.length,
+                Is.EqualTo(firstLength),
+                "앞 조각이 끝나기 전에 다음 조각을 틀지 않는다."
+            );
+
+            player.Stop();
+            yield return null;
+            yield return null;
+
+            Assert.That(player.IsPlaying, Is.True);
+            Assert.That(voice.clip.length, Is.GreaterThan(3.5));
+            Assert.That(link.HasSpeech, Is.False, "[다시 듣기]는 턴 전체 음성을 받아 재생한다.");
+        }
+
+        [UnityTest]
+        public IEnumerator ChunksOfANewReplyReplaceTheUnplayedChunksOfThePreviousReply()
+        {
+            link.QueueSpeechChunk(1, VoiceBytes("CoffeeChoiceSpeech"));
+            link.QueueSpeechChunk(1, VoiceBytes("CoffeeChoiceSpeech"));
+            link.QueueSpeechChunk(2, VoiceBytes("CafeThanksSpeech"));
+            Assert.That(player.IsPlaying, Is.True);
+            Assert.That(
+                voice.clip.length,
+                Is.GreaterThan(3.5),
+                "새 대답은 지난 대답을 기다리지 않는다."
+            );
+
+            player.Stop();
+            yield return null;
+            yield return null;
+
+            Assert.That(player.IsPlaying, Is.False, "지난 대답의 남은 조각은 재생하지 않는다.");
+        }
+
+        [UnityTest]
+        public IEnumerator StoppingSpeechDropsTheQueuedChunks()
+        {
+            link.QueueSpeechChunk(1, VoiceBytes("CoffeeChoiceSpeech"));
+            link.QueueSpeechChunk(1, VoiceBytes("CafeThanksSpeech"));
+
+            link.StopSpeech();
+            yield return null;
+            yield return null;
+
+            Assert.That(player.IsPlaying, Is.False);
+        }
     }
 }
 #endif

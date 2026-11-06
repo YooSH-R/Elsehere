@@ -57,6 +57,9 @@ namespace A305.Dialogue
         /// <summary>서버가 수락한 무례하지 않은 발화. 월드 상호작용은 이 시점에만 반영한다.</summary>
         public event Action<string, string> UserTurnAccepted;
 
+        /// <summary>경찰관이 신고를 받아 순찰차를 출동시킨 턴. NPC 코드와 출동할 장소 코드(null이면 본길 순찰)를 넘긴다.</summary>
+        public event Action<string, long, string> PoliceDispatchRequested;
+
         /// <summary>
         /// 대화가 끝나면 대화 기록을 알린다. 시점과 이동을 되돌린 뒤 가장 마지막에 알리므로,
         /// 받는 쪽이 피드백 화면을 열며 이동을 다시 잠가도 풀리지 않는다.
@@ -226,6 +229,7 @@ namespace A305.Dialogue
                 return;
             }
 
+            TextPronunciation.Stop();
             if (serverConversation != null)
             {
                 serverLink.StopSpeech();
@@ -271,6 +275,12 @@ namespace A305.Dialogue
         private void Update()
         {
             ShowVoiceInput();
+            if (serverConversation != null && serverConversation.Tick(DateTimeOffset.UtcNow))
+            {
+                End();
+                return;
+            }
+
             if (
                 session.IsActive
                 && Keyboard.current != null
@@ -316,6 +326,7 @@ namespace A305.Dialogue
             panel.TalkStartRequested += StartRecording;
             panel.TalkStopRequested += StopRecording;
             panel.ReplayRequested += ReplaySpeech;
+            panel.UserTranslationListenRequested += ReadUserTranslation;
             panel.MeaningRequested += RequestMeaning;
             panel.HintRequested += RequestHint;
             panel.RetryRequested += Retry;
@@ -335,6 +346,7 @@ namespace A305.Dialogue
 
         private void OnDestroy()
         {
+            TextPronunciation.Stop();
             if (session.IsActive)
                 GameClock.Shared.IsTalking = false;
             if (serverLink != null)
@@ -353,6 +365,7 @@ namespace A305.Dialogue
                 panel.TalkStartRequested -= StartRecording;
                 panel.TalkStopRequested -= StopRecording;
                 panel.ReplayRequested -= ReplaySpeech;
+                panel.UserTranslationListenRequested -= ReadUserTranslation;
                 panel.MeaningRequested -= RequestMeaning;
                 panel.HintRequested -= RequestHint;
                 panel.RetryRequested -= Retry;
@@ -418,7 +431,9 @@ namespace A305.Dialogue
             );
             serverConversation.Changed += panel.Refresh;
             serverConversation.NpcSpoke += PlayNpcSpeech;
+            serverConversation.NpcSpeechChunk += PlayNpcSpeechChunk;
             serverConversation.UserTurnAccepted += ForwardAcceptedTurn;
+            serverConversation.PoliceDispatchRequested += ForwardPoliceDispatch;
             panel.Show(serverConversation);
             _ = serverConversation.StartAsync();
         }
@@ -452,7 +467,9 @@ namespace A305.Dialogue
             {
                 serverConversation.Changed -= panel.Refresh;
                 serverConversation.NpcSpoke -= PlayNpcSpeech;
+                serverConversation.NpcSpeechChunk -= PlayNpcSpeechChunk;
                 serverConversation.UserTurnAccepted -= ForwardAcceptedTurn;
+                serverConversation.PoliceDispatchRequested -= ForwardPoliceDispatch;
             }
 
             conversation = null;
@@ -491,6 +508,7 @@ namespace A305.Dialogue
 
         private void Send(string text)
         {
+            TextPronunciation.Stop();
             if (serverConversation != null)
             {
                 _ = serverConversation.SendAsync(text);
@@ -516,6 +534,11 @@ namespace A305.Dialogue
             }
         }
 
+        private void ForwardPoliceDispatch(long turnId, string placeCode)
+        {
+            PoliceDispatchRequested?.Invoke(serverConversation.NpcCode, turnId, placeCode);
+        }
+
         private void ForwardAcceptedTurn(string text)
         {
             UserTurnAccepted?.Invoke(serverConversation.NpcCode, text);
@@ -526,9 +549,35 @@ namespace A305.Dialogue
             WordSaveRequested?.Invoke(word);
         }
 
+        private async void ReadUserTranslation(string text)
+        {
+            if (
+                serverConversation == null
+                || serverConversation.IsBusy
+                || text != serverConversation.UserTranslation
+            )
+                return;
+            serverLink.StopSpeech();
+            bool played = await TextPronunciation.SpeakAsync(text);
+            if (
+                !played
+                && this != null
+                && session.IsActive
+                && text == serverConversation?.UserTranslation
+            )
+                panel.ShowPronunciationFailure();
+        }
+
         private void PlayNpcSpeech(NpcTurnData turn)
         {
+            TextPronunciation.Stop();
             NpcResponded?.Invoke();
+            // 대답을 받는 동안 문장 조각 음성으로 이미 들려줬다. [다시 듣기]는 턴 전체 음성을 받아 재생한다.
+            if (serverConversation.LastTurnSpokenInChunks)
+            {
+                return;
+            }
+
             if (!isEnding && turn.Speech != null && turn.Speech.IsReady)
             {
                 _ = serverConversation.PlaySpeechAsync(serverLink.PlaySpeechAsync);
@@ -536,6 +585,14 @@ namespace A305.Dialogue
             }
 
             serverLink.ForgetSpeech();
+        }
+
+        private void PlayNpcSpeechChunk(NpcSpeechChunkData chunk)
+        {
+            if (!isEnding)
+            {
+                serverLink.QueueSpeechChunk(chunk.Reply, chunk.Wav);
+            }
         }
 
         // 대본 대화는 뜻을 대본에 가지고 있어 서버 대화만 받아 온다(CONV-04).
@@ -566,6 +623,7 @@ namespace A305.Dialogue
         // 음성을 받아 둔 턴은 다시 재생하고, 합성에 실패한 턴은 음성을 다시 만든 뒤 재생한다(CONV-06·07).
         private void ReplaySpeech()
         {
+            TextPronunciation.Stop();
             if (
                 serverConversation == null
                 || !serverConversation.CanReplaySpeech
@@ -628,6 +686,7 @@ namespace A305.Dialogue
 
         private void StartRecording()
         {
+            TextPronunciation.Stop();
             if (serverConversation != null && serverConversation.CanSend)
             {
                 serverLink.StopSpeech();

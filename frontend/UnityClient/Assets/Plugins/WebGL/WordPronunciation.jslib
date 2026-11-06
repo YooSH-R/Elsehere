@@ -1,4 +1,8 @@
 mergeInto(LibraryManager.library, {
+  A305Word_StopPronunciation: function () {
+    if (typeof window !== "undefined" && window.speechSynthesis)
+      window.speechSynthesis.cancel();
+  },
   A305Word_CanPronounce: function () {
     return typeof window !== "undefined" && window.speechSynthesis &&
       typeof SpeechSynthesisUtterance !== "undefined" ? 1 : 0;

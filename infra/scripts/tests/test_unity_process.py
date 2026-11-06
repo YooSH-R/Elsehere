@@ -10,6 +10,70 @@ from pathlib import Path
 
 @unittest.skipUnless(sys.platform == "win32", "Requires the Windows Unity runner")
 class UnityProcessTests(unittest.TestCase):
+    def test_running_editor_publishes_progress_and_log_before_it_exits(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            scripts = repository / "infra/scripts"
+            scripts.mkdir(parents=True)
+            source = Path(__file__).resolve().parents[1] / "run-unity-ci.ps1"
+            shutil.copyfile(source, scripts / source.name)
+            settings = repository / "frontend/UnityClient/ProjectSettings"
+            settings.mkdir(parents=True)
+            (settings / "ProjectVersion.txt").write_text("m_EditorVersion: fixture\n")
+            release = repository / "release-editor"
+            editor_wait = repository / "editor-wait.ps1"
+            editor_wait.write_text(
+                "$deadline = [DateTime]::UtcNow.AddSeconds(20)\n"
+                "while (-not (Test-Path $env:A305_TEST_RELEASE_EDITOR) -and "
+                "[DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }\n"
+            )
+            editor = repository / "editor.cmd"
+            editor.write_text(
+                "@echo off\n"
+                ":arguments\n"
+                'if "%~1"=="" goto wait\n'
+                'if "%~1"=="-logFile" echo Editor running>"%~2"\n'
+                "shift\n"
+                "goto arguments\n"
+                ":wait\n"
+                f'powershell.exe -NoProfile -NonInteractive -File "{editor_wait}"\n'
+                "exit /b 23\n"
+            )
+            output_path = repository / "runner-output.log"
+            with output_path.open("w") as output:
+                process = subprocess.Popen(
+                    [
+                        "powershell.exe",
+                        "-NoProfile",
+                        "-NonInteractive",
+                        "-File",
+                        str(scripts / source.name),
+                        "-Action",
+                        "build",
+                        "-UnityEditorPath",
+                        str(editor),
+                        "-ProgressIntervalSeconds",
+                        "1",
+                    ],
+                    env={**os.environ, "A305_TEST_RELEASE_EDITOR": str(release)},
+                    stdout=output,
+                    stderr=subprocess.STDOUT,
+                )
+                try:
+                    log = repository / "dist/unity-ci/WebGL.log"
+                    deadline = time.monotonic() + 6
+                    while not log.exists() and time.monotonic() < deadline:
+                        time.sleep(0.05)
+                    self.assertIsNone(process.poll(), "Editor exited before progress")
+                    self.assertTrue(log.exists(), "Running Editor log was not copied")
+                    self.assertIn("Editor running", log.read_text())
+                    self.assertIn("WebGL still running", output_path.read_text())
+                finally:
+                    release.touch()
+                    process.wait(timeout=10)
+                self.assertNotEqual(process.returncode, 0)
+                self.assertIn("exit code 23", output_path.read_text())
+
     def test_editor_failure_does_not_wait_for_surviving_child_and_keeps_log(self):
         with tempfile.TemporaryDirectory() as directory:
             repository = Path(directory)

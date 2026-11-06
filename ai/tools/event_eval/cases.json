@@ -1,5 +1,5 @@
 {
-  "guide": "1.1",
+  "guide": "1.2",
   "cases": [
     {"id": "clear-greet-weather", "group": "clear", "npc": "TOWN_PASSERBY", "state": "free_talk",
      "last_npc": "Hi there! Nice weather today, isn't it?", "text": "Hello! Yes, it's really nice.", "events": ["GREETING", "SMALL_TALK"]},
@@ -240,6 +240,22 @@
      "intents": ["request_checkin", "show_reservation"], "events": []},
     {"id": "mission-checkin-suitcase-sorry", "group": "mission", "npc": "HOTEL_STAFF", "state": "CHECK_IN",
      "last_npc": "You're all checked in.", "text": "Can I get my suitcase back? Sorry I kept you waiting so long today.",
-     "intents": ["collect_suitcase"], "events": ["APOLOGY"]}
+     "intents": ["collect_suitcase"], "events": ["APOLOGY"]},
+    {"id": "help-offer", "group": "clear", "npc": "TOWN_PASSERBY", "state": "free_talk",
+     "last_npc": "These bags are heavy.", "text": "Let me carry one of your bags.", "events": ["HELP"]},
+    {"id": "help-accept", "group": "clear", "npc": "CAFE_STAFF", "state": "free_talk",
+     "last_npc": "Could you hold the door while I move this cart?", "text": "Sure, I can do that.", "events": ["HELP"]},
+    {"id": "help-information", "group": "clear", "npc": "TOWN_PASSERBY", "state": "free_talk",
+     "last_npc": "I need to find the police station.", "text": "It is across from the bank.", "events": ["HELP"]},
+    {"id": "help-korean", "group": "clear", "npc": "SHOP_STAFF", "state": "free_talk",
+     "last_npc": "I dropped my keys under the table.", "text": "제가 열쇠를 주워드릴게요.", "events": ["HELP"]},
+    {"id": "help-request-is-not-offer", "group": "boundary", "npc": "TOWN_PASSERBY", "state": "free_talk",
+     "last_npc": "What do you need?", "text": "Could you help me find the hotel?", "events": []},
+    {"id": "help-npc-offer", "group": "boundary", "npc": "SHOP_STAFF", "state": "free_talk",
+     "last_npc": "Would you like me to carry your umbrella?", "text": "Yes, please.", "events": []},
+    {"id": "help-refusal", "group": "boundary", "npc": "CAFE_STAFF", "state": "free_talk",
+     "last_npc": "Could you help me move this chair?", "text": "I cannot help right now.", "events": []},
+    {"id": "help-payment", "group": "boundary", "npc": "CAFE_STAFF", "state": "free_talk",
+     "last_npc": "Your coffee is five dollars.", "text": "Here is my card.", "events": []}
   ]
 }

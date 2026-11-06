@@ -119,6 +119,12 @@ def test_each_line_raises_affinity_right_away_for_its_new_events():
     assert rel.line_affinity_delta([], ["SMALL_TALK", "LEAVE"], {}, RULES) == 0
 
 
+def test_a_compliment_raises_affinity_by_seven():
+    """칭찬 한 번은 호감 +7이다(기본 배수). 앞서 인사했어도 칭찬 몫은 +7이다."""
+    assert rel.line_affinity_delta([], ["COMPLIMENT"], {}, RULES) == 7
+    assert rel.line_affinity_delta(["GREETING"], ["COMPLIMENT"], {}, RULES) == 7
+
+
 def test_the_lines_of_a_conversation_add_up_to_its_whole_impression():
     """줄마다 정수로 더해도 한 대화의 합은 대화 전체 인상 × affinityFollowRate를 한 번에 반올림한 값과 같다(어떻게 나눠 말해도 같음)."""
     follow = RULES["relationship"]["affinityFollowRate"]
@@ -150,8 +156,8 @@ def test_recognition_can_go_down_after_a_long_absence():
 
 
 def test_a_friendly_learner_is_liked_sooner_than_one_who_only_orders():
-    """백엔드가 줄마다 정수로 더해도 호감이 쌓인다(1차 유저 테스트 숫자, 2026-10-30). 칭찬까지 하면 대화 두 번 뒤(셋째 방문) 좋아하는 티,
-    네 번 뒤 사적인 이야기만큼(잡담은 호감에 더하지 않음). 인사하고 주문만 하면 다섯 번, 열 번 뒤다(기본 배수, 한 줄에 사건 하나씩)."""
+    """백엔드가 줄마다 정수로 더해도 호감이 쌓인다(1차 유저 테스트 숫자, 2026-10-30, 칭찬 +7로 올린 뒤). 칭찬까지 하면 대화 두 번 뒤(셋째 방문) 좋아하는 티,
+    세 번 뒤 사적인 이야기만큼(잡담은 호감에 더하지 않음). 인사하고 주문만 하면 다섯 번, 열 번 뒤다(기본 배수, 한 줄에 사건 하나씩)."""
     relationship = RULES["relationship"]
     friendly = ["GREETING", "SMALL_TALK", "COMPLIMENT", "TASK_DONE", "LEAVE"]
     polite = ["GREETING", "TASK_DONE", "LEAVE"]
@@ -163,7 +169,7 @@ def test_a_friendly_learner_is_liked_sooner_than_one_who_only_orders():
             affinity += sum(rel.line_affinity_delta(events[:line], [event], {}, RULES) for line, event in enumerate(events))
         return conversations
 
-    assert (until(relationship["liked"], friendly), until(relationship["personalTalk"]["affinity"], friendly)) == (2, 4)
+    assert (until(relationship["liked"], friendly), until(relationship["personalTalk"]["affinity"], friendly)) == (2, 3)
     assert (until(relationship["liked"], polite), until(relationship["personalTalk"]["affinity"], polite)) == (5, 10)
 
 

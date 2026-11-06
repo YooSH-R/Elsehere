@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from run_gms import SampleRecorder, load_settings, require_manual_gms_unlocked
 
 from feedback.gms import GmsClient
+from feedback.model_output import restore_model_output
 from feedback.models import INPUT, LLM_OUTPUT, validate_pair
 from feedback.prompt import PROMPT_VERSION
 from feedback.service import generate_feedback
@@ -20,7 +21,7 @@ ROOT = Path(__file__).resolve().parent
 
 def require_local_checks():
     checks = subprocess.run(
-        [sys.executable, "-X", "utf8", "-m", "unittest", "discover", "-s", "tests"],
+        [sys.executable, "-X", "utf8", "-m", "pytest", "-q", "tests"],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -60,7 +61,8 @@ def validation_diagnostic(payload, response, raw):
     if response["status"] != "failed" or not raw:
         return None
     try:
-        checked = LLM_OUTPUT.validate_json(raw)
+        body = restore_model_output(INPUT.validate_python(payload), json.loads(raw))
+        checked = LLM_OUTPUT.validate_python(body)
         if checked.outcome == "usable":
             validate_pair(payload, response | {"status": "completed", "problem": None, "result": checked.result.model_dump()})
     except ValidationError as error:

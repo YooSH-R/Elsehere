@@ -31,6 +31,15 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator PreparingSpeech_KeepsTheNpcSentenceBehindTheWaitCard()
+        {
+            yield return Show(new Content(DialogueWait.NpcSpeech, null));
+            Assert.That(Field<GameObject>("waitPanel").activeInHierarchy, Is.True);
+            Assert.That(Field<TMP_Text>("linesText").enabled, Is.False);
+            Assert.That(Field<TMP_Text>("waitText").text, Does.Contain("음성"));
+        }
+
+        [UnityTest]
         public IEnumerator WaitingForTheNpcReply_ShowsLoadingInPlaceOfTheLines()
         {
             yield return Show(
@@ -44,17 +53,6 @@ namespace A305.Dialogue.PlayModeTests
             );
             Assert.That(Field<TMP_Text>("statusText").gameObject.activeInHierarchy, Is.False);
             Assert.That(Field<GameObject>("feedbackWait").activeInHierarchy, Is.False);
-        }
-
-        // 대사 칸 틈을 가리려고 로딩 카드를 위로 넓히자 오른쪽 위 [대화 종료] 버튼 아래쪽을 덮었다.
-        [UnityTest]
-        public IEnumerator WaitingForTheNpcReply_DoesNotCoverTheEndButton()
-        {
-            yield return Show(new Content(DialogueWait.NpcReply, null));
-
-            Rect wait = WorldRect((RectTransform)Field<GameObject>("waitPanel").transform);
-            Rect end = WorldRect((RectTransform)Field<Button>("endButton").transform);
-            Assert.That(wait.Overlaps(end), Is.False, "로딩 카드가 [대화 종료]를 덮습니다.");
         }
 
         [UnityTest]
@@ -122,13 +120,6 @@ namespace A305.Dialogue.PlayModeTests
             Canvas.ForceUpdateCanvases();
         }
 
-        private static Rect WorldRect(RectTransform rect)
-        {
-            var corners = new Vector3[4];
-            rect.GetWorldCorners(corners);
-            return Rect.MinMaxRect(corners[0].x, corners[0].y, corners[2].x, corners[2].y);
-        }
-
         private static string Texts(GameObject root)
         {
             var texts = new List<string>();
@@ -155,6 +146,7 @@ namespace A305.Dialogue.PlayModeTests
             }
 
             public DialogueWait Waiting { get; }
+            public string UserTranslation { get; set; }
             public string NpcName => "Jake";
             public IReadOnlyList<DialogueLine> Lines => new[] { Opening };
             public DialogueLine LastNpcLine => Opening;

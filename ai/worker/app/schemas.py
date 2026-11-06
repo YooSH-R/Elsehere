@@ -196,6 +196,8 @@ class FollowUpRequest(BaseModel):
 
     npc: Npc
     history: list[Line] = Field(max_length=200)
+    # handover: 준비해 건넬 것(음료·음식·빨래 등), police_call: 경찰관이 출동해 정한 해결 결과(app.prompts.POLICE_CALL_SYSTEM)
+    kind: Literal["handover", "police_call"] = "handover"
 
     @field_validator("history")
     @classmethod

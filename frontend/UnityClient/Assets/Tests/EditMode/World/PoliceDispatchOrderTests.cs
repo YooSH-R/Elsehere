@@ -2,54 +2,85 @@ using NUnit.Framework;
 
 namespace A305.World.Tests
 {
-    /// <summary>
-    /// 경찰서는 마을과 다른 장면이라, 창구에서 받은 신고를 기억했다가 마을이 열리면 순찰차가 가져가 출동한다.
-    /// </summary>
     public class PoliceDispatchOrderTests
     {
         [SetUp]
-        public void Clear()
+        [TearDown]
+        public void Clear() => PoliceDispatchOrder.Clear();
+
+        [TestCase("DINER")]
+        [TestCase(null)]
+        public void AcceptedReport_KeepsItsOfficerAndPlace(string place)
         {
-            PoliceDispatchOrder.Clear();
+            Assert.That(PoliceDispatchOrder.TryRequest(10, "POLICE_OFFICER", place), Is.True);
+            Assert.That(PoliceDispatchOrder.IsAway("POLICE_OFFICER"), Is.True);
+            Assert.That(PoliceDispatchOrder.TryBegin(out var report), Is.True);
+            Assert.That(report.TurnId, Is.EqualTo(10));
+            Assert.That(report.OfficerCode, Is.EqualTo("POLICE_OFFICER"));
+            Assert.That(report.PlaceCode, Is.EqualTo(place));
         }
 
         [Test]
-        public void RequestedOrder_IsTakenOnceWithItsPlace()
+        public void AdditionalReport_WaitsUntilTheCurrentPatrolReturns()
         {
-            Assert.That(PoliceDispatchOrder.TryRequest("DINER"), Is.True);
-
-            Assert.That(PoliceDispatchOrder.TryTake(out string place), Is.True);
-            Assert.That(place, Is.EqualTo("DINER"));
-            Assert.That(PoliceDispatchOrder.TryTake(out _), Is.False, "한 번 가져가면 없어진다.");
-        }
-
-        // 장소를 말하지 않은 신고는 본길을 순찰한다.
-        [Test]
-        public void OrderWithoutAPlace_IsTakenAsAPatrol()
-        {
-            PoliceDispatchOrder.TryRequest(null);
-
-            Assert.That(PoliceDispatchOrder.TryTake(out string place), Is.True);
-            Assert.That(place, Is.Null);
-        }
-
-        [Test]
-        public void NoOrder_IsNotTaken()
-        {
-            Assert.That(PoliceDispatchOrder.TryTake(out _), Is.False);
-            Assert.That(PoliceDispatchOrder.IsPending, Is.False);
-        }
-
-        // 순찰차는 한 대라, 아직 출발하지 않은 신고가 있으면 새 신고는 받지 않고 먼저 받은 장소로 간다.
-        [Test]
-        public void SecondRequestWhilePending_KeepsTheFirstPlace()
-        {
-            PoliceDispatchOrder.TryRequest("DINER");
-
-            Assert.That(PoliceDispatchOrder.TryRequest("BANK"), Is.False);
+            PoliceDispatchOrder.TryRequest(10, "POLICE_OFFICER", "DINER");
+            PoliceDispatchOrder.TryBegin(out var first);
+            Assert.That(PoliceDispatchOrder.TryRequest(11, "POLICE_ROOKIE", "BANK"), Is.True);
             Assert.That(PoliceDispatchOrder.IsPending, Is.True);
-            PoliceDispatchOrder.TryTake(out string place);
-            Assert.That(place, Is.EqualTo("DINER"));
+            Assert.That(PoliceDispatchOrder.IsAway("POLICE_ROOKIE"), Is.True);
+            PoliceDispatchOrder.TryBegin(out var stillFirst);
+            Assert.That(stillFirst, Is.SameAs(first));
+
+            PoliceDispatchOrder.Complete(10);
+            Assert.That(PoliceDispatchOrder.IsAway("POLICE_OFFICER"), Is.False);
+            PoliceDispatchOrder.TryBegin(out var second);
+            Assert.That(second.TurnId, Is.EqualTo(11));
+            Assert.That(second.PlaceCode, Is.EqualTo("BANK"));
+        }
+
+        [Test]
+        public void SameTurnBeforeDuringAndAfterPatrol_IsAcceptedOnlyOnce()
+        {
+            PoliceDispatchOrder.TryRequest(10, "POLICE_OFFICER", "DINER");
+            Assert.That(PoliceDispatchOrder.TryRequest(10, "POLICE_OFFICER", "DINER"), Is.False);
+            PoliceDispatchOrder.TryBegin(out _);
+            Assert.That(PoliceDispatchOrder.TryRequest(10, "POLICE_OFFICER", "DINER"), Is.False);
+            PoliceDispatchOrder.Complete(10);
+            Assert.That(PoliceDispatchOrder.TryRequest(10, "POLICE_OFFICER", "DINER"), Is.False);
+            Assert.That(PoliceDispatchOrder.TryBegin(out _), Is.False);
+        }
+
+        [Test]
+        public void BeginningAgainAfterChangingScenes_KeepsTheUnfinishedReport()
+        {
+            PoliceDispatchOrder.TryRequest(10, "POLICE_OFFICER", "DINER");
+            PoliceDispatchOrder.TryBegin(out var before);
+            PoliceDispatchOrder.TryBegin(out var after);
+            Assert.That(after, Is.SameAs(before));
+            Assert.That(PoliceDispatchOrder.IsAway("POLICE_OFFICER"), Is.True);
+        }
+
+        [Test]
+        public void CompletingAnotherReport_DoesNotReleaseTheCurrentOfficer()
+        {
+            PoliceDispatchOrder.TryRequest(10, "POLICE_OFFICER", "DINER");
+            PoliceDispatchOrder.TryBegin(out _);
+            PoliceDispatchOrder.Complete(11);
+            Assert.That(PoliceDispatchOrder.Current.TurnId, Is.EqualTo(10));
+            Assert.That(PoliceDispatchOrder.IsAway("POLICE_OFFICER"), Is.True);
+        }
+
+        [Test]
+        public void NewGame_ClearsCurrentPendingAndDuplicateHistory()
+        {
+            PoliceDispatchOrder.TryRequest(10, "POLICE_OFFICER", "DINER");
+            PoliceDispatchOrder.TryBegin(out _);
+            PoliceDispatchOrder.TryRequest(11, "POLICE_ROOKIE", "BANK");
+            PoliceDispatchOrder.Clear();
+            Assert.That(PoliceDispatchOrder.IsPending, Is.False);
+            Assert.That(PoliceDispatchOrder.TryBegin(out _), Is.False);
+            Assert.That(PoliceDispatchOrder.IsAway("POLICE_OFFICER"), Is.False);
+            Assert.That(PoliceDispatchOrder.TryRequest(10, "POLICE_OFFICER", "DINER"), Is.True);
         }
     }
 }

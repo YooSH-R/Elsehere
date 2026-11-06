@@ -28,6 +28,8 @@ import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.service.GuestConversationLimit;
+import com.elsehere.common.config.AdjustableClock;
+import com.elsehere.common.config.TestClockConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.logging.LogCapture;
@@ -58,12 +60,12 @@ import com.elsehere.mission.repository.TownStoryRepository;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
-import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -96,7 +98,7 @@ class ConversationServiceTest {
 
   @Autowired private EntityManager entityManager;
 
-  @Autowired private Clock clock;
+  @Autowired private AdjustableClock clock;
 
   @Autowired private FollowUpService followUpService;
 
@@ -107,6 +109,11 @@ class ConversationServiceTest {
   @BeforeEach
   void setUp() {
     userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+  }
+
+  @AfterEach
+  void resetClock() {
+    clock.setInstant(TestClockConfig.NOW);
   }
 
   @Test
@@ -221,7 +228,9 @@ class ConversationServiceTest {
             instruction.capture(),
             anyInt(),
             any());
-    assertThat(npc.getValue().scene()).isEqualTo("The counter of the corner cafe.");
+    assertThat(npc.getValue().scene())
+        .startsWith("The counter of the corner cafe.")
+        .contains("Current game time: day 1, 08:00");
     assertThat(instruction.getValue())
         .contains("personality", "first-meeting", "Only offer service");
   }
@@ -705,6 +714,33 @@ class ConversationServiceTest {
   }
 
   @Test
+  @DisplayName("5분 뒤 종료 요청은 TIME_LIMIT으로 끝내고 피드백과 기억을 중복 생성하지 않는다")
+  void end_afterTimeLimit_generatesFeedbackAndMemoryOnce() {
+    ConversationStartResponse started = startPasserby();
+    sendText(started.conversationId(), "Yes, it's sunny!");
+    given(aiGateway.feedback(any(), any()))
+        .willReturn(new WorkerFeedback("failed", "AI_TIMEOUT", null, null, List.of()));
+    given(aiGateway.memoryCard(any(), any(), anyString(), any(), any()))
+        .willReturn(new MemoryCardResult("{\"name\": \"\"}", List.of()));
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(300));
+
+    EndConversationResponse first =
+        conversationService.end(
+            userId, started.conversationId(), new EndConversationRequest(UUID.randomUUID(), false));
+    EndConversationResponse retried =
+        conversationService.end(
+            userId, started.conversationId(), new EndConversationRequest(UUID.randomUUID(), false));
+
+    assertThat(first.status()).isEqualTo(ConversationStatus.ENDED_BY_NPC);
+    assertThat(first.endReason()).isEqualTo(ConversationEndReason.TIME_LIMIT);
+    assertThat(retried.endReason()).isEqualTo(ConversationEndReason.TIME_LIMIT);
+    WorkerMemory memory = memoryService.memoryFor(userId, npcId(entityManager, "TOWN_PASSERBY"));
+    assertThat(memory.visits()).isEqualTo(1);
+    then(aiGateway).should().feedback(any(), any());
+    then(aiGateway).should().memoryCard(any(), any(), anyString(), any(), any());
+  }
+
+  @Test
   @DisplayName("AI 첫인사에 사용자의 닉네임과 캐릭터를 실어 NPC가 캐릭터에 맞는 호칭을 쓰게 한다")
   void start_aiGreeting_sendsTheLearner() {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
@@ -850,6 +886,36 @@ class ConversationServiceTest {
                     userId, new StartConversationRequest(requestId, "CAFE_STAFF", InitiatedBy.NPC))
                 .deliveredFollowUpId())
         .isEqualTo(latte.getId());
+  }
+
+  @Test
+  @DisplayName("출동 결과가 준비된 경찰관과 대화를 시작하면 순찰을 다녀와 결과를 알리는 첫마디로 연다")
+  void start_readyPoliceCallResult_opensByReportingIt() {
+    followUpRepository.saveAndFlush(
+        NpcFollowUp.promise(
+            userId,
+            npcId(entityManager, "POLICE_OFFICER"),
+            999L,
+            "your wallet, found at Maple Diner",
+            "지갑 수색 결과",
+            FollowUpWait.SHORT,
+            clock.instant().minusSeconds(120)));
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("I'm back! I found your wallet at the diner. Here you go.", null));
+
+    ConversationStartResponse response =
+        conversationService.start(
+            userId,
+            new StartConversationRequest(UUID.randomUUID(), "POLICE_OFFICER", InitiatedBy.NPC));
+
+    assertThat(response.deliveredFollowUpId()).isNotNull();
+    ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
+    then(aiGateway)
+        .should()
+        .reply(any(), any(), any(), any(), anyString(), instruction.capture(), anyInt(), any());
+    assertThat(instruction.getValue())
+        .contains("back from the call", "your wallet, found at Maple Diner")
+        .doesNotContain("is ready now");
   }
 
   @Test

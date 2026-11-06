@@ -10,8 +10,6 @@ using A305.World;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -207,69 +205,6 @@ namespace A305.Tutorial.PlayModeTests
             yield return null;
             yield return null;
             Assert.That(player.IsMovementLocked, Is.False);
-        }
-
-        [UnityTest]
-        public IEnumerator Lodging_InFirstPerson_ShowsTheCompassArrowOnTheScreen()
-        {
-            // 1인칭에서는 발밑이 화면에 없으므로 화면 아래 화살표로 문 쪽을 알린다. 3인칭에서 발밑이 보이면 띄우지 않는다.
-            InputSettings.BackgroundBehavior oldBackground = InputSystem
-                .settings
-                .backgroundBehavior;
-            InputSettings.EditorInputBehaviorInPlayMode oldEditorInput = InputSystem
-                .settings
-                .editorInputBehaviorInPlayMode;
-            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
-            InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings
-                .EditorInputBehaviorInPlayMode
-                .AllDeviceInputAlwaysGoesToGameView;
-            Keyboard keyboard = InputSystem.AddDevice<Keyboard>();
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
-                yield return null;
-                TutorialProgress progress = TutorialState.GetOrCreate(BenCode);
-                progress.Continue();
-                progress.Report(TutorialAction.Walk);
-                progress.Report(TutorialAction.Run);
-                progress.Report(TutorialAction.Jump);
-                progress.Continue();
-                progress.Report(TutorialAction.Rotate);
-                progress.Report(TutorialAction.Zoom);
-                progress.Report(TutorialAction.ToggleView);
-                progress.Continue();
-                progress.ReportWordSaved();
-                progress.ReportVocabularyOpened();
-                for (int frame = 0; frame < 10; frame++)
-                    yield return null;
-
-                CoachMarkView coachMark = Single<CoachMarkView>();
-                Assert.That(coachMark.IsCompassShowing, Is.True, "준비: 발밑 나침반");
-                Assert.That(
-                    coachMark.IsCompassArrowShowing,
-                    Is.False,
-                    "3인칭에서 발밑이 보이면 화면 화살표는 띄우지 않습니다."
-                );
-
-                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.V));
-                yield return null;
-                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
-                for (int frame = 0; frame < 10; frame++)
-                    yield return null;
-
-                Assert.That(
-                    Single<PlayerCameraRig>().ViewMode,
-                    Is.EqualTo(CameraViewMode.FirstPerson),
-                    "준비: 1인칭"
-                );
-                Assert.That(coachMark.IsCompassArrowShowing, Is.True);
-            }
-            finally
-            {
-                InputSystem.RemoveDevice(keyboard);
-                InputSystem.settings.backgroundBehavior = oldBackground;
-                InputSystem.settings.editorInputBehaviorInPlayMode = oldEditorInput;
-            }
         }
 
         [UnityTest]

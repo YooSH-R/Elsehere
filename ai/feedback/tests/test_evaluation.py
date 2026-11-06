@@ -8,6 +8,12 @@ from run_evaluation import check_expectations, require_local_checks
 
 
 class EvaluationTests(unittest.TestCase):
+    def test_local_preflight_includes_pytest_compact_contract_checks(self):
+        with patch("run_evaluation.subprocess.run", return_value=subprocess.CompletedProcess([], 0, "", "")) as run:
+            require_local_checks()
+        command = run.call_args.args[0]
+        self.assertEqual(command[command.index("-m") + 1], "pytest")
+
     def test_local_lock_blocks_both_manual_tools_before_credentials_are_read(self):
         import run_evaluation
         import run_gms

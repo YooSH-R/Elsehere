@@ -15,16 +15,24 @@ workflow:
   auto_cancel:
     on_new_commit: none
   rules:
+    # Once Unity starts, let this candidate finish its checks and deployment.
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_DEPLOY_CHILD == "true" && $A305_DEPLOY_ENVIRONMENT == "dev"'
+      auto_cancel:
+        on_new_commit: conservative
     - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_DEPLOY_CHILD == "true"'
     # dev already has a merge pipeline; the release MR uses that result.
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == "dev" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main" && $CI_MERGE_REQUEST_SOURCE_PROJECT_ID == $CI_MERGE_REQUEST_PROJECT_ID'
       when: never
-    # Only obsolete MR checks may be interrupted; release candidates keep their checks.
+    # Obsolete MR checks may be interrupted independently of dev deployment checks.
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != "dev" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != "main"'
       auto_cancel:
         on_new_commit: interruptible
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_PIPELINE_SOURCE == "web"'
+    # The child owns cancellation; keep its parent connected to the final result.
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"'
+      auto_cancel:
+        on_new_commit: none
     - if: '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "main"'
 
 default:

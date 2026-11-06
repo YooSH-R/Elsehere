@@ -2469,7 +2469,7 @@ MonoBehaviour:
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   - code: DINER
-    displayName: "\uBA54\uC774\uD50C \uB2E4\uC774\uB108"
+    displayName: "\uBA54\uC774\uD50C \uC2DD\uB2F9"
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   - code: BANK
@@ -2486,6 +2486,26 @@ MonoBehaviour:
     alighting: {x: 0, y: 0, z: 0}
   - code: BARBER
     displayName: "\uC774\uBC1C\uC18C"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: BAKERY
+    displayName: "\uBE75\uC9D1"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: PARK
+    displayName: "\uBD84\uC218\uB300 \uACF5\uC6D0"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: ARCADE
+    displayName: "\uC624\uB77D\uC2E4"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: HOME_STORE
+    displayName: "\uC0DD\uD65C\uC6A9\uD488\uC810"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: ICE_CREAM_PLAZA
+    displayName: "\uC544\uC774\uC2A4\uD06C\uB9BC \uD2B8\uB7ED"
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   dialogue: {fileID: 779220813}
@@ -2835,7 +2855,7 @@ MonoBehaviour:
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   - code: DINER
-    displayName: "\uBA54\uC774\uD50C \uB2E4\uC774\uB108"
+    displayName: "\uBA54\uC774\uD50C \uC2DD\uB2F9"
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   - code: BANK
@@ -2852,6 +2872,26 @@ MonoBehaviour:
     alighting: {x: 0, y: 0, z: 0}
   - code: BARBER
     displayName: "\uC774\uBC1C\uC18C"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: BAKERY
+    displayName: "\uBE75\uC9D1"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: PARK
+    displayName: "\uBD84\uC218\uB300 \uACF5\uC6D0"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: ARCADE
+    displayName: "\uC624\uB77D\uC2E4"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: HOME_STORE
+    displayName: "\uC0DD\uD65C\uC6A9\uD488\uC810"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: ICE_CREAM_PLAZA
+    displayName: "\uC544\uC774\uC2A4\uD06C\uB9BC \uD2B8\uB7ED"
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   dialogue: {fileID: 779220813}
@@ -3962,7 +4002,7 @@ MonoBehaviour:
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   - code: DINER
-    displayName: "\uBA54\uC774\uD50C \uB2E4\uC774\uB108"
+    displayName: "\uBA54\uC774\uD50C \uC2DD\uB2F9"
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   - code: BANK
@@ -3979,6 +4019,26 @@ MonoBehaviour:
     alighting: {x: 0, y: 0, z: 0}
   - code: BARBER
     displayName: "\uC774\uBC1C\uC18C"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: BAKERY
+    displayName: "\uBE75\uC9D1"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: PARK
+    displayName: "\uBD84\uC218\uB300 \uACF5\uC6D0"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: ARCADE
+    displayName: "\uC624\uB77D\uC2E4"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: HOME_STORE
+    displayName: "\uC0DD\uD65C\uC6A9\uD488\uC810"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: ICE_CREAM_PLAZA
+    displayName: "\uC544\uC774\uC2A4\uD06C\uB9BC \uD2B8\uB7ED"
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   dialogue: {fileID: 779220813}
@@ -4449,7 +4509,7 @@ MonoBehaviour:
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   - code: DINER
-    displayName: "\uBA54\uC774\uD50C \uB2E4\uC774\uB108"
+    displayName: "\uBA54\uC774\uD50C \uC2DD\uB2F9"
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   - code: BANK
@@ -4466,6 +4526,26 @@ MonoBehaviour:
     alighting: {x: 0, y: 0, z: 0}
   - code: BARBER
     displayName: "\uC774\uBC1C\uC18C"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: BAKERY
+    displayName: "\uBE75\uC9D1"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: PARK
+    displayName: "\uBD84\uC218\uB300 \uACF5\uC6D0"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: ARCADE
+    displayName: "\uC624\uB77D\uC2E4"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: HOME_STORE
+    displayName: "\uC0DD\uD65C\uC6A9\uD488\uC810"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: ICE_CREAM_PLAZA
+    displayName: "\uC544\uC774\uC2A4\uD06C\uB9BC \uD2B8\uB7ED"
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   dialogue: {fileID: 779220813}

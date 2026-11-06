@@ -32,14 +32,12 @@ namespace A305.Npc.PlayModeTests
         // 카메라가 플레이어를 따라와 자리 잡을 때까지 기다리는 프레임 수
         private const int SettleFrames = 10;
 
-        [UnitySetUp]
-        public IEnumerator LoadTownAfterTutorial()
+        [SetUp]
+        public void StartAfterTutorial()
         {
             NpcTestClock.SetDaytime();
             TutorialState.Clear();
             TutorialState.MarkFinishedOnServer();
-            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
-            yield return null;
         }
 
         [UnityTearDown]
@@ -98,6 +96,8 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator NearbyPasserby_ShowsNameOnly()
         {
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
             NpcIdentity passerby = HoldStill(PasserbyCode);
             yield return StandFacing(passerby, 3f);
 
@@ -109,6 +109,8 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator FarNpc_HasNoTag()
         {
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
             NpcIdentity passerby = HoldStill(PasserbyCode);
             yield return StandFacing(passerby, NpcNameTags.ShowRadiusMeters + 6f);
 
@@ -118,6 +120,8 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator PlayerWhoCannotMove_SeesNoTags()
         {
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
             NpcIdentity passerby = HoldStill(PasserbyCode);
             yield return StandFacing(passerby, 3f);
             Assume.That(ShownTags().Select(shown => shown.Name), Does.Contain(PasserbyName));

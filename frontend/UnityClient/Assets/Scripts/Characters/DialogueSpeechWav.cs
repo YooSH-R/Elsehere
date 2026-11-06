@@ -14,12 +14,74 @@ namespace A305.Characters
         public int Frequency { get; private set; }
         public int Channels { get; private set; }
         public SpeechVisemeTimeline Timeline { get; private set; }
+        public SpeechEmotionTrack Emotions { get; private set; }
+        public string EmotionError { get; private set; }
         public string TimingError { get; private set; }
 
         [Serializable]
         private sealed class Identity
         {
             public string pcmSha256 = "";
+        }
+
+        [Serializable]
+        private sealed class EmotionPayload
+        {
+            public int version;
+            public float duration;
+            public string pcmSha256;
+            public EmotionCue[] cues;
+        }
+
+        [Serializable]
+        private sealed class EmotionCue
+        {
+            public float start;
+            public float end;
+            public string emotion;
+            public float intensity;
+        }
+
+        private static SpeechEmotionTrack ReadEmotions(string json, byte[] pcm, float duration)
+        {
+            var payload = JsonUtility.FromJson<EmotionPayload>(json);
+            using var sha = SHA256.Create();
+            string actual = BitConverter.ToString(sha.ComputeHash(pcm)).Replace("-", "");
+            if (
+                payload == null
+                || payload.version != 1
+                || !float.IsFinite(payload.duration)
+                || Mathf.Abs(payload.duration - duration) > .02f
+                || !string.Equals(actual, payload.pcmSha256, StringComparison.OrdinalIgnoreCase)
+                || payload.cues == null
+                || payload.cues.Length > 256
+            )
+                throw new ArgumentException("표정 시간표가 이 음성과 일치하지 않습니다.");
+            var cues = new SpeechEmotionCue[payload.cues.Length];
+            for (int index = 0; index < cues.Length; index++)
+            {
+                var cue = payload.cues[index];
+                if (
+                    cue == null
+                    || string.IsNullOrEmpty(cue.emotion)
+                    || !Enum.TryParse(
+                        cue.emotion.Replace("_", ""),
+                        true,
+                        out CharacterEmotion emotion
+                    )
+                    || !Enum.IsDefined(typeof(CharacterEmotion), emotion)
+                    || char.IsDigit(cue.emotion[0])
+                )
+                    throw new ArgumentException("지원하지 않는 표정 종류입니다.");
+                cues[index] = new SpeechEmotionCue
+                {
+                    start = cue.start,
+                    end = cue.end,
+                    emotion = emotion,
+                    intensity = cue.intensity,
+                };
+            }
+            return new SpeechEmotionTrack(cues, duration);
         }
 
         public static DialogueSpeechWav Read(byte[] bytes)
@@ -37,6 +99,8 @@ namespace A305.Characters
                 frequency = 0;
             byte[] pcm = null;
             string json = null;
+            string emotionJson = null;
+            int emotionChunks = 0;
             while (reader.BaseStream.Position < bytes.Length)
             {
                 if (reader.BaseStream.Position + 8 > bytes.Length)
@@ -74,6 +138,11 @@ namespace A305.Characters
                         if (json != null || size > 512 * 1024)
                             throw new ArgumentException("Invalid phoneme chunk.");
                         json = Encoding.UTF8.GetString(reader.ReadBytes((int)size));
+                        break;
+                    case "e305":
+                        emotionChunks++;
+                        if (emotionChunks == 1 && size <= 512 * 1024)
+                            emotionJson = Encoding.UTF8.GetString(reader.ReadBytes((int)size));
                         break;
                 }
                 reader.BaseStream.Position = end + size % 2;
@@ -116,6 +185,23 @@ namespace A305.Characters
                 {
                     // Legacy or damaged timing must not disable the real voice.
                     result.TimingError = error.Message;
+                }
+            }
+            if (emotionChunks > 0)
+            {
+                try
+                {
+                    if (emotionChunks != 1 || emotionJson == null)
+                        throw new ArgumentException("표정 시간표가 중복되었거나 너무 큽니다.");
+                    result.Emotions = ReadEmotions(
+                        emotionJson,
+                        pcm,
+                        (float)result.Samples.Length / channels / frequency
+                    );
+                }
+                catch (ArgumentException error)
+                {
+                    result.EmotionError = error.Message;
                 }
             }
             return result;

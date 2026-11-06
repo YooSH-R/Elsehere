@@ -27,6 +27,7 @@ namespace A305.EditorTools.Npc
             "HotelScene",
             "ShopScene",
             "TownScene",
+            "PoliceStationScene",
         };
         private static readonly Vector3 Dorm = new Vector3(-18, .1f, 21);
         private static readonly Vector3 Park = new Vector3(11, .1f, 21);

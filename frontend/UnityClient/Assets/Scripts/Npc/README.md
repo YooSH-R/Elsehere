@@ -25,7 +25,7 @@ NPC 몸·이름표 클릭은 “이름에게 말을 걸까요?” 확인 창을 
 | `PasserbyRestRecord` | 행인별로 다시 다가올 수 있는 시각을 공간이 바뀌어도 기억합니다. |
 | `PasserbyOfferRecord` | 하루에 한 번만 다가오는 행인이 마지막으로 먼저 말을 건 날짜(기기 날짜)를 기억합니다. 게임을 껐다 켜도 이어지게 이 기기(Web 빌드는 브라우저)의 `PlayerPrefs`에 저장합니다. |
 | `PoliceReportDesk` | 경찰서 창구. 서버가 문맥으로 판정한 출동 응답을 받아 화면 위쪽 상태 판에 신고 장소를 보입니다. NPC가 대화를 끝낸 턴도 접수하며, 무례한 말과 신고가 아닌 말에는 서버가 출동 응답을 보내지 않습니다. 대화를 닫으면 사용자 턴 ID·담당 경찰관·목적지를 `PoliceDispatchOrder`에 보관하고, 경찰서를 나와 마을이 열리면 순찰차(`PoliceCar`)가 순서대로 출동합니다. 같은 턴 ID는 중복 접수하지 않으며, 출동을 맡은 경찰관은 귀환 전까지 창구에 나타나지 않습니다. 접수 문구의 장소 이름은 순찰차 목적지와 같은 목록을 Builder가 옮겨 둡니다. |
-| `TaxiRide` | 본길을 도는 택시를 인도에서 세우면 손님 옆에 세워 바로 태우고 기사와 대화하게 합니다. 버튼은 공용 `TalkPrompt` 영역에 뜹니다. 태우지 못하면 선 택시 곁에 [기사에게 말 걸기]를 보입니다. `IsHailAllowed`가 false면(튜토리얼 동안) [택시 세우기]를 보이지 않습니다. 어떤 버튼을 보일지는 `TaxiPrompt`가 고릅니다. |
+| `TaxiRide` | 본길을 도는 택시의 수평 반경 8m 안에서 방향과 관계없이 탑승할 수 있습니다. 현재 위치에 세워 바로 태우고 기사와 대화하게 합니다. 버튼은 공용 `TalkPrompt` 영역에 뜹니다. 태우지 못하면 선 택시 곁에 [기사에게 말 걸기]를 보입니다. `IsHailAllowed`가 false면(튜토리얼 동안) [택시 타기]를 보이지 않습니다. 어떤 버튼을 보일지는 `TaxiPrompt`가 고릅니다. |
 | `NpcLifeData`, `NpcLife` | 생활 데이터(`Data/Npc/NpcLife.json`)와 NPC 한 명의 일과 활동·욕구·할 일 고르기. AI 하루 시뮬레이션과 같은 규칙이며 Unity 객체 없이 테스트합니다. |
 | `NpcRoutine` | 다가오지 않는 동안 `NpcLife`가 고른 사물까지 걸어가 쓰고, 의자·벤치·소파면 앉습니다. 걷기·애니메이션은 `Passerby`의 것을 씁니다. 구역(`stayInArea`·`area`)을 켜면 그 안의 사물·자리만 고릅니다. |
 | `NpcDuty` | 직원이 지금 근무 중인지(교대 밖이면 근무 외)와 같은 카운터를 맡은 직원 중 누가 응대할지 정합니다([일터와 응대](#일터와-응대)). Unity 객체 없이 테스트합니다. |
@@ -81,10 +81,10 @@ NPC 몸·이름표 클릭은 “이름에게 말을 걸까요?” 확인 창을 
 | `TOWN_PASSERBY`(Ben), 퀘스트가 붙잡아 둔 동안(비 오는 거리 단계) | 카페 출입문 앞에서 기다림 | `TownPasserbySettings` | 6m | 60초 | 가능 | 그날 이미 말을 걸었어도 다가옴 |
 | 마을 행인 10명(Ruby·Ray·Ethan·Arthur·Margaret·Helen·Rachel·Frank·Andre·Maya) | 본길 북쪽 인도와 공원에서 생활 | `TownPasserbySettings`(Ben과 같음) | 6m | 60초 | 가능 | 하루에 한 번 |
 | `CAFE_STAFF`(Mia)·`CAFE_BARISTA`(Zoe)·`CAFE_SERVER`(Leo) | 카페 카운터 뒤와 양 끝 | `CafeStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
-| `HOTEL_STAFF`(Jake)·`HOTEL_RECEPTIONIST`(Owen)·`HOTEL_NIGHT_MANAGER`(Clara)·`HOTEL_CONCIERGE`(Walter)·`HOTEL_BELLHOP`(Diego) | 호텔 리셉션 데스크 뒤와 양옆 | `Data/Hotel/HotelStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
+| `HOTEL_STAFF`(Jake)·`HOTEL_RECEPTIONIST`(Owen)·`HOTEL_NIGHT_MANAGER`(Clara)·`HOTEL_BELLHOP`(Diego) | 호텔 리셉션 데스크 뒤와 양옆 | `Data/Hotel/HotelStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
 | `SHOP_STAFF`(Alex)·`SHOP_PHARMACIST`(Hannah)·`SHOP_NIGHT_CLERK`(Samuel) | 드럭스토어 계산대 뒤 | `Data/Mission/ShopStaffSettings` | 4m | 5초 | 가능 | 제한 없음 |
-| `POLICE_OFFICER`(Dan)·`POLICE_SERGEANT`(Victor)·`POLICE_PATROL_OFFICER`(Kevin)·`POLICE_ROOKIE`(Taylor) | 경찰서 장면(`PoliceStationScene`) 창구 뒤, 경찰서 1층 안에서 생활 | `PoliceOfficerSettings` | 4m | 5초 | 가능 | 제한 없음 |
-| 거리 매장 직원 9명([아래](#거리-매장-직원)) | 마을 매장 1층 안에서 생활 | `BuildingStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
+| `POLICE_OFFICER`(Dan)·`POLICE_SERGEANT`(Victor)·`POLICE_ROOKIE`(Taylor) | 경찰서 장면(`PoliceStationScene`) 창구 뒤, 경찰서 1층 안에서 생활 | `PoliceOfficerSettings` | 4m | 5초 | 가능 | 제한 없음 |
+| 거리 매장 직원([아래](#거리-매장-직원)) | 마을 매장 1층 안에서 생활 | `BuildingStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
 
 - 마을 행인 Ben은 튜토리얼에서 길을 묻는 사람과 같은 사람입니다. 튜토리얼 진행(`TutorialDirector`)이 단계마다 `Passerby.SetTutorialScript`를 불러, 튜토리얼 중에는 튜토리얼 대본·인사말(키 `TUTORIAL_PASSERBY`)과 튜토리얼 설정으로 집 앞에서 길을 묻고 생활하지 않게 합니다. 튜토리얼을 마치면 NPC 키로 평소 대화하고 평소 설정으로 생활합니다. 튜토리얼에서 길을 물은 것도 그날 먼저 말을 건 것으로 세므로, 튜토리얼을 마친 그 게임 날에는 다시 다가오지 않습니다.
 - 카페 직원은 새 컴포넌트 없이 행인 프리팹을 쓰고, 걷는 속도 0이라 플레이어에게 걸어가지 않습니다. 플레이어가 카운터 앞 2m 안에 오면 카운터 뒤 자리로 돌아가([생활](#생활)) 제안 거리 2.5m에서 대화를 제안합니다. 행인과 직원이 같은 제안 화면을 쓰므로 머리말은 대화 대본의 이름과 역할을 함께 보여 누가 말을 걸었는지 알립니다.
@@ -114,7 +114,7 @@ NPC 몸이나 머리 위 이름표를 클릭(휴대폰·태블릿은 탭)해 원
 
 이름표 층(`NameTags`)은 휴대폰 터치 조작판(정렬 -10)보다 아래(-20)에 그립니다. 이름표가 클릭을 받아도 이름표 위에서 시작한 끌기는 조작판이 받아 시점·이동이 그대로 되고, 탭만 이름표 클릭으로 봅니다. PC의 시점 끌기는 끌기를 받는 UI(스크롤 목록 등)만 막으므로 이름표 위에서도 됩니다(`UiDragTarget`).
 
-거리는 수평 거리로 재고, 8m는 사물 카드를 띄우는 최대 거리와 같습니다. 택시 기사는 지금처럼 [택시 세우기]·[기사에게 말 걸기]로만 부릅니다(`Passerby`가 아닌 NPC는 클릭 대상이 아닙니다).
+거리는 수평 거리로 재고, 8m는 사물 카드를 띄우는 최대 거리와 같습니다. 택시 기사는 지금처럼 [택시 타기]·[기사에게 말 걸기]로만 부릅니다(`Passerby`가 아닌 NPC는 클릭 대상이 아닙니다).
 
 ## Ben의 외형과 걷기
 
@@ -171,10 +171,15 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 | 일터 | 직원(교대 순) | 자리 |
 | --- | --- | --- |
-| 카페 `CafeScene` | Mia(아침)·Leo(한낮)·Zoe(오후~저녁) | Mia는 카운터 뒤, Leo·Zoe는 카운터 양 끝의 손님 쪽 모서리 |
-| 호텔 `HotelScene` | Jake(아침)·Walter·Diego(한낮)·Owen(오후~저녁)·Clara(밤) | Jake는 데스크 뒤, Owen·Clara는 데스크 손님 쪽 양옆, Walter·Diego는 데스크 뒤쪽 양 끝 |
+| 카페 `CafeScene` | Mia(06~18)·Leo(10~18)·Zoe(18~06) | Mia는 카운터 뒤, Leo·Zoe는 카운터 양 끝의 손님 쪽 모서리 |
+| 호텔 `HotelScene` | Jake(06~18)·Diego·Owen(10~22)·Clara(18~06) | Jake는 데스크 뒤, Owen·Clara는 데스크 손님 쪽 양옆, Diego는 데스크 뒤쪽 끝 |
 | 드럭스토어 `ShopScene` | Alex(아침)·Hannah(오후~밤)·Samuel(밤~새벽) | 모두 계산대 뒤. Alex가 계산대에 가장 가깝다 |
-| 경찰서 `PoliceStationScene` | Dan(아침)·Taylor(한낮)·Kevin(오후~저녁)·Victor(밤) | 모두 창구 뒤나 창구 끝. Dan이 창구에 가장 가깝다 |
+| 경찰서 `PoliceStationScene` | Dan(06~14)·Taylor(14~22)·Victor(22~06) | 모두 창구 뒤나 창구 끝. Dan이 창구에 가장 가깝다 |
+
+은행은 Henry 06~14, Maya 14~22, Helen 22~06의 3교대입니다. 나머지 거리 매장은 기존 직원 06~18과 야간 직원 18~06의 2교대입니다. 야간 직원은 우체국 Ruby, 식당 Ray, 베이커리 Kevin, 빨래방 Rachel, 꽃집 Walter, 이발소 Andre, 오락실 Ethan, 생활용품점 Frank입니다. 소방관 세 명은 소방서 개관 전 아르바이트라는 배경을 유지합니다. 총 인원과 ID는 바꾸지 않고, 실제 `WORK` 시간 기준으로 응대 공백이 없도록 인계 시간에 휴식을 둡니다.
+
+원본 일정을 내보낸 뒤 **Tools → A305 → Npc → Apply 24 Hour Roster**로 기존 인물의 배치·업무 대본·출퇴근 프리팹을 갱신합니다. Kevin은 사복을 입고 빵집에서 일하며, 경찰 신고를 받지 않습니다.
+
 
 | 상황 | 동작 |
 | --- | --- |
@@ -187,13 +192,13 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 ## 택시
 
-마을 본길의 노란 택시 운전석에 택시 기사(`TAXI_DRIVER`)가 앉아 있습니다. 기사는 다가오지 않고, 택시를 세운 뒤 플레이어가 먼저 말을 겁니다.
+마을 본길의 노란 택시 운전석에 택시 기사(`TAXI_DRIVER`)가 앉아 있습니다. 가까이에서 탑승 버튼을 누르면 바로 뒷좌석에 타고 기사와 대화합니다.
 
 | 상황 | 동작 |
 | --- | --- |
-| 택시가 달리는 차로 쪽 인도에 서 있고, 택시가 4~18m 앞에서 다가옴 | [택시 세우기]와 키 안내(E)를 보입니다. 길 건너편, 택시 뒤, 유턴 구간 너머에서는 보이지 않습니다. |
-| [택시 세우기] | 택시가 플레이어 옆 길가로 와서 섭니다. |
-| 선 택시 곁(3.5m 안) | [Joe에게 말 걸기]로 뒷좌석에 타서 대화합니다(`ConversationInitiator.User`). |
+| 택시 중심에서 수평 반경 8m 안 | [택시 타기]와 키 안내(E)를 보입니다. 길 건너편, 택시 뒤, 유턴 구간에서도 거리만 맞으면 표시합니다. 반경 밖에서는 숨깁니다. |
+| [택시 타기] | 클릭 시 거리와 튜토리얼 제한을 다시 확인하고, 택시를 현재 위치에 세워 곧바로 뒷좌석에 태웁니다. |
+| 대화를 시작하지 못해 기다리는 택시의 반경 8m 안 | [Joe에게 말 걸기]로 뒷좌석에 타서 대화합니다(`ConversationInitiator.User`). |
 | 남은 대화 | 대화 제안·시작 확인 창에 오늘 남은 대화 횟수를 보입니다(AI-01 `remainingConversations`). |
 | 일일 대화를 다 씀 | 택시를 세우는 대신 오늘의 대화를 모두 사용했으며 내일 다시 이용할 수 있다고 안내합니다. |
 | 다른 이유로 새 대화를 시작할 수 없음 | 두 버튼 대신 누를 수 없는 버튼으로 이유("지금은 대화할 수 없어요")를 보입니다. E 키도 택시를 세우지 않습니다. |
@@ -207,7 +212,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 ## 경찰서
 
-마을 남서쪽 끝 경찰서(카페·호텔처럼 따로 장면인 `PoliceStationScene`) 창구 뒤에 경찰관 Dan(`POLICE_OFFICER`)·Victor(`POLICE_SERGEANT`)·Kevin(`POLICE_PATROL_OFFICER`)·Taylor(`POLICE_ROOKIE`)가 24시간 교대로 있습니다([일터와 응대](#일터와-응대)). 카페 직원처럼 행인 프리팹을 쓰고 플레이어에게 걸어가지 않으며, 경찰서 1층 안에서만 지냅니다. 경찰관마다 신고 창구(`PoliceReportDesk`)가 있어 누구에게 신고해도 순찰차가 출동합니다. 신고 여부와 목적지는 서버의 `PoliceDesk`가 문맥으로 판정합니다. 창구는 턴 응답의 출동 정보를 받아, 대화를 마치면 신고한 경찰관·목적지·사용자 턴 ID를 `PoliceDispatchOrder`에 보관합니다. 같은 턴 ID는 한 번만 접수하며, 추가 신고는 순서대로 기다립니다. 신고한 경찰관은 순찰차가 돌아와 주차할 때까지 창구와 마을의 생활 모습에 나타나지 않습니다.
+마을 남서쪽 끝 경찰서(카페·호텔처럼 따로 장면인 `PoliceStationScene`) 창구 뒤에 경찰관 Dan(`POLICE_OFFICER`)·Victor(`POLICE_SERGEANT`)·Taylor(`POLICE_ROOKIE`)가 24시간 교대로 있습니다([일터와 응대](#일터와-응대)). 카페 직원처럼 행인 프리팹을 쓰고 플레이어에게 걸어가지 않으며, 경찰서 1층 안에서만 지냅니다. 경찰관마다 신고 창구(`PoliceReportDesk`)가 있어 누구에게 신고해도 순찰차가 출동합니다. 신고 여부와 목적지는 서버의 `PoliceDesk`가 문맥으로 판정합니다. 창구는 턴 응답의 출동 정보를 받아, 대화를 마치면 신고한 경찰관·목적지·사용자 턴 ID를 `PoliceDispatchOrder`에 보관합니다. 같은 턴 ID는 한 번만 접수하며, 추가 신고는 순서대로 기다립니다. 신고한 경찰관은 순찰차가 돌아와 주차할 때까지 창구와 마을의 생활 모습에 나타나지 않습니다.
 
 | 대화에서 말한 내용 | 대화를 마친 뒤 순찰차 |
 | --- | --- |
@@ -246,7 +251,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 | --- | --- |
 | 쓰는 외형 | 플레이어(기본) 외형은 NPC에 쓰지 않습니다. 바리스타·카페 남자 유니폼은 카페 직원만, 남녀 호텔 유니폼은 호텔 직원만, 검수한 남녀 경찰 제복은 경찰관만 입습니다. 일반 행인 외형은 다른 역할에서도 쓸 수 있습니다. 경로와 배정은 `NpcLooks`·`NpcCast`가 관리합니다. |
 | 성별·나이 | 인격 카드(`ai/npcs/<NPC 키>.json`)의 나이대·배경에 맞는 외형을 고릅니다. Arthur와 60대 수리공 Frank는 할아버지 외형을 쓰되 옷·머리·신발 배색을 구분합니다. 컨시어지 Walter는 회색 머리 정장, 비번 소방대장 Ray는 중년 평상복을 씁니다. 역할이 정해지지 않은 외형을 기존 NPC의 성별 변경으로 임의 배정하지 않습니다. |
-| 서로 다른 사람 | 같은 외형을 쓰는 두 NPC의 눈동자 색이 같으면 머리와 옷 색이 모두 달라야 하고, 옷 색이 같으면 눈동자·머리·신발 색이 모두 달라야 합니다. 경찰관 Dan·Victor·Kevin은 남성 제복, 신입 Taylor는 여성 제복을 씁니다. 같은 남성 외형은 눈동자·머리·신발 배색으로 구분합니다. |
+| 서로 다른 사람 | 같은 외형을 쓰는 두 NPC의 눈동자 색이 같으면 머리와 옷 색이 모두 달라야 하고, 옷 색이 같으면 눈동자·머리·신발 색이 모두 달라야 합니다. 경찰관 Dan·Victor는 남성 제복, 신입 Taylor는 여성 제복을 씁니다. 같은 남성 외형은 눈동자·머리·신발 배색으로 구분합니다. |
 | 색 이름 | 같은 색인지는 `NpcCast.Palette`의 색 이름으로 가립니다. 같은 이름에는 같은 값을 씁니다. |
 
 - 머리카락과 피부·바지가 비슷한 색인 외형(중년 남성·할머니·바리스타)은 몸 높이로 머리만 고르고(머리 꼭대기 1, 발바닥 0), 가닥 사이에 남는 가는 선은 같은 색으로 메웁니다(`NpcColorSwap.FillGaps`).

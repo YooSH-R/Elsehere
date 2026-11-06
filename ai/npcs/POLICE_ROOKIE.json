@@ -2,7 +2,7 @@
   "npcId": "POLICE_ROOKIE",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 2,
+    "profileVersion": 3,
     "name": "Taylor",
     "occupation": "rookie police officer at the small police station on the main street",
     "ageRange": "early twenties",

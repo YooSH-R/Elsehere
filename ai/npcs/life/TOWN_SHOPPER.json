@@ -2,7 +2,7 @@
   "schemaVersion": "1.0",
   "npcId": "TOWN_SHOPPER",
   "mbti": "ESTJ-T",
-  "role": "PASSERBY",
-  "workplace": "TOWN",
-  "shift": "MIDDAY"
+  "role": "STAFF",
+  "workplace": "BANK",
+  "shift": "NIGHT"
 }

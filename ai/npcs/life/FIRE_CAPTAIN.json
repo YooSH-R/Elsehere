@@ -2,7 +2,7 @@
   "schemaVersion": "1.0",
   "npcId": "FIRE_CAPTAIN",
   "mbti": "ESTJ-T",
-  "role": "PASSERBY",
-  "workplace": "TOWN",
-  "shift": "MORNING"
+  "role": "STAFF",
+  "workplace": "DINER",
+  "shift": "NIGHT"
 }

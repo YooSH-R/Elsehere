@@ -11,11 +11,11 @@ namespace A305.Npc
 
     /// <summary>
     /// 택시 곁에 보일 버튼(<see cref="TaxiRide"/>). 택시를 세우면 바로 기사와 대화하므로, 새 대화를 시작할 수 없으면
-    /// [택시 세우기]·[말 걸기] 대신 이유를 보인다(행인 [말 걸기]와 같은 문구). 게스트가 대화를 다 썼으면 이유와 함께 가입 버튼을 보인다.
+    /// [택시 타기]·[말 걸기] 대신 이유를 보인다(행인 [말 걸기]와 같은 문구). 게스트가 대화를 다 썼으면 이유와 함께 가입 버튼을 보인다.
     /// </summary>
     public sealed class TaxiPrompt
     {
-        public const string HailLabel = "택시 세우기";
+        public const string HailLabel = "택시 타기";
 
         public static readonly TaxiPrompt None = new TaxiPrompt(TaxiPromptKind.None, null, null);
 

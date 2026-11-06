@@ -120,7 +120,7 @@ namespace A305.Npc.PlayModeTests
             var walkers = Object.FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None);
             Assert.That(
                 walkers.Select(w => w.GetComponent<NpcIdentity>().Code),
-                Does.Contain("HOTEL_NIGHT_MANAGER")
+                Does.Contain("TOWN_SHOPPER")
             );
             Assert.That(
                 walkers.Select(w => w.GetComponent<NpcIdentity>().Code),
@@ -170,7 +170,10 @@ namespace A305.Npc.PlayModeTests
             Object
                 .FindFirstObjectByType<A305.Player.PlayerMover>()
                 .Teleport(new Vector3(450, 20, 450), Quaternion.identity);
-            var walkers = Object.FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None);
+            var walkers = Object.FindObjectsByType<NpcTownWalker>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
             var first = walkers.Single(w =>
                 w.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER"
             );
@@ -301,7 +304,10 @@ namespace A305.Npc.PlayModeTests
                 .FindFirstObjectByType<A305.Player.PlayerMover>()
                 .Teleport(new Vector3(450, 20, 450), Quaternion.identity);
             var walker = Object
-                .FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None)
+                .FindObjectsByType<NpcTownWalker>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
                 .Single(w => w.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER");
             var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
             floor.transform.position = new Vector3(500, -.1f, 500);
@@ -419,7 +425,10 @@ namespace A305.Npc.PlayModeTests
                 .FindFirstObjectByType<A305.Player.PlayerMover>()
                 .Teleport(new Vector3(450, 20, 450), Quaternion.identity);
             var walker = Object
-                .FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None)
+                .FindObjectsByType<NpcTownWalker>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
                 .Single(w => w.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER");
             var lights = Object.FindFirstObjectByType<TrafficLights>();
             lights.enabled = false;
@@ -569,6 +578,7 @@ namespace A305.Npc.PlayModeTests
             walker.transform.SetPositionAndRotation(position, Quaternion.LookRotation(forward));
             walker.Destination = position;
             capsule.enabled = true;
+            walker.gameObject.SetActive(true);
             Physics.SyncTransforms();
         }
 
@@ -593,7 +603,7 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator Town_CommuterWalksContinuouslyWithoutBurstingToCatchUp()
         {
-            SetClock(15 * 60 + 5);
+            SetClock(18 * 60 + 5);
             yield return SceneManager.LoadSceneAsync("TownScene");
             yield return null;
             foreach (
@@ -608,7 +618,10 @@ namespace A305.Npc.PlayModeTests
                 .FindFirstObjectByType<A305.Player.PlayerMover>()
                 .Teleport(new Vector3(450f, 20f, 450f), Quaternion.identity);
             var walker = Object
-                .FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None)
+                .FindObjectsByType<NpcTownWalker>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
                 .Single(npc => npc.GetComponent<NpcIdentity>().Code == "CAFE_STAFF");
             var animator = walker.GetComponentInChildren<Animator>();
             var body = walker.GetComponent<CharacterController>();
@@ -693,15 +706,18 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator Town_OffDutyStaffWalksOutsideAndRestsInsideTheClosedResidence()
         {
-            SetClock(15 * 60 + 5);
+            SetClock(18 * 60 + 5);
             yield return SceneManager.LoadSceneAsync("TownScene");
             yield return null;
             var mia = Object
-                .FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None)
+                .FindObjectsByType<NpcTownWalker>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
                 .Single(npc => npc.GetComponent<NpcIdentity>().Code == "CAFE_STAFF");
             Vector3 before = mia.transform.position;
             Assert.That(mia.IsStaff, Is.True);
-            SetClock(15 * 60 + 10);
+            SetClock(18 * 60 + 10);
             for (int i = 0; i < 10; i++)
                 yield return null;
             Assert.That(Vector3.Distance(before, mia.transform.position), Is.GreaterThan(.01f));

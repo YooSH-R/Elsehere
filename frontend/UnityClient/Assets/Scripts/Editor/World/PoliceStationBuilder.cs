@@ -24,7 +24,7 @@ namespace A305.EditorTools.World
     /// 마을 남서쪽 끝 1층 배경 건물을 경찰서로 바꾸고(<see cref="TownStorefrontBuilder"/>의 경찰서 매장),
     /// 그 남쪽 잔디에 주차장을 깔아 순찰차를 세운다. 경찰서 안은 카페·호텔처럼 따로 장면(PoliceStationScene)이라,
     /// 마을 경찰서 문에는 그 장면으로 옮기는 출입구를 붙이고, 경찰서 장면에는 같은 건물과 마을로 나가는 문,
-    /// 창구 뒤 경찰관 4명과 신고 창구(<see cref="PoliceReportDesk"/>)를 둔다. 창구는 순찰차와 다른 장면이라 신고를 남기고
+    /// 창구 뒤 경찰관 3명과 신고 창구(<see cref="PoliceReportDesk"/>)를 둔다. 창구는 순찰차와 다른 장면이라 신고를 남기고
     /// (<see cref="PoliceDispatchOrder"/>), 마을이 열리면 순찰차(<see cref="PoliceCar"/>)가 그 신고로 출동한다.
     /// 주차장·순찰차 프리팹·경찰관 외형은 없을 때만 만들고, 이미 있으면 디자인을 두고 기능 연결만 맞춘다.
     /// </summary>
@@ -97,8 +97,7 @@ namespace A305.EditorTools.World
         {
             (OfficerCode, "PoliceOfficer", new Vector3(0, 0, -6.4f)),
             ("POLICE_SERGEANT", "PoliceSergeant", new Vector3(1.6f, 0, -7.2f)),
-            ("POLICE_PATROL_OFFICER", "PolicePatrolOfficer", new Vector3(-1.6f, 0, -7.2f)),
-            ("POLICE_ROOKIE", "PoliceRookie", new Vector3(2.8f, 0, -4.6f)),
+            ("POLICE_ROOKIE", "PoliceRookie", new Vector3(-1.6f, 0, -7.2f)),
         };
 
         // 남행 차로 끝(-1.5, -25) → 서쪽으로 꺾어 주차장 북쪽을 지나 → 서쪽 끝에서 유턴해 → 동쪽을 보고 주차 칸
@@ -258,6 +257,9 @@ namespace A305.EditorTools.World
             Transform group =
                 car.transform.Find(DriversGroup)
                 ?? Group(DriversGroup, car.transform, Vector3.zero);
+            foreach (Transform seat in group.Cast<Transform>().ToArray())
+                if (!Officers.Any(officer => officer.Code == seat.name))
+                    Object.DestroyImmediate(seat.gameObject);
             var seats = new List<(string Code, GameObject Seat)>();
             foreach (var officer in Officers)
             {
@@ -781,7 +783,7 @@ namespace A305.EditorTools.World
         // ---------- 경찰관 ----------
 
         /// <summary>
-        /// 경찰관 4명을 경찰서 장면의 창구 뒤에 두고, 누구에게 신고해도 접수되도록 경찰관마다 신고 창구를 잇는다.
+        /// 경찰관 3명을 경찰서 장면의 창구 뒤에 두고, 누구에게 신고해도 접수되도록 경찰관마다 신고 창구를 잇는다.
         /// 이미 있는 경찰관은 자리를 바꾸지 않는다. 경찰서 장면에 쓰며, 장면 저장은 부르는 쪽이 한다.
         /// </summary>
         public static void PlaceOfficers(Scene scene)
@@ -872,6 +874,13 @@ namespace A305.EditorTools.World
             }
 
             NpcVisualBuilder.Connect(officer, NpcCast.Find(code).Look.PrefabPath, true);
+            BuilderTools.SetReference(
+                BuilderTools.GetOrAddComponent<HoverableObject>(officer.gameObject),
+                "word",
+                AssetDatabase.LoadAssetAtPath<ObjectWordDefinition>(
+                    ObjectWordAuthoring.WordsFolder + "/police_officer.asset"
+                )
+            );
             Passerby passerby = officer.GetComponent<Passerby>();
             BuilderTools.SetReference(passerby, "settings", OfficerSettings());
             BuilderTools.SetReference(

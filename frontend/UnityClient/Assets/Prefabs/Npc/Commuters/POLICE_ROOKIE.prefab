@@ -251,7 +251,7 @@ Transform:
   m_Children:
   - {fileID: 1475962312166947433}
   - {fileID: 2182469926025330951}
-  - {fileID: 8950635421481955788}
+  - {fileID: 6987817918039275923}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!143 &7597242476982649395
@@ -305,7 +305,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a054ece7e06fd5643a2986a078abca13, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.Characters::A305.Characters.CharacterAnimationDriver
-  animator: {fileID: 5677489160544635785}
+  animator: {fileID: 5910062389973615574}
 --- !u!114 &8468209432851539222
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -397,7 +397,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 5962240486156312855}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &3950981170332024899
+--- !u!1001 &3033746443766007836
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -454,13 +454,13 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4e765aa14bcbcfd41810eb82bba1fe40, type: 3}
---- !u!95 &5677489160544635785 stripped
+--- !u!95 &5910062389973615574 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 8655577907487378378, guid: 4e765aa14bcbcfd41810eb82bba1fe40, type: 3}
-  m_PrefabInstance: {fileID: 3950981170332024899}
+  m_PrefabInstance: {fileID: 3033746443766007836}
   m_PrefabAsset: {fileID: 0}
---- !u!4 &8950635421481955788 stripped
+--- !u!4 &6987817918039275923 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5396366848466891151, guid: 4e765aa14bcbcfd41810eb82bba1fe40, type: 3}
-  m_PrefabInstance: {fileID: 3950981170332024899}
+  m_PrefabInstance: {fileID: 3033746443766007836}
   m_PrefabAsset: {fileID: 0}

@@ -22,6 +22,7 @@ dev:plan:
       - dist/deployment/state.json
       - dist/deployment/plan.json
       - dist/deployment/dev-child.yml
+      - dist/deployment/*-mr-artifacts.zip
 
 dev:child:
   extends: .dev-deployment-source

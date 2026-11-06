@@ -128,11 +128,11 @@ def test_reply_default_level_is_normal(provider):
     assert "natural everyday American English" in b["messages"][0]["content"] and b["max_tokens"] == 120
 
 
-@pytest.mark.parametrize(("level", "npc_speed", "want"), [(1, 1.0, 0.85), (2, 1.0, 1.0), (3, 1.0, 1.06), (2, 1.1, 1.1), (1, 1.1, 0.94)])
-def test_reply_voice_speed_follows_level_and_npc(provider, level, npc_speed, want):
+@pytest.mark.parametrize(("level", "npc_speed"), [(1, 0.8), (1, 1.0), (2, 1.1), (3, 1.2)])
+def test_reply_voice_speed_is_1_1_for_every_level_and_npc(provider, level, npc_speed):
     tts = FakeTts()
     reply(provider, level, npc=NPC | {"tts_speed": npc_speed}, tts=tts)
-    assert tts.speeds and all(s == want for s in tts.speeds)
+    assert tts.speeds and all(s == 1.1 for s in tts.speeds)
 
 
 def test_hint_follows_level(client, provider):

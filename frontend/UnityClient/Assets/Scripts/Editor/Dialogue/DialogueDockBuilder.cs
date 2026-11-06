@@ -279,7 +279,7 @@ namespace A305.EditorTools.Dialogue
             Theme(card.Find("Title"), UiThemeRole.Title);
             Theme(card.Find("Meaning"), UiThemeRole.Accent);
             Theme(card.Find("Note"), UiThemeRole.Muted);
-            // 64px보다 낮은 버튼이라 아이콘 없이 이름만 둔다. 밝은 카드 위 버튼은 문장 카드의 [넣기]처럼 입체 알약으로 칠한다.
+            // 64px보다 낮은 버튼이라 아이콘 없이 이름만 둔다. 밝은 카드 위 버튼은 입체 알약으로 칠한다.
             Pill(card.Find("WordSaveButton"), "단어장에 저장", UiIcon.Save, UiTone.Primary, 2f, 20);
             Pill(card.Find("CloseButton"), "닫기", UiIcon.Close, UiTone.Neutral, 2f, 18);
         }
@@ -311,13 +311,6 @@ namespace A305.EditorTools.Dialogue
             helpLayout.padding = new RectOffset(0, 0, 0, 0);
             helpLayout.spacing = 16;
             HelpCard(content.Find("WordsCard"), "단어", 150);
-            HelpCard(content.Find("HintCard"), "문장", 240);
-            Transform hint = content.Find("HintCard/UseHintButton");
-            Pill(hint, "넣기", UiIcon.Example, UiTone.Primary, 1.7f, 22);
-            var hintSize = BuilderTools.GetOrAddComponent<LayoutElement>(hint.gameObject);
-            hintSize.minHeight = hintSize.preferredHeight = 58;
-            hintSize.minWidth = hintSize.preferredWidth = 120;
-            hintSize.flexibleWidth = 0;
         }
 
         private static void HelpCard(Transform card, string title, float minimumHeight)

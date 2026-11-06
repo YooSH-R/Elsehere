@@ -246,7 +246,7 @@ class SpeechServiceTest {
   @Test
   @DisplayName("음성을 다시 합성하다 워커에 닿지 못하면 오류를 그대로 알린다")
   void regenerateSpeech_workerCallFails_throws() {
-    given(aiGateway.synthesize(any(), eq(npcTurn.getText()), eq("af_heart"), eq(0.85)))
+    given(aiGateway.synthesize(any(), eq(npcTurn.getText()), eq("af_heart"), eq(1.1)))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
     UUID requestId = UUID.randomUUID();
 
@@ -255,9 +255,9 @@ class SpeechServiceTest {
   }
 
   @Test
-  @DisplayName("음성이 없는 NPC 턴은 난이도 배율(초급 0.85)로 다시 합성해 저장하고, 이후 다시 듣기로 받을 수 있다")
+  @DisplayName("음성이 없는 NPC 턴은 1.1배 속도로 다시 합성해 저장하고, 이후 다시 듣기로 받을 수 있다")
   void regenerateSpeech_withoutAudio_synthesizesAndSaves() {
-    given(aiGateway.synthesize(any(), eq(npcTurn.getText()), eq("af_heart"), eq(0.85)))
+    given(aiGateway.synthesize(any(), eq(npcTurn.getText()), eq("af_heart"), eq(1.1)))
         .willReturn(WAV);
     UUID requestId = UUID.randomUUID();
 
@@ -272,7 +272,7 @@ class SpeechServiceTest {
             eq(new WorkerTrace(requestId, userId, conversation.getId())),
             eq(npcTurn.getText()),
             eq("af_heart"),
-            eq(0.85));
+            eq(1.1));
   }
 
   @Test

@@ -268,16 +268,12 @@ LEVEL_RULES = {
     ),
 }
 LEVEL_MAX_TOKENS = {1: 90, 2: 120, 3: 170}  # NPC 대답 출력 상한 (문장 수·길이 규칙에 맞춰)
-LEVEL_SPEED = {1: 0.85, 2: 1.0, 3: 1.06}  # 말 속도 배율: npc.tts_speed에 곱한다 (쉬움은 느리게, 어려움은 조금 빠르게)
+NPC_SPEECH_SPEED = 1.1  # 모든 난이도와 NPC에 같은 말 속도를 적용한다
 LEVEL_LEARNER = {  # 힌트·추천 단어·단어 풀이에서 학습자 수준을 알려 주는 말
     1: "very simple (CEFR A1-A2), short",
     2: "simple and natural (CEFR A2-B1)",
     3: "natural, can use a common idiom (CEFR B1-B2)",
 }
-
-
-def npc_speed(n: Npc, level: int) -> float:
-    return round(n.tts_speed * LEVEL_SPEED[level], 2)
 
 
 def npc_system(n: Npc, memory: str, note: str, level: int = 2, learner: str = "") -> str:

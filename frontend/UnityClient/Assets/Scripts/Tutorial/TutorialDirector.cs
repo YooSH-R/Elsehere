@@ -619,8 +619,6 @@ namespace A305.Tutorial
                     var parts = new List<RectTransform> { dialoguePanel.LinesRect };
                     parts.AddRange(dialoguePanel.GuidedLineParts);
                     return parts;
-                case TutorialCoachTarget.SuggestedSentence:
-                    return new[] { dialoguePanel.SuggestedSentenceRect };
                 case TutorialCoachTarget.SuggestedWords:
                     return new[] { dialoguePanel.SuggestedWordsRect };
                 case TutorialCoachTarget.DialogueEnd:
@@ -661,8 +659,6 @@ namespace A305.Tutorial
                         + "\n\n<b>서로 배려하며 대화해요</b>\n일반 NPC와 자유 대화할 때 무례한 말을 하면 호감도가 내려가고 경고가 쌓여요. 표시된 경고 한도에 도달하면 대화가 끝나요. 지금 Ben과는 정해진 대사로 길 안내를 연습해요.";
                 case TutorialCoachTarget.SuggestedWords:
                     return guide.SuggestedWordsCaption;
-                case TutorialCoachTarget.SuggestedSentence:
-                    return guide.SuggestedSentenceCaption;
                 case TutorialCoachTarget.GuidedLine:
                     string notice = dialogue.IsGuidedLineMissed
                         ? guide.GuidedLineMissCaption

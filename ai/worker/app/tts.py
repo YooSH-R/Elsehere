@@ -22,6 +22,7 @@ import httpx
 
 from .pronunciation import to_phonemes
 from .speech_alignment import align_timing
+from .speech_emotion import join_emotions
 from .speech_text import for_speech
 from .speech_timing import attach_timing, join_timing, phoneme_sequence, read_timing
 
@@ -55,7 +56,7 @@ def join_wavs(wavs: list[bytes]) -> tuple[bytes, float]:
         out.setframerate(params.framerate)
         out.writeframes(b"".join(frames))
     n = sum(len(f) for f in frames) // (params.sampwidth * params.nchannels)
-    return join_timing(buf.getvalue(), wavs), n / params.framerate
+    return join_emotions(join_timing(buf.getvalue(), wavs), wavs), n / params.framerate
 
 
 def silent_wav(seconds: float, sr: int = 24000) -> bytes:

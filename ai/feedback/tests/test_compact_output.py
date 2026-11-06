@@ -179,3 +179,25 @@ def test_evaluation_diagnostic_checks_compact_evidence_after_restoration():
     response = generate_feedback(payload, FixtureClient(body), ai_allowed=True)
 
     assert validation_diagnostic(payload, response, json.dumps(body)) == "인용이 final_text에 없다"
+
+
+def test_compact_fields_without_version_are_not_silently_repaired():
+    payload, body = sample("free_grammar")
+    body = compact(body)
+    del body["format_version"]
+    response = generate_feedback(payload, FixtureClient(body), ai_allowed=True)
+    assert response["problem"]["code"] == "INVALID_MODEL_OUTPUT"
+
+
+def test_maximum_length_turn_id_is_preserved_in_generated_ids_and_references():
+    payload, body = sample("free_grammar")
+    body = compact(body)
+    turn_id = "u" * 128
+    payload = json.loads(json.dumps(payload).replace('"t02"', json.dumps(turn_id)))
+    body = json.loads(json.dumps(body).replace('"t02"', json.dumps(turn_id)))
+    response = generate_feedback(payload, FixtureClient(body), ai_allowed=True)
+
+    assert response["status"] == "completed"
+    review = response["result"]["turn_reviews"][0]
+    assert review["review_id"] == review["suggestions"][0]["suggestion_id"] == turn_id
+    assert response["result"]["summary_suggestion_id"] == turn_id

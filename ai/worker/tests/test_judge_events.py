@@ -11,7 +11,7 @@ from test_npc_reply_profile import profile_of
 from app import npc_relationship as rel
 from conftest import ok
 
-LINE_EVENTS = ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "APOLOGY", "COMPLIMENT", "TASK_DONE", "LEAVE"]
+LINE_EVENTS = ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "APOLOGY", "COMPLIMENT", "HELP", "TASK_DONE", "LEAVE"]
 ORDER = {"intents": ["order_items"], "items": [{"name": "latte", "iced": False, "qty": 1}], "choice": "none"}
 RULES = rel.load_world_rules()
 EVENTS = RULES["conversationEvents"]

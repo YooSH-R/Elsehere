@@ -174,10 +174,10 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `intent.slots` | 요청 `state.slots`에 있는 칸만. 상품은 `catalog` 안의 이름만, `iced`는 `iced_ok`에 있을 때만 |
 | `intent.error` | 의도 판정 실패 시 메시지, 이때 `id`는 `unclear`. **상태·금액을 바꾸지 말고 다시 물을 것** |
 | `translation` | 한글이 섞였을 때만 `{"english", "error"}`. 화면에 보여 줄지는 `/v1/guard` 결과로 Spring이 정함(0.1절 번역 카드) |
-| `events` | 이 줄에서 학습자가 한 대화 사건. `GREETING`·`SMALL_TALK`·`PERSONAL_QUESTION`·`APOLOGY`·`COMPLIMENT`·`TASK_DONE`·`LEAVE` 중 0개 이상. 의도 판정과 같은 호출에서 고름. 의도 판정이 실패하면 `[]`, `dropped`면 `null`. **이 줄에 저장해 다음 요청의 `history[].events`로 보냄** |
+| `events` | 이 줄에서 학습자가 한 대화 사건. `GREETING`·`SMALL_TALK`·`PERSONAL_QUESTION`·`APOLOGY`·`COMPLIMENT`·`HELP`·`TASK_DONE`·`LEAVE` 중 0개 이상. 의도 판정과 같은 호출에서 고름. 의도 판정이 실패하면 `[]`, `dropped`면 `null`. **이 줄에 저장해 다음 요청의 `history[].events`로 보냄** |
 | `affinity_delta` | 이 줄의 사건으로 바로 올릴 호감(정수, 0 이상). 의도 판정이 실패하면 `0`, `dropped`면 `null`. 아래 설명 |
 
-사건 정의는 이정훈 님 사건 테스트셋 가이드 v1.0을 따릅니다. "thanks" 같은 의례적 감사는 칭찬이 아니고, "sorry?" 같은 되묻기와 영어 실력에 대한 사과는 사과가 아닙니다. 사적인 질문은 잡담과 겹쳐 세지 않고, `TASK_DONE`은 "That's all"처럼 말로 용건을 끝낼 때만입니다(실제 미션 완료는 Spring 결과가 기준). 무례는 `/v1/guard`만 판정합니다. Spring은 `LEAVE`·`TASK_DONE`과 미션 목표 완료로 NPC가 마무리 대사를 하고 대화를 끝낼 턴을 정하고, 그 턴의 `instruction` 끝에 마무리 문장을 붙입니다([MVP API 명세](mvp-api.md) CONV-03 "마무리").
+사건 정의는 [사건 테스트셋 가이드 v1.2](../../ai/tools/event_eval/README.md)를 따릅니다. `HELP`는 학습자가 NPC에게 구체적인 도움을 제안·수락하거나 필요한 정보를 제공한 경우로 기본 호감 +6입니다. 도움 요청, 일반 주문·결제, 거절, 가정, 대가 요구는 제외하며 같은 대화에서 한 번만 보상합니다. 실제 행동 수행·미션 완료를 확정하지 않습니다. "thanks" 같은 의례적 감사는 칭찬이 아니고, "sorry?" 같은 되묻기와 영어 실력에 대한 사과는 사과가 아닙니다. 사적인 질문은 잡담과 겹쳐 세지 않고, `TASK_DONE`은 "That's all"처럼 말로 용건을 끝낼 때만입니다(실제 미션 완료는 Spring 결과가 기준). 무례는 `/v1/guard`만 판정합니다. Spring은 `LEAVE`·`TASK_DONE`과 미션 목표 완료로 NPC가 마무리 대사를 하고 대화를 끝낼 턴을 정하고, 그 턴의 `instruction` 끝에 마무리 문장을 붙입니다([MVP API 명세](mvp-api.md) CONV-03 "마무리").
 
 **`affinity_delta` — 사건으로 오르는 호감**
 

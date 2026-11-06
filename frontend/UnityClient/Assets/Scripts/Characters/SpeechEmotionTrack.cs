@@ -55,7 +55,12 @@ namespace A305.Characters
             }
         }
 
-        public FaceEmotionSample Sample(float seconds, EmotionExpressionProfile profile)
+        public FaceEmotionSample Sample(
+            float seconds,
+            EmotionExpressionProfile profile,
+            FaceEmotionSample initial = default,
+            bool holdLast = false
+        )
         {
             if (!float.IsFinite(seconds))
                 throw new ArgumentOutOfRangeException(nameof(seconds));
@@ -77,14 +82,18 @@ namespace A305.Characters
                     var from =
                         i > 0 && Mathf.Abs(cues[i - 1].end - cue.start) < .0001f
                             ? profile.Sample(cues[i - 1].emotion, cues[i - 1].intensity)
-                            : default;
+                        : i == 0 && cue.start == 0 ? initial
+                        : default;
                     return FaceEmotionSample.Lerp(
                         from,
                         target,
                         Mathf.SmoothStep(0, 1, (seconds - cue.start) / transition)
                     );
                 }
-                bool hasGap = i + 1 == cues.Length || cues[i + 1].start > cue.end;
+                bool hasGap =
+                    i + 1 == cues.Length
+                        ? !holdLast || cue.end < duration
+                        : cues[i + 1].start > cue.end;
                 if (hasGap && seconds > cue.end - transition)
                     return FaceEmotionSample.Lerp(
                         target,

@@ -23,6 +23,7 @@ import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.service.MissionDialogueService;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -56,6 +57,9 @@ public class TurnService {
   static final String RUDE_LEAVE =
       "They keep insulting you. Firmly tell them you won't talk with them anymore and they need"
           + " to leave now. Then stop. 1-2 short sentences.";
+  static final String TIME_LIMIT_WRAP_UP =
+      "The conversation time is up. Complete the current business in this reply, do not ask a"
+          + " new question, and say goodbye naturally.";
 
   // 워커에 닿지 못해 판정하지 못한 경우. 워커가 돌려주는 이유 코드(timeout 등)와 구분한다.
   static final String GUARD_WORKER_UNAVAILABLE = "worker_unavailable";
@@ -84,8 +88,23 @@ public class TurnService {
   private final DialogueRequestLocks requestLocks;
 
   public TurnResponse send(Long userId, Long conversationId, TurnRequest request) {
-    return requestLocks.execute(
-        userId, request.requestId(), () -> sendOnce(userId, conversationId, request, null));
+    return send(userId, conversationId, request, null);
+  }
+
+  private void releaseFinalTurnClaim(Long userId, Long conversationId, java.util.UUID requestId) {
+    try {
+      transactionTemplate.executeWithoutResult(
+          status ->
+              conversationLookup
+                  .ownedConversationForUpdate(userId, conversationId)
+                  .releaseFinalTurn(requestId));
+    } catch (RuntimeException releaseFailure) {
+      log.warn(
+          "time_limit_final_turn_release_failed conversation_id={} request_id={}",
+          conversationId,
+          requestId,
+          releaseFailure);
+    }
   }
 
   /**
@@ -94,8 +113,13 @@ public class TurnService {
    */
   public TurnResponse send(
       Long userId, Long conversationId, TurnRequest request, TurnEvents events) {
-    return requestLocks.execute(
-        userId, request.requestId(), () -> sendOnce(userId, conversationId, request, events));
+    try {
+      return requestLocks.execute(
+          userId, request.requestId(), () -> sendOnce(userId, conversationId, request, events));
+    } catch (RuntimeException exception) {
+      releaseFinalTurnClaim(userId, conversationId, request.requestId());
+      throw exception;
+    }
   }
 
   // events가 null이면 대답을 끝까지 모아 한 번에 응답한다.
@@ -108,8 +132,13 @@ public class TurnService {
       return replayed.get();
     }
 
-    TurnContext context =
-        transactionTemplate.execute(status -> turnContext(userId, conversationId));
+    TurnContextSelection selection =
+        transactionTemplate.execute(
+            status -> turnContext(userId, conversationId, request.requestId()));
+    if (selection.rejected()) {
+      throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
+    }
+    TurnContext context = selection.context();
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, conversationId);
     Optional<MissionDialogueService.Context> mission =
         missionDialogueService.context(userId, context.npc().summary().npcCode());
@@ -140,6 +169,10 @@ public class TurnService {
     if (wrapUp) {
       instruction = WrapUp.instruction(instruction);
     }
+    if (selection.finalTurn()) {
+      instruction =
+          instruction.isBlank() ? TIME_LIMIT_WRAP_UP : instruction + " " + TIME_LIMIT_WRAP_UP;
+    }
 
     NpcReply reply = reply(trace, context, judge.text(), instruction, events);
     String npcAudioKey = npcAudioReceiver.save(trace, reply.audioFullId());
@@ -151,7 +184,8 @@ public class TurnService {
           if (savedMeanwhile.isPresent()) {
             return savedMeanwhile.get();
           }
-          Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
+          Conversation conversation =
+              conversationLookup.ownedConversationForUpdate(userId, conversationId);
           // AI를 기다리는 사이 대화가 끝났을 수 있다.
           if (!conversation.isActive()) {
             throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
@@ -192,6 +226,16 @@ public class TurnService {
           if (wrapUp) {
             // 용건이 끝났거나 학습자가 작별해 NPC가 마무리 대사로 대화를 끝냈다.
             conversation.endByNpc(clock.instant());
+            log.info(
+                "conversation_ended conversation_id={} status={} end_reason={}",
+                conversationId,
+                conversation.getStatus(),
+                conversation.getEndReason());
+          }
+          if (conversation.isActive()
+              && (selection.finalTurn() || conversation.reachedHardTimeLimit(clock.instant()))) {
+            // 마지막 발화 또는 마감 전에 시작해 늦게 끝난 답변까지 저장하고 시간 제한으로 끝낸다.
+            conversation.endByTimeLimit(clock.instant());
             log.info(
                 "conversation_ended conversation_id={} status={} end_reason={}",
                 conversationId,
@@ -299,18 +343,32 @@ public class TurnService {
             });
   }
 
-  private TurnContext turnContext(Long userId, Long conversationId) {
-    Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
+  private TurnContextSelection turnContext(
+      Long userId, Long conversationId, java.util.UUID requestId) {
+    Conversation conversation =
+        conversationLookup.ownedConversationForUpdate(userId, conversationId);
     if (!conversation.isActive()) {
       throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
     }
-    return new TurnContext(
-        dialogueContexts.npcOf(conversation),
-        dialogueContexts.learner(userId),
-        dialogueContexts.history(conversationId),
-        conversation.getLevelApplied(),
-        memoryService.memoryFor(userId, conversation.getNpcId()),
-        conversation.getRudeCount());
+    Instant now = clock.instant();
+    if (conversation.reachedHardTimeLimit(now)) {
+      conversation.endByTimeLimit(now);
+      return new TurnContextSelection(null, true, false);
+    }
+    boolean finalTurn = conversation.reachedTimeLimit(now);
+    if (finalTurn && !conversation.claimFinalTurn(requestId)) {
+      return new TurnContextSelection(null, true, false);
+    }
+    return new TurnContextSelection(
+        new TurnContext(
+            dialogueContexts.npcOf(conversation),
+            dialogueContexts.learner(userId),
+            dialogueContexts.history(conversationId),
+            conversation.getLevelApplied(),
+            memoryService.memoryFor(userId, conversation.getNpcId()),
+            conversation.getRudeCount()),
+        false,
+        finalTurn);
   }
 
   private TurnResponse response(Conversation conversation, Turn userTurn, Turn npcTurn) {
@@ -333,4 +391,6 @@ public class TurnService {
       int level,
       WorkerMemory memory,
       int rudeCount) {}
+
+  private record TurnContextSelection(TurnContext context, boolean rejected, boolean finalTurn) {}
 }

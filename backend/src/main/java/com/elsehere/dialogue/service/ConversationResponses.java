@@ -13,6 +13,7 @@ import com.elsehere.dialogue.dto.TranslationResponse;
 import com.elsehere.dialogue.dto.TurnDetailResponse;
 import com.elsehere.dialogue.dto.UserTurnResponse;
 import com.elsehere.memory.service.NpcAffinityService;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -34,6 +35,7 @@ class ConversationResponses {
   private final DialogueContexts dialogueContexts;
   private final NpcAffinityService npcAffinityService;
   private final JsonMapper jsonMapper;
+  private final Clock clock;
 
   NpcTurnResponse npcTurn(Turn turn) {
     return new NpcTurnResponse(
@@ -56,12 +58,25 @@ class ConversationResponses {
   }
 
   ConversationStateResponse state(Conversation conversation) {
+    Instant now = clock.instant();
+    boolean closing =
+        conversation.isActive()
+            && conversation.reachedTimeLimit(now)
+            && !conversation.reachedHardTimeLimit(now);
     return new ConversationStateResponse(
         conversation.getStatus(),
         conversation.getEndReason(),
         conversation.getRudeCount(),
         Conversation.RUDE_LIMIT,
-        npcAffinityService.affinity(conversation.getUserId(), conversation.getNpcId()));
+        npcAffinityService.affinity(conversation.getUserId(), conversation.getNpcId()),
+        toOffset(conversation.getStartedAt().plus(Conversation.TIME_LIMIT)),
+        toOffset(
+            conversation
+                .getStartedAt()
+                .plus(Conversation.TIME_LIMIT)
+                .plus(Conversation.TIME_LIMIT_GRACE)),
+        closing,
+        closing && conversation.getTimeLimitFinalRequestId() == null ? 1 : 0);
   }
 
   ConversationDetailResponse detail(Conversation conversation) {

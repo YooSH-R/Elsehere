@@ -76,6 +76,7 @@ class FirstDayTurnTest {
     ConversationLookup lookup = mock(ConversationLookup.class);
     DialogueContexts contexts = mock(DialogueContexts.class);
     when(lookup.ownedConversation(8L, 10L)).thenReturn(conversation);
+    when(lookup.ownedConversationForUpdate(8L, 10L)).thenReturn(conversation);
     WorkerNpc npc = new WorkerNpc("HOTEL_STAFF", "Emma", "clerk", "", "hotel", "alloy", 1);
     when(contexts.npcOf(conversation))
         .thenReturn(

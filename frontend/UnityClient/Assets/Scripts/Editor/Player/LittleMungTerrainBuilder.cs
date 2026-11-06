@@ -136,11 +136,6 @@ namespace A305.EditorTools.Player
             var mesh = Object.Instantiate(skin.sharedMesh);
             mesh.name = "LittleMungTerrainSole" + skinIndex;
             StabilizeSoles(mesh, skin);
-            ShirtSkinWeightCorrection.Apply(
-                mesh,
-                skin.bones,
-                ShirtSkinWeightCorrection.FemaleTexturePath
-            );
             var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
             if (existing == null)
             {

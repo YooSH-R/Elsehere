@@ -119,8 +119,7 @@ namespace A305.Dialogue
         /// <summary>NPC가 대화를 끝냈는지(무례 누적, 사용량 소진 등).</summary>
         public bool IsEnded { get; private set; }
 
-        public bool CanSend =>
-            ConversationId != null && !IsBusy && !IsEnded && !deadlineExpired;
+        public bool CanSend => ConversationId != null && !IsBusy && !IsEnded && !deadlineExpired;
 
         public bool IsClosing { get; private set; }
         public string CountdownMessage { get; private set; }
@@ -520,10 +519,7 @@ namespace A305.Dialogue
                         : $"남은 시간 {FormatTime(remainingSeconds)}";
             }
 
-            if (
-                remainingSeconds != displayedRemainingSeconds
-                || CountdownMessage != nextMessage
-            )
+            if (remainingSeconds != displayedRemainingSeconds || CountdownMessage != nextMessage)
             {
                 displayedRemainingSeconds = remainingSeconds;
                 CountdownMessage = nextMessage;

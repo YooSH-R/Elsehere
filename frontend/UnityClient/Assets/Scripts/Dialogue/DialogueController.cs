@@ -271,10 +271,7 @@ namespace A305.Dialogue
         private void Update()
         {
             ShowVoiceInput();
-            if (
-                serverConversation != null
-                && serverConversation.Tick(DateTimeOffset.UtcNow)
-            )
+            if (serverConversation != null && serverConversation.Tick(DateTimeOffset.UtcNow))
             {
                 End();
                 return;

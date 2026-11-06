@@ -501,15 +501,17 @@ namespace A305.Dialogue
 
         private string FormatStatus()
         {
-            string countdown =
-                content is ServerConversation server ? server.CountdownMessage : null;
+            string countdown = content is ServerConversation server
+                ? server.CountdownMessage
+                : null;
             string message;
             if (string.IsNullOrEmpty(content.RecoveryGuide))
             {
                 // 녹음·오류 같은 지금 상황 안내가 먼저이고, 없을 때만 음성 동의 안내를 보인다.
-                message = string.IsNullOrEmpty(content.StatusMessage) && NeedsVoiceConsent
-                    ? VoiceInputNotice.ConsentRequired
-                    : content.StatusMessage ?? "";
+                message =
+                    string.IsNullOrEmpty(content.StatusMessage) && NeedsVoiceConsent
+                        ? VoiceInputNotice.ConsentRequired
+                        : content.StatusMessage ?? "";
             }
             else
             {
@@ -518,11 +520,9 @@ namespace A305.Dialogue
                     : $"{content.StatusMessage}\n{content.RecoveryGuide}";
             }
 
-            return string.IsNullOrEmpty(countdown)
-                ? message
-                : string.IsNullOrEmpty(message)
-                    ? countdown
-                    : $"{countdown}\n{message}";
+            return string.IsNullOrEmpty(countdown) ? message
+                : string.IsNullOrEmpty(message) ? countdown
+                : $"{countdown}\n{message}";
         }
 
         private void RequestSend()

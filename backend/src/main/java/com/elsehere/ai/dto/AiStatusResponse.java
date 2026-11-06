@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  *
  * <p>한도 정책(API 명세 1.4)이 정해지기 전이라 {@code quota}와 {@code resumeAt}은 담지 않는다.
  *
- * @param remainingConversations 게스트가 더 시작할 수 있는 NPC 대화 수. 가입 사용자는 횟수 제한이 없어 담지 않는다.
+ * @param remainingConversations 오늘 더 시작할 수 있는 NPC 대화 수.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record AiStatusResponse(

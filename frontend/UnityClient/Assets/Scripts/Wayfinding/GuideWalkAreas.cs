@@ -4,7 +4,7 @@ namespace A305.Wayfinding
 {
     /// <summary>
     /// 마을 바닥(NavMesh)을 구울 때 차도는 Road, 횡단보도는 Crosswalk 구역으로 나눈다. 두 구역의 기본 비용은 보통 바닥과 같아
-    /// NPC는 그대로 걷고, 길 안내만 <see cref="Filter"/>로 차도에 큰 비용을 매겨 차도를 건너야 할 때 횡단보도로 돌아가게 한다.
+    /// NPC는 차도 구역을 제외하고, 길 안내는 <see cref="Filter"/>로 차도에 큰 비용을 매겨 횡단보도로 돌아가게 한다.
     /// </summary>
     public static class GuideWalkAreas
     {

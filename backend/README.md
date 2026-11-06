@@ -142,13 +142,13 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 
 ### 게스트로 시작하기
 
-[MVP API 명세](../docs/api/mvp-api.md)의 AUTH-07입니다. `POST /api/v1/auth/guest`에 고른 캐릭터(`avatarType`)를 보내면 Google 로그인과 가입 화면 없이 새 사용자(`provider=GUEST`)를 만들고 그 사용자로 로그인합니다. 닉네임은 `guest-` 뒤에 여섯 자리 숫자를 붙이고 약관 동의 기록은 남기지 않습니다. 학습 언어·대화 난이도는 영어·초급으로 정해 튜토리얼부터 시작합니다. 모든 환경에서 열려 있습니다. 시작하기 전 캐릭터 선택 화면은 AUTH-08 `GET /api/v1/auth/guest`로 게스트가 대화할 수 있는 횟수(`conversationLimit`, 아래 `GUEST_CONVERSATION_LIMIT`)를 로그인 없이 읽습니다.
+[MVP API 명세](../docs/api/mvp-api.md)의 AUTH-07입니다. `POST /api/v1/auth/guest`에 고른 캐릭터(`avatarType`)를 보내면 Google 로그인과 가입 화면 없이 새 사용자(`provider=GUEST`)를 만들고 그 사용자로 로그인합니다. 닉네임은 `guest-` 뒤에 여섯 자리 숫자를 붙이고 약관 동의 기록은 남기지 않습니다. 학습 언어·대화 난이도는 영어·초급으로 정해 튜토리얼부터 시작합니다. 모든 환경에서 열려 있습니다. 시작 전 캐릭터 선택 화면은 AUTH-08 `GET /api/v1/auth/guest`로 일일 대화 한도(`conversationLimit`)를 읽습니다.
 
 | 환경변수 | 기본값 | 설명 |
 | --- | --- | --- |
-| `GUEST_CONVERSATION_LIMIT` | `3` | 게스트 계정 하나가 시작할 수 있는 NPC 대화 수(CONV-01). 다 쓰면 `AI_QUOTA_EXHAUSTED`이며 다시 채워지지 않습니다. |
+| `DAILY_CONVERSATION_LIMIT` | `30` | 계정별 하루 NPC 대화 시작 횟수(CONV-01). 한국 시간 자정에 초기화됩니다. |
 
-- 게스트 세션에서 Google로 가입하면 새 사용자를 만들지 않고 그 게스트 행을 회원으로 바꿉니다(`SignupService`, AUTH-02·04). 같은 `user_id`라 게스트 때 기록이 모두 이어지고, `provider`가 `GOOGLE`이 되므로 대화 횟수 제한과 아래 정리에서 빠집니다. Google 로그인 성공 처리 전에 Spring Security가 세션의 로그인 정보를 바꾸므로, 게스트였다는 사실은 `LoginSessionService.loginGuest`가 세션에 따로 남긴 값으로 읽습니다. 이미 가입한 Google 계정이면 그 계정으로 로그인하고 합치지 않습니다(`?existingAccount=true`).
+- 게스트 세션에서 Google로 가입하면 새 사용자를 만들지 않고 그 게스트 행을 회원으로 바꿉니다(`SignupService`, AUTH-02·04). 같은 `user_id`라 게스트 때 기록과 일일 대화 횟수가 이어지며 게스트 정리에서는 빠집니다. Google 로그인 성공 처리 전에 Spring Security가 세션의 로그인 정보를 바꾸므로, 게스트였다는 사실은 `LoginSessionService.loginGuest`가 세션에 따로 남긴 값으로 읽습니다. 이미 가입한 Google 계정이면 그 계정으로 로그인하고 합치지 않습니다(`?existingAccount=true`).
 - 게스트는 세션이 끝나면 다시 들어올 수 없는 일회용 계정입니다. `GuestContentCleanup`이 매시 30분에 마지막 활동 뒤 24시간(`elsehere.guest.content-retention`)이 지난 게스트의 **내용만** 지웁니다. 지우는 것은 발화 원문(`turns`)과 그 NPC 음성 파일(NPC 공용 말걸기 음성 제외), 대화 피드백, 문장 피드백(`turn_feedback`)과 그 모범 음성 파일, 기억 카드·관계, 저장 단어·숨김, 레벨 테스트, 학습용 녹음입니다. 사용자·대화·AI 호출 기록·미션 진행·언어 프로필·게임 시계 행은 남겨, 남은 행이 가리키는 곳이 사라지지 않고 게스트 수·대화 수·사용량을 집계할 수 있게 합니다. 집계는 [어드민 이용 현황](../docs/admin.md#이용-현황)에서 봅니다.
 - 회원 탈퇴(USER-05, `WithdrawalService`)도 같은 범위의 내용을 바로 지우고, 이메일을 비우며 소셜 계정 ID·닉네임을 `withdrawn-` 값으로 바꿔 사용자 행은 익명으로 남깁니다.
 - 지우는 범위는 `UserContentEraser`가 게스트 정리와 탈퇴에 함께 씁니다. 사용자·대화·턴을 가리키는 칸(`user_id`, `…conversation_id`, `…turn_id`)이 있는 테이블을 새로 만들면 `UserContentEraser`의 지움(`CLEARED_TABLES`)·남김(`RETAINED_TABLES`) 중 한쪽에 넣습니다. 빠뜨리면 `GuestContentCleanupTest`가 실패합니다.

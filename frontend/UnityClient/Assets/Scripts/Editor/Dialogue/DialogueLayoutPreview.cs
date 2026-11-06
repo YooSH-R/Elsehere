@@ -284,12 +284,21 @@ namespace A305.EditorTools.Dialogue
             var pixels = new Texture2D(width, height, TextureFormat.RGB24, false);
             camera.targetTexture = target;
             camera.aspect = (float)width / height;
+            var settings = AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>(
+                "Assets/Data/Cafe/CafeCameraSettings.asset"
+            );
+            eye = DialogueFraming.CameraPosition(
+                face,
+                eye,
+                settings.DialogueDistanceMeters,
+                settings.DialogueHeightOffsetMeters
+            );
             Pose pose = DialogueFraming.Pose(
                 eye,
                 face,
                 camera.fieldOfView,
                 camera.aspect,
-                new Vector2(.64f, .66f)
+                settings.DialogueFacePosition
             );
             camera.transform.SetPositionAndRotation(pose.position, pose.rotation);
             camera.Render();

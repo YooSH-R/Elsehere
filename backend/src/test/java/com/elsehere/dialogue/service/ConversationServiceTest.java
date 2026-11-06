@@ -607,9 +607,7 @@ class ConversationServiceTest {
               // AI 사용량이 아니라 게스트 대화 횟수 때문에 막혔다고 알린다.
               assertThat(exception.getMessage())
                   .isEqualTo(
-                      "게스트는 NPC와 "
-                          + GUEST_CONVERSATION_LIMIT
-                          + "번까지 대화할 수 있어요. 마을 탐험, 사물 카드, 단어장은 계속할 수 있어요.");
+                      "오늘의 NPC 대화 " + GUEST_CONVERSATION_LIMIT + "회를 모두 사용했어요. 내일 다시 대화할 수 있어요.");
               assertThat(exception.getDetails())
                   .containsEntry("aiStatus", "AI_EXHAUSTED")
                   .containsEntry(
@@ -620,13 +618,13 @@ class ConversationServiceTest {
   }
 
   @Test
-  @DisplayName("가입 사용자는 게스트 한도보다 많이 대화를 시작할 수 있다")
+  @DisplayName("가입 사용자도 일일 한도를 넘겨 대화를 시작할 수 없다")
   void start_memberBeyondGuestLimit_starts() {
-    for (int i = 0; i <= GUEST_CONVERSATION_LIMIT; i++) {
+    for (int i = 0; i < GUEST_CONVERSATION_LIMIT; i++) {
       startAndEndPasserby(userId);
     }
-
-    assertThat(conversationRepository.count()).isEqualTo(GUEST_CONVERSATION_LIMIT + 1);
+    assertThatThrownBy(() -> startAndEndPasserby(userId)).isInstanceOf(BusinessException.class);
+    assertThat(conversationRepository.count()).isEqualTo(GUEST_CONVERSATION_LIMIT);
   }
 
   @Test
@@ -643,7 +641,7 @@ class ConversationServiceTest {
 
       assertThat(logs.messages(Level.INFO))
           .containsExactly(
-              "guest_conversation_limit_reached user_id="
+              "daily_conversation_limit_reached user_id="
                   + guestId
                   + " limit="
                   + GUEST_CONVERSATION_LIMIT);
@@ -714,7 +712,7 @@ class ConversationServiceTest {
   }
 
   @Test
-  @DisplayName("5분 뒤 종료 요청은 TIME_LIMIT으로 끝내고 피드백과 기억을 중복 생성하지 않는다")
+  @DisplayName("5분 뒤 종료 요청은 사용자 종료로 처리하고 피드백과 기억을 중복 생성하지 않는다")
   void end_afterTimeLimit_generatesFeedbackAndMemoryOnce() {
     ConversationStartResponse started = startPasserby();
     sendText(started.conversationId(), "Yes, it's sunny!");
@@ -731,9 +729,9 @@ class ConversationServiceTest {
         conversationService.end(
             userId, started.conversationId(), new EndConversationRequest(UUID.randomUUID(), false));
 
-    assertThat(first.status()).isEqualTo(ConversationStatus.ENDED_BY_NPC);
-    assertThat(first.endReason()).isEqualTo(ConversationEndReason.TIME_LIMIT);
-    assertThat(retried.endReason()).isEqualTo(ConversationEndReason.TIME_LIMIT);
+    assertThat(first.status()).isEqualTo(ConversationStatus.ENDED_BY_USER);
+    assertThat(first.endReason()).isEqualTo(ConversationEndReason.USER_ENDED);
+    assertThat(retried.endReason()).isEqualTo(ConversationEndReason.USER_ENDED);
     WorkerMemory memory = memoryService.memoryFor(userId, npcId(entityManager, "TOWN_PASSERBY"));
     assertThat(memory.visits()).isEqualTo(1);
     then(aiGateway).should().feedback(any(), any());

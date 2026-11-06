@@ -8,7 +8,7 @@
 
 일반 Linux 검사는 EC2와 노트북이 나눠 받지만 `dev:plan`·`dev:deliver`는 `a305-ec2` 태그를 추가로 요구해 EC2에서만 실행합니다. Runner 태그와 노트북 제한은 [검사 파이프라인](ci-runner.md#노트북-linux-runner)을 따릅니다.
 
-1. 보호된 `dev`의 각 병합 커밋 또는 `dev`의 수동 재실행에서 `dev:plan`이 서버의 마지막 성공 기록을 읽습니다. 새 `dev` 커밋이 생기면 이전 후보의 대기·실행 중 검사는 자동 취소하고 최신 후보에서 누적 변경을 다시 검사합니다. 이미 시작한 배포는 계속 실행합니다.
+1. 보호된 `dev`의 각 병합 커밋 또는 `dev`의 수동 재실행에서 `dev:plan`이 서버의 마지막 성공 기록을 읽습니다. 새 `dev` 커밋이 생기면 Unity Editor 검사가 시작되지 않은 이전 후보를 자동 취소하고 최신 후보에서 누적 변경을 다시 검사합니다. Unity Editor 검사가 이미 시작된 후보는 남은 검사·빌드와 배포까지 계속 진행합니다. 이미 시작한 배포도 계속 실행합니다.
 2. `deployment_plan.py`가 마지막 성공 커밋부터 후보까지 누적 변경을 비교합니다. 첫 자동 배포는 전체 검사·빌드를 수행합니다. 이전 수동 배포의 혼합 이미지 상태를 하나의 검증 커밋으로 간주하지 않습니다.
 3. 생성한 자식 파이프라인이 필요한 백엔드·AI·Unity·인프라 검사만 실행합니다. 백엔드 또는 인프라 검사가 필요한 배포는 모니터링 구성·알림 검사도 통과해야 이미지 전달로 진행합니다. 일반 MR은 기존 변경 영역 검사를 유지하며 서버 배포 수신기를 호출하지 않습니다.
 4. Unity 검사가 필요하면 노트북 Runner에서 병합된 커밋의 EditMode·PlayMode 전체를 실행합니다. MR에 기록한 로컬 검사와 별개로 통합 결과를 확인합니다. `web` 이미지 빌드가 필요한 경우에만 WebGL도 빌드합니다. API 명세 변경처럼 검사만 필요한 경우에는 WebGL 빌드를 생략합니다.
@@ -29,7 +29,9 @@ WebGL 정적 파일은 같은 프로젝트의 Generic Package Registry를 통해
 
 개발 후보는 보호된 `dev` 이력에 포함되고 현재 배포 커밋보다 뒤에 있어야 합니다. 아직 검증되지 않은 새 merge가 생겼다는 이유로 검증된 후보를 제외하지 않습니다. 이미 같은 후보나 더 새 커밋이 배포됐다면 서버에 전달하지 않고 `result.json`에 `superseded`를 기록하며 종료 코드 `78`로 끝냅니다. `dev:deliver`만 이 코드를 허용하므로 완료된 검사 결과는 유지되고 파이프라인에는 배포 제외 경고가 표시됩니다. Git 조회 실패·분기된 이력·미검증 검사나 빌드가 필요한 기준 변경·서버 오류는 계속 실패합니다. 운영 후보는 기존의 최신 `main` 일치 확인을 유지합니다.
 
-개발 `resource_group: a305-dev-release`는 `dev:deliver`에만 적용합니다. `dev:child`는 잠금을 잡지 않습니다. 새 커밋이 Push되면 이전 dev 부모의 연결 작업과 dev 자식의 취소 가능한 검사를 각각 자동 취소합니다. 자식 파이프라인은 부모 연결 작업의 취소 설정을 상속하지 않으므로 두 곳 모두 취소 규칙이 필요합니다. 이미 시작한 `dev:deliver`는 `interruptible: false`로 보호합니다. Unity Editor 검사는 별도 작업 폴더에서 최대 두 개를 실행하며, 제한과 기존 대기 작업의 전환 조건은 [Windows Unity Runner](unity/windows-runner.md)를 따릅니다. 서버에서도 파일 잠금과 상태 토큰으로 동시 교체를 막습니다.
+개발 `resource_group: a305-dev-release`는 `dev:deliver`에만 적용합니다. `dev:child`는 잠금을 잡지 않습니다. dev 자식 파이프라인은 `on_new_commit: conservative`, `unity:editor-and-webgl`은 `interruptible: false`를 사용합니다. Unity 작업이 대기 중인 후보는 새 커밋이 생기면 취소되지만, Unity 작업이 시작되면 해당 후보의 나머지 검사와 배포도 함께 보존됩니다. dev 부모는 `on_new_commit: none`으로 자식과의 연결을 유지해 자식의 최종 결과를 보고합니다. Unity 검사가 필요 없는 후보는 `dev:deliver`가 시작될 때부터 보호됩니다.
+
+이미 시작한 `dev:deliver`도 `interruptible: false`로 보호합니다. Unity Editor 검사는 별도 작업 폴더에서 최대 두 개를 실행하며, 제한과 기존 대기 작업의 전환 조건은 [Windows Unity Runner](unity/windows-runner.md)를 따릅니다. 서버에서도 파일 잠금과 상태 토큰으로 동시 교체를 막습니다.
 
 ### 검증된 최신 후보 우선 실행
 

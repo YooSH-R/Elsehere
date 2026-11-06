@@ -31,12 +31,12 @@ CASE_SETS = {
     "test": Path(__file__).resolve().parent / "event_eval/cases.json",
     "dev": Path(__file__).resolve().parent / "event_eval/dev_cases.json",
 }
-EVENTS = ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "APOLOGY", "COMPLIMENT", "TASK_DONE", "LEAVE"]
-# 협의서의 지시문 초안 그대로. 의도 지시문 끝에 붙인다
+EVENTS = P.LINE_EVENTS
+# 협의서 초안에 도움 사건을 추가한 비교용 지시문. 현재 서비스 정의는 P.EVENTS_GUIDE를 쓴다.
 EVENTS_PROMPT = """Also list in "events" what the learner does toward the partner in this line, from:
 GREETING (greets politely), SMALL_TALK (chats about something besides the business),
 PERSONAL_QUESTION (asks about the partner's own life), APOLOGY (apologizes),
-COMPLIMENT (compliments or warmly thanks the partner), TASK_DONE (finishes what they came for),
+COMPLIMENT (compliments or warmly thanks the partner), HELP (offers concrete help, accepts a request for help, or gives useful information the partner needs), TASK_DONE (finishes what they came for),
 LEAVE (says goodbye). Usually none: return []. Do not judge rudeness here.
 English mistakes, Korean words and short answers are never a problem."""
 

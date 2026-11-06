@@ -174,10 +174,10 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `intent.slots` | 요청 `state.slots`에 있는 칸만. 상품은 `catalog` 안의 이름만, `iced`는 `iced_ok`에 있을 때만. 선택 칸(`option`)은 `labels` 중 하나, 말하지 않았으면 `"none"`. 경찰서 창구는 이 칸(`place`)으로 신고 장소를 고름(백엔드 `PoliceDesk`, 평가 `ai/tools/police_report_eval.py`) |
 | `intent.error` | 의도 판정 실패 시 메시지, 이때 `id`는 `unclear`. **상태·금액을 바꾸지 말고 다시 물을 것** |
 | `translation` | 한글이 섞였을 때만 `{"english", "error"}`. 화면에 보여 줄지는 `/v1/guard` 결과로 Spring이 정함(0.1절 번역 카드) |
-| `events` | 이 줄에서 학습자가 한 대화 사건. `GREETING`·`SMALL_TALK`·`PERSONAL_QUESTION`·`APOLOGY`·`COMPLIMENT`·`TASK_DONE`·`LEAVE` 중 0개 이상. 의도 판정과 같은 호출에서 고름. 의도 판정이 실패하면 `[]`, `dropped`면 `null`. **이 줄에 저장해 다음 요청의 `history[].events`로 보냄** |
+| `events` | 이 줄에서 학습자가 한 대화 사건. `GREETING`·`SMALL_TALK`·`PERSONAL_QUESTION`·`APOLOGY`·`COMPLIMENT`·`HELP`·`TASK_DONE`·`LEAVE` 중 0개 이상. 의도 판정과 같은 호출에서 고름. 의도 판정이 실패하면 `[]`, `dropped`면 `null`. **이 줄에 저장해 다음 요청의 `history[].events`로 보냄** |
 | `affinity_delta` | 이 줄의 사건으로 바로 올릴 호감(정수, 0 이상). 의도 판정이 실패하면 `0`, `dropped`면 `null`. 아래 설명 |
 
-사건 정의는 이정훈 님 사건 테스트셋 가이드 v1.0을 따릅니다. "thanks" 같은 의례적 감사는 칭찬이 아니고, "sorry?" 같은 되묻기와 영어 실력에 대한 사과는 사과가 아닙니다. 사적인 질문은 잡담과 겹쳐 세지 않고, `TASK_DONE`은 "That's all"처럼 말로 용건을 끝낼 때만입니다(실제 미션 완료는 Spring 결과가 기준). 무례는 `/v1/guard`만 판정합니다. Spring은 `LEAVE`·`TASK_DONE`과 미션 목표 완료로 NPC가 마무리 대사를 하고 대화를 끝낼 턴을 정하고, 그 턴의 `instruction` 끝에 마무리 문장을 붙입니다([MVP API 명세](mvp-api.md) CONV-03 "마무리").
+사건 정의는 [사건 테스트셋 가이드 v1.2](../../ai/tools/event_eval/README.md)를 따릅니다. `HELP`는 학습자가 NPC에게 구체적인 도움을 제안·수락하거나 필요한 정보를 제공한 경우로 기본 호감 +6입니다. 도움 요청, 일반 주문·결제, 거절, 가정, 대가 요구는 제외하며 같은 대화에서 한 번만 보상합니다. 실제 행동 수행·미션 완료를 확정하지 않습니다. "thanks" 같은 의례적 감사는 칭찬이 아니고, "sorry?" 같은 되묻기와 영어 실력에 대한 사과는 사과가 아닙니다. 사적인 질문은 잡담과 겹쳐 세지 않고, `TASK_DONE`은 "That's all"처럼 말로 용건을 끝낼 때만입니다(실제 미션 완료는 Spring 결과가 기준). 무례는 `/v1/guard`만 판정합니다. Spring은 `LEAVE`·`TASK_DONE`과 미션 목표 완료로 NPC가 마무리 대사를 하고 대화를 끝낼 턴을 정하고, 그 턴의 `instruction` 끝에 마무리 문장을 붙입니다([MVP API 명세](mvp-api.md) CONV-03 "마무리").
 
 **`affinity_delta` — 사건으로 오르는 호감**
 
@@ -355,6 +355,8 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 대화가 끝나면 학습 피드백을 만듭니다. **요청·응답 형식은 `ai/feedback` 모듈의 계약(0.3.0)을 그대로 따릅니다.**
 워커는 그 모듈(`generate_feedback`)을 부르고, 모델 호출만 워커 구성의 `feedback` 역할(재시도·대체 모델 포함)로 합니다.
+
+모델 요청은 `compact-v1` 전용 스키마로 원문·도움 사용 표시·로컬 ID의 중복 생성을 줄입니다. 모듈이 서버 입력에서 복원하고 기존 검증을 수행한 후 반환하므로 아래 `0.3.0` 요청·응답과 백엔드·Unity 계약은 동일합니다. 모델 전용 형식과 참조 규칙은 [피드백 모듈](../../ai/feedback/README.md#모델-출력-분량-줄이기)을 따릅니다.
 
 - 요청 본문: 모듈의 입력(`ai/feedback/schemas/feedback.input.schema.json`) — `schema_version: "0.3.0"`, `request_id`, `scope`, `turns[]`, `context` 등. 계약과 다르면 400 `invalid_request`.
 - 응답: `{"feedback": <모듈 출력>, "usage": [...]}`. 모듈 출력 형식은 `ai/feedback/schemas/feedback.output.schema.json`이며 `status`로 나뉩니다.

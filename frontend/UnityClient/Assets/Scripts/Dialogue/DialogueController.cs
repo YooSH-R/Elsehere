@@ -274,6 +274,12 @@ namespace A305.Dialogue
         private void Update()
         {
             ShowVoiceInput();
+            if (serverConversation != null && serverConversation.Tick(DateTimeOffset.UtcNow))
+            {
+                End();
+                return;
+            }
+
             if (
                 session.IsActive
                 && Keyboard.current != null

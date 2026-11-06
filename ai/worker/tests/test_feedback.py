@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 import httpx
+from jsonschema import Draft202012Validator
 
 from conftest import ok
 
@@ -35,6 +36,57 @@ def test_feedback_follows_ai_feedback_contract(client, provider):
     # 모듈이 정한 출력 형식(strict json_schema)과 출력 상한으로 부른다
     assert seen["body"]["response_format"]["type"] == "json_schema" and seen["body"]["response_format"]["json_schema"]["strict"]
     assert seen["body"]["max_tokens"] == 6000
+
+
+def test_compact_provider_response_is_valid_and_restored_before_backend_receives_it(client, provider):
+    payload = sample("inputs/free_grammar.json")
+    raw = sample("fixtures/free_grammar.llm.json")
+    raw["format_version"] = "compact-v1"
+    raw["spoken_usage_selection"] = None
+    result = raw["result"]
+    review = result["turn_reviews"][0]
+    for name in ("review_id", "original_text", "assisted"):
+        del review[name]
+    del review["suggestions"][0]["suggestion_id"]
+    result["summary_suggestion_id"] = review["turn_id"]
+    for tag in result["review_tags"]:
+        del tag["tag_id"], tag["assisted"]
+    for candidate in result["vocab_candidates"]:
+        del candidate["candidate_id"]
+        candidate["source"].update(review_id=review["turn_id"], suggestion_id=review["turn_id"])
+    result["situation_expressions"] = [
+        {
+            "expression": "How do I get there?",
+            "meaning_ko": "어떻게 가나요?",
+            "usage_ko": "가는 방법을 물을 때 써요.",
+            "example_en": "How do I get there from here?",
+            "example_ko": "여기서 어떻게 가나요?",
+        },
+        {
+            "expression": "Is it far from here?",
+            "meaning_ko": "여기서 먼가요?",
+            "usage_ko": "거리를 물을 때 써요.",
+            "example_en": "Is the station far from here?",
+            "example_ko": "역이 여기서 먼가요?",
+        },
+    ]
+
+    def answer(body):
+        Draft202012Validator(body["response_format"]["json_schema"]["schema"]).validate(raw)
+        return ok(json.dumps(raw, ensure_ascii=False))
+
+    provider.answers["feedback"] = answer
+    response = client.post("/v1/feedback", json=payload)
+    assert response.status_code == 200
+    feedback = response.json()["feedback"]
+    assert feedback["status"] == "completed"
+    restored = feedback["result"]["turn_reviews"][0]
+    assert restored["original_text"] == payload["turns"][1]["final_text"]
+    assert restored["review_id"] == restored["suggestions"][0]["suggestion_id"] == restored["turn_id"]
+    assert restored["assisted"] is False
+    assert feedback["result"]["situation_expressions"] == result["situation_expressions"]
+    assert "format_version" not in feedback
+    assert len(provider.calls) == 1
 
 
 def test_feedback_without_user_turns_does_not_call_model(client, provider):

@@ -316,7 +316,7 @@
       "properties": {
         "target": {
           "type": "string",
-          "pattern": "^(needRates\\.(HUNGER|ENERGY|SOCIAL|FUN|WORK)|recognitionRate|initiateTalkRate|personalTalkScale|eventScale\\.(GREETING|SMALL_TALK|PERSONAL_QUESTION|RUDE|APOLOGY|COMPLIMENT|TASK_DONE|LEAVE))$",
+          "pattern": "^(needRates\\.(HUNGER|ENERGY|SOCIAL|FUN|WORK)|recognitionRate|initiateTalkRate|personalTalkScale|eventScale\\.(GREETING|SMALL_TALK|PERSONAL_QUESTION|RUDE|APOLOGY|COMPLIMENT|HELP|TASK_DONE|LEAVE))$",
           "description": "계산할 생활 값 배수. 이름은 행동 조각 affects와 같다."
         },
         "axis": { "$ref": "#/$defs/Axis" },
@@ -358,7 +358,7 @@
     },
     "EventId": {
       "type": "string",
-      "enum": ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "RUDE", "APOLOGY", "COMPLIMENT", "TASK_DONE", "LEAVE"],
+      "enum": ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "RUDE", "APOLOGY", "COMPLIMENT", "HELP", "TASK_DONE", "LEAVE"],
       "description": "대화 사건. AI 워커가 대사를 만드는 같은 호출에서 판정한다."
     },
     "Emotion": {
@@ -483,7 +483,7 @@
         "conversationEvents": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "RUDE", "APOLOGY", "COMPLIMENT", "TASK_DONE", "LEAVE"],
+          "required": ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "RUDE", "APOLOGY", "COMPLIMENT", "HELP", "TASK_DONE", "LEAVE"],
           "properties": {
             "GREETING": { "$ref": "#/$defs/EventEffect" },
             "SMALL_TALK": { "$ref": "#/$defs/EventEffect" },
@@ -491,6 +491,7 @@
             "RUDE": { "$ref": "#/$defs/EventEffect" },
             "APOLOGY": { "$ref": "#/$defs/EventEffect" },
             "COMPLIMENT": { "$ref": "#/$defs/EventEffect" },
+            "HELP": { "$ref": "#/$defs/EventEffect" },
             "TASK_DONE": { "$ref": "#/$defs/EventEffect" },
             "LEAVE": { "$ref": "#/$defs/EventEffect" }
           },

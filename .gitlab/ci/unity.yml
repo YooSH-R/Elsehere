@@ -99,6 +99,8 @@ unity:external-mr:
 
 unity:editor-and-webgl:
   extends: .unity-editor
+  # With conservative auto-cancel, starting Unity protects the whole dev candidate.
+  interruptible: false
   script:
     - powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action test
     - |

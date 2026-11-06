@@ -217,6 +217,7 @@ NPC마다 정하는 것은 `ai/npcs/life/<npcId>.json`의 MBTI·역할·근무�
 
 사용자 × NPC 관계(알아봄 0~100, 호감 −100~100)는 공통 규칙(`ai/npcs/rules/world-rules.json`)으로 `app/npc_relationship.py`가 계산하고, 저장은 백엔드가 합니다(설계는 [docs/npc-life-design.md](../../docs/npc-life-design.md) 4·5·8절).
 
+- 도움 제공(`HELP`)은 구체적인 도움 제안·도움 요청 수락·NPC에게 필요한 정보 제공에 기본 호감 +6을 줍니다. 같은 대화에서 한 번만 세며, 학습자의 도움 요청이나 일반 주문·결제는 포함하지 않습니다. 실제 행동 수행·미션 성공을 확정하지 않습니다.
 - 매 턴 의도 판정(`/v1/judge`)이 같은 호출에서 학습자 줄의 대화 사건(`events`)과 그 사건으로 바로 올릴 호감(`affinity_delta`)도 돌려줍니다. 이번 대화에서 이미 센 사건은 다시 세지 않습니다. 백엔드는 사건을 줄마다 저장해 `history[].events`로 보내고, 무례가 아닌 턴이면 `affinity_delta`를 호감에 더합니다([계약](../../docs/api/ai-worker.md) 2.2절).
 - 무례 판정(`/v1/guard`)이 무례라고 하면 응답의 `affinity_delta`(NPC 성격에 따른 감점)를 백엔드가 무례 저장과 함께 호감에 더합니다(2.2.1절).
 - 대화가 끝나면 백엔드가 `/v1/npc/relationship`을 부르고, 돌려받은 알아봄 변화량(`recognition_delta`)을 저장값에 더합니다. 모델을 부르지 않으며, 호감은 대화 중에 이미 바뀌었으므로 계산하지 않습니다(2.7.2절).
@@ -295,6 +296,7 @@ ai/worker/.venv/Scripts/python ai/tools/synthesize_script_lines.py --models <모
 - `tests/test_npc_reply_relationship.py`: 대답 경로의 관계 — 두 지시문(인격·한 줄 역할) 모두 처음 봄, 알아보지 못하면 평범한 기억 숨김, 본 적 있음·단골의 기억, 오래 안 오면 다시 낯섦, 강한 일은 얼굴을 몰라도 기억(싫어해도), 좋아함·싫어함, 호감 문장이 카드 태도를 대신함, 가까운 단골만 자기 이야기, 무례 뒤 짜증, 줄 사건의 칭찬 뒤 좋은 기분, 숫자를 넣지 않음, 관계가 없으면 지금 기억 문장 그대로, 범위 밖 값은 400
 - `tests/test_memory_conversation_impression.py`: 좋은 대화 호감(`/v1/memory`) — 좋은 대화 +3·학습자 3줄 이상(사용자 결정 값), 짧은 대화·평범하거나 나쁜 대화·무례 줄이 있는 대화는 0(깎지 않음), 인상이 없거나 이상하면 neutral로 보고 카드는 저장, 모델에 이번 대화만의 인상을 묻는 스키마
 - `tests/test_npc_relationship_api.py`: 관계 갱신 API(`/v1/npc/relationship`) — 알아봄 변화량만 돌려줌(칭찬한 대화여도 호감 없음, 모델 호출 없음), 처음 만남, 인격 카드로 알아보는 속도가 다름, 학습자가 말하지 않은 대화는 400
+- `tests/test_help_affinity.py`: 도움 제공 시 즉시 +6, 같은 대화에서 반복 보상 방지, NPC 사건 배수와 반올림, 앞선 무례 줄의 도움은 미보상으로 처리
 - `tests/test_judge_events.py`: 의도 판정의 줄 사건 — 같은 호출에서 `events`를 고름(판정 형식의 목록), 무례·목록 밖·중복 버림, `events`가 없거나 목록이 아니면 `[]`, 의도 판정 실패면 `[]`·호감 0, 행동 묘사만이면 `null`, 지시문에 사건 정의 가이드 v1.0, 사건으로 바로 올릴 호감(`affinity_delta`) — 이력에서 이미 센 사건은 0, 앞선 무례 줄의 사건은 센 적 없음, 인격 카드의 반응 크기를 곱함
 
 프롬프트 문장의 품질(모델이 무엇을 고르는지)은 이 테스트로 보지 않습니다. 실제 모델을 부르는 회귀 테스트는 프로토타입 브랜치의 `prototype/mvp_web/tests/replay.py`에 있습니다.

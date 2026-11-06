@@ -79,7 +79,7 @@ namespace A305.Npc.PlayModeTests
         {
             // 고정 시계에 휴식 시각을 주고 근무지 직원이 출퇴근 캐릭터로 전환될 때까지 기다린다.
             NpcTestClock.SetTime(StaffBreakMinutes);
-            yield return null;
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
             NpcIdentity staff = HoldStill(StaffCode);
             Assert.That(GameClock.Shared.Minutes, Is.EqualTo(StaffBreakMinutes));

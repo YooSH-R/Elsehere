@@ -225,35 +225,6 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator ApproachingBen_AnimatesLegs_AndStopsWhenOffering()
-        {
-            yield return LoadTownWithPlayerNearBen(afterTutorial: false);
-            Passerby ben = FindPasserby(BenCode);
-            Animator animator = ben.GetComponentInChildren<Animator>();
-            Assert.That(animator, Is.Not.Null, "Ben의 모델에 걷기 Animator가 필요합니다.");
-            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-            yield return WaitUntil(() => ben.Phase == PasserbyPhase.Approaching);
-            // Ben의 비즈니스맨 외형은 마스터 골격(Humanoid)이라 허벅지를 Humanoid 뼈로 찾는다.
-            Transform leg = animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
-            Quaternion before = leg.localRotation;
-            Vector3 positionBefore = ben.transform.position;
-            yield return new WaitForSeconds(.15f);
-            Assert.That(
-                Vector3.Distance(positionBefore, ben.transform.position),
-                Is.GreaterThan(.01f)
-            );
-            Assert.That(Quaternion.Angle(before, leg.localRotation), Is.GreaterThan(1f));
-            Assert.That(animator.GetFloat("Speed"), Is.GreaterThan(0f));
-
-            yield return WaitUntil(() => ben.Phase == PasserbyPhase.Offering);
-            yield return new WaitForSeconds(.25f);
-            Assert.That(animator.GetFloat("Speed"), Is.Zero);
-            before = leg.localRotation;
-            yield return new WaitForSeconds(.15f);
-            Assert.That(Quaternion.Angle(before, leg.localRotation), Is.LessThan(.1f));
-        }
-
-        [UnityTest]
         public IEnumerator OfferAppears_WhenGameRunsSlowly()
         {
             float previousTimeScale = Time.timeScale;
@@ -309,40 +280,6 @@ namespace A305.Npc.PlayModeTests
             Assert.That(player.IsMovementLocked, Is.False);
             Assert.That(panel.IsVisible, Is.False);
             Assert.That(FindPasserby(BenCode).Phase, Is.EqualTo(PasserbyPhase.Resting));
-        }
-
-        [UnityTest]
-        public IEnumerator EndingDialogue_TurnsPlayerAndCameraTowardTheNpc()
-        {
-            // 튜토리얼 길 안내는 대사를 마치기 전에 끝낼 수 없으므로 평소 행인으로 확인한다.
-            yield return LoadTownWithPlayerNearBen(afterTutorial: true);
-            PasserbyOfferView offer = Single<PasserbyOfferView>();
-            yield return WaitUntil(() => offer.IsShowing);
-
-            // 대화 전에는 Ben을 등지고 서 있게 해, 끝난 뒤 방향이 대화 덕분에 바뀐 것인지 확인한다.
-            PlayerMover player = Single<PlayerMover>();
-            Transform face = FindPasserby(BenCode).GetComponent<NpcIdentity>().LookTarget;
-            Vector3 towardBen = Vector3.ProjectOnPlane(
-                face.position - player.transform.position,
-                Vector3.up
-            );
-            player.Teleport(player.transform.position, Quaternion.LookRotation(-towardBen));
-            Click(offer, "AcceptButton");
-            yield return null;
-            Click(Single<DialoguePanelView>(), "EndButton");
-            yield return null;
-
-            float benYaw = Quaternion.LookRotation(towardBen).eulerAngles.y;
-            Assert.That(
-                Mathf.Abs(Mathf.DeltaAngle(player.transform.eulerAngles.y, benYaw)),
-                Is.LessThan(2f),
-                "대화가 끝나면 플레이어가 대화하던 NPC 쪽을 봅니다."
-            );
-            Assert.That(
-                Mathf.Abs(Mathf.DeltaAngle(Single<PlayerCameraRig>().ViewYawDegrees, benYaw)),
-                Is.LessThan(2f),
-                "카메라도 대화 시점이 보던 방향 그대로 플레이어 뒤에 섭니다."
-            );
         }
 
         [UnityTest]

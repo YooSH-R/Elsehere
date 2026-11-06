@@ -192,7 +192,7 @@
    - 튜토리얼 안내 카드와 진행 처리([Tutorial 모듈](../Tutorial/README.md))를 붙이고, 위 기능들과 씬에 놓인 행인을 연결합니다.
    - 영업시간 처리와 화면 위 안내판([영업시간](#영업시간))을 붙이고 플레이어·영업시간 파일과, 마을로 나가는 출입구가 있으면 그 출입구와 연결합니다.
 4. 루트에 그룹 밖 객체가 있으면 경고가 나옵니다. 지형·건물·소품은 `Environment`, NPC는 `Characters`처럼 규약 그룹 아래로 옮깁니다.
-5. PlayMode 테스트를 실행합니다. Scene List의 모든 씬에 플레이어·카메라·도착 처리가 하나씩 있는지, 출입구 짝이 맞는지 같은 기준으로 확인합니다.
+5. 새로 만든 씬을 Play로 열어 플레이어·카메라·도착 처리와 왕복 출입구 연결을 확인합니다. 공간 이동 로직을 바꿨다면 관련 PlayMode 테스트도 실행합니다. 기존 Scene List 전체를 순회하는 고정 배치 검사는 자동 테스트에 두지 않습니다.
 
 도구는 여러 번 실행해도 기능 객체를 다시 만들지 않고, 디자인한 객체와 위치를 바꾸지 않습니다. 디자인을 고친 뒤 다시 실행해도 됩니다.
 
@@ -202,7 +202,7 @@
 2. 각 출입구의 `Doorway Id`, 이동할 씬(`Destination Scene`), 그 씬에서 나타날 출입구(`Destination Doorway Id`)를 서로 가리키게 입력합니다.
 3. `ArrivalPoint`는 문 앞 감지 영역 밖에 둡니다. 감지 영역 안에 두면 도착하자마자 다시 이동합니다.
 
-마을 출입문(집·카페·호텔·드럭스토어)에서는 문을 등지고 문 앞 인도 1m에 섭니다. 감지 영역은 문에서 0.6m 깊이까지 둡니다. 선 자리의 몸(반지름 0.33m)은 문 앞 0.67m까지만 와서 감지 영역에 닿지 않습니다. 문 쪽으로 걸으면 몸통보다 큰 머리(가장 큰 캐릭터 반지름 0.68m, `HeadClearance`)가 문짝에 먼저 닿아 몸이 0.475m에서 멈추므로, 감지 영역은 그보다 넉넉히 깊어야 들어갑니다. **Tools → A305 → World → Apply Town Door Arrival**(`TownProductionBuilder.ApplyDoorArrival`)이 TownScene의 출입문을 이 기준으로 맞추고, EditMode 테스트 `TownDoorArrivalTests`가 같은 기준을 검사합니다.
+마을 출입문(집·카페·호텔·드럭스토어)에서는 문을 등지고 문 앞 인도 1m에 섭니다. 감지 영역은 문에서 0.6m 깊이까지 둡니다. 선 자리의 몸(반지름 0.33m)은 문 앞 0.67m까지만 와서 감지 영역에 닿지 않습니다. 문 쪽으로 걸으면 몸통보다 큰 머리(가장 큰 캐릭터 반지름 0.68m, `HeadClearance`)가 문짝에 먼저 닿아 몸이 0.475m에서 멈추므로, 감지 영역은 그보다 넉넉히 깊어야 들어갑니다. **Tools → A305 → World → Apply Town Door Arrival**(`TownProductionBuilder.ApplyDoorArrival`)이 TownScene의 출입문을 이 기준으로 맞춥니다. 변경한 출입문은 Play에서 실제 진입과 도착 위치를 확인합니다.
 
 ## 영업시간
 
@@ -220,9 +220,9 @@
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
 | `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 택시 목적지·경찰 신고 판별과 순찰차 출동 단계, 차가 도는 길·신호·택시 세우기, 공간 이동과 기능 연결 도구, 재접속 위치 저장, 사물 이동 Collider, 거리 매장 직원과 색 바꾸기, 영업시간·마감 남은 시간과 장소 씬 연결 |
-| `A305.World.PlayModeTests` | `Assets/Tests/PlayMode/World/` | 모든 씬을 불러와 출입구·도착·화면 전환 확인, 닫힌 장소 출입 막기와 마감 뒤 마을로 옮기기 |
+| `A305.World.PlayModeTests` | `Assets/Tests/PlayMode/World/` | 대표 공간 전환의 도착·화면 덮기·중첩 로드, 실내 씬의 방문 중 로드·퇴장 후 해제, 닫힌 장소 출입 막기와 마감 뒤 마을로 옮기기 |
 
-시각에 따라 문이 달라지므로 `A305.World.PlayModeTests`는 `TestGameClock`으로 멈춘 게임 시각을 맞춰 시작합니다(`SpaceTravelTests`는 모든 장소가 여는 오후 1시).
+`A305.World.PlayModeTests`는 `TestGameClock`으로 게임 시각을 고정합니다. 운영 데이터의 가게는 모두 24시간 영업하므로 `OpeningHoursTests`는 카페·우체국의 테스트용 시간표를 넣어 출입 거절·조명 전환·마감 퇴장을 검증하고, 종료 시 24시간 영업 기본값으로 복원합니다. `SpaceTravelTests`는 오후 1시로 고정합니다.
 
 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.
 

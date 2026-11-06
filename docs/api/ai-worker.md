@@ -356,6 +356,8 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 대화가 끝나면 학습 피드백을 만듭니다. **요청·응답 형식은 `ai/feedback` 모듈의 계약(0.3.0)을 그대로 따릅니다.**
 워커는 그 모듈(`generate_feedback`)을 부르고, 모델 호출만 워커 구성의 `feedback` 역할(재시도·대체 모델 포함)로 합니다.
 
+모델 요청은 `compact-v1` 전용 스키마로 원문·도움 사용 표시·로컬 ID의 중복 생성을 줄입니다. 모듈이 서버 입력에서 복원하고 기존 검증을 수행한 후 반환하므로 아래 `0.3.0` 요청·응답과 백엔드·Unity 계약은 동일합니다. 모델 전용 형식과 참조 규칙은 [피드백 모듈](../../ai/feedback/README.md#모델-출력-분량-줄이기)을 따릅니다.
+
 - 요청 본문: 모듈의 입력(`ai/feedback/schemas/feedback.input.schema.json`) — `schema_version: "0.3.0"`, `request_id`, `scope`, `turns[]`, `context` 등. 계약과 다르면 400 `invalid_request`.
 - 응답: `{"feedback": <모듈 출력>, "usage": [...]}`. 모듈 출력 형식은 `ai/feedback/schemas/feedback.output.schema.json`이며 `status`로 나뉩니다.
 

@@ -12,6 +12,7 @@ from pathlib import Path
 
 from deployment_plan import ALL_CHECKS, commit_exists, create_plan, run_git
 from docker_build import build_image
+from webgl_package import restore_webgl
 
 
 class SupersededCandidateError(ValueError):
@@ -286,6 +287,7 @@ def deliver_pipeline(repository, candidate, branch, pipeline_id, environment="de
             if (repository / marker).read_text(encoding="utf-8").strip() != candidate:
                 raise ValueError("Verified build artifact belongs to another commit.")
         else:
+            restore_webgl(repository, candidate)
             version = json.loads(
                 (repository / "dist/webgl/version.json").read_text(encoding="utf-8")
             )

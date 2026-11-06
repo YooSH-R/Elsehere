@@ -68,7 +68,6 @@
   ],
   "places": {
     "CAFE": {
-      "hours": { "from": "07:00", "to": "21:00" },
       "shifts": {
         "OPENING": { "from": "07:00", "to": "15:00" },
         "MIDDAY": { "from": "10:00", "to": "18:00" },
@@ -90,15 +89,15 @@
         "NIGHT": { "from": "23:00", "to": "07:30" }
       }
     },
-    "POST_OFFICE": { "hours": { "from": "09:00", "to": "17:00" }, "shifts": { "ALL_DAY": { "from": "09:00", "to": "17:00" } } },
-    "BANK": { "hours": { "from": "09:00", "to": "16:00" }, "shifts": { "ALL_DAY": { "from": "09:00", "to": "16:00" } } },
-    "DINER": { "hours": { "from": "07:00", "to": "22:00" }, "shifts": { "ALL_DAY": { "from": "07:00", "to": "22:00" } } },
-    "BAKERY": { "hours": { "from": "06:00", "to": "18:00" }, "shifts": { "ALL_DAY": { "from": "06:00", "to": "18:00" } } },
-    "LAUNDROMAT": { "hours": { "from": "07:00", "to": "22:00" }, "shifts": { "ALL_DAY": { "from": "07:00", "to": "22:00" } } },
-    "FLOWER_SHOP": { "hours": { "from": "09:00", "to": "19:00" }, "shifts": { "ALL_DAY": { "from": "09:00", "to": "19:00" } } },
-    "BARBER": { "hours": { "from": "10:00", "to": "19:00" }, "shifts": { "ALL_DAY": { "from": "10:00", "to": "19:00" } } },
-    "ARCADE": { "hours": { "from": "12:00", "to": "23:00" }, "shifts": { "ALL_DAY": { "from": "12:00", "to": "23:00" } } },
-    "HOME_STORE": { "hours": { "from": "10:00", "to": "20:00" }, "shifts": { "ALL_DAY": { "from": "10:00", "to": "20:00" } } },
+    "POST_OFFICE": { "shifts": { "ALL_DAY": { "from": "09:00", "to": "17:00" } } },
+    "BANK": { "shifts": { "ALL_DAY": { "from": "09:00", "to": "16:00" } } },
+    "DINER": { "shifts": { "ALL_DAY": { "from": "07:00", "to": "22:00" } } },
+    "BAKERY": { "shifts": { "ALL_DAY": { "from": "06:00", "to": "18:00" } } },
+    "LAUNDROMAT": { "shifts": { "ALL_DAY": { "from": "07:00", "to": "22:00" } } },
+    "FLOWER_SHOP": { "shifts": { "ALL_DAY": { "from": "09:00", "to": "19:00" } } },
+    "BARBER": { "shifts": { "ALL_DAY": { "from": "10:00", "to": "19:00" } } },
+    "ARCADE": { "shifts": { "ALL_DAY": { "from": "12:00", "to": "23:00" } } },
+    "HOME_STORE": { "shifts": { "ALL_DAY": { "from": "10:00", "to": "20:00" } } },
     "POLICE_STATION": {
       "shifts": {
         "DAY": { "from": "06:00", "to": "14:30" },

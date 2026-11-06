@@ -5,7 +5,9 @@ param(
     [string] $Action,
     [string] $UnityEditorPath = $env:UNITY_EDITOR_PATH,
     # MR checks pass their merge base to select affected test assemblies.
-    [string] $ChangedSince
+    [string] $ChangedSince,
+    [ValidateRange(1, 3600)]
+    [int] $ProgressIntervalSeconds = 30
 )
 
 $ErrorActionPreference = 'Stop'
@@ -38,17 +40,25 @@ function Invoke-Unity {
     ) + $AdditionalArguments
 
     Write-Host "Running Unity ${editorVersion}: $RunName"
+    $elapsed = [System.Diagnostics.Stopwatch]::StartNew()
     try {
         # Start-Process -Wait also waits for descendants left behind by a crashed Editor.
         # Wait on the Editor itself so its failure reaches CI and preserves the log.
         $unityProcess = Start-Process -FilePath $UnityEditorPath -ArgumentList $arguments `
             -WindowStyle Hidden -PassThru
-        $unityProcess.WaitForExit()
+        while (-not $unityProcess.WaitForExit($ProgressIntervalSeconds * 1000)) {
+            if (Test-Path -LiteralPath $logPath) {
+                Copy-Item -LiteralPath $logPath -Destination $artifactPath
+            }
+            Write-Host "Unity $RunName still running: elapsed=$([int] $elapsed.Elapsed.TotalSeconds)s; log=$artifactPath/$RunName.log"
+        }
+        Write-Host "Unity $RunName exited: elapsed=$([int] $elapsed.Elapsed.TotalSeconds)s; exit_code=$($unityProcess.ExitCode)"
         if ($unityProcess.ExitCode -ne 0) {
             throw "Unity $RunName failed with exit code $($unityProcess.ExitCode). See the artifact log."
         }
     }
     finally {
+        $elapsed.Stop()
         if (Test-Path -LiteralPath $logPath) {
             Copy-Item -LiteralPath $logPath -Destination $artifactPath
         }

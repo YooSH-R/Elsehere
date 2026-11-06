@@ -62,13 +62,28 @@ public class AiGateway {
       String instruction,
       int level,
       WorkerLearner learner) {
+    return reply(
+        trace, npc, memory, history, text, instruction, level, learner, NpcReplyListener.NONE);
+  }
+
+  /** NPC 대답. 글자·문장 조각 음성을 받는 대로 {@code listener}에 넘긴다. 실패 처리는 조각을 받지 않을 때와 같다. */
+  public NpcReply reply(
+      WorkerTrace trace,
+      WorkerNpc npc,
+      WorkerMemory memory,
+      List<WorkerLine> history,
+      String text,
+      String instruction,
+      int level,
+      WorkerLearner learner,
+      NpcReplyListener listener) {
     NpcReply reply =
         send(
             trace,
             AiRequestKind.NPC,
             () ->
                 aiWorkerClient.reply(
-                    trace, npc, memory, history, text, instruction, level, learner));
+                    trace, npc, memory, history, text, instruction, level, learner, listener));
     record(trace, AiRequestKind.NPC, reply.usage(), reply.succeeded());
     if (!reply.succeeded()) {
       throw new BusinessException(AiWorkerClient.toErrorCode(reply.errorCode()));

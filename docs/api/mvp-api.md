@@ -585,7 +585,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 #### WORLD-01 `GET /api/v1/scenes`
 
 - `[{ "sceneCode": "CAFE", "name": "모퉁이 카페", "unityKey": "CafeScene", "isOpen": true }]` 형식입니다. 화면 14에서 들어갈 수 있는 건물을 표시할 때 씁니다. MVP는 카페·호텔을 포함해 모든 장소가 열려 있으며, 이후 준비 중인 건물은 `isOpen: false`로 내려갑니다.
-- `unityKey`는 클라이언트가 불러올 Unity 씬 이름입니다. 목록은 집, 마을, 카페, 호텔 순입니다.
+- `unityKey`는 클라이언트가 불러올 Unity 씬 이름입니다. 목록은 집, 마을, 카페, 호텔, 드럭스토어, 경찰서(`POLICE_STATION`, `PoliceStationScene`) 순입니다.
 
 #### WORLD-02 `GET /api/v1/scenes/{sceneCode}`
 
@@ -785,7 +785,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "suggestWords": null,
     "speech": { "status": "READY", "url": "/api/v1/turns/100/speech" }
   },
-  "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3, "affinity": 12 },
+  "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3, "affinity": 12, "timeLimitAt": "2026-11-05T14:05:00+09:00", "graceUntil": "2026-11-05T14:05:30+09:00", "closing": false, "finalTurnsRemaining": 0 },
   "deliveredFollowUpId": null
 }
 ```
@@ -865,7 +865,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "suggestWords": null,
     "speech": { "status": "READY", "url": "/api/v1/turns/105/speech" }
   },
-  "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3, "affinity": 12 },
+  "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3, "affinity": 12, "timeLimitAt": "2026-11-05T14:05:00+09:00", "graceUntil": "2026-11-05T14:05:30+09:00", "closing": false, "finalTurnsRemaining": 0 },
   "missionUpdates": []
 }
 ```
@@ -874,10 +874,29 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 영어, 한국어, 한영 혼용, 미완성 발화를 모두 받습니다. 최대 길이는 서버 설정값이며 넘으면 `VALIDATION_FAILED`입니다.
 - 추천 단어는 NPC 응답을 기다리게 하지 않도록 따로 만듭니다. 응답의 `suggestWords`는 `null`이고, 클라이언트가 대사를 보여 준 뒤 CONV-12로 받아 대사 아래에 보여줍니다. 대화가 끝난 턴에는 요청하지 않습니다.
 - 같은 `requestId`로 다시 보내면 턴을 새로 만들지 않고 이전 응답을 그대로 돌려줍니다(`turns.request_id`). 화면 19의 [다시 시도]가 이 규칙을 씁니다.
+- NPC 한 명과의 대화는 서버 `startedAt`부터 5분이 기본 제한입니다. 5분 전에 받은 발화는 시간이 넘어도 NPC 답변까지 저장하고, 대화는 마지막 발화를 기다리는 마무리 상태(`closing: true`)가 됩니다.
+- 5분부터 `graceUntil`(기본 5분 30초) 전까지 사용자 발화 한 번을 더 받습니다. 서버는 그 요청을 `time_limit_final_request_id`로 선점하고 NPC에게 현재 용건을 마치되 새 질문은 하지 말고 자연스럽게 작별하라고 지시합니다. 답변 저장 뒤 `ENDED_BY_NPC`, `endReason: TIME_LIMIT`으로 끝냅니다. 같은 `requestId` 재시도는 저장된 답변을 재사용하고, 실패해 저장되지 않은 요청의 선점은 해제합니다.
+- `graceUntil`부터는 새 발화를 AI에 보내지 않고 `CONVERSATION_NOT_ACTIVE`로 거절하며 `TIME_LIMIT`으로 끝냅니다. 마감 전에 이미 받은 마지막 발화의 NPC 답변은 마감을 지나도 저장합니다. 무례 누적이나 용건 완료로 먼저 끝났다면 그 종료 이유를 유지합니다.
+- Unity는 로컬에서 5분을 다시 세지 않고 `conversation.timeLimitAt`과 `graceUntil`을 기준으로 카운트다운합니다. `closing`은 마지막 발화를 받을 수 있는 마무리 구간인지, `finalTurnsRemaining`은 남은 마지막 발화 수(0 또는 1)입니다.
 - 대화 시작·발화 전송은 같은 사용자·`requestId`의 처리 중 재요청도 순서대로 처리하여, 먼저 저장된 결과를 재사용하고 AI를 중복 호출하지 않습니다. 잠금은 현재 단일 백엔드 프로세스 안에서 관리하며 완료·실패 뒤 해제합니다. 실패한 요청은 같은 ID로 다시 시도할 수 있습니다. 워커에 보낼 앞선 대화는 DB에서 최근 40줄만 조회합니다.
 - TTS가 실패해도 응답은 성공으로 돌려주고 `speech.status`를 `FAILED`로 표시합니다. 클라이언트는 자막을 보여주고 CONV-07로 다시 시도합니다.
 - AI가 미션 완료나 대화 종료를 제안하면 서버가 검증해 확정합니다(`ai_candidates`). 확정된 결과만 `missionUpdates`와 `conversation.status`에 반영합니다. 한 턴에서 여러 미션이 함께 완료될 수 있습니다.
 - 서버는 한 턴에서 무례 판정과 의도·번역 판정을 같은 문장으로 동시에 요청하고 둘 다 기다린 뒤 NPC 대답을 만듭니다.
+
+**스트리밍** — 요청 헤더에 `Accept: text/event-stream, application/json`을 붙이면 NPC 대사 글자와 문장 조각 음성을 만들어지는 대로 SSE(`text/event-stream`)로 받습니다. 요청 본문, 판정 → 대답 순서, 턴 저장, 같은 `requestId` 처리는 위와 같습니다. Accept에 `text/event-stream`이 없으면 지금처럼 JSON 한 번으로 응답합니다. 전송→첫 글자·첫 음성이 대답 전체를 기다리는 것보다 짧습니다.
+
+| 이벤트 | data | 뜻 |
+| --- | --- | --- |
+| `delta` | `{ "text": "Great!" }` | NPC 대사 글자 조각. 받는 대로 대사에 이어 붙입니다. |
+| `audio` | `{ "seq": 0, "text": "Great!", "wav": "<base64>" }` | 문장 조각 음성. PCM16 WAV(립싱크 음소 청크 포함)를 base64로 담습니다. `seq` 순서대로 이어 재생합니다. 합성이 늦거나 실패한 조각은 `wav: null`이며 그 조각은 자막만 보입니다. |
+| `turn` | 위 응답 200과 같은 본문 | 마지막 이벤트. 저장된 턴 ID, [다시 듣기] 주소(`npcTurn.speech`), 대화 상태, 미션 변화. |
+| `error` | `{ "status": 503, "error": { "code", "message", "details" } }` | 대사를 보내기 시작한 뒤 난 오류. `status`는 JSON으로 응답했다면 보냈을 HTTP 상태이고 `error`는 1.5의 공통 오류 본문입니다. 턴은 저장하지 않으며 같은 `requestId`로 다시 보낼 수 있습니다. |
+
+- 의도·무례 판정까지 난 오류(`CONVERSATION_NOT_ACTIVE`, 행동 묘사만 있는 말의 `VALIDATION_FAILED`, `REQUEST_ID_CONFLICT`, 판정 AI 오류 등)는 스트림을 시작하기 전이라 지금과 같은 HTTP 상태와 JSON 오류 본문입니다. 그래서 Accept에 `application/json`도 함께 넣습니다.
+- 같은 `requestId`로 다시 보내 저장된 결과를 돌려줄 때는 `turn` 하나만 옵니다.
+- 사용자가 화면을 닫거나 연결이 끊겨도 서버는 대답을 끝까지 받아 턴을 저장합니다. 클라이언트는 `turn`이나 `error` 없이 스트림이 끝나면 같은 `requestId`로 다시 보내 저장된 결과를 받습니다(JSON이든 스트림이든 같습니다).
+- 조각 음성을 재생한 턴은 `turn`을 받은 뒤 턴 전체 음성을 다시 자동 재생하지 않습니다. [다시 듣기]는 `npcTurn.speech`의 턴 전체 음성(CONV-06)을 씁니다.
+- 대화 시작(CONV-01)은 아직 JSON 응답만 있습니다.
 
 **학습자 말 번역** — `userTurn.translation`은 학습자 말의 영어 번역 `{ "english": "Medium size, please." }`입니다. 번역이 있고 무례가 아니라고 확정된 턴에만 담고, 무례하거나 판정하지 못한 턴을 포함한 그 밖에는 `null`입니다. 한국어나 한영 혼용으로 말했을 때 "영어로는 이렇게 말해요" 카드에 씁니다. 표시 위치는 Unity와 정합니다.
 
@@ -953,7 +972,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 }
 ```
 
-- `endReason`(`conversations.end_reason`)은 `NPC_ENDED`(용건이 끝나 NPC가 마무리), `QUOTA_EXHAUSTED`, `RUDE`(무례 누적)입니다. 대화가 `ACTIVE`가 아니면 `CONVERSATION_NOT_ACTIVE`입니다.
+- `endReason`(`conversations.end_reason`)은 `NPC_ENDED`(용건이 끝나 NPC가 마무리), `QUOTA_EXHAUSTED`, `RUDE`(무례 누적), `TIME_LIMIT`(대화 시작 뒤 5분)입니다. 대화가 `ACTIVE`가 아니면 `CONVERSATION_NOT_ACTIVE`입니다.
 
 **마무리** — 무례가 아닌 턴에서 서버가 정하면, NPC가 그 대답으로 따뜻하게 마무리하고(새 질문 없음) 대화를 `ENDED_BY_NPC`, `endReason: NPC_ENDED`로 끝냅니다(2026-11-04 결정). 줄 사건은 의도 판정이 고릅니다([AI 워커 명세](ai-worker.md) 2.2절).
 
@@ -1454,7 +1473,7 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 | 예문 뜻 | WORLD-02 | `vocabularies.example_ko`를 추가했습니다. |
 | 발음 음성 | WORLD-04 | `vocabularies.pronunciation_audio_key`를 추가했습니다. 값은 미리 만든 발음 파일 이름(`{wordKey}.wav`)입니다. |
 | 행인 첫 말·작별 대사 | WORLD-02, CONV-03 | `npcs.approach_line`, `approach_audio_key`, `farewell_line`, `farewell_audio_key`를 추가했습니다. |
-| 대화 종료 이유 | CONV-03, 08 | `conversations.end_reason`(`USER_ENDED`, `NPC_ENDED`, `QUOTA_EXHAUSTED`, `EXPIRED`)을 추가했습니다. |
+| 대화 종료 이유 | CONV-03, 08 | `conversations.end_reason`(`USER_ENDED`, `NPC_ENDED`, `QUOTA_EXHAUSTED`, `RUDE`, `TIME_LIMIT`, `EXPIRED`)을 추가했습니다. |
 | 숙어 뜻 | FB-03 | `turn_feedback.idiom_meaning_ko`를 추가했습니다. |
 | 짧은 피드백 개선 표현 | CONV-08 | `conversation_feedback.reviews` JSON을 `{ good, improve, suggestion }` 구조로 정했습니다. |
 | NPC 음성 보관 | CONV-06, 07 | `turns.npc_audio_key`를 추가했습니다. 보관·삭제·용량 기준은 [NPC 음성 저장 운영](../npc-audio-storage.md#보관삭제-정책)을 따릅니다. |

@@ -122,6 +122,11 @@ namespace A305.Npc
             greetingLabel.text = greeting;
             SetOptionalText(remainingLabel, remaining);
             declineButton.gameObject.SetActive(canDecline);
+            bool showKeyHints = !PlayerTouchControls.ShouldShowControls();
+            acceptButton.GetComponentInChildren<TMP_Text>(true).text =
+                PasserbyOfferText.AcceptLabel(showKeyHints);
+            declineButton.GetComponentInChildren<TMP_Text>(true).text =
+                PasserbyOfferText.DeclineLabel(showKeyHints);
             panel.SetActive(true);
         }
 
@@ -290,11 +295,27 @@ namespace A305.Npc
 
         private void Update()
         {
-            if (Keyboard.current == null || !Keyboard.current.eKey.wasPressedThisFrame)
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard == null)
                 return;
-            if (owner != null && panel.activeInHierarchy && acceptButton.interactable)
-                onAccept?.Invoke();
-            else if (talkPromptOwner != null && talkButton.interactable)
+            if (owner != null && panel.activeInHierarchy)
+            {
+                if (
+                    keyboard.escapeKey.wasPressedThisFrame
+                    && declineButton.gameObject.activeInHierarchy
+                    && declineButton.interactable
+                )
+                    onDecline?.Invoke();
+                else if (keyboard.eKey.wasPressedThisFrame && acceptButton.interactable)
+                    onAccept?.Invoke();
+                return;
+            }
+            if (
+                keyboard.eKey.wasPressedThisFrame
+                && talkPromptOwner != null
+                && talkPromptPanel.activeInHierarchy
+                && talkButton.interactable
+            )
                 onTalk?.Invoke();
         }
     }

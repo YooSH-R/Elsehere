@@ -4,6 +4,8 @@ import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.NpcReplyChunk;
+import com.elsehere.ai.client.NpcReplyListener;
 import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerMemory;
@@ -21,6 +23,7 @@ import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.service.MissionDialogueService;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -54,6 +57,9 @@ public class TurnService {
   static final String RUDE_LEAVE =
       "They keep insulting you. Firmly tell them you won't talk with them anymore and they need"
           + " to leave now. Then stop. 1-2 short sentences.";
+  static final String TIME_LIMIT_WRAP_UP =
+      "The conversation time is up. Complete the current business in this reply, do not ask a"
+          + " new question, and say goodbye naturally.";
 
   // 워커에 닿지 못해 판정하지 못한 경우. 워커가 돌려주는 이유 코드(timeout 등)와 구분한다.
   static final String GUARD_WORKER_UNAVAILABLE = "worker_unavailable";
@@ -82,11 +88,43 @@ public class TurnService {
   private final DialogueRequestLocks requestLocks;
 
   public TurnResponse send(Long userId, Long conversationId, TurnRequest request) {
-    return requestLocks.execute(
-        userId, request.requestId(), () -> sendOnce(userId, conversationId, request));
+    return send(userId, conversationId, request, null);
   }
 
-  private TurnResponse sendOnce(Long userId, Long conversationId, TurnRequest request) {
+  private void releaseFinalTurnClaim(Long userId, Long conversationId, java.util.UUID requestId) {
+    try {
+      transactionTemplate.executeWithoutResult(
+          status ->
+              conversationLookup
+                  .ownedConversationForUpdate(userId, conversationId)
+                  .releaseFinalTurn(requestId));
+    } catch (RuntimeException releaseFailure) {
+      log.warn(
+          "time_limit_final_turn_release_failed conversation_id={} request_id={}",
+          conversationId,
+          requestId,
+          releaseFailure);
+    }
+  }
+
+  /**
+   * 발화 전송을 스트리밍으로 받는다. NPC 대답의 글자 조각과 문장 조각 음성을 만들어지는 대로 {@code events}에 넘기고, 처리 순서·저장·결과는 {@link
+   * #send(Long, Long, TurnRequest)}와 같다. 같은 요청 ID로 다시 보내 저장된 결과를 돌려줄 때는 조각을 넘기지 않는다.
+   */
+  public TurnResponse send(
+      Long userId, Long conversationId, TurnRequest request, TurnEvents events) {
+    try {
+      return requestLocks.execute(
+          userId, request.requestId(), () -> sendOnce(userId, conversationId, request, events));
+    } catch (RuntimeException exception) {
+      releaseFinalTurnClaim(userId, conversationId, request.requestId());
+      throw exception;
+    }
+  }
+
+  // events가 null이면 대답을 끝까지 모아 한 번에 응답한다.
+  private TurnResponse sendOnce(
+      Long userId, Long conversationId, TurnRequest request, TurnEvents events) {
     // 같은 요청 ID로 다시 보내면 턴을 새로 만들지 않고 저장된 결과를 돌려준다.
     Optional<TurnResponse> replayed =
         transactionTemplate.execute(status -> replay(userId, conversationId, request));
@@ -94,8 +132,13 @@ public class TurnService {
       return replayed.get();
     }
 
-    TurnContext context =
-        transactionTemplate.execute(status -> turnContext(userId, conversationId));
+    TurnContextSelection selection =
+        transactionTemplate.execute(
+            status -> turnContext(userId, conversationId, request.requestId()));
+    if (selection.rejected()) {
+      throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
+    }
+    TurnContext context = selection.context();
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, conversationId);
     Optional<MissionDialogueService.Context> mission =
         missionDialogueService.context(userId, context.npc().summary().npcCode());
@@ -126,17 +169,12 @@ public class TurnService {
     if (wrapUp) {
       instruction = WrapUp.instruction(instruction);
     }
+    if (selection.finalTurn()) {
+      instruction =
+          instruction.isBlank() ? TIME_LIMIT_WRAP_UP : instruction + " " + TIME_LIMIT_WRAP_UP;
+    }
 
-    NpcReply reply =
-        aiGateway.reply(
-            trace,
-            context.npc().workerNpc(),
-            context.memory(),
-            context.history(),
-            judge.text(),
-            instruction,
-            context.level(),
-            context.learner());
+    NpcReply reply = reply(trace, context, judge.text(), instruction, events);
     String npcAudioKey = npcAudioReceiver.save(trace, reply.audioFullId());
 
     return transactionTemplate.execute(
@@ -146,7 +184,8 @@ public class TurnService {
           if (savedMeanwhile.isPresent()) {
             return savedMeanwhile.get();
           }
-          Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
+          Conversation conversation =
+              conversationLookup.ownedConversationForUpdate(userId, conversationId);
           // AI를 기다리는 사이 대화가 끝났을 수 있다.
           if (!conversation.isActive()) {
             throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
@@ -193,6 +232,16 @@ public class TurnService {
                 conversation.getStatus(),
                 conversation.getEndReason());
           }
+          if (conversation.isActive()
+              && (selection.finalTurn() || conversation.reachedHardTimeLimit(clock.instant()))) {
+            // 마지막 발화 또는 마감 전에 시작해 늦게 끝난 답변까지 저장하고 시간 제한으로 끝낸다.
+            conversation.endByTimeLimit(clock.instant());
+            log.info(
+                "conversation_ended conversation_id={} status={} end_reason={}",
+                conversationId,
+                conversation.getStatus(),
+                conversation.getEndReason());
+          }
           if (!rude) {
             mission.ifPresent(
                 value ->
@@ -201,6 +250,58 @@ public class TurnService {
           }
           return response(conversation, userTurn, npcTurn);
         });
+  }
+
+  private NpcReply reply(
+      WorkerTrace trace, TurnContext context, String text, String instruction, TurnEvents events) {
+    if (events == null) {
+      return aiGateway.reply(
+          trace,
+          context.npc().workerNpc(),
+          context.memory(),
+          context.history(),
+          text,
+          instruction,
+          context.level(),
+          context.learner());
+    }
+    return aiGateway.reply(
+        trace,
+        context.npc().workerNpc(),
+        context.memory(),
+        context.history(),
+        text,
+        instruction,
+        context.level(),
+        context.learner(),
+        relayTo(trace, events));
+  }
+
+  // 조각 음성은 워커 메모리에서 바로 받아 넘긴다(같은 서버라 조각마다 수 ms). 받지 못한 조각은 자막만 보여 주도록 음성 없이 넘긴다.
+  private NpcReplyListener relayTo(WorkerTrace trace, TurnEvents events) {
+    return new NpcReplyListener() {
+      @Override
+      public void onDelta(String text) {
+        events.delta(text);
+      }
+
+      @Override
+      public void onChunk(NpcReplyChunk chunk) {
+        events.audio(chunk.seq(), chunk.text(), chunkAudio(trace, chunk.audioId()));
+      }
+    };
+  }
+
+  private byte[] chunkAudio(WorkerTrace trace, String audioId) {
+    if (audioId == null) {
+      return null;
+    }
+    try {
+      return aiGateway.audio(trace, audioId);
+    } catch (BusinessException exception) {
+      log.warn("npc_chunk_audio_download_failed code={}", exception.getErrorCode());
+      return null;
+    }
   }
 
   // 의도 판정과 같은 문장으로 동시에 부른다. 워커에 닿지 못해도 턴을 막지 않고 판정하지 못한 것으로 둔다.
@@ -242,18 +343,32 @@ public class TurnService {
             });
   }
 
-  private TurnContext turnContext(Long userId, Long conversationId) {
-    Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
+  private TurnContextSelection turnContext(
+      Long userId, Long conversationId, java.util.UUID requestId) {
+    Conversation conversation =
+        conversationLookup.ownedConversationForUpdate(userId, conversationId);
     if (!conversation.isActive()) {
       throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
     }
-    return new TurnContext(
-        dialogueContexts.npcOf(conversation),
-        dialogueContexts.learner(userId),
-        dialogueContexts.history(conversationId),
-        conversation.getLevelApplied(),
-        memoryService.memoryFor(userId, conversation.getNpcId()),
-        conversation.getRudeCount());
+    Instant now = clock.instant();
+    if (conversation.reachedHardTimeLimit(now)) {
+      conversation.endByTimeLimit(now);
+      return new TurnContextSelection(null, true, false);
+    }
+    boolean finalTurn = conversation.reachedTimeLimit(now);
+    if (finalTurn && !conversation.claimFinalTurn(requestId)) {
+      return new TurnContextSelection(null, true, false);
+    }
+    return new TurnContextSelection(
+        new TurnContext(
+            dialogueContexts.npcOf(conversation),
+            dialogueContexts.learner(userId),
+            dialogueContexts.history(conversationId),
+            conversation.getLevelApplied(),
+            memoryService.memoryFor(userId, conversation.getNpcId()),
+            conversation.getRudeCount()),
+        false,
+        finalTurn);
   }
 
   private TurnResponse response(Conversation conversation, Turn userTurn, Turn npcTurn) {
@@ -276,4 +391,6 @@ public class TurnService {
       int level,
       WorkerMemory memory,
       int rudeCount) {}
+
+  private record TurnContextSelection(TurnContext context, boolean rejected, boolean finalTurn) {}
 }

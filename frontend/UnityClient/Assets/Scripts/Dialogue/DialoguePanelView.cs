@@ -642,7 +642,7 @@ namespace A305.Dialogue
             PlaceWordCard();
         }
 
-        // 누른 단어 바로 위(자리가 없으면 아래)에 카드를 띄운다. 대화창 안에서만 움직여 그 위의 NPC 얼굴을 가리지 않는다.
+        // 누른 단어 바로 위(자리가 없으면 아래)에 카드를 띄운다. 이름·호감도 줄 아래에 두어 표시가 카드 안으로 비치지 않게 한다.
         private void PlaceWordCard()
         {
             if (content == null || !glossaryCard.IsVisible || !TryFindWordArea(out Rect word))
@@ -651,6 +651,10 @@ namespace A305.Dialogue
             var area = new Rect(Vector2.zero, frame.rect.size);
             area.min += Vector2.one * WordCardMargin;
             area.max -= Vector2.one * WordCardMargin;
+            area.yMax = Mathf.Min(
+                area.yMax,
+                npcNameText.rectTransform.anchoredPosition.y - WordCardMargin
+            );
             wordCard.anchoredPosition = WordCardPlacement.Place(word, wordCard.rect.size, area);
         }
 

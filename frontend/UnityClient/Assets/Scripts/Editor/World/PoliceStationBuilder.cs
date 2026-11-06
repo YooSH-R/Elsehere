@@ -21,13 +21,20 @@ namespace A305.EditorTools.World
 {
     /// <summary>
     /// 마을 남서쪽 끝 1층 배경 건물을 경찰서로 바꾸고(<see cref="TownStorefrontBuilder"/>의 경찰서 매장),
-    /// 그 남쪽 잔디에 주차장을 깔아 순찰차를 세운다. 창구 뒤에는 경찰관 Dan(POLICE_OFFICER)을 세우고,
-    /// 신고를 받으면 순찰차가 출동하도록 창구(<see cref="PoliceReportDesk"/>)와 순찰차(<see cref="PoliceCar"/>)를 잇는다.
+    /// 그 남쪽 잔디에 주차장을 깔아 순찰차를 세운다. 경찰서 안은 카페·호텔처럼 따로 장면(PoliceStationScene)이라,
+    /// 마을 경찰서 문에는 그 장면으로 옮기는 출입구를 붙이고, 경찰서 장면에는 같은 건물과 마을로 나가는 문,
+    /// 창구 뒤 경찰관 4명과 신고 창구(<see cref="PoliceReportDesk"/>)를 둔다. 창구는 순찰차와 다른 장면이라 신고를 남기고
+    /// (<see cref="PoliceDispatchOrder"/>), 마을이 열리면 순찰차(<see cref="PoliceCar"/>)가 그 신고로 출동한다.
     /// 주차장·순찰차 프리팹·경찰관 외형은 없을 때만 만들고, 이미 있으면 디자인을 두고 기능 연결만 맞춘다.
     /// </summary>
     public static class PoliceStationBuilder
     {
         private const string MenuPath = "Tools/A305/World/Apply Police Station";
+        private const string StationMenuPath = "Tools/A305/World/Build Police Station Scene";
+        internal const string StationScenePath =
+            "Assets/Scenes/Production/PoliceStationScene.unity";
+        private const string OldInteriorScenePath =
+            "Assets/Scenes/ShopInteriors/PoliceStationInterior.unity";
         private const string Folder = "Assets/Prefabs/World/PoliceStation";
         private const string ArtFolder = "Assets/Art/World/PoliceStation";
         private const string CarPrefabPath = Folder + "/PoliceCar.prefab";
@@ -52,6 +59,9 @@ namespace A305.EditorTools.World
         private static readonly Vector2 LotSize = new Vector2(10f, 5.5f);
         private static readonly Vector3 ApronCenter = new Vector3(-.9f, 0, -25.7f);
         private static readonly Vector2 ApronSize = new Vector2(7.8f, 3.4f);
+
+        // 경찰서 장면에서 마을 문으로 들어오면 문 안쪽 2m에서 창구를 보고 선다.
+        private static readonly Vector3 InsideArrival = new Vector3(0, 0, 2f);
 
         // 순찰차는 동쪽을 보고 주차 칸에 선다.
         private static readonly Vector3 Bay = new Vector3(-9f, 0, -28.8f);
@@ -142,11 +152,13 @@ namespace A305.EditorTools.World
                 carPrefab,
                 bayHeight
             );
-            PlaceOfficers(scene, station, car);
+            RemoveTownOfficers(scene);
+            ConnectTownDoor(station);
             TaxiCabinBuilder.Configure(scene, BuilderTools.FindSingleInScene<TaxiRide>(scene));
             BuilderTools.SaveScene(scene, TownProductionBuilder.ScenePath);
+            BuildStationScene();
             AssetDatabase.SaveAssets();
-            Debug.Log("경찰서와 순찰차를 TownScene에 적용했습니다.");
+            Debug.Log("경찰서 장면과 마을의 경찰서 문·순찰차를 적용했습니다.");
         }
 
         // ---------- 주차장 ----------
@@ -410,21 +422,207 @@ namespace A305.EditorTools.World
                 list.GetArrayElementAtIndex(index).vector3Value = points[index];
         }
 
+        // ---------- 경찰서 장면 ----------
+
+        /// <summary>
+        /// 경찰서 실내를 카페·호텔처럼 따로 장면으로 만든다. 마을과 같은 경찰서 건물 프리팹을 두어 실내 모습은 그대로이고,
+        /// 마을로 나가는 문·플레이어·실내 카메라·경찰관과 신고 창구를 붙인다. 이미 있으면 디자인은 두고 연결만 맞춘다.
+        /// 같은 장면 안에서 실내를 따로 불러오던 예전 실내 씬(ShopInteriors/PoliceStationInterior)은 지운다.
+        /// </summary>
+        [MenuItem(StationMenuPath)]
+        public static void BuildStationScene()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            (string Code, string Name)[] places = PatrolPlaces();
+            Scene scene = OpenOrCreateStationScene();
+            Transform station = Station(scene);
+            ConnectStationDoor(station);
+            SpaceSceneSetup.Apply(scene);
+            FirstDayShopBuilder.UseInteriorCamera(scene);
+            SpaceDoorway townDoor = BuilderTools
+                .FindAllInScene<SpaceDoorway>(scene)
+                .Single(doorway => doorway.DoorwayId == "TownDoor");
+            Transform player = BuilderTools.FindSingleInScene<PlayerMover>(scene).transform;
+            player.SetPositionAndRotation(
+                townDoor.ArrivalPoint.position,
+                townDoor.ArrivalPoint.rotation
+            );
+            PrefabUtility.RecordPrefabInstancePropertyModifications(player);
+            PlaceOfficers(scene, station, places);
+            // 신고 접수 문구는 택시와 같은 대화 화면 위쪽 상태 판에 보인다.
+            TaxiCabinBuilder.ConfigureStatus(
+                BuilderTools.FindSingleInScene<DialoguePanelView>(scene)
+            );
+            BuilderTools.SaveScene(scene, StationScenePath);
+            BuilderTools.AddToSceneList(StationScenePath);
+            // 경찰관에 생활을 붙이고 경찰서 바닥을 구운 뒤, 경찰서 1층 안에서만 지내게 한다.
+            NpcLifeBuilder.BuildScene(StationScenePath);
+            scene = EditorSceneManager.OpenScene(StationScenePath, OpenSceneMode.Single);
+            KeepOfficersInStation(scene);
+            BuilderTools.SaveScene(scene, StationScenePath);
+            RemoveOldInteriorScene();
+        }
+
+        private static Scene OpenOrCreateStationScene()
+        {
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(StationScenePath) != null)
+                return EditorSceneManager.OpenScene(StationScenePath, OpenSceneMode.Single);
+            Scene scene = EditorSceneManager.NewScene(
+                NewSceneSetup.EmptyScene,
+                NewSceneMode.Single
+            );
+            SceneGroups groups = BuilderTools.EnsureGroups(scene);
+            GameObject building = BuilderTools.InstantiatePrefab(
+                BuilderTools.LoadRequiredAsset<GameObject>(
+                    TownStorefrontBuilder.Folder + "/PoliceStation.prefab",
+                    StationMenuPath
+                ),
+                groups.Environment,
+                Vector3.zero,
+                Quaternion.identity
+            );
+            building.name = "PoliceStation";
+            var sun = new GameObject("StationSun").AddComponent<Light>();
+            sun.transform.SetParent(groups.Lighting, false);
+            sun.type = LightType.Directional;
+            sun.intensity = 1.4f;
+            sun.transform.rotation = Quaternion.Euler(55, -30, 0);
+            RenderSettings.ambientLight = new UnityEngine.Color(.65f, .65f, .6f);
+            BuilderTools.SaveScene(scene, StationScenePath);
+            return scene;
+        }
+
+        private static Transform Station(Scene scene) =>
+            BuilderTools
+                .FindAllInScene<Transform>(scene)
+                .Single(part => part.name == "PoliceStation" && part.Find("Entrance") != null);
+
+        // 마을 경찰서 문 밖 보도에 닿으면 경찰서 장면으로 옮긴다. 다른 마을 문처럼 문 앞 1m에서 문을 등지고 나온다.
+        private static void ConnectTownDoor(Transform station)
+        {
+            SpaceDoorway door = StationDoorway(
+                station,
+                "PoliceStationDoorway",
+                "PoliceStationDoor",
+                "PoliceStationScene",
+                "TownDoor",
+                outward: true
+            );
+            TownProductionBuilder.FitDoorToSidewalk(door);
+        }
+
+        // 경찰서 장면의 문 안쪽에 닿으면 마을로 나간다. 마을에서 들어오면 문 안쪽 2m에서 창구를 보고 선다.
+        private static void ConnectStationDoor(Transform station)
+        {
+            SpaceDoorway door = StationDoorway(
+                station,
+                "TownDoorway",
+                "TownDoor",
+                "TownScene",
+                "PoliceStationDoor",
+                outward: false
+            );
+            door.ArrivalPoint.localPosition = InsideArrival;
+            door.ArrivalPoint.localRotation = Quaternion.identity;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(door.ArrivalPoint);
+        }
+
+        /// <summary>
+        /// 경찰서 정면 출입문 자리에 장면을 옮기는 출입구를 붙인다. 건물에 그려진 문(PoliceStationDoor)이 그대로 보이도록
+        /// 출입구 프리팹의 문 그림은 끄고, 지나가지 못하게 막는 문짝 충돌만 남긴다. outward면 길 쪽, 아니면 실내 쪽을 본다.
+        /// </summary>
+        private static SpaceDoorway StationDoorway(
+            Transform station,
+            string objectName,
+            string doorwayId,
+            string destinationScene,
+            string destinationDoorwayId,
+            bool outward
+        )
+        {
+            Transform entrance = station.Find("Entrance");
+            Transform existing = entrance.Find(objectName);
+            GameObject root =
+                existing != null
+                    ? existing.gameObject
+                    : BuilderTools.InstantiatePrefab(
+                        BuilderTools.LoadRequiredAsset<GameObject>(
+                            SpaceSceneBuilder.DoorwayPrefabPath,
+                            MenuPath
+                        ),
+                        entrance,
+                        new Vector3(0, 0, outward ? .07f : -.07f),
+                        Quaternion.Euler(0, outward ? 0 : 180, 0)
+                    );
+            root.name = objectName;
+            var doorway = root.GetComponent<SpaceDoorway>();
+            BuilderTools.SetText(doorway, "doorwayId", doorwayId);
+            BuilderTools.SetText(doorway, "destinationScene", destinationScene);
+            BuilderTools.SetText(doorway, "destinationDoorwayId", destinationDoorwayId);
+            foreach (
+                Renderer picture in root
+                    .transform.Find("Visual")
+                    .GetComponentsInChildren<Renderer>(true)
+            )
+            {
+                picture.enabled = false;
+                PrefabUtility.RecordPrefabInstancePropertyModifications(picture);
+            }
+            return doorway;
+        }
+
+        // 마을 순찰차의 출동 장소(코드·화면 이름). 마을이 열려 있지 않으면 잠깐 열어 읽고 닫는다.
+        private static (string Code, string Name)[] PatrolPlaces()
+        {
+            Scene town = SceneManager.GetSceneByPath(TownProductionBuilder.ScenePath);
+            bool opened = !town.isLoaded;
+            if (opened)
+                town = EditorSceneManager.OpenScene(
+                    TownProductionBuilder.ScenePath,
+                    OpenSceneMode.Additive
+                );
+            try
+            {
+                SerializedProperty destinations = new SerializedObject(
+                    BuilderTools.FindSingleInScene<PoliceCar>(town)
+                ).FindProperty("destinations");
+                return Enumerable
+                    .Range(0, destinations.arraySize)
+                    .Select(index => destinations.GetArrayElementAtIndex(index))
+                    .Select(place =>
+                        (
+                            place.FindPropertyRelative("code").stringValue,
+                            place.FindPropertyRelative("displayName").stringValue
+                        )
+                    )
+                    .ToArray();
+            }
+            finally
+            {
+                if (opened)
+                    EditorSceneManager.CloseScene(town, true);
+            }
+        }
+
+        private static void RemoveOldInteriorScene()
+        {
+            EditorBuildSettings.scenes = EditorBuildSettings
+                .scenes.Where(entry => entry.path != OldInteriorScenePath)
+                .ToArray();
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(OldInteriorScenePath) != null)
+                AssetDatabase.DeleteAsset(OldInteriorScenePath);
+        }
+
         // ---------- 경찰관 ----------
 
         /// <summary>
-        /// 경찰관 4명을 경찰서 창구 뒤에 두고, 누구에게 신고해도 순찰차가 출동하도록 경찰관마다 신고 창구를 잇는다.
-        /// 이미 있는 경찰관은 자리를 바꾸지 않는다. 순찰차가 이미 놓인 마을 장면에 쓰며, 장면 저장은 부르는 쪽이 한다.
+        /// 경찰관 4명을 경찰서 장면의 창구 뒤에 두고, 누구에게 신고해도 접수되도록 경찰관마다 신고 창구를 잇는다.
+        /// 이미 있는 경찰관은 자리를 바꾸지 않는다. 경찰서 장면에 쓰며, 장면 저장은 부르는 쪽이 한다.
         /// </summary>
         public static void PlaceOfficers(Scene scene)
         {
-            PlaceOfficers(
-                scene,
-                TownProductionBuilder
-                    .Root(scene, "Environment")
-                    .Find("TownMainstreet/BackgroundBuildings/PoliceStation"),
-                BuilderTools.FindSingleInScene<PoliceCar>(scene)
-            );
+            PlaceOfficers(scene, Station(scene), PatrolPlaces());
         }
 
         /// <summary>
@@ -439,15 +637,29 @@ namespace A305.EditorTools.World
             }
         }
 
-        private static void PlaceOfficers(Scene scene, Transform station, PoliceCar car)
+        private static void PlaceOfficers(
+            Scene scene,
+            Transform station,
+            (string Code, string Name)[] places
+        )
         {
             foreach (var officer in Officers)
             {
                 Desk(
                     scene,
                     Officer(scene, station, officer.Code, officer.ObjectName, officer.Spot),
-                    car
+                    places
                 );
+            }
+        }
+
+        // 경찰관은 경찰서 장면에서 일하므로, 예전에 마을 경찰서 안에 두었던 경찰관은 지운다.
+        private static void RemoveTownOfficers(Scene town)
+        {
+            foreach (NpcIdentity npc in BuilderTools.FindAllInScene<NpcIdentity>(town))
+            {
+                if (Officers.Any(officer => officer.Code == npc.Code))
+                    Object.DestroyImmediate(npc.gameObject);
             }
         }
 
@@ -537,11 +749,25 @@ namespace A305.EditorTools.World
 
         // ---------- 창구 ----------
 
-        private static void Desk(Scene scene, NpcIdentity officer, PoliceCar car)
+        // 순찰차는 마을에 있으므로, 접수 문구에 쓸 장소 이름은 순찰차의 출동 장소 목록을 그대로 옮겨 둔다.
+        private static void Desk(
+            Scene scene,
+            NpcIdentity officer,
+            (string Code, string Name)[] places
+        )
         {
             var desk = BuilderTools.GetOrAddComponent<PoliceReportDesk>(officer.gameObject);
             BuilderTools.SetReference(desk, "officer", officer);
-            BuilderTools.SetReference(desk, "patrolCar", car);
+            var fields = new SerializedObject(desk);
+            SerializedProperty destinations = fields.FindProperty("destinations");
+            destinations.arraySize = places.Length;
+            for (int index = 0; index < places.Length; index++)
+            {
+                SerializedProperty place = destinations.GetArrayElementAtIndex(index);
+                place.FindPropertyRelative("code").stringValue = places[index].Code;
+                place.FindPropertyRelative("displayName").stringValue = places[index].Name;
+            }
+            fields.ApplyModifiedPropertiesWithoutUndo();
             BuilderTools.SetReference(
                 desk,
                 "dialogue",
@@ -568,22 +794,7 @@ namespace A305.EditorTools.World
                 .Root(scene, "Environment")
                 .Find("TownMainstreet/BackgroundBuildings/PoliceStation");
             PoliceCar car = BuilderTools.FindSingleInScene<PoliceCar>(scene);
-            NpcIdentity officer = BuilderTools
-                .FindAllInScene<NpcIdentity>(scene)
-                .Single(npc => npc.Code == OfficerCode);
-            // 편집 화면에 저장된 자세 대신 플레이와 같은 서 있기 동작으로 찍는다.
-            Animator officerAnimator = officer.GetComponentInChildren<Animator>();
-            AnimationClip idle = officerAnimator.runtimeAnimatorController.animationClips.First(
-                clip => clip.name.Contains("Idle")
-            );
-            AnimationMode.StartAnimationMode();
-            AnimationMode.SampleAnimationClip(officerAnimator.gameObject, idle, 0);
-            var camera = new GameObject("PoliceReviewCamera").AddComponent<Camera>();
-            camera.fieldOfView = 60;
-            camera.nearClipPlane = .04f;
-            camera.farClipPlane = 160;
-            camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = new UnityEngine.Color(.76f, .85f, .86f);
+            Camera camera = ReviewCamera();
 
             Shot(camera, new Vector3(6, 9, -38), new Vector3(-7, 1, -23), "street.png");
             Shot(camera, new Vector3(-9, 22, -27), new Vector3(-9, 0, -26.9f), "parking-top.png");
@@ -594,6 +805,26 @@ namespace A305.EditorTools.World
                 car.transform.position + Vector3.up * .8f,
                 "car-lights.png"
             );
+            Object.DestroyImmediate(camera.gameObject);
+
+            // 실내와 경찰관은 경찰서 장면에서 찍는다.
+            scene = EditorSceneManager.OpenScene(StationScenePath);
+            foreach (Canvas canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+                canvas.gameObject.SetActive(false);
+            foreach (Camera existing in Object.FindObjectsByType<Camera>(FindObjectsSortMode.None))
+                existing.enabled = false;
+            station = Station(scene);
+            NpcIdentity officer = BuilderTools
+                .FindAllInScene<NpcIdentity>(scene)
+                .Single(npc => npc.Code == OfficerCode);
+            // 편집 화면에 저장된 자세 대신 플레이와 같은 서 있기 동작으로 찍는다.
+            Animator officerAnimator = officer.GetComponentInChildren<Animator>();
+            AnimationClip idle = officerAnimator.runtimeAnimatorController.animationClips.First(
+                clip => clip.name.Contains("Idle")
+            );
+            AnimationMode.StartAnimationMode();
+            AnimationMode.SampleAnimationClip(officerAnimator.gameObject, idle, 0);
+            camera = ReviewCamera();
             Shot(
                 camera,
                 station.TransformPoint(new Vector3(-1.5f, 2.2f, -.8f)),
@@ -608,6 +839,17 @@ namespace A305.EditorTools.World
             );
             AnimationMode.StopAnimationMode();
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        }
+
+        private static Camera ReviewCamera()
+        {
+            var camera = new GameObject("PoliceReviewCamera").AddComponent<Camera>();
+            camera.fieldOfView = 60;
+            camera.nearClipPlane = .04f;
+            camera.farClipPlane = 160;
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = new UnityEngine.Color(.76f, .85f, .86f);
+            return camera;
         }
 
         private static void Shot(Camera camera, Vector3 position, Vector3 target, string file)

@@ -27,6 +27,7 @@ namespace A305.EditorTools.Weather
             "CafeScene",
             "HotelScene",
             "ShopScene",
+            "PoliceStationScene",
         };
 
         // 밤에 더 밝히는 발광 재질: 마을 창빛·상점 조명과 실내 조명 갓.

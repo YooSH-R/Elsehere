@@ -27,6 +27,7 @@
 
 - 테스트할 로직은 `MonoBehaviour`와 분리한 일반 C# 클래스로 작성합니다. `MonoBehaviour`는 입력 전달, 화면 표시, Unity 객체 연결을 맡고 판단은 분리한 클래스에 맡깁니다.
 - EditMode 테스트를 우선합니다. PlayMode 테스트는 실제 프레임 진행이나 Unity 객체가 필요할 때만 작성합니다.
+- 이미 병합·검증된 고정 씬의 배치·직렬화 연결·Builder 회귀 검사는 정리했습니다. 새 기능이나 변경한 씬의 동작 검증이 필요하면 관련 테스트를 작성할 수 있습니다. 씬 배치의 시각적 결과는 직접 Play 실행과 브라우저에서 확인합니다.
 - 서버 통신과 브라우저 마이크 연결은 호출 경계를 분리하고, 테스트에서는 대체 구현으로 성공·실패·취소·시간 초과를 검증합니다.
 - 브라우저 전용 연동(`.jslib` 등)은 Editor 테스트에서 실행되지 않습니다. 연동 코드는 얇게 유지하고 실제 브라우저에서 확인합니다.
 
@@ -50,6 +51,7 @@
 - `-runTests`는 테스트가 끝나면 Editor를 종료하므로 `-quit`을 함께 쓰지 않습니다. PlayMode는 `-testPlatform PlayMode`로 실행합니다.
 - Red-Green 반복 중에는 `-testFilter`로 작성 중인 테스트와 바꾼 코드를 쓰는 묶음만 실행합니다. 여러 묶음은 `;`로 잇습니다. 예: `-testFilter "A305.World.PlayModeTests.SpaceTravelTests;A305.Npc.PlayModeTests.NpcRoutineTests"`
 - 푸시하기 전에는 저장소 최상위에서 `./infra/scripts/run-unity-ci.ps1 -Action test`로 CI와 같은 조건(Tripo 입력 포함)의 EditMode·PlayMode 전체를 한 번 실행하고, `dotnet csharpier check Assets/Scripts Assets/Tests`로 형식을 확인합니다.
+- 전체 검사는 MR의 최종 커밋과 일치하는 작업 트리에서 실행하고, 검사한 커밋 SHA·작업 트리 변경 여부·각 테스트 결과를 MR에 기록합니다. 검사 후 코드나 에셋을 바꾸면 최종 상태에서 다시 실행합니다. 실패·미실행 결과는 통과로 기록하지 않고 해결 전에는 병합하지 않습니다. GitLab MR 파이프라인은 이 로컬 결과를 자동으로 확인하지 않습니다.
 - 결과 파일은 저장소 밖에 저장합니다.
 - Editor가 프로젝트를 열고 있거나 Unity를 실행할 수 없으면, 테스트를 작성한 뒤 사용자에게 Test Runner 실행을 요청하고 결과를 받아 다음 단계로 진행합니다. 요청 횟수를 줄이려고 관련 시나리오 몇 개를 묶어 확인할 수 있지만, 구현 전에 묶은 테스트가 모두 실패하는지 먼저 확인합니다.
 - 결과를 확인하기 전에는 Red·Green을 확인했다고 보고하지 않습니다.

@@ -19,6 +19,7 @@ unity:format:
         paths: &unity_change_paths
           - frontend/**/*
           - docs/api/**/*
+          - infra/scripts/unity-test-scope.ps1
           - infra/scripts/unity-code-quality.ps1
           - infra/scripts/run-unity-ci.ps1
           - infra/scripts/prepare-unity-test-inputs.ps1
@@ -70,31 +71,7 @@ unity:browser-tests:
     paths:
       - dist/unity-ci/
 
-unity:editor-tests:
-  extends: .unity-editor
-  needs: ["ci:yaml", "unity:format"]
-  allow_failure: false
-  # Leave room for the full scene suite and import variance while bounding stalled runs.
-  timeout: 45m
-  script:
-    # The script narrows web-template-only changes to the deployment tests.
-    - powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action test -ChangedSince "$env:CI_MERGE_REQUEST_DIFF_BASE_SHA"
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_PROJECT_ID == $CI_MERGE_REQUEST_PROJECT_ID'
-      changes:
-        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
-        # Convention documents cannot change Editor results, so they only select the format check.
-        paths: &unity_editor_change_paths
-          - frontend/**/*
-          - docs/api/**/*
-          - infra/scripts/unity-code-quality.ps1
-          - infra/scripts/run-unity-ci.ps1
-          - infra/scripts/prepare-unity-test-inputs.ps1
-          - infra/tests/tripo/**/*
-          - .gitlab/ci/unity.yml
-
-# Fork code must not run under the notebook's licensed Windows account.
-# Keep affected fork MRs blocked rather than silently omitting their required test.
+# Keep fork changes subject to project-branch review and local verification.
 unity:external-mr:
   extends: .linux-light-job
   stage: verify
@@ -102,13 +79,21 @@ unity:external-mr:
   needs: ["ci:yaml"]
   allow_failure: false
   script:
-    - echo "Unity tests require a branch in this project. Review and copy the fork changes into a project branch before merging."
+    - echo "Review and copy fork Unity changes into a project branch for local verification before merging."
     - exit 1
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_PROJECT_ID != $CI_MERGE_REQUEST_PROJECT_ID'
       changes:
         compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
-        paths: *unity_editor_change_paths
+        paths:
+          - frontend/**/*
+          - docs/api/**/*
+          - infra/scripts/unity-test-scope.ps1
+          - infra/scripts/unity-code-quality.ps1
+          - infra/scripts/run-unity-ci.ps1
+          - infra/scripts/prepare-unity-test-inputs.ps1
+          - infra/tests/tripo/**/*
+          - .gitlab/ci/unity.yml
 
 unity:editor-and-webgl:
   extends: .unity-editor

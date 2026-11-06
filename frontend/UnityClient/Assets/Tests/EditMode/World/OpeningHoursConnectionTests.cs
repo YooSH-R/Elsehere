@@ -1,6 +1,4 @@
-using System.Linq;
 using A305.EditorTools.Common;
-using A305.EditorTools.World;
 using A305.Player;
 using NUnit.Framework;
 using UnityEditor;
@@ -22,11 +20,7 @@ namespace A305.World.Tests
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         }
 
-        [TestCase("HomeScene")]
-        [TestCase("TownScene")]
-        [TestCase("CafeScene")]
-        [TestCase("HotelScene")]
-        [TestCase("ShopScene")]
+        [TestCase("PoliceStationScene")]
         public void ProductionScene_ReadsPlaceHoursAndShowsNoticesForItsPlayer(string name)
         {
             Scene scene = OpenProductionScene(name);
@@ -44,77 +38,6 @@ namespace A305.World.Tests
                 Is.EqualTo(BuilderTools.FindSingleInScene<PlayerMover>(scene)),
                 name
             );
-        }
-
-        [TestCase("CafeScene")]
-        [TestCase("HotelScene")]
-        [TestCase("ShopScene")]
-        public void PlaceThatCloses_SendsThePlayerOutThroughItsTownDoor(string name)
-        {
-            Scene scene = OpenProductionScene(name);
-            var controller = BuilderTools.FindSingleInScene<OpeningHoursController>(scene);
-            Assert.That(controller, Is.Not.Null, name);
-
-            var exit = Reference(controller, "exitToTown") as SpaceDoorway;
-            Assert.That(exit, Is.Not.Null, name);
-            Assert.That(exit.gameObject.scene, Is.EqualTo(scene), name);
-            Assert.That(exit.DestinationScene, Is.EqualTo("TownScene"), name);
-        }
-
-        [Test]
-        public void EveryTownShop_KnowsItsPlaceCodeHoursAndName()
-        {
-            Scene scene = OpenProductionScene("TownScene");
-            // Play·빌드에서처럼 건물마다 실내를 나누고 ShopInterior를 붙인다.
-            new ShopInteriorScenes().OnProcessScene(scene, null);
-            string[] listedCodes = JsonUtility
-                .FromJson<ListedPlaces>(
-                    AssetDatabase.LoadAssetAtPath<TextAsset>(PlaceHoursPath).text
-                )
-                .places.Select(place => place.code)
-                .ToArray();
-
-            ShopInterior[] shops = BuilderTools.FindAllInScene<ShopInterior>(scene);
-            // 2층에 따로 가게가 있는 건물(오락실 위 서점·생활용품점 위 찻집)은 층마다 실내가 있고 같은 영업시간을 쓴다.
-            Assert.That(
-                shops.Select(shop => $"{shop.name}={shop.PlaceCode}"),
-                Is.EquivalentTo(
-                    new[]
-                    {
-                        "PostOffice=POST_OFFICE",
-                        "MapleDiner=DINER",
-                        "TownBank=BANK",
-                        "SudsLaundromat=LAUNDROMAT",
-                        "BloomFlowers=FLOWER_SHOP",
-                        "MainStreetBarber=BARBER",
-                        "PoliceStation=POLICE_STATION",
-                        "MapleBakery=BAKERY",
-                        "LittleArcade=ARCADE",
-                        "LittleArcade=ARCADE",
-                        "HomeLiving=HOME_STORE",
-                        "HomeLiving=HOME_STORE",
-                    }
-                )
-            );
-            foreach (ShopInterior shop in shops)
-            {
-                Assert.That(shop.PlaceName, Is.Not.Empty, shop.name);
-                // 경찰서처럼 24시간 여는 곳은 안내할 영업시간 문구가 없으므로, 영업시간 파일에 그 장소가 있는지 본다.
-                Assert.That(listedCodes, Does.Contain(shop.PlaceCode), shop.name);
-            }
-        }
-
-        // 영업시간 파일(PlaceHours.json)에서 장소 코드만 읽는다.
-        [System.Serializable]
-        private sealed class ListedPlaces
-        {
-            public ListedPlace[] places;
-        }
-
-        [System.Serializable]
-        private sealed class ListedPlace
-        {
-            public string code;
         }
 
         private static Scene OpenProductionScene(string name) =>

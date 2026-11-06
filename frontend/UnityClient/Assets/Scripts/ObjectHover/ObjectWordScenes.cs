@@ -16,6 +16,7 @@ namespace A305.ObjectHover
             { "CafeScene", "CAFE" },
             { "HotelScene", "HOTEL" },
             { "ShopScene", "SHOP" },
+            { "PoliceStationScene", "POLICE_STATION" },
         };
 
         public static bool TryGetSceneCode(string unitySceneName, out string sceneCode)

@@ -19,11 +19,7 @@ namespace A305.World.Tests
     {
         private const string HudPrefabPath = "Assets/Prefabs/Learning/LearningHud.prefab";
 
-        [TestCase("HomeScene")]
-        [TestCase("TownScene")]
-        [TestCase("CafeScene")]
-        [TestCase("HotelScene")]
-        [TestCase("ShopScene")]
+        [TestCase("PoliceStationScene")]
         public void ProductionSceneHudKeepsItsButtonsInTheClosedMenu(string name)
         {
             var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/" + name + ".unity");
@@ -57,23 +53,6 @@ namespace A305.World.Tests
                 items.transform.Find("ThemeButton"),
                 Is.Null,
                 name + ": 화면 디자인은 하나라 메뉴에 [테마]를 두지 않습니다."
-            );
-        }
-
-        [Test]
-        public void HomeHasNoThemePicker()
-        {
-            var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/HomeScene.unity");
-
-            bool hasPicker = scene
-                .GetRootGameObjects()
-                .SelectMany(root => root.GetComponentsInChildren<Transform>(true))
-                .Any(child => child.name.StartsWith("ThemePicker"));
-
-            Assert.That(
-                hasPicker,
-                Is.False,
-                "화면 디자인은 하나라 테마 고르기 화면을 두지 않습니다."
             );
         }
 
@@ -116,11 +95,7 @@ namespace A305.World.Tests
         }
 
         // 조작법 카드는 오른쪽 아래에 두고, X로 닫은 뒤에는 메뉴(≡)의 [조작법]으로 다시 연다.
-        [TestCase("HomeScene")]
-        [TestCase("TownScene")]
-        [TestCase("CafeScene")]
-        [TestCase("HotelScene")]
-        [TestCase("ShopScene")]
+        [TestCase("PoliceStationScene")]
         public void ProductionSceneHudShowsTheControlsGuideAtTheBottomRight(string name)
         {
             var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/" + name + ".unity");

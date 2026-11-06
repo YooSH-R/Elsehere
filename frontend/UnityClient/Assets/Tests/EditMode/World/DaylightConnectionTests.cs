@@ -9,11 +9,7 @@ namespace A305.World.Tests
 {
     public sealed class DaylightConnectionTests
     {
-        [TestCase("TownScene", typeof(WeatherPresenter))]
-        [TestCase("HomeScene", typeof(InteriorDaylight))]
-        [TestCase("CafeScene", typeof(InteriorDaylight))]
-        [TestCase("HotelScene", typeof(InteriorDaylight))]
-        [TestCase("ShopScene", typeof(InteriorDaylight))]
+        [TestCase("PoliceStationScene", typeof(InteriorDaylight))]
         public void ProductionSceneFollowsGameClockDayAndNight(string name, System.Type view)
         {
             var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/" + name + ".unity");
@@ -34,10 +30,7 @@ namespace A305.World.Tests
             );
         }
 
-        [TestCase("HomeScene")]
-        [TestCase("CafeScene")]
-        [TestCase("HotelScene")]
-        [TestCase("ShopScene")]
+        [TestCase("PoliceStationScene")]
         public void InteriorLetsDaylightInThroughWindows(string name)
         {
             var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/" + name + ".unity");

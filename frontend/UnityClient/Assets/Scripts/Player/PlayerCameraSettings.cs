@@ -72,7 +72,7 @@ namespace A305.Player
         [Tooltip(
             "대화할 때 카메라가 NPC 얼굴에서 플레이어 쪽으로 떨어진 수평 거리. 플레이어가 선 거리와 관계없이 NPC마다 같은 크기로 보인다"
         )]
-        private float dialogueDistanceMeters = 3.2f;
+        private float dialogueDistanceMeters = 2.9f;
 
         [SerializeField]
         [Tooltip(
@@ -84,7 +84,7 @@ namespace A305.Player
         [Tooltip(
             "대화할 때 NPC 얼굴이 놓일 화면 자리(왼쪽 아래 0, 오른쪽 위 1). 전신이 아래 대화창 위에 보이도록 가로 중앙·위쪽에 둔다"
         )]
-        private Vector2 dialogueFacePosition = new Vector2(.5f, .78f);
+        private Vector2 dialogueFacePosition = new Vector2(.5f, .74f);
 
         [Header("다가오는 상대를 기다리는 구도")]
         [SerializeField]

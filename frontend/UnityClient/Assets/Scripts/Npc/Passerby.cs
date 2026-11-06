@@ -190,6 +190,7 @@ namespace A305.Npc
 
         private void OnEnable()
         {
+            NpcWalkingSpace.Register(this);
             if (dialogue != null)
             {
                 dialogue.Ended += OnDialogueEnded;
@@ -198,6 +199,7 @@ namespace A305.Npc
 
         private void OnDisable()
         {
+            NpcWalkingSpace.Unregister(this);
             if (dialogue != null)
             {
                 dialogue.Ended -= OnDialogueEnded;
@@ -616,6 +618,12 @@ namespace A305.Npc
         /// <summary>그 방향으로 한 프레임 걷는다. 생활(NpcRoutine)은 다가올 때와 다른 속도로 걷는다.</summary>
         internal void WalkToward(Vector3 horizontalDirection, float speedMetersPerSecond)
         {
+            float step = NpcWalkingSpace.LimitStep(
+                this,
+                horizontalDirection.normalized,
+                speedMetersPerSecond * Time.deltaTime
+            );
+            speedMetersPerSecond = Time.deltaTime > 0 ? step / Time.deltaTime : 0;
             Vector3 velocity = horizontalDirection.normalized * speedMetersPerSecond;
             velocity.y = GroundedDownwardSpeedMetersPerSecond;
             characterController.Move(velocity * Time.deltaTime);

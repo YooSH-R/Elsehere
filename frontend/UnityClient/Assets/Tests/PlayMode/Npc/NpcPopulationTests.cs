@@ -106,6 +106,48 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator Town_ShiftStartKeepsCommutersApart()
+        {
+            SetClock(21 * 60);
+            yield return SceneManager.LoadSceneAsync("TownScene");
+            yield return null;
+            foreach (
+                var clock in Object.FindObjectsByType<GameClockDriver>(FindObjectsSortMode.None)
+            )
+                clock.enabled = false;
+            var walkers = Object.FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None);
+            Assert.That(
+                walkers.Select(w => w.GetComponent<NpcIdentity>().Code),
+                Does.Contain("HOTEL_NIGHT_MANAGER")
+            );
+            Assert.That(
+                walkers.Select(w => w.GetComponent<NpcIdentity>().Code),
+                Does.Contain("POLICE_SERGEANT")
+            );
+            for (int frame = 0; frame < 30; frame++)
+            {
+                foreach (var first in walkers)
+                foreach (var second in walkers)
+                {
+                    if (first.GetInstanceID() >= second.GetInstanceID())
+                        continue;
+                    float distance = Vector3
+                        .ProjectOnPlane(
+                            first.transform.position - second.transform.position,
+                            Vector3.up
+                        )
+                        .magnitude;
+                    Assert.That(
+                        distance,
+                        Is.GreaterThanOrEqualTo(.95f),
+                        $"출근 위치에서 얼굴과 몸이 겹치면 안 됩니다: {first.GetComponent<NpcIdentity>().Code} / {second.GetComponent<NpcIdentity>().Code}, frame {frame}"
+                    );
+                }
+                yield return null;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Town_CommuterWalksContinuouslyWithoutBurstingToCatchUp()
         {
             SetClock(15 * 60 + 5);

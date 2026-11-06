@@ -676,6 +676,8 @@ namespace A305.Learning
                 GameObject cards = FeedbackConversationLayout.Build(
                     scroll.content,
                     bodyText,
+                    titleText.font,
+                    situationRowTemplate.GetComponentInChildren<Button>(true),
                     tileSprite,
                     transcriptAvatarSprite,
                     feedback,

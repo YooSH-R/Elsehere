@@ -208,6 +208,7 @@ namespace A305.EditorTools.Learning
             }
             UiThemeSelection.Shared.Select(UiThemeId.Jelly);
             Render(camera, view, Path.Combine(output, "feedback-portrait.png"), 900, 1400);
+            view.SelectSection(FeedbackSection.Summary);
             view.SelectSection(FeedbackSection.Conversation);
             Render(
                 camera,
@@ -250,6 +251,9 @@ namespace A305.EditorTools.Learning
                 );
             scroll.verticalNormalizedPosition = 0;
             Render(camera, view, Path.Combine(output, "feedback-long-bottom.png"), 1600, 1000);
+            view.SelectSection(FeedbackSection.Conversation);
+            view.SelectReview(0);
+            Render(camera, view, Path.Combine(output, "feedback-long-review.png"), 1600, 1000);
             File.WriteAllText(
                 Path.Combine(output, "scroll-check.txt"),
                 $"Content height: {scroll.content.rect.height}; viewport: {scroll.viewport.rect.height}; external model calls: 0"
@@ -271,6 +275,17 @@ namespace A305.EditorTools.Learning
             camera.Render();
             Canvas.ForceUpdateCanvases();
             view.UpdateLayout();
+            Canvas.ForceUpdateCanvases();
+            foreach (TMPro.TMP_Text text in view.GetComponentsInChildren<TMPro.TMP_Text>())
+            {
+                if (text.name != "Utterance" && text.transform.parent.name != "DetailCard")
+                    continue;
+                text.ForceMeshUpdate();
+                if (text.isTextOverflowing)
+                    throw new System.InvalidOperationException(
+                        $"Feedback text exceeds its card: {text.name} ({width}x{height})."
+                    );
+            }
             camera.Render();
             RenderTexture.active = target;
             pixels.ReadPixels(new Rect(0, 0, width, height), 0, 0);

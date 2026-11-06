@@ -26,7 +26,7 @@ namespace A305.Voice
         public float ElapsedSeconds => flow.ElapsedSeconds;
         public float MaxRecordingSeconds => settings.MaxRecordingSeconds;
 
-        /// <summary>이 음량(RMS)보다 작으면 조용한 것으로 본다. 녹음에 말소리가 있는지 볼 때도 같은 기준을 쓴다.</summary>
+        /// <summary>녹음 자동 종료에 쓰는 무음 기준 음량(RMS). 녹음 후 작은 목소리를 판정할 때도 기준으로 쓴다.</summary>
         public float SilenceLevel => settings.SilenceLevel;
 
         private void Awake()

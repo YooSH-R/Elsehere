@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace A305.Voice
@@ -33,24 +34,44 @@ namespace A305.Voice
         public RecordingEndReason EndReason { get; }
 
         /// <summary>
-        /// 말소리로 볼 만큼 큰 소리가 합쳐서 <see cref="MinSpeechSeconds"/> 이상 있는지. 짧게 눌렀거나 말하지 않은 녹음을 STT에 보내면
-        /// 엉뚱한 문장이 나오므로 이때는 전사하지 않는다.
+        /// 말소리로 볼 만큼 큰 소리가 합쳐서 <see cref="MinSpeechSeconds"/> 이상 있는지 확인한다.
+        /// 기존 기준에 미달하는 작은 소리는 녹음의 바탕 음량과 비교해 한 번 더 확인한다.
         /// </summary>
-        /// <param name="level">이 음량(RMS)보다 큰 구간을 말소리로 본다. 자동 종료의 무음 기준과 같은 값을 쓴다.</param>
+        /// <param name="level">자동 종료에 쓰는 무음 기준 음량(RMS). 작은 목소리의 보조 판정에도 사용한다.</param>
         public bool HasSpeech(float level)
         {
             int window = Mathf.Max(1, Mathf.RoundToInt(SampleRate * WindowSeconds));
+            var levels = new float[Samples.Length / window];
             int loudWindows = 0;
+            int index = 0;
             for (int start = 0; start + window <= Samples.Length; start += window)
             {
                 float sum = 0f;
                 for (int i = start; i < start + window; i++)
                     sum += Samples[i] * Samples[i];
-                if (Mathf.Sqrt(sum / window) >= level)
+                float windowLevel = Mathf.Sqrt(sum / window);
+                levels[index++] = windowLevel;
+                if (windowLevel >= level)
                     loudWindows++;
             }
 
-            return loudWindows * window >= MinSpeechSeconds * SampleRate;
+            float requiredSamples = MinSpeechSeconds * SampleRate;
+            if (loudWindows * window >= requiredSamples)
+                return true;
+            if (levels.Length == 0)
+                return false;
+
+            // 작은 목소리는 고정 무음 기준보다 작을 수 있다. 낮은 음량 구간으로 바탕 잡음을 추정해
+            // 일정한 잡음까지 말로 취급하지 않도록 한다. 기존 기준을 넘은 녹음은 위에서 그대로 통과한다.
+            Array.Sort(levels);
+            float noiseLevel = levels[(levels.Length - 1) / 5];
+            float quietSpeechLevel = Mathf.Max(level * .3f, noiseLevel * 1.8f);
+            int quietSpeechWindows = 0;
+            foreach (float windowLevel in levels)
+                if (windowLevel >= quietSpeechLevel)
+                    quietSpeechWindows++;
+
+            return quietSpeechWindows * window >= requiredSamples;
         }
     }
 }

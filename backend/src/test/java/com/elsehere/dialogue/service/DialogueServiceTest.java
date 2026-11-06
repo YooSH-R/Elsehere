@@ -23,6 +23,7 @@ import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.mission.service.MissionDialogueService;
 import com.elsehere.mission.service.TownStoryService;
+import com.elsehere.review.service.ReviewCardService;
 import com.elsehere.user.service.GuestContentCleanup;
 import com.elsehere.user.service.OptionalConsentService;
 import com.elsehere.user.service.UserContentEraser;
@@ -68,6 +69,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   WorldSeedLoader.class,
   PronunciationAudioStore.class,
   ConversationService.class,
+  ReviewDialogue.class,
+  ReviewCardService.class,
   ConversationHistoryService.class,
   TurnService.class,
   DialogueRequestLocks.class,

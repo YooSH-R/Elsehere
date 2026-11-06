@@ -4,6 +4,8 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.NpcSummaryResponse;
 import com.elsehere.conversation.entity.Conversation;
+import com.elsehere.conversation.entity.ConversationStatus;
+import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.feedback.entity.FeedbackReviews;
 import com.elsehere.feedback.entity.FeedbackStatus;
@@ -31,6 +33,7 @@ import tools.jackson.databind.json.JsonMapper;
 @RequiredArgsConstructor
 public class ReviewCardService {
   private final ConversationLookup conversationLookup;
+  private final ConversationRepository conversationRepository;
   private final ConversationFeedbackRepository feedbackRepository;
   private final ReviewCardRepository reviewCardRepository;
   private final NpcRepository npcRepository;
@@ -48,7 +51,22 @@ public class ReviewCardService {
 
   @Transactional
   public void delete(Long userId, Long cardId) {
-    reviewCardRepository.delete(owned(userId, cardId));
+    ReviewCard card = lockOwned(userId, cardId);
+    if (conversationRepository.existsByReviewCardIdAndStatus(cardId, ConversationStatus.ACTIVE)) {
+      throw new BusinessException(ErrorCode.REVIEW_IN_PROGRESS);
+    }
+    reviewCardRepository.delete(card);
+  }
+
+  @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+  public void lockForStart(Long userId, Long cardId) {
+    lockOwned(userId, cardId);
+  }
+
+  private ReviewCard lockOwned(Long userId, Long cardId) {
+    return reviewCardRepository
+        .findOwnedForUpdate(cardId, userId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
   }
 
   private ReviewCard owned(Long userId, Long cardId) {

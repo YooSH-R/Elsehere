@@ -213,6 +213,7 @@ Table conversations [headercolor: #2E6B4F] {
   rude_count smallint [not null, default: 0, note: '이 대화에서 무례로 센 턴 수 · 한도(서버 설정값, 3)에 닿으면 NPC가 대화를 끝냄']
   started_at timestamptz [not null, default: `now()`]
   ended_at timestamptz
+  review_card_id bigint [note: '상황 복습 카드 ID. NULL이면 본편 대화, 값이 있으면 본편 진행과 분리된 REVIEW 대화']
   first_day_stage int [note: '대화 시작 시 첫날 연계 미션 단계 0~6. 피드백 상황 복원용이며 자유 대화는 NULL']
   town_story_stage int [note: '대화 시작 시 마을 여정 단계 0~11. 피드백 상황 복원용이며 해당 여정이 아니면 NULL']
   request_id uuid [unique, note: '대화 시작(CONV-01) 요청 ID · 재전송 시 새 대화를 만들지 않고 같은 대화를 돌려줌 (V10 전에 시작한 대화는 NULL)']
@@ -223,6 +224,7 @@ Table conversations [headercolor: #2E6B4F] {
 
   indexes {
     (user_id, npc_id, `started_at DESC`)
+    (review_card_id, status)
   }
 
   Note: 'NPC 자유 대화 세션 (튜토리얼 대본 대화는 기록하지 않음)'
@@ -600,6 +602,7 @@ Ref: user_vocab.source_turn_id > turns.id [color: #9AA3AE]
 Ref: user_word_prefs.user_id > users.id [color: #9AA3AE]
 Ref: conversations.user_id > users.id [color: #9AA3AE]
 Ref: conversations.npc_id > npcs.id [color: #9AA3AE]
+Ref: conversations.review_card_id > review_cards.id [color: #9AA3AE]
 Ref: training_recordings.user_id > users.id [color: #9AA3AE]
 Ref: training_recordings.conversation_id > conversations.id [color: #9AA3AE]
 Ref: conversation_feedback.conversation_id - conversations.id [color: #9AA3AE]

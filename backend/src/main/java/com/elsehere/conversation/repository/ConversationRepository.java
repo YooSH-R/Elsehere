@@ -26,6 +26,8 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
 
   Optional<Conversation> findByRequestId(UUID requestId);
 
+  boolean existsByReviewCardIdAndStatus(Long reviewCardId, ConversationStatus status);
+
   long countByUserId(Long userId);
 
   long countByUserIdAndStartedAtGreaterThanEqualAndStartedAtLessThan(
@@ -36,7 +38,7 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
    */
   @Query(
       "select c from Conversation c"
-          + " where c.userId = :userId"
+          + " where c.userId = :userId and c.reviewCardId is null"
           + " and (:npcId is null or c.npcId = :npcId)"
           + " order by c.startedAt desc, c.id desc")
   List<Conversation> findHistoryFirstPage(
@@ -45,7 +47,7 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
   /** 커서 대화({@code startedAt}, {@code id}) 다음부터의 지난 대화 한 페이지. 정렬은 첫 페이지와 같다. */
   @Query(
       "select c from Conversation c"
-          + " where c.userId = :userId"
+          + " where c.userId = :userId and c.reviewCardId is null"
           + " and (:npcId is null or c.npcId = :npcId)"
           + " and (c.startedAt < :startedAt or (c.startedAt = :startedAt and c.id < :id))"
           + " order by c.startedAt desc, c.id desc")

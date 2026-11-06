@@ -106,6 +106,8 @@ class TownStoryTurnTest {
             mock(NpcAudioReceiver.class),
             worker,
             mock(MemoryService.class),
+            mock(com.elsehere.review.service.ReviewCardService.class),
+            mock(ReviewDialogue.class),
             mock(NpcAffinityService.class),
             transactions,
             missions,

@@ -135,7 +135,7 @@ namespace A305.EditorTools.Mission
                 string name = shop.Key switch
                 {
                     "HOME_STORE_STAFF" => "생활용품",
-                    "DINER_STAFF" => "다이너",
+                    "DINER_STAFF" => "식당",
                     _ => shop.Value.Name,
                 };
                 BuildingLabel(labels, shop.Key, name, shop.Value.Tile);

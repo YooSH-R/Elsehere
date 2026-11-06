@@ -34582,7 +34582,7 @@ MonoBehaviour:
     stop: {x: -1.5, y: 0, z: 31.5}
     alighting: {x: -3.6, y: 0.1, z: 31.5}
   - code: DINER
-    displayName: "\uBA54\uC774\uD50C \uB2E4\uC774\uB108"
+    displayName: "\uBA54\uC774\uD50C \uC2DD\uB2F9"
     stop: {x: 1.5, y: 0, z: 39}
     alighting: {x: 3.6, y: 0.1, z: 39}
   - code: BANK
@@ -43080,7 +43080,7 @@ MonoBehaviour:
     stop: {x: -1.5, y: 0, z: 31.5}
     alighting: {x: -3.6, y: 0.1, z: 31.5}
   - code: DINER
-    displayName: "\uBA54\uC774\uD50C \uB2E4\uC774\uB108"
+    displayName: "\uBA54\uC774\uD50C \uC2DD\uB2F9"
     stop: {x: 1.5, y: 0, z: 39}
     alighting: {x: 3.6, y: 0.1, z: 39}
   - code: BANK

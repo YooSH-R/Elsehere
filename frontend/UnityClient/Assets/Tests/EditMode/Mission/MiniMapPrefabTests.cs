@@ -20,6 +20,19 @@ namespace A305.Mission.Tests
         private GameObject instance;
         private GameObject player;
 
+        [Test]
+        public void DinerBuildingLabelsUseRestaurantNameOnEveryMap()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            TMP_Text[] labels = prefab
+                .GetComponentsInChildren<TMP_Text>(true)
+                .Where(label => label.transform.parent.name == "DINER_STAFF")
+                .ToArray();
+
+            Assert.That(labels.Length, Is.GreaterThanOrEqualTo(2));
+            Assert.That(labels.Select(label => label.text), Is.All.EqualTo("식당"));
+        }
+
         [TearDown]
         public void DestroyMission()
         {

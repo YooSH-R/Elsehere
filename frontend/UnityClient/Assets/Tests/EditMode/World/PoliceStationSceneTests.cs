@@ -126,7 +126,7 @@ namespace A305.World.Tests
                         .stringValue
                 )
                 .ToArray();
-            Assert.That(names, Does.Contain("메이플 다이너"));
+            Assert.That(names, Does.Contain("메이플 식당"));
             Assert.That(names, Does.Not.Contain("경찰서"), "경찰서 자신으로는 출동하지 않습니다.");
         }
 

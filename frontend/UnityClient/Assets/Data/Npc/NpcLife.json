@@ -326,19 +326,9 @@
       },
       "schedule": [
         {
-          "from": "06:00",
-          "to": "18:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "18:00",
-          "to": "18:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "18:30",
-          "to": "06:00",
-          "activity": "OFF"
         }
       ]
     },
@@ -656,19 +646,9 @@
       },
       "schedule": [
         {
-          "from": "06:00",
-          "to": "18:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "18:00",
-          "to": "18:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "18:30",
-          "to": "06:00",
-          "activity": "OFF"
         }
       ]
     },
@@ -926,19 +906,9 @@
       },
       "schedule": [
         {
-          "from": "07:00",
-          "to": "15:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "15:00",
-          "to": "15:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "15:30",
-          "to": "07:00",
-          "activity": "OFF"
         }
       ]
     },

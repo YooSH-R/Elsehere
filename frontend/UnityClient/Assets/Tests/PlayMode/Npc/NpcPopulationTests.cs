@@ -669,7 +669,7 @@ namespace A305.Npc.PlayModeTests
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None
                 )
-                .Single(npc => npc.GetComponent<NpcIdentity>().Code == "CAFE_STAFF");
+                .Single(npc => npc.GetComponent<NpcIdentity>().Code == "CAFE_SERVER");
             var animator = walker.GetComponentInChildren<Animator>();
             var body = walker.GetComponent<CharacterController>();
             var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -756,28 +756,77 @@ namespace A305.Npc.PlayModeTests
             SetClock(18 * 60 + 5);
             yield return SceneManager.LoadSceneAsync("TownScene");
             yield return null;
-            var mia = Object
+            var leo = Object
                 .FindObjectsByType<NpcTownWalker>(
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None
                 )
-                .Single(npc => npc.GetComponent<NpcIdentity>().Code == "CAFE_STAFF");
-            Vector3 before = mia.transform.position;
-            Assert.That(mia.IsStaff, Is.True);
+                .Single(npc => npc.GetComponent<NpcIdentity>().Code == "CAFE_SERVER");
+            Vector3 before = leo.transform.position;
+            Assert.That(leo.IsStaff, Is.True);
             SetClock(18 * 60 + 10);
             for (int i = 0; i < 10; i++)
                 yield return null;
-            Assert.That(Vector3.Distance(before, mia.transform.position), Is.GreaterThan(.01f));
+            Assert.That(Vector3.Distance(before, leo.transform.position), Is.GreaterThan(.01f));
             SetClock(21 * 60);
             yield return null;
             yield return null;
-            Assert.That(mia.gameObject.activeSelf, Is.False);
+            Assert.That(leo.gameObject.activeSelf, Is.False);
             Transform residence = GameObject.Find("NpcResidence").transform;
             Assert.That(residence.GetComponentsInChildren<SpaceDoorway>(true), Is.Empty);
             Assert.That(
                 residence.GetComponentsInChildren<Collider>().Any(c => !c.isTrigger),
                 Is.True
             );
+        }
+
+        [UnityTest]
+        public IEnumerator ResidentStaff_RemainInTheirWorkplaceAcrossMidnightWithoutTownDuplicates()
+        {
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                string[] scenes = { "CafeScene", "HotelScene", "ShopScene" };
+                string[] codes = { "CAFE_STAFF", "HOTEL_STAFF", "SHOP_STAFF" };
+                for (int index = 0; index < scenes.Length; index++)
+                {
+                    SetClock(23 * 60 + 59);
+                    yield return SceneManager.LoadSceneAsync(scenes[index]);
+                    yield return null;
+                    foreach (int minute in new[] { 1439, 0, 180, 360, 900, 1080 })
+                    {
+                        SetClock(minute);
+                        yield return null;
+                        yield return null;
+                        Assert.That(
+                            Object
+                                .FindObjectsByType<NpcIdentity>(FindObjectsSortMode.None)
+                                .Count(npc => npc.Code == codes[index]),
+                            Is.EqualTo(1),
+                            codes[index] + " / " + minute
+                        );
+                    }
+                }
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+                foreach (int minute in new[] { 0, 300, 420, 900, 1080, 1439 })
+                {
+                    SetClock(minute);
+                    yield return null;
+                    yield return null;
+                    Assert.That(
+                        Object
+                            .FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None)
+                            .Any(npc => codes.Contains(npc.GetComponent<NpcIdentity>().Code)),
+                        Is.False,
+                        "상주 직원의 출퇴근 사본이 타운에 중복 등장하면 안 됩니다."
+                    );
+                }
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
         }
 
         [UnityTest]

@@ -11,7 +11,7 @@ namespace A305.Onboarding.Tests
             Assert.That(
                 GuestPanelText.Note(3),
                 Is.EqualTo(
-                    "게스트는 NPC와 <color=#FF7759><b>3번까지</b></color> 대화할 수 있어요.\n닉네임은 자동으로 정해져요."
+                    "게스트는 하루에 NPC와 <color=#FF7759><b>3번까지</b></color> 대화할 수 있어요.\n닉네임은 자동으로 정해져요."
                 )
             );
         }

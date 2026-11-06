@@ -293,6 +293,7 @@ namespace A305.Dialogue
                 {
                     QuotaExhaustedReason => "AI 사용량을 모두 써서 ",
                     RudeReason => "무례한 말이 쌓여 ",
+                    "TURN_LIMIT" => "대화가 30턴에 도달하여 ",
                     _ => "",
                 };
                 StatusMessage =
@@ -658,11 +659,6 @@ namespace A305.Dialogue
         private void Resume(ActiveConversation active)
         {
             ConversationId = active.ConversationId;
-            if (DateTimeOffset.TryParse(active.StartedAt, out DateTimeOffset startedAt))
-            {
-                timeLimitAt = startedAt.AddMinutes(5);
-                graceUntil = timeLimitAt.Value.AddSeconds(30);
-            }
             if (!string.IsNullOrEmpty(active.Npc.Name))
             {
                 NpcName = active.Npc.Name;

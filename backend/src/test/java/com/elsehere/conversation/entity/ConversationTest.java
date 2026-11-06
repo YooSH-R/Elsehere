@@ -11,14 +11,13 @@ class ConversationTest {
   private static final Instant STARTED_AT = Instant.parse("2026-11-05T00:00:00Z");
 
   @Test
-  @DisplayName("대화 시작 뒤 5분 미만은 시간 제한에 닿지 않고 정확히 5분부터 닿는다")
-  void reachedTimeLimit_usesExactFiveMinuteBoundary() {
+  @DisplayName("이미 사용자가 끝낸 대화는 턴 제한으로 다시 끝내지 않는다")
+  void endByTurnLimit_keepsEarlierEnd() {
     Conversation conversation = Conversation.start(1L, 2L, InitiatedBy.USER, 1, STARTED_AT);
-
-    assertThat(conversation.reachedTimeLimit(STARTED_AT.plusSeconds(299))).isFalse();
-    assertThat(conversation.reachedTimeLimit(STARTED_AT.plusSeconds(300))).isTrue();
-    assertThat(conversation.reachedHardTimeLimit(STARTED_AT.plusSeconds(329))).isFalse();
-    assertThat(conversation.reachedHardTimeLimit(STARTED_AT.plusSeconds(330))).isTrue();
+    conversation.endByUser(STARTED_AT.plusSeconds(10));
+    conversation.endByTurnLimit(STARTED_AT.plusSeconds(20));
+    assertThat(conversation.getEndReason()).isEqualTo(ConversationEndReason.USER_ENDED);
+    assertThat(conversation.getEndedAt()).isEqualTo(STARTED_AT.plusSeconds(10));
   }
 
   @Test
@@ -38,16 +37,16 @@ class ConversationTest {
   }
 
   @Test
-  @DisplayName("시간 제한 종료는 TIME_LIMIT을 저장하고 다시 끝내도 최초 종료 시각을 보존한다")
-  void endByTimeLimit_isIdempotent() {
+  @DisplayName("턴 제한 종료는 TURN_LIMIT을 저장하고 다시 끝내도 최초 종료 시각을 보존한다")
+  void endByTurnLimit_isIdempotent() {
     Conversation conversation = Conversation.start(1L, 2L, InitiatedBy.USER, 1, STARTED_AT);
     Instant endedAt = STARTED_AT.plusSeconds(300);
 
-    conversation.endByTimeLimit(endedAt);
-    conversation.endByTimeLimit(endedAt.plusSeconds(10));
+    conversation.endByTurnLimit(endedAt);
+    conversation.endByTurnLimit(endedAt.plusSeconds(10));
 
     assertThat(conversation.getStatus()).isEqualTo(ConversationStatus.ENDED_BY_NPC);
-    assertThat(conversation.getEndReason()).isEqualTo(ConversationEndReason.TIME_LIMIT);
+    assertThat(conversation.getEndReason()).isEqualTo(ConversationEndReason.TURN_LIMIT);
     assertThat(conversation.getEndedAt()).isEqualTo(endedAt);
   }
 }

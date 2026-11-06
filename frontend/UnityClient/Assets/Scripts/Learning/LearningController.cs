@@ -336,10 +336,9 @@ namespace A305.Learning
             feedbackView.Hide();
             UpdateMovementLock();
             FeedbackClosed?.Invoke(closedRecord.NpcCode, closedRecord.IsGuidedCompleted);
-            // 마지막 대화를 마친 게스트는 다시 말을 걸지 않고 나갈 수 있으므로, 그 대화의 피드백을 닫을 때 가입을 권한다.
             if (dialogue.Allowance.IsGuestOutOfConversations)
             {
-                GuestSignupPrompt.Request();
+                SurveyPrompt.Request();
             }
         }
 

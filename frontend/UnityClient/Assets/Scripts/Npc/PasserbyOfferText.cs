@@ -70,14 +70,16 @@ namespace A305.Npc
         /// <summary>대화 버튼 위에 붙일 게스트의 남은 대화 수. 가입 사용자처럼 횟수 제한이 없으면 null이다.</summary>
         public static string RemainingConversations(int? remaining)
         {
-            return remaining == null ? null : $"게스트 남은 대화 {remaining}번";
+            return remaining == null ? null : $"오늘 남은 대화 {remaining}번";
         }
 
         /// <summary>새 대화를 시작할 수 없을 때 [말 걸기] 자리에 보일 이유.</summary>
         /// <param name="remaining">게스트의 남은 대화 수. 가입 사용자는 null.</param>
         public static string Blocked(int? remaining)
         {
-            return remaining == 0 ? "게스트 대화를 모두 썼어요" : "지금은 대화할 수 없어요";
+            return remaining == 0
+                ? "오늘의 대화를 모두 썼어요. 내일 다시 만나요."
+                : "지금은 대화할 수 없어요";
         }
 
         /// <summary>대화를 다 쓴 게스트에게 [말 걸기]·택시 버튼 자리에 보일 버튼. 누르면 가입 안내 창을 연다.</summary>
@@ -89,7 +91,7 @@ namespace A305.Npc
         /// <param name="remaining">게스트의 남은 대화 수. 가입 사용자는 null.</param>
         public static bool OffersSignup(int? remaining)
         {
-            return remaining == 0;
+            return false;
         }
     }
 }

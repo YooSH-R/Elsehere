@@ -379,7 +379,7 @@ namespace A305.Npc.PlayModeTests
             PasserbyOfferView offer = Single<PasserbyOfferView>();
             yield return WaitUntil(() => offer.IsShowing);
 
-            Assert.That(offer.RemainingText, Is.EqualTo("게스트 남은 대화 2번"));
+            Assert.That(offer.RemainingText, Is.EqualTo("오늘 남은 대화 2번"));
         }
 
         [UnityTest]
@@ -400,15 +400,14 @@ namespace A305.Npc.PlayModeTests
             StandNear(BenCode, 1.5f);
             yield return WaitUntil(() => offer.IsTalkPromptShowing);
 
-            Assert.That(offer.IsSignupPromptShowing, Is.True);
-            Assert.That(offer.TalkLabelText, Is.EqualTo("가입하고 계속 대화하기"));
-            Assert.That(offer.TalkRemainingText, Is.EqualTo("게스트 대화를 모두 썼어요"));
+            Assert.That(offer.IsSignupPromptShowing, Is.False);
+            Assert.That(offer.IsTalkBlocked, Is.True);
             Button talk = offer
                 .GetComponentsInChildren<Button>(true)
                 .Single(candidate => candidate.name == "TalkButton");
             talk.onClick.Invoke();
             yield return null;
-            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.True);
+            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.False);
             Assert.That(Single<DialogueController>().IsTalking, Is.False);
         }
 
@@ -427,7 +426,7 @@ namespace A305.Npc.PlayModeTests
             yield return WaitUntil(() => offer.IsTalkPromptShowing);
 
             Assert.That(offer.IsTalkBlocked, Is.False);
-            Assert.That(offer.TalkRemainingText, Is.EqualTo("게스트 남은 대화 1번"));
+            Assert.That(offer.TalkRemainingText, Is.EqualTo("오늘 남은 대화 1번"));
         }
 
         private static IEnumerator LoadTown()

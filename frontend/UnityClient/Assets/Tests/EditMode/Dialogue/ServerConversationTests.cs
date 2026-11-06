@@ -609,6 +609,7 @@ namespace A305.Dialogue.Tests
             {
                 ConversationId = 41,
                 Status = "ACTIVE",
+                StartedAt = "2026-11-05T14:00:00+09:00",
                 Npc = new NpcSummary { NpcCode = CafeStaffCode, Name = "Mia" },
                 RudeCount = 0,
                 RudeLimit = 3,
@@ -653,6 +654,11 @@ namespace A305.Dialogue.Tests
             );
             Assert.That(conversation.LastNpcTurn.TurnId, Is.EqualTo(103));
             Assert.That(conversation.LastNpcTurn.Speech.IsReady, Is.True);
+            Assert.That(conversation.CanSend, Is.True);
+            Assert.That(
+                conversation.Tick(DateTimeOffset.Parse("2026-11-05T15:00:00+09:00")),
+                Is.False
+            );
             Assert.That(conversation.CanSend, Is.True);
         }
 

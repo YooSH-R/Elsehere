@@ -28,6 +28,9 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
 
   long countByUserId(Long userId);
 
+  long countByUserIdAndStartedAtGreaterThanEqualAndStartedAtLessThan(
+      Long userId, Instant start, Instant end);
+
   /**
    * 지난 대화 첫 페이지(최근 시작순). 시작 시각이 같으면 나중에 만든 대화(ID가 큰 쪽)가 먼저다. {@code npcId}가 null이면 모든 NPC와의 대화다.
    */

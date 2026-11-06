@@ -13,7 +13,7 @@ namespace A305.Onboarding
                 null => $"게스트는 NPC와 대화할 수 있는 횟수가 정해져 있어요.\n{NicknameNote}",
                 <= 0 => $"게스트는 NPC와 대화할 수 없어요.\n{NicknameNote}",
                 _ =>
-                    $"게스트는 NPC와 <color={Coral}><b>{conversationLimit}번까지</b></color> 대화할 수 있어요.\n{NicknameNote}",
+                    $"게스트는 하루에 NPC와 <color={Coral}><b>{conversationLimit}번까지</b></color> 대화할 수 있어요.\n{NicknameNote}",
             };
     }
 }

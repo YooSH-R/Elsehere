@@ -13,6 +13,49 @@ namespace A305.Player.Tests
         private const float HeightOffset = 0.05f;
         private static readonly Vector3 Face = new Vector3(2f, 1.1f, 5f);
 
+        [TestCase(16f / 9f)]
+        [TestCase(4f / 3f)]
+        [TestCase(9f / 16f)]
+        public void DefaultFraming_KeepsTheFullBodyCenteredAboveTheDialogue(float aspect)
+        {
+            var settings = ScriptableObject.CreateInstance<PlayerCameraSettings>();
+            var cameraObject = new GameObject("FullBodyDialogueCamera");
+            try
+            {
+                Camera camera = cameraObject.AddComponent<Camera>();
+                camera.fieldOfView = 60f;
+                camera.aspect = aspect;
+                Vector3 position = DialogueFraming.CameraPosition(
+                    Face,
+                    Face + Vector3.back * 2f,
+                    settings.DialogueDistanceMeters,
+                    settings.DialogueHeightOffsetMeters
+                );
+                Pose pose = DialogueFraming.Pose(
+                    position,
+                    Face,
+                    camera.fieldOfView,
+                    aspect,
+                    settings.DialogueFacePosition
+                );
+                cameraObject.transform.SetPositionAndRotation(pose.position, pose.rotation);
+
+                // 얼굴 높이 1.1m인 모델의 큰 머리와 발이 하단 대화 영역 위에 들어온다.
+                Vector3 head = camera.WorldToViewportPoint(Face + Vector3.up * .5f);
+                Vector3 feet = camera.WorldToViewportPoint(Face - Vector3.up * 1.1f);
+                Assert.That(head.x, Is.EqualTo(.5f).Within(.01f));
+                Assert.That(feet.x, Is.EqualTo(.5f).Within(.01f));
+                Assert.That(head.y, Is.LessThan(.98f));
+                Assert.That(feet.y, Is.GreaterThan(.4f));
+                Assert.That(feet.z, Is.GreaterThan(0f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(cameraObject);
+                Object.DestroyImmediate(settings);
+            }
+        }
+
         [Test]
         public void CameraPosition_StaysTheSameDistanceFromTheFace_WhereverThePlayerStands()
         {

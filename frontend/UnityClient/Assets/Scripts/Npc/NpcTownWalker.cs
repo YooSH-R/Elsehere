@@ -12,7 +12,7 @@ namespace A305.Npc
         private const float CrossingLookAheadMeters = .6f;
         private const float RequiredRedSeconds = 8f;
         private const float SignalRadiusMeters = 8f;
-        private readonly NavMeshPath path = new NavMeshPath();
+        private NavMeshPath path;
         public Vector3 Destination { get; set; }
         public bool IsStaff { get; set; }
 
@@ -21,6 +21,12 @@ namespace A305.Npc
 
         internal static int WalkingAreas => WithoutArea(NavMesh.AllAreas, "Road");
         internal static int StandingAreas => WithoutArea(WalkingAreas, "Crosswalk");
+
+        private void Awake()
+        {
+            // Unity의 경로 객체는 에셋 역직렬화 스레드에서 생성할 수 없다.
+            path = new NavMeshPath();
+        }
 
         private static int WithoutArea(int areas, string name)
         {

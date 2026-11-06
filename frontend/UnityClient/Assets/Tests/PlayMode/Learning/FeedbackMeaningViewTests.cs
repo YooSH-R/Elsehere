@@ -42,6 +42,15 @@ namespace A305.Learning.PlayModeTests
         {
             CreateScreen();
             int calls = 0;
+            int saveCalls = 0;
+            var saveGate = new TaskCompletionSource<bool>();
+            view.SetWordSaver(word =>
+            {
+                Assert.That(word.TurnId, Is.EqualTo(7));
+                Assert.That(word.Text, Is.EqualTo("to go"));
+                saveCalls++;
+                return saveGate.Task;
+            });
             view.SetMeaningSource(
                 new TranscriptMeanings(id =>
                 {
@@ -114,6 +123,28 @@ namespace A305.Learning.PlayModeTests
             english.GetComponent<FeedbackGlossaryHover>().OnPointerClick(eventData);
             english.GetComponent<FeedbackGlossaryHover>().OnPointerExit(eventData);
             Assert.That(Texts().Any(t => t.name == "Word" && t.text == "to go"), Is.True);
+            Button saveWord = instance
+                .GetComponentsInChildren<Button>()
+                .FirstOrDefault(button => button.name == "SaveButton");
+            Assert.That(
+                saveWord,
+                Is.Not.Null,
+                "클릭해 고정한 단어 카드에는 단어장 담기가 있어야 한다."
+            );
+            saveWord.onClick.Invoke();
+            saveWord.onClick.Invoke();
+            Assert.That(saveCalls, Is.EqualTo(1));
+            Assert.That(saveWord.interactable, Is.False);
+            saveGate.SetResult(false);
+            yield return null;
+            Assert.That(saveWord.interactable, Is.True, "저장 실패 후에는 다시 담을 수 있다.");
+            saveGate = new TaskCompletionSource<bool>();
+            saveWord.onClick.Invoke();
+            saveGate.SetResult(true);
+            yield return null;
+            Assert.That(saveWord.interactable, Is.False);
+            Assert.That(saveWord.GetComponentInChildren<TMP_Text>().text, Is.EqualTo("담음"));
+            Capture("657-word-saved.png");
 
             view.Show(
                 Feedback("Jake"),

@@ -169,6 +169,10 @@ namespace A305.Learning
 
         public void SetMeaningSource(TranscriptMeanings source) => meaningSource = source;
 
+        private Func<GlossaryWord, Task<bool>> wordSaver;
+
+        public void SetWordSaver(Func<GlossaryWord, Task<bool>> saver) => wordSaver = saver;
+
         // 고정된 본문 영역 안에서 모든 내용이 세로로 흐른다.
         private ScrollRect scroll;
         private readonly List<GameObject> additionalBodies = new List<GameObject>();
@@ -709,6 +713,7 @@ namespace A305.Learning
                     BackToConversation,
                     isMeaningLoading,
                     () => _ = LoadTranscriptMeaningsAsync(true),
+                    wordSaver,
                     out float cardsHeight
                 );
                 additionalBodies.Add(cards);

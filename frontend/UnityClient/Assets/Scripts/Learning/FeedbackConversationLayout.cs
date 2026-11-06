@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using A305.Dialogue;
 using A305.Theme;
 using TMPro;
@@ -31,6 +32,7 @@ namespace A305.Learning
             Action back,
             bool loadingMeanings,
             Action retryMeanings,
+            Func<GlossaryWord, Task<bool>> saveWord,
             out float height
         )
         {
@@ -69,7 +71,8 @@ namespace A305.Learning
                     peach,
                     selectReview,
                     loadingMeanings,
-                    retryMeanings
+                    retryMeanings,
+                    saveWord
                 );
             rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
             return root;
@@ -88,7 +91,8 @@ namespace A305.Learning
             Color peach,
             Action<int> selectReview,
             bool loadingMeanings,
-            Action retryMeanings
+            Action retryMeanings,
+            Func<GlossaryWord, Task<bool>> saveWord
         )
         {
             float width = root.rect.width;
@@ -227,7 +231,7 @@ namespace A305.Learning
                     utterance.raycastTarget = true;
                     utterance
                         .gameObject.AddComponent<FeedbackGlossaryHover>()
-                        .Configure(entry.Glossary, wordCardTemplate, wordCardBackground);
+                        .Configure(entry.Glossary, wordCardTemplate, wordCardBackground, saveWord);
                     TMP_Text meaningLabel = Label(
                         root,
                         fontSource,

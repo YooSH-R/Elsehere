@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using A305.Dialogue;
 using A305.Theme;
 using TMPro;
@@ -24,16 +26,24 @@ namespace A305.Learning
         private TMP_Text meaningText;
         private bool pinned;
         private Button closeButton;
+        private Button saveButton;
+        private TMP_Text saveLabel;
+        private GlossaryWord selectedWord;
+        private Func<GlossaryWord, Task<bool>> saveWord;
+        private readonly HashSet<string> savedWords = new HashSet<string>();
+        private readonly HashSet<string> savingWords = new HashSet<string>();
 
         public void Configure(
             IReadOnlyList<GlossaryWord> words,
             RectTransform cardTemplate,
-            Sprite cardBackground
+            Sprite cardBackground,
+            Func<GlossaryWord, Task<bool>> saver = null
         )
         {
             glossary = words;
             template = cardTemplate;
             backgroundSprite = cardBackground;
+            saveWord = saver;
             text = GetComponent<TMP_Text>();
         }
 
@@ -93,6 +103,9 @@ namespace A305.Learning
             CanvasGroup group = tooltip.GetComponent<CanvasGroup>();
             group.blocksRaycasts = group.interactable = pinned;
             GlossaryWord word = glossary[index];
+            selectedWord = word;
+            saveButton.gameObject.SetActive(pinned && saveWord != null && word.TurnId > 0);
+            RefreshSaveButton();
             wordText.text = word.Text;
             meaningText.text = word.MeaningKo;
             wordText.margin = new Vector4(0, 0, pinned ? 34 : 0, 0);
@@ -167,6 +180,46 @@ namespace A305.Learning
                 group.blocksRaycasts = false;
             }
             closeButton.targetGraphic.raycastTarget = true;
+            saveButton = tooltip.Find("WordActions/SaveButton").GetComponent<Button>();
+            saveButton.transform.SetParent(tooltip, false);
+            saveButton.onClick = new Button.ButtonClickedEvent();
+            saveButton.onClick.AddListener(() => _ = SaveSelectedWordAsync());
+            saveLabel = saveButton.GetComponentInChildren<TMP_Text>(true);
+            LayoutElement saveLayout = saveButton.GetComponent<LayoutElement>();
+            saveLayout.preferredWidth = 110;
+            saveLayout.preferredHeight = 52;
+            saveButton.targetGraphic.raycastTarget = true;
+            foreach (Graphic graphic in saveButton.GetComponentsInChildren<Graphic>(true))
+                graphic.raycastTarget = graphic == saveButton.targetGraphic;
+        }
+
+        private void RefreshSaveButton()
+        {
+            if (selectedWord == null)
+                return;
+            bool saved = savedWords.Contains(selectedWord.Text);
+            bool saving = savingWords.Contains(selectedWord.Text);
+            saveButton.interactable = !saved && !saving;
+            saveLabel.text =
+                saved ? "담음"
+                : saving ? "저장 중"
+                : "담기";
+        }
+
+        private async Task SaveSelectedWordAsync()
+        {
+            GlossaryWord word = selectedWord;
+            if (word == null || saveWord == null || !saveButton.interactable)
+                return;
+            savingWords.Add(word.Text);
+            RefreshSaveButton();
+            bool saved = await saveWord(word);
+            savingWords.Remove(word.Text);
+            if (saved)
+                savedWords.Add(word.Text);
+            if (this == null || tooltip == null)
+                return;
+            RefreshSaveButton();
         }
 
         private void Hide()

@@ -10,6 +10,14 @@ import mr_results
 
 
 class MergeRequestInputCoverageTests(unittest.TestCase):
+    def test_dynamic_child_configuration_archive_excludes_large_mr_builds(self):
+        jobs = yaml.load(
+            (REPOSITORY / ".gitlab/ci/deploy.yml").read_text(), Loader=yaml.BaseLoader
+        )
+        paths = jobs["dev:plan"]["artifacts"]["paths"]
+        self.assertIn("dist/deployment/dev-child.yml", paths)
+        self.assertTrue(all(Path(path).suffix in {".json", ".yml"} for path in paths))
+
     def test_every_mr_selection_input_invalidates_a_reused_check(self):
         jobs = {}
         for path in (REPOSITORY / ".gitlab/ci").glob("*.yml"):

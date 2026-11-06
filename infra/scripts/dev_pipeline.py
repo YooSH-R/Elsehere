@@ -264,8 +264,6 @@ def plan_pipeline(
         plan["reused_jobs"] = find_reusable_jobs(
             repository, candidate, [need["job"] for need in required], directory
         )
-        if plan["reused_jobs"]:
-            plan["plan_job_id"] = os.environ["CI_JOB_ID"]
     for name, document in [
         ("state.json", state),
         ("plan.json", plan),

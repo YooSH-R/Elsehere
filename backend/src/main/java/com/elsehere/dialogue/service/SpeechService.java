@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -37,8 +36,8 @@ public class SpeechService {
   private static final long MAX_AUDIO_BYTES = 3L * 1024 * 1024;
   private static final Set<String> AUDIO_TYPES =
       Set.of("audio/webm", "audio/ogg", "audio/mp4", "audio/wav", "audio/x-wav", "audio/mpeg");
-  // 음성 합성(/v1/tts)은 난이도 배율을 Spring이 곱해 보낸다(AI 명세 1.1).
-  private static final Map<Integer, Double> LEVEL_SPEED = Map.of(1, 0.85, 2, 1.0, 3, 1.06);
+  // 대화 음성과 다시 만든 음성에 같은 속도를 적용한다.
+  private static final double NPC_SPEECH_SPEED = 1.1;
 
   private final TurnRepository turnRepository;
   private final ConversationLookup conversationLookup;
@@ -133,8 +132,7 @@ public class SpeechService {
     }
 
     WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
-    double speed = LEVEL_SPEED.getOrDefault(target.level(), 1.0);
-    byte[] wav = aiGateway.synthesize(trace, target.text(), target.voiceId(), speed);
+    byte[] wav = aiGateway.synthesize(trace, target.text(), target.voiceId(), NPC_SPEECH_SPEED);
     String key = npcAudioRetention.save(wav);
     if (key != null) {
       transactionTemplate.executeWithoutResult(

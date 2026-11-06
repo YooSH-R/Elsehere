@@ -155,6 +155,24 @@ namespace A305.Learning.Tests
             Assert.That(Field<Button>("mapButton").transform.parent, Is.SameAs(menu));
         }
 
+        [Test]
+        public void ControlsApp_HasAVisibleIconAndKeepsTheGuideConnection()
+        {
+            Transform app = phone.transform.Find("ControlsButton");
+            Transform icon = app.Find("Icon");
+
+            Assert.That(icon, Is.Not.Null, "조작법 앱의 누름 영역과 이름만 있고 아이콘이 없어요.");
+            var image = icon.GetComponent<Image>();
+            Assert.That(image.sprite, Is.Not.Null);
+            Assert.That(image.color.a, Is.GreaterThan(0f));
+            Assert.That(image.raycastTarget, Is.False);
+            var guide = instance.GetComponent<ControlsGuideView>();
+            Assert.That(
+                new SerializedObject(guide).FindProperty("openButton").objectReferenceValue,
+                Is.SameAs(app.GetComponent<Button>())
+            );
+        }
+
         private T Field<T>(string name)
             where T : Object =>
             (T)new SerializedObject(phone).FindProperty(name).objectReferenceValue;

@@ -1,9 +1,11 @@
+using System.IO;
 using A305.EditorTools.Common;
 using A305.EditorTools.UI;
 using A305.Learning;
 using A305.Theme;
 using TMPro;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -76,6 +78,77 @@ namespace A305.EditorTools.Theme
         {
             BuilderTools.UpdatePrefabIfExists(HudPrefabPath, Apply);
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>기존 폰 구성과 기능 연결을 유지하고 빠진 조작법 그림만 추가한다.</summary>
+        [MenuItem("Tools/A305/UI/Restore Phone Controls Icon")]
+        public static void RestoreControlsIconToPrefab()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                HudPrefabPath,
+                root =>
+                    Picture(
+                        "Icon",
+                        root.transform.Find("Panel/Menu/ControlsButton"),
+                        ControlsIcon(),
+                        -7,
+                        -12,
+                        124,
+                        124
+                    )
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>저장된 HUD를 외부 호출 없이 렌더링한다. PHONE_PREVIEW_OUTPUT은 저장 폴더다.</summary>
+        public static void CaptureControlsPreview()
+        {
+            string output = System.Environment.GetEnvironmentVariable("PHONE_PREVIEW_OUTPUT");
+            if (string.IsNullOrWhiteSpace(output))
+                throw new System.InvalidOperationException("Set PHONE_PREVIEW_OUTPUT.");
+            Directory.CreateDirectory(output);
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            var camera = new GameObject("PreviewCamera").AddComponent<Camera>();
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = new Color32(222, 221, 208, 255);
+            var root = (GameObject)
+                PrefabUtility.InstantiatePrefab(
+                    AssetDatabase.LoadAssetAtPath<GameObject>(HudPrefabPath)
+                );
+            foreach (Transform child in root.transform)
+                child.gameObject.SetActive(child.name == "Panel" || child.name == "MenuBackdrop");
+            root.transform.Find("Panel/MenuBar").gameObject.SetActive(false);
+            Transform menu = root.transform.Find("Panel/Menu");
+            menu.gameObject.SetActive(true);
+            var canvas = root.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.worldCamera = camera;
+            canvas.planeDistance = 1;
+            foreach (
+                Vector2Int size in new[] { new Vector2Int(1600, 1000), new Vector2Int(844, 390) }
+            )
+            {
+                var target = new RenderTexture(size.x, size.y, 24);
+                camera.targetTexture = target;
+                camera.aspect = (float)size.x / size.y;
+                camera.Render();
+                Canvas.ForceUpdateCanvases();
+                menu.GetComponent<PhoneMenuView>().SendMessage("OnEnable");
+                Canvas.ForceUpdateCanvases();
+                camera.Render();
+                RenderTexture.active = target;
+                var pixels = new Texture2D(size.x, size.y, TextureFormat.RGB24, false);
+                pixels.ReadPixels(new Rect(0, 0, size.x, size.y), 0, 0);
+                File.WriteAllBytes(
+                    Path.Combine(output, $"phone-{size.x}x{size.y}.png"),
+                    pixels.EncodeToPNG()
+                );
+                RenderTexture.active = null;
+                camera.targetTexture = null;
+                target.Release();
+                Object.DestroyImmediate(target);
+                Object.DestroyImmediate(pixels);
+            }
         }
 
         /// <summary>폰을 다시 만들지 않고 퀘스트 위젯 안내 글자만 한 줄에 맞게 바꾼다.</summary>
@@ -355,7 +428,7 @@ namespace A305.EditorTools.Theme
             direction.overflowMode = TextOverflowModes.Ellipsis;
         }
 
-        // 앱 다섯 개. 아이콘은 폰 그림에 들어 있고, 버튼은 시안의 앱 칸을 누르는 투명한 영역과 이름 글자다.
+        // 기존 다섯 앱의 아이콘은 폰 그림에 있다. 조작법은 별도 그림으로 같은 앱 칸에 덧붙인다.
         private static void Apps(PhoneMenuView view, RectTransform phone)
         {
             for (int i = 0; i < AppNames.Length; i++)
@@ -364,6 +437,8 @@ namespace A305.EditorTools.Theme
                 app.transform.SetAsLastSibling();
                 if (AppNames[i] == "MapButton")
                     BuilderTools.SetReference(view, "mapButton", app);
+                if (AppNames[i] == "ControlsButton")
+                    Picture("Icon", app.transform, ControlsIcon(), -7, -12, 124, 124);
             }
             // 단어장 배지: 시안의 흰 알약 그림(그림자 자리 사방 14·12)과 빨간 숫자. 앱 칸 기준 (71, -6), 크기 33×28
             Transform badge = phone.Find("VocabularyButton/CountBadge");
@@ -379,6 +454,34 @@ namespace A305.EditorTools.Theme
             count.alignment = TextAlignmentOptions.Center;
             Place(count.transform, 14, 13, 33, 28);
             badge.SetAsLastSibling();
+        }
+
+        // 원래 폰 배경에는 여섯 번째 앱 그림이 없다. 디자이너가 교체한 그림은 유지한다.
+        private static Sprite ControlsIcon()
+        {
+            string path = ArtFolder + "/PhoneControls.png";
+            if (!File.Exists(path))
+            {
+                var art = new UiArtCanvas(256, 256);
+                art.SoftShadow(24, 18, 232, 226, 62, 16, new Color(0.3f, 0.2f, 0.1f, .16f));
+                art.RoundRect(24, 28, 232, 236, 62, new Color32(255, 224, 135, 255));
+                art.RoundRect(24, 24, 232, 232, 62, new Color32(245, 190, 76, 255));
+                art.RoundRect(25, 48, 231, 234, 61, new Color32(255, 208, 102, 255));
+                Color white = new Color32(255, 255, 250, 255);
+                art.RoundRect(64, 92, 192, 158, 30, white);
+                art.Circle(84, 96, 23, white);
+                art.Circle(172, 96, 23, white);
+                Color detail = new Color32(184, 133, 65, 255);
+                art.RoundRect(86, 112, 112, 120, 3, detail);
+                art.RoundRect(95, 103, 103, 129, 3, detail);
+                art.Circle(156, 115, 7, new Color32(255, 153, 120, 255));
+                art.Circle(174, 132, 7, new Color32(255, 208, 102, 255));
+                Texture2D texture = art.ToTexture();
+                File.WriteAllBytes(path, texture.EncodeToPNG());
+                Object.DestroyImmediate(texture);
+                AssetDatabase.ImportAsset(path);
+            }
+            return Art("PhoneControls");
         }
 
         private static Button App(RectTransform phone, string name, string caption, Vector2 cell)

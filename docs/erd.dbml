@@ -214,6 +214,7 @@ Table conversations [headercolor: #2E6B4F] {
   started_at timestamptz [not null, default: `now()`]
   ended_at timestamptz
   review_card_id bigint [note: '상황 복습 카드 ID. NULL이면 본편 대화, 값이 있으면 본편 진행과 분리된 REVIEW 대화']
+  review_result jsonb [note: '복습 종료 시 1회 저장하는 표현별 실제 발화 근거·연습 결과. 일반 대화/종료 전에는 NULL. 내용 삭제 시 제거']
   first_day_stage int [note: '대화 시작 시 첫날 연계 미션 단계 0~6. 피드백 상황 복원용이며 자유 대화는 NULL']
   town_story_stage int [note: '대화 시작 시 마을 여정 단계 0~11. 피드백 상황 복원용이며 해당 여정이 아니면 NULL']
   request_id uuid [unique, note: '대화 시작(CONV-01) 요청 ID · 재전송 시 새 대화를 만들지 않고 같은 대화를 돌려줌 (V10 전에 시작한 대화는 NULL)']

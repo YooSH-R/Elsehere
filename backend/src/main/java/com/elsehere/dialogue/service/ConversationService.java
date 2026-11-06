@@ -32,6 +32,7 @@ import com.elsehere.onboarding.entity.UserLanguageProfileId;
 import com.elsehere.onboarding.repository.UserLanguageProfileRepository;
 import com.elsehere.review.dto.ReviewCardResponse;
 import com.elsehere.review.service.ReviewCardService;
+import com.elsehere.review.service.ReviewPracticeResults;
 import com.elsehere.user.entity.User;
 import com.elsehere.user.repository.UserRepository;
 import com.elsehere.world.service.PoliceOfficers;
@@ -114,6 +115,7 @@ public class ConversationService {
   private final DialogueRequestLocks requestLocks;
   private final ReviewCardService reviewCardService;
   private final ReviewDialogue reviewDialogue;
+  private final ReviewPracticeResults reviewPracticeResults;
 
   public ConversationStartResponse start(Long userId, StartConversationRequest request) {
     return requestLocks.execute(
@@ -343,17 +345,21 @@ public class ConversationService {
                 userTurnCount);
           }
           return new EndConversationResponse(
-              conversation.getId(),
-              conversation.getStatus(),
-              conversation.getEndReason(),
-              ConversationResponses.toOffset(conversation.getEndedAt()),
-              npc.summary(),
-              npc.sceneCode(),
-              userTurnCount,
-              null,
-              List.of(),
-              null,
-              conversation.getReviewCardId());
+                  conversation.getId(),
+                  conversation.getStatus(),
+                  conversation.getEndReason(),
+                  ConversationResponses.toOffset(conversation.getEndedAt()),
+                  npc.summary(),
+                  npc.sceneCode(),
+                  userTurnCount,
+                  null,
+                  List.of(),
+                  null,
+                  conversation.getReviewCardId())
+              .withReviewResult(
+                  conversation.isReview()
+                      ? reviewPracticeResults.record(userId, conversation)
+                      : null);
         });
   }
 

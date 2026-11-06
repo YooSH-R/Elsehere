@@ -71,6 +71,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   ConversationService.class,
   ReviewDialogue.class,
   ReviewCardService.class,
+  com.elsehere.review.service.ReviewPracticeResults.class,
   ConversationHistoryService.class,
   TurnService.class,
   DialogueRequestLocks.class,

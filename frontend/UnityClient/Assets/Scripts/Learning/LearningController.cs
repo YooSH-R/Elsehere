@@ -93,6 +93,15 @@ namespace A305.Learning
                 history = new ConversationHistory(
                     new ConversationHistoryApi(apiSettings.CreateClient())
                 );
+                var meaningApi = new ConversationApi(
+                    apiSettings.CreateClient(30),
+                    apiSettings.CreateClient(30)
+                );
+                feedbackView.SetMeaningSource(
+                    new TranscriptMeanings(id =>
+                        meaningApi.GetMeaningAsync(id, Guid.NewGuid().ToString())
+                    )
+                );
             }
 
             // 대화 중 풀이 단어는 단어장 서버가 있을 때만 저장한다(VOCAB-02 NPC_LINE).

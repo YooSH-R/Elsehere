@@ -7133,6 +7133,8 @@ MonoBehaviour:
   summaryTileSprite: {fileID: 21300000, guid: 0c82b1b681cb72549838bca9d87451d4, type: 3}
   tileSprite: {fileID: 21300000, guid: 5fe813c643ece6c4389d44b9c099107d, type: 3}
   transcriptAvatarSprite: {fileID: 21300000, guid: 62bc3af5c3abf1547938bc8c0d36ee20, type: 3}
+  transcriptWordCardTemplate: {fileID: 2477510168677081744, guid: b1fb02cb18736784093ecf8bf076307a, type: 3}
+  transcriptWordCardBackground: {fileID: 21300000, guid: 69e52053000dac443a6031157af2977d, type: 3}
 --- !u!1 &6503790937749454062
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,6 +1,7 @@
 package com.elsehere.dialogue.service;
 
 import com.elsehere.common.config.ClockConfig;
+import com.elsehere.conversation.dto.GlossaryResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
@@ -30,6 +31,8 @@ class ConversationResponses {
 
   private static final ZoneId ZONE = ClockConfig.SERVICE_ZONE;
   private static final TypeReference<List<String>> STRING_LIST = new TypeReference<>() {};
+  private static final TypeReference<List<GlossaryResponse>> GLOSSARY_LIST =
+      new TypeReference<>() {};
 
   private final TurnRepository turnRepository;
   private final DialogueContexts dialogueContexts;
@@ -116,7 +119,10 @@ class ConversationResponses {
         turn.getHintText(),
         npcTurn
             ? SpeechResponse.of(turn.getId(), turn.getNpcAudioKey(), turn.getNpcAudioDeletedAt())
-            : null);
+            : null,
+        npcTurn && turn.getGlossary() != null
+            ? jsonMapper.readValue(turn.getGlossary(), GLOSSARY_LIST)
+            : List.of());
   }
 
   private static TranslationResponse translation(Turn turn) {

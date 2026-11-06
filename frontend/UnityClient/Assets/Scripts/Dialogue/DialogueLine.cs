@@ -12,7 +12,8 @@ namespace A305.Dialogue
             string english,
             string korean,
             IReadOnlyList<GlossaryWord> glossary,
-            byte[] speech
+            byte[] speech,
+            long turnId = 0
         )
         {
             IsNpc = isNpc;
@@ -20,9 +21,11 @@ namespace A305.Dialogue
             Korean = korean;
             Glossary = glossary;
             Speech = speech;
+            TurnId = turnId;
         }
 
         public bool IsNpc { get; }
+        public long TurnId { get; }
 
         /// <summary>화면에 보이는 영어 문장. 사용자 발화는 입력한 그대로다.</summary>
         public string English { get; }
@@ -43,10 +46,11 @@ namespace A305.Dialogue
             string english,
             string korean,
             IReadOnlyList<GlossaryWord> glossary = null,
-            byte[] speech = null
+            byte[] speech = null,
+            long turnId = 0
         )
         {
-            return new DialogueLine(true, english, korean, glossary, speech);
+            return new DialogueLine(true, english, korean, glossary, speech, turnId);
         }
 
         public static DialogueLine FromUser(string text)

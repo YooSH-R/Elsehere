@@ -74,6 +74,83 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task Tick_UsesServerDeadlineAndWarnsThirtySecondsBeforeLimit()
+        {
+            api.StartResponse.Conversation = TimedState();
+            int changed = 0;
+            conversation.Changed += () => changed++;
+            await conversation.StartAsync();
+            changed = 0;
+
+            bool shouldEnd = conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:04:30+09:00"));
+
+            Assert.That(shouldEnd, Is.False);
+            Assert.That(
+                conversation.CountdownMessage,
+                Is.EqualTo("남은 시간 0:30 · 대화를 마무리해 주세요")
+            );
+            Assert.That(changed, Is.EqualTo(1));
+
+            conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:04:30.500+09:00"));
+
+            Assert.That(changed, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task Tick_AtSoftLimitAllowsOneFinalTurn()
+        {
+            api.StartResponse.Conversation = TimedState();
+            await conversation.StartAsync();
+
+            bool shouldEnd = conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:05:00+09:00"));
+
+            Assert.That(shouldEnd, Is.False);
+            Assert.That(conversation.IsClosing, Is.True);
+            Assert.That(conversation.CanSend, Is.True);
+            Assert.That(
+                conversation.CountdownMessage,
+                Is.EqualTo("마지막 말을 마무리해 주세요 · 0:30")
+            );
+        }
+
+        [Test]
+        public async Task Tick_AtHardLimitBlocksInputAndRequestsFeedback()
+        {
+            api.StartResponse.Conversation = TimedState();
+            await conversation.StartAsync();
+
+            bool shouldEnd = conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:05:30+09:00"));
+
+            Assert.That(shouldEnd, Is.True);
+            Assert.That(conversation.CanSend, Is.False);
+            Assert.That(conversation.CountdownMessage, Is.EqualTo("대화 시간이 끝났어요"));
+        }
+
+        [Test]
+        public async Task Tick_AtHardLimitWaitsForCurrentNpcReplyBeforeFeedback()
+        {
+            api.StartResponse.Conversation = TimedState();
+            await conversation.StartAsync();
+            api.PendingTurn = new TaskCompletionSource<TurnResult>();
+            Task sending = conversation.SendAsync("One last thing.");
+
+            bool whileReplying = conversation.Tick(
+                DateTimeOffset.Parse("2026-11-05T14:05:30+09:00")
+            );
+
+            Assert.That(whileReplying, Is.False);
+            api.TurnResponse = Reply("One last thing.", "All right. Take care!", "ENDED_BY_NPC");
+            api.TurnResponse.Conversation.EndReason = "TIME_LIMIT";
+            api.PendingTurn.SetResult(api.TurnResponse);
+            await sending;
+
+            Assert.That(
+                conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:05:31+09:00")),
+                Is.True
+            );
+        }
+
+        [Test]
         public async Task Start_RequestsNpcInitiatedConversationWithNpcCode()
         {
             await conversation.StartAsync();
@@ -1842,6 +1919,18 @@ namespace A305.Dialogue.Tests
             };
         }
 
+        private static ConversationState TimedState()
+        {
+            return new ConversationState
+            {
+                Status = "ACTIVE",
+                TimeLimitAt = "2026-11-05T14:05:00+09:00",
+                GraceUntil = "2026-11-05T14:05:30+09:00",
+                Closing = false,
+                FinalTurnsRemaining = 0,
+            };
+        }
+
         private static EndResult Ended(string feedbackStatus)
         {
             return new EndResult
@@ -1946,6 +2035,7 @@ namespace A305.Dialogue.Tests
 
             public ActiveConversation Active { get; set; }
             public TurnResult TurnResponse { get; set; } = Reply("Yes.", "Great!", "ACTIVE");
+            public TaskCompletionSource<TurnResult> PendingTurn { get; set; }
             public ApiException TurnError { get; set; }
             public EndResult EndResponse { get; set; } = Ended("DONE");
             public Exception EndError { get; set; }
@@ -2022,6 +2112,11 @@ namespace A305.Dialogue.Tests
                 if (HoldAfterStream != null)
                 {
                     await HoldAfterStream.Task;
+                }
+
+                if (PendingTurn != null)
+                {
+                    return await PendingTurn.Task;
                 }
 
                 if (TurnError != null)

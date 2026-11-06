@@ -50,6 +50,7 @@ namespace A305.Dialogue
 
         // 대화 시작 요청 ID. [다시 시도]도 같은 ID로 보내 서버가 대화를 두 번 만들지 않게 한다(API 명세 1.3).
         private string startRequestId;
+        private bool endRequested;
         private string failedText;
         private string failedRequestId;
         private string textToRestore;
@@ -177,6 +178,11 @@ namespace A305.Dialogue
 
         public async Task StartAsync()
         {
+            if (endRequested)
+            {
+                return;
+            }
+
             if (startRequestId == null)
             {
                 startRequestId = NewRequestId();
@@ -188,7 +194,7 @@ namespace A305.Dialogue
                 {
                     try
                     {
-                        Begin(
+                        await BeginAsync(
                             await api.StartAsync(
                                 startRequestId,
                                 NpcCode,
@@ -205,7 +211,10 @@ namespace A305.Dialogue
                 StartAsync,
                 DialogueWait.Opening
             );
-            _ = SuggestWordsAsync();
+            if (!endRequested)
+            {
+                _ = SuggestWordsAsync();
+            }
         }
 
         /// <summary>문장을 보낸다. 직전에 전사한 문장을 그대로 보내면 음성 입력으로 보낸다.</summary>
@@ -493,6 +502,7 @@ namespace A305.Dialogue
         /// </summary>
         public async Task<ServerFeedback> EndAsync()
         {
+            endRequested = true;
             if (ConversationId == null)
             {
                 return null;
@@ -615,8 +625,15 @@ namespace A305.Dialogue
             );
         }
 
-        private void Begin(ConversationStart start)
+        private async Task BeginAsync(ConversationStart start)
         {
+            // 준비 중 창을 닫았어도 시작 요청은 서버에서 완료될 수 있다. 그 대화를 남기면 서버 시계가 계속 멈춘다.
+            if (endRequested)
+            {
+                await api.EndAsync(start.ConversationId, NewRequestId(), true);
+                return;
+            }
+
             ConversationId = start.ConversationId;
             if (!string.IsNullOrEmpty(start.Npc?.Name))
             {
@@ -639,6 +656,15 @@ namespace A305.Dialogue
         private async Task ResumeOrRestartAsync()
         {
             ActiveConversation stale = await api.GetActiveAsync();
+            if (endRequested)
+            {
+                if (stale != null)
+                {
+                    await api.EndAsync(stale.ConversationId, NewRequestId(), true);
+                }
+                return;
+            }
+
             if (stale?.Npc?.NpcCode == NpcCode)
             {
                 Resume(stale);
@@ -650,7 +676,12 @@ namespace A305.Dialogue
                 await api.EndAsync(stale.ConversationId, NewRequestId(), true);
             }
 
-            Begin(await api.StartAsync(NewRequestId(), NpcCode, InitiatedByCode, npcOffDuty));
+            if (!endRequested)
+            {
+                await BeginAsync(
+                    await api.StartAsync(NewRequestId(), NpcCode, InitiatedByCode, npcOffDuty)
+                );
+            }
         }
 
         // 지난 대사를 다시 보이고 마지막 NPC 대사는 처음 시작할 때처럼 들려준다.

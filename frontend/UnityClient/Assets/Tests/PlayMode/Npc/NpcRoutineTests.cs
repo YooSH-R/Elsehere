@@ -362,7 +362,7 @@ namespace A305.Npc.PlayModeTests
                 Is.LessThan(NearObjectMeters)
             );
 
-            // 쉬는 동안에는 다가오지 않으므로 플레이어가 가까이 가서 먼저 말을 건다. 벤치의 [잠깐 앉기]와 겹치지 않게 벤치 반대쪽에 선다.
+            // 쉬는 동안에는 다가오지 않으므로 플레이어가 클릭으로 먼저 말을 건다.
             Vector3 awayFromBench =
                 ben.transform.position - NearestPlaced("bench", ben.transform).position;
             awayFromBench.y = 0f;
@@ -371,11 +371,14 @@ namespace A305.Npc.PlayModeTests
                 Quaternion.identity
             );
             PasserbyOfferView offer = Object.FindFirstObjectByType<PasserbyOfferView>();
-            yield return WaitUntil(() => offer.IsTalkPromptShowing);
-            Assert.That(offer.TalkLabelText, Does.Contain("Ben"));
+            Assert.That(
+                ben.GetComponent<Passerby>().TalkByClick(NpcClickTalk.ReachMeters),
+                Is.True
+            );
+            Assert.That(Object.FindFirstObjectByType<DialogueController>().IsTalking, Is.False);
             offer
                 .GetComponentsInChildren<Button>(true)
-                .Single(button => button.name == "TalkButton")
+                .Single(button => button.name == "AcceptButton")
                 .onClick.Invoke();
             yield return null;
 

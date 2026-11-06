@@ -82,7 +82,7 @@ class UnityJobSelectionTests(unittest.TestCase):
                     )
                 )
 
-    def test_deployment_tests_run_the_full_suite(self):
+    def test_production_tests_run_the_full_suite(self):
         job = self.jobs["unity:editor-and-webgl"]
         self.assertNotIn("-ChangedSince", " ".join(job["script"]))
         self.assertIn("-Action test", " ".join(job["script"]))
@@ -91,9 +91,18 @@ class UnityJobSelectionTests(unittest.TestCase):
                 isinstance(rule, dict)
                 and '"parent_pipeline"' in rule.get("if", "")
                 and 'A305_CHECK_UNITY == "true"' in rule.get("if", "")
+                and 'A305_DEPLOY_ENVIRONMENT == "prod"' in rule.get("if", "")
                 for rule in job["rules"]
             )
         )
+
+    def test_development_build_does_not_execute_editor_tests(self):
+        job = self.jobs["unity:webgl-build"]
+        script = " ".join(job["script"])
+        self.assertIn("-Action build", script)
+        self.assertNotIn("-Action test", script)
+        self.assertTrue(any('A305_BUILD_WEB == "true"' in rule.get("if", "") for rule in job["rules"]))
+        self.assertEqual(job["interruptible"], "false")
 
     def test_external_unity_changes_remain_blocked(self):
         job = self.jobs["unity:external-mr"]

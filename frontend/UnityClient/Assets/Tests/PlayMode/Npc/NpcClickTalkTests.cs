@@ -81,6 +81,7 @@ namespace A305.Npc.PlayModeTests
             yield return FaceFrom(ben, 1.5f);
             yield return new WaitForSeconds(2f);
             Assert.That(Single<PasserbyOfferView>().IsShowing, Is.False);
+            Assert.That(Single<PasserbyOfferView>().IsTalkPromptShowing, Is.False);
             Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Waiting));
             Assert.That(ben.CanTalkByClick(8f), Is.True);
         }

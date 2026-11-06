@@ -52,7 +52,7 @@ PowerShell 창과 사용자 세션을 유지하고, 빌드 중에는 절전에 �
 
 Unity 관련 MR의 전체 EditMode·PlayMode 검사는 최종 커밋의 로컬 작업 트리에서 실행하고 결과를 MR에 기록합니다. MR 파이프라인은 Windows Editor 작업을 만들지 않습니다. 다른 프로젝트의 Unity MR은 기존처럼 Linux의 `unity:external-mr`에서 차단하고 프로젝트 브랜치에서 검토·검증합니다.
 
-`unity:editor-and-webgl`은 보호된 ref의 수동 연결 시험 또는 dev·운영 배포 자식 파이프라인에서 사용합니다. 병합 결과의 전체 테스트와 필요한 WebGL 빌드를 수행하며 제한 시간은 1시간입니다. 수동 Unity 연결 시험에는 `RUN_UNITY_BUILD=true`를 사용합니다. 실제 앱 전달까지 시험하는 절차는 [dev 자동 배포](../dev-auto-deployment.md)를 따릅니다.
+`unity:editor-and-webgl`은 보호된 ref의 수동 연결 시험 또는 운영 배포 자식에서 병합 결과의 전체 테스트와 필요한 WebGL 빌드를 수행합니다. 개발 배포는 `unity:webgl-build`에서 테스트 없이 WebGL 빌드·업로드만 수행합니다. 두 작업의 제한 시간은 1시간이며 MR 파이프라인에는 추가하지 않습니다. 수동 전체 연결 시험에는 `RUN_UNITY_BUILD=true`를 사용합니다. 실제 앱 전달까지 시험하는 절차는 [dev 자동 배포](../dev-auto-deployment.md)를 따릅니다.
 
 1. 실행할 커밋과 `.gitlab/ci/unity.yml`, `infra/scripts/run-unity-ci.ps1`을 검토합니다.
 2. 수동 빌드 시험의 대상 ref가 보호되어 있는지 확인합니다.

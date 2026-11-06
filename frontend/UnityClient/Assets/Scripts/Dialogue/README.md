@@ -52,7 +52,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 | 상황 | 안내 |
 | --- | --- |
 | 연결 실패·시간 초과, 서버·AI 장애(5xx), 요청 속도 제한 | 대화 시작이나 발화가 실패했으면 [다시 시도]를 보여 줍니다. 발화는 같은 문장을 같은 요청 ID로 다시 보냅니다. |
-| AI 사용량 소진(`AI_QUOTA_EXHAUSTED`) | 다시 시도하지 않고 [대화 종료]로 탐험에 돌아가라고 안내합니다. 게스트가 대화 횟수를 다 썼으면 서버가 "게스트는 NPC와 3번까지 대화할 수 있어요…"를 보냅니다. 보통은 그 전에 [말 걸기]가 막혀 이 화면까지 오지 않습니다. |
+| AI 사용량 소진(`AI_QUOTA_EXHAUSTED`) | 다시 시도하지 않고 [대화 종료]로 탐험에 돌아가라고 안내합니다. 게스트가 대화 횟수를 다 썼으면 서버가 "게스트는 NPC와 3번까지 대화할 수 있어요…"를 보냅니다. 보통은 그 전에 새 대화 시작이 막히고 NPC 클릭 시 가입 안내 창을 엽니다. |
 | 대화 중 사용량 소진(`endReason: QUOTA_EXHAUSTED`) | 오류가 아닌 정상 종료지만, NPC가 왜 대화를 마쳤는지와 계속 쓸 수 있는 기능을 알립니다. |
 | 무례 누적으로 종료(`endReason: RUDE`) | "무례한 말이 쌓여 (NPC)이(가) 대화를 마쳤어요."와 함께 [대화 종료]로 피드백을 볼 수 있다고 알립니다. |
 | 용건이 끝나 NPC가 마무리(`endReason: NPC_ENDED`) | 미션 목표를 마쳤거나 작별·용건 끝냄을 말한 턴에 서버가 대화를 끝냅니다. "(NPC)이(가) 대화를 마쳤어요."와 함께 [대화 종료]로 피드백을 볼 수 있다고 알립니다. |
@@ -78,7 +78,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 | `DialogueController.End()` | 대화를 끝내고 플레이어를 대화하던 NPC 쪽으로 돌린 뒤 시점과 이동을 되돌립니다. [대화 종료] 버튼과 Esc도 이 동작을 합니다. |
 | `DialogueController.RegenerateFeedbackAsync(ServerFeedback)` | 만들지 못한 피드백을 다시 만듭니다. 서버 대화가 아니거나 대화 ID가 없으면 받은 피드백을 그대로 돌려줍니다. |
 | `DialogueController.IsTalking` | 대화 중인지 |
-| `DialogueController.Allowance` | 새 NPC 대화를 시작할 수 있는지(`CanStartConversation`)와 게스트의 남은 대화 수(`RemainingConversations`). 행인 말걸기와 [말 걸기]가 씁니다. |
+| `DialogueController.Allowance` | 새 NPC 대화를 시작할 수 있는지(`CanStartConversation`)와 게스트의 남은 대화 수(`RemainingConversations`). 행인의 대화 제안과 클릭 대화가 씁니다. |
 | `DialogueController.FindNpcName(string npcCode)` | 대화 대본에 적힌 NPC 이름. 대본이 없으면 null입니다. 행인 제안 화면의 머리말에 씁니다. |
 | `DialogueController.Started` | 대화가 시작되면 NPC 키를 알립니다. |
 | `DialogueController.Ended` | 대화가 끝나면 끝난 NPC 키를 알립니다. |

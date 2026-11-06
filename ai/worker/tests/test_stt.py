@@ -24,6 +24,13 @@ def test_stt_filters_prompt_echo_and_sends_scene_words(client, provider):
     assert client.post("/v1/stt", files={"file": ("a.webm", b"x" * 100, "audio/webm")}).json()["text"] == "Muffin."
 
 
+def test_stt_keeps_realistic_prompt_sentence_suffix(client, provider):
+    provider.answers["stt"] = lambda b: httpx.Response(200, json={"text": "lives over there", "duration": 1.5})
+    response = client.post("/v1/stt", files=AUDIO)
+    assert response.status_code == 200
+    assert response.json()["text"] == "lives over there"
+
+
 def test_stt_prompt_writes_menu_example_in_english(client, provider):
     # 한글 예시 '아이스 라떼'는 한국식 발음 외래어('Iced americano')까지 '아이스트 아메라카노'처럼 한글로 끌어당겼다 (dev 재현).
     provider.answers["stt"] = lambda b: httpx.Response(200, json=WHISPER_OK)
@@ -56,6 +63,8 @@ def test_stt_prompt_has_no_bus_to_pull_both_toward(client, provider):
 @pytest.mark.parametrize(
     ("text", "echo"),
     [
+        ("lives over there", False),  # 예시 끝의 단어 일부는 실제 발화일 수 있다
+        ("friend lives over there", False),
         ("My friend lives over there.", True),  # Whisper가 무음에 되풀이하는 프롬프트 마지막 문장
         ("음, 그러니까... I want... an iced latte... Can I get a muffin, 음, 하나? 잠깐만요. My friend lives over there.", True),
         ("잠깐만요. My friend lives over there.", True),

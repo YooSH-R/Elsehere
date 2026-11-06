@@ -256,7 +256,16 @@ namespace A305.Npc.PlayModeTests
                 navInstance = default;
                 PlaceWalker(first, new Vector3(497, .1f, 500), Vector3.right);
                 first.Destination = new Vector3(503, 0, 500);
-                yield return CheckWaiting(first, second);
+                Vector3 stopped = first.transform.position;
+                for (int frame = 0; frame < 60; frame++)
+                {
+                    yield return null;
+                    Assert.That(
+                        HorizontalDistance(first.transform.position, stopped),
+                        Is.LessThan(.001f),
+                        "보행면 자체가 없으면 장애물 우회 경로도 없으므로 길 밖으로 움직이지 않습니다."
+                    );
+                }
             }
             finally
             {
@@ -269,6 +278,265 @@ namespace A305.Npc.PlayModeTests
 
         private static float HorizontalDistance(Vector3 first, Vector3 second) =>
             Vector3.ProjectOnPlane(first - second, Vector3.up).magnitude;
+
+        [UnityTest]
+        public IEnumerator Town_CommuterReplansAroundNewObstaclesAndResumesWhenRouteReopens()
+        {
+            SetClock(21 * 60);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            foreach (
+                var population in Object.FindObjectsByType<NpcPopulation>(FindObjectsSortMode.None)
+            )
+                population.enabled = false;
+            Object
+                .FindFirstObjectByType<A305.Player.PlayerMover>()
+                .Teleport(new Vector3(450, 20, 450), Quaternion.identity);
+            var walker = Object
+                .FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None)
+                .Single(w => w.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER");
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            floor.transform.position = new Vector3(500, -.1f, 500);
+            floor.transform.localScale = new Vector3(10, .2f, 8);
+            NavMeshData navData = BuildWalkingFloor(floor);
+            var navInstance = NavMesh.AddNavMeshData(navData);
+            GameObject wall = null;
+            float previousDeltaTime = Time.captureDeltaTime;
+            const float frameSeconds = 1f / 60f;
+            try
+            {
+                Time.captureDeltaTime = frameSeconds;
+                PlaceWalker(walker, new Vector3(497, .1f, 500), Vector3.right);
+                walker.Destination = new Vector3(503, 0, 500);
+                for (int frame = 0; frame < 12; frame++)
+                    yield return null;
+                Assert.That(walker.transform.position.x, Is.GreaterThan(497.1f));
+
+                // 이미 걷기 시작한 직선 경로를 막아 새 우회 경로가 필요한 상황을 만든다.
+                wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                wall.transform.position = new Vector3(500, 1, 500);
+                wall.transform.localScale = new Vector3(1, 2, 3);
+                var obstacle = wall.AddComponent<NavMeshObstacle>();
+                obstacle.shape = NavMeshObstacleShape.Box;
+                obstacle.size = Vector3.one;
+                obstacle.carveOnlyStationary = false;
+                obstacle.carving = true;
+                Physics.SyncTransforms();
+                float widestDetour = 0;
+                for (int frame = 0; frame < 480; frame++)
+                {
+                    Vector3 before = walker.transform.position;
+                    yield return null;
+                    widestDetour = Mathf.Max(
+                        widestDetour,
+                        Mathf.Abs(walker.transform.position.z - 500)
+                    );
+                    Assert.That(
+                        HorizontalDistance(before, walker.transform.position),
+                        Is.LessThanOrEqualTo(1.6f * frameSeconds + .001f),
+                        "우회 중에도 순간이동하지 않습니다."
+                    );
+                    Vector3 position = walker.transform.position;
+                    Assert.That(
+                        Mathf.Abs(position.x - 500) < .5f && Mathf.Abs(position.z - 500) < 1.5f,
+                        Is.False,
+                        "장애물 내부를 통과하면 안 됩니다."
+                    );
+                }
+                Assert.That(
+                    widestDetour,
+                    Is.GreaterThan(1.5f),
+                    "새 장애물을 옆으로 돌아가야 합니다."
+                );
+                Assert.That(
+                    HorizontalDistance(walker.transform.position, walker.Destination),
+                    Is.LessThan(.12f)
+                );
+
+                // 우회로까지 완전히 막힌 동안만 기다리고, 다시 열리면 같은 목적지로 재탐색한다.
+                PlaceWalker(walker, new Vector3(497, .1f, 500), Vector3.right);
+                wall.transform.localScale = new Vector3(1, 2, 12);
+                Physics.SyncTransforms();
+                for (int frame = 0; frame < 12; frame++)
+                    yield return null;
+                walker.Destination = new Vector3(503, 0, 500);
+                Vector3 waiting = walker.transform.position;
+                for (int frame = 0; frame < 60; frame++)
+                {
+                    yield return null;
+                    Assert.That(
+                        HorizontalDistance(waiting, walker.transform.position),
+                        Is.LessThan(.001f)
+                    );
+                }
+                wall.transform.localScale = new Vector3(1, 2, 3);
+                Physics.SyncTransforms();
+                for (int frame = 0; frame < 480; frame++)
+                    yield return null;
+                Assert.That(
+                    HorizontalDistance(walker.transform.position, walker.Destination),
+                    Is.LessThan(.12f),
+                    "통로가 다시 열리면 멈춘 채 남지 않고 우회해 도착해야 합니다."
+                );
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDeltaTime;
+                navInstance.Remove();
+                Object.Destroy(navData);
+                Object.Destroy(wall);
+                Object.Destroy(floor);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Town_CommuterWaitsForTrafficAndFinishesCrossingBeforeTalking()
+        {
+            SetClock(21 * 60);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            foreach (
+                var population in Object.FindObjectsByType<NpcPopulation>(FindObjectsSortMode.None)
+            )
+                population.enabled = false;
+            Object
+                .FindFirstObjectByType<A305.Player.PlayerMover>()
+                .Teleport(new Vector3(450, 20, 450), Quaternion.identity);
+            var walker = Object
+                .FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None)
+                .Single(w => w.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER");
+            var lights = Object.FindFirstObjectByType<TrafficLights>();
+            lights.enabled = false;
+            var signal = lights.Heads.First(head => head != null);
+            Vector3 signalPosition = signal.transform.position;
+            signal.transform.position = new Vector3(500, 0, 502);
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var phase = typeof(TrafficLights).GetField("elapsedSeconds", flags);
+            phase.SetValue(lights, 0f);
+            Assert.That(lights.CanCross(true, 8), Is.False);
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            floor.transform.position = new Vector3(500, -.1f, 500);
+            floor.transform.localScale = new Vector3(10, .2f, 6);
+            NavMeshData navData = BuildWalkingFloor(
+                floor,
+                new NavMeshBuildSource
+                {
+                    shape = NavMeshBuildSourceShape.ModifierBox,
+                    transform = Matrix4x4.Translate(new Vector3(500, 0, 500)),
+                    size = new Vector3(2, 4, 6),
+                    area = NavMesh.GetAreaFromName("Crosswalk"),
+                }
+            );
+            var navInstance = NavMesh.AddNavMeshData(navData);
+            float previousDeltaTime = Time.captureDeltaTime;
+            try
+            {
+                Time.captureDeltaTime = 1f / 60f;
+                PlaceWalker(walker, new Vector3(497, .1f, 500), Vector3.right);
+                walker.Destination = new Vector3(503, 0, 500);
+                for (int frame = 0; frame < 120; frame++)
+                    yield return null;
+                Assert.That(
+                    walker.transform.position.x,
+                    Is.InRange(497.2f, 498.9f),
+                    "차량이 진행하는 동안 횡단보도 앞에서 기다려야 합니다."
+                );
+                Vector3 waiting = walker.transform.position;
+                for (int frame = 0; frame < 30; frame++)
+                {
+                    yield return null;
+                    Assert.That(
+                        HorizontalDistance(waiting, walker.transform.position),
+                        Is.LessThan(.001f)
+                    );
+                }
+
+                phase.SetValue(lights, 15f);
+                Assert.That(lights.CanCross(true, 8), Is.True);
+                bool crossed = false;
+                for (int frame = 0; frame < 300; frame++)
+                {
+                    yield return null;
+                    if (!walker.IsCrossing)
+                        continue;
+                    crossed = true;
+                    Assert.That(
+                        walker.GetComponent<Passerby>().CanTalkByClick(10000),
+                        Is.False,
+                        "횡단 중에는 대화로 멈추면 안 됩니다."
+                    );
+                    // 건너는 도중 신호가 바뀌더라도 다음 인도까지 걸어 나간다.
+                    phase.SetValue(lights, 0f);
+                }
+                Assert.That(crossed, Is.True);
+                NavMesh.SamplePosition(
+                    walker.transform.position,
+                    out NavMeshHit floorHit,
+                    .5f,
+                    NavMesh.AllAreas
+                );
+                Assert.That(
+                    HorizontalDistance(walker.transform.position, walker.Destination),
+                    Is.LessThan(.12f),
+                    $"횡단 종료 위치: {walker.transform.position}, 보행면: {floorHit.position}, 횡단 중: {walker.IsCrossing}"
+                );
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDeltaTime;
+                signal.transform.position = signalPosition;
+                lights.enabled = true;
+                navInstance.Remove();
+                Object.Destroy(navData);
+                Object.Destroy(floor);
+            }
+        }
+
+        private static NavMeshData BuildWalkingFloor(
+            GameObject floor,
+            params NavMeshBuildSource[] areas
+        )
+        {
+            var source = new NavMeshBuildSource
+            {
+                shape = NavMeshBuildSourceShape.Box,
+                transform = Matrix4x4.TRS(
+                    floor.transform.position,
+                    Quaternion.identity,
+                    Vector3.one
+                ),
+                size = floor.transform.localScale,
+                area = 0,
+            };
+            var sources = new List<NavMeshBuildSource> { source };
+            sources.AddRange(areas);
+            return NavMeshBuilder.BuildNavMeshData(
+                NavMesh.GetSettingsByIndex(0),
+                sources,
+                new Bounds(
+                    floor.transform.position,
+                    floor.transform.localScale + new Vector3(2, 4, 2)
+                ),
+                Vector3.zero,
+                Quaternion.identity
+            );
+        }
 
         private static IEnumerator CheckWaiting(NpcTownWalker walker, NpcTownWalker obstacle)
         {
@@ -314,6 +582,9 @@ namespace A305.Npc.PlayModeTests
             typeof(DialogueController)
                 .GetField("conversationApi", flags)
                 .SetValue(Object.FindFirstObjectByType<DialogueController>(), null);
+            typeof(DialogueController)
+                .GetField("followUpApi", flags)
+                .SetValue(Object.FindFirstObjectByType<DialogueController>(), null);
             typeof(SpaceArrival)
                 .GetField("apiSettings", flags)
                 .SetValue(Object.FindFirstObjectByType<SpaceArrival>(), null);
@@ -347,6 +618,8 @@ namespace A305.Npc.PlayModeTests
                 Quaternion.identity
             );
             floor.transform.localScale = new Vector3(20f, 1f, 20f);
+            NavMeshData navData = BuildWalkingFloor(floor);
+            var navInstance = NavMesh.AddNavMeshData(navData);
             float captureDeltaTime = Time.captureDeltaTime;
             const float frameSeconds = 1f / 60f;
             const float stepMeters = .01f;
@@ -411,6 +684,8 @@ namespace A305.Npc.PlayModeTests
             finally
             {
                 Time.captureDeltaTime = captureDeltaTime;
+                navInstance.Remove();
+                Object.Destroy(navData);
                 Object.Destroy(floor);
             }
         }

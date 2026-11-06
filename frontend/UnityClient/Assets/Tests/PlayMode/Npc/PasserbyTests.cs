@@ -378,13 +378,13 @@ namespace A305.Npc.PlayModeTests
             PasserbyOfferView offer = Single<PasserbyOfferView>();
             yield return WaitUntil(() => offer.IsShowing);
 
-            Assert.That(offer.RemainingText, Is.EqualTo("게스트 남은 대화 2번"));
+            Assert.That(offer.RemainingText, Is.EqualTo("오늘 남은 대화 2번"));
         }
 
         [UnityTest]
-        public IEnumerator GuestUsedAllConversations_NoNearbyButton_AndClickingOffersSignup()
+        public IEnumerator DailyLimitReached_NoNearbyButtonOrClickConversation()
         {
-            // 대화를 다 쓴 게스트에게도 근접 버튼은 뜨지 않고, NPC를 클릭하면 가입 안내 창을 연다.
+            // 일일 한도를 다 쓰면 근접 버튼이나 가입 안내 없이 새 대화를 막는다.
             yield return LoadTownAfterTutorial();
             Single<DialogueController>().Allowance.Apply(GuestStatus(remaining: 0));
             Passerby passerby = FindPasserby(BenCode);
@@ -398,9 +398,9 @@ namespace A305.Npc.PlayModeTests
             StandNear(BenCode, 1.5f);
             yield return new WaitForSeconds(.5f);
             Assert.That(offer.IsTalkPromptShowing, Is.False);
-            Assert.That(passerby.TalkByClick(NpcClickTalk.ReachMeters), Is.True);
+            Assert.That(passerby.TalkByClick(NpcClickTalk.ReachMeters), Is.False);
             yield return null;
-            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.True);
+            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.False);
             Assert.That(Single<DialogueController>().IsTalking, Is.False);
         }
 
@@ -421,7 +421,7 @@ namespace A305.Npc.PlayModeTests
             Passerby passerby = FindPasserby(BenCode);
             Assert.That(passerby.TalkByClick(NpcClickTalk.ReachMeters), Is.True);
             Assert.That(offer.IsShownBy(passerby), Is.True);
-            Assert.That(offer.RemainingText, Is.EqualTo("게스트 남은 대화 1번"));
+            Assert.That(offer.RemainingText, Is.EqualTo("오늘 남은 대화 1번"));
         }
 
         private static IEnumerator LoadTown()

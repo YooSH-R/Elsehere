@@ -3,6 +3,7 @@ using System.Collections;
 using System.Linq;
 using System.Reflection;
 using A305.Dialogue;
+using A305.Onboarding;
 using A305.Player;
 using A305.Tutorial;
 using A305.World;
@@ -54,6 +55,11 @@ namespace A305.Npc.PlayModeTests
         // NPC 앞 거리만 바꾸는 검사에서 숙소 출입구를 밟아 씬이 바뀌지 않게 한다. 공간 이동은 World 테스트가 검증한다.
         private static void IsolateDoorways(Scene scene, LoadSceneMode mode)
         {
+            // 로그인하지 않은 클릭 검사에서 만료 안내가 이동과 이름표를 가리지 않도록 분리한다.
+            foreach (
+                var view in Object.FindObjectsByType<SessionExpiredView>(FindObjectsSortMode.None)
+            )
+                view.enabled = false;
             foreach (
                 SpaceDoorway door in Object.FindObjectsByType<SpaceDoorway>(
                     FindObjectsSortMode.None
@@ -201,9 +207,9 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator GuestWhoUsedAllConversations_ClickingBen_OpensSignupDialog()
+        public IEnumerator DailyLimitReached_ClickingBen_DoesNotOpenSignupOrConversation()
         {
-            // [가입하고 계속 대화하기]를 누른 것과 같다(S15P31A305-578).
+            // 일일 한도 소진은 가입을 유도하지 않고 대화를 막는다.
             yield return LoadTownAfterTutorial();
             Single<DialogueController>().Allowance.Apply(GuestOutOfConversations());
             Passerby ben = FindPasserby(BenCode);
@@ -212,7 +218,7 @@ namespace A305.Npc.PlayModeTests
             Single<NpcClickTalk>().Click(AimAt(ben));
             yield return null;
 
-            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.True);
+            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.False);
             Assert.That(Single<DialogueController>().IsTalking, Is.False);
         }
 
@@ -321,7 +327,7 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator GuestWhoUsedAllConversations_ClickingBensNameTag_OpensSignupDialog()
+        public IEnumerator DailyLimitReached_ClickingBensNameTag_DoesNotOpenSignupOrConversation()
         {
             yield return LoadTownAfterTutorial();
             Single<DialogueController>().Allowance.Apply(GuestOutOfConversations());
@@ -330,10 +336,16 @@ namespace A305.Npc.PlayModeTests
             yield return FaceFrom(ben, 6f);
             yield return LetCameraSettle();
 
+            Assert.That(
+                Single<PlayerMover>().IsMovementLocked,
+                Is.False,
+                "이름표 클릭 검사 준비 중 이동 잠금이 생겼습니다."
+            );
+
             Single<NpcClickTalk>().Click(NameTagOf(ben, BenName));
             yield return null;
 
-            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.True);
+            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.False);
             Assert.That(Single<DialogueController>().IsTalking, Is.False);
         }
 

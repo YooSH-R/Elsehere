@@ -16,6 +16,7 @@ namespace A305.World
         private static readonly List<LoopingCar> Driving = new List<LoopingCar>();
 
         private const float SingleLaneClearanceMeters = 4f;
+        private readonly Collider[] nearbyPeople = new Collider[64];
 
         [SerializeField]
         [Tooltip("남쪽 유턴 지점 z")]
@@ -187,6 +188,29 @@ namespace A305.World
             )
             {
                 return true;
+            }
+
+            // 신호가 없는 횡단보도에서도 사람을 지나칠 때까지 기다린다.
+            int count = Physics.OverlapBoxNonAlloc(
+                pose.Position + pose.Forward * 3f + Vector3.up,
+                new Vector3(1.4f, 1.5f, 3f),
+                nearbyPeople,
+                Quaternion.LookRotation(pose.Forward),
+                Physics.DefaultRaycastLayers,
+                QueryTriggerInteraction.Ignore
+            );
+            for (int i = 0; i < count; i++)
+            {
+                if (
+                    nearbyPeople[i] is CharacterController person
+                    && (player == null || person.gameObject != player.gameObject)
+                    && CarLoopRoute.ShouldYield(
+                        pose.Position,
+                        pose.Forward,
+                        person.transform.position
+                    )
+                )
+                    return true;
             }
 
             foreach (LoopingCar other in Driving)

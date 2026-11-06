@@ -45,6 +45,7 @@ namespace A305.Learning
                     fontSource,
                     displayFont,
                     tileSprite,
+                    buttonTemplate,
                     feedback,
                     selectedReview.Value,
                     back
@@ -54,7 +55,6 @@ namespace A305.Learning
                     rect,
                     fontSource,
                     displayFont,
-                    buttonTemplate,
                     tileSprite,
                     avatarSprite,
                     feedback,
@@ -70,7 +70,6 @@ namespace A305.Learning
             RectTransform root,
             TMP_Text fontSource,
             TMP_FontAsset displayFont,
-            Button buttonTemplate,
             Sprite tileSprite,
             Sprite avatarSprite,
             ConversationFeedback feedback,
@@ -188,38 +187,6 @@ namespace A305.Learning
                     Button open = bubble.gameObject.AddComponent<Button>();
                     bubble.raycastTarget = true;
                     open.onClick.AddListener(() => selectReview(reviewIndex));
-                    Button chip = UnityEngine.Object.Instantiate(buttonTemplate, root);
-                    chip.name = "ReviewChip";
-                    chip.onClick = new Button.ButtonClickedEvent();
-                    chip.onClick.AddListener(() => selectReview(reviewIndex));
-                    chip.interactable = true;
-                    var chipRect = (RectTransform)chip.transform;
-                    const float Scale = .85f;
-                    LayoutElement buttonSize = buttonTemplate.GetComponent<LayoutElement>();
-                    float buttonWidth = buttonSize.preferredWidth;
-                    float buttonHeight = buttonSize.preferredHeight;
-                    Pin(
-                        chipRect,
-                        x + bubbleWidth - buttonWidth * Scale - 16,
-                        y + bubbleHeight - 12,
-                        buttonWidth,
-                        buttonHeight
-                    );
-                    chipRect.localScale = Vector3.one * Scale;
-                    TMP_Text chipLabel = chip.GetComponentInChildren<TMP_Text>(true);
-                    chipLabel.text = "보기";
-                    chipLabel.font = displayFont;
-                    chipLabel.alignment = TextAlignmentOptions.Midline;
-                    chipLabel.enableAutoSizing = false;
-                    chipLabel.fontSize = 23;
-                    chipLabel.margin = Vector4.zero;
-                    chipLabel.rectTransform.anchorMin = Vector2.zero;
-                    chipLabel.rectTransform.anchorMax = Vector2.one;
-                    chipLabel.rectTransform.pivot = new Vector2(.5f, .5f);
-                    chipLabel.rectTransform.offsetMin = chipLabel.rectTransform.offsetMax =
-                        new Vector2(0, -3);
-                    chip.gameObject.SetActive(true);
-                    y += buttonHeight * Scale + 4;
                 }
                 y += bubbleHeight + 28;
             }
@@ -231,6 +198,7 @@ namespace A305.Learning
             TMP_Text fontSource,
             TMP_FontAsset displayFont,
             Sprite tileSprite,
+            Button buttonTemplate,
             ConversationFeedback feedback,
             int reviewIndex,
             Action back
@@ -238,50 +206,65 @@ namespace A305.Learning
         {
             float width = root.rect.width;
             UtteranceReview review = feedback.Reviews[reviewIndex];
-            Image backTile = Tile(
-                root,
-                "BackToConversation",
-                tileSprite,
-                new Color(1f, 1f, 1f, .76f),
-                22,
-                12,
-                168,
-                64
-            );
-            backTile.raycastTarget = true;
-            backTile.gameObject.AddComponent<Button>().onClick.AddListener(() => back());
+            Button backButton = UnityEngine.Object.Instantiate(buttonTemplate, root);
+            backButton.name = "BackToConversation";
+            backButton.onClick = new Button.ButtonClickedEvent();
+            backButton.onClick.AddListener(() => back());
+            backButton.interactable = true;
+            backButton.gameObject.SetActive(true);
+            RectTransform backRect = (RectTransform)backButton.transform;
+            Pin(backRect, 42, 18, 176, 44);
+            backRect.localScale = Vector3.one;
+            ColorBlock backColors = backButton.colors;
+            backColors.normalColor = Color.white;
+            backColors.highlightedColor = Color.white;
+            backColors.selectedColor = Color.white;
+            backColors.pressedColor = new Color(.9f, .9f, .9f, 1f);
+            backButton.colors = backColors;
+            backButton.targetGraphic.color = new Color32(255, 157, 119, 255);
+            TMP_Text backLabel = backButton.GetComponentInChildren<TMP_Text>(true);
+            backLabel.text = "전체 대화";
+            backLabel.font = displayFont;
+            backLabel.fontSize = 22;
+            backLabel.color = Ink;
+            backLabel.enableAutoSizing = false;
+            backLabel.alignment = TextAlignmentOptions.Midline;
+            backLabel.margin = Vector4.zero;
+            backLabel.rectTransform.anchorMin = Vector2.zero;
+            backLabel.rectTransform.anchorMax = Vector2.one;
+            backLabel.rectTransform.offsetMin = new Vector2(16, 0);
+            backLabel.rectTransform.offsetMax = new Vector2(-16, 0);
             Label(
-                backTile.rectTransform,
+                backRect,
                 fontSource,
-                "BackLabel",
-                "‹  대화로",
-                19,
+                "BackArrow",
+                "‹",
+                28,
                 Ink,
-                12,
-                6,
-                144,
-                42,
+                10,
+                2,
+                26,
+                40,
                 displayFont
-            ).alignment = TextAlignmentOptions.Center;
+            ).alignment = TextAlignmentOptions.Midline;
             Label(
                 root,
                 fontSource,
                 "ReviewTitle",
-                "문장 다시 보기",
-                29,
+                "문장 피드백",
+                25,
                 Coral,
-                48,
-                98,
-                width - 80,
-                48,
+                280,
+                18,
+                width - 304,
+                44,
                 displayFont
-            );
-            Tile(root, "SectionBar", null, Coral, 28, 105, 5, 28);
+            ).alignment = TextAlignmentOptions.MidlineLeft;
             const float Margin = 24;
             const float Gap = 20;
             float cardWidth = width - Margin * 2;
             float columnWidth = (cardWidth - Gap) / 2;
-            float y = 148;
+            float y = 108;
             string better = review.Reference?.English ?? review.Utterance;
             if (columnWidth >= 300)
             {

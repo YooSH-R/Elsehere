@@ -49,9 +49,10 @@ namespace A305.Tutorial
         private const float CompassScreenArrowBottom = 150f;
         private const float MarkerBobPixels = 12f;
         private const float MarkerBobSpeed = 4f;
-        private const float FramePulseSpeed = 3f;
-        private const int FrameSpriteSize = 96;
-        private const float FrameRadius = 26f;
+        private const float FramePulseSpeed = 1.8f;
+        private const int FrameSpriteSize = 256;
+        private const float FrameGlowPadding = 32f;
+        private const float FrameRadius = 32f;
 
         [SerializeField]
         private Canvas canvas;
@@ -118,6 +119,9 @@ namespace A305.Tutorial
         private Sprite roundedCornerShadeSprite;
         private Texture2D roundedBorderTexture;
         private Texture2D roundedCornerShadeTexture;
+        private Image cornerShade;
+        private Image roundedBorder;
+        private float currentFrameRadius = FrameRadius;
 
         private void Awake()
         {
@@ -141,8 +145,14 @@ namespace A305.Tutorial
                 return;
             }
 
-            caption.gameObject.AddComponent<ThemedElement>().Use(catalog, UiThemeRole.Card);
-            captionText.gameObject.AddComponent<ThemedElement>().Use(catalog, UiThemeRole.Body);
+            var captionTheme =
+                caption.GetComponent<ThemedElement>()
+                ?? caption.gameObject.AddComponent<ThemedElement>();
+            var textTheme =
+                captionText.GetComponent<ThemedElement>()
+                ?? captionText.gameObject.AddComponent<ThemedElement>();
+            captionTheme.Use(catalog, UiThemeRole.Card);
+            textTheme.Use(catalog, UiThemeRole.Body);
         }
 
         private void CreateRoundedFrame()
@@ -152,15 +162,28 @@ namespace A305.Tutorial
                 bar.gameObject.SetActive(false);
             }
 
-            Image corners = CreateFrameImage("RoundedCorners");
-            roundedCornerShadeSprite = CreateFrameSprite(true, out roundedCornerShadeTexture);
-            corners.sprite = roundedCornerShadeSprite;
-            corners.color = shades[0].GetComponent<Image>().color;
+            cornerShade = CreateFrameImage("RoundedCorners");
+            // 어두운 모서리는 테두리의 맥동과 분리해 주변 판과 같은 농도를 유지한다.
+            cornerShade.transform.SetParent(frame.transform.parent, false);
+            cornerShade.transform.SetSiblingIndex(frame.transform.GetSiblingIndex());
+            cornerShade.color = shades[0].GetComponent<Image>().color;
+            roundedBorder = CreateFrameImage("RoundedBorder");
+            roundedBorder.color = Color.white;
+            UpdateFrameSprites(FrameRadius);
+        }
 
-            Image border = CreateFrameImage("RoundedBorder");
-            roundedBorderSprite = CreateFrameSprite(false, out roundedBorderTexture);
-            border.sprite = roundedBorderSprite;
-            border.color = marker.GetComponent<Image>().color;
+        private void UpdateFrameSprites(float radius)
+        {
+            ReleaseFrameSprites();
+            currentFrameRadius = radius;
+            roundedCornerShadeSprite = CreateFrameSprite(
+                true,
+                radius,
+                out roundedCornerShadeTexture
+            );
+            cornerShade.sprite = roundedCornerShadeSprite;
+            roundedBorderSprite = CreateFrameSprite(false, radius, out roundedBorderTexture);
+            roundedBorder.sprite = roundedBorderSprite;
         }
 
         private Image CreateFrameImage(string name)
@@ -176,14 +199,19 @@ namespace A305.Tutorial
             RectTransform rect = image.rectTransform;
             rect.anchorMin = Vector2.zero;
             rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
+            // 광채를 그릴 투명 여백을 확보하되 실제 테두리는 대상 구멍에 정확히 맞춘다.
+            rect.offsetMin = -Vector2.one * FrameGlowPadding;
+            rect.offsetMax = Vector2.one * FrameGlowPadding;
             image.type = Image.Type.Sliced;
             image.raycastTarget = false;
             return image;
         }
 
-        private static Sprite CreateFrameSprite(bool shadeCorners, out Texture2D texture)
+        private static Sprite CreateFrameSprite(
+            bool shadeCorners,
+            float radius,
+            out Texture2D texture
+        )
         {
             texture = new Texture2D(FrameSpriteSize, FrameSpriteSize, TextureFormat.RGBA32, false)
             {
@@ -192,25 +220,46 @@ namespace A305.Tutorial
             };
             var pixels = new Color[FrameSpriteSize * FrameSpriteSize];
             float half = FrameSpriteSize / 2f;
-            float extent = half - 8f;
+            float extent = half - FrameGlowPadding;
             for (int y = 0; y < FrameSpriteSize; y++)
             {
                 for (int x = 0; x < FrameSpriteSize; x++)
                 {
-                    float dx = Mathf.Abs(x + 0.5f - half) - (extent - FrameRadius);
-                    float dy = Mathf.Abs(y + 0.5f - half) - (extent - FrameRadius);
+                    float px = Mathf.Abs(x + 0.5f - half);
+                    float py = Mathf.Abs(y + 0.5f - half);
+                    float dx = px - (extent - radius);
+                    float dy = py - (extent - radius);
                     float distance =
                         Mathf.Min(Mathf.Max(dx, dy), 0f)
                         + new Vector2(Mathf.Max(dx, 0f), Mathf.Max(dy, 0f)).magnitude
-                        - FrameRadius;
+                        - radius;
                     float edge = Mathf.Abs(distance);
-                    float alpha = shadeCorners
-                        ? Mathf.Clamp01(distance + 0.5f)
-                        : Mathf.Max(
-                            Mathf.Clamp01(3f - edge),
-                            0.22f * Mathf.Clamp01((11f - edge) / 7f)
-                        );
-                    pixels[y * FrameSpriteSize + x] = new Color(1f, 1f, 1f, alpha);
+                    if (shadeCorners)
+                    {
+                        float alpha =
+                            px <= extent && py <= extent ? Mathf.Clamp01(distance + 0.5f) : 0f;
+                        pixels[y * FrameSpriteSize + x] = new Color(1f, 1f, 1f, alpha);
+                        continue;
+                    }
+
+                    float glow = 0.18f * Mathf.Exp(-edge * edge / 260f);
+                    float rim =
+                        0.72f
+                        * (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(2.4f, 5.1f, edge)));
+                    float core =
+                        0.55f
+                        * (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.5f, 1.4f, edge)));
+                    Color gold = Color.Lerp(
+                        new Color(1f, 0.79f, 0.25f),
+                        new Color(1f, 0.97f, 0.77f),
+                        core
+                    );
+                    pixels[y * FrameSpriteSize + x] = new Color(
+                        gold.r,
+                        gold.g,
+                        gold.b,
+                        Mathf.Max(glow, rim)
+                    );
                 }
             }
 
@@ -223,7 +272,7 @@ namespace A305.Tutorial
                 100f,
                 0,
                 SpriteMeshType.FullRect,
-                new Vector4(34f, 34f, 34f, 34f)
+                Vector4.one * (FrameGlowPadding + radius)
             );
         }
 
@@ -462,10 +511,28 @@ namespace A305.Tutorial
                 Destroy(compassRoot.gameObject);
             }
 
-            Destroy(roundedBorderSprite);
-            Destroy(roundedCornerShadeSprite);
-            Destroy(roundedBorderTexture);
-            Destroy(roundedCornerShadeTexture);
+            ReleaseFrameSprites();
+        }
+
+        private void ReleaseFrameSprites()
+        {
+            foreach (
+                UnityEngine.Object resource in new UnityEngine.Object[]
+                {
+                    roundedBorderSprite,
+                    roundedCornerShadeSprite,
+                    roundedBorderTexture,
+                    roundedCornerShadeTexture,
+                }
+            )
+            {
+                if (resource == null)
+                    continue;
+                if (Application.isPlaying)
+                    Destroy(resource);
+                else
+                    DestroyImmediate(resource);
+            }
         }
 
         // 원은 발밑에, 점과 화살표는 원 가장자리에서 대상 쪽으로 오가며 가리킨다.
@@ -621,7 +688,24 @@ namespace A305.Tutorial
             }
 
             Place((RectTransform)frame.transform, hole);
-            frame.alpha = 0.65f + 0.35f * Mathf.Sin(Time.unscaledTime * FramePulseSpeed);
+            Rect glowArea = Rect.MinMaxRect(
+                hole.xMin - FrameGlowPadding,
+                hole.yMin - FrameGlowPadding,
+                hole.xMax + FrameGlowPadding,
+                hole.yMax + FrameGlowPadding
+            );
+            Place(cornerShade.rectTransform, glowArea);
+            float radius = Mathf.Min(FrameRadius, Mathf.Min(hole.width, hole.height) / 2f);
+            if (
+                targets.Count == 1
+                && targets[0] != null
+                && targets[0].GetComponent<Button>() != null
+            )
+                radius = Mathf.Min(hole.height / 2f, FrameSpriteSize / 2f - FrameGlowPadding - 1f);
+            radius = Mathf.Round(radius);
+            if (!Mathf.Approximately(radius, currentFrameRadius))
+                UpdateFrameSprites(radius);
+            frame.alpha = 0.82f + 0.12f * Mathf.Sin(Time.unscaledTime * FramePulseSpeed);
             SetSpotlightVisible(true);
             if (caption.gameObject.activeSelf)
             {
@@ -726,7 +810,7 @@ namespace A305.Tutorial
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 canvasRect,
                 screenPoint,
-                null,
+                canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera,
                 out Vector2 local
             );
             return local + canvasRect.rect.size * canvasRect.pivot;
@@ -756,6 +840,8 @@ namespace A305.Tutorial
             }
 
             frame.gameObject.SetActive(visible);
+            if (cornerShade != null)
+                cornerShade.gameObject.SetActive(visible);
             if (!visible)
             {
                 caption.gameObject.SetActive(false);

@@ -171,6 +171,10 @@ namespace A305.Dialogue
         // 자유 대화의 입력칸 안내("영어로 답하기…"). 정해진 대사를 따라가는 대화에서는 그 대사로 바꿔 보인다.
         private string freePlaceholder;
 
+        /// <summary>대사와 화자 이름을 함께 밝히는 튜토리얼 강조 영역.</summary>
+        public IReadOnlyList<RectTransform> DialogueLinesParts =>
+            new[] { LinesRect, npcNameText.rectTransform };
+
         /// <summary>
         /// 정해진 대사를 말하거나 입력하는 입력칸·[보내기]·[예시 문장]·[말하기]. 튜토리얼 코치 마크가 한 구멍으로 밝힌다.
         /// </summary>

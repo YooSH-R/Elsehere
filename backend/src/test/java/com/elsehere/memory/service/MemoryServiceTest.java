@@ -216,6 +216,35 @@ class MemoryServiceTest {
   }
 
   @Test
+  @DisplayName("이번 대화가 좋았다는 기억 카드 결과의 호감 변화량을 카드와 함께 더한다")
+  void updateAfterConversation_goodConversation_raisesAffinity() {
+    relation(15, 2, 1);
+    given(aiGateway.memoryCard(any(), any(), anyString(), any(), any()))
+        .willReturn(new MemoryCardResult(FIRST_CARD, 3, List.of()));
+    given(aiGateway.relationship(any(), any(), any(), any())).willReturn(new RelationshipChange(8));
+
+    memoryService.updateAfterConversation(
+        userId, endedConversation("I want a latte").getId(), UUID.randomUUID());
+
+    assertThat(relationValues()).containsExactly(23, 5);
+    assertThat(memoryService.memoryFor(userId, npcId).card()).isEqualTo(card("", List.of()));
+  }
+
+  @Test
+  @DisplayName("좋은 대화로 올려도 호감은 100을 넘지 않는다")
+  void updateAfterConversation_goodConversation_affinityStaysInRange() {
+    relation(15, 99, 1);
+    given(aiGateway.memoryCard(any(), any(), anyString(), any(), any()))
+        .willReturn(new MemoryCardResult(FIRST_CARD, 3, List.of()));
+    given(aiGateway.relationship(any(), any(), any(), any())).willReturn(new RelationshipChange(8));
+
+    memoryService.updateAfterConversation(
+        userId, endedConversation("I want a latte").getId(), UUID.randomUUID());
+
+    assertThat(relationValues()).containsExactly(23, 100);
+  }
+
+  @Test
   @DisplayName("관계 갱신에 실패하면 관계는 그대로 두고 기억 카드는 저장한다")
   void updateAfterConversation_relationshipFails_keepsRelationshipAndSavesCard() {
     relation(15, 2, 1);

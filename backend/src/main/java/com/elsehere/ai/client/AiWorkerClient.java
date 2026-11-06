@@ -234,7 +234,8 @@ class AiWorkerClient {
         throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID);
       }
       MemoryEnvelope envelope = jsonMapper.readValue(response.body(), MemoryEnvelope.class);
-      return new MemoryCardResult(jsonMapper.writeValueAsString(card), usageOf(envelope.usage()));
+      return new MemoryCardResult(
+          jsonMapper.writeValueAsString(card), envelope.affinityDelta(), usageOf(envelope.usage()));
     } catch (JacksonException exception) {
       throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID, exception);
     }
@@ -515,7 +516,7 @@ class AiWorkerClient {
 
   record FollowUpBody(WorkerNpc npc, List<WorkerLine> history) {}
 
-  record MemoryEnvelope(List<WorkerUsage> usage) {}
+  record MemoryEnvelope(Integer affinityDelta, List<WorkerUsage> usage) {}
 
   record DoneEvent(
       String text,

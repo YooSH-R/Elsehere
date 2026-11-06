@@ -45,7 +45,7 @@ namespace A305.EditorTools.Learning
             tabLayout.childForceExpandWidth = false;
             tabLayout.childAlignment = TextAnchor.MiddleLeft;
             var buttons = new Button[4];
-            string[] labels = { "요약", "문장", "회화", "표현" };
+            string[] labels = { "요약", "문장", "전체 대화", "표현" };
             string[] names =
             {
                 "SummaryButton",
@@ -154,6 +154,13 @@ namespace A305.EditorTools.Learning
             BuilderTools.SetReference(view, "previousButton", previous);
             BuilderTools.SetReference(view, "nextButton", next);
             BuilderTools.SetReference(view, "pageTitleText", heading);
+            BuilderTools.SetReference(
+                view,
+                "transcriptAvatarSprite",
+                AssetDatabase.LoadAssetAtPath<Sprite>(
+                    "Assets/Art/UI/Feedback/HistoryAvatarCoral.png"
+                )
+            );
             BuilderTools.SetReference(view, "pageNumberText", number);
             BuilderTools.SetReference(view, "noticeText", notice);
             BuilderTools.SetReference(view, "sectionRow", tabs);

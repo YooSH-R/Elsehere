@@ -43,12 +43,12 @@ namespace A305.EditorTools.Learning
         {
             "요약",
             "문장 교정",
-            "회화 표현",
+            "전체 대화",
             "저장할 표현",
         };
 
         // 시안 탭 폭(글자 + 양옆 20)
-        private static readonly float[] TabWidths = { 69.91f, 104.17f, 104.48f, 119.5f };
+        private static readonly float[] TabWidths = { 69.91f, 104.17f, 119.5f, 119.5f };
 
         // 칸 그림의 둥근 모서리 자리(그림 px, 왼·아래·오른·위): 그림자 자리 + 모서리 24
         internal static readonly Vector4 TileBorder = new Vector4(96, 134, 96, 86);

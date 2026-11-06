@@ -24,6 +24,8 @@ import com.elsehere.dialogue.dto.TurnResponse;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.service.MissionDialogueService;
+import com.elsehere.review.dto.ReviewCardResponse;
+import com.elsehere.review.service.ReviewCardService;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +84,8 @@ public class TurnService {
   private final NpcAudioReceiver npcAudioReceiver;
   private final AiGateway aiGateway;
   private final MemoryService memoryService;
+  private final ReviewCardService reviewCardService;
+  private final ReviewDialogue reviewDialogue;
   private final NpcAffinityService npcAffinityService;
   private final TransactionTemplate transactionTemplate;
   private final MissionDialogueService missionDialogueService;
@@ -142,12 +146,15 @@ public class TurnService {
     TurnContext context = selection.context();
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, conversationId);
     Optional<MissionDialogueService.Context> mission =
-        missionDialogueService.context(userId, context.npc().summary().npcCode());
+        context.review() == null
+            ? missionDialogueService.context(userId, context.npc().summary().npcCode())
+            : Optional.empty();
 
     Optional<WorkerState> missionState = mission.map(value -> value.detail().state());
     // 경찰관은 미션 목표를 맡지 않은 동안 창구에서 신고를 받는다.
     boolean policeDesk =
-        !context.npcOffDuty()
+        context.review() == null
+            && !context.npcOffDuty()
             && missionState.isEmpty()
             && PoliceDesk.serves(context.npc().summary().npcCode());
 
@@ -156,7 +163,9 @@ public class TurnService {
         aiGateway.judge(
             trace,
             context.npc().workerNpc(),
-            missionState.orElse(policeDesk ? PoliceDesk.STATE : FREE_TALK),
+            context.review() != null
+                ? reviewDialogue.state(context.review())
+                : missionState.orElse(policeDesk ? PoliceDesk.STATE : FREE_TALK),
             context.history(),
             request.text());
     if (judge.dropped()) {
@@ -177,6 +186,9 @@ public class TurnService {
         rude
             ? (leaving ? RUDE_LEAVE : RUDE_WARNING)
             : mission.map(value -> value.detail().replyInstruction(judge.intent())).orElse("");
+    if (context.review() != null) {
+      instruction = join(reviewDialogue.instruction(context.review()), instruction);
+    }
     if (policeDesk && !rude) {
       instruction = join(instruction, PoliceDesk.instruction(judge, dispatch));
     }
@@ -220,8 +232,10 @@ public class TurnService {
                       conversationResponses.writeWords(judge.events())));
           if (rude) {
             conversation.countRude(Conversation.RUDE_LIMIT, clock.instant());
-            npcAffinityService.deductForRudeness(
-                userId, conversation.getNpcId(), guard.affinityDelta());
+            if (!conversation.isReview()) {
+              npcAffinityService.deductForRudeness(
+                  userId, conversation.getNpcId(), guard.affinityDelta());
+            }
             // 무례가 쌓여 이 턴으로 NPC가 대화를 끝냈다. 무례한 말은 대화 본문이라 남기지 않는다.
             if (!conversation.isActive()) {
               log.info(
@@ -230,7 +244,7 @@ public class TurnService {
                   conversation.getStatus(),
                   conversation.getEndReason());
             }
-          } else {
+          } else if (!conversation.isReview()) {
             npcAffinityService.raiseForEvents(
                 userId, conversation.getNpcId(), judge.affinityDelta());
           }
@@ -384,9 +398,14 @@ public class TurnService {
             dialogueContexts.learner(userId),
             dialogueContexts.history(conversationId),
             conversation.getLevelApplied(),
-            memoryService.memoryFor(userId, conversation.getNpcId()),
+            conversation.isReview()
+                ? null
+                : memoryService.memoryFor(userId, conversation.getNpcId()),
             conversation.getRudeCount(),
-            conversation.isNpcOffDuty()),
+            conversation.isNpcOffDuty(),
+            conversation.isReview()
+                ? reviewCardService.detail(userId, conversation.getReviewCardId())
+                : null),
         false,
         finalTurn);
   }
@@ -414,7 +433,8 @@ public class TurnService {
       int level,
       WorkerMemory memory,
       int rudeCount,
-      boolean npcOffDuty) {}
+      boolean npcOffDuty,
+      ReviewCardResponse review) {}
 
   private record TurnContextSelection(TurnContext context, boolean rejected, boolean finalTurn) {}
 }

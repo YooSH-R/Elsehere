@@ -17,6 +17,8 @@ import com.elsehere.dialogue.service.ConversationService;
 import com.elsehere.dialogue.service.TurnService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -45,6 +47,17 @@ public class ConversationController {
   private final TurnService turnService;
   private final ConversationHistoryService conversationHistoryService;
   private final JsonMapper jsonMapper;
+
+  public record StartReviewRequest(@NotNull UUID requestId) {}
+
+  @PostMapping("/api/v1/review-cards/{cardId}/conversations")
+  @ResponseStatus(HttpStatus.CREATED)
+  public ConversationStartResponse startReview(
+      @AuthenticationPrincipal LoginUser loginUser,
+      @PathVariable Long cardId,
+      @Valid @RequestBody StartReviewRequest request) {
+    return conversationService.startReview(loginUser.userId(), cardId, request.requestId());
+  }
 
   @PostMapping("/api/v1/conversations")
   @ResponseStatus(HttpStatus.CREATED)

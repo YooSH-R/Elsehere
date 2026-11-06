@@ -87,7 +87,8 @@ class ConversationResponses {
         toOffset(conversation.getEndedAt()),
         conversation.getRudeCount(),
         Conversation.RUDE_LIMIT,
-        turns);
+        turns,
+        conversation.getReviewCardId());
   }
 
   static OffsetDateTime toOffset(Instant instant) {

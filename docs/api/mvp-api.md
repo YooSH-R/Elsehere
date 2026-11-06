@@ -101,6 +101,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `SCENE_CLOSED` | 409 | 열리지 않은 장소(`is_open = false`) |
 | `TUTORIAL_NOT_IN_PROGRESS` | 409 | 튜토리얼 전 단계(`LANG`, `LEVEL`) 사용자의 튜토리얼 완료·건너뛰기 |
 | `MISSION_NOT_READY` | 409 | 첫날 미션에서 카페 주문·대화 종료·현재 장소 등 휴식 조건 미충족 |
+| `REVIEW_IN_PROGRESS` | 409 | 연습 중인 카드는 종료한 뒤 삭제 |
 | `REVIEW_NOT_READY` | 409 | 대화가 진행 중이거나 DONE 피드백의 서로 다른 복습 표현이 2개 미만 |
 | `AUDIO_TOO_LARGE` | 413 | 녹음 크기 초과(3MB) |
 | `AUDIO_FORMAT_UNSUPPORTED` | 415 | 지원하지 않는 녹음 형식 |

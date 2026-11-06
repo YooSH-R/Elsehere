@@ -11,7 +11,7 @@
       - .cache/pip/
 
 ai:check-and-test:
-  extends: .ai-python
+  extends: [.ai-python, .record-mr-success]
   stage: verify
   needs: ["ci:yaml"]
   timeout: 10m
@@ -45,6 +45,7 @@ ai:check-and-test:
       - reports/ai-*.xml
       - dist/ai-source.tar.gz
       - dist/ai-commit.txt
+      - dist/ci/success.json
   rules:
     - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_AI == "true"'
     - !reference [.deployment-parent-skips, rules]
@@ -63,7 +64,7 @@ ai:check-and-test:
       changes: *ai_python_change_paths
 
 ai:panel-tests:
-  extends: .linux-light-job
+  extends: [.linux-light-job, .record-mr-success]
   stage: verify
   needs: ["ci:yaml"]
   image: node:22-alpine

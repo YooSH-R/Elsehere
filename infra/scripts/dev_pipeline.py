@@ -12,6 +12,7 @@ from pathlib import Path
 
 from deployment_plan import ALL_CHECKS, commit_exists, create_plan, run_git
 from docker_build import build_image
+from mr_results import find_reusable_jobs, verify_build_artifact
 from webgl_package import restore_webgl
 
 
@@ -55,7 +56,7 @@ def create_child_pipeline(
     selections = {
         "backend": ["backend:check-and-build", "infra:app-runtime"],
         "ai": ["ai:check-and-test", "ai:panel-tests"],
-        "unity": ["unity:format", "unity:editor-and-webgl"],
+        "unity": ["unity:format", "unity:browser-tests"],
         "infra": ["infra:deployment-plan-tests", "infra:compose-and-nginx"],
     }
     for area, selected_jobs in selections.items():
@@ -63,6 +64,14 @@ def create_child_pipeline(
             jobs.extend(selected_jobs)
     if checks & {"backend", "infra"}:
         jobs.append("infra:observability")
+    if environment == "prod":
+        jobs.append("unity:editor-and-webgl")
+    elif "web" in plan["builds"]:
+        jobs.append("unity:webgl-build")
+    reused = {} if environment == "prod" else plan.get("reused_jobs", {})
+    jobs = [job for job in jobs if job not in reused]
+    if reused:
+        jobs.append("dev:reuse-checks")
     variables = {
         "A305_DEPLOY_CHILD": "true",
         "A305_DEPLOY_ENVIRONMENT": environment,
@@ -79,13 +88,42 @@ def create_child_pipeline(
     }
     if environment == "prod":
         variables["A305_PROD_AUTOMATIC"] = str(automatic).lower()
-    return {
+    pipeline = {
         "include": [{"local": ".gitlab-ci.yml"}],
         "variables": variables,
         f"{environment}:deliver": {
             "needs": [{"job": job, "artifacts": True} for job in jobs]
         },
     }
+    if reused:
+        pipeline.update({job: {"rules": [{"when": "never"}]} for job in reused})
+        pipeline["dev:reuse-checks"] = {
+            "extends": ".linux-light-job",
+            "stage": "validate",
+            "image": "python:3.12-alpine",
+            "timeout": "5m",
+            "variables": {"GIT_DEPTH": "0"},
+            "needs": [{"job": "ci:yaml", "artifacts": False}],
+            "script": [
+                "apk add --no-cache git",
+                "python infra/scripts/mr_results.py restore",
+            ],
+            "artifacts": {
+                "expire_in": "14 days",
+                "paths": [
+                    "backend/build/libs/app.jar",
+                    "backend/build/commit.txt",
+                    "dist/ai-source.tar.gz",
+                    "dist/ai-commit.txt",
+                    "dist/deployment/reused-results.json",
+                ],
+            },
+        }
+        if "backend:check-and-build" in reused and "infra:app-runtime" in jobs:
+            pipeline["infra:app-runtime"] = {
+                "needs": [{"job": "dev:reuse-checks", "artifacts": True}]
+            }
+    return pipeline
 
 
 def ssh_command(environment="dev"):
@@ -219,6 +257,15 @@ def plan_pipeline(
         plan["checks"] = sorted(ALL_CHECKS)
     directory = repository / "dist/deployment"
     directory.mkdir(parents=True, exist_ok=True)
+    if environment == "dev":
+        required = create_child_pipeline(plan, pipeline_id, state)["dev:deliver"][
+            "needs"
+        ]
+        plan["reused_jobs"] = find_reusable_jobs(
+            repository, candidate, [need["job"] for need in required], directory
+        )
+        if plan["reused_jobs"]:
+            plan["plan_job_id"] = os.environ["CI_JOB_ID"]
     for name, document in [
         ("state.json", state),
         ("plan.json", plan),
@@ -251,6 +298,7 @@ def deliver_pipeline(repository, candidate, branch, pipeline_id, environment="de
     directory = repository / "dist/deployment"
     directory.mkdir(parents=True, exist_ok=True)
     plan = json.loads(os.environ["A305_DEPLOY_PLAN"])
+    reused = plan.get("reused_jobs", {}) if environment == "dev" else {}
     state = json.loads(os.environ["A305_DEPLOY_STATE"])
     if state.get("environment", "dev") != environment:
         raise ValueError("The deployment state belongs to another environment.")
@@ -279,13 +327,7 @@ def deliver_pipeline(repository, candidate, branch, pipeline_id, environment="de
     }
     for name in plan["builds"]:
         if name in {"backend", "ai"}:
-            marker = (
-                "backend/build/commit.txt"
-                if name == "backend"
-                else "dist/ai-commit.txt"
-            )
-            if (repository / marker).read_text(encoding="utf-8").strip() != candidate:
-                raise ValueError("Verified build artifact belongs to another commit.")
+            verify_build_artifact(repository, name, candidate, reused)
         else:
             restore_webgl(repository, candidate)
             version = json.loads(

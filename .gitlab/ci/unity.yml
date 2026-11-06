@@ -1,5 +1,5 @@
 unity:format:
-  extends: .linux-light-job
+  extends: [.linux-light-job, .record-mr-success]
   stage: verify
   needs: ["ci:yaml"]
   image: mcr.microsoft.com/dotnet/sdk:10.0.401
@@ -33,7 +33,7 @@ unity:format:
       changes: *unity_change_paths
 
 unity:browser-tests:
-  extends: .linux-light-job
+  extends: [.linux-light-job, .record-mr-success]
   stage: verify
   image: node:24-alpine
   timeout: 5m
@@ -99,7 +99,6 @@ unity:external-mr:
 
 unity:editor-and-webgl:
   extends: .unity-editor
-  # With conservative auto-cancel, starting Unity protects the whole dev candidate.
   interruptible: false
   script:
     - powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action test
@@ -115,9 +114,23 @@ unity:editor-and-webgl:
       - dist/unity-ci/
       - dist/webgl-package.json
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_UNITY == "true"'
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_DEPLOY_ENVIRONMENT == "prod" && $A305_CHECK_UNITY == "true"'
     - !reference [.deployment-parent-skips, rules]
     - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_PROTECTED == "true" && $RUN_UNITY_BUILD == "true"'
+
+unity:webgl-build:
+  extends: .unity-editor
+  # Preserve an in-progress build through delivery when newer dev commits arrive.
+  interruptible: false
+  script:
+    - powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action build
+    - powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/publish-webgl-package.ps1
+  artifacts:
+    paths:
+      - dist/unity-ci/
+      - dist/webgl-package.json
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_DEPLOY_ENVIRONMENT == "dev" && $A305_BUILD_WEB == "true"'
 
 unity:package-cleanup:
   extends: .linux-light-job
@@ -130,6 +143,10 @@ unity:package-cleanup:
   needs:
     - job: unity:editor-and-webgl
       artifacts: true
+      optional: true
+    - job: unity:webgl-build
+      artifacts: true
+      optional: true
     - job: dev:deliver
       artifacts: false
       optional: true
@@ -139,4 +156,5 @@ unity:package-cleanup:
   script:
     - python infra/scripts/webgl_package.py cleanup
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_DEPLOY_ENVIRONMENT == "dev" && $A305_BUILD_WEB == "true"'
     - !reference [unity:editor-and-webgl, rules]

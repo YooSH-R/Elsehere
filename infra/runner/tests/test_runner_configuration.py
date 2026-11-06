@@ -46,7 +46,7 @@ class RunnerConfigurationTests(unittest.TestCase):
         self.assertIn("a305-linux-light", self.tags_for("dev:plan"))
         self.assertIn("a305-linux-light", self.tags_for("prod:plan"))
 
-    def test_new_dev_commit_cancels_only_candidates_without_started_unity_checks(self):
+    def test_new_dev_commit_cancels_only_candidates_without_started_unity_builds(self):
         workflow = self.jobs["workflow"]
         self.assertEqual(workflow["auto_cancel"]["on_new_commit"], "none")
 
@@ -64,6 +64,7 @@ class RunnerConfigurationTests(unittest.TestCase):
         self.assertEqual(dev_parent_rule["auto_cancel"]["on_new_commit"], "none")
         self.assertEqual(dev_child_rule["auto_cancel"]["on_new_commit"], "conservative")
         self.assertEqual(self.jobs["unity:editor-and-webgl"]["interruptible"], "false")
+        self.assertEqual(self.jobs["unity:webgl-build"]["interruptible"], "false")
         self.assertEqual(self.jobs["dev:child"]["interruptible"], "true")
         child_fallback_rule = next(
             rule

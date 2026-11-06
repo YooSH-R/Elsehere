@@ -75,6 +75,10 @@ namespace A305.Dialogue
 
         public bool IsTalking => session.IsActive;
 
+        /// <summary>이 머리 위치를 가진 NPC가 현재 대화 상대인지.</summary>
+        public bool IsTalkingTo(Transform lookTarget) =>
+            session.IsActive && lookTarget != null && partnerLookTarget == lookTarget;
+
         /// <summary>정해진 흐름(튜토리얼 길 안내)에서 지금 입력할 대사. 정해진 흐름이 아니거나 마쳤으면 null.</summary>
         public string GuidedLine => IsTalking ? conversation?.SuggestedEnglish : null;
 

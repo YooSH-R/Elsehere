@@ -14,7 +14,7 @@ namespace A305.Player
 
     /// <summary>
     /// 자동 리깅한 리틀 멍은 셔츠 아랫단이 허벅지·팔 뼈를 따라가서,
-    /// 다리를 접으면 엉덩이 쪽으로 끌려간다. 팔꿈치보다 낮은 셔츠 정점(몸통 아랫단)이
+    /// 다리를 접으면 엉덩이 쪽으로 끌려간다. 소매를 제외한 낮은 셔츠 정점(몸통 아랫단)이
     /// 골반·척추만 따라가도록 가중치를 옮긴다.
     /// </summary>
     public static class ShirtSkinWeights
@@ -32,21 +32,24 @@ namespace A305.Player
         /// <param name="roles">뼈 번호별 역할.</param>
         /// <param name="hipsBone">몸통 가중치가 하나도 남지 않을 때 따라갈 골반 뼈 번호.</param>
         /// <param name="elbowHeight">
-        /// 팔꿈치 높이. 이보다 낮은 셔츠는 소매가 아닌 몸통 아랫단이다.
+        /// 몸통 아랫단을 찾을 높이. 아래로 내려온 소매는 별도로 제외한다.
         /// </param>
+        /// <param name="sleeveVertices">원래 바인드 자세에서 팔에 속하는 정점. 높이·색이 같아도 보존한다.</param>
         public static BoneWeight[] Correct(
             IReadOnlyList<BoneWeight> weights,
             IReadOnlyList<Color32> colors,
             IReadOnlyList<float> heights,
             IReadOnlyList<SkinBoneRole> roles,
             int hipsBone,
-            float elbowHeight
+            float elbowHeight,
+            IReadOnlyList<bool> sleeveVertices
         )
         {
             var corrected = new BoneWeight[weights.Count];
             for (int i = 0; i < weights.Count; i++)
             {
-                bool shirtHem = IsShirtColor(colors[i]) && heights[i] < elbowHeight;
+                bool shirtHem =
+                    IsShirtColor(colors[i]) && heights[i] < elbowHeight && !sleeveVertices[i];
                 corrected[i] = shirtHem ? CorrectHem(weights[i], roles, hipsBone) : weights[i];
             }
 

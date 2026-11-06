@@ -68,14 +68,47 @@ namespace A305.EditorTools.Player
                     + Height(BindPosition(mesh, IndexOf(names, "Right_LowerArm")))
                 ) / 2f;
             float[] heights = mesh.vertices.Select(Height).ToArray();
+            Vector3 chest = BindPosition(mesh, IndexOf(names, "UpperChest"));
+            var arms = new[] { "Left_", "Right_" }
+                .Select(side =>
+                    new[]
+                    {
+                        BindPosition(mesh, IndexOf(names, side + "UpperArm")),
+                        BindPosition(mesh, IndexOf(names, side + "LowerArm")),
+                        BindPosition(mesh, IndexOf(names, side + "Hand")),
+                    }
+                )
+                .ToArray();
+            // A 자세의 소매 끝은 팔꿈치보다 낮다. 높이와 색만 쓰면 소매까지 골반에 묶인다.
+            // 바인드 자세에서 팔 축에 더 가까운 정점은 소매로 남긴다.
+            bool[] sleeves = mesh
+                .vertices.Select(point =>
+                    arms.Any(arm =>
+                        Mathf.Min(
+                            DistanceToSegment(point, arm[0], arm[1]),
+                            DistanceToSegment(point, arm[1], arm[2])
+                        ) < DistanceToSegment(point, hipsPosition, chest)
+                    )
+                )
+                .ToArray();
             mesh.boneWeights = ShirtSkinWeights.Correct(
                 mesh.boneWeights,
                 Colors(mesh, texturePath),
                 heights,
                 names.Select(RoleOf).ToArray(),
                 hips,
-                elbow
+                elbow,
+                sleeves
             );
+        }
+
+        private static float DistanceToSegment(Vector3 point, Vector3 from, Vector3 to)
+        {
+            Vector3 axis = to - from;
+            float t = Mathf.Clamp01(
+                Vector3.Dot(point - from, axis) / Mathf.Max(axis.sqrMagnitude, 1e-10f)
+            );
+            return Vector3.Distance(point, from + axis * t);
         }
 
         private static Color32[] Colors(Mesh mesh, string texturePath)

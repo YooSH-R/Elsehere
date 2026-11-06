@@ -6,7 +6,7 @@ namespace A305.Player.Tests
 {
     /// <summary>
     /// 점프로 다리를 접어도 셔츠 아랫단이 엉덩이 쪽으로 끌려가지 않도록,
-    /// 팔꿈치보다 낮은 셔츠 정점은 골반·척추만 따라가야 한다.
+    /// 소매를 제외한 팔꿈치보다 낮은 셔츠 정점은 골반·척추만 따라가야 한다.
     /// 반바지·소매·피부는 원래 가중치를 유지한다.
     /// </summary>
     public class ShirtSkinWeightsTests
@@ -98,6 +98,22 @@ namespace A305.Player.Tests
         }
 
         [Test]
+        public void SleeveBelowElbow_KeepsArmWeightsDespiteMatchingShirtColor()
+        {
+            BoneWeight sleeve = Weight((LowerArm, .9f), (Spine, .1f));
+            BoneWeight corrected = ShirtSkinWeights.Correct(
+                new[] { sleeve },
+                new[] { Shirt },
+                new[] { Below },
+                Roles,
+                Hips,
+                ElbowHeight,
+                new[] { true }
+            )[0];
+            AssertWeights(corrected, (LowerArm, .9f), (Spine, .1f));
+        }
+
+        [Test]
         public void CorrectedWeights_AreSortedHeaviestFirst()
         {
             BoneWeight hem = Weight((UpperLeg, .5f), (Spine, .1f), (Hips, .4f));
@@ -129,7 +145,8 @@ namespace A305.Player.Tests
                 heights,
                 Roles,
                 Hips,
-                ElbowHeight
+                ElbowHeight,
+                new[] { false, false }
             );
             BoneWeight[] twice = ShirtSkinWeights.Correct(
                 once,
@@ -137,7 +154,8 @@ namespace A305.Player.Tests
                 heights,
                 Roles,
                 Hips,
-                ElbowHeight
+                ElbowHeight,
+                new[] { false, false }
             );
 
             Assert.That(twice, Is.EqualTo(once));
@@ -151,7 +169,8 @@ namespace A305.Player.Tests
                 new[] { height },
                 Roles,
                 Hips,
-                ElbowHeight
+                ElbowHeight,
+                new[] { false }
             )[0];
         }
 

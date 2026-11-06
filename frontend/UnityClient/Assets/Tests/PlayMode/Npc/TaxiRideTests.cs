@@ -13,7 +13,7 @@ using UnityEngine.UI;
 namespace A305.Npc.PlayModeTests
 {
     /// <summary>
-    /// 마을(TownScene)을 실제로 불러와 인도에서 세운 택시가 옆에 서자마자 손님을 태워 기사와 대화한 뒤 다시 떠나고,
+    /// 마을(TownScene)을 실제로 불러와 가까운 택시에 바로 타서 기사와 대화한 뒤 다시 떠나고,
     /// 승객으로 타면 목적지에 내려 주는지 확인한다. 목적지별 하차 위치와 차로 계산은 EditMode 테스트가 맡는다.
     /// </summary>
     public class TaxiRideTests
@@ -38,7 +38,7 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator HailingTaxi_BoardsBesideTheCustomerRightAway_ThenDrivesOnAfterTalk()
+        public IEnumerator HailingTaxiFromBehind_BoardsWithoutMovingTaxi_ThenDrivesOnAfterTalk()
         {
             yield return LoadTown();
             TaxiRide taxi = Single<TaxiRide>();
@@ -46,23 +46,25 @@ namespace A305.Npc.PlayModeTests
             PlayerMover player = Single<PlayerMover>();
             PasserbyOfferView offer = Single<PasserbyOfferView>();
 
-            // 택시가 달리는 차로 쪽 인도, 택시 앞 8m에 선다.
+            // 택시가 멀어지는 타이밍에 의존하지 않도록 멈춘 뒤 뒤쪽에서 접근한다.
+            car.enabled = false;
             CarLoopRoute.Pose pose = car.Route.PoseAt(car.Distance);
             Vector3 curbside = Vector3.Cross(Vector3.up, pose.Forward);
             player.Teleport(
-                pose.Position + pose.Forward * 8f + curbside * 2.6f + Vector3.up * .2f,
+                taxi.transform.position - pose.Forward * 5f + curbside * 2.6f + Vector3.up * .2f,
                 Quaternion.identity
             );
-            Vector3 customer = player.transform.position;
             yield return WaitUntil(() => offer.IsTalkPromptShowing);
+            Vector3 beforeBoarding = taxi.transform.position;
             Click(offer, "TalkButton");
             yield return null;
 
-            Assert.That(taxi.IsPassenger, Is.True, "세우기를 누르면 바로 타야 합니다.");
+            Assert.That(taxi.IsPassenger, Is.True, "택시 타기를 누르면 바로 타야 합니다.");
             Assert.That(Single<DialogueController>().IsTalking, Is.True);
             Assert.That(player.IsMovementLocked, Is.True);
             Vector3 stoppedAt = taxi.transform.position;
-            Assert.That(HorizontalDistance(stoppedAt, customer), Is.LessThan(3.5f));
+            Assert.That(Vector3.Distance(stoppedAt, beforeBoarding), Is.LessThan(.01f));
+            car.enabled = true;
 
             // 목적지를 말하기 전에는 그 자리에 서서 기다린다.
             yield return new WaitForSeconds(.5f);
@@ -73,6 +75,56 @@ namespace A305.Npc.PlayModeTests
             Assert.That(taxi.Phase, Is.EqualTo(TaxiPhase.Cruising));
             yield return new WaitForSeconds(1f);
             Assert.That(Vector3.Distance(stoppedAt, taxi.transform.position), Is.GreaterThan(1f));
+        }
+
+        [UnityTest]
+        public IEnumerator BoardingPrompt_TracksRadiusAndTutorialGate_AndRechecksDistanceOnClick()
+        {
+            yield return LoadTown();
+            TaxiRide taxi = Single<TaxiRide>();
+            LoopingCar car = taxi.GetComponent<LoopingCar>();
+            PlayerMover player = Single<PlayerMover>();
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            car.enabled = false;
+            Vector3 center = taxi.transform.position;
+            Vector3 nearby = center + Vector3.left * 6f + Vector3.up * .2f;
+            Vector3 outside = center + Vector3.left * 9f + Vector3.up * .2f;
+
+            player.Teleport(outside, Quaternion.identity);
+            yield return null;
+            Assert.That(offer.IsTalkPromptShowing, Is.False);
+
+            player.Teleport(nearby, Quaternion.identity);
+            yield return null;
+            Assert.That(offer.IsTalkPromptShowing, Is.True);
+            Assert.That(
+                offer
+                    .GetComponentsInChildren<TMPro.TMP_Text>()
+                    .Any(label => label.text.Contains("택시 타기")),
+                Is.True
+            );
+
+            player.Teleport(outside, Quaternion.identity);
+            yield return null;
+            Assert.That(offer.IsTalkPromptShowing, Is.False);
+
+            player.Teleport(nearby, Quaternion.identity);
+            taxi.IsHailAllowed = false;
+            yield return null;
+            Assert.That(offer.IsTalkPromptShowing, Is.False);
+
+            taxi.IsHailAllowed = true;
+            yield return null;
+            Assert.That(offer.IsTalkPromptShowing, Is.True);
+
+            // 버튼이 그려진 뒤 다음 프레임 전에 멀어져도 탑승하면 안 된다.
+            player.Teleport(outside, Quaternion.identity);
+            Click(offer, "TalkButton");
+            Assert.That(taxi.IsPassenger, Is.False);
+            Assert.That(taxi.Phase, Is.EqualTo(TaxiPhase.Cruising));
+            yield return null;
+            Assert.That(offer.IsTalkPromptShowing, Is.False);
+            car.enabled = true;
         }
 
         [UnityTest]
@@ -99,7 +151,7 @@ namespace A305.Npc.PlayModeTests
             Single<PlayerMover>()
                 .Teleport(
                     pose.Position
-                        + pose.Forward * 8
+                        + pose.Forward * 5
                         + Vector3.Cross(Vector3.up, pose.Forward) * 2.6f
                         + Vector3.up * .2f,
                     Quaternion.identity
@@ -119,7 +171,7 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator SceneUnloadingWhileHailPromptIsShown_DoesNotTouchTheRemovedPrompt()
         {
-            // [택시 세우기]가 떠 있는 채로 장면이 바뀌면 제안 화면이 택시보다 먼저 지워질 수 있다.
+            // [택시 타기]가 떠 있는 채로 장면이 바뀌면 제안 화면이 택시보다 먼저 지워질 수 있다.
             // 그때 택시가 꺼지면서 지워진 제안 화면의 버튼 판을 끄려다 오류가 났다.
             yield return LoadTown();
             TaxiRide taxi = Single<TaxiRide>();
@@ -129,7 +181,7 @@ namespace A305.Npc.PlayModeTests
             Single<PlayerMover>()
                 .Teleport(
                     pose.Position
-                        + pose.Forward * 8
+                        + pose.Forward * 5
                         + Vector3.Cross(Vector3.up, pose.Forward) * 2.6f
                         + Vector3.up * .2f,
                     Quaternion.identity
@@ -158,7 +210,7 @@ namespace A305.Npc.PlayModeTests
             CarLoopRoute.Pose pose = car.Route.PoseAt(car.Distance);
             player.Teleport(
                 pose.Position
-                    + pose.Forward * 8
+                    + pose.Forward * 5
                     + Vector3.Cross(Vector3.up, pose.Forward) * 2.6f
                     + Vector3.up * .2f,
                 Quaternion.identity
@@ -306,13 +358,6 @@ namespace A305.Npc.PlayModeTests
             typeof(SpaceArrival)
                 .GetField("apiSettings", flags)
                 .SetValue(Single<SpaceArrival>(), null);
-        }
-
-        private static float HorizontalDistance(Vector3 a, Vector3 b)
-        {
-            Vector3 offset = a - b;
-            offset.y = 0f;
-            return offset.magnitude;
         }
 
         private static IEnumerator WaitUntil(System.Func<bool> condition)

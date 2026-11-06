@@ -7,11 +7,11 @@ namespace A305.Npc.Tests
         [Test]
         public void Choose_PassingTaxi_ShowsHailWithGuestRemainingConversations()
         {
-            // 택시를 세우면 바로 기사와 대화하므로 [택시 세우기]에도 남은 대화 수를 붙인다.
+            // 택시에 타면 바로 기사와 대화하므로 [택시 타기]에도 남은 대화 수를 붙인다.
             TaxiPrompt prompt = TaxiPrompt.Choose(true, false, true, 2, "Joe");
 
             Assert.That(prompt.Kind, Is.EqualTo(TaxiPromptKind.Hail));
-            Assert.That(prompt.Label, Is.EqualTo("택시 세우기"));
+            Assert.That(prompt.Label, Is.EqualTo("택시 타기"));
             Assert.That(prompt.Remaining, Is.EqualTo("오늘 남은 대화 2번"));
         }
 

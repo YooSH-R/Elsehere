@@ -107,6 +107,24 @@ class AiWorkerClient {
       String instruction,
       int level,
       WorkerLearner learner) {
+    return reply(
+        trace, npc, memory, history, text, instruction, level, learner, NpcReplyListener.NONE);
+  }
+
+  /**
+   * NPC 대답. {@code listener}가 {@link NpcReplyListener#NONE}이 아니면 조각 스트림을 요청해 글자·문장 조각 음성을 받는 대로
+   * 넘긴다. 끝까지 모은 결과는 조각을 받지 않을 때와 같다.
+   */
+  public NpcReply reply(
+      WorkerTrace trace,
+      WorkerNpc npc,
+      WorkerMemory memory,
+      List<WorkerLine> history,
+      String text,
+      String instruction,
+      int level,
+      WorkerLearner learner,
+      NpcReplyListener listener) {
     ReplyBody body =
         new ReplyBody(
             npc,
@@ -116,6 +134,7 @@ class AiWorkerClient {
             text,
             instruction,
             true,
+            listener != NpcReplyListener.NONE,
             level,
             false,
             "",
@@ -129,7 +148,7 @@ class AiWorkerClient {
       if (response.statusCode() != 200) {
         throw toError(response.statusCode(), lines.collect(Collectors.joining("\n")));
       }
-      return readReplyStream(lines, startedAt);
+      return readReplyStream(lines, startedAt, listener);
     }
   }
 
@@ -233,7 +252,8 @@ class AiWorkerClient {
         throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID);
       }
       MemoryEnvelope envelope = jsonMapper.readValue(response.body(), MemoryEnvelope.class);
-      return new MemoryCardResult(jsonMapper.writeValueAsString(card), usageOf(envelope.usage()));
+      return new MemoryCardResult(
+          jsonMapper.writeValueAsString(card), envelope.affinityDelta(), usageOf(envelope.usage()));
     } catch (JacksonException exception) {
       throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID, exception);
     }
@@ -255,6 +275,19 @@ class AiWorkerClient {
             RELATIONSHIP_TIMEOUT,
             new RelationshipBody(npc, relationship, history));
     return readJson(send(request, HttpResponse.BodyHandlers.ofString()), RelationshipChange.class);
+  }
+
+  /**
+   * 끝난 대화에서 NPC가 곧 건네기로 한 것. 없으면 결과의 followUp이 null이다. 실패하면 오류로 던지며, 호출한 쪽은 건넬 것이 없는 것으로 본다.
+   *
+   * @param history 대화 전체(최대 200줄). 워커는 학습자가 말한 대화인지 확인한다
+   */
+  public FollowUpResult followUp(WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history) {
+    HttpRequest request =
+        jsonRequest("/v1/npc/follow-up", trace, MEMORY_TIMEOUT, new FollowUpBody(npc, history));
+    FollowUpResult result =
+        readJson(send(request, HttpResponse.BodyHandlers.ofString()), FollowUpResult.class);
+    return new FollowUpResult(result.followUp(), usageOf(result.usage()));
   }
 
   /** 대화 종료 피드백. 생성 실패·평가할 발화 없음도 HTTP 200 안의 상태로 온다. 요청 형식이 계약과 다르면(400) 오류로 던진다. */
@@ -301,9 +334,10 @@ class AiWorkerClient {
     };
   }
 
-  // SSE는 "event: 이름", "data: JSON", 빈 줄 순서로 이벤트 하나가 온다. delta·audio 조각은 스트리밍 재생용이라 쓰지 않는다.
-  private NpcReply readReplyStream(Stream<String> lines, long startedAt) {
-    ReplyCollector collector = new ReplyCollector(startedAt);
+  // SSE는 "event: 이름", "data: JSON", 빈 줄 순서로 이벤트 하나가 온다. delta·audio 조각은 받는 쪽에 바로 넘긴다.
+  private NpcReply readReplyStream(
+      Stream<String> lines, long startedAt, NpcReplyListener listener) {
+    ReplyCollector collector = new ReplyCollector(startedAt, listener);
     String event = null;
     StringBuilder data = new StringBuilder();
     for (String line : (Iterable<String>) lines::iterator) {
@@ -324,11 +358,13 @@ class AiWorkerClient {
   private final class ReplyCollector {
 
     private final long startedAt;
+    private final NpcReplyListener listener;
     private DoneEvent done;
     private ErrorEvent error;
 
-    ReplyCollector(long startedAt) {
+    ReplyCollector(long startedAt, NpcReplyListener listener) {
       this.startedAt = startedAt;
+      this.listener = listener;
     }
 
     void accept(String event, String data) {
@@ -338,8 +374,13 @@ class AiWorkerClient {
       switch (event) {
         case "done" -> done = parse(data, DoneEvent.class);
         case "error" -> error = parse(data, ErrorEvent.class);
+        case "delta" -> listener.onDelta(parse(data, DeltaEvent.class).text());
+        case "audio" -> {
+          AudioEvent audio = parse(data, AudioEvent.class);
+          listener.onChunk(new NpcReplyChunk(audio.seq(), audio.text(), audio.audioId()));
+        }
         default -> {
-          // delta·audio
+          // words: 추천 단어는 따로 받는다(suggest_words: false)
         }
       }
     }
@@ -479,6 +520,7 @@ class AiWorkerClient {
       String text,
       String instruction,
       boolean tts,
+      boolean streamChunks,
       int level,
       boolean suggestWords,
       String goal,
@@ -498,7 +540,9 @@ class AiWorkerClient {
   record RelationshipBody(
       WorkerNpc npc, WorkerRelationship relationship, List<WorkerLine> history) {}
 
-  record MemoryEnvelope(List<WorkerUsage> usage) {}
+  record FollowUpBody(WorkerNpc npc, List<WorkerLine> history) {}
+
+  record MemoryEnvelope(Integer affinityDelta, List<WorkerUsage> usage) {}
 
   record DoneEvent(
       String text,
@@ -509,6 +553,10 @@ class AiWorkerClient {
       List<WorkerUsage> usage) {}
 
   record ErrorEvent(String code, List<WorkerUsage> usage) {}
+
+  record DeltaEvent(String text) {}
+
+  record AudioEvent(int seq, String text, String audioId) {}
 
   record FeedbackEnvelope(FeedbackBody feedback, List<WorkerUsage> usage) {}
 

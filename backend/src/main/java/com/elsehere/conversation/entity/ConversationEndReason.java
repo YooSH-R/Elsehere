@@ -5,5 +5,6 @@ public enum ConversationEndReason {
   NPC_ENDED,
   QUOTA_EXHAUSTED,
   RUDE,
-  EXPIRED
+  EXPIRED,
+  TIME_LIMIT
 }

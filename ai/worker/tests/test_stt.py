@@ -26,24 +26,45 @@ def test_stt_filters_prompt_echo_and_sends_scene_words(client, provider):
 
 def test_stt_prompt_writes_menu_example_in_english(client, provider):
     # 한글 예시 '아이스 라떼'는 한국식 발음 외래어('Iced americano')까지 '아이스트 아메라카노'처럼 한글로 끌어당겼다 (dev 재현).
-    # 한국어 발화가 번역되지 않고 한글로 남도록 한국어 군말('음, 하나?')은 그대로 둔다
     provider.answers["stt"] = lambda b: httpx.Response(200, json=WHISPER_OK)
     client.post("/v1/stt", files=AUDIO)
     prompt = provider.last_stt.decode()
     assert "an iced latte" in prompt and "아이스 라떼" not in prompt
-    assert "음, 하나?" in prompt
+
+
+def test_stt_prompt_keeps_korean_talk_examples(client, provider):
+    # 한국어 예시가 '음, 하나?'뿐이면 짧은 한국어 문장('니가 그거에 대해 뭘 알아')을 영어 문장으로 번역해 적었다 (dev 재현, S15P31A305-556).
+    # 메뉴가 아닌 한국어 말('음, 그러니까...', '잠깐만요.')을 앞뒤에 두면 한글로 남고 영어 메뉴는 그대로 영어로 나온다
+    provider.answers["stt"] = lambda b: httpx.Response(200, json=WHISPER_OK)
+    client.post("/v1/stt", files=AUDIO)
+    prompt = provider.last_stt.decode()
+    assert "음, 그러니까... I want" in prompt
+    assert "음, 하나?" in prompt and "잠깐만요. My friend" in prompt
+
+
+def test_stt_prompt_has_no_bus_to_pull_both_toward(client, provider):
+    # 프롬프트 끝 문장 'The bus stop is over there.'가 한국식 발음 both('보쓰')를 bus로 끌어당겨
+    # 운영 빨래방에서 "Both, please"가 "Bus, please"로 적혔다 (S15P31A305-639).
+    # 끝 문장을 빼면 영어를 한글로 적는 일이 늘어서, 짧고 헷갈리는 단어가 없는 영어 문장으로 바꾼다
+    provider.answers["stt"] = lambda b: httpx.Response(200, json=WHISPER_OK)
+    client.post("/v1/stt", files=AUDIO)
+    prompt = provider.last_stt.decode()
+    assert "bus" not in prompt.lower()
+    assert "잠깐만요. My friend lives over there." in prompt
 
 
 @pytest.mark.parametrize(
     ("text", "echo"),
     [
-        ("The bus stop is over there.", True),  # Whisper가 무음에 되풀이하는 프롬프트 마지막 문장
-        ("I want... an iced latte... Can I get a muffin, 음, 하나? The bus stop is over there.", True),
+        ("My friend lives over there.", True),  # Whisper가 무음에 되풀이하는 프롬프트 마지막 문장
+        ("음, 그러니까... I want... an iced latte... Can I get a muffin, 음, 하나? 잠깐만요. My friend lives over there.", True),
+        ("잠깐만요. My friend lives over there.", True),
         ("Iced Americano, latte.", True),  # 장면 단어 목록
         # 무음에 메아리를 여러 번 이어 붙이기도 한다 (dev에서 입력칸에 들어옴)
-        ("The bus stop is over there. The bus stop is over there.", True),
+        ("My friend lives over there. My friend lives over there.", True),
         ("Iced Americano, latte. Iced Americano, latte. Iced Americano, latte.", True),
-        ("The bus stop is over there. I want a latte.", False),  # 메아리 뒤 진짜 발화
+        ("My friend lives over there. I want a latte.", False),  # 메아리 뒤 진짜 발화
+        ("The bus stop is over there.", False),  # 예전 끝 문장은 이제 진짜 발화
         ("Iced Americano. Iced Americano.", False),  # 장면 단어 하나를 되풀이한 주문
         ("Iced Americano.", False),  # 장면 단어 하나는 진짜 주문
         ("Can I get a muffin?", False),  # 프롬프트 앞·중간의 예시 문장은 학습자가 실제로 하는 말

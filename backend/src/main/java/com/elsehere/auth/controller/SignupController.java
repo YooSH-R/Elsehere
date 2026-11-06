@@ -44,7 +44,10 @@ public class SignupController {
       @SessionAttribute(name = PendingSignup.SESSION_ATTRIBUTE, required = false)
           PendingSignup pendingSignup) {
     requirePendingSignup(pendingSignup);
-    return new SignupFormResponse(pendingSignup.email(), consentCatalog.currentTerms());
+    return new SignupFormResponse(
+        pendingSignup.email(),
+        consentCatalog.currentTerms(),
+        signupService.findConvertingGuest(pendingSignup).orElse(null));
   }
 
   @PostMapping

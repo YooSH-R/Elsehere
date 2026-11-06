@@ -14,6 +14,7 @@ namespace A305.Dialogue
     /// [힌트]로 받은 추천 문장은 따로 카드에 보이지 않고 입력창에 바로 넣는다.
     /// 음성 처리에 동의하지 않았으면 [말하기]를 회색으로 두고, 누르면 그 자리에서 동의할 수 있는 창을 연다.
     /// [뜻 보기]를 펼친 동안 대사의 풀이 단어를 누르면 그 단어 근처에 뜻과 [단어장에 저장]이 있는 호버 카드를 띄운다.
+    /// NPC 대사를 음성으로 들려주는 대화는 [자막]으로 대사를 단어마다 회색 막대로 가려 듣고 이해하게 한다. 처음에는 자막이 꺼져 있다.
     /// </summary>
     public class DialoguePanelView : MonoBehaviour
     {
@@ -22,6 +23,10 @@ namespace A305.Dialogue
 
         // 녹음을 시작했지만 마이크가 아직 열리는 중. 이때 한 말은 녹음되지 않는다. 눌러서 그만둘 수는 있다.
         private const string PreparingTalkCaption = "준비 중";
+
+        // [자막]은 누르면 바뀔 동작이 아니라 지금 상태를 보인다.
+        private const string SubtitleOnCaption = "자막 켬";
+        private const string SubtitleOffCaption = "자막 끔";
 
         [SerializeField]
         private GameObject panel;
@@ -119,6 +124,10 @@ namespace A305.Dialogue
         private Button retryButton;
 
         [SerializeField]
+        [Tooltip("NPC 대사 자막을 켜고 끄는 버튼. 켜 두면 강조색으로 칠한다.")]
+        private Button subtitleButton;
+
+        [SerializeField]
         [Tooltip("음성 처리에 동의하지 않은 채 회색 [말하기]를 누르면 뜨는 동의 창")]
         private VoiceConsentDialogView voiceConsentDialog;
 
@@ -129,6 +138,7 @@ namespace A305.Dialogue
         private ThemedElement sendTheme;
         private CanvasGroup talkGroup;
         private bool isRecording;
+        private NpcLineCovers npcLineCovers;
 
         // 입력창에 넣은 추천 문장. 같은 문장을 다시 그릴 때마다 넣으면 사용자가 고친 문장을 덮는다.
         private string filledHint;
@@ -272,6 +282,7 @@ namespace A305.Dialogue
             waitPanel.SetActive(inLines);
             // 로딩 카드는 대사 칸과 같은 크기라 둥근 모서리 틈으로 대사가 비치지 않게 그동안 대사를 감춘다.
             linesText.enabled = !inLines;
+            CoverHiddenWords();
             if (inLines)
             {
                 waitText.text =
@@ -282,6 +293,12 @@ namespace A305.Dialogue
 
             feedbackWait.SetActive(wait == DialogueWait.Feedback);
         }
+
+        /// <summary>녹음 중 [말하기]에 켜는 불. 튜토리얼 코치 마크가 옆에 불의 뜻을 알린다.</summary>
+        public RectTransform VoiceLightRect => voiceLight.rectTransform;
+
+        /// <summary>녹음 중이라 [말하기]의 불이 켜져 있는지. 마이크가 열리는 중([준비 중])이면 꺼져 있다.</summary>
+        public bool IsVoiceLightOn => voiceLight.gameObject.activeInHierarchy;
 
         /// <summary>
         /// 녹음 중인지와 지금 목소리가 들리는지를 [말하기] 버튼에 표시한다. 녹음 중이면 [종료]로 바꾸고 불을 켠다.
@@ -350,7 +367,7 @@ namespace A305.Dialogue
                         || content.CanRetry
                         || content.IsGuidedCompleted
                         || NeedsVoiceConsent
-                        || !string.IsNullOrEmpty(content.StatusMessage)
+                        || !string.IsNullOrEmpty(statusText.text)
                     )
             );
             ShowWait(content.Waiting);
@@ -384,6 +401,7 @@ namespace A305.Dialogue
             hintButton.gameObject.SetActive(content.HasHint);
             hintButton.interactable = content.LastNpcLine != null && content.CanSend;
             retryButton.gameObject.SetActive(content.CanRetry);
+            ShowSubtitleButton();
             UpdateLayout();
             Canvas.ForceUpdateCanvases();
             // 대사가 쌓이면 가장 최근 대사와 뜻이 보이게 맨 아래로 내린다. 지난 대사는 위로 스크롤해 다시 본다.
@@ -407,6 +425,7 @@ namespace A305.Dialogue
             replayButton.onClick.AddListener(() => ReplayRequested?.Invoke());
             hintButton.onClick.AddListener(PressHint);
             retryButton.onClick.AddListener(RequestRetry);
+            subtitleButton.onClick.AddListener(ToggleSubtitles);
             talkButton.onClick.AddListener(PressTalk);
             Hide();
         }
@@ -494,17 +513,28 @@ namespace A305.Dialogue
 
         private string FormatStatus()
         {
+            string countdown = content is ServerConversation server
+                ? server.CountdownMessage
+                : null;
+            string message;
             if (string.IsNullOrEmpty(content.RecoveryGuide))
             {
                 // 녹음·오류 같은 지금 상황 안내가 먼저이고, 없을 때만 음성 동의 안내를 보인다.
-                return string.IsNullOrEmpty(content.StatusMessage) && NeedsVoiceConsent
-                    ? VoiceInputNotice.ConsentRequired
-                    : content.StatusMessage ?? "";
+                message =
+                    string.IsNullOrEmpty(content.StatusMessage) && NeedsVoiceConsent
+                        ? VoiceInputNotice.ConsentRequired
+                        : content.StatusMessage ?? "";
+            }
+            else
+            {
+                message = string.IsNullOrEmpty(content.StatusMessage)
+                    ? content.RecoveryGuide
+                    : $"{content.StatusMessage}\n{content.RecoveryGuide}";
             }
 
-            return string.IsNullOrEmpty(content.StatusMessage)
-                ? content.RecoveryGuide
-                : $"{content.StatusMessage}\n{content.RecoveryGuide}";
+            return string.IsNullOrEmpty(countdown) ? message
+                : string.IsNullOrEmpty(message) ? countdown
+                : $"{countdown}\n{message}";
         }
 
         private void RequestSend()
@@ -567,8 +597,41 @@ namespace A305.Dialogue
                 isMeaningVisible,
                 content.LastNpcGlossary,
                 glossaryCard.Word,
-                SentenceIndent()
+                SentenceIndent(),
+                HidesNpcLines
             );
+            CoverHiddenWords();
+        }
+
+        // 자막은 NPC 대사를 음성으로 들려주는 대화에서만 끌 수 있다. 음성이 없는 대본 대화나 음성 생성 실패·만료처럼
+        // 지금 대사를 들을 수 없으면 가렸을 때 대사를 알 방법이 없으므로 보인다(기능명세 F-25).
+        private bool HidesNpcLines =>
+            content.SpeaksNpcLines
+            && content.IsNpcSpeechReady
+            && !NpcSubtitlePreference.ShowsSubtitles;
+
+        private void ShowSubtitleButton()
+        {
+            subtitleButton.gameObject.SetActive(content.SpeaksNpcLines);
+            bool showsSubtitles = NpcSubtitlePreference.ShowsSubtitles;
+            subtitleButton.GetComponentInChildren<TMP_Text>(true).text = showsSubtitles
+                ? SubtitleOnCaption
+                : SubtitleOffCaption;
+            if (subtitleButton.TryGetComponent(out ThemedElement theme))
+                theme.SetSelected(showsSubtitles);
+        }
+
+        private void ToggleSubtitles()
+        {
+            NpcSubtitlePreference.ShowsSubtitles = !NpcSubtitlePreference.ShowsSubtitles;
+            Refresh();
+        }
+
+        // 가린 대사의 단어 자리는 대사 칸 폭에 따라 줄바꿈이 달라지므로, 대사나 배치가 바뀔 때마다 막대를 다시 놓는다.
+        private void CoverHiddenWords()
+        {
+            npcLineCovers ??= new NpcLineCovers(linesText);
+            npcLineCovers.Redraw();
         }
 
         // 이름 길이와 상관없이 문장이 같은 자리에서 시작하도록, 더 긴 이름(NPC 이름·나) 뒤에 두 칸만큼 띄운 자리
@@ -602,7 +665,7 @@ namespace A305.Dialogue
             PlaceWordCard();
         }
 
-        // 누른 단어 바로 위(자리가 없으면 아래)에 카드를 띄운다. 대화창 안에서만 움직여 그 위의 NPC 얼굴을 가리지 않는다.
+        // 누른 단어 바로 위(자리가 없으면 아래)에 카드를 띄운다. 이름·호감도 줄 아래에 두어 표시가 카드 안으로 비치지 않게 한다.
         private void PlaceWordCard()
         {
             if (content == null || !glossaryCard.IsVisible || !TryFindWordArea(out Rect word))
@@ -611,6 +674,10 @@ namespace A305.Dialogue
             var area = new Rect(Vector2.zero, frame.rect.size);
             area.min += Vector2.one * WordCardMargin;
             area.max -= Vector2.one * WordCardMargin;
+            area.yMax = Mathf.Min(
+                area.yMax,
+                npcNameText.rectTransform.anchoredPosition.y - WordCardMargin
+            );
             wordCard.anchoredPosition = WordCardPlacement.Place(word, wordCard.rect.size, area);
         }
 
@@ -770,6 +837,7 @@ namespace A305.Dialogue
             Place((RectTransform)historyScroll.transform, layout.Lines);
             Canvas.ForceUpdateCanvases();
             historyScroll.verticalNormalizedPosition = scroll;
+            CoverHiddenWords();
             PlaceWordCard();
             // 음성 동의처럼 긴 안내는 글자를 줄여 한 줄에 맞춘다.
             Place(statusText.rectTransform, layout.Status);
@@ -813,7 +881,8 @@ namespace A305.Dialogue
                 isMeaningVisible,
                 content.LastNpcGlossary,
                 glossaryCard.Word,
-                SentenceIndent()
+                SentenceIndent(),
+                HidesNpcLines
             );
             return linesText.GetPreferredValues(latest, width, 0).y;
         }

@@ -17,7 +17,7 @@ GitLab 프로젝트의 **Settings → CI/CD → Runners → Create project runne
 | 운영체제·설명 | Windows, `a305-unity-windows` |
 | 태그 | `a305-unity-windows` |
 | Run untagged jobs | 해제 |
-| Protected | MR의 일반 작업 브랜치 검사를 받으려면 비활성화 필요 |
+| Protected | 배포·수동 검사의 보호된 ref 사용에 맞춰 설정 |
 | Lock to current projects | 활성화, 이 프로젝트에만 연결 |
 | 최대 작업 시간 | 3600초 |
 
@@ -50,25 +50,23 @@ PowerShell 창과 사용자 세션을 유지하고, 빌드 중에는 절전에 �
 
 ## CI 연결 시험
 
-`unity:editor-tests`는 같은 프로젝트의 Unity 관련 MR에서 EditMode·PlayMode를 필수로 실행합니다. Web 템플릿·디자인 이미지·문서만 바뀌면 EditMode 배포 검사만 실행하며, 범위 판정은 [검사 파이프라인 문서](../ci-runner.md#unity-테스트-범위)를 따릅니다. YAML과 포맷 검사가 통과한 뒤 시작하며 WebGL 빌드와 서버 배포는 하지 않습니다. Draft와 후속 Push에도 같은 조건을 적용합니다. 일반 문서와 Unity 규약 문서만 바꾼 MR에는 실행하지 않습니다.
+Unity 관련 MR의 전체 EditMode·PlayMode 검사는 최종 커밋의 로컬 작업 트리에서 실행하고 결과를 MR에 기록합니다. MR 파이프라인은 Windows Editor 작업을 만들지 않습니다. 다른 프로젝트의 Unity MR은 기존처럼 Linux의 `unity:external-mr`에서 차단하고 프로젝트 브랜치에서 검토·검증합니다.
 
-보호된 Runner는 일반 작업 브랜치 MR을 받을 수 없으므로, MR 검사 적용에는 위 표의 실행 범위 전환이 필요합니다. 이 전환은 해당 노트북의 실행 권한을 작업 브랜치 코드에도 주는 변경입니다. GitLab의 Runner 설정을 변경하기 전에 실행 계정 권한과 프로젝트 접근 범위를 확인하고 승인된 범위로 적용합니다. 다른 프로젝트의 Unity MR은 Linux의 `unity:external-mr`에서 실패시켜 노트북 실행과 필수 검사 생략을 함께 차단합니다.
-
-`unity:editor-and-webgl`은 보호된 ref의 수동 연결 시험 또는 dev·운영 배포 자식 파이프라인에서 사용합니다. MR 검사 뒤에도 병합 결과의 통합 검사와 필요한 WebGL 빌드를 수행합니다. 수동 Unity 연결 시험에는 `RUN_UNITY_BUILD=true`를 사용합니다. 실제 앱 전달까지 시험하는 절차는 [dev 자동 배포](../dev-auto-deployment.md)를 따릅니다.
+`unity:editor-and-webgl`은 보호된 ref의 수동 연결 시험 또는 dev·운영 배포 자식 파이프라인에서 사용합니다. 병합 결과의 전체 테스트와 필요한 WebGL 빌드를 수행하며 제한 시간은 1시간입니다. 수동 Unity 연결 시험에는 `RUN_UNITY_BUILD=true`를 사용합니다. 실제 앱 전달까지 시험하는 절차는 [dev 자동 배포](../dev-auto-deployment.md)를 따릅니다.
 
 1. 실행할 커밋과 `.gitlab/ci/unity.yml`, `infra/scripts/run-unity-ci.ps1`을 검토합니다.
-2. 수동 빌드 시험의 대상 ref가 보호되어 있는지 확인합니다. 일반 MR 검사는 작업 브랜치를 임시 보호하거나 수동 변수를 지정하지 않고 `unity:editor-tests`로 실행합니다.
+2. 수동 빌드 시험의 대상 ref가 보호되어 있는지 확인합니다.
 3. **Build → Pipelines → New pipeline**에서 대상 ref를 고르고 `RUN_UNITY_BUILD` 값을 `true`로 지정합니다.
 4. 노트북의 `unity:editor-and-webgl` 작업이 해당 커밋을 받아 실행하는지 확인합니다. 이 작업은 Linux 검사 대기열과 독립적으로 시작할 수 있습니다.
 5. EditMode·PlayMode 테스트, WebGL 빌드와 산출물 업로드가 모두 성공하는지 확인합니다. 전체 MR의 필수 검사 통과 여부도 별도로 확인합니다.
 
 Runner에서 실행되는 코드는 Windows 실행 계정 권한으로 동작합니다. 프로젝트의 신뢰하는 팀원에게만 브랜치 작성 권한을 주고, Runner는 프로젝트에 잠근 채 지정 태그만 받습니다. `dev`·`main`의 브랜치 보호와 배포 자격 증명의 보호·환경 범위는 유지하며, 배포용 SSH 키·서버 환경 파일을 노트북 작업에 추가하지 않습니다. MR 작업에 protected 변수 접근을 허용하는 설정도 켜지 않습니다. [보호된 Runner](https://docs.gitlab.com/ci/runners/configure_runners/#protecting-sensitive-information), [Shell executor](https://docs.gitlab.com/runner/executors/shell/)
 
-MR과 배포 검사는 Runner의 동시 실행 제한으로 최대 두 작업을 실행하며, Unity 전체를 하나로 묶는 `resource_group`은 사용하지 않습니다. Shell executor의 기본 작업 경로는 동시 실행 번호별로 분리되므로 각 작업은 자신의 Unity 프로젝트·`Library`·산출물을 사용합니다. 작업 경로를 하나로 고정하거나 `Library`를 두 작업이 동시에 쓰도록 연결하지 않습니다. [Shell executor 작업 경로](https://docs.gitlab.com/runner/executors/shell/)
+배포와 수동 검사는 Runner의 동시 실행 제한으로 최대 두 작업을 실행하며, Unity 전체를 하나로 묶는 `resource_group`은 사용하지 않습니다. Shell executor의 기본 작업 경로는 동시 실행 번호별로 분리되므로 각 작업은 자신의 Unity 프로젝트·`Library`·산출물을 사용합니다. 작업 경로를 하나로 고정하거나 `Library`를 두 작업이 동시에 쓰도록 연결하지 않습니다. [Shell executor 작업 경로](https://docs.gitlab.com/runner/executors/shell/)
 
 프로젝트 전용 Runner의 일반 대기열은 FIFO로 처리합니다. 선행 검사가 끝나 실행 가능한 `pending` 작업 중 오래된 작업부터 빈 두 실행 자리에 배정합니다. 아직 선행 검사가 끝나지 않은 오래된 파이프라인을 기다리기 위해 새 작업을 막지는 않습니다. 파이프라인 ID 순서를 강제하는 자원 그룹의 `oldest_first`는 한 그룹에서 한 작업만 실행하므로 두 작업 병렬 실행의 순서 설정으로 사용하지 않습니다. [프로젝트 Runner 대기열](https://docs.gitlab.com/ci/runners/runners_scope/#project-runners), [자원 그룹 실행 순서](https://docs.gitlab.com/ci/resource_groups/#process-modes)
 
-MR의 테스트 실패·미실행·결과 누락을 허용하지 않으며, 실패 시 해당 MR이 병합 차단되는지 실제 파이프라인에서 확인합니다. 동시 실행 시 노트북의 메모리·CPU·디스크 여유와 로컬 개발 작업의 응답을 확인하고 부족하면 Runner 제한을 다시 `1`로 낮춥니다. `waiting_for_resource` 상태는 일반 Runner 대기열과 별개입니다. 자원 그룹을 사용한 설정으로 이미 생성한 작업의 잠금은 새 YAML을 반영해도 소급 제거되지 않으므로 해당 자원 그룹의 실행 상태를 따로 확인합니다.
+MR의 로컬 테스트 실패·미실행·결과 누락은 병합 전에 해결합니다. 이 확인은 GitLab이 자동 강제하지 않습니다. 배포 검사 실패·미실행·결과 누락은 파이프라인에서 차단합니다. 동시 실행 시 노트북의 메모리·CPU·디스크 여유와 로컬 개발 작업의 응답을 확인하고 부족하면 Runner 제한을 다시 `1`로 낮춥니다. `waiting_for_resource` 상태는 일반 Runner 대기열과 별개입니다. 자원 그룹을 사용한 설정으로 이미 생성한 작업의 잠금은 새 YAML을 반영해도 소급 제거되지 않으므로 해당 자원 그룹의 실행 상태를 따로 확인합니다.
 
 ## 실행 스크립트와 결과
 
@@ -80,15 +78,20 @@ powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1
 ```
 
 - Editor 경로는 프로젝트 버전에서 구하며, 다른 설치 경로는 `UNITY_EDITOR_PATH`로 지정합니다.
-- 전체 실행에서는 EditMode 전에 Blender와 테스트 FBX를 준비하고 같은 프로세스에서 테스트 입력 변수를 지정합니다. MR에서 배포 검사만 실행할 때는 준비하지 않습니다.
+- 이미 병합·검증된 고정 씬의 배치·연결·Builder 회귀 검사는 정리했으며, 새 기능이나 변경한 씬의 테스트는 추가·수정할 수 있습니다. 씬 배치의 시각적 결과는 직접 Play 실행과 브라우저에서 확인합니다.
+- 개발 중 `-ChangedSince <기준 커밋 SHA>`로 영향을 받는 테스트를 선택할 수 있습니다. 최종 커밋의 MR 전 검사는 이 옵션 없이 전체를 실행합니다. 선택 결과는 `dist/unity-ci/test-plan.json`에 남깁니다. 구체적인 기준은 [Unity 테스트 범위](../ci-runner.md#unity-테스트-범위)를 따릅니다.
+- 전체 실행 또는 `A305.Tripo.*` 테스트를 선택한 경우 Blender와 테스트 FBX를 준비하고 같은 프로세스에서 테스트 입력 변수를 지정합니다. 다른 모듈만 검사할 때는 준비하지 않습니다.
 - 공통 캐릭터의 목 경계·머리 크기 검사는 저장된 조합과 부품을 메모리에 복제하고 현재 가져오기 환경의 의존성 정보를 설정한 뒤, 원래의 불일치 메시가 각각의 오류로 검출되는지 확인합니다. 저장된 조합의 승인 상태나 검사 기준은 변경하지 않습니다.
 - 테스트는 `-runTests`로 종료하고 `-quit`을 함께 사용하지 않습니다. WebGL 빌드에는 `-quit`과 저장소의 빌드 진입점을 사용합니다.
 - Editor 프로세스의 실제 종료까지 기다립니다. 크래시 후 남은 컴파일 보조 프로세스 때문에 작업 종료가 지연되지 않도록 Editor의 종료 코드를 직접 확인하고 로그를 보존합니다. 테스트 XML 누락·실패·미실행·성공 테스트 0개 또는 빌드 실패를 성공으로 처리하지 않습니다.
+- Editor가 실행 중이면 기본 30초마다 현재 단계(EditMode·PlayMode·WebGL)와 경과시간을 CI 로그에 남기고 상세 로그를 `dist/unity-ci/`로 복사합니다. 검사 도중 제한 시간으로 종료되어도 그때까지 복사된 로그를 산출물로 확인할 수 있습니다. 로컬 진단에서는 `-ProgressIntervalSeconds`로 주기를 조절할 수 있으며, 진행 메시지는 테스트 성공이나 정체 해소를 뜻하지 않습니다.
 - NUnit 결과와 Unity 로그는 임시 폴더에 생성한 뒤 GitLab 업로드용 사본을 Git에서 제외한 `dist/unity-ci/`에 모읍니다. Unity의 기본 NUnit XML을 JUnit 보고서로 표시하지 않습니다.
 - WebGL 산출물은 `dist/webgl/`이며 `version.json`의 전체 커밋 SHA가 후보와 일치해야 합니다. 빌드된 정적 파일의 실제 HTTPS 로딩과 화면 확인은 별도 검증입니다.
+- CI는 WebGL 빌드 후 `publish-webgl-package.ps1`로 같은 프로젝트의 Generic Package Registry에 `a305-webgl/<파이프라인 ID>-<작업 ID>/webgl.tar`를 게시합니다. Windows 기본 `tar.exe`와 작업 중에만 유효한 `CI_JOB_TOKEN`을 사용하며 별도 토큰은 등록하지 않습니다. 프로젝트의 패키지 저장소가 활성화되어 있어야 합니다.
+- 일반 GitLab 산출물에는 `dist/unity-ci/`의 테스트·로그와 `dist/webgl-package.json`의 커밋·파이프라인·SHA256·크기만 넣습니다. 큰 WebGL 파일을 일반 산출물 ZIP에 함께 넣지 않으므로 해당 ZIP의 용량 상한을 올릴 필요가 없습니다. 전달과 임시 패키지 정리는 [개발 자동 배포](../dev-auto-deployment.md#webgl-빌드-전달과-정리)를 따릅니다.
 - 동시에 최대 두 작업을 실행하도록 Runner 제한을 사용합니다. 동시 실행 번호별 CI 작업 폴더의 `Library`를 유지해 다시 가져오는 비용을 줄이며, 빌드 결과·로그는 새 작업에서 정리합니다. 두 번째 작업 폴더의 최초 실행에는 별도의 에셋 가져오기·패키지 준비·Blender 설치 시간이 필요합니다.
 
-Editor 종료 대기와 MR 테스트 범위 판정의 회귀 검사는 Windows에서 `python -m unittest discover -s infra/scripts/tests -p "test_unity_*.py" -v`로 실행합니다. 가짜 Editor가 실패한 뒤 보조 프로세스가 남아도 실패와 로그가 즉시 전달되는지, 바뀐 파일에 따라 배포 검사나 전체 실행을 고르는지 검사하며 실제 Unity 테스트를 대신하지 않습니다. Linux의 인프라 검사에서는 이 Windows 전용 검사를 건너뜁니다.
+Editor 종료 대기와 선택적 테스트 범위 판정의 회귀 검사는 Windows에서 `python -m unittest discover -s infra/scripts/tests -p "test_unity_*.py" -v`로 실행합니다. 가짜 Editor가 실패한 뒤 보조 프로세스가 남아도 실패와 로그가 즉시 전달되는지, 변경한 테스트·실행 코드의 전이 의존 관계·공유 입력·비교 실패에 따라 범위를 고르는지 검사하며 실제 Unity 테스트를 대신하지 않습니다. Linux의 인프라 검사에서는 이 Windows 전용 검사를 건너뜁니다.
 
 ## Blender와 FBX 테스트 입력
 

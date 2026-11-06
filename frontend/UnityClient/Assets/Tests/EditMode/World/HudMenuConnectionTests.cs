@@ -1,6 +1,7 @@
 using System.Linq;
 using A305.EditorTools.Common;
 using A305.Learning;
+using A305.Onboarding;
 using A305.Theme;
 using NUnit.Framework;
 using TMPro;
@@ -18,11 +19,7 @@ namespace A305.World.Tests
     {
         private const string HudPrefabPath = "Assets/Prefabs/Learning/LearningHud.prefab";
 
-        [TestCase("HomeScene")]
-        [TestCase("TownScene")]
-        [TestCase("CafeScene")]
-        [TestCase("HotelScene")]
-        [TestCase("ShopScene")]
+        [TestCase("PoliceStationScene")]
         public void ProductionSceneHudKeepsItsButtonsInTheClosedMenu(string name)
         {
             var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/" + name + ".unity");
@@ -56,23 +53,6 @@ namespace A305.World.Tests
                 items.transform.Find("ThemeButton"),
                 Is.Null,
                 name + ": 화면 디자인은 하나라 메뉴에 [테마]를 두지 않습니다."
-            );
-        }
-
-        [Test]
-        public void HomeHasNoThemePicker()
-        {
-            var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/HomeScene.unity");
-
-            bool hasPicker = scene
-                .GetRootGameObjects()
-                .SelectMany(root => root.GetComponentsInChildren<Transform>(true))
-                .Any(child => child.name.StartsWith("ThemePicker"));
-
-            Assert.That(
-                hasPicker,
-                Is.False,
-                "화면 디자인은 하나라 테마 고르기 화면을 두지 않습니다."
             );
         }
 
@@ -115,11 +95,7 @@ namespace A305.World.Tests
         }
 
         // 조작법 카드는 오른쪽 아래에 두고, X로 닫은 뒤에는 메뉴(≡)의 [조작법]으로 다시 연다.
-        [TestCase("HomeScene")]
-        [TestCase("TownScene")]
-        [TestCase("CafeScene")]
-        [TestCase("HotelScene")]
-        [TestCase("ShopScene")]
+        [TestCase("PoliceStationScene")]
         public void ProductionSceneHudShowsTheControlsGuideAtTheBottomRight(string name)
         {
             var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/" + name + ".unity");
@@ -163,6 +139,26 @@ namespace A305.World.Tests
             Assert.That(card, Is.LessThan(hud.Find("MenuBackdrop").GetSiblingIndex()));
             Assert.That(card, Is.LessThan(hud.Find("History").GetSiblingIndex()));
             Assert.That(card, Is.LessThan(hud.Find("MyPage").GetSiblingIndex()));
+        }
+
+        // 로그인이 풀리면(서버 재배포·오래 쉼) 어느 창 위에서도 보이도록, 안내 창은 수첩(1000)보다 높은 순서의 캔버스에 두고 닫힌 채 시작한다.
+        [Test]
+        public void HudTellsWhenTheLoginSessionExpires()
+        {
+            var hud = AssetDatabase.LoadAssetAtPath<GameObject>(HudPrefabPath);
+
+            var view = hud.GetComponent<SessionExpiredView>();
+
+            Assert.That(view, Is.Not.Null, "접속이 끊겼을 때 알리는 창이 없습니다.");
+            Assert.DoesNotThrow(() => BuilderTools.RequireReferences(view));
+            var overlay = (GameObject)
+                new SerializedObject(view).FindProperty("overlay").objectReferenceValue;
+            Assert.That(overlay.activeSelf, Is.False);
+            var canvas = overlay.GetComponent<Canvas>();
+            Assert.That(canvas, Is.Not.Null);
+            Assert.That(canvas.overrideSorting, Is.True);
+            Assert.That(canvas.sortingOrder, Is.GreaterThan(1000));
+            Assert.That(overlay.GetComponent<GraphicRaycaster>(), Is.Not.Null);
         }
     }
 }

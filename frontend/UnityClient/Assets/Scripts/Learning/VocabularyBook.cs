@@ -1,6 +1,9 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using A305.Api;
+using A305.ObjectHover;
 
 namespace A305.Learning
 {
@@ -25,19 +28,62 @@ namespace A305.Learning
             this.api = api;
         }
 
+        /// <summary>외운 단어까지 모두 담은 단어장. 외웠어요는 기록을 지우지 않는다.</summary>
         public IReadOnlyList<VocabularyEntry> Entries => entries;
+
+        /// <summary>[외운 표현도 보기]를 켰는지. 끄면 외운 단어를 목록에서 정리한다(기능 명세 F-35).</summary>
+        public bool ShowsLearned { get; set; }
+
+        /// <summary>단어장 화면 목록에 보일 단어. 알파벳순이 아니면 서버가 준 최근 저장순이다.</summary>
+        public IReadOnlyList<VocabularyEntry> ShownEntries
+        {
+            get
+            {
+                IEnumerable<VocabularyEntry> shown = ShowsLearned
+                    ? entries
+                    : entries.Where(entry => !entry.IsLearned);
+                if (SortsAlphabetically)
+                    shown = shown.OrderBy(entry => entry.English, StringComparer.OrdinalIgnoreCase);
+                return shown.ToList();
+            }
+        }
+
+        /// <summary>목록을 알파벳순으로 볼지. 같은 글자로 시작하는 단어가 한 묶음이 된다.</summary>
+        public bool SortsAlphabetically { get; set; }
+
+        /// <summary>목록에 보이는 단어 중 그 글자로 시작하는 첫 단어의 자리(대소문자 무관). 없으면 -1.</summary>
+        public int IndexOfFirstWordStartingWith(char letter)
+        {
+            IReadOnlyList<VocabularyEntry> shown = ShownEntries;
+            for (int i = 0; i < shown.Count; i++)
+            {
+                string english = shown[i].English;
+                if (
+                    !string.IsNullOrEmpty(english)
+                    && char.ToUpperInvariant(english[0]) == char.ToUpperInvariant(letter)
+                )
+                    return i;
+            }
+
+            return -1;
+        }
 
         /// <summary>
         /// 화면이 보여 줄 상태. 보여 줄 단어가 있으면 다시 읽는 중이거나 다시 읽지 못했어도 그 단어를 보인다.
-        /// 단어가 없으면 읽는 중, 처음 읽기 실패, 빈 목록을 구분한다.
+        /// 단어가 없으면 모두 외워 정리했는지, 읽는 중, 처음 읽기 실패, 빈 목록을 구분한다.
         /// </summary>
         public VocabularyListState ListState
         {
             get
             {
-                if (entries.Count > 0)
+                if (ShownEntries.Count > 0)
                 {
                     return VocabularyListState.Entries;
+                }
+
+                if (entries.Count > 0)
+                {
+                    return VocabularyListState.AllLearned;
                 }
 
                 if (isLoading)
@@ -80,7 +126,12 @@ namespace A305.Learning
             }
             catch (ApiException)
             {
-                return Fail("단어장을 불러오지 못했어요. 잠시 후 다시 열어 주세요.");
+                // 지난번 목록이 남아 있으면 고장처럼 알리지 않고, 화면에 보이는 목록이 무엇인지 알린다.
+                return Fail(
+                    entries.Count > 0
+                        ? "지금은 새 단어장을 받아 오지 못해 지난번 목록을 보여 드려요."
+                        : "단어장을 불러오지 못했어요. 잠시 후 다시 열어 주세요."
+                );
             }
             finally
             {
@@ -91,17 +142,34 @@ namespace A305.Learning
             entries.AddRange(loaded);
             isLoaded = true;
             LastFailureMessage = null;
+            ShareLearnedWords();
             return true;
+        }
+
+        // 외운 단어는 장소의 사물 카드도 호버로 띄우지 않으므로, 외운 단어가 바뀔 때마다 사물 카드에 알린다.
+        private void ShareLearnedWords()
+        {
+            ObjectWordCards.ShareLearnedWords(
+                entries.FindAll(entry => entry.IsLearned).ConvertAll(entry => entry.English)
+            );
         }
 
         /// <summary>대화 중 NPC 대사의 풀이 단어를 저장한다(VOCAB-02 NPC_LINE).</summary>
         /// <param name="turnId">단어 풀이를 받은 NPC 턴</param>
-        public async Task<VocabularySaveResult> SaveNpcLineWordAsync(long turnId, string text)
+        public Task<VocabularySaveResult> SaveNpcLineWordAsync(long turnId, string text) =>
+            SaveAsync(() => api.SaveNpcLineWordAsync(turnId, text));
+
+        /// <summary>대화 피드백의 표현(단어·숙어·문장)을 저장한다(VOCAB-02 FEEDBACK).</summary>
+        /// <param name="conversationId">피드백을 받은 대화</param>
+        public Task<VocabularySaveResult> SaveFeedbackWordAsync(long conversationId, string text) =>
+            SaveAsync(() => api.SaveFeedbackWordAsync(conversationId, text));
+
+        private async Task<VocabularySaveResult> SaveAsync(Func<Task<VocabItem>> save)
         {
             VocabItem saved;
             try
             {
-                saved = await api.SaveNpcLineWordAsync(turnId, text);
+                saved = await save();
             }
             catch (ApiException)
             {
@@ -141,6 +209,7 @@ namespace A305.Learning
             }
 
             LastFailureMessage = null;
+            ShareLearnedWords();
             return true;
         }
 
@@ -166,7 +235,7 @@ namespace A305.Learning
             return true;
         }
 
-        /// <summary>단어장에서 지운다. 서버에서 지운 뒤에 목록에서 뺀다.</summary>
+        /// <summary>단어장에서 지운다. 서버에서 지운 뒤에 목록에서 빼고, 장소의 사물 카드가 다시 저장할 수 있게 알린다.</summary>
         public async Task<bool> DeleteAsync(VocabularyEntry entry)
         {
             try
@@ -180,6 +249,8 @@ namespace A305.Learning
 
             entries.Remove(entry);
             LastFailureMessage = null;
+            ObjectWordCards.NotifySavedWordRemoved(entry.English);
+            ShareLearnedWords();
             return true;
         }
 

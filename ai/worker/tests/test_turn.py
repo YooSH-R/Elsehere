@@ -49,6 +49,19 @@ def test_done_has_whole_turn_audio_joined_from_chunks(provider):
     assert done["audio_full_s"] == round(frames(full.content) / 24000, 2)
 
 
+def test_reply_can_skip_chunk_stream_and_keep_only_whole_audio(provider):
+    provider.answers["npc"] = lambda body: stream(["Sure! ", "One latte. ", "Anything else?"])
+    tts = FakeTts(wav=True)
+    with make_client(provider, tts) as client:
+        response = client.post("/v1/npc/reply", json={"npc": NPC, "text": "one latte", "stream_chunks": False})
+        received = events(response)
+        assert [name for name, _ in received] == ["done"]
+        done = received[0][1]
+        full = client.get(f"/v1/audio/{done['audio_full_id']}")
+        assert frames(full.content) == sum(len(text) * 100 for text in tts.texts)
+        assert len(client.app.state.audio.items) == 1
+
+
 def test_no_whole_turn_audio_when_a_chunk_failed(provider):
     """조각 하나라도 합성하지 못하면 다시 듣기용 음성은 없음 (Spring은 /v1/tts로 다시 만든다)."""
     ev, done, _ = reply(provider, FakeTts(wav=True, fail_on="One latte."))
@@ -81,6 +94,25 @@ def test_no_whole_turn_audio_when_a_late_chunk_failed(provider):
 def test_no_whole_turn_audio_without_tts(provider):
     _, done, _ = reply(provider, FakeTts(wav=True), tts=False)
     assert done["audio_full_id"] is None
+
+
+def test_slow_full_turn_audio_does_not_hold_the_completed_text(provider):
+    class SlowTts(FakeTts):
+        completed = False
+
+        async def asynth(self, *args):
+            result = await super().asynth(*args)
+            self.completed = True
+            return result
+
+    tts = SlowTts(delay=0.5, wav=True)
+    provider.answers["npc"] = lambda body: stream(["Sure! One latte."])
+    with make_client(provider, tts, tts_chunk_budget_s=0.01, tts_full_budget_s=0.02) as client:
+        done = events(client.post("/v1/npc/reply", json={"npc": NPC, "history": HISTORY, "text": "one latte"}))[-1]
+
+        assert done[0] == "done" and done[1]["text"] == "Sure! One latte."
+        assert tts.completed is False
+        assert done[1]["audio_full_id"] is None
 
 
 # ---------------------------------------------------------------------

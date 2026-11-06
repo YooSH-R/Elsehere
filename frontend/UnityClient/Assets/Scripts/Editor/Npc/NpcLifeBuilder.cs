@@ -34,6 +34,8 @@ namespace A305.EditorTools.Npc
         {
             "Assets/Scenes/Production/CafeScene.unity",
             "Assets/Scenes/Production/HotelScene.unity",
+            "Assets/Scenes/Production/ShopScene.unity",
+            "Assets/Scenes/Production/PoliceStationScene.unity",
             "Assets/Scenes/Production/TownScene.unity",
         };
 
@@ -50,18 +52,41 @@ namespace A305.EditorTools.Npc
             RuntimeAnimatorController animator = NpcAnimationBuilder.PrepareController();
             foreach (string scenePath in ScenePaths)
             {
-                Scene scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
-                if (ConnectRoutines(scene, data, lifeData, animator) == 0)
-                {
-                    continue;
-                }
-
-                RebakeWalkArea(scene);
-                BuilderTools.SaveScene(scene, scenePath);
+                BuildScene(scenePath, data, lifeData, animator);
             }
 
             AssetDatabase.SaveAssets();
             Debug.Log("NPC 생활과 걸을 바닥을 준비했습니다.");
+        }
+
+        /// <summary>장면 하나의 NPC에만 생활을 붙이고 그 장면의 바닥을 굽는다. 새 장소 장면을 만든 Builder가 다른 장면은 두고 쓴다.</summary>
+        public static void BuildScene(string scenePath)
+        {
+            var lifeData = BuilderTools.LoadRequiredAsset<TextAsset>(LifeDataPath, MenuPath);
+            BuildScene(
+                scenePath,
+                NpcLifeData.Parse(lifeData.text),
+                lifeData,
+                NpcAnimationBuilder.PrepareController()
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        private static void BuildScene(
+            string scenePath,
+            NpcLifeData data,
+            TextAsset lifeData,
+            RuntimeAnimatorController animator
+        )
+        {
+            Scene scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+            if (ConnectRoutines(scene, data, lifeData, animator) == 0)
+            {
+                return;
+            }
+
+            RebakeWalkArea(scene);
+            BuilderTools.SaveScene(scene, scenePath);
         }
 
         /// <summary>열린 장면의 걸을 바닥을 다시 굽고 연결한다. 바닥 구역 표시를 바꾼 뒤에도 쓴다. 장면 저장은 부르는 쪽이 한다.</summary>

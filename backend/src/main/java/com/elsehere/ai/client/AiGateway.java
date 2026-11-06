@@ -62,13 +62,28 @@ public class AiGateway {
       String instruction,
       int level,
       WorkerLearner learner) {
+    return reply(
+        trace, npc, memory, history, text, instruction, level, learner, NpcReplyListener.NONE);
+  }
+
+  /** NPC 대답. 글자·문장 조각 음성을 받는 대로 {@code listener}에 넘긴다. 실패 처리는 조각을 받지 않을 때와 같다. */
+  public NpcReply reply(
+      WorkerTrace trace,
+      WorkerNpc npc,
+      WorkerMemory memory,
+      List<WorkerLine> history,
+      String text,
+      String instruction,
+      int level,
+      WorkerLearner learner,
+      NpcReplyListener listener) {
     NpcReply reply =
         send(
             trace,
             AiRequestKind.NPC,
             () ->
                 aiWorkerClient.reply(
-                    trace, npc, memory, history, text, instruction, level, learner));
+                    trace, npc, memory, history, text, instruction, level, learner, listener));
     record(trace, AiRequestKind.NPC, reply.usage(), reply.succeeded());
     if (!reply.succeeded()) {
       throw new BusinessException(AiWorkerClient.toErrorCode(reply.errorCode()));
@@ -176,6 +191,18 @@ public class AiGateway {
   public RelationshipChange relationship(
       WorkerTrace trace, WorkerNpc npc, WorkerRelationship relationship, List<WorkerLine> history) {
     return aiWorkerClient.relationship(trace, npc, relationship, history);
+  }
+
+  /**
+   * 끝난 대화에서 NPC가 곧 건네기로 한 것(워커 문서 2.7.3). 기억 카드와 같은 자리·같은 모델이라 AI 요청 기록도 MEMORY로 남긴다.
+   *
+   * @param history 대화 전체(최대 200줄)
+   */
+  public FollowUpResult followUp(WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history) {
+    FollowUpResult result =
+        send(trace, AiRequestKind.MEMORY, () -> aiWorkerClient.followUp(trace, npc, history));
+    record(trace, AiRequestKind.MEMORY, result.usage(), true);
+    return result;
   }
 
   /** 대화 종료 피드백. 평가할 발화 부족·생성 실패는 결과의 상태로 돌려주고, completed가 아니면 FAILED로 남긴다. */

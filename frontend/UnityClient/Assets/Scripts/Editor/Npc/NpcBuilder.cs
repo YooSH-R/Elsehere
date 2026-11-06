@@ -26,6 +26,8 @@ namespace A305.EditorTools.Npc
         public const string PasserbyPrefabPath = "Assets/Prefabs/Npc/Passerby.prefab";
 
         private const string OfferPrefabPath = "Assets/Prefabs/Npc/PasserbyOffer.prefab";
+        private const string HoverOutlineShaderPath = "Assets/Art/Npc/NpcHoverOutline.shader";
+        private const string HoverOutlineMaterialPath = "Assets/Art/Npc/NpcHoverOutline.mat";
         private const string TutorialSettingsPath =
             "Assets/Data/Npc/TutorialPasserbySettings.asset";
         private const string TownSettingsPath = "Assets/Data/Npc/TownPasserbySettings.asset";
@@ -68,6 +70,33 @@ namespace A305.EditorTools.Npc
             ("BAKERY_STAFF", "Good morning, dear! The bread just came out of the oven."),
             ("ARCADE_STAFF", "Yo! Welcome to Little Arcade. Want to try the claw machine?"),
             ("HOME_STORE_STAFF", "Welcome to Home and Living. Feel free to look around."),
+            ("CAFE_BARISTA", "Hi! I'm on the espresso machine today. What can I make for you?"),
+            ("CAFE_SERVER", "Hey there! Grab any table you like. I'll bring you a menu."),
+            ("HOTEL_RECEPTIONIST", "Good evening! Welcome to Maple House. Checking in?"),
+            ("HOTEL_CONCIERGE", "Good day. If you need a restaurant or directions, just ask me."),
+            ("HOTEL_BELLHOP", "Hi! Can I help you with your bags?"),
+            ("HOTEL_NIGHT_MANAGER", "Good evening. Is everything all right with your stay?"),
+            ("SHOP_PHARMACIST", "Hello. Do you need any medicine today?"),
+            ("SHOP_NIGHT_CLERK", "Evening. We're open all night if you need anything."),
+            ("POLICE_SERGEANT", "Good evening. This is the night desk. What can I do for you?"),
+            ("POLICE_PATROL_OFFICER", "Hi there. Did something happen around here?"),
+            ("POLICE_ROOKIE", "Oh, hello! I'm new here, but I'll do my best to help."),
+            ("TOWN_RETIREE", "Good morning, dear! Lovely day for a walk, isn't it?"),
+            ("TOWN_STUDENT", "Hey! Do you know a good place to study around here?"),
+            ("TOWN_EVENING_WALKER", "Hi. I always take a walk after work. It helps me relax."),
+            ("TOWN_SHOPPER", "Hello! I'm just running a few errands. Busy day!"),
+            ("TOWN_HANDYMAN", "Morning! If anything's broken, I'm your man."),
+            (
+                "FIRE_CAPTAIN",
+                "Morning. Our new fire station isn't open yet, so I'm out for a walk."
+            ),
+            ("FIRE_FIGHTER", "Hi! It's my day off. The town looks great today."),
+            ("FIRE_ROOKIE", "Hey! I'm a new firefighter here. Nice to meet you!"),
+            ("TOWN_GRANDFATHER", "Good morning. Nice weather for a walk."),
+            (
+                "TOWN_GRANDMOTHER",
+                "Oh, good morning! We take our walk every morning. Isn't it lovely?"
+            ),
         };
 
         [MenuItem(MenuPath)]
@@ -282,6 +311,8 @@ namespace A305.EditorTools.Npc
             var identity = BuilderTools.GetOrAddComponent<NpcIdentity>(root);
             var animationDriver = BuilderTools.GetOrAddComponent<CharacterAnimationDriver>(root);
             var passerby = BuilderTools.GetOrAddComponent<Passerby>(root);
+            // 팔 관통 보정은 캐릭터 하나에 수 ms가 들어, 카메라에서 먼 동안에는 끈다. 이 프리팹으로 놓는 NPC가 모두 받는다.
+            BuilderTools.GetOrAddComponent<NpcDetailDistance>(root);
 
             Transform lookTarget = root.transform.Find("LookTarget");
             if (lookTarget == null)
@@ -412,14 +443,12 @@ namespace A305.EditorTools.Npc
                 bold,
                 preferredWidth: 300f
             );
-            TMP_Text keyHint = UiBuilderTools.FindOrCreateText(
-                talkRow,
-                "KeyHint",
-                bold,
-                26f,
-                new Color(0.8f, 0.82f, 0.86f),
-                "E"
-            );
+            Transform keyHint = talk.transform.Find("KeyHint");
+            if (keyHint == null)
+            {
+                keyHint = new GameObject("KeyHint", typeof(RectTransform)).transform;
+                keyHint.SetParent(talk.transform, false);
+            }
 
             BuilderTools.SetReference(view, "panel", panel.gameObject);
             BuilderTools.SetReference(view, "hintLabel", hint);
@@ -430,17 +459,45 @@ namespace A305.EditorTools.Npc
             BuilderTools.SetReference(view, "declineButton", decline);
             BuilderTools.SetReference(view, "talkPromptPanel", talkPrompt.gameObject);
             BuilderTools.SetReference(view, "talkButton", talk);
+            BuilderTools.SetReference(view, "talkKeyHint", keyHint);
             BuilderTools.SetReference(
                 view,
                 "talkLabel",
                 talk.transform.Find("Label").GetComponent<TMP_Text>()
             );
-            BuilderTools.SetReference(view, "talkKeyHint", keyHint.gameObject);
+            Transform remainingBadge = talkPrompt.Find("RemainingBadge");
+            BuilderTools.SetReference(
+                view,
+                "talkRemainingBadge",
+                remainingBadge != null ? remainingBadge.gameObject : talkRemaining.gameObject
+            );
+            GuestSignupDialogBuilder.SetUp(root, view);
+            NpcNameTagBuilder.SetUp(root);
+            OfferShortcutsBuilder.SetUp(root);
             BuilderTools.RequireReferences(view);
             talkPrompt.gameObject.SetActive(false);
 
             // 제안할 때만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.
             panel.gameObject.SetActive(false);
+
+            // NPC 클릭·탭으로 말 걸기. 이 화면은 NPC가 있는 장소마다 하나씩 있어 장면을 고치지 않고도 모든 장소에 붙는다.
+            var clickTalk = BuilderTools.GetOrAddComponent<NpcClickTalk>(root);
+            BuilderTools.SetReference(clickTalk, "outlineMaterial", LoadOrCreateHoverOutline());
+        }
+
+        // 커서를 올린 NPC에 덧그릴 테두리 재질. 이미 있으면 색·두께를 바꾼 디자인을 그대로 둔다.
+        private static Material LoadOrCreateHoverOutline()
+        {
+            var material = AssetDatabase.LoadAssetAtPath<Material>(HoverOutlineMaterialPath);
+            if (material != null)
+            {
+                return material;
+            }
+
+            var shader = BuilderTools.LoadRequiredAsset<Shader>(HoverOutlineShaderPath, MenuPath);
+            material = new Material(shader) { name = "NpcHoverOutline" };
+            AssetDatabase.CreateAsset(material, HoverOutlineMaterialPath);
+            return material;
         }
 
         /// <summary>
@@ -452,6 +509,9 @@ namespace A305.EditorTools.Npc
             TMP_FontAsset font
         )
         {
+            Transform badge = panel.Find("RemainingBadge");
+            if (badge != null)
+                return badge.Find("Remaining").GetComponent<TMP_Text>();
             bool isNew = panel.Find("Remaining") == null;
             TMP_Text remaining = UiBuilderTools.FindOrCreateText(
                 panel,

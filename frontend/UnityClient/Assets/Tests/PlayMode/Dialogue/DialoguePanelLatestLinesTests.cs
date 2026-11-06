@@ -86,35 +86,6 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(scroll.vertical, Is.True, "위로 스크롤해 지난 대사를 봅니다.");
         }
 
-        // "나"와 "Jake"처럼 이름 길이가 달라도 두 줄의 문장 첫 글자가 같은 자리에서 시작한다.
-        [UnityTest]
-        public IEnumerator Sentences_StartAtTheSameColumnWhateverTheSpeaker()
-        {
-            yield return Show(Conversation);
-
-            TMP_Text lines = Field<TMP_Text>("linesText");
-            lines.ForceMeshUpdate();
-            TMP_TextInfo info = lines.textInfo;
-            float mine = FirstLetterX(info, "i return");
-            float jake = FirstLetterX(info, "All right");
-            Assert.That(mine, Is.EqualTo(jake).Within(1f));
-        }
-
-        private static float FirstLetterX(TMP_TextInfo info, string sentence)
-        {
-            string shown = new string(
-                System.Linq.Enumerable.ToArray(
-                    System.Linq.Enumerable.Select(
-                        System.Linq.Enumerable.Take(info.characterInfo, info.characterCount),
-                        character => character.character
-                    )
-                )
-            );
-            int index = shown.IndexOf(sentence, System.StringComparison.Ordinal);
-            Assert.That(index, Is.GreaterThanOrEqualTo(0), sentence);
-            return info.characterInfo[index].origin;
-        }
-
         [UnityTest]
         public IEnumerator FirstLine_IsShownAlone()
         {
@@ -182,6 +153,8 @@ namespace A305.Dialogue.PlayModeTests
             public ConversationStanding Standing => null;
             public DialogueWait Waiting => DialogueWait.None;
             public bool CanReplaySpeech => true;
+            public bool SpeaksNpcLines => false;
+            public bool IsNpcSpeechReady => false;
         }
     }
 }

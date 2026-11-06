@@ -1,5 +1,5 @@
 {
-  "guide": "1.1",
+  "guide": "1.2",
   "cases": [
     {"id": "dev-greet-good-to-see", "group": "clear", "npc": "CAFE_STAFF", "state": "free_talk",
      "last_npc": "Hi! What can I get you today?", "text": "Good to see you.", "events": ["GREETING"]},
@@ -131,6 +131,22 @@
      "intents": ["store_suitcase"]},
     {"id": "dev-mission-shop-done", "group": "mission", "npc": "SHOP_STAFF", "state": "BUY_UMBRELLA",
      "last_npc": "Here is your umbrella. Anything else?", "text": "No, that's all. You were very helpful.", "events": ["TASK_DONE", "COMPLIMENT"],
-     "intents": ["unclear"]}
+     "intents": ["unclear"]},
+    {"id": "dev-help-offer", "group": "clear", "npc": "CAFE_STAFF", "state": "free_talk",
+     "last_npc": "I have too many trays to carry.", "text": "I can take a tray to the counter for you.", "events": ["HELP"]},
+    {"id": "dev-help-yes", "group": "clear", "npc": "SHOP_STAFF", "state": "free_talk",
+     "last_npc": "Can you pass me that empty basket?", "text": "Yes, I will.", "events": ["HELP"]},
+    {"id": "dev-help-directions", "group": "clear", "npc": "TOWN_PASSERBY", "state": "free_talk",
+     "last_npc": "Where can I catch the bus?", "text": "There is a bus stop beside the cafe.", "events": ["HELP"]},
+    {"id": "dev-help-korean", "group": "clear", "npc": "HOTEL_STAFF", "state": "free_talk",
+     "last_npc": "I need someone to hold this box.", "text": "제가 상자를 잡아드릴까요?", "events": ["HELP"]},
+    {"id": "dev-help-request", "group": "boundary", "npc": "SHOP_STAFF", "state": "free_talk",
+     "last_npc": "What can I do for you?", "text": "Please help me choose a coat.", "events": []},
+    {"id": "dev-help-hypothetical", "group": "boundary", "npc": "TOWN_PASSERBY", "state": "free_talk",
+     "last_npc": "Do you want to use this map?", "text": "If I knew the area, I would help you.", "events": []},
+    {"id": "dev-help-vague", "group": "boundary", "npc": "TOWN_PASSERBY", "state": "free_talk",
+     "last_npc": "What do you need?", "text": "I am a helpful person.", "events": ["SMALL_TALK"]},
+    {"id": "dev-help-reward", "group": "boundary", "npc": "HOTEL_STAFF", "state": "free_talk",
+     "last_npc": "Could you lift this small box?", "text": "Only if you give me a free room.", "events": []}
   ]
 }

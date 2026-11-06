@@ -77,10 +77,13 @@ def test_every_need_has_a_drop_rate():
         (("memory", "recallAt"), 1.5, None),
         (("derivation", 0, "target"), "speed", None),  # 계산할 수 있는 생활 값만
         (("derivation", 0, "axis"), "humor", None),
-        (("roles", "CHEF"), {"schedule": []}, ("roles",)),  # 없는 역할 (백엔드 시드의 NPC 유형만)
-        (("roles", "STAFF", "schedule"), [], None),
-        (("roles", "STAFF", "schedule", 0, "from"), "8:00", None),  # HH:MM
-        (("roles", "STAFF", "schedule", 0, "activity"), "SLEEP", None),
+        (("roles", "CHEF"), {"onShift": "WORK"}, ("roles",)),  # 없는 역할 (백엔드 시드의 NPC 유형만)
+        (("roles", "STAFF", "onShift"), "OFF", None),  # 교대 밖이 퇴근(OFF)이라 교대 중에는 일하거나 자유 시간
+        (("roles", "STAFF", "break", "minutes"), 0, None),
+        (("places", "Cafe"), {"shifts": {"ALL_DAY": {"from": "00:00", "to": "00:00"}}}, ("places",)),  # 백엔드·Unity와 같은 대문자 코드
+        (("places", "CAFE", "hours"), {"from": "7:00", "to": "21:00"}, ("places", "CAFE", "hours", "from")),  # HH:MM
+        (("places", "CAFE", "shifts"), {}, None),  # 맡을 교대가 없는 장소
+        (("places", "CAFE", "shifts", "OPENING", "to"), "25:00", None),
         (("activities", "WORK", "canFill"), ["THIRST"], ("activities", "WORK", "canFill", 0)),
         (("needs", "HUNGER", "start"), 101, None),
     ],
@@ -97,19 +100,98 @@ def test_staff_only_work_while_working_and_look_after_themselves_otherwise():
     assert set(activities["BREAK"]["canFill"]) == set(activities["FREE"]["canFill"]) == {"HUNGER", "ENERGY", "SOCIAL", "FUN"}
 
 
-def test_every_role_schedule_fills_the_whole_day_without_overlap():
-    """NPC 일과는 손으로 적지 않고 역할별 틀에서 계산한다. 백엔드 시드의 NPC 유형과 같은 역할."""
+def test_every_role_turns_every_shift_into_a_whole_day_without_overlap():
+    """NPC 일과는 손으로 적지 않고 맡은 교대와 역할 규칙에서 계산한다. 백엔드 시드의 NPC 유형과 같은 역할.
+    어느 역할이 어느 장소의 어느 교대를 맡아도 하루 24시간이 빈틈없이 채워진다."""
     rules = load_world_rules()
 
     assert set(rules["roles"]) == {"STAFF", "PASSERBY"}
-    assert npc_life_rules.role_schedule_problems(rules) == []
+    assert npc_life_rules.shift_day_problems(rules) == []
 
 
-def test_a_gap_in_a_role_schedule_is_reported_with_the_role():
+def test_a_break_that_does_not_fit_in_the_shift_is_reported_with_the_role_and_the_shift():
+    """한 시간 반 교대에 두 시간 쉬면 쉬는 시간이 퇴근 시간과 겹친다."""
+    rules = {
+        "roles": {"STAFF": {"onShift": "WORK", "break": {"minutes": 120, "whenShiftOverHours": 1}}},
+        "places": {"KIOSK": {"shifts": {"SHORT": {"from": "08:00", "to": "09:30"}}}},
+    }
+
+    problems = npc_life_rules.shift_day_problems(rules)
+
+    assert problems and all(problem.startswith("roles.STAFF × places.KIOSK.shifts.SHORT: ") for problem in problems)
+
+
+# 장소별 영업시간과 교대 (world-rules.json의 places)
+
+
+def rules_with_cafe_hours() -> dict:
     rules = load_world_rules()
-    rules["roles"]["STAFF"]["schedule"] = [block for block in rules["roles"]["STAFF"]["schedule"] if block["activity"] != "BREAK"]
+    rules["places"]["CAFE"]["hours"] = {"from": "07:00", "to": "21:00"}
+    return rules
 
-    assert npc_life_rules.role_schedule_problems(rules) == ["roles.STAFF: 12:00~12:30에 일과가 없음"]
+
+def test_the_service_places_are_always_open():
+    """모든 장소는 24시간 열고, 교대는 직원이 일하는 시간만 정한다."""
+    rules = load_world_rules()
+
+    assert all("hours" not in place for place in rules["places"].values())
+    assert npc_life_rules.place_problems(rules) == []
+
+
+def test_open_hours_without_a_shift_are_a_problem():
+    rules = changed(rules_with_cafe_hours(), ("places", "CAFE", "shifts", "CLOSING", "from"), "19:00")  # 낮 교대는 18:00까지
+
+    assert npc_life_rules.place_problems(rules) == ["places.CAFE: 18:00~19:00에 맡은 교대가 없음"]
+
+
+def test_a_shift_outside_the_opening_hours_is_a_problem():
+    rules = changed(rules_with_cafe_hours(), ("places", "CAFE", "shifts", "CLOSING", "to"), "22:00")
+
+    assert npc_life_rules.place_problems(rules) == ["places.CAFE.shifts.CLOSING: 21:00~22:00은 영업시간 밖"]
+
+
+def test_opening_hours_can_run_past_midnight():
+    rules = {
+        "places": {
+            "BAR": {
+                "hours": {"from": "18:00", "to": "02:00"},
+                "shifts": {"EARLY": {"from": "18:00", "to": "23:00"}, "LATE": {"from": "22:00", "to": "03:00"}},
+            }
+        }
+    }
+
+    assert npc_life_rules.place_problems(rules) == ["places.BAR.shifts.LATE: 02:00~03:00은 영업시간 밖"]
+
+
+BUSY_HOURS = {"from": "10:00", "to": "18:00"}
+
+
+def service_lives() -> list[dict]:
+    return [json.loads(path.read_text(encoding="utf-8")) for path in sorted(npc_life_rules.LIFE_FOLDER.glob("*.json"))]
+
+
+@pytest.mark.parametrize(("workplace", "at_least"), [("CAFE", 2), ("HOTEL", 3), ("POLICE_STATION", 2), ("TOWN", 4)])
+def test_busy_daytime_has_enough_npcs_on_shift_at_once(workplace, at_least):
+    """10:00~18:00에는 카페 2명·호텔 3명·경찰서 2명이 함께 일하고 마을에 행인 4명이 나와 있다. 맡은 교대 시간으로 센다(쉬는 시간 포함)."""
+    assert npc_life_rules.understaffed(service_lives(), load_world_rules(), workplace, BUSY_HOURS, at_least) == []
+
+
+def test_the_police_station_always_has_an_officer_on_shift():
+    """경찰서는 24시간 연다. 낮·저녁·야간 교대가 이어져 언제나 한 명 이상 근무한다."""
+    whole_day = {"from": "00:00", "to": "00:00"}
+
+    assert "hours" not in load_world_rules()["places"]["POLICE_STATION"]
+    assert npc_life_rules.understaffed(service_lives(), load_world_rules(), "POLICE_STATION", whole_day, 1) == []
+
+
+def test_too_few_npcs_on_shift_at_once_is_reported_with_the_time():
+    """낮 교대(Leo)가 없으면 카페에는 오픈(07:00~15:00)과 마감(13:00~21:00)이 겹치는 13:00~15:00에만 둘이다."""
+    lives = [life for life in service_lives() if life["npcId"] != "CAFE_SERVER"]
+
+    assert npc_life_rules.understaffed(lives, load_world_rules(), "CAFE", BUSY_HOURS, 2) == [
+        "CAFE: 10:00~13:00에 교대 중인 NPC가 2명보다 적음",
+        "CAFE: 15:00~18:00에 교대 중인 NPC가 2명보다 적음",
+    ]
 
 
 def test_the_service_actions_use_objects_placed_in_their_scene():
@@ -137,19 +219,84 @@ def test_every_service_npc_has_a_life_file_without_problems():
         "BAKERY_STAFF",
         "BANK_STAFF",
         "BARBER_STAFF",
+        "CAFE_BARISTA",
+        "CAFE_SERVER",
         "CAFE_STAFF",
         "DINER_STAFF",
+        "FIRE_CAPTAIN",
+        "FIRE_FIGHTER",
+        "FIRE_ROOKIE",
         "FLOWER_SHOP_STAFF",
         "HOME_STORE_STAFF",
+        "HOTEL_BELLHOP",
+        "HOTEL_CONCIERGE",
+        "HOTEL_NIGHT_MANAGER",
+        "HOTEL_RECEPTIONIST",
         "HOTEL_STAFF",
         "LAUNDROMAT_STAFF",
         "POLICE_OFFICER",
+        "POLICE_PATROL_OFFICER",
+        "POLICE_ROOKIE",
+        "POLICE_SERGEANT",
         "POST_OFFICE_STAFF",
+        "SHOP_NIGHT_CLERK",
+        "SHOP_PHARMACIST",
         "SHOP_STAFF",
         "TAXI_DRIVER",
+        "TOWN_EVENING_WALKER",
+        "TOWN_GRANDFATHER",
+        "TOWN_GRANDMOTHER",
+        "TOWN_HANDYMAN",
         "TOWN_PASSERBY",
+        "TOWN_RETIREE",
+        "TOWN_SHOPPER",
+        "TOWN_STUDENT",
     ]
-    assert npc_life_rules.life_problems(NPCS) == []
+    assert npc_life_rules.life_problems(NPCS, load_world_rules()) == []
+
+
+def test_every_service_npc_works_its_own_shift():
+    """한 장소에 여럿이면 교대를 나눠 맡는다. 거리 매장·경찰서·택시는 하루 한 교대이고, 행인은 마을에 나오는 시간대가 다르다."""
+    lives = {path.stem: load_life(path.stem) for path in npc_life_rules.LIFE_FOLDER.glob("*.json")}
+
+    assert {npc_id: (life["workplace"], life["shift"]) for npc_id, life in lives.items()} == {
+        "CAFE_STAFF": ("CAFE", "OPENING"),
+        "CAFE_BARISTA": ("CAFE", "CLOSING"),
+        "CAFE_SERVER": ("CAFE", "MIDDAY"),
+        "HOTEL_STAFF": ("HOTEL", "DAY"),
+        "HOTEL_CONCIERGE": ("HOTEL", "MIDDAY"),
+        "HOTEL_BELLHOP": ("HOTEL", "MIDDAY"),
+        "HOTEL_RECEPTIONIST": ("HOTEL", "EVENING"),
+        "HOTEL_NIGHT_MANAGER": ("HOTEL", "NIGHT"),
+        "SHOP_STAFF": ("SHOP", "DAY"),  # 첫날 미션 대상(Alex)은 미션이 시작하는 아침 교대
+        "SHOP_PHARMACIST": ("SHOP", "EVENING"),
+        "SHOP_NIGHT_CLERK": ("SHOP", "NIGHT"),
+        "POST_OFFICE_STAFF": ("POST_OFFICE", "ALL_DAY"),
+        "DINER_STAFF": ("DINER", "ALL_DAY"),
+        "BANK_STAFF": ("BANK", "ALL_DAY"),
+        "LAUNDROMAT_STAFF": ("LAUNDROMAT", "ALL_DAY"),
+        "FLOWER_SHOP_STAFF": ("FLOWER_SHOP", "ALL_DAY"),
+        "BARBER_STAFF": ("BARBER", "ALL_DAY"),
+        "BAKERY_STAFF": ("BAKERY", "ALL_DAY"),
+        "ARCADE_STAFF": ("ARCADE", "ALL_DAY"),
+        "HOME_STORE_STAFF": ("HOME_STORE", "ALL_DAY"),
+        "POLICE_OFFICER": ("POLICE_STATION", "DAY"),
+        "POLICE_ROOKIE": ("POLICE_STATION", "MIDDAY"),
+        "POLICE_PATROL_OFFICER": ("POLICE_STATION", "EVENING"),
+        "POLICE_SERGEANT": ("POLICE_STATION", "NIGHT"),
+        "TAXI_DRIVER": ("TAXI", "ALL_DAY"),
+        "TOWN_RETIREE": ("TOWN", "MORNING"),
+        "FIRE_CAPTAIN": ("TOWN", "MORNING"),
+        "TOWN_GRANDFATHER": ("TOWN", "MORNING"),
+        "TOWN_GRANDMOTHER": ("TOWN", "MORNING"),
+        "FIRE_FIGHTER": ("TOWN", "AFTERNOON"),
+        "FIRE_ROOKIE": ("TOWN", "EVENING"),
+        "TOWN_PASSERBY": ("TOWN", "DAY"),
+        "TOWN_SHOPPER": ("TOWN", "MIDDAY"),
+        "TOWN_HANDYMAN": ("TOWN", "MIDDAY"),
+        "TOWN_STUDENT": ("TOWN", "AFTERNOON"),
+        "TOWN_EVENING_WALKER": ("TOWN", "EVENING"),
+    }
 
 
 def load_life(npc_id: str) -> dict:
@@ -168,6 +315,8 @@ def life_with(path: tuple, value) -> dict:
         (("npcId",), "cafe staff", "$.npcId"),  # 인격 파일·시드와 같은 대문자 코드
         (("mbti",), "ABCD", "$.mbti"),
         (("role",), "CHEF", "$.role"),  # 공통 규칙의 역할(백엔드 시드의 NPC 유형)만
+        (("workplace",), "cafe", "$.workplace"),  # 공통 규칙 places와 같은 대문자 코드
+        (("shift",), "", "$.shift"),
         (("needRates",), {"SOCIAL": 1.2}, "$"),  # 손으로 적는 생활 값은 받지 않음 — 입력 노드에서 계산
         (("tutorialGuide",), "yes", "$.tutorialGuide"),
     ],
@@ -178,21 +327,25 @@ def test_values_a_life_file_does_not_allow_are_reported_where_they_break(path, v
     assert {where for where, _ in errors} == {where}
 
 
-def test_service_npc_life_files_hold_only_input_nodes():
-    """NPC마다 정하는 것은 성격(MBTI)과 역할뿐. 생활 값과 일과는 공통 규칙으로 계산한다 (ai/tools/npc_derive.py)."""
-    lives = {npc_id: load_life(npc_id) for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"]}
+def test_a_life_file_needs_its_workplace_and_shift():
+    life = load_life("CAFE_STAFF")
+    del life["shift"]
 
-    assert {npc_id: (life["mbti"], life["role"]) for npc_id, life in lives.items()} == {
-        "CAFE_STAFF": ("ESFJ-T", "STAFF"),
-        "HOTEL_STAFF": ("ISTP-T", "STAFF"),
-        "TOWN_PASSERBY": ("ESFJ-T", "PASSERBY"),
-    }
-    assert all(set(life) - {"tutorialGuide"} == {"schemaVersion", "npcId", "mbti", "role"} for life in lives.values())
+    assert npc_life_rules.life_errors(life) == [("$", "'shift' is a required property")]
+
+
+def test_service_npc_life_files_hold_only_input_nodes():
+    """NPC마다 정하는 것은 성격(MBTI)·역할·근무지와 맡은 교대뿐. 생활 값과 일과는 공통 규칙으로 계산한다 (ai/tools/npc_derive.py)."""
+    lives = [load_life(path.stem) for path in npc_life_rules.LIFE_FOLDER.glob("*.json")]
+    mia, jake, ben = (load_life(npc_id) for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"])
+
+    assert [(life["mbti"], life["role"]) for life in (mia, jake, ben)] == [("ESFJ-T", "STAFF"), ("ISTP-T", "STAFF"), ("ESFJ-T", "PASSERBY")]
+    assert all(set(life) - {"tutorialGuide"} == {"schemaVersion", "npcId", "mbti", "role", "workplace", "shift"} for life in lives)
 
 
 def test_ben_is_the_only_tutorial_guide():
     """튜토리얼 안내 NPC는 학습자가 튜토리얼을 마치기 전까지 정해진 흐름으로만 움직인다 (튜토리얼 모드)."""
-    guides = [npc_id for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"] if load_life(npc_id).get("tutorialGuide")]
+    guides = [path.stem for path in sorted(npc_life_rules.LIFE_FOLDER.glob("*.json")) if load_life(path.stem).get("tutorialGuide")]
 
     assert guides == ["TOWN_PASSERBY"]
 
@@ -201,7 +354,23 @@ def test_two_tutorial_guides_are_a_problem(tmp_path):
     configs = {"CAFE_STAFF.json": load_config("CAFE_STAFF"), "TOWN_PASSERBY.json": load_config("TOWN_PASSERBY")}
     lives = {"CAFE_STAFF.json": {**load_life("CAFE_STAFF"), "tutorialGuide": True}, "TOWN_PASSERBY.json": load_life("TOWN_PASSERBY")}
 
-    assert npc_life_rules.life_problems(npc_folder(tmp_path, configs, lives)) == ["튜토리얼 안내 NPC가 둘 이상: CAFE_STAFF, TOWN_PASSERBY"]
+    assert npc_life_rules.life_problems(npc_folder(tmp_path, configs, lives), load_world_rules()) == [
+        "튜토리얼 안내 NPC가 둘 이상: CAFE_STAFF, TOWN_PASSERBY"
+    ]
+
+
+def test_a_workplace_and_shift_must_be_in_the_shared_places(tmp_path):
+    """일과는 근무지의 교대에서 계산하므로, 공통 규칙에 없는 근무지나 그 근무지에 없는 교대는 막는다."""
+    configs = {"CAFE_STAFF.json": load_config("CAFE_STAFF"), "HOTEL_STAFF.json": load_config("HOTEL_STAFF")}
+    lives = {
+        "CAFE_STAFF.json": {**load_life("CAFE_STAFF"), "workplace": "LIBRARY"},
+        "HOTEL_STAFF.json": {**load_life("HOTEL_STAFF"), "shift": "OPENING"},  # 카페의 교대
+    }
+
+    assert npc_life_rules.life_problems(npc_folder(tmp_path, configs, lives), load_world_rules()) == [
+        "life/CAFE_STAFF.json: 공통 규칙 places에 없는 근무지 'LIBRARY'",
+        "life/HOTEL_STAFF.json: HOTEL에 없는 교대 'OPENING'",
+    ]
 
 
 STAFF_DAY = [
@@ -254,20 +423,20 @@ def test_a_life_file_breaking_the_schema_is_reported_without_other_checks(tmp_pa
     folder = npc_folder(tmp_path, {"CAFE_STAFF.json": load_config("CAFE_STAFF")}, {"CAFE_STAFF.json": life})
     where, why = npc_life_rules.life_errors(life)[0]
 
-    assert npc_life_rules.life_problems(folder) == [f"life/CAFE_STAFF.json {where}: {why}"]
+    assert npc_life_rules.life_problems(folder, load_world_rules()) == [f"life/CAFE_STAFF.json {where}: {why}"]
 
 
 def test_the_life_file_name_is_its_npc_id(tmp_path):
     folder = npc_folder(tmp_path, {"CAFE_STAFF.json": load_config("CAFE_STAFF")}, {"MIA.json": load_life("CAFE_STAFF")})
 
-    assert npc_life_rules.life_problems(folder) == ["life/MIA.json: 파일 이름이 npcId 'CAFE_STAFF'와 다름"]
+    assert npc_life_rules.life_problems(folder, load_world_rules()) == ["life/MIA.json: 파일 이름이 npcId 'CAFE_STAFF'와 다름"]
 
 
 def test_every_npc_has_a_life_file_and_every_life_file_has_an_npc(tmp_path):
     configs = {"CAFE_STAFF.json": load_config("CAFE_STAFF"), "HOTEL_STAFF.json": load_config("HOTEL_STAFF")}
     lives = {"CAFE_STAFF.json": load_life("CAFE_STAFF"), "TOWN_PASSERBY.json": load_life("TOWN_PASSERBY")}
 
-    assert npc_life_rules.life_problems(npc_folder(tmp_path, configs, lives)) == [
+    assert npc_life_rules.life_problems(npc_folder(tmp_path, configs, lives), load_world_rules()) == [
         "HOTEL_STAFF: 생활 파일이 없음 (life/HOTEL_STAFF.json)",
         "life/TOWN_PASSERBY.json: 인격 파일이 없는 npcId 'TOWN_PASSERBY'",
     ]

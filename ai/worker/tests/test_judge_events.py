@@ -11,7 +11,7 @@ from test_npc_reply_profile import profile_of
 from app import npc_relationship as rel
 from conftest import ok
 
-LINE_EVENTS = ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "APOLOGY", "COMPLIMENT", "TASK_DONE", "LEAVE"]
+LINE_EVENTS = ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "APOLOGY", "COMPLIMENT", "HELP", "TASK_DONE", "LEAVE"]
 ORDER = {"intents": ["order_items"], "items": [{"name": "latte", "iced": False, "qty": 1}], "choice": "none"}
 RULES = rel.load_world_rules()
 EVENTS = RULES["conversationEvents"]
@@ -141,3 +141,29 @@ def test_the_prompt_carries_the_event_guide(client, provider):
     ]:
         assert words in prompt, words
     assert "rudeness" in prompt
+
+
+def test_missing_bag_details_can_be_completed_across_learner_turns(client, provider):
+    earlier = "I think I lost my small bag."
+
+    def intent(body):
+        prompt = body["messages"][1]["content"]
+        recognized = earlier in prompt and "at the cafe" in prompt
+        return ok(json.dumps({"intents": ["report_left_bag"] if recognized else ["unclear"], "events": []}))
+
+    provider.answers["intent"] = intent
+    request = judge_body(
+        "I think I left it at the cafe.",
+        state={
+            "id": "first_day_2",
+            "desc": "Explain the missing bag and where it was left.",
+            "intents": [{"id": "report_left_bag", "desc": "Explain which bag is missing AND where it was left."}],
+            "accumulate_history": True,
+        },
+        history=[{"who": "me", "text": earlier}, {"who": "npc", "text": "Where did you leave it?"}],
+    )
+
+    response = client.post("/v1/judge", json=request)
+
+    assert response.status_code == 200
+    assert response.json()["intent"]["ids"] == ["report_left_bag"]

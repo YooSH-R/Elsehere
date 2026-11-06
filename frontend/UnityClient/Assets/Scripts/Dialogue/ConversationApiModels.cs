@@ -10,6 +10,9 @@ namespace A305.Dialogue
 
         /// <summary>USER 또는 NPC</summary>
         public string InitiatedBy { get; set; }
+
+        /// <summary>맡은 교대 밖이라 일하지 않는 직원과의 대화면 true. 서버가 응대 대신 쉬는 중의 일상 상황으로 대화한다.</summary>
+        public bool NpcOffDuty { get; set; }
     }
 
     public sealed class ConversationStart
@@ -20,6 +23,9 @@ namespace A305.Dialogue
 
         /// <summary>발화 응답과 같은 형식의 대화 상태. 이 칸을 보내지 않는 서버면 null이다.</summary>
         public ConversationState Conversation { get; set; }
+
+        /// <summary>NPC가 첫 대사로 건넨 준비물(<see cref="FollowUpData.FollowUpId"/>). 건넬 것이 없었으면 null이다.</summary>
+        public long? DeliveredFollowUpId { get; set; }
     }
 
     public sealed class NpcSummary
@@ -88,6 +94,15 @@ namespace A305.Dialogue
 
         /// <summary>이 NPC의 지금 호감도(-100~100). 이 칸을 보내지 않는 서버면 null이다.</summary>
         public int? Affinity { get; set; }
+
+        /// <summary>서버가 계산한 기본 대화 제한 시각(ISO 8601).</summary>
+        public string TimeLimitAt { get; set; }
+
+        /// <summary>마지막 발화도 새로 받을 수 없는 시각(ISO 8601).</summary>
+        public string GraceUntil { get; set; }
+
+        public bool Closing { get; set; }
+        public int FinalTurnsRemaining { get; set; }
     }
 
     public sealed class EndBody
@@ -100,6 +115,37 @@ namespace A305.Dialogue
     {
         public string Status { get; set; }
         public FeedbackData Feedback { get; set; }
+
+        /// <summary>대화에서 NPC가 준비해 곧 건네기로 한 것. 건넬 것이 없으면 null이다.</summary>
+        public FollowUpData FollowUp { get; set; }
+    }
+
+    /// <summary>
+    /// NPC가 준비해 곧 건네기로 한 것(CONV-08 followUp, CONV-13 items). 아이스 라테·아침 식사·빨래처럼 NPC마다 다르다.
+    /// 남은 시간은 서버가 센 값을 쓰고, 기기 시계로 준비 시각(readyAt)을 다시 세지 않는다.
+    /// </summary>
+    public sealed class FollowUpData
+    {
+        public long FollowUpId { get; set; }
+        public NpcSummary Npc { get; set; }
+        public string SceneCode { get; set; }
+
+        /// <summary>영어 이름(iced latte). 한국어 이름이 없을 때만 보인다.</summary>
+        public string Item { get; set; }
+
+        /// <summary>화면에 보일 한국어 이름(아이스 라테)</summary>
+        public string ItemKo { get; set; }
+
+        /// <summary>서버가 응답을 만든 때부터 준비가 끝날 때까지 남은 초. 다 되었으면 0이다.</summary>
+        public int RemainingSeconds { get; set; }
+
+        public bool Ready { get; set; }
+    }
+
+    /// <summary>아직 건네지 않은 것 전부(CONV-13). 준비가 먼저 끝나는 것부터 온다.</summary>
+    public sealed class FollowUpList
+    {
+        public List<FollowUpData> Items { get; set; }
     }
 
     /// <summary>짧은 피드백(화면 16).</summary>
@@ -176,9 +222,28 @@ namespace A305.Dialogue
         public long DurationMs { get; set; }
     }
 
+    /// <summary>진행 중인 대화(CONV-11). 끝내지 못한 같은 NPC 대화를 이어서 할 때 지난 턴을 다시 보인다.</summary>
     public sealed class ActiveConversation
     {
         public long ConversationId { get; set; }
+        public string Status { get; set; }
+        public NpcSummary Npc { get; set; }
+        public int? RudeCount { get; set; }
+        public int? RudeLimit { get; set; }
+        public string StartedAt { get; set; }
+        public List<ActiveTurn> Turns { get; set; }
+    }
+
+    /// <summary>진행 중인 대화의 한 턴. NPC 턴만 음성이 있다.</summary>
+    public sealed class ActiveTurn
+    {
+        public long TurnId { get; set; }
+
+        /// <summary>USER · NPC</summary>
+        public string Speaker { get; set; }
+        public string Text { get; set; }
+        public List<string> SuggestWords { get; set; }
+        public SpeechData Speech { get; set; }
     }
 
     /// <summary>NPC 대사 뜻 보기(CONV-04).</summary>

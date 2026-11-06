@@ -90,6 +90,8 @@ namespace A305.Dialogue
         public ConversationStanding Standing => null;
         public bool CanTalk => UsesVoice;
         public bool CanReplaySpeech => false;
+        public bool SpeaksNpcLines => false;
+        public bool IsNpcSpeechReady => false;
 
         public void ShowMessage(string message)
         {

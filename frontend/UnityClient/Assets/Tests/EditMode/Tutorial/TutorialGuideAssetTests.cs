@@ -65,6 +65,17 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
+        public void TodayGoal_TellsToPressTheQuestCard()
+        {
+            // 예전 지도 버튼은 없다. 코치 마크가 밝히는 왼쪽 위 퀘스트 카드를 누르면 수첩이 열리며 튜토리얼을 마친다.
+            var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
+            guide.TryGetStepGuide(TutorialStep.TodayGoal, out TutorialStepGuide stepGuide);
+
+            Assert.That(stepGuide.Task, Does.Contain("{퀘스트 카드}"));
+            Assert.That(stepGuide.Task, Does.Not.Contain("지도"));
+        }
+
+        [Test]
         public void VocabularyCaption_ExplainsTheBookAndTheNextStep()
         {
             var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
@@ -88,7 +99,7 @@ namespace A305.Tutorial.Tests
             Assert.That(guide.DialogueToolsCaption, Does.Contain("{예시 문장}"));
             Assert.That(guide.DialogueEndCaption, Does.Contain("{대화 종료}"));
             Assert.That(guide.FeedbackSectionsCaption, Does.Contain("{요약}"));
-            Assert.That(guide.FeedbackPagesCaption, Does.Contain("화살표"));
+            Assert.That(guide.FeedbackPagesCaption, Does.Contain("스크롤"));
             Assert.That(
                 guide.FeedbackCloseCaption,
                 Does.Contain("{X}"),
@@ -103,6 +114,16 @@ namespace A305.Tutorial.Tests
             );
             Assert.That(guide.SuggestedWordsCaption, Does.Contain("{단어}"));
             Assert.That(guide.SuggestedWordsCaption, Does.Contain("추천 단어"));
+        }
+
+        [Test]
+        public void VoiceLightCaption_ExplainsTheGreenAndTheDimLight()
+        {
+            // 녹음 중 [말하기]의 불은 목소리가 들리면 초록색, 조용하면 흐린 흰색이다.
+            var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
+
+            Assert.That(guide.VoiceLightCaption, Does.Contain("초록불"));
+            Assert.That(guide.VoiceLightCaption, Does.Contain("흐리면"));
         }
 
         [Test]

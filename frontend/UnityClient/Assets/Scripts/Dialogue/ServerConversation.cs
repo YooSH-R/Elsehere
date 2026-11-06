@@ -24,8 +24,10 @@ namespace A305.Dialogue
         private const string NoSpeechCode = "STT_NO_SPEECH";
         private const string VoiceConsentRequiredCode = "VOICE_CONSENT_REQUIRED";
         private const string ActiveStatus = "ACTIVE";
+        private const string NpcSpeaker = "NPC";
         private const string QuotaExhaustedReason = "QUOTA_EXHAUSTED";
         private const string RudeReason = "RUDE";
+        private const string TimeLimitReason = "TIME_LIMIT";
         private const string FeedbackDone = "DONE";
 
         private const string RetryGuide = "[다시 시도]를 누르거나 [대화 종료]로 나갈 수 있어요.";
@@ -35,6 +37,8 @@ namespace A305.Dialogue
 
         private readonly IConversationApi api;
         private readonly ConversationInitiator initiatedBy;
+        private readonly bool npcOffDuty;
+        private readonly FollowUpStore followUps;
 
         // 음성 처리 동의. 서버가 동의가 없다고 거절하면 끈다.
         private bool canTalk;
@@ -50,16 +54,31 @@ namespace A305.Dialogue
         private string failedRequestId;
         private string textToRestore;
         private string lastTranscript;
+        private DateTimeOffset? timeLimitAt;
+        private DateTimeOffset? graceUntil;
+        private int displayedRemainingSeconds = int.MinValue;
+        private bool deadlineExpired;
+        private string endReason;
+
+        // 지금 스트리밍으로 받고 있는 NPC 대답. 받는 중이 아니면 null이다.
+        private StreamedReply streamedReply;
+
+        // 대답을 보낸 횟수. 조각 음성이 어느 대답의 것인지 가린다.
+        private int replyCount;
 
         /// <param name="npcName">서버 응답을 받기 전에 보여 줄 이름</param>
         /// <param name="canTalk">음성 처리에 동의해 [말하기]를 쓸 수 있는지</param>
         /// <param name="initiatedBy">누가 먼저 말을 걸었는지. 서버의 대화 시작(CONV-01) initiatedBy로 보낸다.</param>
+        /// <param name="followUps">NPC가 준비해 건네기로 한 것을 기억할 곳. 비우면 게임 전체가 함께 쓰는 곳(<see cref="FollowUpStore.Shared"/>)이다.</param>
+        /// <param name="npcOffDuty">교대 밖이라 일하지 않는 직원과의 대화인지. 서버의 대화 시작(CONV-01) npcOffDuty로 보낸다.</param>
         public ServerConversation(
             string npcCode,
             string npcName,
             IConversationApi api,
             bool canTalk,
-            ConversationInitiator initiatedBy = ConversationInitiator.Npc
+            ConversationInitiator initiatedBy = ConversationInitiator.Npc,
+            FollowUpStore followUps = null,
+            bool npcOffDuty = false
         )
         {
             NpcCode = npcCode;
@@ -67,6 +86,8 @@ namespace A305.Dialogue
             this.api = api;
             this.canTalk = canTalk;
             this.initiatedBy = initiatedBy;
+            this.npcOffDuty = npcOffDuty;
+            this.followUps = followUps ?? FollowUpStore.Shared;
         }
 
         /// <summary>화면을 다시 그려야 할 때 알린다.</summary>
@@ -75,6 +96,12 @@ namespace A305.Dialogue
 
         /// <summary>NPC가 새로 말했다. 음성 재생에 쓴다.</summary>
         public event Action<NpcTurnData> NpcSpoke;
+
+        /// <summary>NPC 대답을 스트리밍으로 받는 동안 온 문장 조각 음성. 온 순서대로 이어 재생한다.</summary>
+        public event Action<NpcSpeechChunkData> NpcSpeechChunk;
+
+        /// <summary>마지막 NPC 턴을 문장 조각 음성으로 이미 들려줬는지. 들려줬으면 턴 전체 음성을 다시 재생하지 않는다.</summary>
+        public bool LastTurnSpokenInChunks { get; private set; }
 
         /// <summary>ERD npcs.code</summary>
         public string NpcCode { get; }
@@ -104,7 +131,10 @@ namespace A305.Dialogue
         /// <summary>NPC가 대화를 끝냈는지(무례 누적, 사용량 소진 등).</summary>
         public bool IsEnded { get; private set; }
 
-        public bool CanSend => ConversationId != null && !IsBusy && !IsEnded;
+        public bool CanSend => ConversationId != null && !IsBusy && !IsEnded && !deadlineExpired;
+
+        public bool IsClosing { get; private set; }
+        public string CountdownMessage { get; private set; }
 
         public bool CanRetry => pendingRetry != null && !IsBusy;
 
@@ -122,6 +152,11 @@ namespace A305.Dialogue
         public bool CanReplaySpeech =>
             LastNpcTurn?.Speech?.IsReady == true || LastNpcTurn?.Speech?.CanRegenerate == true;
 
+        public bool SpeaksNpcLines => true;
+
+        public bool IsNpcSpeechReady =>
+            streamedReply?.HasSpeech == true || LastNpcTurn?.Speech?.IsReady == true;
+
         public async Task StartAsync()
         {
             if (startRequestId == null)
@@ -133,15 +168,21 @@ namespace A305.Dialogue
                 "대화를 시작하고 있어요...",
                 async () =>
                 {
-                    ConversationStart start = await StartOrCloseStaleAsync();
-                    ConversationId = start.ConversationId;
-                    if (!string.IsNullOrEmpty(start.Npc?.Name))
+                    try
                     {
-                        NpcName = start.Npc.Name;
+                        Begin(
+                            await api.StartAsync(
+                                startRequestId,
+                                NpcCode,
+                                InitiatedByCode,
+                                npcOffDuty
+                            )
+                        );
                     }
-
-                    Standing.Apply(start.Conversation);
-                    AddNpcTurn(start.OpeningTurn);
+                    catch (ApiException exception) when (exception.Code == AlreadyActiveCode)
+                    {
+                        await ResumeOrRestartAsync();
+                    }
                 },
                 StartAsync,
                 DialogueWait.Opening
@@ -162,13 +203,15 @@ namespace A305.Dialogue
             // 보낼 문장은 앞뒤 공백을 지우므로 전사 결과도 공백을 지우고 비교한다. 서버에는 전사 원문을 그대로 보낸다.
             bool isVoice = lastTranscript != null && utterance == lastTranscript.Trim();
             failedText = null;
-            string endReason = null;
+            string responseEndReason = null;
 
             await RunAsync(
                 $"{NpcName}이(가) 대답을 생각하고 있어요...",
                 async () =>
                 {
                     TurnResult result;
+                    var reply = new StreamedReply(this, utterance, ++replyCount);
+                    streamedReply = reply;
                     try
                     {
                         result = await api.SendTurnAsync(
@@ -176,7 +219,8 @@ namespace A305.Dialogue
                             requestId,
                             isVoice ? "VOICE" : "TEXT",
                             utterance,
-                            isVoice ? lastTranscript : null
+                            isVoice ? lastTranscript : null,
+                            reply
                         );
                     }
                     catch
@@ -187,16 +231,22 @@ namespace A305.Dialogue
                         textToRestore = utterance;
                         throw;
                     }
+                    finally
+                    {
+                        // 받는 동안 보여 준 줄은 저장된 턴으로 다시 그린다. 실패했으면 보낸 문장을 입력칸에 되돌린다.
+                        reply.RemoveLines();
+                        streamedReply = null;
+                    }
 
                     lastTranscript = null;
                     string sent = result.UserTurn?.Text ?? utterance;
                     lines.Add(DialogueLine.FromUser(sent));
                     userUtterances.Add(sent);
-                    Standing.Apply(result.Conversation);
-                    AddNpcTurn(result.NpcTurn);
+                    ApplyState(result.Conversation);
+                    AddNpcTurn(result.NpcTurn, reply.HasSpeech);
                     IsEnded =
                         result.Conversation != null && result.Conversation.Status != ActiveStatus;
-                    endReason = result.Conversation?.EndReason;
+                    responseEndReason = result.Conversation?.EndReason;
                     if (!IsEnded && result.UserTurn != null && !result.UserTurn.Rude)
                         UserTurnAccepted?.Invoke(sent);
                 },
@@ -207,8 +257,8 @@ namespace A305.Dialogue
             if (IsEnded)
             {
                 // 사용량 소진·무례 누적은 오류가 아니라 정상 종료지만, 이유를 알리지 않으면 NPC가 갑자기 대화를 끊은 것처럼 보인다.
-                bool isQuotaExhausted = endReason == QuotaExhaustedReason;
-                string reason = endReason switch
+                bool isQuotaExhausted = responseEndReason == QuotaExhaustedReason;
+                string reason = responseEndReason switch
                 {
                     QuotaExhaustedReason => "AI 사용량을 모두 써서 ",
                     RudeReason => "무례한 말이 쌓여 ",
@@ -412,6 +462,12 @@ namespace A305.Dialogue
             try
             {
                 EndResult end = await api.EndAsync(conversationId, NewRequestId(), false);
+                // 상세 평가를 기다리기 전에 남겨, 피드백 창이 뜰 때 왼쪽 카드에도 기다리는 것이 보이게 한다.
+                if (end?.FollowUp != null)
+                {
+                    followUps.Receive(end.FollowUp);
+                }
+
                 FeedbackData summary = end?.Feedback;
                 IReadOnlyList<DetailedFeedbackItem> details = null;
                 if (summary?.Status == FeedbackDone)
@@ -450,6 +506,51 @@ namespace A305.Dialogue
             Changed?.Invoke();
         }
 
+        /// <summary>
+        /// 서버가 준 절대 시각으로 카운트다운을 갱신한다. true면 현재 NPC 응답을 다 받은 뒤 종료·피드백으로 이동할 때다.
+        /// </summary>
+        public bool Tick(DateTimeOffset now)
+        {
+            if (timeLimitAt == null || graceUntil == null)
+            {
+                return false;
+            }
+
+            string nextMessage;
+            int remainingSeconds;
+            if (now >= graceUntil.Value)
+            {
+                deadlineExpired = true;
+                IsClosing = true;
+                remainingSeconds = 0;
+                nextMessage = "대화 시간이 끝났어요";
+            }
+            else if (now >= timeLimitAt.Value)
+            {
+                IsClosing = true;
+                remainingSeconds = RemainingSeconds(graceUntil.Value, now);
+                nextMessage = $"마지막 말을 마무리해 주세요 · {FormatTime(remainingSeconds)}";
+            }
+            else
+            {
+                IsClosing = false;
+                remainingSeconds = RemainingSeconds(timeLimitAt.Value, now);
+                nextMessage =
+                    remainingSeconds <= 30
+                        ? $"남은 시간 {FormatTime(remainingSeconds)} · 대화를 마무리해 주세요"
+                        : $"남은 시간 {FormatTime(remainingSeconds)}";
+            }
+
+            if (remainingSeconds != displayedRemainingSeconds || CountdownMessage != nextMessage)
+            {
+                displayedRemainingSeconds = remainingSeconds;
+                CountdownMessage = nextMessage;
+                Changed?.Invoke();
+            }
+
+            return !IsBusy && (deadlineExpired || (IsEnded && endReason == TimeLimitReason));
+        }
+
         /// <summary>보내지 못해 입력창에 되돌려 놓을 문장. 한 번 꺼내면 비운다.</summary>
         public string TakeTextToRestore()
         {
@@ -470,22 +571,85 @@ namespace A305.Dialogue
             );
         }
 
-        // 새로고침 등으로 끝내지 못한 대화가 남아 있으면 피드백 없이 끝내고 새로 시작한다.
-        private async Task<ConversationStart> StartOrCloseStaleAsync()
+        private void Begin(ConversationStart start)
         {
-            try
+            ConversationId = start.ConversationId;
+            if (!string.IsNullOrEmpty(start.Npc?.Name))
             {
-                return await api.StartAsync(startRequestId, NpcCode, InitiatedByCode);
+                NpcName = start.Npc.Name;
             }
-            catch (ApiException exception) when (exception.Code == AlreadyActiveCode)
-            {
-                ActiveConversation stale = await api.GetActiveAsync();
-                if (stale != null)
-                {
-                    await api.EndAsync(stale.ConversationId, NewRequestId(), true);
-                }
 
-                return await api.StartAsync(NewRequestId(), NpcCode, InitiatedByCode);
+            ApplyState(start.Conversation);
+            // NPC가 준비해 둔 것을 첫 대사로 건넸으면 기다리는 목록에서 지운다. NPC가 불러 시작했든 먼저 말을 걸었든 같다.
+            // NPC마다 하나만 기다리므로 ID가 기억하던 줄과 달라도 이 NPC의 줄을 지운다.
+            if (start.DeliveredFollowUpId is long delivered)
+            {
+                followUps.Remove(delivered, NpcCode);
+            }
+
+            AddNpcTurn(start.OpeningTurn);
+        }
+
+        // 새로고침 등으로 끝내지 못한 대화가 남아 있다. 같은 NPC와의 대화면 이어서 해 새 대화를 만들지 않고(게스트 대화 횟수를 다시 쓰지 않음),
+        // 다른 NPC와의 대화면 피드백 없이 끝내고 새로 시작한다.
+        private async Task ResumeOrRestartAsync()
+        {
+            ActiveConversation stale = await api.GetActiveAsync();
+            if (stale?.Npc?.NpcCode == NpcCode)
+            {
+                Resume(stale);
+                return;
+            }
+
+            if (stale != null)
+            {
+                await api.EndAsync(stale.ConversationId, NewRequestId(), true);
+            }
+
+            Begin(await api.StartAsync(NewRequestId(), NpcCode, InitiatedByCode, npcOffDuty));
+        }
+
+        // 지난 대사를 다시 보이고 마지막 NPC 대사는 처음 시작할 때처럼 들려준다.
+        // 진행 중인 대화 조회(CONV-11)에는 호감도가 없어 호감도·무례 칸은 다음 대사부터 보인다.
+        private void Resume(ActiveConversation active)
+        {
+            ConversationId = active.ConversationId;
+            if (DateTimeOffset.TryParse(active.StartedAt, out DateTimeOffset startedAt))
+            {
+                timeLimitAt = startedAt.AddMinutes(5);
+                graceUntil = timeLimitAt.Value.AddSeconds(30);
+            }
+            if (!string.IsNullOrEmpty(active.Npc.Name))
+            {
+                NpcName = active.Npc.Name;
+            }
+
+            List<ActiveTurn> turns = active.Turns ?? new List<ActiveTurn>();
+            int lastNpcIndex = turns.FindLastIndex(turn => turn.Speaker == NpcSpeaker);
+            for (int index = 0; index < turns.Count; index++)
+            {
+                ActiveTurn turn = turns[index];
+                if (turn.Speaker != NpcSpeaker)
+                {
+                    lines.Add(DialogueLine.FromUser(turn.Text));
+                    userUtterances.Add(turn.Text);
+                }
+                else if (index == lastNpcIndex)
+                {
+                    AddNpcTurn(
+                        new NpcTurnData
+                        {
+                            TurnId = turn.TurnId,
+                            Text = turn.Text,
+                            SuggestWords = turn.SuggestWords,
+                            Speech = turn.Speech,
+                        }
+                    );
+                }
+                else
+                {
+                    lines.Add(DialogueLine.FromNpc(turn.Text, null));
+                }
             }
         }
 
@@ -493,12 +657,15 @@ namespace A305.Dialogue
         private string InitiatedByCode =>
             initiatedBy == ConversationInitiator.User ? "USER" : "NPC";
 
-        private void AddNpcTurn(NpcTurnData turn)
+        /// <param name="spokenInChunks">스트리밍으로 받는 동안 조각 음성을 이미 들려줬는지</param>
+        private void AddNpcTurn(NpcTurnData turn, bool spokenInChunks = false)
         {
             if (turn == null)
             {
                 return;
             }
+
+            LastTurnSpokenInChunks = spokenInChunks;
 
             DialogueLine line = DialogueLine.FromNpc(turn.Text, null);
             lines.Add(line);
@@ -510,6 +677,42 @@ namespace A305.Dialogue
             LastNpcGlossary = null;
             HintText = null;
             NpcSpoke?.Invoke(turn);
+        }
+
+        private void ApplyState(ConversationState state)
+        {
+            Standing.Apply(state);
+            if (state == null)
+            {
+                return;
+            }
+
+            if (DateTimeOffset.TryParse(state.TimeLimitAt, out DateTimeOffset parsedLimit))
+            {
+                timeLimitAt = parsedLimit;
+            }
+
+            if (DateTimeOffset.TryParse(state.GraceUntil, out DateTimeOffset parsedGrace))
+            {
+                graceUntil = parsedGrace;
+            }
+
+            IsClosing = state.Closing;
+            endReason = state.EndReason;
+            if (endReason == TimeLimitReason)
+            {
+                deadlineExpired = true;
+            }
+        }
+
+        private static int RemainingSeconds(DateTimeOffset deadline, DateTimeOffset now)
+        {
+            return Math.Max(0, (int)Math.Ceiling((deadline - now).TotalSeconds));
+        }
+
+        private static string FormatTime(int seconds)
+        {
+            return $"{seconds / 60}:{seconds % 60:00}";
         }
 
         /// <summary>
@@ -551,6 +754,77 @@ namespace A305.Dialogue
             SuggestWords = words;
             IsSuggestingWords = false;
             Changed?.Invoke();
+        }
+
+        /// <summary>
+        /// 스트리밍으로 받는 NPC 대답(CONV-03). 대사 글자가 오기 시작하면 로딩을 걷고 보낸 문장과 온 만큼의 대사를 보여 주며,
+        /// 조각 음성은 받는 대로 넘긴다. 저장된 턴을 받으면 이 줄들을 지우고 저장된 턴으로 다시 그린다.
+        /// </summary>
+        private sealed class StreamedReply : ITurnStream
+        {
+            private readonly ServerConversation owner;
+            private readonly string utterance;
+            private readonly int reply;
+            private readonly System.Text.StringBuilder text = new System.Text.StringBuilder();
+            private DialogueLine userLine;
+            private DialogueLine npcLine;
+
+            public StreamedReply(ServerConversation owner, string utterance, int reply)
+            {
+                this.owner = owner;
+                this.utterance = utterance;
+                this.reply = reply;
+            }
+
+            /// <summary>조각 음성을 하나라도 들려줬는지.</summary>
+            public bool HasSpeech { get; private set; }
+
+            public void OnDelta(string delta)
+            {
+                if (owner.streamedReply != this || string.IsNullOrEmpty(delta))
+                {
+                    return;
+                }
+
+                text.Append(delta);
+                if (userLine == null)
+                {
+                    userLine = DialogueLine.FromUser(utterance);
+                    owner.lines.Add(userLine);
+                    owner.Waiting = DialogueWait.None;
+                }
+
+                DialogueLine growing = DialogueLine.FromNpc(text.ToString(), null);
+                int index = npcLine == null ? -1 : owner.lines.IndexOf(npcLine);
+                if (index >= 0)
+                {
+                    owner.lines[index] = growing;
+                }
+                else
+                {
+                    owner.lines.Add(growing);
+                }
+
+                npcLine = growing;
+                owner.Changed?.Invoke();
+            }
+
+            public void OnSpeechChunk(int seq, string chunkText, byte[] wav)
+            {
+                if (owner.streamedReply != this || wav == null)
+                {
+                    return;
+                }
+
+                HasSpeech = true;
+                owner.NpcSpeechChunk?.Invoke(new NpcSpeechChunkData(reply, seq, wav));
+            }
+
+            public void RemoveLines()
+            {
+                owner.lines.Remove(npcLine);
+                owner.lines.Remove(userLine);
+            }
         }
 
         /// <param name="retry">일시적인 장애로 실패하면 [다시 시도]가 부를 요청. 다시 시도하지 않는 요청은 null이다.</param>

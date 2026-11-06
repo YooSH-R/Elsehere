@@ -8,11 +8,14 @@ namespace A305.World
     /// 마을 본길을 천천히 도는 차. 본길 신호가 초록이 아니면 교차로 정지선에서 서고,
     /// 차 앞을 사람이나 다른 차가 막고 있으면 선다. 택시처럼 손님 옆에 서야 할 때는 <see cref="PullOverAt"/>으로
     /// 설 자리를 정하고 <see cref="Release"/>로 다시 보낸다. 길 계산은 <see cref="CarLoopRoute"/>가 맡는다.
+    /// 주차 트럭 옆과 남쪽 유턴은 두 차가 비켜 지나갈 수 없어, 다른 차가 그 구간에 있으면 구간 입구에서 기다린다.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class LoopingCar : MonoBehaviour
     {
         private static readonly List<LoopingCar> Driving = new List<LoopingCar>();
+
+        private const float SingleLaneClearanceMeters = 4f;
 
         [SerializeField]
         [Tooltip("남쪽 유턴 지점 z")]
@@ -61,6 +64,36 @@ namespace A305.World
         /// 꺼 두는 것과 달리 다른 차는 이 차를 계속 보고 피한다.
         /// </summary>
         public bool IsHeld { get; set; }
+
+        /// <summary><see cref="IsHeld"/>로 다른 컴포넌트가 움직이는 동안 한 대씩 구간을 쓰고 있는지. 순찰차 진입로가 정한다.</summary>
+        public bool HoldsSingleLane { get; set; }
+
+        /// <summary>
+        /// 트럭 옆·남쪽 유턴의 한 대씩 구간(<see cref="CarLaneBypass.IsInSingleLane"/>)을 쓰고 있는지.
+        /// 구간 입구에서 비켜 가기 시작하는 차는 앞모서리가 맞은편 차로로 비스듬히 들어가므로, 차 앞뒤로 한 대 길이만큼 여유를 둔다.
+        /// </summary>
+        public bool IsInSingleLane =>
+            IsHeld
+                ? HoldsSingleLane
+                : PassesParkedTruck
+                    && (
+                        CarLaneBypass.IsInSingleLane(Route, Distance - SingleLaneClearanceMeters)
+                        || CarLaneBypass.IsInSingleLane(Route, Distance + SingleLaneClearanceMeters)
+                    );
+
+        /// <summary>다른 차가 한 대씩 구간을 쓰고 있는지</summary>
+        public bool IsSingleLaneTaken
+        {
+            get
+            {
+                foreach (LoopingCar other in Driving)
+                {
+                    if (other != this && other.IsInSingleLane)
+                        return true;
+                }
+                return false;
+            }
+        }
 
         public TrafficLights Lights => lights;
 
@@ -130,11 +163,20 @@ namespace A305.World
                 stops.Add(pullOverDistance.Value);
             }
 
+            // 이미 구간 안에 있으면 입구는 한 바퀴 뒤라 서지 않는다.
+            if (PassesParkedTruck && IsSingleLaneTaken)
+            {
+                stops.Add(CarLaneBypass.SingleLaneEntry(Route));
+            }
+
             bool isPassing = Mathf.Abs(pose.Position.x - Route.PoseAt(Distance).Position.x) > .01f;
             float speed = isPassing ? Mathf.Min(3, speedMetersPerSecond) : speedMetersPerSecond;
             Distance = Route.Advance(Distance, speed * Time.deltaTime, stops);
             Place();
         }
+
+        // 남쪽 끝까지 달려 주차 트럭을 비켜 가는 차(택시·순찰차)만 한 대씩 구간을 지난다.
+        private bool PassesParkedTruck => parkedTruckBypassOffset > 0;
 
         private bool IsBlocked(CarLoopRoute.Pose pose)
         {

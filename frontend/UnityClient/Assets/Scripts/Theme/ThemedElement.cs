@@ -42,7 +42,19 @@ namespace A305.Theme
         [Tooltip("선택한 목록 행은 테마의 강조색을 옅게 사용한다")]
         private bool selection;
 
+        // 유리 버튼일 때 Builder가 정한 9칸 배율. 고른 표시로 알약을 그렸다가 돌아올 때 되살린다.
+        private float ghostPixelsPerUnit;
+
         public UiThemeRole Role => role;
+
+        public UiThemeCatalog Catalog => catalog;
+
+        public void Use(UiThemeCatalog themeCatalog, UiThemeRole themeRole)
+        {
+            catalog = themeCatalog;
+            role = themeRole;
+            ApplyCurrent();
+        }
 
         /// <summary>고른 카드나 목록 줄을 지금 테마의 강조색 쪽으로 옅게 칠한다. 테마가 바뀌어도 고른 표시를 유지한다.</summary>
         public void SetSelected(bool selected)
@@ -258,19 +270,38 @@ namespace A305.Theme
         // 입력칸은 버튼보다 한 단계 옅게 둬 버튼과 구분한다.
         private static readonly Color GhostInputTint = new Color(1f, 1f, 1f, .8f);
 
+        // 알약 위아래 모서리가 버튼 높이에서 차지하는 비율. 이름표·[말하기]처럼 가운데에 곧은 줄을 조금 남긴다.
+        private const float PillCornerShare = .85f;
+
         // 반투명한 흰 테두리 버튼. 다음에 누를 버튼으로 고르면 강조색 입체 버튼으로 바꿔 한눈에 보이게 한다.
         private void PaintGhostControl(UiThemeDefinition theme)
         {
+            Image image = GetComponent<Image>();
+            if (image != null && image.sprite != theme.PillSprite)
+                ghostPixelsPerUnit = image.pixelsPerUnitMultiplier;
             if (selection)
+            {
+                // 알약 그림은 유리 그림보다 모서리가 커서, 유리 버튼의 배율 그대로면 낮은 버튼의 높이를 넘는다.
+                // 그러면 Unity가 세로만 줄여 그려 그림자 여백과 어긋나고 가운데 줄이 테이프처럼 양옆으로 삐져나온다.
+                if (image != null)
+                    image.pixelsPerUnitMultiplier = Mathf.Max(
+                        ghostPixelsPerUnit,
+                        PillFit(theme.PillSprite, image)
+                    );
                 Paint(
-                    GetComponent<Image>(),
+                    image,
                     theme.PillSprite,
                     theme.ToneColor(UiTone.Primary),
                     theme.PopMaterial,
                     theme.PillBleed
                 );
+            }
             else
-                Paint(GetComponent<Image>(), theme.GhostSprite, Color.white, null, Vector2.zero);
+            {
+                if (image != null && ghostPixelsPerUnit > 0)
+                    image.pixelsPerUnitMultiplier = ghostPixelsPerUnit;
+                Paint(image, theme.GhostSprite, Color.white, null, Vector2.zero);
+            }
             Color ink = selection ? theme.ToneInk(UiTone.Primary) : Color.white;
             Image ghostIcon = Child<Image>(transform, "Icon");
             Draw(ghostIcon, theme.Icons != null ? theme.Icons.Get(icon) : null);
@@ -281,6 +312,23 @@ namespace A305.Theme
             if (content == null)
                 content = gameObject.AddComponent<PillContentLayout>();
             content.Arrange();
+        }
+
+        // 알약 위아래 모서리가 버튼 높이 안에 들어가는 9칸 배율. 높이를 아직 모르면 0이다.
+        private static float PillFit(Sprite pill, Image image)
+        {
+            float height = image.rectTransform.rect.height;
+            if (pill == null || height <= 0)
+                return 0f;
+            return (pill.border.y + pill.border.w)
+                / (image.pixelsPerUnit * PillCornerShare * height);
+        }
+
+        // 알약 배율은 버튼 높이로 정하므로, 고른 유리 버튼은 레이아웃이 높이를 정하거나 바꾸면 다시 칠한다.
+        private void OnRectTransformDimensionsChange()
+        {
+            if (role == UiThemeRole.GhostControl && selection)
+                ApplyCurrent();
         }
 
         private static void PaintInputText(TMP_InputField input, TMP_FontAsset font)

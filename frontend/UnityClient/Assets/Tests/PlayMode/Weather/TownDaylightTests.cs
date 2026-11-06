@@ -18,6 +18,8 @@ namespace A305.Weather.PlayModeTests
         // 해 지기 15분 전. 노을은 해 지는 19시를 가운데로 앞뒤 30분 동안 물든다.
         private const double Sunset = 18 * 60 + 45;
         private const float LampIntensity = 4f;
+        private const float FixtureIntensity = .1f;
+        private const float ShopLampIntensity = .9f;
         private const float LampCoreStrength = 1.2f;
         private const float TransitionSeconds = .2f;
 
@@ -65,6 +67,8 @@ namespace A305.Weather.PlayModeTests
         private Material designedWindowGlass;
         private Light sun;
         private Light lamp;
+        private Light fixture;
+        private Light shopLamp;
         private Renderer glow;
         private Renderer lampGlass;
         private Transform shop;
@@ -86,8 +90,9 @@ namespace A305.Weather.PlayModeTests
             designedWindowGlass.color = DesignedWindowGlass;
             daylight = Keep(
                 DaylightSettings.Create(
-                    new[] { designedGlow, designedLampGlass },
-                    litWindowMaterials: new[] { designedWindowGlass }
+                    new[] { designedGlow },
+                    litWindowMaterials: new[] { designedWindowGlass },
+                    nightOnlyGlowMaterials: new[] { designedLampGlass }
                 )
             );
             weathers = Keep(
@@ -174,6 +179,131 @@ namespace A305.Weather.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator Midnight_LightsShopRoomsBrighterThanShopWallLamps()
+        {
+            yield return null;
+            // 상점 외벽 등은 입점 건물에 붙어 있어도 방을 밝히는 실내등이 아니다.
+            fixture.transform.SetParent(shop);
+
+            presenter.ShowTime(Midnight);
+
+            Assert.That(
+                daylight.NightShopLampScale,
+                Is.GreaterThan(daylight.NightLampScale),
+                "마을 안 매장은 밤 환경광이 어두워져도 불을 켠 방처럼 밝아야 합니다."
+            );
+            Assert.That(
+                shopLamp.intensity,
+                Is.EqualTo(ShopLampIntensity * daylight.NightShopLampScale).Within(.001f)
+            );
+            Assert.That(
+                fixture.intensity,
+                Is.EqualTo(FixtureIntensity * daylight.NightLampScale).Within(.001f),
+                "상점 벽등은 그대로 밤 불빛 배율을 씁니다."
+            );
+
+            presenter.ShowTime(Midday);
+
+            Assert.That(shopLamp.intensity, Is.EqualTo(ShopLampIntensity).Within(.001f));
+        }
+
+        [UnityTest]
+        public IEnumerator Midnight_LightsLoadedShopInteriorLikeALitRoom()
+        {
+            yield return null;
+            // 방문한 건물의 실내는 따로 불러와 마을 날씨 표시에 넘긴다.
+            Transform interior = Keep(new GameObject("PoliceStationInterior")).transform;
+            Light ceiling = Keep(new GameObject("InteriorLight")).AddComponent<Light>();
+            ceiling.type = LightType.Point;
+            ceiling.intensity = ShopLampIntensity;
+            ceiling.transform.SetParent(interior);
+            presenter.SetShopInterior(interior);
+
+            presenter.ShowTime(Midnight);
+
+            Assert.That(
+                ceiling.intensity,
+                Is.EqualTo(ShopLampIntensity * daylight.NightShopLampScale).Within(.001f)
+            );
+
+            presenter.ShowTime(Midday);
+
+            Assert.That(ceiling.intensity, Is.EqualTo(ShopLampIntensity).Within(.001f));
+        }
+
+        // 카페·호텔·드럭스토어 실내 씬처럼, 매장 안에 있는 동안은 밤에도 불을 켠 방의 환경광이다.
+        // 마을 하늘의 푸른 환경광이 아니라 실내 씬과 같은 밝은 실내 환경광을 쓴다.
+        [UnityTest]
+        public IEnumerator Midnight_InsideLoadedShop_KeepsRoomAmbientLikeInteriorScenes()
+        {
+            yield return null;
+            Transform interior = Keep(new GameObject("PoliceStationInterior")).transform;
+            presenter.ShowTime(Midnight);
+
+            presenter.SetShopInterior(interior);
+
+            AssertColor(
+                RenderSettings.ambientSkyColor,
+                daylight.ShopInteriorAmbientSky * daylight.NightInteriorAmbientScale
+            );
+            AssertColor(
+                RenderSettings.ambientGroundColor,
+                daylight.ShopInteriorAmbientGround * daylight.NightInteriorAmbientScale
+            );
+
+            presenter.ShowTime(Midday);
+
+            AssertColor(RenderSettings.ambientSkyColor, daylight.ShopInteriorAmbientSky);
+            AssertColor(RenderSettings.ambientEquatorColor, daylight.ShopInteriorAmbientEquator);
+        }
+
+        // 매장 안은 실내라 비 오는 날에도 마을의 어두운 날씨 환경광을 받지 않는다.
+        [UnityTest]
+        public IEnumerator RainyDay_InsideLoadedShop_KeepsRoomAmbient()
+        {
+            yield return null;
+            presenter.Show("RAIN", "CLEAR");
+            presenter.ShowTime(Midday);
+            yield return new WaitForSeconds(TransitionSeconds + .1f);
+
+            presenter.SetShopInterior(Keep(new GameObject("BakeryInterior")).transform);
+
+            AssertColor(RenderSettings.ambientSkyColor, daylight.ShopInteriorAmbientSky);
+        }
+
+        // 마을 해가 지붕·벽 그림자로 매장 안을 뒤덮지 않도록, 안에 있는 동안만 그림자를 옅게 한다.
+        [UnityTest]
+        public IEnumerator Midday_InsideLoadedShop_SoftensSunShadows()
+        {
+            yield return null;
+            presenter.ShowTime(Midday);
+
+            presenter.SetShopInterior(Keep(new GameObject("PoliceStationInterior")).transform);
+
+            Assert.That(
+                sun.shadowStrength,
+                Is.EqualTo(daylight.ShopInteriorSunShadowStrength).Within(.001f)
+            );
+
+            presenter.SetShopInterior(null);
+
+            Assert.That(sun.shadowStrength, Is.EqualTo(Designed.sunShadowStrength).Within(.001f));
+        }
+
+        [UnityTest]
+        public IEnumerator Midnight_LeavingLoadedShop_PutsTownNightAmbientBack()
+        {
+            yield return null;
+            WeatherLook expected = daylight.Mix(Designed, Midnight, skyCovered: false);
+            presenter.ShowTime(Midnight);
+            presenter.SetShopInterior(Keep(new GameObject("PoliceStationInterior")).transform);
+
+            presenter.SetShopInterior(null);
+
+            AssertColor(RenderSettings.ambientSkyColor, expected.ambientSky);
+        }
+
+        [UnityTest]
         public IEnumerator Midnight_LightsWindowsOfOpenShopsOnly()
         {
             yield return null;
@@ -197,6 +327,7 @@ namespace A305.Weather.PlayModeTests
             AssertColor(shopWindow.sharedMaterial.color, DesignedWindowGlass);
         }
 
+        // 가로등이 아닌 등(상점 벽등·실내등)과 창빛은 낮에 씬 디자인 그대로다.
         [UnityTest]
         public IEnumerator Midday_KeepsDesignedTown()
         {
@@ -206,10 +337,31 @@ namespace A305.Weather.PlayModeTests
             presenter.ShowTime(Midday);
 
             Assert.That(sun.intensity, Is.EqualTo(Designed.sunIntensity).Within(.001f));
-            Assert.That(lamp.intensity, Is.EqualTo(LampIntensity).Within(.001f));
+            Assert.That(fixture.intensity, Is.EqualTo(FixtureIntensity).Within(.001f));
+            Assert.That(
+                glow.sharedMaterial.GetColor("_EmissionColor").r,
+                Is.EqualTo(GlowEmission.r).Within(.002f)
+            );
             Assert.That(RenderSettings.skybox.GetFloat("_Stars"), Is.EqualTo(0f).Within(.001f));
             Assert.That(Quaternion.Angle(sun.transform.rotation, DesignedSun), Is.LessThan(1f));
             AssertColor(RenderSettings.skybox.GetColor("_Zenith"), Designed.skyZenith);
+        }
+
+        // 가로등은 밤에만 켠다. 낮에는 빛과 전구를 끈다.
+        [UnityTest]
+        public IEnumerator Midday_TurnsStreetLampsOff()
+        {
+            yield return null;
+            presenter.ShowTime(Midnight);
+
+            presenter.ShowTime(Midday);
+
+            Assert.That(lamp.intensity, Is.EqualTo(0f).Within(.001f));
+            Assert.That(lamp.enabled, Is.False, "꺼진 가로등 빛은 그리지 않습니다.");
+            Assert.That(
+                lampGlass.sharedMaterial.GetFloat("_CoreStrength"),
+                Is.EqualTo(0f).Within(.002f)
+            );
         }
 
         [UnityTest]
@@ -318,8 +470,12 @@ namespace A305.Weather.PlayModeTests
             fields.FindProperty("effectFollowTarget").objectReferenceValue = player.transform;
             fields.FindProperty("daylight").objectReferenceValue = daylight;
             SerializedProperty lamps = fields.FindProperty("lamps");
-            lamps.arraySize = 1;
-            lamps.GetArrayElementAtIndex(0).objectReferenceValue = lamp;
+            lamps.arraySize = 2;
+            lamps.GetArrayElementAtIndex(0).objectReferenceValue = fixture;
+            lamps.GetArrayElementAtIndex(1).objectReferenceValue = shopLamp;
+            SerializedProperty streetLamps = fields.FindProperty("streetLamps");
+            streetLamps.arraySize = 1;
+            streetLamps.GetArrayElementAtIndex(0).objectReferenceValue = lamp;
             SerializedProperty litBuildings = fields.FindProperty("litBuildings");
             litBuildings.arraySize = 1;
             litBuildings.GetArrayElementAtIndex(0).objectReferenceValue = shop;
@@ -354,6 +510,9 @@ namespace A305.Weather.PlayModeTests
             lamp = Keep(new GameObject("LanternLight")).AddComponent<Light>();
             lamp.type = LightType.Point;
             lamp.intensity = LampIntensity;
+            fixture = Keep(new GameObject("FixtureLight")).AddComponent<Light>();
+            fixture.type = LightType.Point;
+            fixture.intensity = FixtureIntensity;
 
             glow = Shape("WindowAmberGlow", designedGlow);
             lampGlass = Shape("LanternAmberV2", designedLampGlass);
@@ -364,6 +523,11 @@ namespace A305.Weather.PlayModeTests
             shopWindow.transform.SetParent(shop);
             houseWindow = Shape("WindowBlue", designedWindowGlass);
             houseWindow.transform.SetParent(Keep(new GameObject("BrickResidence2F")).transform);
+            // 매장 실내(Interior)의 천장 등. 마을 밤 등 목록에 가로등과 함께 들어 있다.
+            shopLamp = Keep(new GameObject("InteriorLight")).AddComponent<Light>();
+            shopLamp.type = LightType.Point;
+            shopLamp.intensity = ShopLampIntensity;
+            shopLamp.transform.SetParent(shop);
         }
 
         private Renderer Shape(string name, Material material)

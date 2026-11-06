@@ -339,11 +339,9 @@ namespace A305.EditorTools.World
             door.transform.localRotation = Quaternion.identity;
             FitDoorToSidewalk(door);
             Transform visual = door.transform.Find("Visual");
-            visual.localScale = new Vector3(1.5f, 1.18f, 1);
-            foreach (Renderer renderer in visual.GetComponentsInChildren<Renderer>())
-                renderer.sharedMaterial = Green;
+            ShopEntranceBuilder.FitStreetFacade(door);
+            visual.Find("DoorPanel").GetComponent<Renderer>().sharedMaterial = Green;
             PrefabUtility.RecordPrefabInstancePropertyModifications(door.transform);
-            PrefabUtility.RecordPrefabInstancePropertyModifications(visual);
         }
 
         private static void ConfigureCharacters(Scene scene)

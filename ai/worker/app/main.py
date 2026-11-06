@@ -28,6 +28,7 @@ from .npc import reply_events
 from .npc_profile_models import NpcProfile
 from .npc_respond import ContractError, load_payload, parse_request, readable_request_id, respond
 from .schemas import (
+    FollowUpRequest,
     GuardRequest,
     HintRequest,
     JudgeRequest,
@@ -110,8 +111,19 @@ def create_app(
                 ensure_ascii=False,
             )
         )
-        yield
-        await app.state.llm.aclose()
+
+        async def expire_audio():
+            while True:
+                await asyncio.sleep(min(30.0, max(0.01, s.audio_ttl_s)))
+                app.state.audio.expire()
+
+        cleanup = asyncio.create_task(expire_audio())
+        try:
+            yield
+        finally:
+            cleanup.cancel()
+            await asyncio.gather(cleanup, return_exceptions=True)
+            await app.state.llm.aclose()
 
     app = FastAPI(title="AI 워커", version="0.1.0", lifespan=lifespan)
 
@@ -127,6 +139,8 @@ def create_app(
         else:
             resp = await call_next(request)
         resp.headers["X-Request-Id"] = rid
+        if request.url.path == "/health" and resp.status_code == 200:
+            return resp
         log.info(
             json.dumps(
                 {
@@ -315,6 +329,11 @@ def create_app(
     async def memory(req: MemoryRequest, request: Request):
         return await services.memory(request.app.state.llm, req)
 
+    @app.post("/v1/npc/follow-up")
+    async def follow_up(req: FollowUpRequest, request: Request):
+        """끝난 대화에서 NPC가 곧 건네기로 한 것 (음료·음식·빨래 등). 백엔드가 준비 시각을 정해 저장한다 (워커는 저장하지 않음)."""
+        return await services.follow_up(request.app.state.llm, req)
+
     @app.post("/v1/npc/relationship")
     async def relationship_after_conversation(req: RelationshipRequest):
         """정상 종료된 대화 하나를 사용자 × NPC 알아봄에 반영한다. 모델을 부르지 않는다. 백엔드가 받아 저장한다 (워커는 저장하지 않음)."""
@@ -324,4 +343,5 @@ def create_app(
 
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout, format="%(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)
 app = create_app()

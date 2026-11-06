@@ -8,7 +8,8 @@ namespace A305.Npc
             float offerDistanceMeters,
             float dismissDistanceMeters,
             float restSeconds,
-            bool canDecline
+            bool canDecline,
+            float followUpCallDistanceMeters = 0f
         )
         {
             DetectRadiusMeters = detectRadiusMeters;
@@ -16,6 +17,7 @@ namespace A305.Npc
             DismissDistanceMeters = dismissDistanceMeters;
             RestSeconds = restSeconds;
             CanDecline = canDecline;
+            FollowUpCallDistanceMeters = followUpCallDistanceMeters;
         }
 
         /// <summary>플레이어가 이 거리 안에 들어오면 다가가기 시작한다.</summary>
@@ -32,5 +34,8 @@ namespace A305.Npc
 
         /// <summary>제안을 거절할 수 있는지. 튜토리얼 행인은 거절할 수 없다.</summary>
         public bool CanDecline { get; }
+
+        /// <summary>준비해 둔 것이 다 되면 플레이어가 이 거리 안에 있을 때 제자리에서 부른다. 0이면 부르지 않는다.</summary>
+        public float FollowUpCallDistanceMeters { get; }
     }
 }

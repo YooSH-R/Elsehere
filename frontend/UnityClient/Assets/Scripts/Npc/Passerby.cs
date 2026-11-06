@@ -8,10 +8,12 @@ namespace A305.Npc
     /// <summary>
     /// 플레이어가 가까이 오면 먼저 다가와 대화를 제안하는 행인. 수락하면 대화를 시작하고,
     /// 거절하거나 무시하고 멀어지면 제자리로 돌아가 정해진 시간 동안 쉰다. 제안 중에는 카메라·이동을 잠그지 않는다.
-    /// 쉬는 동안에도 플레이어가 가까이 가면 [말 걸기]로 먼저 대화를 걸 수 있다.
+    /// 쉬는 동안에도 플레이어가 가까이 가면 [말 걸기]로 먼저 대화를 걸 수 있다. 조금 떨어져 있어도 몸을 클릭·탭해 말을 걸 수 있다(<see cref="NpcClickTalk"/>).
     /// 생활(<see cref="NpcRoutine"/>)이 붙은 NPC는 다가오지 않는 동안 제자리로 돌아가는 대신 일과와 욕구에 따라 지낸다.
     /// 튜토리얼에서 길을 묻는 행인(Ben)은 튜토리얼 동안 튜토리얼 대본·설정으로 말하고 생활하지 않는다(<see cref="SetTutorialScript"/>).
+    /// 대화에서 준비해 주기로 한 것(<see cref="FollowUpStore"/>)이 다 되면 부르는 거리 안의 플레이어를 자리를 떠나지 않고 부른다.
     /// 모델은 자식 Visual 아래에 두고, 이동은 루트의 CharacterController가 맡는다.
+    /// NPC와 플레이어 모두 CharacterController 충돌로 서로 통과하지 못한다.
     /// </summary>
     [RequireComponent(typeof(CharacterController), typeof(NpcIdentity))]
     public class Passerby : MonoBehaviour
@@ -62,6 +64,9 @@ namespace A305.Npc
         // 튜토리얼 동안 쓰는 대본·인사말 키. 튜토리얼이 아니면 null이고 NPC 키로 평소 대화한다.
         private string tutorialScriptKey;
 
+        // 퀘스트가 붙잡아 둔 자리. 있으면 생활 대신 이 자리에서 기다린다.
+        private Pose? questSpot;
+
         public PasserbyPhase Phase => approach != null ? approach.Phase : PasserbyPhase.Waiting;
 
         /// <summary>
@@ -78,14 +83,62 @@ namespace A305.Npc
         /// <summary>튜토리얼에서 길을 묻는 중인지(튜토리얼 모드)</summary>
         public bool IsGuidingTutorial => tutorialScriptKey != null;
 
+        /// <summary>퀘스트가 이 행인을 정한 자리에 붙잡아 두었는지(<see cref="WaitAt"/>)</summary>
+        public bool IsWaitingForQuest => questSpot.HasValue;
+
+        /// <summary>
+        /// 퀘스트에서 이 행인을 만나야 하는 동안 정한 자리로 옮겨 기다리게 한다. 생활 대신 그 자리를 지키고,
+        /// 그날 이미 말을 걸었어도 다가와 대화를 제안한다. 같은 자리를 다시 정하면 옮기지 않는다.
+        /// </summary>
+        public void WaitAt(Pose spot)
+        {
+            if (questSpot.HasValue && questSpot.Value.position == spot.position)
+            {
+                return;
+            }
+
+            questSpot = spot;
+            var body = GetComponent<CharacterController>();
+            body.enabled = false;
+            transform.SetPositionAndRotation(spot.position, spot.rotation);
+            body.enabled = true;
+            if (TryGetComponent(out NpcRoutine life))
+            {
+                life.Interrupt();
+            }
+        }
+
+        /// <summary>퀘스트 자리에서 풀어 평소대로 생활하게 한다.</summary>
+        public void StopWaiting() => questSpot = null;
+
         // 대본·인사말·이름을 찾는 키. 튜토리얼 중이면 튜토리얼 대본, 아니면 NPC 키
         private string ScriptKey => tutorialScriptKey ?? identity.Code;
+
+        // 교대 밖이라 일하지 않는 직원인지. 생활이 없는 NPC와 행인은 근무 외로 보내지 않는다.
+        private bool IsTownResident => TryGetComponent(out NpcTownWalker walker) && walker.enabled;
+
+        private bool IsOffDuty =>
+            IsTownResident
+                ? GetComponent<NpcTownWalker>().IsStaff
+                : routine != null && routine.enabled && routine.IsOffDuty;
 
         private PasserbySettings CurrentSettings =>
             IsGuidingTutorial && tutorialSettings != null ? tutorialSettings : settings;
 
         /// <summary>처음 놓인 자리와 방향. 다가왔다가 돌아갈 곳이고, 직원은 근무 자리다.</summary>
         internal Pose HomePose => homePose;
+
+        /// <summary>꺼진 출퇴근 프리팹을 현재 타운의 대화·플레이어에 연결한 다음 켠다.</summary>
+        public void ConnectToTown(
+            PlayerMover townPlayer,
+            DialogueController townDialogue,
+            PasserbyOfferView townOffer
+        )
+        {
+            player = townPlayer;
+            dialogue = townDialogue;
+            offerView = townOffer;
+        }
 
         private static double Now => Time.realtimeSinceStartupAsDouble;
 
@@ -159,19 +212,19 @@ namespace A305.Npc
         private void Update()
         {
             Vector3 toPlayer = HorizontalOffsetToPlayer();
-            // 다가오면 안 되는 때도 플레이어가 바쁠 때와 같게 다룬다. 이 행인을 기다리느라 잠긴 플레이어는 바쁘지 않다.
-            bool isPlayerBusy =
-                !IsApproachAllowed
-                || dialogue.IsTalking
-                || (player.IsMovementLocked && !IsPlayerWaiting)
-                || (offerView.IsShowing && !offerView.IsShownBy(this));
+            bool isPlayerBusy = IsPlayerOccupied || IsOtherOfferShowing;
             // 새 대화를 시작할 수 없으면(게스트 대화 횟수를 다 씀) 먼저 다가오지 않는다(기능 명세 F-39). [말 걸기] 자리에는 이유를 보인다.
             bool cannotStartConversation = !dialogue.Allowance.CanStartConversation;
-            // 카운터를 맡은 직원은 손님이 카운터 가까이 와서 카운터 뒤 자리로 돌아갔을 때만 다가와 제안한다.
+            // 교대 밖의 직원은 다가오지 않고 [말 걸기]만 받는다. 카운터를 맡은 직원은 그 카운터를 응대하는 한 명이고,
+            // 손님이 카운터 가까이 와서 카운터 뒤 자리로 돌아갔을 때만 다가와 제안한다.
             bool notReadyToOffer =
-                routine != null
-                && routine.enabled
-                && !routine.CanOfferTo(player.transform.position);
+                IsTownResident
+                || (
+                    routine != null
+                    && routine.enabled
+                    && !IsWaitingForQuest
+                    && !routine.CanOfferTo(player.transform.position)
+                );
             // 하루에 한 번만 먼저 다가오는 행인은 그날(기기 날짜) 이미 말을 걸었으면 [말 걸기]만 받는다.
             System.DateTime today = System.DateTime.Today;
             bool offeredToday =
@@ -179,20 +232,31 @@ namespace A305.Npc
                 && PasserbyOfferRecord.HasOfferedOn(identity.Code, today);
 
             PasserbyPhase before = approach.Phase;
+            // 대화에서 준비해 주기로 한 것이 다 됐으면 제자리에서 부른다. 하루 한 번·카운터 자리·대화 뒤 쉬는 시간과 상관없이 부르지만,
+            // 플레이어가 바쁘거나 새 대화를 시작할 수 없으면 기다린다. 튜토리얼 대본으로 말하는 동안에는 건넬 것이 없다.
+            WaitingFollowUp readyFollowUp = IsGuidingTutorial
+                ? null
+                : FollowUpStore.Shared.FindReady(identity.Code);
+            if (readyFollowUp != null)
+            {
+                approach.TryCall(Now, toPlayer.magnitude, isPlayerBusy || cannotStartConversation);
+            }
+
             approach.Tick(
                 Now,
                 toPlayer.magnitude,
                 isPlayerBusy
                     || cannotStartConversation
                     || notReadyToOffer
-                    // 튜토리얼에서 이 행인을 기다리며 붙잡힌 플레이어에게는 그날 이미 말을 걸었어도 다가온다.
-                    || (offeredToday && !IsPlayerWaiting),
+                    // 튜토리얼에서 이 행인을 기다리며 붙잡힌 플레이어와 퀘스트로 이 행인을 만나야 하는 플레이어에게는
+                    // 그날 이미 말을 걸었어도 다가온다.
+                    || (offeredToday && !IsPlayerWaiting && !IsWaitingForQuest),
                 IsPlayerWaiting
             );
-            // 튜토리얼에서 길을 물은 것도 그날 먼저 말을 건 것으로 센다.
+            // 튜토리얼에서 길을 물은 것도 그날 먼저 말을 건 것으로 센다. 준비한 것을 건네려고 부른 것은 세지 않는다.
             bool startedOffer =
                 approach.Phase == PasserbyPhase.Offering && before != PasserbyPhase.Offering;
-            if (startedOffer && settings.ApproachesOncePerDay)
+            if (startedOffer && settings.ApproachesOncePerDay && !approach.IsCalling)
             {
                 PasserbyOfferRecord.Save(identity.Code, today);
             }
@@ -224,7 +288,7 @@ namespace A305.Npc
                     ShowAnimation(TalkAnimation);
                     if (!offerView.IsShownBy(this))
                     {
-                        ShowOffer();
+                        ShowOffer(readyFollowUp);
                     }
 
                     break;
@@ -234,7 +298,16 @@ namespace A305.Npc
                     ShowAnimation(TalkAnimation);
                     break;
                 default:
-                    if (routine != null && routine.enabled && !IsGuidingTutorial)
+                    if (IsTownResident)
+                    {
+                        GetComponent<NpcTownWalker>().Walk();
+                    }
+                    else if (
+                        routine != null
+                        && routine.enabled
+                        && !IsGuidingTutorial
+                        && !IsWaitingForQuest
+                    )
                     {
                         routine.Live(player.transform.position);
                     }
@@ -264,14 +337,7 @@ namespace A305.Npc
             ConversationAllowance allowance = dialogue.Allowance;
             if (!allowance.CanStartConversation)
             {
-                if (!offerView.IsTalkBlocked)
-                {
-                    offerView.ShowBlockedTalkPrompt(
-                        this,
-                        PasserbyOfferText.Blocked(allowance.RemainingConversations)
-                    );
-                }
-
+                ShowCannotTalkPrompt(allowance.RemainingConversations);
                 return;
             }
 
@@ -282,11 +348,38 @@ namespace A305.Npc
             if (
                 !offerView.IsTalkPromptShowing
                 || offerView.IsTalkBlocked
+                || offerView.IsSignupPromptShowing
                 || offerView.TalkRemainingText != remaining
             )
             {
                 string label = PasserbyOfferText.TalkLabel(dialogue.FindNpcName(ScriptKey));
                 offerView.ShowTalkPrompt(this, label, remaining, TalkByPlayer);
+            }
+        }
+
+        // 게스트가 대화를 다 썼으면 가입 버튼을, 다른 이유로 막혔으면 이유만 보인다.
+        private void ShowCannotTalkPrompt(int? remainingConversations)
+        {
+            if (PasserbyOfferText.OffersSignup(remainingConversations))
+            {
+                if (!offerView.IsSignupPromptShowing)
+                {
+                    offerView.ShowSignupPrompt(
+                        this,
+                        PasserbyOfferText.SignupLabel,
+                        PasserbyOfferText.Blocked(remainingConversations)
+                    );
+                }
+
+                return;
+            }
+
+            if (!offerView.IsTalkBlocked)
+            {
+                offerView.ShowBlockedTalkPrompt(
+                    this,
+                    PasserbyOfferText.Blocked(remainingConversations)
+                );
             }
         }
 
@@ -298,19 +391,94 @@ namespace A305.Npc
             }
 
             offerView.HideTalkPrompt(this);
+            StartConversation(ConversationInitiator.User);
+        }
+
+        /// <summary>
+        /// 플레이어가 클릭·탭으로 이 NPC에게 말을 걸 수 있는지(기능 명세 F-22). 커서를 올렸을 때 테두리도 이 값으로 그린다.
+        /// [말 걸기]처럼 다른 대화·창·진행 흐름이 막으면 걸 수 없고, 클릭 거리 안이면 다가오거나 제안하는 중에도 걸 수 있다.
+        /// 대화를 다 쓴 게스트는 가입 안내 창을 열 수 있으므로 걸 수 있다고 본다. 다른 NPC가 거절할 수 없는 제안을 하는 중이면 걸 수 없다.
+        /// </summary>
+        /// <param name="reachMeters">클릭으로 말을 걸 수 있는 수평 거리</param>
+        public bool CanTalkByClick(float reachMeters)
+        {
+            if (!enabled || IsPlayerOccupied)
+            {
+                return false;
+            }
+
+            if (!approach.CanTalkByClick(HorizontalOffsetToPlayer().magnitude, reachMeters))
+            {
+                return false;
+            }
+
+            ConversationAllowance allowance = dialogue.Allowance;
+            if (!allowance.CanStartConversation)
+            {
+                return PasserbyOfferText.OffersSignup(allowance.RemainingConversations);
+            }
+
+            return !IsOtherOfferShowing || offerView.IsDeclineShown;
+        }
+
+        /// <summary>
+        /// 플레이어가 이 NPC를 클릭·탭했다(<see cref="CanTalkByClick"/>). 제안 중이면 [대화하기]를 누른 것과 같고, 아니면 플레이어가 먼저 말을 건다.
+        /// 다른 NPC의 제안은 [지금은 안 할래요]를 누른 것처럼 닫는다. 대화를 다 쓴 게스트에게는 가입 안내 창을 연다.
+        /// </summary>
+        /// <returns>대화를 시작했거나 가입 안내 창을 열었으면 true</returns>
+        public bool TalkByClick(float reachMeters)
+        {
+            if (!CanTalkByClick(reachMeters))
+            {
+                return false;
+            }
+
+            if (!dialogue.Allowance.CanStartConversation)
+            {
+                offerView.ShowSignupDialog();
+                return true;
+            }
+
+            if (approach.Phase == PasserbyPhase.Offering)
+            {
+                Accept();
+                return true;
+            }
+
+            approach.TryTalkByClick(HorizontalOffsetToPlayer().magnitude, reachMeters);
+            offerView.DeclineShownOffer();
+            offerView.HideTalkPrompt(this);
+            StartConversation(ConversationInitiator.User);
+            return true;
+        }
+
+        // 다른 대화 중이거나 창이 열려 이동이 잠겼거나, 진행 흐름(튜토리얼)이 다가오기를 막았는지.
+        // 다가오면 안 되는 때도 플레이어가 바쁠 때와 같게 다룬다. 이 행인을 기다리느라 잠긴 플레이어는 바쁘지 않다.
+        private bool IsPlayerOccupied =>
+            !IsApproachAllowed
+            || dialogue.IsTalking
+            || (player.IsMovementLocked && !IsPlayerWaiting);
+
+        private bool IsOtherOfferShowing => offerView.IsShowing && !offerView.IsShownBy(this);
+
+        // 대화를 시작한다. 다른 대화가 진행 중이면 대화 없이 쉬게 한다.
+        private void StartConversation(ConversationInitiator initiatedBy)
+        {
             if (
-                !dialogue.TryStart(
+                dialogue.TryStart(
                     identity.Code,
                     identity.LookTarget,
-                    ConversationInitiator.User,
-                    ScriptKey
+                    initiatedBy,
+                    ScriptKey,
+                    IsOffDuty
                 )
             )
             {
-                // 다른 대화가 진행 중이면 대화 없이 쉬게 한다.
-                approach.EndTalk(Now);
-                PasserbyRestRecord.Save(identity.Code, approach.RestUntilSeconds);
+                return;
             }
+
+            approach.EndTalk(Now);
+            PasserbyRestRecord.Save(identity.Code, approach.RestUntilSeconds);
         }
 
         private Vector3 HorizontalOffsetToPlayer()
@@ -320,18 +488,32 @@ namespace A305.Npc
             return toPlayer;
         }
 
-        private void ShowOffer()
+        /// <param name="readyFollowUp">이 NPC가 건넬 것 가운데 다 된 것. 불러서 제안하면 인사말 대신 무엇이 준비됐는지 알린다.</param>
+        private void ShowOffer(WaitingFollowUp readyFollowUp)
         {
-            if (!lineSource.TryGetGreeting(ScriptKey, out string greeting))
+            string hint;
+            string greeting;
+            if (approach.IsCalling && readyFollowUp != null)
             {
-                Debug.LogWarning($"행인 {ScriptKey}의 인사말이 없습니다.", this);
-                greeting = string.Empty;
+                hint = PasserbyOfferText.CallHint(
+                    readyFollowUp.NpcName ?? dialogue.FindNpcName(ScriptKey)
+                );
+                greeting = PasserbyOfferText.CallLine(readyFollowUp.ItemKo);
+            }
+            else
+            {
+                if (!lineSource.TryGetGreeting(ScriptKey, out greeting))
+                {
+                    Debug.LogWarning($"행인 {ScriptKey}의 인사말이 없습니다.", this);
+                    greeting = string.Empty;
+                }
+
+                hint = PasserbyOfferText.Hint(
+                    dialogue.FindNpcName(ScriptKey),
+                    dialogue.FindNpcRoleLabel(ScriptKey)
+                );
             }
 
-            string hint = PasserbyOfferText.Hint(
-                dialogue.FindNpcName(ScriptKey),
-                dialogue.FindNpcRoleLabel(ScriptKey)
-            );
             string remaining = PasserbyOfferText.RemainingConversations(
                 dialogue.Allowance.RemainingConversations
             );
@@ -346,19 +528,7 @@ namespace A305.Npc
             }
 
             offerView.Hide(this);
-            if (
-                !dialogue.TryStart(
-                    identity.Code,
-                    identity.LookTarget,
-                    ConversationInitiator.Npc,
-                    ScriptKey
-                )
-            )
-            {
-                // 다른 대화가 진행 중이면 대화 없이 쉬게 한다.
-                approach.EndTalk(Now);
-                PasserbyRestRecord.Save(identity.Code, approach.RestUntilSeconds);
-            }
+            StartConversation(ConversationInitiator.Npc);
         }
 
         private void Decline()
@@ -383,13 +553,15 @@ namespace A305.Npc
             PasserbyRestRecord.Save(identity.Code, approach.RestUntilSeconds);
         }
 
+        // 제자리(퀘스트가 붙잡아 둔 자리가 있으면 그 자리)로 돌아간다.
         private void ReturnHome()
         {
-            Vector3 toHome = homePose.position - transform.position;
+            Pose home = questSpot ?? homePose;
+            Vector3 toHome = home.position - transform.position;
             toHome.y = 0f;
             if (toHome.magnitude <= ArrivedDistanceMeters)
             {
-                StandFacing(homePose.rotation);
+                StandFacing(home.rotation);
                 return;
             }
 

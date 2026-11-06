@@ -1,7 +1,10 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using A305.Player;
+using A305.Theme;
 using A305.Wayfinding;
 using A305.World;
 using TMPro;
@@ -13,7 +16,8 @@ namespace A305.Mission
 {
     /// <summary>
     /// 왼쪽 위에 퀘스트 카드(단계 칩·장소·할 일·상황·진행 막대·목표 체크리스트)를 두고, 카드를 누르면 마을 지도와 전체 여정이 담긴 수첩을 펼친다.
-    /// 수첩을 펼친 동안에는 같은 내용의 카드를 숨긴다. 오른쪽 위에는 게임 시계와 코인을 보인다.
+    /// 수첩을 펼친 동안에는 같은 내용의 카드를 숨긴다. 하는 퀘스트가 없으면(시작 전, 끝낸 뒤) 카드 대신 작은 퀘스트 아이콘만 둔다.
+    /// 퀘스트를 끝내면 '퀘스트 완료!' 팡파레를 띄우고 보상 코인을 그와 함께 더한다. 오른쪽 위에는 게임 시계와 코인을 보인다.
     /// </summary>
     public sealed class FirstDayMissionView : MonoBehaviour
     {
@@ -76,6 +80,18 @@ namespace A305.Mission
         private TMP_Text coins;
 
         [SerializeField]
+        [Tooltip("코인이 바뀌면 코인 칩 옆에 잠깐 떠오르는 +10·−8")]
+        private TMP_Text coinFloat;
+
+        [SerializeField]
+        [Tooltip("코인 칩 아래에 잠깐 보이는 산 것·보상 안내. 부모 알약과 함께 켜고 끈다")]
+        private TMP_Text coinReceipt;
+
+        [SerializeField]
+        [Tooltip("코인이 바뀔 때 통 튀는 코인 칩")]
+        private RectTransform coinChip;
+
+        [SerializeField]
         private TMP_Text journalGoal;
 
         [SerializeField]
@@ -95,7 +111,8 @@ namespace A305.Mission
         private GameObject mapOverlay;
 
         [SerializeField]
-        private TownMapView largeMap;
+        [Tooltip("큰 지도 안의 지도 화면. 미니맵과 같은 마을 지도 그림 전체를 보인다")]
+        private TownMiniMapView largeMap;
 
         [SerializeField]
         private TMP_Text largeMapLegend;
@@ -131,38 +148,98 @@ namespace A305.Mission
         [SerializeField]
         private Button retryButton;
 
+        [SerializeField]
+        [Tooltip("퀘스트 목록·도장 지도. 있으면 왼쪽 위 퀘스트 카드가 수첩 대신 이것을 연다.")]
+        private QuestBoardView questBoard;
+
+        [SerializeField]
+        [Tooltip("퀘스트 카드 바로 아래, NPC가 준비해 건네기로 한 것을 기다리는 카드")]
+        private FollowUpCardView followUpCard;
+
+        [SerializeField]
+        [Tooltip(
+            "하는 퀘스트가 없을 때 카드 대신 왼쪽 위에 두는 퀘스트 아이콘. 누르면 퀘스트 목록을 연다."
+        )]
+        private Button questIcon;
+
+        [SerializeField]
+        [Tooltip("퀘스트를 끝내면 띄우는 '퀘스트 완료!' 팡파레")]
+        private QuestCompleteView questComplete;
+
         // 시안 글자색: 본문 잉크와 끝낸 목표의 옅은 갈색
         private static readonly Color Ink = new Color32(47, 37, 27, 255);
         private static readonly Color Muted = new Color32(125, 110, 91, 255);
+
+        // 코인이 바뀔 때 연출(시안 f1·f3): 숫자를 세는 시간, 칩이 튀는 시간, 글자가 떠 있는 시간과 사라지는 시간, 떠오르는 높이
+        private const float CoinCountSeconds = .6f;
+        private const float CoinPunchSeconds = .3f;
+        private const float CoinChangeSeconds = 2.4f;
+        private const float CoinFadeSeconds = .5f;
+        private const float CoinFloatRise = 30f;
+        private static readonly Color CoinGainColor = new Color32(232, 161, 0, 255);
+        private static readonly Color CoinLossColor = new Color32(47, 37, 27, 255);
+
+        // 터치 기기의 미니맵 윗변: 시계·코인 칩(위 28, 높이 64) 아래 코인 바뀜 알약(사이 10, 높이 46)에서 14 아래(시안 px)
+        private const float TouchMiniMapTop = 28 + 64 + 10 + 46 + 14;
 
         // 시안: 퀘스트 카드는 왼쪽·위 28px, 폭 410px(캔버스는 1.2배)
         private const float Margin = 28 * 1.2f;
         private const float CardWidth = 410 * 1.2f;
         private const float DrawerWidth = 480;
 
-        // 사용자가 연 수첩과 크게 본 지도는 대화창의 단어·문장 카드, 피드백·단어장 화면보다 위에 그린다. 장소 이동 막(short.MaxValue)보다는 아래다.
-        private const int OpenJournalSortingOrder = 1000;
-
         private Canvas canvas;
         private int shownClockMinute = -1;
         private bool talking;
-        private int closedSortingOrder;
+
+        // 지금까지 보인 코인. 처음 받은 코인은 바뀐 것으로 알리지 않는다.
+        private int? shownBalance;
+        private Coroutine coinChange;
+        private bool showingCoinChange;
+        private Vector2 coinFloatHome;
         private bool available;
         private string mapSceneCode;
 
+        // 미니맵을 터치 기기 자리(오른쪽 위)에 두었는지. 처음 화면을 그릴 때 정한다.
+        private bool? miniMapOnRight;
+
+        // 하는 퀘스트가 없어 카드 대신 퀘스트 아이콘을 두는지
+        private bool idle;
+
+        // 끝낸 퀘스트의 보상은 팡파레와 함께 더하므로 그때까지 코인 칩을 바꾸지 않는다. 그동안 받은 코인과 산 것을 기억한다.
+        private bool rewardExpected;
+        private int latestBalance;
+        private string latestPurchase;
+
+        // 팡파레의 [다음]을 누르면 목록에서 잠금을 풀 퀘스트. 없으면 -1이다.
+        private QuestBoardState finishedBoard;
+        private int unlockedQuest = -1;
+
+        // 퀘스트 카드·미니맵의 화면 자리를 구하는 데 매 프레임 다시 쓴다.
+        private readonly Vector3[] hudCorners = new Vector3[4];
+
         public event Action StartRequested;
 
-        /// <summary>지도 버튼으로 수첩을 열면 알린다.</summary>
+        /// <summary>퀘스트 카드를 눌러 수첩을 열면 알린다.</summary>
         public event Action JournalOpened;
         public event Action RestRequested;
         public event Action RetryRequested;
+
+        /// <summary>퀘스트 목록을 열어 서버의 퀘스트 목록이 필요하다.</summary>
+        public event Action QuestBoardRequested;
 
         private RectTransform Banner => (RectTransform)situation.transform.parent;
 
         public bool IsJournalOpen => journal.activeSelf;
 
-        /// <summary>왼쪽 위 지도 버튼. 튜토리얼 코치 마크가 오늘의 목표를 볼 때 밝힌다.</summary>
-        public RectTransform JournalButtonRect => (RectTransform)journalButton.transform;
+        public bool IsQuestBoardOpen => questBoard != null && questBoard.IsOpen;
+
+        public bool IsQuestCompleteOpen => questComplete != null && questComplete.IsOpen;
+
+        /// <summary>
+        /// 왼쪽 위 퀘스트 카드(하는 퀘스트가 없으면 퀘스트 아이콘). 누르면 퀘스트 목록이 열리며, 튜토리얼 코치 마크가 오늘의 목표를 볼 때 밝힌다.
+        /// </summary>
+        public RectTransform QuestCardRect =>
+            idle ? (RectTransform)questIcon.transform : (RectTransform)journalButton.transform;
 
         public void SetAvailable(bool available)
         {
@@ -172,10 +249,14 @@ namespace A305.Mission
             {
                 ShowJournal(false);
                 ShowLargeMap(false);
+                if (IsQuestBoardOpen)
+                    questBoard.Close();
+                if (IsQuestCompleteOpen)
+                    questComplete.Close();
                 JourneyStatus.Shared.Clear();
                 GuideDestination.Shared.Clear();
             }
-            UpdateMiniMapVisibility();
+            UpdateLeftHudVisibility();
         }
 
         public void BindMap(string sceneCode, Transform player)
@@ -188,7 +269,7 @@ namespace A305.Mission
                 largeMap.Bind(sceneCode, player);
             if (sceneCode != "TOWN")
                 ShowLargeMap(false);
-            UpdateMiniMapVisibility();
+            UpdateLeftHudVisibility();
         }
 
         public void Refresh(FirstDayMissionState state, bool busy, bool talking)
@@ -203,14 +284,21 @@ namespace A305.Mission
             // NPC가 할 일을 먼저 말하지 않으므로, 요청 안내 아래 이번 단계 목표를 보여 주어 무엇을 요청할지 알게 한다.
             ShowGoals(state.CanRest || current == null ? null : current.Goals);
             this.talking = talking;
-            statusBar.SetActive(!talking);
-            UpdateMiniMapVisibility();
+            idle = !state.Started || state.Completed;
+            Banner.gameObject.SetActive(!idle && !journal.activeSelf);
+            questIcon.gameObject.SetActive(idle && !journal.activeSelf);
+            latestBalance = state.Balance;
+            latestPurchase = state.LastPurchase;
+            if (!rewardExpected)
+                ShowCoins(state.Balance, state.LastPurchase);
+            // 대화 중에는 시계·코인 칩을 숨기지만, 코인이 바뀐 동안에는 코인 칩을 잠깐 보인다.
+            statusBar.SetActive(!talking || showingCoinChange);
+            UpdateLeftHudVisibility();
             string chip = StepChip(state.Steps);
             stepChip.text = chip ?? "";
             stepChip.transform.parent.gameObject.SetActive(chip != null);
             place.text = current != null ? CompactTitle(current.Title) : "";
             ShowProgress(state.Steps);
-            coins.text = state.Balance.ToString();
             ShowClock();
             // 폰 메뉴의 오늘의 여정 위젯이 같은 내용을 보인다.
             JourneyStatus.Shared.Show(
@@ -224,13 +312,14 @@ namespace A305.Mission
             journalGoal.text = state.CanRest
                 ? "의자에 앉아 잠깐 쉬기"
                 : current?.Goals.FirstOrDefault(goal => !goal.Completed)?.Title ?? "";
-            townMap.ShowDestination(state.Destination);
+            string destination = state.Destination;
+            townMap.ShowDestination(destination);
             if (miniMap != null)
-                miniMap.ShowDestination(state.Destination);
+                miniMap.ShowDestination(destination);
             if (largeMap != null)
-                largeMap.ShowDestination(state.Destination);
+                largeMap.ShowDestination(destination);
             if (largeMapLegend != null)
-                largeMapLegend.text = MiniMapLegend(state.Destination);
+                largeMapLegend.text = MiniMapLegend(destination);
             startButton.gameObject.SetActive(!state.Started);
             startButton.interactable = !busy && !talking;
             restButton.gameObject.SetActive(false);
@@ -251,19 +340,20 @@ namespace A305.Mission
                 );
             }
             journey.text = lines.ToString().TrimEnd();
+            int firstDayStage = state.IsTownStory ? 7 : state.Stage;
             string suitcase =
-                state.Stage >= 7 ? "캐리어 · 찾음"
-                : state.Started && state.Stage >= 1 ? "캐리어 · 호텔 보관"
+                firstDayStage >= 7 ? "캐리어 · 찾음"
+                : state.Started && firstDayStage >= 1 ? "캐리어 · 호텔 보관"
                 : "캐리어 · 소지 중";
             string bag =
-                state.Stage >= 4 ? "파란 가방 · 찾음"
-                : state.Stage >= 2 ? "파란 가방 · 카페에 두고 옴"
+                firstDayStage >= 4 ? "파란 가방 · 찾음"
+                : firstDayStage >= 2 ? "파란 가방 · 카페에 두고 옴"
                 : "파란 가방 · 빨간 열쇠고리\n여권 지갑 · 책";
             belongings.text =
                 suitcase
                 + "\n"
                 + bag
-                + (state.Stage >= 6 ? "\n우산 · 소지 중" : "")
+                + (firstDayStage >= 6 ? "\n우산 · 소지 중" : "")
                 + $"\n{state.Balance}코인";
         }
 
@@ -274,7 +364,8 @@ namespace A305.Mission
         }
 
         /// <summary>
-        /// 이번 단계 목표를 한 줄에 하나씩 보인다. 시안처럼 끝낸 목표는 초록 체크·옅은 글자·취소선, 남은 목표는 빈 동그라미다.
+        /// 이번 단계 목표를 한 줄에 하나씩 보인다. 시안처럼 끝낸 목표는 초록 체크·옅은 글자·취소선, 남은 목표는 빈 동그라미이고
+        /// 이름 아래에 말해야 할 정보를 작게 보인다.
         /// 목표가 없으면(쉬는 차례 등) 목표 칸을 숨긴다.
         /// </summary>
         private void ShowGoals(IReadOnlyList<FirstDayMissionGoal> current)
@@ -298,6 +389,13 @@ namespace A305.Mission
                 label.text = goal.Title;
                 label.color = goal.Completed ? Muted : Ink;
                 label.fontStyle = goal.Completed ? FontStyles.Strikethrough : FontStyles.Normal;
+                // 아직 하지 않은 목표는 이름 아래에 말해야 할 정보(예: 예약자 이름, 가방 모양)를 작게 보인다.
+                Transform hint = row.transform.Find("Text/Hint");
+                if (hint == null)
+                    continue;
+                bool showsHint = !goal.Completed && !string.IsNullOrEmpty(goal.Hint);
+                hint.gameObject.SetActive(showsHint);
+                hint.GetComponent<TMP_Text>().text = showsHint ? goal.Hint : "";
             }
         }
 
@@ -318,6 +416,13 @@ namespace A305.Mission
         // 진행 막대 칸을 단계 수만큼 두고 단계 상태에 따라 칠한다. 칸이 모자라면 첫 칸을 본떠 더 만든다.
         private void ShowProgress(IReadOnlyList<FirstDayMissionStep> steps)
         {
+            HorizontalLayoutGroup layout = progress.GetComponent<HorizontalLayoutGroup>();
+            if (layout != null)
+            {
+                // 첫날보다 단계가 많으면 칸을 균등하게 줄여 카드 밖으로 나가지 않게 한다.
+                layout.childControlWidth = steps.Count > 7;
+                layout.childForceExpandWidth = steps.Count > 7;
+            }
             GameObject template = progress.GetChild(0).gameObject;
             while (progress.childCount < steps.Count)
                 Instantiate(template, progress, false);
@@ -339,6 +444,67 @@ namespace A305.Mission
             status == "DONE" ? JourneyMark.Done
             : status == "CURRENT" ? JourneyMark.Current
             : JourneyMark.Upcoming;
+
+        private void ShowCoins(int balance, string purchase)
+        {
+            CoinChange? change = CoinChange.Between(shownBalance, balance, purchase);
+            int from = shownBalance ?? balance;
+            shownBalance = balance;
+            if (change.HasValue && coinFloat != null && coinReceipt != null)
+                ShowCoinChange(change.Value, from, balance);
+            else if (coinChange == null)
+                coins.text = balance.ToString();
+        }
+
+        // 코인이 바뀌면 칩 옆에 바뀐 만큼을, 칩 아래에 산 것·보상을 띄우고 숫자를 세며 바꾼다(시안 f1·f3).
+        private void ShowCoinChange(CoinChange change, int from, int to)
+        {
+            showingCoinChange = true;
+            coinFloat.text = change.Float;
+            coinFloat.color = change.IsGain ? CoinGainColor : CoinLossColor;
+            coinFloat.alpha = 1f;
+            coinFloat.gameObject.SetActive(true);
+            coinReceipt.text = change.Receipt;
+            coinReceipt.transform.parent.gameObject.SetActive(true);
+            if (coinChange != null)
+                StopCoroutine(coinChange);
+            coinChange =
+                Application.isPlaying && isActiveAndEnabled
+                    ? StartCoroutine(PlayCoinChange(from, to))
+                    : null;
+            if (coinChange == null)
+                coins.text = to.ToString();
+        }
+
+        private IEnumerator PlayCoinChange(int from, int to)
+        {
+            var amount = (RectTransform)coinFloat.transform;
+            if (coinFloatHome == default)
+                coinFloatHome = amount.anchoredPosition;
+            for (float t = 0f; t < CoinChangeSeconds; t += Time.unscaledDeltaTime)
+            {
+                float count = Mathf.Clamp01(t / CoinCountSeconds);
+                coins.text = Mathf.RoundToInt(Mathf.Lerp(from, to, count)).ToString();
+                // 칩이 한 번 통 튀고, 글자는 위로 떠오르다 끝에서 사라진다.
+                float punch = Mathf.Sin(Mathf.Clamp01(t / CoinPunchSeconds) * Mathf.PI) * .12f;
+                if (coinChip != null)
+                    coinChip.localScale = Vector3.one * (1f + punch);
+                amount.anchoredPosition =
+                    coinFloatHome
+                    + Vector2.up * (CoinFloatRise * Mathf.Clamp01(t / CoinChangeSeconds));
+                coinFloat.alpha = Mathf.Clamp01((CoinChangeSeconds - t) / CoinFadeSeconds);
+                yield return null;
+            }
+            coins.text = to.ToString();
+            if (coinChip != null)
+                coinChip.localScale = Vector3.one;
+            amount.anchoredPosition = coinFloatHome;
+            coinFloat.gameObject.SetActive(false);
+            coinReceipt.transform.parent.gameObject.SetActive(false);
+            showingCoinChange = false;
+            coinChange = null;
+            statusBar.SetActive(!talking);
+        }
 
         // 게임 시계는 분이 바뀔 때만 다시 쓴다.
         private void ShowClock()
@@ -388,10 +554,118 @@ namespace A305.Mission
 
         private void OnRectTransformDimensionsChange() => UpdateLayout();
 
+        /// <summary>왼쪽 위 퀘스트 카드: 퀘스트 목록을 연다. 연결은 QuestBoardBuilder가 버튼에 넣는다.</summary>
+        public void OpenQuestBoard()
+        {
+            ShowLargeMap(false);
+            questBoard.Open();
+            UpdateBoardLayer();
+            JournalOpened?.Invoke();
+        }
+
+        /// <summary>퀘스트를 끝냈다. 그 보상은 팡파레의 코인이 코인 칩에 닿을 때 더하도록 그때까지 코인 칩을 그대로 둔다.</summary>
+        public void ExpectQuestReward() => rewardExpected = true;
+
+        /// <summary>미뤄 둔 코인을 코인 칩에 보인다. 팡파레를 띄우지 못했을 때도 부른다.</summary>
+        public void ReleaseQuestReward()
+        {
+            rewardExpected = false;
+            ShowCoins(latestBalance, latestPurchase);
+        }
+
+        /// <summary>
+        /// 끝낸 퀘스트의 '퀘스트 완료!' 팡파레를 띄운다(시안 f1). 같은 대화에서 산 것이 있으면 먼저 줄이고, 보상은 날아간 코인이 칩에 닿을 때 더한다.
+        /// [다음]을 누르면 목록에서 바로 다음 퀘스트의 잠금을 푼다(시안 f2).
+        /// </summary>
+        public void ShowQuestComplete(QuestBoardState board, string questId)
+        {
+            int index = board.Quests.FindIndex(quest => quest.Id == questId);
+            if (index < 0)
+            {
+                ReleaseQuestReward();
+                return;
+            }
+            QuestEntry finished = board.Quests[index];
+            if (rewardExpected)
+                ShowCoins(latestBalance - finished.Reward, latestPurchase);
+            finishedBoard = board;
+            bool opensNext =
+                index + 1 < board.Quests.Count
+                && board.Quests[index + 1].Status == QuestEntry.Available;
+            unlockedQuest = opensNext ? index + 1 : -1;
+            ShowLargeMap(false);
+            if (IsQuestBoardOpen)
+                questBoard.Close();
+            questComplete.Show(
+                finished,
+                questBoard.IconOf(index),
+                QuestBoardText
+                    .Route(finished)
+                    .Select(place => questBoard.StampOf(place.Place))
+                    .ToList(),
+                coinChip,
+                ReleaseQuestReward
+            );
+            UpdateBoardLayer();
+        }
+
+        /// <summary>
+        /// 팡파레의 [다음]: 팡파레를 닫고, 열린 다음 퀘스트가 있으면 퀘스트 목록에서 그 잠금을 푼다. 연결은 QuestCompleteBuilder가 넣는다.
+        /// </summary>
+        public void ShowNextQuest()
+        {
+            questComplete.Close();
+            if (unlockedQuest >= 0)
+            {
+                OpenQuestBoard();
+                questBoard.Show(finishedBoard);
+                questBoard.PlayUnlock(unlockedQuest);
+            }
+            unlockedQuest = -1;
+            UpdateBoardLayer();
+        }
+
+        /// <summary>
+        /// 미니맵 자리. 터치 조작을 보이는 기기에서는 왼쪽 아래 이동 조이스틱과 겹치지 않게 오른쪽 위, 시계·코인 칩과 코인 바뀜 알약 아래에 두고,
+        /// 그 밖에는 시안(g1)처럼 왼쪽 아래에 둔다.
+        /// </summary>
+        public void PlaceMiniMap(bool touch)
+        {
+            miniMapOnRight = touch;
+            if (miniMapPanel == null)
+                return;
+            var panel = (RectTransform)miniMapPanel.transform;
+            Vector2 corner = touch ? Vector2.one : Vector2.zero;
+            panel.anchorMin = panel.anchorMax = panel.pivot = corner;
+            panel.anchoredPosition = touch
+                ? new Vector2(-Margin, -TouchMiniMapTop * 1.2f)
+                : new Vector2(Margin, Margin);
+        }
+
+        /// <summary>서버에서 받은 퀘스트 목록을 보인다.</summary>
+        public void ShowQuestBoard(QuestBoardState board) => questBoard.Show(board);
+
+        private void UpdateBoardLayer()
+        {
+            UpdateLeftHudVisibility();
+            UpdateSortingOrder();
+        }
+
+        private void RequestQuestBoard() => QuestBoardRequested?.Invoke();
+
+        private void OnBoardOpenChanged(bool open) => UpdateBoardLayer();
+
         private void Awake()
         {
             journal.SetActive(false);
-            journalButton.onClick.AddListener(ToggleJournal);
+            if (questBoard == null)
+                journalButton.onClick.AddListener(ToggleJournal);
+            else
+            {
+                questBoard.Requested += RequestQuestBoard;
+                questBoard.StartRequested += StartMission;
+                questBoard.OpenChanged += OnBoardOpenChanged;
+            }
             if (miniMapButton != null)
                 miniMapButton.onClick.AddListener(OpenLargeMap);
             if (mapCloseButton != null)
@@ -404,12 +678,21 @@ namespace A305.Mission
             retryButton.onClick.AddListener(Retry);
             // 폰 메뉴의 [마을 지도] 앱도 같은 큰 지도를 연다.
             JourneyStatus.Shared.MapRequested += OpenLargeMap;
+            CenterWindow.Shared.Changed += FollowCenterWindow;
         }
 
         private void OnDestroy()
         {
             JourneyStatus.Shared.MapRequested -= OpenLargeMap;
+            CenterWindow.Shared.Changed -= FollowCenterWindow;
+            CenterWindow.Shared.SetLeftHud(0f);
             journalButton.onClick.RemoveListener(ToggleJournal);
+            if (questBoard != null)
+            {
+                questBoard.Requested -= RequestQuestBoard;
+                questBoard.StartRequested -= StartMission;
+                questBoard.OpenChanged -= OnBoardOpenChanged;
+            }
             if (miniMapButton != null)
                 miniMapButton.onClick.RemoveListener(OpenLargeMap);
             if (mapCloseButton != null)
@@ -432,8 +715,9 @@ namespace A305.Mission
             if (open)
                 ShowLargeMap(false);
             journal.SetActive(open);
-            Banner.gameObject.SetActive(!open);
-            UpdateMiniMapVisibility();
+            Banner.gameObject.SetActive(!open && !idle);
+            questIcon.gameObject.SetActive(!open && idle);
+            UpdateLeftHudVisibility();
             UpdateSortingOrder();
             if (isOpening)
                 JournalOpened?.Invoke();
@@ -443,26 +727,29 @@ namespace A305.Mission
 
         private void CloseLargeMap() => ShowLargeMap(false);
 
-        // 미니맵과 같은 지도를 화면 가운데에 크게 펼친다. 퀘스트 수첩은 왼쪽 위 지도 버튼으로 연다.
+        // 미니맵과 같은 지도를 화면 가운데에 크게 펼친다. 퀘스트 수첩은 왼쪽 위 퀘스트 카드를 눌러 연다.
         private void ShowLargeMap(bool open)
         {
             if (mapOverlay == null)
                 return;
             mapOverlay.SetActive(open);
-            UpdateMiniMapVisibility();
+            UpdateLeftHudVisibility();
             UpdateSortingOrder();
         }
 
         private void Update()
         {
+            bool touch = PlayerTouchControls.ShouldShowControls();
+            if (miniMapOnRight != touch)
+                PlaceMiniMap(touch);
             ShowClock();
-            if (
-                mapOverlay != null
-                && mapOverlay.activeSelf
-                && Keyboard.current != null
-                && Keyboard.current.escapeKey.wasPressedThisFrame
-            )
+            CenterWindow.Shared.SetLeftHud(LeftHudScreenWidth());
+            bool escape =
+                Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
+            if (mapOverlay != null && mapOverlay.activeSelf && escape)
                 CloseLargeMap();
+            else if (IsQuestBoardOpen && escape)
+                questBoard.Close();
         }
 
         private void UpdateSortingOrder()
@@ -470,8 +757,16 @@ namespace A305.Mission
             Canvas root = RootCanvas();
             if (root == null)
                 return;
-            bool raised = journal.activeSelf || (mapOverlay != null && mapOverlay.activeSelf);
-            root.sortingOrder = raised ? OpenJournalSortingOrder : closedSortingOrder;
+            bool raised =
+                journal.activeSelf
+                || (mapOverlay != null && mapOverlay.activeSelf)
+                || IsQuestBoardOpen
+                || IsQuestCompleteOpen;
+            // 수첩·큰 지도를 연 동안에는 다른 캔버스와 먼저 연 창보다 위에 그린다.
+            if (raised)
+                UiLayer.Open(root, this);
+            else
+                UiLayer.Close(root, this);
         }
 
         /// <summary>
@@ -479,27 +774,58 @@ namespace A305.Mission
         /// </summary>
         public static string MiniMapLegend(string destination)
         {
-            string place = destination switch
-            {
-                "CAFE" => "카페",
-                "HOTEL" => "호텔",
-                "SHOP" => "드럭스토어",
-                "HOME" => "집",
-                _ => "자유 탐험",
-            };
+            string place = TownMapArt.PlaceName(destination) ?? "자유 탐험";
             return $"<color=#3C78D8>▲</color> 내 위치    <color=#E0524A>●</color> {place}";
         }
 
-        private void UpdateMiniMapVisibility()
+        // 왼쪽 아래 미니맵과 퀘스트 카드 아래 기다리는 카드를 보일지 정한다. 수첩·퀘스트 목록·큰 지도·퀘스트 완료 팡파레가 왼쪽을 덮는 동안에는 숨긴다.
+        private void UpdateLeftHudVisibility()
         {
+            bool isLeftCovered =
+                journal.activeSelf
+                || IsQuestBoardOpen
+                || IsQuestCompleteOpen
+                || (mapOverlay != null && mapOverlay.activeSelf);
             if (miniMapPanel != null)
                 miniMapPanel.SetActive(
-                    available
-                        && !talking
-                        && mapSceneCode == "TOWN"
-                        && !journal.activeSelf
-                        && (mapOverlay == null || !mapOverlay.activeSelf)
+                    available && !talking && mapSceneCode == "TOWN" && !isLeftCovered
                 );
+            // 기다리는 카드는 퀘스트 카드처럼 대화 중에도 보인다.
+            if (followUpCard != null)
+                followUpCard.SetAllowed(available && !isLeftCovered);
+        }
+
+        // 단어장·피드백 같은 가운데 창이 그 오른쪽에 놓이도록, 보이는 퀘스트 카드·기다리는 카드·미니맵이 화면 왼쪽에서 차지하는 폭(화면 픽셀).
+        // 가운데 창은 왼쪽 HUD의 오른쪽에 놓이므로, 기다리는 카드 높이만큼 왼쪽 열이 길어져도 겹치지 않는다.
+        private float LeftHudScreenWidth() =>
+            Mathf.Max(
+                RightEdgeOf(Banner.gameObject),
+                RightEdgeOf(questIcon.gameObject),
+                // 터치 기기에서 오른쪽 위로 옮긴 미니맵은 왼쪽 폭에 넣지 않는다.
+                miniMapOnRight == true
+                    ? 0f
+                    : RightEdgeOf(miniMapPanel),
+                RightEdgeOf(followUpCard != null ? followUpCard.Card : null)
+            );
+
+        private float RightEdgeOf(GameObject hud)
+        {
+            if (hud == null || !hud.activeInHierarchy)
+                return 0f;
+            var rect = (RectTransform)hud.transform;
+            rect.GetWorldCorners(hudCorners);
+            return RectTransformUtility
+                .WorldToScreenPoint(CenterWindow.CameraOf(rect), hudCorners[2])
+                .x;
+        }
+
+        // 가운데 창이 열리면 펼친 수첩·큰 지도를 닫아 창끼리 겹치지 않게 한다. 퀘스트 카드·미니맵은 창과 함께 보인다.
+        private void FollowCenterWindow()
+        {
+            if (!CenterWindow.Shared.IsOpen)
+                return;
+            ShowJournal(false);
+            ShowLargeMap(false);
         }
 
         // Builder가 Awake 전에 SetAvailable을 불러도 되도록 처음 쓸 때 캔버스와 닫혀 있을 때의 순서를 기억한다.
@@ -511,7 +837,6 @@ namespace A305.Mission
                 if (parent == null)
                     return null;
                 canvas = parent.rootCanvas;
-                closedSortingOrder = canvas.sortingOrder;
             }
 
             return canvas;

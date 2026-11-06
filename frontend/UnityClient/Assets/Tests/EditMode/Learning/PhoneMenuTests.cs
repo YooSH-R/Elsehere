@@ -88,6 +88,40 @@ namespace A305.Learning.Tests
             Assert.That(shown, Is.EqualTo(2));
         }
 
+        // 단계가 시안(7칸)보다 많아도(마을 이야기 12단계) 진행 칸을 줄여 카드 안에 넣는다.
+        [Test]
+        public void ManySteps_StayInsideTheJourneyCard()
+        {
+            var marks = new JourneyMark[12];
+            JourneyStatus.Shared.Show(
+                "12 / 12",
+                "마을의 이웃들과 자유롭게 대화해 보세요.",
+                marks,
+                76
+            );
+
+            phone.Refresh();
+
+            var progress = Field<RectTransform>("journeyProgress");
+            // 닫혀 있는 폰을 열어 배치를 계산한다.
+            for (Transform part = progress; part != null; part = part.parent)
+                part.gameObject.SetActive(true);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(progress);
+            int shown = 0;
+            foreach (RectTransform mark in progress)
+            {
+                if (!mark.gameObject.activeSelf)
+                    continue;
+                shown++;
+                Assert.That(
+                    mark.anchoredPosition.x + mark.rect.width * (1 - mark.pivot.x),
+                    Is.LessThanOrEqualTo(progress.rect.width + .05f),
+                    $"{shown}번째 칸"
+                );
+            }
+            Assert.That(shown, Is.EqualTo(12));
+        }
+
         [Test]
         public void WithoutAJourney_HidesTheJourneyWidget()
         {

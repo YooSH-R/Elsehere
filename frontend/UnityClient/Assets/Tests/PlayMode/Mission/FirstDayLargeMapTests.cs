@@ -89,11 +89,11 @@ namespace A305.Mission.PlayModeTests
         {
             yield return ShowInTown();
             Field<Button>("miniMapButton").onClick.Invoke();
-            TownMapView map = Field<TownMapView>("largeMap");
+            var map = Field<TownMiniMapView>("largeMap");
             var marker = (RectTransform)
-                new SerializedObject(map).FindProperty("playerMarker").objectReferenceValue;
+                new SerializedObject(map).FindProperty("player").objectReferenceValue;
             yield return null;
-            Vector2 before = marker.anchorMin;
+            Vector2 before = marker.anchoredPosition;
 
             player.transform.position = new Vector3(5f, 0f, 5f);
             yield return null;
@@ -102,7 +102,7 @@ namespace A305.Mission.PlayModeTests
                 map.gameObject,
                 Is.Not.SameAs(Field<TownMiniMapView>("miniMap").gameObject)
             );
-            Assert.That(marker.anchorMin, Is.Not.EqualTo(before));
+            Assert.That(marker.anchoredPosition, Is.Not.EqualTo(before));
             Assert.That(Field<TMP_Text>("largeMapLegend").text, Does.Contain("카페"));
         }
 

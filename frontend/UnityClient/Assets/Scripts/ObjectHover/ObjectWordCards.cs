@@ -22,6 +22,40 @@ namespace A305.ObjectHover
             this.api = api;
         }
 
+        /// <summary>
+        /// 단어장에서 단어를 지웠을 때 그 영어 표현을 알린다. 장소의 카드는 들어올 때 받은 저장 상태를 들고 있어,
+        /// 이 알림을 받아 <see cref="ForgetSaved"/>로 다시 저장할 수 있게 한다.
+        /// </summary>
+        public static event Action<string> SavedWordRemoved;
+
+        public static void NotifySavedWordRemoved(string text)
+        {
+            SavedWordRemoved?.Invoke(text);
+        }
+
+        // 단어장에서 '외웠어요'로 표시한 단어의 영어 표현. 장소의 카드와 단어장 중 무엇을 먼저 받을지 몰라 장소와 상관없이 둔다.
+        private static readonly HashSet<string> learnedWords = new HashSet<string>(
+            StringComparer.OrdinalIgnoreCase
+        );
+
+        /// <summary>
+        /// 단어장의 외운 단어를 알린다. 외운 단어는 숨긴 단어처럼 호버로 카드를 띄우지 않고, 사물을 클릭하면 보인다.
+        /// 단어장 항목에는 단어 키가 없어 영어 표현으로 찾는다.
+        /// </summary>
+        public static void ShareLearnedWords(IEnumerable<string> texts)
+        {
+            learnedWords.Clear();
+            foreach (string text in texts)
+            {
+                if (text != null)
+                {
+                    learnedWords.Add(text);
+                }
+            }
+        }
+
+        public static bool IsLearned(string text) => text != null && learnedWords.Contains(text);
+
         /// <summary>장소의 단어 카드를 받았는지</summary>
         public bool IsLoaded { get; private set; }
 
@@ -57,10 +91,11 @@ namespace A305.ObjectHover
             return cards.TryGetValue(wordKey, out card);
         }
 
-        /// <summary>호버로 카드를 띄워도 되는지. 숨긴 단어만 false이며, 숨긴 단어도 클릭하면 카드를 보인다.</summary>
+        /// <summary>호버로 카드를 띄워도 되는지. 숨긴 단어와 단어장에서 외운 단어만 false이며, 둘 다 클릭하면 카드를 보인다.</summary>
         public bool CanHover(string wordKey)
         {
-            return !TryGet(wordKey, out WordCard card) || !card.HoverHidden;
+            return !TryGet(wordKey, out WordCard card)
+                || !(card.HoverHidden || IsLearned(card.Word.Text));
         }
 
         /// <summary>[단어장에 저장](VOCAB-02 OBJECT). 실패하면 카드 안내에 이유를 남기고 다시 누를 수 있다.</summary>
@@ -83,7 +118,22 @@ namespace A305.ObjectHover
             );
         }
 
-        /// <summary>[알아요 · 다시 안 띄우기]와 [다시 띄우기](WORLD-03).</summary>
+        /// <summary>
+        /// 단어장에서 지운 단어를 저장하지 않은 카드로 되돌려 다시 저장할 수 있게 한다. 단어장 항목에는 단어 키가 없어
+        /// 영어 표현으로 찾는다.
+        /// </summary>
+        public void ForgetSaved(string text)
+        {
+            foreach (WordCard card in cards.Values)
+            {
+                if (string.Equals(card.Word.Text, text, StringComparison.OrdinalIgnoreCase))
+                {
+                    card.Saved = false;
+                }
+            }
+        }
+
+        /// <summary>[숨기기]와 [다시 띄우기](WORLD-03).</summary>
         public async Task SetHoverHiddenAsync(string wordKey, bool hoverHidden)
         {
             if (!TryGet(wordKey, out WordCard card) || card.IsBusy)

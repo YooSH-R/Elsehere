@@ -2,9 +2,10 @@ import json
 from pathlib import Path
 
 from .models import INPUT
+from .situation_catalog import situation_candidates
 from .spoken_usage import spoken_candidates
 
-PROMPT_VERSION = "feedback_prompt_v0.6.0"
+PROMPT_VERSION = "feedback_prompt_v0.7.0"
 SYSTEM_PATH = Path(__file__).resolve().parent.parent / "prompts" / "feedback_system.ko.md"
 
 
@@ -40,6 +41,7 @@ def build_messages(payload):
         "turns": compact_turns,
         "assistance_events": [event.model_dump() for event in request.assistance_events if event.assistance_id in used],
         "spoken_usage_candidates": spoken_candidates(request),
+        "situation_expression_candidates": situation_candidates(request),
     }
     system = SYSTEM_PATH.read_text(encoding="utf-8")
     return [

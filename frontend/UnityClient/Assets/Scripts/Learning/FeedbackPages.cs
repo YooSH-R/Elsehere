@@ -113,7 +113,7 @@ namespace A305.Learning
         }
 
         /// <summary>
-        /// 사용자 발화와 별개로 이 장면에서 자주 쓰는 표현을 한 장에 모아 먼저 보여 준다. 요약 탭과 같은 표현 칸(코랄 제목 아래 흰 칸)으로 그리므로
+        /// 사용자 발화와 별개로 이 장면에서 자주 쓰는 표현을 회화 표현 탭의 한 장에 모아 보여 준다. 코랄 제목 아래 흰 칸으로 그리므로
         /// 본문 글은 비우고 표현을 넘긴다. 표현이 하나면 뜻을 함께 넘겨 [표현 저장]이 그 표현을 저장한다.
         /// </summary>
         private static void AddSituationPage(
@@ -150,7 +150,7 @@ namespace A305.Learning
             {
                 string prefix = head + " · ";
                 if (note.StartsWith(prefix))
-                    return $"<color={color}><b>{head}</b></color>  {note.Substring(prefix.Length)}";
+                    return $"<color={color}><b>{head}</b></color>\n{note.Substring(prefix.Length)}";
             }
             return note;
         }

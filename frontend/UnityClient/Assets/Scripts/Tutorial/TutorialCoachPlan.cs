@@ -39,8 +39,11 @@ namespace A305.Tutorial
         /// <summary>대화를 시작하고 [다음]으로 넘긴 티칭 수</summary>
         public int DialogueTourStep { get; set; }
 
-        /// <summary>지도 수첩이 열려 있는지</summary>
+        /// <summary>퀘스트 카드로 여는 여행 수첩이 열려 있는지</summary>
         public bool IsJournalOpen { get; set; }
+
+        /// <summary>녹음 중이라 대화 화면 [말하기]의 불이 켜져 있는지([준비 중]이면 꺼져 있다)</summary>
+        public bool IsVoiceLightOn { get; set; }
     }
 
     /// <summary>
@@ -74,6 +77,12 @@ namespace A305.Tutorial
         /// <summary>대화 시작·대화 노트 티칭처럼 [다음]으로 넘기는 대상인지</summary>
         public static bool IsTour(TutorialCoachTarget target) =>
             IsDialogueTour(target) || System.Array.IndexOf(FeedbackTour, target) >= 0;
+
+        /// <summary>
+        /// 녹음하는 동안 [말하기]의 불 옆에 불이 무슨 뜻인지 알릴지. 할 대사를 알리는 동안(티칭 뒤, 길 안내를 마치기 전)에만 알린다.
+        /// </summary>
+        public static bool ExplainsVoiceLight(TutorialStep step, TutorialScreen screen) =>
+            screen.IsVoiceLightOn && Choose(step, screen) == TutorialCoachTarget.GuidedLine;
 
         public static TutorialCoachTarget Choose(TutorialStep step, TutorialScreen screen)
         {
@@ -123,7 +132,7 @@ namespace A305.Tutorial
                 case TutorialStep.TodayGoal:
                     return screen.IsJournalOpen || screen.IsLearningScreenShowing
                         ? TutorialCoachTarget.None
-                        : TutorialCoachTarget.MapButton;
+                        : TutorialCoachTarget.QuestCard;
                 default:
                     return TutorialCoachTarget.None;
             }

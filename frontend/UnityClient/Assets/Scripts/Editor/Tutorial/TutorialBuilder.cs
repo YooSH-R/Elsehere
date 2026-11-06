@@ -36,6 +36,7 @@ namespace A305.EditorTools.Tutorial
             "CafeScene",
             "HotelScene",
             "ShopScene",
+            "PoliceStationScene",
         };
 
         private const string SandboxFolder = "Assets/Scenes/Sandbox";
@@ -116,6 +117,7 @@ namespace A305.EditorTools.Tutorial
                     "guidedLineCaption",
                     "suggestedWordsCaption",
                     "guidedLineMissCaption",
+                    "voiceLightCaption",
                     "dialogueEndCaption",
                     "feedbackSectionsCaption",
                     "feedbackPagesCaption",
@@ -137,7 +139,7 @@ namespace A305.EditorTools.Tutorial
 
         /// <summary>
         /// 튜토리얼 진행이 있는 장소 씬(배포용 5개와 공간 기능을 붙인 Sandbox 씬)에 코치 마크와 단계 신호를 받는 화면
-        /// (대화·메뉴·피드백·지도)을 연결한다. 디자인한 씬의 다른 객체는 건드리지 않는다.
+        /// (대화·메뉴·피드백·첫날 미션)을 연결한다. 디자인한 씬의 다른 객체는 건드리지 않는다.
         /// </summary>
         [MenuItem("Tools/A305/Tutorial/Connect Coach Marks")]
         public static void ConnectCoachMarks()

@@ -52,7 +52,9 @@ namespace A305.Onboarding.Tests
             Assert.That(Sprite("Kicker"), Is.EqualTo("LoginKicker"));
             Assert.That(Sprite("Logo"), Is.EqualTo("LoginLogo"));
             var subtitle = login.Find("Subtitle").GetComponent<TMP_Text>();
-            Assert.That(subtitle.text, Does.Contain("NPC와 영어로"));
+            // 오래 머물며 여러 언어로 넓힐 서비스이므로 한 언어나 첫날에 묶인 말을 쓰지 않는다.
+            Assert.That(subtitle.text, Does.Contain("현지 언어로"));
+            Assert.That(subtitle.text, Does.Not.Contain("영어").And.Not.Contain("첫날"));
             Assert.That(((RectTransform)subtitle.transform).anchorMin.x, Is.EqualTo(0f), "왼쪽 열");
         }
 
@@ -118,7 +120,8 @@ namespace A305.Onboarding.Tests
         {
             Transform target = login.Find(path);
             Assert.That(target, Is.Not.Null, path);
-            return target.GetComponent<Image>().sprite?.name;
+            var sprite = target.GetComponent<Image>().sprite;
+            return sprite != null ? sprite.name : null;
         }
     }
 }

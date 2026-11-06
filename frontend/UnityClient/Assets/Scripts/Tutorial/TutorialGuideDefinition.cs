@@ -34,7 +34,7 @@ namespace A305.Tutorial
         {
             new TutorialStepGuide(
                 TutorialStep.Arrival,
-                "여행 첫날",
+                "여행 시작",
                 "숙소에서 기본 조작부터 익혀 볼까요?",
                 "",
                 "시작하기"
@@ -91,7 +91,7 @@ namespace A305.Tutorial
             new TutorialStepGuide(
                 TutorialStep.TodayGoal,
                 "오늘의 목표",
-                "{지도} 버튼으로 오늘의 목표 보기",
+                "왼쪽 위 {퀘스트 카드}를 눌러 오늘의 목표 보기",
                 "",
                 ""
             ),
@@ -131,6 +131,13 @@ namespace A305.Tutorial
 
         [SerializeField]
         [Tooltip(
+            "길 안내 대화에서 [말하기]로 녹음하는 동안 버튼의 불 옆에 보이는 설명. 할 대사 설명과 함께 보인다."
+        )]
+        private string voiceLightCaption =
+            "초록불이 켜지면 목소리가 잘 들리고 있어요. 불이 흐리면 조금 더 크게 말해 보세요.";
+
+        [SerializeField]
+        [Tooltip(
             "길 안내를 마친 뒤 [대화 종료]를 밝히며 옆에 보이는 설명. 누르면 무엇이 이어지는지 알린다."
         )]
         private string dialogueEndCaption =
@@ -142,8 +149,9 @@ namespace A305.Tutorial
             "Ben과 나눈 대화를 돌아보는 대화 노트예요. 탭을 눌러 {요약}·{문장}·{회화}·{표현}을 봐요";
 
         [SerializeField]
-        [Tooltip("대화 노트 티칭의 둘째. 쪽 넘김 화살표를 밝히며 보인다.")]
-        private string feedbackPagesCaption = "내용이 길면 아래 화살표로 다음 장을 넘겨 봐요";
+        [Tooltip("대화 노트 티칭의 둘째. 본문 스크롤 영역을 밝히며 보인다.")]
+        private string feedbackPagesCaption =
+            "표현과 요약이 길면 이 영역을 위아래로 스크롤해 보세요";
 
         [SerializeField]
         [Tooltip("대화 노트 티칭 끝에 오른쪽 위 X를 밝히며 보이는 설명")]
@@ -178,6 +186,7 @@ namespace A305.Tutorial
         public string DialogueEndCaption => dialogueEndCaption;
         public string TravelLockedMessage => travelLockedMessage;
         public string VocabularyCaption => vocabularyCaption;
+        public string VoiceLightCaption => voiceLightCaption;
 
         /// <summary>안내 카드가 있는 단계 수. 진행 점의 개수다.</summary>
         public int StepGuideCount => stepGuides.Count;

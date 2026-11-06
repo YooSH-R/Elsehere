@@ -19,8 +19,10 @@ unity:format:
         paths: &unity_change_paths
           - frontend/**/*
           - docs/api/**/*
+          - infra/scripts/unity-test-scope.ps1
           - infra/scripts/unity-code-quality.ps1
           - infra/scripts/run-unity-ci.ps1
+          - infra/scripts/publish-webgl-package.ps1
           - infra/scripts/prepare-unity-test-inputs.ps1
           - infra/tests/tripo/**/*
           - .gitlab/ci/unity.yml
@@ -29,6 +31,29 @@ unity:format:
           - docs/unity/**/*
     - if: '$CI_PIPELINE_SOURCE != "merge_request_event"'
       changes: *unity_change_paths
+
+unity:browser-tests:
+  extends: .linux-light-job
+  stage: verify
+  image: node:24-alpine
+  timeout: 5m
+  needs: ["ci:yaml"]
+  script:
+    - node --test infra/tests/webgl_*.test.cjs
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_UNITY == "true"'
+    - !reference [.deployment-parent-skips, rules]
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+        paths: &browser_test_change_paths
+          - frontend/UnityClient/Assets/Plugins/WebGL/**/*
+          - frontend/UnityClient/Assets/WebGLTemplates/**/*
+          - infra/tests/webgl_*.test.cjs
+          - .gitlab/ci/unity.yml
+    - if: '$CI_PIPELINE_SOURCE != "merge_request_event"'
+      changes: *browser_test_change_paths
 
 .unity-editor:
   tags:
@@ -47,29 +72,7 @@ unity:format:
     paths:
       - dist/unity-ci/
 
-unity:editor-tests:
-  extends: .unity-editor
-  needs: ["ci:yaml", "unity:format"]
-  allow_failure: false
-  script:
-    # The script narrows web-template-only changes to the deployment tests.
-    - powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action test -ChangedSince "$env:CI_MERGE_REQUEST_DIFF_BASE_SHA"
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_PROJECT_ID == $CI_MERGE_REQUEST_PROJECT_ID'
-      changes:
-        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
-        # Convention documents cannot change Editor results, so they only select the format check.
-        paths: &unity_editor_change_paths
-          - frontend/**/*
-          - docs/api/**/*
-          - infra/scripts/unity-code-quality.ps1
-          - infra/scripts/run-unity-ci.ps1
-          - infra/scripts/prepare-unity-test-inputs.ps1
-          - infra/tests/tripo/**/*
-          - .gitlab/ci/unity.yml
-
-# Fork code must not run under the notebook's licensed Windows account.
-# Keep affected fork MRs blocked rather than silently omitting their required test.
+# Keep fork changes subject to project-branch review and local verification.
 unity:external-mr:
   extends: .linux-light-job
   stage: verify
@@ -77,28 +80,63 @@ unity:external-mr:
   needs: ["ci:yaml"]
   allow_failure: false
   script:
-    - echo "Unity tests require a branch in this project. Review and copy the fork changes into a project branch before merging."
+    - echo "Review and copy fork Unity changes into a project branch for local verification before merging."
     - exit 1
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_PROJECT_ID != $CI_MERGE_REQUEST_PROJECT_ID'
       changes:
         compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
-        paths: *unity_editor_change_paths
+        paths:
+          - frontend/**/*
+          - docs/api/**/*
+          - infra/scripts/unity-test-scope.ps1
+          - infra/scripts/unity-code-quality.ps1
+          - infra/scripts/run-unity-ci.ps1
+          - infra/scripts/publish-webgl-package.ps1
+          - infra/scripts/prepare-unity-test-inputs.ps1
+          - infra/tests/tripo/**/*
+          - .gitlab/ci/unity.yml
 
 unity:editor-and-webgl:
   extends: .unity-editor
+  # With conservative auto-cancel, starting Unity protects the whole dev candidate.
+  interruptible: false
   script:
     - powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action test
     - |
       if ($env:CI_PIPELINE_SOURCE -ne 'parent_pipeline' -or $env:A305_BUILD_WEB -eq 'true') {
         powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action build
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/publish-webgl-package.ps1
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       }
   artifacts:
     paths:
       - dist/unity-ci/
-      - dist/webgl/
+      - dist/webgl-package.json
   rules:
     - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_UNITY == "true"'
     - !reference [.deployment-parent-skips, rules]
     - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_PROTECTED == "true" && $RUN_UNITY_BUILD == "true"'
+
+unity:package-cleanup:
+  extends: .linux-light-job
+  stage: deploy
+  image: python:3.12-alpine
+  timeout: 5m
+  when: always
+  allow_failure:
+    exit_codes: 77
+  needs:
+    - job: unity:editor-and-webgl
+      artifacts: true
+    - job: dev:deliver
+      artifacts: false
+      optional: true
+    - job: prod:deliver
+      artifacts: false
+      optional: true
+  script:
+    - python infra/scripts/webgl_package.py cleanup
+  rules:
+    - !reference [unity:editor-and-webgl, rules]

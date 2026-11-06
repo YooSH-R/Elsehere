@@ -7,6 +7,7 @@ import com.elsehere.ai.service.WorkerNpcs;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.NpcSummaryResponse;
+import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.user.entity.User;
 import com.elsehere.user.repository.UserRepository;
@@ -14,6 +15,7 @@ import com.elsehere.world.entity.Npc;
 import com.elsehere.world.repository.NpcRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Component;
 
 /** 대화에 필요한 NPC·학습자·앞선 대화를 읽는다. 엔티티를 읽으므로 호출하는 쪽의 트랜잭션 안에서 부른다. */
@@ -43,13 +45,23 @@ class DialogueContexts {
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND)));
   }
 
-  NpcContext npcByCode(String npcCode) {
-    return npcRepository
-        .findByCode(npcCode)
-        .map(this::toContext)
-        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  /** 대화를 시작할 NPC. 근무 시간이 아니면 워커에 일상 상황을 보낸다. */
+  NpcContext npcByCode(String npcCode, boolean npcOffDuty) {
+    NpcContext npc =
+        npcRepository
+            .findByCode(npcCode)
+            .map(this::toContext)
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    return npcOffDuty ? npc.offDuty() : npc;
   }
 
+  /** 대화 상대인 NPC. 워커를 부를 때는 대화를 시작할 때 정한 근무 여부를 따르도록 이 메서드로 읽는다. */
+  NpcContext npcOf(Conversation conversation) {
+    NpcContext npc = npcById(conversation.getNpcId());
+    return conversation.isNpcOffDuty() ? npc.offDuty() : npc;
+  }
+
+  /** 근무 여부와 관계없는 NPC 정보(이름·장소·목소리). 대화의 워커 호출에는 {@link #npcOf}를 쓴다. */
   NpcContext npcById(Long npcId) {
     return npcRepository
         .findById(npcId)
@@ -59,16 +71,16 @@ class DialogueContexts {
 
   /** 워커에 보낼 앞선 대화. 최근 줄만 보낸다. */
   List<WorkerLine> history(Long conversationId) {
-    return workerLines.recent(
-        turnRepository.findAllByConversationIdOrderBySeqAsc(conversationId), HISTORY_LIMIT);
+    return historyUntil(conversationId, Integer.MAX_VALUE);
   }
 
   /** 워커에 보낼 앞선 대화 중 seq번째 턴까지. 힌트처럼 지난 NPC 대사에 대답할 말을 만들 때 쓴다. */
   List<WorkerLine> historyUntil(Long conversationId, int seq) {
     return workerLines.recent(
-        turnRepository.findAllByConversationIdOrderBySeqAsc(conversationId).stream()
-            .filter(turn -> turn.getSeq() <= seq)
-            .toList(),
+        turnRepository
+            .findByConversationIdAndSeqLessThanEqualOrderBySeqDesc(
+                conversationId, seq, Limit.of(HISTORY_LIMIT))
+            .reversed(),
         HISTORY_LIMIT);
   }
 

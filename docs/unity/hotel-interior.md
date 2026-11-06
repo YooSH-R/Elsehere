@@ -24,6 +24,7 @@ Unity 1 unit = 1m이다. 남쪽은 마을로 통하는 입구, 북쪽은 프런�
 | 직원 위치 | (0, 0.05, 5.7), 입구 방향 |
 | 대화 접근 위치 | (0, 0.05, 3.45) 부근 |
 | 대기 좌석 | 좌우 각 1조. 소파 폭 2.65m, 테이블·러그·탁상등 포함 |
+| 소파 앞 통로 | 소파와 커피 테이블의 충돌체 사이 약 1m. 플레이어가 양옆으로 통과할 수 있는 폭 |
 | 출입문 | (0, 0, -7), `TownDoor` → `TownScene/HotelDoor` |
 | 3인칭 시작 거리 / 조절 범위 | 3.8m / 1.5~5.2m |
 | 시야각 / 아래 기울기 | 65° / 15° |
@@ -48,11 +49,15 @@ Unity 1 unit = 1m이다. 남쪽은 마을로 통하는 입구, 북쪽은 프런�
 
 **Tools → A305 → Hotel → Apply Maple House Design**은 최초 적용용이다. `Environment/MapleHouse`가 이미 있으면 배치를 덮어쓰지 않는다. 프리팹·설정도 없을 때만 생성한다. 확장할 때는 중첩 프리팹을 복제하고 중앙 접근로와 직원 뒤 공간을 확보한다.
 
+**Tools → A305 → Hotel → Widen Lounge Aisles**은 기존 `LoungeSet`의 커피 테이블을 앞으로 옮겨 소파 앞 통로를 확보하고, 호텔 씬의 NPC 이동 경로를 다시 굽는다. Production과 Sandbox에 적용하며, 이미 더 넓게 둔 테이블은 당기지 않는다. 집에서 재사용하는 가구 원본의 크기는 유지한다.
+
 ## 기능 연결
 
 `HOTEL_STAFF`는 기존 `Passerby` 프리팹을 사용하는 고정 직원이다. `HotelStaffSettings`의 감지 거리는 3.5m, 대화 제안 거리는 2.5m, 걷는 속도는 0, 재제안 대기는 20초다. 튜토리얼의 대화 허용 조건과 기존 대화 시작·종료 흐름을 따른다.
 
 직원 외형은 Tripo로 만들어 외관 승인 뒤 최종 등록한 호텔리어 `Assets/Prefabs/Characters/Tripo/LittleMung_HotelStaff_male.prefab`이다(AI 인격 이름 Jake). 마스터 골격과 공용 이동 애니메이션을 쓰며, 직원 루트의 `CharacterAnimationDriver`가 이 Animator를 움직인다. **Tools → A305 → Hotel → Connect Hotelier Character**는 `HotelScene`·`HotelInteriorSandbox`의 직원에 호텔리어를 한 번만 붙이고 이전 임시 외형을 지운다. 직원 위치·대화·시선 대상·캡슐은 바꾸지 않는다.
+
+교대를 나눠 맡는 다른 직원(Owen·Clara·Walter·Diego)은 **Tools → A305 → Npc → Build Cast**가 데스크 양옆과 뒤쪽 양 끝에 둔다. Owen·Diego는 Jake와 같은 호텔리어 대화 외형에 배색만 바꾸고, Walter·Clara는 중년 외형을 쓴다. 근무 중인 직원 중 데스크에 가장 가까운 사람이 응대한다([Npc 모듈](../../frontend/UnityClient/Assets/Scripts/Npc/README.md#일터와-응대)).
 
 `MockHotelLines`는 로컬 검수용 인사말이며 서버의 NPC 이름·성격이나 호텔 체크인 미션을 구현한 데이터가 아니다. 예약·결제·객실 이동·수하물 조작은 별도 기능이다.
 

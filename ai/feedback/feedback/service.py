@@ -5,8 +5,10 @@ import json
 from pydantic import ValidationError
 
 from .clients import ModelClient, ProviderCallError
+from .model_output import restore_model_output
 from .models import INPUT, LLM_OUTPUT, usable_turns, validate_pair
 from .prompt import build_messages
+from .situation_catalog import keep_useful
 from .spoken_usage import build_spoken_notes
 
 
@@ -87,10 +89,13 @@ def generate_feedback(payload, client: ModelClient, *, ai_allowed: bool):
         if not isinstance(raw, str):
             raise ValueError("모델 어댑터 반환값은 JSON 문자열이어야 한다")
         body = json.loads(raw, object_pairs_hook=_unique_object, parse_constant=_reject_constant)
+        body = restore_model_output(request, body)
         checked = LLM_OUTPUT.validate_python(body)
         if checked.outcome == "insufficient_evidence":
             return _response(request, status="insufficient_evidence", problem=checked.problem.model_dump())
         result = checked.result.model_dump()
+        user_texts = [turn.final_text for turn in request.turns if turn.speaker == "user" and turn.text_status == "final"]
+        result["situation_expressions"] = keep_useful(result["situation_expressions"], user_texts)
         result["spoken_usage_notes"] = build_spoken_notes(request, checked.result, checked.spoken_usage_selection)
         return _response(request, status="completed", result=result)
     except (ValueError, TypeError, ValidationError):

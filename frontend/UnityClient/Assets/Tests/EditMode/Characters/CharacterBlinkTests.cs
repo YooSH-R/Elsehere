@@ -56,8 +56,9 @@ namespace A305.Characters.Tests
             }
         }
 
-        [Test]
-        public void IdleBlinkUsesExpressionTimingAndKeepsTheMouthPose()
+        [TestCase(1.34f, 1.34f)]
+        [TestCase(1.31f, 1.37f)]
+        public void IdleBlinkUsesExpressionTimingAndKeepsTheMouthPose(float previous, float current)
         {
             var root = new GameObject("Idle blink");
             var mesh = new Mesh
@@ -80,7 +81,8 @@ namespace A305.Characters.Tests
                 skin.SetBlendShapeWeight(2, 73);
                 root.AddComponent<CharacterFaceController>();
                 var blink = root.AddComponent<CharacterIdleBlink>();
-                blink.ApplyAtTime(1.34f);
+                blink.ApplyAtTime(previous);
+                blink.ApplyAtTime(current);
                 Assert.That(skin.GetBlendShapeWeight(0), Is.EqualTo(100).Within(.001));
                 Assert.That(skin.GetBlendShapeWeight(1), Is.EqualTo(100).Within(.001));
                 Assert.That(skin.GetBlendShapeWeight(2), Is.EqualTo(73));

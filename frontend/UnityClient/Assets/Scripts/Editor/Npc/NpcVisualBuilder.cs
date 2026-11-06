@@ -25,6 +25,10 @@ namespace A305.EditorTools.Npc
         private const string ShopScenePath = "Assets/Scenes/Production/ShopScene.unity";
         private const string ReviewFolder = "Assets/Prefabs/Npc/Review/";
 
+        // 실내 직원·플레이어와 같은 계단 높이와 표면 두께. 행인 프리팹 기본값(0.3m·0.08m)이면 0.4m 가까운 가구도 밟고 올라서고 발이 바닥에서 떠 보인다.
+        private const float StepOffsetMeters = .15f;
+        private const float SkinWidthMeters = .02f;
+
         // TownProductionBuilder·상점 Builder가 붙였던 뼈대 없는 도형 외형. 이 외형에 Generic 뼈대를 붙인 BenVisual도 함께 치운다.
         private const string ProxyPrefabPath =
             TownBackgroundKit.Folder + "/LittleMungV7NpcVisual.prefab";
@@ -85,6 +89,16 @@ namespace A305.EditorTools.Npc
         {
             var entry = (Prefab: prefabPath, TalkGesture: talkGesture);
             GameObject prefab = BuilderTools.LoadRequiredAsset<GameObject>(entry.Prefab, MenuPath);
+            var driver = npc.GetComponent<CharacterAnimationDriver>();
+            var previousAnimator =
+                new SerializedObject(driver).FindProperty("animator").objectReferenceValue
+                as Animator;
+            Transform previousVisual = previousAnimator != null ? previousAnimator.transform : null;
+            while (previousVisual != null && previousVisual.parent != npc.transform)
+                previousVisual = previousVisual.parent;
+            // 연결된 이전 외형만 교체한다. 소지품·시선 타깃·NPC 루트 설정은 보존한다.
+            if (previousVisual != null && !IsInstanceOf(previousVisual, entry.Prefab))
+                Object.DestroyImmediate(previousVisual.gameObject);
             foreach (Transform child in npc.transform.Cast<Transform>().ToArray())
             {
                 if (
@@ -133,11 +147,19 @@ namespace A305.EditorTools.Npc
             var capsule = npc.GetComponent<CharacterController>();
             capsule.height = height;
             capsule.center = new Vector3(capsule.center.x, height / 2, capsule.center.z);
-            PrefabUtility.RecordPrefabInstancePropertyModifications(capsule);
+            FitFooting(capsule);
             Vector3 look = npc.LookTarget.localPosition;
             look.y = visual.localPosition.y + eyes;
             npc.LookTarget.localPosition = look;
             PrefabUtility.RecordPrefabInstancePropertyModifications(npc.LookTarget);
+        }
+
+        /// <summary>서 있는 NPC 캡슐의 계단 높이와 표면 두께를 실내 직원·플레이어와 맞춘다.</summary>
+        public static void FitFooting(CharacterController capsule)
+        {
+            capsule.stepOffset = StepOffsetMeters;
+            capsule.skinWidth = SkinWidthMeters;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(capsule);
         }
 
         private static bool IsInstanceOf(Transform child, string prefabPath)
@@ -177,12 +199,42 @@ namespace A305.EditorTools.Npc
                     Object.DestroyImmediate(baked);
                 }
 
-                Transform[] bones = copy.GetComponentsInChildren<Transform>(true);
-                float eyes =
-                    (
-                        bones.Single(bone => bone.name == "Left_Eye").position.y
-                        + bones.Single(bone => bone.name == "Right_Eye").position.y
-                    ) / 2;
+                // 머리 비율을 바꿔도 마스터 본은 유지하므로, 이식한 눈의 실제 표면을 먼저 잰다.
+                var eyeSurfaces = copy.GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .Where(skin =>
+                        skin.sharedMesh.name == "LeftEye" || skin.sharedMesh.name == "RightEye"
+                    )
+                    .ToArray();
+                float eyes;
+                if (eyeSurfaces.Length == 2)
+                {
+                    eyes = 0;
+                    var eyeMesh = new Mesh();
+                    try
+                    {
+                        foreach (var eye in eyeSurfaces)
+                        {
+                            eye.BakeMesh(eyeMesh, true);
+                            var heights = eyeMesh
+                                .vertices.Select(v => eye.transform.TransformPoint(v).y)
+                                .ToArray();
+                            eyes += (heights.Min() + heights.Max()) * .25f;
+                        }
+                    }
+                    finally
+                    {
+                        Object.DestroyImmediate(eyeMesh);
+                    }
+                }
+                else
+                {
+                    Transform[] bones = copy.GetComponentsInChildren<Transform>(true);
+                    eyes =
+                        (
+                            bones.Single(bone => bone.name == "Left_Eye").position.y
+                            + bones.Single(bone => bone.name == "Right_Eye").position.y
+                        ) / 2;
+                }
                 return (sole, eyes, top - sole);
             }
             finally

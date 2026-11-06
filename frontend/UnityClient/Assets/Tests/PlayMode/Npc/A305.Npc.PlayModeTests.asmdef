@@ -6,13 +6,15 @@
         "UnityEditor.TestRunner",
         "A305.Npc",
         "A305.Dialogue",
+        "A305.Learning",
         "A305.Player",
         "A305.World",
         "A305.ObjectHover",
         "A305.Tutorial",
         "A305.Mission",
         "UnityEngine.UI",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

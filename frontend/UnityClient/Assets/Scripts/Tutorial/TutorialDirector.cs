@@ -13,7 +13,7 @@ using UnityEngine;
 namespace A305.Tutorial
 {
     /// <summary>
-    /// 공간 씬마다 하나씩 두는 튜토리얼 진행 처리. 걷기·시점·단어 저장·단어장·공간 이동·대화·피드백·지도 신호를 튜토리얼 진행에 전하고,
+    /// 공간 씬마다 하나씩 두는 튜토리얼 진행 처리. 걷기·시점·단어 저장·단어장·공간 이동·대화·피드백·수첩 신호를 튜토리얼 진행에 전하고,
     /// 단계에 맞게 안내 카드와 코치 마크, 행인이 다가와도 되는지, 장소 이동·택시 잠금, 미션 표시를 바꾼다.
     /// 숙소를 나오면 Ben과 길 안내를 마칠 때까지 Ben을 바라보는 구도로 플레이어를 붙잡아 둔다.
     /// Ben과 대화를 시작하면 대사·[뜻]·추천 단어·추천 문장을 차례로 밝히는 티칭을 [다음]으로 넘기며 보인다.
@@ -65,7 +65,7 @@ namespace A305.Tutorial
 
         [SerializeField]
         [Tooltip(
-            "첫날 미션의 지도 버튼과 수첩. 비우면(첫날 미션 화면이 없는 Sandbox) 오늘의 목표 안내를 바로 마친다."
+            "첫날 미션의 퀘스트 카드와 수첩. 비우면(첫날 미션 화면이 없는 Sandbox) 오늘의 목표 안내를 바로 마친다."
         )]
         private FirstDayMissionView firstDayMission;
 
@@ -372,6 +372,10 @@ namespace A305.Tutorial
         private async Task SaveFinishAsync()
         {
             TutorialFinishSaveStatus status = await finishRecorder.SaveAsync(progress);
+            if (status == TutorialFinishSaveStatus.Saved)
+            {
+                GameClock.Shared.RequestSynchronization();
+            }
             if (
                 status == TutorialFinishSaveStatus.Failed
                 || status == TutorialFinishSaveStatus.Rejected
@@ -486,7 +490,10 @@ namespace A305.Tutorial
                 IsVocabularyShowing = learning.IsShowingVocabulary,
                 IsFeedbackShowing = feedbackView.IsVisible,
                 IsJournalOpen = firstDayMission != null && firstDayMission.IsJournalOpen,
+                // 장면을 내릴 때 대화창이 이 처리보다 먼저 지워질 수 있다.
+                IsVoiceLightOn = dialoguePanel != null && dialoguePanel.IsVoiceLightOn,
             };
+            RefreshVoiceLightNote(screen);
             TutorialCoachTarget target = TutorialCoachPlan.Choose(progress.Step, screen);
             // 화면 구성에 따라 숨은 부분(한 쪽뿐인 피드백의 쪽 넘김 등)은 [다음]을 누를 수 없으므로 건너뛴다.
             if (TutorialCoachPlan.IsTour(target) && !HasVisiblePart(SpotlightParts(target)))
@@ -533,6 +540,22 @@ namespace A305.Tutorial
                             : (System.Action)null
                     );
                     break;
+            }
+        }
+
+        // 녹음하는 동안에는 할 대사 말풍선을 그대로 두고, [말하기]의 불 옆에 불이 무슨 뜻인지 말풍선을 하나 더 띄운다.
+        private void RefreshVoiceLightNote(TutorialScreen screen)
+        {
+            if (TutorialCoachPlan.ExplainsVoiceLight(progress.Step, screen))
+            {
+                coachMark.ShowNote(
+                    dialoguePanel.VoiceLightRect,
+                    TutorialGuideText.KeyChips(guide.VoiceLightCaption)
+                );
+            }
+            else
+            {
+                coachMark.HideNote();
             }
         }
 
@@ -600,18 +623,19 @@ namespace A305.Tutorial
                     return new[] { dialoguePanel.SuggestedWordsRect };
                 case TutorialCoachTarget.DialogueEnd:
                     return new[] { dialoguePanel.EndButtonRect };
-                // 탭을 누르면 바뀌는 결과 칸도 함께 밝혀 무엇이 달라지는지 보이게 한다. 쪽 넘기기는 화살표 줄만 밝힌다.
+                // 탭을 누르면 바뀌는 결과 칸도 함께 밝혀 무엇이 달라지는지 보이게 한다.
+                // 스크롤 안내에서는 고정된 본문 영역을 밝힌다.
                 case TutorialCoachTarget.FeedbackSections:
                     return new[] { feedbackView.SectionRowRect, feedbackView.PageCardRect };
                 case TutorialCoachTarget.FeedbackPages:
-                    return new[] { feedbackView.NavigationRowRect };
+                    return new[] { feedbackView.ScrollAreaRect };
                 case TutorialCoachTarget.FeedbackClose:
                     return new[] { feedbackView.CloseButtonRect };
                 case TutorialCoachTarget.Vocabulary:
                     return new[] { learning.VocabularyPanelRect };
-                case TutorialCoachTarget.MapButton:
+                case TutorialCoachTarget.QuestCard:
                     return firstDayMission != null
-                        ? new[] { firstDayMission.JournalButtonRect }
+                        ? new[] { firstDayMission.QuestCardRect }
                         : new RectTransform[0];
                 default:
                     return new RectTransform[0];
@@ -628,9 +652,11 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.TalkOffer:
                     return guide.TalkOfferCaption;
                 case TutorialCoachTarget.DialogueLines:
-                    return guide.DialogueLinesCaption;
+                    return guide.DialogueLinesCaption
+                        + "\n\n<b>NPC와 친해지기</b>\n일반 NPC와 자유 대화할 때는 이름 옆에서 호감도를 확인할 수 있어요. 인사하거나 칭찬하는 등 긍정적인 대화를 나누면 호감도가 오를 수 있어요.";
                 case TutorialCoachTarget.DialogueTools:
-                    return guide.DialogueToolsCaption;
+                    return guide.DialogueToolsCaption
+                        + "\n\n<b>서로 배려하며 대화해요</b>\n일반 NPC와 자유 대화할 때 무례한 말을 하면 호감도가 내려가고 경고가 쌓여요. 표시된 경고 한도에 도달하면 대화가 끝나요. 지금 Ben과는 정해진 대사로 길 안내를 연습해요.";
                 case TutorialCoachTarget.SuggestedWords:
                     return guide.SuggestedWordsCaption;
                 case TutorialCoachTarget.GuidedLine:

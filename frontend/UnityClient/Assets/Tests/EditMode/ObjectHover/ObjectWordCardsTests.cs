@@ -13,6 +13,26 @@ namespace A305.ObjectHover.Tests
             api = new FakeObjectWordApi();
         }
 
+        [TearDown]
+        public void ForgetLearnedWords() => ObjectWordCards.ShareLearnedWords(new string[0]);
+
+        // 단어장에서 외웠어요로 표시한 단어는 숨긴 단어처럼 호버로 카드를 띄우지 않는다. [다시 학습]하면 다시 띄운다.
+        [Test]
+        public async Task LearnedWord_DoesNotPopUpOnHover_UntilRelearned()
+        {
+            api.AddWord("sofa").AddWord("tv");
+            ObjectWordCards cards = await api.LoadCardsAsync();
+
+            ObjectWordCards.ShareLearnedWords(new[] { "Sofa" });
+
+            Assert.That(cards.CanHover("sofa"), Is.False);
+            Assert.That(cards.CanHover("tv"), Is.True);
+
+            ObjectWordCards.ShareLearnedWords(new string[0]);
+
+            Assert.That(cards.CanHover("sofa"), Is.True);
+        }
+
         [Test]
         public async Task Load_KeepsEachWordStateByWordKey()
         {
@@ -29,6 +49,23 @@ namespace A305.ObjectHover.Tests
             Assert.That(sofa.Saved, Is.False);
             Assert.That(cards.TryGet("tv", out WordCard tv), Is.True);
             Assert.That(tv.Saved, Is.True);
+        }
+
+        [Test]
+        public async Task ForgetSaved_WordDeletedFromTheVocabulary_CanBeSavedAgain()
+        {
+            // 사물 카드는 장소에 들어올 때 받은 저장 상태를 들고 있으므로, 단어장에서 지운 단어를 알려 줘야 다시 저장할 수 있다.
+            api.AddWord("sofa", saved: true).AddWord("tv", saved: true);
+            ObjectWordCards cards = await api.LoadCardsAsync();
+
+            cards.ForgetSaved("Sofa");
+
+            cards.TryGet("sofa", out WordCard sofa);
+            cards.TryGet("tv", out WordCard tv);
+            WordCardButtons buttons = WordCardButtons.For(sofa);
+            Assert.That(buttons.CanSave, Is.True);
+            Assert.That(buttons.SaveLabel, Is.EqualTo("단어장에 저장"));
+            Assert.That(tv.Saved, Is.True, "다른 단어는 저장한 그대로입니다.");
         }
 
         [Test]

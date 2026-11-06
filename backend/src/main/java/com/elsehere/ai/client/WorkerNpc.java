@@ -27,4 +27,9 @@ public record WorkerNpc(
       double ttsSpeed) {
     this(id, name, role, facts, scene, ttsVoice, ttsSpeed, null);
   }
+
+  /** 장소·상황(scene)만 바꾼 NPC. 워커는 대답·판정·힌트·추천 단어를 이 상황으로 만든다. */
+  public WorkerNpc withScene(String scene) {
+    return new WorkerNpc(id, name, role, facts, scene, ttsVoice, ttsSpeed, profile);
+  }
 }

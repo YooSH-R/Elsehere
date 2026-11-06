@@ -5,25 +5,25 @@ namespace A305.ObjectHover
     /// </summary>
     public readonly struct WordCardButtons
     {
-        private WordCardButtons(WordCard card)
+        private WordCardButtons(WordCard card, bool browserPronunciationAvailable)
         {
             HasWordActions = true;
             SaveLabel = card.Saved ? "저장했어요" : "단어장에 저장";
             CanSave = !card.Saved && !card.IsBusy;
-            HideLabel = card.HoverHidden ? "다시 띄우기" : "알아요 · 다시 안 띄우기";
+            HideLabel = card.HoverHidden ? "다시 띄우기" : "숨기기";
             CanToggleHide = !card.IsBusy;
-            HasPronunciation = card.HasPronunciation;
+            HasPronunciation = card.HasPronunciation || browserPronunciationAvailable;
             Message = card.Message;
         }
 
         public static WordCardButtons None => default;
 
-        public static WordCardButtons For(WordCard card)
+        public static WordCardButtons For(WordCard card, bool browserPronunciationAvailable = false)
         {
-            return card == null ? None : new WordCardButtons(card);
+            return card == null ? None : new WordCardButtons(card, browserPronunciationAvailable);
         }
 
-        /// <summary>[단어장에 저장]·[발음 듣기]·[알아요 · 다시 안 띄우기]를 보이는지</summary>
+        /// <summary>[단어장에 저장]·[발음 듣기]·[숨기기]를 보이는지</summary>
         public bool HasWordActions { get; }
 
         public string SaveLabel { get; }

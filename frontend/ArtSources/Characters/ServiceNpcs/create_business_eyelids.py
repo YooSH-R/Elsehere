@@ -168,10 +168,8 @@ for side, sign in [("Left", 1), ("Right", -1)]:
         rx, rz = eye_fit["radii"]
         sx, sz = rx / 0.0445, rz / 0.0395
         compact = "Grandmother" in eye_settings["name"]
-        patch_rx, patch_rz = (
-            rx * (1.35 if compact else 1.65),
-            rz * (1.35 if compact else 1.65),
-        )
+        patch_scale = eye_settings.get("patchScale", 1.35 if compact else 1.65)
+        patch_rx, patch_rz = rx * patch_scale, rz * patch_scale
         hole_rx, hole_rz = patch_rx * 1.12, patch_rz * 1.12
     selected = set()
 
@@ -279,6 +277,35 @@ for side, sign in [("Left", 1), ("Right", -1)]:
     start = min(range(len(boundary)), key=lambda i: angle(vertices[boundary[i]]))
     boundary = boundary[start:] + boundary[:start]
     outer = [vertices[i] for i in boundary]
+    def boundary_sample(direction):
+        origin = Vector((center, cz))
+        hits = []
+        def cross(a, b):
+            return a.x * b.y - a.y * b.x
+        for index, (first, second) in enumerate(zip(outer, outer[1:] + outer[:1])):
+            start = Vector((first.y, first.z)) - origin
+            edge = Vector((second.y - first.y, second.z - first.z))
+            denominator = cross(direction, edge)
+            if abs(denominator) < 1e-10:
+                continue
+            distance = cross(start, edge) / denominator
+            fraction = cross(start, direction) / denominator
+            if distance > 0 and 0 <= fraction <= 1:
+                hits.append((distance, index, fraction))
+        if not hits:
+            raise ValueError(side + " eyelid ray has no surrounding skin boundary")
+        distance, index, fraction = min(hits)
+        normal = normals[boundary[index]].lerp(normals[boundary[(index + 1) % len(boundary)]], fraction)
+        return distance, normal.normalized()
+
+    def boundary_distance(direction):
+        return boundary_sample(direction)[0]
+
+    def patch_edge(theta):
+        # Keep the new eyelid ring inside the actual cut, including concave corners
+        # next to the preserved mouth. A fixed ellipse could cross that boundary.
+        direction = Vector((patch_rx * math.cos(theta), patch_rz * math.sin(theta)))
+        return Vector((center, cz)) + direction * min(1, boundary_distance(direction) * 0.88)
     # Face curvature and skin are fitted outside the old painted eye rim.
     samples = []
     depth = []
@@ -303,13 +330,21 @@ for side, sign in [("Left", 1), ("Right", -1)]:
 
     def normal_at(y, z):
         a, b = y - center, z - cz
-        return Vector(
+        fitted = Vector(
             (
                 -1,
                 coefficients[1] + 2 * coefficients[3] * a + coefficients[4] * b,
                 coefficients[2] + coefficients[4] * a + 2 * coefficients[5] * b,
             )
         ).normalized()
+        if a * a + b * b < 1e-12:
+            return fitted
+        distance, original = boundary_sample(Vector((a, b)))
+        # 좁은 접합 삼각형에서 한꺼번에 법선을 바꾸지 않고 눈꺼풀 바깥으로 나갈수록
+        # 원래 얼굴의 부드러운 법선에 맞춘다. 경계에서는 양쪽 음영이 같아진다.
+        blend = np.clip((1 / distance - .25) / .75, 0, 1)
+        blend = blend * blend * (3 - 2 * blend)
+        return fitted.lerp(original, blend).normalized()
 
     original_lid = next(p for p in base["parts"] if p["name"] == "Upper" + side + "Lid")
     count = len(original_lid["vertices"]) // 25
@@ -344,8 +379,7 @@ for side, sign in [("Left", 1), ("Right", -1)]:
                 (old_inner[j].z - old_cz) / 0.0395,
                 (old_inner[j].y - old_center) / 0.0445,
             )
-            target_y = center + patch_rx * math.cos(theta)
-            target_z = cz + patch_rz * math.sin(theta)
+            target_y, target_z = patch_edge(theta)
             y += (target_y - (center + (edge.y - old_center) * sx)) * blend
             z += (target_z - (cz + (edge.z - old_cz) * sz)) * blend
         residual = p.x - float(base_fit @ [1, a, b, a * a, a * b, b * b])
@@ -355,6 +389,14 @@ for side, sign in [("Left", 1), ("Right", -1)]:
     size = 256
     rgba = []
     extent = 0.130
+    clean_rx, clean_rz = eye_fit["radii"] if eye_fit else (0.061, 0.054)
+    # 하나의 오목한 경계점으로 전체 지우개 범위를 줄이면 반대쪽에 원래 홍채가 남는다.
+    # 방향별 실제 경계까지의 거리로 피부색 전환 범위를 정한다.
+    border_steps = 720
+    border = [
+        boundary_distance(Vector((clean_rx * math.cos(a), clean_rz * math.sin(a))))
+        for a in np.linspace(0, 2 * math.pi, border_steps, endpoint=False)
+    ]
     for row in range(size):
         z = cz - extent + 2 * extent * row / (size - 1)
         for column in range(size):
@@ -362,14 +404,30 @@ for side, sign in [("Left", 1), ("Right", -1)]:
             clean = np.append(
                 np.clip(np.array([1, y - center, z - cz]) @ skin_fit, 0, 1), 1
             )
-            radius = math.sqrt(((y - center) / 0.061) ** 2 + ((z - cz) / 0.054) ** 2)
-            blend = np.clip((radius - 1.0) / 0.30, 0, 1)
+            radius = math.sqrt(((y - center) / clean_rx) ** 2 + ((z - cz) / clean_rz) ** 2)
+            theta = math.atan2((z - cz) / clean_rz, (y - center) / clean_rx) % (2 * math.pi)
+            index = theta / (2 * math.pi) * border_steps
+            first = int(index) % border_steps
+            distance = border[first] * (1 - index % 1) + border[(first + 1) % border_steps] * (index % 1)
+            # 모든 피부 경계 바로 앞에서 원래 텍스처로 돌아가며, 안쪽의 옛 눈·속눈썹은 지운다.
+            blend = np.clip((radius / distance - .90) / (.98 - .90), 0, 1)
             blend = blend * blend * (3 - 2 * blend)
             # Texture chart corners can lie outside the face silhouette; no mesh uses them.
             try:
                 actual = surface(y, z)[2]
             except ValueError:
                 actual = clean
+            # 입 경계를 지킨 오목한 모서리에도 옛 홍채·속눈썹 색을 다시 복사하지 않는다.
+            old_eye_fade = np.clip((radius - 1.65) / .2, 0, 1)
+            # 경계의 정상 피부는 원래 색을 유지한다. 피부까지 평면 색으로 덮으면
+            # 원래 얼굴과 만나는 다각형 테두리가 밝게 남는다.
+            brightness = np.linalg.norm(actual[:3]) / max(np.linalg.norm(clean[:3]), .001)
+            non_skin = max(
+                np.clip((.75 - brightness) / .2, 0, 1),
+                np.clip((actual[1] / max(actual[0], .001) - .86) / .1, 0, 1),
+            )
+            erase = (1 - old_eye_fade) * non_skin
+            actual = clean * erase + actual * (1 - erase)
             rgba.append(clean * (1 - blend) + actual * blend)
     save_image(side + "LidSkin.png", rgba, size)
     save_image(side + "LidLine.png", [[0.055, 0.025, 0.012, 1]] * 4, 2)

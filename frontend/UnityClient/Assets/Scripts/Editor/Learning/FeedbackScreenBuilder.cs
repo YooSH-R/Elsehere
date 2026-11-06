@@ -1,4 +1,6 @@
+using System.Linq;
 using A305.EditorTools.Common;
+using A305.EditorTools.Theme;
 using A305.Learning;
 using A305.Theme;
 using TMPro;
@@ -28,6 +30,10 @@ namespace A305.EditorTools.Learning
         // 렌더링한 그림은 2.4배라 캔버스 1단위 = 그림 2px
         internal const float ArtScale = 2;
 
+        // 요약 탭 제목 옆 쪽 넘김의 화살표 버튼 한 변과 쪽수 글자 폭(시안 px)
+        private const float PagerArrow = 34;
+        private const float PagerNumberWidth = 48;
+
         internal static readonly Color Ink = new Color32(47, 37, 27, 255);
         internal static readonly Color Muted = new Color32(125, 110, 91, 255);
         private static readonly Color MeaningInk = new Color32(74, 63, 51, 255);
@@ -37,12 +43,12 @@ namespace A305.EditorTools.Learning
         {
             "요약",
             "문장 교정",
-            "회화 표현",
+            "전체 대화",
             "저장할 표현",
         };
 
         // 시안 탭 폭(글자 + 양옆 20)
-        private static readonly float[] TabWidths = { 69.91f, 104.17f, 104.48f, 119.5f };
+        private static readonly float[] TabWidths = { 69.91f, 104.17f, 119.5f, 119.5f };
 
         // 칸 그림의 둥근 모서리 자리(그림 px, 왼·아래·오른·위): 그림자 자리 + 모서리 24
         internal static readonly Vector4 TileBorder = new Vector4(96, 134, 96, 86);
@@ -51,6 +57,16 @@ namespace A305.EditorTools.Learning
         public static void ApplyToPrefab()
         {
             BuilderTools.UpdatePrefabIfExists(PrefabPath, root => Apply(root.transform));
+            var guide = AssetDatabase.LoadAssetAtPath<A305.Tutorial.TutorialGuideDefinition>(
+                "Assets/Data/Tutorial/TutorialGuide.asset"
+            );
+            if (guide != null)
+            {
+                var fields = new SerializedObject(guide);
+                fields.FindProperty("feedbackPagesCaption").stringValue =
+                    "표현과 요약이 길면 이 영역을 위아래로 스크롤해 보세요";
+                fields.ApplyModifiedPropertiesWithoutUndo();
+            }
             AssetDatabase.SaveAssets();
         }
 
@@ -67,8 +83,16 @@ namespace A305.EditorTools.Learning
 
             Header(panel);
             Tabs(panel.Find("Sections"));
+            var content = panel.Find("PageCard/Content");
+            if (content != null)
+            {
+                foreach (Transform child in content.Cast<Transform>().ToArray())
+                    child.SetParent(content.parent, false);
+                Object.DestroyImmediate(content.gameObject);
+            }
             Card(view, panel);
             Footer(panel);
+            view.ConfigureScroll();
         }
 
         // 머리줄(높이 104): 앱 아이콘(60), 제목(Jua 36), 부제(17, 자리는 FeedbackView가 제목 뒤에 맞춘다), 오른쪽 닫기(52)
@@ -91,10 +115,8 @@ namespace A305.EditorTools.Learning
             subtitle.textWrappingMode = TextWrappingModes.NoWrap;
             TopLeft(subtitle.rectTransform, 285.4f, 43, 360, 20);
 
-            ArtButton(panel.Find("TopCloseButton"), "FeedbackClose", 52, 52, 14, 12, 80, 84);
-            var close = (RectTransform)panel.Find("TopCloseButton");
-            close.anchorMin = close.anchorMax = close.pivot = Vector2.one;
-            close.anchoredPosition = new Vector2(-35, -27) * Px;
+            // 닫기 X는 다른 창과 같은 공용 모양으로 둔다(S15P31A305-525).
+            UiCloseButton.Corner(panel.Find("TopCloseButton"), UiCloseButton.WindowSize);
         }
 
         // 탭 묶음(시안 .seg): 옅은 알약 바탕, 탭마다 글자 폭 + 40, 고른 탭(누를 수 없는 탭)만 흰 알약이 보인다.
@@ -227,7 +249,7 @@ namespace A305.EditorTools.Learning
             // 칸은 글 바로 뒤에 그린다.
             tile.SetAsLastSibling();
             body.transform.SetAsLastSibling();
-            Style(body, BodyFontPath, 19, Ink);
+            Style(body, BodyFontPath, 26, Ink);
             body.lineSpacing = 18;
             body.alignment = TextAlignmentOptions.TopLeft;
             body.textWrappingMode = TextWrappingModes.Normal;
@@ -239,6 +261,12 @@ namespace A305.EditorTools.Learning
             bodyRect.offsetMax = new Vector2(-(16 + 22) * Px, bodyRect.offsetMax.y);
 
             BuilderTools.SetReference(view, "summaryTitle", summaryTitle);
+            BuilderTools.SetReference(
+                view,
+                "situationPager",
+                SectionPager(rows.Find("Header").GetComponent<TMP_Text>())
+            );
+            BuilderTools.SetReference(view, "summaryPager", SectionPager(summaryTitle));
             BuilderTools.SetReference(view, "bodyTile", tileImage);
             BuilderTools.SetReference(
                 view,
@@ -246,6 +274,61 @@ namespace A305.EditorTools.Learning
                 Sprite("FeedbackSummaryTile", TileBorder)
             );
             BuilderTools.SetReference(view, "tileSprite", Sprite("FeedbackTile", TileBorder));
+
+            // 현재 문장을 저장하는 버튼도 표현 줄과 같은 디자인으로 본문 카드 오른쪽에 둔다.
+            var save = (Button)
+                new SerializedObject(view).FindProperty("saveButton").objectReferenceValue;
+            save.transform.SetParent(tile, false);
+            SaveButton(save.transform);
+            var saveRect = (RectTransform)save.transform;
+            saveRect.anchorMin = saveRect.anchorMax = saveRect.pivot = Vector2.one;
+            saveRect.sizeDelta = new Vector2(58.56f, 40) * Px;
+            saveRect.anchoredPosition = -new Vector2(38, 32) * Px;
+        }
+
+        // 요약 탭 두 칸(이 상황에서 자주 써요·대화 요약)은 제목 줄 오른쪽의 작은 쪽 넘김(‹ 1 / 2 ›)으로 따로 넘긴다.
+        // 아래쪽 쪽 넘김과 같은 화살표 그림을 줄여 쓰고, 제목 글자 높이 가운데에 칸 그림의 옆 그림자 자리만큼 안쪽으로 둔다.
+        private static RectTransform SectionPager(TMP_Text heading)
+        {
+            RectTransform pager = Rect("Pager", heading.transform);
+            pager.anchorMin = pager.anchorMax = Vector2.one;
+            pager.pivot = new Vector2(1, .5f);
+            pager.anchoredPosition = new Vector2(-16, -13) * Px;
+            pager.sizeDelta = new Vector2(PagerArrow * 2 + PagerNumberWidth, PagerArrow) * Px;
+            BuilderTools.GetOrAddComponent<LayoutElement>(pager.gameObject).ignoreLayout = true;
+
+            PagerButton(pager, "PreviousButton", "FeedbackPrevious", 0);
+            TMP_Text number = Text(pager, "PageNumber", DisplayFontPath, 16, Muted, "1 / 1");
+            number.alignment = TextAlignmentOptions.Midline;
+            number.margin = Vector4.zero;
+            number.raycastTarget = false;
+            RectTransform numberRect = number.rectTransform;
+            numberRect.anchorMin = numberRect.anchorMax = numberRect.pivot = new Vector2(0, .5f);
+            numberRect.anchoredPosition = new Vector2(PagerArrow, 0) * Px;
+            numberRect.sizeDelta = new Vector2(PagerNumberWidth, PagerArrow) * Px;
+            PagerButton(pager, "NextButton", "FeedbackNext", PagerArrow + PagerNumberWidth);
+            return pager;
+        }
+
+        // 아래쪽 쪽 넘김(50 × 50, 그림 94 × 96에 그림자 자리 22·12)과 같은 비율로 줄인 화살표 버튼
+        private static void PagerButton(RectTransform pager, string name, string sprite, float x)
+        {
+            RectTransform button = Rect(name, pager);
+            BuilderTools.GetOrAddComponent<Image>(button.gameObject);
+            BuilderTools.GetOrAddComponent<Button>(button.gameObject);
+            float scale = PagerArrow / 50f;
+            ArtButton(
+                button,
+                sprite,
+                PagerArrow,
+                PagerArrow,
+                22 * scale,
+                12 * scale,
+                94 * scale,
+                96 * scale
+            );
+            button.anchorMin = button.anchorMax = button.pivot = new Vector2(0, .5f);
+            button.anchoredPosition = new Vector2(x, 0) * Px;
         }
 
         // 표현 칸: 흰 유리 칸 그림(그림자 자리 포함) 안에 영어 표현·뜻 줄, 쓰임, 예문, 오른쪽 [담기]
@@ -285,26 +368,32 @@ namespace A305.EditorTools.Learning
             first.SetAsFirstSibling();
             BuilderTools.GetOrAddComponent<LayoutElement>(first.gameObject).preferredHeight =
                 30 * Px;
-            Transform phrase = texts.Find("Phrase") ?? first.Find("Phrase");
+            Transform phrase = texts.Find("Phrase");
+            if (phrase == null)
+                phrase = first.Find("Phrase");
             phrase.SetParent(first, false);
             var phraseText = phrase.GetComponent<TMP_Text>();
-            Style(phraseText, DisplayFontPath, 24, Ink);
+            Style(phraseText, DisplayFontPath, 28, Ink);
             phraseText.textWrappingMode = TextWrappingModes.Normal;
             phraseText.alignment = TextAlignmentOptions.TopLeft;
-            TMP_Text meaning = Text(first, "Meaning", BodyFontPath, 18, MeaningInk, "");
+            TMP_Text meaning = Text(first, "Meaning", BodyFontPath, 22, MeaningInk, "");
             meaning.textWrappingMode = TextWrappingModes.Normal;
             meaning.alignment = TextAlignmentOptions.TopLeft;
             var usage = texts.Find("Usage").GetComponent<TMP_Text>();
-            Style(usage, BodyFontPath, 15, Muted);
+            Style(usage, BodyFontPath, 20, MeaningInk);
             usage.textWrappingMode = TextWrappingModes.Normal;
-            TMP_Text example = Text(texts, "Example", BodyFontPath, 15, Muted, "");
+            TMP_Text example = Text(texts, "Example", BodyFontPath, 20, MeaningInk, "");
             example.textWrappingMode = TextWrappingModes.Normal;
             example.transform.SetSiblingIndex(usage.transform.GetSiblingIndex() + 1);
 
-            Transform save = template.Find("SaveButton");
+            SaveButton(template.Find("SaveButton"));
+        }
+
+        private static void SaveButton(Transform save)
+        {
             Clear(save, keepLabel: true);
             var saveLabel = save.Find("Label").GetComponent<TMP_Text>();
-            Style(saveLabel, DisplayFontPath, 16, Color.white);
+            Style(saveLabel, DisplayFontPath, 19, Color.white);
             saveLabel.text = "담기";
             Lowered(saveLabel, 5);
             var saveSize = BuilderTools.GetOrAddComponent<LayoutElement>(save.gameObject);
@@ -314,7 +403,7 @@ namespace A305.EditorTools.Learning
             ArtFace(save, "FeedbackSave", 22, 12, 103, 92);
         }
 
-        // 아래 줄: 왼쪽 쪽 넘김(50, 사이 12), 오른쪽 [담기]·[다시 만들기]·[대화 기록]·[단어장]·[닫기]
+        // 아래 줄: 왼쪽 쪽 넘김(50, 사이 12), 오른쪽 [다시 만들기]·[대화 기록]·[단어장]·[닫기]
         private static void Footer(RectTransform panel)
         {
             var navigation = (RectTransform)panel.Find("Navigation");
@@ -369,9 +458,16 @@ namespace A305.EditorTools.Learning
                 165,
                 96
             );
-            ArtButton(buttons.Find("CloseButton"), "FeedbackDone", 75.55f, 50, 22, 12, 120, 102);
-            buttons.Find("CloseButton").gameObject.SetActive(true);
-            buttons.Find("CloseButton").SetAsLastSibling();
+            // [닫기]는 할 일이 아니므로 강조색 그림 대신 공용 흰 보조 버튼으로 둔다(S15P31A305-525). 칸 크기는 시안 그대로다.
+            Transform done = buttons.Find("CloseButton");
+            var doneSize = BuilderTools.GetOrAddComponent<LayoutElement>(done.gameObject);
+            doneSize.minWidth = doneSize.preferredWidth = 75.55f * Px;
+            doneSize.minHeight = doneSize.preferredHeight = 50 * Px;
+            doneSize.flexibleWidth = 0;
+            ((RectTransform)done).sizeDelta = new Vector2(75.55f, 50) * Px;
+            UiCloseButton.Text(done, "닫기", 18 * Px);
+            done.gameObject.SetActive(true);
+            done.SetAsLastSibling();
         }
 
         // 렌더링한 그림 버튼: 버튼 칸은 시안 버튼 크기이고, 그림은 그림자 자리만큼 넓혀 깐다. 이름 글자는 그림에 들어 있다.

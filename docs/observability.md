@@ -12,6 +12,7 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 - 내부 프록시는 이 헤더를 유지합니다. Spring은 해당 형식의 값만 수용하고, 값이 없거나 형식이 잘못되면 새 ID를 생성합니다. 백엔드 포트는 공개하지 않습니다.
 - Spring은 보안 필터보다 먼저 요청 문맥에 ID를 넣고 응답에도 반환합니다. 요청이 끝나거나 예외가 발생하면 이전 문맥을 복원합니다.
 - Spring 요청 로그에는 HTTP 메서드, 컨트롤러의 경로 패턴, 상태 코드와 처리 시간만 남깁니다. 컨트롤러에 도달하지 않은 요청은 `/unmatched`로 기록합니다.
+- 반복 상태 확인의 정상 로그는 생략합니다. Spring의 `GET /api/health`와 워커의 `/health`가 200이면 요청 요약을 남기지 않으며, 실패는 기록합니다. 응답의 요청 ID는 유지합니다. 워커 배포 이미지는 중복되는 Uvicorn 접근 로그를 끄고, HTTPX는 WARNING 이상만 기록합니다.
 - Spring의 모든 로그 줄에는 `request_id`와 함께 로그인 사용자의 내부 ID(`users.id`)가 `user_id`로 붙습니다. 운영 중 한 사용자의 요청·오류를 이어서 찾기 위한 값이며, 로그인 전 요청과 요청 밖 작업(예약 작업 등)은 `user_id=none`입니다. 보안 필터가 인증을 마친 뒤 넣고 요청이 끝나면 지웁니다. 이메일·닉네임·소셜 계정 ID 같은 개인정보는 넣지 않습니다. 비동기 작업(@Async)에는 아직 전달하지 않습니다.
 - Nginx는 원본 URL 대신 `/api/**`, `/api/v1/auth/**`, `/webgl/**` 등 고정된 경로 그룹을 기록합니다. 쿼리, 토큰, 쿠키, IP·사용자 식별자와 음성·대화 본문은 요청 요약에 넣지 않습니다.
 - 요청 보호용 `rate_limit`·`connection_limit` 필드는 판정 상태만 기록합니다. 관찰과 실제 차단의 구분·설치 조건은 [Nginx 요청 보호 정책](traffic-protection.md)을 따릅니다.
@@ -29,17 +30,19 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 | 레벨 | 이벤트 | 키 | 남기는 때 |
 | --- | --- | --- | --- |
 | INFO | `conversation_started` | `conversation_id`, `npc`, `initiated_by` | 대화 시작(CONV-01) 저장 뒤 |
-| INFO | `conversation_ended` | `conversation_id`, `status`, `end_reason`, (사용자 종료면) `user_turns` | 사용자가 끝냄(CONV-08), 무례 누적으로 NPC가 끝냄(CONV-03). 이미 끝난 대화를 다시 끝내면 남기지 않음 |
+| INFO | `conversation_ended` | `conversation_id`, `status`, `end_reason`, (사용자 종료면) `user_turns` | 사용자가 끝냄(CONV-08), 무례 누적·5분 제한으로 NPC가 끝냄(CONV-03). 이미 끝난 대화를 다시 끝내면 남기지 않음 |
 | WARN | `feedback_failed` | `conversation_id`, `reason` | 짧은 피드백을 만들지 못함(AI 시간 초과 등) |
 | INFO | `feedback_skipped` | `conversation_id`, `reason` | 피드백을 건너뜀. 사용자가 건너뛰면 `USER_SKIPPED` |
 | INFO | `guest_conversation_limit_reached` | `user_id`, `limit` | 게스트 대화 한도로 대화 시작을 거절 |
-| INFO | `user_signed_up` | `user_id`, `provider` | 가입 완료(AUTH-04) |
+| INFO | `user_signed_up` | `user_id`, `provider`, `from_guest`(게스트가 회원이 됐을 때만 `true`) | 가입 완료(AUTH-04) |
 | INFO | `guest_started` | `user_id` | 게스트 계정 생성(AUTH-07) |
 | INFO | `user_withdrew` | `user_id` | 회원 탈퇴(USER-05) |
 | DEBUG | `ai_worker_call` | `path`, `status`, `duration_ms` | AI 워커 호출마다(개발 서버에서만 보임) |
 | DEBUG | `business_error` | `code`, `status` | 업무 오류 응답마다(개발 서버에서만 보임) |
 | DEBUG | `npc_reply_timing` | `first_token_s`, `llm_s`, `worker_total_s`, `audio_full_s`, `wait_ms` | NPC 대답(첫 인사·발화) 스트림이 끝날 때(개발 서버에서만 보임) |
 | DEBUG | `npc_audio_saved` | `bytes`, `download_ms`, `save_ms` | NPC 대답 음성을 워커에서 받아 저장했을 때(개발 서버에서만 보임) |
+| INFO | `turn_stream_timing` | `result`(`turn` 또는 오류 코드), `first_delta_ms`, `first_audio_ms`, `total_ms`, `chunks`, `silent_chunks`, `client_gone` | 발화 전송을 스트리밍(CONV-03)으로 보낸 요청이 끝날 때. 시간은 요청을 받은 때부터이며 대사는 남기지 않음 |
+| INFO | `turn_stream_client_gone` | `event` | 스트리밍 중 사용자 연결이 끊김. 턴은 끝까지 처리해 저장 |
 
 대화 시작·NPC 대답이 오래 걸리면 같은 `request_id`의 `http_request`(요청 전체), `npc_reply_timing`, `npc_audio_saved`를 함께 봅니다.
 
@@ -57,6 +60,8 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 | WARN | `npc_reply_failed` | `code` | NPC 대답 스트림이 오류로 끝남 |
 | WARN | `npc_reply_stream_cut` | 없음 | NPC 대답 스트림이 끝 이벤트 없이 끊김 |
 | WARN | `npc_audio_download_failed` | `code` | NPC 대답 음성을 워커에서 받지 못함. 자막만 보임 |
+| WARN | `npc_chunk_audio_download_failed` | `code` | 스트리밍 중 문장 조각 음성을 워커에서 받지 못함. 그 조각은 자막만 보임 |
+| ERROR | `turn_stream_failed` | `type`, (예외) | 스트리밍으로 대사를 보내기 시작한 뒤 예상하지 못한 예외. `error` 이벤트(`INTERNAL_ERROR`)로 알림 |
 | WARN | `npc_audio_too_large` | `bytes` | NPC 음성이 보관 상한보다 커서 저장하지 않음 |
 | WARN | `npc_audio_save_failed` | (예외) | NPC 음성 파일을 저장하지 못함 |
 | WARN | `npc_audio_delete_failed` | `code` | 보관 기간이 지난 음성 파일을 지우지 못함. 다음 정리에서 다시 지움 |
@@ -209,9 +214,13 @@ ssh -i "<PEM 경로>" -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -
 | HTTPS 검사 지표 수집 실패 | Blackbox 지표 수집 실패 | 2분 |
 | 인증서 만료 임박 | 잔여 기간 14일 미만 | 1시간 |
 | API 오류율 증가 | 최근 5분 요청 20건 이상, 5xx 비율 5% 초과 | 5분 |
-| API 응답 지연 | 최근 5분 요청 20건 이상, p95 3초 초과 | 10분 |
+| 일반 API 응답 지연 | 최근 5분 전체 API 요청 20건 이상, 대화 응답·종료를 제외한 API의 p95 3초 초과 | 10분 |
+| 대화 응답 지연 | 최근 5분 전체 API 요청 20건 이상, 대화 응답 API의 p95 10초 초과 | 10분 |
+| 대화 종료 지연 | 최근 5분 전체 API 요청 20건 이상, 대화 종료 API 요청 중 30초 초과 비율 5% 초과 | 10분 |
 
-오류율·지연 규칙은 `/api/health`를 제외합니다. 데이터가 적을 때의 비율·지연만으로 알림을 발동하지 않습니다. 운영 앱이 없는 환경은 수집 대상에서 제외해 배포 전 장애 알림을 만들지 않습니다.
+오류율·지연 규칙의 전체 요청 수는 `/api/health`를 제외합니다. 지연 규칙별로 비교하는 대상은 위 표와 같습니다. 요청 수 조건은 각 대화 API만이 아니라 전체 API 요청을 기준으로 하므로 대화 요청 표본이 적을 때의 p95와 초과 비율은 불안정할 수 있습니다. 운영 앱이 없는 환경은 수집 대상에서 제외해 배포 전 장애 알림을 만들지 않습니다.
+
+대화 종료는 30초가 지연 histogram의 마지막 유한 버킷이어서 p95 값을 직접 비교하면 30초 초과를 감지할 수 없습니다. 대신 최근 5분의 종료 요청에서 30초를 초과한 비율이 5%보다 큰지 확인합니다.
 
 ### 정상 이용 기준과 재조정
 
@@ -221,7 +230,8 @@ ssh -i "<PEM 경로>" -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -
 - 시험 사용자 1명이 로그인·학습 언어·레벨 설정을 마친 뒤 초기 상태·언어 목록·내 언어 설정을 조회합니다. 세 번의 준비 조회 후, 초당 한 번의 3개 조회 묶음을 60초씩 세 차례 실행합니다.
 - 이 기준 측정의 540개 조회는 모두 HTTP 200이었습니다. 회차별 전체 p95는 9.374~16.855ms, 전체 p99의 최댓값은 22.939ms, 단일 요청 최댓값은 82.410ms였습니다. 초기 로그인·설정 요청, 실제 소셜 인증, 공개 TLS 구간과 AI 호출은 이 지연 집계에 포함하지 않습니다.
 - 5xx 정상 관측값은 0%입니다. 오류 경보는 소수 실패를 확대하지 않도록 5분 20건 이상의 표본에서 5% 초과가 5분 지속될 때 발동하도록 유지합니다.
-- 지연 경보의 3초는 관측한 단일 최장 요청의 약 36배로, 현재 소규모 개발 환경에서 일시적 실행 편차와 심각한 지속 지연을 구분하는 보수적인 기준입니다. p95가 이를 10분 넘을 때 알리며 정상 지연을 3초까지 허용한다는 제품 계약으로 해석하지 않습니다.
+- 일반 API 지연 경보의 3초는 관측한 단일 최장 요청의 약 36배로, 현재 소규모 개발 환경에서 일시적 실행 편차와 심각한 지속 지연을 구분하는 보수적인 기준입니다. p95가 이를 10분 넘을 때 알리며 정상 지연을 3초까지 허용한다는 제품 계약으로 해석하지 않습니다.
+- AI 대화 응답 10초와 종료 30초는 AI가 포함된 개발 환경의 관측을 바탕으로 정한 임시 경보 기준입니다. 대화 응답 p95 약 6.7초와 종료 시 피드백 생성 19건 중 최대 19.5초를 참고했으며, 이 수치는 제품 성능 보장이 아닙니다. 요청량과 지연 분포가 쌓이면 재검토합니다.
 - 공개 HTTPS는 서버 밖에서도 유효한 인증서·HTTP 200·상태 본문을 확인합니다. 인증서 14일 경보는 자동 갱신 실패 후 대응 여유를 확보하기 위한 기준이며 짧은 요청 지연 측정으로 결정하지 않습니다.
 
 실제 이용량이 쌓이거나 목표 동시 사용자 수, API·DB 데이터 규모, 자원 상한 또는 AI 호출 경계가 바뀌면 다시 측정합니다. AI가 포함된 요청의 STT·LLM·TTS·전체 지연을 일반 조회 기준과 혼동하지 않습니다. 측정 환경·표본·분위수·오류율과 결정 근거는 Jira에 기록하고 경보값을 바꾸면 규칙의 대기·발동·복구와 정상 구간의 무알림을 검증합니다.

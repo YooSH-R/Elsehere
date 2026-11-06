@@ -27,8 +27,8 @@ def test_every_npc_with_a_life_file_is_exported():
     assert exported_ids == {path.stem for path in npc_life_rules.LIFE_FOLDER.glob("*.json")}
 
 
-def test_an_npc_gets_its_role_place_and_the_schedule_derived_from_its_role():
-    """NPC마다 일과를 적지 않는다. 역할의 일과 틀에서 계산한 일과를 시각과 활동만 옮긴다(장소는 NPC의 scene 하나)."""
+def test_an_npc_gets_its_role_place_and_the_schedule_derived_from_its_shift():
+    """NPC마다 일과를 적지 않는다. 맡은 교대와 역할 규칙으로 계산한 일과를 시각과 활동만 옮긴다(장소는 NPC의 scene 하나)."""
     mia, derived = exported("CAFE_STAFF"), npc_simulate.service_npc("CAFE_STAFF")
 
     assert (mia["role"], mia["scene"]) == ("STAFF", "CAFE")
@@ -44,6 +44,11 @@ def test_need_rates_come_from_the_personality_and_default_to_one():
     assert jake["needRates"] == {need: rates.get(need, 1) for need in NEEDS}
 
 
+def test_street_staff_keeps_its_workplace_separate_from_the_town_scene():
+    assert exported("BANK_STAFF")["workplace"] == "BANK"
+    assert exported("BANK_STAFF")["scene"] == "TOWN"
+
+
 def test_shared_rules_are_copied_as_they_are_with_the_simulation_threshold():
     data, rules = npc_life_export.unity_life_data(), service_rules()
 
@@ -56,3 +61,41 @@ def test_the_unity_copy_matches_a_fresh_export():
     committed = json.loads(npc_life_export.UNITY_FILE.read_text(encoding="utf-8"))
 
     assert committed == npc_life_export.unity_life_data()
+
+
+# 장소별 영업시간 (Unity가 가게 문을 열고 닫는 데 쓴다)
+
+
+def test_place_hours_list_every_place_in_the_rules_order():
+    places = npc_life_export.unity_place_hours()["places"]
+
+    assert [place["code"] for place in places] == list(service_rules()["places"])
+
+
+def test_every_service_place_is_exported_as_always_open():
+    """Unity JsonUtility가 읽을 수 있게 24시간 영업 장소도 빈 시각 칸을 내보낸다."""
+    places = npc_life_export.unity_place_hours()["places"]
+
+    assert all(place["alwaysOpen"] and place["from"] == place["to"] == "" for place in places)
+
+
+def test_a_place_with_hours_exports_its_time_window(tmp_path, monkeypatch):
+    """서비스는 모두 24시간 영업이지만, 영업시간을 지정하는 데이터 계약은 유지한다."""
+    rules = service_rules()
+    rules["places"]["CAFE"]["hours"] = {"from": "07:00", "to": "21:00"}
+    rules_file = tmp_path / "world-rules.json"
+    rules_file.write_text(json.dumps(rules), encoding="utf-8")
+    monkeypatch.setattr(npc_life_rules, "WORLD_RULES", rules_file)
+
+    places = {place["code"]: place for place in npc_life_export.unity_place_hours()["places"]}
+
+    assert places["CAFE"] == {"code": "CAFE", "alwaysOpen": False, "from": "07:00", "to": "21:00"}
+    assert places["HOTEL"] == {"code": "HOTEL", "alwaysOpen": True, "from": "", "to": ""}
+
+
+def test_the_unity_place_hours_match_a_fresh_export():
+    """공통 규칙의 영업시간을 바꾸고 다시 내보내지 않으면 여기서 드러난다: ai/.venv/Scripts/python ai/tools/npc_life_export.py"""
+    committed = json.loads(npc_life_export.PLACE_HOURS_FILE.read_text(encoding="utf-8"))
+
+    assert committed == npc_life_export.unity_place_hours()
+    assert committed["generatedBy"] == "ai/tools/npc_life_export.py"

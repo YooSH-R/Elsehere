@@ -1,4 +1,5 @@
 using A305.EditorTools.Common;
+using A305.EditorTools.Theme;
 using A305.Learning;
 using TMPro;
 using UnityEditor;
@@ -111,13 +112,14 @@ namespace A305.EditorTools.Learning
             title.margin = new Vector4(0, 3 * F.Px, 0, 0);
             F.TopLeft(title.rectTransform, 113, 33.5f, 600, 39);
 
-            Transform close = panel.Find("CloseButton") ?? panel.Find("Buttons/CloseButton");
-            close = close != null ? close : NewButton(panel, "CloseButton");
+            Transform close = panel.Find("CloseButton");
+            if (close == null)
+                close = panel.Find("Buttons/CloseButton");
+            if (close == null)
+                close = NewButton(panel, "CloseButton");
             close.SetParent(panel, false);
-            F.ArtButton(close, "FeedbackClose", 52, 52, 14, 12, 80, 84);
-            var closeRect = (RectTransform)close;
-            closeRect.anchorMin = closeRect.anchorMax = closeRect.pivot = Vector2.one;
-            closeRect.anchoredPosition = new Vector2(-35, -27) * F.Px;
+            // 닫기 X는 다른 창과 같은 공용 모양으로 둔다(S15P31A305-525).
+            UiCloseButton.Corner(close, UiCloseButton.WindowSize);
             BuilderTools.SetReference(view, "closeButton", close.GetComponent<Button>());
         }
 
@@ -197,7 +199,9 @@ namespace A305.EditorTools.Learning
             subtitle.textWrappingMode = TextWrappingModes.NoWrap;
             F.TopLeft(subtitle.rectTransform, 87, 49.69f, 821.72f, 19);
 
-            Transform open = row.Find("OpenButton") ?? NewButton(row, "OpenButton");
+            Transform open = row.Find("OpenButton");
+            if (open == null)
+                open = NewButton(row, "OpenButton");
             F.Clear(open, keepLabel: true);
             F.TopLeft((RectTransform)open, 924.72f, 22, 58.28f, 40);
             F.ArtFace(open, "HistoryOpen", 22, 12, 102.28f, 92);
@@ -239,8 +243,11 @@ namespace A305.EditorTools.Learning
 
         private static Transform Move(Transform panel, Transform pager, string name)
         {
-            Transform button =
-                pager.Find(name) ?? panel.Find("Buttons/" + name) ?? NewButton(pager, name);
+            Transform button = pager.Find(name);
+            if (button == null)
+                button = panel.Find("Buttons/" + name);
+            if (button == null)
+                button = NewButton(pager, name);
             button.SetParent(pager, false);
             return button;
         }

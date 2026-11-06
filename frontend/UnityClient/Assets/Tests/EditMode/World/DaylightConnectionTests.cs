@@ -9,11 +9,7 @@ namespace A305.World.Tests
 {
     public sealed class DaylightConnectionTests
     {
-        [TestCase("TownScene", typeof(WeatherPresenter))]
-        [TestCase("HomeScene", typeof(InteriorDaylight))]
-        [TestCase("CafeScene", typeof(InteriorDaylight))]
-        [TestCase("HotelScene", typeof(InteriorDaylight))]
-        [TestCase("ShopScene", typeof(InteriorDaylight))]
+        [TestCase("PoliceStationScene", typeof(InteriorDaylight))]
         public void ProductionSceneFollowsGameClockDayAndNight(string name, System.Type view)
         {
             var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/" + name + ".unity");
@@ -34,10 +30,7 @@ namespace A305.World.Tests
             );
         }
 
-        [TestCase("HomeScene")]
-        [TestCase("CafeScene")]
-        [TestCase("HotelScene")]
-        [TestCase("ShopScene")]
+        [TestCase("PoliceStationScene")]
         public void InteriorLetsDaylightInThroughWindows(string name)
         {
             var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/" + name + ".unity");
@@ -50,18 +43,30 @@ namespace A305.World.Tests
             );
         }
 
+        // 가로등은 밤에만 켜는 목록에, 상점 벽등·실내등은 밤에 더 밝히는 목록에 둔다.
         [Test]
-        public void TownBrightensStreetLampsAtNight()
+        public void TownLightsStreetLampsOnlyAtNight()
         {
             var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/TownScene.unity");
             var weather = BuilderTools.FindSingleInScene<WeatherPresenter>(scene);
-            SerializedProperty lamps = new SerializedObject(weather).FindProperty("lamps");
+            var fields = new SerializedObject(weather);
 
+            string[] streetLamps = Names(fields.FindProperty("streetLamps"));
             Assert.That(
-                lamps.arraySize,
-                Is.GreaterThanOrEqualTo(16),
+                streetLamps,
+                Has.Length.GreaterThanOrEqualTo(16),
                 "가로등 16개가 모두 연결되어야 합니다."
             );
+            Assert.That(streetLamps, Is.All.EqualTo("LanternLight"));
+            Assert.That(Names(fields.FindProperty("lamps")), Has.No.Member("LanternLight"));
+        }
+
+        private static string[] Names(SerializedProperty list)
+        {
+            var names = new string[list.arraySize];
+            for (int index = 0; index < names.Length; index++)
+                names[index] = list.GetArrayElementAtIndex(index).objectReferenceValue.name;
+            return names;
         }
 
         [Test]

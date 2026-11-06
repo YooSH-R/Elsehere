@@ -1,0 +1,643 @@
+﻿{
+    "version":  2,
+    "provider":  "windows-sapi-en-US",
+    "text":  "Oh, that order is wrong. I\u0027m sorry about that. Let me make a fresh coffee for you.",
+    "voice":  "Microsoft Zira Desktop",
+    "audioFile":  "FrownConcernCalm.wav",
+    "audioSha256":  "69543384E877F611E6B614C8111BCB20345608E767E44192760706C3227F1308",
+    "duration":  7.185,
+    "cues":  [
+                 {
+                     "start":  0,
+                     "end":  0.099999999999999992,
+                     "viseme":  0
+                 },
+                 {
+                     "start":  0.099999999999999992,
+                     "end":  0.3,
+                     "viseme":  8
+                 },
+                 {
+                     "start":  0.3,
+                     "end":  0.7,
+                     "viseme":  0
+                 },
+                 {
+                     "start":  0.7,
+                     "end":  0.745,
+                     "viseme":  17
+                 },
+                 {
+                     "start":  0.745,
+                     "end":  0.80999999999999994,
+                     "viseme":  1
+                 },
+                 {
+                     "start":  0.80999999999999994,
+                     "end":  0.875,
+                     "viseme":  19
+                 },
+                 {
+                     "start":  0.875,
+                     "end":  0.98,
+                     "viseme":  3
+                 },
+                 {
+                     "start":  0.98,
+                     "end":  1.03,
+                     "viseme":  13
+                 },
+                 {
+                     "start":  1.03,
+                     "end":  1.07,
+                     "viseme":  19
+                 },
+                 {
+                     "start":  1.07,
+                     "end":  1.1199999999999999,
+                     "viseme":  1
+                 },
+                 {
+                     "start":  1.1199999999999999,
+                     "end":  1.2,
+                     "viseme":  13
+                 },
+                 {
+                     "start":  1.2,
+                     "end":  1.275,
+                     "viseme":  6
+                 },
+                 {
+                     "start":  1.275,
+                     "end":  1.3699999999999999,
+                     "viseme":  15
+                 },
+                 {
+                     "start":  1.3699999999999999,
+                     "end":  1.46,
+                     "viseme":  13
+                 },
+                 {
+                     "start":  1.46,
+                     "end":  1.595,
+                     "viseme":  3
+                 },
+                 {
+                     "start":  1.595,
+                     "end":  1.74,
+                     "viseme":  20
+                 },
+                 {
+                     "start":  1.74,
+                     "end":  2.4899999999999998,
+                     "viseme":  0
+                 },
+                 {
+                     "start":  2.4899999999999998,
+                     "end":  2.59,
+                     "viseme":  0
+                 },
+                 {
+                     "start":  2.59,
+                     "end":  2.6799999999999997,
+                     "viseme":  6
+                 },
+                 {
+                     "start":  2.6799999999999997,
+                     "end":  2.76,
+                     "viseme":  21
+                 },
+                 {
+                     "start":  2.76,
+                     "end":  2.88,
+                     "viseme":  15
+                 },
+                 {
+                     "start":  2.88,
+                     "end":  3.0149999999999997,
+                     "viseme":  3
+                 },
+                 {
+                     "start":  3.0149999999999997,
+                     "end":  3.09,
+                     "viseme":  13
+                 },
+                 {
+                     "start":  3.09,
+                     "end":  3.1599999999999997,
+                     "viseme":  6
+                 },
+                 {
+                     "start":  3.1599999999999997,
+                     "end":  3.2249999999999996,
+                     "viseme":  1
+                 },
+                 {
+                     "start":  3.2249999999999996,
+                     "end":  3.275,
+                     "viseme":  21
+                 },
+                 {
+                     "start":  3.275,
+                     "end":  3.3899999999999997,
+                     "viseme":  4
+                 },
+                 {
+                     "start":  3.3899999999999997,
+                     "end":  3.44,
+                     "viseme":  19
+                 },
+                 {
+                     "start":  3.44,
+                     "end":  3.4899999999999998,
+                     "viseme":  17
+                 },
+                 {
+                     "start":  3.4899999999999998,
+                     "end":  3.6799999999999997,
+                     "viseme":  1
+                 },
+                 {
+                     "start":  3.6799999999999997,
+                     "end":  3.8,
+                     "viseme":  19
+                 },
+                 {
+                     "start":  3.8,
+                     "end":  4.55,
+                     "viseme":  0
+                 },
+                 {
+                     "start":  4.55,
+                     "end":  4.6499999999999995,
+                     "viseme":  0
+                 },
+                 {
+                     "start":  4.6499999999999995,
+                     "end":  4.705,
+                     "viseme":  14
+                 },
+                 {
+                     "start":  4.705,
+                     "end":  4.785,
+                     "viseme":  4
+                 },
+                 {
+                     "start":  4.785,
+                     "end":  4.84,
+                     "viseme":  19
+                 },
+                 {
+                     "start":  4.84,
+                     "end":  4.89,
+                     "viseme":  21
+                 },
+                 {
+                     "start":  4.89,
+                     "end":  4.96,
+                     "viseme":  6
+                 },
+                 {
+                     "start":  4.96,
+                     "end":  5.0249999999999995,
+                     "viseme":  21
+                 },
+                 {
+                     "start":  5.0249999999999995,
+                     "end":  5.125,
+                     "viseme":  6
+                 },
+                 {
+                     "start":  5.125,
+                     "end":  5.18,
+                     "viseme":  20
+                 },
+                 {
+                     "start":  5.18,
+                     "end":  5.2349999999999994,
+                     "viseme":  1
+                 },
+                 {
+                     "start":  5.2349999999999994,
+                     "end":  5.35,
+                     "viseme":  18
+                 },
+                 {
+                     "start":  5.35,
+                     "end":  5.395,
+                     "viseme":  13
+                 },
+                 {
+                     "start":  5.395,
+                     "end":  5.465,
+                     "viseme":  4
+                 },
+                 {
+                     "start":  5.465,
+                     "end":  5.555,
+                     "viseme":  16
+                 },
+                 {
+                     "start":  5.555,
+                     "end":  5.66,
+                     "viseme":  20
+                 },
+                 {
+                     "start":  5.66,
+                     "end":  5.79,
+                     "viseme":  3
+                 },
+                 {
+                     "start":  5.79,
+                     "end":  5.875,
+                     "viseme":  18
+                 },
+                 {
+                     "start":  5.875,
+                     "end":  5.96,
+                     "viseme":  6
+                 },
+                 {
+                     "start":  5.96,
+                     "end":  6.06,
+                     "viseme":  18
+                 },
+                 {
+                     "start":  6.06,
+                     "end":  6.09,
+                     "viseme":  1
+                 },
+                 {
+                     "start":  6.09,
+                     "end":  6.14,
+                     "viseme":  13
+                 },
+                 {
+                     "start":  6.14,
+                     "end":  6.2349999999999994,
+                     "viseme":  6
+                 },
+                 {
+                     "start":  6.2349999999999994,
+                     "end":  6.435,
+                     "viseme":  7
+                 },
+                 {
+                     "start":  6.435,
+                     "end":  7.185,
+                     "viseme":  0
+                 }
+             ],
+    "words":  [
+                  {
+                      "start":  0.099999999999999992,
+                      "text":  "Oh"
+                  },
+                  {
+                      "start":  0.7,
+                      "text":  "that"
+                  },
+                  {
+                      "start":  0.875,
+                      "text":  "order"
+                  },
+                  {
+                      "start":  1.2,
+                      "text":  "is"
+                  },
+                  {
+                      "start":  1.3699999999999999,
+                      "text":  "wrong"
+                  },
+                  {
+                      "start":  2.59,
+                      "text":  "I\u0027m"
+                  },
+                  {
+                      "start":  2.76,
+                      "text":  "sorry"
+                  },
+                  {
+                      "start":  3.1599999999999997,
+                      "text":  "about"
+                  },
+                  {
+                      "start":  3.44,
+                      "text":  "that"
+                  },
+                  {
+                      "start":  4.6499999999999995,
+                      "text":  "Let"
+                  },
+                  {
+                      "start":  4.84,
+                      "text":  "me"
+                  },
+                  {
+                      "start":  4.96,
+                      "text":  "make"
+                  },
+                  {
+                      "start":  5.18,
+                      "text":  "a"
+                  },
+                  {
+                      "start":  5.2349999999999994,
+                      "text":  "fresh"
+                  },
+                  {
+                      "start":  5.555,
+                      "text":  "coffee"
+                  },
+                  {
+                      "start":  5.96,
+                      "text":  "for"
+                  },
+                  {
+                      "start":  6.14,
+                      "text":  "you"
+                  }
+              ],
+    "phonemes":  [
+                     {
+                         "start":  0,
+                         "end":  0.099999999999999992,
+                         "phoneme":  "_"
+                     },
+                     {
+                         "start":  0.099999999999999992,
+                         "end":  0.3,
+                         "phoneme":  "ow"
+                     },
+                     {
+                         "start":  0.3,
+                         "end":  0.7,
+                         "phoneme":  "_"
+                     },
+                     {
+                         "start":  0.7,
+                         "end":  0.745,
+                         "phoneme":  "dh"
+                     },
+                     {
+                         "start":  0.745,
+                         "end":  0.80999999999999994,
+                         "phoneme":  "ae"
+                     },
+                     {
+                         "start":  0.80999999999999994,
+                         "end":  0.875,
+                         "phoneme":  "t"
+                     },
+                     {
+                         "start":  0.875,
+                         "end":  0.98,
+                         "phoneme":  "ao"
+                     },
+                     {
+                         "start":  0.98,
+                         "end":  1.03,
+                         "phoneme":  "r"
+                     },
+                     {
+                         "start":  1.03,
+                         "end":  1.07,
+                         "phoneme":  "d"
+                     },
+                     {
+                         "start":  1.07,
+                         "end":  1.1199999999999999,
+                         "phoneme":  "ax"
+                     },
+                     {
+                         "start":  1.1199999999999999,
+                         "end":  1.2,
+                         "phoneme":  "r"
+                     },
+                     {
+                         "start":  1.2,
+                         "end":  1.275,
+                         "phoneme":  "ih"
+                     },
+                     {
+                         "start":  1.275,
+                         "end":  1.3699999999999999,
+                         "phoneme":  "z"
+                     },
+                     {
+                         "start":  1.3699999999999999,
+                         "end":  1.46,
+                         "phoneme":  "r"
+                     },
+                     {
+                         "start":  1.46,
+                         "end":  1.595,
+                         "phoneme":  "ao"
+                     },
+                     {
+                         "start":  1.595,
+                         "end":  1.74,
+                         "phoneme":  "ng"
+                     },
+                     {
+                         "start":  1.74,
+                         "end":  2.4899999999999998,
+                         "phoneme":  "_"
+                     },
+                     {
+                         "start":  2.4899999999999998,
+                         "end":  2.59,
+                         "phoneme":  "_"
+                     },
+                     {
+                         "start":  2.59,
+                         "end":  2.6799999999999997,
+                         "phoneme":  "ay"
+                     },
+                     {
+                         "start":  2.6799999999999997,
+                         "end":  2.76,
+                         "phoneme":  "m"
+                     },
+                     {
+                         "start":  2.76,
+                         "end":  2.88,
+                         "phoneme":  "s"
+                     },
+                     {
+                         "start":  2.88,
+                         "end":  3.0149999999999997,
+                         "phoneme":  "ao"
+                     },
+                     {
+                         "start":  3.0149999999999997,
+                         "end":  3.09,
+                         "phoneme":  "r"
+                     },
+                     {
+                         "start":  3.09,
+                         "end":  3.1599999999999997,
+                         "phoneme":  "iy"
+                     },
+                     {
+                         "start":  3.1599999999999997,
+                         "end":  3.2249999999999996,
+                         "phoneme":  "ax"
+                     },
+                     {
+                         "start":  3.2249999999999996,
+                         "end":  3.275,
+                         "phoneme":  "b"
+                     },
+                     {
+                         "start":  3.275,
+                         "end":  3.3899999999999997,
+                         "phoneme":  "aw"
+                     },
+                     {
+                         "start":  3.3899999999999997,
+                         "end":  3.44,
+                         "phoneme":  "t"
+                     },
+                     {
+                         "start":  3.44,
+                         "end":  3.4899999999999998,
+                         "phoneme":  "dh"
+                     },
+                     {
+                         "start":  3.4899999999999998,
+                         "end":  3.6799999999999997,
+                         "phoneme":  "ae"
+                     },
+                     {
+                         "start":  3.6799999999999997,
+                         "end":  3.8,
+                         "phoneme":  "t"
+                     },
+                     {
+                         "start":  3.8,
+                         "end":  4.55,
+                         "phoneme":  "_"
+                     },
+                     {
+                         "start":  4.55,
+                         "end":  4.6499999999999995,
+                         "phoneme":  "_"
+                     },
+                     {
+                         "start":  4.6499999999999995,
+                         "end":  4.705,
+                         "phoneme":  "l"
+                     },
+                     {
+                         "start":  4.705,
+                         "end":  4.785,
+                         "phoneme":  "eh"
+                     },
+                     {
+                         "start":  4.785,
+                         "end":  4.84,
+                         "phoneme":  "t"
+                     },
+                     {
+                         "start":  4.84,
+                         "end":  4.89,
+                         "phoneme":  "m"
+                     },
+                     {
+                         "start":  4.89,
+                         "end":  4.96,
+                         "phoneme":  "iy"
+                     },
+                     {
+                         "start":  4.96,
+                         "end":  5.0249999999999995,
+                         "phoneme":  "m"
+                     },
+                     {
+                         "start":  5.0249999999999995,
+                         "end":  5.125,
+                         "phoneme":  "ey"
+                     },
+                     {
+                         "start":  5.125,
+                         "end":  5.18,
+                         "phoneme":  "k"
+                     },
+                     {
+                         "start":  5.18,
+                         "end":  5.2349999999999994,
+                         "phoneme":  "ax"
+                     },
+                     {
+                         "start":  5.2349999999999994,
+                         "end":  5.35,
+                         "phoneme":  "f"
+                     },
+                     {
+                         "start":  5.35,
+                         "end":  5.395,
+                         "phoneme":  "r"
+                     },
+                     {
+                         "start":  5.395,
+                         "end":  5.465,
+                         "phoneme":  "eh"
+                     },
+                     {
+                         "start":  5.465,
+                         "end":  5.555,
+                         "phoneme":  "sh"
+                     },
+                     {
+                         "start":  5.555,
+                         "end":  5.66,
+                         "phoneme":  "k"
+                     },
+                     {
+                         "start":  5.66,
+                         "end":  5.79,
+                         "phoneme":  "ao"
+                     },
+                     {
+                         "start":  5.79,
+                         "end":  5.875,
+                         "phoneme":  "f"
+                     },
+                     {
+                         "start":  5.875,
+                         "end":  5.96,
+                         "phoneme":  "iy"
+                     },
+                     {
+                         "start":  5.96,
+                         "end":  6.06,
+                         "phoneme":  "f"
+                     },
+                     {
+                         "start":  6.06,
+                         "end":  6.09,
+                         "phoneme":  "ax"
+                     },
+                     {
+                         "start":  6.09,
+                         "end":  6.14,
+                         "phoneme":  "r"
+                     },
+                     {
+                         "start":  6.14,
+                         "end":  6.2349999999999994,
+                         "phoneme":  "y"
+                     },
+                     {
+                         "start":  6.2349999999999994,
+                         "end":  6.435,
+                         "phoneme":  "uw"
+                     },
+                     {
+                         "start":  6.435,
+                         "end":  7.185,
+                         "phoneme":  "_"
+                     }
+                 ]
+}

@@ -47,13 +47,13 @@ namespace A305.Tutorial
         /// <summary>대화 노트(피드백)의 탭 줄. 피드백 티칭의 첫째</summary>
         FeedbackSections,
 
-        /// <summary>대화 노트의 쪽 넘김 화살표</summary>
+        /// <summary>대화 노트 요약 탭의 제목 옆 쪽 넘김 화살표</summary>
         FeedbackPages,
 
         /// <summary>대화 노트를 닫는 오른쪽 위 X</summary>
         FeedbackClose,
 
-        /// <summary>왼쪽 위 지도 버튼</summary>
-        MapButton,
+        /// <summary>왼쪽 위 퀘스트 카드. 누르면 여행 수첩이 열린다.</summary>
+        QuestCard,
     }
 }

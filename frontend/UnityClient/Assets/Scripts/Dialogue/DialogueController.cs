@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using A305.Api;
 using A305.Player;
 using A305.Voice;
+using A305.World;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -35,6 +36,7 @@ namespace A305.Dialogue
         private DialogueServerLink serverLink;
         private IConversationApi conversationApi;
         private IAiStatusApi aiStatusApi;
+        private IFollowUpApi followUpApi;
         private VoiceConsentAgreement voiceConsentAgreement;
         private DialogueConversation conversation;
         private ServerConversation serverConversation;
@@ -142,12 +144,16 @@ namespace A305.Dialogue
         /// <param name="scriptKey">
         /// 대본을 찾을 키. 비우면 NPC 키로 찾는다. 튜토리얼에서 길을 묻는 Ben처럼 같은 NPC가 정해진 대본으로 말할 때 쓴다.
         /// </param>
+        /// <param name="npcOffDuty">
+        /// 교대 밖이라 일하지 않는 직원과의 대화인지. 서버 대화 시작(CONV-01)에 보내 응대 대신 일상 상황으로 대화하게 한다.
+        /// </param>
         /// <returns>대화를 시작했으면 true. 이미 대화 중이면 false.</returns>
         public bool TryStart(
             string npcCode,
             Transform lookTarget,
             ConversationInitiator initiatedBy = ConversationInitiator.Npc,
-            string scriptKey = null
+            string scriptKey = null,
+            bool npcOffDuty = false
         )
         {
             if (lookTarget == null || !session.TryStart(npcCode))
@@ -155,6 +161,7 @@ namespace A305.Dialogue
                 return false;
             }
 
+            GameClock.Shared.IsTalking = true;
             if (serverLink != null)
             {
                 var speaker = lookTarget.GetComponentInParent<DialogueSpeaker>();
@@ -174,7 +181,12 @@ namespace A305.Dialogue
             bool isGuided = hasScript && script.GuidedTurns.Count > 0;
             if (conversationApi != null && !isGuided)
             {
-                StartServerConversation(npcCode, hasScript ? script.NpcName : npcCode, initiatedBy);
+                StartServerConversation(
+                    npcCode,
+                    hasScript ? script.NpcName : npcCode,
+                    initiatedBy,
+                    npcOffDuty
+                );
             }
             else
             {
@@ -184,6 +196,7 @@ namespace A305.Dialogue
                     hasRecorder: HasRecorder
                 );
                 panel.Show(conversation);
+                PlayScriptedSpeech(conversation.LastNpcLine);
             }
 
             // 튜토리얼은 동의와 상관없이 녹음하고, 서버 대화는 음성 처리에 동의했을 때만 녹음한다.
@@ -258,6 +271,12 @@ namespace A305.Dialogue
         private void Update()
         {
             ShowVoiceInput();
+            if (serverConversation != null && serverConversation.Tick(DateTimeOffset.UtcNow))
+            {
+                End();
+                return;
+            }
+
             if (
                 session.IsActive
                 && Keyboard.current != null
@@ -285,6 +304,7 @@ namespace A305.Dialogue
             {
                 conversationApi = serverLink.CreateApi();
                 aiStatusApi = serverLink.CreateAiStatusApi();
+                followUpApi = serverLink.CreateFollowUpApi();
                 voiceConsentAgreement = new VoiceConsentAgreement(
                     serverLink.CreateVoiceConsentApi(),
                     VoiceConsent.Shared
@@ -312,10 +332,17 @@ namespace A305.Dialogue
         private void Start()
         {
             RefreshAllowance();
+            // 새로고침이나 장소 이동으로 씬이 새로 열리면 NPC가 아직 건네지 않은 것을 서버에서 다시 받는다(CONV-13).
+            if (followUpApi != null)
+            {
+                _ = FollowUpStore.Shared.RefreshAsync(followUpApi);
+            }
         }
 
         private void OnDestroy()
         {
+            if (session.IsActive)
+                GameClock.Shared.IsTalking = false;
             if (serverLink != null)
                 serverLink.SetSpeaker(null);
             if (serverLink != null && serverLink.VoiceRecorder != null)
@@ -383,7 +410,8 @@ namespace A305.Dialogue
         private void StartServerConversation(
             string npcCode,
             string npcName,
-            ConversationInitiator initiatedBy
+            ConversationInitiator initiatedBy,
+            bool npcOffDuty
         )
         {
             serverConversation = new ServerConversation(
@@ -391,10 +419,12 @@ namespace A305.Dialogue
                 npcName,
                 conversationApi,
                 VoiceConsent.Shared.IsAgreed,
-                initiatedBy
+                initiatedBy,
+                npcOffDuty: npcOffDuty
             );
             serverConversation.Changed += panel.Refresh;
             serverConversation.NpcSpoke += PlayNpcSpeech;
+            serverConversation.NpcSpeechChunk += PlayNpcSpeechChunk;
             serverConversation.UserTurnAccepted += ForwardAcceptedTurn;
             panel.Show(serverConversation);
             _ = serverConversation.StartAsync();
@@ -415,6 +445,7 @@ namespace A305.Dialogue
 
         private void Finish(DialogueRecord record)
         {
+            GameClock.Shared.IsTalking = false;
             string endedNpcCode = Close();
             Ended?.Invoke(endedNpcCode);
             ConversationEnded?.Invoke(record);
@@ -428,6 +459,7 @@ namespace A305.Dialogue
             {
                 serverConversation.Changed -= panel.Refresh;
                 serverConversation.NpcSpoke -= PlayNpcSpeech;
+                serverConversation.NpcSpeechChunk -= PlayNpcSpeechChunk;
                 serverConversation.UserTurnAccepted -= ForwardAcceptedTurn;
             }
 
@@ -481,6 +513,7 @@ namespace A305.Dialogue
             if (conversation.Send(text))
             {
                 panel.Refresh();
+                PlayScriptedSpeech(conversation.LastNpcLine);
                 UserTurnAccepted?.Invoke(conversation.NpcCode, text);
             }
             else if (conversation.IsGuided)
@@ -504,6 +537,12 @@ namespace A305.Dialogue
         private void PlayNpcSpeech(NpcTurnData turn)
         {
             NpcResponded?.Invoke();
+            // 대답을 받는 동안 문장 조각 음성으로 이미 들려줬다. [다시 듣기]는 턴 전체 음성을 받아 재생한다.
+            if (serverConversation.LastTurnSpokenInChunks)
+            {
+                return;
+            }
+
             if (!isEnding && turn.Speech != null && turn.Speech.IsReady)
             {
                 _ = serverConversation.PlaySpeechAsync(serverLink.PlaySpeechAsync);
@@ -511,6 +550,14 @@ namespace A305.Dialogue
             }
 
             serverLink.ForgetSpeech();
+        }
+
+        private void PlayNpcSpeechChunk(NpcSpeechChunkData chunk)
+        {
+            if (!isEnding)
+            {
+                serverLink.QueueSpeechChunk(chunk.Reply, chunk.Wav);
+            }
         }
 
         // 대본 대화는 뜻을 대본에 가지고 있어 서버 대화만 받아 온다(CONV-04).
@@ -714,7 +761,27 @@ namespace A305.Dialogue
             if (target.SendSpoken(transcript))
             {
                 panel.Refresh();
+                PlayScriptedSpeech(target.LastNpcLine);
                 UserTurnAccepted?.Invoke(target.NpcCode, line);
+            }
+        }
+
+        // 대본 대사는 서버 음성을 받지 않으므로 미리 합성해 둔 음성이 있으면 들려준다.
+        // 없으면 지난 대사의 음성을 멈추고 버려 새 대사에 엉뚱한 음성이 이어지지 않게 한다.
+        private void PlayScriptedSpeech(DialogueLine line)
+        {
+            if (serverLink == null)
+            {
+                return;
+            }
+
+            if (line?.Speech != null)
+            {
+                serverLink.PlayRecordedSpeech(line.Speech);
+            }
+            else
+            {
+                serverLink.ForgetSpeech();
             }
         }
 

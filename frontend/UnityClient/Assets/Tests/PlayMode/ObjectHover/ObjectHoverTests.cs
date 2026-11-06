@@ -151,6 +151,47 @@ namespace A305.ObjectHover.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator PinnedCard_KeepsItsPlace_WhenItsContentGrows()
+        {
+            // [숨기기]를 누르면 카드에 두 줄 안내가 붙어 길어진다. 길어져도 카드가 다른 자리로 옮겨 가지 않는다.
+            // 사물을 눌러 고정하면 카메라 자리에 따라 카드가 화면 아래 여백에 붙기도 하고, 그때는 길어지면 화면을 벗어나
+            // 자리를 다시 정하는 것이 맞다. 이 규칙만 보도록 길어질 자리가 넉넉한 화면 위쪽 가운데에 카드를 고정한다.
+            yield return null;
+            var settings = ScriptableObject.CreateInstance<ObjectHoverSettings>();
+            try
+            {
+                Vector2 pointer = new Vector2(Screen.width / 2f, Screen.height * .7f);
+                tooltip.ShowPinned(
+                    ObjectWord.ForHover("TV", "텔레비전", "", false),
+                    CardAnchor.AtPointer(pointer),
+                    settings,
+                    WordCardButtons.None
+                );
+                Assert.That(tooltip.IsPinned, Is.True);
+                Rect before = CardScreenRect();
+
+                tooltip.ShowStatus(
+                    "이제 마우스를 올려도 카드가 뜨지 않아요. 사물을 클릭하면 다시 볼 수 있어요."
+                );
+                tooltip.UpdatePlacement();
+                yield return null;
+                Rect after = CardScreenRect();
+
+                Assert.That(
+                    after.height,
+                    Is.GreaterThan(before.height),
+                    "준비: 안내가 붙어 카드가 길어집니다."
+                );
+                Assert.That(after.xMin, Is.EqualTo(before.xMin).Within(1f), "카드 왼쪽");
+                Assert.That(after.yMax, Is.EqualTo(before.yMax).Within(1f), "카드 위쪽");
+            }
+            finally
+            {
+                Object.Destroy(settings);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator ClickingEmptySpace_ClosesPinnedCard()
         {
             HoverableObject tv = FindHoverable("tv");

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "1.0",
+  "npcId": "TOWN_HANDYMAN",
+  "mbti": "ISTP-T",
+  "role": "PASSERBY",
+  "workplace": "TOWN",
+  "shift": "MIDDAY"
+}

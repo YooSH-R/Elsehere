@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -37,6 +38,12 @@ public class Conversation extends BaseEntity {
 
   /** 대화 하나에서 무례로 셀 수 있는 발화 수(서버 설정값). 여기에 닿으면 NPC가 대화를 끝낸다. */
   public static final int RUDE_LIMIT = 3;
+
+  /** NPC 한 명과 이어서 대화할 수 있는 시간. */
+  public static final Duration TIME_LIMIT = Duration.ofMinutes(5);
+
+  /** 5분 뒤 진행 중인 용건을 자연스럽게 끝낼 마지막 발화 허용 시간. */
+  public static final Duration TIME_LIMIT_GRACE = Duration.ofSeconds(30);
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -76,17 +83,34 @@ public class Conversation extends BaseEntity {
   private Instant endedAt;
 
   private Integer firstDayStage;
+  private Integer townStoryStage;
 
   // 대화를 시작한 요청 ID(CONV-01). 같은 ID로 다시 보내면 대화를 새로 만들지 않는다. 이 칸을 넣기 전의 대화는 null이다.
   @Column(unique = true)
   private UUID requestId;
 
+  // 5분 뒤 마무리 구간에서 허용한 마지막 발화 요청. 같은 요청 재시도만 허용한다.
+  @Column private UUID timeLimitFinalRequestId;
+
+  // 근무 시간이 아닌 NPC와의 대화(CONV-01 npcOffDuty). 워커에 응대 상황 대신 일상 상황을 보낸다. 이 칸을 넣기 전의 대화는 false다.
+  @ColumnDefault("false")
+  @Column(nullable = false)
+  private boolean npcOffDuty;
+
   public void attachFirstDayStage(Integer stage) {
     this.firstDayStage = stage;
   }
 
+  public void attachTownStoryStage(Integer stage) {
+    this.townStoryStage = stage;
+  }
+
   public void attachStartRequest(UUID requestId) {
     this.requestId = requestId;
+  }
+
+  public void markNpcOffDuty() {
+    this.npcOffDuty = true;
   }
 
   public static Conversation start(
@@ -106,6 +130,38 @@ public class Conversation extends BaseEntity {
     return status == ConversationStatus.ACTIVE;
   }
 
+  public boolean reachedTimeLimit(Instant now) {
+    return !now.isBefore(startedAt.plus(TIME_LIMIT));
+  }
+
+  public boolean reachedHardTimeLimit(Instant now) {
+    return !now.isBefore(startedAt.plus(TIME_LIMIT).plus(TIME_LIMIT_GRACE));
+  }
+
+  public boolean claimFinalTurn(UUID requestId) {
+    if (timeLimitFinalRequestId == null) {
+      timeLimitFinalRequestId = requestId;
+      return true;
+    }
+    return timeLimitFinalRequestId.equals(requestId);
+  }
+
+  public void releaseFinalTurn(UUID requestId) {
+    if (isActive() && requestId.equals(timeLimitFinalRequestId)) {
+      timeLimitFinalRequestId = null;
+    }
+  }
+
+  /** 5분 제한에 닿아 서버가 대화를 끝낸다. 이미 끝난 대화는 상태를 바꾸지 않는다. */
+  public void endByTimeLimit(Instant now) {
+    if (!isActive()) {
+      return;
+    }
+    status = ConversationStatus.ENDED_BY_NPC;
+    endReason = ConversationEndReason.TIME_LIMIT;
+    endedAt = now;
+  }
+
   /** 무례한 말을 하나 센다. 한도에 닿으면 NPC가 대화를 끝낸다. */
   public void countRude(int limit, Instant now) {
     rudeCount++;
@@ -114,6 +170,16 @@ public class Conversation extends BaseEntity {
       endReason = ConversationEndReason.RUDE;
       endedAt = now;
     }
+  }
+
+  /** 용건이 끝났거나 학습자가 작별해 NPC가 마무리 대사로 대화를 끝냈다. 이미 끝난 대화는 상태를 바꾸지 않는다. */
+  public void endByNpc(Instant now) {
+    if (!isActive()) {
+      return;
+    }
+    status = ConversationStatus.ENDED_BY_NPC;
+    endReason = ConversationEndReason.NPC_ENDED;
+    endedAt = now;
   }
 
   /** 사용자가 [대화 종료]를 눌렀다. NPC가 이미 끝낸 대화는 상태를 바꾸지 않는다. */

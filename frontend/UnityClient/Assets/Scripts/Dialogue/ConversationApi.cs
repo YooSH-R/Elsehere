@@ -22,7 +22,8 @@ namespace A305.Dialogue
         public Task<ConversationStart> StartAsync(
             string requestId,
             string npcCode,
-            string initiatedBy
+            string initiatedBy,
+            bool npcOffDuty
         )
         {
             return client.PostAsync<ConversationStart>(
@@ -32,6 +33,7 @@ namespace A305.Dialogue
                     RequestId = requestId,
                     NpcCode = npcCode,
                     InitiatedBy = initiatedBy,
+                    NpcOffDuty = npcOffDuty,
                 }
             );
         }
@@ -41,19 +43,46 @@ namespace A305.Dialogue
             string requestId,
             string inputType,
             string text,
-            string sttRawText
+            string sttRawText,
+            ITurnStream stream
         )
         {
-            return client.PostAsync<TurnResult>(
-                $"/api/v1/conversations/{conversationId}/turns",
-                new TurnBody
-                {
-                    RequestId = requestId,
-                    InputType = inputType,
-                    Text = text,
-                    SttRawText = sttRawText,
-                }
-            );
+            string path = $"/api/v1/conversations/{conversationId}/turns";
+            var body = new TurnBody
+            {
+                RequestId = requestId,
+                InputType = inputType,
+                Text = text,
+                SttRawText = sttRawText,
+            };
+            return stream == null
+                ? client.PostAsync<TurnResult>(path, body)
+                : SendTurnStreamingAsync(path, body, stream);
+        }
+
+        // CONV-03 스트리밍. 서버는 연결이 끊겨도 턴을 끝까지 저장하므로, 저장된 턴을 받지 못하고 끝나면 같은 요청 ID로 다시 묻는다.
+        private async Task<TurnResult> SendTurnStreamingAsync(
+            string path,
+            TurnBody body,
+            ITurnStream stream
+        )
+        {
+            var events = new TurnEventReader(stream);
+            try
+            {
+                await client.PostStreamAsync(path, body, events.Read);
+            }
+            catch (ApiException exception) when (exception.Code == ApiErrorCodes.NetworkError)
+            {
+                return await client.PostAsync<TurnResult>(path, body);
+            }
+
+            if (events.Error != null)
+            {
+                throw events.Error;
+            }
+
+            return events.Turn ?? await client.PostAsync<TurnResult>(path, body);
         }
 
         public Task<EndResult> EndAsync(long conversationId, string requestId, bool skipFeedback)

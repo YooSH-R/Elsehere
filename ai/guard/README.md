@@ -13,7 +13,7 @@ AI 워커 `/v1/guard`가 쓰는 무례 판정 모델을 학습하고 평가하�
 | 3 | vLLM | 기본 모델에 어댑터를 얹어 띄웁니다(`--enable-lora --lora-modules <이름>=<어댑터>`) |
 | 4 | `ai/tools/guard_eval.py` | 서비스와 같은 요청으로 개발셋을 재고 모델을 고릅니다. 잠긴 테스트셋은 마지막에 한 번만 씁니다 |
 
-jsonl 한 줄은 `text`, `prev`(바로 앞 NPC 대사), `rude`(0/1), `npc`(`id`·`name`·`role`·`facts`·`scene`)이고, 학습셋에는 문장 가중치 `weight`가 더 붙습니다.
+jsonl 한 줄은 `text`, `prev`(바로 앞 NPC 대사), `rude`(0/1), `npc`(`id`·`name`·`role`·`facts`·`scene`)이고, 학습셋에는 문장 가중치 `weight`가 더 붙습니다. 서비스는 판정 요청에 앞 대화 여러 줄(학습자·NPC, 최근 4줄)을 넣으므로, 그렇게 재고 학습하려면 `history`(`[{"who": "me"|"npc", "text": ...}]`)를 붙입니다. 있으면 `prev` 대신 씁니다.
 
 ## 실행 예
 
@@ -24,6 +24,19 @@ python ai/tools/guard_eval.py --data dev.jsonl --base-url http://<vLLM 주소>/v
     --model guard-qwen3.8-27b-r16 --extra-body '{"chat_template_kwargs": {"enable_thinking": false}}' --out result.jsonl
 ```
 
+- 서비스 중인 판정 vLLM과 같은 5번 GPU를 쓰므로, 학습하는 동안에는 판정 vLLM을 내려야 메모리가 남습니다(27B 가중치만 약 54GB). 그동안 워커는 GPU 판정이 실패해 구성의 판정 모델(GMS)로 넘깁니다.
 - `--micro`는 한 번에 GPU에 넣는 문장 수입니다. Qwen3.8의 선형 어텐션은 중간값이 커서 한 번에 여러 문장을 넣으면 메모리가 부족합니다. 기울기를 모아 `--batch`(기본 8) 문장마다 갱신합니다.
 - 학습에는 `torch`, `transformers`, `peft`, `flash-linear-attention`이 필요합니다. 자동 테스트와 CI 의존성에는 넣지 않습니다.
 - `guard_eval.py`는 화면에 집계만 찍고, 문장별 결과는 문장 없이 `id`·정답·예측만 `--out`에 남깁니다.
+
+## 서비스 실행
+
+GPU 서버에서는 `serve.sh`가 5번 GPU에 vLLM(127.0.0.1:18432)을 띄우고, `supervise.sh`가 30초마다 vLLM과 배포 서버로 가는 역방향 SSH 터널을 확인해 다시 띄웁니다. 두 파일을 `~/guard/`에 두고, vLLM 키는 `~/guard/vllm_token`(권한 600)에 둡니다.
+
+```sh
+setsid nohup ~/guard/supervise.sh >> ~/guard/supervise.log 2>&1 &
+```
+
+- 개발 터널(`172.19.0.1:18432`)은 `~/guard/tunnel_enabled`, 운영 터널(`172.30.0.1:18432`)은 `~/guard/prod_tunnel_enabled` 파일이 있을 때만 겁니다. 입구 허용과 방화벽은 [GPU 터널 네트워크](../../docs/gpu-worker-network.md)를 따릅니다.
+- 기본 모델과 어댑터를 읽는 데 약 3분이 걸립니다. 그동안 워커는 프로필의 판정 모델로 대체합니다.
+- Jupyter 서버가 다시 시작되면 [`ai/gpu_autostart`](../gpu_autostart/README.md) 훅이 감시 스크립트를 다시 띄웁니다.

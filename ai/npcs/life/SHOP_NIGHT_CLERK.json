@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "1.0",
+  "npcId": "SHOP_NIGHT_CLERK",
+  "mbti": "INTP-T",
+  "role": "STAFF",
+  "workplace": "SHOP",
+  "shift": "NIGHT"
+}

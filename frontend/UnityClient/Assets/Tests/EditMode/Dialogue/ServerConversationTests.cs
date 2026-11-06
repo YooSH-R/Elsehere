@@ -74,6 +74,83 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task Tick_UsesServerDeadlineAndWarnsThirtySecondsBeforeLimit()
+        {
+            api.StartResponse.Conversation = TimedState();
+            int changed = 0;
+            conversation.Changed += () => changed++;
+            await conversation.StartAsync();
+            changed = 0;
+
+            bool shouldEnd = conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:04:30+09:00"));
+
+            Assert.That(shouldEnd, Is.False);
+            Assert.That(
+                conversation.CountdownMessage,
+                Is.EqualTo("남은 시간 0:30 · 대화를 마무리해 주세요")
+            );
+            Assert.That(changed, Is.EqualTo(1));
+
+            conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:04:30.500+09:00"));
+
+            Assert.That(changed, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task Tick_AtSoftLimitAllowsOneFinalTurn()
+        {
+            api.StartResponse.Conversation = TimedState();
+            await conversation.StartAsync();
+
+            bool shouldEnd = conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:05:00+09:00"));
+
+            Assert.That(shouldEnd, Is.False);
+            Assert.That(conversation.IsClosing, Is.True);
+            Assert.That(conversation.CanSend, Is.True);
+            Assert.That(
+                conversation.CountdownMessage,
+                Is.EqualTo("마지막 말을 마무리해 주세요 · 0:30")
+            );
+        }
+
+        [Test]
+        public async Task Tick_AtHardLimitBlocksInputAndRequestsFeedback()
+        {
+            api.StartResponse.Conversation = TimedState();
+            await conversation.StartAsync();
+
+            bool shouldEnd = conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:05:30+09:00"));
+
+            Assert.That(shouldEnd, Is.True);
+            Assert.That(conversation.CanSend, Is.False);
+            Assert.That(conversation.CountdownMessage, Is.EqualTo("대화 시간이 끝났어요"));
+        }
+
+        [Test]
+        public async Task Tick_AtHardLimitWaitsForCurrentNpcReplyBeforeFeedback()
+        {
+            api.StartResponse.Conversation = TimedState();
+            await conversation.StartAsync();
+            api.PendingTurn = new TaskCompletionSource<TurnResult>();
+            Task sending = conversation.SendAsync("One last thing.");
+
+            bool whileReplying = conversation.Tick(
+                DateTimeOffset.Parse("2026-11-05T14:05:30+09:00")
+            );
+
+            Assert.That(whileReplying, Is.False);
+            api.TurnResponse = Reply("One last thing.", "All right. Take care!", "ENDED_BY_NPC");
+            api.TurnResponse.Conversation.EndReason = "TIME_LIMIT";
+            api.PendingTurn.SetResult(api.TurnResponse);
+            await sending;
+
+            Assert.That(
+                conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:05:31+09:00")),
+                Is.True
+            );
+        }
+
+        [Test]
         public async Task Start_RequestsNpcInitiatedConversationWithNpcCode()
         {
             await conversation.StartAsync();
@@ -119,6 +196,38 @@ namespace A305.Dialogue.Tests
 
             Assert.That(api.Starts, Has.Count.EqualTo(2));
             Assert.That(api.Starts[1].InitiatedBy, Is.EqualTo("USER"));
+        }
+
+        [Test]
+        public async Task Start_ByDefault_RequestsAnOnDutyConversation()
+        {
+            await conversation.StartAsync();
+
+            Assert.That(api.Starts[0].NpcOffDuty, Is.False);
+        }
+
+        [Test]
+        public async Task Start_WithStaffOffDuty_RequestsAnOffDutyConversationEvenAfterClosingAnOldOne()
+        {
+            // 교대 밖의 직원과 말하면 서버가 응대 대신 쉬는 중에 잡담하는 일상 상황으로 대화한다(CONV-01 npcOffDuty).
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                ConversationInitiator.User,
+                npcOffDuty: true
+            );
+            api.StartErrors.Enqueue(
+                new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중인 대화가 있습니다.")
+            );
+            api.Active = new ActiveConversation { ConversationId = 41 };
+
+            await conversation.StartAsync();
+
+            Assert.That(api.Starts, Has.Count.EqualTo(2));
+            Assert.That(api.Starts[0].NpcOffDuty, Is.True);
+            Assert.That(api.Starts[1].NpcOffDuty, Is.True);
         }
 
         [Test]
@@ -175,6 +284,96 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task Send_StreamedText_ShowsUserAndGrowingNpcLineBeforeTheTurnIsSaved()
+        {
+            await conversation.StartAsync();
+            api.TurnResponse = Reply(Order, "Great! Hot or iced?", "ACTIVE");
+            api.StreamSteps.Add(stream => stream.OnDelta("Great!"));
+            api.StreamSteps.Add(stream => stream.OnDelta(" Hot"));
+            api.HoldAfterStream = new TaskCompletionSource<bool>();
+
+            Task sending = conversation.SendAsync(Order);
+
+            // 대사가 오기 시작하면 로딩을 걷고 온 만큼 보여 준다. 저장이 끝날 때까지 보내기는 막는다.
+            Assert.That(conversation.Waiting, Is.EqualTo(DialogueWait.None));
+            Assert.That(conversation.IsBusy, Is.True);
+            Assert.That(conversation.Lines, Has.Count.EqualTo(3));
+            Assert.That(conversation.Lines[1].English, Is.EqualTo(Order));
+            Assert.That(conversation.Lines[1].IsNpc, Is.False);
+            Assert.That(conversation.Lines[2].English, Is.EqualTo("Great! Hot"));
+            Assert.That(conversation.Lines[2].IsNpc, Is.True);
+
+            api.HoldAfterStream.SetResult(true);
+            await sending;
+
+            Assert.That(conversation.Lines, Has.Count.EqualTo(3));
+            Assert.That(conversation.Lines[2].English, Is.EqualTo("Great! Hot or iced?"));
+            Assert.That(conversation.LastNpcLine, Is.SameAs(conversation.Lines[2]));
+            Assert.That(conversation.LastNpcTurn.TurnId, Is.EqualTo(103));
+        }
+
+        [Test]
+        public async Task Send_StreamedSpeechChunks_ArePassedOnAndTheWholeSpeechIsNotPlayedAgain()
+        {
+            await conversation.StartAsync();
+            var chunks = new List<NpcSpeechChunkData>();
+            conversation.NpcSpeechChunk += chunks.Add;
+            api.StreamSteps.Add(stream => stream.OnDelta("Great!"));
+            api.StreamSteps.Add(stream => stream.OnSpeechChunk(0, "Great!", Wav));
+            api.StreamSteps.Add(stream => stream.OnSpeechChunk(1, "Hot or iced?", null));
+            bool speechReadyWhileStreaming = false;
+            api.StreamSteps.Add(_ => speechReadyWhileStreaming = conversation.IsNpcSpeechReady);
+
+            await conversation.SendAsync(Order);
+
+            // 음성이 없는 조각은 재생할 것이 없어 넘기지 않는다.
+            Assert.That(chunks, Has.Count.EqualTo(1));
+            Assert.That(chunks[0].Seq, Is.EqualTo(0));
+            Assert.That(chunks[0].Wav, Is.EqualTo(Wav));
+            // 들을 수 있는 대사라 자막을 끈 사용자에게는 받는 동안에도 대사를 가린다.
+            Assert.That(speechReadyWhileStreaming, Is.True);
+            Assert.That(conversation.LastTurnSpokenInChunks, Is.True);
+        }
+
+        [Test]
+        public async Task Send_StreamWithoutAnySpeech_LeavesTheWholeSpeechToPlay()
+        {
+            await conversation.StartAsync();
+            api.StreamSteps.Add(stream => stream.OnDelta("Great!"));
+            api.StreamSteps.Add(stream => stream.OnSpeechChunk(0, "Great!", null));
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(conversation.LastTurnSpokenInChunks, Is.False);
+        }
+
+        [Test]
+        public async Task Send_StreamFailsAfterText_RemovesThePartialLinesAndKeepsTheRequestForRetry()
+        {
+            await conversation.StartAsync();
+            api.StreamSteps.Add(stream => stream.OnDelta("Great!"));
+            api.TurnError = new ApiException(
+                "AI_TEMPORARILY_UNAVAILABLE",
+                503,
+                "AI가 잠시 응답하지 않습니다. 다시 시도해 주세요."
+            );
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(conversation.Lines, Has.Count.EqualTo(1));
+            Assert.That(conversation.LastNpcLine, Is.SameAs(conversation.Lines[0]));
+            Assert.That(conversation.CanRetry, Is.True);
+            Assert.That(conversation.TakeTextToRestore(), Is.EqualTo(Order));
+
+            api.TurnError = null;
+            api.StreamSteps.Clear();
+            await conversation.RetryAsync();
+
+            Assert.That(api.Turns[1].RequestId, Is.EqualTo(api.Turns[0].RequestId));
+            Assert.That(conversation.Lines, Has.Count.EqualTo(3));
+        }
+
+        [Test]
         public async Task End_WhileWaiting_WaitsForFeedback()
         {
             await conversation.StartAsync();
@@ -218,6 +417,94 @@ namespace A305.Dialogue.Tests
             Assert.That(conversation.ConversationId, Is.EqualTo(ConversationId));
             Assert.That(conversation.Lines, Has.Count.EqualTo(1));
             Assert.That(conversation.StatusMessage, Is.Null);
+        }
+
+        [Test]
+        public async Task Start_WhenUnfinishedConversationWithSameNpcRemains_ResumesItWithoutStartingAgain()
+        {
+            // 새로고침 등으로 끝내지 못한 같은 NPC 대화가 서버에 남아 있는 경우다. 끝내고 새로 시작하면 게스트 대화 횟수를 한 번 더 쓴다.
+            api.StartErrors.Enqueue(
+                new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중인 대화가 있습니다.")
+            );
+            const string lastLine = "Sure. Would you like anything else?";
+            api.Active = new ActiveConversation
+            {
+                ConversationId = 41,
+                Status = "ACTIVE",
+                Npc = new NpcSummary { NpcCode = CafeStaffCode, Name = "Mia" },
+                RudeCount = 0,
+                RudeLimit = 3,
+                Turns = new List<ActiveTurn>
+                {
+                    new ActiveTurn
+                    {
+                        TurnId = 101,
+                        Speaker = "NPC",
+                        Text = Opening,
+                    },
+                    new ActiveTurn
+                    {
+                        TurnId = 102,
+                        Speaker = "USER",
+                        Text = Order,
+                    },
+                    new ActiveTurn
+                    {
+                        TurnId = 103,
+                        Speaker = "NPC",
+                        Text = lastLine,
+                        Speech = new SpeechData
+                        {
+                            Status = "READY",
+                            Url = "/api/v1/turns/103/speech",
+                        },
+                    },
+                },
+            };
+
+            await conversation.StartAsync();
+
+            // 남은 대화를 끝내지 않고, 새 대화도 만들지 않는다. 이어 간 마지막 대사의 추천 단어는 처음 시작할 때처럼 따로 받는다.
+            Assert.That(api.Calls, Does.Not.Contain("End"));
+            Assert.That(api.Starts, Has.Count.EqualTo(1));
+            Assert.That(conversation.ConversationId, Is.EqualTo(41));
+            Assert.That(conversation.NpcName, Is.EqualTo("Mia"));
+            Assert.That(
+                conversation.Lines.Select(line => line.English),
+                Is.EqualTo(new[] { Opening, Order, lastLine })
+            );
+            Assert.That(conversation.LastNpcTurn.TurnId, Is.EqualTo(103));
+            Assert.That(conversation.LastNpcTurn.Speech.IsReady, Is.True);
+            Assert.That(conversation.CanSend, Is.True);
+        }
+
+        [Test]
+        public async Task Start_WhenUnfinishedConversationIsWithOtherNpc_EndsItAndStartsAgain()
+        {
+            // 다른 NPC와 끝내지 못한 대화는 지금처럼 피드백 없이 끝내고 새로 시작한다.
+            api.StartErrors.Enqueue(
+                new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중인 대화가 있습니다.")
+            );
+            api.Active = new ActiveConversation
+            {
+                ConversationId = 41,
+                Status = "ACTIVE",
+                Npc = new NpcSummary { NpcCode = "TOWN_PASSERBY", Name = "Ben" },
+                Turns = new List<ActiveTurn>
+                {
+                    new ActiveTurn
+                    {
+                        TurnId = 101,
+                        Speaker = "NPC",
+                        Text = "Hi!",
+                    },
+                },
+            };
+
+            await conversation.StartAsync();
+
+            Assert.That(api.Calls, Is.EqualTo(new[] { "Start", "GetActive", "End", "Start" }));
+            Assert.That(conversation.ConversationId, Is.EqualTo(ConversationId));
         }
 
         [Test]
@@ -959,6 +1246,126 @@ namespace A305.Dialogue.Tests
             Assert.That(api.Ends, Is.Empty);
         }
 
+        // 음료 주문처럼 NPC가 준비해 곧 건네기로 하면 왼쪽 카드와 NPC가 부르기에 쓰도록 기다리는 것으로 남긴다.
+        [Test]
+        public async Task End_WhenNpcPromisedSomething_RemembersItAsWaiting()
+        {
+            var followUps = new FollowUpStore(() => 10d);
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                followUps: followUps
+            );
+            api.EndResponse.FollowUp = IcedLatte(id: 7, remainingSeconds: 45);
+            await conversation.StartAsync();
+
+            await conversation.EndAsync();
+
+            Assert.That(followUps.Items, Has.Count.EqualTo(1));
+            Assert.That(followUps.Items[0].FollowUpId, Is.EqualTo(7));
+            Assert.That(followUps.Items[0].RemainingSeconds(10d), Is.EqualTo(45));
+        }
+
+        [Test]
+        public async Task End_WithoutFollowUp_LeavesWaitingListAsIs()
+        {
+            var followUps = new FollowUpStore(() => 10d);
+            followUps.Receive(IcedLatte(id: 3, remainingSeconds: 90));
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                followUps: followUps
+            );
+            await conversation.StartAsync();
+
+            await conversation.EndAsync();
+
+            Assert.That(followUps.Items, Has.Count.EqualTo(1));
+            Assert.That(followUps.Items[0].FollowUpId, Is.EqualTo(3));
+        }
+
+        // [말 걸기]로 먼저 말을 걸어도, NPC가 불러 시작해도 서버가 첫 대사로 건네면 카드에서 지운다.
+        [Test]
+        public async Task Start_WhenNpcHandsOverWithOpeningLine_ForgetsThatFollowUp()
+        {
+            var followUps = new FollowUpStore(() => 10d);
+            followUps.Receive(IcedLatte(id: 7, remainingSeconds: 0));
+            followUps.Receive(Breakfast(id: 8, remainingSeconds: 90));
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                ConversationInitiator.User,
+                followUps
+            );
+            api.StartResponse.DeliveredFollowUpId = 7;
+
+            await conversation.StartAsync();
+
+            Assert.That(followUps.Items, Has.Count.EqualTo(1));
+            Assert.That(followUps.Items[0].FollowUpId, Is.EqualTo(8));
+        }
+
+        // NPC마다 하나만 기다리므로, 건넨 ID가 기억하던 줄과 달라도(그사이 새로 부탁함) 그 NPC의 줄을 지운다.
+        [Test]
+        public async Task Start_WhenHandedOverIdDiffers_StillForgetsThatNpcsRow()
+        {
+            var followUps = new FollowUpStore(() => 10d);
+            followUps.Receive(IcedLatte(id: 9, remainingSeconds: 0));
+            followUps.Receive(Breakfast(id: 8, remainingSeconds: 90));
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                followUps: followUps
+            );
+            api.StartResponse.DeliveredFollowUpId = 7;
+
+            await conversation.StartAsync();
+
+            Assert.That(followUps.Items, Has.Count.EqualTo(1));
+            Assert.That(followUps.Items[0].FollowUpId, Is.EqualTo(8));
+        }
+
+        private static FollowUpData Breakfast(long id, int remainingSeconds)
+        {
+            return new FollowUpData
+            {
+                FollowUpId = id,
+                Npc = new NpcSummary { NpcCode = "DINER_STAFF", Name = "Rosa" },
+                SceneCode = "TOWN",
+                Item = "breakfast",
+                ItemKo = "아침 식사",
+                RemainingSeconds = remainingSeconds,
+                Ready = remainingSeconds == 0,
+            };
+        }
+
+        private static FollowUpData IcedLatte(long id, int remainingSeconds)
+        {
+            return new FollowUpData
+            {
+                FollowUpId = id,
+                Npc = new NpcSummary
+                {
+                    NpcCode = CafeStaffCode,
+                    Name = "Mia",
+                    RoleLabel = "카페 직원",
+                },
+                SceneCode = "CAFE",
+                Item = "iced latte",
+                ItemKo = "아이스 라테",
+                RemainingSeconds = remainingSeconds,
+                Ready = remainingSeconds == 0,
+            };
+        }
+
         [TestCase("READY", true)]
         [TestCase("FAILED", true)]
         [TestCase("EXPIRED", false)]
@@ -1034,6 +1441,22 @@ namespace A305.Dialogue.Tests
             Assert.That(conversation.LastNpcTurn.Speech.Status, Is.EqualTo("READY"));
             Assert.That(conversation.LastNpcLine.English, Is.EqualTo(Opening));
             Assert.That(api.SpeechRegeneratedFor, Is.Empty);
+        }
+
+        // 음성을 들을 수 없는 대사는 자막을 꺼 두었어도 글자로 보여야 한다(기능명세: TTS 실패·만료 때 자막 유지).
+        [TestCase("READY", "/api/v1/turns/101/speech", true)]
+        [TestCase("FAILED", null, false)]
+        [TestCase("EXPIRED", null, false)]
+        public async Task IsNpcSpeechReady_FollowsTheLatestNpcSpeech(
+            string status,
+            string url,
+            bool ready
+        )
+        {
+            await conversation.StartAsync();
+            conversation.LastNpcTurn.Speech = new SpeechData { Status = status, Url = url };
+
+            Assert.That(conversation.IsNpcSpeechReady, Is.EqualTo(ready));
         }
 
         [TestCase("EXPIRED")]
@@ -1496,6 +1919,18 @@ namespace A305.Dialogue.Tests
             };
         }
 
+        private static ConversationState TimedState()
+        {
+            return new ConversationState
+            {
+                Status = "ACTIVE",
+                TimeLimitAt = "2026-11-05T14:05:00+09:00",
+                GraceUntil = "2026-11-05T14:05:30+09:00",
+                Closing = false,
+                FinalTurnsRemaining = 0,
+            };
+        }
+
         private static EndResult Ended(string feedbackStatus)
         {
             return new EndResult
@@ -1511,16 +1946,23 @@ namespace A305.Dialogue.Tests
 
         private sealed class StartRequest
         {
-            public StartRequest(string requestId, string npcCode, string initiatedBy)
+            public StartRequest(
+                string requestId,
+                string npcCode,
+                string initiatedBy,
+                bool npcOffDuty
+            )
             {
                 RequestId = requestId;
                 NpcCode = npcCode;
                 InitiatedBy = initiatedBy;
+                NpcOffDuty = npcOffDuty;
             }
 
             public string RequestId { get; }
             public string NpcCode { get; }
             public string InitiatedBy { get; }
+            public bool NpcOffDuty { get; }
         }
 
         private sealed class TurnRequest
@@ -1593,6 +2035,7 @@ namespace A305.Dialogue.Tests
 
             public ActiveConversation Active { get; set; }
             public TurnResult TurnResponse { get; set; } = Reply("Yes.", "Great!", "ACTIVE");
+            public TaskCompletionSource<TurnResult> PendingTurn { get; set; }
             public ApiException TurnError { get; set; }
             public EndResult EndResponse { get; set; } = Ended("DONE");
             public Exception EndError { get; set; }
@@ -1627,11 +2070,12 @@ namespace A305.Dialogue.Tests
             public Task<ConversationStart> StartAsync(
                 string requestId,
                 string npcCode,
-                string initiatedBy
+                string initiatedBy,
+                bool npcOffDuty
             )
             {
                 Calls.Add("Start");
-                Starts.Add(new StartRequest(requestId, npcCode, initiatedBy));
+                Starts.Add(new StartRequest(requestId, npcCode, initiatedBy, npcOffDuty));
                 if (StartErrors.Count > 0)
                 {
                     return Task.FromException<ConversationStart>(StartErrors.Dequeue());
@@ -1640,19 +2084,47 @@ namespace A305.Dialogue.Tests
                 return Task.FromResult(StartResponse);
             }
 
-            public Task<TurnResult> SendTurnAsync(
+            /// <summary>발화 전송이 스트림으로 차례로 넘길 대사 글자·조각 음성.</summary>
+            public List<Action<ITurnStream>> StreamSteps { get; } = new List<Action<ITurnStream>>();
+
+            /// <summary>스트림을 넘긴 뒤 저장된 턴을 돌려주기 전에 기다릴 신호. 없으면 바로 돌려준다.</summary>
+            public TaskCompletionSource<bool> HoldAfterStream { get; set; }
+
+            public async Task<TurnResult> SendTurnAsync(
                 long conversationId,
                 string requestId,
                 string inputType,
                 string text,
-                string sttRawText
+                string sttRawText,
+                ITurnStream stream
             )
             {
                 Calls.Add("SendTurn");
                 Turns.Add(new TurnRequest(conversationId, requestId, inputType, text, sttRawText));
-                return TurnError != null
-                    ? Task.FromException<TurnResult>(TurnError)
-                    : Task.FromResult(TurnResponse);
+                if (stream != null)
+                {
+                    foreach (Action<ITurnStream> step in StreamSteps)
+                    {
+                        step(stream);
+                    }
+                }
+
+                if (HoldAfterStream != null)
+                {
+                    await HoldAfterStream.Task;
+                }
+
+                if (PendingTurn != null)
+                {
+                    return await PendingTurn.Task;
+                }
+
+                if (TurnError != null)
+                {
+                    throw TurnError;
+                }
+
+                return TurnResponse;
             }
 
             public Task<EndResult> EndAsync(

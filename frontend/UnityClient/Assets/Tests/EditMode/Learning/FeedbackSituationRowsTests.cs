@@ -10,8 +10,9 @@ using UnityEngine.UI;
 namespace A305.Learning.Tests
 {
     /// <summary>
-    /// 피드백을 열자마자 보이는 요약 탭에 이 상황에서 자주 쓰는 표현을 한 번에 보여 주고, 표현마다 바로 담을 수 있는지 확인한다.
-    /// 회화 탭을 눌러 한 장씩 넘겨야 보이면 잘 와닿지 않는다.
+    /// 피드백을 열자마자 보이는 요약 탭에 이 상황에서 자주 쓰는 표현을 보여 주고, 표현마다 바로 담을 수 있는지 확인한다.
+    /// 회화 탭을 눌러 한 장씩 넘겨야 보이면 잘 와닿지 않는다. 아래 대화 요약 자리가 남도록 표현은 두 개씩 보이고
+    /// 고정 영역을 넘는 내용은 세로 스크롤로 본다.
     /// </summary>
     public class FeedbackSituationRowsTests
     {
@@ -40,7 +41,7 @@ namespace A305.Learning.Tests
         public void DestroyScreen() => Object.DestroyImmediate(instance);
 
         [Test]
-        public void SummaryTab_ShowsEverySituationExpressionAtOnce()
+        public void SummaryTab_ShowsAllSituationExpressions()
         {
             Show(Expressions);
 
@@ -130,6 +131,28 @@ namespace A305.Learning.Tests
 
             float rowsBottom = Rows().Min(row => Corners((RectTransform)row.transform)[0].y);
             Assert.That(Corners(body.rectTransform)[1].y, Is.LessThanOrEqualTo(rowsBottom + 0.01f));
+        }
+
+        [Test]
+        public void ConversationTab_LeavesSituationExpressionsInSummary()
+        {
+            Show(Expressions);
+            Assert.That(Rows(), Has.Count.EqualTo(Expressions.Count));
+
+            view.SelectSection(FeedbackSection.Conversation);
+
+            Assert.That(Rows(), Is.Empty);
+        }
+
+        [Test]
+        public void SingleSituationExpression_HasOnlyItsOwnSaveButton()
+        {
+            Show(new List<SituationExpressionData> { Expressions[0] });
+
+            var pageSave = (Button)
+                new SerializedObject(view).FindProperty("saveButton").objectReferenceValue;
+            Assert.That(pageSave.gameObject.activeInHierarchy, Is.False);
+            Assert.That(Rows().Single().GetComponentInChildren<Button>(), Is.Not.Null);
         }
 
         private void Show(List<SituationExpressionData> expressions)

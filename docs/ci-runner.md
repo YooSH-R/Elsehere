@@ -1,12 +1,12 @@
 # 검사 파이프라인과 Runner 연결
 
-검사 설정은 `.gitlab-ci.yml`과 `.gitlab/ci/`에서 관리합니다. 일반 Linux 검사는 `a305-linux-ci` 태그로 EC2와 노트북의 Docker Runner가 나눠 받습니다. 경량 검사는 EC2의 `a305-linux-light` Runner에서 실행하며, 배포 계획·전달은 `a305-ec2` 태그도 요구해 EC2로 제한합니다. 설정 파일 작성, Runner 등록, 실제 작업 성공은 각각 확인합니다.
+검사 설정은 `.gitlab-ci.yml`과 `.gitlab/ci/`에서 관리합니다. 일반 Linux 검사는 `a305-linux-ci` 태그로 EC2와 노트북의 Docker Runner가 나눠 받습니다. 두 일반 Runner는 `a305-linux-light` 태그도 함께 등록해 여유 자리에서 경량 검사를 처리합니다. EC2의 경량 전용 Runner 한 자리는 유지하며, 배포 계획·전달은 `a305-ec2` 태그도 요구해 EC2로 제한합니다. 설정 파일 작성, Runner 등록, 실제 작업 성공은 각각 확인합니다.
 
 ## 자동 검사 범위
 
 MR 파이프라인은 `.pre` 단계의 `ci:merge-conflicts`에서 실제 대상 브랜치의 최신 커밋을 가져와 병합 충돌부터 검사합니다. 충돌이 있거나 대상 조회·병합 가능 여부 확인에 실패하면 나머지 검사를 시작하지 않습니다. 작업 트리와 인덱스를 바꾸지 않는 `git merge-tree`를 사용하며, 대규모 Unity 에셋은 체크아웃하지 않습니다. 소스와 대상의 공통 조상을 확인할 수 있도록 Git 이력은 전체를 가져옵니다. 최초 이력 수신 시간은 저장소 크기와 Runner 캐시에 따라 달라집니다.
 
-충돌 검사를 통과한 뒤 백엔드·Unity 포맷·AI 작업은 `needs: ["ci:yaml"]`로 YAML 검사 성공 후 실행할 수 있습니다. MR의 Unity 실행 테스트는 YAML과 Unity 포맷 검사 성공 후 시작합니다. 인프라 검사도 `.pre` 완료 후 시작하며, 각 작업이 별도 환경을 사용하므로 Runner의 동시 실행 한도 안에서 겹쳐 실행합니다. 파이프라인 성공에는 선택된 모든 필수 작업의 통과가 필요합니다. Push·웹 수동 실행·배포 자식 파이프라인에는 MR 충돌 검사를 추가하지 않습니다.
+충돌 검사를 통과한 뒤 백엔드·Unity 포맷·AI 작업은 `needs: ["ci:yaml"]`로 YAML 검사 성공 후 실행할 수 있습니다. Unity MR의 Editor 전체 테스트는 로컬에서 수행하고 MR 파이프라인은 Windows Runner 작업을 만들지 않습니다. 인프라 검사도 `.pre` 완료 후 시작하며, 각 작업이 별도 환경을 사용하므로 Runner의 동시 실행 한도 안에서 겹쳐 실행합니다. 파이프라인 성공에는 선택된 모든 필수 작업의 통과가 필요합니다. Push·웹 수동 실행·배포 자식 파이프라인에는 MR 충돌 검사를 추가하지 않습니다.
 
 충돌 여부는 사전 검사 시점의 대상 브랜치를 기준으로 합니다. 검사가 끝난 뒤 대상 브랜치가 바뀌어 생긴 충돌은 GitLab의 병합 검사에서 다시 확인합니다. 사전 검사 통과가 최신 커밋의 기능 검사나 병합 시점의 충돌 검사를 대신하지 않습니다.
 
@@ -16,9 +16,10 @@ MR 파이프라인은 `.pre` 단계의 `ci:merge-conflicts`에서 실제 대상 
 | `ci:yaml` | 생성된 모든 파이프라인 | CI YAML 문법·형식 검사 |
 | `backend:check-and-build` | 백엔드, API 명세, ERD, 앱 실행 설정 또는 공통 CI·작성 지침 변경 | Java 21·Gradle Wrapper의 `check bootJar`, Testcontainers PostgreSQL 테스트, JUnit 결과·`app.jar`·커밋 식별자 |
 | `unity:format` | 프론트, API 명세, Unity CI·검사 스크립트·규약 또는 공통 작성 지침 변경 | 고정된 .NET SDK와 CSharpier로 직접 작성한 C# 포맷 검사 |
-| `unity:editor-tests` | 같은 프로젝트의 Unity 실행 관련 MR. 규약 문서만 바뀐 MR 제외 | Windows Runner에서 컴파일과 [바뀐 영역에 맞는 범위](#unity-테스트-범위)의 EditMode·PlayMode 필수 검사, NUnit XML·로그. WebGL 빌드·서버 배포 없음 |
+| `unity:browser-tests` | WebGL 플러그인·Web 템플릿·`infra/tests/webgl_*.test.cjs`·Unity CI 설정 변경, Unity 검사를 선택한 배포 자식 | Node 24에서 브라우저 연동 회귀 검사. Linux Runner를 사용하며 Windows Editor 검사와 별도로 실패를 막습니다. |
 | `unity:external-mr` | 다른 프로젝트에서 보낸 Unity 실행 관련 MR | 노트북에서 외부 코드를 실행하지 않고 필수 검사 실패로 병합 차단. 검토한 변경을 프로젝트 작업 브랜치로 옮겨 검사 |
-| `unity:editor-and-webgl` | Unity 검사를 선택한 보호된 dev 배포 자식, 모든 운영 배포 자식 또는 보호된 ref의 웹 실행에서 `RUN_UNITY_BUILD=true` | Windows 전용 Runner의 EditMode·PlayMode 테스트, 필요한 경우 WebGL 빌드, NUnit XML·로그·커밋 식별자가 포함된 정적 산출물 |
+| `unity:editor-and-webgl` | Unity 검사를 선택한 보호된 dev 배포 자식, 모든 운영 배포 자식 또는 보호된 ref의 웹 실행에서 `RUN_UNITY_BUILD=true` | Windows 전용 Runner의 EditMode·PlayMode 테스트, 필요한 경우 WebGL 빌드와 프로젝트 내부 임시 패키지 게시, NUnit XML·로그·패키지 식별 파일 |
+| `unity:package-cleanup` | `unity:editor-and-webgl`과 같은 실행 조건, 전달 작업 이후 성공·실패에 관계없이 실행 | 해당 빌드 작업의 임시 WebGL 패키지만 정리 |
 | `ai:check-and-test` | AI, API 명세 또는 공통 CI·작성 지침 변경 | Python 3.12·Ruff 검사, 피드백·워커 테스트, 구문 컴파일, JUnit·소스 아카이브·커밋 식별자 |
 | `ai:panel-tests` | AI 피드백, API 명세 또는 공통 CI·작성 지침 변경 | Node.js 22의 피드백 패널 테스트 |
 | `infra:compose-and-nginx` | 확인용 Compose가 존재하고 관련 설정·공통 CI 변경 | 개발·운영 Compose 해석, 호스트 프록시와 두 환경 응답 템플릿의 Nginx 문법 검사 |
@@ -27,13 +28,15 @@ MR 파이프라인은 `.pre` 단계의 `ci:merge-conflicts`에서 실제 대상 
 | `infra:observability` | 모니터링·Nginx·관측 검증 스크립트 또는 공통 CI 변경 | 요청 ID·로그의 민감 정보 제외, Prometheus·Grafana 구성, 경보 발동·복구와 가짜 수신기 전송 검사 |
 | `prod:plan`·`prod:child`·`prod:deliver` | 보호된 `main` Push에서 자동 시작. 수동 재실행은 웹 실행과 `RUN_PROD_DEPLOY=true` 및 검증 변수 사용 | 직렬화된 자식에서 모든 영역 검사 후 누적 이미지 빌드·운영 자동 전달·상태 점검과 버전 보관. 설치·DB·병합 전 통합 검증 조건은 [운영 배포 문서](prod-deployment.md) 참조 |
 
-일반 문서 변경은 MR 충돌 검사와 빠른 YAML 검사를 수행합니다. API 명세는 일반 문서와 구분하여 백엔드·프론트·AI 검사를 함께 실행합니다. 작업 브랜치의 자동 검사는 Draft를 포함한 MR 파이프라인으로 통일합니다. MR을 만들기 전의 작업 브랜치 Push에는 파이프라인을 생성하지 않으며, 필요하면 웹에서 수동 실행합니다. 같은 MR에 새 커밋이 올라오면 이전 커밋의 취소 가능한 검사만 자동 취소하고 최신 커밋에 필요한 검사는 모두 수행합니다. `dev`·`main`의 커밋별 검사와 배포는 보존합니다. 웹에서 수동 실행한 파이프라인은 사용 가능한 백엔드·Unity 포맷·AI·관측 검사를 모두 수행하고, 확인용 Compose가 있으면 Compose·Nginx 검사도 수행합니다.
+일반 문서 변경은 MR 충돌 검사와 빠른 YAML 검사를 수행합니다. API 명세는 일반 문서와 구분하여 백엔드·프론트·AI 검사를 함께 실행합니다. 작업 브랜치의 자동 검사는 Draft를 포함한 MR 파이프라인으로 통일합니다. MR을 만들기 전의 작업 브랜치 Push에는 파이프라인을 생성하지 않으며, 필요하면 웹에서 수동 실행합니다. 같은 MR에 새 커밋이 올라오면 이전 커밋의 취소 가능한 검사만 자동 취소하고 최신 커밋에 필요한 검사는 모두 수행합니다. 새 `dev` 커밋이 생기면 Unity Editor 검사가 시작되지 않은 이전 후보를 취소하고 누적 변경을 최신 후보에서 검사합니다. Unity 검사가 시작된 후보는 남은 검사·빌드와 배포까지 보존합니다. `main`의 검사와 이미 시작한 배포도 보존합니다. 웹에서 수동 실행한 파이프라인은 사용 가능한 백엔드·Unity 포맷·AI·관측 검사를 모두 수행하고, 확인용 Compose가 있으면 Compose·Nginx 검사도 수행합니다.
 
-자동 취소는 `.gitlab-ci.yml`의 MR 전용 `workflow:rules:auto_cancel`에서 `on_new_commit: interruptible`로 설정합니다. 소스 브랜치가 `dev`·`main`인 MR, Push·웹 수동 실행·배포 자식 파이프라인은 기본값 `none`을 유지합니다. 배포 연결과 실제 전달 작업의 `interruptible: false`도 유지하므로 진행 중인 배포를 중단하지 않습니다. 최신 MR 검사의 실패·미실행은 계속 병합을 차단하며 다른 MR의 검사는 이 정책으로 취소하지 않습니다.
+자동 취소는 `.gitlab-ci.yml`의 `workflow:rules:auto_cancel`에서 설정합니다. 일반 MR은 `on_new_commit: interruptible`로 이전 커밋의 취소 가능한 검사를 중단합니다. dev 배포 자식은 `on_new_commit: conservative`, `unity:editor-and-webgl`은 `interruptible: false`로 설정해 Unity 작업이 시작되기 전인 후보만 취소합니다. 시작 전 작업은 `interruptible: false`여도 취소 대상으로 간주되고, Unity 작업이 시작되면 해당 후보 전체가 보호됩니다. Unity 검사가 없는 후보는 `dev:deliver`가 시작되면 보호됩니다.
+
+dev 부모는 `on_new_commit: none`으로 자식의 최종 결과를 기다립니다. 자식을 실행하는 부모 연결만 먼저 취소해 결과가 끊기지 않도록 하기 위함입니다. `dev:deliver`와 운영 배포 연결·전달 작업은 `interruptible: false`로 보호합니다. `main` Push와 웹 수동 실행 부모는 기본값 `none`을 유지합니다. 최신 MR 검사의 실패·미실행은 계속 병합을 차단하며 다른 MR의 검사는 이 정책으로 취소하지 않습니다.
 
 이 정책은 변경된 CI 설정을 포함해 생성한 파이프라인부터 적용됩니다. 기존 작업 브랜치는 최신 `dev`를 반영해야 하며 이미 생성된 작업의 설정은 소급 변경하지 않습니다. GitLab 프로젝트의 **Auto-cancel redundant pipelines**도 활성화되어 있어야 합니다.
 
-자동 취소의 기준은 같은 MR ref의 새 커밋입니다. 같은 커밋의 수동 재실행을 이전 커밋 검사 정리로 취급하지 않습니다. 설정과 취소 가능 작업의 의미는 [GitLab 자동 취소 설정](https://docs.gitlab.com/ci/yaml/#workflowauto_cancelon_new_commit), [interruptible 기준](https://docs.gitlab.com/ci/yaml/#interruptible)을 따릅니다.
+자동 취소의 기준은 같은 ref의 새 커밋입니다. 같은 커밋의 수동 재실행을 이전 커밋 검사 정리로 취급하지 않습니다. 설정과 취소 가능 작업의 의미는 [GitLab 자동 취소 설정](https://docs.gitlab.com/ci/yaml/#workflowauto_cancelon_new_commit), [interruptible 기준](https://docs.gitlab.com/ci/yaml/#interruptible)을 따릅니다.
 
 자동 취소는 이전 검사의 실행·대기를 중단하며 이미 완료된 결과와 취소 이력은 남깁니다. 이전 커밋에서 검사가 성공했더라도 최신 커밋의 필수 검사 통과를 대신하지 않습니다.
 
@@ -49,10 +52,10 @@ MR의 `rules:changes:compare_to`에 실제 대상 브랜치를 명시하여 대�
 | --- | --- |
 | 일반 문서만 변경 | `ci:yaml` |
 | `backend/` | `ci:yaml`, `backend:check-and-build` |
-| `frontend/` | `ci:yaml`, `unity:format`, `unity:editor-tests` |
+| `frontend/` | `ci:yaml`, `unity:format`. WebGL 연동 변경은 `unity:browser-tests` 추가 |
 | `ai/worker/` 또는 `ai/tools/` | `ci:yaml`, `ai:check-and-test` |
 | `ai/feedback/` | `ci:yaml`, `ai:check-and-test`, `ai:panel-tests` |
-| `docs/api/` | `ci:yaml`, `backend:check-and-build`, `unity:format`, `unity:editor-tests`, 두 AI 작업, `infra:app-runtime` |
+| `docs/api/` | `ci:yaml`, `backend:check-and-build`, `unity:format`, 두 AI 작업, `infra:app-runtime` |
 | 확인용 `infra/compose/` | `ci:yaml`, `infra:compose-and-nginx` |
 | 앱용 Dockerfile·Compose·환경 예제·웹 응답 설정 | `ci:yaml`, `backend:check-and-build`, `infra:app-runtime`, 해당 경로의 인프라 문법 검사 |
 | `infra/scripts/` | `ci:yaml`, `infra:deployment-plan-tests`. 앱 실행 점검 코드와 공통 이미지 빌더 `docker_build.py`는 백엔드 빌드·실행 검사도 선택 |
@@ -62,15 +65,17 @@ MR의 `rules:changes:compare_to`에 실제 대상 브랜치를 명시하여 대�
 | `.gitlab/ci/unity.yml` | Unity를 포함한 적용 가능한 모든 작업 |
 | 웹에서 수동 실행 | 적용 가능한 모든 작업 |
 
-`infra:compose-and-nginx`만 확인용 Compose의 존재를 전제로 합니다. `infra:observability`는 해당 파일 없이 독립 실행합니다. ERD 변경은 백엔드 검사, Unity 검사 스크립트 변경은 Unity 포맷·실행 테스트를 선택합니다. Unity 규약 문서 변경은 Unity 포맷 검사, 공통 작성 지침 변경은 백엔드·Unity 포맷·AI 검사를 선택하며, 문서는 Editor 결과를 바꾸지 않으므로 `unity:editor-tests`는 만들지 않습니다. 여러 영역을 함께 바꾸면 해당 작업을 모두 실행합니다. AI 공통 설정·의존성 변경도 Python 검사를 실행하며 로컬 명령은 [AI 검사 문서](../ai/README.md)를 따릅니다.
+`infra:compose-and-nginx`만 확인용 Compose의 존재를 전제로 합니다. `infra:observability`는 해당 파일 없이 독립 실행합니다. ERD 변경은 백엔드 검사, Unity 검사 스크립트 변경은 Unity 포맷 검사를 선택합니다. Unity 규약 문서 변경은 Unity 포맷 검사, 공통 작성 지침 변경은 백엔드·Unity 포맷·AI 검사를 선택합니다. 여러 영역을 함께 바꾸면 해당 작업을 모두 실행합니다. AI 공통 설정·의존성 변경도 Python 검사를 실행하며 로컬 명령은 [AI 검사 문서](../ai/README.md)를 따릅니다.
 
-Unity 검사 스크립트 `run-unity-ci.ps1`·`prepare-unity-test-inputs.ps1`와 `infra/tests/tripo/` 변경도 MR의 포맷·실행 테스트를 선택합니다. 실행 테스트는 Draft를 포함한 MR의 각 Push에서 대상 브랜치와 남은 차이를 기준으로 다시 실행합니다. 외부 프로젝트 MR에는 같은 변경 경로에서 `unity:editor-tests` 대신 실패하는 `unity:external-mr`을 선택하므로 필수 검사를 생략한 성공 결과로 병합하지 않습니다.
+`infra/tests/webgl_*.test.cjs` 변경은 Linux의 `unity:browser-tests`를 실행합니다. 배포 자식 파이프라인에서는 인프라·Unity 검사를 선택하고 테스트 변경만으로 이미지를 재빌드하지 않습니다.
 
-MR의 Unity 작업은 공통 workflow나 다른 영역의 CI 파일 변경만으로 선택하지 않습니다. 자동 취소 정책을 담은 `.gitlab-ci.yml`과 백엔드·AI·인프라 CI 파일은 YAML·설정 회귀 검사와 각 영역의 작업으로 검증합니다. Unity CI 파일인 `.gitlab/ci/unity.yml`을 바꾸거나 같은 MR에 Unity 관련 변경이 함께 있으면 포맷·실행 테스트를 모두 선택합니다. 이 기준은 MR의 작업 선택 범위이며, dev 배포 자식의 누적 검사 판정과 운영 배포의 전체 검사는 별도 기준을 유지합니다.
+Unity 검사 스크립트 `run-unity-ci.ps1`·`unity-test-scope.ps1`·`prepare-unity-test-inputs.ps1`와 `infra/tests/tripo/` 변경도 MR의 포맷 검사를 선택합니다. 외부 프로젝트의 Unity 관련 MR은 기존처럼 `unity:external-mr`에서 차단하며, 변경을 프로젝트 작업 브랜치로 옮겨 검토하고 로컬 검증합니다.
+
+MR의 Unity 작업은 공통 workflow나 다른 영역의 CI 파일 변경만으로 선택하지 않습니다. 자동 취소 정책을 담은 `.gitlab-ci.yml`과 백엔드·AI·인프라 CI 파일은 YAML·설정 회귀 검사와 각 영역의 작업으로 검증합니다. Unity CI 파일인 `.gitlab/ci/unity.yml`을 바꾸거나 같은 MR에 Unity 관련 변경이 함께 있으면 포맷 검사를 선택합니다. dev 배포 자식의 누적 검사 판정과 운영 배포의 전체 검사는 별도 기준을 유지합니다.
 
 작업 선택을 검증할 때는 CI 설정이 있는 버전을 대상으로 별도 Draft MR을 만듭니다. 대상과의 차이가 위 표의 한 영역에만 남도록 변경한 뒤, 파이프라인의 작업 목록과 결과를 확인합니다. 다음 사례로 바꿀 때 이전 검증용 변경을 복원합니다. 검증용 변경은 실제 CI MR이나 `dev`에 병합하지 않으며, 파이프라인·커밋별 결과는 검증 MR과 Jira에 기록합니다. 열린 MR에 Push한 커밋에서 MR 파이프라인만 생성되는지도 확인합니다. `ci:yaml` 로그의 실행 원인·커밋·대상 브랜치·MR 비교 기준을 작업 목록과 함께 확인할 수 있습니다.
 
-Unity 관련 MR은 **포맷 검사와 바뀐 영역에 맞는 실제 Editor 실행 테스트를 모두 통과해야 합니다.** `unity:editor-tests`는 실패를 허용하지 않으며, 실패·취소·대기 중인 최신 파이프라인은 [병합 검사 설정](gitlab-setup.md#병합-검사-설정)에 따라 병합을 차단합니다. dev 병합 후에는 병합된 커밋의 누적 통합 검사와 필요한 WebGL 빌드·배포를 별도로 수행합니다. 보호된 후보의 수동 연결 시험에는 `unity:editor-and-webgl`을 사용하며 실행 조건과 노트북 유지 방법은 [Windows Unity Runner](unity/windows-runner.md)를 따릅니다. Runner Online 상태만으로 테스트·빌드 성공으로 판단하지 않습니다. AI 단위 테스트는 모의 공급자로 실행하며 실제 모델 호출·GPU·음성 모델 기동은 검증 범위에 포함하지 않습니다.
+Unity 관련 MR은 포맷 검사와 최종 커밋의 로컬 EditMode·PlayMode 전체 검사가 필요합니다. 작성자는 검사한 커밋 SHA·작업 트리 변경 여부·테스트 결과를 MR에 기록하고, 최종 변경 후 재검사합니다. 실패·미실행이면 해결 전 병합하지 않습니다. GitLab은 로컬 검사 결과를 자동으로 확인하지 않습니다. dev 병합 후에는 병합된 커밋의 누적 통합 검사와 필요한 WebGL 빌드·배포를 별도로 수행합니다. 보호된 후보의 수동 연결 시험에는 `unity:editor-and-webgl`을 사용하며 실행 조건과 노트북 유지 방법은 [Windows Unity Runner](unity/windows-runner.md)를 따릅니다. Runner Online 상태만으로 테스트·빌드 성공으로 판단하지 않습니다. AI 단위 테스트는 모의 공급자로 실행하며 실제 모델 호출·GPU·음성 모델 기동은 검증 범위에 포함하지 않습니다.
 
 일반 MR 파이프라인은 검사를 수행하며 서버 앱을 교체하지 않습니다. dev 자동 배포의 보호 조건, 자식 파이프라인, 서버 설치와 연결 시험은 [dev 자동 배포 운영](dev-auto-deployment.md)을 따릅니다. 운영 통합 테스트는 별도 릴리스 검증으로 관리합니다. 마지막 성공 배포 이후 누적 변경 판정은 배포 구현의 책임이며 CI의 `rules:changes`만으로 해결했다고 간주하지 않습니다.
 
@@ -78,19 +83,23 @@ Unity 관련 MR은 **포맷 검사와 바뀐 영역에 맞는 실제 Editor 실�
 
 ### Unity 테스트 범위
 
-`unity:editor-tests`는 MR의 merge base(`CI_MERGE_REQUEST_DIFF_BASE_SHA`)를 `run-unity-ci.ps1 -ChangedSince`로 넘깁니다. 스크립트는 merge base와 MR 커밋의 차이로 실행 범위를 정합니다.
+이미 병합·검증된 고정 씬의 배치·직렬화 연결·Builder 회귀 검사는 정리했습니다. 새 기능이나 변경한 씬을 검증하는 테스트는 추가·수정할 수 있으며 아래 범위 판정에 따라 실행합니다. 씬 배치의 시각적 결과는 직접 Play 실행과 브라우저에서 확인합니다.
+
+개발 중 선택적으로 `run-unity-ci.ps1 -Action test -ChangedSince <기준 커밋>`을 실행하면 스크립트가 기준 커밋과 현재 커밋의 차이로 다음 범위를 정합니다. 이 부분 검사는 MR 전 최종 커밋의 로컬 전체 검사를 대신하지 않습니다.
 
 | 바뀐 파일 | 실행하는 테스트 |
 | --- | --- |
 | 모두 Web 템플릿(`frontend/UnityClient/Assets/WebGLTemplates/`), `frontend/design/` 또는 문서(`docs/`·`.md`. `docs/api/`와 Unity 프로젝트 안 문서는 제외) | EditMode 배포 검사 `A305.Deployment.Tests`. PlayMode와 Blender 테스트 입력 준비는 생략 |
-| 그 밖의 파일이 하나라도 포함 | EditMode·PlayMode 전체 |
+| Unity 프로젝트 `Assets/`의 `.cs`·`.cs.meta` | 가장 가까운 상위 asmdef가 소유한 어셈블리와 이를 직접·간접 참조하는 어셈블리의 EditMode·PlayMode 테스트. 테스트 코드만 바꾸면 해당 테스트 어셈블리 선택 |
+| 씬·프리팹·리소스·asmdef·패키지·프로젝트 설정·API 계약·검사 스크립트 등 공유 입력 또는 소유 어셈블리를 찾을 수 없는 코드 | EditMode·PlayMode 전체 |
 
-- 표에 없는 경로는 모두 전체 실행으로 처리합니다. 백엔드·AI·CI 파일이 섞여도 전체를 실행하며, 새 폴더를 추가해도 검사 범위가 줄지 않습니다. `frontend/ArtSources/`는 Tripo EditMode 테스트가 읽으므로 전체 실행 대상입니다.
+- `infra/scripts/unity-test-scope.ps1`이 asmdef의 이름·GUID 참조를 읽어 영향받는 테스트를 고릅니다. 선택된 플랫폼의 테스트가 없으면 그 플랫폼 실행을 생략하며, 선택 범위를 로그와 `dist/unity-ci/test-plan.json`에 기록합니다.
+- Web 템플릿·디자인과 코드가 함께 바뀌면 연관 테스트와 배포 검사를 합칩니다. 백엔드·AI 파일과 일반 문서는 Unity 선택 범위를 넓히지 않으며 각 영역의 CI 검사로 확인합니다.
+- 표에 없는 경로, 잘못된 asmdef, 대응하는 테스트가 없는 코드와 범위 판정 오류는 전체 실행으로 처리합니다. `frontend/ArtSources/`는 Tripo EditMode 테스트가 읽으므로 전체 실행 대상입니다.
 - 얕은 clone에 merge base가 없으면 해당 커밋만 가져옵니다. 가져오기나 비교에 실패하면 전체를 실행합니다.
 - 이름 바꾸기도 삭제와 추가로 나눠 비교하므로, 스크립트를 템플릿 폴더로 옮긴 변경은 전체를 실행합니다.
-- 배포 검사만 실행해도 Unity는 프로젝트 전체를 컴파일합니다. 작업 로그의 `Unity test scope:` 줄에서 선택한 범위와 전체 실행을 일으킨 파일을 확인합니다.
-- 규약 문서(`AGENTS.md`, `docs/code-conventions.md`, `docs/unity/`)만 바뀐 MR에는 `unity:editor-tests`를 만들지 않습니다. 이 문서가 Unity 변경과 함께 바뀌면 위 표를 따릅니다.
-- 실행 코드 영역 안에서는 asmdef 단위로 테스트 어셈블리를 고르지 않습니다. 기준은 [변경 영역별 CI/CD 구성 기준](ci-cd.md#1-변경-영역별-기본-검증과-배포)을 따릅니다.
+- 일부 테스트만 실행해도 Unity는 프로젝트 전체를 컴파일합니다. Blender 입력은 전체 검사 또는 `A305.Tripo.*` 테스트를 선택했을 때 준비합니다.
+- asmdef 참조는 씬의 직렬화 연결을 모두 표현하지 못하므로 씬·프리팹 변경은 전체 검사와 직접 Play 검수로 확인합니다. 기준은 [변경 영역별 CI/CD 구성 기준](ci-cd.md#1-변경-영역별-기본-검증과-배포)을 따릅니다.
 - `unity:editor-and-webgl`과 `-ChangedSince` 없이 실행한 `run-unity-ci.ps1 -Action test`는 항상 전체를 실행합니다.
 
 범위 판정 테스트 `infra/scripts/tests/test_unity_test_scope.py`는 Windows 전용이라 Linux CI에서는 건너뜁니다. 실행 명령은 [Windows Unity Runner](unity/windows-runner.md#실행-스크립트와-결과)를 따릅니다.
@@ -100,25 +109,25 @@ Unity 관련 MR은 **포맷 검사와 바뀐 영역에 맞는 실제 Editor 실�
 ```text
 GitLab → EC2 Runner 관리 컨테이너 (최대 3개)
           ├─ a305-linux-light + a305-ec2 (최대 1개) → 경량 검사·배포 계획
-          └─ a305-linux-ci + a305-ec2 (최대 2개) → 일반 검사·이미지 전달
-       → 노트북 Linux Runner (최대 2개, a305-linux-ci) → 일반 검사
+          └─ a305-linux-ci + a305-linux-light + a305-ec2 (최대 2개) → 일반·경량 검사·이미지 전달
+       → 노트북 Linux Runner (최대 2개, a305-linux-ci + a305-linux-light) → 일반·경량 검사
 
 호스트 Docker → a305-dev / a305-prod (서비스 실행)
 ```
 
 Runner 관리 컨테이너만 호스트 Docker 소켓을 사용합니다. 일반 검사 컨테이너에는 소켓이나 앱의 환경 파일·인증서를 마운트하지 않습니다. Testcontainers는 검사 작업 전용 rootless Docker 서비스에 연결합니다. 프로젝트 Runner는 서버의 Docker를 제어하므로 팀 저장소의 신뢰하는 작업에만 사용합니다. [Runner 컨테이너 운영](https://docs.gitlab.com/runner/install/docker/)
 
-EC2의 동시 실행 상한은 세 개이며, 경량 검사 한 자리를 빌드 대기열과 분리합니다. 노트북 Linux Runner는 별도로 최대 두 개를 실행합니다. Windows Unity Runner의 동시 실행 수와는 별도 제한입니다.
+EC2의 동시 실행 상한은 세 개이며, 경량 검사 한 자리를 빌드 대기열과 분리합니다. 노트북 Linux Runner는 별도로 최대 두 개를 실행합니다. 일반 Runner에도 경량 태그를 등록해 짧은 검사들이 전용 한 자리만 기다리지 않도록 합니다. 일반 작업과 경량 작업의 우선순위나 실행 비율은 보장하지 않으므로 경량 전용 자리를 함께 유지합니다. Windows Unity Runner의 동시 실행 수와는 별도 제한입니다.
 
 | 태그 | 동시 작업 | 자원 상한 | 작업 |
 | --- | --- | --- | --- |
 | EC2 `a305-linux-light` | 1개 | CPU 1개·메모리 1GiB. Docker 서비스 실행 불가 | YAML, Unity 포맷, AI 패널, 인프라 스크립트 검사, 외부 Unity MR 차단. 배포 계획은 `a305-ec2`도 요구 |
-| EC2 `a305-linux-ci` | 2개 | 작업당 CPU 2개·메모리 3GiB. Docker 서비스는 CPU 1개·메모리 2GiB | 일반 검사. 이미지 전달은 `a305-ec2`도 요구 |
-| 노트북 `a305-linux-ci` | 2개 | 작업당 CPU 2개·메모리 3GiB. Docker 서비스는 CPU 1개·메모리 2GiB | 백엔드·AI 검사, Compose·Nginx·관측 검사, 앱 실행 검사 |
+| EC2 `a305-linux-ci`·`a305-linux-light` 공유 | 합계 2개 | 작업당 CPU 2개·메모리 3GiB. Docker 서비스는 CPU 1개·메모리 2GiB | 일반·경량 검사. 배포 계획·이미지 전달은 `a305-ec2`도 요구 |
+| 노트북 `a305-linux-ci`·`a305-linux-light` 공유 | 합계 2개 | 작업당 CPU 2개·메모리 3GiB. Docker 서비스는 CPU 1개·메모리 2GiB | 백엔드·AI·경량 검사, Compose·Nginx·관측 검사, 앱 실행 검사 |
 
-동시 실행 수는 작업을 받을 수 있는 상한이며 CPU 4개·메모리 16GiB 서버에서 모든 작업의 최대 자원을 보장하는 값은 아닙니다. 앱·모니터링과 자원을 공유하므로 CPU 사용률·가용 메모리·앱 응답을 함께 확인합니다. 빌드 부하가 크면 일반 Runner의 `limit`를 먼저 낮춰 경량 검사 자리를 유지합니다. Runner 자체의 컨테이너 제한과 작업·서비스 제한은 별도로 적용합니다. 변경 전에 생성된 작업은 기존 태그를 유지하므로 이전 경량 작업도 일반 Runner에서 실행될 수 있습니다.
+동시 실행 수는 작업을 받을 수 있는 상한이며 CPU 4개·메모리 16GiB 서버에서 모든 작업의 최대 자원을 보장하는 값은 아닙니다. 앱·모니터링과 자원을 공유하므로 CPU 사용률·가용 메모리·앱 응답을 함께 확인합니다. 빌드 부하가 크면 일반 Runner의 `limit`를 먼저 낮춰 경량 전용 자리를 유지합니다. Runner 자체의 컨테이너 제한과 작업·서비스 제한은 별도로 적용합니다. 태그 공유는 기존 동시 실행 수와 자원 상한 안에서 작업을 나눠 받는 방식입니다.
 
-백엔드는 Gradle 의존성·Wrapper 캐시와 `--build-cache`의 작업 결과 캐시를 함께 사용합니다. 입력이 달라진 작업은 다시 실행하며 캐시가 없어도 검사·빌드를 수행합니다. 캐시 복원·저장 시간도 작업 실행 시간에 포함해 확인합니다.
+백엔드는 Gradle 의존성·Wrapper 캐시와 `--build-cache`의 작업 결과 캐시를 함께 사용합니다. 테스트가 실패한 경우에도 내려받은 의존성·Wrapper 캐시를 저장하여 다음 검사에서 같은 다운로드를 반복하지 않도록 합니다. 테스트 보고서와 JAR는 캐시에 넣지 않고 기존 산출물로 관리하며, 실패한 검사 결과는 계속 실패로 남습니다. 입력이 달라진 작업은 다시 실행하며 캐시가 없어도 검사·빌드를 수행합니다. 캐시 복원·저장 시간도 작업 실행 시간에 포함해 확인합니다.
 
 제한값과 허용 서비스는 EC2의 `infra/runner/config.template.toml`, 노트북의 `infra/runner/laptop.config.template.toml`을 따릅니다. 두 파일에는 토큰이 없으며 등록 완료 파일을 대체하는 완성본이 아닙니다. 등록된 항목의 인증 정보는 보존하고 제한값을 해당 항목에 병합합니다. [Runner 고급 설정](https://docs.gitlab.com/runner/configuration/advanced-configuration/)
 
@@ -137,7 +146,7 @@ Docker 27 이후 기본 빌드 드라이버의 캐시 내보내기에는 contain
 프로젝트 **Settings → CI/CD → Runners → Create project runner**에서 생성합니다.
 
 - 플랫폼: Linux
-- 태그: EC2 일반 Runner는 `a305-linux-ci,a305-ec2,a305-linux`, EC2 경량 Runner는 `a305-linux-light,a305-ec2`, 노트북 Linux Runner는 `a305-linux-ci`만 지정
+- 태그: EC2 일반 Runner는 `a305-linux-ci,a305-linux-light,a305-ec2,a305-linux`, EC2 경량 Runner는 `a305-linux-light,a305-ec2`, 노트북 Linux Runner는 `a305-linux-ci,a305-linux-light` 지정
 - Run untagged jobs: 해제
 - 설명: 일반 Runner는 `a305-linux-ci`, 경량 Runner는 `a305-linux-light-ci`
 - Lock to current projects: 활성화
@@ -145,13 +154,15 @@ Docker 27 이후 기본 빌드 드라이버의 캐시 내보내기에는 contain
 
 등록 화면의 `glrt-` 인증 토큰은 서버의 등록 프롬프트에만 입력합니다. 저장소·채팅·터미널 출력 공유에 포함하지 않습니다. MR 검사에 사용하므로 protected 브랜치 전용으로 제한하는 옵션은 선택하지 않습니다. 배포용 권한은 이 검사 Runner에 추가하지 않습니다.
 
+태그는 GitLab의 해당 Runner 편집 화면에서 관리하며 `config.toml`의 동시 실행 제한과 별개입니다. 기존 일반 Runner에 `a305-linux-light`를 추가할 때는 다른 태그·프로젝트 잠금·보호 설정·인증 정보를 보존합니다. 새 등록이나 Runner 재시작 없이 대기 중인 경량 작업도 받을 수 있습니다. 변경 후 실제 경량 작업이 일반 Runner에 배정되고 성공하는지 확인합니다.
+
 ### 노트북 Linux Runner
 
 Docker Desktop의 WSL2 Linux 엔진에서 Runner 관리 컨테이너를 실행합니다. Windows Unity Runner와 등록·설정 볼륨을 분리하고 `laptop.config.template.toml`의 `concurrent=2`, `limit=2`와 자원 제한을 적용합니다. 관리 컨테이너는 CPU 0.25개·메모리 256MiB, 로그는 파일당 10MiB·3개로 제한합니다. 일반 CI 두 개가 Docker 서비스를 함께 사용하면 합산 상한은 CPU 6개·메모리 10GiB이며 Unity와 개발 도구도 노트북 자원을 사용합니다. 동시 실행 중 가용 메모리·컨테이너 메모리 종료·작업 실패를 확인하고 여유가 부족하면 `concurrent`와 `limit`를 함께 `1`로 낮춥니다.
 
 관리 컨테이너의 Docker 소켓 연결은 노트북 Docker의 컨테이너·볼륨을 제어할 권한을 줍니다. 일반 검사 컨테이너에는 이 소켓이나 Windows 사용자 폴더를 마운트하지 않으며, PostgreSQL·이미지 빌드는 작업별 rootless Docker 서비스에서 실행합니다. 노트북의 Docker에 중요한 개인 서비스를 함께 운영한다면 별도 Linux VM 등 독립된 Docker 엔진을 준비합니다.
 
-GitLab에서 설명 `a305-laptop-linux-ci`, 태그 `a305-linux-ci`, Run untagged jobs 해제, 프로젝트 잠금 활성화, 최초 Paused로 생성합니다. 다음과 같이 전용 설정 볼륨을 사용하는 공식 `gitlab/gitlab-runner:alpine-v18.11.4` 컨테이너를 준비하고 등록 프롬프트로 인증 토큰을 입력합니다.
+GitLab에서 설명 `a305-laptop-linux-ci`, 태그 `a305-linux-ci,a305-linux-light`, Run untagged jobs 해제, 프로젝트 잠금 활성화, 최초 Paused로 생성합니다. 다음과 같이 전용 설정 볼륨을 사용하는 공식 `gitlab/gitlab-runner:alpine-v18.11.4` 컨테이너를 준비하고 등록 프롬프트로 인증 토큰을 입력합니다.
 
 ```powershell
 docker desktop start --detach
@@ -169,11 +180,11 @@ docker exec -it a305-laptop-linux-runner gitlab-runner register
 
 노트북은 `DOCKERD_ROOTLESS_ROOTLESSKIT_NET=slirp4netns`로 작업별 rootless Docker의 네트워크를 지정합니다. 기본 `vpnkit`의 `192.168.65.0/24`는 Docker Desktop 내부 DNS 주소와 겹쳐 중첩 빌드의 이름 해석이 실패할 수 있습니다. `slirp4netns`의 별도 네트워크를 사용하고 실제 중첩 컨테이너에서 DNS 조회·패키지 설치·이미지 빌드를 확인합니다. EC2 설정은 바꾸지 않습니다. [Docker rootless 네트워크 설정](https://docs.docker.com/engine/security/rootless/troubleshoot/)
 
-EC2 일반 Runner에는 기존 `a305-linux` 태그를 남겨 이전 파이프라인을 계속 처리하게 합니다. 노트북에는 이 이전 태그와 `a305-ec2`를 부여하지 않으므로, 변경 전의 배포도 노트북으로 넘어가지 않습니다. 새 설정은 병합 후 생성한 파이프라인과 해당 설정을 반영한 작업 브랜치부터 적용됩니다.
+EC2 일반 Runner에는 기존 `a305-linux` 태그를 남겨 이전 파이프라인을 계속 처리하게 합니다. 노트북에는 이 이전 태그와 `a305-ec2`를 부여하지 않으므로, 배포 계획·전달은 노트북으로 넘어가지 않습니다. Runner의 경량 태그 공유는 GitLab에 저장하면 기존 대기 작업에도 적용됩니다. CI 파일의 실행 조건·스크립트를 바꾸는 경우에는 해당 설정으로 생성한 새 파이프라인부터 적용됩니다.
 
-공통 태그의 작업은 여유가 있는 Runner가 나눠 받으며 정확한 반반 배분이나 EC2 우선순위를 보장하지 않습니다. 노트북이 꺼졌거나 Docker Desktop이 중지되면 새 일반 검사는 EC2에서 처리할 수 있습니다. 이미 노트북에서 실행 중이던 작업은 자동 이전되지 않으므로 중단 시 상태를 확인하고 재시도합니다.
+공통 태그의 일반·경량 작업은 여유가 있는 Runner가 나눠 받으며 정확한 반반 배분이나 EC2 우선순위를 보장하지 않습니다. 노트북이 꺼졌거나 Docker Desktop이 중지되면 새 검사는 EC2에서 처리할 수 있습니다. 이미 노트북에서 실행 중이던 작업은 자동 이전되지 않으므로 중단 시 상태를 확인하고 재시도합니다.
 
-설정 회귀 검사는 `python -m unittest discover -s infra/runner/tests -v`로 실행하며 `ci:yaml`에도 연결합니다. 일반 검사 태그, 배포 계획·전달의 EC2 제한, 노트북의 두 작업 제한과 Docker 소켓 비공유를 확인합니다.
+설정 회귀 검사는 `ci:yaml`과 같은 Python 3.13 이상에서 `python -m unittest discover -s infra/runner/tests -v`로 실행합니다. 일반 검사 태그, 배포 계획·전달의 EC2 제한, 노트북의 두 작업 제한과 Docker 소켓 비공유를 확인합니다.
 
 ## Ubuntu 서버에 Runner 설치·등록
 

@@ -11,7 +11,7 @@ namespace A305.Learning.Tests
 {
     /// <summary>
     /// 대화 피드백 화면은 확정 시안(g10·g11을 읽기 쉽게 다듬은 것)이다. 판은 뒤가 비치는 유리이고,
-    /// 글자가 놓이는 칸만 진한 흰 유리(요약은 따뜻한 색)로 띄운다. "이 상황에서 자주 써요"는 요약·회화 표현 탭 모두 같은 코랄 제목과 같은 칸이고,
+    /// 글자가 놓이는 칸만 진한 흰 유리(요약은 따뜻한 색)로 띄운다. "이 상황에서 자주 써요"는 요약 탭의 코랄 제목이고,
     /// 표현마다 글자만 있는 [담기]를 둔다.
     /// </summary>
     public class FeedbackScreenLayoutTests
@@ -26,6 +26,20 @@ namespace A305.Learning.Tests
         public void DestroyScreen() => Object.DestroyImmediate(instance);
 
         [Test]
+        public void SummaryHeadings_AlignTheirVisibleLeftMarkers()
+        {
+            Show();
+            Canvas.ForceUpdateCanvases();
+            Transform summaryMarker = Field<TMP_Text>("summaryTitle").transform.Find("Bar");
+            Transform situationMarker = SituationTitle().transform.Find("Bar");
+            Assert.That(
+                summaryMarker.position.x,
+                Is.EqualTo(situationMarker.position.x).Within(.1f),
+                "두 제목의 왼쪽 기준선을 맞춘다"
+            );
+        }
+
+        [Test]
         public void Header_ShowsTheMockupTitleAndTabNames()
         {
             Show();
@@ -35,7 +49,7 @@ namespace A305.Learning.Tests
                 Field<RectTransform>("sectionRow")
                     .GetComponentsInChildren<Button>(true)
                     .Select(tab => tab.GetComponentInChildren<TMP_Text>(true).text),
-                Is.EqualTo(new[] { "요약", "문장 교정", "회화 표현", "저장할 표현" })
+                Is.EqualTo(new[] { "요약", "문장 교정", "전체 대화", "저장할 표현" })
             );
             Assert.That(
                 Panel().Find("AppIcon").GetComponent<Image>().sprite.name,
@@ -44,17 +58,18 @@ namespace A305.Learning.Tests
         }
 
         [Test]
-        public void SituationTitle_IsCoralOnBothTabs()
+        public void SituationTitle_IsCoralOnSummaryTab_AndHiddenOnTranscriptTab()
         {
             Show();
             TMP_Text summaryTitle = SituationTitle();
+            Assert.That(summaryTitle.gameObject.activeInHierarchy, Is.True);
             view.SelectSection(FeedbackSection.Conversation);
             TMP_Text conversationTitle = SituationTitle();
 
-            Assert.That(summaryTitle, Is.SameAs(conversationTitle), "같은 제목을 씁니다.");
-            Assert.That(conversationTitle.gameObject.activeInHierarchy, Is.True);
-            Assert.That(conversationTitle.color, Is.EqualTo(Coral));
-            Assert.That(conversationTitle.font.name, Does.Contain("Jua"));
+            Assert.That(summaryTitle, Is.SameAs(conversationTitle), "같은 제목 객체를 씁니다.");
+            Assert.That(conversationTitle.gameObject.activeInHierarchy, Is.False);
+            Assert.That(summaryTitle.color, Is.EqualTo(Coral));
+            Assert.That(summaryTitle.font.name, Does.Contain("Jua"));
         }
 
         [Test]
@@ -69,7 +84,8 @@ namespace A305.Learning.Tests
             );
             Button save = row.GetComponentInChildren<Button>();
             Assert.That(save.GetComponentInChildren<TMP_Text>().text, Is.EqualTo("담기"));
-            Image icon = save.transform.Find("Icon")?.GetComponent<Image>();
+            Transform iconTransform = save.transform.Find("Icon");
+            Image icon = iconTransform != null ? iconTransform.GetComponent<Image>() : null;
             Assert.That(
                 icon == null || !icon.enabled || icon.sprite == null,
                 Is.True,
@@ -77,27 +93,22 @@ namespace A305.Learning.Tests
             );
         }
 
-        // 회화 표현 탭도 요약 탭과 같은 표현 칸을 보이고, 예문을 한 줄 더 둔다. 굵은 글자 본문으로 따로 쓰지 않는다.
+        // 전체 대화 탭은 NPC와 사용자의 모든 발화를 순서대로 보여 준다.
         [Test]
-        public void ConversationTab_ShowsTheSameRowsWithExamples()
+        public void ConversationTab_ShowsTheWholeTranscript()
         {
             Show();
             view.SelectSection(FeedbackSection.Conversation);
 
-            List<GameObject> rows = Rows();
-            Assert.That(rows, Has.Count.EqualTo(2));
-            string texts = string.Join(
-                "\n",
-                rows[0].GetComponentsInChildren<TMP_Text>().Select(text => text.text)
-            );
+            Assert.That(Rows(), Is.Empty);
+            Transform cards = Panel().Find("PageCard/Content/ConversationCards");
+            Assert.That(cards, Is.Not.Null);
             Assert.That(
-                texts,
-                Does.Contain("Could you tell me how to get to the hotel?").And.Contain("길을 알려")
-            );
-            Assert.That(texts, Does.Contain("I'm looking for the hotel."));
-            Assert.That(
-                Field<TMP_Text>("bodyText").text,
-                Does.Not.Contain("이 상황에서 자주 써요")
+                cards
+                    .GetComponentsInChildren<TMP_Text>()
+                    .Where(text => text.name == "Utterance")
+                    .Select(text => text.text),
+                Is.EqualTo(new[] { "Where is the hotel?", "It is across the street." })
             );
         }
 
@@ -106,7 +117,7 @@ namespace A305.Learning.Tests
         {
             Show();
             Canvas.ForceUpdateCanvases();
-            Transform tile = Panel().Find("PageCard/BodyTile");
+            Transform tile = Panel().Find("PageCard/Content/BodyTile");
 
             Assert.That(tile.gameObject.activeInHierarchy, Is.True);
             Assert.That(tile.GetComponent<Image>().sprite.name, Is.EqualTo("FeedbackSummaryTile"));
@@ -173,7 +184,11 @@ namespace A305.Learning.Tests
                         null
                     )
                 ),
-                new List<DialogueLine>()
+                new List<DialogueLine>
+                {
+                    DialogueLine.FromUser("Where is the hotel?"),
+                    DialogueLine.FromNpc("It is across the street.", "길 건너에 있어요."),
+                }
             );
         }
 

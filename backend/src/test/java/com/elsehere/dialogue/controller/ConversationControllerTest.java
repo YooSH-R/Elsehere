@@ -1,11 +1,15 @@
 package com.elsehere.dialogue.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -35,9 +39,12 @@ import com.elsehere.dialogue.dto.TurnResponse;
 import com.elsehere.dialogue.dto.UserTurnResponse;
 import com.elsehere.dialogue.service.ConversationHistoryService;
 import com.elsehere.dialogue.service.ConversationService;
+import com.elsehere.dialogue.service.TurnEvents;
 import com.elsehere.dialogue.service.TurnService;
 import com.elsehere.feedback.dto.FeedbackResponse;
 import com.elsehere.feedback.entity.FeedbackStatus;
+import com.elsehere.followup.dto.FollowUpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +52,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -58,6 +67,12 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 class ConversationControllerTest {
 
   private static final UUID REQUEST_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+  private static final OffsetDateTime TIME_LIMIT_AT =
+      OffsetDateTime.parse("2026-11-05T14:05:00+09:00");
+  private static final OffsetDateTime GRACE_UNTIL =
+      OffsetDateTime.parse("2026-11-05T14:05:30+09:00");
+  private static final String TURN =
+      "{\"requestId\": \"" + REQUEST_ID + "\", \"inputType\": \"TEXT\", \"text\": \"A latte\"}";
   private static final NpcSummaryResponse NPC =
       new NpcSummaryResponse("CAFE_STAFF", "Mia", "카페 직원");
 
@@ -129,7 +144,17 @@ class ConversationControllerTest {
                 NPC,
                 List.of(),
                 npcTurn(10L, 1, "Hi!"),
-                new ConversationStateResponse(ConversationStatus.ACTIVE, null, 0, 3, 12)));
+                new ConversationStateResponse(
+                    ConversationStatus.ACTIVE,
+                    null,
+                    0,
+                    3,
+                    12,
+                    TIME_LIMIT_AT,
+                    GRACE_UNTIL,
+                    false,
+                    0),
+                7L));
 
     mockMvc
         .perform(
@@ -147,7 +172,12 @@ class ConversationControllerTest {
         .andExpect(jsonPath("$.openingTurn.speech.url").value("/api/v1/turns/10/speech"))
         .andExpect(jsonPath("$.conversation.rudeCount").value(0))
         .andExpect(jsonPath("$.conversation.rudeLimit").value(3))
-        .andExpect(jsonPath("$.conversation.affinity").value(12));
+        .andExpect(jsonPath("$.conversation.affinity").value(12))
+        .andExpect(jsonPath("$.conversation.timeLimitAt").value("2026-11-05T14:05:00+09:00"))
+        .andExpect(jsonPath("$.conversation.graceUntil").value("2026-11-05T14:05:30+09:00"))
+        .andExpect(jsonPath("$.conversation.closing").value(false))
+        .andExpect(jsonPath("$.conversation.finalTurnsRemaining").value(0))
+        .andExpect(jsonPath("$.deliveredFollowUpId").value(7));
   }
 
   @Test
@@ -160,6 +190,49 @@ class ConversationControllerTest {
                 "{\"requestId\": \"" + REQUEST_ID + "\", \"npcCode\": \"CAFE_STAFF\"}"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+  }
+
+  @Test
+  @DisplayName("대화 시작에 npcOffDuty가 true면 근무가 아닌 NPC와의 대화로 서비스에 넘긴다")
+  void start_npcOffDuty_passesOffDuty() throws Exception {
+    given(conversationService.start(eq(1L), any())).willReturn(startedConversation());
+
+    mockMvc
+        .perform(
+            request(
+                post("/api/v1/conversations"),
+                "{\"requestId\": \""
+                    + REQUEST_ID
+                    + "\", \"npcCode\": \"CAFE_STAFF\","
+                    + " \"initiatedBy\": \"USER\", \"npcOffDuty\": true}"))
+        .andExpect(status().isCreated());
+
+    then(conversationService)
+        .should()
+        .start(1L, new StartConversationRequest(REQUEST_ID, "CAFE_STAFF", InitiatedBy.USER, true));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", ", \"npcOffDuty\": null"})
+  @DisplayName("npcOffDuty가 없거나 null이면 근무 중인 NPC와의 대화로 넘긴다")
+  void start_withoutNpcOffDuty_passesOnDuty(String npcOffDutyField) throws Exception {
+    given(conversationService.start(eq(1L), any())).willReturn(startedConversation());
+
+    mockMvc
+        .perform(
+            request(
+                post("/api/v1/conversations"),
+                "{\"requestId\": \""
+                    + REQUEST_ID
+                    + "\", \"npcCode\": \"CAFE_STAFF\","
+                    + " \"initiatedBy\": \"USER\""
+                    + npcOffDutyField
+                    + "}"))
+        .andExpect(status().isCreated());
+
+    then(conversationService)
+        .should()
+        .start(1L, new StartConversationRequest(REQUEST_ID, "CAFE_STAFF", InitiatedBy.USER, false));
   }
 
   @Test
@@ -193,7 +266,16 @@ class ConversationControllerTest {
             new TurnResponse(
                 new UserTurnResponse(11L, 2, Speaker.USER, "A latte", false, null),
                 npcTurn(12L, 3, "Sure!"),
-                new ConversationStateResponse(ConversationStatus.ACTIVE, null, 0, 3, -4),
+                new ConversationStateResponse(
+                    ConversationStatus.ACTIVE,
+                    null,
+                    0,
+                    3,
+                    -4,
+                    TIME_LIMIT_AT,
+                    GRACE_UNTIL,
+                    false,
+                    0),
                 List.of()));
 
     mockMvc
@@ -209,7 +291,105 @@ class ConversationControllerTest {
         .andExpect(jsonPath("$.npcTurn.seq").value(3))
         .andExpect(jsonPath("$.conversation.status").value("ACTIVE"))
         .andExpect(jsonPath("$.conversation.rudeLimit").value(3))
-        .andExpect(jsonPath("$.conversation.affinity").value(-4));
+        .andExpect(jsonPath("$.conversation.affinity").value(-4))
+        .andExpect(jsonPath("$.conversation.timeLimitAt").value("2026-11-05T14:05:00+09:00"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"application/json", "*/*", ""})
+  @DisplayName("POST /turns는 스트림을 요청하지 않으면(Accept 없음·JSON·모두) 지금처럼 JSON 한 번으로 응답한다")
+  void sendTurn_withoutStreamAccept_respondsJson(String accept) throws Exception {
+    given(turnService.send(any(), any(), any())).willReturn(turnResponse());
+    MockHttpServletRequestBuilder builder = request(post("/api/v1/conversations/5/turns"), TURN);
+    if (!accept.isEmpty()) {
+      builder.header("Accept", accept);
+    }
+
+    mockMvc
+        .perform(builder)
+        .andExpect(status().isOk())
+        .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.npcTurn.text").value("Sure!"));
+  }
+
+  @Test
+  @DisplayName(
+      "POST /turns에 Accept: text/event-stream이면 대사 글자·조각 음성(base64 WAV)을 보내고 마지막에 REST와 같은 본문을 turn으로 보낸다")
+  void sendTurn_streamAccept_sendsDeltaAudioThenTurn() throws Exception {
+    given(turnService.send(eq(1L), eq(5L), any(), any()))
+        .willAnswer(
+            invocation -> {
+              TurnEvents events = invocation.getArgument(3);
+              events.delta("Sure");
+              events.audio(0, "Sure!", new byte[] {82, 73, 70, 70});
+              events.audio(1, "Coming up.", null);
+              return turnResponse();
+            });
+
+    String body =
+        mockMvc
+            .perform(
+                request(post("/api/v1/conversations/5/turns"), TURN)
+                    .header("Accept", "text/event-stream, application/json"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM))
+            .andExpect(header().string("X-Accel-Buffering", "no"))
+            .andExpect(header().string("Cache-Control", "no-cache"))
+            .andReturn()
+            .getResponse()
+            .getContentAsString(StandardCharsets.UTF_8);
+
+    assertThat(body)
+        .startsWith(
+            "event: delta\ndata: {\"text\":\"Sure\"}\n\n"
+                + "event: audio\ndata: {\"seq\":0,\"text\":\"Sure!\",\"wav\":\"UklGRg==\"}\n\n"
+                + "event: audio\ndata: {\"seq\":1,\"text\":\"Coming up.\",\"wav\":null}\n\n"
+                + "event: turn\ndata: {\"userTurn\":");
+    assertThat(body).contains("\"text\":\"Sure!\"").endsWith("}\n\n");
+  }
+
+  @Test
+  @DisplayName("스트림 요청이어도 대사를 보내기 전에 난 오류는 지금과 같은 HTTP 상태와 오류 본문으로 응답한다")
+  void sendTurn_streamAccept_errorBeforeEvents_respondsHttpError() throws Exception {
+    given(turnService.send(eq(1L), eq(5L), any(), any()))
+        .willThrow(new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE));
+
+    mockMvc
+        .perform(
+            request(post("/api/v1/conversations/5/turns"), TURN)
+                .header("Accept", "text/event-stream, application/json"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.error.code").value("CONVERSATION_NOT_ACTIVE"));
+  }
+
+  @Test
+  @DisplayName("대사를 보내기 시작한 뒤 난 오류는 HTTP 상태와 공통 오류 본문을 error 이벤트로 보내고 스트림을 끝낸다")
+  void sendTurn_streamAccept_errorAfterEvents_sendsErrorEvent() throws Exception {
+    given(turnService.send(eq(1L), eq(5L), any(), any()))
+        .willAnswer(
+            invocation -> {
+              TurnEvents events = invocation.getArgument(3);
+              events.delta("Sure");
+              throw new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE);
+            });
+
+    String body =
+        mockMvc
+            .perform(
+                request(post("/api/v1/conversations/5/turns"), TURN)
+                    .header("Accept", "text/event-stream, application/json"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString(StandardCharsets.UTF_8);
+
+    assertThat(body)
+        .isEqualTo(
+            "event: delta\ndata: {\"text\":\"Sure\"}\n\n"
+                + "event: error\ndata: {\"status\":503,\"error\":{\"code\":\"AI_TEMPORARILY_UNAVAILABLE\","
+                + "\"message\":\""
+                + ErrorCode.AI_TEMPORARILY_UNAVAILABLE.getMessage()
+                + "\"}}\n\n");
   }
 
   @Test
@@ -252,7 +432,16 @@ class ConversationControllerTest {
                 2,
                 new FeedbackResponse(
                     FeedbackStatus.FAILED, null, null, null, "AI_TIMEOUT", List.of(), List.of()),
-                List.of()));
+                List.of(),
+                new FollowUpResponse(
+                    7L,
+                    NPC,
+                    "CAFE",
+                    "iced latte",
+                    "아이스 라테",
+                    OffsetDateTime.parse("2026-11-04T14:05:45+09:00"),
+                    45,
+                    false)));
 
     mockMvc
         .perform(
@@ -263,7 +452,11 @@ class ConversationControllerTest {
         .andExpect(jsonPath("$.status").value("ENDED_BY_USER"))
         .andExpect(jsonPath("$.userTurnCount").value(2))
         .andExpect(jsonPath("$.feedback.status").value("FAILED"))
-        .andExpect(jsonPath("$.feedback.errorCode").value("AI_TIMEOUT"));
+        .andExpect(jsonPath("$.feedback.errorCode").value("AI_TIMEOUT"))
+        .andExpect(jsonPath("$.followUp.followUpId").value(7))
+        .andExpect(jsonPath("$.followUp.itemKo").value("아이스 라테"))
+        .andExpect(jsonPath("$.followUp.remainingSeconds").value(45))
+        .andExpect(jsonPath("$.followUp.ready").value(false));
   }
 
   @Test
@@ -302,6 +495,28 @@ class ConversationControllerTest {
         .perform(get("/api/v1/conversations/active"))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
+  }
+
+  private static ConversationStartResponse startedConversation() {
+    return new ConversationStartResponse(
+        5L,
+        ConversationStatus.ACTIVE,
+        1,
+        NPC,
+        List.of(),
+        npcTurn(10L, 1, "Hi!"),
+        new ConversationStateResponse(
+            ConversationStatus.ACTIVE, null, 0, 3, 0, TIME_LIMIT_AT, GRACE_UNTIL, false, 0),
+        null);
+  }
+
+  private static TurnResponse turnResponse() {
+    return new TurnResponse(
+        new UserTurnResponse(11L, 2, Speaker.USER, "A latte", false, null),
+        npcTurn(12L, 3, "Sure!"),
+        new ConversationStateResponse(
+            ConversationStatus.ACTIVE, null, 0, 3, 0, TIME_LIMIT_AT, GRACE_UNTIL, false, 0),
+        List.of());
   }
 
   private static NpcTurnResponse npcTurn(Long turnId, int seq, String text) {

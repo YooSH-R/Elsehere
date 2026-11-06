@@ -4,8 +4,10 @@ param(
     [ValidateSet('test', 'build')]
     [string] $Action,
     [string] $UnityEditorPath = $env:UNITY_EDITOR_PATH,
-    # MR checks pass their merge base so web-template-only changes run just the deployment tests.
-    [string] $ChangedSince
+    # MR checks pass their merge base to select affected test assemblies.
+    [string] $ChangedSince,
+    [ValidateRange(1, 3600)]
+    [int] $ProgressIntervalSeconds = 30
 )
 
 $ErrorActionPreference = 'Stop'
@@ -38,17 +40,25 @@ function Invoke-Unity {
     ) + $AdditionalArguments
 
     Write-Host "Running Unity ${editorVersion}: $RunName"
+    $elapsed = [System.Diagnostics.Stopwatch]::StartNew()
     try {
         # Start-Process -Wait also waits for descendants left behind by a crashed Editor.
         # Wait on the Editor itself so its failure reaches CI and preserves the log.
         $unityProcess = Start-Process -FilePath $UnityEditorPath -ArgumentList $arguments `
             -WindowStyle Hidden -PassThru
-        $unityProcess.WaitForExit()
+        while (-not $unityProcess.WaitForExit($ProgressIntervalSeconds * 1000)) {
+            if (Test-Path -LiteralPath $logPath) {
+                Copy-Item -LiteralPath $logPath -Destination $artifactPath
+            }
+            Write-Host "Unity $RunName still running: elapsed=$([int] $elapsed.Elapsed.TotalSeconds)s; log=$artifactPath/$RunName.log"
+        }
+        Write-Host "Unity $RunName exited: elapsed=$([int] $elapsed.Elapsed.TotalSeconds)s; exit_code=$($unityProcess.ExitCode)"
         if ($unityProcess.ExitCode -ne 0) {
             throw "Unity $RunName failed with exit code $($unityProcess.ExitCode). See the artifact log."
         }
     }
     finally {
+        $elapsed.Stop()
         if (Test-Path -LiteralPath $logPath) {
             Copy-Item -LiteralPath $logPath -Destination $artifactPath
         }
@@ -94,78 +104,37 @@ function Invoke-UnityTests {
     }
 }
 
-function Test-DeploymentOnlyPath {
-    param([string] $Path)
-
-    # Git quotes non-ASCII names; only the ASCII folder prefix and extension matter here.
-    $Path = $Path.Trim('"')
-    $deploymentOnlyPatterns = @(
-        'frontend/UnityClient/Assets/WebGLTemplates/*',
-        'frontend/UnityClient/Assets/WebGLTemplates.meta',
-        'frontend/design/*'
-    )
-    foreach ($pattern in $deploymentOnlyPatterns) {
-        if ($Path -like $pattern) {
-            return $true
-        }
-    }
-    # Unity never loads documents outside its project; the API contract still affects the client.
-    $isDocument = ($Path -like 'docs/*') -or ($Path -like '*.md')
-    return $isDocument -and ($Path -notlike 'docs/api/*') -and ($Path -notlike 'frontend/UnityClient/*')
-}
-
-function Get-TestScope {
-    param([string] $BaseCommit)
-
-    if (-not $BaseCommit) {
-        return 'All'
-    }
-    # A failed comparison must widen the run instead of stopping the required check.
-    $ErrorActionPreference = 'Continue'
-    # MR checkouts are shallow, so the merge base may need to be fetched first.
-    & git -C $repositoryPath rev-parse --verify --quiet "$BaseCommit^{commit}" | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        & git -C $repositoryPath fetch --quiet --no-tags --depth=1 origin $BaseCommit
-    }
-    # Without rename pairing, moving a script into the template folder still lists the removed script.
-    $changedPaths = @(& git -C $repositoryPath diff --name-only --no-renames $BaseCommit HEAD)
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Unity test scope: All (could not compare with $BaseCommit)"
-        return 'All'
-    }
-    $playAffectingPath = $changedPaths |
-        Where-Object { -not (Test-DeploymentOnlyPath $_) } |
-        Select-Object -First 1
-    if ($playAffectingPath) {
-        Write-Host "Unity test scope: All ($playAffectingPath changed)"
-        return 'All'
-    }
-    Write-Host 'Unity test scope: Deployment (only web templates, design images or documents changed)'
-    return 'Deployment'
-}
-
-if ($Action -eq 'test' -and (Get-TestScope -BaseCommit $ChangedSince) -eq 'Deployment') {
-    # Play code and Tripo inputs are unchanged, so only the template checks can change.
-    Invoke-UnityTests -TestPlatform 'EditMode' -AssemblyNames 'A305.Deployment.Tests'
-}
-elseif ($Action -eq 'test') {
+if ($Action -eq 'test') {
+    . "$PSScriptRoot/unity-test-scope.ps1"
+    $plan = Get-UnityTestPlan -RepositoryPath $repositoryPath -BaseCommit $ChangedSince
+    $plan | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $artifactPath 'test-plan.json') -Encoding UTF8
+    Write-Host "Unity test scope: $($plan.Mode) ($($plan.Reason))"
+    Write-Host "EditMode assemblies: $($plan.EditMode -join ';')"
+    Write-Host "PlayMode assemblies: $($plan.PlayMode -join ';')"
+    $prepareInputs = $plan.Mode -eq 'All' -or @($plan.EditMode + $plan.PlayMode | Where-Object { $_ -like 'A305.Tripo.*' }).Count -gt 0
     $inputDirectory = Join-Path $runPath 'Tripo'
     try {
-        # The committed cafe character is required by the master-rig regression test.
-        if (-not $env:TRIPO_MASTER_RECORD) {
-            $env:TRIPO_MASTER_RECORD = 'Assets/Data/Tripo/100e191da12a84145a71d737bcfd57c2.asset'
+        if ($prepareInputs) {
+            if (-not $env:TRIPO_MASTER_RECORD) {
+                $env:TRIPO_MASTER_RECORD = 'Assets/Data/Tripo/100e191da12a84145a71d737bcfd57c2.asset'
+            }
+            if (-not $env:TRIPO_MASTER_SCENE) {
+                $env:TRIPO_MASTER_SCENE = 'Assets/Scenes/Sandbox/Tripo/LittleMung_Cafe_Female_112b39c5_HandBinding.unity'
+            }
+            $testInputs = & "$PSScriptRoot/prepare-unity-test-inputs.ps1" `
+                -ProjectPath $projectPath -OutputPath $inputDirectory
+            $env:TRIPO_REVIEW_BLENDER = $testInputs.Blender
+            $env:TRIPO_REVIEW_MODEL = $testInputs.Model
+            $env:TRIPO_REVIEW_OUTPUT = $testInputs.Reports
+            $env:TRIPO_MATERIAL_TEST_FBX = $testInputs.MaterialModel
         }
-        if (-not $env:TRIPO_MASTER_SCENE) {
-            $env:TRIPO_MASTER_SCENE = 'Assets/Scenes/Sandbox/Tripo/LittleMung_Cafe_Female_112b39c5_HandBinding.unity'
-        }
-        $testInputs = & "$PSScriptRoot/prepare-unity-test-inputs.ps1" `
-            -ProjectPath $projectPath -OutputPath $inputDirectory
-        $env:TRIPO_REVIEW_BLENDER = $testInputs.Blender
-        $env:TRIPO_REVIEW_MODEL = $testInputs.Model
-        $env:TRIPO_REVIEW_OUTPUT = $testInputs.Reports
-        $env:TRIPO_MATERIAL_TEST_FBX = $testInputs.MaterialModel
         foreach ($testPlatform in @('EditMode', 'PlayMode')) {
-            Invoke-UnityTests -TestPlatform $testPlatform
+            if ($plan.Mode -eq 'All') {
+                Invoke-UnityTests -TestPlatform $testPlatform
+            }
+            elseif (@($plan.$testPlatform).Count -gt 0) {
+                Invoke-UnityTests -TestPlatform $testPlatform -AssemblyNames ($plan.$testPlatform -join ';')
+            }
         }
     }
     finally {

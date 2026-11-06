@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using A305.Dialogue;
 using UnityEngine;
 
 namespace A305.Learning
@@ -58,6 +59,63 @@ namespace A305.Learning
             ),
         };
 
+        // 튜토리얼 Ben은 카페 가는 길을 묻는 행인이라 길을 알려 줄 때 쓰는 표현을 둔다.
+        // 요약 탭은 표현을 두 개씩 보이므로, 세 개를 두어 튜토리얼에서 밝히는 제목 옆 쪽 넘김이 실제로 넘어가게 한다.
+        [SerializeField]
+        [Tooltip("대본 대화 상대별로 그 장면에서 현지인이 자주 쓰는 관용·추천 표현")]
+        private List<SituationEntry> situations = new List<SituationEntry>
+        {
+            new SituationEntry(
+                "Ben",
+                "It's on your right.",
+                "오른쪽에 있어요.",
+                "가는 길 끝에서 목적지가 어느 쪽에 있는지 알려 줄 때 써요.",
+                "Turn left at the corner. It's on your right.",
+                "모퉁이에서 왼쪽으로 도세요. 오른쪽에 있어요."
+            ),
+            new SituationEntry(
+                "Ben",
+                "It's right across the street.",
+                "바로 길 건너편에 있어요.",
+                "목적지가 바로 길 건너에 있을 때 써요.",
+                "The café? It's right across the street.",
+                "카페요? 바로 길 건너편에 있어요."
+            ),
+            new SituationEntry(
+                "Ben",
+                "You can't miss it.",
+                "금방 찾으실 거예요.",
+                "찾기 쉬운 곳이라고 안심시키며 덧붙여요.",
+                "It's next to the big tree. You can't miss it.",
+                "큰 나무 옆에 있어요. 금방 찾으실 거예요."
+            ),
+        };
+
+        public override IReadOnlyList<SituationExpressionData> GetSituationExpressions(
+            string npcName
+        )
+        {
+            var found = new List<SituationExpressionData>();
+            foreach (SituationEntry entry in situations)
+            {
+                if (string.Equals(entry.npcName, npcName, StringComparison.OrdinalIgnoreCase))
+                {
+                    found.Add(
+                        new SituationExpressionData
+                        {
+                            Expression = entry.expression,
+                            MeaningKo = entry.meaningKo,
+                            UsageKo = entry.usageKo,
+                            ExampleEn = entry.exampleEn,
+                            ExampleKo = entry.exampleKo,
+                        }
+                    );
+                }
+            }
+
+            return found;
+        }
+
         public override IReadOnlyList<ReferenceRule> GetRules()
         {
             var rules = new List<ReferenceRule>();
@@ -72,6 +130,41 @@ namespace A305.Learning
             }
 
             return rules;
+        }
+
+        [Serializable]
+        private class SituationEntry
+        {
+            [Tooltip("이 표현을 보여 줄 대본 대화 상대 이름")]
+            public string npcName;
+
+            public string expression;
+            public string meaningKo;
+
+            [Tooltip("이 장면에서 언제 쓰는지")]
+            public string usageKo;
+
+            public string exampleEn;
+            public string exampleKo;
+
+            public SituationEntry() { }
+
+            public SituationEntry(
+                string npcName,
+                string expression,
+                string meaningKo,
+                string usageKo,
+                string exampleEn,
+                string exampleKo
+            )
+            {
+                this.npcName = npcName;
+                this.expression = expression;
+                this.meaningKo = meaningKo;
+                this.usageKo = usageKo;
+                this.exampleEn = exampleEn;
+                this.exampleKo = exampleKo;
+            }
         }
 
         [Serializable]

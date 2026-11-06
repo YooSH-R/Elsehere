@@ -16,9 +16,13 @@ import com.elsehere.admin.dto.AdminUser;
 import com.elsehere.admin.dto.AiUsageReport;
 import com.elsehere.admin.dto.AiUsageRow;
 import com.elsehere.admin.dto.AiUserUsage;
+import com.elsehere.admin.dto.OverallUsageReport;
+import com.elsehere.admin.dto.UsageReport;
+import com.elsehere.admin.dto.UserUsageReport;
 import com.elsehere.admin.service.AdminAccess;
 import com.elsehere.admin.service.AdminAiUsageService;
 import com.elsehere.admin.service.AdminNpcService;
+import com.elsehere.admin.service.AdminUsageService;
 import com.elsehere.admin.service.AdminUserService;
 import com.elsehere.common.auth.LoginUser;
 import com.elsehere.common.config.SecuredWebMvcTest;
@@ -43,6 +47,8 @@ class AdminPageControllerTest {
   @MockitoBean private AdminUserService adminUserService;
 
   @MockitoBean private AdminAiUsageService adminAiUsageService;
+
+  @MockitoBean private AdminUsageService adminUsageService;
 
   @Test
   @DisplayName("AI 사용량 화면은 고른 기간의 합계와 날짜·종류·모델·사용자 구분·사용자별 사용량을 보여 준다")
@@ -84,6 +90,102 @@ class AdminPageControllerTest {
         .perform(get("/admin/ai-usage").with(authentication(loggedIn(1L))))
         .andExpect(status().isOk())
         .andExpect(content().string(containsString("최근 7일")));
+  }
+
+  @Test
+  @DisplayName("이용 현황 화면은 고른 기간의 합계·날짜별·대화·학습·진행 단계와 사용자별 화면 링크가 있는 사용자 목록을 보여 준다")
+  void usage_byAdmin_showsReport() throws Exception {
+    given(adminAccess.isAdmin(1L)).willReturn(true);
+    given(adminUsageService.report(30))
+        .willReturn(
+            new OverallUsageReport(
+                usageReport(30),
+                new OverallUsageReport.Progress(
+                    List.of(new OverallUsageReport.UserCount("TUTORIAL", 3)),
+                    List.of(new OverallUsageReport.UserCount("1. 호텔에 도착했어요", 4)),
+                    List.of(new OverallUsageReport.UserCount("4. WASH", 1))),
+                List.of(
+                    new OverallUsageReport.UserActivity(
+                        7L, true, 2, 3, 1, 1800, "2030-01-10 08:30"))));
+
+    mockMvc
+        .perform(get("/admin/usage").param("days", "30").with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("href=\"/admin/usage\"")))
+        .andExpect(content().string(containsString("최근 30일")))
+        .andExpect(content().string(containsString("1,234")))
+        .andExpect(content().string(containsString("2030-01-09")))
+        .andExpect(content().string(containsString("NPC가 마무리")))
+        .andExpect(content().string(containsString("Mia · 카페 직원")))
+        .andExpect(content().string(containsString("음성으로 말함")))
+        .andExpect(content().string(containsString("사물 카드")))
+        .andExpect(content().string(containsString("사용자가 건너뜀")))
+        .andExpect(content().string(containsString("튜토리얼")))
+        .andExpect(content().string(containsString("1. 호텔에 도착했어요")))
+        .andExpect(content().string(containsString("4. WASH")))
+        .andExpect(
+            content().string(containsString("href=\"/admin/usage/user?userId=7&amp;days=30\"")))
+        .andExpect(content().string(containsString("2030-01-10 08:30")));
+  }
+
+  @Test
+  @DisplayName("이용 현황 합계는 비율과 평균을 활동 사용자·대화 수로 나눠 보여 준다")
+  void usage_byAdmin_showsRatios() throws Exception {
+    given(adminAccess.isAdmin(1L)).willReturn(true);
+    given(adminUsageService.report(7))
+        .willReturn(
+            new OverallUsageReport(
+                usageReport(7),
+                new OverallUsageReport.Progress(List.of(), List.of(), List.of()),
+                List.of()));
+
+    // 활동 사용자 4명 중 다시 온 사용자 1명, 대화 5번 중 끝낸 대화 4번, 대화한 사용자 2명
+    mockMvc
+        .perform(get("/admin/usage").with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("최근 7일")))
+        .andExpect(content().string(containsString("25%")))
+        .andExpect(content().string(containsString("80%")))
+        .andExpect(content().string(containsString("2.5번")));
+  }
+
+  @Test
+  @DisplayName("사용자별 이용 현황 화면은 사용자 ID로 개요·활동과 기간 링크, 전체 화면으로 돌아가는 링크를 보여 준다")
+  void userUsage_byAdmin_showsProfileAndActivity() throws Exception {
+    given(adminAccess.isAdmin(1L)).willReturn(true);
+    given(adminUsageService.userReport(7L, 30))
+        .willReturn(
+            new UserUsageReport(
+                new UserUsageReport.Profile(
+                    7L,
+                    false,
+                    false,
+                    "2030-01-07 09:00",
+                    "2030-01-10 08:00",
+                    "DONE",
+                    "모두 마침",
+                    "1. DINER",
+                    1800,
+                    "2030-01-10 08:50"),
+                usageReport(30)));
+
+    mockMvc
+        .perform(
+            get("/admin/usage/user")
+                .param("userId", "7")
+                .param("days", "30")
+                .with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("사용자 7")))
+        .andExpect(content().string(containsString("2030-01-07 09:00")))
+        .andExpect(content().string(containsString("2030-01-10 08:00")))
+        .andExpect(content().string(containsString("모두 마침")))
+        .andExpect(content().string(containsString("1. DINER")))
+        .andExpect(content().string(containsString("30.0분")))
+        .andExpect(content().string(containsString("NPC가 마무리")))
+        .andExpect(
+            content().string(containsString("href=\"/admin/usage/user?userId=7&amp;days=7\"")))
+        .andExpect(content().string(containsString("href=\"/admin/usage?days=30\"")));
   }
 
   @Test
@@ -176,6 +278,19 @@ class AdminPageControllerTest {
         .andExpect(content().string(containsString("Soy milk is free.")))
         .andExpect(content().string(containsString("The counter of the corner cafe.")))
         .andExpect(content().string(containsString("/api/v1/admin/npcs/CAFE_STAFF/persona")));
+  }
+
+  // 활동 사용자 4명(다시 온 사용자 1명), 대화 5번(끝낸 대화 4번, 대화한 사용자 2명)
+  private static UsageReport usageReport(int days) {
+    return new UsageReport(
+        days,
+        new UsageReport.Summary(4, 3, 1, 6, 1, 2, 1, 5, 4, 2, 1234, 3, 7200),
+        List.of(new UsageReport.Day("2030-01-09", 4, 3, 1, 2, 1, 5, 1, 3)),
+        List.of(new UsageReport.Count("NPC_ENDED", 3, 2)),
+        List.of(new UsageReport.Count("Mia · 카페 직원", 5, 2)),
+        List.of(new UsageReport.Count("VOICE", 8, 2)),
+        List.of(new UsageReport.Count("OBJECT", 3, 1)),
+        List.of(new UsageReport.Count("SKIPPED_BY_USER", 1, 1)));
   }
 
   private static Authentication loggedIn(Long userId) {

@@ -160,6 +160,61 @@ class AiWorkerClientTest {
   }
 
   @Test
+  void reply_requestsWholeAudioWithoutChunkStream() {
+    respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
+
+    client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null);
+
+    assertThat(received.get("/v1/npc/reply").body()).contains("\"stream_chunks\":false");
+  }
+
+  @Test
+  @DisplayName("받는 쪽을 넘기면 조각 스트림을 요청하고 글자·조각 음성을 온 순서대로 넘긴다")
+  void reply_withListener_forwardsDeltaAndChunksInOrder() {
+    respond(
+        "/v1/npc/reply",
+        200,
+        "text/event-stream",
+        """
+        event: delta
+        data: {"text": "Hi!"}
+
+        event: delta
+        data: {"text": " Sure."}
+
+        event: audio
+        data: {"seq": 0, "text": "Hi!", "audio_id": "a-0", "duration_s": 0.6, "tts": true}
+
+        event: audio
+        data: {"seq": 1, "text": "Sure.", "audio_id": null, "duration_s": null, "tts": false}
+
+        event: done
+        data: {"text": "Hi! Sure.", "audio_full_id": "full-1"}
+
+        """);
+    List<String> events = new java.util.ArrayList<>();
+    NpcReplyListener listener =
+        new NpcReplyListener() {
+          @Override
+          public void onDelta(String text) {
+            events.add("delta:" + text);
+          }
+
+          @Override
+          public void onChunk(NpcReplyChunk chunk) {
+            events.add("chunk:" + chunk.seq() + ":" + chunk.text() + ":" + chunk.audioId());
+          }
+        };
+
+    NpcReply reply = client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null, listener);
+
+    assertThat(received.get("/v1/npc/reply").body()).contains("\"stream_chunks\":true");
+    assertThat(events)
+        .containsExactly("delta:Hi!", "delta: Sure.", "chunk:0:Hi!:a-0", "chunk:1:Sure.:null");
+    assertThat(reply.text()).isEqualTo("Hi! Sure.");
+  }
+
+  @Test
   @DisplayName("대답 상대인 학습자의 닉네임과 캐릭터 기본형을 learner로 보낸다")
   void reply_sendsLearnerNicknameAndAvatarType() {
     respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
@@ -535,6 +590,22 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("기억 카드 응답의 좋은 대화 호감 변화량을 읽고, 칸이 없으면(이전 워커) null이다")
+  void memoryCard_readsAffinityDelta() {
+    respond(
+        "/v1/memory",
+        200,
+        "application/json",
+        "{\"memory_card\": {\"name\": \"Sun\"}, \"impression\": \"good\", \"affinity_delta\": 3,"
+            + " \"usage\": []}");
+    assertThat(client.memoryCard(TRACE, NPC, "outcome", List.of(), null).affinityDelta())
+        .isEqualTo(3);
+
+    respond("/v1/memory", 200, "application/json", "{\"memory_card\": {}, \"usage\": []}");
+    assertThat(client.memoryCard(TRACE, NPC, "outcome", List.of(), null).affinityDelta()).isNull();
+  }
+
+  @Test
   @DisplayName("기억 카드가 객체가 아니면 AI_RESPONSE_INVALID, 워커 오류면 오류 코드로 던진다")
   void memoryCard_invalidOrError_throws() {
     respond("/v1/memory", 200, "application/json", "{\"memory_card\": null, \"usage\": []}");
@@ -594,6 +665,40 @@ class AiWorkerClientTest {
         .contains(
             "{\"who\":\"npc\",\"text\":\"Hi! What can I get you?\",\"english\":null,\"rude\":false,\"events\":[]}")
         .contains("\"rude\":false,\"events\":[\"GREETING\",\"LEAVE\"]");
+  }
+
+  @Test
+  @DisplayName("건넬 것 판정은 끝난 대화를 보내고 건넬 것과 사용량을 읽는다")
+  void followUp_sendsHistoryAndReadsItemAndUsage() {
+    respond(
+        "/v1/npc/follow-up",
+        200,
+        "application/json",
+        """
+        {"follow_up": {"item": "iced latte", "item_ko": "아이스 라테", "wait": "QUICK"},
+         "usage": [{"step": "follow_up", "model": "m1", "input_tokens": 300, "output_tokens": 20}]}
+        """);
+
+    FollowUpResult result =
+        client.followUp(
+            TRACE, NPC, List.of(WorkerLine.learner("One iced latte, please.", null, false)));
+
+    assertThat(result.followUp()).isEqualTo(new WorkerFollowUp("iced latte", "아이스 라테", "QUICK"));
+    assertThat(result.usage()).extracting(WorkerUsage::step).containsExactly("follow_up");
+    assertThat(received.get("/v1/npc/follow-up").body())
+        .contains("\"npc\":{\"id\":\"CAFE_STAFF\"")
+        .contains("\"text\":\"One iced latte, please.\"");
+  }
+
+  @Test
+  @DisplayName("건넬 것이 없으면 판정 결과의 건넬 것이 비어 있다")
+  void followUp_nothingOwed_isEmpty() {
+    respond("/v1/npc/follow-up", 200, "application/json", "{\"follow_up\": null, \"usage\": []}");
+
+    FollowUpResult result =
+        client.followUp(TRACE, NPC, List.of(WorkerLine.learner("Where is the bank?", null, false)));
+
+    assertThat(result.followUp()).isNull();
   }
 
   @Test

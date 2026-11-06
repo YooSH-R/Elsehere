@@ -68,11 +68,11 @@ class WorldSeedLoaderTest {
   @Test
   @DisplayName("애플리케이션이 시작되면 따로 부르지 않아도 시드가 들어가 있다")
   void applicationStart_loadsSeed() {
-    assertThat(sceneRepository.count()).isEqualTo(5);
+    assertThat(sceneRepository.count()).isEqualTo(6);
   }
 
   @Test
-  @DisplayName("드럭스토어 포함 장소 5개를 코드·이름·Unity 씬 이름과 함께 넣고, 모두 들어갈 수 있게 연다")
+  @DisplayName("드럭스토어·경찰서 포함 장소 6개를 코드·이름·Unity 씬 이름과 함께 넣고, 모두 들어갈 수 있게 연다")
   void load_insertsScenes() {
     worldSeedLoader.load();
 
@@ -83,7 +83,8 @@ class WorldSeedLoaderTest {
             tuple("TOWN", "마을", "TownScene", true),
             tuple("CAFE", "모퉁이 카페", "CafeScene", true),
             tuple("HOTEL", "호텔", "HotelScene", true),
-            tuple("SHOP", "드럭스토어", "ShopScene", true));
+            tuple("SHOP", "드럭스토어", "ShopScene", true),
+            tuple("POLICE_STATION", "경찰서", "PoliceStationScene", true));
   }
 
   @Test
@@ -267,7 +268,7 @@ class WorldSeedLoaderTest {
     worldSeedLoader.load();
     worldSeedLoader.load();
 
-    assertThat(sceneRepository.count()).isEqualTo(5);
+    assertThat(sceneRepository.count()).isEqualTo(6);
     assertThat(vocabularyRepository.count()).isEqualTo(catalog().words().size());
     assertThat(sceneWordRepository.count()).isEqualTo(expectedSceneWords().size());
     assertThat(npcRepository.count()).isEqualTo(36);

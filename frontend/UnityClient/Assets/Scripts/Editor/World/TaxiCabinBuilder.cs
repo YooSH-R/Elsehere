@@ -163,7 +163,15 @@ namespace A305.EditorTools.World
             bool includePoliceStation
         )
         {
-            SpaceDoorway[] doors = BuilderTools.FindAllInScene<SpaceDoorway>(scene);
+            // 경찰서처럼 거리 매장이면서 따로 장면이 있는 곳은 거리 매장의 정차 지점 하나만 쓴다.
+            SpaceDoorway[] doors = BuilderTools
+                .FindAllInScene<SpaceDoorway>(scene)
+                .Where(door =>
+                    TownStorefrontBuilder.Storefronts.All(storefront =>
+                        storefront.PlaceCode != PlaceScenes.CodeOf(door.DestinationScene)
+                    )
+                )
+                .ToArray();
             TownStorefrontBuilder.Storefront[] storefronts = TownStorefrontBuilder
                 .Storefronts.Where(storefront =>
                     includePoliceStation || storefront.Name != "PoliceStation"
@@ -173,12 +181,8 @@ namespace A305.EditorTools.World
             int destinationIndex = 0;
             foreach (SpaceDoorway door in doors)
             {
-                string code = door.DestinationScene.Replace("Scene", "").ToUpperInvariant();
-                string label =
-                    code == "HOME" ? "집"
-                    : code == "HOTEL" ? "호텔"
-                    : code == "CAFE" ? "카페"
-                    : "드럭스토어";
+                string code = PlaceScenes.CodeOf(door.DestinationScene);
+                string label = PlaceScenes.NameOf(code);
                 Vector3 stop = new Vector3(
                     door.transform.position.x > 0 ? 1.5f : -1.5f,
                     0,
@@ -373,7 +377,7 @@ namespace A305.EditorTools.World
             return MainstreetArtKit.Block(name, parent, position, size, material);
         }
 
-        private static void ConfigureStatus(DialoguePanelView panel)
+        internal static void ConfigureStatus(DialoguePanelView panel)
         {
             Transform canvas = panel.GetComponentInParent<Canvas>().transform;
             Transform existing = canvas.Find("TaxiTripStatus");

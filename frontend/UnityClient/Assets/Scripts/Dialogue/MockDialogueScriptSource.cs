@@ -328,7 +328,7 @@ namespace A305.Dialogue
                 roleLabel = "식당 종업원",
                 opening = new LineEntry(
                     "Hi, honey! Welcome to Maple Diner. What can I get you?",
-                    "어서 와요! 메이플 다이너예요. 뭘 드릴까요?"
+                    "어서 와요! 메이플 식당이에요. 뭘 드릴까요?"
                 ),
                 keywordReplies = new List<KeywordReplyEntry>
                 {
@@ -673,7 +673,7 @@ namespace A305.Dialogue
                         new[] { "restaurant" },
                         new LineEntry(
                             "Maple Diner is a short walk up the main street.",
-                            "메이플 다이너는 큰길을 따라 조금만 걸으면 있어요."
+                            "메이플 식당은 큰길을 따라 조금만 걸으면 있어요."
                         )
                     ),
                     new KeywordReplyEntry(

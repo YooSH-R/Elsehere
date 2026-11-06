@@ -3,6 +3,7 @@ using System.Linq;
 using A305.EditorTools.Common;
 using A305.EditorTools.ObjectHover;
 using A305.World;
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -121,7 +122,7 @@ namespace A305.EditorTools.World
                 "BrickResidence2F",
                 new Vector3(7, .1f, 39),
                 270,
-                "메이플 다이너",
+                "메이플 식당",
                 "MAPLE DINER",
                 "BREAKFAST ALL DAY",
                 "#A8402F",
@@ -221,6 +222,78 @@ namespace A305.EditorTools.World
             Scene scene = EditorSceneManager.OpenScene(TownProductionBuilder.ScenePath);
             Install(scene);
             BuilderTools.SaveScene(scene, TownProductionBuilder.ScenePath);
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>기존 배치와 목적지 코드를 보존하며 식당의 한국어 표시만 갱신한다.</summary>
+        [MenuItem("Tools/A305/World/Rename Diner Labels To Restaurant")]
+        public static void RenameDinerLabels()
+        {
+            BuilderTools.ThrowIfPlaying();
+            BuilderTools.UpdatePrefabIfExists(
+                "Assets/Prefabs/Mission/FirstDayMission.prefab",
+                root =>
+                {
+                    foreach (TMP_Text label in root.GetComponentsInChildren<TMP_Text>(true))
+                    {
+                        if (label.transform.parent.name != "DINER_STAFF")
+                            continue;
+                        label.text = "식당";
+                        var plate = (RectTransform)label.transform.parent;
+                        plate.sizeDelta = new Vector2(
+                            label.GetPreferredValues(label.text).x
+                                + label.margin.x
+                                + label.margin.z,
+                            plate.sizeDelta.y
+                        );
+                    }
+                }
+            );
+            var scripts = AssetDatabase.LoadAssetAtPath<A305.Dialogue.MockDialogueScriptSource>(
+                "Assets/Data/Dialogue/MockDialogueScripts.asset"
+            );
+            var scriptFields = new SerializedObject(scripts);
+            SerializedProperty field = scriptFields.GetIterator();
+            while (field.Next(true))
+            {
+                if (field.propertyType == SerializedPropertyType.String)
+                    field.stringValue = field
+                        .stringValue.Replace("메이플 다이너예요", "메이플 식당이에요")
+                        .Replace("메이플 다이너는", "메이플 식당은")
+                        .Replace("메이플 다이너", "메이플 식당");
+            }
+            scriptFields.ApplyModifiedPropertiesWithoutUndo();
+            foreach (
+                string scenePath in new[]
+                {
+                    TownProductionBuilder.ScenePath,
+                    "Assets/Scenes/Production/PoliceStationScene.unity",
+                }
+            )
+            {
+                Scene scene = EditorSceneManager.OpenScene(scenePath);
+                foreach (GameObject root in scene.GetRootGameObjects())
+                foreach (
+                    MonoBehaviour component in root.GetComponentsInChildren<MonoBehaviour>(true)
+                )
+                {
+                    if (component == null)
+                        continue;
+                    var fields = new SerializedObject(component);
+                    SerializedProperty places = fields.FindProperty("destinations");
+                    if (places == null || !places.isArray)
+                        continue;
+                    for (int index = 0; index < places.arraySize; index++)
+                    {
+                        SerializedProperty place = places.GetArrayElementAtIndex(index);
+                        if (place.FindPropertyRelative("code")?.stringValue == "DINER")
+                            place.FindPropertyRelative("displayName").stringValue = "메이플 식당";
+                    }
+                    if (fields.ApplyModifiedPropertiesWithoutUndo())
+                        PrefabUtility.RecordPrefabInstancePropertyModifications(component);
+                }
+                EditorSceneManager.SaveScene(scene);
+            }
             AssetDatabase.SaveAssets();
         }
 

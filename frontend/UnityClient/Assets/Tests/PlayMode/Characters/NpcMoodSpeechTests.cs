@@ -289,6 +289,102 @@ namespace A305.Characters.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator ShortPlayfulSpeechReopensEyeWhileHoldingTheSmile()
+        {
+            var root = CreateCafeSpeaker();
+            var profile = ScriptableObject.CreateInstance<EmotionExpressionProfile>();
+            var clip = AudioClip.Create("짧은 윙크 검수", 6400, 1, 16000, false);
+            try
+            {
+                var player = root.GetComponent<CharacterSpeechPlayer>();
+                var audio = root.GetComponent<AudioSource>();
+                audio.mute = true;
+                player.ConfigureExpressions(null);
+                player.Play(
+                    clip,
+                    null,
+                    PlayfulTrack(clip.length),
+                    profile,
+                    holdEmotionAfterSpeech: true
+                );
+                player.Pause();
+                player.Seek(.36f);
+                Assert.That(MaxWeight(root, "eyeBlinkRight"), Is.EqualTo(100).Within(.01));
+                player.Resume();
+                audio.Stop();
+                yield return new WaitForSecondsRealtime(.5f);
+                Assert.That(player.IsHoldingEmotion, Is.True);
+                Assert.That(
+                    MaxWeight(root, "eyeBlinkRight"),
+                    Is.Zero,
+                    "대사가 윙크 중 끝나도 눈은 다시 떠야 합니다."
+                );
+                Assert.That(MaxWeight(root, "mouthSmileLeft"), Is.GreaterThan(90));
+                player.Stop();
+                Assert.That(MaxWeight(root, "mouthSmileLeft"), Is.Zero);
+            }
+            finally
+            {
+                Object.Destroy(root);
+                Object.Destroy(profile);
+                Object.Destroy(clip);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator ConsecutivePlayfulChunksShareOneWinkAndNewReplyRestartsIt()
+        {
+            var root = CreateCafeSpeaker();
+            var profile = ScriptableObject.CreateInstance<EmotionExpressionProfile>();
+            var clip = AudioClip.Create("윙크 구절 검수", 16000, 1, 16000, false);
+            try
+            {
+                var player = root.GetComponent<CharacterSpeechPlayer>();
+                root.GetComponent<AudioSource>().mute = true;
+                player.ConfigureExpressions(null);
+                player.Play(clip, null, PlayfulTrack(clip.length), profile, continueSpeech: true);
+                player.Pause();
+                player.Seek(.36f);
+                Assert.That(MaxWeight(root, "eyeBlinkRight"), Is.EqualTo(100).Within(.01));
+                player.Seek(.999f);
+                player.Play(clip, null, PlayfulTrack(clip.length), profile, continueSpeech: true);
+                player.Pause();
+                player.Seek(.36f);
+                yield return null;
+                Assert.That(
+                    MaxWeight(root, "eyeBlinkRight"),
+                    Is.Zero,
+                    "같은 감정의 음성 조각마다 윙크를 반복하면 안 됩니다."
+                );
+                player.Stop();
+                player.Play(clip, null, PlayfulTrack(clip.length), profile, continueSpeech: true);
+                player.Pause();
+                player.Seek(.36f);
+                Assert.That(MaxWeight(root, "eyeBlinkRight"), Is.EqualTo(100).Within(.01));
+            }
+            finally
+            {
+                Object.Destroy(root);
+                Object.Destroy(profile);
+                Object.Destroy(clip);
+            }
+        }
+
+        private static SpeechEmotionTrack PlayfulTrack(float duration) =>
+            new SpeechEmotionTrack(
+                new[]
+                {
+                    new SpeechEmotionCue
+                    {
+                        start = 0,
+                        end = duration,
+                        emotion = CharacterEmotion.Playful,
+                    },
+                },
+                duration
+            );
+
+        [UnityTest]
         public IEnumerator RuntimeUtteranceUsesNpcMoodAndExplicitCuesTakePriority()
         {
             var root = Object.Instantiate(

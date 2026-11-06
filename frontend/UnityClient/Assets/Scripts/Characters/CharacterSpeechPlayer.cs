@@ -35,6 +35,7 @@ namespace A305.Characters
         private bool streaming;
         private bool keepEmotionAfterSpeech;
         private float streamTimeOffset;
+        private float emotionTimeOffset;
         private float expressionReleaseAt = -1;
         private FaceEmotionSample initialEmotion;
         private FaceEmotionSample lastEmotion;
@@ -167,6 +168,10 @@ namespace A305.Characters
             )
                 throw new ArgumentException("표정 시간표와 음성 길이·프로필을 확인하세요.");
             var previousEmotion = continueSpeech && streaming ? lastEmotion : default;
+            float previousEmotionSeconds =
+                continueSpeech && streaming && reactions != null
+                    ? reactions.ContinuationSeconds(emotionTrack, emotionTimeOffset)
+                    : 0;
             float previousDuration =
                 continueSpeech && streaming && activeAudio != null
                     ? streamTimeOffset + activeAudio.length
@@ -176,6 +181,7 @@ namespace A305.Characters
             keepEmotionAfterSpeech = holdEmotionAfterSpeech && reactions != null;
             initialEmotion = previousEmotion;
             streamTimeOffset = previousDuration;
+            emotionTimeOffset = previousEmotionSeconds;
             timeline = phonemes;
             emotionTrack = reactions;
             activeEmotions = profile;
@@ -234,6 +240,7 @@ namespace A305.Characters
             streaming = false;
             keepEmotionAfterSpeech = false;
             streamTimeOffset = 0;
+            emotionTimeOffset = 0;
             expressionReleaseAt = -1;
             initialEmotion = lastEmotion = heldEmotion = default;
             if (face != null)
@@ -265,7 +272,8 @@ namespace A305.Characters
                     seconds,
                     activeEmotions,
                     initialEmotion,
-                    streaming || keepEmotionAfterSpeech
+                    streaming || keepEmotionAfterSpeech,
+                    emotionTimeOffset
                 );
                 face.ApplySpeech(mouth, lastEmotion, expression.Blink);
             }
@@ -289,7 +297,7 @@ namespace A305.Characters
                         (Time.unscaledTime - expressionReleaseAt - .15f) / .24f
                     );
                     lastEmotion = FaceEmotionSample.Lerp(
-                        heldEmotion,
+                        SampleHeldEmotion(Time.unscaledTime - expressionReleaseAt),
                         default,
                         Mathf.SmoothStep(0, 1, release)
                     );
@@ -323,8 +331,20 @@ namespace A305.Characters
             float elapsed = Time.unscaledTime - expressionReleaseAt;
             float seconds = (streamTimeOffset + activeAudio.length + elapsed) % 14f;
             float blink = expressions != null ? expressions.Sample(seconds, 15f).Blink : 0;
-            face.ApplySpeech(SpeechMouthSample.Rest, heldEmotion, blink);
+            lastEmotion = SampleHeldEmotion(elapsed);
+            face.ApplySpeech(SpeechMouthSample.Rest, lastEmotion, blink);
         }
+
+        private FaceEmotionSample SampleHeldEmotion(float elapsed) =>
+            emotionTrack != null && activeEmotions != null
+                ? emotionTrack.Sample(
+                    activeAudio.length + elapsed,
+                    activeEmotions,
+                    initialEmotion,
+                    holdLast: true,
+                    initialEmotionSeconds: emotionTimeOffset
+                )
+                : heldEmotion;
 
         private void OnDisable() => Stop();
 

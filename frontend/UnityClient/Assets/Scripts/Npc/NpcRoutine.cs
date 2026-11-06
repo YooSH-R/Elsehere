@@ -272,6 +272,8 @@ namespace A305.Npc
             return !hasCounter || (ServesCounter(playerPosition) && IsAtPost());
         }
 
+        internal bool HasServiceCounter => hasCounter;
+
         /// <summary>다가오지 않는 동안(기다림·쉬기) <see cref="Passerby"/>가 매 프레임 부른다.</summary>
         internal void Live(Vector3 playerPosition)
         {

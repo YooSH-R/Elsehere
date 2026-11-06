@@ -37,6 +37,7 @@ namespace A305.Npc.PlayModeTests
         [SetUp]
         public void ResetCrossSceneRecords()
         {
+            SceneManager.sceneLoaded += UseLocalScene;
             previousTimeScale = Time.timeScale;
             Time.timeScale = WalkTimeScale;
             PasserbyRestRecord.Clear();
@@ -50,6 +51,7 @@ namespace A305.Npc.PlayModeTests
         [TearDown]
         public void RestoreFlowingClock()
         {
+            SceneManager.sceneLoaded -= UseLocalScene;
             // 남기면 뒤에 도는 다른 시험의 걸음·물리가 모두 빨라진다.
             Time.timeScale = previousTimeScale;
             // 다른 시험은 서버 없이 장면을 볼 때처럼 1일차 오전 8시부터 흐르는 시각과 처음 튜토리얼을 쓴다.
@@ -57,6 +59,38 @@ namespace A305.Npc.PlayModeTests
             TutorialState.Clear();
             // 하루 한 번 기록은 이 기기에 남으므로 Editor에서 플레이할 때 남지 않게 지운다.
             PasserbyOfferRecord.Clear();
+        }
+
+        private static void UseLocalScene(Scene scene, LoadSceneMode mode)
+        {
+            // 대화·생활 검사는 서버 세션 상태에 영향을 받지 않는 고정 대본으로 진행한다.
+            foreach (var root in scene.GetRootGameObjects())
+            foreach (var component in root.GetComponentsInChildren<MonoBehaviour>(true))
+            {
+                if (component == null)
+                    continue;
+                if (
+                    component is A305.Learning.LearningController
+                    || component.GetType().Name == "SessionExpiredView"
+                )
+                    component.enabled = false;
+                var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+                component.GetType().GetField("useServer", flags)?.SetValue(component, false);
+                component.GetType().GetField("apiSettings", flags)?.SetValue(component, null);
+                if (component is DialogueController)
+                {
+                    foreach (
+                        string field in new[]
+                        {
+                            "conversationApi",
+                            "aiStatusApi",
+                            "followUpApi",
+                            "voiceConsentAgreement",
+                        }
+                    )
+                        component.GetType().GetField(field, flags)?.SetValue(component, null);
+                }
+            }
         }
 
         [UnityTest]
@@ -219,7 +253,7 @@ namespace A305.Npc.PlayModeTests
                     return;
                 NpcRoutine jake = Routine("HOTEL_STAFF");
                 Vector3 start = jake.transform.position;
-                foreach (string code in new[] { "HOTEL_STAFF", "HOTEL_CONCIERGE" })
+                foreach (string code in new[] { "HOTEL_STAFF", "HOTEL_RECEPTIONIST" })
                 {
                     NpcRoutine worker = Routine(code);
                     CharacterController body = worker.GetComponent<CharacterController>();
@@ -241,7 +275,7 @@ namespace A305.Npc.PlayModeTests
                 SceneManager.sceneLoaded -= BringWorkersTogether;
             }
             NpcRoutine first = Routine("HOTEL_STAFF");
-            NpcRoutine second = Routine("HOTEL_CONCIERGE");
+            NpcRoutine second = Routine("HOTEL_RECEPTIONIST");
             yield return WaitUntil(() => first.IsUsing && second.IsUsing);
             Assert.That(
                 HorizontalDistance(first.transform, second.transform),
@@ -253,9 +287,9 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator CafeStaff_OnBreak_LeavesTheWorkplace()
         {
-            yield return LoadAt("CafeScene", BreakStartMinute("CAFE_STAFF"), paused: true);
+            yield return LoadAt("CafeScene", BreakStartMinute("CAFE_BARISTA"), paused: true);
             yield return null;
-            Assert.That(NpcIdentity.Active.Any(npc => npc.Code == "CAFE_STAFF"), Is.False);
+            Assert.That(NpcIdentity.Active.Any(npc => npc.Code == "CAFE_BARISTA"), Is.False);
         }
 
         [UnityTest]
@@ -290,9 +324,56 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator CafeStaff_WhenThePlayerComesNearTheCounter_WaitsForThePlayerToChooseConversation()
+        public IEnumerator CafeStaff_TwoCharacters_CanPassBehindTheCounter()
         {
-            yield return LoadAt("CafeScene", 8 * 60, paused: true);
+            yield return LoadAt("CafeScene", 9 * 60, paused: true);
+            // 공간의 충돌 검사 중에는 교대 일정이 두 번째 직원을 숨기지 않게 한다.
+            Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
+            var staff = Object.FindObjectsByType<NpcIdentity>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+            foreach (var npc in staff)
+            {
+                npc.GetComponent<NpcRoutine>().enabled = false;
+                npc.GetComponent<Passerby>().enabled = false;
+            }
+            var first = staff
+                .Single(npc => npc.Code == "CAFE_STAFF")
+                .GetComponent<CharacterController>();
+            var second = staff
+                .Single(npc => npc.Code == "CAFE_BARISTA")
+                .GetComponent<CharacterController>();
+            Bounds counter = SolidBounds(NearestPlaced("counter", first.transform));
+            float frontLane = counter.max.z + .6f;
+            float backLane = frontLane + 1.2f;
+            first.enabled = false;
+            second.enabled = false;
+            first.transform.position = new Vector3(-3f, .05f, frontLane);
+            second.transform.position = new Vector3(3f, .05f, backLane);
+            first.gameObject.SetActive(true);
+            second.gameObject.SetActive(true);
+            first.enabled = true;
+            second.enabled = true;
+            Physics.SyncTransforms();
+
+            // 일과 선택 대신 실제 캐릭터의 충돌 몸체를 반대 방향으로 움직여 가구·상대 몸에 막히지 않는지 확인한다.
+            for (int step = 0; step < 60; step++)
+            {
+                first.Move(Vector3.right * .1f);
+                second.Move(Vector3.left * .1f);
+                yield return null;
+            }
+            Assert.That(first.transform.position.x, Is.EqualTo(3f).Within(.1f));
+            Assert.That(second.transform.position.x, Is.EqualTo(-3f).Within(.1f));
+            Assert.That(first.transform.position.z, Is.EqualTo(frontLane).Within(.1f));
+            Assert.That(second.transform.position.z, Is.EqualTo(backLane).Within(.1f));
+        }
+
+        [UnityTest]
+        public IEnumerator CafeStaff_WhenThePlayerComesNearTheCounter_OffersConversation()
+        {
+            yield return LoadAt("CafeScene", 9 * 60, paused: true);
             NpcRoutine mia = Routine("CAFE_STAFF");
             KeepOnlyNpc(mia);
             Bounds counter = SolidBounds(NearestPlaced("counter", mia.transform));
@@ -302,9 +383,9 @@ namespace A305.Npc.PlayModeTests
                 new Vector3(counter.center.x, mia.transform.position.y, counter.min.z - .8f),
                 Quaternion.identity
             );
-            yield return new WaitForSeconds(2f);
-            Assert.That(offer.IsShowing, Is.False, "카운터 접근만으로 제안하지 않습니다.");
-            Assert.That(mia.GetComponent<Passerby>().TalkByClick(8f), Is.True);
+            yield return WaitUntil(() => offer.IsShowing);
+            Assert.That(offer.IsShowing, Is.True, "카운터 앞 손님에게 먼저 말을 겁니다.");
+
             Assert.That(Object.FindFirstObjectByType<DialogueController>().IsTalking, Is.False);
             offer
                 .GetComponentsInChildren<Button>()
@@ -340,9 +421,9 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator HotelStaff_OnBreak_LeavesTheWorkplace()
         {
-            yield return LoadAt("HotelScene", BreakStartMinute("HOTEL_STAFF"), paused: true);
+            yield return LoadAt("HotelScene", BreakStartMinute("HOTEL_RECEPTIONIST"), paused: true);
             yield return null;
-            Assert.That(NpcIdentity.Active.Any(npc => npc.Code == "HOTEL_STAFF"), Is.False);
+            Assert.That(NpcIdentity.Active.Any(npc => npc.Code == "HOTEL_RECEPTIONIST"), Is.False);
         }
 
         [UnityTest]

@@ -245,9 +245,14 @@ namespace A305.Npc
             bool isPlayerBusy = IsPlayerOccupied || IsOtherOfferShowing || IsCrossing;
             // 새 대화를 시작할 수 없으면(게스트 대화 횟수를 다 씀) 먼저 다가오지 않는다(기능 명세 F-39).
             bool cannotStartConversation = !dialogue.Allowance.CanStartConversation;
-            // 튜토리얼·퀘스트처럼 용건이 있는 경우에만 먼저 제안한다. 직원은 응대할 수 있는 자리인지도 확인한다.
+            // 튜토리얼·퀘스트와 카운터 응대 때 먼저 제안한다. 직원은 응대할 수 있는 자리인지도 확인한다.
+            bool servesCustomer =
+                routine != null
+                && routine.enabled
+                && routine.HasServiceCounter
+                && routine.CanOfferTo(player.transform.position);
             bool notReadyToOffer =
-                (!IsGuidingTutorial && !IsWaitingForQuest)
+                (!IsGuidingTutorial && !IsWaitingForQuest && !servesCustomer)
                 || routine != null
                     && routine.enabled
                     && !IsWaitingForQuest
@@ -271,7 +276,8 @@ namespace A305.Npc
 
             approach.Tick(
                 Now,
-                toPlayer.magnitude,
+                // 매대 끝에서도 응대하며 카운터 밖으로 걸어 나오지 않는다.
+                servesCustomer ? 0f : toPlayer.magnitude,
                 isPlayerBusy
                     || cannotStartConversation
                     || notReadyToOffer

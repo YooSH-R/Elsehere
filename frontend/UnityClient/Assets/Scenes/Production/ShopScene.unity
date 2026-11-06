@@ -2671,6 +2671,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: DrugstoreInterior
       objectReference: {fileID: 0}
+    - target: {fileID: 8246038197379640786, guid: e062b17753f62de47a554ef328f0e634, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.35000002
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -4046,8 +4050,8 @@ Transform:
   m_GameObject: {fileID: 1775476413}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.4, z: 2.4}
-  m_LocalScale: {x: 1, y: 0.72727275, z: 1}
+  m_LocalPosition: {x: 0, y: 0.22500002, z: 2.4}
+  m_LocalScale: {x: 1, y: 0.40909094, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1458332593}

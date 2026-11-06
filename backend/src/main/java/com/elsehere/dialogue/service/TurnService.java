@@ -17,6 +17,7 @@ import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.conversation.service.ConversationLookup;
+import com.elsehere.dialogue.dto.PoliceDispatchResponse;
 import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.dialogue.dto.TurnResponse;
 import com.elsehere.memory.service.MemoryService;
@@ -143,12 +144,19 @@ public class TurnService {
     Optional<MissionDialogueService.Context> mission =
         missionDialogueService.context(userId, context.npc().summary().npcCode());
 
+    Optional<WorkerState> missionState = mission.map(value -> value.detail().state());
+    // 경찰관은 미션 목표를 맡지 않은 동안 창구에서 신고를 받는다.
+    boolean policeDesk =
+        !context.npcOffDuty()
+            && missionState.isEmpty()
+            && PoliceDesk.serves(context.npc().summary().npcCode());
+
     CompletableFuture<GuardResult> guarding = guardAsync(trace, context, request.text());
     JudgeResult judge =
         aiGateway.judge(
             trace,
             context.npc().workerNpc(),
-            mission.map(value -> value.detail().state()).orElse(FREE_TALK),
+            missionState.orElse(policeDesk ? PoliceDesk.STATE : FREE_TALK),
             context.history(),
             request.text());
     if (judge.dropped()) {
@@ -161,11 +169,17 @@ public class TurnService {
     GuardResult guard = guarding.join();
     boolean rude = Boolean.TRUE.equals(guard.abusive());
     boolean leaving = rude && context.rudeCount() + 1 >= Conversation.RUDE_LIMIT;
-    boolean wrapUp = WrapUp.ends(rude, mission, judge);
+    Optional<PoliceDesk.Dispatch> dispatch =
+        policeDesk && !rude ? PoliceDesk.dispatch(judge) : Optional.empty();
+    // 출동하는 경찰관은 직접 순찰차로 가야 하므로 이 턴에 대화를 마친다.
+    boolean wrapUp = dispatch.isPresent() || WrapUp.ends(rude, mission, judge);
     String instruction =
         rude
             ? (leaving ? RUDE_LEAVE : RUDE_WARNING)
             : mission.map(value -> value.detail().replyInstruction(judge.intent())).orElse("");
+    if (policeDesk && !rude) {
+      instruction = join(instruction, PoliceDesk.instruction(judge, dispatch));
+    }
     if (wrapUp) {
       instruction = WrapUp.instruction(instruction);
     }
@@ -248,8 +262,13 @@ public class TurnService {
                     missionDialogueService.accept(
                         userId, context.npc().summary().npcCode(), value, judge.intent()));
           }
+          dispatch.ifPresent(value -> userTurn.recordPoliceDispatch(value.placeCode()));
           return response(conversation, userTurn, npcTurn);
         });
+  }
+
+  private static String join(String first, String second) {
+    return first.isEmpty() ? second : first + " " + second;
   }
 
   private NpcReply reply(
@@ -366,7 +385,8 @@ public class TurnService {
             dialogueContexts.history(conversationId),
             conversation.getLevelApplied(),
             memoryService.memoryFor(userId, conversation.getNpcId()),
-            conversation.getRudeCount()),
+            conversation.getRudeCount(),
+            conversation.isNpcOffDuty()),
         false,
         finalTurn);
   }
@@ -376,7 +396,10 @@ public class TurnService {
         conversationResponses.userTurn(userTurn),
         conversationResponses.npcTurn(npcTurn),
         conversationResponses.state(conversation),
-        List.of());
+        List.of(),
+        userTurn.isPoliceDispatch()
+            ? new PoliceDispatchResponse(userTurn.getPoliceDispatchPlaceCode())
+            : null);
   }
 
   /**
@@ -390,7 +413,8 @@ public class TurnService {
       List<WorkerLine> history,
       int level,
       WorkerMemory memory,
-      int rudeCount) {}
+      int rudeCount,
+      boolean npcOffDuty) {}
 
   private record TurnContextSelection(TurnContext context, boolean rejected, boolean finalTurn) {}
 }

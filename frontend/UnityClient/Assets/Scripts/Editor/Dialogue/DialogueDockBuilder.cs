@@ -63,6 +63,7 @@ namespace A305.EditorTools.Dialogue
             WordCard(conversation.Find("WordCard"));
             Waiting(conversation.Find("History/Wait"));
             HelpCards(root.transform.Find("HelpPanel"));
+            DialogueTranslationBuilder.SetUp(root);
         }
 
         // 코랄 이름표 위의 NPC 이름, 그 옆 호감도, 오른쪽 끝의 [다시 시도]·[대화 종료]

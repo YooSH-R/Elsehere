@@ -101,10 +101,8 @@ namespace A305.Mission
 
                 WaitingFollowUp followUp = items[i];
                 row.FollowUpId = followUp.FollowUpId;
-                row.Show(
-                    FollowUpCardText.Row(followUp, now),
-                    followUp.IsReady(now) ? readyMark : waitingMark
-                );
+                FollowUpCardRow text = FollowUpCardText.Row(followUp, now);
+                row.Show(text, text.IsReady ? readyMark : waitingMark);
                 shownFollowUpIds.Add(followUp.FollowUpId);
             }
         }
@@ -135,6 +133,8 @@ namespace A305.Mission
 
             foreach (WaitingFollowUp followUp in newlyReady)
             {
+                if (!FollowUpCardText.Row(followUp, Store.Now).IsReady)
+                    continue;
                 int index = shownFollowUpIds.IndexOf(followUp.FollowUpId);
                 if (index >= 0)
                 {

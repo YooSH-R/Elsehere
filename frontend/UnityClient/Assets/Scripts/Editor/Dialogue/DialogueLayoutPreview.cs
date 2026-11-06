@@ -20,6 +20,33 @@ namespace A305.EditorTools.Dialogue
     /// <summary>실제 NPC와 고정 대본으로 대화 구도·도움말 배치를 확인한다. Play·모델 호출 없음.</summary>
     public static class DialogueLayoutPreview
     {
+        public static void CaptureTranslation()
+        {
+            DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
+            var content = new WordPreviewContent { UserTranslation = "Where is the cafe?" };
+            view.Show(content);
+            SelectTheme(UiThemeId.Jelly);
+            string output = OutputFolder();
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "translation-wide.png"),
+                1920,
+                1080
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "translation-portrait.png"),
+                900,
+                1400
+            );
+        }
+
         public static void Capture()
         {
             string output = OutputFolder();
@@ -314,8 +341,16 @@ namespace A305.EditorTools.Dialogue
                 Question,
             };
 
+            public string UserTranslation { get; set; }
             public string NpcName => "Mia";
-            public IReadOnlyList<DialogueLine> Lines => lines;
+            public IReadOnlyList<DialogueLine> Lines =>
+                UserTranslation == null
+                    ? lines
+                    : new[]
+                    {
+                        DialogueLine.FromUser("카페 어디야?"),
+                        DialogueLine.FromNpc("It is on your right.", null),
+                    };
             public DialogueLine LastNpcLine => Question;
             public bool IsGuided => false;
             public bool IsGuidedCompleted => false;

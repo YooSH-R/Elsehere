@@ -44,6 +44,7 @@ import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -216,6 +217,46 @@ class TurnServiceTest {
     assertThat(conversationService.detail(userId, conversationId).endReason())
         .isEqualTo(ConversationEndReason.TIME_LIMIT);
     then(aiGateway).shouldHaveNoInteractions();
+  }
+
+  @Test
+  @DisplayName("경찰 신고를 DB에 저장한 뒤 다시 읽어도 같은 요청의 출동 정보를 돌려준다")
+  void send_policeDispatchPersistsAcrossReloads() {
+    Conversation police =
+        Conversation.start(
+            userId,
+            DialogueTestData.npcId(entityManager, "POLICE_OFFICER"),
+            InitiatedBy.NPC,
+            1,
+            TestClockConfig.NOW);
+    entityManager.persist(police);
+    entityManager.flush();
+    String report = "Someone took my wallet at the bakery.";
+    given(aiGateway.judge(any(), any(), any(), any(), eq(report)))
+        .willReturn(
+            new JudgeResult(
+                report,
+                false,
+                null,
+                null,
+                List.of(),
+                new JudgeResult.Intent(
+                    "report_incident",
+                    List.of("report_incident"),
+                    Map.of("place", "Maple Bakery"),
+                    null)));
+    guards(report, false, null);
+    given(aiGateway.reply(any(), any(), any(), any(), eq(report), anyString(), anyInt(), any()))
+        .willReturn(reply("I'm driving to the bakery. Goodbye!", null));
+    TurnRequest request = new TurnRequest(UUID.randomUUID(), InputType.TEXT, report, null);
+
+    TurnResponse first = turnService.send(userId, police.getId(), request);
+    entityManager.flush();
+    entityManager.clear();
+    TurnResponse retried = turnService.send(userId, police.getId(), request);
+
+    assertThat(retried.policeDispatch()).isEqualTo(first.policeDispatch());
+    assertThat(retried.policeDispatch().placeCode()).isEqualTo("BAKERY");
   }
 
   @Test

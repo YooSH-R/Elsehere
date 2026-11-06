@@ -1,51 +1,73 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace A305.World
 {
     /// <summary>
-    /// 경찰서 창구에서 받은 아직 출발하지 않은 신고 한 건. 경찰서는 마을과 다른 장면이라 창구가 순찰차를 직접 부를 수 없어,
-    /// 신고를 여기 남겨 두면 마을이 열릴 때 순찰차(<see cref="PoliceCar"/>)가 가져가 출동한다. 순찰차가 한 대라 한 건만 받는다.
-    /// 게임을 새로 시작하면 비운다.
+    /// 경찰서에서 접수한 신고를 마을의 순찰차에 넘긴다. 같은 사용자 턴은 한 번만 접수하고,
+    /// 추가 신고는 순서대로 기다린다. 장면을 떠나도 현재 출동을 보관하며, 주차 칸으로 돌아온 신고만 완료한다.
     /// </summary>
     public static class PoliceDispatchOrder
     {
-        private static string place;
-
-        /// <summary>순찰차가 아직 가져가지 않은 신고가 있는지</summary>
-        public static bool IsPending { get; private set; }
-
-        /// <param name="placeCode">신고한 장소 코드. 장소를 말하지 않았으면 null이고 본길을 순찰한다.</param>
-        /// <returns>새로 받았으면 true, 이미 기다리는 신고가 있어 받지 않았으면 false</returns>
-        public static bool TryRequest(string placeCode)
+        public sealed class Report
         {
-            if (IsPending)
+            public Report(long turnId, string officerCode, string placeCode)
             {
-                return false;
+                TurnId = turnId;
+                OfficerCode = officerCode;
+                PlaceCode = placeCode;
             }
 
-            place = placeCode;
-            IsPending = true;
+            public long TurnId { get; }
+            public string OfficerCode { get; }
+            public string PlaceCode { get; }
+        }
+
+        private static readonly Queue<Report> Pending = new Queue<Report>();
+        private static readonly HashSet<long> AcceptedTurns = new HashSet<long>();
+
+        public static Report Current { get; private set; }
+        public static bool IsPending => Pending.Count > 0;
+
+        /// <summary>이미 접수한 턴이면 중복으로 넣지 않는다. 장소가 null이면 본길 순찰이다.</summary>
+        public static bool TryRequest(long turnId, string officerCode, string placeCode)
+        {
+            if (!AcceptedTurns.Add(turnId))
+                return false;
+            Pending.Enqueue(new Report(turnId, officerCode, placeCode));
             return true;
         }
 
-        /// <summary>기다리는 신고를 가져간다. 가져가면 없어진다.</summary>
-        public static bool TryTake(out string placeCode)
+        /// <summary>현재 출동을 재개하거나 다음 신고를 시작한다. 장면을 다시 열어도 완료 전까지 같은 신고다.</summary>
+        public static bool TryBegin(out Report report)
         {
-            placeCode = place;
-            if (!IsPending)
-            {
-                return false;
-            }
-
-            Clear();
-            return true;
+            if (Current == null && Pending.Count > 0)
+                Current = Pending.Dequeue();
+            report = Current;
+            return report != null;
         }
+
+        public static void Complete(long turnId)
+        {
+            if (Current?.TurnId == turnId)
+                Current = null;
+        }
+
+        /// <summary>대기 중이거나 순찰 중인 경찰관은 창구와 마을 생활 모습에 나타나지 않는다.</summary>
+        public static bool IsAway(string officerCode) =>
+            officerCode != null
+            && (
+                Current?.OfficerCode == officerCode
+                || Pending.Any(report => report.OfficerCode == officerCode)
+            );
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void Clear()
         {
-            place = null;
-            IsPending = false;
+            Pending.Clear();
+            AcceptedTurns.Clear();
+            Current = null;
         }
     }
 }

@@ -302,6 +302,7 @@ namespace A305.Dialogue.PlayModeTests
                 lines.Add(Latest);
             }
 
+            public string UserTranslation { get; set; }
             public string NpcName => "Ben";
             public IReadOnlyList<DialogueLine> Lines => lines;
             public DialogueLine LastNpcLine => Latest;

@@ -59,7 +59,7 @@ namespace A305.Npc.PlayModeTests
         {
             yield return LoadStation();
 
-            TalkToOfficerAndSay("My wallet was stolen at the diner.");
+            TalkToOfficerAndReport("DINER");
 
             Assert.That(PoliceDispatchOrder.IsPending, Is.False, "대화 중에는 접수만 합니다.");
             Assert.That(VehicleStatus(), Does.Contain("신고 접수").And.Contain("메이플 다이너"));
@@ -97,11 +97,65 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator ReportingOfficer_StaysAwayAcrossScenesAndReturnsAfterParking()
+        {
+            yield return LoadStation();
+            TalkToOfficerAndReport("ICE_CREAM_PLAZA");
+            yield return EndTalk();
+            Assert.That(PoliceDispatchOrder.IsAway(OfficerCode), Is.True);
+
+            yield return LoadTown();
+            PoliceCar car = Single<PoliceCar>();
+            HoldOtherTraffic(car);
+            Assert.That(
+                car.transform.Find("Drivers/" + OfficerCode).gameObject.activeSelf,
+                Is.True
+            );
+
+            // 마을이 내려가도 끝나지 않은 신고를 보관한다. 경찰서에 다시 들어가도 출동한 경찰관은 창구에 없어야 한다.
+            yield return LoadStation();
+            Assert.That(
+                Object
+                    .FindObjectsByType<NpcIdentity>(FindObjectsSortMode.None)
+                    .Any(npc => npc.Code == OfficerCode),
+                Is.False
+            );
+            Assert.That(PoliceDispatchOrder.IsAway(OfficerCode), Is.True);
+
+            yield return LoadTown();
+            car = Single<PoliceCar>();
+            HoldOtherTraffic(car);
+            Assert.That(PoliceDispatchOrder.Current.TurnId, Is.EqualTo(10));
+            float previousScale = Time.timeScale;
+            Time.timeScale = 12;
+            try
+            {
+                yield return WaitForPhase(car, PolicePhase.Parked);
+            }
+            finally
+            {
+                Time.timeScale = previousScale;
+            }
+            Assert.That(PoliceDispatchOrder.IsAway(OfficerCode), Is.False);
+            Assert.That(
+                car.transform.Find("Drivers/" + OfficerCode).gameObject.activeSelf,
+                Is.False
+            );
+            yield return LoadStation();
+            Assert.That(
+                Object
+                    .FindObjectsByType<NpcIdentity>(FindObjectsSortMode.None)
+                    .Any(npc => npc.Code == OfficerCode),
+                Is.True
+            );
+        }
+
+        [UnityTest]
         public IEnumerator ReportingWithoutAPlace_PatrolsTheMainStreetAndComesBack()
         {
             yield return LoadStation();
 
-            TalkToOfficerAndSay("I lost my wallet.");
+            TalkToOfficerAndReport(null);
             Assert.That(VehicleStatus(), Does.Contain("신고 접수"));
             yield return EndTalk();
 
@@ -210,6 +264,16 @@ namespace A305.Npc.PlayModeTests
             var panel = Single<DialoguePanelView>();
             panel.GetComponentInChildren<TMP_InputField>(true).text = text;
             Click(panel, "SendButton");
+        }
+
+        // 신고 여부·장소는 서버의 책임이다. 이 검사는 서버가 보낸 출동 응답 이후의 실제 장면 이동과 차를 확인한다.
+        private static void TalkToOfficerAndReport(string placeCode)
+        {
+            TalkToOfficerAndSay("I need your help.");
+            Object
+                .FindObjectsByType<PoliceReportDesk>(FindObjectsSortMode.None)
+                .Single(desk => desk.OfficerCode == OfficerCode)
+                .TakeReport(OfficerCode, 10, placeCode);
         }
 
         private static IEnumerator EndTalk()

@@ -273,8 +273,8 @@ namespace A305.Dialogue
                     new KeywordReplyEntry(
                         new[] { "stolen", "lost", "accident" },
                         new LineEntry(
-                            "I see. A patrol car is heading out right away.",
-                            "알겠어요. 순찰차가 바로 출동할게요."
+                            "I see. Where did it happen?",
+                            "알겠어요. 어디서 생긴 일인가요?"
                         )
                     ),
                     new KeywordReplyEntry(

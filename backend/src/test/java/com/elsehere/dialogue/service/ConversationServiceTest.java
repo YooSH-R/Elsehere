@@ -228,7 +228,9 @@ class ConversationServiceTest {
             instruction.capture(),
             anyInt(),
             any());
-    assertThat(npc.getValue().scene()).isEqualTo("The counter of the corner cafe.");
+    assertThat(npc.getValue().scene())
+        .startsWith("The counter of the corner cafe.")
+        .contains("Current game time: day 1, 08:00");
     assertThat(instruction.getValue())
         .contains("personality", "first-meeting", "Only offer service");
   }
@@ -884,6 +886,36 @@ class ConversationServiceTest {
                     userId, new StartConversationRequest(requestId, "CAFE_STAFF", InitiatedBy.NPC))
                 .deliveredFollowUpId())
         .isEqualTo(latte.getId());
+  }
+
+  @Test
+  @DisplayName("출동 결과가 준비된 경찰관과 대화를 시작하면 순찰을 다녀와 결과를 알리는 첫마디로 연다")
+  void start_readyPoliceCallResult_opensByReportingIt() {
+    followUpRepository.saveAndFlush(
+        NpcFollowUp.promise(
+            userId,
+            npcId(entityManager, "POLICE_OFFICER"),
+            999L,
+            "your wallet, found at Maple Diner",
+            "지갑 수색 결과",
+            FollowUpWait.SHORT,
+            clock.instant().minusSeconds(120)));
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("I'm back! I found your wallet at the diner. Here you go.", null));
+
+    ConversationStartResponse response =
+        conversationService.start(
+            userId,
+            new StartConversationRequest(UUID.randomUUID(), "POLICE_OFFICER", InitiatedBy.NPC));
+
+    assertThat(response.deliveredFollowUpId()).isNotNull();
+    ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
+    then(aiGateway)
+        .should()
+        .reply(any(), any(), any(), any(), anyString(), instruction.capture(), anyInt(), any());
+    assertThat(instruction.getValue())
+        .contains("back from the call", "your wallet, found at Maple Diner")
+        .doesNotContain("is ready now");
   }
 
   @Test

@@ -283,8 +283,23 @@ class AiWorkerClient {
    * @param history 대화 전체(최대 200줄). 워커는 학습자가 말한 대화인지 확인한다
    */
   public FollowUpResult followUp(WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history) {
+    return followUp(trace, npc, history, "handover");
+  }
+
+  /**
+   * 경찰관이 신고를 받아 출동한 대화의 해결 결과(워커 문서 2.7.3 kind police_call). 출동하지 않은 대화면 결과의 followUp이 null이다. 형식은
+   * {@link #followUp}과 같다.
+   */
+  public FollowUpResult policeCallOutcome(
+      WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history) {
+    return followUp(trace, npc, history, "police_call");
+  }
+
+  private FollowUpResult followUp(
+      WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history, String kind) {
     HttpRequest request =
-        jsonRequest("/v1/npc/follow-up", trace, MEMORY_TIMEOUT, new FollowUpBody(npc, history));
+        jsonRequest(
+            "/v1/npc/follow-up", trace, MEMORY_TIMEOUT, new FollowUpBody(npc, history, kind));
     FollowUpResult result =
         readJson(send(request, HttpResponse.BodyHandlers.ofString()), FollowUpResult.class);
     return new FollowUpResult(result.followUp(), usageOf(result.usage()));
@@ -540,7 +555,7 @@ class AiWorkerClient {
   record RelationshipBody(
       WorkerNpc npc, WorkerRelationship relationship, List<WorkerLine> history) {}
 
-  record FollowUpBody(WorkerNpc npc, List<WorkerLine> history) {}
+  record FollowUpBody(WorkerNpc npc, List<WorkerLine> history, String kind) {}
 
   record MemoryEnvelope(Integer affinityDelta, List<WorkerUsage> usage) {}
 

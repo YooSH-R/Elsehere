@@ -55,3 +55,5 @@ talkButton.onClick.AddListener(() =>
 ## 테스트
 
 `Tests/EditMode/Voice/`(`A305.Voice.Tests`)에서 WAV 형식, 16kHz 변환, 녹음 규칙, 브라우저 오류 구분, 가짜 마이크(`FakeMicrophone`)로 녹음 진행(권한 답, 녹음 끝, 자동 종료, 마이크 실패 시 취소, 마이크가 열리기 전 준비 중)을 검증합니다. 브라우저 마이크 연결(`VoiceMicrophone.jslib`)은 Editor 테스트에서 실행되지 않으므로 브라우저에서 확인합니다.
+
+`TextPronunciation`은 학습자 영어 표현의 [듣기]를 담당합니다. WebGL은 기존 브라우저 영어 음성을, Windows Editor·데스크톱은 설치된 영어 음성을 사용합니다. Windows 음성은 숨겨진 별도 프로세스에서 실행하고 문장을 표준 입력으로만 전달합니다. 다음 발화·녹음·NPC 재생·대화 종료 때 중지하며, 기기에서 재생할 수 없으면 대화창에 안내합니다. 다른 Editor 플랫폼은 현재 지원하지 않습니다.

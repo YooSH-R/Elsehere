@@ -166,6 +166,8 @@ namespace A305.Npc
         /// </summary>
         public bool IsOffDuty => life != null && NpcDuty.IsOffDuty(npcCode, role, life.Activity);
 
+        private bool StaysAtReception => npcCode == "HOTEL_STAFF" && !IsOffDuty;
+
         private void Awake()
         {
             body = GetComponent<Passerby>();
@@ -288,6 +290,19 @@ namespace A305.Npc
         {
             double now = GameClock.Shared.Minutes;
             life.Advance(now);
+            if (StaysAtReception)
+            {
+                if (ServesCounter(playerPosition))
+                {
+                    ServeAtCounter(playerPosition);
+                }
+                else
+                {
+                    WorkAtReception(now);
+                }
+                return;
+            }
+
             if (ServesCounter(playerPosition))
             {
                 ServeAtCounter(playerPosition);
@@ -311,6 +326,21 @@ namespace A305.Npc
 
             spotAction = null;
             LookAround();
+        }
+
+        // Jake는 호텔 프런트 데스크를 맡으므로 근무 중에는 다른 사물을 찾아다니지 않는다.
+        private void WorkAtReception(double now)
+        {
+            if (life.Doing == null)
+            {
+                life.ChooseNext(key => key == "reception_desk" && IsPlaced(key));
+            }
+
+            Pose post = body.HomePose;
+            if (GoTo(post.position, post.rotation) == Progress.Arrived && !life.IsUsing)
+            {
+                life.BeginUsing(now);
+            }
         }
 
         /// <summary>말을 걸러 가거나 대화하는 동안 <see cref="Passerby"/>가 부른다. 하던 일을 그만두고 앉아 있었으면 일어난다.</summary>
@@ -453,7 +483,7 @@ namespace A305.Npc
                         new CounterPost(
                             other.npcCode,
                             !other.IsOffDuty,
-                            other.Doing != null,
+                            other.Doing != null && !other.StaysAtReception,
                             other.MetersFromCounter()
                         )
                     );
@@ -492,6 +522,11 @@ namespace A305.Npc
         // 누가 응대하든 손님 바로 앞에 선다. 거리가 같으면 NPC 키 순서다.
         private Pose ServicePose()
         {
+            if (StaysAtReception)
+            {
+                return body.HomePose;
+            }
+
             NpcRoutine register = this;
             foreach (NpcRoutine other in Living)
             {
@@ -798,6 +833,11 @@ namespace A305.Npc
             {
                 if (other == this || other.gameObject.scene != gameObject.scene)
                     continue;
+                if (
+                    other.StaysAtReception
+                    && Flat(other.body.HomePose.position - point).sqrMagnitude < spacingSquared
+                )
+                    return true;
                 if (
                     other.spotAction != null
                     && Flat(other.spot.StandPoint - point).sqrMagnitude < spacingSquared

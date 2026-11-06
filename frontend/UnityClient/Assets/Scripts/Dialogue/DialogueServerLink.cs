@@ -188,7 +188,7 @@ namespace A305.Dialogue
             );
             clip.SetData(decoded.Samples, 0);
             timeline = decoded.Timeline;
-            emotions = decoded.Emotions;
+            emotions = decoded.Emotions?.WithFullStrength();
             EmotionNotice = decoded.EmotionError;
             LipSyncNotice = speakerNotice ?? decoded.TimingError;
             if (speaker != null && LipSyncNotice != null)

@@ -55,6 +55,22 @@ namespace A305.Characters
             }
         }
 
+        // 실제 대화는 감정 종류와 시각을 유지하면서 완성된 표정을 사용한다.
+        // 원본 시간표는 검수용 강도 조절과 음성 메타데이터 검증에 그대로 둔다.
+        public SpeechEmotionTrack WithFullStrength()
+        {
+            var completed = new SpeechEmotionCue[cues.Length];
+            for (int i = 0; i < cues.Length; i++)
+                completed[i] = new SpeechEmotionCue
+                {
+                    start = cues[i].start,
+                    end = cues[i].end,
+                    emotion = cues[i].emotion,
+                    intensity = 1,
+                };
+            return new SpeechEmotionTrack(completed, duration);
+        }
+
         public FaceEmotionSample Sample(
             float seconds,
             EmotionExpressionProfile profile,

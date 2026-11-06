@@ -89,7 +89,7 @@ namespace A305.Characters.PlayModeTests
                 player.Seek(.8f);
                 Assert.That(MaxWeight(root, "browDownLeft"), Is.EqualTo(85).Within(.01));
                 player.Seek(2.6f);
-                Assert.That(MaxWeight(root, "browOuterUpLeft"), Is.EqualTo(63).Within(.01));
+                Assert.That(MaxWeight(root, "browOuterUpLeft"), Is.EqualTo(90).Within(.01));
                 link.ReplaySpeech();
                 player.Pause();
                 player.Seek(.8f);
@@ -97,7 +97,7 @@ namespace A305.Characters.PlayModeTests
                 link.QueueSpeechChunk(7, wav);
                 player.Pause();
                 player.Seek(2.6f);
-                Assert.That(MaxWeight(root, "browOuterUpLeft"), Is.EqualTo(63).Within(.01));
+                Assert.That(MaxWeight(root, "browOuterUpLeft"), Is.EqualTo(90).Within(.01));
                 var lips = root.GetComponentsInChildren<SkinnedMeshRenderer>()
                     .Single(s => s.sharedMesh.name == "SpeakingLips");
                 float expected =
@@ -137,7 +137,7 @@ namespace A305.Characters.PlayModeTests
                 player.Seek(audio.clip.length - .001f);
                 Assert.That(
                     MaxWeight(root, "browOuterUpLeft"),
-                    Is.EqualTo(63).Within(.01),
+                    Is.EqualTo(90).Within(.01),
                     "다음 구절 직전에 표정이 중립으로 꺼지지 않아야 합니다."
                 );
                 link.QueueSpeechChunk(7, wav);
@@ -146,9 +146,9 @@ namespace A305.Characters.PlayModeTests
                 yield return null;
                 player.Pause();
                 player.Seek(0);
-                Assert.That(MaxWeight(root, "browOuterUpLeft"), Is.EqualTo(63).Within(.1));
+                Assert.That(MaxWeight(root, "browOuterUpLeft"), Is.EqualTo(90).Within(.1));
                 player.Seek(.12f);
-                Assert.That(MaxWeight(root, "browOuterUpLeft"), Is.InRange(20, 45));
+                Assert.That(MaxWeight(root, "browOuterUpLeft"), Is.EqualTo(45).Within(.1));
                 Assert.That(MaxWeight(root, "browDownLeft"), Is.InRange(25, 60));
                 player.Seek(.3f);
                 Assert.That(MaxWeight(root, "browDownLeft"), Is.EqualTo(85).Within(.01));
@@ -172,7 +172,7 @@ namespace A305.Characters.PlayModeTests
                 .Max(s => Weight(s, channel));
 
         [UnityTest]
-        public IEnumerator EverydayFrownHasVisibleLidClosureWithoutChangingPronunciation()
+        public IEnumerator EverydayFrownUsesCompletedExpressionWithoutChangingPronunciation()
         {
             var root = CreateCafeSpeaker();
             try
@@ -193,7 +193,11 @@ namespace A305.Characters.PlayModeTests
                     Is.InRange(30f, 50f),
                     "보통 강도에서도 눈꺼풀이 안구 뒤 준비 구간을 지나 보여야 합니다."
                 );
-                Assert.That(MaxWeight(root, "browDownLeft"), Is.EqualTo(42.5f).Within(.01));
+                Assert.That(
+                    MaxWeight(root, "browDownLeft"),
+                    Is.EqualTo(85f).Within(.01),
+                    "실제 대화는 전달 강도 0.5에서도 완성된 찡그림을 적용해야 합니다."
+                );
                 var lips = root.GetComponentsInChildren<SkinnedMeshRenderer>()
                     .Single(skin => skin.sharedMesh.name == "SpeakingLips");
                 float pronunciation =
@@ -228,7 +232,7 @@ namespace A305.Characters.PlayModeTests
                 Assert.That(player.IsHoldingEmotion, Is.True);
                 Assert.That(
                     MaxWeight(root, "browOuterUpLeft"),
-                    Is.EqualTo(63f).Within(.1),
+                    Is.EqualTo(90f).Within(.1),
                     "대화 상대가 답을 고르는 동안 마지막 감정이 중립으로 사라지면 안 됩니다."
                 );
                 Assert.That(MaxWeight(root, "viseme_AA"), Is.Zero);
@@ -250,7 +254,7 @@ namespace A305.Characters.PlayModeTests
                 yield return new WaitForSecondsRealtime(.7f);
                 Assert.That(
                     MaxWeight(root, "browOuterUpLeft"),
-                    Is.EqualTo(63f).Within(.1),
+                    Is.EqualTo(90f).Within(.1),
                     "다시 듣기에서도 마지막 감정을 유지해야 합니다."
                 );
                 link.StopSpeech();

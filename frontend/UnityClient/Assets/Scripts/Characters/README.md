@@ -2,6 +2,8 @@
 
 실제 NPC 대화의 구절별 감정은 `DialogueSpeechWav`가 WAV의 `e305` 시간표를 읽고 `DialogueServerLink`가 재생기에 전달합니다. 스트리밍 구절은 이전 표정에서 이어지며, 다시 듣기는 저장된 시간표를 재생합니다. 서버 생성과 오류 처리 범위는 [NPC 대화 감정 표정](../../../../../docs/unity/npc-dialogue-emotions.md)을 따릅니다.
 
+`DialogueServerLink`는 `holdEmotionAfterSpeech: true`로 재생해 음성이 끝난 뒤에도 마지막 감정을 유지합니다. 발음 입 모양은 닫고 깜빡임은 `CharacterSpeechPlayer`가 이어서 합성합니다. `CharacterIdleBlink`는 재생·일시 정지·감정 유지 중에는 얼굴을 덮어쓰지 않습니다. `Stop()`과 대화 상대 변경은 감정 유지도 종료하며, 독립 검수 재생은 기존 종료 동작을 유지합니다.
+
 말하기 중 감정 표정의 데이터 구조, 검수 씬, 현재 서비스 적용 범위는 [NPC 말하기 감정 검수](../../../../../docs/unity/npc-speaking-emotions.md)를 참고합니다. `CharacterSpeechPlayer.Play(audio, timeline, reactions, profile)`에 선택적인 `SpeechEmotionTrack`과 `EmotionExpressionProfile`을 전달하면 같은 오디오 시각으로 감정과 발음을 합성합니다. `ConfigureMood(profile, mood, intensity)`로 설정한 기분은 다음 대사부터 적용되며, 명시적인 감정 시간표가 있으면 해당 시간표를 우선합니다. 기분 프로필이 없는 기존 NPC의 두 인자 호출은 기존 미소·깜박임을 유지합니다. 기분 설정 자체는 대사 중단 후에도 유지됩니다. 이 메서드는 대사에서 감정을 추론하지 않습니다.
 
 플레이어와 NPC가 함께 쓰는 캐릭터 표현을 담당합니다. `CharacterAnimationDriver`는 이동 상태와 NPC 동작 번호(`SetAction`, `Action` 파라미터가 있는 NPC 전용 컨트롤러에만 적용)를 Animator에 전달하고, `PoseCorrectiveDriver`는 관절 자세에 맞게 모델의 보정 블렌드셰이프를 적용합니다.

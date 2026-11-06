@@ -254,7 +254,13 @@ namespace A305.Dialogue
         )
         {
             if (speaker != null)
-                speaker.Play(clip, timeline, emotions, continueSpeech: continueSpeech);
+                speaker.Play(
+                    clip,
+                    timeline,
+                    emotions,
+                    continueSpeech: continueSpeech,
+                    holdEmotionAfterSpeech: true
+                );
             else if (speechSource != null)
             {
                 speechSource.clip = clip;

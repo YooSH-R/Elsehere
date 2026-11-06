@@ -33,6 +33,7 @@ namespace A305.Characters
         private bool active;
         private bool paused;
         private bool streaming;
+        private bool keepEmotionAfterSpeech;
         private float streamTimeOffset;
         private float expressionReleaseAt = -1;
         private FaceEmotionSample initialEmotion;
@@ -40,6 +41,7 @@ namespace A305.Characters
         private FaceEmotionSample heldEmotion;
         public bool IsPlaying => active && !paused;
         public bool IsPaused => active && paused;
+        public bool IsHoldingEmotion => !active && expressionReleaseAt >= 0;
         public CharacterSpeechClip Speech => speech;
         public CharacterFaceController Face => face;
         public SpeechExpressionProfile Expressions => expressions;
@@ -118,7 +120,8 @@ namespace A305.Characters
             SpeechVisemeTimeline phonemes,
             SpeechEmotionTrack reactions = null,
             EmotionExpressionProfile profile = null,
-            bool continueSpeech = false
+            bool continueSpeech = false,
+            bool holdEmotionAfterSpeech = false
         )
         {
             if (face == null || speechSource == null || audio == null)
@@ -170,6 +173,7 @@ namespace A305.Characters
                     : 0;
             Stop();
             streaming = continueSpeech;
+            keepEmotionAfterSpeech = holdEmotionAfterSpeech && reactions != null;
             initialEmotion = previousEmotion;
             streamTimeOffset = previousDuration;
             timeline = phonemes;
@@ -228,6 +232,7 @@ namespace A305.Characters
             emotionTrack = null;
             activeEmotions = null;
             streaming = false;
+            keepEmotionAfterSpeech = false;
             streamTimeOffset = 0;
             expressionReleaseAt = -1;
             initialEmotion = lastEmotion = heldEmotion = default;
@@ -260,7 +265,7 @@ namespace A305.Characters
                     seconds,
                     activeEmotions,
                     initialEmotion,
-                    streaming
+                    streaming || keepEmotionAfterSpeech
                 );
                 face.ApplySpeech(mouth, lastEmotion, expression.Blink);
             }
@@ -274,6 +279,11 @@ namespace A305.Characters
             {
                 if (expressionReleaseAt >= 0)
                 {
+                    if (keepEmotionAfterSpeech)
+                    {
+                        ApplyListeningExpression();
+                        return;
+                    }
                     // 다음 구절이 바로 오면 이어 받고, 음성이 끝나면 잠시 뒤 자연스럽게 푼다.
                     float release = Mathf.Clamp01(
                         (Time.unscaledTime - expressionReleaseAt - .15f) / .24f
@@ -293,18 +303,27 @@ namespace A305.Characters
                 return;
             if (!speechSource.isPlaying)
             {
-                if (streaming)
+                if (streaming || keepEmotionAfterSpeech)
                 {
                     ApplyAtAudioTime(Mathf.Max(0, activeAudio.length - .0001f));
                     heldEmotion = lastEmotion;
                     expressionReleaseAt = Time.unscaledTime;
                     active = false;
+                    face.ApplySpeech(SpeechMouthSample.Rest, heldEmotion, 0);
                 }
                 else
                     Stop();
                 return;
             }
             ApplyAtAudioTime(PlaybackTime);
+        }
+
+        private void ApplyListeningExpression()
+        {
+            float elapsed = Time.unscaledTime - expressionReleaseAt;
+            float seconds = (streamTimeOffset + activeAudio.length + elapsed) % 14f;
+            float blink = expressions != null ? expressions.Sample(seconds, 15f).Blink : 0;
+            face.ApplySpeech(SpeechMouthSample.Rest, heldEmotion, blink);
         }
 
         private void OnDisable() => Stop();

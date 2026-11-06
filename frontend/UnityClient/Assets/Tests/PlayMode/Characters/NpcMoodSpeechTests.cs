@@ -209,6 +209,60 @@ namespace A305.Characters.PlayModeTests
             }
         }
 
+        [UnityTest]
+        public IEnumerator DialogueHoldsLastEmotionWhileListeningAndClearsItOnPartnerChange()
+        {
+            var root = CreateCafeSpeaker();
+            try
+            {
+                var player = root.GetComponent<CharacterSpeechPlayer>();
+                var audio = root.GetComponent<AudioSource>();
+                audio.mute = true;
+                var link = root.AddComponent<DialogueServerLink>();
+                link.SetSpeaker(player);
+                link.QueueSpeechChunk(31, EmotionalVoice());
+                player.Seek(audio.clip.length - .001f);
+                audio.Stop();
+                yield return new WaitForSecondsRealtime(.7f);
+                Assert.That(player.IsPlaying, Is.False);
+                Assert.That(player.IsHoldingEmotion, Is.True);
+                Assert.That(
+                    MaxWeight(root, "browOuterUpLeft"),
+                    Is.EqualTo(63f).Within(.1),
+                    "대화 상대가 답을 고르는 동안 마지막 감정이 중립으로 사라지면 안 됩니다."
+                );
+                Assert.That(MaxWeight(root, "viseme_AA"), Is.Zero);
+                var idleBlink = root.GetComponentInChildren<CharacterIdleBlink>();
+                idleBlink.ApplyAtTime(1.33f);
+                Assert.That(
+                    MaxWeight(root, "eyeBlinkLeft"),
+                    Is.LessThan(95),
+                    "듣는 중에도 표정 재생기가 눈을 제어하며 별도 깜박임이 덮어쓰지 않아야 합니다."
+                );
+                link.SetSpeaker(null);
+                yield return null;
+                Assert.That(MaxWeight(root, "browOuterUpLeft"), Is.Zero);
+                Assert.That(player.IsHoldingEmotion, Is.False);
+                link.SetSpeaker(player);
+                Assert.That(link.PlayRecordedSpeech(EmotionalVoice()), Is.True);
+                player.Seek(audio.clip.length - .001f);
+                audio.Stop();
+                yield return new WaitForSecondsRealtime(.7f);
+                Assert.That(
+                    MaxWeight(root, "browOuterUpLeft"),
+                    Is.EqualTo(63f).Within(.1),
+                    "다시 듣기에서도 마지막 감정을 유지해야 합니다."
+                );
+                link.StopSpeech();
+                Assert.That(MaxWeight(root, "browOuterUpLeft"), Is.Zero);
+                Assert.That(player.IsHoldingEmotion, Is.False);
+            }
+            finally
+            {
+                Object.Destroy(root);
+            }
+        }
+
         private static GameObject CreateCafeSpeaker()
         {
             var holder = new GameObject("Cafe speech fixture");

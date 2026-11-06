@@ -192,7 +192,9 @@ namespace A305.Npc.PlayModeTests
             Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Waiting));
 
             StandNear(BenCode, 1.5f);
-            yield return WaitUntil(() => offer.IsTalkPromptShowing);
+            yield return null;
+            Assert.That(offer.IsTalkPromptShowing, Is.False);
+            Assert.That(passerby.CanTalkByClick(NpcClickTalk.ReachMeters), Is.True);
 
             // 마지막으로 말을 건 날이 어제가 되면(하루가 지나면) 다시 다가온다.
             StandNear(BenCode, 4f);
@@ -330,9 +332,9 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator RestingTownPasserby_ShowsTalkButtonNearby_AndPressingItStartsConversation()
+        public IEnumerator RestingTownPasserby_ShowsNoNearbyButton_AndClickingAsksBeforeConversation()
         {
-            // 쉬는 동안 행인은 다가오지 않으므로 플레이어가 [말 걸기]로 먼저 다시 말을 건다(기능 명세 F-22).
+            // 쉬는 NPC에게 가까이 가도 버튼은 뜨지 않고, 클릭 후 확인해야 대화를 시작한다.
             yield return LoadTownWithPlayerNearBen(afterTutorial: true);
             PasserbyOfferView offer = Single<PasserbyOfferView>();
             yield return WaitUntil(
@@ -349,17 +351,14 @@ namespace A305.Npc.PlayModeTests
             yield return new WaitForSeconds(3f);
             StandNear(BenCode, 1.5f);
 
-            yield return WaitUntil(
-                () => offer.IsTalkPromptShowing,
-                () =>
-                    $"말 걸기 대기: 상태={passerby.Phase}, "
-                    + $"거리={HorizontalDistance(passerby.transform, Single<PlayerMover>().transform)}, "
-                    + $"이동 잠금={Single<PlayerMover>().IsMovementLocked}, 제안={offer.IsShowing}, "
-                    + $"행인 위치={passerby.transform.position}, 플레이어 위치={Single<PlayerMover>().transform.position}"
-            );
+            yield return new WaitForSeconds(.5f);
+            Assert.That(offer.IsTalkPromptShowing, Is.False);
             Assert.That(offer.IsShowing, Is.False);
             Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Resting));
-            Click(offer, "TalkButton");
+            Assert.That(passerby.TalkByClick(NpcClickTalk.ReachMeters), Is.True);
+            Assert.That(offer.IsShownBy(passerby), Is.True);
+            Assert.That(Single<DialogueController>().IsTalking, Is.False);
+            Click(offer, "AcceptButton");
             yield return null;
 
             Assert.That(Single<DialogueController>().IsTalking, Is.True);
@@ -383,10 +382,9 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator GuestUsedAllConversations_PasserbyDoesNotApproach_AndTalkButtonOffersSignup()
+        public IEnumerator DailyLimitReached_NoNearbyButtonOrClickConversation()
         {
-            // 새 대화를 시작할 수 없으면 행인은 먼저 다가오지 않고(기능 명세 F-39), [말 걸기] 자리에 이유와 가입 버튼을 보인다.
-            // 누르면 대화 대신 가입 안내 창을 연다(S15P31A305-578).
+            // 일일 한도를 다 쓰면 근접 버튼이나 가입 안내 없이 새 대화를 막는다.
             yield return LoadTownAfterTutorial();
             Single<DialogueController>().Allowance.Apply(GuestStatus(remaining: 0));
             Passerby passerby = FindPasserby(BenCode);
@@ -398,21 +396,16 @@ namespace A305.Npc.PlayModeTests
             Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Waiting));
 
             StandNear(BenCode, 1.5f);
-            yield return WaitUntil(() => offer.IsTalkPromptShowing);
-
-            Assert.That(offer.IsSignupPromptShowing, Is.False);
-            Assert.That(offer.IsTalkBlocked, Is.True);
-            Button talk = offer
-                .GetComponentsInChildren<Button>(true)
-                .Single(candidate => candidate.name == "TalkButton");
-            talk.onClick.Invoke();
+            yield return new WaitForSeconds(.5f);
+            Assert.That(offer.IsTalkPromptShowing, Is.False);
+            Assert.That(passerby.TalkByClick(NpcClickTalk.ReachMeters), Is.False);
             yield return null;
             Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.False);
             Assert.That(Single<DialogueController>().IsTalking, Is.False);
         }
 
         [UnityTest]
-        public IEnumerator GuestWithConversationsLeft_TalkButtonShowsRemainingCount()
+        public IEnumerator GuestWithConversationsLeft_ClickConfirmationShowsRemainingCount()
         {
             yield return LoadTownWithPlayerNearBen(afterTutorial: true);
             PasserbyOfferView offer = Single<PasserbyOfferView>();
@@ -423,10 +416,12 @@ namespace A305.Npc.PlayModeTests
             yield return new WaitForSeconds(3f);
             StandNear(BenCode, 1.5f);
 
-            yield return WaitUntil(() => offer.IsTalkPromptShowing);
-
-            Assert.That(offer.IsTalkBlocked, Is.False);
-            Assert.That(offer.TalkRemainingText, Is.EqualTo("오늘 남은 대화 1번"));
+            yield return new WaitForSeconds(.5f);
+            Assert.That(offer.IsTalkPromptShowing, Is.False);
+            Passerby passerby = FindPasserby(BenCode);
+            Assert.That(passerby.TalkByClick(NpcClickTalk.ReachMeters), Is.True);
+            Assert.That(offer.IsShownBy(passerby), Is.True);
+            Assert.That(offer.RemainingText, Is.EqualTo("오늘 남은 대화 1번"));
         }
 
         private static IEnumerator LoadTown()

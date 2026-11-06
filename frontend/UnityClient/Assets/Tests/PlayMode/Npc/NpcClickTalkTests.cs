@@ -81,6 +81,7 @@ namespace A305.Npc.PlayModeTests
             yield return FaceFrom(ben, 1.5f);
             yield return new WaitForSeconds(2f);
             Assert.That(Single<PasserbyOfferView>().IsShowing, Is.False);
+            Assert.That(Single<PasserbyOfferView>().IsTalkPromptShowing, Is.False);
             Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Waiting));
             Assert.That(ben.CanTalkByClick(8f), Is.True);
         }
@@ -200,9 +201,9 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator GuestWhoUsedAllConversations_ClickingBen_OpensSignupDialog()
+        public IEnumerator DailyLimitReached_ClickingBen_DoesNotOpenSignupOrConversation()
         {
-            // [가입하고 계속 대화하기]를 누른 것과 같다(S15P31A305-578).
+            // 일일 한도 소진은 가입을 유도하지 않고 대화를 막는다.
             yield return LoadTownAfterTutorial();
             Single<DialogueController>().Allowance.Apply(GuestOutOfConversations());
             Passerby ben = FindPasserby(BenCode);
@@ -211,7 +212,7 @@ namespace A305.Npc.PlayModeTests
             Single<NpcClickTalk>().Click(AimAt(ben));
             yield return null;
 
-            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.True);
+            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.False);
             Assert.That(Single<DialogueController>().IsTalking, Is.False);
         }
 
@@ -320,7 +321,7 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator GuestWhoUsedAllConversations_ClickingBensNameTag_OpensSignupDialog()
+        public IEnumerator DailyLimitReached_ClickingBensNameTag_DoesNotOpenSignupOrConversation()
         {
             yield return LoadTownAfterTutorial();
             Single<DialogueController>().Allowance.Apply(GuestOutOfConversations());
@@ -332,7 +333,7 @@ namespace A305.Npc.PlayModeTests
             Single<NpcClickTalk>().Click(NameTagOf(ben, BenName));
             yield return null;
 
-            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.True);
+            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.False);
             Assert.That(Single<DialogueController>().IsTalking, Is.False);
         }
 

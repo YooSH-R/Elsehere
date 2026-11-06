@@ -168,7 +168,6 @@ class ChildPipelineTests(unittest.TestCase):
             {
                 "checks": ["backend"],
                 "builds": ["backend"],
-                "plan_job_id": "456",
                 "reused_jobs": reused,
             },
             "123",

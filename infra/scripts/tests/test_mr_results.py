@@ -250,13 +250,12 @@ class MergeRequestResultsTests(unittest.TestCase):
                 self.repository, "backend", self.candidate, reused
             )
 
-    def test_reused_archives_are_downloaded_from_the_exact_plan_job_without_pipeline_needs(
+    def test_reused_archives_are_downloaded_from_the_original_mr_job(
         self,
     ):
         reused = self.find_results()
         plan = {
             "candidate_commit": self.candidate,
-            "plan_job_id": "90",
             "reused_jobs": reused,
         }
 
@@ -269,7 +268,7 @@ class MergeRequestResultsTests(unittest.TestCase):
             )
         self.assertEqual(
             request.call_args.args[0],
-            "jobs/90/artifacts/dist/deployment/backend-mr-artifacts.zip",
+            "jobs/21/artifacts",
         )
         self.assertEqual(
             (self.repository / "backend/build/libs/app.jar").read_bytes(),

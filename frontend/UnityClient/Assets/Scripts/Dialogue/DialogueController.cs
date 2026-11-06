@@ -40,6 +40,7 @@ namespace A305.Dialogue
         private VoiceConsentAgreement voiceConsentAgreement;
         private DialogueConversation conversation;
         private ServerConversation serverConversation;
+        private NpcSpeechRecovery speechRecovery;
         private bool isEnding;
         private Task pendingServerStart = Task.CompletedTask;
 
@@ -237,6 +238,7 @@ namespace A305.Dialogue
             TextPronunciation.Stop();
             if (serverConversation != null)
             {
+                speechRecovery?.Cancel();
                 serverLink.StopSpeech();
                 isEnding = true;
                 // 대화가 끝나면 녹음도 멈춘다(기능 명세 F-23). 끝내는 중이라 녹음 결과는 전사하지 않는다.
@@ -351,6 +353,7 @@ namespace A305.Dialogue
 
         private void OnDestroy()
         {
+            speechRecovery?.Dispose();
             TextPronunciation.Stop();
             if (session.IsActive)
                 GameClock.Shared.IsTalking = false;
@@ -434,6 +437,7 @@ namespace A305.Dialogue
                 initiatedBy,
                 npcOffDuty: npcOffDuty
             );
+            speechRecovery = new NpcSpeechRecovery(serverConversation, serverLink.PlaySpeechAsync);
             serverConversation.Changed += panel.Refresh;
             serverConversation.NpcSpoke += PlayNpcSpeech;
             serverConversation.NpcSpeechChunk += PlayNpcSpeechChunk;
@@ -484,6 +488,8 @@ namespace A305.Dialogue
         // 대화를 닫고 시점·이동을 되돌린다. 끝낸 NPC 코드를 돌려준다.
         private string Close()
         {
+            speechRecovery?.Dispose();
+            speechRecovery = null;
             GameClock.Shared.IsTalking = false;
             string endedNpcCode = session.End();
             if (serverConversation != null)
@@ -580,6 +586,7 @@ namespace A305.Dialogue
                 || text != serverConversation.UserTranslation
             )
                 return;
+            speechRecovery?.Cancel();
             serverLink.StopSpeech();
             bool played = await TextPronunciation.SpeakAsync(text);
             if (
@@ -593,6 +600,7 @@ namespace A305.Dialogue
 
         private void PlayNpcSpeech(NpcTurnData turn)
         {
+            speechRecovery?.Cancel();
             TextPronunciation.Stop();
             NpcResponded?.Invoke();
             // 대답을 받는 동안 문장 조각 음성으로 이미 들려줬다. [다시 듣기]는 턴 전체 음성을 받아 재생한다.
@@ -608,6 +616,8 @@ namespace A305.Dialogue
             }
 
             serverLink.ForgetSpeech();
+            if (!isEnding)
+                speechRecovery?.Queue(turn);
         }
 
         private void PlayNpcSpeechChunk(NpcSpeechChunkData chunk)
@@ -712,6 +722,7 @@ namespace A305.Dialogue
             TextPronunciation.Stop();
             if (serverConversation != null && serverConversation.CanSend)
             {
+                speechRecovery?.Cancel();
                 serverLink.StopSpeech();
                 serverLink.VoiceRecorder.StartRecording();
                 serverConversation.ShowListening(serverLink.VoiceRecorder.MaxRecordingSeconds);

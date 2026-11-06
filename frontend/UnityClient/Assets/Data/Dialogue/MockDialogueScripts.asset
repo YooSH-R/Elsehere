@@ -816,7 +816,7 @@ MonoBehaviour:
     exampleSentence: Can I have a croissant to go?
   - npcCode: POLICE_ROOKIE
     npcName: Taylor
-    roleLabel: "\uACBD\uCC30\uAD00"
+    roleLabel: "\uC2E0\uC785 \uACBD\uCC30\uAD00"
     opening:
       english: Hi, I'm Officer Taylor. Is everything okay?
       korean: "\uC548\uB155\uD558\uC138\uC694, \uACBD\uCC30\uAD00 Taylor\uC774\uC5D0\uC694.

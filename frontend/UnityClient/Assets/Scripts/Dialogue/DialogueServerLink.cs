@@ -30,6 +30,7 @@ namespace A305.Dialogue
 
         private readonly NpcSpeechSlot lastSpeech = new NpcSpeechSlot();
         private SpeechVisemeTimeline lastTimeline;
+        private SpeechEmotionTrack lastEmotions;
         private CharacterSpeechPlayer speaker;
         private string speakerNotice;
         private int playbackRequest;
@@ -46,6 +47,7 @@ namespace A305.Dialogue
         /// <summary>지금 대사의 음성을 받아 두었는지. 지난 대사의 음성은 세지 않는다.</summary>
         public bool HasSpeech => lastSpeech.Clip != null;
         public string LipSyncNotice { get; private set; }
+        public string EmotionNotice { get; private set; }
 
         public IConversationApi CreateApi() =>
             new ConversationApi(
@@ -136,7 +138,14 @@ namespace A305.Dialogue
 
         private bool PlayDownloadedVoice(string url, byte[] bytes)
         {
-            if (!TryCreateVoice(bytes, out AudioClip clip, out SpeechVisemeTimeline timeline))
+            if (
+                !TryCreateVoice(
+                    bytes,
+                    out AudioClip clip,
+                    out SpeechVisemeTimeline timeline,
+                    out SpeechEmotionTrack emotions
+                )
+            )
                 return false;
             if (!lastSpeech.TryFill(url, clip))
             {
@@ -144,6 +153,7 @@ namespace A305.Dialogue
                 return false;
             }
             lastTimeline = timeline;
+            lastEmotions = emotions;
             ReplaySpeech();
             return true;
         }
@@ -152,11 +162,13 @@ namespace A305.Dialogue
         private bool TryCreateVoice(
             byte[] bytes,
             out AudioClip clip,
-            out SpeechVisemeTimeline timeline
+            out SpeechVisemeTimeline timeline,
+            out SpeechEmotionTrack emotions
         )
         {
             clip = null;
             timeline = null;
+            emotions = null;
             DialogueSpeechWav decoded;
             try
             {
@@ -176,6 +188,8 @@ namespace A305.Dialogue
             );
             clip.SetData(decoded.Samples, 0);
             timeline = decoded.Timeline;
+            emotions = decoded.Emotions?.WithFullStrength();
+            EmotionNotice = decoded.EmotionError;
             LipSyncNotice = speakerNotice ?? decoded.TimingError;
             if (speaker != null && LipSyncNotice != null)
                 Debug.LogWarning("NPC lip sync unavailable: " + LipSyncNotice, this);
@@ -196,10 +210,17 @@ namespace A305.Dialogue
                 chunkReply = reply;
             }
 
-            if (!TryCreateVoice(wav, out AudioClip clip, out SpeechVisemeTimeline timeline))
+            if (
+                !TryCreateVoice(
+                    wav,
+                    out AudioClip clip,
+                    out SpeechVisemeTimeline timeline,
+                    out SpeechEmotionTrack emotions
+                )
+            )
                 return;
             chunkClips.Add(clip);
-            chunkQueue.Enqueue(new SpeechChunk(clip, timeline));
+            chunkQueue.Enqueue(new SpeechChunk(clip, timeline, emotions));
             PlayNextChunk();
         }
 
@@ -210,7 +231,7 @@ namespace A305.Dialogue
             if (chunkQueue.Count == 0 || IsSpeaking)
                 return;
             SpeechChunk next = chunkQueue.Dequeue();
-            Play(next.Clip, next.Timeline);
+            Play(next.Clip, next.Timeline, next.Emotions, true);
         }
 
         private bool IsSpeaking =>
@@ -222,13 +243,24 @@ namespace A305.Dialogue
             AudioClip clip = lastSpeech.Clip;
             if (clip == null)
                 return;
-            Play(clip, lastTimeline);
+            Play(clip, lastTimeline, lastEmotions);
         }
 
-        private void Play(AudioClip clip, SpeechVisemeTimeline timeline)
+        private void Play(
+            AudioClip clip,
+            SpeechVisemeTimeline timeline,
+            SpeechEmotionTrack emotions,
+            bool continueSpeech = false
+        )
         {
             if (speaker != null)
-                speaker.Play(clip, timeline);
+                speaker.Play(
+                    clip,
+                    timeline,
+                    emotions,
+                    continueSpeech: continueSpeech,
+                    holdEmotionAfterSpeech: true
+                );
             else if (speechSource != null)
             {
                 speechSource.clip = clip;
@@ -264,7 +296,9 @@ namespace A305.Dialogue
                 Destroy(lastSpeech.Clip);
             lastSpeech.Clear();
             lastTimeline = null;
+            lastEmotions = null;
             LipSyncNotice = null;
+            EmotionNotice = null;
             foreach (AudioClip chunk in chunkClips)
                 Destroy(chunk);
             chunkClips.Clear();
@@ -274,14 +308,20 @@ namespace A305.Dialogue
 
         private readonly struct SpeechChunk
         {
-            public SpeechChunk(AudioClip clip, SpeechVisemeTimeline timeline)
+            public SpeechChunk(
+                AudioClip clip,
+                SpeechVisemeTimeline timeline,
+                SpeechEmotionTrack emotions
+            )
             {
                 Clip = clip;
                 Timeline = timeline;
+                Emotions = emotions;
             }
 
             public AudioClip Clip { get; }
             public SpeechVisemeTimeline Timeline { get; }
+            public SpeechEmotionTrack Emotions { get; }
         }
 
         private void OnDestroy()

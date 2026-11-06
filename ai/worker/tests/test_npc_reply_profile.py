@@ -125,7 +125,7 @@ def test_with_a_profile_the_place_facts_memory_level_and_instruction_still_reach
     assert "Maple Town" in system and "The counter of the corner cafe." in system  # 장소
     assert "Menu: latte $5." in system  # 백엔드가 보낸 사실
     assert "Their name: Minsu" in system and "Last time they ordered a latte" in system  # 기억
-    assert "each under 12 words" in system and body["max_tokens"] == 90  # 난이도 1 (출력 상한은 그대로)
+    assert "each under 12 words" in system and body["max_tokens"] == 154  # 난이도 1 대사 규칙 + 표정 표시 64토큰
     assert "Ask what size they want." in system  # 이번 대답에서 할 일
 
 

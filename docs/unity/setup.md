@@ -135,6 +135,8 @@ CLI 검사는 Unity가 만든 프로젝트·참조를 그대로 읽고 `UnityCod
 
 `infra/scripts/run-unity-ci.ps1 -Action test`는 회귀 검사 입력을 준비하고 EditMode·PlayMode를 실행합니다. `TRIPO_MASTER_RECORD`와 `TRIPO_MASTER_SCENE`이 없으면 저장소의 카페 캐릭터 작업 기록(`Assets/Data/Tripo/100e191da12a84145a71d737bcfd57c2.asset`)과 손 바인딩 검수 씬(`Assets/Scenes/Sandbox/Tripo/LittleMung_Cafe_Female_112b39c5_HandBinding.unity`)을 사용해 마스터 골격·모션·이동 검사가 빠지지 않게 합니다. EditMode는 작업 기록의 원본 모델을 복사해 현재 마스터 적용 절차를 실행한 임시 후보를 검사하며, 저장된 옛 후보를 승인하거나 원본 기록을 갱신하지 않습니다. PlayMode는 지정된 검수 씬에서 이동을 검사합니다. 다른 캐릭터를 검사할 때는 두 환경 변수에 해당 Unity 에셋 경로를 지정합니다. 자동 검사 통과와 실제 외관 승인은 별도로 확인합니다.
 
+Production 씬을 여는 PlayMode 검사는 씬의 `ApiSettings`가 가리키는 백엔드가 실행 중인지도 확인해야 합니다. 현재 일부 씬 검사는 서버 통신을 완전히 대체하지 않아, 로그인 없는 검사에 실제 서버가 `401 UNAUTHENTICATED`를 반환하면 접속 만료 안내가 이동을 잠그고 NPC 클릭·이동 검사에 영향을 줍니다. 전체 검사는 해당 백엔드가 없는 CI와 같은 환경에서 실행하고, 실제 서버 연결 검증은 따로 수행합니다. 본인이 실행한 로컬 서버를 잠시 중지한다면 검사 실패·시간 초과 때도 복구하도록 준비하며, 다른 작업이 사용하는 서버는 중지하지 않습니다. 이 환경 차이를 없애기 위해 게임의 인증 처리나 검사의 합격 기준을 완화하지 않습니다.
+
 ## 후속 검증 범위
 
 - 마이크: Unity Web의 기본 `Microphone` API는 지원되지 않으므로 브라우저 API 연결 방식을 검증합니다. 권한 허용·거부, 녹음과 재생을 실제 브라우저에서 확인합니다.

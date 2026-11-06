@@ -16,7 +16,7 @@ AI 워커의 NPC 음성(Kokoro-82M)을 SSAFY GPU 서버(5번 GPU)에서 합성�
 
 | 요청 | 응답 |
 |---|---|
-| `GET /health` | `{"ok": true, "model": "kokoro-v1.0.onnx", "device": "GPU"}` |
+| `GET /health` | `{"ok": true, "model": "kokoro-v1.0.onnx", "device": "GPU", "providers": ["CUDAExecutionProvider", "CPUExecutionProvider"]}` |
 | `POST /v1/synth` `{"phonemes", "voice", "speed"}` | `audio/wav` (24kHz 16비트 모노). 토큰이 틀리면 401, 형식이 틀리면 400 |
 
 ## 설치 (GPU 서버, 처음 한 번)
@@ -32,7 +32,7 @@ for f in kokoro-v1.0.onnx voices-v1.0.bin; do curl -sSL -o models/$f $R/$f; done
 sha256sum models/voices-v1.0.bin   # bca610b8…(infra/docker/ai-worker.Dockerfile과 같아야 함)
 ```
 
-이 폴더의 `server.py`·`supervise.sh`를 `~/tts/gpu_tts/`에 올리고, 토큰을 만듭니다(권한 600). 같은 값을 워커의 `TTS_GPU_TOKEN`으로 씁니다.
+이 폴더의 `server.py`·`runtime.py`·`supervise.sh`를 `~/tts/gpu_tts/`에 올리고, 토큰을 만듭니다(권한 600). 같은 값을 워커의 `TTS_GPU_TOKEN`으로 씁니다.
 
 ```bash
 python3 -c "import secrets; print(secrets.token_urlsafe(32))" > ~/tts/gpu_tts/token && chmod 600 ~/tts/gpu_tts/token
@@ -48,6 +48,28 @@ setsid nohup ~/tts/gpu_tts/supervise.sh > ~/tts/gpu_tts/supervise.log 2>&1 &
 - 개발 터널은 `~/tts/gpu_tts/tunnel_enabled`, 운영 터널은 `~/tts/gpu_tts/prod_tunnel_enabled` 파일이 있을 때만 겁니다. 배포 서버 담당자가 `a305-stt-tunnel` 계정에 해당 입구 전달과 워커 컨테이너 방화벽을 허용한 뒤에 만듭니다([GPU 터널 네트워크](../../docs/gpu-worker-network.md)).
 - JupyterHub 세션이 꺼지면 감시 스크립트와 합성 서버도 같이 꺼지고, 그동안 워커는 CPU 합성으로 넘어가므로 음성은 계속 나옵니다. Jupyter 서버가 다시 시작되면(자동 보안 업데이트 뒤 서비스 재시작 등) [`ai/gpu_autostart`](../gpu_autostart/README.md) 훅이 감시 스크립트를 자동으로 다시 띄웁니다. 서버 재부팅처럼 Jupyter 서버가 뜨지 않으면 JupyterHub에 로그인할 때 같은 훅이 띄웁니다.
 - 공용 서버라 `server.py`가 onnxruntime을 불러오기 전에 5번 GPU만 보이게 정합니다. 다른 번호를 쓰지 않습니다.
+
+## Windows 개발 PC의 NVIDIA GPU
+
+공용 서버에 연결하지 않고 PC의 NVIDIA GPU로 에디터 음성을 합성할 수 있습니다. 기존 CPU 워커 환경과 별도 가상환경에 위와 같은 `kokoro-onnx`·`onnxruntime-gpu` 버전을 설치하고, fp32 모델과 목소리를 준비합니다. CPU용 `onnxruntime`과 GPU용 패키지는 같은 폴더를 사용하므로 함께 설치하지 않습니다.
+
+다음 설정은 새 PowerShell 창의 프로세스에만 적용합니다. `$gpuPython`, `$modelDirectory`, `$tokenPath`는 준비한 로컬 파일 경로로 지정합니다. 토큰 파일은 사용자만 읽을 수 있도록 보관하고 저장소에 추가하지 않습니다.
+
+```powershell
+$env:TTS_LOCAL_WINDOWS = '1'
+$env:TTS_MODEL_DIR = $modelDirectory
+$env:TTS_PORT = '18436'
+$env:TTS_TOKEN = (Get-Content -LiteralPath $tokenPath -Raw).Trim()
+$packages = & $gpuPython -c 'import sysconfig; print(sysconfig.get_path("purelib"))'
+$dllFolders = Get-ChildItem -LiteralPath (Join-Path $packages 'nvidia') -Directory |
+    ForEach-Object { Join-Path $_.FullName 'bin' } | Where-Object { Test-Path -LiteralPath $_ }
+$env:PATH = ($dllFolders -join ';') + ';' + $env:PATH
+& $gpuPython ai/gpu_tts/server.py
+```
+
+Windows의 cuDNN은 합성 중 하위 DLL을 추가로 읽으므로 `preload_dlls()`뿐 아니라 위 DLL 검색 경로도 필요합니다. 로컬 모드는 0번 GPU와 동시 합성 2개를 사용합니다. Linux에서 이 모드를 지정하면 시작을 거부하며, 공용 서버는 계속 5번 GPU와 동시 합성 8개를 사용합니다.
+
+워커에는 `TTS_GPU_BASE_URL=http://127.0.0.1:18436`과 같은 토큰의 `TTS_GPU_TOKEN`을 지정합니다. 발음 정렬과 감정 시간표 생성은 기존 워커가 수행합니다. 합성 서버는 CUDA 세션을 확인하고 실제 예열 합성을 마친 뒤 요청을 받습니다. 실행 중 CUDA 오류를 내부 CPU 합성으로 숨기지 않으며, 실패 시 기존 워커의 CPU 대체 합성과 시간 제한이 적용됩니다. `/health`의 `providers`에 `CUDAExecutionProvider`가 있는지 확인합니다. `CPUExecutionProvider`는 일부 비지원 연산용으로 함께 표시될 수 있습니다.
 
 ## 확인
 

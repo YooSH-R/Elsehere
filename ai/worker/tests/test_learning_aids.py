@@ -116,7 +116,8 @@ def reply(provider, level=None, npc=NPC, tts=None):
 
 
 @pytest.mark.parametrize(
-    ("level", "rule", "max_tokens"), [(1, "nervous beginner", 90), (2, "natural everyday American English", 120), (3, "at full speed", 170)]
+    ("level", "rule", "max_tokens"),
+    [(1, "nervous beginner", 154), (2, "natural everyday American English", 184), (3, "at full speed", 234)],
 )
 def test_reply_follows_level(provider, level, rule, max_tokens):
     b = reply(provider, level)
@@ -125,7 +126,8 @@ def test_reply_follows_level(provider, level, rule, max_tokens):
 
 def test_reply_default_level_is_normal(provider):
     b = reply(provider)
-    assert "natural everyday American English" in b["messages"][0]["content"] and b["max_tokens"] == 120
+    # 대사 길이 규칙을 유지하며 표정 표시용 최대 64토큰만 별도로 확보한다.
+    assert "natural everyday American English" in b["messages"][0]["content"] and b["max_tokens"] == 184
 
 
 @pytest.mark.parametrize(("level", "npc_speed"), [(1, 0.8), (1, 1.0), (2, 1.1), (3, 1.2)])

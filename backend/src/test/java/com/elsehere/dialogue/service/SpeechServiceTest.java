@@ -16,6 +16,7 @@ import static org.mockito.Mockito.never;
 
 import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.SttResult;
+import com.elsehere.ai.client.WorkerSpeechPhrase;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
@@ -273,6 +274,31 @@ class SpeechServiceTest {
             eq(npcTurn.getText()),
             eq("af_heart"),
             eq(1.1));
+  }
+
+  @Test
+  void regenerateSpeech_preservesSavedPhraseEmotionsAfterReload() {
+    npcTurn.attachSpeechPhrases(
+        """
+        [{"text":"Hi!","emotion":"curious","intensity":0.7},
+         {"text":"What can I get for you?","emotion":"warm_smile","intensity":0.6}]
+        """);
+    Long turnId = npcTurn.getId();
+    entityManager.flush();
+    entityManager.clear();
+    List<WorkerSpeechPhrase> phrases =
+        List.of(
+            new WorkerSpeechPhrase("Hi!", "curious", 0.7),
+            new WorkerSpeechPhrase("What can I get for you?", "warm_smile", 0.6));
+    given(
+            aiGateway.synthesize(
+                any(), eq("Hi! What can I get for you?"), eq("af_heart"), eq(1.1), eq(phrases)))
+        .willReturn(WAV);
+
+    assertThat(speechService.regenerateSpeech(userId, turnId, UUID.randomUUID()).status())
+        .isEqualTo(SpeechStatus.READY);
+    assertThat(speechService.npcSpeech(userId, turnId)).isEqualTo(WAV);
+    then(aiGateway).should(never()).synthesize(any(), anyString(), anyString(), anyDouble());
   }
 
   @Test

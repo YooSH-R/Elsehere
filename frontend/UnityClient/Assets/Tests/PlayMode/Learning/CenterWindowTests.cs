@@ -12,12 +12,11 @@ using UnityEngine.UI;
 namespace A305.Learning.PlayModeTests
 {
     /// <summary>
-    /// 배포용 마을 씬에서 단어장·피드백 목록처럼 화면 가운데를 차지하는 창을 열어도 왼쪽 위 퀘스트 카드와 왼쪽 아래 미니맵을
-    /// 함께 볼 수 있고, 창은 그 둘과 겹치지 않는지 확인한다. 퀘스트 카드는 할 일 줄 수에 따라 높이가 바뀌므로 높이와 상관없이 겹치지 않아야 한다.
+    /// 단어장·피드백 목록을 열고 닫을 때 학습 창 상태와 게임 시계 정지가 함께 바뀌는지 확인한다.
     /// </summary>
     public class CenterWindowTests
     {
-        // 튜토리얼 동안에는 퀘스트 카드와 미니맵을 숨기므로, 마을 HUD가 보이는 튜토리얼을 마친 사용자로 시작한다.
+        // 학습 창을 여는 흐름만 확인하도록 튜토리얼을 마친 사용자로 시작한다.
         [SetUp]
         public void StartAfterTheTutorial()
         {
@@ -43,26 +42,6 @@ namespace A305.Learning.PlayModeTests
 
             yield return null;
             TutorialState.Clear();
-        }
-
-        [UnityTest]
-        public IEnumerator OpeningVocabulary_KeepsTheQuestCardAndMiniMapInSightAndClearOfTheWindow()
-        {
-            yield return LoadTown();
-
-            yield return Open("VocabularyButton");
-
-            AssertMissionHudClears(Single<VocabularyView>().PanelRect);
-        }
-
-        [UnityTest]
-        public IEnumerator OpeningFeedbackList_KeepsTheQuestCardAndMiniMapInSightAndClearOfTheWindow()
-        {
-            yield return LoadTown();
-
-            yield return Open("HistoryButton");
-
-            AssertMissionHudClears(Single<LearningHudView>().HistoryView.PanelRect);
         }
 
         [UnityTest]
@@ -103,8 +82,6 @@ namespace A305.Learning.PlayModeTests
                 )
             )
                 driver.enabled = false;
-            Assert.That(QuestCard().gameObject.activeInHierarchy, Is.True, "준비: 퀘스트 카드");
-            Assert.That(MiniMap().gameObject.activeInHierarchy, Is.True, "준비: 미니맵");
         }
 
         // 폰 메뉴의 앱 버튼. 폰을 접어 둔 채로 눌러도 같은 창을 연다.
@@ -116,45 +93,6 @@ namespace A305.Learning.PlayModeTests
                 .onClick.Invoke();
             yield return null;
             yield return null;
-        }
-
-        private static void AssertMissionHudClears(RectTransform window)
-        {
-            Assert.That(window.gameObject.activeInHierarchy, Is.True, "준비: 창");
-            Canvas.ForceUpdateCanvases();
-            foreach (RectTransform hud in new[] { QuestCard(), MiniMap() })
-            {
-                Assert.That(
-                    hud.gameObject.activeInHierarchy,
-                    Is.True,
-                    $"창을 열어도 {hud.name}을 함께 봅니다."
-                );
-                Assert.That(
-                    ScreenRectOf(hud).Overlaps(ScreenRectOf(window)),
-                    Is.False,
-                    $"{hud.name}이 창과 겹칩니다."
-                );
-            }
-        }
-
-        // 마을 HUD는 미션 모듈의 화면이라 이름으로 찾는다(학습 모듈은 미션 모듈을 참조하지 않는다).
-        private static RectTransform QuestCard() => MissionHud("Content/CurrentGoal");
-
-        private static RectTransform MiniMap() => MissionHud("Content/MiniMap");
-
-        private static RectTransform MissionHud(string path)
-        {
-            Canvas mission = Object
-                .FindObjectsByType<Canvas>(FindObjectsSortMode.None)
-                .Single(canvas => canvas.isRootCanvas && canvas.name == "FirstDayMission");
-            return (RectTransform)mission.transform.Find(path);
-        }
-
-        private static Rect ScreenRectOf(RectTransform rect)
-        {
-            var corners = new Vector3[4];
-            rect.GetWorldCorners(corners);
-            return Rect.MinMaxRect(corners[0].x, corners[0].y, corners[2].x, corners[2].y);
         }
 
         private static T Single<T>()

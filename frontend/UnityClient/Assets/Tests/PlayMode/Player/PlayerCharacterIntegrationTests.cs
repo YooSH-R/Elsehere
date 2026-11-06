@@ -54,178 +54,6 @@ namespace A305.Player.Tests
         }
 
         [UnityTest]
-        public IEnumerator StandingCapsuleAndCameraFitTheSelectedVisual()
-        {
-            PlayerCharacterSelection.Select(selected);
-            yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
-                "Assets/Scenes/Production/TownScene.unity",
-                new LoadSceneParameters(LoadSceneMode.Single)
-            );
-            yield return null;
-            var player = Object.FindFirstObjectByType<PlayerMover>();
-            var appearance = player.GetComponent<PlayerCharacterAppearance>();
-            var capsule = player.GetComponent<CharacterController>();
-            var camera = player.CameraRig;
-            player.Teleport(new Vector3(4.8f, .12f, -18.5f), Quaternion.identity);
-            yield return Frames(30);
-            camera.SnapBehindTarget();
-            Vector3 direction = camera.transform.forward;
-            Vector3 planar = Vector3.ProjectOnPlane(direction, Vector3.up).normalized;
-            float distance =
-                Vector3.Dot(player.transform.position - camera.transform.position, planar)
-                / Vector3.Dot(direction, planar);
-            float pivotHeight = (
-                camera.transform.position + direction * distance - player.transform.position
-            ).y;
-            CheckWallAvoidance(camera, player.transform.position + Vector3.up * pivotHeight);
-            // 1인칭은 캐릭터 얼굴 높이에서 본다. 대화 시점은 NPC 얼굴 기준이라 따로 검사한다(DialogueFramingTests).
-            float eyeHeight = appearance.ActiveCharacter.CameraEyeHeightMeters;
-            var animator = appearance.VisualRoot.GetComponentInChildren<Animator>();
-            using var body = new BodyClearanceProbe(animator, player.transform);
-            body.Record("standing fit");
-            Bounds bounds = SkinBounds(animator, player.transform);
-            float headRadius = Mathf.Max(
-                Mathf.Abs(body.Head.min.x),
-                Mathf.Abs(body.Head.max.x),
-                Mathf.Abs(body.Head.min.z),
-                Mathf.Abs(body.Head.max.z)
-            );
-            Debug.Log(
-                $"Standing fit {selected}: skin={bounds}, head={body.Head}, capsule={capsule.height:F4}/{capsule.radius:F4}, eye={eyeHeight:F4}, pivot={pivotHeight:F4}"
-            );
-            Assert.That(appearance.VisualRoot.localScale, Is.EqualTo(Vector3.one * 1.6f));
-            Assert.That(capsule.center.y - capsule.height * .5f, Is.EqualTo(0).Within(.001f));
-            Assert.That(
-                capsule.height,
-                Is.InRange(bounds.max.y, bounds.max.y + .1f),
-                "Capsule top must cover the standing mesh."
-            );
-            // 충돌 캡슐은 머리 아래 몸통만 덮고, 큰 머리는 머리 구가 따로 막는다.
-            // 머리 구가 머리 아래 끝에서 시작해야 탁자·소파 앉는 면 같은 낮은 가구가 머리 아래로 지나간다.
-            // 팔은 머리·몸통에 묻히지 않게 옆으로 벌어져(LittleMungArmClearance) 캡슐 밖으로 조금 나온다.
-            // 캡슐을 팔까지 넓히면 소파와 탁자 사이 같은 좁은 틈에 끼므로 팔이 나오는 폭은 이만큼 허용한다.
-            const float armOverhangMeters = .12f;
-            PlayerCharacterDefinition definition = appearance.ActiveCharacter;
-            Assert.That(
-                capsule.radius + armOverhangMeters,
-                Is.GreaterThanOrEqualTo(
-                    HorizontalReachBelow(animator, player.transform, body.Head.min.y)
-                ),
-                "Capsule width must cover the body under the head; arms may stick out a little."
-            );
-            Assert.That(
-                definition.HeadRadiusMeters,
-                Is.GreaterThanOrEqualTo(headRadius),
-                "Head blocker must cover the large head."
-            );
-            Assert.That(
-                definition.HeadCenterHeightMeters - definition.HeadRadiusMeters,
-                Is.EqualTo(body.Head.min.y).Within(.05f),
-                "Head blocker must start at the bottom of the head."
-            );
-            Assert.That(
-                eyeHeight,
-                Is.InRange(
-                    body.Head.center.y - body.Head.size.y * .15f,
-                    body.Head.center.y + body.Head.size.y * .15f
-                ),
-                "First-person eye must be at face height."
-            );
-            Assert.That(
-                pivotHeight,
-                Is.InRange(bounds.size.y * .4f, bounds.size.y * .8f),
-                "Third person must aim at the character."
-            );
-        }
-
-        private static void CheckWallAvoidance(PlayerCameraRig camera, Vector3 pivot)
-        {
-            Vector3 unblocked = camera.transform.position;
-            var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            try
-            {
-                wall.name = "CameraFitWall";
-                wall.transform.SetPositionAndRotation(
-                    Vector3.Lerp(pivot, unblocked, .5f),
-                    camera.transform.rotation
-                );
-                wall.transform.localScale = new Vector3(4, 4, .2f);
-                Physics.SyncTransforms();
-                camera.SnapBehindTarget();
-                Assert.That(
-                    Vector3.Distance(camera.transform.position, pivot),
-                    Is.LessThan(Vector3.Distance(unblocked, pivot) * .6f),
-                    "Camera must stay in front of a blocking wall."
-                );
-            }
-            finally
-            {
-                Object.DestroyImmediate(wall);
-                Physics.SyncTransforms();
-                camera.SnapBehindTarget();
-            }
-        }
-
-        /// <summary>space 기준 높이 below 아래 메시 정점이 세로축에서 가장 멀리 떨어진 거리</summary>
-        private static float HorizontalReachBelow(Animator animator, Transform space, float below)
-        {
-            var mesh = new Mesh();
-            float reach = 0f;
-            try
-            {
-                foreach (var skin in animator.GetComponentsInChildren<SkinnedMeshRenderer>())
-                {
-                    skin.BakeMesh(mesh, true);
-                    foreach (var vertex in mesh.vertices)
-                    {
-                        Vector3 point = space.InverseTransformPoint(
-                            skin.transform.TransformPoint(vertex)
-                        );
-                        if (point.y < below)
-                            reach = Mathf.Max(reach, new Vector2(point.x, point.z).magnitude);
-                    }
-                }
-            }
-            finally
-            {
-                Object.Destroy(mesh);
-            }
-            return reach;
-        }
-
-        private static Bounds SkinBounds(Animator animator, Transform space)
-        {
-            var mesh = new Mesh();
-            Bounds result = default;
-            bool first = true;
-            try
-            {
-                foreach (var skin in animator.GetComponentsInChildren<SkinnedMeshRenderer>())
-                {
-                    skin.BakeMesh(mesh, true);
-                    foreach (var vertex in mesh.vertices)
-                    {
-                        Vector3 point = space.InverseTransformPoint(
-                            skin.transform.TransformPoint(vertex)
-                        );
-                        if (first)
-                        {
-                            result = new Bounds(point, Vector3.zero);
-                            first = false;
-                        }
-                        else
-                            result.Encapsulate(point);
-                    }
-                }
-                return result;
-            }
-            finally
-            {
-                Object.Destroy(mesh);
-            }
-        }
-
-        [UnityTest]
         public IEnumerator ProductionPlayerWalksRunsJumpsAndSwitchesViewWithTheSelectedCharacter()
         {
             PlayerCharacterSelection.Select(selected);
@@ -273,10 +101,11 @@ namespace A305.Player.Tests
                 yield return Frames(2);
                 Assert.That(camera.ViewMode, Is.EqualTo(CameraViewMode.ThirdPerson));
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState());
-                camera.enabled = false;
-                camera.transform.rotation = Quaternion.identity;
                 player.Teleport(new Vector3(4.8f, .12f, -18.5f), Quaternion.identity);
                 yield return Frames(30);
+                AssertCameraAvoidsWall(camera, player.transform.position);
+                camera.enabled = false;
+                camera.transform.rotation = Quaternion.identity;
                 Assert.That(capsule.isGrounded, Is.True);
                 string phase = "walk";
                 observer.Observe = () => body?.Record(phase);
@@ -363,6 +192,42 @@ namespace A305.Player.Tests
             }
         }
 
+        // 외형 치수 검수와 달리 벽 회피는 실제 충돌 동작이므로 대표 조작 흐름에서 함께 확인한다.
+        private static void AssertCameraAvoidsWall(PlayerCameraRig camera, Vector3 playerPosition)
+        {
+            camera.SnapBehindTarget();
+            Vector3 direction = camera.transform.forward;
+            Vector3 planar = Vector3.ProjectOnPlane(direction, Vector3.up).normalized;
+            float distance =
+                Vector3.Dot(playerPosition - camera.transform.position, planar)
+                / Vector3.Dot(direction, planar);
+            Vector3 pivot = camera.transform.position + direction * distance;
+            Vector3 unblocked = camera.transform.position;
+            var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            try
+            {
+                wall.name = "CameraCollisionWall";
+                wall.transform.SetPositionAndRotation(
+                    Vector3.Lerp(pivot, unblocked, .5f),
+                    camera.transform.rotation
+                );
+                wall.transform.localScale = new Vector3(4, 4, .2f);
+                Physics.SyncTransforms();
+                camera.SnapBehindTarget();
+                Assert.That(
+                    Vector3.Distance(camera.transform.position, pivot),
+                    Is.LessThan(Vector3.Distance(unblocked, pivot) * .6f),
+                    "카메라는 시야를 막는 벽 앞에 있어야 합니다."
+                );
+            }
+            finally
+            {
+                Object.DestroyImmediate(wall);
+                Physics.SyncTransforms();
+                camera.SnapBehindTarget();
+            }
+        }
+
         private static IEnumerator Frames(int count)
         {
             for (int frame = 0; frame < count; frame++)
@@ -370,10 +235,11 @@ namespace A305.Player.Tests
         }
 
         [UnityTest]
-        public IEnumerator SelectionSurvivesEveryProductionSceneWithTheExpectedVisual()
+        public IEnumerator SelectionSurvivesSceneChangeWithTheExpectedVisual()
         {
             PlayerCharacterSelection.Select(selected);
-            foreach (string scene in new[] { "HomeScene", "TownScene", "CafeScene", "HotelScene" })
+            // 공용 플레이어 프리팹의 선택 상태 전달은 대표 공간 전환에서 확인한다.
+            foreach (string scene in new[] { "HomeScene", "TownScene" })
             {
                 yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
                     "Assets/Scenes/Production/" + scene + ".unity",

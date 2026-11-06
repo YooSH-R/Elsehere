@@ -37,7 +37,7 @@
     "liked": 10,
     "disliked": -10,
     "personalTalk": { "recognition": 50, "affinity": 20 },
-    "graceDays": 3,
+    "graceDays": 30,
     "recognitionDropPerDay": 1,
     "affinityFollowRate": 0.75,
     "rudeAffinityFallback": -6,
@@ -69,51 +69,246 @@
   "places": {
     "CAFE": {
       "shifts": {
-        "OPENING": { "from": "07:00", "to": "15:00" },
-        "MIDDAY": { "from": "10:00", "to": "18:00" },
-        "CLOSING": { "from": "13:00", "to": "21:00" }
+        "OPENING": {
+          "from": "06:00",
+          "to": "18:30",
+          "breakAt": "18:00"
+        },
+        "MIDDAY": {
+          "from": "10:00",
+          "to": "18:30",
+          "breakAt": "18:00"
+        },
+        "CLOSING": {
+          "from": "18:00",
+          "to": "06:30",
+          "breakAt": "06:00"
+        }
       }
     },
     "HOTEL": {
       "shifts": {
-        "DAY": { "from": "06:00", "to": "14:30" },
-        "MIDDAY": { "from": "10:00", "to": "18:00" },
-        "EVENING": { "from": "14:00", "to": "22:30" },
-        "NIGHT": { "from": "22:00", "to": "06:30" }
+        "DAY": {
+          "from": "06:00",
+          "to": "18:30",
+          "breakAt": "18:00"
+        },
+        "MIDDAY": {
+          "from": "10:00",
+          "to": "22:30",
+          "breakAt": "22:00"
+        },
+        "EVENING": {
+          "from": "10:00",
+          "to": "22:30",
+          "breakAt": "22:00"
+        },
+        "NIGHT": {
+          "from": "18:00",
+          "to": "06:30",
+          "breakAt": "06:00"
+        }
       }
     },
     "SHOP": {
       "shifts": {
-        "DAY": { "from": "07:00", "to": "15:30" },
-        "EVENING": { "from": "15:00", "to": "23:30" },
-        "NIGHT": { "from": "23:00", "to": "07:30" }
+        "DAY": {
+          "from": "07:00",
+          "to": "15:30",
+          "breakAt": "15:00"
+        },
+        "EVENING": {
+          "from": "15:00",
+          "to": "23:30",
+          "breakAt": "23:00"
+        },
+        "NIGHT": {
+          "from": "23:00",
+          "to": "07:30",
+          "breakAt": "07:00"
+        }
       }
     },
-    "POST_OFFICE": { "shifts": { "ALL_DAY": { "from": "09:00", "to": "17:00" } } },
-    "BANK": { "shifts": { "ALL_DAY": { "from": "09:00", "to": "16:00" } } },
-    "DINER": { "shifts": { "ALL_DAY": { "from": "07:00", "to": "22:00" } } },
-    "BAKERY": { "shifts": { "ALL_DAY": { "from": "06:00", "to": "18:00" } } },
-    "LAUNDROMAT": { "shifts": { "ALL_DAY": { "from": "07:00", "to": "22:00" } } },
-    "FLOWER_SHOP": { "shifts": { "ALL_DAY": { "from": "09:00", "to": "19:00" } } },
-    "BARBER": { "shifts": { "ALL_DAY": { "from": "10:00", "to": "19:00" } } },
-    "ARCADE": { "shifts": { "ALL_DAY": { "from": "12:00", "to": "23:00" } } },
-    "HOME_STORE": { "shifts": { "ALL_DAY": { "from": "10:00", "to": "20:00" } } },
+    "POST_OFFICE": {
+      "shifts": {
+        "DAY": {
+          "from": "06:00",
+          "to": "18:30",
+          "breakAt": "18:00"
+        },
+        "NIGHT": {
+          "from": "18:00",
+          "to": "06:30",
+          "breakAt": "06:00"
+        }
+      }
+    },
+    "BANK": {
+      "shifts": {
+        "DAY": {
+          "from": "06:00",
+          "to": "14:30",
+          "breakAt": "14:00"
+        },
+        "EVENING": {
+          "from": "14:00",
+          "to": "22:30",
+          "breakAt": "22:00"
+        },
+        "NIGHT": {
+          "from": "22:00",
+          "to": "06:30",
+          "breakAt": "06:00"
+        }
+      }
+    },
+    "DINER": {
+      "shifts": {
+        "DAY": {
+          "from": "06:00",
+          "to": "18:30",
+          "breakAt": "18:00"
+        },
+        "NIGHT": {
+          "from": "18:00",
+          "to": "06:30",
+          "breakAt": "06:00"
+        }
+      }
+    },
+    "BAKERY": {
+      "shifts": {
+        "DAY": {
+          "from": "06:00",
+          "to": "18:30",
+          "breakAt": "18:00"
+        },
+        "NIGHT": {
+          "from": "18:00",
+          "to": "06:30",
+          "breakAt": "06:00"
+        }
+      }
+    },
+    "LAUNDROMAT": {
+      "shifts": {
+        "DAY": {
+          "from": "06:00",
+          "to": "18:30",
+          "breakAt": "18:00"
+        },
+        "NIGHT": {
+          "from": "18:00",
+          "to": "06:30",
+          "breakAt": "06:00"
+        }
+      }
+    },
+    "FLOWER_SHOP": {
+      "shifts": {
+        "DAY": {
+          "from": "06:00",
+          "to": "18:30",
+          "breakAt": "18:00"
+        },
+        "NIGHT": {
+          "from": "18:00",
+          "to": "06:30",
+          "breakAt": "06:00"
+        }
+      }
+    },
+    "BARBER": {
+      "shifts": {
+        "DAY": {
+          "from": "06:00",
+          "to": "18:30",
+          "breakAt": "18:00"
+        },
+        "NIGHT": {
+          "from": "18:00",
+          "to": "06:30",
+          "breakAt": "06:00"
+        }
+      }
+    },
+    "ARCADE": {
+      "shifts": {
+        "DAY": {
+          "from": "06:00",
+          "to": "18:30",
+          "breakAt": "18:00"
+        },
+        "NIGHT": {
+          "from": "18:00",
+          "to": "06:30",
+          "breakAt": "06:00"
+        }
+      }
+    },
+    "HOME_STORE": {
+      "shifts": {
+        "DAY": {
+          "from": "06:00",
+          "to": "18:30",
+          "breakAt": "18:00"
+        },
+        "NIGHT": {
+          "from": "18:00",
+          "to": "06:30",
+          "breakAt": "06:00"
+        }
+      }
+    },
     "POLICE_STATION": {
       "shifts": {
-        "DAY": { "from": "06:00", "to": "14:30" },
-        "MIDDAY": { "from": "10:00", "to": "18:00" },
-        "EVENING": { "from": "14:00", "to": "22:30" },
-        "NIGHT": { "from": "22:00", "to": "06:30" }
+        "DAY": {
+          "from": "06:00",
+          "to": "14:30",
+          "breakAt": "14:00"
+        },
+        "EVENING": {
+          "from": "14:00",
+          "to": "22:30",
+          "breakAt": "22:00"
+        },
+        "NIGHT": {
+          "from": "22:00",
+          "to": "06:30",
+          "breakAt": "06:00"
+        }
       }
     },
-    "TAXI": { "shifts": { "ALL_DAY": { "from": "00:00", "to": "00:00" } } },
+    "TAXI": {
+      "shifts": {
+        "ALL_DAY": {
+          "from": "00:00",
+          "to": "00:00"
+        }
+      }
+    },
     "TOWN": {
       "shifts": {
-        "MORNING": { "from": "06:00", "to": "13:00" },
-        "DAY": { "from": "09:00", "to": "18:00" },
-        "MIDDAY": { "from": "10:00", "to": "18:00" },
-        "AFTERNOON": { "from": "12:00", "to": "20:00" },
-        "EVENING": { "from": "16:00", "to": "23:00" }
+        "MORNING": {
+          "from": "06:00",
+          "to": "13:00"
+        },
+        "DAY": {
+          "from": "09:00",
+          "to": "18:00"
+        },
+        "MIDDAY": {
+          "from": "10:00",
+          "to": "18:00"
+        },
+        "AFTERNOON": {
+          "from": "12:00",
+          "to": "20:00"
+        },
+        "EVENING": {
+          "from": "16:00",
+          "to": "23:00"
+        }
       }
     }
   }

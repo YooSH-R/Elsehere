@@ -75,15 +75,6 @@ namespace A305.EditorTools.Npc
                 "HOTEL_STAFF"
             ),
             new Newcomer(
-                "HOTEL_CONCIERGE",
-                "HotelConcierge",
-                HotelScenePath,
-                3.9f,
-                6.1f,
-                180,
-                "HOTEL_STAFF"
-            ),
-            new Newcomer(
                 "HOTEL_BELLHOP",
                 "HotelBellhop",
                 HotelScenePath,
@@ -113,33 +104,6 @@ namespace A305.EditorTools.Npc
             ),
             // 마을 행인. Arthur·Margaret 부부는 나란히 북쪽을 보고 선다.
             new Newcomer(
-                "TOWN_RETIREE",
-                "TownRetiree",
-                TownScenePath,
-                -5f,
-                15.5f,
-                0,
-                "TOWN_PASSERBY"
-            ),
-            new Newcomer(
-                "FIRE_CAPTAIN",
-                "FireCaptain",
-                TownScenePath,
-                9.6f,
-                19.4f,
-                45,
-                "TOWN_PASSERBY"
-            ),
-            new Newcomer(
-                "TOWN_STUDENT",
-                "TownStudent",
-                TownScenePath,
-                12.6f,
-                22.6f,
-                225,
-                "TOWN_PASSERBY"
-            ),
-            new Newcomer(
                 "TOWN_GRANDFATHER",
                 "TownGrandfather",
                 TownScenePath,
@@ -155,51 +119,6 @@ namespace A305.EditorTools.Npc
                 5.8f,
                 27f,
                 0,
-                "TOWN_PASSERBY"
-            ),
-            new Newcomer(
-                "TOWN_SHOPPER",
-                "TownShopper",
-                TownScenePath,
-                -5f,
-                27.5f,
-                180,
-                "TOWN_PASSERBY"
-            ),
-            new Newcomer(
-                "FIRE_FIGHTER",
-                "FireFighter",
-                TownScenePath,
-                -5f,
-                36.5f,
-                0,
-                "TOWN_PASSERBY"
-            ),
-            new Newcomer(
-                "TOWN_HANDYMAN",
-                "TownHandyman",
-                TownScenePath,
-                5.2f,
-                43f,
-                180,
-                "TOWN_PASSERBY"
-            ),
-            new Newcomer(
-                "FIRE_ROOKIE",
-                "FireRookie",
-                TownScenePath,
-                -5f,
-                45.5f,
-                0,
-                "TOWN_PASSERBY"
-            ),
-            new Newcomer(
-                "TOWN_EVENING_WALKER",
-                "TownEveningWalker",
-                TownScenePath,
-                5.2f,
-                52f,
-                180,
                 "TOWN_PASSERBY"
             ),
         };

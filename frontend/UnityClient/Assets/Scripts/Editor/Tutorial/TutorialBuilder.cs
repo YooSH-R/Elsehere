@@ -64,7 +64,7 @@ namespace A305.EditorTools.Tutorial
         private static readonly Color CaptionTextColor = new Color(0.23f, 0.18f, 0.16f);
 
         // 밝힌 곳 옆에 두는 설명 말풍선 너비. 대화창 왼쪽 도움 카드 정도라 옆자리에 들어간다.
-        private const float CaptionWidth = 440f;
+        private const float CaptionWidth = 414f;
 
         // 잠긴 문 안내 띠: 연한 주황 바탕에 진한 주황 글자
         private static readonly Color NoticeColor = new Color(0.99f, 0.88f, 0.8f);
@@ -81,6 +81,16 @@ namespace A305.EditorTools.Tutorial
             PrepareAssets();
             AssetDatabase.SaveAssets();
             Debug.Log($"튜토리얼 안내 카드를 준비했습니다: {GuidePrefabPath}");
+        }
+
+        /// <summary>승인한 코치 마크 디자인만 갱신한다. 안내 문구와 장소 씬은 유지한다.</summary>
+        [MenuItem("Tools/A305/Tutorial/Apply Coach Mark Design")]
+        public static void ApplyCoachMarkDesign()
+        {
+            BuilderTools.ThrowIfPlaying();
+            BuilderTools.UpdateOrCreatePrefab(CoachMarkPrefabPath, "CoachMark", SetUpCoachMark);
+            UiThemeBuilder.StyleTutorialCoachMark();
+            AssetDatabase.SaveAssets();
         }
 
         /// <summary>안내 문구(없을 때만)와 안내 카드 프리팹의 기능 구성을 맞춘다. 디자인은 유지한다.</summary>
@@ -562,8 +572,8 @@ namespace A305.EditorTools.Tutorial
             var captionLayout = BuilderTools.GetOrAddComponent<VerticalLayoutGroup>(
                 caption.gameObject
             );
-            captionLayout.padding = new RectOffset(26, 26, 20, 20);
-            captionLayout.spacing = 14f;
+            captionLayout.padding = new RectOffset(32, 32, 28, 28);
+            captionLayout.spacing = 20f;
             captionLayout.childAlignment = TextAnchor.UpperRight;
             captionLayout.childControlWidth = captionLayout.childControlHeight = true;
             captionLayout.childForceExpandWidth = captionLayout.childForceExpandHeight = false;
@@ -586,12 +596,12 @@ namespace A305.EditorTools.Tutorial
                 captionRect,
                 "Text",
                 UiBuilderTools.BoldFont(),
-                22f,
+                23f,
                 CaptionTextColor
             );
             captionText.alignment = TextAlignmentOptions.TopLeft;
             captionText.enableAutoSizing = false;
-            captionText.fontSize = 22f;
+            captionText.fontSize = 23f;
             captionText.textWrappingMode = TextWrappingModes.Normal;
             captionText.raycastTarget = false;
             BuilderTools.GetOrAddComponent<LayoutElement>(captionText.gameObject).flexibleWidth =
@@ -602,7 +612,7 @@ namespace A305.EditorTools.Tutorial
                 "NextButton",
                 "다음",
                 UiBuilderTools.BoldFont(),
-                150f
+                116f
             );
             var nextSize = nextButton.GetComponent<LayoutElement>();
             nextSize.preferredHeight = 58f;

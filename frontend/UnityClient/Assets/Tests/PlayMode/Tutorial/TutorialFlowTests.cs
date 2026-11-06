@@ -442,9 +442,13 @@ namespace A305.Tutorial.PlayModeTests
 
             DialoguePanelView panel = Single<DialoguePanelView>();
             CoachMarkView coachMark = Single<CoachMarkView>();
+            RectTransform npcName = panel
+                .GetComponentsInChildren<TMP_Text>(true)
+                .Single(text => text.text == "Ben")
+                .rectTransform;
             RectTransform[][] tour =
             {
-                new[] { panel.LinesRect },
+                new[] { panel.LinesRect, npcName },
                 panel.ToolParts.ToArray(),
                 new[] { panel.SuggestedWordsRect },
             };
@@ -470,6 +474,11 @@ namespace A305.Tutorial.PlayModeTests
                 coachMark.SpotlightTargets,
                 Does.Contain(panel.LinesRect),
                 "대사는 밝힌 곳 안에 두어 그대로 보입니다."
+            );
+            Assert.That(
+                coachMark.SpotlightTargets,
+                Does.Contain(npcName),
+                "화자 이름도 밝힌 곳 안에 두어 Ben이 가려지지 않습니다."
             );
             Assert.That(
                 coachMark.IsDimmingOutside,

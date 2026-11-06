@@ -303,6 +303,7 @@ namespace A305.Tutorial
         private void EndDialogue(DialogueRecord record)
         {
             progress.EndDialogue(record.NpcCode, record.IsGuidedCompleted);
+            SaveFinish();
         }
 
         // 길 안내 대화 중에 건너뛰면 마치지 못한 대화를 피드백 없이 닫는다. 정해진 대사를 마치기 전에는 [대화 종료]로 끝낼 수 없기 때문이다.
@@ -332,8 +333,8 @@ namespace A305.Tutorial
         private void ApplyStep()
         {
             appliedStep = progress.Step;
-            // 튜토리얼을 끝낸 순간과, 저장하지 못한 채 다음 장소에 들어온 순간(Awake에서 적용) 모두 여기서 보낸다.
-            if (appliedStep == TutorialStep.Completed)
+            // Ben 대화·전체 완료 직후와, 저장하지 못한 채 다음 단계·장소에 들어온 순간에 보낸다.
+            if (appliedStep == TutorialStep.Completed || progress.NeedsBenDialogueSave)
             {
                 SaveFinish();
             }
@@ -363,7 +364,10 @@ namespace A305.Tutorial
 
         private void SaveFinish()
         {
-            if (finishRecorder != null && progress.NeedsFinishSave)
+            if (
+                finishRecorder != null
+                && (progress.NeedsFinishSave || progress.NeedsBenDialogueSave)
+            )
             {
                 _ = SaveFinishAsync();
             }
@@ -382,7 +386,7 @@ namespace A305.Tutorial
             )
             {
                 Debug.LogWarning(
-                    $"튜토리얼을 끝낸 기록을 저장하지 못했습니다({status}, {finishRecorder.LastError.Code}): "
+                    $"튜토리얼 대화·완료 기록을 저장하지 못했습니다({status}, {finishRecorder.LastError.Code}): "
                         + finishRecorder.LastError.Message,
                     this
                 );

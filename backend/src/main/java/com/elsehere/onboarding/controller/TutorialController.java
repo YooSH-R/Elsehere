@@ -8,12 +8,17 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 튜토리얼 완료(TUT-01)와 건너뛰기(TUT-02). */
+/** 튜토리얼 완료(TUT-01), 건너뛰기(TUT-02), Ben 길 안내 완료(TUT-03). */
 @RestController
 @RequiredArgsConstructor
 public class TutorialController {
 
   private final TutorialService tutorialService;
+
+  @PostMapping("/api/v1/me/tutorial/ben-dialogue/complete")
+  public TutorialResponse completeBenDialogue(@AuthenticationPrincipal LoginUser loginUser) {
+    return tutorialService.completeBenDialogue(loginUser.userId());
+  }
 
   @PostMapping("/api/v1/me/tutorial/complete")
   public TutorialResponse complete(@AuthenticationPrincipal LoginUser loginUser) {

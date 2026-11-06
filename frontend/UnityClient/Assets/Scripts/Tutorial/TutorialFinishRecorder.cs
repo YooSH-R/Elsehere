@@ -1,10 +1,11 @@
+using System.Threading;
 using System.Threading.Tasks;
 using A305.Api;
 
 namespace A305.Tutorial
 {
     /// <summary>
-    /// 튜토리얼을 끝내면 끝낸 방법에 맞춰 서버에 한 번 저장하고, 이 기기에도 끝냈다고 남긴다(<see cref="TutorialDeviceRecord"/>).
+    /// Ben 길 안내와 튜토리얼 완료를 서버에 저장한다. 전체를 끝내면 이 기기에도 남긴다(<see cref="TutorialDeviceRecord"/>).
     /// 저장하지 못하면 진행에 남겨 두어 다음 장소에 들어갈 때 다시 보낸다.
     /// 서버가 거절하면(튜토리얼 이전 단계) 다시 보내도 같으므로 다시 보내지 않는다.
     /// </summary>
@@ -13,6 +14,7 @@ namespace A305.Tutorial
         private const long ConflictStatus = 409;
 
         private readonly ITutorialApi api;
+        private readonly SemaphoreSlim saveLock = new SemaphoreSlim(1, 1);
 
         public TutorialFinishRecorder(ITutorialApi api)
         {
@@ -24,16 +26,41 @@ namespace A305.Tutorial
 
         public async Task<TutorialFinishSaveStatus> SaveAsync(TutorialProgress progress)
         {
+            await saveLock.WaitAsync();
+            try
+            {
+                return await SavePendingAsync(progress);
+            }
+            finally
+            {
+                saveLock.Release();
+            }
+        }
+
+        private async Task<TutorialFinishSaveStatus> SavePendingAsync(TutorialProgress progress)
+        {
             LastError = null;
-            if (!progress.NeedsFinishSave)
+            if (!progress.NeedsFinishSave && !progress.NeedsBenDialogueSave)
             {
                 return TutorialFinishSaveStatus.NotNeeded;
             }
 
             // 서버 저장이 실패해도 이 기기에서는 끝낸 것이므로 먼저 남긴다.
-            TutorialDeviceRecord.Shared.MarkFinished();
+            if (progress.NeedsFinishSave)
+            {
+                TutorialDeviceRecord.Shared.MarkFinished();
+            }
             try
             {
+                if (progress.NeedsBenDialogueSave)
+                {
+                    await api.CompleteBenDialogueAsync();
+                    progress.MarkBenDialogueSaved();
+                }
+                if (!progress.NeedsFinishSave)
+                {
+                    return TutorialFinishSaveStatus.Saved;
+                }
                 if (progress.Finish == TutorialFinish.Skipped)
                 {
                     await api.SkipAsync();
@@ -49,6 +76,7 @@ namespace A305.Tutorial
             catch (ApiException exception) when (exception.StatusCode == ConflictStatus)
             {
                 LastError = exception;
+                progress.MarkBenDialogueSaved();
                 progress.MarkFinishSaved();
                 return TutorialFinishSaveStatus.Rejected;
             }

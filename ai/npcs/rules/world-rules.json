@@ -37,7 +37,7 @@
     "liked": 10,
     "disliked": -10,
     "personalTalk": { "recognition": 50, "affinity": 20 },
-    "graceDays": 3,
+    "graceDays": 30,
     "recognitionDropPerDay": 1,
     "affinityFollowRate": 0.75,
     "rudeAffinityFallback": -6,

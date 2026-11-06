@@ -13,8 +13,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class PoliceDeskTest {
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {"POLICE_OFFICER", "POLICE_SERGEANT", "POLICE_PATROL_OFFICER"})
+  @ValueSource(strings = {"POLICE_OFFICER", "POLICE_SERGEANT", "POLICE_PATROL_OFFICER"})
   @DisplayName("경찰서 창구의 경찰관 세 명 모두 신고를 받는다")
   void serves_everyOfficerAtTheDesk(String npcCode) {
     assertThat(PoliceDesk.serves(npcCode)).isTrue();

@@ -67,6 +67,12 @@ def test_recognition_stays_for_a_few_days_and_then_fades_each_day():
     assert rel.recognition_today(3, 400, RULES) == 0
 
 
+def test_recognition_is_kept_for_thirty_game_days_after_the_last_talk():
+    assert rel.recognition_today(50, 29, RULES) == 50
+    assert rel.recognition_today(50, 30, RULES) == 50
+    assert rel.recognition_today(50, 31, RULES) == 49
+
+
 def test_each_conversation_adds_less_recognition_as_the_npc_knows_them_better():
     first = rel.grow_recognition(0, 1.0, RULES)
 

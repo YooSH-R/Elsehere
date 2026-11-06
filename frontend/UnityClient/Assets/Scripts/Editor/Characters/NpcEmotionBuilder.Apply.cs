@@ -178,7 +178,8 @@ namespace A305.EditorTools.Characters
                         mesh,
                         shapes,
                         data.newEyes && skin == body,
-                        data.meshes.Contains(surface)
+                        data.meshes.Contains(surface),
+                        surface.normals
                     );
                     if (data.newEyes && skin == body)
                         mesh.triangles = data.bodyTriangles;
@@ -225,13 +226,18 @@ namespace A305.EditorTools.Characters
             Mesh mesh,
             Shape[] shapes,
             bool removeOldEyes = false,
-            bool removeEyeWide = false
+            bool removeEyeWide = false,
+            Vector3[] basisNormals = null
         )
         {
             var original = Object.Instantiate(mesh);
             mesh.ClearBlendShapes();
             try
             {
+                bool replaceNormals = basisNormals?.Length == mesh.vertexCount;
+                var previousNormals = original.normals;
+                if (replaceNormals)
+                    mesh.normals = basisNormals;
                 for (int i = 0; i < original.blendShapeCount; i++)
                 {
                     string channel = original.GetBlendShapeName(i);
@@ -250,6 +256,13 @@ namespace A305.EditorTools.Characters
                         var normals = new Vector3[mesh.vertexCount];
                         var tangents = new Vector3[mesh.vertexCount];
                         original.GetBlendShapeFrameVertices(i, f, vertices, normals, tangents);
+                        if (replaceNormals)
+                            for (int vertex = 0; vertex < normals.Length; vertex++)
+                                normals[vertex] =
+                                    Quaternion.FromToRotation(
+                                        previousNormals[vertex],
+                                        basisNormals[vertex]
+                                    ) * normals[vertex];
                         mesh.AddBlendShapeFrame(
                             channel,
                             original.GetBlendShapeFrameWeight(i, f),

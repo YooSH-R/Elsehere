@@ -18,6 +18,7 @@ from mathutils.bvhtree import BVHTree
 
 sys.path.insert(0, str(Path(__file__).parent))
 from laugh_geometry import bind_surface, round_boundary
+from closure_frames import closure_frames
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--output", type=Path, required=True)
@@ -118,7 +119,7 @@ def displacement(points, family, side):
         elif family == "browOuterUp":
             result[:, 2] = 0.045 * (0.15 + 0.85 * outward) * influence
         else:
-            result[:, 2] = -0.030 * (0.1 + 0.9 * (1 - outward)) * influence
+            result[:, 2] = (-0.055 * (1 - outward) + 0.007 * outward) * influence
             result[:, 1] = -direction * 0.009 * influence
         if family != "browDown":
             # Ease raised brows below the fixed hairline instead of pulling
@@ -158,7 +159,7 @@ def displacement(points, family, side):
             result[:, 2] = 0.015 * corner * influence * half
             result[:, 1] = direction * 0.005 * corner * influence * half
         else:
-            result[:, 2] = -0.016 * corner * influence * half
+            result[:, 2] = -0.024 * corner * influence * half
     return result
 
 
@@ -336,12 +337,7 @@ for part in eye_data["parts"]:
         if name.endswith("Lid"):
             rings = np.arange(len(positions)) // (len(positions) // 25)
             boundary_weight = np.clip(rings / 8, 0, 1)
-    blink_frames = [
-        dict(frame, weight=(90 if frame["weight"] == 100 else frame["weight"]))
-        for frame in part["frames"]
-    ]
-    if part["frames"]:
-        blink_frames.append(part["frames"][-1])
+    blink_frames = closure_frames(part["frames"])
     for frame in blink_frames:
         closure = array(frame["vertices"])
         horizontal = np.clip(1 - ((closure[:, 1] - center) / 0.044) ** 2, 0, 1)
@@ -396,11 +392,7 @@ for part in eye_data["parts"]:
         )
         # A linear chord passes through a convex eyeball. Keep quarter frames
         # on its front surface, including the raised laughing-eye curve.
-        squint_frames = [
-            dict(frame, weight=(90 if frame["weight"] == 100 else frame["weight"]))
-            for frame in part["frames"]
-        ]
-        squint_frames.append(part["frames"][-1])
+        squint_frames = closure_frames(part["frames"])
         for frame in squint_frames:
             amount = frame["weight"] / 100
             if frame["weight"] >= 90:

@@ -41,6 +41,7 @@ namespace A305.EditorTools.World
             "CafeScene",
             "HotelScene",
             "ShopScene",
+            "PoliceStationScene",
         };
 
         /// <summary>

@@ -1,5 +1,5 @@
 # Apply to the notebook's separately registered Linux Docker runner.
-# Preserve its id, URL, token and token timestamps. GitLab tag: a305-linux-ci only.
+# Preserve its id, URL, token and token timestamps. GitLab tags: a305-linux-ci, a305-linux-light.
 concurrent = 2
 
 [[runners]]

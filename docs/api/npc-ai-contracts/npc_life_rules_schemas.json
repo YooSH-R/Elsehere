@@ -291,6 +291,16 @@
         "to": { "$ref": "#/$defs/Clock", "description": "from보다 이르면 자정을 넘긴다. 같으면 하루 전체." }
       }
     },
+    "Shift": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "from": { "$ref": "#/$defs/Clock" },
+        "to": { "$ref": "#/$defs/Clock", "description": "from보다 이르면 자정을 넘긴다. 같으면 하루 전체." },
+        "breakAt": { "$ref": "#/$defs/Clock", "description": "휴식 시작 시각. 교대 안에 있어야 하며 없으면 가운데에 쉰다. 다음 직원과 겹치는 시간으로 지정해 응대 공백을 막는다." }
+      }
+    },
     "Place": {
       "type": "object",
       "additionalProperties": false,
@@ -303,7 +313,7 @@
         "shifts": {
           "type": "object",
           "propertyNames": { "$ref": "#/$defs/Code" },
-          "additionalProperties": { "$ref": "#/$defs/TimeRange" },
+          "additionalProperties": { "$ref": "#/$defs/Shift" },
           "minProperties": 1,
           "description": "교대 이름 → 시간. NPC 생활 파일의 shift가 이 가운데 하나를 맡는다. 행인이 지내는 마을(TOWN)에서는 마을에 나와 있는 시간대다."
         }

@@ -83,8 +83,10 @@ namespace A305.EditorTools.Npc
             ),
             Member(
                 "POLICE_ROOKIE",
-                NpcLooks.PoliceOfficer,
+                NpcLooks.BusinessMale,
                 hair: Palette.BlondHair,
+                clothes: Palette.Charcoal,
+                secondClothes: Palette.Burgundy,
                 shoes: Palette.GreyShoes,
                 eyes: Palette.GreyEyes
             ),

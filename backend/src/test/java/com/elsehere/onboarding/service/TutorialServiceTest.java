@@ -2,6 +2,9 @@ package com.elsehere.onboarding.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.common.config.JpaAuditingConfig;
@@ -21,6 +24,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 @AutoConfigureTestDatabase(replace = Replace.NONE)
@@ -37,6 +41,35 @@ class TutorialServiceTest {
   @Autowired private UserRepository userRepository;
 
   @Autowired private EntityManager entityManager;
+
+  @MockitoBean private TutorialRelationshipService tutorialRelationshipService;
+
+  @Test
+  @DisplayName("Ben 길 안내 완료는 튜토리얼 단계를 유지하면서 관계를 기록한다")
+  void completeBenDialogue_keepsTutorialAndRecordsTheVisit() {
+    Long userId = insertUserAt(OnboardingStep.TUTORIAL);
+
+    assertThat(tutorialService.completeBenDialogue(userId).onboardingStep())
+        .isEqualTo(OnboardingStep.TUTORIAL);
+    verify(tutorialRelationshipService).recordBenDialogue(userId);
+  }
+
+  @Test
+  @DisplayName("전체 완료 재전송은 관계를 다시 올리지 않는다")
+  void finish_doesNotDuplicateBenDialogue() {
+    Long userId = insertUserAt(OnboardingStep.TUTORIAL);
+    tutorialService.complete(userId);
+    tutorialService.complete(userId);
+    verify(tutorialRelationshipService, times(1)).recordBenDialogue(userId);
+  }
+
+  @Test
+  void skip_doesNotRecordBenDialogue() {
+    Long userId = insertUserAt(OnboardingStep.TUTORIAL);
+    tutorialService.skip(userId);
+    tutorialService.completeBenDialogue(userId);
+    verify(tutorialRelationshipService, never()).recordBenDialogue(userId);
+  }
 
   @Test
   @DisplayName("튜토리얼 단계의 사용자가 튜토리얼을 마치면 초기 설정을 끝낸다(DONE)")

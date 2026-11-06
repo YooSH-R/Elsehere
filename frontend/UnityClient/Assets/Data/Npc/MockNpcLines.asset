@@ -50,7 +50,7 @@ MonoBehaviour:
   - npcCode: HOTEL_RECEPTIONIST
     greeting: Good evening! Welcome to Maple House. Checking in?
   - npcCode: HOTEL_CONCIERGE
-    greeting: Good day. If you need a restaurant or directions, just ask me.
+    greeting: Oh, hello... Welcome to Bloom Flowers. Looking for anything special?
   - npcCode: HOTEL_BELLHOP
     greeting: Hi! Can I help you with your bags?
   - npcCode: HOTEL_NIGHT_MANAGER
@@ -64,23 +64,23 @@ MonoBehaviour:
   - npcCode: POLICE_PATROL_OFFICER
     greeting: Hi there. Did something happen around here?
   - npcCode: POLICE_ROOKIE
-    greeting: Oh, hello! I'm new here, but I'll do my best to help.
+    greeting: Good morning, dear! The bread just came out of the oven.
   - npcCode: TOWN_RETIREE
-    greeting: Good morning, dear! Lovely day for a walk, isn't it?
+    greeting: Good morning. Are you sending something today?
   - npcCode: TOWN_STUDENT
-    greeting: Hey! Do you know a good place to study around here?
+    greeting: Yo! Welcome to Little Arcade. Want to try the claw machine?
   - npcCode: TOWN_EVENING_WALKER
-    greeting: Hi. I always take a walk after work. It helps me relax.
+    greeting: Good afternoon. Welcome to Town Bank. How may I help you?
   - npcCode: TOWN_SHOPPER
-    greeting: Hello! I'm just running a few errands. Busy day!
+    greeting: Good afternoon. Welcome to Town Bank. How may I help you?
   - npcCode: TOWN_HANDYMAN
-    greeting: Morning! If anything's broken, I'm your man.
+    greeting: Welcome to Home and Living. Feel free to look around.
   - npcCode: FIRE_CAPTAIN
-    greeting: Morning. Our new fire station isn't open yet, so I'm out for a walk.
+    greeting: Hi, hon! Welcome to Maple Diner. Table for one?
   - npcCode: FIRE_FIGHTER
-    greeting: Hi! It's my day off. The town looks great today.
+    greeting: Hey there! Need a hand with the machines?
   - npcCode: FIRE_ROOKIE
-    greeting: Hey! I'm a new firefighter here. Nice to meet you!
+    greeting: Hey! Come on in. Just a trim today?
   - npcCode: TOWN_GRANDFATHER
     greeting: Good morning. Nice weather for a walk.
   - npcCode: TOWN_GRANDMOTHER

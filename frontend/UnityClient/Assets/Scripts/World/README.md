@@ -24,13 +24,11 @@
 | `TrafficSignalCycle`, `TrafficLights`, `TrafficSignalHead` | 교차로 신호 주기(본길 초록 12초·노랑 3초, 가로길 초록 7초·노랑 3초)와 신호등 렌즈 켜기. 주기는 `TrafficLights` Inspector에서 조절합니다. |
 | `LoopingCar` | 본길을 도는 차. 본길 신호가 초록이 아니면 교차로 정지선에서 서고, 앞을 사람이나 다른 차가 막으면 섭니다. 택시처럼 손님 옆에 설 때는 설 자리를 받습니다. 주차 트럭 옆과 남쪽 유턴(z<-12)은 두 차가 비켜 지나갈 수 없어 한 번에 한 차만 들어가고, 다른 차가 있으면 남행 z=-12에서 기다립니다. 비켜 가기 시작하는 차의 앞모서리가 맞은편 차로로 들어가므로 차 앞뒤 4m까지 구간에 걸치면 구간을 차지한 것으로 봅니다. |
 | `TaxiFare` | 택시를 세우고 보내는 흐름. 인도에서 다가오는 택시만 세울 수 있고, 손님 옆에 서서 기다리다 대화를 마치거나 손님이 떠나면 다시 달립니다. Unity 객체 없이 테스트합니다. |
-| `TaxiDestinationRequest`, `TaxiDestination` | 택시 목적지 판별(지원 장소 이름과 이동 요청 구분)과 장소별 정차·하차 지점. 장소 이름 찾기(`FindSinglePlace`)는 경찰 신고 판별도 함께 씁니다. Unity 객체 없이 테스트합니다. |
-| `PoliceReportRequest` | 경찰관에게 한 말이 분명한 신고(도난·분실·사고·싸움·침입·긴급)인지 고르고, 마을 장소를 하나만 말했으면 그 장소 코드를 돌려줍니다. 부정·가정·이야기·길을 잃었다는 말은 신고가 아닙니다. 택시처럼 별도 LLM 호출 없이 보수적인 규칙으로만 찾습니다. Unity 객체 없이 테스트합니다. |
-| `PoliceReportIntake` | 경찰관과 한 번 대화하는 동안 신고를 접수하고, 접수한 뒤 말한 장소로 출동 장소를 바꿉니다. 대화를 마치면 출동할 장소를 꺼내고 비웁니다. Unity 객체 없이 테스트합니다. |
-| `PoliceDispatch` | 순찰차 출동 흐름. 주차 칸 → 진입로로 나가기 → 장소로 출동(장소가 없으면 본길 한 바퀴 순찰) → 장소 앞 20초 → 돌아오기 → 주차 칸. 나가 있는 동안 새 신고는 받지 않고, 돌아올 때 경광등을 끕니다. Unity 객체 없이 테스트합니다. |
+| `TaxiDestinationRequest`, `TaxiDestination` | 택시 목적지 판별(지원 장소 이름과 이동 요청 구분)과 장소별 정차·하차 지점. Unity 객체 없이 테스트합니다. |
+| `PoliceDispatch` | 순찰차 출동 흐름. 주차 칸 → 진입로로 나가기 → 장소로 출동(장소가 없으면 본길 한 바퀴 순찰) → 장소 앞 20초 → 돌아오기 → 주차 칸. 나가 있는 동안 새 신고는 받지 않고, 돌아올 때 경광등을 끕니다. 신고를 받은 경찰관(`DriverCode`)이 나갈 때부터 주차 칸에 다시 설 때까지 운전석에 있습니다. Unity 객체 없이 테스트합니다. |
 | `DrivePath` | 주차 칸과 본길 사이처럼 `CarLoopRoute` 밖을 잇는 3차 베지어 곡선 길. 길 위 거리로 위치·방향을 구합니다. Unity 객체 없이 테스트합니다. |
 | `PoliceCar` | 경찰서 옆 주차 칸의 순찰차. 진입로는 `DrivePath`로 직접 움직이고 본길은 `LoopingCar`로 신호를 지키며 달립니다. 주차 칸·진입로에서는 `LoopingCar.IsHeld`로 붙잡아 두어 본길 차들이 계속 피하게 하고, 진입로에서는 사람만 피합니다(차끼리 서로 기다리다 멈추지 않도록). 진입로는 트럭 옆 한 대씩 구간에 이어지므로, 다른 차가 그 구간에 있으면 주차 칸에서 기다렸다 나가고 진입로를 지나는 동안에는 구간을 차지합니다. 경광등은 출동해서 돌아오기 전까지 빨강·파랑을 번갈아 켭니다. 경찰서는 다른 장면이라, 마을이 열릴 때 경찰서 창구가 남긴 신고(`PoliceDispatchOrder`)를 가져가 출동합니다. |
-| `PoliceDispatchOrder` | 경찰서 창구에서 받은 아직 출발하지 않은 신고 한 건(장소 코드, 없으면 본길 순찰). 순찰차가 한 대라 한 건만 받고, 순찰차가 가져가면 없어집니다. 게임을 새로 시작하면 비웁니다. Unity 객체 없이 테스트합니다. |
+| `PoliceDispatchOrder` | 경찰서 창구가 받은 신고의 대기열과 현재 출동. 사용자 턴 ID로 중복을 막고, 경찰관 코드와 장소 코드를 보관합니다. 앞선 순찰이 끝나면 다음 신고로 출동하며, 장면을 떠나도 현재 신고와 대기열을 유지합니다. 다시 마을을 열면 완료하지 않은 출동을 재개하고, 주차 칸에 돌아온 신고만 완료합니다. 게임을 새로 시작하면 비웁니다. Unity 객체 없이 테스트합니다. |
 | `PlaceScenes` | 서버 장소 코드와 Unity 씬 이름(`HOME`↔`HomeScene`, `TOWN`↔`TownScene`, `CAFE`↔`CafeScene`, `HOTEL`↔`HotelScene`, `SHOP`↔`ShopScene`), 영업시간 안내에 쓰는 한국어 이름(집·마을·카페·호텔·드럭스토어). 재접속 위치 저장과 [길 안내](../Wayfinding/README.md)가 함께 씁니다. 새 장소 씬을 추가하면 이 표와 서버 시드(`scenes`)에 함께 추가합니다. Unity 객체 없이 테스트합니다. |
 | `PlaceHours`, `OpeningHours` | 장소별 영업시간 파일(`Data/World/PlaceHours.json`)을 읽고, 장소가 하루 중 그 시각에 열려 있는지 판정합니다. `OpeningHours`는 게임 전체가 같은 영업시간을 보도록 정적으로 두고 지금 게임 시각(`GameClock.Shared`)으로 묻습니다. `PlaceHours`는 Unity 객체 없이 테스트합니다. |
 | `ClosingCountdown`, `ClosingPhase` | 머무는 장소의 영업이 끝난 뒤 마을로 옮기기까지 남은 게임 시간(30분, `GraceMinutes`)을 셉니다. 다시 열거나 다른 장소로 옮기면 멈춥니다. Unity 객체 없이 테스트합니다. |
@@ -111,7 +109,8 @@
 
 **Tools → A305 → World → Apply Police Station**(`PoliceStationBuilder`)이 경찰서를 한 번에 적용합니다. 마을에는 경찰서 매장 건물을 놓고, 경찰서 남쪽 잔디에 주차장(`TownMainstreet/PoliceParking`)과 본길 끝으로 이어지는 진입 포장을 깔아 순찰차를 세웁니다. 경찰서 안은 카페·호텔처럼 따로 장면(`Scenes/Production/PoliceStationScene`, 장소 코드 `POLICE_STATION`)이고 **Build Police Station Scene**이 만듭니다. 마을과 같은 경찰서 건물 프리팹을 두어 실내(창구·대기 의자·게시판·서류함·국기)는 그대로이고, 창구 뒤에 경찰관 Dan(`POLICE_OFFICER`)·Victor·Kevin·Tyler를 세워(창구에 가장 가까운 Dan이 근무 중이면 먼저 응대) 경찰관마다 신고 창구(`PoliceReportDesk`)를 붙입니다. 창구는 순찰차와 다른 장면이라 접수 문구에 쓸 장소 이름(순찰차 출동 장소와 같은 목록)을 옮겨 두고, 신고는 `PoliceDispatchOrder`에 남깁니다. 경찰관에 생활을 붙이고 경찰서 바닥을 구운 뒤 경찰서 1층 안에서만 지내게 합니다. 새 경찰관은 창구 뒤 자리가 가구와 겹치면 가까운 빈자리로 옮기고, 외형 표의 배색을 입힙니다. 마지막으로 **Apply Taxi Cabin**과 같은 구성으로 택시 목적지에 경찰서를 더합니다.
 
-- 순찰차 모델은 KayKit City Builder Bits의 `car_police`이고 프리팹은 `Prefabs/World/PoliceStation/PoliceCar.prefab`입니다. 지붕 경광등 위에 빨강·파랑 발광 조각과 불빛(`LightBar/RedLights`, `LightBar/BlueLights`)을 얹어 두었습니다.
+- 순찰차 모델은 KayKit City Builder Bits의 `car_police`이고 프리팹은 `Prefabs/World/PoliceStation/PoliceCar.prefab`입니다. 지붕 경광등 위에 빨강·파랑 발광 조각과 불빛(`LightBar/RedLights`, `LightBar/BlueLights`)을 얹어 두었습니다. 운전자가 보이도록 승용차·택시처럼 차 텍스처의 유리 칸을 투명하게 했습니다.
+- **Tools → A305 → World → Apply Patrol Car Drivers**는 경찰관 4명마다 창구와 같은 외형(외형 표의 경찰 프리팹 + 배색)을 순찰차 운전석에 앉히고(택시 기사와 같은 앉히기, 모자까지 지붕 아래로 맞춤) 순찰차에 잇습니다. 걷기용 뼈 보정 스크립트는 앉은 자세를 바꾸므로 뺍니다. 이미 앉힌 경찰관은 덮어쓰지 않습니다. **Capture Police Station**이 운전석 장면(`driver-side.png`, `driver-front.png`)도 찍습니다.
 - 경찰관 외형은 모자·제복을 포함한 `Prefabs/Npc/Review/LittleMung_Police_Male.prefab`입니다. 공통 마스터 골격과 입·미소·눈 감기 채널을 사용하며, `NpcVisualBuilder`가 실제 몸·눈 높이에 캡슐과 시선을 맞춥니다. 별도의 모자를 중복해서 붙이지 않습니다. 경찰 여자 검수 사본도 준비되어 있지만 기존 네 경찰의 역할에는 배정하지 않습니다.
 - 순찰차는 택시와 같은 본길(남쪽 끝 z=-25, 북쪽 끝 z=66)을 달리고, 택시 목적지와 같은 정차 지점을 씁니다(경찰서 자신은 빼고 10곳). 주차 칸은 (-9, -28.8)이고, 진입로는 동쪽 끝 정원수(-3.7, -27.8)를 피해 그 북쪽으로 지납니다.
 - 주차장·순찰차 프리팹·경찰관 외형은 없을 때만 만들고, 이미 있으면 배치를 두고 연결(본길 설정·진입로 조절점·목적지·경광등·창구)만 맞춥니다. **Capture Police Station**은 검토용 화면을 `artifacts/unity/police-station/`에 저장합니다.
@@ -219,7 +218,7 @@
 
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
-| `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 택시 목적지·경찰 신고 판별과 순찰차 출동 단계, 차가 도는 길·신호·택시 세우기, 공간 이동과 기능 연결 도구, 재접속 위치 저장, 사물 이동 Collider, 거리 매장 직원과 색 바꾸기, 영업시간·마감 남은 시간과 장소 씬 연결 |
+| `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 택시 목적지·경찰 신고 대기열과 순찰차 출동 단계, 차가 도는 길·신호·택시 세우기, 공간 이동과 기능 연결 도구, 재접속 위치 저장, 사물 이동 Collider, 거리 매장 직원과 색 바꾸기, 영업시간·마감 남은 시간과 장소 씬 연결 |
 | `A305.World.PlayModeTests` | `Assets/Tests/PlayMode/World/` | 대표 공간 전환의 도착·화면 덮기·중첩 로드, 실내 씬의 방문 중 로드·퇴장 후 해제, 닫힌 장소 출입 막기와 마감 뒤 마을로 옮기기 |
 
 `A305.World.PlayModeTests`는 `TestGameClock`으로 게임 시각을 고정합니다. 운영 데이터의 가게는 모두 24시간 영업하므로 `OpeningHoursTests`는 카페·우체국의 테스트용 시간표를 넣어 출입 거절·조명 전환·마감 퇴장을 검증하고, 종료 시 24시간 영업 기본값으로 복원합니다. `SpaceTravelTests`는 오후 1시로 고정합니다.

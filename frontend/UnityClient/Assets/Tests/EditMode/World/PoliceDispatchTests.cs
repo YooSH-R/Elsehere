@@ -32,6 +32,35 @@ namespace A305.World.Tests
             Assert.That(dispatch.LightsOn, Is.True);
         }
 
+        // 신고를 받은 경찰관이 직접 순찰차를 몰고 나가, 돌아와 주차할 때까지 운전석에 있다.
+        [Test]
+        public void Dispatch_WithTheOfficer_KeepsThemAtTheWheelUntilParkedAgain()
+        {
+            dispatch.TryDispatch("DINER", "POLICE_SERGEANT");
+            Assert.That(dispatch.DriverCode, Is.EqualTo("POLICE_SERGEANT"));
+
+            dispatch.Tick(reachedLegEnd: true, deltaSeconds: .1f); // 장소로
+            dispatch.Tick(reachedLegEnd: true, deltaSeconds: .1f); // 장소 앞
+            dispatch.Tick(reachedLegEnd: false, deltaSeconds: PoliceDispatch.OnSceneSeconds);
+            dispatch.Tick(reachedLegEnd: true, deltaSeconds: .1f); // 주차 칸으로
+            Assert.That(dispatch.DriverCode, Is.EqualTo("POLICE_SERGEANT"));
+
+            dispatch.Tick(reachedLegEnd: true, deltaSeconds: .1f);
+
+            Assert.That(dispatch.Phase, Is.EqualTo(PolicePhase.Parked));
+            Assert.That(dispatch.DriverCode, Is.Null);
+        }
+
+        [Test]
+        public void Dispatch_WhileAlreadyOut_KeepsTheFirstOfficerAtTheWheel()
+        {
+            dispatch.TryDispatch("DINER", "POLICE_OFFICER");
+
+            dispatch.TryDispatch("BANK", "POLICE_ROOKIE");
+
+            Assert.That(dispatch.DriverCode, Is.EqualTo("POLICE_OFFICER"));
+        }
+
         [Test]
         public void Dispatch_WhileAlreadyOut_IsIgnored()
         {

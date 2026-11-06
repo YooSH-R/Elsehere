@@ -27,6 +27,7 @@ namespace A305.World
     /// <summary>
     /// 순찰차의 출동 흐름. 신고를 받으면 경광등을 켜고 주차 칸을 나와, 장소가 있으면 그 앞에서 잠시 서 있다가 돌아오고,
     /// 장소가 없으면 본길을 한 바퀴 순찰하고 돌아온다. 돌아오는 길에는 경광등을 끈다.
+    /// 신고를 받은 경찰관이 직접 운전해 나갔다가 주차 칸에 다시 설 때까지 운전석에 있다.
     /// 단계마다 가야 할 곳(진입로 끝, 장소 앞, 돌아올 지점)에 닿았는지는 차를 움직이는 쪽이 알려 준다.
     /// </summary>
     public sealed class PoliceDispatch
@@ -41,6 +42,9 @@ namespace A305.World
         /// <summary>출동한 장소 코드. 순찰이거나 서 있을 때는 null이다.</summary>
         public string SceneCode { get; private set; }
 
+        /// <summary>운전석의 경찰관 NPC 코드. 서 있거나 경찰관 없이 출동했으면 null이다.</summary>
+        public string DriverCode { get; private set; }
+
         public bool LightsOn =>
             Phase == PolicePhase.LeavingBay
             || Phase == PolicePhase.Responding
@@ -48,12 +52,14 @@ namespace A305.World
             || Phase == PolicePhase.OnScene;
 
         /// <param name="sceneCode">신고한 장소 코드. null이면 순찰한다.</param>
+        /// <param name="driverCode">신고를 받아 직접 운전해 나갈 경찰관의 NPC 코드. null이면 경찰관 없이 나간다.</param>
         /// <returns>서 있다가 출동했으면 true. 이미 나가 있으면 새 신고는 받지 않는다.</returns>
-        public bool TryDispatch(string sceneCode)
+        public bool TryDispatch(string sceneCode, string driverCode = null)
         {
             if (Phase != PolicePhase.Parked)
                 return false;
             SceneCode = sceneCode;
+            DriverCode = driverCode;
             Phase = PolicePhase.LeavingBay;
             return true;
         }
@@ -82,6 +88,7 @@ namespace A305.World
                 case PolicePhase.EnteringBay when reachedLegEnd:
                     Phase = PolicePhase.Parked;
                     SceneCode = null;
+                    DriverCode = null;
                     break;
             }
         }

@@ -24,6 +24,7 @@ STEPS = {
     "# 대화 피드백": "feedback",  # ai/feedback 모듈의 지시문
     "You keep the memory": "memory",
     "You decide whether a character": "follow_up",
+    "You decide how a police call ends": "follow_up",  # 경찰관 출동 결과(같은 /v1/npc/follow-up)
     "You translate one line said by a character": "meaning",
     "You suggest words": "suggest",
 }

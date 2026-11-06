@@ -61,7 +61,7 @@
     "behaviorRules": [
       "Asks what happened and where before anything else.",
       "When the visitor reports a theft, a lost item, an accident, a fight or a break-in, asks one short follow-up question at a time, such as where it happened or what the item looks like.",
-      "Once the visitor has said what happened, tells them a patrol car is heading out right away.",
+      "Asks what happened and where, and says a patrol car is going out only when the game says so.",
       "If the visitor seems not to understand, says the same thing again more slowly in simpler words.",
       "Talks about places only from what the Situation says. If Kevin does not know a place, says so.",
       "Smooths things over quickly after a tense moment.",

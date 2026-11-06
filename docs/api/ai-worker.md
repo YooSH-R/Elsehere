@@ -171,7 +171,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `dropped` | `true`면 행동 묘사만 있었던 것. 모델을 부르지 않았고 `intent`·`translation`·`events`·`affinity_delta`는 `null`. **턴으로 세지 않고** `notice`를 보여 줌 |
 | `notice` | 학습자에게 보여 줄 한국어 안내 (행동 묘사를 지웠을 때) |
 | `intent.ids` | 말한 순서대로 최대 3개. Spring이 **하나씩 현재 상태에서 다시 검증**해 적용. `id`는 `ids[0]` |
-| `intent.slots` | 요청 `state.slots`에 있는 칸만. 상품은 `catalog` 안의 이름만, `iced`는 `iced_ok`에 있을 때만 |
+| `intent.slots` | 요청 `state.slots`에 있는 칸만. 상품은 `catalog` 안의 이름만, `iced`는 `iced_ok`에 있을 때만. 선택 칸(`option`)은 `labels` 중 하나, 말하지 않았으면 `"none"`. 경찰서 창구는 이 칸(`place`)으로 신고 장소를 고름(백엔드 `PoliceDesk`, 평가 `ai/tools/police_report_eval.py`) |
 | `intent.error` | 의도 판정 실패 시 메시지, 이때 `id`는 `unclear`. **상태·금액을 바꾸지 말고 다시 물을 것** |
 | `translation` | 한글이 섞였을 때만 `{"english", "error"}`. 화면에 보여 줄지는 `/v1/guard` 결과로 Spring이 정함(0.1절 번역 카드) |
 | `events` | 이 줄에서 학습자가 한 대화 사건. `GREETING`·`SMALL_TALK`·`PERSONAL_QUESTION`·`APOLOGY`·`COMPLIMENT`·`HELP`·`TASK_DONE`·`LEAVE` 중 0개 이상. 의도 판정과 같은 호출에서 고름. 의도 판정이 실패하면 `[]`, `dropped`면 `null`. **이 줄에 저장해 다음 요청의 `history[].events`로 보냄** |
@@ -405,7 +405,9 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 끝난 대화에서 NPC가 학습자의 주문·요청을 받아 지금 그 자리에서 만들거나 준비하고 있어 곧 건넬 것이 있는지 판정합니다. 만들고 있는 음료, 굽는 음식, 빨래가 그 예입니다. `/v1/memory`와 같은 자리(대화 종료 처리)에서 부릅니다. 판정 규칙은 모든 NPC·장소에 같고, NPC마다 따로 적지 않습니다. 준비 시각을 정해 저장하는 일과 준비되면 NPC가 다시 부르는 일은 백엔드와 Unity가 합니다([MVP API 명세](mvp-api.md) CONV-08·CONV-13·CONV-01). 워커는 저장하지 않습니다.
 
-요청: `npc`(`name`·`role`·`scene`), `history`(최대 200줄. 학습자 줄의 `english`·`rude` 포함).
+요청: `npc`(`name`·`role`·`scene`), `history`(최대 200줄. 학습자 줄의 `english`·`rude` 포함), `kind`(`handover` 기본값, `police_call`).
+
+`kind: "police_call"`은 경찰서 창구의 경찰관과 끝난 대화입니다(백엔드 `PoliceDesk`). 백엔드가 사용자 턴에 신고 접수를 저장한 대화만 이 종류로 요청합니다. 앞선 출동 때문에 출발을 기다리는 경우도 포함하며, 건넬 것 대신 해당 순찰을 마친 뒤 알릴 해결 결과를 정합니다. 분실·도난품은 찾아서 돌려주고, 소란은 진정시켜 돌려보내고, 다친 사람은 도와 괜찮아지고, 길 잃은 아이·동물은 가족에게 찾아 주는 식입니다. 학습자가 말한 물건·장소·사람을 그대로 쓰고, 용의자 이름이나 범죄 세부는 지어내지 않습니다. 응답 형식은 같고 `item`은 경찰관이 알릴 결과("your wallet, found at Maple Diner"), `item_ko`는 카드 제목("지갑 수색 결과"), `wait`는 늘 `SHORT`(순찰을 마치고 돌아오는 시간)입니다. 일반 경찰 대화와 비번 대화는 백엔드가 이 판정을 요청하지 않습니다.
 
 응답: `{"follow_up": {"item": "iced latte", "item_ko": "아이스 라테", "wait": "QUICK"}, "usage": [...]}`. 건넬 것이 없으면 `"follow_up": null`입니다.
 

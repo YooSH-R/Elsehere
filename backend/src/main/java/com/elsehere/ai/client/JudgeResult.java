@@ -1,6 +1,7 @@
 package com.elsehere.ai.client;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 의도·번역 판정(/v1/judge) 결과. 의도는 제안이며 상태를 바꿀지는 Spring이 정한다.
@@ -42,7 +43,19 @@ public record JudgeResult(
     this(text, dropped, notice, translation, usage, intent, null, null);
   }
 
-  public record Intent(String id, List<String> ids, String error) {}
+  /**
+   * @param slots 상태가 함께 고르게 한 값(예: 경찰 창구의 {@code place}). 없으면 빈 맵
+   */
+  public record Intent(String id, List<String> ids, Map<String, Object> slots, String error) {
+
+    public Intent {
+      slots = slots == null ? Map.of() : slots;
+    }
+
+    public Intent(String id, List<String> ids, String error) {
+      this(id, ids, Map.of(), error);
+    }
+  }
 
   /** 번역이 실패했으면 {@code english}가 null이고 {@code error}에 이유가 있다. */
   public record Translation(String english, String error) {}

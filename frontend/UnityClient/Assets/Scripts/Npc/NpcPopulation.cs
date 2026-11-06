@@ -28,6 +28,10 @@ namespace A305.Npc
         [SerializeField]
         private Transform townCharacters;
 
+        private DialogueController dialogue;
+        private PlayerMover player;
+        private PasserbyOfferView offerView;
+
         [Serializable]
         public sealed class Resident
         {
@@ -54,6 +58,9 @@ namespace A305.Npc
 
         private void Start()
         {
+            dialogue = FindFirstObjectByType<DialogueController>();
+            player = FindFirstObjectByType<PlayerMover>();
+            offerView = FindFirstObjectByType<PasserbyOfferView>();
             NpcLifeData data = NpcLifeData.Parse(lifeData.text);
             foreach (Resident resident in residents)
             {
@@ -62,11 +69,7 @@ namespace A305.Npc
                     resident.TownBody = Instantiate(resident.TownPrefab, townCharacters);
                     resident
                         .TownBody.GetComponent<Passerby>()
-                        .ConnectToTown(
-                            FindFirstObjectByType<PlayerMover>(),
-                            FindFirstObjectByType<DialogueController>(),
-                            FindFirstObjectByType<PasserbyOfferView>()
-                        );
+                        .ConnectToTown(player, dialogue, offerView);
                 }
                 GameObject body = resident.Worker != null ? resident.Worker : resident.TownBody;
                 resident.Life = data.FindNpc(body.GetComponent<NpcIdentity>().Code);
@@ -76,6 +79,9 @@ namespace A305.Npc
 
         private void Update()
         {
+            // 장면을 내릴 때 대화 처리가 먼저 사라질 수 있다. 연결이 끊긴 출퇴근 NPC를 그 사이에 새로 깨우지 않는다.
+            if (dialogue == null)
+                return;
             foreach (Resident resident in residents)
             {
                 if (resident.Life == null)
@@ -94,9 +100,21 @@ namespace A305.Npc
                     bool roomLoaded =
                         string.IsNullOrEmpty(resident.InteriorScene)
                         || SceneManager.GetSceneByName(resident.InteriorScene).isLoaded;
-                    resident.Worker.SetActive(plan.Phase == NpcDayPhase.Working && roomLoaded);
+                    // 순찰차를 몰고 나간 경찰관은 돌아와 주차할 때까지 창구에 두지 않는다(PoliceCar).
+                    resident.Worker.SetActive(
+                        plan.Phase == NpcDayPhase.Working
+                            && roomLoaded
+                            && !PoliceCar.IsOutOnPatrol(resident.Life.NpcId)
+                    );
+                }
+                if (resident.TownBody != null && PoliceDispatchOrder.IsAway(resident.Life.NpcId))
+                {
+                    resident.TownBody.SetActive(false);
+                    continue;
                 }
                 if (resident.TownBody == null || IsTalking(resident.TownBody))
+                    continue;
+                if (player == null || offerView == null)
                     continue;
                 bool appeared = !resident.TownBody.activeSelf;
                 if (!plan.IsInTown)

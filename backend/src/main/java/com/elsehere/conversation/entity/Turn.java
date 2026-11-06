@@ -18,6 +18,7 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.ColumnTransformer;
 
 /**
@@ -75,6 +76,14 @@ public class Turn extends BaseEntity {
   @ColumnTransformer(write = "?::jsonb")
   private String events;
 
+  // 출동 장소와 접수 여부를 함께 저장해 첫 응답이 유실되어도 같은 요청에 같은 출동 정보를 돌려준다.
+  @Column(nullable = false)
+  @ColumnDefault("false")
+  private boolean policeDispatch;
+
+  @Column(length = 40)
+  private String policeDispatchPlaceCode;
+
   @Column(columnDefinition = "text")
   private String meaningKo;
 
@@ -131,6 +140,12 @@ public class Turn extends BaseEntity {
   /** 무례로 센 사용자 턴인지. 판정하지 못한 턴은 세지 않는다. */
   public boolean isRude() {
     return Boolean.TRUE.equals(guardAbusive);
+  }
+
+  /** 경찰 신고를 접수한 사용자 턴. 장소가 null이면 본길 순찰이다. */
+  public void recordPoliceDispatch(String placeCode) {
+    policeDispatch = true;
+    policeDispatchPlaceCode = placeCode;
   }
 
   /** 번역 카드는 번역이 있고 무례가 아니라고 확정된 사용자 턴에만 보여 준다. */

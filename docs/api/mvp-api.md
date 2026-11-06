@@ -793,7 +793,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - `conversation`은 CONV-03 응답과 같은 형식의 대화 상태입니다. 대화 화면이 처음부터 무례 경고 칸(`rudeLimit`개)과 이 NPC의 지금 호감도(`affinity`)를 보여 줍니다. 처음 만난 NPC의 호감도는 0입니다. `status`는 위쪽 `status`와 같은 값이며, 위쪽 값은 이전 클라이언트를 위해 남겨 둡니다.
 - 화면 14의 [E 대화하기]는 `initiatedBy: USER`, 튜토리얼 뒤 거리 행인의 말걸기에 응답하면 `initiatedBy: NPC`입니다. 행인 말걸기를 거절하거나 무시하면 서버를 호출하지 않습니다.
 - `initiatedBy: NPC`면 이미 보여준 `approachLine`을 첫 NPC 턴으로 저장하며 AI를 호출하지 않습니다. 근무 시간이 아닌 NPC(`npcOffDuty: true`)는 예외입니다.
-- 이 NPC가 곧 건네기로 한 것(CONV-08 `followUp`)이 준비됐으면, `initiatedBy`·`approachLine`과 관계없이 AI가 그것을 건네는 첫마디("Your iced latte is ready! Here you go—enjoy!")를 만들고 건넨 것으로 표시합니다. 응답의 `deliveredFollowUpId`가 그 `followUpId`이고, 건넨 것이 없으면 `null`입니다. 클라이언트는 이 값으로 기다림 카드를 지웁니다. 아직 준비되지 않았으면 평소처럼 시작하고 건네지 않습니다.
+- 이 NPC가 곧 건네기로 한 것(CONV-08 `followUp`)이 준비됐으면, `initiatedBy`·`approachLine`과 관계없이 AI가 그것을 건네는 첫마디("Your iced latte is ready! Here you go—enjoy!")를 만들고 건넨 것으로 표시합니다. 경찰관이면 출동을 다녀와 결과를 알리는 첫마디("I'm back—found your wallet at the diner. Here you go!")입니다. 응답의 `deliveredFollowUpId`가 그 `followUpId`이고, 건넨 것이 없으면 `null`입니다. 클라이언트는 이 값으로 기다림 카드를 지웁니다. 아직 준비되지 않았으면 평소처럼 시작하고 건네지 않습니다.
 - `npcOffDuty`(선택, boolean)는 NPC가 맡은 교대 밖이라 일하지 않는 중이면 `true`입니다. 없거나 `null`이면 `false`(근무 중)로 보아, 이 칸을 보내지 않는 클라이언트는 지금처럼 응대 상황으로 대화합니다. 교대는 [NPC 생활·관계 설계](../npc-life-design.md) 6절 "일과와 교대"를 따릅니다.
   - `true`로 시작한 대화는 그대로 저장되어(`conversations.npc_off_duty`) 그 대화의 첫 인사·대답·의도와 무례 판정·힌트·추천 단어·뜻 보기 요청에 응대 상황 대신 쉬는 중에 잡담하는 일상 상황을 보냅니다(워커 요청의 `npc.scene`). NPC는 주문을 받거나 손님을 응대하지 않습니다.
   - 첫 대사는 저장된 말걸기 대사가 아니라 AI가 만든 일상 인사이며, 무엇을 도와줄지 묻지 않습니다. 대화 종료 피드백은 일상 대화로 평가합니다.
@@ -866,7 +866,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "speech": { "status": "READY", "url": "/api/v1/turns/105/speech" }
   },
   "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3, "affinity": 12, "timeLimitAt": "2026-11-05T14:05:00+09:00", "graceUntil": "2026-11-05T14:05:30+09:00", "closing": false, "finalTurnsRemaining": 0 },
-  "missionUpdates": []
+  "missionUpdates": [],
+  "policeDispatch": null
 }
 ```
 
@@ -882,6 +883,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - TTS가 실패해도 응답은 성공으로 돌려주고 `speech.status`를 `FAILED`로 표시합니다. 클라이언트는 자막을 보여주고 CONV-07로 다시 시도합니다.
 - AI가 미션 완료나 대화 종료를 제안하면 서버가 검증해 확정합니다(`ai_candidates`). 확정된 결과만 `missionUpdates`와 `conversation.status`에 반영합니다. 한 턴에서 여러 미션이 함께 완료될 수 있습니다.
 - 서버는 한 턴에서 무례 판정과 의도·번역 판정을 같은 문장으로 동시에 요청하고 둘 다 기다린 뒤 NPC 대답을 만듭니다.
+
+**경찰 신고** — 경찰서 창구의 경찰관(`POLICE_OFFICER`·`POLICE_SERGEANT`·`POLICE_PATROL_OFFICER`·`POLICE_ROOKIE`)에게 한 말은 의도 판정이 정해진 단어가 아니라 문맥으로 출동할 일(도난·분실·사고·싸움·수상한 사람 등)인지와 장소를 고릅니다. 출동할 일과 장소가 나오면(본길이나 장소를 모르면 본길 순찰) `policeDispatch`에 `{ "placeCode": "BAKERY" }`처럼 출동할 곳을 담고, 경찰관이 직접 순찰차로 간다고 말하며 그 턴에 대화를 마칩니다(`ENDED_BY_NPC`). `placeCode`는 마을 장소 코드(`HOME`·`HOTEL`·`CAFE`·`SHOP`·`POST_OFFICE`·`DINER`·`BANK`·`LAUNDROMAT`·`FLOWER_SHOP`·`BARBER`·`BAKERY`·`PARK`·`ARCADE`·`HOME_STORE`·`ICE_CREAM_PLAZA`)이고, `null`이면 본길 순찰입니다. 신고만 하고 장소를 말하지 않았으면 출동하지 않고 경찰관이 장소를 묻습니다. 비번(`npcOffDuty`) 경찰관과의 대화, 출동하지 않는 턴, 무례로 센 턴에서는 `policeDispatch`가 `null`입니다. 접수 여부와 장소는 사용자 턴에 저장하므로 같은 `requestId`로 다시 보내도 동일한 출동 정보를 돌려줍니다. 클라이언트는 `userTurn.turnId`로 중복 접수를 막고 추가 신고를 순서대로 보관합니다. 경찰관은 앞선 출동이 끝난 뒤 차례로 출동하므로 정확한 출발 시각은 약속하지 않습니다. 판정 상태는 백엔드 `PoliceDesk`, 평가는 `ai/tools/police_report_eval.py`입니다.
 
 **스트리밍** — 요청 헤더에 `Accept: text/event-stream, application/json`을 붙이면 NPC 대사 글자와 문장 조각 음성을 만들어지는 대로 SSE(`text/event-stream`)로 받습니다. 요청 본문, 판정 → 대답 순서, 턴 저장, 같은 `requestId` 처리는 위와 같습니다. Accept에 `text/event-stream`이 없으면 지금처럼 JSON 한 번으로 응답합니다. 전송→첫 글자·첫 음성이 대답 전체를 기다리는 것보다 짧습니다.
 
@@ -1116,7 +1119,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 응답은 피드백 생성을 기다립니다(AI 워커 상한 60초). 짧은 피드백과 발화별 상세 평가(FB-03)를 AI 워커 `/v1/feedback` 한 번으로 함께 만들어 저장합니다([피드백 연동](feedback-integration.md)).
 - 같은 대화를 다시 종료하면 피드백을 새로 만들지 않고 저장된 피드백을 돌려줍니다.
 - 사용자가 말한 대화를 끝내면 NPC 기억 카드를 따로 갱신합니다. 이번 대화가 좋았다고 판단되면 이때 그 NPC의 호감도도 올리며(학습자가 3줄 이상 말한 대화, +3), 오른 값은 다음 대화의 CONV-01 `conversation.affinity`에 보입니다. 응답은 카드 갱신을 기다리지 않으며, 갱신에 실패하면 이전 카드와 호감도를 유지합니다([기억 연동](npc-memory-integration.md)).
-- `followUp`은 이 대화에서 NPC가 주문·요청을 받아 지금 만들거나 준비하고 있어 곧 건넬 것입니다(음료·음식·빨래 등). 진열된 물건을 그 자리에서 건네는 가게 직원과의 대화는 판정하지 않습니다(CONV-13). 건넬 것이 없으면 `null`입니다. 모든 NPC·장소에 같은 규칙으로 AI 워커 `/v1/npc/follow-up`([AI 워커 명세](ai-worker.md) 2.7.3절)이 판정하고, 피드백을 만드는 동안 함께 끝냅니다. 판정에 실패하면 `null`이며 종료·피드백에는 영향이 없습니다.
+- `followUp`은 이 대화에서 NPC가 주문·요청을 받아 지금 만들거나 준비하고 있어 곧 건넬 것입니다(음료·음식·빨래 등). 서버가 신고 접수를 기록한 경찰 대화만 순찰을 다녀와 알릴 해결 결과를 판정합니다(`itemKo` 예: "지갑 수색 결과", 90초, AI 워커 `kind: police_call`). 진열된 물건을 그 자리에서 건네는 가게 직원과의 대화는 판정하지 않습니다(CONV-13). 건넬 것이 없으면 `null`입니다. 모든 NPC·장소에 같은 규칙으로 AI 워커 `/v1/npc/follow-up`([AI 워커 명세](ai-worker.md) 2.7.3절)이 판정하고, 피드백을 만드는 동안 함께 끝냅니다. 판정에 실패하면 `null`이며 종료·피드백에는 영향이 없습니다.
   - 학습자가 말하지 않았거나 무례로 끝난 대화는 판정하지 않습니다. NPC가 마무리한 대화(`NPC_ENDED`)와 학습자가 끝낸 대화는 같습니다.
   - 준비 시각은 판정한 때부터 기다림 정도만큼 뒤입니다. 음료·간식 45초, 조리한 음식·포장 90초, 세탁·수선 180초(실제 시간)입니다. `remainingSeconds`는 서버 시각으로 센 남은 초(준비됐으면 0)이고, `ready`는 준비됐는지입니다. 클라이언트는 받은 때부터 `remainingSeconds`를 줄여 보이고 자기 시계로 `readyAt`을 다시 계산하지 않습니다.
   - 사용자 × NPC마다 기다리는 것은 하나입니다. 같은 NPC에게 새로 받은 약속이 앞의 것을 바꿉니다.

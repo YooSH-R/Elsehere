@@ -209,8 +209,9 @@ class ReviewConversationServiceTest {
       assertThat(turn.policeDispatch()).isNull();
       assertThat(turn.conversation().status())
           .isEqualTo(count == 3 ? ConversationStatus.ENDED_BY_NPC : ConversationStatus.ACTIVE);
-      if (count == 3)
+      if (count == 3) {
         assertThat(turn.conversation().endReason()).isEqualTo(ConversationEndReason.RUDE);
+      }
     }
     assertThat(firstDayMissionRepository.findById(userId).orElseThrow().getStage()).isEqualTo(1);
     then(memoryService).shouldHaveNoInteractions();

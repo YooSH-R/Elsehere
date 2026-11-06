@@ -337,7 +337,7 @@ namespace A305.Npc
         /// <summary>
         /// 플레이어가 클릭·탭으로 이 NPC에게 말을 걸 수 있는지(기능 명세 F-22). 커서를 올렸을 때 테두리도 이 값으로 그린다.
         /// 다른 대화·창·진행 흐름이 막으면 걸 수 없고, 클릭 거리 안이면 다가오거나 제안하는 중에도 걸 수 있다.
-        /// 대화를 다 쓴 게스트는 가입 안내 창을 열 수 있으므로 걸 수 있다고 본다. 다른 NPC가 거절할 수 없는 제안을 하는 중이면 걸 수 없다.
+        /// 일일 대화 한도에 닿았거나 다른 NPC가 거절할 수 없는 제안을 하는 중이면 걸 수 없다.
         /// </summary>
         /// <param name="reachMeters">클릭으로 말을 걸 수 있는 수평 거리</param>
         public bool CanTalkByClick(float reachMeters)
@@ -363,9 +363,9 @@ namespace A305.Npc
 
         /// <summary>
         /// 플레이어가 이 NPC를 클릭·탭했다(<see cref="CanTalkByClick"/>). 제안 중이면 그 창을 유지하고, 아니면 플레이어가 먼저 말을 걸지 확인한다.
-        /// 다른 NPC의 제안은 [지금은 안 할래요]를 누른 것처럼 닫는다. 대화를 다 쓴 게스트에게는 가입 안내 창을 연다.
+        /// 다른 NPC의 제안은 [지금은 안 할래요]를 누른 것처럼 닫는다.
         /// </summary>
-        /// <returns>확인 창이나 기존 제안·가입 안내 창을 표시했으면 true</returns>
+        /// <returns>확인 창이나 기존 제안을 표시했으면 true</returns>
         public bool TalkByClick(float reachMeters)
         {
             if (!CanTalkByClick(reachMeters))

@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using A305.Api;
 
@@ -11,18 +12,34 @@ namespace A305.Dialogue
     /// </remarks>
     public sealed class ConversationAllowance
     {
-        public bool CanStartConversation { get; private set; } = true;
+        private static readonly TimeSpan ServiceOffset = TimeSpan.FromHours(9);
+        private readonly Func<DateTimeOffset> now;
+        private DateTime? statusDay;
+        private bool canStartConversation = true;
+        private int? remainingConversations;
+
+        public ConversationAllowance(Func<DateTimeOffset> now = null)
+        {
+            this.now = now ?? (() => DateTimeOffset.UtcNow);
+        }
+
+        // 어제 받은 상태로 오늘의 대화를 막지 않는다. 새 시작의 최종 한도 확인은 서버에서 한다.
+        private bool IsPreviousDay =>
+            statusDay.HasValue && statusDay.Value != now().ToOffset(ServiceOffset).Date;
+
+        public bool CanStartConversation => IsPreviousDay || canStartConversation;
 
         /// <summary>게스트가 더 시작할 수 있는 대화 수. 가입 사용자이거나 아직 모르면 null이다.</summary>
-        public int? RemainingConversations { get; private set; }
+        public int? RemainingConversations => IsPreviousDay ? null : remainingConversations;
 
         /// <summary>게스트가 대화를 모두 썼는지. 가입 사용자이거나 아직 모르면 false다.</summary>
         public bool IsGuestOutOfConversations => RemainingConversations == 0;
 
         public void Apply(AiStatusData status)
         {
-            CanStartConversation = status.Capabilities?.CanStartConversation ?? true;
-            RemainingConversations = status.RemainingConversations;
+            canStartConversation = status.Capabilities?.CanStartConversation ?? true;
+            remainingConversations = status.RemainingConversations;
+            statusDay = now().ToOffset(ServiceOffset).Date;
         }
 
         /// <summary>서버에서 상태를 다시 받는다. 받지 못하면 지금 상태를 그대로 둔다.</summary>

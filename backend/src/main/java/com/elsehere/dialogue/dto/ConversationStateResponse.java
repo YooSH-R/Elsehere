@@ -10,10 +10,10 @@ import java.time.OffsetDateTime;
  * @param rudeCount 이 대화에서 무례로 센 말 수
  * @param rudeLimit 여기에 닿으면 NPC가 대화를 끝내는 무례 횟수
  * @param affinity 이 NPC의 지금 호감도(-100~100). 처음 만난 NPC는 0이다
- * @param timeLimitAt 서버 기준 대화 5분 제한 시각. Unity 카운트다운의 기준이다
- * @param graceUntil 마지막 발화도 새로 받을 수 없는 서버 기준 시각
- * @param closing 5분이 지나 자연스러운 마무리를 기다리는 중인지
- * @param finalTurnsRemaining 마무리 구간에 새로 보낼 수 있는 사용자 발화 수
+ * @param timeLimitAt 이전 클라이언트 호환 필드. 시간 제한을 사용하지 않아 null이다
+ * @param graceUntil 이전 클라이언트 호환 필드. 시간 제한을 사용하지 않아 null이다
+ * @param closing 이전 클라이언트 호환 필드. 항상 false다
+ * @param finalTurnsRemaining 이전 클라이언트 호환 필드. 항상 0이다
  */
 public record ConversationStateResponse(
     ConversationStatus status,

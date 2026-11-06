@@ -41,7 +41,7 @@ namespace A305.Npc.PlayModeTests
 
             yield return CloseFeedback();
 
-            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.True);
+            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.False);
             Assert.That(
                 Single<SurveyPromptView>().IsShowing,
                 Is.True,

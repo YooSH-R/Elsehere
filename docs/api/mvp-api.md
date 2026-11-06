@@ -1067,6 +1067,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### CONV-08 `POST /api/v1/conversations/{conversationId}/end`
 
+상황 복습 대화는 `reviewCardId`와 `reviewResult`를 함께 돌려주고 `feedback`, `followUp`은 null입니다. 추가 AI 평가·기억 갱신 대신 저장된 목표 표현의 실제 발화 근거를 한 번 기록합니다. 일반 대화의 두 복습 필드는 null이며 기존 동작을 유지합니다. 자세한 종료·재조회 계약은 [상황 복습장](review-workbook.md#복습-종료-결과와-다시-보기)을 따릅니다.
+
 ```json
 // 요청
 { "requestId": "...", "skipFeedback": false }

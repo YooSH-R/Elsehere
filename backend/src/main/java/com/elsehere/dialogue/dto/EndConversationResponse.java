@@ -5,6 +5,7 @@ import com.elsehere.conversation.entity.ConversationEndReason;
 import com.elsehere.conversation.entity.ConversationStatus;
 import com.elsehere.feedback.dto.FeedbackResponse;
 import com.elsehere.followup.dto.FollowUpResponse;
+import com.elsehere.review.dto.ReviewPracticeResultResponse;
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -26,7 +27,51 @@ public record EndConversationResponse(
     FeedbackResponse feedback,
     List<Object> completedMissions,
     FollowUpResponse followUp,
-    Long reviewCardId) {
+    Long reviewCardId,
+    ReviewPracticeResultResponse reviewResult) {
+
+  public EndConversationResponse(
+      Long conversationId,
+      ConversationStatus status,
+      ConversationEndReason endReason,
+      OffsetDateTime endedAt,
+      NpcSummaryResponse npc,
+      String sceneCode,
+      long userTurnCount,
+      FeedbackResponse feedback,
+      List<Object> completedMissions,
+      FollowUpResponse followUp,
+      Long reviewCardId) {
+    this(
+        conversationId,
+        status,
+        endReason,
+        endedAt,
+        npc,
+        sceneCode,
+        userTurnCount,
+        feedback,
+        completedMissions,
+        followUp,
+        reviewCardId,
+        null);
+  }
+
+  public EndConversationResponse withReviewResult(ReviewPracticeResultResponse result) {
+    return new EndConversationResponse(
+        conversationId,
+        status,
+        endReason,
+        endedAt,
+        npc,
+        sceneCode,
+        userTurnCount,
+        feedback,
+        completedMissions,
+        followUp,
+        reviewCardId,
+        result);
+  }
 
   public EndConversationResponse(
       Long conversationId,
@@ -65,7 +110,8 @@ public record EndConversationResponse(
         feedback,
         completedMissions,
         followUp,
-        reviewCardId);
+        reviewCardId,
+        reviewResult);
   }
 
   public EndConversationResponse withFollowUp(FollowUpResponse followUp) {
@@ -80,6 +126,7 @@ public record EndConversationResponse(
         feedback,
         completedMissions,
         followUp,
-        reviewCardId);
+        reviewCardId,
+        reviewResult);
   }
 }

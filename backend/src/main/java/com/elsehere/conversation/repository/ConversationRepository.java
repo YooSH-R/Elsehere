@@ -28,6 +28,12 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
 
   boolean existsByReviewCardIdAndStatus(Long reviewCardId, ConversationStatus status);
 
+  @Query(
+      "select c from Conversation c where c.userId = :userId and c.reviewCardId = :cardId"
+          + " and c.reviewResult is not null order by c.endedAt desc, c.id desc")
+  List<Conversation> findReviewResults(
+      @Param("userId") Long userId, @Param("cardId") Long cardId, Limit limit);
+
   long countByUserId(Long userId);
 
   long countByUserIdAndStartedAtGreaterThanEqualAndStartedAtLessThan(

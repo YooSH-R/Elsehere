@@ -48,7 +48,7 @@ com.elsehere
 | `dialogue` | 없음 (대화 흐름: 대화 시작·발화·종료, 음성 인식·NPC 음성, 뜻 보기·힌트, 지난 대화 목록 API. 피드백·기억·미션·동의를 엮는다) |
 | `feedback` | conversation_feedback, turn_feedback (대화 종료 피드백과 문장별 상세 평가, 모범 음성). `conversation_feedback.reviews` JSON은 응답 DTO와 다른 저장 전용 타입(`entity.FeedbackReviews`)으로 읽고 쓴다. 이미 저장된 피드백을 읽어야 하므로 칸 이름을 바꾸지 않고, 응답 모양을 바꿀 때는 응답으로 옮겨 담는 부분만 고친다 |
 | `memory` | user_npc_relations (NPC 기억 카드와 관계) |
-| `review` | review_cards (종료한 대화의 상황 요약·피드백 표현과 복습 기록). 저장·목록·상세·삭제는 [복습장 API](../docs/api/review-workbook.md)를 따르며 AI를 호출하지 않는다 |
+| `review` | review_cards (종료한 대화의 상황 요약·피드백 표현과 복습 기록). 저장·목록·상세·삭제와 표현 사용 근거·결과 조회는 [복습장 API](../docs/api/review-workbook.md)를 따르며 AI를 호출하지 않는다. 종료 결과는 conversations.review_result에 한 번 저장한다 |
 | `followup` | npc_follow_ups (NPC가 대화에서 곧 건네기로 한 것: 대화 종료 때 판정·저장, 기다리는 목록 CONV-13, 대화 시작 첫마디로 건넴) |
 | `world` | scenes, npcs, scene_words, user_word_prefs, user_game_clocks (사용자별 게임 시간) |
 | `vocab` | vocabularies, user_vocab |

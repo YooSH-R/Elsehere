@@ -161,7 +161,9 @@ namespace A305.Npc.PlayModeTests
             yield return null;
             Assert.That(taxi.IsPassenger, Is.True);
 
-            // 장면을 내릴 때처럼 대화 처리와 대화창을 택시보다 먼저 지운다.
+            // 실제 장면 종료처럼 신규 출현을 멈춘 뒤 대화 처리와 대화창을 택시보다 먼저 지운다.
+            // 일부 객체만 지운 채 출퇴근을 계속 실행하면 다음 검사까지 깨진 장면이 남는다.
+            Single<NpcPopulation>().enabled = false;
             Object.DestroyImmediate(Single<DialogueController>());
             Object.DestroyImmediate(Single<DialoguePanelView>().gameObject);
             taxi.enabled = false;
@@ -188,7 +190,8 @@ namespace A305.Npc.PlayModeTests
                 );
             yield return WaitUntil(() => offer.IsTalkPromptShowing);
 
-            // 장면을 내릴 때처럼 제안 화면을 택시보다 먼저 지운다.
+            // 장면 종료 중에는 새 출퇴근 NPC가 제거된 제안 화면에 연결되면 안 된다.
+            Single<NpcPopulation>().enabled = false;
             Object.DestroyImmediate(offer.gameObject);
             taxi.enabled = false;
             yield return null;

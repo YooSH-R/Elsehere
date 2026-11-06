@@ -4,5 +4,6 @@
   "mbti": "ISTP-T",
   "role": "STAFF",
   "workplace": "HOTEL",
-  "shift": "DAY"
+  "shift": "DAY",
+  "resident": true
 }

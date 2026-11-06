@@ -13,6 +13,36 @@ namespace A305.Npc.Tests
     {
         private const string SeedRelativePath = "backend/src/main/resources/db/seed/world.sql";
 
+        [TestCase("Barista")]
+        [TestCase("HotelStaff")]
+        public void SeparateBlinkEyes_ChangeIrisColorWithoutRecoloringTheBody(string lookName)
+        {
+            var look = NpcLooks.All.Single(item => item.Name == lookName);
+            var member = new NpcCastMember(
+                "EYE_CHECK",
+                look,
+                null,
+                null,
+                null,
+                null,
+                new NpcTint("blue", .6f, .6f)
+            );
+            Color32 iris = new Color32(40, 70, 35, 255);
+            Color32 white = new Color32(240, 240, 240, 255);
+            var result = NpcColorSwap.Recolor(new[] { iris, white }, member.EyeSwaps());
+            Assert.That(
+                result[0],
+                Is.Not.EqualTo(iris),
+                "별도 눈 메시의 홍채에 지정한 색을 적용합니다."
+            );
+            Assert.That(result[1], Is.EqualTo(white), "흰자는 보존합니다.");
+            Assert.That(
+                member.BodySwaps(),
+                Is.Empty,
+                "눈 색만 바꿀 때 몸 텍스처를 다시 칠하지 않습니다."
+            );
+        }
+
         [Test]
         public void PoliceHairRecolorIncludesTheNapeAndKeepsSkinAndUniform()
         {

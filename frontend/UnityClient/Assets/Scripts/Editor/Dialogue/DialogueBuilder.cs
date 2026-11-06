@@ -64,10 +64,16 @@ namespace A305.EditorTools.Dialogue
         /// <summary>확인용 대본(없을 때만)과 대화 화면 프리팹의 기능 구성을 맞춘다. 디자인은 유지한다.</summary>
         public static void PrepareAssets()
         {
-            AddMissingMockScripts(
-                BuilderTools.LoadOrCreateAsset<MockDialogueScriptSource>(MockScriptsPath)
-            );
+            RefreshMockScripts();
             BuilderTools.UpdateOrCreatePrefab(PanelPrefabPath, "DialoguePanel", SetUpPanel);
+        }
+
+        /// <summary>대화 UI를 재생성하지 않고 확인용 대본의 이름과 이전 기본 문구만 맞춘다.</summary>
+        public static void RefreshMockScripts()
+        {
+            var scripts = BuilderTools.LoadOrCreateAsset<MockDialogueScriptSource>(MockScriptsPath);
+            AddMissingMockScripts(scripts);
+            AssetDatabase.SaveAssetIfDirty(scripts);
         }
 
         /// <summary>
@@ -120,10 +126,18 @@ namespace A305.EditorTools.Dialogue
             Object.DestroyImmediate(examples);
         }
 
-        // 상점을 편의점에서 드럭스토어로 바꿨다. 예전 기본값 그대로인 칸만 새 이름으로 고치고 직접 고친 대사는 둔다.
+        // 인물·가게 이름이 바뀐 기본 문구만 갱신한다. 직접 고친 대사는 유지한다.
         private static readonly (string Old, string Current)[] RetiredTexts =
         {
             ("편의점 직원", "드럭스토어 직원"),
+            (
+                "Hello! I'm Tyler. I just started here. How can I help?",
+                "Hello! I'm Taylor. I just started here. How can I help?"
+            ),
+            (
+                "안녕하세요! 저는 Tyler예요. 여기 막 왔어요. 무엇을 도와드릴까요?",
+                "안녕하세요! 저는 Taylor예요. 여기 막 왔어요. 무엇을 도와드릴까요?"
+            ),
             (
                 "Hi! Welcome to the convenience store. Can I help you find something?",
                 "Hi! Welcome to the drugstore. Can I help you find something?"

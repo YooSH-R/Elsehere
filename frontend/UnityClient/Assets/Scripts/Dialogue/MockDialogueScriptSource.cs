@@ -846,12 +846,12 @@ namespace A305.Dialogue
             },
             new Entry
             {
-                npcCode = "POLICE_PATROL_OFFICER",
-                npcName = "Kevin",
+                npcCode = "POLICE_ROOKIE",
+                npcName = "Taylor",
                 roleLabel = "경찰관",
                 opening = new LineEntry(
-                    "Hi, I'm Officer Kevin. Is everything okay?",
-                    "안녕하세요, 경찰관 Kevin이에요. 별일 없으세요?"
+                    "Hi, I'm Officer Taylor. Is everything okay?",
+                    "안녕하세요, 경찰관 Taylor이에요. 별일 없으세요?"
                 ),
                 keywordReplies = new List<KeywordReplyEntry>
                 {
@@ -878,8 +878,8 @@ namespace A305.Dialogue
             },
             new Entry
             {
-                npcCode = "POLICE_ROOKIE",
-                npcName = "Tyler",
+                npcCode = "POLICE_PATROL_OFFICER",
+                npcName = "Kevin",
                 roleLabel = "베이커리 직원",
                 opening = new LineEntry(
                     "Hello, dear! The croissants just came out of the oven.",

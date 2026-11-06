@@ -27,12 +27,20 @@ def npc_life_values(life: dict, rules: dict, library: dict, place: str) -> dict:
     dimensions = mbti_to_dimensions(life["mbti"])
     behaviors = pick_behaviors(dimensions, library, seed=life["npcId"])
     rates = combine_rates(derive_rates(dimensions, rules), *(behavior.get("affects", {}) for behavior in behaviors))
-    shift = rules["places"][life["workplace"]]["shifts"][life["shift"]]
     return {
         "behaviors": [behavior["id"] for behavior in behaviors],
         "rates": rates,
-        "schedule": npc_schedule(shift_day(shift, rules["roles"][life["role"]]), place),
+        "schedule": npc_schedule(life_day(life, rules), place),
     }
+
+
+def life_day(life: dict, rules: dict) -> list[dict]:
+    """상주 직원은 자리를 비우지 않고, 나머지는 기존 교대와 휴식을 따른다."""
+    role = rules["roles"][life["role"]]
+    if life.get("resident", False):
+        return [{"from": "00:00", "to": "00:00", "activity": role["onShift"]}]
+    shift = rules["places"][life["workplace"]]["shifts"][life["shift"]]
+    return shift_day(shift, role)
 
 
 def npc_schedule(template: list[dict], place: str) -> list[dict]:

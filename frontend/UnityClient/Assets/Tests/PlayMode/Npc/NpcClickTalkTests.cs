@@ -3,6 +3,7 @@ using System.Collections;
 using System.Linq;
 using System.Reflection;
 using A305.Dialogue;
+using A305.Onboarding;
 using A305.Player;
 using A305.Tutorial;
 using A305.World;
@@ -54,6 +55,11 @@ namespace A305.Npc.PlayModeTests
         // NPC 앞 거리만 바꾸는 검사에서 숙소 출입구를 밟아 씬이 바뀌지 않게 한다. 공간 이동은 World 테스트가 검증한다.
         private static void IsolateDoorways(Scene scene, LoadSceneMode mode)
         {
+            // 로그인하지 않은 클릭 검사에서 만료 안내가 이동과 이름표를 가리지 않도록 분리한다.
+            foreach (
+                var view in Object.FindObjectsByType<SessionExpiredView>(FindObjectsSortMode.None)
+            )
+                view.enabled = false;
             foreach (
                 SpaceDoorway door in Object.FindObjectsByType<SpaceDoorway>(
                     FindObjectsSortMode.None
@@ -330,6 +336,12 @@ namespace A305.Npc.PlayModeTests
             yield return FaceFrom(ben, 6f);
             yield return LetCameraSettle();
 
+            Assert.That(
+                Single<PlayerMover>().IsMovementLocked,
+                Is.False,
+                "이름표 클릭 검사 준비 중 이동 잠금이 생겼습니다."
+            );
+
             Single<NpcClickTalk>().Click(NameTagOf(ben, BenName));
             yield return null;
 
@@ -391,7 +403,7 @@ namespace A305.Npc.PlayModeTests
             yield return FaceFrom(ben, 5f);
             yield return LetCameraSettle();
             Passerby ruby = HoldNpcAlongCameraLine(ben, 1.5f);
-            yield return LetCameraSettle();
+            yield return OverlapNameTags(ben, BenName, ruby, RubyName);
 
             ruby.IsApproachAllowed = true;
             Single<NpcClickTalk>().Click(WhereNameTagsOverlap(BenName, RubyName));
@@ -416,7 +428,7 @@ namespace A305.Npc.PlayModeTests
             yield return FaceFrom(ben, 6.5f);
             yield return LetCameraSettle();
             Passerby ruby = HoldNpcAlongCameraLine(ben, -1.5f);
-            yield return LetCameraSettle();
+            yield return OverlapNameTags(ruby, RubyName, ben, BenName);
 
             ruby.IsApproachAllowed = true;
             Single<NpcClickTalk>().Click(WhereNameTagsOverlap(RubyName, BenName));
@@ -471,7 +483,7 @@ namespace A305.Npc.PlayModeTests
             PasserbyOfferRecord.Save(passerby.GetComponent<NpcIdentity>().Code, DateTime.Today);
         }
 
-        // 플레이어를 NPC 앞 주어진 거리에 NPC를 보게 세운다.
+        // NPC가 돌아본 방향과 무관하게 벽에 가리지 않는 쪽에 플레이어를 세운다.
         private static IEnumerator FaceFrom(Passerby passerby, float distanceMeters)
         {
             Vector3 npcPosition = passerby.transform.position;
@@ -611,7 +623,15 @@ namespace A305.Npc.PlayModeTests
             Assert.That(
                 new NpcPointerRaycast().Find(camera.ScreenPointToRay(onScreen), 30f),
                 Is.SameAs(passerby),
-                $"준비: {passerby.name}이(가) 맨 앞에 보여야 합니다."
+                $"준비: {passerby.name}이(가) 맨 앞에 보여야 합니다. 눈 {eye}, 가슴 {chest}, "
+                    + $"캡슐 {passerby.GetComponent<CharacterController>().bounds}, "
+                    + string.Join(
+                        ", ",
+                        Physics
+                            .RaycastAll(camera.ScreenPointToRay(onScreen), 30f)
+                            .OrderBy(hit => hit.distance)
+                            .Select(hit => $"{hit.collider.name}:{hit.distance:F3}")
+                    )
             );
             return onScreen;
         }
@@ -637,6 +657,66 @@ namespace A305.Npc.PlayModeTests
                 $"준비: {shownName}의 이름표 자리는 몸 밖이어야 합니다."
             );
             return center;
+        }
+
+        // 외형마다 시선 높이가 달라도 앞뒤 거리는 유지한 채 실제 이름표 영역을 겹친다.
+        // 이 검사는 카메라 추적이 아니라 겹친 이름표의 클릭 우선순위를 검증한다.
+        private static IEnumerator OverlapNameTags(
+            Passerby near,
+            string nearName,
+            Passerby far,
+            string farName
+        )
+        {
+            var rig = Single<PlayerCameraRig>();
+            bool wasEnabled = rig.enabled;
+            bool nearWasEnabled = near.enabled;
+            bool farWasEnabled = far.enabled;
+            rig.enabled = false;
+            near.enabled = false;
+            far.enabled = false;
+            try
+            {
+                Camera camera = Camera.main;
+                Vector3 target = near.GetComponent<NpcIdentity>().LookTarget.position + Vector3.up;
+                Vector3 towardFar = Vector3
+                    .ProjectOnPlane(far.transform.position - near.transform.position, Vector3.up)
+                    .normalized;
+                PlaceAt(
+                    far,
+                    new Pose(near.transform.position + towardFar * 1.5f, far.transform.rotation)
+                );
+                camera.transform.SetPositionAndRotation(
+                    target - towardFar * 5f,
+                    Quaternion.LookRotation(towardFar)
+                );
+                yield return LetCameraSettle();
+
+                Vector2 nearCenter = ShownNameTagRect(nearName).center;
+                Vector2 farCenter = ShownNameTagRect(farName).center;
+                float depth = camera
+                    .WorldToScreenPoint(far.GetComponent<NpcIdentity>().LookTarget.position)
+                    .z;
+                Vector3 shift =
+                    camera.ScreenToWorldPoint(new Vector3(nearCenter.x, nearCenter.y, depth))
+                    - camera.ScreenToWorldPoint(new Vector3(farCenter.x, farCenter.y, depth));
+                PlaceAt(far, new Pose(far.transform.position + shift, far.transform.rotation));
+                yield return null;
+                Assert.That(
+                    Vector3.Dot(
+                        far.transform.position - near.transform.position,
+                        camera.transform.forward
+                    ),
+                    Is.GreaterThan(1f),
+                    "준비: 이름표를 겹쳐도 앞뒤 NPC 거리는 유지해야 합니다."
+                );
+            }
+            finally
+            {
+                rig.enabled = wasEnabled;
+                near.enabled = nearWasEnabled;
+                far.enabled = farWasEnabled;
+            }
         }
 
         // 두 NPC 이름표가 겹친 곳의 가운데 화면 좌표

@@ -131,7 +131,7 @@ namespace A305.EditorTools.Npc
                 "HotelScene"
             ),
             new Staff(
-                "POLICE_ROOKIE",
+                "POLICE_PATROL_OFFICER",
                 "BakeryNightStaff",
                 "MapleBakery",
                 new Vector3(-1.6f, 0, -4.4f),
@@ -153,12 +153,13 @@ namespace A305.EditorTools.Npc
             UpdateReassignedScripts();
             ApplyReassignedVisuals();
             NpcPopulationBuilder.Build();
+            PoliceStationBuilder.ConnectDispatch();
         }
 
         public static void ApplyReassignedVisuals()
         {
             BuilderTools.ThrowIfPlaying();
-            NpcCastMember member = NpcCast.Find("POLICE_ROOKIE");
+            NpcCastMember member = NpcCast.Find("POLICE_PATROL_OFFICER");
             Scene town = EditorSceneManager.OpenScene(TownScenePath);
             NpcIdentity worker = BuilderTools
                 .FindAllInScene<NpcIdentity>(town)
@@ -167,8 +168,8 @@ namespace A305.EditorTools.Npc
             NpcCastDresser.Dress(worker.gameObject, member);
             RefreshTutorialPassersby(town);
             BuilderTools.SaveScene(town, TownScenePath);
-            // 재배치한 Tyler는 제복 대신 현재 외형 표의 사복을 출퇴근 프리팹에도 반영한다.
-            string path = "Assets/Prefabs/Npc/Commuters/POLICE_ROOKIE.prefab";
+            // 재배치한 Kevin는 제복 대신 현재 외형 표의 사복을 출퇴근 프리팹에도 반영한다.
+            string path = "Assets/Prefabs/Npc/Commuters/POLICE_PATROL_OFFICER.prefab";
             GameObject prefab = PrefabUtility.LoadPrefabContents(path);
             try
             {
@@ -238,6 +239,7 @@ namespace A305.EditorTools.Npc
             BuilderTools.ThrowIfPlaying();
             NpcBuilder.PrepareMockLines();
             Scene town = EditorSceneManager.OpenScene(TownScenePath, OpenSceneMode.Single);
+            RestorePoliceRookie(town);
             foreach (Staff staff in Staffs.Where(item => item.SourceScene != null))
                 TransferFromScene(town, staff);
             foreach (Staff staff in Staffs)
@@ -289,6 +291,57 @@ namespace A305.EditorTools.Npc
             EditorSceneManager.CloseScene(source, true);
         }
 
+        // 이전 재배치 결과에서도 여성 경찰은 경찰서로 복원하고, 남성 Kevin만 빵집으로 옮긴다.
+        private static void RestorePoliceRookie(Scene town)
+        {
+            var officer = BuilderTools
+                .FindAllInScene<NpcIdentity>(town)
+                .SingleOrDefault(npc => npc.Code == "POLICE_ROOKIE");
+            if (officer == null)
+                return;
+            Scene station = EditorSceneManager.OpenScene(
+                PoliceStationBuilder.StationScenePath,
+                OpenSceneMode.Additive
+            );
+            if (
+                BuilderTools
+                    .FindAllInScene<NpcIdentity>(station)
+                    .Any(npc => npc.Code == officer.Code)
+            )
+                throw new System.InvalidOperationException(
+                    "여성 경찰이 두 씬에 중복 배치되어 있습니다."
+                );
+            Transform building = Building(station, "PoliceStation");
+            var population = BuilderTools.FindSingleInScene<NpcPopulation>(town);
+            if (population != null)
+            {
+                var fields = new SerializedObject(population);
+                SerializedProperty residents = fields.FindProperty("residents");
+                for (int i = residents.arraySize - 1; i >= 0; i--)
+                    if (
+                        residents
+                            .GetArrayElementAtIndex(i)
+                            .FindPropertyRelative("Worker")
+                            .objectReferenceValue == officer.gameObject
+                    )
+                        residents.DeleteArrayElementAtIndex(i);
+                fields.ApplyModifiedPropertiesWithoutUndo();
+            }
+            officer.transform.SetParent(null, true);
+            SceneManager.MoveGameObjectToScene(officer.gameObject, station);
+            officer.transform.SetParent(BuilderTools.EnsureGroups(station).Characters, true);
+            officer.transform.SetPositionAndRotation(
+                building.TransformPoint(new Vector3(-1.6f, 0, -7.2f)),
+                building.rotation
+            );
+            officer.name = "PoliceRookie";
+            PoliceStationBuilder.PlaceOfficers(station);
+            PoliceStationBuilder.KeepOfficersInStation(station);
+            RefreshTutorialPassersby(station);
+            BuilderTools.SaveScene(station, station.path);
+            EditorSceneManager.CloseScene(station, true);
+        }
+
         private static void UpdateReassignedScripts()
         {
             var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(
@@ -302,19 +355,24 @@ namespace A305.EditorTools.Npc
                 SerializedProperty templates = new SerializedObject(defaults).FindProperty(
                     "entries"
                 );
-                foreach (Staff staff in Staffs.Where(item => item.Reassigned))
+                foreach (
+                    string code in Staffs
+                        .Where(item => item.Reassigned)
+                        .Select(item => item.Code)
+                        .Append("POLICE_ROOKIE")
+                )
                 {
                     for (int i = 0; i < templates.arraySize; i++)
                     {
                         SerializedProperty template = templates.GetArrayElementAtIndex(i);
-                        if (template.FindPropertyRelative("npcCode").stringValue != staff.Code)
+                        if (template.FindPropertyRelative("npcCode").stringValue != code)
                             continue;
                         for (int j = 0; j < entries.arraySize; j++)
                             if (
                                 entries
                                     .GetArrayElementAtIndex(j)
                                     .FindPropertyRelative("npcCode")
-                                    .stringValue == staff.Code
+                                    .stringValue == code
                             )
                                 entries.GetArrayElementAtIndex(j).boxedValue = template.boxedValue;
                     }

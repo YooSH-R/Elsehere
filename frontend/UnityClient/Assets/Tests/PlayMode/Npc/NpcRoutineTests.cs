@@ -253,7 +253,7 @@ namespace A305.Npc.PlayModeTests
                     return;
                 NpcRoutine jake = Routine("HOTEL_STAFF");
                 Vector3 start = jake.transform.position;
-                foreach (string code in new[] { "HOTEL_STAFF", "HOTEL_CONCIERGE" })
+                foreach (string code in new[] { "HOTEL_STAFF", "HOTEL_RECEPTIONIST" })
                 {
                     NpcRoutine worker = Routine(code);
                     CharacterController body = worker.GetComponent<CharacterController>();
@@ -275,7 +275,7 @@ namespace A305.Npc.PlayModeTests
                 SceneManager.sceneLoaded -= BringWorkersTogether;
             }
             NpcRoutine first = Routine("HOTEL_STAFF");
-            NpcRoutine second = Routine("HOTEL_CONCIERGE");
+            NpcRoutine second = Routine("HOTEL_RECEPTIONIST");
             yield return WaitUntil(() => first.IsUsing && second.IsUsing);
             Assert.That(
                 HorizontalDistance(first.transform, second.transform),
@@ -287,9 +287,9 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator CafeStaff_OnBreak_LeavesTheWorkplace()
         {
-            yield return LoadAt("CafeScene", BreakStartMinute("CAFE_STAFF"), paused: true);
+            yield return LoadAt("CafeScene", BreakStartMinute("CAFE_BARISTA"), paused: true);
             yield return null;
-            Assert.That(NpcIdentity.Active.Any(npc => npc.Code == "CAFE_STAFF"), Is.False);
+            Assert.That(NpcIdentity.Active.Any(npc => npc.Code == "CAFE_BARISTA"), Is.False);
         }
 
         [UnityTest]
@@ -421,9 +421,9 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator HotelStaff_OnBreak_LeavesTheWorkplace()
         {
-            yield return LoadAt("HotelScene", BreakStartMinute("HOTEL_STAFF"), paused: true);
+            yield return LoadAt("HotelScene", BreakStartMinute("HOTEL_RECEPTIONIST"), paused: true);
             yield return null;
-            Assert.That(NpcIdentity.Active.Any(npc => npc.Code == "HOTEL_STAFF"), Is.False);
+            Assert.That(NpcIdentity.Active.Any(npc => npc.Code == "HOTEL_RECEPTIONIST"), Is.False);
         }
 
         [UnityTest]

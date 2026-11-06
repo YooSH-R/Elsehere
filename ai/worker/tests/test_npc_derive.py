@@ -166,13 +166,32 @@ def test_an_npc_schedule_comes_from_its_shift_in_its_own_place():
     NPC가 적은 지금은 자리를 비우지 않아(canLeave false) 스스로 채우지 못하는 욕구는 모두 부탁이 된다. 퇴근(OFF)에는 장소가 없다."""
     rules = service_rules()
     rules["places"]["CAFE"]["shifts"]["OPENING"] = {"from": "07:00", "to": "15:00"}
-    values = npc_derive.npc_life_values(load_life("CAFE_STAFF"), rules, service_behaviors(), place="CAFE")
+    life = {**load_life("CAFE_STAFF"), "resident": False}
+    values = npc_derive.npc_life_values(life, rules, service_behaviors(), place="CAFE")
     assert values["schedule"] == [
         {"from": "07:00", "to": "11:00", "activity": "WORK", "scene": "CAFE", "canLeave": False},
         {"from": "11:00", "to": "11:30", "activity": "BREAK", "scene": "CAFE", "canLeave": False},
         {"from": "11:30", "to": "15:00", "activity": "WORK", "scene": "CAFE", "canLeave": False},
         {"from": "15:00", "to": "07:00", "activity": "OFF"},
     ]
+
+
+@pytest.mark.parametrize("npc_id", ["CAFE_STAFF", "HOTEL_STAFF", "SHOP_STAFF"])
+def test_resident_staff_stay_at_their_workplace_all_day_without_a_commute_or_break(npc_id):
+    life = {**load_life(npc_id), "resident": True}
+    place = home_of(npc_id)
+    values = npc_derive.npc_life_values(life, service_rules(), service_behaviors(), place)
+
+    assert values["schedule"] == [{"from": "00:00", "to": "00:00", "activity": "WORK", "scene": place, "canLeave": False}]
+
+
+def test_only_mia_jake_and_alex_are_permanent_residents():
+    residents = {
+        path.stem
+        for path in npc_life_rules.LIFE_FOLDER.glob("*.json")
+        if json.loads(path.read_text(encoding="utf-8")).get("resident", False)
+    }
+    assert residents == {"CAFE_STAFF", "HOTEL_STAFF", "SHOP_STAFF"}
 
 
 def staff_day(start: str, end: str) -> list[dict]:

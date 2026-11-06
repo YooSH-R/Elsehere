@@ -8,11 +8,21 @@ namespace A305.Npc
     [RequireComponent(typeof(Passerby))]
     public sealed class NpcTownWalker : MonoBehaviour
     {
-        private const float WalkSpeedMetersPerSecond = 1.6f;
+        private const float ArrivalToleranceMeters = .0001f;
+
+        // 일터에서 말을 걸러 다가오는 속도는 0인 직원도 있으므로 출퇴근 속도와 분리한다.
+        private const float MaximumWalkSpeedMetersPerSecond = 1.6f;
+        private const float PassingLookAheadMeters = 1.25f;
         private const float CrossingLookAheadMeters = .6f;
         private const float RequiredRedSeconds = 8f;
         private const float SignalRadiusMeters = 8f;
-        private readonly NavMeshPath path = new NavMeshPath();
+        private NavMeshPath path;
+
+        private Passerby passing;
+        private Vector3 passingForward;
+        private bool passingOnRight;
+        private float passingClearance;
+
         public Vector3 Destination { get; set; }
         public bool IsStaff { get; set; }
 
@@ -21,6 +31,10 @@ namespace A305.Npc
 
         internal static int WalkingAreas => WithoutArea(NavMesh.AllAreas, "Road");
         internal static int StandingAreas => WithoutArea(WalkingAreas, "Crosswalk");
+
+        private void Awake() => path = new NavMeshPath();
+
+        private void OnDisable() => passing = null;
 
         private static int WithoutArea(int areas, string name)
         {
@@ -33,7 +47,7 @@ namespace A305.Npc
             var body = GetComponent<Passerby>();
             Vector3 direction = Destination - transform.position;
             direction.y = 0;
-            if (direction.sqrMagnitude <= .01f)
+            if (direction.magnitude <= ArrivalToleranceMeters || Time.deltaTime <= 0f)
             {
                 body.StandFacing(transform.rotation);
                 return;
@@ -69,10 +83,10 @@ namespace A305.Npc
             }
 
             float speed = Mathf.Min(
-                WalkSpeedMetersPerSecond,
-                direction.magnitude / Mathf.Max(Time.deltaTime, .001f)
+                MaximumWalkSpeedMetersPerSecond,
+                direction.magnitude / Time.deltaTime
             );
-            body.WalkToward(direction, speed);
+            body.WalkToward(PassingDirection(body, direction), speed);
         }
 
         internal static bool ShouldWaitForSignal(
@@ -86,21 +100,25 @@ namespace A305.Npc
             Vector3 ahead = position + direction.normalized * CrossingLookAheadMeters;
             if (!OnCrosswalk(ahead, .2f))
                 return false;
-            bool controlled = false;
+            bool crossesMainRoad = Mathf.Abs(direction.x) >= Mathf.Abs(direction.z);
+            return HasNearbySignal(lights, ahead)
+                && !lights.CanCross(crossesMainRoad, RequiredRedSeconds);
+        }
+
+        internal static bool HasNearbySignal(TrafficLights lights, Vector3 position)
+        {
+            if (lights == null)
+                return false;
             foreach (TrafficSignalHead head in lights.Heads)
             {
                 if (head == null)
                     continue;
-                Vector3 offset = head.transform.position - ahead;
+                Vector3 offset = head.transform.position - position;
                 offset.y = 0;
                 if (offset.sqrMagnitude <= SignalRadiusMeters * SignalRadiusMeters)
-                {
-                    controlled = true;
-                    break;
-                }
+                    return true;
             }
-            bool crossesMainRoad = Mathf.Abs(direction.x) >= Mathf.Abs(direction.z);
-            return controlled && !lights.CanCross(crossesMainRoad, RequiredRedSeconds);
+            return false;
         }
 
         internal static bool IsRoadSurface(Vector3 point, float distance)
@@ -115,6 +133,80 @@ namespace A305.Npc
         {
             int crossing = NavMesh.GetAreaFromName("Crosswalk");
             return crossing >= 0 && NavMesh.SamplePosition(point, out _, distance, 1 << crossing);
+        }
+
+        private Vector3 PassingDirection(Passerby body, Vector3 destinationOffset)
+        {
+            Vector3 forward = destinationOffset.normalized;
+            if (passing != null)
+            {
+                Vector3 toOther = passing.transform.position - transform.position;
+                // 상대를 지난 뒤에만 원래 경로로 돌아간다. 매 프레임 좌우를 다시 고르면 몸이 흔들린다.
+                if (
+                    !passing.isActiveAndEnabled
+                    || Vector3.Dot(toOther, passingForward) < -passingClearance * .5f
+                    || Vector3.Dot(forward, passingForward) < 0
+                    || DestinationIsOccupied(passing, passingClearance)
+                )
+                    passing = null;
+            }
+
+            if (passing == null)
+            {
+                var other = NpcWalkingSpace.FindBlocker(
+                    body,
+                    forward,
+                    Mathf.Min(PassingLookAheadMeters, destinationOffset.magnitude),
+                    out _,
+                    out float clearance
+                );
+                // 목적지 자체가 차 있으면 그 둘레를 계속 맴돌지 않고 간격을 두고 기다린다.
+                if (other == null || DestinationIsOccupied(other, clearance))
+                    return destinationOffset;
+                passingForward = forward;
+                passingOnRight = true;
+                passingClearance = clearance;
+                if (!TryPassingDirection(other, out _))
+                {
+                    passingOnRight = false;
+                    if (!TryPassingDirection(other, out _))
+                        return destinationOffset;
+                }
+                passing = other;
+            }
+
+            return TryPassingDirection(passing, out Vector3 direction)
+                ? direction
+                : destinationOffset;
+        }
+
+        private bool DestinationIsOccupied(Passerby other, float clearance) =>
+            Vector3.ProjectOnPlane(Destination - other.transform.position, Vector3.up).sqrMagnitude
+            < clearance * clearance;
+
+        private bool TryPassingDirection(Passerby other, out Vector3 direction)
+        {
+            Vector3 offset = Vector3.ProjectOnPlane(
+                other.transform.position - transform.position,
+                Vector3.up
+            );
+            Vector3 towardOther = offset.normalized;
+            Vector3 side = Vector3.Cross(Vector3.up, towardOther);
+            if (!passingOnRight)
+                side = -side;
+            // 상대 뒤의 지점을 바로 향하면 여유 공간을 가로질러 다시 막힌다. 바깥 원의 접선으로 걷는다.
+            float sine = Mathf.Clamp01(
+                (passingClearance + .12f) / Mathf.Max(offset.magnitude, .001f)
+            );
+            direction = towardOther * Mathf.Sqrt(1f - sine * sine) + side * sine;
+            Vector3 waypoint = transform.position + direction * PassingLookAheadMeters;
+            if (
+                !NavMesh.SamplePosition(transform.position, out NavMeshHit start, .3f, WalkingAreas)
+                || !NavMesh.SamplePosition(waypoint, out NavMeshHit end, .2f, WalkingAreas)
+                || NavMesh.Raycast(start.position, end.position, out _, WalkingAreas)
+            )
+                return false;
+            return direction.sqrMagnitude > .001f;
         }
     }
 }

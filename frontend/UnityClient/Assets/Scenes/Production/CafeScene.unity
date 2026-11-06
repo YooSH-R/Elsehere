@@ -1208,7 +1208,7 @@ PrefabInstance:
       objectReference: {fileID: 9224386}
     - target: {fileID: 1438772547961331226, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.12
+      value: 0.924288
       objectReference: {fileID: 0}
     - target: {fileID: 2154798696233940017, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_IsActive
@@ -1260,7 +1260,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_Height
-      value: 1.6
+      value: 1.5378412
       objectReference: {fileID: 0}
     - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_Radius
@@ -1268,7 +1268,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_Center.y
-      value: 0.8
+      value: 0.7689206
       objectReference: {fileID: 0}
     - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_SkinWidth
@@ -3227,6 +3227,14 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 17ca6eed7bdf9d348bc3ad983eb0a322, type: 2}
+    - target: {fileID: 7706020110071833246, guid: 2260c69e531c67843acffb0d344c7fc0, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: d83d5778a3849b74eaa54d9fb13585cb, type: 2}
+    - target: {fileID: 8060341467782561302, guid: 2260c69e531c67843acffb0d344c7fc0, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: aa38f4f85b48d1147a8fb69102a2b3db, type: 2}
     - target: {fileID: 8397982641781974693, guid: 2260c69e531c67843acffb0d344c7fc0, type: 3}
       propertyPath: m_LocalScale.x
       value: 1.6
@@ -4325,7 +4333,7 @@ PrefabInstance:
       objectReference: {fileID: 9224386}
     - target: {fileID: 1438772547961331226, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.12
+      value: 0.924288
       objectReference: {fileID: 0}
     - target: {fileID: 2154798696233940017, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_IsActive
@@ -4377,7 +4385,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_Height
-      value: 1.6
+      value: 1.5378412
       objectReference: {fileID: 0}
     - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_Radius
@@ -4385,7 +4393,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_Center.y
-      value: 0.8
+      value: 0.7689206
       objectReference: {fileID: 0}
     - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_SkinWidth

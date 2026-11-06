@@ -94,7 +94,7 @@ class SceneServiceTest {
 
   @Test
   @DisplayName(
-      "마을 상세는 행인 Ben·택시 기사 Joe·경찰관 Dan, 거리 매장 직원 9명, 행인 Ruby·Ethan·Maya·Helen·Frank, 경찰관 Victor·Kevin·Tyler와 쉬는 날인 소방관 Ray·Rachel·Andre, 개를 산책시키는 노부부 Arthur·Margaret를 역할 이름·먼저 말 걸기 여부·첫 말과 함께 돌려준다")
+      "마을 상세는 행인 Ben·택시 기사 Joe·경찰관 Dan, 거리 매장 직원 9명, 행인 Ruby·Ethan·Maya·Helen·Frank, 경찰관 Victor·Taylor와 빵집 직원 Kevin와 쉬는 날인 소방관 Ray·Rachel·Andre, 개를 산책시키는 노부부 Arthur·Margaret를 역할 이름·먼저 말 걸기 여부·첫 말과 함께 돌려준다")
   void getScene_town_returnsNpcs() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
 
@@ -127,8 +127,9 @@ class SceneServiceTest {
             new NpcResponse("TOWN_SHOPPER", "Helen", NpcType.STAFF, "은행원", false, null),
             new NpcResponse("TOWN_HANDYMAN", "Frank", NpcType.STAFF, "생활용품점 직원", false, null),
             new NpcResponse("POLICE_SERGEANT", "Victor", NpcType.STAFF, "경사", false, null),
-            new NpcResponse("POLICE_PATROL_OFFICER", "Kevin", NpcType.STAFF, "경찰관", false, null),
-            new NpcResponse("POLICE_ROOKIE", "Tyler", NpcType.STAFF, "베이커리 직원", false, null),
+            new NpcResponse(
+                "POLICE_PATROL_OFFICER", "Kevin", NpcType.STAFF, "베이커리 직원", false, null),
+            new NpcResponse("POLICE_ROOKIE", "Taylor", NpcType.STAFF, "신입 경찰관", false, null),
             new NpcResponse("FIRE_CAPTAIN", "Ray", NpcType.STAFF, "식당 직원", false, null),
             new NpcResponse("FIRE_FIGHTER", "Rachel", NpcType.STAFF, "빨래방 직원", false, null),
             new NpcResponse("FIRE_ROOKIE", "Andre", NpcType.STAFF, "이발소 직원", false, null),

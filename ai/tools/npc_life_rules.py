@@ -91,7 +91,11 @@ def understaffed(lives: list[dict], rules: dict, workplace: str, span: dict, at_
     """span(from·to) 동안 그 근무지에서 맡은 교대 중인 NPC(생활 파일의 근무지·교대로 셈, 쉬는 시간 포함)가
     at_least명보다 적은 시간. 마을(TOWN)은 나와 있는 행인 수다."""
     shifts = rules["places"][workplace]["shifts"]
-    on_shift = _painted(shifts[life["shift"]] for life in lives if life["workplace"] == workplace)
+    on_shift = _painted(
+        {"from": "00:00", "to": "00:00"} if life.get("resident", False) else shifts[life["shift"]]
+        for life in lives
+        if life["workplace"] == workplace
+    )
     short = [inside > 0 and count < at_least for inside, count in zip(_painted([span]), on_shift)]
     return [f"{workplace}: {_clock(start)}~{_clock(end)}에 교대 중인 NPC가 {at_least}명보다 적음" for start, end in _runs(short, bool)]
 
@@ -103,7 +107,7 @@ def working_staff_gaps(lives: list[dict], rules: dict, workplace: str) -> list[s
     for life in lives:
         if life["workplace"] != workplace or life["role"] != "STAFF":
             continue
-        schedule = npc_derive.shift_day(place["shifts"][life["shift"]], rules["roles"]["STAFF"])
+        schedule = npc_derive.life_day(life, rules)
         working.extend(block for block in schedule if block["activity"] == "WORK")
     opened = _painted([place.get("hours", {"from": "00:00", "to": "00:00"})])
     staffed = _painted(working)

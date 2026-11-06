@@ -848,7 +848,7 @@ namespace A305.Dialogue
             {
                 npcCode = "POLICE_ROOKIE",
                 npcName = "Taylor",
-                roleLabel = "경찰관",
+                roleLabel = "신입 경찰관",
                 opening = new LineEntry(
                     "Hi, I'm Officer Taylor. Is everything okay?",
                     "안녕하세요, 경찰관 Taylor이에요. 별일 없으세요?"

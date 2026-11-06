@@ -110,6 +110,10 @@ namespace A305.EditorTools.Dialogue
                         .stringValue;
                     if (
                         string.IsNullOrEmpty(existing.FindPropertyRelative("roleLabel").stringValue)
+                        || (
+                            example.FindPropertyRelative("npcCode").stringValue == "POLICE_ROOKIE"
+                            && existing.FindPropertyRelative("roleLabel").stringValue == "경찰관"
+                        )
                     )
                     {
                         existing.FindPropertyRelative("roleLabel").stringValue = roleLabel;

@@ -27,6 +27,45 @@ class TownStoryServiceTest {
   private final TownStoryService service = new TownStoryService(stories, firstDay, npcs);
 
   @Test
+  void washObjectiveUsesTheSelfServiceMachineWithoutAPickupTime() {
+    TownStory story = TownStory.start(8L);
+    for (int index = 0; index < TownStoryStage.WASH.ordinal(); index++) {
+      story.resume();
+      story.accept(index, story.current().npcCode(), story.current().goalIds());
+    }
+    story.resume();
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+
+    var context = service.context(8L, "LAUNDROMAT_STAFF").orElseThrow();
+
+    assertThat(context.instruction()).containsIgnoringCase("self-service");
+    assertThat(context.instruction()).contains("Do not take the learner's clothes");
+    assertThat(context.state().intents().getFirst().desc())
+        .contains("Both, please.")
+        .contains("No pickup or return time is required");
+    assertThat(TownStoryStage.WASH.title()).doesNotContain("맡기");
+    assertThat(TownStoryStage.goalHint("request_wash")).contains("세탁기").doesNotContain("찾으러");
+  }
+
+  @Test
+  void laundryVisitsDescribeOperatingAndEmptyingMachinesInsteadOfAStaffService() {
+    for (TownStoryStage stage :
+        java.util.List.of(
+            TownStoryStage.LAUNDRY, TownStoryStage.WASH, TownStoryStage.THANK_LAUNDRY)) {
+      assertThat(stage.instruction()).as(stage.name()).containsIgnoringCase("self-service");
+    }
+    assertThat(TownStoryStage.goalDescription("collect_laundry"))
+        .contains("remove their own clothes")
+        .doesNotContain("asks to collect their laundry");
+    assertThat(TownStoryStage.goalDescription("thank_laundromat"))
+        .contains("help with the machines")
+        .doesNotContain("washing their clothes");
+    assertThat(TownStoryStage.goalHint("collect_laundry")).contains("꺼내");
+    assertThat(com.elsehere.mission.entity.Quest.MORNING_AND_HAIRCUT.description())
+        .doesNotContain("맡긴");
+  }
+
+  @Test
   void everyStoryObjectiveCanUseFactsAcrossLearnerTurns() {
     TownStory story = TownStory.start(8L);
     when(stories.findById(8L)).thenReturn(Optional.of(story));

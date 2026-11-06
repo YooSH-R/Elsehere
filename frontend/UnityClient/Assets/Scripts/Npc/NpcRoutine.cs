@@ -660,7 +660,11 @@ namespace A305.Npc
         {
             if (!hasRoute || routeDestination != destination)
             {
-                PlanRoute(destination);
+                if (!PlanRoute(destination))
+                {
+                    body.StandFacing(transform.rotation);
+                    return Progress.Stuck;
+                }
             }
 
             if (Flat(destination - transform.position).magnitude <= ArrivedMeters)
@@ -675,6 +679,14 @@ namespace A305.Npc
             )
             {
                 routeCorner++;
+            }
+
+            Vector3 direction = Flat(route[routeCorner] - transform.position);
+            if (body.IsWaitingForSignal(direction))
+            {
+                stuckSeconds = 0f;
+                body.WalkToward(direction, walkSpeedMetersPerSecond);
+                return Progress.Walking;
             }
 
             float remaining = RemainingRouteMeters();
@@ -693,14 +705,11 @@ namespace A305.Npc
                 }
             }
 
-            body.WalkToward(
-                Flat(route[routeCorner] - transform.position),
-                walkSpeedMetersPerSecond
-            );
+            body.WalkToward(direction, walkSpeedMetersPerSecond);
             return Progress.Walking;
         }
 
-        private void PlanRoute(Vector3 destination)
+        private bool PlanRoute(Vector3 destination)
         {
             route.Clear();
             routeCorner = 0;
@@ -708,29 +717,30 @@ namespace A305.Npc
             hasRoute = true;
             closestRemaining = float.PositiveInfinity;
             stuckSeconds = 0f;
-            if (
-                NavMesh.SamplePosition(
-                    transform.position,
-                    out NavMeshHit start,
-                    1f,
-                    NavMesh.AllAreas
-                )
-                && NavMesh.CalculatePath(start.position, destination, NavMesh.AllAreas, path)
-                && path.status == NavMeshPathStatus.PathComplete
-            )
+            if (!NavMesh.SamplePosition(transform.position, out _, 1f, NavMesh.AllAreas))
             {
-                Vector3[] corners = path.corners;
-                for (int i = 1; i < corners.Length; i++)
-                {
-                    route.Add(corners[i]);
-                }
+                // NavMesh가 없는 장면에서는 기존처럼 곧장 걷는다.
+                route.Add(destination);
+                return true;
             }
 
-            if (route.Count == 0)
+            int areas = NpcTownWalker.WalkingAreas;
+            if (
+                !NavMesh.SamplePosition(transform.position, out NavMeshHit start, 1f, areas)
+                || !NavMesh.CalculatePath(start.position, destination, areas, path)
+                || path.status != NavMeshPathStatus.PathComplete
+            )
             {
-                // NavMesh가 없는 장면이면 곧장 걷는다. 막히면 그 사물은 포기한다.
-                route.Add(destination);
+                hasRoute = false;
+                return false;
             }
+
+            Vector3[] corners = path.corners;
+            for (int i = 1; i < corners.Length; i++)
+                route.Add(corners[i]);
+            if (route.Count == 0)
+                route.Add(destination);
+            return true;
         }
 
         private float RemainingRouteMeters()
@@ -930,14 +940,25 @@ namespace A305.Npc
             }
 
             if (
-                !NavMesh.SamplePosition(point, out NavMeshHit hit, SpotSnapMeters, NavMesh.AllAreas)
+                !NavMesh.SamplePosition(
+                    point,
+                    out NavMeshHit hit,
+                    SpotSnapMeters,
+                    NpcTownWalker.StandingAreas
+                )
+                || NpcTownWalker.IsRoadSurface(hit.position, .4f)
                 || !NavMesh.SamplePosition(
                     transform.position,
                     out NavMeshHit start,
                     1f,
-                    NavMesh.AllAreas
+                    NpcTownWalker.WalkingAreas
                 )
-                || !NavMesh.CalculatePath(start.position, hit.position, NavMesh.AllAreas, path)
+                || !NavMesh.CalculatePath(
+                    start.position,
+                    hit.position,
+                    NpcTownWalker.WalkingAreas,
+                    path
+                )
                 || path.status != NavMeshPathStatus.PathComplete
             )
             {

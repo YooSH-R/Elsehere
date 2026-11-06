@@ -42,8 +42,15 @@ def is_prompt_echo(text: str, scene_words: list[str]) -> bool:
 def is_one_echo(t: str, scene_words: list[str]) -> bool:
     if len(t) < 12 or t in {normalize(w) for w in scene_words}:
         return False
-    endings = (normalize(STT_PROMPT), normalize(stt_prompt(scene_words)))
-    return any(p == t or p.endswith(" " + t) for p in endings)
+    # Match only complete sentence boundaries, not arbitrary word suffixes such as
+    # "lives over there", which can be a genuine learner utterance.
+    sentences = [part.strip() for part in re.split(r"[.!?]+", STT_PROMPT) if part.strip()]
+    endings = {normalize(" ".join(sentences[i:])) for i in range(len(sentences))}
+    words = ", ".join([w.strip() for w in scene_words if w.strip()][:30])
+    if words:
+        endings.update(normalize(" ".join(sentences[i:]) + " " + words) for i in range(len(sentences)))
+        endings.add(normalize(words))
+    return t in endings
 
 
 async def stt(llm: LLM, audio: bytes, mime: str, scene_words: list[str]) -> dict:

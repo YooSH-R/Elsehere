@@ -611,12 +611,12 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.TalkOffer:
                     return new[] { offerView.ShownButtonRect };
                 case TutorialCoachTarget.DialogueLines:
-                    return new[] { dialoguePanel.LinesRect };
+                    return dialoguePanel.DialogueLinesParts;
                 case TutorialCoachTarget.DialogueTools:
                     return dialoguePanel.ToolParts;
                 case TutorialCoachTarget.GuidedLine:
                     // 대사를 읽으며 말해야 하므로 대사 칸도 함께 밝혀, 둘레를 덮어도 대사가 그대로 보이게 한다.
-                    var parts = new List<RectTransform> { dialoguePanel.LinesRect };
+                    var parts = new List<RectTransform>(dialoguePanel.DialogueLinesParts);
                     parts.AddRange(dialoguePanel.GuidedLineParts);
                     return parts;
                 case TutorialCoachTarget.SuggestedWords:

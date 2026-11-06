@@ -257,19 +257,19 @@ def find_reusable_jobs(repository, candidate, jobs, output):
 def download_and_restore_results(repository, candidate, plan):
     if plan["candidate_commit"] != candidate:
         raise ValueError("MR results belong to another deployment candidate.")
-    plan_job_id = str(plan.get("plan_job_id", ""))
-    if not re.fullmatch(r"[1-9][0-9]*", plan_job_id):
-        raise ValueError("A successful parent plan job is required.")
     directory = repository / "dist/deployment"
     directory.mkdir(parents=True, exist_ok=True)
     for job, result in plan["reused_jobs"].items():
         if job not in BUILD_ARTIFACTS:
             continue
+        if not valid_receipt(result["receipt"], job, result["source_commit"]):
+            raise ValueError("The original successful MR job is required.")
         expected = f"dist/deployment/{job.split(':')[0]}-mr-artifacts.zip"
         if result["archive"] != expected:
             raise ValueError("Unexpected MR build archive in the plan.")
-        # Pin the exact successful plan job rather than a mutable branch artifact.
-        endpoint = f"jobs/{plan_job_id}/artifacts/{expected}"
+        # The child configuration archive must stay small; fetch the original MR ZIP directly.
+        job_id = result["receipt"]["job_id"]
+        endpoint = f"jobs/{job_id}/artifacts"
         download_archive(endpoint, repository / expected)
     (directory / "plan.json").write_text(json.dumps(plan) + "\n", encoding="utf-8")
     restore_results(repository, candidate)

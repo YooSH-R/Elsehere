@@ -28,6 +28,7 @@ namespace A305.EditorTools.ObjectHover
             "HotelScene",
             "TownScene",
             "ShopScene",
+            "PoliceStationScene",
         };
         private static string RepositoryPath =>
             Path.GetFullPath(Path.Combine(Application.dataPath, "../../.."));
@@ -284,7 +285,7 @@ namespace A305.EditorTools.ObjectHover
                     scenes.Add(
                         new SceneWords
                         {
-                            sceneCode = name.Replace("Scene", "").ToUpperInvariant(),
+                            sceneCode = A305.World.PlaceScenes.CodeOf(name),
                             unityKey = name,
                             objectCount = targets.Length,
                             detailCount = targets.Sum(target =>

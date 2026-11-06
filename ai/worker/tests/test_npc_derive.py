@@ -236,14 +236,13 @@ def test_a_passerby_is_free_while_out_in_town_and_takes_no_break():
 
 
 def test_a_storefront_clerk_keeps_its_home_place_while_working_its_storefront_hours():
-    """거리 매장 직원의 기본 장소는 마을(TOWN)이고, 일과 시각은 자기 매장(빵집 06:00~18:00)의 교대에서 온다."""
+    """빵집 주간 직원은 마을(TOWN)에서 06~18시 일하고, 야간 직원에게 인계하며 30분 쉰 뒤 퇴근한다."""
     schedule = life_values("BAKERY_STAFF")["schedule"]
 
     assert [(block["from"], block["to"], block["activity"]) for block in schedule] == [
-        ("06:00", "12:00", "WORK"),
-        ("12:00", "12:30", "BREAK"),
-        ("12:30", "18:00", "WORK"),
-        ("18:00", "06:00", "OFF"),
+        ("06:00", "18:00", "WORK"),
+        ("18:00", "18:30", "BREAK"),
+        ("18:30", "06:00", "OFF"),
     ]
     assert {block.get("scene") for block in schedule} == {"TOWN", None}
 

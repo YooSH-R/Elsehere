@@ -155,8 +155,9 @@ def test_after_a_conversation_only_recognition_changes_by_a_whole_number():
 
 
 def test_recognition_can_go_down_after_a_long_absence():
-    """오래 안 오면 이번 대화로 오르는 것보다 그동안 잊은 것이 커서 변화량이 음수일 수 있다."""
-    change = rel.after_conversation({"recognition": 60, "affinity": 0, "days_since_last_talk": 30}, {}, RULES)
+    """유지 기간 뒤에도 30일 더 안 오면 이번 대화로 오르는 것보다 잊은 것이 커서 변화량이 음수일 수 있다."""
+    absence = RULES["relationship"]["graceDays"] + 30
+    change = rel.after_conversation({"recognition": 60, "affinity": 0, "days_since_last_talk": absence}, {}, RULES)
 
     assert change["recognition_delta"] < 0
 

@@ -289,7 +289,7 @@ def test_every_service_npc_has_a_life_file_without_problems():
 
 
 def test_every_service_npc_works_its_own_shift():
-    """한 장소에 여럿이면 교대를 나눠 맡는다. 거리 매장·경찰서·택시는 하루 한 교대이고, 행인은 마을에 나오는 시간대가 다르다."""
+    """기존 인물을 재배치해 매장·경찰서는 주야 교대로 맡고, Ben과 노부부는 행인을 유지한다."""
     lives = {path.stem: load_life(path.stem) for path in npc_life_rules.LIFE_FOLDER.glob("*.json")}
 
     assert {npc_id: (life["workplace"], life["shift"]) for npc_id, life in lives.items()} == {
@@ -297,38 +297,38 @@ def test_every_service_npc_works_its_own_shift():
         "CAFE_BARISTA": ("CAFE", "CLOSING"),
         "CAFE_SERVER": ("CAFE", "MIDDAY"),
         "HOTEL_STAFF": ("HOTEL", "DAY"),
-        "HOTEL_CONCIERGE": ("HOTEL", "MIDDAY"),
+        "HOTEL_CONCIERGE": ("FLOWER_SHOP", "NIGHT"),
         "HOTEL_BELLHOP": ("HOTEL", "MIDDAY"),
         "HOTEL_RECEPTIONIST": ("HOTEL", "EVENING"),
         "HOTEL_NIGHT_MANAGER": ("HOTEL", "NIGHT"),
         "SHOP_STAFF": ("SHOP", "DAY"),  # 첫날 미션 대상(Alex)은 미션이 시작하는 아침 교대
         "SHOP_PHARMACIST": ("SHOP", "EVENING"),
         "SHOP_NIGHT_CLERK": ("SHOP", "NIGHT"),
-        "POST_OFFICE_STAFF": ("POST_OFFICE", "ALL_DAY"),
-        "DINER_STAFF": ("DINER", "ALL_DAY"),
-        "BANK_STAFF": ("BANK", "ALL_DAY"),
-        "LAUNDROMAT_STAFF": ("LAUNDROMAT", "ALL_DAY"),
-        "FLOWER_SHOP_STAFF": ("FLOWER_SHOP", "ALL_DAY"),
-        "BARBER_STAFF": ("BARBER", "ALL_DAY"),
-        "BAKERY_STAFF": ("BAKERY", "ALL_DAY"),
-        "ARCADE_STAFF": ("ARCADE", "ALL_DAY"),
-        "HOME_STORE_STAFF": ("HOME_STORE", "ALL_DAY"),
+        "POST_OFFICE_STAFF": ("POST_OFFICE", "DAY"),
+        "DINER_STAFF": ("DINER", "DAY"),
+        "BANK_STAFF": ("BANK", "DAY"),
+        "LAUNDROMAT_STAFF": ("LAUNDROMAT", "DAY"),
+        "FLOWER_SHOP_STAFF": ("FLOWER_SHOP", "DAY"),
+        "BARBER_STAFF": ("BARBER", "DAY"),
+        "BAKERY_STAFF": ("BAKERY", "DAY"),
+        "ARCADE_STAFF": ("ARCADE", "DAY"),
+        "HOME_STORE_STAFF": ("HOME_STORE", "DAY"),
         "POLICE_OFFICER": ("POLICE_STATION", "DAY"),
-        "POLICE_ROOKIE": ("POLICE_STATION", "MIDDAY"),
+        "POLICE_ROOKIE": ("BAKERY", "NIGHT"),
         "POLICE_PATROL_OFFICER": ("POLICE_STATION", "EVENING"),
         "POLICE_SERGEANT": ("POLICE_STATION", "NIGHT"),
         "TAXI_DRIVER": ("TAXI", "ALL_DAY"),
-        "TOWN_RETIREE": ("TOWN", "MORNING"),
-        "FIRE_CAPTAIN": ("TOWN", "MORNING"),
+        "TOWN_RETIREE": ("POST_OFFICE", "NIGHT"),
+        "FIRE_CAPTAIN": ("DINER", "NIGHT"),
         "TOWN_GRANDFATHER": ("TOWN", "MORNING"),
         "TOWN_GRANDMOTHER": ("TOWN", "MORNING"),
-        "FIRE_FIGHTER": ("TOWN", "AFTERNOON"),
-        "FIRE_ROOKIE": ("TOWN", "EVENING"),
+        "FIRE_FIGHTER": ("LAUNDROMAT", "NIGHT"),
+        "FIRE_ROOKIE": ("BARBER", "NIGHT"),
         "TOWN_PASSERBY": ("TOWN", "DAY"),
-        "TOWN_SHOPPER": ("TOWN", "MIDDAY"),
-        "TOWN_HANDYMAN": ("TOWN", "MIDDAY"),
-        "TOWN_STUDENT": ("TOWN", "AFTERNOON"),
-        "TOWN_EVENING_WALKER": ("TOWN", "EVENING"),
+        "TOWN_SHOPPER": ("BANK", "NIGHT"),
+        "TOWN_HANDYMAN": ("HOME_STORE", "NIGHT"),
+        "TOWN_STUDENT": ("ARCADE", "NIGHT"),
+        "TOWN_EVENING_WALKER": ("BANK", "EVENING"),
     }
 
 

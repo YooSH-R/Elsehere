@@ -2,6 +2,7 @@ import hashlib
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -178,6 +179,12 @@ class WebglPackageTests(unittest.TestCase):
 @unittest.skipUnless(sys.platform == "win32", "Requires the Windows Unity runner")
 class WebglPublisherTests(unittest.TestCase):
     def test_windows_publisher_uploads_the_build_and_keeps_only_small_metadata(self):
+        self.run_publisher(use_explicit_repository=True)
+
+    def test_windows_publisher_resolves_its_repository_without_an_override(self):
+        self.run_publisher(use_explicit_repository=False)
+
+    def run_publisher(self, *, use_explicit_repository):
         with tempfile.TemporaryDirectory() as directory:
             repository = Path(directory)
             output = repository / "dist/webgl"
@@ -221,6 +228,14 @@ class WebglPublisherTests(unittest.TestCase):
                 script = (
                     Path(__file__).resolve().parents[1] / "publish-webgl-package.ps1"
                 )
+                if use_explicit_repository:
+                    repository_arguments = ["-RepositoryPath", str(repository)]
+                else:
+                    installed_script = repository / "infra/scripts" / script.name
+                    installed_script.parent.mkdir(parents=True)
+                    shutil.copyfile(script, installed_script)
+                    script = installed_script
+                    repository_arguments = []
                 result = subprocess.run(
                     [
                         "powershell.exe",
@@ -228,10 +243,10 @@ class WebglPublisherTests(unittest.TestCase):
                         "-NonInteractive",
                         "-File",
                         str(script),
-                        "-RepositoryPath",
-                        str(repository),
+                        *repository_arguments,
                     ],
                     check=False,
+                    cwd=repository.parent,
                     env=environment,
                     capture_output=True,
                     text=True,

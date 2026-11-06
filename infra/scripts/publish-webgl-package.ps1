@@ -1,7 +1,11 @@
 [CmdletBinding()]
-param([string] $RepositoryPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..')))
+param([string] $RepositoryPath)
 
 $ErrorActionPreference = 'Stop'
+if (-not $RepositoryPath) {
+    # Windows PowerShell does not populate PSScriptRoot while binding parameter defaults.
+    $RepositoryPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
+}
 $outputPath = Join-Path $RepositoryPath 'dist/webgl'
 $version = Get-Content -LiteralPath (Join-Path $outputPath 'version.json') -Raw | ConvertFrom-Json
 if ($env:CI_COMMIT_SHA -notmatch '^[0-9a-f]{40}$' -or

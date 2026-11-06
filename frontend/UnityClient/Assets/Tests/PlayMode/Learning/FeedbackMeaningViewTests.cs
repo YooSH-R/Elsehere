@@ -222,8 +222,11 @@ namespace A305.Learning.PlayModeTests
             view = instance.GetComponentInChildren<FeedbackView>(true);
             cameraObject = new GameObject("FeedbackCaptureCamera", typeof(Camera));
             camera = cameraObject.GetComponent<Camera>();
-            target = new RenderTexture(1600, 1000, 24);
-            camera.targetTexture = target;
+            if (SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Null)
+            {
+                target = new RenderTexture(1600, 1000, 24);
+                camera.targetTexture = target;
+            }
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(.72f, .74f, .68f);
             camera.orthographic = true;

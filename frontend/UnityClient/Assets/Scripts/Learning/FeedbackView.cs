@@ -677,7 +677,7 @@ namespace A305.Learning
                     scroll.content,
                     bodyText,
                     titleText.font,
-                    situationRowTemplate.GetComponentInChildren<Button>(true),
+                    sectionButtons[(int)FeedbackSection.Conversation],
                     tileSprite,
                     transcriptAvatarSprite,
                     feedback,

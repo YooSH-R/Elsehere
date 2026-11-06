@@ -27,12 +27,20 @@ def npc_life_values(life: dict, rules: dict, library: dict, place: str) -> dict:
     dimensions = mbti_to_dimensions(life["mbti"])
     behaviors = pick_behaviors(dimensions, library, seed=life["npcId"])
     rates = combine_rates(derive_rates(dimensions, rules), *(behavior.get("affects", {}) for behavior in behaviors))
-    shift = rules["places"][life["workplace"]]["shifts"][life["shift"]]
     return {
         "behaviors": [behavior["id"] for behavior in behaviors],
         "rates": rates,
-        "schedule": npc_schedule(shift_day(shift, rules["roles"][life["role"]]), place),
+        "schedule": npc_schedule(life_day(life, rules), place),
     }
+
+
+def life_day(life: dict, rules: dict) -> list[dict]:
+    """상주 직원은 자리를 비우지 않고, 나머지는 기존 교대와 휴식을 따른다."""
+    role = rules["roles"][life["role"]]
+    if life.get("resident", False):
+        return [{"from": "00:00", "to": "00:00", "activity": role["onShift"]}]
+    shift = rules["places"][life["workplace"]]["shifts"][life["shift"]]
+    return shift_day(shift, role)
 
 
 def npc_schedule(template: list[dict], place: str) -> list[dict]:
@@ -46,21 +54,30 @@ DAY_MINUTES = 24 * 60
 
 def shift_day(shift: dict, role: dict) -> list[dict]:
     """맡은 교대(from·to)를 역할 규칙(onShift·break)으로 하루 일과 틀로 바꾼다. 장소는 npc_schedule이 넣는다.
-    교대 동안은 onShift 활동, 나머지는 퇴근(OFF)이다. 쉬는 시간이 있는 역할은 교대가 기준보다 길면 교대 가운데에 한 번 쉰다.
+    교대 동안은 onShift 활동, 나머지는 퇴근(OFF)이다. 쉬는 시간이 있는 역할은 교대가 기준보다 길면 한 번 쉰다.
+    breakAt이 있으면 그 시각에, 없으면 교대 가운데에 쉰다. 교대 끝의 휴식 뒤에는 길이 0인 근무 블록을 만들지 않는다.
     to가 from보다 이르면 자정을 넘기고, 같으면 하루 전체라 퇴근이 없다."""
     start = _minutes(shift["from"])
     length = (_minutes(shift["to"]) - start) % DAY_MINUTES or DAY_MINUTES
     end = start + length
     break_rule = role.get("break")
     if break_rule and length > break_rule["whenShiftOverHours"] * 60:
-        break_start = _nearest_half_hour(start + length / 2)
+        break_start = (
+            start + (_minutes(shift["breakAt"]) - start) % DAY_MINUTES if "breakAt" in shift else _nearest_half_hour(start + length / 2)
+        )
         break_end = break_start + break_rule["minutes"]
+        if break_end > end:
+            raise ValueError("쉬는 시간은 교대 안에 있어야 합니다")
         blocks = [(start, break_start, role["onShift"]), (break_start, break_end, "BREAK"), (break_end, end, role["onShift"])]
     else:
         blocks = [(start, end, role["onShift"])]
     if length < DAY_MINUTES:
         blocks.append((end, start + DAY_MINUTES, "OFF"))
-    return [{"from": _clock(block_start), "to": _clock(block_end), "activity": activity} for block_start, block_end, activity in blocks]
+    return [
+        {"from": _clock(block_start), "to": _clock(block_end), "activity": activity}
+        for block_start, block_end, activity in blocks
+        if block_end > block_start
+    ]
 
 
 def _nearest_half_hour(minute: float) -> int:

@@ -114,27 +114,49 @@ class TurnServiceTest {
   }
 
   @Test
-  @DisplayName("정확히 5분 뒤의 마지막 발화는 받아 마무리 답변 뒤 TIME_LIMIT으로 끝낸다")
+  @DisplayName("5분이 지나도 30턴 전이면 대화를 계속할 수 있다")
+  void send_afterFiveMinutes_conversationRemainsActive() {
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(600));
+    judges("Hello again.", "Hello again.", null);
+    repliesTo("Hello again.", reply("Hello!", null));
+
+    assertThat(send("Hello again.").conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
+  }
+
+  @Test
+  @DisplayName("30번째 사용자 발화에 답변한 뒤 종료하고 재시도는 기존 답변을 돌려준다")
+  void send_thirtiethTurn_endsAfterReplyAndReplays() {
+    judges("Hello.", "Hello.", null);
+    given(aiGateway.reply(any(), any(), any(), any(), eq("Hello."), anyString(), anyInt(), any()))
+        .willReturn(reply("Hello!", null));
+    for (int i = 0; i < 29; i++) {
+      assertThat(send("Hello.").conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
+    }
+    TurnRequest last = new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello.", null);
+    TurnResponse response = turnService.send(userId, conversationId, last);
+    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ENDED_BY_NPC);
+    assertThat(turnService.send(userId, conversationId, last)).isEqualTo(response);
+    assertThatThrownBy(() -> send("Hello."))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.CONVERSATION_NOT_ACTIVE));
+  }
+
+  @Test
+  @DisplayName("정확히 5분 뒤에도 일반 발화를 처리한다")
   void send_atTimeLimit_acceptsFinalTurnAndEnds() {
     clock.setInstant(TestClockConfig.NOW.plusSeconds(300));
     judges("By card, please.", "By card, please.", null);
     given(
             aiGateway.reply(
-                any(),
-                any(),
-                any(),
-                any(),
-                eq("By card, please."),
-                eq(TurnService.TIME_LIMIT_WRAP_UP),
-                anyInt(),
-                any()))
+                any(), any(), any(), any(), eq("By card, please."), eq(""), anyInt(), any()))
         .willReturn(reply("You're all set. Have a nice day!", null));
 
     TurnResponse response = send("By card, please.");
 
     assertThat(response.npcTurn().text()).isEqualTo("You're all set. Have a nice day!");
-    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ENDED_BY_NPC);
-    assertThat(response.conversation().endReason()).isEqualTo(ConversationEndReason.TIME_LIMIT);
+    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
+    assertThat(response.conversation().endReason()).isNull();
     assertThat(response.conversation().finalTurnsRemaining()).isZero();
   }
 
@@ -152,7 +174,7 @@ class TurnServiceTest {
   }
 
   @Test
-  @DisplayName("5분 전에 받은 발화는 NPC 답변을 저장한 뒤 마지막 발화 한 번을 남긴다")
+  @DisplayName("답변 생성 중 5분이 지나도 대화가 계속된다")
   void send_startedBeforeTimeLimit_completesReplyThenWaitsForFinalTurn() {
     clock.setInstant(TestClockConfig.NOW.plusSeconds(299));
     judges("One last question.", "One last question.", null);
@@ -169,13 +191,13 @@ class TurnServiceTest {
 
     assertThat(response.npcTurn().text()).isEqualTo("Sure, go ahead.");
     assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
-    assertThat(response.conversation().closing()).isTrue();
-    assertThat(response.conversation().finalTurnsRemaining()).isEqualTo(1);
+    assertThat(response.conversation().closing()).isFalse();
+    assertThat(response.conversation().finalTurnsRemaining()).isZero();
     assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(3);
   }
 
   @Test
-  @DisplayName("5분 전에 받은 발화의 답변이 5분 30초를 넘기면 답변 저장 뒤 TIME_LIMIT으로 끝낸다")
+  @DisplayName("답변 생성이 5분 30초를 넘어도 대화가 계속된다")
   void send_startedBeforeTimeLimit_completesAfterGraceThenEnds() {
     clock.setInstant(TestClockConfig.NOW.plusSeconds(299));
     judges("One last question.", "One last question.", null);
@@ -191,25 +213,18 @@ class TurnServiceTest {
     TurnResponse response = send("One last question.");
 
     assertThat(response.npcTurn().text()).isEqualTo("Sure, here is the answer.");
-    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ENDED_BY_NPC);
-    assertThat(response.conversation().endReason()).isEqualTo(ConversationEndReason.TIME_LIMIT);
+    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
+    assertThat(response.conversation().endReason()).isNull();
   }
 
   @Test
-  @DisplayName("시간 제한으로 끝낸 마지막 발화를 재시도하면 저장된 답변을 그대로 돌려준다")
+  @DisplayName("5분 뒤 발화를 재시도해도 저장된 답변을 그대로 돌려준다")
   void send_retryFinalTimeLimitedTurn_replaysSavedResponse() {
     clock.setInstant(TestClockConfig.NOW.plusSeconds(300));
     judges("One last question.", "One last question.", null);
     given(
             aiGateway.reply(
-                any(),
-                any(),
-                any(),
-                any(),
-                eq("One last question."),
-                eq(TurnService.TIME_LIMIT_WRAP_UP),
-                anyInt(),
-                any()))
+                any(), any(), any(), any(), eq("One last question."), eq(""), anyInt(), any()))
         .willAnswer(
             invocation -> {
               return reply("Sure, go ahead.", null);
@@ -226,19 +241,14 @@ class TurnServiceTest {
   }
 
   @Test
-  @DisplayName("5분 30초가 지나면 새 발화를 AI에 보내지 않고 TIME_LIMIT으로 끝낸다")
+  @DisplayName("5분 30초가 지나도 새 발화를 처리한다")
   void send_afterGracePeriod_endsBeforeCallingAi() {
     clock.setInstant(TestClockConfig.NOW.plusSeconds(330));
 
-    assertThatThrownBy(() -> send("Can we keep talking?"))
-        .isInstanceOfSatisfying(
-            BusinessException.class,
-            exception ->
-                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.CONVERSATION_NOT_ACTIVE));
-
-    assertThat(conversationService.detail(userId, conversationId).endReason())
-        .isEqualTo(ConversationEndReason.TIME_LIMIT);
-    then(aiGateway).shouldHaveNoInteractions();
+    judges("Can we keep talking?", "Can we keep talking?", null);
+    repliesTo("Can we keep talking?", reply("Of course.", null));
+    assertThat(send("Can we keep talking?").conversation().status())
+        .isEqualTo(ConversationStatus.ACTIVE);
   }
 
   @Test

@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections;
 using System.Linq;
+using A305.Onboarding;
 using A305.Tutorial;
 using NUnit.Framework;
 using UnityEditor;
@@ -33,12 +34,23 @@ namespace A305.Player.Tests
         {
             TutorialState.Clear();
             TutorialState.MarkFinishedOnServer();
+            SceneManager.sceneLoaded += IsolateOfflineMovement;
         }
 
         [TearDown]
         public void ClearTutorial()
         {
+            SceneManager.sceneLoaded -= IsolateOfflineMovement;
             TutorialState.Clear();
+        }
+
+        // 로그인하지 않은 로컬 이동 검사다. 만료 안내의 잠금은 계정 UI 검사에서 확인한다.
+        private static void IsolateOfflineMovement(Scene scene, LoadSceneMode mode)
+        {
+            foreach (
+                var view in Object.FindObjectsByType<SessionExpiredView>(FindObjectsSortMode.None)
+            )
+                view.enabled = false;
         }
 
         public PlayerCharacterIntegrationTests(string selected)

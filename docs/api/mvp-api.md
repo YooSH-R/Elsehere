@@ -5,6 +5,7 @@ MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서
 - `[미정]`은 팀 결정이 필요한 항목, `[제안]`은 작성자 제안입니다.
 - MVP에서 뺀 기능은 7절에 모았습니다. 와이어프레임에 화면이 없는 기능 중 NPC 호감도 조회는 따로 API를 만들지 않았습니다. 대화 중인 NPC의 호감도만 대화 시작·발화 전송 응답(CONV-01·03의 `conversation.affinity`)에 실어 대화 화면에 보여 줍니다. 집에서 고르는 화면 테마(USER-01)와 마이페이지의 닉네임 변경(USER-04)은 와이어프레임 밖에서 추가한 기능입니다.
 - 대화 턴은 REST로 작성했습니다. 스트리밍을 선택하면 요청·응답의 의미와 식별자는 유지하고 전송 방식만 바꿉니다.
+- 종료한 대화의 표현으로 다시 연습할 상황을 보관하는 API는 [상황 복습장](review-workbook.md)에 정리합니다.
 
 ## 1. 공통 규칙
 
@@ -63,7 +64,7 @@ AI를 호출하는 요청과 중복 반영되면 안 되는 요청은 본문(mul
 }
 ```
 
-AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능 목록을 함께 돌려줍니다. `resumeAt`이 `null`이면 갱신 시점이 정책상 정해지지 않았다는 뜻이며 영구 차단이 아닙니다. 다만 게스트의 대화 횟수 제한(CONV-01)은 다시 채워지지 않습니다.
+AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능 목록을 함께 돌려줍니다. NPC 일일 대화 한도는 한국 시간 자정에 초기화됩니다.
 
 ```json
 {
@@ -100,6 +101,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `SCENE_CLOSED` | 409 | 열리지 않은 장소(`is_open = false`) |
 | `TUTORIAL_NOT_IN_PROGRESS` | 409 | 튜토리얼 전 단계(`LANG`, `LEVEL`) 사용자의 튜토리얼 완료·건너뛰기 |
 | `MISSION_NOT_READY` | 409 | 첫날 미션에서 카페 주문·대화 종료·현재 장소 등 휴식 조건 미충족 |
+| `REVIEW_IN_PROGRESS` | 409 | 연습 중인 카드는 종료한 뒤 삭제 |
+| `REVIEW_NOT_READY` | 409 | 대화가 진행 중이거나 DONE 피드백의 서로 다른 복습 표현이 2개 미만 |
 | `AUDIO_TOO_LARGE` | 413 | 녹음 크기 초과(3MB) |
 | `AUDIO_FORMAT_UNSUPPORTED` | 415 | 지원하지 않는 녹음 형식 |
 | `STT_NO_SPEECH` | 422 | 무음 또는 인식 실패 |
@@ -233,6 +236,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | ONB-09 | `PUT /api/v1/me/languages/{languageCode}/level` | 대화 난이도 선택 | - | 05 |
 | TUT-01 | `POST /api/v1/me/tutorial/complete` | 튜토리얼 완료 | - | 12 |
 | TUT-02 | `POST /api/v1/me/tutorial/skip` | 튜토리얼 건너뛰기 | - | 06 |
+| TUT-03 | `POST /api/v1/me/tutorial/ben-dialogue/complete` | Ben 길 안내의 방문·관계 저장 | - | 11 |
 | WORLD-01 | `GET /api/v1/scenes` | 장소 목록·개방 여부 | - | 14 |
 | WORLD-02 | `GET /api/v1/scenes/{sceneCode}` | 장소의 NPC와 단어 카드 | - | 08, 14 |
 | WORLD-03 | `PUT /api/v1/me/word-prefs/{wordKey}` | 단어 카드 자동 표시 끄기·다시 켜기 | - | 08 |
@@ -310,7 +314,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `onboardingStep: DONE` | `lastSceneCode` 장소. 없으면 마을 |
 
 - `activeConversationId`가 있으면 CONV-11 규칙에 따라 처리합니다.
-- `aiStatus`의 형식과 판단 기준은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다. 게스트면 남은 대화 수(`remainingConversations`)도 담습니다. 가입 대기 상태(`SIGNUP_REQUIRED`)에는 담지 않습니다.
+- `aiStatus`의 형식과 판단 기준은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다. 계정의 오늘 남은 대화 수(`remainingConversations`)도 담습니다. 가입 대기 상태(`SIGNUP_REQUIRED`)에는 담지 않습니다.
 - `user.uiTheme`은 계정에 저장한 화면 테마(`JELLY`, `STICKER`, `CLOUD`)입니다. 고른 적 없으면 `JELLY`이며 USER-01로 바꿉니다.
 - `user.voiceConsent`는 지금 버전의 음성 처리(`VOICE`)에 동의했는지입니다. `false`면 클라이언트는 녹음을 막고 [말하기]를 회색으로 보이며, 누르면 동의 창에서 USER-03으로 동의를 켤 수 있게 합니다. AUTH-04·07 응답의 `user`에도 같은 값이 있으며, USER-03으로 바꾸면 그 결과를 따릅니다.
 - `user.guest`는 게스트로 시작한 사용자(AUTH-07)인지입니다. 클라이언트는 게스트에게 마이페이지의 [회원 탈퇴](USER-05)를 보이지 않습니다. AUTH-04 응답은 `false`, AUTH-07 응답은 `true`입니다.
@@ -390,7 +394,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   - `provider`·`providerUid`·이메일은 Google 계정 것으로, 닉네임은 요청 값으로 바꿉니다. 캐릭터는 게스트 때 것을 그대로 쓰며 요청의 `avatarType`은 쓰지 않습니다.
   - 학습 언어와 초기 설정 단계도 게스트 때 그대로라 응답의 `onboardingStep`은 `TUTORIAL`이나 `DONE`입니다. 클라이언트는 03~05를 거치지 않고 BOOT-01로 다음 화면을 정합니다.
   - 동의한 약관을 남기고, 게스트 때 동의했지만 이번에 동의하지 않은 선택 약관(음성 처리)은 철회합니다. 이미 지금 버전에 동의한 약관은 다시 남기지 않습니다.
-  - 회원이 됐으므로 게스트 대화 횟수 제한과 게스트 정리는 더 적용하지 않고, 세션 유지 시간은 24시간이 됩니다.
+  - 회원이 되면 게스트 정리는 적용하지 않고, 세션 유지 시간은 24시간이 됩니다. 일일 대화 한도는 같은 계정에 계속 적용됩니다.
   - 가입 대기 정보의 사용자가 이미 게스트가 아니면(다른 탭에서 먼저 가입 등) 새 사용자를 만듭니다.
 
 #### AUTH-05 `POST /api/v1/auth/logout`
@@ -431,7 +435,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - `avatarType`은 `F`, `M`이며 필수입니다. 없으면 `VALIDATION_FAILED`입니다.
 - 부를 때마다 새 사용자를 만듭니다. `provider`는 `GUEST`, `providerUid`는 서버가 만든 임의 값이며 이메일은 없습니다. 로그아웃하거나 세션이 끝나면 같은 게스트로 다시 로그인할 수 없습니다.
 - 게스트 세션은 요청이 2시간 없으면 끝납니다(가입자는 24시간).
-- 게스트 세션에서 Google로 가입하면 이 게스트가 그대로 회원이 되어 기록이 이어집니다(AUTH-02·04). 화면은 대화 횟수를 다 썼을 때와 게스트 세션이 남은 채 다시 접속했을 때 가입을 권합니다.
+- 게스트 세션에서 Google로 가입하면 이 게스트가 그대로 회원이 되어 기록이 이어집니다(AUTH-02·04). 게스트 세션이 남은 채 다시 접속하면 가입을 권합니다.
 - 마지막 활동 뒤 24시간이 지나면 게스트가 남긴 내용(대화 원문·NPC 음성·피드백·NPC 기억·NPC가 건네기로 한 것·저장 단어·숨김)을 지웁니다. 사용자·대화·AI 사용량 기록은 내용 없이 남깁니다.
 - 닉네임은 서버가 `guest-` 뒤에 겹치지 않는 여섯 자리 숫자를 붙여 정합니다. 회원 닉네임 규칙(AUTH-04)은 `-`를 허용하지 않으므로 회원 닉네임과 겹치지 않습니다.
 - 학습 언어와 대화 난이도는 MVP에서 고를 수 있는 값(`en-US`, 초급 1)으로 정하고 초기 설정은 튜토리얼(`TUTORIAL`)부터 시작합니다. 화면 03~05를 거치지 않으며 레벨 테스트 기록은 만들지 않습니다.
@@ -448,7 +452,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 { "conversationLimit": 3 }
 ```
 
-- `conversationLimit`은 게스트 한 계정이 시작할 수 있는 NPC 대화 수로, 서버 설정값(`GUEST_CONVERSATION_LIMIT`, 기본 3)입니다. 시작한 뒤의 남은 횟수는 AI-01·BOOT-01의 `remainingConversations`입니다.
+- `conversationLimit`은 계정별 하루 NPC 대화 시작 한도이며 서버 설정값(`DAILY_CONVERSATION_LIMIT`, 기본 30)입니다. 남은 횟수는 AI-01·BOOT-01의 `remainingConversations`입니다.
 - 화면은 읽지 못해도 캐릭터 선택과 [시작하기]를 막지 않고, 횟수 없이 "횟수가 정해져 있어요"로 안내합니다.
 
 ### 4.2 초기 설정
@@ -572,6 +576,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```
 
 - 화면 12의 [마을로 가기]에서 호출합니다. `onboardingStep`을 `DONE`으로 바꿉니다.
+- Ben 길 안내 방문이 아직 없으면 TUT-03과 같은 관계·기억을 한 번 저장합니다. 이전 클라이언트의 완료와 길 안내 저장 실패를 보완합니다.
 - 튜토리얼 전 단계(`LANG`, `LEVEL`)면 `409 TUTORIAL_NOT_IN_PROGRESS`이며 단계를 바꾸지 않습니다. 이미 `DONE`인 사용자가 다시 호출하면 같은 응답을 돌려줍니다.
 - 마지막 장소(`last_scene_id`)는 바꾸지 않습니다. BOOT-01에 `lastSceneCode`가 없으면 클라이언트가 마을에서 시작합니다.
 
@@ -579,6 +584,21 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 화면 06의 [튜토리얼 건너뛰기]에서 호출합니다. 요청·응답과 단계 규칙은 TUT-01과 같습니다. `onboardingStep`을 `DONE`으로 바꾸고 마을에서 시작합니다.
 - 건너뛴 사용자에게 튜토리얼을 다시 볼 방법을 줄지는 `[미정]`입니다.
+- 건너뛰기 자체는 Ben 관계를 만들지 않습니다. 이미 TUT-03으로 저장한 관계는 유지합니다.
+
+#### TUT-03 `POST /api/v1/me/tutorial/ben-dialogue/complete`
+
+```json
+// 요청 본문 없음
+
+// 응답 200 (튜토리얼 진행 중)
+{ "onboardingStep": "TUTORIAL" }
+```
+
+- 클라이언트가 고정 대본의 Ben 길 안내를 끝까지 마쳤을 때 호출합니다. 전체 튜토리얼 단계는 바꾸지 않습니다.
+- Ben(`TOWN_PASSERBY`)의 첫 방문 1회, 알아봄 +20, 도움 호감 +6, 마지막 대화 시각·게임 날짜와 길 안내 기억을 저장합니다. 실제 대화·발화를 만들거나 AI를 호출하지 않습니다.
+- 이미 방문 기록이 있으면 중복 반영하지 않습니다. 네트워크 실패 시 재전송할 수 있습니다. 중간 종료와 대화 전 건너뛰기에는 호출하지 않습니다.
+- `LANG`·`LEVEL`이면 `409 TUTORIAL_NOT_IN_PROGRESS`입니다. 이미 `DONE`이면 관계를 올리지 않고 `{ "onboardingStep": "DONE" }`을 돌려줍니다.
 
 ### 4.4 장소·사물
 
@@ -629,7 +649,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - `npcCode`는 Unity 씬의 NPC에 넣은 코드와 같습니다. 튜토리얼 행인은 Unity 대본 콘텐츠라 서버 NPC가 아닙니다.
 - 마을(`TOWN`)에는 거리 매장 직원 9명(`POST_OFFICE_STAFF`·`DINER_STAFF`·`BANK_STAFF`·`LAUNDROMAT_STAFF`·`FLOWER_SHOP_STAFF`·`BARBER_STAFF`·`BAKERY_STAFF`·`ARCADE_STAFF`·`HOME_STORE_STAFF`)도 위 Linda처럼 `STAFF`, `canInitiate: false`로 내려옵니다. 마을 행인 Ruby·Ethan·Maya·Helen·Frank·Arthur·Margaret(`TOWN_RETIREE`·`TOWN_STUDENT`·`TOWN_EVENING_WALKER`·`TOWN_SHOPPER`·`TOWN_HANDYMAN`·`TOWN_GRANDFATHER`·`TOWN_GRANDMOTHER`)는 `PASSERBY`이지만 먼저 말을 걸지 않습니다(`canInitiate: false`). 소방서가 아직 없어 마을에서 지내는 소방관 Ray·Rachel·Andre(`FIRE_CAPTAIN`·`FIRE_FIGHTER`·`FIRE_ROOKIE`)도 같은 `PASSERBY`이고 역할 이름(`roleLabel`)만 소방대장·소방관·신입 소방관입니다.
-- 한 장소를 교대로 나눠 맡는 NPC도 그 장소의 `npcs`에 함께 내려옵니다. 카페는 Mia·Leo·Zoe(`CAFE_STAFF`·`CAFE_SERVER`·`CAFE_BARISTA`), 호텔은 Jake·Walter·Diego·Owen·Clara(`HOTEL_STAFF`·`HOTEL_CONCIERGE`·`HOTEL_BELLHOP`·`HOTEL_RECEPTIONIST`·`HOTEL_NIGHT_MANAGER`), 드럭스토어는 Alex·Hannah·Samuel(`SHOP_STAFF`·`SHOP_PHARMACIST`·`SHOP_NIGHT_CLERK`), 마을의 경찰서는 Dan·Victor·Kevin·Tyler(`POLICE_OFFICER`·`POLICE_SERGEANT`·`POLICE_PATROL_OFFICER`·`POLICE_ROOKIE`)입니다. 누가 언제 나오는지는 서버가 아니라 AI 규칙에서 내보낸 일과([NPC 생활·관계 설계](../npc-life-design.md) 6절)로 Unity가 정합니다.
+- 한 장소를 교대로 나눠 맡는 NPC도 그 장소의 `npcs`에 함께 내려옵니다. 카페는 Mia·Leo·Zoe(`CAFE_STAFF`·`CAFE_SERVER`·`CAFE_BARISTA`), 호텔은 Jake·Walter·Diego·Owen·Clara(`HOTEL_STAFF`·`HOTEL_CONCIERGE`·`HOTEL_BELLHOP`·`HOTEL_RECEPTIONIST`·`HOTEL_NIGHT_MANAGER`), 드럭스토어는 Alex·Hannah·Samuel(`SHOP_STAFF`·`SHOP_PHARMACIST`·`SHOP_NIGHT_CLERK`), 마을의 경찰서는 Dan·Victor·Kevin·Taylor(`POLICE_OFFICER`·`POLICE_SERGEANT`·`POLICE_PATROL_OFFICER`·`POLICE_ROOKIE`)입니다. 누가 언제 나오는지는 서버가 아니라 AI 규칙에서 내보낸 일과([NPC 생활·관계 설계](../npc-life-design.md) 6절)로 Unity가 정합니다.
 - `words`는 장소의 사물에 붙은 공용 단어 카드입니다. 여러 사물이 같은 단어를 쓰면 카드는 하나이며, Unity가 사물의 공용 단어 키(`wordKey`)로 카드를 찾습니다. 장소별 단어 목록은 Unity가 내보낸 `object-word-bindings.json`을 서버 시작 때 `scene_words`에 적재한 것입니다.
 - `npcs`, `words`의 순서에는 의미가 없습니다. 클라이언트는 `npcCode`, `wordKey`로 찾습니다.
 - 장소에 들어갈 때 그 장소의 단어 카드를 한 번에 받습니다. MVP는 장소마다 단어가 20~40개라 응답이 작습니다.
@@ -704,7 +724,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 월드 장면에 있는 동안 30초마다 보내는 신호입니다. 지난 신호 뒤 흐른 실제 시간만큼 게임 시간을 더하고 지금 게임 시각을 돌려줍니다(실제 1초 = 게임 2.4분).
 - 대화를 시작·종료하거나 단어장·피드백·피드백 목록을 열고 닫으면 간격을 기다리지 않고 신호를 보냅니다. `interactionPaused`는 현재 대화·학습 화면 때문에 시간이 멈췄는지, `interactionWasPaused`는 직전 신호 이후 멈춰 있던 구간이 있었는지입니다. 현재 화면이 열려 있거나 서버에 진행 중인 대화·튜토리얼이 있으면 `paused: true`를 돌려줍니다.
-- `activeSeconds`는 직전 요청 이후 실제로 시간이 진행한 초입니다. 창을 열기 전까지의 진행 시간은 보존하고, 대화·학습 화면을 보고 있던 시간은 제외합니다. 서버는 신호 간격·최대 60초·진행 중 대화가 시작되기 전 구간으로 제한하며, 튜토리얼 중에는 더하지 않습니다. 닫는 신호는 멈춰 있던 구간을 제외하고 현재 상태를 돌려주므로 다음 응답부터 시간이 이어집니다.
+- `activeSeconds`는 직전 요청 이후 실제로 시간이 진행한 초입니다. 창을 열기 전까지의 진행 시간은 보존하고, 대화·학습 화면을 보고 있던 시간은 제외합니다. 서버는 신호 간격·최대 60초로 제한하며, 정지 화면이 열려 있고 직전 신호 이후 새 대화가 시작됐으면 대화 시작 전 구간까지만 더합니다. 튜토리얼 중에는 더하지 않습니다. 현재 정지 여부는 `interactionPaused`를 따르므로 새로고침 뒤 서버에 이어하기용 `ACTIVE` 대화가 남아 있어도 화면을 닫은 상태라면 시계가 재개됩니다. 기존 대화는 종료하거나 다시 차감하지 않습니다. 닫는 신호는 멈춰 있던 구간을 제외하고 현재 상태를 돌려줍니다.
 - 본문을 생략하면 두 플래그는 `false`입니다. `activeSeconds`를 생략한 이전 클라이언트는 두 플래그와 서버 대화·튜토리얼 상태로 구간 전체의 멈춤을 판정합니다. 이 경우 신호 사이에 시작·종료된 대화 몇 초의 오차가 생길 수 있습니다.
 - 첫 신호는 시계를 시작만 하고 더하지 않습니다. 신호 사이가 60초보다 길면(창을 닫았거나 백그라운드) 60초까지만 더합니다. 튜토리얼을 마치거나 건너뛴(TUT-01·02) 뒤 신호부터 흐릅니다.
 - 두 API 모두 로그인한 사용자만 호출할 수 있으며, 로그인하지 않았으면 `401 UNAUTHENTICATED`입니다. WORLD-07은 `X-Requested-With` 헤더가 필요합니다.
@@ -805,7 +825,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - `runningMissions`는 이 NPC가 대상인 진행 중인 미션이며 상단의 "미션 · …" 표시에 씁니다.
 - `levelApplied`는 사용자의 `selected_level`입니다.
 - 1.4의 규칙대로 한 턴과 피드백에 쓸 토큰이 남아 있어야 시작하며, 피드백용 토큰을 예약합니다. 부족하면 `AI_QUOTA_EXHAUSTED`입니다.
-- 게스트(AUTH-07)는 이미 시작한 대화 수(끝난 대화 포함)가 서버 설정값(`GUEST_CONVERSATION_LIMIT`, 기본 3)에 이르면 대화를 시작하지 않고 `AI_QUOTA_EXHAUSTED`입니다. `message`는 사용량 소진 문구 대신 "게스트는 NPC와 3번까지 대화할 수 있어요. 마을 탐험, 사물 카드, 단어장은 계속할 수 있어요."입니다(횟수는 설정값). `details`는 1.5의 형식이며, 게스트 한도는 다시 채워지지 않으므로 `resumeAt`을 담지 않습니다. 첫 인사를 만들지 못해 대화가 만들어지지 않은 시도는 세지 않습니다. 남은 횟수는 AI-01·BOOT-01의 `remainingConversations`이고, 시작하기 전 한도는 AUTH-08의 `conversationLimit`입니다.
+- 모든 계정은 한국 시간 하루에 NPC 대화를 기본 30회까지 시작할 수 있습니다. 한도에 도달하면 `AI_QUOTA_EXHAUSTED`를 반환하고 다음 날 자정에 초기화합니다. 실패해 대화가 만들어지지 않은 시도는 세지 않으며, 같은 시작 요청의 재시도는 중복해서 세지 않습니다. 진행 중인 대화의 발화와 종료 피드백은 계속 사용할 수 있습니다.
 - 진행 중인 대화가 있으면 `CONVERSATION_ALREADY_ACTIVE`를 `activeConversationId`와 함께 돌려줍니다.
 - 첫 인사를 만드는 사이 같은 사용자의 다른 시작 요청이 먼저 저장됐으면, 저장 직전에 다시 확인해 `CONVERSATION_ALREADY_ACTIVE`(게스트가 그 요청으로 횟수를 다 썼으면 `AI_QUOTA_EXHAUSTED`)로 거절합니다. 진행 중인 대화는 하나만 남습니다.
 - 같은 `requestId`로 다시 보내면(응답 시간 초과 뒤 재시도 등) 대화를 새로 만들지 않고 그 요청으로 시작한 대화의 응답(첫 대사 포함)을 돌려줍니다(`conversations.request_id`). 이때는 `CONVERSATION_ALREADY_ACTIVE`나 게스트 횟수로 거절하지 않고 횟수도 다시 세지 않습니다. 처음 요청이 첫 인사를 기다리는 사이 재요청이 먼저 저장했어도 같습니다. 다른 사용자가 쓴 `requestId`면 `409 REQUEST_ID_CONFLICT`입니다.
@@ -875,10 +895,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 영어, 한국어, 한영 혼용, 미완성 발화를 모두 받습니다. 최대 길이는 서버 설정값이며 넘으면 `VALIDATION_FAILED`입니다.
 - 추천 단어는 NPC 응답을 기다리게 하지 않도록 따로 만듭니다. 응답의 `suggestWords`는 `null`이고, 클라이언트가 대사를 보여 준 뒤 CONV-12로 받아 대사 아래에 보여줍니다. 대화가 끝난 턴에는 요청하지 않습니다.
 - 같은 `requestId`로 다시 보내면 턴을 새로 만들지 않고 이전 응답을 그대로 돌려줍니다(`turns.request_id`). 화면 19의 [다시 시도]가 이 규칙을 씁니다.
-- NPC 한 명과의 대화는 서버 `startedAt`부터 5분이 기본 제한입니다. 5분 전에 받은 발화는 시간이 넘어도 NPC 답변까지 저장하고, 대화는 마지막 발화를 기다리는 마무리 상태(`closing: true`)가 됩니다.
-- 5분부터 `graceUntil`(기본 5분 30초) 전까지 사용자 발화 한 번을 더 받습니다. 서버는 그 요청을 `time_limit_final_request_id`로 선점하고 NPC에게 현재 용건을 마치되 새 질문은 하지 말고 자연스럽게 작별하라고 지시합니다. 답변 저장 뒤 `ENDED_BY_NPC`, `endReason: TIME_LIMIT`으로 끝냅니다. 같은 `requestId` 재시도는 저장된 답변을 재사용하고, 실패해 저장되지 않은 요청의 선점은 해제합니다.
-- `graceUntil`부터는 새 발화를 AI에 보내지 않고 `CONVERSATION_NOT_ACTIVE`로 거절하며 `TIME_LIMIT`으로 끝냅니다. 마감 전에 이미 받은 마지막 발화의 NPC 답변은 마감을 지나도 저장합니다. 무례 누적이나 용건 완료로 먼저 끝났다면 그 종료 이유를 유지합니다.
-- Unity는 로컬에서 5분을 다시 세지 않고 `conversation.timeLimitAt`과 `graceUntil`을 기준으로 카운트다운합니다. `closing`은 마지막 발화를 받을 수 있는 마무리 구간인지, `finalTurnsRemaining`은 남은 마지막 발화 수(0 또는 1)입니다.
+- 시간 제한 대신 대화당 사용자 발화 30턴을 허용합니다. 30번째 발화의 NPC 답변까지 저장한 뒤 `ENDED_BY_NPC`, `endReason: TURN_LIMIT`으로 종료합니다. 무례 누적이나 용건 완료가 먼저 발생하면 그 종료 이유를 유지합니다. 같은 `requestId`의 재시도는 저장된 답변을 돌려줍니다.
+- 기존 응답 필드 `timeLimitAt`, `graceUntil`은 null이고 `closing`, `finalTurnsRemaining`은 각각 false와 0입니다.
 - 대화 시작·발화 전송은 같은 사용자·`requestId`의 처리 중 재요청도 순서대로 처리하여, 먼저 저장된 결과를 재사용하고 AI를 중복 호출하지 않습니다. 잠금은 현재 단일 백엔드 프로세스 안에서 관리하며 완료·실패 뒤 해제합니다. 실패한 요청은 같은 ID로 다시 시도할 수 있습니다. 워커에 보낼 앞선 대화는 DB에서 최근 40줄만 조회합니다.
 - TTS가 실패해도 응답은 성공으로 돌려주고 `speech.status`를 `FAILED`로 표시합니다. 클라이언트는 자막을 보여주고 CONV-07로 다시 시도합니다.
 - AI가 미션 완료나 대화 종료를 제안하면 서버가 검증해 확정합니다(`ai_candidates`). 확정된 결과만 `missionUpdates`와 `conversation.status`에 반영합니다. 한 턴에서 여러 미션이 함께 완료될 수 있습니다.
@@ -975,7 +993,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 }
 ```
 
-- `endReason`(`conversations.end_reason`)은 `NPC_ENDED`(용건이 끝나 NPC가 마무리), `QUOTA_EXHAUSTED`, `RUDE`(무례 누적), `TIME_LIMIT`(대화 시작 뒤 5분)입니다. 대화가 `ACTIVE`가 아니면 `CONVERSATION_NOT_ACTIVE`입니다.
+- `endReason`(`conversations.end_reason`)은 `NPC_ENDED`, `QUOTA_EXHAUSTED`, `RUDE`, `TURN_LIMIT` 등입니다. 예전 기록에는 `TIME_LIMIT`이 남을 수 있습니다. 대화가 `ACTIVE`가 아니면 `CONVERSATION_NOT_ACTIVE`입니다.
 
 **마무리** — 무례가 아닌 턴에서 서버가 정하면, NPC가 그 대답으로 따뜻하게 마무리하고(새 질문 없음) 대화를 `ENDED_BY_NPC`, `endReason: NPC_ENDED`로 끝냅니다(2026-11-04 결정). 줄 사건은 의도 판정이 고릅니다([AI 워커 명세](ai-worker.md) 2.2절).
 
@@ -1361,7 +1379,7 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 - HUD의 "AI 사용 가능" 표시와 화면 19의 사용량 소진 안내에 씁니다. `canStartConversation`은 한 턴과 피드백에 쓸 토큰이 남아 있는지(1.4)를 반영합니다.
 - 클라이언트는 접속할 때(BOOT-01), 대화가 토큰 소진으로 끝났을 때, AI 요청이 거절됐을 때 상태를 갱신합니다. 소진 상태에서는 AI가 필요한 버튼을 비활성화하고, 탐험·사물 카드·단어장·지난 기록은 계속 제공합니다.
 - `quota`는 한도 정책이 정해진 경우에만 `{ "periodStart": "2026-10-21", "usedTokens": 1200, "remainingTokens": 8800 }` 형식으로 채웁니다. 화면 19의 "갱신 시점"은 `resumeAt`이며, 정해지지 않았으면 `[정책 미정]`으로 표시합니다.
-- 현재 구현: 가입 사용자의 토큰 한도(1.4)는 수치가 `[미정]`이라 아직 없고, 게스트의 대화 횟수 제한(CONV-01)만 반영합니다. 한도 정책이 없으므로 `quota`·`resumeAt`은 응답에 담지 않습니다.
+- 현재 구현: 가입 사용자와 게스트에 같은 일일 대화 횟수 제한(CONV-01)을 적용합니다. 토큰 기준 한도는 아직 없고 `quota`·`resumeAt`은 응답에 담지 않습니다.
 
 | 사용자 | `status` | `canStartConversation` | `canUseSpeech` | `canGenerateFeedback` | `remainingConversations` |
 | --- | --- | --- | --- | --- | --- |
@@ -1369,8 +1387,8 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 | 대화 횟수가 남은 게스트 | `AI_AVAILABLE` | `true` | `true` | `true` | 1 이상 |
 | 대화 횟수를 다 쓴 게스트 | `AI_EXHAUSTED` | `false` | `true` | `true` | `0` |
 
-- `remainingConversations`는 게스트가 더 시작할 수 있는 NPC 대화 수입니다(CONV-01의 `GUEST_CONVERSATION_LIMIT`에서 이미 시작한 대화 수를 뺀 값). 화면은 [E 대화하기]와 행인 제안의 [대화하기]에 남은 횟수를 붙이고, `0`이면 행인 말걸기를 멈추고 [E 대화하기]·택시 버튼 자리에 "게스트 대화를 모두 썼어요"와 [가입하고 계속 대화하기]를 보여, 누르면 가입 안내 창을 띄웁니다. 대화가 끝나면 이 값을 다시 받고, `0`이면 그 대화의 피드백을 닫을 때도 가입 안내 창을 띄웁니다. 가입 사용자는 횟수 제한이 없어 담지 않습니다.
-- 게스트 한도는 새 대화 시작만 막습니다. 마지막으로 시작한 대화도 횟수에 들어가 그 대화 중에도 `AI_EXHAUSTED`이지만, 음성 입력과 피드백은 그대로 쓸 수 있으므로 클라이언트는 `status`가 아니라 기능별 값으로 버튼을 켜고 끕니다.
+- `remainingConversations`는 가입 사용자와 게스트가 오늘 더 시작할 수 있는 NPC 대화 수입니다. 0이면 오늘의 대화를 모두 사용했다는 안내를 표시하며, 한국 시간 자정에 다시 이용할 수 있습니다.
+- 일일 한도는 새 대화 시작만 막습니다. 마지막 대화 중에도 음성 입력과 피드백은 쓸 수 있으므로 클라이언트는 기능별 값으로 버튼을 켜고 끕니다.
 - 외부 AI 장애(`AI_TEMPORARILY_UNAVAILABLE`)와 운영 제한(`AI_RESTRICTED`)은 아직 판단하지 않습니다. 장애는 각 AI 요청의 오류 응답(1.5)으로 알립니다.
 
 ### 4.10 화면 테마

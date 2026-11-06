@@ -24,15 +24,28 @@ namespace A305.World.Tests
         {
             "POLICE_OFFICER",
             "POLICE_SERGEANT",
-            "POLICE_PATROL_OFFICER",
             "POLICE_ROOKIE",
         };
+
+        private Scene town;
+        private Scene station;
+
+        [OneTimeSetUp]
+        public void OpenProductionScenes()
+        {
+            town = EditorSceneManager.OpenScene(TownPath);
+            station = EditorSceneManager.OpenScene(StationPath, OpenSceneMode.Additive);
+        }
+
+        [OneTimeTearDown]
+        public void CloseProductionScenes()
+        {
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        }
 
         [Test]
         public void TownPoliceStationDoor_LeadsToThePoliceStationScene()
         {
-            Scene town = EditorSceneManager.OpenScene(TownPath);
-
             SpaceDoorway door = Doorway(town, "PoliceStationDoor");
 
             Assert.That(door.DestinationScene, Is.EqualTo("PoliceStationScene"));
@@ -49,8 +62,6 @@ namespace A305.World.Tests
         [Test]
         public void TownPoliceStation_HasNoSameSceneDoorways()
         {
-            Scene town = EditorSceneManager.OpenScene(TownPath);
-
             string[] oldDoorways = town.GetRootGameObjects()
                 .SelectMany(root => root.GetComponentsInChildren<Transform>(true))
                 .Where(part => part.name is "OutsideDoorway" or "InsideDoorway")
@@ -63,8 +74,6 @@ namespace A305.World.Tests
         [Test]
         public void Town_HasNoPoliceOfficers()
         {
-            Scene town = EditorSceneManager.OpenScene(TownPath);
-
             Assert.That(
                 BuilderTools
                     .FindAllInScene<NpcIdentity>(town)
@@ -90,8 +99,6 @@ namespace A305.World.Tests
         [Test]
         public void PoliceStationScene_HasTheDoorBackToTown()
         {
-            Scene station = EditorSceneManager.OpenScene(StationPath);
-
             SpaceDoorway door = Doorway(station, "TownDoor");
 
             Assert.That(door.DestinationScene, Is.EqualTo("TownScene"));
@@ -101,12 +108,9 @@ namespace A305.World.Tests
         // 누구에게 신고해도 접수되도록 경찰관마다 창구가 있고, 접수 문구에 쓸 장소 이름(순찰차 출동 장소와 같은 목록)을 안다.
         [TestCase("POLICE_OFFICER")]
         [TestCase("POLICE_SERGEANT")]
-        [TestCase("POLICE_PATROL_OFFICER")]
         [TestCase("POLICE_ROOKIE")]
         public void Officer_WorksInThePoliceStationSceneWithAReportDesk(string code)
         {
-            Scene station = EditorSceneManager.OpenScene(StationPath);
-
             NpcIdentity officer = BuilderTools
                 .FindAllInScene<NpcIdentity>(station)
                 .SingleOrDefault(npc => npc.Code == code);
@@ -134,8 +138,6 @@ namespace A305.World.Tests
         [Test]
         public void PoliceStationDialogue_HasTheStatusPlateForReports()
         {
-            Scene station = EditorSceneManager.OpenScene(StationPath);
-
             var panel = BuilderTools.FindSingleInScene<A305.Dialogue.DialoguePanelView>(station);
 
             Assert.That(

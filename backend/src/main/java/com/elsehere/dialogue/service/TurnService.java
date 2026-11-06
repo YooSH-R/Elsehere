@@ -14,6 +14,7 @@ import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
+import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.conversation.service.ConversationLookup;
@@ -23,8 +24,9 @@ import com.elsehere.dialogue.dto.TurnResponse;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.service.MissionDialogueService;
+import com.elsehere.review.dto.ReviewCardResponse;
+import com.elsehere.review.service.ReviewCardService;
 import java.time.Clock;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,7 +46,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * <p>첫날 연계 미션을 시작한 사용자는 현재 단계의 의도를 판정한다. 성공한 대답과 턴을 저장할 때만 미션을 진행한다. 무례한 말은 미션에 반영하지 않고 횟수를 세며 그
  * NPC의 호감도를 깎고, 한도에 닿으면 NPC가 대화를 끝낸다(docs/api/rudeness-handling.md). 무례가 아닌 말은 의도 판정이 고른 대화
  * 사건(칭찬·인사 등)만큼 호감도를 올린다(docs/api/ai-worker.md 2.2절). 미션 목표를 마친 턴이나 학습자가 작별·용건 끝냄을 말한 턴에는 NPC가 마무리
- * 대사로 대화를 끝낸다({@link WrapUp}). 사용자 AI 한도 예약·차감은 별도 연동 영역이다.
+ * 대사로 대화를 끝낸다({@link WrapUp}). 대화당 사용자 발화는 최대 30턴이다.
  */
 @Slf4j
 @Service
@@ -58,8 +60,8 @@ public class TurnService {
   static final String RUDE_LEAVE =
       "They keep insulting you. Firmly tell them you won't talk with them anymore and they need"
           + " to leave now. Then stop. 1-2 short sentences.";
-  static final String TIME_LIMIT_WRAP_UP =
-      "The conversation time is up. Complete the current business in this reply, do not ask a"
+  static final String TURN_LIMIT_WRAP_UP =
+      "This is the final turn. Complete the current business in this reply, do not ask a"
           + " new question, and say goodbye naturally.";
 
   // 워커에 닿지 못해 판정하지 못한 경우. 워커가 돌려주는 이유 코드(timeout 등)와 구분한다.
@@ -82,6 +84,8 @@ public class TurnService {
   private final NpcAudioReceiver npcAudioReceiver;
   private final AiGateway aiGateway;
   private final MemoryService memoryService;
+  private final ReviewCardService reviewCardService;
+  private final ReviewDialogue reviewDialogue;
   private final NpcAffinityService npcAffinityService;
   private final TransactionTemplate transactionTemplate;
   private final MissionDialogueService missionDialogueService;
@@ -101,7 +105,7 @@ public class TurnService {
                   .releaseFinalTurn(requestId));
     } catch (RuntimeException releaseFailure) {
       log.warn(
-          "time_limit_final_turn_release_failed conversation_id={} request_id={}",
+          "turn_limit_final_turn_release_failed conversation_id={} request_id={}",
           conversationId,
           requestId,
           releaseFailure);
@@ -142,12 +146,15 @@ public class TurnService {
     TurnContext context = selection.context();
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, conversationId);
     Optional<MissionDialogueService.Context> mission =
-        missionDialogueService.context(userId, context.npc().summary().npcCode());
+        context.review() == null
+            ? missionDialogueService.context(userId, context.npc().summary().npcCode())
+            : Optional.empty();
 
     Optional<WorkerState> missionState = mission.map(value -> value.detail().state());
     // 경찰관은 미션 목표를 맡지 않은 동안 창구에서 신고를 받는다.
     boolean policeDesk =
-        !context.npcOffDuty()
+        context.review() == null
+            && !context.npcOffDuty()
             && missionState.isEmpty()
             && PoliceDesk.serves(context.npc().summary().npcCode());
 
@@ -156,7 +163,9 @@ public class TurnService {
         aiGateway.judge(
             trace,
             context.npc().workerNpc(),
-            missionState.orElse(policeDesk ? PoliceDesk.STATE : FREE_TALK),
+            context.review() != null
+                ? reviewDialogue.state(context.review())
+                : missionState.orElse(policeDesk ? PoliceDesk.STATE : FREE_TALK),
             context.history(),
             request.text());
     if (judge.dropped()) {
@@ -177,6 +186,9 @@ public class TurnService {
         rude
             ? (leaving ? RUDE_LEAVE : RUDE_WARNING)
             : mission.map(value -> value.detail().replyInstruction(judge.intent())).orElse("");
+    if (context.review() != null) {
+      instruction = join(reviewDialogue.instruction(context.review()), instruction);
+    }
     if (policeDesk && !rude) {
       instruction = join(instruction, PoliceDesk.instruction(judge, dispatch));
     }
@@ -185,7 +197,7 @@ public class TurnService {
     }
     if (selection.finalTurn()) {
       instruction =
-          instruction.isBlank() ? TIME_LIMIT_WRAP_UP : instruction + " " + TIME_LIMIT_WRAP_UP;
+          instruction.isBlank() ? TURN_LIMIT_WRAP_UP : instruction + " " + TURN_LIMIT_WRAP_UP;
     }
 
     NpcReply reply = reply(trace, context, judge.text(), instruction, events);
@@ -220,8 +232,10 @@ public class TurnService {
                       conversationResponses.writeWords(judge.events())));
           if (rude) {
             conversation.countRude(Conversation.RUDE_LIMIT, clock.instant());
-            npcAffinityService.deductForRudeness(
-                userId, conversation.getNpcId(), guard.affinityDelta());
+            if (!conversation.isReview()) {
+              npcAffinityService.deductForRudeness(
+                  userId, conversation.getNpcId(), guard.affinityDelta());
+            }
             // 무례가 쌓여 이 턴으로 NPC가 대화를 끝냈다. 무례한 말은 대화 본문이라 남기지 않는다.
             if (!conversation.isActive()) {
               log.info(
@@ -230,7 +244,7 @@ public class TurnService {
                   conversation.getStatus(),
                   conversation.getEndReason());
             }
-          } else {
+          } else if (!conversation.isReview()) {
             npcAffinityService.raiseForEvents(
                 userId, conversation.getNpcId(), judge.affinityDelta());
           }
@@ -249,9 +263,9 @@ public class TurnService {
                 conversation.getEndReason());
           }
           if (conversation.isActive()
-              && (selection.finalTurn() || conversation.reachedHardTimeLimit(clock.instant()))) {
-            // 마지막 발화 또는 마감 전에 시작해 늦게 끝난 답변까지 저장하고 시간 제한으로 끝낸다.
-            conversation.endByTimeLimit(clock.instant());
+              && turnRepository.countByConversationIdAndSpeaker(conversationId, Speaker.USER)
+                  >= Conversation.TURN_LIMIT) {
+            conversation.endByTurnLimit(clock.instant());
             log.info(
                 "conversation_ended conversation_id={} status={} end_reason={}",
                 conversationId,
@@ -371,12 +385,12 @@ public class TurnService {
     if (!conversation.isActive()) {
       throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
     }
-    Instant now = clock.instant();
-    if (conversation.reachedHardTimeLimit(now)) {
-      conversation.endByTimeLimit(now);
+    long userTurns = turnRepository.countByConversationIdAndSpeaker(conversationId, Speaker.USER);
+    if (userTurns >= Conversation.TURN_LIMIT) {
+      conversation.endByTurnLimit(clock.instant());
       return new TurnContextSelection(null, true, false);
     }
-    boolean finalTurn = conversation.reachedTimeLimit(now);
+    boolean finalTurn = userTurns == Conversation.TURN_LIMIT - 1;
     if (finalTurn && !conversation.claimFinalTurn(requestId)) {
       return new TurnContextSelection(null, true, false);
     }
@@ -386,9 +400,14 @@ public class TurnService {
             dialogueContexts.learner(userId),
             dialogueContexts.history(conversationId),
             conversation.getLevelApplied(),
-            memoryService.memoryFor(userId, conversation.getNpcId()),
+            conversation.isReview()
+                ? null
+                : memoryService.memoryFor(userId, conversation.getNpcId()),
             conversation.getRudeCount(),
-            conversation.isNpcOffDuty()),
+            conversation.isNpcOffDuty(),
+            conversation.isReview()
+                ? reviewCardService.detail(userId, conversation.getReviewCardId())
+                : null),
         false,
         finalTurn);
   }
@@ -416,7 +435,8 @@ public class TurnService {
       int level,
       WorkerMemory memory,
       int rudeCount,
-      boolean npcOffDuty) {}
+      boolean npcOffDuty,
+      ReviewCardResponse review) {}
 
   private record TurnContextSelection(TurnContext context, boolean rejected, boolean finalTurn) {}
 }

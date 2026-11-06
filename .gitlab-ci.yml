@@ -15,7 +15,7 @@ workflow:
   auto_cancel:
     on_new_commit: none
   rules:
-    # Once Unity starts, let this candidate finish its checks and deployment.
+    # Once the Unity build starts, let this candidate finish its checks and deployment.
     - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_DEPLOY_CHILD == "true" && $A305_DEPLOY_ENVIRONMENT == "dev"'
       auto_cancel:
         on_new_commit: conservative
@@ -55,6 +55,14 @@ default:
 .linux-light-job:
   tags:
     - a305-linux-light
+
+.record-mr-success:
+  after_script:
+    - sh infra/scripts/record-ci-success.sh
+  artifacts:
+    expire_in: 14 days
+    paths:
+      - dist/ci/success.json
 
 .docker-job:
   extends: .linux-job

@@ -138,7 +138,8 @@ class ChildPipelineTests(unittest.TestCase):
         )
 
         jobs = {need["job"] for need in pipeline["dev:deliver"]["needs"]}
-        self.assertIn("unity:editor-and-webgl", jobs)
+        self.assertNotIn("unity:editor-and-webgl", jobs)
+        self.assertNotIn("unity:webgl-build", jobs)
         self.assertIn("backend:check-and-build", jobs)
         self.assertIn("infra:app-runtime", jobs)
         self.assertIn("ai:check-and-test", jobs)
@@ -152,6 +153,57 @@ class ChildPipelineTests(unittest.TestCase):
         jobs = {need["job"] for need in pipeline["dev:deliver"]["needs"]}
         self.assertIn("infra:app-runtime", jobs)
         self.assertNotIn("unity:editor-and-webgl", jobs)
+
+    def test_dev_web_build_does_not_require_the_full_editor_test_job(self):
+        pipeline = create_child_pipeline(
+            {"checks": ["unity"], "builds": ["web"]}, "123"
+        )
+        jobs = {need["job"] for need in pipeline["dev:deliver"]["needs"]}
+        self.assertIn("unity:webgl-build", jobs)
+        self.assertNotIn("unity:editor-and-webgl", jobs)
+
+    def test_reused_checks_are_restored_once_and_runtime_uses_the_reused_jar(self):
+        reused = {"backend:check-and-build": {"source_commit": "a" * 40}}
+        pipeline = create_child_pipeline(
+            {
+                "checks": ["backend"],
+                "builds": ["backend"],
+                "reused_jobs": reused,
+            },
+            "123",
+        )
+        self.assertEqual(
+            pipeline["backend:check-and-build"]["rules"], [{"when": "never"}]
+        )
+        needs = pipeline["dev:deliver"]["needs"]
+        self.assertIn({"job": "dev:reuse-checks", "artifacts": True}, needs)
+        self.assertNotIn({"job": "backend:check-and-build", "artifacts": True}, needs)
+        self.assertEqual(
+            pipeline["infra:app-runtime"]["needs"],
+            [{"job": "dev:reuse-checks", "artifacts": True}],
+        )
+        self.assertTrue(
+            all(
+                "pipeline" not in need for need in pipeline["dev:reuse-checks"]["needs"]
+            )
+        )
+
+    def test_production_never_disables_checks_using_mr_results(self):
+        pipeline = create_child_pipeline(
+            {
+                "checks": [],
+                "builds": [],
+                "reused_jobs": {"backend:check-and-build": {}},
+            },
+            "123",
+            environment="prod",
+        )
+        self.assertNotIn("dev:reuse-checks", pipeline)
+        self.assertNotIn("backend:check-and-build", pipeline)
+        self.assertIn(
+            {"job": "backend:check-and-build", "artifacts": True},
+            pipeline["prod:deliver"]["needs"],
+        )
 
 
 class DevelopmentDeliveryTests(unittest.TestCase):

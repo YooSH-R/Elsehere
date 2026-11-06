@@ -18,6 +18,11 @@ namespace A305.Tutorial
             return client.PostAsync("/api/v1/me/tutorial/complete", null);
         }
 
+        public Task CompleteBenDialogueAsync()
+        {
+            return client.PostAsync("/api/v1/me/tutorial/ben-dialogue/complete", null);
+        }
+
         public Task SkipAsync()
         {
             return client.PostAsync("/api/v1/me/tutorial/skip", null);

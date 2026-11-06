@@ -127,6 +127,11 @@ def test_a_break_that_does_not_fit_in_the_shift_is_reported_with_the_role_and_th
 def rules_with_cafe_hours() -> dict:
     rules = load_world_rules()
     rules["places"]["CAFE"]["hours"] = {"from": "07:00", "to": "21:00"}
+    rules["places"]["CAFE"]["shifts"] = {
+        "OPENING": {"from": "07:00", "to": "15:00"},
+        "MIDDAY": {"from": "10:00", "to": "18:00"},
+        "CLOSING": {"from": "13:00", "to": "21:00"},
+    }
     return rules
 
 
@@ -170,9 +175,9 @@ def service_lives() -> list[dict]:
     return [json.loads(path.read_text(encoding="utf-8")) for path in sorted(npc_life_rules.LIFE_FOLDER.glob("*.json"))]
 
 
-@pytest.mark.parametrize(("workplace", "at_least"), [("CAFE", 2), ("HOTEL", 3), ("POLICE_STATION", 2), ("TOWN", 4)])
+@pytest.mark.parametrize(("workplace", "at_least"), [("CAFE", 2), ("HOTEL", 3)])
 def test_busy_daytime_has_enough_npcs_on_shift_at_once(workplace, at_least):
-    """10:00~18:00에는 카페 2명·호텔 3명·경찰서 2명이 함께 일하고 마을에 행인 4명이 나와 있다. 맡은 교대 시간으로 센다(쉬는 시간 포함)."""
+    """직원을 재배치해도 낮의 카페 2명·호텔 3명은 유지한다."""
     assert npc_life_rules.understaffed(service_lives(), load_world_rules(), workplace, BUSY_HOURS, at_least) == []
 
 
@@ -186,12 +191,40 @@ def test_the_police_station_always_has_an_officer_on_shift():
 
 def test_too_few_npcs_on_shift_at_once_is_reported_with_the_time():
     """낮 교대(Leo)가 없으면 카페에는 오픈(07:00~15:00)과 마감(13:00~21:00)이 겹치는 13:00~15:00에만 둘이다."""
-    lives = [life for life in service_lives() if life["npcId"] != "CAFE_SERVER"]
+    lives = [{**life, "resident": False} for life in service_lives() if life["npcId"] != "CAFE_SERVER"]
 
-    assert npc_life_rules.understaffed(lives, load_world_rules(), "CAFE", BUSY_HOURS, 2) == [
+    assert npc_life_rules.understaffed(lives, rules_with_cafe_hours(), "CAFE", BUSY_HOURS, 2) == [
         "CAFE: 10:00~13:00에 교대 중인 NPC가 2명보다 적음",
         "CAFE: 15:00~18:00에 교대 중인 NPC가 2명보다 적음",
     ]
+
+
+@pytest.mark.parametrize(
+    "workplace",
+    [
+        "CAFE",
+        "HOTEL",
+        "SHOP",
+        "BANK",
+        "POST_OFFICE",
+        "DINER",
+        "BAKERY",
+        "LAUNDROMAT",
+        "FLOWER_SHOP",
+        "BARBER",
+        "ARCADE",
+        "HOME_STORE",
+        "POLICE_STATION",
+    ],
+)
+def test_open_stores_have_someone_working_even_during_breaks(workplace):
+    assert npc_life_rules.working_staff_gaps(service_lives(), load_world_rules(), workplace) == []
+
+
+def test_reassignment_keeps_the_population_and_the_tutorial_and_couple():
+    lives = service_lives()
+    assert len(lives) == 36
+    assert {life["npcId"] for life in lives if life["role"] == "PASSERBY"} == {"TOWN_PASSERBY", "TOWN_GRANDFATHER", "TOWN_GRANDMOTHER"}
 
 
 def test_the_service_actions_use_objects_placed_in_their_scene():
@@ -256,7 +289,7 @@ def test_every_service_npc_has_a_life_file_without_problems():
 
 
 def test_every_service_npc_works_its_own_shift():
-    """한 장소에 여럿이면 교대를 나눠 맡는다. 거리 매장·경찰서·택시는 하루 한 교대이고, 행인은 마을에 나오는 시간대가 다르다."""
+    """기존 인물을 재배치해 매장·경찰서는 주야 교대로 맡고, Ben과 노부부는 행인을 유지한다."""
     lives = {path.stem: load_life(path.stem) for path in npc_life_rules.LIFE_FOLDER.glob("*.json")}
 
     assert {npc_id: (life["workplace"], life["shift"]) for npc_id, life in lives.items()} == {
@@ -264,38 +297,38 @@ def test_every_service_npc_works_its_own_shift():
         "CAFE_BARISTA": ("CAFE", "CLOSING"),
         "CAFE_SERVER": ("CAFE", "MIDDAY"),
         "HOTEL_STAFF": ("HOTEL", "DAY"),
-        "HOTEL_CONCIERGE": ("HOTEL", "MIDDAY"),
+        "HOTEL_CONCIERGE": ("FLOWER_SHOP", "NIGHT"),
         "HOTEL_BELLHOP": ("HOTEL", "MIDDAY"),
         "HOTEL_RECEPTIONIST": ("HOTEL", "EVENING"),
         "HOTEL_NIGHT_MANAGER": ("HOTEL", "NIGHT"),
         "SHOP_STAFF": ("SHOP", "DAY"),  # 첫날 미션 대상(Alex)은 미션이 시작하는 아침 교대
         "SHOP_PHARMACIST": ("SHOP", "EVENING"),
         "SHOP_NIGHT_CLERK": ("SHOP", "NIGHT"),
-        "POST_OFFICE_STAFF": ("POST_OFFICE", "ALL_DAY"),
-        "DINER_STAFF": ("DINER", "ALL_DAY"),
-        "BANK_STAFF": ("BANK", "ALL_DAY"),
-        "LAUNDROMAT_STAFF": ("LAUNDROMAT", "ALL_DAY"),
-        "FLOWER_SHOP_STAFF": ("FLOWER_SHOP", "ALL_DAY"),
-        "BARBER_STAFF": ("BARBER", "ALL_DAY"),
-        "BAKERY_STAFF": ("BAKERY", "ALL_DAY"),
-        "ARCADE_STAFF": ("ARCADE", "ALL_DAY"),
-        "HOME_STORE_STAFF": ("HOME_STORE", "ALL_DAY"),
+        "POST_OFFICE_STAFF": ("POST_OFFICE", "DAY"),
+        "DINER_STAFF": ("DINER", "DAY"),
+        "BANK_STAFF": ("BANK", "DAY"),
+        "LAUNDROMAT_STAFF": ("LAUNDROMAT", "DAY"),
+        "FLOWER_SHOP_STAFF": ("FLOWER_SHOP", "DAY"),
+        "BARBER_STAFF": ("BARBER", "DAY"),
+        "BAKERY_STAFF": ("BAKERY", "DAY"),
+        "ARCADE_STAFF": ("ARCADE", "DAY"),
+        "HOME_STORE_STAFF": ("HOME_STORE", "DAY"),
         "POLICE_OFFICER": ("POLICE_STATION", "DAY"),
-        "POLICE_ROOKIE": ("POLICE_STATION", "MIDDAY"),
-        "POLICE_PATROL_OFFICER": ("POLICE_STATION", "EVENING"),
+        "POLICE_ROOKIE": ("POLICE_STATION", "EVENING"),
+        "POLICE_PATROL_OFFICER": ("BAKERY", "NIGHT"),
         "POLICE_SERGEANT": ("POLICE_STATION", "NIGHT"),
         "TAXI_DRIVER": ("TAXI", "ALL_DAY"),
-        "TOWN_RETIREE": ("TOWN", "MORNING"),
-        "FIRE_CAPTAIN": ("TOWN", "MORNING"),
+        "TOWN_RETIREE": ("POST_OFFICE", "NIGHT"),
+        "FIRE_CAPTAIN": ("DINER", "NIGHT"),
         "TOWN_GRANDFATHER": ("TOWN", "MORNING"),
         "TOWN_GRANDMOTHER": ("TOWN", "MORNING"),
-        "FIRE_FIGHTER": ("TOWN", "AFTERNOON"),
-        "FIRE_ROOKIE": ("TOWN", "EVENING"),
+        "FIRE_FIGHTER": ("LAUNDROMAT", "NIGHT"),
+        "FIRE_ROOKIE": ("BARBER", "NIGHT"),
         "TOWN_PASSERBY": ("TOWN", "DAY"),
-        "TOWN_SHOPPER": ("TOWN", "MIDDAY"),
-        "TOWN_HANDYMAN": ("TOWN", "MIDDAY"),
-        "TOWN_STUDENT": ("TOWN", "AFTERNOON"),
-        "TOWN_EVENING_WALKER": ("TOWN", "EVENING"),
+        "TOWN_SHOPPER": ("BANK", "NIGHT"),
+        "TOWN_HANDYMAN": ("HOME_STORE", "NIGHT"),
+        "TOWN_STUDENT": ("ARCADE", "NIGHT"),
+        "TOWN_EVENING_WALKER": ("BANK", "EVENING"),
     }
 
 
@@ -340,7 +373,9 @@ def test_service_npc_life_files_hold_only_input_nodes():
     mia, jake, ben = (load_life(npc_id) for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"])
 
     assert [(life["mbti"], life["role"]) for life in (mia, jake, ben)] == [("ESFJ-T", "STAFF"), ("ISTP-T", "STAFF"), ("ESFJ-T", "PASSERBY")]
-    assert all(set(life) - {"tutorialGuide"} == {"schemaVersion", "npcId", "mbti", "role", "workplace", "shift"} for life in lives)
+    assert all(
+        set(life) - {"tutorialGuide", "resident"} == {"schemaVersion", "npcId", "mbti", "role", "workplace", "shift"} for life in lives
+    )
 
 
 def test_ben_is_the_only_tutorial_guide():

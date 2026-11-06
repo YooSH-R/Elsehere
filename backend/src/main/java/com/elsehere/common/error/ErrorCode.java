@@ -25,6 +25,8 @@ public enum ErrorCode {
   SCENE_CLOSED(HttpStatus.CONFLICT, "아직 열리지 않은 장소입니다."),
   TUTORIAL_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "튜토리얼 단계가 아닙니다."),
   MISSION_NOT_READY(HttpStatus.CONFLICT, "주문을 마치고 카페에서 대화를 끝낸 뒤 쉬어 가세요."),
+  REVIEW_NOT_READY(HttpStatus.CONFLICT, "복습할 표현이 아직 준비되지 않았어요."),
+  REVIEW_IN_PROGRESS(HttpStatus.CONFLICT, "연습을 마친 뒤 삭제해 주세요."),
   REQUEST_ID_CONFLICT(HttpStatus.CONFLICT, "같은 요청 ID로 다른 요청을 보냈습니다."),
   CONVERSATION_ALREADY_ACTIVE(HttpStatus.CONFLICT, "진행 중인 대화가 있습니다."),
   CONVERSATION_NOT_ACTIVE(HttpStatus.CONFLICT, "이미 끝난 대화입니다."),

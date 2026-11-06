@@ -22,6 +22,25 @@ namespace A305.Tutorial.PlayModeTests
     /// </summary>
     public class TutorialFlowTests
     {
+        [UnityTest]
+        public IEnumerator AbandoningGuidedConversation_ReleasesTheDialogueClockPause()
+        {
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+            Click(offer, "AcceptButton");
+            yield return null;
+            DialogueController dialogue = Single<DialogueController>();
+            Assert.That(dialogue.IsTalking, Is.True);
+            Assert.That(GameClock.Shared.IsTalking, Is.True);
+
+            dialogue.Abandon();
+
+            Assert.That(dialogue.IsTalking, Is.False);
+            Assert.That(GameClock.Shared.IsTalking, Is.False);
+        }
+
         private const string BenCode = "TOWN_PASSERBY";
         private const float WaitTimeoutSeconds = 15f;
 
@@ -423,9 +442,13 @@ namespace A305.Tutorial.PlayModeTests
 
             DialoguePanelView panel = Single<DialoguePanelView>();
             CoachMarkView coachMark = Single<CoachMarkView>();
+            RectTransform npcName = panel
+                .GetComponentsInChildren<TMP_Text>(true)
+                .Single(text => text.text == "Ben")
+                .rectTransform;
             RectTransform[][] tour =
             {
-                new[] { panel.LinesRect },
+                new[] { panel.LinesRect, npcName },
                 panel.ToolParts.ToArray(),
                 new[] { panel.SuggestedWordsRect },
             };
@@ -451,6 +474,11 @@ namespace A305.Tutorial.PlayModeTests
                 coachMark.SpotlightTargets,
                 Does.Contain(panel.LinesRect),
                 "대사는 밝힌 곳 안에 두어 그대로 보입니다."
+            );
+            Assert.That(
+                coachMark.SpotlightTargets,
+                Does.Contain(npcName),
+                "화자 이름도 밝힌 곳 안에 두어 Ben이 가려지지 않습니다."
             );
             Assert.That(
                 coachMark.IsDimmingOutside,

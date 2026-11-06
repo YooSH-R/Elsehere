@@ -13,6 +13,73 @@ namespace A305.Npc.Tests
         private const string Review = "Assets/Prefabs/Npc/Review/";
 
         [Test]
+        public void NewCafeVisualUsesPlacementScaleWithoutChangingExistingScale()
+        {
+            var root = (GameObject)
+                PrefabUtility.InstantiatePrefab(
+                    AssetDatabase.LoadAssetAtPath<GameObject>(NpcBuilder.PasserbyPrefabPath)
+                );
+            try
+            {
+                var npc = root.GetComponent<NpcIdentity>();
+                string path = "Assets/Prefabs/Npc/CafeFemaleDialogue.prefab";
+                NpcVisualBuilder.Connect(npc, path, true, 1.6f);
+                var visual = root
+                    .transform.Cast<Transform>()
+                    .Single(child =>
+                        PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(child) == path
+                    );
+                Assert.That(visual.localScale, Is.EqualTo(Vector3.one * 1.6f));
+                Assert.That(root.GetComponent<CharacterController>().height, Is.GreaterThan(1.5f));
+                visual.localScale = Vector3.one * 1.7f;
+                NpcVisualBuilder.Connect(npc, path, true, 1.6f);
+                Assert.That(visual.localScale, Is.EqualTo(Vector3.one * 1.7f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void ReconnectingScaledVisualMeasuresItsExistingSceneScale()
+        {
+            var root = (GameObject)
+                PrefabUtility.InstantiatePrefab(
+                    AssetDatabase.LoadAssetAtPath<GameObject>(NpcBuilder.PasserbyPrefabPath)
+                );
+            try
+            {
+                var npc = root.GetComponent<NpcIdentity>();
+                string path = Review + "LittleMung_Cafe_Male.prefab";
+                NpcVisualBuilder.Connect(npc, path, true);
+                var visual = root
+                    .transform.Cast<Transform>()
+                    .Single(child =>
+                        PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(child) == path
+                    );
+                float height = root.GetComponent<CharacterController>().height;
+                float eyeHeight = npc.LookTarget.localPosition.y - visual.localPosition.y;
+                visual.localScale *= 1.6f;
+                Vector3 scale = visual.localScale;
+                NpcVisualBuilder.Connect(npc, path, true);
+                Assert.That(visual.localScale, Is.EqualTo(scale), "기존 외형 크기를 유지합니다.");
+                Assert.That(
+                    root.GetComponent<CharacterController>().height,
+                    Is.EqualTo(height * 1.6f).Within(.001f)
+                );
+                Assert.That(
+                    npc.LookTarget.localPosition.y - visual.localPosition.y,
+                    Is.EqualTo(eyeHeight * 1.6f).Within(.001f)
+                );
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void ReplacingVisualKeepsOneFaceAndPreservesNpcPlacementAndSettings()
         {
             var npc = (GameObject)

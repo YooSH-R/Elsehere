@@ -13,9 +13,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 class PoliceDeskTest {
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {"POLICE_OFFICER", "POLICE_SERGEANT", "POLICE_PATROL_OFFICER", "POLICE_ROOKIE"})
-  @DisplayName("경찰서 창구의 경찰관 네 명 모두 신고를 받는다")
+  @ValueSource(strings = {"POLICE_OFFICER", "POLICE_SERGEANT", "POLICE_ROOKIE"})
+  @DisplayName("경찰서 창구의 경찰관 세 명 모두 신고를 받는다")
   void serves_everyOfficerAtTheDesk(String npcCode) {
     assertThat(PoliceDesk.serves(npcCode)).isTrue();
   }
@@ -24,6 +23,7 @@ class PoliceDeskTest {
   @DisplayName("다른 NPC에게 한 말은 신고로 받지 않는다")
   void serves_notOtherNpcs() {
     assertThat(PoliceDesk.serves("CAFE_STAFF")).isFalse();
+    assertThat(PoliceDesk.serves("POLICE_PATROL_OFFICER")).isFalse(); // Kevin은 빵집 야간 직원이다.
   }
 
   @Test

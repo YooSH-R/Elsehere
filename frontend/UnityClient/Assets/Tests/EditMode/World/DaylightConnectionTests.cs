@@ -4,16 +4,35 @@ using A305.Weather;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEngine.SceneManagement;
 
 namespace A305.World.Tests
 {
     public sealed class DaylightConnectionTests
     {
+        private Scene town;
+        private Scene station;
+
+        [OneTimeSetUp]
+        public void OpenProductionScenes()
+        {
+            town = EditorSceneManager.OpenScene("Assets/Scenes/Production/TownScene.unity");
+            station = EditorSceneManager.OpenScene(
+                "Assets/Scenes/Production/PoliceStationScene.unity",
+                OpenSceneMode.Additive
+            );
+        }
+
+        [OneTimeTearDown]
+        public void CloseProductionScenes()
+        {
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        }
+
         [TestCase("PoliceStationScene", typeof(InteriorDaylight))]
         public void ProductionSceneFollowsGameClockDayAndNight(string name, System.Type view)
         {
-            var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/" + name + ".unity");
-            var link = BuilderTools.FindSingleInScene<GameClockDaylight>(scene);
+            var link = BuilderTools.FindSingleInScene<GameClockDaylight>(station);
             Assert.That(
                 link,
                 Is.Not.Null,
@@ -33,8 +52,7 @@ namespace A305.World.Tests
         [TestCase("PoliceStationScene")]
         public void InteriorLetsDaylightInThroughWindows(string name)
         {
-            var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/" + name + ".unity");
-            var interior = BuilderTools.FindSingleInScene<InteriorDaylight>(scene);
+            var interior = BuilderTools.FindSingleInScene<InteriorDaylight>(station);
             Assert.That(interior, Is.Not.Null, name);
             Assert.That(
                 new SerializedObject(interior).FindProperty("windowLights").arraySize,
@@ -47,8 +65,7 @@ namespace A305.World.Tests
         [Test]
         public void TownLightsStreetLampsOnlyAtNight()
         {
-            var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/TownScene.unity");
-            var weather = BuilderTools.FindSingleInScene<WeatherPresenter>(scene);
+            var weather = BuilderTools.FindSingleInScene<WeatherPresenter>(town);
             var fields = new SerializedObject(weather);
 
             string[] streetLamps = Names(fields.FindProperty("streetLamps"));
@@ -72,8 +89,7 @@ namespace A305.World.Tests
         [Test]
         public void TownLightsWindowsOfOpenShopsAndLodgingOnly()
         {
-            var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/TownScene.unity");
-            var weather = BuilderTools.FindSingleInScene<WeatherPresenter>(scene);
+            var weather = BuilderTools.FindSingleInScene<WeatherPresenter>(town);
             SerializedProperty buildings = new SerializedObject(weather).FindProperty(
                 "litBuildings"
             );

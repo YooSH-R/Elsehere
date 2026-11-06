@@ -27,6 +27,7 @@ namespace A305.EditorTools.Npc
             "HotelScene",
             "ShopScene",
             "TownScene",
+            "PoliceStationScene",
         };
         private static readonly Vector3 Dorm = new Vector3(-18, .1f, 21);
         private static readonly Vector3 Park = new Vector3(11, .1f, 21);
@@ -134,6 +135,7 @@ namespace A305.EditorTools.Npc
             );
             NpcLifeBuilder.RebakeWalkArea(town);
             BuilderTools.SaveScene(town, town.path);
+            NpcCastBuilder.RefreshCommuterVisuals();
             AssetDatabase.SaveAssets();
             Debug.Log("NPC 숙소·근무 중 출현·타운 출퇴근 연결을 완료했습니다.");
         }

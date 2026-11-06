@@ -146,23 +146,18 @@
       },
       "schedule": [
         {
-          "from": "12:00",
-          "to": "17:30",
-          "activity": "WORK"
-        },
-        {
-          "from": "17:30",
+          "from": "06:00",
           "to": "18:00",
-          "activity": "BREAK"
+          "activity": "WORK"
         },
         {
           "from": "18:00",
-          "to": "23:00",
-          "activity": "WORK"
+          "to": "18:30",
+          "activity": "BREAK"
         },
         {
-          "from": "23:00",
-          "to": "12:00",
+          "from": "18:30",
+          "to": "06:00",
           "activity": "OFF"
         }
       ]
@@ -182,21 +177,16 @@
       "schedule": [
         {
           "from": "06:00",
-          "to": "12:00",
-          "activity": "WORK"
-        },
-        {
-          "from": "12:00",
-          "to": "12:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "12:30",
           "to": "18:00",
           "activity": "WORK"
         },
         {
           "from": "18:00",
+          "to": "18:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "18:30",
           "to": "06:00",
           "activity": "OFF"
         }
@@ -216,23 +206,18 @@
       },
       "schedule": [
         {
-          "from": "09:00",
-          "to": "12:30",
+          "from": "06:00",
+          "to": "14:00",
           "activity": "WORK"
         },
         {
-          "from": "12:30",
-          "to": "13:00",
+          "from": "14:00",
+          "to": "14:30",
           "activity": "BREAK"
         },
         {
-          "from": "13:00",
-          "to": "16:00",
-          "activity": "WORK"
-        },
-        {
-          "from": "16:00",
-          "to": "09:00",
+          "from": "14:30",
+          "to": "06:00",
           "activity": "OFF"
         }
       ]
@@ -251,23 +236,18 @@
       },
       "schedule": [
         {
-          "from": "10:00",
-          "to": "14:30",
+          "from": "06:00",
+          "to": "18:00",
           "activity": "WORK"
         },
         {
-          "from": "14:30",
-          "to": "15:00",
+          "from": "18:00",
+          "to": "18:30",
           "activity": "BREAK"
         },
         {
-          "from": "15:00",
-          "to": "19:00",
-          "activity": "WORK"
-        },
-        {
-          "from": "19:00",
-          "to": "10:00",
+          "from": "18:30",
+          "to": "06:00",
           "activity": "OFF"
         }
       ]
@@ -286,23 +266,18 @@
       },
       "schedule": [
         {
-          "from": "13:00",
-          "to": "17:00",
+          "from": "18:00",
+          "to": "06:00",
           "activity": "WORK"
         },
         {
-          "from": "17:00",
-          "to": "17:30",
+          "from": "06:00",
+          "to": "06:30",
           "activity": "BREAK"
         },
         {
-          "from": "17:30",
-          "to": "21:00",
-          "activity": "WORK"
-        },
-        {
-          "from": "21:00",
-          "to": "13:00",
+          "from": "06:30",
+          "to": "18:00",
           "activity": "OFF"
         }
       ]
@@ -322,21 +297,16 @@
       "schedule": [
         {
           "from": "10:00",
-          "to": "14:00",
-          "activity": "WORK"
-        },
-        {
-          "from": "14:00",
-          "to": "14:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "14:30",
           "to": "18:00",
           "activity": "WORK"
         },
         {
           "from": "18:00",
+          "to": "18:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "18:30",
           "to": "10:00",
           "activity": "OFF"
         }
@@ -356,24 +326,9 @@
       },
       "schedule": [
         {
-          "from": "07:00",
-          "to": "11:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "11:00",
-          "to": "11:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "11:30",
-          "to": "15:00",
-          "activity": "WORK"
-        },
-        {
-          "from": "15:00",
-          "to": "07:00",
-          "activity": "OFF"
         }
       ]
     },
@@ -391,32 +346,27 @@
       },
       "schedule": [
         {
-          "from": "07:00",
-          "to": "14:30",
+          "from": "06:00",
+          "to": "18:00",
           "activity": "WORK"
         },
         {
-          "from": "14:30",
-          "to": "15:00",
+          "from": "18:00",
+          "to": "18:30",
           "activity": "BREAK"
         },
         {
-          "from": "15:00",
-          "to": "22:00",
-          "activity": "WORK"
-        },
-        {
-          "from": "22:00",
-          "to": "07:00",
+          "from": "18:30",
+          "to": "06:00",
           "activity": "OFF"
         }
       ]
     },
     {
       "npcId": "FIRE_CAPTAIN",
-      "role": "PASSERBY",
+      "role": "STAFF",
       "scene": "TOWN",
-      "workplace": "TOWN",
+      "workplace": "DINER",
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
@@ -426,22 +376,27 @@
       },
       "schedule": [
         {
-          "from": "06:00",
-          "to": "13:00",
-          "activity": "FREE"
+          "from": "18:00",
+          "to": "06:00",
+          "activity": "WORK"
         },
         {
-          "from": "13:00",
-          "to": "06:00",
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "18:00",
           "activity": "OFF"
         }
       ]
     },
     {
       "npcId": "FIRE_FIGHTER",
-      "role": "PASSERBY",
+      "role": "STAFF",
       "scene": "TOWN",
-      "workplace": "TOWN",
+      "workplace": "LAUNDROMAT",
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
@@ -451,22 +406,27 @@
       },
       "schedule": [
         {
-          "from": "12:00",
-          "to": "20:00",
-          "activity": "FREE"
+          "from": "18:00",
+          "to": "06:00",
+          "activity": "WORK"
         },
         {
-          "from": "20:00",
-          "to": "12:00",
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "18:00",
           "activity": "OFF"
         }
       ]
     },
     {
       "npcId": "FIRE_ROOKIE",
-      "role": "PASSERBY",
+      "role": "STAFF",
       "scene": "TOWN",
-      "workplace": "TOWN",
+      "workplace": "BARBER",
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
@@ -476,13 +436,18 @@
       },
       "schedule": [
         {
-          "from": "16:00",
-          "to": "23:00",
-          "activity": "FREE"
+          "from": "18:00",
+          "to": "06:00",
+          "activity": "WORK"
         },
         {
-          "from": "23:00",
-          "to": "16:00",
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "18:00",
           "activity": "OFF"
         }
       ]
@@ -501,23 +466,18 @@
       },
       "schedule": [
         {
-          "from": "09:00",
-          "to": "14:00",
+          "from": "06:00",
+          "to": "18:00",
           "activity": "WORK"
         },
         {
-          "from": "14:00",
-          "to": "14:30",
+          "from": "18:00",
+          "to": "18:30",
           "activity": "BREAK"
         },
         {
-          "from": "14:30",
-          "to": "19:00",
-          "activity": "WORK"
-        },
-        {
-          "from": "19:00",
-          "to": "09:00",
+          "from": "18:30",
+          "to": "06:00",
           "activity": "OFF"
         }
       ]
@@ -536,23 +496,18 @@
       },
       "schedule": [
         {
-          "from": "10:00",
-          "to": "15:00",
+          "from": "06:00",
+          "to": "18:00",
           "activity": "WORK"
         },
         {
-          "from": "15:00",
-          "to": "15:30",
+          "from": "18:00",
+          "to": "18:30",
           "activity": "BREAK"
         },
         {
-          "from": "15:30",
-          "to": "20:00",
-          "activity": "WORK"
-        },
-        {
-          "from": "20:00",
-          "to": "10:00",
+          "from": "18:30",
+          "to": "06:00",
           "activity": "OFF"
         }
       ]
@@ -572,21 +527,16 @@
       "schedule": [
         {
           "from": "10:00",
-          "to": "14:00",
+          "to": "22:00",
           "activity": "WORK"
         },
         {
-          "from": "14:00",
-          "to": "14:30",
+          "from": "22:00",
+          "to": "22:30",
           "activity": "BREAK"
         },
         {
-          "from": "14:30",
-          "to": "18:00",
-          "activity": "WORK"
-        },
-        {
-          "from": "18:00",
+          "from": "22:30",
           "to": "10:00",
           "activity": "OFF"
         }
@@ -595,8 +545,8 @@
     {
       "npcId": "HOTEL_CONCIERGE",
       "role": "STAFF",
-      "scene": "HOTEL",
-      "workplace": "HOTEL",
+      "scene": "TOWN",
+      "workplace": "FLOWER_SHOP",
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
@@ -606,23 +556,18 @@
       },
       "schedule": [
         {
-          "from": "10:00",
-          "to": "14:00",
+          "from": "18:00",
+          "to": "06:00",
           "activity": "WORK"
         },
         {
-          "from": "14:00",
-          "to": "14:30",
+          "from": "06:00",
+          "to": "06:30",
           "activity": "BREAK"
         },
         {
-          "from": "14:30",
+          "from": "06:30",
           "to": "18:00",
-          "activity": "WORK"
-        },
-        {
-          "from": "18:00",
-          "to": "10:00",
           "activity": "OFF"
         }
       ]
@@ -641,23 +586,18 @@
       },
       "schedule": [
         {
-          "from": "22:00",
-          "to": "02:00",
+          "from": "18:00",
+          "to": "06:00",
           "activity": "WORK"
         },
         {
-          "from": "02:00",
-          "to": "02:30",
+          "from": "06:00",
+          "to": "06:30",
           "activity": "BREAK"
         },
         {
-          "from": "02:30",
-          "to": "06:30",
-          "activity": "WORK"
-        },
-        {
           "from": "06:30",
-          "to": "22:00",
+          "to": "18:00",
           "activity": "OFF"
         }
       ]
@@ -676,23 +616,18 @@
       },
       "schedule": [
         {
-          "from": "14:00",
-          "to": "18:00",
+          "from": "10:00",
+          "to": "22:00",
           "activity": "WORK"
         },
         {
-          "from": "18:00",
-          "to": "18:30",
+          "from": "22:00",
+          "to": "22:30",
           "activity": "BREAK"
         },
         {
-          "from": "18:30",
-          "to": "22:30",
-          "activity": "WORK"
-        },
-        {
           "from": "22:30",
-          "to": "14:00",
+          "to": "10:00",
           "activity": "OFF"
         }
       ]
@@ -711,24 +646,9 @@
       },
       "schedule": [
         {
-          "from": "06:00",
-          "to": "10:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "10:00",
-          "to": "10:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "10:30",
-          "to": "14:30",
-          "activity": "WORK"
-        },
-        {
-          "from": "14:30",
-          "to": "06:00",
-          "activity": "OFF"
         }
       ]
     },
@@ -746,23 +666,18 @@
       },
       "schedule": [
         {
-          "from": "07:00",
-          "to": "14:30",
+          "from": "06:00",
+          "to": "18:00",
           "activity": "WORK"
         },
         {
-          "from": "14:30",
-          "to": "15:00",
+          "from": "18:00",
+          "to": "18:30",
           "activity": "BREAK"
         },
         {
-          "from": "15:00",
-          "to": "22:00",
-          "activity": "WORK"
-        },
-        {
-          "from": "22:00",
-          "to": "07:00",
+          "from": "18:30",
+          "to": "06:00",
           "activity": "OFF"
         }
       ]
@@ -782,18 +697,13 @@
       "schedule": [
         {
           "from": "06:00",
-          "to": "10:00",
+          "to": "14:00",
           "activity": "WORK"
         },
         {
-          "from": "10:00",
-          "to": "10:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "10:30",
+          "from": "14:00",
           "to": "14:30",
-          "activity": "WORK"
+          "activity": "BREAK"
         },
         {
           "from": "14:30",
@@ -806,7 +716,7 @@
       "npcId": "POLICE_PATROL_OFFICER",
       "role": "STAFF",
       "scene": "TOWN",
-      "workplace": "POLICE_STATION",
+      "workplace": "BAKERY",
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
@@ -816,23 +726,18 @@
       },
       "schedule": [
         {
-          "from": "14:00",
-          "to": "18:00",
+          "from": "18:00",
+          "to": "06:00",
           "activity": "WORK"
         },
         {
-          "from": "18:00",
-          "to": "18:30",
+          "from": "06:00",
+          "to": "06:30",
           "activity": "BREAK"
         },
         {
-          "from": "18:30",
-          "to": "22:30",
-          "activity": "WORK"
-        },
-        {
-          "from": "22:30",
-          "to": "14:00",
+          "from": "06:30",
+          "to": "18:00",
           "activity": "OFF"
         }
       ]
@@ -851,23 +756,18 @@
       },
       "schedule": [
         {
-          "from": "10:00",
-          "to": "14:00",
+          "from": "14:00",
+          "to": "22:00",
           "activity": "WORK"
         },
         {
-          "from": "14:00",
-          "to": "14:30",
+          "from": "22:00",
+          "to": "22:30",
           "activity": "BREAK"
         },
         {
-          "from": "14:30",
-          "to": "18:00",
-          "activity": "WORK"
-        },
-        {
-          "from": "18:00",
-          "to": "10:00",
+          "from": "22:30",
+          "to": "14:00",
           "activity": "OFF"
         }
       ]
@@ -887,18 +787,13 @@
       "schedule": [
         {
           "from": "22:00",
-          "to": "02:00",
+          "to": "06:00",
           "activity": "WORK"
         },
         {
-          "from": "02:00",
-          "to": "02:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "02:30",
+          "from": "06:00",
           "to": "06:30",
-          "activity": "WORK"
+          "activity": "BREAK"
         },
         {
           "from": "06:30",
@@ -921,23 +816,18 @@
       },
       "schedule": [
         {
-          "from": "09:00",
-          "to": "13:00",
+          "from": "06:00",
+          "to": "18:00",
           "activity": "WORK"
         },
         {
-          "from": "13:00",
-          "to": "13:30",
+          "from": "18:00",
+          "to": "18:30",
           "activity": "BREAK"
         },
         {
-          "from": "13:30",
-          "to": "17:00",
-          "activity": "WORK"
-        },
-        {
-          "from": "17:00",
-          "to": "09:00",
+          "from": "18:30",
+          "to": "06:00",
           "activity": "OFF"
         }
       ]
@@ -957,18 +847,13 @@
       "schedule": [
         {
           "from": "23:00",
-          "to": "03:00",
+          "to": "07:00",
           "activity": "WORK"
         },
         {
-          "from": "03:00",
-          "to": "03:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "03:30",
+          "from": "07:00",
           "to": "07:30",
-          "activity": "WORK"
+          "activity": "BREAK"
         },
         {
           "from": "07:30",
@@ -992,18 +877,13 @@
       "schedule": [
         {
           "from": "15:00",
-          "to": "19:00",
+          "to": "23:00",
           "activity": "WORK"
         },
         {
-          "from": "19:00",
-          "to": "19:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "19:30",
+          "from": "23:00",
           "to": "23:30",
-          "activity": "WORK"
+          "activity": "BREAK"
         },
         {
           "from": "23:30",
@@ -1026,24 +906,9 @@
       },
       "schedule": [
         {
-          "from": "07:00",
-          "to": "11:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "11:00",
-          "to": "11:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "11:30",
-          "to": "15:30",
-          "activity": "WORK"
-        },
-        {
-          "from": "15:30",
-          "to": "07:00",
-          "activity": "OFF"
         }
       ]
     },
@@ -1079,9 +944,9 @@
     },
     {
       "npcId": "TOWN_EVENING_WALKER",
-      "role": "PASSERBY",
+      "role": "STAFF",
       "scene": "TOWN",
-      "workplace": "TOWN",
+      "workplace": "BANK",
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
@@ -1091,13 +956,18 @@
       },
       "schedule": [
         {
-          "from": "16:00",
-          "to": "23:00",
-          "activity": "FREE"
+          "from": "14:00",
+          "to": "22:00",
+          "activity": "WORK"
         },
         {
-          "from": "23:00",
-          "to": "16:00",
+          "from": "22:00",
+          "to": "22:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "22:30",
+          "to": "14:00",
           "activity": "OFF"
         }
       ]
@@ -1154,9 +1024,9 @@
     },
     {
       "npcId": "TOWN_HANDYMAN",
-      "role": "PASSERBY",
+      "role": "STAFF",
       "scene": "TOWN",
-      "workplace": "TOWN",
+      "workplace": "HOME_STORE",
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
@@ -1166,13 +1036,18 @@
       },
       "schedule": [
         {
-          "from": "10:00",
-          "to": "18:00",
-          "activity": "FREE"
+          "from": "18:00",
+          "to": "06:00",
+          "activity": "WORK"
         },
         {
-          "from": "18:00",
-          "to": "10:00",
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "18:00",
           "activity": "OFF"
         }
       ]
@@ -1204,9 +1079,9 @@
     },
     {
       "npcId": "TOWN_RETIREE",
-      "role": "PASSERBY",
+      "role": "STAFF",
       "scene": "TOWN",
-      "workplace": "TOWN",
+      "workplace": "POST_OFFICE",
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
@@ -1216,22 +1091,27 @@
       },
       "schedule": [
         {
-          "from": "06:00",
-          "to": "13:00",
-          "activity": "FREE"
+          "from": "18:00",
+          "to": "06:00",
+          "activity": "WORK"
         },
         {
-          "from": "13:00",
-          "to": "06:00",
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "18:00",
           "activity": "OFF"
         }
       ]
     },
     {
       "npcId": "TOWN_SHOPPER",
-      "role": "PASSERBY",
+      "role": "STAFF",
       "scene": "TOWN",
-      "workplace": "TOWN",
+      "workplace": "BANK",
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
@@ -1241,22 +1121,27 @@
       },
       "schedule": [
         {
-          "from": "10:00",
-          "to": "18:00",
-          "activity": "FREE"
+          "from": "22:00",
+          "to": "06:00",
+          "activity": "WORK"
         },
         {
-          "from": "18:00",
-          "to": "10:00",
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "22:00",
           "activity": "OFF"
         }
       ]
     },
     {
       "npcId": "TOWN_STUDENT",
-      "role": "PASSERBY",
+      "role": "STAFF",
       "scene": "TOWN",
-      "workplace": "TOWN",
+      "workplace": "ARCADE",
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
@@ -1266,13 +1151,18 @@
       },
       "schedule": [
         {
-          "from": "12:00",
-          "to": "20:00",
-          "activity": "FREE"
+          "from": "18:00",
+          "to": "06:00",
+          "activity": "WORK"
         },
         {
-          "from": "20:00",
-          "to": "12:00",
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "18:00",
           "activity": "OFF"
         }
       ]

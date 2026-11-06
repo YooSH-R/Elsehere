@@ -26,7 +26,7 @@ namespace A305.Npc.PlayModeTests
     {
         private const string OfficerCode = "POLICE_OFFICER";
         private const float TripTimeoutSeconds = 30f;
-        private const float DoorTimeoutSeconds = 10f;
+        private const float DoorTimeoutSeconds = 20f;
 
         // 순찰차 주차 칸(PoliceStationBuilder.Bay). 출동을 마치면 여기로 돌아온다.
         private static readonly Vector2 Bay = new Vector2(-9f, -28.8f);

@@ -31,19 +31,17 @@ namespace A305.EditorTools.Npc
                 "HOTEL_RECEPTIONIST",
                 NpcLooks.Hotelier,
                 hair: Palette.BlackHair,
-                secondClothes: Palette.Burgundy,
-                eyes: Palette.GreenEyes
+                clothes: Palette.Charcoal
             ),
             Member(
                 "HOTEL_BELLHOP",
                 NpcLooks.Hotelier,
                 hair: Palette.DarkBrownHair,
-                clothes: Palette.Red,
-                eyes: Palette.AmberEyes
+                clothes: Palette.Red
             ),
             Member(
                 "HOTEL_CONCIERGE",
-                NpcLooks.MiddleAgeMale,
+                NpcLooks.BusinessMale,
                 hair: Palette.GreyHair,
                 clothes: Palette.Charcoal,
                 eyes: Palette.GreenEyes
@@ -54,7 +52,6 @@ namespace A305.EditorTools.Npc
             Member(
                 "SHOP_PHARMACIST",
                 NpcLooks.MiddleAgeFemale,
-                hair: Palette.ChestnutHair,
                 clothes: Palette.White,
                 eyes: Palette.BlueEyes
             ),
@@ -76,18 +73,14 @@ namespace A305.EditorTools.Npc
             ),
             Member(
                 "POLICE_PATROL_OFFICER",
-                NpcLooks.PoliceOfficer,
+                NpcLooks.BusinessMale,
                 hair: Palette.BlackHair,
+                clothes: Palette.Charcoal,
+                secondClothes: Palette.Burgundy,
                 shoes: Palette.BrownShoes,
                 eyes: Palette.GreenEyes
             ),
-            Member(
-                "POLICE_ROOKIE",
-                NpcLooks.PoliceOfficer,
-                hair: Palette.BlondHair,
-                shoes: Palette.GreyShoes,
-                eyes: Palette.GreyEyes
-            ),
+            Member("POLICE_ROOKIE", NpcLooks.PoliceFemale),
             // ---------- 마을 행인 ----------
             Member("TOWN_PASSERBY", NpcLooks.BusinessMale),
             Member(
@@ -106,27 +99,26 @@ namespace A305.EditorTools.Npc
             Member(
                 "TOWN_EVENING_WALKER",
                 NpcLooks.MiddleAgeFemale,
-                hair: Palette.DarkBrownHair,
                 clothes: Palette.Charcoal,
                 eyes: Palette.AmberEyes
             ),
             Member(
                 "TOWN_SHOPPER",
                 NpcLooks.MiddleAgeFemale,
-                hair: Palette.BlackHair,
                 clothes: Palette.Purple,
                 eyes: Palette.TealEyes
             ),
             Member(
                 "TOWN_HANDYMAN",
-                NpcLooks.MiddleAgeMale,
+                NpcLooks.Grandfather,
                 hair: Palette.GreyHair,
-                clothes: Palette.Red,
+                clothes: Palette.Navy,
+                shoes: Palette.BlackShoes,
                 eyes: Palette.GreyEyes
             ),
             Member(
                 "FIRE_CAPTAIN",
-                NpcLooks.BusinessMale,
+                NpcLooks.MiddleAgeMale,
                 hair: Palette.BlackHair,
                 clothes: Palette.Burgundy,
                 eyes: Palette.BlueEyes
@@ -134,7 +126,6 @@ namespace A305.EditorTools.Npc
             Member(
                 "FIRE_FIGHTER",
                 NpcLooks.MiddleAgeFemale,
-                hair: Palette.BlondHair,
                 clothes: Palette.Orange,
                 eyes: Palette.VioletEyes
             ),
@@ -296,7 +287,7 @@ namespace A305.EditorTools.Npc
     public sealed class NpcCastMember
     {
         // 배색을 바꾸지 않았어도 색을 칠하는 규칙이 바뀌면 이 값을 올려 텍스처를 다시 쓴다.
-        private const int RecipeVersion = 2;
+        private const int RecipeVersion = 5;
 
         public NpcCastMember(
             string code,

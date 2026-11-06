@@ -25,7 +25,33 @@ public record EndConversationResponse(
     long userTurnCount,
     FeedbackResponse feedback,
     List<Object> completedMissions,
-    FollowUpResponse followUp) {
+    FollowUpResponse followUp,
+    Long reviewCardId) {
+
+  public EndConversationResponse(
+      Long conversationId,
+      ConversationStatus status,
+      ConversationEndReason endReason,
+      OffsetDateTime endedAt,
+      NpcSummaryResponse npc,
+      String sceneCode,
+      long userTurnCount,
+      FeedbackResponse feedback,
+      List<Object> completedMissions,
+      FollowUpResponse followUp) {
+    this(
+        conversationId,
+        status,
+        endReason,
+        endedAt,
+        npc,
+        sceneCode,
+        userTurnCount,
+        feedback,
+        completedMissions,
+        followUp,
+        null);
+  }
 
   public EndConversationResponse withFeedback(FeedbackResponse feedback) {
     return new EndConversationResponse(
@@ -38,7 +64,8 @@ public record EndConversationResponse(
         userTurnCount,
         feedback,
         completedMissions,
-        followUp);
+        followUp,
+        reviewCardId);
   }
 
   public EndConversationResponse withFollowUp(FollowUpResponse followUp) {
@@ -52,6 +79,7 @@ public record EndConversationResponse(
         userTurnCount,
         feedback,
         completedMissions,
-        followUp);
+        followUp,
+        reviewCardId);
   }
 }

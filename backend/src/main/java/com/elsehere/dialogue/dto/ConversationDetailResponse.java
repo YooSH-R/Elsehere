@@ -18,4 +18,32 @@ public record ConversationDetailResponse(
     OffsetDateTime endedAt,
     int rudeCount,
     int rudeLimit,
-    List<TurnDetailResponse> turns) {}
+    List<TurnDetailResponse> turns,
+    Long reviewCardId) {
+  public ConversationDetailResponse(
+      Long conversationId,
+      ConversationStatus status,
+      ConversationEndReason endReason,
+      int levelApplied,
+      NpcSummaryResponse npc,
+      String sceneCode,
+      OffsetDateTime startedAt,
+      OffsetDateTime endedAt,
+      int rudeCount,
+      int rudeLimit,
+      List<TurnDetailResponse> turns) {
+    this(
+        conversationId,
+        status,
+        endReason,
+        levelApplied,
+        npc,
+        sceneCode,
+        startedAt,
+        endedAt,
+        rudeCount,
+        rudeLimit,
+        turns,
+        null);
+  }
+}

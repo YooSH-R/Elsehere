@@ -18,7 +18,9 @@ MR 파이프라인은 `.pre` 단계의 `ci:merge-conflicts`에서 실제 대상 
 | `unity:format` | 프론트, API 명세, Unity CI·검사 스크립트·규약 또는 공통 작성 지침 변경 | 고정된 .NET SDK와 CSharpier로 직접 작성한 C# 포맷 검사 |
 | `unity:browser-tests` | WebGL 플러그인·Web 템플릿·`infra/tests/webgl_*.test.cjs`·Unity CI 설정 변경, Unity 검사를 선택한 배포 자식 | Node 24에서 브라우저 연동 회귀 검사. Linux Runner를 사용하며 Windows Editor 검사와 별도로 실패를 막습니다. |
 | `unity:external-mr` | 다른 프로젝트에서 보낸 Unity 실행 관련 MR | 노트북에서 외부 코드를 실행하지 않고 필수 검사 실패로 병합 차단. 검토한 변경을 프로젝트 작업 브랜치로 옮겨 검사 |
-| `unity:editor-and-webgl` | Unity 검사를 선택한 보호된 dev 배포 자식, 모든 운영 배포 자식 또는 보호된 ref의 웹 실행에서 `RUN_UNITY_BUILD=true` | Windows 전용 Runner의 EditMode·PlayMode 테스트, 필요한 경우 WebGL 빌드와 프로젝트 내부 임시 패키지 게시, NUnit XML·로그·패키지 식별 파일 |
+| `unity:editor-and-webgl` | 모든 운영 배포 자식 또는 보호된 ref의 웹 실행에서 `RUN_UNITY_BUILD=true` | Windows 전용 Runner의 EditMode·PlayMode 전체 테스트, 필요한 WebGL 빌드·임시 패키지 게시 |
+| `unity:webgl-build` | `web` 이미지가 필요한 보호된 dev 배포 자식 | 전체 Editor 테스트 없이 WebGL 빌드·임시 패키지 게시 |
+| `dev:reuse-checks` | 같은 입력의 성공 MR 결과를 찾은 dev 배포 자식 | MR 출처·ZIP SHA256 확인, 필요한 JAR·AI 산출물과 검사 출처 복원 |
 | `unity:package-cleanup` | `unity:editor-and-webgl`과 같은 실행 조건, 전달 작업 이후 성공·실패에 관계없이 실행 | 해당 빌드 작업의 임시 WebGL 패키지만 정리 |
 | `ai:check-and-test` | AI, API 명세 또는 공통 CI·작성 지침 변경 | Python 3.12·Ruff 검사, 피드백·워커 테스트, 구문 컴파일, JUnit·소스 아카이브·커밋 식별자 |
 | `ai:panel-tests` | AI 피드백, API 명세 또는 공통 CI·작성 지침 변경 | Node.js 22의 피드백 패널 테스트 |
@@ -28,9 +30,9 @@ MR 파이프라인은 `.pre` 단계의 `ci:merge-conflicts`에서 실제 대상 
 | `infra:observability` | 모니터링·Nginx·관측 검증 스크립트 또는 공통 CI 변경 | 요청 ID·로그의 민감 정보 제외, Prometheus·Grafana 구성, 경보 발동·복구와 가짜 수신기 전송 검사 |
 | `prod:plan`·`prod:child`·`prod:deliver` | 보호된 `main` Push에서 자동 시작. 수동 재실행은 웹 실행과 `RUN_PROD_DEPLOY=true` 및 검증 변수 사용 | 직렬화된 자식에서 모든 영역 검사 후 누적 이미지 빌드·운영 자동 전달·상태 점검과 버전 보관. 설치·DB·병합 전 통합 검증 조건은 [운영 배포 문서](prod-deployment.md) 참조 |
 
-일반 문서 변경은 MR 충돌 검사와 빠른 YAML 검사를 수행합니다. API 명세는 일반 문서와 구분하여 백엔드·프론트·AI 검사를 함께 실행합니다. 작업 브랜치의 자동 검사는 Draft를 포함한 MR 파이프라인으로 통일합니다. MR을 만들기 전의 작업 브랜치 Push에는 파이프라인을 생성하지 않으며, 필요하면 웹에서 수동 실행합니다. 같은 MR에 새 커밋이 올라오면 이전 커밋의 취소 가능한 검사만 자동 취소하고 최신 커밋에 필요한 검사는 모두 수행합니다. 새 `dev` 커밋이 생기면 Unity Editor 검사가 시작되지 않은 이전 후보를 취소하고 누적 변경을 최신 후보에서 검사합니다. Unity 검사가 시작된 후보는 남은 검사·빌드와 배포까지 보존합니다. `main`의 검사와 이미 시작한 배포도 보존합니다. 웹에서 수동 실행한 파이프라인은 사용 가능한 백엔드·Unity 포맷·AI·관측 검사를 모두 수행하고, 확인용 Compose가 있으면 Compose·Nginx 검사도 수행합니다.
+일반 문서 변경은 MR 충돌 검사와 빠른 YAML 검사를 수행합니다. API 명세는 일반 문서와 구분하여 백엔드·프론트·AI 검사를 함께 실행합니다. 작업 브랜치의 자동 검사는 Draft를 포함한 MR 파이프라인으로 통일합니다. MR을 만들기 전의 작업 브랜치 Push에는 파이프라인을 생성하지 않으며, 필요하면 웹에서 수동 실행합니다. 같은 MR에 새 커밋이 올라오면 이전 커밋의 취소 가능한 검사만 자동 취소하고 최신 커밋에 필요한 검사는 모두 수행합니다. 새 `dev` 커밋이 생기면 Unity 빌드가 시작되지 않은 이전 후보를 취소하고 누적 변경을 최신 후보에서 검사합니다. 빌드가 시작된 후보는 남은 검사와 배포까지 보존합니다. `main`의 검사와 이미 시작한 배포도 보존합니다. 웹에서 수동 실행한 파이프라인은 사용 가능한 백엔드·Unity 포맷·AI·관측 검사를 모두 수행하고, 확인용 Compose가 있으면 Compose·Nginx 검사도 수행합니다.
 
-자동 취소는 `.gitlab-ci.yml`의 `workflow:rules:auto_cancel`에서 설정합니다. 일반 MR은 `on_new_commit: interruptible`로 이전 커밋의 취소 가능한 검사를 중단합니다. dev 배포 자식은 `on_new_commit: conservative`, `unity:editor-and-webgl`은 `interruptible: false`로 설정해 Unity 작업이 시작되기 전인 후보만 취소합니다. 시작 전 작업은 `interruptible: false`여도 취소 대상으로 간주되고, Unity 작업이 시작되면 해당 후보 전체가 보호됩니다. Unity 검사가 없는 후보는 `dev:deliver`가 시작되면 보호됩니다.
+자동 취소는 `.gitlab-ci.yml`의 `workflow:rules:auto_cancel`에서 설정합니다. 일반 MR은 `on_new_commit: interruptible`로 이전 커밋의 취소 가능한 검사를 중단합니다. dev 배포 자식은 `on_new_commit: conservative`, `unity:webgl-build`는 `interruptible: false`로 설정해 Unity 빌드가 시작되기 전인 후보만 취소합니다. 시작 전 작업은 `interruptible: false`여도 취소 대상으로 간주되고, 빌드가 시작되면 해당 후보 전체가 보호됩니다. 웹 빌드가 없는 후보는 `dev:deliver`가 시작되면 보호됩니다.
 
 dev 부모는 `on_new_commit: none`으로 자식의 최종 결과를 기다립니다. 자식을 실행하는 부모 연결만 먼저 취소해 결과가 끊기지 않도록 하기 위함입니다. `dev:deliver`와 운영 배포 연결·전달 작업은 `interruptible: false`로 보호합니다. `main` Push와 웹 수동 실행 부모는 기본값 `none`을 유지합니다. 최신 MR 검사의 실패·미실행은 계속 병합을 차단하며 다른 MR의 검사는 이 정책으로 취소하지 않습니다.
 
@@ -75,7 +77,7 @@ MR의 Unity 작업은 공통 workflow나 다른 영역의 CI 파일 변경만으
 
 작업 선택을 검증할 때는 CI 설정이 있는 버전을 대상으로 별도 Draft MR을 만듭니다. 대상과의 차이가 위 표의 한 영역에만 남도록 변경한 뒤, 파이프라인의 작업 목록과 결과를 확인합니다. 다음 사례로 바꿀 때 이전 검증용 변경을 복원합니다. 검증용 변경은 실제 CI MR이나 `dev`에 병합하지 않으며, 파이프라인·커밋별 결과는 검증 MR과 Jira에 기록합니다. 열린 MR에 Push한 커밋에서 MR 파이프라인만 생성되는지도 확인합니다. `ci:yaml` 로그의 실행 원인·커밋·대상 브랜치·MR 비교 기준을 작업 목록과 함께 확인할 수 있습니다.
 
-Unity 관련 MR은 포맷 검사와 최종 커밋의 로컬 EditMode·PlayMode 전체 검사가 필요합니다. 작성자는 검사한 커밋 SHA·작업 트리 변경 여부·테스트 결과를 MR에 기록하고, 최종 변경 후 재검사합니다. 실패·미실행이면 해결 전 병합하지 않습니다. GitLab은 로컬 검사 결과를 자동으로 확인하지 않습니다. dev 병합 후에는 병합된 커밋의 누적 통합 검사와 필요한 WebGL 빌드·배포를 별도로 수행합니다. 보호된 후보의 수동 연결 시험에는 `unity:editor-and-webgl`을 사용하며 실행 조건과 노트북 유지 방법은 [Windows Unity Runner](unity/windows-runner.md)를 따릅니다. Runner Online 상태만으로 테스트·빌드 성공으로 판단하지 않습니다. AI 단위 테스트는 모의 공급자로 실행하며 실제 모델 호출·GPU·음성 모델 기동은 검증 범위에 포함하지 않습니다.
+Unity 관련 MR은 포맷 검사와 최종 커밋의 로컬 EditMode·PlayMode 전체 검사가 필요합니다. 작성자는 검사한 커밋 SHA·작업 트리 변경 여부·테스트 결과를 MR에 기록하고, 최종 변경 후 재검사합니다. 실패·미실행이면 해결 전 병합하지 않습니다. GitLab은 로컬 검사 결과를 자동으로 확인하지 않습니다. dev 병합 후에는 입력이 같은 MR 검사 결과를 재사용하고 나머지 연관 영역 검사·필요한 WebGL 빌드·배포를 수행합니다. 개발 배포는 Editor 전체 테스트를 실행하지 않습니다. 운영 배포와 보호된 후보의 수동 연결 시험에는 전체 검사를 수행하는 `unity:editor-and-webgl`을 사용합니다. 재사용 조건과 출처는 [MR 결과 재사용](dev-auto-deployment.md#mr-결과-재사용), 실행 조건은 [Windows Unity Runner](unity/windows-runner.md)를 따릅니다. Runner Online 상태만으로 테스트·빌드 성공으로 판단하지 않습니다. AI 단위 테스트는 모의 공급자로 실행하며 실제 모델 호출·GPU·음성 모델 기동은 검증 범위에 포함하지 않습니다.
 
 일반 MR 파이프라인은 검사를 수행하며 서버 앱을 교체하지 않습니다. dev 자동 배포의 보호 조건, 자식 파이프라인, 서버 설치와 연결 시험은 [dev 자동 배포 운영](dev-auto-deployment.md)을 따릅니다. 운영 통합 테스트는 별도 릴리스 검증으로 관리합니다. 마지막 성공 배포 이후 누적 변경 판정은 배포 구현의 책임이며 CI의 `rules:changes`만으로 해결했다고 간주하지 않습니다.
 

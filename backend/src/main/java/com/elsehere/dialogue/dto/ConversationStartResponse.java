@@ -20,4 +20,26 @@ public record ConversationStartResponse(
     List<Object> runningMissions,
     NpcTurnResponse openingTurn,
     ConversationStateResponse conversation,
-    Long deliveredFollowUpId) {}
+    Long deliveredFollowUpId,
+    Long reviewCardId) {
+  public ConversationStartResponse(
+      Long conversationId,
+      ConversationStatus status,
+      int levelApplied,
+      NpcSummaryResponse npc,
+      List<Object> runningMissions,
+      NpcTurnResponse openingTurn,
+      ConversationStateResponse conversation,
+      Long deliveredFollowUpId) {
+    this(
+        conversationId,
+        status,
+        levelApplied,
+        npc,
+        runningMissions,
+        openingTurn,
+        conversation,
+        deliveredFollowUpId,
+        null);
+  }
+}

@@ -47,6 +47,9 @@ namespace A305.Npc
             internal NpcLifeEntry Life;
 
             [NonSerialized]
+            internal NpcDayPlan Plan;
+
+            [NonSerialized]
             internal NpcDayPhase? LastPhase;
 
             [NonSerialized]
@@ -95,6 +98,7 @@ namespace A305.Npc
                         && (workerBody.IsGuidingTutorial || workerBody.IsWaitingForQuest)
                     );
                 NpcDayPlan plan = NpcDayPlan.At(resident.Life, GameClock.Shared.Minutes, needed);
+                resident.Plan = plan;
                 if (resident.Worker != null && !IsTalking(resident.Worker))
                 {
                     bool roomLoaded =
@@ -107,22 +111,30 @@ namespace A305.Npc
                             && !PoliceCar.IsOutOnPatrol(resident.Life.NpcId)
                     );
                 }
-                if (resident.TownBody != null && PoliceDispatchOrder.IsAway(resident.Life.NpcId))
-                {
-                    resident.TownBody.SetActive(false);
-                    continue;
-                }
                 if (resident.TownBody == null || IsTalking(resident.TownBody))
                     continue;
-                if (player == null || offerView == null)
-                    continue;
-                bool appeared = !resident.TownBody.activeSelf;
-                if (!plan.IsInTown)
+                if (!plan.IsInTown || PoliceDispatchOrder.IsAway(resident.Life.NpcId))
                 {
                     resident.TownBody.SetActive(false);
                     resident.LastPhase = null;
-                    continue;
                 }
+            }
+
+            // 같은 프레임에 떠나는 사람을 먼저 끈 뒤 새 출근자의 자리를 찾는다.
+            foreach (Resident resident in residents)
+            {
+                if (
+                    resident.Life == null
+                    || resident.TownBody == null
+                    || IsTalking(resident.TownBody)
+                    || !resident.Plan.IsInTown
+                    || PoliceDispatchOrder.IsAway(resident.Life.NpcId)
+                )
+                    continue;
+                if (player == null || offerView == null)
+                    continue;
+                NpcDayPlan plan = resident.Plan;
+                bool appeared = !resident.TownBody.activeSelf;
                 if (resident.LastPhase != plan.Phase)
                 {
                     var endpoints = Endpoints(resident, plan);
@@ -146,7 +158,17 @@ namespace A305.Npc
                 }
                 Vector3 target = PositionOnRoute(resident.Route, (float)plan.Progress);
                 if (appeared)
-                    resident.TownBody.transform.position = target;
+                {
+                    if (
+                        !NpcWalkingSpace.TryFindArrival(
+                            resident.TownBody.GetComponent<Passerby>(),
+                            target,
+                            out Vector3 arrival
+                        )
+                    )
+                        continue;
+                    resident.TownBody.transform.position = arrival;
+                }
                 var walker = resident.TownBody.GetComponent<NpcTownWalker>();
                 walker.Destination = target;
                 walker.IsStaff = NpcDuty.IsStaff(resident.Life.Role);
@@ -186,14 +208,15 @@ namespace A305.Npc
 
         private static Vector3[] RouteBetween(Vector3 from, Vector3 to)
         {
+            int walkableAreas = NpcTownWalker.WalkingAreas;
             if (
-                !NavMesh.SamplePosition(from, out NavMeshHit start, 2, NavMesh.AllAreas)
-                || !NavMesh.SamplePosition(to, out NavMeshHit end, 2, NavMesh.AllAreas)
+                !NavMesh.SamplePosition(from, out NavMeshHit start, 2, walkableAreas)
+                || !NavMesh.SamplePosition(to, out NavMeshHit end, 2, walkableAreas)
             )
                 return null;
             var path = new NavMeshPath();
             if (
-                !NavMesh.CalculatePath(start.position, end.position, NavMesh.AllAreas, path)
+                !NavMesh.CalculatePath(start.position, end.position, walkableAreas, path)
                 || path.status != NavMeshPathStatus.PathComplete
             )
                 return null;
@@ -205,7 +228,38 @@ namespace A305.Npc
             float total = 0;
             for (int i = 1; i < route.Count; i++)
                 total += Vector3.Distance(route[i - 1], route[i]);
-            float remaining = total * Mathf.Clamp01(progress);
+            float distance = total * Mathf.Clamp01(progress);
+            Vector3 point = PointAtDistance(route, distance);
+            int road = NavMesh.GetAreaFromName("Road");
+            int crossing = NavMesh.GetAreaFromName("Crosswalk");
+            int unsafeAreas = (road < 0 ? 0 : 1 << road) | (crossing < 0 ? 0 : 1 << crossing);
+            // 시계가 멈춰도 횡단 중인 NPC는 다음 인도까지 계속 움직인다.
+            while (
+                unsafeAreas != 0
+                && NavMesh.SamplePosition(point, out _, .1f, unsafeAreas)
+                && distance < total
+            )
+            {
+                distance = Mathf.Min(total, distance + .2f);
+                point = PointAtDistance(route, distance);
+            }
+            if (
+                unsafeAreas != 0
+                && NavMesh.SamplePosition(point, out _, .1f, unsafeAreas)
+                && NavMesh.SamplePosition(
+                    point,
+                    out NavMeshHit safe,
+                    3f,
+                    NavMesh.AllAreas & ~unsafeAreas
+                )
+            )
+                point = safe.position;
+            return point;
+        }
+
+        private static Vector3 PointAtDistance(IReadOnlyList<Vector3> route, float distance)
+        {
+            float remaining = distance;
             for (int i = 1; i < route.Count; i++)
             {
                 float length = Vector3.Distance(route[i - 1], route[i]);

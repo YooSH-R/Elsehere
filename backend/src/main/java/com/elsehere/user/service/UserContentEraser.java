@@ -30,6 +30,7 @@ public class UserContentEraser {
           "conversation_feedback",
           "user_npc_relations",
           "npc_follow_ups",
+          "review_cards",
           "user_vocab",
           "user_word_prefs",
           "level_tests",
@@ -91,6 +92,7 @@ public class UserContentEraser {
     jdbcTemplate.update("delete from user_npc_relations where user_id = ?", userId);
     // NPC가 곧 건네기로 한 것은 주문한 내용이 담겨 있어 함께 지운다.
     jdbcTemplate.update("delete from npc_follow_ups where user_id = ?", userId);
+    jdbcTemplate.update("delete from review_cards where user_id = ?", userId);
     jdbcTemplate.update("delete from user_vocab where user_id = ?", userId);
     jdbcTemplate.update("delete from user_word_prefs where user_id = ?", userId);
     jdbcTemplate.update(

@@ -21,8 +21,12 @@ public enum FirstDayStage {
           "store_suitcase",
           "캐리어 맡기기",
           "Ask to store the large suitcase until check-in.",
-          "체크인할 때까지 큰 캐리어를 맡아 달라고"),
-      goal("ask_cafe", "카페 위치 묻기", "Ask for a nearby cafe or directions to it.", "근처 카페가 어디 있는지")),
+          "체크인할 때까지 큰 캐리어를 맡아 달라고 하기"),
+      goal(
+          "ask_cafe",
+          "카페 위치 묻기",
+          "Ask for a nearby cafe or directions to it.",
+          "근처 카페가 어디 있는지 묻기")),
   CAFE_BREAK(
       "카페에서 잠깐 쉬어요",
       "CAFE",
@@ -45,7 +49,7 @@ public enum FirstDayStage {
           "dine_in",
           "매장 이용 말하기",
           "Say the learner will have the drink here, not take away.",
-          "여기서 마시겠다고 (for here)")),
+          "여기서 마시겠다고 말하기 (for here)")),
   MISSING_BAG(
       "작은 가방이 없어요",
       "HOTEL",
@@ -58,12 +62,12 @@ public enum FirstDayStage {
           "report_left_bag",
           "분실 설명(어떤 가방을 어디에)",
           "Explain that their bag is missing AND they think they left it at the cafe. Combine details from separate learner turns; 'my bag' or 'it' may refer to the bag already established in their conversation, without repeating its size or a fixed sentence. Losing something without a location anywhere in the learner's statements does not count.",
-          "작은 가방이 없고, 카페에 두고 온 것 같다고"),
+          "작은 가방이 없고, 카페에 두고 온 것 같다고 말하기"),
       goal(
           "return_later",
           "다녀오겠다고 말하기",
           "Say they will return after looking for or retrieving the bag.",
-          "카페에 가서 찾아오겠다고")),
+          "카페에 가서 찾아오겠다고 말하기")),
   FIND_BAG(
       "카페에서 가방을 찾아요",
       "CAFE",
@@ -76,7 +80,7 @@ public enum FirstDayStage {
           "ask_lost_bag",
           "분실물 문의",
           "Ask whether a lost bag was found or request help finding it.",
-          "잃어버린 가방이 들어왔는지"),
+          "잃어버린 가방이 들어왔는지 묻기"),
       goal(
           "describe_bag",
           "색·모양 설명",
@@ -91,7 +95,7 @@ public enum FirstDayStage {
           "confirm_ownership",
           "본인 물건 확인",
           "Explicitly confirm the described bag is theirs or ask to collect their identified bag.",
-          "그 가방이 내 것이라고")),
+          "그 가방이 내 것이라고 말하기")),
   RAINY_STREET(
       "갑자기 비가 내려요",
       "TOWN",
@@ -104,7 +108,7 @@ public enum FirstDayStage {
           "ask_umbrella_shop",
           "우산 판매처 묻기",
           "Ask where to buy an umbrella or for a store selling one.",
-          "우산을 어디서 살 수 있는지"),
+          "우산을 어디서 살 수 있는지 묻기"),
       goal(
           "ask_directions",
           "드럭스토어 가는 길 묻기",
@@ -119,7 +123,7 @@ public enum FirstDayStage {
       "점원에게 우산을 사세요.",
       "Sell one umbrella for exactly 8 quest coins when the learner asks for one. Do not offer an umbrella or say its price before the learner asks. Ask how they want to pay (cash/card both accepted) only after the learner decides to buy. Purchase completes only when price, purchase intent and payment choice are all covered. Never change the price or charge twice.",
       goal("ask_price", "가격 묻기", "Ask or confirm the umbrella price.", "우산 가격"),
-      goal("buy_umbrella", "구매 의사 말하기", "Explicitly decide to buy an umbrella.", "우산을 사겠다고"),
+      goal("buy_umbrella", "구매 의사 말하기", "Explicitly decide to buy an umbrella.", "우산을 사겠다고 말하기"),
       goal(
           "choose_payment",
           "결제 방법 말하기",
@@ -133,8 +137,12 @@ public enum FirstDayStage {
       "여권이 든 가방도 찾고 우산도 샀어요. 호텔에서 체크인을 마무리해요.",
       "호텔 직원에게 요청하세요.",
       "Check-in time has arrived. The learner recovered the small bag and passport and bought an umbrella. The large suitcase is stored at this hotel. When the learner asks, confirm the reservation, check them in and return the suitcase. Do not start check-in, confirm the reservation or bring up the bag or suitcase before the learner does. Never ask them to fetch the bag again.",
-      goal("found_bag", "가방 찾았다고 말하기", "Say they found or got back their small bag.", "가방을 찾았다고"),
-      goal("request_checkin", "체크인 요청", "Ask to check in now.", "지금 체크인하고 싶다고"),
+      goal(
+          "found_bag",
+          "가방 찾았다고 말하기",
+          "Say they found or got back their small bag.",
+          "가방을 찾았다고 말하기"),
+      goal("request_checkin", "체크인 요청", "Ask to check in now.", "지금 체크인하고 싶다고 말하기"),
       goal(
           "show_reservation",
           "예약 정보 확인",
@@ -144,7 +152,7 @@ public enum FirstDayStage {
           "collect_suitcase",
           "캐리어 찾기",
           "Ask to collect the stored large suitcase.",
-          "맡긴 큰 캐리어를 찾겠다고"));
+          "맡긴 큰 캐리어를 찾겠다고 말하기"));
 
   private final String title;
   private final String scene;

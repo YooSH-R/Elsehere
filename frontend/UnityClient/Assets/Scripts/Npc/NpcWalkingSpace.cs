@@ -88,7 +88,22 @@ namespace A305.Npc
 
         internal static float LimitStep(Passerby body, Vector3 direction, float distance)
         {
+            FindBlocker(body, direction, distance, out float step, out _);
+            return step;
+        }
+
+        internal static Passerby FindBlocker(
+            Passerby body,
+            Vector3 direction,
+            float distance,
+            out float step,
+            out float clearance
+        )
+        {
             float radius = Radius(body);
+            step = distance;
+            clearance = 0;
+            Passerby blocker = null;
             foreach (var other in Bodies)
             {
                 if (
@@ -104,14 +119,22 @@ namespace A305.Npc
                 float along = Vector3.Dot(offset, direction);
                 if (along >= 0f)
                     continue; // 이미 가까워도 상대에게서 멀어지는 움직임은 허용한다.
-                float clearance = radius + Radius(other) + GapMeters;
+                float requiredSpace = radius + Radius(other) + GapMeters;
                 float sidewaysSquared = Mathf.Max(0, offset.sqrMagnitude - along * along);
-                if (sidewaysSquared >= clearance * clearance)
+                if (sidewaysSquared >= requiredSpace * requiredSpace)
                     continue;
-                float entry = -along - Mathf.Sqrt(clearance * clearance - sidewaysSquared);
-                distance = Mathf.Min(distance, Mathf.Max(0, entry));
+                float entry = Mathf.Max(
+                    0,
+                    -along - Mathf.Sqrt(requiredSpace * requiredSpace - sidewaysSquared)
+                );
+                if (entry <= step)
+                {
+                    blocker = other;
+                    step = entry;
+                    clearance = requiredSpace;
+                }
             }
-            return distance;
+            return blocker;
         }
 
         private static bool SameFloor(Vector3 first, Vector3 second) =>

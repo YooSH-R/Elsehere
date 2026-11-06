@@ -27,23 +27,5 @@ namespace A305.Dialogue.Tests
                 Is.EqualTo("추천 단어를 고르고 있어요...")
             );
         }
-
-        [Test]
-        public void Sentence_PrefersTheRequestedHint()
-        {
-            Assert.That(
-                DialogueHelpText.Sentence("Can I leave my bags?", "Hello."),
-                Is.EqualTo("Can I leave my bags?")
-            );
-        }
-
-        [Test]
-        public void MissingHint_UsesAnAvailableExample()
-        {
-            Assert.That(
-                DialogueHelpText.Sentence(null, "I'd like a coffee."),
-                Is.EqualTo("I'd like a coffee.")
-            );
-        }
     }
 }

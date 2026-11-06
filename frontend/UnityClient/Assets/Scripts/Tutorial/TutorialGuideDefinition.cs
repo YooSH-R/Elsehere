@@ -116,11 +116,6 @@ namespace A305.Tutorial
         private string suggestedWordsCaption = "{단어}에는 대답에 쓸 만한 추천 단어가 나와요";
 
         [SerializeField]
-        [Tooltip("대화 시작 티칭의 넷째. 왼쪽 [문장] 카드를 밝히며 보인다.")]
-        private string suggestedSentenceCaption =
-            "{문장}은 지금 하면 좋은 추천 문장이에요. {넣기}를 누르면 입력칸에 채워져요";
-
-        [SerializeField]
         [Tooltip(
             "대화 시작 티칭을 다 본 뒤 입력칸·[말하기] 옆에 보이는 설명. 아래에 지금 할 대사와 뜻이 붙는다."
         )]
@@ -186,7 +181,6 @@ namespace A305.Tutorial
         public string FeedbackCloseCaption => feedbackCloseCaption;
         public string DialogueLinesCaption => dialogueLinesCaption;
         public string DialogueToolsCaption => dialogueToolsCaption;
-        public string SuggestedSentenceCaption => suggestedSentenceCaption;
         public string SuggestedWordsCaption => suggestedWordsCaption;
         public string GuidedLineMissCaption => guidedLineMissCaption;
         public string DialogueEndCaption => dialogueEndCaption;

@@ -25,6 +25,29 @@ namespace A305.EditorTools.Learning
             Unity.CodeEditor.CodeEditor.CurrentEditor.SyncAll();
         }
 
+        /// <summary>현재 피드백 프리팹 구조를 보존하면서 대화 NPC 표시 그림만 연결한다.</summary>
+        public static void BindTranscriptAvatar()
+        {
+            const string path = "Assets/Prefabs/Learning/FeedbackScreen.prefab";
+            GameObject root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                FeedbackView view = root.GetComponent<FeedbackView>();
+                BuilderTools.SetReference(
+                    view,
+                    "transcriptAvatarSprite",
+                    AssetDatabase.LoadAssetAtPath<Sprite>(
+                        "Assets/Art/UI/Feedback/HistoryAvatarCoral.png"
+                    )
+                );
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
         public static void Capture()
         {
             string output = System.Environment.GetEnvironmentVariable("FEEDBACK_PREVIEW_OUTPUT");
@@ -133,7 +156,28 @@ namespace A305.EditorTools.Learning
                 )
             );
             view.SetSaveAvailable(true);
-            view.Show(feedback, new DialogueLine[0]);
+            view.Show(
+                feedback,
+                new[]
+                {
+                    DialogueLine.FromNpc(
+                        "Hi there! What can I get started for you?",
+                        "안녕하세요! 무엇을 드릴까요?"
+                    ),
+                    DialogueLine.FromUser("I want drink iced coffee"),
+                    DialogueLine.FromNpc(
+                        "Sure. Would you like anything else?",
+                        "네. 더 필요한 건 있으세요?"
+                    ),
+                    DialogueLine.FromUser("I'm good!"),
+                    DialogueLine.FromNpc("Great, that'll be four dollars.", "좋아요, 4달러입니다."),
+                    DialogueLine.FromUser("Can I pay by card?"),
+                    DialogueLine.FromNpc(
+                        "Of course. Have a good one!",
+                        "물론이죠. 좋은 하루 보내세요!"
+                    ),
+                }
+            );
             foreach (
                 UiThemeId theme in new[] { UiThemeId.Jelly, UiThemeId.Sticker, UiThemeId.Cloud }
             )
@@ -152,6 +196,15 @@ namespace A305.EditorTools.Learning
                         1000
                     );
                 }
+                view.SelectSection(FeedbackSection.Conversation);
+                view.SelectReview(1);
+                Render(
+                    camera,
+                    view,
+                    Path.Combine(output, $"feedback-{theme}-SelectedReview.png"),
+                    1600,
+                    1000
+                );
             }
             UiThemeSelection.Shared.Select(UiThemeId.Jelly);
             Render(camera, view, Path.Combine(output, "feedback-portrait.png"), 900, 1400);

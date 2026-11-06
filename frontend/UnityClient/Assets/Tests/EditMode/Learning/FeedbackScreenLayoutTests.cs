@@ -101,9 +101,15 @@ namespace A305.Learning.Tests
             view.SelectSection(FeedbackSection.Conversation);
 
             Assert.That(Rows(), Is.Empty);
-            Assert.That(Field<TMP_Text>("pageTitleText").text, Is.EqualTo("전체 대화"));
-            Assert.That(Field<TMP_Text>("bodyText").text, Does.Contain("Where is the hotel?"));
-            Assert.That(Field<TMP_Text>("bodyText").text, Does.Contain("It is across the street."));
+            Transform cards = Panel().Find("PageCard/Content/ConversationCards");
+            Assert.That(cards, Is.Not.Null);
+            Assert.That(
+                cards
+                    .GetComponentsInChildren<TMP_Text>()
+                    .Where(text => text.name == "Utterance")
+                    .Select(text => text.text),
+                Is.EqualTo(new[] { "Where is the hotel?", "It is across the street." })
+            );
         }
 
         [Test]

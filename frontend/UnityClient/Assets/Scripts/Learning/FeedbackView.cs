@@ -114,6 +114,9 @@ namespace A305.Learning
         [Tooltip("다른 탭 본문 칸(흰 유리)")]
         private Sprite tileSprite;
 
+        [SerializeField]
+        private Sprite transcriptAvatarSprite;
+
         // 표현 칸 마지막 칸 아래 → 제목 → 본문 칸 사이 간격(시안 px × 1.2). 표현 칸이 없을 때는 카드 맨 위에서 시작한다.
         // 칸 그림은 아래 32·위 12의 그림자 자리를 품고 있어, 보이는 간격이 시안(20, 14)이 되게 그만큼 뺀다.
         private const float RowShadowBottom = 32 * 1.2f;
@@ -149,6 +152,7 @@ namespace A305.Learning
         private Rect lastFreeArea;
         private bool isTranscriptShown;
         private int? selectedTranscriptReview;
+        private FeedbackTranscriptDocument transcriptDocument;
 
         // 고정된 본문 영역 안에서 모든 내용이 세로로 흐른다.
         private ScrollRect scroll;
@@ -341,23 +345,34 @@ namespace A305.Learning
             Hide();
         }
 
+        private void OnEnable() => UiThemeSelection.Shared.Changed += OnThemeChanged;
+
+        private void OnDisable() => UiThemeSelection.Shared.Changed -= OnThemeChanged;
+
+        private void OnThemeChanged(UiThemeId _) => UpdateLayout();
+
         private void Refresh()
         {
             titleText.text = feedback.IsFailed ? feedback.Title : "대화 피드백";
             summaryText.text = FeedbackText.Partner(feedback.NpcName);
             PlaceSubtitle();
-            pageTitleText.text = IsTranscriptView ? "전체 대화" : pages[0].Title;
-            bodyText.text = IsTranscriptView
+            pageTitleText.text = IsTranscriptView
+                ? selectedTranscriptReview.HasValue
+                    ? "문장 피드백"
+                    : "전체 대화"
+                : pages[0].Title;
+            transcriptDocument = IsTranscriptView
                 ? FeedbackTranscript.Build(
                     feedback.NpcName,
                     lines,
                     feedback.Reviews,
                     selectedTranscriptReview
-                ).Body
-                : pages[0].Body;
+                )
+                : null;
+            bodyText.text = IsTranscriptView ? "" : pages[0].Body;
             bodyText.pageToDisplay = 1;
             transcriptButtonLabel.text = isTranscriptShown ? "돌아가기" : "대화 기록";
-            pageTitleText.gameObject.SetActive(feedback.IsFailed || IsTranscriptView);
+            pageTitleText.gameObject.SetActive(feedback.IsFailed && !IsTranscriptView);
             sectionRow.gameObject.SetActive(!feedback.IsFailed);
             noticeText.gameObject.SetActive(false);
             for (int i = 0; i < sectionButtons.Length; i++)
@@ -655,6 +670,28 @@ namespace A305.Learning
                 summaryPager.gameObject.SetActive(false);
             }
             float width = scroll.content.rect.width;
+            if (IsTranscriptView && !isRegenerating)
+            {
+                bodyTile.gameObject.SetActive(false);
+                GameObject cards = FeedbackConversationLayout.Build(
+                    scroll.content,
+                    bodyText,
+                    tileSprite,
+                    transcriptAvatarSprite,
+                    feedback,
+                    transcriptDocument,
+                    selectedTranscriptReview,
+                    SelectReview,
+                    BackToConversation,
+                    out float cardsHeight
+                );
+                additionalBodies.Add(cards);
+                scroll.content.SetSizeWithCurrentAnchors(
+                    RectTransform.Axis.Vertical,
+                    Mathf.Max(scroll.viewport.rect.height, cardsHeight)
+                );
+                return;
+            }
             // 줄바꿈이 끝난 표현 칸 아래부터 제목과 본문을 차례로 쌓는다.
             if (situationRows.gameObject.activeSelf)
             {
@@ -785,6 +822,18 @@ namespace A305.Learning
                 || string.IsNullOrEmpty(linkId)
                 || !linkId.StartsWith(prefix, StringComparison.Ordinal)
                 || !int.TryParse(linkId.Substring(prefix.Length), out int reviewIndex)
+            )
+                return;
+
+            SelectReview(reviewIndex);
+        }
+
+        /// <summary>전체 대화의 사용자 발화를 선택해 해당 문장의 기존 평가를 펼친다.</summary>
+        public void SelectReview(int reviewIndex)
+        {
+            if (
+                !IsTranscriptView
+                || feedback == null
                 || reviewIndex < 0
                 || reviewIndex >= feedback.Reviews.Count
             )
@@ -792,7 +841,14 @@ namespace A305.Learning
 
             selectedTranscriptReview = reviewIndex;
             Refresh();
-            scroll.verticalNormalizedPosition = 0;
+            scroll.verticalNormalizedPosition = 1;
+        }
+
+        private void BackToConversation()
+        {
+            selectedTranscriptReview = null;
+            Refresh();
+            scroll.verticalNormalizedPosition = 1;
         }
     }
 }

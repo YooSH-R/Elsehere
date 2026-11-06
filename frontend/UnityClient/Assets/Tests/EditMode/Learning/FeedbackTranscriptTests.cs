@@ -77,7 +77,11 @@ namespace A305.Learning.Tests
             {
                 new UtteranceReview(
                     "I'm good",
-                    new ReferenceExpression("That sounds good.", "", "좋다는 의견에는 이렇게 말해요."),
+                    new ReferenceExpression(
+                        "That sounds good.",
+                        "",
+                        "좋다는 의견에는 이렇게 말해요."
+                    ),
                     null,
                     new ReferenceExpression("I'm good, thanks.", "괜찮아요, 됐어요.", null)
                 ),
@@ -123,6 +127,9 @@ namespace A305.Learning.Tests
             Assert.That(transcript.Body, Does.Contain("<link=\"review:1\">"));
             Assert.That(transcript.Body, Does.Contain("두 번째 답변이에요."));
             Assert.That(transcript.Body, Does.Not.Contain("첫 번째 답변이에요."));
+            Assert.That(transcript.Entries[0].ReviewIndex, Is.EqualTo(0));
+            Assert.That(transcript.Entries[1].IsNpc, Is.True);
+            Assert.That(transcript.Entries[2].ReviewIndex, Is.EqualTo(1));
         }
 
         [Test]

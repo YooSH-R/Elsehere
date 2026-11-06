@@ -8,14 +8,34 @@ namespace A305.Learning
     /// <summary>전체 대화 탭에 표시할 본문과 선택 가능한 사용자 발화 수.</summary>
     public sealed class FeedbackTranscriptDocument
     {
-        public FeedbackTranscriptDocument(string body, int reviewCount)
+        public FeedbackTranscriptDocument(
+            string body,
+            int reviewCount,
+            IReadOnlyList<FeedbackTranscriptEntry> entries
+        )
         {
             Body = body;
             ReviewCount = reviewCount;
+            Entries = entries;
         }
 
         public string Body { get; }
         public int ReviewCount { get; }
+        public IReadOnlyList<FeedbackTranscriptEntry> Entries { get; }
+    }
+
+    public sealed class FeedbackTranscriptEntry
+    {
+        public FeedbackTranscriptEntry(bool isNpc, string text, int? reviewIndex)
+        {
+            IsNpc = isNpc;
+            Text = text ?? "";
+            ReviewIndex = reviewIndex;
+        }
+
+        public bool IsNpc { get; }
+        public string Text { get; }
+        public int? ReviewIndex { get; }
     }
 
     /// <summary>
@@ -37,13 +57,18 @@ namespace A305.Learning
         {
             if (lines == null || lines.Count == 0)
             {
-                return new FeedbackTranscriptDocument("주고받은 대화가 없어요.", reviews?.Count ?? 0);
+                return new FeedbackTranscriptDocument(
+                    "주고받은 대화가 없어요.",
+                    reviews?.Count ?? 0,
+                    Array.Empty<FeedbackTranscriptEntry>()
+                );
             }
 
             IReadOnlyList<UtteranceReview> availableReviews =
                 reviews ?? Array.Empty<UtteranceReview>();
             var reviewUsed = new bool[availableReviews.Count];
             var body = new StringBuilder();
+            var entries = new List<FeedbackTranscriptEntry>();
 
             foreach (DialogueLine line in lines)
             {
@@ -52,6 +77,7 @@ namespace A305.Learning
 
                 if (line.IsNpc)
                 {
+                    entries.Add(new FeedbackTranscriptEntry(true, line.English, null));
                     AppendLine(body, Escape(npcName), Escape(line.English), NpcColor, null);
                     continue;
                 }
@@ -59,6 +85,13 @@ namespace A305.Learning
                 int reviewIndex = FindNextReview(line.English, availableReviews, reviewUsed);
                 if (reviewIndex >= 0)
                     reviewUsed[reviewIndex] = true;
+                entries.Add(
+                    new FeedbackTranscriptEntry(
+                        false,
+                        line.English,
+                        reviewIndex >= 0 ? reviewIndex : (int?)null
+                    )
+                );
                 AppendLine(body, "나", Escape(line.English), LearnerColor, reviewIndex);
             }
 
@@ -71,7 +104,11 @@ namespace A305.Learning
                 AppendReview(body, availableReviews[selectedReviewIndex.Value]);
             }
 
-            return new FeedbackTranscriptDocument(body.ToString().TrimEnd(), availableReviews.Count);
+            return new FeedbackTranscriptDocument(
+                body.ToString().TrimEnd(),
+                availableReviews.Count,
+                entries
+            );
         }
 
         private static void AppendLine(
@@ -82,7 +119,11 @@ namespace A305.Learning
             int? reviewIndex
         )
         {
-            body.Append("<color=").Append(color).Append("><b>").Append(speaker).Append("</b></color>\n");
+            body.Append("<color=")
+                .Append(color)
+                .Append("><b>")
+                .Append(speaker)
+                .Append("</b></color>\n");
             if (reviewIndex.HasValue)
             {
                 body.Append("<link=\"review:")
@@ -112,8 +153,7 @@ namespace A305.Learning
 
             if (review.Reference != null)
             {
-                body.Append("<b>이렇게 말해요</b>\n")
-                    .Append(Escape(review.Reference.English));
+                body.Append("<b>이렇게 말해요</b>\n").Append(Escape(review.Reference.English));
                 if (!string.IsNullOrWhiteSpace(review.Reference.Reason))
                     body.Append("\n").Append(Escape(review.Reference.Reason));
             }
@@ -128,8 +168,7 @@ namespace A305.Learning
 
             if (review.Idiom != null)
             {
-                body.Append("\n\n<b>실제 회화에서는</b>\n")
-                    .Append(Escape(review.Idiom.English));
+                body.Append("\n\n<b>실제 회화에서는</b>\n").Append(Escape(review.Idiom.English));
                 if (!string.IsNullOrWhiteSpace(review.Idiom.Korean))
                     body.Append("\n").Append(Escape(review.Idiom.Korean));
             }
@@ -143,7 +182,10 @@ namespace A305.Learning
         {
             for (int i = 0; i < reviews.Count; i++)
             {
-                if (!used[i] && string.Equals(reviews[i].Utterance, utterance, StringComparison.Ordinal))
+                if (
+                    !used[i]
+                    && string.Equals(reviews[i].Utterance, utterance, StringComparison.Ordinal)
+                )
                     return i;
             }
             return -1;
@@ -151,10 +193,7 @@ namespace A305.Learning
 
         private static string Escape(string value)
         {
-            return (value ?? "")
-                .Replace("&", "&amp;")
-                .Replace("<", "&lt;")
-                .Replace(">", "&gt;");
+            return (value ?? "").Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
         }
     }
 }

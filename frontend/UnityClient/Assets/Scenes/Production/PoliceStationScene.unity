@@ -217,7 +217,7 @@ Transform:
   - {fileID: 1892784124}
   - {fileID: 1002803871}
   - {fileID: 914457969}
-  - {fileID: 1286430669}
+  - {fileID: 1373305928}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &130885527
@@ -3218,6 +3218,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 130885528}
     m_Modifications:
+    - target: {fileID: 2299732722104246197, guid: 6950f1ecac92ebf49bfa20dc0446ffb6, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.64285713
+      objectReference: {fileID: 0}
+    - target: {fileID: 2299732722104246197, guid: 6950f1ecac92ebf49bfa20dc0446ffb6, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.225
+      objectReference: {fileID: 0}
+    - target: {fileID: 3007904024343401936, guid: 6950f1ecac92ebf49bfa20dc0446ffb6, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.69
+      objectReference: {fileID: 0}
     - target: {fileID: 5232577229172880294, guid: 6950f1ecac92ebf49bfa20dc0446ffb6, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -3261,6 +3273,10 @@ PrefabInstance:
     - target: {fileID: 5378347459304868224, guid: 6950f1ecac92ebf49bfa20dc0446ffb6, type: 3}
       propertyPath: m_Name
       value: PoliceStation
+      objectReference: {fileID: 0}
+    - target: {fileID: 5529238401749393522, guid: 6950f1ecac92ebf49bfa20dc0446ffb6, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.48000002
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -3689,17 +3705,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.095, y: 0.095, z: 0.12}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &1255989036 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-  m_PrefabInstance: {fileID: 1286430668}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1286430670}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a276b20eab9ec944d86878924d711728, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: A305.Npc::A305.Npc.Passerby
 --- !u!1 &1271366729
 GameObject:
   m_ObjectHideFlags: 0
@@ -3766,275 +3771,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.095, y: 0.095, z: 0.12}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!1001 &1286430668
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 130808094}
-    m_Modifications:
-    - target: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: player
-      value: 
-      objectReference: {fileID: 1892784123}
-    - target: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: dialogue
-      value: 
-      objectReference: {fileID: 779220813}
-    - target: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: settings
-      value: 
-      objectReference: {fileID: 11400000, guid: 1403848214b6c144aafb4548b53a1314, type: 2}
-    - target: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: offerView
-      value: 
-      objectReference: {fileID: 1968405106}
-    - target: {fileID: 1438772547961331226, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.93224597
-      objectReference: {fileID: 0}
-    - target: {fileID: 2154798696233940017, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -1.6
-      objectReference: {fileID: 0}
-    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.05
-      objectReference: {fileID: 0}
-    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -7.2
-      objectReference: {fileID: 0}
-    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6144241278140229757, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: code
-      value: POLICE_PATROL_OFFICER
-      objectReference: {fileID: 0}
-    - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_Height
-      value: 1.6975639
-      objectReference: {fileID: 0}
-    - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_Radius
-      value: 0.36
-      objectReference: {fileID: 0}
-    - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_Center.y
-      value: 0.84878194
-      objectReference: {fileID: 0}
-    - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_SkinWidth
-      value: 0.02
-      objectReference: {fileID: 0}
-    - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_StepOffset
-      value: 0.15
-      objectReference: {fileID: 0}
-    - target: {fileID: 7306442443597707082, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: animator
-      value: 
-      objectReference: {fileID: 1602133137}
-    - target: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      propertyPath: m_Name
-      value: PolicePatrolOfficer
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects:
-    - targetCorrespondingSourceObject: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1602133136}
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1286430673}
-    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1286430672}
-    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1286430674}
-    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1286430675}
-  m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
---- !u!4 &1286430669 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-  m_PrefabInstance: {fileID: 1286430668}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &1286430670 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-  m_PrefabInstance: {fileID: 1286430668}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1286430671 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6144241278140229757, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-  m_PrefabInstance: {fileID: 1286430668}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1286430670}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 56182514026810f4a8a005fcc386ce5c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcIdentity
---- !u!114 &1286430672
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1286430670}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 523acd35a1e27064993e8c64410c3f15, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: A305.Npc::A305.Npc.PoliceReportDesk
-  officer: {fileID: 1286430671}
-  destinations:
-  - code: HOME
-    displayName: "\uC9D1"
-    stop: {x: 0, y: 0, z: 0}
-    alighting: {x: 0, y: 0, z: 0}
-  - code: HOTEL
-    displayName: "\uD638\uD154"
-    stop: {x: 0, y: 0, z: 0}
-    alighting: {x: 0, y: 0, z: 0}
-  - code: CAFE
-    displayName: "\uCE74\uD398"
-    stop: {x: 0, y: 0, z: 0}
-    alighting: {x: 0, y: 0, z: 0}
-  - code: SHOP
-    displayName: "\uB4DC\uB7ED\uC2A4\uD1A0\uC5B4"
-    stop: {x: 0, y: 0, z: 0}
-    alighting: {x: 0, y: 0, z: 0}
-  - code: POST_OFFICE
-    displayName: "\uC6B0\uCCB4\uAD6D"
-    stop: {x: 0, y: 0, z: 0}
-    alighting: {x: 0, y: 0, z: 0}
-  - code: DINER
-    displayName: "\uBA54\uC774\uD50C \uC2DD\uB2F9"
-    stop: {x: 0, y: 0, z: 0}
-    alighting: {x: 0, y: 0, z: 0}
-  - code: BANK
-    displayName: "\uD0C0\uC6B4 \uC740\uD589"
-    stop: {x: 0, y: 0, z: 0}
-    alighting: {x: 0, y: 0, z: 0}
-  - code: LAUNDROMAT
-    displayName: "\uBE68\uB798\uBC29"
-    stop: {x: 0, y: 0, z: 0}
-    alighting: {x: 0, y: 0, z: 0}
-  - code: FLOWER_SHOP
-    displayName: "\uAF43\uC9D1"
-    stop: {x: 0, y: 0, z: 0}
-    alighting: {x: 0, y: 0, z: 0}
-  - code: BARBER
-    displayName: "\uC774\uBC1C\uC18C"
-    stop: {x: 0, y: 0, z: 0}
-    alighting: {x: 0, y: 0, z: 0}
-  - code: BAKERY
-    displayName: "\uBE75\uC9D1"
-    stop: {x: 0, y: 0, z: 0}
-    alighting: {x: 0, y: 0, z: 0}
-  - code: PARK
-    displayName: "\uBD84\uC218\uB300 \uACF5\uC6D0"
-    stop: {x: 0, y: 0, z: 0}
-    alighting: {x: 0, y: 0, z: 0}
-  - code: ARCADE
-    displayName: "\uC624\uB77D\uC2E4"
-    stop: {x: 0, y: 0, z: 0}
-    alighting: {x: 0, y: 0, z: 0}
-  - code: HOME_STORE
-    displayName: "\uC0DD\uD65C\uC6A9\uD488\uC810"
-    stop: {x: 0, y: 0, z: 0}
-    alighting: {x: 0, y: 0, z: 0}
-  - code: ICE_CREAM_PLAZA
-    displayName: "\uC544\uC774\uC2A4\uD06C\uB9BC \uD2B8\uB7ED"
-    stop: {x: 0, y: 0, z: 0}
-    alighting: {x: 0, y: 0, z: 0}
-  dialogue: {fileID: 779220813}
-  panel: {fileID: 814731966}
---- !u!114 &1286430673
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1286430670}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
-  word: {fileID: 11400000, guid: 18c339143c3bc8948a2616297703684c, type: 2}
-  parts: {fileID: 0}
-  unityKey: 
---- !u!114 &1286430674
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1286430670}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ee0888a461749894eb0e86e255505fa2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcRoutine
-  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
-  walkSpeedMetersPerSecond: 1.1
-  serveRadiusMeters: 2
-  lifeAnimator: {fileID: 9100000, guid: 0a9e0e7b8fba0fb44bb8eda55e41c374, type: 2}
-  stayInArea: 1
-  area:
-    m_Center: {x: 0, y: 1.7500001, z: -3.9}
-    m_Extent: {x: 3.8, y: 1.6500001, z: 3.7999997}
---- !u!114 &1286430675
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1286430670}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bf96d54cb71f3d94abb41a1750c9647e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcWorkPresence
-  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
 --- !u!1 &1306945477
 GameObject:
   m_ObjectHideFlags: 0
@@ -4302,6 +4038,294 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.095, y: 0.095, z: 0.12}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1001 &1373305927
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 130808094}
+    m_Modifications:
+    - target: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 1892784123}
+    - target: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: dialogue
+      value: 
+      objectReference: {fileID: 779220813}
+    - target: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: settings
+      value: 
+      objectReference: {fileID: 11400000, guid: 1403848214b6c144aafb4548b53a1314, type: 2}
+    - target: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: offerView
+      value: 
+      objectReference: {fileID: 1968405106}
+    - target: {fileID: 1438772547961331226, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.93469286
+      objectReference: {fileID: 0}
+    - target: {fileID: 2154798696233940017, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.0000002
+      objectReference: {fileID: 0}
+    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.0000002
+      objectReference: {fileID: 0}
+    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -1.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -7.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6144241278140229757, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: code
+      value: POLICE_ROOKIE
+      objectReference: {fileID: 0}
+    - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_Height
+      value: 1.6004908
+      objectReference: {fileID: 0}
+    - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_Radius
+      value: 0.36
+      objectReference: {fileID: 0}
+    - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_Center.y
+      value: 0.8002454
+      objectReference: {fileID: 0}
+    - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_SkinWidth
+      value: 0.02
+      objectReference: {fileID: 0}
+    - target: {fileID: 6293747110397664531, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_StepOffset
+      value: 0.15
+      objectReference: {fileID: 0}
+    - target: {fileID: 7306442443597707082, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: animator
+      value: 
+      objectReference: {fileID: 1563917016}
+    - target: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: m_Name
+      value: PoliceRookie
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1563917015}
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1373305932}
+    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1373305933}
+    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1373305934}
+    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1373305935}
+  m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+--- !u!4 &1373305928 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+  m_PrefabInstance: {fileID: 1373305927}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1373305929 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+  m_PrefabInstance: {fileID: 1373305927}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1373305930 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+  m_PrefabInstance: {fileID: 1373305927}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1373305929}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a276b20eab9ec944d86878924d711728, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Npc::A305.Npc.Passerby
+--- !u!114 &1373305931 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6144241278140229757, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+  m_PrefabInstance: {fileID: 1373305927}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1373305929}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56182514026810f4a8a005fcc386ce5c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcIdentity
+--- !u!114 &1373305932
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1373305929}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 18c339143c3bc8948a2616297703684c, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
+--- !u!114 &1373305933
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1373305929}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee0888a461749894eb0e86e255505fa2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcRoutine
+  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
+  walkSpeedMetersPerSecond: 1.1
+  serveRadiusMeters: 2
+  lifeAnimator: {fileID: 9100000, guid: 0a9e0e7b8fba0fb44bb8eda55e41c374, type: 2}
+  stayInArea: 1
+  area:
+    m_Center: {x: 0, y: 1.7500001, z: -3.9}
+    m_Extent: {x: 3.8, y: 1.6500001, z: 3.7999997}
+--- !u!114 &1373305934
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1373305929}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf96d54cb71f3d94abb41a1750c9647e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcWorkPresence
+  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
+--- !u!114 &1373305935
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1373305929}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 523acd35a1e27064993e8c64410c3f15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Npc::A305.Npc.PoliceReportDesk
+  officer: {fileID: 1373305931}
+  destinations:
+  - code: HOME
+    displayName: "\uC9D1"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: HOTEL
+    displayName: "\uD638\uD154"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: CAFE
+    displayName: "\uCE74\uD398"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: SHOP
+    displayName: "\uB4DC\uB7ED\uC2A4\uD1A0\uC5B4"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: POST_OFFICE
+    displayName: "\uC6B0\uCCB4\uAD6D"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: DINER
+    displayName: "\uBA54\uC774\uD50C \uC2DD\uB2F9"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: BANK
+    displayName: "\uD0C0\uC6B4 \uC740\uD589"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: LAUNDROMAT
+    displayName: "\uBE68\uB798\uBC29"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: FLOWER_SHOP
+    displayName: "\uAF43\uC9D1"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: BARBER
+    displayName: "\uC774\uBC1C\uC18C"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: BAKERY
+    displayName: "\uBE75\uC9D1"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: PARK
+    displayName: "\uBD84\uC218\uB300 \uACF5\uC6D0"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: ARCADE
+    displayName: "\uC624\uB77D\uC2E4"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: HOME_STORE
+    displayName: "\uC0DD\uD65C\uC6A9\uD488\uC810"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  - code: ICE_CREAM_PLAZA
+    displayName: "\uC544\uC774\uC2A4\uD06C\uB9BC \uD2B8\uB7ED"
+    stop: {x: 0, y: 0, z: 0}
+    alighting: {x: 0, y: 0, z: 0}
+  dialogue: {fileID: 779220813}
+  panel: {fileID: 814731966}
 --- !u!1 &1382969199
 GameObject:
   m_ObjectHideFlags: 0
@@ -4363,7 +4387,7 @@ MonoBehaviour:
   passersby:
   - {fileID: 1313057558}
   - {fileID: 515662492}
-  - {fileID: 1255989036}
+  - {fileID: 1373305930}
   apiSettings: {fileID: 11400000, guid: ace29024a70d9704f8fa96949f62fb59, type: 2}
 --- !u!1 &1410351714
 GameObject:
@@ -4416,6 +4440,73 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1055563113}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1563917014
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1373305928}
+    m_Modifications:
+    - target: {fileID: 5396366848466891151, guid: 4e765aa14bcbcfd41810eb82bba1fe40, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5396366848466891151, guid: 4e765aa14bcbcfd41810eb82bba1fe40, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.010346133
+      objectReference: {fileID: 0}
+    - target: {fileID: 5396366848466891151, guid: 4e765aa14bcbcfd41810eb82bba1fe40, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5396366848466891151, guid: 4e765aa14bcbcfd41810eb82bba1fe40, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5396366848466891151, guid: 4e765aa14bcbcfd41810eb82bba1fe40, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5396366848466891151, guid: 4e765aa14bcbcfd41810eb82bba1fe40, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5396366848466891151, guid: 4e765aa14bcbcfd41810eb82bba1fe40, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5396366848466891151, guid: 4e765aa14bcbcfd41810eb82bba1fe40, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5396366848466891151, guid: 4e765aa14bcbcfd41810eb82bba1fe40, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5396366848466891151, guid: 4e765aa14bcbcfd41810eb82bba1fe40, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7008697290372709716, guid: 4e765aa14bcbcfd41810eb82bba1fe40, type: 3}
+      propertyPath: m_Name
+      value: LittleMung_Police_Female
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 4e765aa14bcbcfd41810eb82bba1fe40, type: 3}
+--- !u!4 &1563917015 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5396366848466891151, guid: 4e765aa14bcbcfd41810eb82bba1fe40, type: 3}
+  m_PrefabInstance: {fileID: 1563917014}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &1563917016 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 8655577907487378378, guid: 4e765aa14bcbcfd41810eb82bba1fe40, type: 3}
+  m_PrefabInstance: {fileID: 1563917014}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1572198186
 GameObject:
   m_ObjectHideFlags: 0
@@ -4672,85 +4763,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab8dee6e5714eab41aef658abb8d1cd9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.Learning::A305.Learning.LearningHudView
---- !u!1001 &1602133135
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 1286430669}
-    m_Modifications:
-    - target: {fileID: 2930537148199862623, guid: 72806c37aa0724e4f8b343709005370f, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 043c6b24e4aa18c4b8c5e4ff30c191c1, type: 2}
-    - target: {fileID: 2936792799480154622, guid: 72806c37aa0724e4f8b343709005370f, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: bfb05996ccd0cdf4e844384d6cd9b5fb, type: 2}
-    - target: {fileID: 4417514550760337608, guid: 72806c37aa0724e4f8b343709005370f, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 409ef9cc1b921d348968fea31c5705d2, type: 2}
-    - target: {fileID: 5539137164985463324, guid: 72806c37aa0724e4f8b343709005370f, type: 3}
-      propertyPath: m_Name
-      value: LittleMung_Police_Male
-      objectReference: {fileID: 0}
-    - target: {fileID: 8295265265011027929, guid: 72806c37aa0724e4f8b343709005370f, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8295265265011027929, guid: 72806c37aa0724e4f8b343709005370f, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -0.0026056343
-      objectReference: {fileID: 0}
-    - target: {fileID: 8295265265011027929, guid: 72806c37aa0724e4f8b343709005370f, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8295265265011027929, guid: 72806c37aa0724e4f8b343709005370f, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8295265265011027929, guid: 72806c37aa0724e4f8b343709005370f, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8295265265011027929, guid: 72806c37aa0724e4f8b343709005370f, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8295265265011027929, guid: 72806c37aa0724e4f8b343709005370f, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8295265265011027929, guid: 72806c37aa0724e4f8b343709005370f, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8295265265011027929, guid: 72806c37aa0724e4f8b343709005370f, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8295265265011027929, guid: 72806c37aa0724e4f8b343709005370f, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 72806c37aa0724e4f8b343709005370f, type: 3}
---- !u!4 &1602133136 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 8295265265011027929, guid: 72806c37aa0724e4f8b343709005370f, type: 3}
-  m_PrefabInstance: {fileID: 1602133135}
-  m_PrefabAsset: {fileID: 0}
---- !u!95 &1602133137 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 1952749080548226498, guid: 72806c37aa0724e4f8b343709005370f, type: 3}
-  m_PrefabInstance: {fileID: 1602133135}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1614488754
 GameObject:
   m_ObjectHideFlags: 0
@@ -5912,7 +5924,7 @@ MonoBehaviour:
     TownPrefab: {fileID: 0}
     WorkplaceDoor: {x: 0, y: 0, z: 0}
     InteriorScene: 
-  - Worker: {fileID: 1286430670}
+  - Worker: {fileID: 1373305929}
     TownPrefab: {fileID: 0}
     WorkplaceDoor: {x: 0, y: 0, z: 0}
     InteriorScene: 

@@ -198,6 +198,6 @@ def test_the_command_line_prints_each_service_npc_day_and_the_curves(capsys):
 
     out = capsys.readouterr().out
     assert all(npc_id in out for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"])
-    assert "12:50 bring_muffin" in out  # Jake는 06:00 출근이라 배고픔이 06:00부터 줄어든다
+    assert "06:50 bring_muffin" in out  # Jake는 24시간 상주하므로 시뮬레이션 시작인 00:00부터 배고픔이 줄어든다
     assert "본 적 있음" in out and "단골" in out
     assert "튜토리얼 안내 NPC" in out

@@ -107,10 +107,10 @@
 
 ### 경찰서와 순찰차
 
-**Tools → A305 → World → Apply Police Station**(`PoliceStationBuilder`)이 경찰서를 한 번에 적용합니다. 마을에는 경찰서 매장 건물을 놓고, 경찰서 남쪽 잔디에 주차장(`TownMainstreet/PoliceParking`)과 본길 끝으로 이어지는 진입 포장을 깔아 순찰차를 세웁니다. 경찰서 안은 카페·호텔처럼 따로 장면(`Scenes/Production/PoliceStationScene`, 장소 코드 `POLICE_STATION`)이고 **Build Police Station Scene**이 만듭니다. 마을과 같은 경찰서 건물 프리팹을 두어 실내(창구·대기 의자·게시판·서류함·국기)는 그대로이고, 창구 뒤에 경찰관 Dan(`POLICE_OFFICER`)·Victor·Kevin·Tyler를 세워(창구에 가장 가까운 Dan이 근무 중이면 먼저 응대) 경찰관마다 신고 창구(`PoliceReportDesk`)를 붙입니다. 창구는 순찰차와 다른 장면이라 접수 문구에 쓸 장소 이름(순찰차 출동 장소와 같은 목록)을 옮겨 두고, 신고는 `PoliceDispatchOrder`에 남깁니다. 경찰관에 생활을 붙이고 경찰서 바닥을 구운 뒤 경찰서 1층 안에서만 지내게 합니다. 새 경찰관은 창구 뒤 자리가 가구와 겹치면 가까운 빈자리로 옮기고, 외형 표의 배색을 입힙니다. 마지막으로 **Apply Taxi Cabin**과 같은 구성으로 택시 목적지에 경찰서를 더합니다.
+**Tools → A305 → World → Apply Police Station**(`PoliceStationBuilder`)이 경찰서를 한 번에 적용합니다. 마을에는 경찰서 매장 건물을 놓고, 경찰서 남쪽 잔디에 주차장(`TownMainstreet/PoliceParking`)과 본길 끝으로 이어지는 진입 포장을 깔아 순찰차를 세웁니다. 경찰서 안은 카페·호텔처럼 따로 장면(`Scenes/Production/PoliceStationScene`, 장소 코드 `POLICE_STATION`)이고 **Build Police Station Scene**이 만듭니다. 마을과 같은 경찰서 건물 프리팹을 두어 실내(창구·대기 의자·게시판·서류함·국기)는 그대로이고, 창구 뒤에 경찰관 Dan(`POLICE_OFFICER`)·Victor·Taylor를 세워(창구에 가장 가까운 Dan이 근무 중이면 먼저 응대) 경찰관마다 신고 창구(`PoliceReportDesk`)를 붙입니다. 창구는 순찰차와 다른 장면이라 접수 문구에 쓸 장소 이름(순찰차 출동 장소와 같은 목록)을 옮겨 두고, 신고는 `PoliceDispatchOrder`에 남깁니다. 경찰관에 생활을 붙이고 경찰서 바닥을 구운 뒤 경찰서 1층 안에서만 지내게 합니다. 새 경찰관은 창구 뒤 자리가 가구와 겹치면 가까운 빈자리로 옮기고, 외형 표의 배색을 입힙니다. 마지막으로 **Apply Taxi Cabin**과 같은 구성으로 택시 목적지에 경찰서를 더합니다.
 
 - 순찰차 모델은 KayKit City Builder Bits의 `car_police`이고 프리팹은 `Prefabs/World/PoliceStation/PoliceCar.prefab`입니다. 지붕 경광등 위에 빨강·파랑 발광 조각과 불빛(`LightBar/RedLights`, `LightBar/BlueLights`)을 얹어 두었습니다. 운전자가 보이도록 승용차·택시처럼 차 텍스처의 유리 칸을 투명하게 했습니다.
-- **Tools → A305 → World → Apply Patrol Car Drivers**는 경찰관 4명마다 창구와 같은 외형(외형 표의 경찰 프리팹 + 배색)을 순찰차 운전석에 앉히고(택시 기사와 같은 앉히기, 모자까지 지붕 아래로 맞춤) 순찰차에 잇습니다. 걷기용 뼈 보정 스크립트는 앉은 자세를 바꾸므로 뺍니다. 이미 앉힌 경찰관은 덮어쓰지 않습니다. **Capture Police Station**이 운전석 장면(`driver-side.png`, `driver-front.png`)도 찍습니다.
+- **Tools → A305 → World → Apply Patrol Car Drivers**는 경찰관 3명마다 창구와 같은 외형(외형 표의 경찰 프리팹 + 배색)을 순찰차 운전석에 앉히고(택시 기사와 같은 앉히기, 모자까지 지붕 아래로 맞춤) 순찰차에 잇습니다. 걷기용 뼈 보정 스크립트는 앉은 자세를 바꾸므로 뺍니다. 이미 앉힌 경찰관은 덮어쓰지 않습니다. **Capture Police Station**이 운전석 장면(`driver-side.png`, `driver-front.png`)도 찍습니다.
 - 경찰관 외형은 모자·제복을 포함한 `Prefabs/Npc/Review/LittleMung_Police_Male.prefab`입니다. 공통 마스터 골격과 입·미소·눈 감기 채널을 사용하며, `NpcVisualBuilder`가 실제 몸·눈 높이에 캡슐과 시선을 맞춥니다. 별도의 모자를 중복해서 붙이지 않습니다. 경찰 여자 검수 사본도 준비되어 있지만 기존 네 경찰의 역할에는 배정하지 않습니다.
 - 순찰차는 택시와 같은 본길(남쪽 끝 z=-25, 북쪽 끝 z=66)을 달리고, 택시 목적지와 같은 정차 지점을 씁니다(경찰서 자신은 빼고 10곳). 주차 칸은 (-9, -28.8)이고, 진입로는 동쪽 끝 정원수(-3.7, -27.8)를 피해 그 북쪽으로 지납니다.
 - 주차장·순찰차 프리팹·경찰관 외형은 없을 때만 만들고, 이미 있으면 배치를 두고 연결(본길 설정·진입로 조절점·목적지·경광등·창구)만 맞춥니다. **Capture Police Station**은 검토용 화면을 `artifacts/unity/police-station/`에 저장합니다.
@@ -232,3 +232,5 @@
 `CarLoopRoute`는 순환 길과 정차 위치를, `TrafficSignalCycle`은 신호 주기를 계산합니다. 경찰서 순찰차는 [경찰서와 순찰차](#경찰서와-순찰차)를 따릅니다. `LoopingCar`는 신호·장애물에 맞춰 정지하고, `TaxiFare`와 `TaxiRide`는 가까운 택시에 타서 기사 Joe(`TAXI_DRIVER`)와 대화하는 흐름을 맡습니다. 뒷좌석 승객 시점과 목적지 이동·하차는 [택시 안내](../../../../../docs/unity/taxi-ride.md)를 따릅니다.
 
 대화·단어장·피드백·피드백 목록은 클라이언트의 별도 일시 정지 상태를 사용해 서버 응답 전에도 즉시 시계를 멈춥니다. 시작·종료와 화면 열기·닫기에는 WORLD-07 신호를 바로 보내고, 멈춤 상태와 직전 요청 이후 실제로 진행한 초를 알려 열기 전 진행 시간을 보존하고, 닫는 순간 시각이 뛰지 않게 합니다. 튜토리얼의 `IsHeld` 잠금은 별도로 유지합니다. 마을의 입점 건물은 각 출입구의 장소 영업시간에 따라 조명·창 발광을 끄고 다시 켭니다.
+
+새로고침으로 대화 화면이 닫히면 첫 WORLD-07 신호의 `interactionPaused: false`, `activeSeconds: 0`으로 시계를 재개합니다. 서버에 남은 `ACTIVE` 대화는 같은 NPC와 이어하기 위한 기록으로 보존하며 시간 정지 근거로 쓰지 않습니다. 진행 초를 보내지 않는 이전 클라이언트는 기존 서버 대화 기준을 유지합니다.

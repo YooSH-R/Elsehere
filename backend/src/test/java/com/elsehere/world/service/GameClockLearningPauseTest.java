@@ -33,6 +33,47 @@ class GameClockLearningPauseTest {
   }
 
   @Test
+  void refreshWithAnUnfinishedConversationResumesWithoutEndingIt() {
+    var conversation =
+        com.elsehere.conversation.entity.Conversation.start(
+            8L, 1L, com.elsehere.conversation.entity.InitiatedBy.USER, 1, START.minusSeconds(10));
+    when(conversations.findFirstByUserIdAndStatus(
+            8L, com.elsehere.conversation.entity.ConversationStatus.ACTIVE))
+        .thenReturn(Optional.of(conversation));
+
+    var refreshed = service.beat(8L, false, false, 0L);
+
+    assertThat(refreshed.paused()).isFalse();
+    assertThat(gameClock.getPlaySeconds()).isZero();
+    assertThat(conversation.isActive()).isTrue();
+
+    var later =
+        new GameClockService(
+            repository, conversations, users, Clock.fixed(START.plusSeconds(60), ZoneOffset.UTC));
+    var response = later.beat(8L, false, false, 30L);
+
+    assertThat(response.paused()).isFalse();
+    assertThat(gameClock.getPlaySeconds()).isEqualTo(30);
+    assertThat(conversation.isActive()).isTrue();
+  }
+
+  @Test
+  void reopeningAnUnfinishedConversationPreservesTimeBeforeOpening() {
+    var conversation =
+        com.elsehere.conversation.entity.Conversation.start(
+            8L, 1L, com.elsehere.conversation.entity.InitiatedBy.USER, 1, START.minusSeconds(10));
+    when(conversations.findFirstByUserIdAndStatus(
+            8L, com.elsehere.conversation.entity.ConversationStatus.ACTIVE))
+        .thenReturn(Optional.of(conversation));
+
+    var response = service.beat(8L, true, false, 25L);
+
+    assertThat(response.paused()).isTrue();
+    assertThat(gameClock.getPlaySeconds()).isEqualTo(25);
+    assertThat(conversation.isActive()).isTrue();
+  }
+
+  @Test
   void closingWithActiveSecondsCountsOnlyTimeAfterClosing() {
     var response = service.beat(8L, false, true, 5L);
     assertThat(gameClock.getPlaySeconds()).isEqualTo(5);

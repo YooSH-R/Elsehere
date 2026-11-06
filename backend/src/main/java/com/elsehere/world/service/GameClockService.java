@@ -15,10 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 사용자별 게임 시계. 게임 시간은 사용자가 플레이한 동안만 흐른다. Unity가 플레이 중 30초마다 신호를 보내면 지난 신호 뒤 흐른 실제 시간을 한 번에 60초까지
- * 더하고, 진행 중인 대화가 있거나 튜토리얼을 마치기 전이면 멈춘다. 실제 10분이 게임 하루다({@link GameTime}).
+ * 더하고, 대화·학습 화면이 열려 있거나 튜토리얼을 마치기 전이면 멈춘다. 실제 10분이 게임 하루다({@link GameTime}).
  *
- * <p>클라이언트가 실제 진행 초를 보내면 학습 화면을 열기 전까지의 시간을 보존하고, 서버 신호 간격·상한·대화 시작 시각으로 제한한다. 진행 초가 없는 이전 클라이언트는
- * 현재 멈춤 상태로 구간 전체를 판정한다.
+ * <p>클라이언트가 실제 진행 초를 보내면 화면을 열기 전까지의 시간을 보존하고, 서버 신호 간격·상한·새 대화 시작 시각으로 제한한다. 새로고침 뒤 남은 대화는 이어하기용으로
+ * 보존하며 시계를 멈추지 않는다. 진행 초가 없는 이전 클라이언트는 서버 대화 상태도 함께 따른다.
  */
 @Service
 @RequiredArgsConstructor
@@ -59,9 +59,15 @@ public class GameClockService {
     boolean tutorial = beforeTutorialDone(userId);
     var conversation =
         conversationRepository.findFirstByUserIdAndStatus(userId, ConversationStatus.ACTIVE);
-    boolean paused = tutorial || conversation.isPresent() || interactionPaused;
+    // 새로고침 뒤에도 이어 할 수 있는 ACTIVE 대화가 남는다. 진행 초를 보내는 클라이언트는 현재 화면의 정지 상태를 따른다.
+    boolean paused =
+        tutorial || interactionPaused || (activeSeconds == null && conversation.isPresent());
     Duration allowed = MAX_BEAT_GAP;
-    if (activeSeconds != null && conversation.isPresent() && gameClock.getLastBeatAt() != null) {
+    if (activeSeconds != null
+        && interactionPaused
+        && conversation.isPresent()
+        && gameClock.getLastBeatAt() != null
+        && !conversation.get().getStartedAt().isBefore(gameClock.getLastBeatAt())) {
       long beforeDialogue =
           Duration.between(gameClock.getLastBeatAt(), conversation.get().getStartedAt())
               .getSeconds();

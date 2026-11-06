@@ -4,9 +4,10 @@
 import re
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .npc_profile_models import NpcProfile
+from .speech_emotion import Mood
 
 # 대화 난이도 1~3 (백엔드 levelApplied). 1: 천천히 쉬운 단어·짧은 문장, 2: 자연스러운 일상 영어, 3: 원래 말투 그대로.
 # NPC 대답의 문장 수·길이·어휘, 힌트·추천 단어 수준이 바뀐다 (판정은 영향 없음). 규칙은 prompts.LEVEL_RULES
@@ -132,10 +133,31 @@ class ReplyRequest(BaseModel):
     learner: Learner | None = None  # 있으면 캐릭터에 맞는 호칭만, 없으면 성별을 짐작한 호칭(Mr.·Ms.·sir·ma'am)을 쓰지 않는다
 
 
+class SpeechPhrase(BaseModel):
+    text: str = Field(min_length=1, max_length=400)
+    emotion: str | None = None
+    intensity: float = Field(default=0, ge=0, le=1, allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def validate_mood(self):
+        if self.emotion is not None:
+            Mood(self.emotion, self.intensity)
+        return self
+
+
 class TtsRequest(BaseModel):
     text: str = Field(min_length=1, max_length=400)
     voice: str = "af_heart"
     speed: float = Field(default=1.0, ge=0.5, le=2.0)
+    phrases: list[SpeechPhrase] = Field(default=[], max_length=40)
+
+    @model_validator(mode="after")
+    def phrases_match_text(self):
+        if self.phrases:
+            spoken = "".join("".join(phrase.text.split()) for phrase in self.phrases)
+            if spoken != "".join(self.text.split()):
+                raise ValueError("Speech phrases do not match the reply text")
+        return self
 
 
 class HintRequest(BaseModel):

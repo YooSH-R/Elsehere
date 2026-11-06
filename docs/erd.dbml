@@ -213,6 +213,7 @@ Table conversations [headercolor: #2E6B4F] {
   rude_count smallint [not null, default: 0, note: '이 대화에서 무례로 센 턴 수 · 한도(서버 설정값, 3)에 닿으면 NPC가 대화를 끝냄']
   started_at timestamptz [not null, default: `now()`]
   ended_at timestamptz
+  review_card_id bigint [note: '상황 복습 카드 ID. NULL이면 본편 대화, 값이 있으면 본편 진행과 분리된 REVIEW 대화']
   first_day_stage int [note: '대화 시작 시 첫날 연계 미션 단계 0~6. 피드백 상황 복원용이며 자유 대화는 NULL']
   town_story_stage int [note: '대화 시작 시 마을 여정 단계 0~11. 피드백 상황 복원용이며 해당 여정이 아니면 NULL']
   request_id uuid [unique, note: '대화 시작(CONV-01) 요청 ID · 재전송 시 새 대화를 만들지 않고 같은 대화를 돌려줌 (V10 전에 시작한 대화는 NULL)']
@@ -223,6 +224,7 @@ Table conversations [headercolor: #2E6B4F] {
 
   indexes {
     (user_id, npc_id, `started_at DESC`)
+    (review_card_id, status)
   }
 
   Note: 'NPC 자유 대화 세션 (튜토리얼 대본 대화는 기록하지 않음)'
@@ -250,6 +252,7 @@ Table turns [headercolor: #2E6B4F] {
   hint_opened_at timestamptz [note: '힌트 사용 기록']
   audio_path varchar(255) [note: '쓰지 않음 · 학습 활용에 동의한 녹음은 training_recordings에 저장']
   npc_audio_key varchar(100) [note: 'NPC 턴 TTS 음성 파일 키 · 다시 듣기용 · 음성 생성 후 최대 30일, 환경 전체 5GB(docs/npc-audio-storage.md)']
+  speech_phrases jsonb [note: 'NPC 구절별 text·emotion·intensity · 음성 실패 시에도 보존하여 재합성에 사용 · 이전 턴과 사용자 턴은 NULL']
   npc_audio_created_at timestamptz [note: '음성을 처음 저장한 시각 · 이전·복원으로 보관 기간을 다시 시작하지 않음 · 기존 음성은 턴 생성 시각으로 보수적으로 초기화']
   npc_audio_deleted_at timestamptz [note: '보관 정책으로 재생·재생성을 차단한 시각 · 처음 합성 실패(NULL)와 구분 · 파일 삭제 실패 시 키를 유지해 재시도하고 삭제 성공 후 비움']
   created_at timestamptz [not null, default: `now()`]
@@ -309,6 +312,27 @@ Table turn_feedback [headercolor: #2E6B4F] {
   updated_at timestamptz [not null, default: `now()`]
 
   Note: '상세 피드백'
+}
+
+Table review_cards [headercolor: #2E6B4F] {
+  id bigint [pk, increment]
+  user_id bigint [not null]
+  source_conversation_id bigint [not null]
+  npc_id bigint [not null]
+  scene_code varchar(30) [not null, note: '원본 대화의 장소 코드']
+  situation_summary text [not null, note: '저장 당시 피드백의 상황 요약']
+  targets jsonb [not null, note: '저장된 situationExpressions에서 가져온 서로 다른 표현 2~3개와 뜻·활용·예문']
+  practice_count int [not null, default: 0]
+  last_practiced_at timestamptz
+  used_expressions jsonb [not null, note: '최근 복습에서 확인한 표현 · 최초 저장은 빈 배열']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (user_id, source_conversation_id) [unique, name: 'uk_review_cards_user_source']
+    (user_id, id) [name: 'idx_review_cards_user_id', note: 'id DESC']
+  }
+  Note: '상황 복습장 · 같은 원본 대화는 사용자별 한 장 · AI 재호출 없이 피드백을 복사한다'
 }
 
 // ===== 관계 · 기억 =====
@@ -579,6 +603,7 @@ Ref: user_vocab.source_turn_id > turns.id [color: #9AA3AE]
 Ref: user_word_prefs.user_id > users.id [color: #9AA3AE]
 Ref: conversations.user_id > users.id [color: #9AA3AE]
 Ref: conversations.npc_id > npcs.id [color: #9AA3AE]
+Ref: conversations.review_card_id > review_cards.id [color: #9AA3AE]
 Ref: training_recordings.user_id > users.id [color: #9AA3AE]
 Ref: training_recordings.conversation_id > conversations.id [color: #9AA3AE]
 Ref: conversation_feedback.conversation_id - conversations.id [color: #9AA3AE]
@@ -593,6 +618,9 @@ Ref: user_missions.user_id > users.id [color: #9AA3AE]
 Ref: user_missions.conversation_id > conversations.id [color: #9AA3AE]
 Ref: ai_requests.user_id > users.id [color: #9AA3AE]
 Ref: ai_requests.conversation_id > conversations.id [color: #9AA3AE]
+Ref: review_cards.user_id > users.id [color: #9AA3AE]
+Ref: review_cards.npc_id > npcs.id [color: #9AA3AE]
+Ref: review_cards.source_conversation_id > conversations.id [color: #9AA3AE]
 
 // 설계만 있는 테이블의 관계(회색): 테이블이 DB에 없다
 Ref: affinity_logs.user_id > users.id [color: #9AA3AE]

@@ -1,5 +1,6 @@
 package com.elsehere.dialogue.service;
 
+import com.elsehere.ai.client.WorkerSpeechPhrase;
 import com.elsehere.common.config.ClockConfig;
 import com.elsehere.conversation.dto.GlossaryResponse;
 import com.elsehere.conversation.entity.Conversation;
@@ -90,7 +91,8 @@ class ConversationResponses {
         toOffset(conversation.getEndedAt()),
         conversation.getRudeCount(),
         Conversation.RUDE_LIMIT,
-        turns);
+        turns,
+        conversation.getReviewCardId());
   }
 
   static OffsetDateTime toOffset(Instant instant) {
@@ -99,6 +101,10 @@ class ConversationResponses {
 
   String writeWords(List<String> words) {
     return words == null ? null : jsonMapper.writeValueAsString(words);
+  }
+
+  String writeSpeechPhrases(List<WorkerSpeechPhrase> phrases) {
+    return phrases == null || phrases.isEmpty() ? null : jsonMapper.writeValueAsString(phrases);
   }
 
   List<String> readWords(String json) {

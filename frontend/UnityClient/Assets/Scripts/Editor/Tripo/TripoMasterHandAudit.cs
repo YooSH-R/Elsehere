@@ -45,13 +45,7 @@ namespace A305.EditorTools.Tripo
                         * Quaternion.Inverse(TripoMasterRig.HandRotation(input, left));
                     var sourceWrist = input.GetBoneTransform(id);
                     var targetWrist = output.GetBoneTransform(id);
-                    var thumb = input.GetBoneTransform(
-                        left ? HumanBodyBones.LeftThumbProximal : HumanBodyBones.RightThumbProximal
-                    );
                     var group = sourceWrist.GetComponentsInChildren<Transform>().ToHashSet();
-                    var targets = targetWrist
-                        .GetComponentsInChildren<Transform>()
-                        .ToDictionary(bone => bone.name);
                     float maximum = 0;
                     int count = 0;
                     for (int mesh = 0; mesh < before.Length; mesh++)
@@ -67,28 +61,11 @@ namespace A305.EditorTools.Tripo
                         {
                             if (PalmWeight(weights[i], before[mesh].bones, group) < .999f)
                                 continue;
-                            var w = weights[i];
-                            Vector3 Map(int boneIndex, float weight)
-                            {
-                                if (weight == 0)
-                                    return Vector3.zero;
-                                var bone = before[mesh].bones[boneIndex];
-                                if (!group.Contains(bone))
-                                    return Vector3.zero;
-                                var from = bone == thumb ? sourceWrist : bone;
-                                var to = bone == thumb ? targetWrist : targets[bone.name];
-                                return (
-                                        to.position
-                                        + alignment
-                                            * (original[i] - from.position)
-                                            * (targetLength / sourceLength)
-                                    ) * weight;
-                            }
                             Vector3 expected =
-                                Map(w.boneIndex0, w.weight0)
-                                + Map(w.boneIndex1, w.weight1)
-                                + Map(w.boneIndex2, w.weight2)
-                                + Map(w.boneIndex3, w.weight3);
+                                targetWrist.position
+                                + alignment
+                                    * (original[i] - sourceWrist.position)
+                                    * (targetLength / sourceLength);
                             maximum = Mathf.Max(maximum, Vector3.Distance(expected, bound[i]));
                             count++;
                         }

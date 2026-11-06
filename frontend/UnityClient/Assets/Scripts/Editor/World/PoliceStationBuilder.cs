@@ -97,7 +97,7 @@ namespace A305.EditorTools.World
         {
             (OfficerCode, "PoliceOfficer", new Vector3(0, 0, -6.4f)),
             ("POLICE_SERGEANT", "PoliceSergeant", new Vector3(1.6f, 0, -7.2f)),
-            ("POLICE_PATROL_OFFICER", "PolicePatrolOfficer", new Vector3(-1.6f, 0, -7.2f)),
+            ("POLICE_ROOKIE", "PoliceRookie", new Vector3(-1.6f, 0, -7.2f)),
         };
 
         // 남행 차로 끝(-1.5, -25) → 서쪽으로 꺾어 주차장 북쪽을 지나 → 서쪽 끝에서 유턴해 → 동쪽을 보고 주차 칸
@@ -257,6 +257,9 @@ namespace A305.EditorTools.World
             Transform group =
                 car.transform.Find(DriversGroup)
                 ?? Group(DriversGroup, car.transform, Vector3.zero);
+            foreach (Transform seat in group.Cast<Transform>().ToArray())
+                if (!Officers.Any(officer => officer.Code == seat.name))
+                    Object.DestroyImmediate(seat.gameObject);
             var seats = new List<(string Code, GameObject Seat)>();
             foreach (var officer in Officers)
             {
@@ -871,6 +874,13 @@ namespace A305.EditorTools.World
             }
 
             NpcVisualBuilder.Connect(officer, NpcCast.Find(code).Look.PrefabPath, true);
+            BuilderTools.SetReference(
+                BuilderTools.GetOrAddComponent<HoverableObject>(officer.gameObject),
+                "word",
+                AssetDatabase.LoadAssetAtPath<ObjectWordDefinition>(
+                    ObjectWordAuthoring.WordsFolder + "/police_officer.asset"
+                )
+            );
             Passerby passerby = officer.GetComponent<Passerby>();
             BuilderTools.SetReference(passerby, "settings", OfficerSettings());
             BuilderTools.SetReference(

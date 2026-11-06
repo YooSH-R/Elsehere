@@ -27,10 +27,12 @@ import org.hibernate.type.SqlTypes;
 @Entity
 @Table(
     name = "conversations",
-    indexes =
-        @Index(
-            name = "idx_conversations_user_npc_started",
-            columnList = "user_id, npc_id, started_at DESC"))
+    indexes = {
+      @Index(
+          name = "idx_conversations_user_npc_started",
+          columnList = "user_id, npc_id, started_at DESC"),
+      @Index(name = "idx_conversations_review_card_status", columnList = "review_card_id, status")
+    })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Conversation extends BaseEntity {
@@ -79,6 +81,15 @@ public class Conversation extends BaseEntity {
 
   private Integer firstDayStage;
   private Integer townStoryStage;
+  private Long reviewCardId;
+
+  public boolean isReview() {
+    return reviewCardId != null;
+  }
+
+  public void attachReviewCard(Long cardId) {
+    this.reviewCardId = cardId;
+  }
 
   // 대화를 시작한 요청 ID(CONV-01). 같은 ID로 다시 보내면 대화를 새로 만들지 않는다. 이 칸을 넣기 전의 대화는 null이다.
   @Column(unique = true)

@@ -5,6 +5,7 @@ MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서
 - `[미정]`은 팀 결정이 필요한 항목, `[제안]`은 작성자 제안입니다.
 - MVP에서 뺀 기능은 7절에 모았습니다. 와이어프레임에 화면이 없는 기능 중 NPC 호감도 조회는 따로 API를 만들지 않았습니다. 대화 중인 NPC의 호감도만 대화 시작·발화 전송 응답(CONV-01·03의 `conversation.affinity`)에 실어 대화 화면에 보여 줍니다. 집에서 고르는 화면 테마(USER-01)와 마이페이지의 닉네임 변경(USER-04)은 와이어프레임 밖에서 추가한 기능입니다.
 - 대화 턴은 REST로 작성했습니다. 스트리밍을 선택하면 요청·응답의 의미와 식별자는 유지하고 전송 방식만 바꿉니다.
+- 종료한 대화의 표현으로 다시 연습할 상황을 보관하는 API는 [상황 복습장](review-workbook.md)에 정리합니다.
 
 ## 1. 공통 규칙
 
@@ -100,6 +101,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `SCENE_CLOSED` | 409 | 열리지 않은 장소(`is_open = false`) |
 | `TUTORIAL_NOT_IN_PROGRESS` | 409 | 튜토리얼 전 단계(`LANG`, `LEVEL`) 사용자의 튜토리얼 완료·건너뛰기 |
 | `MISSION_NOT_READY` | 409 | 첫날 미션에서 카페 주문·대화 종료·현재 장소 등 휴식 조건 미충족 |
+| `REVIEW_IN_PROGRESS` | 409 | 연습 중인 카드는 종료한 뒤 삭제 |
+| `REVIEW_NOT_READY` | 409 | 대화가 진행 중이거나 DONE 피드백의 서로 다른 복습 표현이 2개 미만 |
 | `AUDIO_TOO_LARGE` | 413 | 녹음 크기 초과(3MB) |
 | `AUDIO_FORMAT_UNSUPPORTED` | 415 | 지원하지 않는 녹음 형식 |
 | `STT_NO_SPEECH` | 422 | 무음 또는 인식 실패 |
@@ -646,7 +649,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - `npcCode`는 Unity 씬의 NPC에 넣은 코드와 같습니다. 튜토리얼 행인은 Unity 대본 콘텐츠라 서버 NPC가 아닙니다.
 - 마을(`TOWN`)에는 거리 매장 직원 9명(`POST_OFFICE_STAFF`·`DINER_STAFF`·`BANK_STAFF`·`LAUNDROMAT_STAFF`·`FLOWER_SHOP_STAFF`·`BARBER_STAFF`·`BAKERY_STAFF`·`ARCADE_STAFF`·`HOME_STORE_STAFF`)도 위 Linda처럼 `STAFF`, `canInitiate: false`로 내려옵니다. 마을 행인 Ruby·Ethan·Maya·Helen·Frank·Arthur·Margaret(`TOWN_RETIREE`·`TOWN_STUDENT`·`TOWN_EVENING_WALKER`·`TOWN_SHOPPER`·`TOWN_HANDYMAN`·`TOWN_GRANDFATHER`·`TOWN_GRANDMOTHER`)는 `PASSERBY`이지만 먼저 말을 걸지 않습니다(`canInitiate: false`). 소방서가 아직 없어 마을에서 지내는 소방관 Ray·Rachel·Andre(`FIRE_CAPTAIN`·`FIRE_FIGHTER`·`FIRE_ROOKIE`)도 같은 `PASSERBY`이고 역할 이름(`roleLabel`)만 소방대장·소방관·신입 소방관입니다.
-- 한 장소를 교대로 나눠 맡는 NPC도 그 장소의 `npcs`에 함께 내려옵니다. 카페는 Mia·Leo·Zoe(`CAFE_STAFF`·`CAFE_SERVER`·`CAFE_BARISTA`), 호텔은 Jake·Walter·Diego·Owen·Clara(`HOTEL_STAFF`·`HOTEL_CONCIERGE`·`HOTEL_BELLHOP`·`HOTEL_RECEPTIONIST`·`HOTEL_NIGHT_MANAGER`), 드럭스토어는 Alex·Hannah·Samuel(`SHOP_STAFF`·`SHOP_PHARMACIST`·`SHOP_NIGHT_CLERK`), 마을의 경찰서는 Dan·Victor·Kevin·Tyler(`POLICE_OFFICER`·`POLICE_SERGEANT`·`POLICE_PATROL_OFFICER`·`POLICE_ROOKIE`)입니다. 누가 언제 나오는지는 서버가 아니라 AI 규칙에서 내보낸 일과([NPC 생활·관계 설계](../npc-life-design.md) 6절)로 Unity가 정합니다.
+- 한 장소를 교대로 나눠 맡는 NPC도 그 장소의 `npcs`에 함께 내려옵니다. 카페는 Mia·Leo·Zoe(`CAFE_STAFF`·`CAFE_SERVER`·`CAFE_BARISTA`), 호텔은 Jake·Walter·Diego·Owen·Clara(`HOTEL_STAFF`·`HOTEL_CONCIERGE`·`HOTEL_BELLHOP`·`HOTEL_RECEPTIONIST`·`HOTEL_NIGHT_MANAGER`), 드럭스토어는 Alex·Hannah·Samuel(`SHOP_STAFF`·`SHOP_PHARMACIST`·`SHOP_NIGHT_CLERK`), 마을의 경찰서는 Dan·Victor·Kevin·Taylor(`POLICE_OFFICER`·`POLICE_SERGEANT`·`POLICE_PATROL_OFFICER`·`POLICE_ROOKIE`)입니다. 누가 언제 나오는지는 서버가 아니라 AI 규칙에서 내보낸 일과([NPC 생활·관계 설계](../npc-life-design.md) 6절)로 Unity가 정합니다.
 - `words`는 장소의 사물에 붙은 공용 단어 카드입니다. 여러 사물이 같은 단어를 쓰면 카드는 하나이며, Unity가 사물의 공용 단어 키(`wordKey`)로 카드를 찾습니다. 장소별 단어 목록은 Unity가 내보낸 `object-word-bindings.json`을 서버 시작 때 `scene_words`에 적재한 것입니다.
 - `npcs`, `words`의 순서에는 의미가 없습니다. 클라이언트는 `npcCode`, `wordKey`로 찾습니다.
 - 장소에 들어갈 때 그 장소의 단어 카드를 한 번에 받습니다. MVP는 장소마다 단어가 20~40개라 응답이 작습니다.
@@ -721,7 +724,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 월드 장면에 있는 동안 30초마다 보내는 신호입니다. 지난 신호 뒤 흐른 실제 시간만큼 게임 시간을 더하고 지금 게임 시각을 돌려줍니다(실제 1초 = 게임 2.4분).
 - 대화를 시작·종료하거나 단어장·피드백·피드백 목록을 열고 닫으면 간격을 기다리지 않고 신호를 보냅니다. `interactionPaused`는 현재 대화·학습 화면 때문에 시간이 멈췄는지, `interactionWasPaused`는 직전 신호 이후 멈춰 있던 구간이 있었는지입니다. 현재 화면이 열려 있거나 서버에 진행 중인 대화·튜토리얼이 있으면 `paused: true`를 돌려줍니다.
-- `activeSeconds`는 직전 요청 이후 실제로 시간이 진행한 초입니다. 창을 열기 전까지의 진행 시간은 보존하고, 대화·학습 화면을 보고 있던 시간은 제외합니다. 서버는 신호 간격·최대 60초·진행 중 대화가 시작되기 전 구간으로 제한하며, 튜토리얼 중에는 더하지 않습니다. 닫는 신호는 멈춰 있던 구간을 제외하고 현재 상태를 돌려주므로 다음 응답부터 시간이 이어집니다.
+- `activeSeconds`는 직전 요청 이후 실제로 시간이 진행한 초입니다. 창을 열기 전까지의 진행 시간은 보존하고, 대화·학습 화면을 보고 있던 시간은 제외합니다. 서버는 신호 간격·최대 60초로 제한하며, 정지 화면이 열려 있고 직전 신호 이후 새 대화가 시작됐으면 대화 시작 전 구간까지만 더합니다. 튜토리얼 중에는 더하지 않습니다. 현재 정지 여부는 `interactionPaused`를 따르므로 새로고침 뒤 서버에 이어하기용 `ACTIVE` 대화가 남아 있어도 화면을 닫은 상태라면 시계가 재개됩니다. 기존 대화는 종료하거나 다시 차감하지 않습니다. 닫는 신호는 멈춰 있던 구간을 제외하고 현재 상태를 돌려줍니다.
 - 본문을 생략하면 두 플래그는 `false`입니다. `activeSeconds`를 생략한 이전 클라이언트는 두 플래그와 서버 대화·튜토리얼 상태로 구간 전체의 멈춤을 판정합니다. 이 경우 신호 사이에 시작·종료된 대화 몇 초의 오차가 생길 수 있습니다.
 - 첫 신호는 시계를 시작만 하고 더하지 않습니다. 신호 사이가 60초보다 길면(창을 닫았거나 백그라운드) 60초까지만 더합니다. 튜토리얼을 마치거나 건너뛴(TUT-01·02) 뒤 신호부터 흐릅니다.
 - 두 API 모두 로그인한 사용자만 호출할 수 있으며, 로그인하지 않았으면 `401 UNAUTHENTICATED`입니다. WORLD-07은 `X-Requested-With` 헤더가 필요합니다.

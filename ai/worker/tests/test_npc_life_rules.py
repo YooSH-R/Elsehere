@@ -191,7 +191,7 @@ def test_the_police_station_always_has_an_officer_on_shift():
 
 def test_too_few_npcs_on_shift_at_once_is_reported_with_the_time():
     """낮 교대(Leo)가 없으면 카페에는 오픈(07:00~15:00)과 마감(13:00~21:00)이 겹치는 13:00~15:00에만 둘이다."""
-    lives = [life for life in service_lives() if life["npcId"] != "CAFE_SERVER"]
+    lives = [{**life, "resident": False} for life in service_lives() if life["npcId"] != "CAFE_SERVER"]
 
     assert npc_life_rules.understaffed(lives, rules_with_cafe_hours(), "CAFE", BUSY_HOURS, 2) == [
         "CAFE: 10:00~13:00에 교대 중인 NPC가 2명보다 적음",
@@ -314,8 +314,8 @@ def test_every_service_npc_works_its_own_shift():
         "ARCADE_STAFF": ("ARCADE", "DAY"),
         "HOME_STORE_STAFF": ("HOME_STORE", "DAY"),
         "POLICE_OFFICER": ("POLICE_STATION", "DAY"),
-        "POLICE_ROOKIE": ("BAKERY", "NIGHT"),
-        "POLICE_PATROL_OFFICER": ("POLICE_STATION", "EVENING"),
+        "POLICE_ROOKIE": ("POLICE_STATION", "EVENING"),
+        "POLICE_PATROL_OFFICER": ("BAKERY", "NIGHT"),
         "POLICE_SERGEANT": ("POLICE_STATION", "NIGHT"),
         "TAXI_DRIVER": ("TAXI", "ALL_DAY"),
         "TOWN_RETIREE": ("POST_OFFICE", "NIGHT"),
@@ -373,7 +373,9 @@ def test_service_npc_life_files_hold_only_input_nodes():
     mia, jake, ben = (load_life(npc_id) for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"])
 
     assert [(life["mbti"], life["role"]) for life in (mia, jake, ben)] == [("ESFJ-T", "STAFF"), ("ISTP-T", "STAFF"), ("ESFJ-T", "PASSERBY")]
-    assert all(set(life) - {"tutorialGuide"} == {"schemaVersion", "npcId", "mbti", "role", "workplace", "shift"} for life in lives)
+    assert all(
+        set(life) - {"tutorialGuide", "resident"} == {"schemaVersion", "npcId", "mbti", "role", "workplace", "shift"} for life in lives
+    )
 
 
 def test_ben_is_the_only_tutorial_guide():

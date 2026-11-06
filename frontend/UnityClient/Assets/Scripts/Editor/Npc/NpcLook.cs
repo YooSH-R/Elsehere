@@ -13,7 +13,8 @@ namespace A305.EditorTools.Npc
             string prefabPath,
             string bodyTexturePath,
             string onlyForCodePrefix = null,
-            string baseMaterialPath = null
+            string baseMaterialPath = null,
+            float initialScale = 1f
         )
         {
             Name = name;
@@ -21,10 +22,14 @@ namespace A305.EditorTools.Npc
             BodyTexturePath = bodyTexturePath;
             OnlyForCodePrefix = onlyForCodePrefix;
             BaseMaterialPath = baseMaterialPath;
+            InitialScale = initialScale;
         }
 
         public string Name { get; }
         public string PrefabPath { get; }
+
+        /// <summary>새로 배치할 때의 배율. 기존 씬 인스턴스에서 조절한 크기는 덮어쓰지 않는다.</summary>
+        public float InitialScale { get; }
 
         /// <summary>외형 프리팹의 몸 색 텍스처. 이 텍스처를 쓰는 재질만 NPC 색 사본으로 바꾼다.</summary>
         public string BodyTexturePath { get; }

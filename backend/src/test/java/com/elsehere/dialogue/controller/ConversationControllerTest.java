@@ -85,6 +85,24 @@ class ConversationControllerTest {
   @MockitoBean private ConversationHistoryService conversationHistoryService;
 
   @Test
+  void startReviewUsesAuthenticatedOwnerAndReturnsMode() throws Exception {
+    given(conversationService.startReview(1L, 42L, REQUEST_ID))
+        .willReturn(
+            new ConversationStartResponse(
+                77L, ConversationStatus.ACTIVE, 1, NPC, List.of(), null, null, null, 42L));
+    mockMvc
+        .perform(
+            post("/api/v1/review-cards/42/conversations")
+                .with(authentication(loggedIn(1L)))
+                .header("X-Requested-With", "XMLHttpRequest")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"requestId\":\"" + REQUEST_ID + "\"}"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.conversationId").value(77))
+        .andExpect(jsonPath("$.reviewCardId").value(42));
+  }
+
+  @Test
   @DisplayName("GET /api/v1/conversations는 NPC·커서·크기를 넘겨 지난 대화 목록 한 페이지를 돌려준다")
   void list_respondsPage() throws Exception {
     ConversationSummaryResponse item =

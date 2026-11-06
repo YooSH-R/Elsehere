@@ -24,6 +24,8 @@ namespace A305.Npc
         {
             if (GetComponent<DialogueSpeaker>() == null)
                 gameObject.AddComponent<DialogueSpeaker>();
+            if (GetComponent<NpcDialogueVisibility>() == null)
+                gameObject.AddComponent<NpcDialogueVisibility>();
         }
 
         private void OnEnable()

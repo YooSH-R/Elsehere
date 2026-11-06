@@ -28,11 +28,21 @@ namespace A305.Characters
         private SpeechVisemeTimeline timeline;
         private SpeechEmotionTrack emotionTrack;
         private EmotionExpressionProfile activeEmotions;
+        private EmotionExpressionProfile runtimeEmotions;
         private AudioClip activeAudio;
         private bool active;
         private bool paused;
+        private bool streaming;
+        private bool keepEmotionAfterSpeech;
+        private float streamTimeOffset;
+        private float emotionTimeOffset;
+        private float expressionReleaseAt = -1;
+        private FaceEmotionSample initialEmotion;
+        private FaceEmotionSample lastEmotion;
+        private FaceEmotionSample heldEmotion;
         public bool IsPlaying => active && !paused;
         public bool IsPaused => active && paused;
+        public bool IsHoldingEmotion => !active && expressionReleaseAt >= 0;
         public CharacterSpeechClip Speech => speech;
         public CharacterFaceController Face => face;
         public SpeechExpressionProfile Expressions => expressions;
@@ -110,7 +120,9 @@ namespace A305.Characters
             AudioClip audio,
             SpeechVisemeTimeline phonemes,
             SpeechEmotionTrack reactions = null,
-            EmotionExpressionProfile profile = null
+            EmotionExpressionProfile profile = null,
+            bool continueSpeech = false,
+            bool holdEmotionAfterSpeech = false
         )
         {
             if (face == null || speechSource == null || audio == null)
@@ -119,6 +131,20 @@ namespace A305.Characters
                 );
             if (phonemes != null && Mathf.Abs(phonemes.Duration - audio.length) > .02f)
                 throw new ArgumentException("Phoneme timing does not match the voice length.");
+            if (reactions != null && profile == null)
+            {
+                profile = emotionProfile;
+                if (profile == null)
+                {
+                    if (runtimeEmotions == null)
+                    {
+                        runtimeEmotions =
+                            ScriptableObject.CreateInstance<EmotionExpressionProfile>();
+                        runtimeEmotions.hideFlags = HideFlags.DontSave;
+                    }
+                    profile = runtimeEmotions;
+                }
+            }
             if (reactions == null && emotionProfile != null)
             {
                 reactions = new SpeechEmotionTrack(
@@ -141,7 +167,21 @@ namespace A305.Characters
                 && (profile == null || Mathf.Abs(reactions.Duration - audio.length) > .02f)
             )
                 throw new ArgumentException("표정 시간표와 음성 길이·프로필을 확인하세요.");
+            var previousEmotion = continueSpeech && streaming ? lastEmotion : default;
+            float previousEmotionSeconds =
+                continueSpeech && streaming && reactions != null
+                    ? reactions.ContinuationSeconds(emotionTrack, emotionTimeOffset)
+                    : 0;
+            float previousDuration =
+                continueSpeech && streaming && activeAudio != null
+                    ? streamTimeOffset + activeAudio.length
+                    : 0;
             Stop();
+            streaming = continueSpeech;
+            keepEmotionAfterSpeech = holdEmotionAfterSpeech && reactions != null;
+            initialEmotion = previousEmotion;
+            streamTimeOffset = previousDuration;
+            emotionTimeOffset = previousEmotionSeconds;
             timeline = phonemes;
             emotionTrack = reactions;
             activeEmotions = profile;
@@ -197,6 +237,12 @@ namespace A305.Characters
             timeline = null;
             emotionTrack = null;
             activeEmotions = null;
+            streaming = false;
+            keepEmotionAfterSpeech = false;
+            streamTimeOffset = 0;
+            emotionTimeOffset = 0;
+            expressionReleaseAt = -1;
+            initialEmotion = lastEmotion = heldEmotion = default;
             if (face != null)
                 face.SetPose(CharacterFacePose.Neutral);
         }
@@ -215,30 +261,97 @@ namespace A305.Characters
                 timeline != null ? timeline.SampleArticulation(seconds) : SpeechMouthSample.Rest;
             var expression =
                 expressions != null
-                    ? expressions.Sample(seconds, activeAudio.length)
+                    ? expressions.Sample(
+                        streamTimeOffset + seconds,
+                        streamTimeOffset + activeAudio.length + (streaming ? 1 : 0)
+                    )
                     : new SpeechExpressionSample(0, 0);
             if (emotionTrack != null && activeEmotions != null)
-                face.ApplySpeech(
-                    mouth,
-                    emotionTrack.Sample(seconds, activeEmotions),
-                    expression.Blink
+            {
+                lastEmotion = emotionTrack.Sample(
+                    seconds,
+                    activeEmotions,
+                    initialEmotion,
+                    streaming || keepEmotionAfterSpeech,
+                    emotionTimeOffset
                 );
+                face.ApplySpeech(mouth, lastEmotion, expression.Blink);
+            }
             else
                 face.ApplySpeech(mouth, expression.Smile, expression.Blink);
         }
 
         private void LateUpdate()
         {
-            if (!active || paused)
+            if (!active)
+            {
+                if (expressionReleaseAt >= 0)
+                {
+                    if (keepEmotionAfterSpeech)
+                    {
+                        ApplyListeningExpression();
+                        return;
+                    }
+                    // 다음 구절이 바로 오면 이어 받고, 음성이 끝나면 잠시 뒤 자연스럽게 푼다.
+                    float release = Mathf.Clamp01(
+                        (Time.unscaledTime - expressionReleaseAt - .15f) / .24f
+                    );
+                    lastEmotion = FaceEmotionSample.Lerp(
+                        SampleHeldEmotion(Time.unscaledTime - expressionReleaseAt),
+                        default,
+                        Mathf.SmoothStep(0, 1, release)
+                    );
+                    face.ApplySpeech(SpeechMouthSample.Rest, lastEmotion, 0);
+                    if (release >= 1)
+                        Stop();
+                }
+                return;
+            }
+            if (paused)
                 return;
             if (!speechSource.isPlaying)
             {
-                Stop();
+                if (streaming || keepEmotionAfterSpeech)
+                {
+                    ApplyAtAudioTime(Mathf.Max(0, activeAudio.length - .0001f));
+                    heldEmotion = lastEmotion;
+                    expressionReleaseAt = Time.unscaledTime;
+                    active = false;
+                    face.ApplySpeech(SpeechMouthSample.Rest, heldEmotion, 0);
+                }
+                else
+                    Stop();
                 return;
             }
             ApplyAtAudioTime(PlaybackTime);
         }
 
+        private void ApplyListeningExpression()
+        {
+            float elapsed = Time.unscaledTime - expressionReleaseAt;
+            float seconds = (streamTimeOffset + activeAudio.length + elapsed) % 14f;
+            float blink = expressions != null ? expressions.Sample(seconds, 15f).Blink : 0;
+            lastEmotion = SampleHeldEmotion(elapsed);
+            face.ApplySpeech(SpeechMouthSample.Rest, lastEmotion, blink);
+        }
+
+        private FaceEmotionSample SampleHeldEmotion(float elapsed) =>
+            emotionTrack != null && activeEmotions != null
+                ? emotionTrack.Sample(
+                    activeAudio.length + elapsed,
+                    activeEmotions,
+                    initialEmotion,
+                    holdLast: true,
+                    initialEmotionSeconds: emotionTimeOffset
+                )
+                : heldEmotion;
+
         private void OnDisable() => Stop();
+
+        private void OnDestroy()
+        {
+            if (runtimeEmotions != null)
+                Destroy(runtimeEmotions);
+        }
     }
 }

@@ -92,6 +92,28 @@ class TurnServiceTest {
   }
 
   @Test
+  void send_savesReplyEmotionsEvenWhenSynthesisTimedOut() {
+    judges("Hello", "Hello", null);
+    repliesTo(
+        "Hello",
+        new NpcReply(
+            "Let me help.",
+            null,
+            null,
+            List.of(),
+            List.of(
+                new com.elsehere.ai.client.WorkerSpeechPhrase("Let me help.", "warm_smile", 0.8))));
+
+    TurnResponse response = send("Hello");
+    entityManager.flush();
+    entityManager.clear();
+
+    Turn saved = turnRepository.findById(response.npcTurn().turnId()).orElseThrow();
+    assertThat(saved.getNpcAudioKey()).isNull();
+    assertThat(saved.getSpeechPhrases()).contains("warm_smile", "Let me help.", "0.8");
+  }
+
+  @Test
   @DisplayName("5분이 지나도 30턴 전이면 대화를 계속할 수 있다")
   void send_afterFiveMinutes_conversationRemainsActive() {
     clock.setInstant(TestClockConfig.NOW.plusSeconds(600));

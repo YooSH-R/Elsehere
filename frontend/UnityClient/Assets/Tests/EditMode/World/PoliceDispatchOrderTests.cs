@@ -25,12 +25,9 @@ namespace A305.World.Tests
         {
             PoliceDispatchOrder.TryRequest(10, "POLICE_OFFICER", "DINER");
             PoliceDispatchOrder.TryBegin(out var first);
-            Assert.That(
-                PoliceDispatchOrder.TryRequest(11, "POLICE_PATROL_OFFICER", "BANK"),
-                Is.True
-            );
+            Assert.That(PoliceDispatchOrder.TryRequest(11, "POLICE_ROOKIE", "BANK"), Is.True);
             Assert.That(PoliceDispatchOrder.IsPending, Is.True);
-            Assert.That(PoliceDispatchOrder.IsAway("POLICE_PATROL_OFFICER"), Is.True);
+            Assert.That(PoliceDispatchOrder.IsAway("POLICE_ROOKIE"), Is.True);
             PoliceDispatchOrder.TryBegin(out var stillFirst);
             Assert.That(stillFirst, Is.SameAs(first));
 
@@ -78,7 +75,7 @@ namespace A305.World.Tests
         {
             PoliceDispatchOrder.TryRequest(10, "POLICE_OFFICER", "DINER");
             PoliceDispatchOrder.TryBegin(out _);
-            PoliceDispatchOrder.TryRequest(11, "POLICE_PATROL_OFFICER", "BANK");
+            PoliceDispatchOrder.TryRequest(11, "POLICE_ROOKIE", "BANK");
             PoliceDispatchOrder.Clear();
             Assert.That(PoliceDispatchOrder.IsPending, Is.False);
             Assert.That(PoliceDispatchOrder.TryBegin(out _), Is.False);

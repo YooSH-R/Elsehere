@@ -106,6 +106,15 @@ public class Turn extends BaseEntity {
   @Column(length = 100)
   private String npcAudioKey;
 
+  // 구절·감정은 음성 성공 여부와 별개로 보존한다. 재합성한 PCM의 길이에 맞춰 시간을 다시 붙인다.
+  @Column(columnDefinition = "jsonb")
+  @ColumnTransformer(write = "?::jsonb")
+  private String speechPhrases;
+
+  public void attachSpeechPhrases(String phrases) {
+    this.speechPhrases = phrases;
+  }
+
   private Instant npcAudioCreatedAt;
 
   // 보관 정책으로 재생을 차단한 시각. 파일 삭제 실패 시에는 키를 남겨 다음 정리에서 재시도한다.

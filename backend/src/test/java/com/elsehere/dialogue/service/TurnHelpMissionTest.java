@@ -44,6 +44,7 @@ class TurnHelpMissionTest {
       new TurnHelpService(
           mock(TurnRepository.class),
           lookup,
+          mock(com.elsehere.review.service.ReviewCardService.class),
           contexts,
           missions,
           mock(ConversationResponses.class),

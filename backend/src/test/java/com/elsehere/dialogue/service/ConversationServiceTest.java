@@ -117,6 +117,30 @@ class ConversationServiceTest {
   }
 
   @Test
+  void start_savesGreetingEmotionsEvenWhenSynthesisTimedOut() {
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(
+            new com.elsehere.ai.client.NpcReply(
+                "Really?",
+                null,
+                null,
+                List.of(),
+                List.of(new com.elsehere.ai.client.WorkerSpeechPhrase("Really?", "curious", 0.7))));
+
+    ConversationStartResponse response =
+        conversationService.start(
+            userId, new StartConversationRequest(UUID.randomUUID(), "CAFE_STAFF", InitiatedBy.NPC));
+    entityManager.flush();
+    entityManager.clear();
+
+    var saved =
+        entityManager.find(
+            com.elsehere.conversation.entity.Turn.class, response.openingTurn().turnId());
+    assertThat(saved.getNpcAudioKey()).isNull();
+    assertThat(saved.getSpeechPhrases()).contains("curious", "Really?", "0.7");
+  }
+
+  @Test
   @DisplayName(
       "말걸기 대사가 없는 직원은 NPC가 먼저 말을 건 대화라도 AI가 만든 첫 인사로 시작하고 음성을 저장한다. 첫 인사는 대화를 저장하기 전에 만들므로 워커 요청에는 요청 ID만 붙인다")
   void start_staffWithoutApproachLine_usesAiGreeting() {

@@ -9,6 +9,93 @@ namespace A305.Characters.Tests
 {
     public sealed class DialogueSpeechWavTests
     {
+        internal static byte[] WithEmotions(byte[] wav, string cues, bool wrongHash = false)
+        {
+            string hash;
+            using (var sha = SHA256.Create())
+                hash = BitConverter.ToString(sha.ComputeHash(wav, 44, 32000)).Replace("-", "");
+            var payload = Encoding.UTF8.GetBytes(
+                "{\"version\":1,\"duration\":1,\"pcmSha256\":\""
+                    + (wrongHash ? "wrong" : hash)
+                    + "\",\"cues\":"
+                    + cues
+                    + "}"
+            );
+            using var stream = new MemoryStream();
+            using var writer = new BinaryWriter(stream);
+            writer.Write(wav);
+            writer.Write(Encoding.ASCII.GetBytes("e305"));
+            writer.Write(payload.Length);
+            writer.Write(payload);
+            if (payload.Length % 2 != 0)
+                writer.Write((byte)0);
+            stream.Position = 4;
+            writer.Write((int)stream.Length - 8);
+            return stream.ToArray();
+        }
+
+        [Test]
+        public void VoiceCarriesChangingEmotionsAlongsideUnchangedPhonemes()
+        {
+            var voice = DialogueSpeechWav.Read(
+                WithEmotions(
+                    Wav(),
+                    "[{\"start\":0,\"end\":0.5,\"emotion\":\"curious\",\"intensity\":0.7},"
+                        + "{\"start\":0.5,\"end\":1,\"emotion\":\"sad\",\"intensity\":0.8}]"
+                )
+            );
+            Assert.That(voice.Emotions, Is.Not.Null);
+            var profile = ScriptableObject.CreateInstance<EmotionExpressionProfile>();
+            try
+            {
+                Assert.That(
+                    voice.Emotions.Sample(.25f, profile).browOuterUp,
+                    Is.EqualTo(profile.Sample(CharacterEmotion.Curious, .7f).browOuterUp)
+                );
+                Assert.That(
+                    voice.Emotions.Sample(.75f, profile).mouthFrown,
+                    Is.EqualTo(profile.Sample(CharacterEmotion.Sad, .8f).mouthFrown)
+                );
+                Assert.That(
+                    voice.Timeline.SampleArticulation(.75f).Weight(CharacterFacePose.TH),
+                    Is.GreaterThan(.6)
+                );
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(profile);
+            }
+        }
+
+        [TestCase("unknown", 1, 1, false)]
+        [TestCase("curious", 2, 1, false)]
+        [TestCase("curious", 1, 2, false)]
+        [TestCase("curious", 1, 1, true)]
+        public void InvalidEmotionKeepsOriginalVoiceAndPhonemes(
+            string emotion,
+            float intensity,
+            float end,
+            bool wrongHash
+        )
+        {
+            string cues =
+                "[{\"start\":0,\"end\":"
+                + end
+                + ",\"emotion\":\""
+                + emotion
+                + "\",\"intensity\":"
+                + intensity
+                + "}]";
+            var voice = DialogueSpeechWav.Read(WithEmotions(Wav(), cues, wrongHash));
+            Assert.That(voice.Emotions, Is.Null);
+            Assert.That(voice.EmotionError, Is.Not.Empty);
+            Assert.That(voice.Samples, Is.EqualTo(DialogueSpeechWav.Read(Wav()).Samples));
+            Assert.That(
+                voice.Timeline.SampleArticulation(.75f).Weight(CharacterFacePose.TH),
+                Is.GreaterThan(.6)
+            );
+        }
+
         internal static byte[] Wav(bool withTiming = true, bool corruptHash = false)
         {
             var pcm = new byte[32000];

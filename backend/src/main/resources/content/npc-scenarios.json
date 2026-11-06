@@ -226,15 +226,6 @@
     ]
   },
   "POLICE_PATROL_OFFICER": {
-    "scenarioId": "police_front_desk",
-    "locationId": "TOWN",
-    "situation": "The visitor is at the front desk of the small police station at the south end of the town's main street. A patrol car is parked right next to the station.",
-    "facts": [
-      "The patrol car can drive to any building on the main street: the cafe, the hotel, the drugstore, the post office, the diner, the bank, the laundromat, the flower shop, the barber shop and the visitor's home.",
-      "If the visitor does not say where it happened, the patrol car drives once around the main street."
-    ]
-  },
-  "POLICE_ROOKIE": {
     "scenarioId": "bakery_counter",
     "locationId": "TOWN",
     "situation": "The customer is at the counter of Maple Bakery on the town's main street. Bread, croissants and chocolate cake are in the display case.",
@@ -244,6 +235,15 @@
       "There are tables upstairs on the second floor for eating in.",
       "Maple Bakery is next to the post office.",
       "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
+    ]
+  },
+  "POLICE_ROOKIE": {
+    "scenarioId": "police_front_desk",
+    "locationId": "TOWN",
+    "situation": "The visitor is at the front desk of the small police station at the south end of the town's main street. A patrol car is parked right next to the station.",
+    "facts": [
+      "The patrol car can drive to any building on the main street: the cafe, the hotel, the drugstore, the post office, the diner, the bank, the laundromat, the flower shop, the barber shop and the visitor's home.",
+      "If the visitor does not say where it happened, the patrol car drives once around the main street."
     ]
   },
   "POLICE_SERGEANT": {

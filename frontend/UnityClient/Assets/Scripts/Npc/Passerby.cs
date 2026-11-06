@@ -119,7 +119,12 @@ namespace A305.Npc
         // 교대 밖이라 일하지 않는 직원인지. 생활이 없는 NPC와 행인은 근무 외로 보내지 않는다.
         private bool IsTownResident => TryGetComponent(out NpcTownWalker walker) && walker.enabled;
 
-        private bool IsCrossing => NpcTownWalker.IsRoadSurface(transform.position, .1f);
+        private readonly NpcCrosswalk crossing = new NpcCrosswalk();
+
+        private bool IsCrossing =>
+            crossing.IsActive || NpcTownWalker.IsRoadSurface(transform.position, .1f);
+
+        internal bool IsHandlingCrossing => crossing.IsActive;
 
         private TrafficLights trafficLights;
 
@@ -196,6 +201,7 @@ namespace A305.Npc
 
         private void OnEnable()
         {
+            NpcWalkingSpace.Register(this);
             if (dialogue != null)
             {
                 dialogue.Ended += OnDialogueEnded;
@@ -204,6 +210,8 @@ namespace A305.Npc
 
         private void OnDisable()
         {
+            crossing.Clear();
+            NpcWalkingSpace.Unregister(this);
             if (dialogue != null)
             {
                 dialogue.Ended -= OnDialogueEnded;
@@ -237,9 +245,14 @@ namespace A305.Npc
             bool isPlayerBusy = IsPlayerOccupied || IsOtherOfferShowing || IsCrossing;
             // 새 대화를 시작할 수 없으면(게스트 대화 횟수를 다 씀) 먼저 다가오지 않는다(기능 명세 F-39).
             bool cannotStartConversation = !dialogue.Allowance.CanStartConversation;
-            // 튜토리얼·퀘스트처럼 용건이 있는 경우에만 먼저 제안한다. 직원은 응대할 수 있는 자리인지도 확인한다.
+            // 튜토리얼·퀘스트와 카운터 응대 때 먼저 제안한다. 직원은 응대할 수 있는 자리인지도 확인한다.
+            bool servesCustomer =
+                routine != null
+                && routine.enabled
+                && routine.HasServiceCounter
+                && routine.CanOfferTo(player.transform.position);
             bool notReadyToOffer =
-                (!IsGuidingTutorial && !IsWaitingForQuest)
+                (!IsGuidingTutorial && !IsWaitingForQuest && !servesCustomer)
                 || routine != null
                     && routine.enabled
                     && !IsWaitingForQuest
@@ -263,7 +276,8 @@ namespace A305.Npc
 
             approach.Tick(
                 Now,
-                toPlayer.magnitude,
+                // 매대 끝에서도 응대하며 카운터 밖으로 걸어 나오지 않는다.
+                servesCustomer ? 0f : toPlayer.magnitude,
                 isPlayerBusy
                     || cannotStartConversation
                     || notReadyToOffer
@@ -549,11 +563,25 @@ namespace A305.Npc
         /// <summary>그 방향으로 한 프레임 걷는다. 생활(NpcRoutine)은 다가올 때와 다른 속도로 걷는다.</summary>
         internal void WalkToward(Vector3 horizontalDirection, float speedMetersPerSecond)
         {
-            if (IsWaitingForSignal(horizontalDirection))
+            horizontalDirection = crossing.Direction(
+                trafficLights,
+                transform.position,
+                horizontalDirection
+            );
+            if (
+                horizontalDirection.sqrMagnitude < .0001f
+                || (!crossing.IsActive && IsWaitingForSignal(horizontalDirection))
+            )
             {
                 Stand();
                 return;
             }
+            float step = NpcWalkingSpace.LimitStep(
+                this,
+                horizontalDirection.normalized,
+                speedMetersPerSecond * Time.deltaTime
+            );
+            speedMetersPerSecond = Time.deltaTime > 0 ? step / Time.deltaTime : 0;
             Vector3 velocity = horizontalDirection.normalized * speedMetersPerSecond;
             velocity.y = GroundedDownwardSpeedMetersPerSecond;
             characterController.Move(velocity * Time.deltaTime);

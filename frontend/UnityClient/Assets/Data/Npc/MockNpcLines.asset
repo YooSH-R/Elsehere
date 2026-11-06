@@ -62,7 +62,7 @@ MonoBehaviour:
   - npcCode: POLICE_SERGEANT
     greeting: Good evening. This is the night desk. What can I do for you?
   - npcCode: POLICE_PATROL_OFFICER
-    greeting: Hi there. Did something happen around here?
+    greeting: Good morning! The bread just came out of the oven.
   - npcCode: POLICE_ROOKIE
     greeting: Good morning, dear! The bread just came out of the oven.
   - npcCode: TOWN_RETIREE

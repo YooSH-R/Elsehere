@@ -303,6 +303,8 @@ ai/worker/.venv/Scripts/python ai/tools/synthesize_script_lines.py --models <모
 
 ## NPC 발음 시간표와 립싱크
 
+실제 `/v1/npc/reply`는 같은 LLM 응답에서 구절별 감정도 얻습니다. `app/npc_emotion.py`가 내부 표시를 대사에서 제거하고 `app/speech_emotion.py`가 합성된 음성에 `e305` 시간표를 붙입니다. 발음용 `a305`와 PCM은 보존합니다. 대사 길이·토큰 상한·오류 처리와 Unity 연결은 [NPC 대화 감정 표정](../../docs/unity/npc-dialogue-emotions.md)을 따릅니다. `tests/test_speech_emotion.py`에서 실제 요청 경로, 스트리밍 경계, 지연 합성, 전체 음성의 시간 이동과 잘못된 정보의 제외를 검사합니다.
+
 읽을 글 정리와 발음 사전을 먼저 적용하고, 그 음소열을 `create_timed(..., is_phonemes=True)`에 한 번만 넘깁니다. 시간표도 같은 합성의 발음 순서를 최종 PCM에 정렬해 만들며, 재생용 음성과 함께 캐시합니다. 시간표 미지원 모델은 동일한 발음 사전으로 음성만 생성합니다. `tests/test_pronunciation_timing.py`에서 두 경로와 캐시 재사용을 검사합니다.
 
 `kokoro-onnx==0.6.1`의 `create_timed()`로 음성과 발음 순서를 얻고, `pocketsphinx==5.0.4`의 로컬 음향 모델로 해당 발음 순서를 최종 PCM에 정렬합니다. TTS 내부 duration은 실제 발음 경계와 어긋날 수 있어 그대로 재생 시간표로 사용하지 않습니다. 별도의 음성 재생성, 외부 분석 API, 문장별 입모양 수작업은 필요하지 않습니다. `KOKORO_MODEL`은 **duration 출력이 포함된** [공식 model-files-v1.1 배포](https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.1)의 `kokoro-v1.0.int8.onnx`, `KOKORO_VOICES`는 해당 배포의 `voices-v1.0.bin`을 가리켜야 합니다. 파일명이 같은 이전 모델에는 duration 출력이 없을 수 있습니다. 시작 로그에 `model has no duration output` 경고가 있으면 정확한 립싱크를 사용할 수 없습니다. 모델은 배포 시 준비하며 요청 중에 다운로드하지 않습니다.

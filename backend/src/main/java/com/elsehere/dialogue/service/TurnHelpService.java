@@ -15,6 +15,7 @@ import com.elsehere.dialogue.dto.MeaningResponse;
 import com.elsehere.dialogue.dto.SuggestWordsResponse;
 import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.mission.service.MissionDialogueService;
+import com.elsehere.review.service.ReviewCardService;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -40,6 +41,7 @@ public class TurnHelpService {
 
   private final TurnRepository turnRepository;
   private final ConversationLookup conversationLookup;
+  private final ReviewCardService reviewCardService;
   private final DialogueContexts dialogueContexts;
   private final MissionDialogueService missionDialogueService;
   private final ConversationResponses conversationResponses;
@@ -139,6 +141,15 @@ public class TurnHelpService {
 
   // 지난 대화나 근무 밖의 대화에 현재 퀘스트를 섞지 않는다. NPC만 아는 사실 대신 학습자에게 남은 첫 목표만 보낸다.
   private String learningGoal(Long userId, Conversation conversation, String npcCode) {
+    if (conversation.isReview()) {
+      var card = reviewCardService.detail(userId, conversation.getReviewCardId());
+      return "Practice the original situation: "
+          + card.situationSummary()
+          + " Target expressions: "
+          + card.targets().stream()
+              .map(com.elsehere.review.dto.ReviewTarget::expression)
+              .collect(java.util.stream.Collectors.joining("; "));
+    }
     if (conversation.isNpcOffDuty()) {
       return "";
     }

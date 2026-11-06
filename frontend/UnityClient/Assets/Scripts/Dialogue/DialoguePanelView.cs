@@ -66,6 +66,54 @@ namespace A305.Dialogue
         private RectTransform helpPanel;
 
         [SerializeField]
+        private Button reviewFoldButton;
+        private string reviewReference;
+        private string originalHelpTitle;
+        private TMP_Text reviewHelpTitle;
+        private bool reviewFolded;
+        private float originalSuggestFont;
+        private float originalSuggestHeight;
+        private RectOffset originalSuggestPadding;
+
+        public void SetReviewReference(string text)
+        {
+            var layout = suggestText.transform.parent.GetComponent<VerticalLayoutGroup>();
+            var size = suggestText.GetComponent<LayoutElement>();
+            if (text != null && reviewReference == null)
+            {
+                originalSuggestFont = suggestText.fontSize;
+                originalSuggestHeight = size != null ? size.preferredHeight : -1;
+                if (layout != null)
+                    originalSuggestPadding = new RectOffset(
+                        layout.padding.left,
+                        layout.padding.right,
+                        layout.padding.top,
+                        layout.padding.bottom
+                    );
+            }
+            if (text == null && reviewReference != null)
+            {
+                suggestText.fontSize = originalSuggestFont;
+                if (size != null)
+                    size.preferredHeight = originalSuggestHeight;
+                if (layout != null && originalSuggestPadding != null)
+                    layout.padding = originalSuggestPadding;
+                suggestText.gameObject.SetActive(true);
+            }
+            reviewReference = text;
+            reviewFolded = false;
+            if (reviewHelpTitle == null)
+            {
+                reviewHelpTitle = suggestText
+                    .transform.parent.GetComponentsInChildren<TMP_Text>(true)
+                    .FirstOrDefault(item => item != suggestText);
+                if (reviewHelpTitle != null)
+                    originalHelpTitle = reviewHelpTitle.text;
+            }
+            Refresh();
+        }
+
+        [SerializeField]
         private ScrollRect historyScroll;
 
         [SerializeField]
@@ -396,6 +444,14 @@ namespace A305.Dialogue
                 content.SuggestWords,
                 content.IsSuggestingWords
             );
+            bool reviewing = reviewReference != null;
+            if (reviewing)
+                suggestText.text = reviewReference;
+            suggestText.gameObject.SetActive(!reviewing || !reviewFolded);
+            if (reviewHelpTitle != null)
+                reviewHelpTitle.text = reviewing ? "이번에 써 볼 표현" : originalHelpTitle;
+            if (reviewFoldButton != null)
+                reviewFoldButton.gameObject.SetActive(reviewing);
 
             sendButton.interactable = content.CanSend;
             // 정해진 대사를 따라가는 대화(튜토리얼 길 안내)는 대사를 다 마칠 때까지 끝낼 수 없다.
@@ -455,6 +511,17 @@ namespace A305.Dialogue
 
         private void Awake()
         {
+            if (reviewFoldButton != null)
+                reviewFoldButton.onClick.AddListener(() =>
+                {
+                    reviewFolded = !reviewFolded;
+                    reviewFoldButton.transform.Find("Arrow").localRotation = Quaternion.Euler(
+                        0,
+                        0,
+                        reviewFolded ? -90 : 90
+                    );
+                    Refresh();
+                });
             endButton.onClick.AddListener(() => EndRequested?.Invoke());
             sendButton.onClick.AddListener(RequestSend);
             sendButton.TryGetComponent(out sendTheme);
@@ -945,6 +1012,31 @@ namespace A305.Dialogue
                 room / scale
             );
             PlaceVehicleStatus(layout);
+            if (reviewReference != null)
+            {
+                helpPanel.localScale = Vector3.one;
+                helpPanel.SetSizeWithCurrentAnchors(
+                    RectTransform.Axis.Horizontal,
+                    Mathf.Min(440, lastCanvasSize.x - 2 * HelpMargin)
+                );
+                var card = (RectTransform)suggestText.transform.parent;
+                var list = card.GetComponent<VerticalLayoutGroup>();
+                if (list != null)
+                    list.padding = new RectOffset(36, 36, 34, 38);
+                suggestText.fontSize = 24;
+                suggestText.enableAutoSizing = false;
+                suggestText.rectTransform.SetSizeWithCurrentAnchors(
+                    RectTransform.Axis.Horizontal,
+                    helpPanel.rect.width - 72
+                );
+                var size = suggestText.GetComponent<LayoutElement>();
+                if (size != null)
+                    size.preferredHeight =
+                        suggestText
+                            .GetPreferredValues(suggestText.text, helpPanel.rect.width - 72, 0)
+                            .y + 12;
+                LayoutRebuilder.ForceRebuildLayoutImmediate(helpContent);
+            }
         }
 
         // 대사 칸에는 가장 최근 두 줄(바로 앞 대사와 그다음 대사)과 그 뜻만 보이는 높이를 준다. 그 전 대사는 위로 스크롤해 본다.

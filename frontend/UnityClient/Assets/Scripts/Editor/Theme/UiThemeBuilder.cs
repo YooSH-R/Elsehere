@@ -1521,6 +1521,13 @@ namespace A305.EditorTools.Theme
         }
 
         /// <summary>긴 이름이 필요한 버튼은 아이콘을 왼쪽에 둔 알약 모양 버튼으로 바꾼다.</summary>
+        /// <summary>복습장의 시작 버튼도 서비스 공용 알약 버튼을 사용한다.</summary>
+        public static void StyleReviewButton(Transform root, string path, UiTone tone)
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            PillButton(root, path, UiIcon.None, tone);
+        }
+
         private static void PillButton(Transform root, string path, UiIcon icon, UiTone tone)
         {
             Transform button = root.Find(path);

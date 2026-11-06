@@ -185,7 +185,7 @@ namespace A305.EditorTools.Dialogue
         }
 
         // 카페 씬의 대화 화면만 켜고 카메라 앞에 그린다. 플레이어 모델은 숨긴다.
-        private static DialoguePanelView OpenCafe(
+        internal static DialoguePanelView OpenCafe(
             out Camera camera,
             out Vector3 eye,
             out Vector3 face

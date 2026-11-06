@@ -17,6 +17,7 @@ namespace A305.Dialogue
 
     public sealed class ConversationStart
     {
+        public long? ReviewCardId { get; set; }
         public long ConversationId { get; set; }
         public NpcSummary Npc { get; set; }
         public NpcTurnData OpeningTurn { get; set; }
@@ -130,6 +131,8 @@ namespace A305.Dialogue
 
     public sealed class EndResult
     {
+        public long? ReviewCardId { get; set; }
+        public ReviewPracticeResult ReviewResult { get; set; }
         public string Status { get; set; }
         public FeedbackData Feedback { get; set; }
 
@@ -242,6 +245,7 @@ namespace A305.Dialogue
     /// <summary>진행 중인 대화(CONV-11). 끝내지 못한 같은 NPC 대화를 이어서 할 때 지난 턴을 다시 보인다.</summary>
     public sealed class ActiveConversation
     {
+        public long? ReviewCardId { get; set; }
         public long ConversationId { get; set; }
         public string Status { get; set; }
         public NpcSummary Npc { get; set; }

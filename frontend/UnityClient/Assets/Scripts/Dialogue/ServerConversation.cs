@@ -36,6 +36,10 @@ namespace A305.Dialogue
         private const string SpeakAgainGuide = "[말하기]로 다시 말하거나 텍스트로 입력해 주세요.";
 
         private readonly IConversationApi api;
+        private readonly Func<string, Task<ConversationStart>> reviewStart;
+        public long? ReviewCardId { get; private set; }
+        public ReviewPracticeResult ReviewResult { get; private set; }
+        public bool IsReview => ReviewCardId != null;
         private readonly ConversationInitiator initiatedBy;
         private readonly bool npcOffDuty;
         private readonly FollowUpStore followUps;
@@ -79,12 +83,16 @@ namespace A305.Dialogue
             bool canTalk,
             ConversationInitiator initiatedBy = ConversationInitiator.Npc,
             FollowUpStore followUps = null,
-            bool npcOffDuty = false
+            bool npcOffDuty = false,
+            long? reviewCardId = null,
+            Func<string, Task<ConversationStart>> reviewStart = null
         )
         {
             NpcCode = npcCode;
             NpcName = npcName;
             this.api = api;
+            ReviewCardId = reviewCardId;
+            this.reviewStart = reviewStart;
             this.canTalk = canTalk;
             this.initiatedBy = initiatedBy;
             this.npcOffDuty = npcOffDuty;
@@ -195,12 +203,14 @@ namespace A305.Dialogue
                     try
                     {
                         await BeginAsync(
-                            await api.StartAsync(
-                                startRequestId,
-                                NpcCode,
-                                InitiatedByCode,
-                                npcOffDuty
-                            )
+                            IsReview
+                                ? await reviewStart(startRequestId)
+                                : await api.StartAsync(
+                                    startRequestId,
+                                    NpcCode,
+                                    InitiatedByCode,
+                                    npcOffDuty
+                                )
                         );
                     }
                     catch (ApiException exception) when (exception.Code == AlreadyActiveCode)
@@ -211,7 +221,7 @@ namespace A305.Dialogue
                 StartAsync,
                 DialogueWait.Opening
             );
-            if (!endRequested)
+            if (!endRequested && !IsReview)
             {
                 _ = SuggestWordsAsync();
             }
@@ -282,9 +292,9 @@ namespace A305.Dialogue
                     IsEnded =
                         result.Conversation != null && result.Conversation.Status != ActiveStatus;
                     responseEndReason = result.Conversation?.EndReason;
-                    if (!IsEnded && result.UserTurn != null && !result.UserTurn.Rude)
+                    if (!IsReview && !IsEnded && result.UserTurn != null && !result.UserTurn.Rude)
                         UserTurnAccepted?.Invoke(sent);
-                    if (result.PoliceDispatch != null)
+                    if (!IsReview && result.PoliceDispatch != null)
                         PoliceDispatchRequested?.Invoke(
                             result.UserTurn.TurnId,
                             result.PoliceDispatch.PlaceCode
@@ -311,7 +321,8 @@ namespace A305.Dialogue
                 Changed?.Invoke();
             }
 
-            _ = SuggestWordsAsync();
+            if (!IsReview)
+                _ = SuggestWordsAsync();
         }
 
         /// <summary>
@@ -517,6 +528,9 @@ namespace A305.Dialogue
             try
             {
                 EndResult end = await api.EndAsync(conversationId, NewRequestId(), false);
+                ReviewResult = end?.ReviewResult;
+                if (IsReview)
+                    return null;
                 // 상세 평가를 기다리기 전에 남겨, 피드백 창이 뜰 때 왼쪽 카드에도 기다리는 것이 보이게 한다.
                 if (end?.FollowUp != null)
                 {
@@ -622,7 +636,9 @@ namespace A305.Dialogue
                 new List<DialogueLine>(lines),
                 new List<string>(userUtterances),
                 false,
-                feedback
+                feedback,
+                ReviewCardId,
+                ReviewResult
             );
         }
 
@@ -636,6 +652,7 @@ namespace A305.Dialogue
             }
 
             ConversationId = start.ConversationId;
+            ReviewCardId = start.ReviewCardId ?? ReviewCardId;
             if (!string.IsNullOrEmpty(start.Npc?.Name))
             {
                 NpcName = start.Npc.Name;
@@ -644,7 +661,7 @@ namespace A305.Dialogue
             ApplyState(start.Conversation);
             // NPC가 준비해 둔 것을 첫 대사로 건넸으면 기다리는 목록에서 지운다. NPC가 불러 시작했든 먼저 말을 걸었든 같다.
             // NPC마다 하나만 기다리므로 ID가 기억하던 줄과 달라도 이 NPC의 줄을 지운다.
-            if (start.DeliveredFollowUpId is long delivered)
+            if (!IsReview && start.DeliveredFollowUpId is long delivered)
             {
                 followUps.Remove(delivered, NpcCode);
             }
@@ -657,6 +674,13 @@ namespace A305.Dialogue
         private async Task ResumeOrRestartAsync()
         {
             ActiveConversation stale = await api.GetActiveAsync();
+            // 복습과 본편은 서로의 진행 중 대화를 끝내거나 이어받지 않는다.
+            if ((IsReview || stale?.ReviewCardId != null) && stale?.ReviewCardId != ReviewCardId)
+                throw new ApiException(
+                    AlreadyActiveCode,
+                    409,
+                    "진행 중인 대화를 먼저 마친 뒤 복습해 주세요."
+                );
             if (endRequested)
             {
                 if (stale != null)
@@ -680,7 +704,9 @@ namespace A305.Dialogue
             if (!endRequested)
             {
                 await BeginAsync(
-                    await api.StartAsync(NewRequestId(), NpcCode, InitiatedByCode, npcOffDuty)
+                    IsReview
+                        ? await reviewStart(startRequestId)
+                        : await api.StartAsync(NewRequestId(), NpcCode, InitiatedByCode, npcOffDuty)
                 );
             }
         }

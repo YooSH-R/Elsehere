@@ -47,6 +47,9 @@ namespace A305.Npc
             internal NpcLifeEntry Life;
 
             [NonSerialized]
+            internal NpcDayPlan Plan;
+
+            [NonSerialized]
             internal NpcDayPhase? LastPhase;
 
             [NonSerialized]
@@ -95,6 +98,7 @@ namespace A305.Npc
                         && (workerBody.IsGuidingTutorial || workerBody.IsWaitingForQuest)
                     );
                 NpcDayPlan plan = NpcDayPlan.At(resident.Life, GameClock.Shared.Minutes, needed);
+                resident.Plan = plan;
                 if (resident.Worker != null && !IsTalking(resident.Worker))
                 {
                     bool roomLoaded =
@@ -107,22 +111,30 @@ namespace A305.Npc
                             && !PoliceCar.IsOutOnPatrol(resident.Life.NpcId)
                     );
                 }
-                if (resident.TownBody != null && PoliceDispatchOrder.IsAway(resident.Life.NpcId))
-                {
-                    resident.TownBody.SetActive(false);
-                    continue;
-                }
                 if (resident.TownBody == null || IsTalking(resident.TownBody))
                     continue;
-                if (player == null || offerView == null)
-                    continue;
-                bool appeared = !resident.TownBody.activeSelf;
-                if (!plan.IsInTown)
+                if (!plan.IsInTown || PoliceDispatchOrder.IsAway(resident.Life.NpcId))
                 {
                     resident.TownBody.SetActive(false);
                     resident.LastPhase = null;
-                    continue;
                 }
+            }
+
+            // 같은 프레임에 떠나는 사람을 먼저 끈 뒤 새 출근자의 자리를 찾는다.
+            foreach (Resident resident in residents)
+            {
+                if (
+                    resident.Life == null
+                    || resident.TownBody == null
+                    || IsTalking(resident.TownBody)
+                    || !resident.Plan.IsInTown
+                    || PoliceDispatchOrder.IsAway(resident.Life.NpcId)
+                )
+                    continue;
+                if (player == null || offerView == null)
+                    continue;
+                NpcDayPlan plan = resident.Plan;
+                bool appeared = !resident.TownBody.activeSelf;
                 if (resident.LastPhase != plan.Phase)
                 {
                     var endpoints = Endpoints(resident, plan);
@@ -146,7 +158,17 @@ namespace A305.Npc
                 }
                 Vector3 target = PositionOnRoute(resident.Route, (float)plan.Progress);
                 if (appeared)
-                    resident.TownBody.transform.position = target;
+                {
+                    if (
+                        !NpcWalkingSpace.TryFindArrival(
+                            resident.TownBody.GetComponent<Passerby>(),
+                            target,
+                            out Vector3 arrival
+                        )
+                    )
+                        continue;
+                    resident.TownBody.transform.position = arrival;
+                }
                 var walker = resident.TownBody.GetComponent<NpcTownWalker>();
                 walker.Destination = target;
                 walker.IsStaff = NpcDuty.IsStaff(resident.Life.Role);

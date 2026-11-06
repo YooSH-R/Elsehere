@@ -3,6 +3,6 @@
   "npcId": "POLICE_ROOKIE",
   "mbti": "ISFJ-T",
   "role": "STAFF",
-  "workplace": "BAKERY",
-  "shift": "NIGHT"
+  "workplace": "POLICE_STATION",
+  "shift": "EVENING"
 }

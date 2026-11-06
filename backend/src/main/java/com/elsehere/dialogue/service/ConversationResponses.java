@@ -1,5 +1,6 @@
 package com.elsehere.dialogue.service;
 
+import com.elsehere.ai.client.WorkerSpeechPhrase;
 import com.elsehere.common.config.ClockConfig;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Speaker;
@@ -97,6 +98,10 @@ class ConversationResponses {
 
   String writeWords(List<String> words) {
     return words == null ? null : jsonMapper.writeValueAsString(words);
+  }
+
+  String writeSpeechPhrases(List<WorkerSpeechPhrase> phrases) {
+    return phrases == null || phrases.isEmpty() ? null : jsonMapper.writeValueAsString(phrases);
   }
 
   List<String> readWords(String json) {

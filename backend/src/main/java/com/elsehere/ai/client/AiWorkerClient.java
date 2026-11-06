@@ -223,6 +223,17 @@ class AiWorkerClient {
     return readBytes(send(request, HttpResponse.BodyHandlers.ofByteArray()));
   }
 
+  public byte[] synthesize(
+      WorkerTrace trace,
+      String text,
+      String voice,
+      double speed,
+      List<WorkerSpeechPhrase> phrases) {
+    HttpRequest request =
+        jsonRequest("/v1/tts", trace, TTS_TIMEOUT, new TtsBody(text, voice, speed, phrases));
+    return readBytes(send(request, HttpResponse.BodyHandlers.ofByteArray()));
+  }
+
   /**
    * NPC 기억 카드 갱신. 이번 대화와 이전 카드로 새 카드 전체를 만든다. 실패(429·502·503)하면 오류로 던지며, 호출한 쪽은 이전 카드를 그대로 둔다.
    *
@@ -403,7 +414,12 @@ class AiWorkerClient {
     NpcReply result() {
       if (done != null) {
         logTiming();
-        return new NpcReply(done.text(), done.audioFullId(), null, usageOf(done.usage()));
+        return new NpcReply(
+            done.text(),
+            done.audioFullId(),
+            null,
+            usageOf(done.usage()),
+            done.speechPhrases() == null ? List.of() : done.speechPhrases());
       }
       if (error != null) {
         log.warn("npc_reply_failed code={}", error.code());
@@ -548,7 +564,11 @@ class AiWorkerClient {
   record SuggestBody(
       WorkerNpc npc, String scene, String goal, List<WorkerLine> history, int level) {}
 
-  record TtsBody(String text, String voice, double speed) {}
+  record TtsBody(String text, String voice, double speed, List<WorkerSpeechPhrase> phrases) {
+    TtsBody(String text, String voice, double speed) {
+      this(text, voice, speed, List.of());
+    }
+  }
 
   record MemoryBody(WorkerNpc npc, String outcome, List<WorkerLine> history, Object memoryCard) {}
 
@@ -565,7 +585,8 @@ class AiWorkerClient {
       Double firstTokenS,
       Double totalS,
       Double audioFullS,
-      List<WorkerUsage> usage) {}
+      List<WorkerUsage> usage,
+      List<WorkerSpeechPhrase> speechPhrases) {}
 
   record ErrorEvent(String code, List<WorkerUsage> usage) {}
 

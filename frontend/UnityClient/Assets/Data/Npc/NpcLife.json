@@ -326,19 +326,9 @@
       },
       "schedule": [
         {
-          "from": "06:00",
-          "to": "18:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "18:00",
-          "to": "18:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "18:30",
-          "to": "06:00",
-          "activity": "OFF"
         }
       ]
     },
@@ -656,19 +646,9 @@
       },
       "schedule": [
         {
-          "from": "06:00",
-          "to": "18:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "18:00",
-          "to": "18:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "18:30",
-          "to": "06:00",
-          "activity": "OFF"
         }
       ]
     },
@@ -736,41 +716,11 @@
       "npcId": "POLICE_PATROL_OFFICER",
       "role": "STAFF",
       "scene": "TOWN",
-      "workplace": "POLICE_STATION",
-      "needRates": {
-        "HUNGER": 1,
-        "ENERGY": 1,
-        "SOCIAL": 1.2,
-        "FUN": 0.8,
-        "WORK": 1
-      },
-      "schedule": [
-        {
-          "from": "14:00",
-          "to": "22:00",
-          "activity": "WORK"
-        },
-        {
-          "from": "22:00",
-          "to": "22:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "22:30",
-          "to": "14:00",
-          "activity": "OFF"
-        }
-      ]
-    },
-    {
-      "npcId": "POLICE_ROOKIE",
-      "role": "STAFF",
-      "scene": "TOWN",
       "workplace": "BAKERY",
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
-        "SOCIAL": 0.8,
+        "SOCIAL": 1.2,
         "FUN": 0.8,
         "WORK": 1
       },
@@ -788,6 +738,36 @@
         {
           "from": "06:30",
           "to": "18:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "POLICE_ROOKIE",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "workplace": "POLICE_STATION",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "14:00",
+          "to": "22:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "22:00",
+          "to": "22:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "22:30",
+          "to": "14:00",
           "activity": "OFF"
         }
       ]
@@ -926,19 +906,9 @@
       },
       "schedule": [
         {
-          "from": "07:00",
-          "to": "15:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "15:00",
-          "to": "15:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "15:30",
-          "to": "07:00",
-          "activity": "OFF"
         }
       ]
     },

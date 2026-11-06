@@ -241,6 +241,7 @@ public class ConversationService {
                   turnRepository.save(
                       Turn.npc(
                           conversation, 1, opening.text(), opening.npcAudioKey(), clock.instant()));
+              openingTurn.attachSpeechPhrases(opening.speechPhrases());
               Long deliveredFollowUpId =
                   context
                       .followUp()
@@ -423,7 +424,7 @@ public class ConversationService {
 
   // 행인 말걸기에 응답하면 이미 보여 준 말걸기 대사를 첫 턴으로 저장하고 AI를 부르지 않는다.
   private Opening approachOpening(NpcContext npc) {
-    return new Opening(npc.approachLine(), npc.approachAudioKey());
+    return new Opening(npc.approachLine(), npc.approachAudioKey(), null);
   }
 
   private Opening greetingOpening(
@@ -438,7 +439,10 @@ public class ConversationService {
             instruction,
             context.level(),
             context.learner());
-    return new Opening(reply.text(), npcAudioReceiver.save(trace, reply.audioFullId()));
+    return new Opening(
+        reply.text(),
+        npcAudioReceiver.save(trace, reply.audioFullId()),
+        conversationResponses.writeSpeechPhrases(reply.speechPhrases()));
   }
 
   // 첫날 미션 단계의 NPC는 미션 지시대로 인사한다. 미션 NPC가 근무 시간이 아닐 때 미션을 어떻게 할지는 아직 정하지 않아
@@ -468,7 +472,7 @@ public class ConversationService {
       Optional<FollowUpService.ReadyFollowUp> followUp,
       ReviewCardResponse review) {}
 
-  private record Opening(String text, String npcAudioKey) {}
+  private record Opening(String text, String npcAudioKey, String speechPhrases) {}
 
   /**
    * @param created 이번 요청이 대화를 새로 만들었는지. 같은 요청 ID로 이미 만든 대화를 돌려주면 false

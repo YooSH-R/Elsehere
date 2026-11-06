@@ -266,8 +266,22 @@ namespace A305.Characters
                 SetPair(skin, "browInnerUp", emotion.browInnerUp);
                 SetPair(skin, "browOuterUp", emotion.browOuterUp);
                 SetPair(skin, "browDown", emotion.browDown);
-                ApplyEyeClosure(skin, "Left", emotion.eyeSquint.x, emotion.eyeClosure.x, blink);
-                ApplyEyeClosure(skin, "Right", emotion.eyeSquint.y, emotion.eyeClosure.y, blink);
+                ApplyEyeClosure(
+                    skin,
+                    "Left",
+                    emotion.eyeSquint.x,
+                    emotion.eyeClosure.x,
+                    emotion.browDown.x,
+                    blink
+                );
+                ApplyEyeClosure(
+                    skin,
+                    "Right",
+                    emotion.eyeSquint.y,
+                    emotion.eyeClosure.y,
+                    emotion.browDown.y,
+                    blink
+                );
                 SetPair(skin, "eyeSquint", emotion.eyeSquint * openEyes);
                 SetPair(
                     skin,
@@ -298,6 +312,7 @@ namespace A305.Characters
             string side,
             float squint,
             float closure,
+            float browDown,
             float blink
         )
         {
@@ -305,11 +320,14 @@ namespace A305.Characters
             // trajectory. Share closure with blink so the convex eye stays covered.
             float supportedSquint =
                 skin.sharedMesh.GetBlendShapeIndex("eyeSquint" + side) >= 0 ? squint : 0;
-            SetSingle(
-                skin,
-                "eyeBlink" + side,
-                Mathf.Max(blink, Mathf.Max(supportedSquint, closure))
-            );
+            // Base 눈꺼풀의 낮은 가중치는 안구 뒤 준비 구간에 머문다.
+            // 찡그리는 눈썹과 함께 눈매를 보강한다. 기존 인자한 미소와 강한 감정은 유지한다.
+            float squintClosure =
+                supportedSquint < .5f
+                    ? .5f * Mathf.Pow(Mathf.Clamp01(supportedSquint / .5f), .25f)
+                    : supportedSquint;
+            squintClosure = Mathf.Lerp(supportedSquint, squintClosure, Mathf.Clamp01(browDown * 2));
+            SetSingle(skin, "eyeBlink" + side, Mathf.Max(blink, Mathf.Max(squintClosure, closure)));
         }
 
         public static string[] MissingEmotionChannels(Transform root)

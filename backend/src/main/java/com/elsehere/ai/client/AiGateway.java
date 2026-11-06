@@ -160,6 +160,22 @@ public class AiGateway {
     return wav;
   }
 
+  /** 원래 대답에서 정한 구절·표정을 유지하며 재합성한다. 감정을 다시 생성하지 않는다. */
+  public byte[] synthesize(
+      WorkerTrace trace,
+      String text,
+      String voice,
+      double speed,
+      List<WorkerSpeechPhrase> phrases) {
+    byte[] wav =
+        send(
+            trace,
+            AiRequestKind.TTS,
+            () -> aiWorkerClient.synthesize(trace, text, voice, speed, phrases));
+    record(trace, AiRequestKind.TTS, List.of(), true);
+    return wav;
+  }
+
   /**
    * NPC 기억 카드 갱신. 이번 대화와 이전 카드로 새 카드 전체를 만든다.
    *

@@ -105,6 +105,30 @@ class AiWorkerClientTest {
   }
 
   @Test
+  void reply_preservesEmotionPhrasesWhenAudioFailedAndResendsThemForSynthesis() {
+    respond(
+        "/v1/npc/reply",
+        200,
+        "text/event-stream",
+        """
+        event: done
+        data: {"text":"Are you okay? Let me help.","audio_full_id":null,"speech_phrases":[{"text":"Are you okay?","emotion":"concerned","intensity":0.7},{"text":"Let me help.","emotion":"warm_smile","intensity":0.6}]}
+
+        """);
+    NpcReply reply = client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null);
+    assertThat(reply.speechPhrases())
+        .containsExactly(
+            new WorkerSpeechPhrase("Are you okay?", "concerned", 0.7),
+            new WorkerSpeechPhrase("Let me help.", "warm_smile", 0.6));
+    respond("/v1/tts", 200, "audio/wav", "RIFF");
+    client.synthesize(TRACE, reply.text(), "af_heart", 1.1, reply.speechPhrases());
+    assertThat(received.get("/v1/tts").body())
+        .contains(
+            "\"phrases\":[{\"text\":\"Are you okay?\",\"emotion\":\"concerned\",\"intensity\":0.7}")
+        .contains("\"emotion\":\"warm_smile\"");
+  }
+
+  @Test
   @DisplayName(
       "NPC 대답 스트림이 끝나면 첫 글자·LLM 생성·워커가 잰 시간, 음성 길이, 백엔드가 기다린 시간을 개발 서버(DEBUG)에 남긴다. 대답 글은 남기지 않는다")
   void reply_logsTimingAtDebug() {

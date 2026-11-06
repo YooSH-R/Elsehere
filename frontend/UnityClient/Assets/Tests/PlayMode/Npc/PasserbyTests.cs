@@ -20,6 +20,7 @@ namespace A305.Npc.PlayModeTests
     /// </summary>
     public class PasserbyTests
     {
+        private GameObject bystander;
         private const string BenCode = "TOWN_PASSERBY";
         private const float WaitTimeoutSeconds = 15f;
 
@@ -36,6 +37,7 @@ namespace A305.Npc.PlayModeTests
         [TearDown]
         public void TearDown()
         {
+            Object.Destroy(bystander);
             SceneManager.sceneLoaded -= IsolateTownInteractions;
             ResetCrossSceneRecords();
         }
@@ -248,6 +250,72 @@ namespace A305.Npc.PlayModeTests
             {
                 Time.timeScale = previousTimeScale;
             }
+        }
+
+        [UnityTest]
+        public IEnumerator Conversation_HidesOnlyOtherNpcs_AndEndingRestoresTheirAppearance()
+        {
+            NpcTestClock.SetDaytime();
+            TutorialState.MarkFinishedOnServer();
+            yield return SceneManager.LoadSceneAsync("CafeScene", LoadSceneMode.Single);
+            yield return null;
+            NpcIdentity partner = NpcIdentity.Active.First(npc => npc.Code == "CAFE_STAFF");
+            bystander = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            NpcIdentity other = bystander.AddComponent<NpcIdentity>();
+            GameObject extraVisual = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            extraVisual.transform.SetParent(bystander.transform);
+            Renderer[] partnerRenderers = partner.GetComponentsInChildren<Renderer>(true);
+            Renderer[] otherRenderers = other.GetComponentsInChildren<Renderer>(true);
+            Assert.That(partnerRenderers, Is.Not.Empty);
+            Assert.That(otherRenderers, Is.Not.Empty);
+            bool[] partnerHidden = partnerRenderers
+                .Select(renderer => renderer.forceRenderingOff)
+                .ToArray();
+            otherRenderers[0].enabled = false;
+            otherRenderers[0].forceRenderingOff = true;
+            bool[] otherHidden = otherRenderers
+                .Select(renderer => renderer.forceRenderingOff)
+                .ToArray();
+            bool[] otherEnabled = otherRenderers.Select(renderer => renderer.enabled).ToArray();
+            Collider[] colliders = other.GetComponentsInChildren<Collider>(true);
+            bool[] colliderEnabled = colliders.Select(collider => collider.enabled).ToArray();
+            DialogueController dialogue = Single<DialogueController>();
+
+            Assert.That(dialogue.TryStart(partner.Code, partner.LookTarget), Is.True);
+            yield return null;
+            yield return null;
+
+            Assert.That(
+                otherRenderers.All(renderer => renderer.forceRenderingOff),
+                Is.True,
+                "주변 NPC 외형을 숨긴다"
+            );
+            Assert.That(
+                partnerRenderers.Select(renderer => renderer.forceRenderingOff),
+                Is.EqualTo(partnerHidden)
+            );
+            Assert.That(
+                otherRenderers.Select(renderer => renderer.enabled),
+                Is.EqualTo(otherEnabled)
+            );
+            Assert.That(other.gameObject.activeInHierarchy, Is.True);
+            Assert.That(
+                colliders.Select(collider => collider.enabled),
+                Is.EqualTo(colliderEnabled)
+            );
+
+            dialogue.End();
+            yield return null;
+            yield return null;
+
+            Assert.That(
+                otherRenderers.Select(renderer => renderer.forceRenderingOff),
+                Is.EqualTo(otherHidden)
+            );
+            Assert.That(
+                otherRenderers.Select(renderer => renderer.enabled),
+                Is.EqualTo(otherEnabled)
+            );
         }
 
         [UnityTest]

@@ -21,12 +21,14 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 from landmarks import measure
 from lid_visibility import keep_lid_lines_visible
+from eye_shading import smooth_eye_shading
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--source", type=Path, required=True)
 parser.add_argument("--work", type=Path, required=True)
 parser.add_argument("--output", type=Path, required=True)
 parser.add_argument("--new-eyes", type=Path)
+parser.add_argument("--smooth-eye-shading", action="store_true")
 args = parser.parse_args(sys.argv[sys.argv.index("--") + 1 :])
 characters = Path(__file__).resolve().parent.parent
 source = json.loads(args.source.read_text(encoding="utf-8-sig"))
@@ -63,6 +65,10 @@ if args.new_eyes:
     new_eyes = json.loads((args.new_eyes / "Blink.json").read_text())
     for part in new_eyes["parts"]:
         parts[part["name"]] = dict(part, texture=str(args.new_eyes / part["texture"]))
+if args.smooth_eye_shading:
+    if new_eyes:
+        raise ValueError("새 눈의 최초 연결 후 내보낸 메시에서 음영을 보정하세요.")
+    smooth_eye_shading(body, parts)
 left, right = (points(parts[side + "Eye"]["vertices"]) for side in ("Left", "Right"))
 left_center, right_center = ((p.min(0) + p.max(0)) / 2 for p in (left, right))
 lips = points(parts["SpeakingLips"]["vertices"])
@@ -272,6 +278,10 @@ for mesh in authored["meshes"] + authored["parts"]:
         baseline = points(normalized(original["normals"], normal=True))
         target = unit((baseline + points(shape["deltaNormals"])) @ matrix)
         shape["deltaNormals"] = vectors(target - points(original["normals"]))
+        if shape["name"].startswith(("browDown", "mouthFrown")):
+            # Sparse skin triangles exaggerate the analytic deformation gradient.
+            # Keep the stronger brow/lip silhouette with the soft stylized shading.
+            shape["deltaNormals"] = vectors(points(shape["deltaNormals"]) * .2)
         if mesh["name"].endswith("EyeJoin") and shape["name"] == "mouthLaughOpen":
             # The bridge has an outer skin boundary and an inner lid boundary.
             # Only the outer boundary follows the laughing cheek; the inner one
@@ -286,7 +296,7 @@ for mesh in authored["meshes"] + authored["parts"]:
             normals = points(shape["deltaNormals"])
             normals[inner] = 0
             shape["deltaNormals"] = vectors(normals)
-    if "normals" in mesh:
+    if "normals" in mesh or args.smooth_eye_shading:
         mesh["normals"] = original["normals"]
     if "texture" in mesh:
         shutil.copyfile(work / "Canonical" / mesh["texture"], output / mesh["texture"])

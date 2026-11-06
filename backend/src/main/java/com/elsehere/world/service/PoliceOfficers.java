@@ -6,7 +6,7 @@ import java.util.Set;
 public final class PoliceOfficers {
 
   private static final Set<String> CODES =
-      Set.of("POLICE_OFFICER", "POLICE_SERGEANT", "POLICE_PATROL_OFFICER");
+      Set.of("POLICE_OFFICER", "POLICE_SERGEANT", "POLICE_ROOKIE");
 
   private PoliceOfficers() {}
 

@@ -10,6 +10,8 @@ NPC 몸·이름표 클릭은 “이름에게 말을 걸까요?” 확인 창을 
 
 ## 구성
 
+대화 중에는 `NpcDialogueVisibility`가 대화 상대 이외 NPC의 Renderer만 숨깁니다. `NpcIdentity`가 자동으로 붙이므로 출퇴근 중 새로 나타나는 NPC에도 적용됩니다. 생활·이동·충돌과 Renderer의 `enabled` 상태는 유지하고, 대화 종료·컨트롤러 제거·NPC 비활성화 때 기존 `forceRenderingOff` 값을 복원합니다. 머리 위 이름표는 기존 이동 잠금 기준으로 숨깁니다.
+
 | 파일 | 역할 |
 | --- | --- |
 | `PasserbyApproach` | 기다림 → 다가감 → 제안 → 대화 → 쉼으로 상태를 바꾸고, 클릭으로 먼저 말을 걸 수 있는지 정합니다. 준비해 둔 것이 다 되면 제자리에서 부르는 제안(`TryCall`)도 맡습니다. Unity 객체 없이 테스트합니다. |
@@ -81,10 +83,10 @@ NPC 몸·이름표 클릭은 “이름에게 말을 걸까요?” 확인 창을 
 | `TOWN_PASSERBY`(Ben), 퀘스트가 붙잡아 둔 동안(비 오는 거리 단계) | 카페 출입문 앞에서 기다림 | `TownPasserbySettings` | 6m | 60초 | 가능 | 그날 이미 말을 걸었어도 다가옴 |
 | 마을 행인 10명(Ruby·Ray·Ethan·Arthur·Margaret·Helen·Rachel·Frank·Andre·Maya) | 본길 북쪽 인도와 공원에서 생활 | `TownPasserbySettings`(Ben과 같음) | 6m | 60초 | 가능 | 하루에 한 번 |
 | `CAFE_STAFF`(Mia)·`CAFE_BARISTA`(Zoe)·`CAFE_SERVER`(Leo) | 카페 카운터 뒤와 양 끝 | `CafeStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
-| `HOTEL_STAFF`(Jake)·`HOTEL_RECEPTIONIST`(Owen)·`HOTEL_NIGHT_MANAGER`(Clara)·`HOTEL_CONCIERGE`(Walter)·`HOTEL_BELLHOP`(Diego) | 호텔 리셉션 데스크 뒤와 양옆 | `Data/Hotel/HotelStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
+| `HOTEL_STAFF`(Jake)·`HOTEL_RECEPTIONIST`(Owen)·`HOTEL_NIGHT_MANAGER`(Clara)·`HOTEL_BELLHOP`(Diego) | 호텔 리셉션 데스크 뒤와 양옆 | `Data/Hotel/HotelStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
 | `SHOP_STAFF`(Alex)·`SHOP_PHARMACIST`(Hannah)·`SHOP_NIGHT_CLERK`(Samuel) | 드럭스토어 계산대 뒤 | `Data/Mission/ShopStaffSettings` | 4m | 5초 | 가능 | 제한 없음 |
-| `POLICE_OFFICER`(Dan)·`POLICE_SERGEANT`(Victor)·`POLICE_PATROL_OFFICER`(Kevin)·`POLICE_ROOKIE`(Tyler) | 경찰서 장면(`PoliceStationScene`) 창구 뒤, 경찰서 1층 안에서 생활 | `PoliceOfficerSettings` | 4m | 5초 | 가능 | 제한 없음 |
-| 거리 매장 직원 9명([아래](#거리-매장-직원)) | 마을 매장 1층 안에서 생활 | `BuildingStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
+| `POLICE_OFFICER`(Dan)·`POLICE_SERGEANT`(Victor)·`POLICE_ROOKIE`(Taylor) | 경찰서 장면(`PoliceStationScene`) 창구 뒤, 경찰서 1층 안에서 생활 | `PoliceOfficerSettings` | 4m | 5초 | 가능 | 제한 없음 |
+| 거리 매장 직원([아래](#거리-매장-직원)) | 마을 매장 1층 안에서 생활 | `BuildingStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
 
 - 마을 행인 Ben은 튜토리얼에서 길을 묻는 사람과 같은 사람입니다. 튜토리얼 진행(`TutorialDirector`)이 단계마다 `Passerby.SetTutorialScript`를 불러, 튜토리얼 중에는 튜토리얼 대본·인사말(키 `TUTORIAL_PASSERBY`)과 튜토리얼 설정으로 집 앞에서 길을 묻고 생활하지 않게 합니다. 튜토리얼을 마치면 NPC 키로 평소 대화하고 평소 설정으로 생활합니다. 튜토리얼에서 길을 물은 것도 그날 먼저 말을 건 것으로 세므로, 튜토리얼을 마친 그 게임 날에는 다시 다가오지 않습니다.
 - 카페 직원은 새 컴포넌트 없이 행인 프리팹을 쓰고, 걷는 속도 0이라 플레이어에게 걸어가지 않습니다. 플레이어가 카운터 앞 2m 안에 오면 카운터 뒤 자리로 돌아가([생활](#생활)) 매대 끝을 포함해 응대 구역 안에서 대화를 제안합니다. 행인과 직원이 같은 제안 화면을 쓰므로 머리말은 대화 대본의 이름과 역할을 함께 보여 누가 말을 걸었는지 알립니다.
@@ -124,6 +126,8 @@ Ben(`TOWN_PASSERBY`)은 마스터 골격(Humanoid)의 비즈니스맨 외형을 
 
 ## 생활
 
+Mia(`CAFE_STAFF`)·Jake(`HOTEL_STAFF`)·Alex(`SHOP_STAFF`)는 생활 원본의 `resident: true`로 24시간 근무합니다. 휴식·퇴근으로 떠나지 않고 씬을 다시 열어도 근무지에 남습니다. 나머지 퀘스트 담당자를 포함한 NPC는 기존 교대를 유지합니다. 원본을 바꾼 뒤 `ai/tools/npc_life_export.py`로 일과를 다시 내보냅니다.
+
 생활 데이터가 있는 NPC는 게임 시각의 교대에 따라 근무지·타운·숙소를 오갑니다. 근무 중에는 기존 생활·응대 동작을 사용하고, 근무 밖의 출현과 출퇴근은 `NpcPopulation`이 관리합니다. 규칙과 숫자는 [NPC 생활·관계 설계](../../../../../docs/npc-life-design.md)를 따릅니다. 택시 기사 Joe는 운전석에 있어 걸어서 출퇴근하는 대상에서 제외합니다.
 
 | 상황 | 동작 |
@@ -141,7 +145,7 @@ Ben(`TOWN_PASSERBY`)은 마스터 골격(Humanoid)의 비즈니스맨 외형을 
 | 다가와 말 걸기·대화 | 하던 일을 그만두고 앉아 있었으면 일어납니다. 대화가 끝나면 다시 고릅니다. |
 | 장면을 다시 불러옴 | 그 시각의 일과에서 욕구 시작값으로 다시 지냅니다. |
 
-호텔 프런트 직원 Jake(`HOTEL_STAFF`)는 근무 중에는 데스크 중앙의 자기 자리에서 일하고 다른 사물을 찾아 돌아다니지 않습니다. 손님을 응대할 때도 그 자리에서 방향만 바꿉니다. 휴식과 퇴근은 다른 직원처럼 교대에 따릅니다.
+호텔 프런트 직원 Jake(`HOTEL_STAFF`)는 근무 중에는 데스크 중앙의 자기 자리에서 일하고 다른 사물을 찾아 돌아다니지 않습니다. 손님을 응대할 때도 그 자리에서 방향만 바꿉니다. 24시간 상주하므로 교대가 끝나도 데스크에 남습니다.
 
 생활 데이터는 AI 규칙 원본(`ai/npcs/rules/world-rules.json`, `ai/npcs/life/`)에서 `ai/tools/npc_life_export.py`가 내보낸 파일이라 직접 고치지 않습니다. 규칙이나 NPC 생활 파일을 바꾸면 다시 내보내며, AI 테스트가 다시 내보낸 결과와 같은지 확인합니다.
 
@@ -155,20 +159,30 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 ### 출퇴근과 숙소
 
+근무지의 이름표는 `NpcRoutine.IsOffDuty`로, 거리의 출퇴근 사본은 `NpcTownWalker.IsStaff`로 근무 밖의 직원인지 확인합니다. 쉬는 직원은 근무지용 생활 컴포넌트가 없어도 역할 칩 없이 이름만 표시합니다.
+
 `NpcDayPlan`은 근무 한 시간 전부터 숙소에서 일터로 이동하고, 퇴근 후 30분은 공원으로 이동, 이후 90분은 공원에서 지내기, 다음 30분은 숙소로 돌아가기로 나눕니다(모두 게임 분). 짧은 휴식은 일터 앞에서 쉬고 돌아옵니다. 행인은 `FREE` 일과 동안 기존 타운 생활을 하고, 일과 밖에는 같은 방식으로 숙소를 이용합니다. 이동 중인 직원에게 먼저 말을 걸면 근무 외 일상 대화로 이어집니다.
 
-이동은 타운의 NavMesh 경로를 따릅니다. 다른 씬에 다녀와도 현재 게임 시각에 해당하는 경로 위치에서 이어집니다. 베이커리 뒤 `NpcResidence`는 막힌 주거 외관과 NPC 출입 위치만 있으며, 플레이어 출입구나 실내 씬은 없습니다. **Tools → A305 → Npc → Build Population And Housing**으로 기존 외형을 재사용한 출퇴근 프리팹, 카페·호텔·드럭스토어·마을·경찰서의 출현 연결, 숙소와 타운 NavMesh를 생성합니다. 거리 실내 로드가 비번 직원을 다시 켜지 않도록 `NpcWorkPresence`가 출현을 확인합니다.
+이동은 타운의 NavMesh 경로를 따릅니다. 다른 씬에 다녀와도 현재 게임 시각에 해당하는 경로 위치에서 이어집니다. 걷는 동안은 작은 경로 진행도 매 프레임 따라가며, 목표가 멀어져도 최대 1.6m/s로 걸어서 따라잡습니다. 일터에서 말을 걸러 다가오는 속도가 0인 직원도 출퇴근은 할 수 있습니다.
+
+장애물 때문에 목적지까지 직진할 수 없으면 현재 위치에서 갈 수 있는 경로를 다시 찾아 모서리를 돌아갑니다. 차도는 우회 경로에서도 제외합니다. 이동 중 새로 놓거나 움직이는 장애물은 `NavMeshObstacle`의 carving으로 보행면에 반영해야 합니다. 우회 경로가 전혀 없을 때만 멈추고, 통로가 다시 열리면 같은 목적지로 이동을 재개합니다. 콜라이더만 추가하고 NavMesh에 반영하지 않은 사물은 경로 탐색이 인식하지 못합니다.
+
+`NpcWalkingSpace`는 몸통 캡슐보다 넓은 리틀 멍의 머리를 고려해 NPC 간 보행 간격을 확보합니다. 같은 프레임에 떠나는 사람을 먼저 비활성화하고, 새 출근자는 예정 위치에서 가까운 NavMesh 빈자리를 찾습니다. 숙소 입구에 사람이 몰리면 직선으로 연결된 9m 범위까지 살피며, 빈자리가 없으면 겹쳐 등장시키지 않고 다음 프레임에 재시도합니다. 보행 중 상대의 여유 공간에 진입할 이동량을 제한하고, 막히면 정지 동작을 전달합니다.
+
+출퇴근 보행은 앞사람의 여유 공간 바깥으로 비켜갈 방향을 정하고, 상대를 지날 때까지 같은 쪽을 유지합니다. 우회할 방향의 NavMesh 연결을 확인하며, 목적지가 점유됐거나 통로가 없으면 간격을 두고 기다립니다. 밀어내기나 순간이동으로 분리하지 않습니다. 가까운 상대를 비켜가는 처리이며, 군중 전체의 우회 경로를 다시 계획하는 기능은 아닙니다.
+
+베이커리 뒤 `NpcResidence`는 막힌 주거 외관과 NPC 출입 위치만 있으며, 플레이어 출입구나 실내 씬은 없습니다. **Tools → A305 → Npc → Build Population And Housing**으로 출퇴근 프리팹, 네 장소 씬의 출현 연결, 숙소와 타운 NavMesh를 생성합니다. 출퇴근 프리팹의 외형은 외형 표의 검수 프리팹을 참조하며 **Refresh Scene Visuals** 실행 시 근무지 외형과 함께 갱신됩니다. 대화 얼굴·손 보정과 배색도 같은 기준을 사용하고 기존 출퇴근 프리팹의 연결과 비활성 시작 상태는 유지합니다. 거리 실내 로드가 비번 직원을 다시 켜지 않도록 `NpcWorkPresence`가 출현을 확인합니다.
 
 | 일터 | 직원(교대 순) | 자리 |
 | --- | --- | --- |
 | 카페 `CafeScene` | Mia(06~18)·Leo(10~18)·Zoe(18~06) | Mia는 카운터 뒤, Leo·Zoe는 카운터 양 끝의 손님 쪽 모서리 |
 | 호텔 `HotelScene` | Jake(06~18)·Diego·Owen(10~22)·Clara(18~06) | Jake는 데스크 뒤, Owen·Clara는 데스크 손님 쪽 양옆, Diego는 데스크 뒤쪽 끝 |
 | 드럭스토어 `ShopScene` | Alex(아침)·Hannah(오후~밤)·Samuel(밤~새벽) | 모두 계산대 뒤. Alex가 계산대에 가장 가깝다 |
-| 경찰서 `PoliceStationScene` | Dan(06~14)·Kevin(14~22)·Victor(22~06) | 모두 창구 뒤나 창구 끝. Dan이 창구에 가장 가깝다 |
+| 경찰서 `PoliceStationScene` | Dan(06~14)·Taylor(14~22)·Victor(22~06) | 모두 창구 뒤나 창구 끝. Dan이 창구에 가장 가깝다 |
 
-은행은 Henry 06~14, Maya 14~22, Helen 22~06의 3교대입니다. 나머지 거리 매장은 기존 직원 06~18과 야간 직원 18~06의 2교대입니다. 야간 직원은 우체국 Ruby, 식당 Ray, 베이커리 Tyler, 빨래방 Rachel, 꽃집 Walter, 이발소 Andre, 오락실 Ethan, 생활용품점 Frank입니다. 소방관 세 명은 소방서 개관 전 아르바이트라는 배경을 유지합니다. 총 인원과 ID는 바꾸지 않고, 실제 `WORK` 시간 기준으로 응대 공백이 없도록 인계 시간에 휴식을 둡니다.
+은행은 Henry 06~14, Maya 14~22, Helen 22~06의 3교대입니다. 나머지 거리 매장은 기존 직원 06~18과 야간 직원 18~06의 2교대입니다. 야간 직원은 우체국 Ruby, 식당 Ray, 베이커리 Kevin, 빨래방 Rachel, 꽃집 Walter, 이발소 Andre, 오락실 Ethan, 생활용품점 Frank입니다. 소방관 세 명은 소방서 개관 전 아르바이트라는 배경을 유지합니다. 총 인원과 ID는 바꾸지 않고, 실제 `WORK` 시간 기준으로 응대 공백이 없도록 인계 시간에 휴식을 둡니다.
 
-원본 일정을 내보낸 뒤 **Tools → A305 → Npc → Apply 24 Hour Roster**로 기존 인물의 배치·업무 대본·출퇴근 프리팹을 갱신합니다. Tyler는 사복을 입고 빵집에서 일하며, 경찰 신고를 받지 않습니다.
+원본 일정을 내보낸 뒤 **Tools → A305 → Npc → Apply 24 Hour Roster**로 기존 인물의 배치·업무 대본·출퇴근 프리팹을 갱신합니다. Kevin은 사복을 입고 빵집에서 일하며, 경찰 신고를 받지 않습니다.
 
 
 | 상황 | 동작 |
@@ -202,7 +216,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 ## 경찰서
 
-마을 남서쪽 끝 경찰서(카페·호텔처럼 따로 장면인 `PoliceStationScene`) 창구 뒤에 경찰관 Dan(`POLICE_OFFICER`)·Victor(`POLICE_SERGEANT`)·Kevin(`POLICE_PATROL_OFFICER`)가 24시간 교대로 있습니다([일터와 응대](#일터와-응대)). 카페 직원처럼 행인 프리팹을 쓰고 플레이어에게 걸어가지 않으며, 경찰서 1층 안에서만 지냅니다. 경찰관마다 신고 창구(`PoliceReportDesk`)가 있어 누구에게 신고해도 순찰차가 출동합니다. 신고 여부와 목적지는 서버의 `PoliceDesk`가 문맥으로 판정합니다. 창구는 턴 응답의 출동 정보를 받아, 대화를 마치면 신고한 경찰관·목적지·사용자 턴 ID를 `PoliceDispatchOrder`에 보관합니다. 같은 턴 ID는 한 번만 접수하며, 추가 신고는 순서대로 기다립니다. 신고한 경찰관은 순찰차가 돌아와 주차할 때까지 창구와 마을의 생활 모습에 나타나지 않습니다.
+마을 남서쪽 끝 경찰서(카페·호텔처럼 따로 장면인 `PoliceStationScene`) 창구 뒤에 경찰관 Dan(`POLICE_OFFICER`)·Victor(`POLICE_SERGEANT`)·Taylor(`POLICE_ROOKIE`)가 24시간 교대로 있습니다([일터와 응대](#일터와-응대)). 카페 직원처럼 행인 프리팹을 쓰고 플레이어에게 걸어가지 않으며, 경찰서 1층 안에서만 지냅니다. 경찰관마다 신고 창구(`PoliceReportDesk`)가 있어 누구에게 신고해도 순찰차가 출동합니다. 신고 여부와 목적지는 서버의 `PoliceDesk`가 문맥으로 판정합니다. 창구는 턴 응답의 출동 정보를 받아, 대화를 마치면 신고한 경찰관·목적지·사용자 턴 ID를 `PoliceDispatchOrder`에 보관합니다. 같은 턴 ID는 한 번만 접수하며, 추가 신고는 순서대로 기다립니다. 신고한 경찰관은 순찰차가 돌아와 주차할 때까지 창구와 마을의 생활 모습에 나타나지 않습니다.
 
 | 대화에서 말한 내용 | 대화를 마친 뒤 순찰차 |
 | --- | --- |
@@ -240,12 +254,15 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 | 규칙 | 내용 |
 | --- | --- |
 | 쓰는 외형 | 플레이어(기본) 외형은 NPC에 쓰지 않습니다. 바리스타·카페 남자 유니폼은 카페 직원만, 남녀 호텔 유니폼은 호텔 직원만, 검수한 남녀 경찰 제복은 경찰관만 입습니다. 일반 행인 외형은 다른 역할에서도 쓸 수 있습니다. 경로와 배정은 `NpcLooks`·`NpcCast`가 관리합니다. |
-| 성별·나이 | 인격 카드(`ai/npcs/<NPC 키>.json`)의 나이대·배경에 맞는 외형을 고릅니다. Arthur는 전용 할아버지 검수 사본을 씁니다. 역할이 정해지지 않은 외형을 기존 NPC의 성별 변경으로 임의 배정하지 않습니다. |
-| 서로 다른 사람 | 같은 외형을 쓰는 두 NPC의 눈동자 색이 같으면 머리와 옷 색이 모두 달라야 하고, 옷 색이 같으면 눈동자·머리·신발 색이 모두 달라야 합니다. 경찰관 네 명은 같은 제복이라 눈동자·머리·신발로 구분합니다. |
+| 성별·나이 | 인격 카드(`ai/npcs/<NPC 키>.json`)의 나이대·배경에 맞는 외형을 고릅니다. Arthur와 60대 수리공 Frank는 할아버지 외형을 쓰되 옷·머리·신발 배색을 구분합니다. 컨시어지 Walter는 회색 머리 정장, 비번 소방대장 Ray는 중년 평상복을 씁니다. 역할이 정해지지 않은 외형을 기존 NPC의 성별 변경으로 임의 배정하지 않습니다. |
+| 서로 다른 사람 | 같은 외형을 쓰는 두 NPC의 눈동자 색이 같으면 머리와 옷 색이 모두 달라야 하고, 옷 색이 같으면 눈동자·머리·신발 색이 모두 달라야 합니다. 경찰관 Dan·Victor는 남성 제복, 신입 Taylor는 여성 제복을 씁니다. 같은 남성 외형은 눈동자·머리·신발 배색으로 구분합니다. |
 | 색 이름 | 같은 색인지는 `NpcCast.Palette`의 색 이름으로 가립니다. 같은 이름에는 같은 값을 씁니다. |
 
-- 머리카락과 피부·바지가 비슷한 색인 외형(중년 남녀·할머니·바리스타)은 몸 높이로 머리만 고르고(머리 꼭대기 1, 발바닥 0), 가닥 사이에 남는 가는 선은 같은 색으로 메웁니다(`NpcColorSwap.FillGaps`).
+- 머리카락과 피부·바지가 비슷한 색인 외형(중년 남성·할머니·바리스타)은 몸 높이로 머리만 고르고(머리 꼭대기 1, 발바닥 0), 가닥 사이에 남는 가는 선은 같은 색으로 메웁니다(`NpcColorSwap.FillGaps`).
+- **Render Workplace Lineups**는 외형 종류 대신 직장·행인 무리별로 전신·얼굴·뒷머리를 함께 렌더합니다. 저장 폴더는 `NPC_CAST_LINEUP_OUTPUT`으로 지정합니다. 기존 12종을 36명에게 재사용하므로 같은 모델의 배색 변형은 남아 있습니다. 소방관은 현재 설정상 비번 평상복이며 전용 소방 제복 모델은 아직 없습니다.
+- 중년 여성은 머리와 피부의 색 범위가 겹치므로 원래 금발을 유지하고 옷·눈 색으로 구분합니다. 기존 남성 호텔 직원의 눈은 원본 색을 유지하며 옷·머리로 구분합니다. 색 범위만 넓혀 피부나 머리 가닥에 얼룩이 생기는 배색은 사용하지 않습니다.
 - 배색이 같으면 텍스처를 다시 쓰지 않습니다(가져오기 설정의 userData에 배색을 적어 둠). 색을 칠하는 규칙을 바꾸면 `NpcCastMember`의 `RecipeVersion`을 올립니다.
+- 카페·호텔 직원을 포함해 눈 깜박임을 사용하는 외형은 별도 눈 메시의 `*EyeColor` 텍스처에 홍채 배색을 적용합니다. 몸 텍스처와 눈꺼풀 피부색은 눈동자 배색 대상으로 쓰지 않습니다.
 - **Tools → A305 → Npc → Render Cast Lineups**는 같은 외형의 NPC를 외형 표 순서대로 세워 몸 전체·얼굴·뒤통수를 찍은 그림을 외형마다 저장합니다(기본 `artifacts/unity/npc-cast/`, 환경 변수 `NPC_CAST_LINEUP_OUTPUT`로 바꿈). 외형 표를 바꾸면 이 그림으로 서로 다른 사람으로 보이는지 확인합니다. 경찰 검수 사본에는 모자까지 포함됩니다.
 
 ## NPC 추가
@@ -260,7 +277,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 ## Builder
 
-**Tools → A305 → Npc → Connect Reviewed Staff Visuals**는 기존 카페 Leo, 호텔 Clara, 행인 Arthur, 경찰 직원의 외형만 검수 프리팹으로 갱신합니다. 골격·동작·13개 얼굴 채널 검사 후 연결하며, 새 NPC 생성·배치 이동·생활 데이터·NavMesh 재생성을 하지 않습니다. 이전에 연결된 외형은 교체하여 얼굴과 Animator가 하나씩 남게 합니다. 캡슐은 실제 몸 높이, 대화 시선은 이식한 눈 메시의 실제 위치에 맞춥니다. 경찰 여자 프리팹은 외형 표에 등록되어 있지만 기존 역할의 성별을 바꾸지 않도록 미배정 상태입니다. 원래 배치부터 새로 만드는 경우는 아래 **Build Cast**를 사용합니다.
+**Tools → A305 → Npc → Refresh Scene Visuals**는 카페·호텔·상점·마을·경찰서에 배치된 36명의 외형을 외형 표에 맞춥니다. 기존 **Connect Reviewed Staff Visuals** 메뉴도 같은 작업을 실행합니다. 검수 외형의 마스터 골격·동작, 모든 외형의 Humanoid Avatar·13개 얼굴 채널을 확인하고 연결합니다. NPC 위치·회전·일과를 유지하며 새 NPC나 NavMesh를 만들지 않습니다. 새 바리스타 배치는 기존 여성 외형과 같은 1.6 배율을 쓰고 기존 인스턴스의 조절값은 유지합니다. 캡슐과 시선 높이는 씬 배율을 포함한 각 외형에서 측정하고, 운전석 Joe는 기존 좌석 자세와 시선을 보존합니다. 카페·호텔 외형 표도 실제 대화 얼굴 프리팹을 가리키므로 원본과 대화 사본 사이의 경로가 어긋나지 않습니다. 여성 신입 Taylor의 인격 카드·목소리는 `POLICE_ROOKIE` 코드로 연결합니다.
 
 **Tools → A305 → Npc → Build**(`Scripts/Editor/Npc/NpcBuilder.cs`)가 다음을 준비합니다. 공간 Builder(**World → Build Spaces**)도 함께 실행합니다.
 
@@ -272,9 +289,9 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 **Tools → A305 → Npc → Build Building Staff**(`Scripts/Editor/Npc/BuildingStaffBuilder.cs`)는 [거리 매장 직원](#거리-매장-직원)을 `TownScene`의 각 건물 1층에 둡니다. 정한 자리가 카운터·가구와 겹치면 1층 안의 가장 가까운 빈자리로 옮기고(`NpcPlacement`), 문 쪽을 보게 세웁니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않습니다. 외형은 [외형 표](#외형-표)의 외형을 `NpcVisualBuilder`로 붙이고, 배색은 `NpcCastDresser`가 입힙니다(몸 텍스처는 1024로 줄임, 머티리얼 사본은 실행할 때마다 외형의 원래 머티리얼 설정에 맞춤). 확인용 인사말·설정(`Data/Npc/BuildingStaffSettings.asset`)도 연결합니다. 이어서 **Build Daily Life**를 실행해 생활을 붙이고, 직원마다 구역을 자기 건물 1층으로 정합니다. 생활 데이터에 직원이 없으면 내보내기(`npc_life_export.py`)를 먼저 하라고 알리고 멈춥니다.
 
-**Tools → A305 → Npc → Build Cast**(`Scripts/Editor/Npc/NpcCastBuilder.cs`)는 다른 Builder가 두지 않는 카페·호텔·드럭스토어 직원과 마을 행인을 [일터](#일터와-응대)에 두고, 경찰관은 `PoliceStationBuilder.PlaceOfficers`로 경찰서 장면의 창구 뒤에 둡니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않고, 정한 자리가 가구와 겹치면 가까운 빈자리로 옮깁니다. 설정은 같은 일터의 원래 NPC를 따르고, Mia·Jake와 같은 외형을 쓰는 직원은 기존 연결을 재사용하고, 새 검수 외형을 쓰는 직원은 자기 메시에서 캡슐·시선 높이를 측정합니다. 이어서 다섯 장면의 모든 NPC에 외형 표의 배색을 입히고 **Build Daily Life**를 실행한 뒤 경찰관이 경찰서 1층 안에서만 지내게 합니다. 확인용 인사말도 덧붙입니다.
+**Tools → A305 → Npc → Build Cast**(`Scripts/Editor/Npc/NpcCastBuilder.cs`)는 다른 Builder가 두지 않는 카페·호텔·드럭스토어 직원과 마을 행인을 [일터](#일터와-응대)에 두고, 경찰관은 `PoliceStationBuilder.PlaceOfficers`로 경찰서 장면의 창구 뒤에 둡니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않고, 정한 자리가 가구와 겹치면 가까운 빈자리로 옮깁니다. 다가감 설정은 같은 일터의 원래 NPC를 따르고, 외형·캡슐·시선은 각자 외형 표와 자기 메시를 사용합니다. 이어서 다섯 장면의 모든 NPC에 외형 표의 배색을 입히고 **Build Daily Life**를 실행한 뒤 경찰관이 경찰서 1층 안에서만 지내게 합니다. 확인용 인사말도 덧붙입니다.
 
-**Tools → A305 → Npc → Build Daily Life**(`Scripts/Editor/Npc/NpcLifeBuilder.cs`)는 카페·호텔·드럭스토어·마을에서 생활 데이터가 있는 NPC에 `NpcRoutine`을 붙이고, NPC 몸 크기(반지름 0.3m, 키 1.8m, 턱 0.3m)로 바닥을 구워 `Data/Npc/WalkAreas/`에 저장한 뒤 `NpcWalkArea`로 연결합니다. 사람·차·트리거 콜라이더는 굽지 않습니다. 장면의 `NavMeshModifier`·`NavMeshModifierVolume`이 정한 바닥 구역을 따릅니다. 마을 NPC는 [길 안내](../Wayfinding/README.md#횡단보도로-건너기)가 만든 차도(`Road`)를 경로에서 제외하고 횡단보도(`Crosswalk`)로 건너며, 차도와 횡단보도에 목적지를 두지 않습니다. 신호가 있는 교차로에서는 차량 신호가 충분히 빨간 동안에만 건너기 시작하고, 횡단 중에는 대화로 멈추지 않습니다. 차량은 앞에 NPC가 있으면 기다립니다. 가구 배치를 바꾸면 다시 실행합니다. 같은 메뉴가 `NpcAnimationBuilder`로 동작 FBX를 Humanoid로 가져오고 NPC 전용 Animator(`Art/Characters/Npc/NpcLife.controller`)를 만들어 `NpcRoutine`에 연결합니다. 장면에 저장된 모델은 플레이어와 같은 이동 컨트롤러 그대로 두고, 생활이 켜질 때 Humanoid 모델에 바꿔 끼웁니다(장면 모델의 키·발 높이 검사가 그대로 유지됩니다). 모델이 자기 Idle처럼 캐릭터 전용 클립을 덮어쓴 컨트롤러(`AnimatorOverrideController`)를 쓰면 `NpcLifeAnimator`가 그 클립을 생활 컨트롤러에 이어받습니다. 컨트롤러는 없을 때만 만들므로 구성을 바꾸려면 지우고 다시 실행합니다.
+**Tools → A305 → Npc → Build Daily Life**(`Scripts/Editor/Npc/NpcLifeBuilder.cs`)는 카페·호텔·드럭스토어·마을에서 생활 데이터가 있는 NPC에 `NpcRoutine`을 붙이고, NPC 몸 크기(반지름 0.3m, 키 1.8m, 턱 0.3m)로 바닥을 구워 `Data/Npc/WalkAreas/`에 저장한 뒤 `NpcWalkArea`로 연결합니다. 사람·차·트리거 콜라이더는 굽지 않습니다. 장면의 `NavMeshModifier`·`NavMeshModifierVolume`이 정한 바닥 구역을 따릅니다. 마을 NPC는 [길 안내](../Wayfinding/README.md#횡단보도로-건너기)가 만든 차도(`Road`)를 경로에서 제외하고 횡단보도(`Crosswalk`)로 건너며, 차도와 횡단보도에 목적지를 두지 않습니다. 신호가 있는 교차로에서는 차량 신호가 충분히 빨간 동안에만 건너기 시작하고, 횡단 중에는 대화로 멈추지 않습니다. 차량 신호가 바뀌었을 때 횡단보도의 출발 경계부터 진행한 거리가 전체의 20% 이하이면 출발 인도로 돌아가 기다리고, 20%를 넘었으면 반대편 인도까지 계속 건넙니다. 복귀를 시작한 뒤에는 신호가 다시 바뀌어도 먼저 출발 인도까지 돌아갑니다. 차량은 앞에 NPC가 있으면 기다립니다. 가구 배치를 바꾸면 다시 실행합니다. 같은 메뉴가 `NpcAnimationBuilder`로 동작 FBX를 Humanoid로 가져오고 NPC 전용 Animator(`Art/Characters/Npc/NpcLife.controller`)를 만들어 `NpcRoutine`에 연결합니다. 장면에 저장된 모델은 플레이어와 같은 이동 컨트롤러 그대로 두고, 생활이 켜질 때 Humanoid 모델에 바꿔 끼웁니다(장면 모델의 키·발 높이 검사가 그대로 유지됩니다). 모델이 자기 Idle처럼 캐릭터 전용 클립을 덮어쓴 컨트롤러(`AnimatorOverrideController`)를 쓰면 `NpcLifeAnimator`가 그 클립을 생활 컨트롤러에 이어받습니다. 컨트롤러는 없을 때만 만들므로 구성을 바꾸려면 지우고 다시 실행합니다.
 
 ## 테스트
 

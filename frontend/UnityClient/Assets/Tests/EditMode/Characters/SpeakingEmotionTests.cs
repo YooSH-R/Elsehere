@@ -6,6 +6,53 @@ namespace A305.Characters.Tests
     public sealed class SpeakingEmotionTests
     {
         [Test]
+        public void PlayfulWinkClosesThenReopensWithoutRepeatingInAdjacentPhrases()
+        {
+            var profile = ScriptableObject.CreateInstance<EmotionExpressionProfile>();
+            try
+            {
+                var track = new SpeechEmotionTrack(
+                    new[]
+                    {
+                        new SpeechEmotionCue
+                        {
+                            start = 0,
+                            end = 1.4f,
+                            emotion = CharacterEmotion.Playful,
+                        },
+                        new SpeechEmotionCue
+                        {
+                            start = 1.4f,
+                            end = 3,
+                            emotion = CharacterEmotion.Playful,
+                        },
+                    },
+                    3
+                );
+                Assert.That(track.Sample(.36f, profile).eyeClosure.y, Is.EqualTo(1).Within(.001));
+                Assert.That(track.Sample(.7f, profile).eyeClosure, Is.EqualTo(Vector2.zero));
+                Assert.That(track.Sample(1.76f, profile).eyeClosure, Is.EqualTo(Vector2.zero));
+                Assert.That(
+                    track.Sample(2.9f, profile, holdLast: true).eyeClosure,
+                    Is.EqualTo(Vector2.zero)
+                );
+                Assert.That(
+                    track.Sample(.7f, profile).smile,
+                    Is.EqualTo(profile.Sample(CharacterEmotion.Playful).smile)
+                );
+                Assert.That(
+                    track.Sample(.36f, profile).eyeClosure.y,
+                    Is.EqualTo(1).Within(.001),
+                    "되감기도 같은 시각의 윙크를 재현해야 합니다."
+                );
+            }
+            finally
+            {
+                Object.DestroyImmediate(profile);
+            }
+        }
+
+        [Test]
         public void AddingNewPresetsPreservesTheAuthoredSmileAndIsIdempotent()
         {
             var profile = ScriptableObject.CreateInstance<EmotionExpressionProfile>();

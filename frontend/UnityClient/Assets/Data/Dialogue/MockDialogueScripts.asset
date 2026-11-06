@@ -787,33 +787,6 @@ MonoBehaviour:
     exampleSentence: I lost my wallet.
   - npcCode: POLICE_PATROL_OFFICER
     npcName: Kevin
-    roleLabel: "\uACBD\uCC30\uAD00"
-    opening:
-      english: Hi, I'm Officer Kevin. Is everything okay?
-      korean: "\uC548\uB155\uD558\uC138\uC694, \uACBD\uCC30\uAD00 Kevin\uC774\uC5D0\uC694.
-        \uBCC4\uC77C \uC5C6\uC73C\uC138\uC694?"
-      voice: {fileID: 0}
-    guidedTurns: []
-    keywordReplies:
-    - keywords:
-      - stolen
-      reply:
-        english: I'm sorry to hear that. Where did it happen?
-        korean: "\uC548\uD0C0\uAE5D\uB124\uC694. \uC5B4\uB514\uC11C \uADF8\uB7AC\uB098\uC694?"
-        voice: {fileID: 0}
-    - keywords:
-      - patrol
-      reply:
-        english: I patrol the main street every evening.
-        korean: "\uC800\uB294 \uB9E4\uC77C \uC800\uB141 \uD070\uAE38\uC744 \uC21C\uCC30\uD574\uC694."
-        voice: {fileID: 0}
-    defaultReply:
-      english: Okay. Let me write that down.
-      korean: "\uC54C\uACA0\uC5B4\uC694. \uC801\uC5B4 \uB458\uAC8C\uC694."
-      voice: {fileID: 0}
-    exampleSentence: My bag was stolen.
-  - npcCode: POLICE_ROOKIE
-    npcName: Tyler
     roleLabel: "\uBCA0\uC774\uCEE4\uB9AC \uC9C1\uC6D0"
     opening:
       english: Hello, dear! The croissants just came out of the oven.
@@ -841,6 +814,33 @@ MonoBehaviour:
         \uCF00\uC774\uD06C\uAC00 \uC788\uC5B4\uC694."
       voice: {fileID: 0}
     exampleSentence: Can I have a croissant to go?
+  - npcCode: POLICE_ROOKIE
+    npcName: Taylor
+    roleLabel: "\uC2E0\uC785 \uACBD\uCC30\uAD00"
+    opening:
+      english: Hi, I'm Officer Taylor. Is everything okay?
+      korean: "\uC548\uB155\uD558\uC138\uC694, \uACBD\uCC30\uAD00 Taylor\uC774\uC5D0\uC694.
+        \uBCC4\uC77C \uC5C6\uC73C\uC138\uC694?"
+      voice: {fileID: 0}
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - stolen
+      reply:
+        english: I'm sorry to hear that. Where did it happen?
+        korean: "\uC548\uD0C0\uAE5D\uB124\uC694. \uC5B4\uB514\uC11C \uADF8\uB7AC\uB098\uC694?"
+        voice: {fileID: 0}
+    - keywords:
+      - patrol
+      reply:
+        english: I patrol the main street every evening.
+        korean: "\uC800\uB294 \uB9E4\uC77C \uC800\uB141 \uD070\uAE38\uC744 \uC21C\uCC30\uD574\uC694."
+        voice: {fileID: 0}
+    defaultReply:
+      english: Okay. Let me write that down.
+      korean: "\uC54C\uACA0\uC5B4\uC694. \uC801\uC5B4 \uB458\uAC8C\uC694."
+      voice: {fileID: 0}
+    exampleSentence: My bag was stolen.
   - npcCode: TOWN_RETIREE
     npcName: Ruby
     roleLabel: "\uC6B0\uCCB4\uAD6D \uC9C1\uC6D0"

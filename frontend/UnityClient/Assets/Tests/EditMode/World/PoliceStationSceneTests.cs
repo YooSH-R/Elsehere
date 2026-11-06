@@ -24,7 +24,7 @@ namespace A305.World.Tests
         {
             "POLICE_OFFICER",
             "POLICE_SERGEANT",
-            "POLICE_PATROL_OFFICER",
+            "POLICE_ROOKIE",
         };
 
         private Scene town;
@@ -108,7 +108,7 @@ namespace A305.World.Tests
         // 누구에게 신고해도 접수되도록 경찰관마다 창구가 있고, 접수 문구에 쓸 장소 이름(순찰차 출동 장소와 같은 목록)을 안다.
         [TestCase("POLICE_OFFICER")]
         [TestCase("POLICE_SERGEANT")]
-        [TestCase("POLICE_PATROL_OFFICER")]
+        [TestCase("POLICE_ROOKIE")]
         public void Officer_WorksInThePoliceStationSceneWithAReportDesk(string code)
         {
             NpcIdentity officer = BuilderTools

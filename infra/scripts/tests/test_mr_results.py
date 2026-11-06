@@ -250,6 +250,32 @@ class MergeRequestResultsTests(unittest.TestCase):
                 self.repository, "backend", self.candidate, reused
             )
 
+    def test_reused_archives_are_downloaded_from_the_exact_plan_job_without_pipeline_needs(
+        self,
+    ):
+        reused = self.find_results()
+        plan = {
+            "candidate_commit": self.candidate,
+            "plan_job_id": "90",
+            "reused_jobs": reused,
+        }
+
+        def download(endpoint, destination):
+            shutil.copyfile(self.archive, destination)
+
+        with patch("mr_results.download_archive", side_effect=download) as request:
+            mr_results.download_and_restore_results(
+                self.repository, self.candidate, plan
+            )
+        self.assertEqual(
+            request.call_args.args[0],
+            "jobs/90/artifacts/dist/deployment/backend-mr-artifacts.zip",
+        )
+        self.assertEqual(
+            (self.repository / "backend/build/libs/app.jar").read_bytes(),
+            b"verified jar",
+        )
+
     def test_api_token_is_not_forwarded_in_redirect_headers(self):
         request = mr_results.api_request("merge_requests")
         self.assertEqual(request.unredirected_hdrs["Job-token"], "fixture-token")

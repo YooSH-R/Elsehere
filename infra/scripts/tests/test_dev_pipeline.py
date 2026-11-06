@@ -165,7 +165,13 @@ class ChildPipelineTests(unittest.TestCase):
     def test_reused_checks_are_restored_once_and_runtime_uses_the_reused_jar(self):
         reused = {"backend:check-and-build": {"source_commit": "a" * 40}}
         pipeline = create_child_pipeline(
-            {"checks": ["backend"], "builds": ["backend"], "reused_jobs": reused}, "123"
+            {
+                "checks": ["backend"],
+                "builds": ["backend"],
+                "plan_job_id": "456",
+                "reused_jobs": reused,
+            },
+            "123",
         )
         self.assertEqual(
             pipeline["backend:check-and-build"]["rules"], [{"when": "never"}]
@@ -177,7 +183,11 @@ class ChildPipelineTests(unittest.TestCase):
             pipeline["infra:app-runtime"]["needs"],
             [{"job": "dev:reuse-checks", "artifacts": True}],
         )
-        self.assertEqual(pipeline["dev:reuse-checks"]["needs"][0]["pipeline"], "123")
+        self.assertTrue(
+            all(
+                "pipeline" not in need for need in pipeline["dev:reuse-checks"]["needs"]
+            )
+        )
 
     def test_production_never_disables_checks_using_mr_results(self):
         pipeline = create_child_pipeline(

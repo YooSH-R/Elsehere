@@ -103,13 +103,7 @@ def create_child_pipeline(
             "image": "python:3.12-alpine",
             "timeout": "5m",
             "variables": {"GIT_DEPTH": "0"},
-            "needs": [
-                {
-                    "pipeline": str(parent_pipeline_id),
-                    "job": "dev:plan",
-                    "artifacts": True,
-                }
-            ],
+            "needs": [{"job": "ci:yaml", "artifacts": False}],
             "script": [
                 "apk add --no-cache git",
                 "python infra/scripts/mr_results.py restore",
@@ -270,6 +264,8 @@ def plan_pipeline(
         plan["reused_jobs"] = find_reusable_jobs(
             repository, candidate, [need["job"] for need in required], directory
         )
+        if plan["reused_jobs"]:
+            plan["plan_job_id"] = os.environ["CI_JOB_ID"]
     for name, document in [
         ("state.json", state),
         ("plan.json", plan),

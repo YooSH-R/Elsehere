@@ -1354,7 +1354,16 @@ namespace A305.EditorTools.Theme
         // 코치 마크 말풍선의 [다음]은 안내 카드의 주 버튼과 같은 모양으로 둔다.
         private static void StyleCoachMark(Transform root)
         {
-            PillButton(root, "Caption/NextButton", UiIcon.Play, UiTone.Positive);
+            Role(root, "Caption", UiThemeRole.Card);
+            Role(root, "Caption/Text", UiThemeRole.Body);
+            PillButton(root, "Caption/NextButton", UiIcon.None, UiTone.Primary);
+        }
+
+        /// <summary>코치 마크만 갱신할 때 쓰는 테마 연결.</summary>
+        public static void StyleTutorialCoachMark()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style("Assets/Prefabs/Tutorial/CoachMark.prefab", StyleCoachMark);
         }
 
         // 한 줄 안내 카드: 진행 점은 흐리게, 할 일 한 줄은 제목처럼 진하게. 건너뛰기 확인도 같은 카드 안에 그린다.

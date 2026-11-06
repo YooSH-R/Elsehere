@@ -37,6 +37,7 @@ namespace A305.Npc.PlayModeTests
         [SetUp]
         public void ResetCrossSceneRecords()
         {
+            SceneManager.sceneLoaded += UseLocalScene;
             previousTimeScale = Time.timeScale;
             Time.timeScale = WalkTimeScale;
             PasserbyRestRecord.Clear();
@@ -50,6 +51,7 @@ namespace A305.Npc.PlayModeTests
         [TearDown]
         public void RestoreFlowingClock()
         {
+            SceneManager.sceneLoaded -= UseLocalScene;
             // 남기면 뒤에 도는 다른 시험의 걸음·물리가 모두 빨라진다.
             Time.timeScale = previousTimeScale;
             // 다른 시험은 서버 없이 장면을 볼 때처럼 1일차 오전 8시부터 흐르는 시각과 처음 튜토리얼을 쓴다.
@@ -57,6 +59,38 @@ namespace A305.Npc.PlayModeTests
             TutorialState.Clear();
             // 하루 한 번 기록은 이 기기에 남으므로 Editor에서 플레이할 때 남지 않게 지운다.
             PasserbyOfferRecord.Clear();
+        }
+
+        private static void UseLocalScene(Scene scene, LoadSceneMode mode)
+        {
+            // 대화·생활 검사는 서버 세션 상태에 영향을 받지 않는 고정 대본으로 진행한다.
+            foreach (var root in scene.GetRootGameObjects())
+            foreach (var component in root.GetComponentsInChildren<MonoBehaviour>(true))
+            {
+                if (component == null)
+                    continue;
+                if (
+                    component is A305.Learning.LearningController
+                    || component.GetType().Name == "SessionExpiredView"
+                )
+                    component.enabled = false;
+                var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+                component.GetType().GetField("useServer", flags)?.SetValue(component, false);
+                component.GetType().GetField("apiSettings", flags)?.SetValue(component, null);
+                if (component is DialogueController)
+                {
+                    foreach (
+                        string field in new[]
+                        {
+                            "conversationApi",
+                            "aiStatusApi",
+                            "followUpApi",
+                            "voiceConsentAgreement",
+                        }
+                    )
+                        component.GetType().GetField(field, flags)?.SetValue(component, null);
+                }
+            }
         }
 
         [UnityTest]
@@ -290,9 +324,9 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator CafeStaff_WhenThePlayerComesNearTheCounter_WaitsForThePlayerToChooseConversation()
+        public IEnumerator CafeStaff_WhenThePlayerComesNearTheCounter_OffersConversation()
         {
-            yield return LoadAt("CafeScene", 8 * 60, paused: true);
+            yield return LoadAt("CafeScene", 9 * 60, paused: true);
             NpcRoutine mia = Routine("CAFE_STAFF");
             KeepOnlyNpc(mia);
             Bounds counter = SolidBounds(NearestPlaced("counter", mia.transform));
@@ -302,9 +336,9 @@ namespace A305.Npc.PlayModeTests
                 new Vector3(counter.center.x, mia.transform.position.y, counter.min.z - .8f),
                 Quaternion.identity
             );
-            yield return new WaitForSeconds(2f);
-            Assert.That(offer.IsShowing, Is.False, "카운터 접근만으로 제안하지 않습니다.");
-            Assert.That(mia.GetComponent<Passerby>().TalkByClick(8f), Is.True);
+            yield return WaitUntil(() => offer.IsShowing);
+            Assert.That(offer.IsShowing, Is.True, "카운터 앞 손님에게 먼저 말을 겁니다.");
+
             Assert.That(Object.FindFirstObjectByType<DialogueController>().IsTalking, Is.False);
             offer
                 .GetComponentsInChildren<Button>()

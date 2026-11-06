@@ -85,6 +85,83 @@ namespace A305.Dialogue.Tests
         private ServerConversation conversation;
 
         [Test]
+        public async Task FailedOpeningSpeech_AutomaticallyRecoversAndPlaysOnceAfterReplyFinishes()
+        {
+            var played = new List<string>();
+            api.StartResponse.OpeningTurn.Speech = new SpeechData { Status = "FAILED" };
+            api.RegeneratedSpeech = new SpeechData { Status = "READY", Url = "/recovered.wav" };
+            using var recovery = new NpcSpeechRecovery(
+                conversation,
+                url =>
+                {
+                    played.Add(url);
+                    return Task.FromResult(true);
+                }
+            );
+            conversation.NpcSpoke += recovery.Queue;
+            await conversation.StartAsync();
+            Assert.That(api.SpeechRegeneratedFor, Is.EqualTo(new[] { OpeningTurnId }));
+            Assert.That(played, Is.EqualTo(new[] { "/recovered.wav" }));
+            recovery.Queue(conversation.LastNpcTurn);
+            Assert.That(api.SpeechRegeneratedFor, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task CancelledAutomaticRecovery_DoesNotPlayLateVoiceOrRetryInALoop()
+        {
+            var played = new List<string>();
+            api.StartResponse.OpeningTurn.Speech = new SpeechData { Status = "FAILED" };
+            api.PendingSpeech = new TaskCompletionSource<SpeechData>();
+            using var recovery = new NpcSpeechRecovery(
+                conversation,
+                url =>
+                {
+                    played.Add(url);
+                    return Task.FromResult(true);
+                }
+            );
+            conversation.NpcSpoke += recovery.Queue;
+            await conversation.StartAsync();
+            Assert.That(api.SpeechRegeneratedFor, Has.Count.EqualTo(1));
+            recovery.Cancel();
+            api.PendingSpeech.SetResult(new SpeechData { Status = "READY", Url = "/late.wav" });
+            await Task.Yield();
+            Assert.That(played, Is.Empty);
+            Assert.That(api.SpeechRegeneratedFor, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task FailedAutomaticRecovery_StopsAfterOneAttemptAndAllowsManualRetry()
+        {
+            var played = new List<string>();
+            api.StartResponse.OpeningTurn.Speech = new SpeechData { Status = "FAILED" };
+            api.RegeneratedSpeech = new SpeechData { Status = "FAILED" };
+            using var recovery = new NpcSpeechRecovery(
+                conversation,
+                url =>
+                {
+                    played.Add(url);
+                    return Task.FromResult(true);
+                }
+            );
+            conversation.NpcSpoke += recovery.Queue;
+            await conversation.StartAsync();
+            recovery.Queue(conversation.LastNpcTurn);
+            Assert.That(api.SpeechRegeneratedFor, Has.Count.EqualTo(1));
+            Assert.That(played, Is.Empty);
+            Assert.That(conversation.IsBusy, Is.False);
+            api.RegeneratedSpeech = new SpeechData { Status = "READY", Url = "/manual.wav" };
+            await conversation.RegenerateSpeechAsync();
+            await conversation.PlaySpeechAsync(url =>
+            {
+                played.Add(url);
+                return Task.FromResult(true);
+            });
+            Assert.That(api.SpeechRegeneratedFor, Has.Count.EqualTo(2));
+            Assert.That(played, Is.EqualTo(new[] { "/manual.wav" }));
+        }
+
+        [Test]
         public async Task RegeneratingSpeech_KeepsTheSentenceBehindTheWaitCard()
         {
             await conversation.StartAsync();

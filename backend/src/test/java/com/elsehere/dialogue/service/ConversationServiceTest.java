@@ -228,7 +228,9 @@ class ConversationServiceTest {
             instruction.capture(),
             anyInt(),
             any());
-    assertThat(npc.getValue().scene()).isEqualTo("The counter of the corner cafe.");
+    assertThat(npc.getValue().scene())
+        .startsWith("The counter of the corner cafe.")
+        .contains("Current game time: day 1, 08:00");
     assertThat(instruction.getValue())
         .contains("personality", "first-meeting", "Only offer service");
   }

@@ -13,5 +13,8 @@ namespace A305.Dialogue
 
         // 대화를 끝내고 피드백을 기다린다.
         Feedback,
+
+        // NPC 대사의 음성을 내려받아 재생을 준비한다.
+        NpcSpeech,
     }
 }

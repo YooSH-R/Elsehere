@@ -129,6 +129,7 @@ namespace A305.Dialogue.PlayModeTests
                 this.lines = lines;
             }
 
+            public string UserTranslation { get; set; }
             public string NpcName => "Jake";
             public IReadOnlyList<DialogueLine> Lines => lines;
             public DialogueLine LastNpcLine => lines.LastOrDefault(line => line.IsNpc);

@@ -13,6 +13,7 @@ import com.elsehere.user.entity.User;
 import com.elsehere.user.repository.UserRepository;
 import com.elsehere.world.entity.Npc;
 import com.elsehere.world.repository.NpcRepository;
+import com.elsehere.world.service.GameClockService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Limit;
@@ -31,6 +32,7 @@ class DialogueContexts {
   private final TurnRepository turnRepository;
   private final WorkerNpcs workerNpcs;
   private final WorkerLines workerLines;
+  private final GameClockService gameClockService;
 
   /** NPC 대답의 상대인 학습자. NPC가 캐릭터에 맞는 호칭을 쓰도록 닉네임과 캐릭터 기본형을 보낸다. */
   WorkerLearner learner(User user) {
@@ -46,19 +48,38 @@ class DialogueContexts {
   }
 
   /** 대화를 시작할 NPC. 근무 시간이 아니면 워커에 일상 상황을 보낸다. */
-  NpcContext npcByCode(String npcCode, boolean npcOffDuty) {
+  NpcContext npcByCode(Long userId, String npcCode, boolean npcOffDuty) {
     NpcContext npc =
         npcRepository
             .findByCode(npcCode)
             .map(this::toContext)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-    return npcOffDuty ? npc.offDuty() : npc;
+    return atCurrentTime(npcOffDuty ? npc.offDuty() : npc, userId);
   }
 
   /** 대화 상대인 NPC. 워커를 부를 때는 대화를 시작할 때 정한 근무 여부를 따르도록 이 메서드로 읽는다. */
   NpcContext npcOf(Conversation conversation) {
     NpcContext npc = npcById(conversation.getNpcId());
-    return conversation.isNpcOffDuty() ? npc.offDuty() : npc;
+    return atCurrentTime(
+        conversation.isNpcOffDuty() ? npc.offDuty() : npc, conversation.getUserId());
+  }
+
+  // 대화 중에는 게임 시계가 멈춘다. PC 시각이나 인격의 평소 일과 대신 사용자별 게임 시각을 매 요청에 싣는다.
+  private NpcContext atCurrentTime(NpcContext npc, Long userId) {
+    var time = gameClockService.currentTime(userId);
+    String scene =
+        npc.workerNpc().scene()
+            + " Current game time: day %d, %02d:%02d (24-hour clock)."
+                .formatted(time.day(), time.minuteOfDay() / 60, time.minuteOfDay() % 60);
+    return new NpcContext(
+        npc.npcId(),
+        npc.summary(),
+        npc.sceneCode(),
+        npc.sceneOpen(),
+        npc.workerNpc().withScene(scene),
+        npc.voiceId(),
+        npc.approachLine(),
+        npc.approachAudioKey());
   }
 
   /** 근무 여부와 관계없는 NPC 정보(이름·장소·목소리). 대화의 워커 호출에는 {@link #npcOf}를 쓴다. */

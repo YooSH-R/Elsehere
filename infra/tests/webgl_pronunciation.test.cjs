@@ -8,8 +8,9 @@ const source = path.resolve(__dirname, "../../frontend/UnityClient/Assets/Plugin
 
 function browser(supported = true) {
   const spoken = [];
+  let cancelled = 0;
   const english = { lang: "en-US", name: "English" };
-  const speech = { getVoices: () => [{ lang: "ko-KR" }, english], cancel() {}, speak: (line) => spoken.push(line) };
+  const speech = { getVoices: () => [{ lang: "ko-KR" }, english], cancel() { cancelled++; }, speak: (line) => spoken.push(line) };
   const context = {
     LibraryManager: { library: {} },
     mergeInto: Object.assign,
@@ -18,7 +19,7 @@ function browser(supported = true) {
     SpeechSynthesisUtterance: function (text) { this.text = text; },
   };
   vm.runInNewContext(fs.readFileSync(source, "utf8"), context);
-  return { api: context.LibraryManager.library, spoken, english };
+  return { api: context.LibraryManager.library, spoken, english, cancellations: () => cancelled };
 }
 
 test("a word can be pronounced in English without a server audio file", () => {
@@ -38,4 +39,15 @@ test("unsupported browsers and empty words do not claim to play audio", () => {
   const { api, spoken } = browser();
   assert.equal(api.A305Word_Pronounce("  "), 0);
   assert.equal(spoken.length, 0);
+});
+
+
+test("stopping a sentence cancels device speech without sending another utterance", () => {
+  const { api, spoken, cancellations } = browser();
+  api.A305Word_Pronounce("Where is the cafe?");
+  const before = cancellations();
+  api.A305Word_StopPronunciation();
+  assert.equal(cancellations(), before + 1);
+  assert.equal(spoken.length, 1);
+  assert.doesNotThrow(() => browser(false).api.A305Word_StopPronunciation());
 });

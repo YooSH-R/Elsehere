@@ -8,7 +8,7 @@ using UnityEngine.InputSystem;
 namespace A305.Npc
 {
     /// <summary>
-    /// NPC 몸이나 머리 위 이름표를 클릭·탭해 말을 건다(기능 명세 F-22). 8m 안에서 말을 걸 수 있는 NPC만 받고(<see cref="Passerby.CanTalkByClick"/>),
+    /// NPC 몸이나 머리 위 이름표를 클릭·탭해 말을 건다(기능 명세 F-22). 8m 안에서 대화 시작을 확인할 NPC만 받고(<see cref="Passerby.CanTalkByClick"/>),
     /// PC에서는 커서를 올린 그 NPC 몸에 테두리를 그린다. 휴대폰·태블릿은 커서가 없어 탭으로만 말을 건다.
     /// 사물 카드와 같은 클릭 판정(<see cref="PointerClick"/>)을 써서 시점을 돌린 끌기와 UI 위 클릭은 빼고,
     /// 이름표(<see cref="NpcNameTagView"/>)를 눌렀으면 그 이름표의 NPC를, 아니면 맨 앞에 보이는 NPC 몸을 받는다(<see cref="NpcPointerRaycast"/>).
@@ -41,7 +41,7 @@ namespace A305.Npc
         public Passerby HighlightedNpc { get; private set; }
 
         /// <summary>
-        /// 포인터 위치를 클릭·탭했다. 말을 걸 수 있는 NPC면 대화를 시작한다. Update에서 클릭을 판단해 호출하며,
+        /// 포인터 위치를 클릭·탭했다. 말을 걸 수 있는 NPC면 대화 확인 창을 연다. Update에서 클릭을 판단해 호출하며,
         /// 실제 마우스 없이 확인할 때 직접 호출할 수 있다.
         /// </summary>
         public void Click(Vector2 pointerScreenPosition)

@@ -47,6 +47,18 @@ namespace A305.Dialogue
         private TMP_Text statusText;
 
         [SerializeField]
+        private RectTransform translationCard;
+
+        [SerializeField]
+        private TMP_Text translationText;
+
+        [SerializeField]
+        private Button translationListenButton;
+
+        [SerializeField]
+        private RectTransform translationDivider;
+
+        [SerializeField]
         private TMP_Text suggestText;
 
         [SerializeField]
@@ -227,6 +239,7 @@ namespace A305.Dialogue
 
         /// <summary>[다시 듣기]를 누르면 알린다.</summary>
         public event Action ReplayRequested;
+        public event Action<string> UserTranslationListenRequested;
 
         /// <summary>[뜻 보기]로 뜻을 펼쳤는데 아직 뜻이 없으면 알린다. 서버 대화는 이때 뜻을 받아 온다.</summary>
         public event Action MeaningRequested;
@@ -282,7 +295,10 @@ namespace A305.Dialogue
         // NPC 첫 대사·대답은 대사 칸을 덮는 로딩으로, 오래 걸리는 피드백은 화면 가운데 로딩 창으로 알린다.
         private void ShowWait(DialogueWait wait)
         {
-            bool inLines = wait == DialogueWait.Opening || wait == DialogueWait.NpcReply;
+            bool inLines =
+                wait == DialogueWait.Opening
+                || wait == DialogueWait.NpcReply
+                || wait == DialogueWait.NpcSpeech;
             waitPanel.SetActive(inLines);
             // 로딩 카드는 대사 칸과 같은 크기라 둥근 모서리 틈으로 대사가 비치지 않게 그동안 대사를 감춘다.
             linesText.enabled = !inLines;
@@ -290,9 +306,9 @@ namespace A305.Dialogue
             if (inLines)
             {
                 waitText.text =
-                    wait == DialogueWait.Opening
-                        ? "대화를 준비하고 있어요"
-                        : $"{content.NpcName}의 대답을 기다리고 있어요";
+                    wait == DialogueWait.Opening ? "대화를 준비하고 있어요"
+                    : wait == DialogueWait.NpcSpeech ? "음성을 준비하고 있어요"
+                    : $"{content.NpcName}의 대답을 기다리고 있어요";
             }
 
             feedbackWait.SetActive(wait == DialogueWait.Feedback);
@@ -348,6 +364,7 @@ namespace A305.Dialogue
             if (!isMeaningVisible)
                 glossaryCard.Close();
             ShowLines();
+            ShowTranslation();
             npcNameText.text = content.NpcName;
             UpdateStanding();
             statusText.text = FormatStatus();
@@ -408,6 +425,30 @@ namespace A305.Dialogue
             historyScroll.verticalNormalizedPosition = 0;
         }
 
+        private string pronunciationNotice;
+        private string shownTranslation;
+
+        public void ShowPronunciationFailure()
+        {
+            pronunciationNotice =
+                "영어 음성을 재생할 수 없어요. 기기의 영어 음성과 소리 설정을 확인해 주세요.";
+            Refresh();
+        }
+
+        private void ShowTranslation()
+        {
+            if (translationCard == null)
+                return;
+            string expression = content?.UserTranslation;
+            if (shownTranslation != expression)
+                pronunciationNotice = null;
+            shownTranslation = expression;
+            bool shown = !string.IsNullOrWhiteSpace(expression);
+            translationCard.gameObject.SetActive(shown);
+            translationText.text = shown ? expression : string.Empty;
+            translationListenButton.interactable = shown && !content.IsBusy;
+        }
+
         private void Awake()
         {
             endButton.onClick.AddListener(() => EndRequested?.Invoke());
@@ -429,6 +470,12 @@ namespace A305.Dialogue
             // 대사 칸을 스크롤하면 카드가 고른 단어를 따라간다.
             historyScroll.onValueChanged.AddListener(_ => PlaceWordCard());
             replayButton.onClick.AddListener(() => ReplayRequested?.Invoke());
+            if (translationListenButton != null)
+                translationListenButton.onClick.AddListener(() =>
+                {
+                    if (!string.IsNullOrWhiteSpace(content?.UserTranslation) && !content.IsBusy)
+                        UserTranslationListenRequested?.Invoke(content.UserTranslation);
+                });
             hintButton.onClick.AddListener(() => HintRequested?.Invoke());
             retryButton.onClick.AddListener(RequestRetry);
             subtitleButton.onClick.AddListener(ToggleSubtitles);
@@ -519,6 +566,9 @@ namespace A305.Dialogue
                     ? content.RecoveryGuide
                     : $"{content.StatusMessage}\n{content.RecoveryGuide}";
             }
+
+            if (pronunciationNotice != null)
+                message = pronunciationNotice;
 
             return string.IsNullOrEmpty(countdown) ? message
                 : string.IsNullOrEmpty(message) ? countdown
@@ -666,6 +716,15 @@ namespace A305.Dialogue
                 area.yMax,
                 npcNameText.rectTransform.anchoredPosition.y - WordCardMargin
             );
+            if (!string.IsNullOrWhiteSpace(content.UserTranslation))
+            {
+                var history = (RectTransform)historyScroll.transform;
+                area.xMax = Mathf.Min(
+                    area.xMax,
+                    history.anchoredPosition.x + history.rect.width - WordCardMargin
+                );
+                area.yMax = Mathf.Min(area.yMax, history.anchoredPosition.y + history.rect.height);
+            }
             wordCard.anchoredPosition = WordCardPlacement.Place(word, wordCard.rect.size, area);
         }
 
@@ -786,7 +845,11 @@ namespace A305.Dialogue
                 DialogueCinemaLayout.ColumnWidth,
                 lastCanvasSize.x - 2 * DialogueCinemaLayout.SideMargin
             );
-            float linesHeight = VisibleLinesHeight(column, out bool hasEarlierLines);
+            bool hasTranslation = !string.IsNullOrWhiteSpace(content?.UserTranslation);
+            float linesHeight = VisibleLinesHeight(
+                DialogueCinemaLayout.LinesWidth(column, hasTranslation),
+                out bool hasEarlierLines
+            );
             float nameWidth = Mathf.Max(
                 MinNameWidth,
                 npcNameText.GetPreferredValues(npcNameText.text).x + 2 * NamePadding
@@ -795,7 +858,8 @@ namespace A305.Dialogue
                 lastCanvasSize,
                 linesHeight,
                 nameWidth,
-                hasEarlierLines
+                hasEarlierLines,
+                hasTranslation
             );
             frame.anchorMin = Vector2.zero;
             frame.anchorMax = new Vector2(1, 0);
@@ -823,6 +887,17 @@ namespace A305.Dialogue
             // 대사 칸 높이가 달라져도 보던 아래쪽(보통 가장 최근 대사와 단어 풀이)이 가려지지 않게 스크롤 위치를 지킨다.
             float scroll = historyScroll.verticalNormalizedPosition;
             Place((RectTransform)historyScroll.transform, layout.Lines);
+            if (translationCard != null)
+            {
+                if (hasTranslation)
+                {
+                    Place(translationCard, layout.Translation);
+                    Place(translationDivider, layout.TranslationDivider);
+                }
+                translationDivider.gameObject.SetActive(
+                    hasTranslation && layout.TranslationDivider.width > 0
+                );
+            }
             Canvas.ForceUpdateCanvases();
             historyScroll.verticalNormalizedPosition = scroll;
             CoverHiddenWords();

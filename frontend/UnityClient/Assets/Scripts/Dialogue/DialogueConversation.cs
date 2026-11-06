@@ -42,6 +42,7 @@ namespace A305.Dialogue
         /// <summary>ERD npcs.code</summary>
         public string NpcCode { get; }
 
+        public string UserTranslation => null;
         public string NpcName => script.NpcName;
         public IReadOnlyList<DialogueLine> Lines => lines;
 

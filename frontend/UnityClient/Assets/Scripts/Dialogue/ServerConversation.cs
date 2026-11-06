@@ -122,14 +122,26 @@ namespace A305.Dialogue
         /// <summary>가장 최근 NPC 턴. [다시 듣기]가 이 턴의 음성을 쓴다.</summary>
         public NpcTurnData LastNpcTurn { get; private set; }
 
+        public string UserTranslation { get; private set; }
+
         public bool IsGuided => false;
         public bool IsGuidedCompleted => false;
         public string SuggestedEnglish => null;
         public string SuggestedKorean => null;
         public string ExampleSentence => null;
+        private NpcTurnData preparingSpeechTurn;
+        private int speechPlaybackRequest;
+        private DialogueWait operationWait;
         public bool IsBusy { get; private set; }
         public string StatusMessage { get; private set; }
-        public DialogueWait Waiting { get; private set; }
+        public DialogueWait Waiting
+        {
+            get =>
+                preparingSpeechTurn != null && preparingSpeechTurn == LastNpcTurn
+                    ? DialogueWait.NpcSpeech
+                    : operationWait;
+            private set => operationWait = value;
+        }
         public IReadOnlyList<string> SuggestWords { get; private set; }
 
         public bool IsSuggestingWords { get; private set; }
@@ -205,6 +217,7 @@ namespace A305.Dialogue
                 return;
             }
 
+            UserTranslation = null;
             string requestId = utterance == failedText ? failedRequestId : NewRequestId();
             // 보낼 문장은 앞뒤 공백을 지우므로 전사 결과도 공백을 지우고 비교한다. 서버에는 전사 원문을 그대로 보낸다.
             bool isVoice = lastTranscript != null && utterance == lastTranscript.Trim();
@@ -248,6 +261,13 @@ namespace A305.Dialogue
                     string sent = result.UserTurn?.Text ?? utterance;
                     lines.Add(DialogueLine.FromUser(sent));
                     userUtterances.Add(sent);
+                    string expression =
+                        result.UserTurn?.Rude == false
+                            ? result.UserTurn.Translation?.English
+                            : null;
+                    UserTranslation = string.IsNullOrWhiteSpace(expression)
+                        ? null
+                        : expression.Trim();
                     ApplyState(result.Conversation);
                     AddNpcTurn(result.NpcTurn, reply.HasSpeech);
                     IsEnded =
@@ -369,6 +389,9 @@ namespace A305.Dialogue
                 return false;
             }
 
+            int request = ++speechPlaybackRequest;
+            preparingSpeechTurn = turn;
+            Changed?.Invoke();
             try
             {
                 return await playSpeech(turn.Speech.Url);
@@ -381,6 +404,15 @@ namespace A305.Dialogue
                     Changed?.Invoke();
                 }
                 return false;
+            }
+            finally
+            {
+                if (request == speechPlaybackRequest)
+                {
+                    preparingSpeechTurn = null;
+                    if (LastNpcTurn == turn)
+                        Changed?.Invoke();
+                }
             }
         }
 
@@ -400,7 +432,8 @@ namespace A305.Dialogue
                 {
                     speech = await api.RegenerateSpeechAsync(turn.TurnId, NewRequestId());
                     turn.Speech = speech;
-                }
+                },
+                wait: DialogueWait.NpcSpeech
             );
             return speech;
         }

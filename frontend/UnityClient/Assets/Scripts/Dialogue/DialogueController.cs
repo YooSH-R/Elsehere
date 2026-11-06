@@ -41,6 +41,7 @@ namespace A305.Dialogue
         private DialogueConversation conversation;
         private ServerConversation serverConversation;
         private bool isEnding;
+        private Task pendingServerStart = Task.CompletedTask;
 
         // 대화 시점이 바라보는 NPC 머리 위치. 대화가 끝나면 플레이어를 이쪽으로 돌린다.
         private Transform partnerLookTarget;
@@ -435,7 +436,25 @@ namespace A305.Dialogue
             serverConversation.UserTurnAccepted += ForwardAcceptedTurn;
             serverConversation.PoliceDispatchRequested += ForwardPoliceDispatch;
             panel.Show(serverConversation);
-            _ = serverConversation.StartAsync();
+            pendingServerStart = StartServerConversationAsync(
+                serverConversation,
+                pendingServerStart
+            );
+        }
+
+        private async Task StartServerConversationAsync(
+            ServerConversation starting,
+            Task previousStart
+        )
+        {
+            // 취소 직후 다시 말을 걸어도 이전 요청의 정리가 새로 시작한 대화를 닫지 않게 순서를 지킨다.
+            await previousStart;
+            await starting.StartAsync();
+            if (this != null && serverConversation != starting)
+            {
+                // 준비 중 취소한 대화의 서버 정리가 끝났다. 정리 전의 정지 응답으로 시계가 멈춰 있지 않게 한다.
+                GameClock.Shared.RequestSynchronization();
+            }
         }
 
         private async Task EndServerConversationAsync()
@@ -453,7 +472,6 @@ namespace A305.Dialogue
 
         private void Finish(DialogueRecord record)
         {
-            GameClock.Shared.IsTalking = false;
             string endedNpcCode = Close();
             Ended?.Invoke(endedNpcCode);
             ConversationEnded?.Invoke(record);
@@ -462,6 +480,7 @@ namespace A305.Dialogue
         // 대화를 닫고 시점·이동을 되돌린다. 끝낸 NPC 코드를 돌려준다.
         private string Close()
         {
+            GameClock.Shared.IsTalking = false;
             string endedNpcCode = session.End();
             if (serverConversation != null)
             {

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.Characters;
@@ -33,6 +34,11 @@ namespace A305.Dialogue
         private string speakerNotice;
         private int playbackRequest;
         private UnityWebRequest pendingRequest;
+
+        // 스트리밍으로 받은 대답의 조각 음성. 앞 조각이 끝나면 다음 조각을 재생한다.
+        private readonly Queue<SpeechChunk> chunkQueue = new Queue<SpeechChunk>();
+        private readonly List<AudioClip> chunkClips = new List<AudioClip>();
+        private int chunkReply = -1;
 
         public bool IsAvailable => useServer && apiSettings != null;
         public VoiceRecorder VoiceRecorder => voiceRecorder;
@@ -130,6 +136,27 @@ namespace A305.Dialogue
 
         private bool PlayDownloadedVoice(string url, byte[] bytes)
         {
+            if (!TryCreateVoice(bytes, out AudioClip clip, out SpeechVisemeTimeline timeline))
+                return false;
+            if (!lastSpeech.TryFill(url, clip))
+            {
+                Destroy(clip);
+                return false;
+            }
+            lastTimeline = timeline;
+            ReplaySpeech();
+            return true;
+        }
+
+        // 음소 시간이 든 WAV를 재생할 음성으로 만든다. 읽을 수 없는 음성은 경고만 남기고 재생하지 않는다.
+        private bool TryCreateVoice(
+            byte[] bytes,
+            out AudioClip clip,
+            out SpeechVisemeTimeline timeline
+        )
+        {
+            clip = null;
+            timeline = null;
             DialogueSpeechWav decoded;
             try
             {
@@ -140,7 +167,7 @@ namespace A305.Dialogue
                 Debug.LogWarning("NPC voice rejected: " + error.Message, this);
                 return false;
             }
-            var clip = AudioClip.Create(
+            clip = AudioClip.Create(
                 "NPC dialogue voice",
                 decoded.Samples.Length / decoded.Channels,
                 decoded.Channels,
@@ -148,18 +175,46 @@ namespace A305.Dialogue
                 false
             );
             clip.SetData(decoded.Samples, 0);
-            if (!lastSpeech.TryFill(url, clip))
-            {
-                Destroy(clip);
-                return false;
-            }
-            lastTimeline = decoded.Timeline;
+            timeline = decoded.Timeline;
             LipSyncNotice = speakerNotice ?? decoded.TimingError;
             if (speaker != null && LipSyncNotice != null)
                 Debug.LogWarning("NPC lip sync unavailable: " + LipSyncNotice, this);
-            ReplaySpeech();
             return true;
         }
+
+        /// <summary>
+        /// 스트리밍으로 받은 NPC 대답의 문장 조각 음성을 받은 순서대로 이어 재생한다. 새 대답의 조각이 오면 지난 대사의 음성과 지난 대답의
+        /// 남은 조각을 버린다. 조각은 [다시 듣기]에 쓰지 않는다([다시 듣기]는 턴 전체 음성을 받아 재생한다).
+        /// </summary>
+        /// <param name="reply">어느 대답의 조각인지(<see cref="NpcSpeechChunkData.Reply"/>)</param>
+        public void QueueSpeechChunk(int reply, byte[] wav)
+        {
+            if (reply != chunkReply)
+            {
+                StopSpeech();
+                ReleaseVoice();
+                chunkReply = reply;
+            }
+
+            if (!TryCreateVoice(wav, out AudioClip clip, out SpeechVisemeTimeline timeline))
+                return;
+            chunkClips.Add(clip);
+            chunkQueue.Enqueue(new SpeechChunk(clip, timeline));
+            PlayNextChunk();
+        }
+
+        private void Update() => PlayNextChunk();
+
+        private void PlayNextChunk()
+        {
+            if (chunkQueue.Count == 0 || IsSpeaking)
+                return;
+            SpeechChunk next = chunkQueue.Dequeue();
+            Play(next.Clip, next.Timeline);
+        }
+
+        private bool IsSpeaking =>
+            speaker != null ? speaker.IsPlaying : speechSource != null && speechSource.isPlaying;
 
         /// <summary>지금 대사의 음성을 처음부터 다시 재생한다.</summary>
         public void ReplaySpeech()
@@ -167,8 +222,13 @@ namespace A305.Dialogue
             AudioClip clip = lastSpeech.Clip;
             if (clip == null)
                 return;
+            Play(clip, lastTimeline);
+        }
+
+        private void Play(AudioClip clip, SpeechVisemeTimeline timeline)
+        {
             if (speaker != null)
-                speaker.Play(clip, lastTimeline);
+                speaker.Play(clip, timeline);
             else if (speechSource != null)
             {
                 speechSource.clip = clip;
@@ -189,6 +249,7 @@ namespace A305.Dialogue
         {
             playbackRequest++;
             pendingRequest?.Abort();
+            chunkQueue.Clear();
             if (speaker != null)
                 speaker.Stop();
             if (speechSource != null)
@@ -204,9 +265,24 @@ namespace A305.Dialogue
             lastSpeech.Clear();
             lastTimeline = null;
             LipSyncNotice = null;
+            foreach (AudioClip chunk in chunkClips)
+                Destroy(chunk);
+            chunkClips.Clear();
         }
 
         private void OnDisable() => StopSpeech();
+
+        private readonly struct SpeechChunk
+        {
+            public SpeechChunk(AudioClip clip, SpeechVisemeTimeline timeline)
+            {
+                Clip = clip;
+                Timeline = timeline;
+            }
+
+            public AudioClip Clip { get; }
+            public SpeechVisemeTimeline Timeline { get; }
+        }
 
         private void OnDestroy()
         {

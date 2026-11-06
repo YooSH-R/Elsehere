@@ -35,6 +35,8 @@
           "events": [],
           "struggled": []
         },
+        "impression": "neutral",
+        "affinity_delta": 0,
         "usage": [
           {
             "step": "memory",
@@ -100,6 +102,8 @@
           "events": [],
           "struggled": []
         },
+        "impression": "neutral",
+        "affinity_delta": 0,
         "usage": [
           {
             "step": "memory",
@@ -163,6 +167,8 @@
           "events": [],
           "struggled": []
         },
+        "impression": "neutral",
+        "affinity_delta": 0,
         "usage": [
           {
             "step": "memory",

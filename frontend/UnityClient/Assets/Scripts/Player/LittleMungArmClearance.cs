@@ -51,12 +51,24 @@ namespace A305.Player
                 if (bone != null)
                     torsoNames.Add(bone.name);
             }
-            head = new SkinnedVertexSamples(animator, headNames.Contains);
-            torso = new SkinnedVertexSamples(animator, torsoNames.Contains);
+            // 머리·몸통은 감싸는 상자만 쓰므로 바깥 끝 정점만 남긴다. 머리는 머리털·얼굴까지 정점이 2만 개가 넘어
+            // 모두 계산하면 NPC 한 명에 프레임마다 수 ms가 든다.
+            head = new SkinnedVertexSamples(animator, headNames.Contains, outermostOnly: true);
+            torso = new SkinnedVertexSamples(animator, torsoNames.Contains, outermostOnly: true);
             if (refineSurfaceContact)
             {
-                contactHead = new SkinnedVertexSamples(animator, headNames.Contains, .75f);
-                contactTorso = new SkinnedVertexSamples(animator, torsoNames.Contains, .75f);
+                contactHead = new SkinnedVertexSamples(
+                    animator,
+                    headNames.Contains,
+                    .75f,
+                    outermostOnly: true
+                );
+                contactTorso = new SkinnedVertexSamples(
+                    animator,
+                    torsoNames.Contains,
+                    .75f,
+                    outermostOnly: true
+                );
             }
             upper[0] = animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
             upper[1] = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);

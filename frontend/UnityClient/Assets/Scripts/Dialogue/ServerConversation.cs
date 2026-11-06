@@ -60,6 +60,12 @@ namespace A305.Dialogue
         private bool deadlineExpired;
         private string endReason;
 
+        // 지금 스트리밍으로 받고 있는 NPC 대답. 받는 중이 아니면 null이다.
+        private StreamedReply streamedReply;
+
+        // 대답을 보낸 횟수. 조각 음성이 어느 대답의 것인지 가린다.
+        private int replyCount;
+
         /// <param name="npcName">서버 응답을 받기 전에 보여 줄 이름</param>
         /// <param name="canTalk">음성 처리에 동의해 [말하기]를 쓸 수 있는지</param>
         /// <param name="initiatedBy">누가 먼저 말을 걸었는지. 서버의 대화 시작(CONV-01) initiatedBy로 보낸다.</param>
@@ -90,6 +96,12 @@ namespace A305.Dialogue
 
         /// <summary>NPC가 새로 말했다. 음성 재생에 쓴다.</summary>
         public event Action<NpcTurnData> NpcSpoke;
+
+        /// <summary>NPC 대답을 스트리밍으로 받는 동안 온 문장 조각 음성. 온 순서대로 이어 재생한다.</summary>
+        public event Action<NpcSpeechChunkData> NpcSpeechChunk;
+
+        /// <summary>마지막 NPC 턴을 문장 조각 음성으로 이미 들려줬는지. 들려줬으면 턴 전체 음성을 다시 재생하지 않는다.</summary>
+        public bool LastTurnSpokenInChunks { get; private set; }
 
         /// <summary>ERD npcs.code</summary>
         public string NpcCode { get; }
@@ -142,7 +154,8 @@ namespace A305.Dialogue
 
         public bool SpeaksNpcLines => true;
 
-        public bool IsNpcSpeechReady => LastNpcTurn?.Speech?.IsReady == true;
+        public bool IsNpcSpeechReady =>
+            streamedReply?.HasSpeech == true || LastNpcTurn?.Speech?.IsReady == true;
 
         public async Task StartAsync()
         {
@@ -197,6 +210,8 @@ namespace A305.Dialogue
                 async () =>
                 {
                     TurnResult result;
+                    var reply = new StreamedReply(this, utterance, ++replyCount);
+                    streamedReply = reply;
                     try
                     {
                         result = await api.SendTurnAsync(
@@ -204,7 +219,8 @@ namespace A305.Dialogue
                             requestId,
                             isVoice ? "VOICE" : "TEXT",
                             utterance,
-                            isVoice ? lastTranscript : null
+                            isVoice ? lastTranscript : null,
+                            reply
                         );
                     }
                     catch
@@ -215,13 +231,19 @@ namespace A305.Dialogue
                         textToRestore = utterance;
                         throw;
                     }
+                    finally
+                    {
+                        // 받는 동안 보여 준 줄은 저장된 턴으로 다시 그린다. 실패했으면 보낸 문장을 입력칸에 되돌린다.
+                        reply.RemoveLines();
+                        streamedReply = null;
+                    }
 
                     lastTranscript = null;
                     string sent = result.UserTurn?.Text ?? utterance;
                     lines.Add(DialogueLine.FromUser(sent));
                     userUtterances.Add(sent);
                     ApplyState(result.Conversation);
-                    AddNpcTurn(result.NpcTurn);
+                    AddNpcTurn(result.NpcTurn, reply.HasSpeech);
                     IsEnded =
                         result.Conversation != null && result.Conversation.Status != ActiveStatus;
                     responseEndReason = result.Conversation?.EndReason;
@@ -635,12 +657,15 @@ namespace A305.Dialogue
         private string InitiatedByCode =>
             initiatedBy == ConversationInitiator.User ? "USER" : "NPC";
 
-        private void AddNpcTurn(NpcTurnData turn)
+        /// <param name="spokenInChunks">스트리밍으로 받는 동안 조각 음성을 이미 들려줬는지</param>
+        private void AddNpcTurn(NpcTurnData turn, bool spokenInChunks = false)
         {
             if (turn == null)
             {
                 return;
             }
+
+            LastTurnSpokenInChunks = spokenInChunks;
 
             DialogueLine line = DialogueLine.FromNpc(turn.Text, null);
             lines.Add(line);
@@ -729,6 +754,77 @@ namespace A305.Dialogue
             SuggestWords = words;
             IsSuggestingWords = false;
             Changed?.Invoke();
+        }
+
+        /// <summary>
+        /// 스트리밍으로 받는 NPC 대답(CONV-03). 대사 글자가 오기 시작하면 로딩을 걷고 보낸 문장과 온 만큼의 대사를 보여 주며,
+        /// 조각 음성은 받는 대로 넘긴다. 저장된 턴을 받으면 이 줄들을 지우고 저장된 턴으로 다시 그린다.
+        /// </summary>
+        private sealed class StreamedReply : ITurnStream
+        {
+            private readonly ServerConversation owner;
+            private readonly string utterance;
+            private readonly int reply;
+            private readonly System.Text.StringBuilder text = new System.Text.StringBuilder();
+            private DialogueLine userLine;
+            private DialogueLine npcLine;
+
+            public StreamedReply(ServerConversation owner, string utterance, int reply)
+            {
+                this.owner = owner;
+                this.utterance = utterance;
+                this.reply = reply;
+            }
+
+            /// <summary>조각 음성을 하나라도 들려줬는지.</summary>
+            public bool HasSpeech { get; private set; }
+
+            public void OnDelta(string delta)
+            {
+                if (owner.streamedReply != this || string.IsNullOrEmpty(delta))
+                {
+                    return;
+                }
+
+                text.Append(delta);
+                if (userLine == null)
+                {
+                    userLine = DialogueLine.FromUser(utterance);
+                    owner.lines.Add(userLine);
+                    owner.Waiting = DialogueWait.None;
+                }
+
+                DialogueLine growing = DialogueLine.FromNpc(text.ToString(), null);
+                int index = npcLine == null ? -1 : owner.lines.IndexOf(npcLine);
+                if (index >= 0)
+                {
+                    owner.lines[index] = growing;
+                }
+                else
+                {
+                    owner.lines.Add(growing);
+                }
+
+                npcLine = growing;
+                owner.Changed?.Invoke();
+            }
+
+            public void OnSpeechChunk(int seq, string chunkText, byte[] wav)
+            {
+                if (owner.streamedReply != this || wav == null)
+                {
+                    return;
+                }
+
+                HasSpeech = true;
+                owner.NpcSpeechChunk?.Invoke(new NpcSpeechChunkData(reply, seq, wav));
+            }
+
+            public void RemoveLines()
+            {
+                owner.lines.Remove(npcLine);
+                owner.lines.Remove(userLine);
+            }
         }
 
         /// <param name="retry">일시적인 장애로 실패하면 [다시 시도]가 부를 요청. 다시 시도하지 않는 요청은 null이다.</param>

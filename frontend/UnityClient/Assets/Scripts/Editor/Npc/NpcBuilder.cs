@@ -473,6 +473,7 @@ namespace A305.EditorTools.Npc
             );
             GuestSignupDialogBuilder.SetUp(root, view);
             NpcNameTagBuilder.SetUp(root);
+            OfferShortcutsBuilder.SetUp(root);
             BuilderTools.RequireReferences(view);
             talkPrompt.gameObject.SetActive(false);
 

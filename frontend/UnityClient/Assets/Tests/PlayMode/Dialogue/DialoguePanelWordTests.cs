@@ -43,6 +43,38 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator WordAndIdiomCards_LeaveTheNpcStandingRowUncovered()
+        {
+            var standing = new ConversationStanding();
+            standing.Apply(
+                new ConversationState
+                {
+                    Affinity = 12,
+                    RudeCount = 0,
+                    RudeLimit = 3,
+                }
+            );
+            view.Show(new WordContent { Standing = standing });
+            yield return null;
+            yield return TurnOnMeaning();
+
+            var standingLabel = Child<TMP_Text>("Panel/Standing");
+            Assert.That(standingLabel.gameObject.activeInHierarchy, Is.True);
+            foreach (string word in new[] { "latte", "to go" })
+            {
+                yield return ClickWordInLines(word);
+                Assert.That(WordCard().gameObject.activeInHierarchy, Is.True);
+                Assert.That(
+                    InPanel(WordCard()).Overlaps(InPanel(standingLabel.rectTransform)),
+                    Is.False,
+                    $"{word} 풀이 카드가 호감도·경고 표시를 가립니다."
+                );
+                ClickCenterOf(Child<Button>("Panel/Conversation/WordCard/CloseButton"));
+                yield return null;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator GlossaryWord_ClickedInLines_ShowsAHoverCardWithItsMeaning()
         {
             yield return TurnOnMeaning();
@@ -341,7 +373,7 @@ namespace A305.Dialogue.PlayModeTests
             public bool HasHint => true;
             public string HintText => null;
             public bool UsesVoice => true;
-            public ConversationStanding Standing => null;
+            public ConversationStanding Standing { get; set; }
             public DialogueWait Waiting => DialogueWait.None;
             public bool CanReplaySpeech => false;
             public bool SpeaksNpcLines => false;

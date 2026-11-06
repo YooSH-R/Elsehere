@@ -16,7 +16,7 @@ namespace A305.Player.Tests
         [TestCase(16f / 9f)]
         [TestCase(4f / 3f)]
         [TestCase(9f / 16f)]
-        public void DefaultFraming_KeepsTheFullBodyCenteredAboveTheDialogue(float aspect)
+        public void DefaultFraming_KeepsTheBodyCenteredWithinTheScreen(float aspect)
         {
             var settings = ScriptableObject.CreateInstance<PlayerCameraSettings>();
             var cameraObject = new GameObject("FullBodyDialogueCamera");
@@ -40,13 +40,13 @@ namespace A305.Player.Tests
                 );
                 cameraObject.transform.SetPositionAndRotation(pose.position, pose.rotation);
 
-                // 얼굴 높이 1.1m인 모델의 큰 머리와 발이 하단 대화 영역 위에 들어온다.
+                // 확대한 구도에서도 얼굴 높이 1.1m인 모델의 큰 머리와 발이 화면 안에 들어온다.
                 Vector3 head = camera.WorldToViewportPoint(Face + Vector3.up * .5f);
                 Vector3 feet = camera.WorldToViewportPoint(Face - Vector3.up * 1.1f);
                 Assert.That(head.x, Is.EqualTo(.5f).Within(.01f));
                 Assert.That(feet.x, Is.EqualTo(.5f).Within(.01f));
                 Assert.That(head.y, Is.LessThan(.98f));
-                Assert.That(feet.y, Is.GreaterThan(.4f));
+                Assert.That(feet.y, Is.GreaterThan(0f));
                 Assert.That(feet.z, Is.GreaterThan(0f));
             }
             finally

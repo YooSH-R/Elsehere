@@ -181,21 +181,16 @@ namespace A305.World
 
         private bool IsBlocked(CarLoopRoute.Pose pose)
         {
-            if (
-                !passengerOnBoard
-                && player != null
-                && CarLoopRoute.ShouldYield(pose.Position, pose.Forward, player.transform.position)
-            )
+            if (!passengerOnBoard && player != null && ShouldYieldTo(player.transform.position))
             {
                 return true;
             }
 
             // 신호가 없는 횡단보도에서도 사람을 지나칠 때까지 기다린다.
-            int count = Physics.OverlapBoxNonAlloc(
-                pose.Position + pose.Forward * 3f + Vector3.up,
-                new Vector3(1.4f, 1.5f, 3f),
+            int count = Physics.OverlapSphereNonAlloc(
+                pose.Position + Vector3.up,
+                CarLoopRoute.YieldAheadMeters + CarLoopRoute.YieldHalfWidthMeters,
                 nearbyPeople,
-                Quaternion.LookRotation(pose.Forward),
                 Physics.DefaultRaycastLayers,
                 QueryTriggerInteraction.Ignore
             );
@@ -204,25 +199,14 @@ namespace A305.World
                 if (
                     nearbyPeople[i] is CharacterController person
                     && (player == null || person.gameObject != player.gameObject)
-                    && CarLoopRoute.ShouldYield(
-                        pose.Position,
-                        pose.Forward,
-                        person.transform.position
-                    )
+                    && ShouldYieldTo(person.transform.position)
                 )
                     return true;
             }
 
             foreach (LoopingCar other in Driving)
             {
-                if (
-                    other != this
-                    && CarLoopRoute.ShouldYield(
-                        pose.Position,
-                        pose.Forward,
-                        other.transform.position
-                    )
-                )
+                if (other != this && ShouldYieldTo(other.transform.position))
                 {
                     return true;
                 }
@@ -230,6 +214,9 @@ namespace A305.World
 
             return false;
         }
+
+        private bool ShouldYieldTo(Vector3 obstacle) =>
+            CarLaneBypass.ShouldYield(Route, Distance, parkedTruckBypassOffset, obstacle);
 
         private void Place()
         {

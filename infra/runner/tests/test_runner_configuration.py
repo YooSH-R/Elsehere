@@ -46,7 +46,7 @@ class RunnerConfigurationTests(unittest.TestCase):
         self.assertIn("a305-linux-light", self.tags_for("dev:plan"))
         self.assertIn("a305-linux-light", self.tags_for("prod:plan"))
 
-    def test_new_dev_commit_cancels_obsolete_parent_and_child_checks(self):
+    def test_new_dev_commit_cancels_only_candidates_without_started_unity_checks(self):
         workflow = self.jobs["workflow"]
         self.assertEqual(workflow["auto_cancel"]["on_new_commit"], "none")
 
@@ -61,8 +61,9 @@ class RunnerConfigurationTests(unittest.TestCase):
             if rule["if"]
             == '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_DEPLOY_CHILD == "true" && $A305_DEPLOY_ENVIRONMENT == "dev"'
         )
-        self.assertEqual(dev_parent_rule["auto_cancel"]["on_new_commit"], "interruptible")
-        self.assertEqual(dev_child_rule["auto_cancel"]["on_new_commit"], "interruptible")
+        self.assertEqual(dev_parent_rule["auto_cancel"]["on_new_commit"], "none")
+        self.assertEqual(dev_child_rule["auto_cancel"]["on_new_commit"], "conservative")
+        self.assertEqual(self.jobs["unity:editor-and-webgl"]["interruptible"], "false")
         self.assertEqual(self.jobs["dev:child"]["interruptible"], "true")
         child_fallback_rule = next(
             rule
@@ -80,6 +81,17 @@ class RunnerConfigurationTests(unittest.TestCase):
         self.assertLess(
             workflow["rules"].index(dev_parent_rule), workflow["rules"].index(branch_fallback_rule)
         )
+
+    def test_new_mr_commit_still_cancels_obsolete_mr_checks(self):
+        workflow = self.jobs["workflow"]
+        mr_rule = next(
+            rule
+            for rule in workflow["rules"]
+            if rule["if"]
+            == '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != "dev" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != "main"'
+        )
+        self.assertEqual(mr_rule["auto_cancel"]["on_new_commit"], "interruptible")
+        self.assertEqual(self.jobs["default"]["interruptible"], "true")
 
     def test_running_deployment_and_production_pipeline_remain_protected(self):
         self.assertEqual(self.jobs["dev:deliver"]["interruptible"], "false")

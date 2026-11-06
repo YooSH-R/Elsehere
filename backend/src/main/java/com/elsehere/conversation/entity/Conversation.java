@@ -16,6 +16,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -82,6 +83,16 @@ public class Conversation extends BaseEntity {
   private Integer firstDayStage;
   private Integer townStoryStage;
   private Long reviewCardId;
+
+  @Column(columnDefinition = "jsonb")
+  @ColumnTransformer(write = "?::jsonb")
+  private String reviewResult;
+
+  public void recordReviewResult(String result) {
+    if (reviewResult == null) {
+      reviewResult = result;
+    }
+  }
 
   public boolean isReview() {
     return reviewCardId != null;

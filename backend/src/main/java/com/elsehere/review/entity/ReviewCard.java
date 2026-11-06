@@ -61,6 +61,14 @@ public class ReviewCard extends BaseEntity {
   @ColumnTransformer(write = "?::jsonb")
   private String usedExpressions;
 
+  public void recordPractice(Instant endedAt, String used) {
+    practiceCount++;
+    if (lastPracticedAt == null || !endedAt.isBefore(lastPracticedAt)) {
+      lastPracticedAt = endedAt;
+      usedExpressions = used;
+    }
+  }
+
   public static ReviewCard of(
       Long userId,
       Long sourceConversationId,

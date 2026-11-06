@@ -22,6 +22,7 @@ unity:format:
           - infra/scripts/unity-test-scope.ps1
           - infra/scripts/unity-code-quality.ps1
           - infra/scripts/run-unity-ci.ps1
+          - infra/scripts/publish-webgl-package.ps1
           - infra/scripts/prepare-unity-test-inputs.ps1
           - infra/tests/tripo/**/*
           - .gitlab/ci/unity.yml
@@ -91,6 +92,7 @@ unity:external-mr:
           - infra/scripts/unity-test-scope.ps1
           - infra/scripts/unity-code-quality.ps1
           - infra/scripts/run-unity-ci.ps1
+          - infra/scripts/publish-webgl-package.ps1
           - infra/scripts/prepare-unity-test-inputs.ps1
           - infra/tests/tripo/**/*
           - .gitlab/ci/unity.yml
@@ -103,12 +105,36 @@ unity:editor-and-webgl:
       if ($env:CI_PIPELINE_SOURCE -ne 'parent_pipeline' -or $env:A305_BUILD_WEB -eq 'true') {
         powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action build
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/publish-webgl-package.ps1
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       }
   artifacts:
     paths:
       - dist/unity-ci/
-      - dist/webgl/
+      - dist/webgl-package.json
   rules:
     - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_UNITY == "true"'
     - !reference [.deployment-parent-skips, rules]
     - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_PROTECTED == "true" && $RUN_UNITY_BUILD == "true"'
+
+unity:package-cleanup:
+  extends: .linux-light-job
+  stage: deploy
+  image: python:3.12-alpine
+  timeout: 5m
+  when: always
+  allow_failure:
+    exit_codes: 77
+  needs:
+    - job: unity:editor-and-webgl
+      artifacts: true
+    - job: dev:deliver
+      artifacts: false
+      optional: true
+    - job: prod:deliver
+      artifacts: false
+      optional: true
+  script:
+    - python infra/scripts/webgl_package.py cleanup
+  rules:
+    - !reference [unity:editor-and-webgl, rules]

@@ -518,7 +518,9 @@
             "graceDays",
             "recognitionDropPerDay",
             "affinityFollowRate",
-            "rudeAffinityFallback"
+            "rudeAffinityFallback",
+            "goodConversationAffinity",
+            "goodConversationMinLearnerLines"
           ],
           "properties": {
             "recognitionPerConversation": {
@@ -554,6 +556,17 @@
               "minimum": -100,
               "maximum": 0,
               "description": "무례 판정(/v1/guard)이 무례라고 했는데 감점량(affinity_delta)이 비었을 때 백엔드가 쓰는 감점. 성격 배수가 없는 NPC의 감점과 같게 둔다."
+            },
+            "goodConversationAffinity": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "대화가 끝난 뒤 기억 카드를 만드는 모델(/v1/memory)이 이번 대화를 좋았다(good)고 보면 더하는 호감. 무례로 확정된 줄이 있는 대화에는 주지 않는다."
+            },
+            "goodConversationMinLearnerLines": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "좋은 대화 호감을 주려면 학습자가 이번 대화에서 말한 최소 줄 수. 짧게 끊고 다시 거는 반복으로 호감을 쌓지 못하게 한다."
             }
           }
         },

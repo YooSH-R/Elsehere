@@ -18,7 +18,8 @@ MR 파이프라인은 `.pre` 단계의 `ci:merge-conflicts`에서 실제 대상 
 | `unity:format` | 프론트, API 명세, Unity CI·검사 스크립트·규약 또는 공통 작성 지침 변경 | 고정된 .NET SDK와 CSharpier로 직접 작성한 C# 포맷 검사 |
 | `unity:browser-tests` | WebGL 플러그인·Web 템플릿·`infra/tests/webgl_*.test.cjs`·Unity CI 설정 변경, Unity 검사를 선택한 배포 자식 | Node 24에서 브라우저 연동 회귀 검사. Linux Runner를 사용하며 Windows Editor 검사와 별도로 실패를 막습니다. |
 | `unity:external-mr` | 다른 프로젝트에서 보낸 Unity 실행 관련 MR | 노트북에서 외부 코드를 실행하지 않고 필수 검사 실패로 병합 차단. 검토한 변경을 프로젝트 작업 브랜치로 옮겨 검사 |
-| `unity:editor-and-webgl` | Unity 검사를 선택한 보호된 dev 배포 자식, 모든 운영 배포 자식 또는 보호된 ref의 웹 실행에서 `RUN_UNITY_BUILD=true` | Windows 전용 Runner의 EditMode·PlayMode 테스트, 필요한 경우 WebGL 빌드, NUnit XML·로그·커밋 식별자가 포함된 정적 산출물 |
+| `unity:editor-and-webgl` | Unity 검사를 선택한 보호된 dev 배포 자식, 모든 운영 배포 자식 또는 보호된 ref의 웹 실행에서 `RUN_UNITY_BUILD=true` | Windows 전용 Runner의 EditMode·PlayMode 테스트, 필요한 경우 WebGL 빌드와 프로젝트 내부 임시 패키지 게시, NUnit XML·로그·패키지 식별 파일 |
+| `unity:package-cleanup` | `unity:editor-and-webgl`과 같은 실행 조건, 전달 작업 이후 성공·실패에 관계없이 실행 | 해당 빌드 작업의 임시 WebGL 패키지만 정리 |
 | `ai:check-and-test` | AI, API 명세 또는 공통 CI·작성 지침 변경 | Python 3.12·Ruff 검사, 피드백·워커 테스트, 구문 컴파일, JUnit·소스 아카이브·커밋 식별자 |
 | `ai:panel-tests` | AI 피드백, API 명세 또는 공통 CI·작성 지침 변경 | Node.js 22의 피드백 패널 테스트 |
 | `infra:compose-and-nginx` | 확인용 Compose가 존재하고 관련 설정·공통 CI 변경 | 개발·운영 Compose 해석, 호스트 프록시와 두 환경 응답 템플릿의 Nginx 문법 검사 |
@@ -27,13 +28,13 @@ MR 파이프라인은 `.pre` 단계의 `ci:merge-conflicts`에서 실제 대상 
 | `infra:observability` | 모니터링·Nginx·관측 검증 스크립트 또는 공통 CI 변경 | 요청 ID·로그의 민감 정보 제외, Prometheus·Grafana 구성, 경보 발동·복구와 가짜 수신기 전송 검사 |
 | `prod:plan`·`prod:child`·`prod:deliver` | 보호된 `main` Push에서 자동 시작. 수동 재실행은 웹 실행과 `RUN_PROD_DEPLOY=true` 및 검증 변수 사용 | 직렬화된 자식에서 모든 영역 검사 후 누적 이미지 빌드·운영 자동 전달·상태 점검과 버전 보관. 설치·DB·병합 전 통합 검증 조건은 [운영 배포 문서](prod-deployment.md) 참조 |
 
-일반 문서 변경은 MR 충돌 검사와 빠른 YAML 검사를 수행합니다. API 명세는 일반 문서와 구분하여 백엔드·프론트·AI 검사를 함께 실행합니다. 작업 브랜치의 자동 검사는 Draft를 포함한 MR 파이프라인으로 통일합니다. MR을 만들기 전의 작업 브랜치 Push에는 파이프라인을 생성하지 않으며, 필요하면 웹에서 수동 실행합니다. 같은 MR에 새 커밋이 올라오면 이전 커밋의 취소 가능한 검사만 자동 취소하고 최신 커밋에 필요한 검사는 모두 수행합니다. `dev`·`main`의 커밋별 검사와 배포는 보존합니다. 웹에서 수동 실행한 파이프라인은 사용 가능한 백엔드·Unity 포맷·AI·관측 검사를 모두 수행하고, 확인용 Compose가 있으면 Compose·Nginx 검사도 수행합니다.
+일반 문서 변경은 MR 충돌 검사와 빠른 YAML 검사를 수행합니다. API 명세는 일반 문서와 구분하여 백엔드·프론트·AI 검사를 함께 실행합니다. 작업 브랜치의 자동 검사는 Draft를 포함한 MR 파이프라인으로 통일합니다. MR을 만들기 전의 작업 브랜치 Push에는 파이프라인을 생성하지 않으며, 필요하면 웹에서 수동 실행합니다. 같은 MR에 새 커밋이 올라오면 이전 커밋의 취소 가능한 검사만 자동 취소하고 최신 커밋에 필요한 검사는 모두 수행합니다. 새 `dev` 커밋이 생기면 오래된 개발 배포 후보의 취소 가능한 검사를 중단하고 누적 변경을 최신 후보에서 검사합니다. `main`의 검사와 이미 시작한 배포는 보존합니다. 웹에서 수동 실행한 파이프라인은 사용 가능한 백엔드·Unity 포맷·AI·관측 검사를 모두 수행하고, 확인용 Compose가 있으면 Compose·Nginx 검사도 수행합니다.
 
-자동 취소는 `.gitlab-ci.yml`의 MR 전용 `workflow:rules:auto_cancel`에서 `on_new_commit: interruptible`로 설정합니다. 소스 브랜치가 `dev`·`main`인 MR, Push·웹 수동 실행·배포 자식 파이프라인은 기본값 `none`을 유지합니다. 배포 연결과 실제 전달 작업의 `interruptible: false`도 유지하므로 진행 중인 배포를 중단하지 않습니다. 최신 MR 검사의 실패·미실행은 계속 병합을 차단하며 다른 MR의 검사는 이 정책으로 취소하지 않습니다.
+자동 취소는 `.gitlab-ci.yml`의 `workflow:rules:auto_cancel`에서 `on_new_commit: interruptible`로 설정합니다. 일반 MR과 보호된 `dev`의 Push·dev 배포 자식 파이프라인에 적용합니다. `dev:child` 연결은 취소할 수 있지만 자식 작업은 자식 파이프라인의 규칙에 따라 따로 취소됩니다. `dev:deliver`와 운영 배포 연결·전달 작업은 `interruptible: false`로 보호합니다. `main` Push와 웹 수동 실행은 기본값 `none`을 유지합니다. 최신 MR 검사의 실패·미실행은 계속 병합을 차단하며 다른 MR의 검사는 이 정책으로 취소하지 않습니다.
 
 이 정책은 변경된 CI 설정을 포함해 생성한 파이프라인부터 적용됩니다. 기존 작업 브랜치는 최신 `dev`를 반영해야 하며 이미 생성된 작업의 설정은 소급 변경하지 않습니다. GitLab 프로젝트의 **Auto-cancel redundant pipelines**도 활성화되어 있어야 합니다.
 
-자동 취소의 기준은 같은 MR ref의 새 커밋입니다. 같은 커밋의 수동 재실행을 이전 커밋 검사 정리로 취급하지 않습니다. 설정과 취소 가능 작업의 의미는 [GitLab 자동 취소 설정](https://docs.gitlab.com/ci/yaml/#workflowauto_cancelon_new_commit), [interruptible 기준](https://docs.gitlab.com/ci/yaml/#interruptible)을 따릅니다.
+자동 취소의 기준은 같은 ref의 새 커밋입니다. 같은 커밋의 수동 재실행을 이전 커밋 검사 정리로 취급하지 않습니다. 설정과 취소 가능 작업의 의미는 [GitLab 자동 취소 설정](https://docs.gitlab.com/ci/yaml/#workflowauto_cancelon_new_commit), [interruptible 기준](https://docs.gitlab.com/ci/yaml/#interruptible)을 따릅니다.
 
 자동 취소는 이전 검사의 실행·대기를 중단하며 이미 완료된 결과와 취소 이력은 남깁니다. 이전 커밋에서 검사가 성공했더라도 최신 커밋의 필수 검사 통과를 대신하지 않습니다.
 
@@ -124,7 +125,7 @@ EC2의 동시 실행 상한은 세 개이며, 경량 검사 한 자리를 빌드
 
 동시 실행 수는 작업을 받을 수 있는 상한이며 CPU 4개·메모리 16GiB 서버에서 모든 작업의 최대 자원을 보장하는 값은 아닙니다. 앱·모니터링과 자원을 공유하므로 CPU 사용률·가용 메모리·앱 응답을 함께 확인합니다. 빌드 부하가 크면 일반 Runner의 `limit`를 먼저 낮춰 경량 전용 자리를 유지합니다. Runner 자체의 컨테이너 제한과 작업·서비스 제한은 별도로 적용합니다. 태그 공유는 기존 동시 실행 수와 자원 상한 안에서 작업을 나눠 받는 방식입니다.
 
-백엔드는 Gradle 의존성·Wrapper 캐시와 `--build-cache`의 작업 결과 캐시를 함께 사용합니다. 입력이 달라진 작업은 다시 실행하며 캐시가 없어도 검사·빌드를 수행합니다. 캐시 복원·저장 시간도 작업 실행 시간에 포함해 확인합니다.
+백엔드는 Gradle 의존성·Wrapper 캐시와 `--build-cache`의 작업 결과 캐시를 함께 사용합니다. 테스트가 실패한 경우에도 내려받은 의존성·Wrapper 캐시를 저장하여 다음 검사에서 같은 다운로드를 반복하지 않도록 합니다. 테스트 보고서와 JAR는 캐시에 넣지 않고 기존 산출물로 관리하며, 실패한 검사 결과는 계속 실패로 남습니다. 입력이 달라진 작업은 다시 실행하며 캐시가 없어도 검사·빌드를 수행합니다. 캐시 복원·저장 시간도 작업 실행 시간에 포함해 확인합니다.
 
 제한값과 허용 서비스는 EC2의 `infra/runner/config.template.toml`, 노트북의 `infra/runner/laptop.config.template.toml`을 따릅니다. 두 파일에는 토큰이 없으며 등록 완료 파일을 대체하는 완성본이 아닙니다. 등록된 항목의 인증 정보는 보존하고 제한값을 해당 항목에 병합합니다. [Runner 고급 설정](https://docs.gitlab.com/runner/configuration/advanced-configuration/)
 

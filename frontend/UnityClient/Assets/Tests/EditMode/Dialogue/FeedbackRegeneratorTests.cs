@@ -120,7 +120,8 @@ namespace A305.Dialogue.Tests
                 string requestId,
                 string inputType,
                 string text,
-                string sttRawText
+                string sttRawText,
+                ITurnStream stream
             )
             {
                 throw new NotSupportedException();

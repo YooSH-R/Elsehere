@@ -84,8 +84,11 @@ powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1
 - 공통 캐릭터의 목 경계·머리 크기 검사는 저장된 조합과 부품을 메모리에 복제하고 현재 가져오기 환경의 의존성 정보를 설정한 뒤, 원래의 불일치 메시가 각각의 오류로 검출되는지 확인합니다. 저장된 조합의 승인 상태나 검사 기준은 변경하지 않습니다.
 - 테스트는 `-runTests`로 종료하고 `-quit`을 함께 사용하지 않습니다. WebGL 빌드에는 `-quit`과 저장소의 빌드 진입점을 사용합니다.
 - Editor 프로세스의 실제 종료까지 기다립니다. 크래시 후 남은 컴파일 보조 프로세스 때문에 작업 종료가 지연되지 않도록 Editor의 종료 코드를 직접 확인하고 로그를 보존합니다. 테스트 XML 누락·실패·미실행·성공 테스트 0개 또는 빌드 실패를 성공으로 처리하지 않습니다.
+- Editor가 실행 중이면 기본 30초마다 현재 단계(EditMode·PlayMode·WebGL)와 경과시간을 CI 로그에 남기고 상세 로그를 `dist/unity-ci/`로 복사합니다. 검사 도중 제한 시간으로 종료되어도 그때까지 복사된 로그를 산출물로 확인할 수 있습니다. 로컬 진단에서는 `-ProgressIntervalSeconds`로 주기를 조절할 수 있으며, 진행 메시지는 테스트 성공이나 정체 해소를 뜻하지 않습니다.
 - NUnit 결과와 Unity 로그는 임시 폴더에 생성한 뒤 GitLab 업로드용 사본을 Git에서 제외한 `dist/unity-ci/`에 모읍니다. Unity의 기본 NUnit XML을 JUnit 보고서로 표시하지 않습니다.
 - WebGL 산출물은 `dist/webgl/`이며 `version.json`의 전체 커밋 SHA가 후보와 일치해야 합니다. 빌드된 정적 파일의 실제 HTTPS 로딩과 화면 확인은 별도 검증입니다.
+- CI는 WebGL 빌드 후 `publish-webgl-package.ps1`로 같은 프로젝트의 Generic Package Registry에 `a305-webgl/<파이프라인 ID>-<작업 ID>/webgl.tar`를 게시합니다. Windows 기본 `tar.exe`와 작업 중에만 유효한 `CI_JOB_TOKEN`을 사용하며 별도 토큰은 등록하지 않습니다. 프로젝트의 패키지 저장소가 활성화되어 있어야 합니다.
+- 일반 GitLab 산출물에는 `dist/unity-ci/`의 테스트·로그와 `dist/webgl-package.json`의 커밋·파이프라인·SHA256·크기만 넣습니다. 큰 WebGL 파일을 일반 산출물 ZIP에 함께 넣지 않으므로 해당 ZIP의 용량 상한을 올릴 필요가 없습니다. 전달과 임시 패키지 정리는 [개발 자동 배포](../dev-auto-deployment.md#webgl-빌드-전달과-정리)를 따릅니다.
 - 동시에 최대 두 작업을 실행하도록 Runner 제한을 사용합니다. 동시 실행 번호별 CI 작업 폴더의 `Library`를 유지해 다시 가져오는 비용을 줄이며, 빌드 결과·로그는 새 작업에서 정리합니다. 두 번째 작업 폴더의 최초 실행에는 별도의 에셋 가져오기·패키지 준비·Blender 설치 시간이 필요합니다.
 
 Editor 종료 대기와 선택적 테스트 범위 판정의 회귀 검사는 Windows에서 `python -m unittest discover -s infra/scripts/tests -p "test_unity_*.py" -v`로 실행합니다. 가짜 Editor가 실패한 뒤 보조 프로세스가 남아도 실패와 로그가 즉시 전달되는지, 변경한 테스트·실행 코드의 전이 의존 관계·공유 입력·비교 실패에 따라 범위를 고르는지 검사하며 실제 Unity 테스트를 대신하지 않습니다. Linux의 인프라 검사에서는 이 Windows 전용 검사를 건너뜁니다.

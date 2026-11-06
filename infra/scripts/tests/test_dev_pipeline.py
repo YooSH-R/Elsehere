@@ -191,6 +191,24 @@ class DevelopmentDeliveryTests(unittest.TestCase):
             ["git"], 0, stdout=f"{commit}\trefs/heads/dev\n".encode()
         )
 
+    def test_invalid_web_package_cannot_start_image_builds(self):
+        self.plan["builds"] = ["web"]
+        with (
+            patch.dict("os.environ", {"A305_DEPLOY_PLAN": json.dumps(self.plan)}),
+            patch("dev_pipeline.verify_development_candidate"),
+            patch("dev_pipeline.create_release_plan", return_value=self.plan),
+            patch("dev_pipeline.server_request", return_value=self.state),
+            patch(
+                "dev_pipeline.restore_webgl",
+                create=True,
+                side_effect=ValueError("WebGL package checksum mismatch"),
+            ),
+            patch("dev_pipeline.build_image") as build,
+            self.assertRaisesRegex(ValueError, "checksum mismatch"),
+        ):
+            dev_pipeline.deliver_pipeline(self.repository, self.candidate, "dev", "123")
+        build.assert_not_called()
+
     def test_deployed_commit_cannot_start_image_builds_or_apply_again(self):
         with (
             patch("dev_pipeline.run_git", return_value=self.branch_head("b" * 40)),

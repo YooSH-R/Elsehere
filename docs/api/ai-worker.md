@@ -21,11 +21,12 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | CONV-02 음성 인식 | `POST /v1/stt` | `sttRawText` ← `text`, `durationMs` ← `audio_s`×1000. `text: ""`이면 `STT_NO_SPEECH`. 413 `audio_too_large` → `AUDIO_TOO_LARGE`, 415 `audio_format_unsupported` → `AUDIO_FORMAT_UNSUPPORTED` |
 | CONV-03 발화 전송 | `POST /v1/judge`와 `POST /v1/guard`를 동시에 → (Spring 규칙) → `POST /v1/npc/reply` | 판정의 `intent.ids`를 Spring 규칙이 검증해 상태·미션을 확정(`ai_candidates`). 무례 판정은 `/v1/guard`(2.2.1절). 판정의 `events`는 그 학습자 턴에 저장해 이후 `history[].events`로 보냄. 무례가 아닌 턴이면 판정의 `affinity_delta`를 호감에 더함(2.2절). `npcTurn.text` ← `done.text` |
 | CONV-03 `npcTurn.speech` | `done.audio_full_id` → `GET /v1/audio/{id}` | 턴 전체 음성 하나를 받아 저장(`npc_audio_key`). `null`이면 `speech.status: FAILED` |
+| CONV-03 스트리밍(`Accept: text/event-stream`) | `/v1/npc/reply`를 `stream_chunks: true`로 | `delta` → `delta` 그대로, `audio`의 `audio_id` → `GET /v1/audio/{id}`로 받은 조각 WAV를 base64로 실어 `audio`(`audio_id: null`이면 `wav: null`), `done` → 턴 저장 뒤 `turn`. 판정까지는 JSON 응답과 같음 |
 | CONV-04 뜻 보기 | `POST /v1/meaning` | `meaningKo` ← `meaning_ko`, `glossary[].meaningKo` ← `glossary[].meaning_ko` |
 | CONV-05 힌트 | `POST /v1/hint` | `hintText` ← `say_this[0].en` (`say_this[0].ko`·`keywords`는 3단계 힌트용으로 남음) |
 | CONV-06 다시 듣기 | (없음) | CONV-03에서 저장한 턴 전체 음성 |
 | CONV-07 NPC 음성 다시 만들기 | `POST /v1/tts` | `text` ← 대사 전문, `voice` ← `npc.tts_voice`, `speed` ← `npc.tts_speed` × 난이도 배율(1.1절) |
-| CONV-08 대화 종료 피드백 | `POST /v1/feedback` (+ `POST /v1/memory`, `POST /v1/npc/relationship`, `POST /v1/npc/follow-up`) | `ai/feedback` 계약 0.3.0. CONV-08 형식 변환 위치는 `ai/feedback` 담당과 정함. 관계 갱신(2.7.2절)으로 알아봄을 더함. 곧 건넬 것(2.7.3절)이 있으면 `followUp`(`itemKo` ← `item_ko`) |
+| CONV-08 대화 종료 피드백 | `POST /v1/feedback` (+ `POST /v1/memory`, `POST /v1/npc/relationship`, `POST /v1/npc/follow-up`) | `ai/feedback` 계약 0.3.0. CONV-08 형식 변환 위치는 `ai/feedback` 담당과 정함. 관계 갱신(2.7.2절)으로 알아봄을, 기억 카드(2.7.1절)의 `affinity_delta`로 좋은 대화 호감을 더함. 곧 건넬 것(2.7.3절)이 있으면 `followUp`(`itemKo` ← `item_ko`) |
 | FB-04 모범 음성 | `POST /v1/tts` | |
 | 어드민 NPC 랜덤 생성 (S15P31A305-290, 백엔드 `[미정]`) | `POST /v1/npc/persona/generate` | 고정 칸·DB 후보를 실어 보내고, 받은 `npc_configuration`을 `npcs`에 저장 (2.9절) |
 | 어드민 NPC MBTI 변경 (S15P31A305-290, 백엔드 `[미정]`) | `POST /v1/npc/persona/derive` | 저장된 카드의 자동 칸을 다시 계산해 저장 (2.9.1절) |
@@ -38,9 +39,9 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 - **행동 묘사**: `*...*`는 지우고 말만 판정합니다. 행동 묘사만 있으면 `dropped: true`이고 턴으로 세지 않습니다.
 - **난이도**: 1.1절 `level` 표. 판정에는 영향이 없습니다.
 - **한 턴 구조**: NPC 한 턴은 `turnId` 하나, 대답 한 줄(난이도에 따라 1~3문장)입니다. 문장으로 쪼개 저장하지 않습니다(뜻 보기·힌트·추천 단어가 턴 단위).
-  - 음성은 두 가지입니다. 문장 조각(`audio` 이벤트)은 바로 재생용이고, 다시 듣기용은 `done`의 턴 전체 음성(`audio_full_id`) 하나입니다. Spring은 `stream_chunks: false`로 조각 이벤트·보관을 생략하고 전체 음성만 받습니다. 이 옵션의 기본값은 `true`여서 기존 스트리밍 사용처는 유지됩니다.
+  - 음성은 두 가지입니다. 문장 조각(`audio` 이벤트)은 바로 재생용이고, 다시 듣기용은 `done`의 턴 전체 음성(`audio_full_id`) 하나입니다. Spring은 CONV-03을 JSON으로 응답할 때 `stream_chunks: false`로 조각 이벤트·보관을 생략하고 전체 음성만 받고, 스트리밍으로 응답할 때 `stream_chunks: true`로 조각을 받아 Unity로 넘깁니다. 대화 시작(CONV-01)은 아직 `false`입니다. 이 옵션의 기본값은 `true`입니다.
   - 추천 단어는 `suggest_words: true`면 대답이 끝난 뒤 남은 음성 합성과 동시에 만들어 `words` 이벤트로 옵니다. 다만 `done`이 추천 단어를 최대 `WORDS_BUDGET_S`까지 기다리므로, Spring은 `suggest_words: false`로 부르고 추천 단어는 CONV-12에서 `/v1/suggest`로 따로 받습니다.
-  - 전송: Spring이 `done`까지 받은 뒤 한 번에 응답(REST)해도 되고, `delta`·`audio`·`words`를 Unity로 바로 중계(스트리밍)해도 됩니다. 워커 계약은 같습니다. 첫 음성까지의 시간은 스트리밍이 짧습니다.
+  - 전송: Spring은 CONV-03에서 Unity가 스트리밍을 요청하면 `delta`·`audio`를 받는 대로 중계하고([MVP API 명세](mvp-api.md) CONV-03 "스트리밍"), 그렇지 않으면 `done`까지 받은 뒤 한 번에 응답합니다. 워커 계약은 같습니다. 첫 글자·첫 음성까지의 시간은 스트리밍이 짧습니다.
 
 ## 1. 공통
 
@@ -181,9 +182,9 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 **`affinity_delta` — 사건으로 오르는 호감**
 
 - 백엔드는 무례로 세지 않은 턴(`/v1/guard`의 `abusive`가 `true`가 아닌 턴)을 저장하는 **같은 트랜잭션**에서 `affinity = min(100, affinity + affinity_delta)`로 적용합니다. 무례로 센 턴에는 쓰지 않고 `/v1/guard`의 감점만 씁니다(무례 줄의 다른 사건은 버림). 그래서 그 턴의 CONV-03 응답 `conversation.affinity`에 오른 값이 바로 보입니다.
-- 크기는 `사건 인상 × affinityFollowRate(0.75) × NPC 사건 반응 크기`입니다. 인상은 공통 규칙 `world-rules.json`의 `conversationEvents`입니다(인사 +1, 용건 끝냄 +2, 사과·칭찬 +5, 잡담·사적인 질문·작별 0). 반응 크기는 `npc.profile`의 성격 5축과 행동 조각으로 정하고, 카드가 없으면 1입니다.
+- 크기는 `사건 인상 × affinityFollowRate(0.75) × NPC 사건 반응 크기`입니다. 인상은 공통 규칙 `world-rules.json`의 `conversationEvents`입니다(인사 +1, 용건 끝냄 +2, 사과 +5, 칭찬 +9, 잡담·사적인 질문·작별 0). 카드 없는 NPC에게 칭찬 한 번은 호감 +7입니다. 반응 크기는 `npc.profile`의 성격 5축과 행동 조각으로 정하고, 카드가 없으면 1입니다.
 - 이번 대화의 앞선 학습자 줄(`history`, 최대 40줄)에서 센 사건은 다시 세지 않습니다(칭찬을 반복해도 한 번). 무례 줄(`rude: true`)의 사건은 센 적 없는 것으로 봅니다.
-- 앞선 줄까지와 이 줄까지의 몫을 각각 반올림해 차이를 돌려줍니다. 그래서 한 대화에서 더한 합은 대화 전체 인상을 한 번에 반올림한 값과 같습니다. 예: 카드 없는 NPC에게 인사 → 칭찬 → 용건 끝냄이면 `1`, `3`, `2`로 합 `6`입니다.
+- 앞선 줄까지와 이 줄까지의 몫을 각각 반올림해 차이를 돌려줍니다. 그래서 한 대화에서 더한 합은 대화 전체 인상을 한 번에 반올림한 값과 같습니다. 예: 카드 없는 NPC에게 인사 → 칭찬 → 용건 끝냄이면 `1`, `7`, `1`로 합 `9`입니다(줄마다 반올림하므로 용건 끝냄 몫이 `2`가 아니라 `1`).
 - 지금 호감을 모르고 계산하므로 끝(100)에 가까울수록 덜 오르는 완충은 없습니다(무례 감점과 같음).
 - 잡담은 대화 중 기분만 좋게 하고 호감은 올리지 않습니다. 영어 실수·한국어·짧은 대답은 호감을 깎을 일로 보지 않습니다(요구사항 REQ-24).
 - 비어 있으면(이 칸을 모르는 이전 워커) 백엔드는 호감을 바꾸지 않습니다.
@@ -372,9 +373,11 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 요청: `npc`, `outcome`(대화 결과 한 줄), `history`(최대 200줄, 학습자 줄의 `english`·`rude` 포함), `memory_card`(이전 카드).
 
-응답: `{"memory_card": {"name": "", "claims": [], "events": [], "attitude": "neutral", "struggled": []}, "usage": [...]}`
+응답: `{"memory_card": {"name": "", "claims": [], "events": [], "attitude": "neutral", "struggled": []}, "impression": "neutral", "affinity_delta": 0, "usage": [...]}`
 
 - `memory_card`: `name`(최대 40자), `claims`·`events`·`struggled`(각 최대 5개, 항목당 100자), `attitude`(`friendly`·`neutral`·`wary`). 연락처(전화번호·이메일)는 지웁니다.
+- `impression`: 카드를 만드는 같은 모델 호출이 고른 **이번 대화만의** 인상(`good`·`neutral`·`bad`). 지난 방문은 보지 않습니다. 용건 밖으로 분명히 즐거웠을 때(친근한 잡담, 따뜻한 말, NPC에 대한 관심)만 `good`이고, 정중하지만 평범한 주문·요청은 `neutral`입니다. 영어 실수·한국어·짧은 대답은 인상을 나쁘게 하지 않습니다. 모델이 빠뜨리거나 정해진 값이 아니면 `neutral`로 보고 카드는 그대로 돌려줍니다.
+- `affinity_delta`: 좋은 대화로 올릴 호감(정수). `impression`이 `good`이고, 학습자가 이번 대화에서 공통 규칙의 `goodConversationMinLearnerLines`(3)줄 이상 말했으며, 무례로 확정된 줄(`rude: true`)이 없을 때만 `goodConversationAffinity`(3)이고 그 밖에는 `0`입니다. 나쁜 대화도 깎지 않습니다(무례는 대화 중에 이미 깎음). 백엔드는 카드를 저장하는 같은 트랜잭션에서 `affinity = min(100, affinity + affinity_delta)`로 더합니다. 다음 대화를 시작할 때 오른 값이 보입니다.
 - 공급자 실패는 429/503, 출력이 JSON 객체가 아니면 502 `invalid_output`. **실패하면 이전 카드를 그대로 둡니다.**
 - 카드의 다섯 필드는 모두 필요합니다. 누락·추가 필드, 잘못된 자료형·문자열이 아닌 배열 원소, 중복 JSON 키·비표준 상수도 502 `invalid_output`입니다. 연락처는 길이 제한 적용 전에 검사합니다.
 - 생성 지연만으로 같은 기억 요청을 병렬 추가 전송하지 않습니다(`hedge=False`). 공급자 실패의 기존 재시도·대체 모델 처리는 유지됩니다.
@@ -385,7 +388,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 ### 2.7.2 `POST /v1/npc/relationship` — 대화 뒤 알아봄 갱신
 
-정상 종료된 대화 하나를 사용자 × NPC 알아봄에 반영합니다. `/v1/memory`와 같은 자리(대화 종료 처리)에서 부릅니다. **모델을 부르지 않습니다.** 변화량은 공통 규칙으로 코드가 계산합니다. 호감은 대화 중에 발화마다 이미 바꿨으므로(사건은 2.2절 `/v1/judge`, 무례는 2.2.1절 `/v1/guard`의 `affinity_delta`) 여기서는 계산하지 않습니다. 워커는 저장하지 않습니다. 설계는 [NPC 생활·관계 설계](../npc-life-design.md) 4절입니다.
+정상 종료된 대화 하나를 사용자 × NPC 알아봄에 반영합니다. `/v1/memory`와 같은 자리(대화 종료 처리)에서 부릅니다. **모델을 부르지 않습니다.** 변화량은 공통 규칙으로 코드가 계산합니다. 호감은 대화 중에 발화마다 바꾸고(사건은 2.2절 `/v1/judge`, 무례는 2.2.1절 `/v1/guard`의 `affinity_delta`) 좋은 대화 몫은 2.7.1절 `/v1/memory`가 주므로 여기서는 계산하지 않습니다. 워커는 저장하지 않습니다. 설계는 [NPC 생활·관계 설계](../npc-life-design.md) 4절입니다.
 
 요청: `npc`(`profile`이 있으면 성격으로 알아보는 속도를 정함), `relationship`(저장된 `recognition`·`affinity`와 `days_since_last_talk`, 처음 만나면 생략), `history`(최대 200줄. 학습자가 말한 대화인지만 봄).
 

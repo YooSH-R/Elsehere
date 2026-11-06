@@ -81,7 +81,7 @@ def test_every_need_has_a_drop_rate():
         (("roles", "STAFF", "onShift"), "OFF", None),  # 교대 밖이 퇴근(OFF)이라 교대 중에는 일하거나 자유 시간
         (("roles", "STAFF", "break", "minutes"), 0, None),
         (("places", "Cafe"), {"shifts": {"ALL_DAY": {"from": "00:00", "to": "00:00"}}}, ("places",)),  # 백엔드·Unity와 같은 대문자 코드
-        (("places", "CAFE", "hours", "from"), "7:00", None),  # HH:MM
+        (("places", "CAFE", "hours"), {"from": "7:00", "to": "21:00"}, ("places", "CAFE", "hours", "from")),  # HH:MM
         (("places", "CAFE", "shifts"), {}, None),  # 맡을 교대가 없는 장소
         (("places", "CAFE", "shifts", "OPENING", "to"), "25:00", None),
         (("activities", "WORK", "canFill"), ["THIRST"], ("activities", "WORK", "canFill", 0)),
@@ -124,23 +124,28 @@ def test_a_break_that_does_not_fit_in_the_shift_is_reported_with_the_role_and_th
 # 장소별 영업시간과 교대 (world-rules.json의 places)
 
 
-def test_the_service_places_are_staffed_while_open():
-    """영업시간이 있는 곳은 문을 연 동안 교대가 하나 이상 맡고, 영업시간 밖 교대는 없다.
-    영업시간이 없는 곳(호텔·드럭스토어·택시·마을)은 24시간이라, 마을처럼 교대(행인의 나들이 시간대)가 밤을 비워도 된다."""
+def rules_with_cafe_hours() -> dict:
+    rules = load_world_rules()
+    rules["places"]["CAFE"]["hours"] = {"from": "07:00", "to": "21:00"}
+    return rules
+
+
+def test_the_service_places_are_always_open():
+    """모든 장소는 24시간 열고, 교대는 직원이 일하는 시간만 정한다."""
     rules = load_world_rules()
 
+    assert all("hours" not in place for place in rules["places"].values())
     assert npc_life_rules.place_problems(rules) == []
-    assert "hours" not in rules["places"]["TOWN"]
 
 
 def test_open_hours_without_a_shift_are_a_problem():
-    rules = rules_with(("places", "CAFE", "shifts", "CLOSING", "from"), "19:00")  # 낮 교대는 18:00까지
+    rules = changed(rules_with_cafe_hours(), ("places", "CAFE", "shifts", "CLOSING", "from"), "19:00")  # 낮 교대는 18:00까지
 
     assert npc_life_rules.place_problems(rules) == ["places.CAFE: 18:00~19:00에 맡은 교대가 없음"]
 
 
 def test_a_shift_outside_the_opening_hours_is_a_problem():
-    rules = rules_with(("places", "CAFE", "shifts", "CLOSING", "to"), "22:00")  # 카페는 21:00에 닫음
+    rules = changed(rules_with_cafe_hours(), ("places", "CAFE", "shifts", "CLOSING", "to"), "22:00")
 
     assert npc_life_rules.place_problems(rules) == ["places.CAFE.shifts.CLOSING: 21:00~22:00은 영업시간 밖"]
 

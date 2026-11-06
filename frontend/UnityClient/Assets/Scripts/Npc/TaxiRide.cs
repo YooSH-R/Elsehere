@@ -8,15 +8,13 @@ using UnityEngine;
 namespace A305.Npc
 {
     /// <summary>
-    /// 본길을 도는 택시. 인도에 서 있을 때 택시가 다가오면 [택시 세우기]가 보이고, 누르면 손님 옆 길가에 서면서
+    /// 본길을 도는 택시. 택시의 탑승 반경 안에 들어오면 [택시 타기]가 보이고, 누르면 현재 위치에 서면서
     /// 바로 뒷좌석에 태워 기사와 대화를 시작한다. 명확한 목적지를 말하면 이동해 보도에 내려준다.
     /// 버튼은 행인의 [말 걸기]와 같은 자리(<see cref="PasserbyOfferView"/>)에 뜨고 E 키로도 누른다.
     /// </summary>
     [RequireComponent(typeof(LoopingCar))]
     public sealed class TaxiRide : MonoBehaviour
     {
-        private const float TalkDistanceMeters = 3.5f;
-
         [SerializeField]
         [Tooltip("운전석에 앉은 택시 기사")]
         private NpcIdentity driver;
@@ -133,7 +131,7 @@ namespace A305.Npc
                 fare.Arrive();
             }
 
-            UpdatePrompt(customer, distance);
+            UpdatePrompt(customer);
         }
 
         private void LateUpdate()
@@ -149,7 +147,7 @@ namespace A305.Npc
                 player.transform.position = transform.TransformPoint(new Vector3(.4f, .4f, -.9f));
         }
 
-        private void UpdatePrompt(Vector3 customer, float distance)
+        private void UpdatePrompt(Vector3 customer)
         {
             bool isBusy =
                 dialogue.IsTalking
@@ -164,11 +162,10 @@ namespace A305.Npc
 
             // 택시를 세우면 바로 기사와 대화하므로 게스트 대화를 다 쓰면 두 버튼 대신 이유를 보인다(기능 명세 F-39).
             ConversationAllowance allowance = dialogue.Allowance;
+            bool canBoard = IsHailAllowed && TaxiFare.CanHail(transform.position, customer);
             TaxiPrompt prompt = TaxiPrompt.Choose(
-                fare.Phase == TaxiPhase.Cruising
-                    && IsHailAllowed
-                    && TaxiFare.CanHail(car.Route, car.Distance, customer),
-                fare.Phase == TaxiPhase.Waiting && distance < TalkDistanceMeters,
+                fare.Phase == TaxiPhase.Cruising && canBoard,
+                fare.Phase == TaxiPhase.Waiting && canBoard,
                 allowance.CanStartConversation,
                 allowance.RemainingConversations,
                 dialogue.FindNpcName(driver.Code)
@@ -230,13 +227,17 @@ namespace A305.Npc
         private void Hail()
         {
             Vector3 customer = player.transform.position;
-            if (!TaxiFare.CanHail(car.Route, car.Distance, customer) || !fare.TryHail())
+            if (
+                !IsHailAllowed
+                || !TaxiFare.CanHail(transform.position, customer)
+                || !fare.TryHail()
+            )
             {
                 return;
             }
 
-            // 손님 옆 길가에 바로 세우고 곧장 태운다. 태우지 못하면 서서 [말 걸기]를 기다린다.
-            car.StopAt(TaxiFare.PullOverDistance(car.Route, car.Distance, customer));
+            // 뒤쪽이나 유턴 구간에서도 택시를 다른 위치로 옮기지 않고 그 자리에 세워 태운다.
+            car.StopAt(car.Distance);
             fare.Arrive();
             Talk();
         }
@@ -244,6 +245,8 @@ namespace A305.Npc
         private void Talk()
         {
             HidePrompt();
+            if (!IsHailAllowed || !TaxiFare.CanHail(transform.position, player.transform.position))
+                return;
             if (!dialogue.TryStart(driver.Code, driver.LookTarget, ConversationInitiator.User))
                 return;
             passenger = true;

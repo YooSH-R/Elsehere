@@ -10,7 +10,16 @@ import java.util.List;
  * @param errorCode 대답 생성이 실패했을 때 워커 오류 코드(provider_unavailable, provider_limit, timeout)
  * @param usage 실패했어도 그때까지 쓴 사용량
  */
-public record NpcReply(String text, String audioFullId, String errorCode, List<WorkerUsage> usage) {
+public record NpcReply(
+    String text,
+    String audioFullId,
+    String errorCode,
+    List<WorkerUsage> usage,
+    List<WorkerSpeechPhrase> speechPhrases) {
+
+  public NpcReply(String text, String audioFullId, String errorCode, List<WorkerUsage> usage) {
+    this(text, audioFullId, errorCode, usage, List.of());
+  }
 
   public boolean succeeded() {
     return errorCode == null && text != null;

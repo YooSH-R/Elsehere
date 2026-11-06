@@ -92,6 +92,28 @@ class TurnServiceTest {
   }
 
   @Test
+  void send_savesReplyEmotionsEvenWhenSynthesisTimedOut() {
+    judges("Hello", "Hello", null);
+    repliesTo(
+        "Hello",
+        new NpcReply(
+            "Let me help.",
+            null,
+            null,
+            List.of(),
+            List.of(
+                new com.elsehere.ai.client.WorkerSpeechPhrase("Let me help.", "warm_smile", 0.8))));
+
+    TurnResponse response = send("Hello");
+    entityManager.flush();
+    entityManager.clear();
+
+    Turn saved = turnRepository.findById(response.npcTurn().turnId()).orElseThrow();
+    assertThat(saved.getNpcAudioKey()).isNull();
+    assertThat(saved.getSpeechPhrases()).contains("warm_smile", "Let me help.", "0.8");
+  }
+
+  @Test
   @DisplayName("정확히 5분 뒤의 마지막 발화는 받아 마무리 답변 뒤 TIME_LIMIT으로 끝낸다")
   void send_atTimeLimit_acceptsFinalTurnAndEnds() {
     clock.setInstant(TestClockConfig.NOW.plusSeconds(300));

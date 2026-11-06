@@ -237,6 +237,8 @@ public class TurnService {
           Turn npcTurn =
               turnRepository.save(
                   Turn.npc(conversation, lastSeq + 2, reply.text(), npcAudioKey, clock.instant()));
+          npcTurn.attachSpeechPhrases(
+              conversationResponses.writeSpeechPhrases(reply.speechPhrases()));
           if (wrapUp) {
             // 용건이 끝났거나 학습자가 작별해 NPC가 마무리 대사로 대화를 끝냈다.
             conversation.endByNpc(clock.instant());

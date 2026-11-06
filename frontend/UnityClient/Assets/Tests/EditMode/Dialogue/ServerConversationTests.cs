@@ -14,6 +14,55 @@ namespace A305.Dialogue.Tests
 {
     public class ServerConversationTests
     {
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task EndWhileFindingAnActiveConversation_ClosesItWithoutResumingOrRestarting(
+            bool sameNpc
+        )
+        {
+            api.StartErrors.Enqueue(
+                new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중인 대화가 있습니다.")
+            );
+            api.PendingActive = new TaskCompletionSource<ActiveConversation>();
+            Task starting = conversation.StartAsync();
+            await conversation.EndAsync();
+
+            api.PendingActive.SetResult(
+                new ActiveConversation
+                {
+                    ConversationId = 41,
+                    Npc = new NpcSummary { NpcCode = sameNpc ? CafeStaffCode : "OTHER_NPC" },
+                }
+            );
+            await starting;
+
+            Assert.That(api.Starts, Has.Count.EqualTo(1));
+            Assert.That(api.Ends, Has.Count.EqualTo(1));
+            Assert.That(api.Ends[0].ConversationId, Is.EqualTo(41));
+            Assert.That(api.Ends[0].SkipFeedback, Is.True);
+            Assert.That(conversation.ConversationId, Is.Null);
+        }
+
+        [Test]
+        public async Task EndWhileStarting_ClosesTheLateServerConversationWithoutOpeningIt()
+        {
+            api.PendingStart = new TaskCompletionSource<ConversationStart>();
+            int spoken = 0;
+            conversation.NpcSpoke += _ => spoken++;
+            Task starting = conversation.StartAsync();
+
+            ServerFeedback feedback = await conversation.EndAsync();
+            Assert.That(feedback, Is.Null);
+            api.PendingStart.SetResult(api.StartResponse);
+            await starting;
+
+            Assert.That(api.Ends, Has.Count.EqualTo(1));
+            Assert.That(api.Ends[0].ConversationId, Is.EqualTo(ConversationId));
+            Assert.That(api.Ends[0].SkipFeedback, Is.True);
+            Assert.That(conversation.ConversationId, Is.Null);
+            Assert.That(spoken, Is.Zero);
+        }
+
         [TestCase(false, "ACTIVE", 1)]
         [TestCase(true, "ACTIVE", 0)]
         [TestCase(false, "ENDED_BY_NPC", 0)]
@@ -2210,8 +2259,10 @@ namespace A305.Dialogue.Tests
 
             /// <summary>대화 시작 요청이 차례로 던질 오류. 비면 <see cref="StartResponse"/>를 돌려준다.</summary>
             public Queue<ApiException> StartErrors { get; } = new Queue<ApiException>();
+            public TaskCompletionSource<ConversationStart> PendingStart { get; set; }
 
             public ActiveConversation Active { get; set; }
+            public TaskCompletionSource<ActiveConversation> PendingActive { get; set; }
             public TurnResult TurnResponse { get; set; } = Reply("Yes.", "Great!", "ACTIVE");
             public TaskCompletionSource<TurnResult> PendingTurn { get; set; }
             public ApiException TurnError { get; set; }
@@ -2260,7 +2311,7 @@ namespace A305.Dialogue.Tests
                     return Task.FromException<ConversationStart>(StartErrors.Dequeue());
                 }
 
-                return Task.FromResult(StartResponse);
+                return PendingStart?.Task ?? Task.FromResult(StartResponse);
             }
 
             /// <summary>발화 전송이 스트림으로 차례로 넘길 대사 글자·조각 음성.</summary>
@@ -2334,7 +2385,7 @@ namespace A305.Dialogue.Tests
             public Task<ActiveConversation> GetActiveAsync()
             {
                 Calls.Add("GetActive");
-                return Task.FromResult(Active);
+                return PendingActive?.Task ?? Task.FromResult(Active);
             }
 
             public Task<Transcription> TranscribeAsync(

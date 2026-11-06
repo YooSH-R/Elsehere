@@ -22,6 +22,25 @@ namespace A305.Tutorial.PlayModeTests
     /// </summary>
     public class TutorialFlowTests
     {
+        [UnityTest]
+        public IEnumerator AbandoningGuidedConversation_ReleasesTheDialogueClockPause()
+        {
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+            Click(offer, "AcceptButton");
+            yield return null;
+            DialogueController dialogue = Single<DialogueController>();
+            Assert.That(dialogue.IsTalking, Is.True);
+            Assert.That(GameClock.Shared.IsTalking, Is.True);
+
+            dialogue.Abandon();
+
+            Assert.That(dialogue.IsTalking, Is.False);
+            Assert.That(GameClock.Shared.IsTalking, Is.False);
+        }
+
         private const string BenCode = "TOWN_PASSERBY";
         private const float WaitTimeoutSeconds = 15f;
 

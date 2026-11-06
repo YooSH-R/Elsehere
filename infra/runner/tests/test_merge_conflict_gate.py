@@ -71,7 +71,7 @@ class MergeConflictGateTests(unittest.TestCase):
                 checked.append(name)
                 with self.subTest(job=name):
                     self.assertTrue(self.waits_for_gate(name), name)
-        self.assertIn("unity:editor-tests", checked)
+        self.assertIn("unity:format", checked)
         self.assertIn("backend:check-and-build", checked)
         self.assertIn("infra:app-runtime", checked)
 

@@ -199,6 +199,23 @@ namespace A305.EditorTools.World
         /// </summary>
         private static void ConfigureInteriorCamera(Scene scene)
         {
+            UseInteriorCamera(scene);
+            SpaceDoorway door = BuilderTools
+                .FindAllInScene<SpaceDoorway>(scene)
+                .Single(doorway => doorway.DoorwayId == "TownDoor");
+            door.ArrivalPoint.localPosition = EntryOffset;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(door.ArrivalPoint);
+            Transform player = BuilderTools.FindSingleInScene<PlayerMover>(scene).transform;
+            player.position = door.ArrivalPoint.position;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(player);
+        }
+
+        /// <summary>
+        /// 좁은 실내용 카메라 거리와 시야를 쓴다. 마을용 카메라 거리(5m)는 실내에서 벽에 막혀 캐릭터에 붙는다.
+        /// 드럭스토어와 경찰서가 같은 설정을 쓰며, 설정 에셋은 없을 때만 만든다.
+        /// </summary>
+        internal static void UseInteriorCamera(Scene scene)
+        {
             PlayerCameraRig rig = BuilderTools.FindSingleInScene<PlayerCameraRig>(scene);
             var settings = AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>(CameraSettingsPath);
             if (settings == null)
@@ -221,15 +238,6 @@ namespace A305.EditorTools.World
             camera.nearClipPlane = .04f;
             camera.farClipPlane = 90;
             PrefabUtility.RecordPrefabInstancePropertyModifications(camera);
-
-            SpaceDoorway door = BuilderTools
-                .FindAllInScene<SpaceDoorway>(scene)
-                .Single(doorway => doorway.DoorwayId == "TownDoor");
-            door.ArrivalPoint.localPosition = EntryOffset;
-            PrefabUtility.RecordPrefabInstancePropertyModifications(door.ArrivalPoint);
-            Transform player = BuilderTools.FindSingleInScene<PlayerMover>(scene).transform;
-            player.position = door.ArrivalPoint.position;
-            PrefabUtility.RecordPrefabInstancePropertyModifications(player);
         }
 
         /// <summary>

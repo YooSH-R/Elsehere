@@ -585,7 +585,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 #### WORLD-01 `GET /api/v1/scenes`
 
 - `[{ "sceneCode": "CAFE", "name": "모퉁이 카페", "unityKey": "CafeScene", "isOpen": true }]` 형식입니다. 화면 14에서 들어갈 수 있는 건물을 표시할 때 씁니다. MVP는 카페·호텔을 포함해 모든 장소가 열려 있으며, 이후 준비 중인 건물은 `isOpen: false`로 내려갑니다.
-- `unityKey`는 클라이언트가 불러올 Unity 씬 이름입니다. 목록은 집, 마을, 카페, 호텔 순입니다.
+- `unityKey`는 클라이언트가 불러올 Unity 씬 이름입니다. 목록은 집, 마을, 카페, 호텔, 드럭스토어, 경찰서(`POLICE_STATION`, `PoliceStationScene`) 순입니다.
 
 #### WORLD-02 `GET /api/v1/scenes/{sceneCode}`
 

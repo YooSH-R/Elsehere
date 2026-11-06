@@ -66,7 +66,7 @@ namespace A305.EditorTools.Mission
             }
             view.SetAvailable(true);
             view.BindMap(
-                sceneName.Replace("Scene", "").ToUpperInvariant(),
+                A305.World.PlaceScenes.CodeOf(sceneName),
                 BuilderTools.FindSingleInScene<PlayerMover>(scene).transform
             );
             view.Refresh(state, false, false);

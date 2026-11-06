@@ -45,6 +45,12 @@ namespace A305.Npc
 
         private void OnEnable()
         {
+            // 경찰서 장면을 새로 열어도, 아직 순찰 중인 경찰관을 저장된 활성 상태로 다시 세우지 않는다.
+            if (officer != null && PoliceDispatchOrder.IsAway(officer.Code))
+            {
+                officer.gameObject.SetActive(false);
+                return;
+            }
             if (dialogue == null)
                 return;
             dialogue.PoliceDispatchRequested += TakeReport;

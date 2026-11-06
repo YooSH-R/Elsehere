@@ -222,7 +222,14 @@ class TurnServiceTest {
   @Test
   @DisplayName("경찰 신고를 DB에 저장한 뒤 다시 읽어도 같은 요청의 출동 정보를 돌려준다")
   void send_policeDispatchPersistsAcrossReloads() {
-    Conversation police = DialogueTestData.conversation(entityManager, userId, "POLICE_OFFICER");
+    Conversation police =
+        Conversation.start(
+            userId,
+            DialogueTestData.npcId(entityManager, "POLICE_OFFICER"),
+            InitiatedBy.NPC,
+            1,
+            TestClockConfig.NOW);
+    entityManager.persist(police);
     entityManager.flush();
     String report = "Someone took my wallet at the bakery.";
     given(aiGateway.judge(any(), any(), any(), any(), eq(report)))

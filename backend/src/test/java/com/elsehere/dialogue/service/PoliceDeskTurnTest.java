@@ -68,6 +68,7 @@ class PoliceDeskTurnTest {
     conversation = Conversation.start(8L, 6L, InitiatedBy.USER, 1, Instant.EPOCH);
     ConversationLookup lookup = mock(ConversationLookup.class);
     when(lookup.ownedConversation(8L, 10L)).thenReturn(conversation);
+    when(lookup.ownedConversationForUpdate(8L, 10L)).thenReturn(conversation);
     WorkerNpc officer =
         new WorkerNpc("POLICE_OFFICER", "Dan", "officer", "", "police station", "voice", 1);
     when(contexts.npcOf(any()))

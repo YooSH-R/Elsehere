@@ -39,7 +39,59 @@ namespace A305.Tutorial.Tests
             TutorialFinishSaveStatus status = await recorder.SaveAsync(progress);
 
             Assert.That(status, Is.EqualTo(TutorialFinishSaveStatus.Saved));
-            Assert.That(api.Calls, Is.EqualTo(new[] { "complete" }));
+            Assert.That(api.Calls, Is.EqualTo(new[] { "ben-dialogue/complete", "complete" }));
+        }
+
+        [Test]
+        public async Task SaveAsync_BenDialogueCompleted_SavesBeforeTutorialEndsOnlyOnce()
+        {
+            CompleteBenDialogue();
+
+            Assert.That(
+                await recorder.SaveAsync(progress),
+                Is.EqualTo(TutorialFinishSaveStatus.Saved)
+            );
+            Assert.That(
+                await recorder.SaveAsync(progress),
+                Is.EqualTo(TutorialFinishSaveStatus.NotNeeded)
+            );
+            Assert.That(api.Calls, Is.EqualTo(new[] { "ben-dialogue/complete" }));
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.BenFeedback));
+            Assert.That(progress.NeedsBenDialogueSave, Is.False);
+        }
+
+        [Test]
+        public async Task SaveAsync_BenDialogueInterrupted_DoesNotRecordVisit()
+        {
+            CompleteBenDialogue(false);
+
+            Assert.That(
+                await recorder.SaveAsync(progress),
+                Is.EqualTo(TutorialFinishSaveStatus.NotNeeded)
+            );
+            Assert.That(api.Calls, Is.Empty);
+        }
+
+        [Test]
+        public async Task SaveAsync_BenDialogueFails_RetriesBeforeSkippingTheRest()
+        {
+            CompleteBenDialogue();
+            api.Failure = new ApiException(ApiErrorCodes.NetworkError, 0, "연결 실패");
+            Assert.That(
+                await recorder.SaveAsync(progress),
+                Is.EqualTo(TutorialFinishSaveStatus.Failed)
+            );
+            Assert.That(progress.NeedsBenDialogueSave, Is.True);
+            api.Failure = null;
+            progress.Skip();
+
+            Assert.That(
+                await recorder.SaveAsync(progress),
+                Is.EqualTo(TutorialFinishSaveStatus.Saved)
+            );
+            Assert.That(api.Calls, Is.EqualTo(new[] { "ben-dialogue/complete", "skip" }));
+            Assert.That(progress.NeedsBenDialogueSave, Is.False);
+            Assert.That(progress.NeedsFinishSave, Is.False);
         }
 
         [Test]
@@ -116,12 +168,20 @@ namespace A305.Tutorial.Tests
 
         [TestCase("complete")]
         [TestCase("skip")]
+        [TestCase("ben-dialogue/complete")]
         public async Task TutorialApi_PostsToTutorialPath(string action)
         {
             var transport = new RecordingTransport();
             var tutorialApi = new TutorialApi(new ApiClient("", transport));
 
-            await (action == "complete" ? tutorialApi.CompleteAsync() : tutorialApi.SkipAsync());
+            await (
+                action switch
+                {
+                    "complete" => tutorialApi.CompleteAsync(),
+                    "skip" => tutorialApi.SkipAsync(),
+                    _ => tutorialApi.CompleteBenDialogueAsync(),
+                }
+            );
 
             Assert.That(transport.Request.Method, Is.EqualTo("POST"));
             Assert.That(transport.Request.Url, Is.EqualTo("/api/v1/me/tutorial/" + action));
@@ -130,6 +190,14 @@ namespace A305.Tutorial.Tests
 
         // Ben 길 안내를 마치고 지도에서 오늘의 목표를 열면 튜토리얼이 끝난다.
         private void CompleteTutorial()
+        {
+            CompleteBenDialogue();
+            progress.CloseFeedback("TOWN_PASSERBY");
+            progress.ReportJournalOpened();
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed), "준비: 튜토리얼 완료");
+        }
+
+        private void CompleteBenDialogue(bool completed = true)
         {
             progress.Continue();
             progress.Report(TutorialAction.Walk);
@@ -144,10 +212,7 @@ namespace A305.Tutorial.Tests
             progress.ReportVocabularyOpened();
             progress.LeaveHome();
             progress.StartDialogue("TOWN_PASSERBY");
-            progress.EndDialogue("TOWN_PASSERBY", true);
-            progress.CloseFeedback("TOWN_PASSERBY");
-            progress.ReportJournalOpened();
-            Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed), "준비: 튜토리얼 완료");
+            progress.EndDialogue("TOWN_PASSERBY", completed);
         }
 
         private sealed class FakeTutorialApi : ITutorialApi
@@ -159,6 +224,8 @@ namespace A305.Tutorial.Tests
             public Task CompleteAsync() => Record("complete");
 
             public Task SkipAsync() => Record("skip");
+
+            public Task CompleteBenDialogueAsync() => Record("ben-dialogue/complete");
 
             private Task Record(string call)
             {

@@ -25,7 +25,6 @@ namespace A305.World.Tests
             "POLICE_OFFICER",
             "POLICE_SERGEANT",
             "POLICE_PATROL_OFFICER",
-            "POLICE_ROOKIE",
         };
 
         private Scene town;
@@ -110,7 +109,6 @@ namespace A305.World.Tests
         [TestCase("POLICE_OFFICER")]
         [TestCase("POLICE_SERGEANT")]
         [TestCase("POLICE_PATROL_OFFICER")]
-        [TestCase("POLICE_ROOKIE")]
         public void Officer_WorksInThePoliceStationSceneWithAReportDesk(string code)
         {
             NpcIdentity officer = BuilderTools

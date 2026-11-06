@@ -2,7 +2,7 @@
   "schemaVersion": "1.0",
   "npcId": "TOWN_RETIREE",
   "mbti": "ENFJ-T",
-  "role": "PASSERBY",
-  "workplace": "TOWN",
-  "shift": "MORNING"
+  "role": "STAFF",
+  "workplace": "POST_OFFICE",
+  "shift": "NIGHT"
 }

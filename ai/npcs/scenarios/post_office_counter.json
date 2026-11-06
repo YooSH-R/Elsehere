@@ -4,7 +4,8 @@
   "situation": "The customer is at the counter of the small post office on the town's main street. There is a scale for packages on the counter and a wall of PO boxes.",
   "facts": [
     "A stamp for a letter is $1. Sending a package is $5.",
-    "Linda weighs every package on the scale before sending it.",
-    "The post office is between Maple Bakery and Home & Living. Little Arcade is right across the main street."
+    "The staff member on duty weighs every package on the scale before sending it.",
+    "The post office is between Maple Bakery and Home & Living. Little Arcade is right across the main street.",
+    "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
   ]
 }

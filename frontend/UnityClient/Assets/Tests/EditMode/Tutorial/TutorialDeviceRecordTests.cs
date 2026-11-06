@@ -95,6 +95,8 @@ namespace A305.Tutorial.Tests
 
         private sealed class FailingTutorialApi : ITutorialApi
         {
+            public Task CompleteBenDialogueAsync() => Fail();
+
             public Task CompleteAsync() => Fail();
 
             public Task SkipAsync() => Fail();

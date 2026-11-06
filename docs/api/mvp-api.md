@@ -233,6 +233,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | ONB-09 | `PUT /api/v1/me/languages/{languageCode}/level` | 대화 난이도 선택 | - | 05 |
 | TUT-01 | `POST /api/v1/me/tutorial/complete` | 튜토리얼 완료 | - | 12 |
 | TUT-02 | `POST /api/v1/me/tutorial/skip` | 튜토리얼 건너뛰기 | - | 06 |
+| TUT-03 | `POST /api/v1/me/tutorial/ben-dialogue/complete` | Ben 길 안내의 방문·관계 저장 | - | 11 |
 | WORLD-01 | `GET /api/v1/scenes` | 장소 목록·개방 여부 | - | 14 |
 | WORLD-02 | `GET /api/v1/scenes/{sceneCode}` | 장소의 NPC와 단어 카드 | - | 08, 14 |
 | WORLD-03 | `PUT /api/v1/me/word-prefs/{wordKey}` | 단어 카드 자동 표시 끄기·다시 켜기 | - | 08 |
@@ -572,6 +573,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```
 
 - 화면 12의 [마을로 가기]에서 호출합니다. `onboardingStep`을 `DONE`으로 바꿉니다.
+- Ben 길 안내 방문이 아직 없으면 TUT-03과 같은 관계·기억을 한 번 저장합니다. 이전 클라이언트의 완료와 길 안내 저장 실패를 보완합니다.
 - 튜토리얼 전 단계(`LANG`, `LEVEL`)면 `409 TUTORIAL_NOT_IN_PROGRESS`이며 단계를 바꾸지 않습니다. 이미 `DONE`인 사용자가 다시 호출하면 같은 응답을 돌려줍니다.
 - 마지막 장소(`last_scene_id`)는 바꾸지 않습니다. BOOT-01에 `lastSceneCode`가 없으면 클라이언트가 마을에서 시작합니다.
 
@@ -579,6 +581,21 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 화면 06의 [튜토리얼 건너뛰기]에서 호출합니다. 요청·응답과 단계 규칙은 TUT-01과 같습니다. `onboardingStep`을 `DONE`으로 바꾸고 마을에서 시작합니다.
 - 건너뛴 사용자에게 튜토리얼을 다시 볼 방법을 줄지는 `[미정]`입니다.
+- 건너뛰기 자체는 Ben 관계를 만들지 않습니다. 이미 TUT-03으로 저장한 관계는 유지합니다.
+
+#### TUT-03 `POST /api/v1/me/tutorial/ben-dialogue/complete`
+
+```json
+// 요청 본문 없음
+
+// 응답 200 (튜토리얼 진행 중)
+{ "onboardingStep": "TUTORIAL" }
+```
+
+- 클라이언트가 고정 대본의 Ben 길 안내를 끝까지 마쳤을 때 호출합니다. 전체 튜토리얼 단계는 바꾸지 않습니다.
+- Ben(`TOWN_PASSERBY`)의 첫 방문 1회, 알아봄 +20, 도움 호감 +6, 마지막 대화 시각·게임 날짜와 길 안내 기억을 저장합니다. 실제 대화·발화를 만들거나 AI를 호출하지 않습니다.
+- 이미 방문 기록이 있으면 중복 반영하지 않습니다. 네트워크 실패 시 재전송할 수 있습니다. 중간 종료와 대화 전 건너뛰기에는 호출하지 않습니다.
+- `LANG`·`LEVEL`이면 `409 TUTORIAL_NOT_IN_PROGRESS`입니다. 이미 `DONE`이면 관계를 올리지 않고 `{ "onboardingStep": "DONE" }`을 돌려줍니다.
 
 ### 4.4 장소·사물
 

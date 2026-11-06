@@ -16,7 +16,7 @@ namespace A305.Characters.PlayModeTests
 {
     public sealed class NpcMoodSpeechTests
     {
-        private static byte[] EmotionalVoice()
+        private static byte[] EmotionalVoice(float frownIntensity = 1)
         {
             byte[] wav = AssetDatabase
                 .LoadAssetAtPath<TextAsset>(
@@ -46,7 +46,9 @@ namespace A305.Characters.PlayModeTests
                 + ",\"pcmSha256\":\""
                 + digest
                 + "\",\"cues\":["
-                + "{\"start\":0,\"end\":2,\"emotion\":\"frown\",\"intensity\":1},"
+                + "{\"start\":0,\"end\":2,\"emotion\":\"frown\",\"intensity\":"
+                + frownIntensity.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                + "},"
                 + "{\"start\":2,\"end\":"
                 + duration.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
                 + ",\"emotion\":\"curious\",\"intensity\":0.7}]}";
@@ -168,6 +170,65 @@ namespace A305.Characters.PlayModeTests
             root.GetComponentsInChildren<SkinnedMeshRenderer>()
                 .Where(s => s.sharedMesh.GetBlendShapeIndex(channel) >= 0)
                 .Max(s => Weight(s, channel));
+
+        [UnityTest]
+        public IEnumerator EverydayFrownHasVisibleLidClosureWithoutChangingPronunciation()
+        {
+            var root = CreateCafeSpeaker();
+            try
+            {
+                var player = root.GetComponent<CharacterSpeechPlayer>();
+                root.GetComponent<AudioSource>().mute = true;
+                var link = root.AddComponent<DialogueServerLink>();
+                link.SetSpeaker(player);
+                byte[] wav = EmotionalVoice(.5f);
+                Assert.That(link.PlayRecordedSpeech(wav), Is.True);
+                player.Pause();
+                player.Seek(.65f);
+                yield return null;
+                var lid = root.GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .Single(skin => skin.name == "LeftUpperLid");
+                Assert.That(
+                    Weight(lid, "eyeBlinkLeft"),
+                    Is.InRange(30f, 50f),
+                    "보통 강도에서도 눈꺼풀이 안구 뒤 준비 구간을 지나 보여야 합니다."
+                );
+                Assert.That(MaxWeight(root, "browDownLeft"), Is.EqualTo(42.5f).Within(.01));
+                var lips = root.GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .Single(skin => skin.sharedMesh.name == "SpeakingLips");
+                float pronunciation =
+                    DialogueSpeechWav
+                        .Read(wav)
+                        .Timeline.SampleArticulation(.65f)
+                        .Weight(CharacterFacePose.OpenMouth) * 100;
+                Assert.That(Weight(lips, "viseme_AA"), Is.EqualTo(pronunciation).Within(.01));
+            }
+            finally
+            {
+                Object.Destroy(root);
+            }
+        }
+
+        private static GameObject CreateCafeSpeaker()
+        {
+            var holder = new GameObject("Cafe speech fixture");
+            holder.SetActive(false);
+            var root = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/Prefabs/Npc/Review/LittleMung_Cafe_Male.prefab"
+                ),
+                holder.transform
+            );
+            // 외형 프리팹의 이동 보정은 상위 플레이어에 의존한다. 얼굴 검사는 이를 실행하지 않는다.
+            foreach (var behaviour in root.GetComponentsInChildren<MonoBehaviour>(true))
+                if (behaviour != null && behaviour.GetType().Namespace == "A305.Player")
+                    Object.DestroyImmediate(behaviour);
+            foreach (var animator in root.GetComponentsInChildren<Animator>(true))
+                animator.enabled = false;
+            root.transform.SetParent(null);
+            Object.Destroy(holder);
+            return root;
+        }
 
         [UnityTest]
         public IEnumerator RuntimeUtteranceUsesNpcMoodAndExplicitCuesTakePriority()

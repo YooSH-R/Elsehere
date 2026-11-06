@@ -114,6 +114,9 @@ namespace A305.Learning
         [Tooltip("다른 탭 본문 칸(흰 유리)")]
         private Sprite tileSprite;
 
+        [SerializeField]
+        private Sprite transcriptAvatarSprite;
+
         // 표현 칸 마지막 칸 아래 → 제목 → 본문 칸 사이 간격(시안 px × 1.2). 표현 칸이 없을 때는 카드 맨 위에서 시작한다.
         // 칸 그림은 아래 32·위 12의 그림자 자리를 품고 있어, 보이는 간격이 시안(20, 14)이 되게 그만큼 뺀다.
         private const float RowShadowBottom = 32 * 1.2f;
@@ -148,6 +151,8 @@ namespace A305.Learning
         private bool isRegenerating;
         private Rect lastFreeArea;
         private bool isTranscriptShown;
+        private int? selectedTranscriptReview;
+        private FeedbackTranscriptDocument transcriptDocument;
 
         // 고정된 본문 영역 안에서 모든 내용이 세로로 흐른다.
         private ScrollRect scroll;
@@ -287,6 +292,7 @@ namespace A305.Learning
             lines = conversationLines;
             isRegenerating = false;
             isTranscriptShown = false;
+            selectedTranscriptReview = null;
             panel.SetActive(true);
             UiLayer.Open(this);
             SelectSection(FeedbackSection.Summary);
@@ -324,6 +330,11 @@ namespace A305.Learning
             topCloseButton.onClick.AddListener(() => CloseRequested?.Invoke());
             regenerateButton.onClick.AddListener(() => RegenerateRequested?.Invoke());
             transcriptButton.onClick.AddListener(ToggleTranscript);
+            TextLinkClicks links = bodyText.GetComponent<TextLinkClicks>();
+            if (links == null)
+                links = bodyText.gameObject.AddComponent<TextLinkClicks>();
+            links.Clicked += SelectTranscriptReview;
+            bodyText.raycastTarget = true;
             previousButton.onClick.AddListener(PreviousPage);
             nextButton.onClick.AddListener(NextPage);
             for (int i = 0; i < sectionButtons.Length; i++)
@@ -334,18 +345,34 @@ namespace A305.Learning
             Hide();
         }
 
+        private void OnEnable() => UiThemeSelection.Shared.Changed += OnThemeChanged;
+
+        private void OnDisable() => UiThemeSelection.Shared.Changed -= OnThemeChanged;
+
+        private void OnThemeChanged(UiThemeId _) => UpdateLayout();
+
         private void Refresh()
         {
             titleText.text = feedback.IsFailed ? feedback.Title : "대화 피드백";
             summaryText.text = FeedbackText.Partner(feedback.NpcName);
             PlaceSubtitle();
-            pageTitleText.text = isTranscriptShown ? "주고받은 대화" : pages[0].Title;
-            bodyText.text = isTranscriptShown
-                ? FeedbackText.Transcript(feedback.NpcName, lines)
-                : pages[0].Body;
+            pageTitleText.text = IsTranscriptView
+                ? selectedTranscriptReview.HasValue
+                    ? "문장 피드백"
+                    : "전체 대화"
+                : pages[0].Title;
+            transcriptDocument = IsTranscriptView
+                ? FeedbackTranscript.Build(
+                    feedback.NpcName,
+                    lines,
+                    feedback.Reviews,
+                    selectedTranscriptReview
+                )
+                : null;
+            bodyText.text = IsTranscriptView ? "" : pages[0].Body;
             bodyText.pageToDisplay = 1;
             transcriptButtonLabel.text = isTranscriptShown ? "돌아가기" : "대화 기록";
-            pageTitleText.gameObject.SetActive(feedback.IsFailed || isTranscriptShown);
+            pageTitleText.gameObject.SetActive(feedback.IsFailed && !IsTranscriptView);
             sectionRow.gameObject.SetActive(!feedback.IsFailed);
             noticeText.gameObject.SetActive(false);
             for (int i = 0; i < sectionButtons.Length; i++)
@@ -354,7 +381,11 @@ namespace A305.Learning
                 // 고른 탭은 흰 알약 위의 진한 글자, 나머지는 옅은 글자다.
                 TMP_Text tab = sectionButtons[i].GetComponentInChildren<TMP_Text>(true);
                 if (tab != null)
+                {
+                    if (i == (int)FeedbackSection.Conversation)
+                        tab.text = "전체 대화";
                     tab.color = i == (int)section ? TabInk : TabMuted;
+                }
             }
 
             // 받지 못한 피드백은 저장할 표현이나 상세 평가가 없으므로 그 버튼 대신 다시 만들기·대화 기록을 보여 준다.
@@ -362,7 +393,7 @@ namespace A305.Learning
             saveButton.gameObject.SetActive(
                 isSaveAvailable
                     && !feedback.IsFailed
-                    && !isTranscriptShown
+                    && !IsTranscriptView
                     && CurrentExpression != null
                     && pages[0].Situations == null
             );
@@ -377,14 +408,14 @@ namespace A305.Learning
             navigationRow.gameObject.SetActive(false);
             // 표현 줄 높이는 패널 너비에 따라 달라지므로 화면에 맞춘 패널 크기부터 정한다.
             FitFrameToCanvas();
-            ShowSituationRows(SituationsShown(), section == FeedbackSection.Conversation);
+            ShowSituationRows(SituationsShown(), false);
             UpdateLayout();
         }
 
-        // 요약 탭과 회화 표현 탭 모두 받은 표현을 빠짐없이 보여 준다.
+        // 상황 표현은 요약 탭에 모아 두고, 전체 대화 탭은 주고받은 문장에 집중한다.
         private IReadOnlyList<SituationExpressionData> SituationsShown()
         {
-            if (feedback.IsFailed || isTranscriptShown)
+            if (feedback.IsFailed || IsTranscriptView)
                 return Array.Empty<SituationExpressionData>();
             return section == FeedbackSection.Summary
                 ? SummarySituations.ToList()
@@ -395,8 +426,11 @@ namespace A305.Learning
         }
 
         // 요약 탭이 위 표현 칸과 아래 요약 칸으로 나뉘는 상태인지
+        private bool IsTranscriptView =>
+            isTranscriptShown || section == FeedbackSection.Conversation;
+
         private bool IsSummarySplit =>
-            section == FeedbackSection.Summary && !feedback.IsFailed && !isTranscriptShown;
+            section == FeedbackSection.Summary && !feedback.IsFailed && !IsTranscriptView;
 
         private IEnumerable<SituationExpressionData> SummarySituations =>
             feedback.SituationExpressions.Where(expression =>
@@ -518,7 +552,7 @@ namespace A305.Learning
             if (!shown)
                 return;
             bodyTile.sprite =
-                section == FeedbackSection.Summary && !isTranscriptShown
+                section == FeedbackSection.Summary && !IsTranscriptView
                     ? summaryTileSprite
                     : tileSprite;
             RectTransform body = bodyText.rectTransform;
@@ -636,6 +670,30 @@ namespace A305.Learning
                 summaryPager.gameObject.SetActive(false);
             }
             float width = scroll.content.rect.width;
+            if (IsTranscriptView && !isRegenerating)
+            {
+                bodyTile.gameObject.SetActive(false);
+                GameObject cards = FeedbackConversationLayout.Build(
+                    scroll.content,
+                    bodyText,
+                    titleText.font,
+                    situationRowTemplate.GetComponentInChildren<Button>(true),
+                    tileSprite,
+                    transcriptAvatarSprite,
+                    feedback,
+                    transcriptDocument,
+                    selectedTranscriptReview,
+                    SelectReview,
+                    BackToConversation,
+                    out float cardsHeight
+                );
+                additionalBodies.Add(cards);
+                scroll.content.SetSizeWithCurrentAnchors(
+                    RectTransform.Axis.Vertical,
+                    Mathf.Max(scroll.viewport.rect.height, cardsHeight)
+                );
+                return;
+            }
             // 줄바꿈이 끝난 표현 칸 아래부터 제목과 본문을 차례로 쌓는다.
             if (situationRows.gameObject.activeSelf)
             {
@@ -655,7 +713,7 @@ namespace A305.Learning
                 top += SummaryTitleHeight + GapBelowHeading;
             }
             top = LayoutBody(bodyText, bodyTile, saveButton, top, width);
-            if (!isTranscriptShown && !isRegenerating)
+            if (!IsTranscriptView && !isRegenerating)
             {
                 foreach (FeedbackPage page in pages.Skip(1))
                 {
@@ -716,6 +774,8 @@ namespace A305.Learning
         public void SelectSection(FeedbackSection selected)
         {
             section = selected;
+            if (section != FeedbackSection.Conversation)
+                selectedTranscriptReview = null;
             pages = FeedbackPages.Create(feedback, section);
             Refresh();
             scroll.verticalNormalizedPosition = 1;
@@ -752,7 +812,45 @@ namespace A305.Learning
         private void ToggleTranscript()
         {
             isTranscriptShown = !isTranscriptShown;
+            selectedTranscriptReview = null;
             Refresh();
+        }
+
+        private void SelectTranscriptReview(string linkId)
+        {
+            const string prefix = "review:";
+            if (
+                !IsTranscriptView
+                || string.IsNullOrEmpty(linkId)
+                || !linkId.StartsWith(prefix, StringComparison.Ordinal)
+                || !int.TryParse(linkId.Substring(prefix.Length), out int reviewIndex)
+            )
+                return;
+
+            SelectReview(reviewIndex);
+        }
+
+        /// <summary>전체 대화의 사용자 발화를 선택해 해당 문장의 기존 평가를 펼친다.</summary>
+        public void SelectReview(int reviewIndex)
+        {
+            if (
+                !IsTranscriptView
+                || feedback == null
+                || reviewIndex < 0
+                || reviewIndex >= feedback.Reviews.Count
+            )
+                return;
+
+            selectedTranscriptReview = reviewIndex;
+            Refresh();
+            scroll.verticalNormalizedPosition = 1;
+        }
+
+        private void BackToConversation()
+        {
+            selectedTranscriptReview = null;
+            Refresh();
+            scroll.verticalNormalizedPosition = 1;
         }
     }
 }

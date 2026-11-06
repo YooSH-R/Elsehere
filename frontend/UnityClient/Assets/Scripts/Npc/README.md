@@ -29,7 +29,7 @@ NPC 몸·이름표 클릭은 “이름에게 말을 걸까요?” 확인 창을 
 | `NpcLifeData`, `NpcLife` | 생활 데이터(`Data/Npc/NpcLife.json`)와 NPC 한 명의 일과 활동·욕구·할 일 고르기. AI 하루 시뮬레이션과 같은 규칙이며 Unity 객체 없이 테스트합니다. |
 | `NpcRoutine` | 다가오지 않는 동안 `NpcLife`가 고른 사물까지 걸어가 쓰고, 의자·벤치·소파면 앉습니다. 걷기·애니메이션은 `Passerby`의 것을 씁니다. 구역(`stayInArea`·`area`)을 켜면 그 안의 사물·자리만 고릅니다. |
 | `NpcDuty` | 직원이 지금 근무 중인지(교대 밖이면 근무 외)와 같은 카운터를 맡은 직원 중 누가 응대할지 정합니다([일터와 응대](#일터와-응대)). Unity 객체 없이 테스트합니다. |
-| `NpcDetailDistance` | 카메라가 12m 안에 있을 때만 NPC의 팔 관통 보정(`LittleMungArmClearance`)을 켭니다. 이 보정은 매 프레임 피부 정점을 계산해 캐릭터 하나에 수 ms가 들어, 마을을 걷는 NPC 모두에게 돌리면 마을이 느려집니다(마을 NPC 16명 기준 한 프레임 약 125ms). 공용 `Passerby.prefab`에 붙어 있어 이 프리팹으로 놓는 NPC가 모두 받습니다. 앉아 있는 동안에는 `StandingPoseCorrections`가 보정을 꺼 두므로 건드리지 않고, 일어선 뒤 거리에 맞춥니다. |
+| `NpcDetailDistance` | 카메라가 12m 안에 있을 때만 NPC의 팔 관통 보정(`LittleMungArmClearance`)을 켭니다. 이 보정은 매 프레임 피부 정점을 계산합니다. 머리 정점을 모두 계산하던 때는 캐릭터 하나에 수 ms가 들어 마을을 걷는 NPC 모두에게 돌리면 마을이 느려졌습니다(마을 NPC 16명 기준 한 프레임 약 125ms). 지금은 머리·몸통의 바깥 끝 정점만 계산합니다([Player 모듈](../Player/README.md)). 공용 `Passerby.prefab`에 붙어 있어 이 프리팹으로 놓는 NPC가 모두 받습니다. 앉아 있는 동안에는 `StandingPoseCorrections`가 보정을 꺼 두므로 건드리지 않고, 일어선 뒤 거리에 맞춥니다. |
 | `NpcNameTags`, `NpcNameTagView` | 플레이어에서 8m 안의 NPC 머리 위 이름표. 근무 중인 직원(생활 데이터 역할 `STAFF`, 일과 `WORK`)은 이름 위 파란 칩에 역할(예: 벨보이·경찰관)을 함께 보이고, 행인과 쉬는 시간·퇴근한 직원은 이름만 보입니다(`NpcRoutine.IsOffDuty`, 첫날 미션이 찾아가라는 직원은 근무 중으로 봄). 이름·역할은 대화 대본(`Data/Dialogue/MockDialogueScripts.asset`)에서 읽고, 이름이 없는 NPC는 띄우지 않습니다. 대화나 창 때문에 플레이어가 움직이지 못하는 동안에는 숨깁니다. NPC마다 3D 글자판을 두지 않고 제안 화면 프리팹(`PasserbyOffer`)의 `NameTags` 층 한 장에서 그립니다. 이 층은 다른 화면 UI와 휴대폰 터치 조작판(-10)보다 아래(-20)에 놓이고, 이름표 바탕 전체가 클릭을 받아 그 NPC에게 말을 겁니다([클릭·탭으로 말 걸기](#클릭탭으로-말-걸기), **Tools → A305 → Npc → Apply Name Tags**). 나란히 선 NPC의 이름표는 서로 겹칠 수 있으며, 카메라에서 가까운 NPC 이름표를 위에 그립니다. 매 프레임 NPC를 훑을 때 장면 전체를 찾지 않도록 `NpcIdentity.Active`(지금 켜진 NPC 목록)를 씁니다. 판단은 EditMode `NpcNameTagsTests`가 Unity 객체 없이, 제안 화면 프리팹의 이름표 층 연결·그리는 순서·클릭 받기는 `NpcNameTagPrefabTests`가, 실제 마을 장면은 PlayMode `NpcNameTagViewTests`가 확인합니다(가까운 경찰관의 역할 칩, 쉬는 시간의 경찰관과 행인은 이름만, 먼 NPC·움직이지 못할 때는 없음). 이름표 클릭과 겹친 이름표는 `NpcClickTalkTests`가 확인합니다. |
 | `NpcStayArea` | 구역을 켠 NPC가 고를 수 있는 위치인지 정합니다. Unity 장면 없이 테스트합니다. |
 | `NpcWalkArea` | Builder가 장면마다 구운 NPC 바닥(NavMesh)을 장면이 켜져 있는 동안 등록합니다. |
@@ -140,6 +140,8 @@ Ben(`TOWN_PASSERBY`)은 마스터 골격(Humanoid)의 비즈니스맨 외형을 
 | 동작 | 커피 만들기·손님 맞기는 손으로 다루기(`Interact`), 머핀·커피는 집어 들기(`PickUp_Table`), 의자·벤치·소파는 앉기(`Sitting_Idle_Loop`, 다리는 `SeatedLegs`로 앉는 면에 맞춤), 제안·대화 중에는 손짓하며 말하기(`Idle_Talking_Loop`)입니다. `Passerby.talkGesture`를 끈 NPC(마을 행인 Ben)는 제안·대화 중에도 자기 대기 자세로 섭니다. 서 있기·걷기·뛰기는 플레이어와 같은 리틀멍 이동 동작입니다. 동작은 [Quaternius Universal Animation Library](../../ThirdParty/CREDITS.md)(CC0)를 Humanoid로 리타겟팅했고, 먹기·마시기 전용 동작은 무료판에 없어 집어 들기로 대신합니다. |
 | 다가와 말 걸기·대화 | 하던 일을 그만두고 앉아 있었으면 일어납니다. 대화가 끝나면 다시 고릅니다. |
 | 장면을 다시 불러옴 | 그 시각의 일과에서 욕구 시작값으로 다시 지냅니다. |
+
+호텔 프런트 직원 Jake(`HOTEL_STAFF`)는 근무 중에는 데스크 중앙의 자기 자리에서 일하고 다른 사물을 찾아 돌아다니지 않습니다. 손님을 응대할 때도 그 자리에서 방향만 바꿉니다. 휴식과 퇴근은 다른 직원처럼 교대에 따릅니다.
 
 생활 데이터는 AI 규칙 원본(`ai/npcs/rules/world-rules.json`, `ai/npcs/life/`)에서 `ai/tools/npc_life_export.py`가 내보낸 파일이라 직접 고치지 않습니다. 규칙이나 NPC 생활 파일을 바꾸면 다시 내보내며, AI 테스트가 다시 내보낸 결과와 같은지 확인합니다.
 

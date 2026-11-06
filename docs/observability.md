@@ -30,7 +30,7 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 | 레벨 | 이벤트 | 키 | 남기는 때 |
 | --- | --- | --- | --- |
 | INFO | `conversation_started` | `conversation_id`, `npc`, `initiated_by` | 대화 시작(CONV-01) 저장 뒤 |
-| INFO | `conversation_ended` | `conversation_id`, `status`, `end_reason`, (사용자 종료면) `user_turns` | 사용자가 끝냄(CONV-08), 무례 누적으로 NPC가 끝냄(CONV-03). 이미 끝난 대화를 다시 끝내면 남기지 않음 |
+| INFO | `conversation_ended` | `conversation_id`, `status`, `end_reason`, (사용자 종료면) `user_turns` | 사용자가 끝냄(CONV-08), 무례 누적·5분 제한으로 NPC가 끝냄(CONV-03). 이미 끝난 대화를 다시 끝내면 남기지 않음 |
 | WARN | `feedback_failed` | `conversation_id`, `reason` | 짧은 피드백을 만들지 못함(AI 시간 초과 등) |
 | INFO | `feedback_skipped` | `conversation_id`, `reason` | 피드백을 건너뜀. 사용자가 건너뛰면 `USER_SKIPPED` |
 | INFO | `guest_conversation_limit_reached` | `user_id`, `limit` | 게스트 대화 한도로 대화 시작을 거절 |
@@ -41,6 +41,8 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 | DEBUG | `business_error` | `code`, `status` | 업무 오류 응답마다(개발 서버에서만 보임) |
 | DEBUG | `npc_reply_timing` | `first_token_s`, `llm_s`, `worker_total_s`, `audio_full_s`, `wait_ms` | NPC 대답(첫 인사·발화) 스트림이 끝날 때(개발 서버에서만 보임) |
 | DEBUG | `npc_audio_saved` | `bytes`, `download_ms`, `save_ms` | NPC 대답 음성을 워커에서 받아 저장했을 때(개발 서버에서만 보임) |
+| INFO | `turn_stream_timing` | `result`(`turn` 또는 오류 코드), `first_delta_ms`, `first_audio_ms`, `total_ms`, `chunks`, `silent_chunks`, `client_gone` | 발화 전송을 스트리밍(CONV-03)으로 보낸 요청이 끝날 때. 시간은 요청을 받은 때부터이며 대사는 남기지 않음 |
+| INFO | `turn_stream_client_gone` | `event` | 스트리밍 중 사용자 연결이 끊김. 턴은 끝까지 처리해 저장 |
 
 대화 시작·NPC 대답이 오래 걸리면 같은 `request_id`의 `http_request`(요청 전체), `npc_reply_timing`, `npc_audio_saved`를 함께 봅니다.
 
@@ -58,6 +60,8 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 | WARN | `npc_reply_failed` | `code` | NPC 대답 스트림이 오류로 끝남 |
 | WARN | `npc_reply_stream_cut` | 없음 | NPC 대답 스트림이 끝 이벤트 없이 끊김 |
 | WARN | `npc_audio_download_failed` | `code` | NPC 대답 음성을 워커에서 받지 못함. 자막만 보임 |
+| WARN | `npc_chunk_audio_download_failed` | `code` | 스트리밍 중 문장 조각 음성을 워커에서 받지 못함. 그 조각은 자막만 보임 |
+| ERROR | `turn_stream_failed` | `type`, (예외) | 스트리밍으로 대사를 보내기 시작한 뒤 예상하지 못한 예외. `error` 이벤트(`INTERNAL_ERROR`)로 알림 |
 | WARN | `npc_audio_too_large` | `bytes` | NPC 음성이 보관 상한보다 커서 저장하지 않음 |
 | WARN | `npc_audio_save_failed` | (예외) | NPC 음성 파일을 저장하지 못함 |
 | WARN | `npc_audio_delete_failed` | `code` | 보관 기간이 지난 음성 파일을 지우지 못함. 다음 정리에서 다시 지움 |

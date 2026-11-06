@@ -2,12 +2,14 @@ package com.elsehere.conversation.repository;
 
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.ConversationStatus;
+import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -16,6 +18,11 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
   Optional<Conversation> findFirstByUserIdAndStatus(Long userId, ConversationStatus status);
 
   Optional<Conversation> findByIdAndUserId(Long id, Long userId);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select c from Conversation c where c.id = :id and c.userId = :userId")
+  Optional<Conversation> findByIdAndUserIdForUpdate(
+      @Param("id") Long id, @Param("userId") Long userId);
 
   Optional<Conversation> findByRequestId(UUID requestId);
 

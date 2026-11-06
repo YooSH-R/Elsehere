@@ -233,7 +233,7 @@ namespace A305.Npc.PlayModeTests
             Assert.That(clickTalk.HighlightedNpc, Is.SameAs(ben));
             Assert.That(parts.All(HasOutline), Is.True, "모든 몸 그림에 테두리가 있어야 합니다.");
 
-            yield return FaceFrom(ben, 10f);
+            yield return FaceFromClearSide(ben, 10f);
             clickTalk.RefreshHighlight(AimAt(ben));
 
             Assert.That(clickTalk.HighlightedNpc, Is.Null);
@@ -499,20 +499,59 @@ namespace A305.Npc.PlayModeTests
             yield return null;
         }
 
-        // 마을 밖으로 옮겨 둔 다른 행인 하나를 Ben 옆 1.5m에 세운다. 생활은 끈 채로 두고 먼저 다가오지 않게 한다.
+        // 플레이어를 NPC에서 주어진 거리에 세우되, 현관 기둥·가로등처럼 그 사이를 가리는 것이 없는 방향을 고른다.
+        // 마을 시계에 따라 NPC가 서는 자리가 달라 앞쪽이 늘 비어 있지는 않다.
+        private static IEnumerator FaceFromClearSide(Passerby passerby, float distanceMeters)
+        {
+            var player = Single<PlayerMover>();
+            Vector3 npcPosition = passerby.transform.position;
+            Vector3 chest = npcPosition + Vector3.up * 1.1f;
+            for (int turn = 0; turn < 8; turn++)
+            {
+                Vector3 away = Quaternion.Euler(0f, turn * 45f, 0f) * passerby.transform.forward;
+                away.y = 0f;
+                Vector3 standAt = npcPosition + away.normalized * distanceMeters;
+                player.Teleport(standAt, Quaternion.LookRotation(-away));
+                Physics.SyncTransforms();
+                Vector3 eye = player.transform.position + Vector3.up * 1.5f;
+                if (new NpcPointerRaycast().Find(new Ray(eye, chest - eye), 30f) == passerby)
+                {
+                    Single<PlayerCameraRig>().SnapBehindTarget();
+                    yield return null;
+                    yield break;
+                }
+            }
+
+            Assert.Fail(
+                $"준비: {passerby.name}이(가) {distanceMeters}m에서 가리지 않고 보이는 방향이 없습니다."
+            );
+        }
+
+        // 마을 밖으로 옮겨 둔 행인 Ruby를 Ben 옆에 세운다. 생활은 끈 채로 두고 먼저 다가오지 않게 한다.
+        // 아무 행인이나 고르면 출퇴근하는 직원의 마을 몸(NpcPopulation)이 걸려 제자리를 지키지 않으므로 Ruby로 정한다.
+        // 다가온 Ben이 플레이어와 Ruby 사이를 가리지 않는 쪽을 고른다.
         private static Passerby PlaceAnotherNpcBeside(Passerby ben)
         {
-            Passerby neighbor = FindPasserby(RubyCode);
-            KeepFromApproaching(neighbor);
-            PlaceAt(
-                neighbor,
-                new Pose(
-                    ben.transform.position + ben.transform.right * 1.5f,
-                    ben.transform.rotation
-                )
-            );
-            neighbor.enabled = true;
-            return neighbor;
+            Vector3 eye = Single<PlayerMover>().transform.position + Vector3.up * 1.5f;
+            foreach (float side in new[] { 1.5f, -1.5f, 2.5f, -2.5f })
+            {
+                Passerby ruby = BringNpc(
+                    RubyCode,
+                    new Pose(
+                        ben.transform.position + ben.transform.right * side,
+                        ben.transform.rotation
+                    )
+                );
+                Physics.SyncTransforms();
+                Vector3 chest = ruby.transform.position + Vector3.up * 1.1f;
+                if (new NpcPointerRaycast().Find(new Ray(eye, chest - eye), 30f) == ruby)
+                {
+                    return ruby;
+                }
+            }
+
+            Assert.Fail("준비: Ben 옆에 가리지 않고 보이는 자리가 없습니다.");
+            return null;
         }
 
         // 마을 밖으로 옮겨 둔 행인 하나를 주어진 자리에 세운다. 생활은 끈 채로 두고 먼저 다가오지 않게 한다.

@@ -548,19 +548,31 @@ namespace A305.Dialogue
 
         private string FormatStatus()
         {
-            if (pronunciationNotice != null)
-                return pronunciationNotice;
+            string countdown = content is ServerConversation server
+                ? server.CountdownMessage
+                : null;
+            string message;
             if (string.IsNullOrEmpty(content.RecoveryGuide))
             {
                 // 녹음·오류 같은 지금 상황 안내가 먼저이고, 없을 때만 음성 동의 안내를 보인다.
-                return string.IsNullOrEmpty(content.StatusMessage) && NeedsVoiceConsent
-                    ? VoiceInputNotice.ConsentRequired
-                    : content.StatusMessage ?? "";
+                message =
+                    string.IsNullOrEmpty(content.StatusMessage) && NeedsVoiceConsent
+                        ? VoiceInputNotice.ConsentRequired
+                        : content.StatusMessage ?? "";
+            }
+            else
+            {
+                message = string.IsNullOrEmpty(content.StatusMessage)
+                    ? content.RecoveryGuide
+                    : $"{content.StatusMessage}\n{content.RecoveryGuide}";
             }
 
-            return string.IsNullOrEmpty(content.StatusMessage)
-                ? content.RecoveryGuide
-                : $"{content.StatusMessage}\n{content.RecoveryGuide}";
+            if (pronunciationNotice != null)
+                message = pronunciationNotice;
+
+            return string.IsNullOrEmpty(countdown) ? message
+                : string.IsNullOrEmpty(message) ? countdown
+                : $"{countdown}\n{message}";
         }
 
         private void RequestSend()

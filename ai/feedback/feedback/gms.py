@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from feedback.clients import ModelNotConfigured, ProviderCallError
+from feedback.model_output import COMPACT_VERSION, SERVER_FIELDS
 from feedback.models import LLM_OUTPUT
 
 
@@ -17,6 +18,11 @@ def feedback_response_format(messages):
     definitions = LLM_OUTPUT.json_schema()["$defs"]
     definitions.pop("LlmUsable")
     definitions.pop("LlmInsufficient")
+    for name, fields_to_remove in SERVER_FIELDS.items():
+        definition = definitions[name]
+        for field_name in fields_to_remove:
+            definition["properties"].pop(field_name)
+            definition["required"].remove(field_name)
     fields = definitions["FeedbackData"]["properties"]
     # 외부 v0.3 계약은 유지하고 이번 생성의 선택적 출력만 제한한다.
     fields["review_tags"]["maxItems"] = 2
@@ -44,6 +50,8 @@ def feedback_response_format(messages):
         definitions["Suggestion"]["properties"]["source"] = {"$ref": "#/$defs/UserEvidence"}
         definitions["TurnReview"]["properties"]["turn_id"]["enum"] = user_ids
         definitions["UserTurnSource"]["properties"]["turn_id"]["enum"] = user_ids
+        for name in ("review_id", "suggestion_id"):
+            definitions["SuggestionSource"]["properties"][name]["enum"] = user_ids
     if candidates:
         selection = definitions["SpokenUsageSelection"]["properties"]
         selection["catalog_id"]["enum"] = list(dict.fromkeys(item["catalog_id"] for item in candidates))
@@ -56,12 +64,13 @@ def feedback_response_format(messages):
         "type": "object",
         "additionalProperties": False,
         "properties": {
+            "format_version": {"type": "string", "enum": [COMPACT_VERSION]},
             "outcome": {"type": "string", "enum": ["usable", "insufficient_evidence"]},
             "result": {"anyOf": [{"$ref": "#/$defs/FeedbackData"}, {"type": "null"}]},
             "problem": {"anyOf": [{"$ref": "#/$defs/DataIssue"}, {"type": "null"}]},
             "spoken_usage_selection": selection_schema,
         },
-        "required": ["outcome", "result", "problem", "spoken_usage_selection"],
+        "required": ["format_version", "outcome", "result", "problem", "spoken_usage_selection"],
         "$defs": definitions,
     }
 

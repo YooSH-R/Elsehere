@@ -103,6 +103,45 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator HotelJake_StaysAtTheCenterOfTheReceptionDesk()
+        {
+            yield return LoadAt("HotelScene", 12 * 60, paused: true);
+            Object
+                .FindFirstObjectByType<PlayerMover>()
+                .Teleport(new Vector3(0, .12f, -20), Quaternion.identity);
+            NpcRoutine jake = Routine("HOTEL_STAFF");
+            Bounds desk = SolidBounds(NearestPlaced("reception_desk", jake.transform));
+            Vector3 startingPosition = jake.transform.position;
+
+            yield return WaitUntil(() => jake.IsUsing);
+            SetClock(13 * 60, paused: true);
+            yield return new WaitForSeconds(20);
+
+            Assert.That(
+                Mathf.Abs(jake.transform.position.x - desk.center.x),
+                Is.LessThan(.3f),
+                "Jake는 프런트 데스크 가운데에 있어야 합니다."
+            );
+            Assert.That(
+                HorizontalDistance(jake.transform.position, startingPosition),
+                Is.LessThan(.1f),
+                "Jake는 프런트 데스크에서 돌아다니지 않아야 합니다."
+            );
+
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+            player.Teleport(
+                new Vector3(desk.center.x, player.transform.position.y, desk.min.z - .8f),
+                Quaternion.identity
+            );
+            yield return new WaitForSeconds(8);
+            Assert.That(
+                HorizontalDistance(jake.transform.position, startingPosition),
+                Is.LessThan(.1f),
+                "손님을 응대할 때도 Jake는 자기 자리를 지켜야 합니다."
+            );
+        }
+
+        [UnityTest]
         public IEnumerator HotelStaff_UsingTheReceptionDesk_KeepSeparateStandingPlaces()
         {
             yield return LoadAt("HotelScene", 12 * 60, paused: true);

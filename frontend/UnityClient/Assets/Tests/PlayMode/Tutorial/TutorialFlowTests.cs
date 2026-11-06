@@ -262,6 +262,12 @@ namespace A305.Tutorial.PlayModeTests
                     Is.EqualTo(CameraViewMode.FirstPerson),
                     "준비: 1인칭"
                 );
+                // ViewMode 전환 뒤 카메라의 실제 위치가 보간되는 시간까지 기다린다.
+                float arrowDeadline = Time.realtimeSinceStartup + WaitTimeoutSeconds;
+                while (
+                    !coachMark.IsCompassArrowShowing && Time.realtimeSinceStartup < arrowDeadline
+                )
+                    yield return null;
                 Assert.That(coachMark.IsCompassArrowShowing, Is.True);
             }
             finally

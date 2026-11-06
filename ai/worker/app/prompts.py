@@ -78,14 +78,15 @@ def guard_messages(npc: Npc, history: list[Line], text: str) -> list[dict]:
 
 
 # 줄 사건: 의도 판정이 함께 고르고, 워커가 그 턴의 호감과 대화 중 기분에 쓴다(app.npc_relationship). 무례는 /v1/guard만 판정한다.
-# 정의는 이정훈 님 사건 테스트셋 가이드 v1.1(ai/tools/event_eval/README.md). 효과(인상·기분)는 공통 규칙 world-rules.json의 conversationEvents
-LINE_EVENTS = ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "APOLOGY", "COMPLIMENT", "TASK_DONE", "LEAVE"]
+# 정의는 사건 테스트셋 가이드 v1.2(ai/tools/event_eval/README.md). 효과(인상·기분)는 공통 규칙 world-rules.json의 conversationEvents
+LINE_EVENTS = ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "APOLOGY", "COMPLIMENT", "HELP", "TASK_DONE", "LEAVE"]
 EVENTS_GUIDE = """Also list in "events" what the learner does toward the partner in this line, from the list below. Use [] when the line does none of them.
 - GREETING: greets the partner, formal or casual. A casual opener asking how things are is a GREETING, not a PERSONAL_QUESTION.
 - SMALL_TALK: chats about something besides the business, like the weather.
 - PERSONAL_QUESTION: asks about the partner's own life or feelings ("Do you like working here?"). Then it is not SMALL_TALK.
 - APOLOGY: apologizes for something they did ("Sorry I'm late"). Not "sorry?" asking to repeat, "excuse me", "sorry to hear that", or apologizing for their English.
 - COMPLIMENT: praises the partner, their work, their place or their things, or says they like them ("You make the best latte", "I love this cafe", "커피 진짜 맛있어요"). It still counts when it answers the partner's question about the drink, food, room or service. A plain "thanks" or "thank you so much", a short "great" or "good", "I'd like ..." or a drink they like while ordering is not a compliment.
+- HELP: offers concrete help to the partner, accepts their request for help, or gives useful information addressing their current need. Count the learner helping the partner, never the partner helping the learner. A clear offer counts without claiming it was carried out. Asking for help, routine orders or payments, vague kindness, refusing, quoted or hypothetical help, and demanding a reward do not count. A short yes counts only when it accepts the partner's explicit request for help.
 - TASK_DONE: says in words that their business is finished ("That's all", "No, thanks").
 - LEAVE: says goodbye.
 Korean words count by their meaning. English mistakes, Korean words and short answers are never a problem. Do not judge rudeness here."""
@@ -431,6 +432,9 @@ You get what the character remembered before and the conversation that just ende
 - events: what happened between them, short, from the character's view ("was rude and threatened me, so I asked them to leave"). Max 5, newest first; keep important old ones.
 - attitude: how the character feels about them now: friendly, neutral, or wary; this is a tone hint, not a penalty or affinity score.
 - struggled: English expressions the customer clearly had trouble with in this conversation (short phrases). Max 5.
+- impression: how this conversation alone went for the character, ignoring earlier visits. good only when it was clearly pleasant
+  beyond the business: friendly chat, warmth, kind words, real interest in the character. A polite but plain order or request is neutral.
+  bad when the customer was unpleasant or dismissive. English mistakes, Korean words and short answers never make it worse.
 Rude classifications come from Spring: [RUDE: content withheld] means a confirmed rude turn, not a new profile fact.
 Do not infer new rude classifications from unmarked text. Absence of a marker is not confirmation of polite behavior.
 Never store abusive wording in name, claims, or struggled. A confirmed rude event may be summarized without quoting it;
@@ -448,8 +452,9 @@ MEMORY_SCHEMA = {
         "events": {"type": "array", "items": {"type": "string"}},
         "attitude": {"type": "string", "enum": ["friendly", "neutral", "wary"]},
         "struggled": {"type": "array", "items": {"type": "string"}},
+        "impression": {"type": "string", "enum": ["good", "neutral", "bad"]},
     },
-    "required": ["name", "claims", "events", "attitude", "struggled"],
+    "required": ["name", "claims", "events", "attitude", "struggled", "impression"],
     "additionalProperties": False,
 }
 CARD_LISTS = {"claims": 5, "events": 5, "struggled": 5}
@@ -481,8 +486,19 @@ def memory_messages(npc: Npc, old: dict | None, outcome: str, history: list[Line
     return [{"role": "system", "content": MEMORY_SYSTEM}, {"role": "user", "content": user}]
 
 
-def parse_memory_card(raw: str) -> dict:
-    """카드 생성 결과만 엄격하게 읽는다. 중복 JSON 키·비표준 상수를 허용하지 않는다."""
+IMPRESSIONS = ("good", "neutral", "bad")
+
+
+def parse_memory_output(raw: str) -> tuple[dict, str]:
+    """기억 카드 생성 결과를 카드와 이번 대화의 인상으로 나눠 읽는다. 카드는 엄격하게 검사하고(clean_card),
+    인상이 없거나 정해진 값이 아니면 neutral로 본다(인상 하나 때문에 카드 갱신까지 실패하지 않게)."""
+    output = strict_json(raw)
+    impression = output.pop("impression", None) if isinstance(output, dict) else None
+    return clean_card(output), impression if impression in IMPRESSIONS else "neutral"
+
+
+def strict_json(raw: str) -> object:
+    """카드 생성 결과를 엄격하게 읽는다. 중복 JSON 키·비표준 상수를 허용하지 않는다."""
 
     def unique_object(pairs):
         result = {}
@@ -496,10 +512,9 @@ def parse_memory_card(raw: str) -> dict:
         raise ValueError("비표준 JSON 상수")
 
     try:
-        card = json.loads(raw, object_pairs_hook=unique_object, parse_constant=reject_constant)
+        return json.loads(raw, object_pairs_hook=unique_object, parse_constant=reject_constant)
     except (ValueError, TypeError) as error:
         raise ModelOutputError("기억 카드 출력이 유효한 JSON이 아님") from error
-    return clean_card(card)
 
 
 def clean_card(card: object) -> dict:

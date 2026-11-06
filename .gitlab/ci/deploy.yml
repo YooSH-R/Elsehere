@@ -29,7 +29,7 @@ dev:child:
   needs:
     - ci:yaml
     - dev:plan
-  interruptible: false
+  interruptible: true
   trigger:
     include:
       - artifact: dist/deployment/dev-child.yml

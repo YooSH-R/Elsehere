@@ -191,6 +191,83 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task Tick_UsesServerDeadlineAndWarnsThirtySecondsBeforeLimit()
+        {
+            api.StartResponse.Conversation = TimedState();
+            int changed = 0;
+            conversation.Changed += () => changed++;
+            await conversation.StartAsync();
+            changed = 0;
+
+            bool shouldEnd = conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:04:30+09:00"));
+
+            Assert.That(shouldEnd, Is.False);
+            Assert.That(
+                conversation.CountdownMessage,
+                Is.EqualTo("남은 시간 0:30 · 대화를 마무리해 주세요")
+            );
+            Assert.That(changed, Is.EqualTo(1));
+
+            conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:04:30.500+09:00"));
+
+            Assert.That(changed, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task Tick_AtSoftLimitAllowsOneFinalTurn()
+        {
+            api.StartResponse.Conversation = TimedState();
+            await conversation.StartAsync();
+
+            bool shouldEnd = conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:05:00+09:00"));
+
+            Assert.That(shouldEnd, Is.False);
+            Assert.That(conversation.IsClosing, Is.True);
+            Assert.That(conversation.CanSend, Is.True);
+            Assert.That(
+                conversation.CountdownMessage,
+                Is.EqualTo("마지막 말을 마무리해 주세요 · 0:30")
+            );
+        }
+
+        [Test]
+        public async Task Tick_AtHardLimitBlocksInputAndRequestsFeedback()
+        {
+            api.StartResponse.Conversation = TimedState();
+            await conversation.StartAsync();
+
+            bool shouldEnd = conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:05:30+09:00"));
+
+            Assert.That(shouldEnd, Is.True);
+            Assert.That(conversation.CanSend, Is.False);
+            Assert.That(conversation.CountdownMessage, Is.EqualTo("대화 시간이 끝났어요"));
+        }
+
+        [Test]
+        public async Task Tick_AtHardLimitWaitsForCurrentNpcReplyBeforeFeedback()
+        {
+            api.StartResponse.Conversation = TimedState();
+            await conversation.StartAsync();
+            api.PendingTurn = new TaskCompletionSource<TurnResult>();
+            Task sending = conversation.SendAsync("One last thing.");
+
+            bool whileReplying = conversation.Tick(
+                DateTimeOffset.Parse("2026-11-05T14:05:30+09:00")
+            );
+
+            Assert.That(whileReplying, Is.False);
+            api.TurnResponse = Reply("One last thing.", "All right. Take care!", "ENDED_BY_NPC");
+            api.TurnResponse.Conversation.EndReason = "TIME_LIMIT";
+            api.PendingTurn.SetResult(api.TurnResponse);
+            await sending;
+
+            Assert.That(
+                conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:05:31+09:00")),
+                Is.True
+            );
+        }
+
+        [Test]
         public async Task Start_RequestsNpcInitiatedConversationWithNpcCode()
         {
             await conversation.StartAsync();
@@ -321,6 +398,117 @@ namespace A305.Dialogue.Tests
 
             Assert.That(waits[0], Is.EqualTo(DialogueWait.NpcReply));
             Assert.That(conversation.Waiting, Is.EqualTo(DialogueWait.None));
+        }
+
+        [Test]
+        public async Task Send_StreamedText_ShowsUserAndGrowingNpcLineBeforeTheTurnIsSaved()
+        {
+            await conversation.StartAsync();
+            api.TurnResponse = Reply(Order, "Great! Hot or iced?", "ACTIVE");
+            api.StreamSteps.Add(stream => stream.OnDelta("Great!"));
+            api.StreamSteps.Add(stream => stream.OnDelta(" Hot"));
+            api.HoldAfterStream = new TaskCompletionSource<bool>();
+
+            Task sending = conversation.SendAsync(Order);
+
+            // 대사가 오기 시작하면 로딩을 걷고 온 만큼 보여 준다. 저장이 끝날 때까지 보내기는 막는다.
+            Assert.That(conversation.Waiting, Is.EqualTo(DialogueWait.None));
+            Assert.That(conversation.IsBusy, Is.True);
+            Assert.That(conversation.Lines, Has.Count.EqualTo(3));
+            Assert.That(conversation.Lines[1].English, Is.EqualTo(Order));
+            Assert.That(conversation.Lines[1].IsNpc, Is.False);
+            Assert.That(conversation.Lines[2].English, Is.EqualTo("Great! Hot"));
+            Assert.That(conversation.Lines[2].IsNpc, Is.True);
+
+            api.HoldAfterStream.SetResult(true);
+            await sending;
+
+            Assert.That(conversation.Lines, Has.Count.EqualTo(3));
+            Assert.That(conversation.Lines[2].English, Is.EqualTo("Great! Hot or iced?"));
+            Assert.That(conversation.LastNpcLine, Is.SameAs(conversation.Lines[2]));
+            Assert.That(conversation.LastNpcTurn.TurnId, Is.EqualTo(103));
+        }
+
+        [Test]
+        public async Task Send_TranslatedTurnWithStreamedSpeech_KeepsTranslationAndTimeLimit()
+        {
+            api.StartResponse.Conversation = TimedState();
+            await conversation.StartAsync();
+            api.TurnResponse = Reply("카페 어디야?", "It is on your right.", "ACTIVE");
+            api.TurnResponse.Conversation = TimedState();
+            api.TurnResponse.UserTurn.Translation = new UserTranslationData
+            {
+                English = "Where is the cafe?",
+            };
+            api.StreamSteps.Add(stream => stream.OnSpeechChunk(0, "It is on your right.", Wav));
+
+            await conversation.SendAsync("카페 어디야?");
+            conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:04:30+09:00"));
+
+            Assert.That(conversation.UserTranslation, Is.EqualTo("Where is the cafe?"));
+            Assert.That(conversation.LastTurnSpokenInChunks, Is.True);
+            Assert.That(conversation.CountdownMessage, Does.Contain("0:30"));
+        }
+
+        [Test]
+        public async Task Send_StreamedSpeechChunks_ArePassedOnAndTheWholeSpeechIsNotPlayedAgain()
+        {
+            await conversation.StartAsync();
+            var chunks = new List<NpcSpeechChunkData>();
+            conversation.NpcSpeechChunk += chunks.Add;
+            api.StreamSteps.Add(stream => stream.OnDelta("Great!"));
+            api.StreamSteps.Add(stream => stream.OnSpeechChunk(0, "Great!", Wav));
+            api.StreamSteps.Add(stream => stream.OnSpeechChunk(1, "Hot or iced?", null));
+            bool speechReadyWhileStreaming = false;
+            api.StreamSteps.Add(_ => speechReadyWhileStreaming = conversation.IsNpcSpeechReady);
+
+            await conversation.SendAsync(Order);
+
+            // 음성이 없는 조각은 재생할 것이 없어 넘기지 않는다.
+            Assert.That(chunks, Has.Count.EqualTo(1));
+            Assert.That(chunks[0].Seq, Is.EqualTo(0));
+            Assert.That(chunks[0].Wav, Is.EqualTo(Wav));
+            // 들을 수 있는 대사라 자막을 끈 사용자에게는 받는 동안에도 대사를 가린다.
+            Assert.That(speechReadyWhileStreaming, Is.True);
+            Assert.That(conversation.LastTurnSpokenInChunks, Is.True);
+        }
+
+        [Test]
+        public async Task Send_StreamWithoutAnySpeech_LeavesTheWholeSpeechToPlay()
+        {
+            await conversation.StartAsync();
+            api.StreamSteps.Add(stream => stream.OnDelta("Great!"));
+            api.StreamSteps.Add(stream => stream.OnSpeechChunk(0, "Great!", null));
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(conversation.LastTurnSpokenInChunks, Is.False);
+        }
+
+        [Test]
+        public async Task Send_StreamFailsAfterText_RemovesThePartialLinesAndKeepsTheRequestForRetry()
+        {
+            await conversation.StartAsync();
+            api.StreamSteps.Add(stream => stream.OnDelta("Great!"));
+            api.TurnError = new ApiException(
+                "AI_TEMPORARILY_UNAVAILABLE",
+                503,
+                "AI가 잠시 응답하지 않습니다. 다시 시도해 주세요."
+            );
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(conversation.Lines, Has.Count.EqualTo(1));
+            Assert.That(conversation.LastNpcLine, Is.SameAs(conversation.Lines[0]));
+            Assert.That(conversation.CanRetry, Is.True);
+            Assert.That(conversation.TakeTextToRestore(), Is.EqualTo(Order));
+
+            api.TurnError = null;
+            api.StreamSteps.Clear();
+            await conversation.RetryAsync();
+
+            Assert.That(api.Turns[1].RequestId, Is.EqualTo(api.Turns[0].RequestId));
+            Assert.That(conversation.Lines, Has.Count.EqualTo(3));
         }
 
         [Test]
@@ -1869,6 +2057,18 @@ namespace A305.Dialogue.Tests
             };
         }
 
+        private static ConversationState TimedState()
+        {
+            return new ConversationState
+            {
+                Status = "ACTIVE",
+                TimeLimitAt = "2026-11-05T14:05:00+09:00",
+                GraceUntil = "2026-11-05T14:05:30+09:00",
+                Closing = false,
+                FinalTurnsRemaining = 0,
+            };
+        }
+
         private static EndResult Ended(string feedbackStatus)
         {
             return new EndResult
@@ -2023,21 +2223,47 @@ namespace A305.Dialogue.Tests
                 return Task.FromResult(StartResponse);
             }
 
-            public Task<TurnResult> SendTurnAsync(
+            /// <summary>발화 전송이 스트림으로 차례로 넘길 대사 글자·조각 음성.</summary>
+            public List<Action<ITurnStream>> StreamSteps { get; } = new List<Action<ITurnStream>>();
+
+            /// <summary>스트림을 넘긴 뒤 저장된 턴을 돌려주기 전에 기다릴 신호. 없으면 바로 돌려준다.</summary>
+            public TaskCompletionSource<bool> HoldAfterStream { get; set; }
+
+            public async Task<TurnResult> SendTurnAsync(
                 long conversationId,
                 string requestId,
                 string inputType,
                 string text,
-                string sttRawText
+                string sttRawText,
+                ITurnStream stream
             )
             {
                 Calls.Add("SendTurn");
                 Turns.Add(new TurnRequest(conversationId, requestId, inputType, text, sttRawText));
+                if (stream != null)
+                {
+                    foreach (Action<ITurnStream> step in StreamSteps)
+                    {
+                        step(stream);
+                    }
+                }
+
+                if (HoldAfterStream != null)
+                {
+                    await HoldAfterStream.Task;
+                }
+
                 if (PendingTurn != null)
-                    return PendingTurn.Task;
-                return TurnError != null
-                    ? Task.FromException<TurnResult>(TurnError)
-                    : Task.FromResult(TurnResponse);
+                {
+                    return await PendingTurn.Task;
+                }
+
+                if (TurnError != null)
+                {
+                    throw TurnError;
+                }
+
+                return TurnResponse;
             }
 
             public Task<EndResult> EndAsync(

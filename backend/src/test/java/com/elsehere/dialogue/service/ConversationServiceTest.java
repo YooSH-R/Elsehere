@@ -28,6 +28,8 @@ import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.service.GuestConversationLimit;
+import com.elsehere.common.config.AdjustableClock;
+import com.elsehere.common.config.TestClockConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.logging.LogCapture;
@@ -58,12 +60,12 @@ import com.elsehere.mission.repository.TownStoryRepository;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
-import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -96,7 +98,7 @@ class ConversationServiceTest {
 
   @Autowired private EntityManager entityManager;
 
-  @Autowired private Clock clock;
+  @Autowired private AdjustableClock clock;
 
   @Autowired private FollowUpService followUpService;
 
@@ -107,6 +109,11 @@ class ConversationServiceTest {
   @BeforeEach
   void setUp() {
     userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+  }
+
+  @AfterEach
+  void resetClock() {
+    clock.setInstant(TestClockConfig.NOW);
   }
 
   @Test
@@ -704,6 +711,33 @@ class ConversationServiceTest {
     assertThat(response.feedback().errorCode()).isEqualTo("AI_TIMEOUT");
     WorkerMemory memory = memoryService.memoryFor(userId, npcId(entityManager, "TOWN_PASSERBY"));
     assertThat(memory.visits()).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("5분 뒤 종료 요청은 TIME_LIMIT으로 끝내고 피드백과 기억을 중복 생성하지 않는다")
+  void end_afterTimeLimit_generatesFeedbackAndMemoryOnce() {
+    ConversationStartResponse started = startPasserby();
+    sendText(started.conversationId(), "Yes, it's sunny!");
+    given(aiGateway.feedback(any(), any()))
+        .willReturn(new WorkerFeedback("failed", "AI_TIMEOUT", null, null, List.of()));
+    given(aiGateway.memoryCard(any(), any(), anyString(), any(), any()))
+        .willReturn(new MemoryCardResult("{\"name\": \"\"}", List.of()));
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(300));
+
+    EndConversationResponse first =
+        conversationService.end(
+            userId, started.conversationId(), new EndConversationRequest(UUID.randomUUID(), false));
+    EndConversationResponse retried =
+        conversationService.end(
+            userId, started.conversationId(), new EndConversationRequest(UUID.randomUUID(), false));
+
+    assertThat(first.status()).isEqualTo(ConversationStatus.ENDED_BY_NPC);
+    assertThat(first.endReason()).isEqualTo(ConversationEndReason.TIME_LIMIT);
+    assertThat(retried.endReason()).isEqualTo(ConversationEndReason.TIME_LIMIT);
+    WorkerMemory memory = memoryService.memoryFor(userId, npcId(entityManager, "TOWN_PASSERBY"));
+    assertThat(memory.visits()).isEqualTo(1);
+    then(aiGateway).should().feedback(any(), any());
+    then(aiGateway).should().memoryCard(any(), any(), anyString(), any(), any());
   }
 
   @Test

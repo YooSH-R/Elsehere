@@ -59,6 +59,8 @@ class TownStoryTurnTest {
     ConversationLookup lookup = mock(ConversationLookup.class);
     when(lookup.ownedConversation(8L, 10L))
         .thenReturn(Conversation.start(8L, 1L, InitiatedBy.USER, 1, Instant.EPOCH));
+    when(lookup.ownedConversationForUpdate(8L, 10L))
+        .thenReturn(Conversation.start(8L, 1L, InitiatedBy.USER, 1, Instant.EPOCH));
     DialogueContexts contexts = mock(DialogueContexts.class);
     WorkerNpc npc = new WorkerNpc("DINER_STAFF", "Rosa", "server", "", "diner", "voice", 1);
     when(contexts.npcOf(any()))

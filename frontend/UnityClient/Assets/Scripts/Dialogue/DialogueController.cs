@@ -272,6 +272,12 @@ namespace A305.Dialogue
         private void Update()
         {
             ShowVoiceInput();
+            if (serverConversation != null && serverConversation.Tick(DateTimeOffset.UtcNow))
+            {
+                End();
+                return;
+            }
+
             if (
                 session.IsActive
                 && Keyboard.current != null
@@ -422,6 +428,7 @@ namespace A305.Dialogue
             );
             serverConversation.Changed += panel.Refresh;
             serverConversation.NpcSpoke += PlayNpcSpeech;
+            serverConversation.NpcSpeechChunk += PlayNpcSpeechChunk;
             serverConversation.UserTurnAccepted += ForwardAcceptedTurn;
             panel.Show(serverConversation);
             _ = serverConversation.StartAsync();
@@ -456,6 +463,7 @@ namespace A305.Dialogue
             {
                 serverConversation.Changed -= panel.Refresh;
                 serverConversation.NpcSpoke -= PlayNpcSpeech;
+                serverConversation.NpcSpeechChunk -= PlayNpcSpeechChunk;
                 serverConversation.UserTurnAccepted -= ForwardAcceptedTurn;
             }
 
@@ -554,6 +562,12 @@ namespace A305.Dialogue
         {
             TextPronunciation.Stop();
             NpcResponded?.Invoke();
+            // 대답을 받는 동안 문장 조각 음성으로 이미 들려줬다. [다시 듣기]는 턴 전체 음성을 받아 재생한다.
+            if (serverConversation.LastTurnSpokenInChunks)
+            {
+                return;
+            }
+
             if (!isEnding && turn.Speech != null && turn.Speech.IsReady)
             {
                 _ = serverConversation.PlaySpeechAsync(serverLink.PlaySpeechAsync);
@@ -561,6 +575,14 @@ namespace A305.Dialogue
             }
 
             serverLink.ForgetSpeech();
+        }
+
+        private void PlayNpcSpeechChunk(NpcSpeechChunkData chunk)
+        {
+            if (!isEnding)
+            {
+                serverLink.QueueSpeechChunk(chunk.Reply, chunk.Wav);
+            }
         }
 
         // 대본 대화는 뜻을 대본에 가지고 있어 서버 대화만 받아 온다(CONV-04).

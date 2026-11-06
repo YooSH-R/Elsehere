@@ -110,7 +110,7 @@ def test_session_cards_flow_into_next_visit_without_old_preference_restoration(c
         assert json.dumps(stored or {}, ensure_ascii=False) in body["messages"][1]["content"]
         assert body["response_format"]["type"] == "json_schema"
         assert body["response_format"]["json_schema"]["strict"] is True
-        assert set(body["response_format"]["json_schema"]["schema"]["required"]) == set(OLD)
+        assert set(body["response_format"]["json_schema"]["schema"]["required"]) == set(OLD) | {"impression"}
         return ok(json.dumps(current_target), usage=(90, 35))
 
     def npc_answer(body):
@@ -123,7 +123,7 @@ def test_session_cards_flow_into_next_visit_without_old_preference_restoration(c
         response = client.post("/v1/memory", json=memory_request(stored, text))
         assert response.status_code == 200
         body = response.json()
-        assert set(body) == {"memory_card", "usage"}
+        assert set(body) == {"memory_card", "impression", "affinity_delta", "usage"}
         assert body["memory_card"] == target
         assert body["usage"][0]["step"] == "memory" and body["usage"][0]["input_tokens"] == 90
         stored = copy.deepcopy(body["memory_card"])

@@ -24,7 +24,7 @@
     "PERSONAL_QUESTION": {},
     "RUDE": { "mood": { "ANNOYED": 2 }, "impression": -8, "memorySalience": 3 },
     "APOLOGY": { "mood": { "ANNOYED": -1 }, "impression": 5 },
-    "COMPLIMENT": { "mood": { "PLEASED": 2 }, "impression": 5, "memorySalience": 2 },
+    "COMPLIMENT": { "mood": { "PLEASED": 2 }, "impression": 9, "memorySalience": 2 },
     "TASK_DONE": { "impression": 2, "memorySalience": 1 },
     "LEAVE": {}
   },
@@ -39,7 +39,9 @@
     "graceDays": 3,
     "recognitionDropPerDay": 1,
     "affinityFollowRate": 0.75,
-    "rudeAffinityFallback": -6
+    "rudeAffinityFallback": -6,
+    "goodConversationAffinity": 3,
+    "goodConversationMinLearnerLines": 3
   },
   "memory": {
     "stabilityDays": { "1": 1, "2": 3, "3": 14 },

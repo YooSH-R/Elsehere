@@ -238,7 +238,13 @@ namespace A305.Player
 
             // 휠 한 번의 값은 브라우저·장치마다 크기가 달라 방향만 사용한다.
             float scroll = zoomAction.action.ReadValue<float>();
-            ZoomedByUserThisFrame = scroll != 0f;
+            // 스크롤 UI 위에서는 휠을 UI만 사용한다. 목록의 끝에 닿아도 카메라로 넘기지 않는다.
+            ZoomedByUserThisFrame =
+                scroll != 0f
+                && (
+                    Mouse.current == null
+                    || !UiScrollTarget.IsAt(Mouse.current.position.ReadValue())
+                );
             if (ZoomedByUserThisFrame)
             {
                 orbit.Zoom(Mathf.Sign(scroll));

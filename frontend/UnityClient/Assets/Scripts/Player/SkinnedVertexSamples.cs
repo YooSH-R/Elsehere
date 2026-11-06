@@ -4,7 +4,10 @@ using UnityEngine;
 
 namespace A305.Player
 {
-    /// <summary>선택한 스킨 정점만 CPU에서 평가한다. 매 프레임 전체 메시를 Bake하지 않는다.</summary>
+    /// <summary>
+    /// 선택한 스킨 정점만 CPU에서 평가한다. 매 프레임 전체 메시를 Bake하지 않는다.
+    /// 뼈 행렬은 고른 정점이 쓰는 뼈만 다시 구한다.
+    /// </summary>
     internal sealed class SkinnedVertexSamples
     {
         private sealed class Surface
@@ -13,16 +16,22 @@ namespace A305.Player
             public Transform[] bones;
             public Matrix4x4[] bindPoses;
             public Matrix4x4[] matrices;
+            public int[] usedBones;
             public Vector3[] vertices;
             public BoneWeight[] weights;
         }
 
         private readonly List<Surface> surfaces = new();
 
+        /// <param name="outermostOnly">
+        /// 감싸는 상자만 필요할 때 여러 방향으로 가장 바깥에 있는 정점만 남긴다(<see cref="OutermostPoints"/>).
+        /// 머리처럼 정점이 수만 개인 부위를 매 프레임 계산하지 않게 한다. 상자의 각 면은 크기의 약 1% 안에서 같다.
+        /// </param>
         public SkinnedVertexSamples(
             Animator animator,
             Func<string, bool> includesBone,
-            float minimumInfluence = .5f
+            float minimumInfluence = .5f,
+            bool outermostOnly = false
         )
         {
             foreach (var skin in animator.GetComponentsInChildren<SkinnedMeshRenderer>())
@@ -50,6 +59,19 @@ namespace A305.Player
                 }
                 if (selectedVertices.Count == 0)
                     continue;
+                if (outermostOnly)
+                {
+                    int[] kept = OutermostPoints.Select(selectedVertices);
+                    var keptVertices = new List<Vector3>(kept.Length);
+                    var keptWeights = new List<BoneWeight>(kept.Length);
+                    foreach (int index in kept)
+                    {
+                        keptVertices.Add(selectedVertices[index]);
+                        keptWeights.Add(selectedWeights[index]);
+                    }
+                    selectedVertices = keptVertices;
+                    selectedWeights = keptWeights;
+                }
                 surfaces.Add(
                     new Surface
                     {
@@ -57,6 +79,7 @@ namespace A305.Player
                         bones = skin.bones,
                         bindPoses = mesh.bindposes,
                         matrices = new Matrix4x4[skin.bones.Length],
+                        usedBones = UsedBones(selectedWeights),
                         vertices = selectedVertices.ToArray(),
                         weights = selectedWeights.ToArray(),
                     }
@@ -66,23 +89,58 @@ namespace A305.Player
                 throw new InvalidOperationException("스킨 검사 정점이 없습니다.");
         }
 
+        private static int[] UsedBones(List<BoneWeight> weights)
+        {
+            var used = new SortedSet<int>();
+            foreach (var w in weights)
+            {
+                if (w.weight0 > 0)
+                    used.Add(w.boneIndex0);
+                if (w.weight1 > 0)
+                    used.Add(w.boneIndex1);
+                if (w.weight2 > 0)
+                    used.Add(w.boneIndex2);
+                if (w.weight3 > 0)
+                    used.Add(w.boneIndex3);
+            }
+            var indices = new int[used.Count];
+            used.CopyTo(indices);
+            return indices;
+        }
+
+        private static void UpdateBoneMatrices(Surface surface)
+        {
+            foreach (int bone in surface.usedBones)
+                surface.matrices[bone] =
+                    surface.bones[bone].localToWorldMatrix * surface.bindPoses[bone];
+        }
+
+        // 무게가 0인 뼈의 행렬은 다시 구하지 않으므로 곱하지 않는다.
+        private static Vector3 Skin(Surface surface, int index)
+        {
+            var v = surface.vertices[index];
+            var w = surface.weights[index];
+            Vector3 point = Vector3.zero;
+            if (w.weight0 > 0)
+                point += surface.matrices[w.boneIndex0].MultiplyPoint3x4(v) * w.weight0;
+            if (w.weight1 > 0)
+                point += surface.matrices[w.boneIndex1].MultiplyPoint3x4(v) * w.weight1;
+            if (w.weight2 > 0)
+                point += surface.matrices[w.boneIndex2].MultiplyPoint3x4(v) * w.weight2;
+            if (w.weight3 > 0)
+                point += surface.matrices[w.boneIndex3].MultiplyPoint3x4(v) * w.weight3;
+            return point;
+        }
+
         public float MinimumDistance(Vector3 planePoint, Vector3 planeNormal)
         {
             float minimum = float.PositiveInfinity;
             foreach (var surface in surfaces)
             {
-                for (int i = 0; i < surface.matrices.Length; i++)
-                    surface.matrices[i] =
-                        surface.bones[i].localToWorldMatrix * surface.bindPoses[i];
+                UpdateBoneMatrices(surface);
                 for (int i = 0; i < surface.vertices.Length; i++)
                 {
-                    var v = surface.vertices[i];
-                    var w = surface.weights[i];
-                    Vector3 point =
-                        surface.matrices[w.boneIndex0].MultiplyPoint3x4(v) * w.weight0
-                        + surface.matrices[w.boneIndex1].MultiplyPoint3x4(v) * w.weight1
-                        + surface.matrices[w.boneIndex2].MultiplyPoint3x4(v) * w.weight2
-                        + surface.matrices[w.boneIndex3].MultiplyPoint3x4(v) * w.weight3;
+                    Vector3 point = Skin(surface, i);
                     minimum = Mathf.Min(minimum, Vector3.Dot(point - planePoint, planeNormal));
                 }
             }
@@ -102,21 +160,13 @@ namespace A305.Player
                     offset.z / radius.z
                 ).magnitude;
             }
+            Matrix4x4 toSpace = space.worldToLocalMatrix;
             foreach (var surface in surfaces)
             {
-                for (int i = 0; i < surface.matrices.Length; i++)
-                    surface.matrices[i] =
-                        surface.bones[i].localToWorldMatrix * surface.bindPoses[i];
+                UpdateBoneMatrices(surface);
                 for (int i = 0; i < surface.vertices.Length; i++)
                 {
-                    var v = surface.vertices[i];
-                    var w = surface.weights[i];
-                    var point = space.InverseTransformPoint(
-                        surface.matrices[w.boneIndex0].MultiplyPoint3x4(v) * w.weight0
-                            + surface.matrices[w.boneIndex1].MultiplyPoint3x4(v) * w.weight1
-                            + surface.matrices[w.boneIndex2].MultiplyPoint3x4(v) * w.weight2
-                            + surface.matrices[w.boneIndex3].MultiplyPoint3x4(v) * w.weight3
-                    );
+                    var point = toSpace.MultiplyPoint3x4(Skin(surface, i));
                     minimum = Mathf.Min(
                         minimum,
                         Mathf.Min(Distance(point, head), Distance(point, torso))
@@ -130,21 +180,13 @@ namespace A305.Player
         {
             Vector3 axis = (end - start).normalized;
             float radiusSquared = 0;
+            Matrix4x4 toSpace = space.worldToLocalMatrix;
             foreach (var surface in surfaces)
             {
-                for (int i = 0; i < surface.matrices.Length; i++)
-                    surface.matrices[i] =
-                        surface.bones[i].localToWorldMatrix * surface.bindPoses[i];
+                UpdateBoneMatrices(surface);
                 for (int i = 0; i < surface.vertices.Length; i++)
                 {
-                    var v = surface.vertices[i];
-                    var w = surface.weights[i];
-                    Vector3 point =
-                        surface.matrices[w.boneIndex0].MultiplyPoint3x4(v) * w.weight0
-                        + surface.matrices[w.boneIndex1].MultiplyPoint3x4(v) * w.weight1
-                        + surface.matrices[w.boneIndex2].MultiplyPoint3x4(v) * w.weight2
-                        + surface.matrices[w.boneIndex3].MultiplyPoint3x4(v) * w.weight3;
-                    Vector3 offset = space.InverseTransformPoint(point) - start;
+                    Vector3 offset = toSpace.MultiplyPoint3x4(Skin(surface, i)) - start;
                     radiusSquared = Mathf.Max(
                         radiusSquared,
                         Vector3.ProjectOnPlane(offset, axis).sqrMagnitude
@@ -158,22 +200,13 @@ namespace A305.Player
         {
             bool first = true;
             Bounds bounds = default;
+            Matrix4x4 toSpace = space != null ? space.worldToLocalMatrix : Matrix4x4.identity;
             foreach (var surface in surfaces)
             {
-                for (int i = 0; i < surface.matrices.Length; i++)
-                    surface.matrices[i] =
-                        surface.bones[i].localToWorldMatrix * surface.bindPoses[i];
+                UpdateBoneMatrices(surface);
                 for (int i = 0; i < surface.vertices.Length; i++)
                 {
-                    var v = surface.vertices[i];
-                    var w = surface.weights[i];
-                    Vector3 point =
-                        surface.matrices[w.boneIndex0].MultiplyPoint3x4(v) * w.weight0
-                        + surface.matrices[w.boneIndex1].MultiplyPoint3x4(v) * w.weight1
-                        + surface.matrices[w.boneIndex2].MultiplyPoint3x4(v) * w.weight2
-                        + surface.matrices[w.boneIndex3].MultiplyPoint3x4(v) * w.weight3;
-                    if (space != null)
-                        point = space.InverseTransformPoint(point);
+                    Vector3 point = toSpace.MultiplyPoint3x4(Skin(surface, i));
                     if (first)
                     {
                         bounds = new Bounds(point, Vector3.zero);

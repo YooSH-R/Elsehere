@@ -1,6 +1,7 @@
 using A305.Characters;
 using A305.Dialogue;
 using A305.Player;
+using A305.World;
 using UnityEngine;
 
 namespace A305.Npc
@@ -118,6 +119,10 @@ namespace A305.Npc
         // 교대 밖이라 일하지 않는 직원인지. 생활이 없는 NPC와 행인은 근무 외로 보내지 않는다.
         private bool IsTownResident => TryGetComponent(out NpcTownWalker walker) && walker.enabled;
 
+        private bool IsCrossing => NpcTownWalker.IsRoadSurface(transform.position, .1f);
+
+        private TrafficLights trafficLights;
+
         private bool IsOffDuty =>
             IsTownResident
                 ? GetComponent<NpcTownWalker>().IsStaff
@@ -145,6 +150,7 @@ namespace A305.Npc
 
         private void Awake()
         {
+            trafficLights = FindFirstObjectByType<TrafficLights>();
             characterController = GetComponent<CharacterController>();
             // 프레임이 아주 빠르면 한 프레임 이동량이 기본 최소 이동 거리(0.001m)보다 작아 무시되므로 모두 반영한다.
             characterController.minMoveDistance = 0f;
@@ -228,7 +234,7 @@ namespace A305.Npc
                     return;
                 }
             }
-            bool isPlayerBusy = IsPlayerOccupied || IsOtherOfferShowing;
+            bool isPlayerBusy = IsPlayerOccupied || IsOtherOfferShowing || IsCrossing;
             // 새 대화를 시작할 수 없으면(게스트 대화 횟수를 다 씀) 먼저 다가오지 않는다(기능 명세 F-39).
             bool cannotStartConversation = !dialogue.Allowance.CanStartConversation;
             // 튜토리얼·퀘스트처럼 용건이 있는 경우에만 먼저 제안한다. 직원은 응대할 수 있는 자리인지도 확인한다.
@@ -342,7 +348,7 @@ namespace A305.Npc
         /// <param name="reachMeters">클릭으로 말을 걸 수 있는 수평 거리</param>
         public bool CanTalkByClick(float reachMeters)
         {
-            if (!enabled || IsPlayerOccupied)
+            if (!enabled || IsPlayerOccupied || IsCrossing)
             {
                 return false;
             }
@@ -543,12 +549,20 @@ namespace A305.Npc
         /// <summary>그 방향으로 한 프레임 걷는다. 생활(NpcRoutine)은 다가올 때와 다른 속도로 걷는다.</summary>
         internal void WalkToward(Vector3 horizontalDirection, float speedMetersPerSecond)
         {
+            if (IsWaitingForSignal(horizontalDirection))
+            {
+                Stand();
+                return;
+            }
             Vector3 velocity = horizontalDirection.normalized * speedMetersPerSecond;
             velocity.y = GroundedDownwardSpeedMetersPerSecond;
             characterController.Move(velocity * Time.deltaTime);
             TurnToward(horizontalDirection);
             ReportLocomotion(speedMetersPerSecond);
         }
+
+        internal bool IsWaitingForSignal(Vector3 direction) =>
+            NpcTownWalker.ShouldWaitForSignal(trafficLights, transform.position, direction);
 
         /// <summary>제자리에 서서 그 방향으로 천천히 돈다.</summary>
         internal void StandFacing(Quaternion rotation)

@@ -186,14 +186,15 @@ namespace A305.Npc
 
         private static Vector3[] RouteBetween(Vector3 from, Vector3 to)
         {
+            int walkableAreas = NpcTownWalker.WalkingAreas;
             if (
-                !NavMesh.SamplePosition(from, out NavMeshHit start, 2, NavMesh.AllAreas)
-                || !NavMesh.SamplePosition(to, out NavMeshHit end, 2, NavMesh.AllAreas)
+                !NavMesh.SamplePosition(from, out NavMeshHit start, 2, walkableAreas)
+                || !NavMesh.SamplePosition(to, out NavMeshHit end, 2, walkableAreas)
             )
                 return null;
             var path = new NavMeshPath();
             if (
-                !NavMesh.CalculatePath(start.position, end.position, NavMesh.AllAreas, path)
+                !NavMesh.CalculatePath(start.position, end.position, walkableAreas, path)
                 || path.status != NavMeshPathStatus.PathComplete
             )
                 return null;
@@ -205,7 +206,38 @@ namespace A305.Npc
             float total = 0;
             for (int i = 1; i < route.Count; i++)
                 total += Vector3.Distance(route[i - 1], route[i]);
-            float remaining = total * Mathf.Clamp01(progress);
+            float distance = total * Mathf.Clamp01(progress);
+            Vector3 point = PointAtDistance(route, distance);
+            int road = NavMesh.GetAreaFromName("Road");
+            int crossing = NavMesh.GetAreaFromName("Crosswalk");
+            int unsafeAreas = (road < 0 ? 0 : 1 << road) | (crossing < 0 ? 0 : 1 << crossing);
+            // 시계가 멈춰도 횡단 중인 NPC는 다음 인도까지 계속 움직인다.
+            while (
+                unsafeAreas != 0
+                && NavMesh.SamplePosition(point, out _, .1f, unsafeAreas)
+                && distance < total
+            )
+            {
+                distance = Mathf.Min(total, distance + .2f);
+                point = PointAtDistance(route, distance);
+            }
+            if (
+                unsafeAreas != 0
+                && NavMesh.SamplePosition(point, out _, .1f, unsafeAreas)
+                && NavMesh.SamplePosition(
+                    point,
+                    out NavMeshHit safe,
+                    3f,
+                    NavMesh.AllAreas & ~unsafeAreas
+                )
+            )
+                point = safe.position;
+            return point;
+        }
+
+        private static Vector3 PointAtDistance(IReadOnlyList<Vector3> route, float distance)
+        {
+            float remaining = distance;
             for (int i = 1; i < route.Count; i++)
             {
                 float length = Vector3.Distance(route[i - 1], route[i]);

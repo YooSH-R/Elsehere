@@ -6,8 +6,7 @@ namespace A305.Learning
     /// <summary>[피드백 목록] 한 줄의 글자. "NPC · 장소" 제목, 언제 나눈 대화인지, 피드백이 없으면 그 상태, 색 아이콘의 글자와 색을 정한다.</summary>
     public static class ConversationHistoryText
     {
-        public const string EmptyMessage =
-            "아직 나눈 대화가 없어요. 마을에서 NPC에게 말을 걸어 보세요.";
+        public const string EmptyMessage = "아직 완성된 피드백이 없어요. NPC와 대화를 나눠 보세요.";
 
         private const string DotColor = "#A39580";
         private const string NoteColor = "#D24F2F";
@@ -84,7 +83,7 @@ namespace A305.Learning
             switch (conversation.FeedbackStatus)
             {
                 case "DONE":
-                    return null;
+                    return conversation.FeedbackUnread ? "새 피드백" : null;
                 case "FAILED":
                     return "피드백을 만들지 못함";
                 case "SKIPPED":

@@ -1067,7 +1067,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### CONV-08 `POST /api/v1/conversations/{conversationId}/end`
 
-상황 복습 대화는 `reviewCardId`와 `reviewResult`를 함께 돌려주고 `feedback`, `followUp`은 null입니다. 추가 AI 평가·기억 갱신 대신 저장된 목표 표현의 실제 발화 근거를 한 번 기록합니다. 일반 대화의 두 복습 필드는 null이며 기존 동작을 유지합니다. 자세한 종료·재조회 계약은 [상황 복습장](review-workbook.md#복습-종료-결과와-다시-보기)을 따릅니다.
+상황 복습 대화는 `reviewCardId`와 `reviewResult`를 함께 돌려주고 `feedback`, `followUp`, `detailedFeedback`은 null입니다. 추가 AI 평가·기억 갱신 대신 저장된 목표 표현의 실제 발화 근거를 한 번 기록합니다. 일반 대화의 두 복습 필드는 null이며 기존 동작을 유지합니다. 자세한 종료·재조회 계약은 [상황 복습장](review-workbook.md#복습-종료-결과와-다시-보기)을 따릅니다.
 
 ```json
 // 요청
@@ -1148,7 +1148,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### CONV-09·10 지난 대화
 
-- CONV-09 `GET /api/v1/conversations?npcCode=&cursor=&size=`는 오른쪽 위 메뉴의 [피드백 목록] 창 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus }`를 돌려줍니다.
+- CONV-09 `GET /api/v1/conversations?npcCode=&cursor=&size=&feedbackOnly=`는 오른쪽 위 메뉴의 [피드백 목록] 창 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus }`를 돌려줍니다.
 
 ```json
 {
@@ -1171,6 +1171,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 목록 규칙은 VOCAB-01과 같습니다. `size` 기본값은 20이고 1~50만 받습니다. `nextCursor`는 이전 페이지 마지막 항목의 `conversationId`이며, 숫자가 아니거나 내 대화가 아닌 커서와 범위를 벗어난 `size`는 `400 VALIDATION_FAILED`입니다. 시작 시각이 같으면 나중에 만든 대화가 먼저입니다.
 - `npcCode`를 주면 그 NPC와 나눈 대화만 돌려줍니다. 없는 NPC 코드면 빈 목록입니다.
+- `feedbackOnly=true`는 완성된(`DONE`) 피드백이 있는 대화만 페이지 크기·커서 적용 전에 조회합니다. Unity 피드백 목록은 이 옵션을 사용하며 생성 전·건너뜀·실패 항목을 보이지 않습니다. 생략하면 기존 전체 대화 기록을 조회합니다. `feedbackUnread`는 완료됐으나 아직 열지 않은 피드백인지 나타냅니다.
 - 진행 중(`ACTIVE`)이거나 시간이 지나 닫힌 대화도 상태 그대로 담습니다. `userTurnCount`는 사용자가 보낸 발화 수, `feedbackStatus`는 짧은 피드백 상태(`DONE`·`FAILED`·`SKIPPED`)이며 피드백을 만들기 전이면 `null`입니다. `npc`는 CONV-10의 NPC 이름표와 같은 형식입니다.
 - 저장된 결과만 조회하므로 AI 사용량이 소진돼도 이용할 수 있습니다. 항목을 누르면 CONV-10으로 대화 기록을 엽니다.
 - CONV-10은 대화 정보와 모든 턴(`seq` 순서)의 텍스트, 저장된 뜻·추천 단어·추천 문장을 돌려줍니다. NPC 턴에는 저장된 `glossary: [{ text, meaningKo }]`도 함께 담고, 아직 없거나 사용자 턴이면 빈 배열입니다. 화면 15의 텍스트 대화 기록과 화면 16의 [대화 기록 보기]가 이 형식을 씁니다. 저장된 결과만 조회하므로 AI 사용량이 소진돼도 이용할 수 있습니다. 전체 대화 화면에서 빠진 뜻을 처음 읽을 때만 CONV-04로 생성·저장하며, 다시 열기·단어 호버·터치는 저장된 뜻과 풀이를 사용합니다.
@@ -1210,6 +1211,14 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 건넨 것처럼 기다리는 목록에서 빠지고, 그 NPC가 다시 부르지 않습니다. 다른 사용자의 것이나 이미 건넨 것이면 아무것도 바꾸지 않습니다.
 
 ### 4.7 피드백
+
+대화 종료(CONV-08) 응답은 저장된 문장별 평가를 `detailedFeedback` 배열로 함께 제공합니다. 성공한 피드백을 표시할 때 FB-03을 다시 호출할 필요가 없으며, 피드백을 만들지 않은 경우에는 빈 배열입니다. 기존 피드백의 생성·저장 계약과 FB-03 재조회는 유지합니다.
+
+#### 피드백 미확인 알림
+
+- `GET /api/v1/feedback/unread`는 로그인 사용자의 완료됐으나 읽지 않은 피드백 수를 `{ "count": 3 }`으로 돌려줍니다. 휴대폰·목록 열기나 조회로 읽음 상태를 바꾸지 않습니다.
+- `POST /api/v1/conversations/{conversationId}/feedback/read`는 해당 사용자의 피드백을 실제로 연 뒤 보내며 204를 돌려줍니다. 본문은 없고 CSRF 헤더가 필요합니다. 반복해도 한 번만 읽음 처리하며 다른 사용자 대화는 404입니다.
+- 미확인 여부는 서버의 `read_at`에 저장합니다. 기존 완료 내역은 마이그레이션 때 읽음으로 두고, 이후 완성된 피드백부터 알림을 누적합니다.
 
 #### FB-01 `GET /api/v1/conversations/{conversationId}/feedback`
 

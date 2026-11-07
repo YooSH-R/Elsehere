@@ -322,7 +322,13 @@ public class ConversationService {
     FeedbackResponse feedback =
         feedbackService.feedbackOnEnd(
             userId, conversationId, request.requestId(), request.skipFeedback());
-    return ended.withFeedback(feedback).withFollowUp(followUp.join().orElse(null));
+    return ended
+        .withFeedback(feedback)
+        .withDetailedFeedback(
+            feedback.status() == com.elsehere.feedback.entity.FeedbackStatus.DONE
+                ? feedbackService.detailed(userId, conversationId).items()
+                : List.of())
+        .withFollowUp(followUp.join().orElse(null));
   }
 
   private EndConversationResponse endConversation(Long userId, Long conversationId) {

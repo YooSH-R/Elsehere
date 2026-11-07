@@ -177,6 +177,86 @@ class ConversationHistoryServiceTest {
     assertValidationFailed(() -> conversationHistoryService.list(userId, null, null, size));
   }
 
+  @Test
+  @DisplayName("피드백 목록에서는 내 완료된 피드백만 돌려주고 생성 전·건너뜀·실패는 제외한다")
+  void list_feedbackOnly_returnsOnlyCompletedFeedback() {
+    Conversation done = start(userId, "CAFE_STAFF", MORNING);
+    completeFeedback(done);
+    start(userId, "HOTEL_STAFF", MORNING.plusSeconds(60));
+    Conversation skipped = start(userId, "CAFE_STAFF", MORNING.plusSeconds(120));
+    ConversationFeedback skippedFeedback = ConversationFeedback.of(skipped.getId());
+    skippedFeedback.skip(null);
+    entityManager.persist(skippedFeedback);
+    Conversation failed = start(userId, "CAFE_STAFF", MORNING.plusSeconds(180));
+    ConversationFeedback failedFeedback = ConversationFeedback.of(failed.getId());
+    failedFeedback.fail("UPSTREAM_ERROR", null);
+    entityManager.persist(failedFeedback);
+    Long otherUserId =
+        UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-2", "Moon");
+    completeFeedback(start(otherUserId, "CAFE_STAFF", MORNING.plusSeconds(240)));
+    entityManager.flush();
+
+    ConversationListResponse response =
+        conversationHistoryService.list(userId, null, null, 20, true);
+
+    assertThat(response.items())
+        .extracting(ConversationSummaryResponse::conversationId)
+        .containsExactly(done.getId());
+    assertThat(response.items())
+        .extracting(ConversationSummaryResponse::feedbackStatus)
+        .containsExactly(FeedbackStatus.DONE);
+    assertThat(response.nextCursor()).isNull();
+  }
+
+  @Test
+  @DisplayName("완료 피드백 필터를 페이지 크기 전에 적용하고 같은 시각의 커서를 빠짐없이 잇는다")
+  void list_feedbackOnly_filtersBeforePagination() {
+    Conversation oldest = start(userId, "CAFE_STAFF", MORNING);
+    completeFeedback(oldest);
+    Conversation middle = start(userId, "CAFE_STAFF", MORNING);
+    completeFeedback(middle);
+    Conversation newest = start(userId, "CAFE_STAFF", MORNING);
+    completeFeedback(newest);
+    for (int i = 0; i < 25; i++) {
+      start(userId, "CAFE_STAFF", MORNING.plusSeconds(i + 1));
+    }
+    completeFeedback(start(userId, "HOTEL_STAFF", MORNING.plusSeconds(120)));
+    entityManager.flush();
+
+    ConversationListResponse first =
+        conversationHistoryService.list(userId, "CAFE_STAFF", null, 2, true);
+    ConversationListResponse last =
+        conversationHistoryService.list(userId, "CAFE_STAFF", first.nextCursor(), 2, true);
+
+    assertThat(first.items())
+        .extracting(ConversationSummaryResponse::conversationId)
+        .containsExactly(newest.getId(), middle.getId());
+    assertThat(last.items())
+        .extracting(ConversationSummaryResponse::conversationId)
+        .containsExactly(oldest.getId());
+    assertThat(last.nextCursor()).isNull();
+    assertThat(first.items()).allMatch(ConversationSummaryResponse::feedbackUnread);
+  }
+
+  @Test
+  @DisplayName("완료된 피드백이 없으면 불필요한 다음 페이지 없이 빈 목록을 돌려준다")
+  void list_feedbackOnly_noCompletedFeedback_returnsEmptyWithoutCursor() {
+    for (int i = 0; i < 25; i++) {
+      start(userId, "CAFE_STAFF", MORNING.plusSeconds(i));
+    }
+    entityManager.flush();
+    ConversationListResponse result = conversationHistoryService.list(userId, null, null, 2, true);
+    assertThat(result.items()).isEmpty();
+    assertThat(result.nextCursor()).isNull();
+  }
+
+  private void completeFeedback(Conversation conversation) {
+    conversation.endByUser(MORNING.plusSeconds(600));
+    ConversationFeedback feedback = ConversationFeedback.of(conversation.getId());
+    feedback.complete("대화를 마쳤어요.", "{}", "test-model", null);
+    entityManager.persist(feedback);
+  }
+
   private Conversation start(Long ownerId, String npcCode, Instant startedAt) {
     Conversation conversation =
         Conversation.start(ownerId, npcId(entityManager, npcCode), InitiatedBy.NPC, 1, startedAt);

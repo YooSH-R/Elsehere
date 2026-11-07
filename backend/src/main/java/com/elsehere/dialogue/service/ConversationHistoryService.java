@@ -48,6 +48,12 @@ public class ConversationHistoryService {
    * @param cursor 이전 페이지의 nextCursor. 첫 페이지면 null
    */
   public ConversationListResponse list(Long userId, String npcCode, String cursor, int size) {
+    return list(userId, npcCode, cursor, size, false);
+  }
+
+  /** 피드백 목록은 완료된 결과만 조회하고, 일반 대화 기록은 기존 조건을 유지한다. */
+  public ConversationListResponse list(
+      Long userId, String npcCode, String cursor, int size, boolean feedbackOnly) {
     if (size < 1 || size > MAX_SIZE) {
       throw new BusinessException(ErrorCode.VALIDATION_FAILED);
     }
@@ -64,16 +70,28 @@ public class ConversationHistoryService {
     Limit limit = Limit.of(size + 1);
     List<Conversation> fetched =
         cursor == null
-            ? conversationRepository.findHistoryFirstPage(userId, npcId, limit)
-            : pageAfterCursor(userId, npcId, cursor, limit);
+            ? firstPage(userId, npcId, limit, feedbackOnly)
+            : pageAfterCursor(userId, npcId, cursor, limit, feedbackOnly);
     boolean hasNext = fetched.size() > size;
     List<Conversation> page = hasNext ? fetched.subList(0, size) : fetched;
     String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
     return new ConversationListResponse(summaries(page), nextCursor);
   }
 
-  private List<Conversation> pageAfterCursor(Long userId, Long npcId, String cursor, Limit limit) {
+  private List<Conversation> firstPage(Long userId, Long npcId, Limit limit, boolean feedbackOnly) {
+    if (feedbackOnly) {
+      return conversationFeedbackRepository.findCompletedFirstPage(userId, npcId, limit);
+    }
+    return conversationRepository.findHistoryFirstPage(userId, npcId, limit);
+  }
+
+  private List<Conversation> pageAfterCursor(
+      Long userId, Long npcId, String cursor, Limit limit, boolean feedbackOnly) {
     Conversation last = findCursorConversation(userId, cursor);
+    if (feedbackOnly) {
+      return conversationFeedbackRepository.findCompletedPageAfter(
+          userId, npcId, last.getStartedAt(), last.getId(), limit);
+    }
     return conversationRepository.findHistoryPageAfter(
         userId, npcId, last.getStartedAt(), last.getId(), limit);
   }
@@ -96,11 +114,10 @@ public class ConversationHistoryService {
     Map<Long, Long> userTurnCounts =
         turnRepository.countBySpeaker(ids, Speaker.USER).stream()
             .collect(Collectors.toMap(TurnCount::getConversationId, TurnCount::getTurnCount));
-    Map<Long, FeedbackStatus> feedbackStatuses =
+    Map<Long, ConversationFeedback> feedbacks =
         conversationFeedbackRepository.findAllById(ids).stream()
             .collect(
-                Collectors.toMap(
-                    ConversationFeedback::getConversationId, ConversationFeedback::getStatus));
+                Collectors.toMap(ConversationFeedback::getConversationId, Function.identity()));
     // 한 페이지에 같은 NPC가 여러 번 나오므로 NPC는 한 번씩만 읽는다.
     Map<Long, NpcContext> npcs = new HashMap<>();
     Function<Long, NpcContext> npcOf =
@@ -109,6 +126,7 @@ public class ConversationHistoryService {
         .map(
             conversation -> {
               NpcContext npc = npcOf.apply(conversation.getNpcId());
+              ConversationFeedback feedback = feedbacks.get(conversation.getId());
               return new ConversationSummaryResponse(
                   conversation.getId(),
                   npc.summary(),
@@ -118,7 +136,10 @@ public class ConversationHistoryService {
                   ConversationResponses.toOffset(conversation.getStartedAt()),
                   ConversationResponses.toOffset(conversation.getEndedAt()),
                   userTurnCounts.getOrDefault(conversation.getId(), 0L).intValue(),
-                  feedbackStatuses.get(conversation.getId()));
+                  feedback == null ? null : feedback.getStatus(),
+                  feedback != null
+                      && feedback.getStatus() == FeedbackStatus.DONE
+                      && feedback.getReadAt() == null);
             })
         .toList();
   }

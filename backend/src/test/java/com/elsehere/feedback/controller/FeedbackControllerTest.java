@@ -65,6 +65,28 @@ class FeedbackControllerTest {
   @MockitoBean private FeedbackService feedbackService;
 
   @Test
+  @DisplayName("미확인 피드백 개수는 로그인한 사용자의 개수만 돌려준다")
+  void unread_respondsCurrentUsersCount() throws Exception {
+    given(feedbackService.unreadCount(1L)).willReturn(3L);
+    mockMvc
+        .perform(get("/api/v1/feedback/unread").with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.count").value(3));
+  }
+
+  @Test
+  @DisplayName("피드백 읽음 요청은 인증과 CSRF 헤더를 확인하고 204를 돌려준다")
+  void markRead_acceptsAuthenticatedRequest() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/v1/conversations/5/feedback/read")
+                .header("X-Requested-With", "ElsehereClient")
+                .with(authentication(loggedIn(1L))))
+        .andExpect(status().isNoContent());
+    org.mockito.BDDMockito.then(feedbackService).should().markRead(1L, 5L);
+  }
+
+  @Test
   @DisplayName("GET /feedback은 짧은 피드백(단어장 후보 포함)과 상세 평가를 함께 돌려준다")
   void feedback_respondsFeedbackAndDetails() throws Exception {
     given(feedbackService.feedback(1L, 5L))

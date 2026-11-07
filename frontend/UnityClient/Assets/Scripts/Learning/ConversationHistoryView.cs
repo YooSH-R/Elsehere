@@ -46,6 +46,17 @@ namespace A305.Learning
         [SerializeField]
         private TMP_Text statusText;
 
+        [SerializeField]
+        private TMP_Text unreadCountText;
+
+        public void SetUnreadCount(long count)
+        {
+            if (unreadCountText == null)
+                return;
+            unreadCountText.text = $"미확인 <color=#FF7759>{count}</color>";
+            unreadCountText.gameObject.SetActive(count > 0);
+        }
+
         private ConversationHistory history;
         private int page;
 

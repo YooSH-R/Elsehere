@@ -47,6 +47,16 @@ namespace A305.Learning
         private bool isLocalVocabulary;
 
         private ConversationHistory history;
+        private ApiClient feedbackClient;
+        private readonly HashSet<long> pendingFeedbackReads = new HashSet<long>();
+        private bool refreshingFeedback;
+        private float nextFeedbackRefresh;
+        private int feedbackRevision;
+
+        private sealed class UnreadFeedback
+        {
+            public long Count { get; set; }
+        }
 
         private DialogueRecord feedbackRecord;
 
@@ -92,6 +102,7 @@ namespace A305.Learning
 
             if (apiSettings != null)
             {
+                feedbackClient = apiSettings.CreateClient();
                 vocabulary = new VocabularyBook(new VocabularyApi(apiSettings.CreateClient()));
                 history = new ConversationHistory(
                     new ConversationHistoryApi(apiSettings.CreateClient())
@@ -114,6 +125,7 @@ namespace A305.Learning
             feedbackView.SetWordSaver(vocabulary == null ? null : SaveTranscriptWordAsync);
 
             dialogue.ConversationEnded += ShowFeedback;
+            DialogueController.BackgroundFeedbackCompleted += OnBackgroundFeedbackCompleted;
             dialogue.WordSaveRequested += SaveDialogueWord;
             feedbackView.CloseRequested += CloseFeedback;
             feedbackView.SaveRequested += SaveFeedbackExpression;
@@ -145,6 +157,12 @@ namespace A305.Learning
 
         private void Update()
         {
+            if (
+                feedbackClient != null
+                && Time.unscaledTime >= nextFeedbackRefresh
+                && !refreshingFeedback
+            )
+                _ = RefreshFeedbackCountAsync();
             hudView.SetVocabularyAvailable(!dialogue.IsTalking);
             hudView.SetTalking(dialogue.IsTalking);
             hudView.ControlsGuide.SetBlocked(dialogue.IsTalking || IsShowingScreen);
@@ -173,6 +191,7 @@ namespace A305.Learning
 
         private void OnDestroy()
         {
+            DialogueController.BackgroundFeedbackCompleted -= OnBackgroundFeedbackCompleted;
             CenterWindow.Shared.SetOpen(false);
             DisposeReview();
             DisposeReviewProgress();
@@ -250,6 +269,73 @@ namespace A305.Learning
                     && shownServerFeedback.Summary?.Status == "DONE"
             );
             feedbackView.Show(feedback, lines);
+            MarkShownFeedbackRead();
+        }
+
+        private void MarkShownFeedbackRead()
+        {
+            if (
+                shownServerFeedback?.Summary?.Status != "DONE"
+                || shownServerFeedback.ConversationId == null
+            )
+                return;
+            long conversationId = shownServerFeedback.ConversationId.Value;
+            pendingFeedbackReads.Add(conversationId);
+            feedbackRevision++;
+            nextFeedbackRefresh = 0;
+            if (history != null)
+                foreach (ConversationSummary item in history.Items)
+                    if (item.ConversationId == conversationId)
+                        item.FeedbackUnread = false;
+            if (historyView.IsVisible)
+                historyView.Refresh();
+        }
+
+        private void OnBackgroundFeedbackCompleted(DialogueRecord record)
+        {
+            nextFeedbackRefresh = 0;
+            if (record.ServerFeedback?.Summary?.Status == "DONE")
+                hudView.ShowMessage("피드백이 완성됐어요. 휴대폰에서 확인해 주세요.");
+            else if (
+                record.UserUtterances.Count > 0
+                && record.ServerFeedback?.Summary?.Status != "SKIPPED"
+            )
+                hudView.ShowMessage("피드백을 만들지 못했어요. 연결 상태를 확인해 주세요.");
+        }
+
+        // 미확인 수는 서버가 세므로 장소 이동·재접속 뒤에도 유지된다. 읽음 저장에 실패하면 다음 조회 때 다시 보낸다.
+        private async Task RefreshFeedbackCountAsync()
+        {
+            if (refreshingFeedback || feedbackClient == null)
+                return;
+            refreshingFeedback = true;
+            nextFeedbackRefresh = Time.unscaledTime + 5f;
+            int revision = feedbackRevision;
+            try
+            {
+                foreach (long conversationId in new List<long>(pendingFeedbackReads))
+                {
+                    await feedbackClient.PostAsync(
+                        $"/api/v1/conversations/{conversationId}/feedback/read",
+                        null
+                    );
+                    pendingFeedbackReads.Remove(conversationId);
+                }
+                UnreadFeedback unread = await feedbackClient.GetAsync<UnreadFeedback>(
+                    "/api/v1/feedback/unread"
+                );
+                if (this != null && revision == feedbackRevision)
+                    hudView.SetFeedbackCount(unread?.Count ?? 0);
+            }
+            catch (ApiException exception)
+            {
+                // 연결 실패로 알림을 지우지 않고 이전 표시를 유지한다. 인증 만료 처리는 ApiClient가 맡는다.
+                Debug.LogWarning($"피드백 확인 상태를 동기화하지 못했습니다: {exception.Code}");
+            }
+            finally
+            {
+                refreshingFeedback = false;
+            }
         }
 
         private void SaveFeedbackExpression(string expression, string meaningKo)
@@ -289,6 +375,11 @@ namespace A305.Learning
             if (record.ReviewCardId != null)
             {
                 ShowReviewResult(record);
+                return;
+            }
+            if (record.IsFeedbackDeferred)
+            {
+                FeedbackClosed?.Invoke(record.NpcCode, record.IsGuidedCompleted);
                 return;
             }
             if (record.UserUtterances.Count == 0)

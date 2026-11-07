@@ -24,6 +24,10 @@ EMOTIONS = (
     "sad",
     "big_laugh",
     "indifferent",
+    "angry",
+    "furious",
+    "shy",
+    "relieved",
 )
 
 

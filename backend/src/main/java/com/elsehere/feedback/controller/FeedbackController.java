@@ -8,11 +8,13 @@ import com.elsehere.feedback.dto.FeedbackResponse;
 import com.elsehere.feedback.service.FeedbackService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /** 피드백 다시 보기(FB-01)·다시 만들기(FB-02)·상세 평가(FB-03). 종료 때 생성은 CONV-08이 한다. */
@@ -21,6 +23,20 @@ import org.springframework.web.bind.annotation.RestController;
 public class FeedbackController {
 
   private final FeedbackService feedbackService;
+
+  @GetMapping("/api/v1/feedback/unread")
+  public UnreadFeedback unread(@AuthenticationPrincipal LoginUser loginUser) {
+    return new UnreadFeedback(feedbackService.unreadCount(loginUser.userId()));
+  }
+
+  @PostMapping("/api/v1/conversations/{conversationId}/feedback/read")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void markRead(
+      @AuthenticationPrincipal LoginUser loginUser, @PathVariable Long conversationId) {
+    feedbackService.markRead(loginUser.userId(), conversationId);
+  }
+
+  public record UnreadFeedback(long count) {}
 
   @GetMapping("/api/v1/conversations/{conversationId}/feedback")
   public ConversationFeedbackResponse feedback(

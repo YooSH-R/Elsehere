@@ -125,6 +125,7 @@ class ReplyRequest(BaseModel):
     text: str = Field(max_length=500)  # 학습자 원문 그대로 (한국어 섞인 채)
     # Spring 규칙이 정한 이번 대답에서 할 일. 퀘스트 단계 지시와 진행 규칙을 합치면 1500자 안팎이다
     instruction: str = Field(default="", max_length=3000)
+    reaction: Literal["rude_warning", "rude_repeated", "rude_final", "compliment", "apology_after_rude"] | None = None
     tts: bool = True
     stream_chunks: bool = True  # false면 조각 이벤트·보관을 생략하고 done의 전체 음성만 만든다
     level: Level = 2

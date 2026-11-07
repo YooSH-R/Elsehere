@@ -193,6 +193,19 @@ class ReviewConversationServiceTest {
   void threeRudeReviewTurnsCloseOnlyThePracticeWithoutAffinityPenalty() {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Please be polite.", null));
+    given(
+            aiGateway.replyReacting(
+                any(),
+                any(),
+                any(),
+                any(),
+                anyString(),
+                anyString(),
+                anyInt(),
+                any(),
+                any(),
+                anyString()))
+        .willReturn(reply("Please be polite.", null));
     var started = conversationService.startReview(userId, cardId, UUID.randomUUID());
     given(aiGateway.guard(any(), any(), any(), anyString()))
         .willReturn(new GuardResult(new GuardResult.Guard(true, null), -20, List.of()));

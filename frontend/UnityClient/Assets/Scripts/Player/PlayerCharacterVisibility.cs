@@ -30,7 +30,11 @@ namespace A305.Player
         private void LateUpdate()
         {
             bool tooClose = closeCamera.IsHidden(cameraRig.CharacterDistanceMeters);
-            SetHidden(cameraRig.ViewMode != CameraViewMode.ThirdPerson || tooClose);
+            SetHidden(
+                cameraRig.IsInSeatView
+                    || cameraRig.ViewMode != CameraViewMode.ThirdPerson
+                    || tooClose
+            );
         }
 
         private void OnDisable()

@@ -16,7 +16,10 @@ namespace A305.Characters.PlayModeTests
 {
     public sealed class NpcMoodSpeechTests
     {
-        private static byte[] EmotionalVoice(float frownIntensity = 1)
+        private static byte[] EmotionalVoice(
+            float frownIntensity = 1,
+            string firstEmotion = "frown"
+        )
         {
             byte[] wav = AssetDatabase
                 .LoadAssetAtPath<TextAsset>(
@@ -46,7 +49,9 @@ namespace A305.Characters.PlayModeTests
                 + ",\"pcmSha256\":\""
                 + digest
                 + "\",\"cues\":["
-                + "{\"start\":0,\"end\":2,\"emotion\":\"frown\",\"intensity\":"
+                + "{\"start\":0,\"end\":2,\"emotion\":\""
+                + firstEmotion
+                + "\",\"intensity\":"
                 + frownIntensity.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
                 + "},"
                 + "{\"start\":2,\"end\":"
@@ -64,6 +69,60 @@ namespace A305.Characters.PlayModeTests
             stream.Position = 4;
             writer.Write((int)stream.Length - 8);
             return stream.ToArray();
+        }
+
+        [UnityTest]
+        public IEnumerator BenPlaysNewReactionsFromSavedVoiceWithHisAssignedProfile()
+        {
+            var root = CreateSpeaker("LittleMung_Business_Male");
+            try
+            {
+                var player = root.GetComponent<CharacterSpeechPlayer>();
+                player.GetComponent<AudioSource>().mute = true;
+                var link = root.AddComponent<DialogueServerLink>();
+                link.SetSpeaker(player);
+                foreach (string emotion in new[] { "angry", "furious", "laugh", "shy", "relieved" })
+                {
+                    var wav = EmotionalVoice(1, emotion);
+                    Assert.That(
+                        DialogueSpeechWav.Read(wav).EmotionError,
+                        Is.Null.Or.Empty,
+                        emotion
+                    );
+                    Assert.That(link.PlayRecordedSpeech(wav), Is.True, emotion);
+                    yield return null;
+                    player.Pause();
+                    player.Seek(.65f);
+                    if (emotion == "angry" || emotion == "furious")
+                        Assert.That(MaxWeight(root, "browDownLeft"), Is.EqualTo(100).Within(.01));
+                    else if (emotion == "shy")
+                        Assert.That(MaxWeight(root, "browInnerUpLeft"), Is.GreaterThan(50));
+                    else if (emotion == "laugh")
+                        Assert.That(MaxWeight(root, "cheekRaiseLeft"), Is.GreaterThan(70));
+                    else
+                        Assert.That(MaxWeight(root, "browDownLeft"), Is.InRange(10, 30));
+                    var lips = root.GetComponentsInChildren<SkinnedMeshRenderer>()
+                        .Single(skin => skin.sharedMesh.name == "SpeakingLips");
+                    // .65초는 무음이다. 실제 /ih/ 구간의 발음 채널을 검사한다.
+                    player.Seek(.74f);
+                    float pronunciation =
+                        DialogueSpeechWav
+                            .Read(wav)
+                            .Timeline.SampleArticulation(.74f)
+                            .Weight(CharacterFacePose.WideI) * 100;
+                    Assert.That(pronunciation, Is.GreaterThan(0));
+                    Assert.That(
+                        Weight(lips, "viseme_I"),
+                        Is.EqualTo(pronunciation).Within(.01),
+                        emotion
+                    );
+                    link.StopSpeech();
+                }
+            }
+            finally
+            {
+                Object.Destroy(root);
+            }
         }
 
         [UnityTest]
@@ -267,13 +326,15 @@ namespace A305.Characters.PlayModeTests
             }
         }
 
-        private static GameObject CreateCafeSpeaker()
+        private static GameObject CreateCafeSpeaker() => CreateSpeaker("LittleMung_Cafe_Male");
+
+        private static GameObject CreateSpeaker(string name)
         {
             var holder = new GameObject("Cafe speech fixture");
             holder.SetActive(false);
             var root = Object.Instantiate(
                 AssetDatabase.LoadAssetAtPath<GameObject>(
-                    "Assets/Prefabs/Npc/Review/LittleMung_Cafe_Male.prefab"
+                    "Assets/Prefabs/Npc/Review/" + name + ".prefab"
                 ),
                 holder.transform
             );

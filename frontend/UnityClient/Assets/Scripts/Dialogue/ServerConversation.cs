@@ -542,7 +542,10 @@ namespace A305.Dialogue
                 IReadOnlyList<DetailedFeedbackItem> details = null;
                 if (summary?.Status == FeedbackDone)
                 {
-                    details = await FeedbackRegenerator.DetailsOrNullAsync(api, conversationId);
+                    // 새 서버는 종료 응답에 이미 만든 상세 평가를 함께 담아 추가 왕복을 생략한다.
+                    details =
+                        end.DetailedFeedback
+                        ?? await FeedbackRegenerator.DetailsOrNullAsync(api, conversationId);
                 }
 
                 return new ServerFeedback(summary, details, null, conversationId);
@@ -629,7 +632,7 @@ namespace A305.Dialogue
             return text;
         }
 
-        public DialogueRecord ToRecord(ServerFeedback feedback)
+        public DialogueRecord ToRecord(ServerFeedback feedback, bool isFeedbackDeferred = false)
         {
             return new DialogueRecord(
                 NpcCode,
@@ -639,7 +642,8 @@ namespace A305.Dialogue
                 false,
                 feedback,
                 ReviewCardId,
-                ReviewResult
+                ReviewResult,
+                isFeedbackDeferred
             );
         }
 

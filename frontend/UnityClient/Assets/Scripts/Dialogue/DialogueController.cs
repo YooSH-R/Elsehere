@@ -68,6 +68,26 @@ namespace A305.Dialogue
         /// </summary>
         public event Action<DialogueRecord> ConversationEnded;
 
+        public static event Action<DialogueRecord> BackgroundFeedbackCompleted;
+
+        private FeedbackDelivery feedbackDelivery;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetBackgroundFeedback() => BackgroundFeedbackCompleted = null;
+
+        /// <summary>전송한 종료 요청을 유지한 채 대화창과 이동 잠금만 닫는다.</summary>
+        public void CheckFeedbackLater()
+        {
+            if (
+                serverConversation == null
+                || serverConversation.IsReview
+                || feedbackDelivery == null
+                || !feedbackDelivery.TryDefer()
+            )
+                return;
+            Finish(serverConversation.ToRecord(null, true));
+        }
+
         /// <summary>
         /// 대사의 풀이 단어 카드에서 [단어장에 저장]을 누르면 그 단어를 알린다. 저장은 받는 쪽(Learning 모듈)이 하고
         /// 결과를 <see cref="ShowWordSaveResult"/>로 돌려준다.
@@ -339,6 +359,7 @@ namespace A305.Dialogue
             }
 
             panel.EndRequested += End;
+            panel.FeedbackLaterRequested += CheckFeedbackLater;
             panel.SendRequested += Send;
             panel.WordSaveRequested += ForwardWordSave;
             panel.TalkStartRequested += StartRecording;
@@ -483,14 +504,17 @@ namespace A305.Dialogue
         private async Task EndServerConversationAsync()
         {
             ServerConversation ending = serverConversation;
-            ServerFeedback feedback = await ending.EndAsync();
-            // 피드백을 기다리는 사이 씬을 떠났으면 이 컴포넌트는 이미 사라졌다.
-            if (this == null)
+            var delivery = new FeedbackDelivery(ending.EndAsync);
+            feedbackDelivery = delivery;
+            ServerFeedback feedback = await delivery.CompleteAsync();
+            DialogueRecord record = ending.ToRecord(feedback);
+            // 나중에 확인을 선택했거나 씬을 옮겼다면 새 대화를 닫거나 피드백 창을 강제로 열지 않는다.
+            if (delivery.IsDeferred || this == null || serverConversation != ending)
             {
+                BackgroundFeedbackCompleted?.Invoke(record);
                 return;
             }
-
-            Finish(ending.ToRecord(feedback));
+            Finish(record);
         }
 
         private void Finish(DialogueRecord record)
@@ -521,6 +545,7 @@ namespace A305.Dialogue
             conversation = null;
             serverConversation = null;
             isEnding = false;
+            feedbackDelivery = null;
             if (serverLink != null)
             {
                 // 립싱크 대상을 놓으면서 지난 대사의 음성도 멈추고 버린다(ForgetSpeech 포함).

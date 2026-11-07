@@ -91,6 +91,41 @@ public class AiGateway {
     return reply;
   }
 
+  /** 서버가 확정한 무례·칭찬·사과 반응을 같은 대사 생성 요청에 전달한다. */
+  public NpcReply replyReacting(
+      WorkerTrace trace,
+      WorkerNpc npc,
+      WorkerMemory memory,
+      List<WorkerLine> history,
+      String text,
+      String instruction,
+      int level,
+      WorkerLearner learner,
+      NpcReplyListener listener,
+      String reaction) {
+    NpcReply reply =
+        send(
+            trace,
+            AiRequestKind.NPC,
+            () ->
+                aiWorkerClient.replyReacting(
+                    trace,
+                    npc,
+                    memory,
+                    history,
+                    text,
+                    instruction,
+                    level,
+                    learner,
+                    listener,
+                    reaction));
+    record(trace, AiRequestKind.NPC, reply.usage(), reply.succeeded());
+    if (!reply.succeeded()) {
+      throw new BusinessException(AiWorkerClient.toErrorCode(reply.errorCode()));
+    }
+    return reply;
+  }
+
   /** NPC 대답 스트림이 만든 음성 파일. 모델을 부르지 않으므로 기록하지 않는다. 워커 메모리에 10분만 남으므로 대답을 받은 직후 부른다. */
   public byte[] audio(WorkerTrace trace, String audioId) {
     return aiWorkerClient.audio(trace, audioId);

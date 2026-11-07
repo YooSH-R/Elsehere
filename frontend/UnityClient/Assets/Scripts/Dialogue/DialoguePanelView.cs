@@ -138,6 +138,9 @@ namespace A305.Dialogue
         [SerializeField]
         [Tooltip("대화를 끝내고 피드백을 기다리는 동안 화면 전체를 덮는 로딩 창")]
         private GameObject feedbackWait;
+
+        [SerializeField]
+        private Button feedbackLaterButton;
         private Vector2 lastCanvasSize;
 
         [SerializeField]
@@ -287,6 +290,8 @@ namespace A305.Dialogue
         /// <summary>[대화 종료]를 누르면 알린다.</summary>
         public event Action EndRequested;
 
+        public event Action FeedbackLaterRequested;
+
         /// <summary>[보내기]나 Enter로 입력한 문장을 알린다.</summary>
         public event Action<string> SendRequested;
 
@@ -372,6 +377,11 @@ namespace A305.Dialogue
             }
 
             feedbackWait.SetActive(wait == DialogueWait.Feedback);
+            // 복습 대화는 피드백 없이 연습 결과만 받으므로 나중에 확인할 것이 없다.
+            if (feedbackLaterButton != null)
+                feedbackLaterButton.gameObject.SetActive(
+                    !(content is ServerConversation { IsReview: true })
+                );
         }
 
         /// <summary>녹음 중 [말하기]에 켜는 불. 튜토리얼 코치 마크가 옆에 불의 뜻을 알린다.</summary>
@@ -535,6 +545,8 @@ namespace A305.Dialogue
                     Refresh();
                 });
             endButton.onClick.AddListener(() => EndRequested?.Invoke());
+            if (feedbackLaterButton != null)
+                feedbackLaterButton.onClick.AddListener(() => FeedbackLaterRequested?.Invoke());
             sendButton.onClick.AddListener(RequestSend);
             sendButton.TryGetComponent(out sendTheme);
             inputField.onSubmit.AddListener(_ => RequestSend());

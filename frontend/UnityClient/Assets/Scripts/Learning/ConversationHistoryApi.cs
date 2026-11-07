@@ -7,7 +7,7 @@ namespace A305.Learning
     /// <summary>지난 대화 API의 경로. 경로는 API 명세(docs/api/mvp-api.md)를 따른다.</summary>
     public sealed class ConversationHistoryApi : IConversationHistoryApi
     {
-        private const string ListPath = "/api/v1/conversations?size=20";
+        private const string ListPath = "/api/v1/conversations?size=20&feedbackOnly=true";
 
         private readonly ApiClient client;
 

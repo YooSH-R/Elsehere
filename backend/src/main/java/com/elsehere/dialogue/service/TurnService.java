@@ -200,7 +200,8 @@ public class TurnService {
           instruction.isBlank() ? TURN_LIMIT_WRAP_UP : instruction + " " + TURN_LIMIT_WRAP_UP;
     }
 
-    NpcReply reply = reply(trace, context, judge.text(), instruction, events);
+    String reaction = DialogueReaction.select(rude, context.rudeCount(), judge.events());
+    NpcReply reply = reply(trace, context, judge.text(), instruction, events, reaction);
     String npcAudioKey = npcAudioReceiver.save(trace, reply.audioFullId());
 
     return transactionTemplate.execute(
@@ -288,7 +289,25 @@ public class TurnService {
   }
 
   private NpcReply reply(
-      WorkerTrace trace, TurnContext context, String text, String instruction, TurnEvents events) {
+      WorkerTrace trace,
+      TurnContext context,
+      String text,
+      String instruction,
+      TurnEvents events,
+      String reaction) {
+    if (reaction != null) {
+      return aiGateway.replyReacting(
+          trace,
+          context.npc().workerNpc(),
+          context.memory(),
+          context.history(),
+          text,
+          instruction,
+          context.level(),
+          context.learner(),
+          events == null ? NpcReplyListener.NONE : relayTo(trace, events),
+          reaction);
+    }
     if (events == null) {
       return aiGateway.reply(
           trace,

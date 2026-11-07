@@ -98,7 +98,8 @@ class PoliceDeskTurnTest {
         new TownStoryService(
             mock(TownStoryRepository.class),
             mock(FirstDayMissionRepository.class),
-            mock(NpcRepository.class));
+            mock(NpcRepository.class),
+            mock(com.elsehere.conversation.repository.ConversationRepository.class));
     service =
         new TurnService(
             turns,
@@ -163,6 +164,9 @@ class PoliceDeskTurnTest {
   @DisplayName("무례로 센 말은 신고로 받지 않는다")
   void send_doesNotDispatchForRudeTurns() {
     judges("report_incident", "Maple Bakery");
+    when(worker.replyReacting(
+            any(), any(), any(), any(), any(), any(), anyInt(), any(), any(), any()))
+        .thenReturn(new NpcReply("Please be polite.", null, null, List.of()));
     when(worker.guard(any(), any(), any(), any()))
         .thenReturn(new GuardResult(new GuardResult.Guard(true, null), List.of()));
 

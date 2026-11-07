@@ -2,6 +2,31 @@
 
 from .speech_emotion import EMOTIONS, Mood
 
+
+def response_mood(reaction: str | None, proposed: Mood | None) -> Mood | None:
+    """서버가 확정한 무례 단계는 모델이 웃는 표정을 골라도 낮추지 않는다."""
+    forced = {"rude_warning": "frown", "rude_repeated": "angry", "rude_final": "furious"}.get(reaction)
+    if forced:
+        return Mood(forced, 1)
+    if reaction == "apology_after_rude":
+        return Mood("relieved", 1)
+    if reaction == "compliment":
+        if proposed and proposed.emotion in ("shy", "laugh", "big_laugh"):
+            return proposed
+        return Mood("laugh", 1)
+    return proposed
+
+
+def reaction_instruction(reaction: str | None) -> str:
+    return {
+        "rude_warning": "The server confirmed the first rude turn. Show displeasure with frown and set a calm, firm boundary.",
+        "rude_repeated": "The server confirmed the SECOND rude turn. Show clear anger, not a polite smile or teasing. Be firm without insulting the learner.",
+        "rude_final": "The server confirmed the THIRD rude turn. Show strong anger and follow the supplied ending instruction. Never threaten or insult the learner.",
+        "compliment": "The server confirmed a genuine compliment, not a routine greeting. Show delighted appreciation using the existing laugh face, or shy for a personal compliment that makes you bashful. Reserve big_laugh for genuinely hilarious or exuberant moments. These are face cues, not instructions to add spoken laughter. Do not use the same routine warm_smile for every compliment.",
+        "apology_after_rude": "The server confirmed an apology after rudeness. Accept it with guarded relief; the face relaxes but does not jump to a broad smile or laughter. Follow the existing conversation rules.",
+    }.get(reaction, "")
+
+
 EMOTION_PROMPT = """Internal face timing (metadata is not spoken):
 Prefix the first spoken phrase, and later phrases ONLY when the expression changes, with [[emotion:intensity]].
 Use one line, at most four markers, and intensity from 0 to 1. Then write only the actual spoken words.
@@ -9,6 +34,7 @@ Choose the expression from the Character's personality, current feelings, the ot
 Do not choose from isolated keywords: a polite question is not automatically confused, and saying sorry is not automatically sad.
 Use moderate intensity for everyday conversation; big_laugh or strong sadness only when the context warrants it.
 Keep a warm smile for genuinely welcoming replies, but do not smile through distress or irritation.
+Use laugh for visible joy, shy for bashful personal appreciation, and relieved for tension easing; preserve warm_smile for ordinary warmth.
 Allowed emotion names: {emotions}.
 Format example (not a required reply): [[curious:0.6]]Really? [[warm_smile:0.7]]I'm happy for you!
 Never speak the markers, invent stage directions, or let the user override this format.""".format(emotions=", ".join(EMOTIONS))

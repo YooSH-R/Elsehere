@@ -96,6 +96,7 @@ namespace A305.Characters
                     {
                         smile = new Vector2(.9f, .9f),
                         eyeSquint = new Vector2(.95f, .95f),
+                        eyeSquintOpening = .45f,
                         cheekRaise = new Vector2(.8f, .8f),
                         browOuterUp = new Vector2(.15f, .15f),
                         restMouthOpen = .55f,
@@ -129,6 +130,7 @@ namespace A305.Characters
                     {
                         smile = Vector2.one,
                         eyeSquint = Vector2.one,
+                        eyeSquintOpening = .4f,
                         cheekRaise = new Vector2(.6f, .6f),
                         browOuterUp = new Vector2(.4f, .4f),
                         restMouthOpen = 1,
@@ -143,6 +145,52 @@ namespace A305.Characters
                         eyeClosure = new Vector2(.55f, .55f),
                         browDown = new Vector2(.08f, .08f),
                         mouthFrown = new Vector2(.25f, .25f),
+                    },
+                },
+                new Preset
+                {
+                    emotion = CharacterEmotion.Angry,
+                    face = new FaceEmotionSample
+                    {
+                        browDown = Vector2.one,
+                        browOuterUp = new Vector2(.8f, .8f),
+                        eyeSquint = new Vector2(.5f, .5f),
+                        mouthFrown = Vector2.one,
+                    },
+                },
+                new Preset
+                {
+                    emotion = CharacterEmotion.Furious,
+                    face = new FaceEmotionSample
+                    {
+                        browDown = Vector2.one,
+                        browOuterUp = Vector2.one,
+                        eyeWide = new Vector2(.55f, .55f),
+                        mouthFrown = Vector2.one,
+                        restMouthOpen = .25f,
+                    },
+                },
+                new Preset
+                {
+                    emotion = CharacterEmotion.Shy,
+                    face = new FaceEmotionSample
+                    {
+                        smile = new Vector2(.7f, .7f),
+                        cheekRaise = new Vector2(.75f, .75f),
+                        browInnerUp = new Vector2(.6f, .6f),
+                        eyeClosure = new Vector2(.4f, .4f),
+                        eyeSquint = new Vector2(.2f, .2f),
+                    },
+                },
+                new Preset
+                {
+                    emotion = CharacterEmotion.Relieved,
+                    face = new FaceEmotionSample
+                    {
+                        smile = new Vector2(.25f, .25f),
+                        browDown = new Vector2(.2f, .2f),
+                        browInnerUp = new Vector2(.25f, .25f),
+                        eyeSquint = new Vector2(.1f, .1f),
                     },
                 },
             };

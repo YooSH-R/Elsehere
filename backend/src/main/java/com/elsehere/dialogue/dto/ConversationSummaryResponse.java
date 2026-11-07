@@ -21,4 +21,29 @@ public record ConversationSummaryResponse(
     OffsetDateTime startedAt,
     OffsetDateTime endedAt,
     int userTurnCount,
-    FeedbackStatus feedbackStatus) {}
+    FeedbackStatus feedbackStatus,
+    boolean feedbackUnread) {
+
+  public ConversationSummaryResponse(
+      Long conversationId,
+      NpcSummaryResponse npc,
+      String sceneCode,
+      ConversationStatus status,
+      ConversationEndReason endReason,
+      OffsetDateTime startedAt,
+      OffsetDateTime endedAt,
+      int userTurnCount,
+      FeedbackStatus feedbackStatus) {
+    this(
+        conversationId,
+        npc,
+        sceneCode,
+        status,
+        endReason,
+        startedAt,
+        endedAt,
+        userTurnCount,
+        feedbackStatus,
+        false);
+  }
+}

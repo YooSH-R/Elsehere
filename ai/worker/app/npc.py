@@ -16,7 +16,7 @@ from . import prompts as P
 from . import services
 from .config import Settings
 from .llm import LLM, ModelOutputError, ProviderError, Usage, within
-from .npc_emotion import EMOTION_PROMPT, EmotionStream
+from .npc_emotion import EMOTION_PROMPT, EmotionStream, reaction_instruction, response_mood
 from .schemas import Line, ReplyRequest, SuggestRequest
 from .speech_emotion import attach_emotion
 from .tts import AudioStore, Kokoro, join_wavs
@@ -76,6 +76,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
 
     def schedule(text: str, mood=None):
         nonlocal last_audio_requested_at
+        mood = response_mood(req.reaction, mood)
         task = None
         last_audio_requested_at = time.perf_counter()
         if use_tts:
@@ -92,6 +93,8 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
         current_mood = None
         msgs = P.npc_messages(req.npc, req.memory, req.history, req.text, req.instruction, req.level, req.relationship, req.learner)
         msgs[0] = {**msgs[0], "content": msgs[0]["content"] + "\n\n" + EMOTION_PROMPT}
+        if note := reaction_instruction(req.reaction):
+            msgs[0]["content"] += "\n" + note
         # 최대 네 개 표정 표시의 토큰을 따로 확보한다. 대사 길이 규칙은 기존 수준별 프롬프트를 유지한다.
         gen = llm.stream("npc", "npc", msgs, usage, max_tokens=P.LEVEL_MAX_TOKENS[req.level] + 64)
         stopped, finished = False, False
@@ -99,6 +102,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
         def consume(parts):
             nonlocal current_mood
             for text, mood in parts:
+                mood = response_mood(req.reaction, mood)
                 if mood != current_mood:
                     for part in sp.flush():
                         schedule(part, current_mood)

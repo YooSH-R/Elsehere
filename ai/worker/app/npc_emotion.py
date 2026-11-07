@@ -26,6 +26,7 @@ def reaction_instruction(reaction: str | None) -> str:
         "apology_after_rude": "The server confirmed an apology after rudeness. Accept it with guarded relief; the face relaxes but does not jump to a broad smile or laughter. Follow the existing conversation rules.",
     }.get(reaction, "")
 
+
 EMOTION_PROMPT = """Internal face timing (metadata is not spoken):
 Prefix the first spoken phrase, and later phrases ONLY when the expression changes, with [[emotion:intensity]].
 Use one line, at most four markers, and intensity from 0 to 1. Then write only the actual spoken words.

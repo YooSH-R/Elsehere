@@ -414,7 +414,7 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
-        public async Task RudeTurn_DoesNotShowItsTranslation()
+        public async Task RudeTurn_StillShowsItsTranslation()
         {
             await conversation.StartAsync();
             api.TurnResponse = Reply("무례한 발화", "Please be polite.", "ACTIVE");
@@ -426,7 +426,7 @@ namespace A305.Dialogue.Tests
 
             await conversation.SendAsync("무례한 발화");
 
-            Assert.That(conversation.UserTranslation, Is.Null);
+            Assert.That(conversation.UserTranslation, Is.EqualTo("Rude phrase."));
         }
 
         [Test]
@@ -765,6 +765,26 @@ namespace A305.Dialogue.Tests
             Assert.That(chunks[0].Wav, Is.EqualTo(Wav));
             // 들을 수 있는 대사라 자막을 끈 사용자에게는 받는 동안에도 대사를 가린다.
             Assert.That(speechReadyWhileStreaming, Is.True);
+            Assert.That(conversation.LastTurnSpokenInChunks, Is.True);
+        }
+
+        [Test]
+        public async Task Send_MissingMiddleSpeechRequiresRecoveryAndDoesNotSkipAhead()
+        {
+            await conversation.StartAsync();
+            var chunks = new List<NpcSpeechChunkData>();
+            conversation.NpcSpeechChunk += chunks.Add;
+            api.StreamSteps.Add(stream => stream.OnSpeechChunk(0, "First.", Wav));
+            api.StreamSteps.Add(stream => stream.OnSpeechChunk(1, "Second.", null));
+            api.StreamSteps.Add(stream => stream.OnSpeechChunk(2, "Third.", Wav));
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(
+                chunks,
+                Has.Count.EqualTo(1),
+                "빠진 문장을 건너뛰고 다음 문장을 읽지 않는다."
+            );
             Assert.That(conversation.LastTurnSpokenInChunks, Is.True);
         }
 

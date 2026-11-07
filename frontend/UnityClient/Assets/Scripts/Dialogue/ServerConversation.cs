@@ -117,6 +117,7 @@ namespace A305.Dialogue
 
         /// <summary>마지막 NPC 턴을 문장 조각 음성으로 이미 들려줬는지. 들려줬으면 턴 전체 음성을 다시 재생하지 않는다.</summary>
         public bool LastTurnSpokenInChunks { get; private set; }
+        public bool LastTurnSpeechIncomplete { get; private set; }
 
         /// <summary>ERD npcs.code</summary>
         public string NpcCode { get; }
@@ -280,15 +281,12 @@ namespace A305.Dialogue
                     string sent = result.UserTurn?.Text ?? utterance;
                     lines.Add(DialogueLine.FromUser(sent));
                     userUtterances.Add(sent);
-                    string expression =
-                        result.UserTurn?.Rude == false
-                            ? result.UserTurn.Translation?.English
-                            : null;
+                    string expression = result.UserTurn?.Translation?.English;
                     UserTranslation = string.IsNullOrWhiteSpace(expression)
                         ? null
                         : expression.Trim();
                     ApplyState(result.Conversation);
-                    AddNpcTurn(result.NpcTurn, reply.HasSpeech);
+                    AddNpcTurn(result.NpcTurn, reply.HasSpeech, reply.HasMissingSpeech);
                     IsEnded =
                         result.Conversation != null && result.Conversation.Status != ActiveStatus;
                     responseEndReason = result.Conversation?.EndReason;
@@ -773,7 +771,11 @@ namespace A305.Dialogue
             initiatedBy == ConversationInitiator.User ? "USER" : "NPC";
 
         /// <param name="spokenInChunks">스트리밍으로 받는 동안 조각 음성을 이미 들려줬는지</param>
-        private void AddNpcTurn(NpcTurnData turn, bool spokenInChunks = false)
+        private void AddNpcTurn(
+            NpcTurnData turn,
+            bool spokenInChunks = false,
+            bool missingSpeech = false
+        )
         {
             if (turn == null)
             {
@@ -781,6 +783,7 @@ namespace A305.Dialogue
             }
 
             LastTurnSpokenInChunks = spokenInChunks;
+            LastTurnSpeechIncomplete = missingSpeech;
 
             DialogueLine line = DialogueLine.FromNpc(
                 turn.Text,
@@ -898,6 +901,7 @@ namespace A305.Dialogue
 
             /// <summary>조각 음성을 하나라도 들려줬는지.</summary>
             public bool HasSpeech { get; private set; }
+            public bool HasMissingSpeech { get; private set; }
 
             public void OnDelta(string delta)
             {
@@ -931,10 +935,14 @@ namespace A305.Dialogue
 
             public void OnSpeechChunk(int seq, string chunkText, byte[] wav)
             {
-                if (owner.streamedReply != this || wav == null)
+                if (owner.streamedReply != this)
                 {
                     return;
                 }
+                HasMissingSpeech |= wav == null;
+                // 빠진 구절 뒤의 음성은 전체 음성에서 순서대로 복구한다.
+                if (HasMissingSpeech)
+                    return;
 
                 HasSpeech = true;
                 owner.NpcSpeechChunk?.Invoke(new NpcSpeechChunkData(reply, seq, wav));

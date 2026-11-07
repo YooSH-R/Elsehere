@@ -313,6 +313,8 @@ namespace A305.EditorTools.Characters
                     .Repeat(new BoneWeight { boneIndex0 = head, weight0 = 1 }, part.vertices.Length)
                     .ToArray(),
             };
+            if (part.name.EndsWith("EyeJoin", StringComparison.Ordinal))
+                MatchEyeJoinWeights(body.sharedMesh, mesh);
             ApplyShapes(mesh, part.shapes);
             mesh.RecalculateBounds();
             skin.sharedMesh = SaveMesh(mesh, folder + "/" + part.name + ".asset");
@@ -340,6 +342,25 @@ namespace A305.EditorTools.Characters
             skin.updateWhenOffscreen = true;
             skin.shadowCastingMode = body.shadowCastingMode;
             skin.receiveShadows = body.receiveShadows;
+        }
+
+        // 두 메시가 같은 정점을 공유해도 가중치가 다르면 고개 회전 중 틈이 생긴다.
+        // 안구·눈꺼풀 내부는 그대로 두고 원래 피부에 붙는 정점만 같은 본 영향을 준다.
+        public static void MatchEyeJoinWeights(Mesh body, Mesh join)
+        {
+            var bodyVertices = body.vertices;
+            var bodyWeights = body.boneWeights;
+            var joinVertices = join.vertices;
+            var weights = join.boneWeights;
+            var activeVertices = body.triangles.Distinct().ToArray();
+            for (int target = 0; target < joinVertices.Length; target++)
+                foreach (int source in activeVertices)
+                    if ((bodyVertices[source] - joinVertices[target]).sqrMagnitude < 1e-10f)
+                    {
+                        weights[target] = bodyWeights[source];
+                        break;
+                    }
+            join.boneWeights = weights;
         }
 
         private static CharacterSpeechPlayer ConfigurePlayer(CharacterFaceController face)

@@ -473,7 +473,7 @@ namespace A305.Dialogue
                 reviewCardId: reviewCardId,
                 reviewStart: reviewStart
             );
-            speechRecovery = new NpcSpeechRecovery(serverConversation, serverLink.PlaySpeechAsync);
+            speechRecovery = new NpcSpeechRecovery(serverConversation, PlayRecoveredSpeechAsync);
             serverConversation.Changed += panel.Refresh;
             serverConversation.NpcSpoke += PlayNpcSpeech;
             serverConversation.NpcSpeechChunk += PlayNpcSpeechChunk;
@@ -653,6 +653,13 @@ namespace A305.Dialogue
             // 대답을 받는 동안 문장 조각 음성으로 이미 들려줬다. [다시 듣기]는 턴 전체 음성을 받아 재생한다.
             if (serverConversation.LastTurnSpokenInChunks)
             {
+                if (!isEnding && serverConversation.LastTurnSpeechIncomplete)
+                {
+                    if (turn.Speech?.IsReady == true)
+                        _ = serverConversation.PlaySpeechAsync(PlayRecoveredSpeechAsync);
+                    else
+                        speechRecovery?.Queue(turn);
+                }
                 return;
             }
 
@@ -666,6 +673,11 @@ namespace A305.Dialogue
             if (!isEnding)
                 speechRecovery?.Queue(turn);
         }
+
+        private Task<bool> PlayRecoveredSpeechAsync(string url) =>
+            serverConversation.LastTurnSpokenInChunks
+                ? serverLink.CompleteStreamedSpeechAsync(url)
+                : serverLink.PlaySpeechAsync(url);
 
         private void PlayNpcSpeechChunk(NpcSpeechChunkData chunk)
         {

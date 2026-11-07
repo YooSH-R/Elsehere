@@ -68,7 +68,7 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 
 ## GPU 음성과 발음 시간표
 
-GPU 서버에는 발음 사전을 적용한 음소를 한 번 보내고, 반환된 PCM을 같은 음소 순서로 워커의 PocketSphinx에 정렬한다. 시간표를 얻으려고 CPU에서 음성을 다시 합성하지 않는다. GPU 장애 시에는 기존 CPU `create_timed` 경로로 대체하며, 두 경로 모두 음성과 검증된 시간표를 함께 캐시한다. 정렬에 실패하면 실제 음성은 유지하고 시간표는 생략한다.
+GPU 서버에는 발음 사전을 적용한 음소를 한 번 보내고, 반환된 PCM을 같은 음소 순서로 워커의 PocketSphinx에 정렬한다. 시간표를 얻으려고 CPU에서 음성을 다시 합성하지 않는다. GPU 장애 시에는 기존 CPU `create_timed` 경로로 대체하며, 두 경로 모두 음성과 검증된 시간표를 함께 캐시한다. CPU 정렬기의 실행 오류가 나면 같은 합성 모델이 제공한 유효한 발음 시간을 보존한다. 발음 순서·시간 범위가 맞지 않거나 모델 시간 자체가 없는 GPU 음성의 정렬이 실패하면 실제 음성만 유지하고 시간표는 생략한다.
 
 `tts_phoneme_timing`과 `TTS_REQUIRE_TIMING`은 시작 시 CPU 대체 모델의 워밍업 결과를 검증한다. GPU의 각 응답은 별도로 PCM 정렬을 거치므로 이 상태만으로 GPU 응답의 시간표나 처리 지연까지 확인됐다고 판단하지 않는다. GPU 서버에 duration 출력 모델을 추가로 배포할 필요는 없지만 워커에는 기존 PocketSphinx 의존성이 필요하다.
 
@@ -309,7 +309,7 @@ Spring이 이미 판정한 무례 횟수와 사건은 선택적 `reaction`으로
 
 읽을 글 정리와 발음 사전을 먼저 적용하고, 그 음소열을 `create_timed(..., is_phonemes=True)`에 한 번만 넘깁니다. 시간표도 같은 합성의 발음 순서를 최종 PCM에 정렬해 만들며, 재생용 음성과 함께 캐시합니다. 시간표 미지원 모델은 동일한 발음 사전으로 음성만 생성합니다. `tests/test_pronunciation_timing.py`에서 두 경로와 캐시 재사용을 검사합니다.
 
-`kokoro-onnx==0.6.1`의 `create_timed()`로 음성과 발음 순서를 얻고, `pocketsphinx==5.0.4`의 로컬 음향 모델로 해당 발음 순서를 최종 PCM에 정렬합니다. TTS 내부 duration은 실제 발음 경계와 어긋날 수 있어 그대로 재생 시간표로 사용하지 않습니다. 별도의 음성 재생성, 외부 분석 API, 문장별 입모양 수작업은 필요하지 않습니다. `KOKORO_MODEL`은 **duration 출력이 포함된** [공식 model-files-v1.1 배포](https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.1)의 `kokoro-v1.0.int8.onnx`, `KOKORO_VOICES`는 해당 배포의 `voices-v1.0.bin`을 가리켜야 합니다. 파일명이 같은 이전 모델에는 duration 출력이 없을 수 있습니다. 시작 로그에 `model has no duration output` 경고가 있으면 정확한 립싱크를 사용할 수 없습니다. 모델은 배포 시 준비하며 요청 중에 다운로드하지 않습니다.
+`kokoro-onnx==0.6.1`의 `create_timed()`로 음성과 발음 순서를 얻고, `pocketsphinx==5.0.4`의 로컬 음향 모델로 해당 발음 순서를 최종 PCM에 정렬합니다. TTS 내부 duration은 실제 발음 경계와 어긋날 수 있어 음향 정렬 결과를 우선합니다. 정렬기 실행 오류(`RuntimeError`)일 때만 같은 합성의 검증된 모델 시간으로 대체하며, 이 경우 음향 정렬보다 경계 정확도가 낮을 수 있습니다. 발음 불일치(`ValueError`)는 이 대체 대상이 아닙니다. 별도의 음성 재생성, 외부 분석 API, 문장별 입모양 수작업은 필요하지 않습니다. `KOKORO_MODEL`은 **duration 출력이 포함된** [공식 model-files-v1.1 배포](https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.1)의 `kokoro-v1.0.int8.onnx`, `KOKORO_VOICES`는 해당 배포의 `voices-v1.0.bin`을 가리켜야 합니다. 파일명이 같은 이전 모델에는 duration 출력이 없을 수 있습니다. 시작 로그에 `model has no duration output` 경고가 있으면 정확한 립싱크를 사용할 수 없습니다. 모델은 배포 시 준비하며 요청 중에 다운로드하지 않습니다.
 
 `app/speech_timing.py`는 영어 IPA를 Unity 공통 음소 이름으로 변환합니다. `/aɪ/` 등 이중모음은 하나의 구간으로 묶어 Unity에서 입이 연속 변형되게 합니다. 음소기가 내는 `ɡ`(U+0261)는 `g`로 읽고, 길이(`ː`)·비음(`◌̃`)·구개음화(`ʲ`) 표시는 앞 음소 구간에 붙입니다. `app/speech_alignment.py`가 같은 최종 PCM을 두 번 분석해 단어·음소 경계를 구합니다. 단어 사이 공백을 무음으로 강제하지 않고 음향 모델이 찾은 무음만 사용합니다. 발음 순서가 누락·변경되거나 시간 범위가 잘못되면 해당 시간표를 폐기하고 음성만 반환하며 경고를 기록합니다. 원래 음성의 속도·샘플은 변경하지 않습니다. 정렬은 음향 모델의 추정이므로 모든 경계의 정확성을 보장하지 않으며 빠른 연결 발음은 실제 음성과 대조해야 합니다. 기존 얼굴의 한계 때문에 일부 자음은 가까운 입모양을 사용하며, 실제 혀·치아 전체의 조음 모델은 아닙니다.
 

@@ -126,6 +126,60 @@ namespace A305.Dialogue
             }
         }
 
+        /// <summary>이미 받은 구절은 마저 재생하고, 전체 음성에서 빠진 뒤쪽을 이어 읽는다.</summary>
+        public async Task<bool> CompleteStreamedSpeechAsync(string url)
+        {
+            int request = playbackRequest;
+            byte[] bytes;
+            try
+            {
+                bytes = await DownloadSpeechAsync(url);
+            }
+            catch (ApiException)
+                when (this == null || request != playbackRequest || !isActiveAndEnabled)
+            {
+                return false;
+            }
+            if (this == null || request != playbackRequest || !isActiveAndEnabled || bytes == null)
+                return false;
+            if (!TryCreateVoice(bytes, out var clip, out var timeline, out var emotions))
+                return false;
+
+            int startSample = MatchingPrefixSamples(clip);
+            lastSpeech.Expect(url);
+            lastSpeech.TryFill(url, clip);
+            lastTimeline = timeline;
+            lastEmotions = emotions;
+            if (startSample < clip.samples)
+                chunkQueue.Enqueue(new SpeechChunk(clip, timeline, emotions, startSample));
+            PlayNextChunk();
+            return true;
+        }
+
+        private int MatchingPrefixSamples(AudioClip complete)
+        {
+            var full = new float[complete.samples * complete.channels];
+            complete.GetData(full, 0);
+            int offset = 0;
+            foreach (var chunk in chunkClips)
+            {
+                if (
+                    chunk.frequency != complete.frequency
+                    || chunk.channels != complete.channels
+                    || offset + chunk.samples * chunk.channels > full.Length
+                )
+                    return 0;
+                var samples = new float[chunk.samples * chunk.channels];
+                chunk.GetData(samples, 0);
+                for (int i = 0; i < samples.Length; i++)
+                    if (samples[i] != full[offset + i])
+                        return 0;
+                offset += samples.Length;
+            }
+            // 재합성 결과가 다르면 시간을 추측해 건너뛰지 않고 전체 대사를 읽는다.
+            return offset / complete.channels;
+        }
+
         /// <summary>오프라인 검수에서도 실제 대화와 같은 디코딩·재생 경로를 사용한다.</summary>
         public bool PlayRecordedSpeech(byte[] wav)
         {
@@ -231,7 +285,7 @@ namespace A305.Dialogue
             if (chunkQueue.Count == 0 || IsSpeaking)
                 return;
             SpeechChunk next = chunkQueue.Dequeue();
-            Play(next.Clip, next.Timeline, next.Emotions, true);
+            Play(next.Clip, next.Timeline, next.Emotions, true, next.StartSample);
         }
 
         private bool IsSpeaking =>
@@ -243,6 +297,7 @@ namespace A305.Dialogue
             AudioClip clip = lastSpeech.Clip;
             if (clip == null)
                 return;
+            StopSpeech();
             Play(clip, lastTimeline, lastEmotions);
         }
 
@@ -250,10 +305,12 @@ namespace A305.Dialogue
             AudioClip clip,
             SpeechVisemeTimeline timeline,
             SpeechEmotionTrack emotions,
-            bool continueSpeech = false
+            bool continueSpeech = false,
+            int startSample = 0
         )
         {
             if (speaker != null)
+            {
                 speaker.Play(
                     clip,
                     timeline,
@@ -261,9 +318,13 @@ namespace A305.Dialogue
                     continueSpeech: continueSpeech,
                     holdEmotionAfterSpeech: true
                 );
+                if (startSample > 0)
+                    speaker.Seek((float)startSample / clip.frequency);
+            }
             else if (speechSource != null)
             {
                 speechSource.clip = clip;
+                speechSource.timeSamples = startSample;
                 speechSource.Play();
             }
         }
@@ -311,17 +372,20 @@ namespace A305.Dialogue
             public SpeechChunk(
                 AudioClip clip,
                 SpeechVisemeTimeline timeline,
-                SpeechEmotionTrack emotions
+                SpeechEmotionTrack emotions,
+                int startSample = 0
             )
             {
                 Clip = clip;
                 Timeline = timeline;
                 Emotions = emotions;
+                StartSample = startSample;
             }
 
             public AudioClip Clip { get; }
             public SpeechVisemeTimeline Timeline { get; }
             public SpeechEmotionTrack Emotions { get; }
+            public int StartSample { get; }
         }
 
         private void OnDestroy()

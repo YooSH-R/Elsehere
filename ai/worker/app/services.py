@@ -60,7 +60,7 @@ def clean_events(raw: dict) -> list[str]:
 
 async def judge(llm: LLM, req: JudgeRequest) -> dict:
     """의도(+ 줄 사건)와 번역(한국어가 섞였을 때)을 동시에. 하나가 실패해도 턴은 이어 간다 (의도 → unclear·사건 없음, 번역 → error).
-    무례 판정은 /v1/guard가 따로 한다. 번역 카드를 보여 줄지(무례가 아님이 확정일 때만)는 그 결과로 Spring이 정한다.
+    무례 판정은 /v1/guard가 따로 한다. 생성된 영어 번역은 무례 판정과 관계없이 Spring이 표현 카드로 전달한다.
     affinity_delta는 줄 사건으로 바로 올릴 호감이다. 무례로 확정된 턴이면 Spring이 쓰지 않고 /v1/guard의 감점만 쓴다."""
     usage = Usage()
     text, had_action = P.strip_actions(req.text)

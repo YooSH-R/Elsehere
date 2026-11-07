@@ -355,7 +355,7 @@ class TurnServiceTest {
   }
 
   @Test
-  @DisplayName("무례한 말은 횟수를 세고 경고 지시문으로 대답하며 번역 카드를 담지 않는다")
+  @DisplayName("무례한 말은 횟수를 세고 경고 지시문으로 대답하며 영어 번역도 보여 준다")
   void send_abusive_countsAndWarns() {
     judges("닥쳐 멍청아", "닥쳐 멍청아", "Shut up, idiot.");
     guards("닥쳐 멍청아", true, null);
@@ -376,7 +376,7 @@ class TurnServiceTest {
     TurnResponse response = send("닥쳐 멍청아");
 
     assertThat(response.userTurn().rude()).isTrue();
-    assertThat(response.userTurn().translation()).isNull();
+    assertThat(response.userTurn().translation().english()).isEqualTo("Shut up, idiot.");
     assertThat(response.conversation().rudeCount()).isEqualTo(1);
     assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
     then(aiGateway)
@@ -394,7 +394,7 @@ class TurnServiceTest {
             eq("rude_warning"));
     TurnDetailResponse saved = conversationService.detail(userId, conversationId).turns().get(1);
     assertThat(saved.rude()).isTrue();
-    assertThat(saved.translation()).isNull();
+    assertThat(saved.translation().english()).isEqualTo("Shut up, idiot.");
   }
 
   @Test
@@ -517,8 +517,8 @@ class TurnServiceTest {
   }
 
   @Test
-  @DisplayName("무례 판정을 하지 못한 말은 무례로 세지 않고 이유를 남기며 번역 카드를 담지 않는다")
-  void send_guardUndecided_keepsCountAndHidesTranslation() {
+  @DisplayName("무례 판정을 하지 못한 말도 번역은 보여 주고 판정 실패 이유를 남긴다")
+  void send_guardUndecided_keepsCountAndShowsTranslation() {
     judges("네 맑아요", "네 맑아요", "Yes, it's sunny.");
     guards("네 맑아요", null, "timeout");
     repliesTo("네 맑아요", reply("Great!", null));
@@ -526,7 +526,7 @@ class TurnServiceTest {
     TurnResponse response = send("네 맑아요");
 
     assertThat(response.userTurn().rude()).isFalse();
-    assertThat(response.userTurn().translation()).isNull();
+    assertThat(response.userTurn().translation().english()).isEqualTo("Yes, it's sunny.");
     assertThat(response.conversation().rudeCount()).isZero();
     Turn saved = turnRepository.findByRequestId(lastRequestId).orElseThrow();
     assertThat(saved.getGuardAbusive()).isNull();

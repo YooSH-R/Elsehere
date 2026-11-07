@@ -6,6 +6,9 @@ import java.util.regex.Pattern;
 /** 의미 채점이 아닌, 실제 발화에 보이는 같은 표현의 보수적인 근거 찾기. */
 final class ReviewExpressionEvidence {
   private static final Pattern NEGATION = Pattern.compile("\\b(no|not|never|without|cannot)\\b");
+  private static final Pattern QUOTED =
+      Pattern.compile(
+          "\"[^\"]*\"|“[^”]*”|‘[^’]*’|(?<!\\p{L})'(?:[^'\\r\\n]|(?<=\\p{L})'(?=\\p{L}))+'(?!\\p{L})");
 
   private ReviewExpressionEvidence() {}
 
@@ -14,7 +17,7 @@ final class ReviewExpressionEvidence {
     if (target.isBlank() || text == null) {
       return false;
     }
-    for (String sentence : text.split("[.!?;]")) {
+    for (String sentence : QUOTED.matcher(text).replaceAll(" ").split("[.!?;]")) {
       String words = " " + normalize(sentence) + " ";
       String phrase = " " + target + " ";
       int found = words.indexOf(phrase);

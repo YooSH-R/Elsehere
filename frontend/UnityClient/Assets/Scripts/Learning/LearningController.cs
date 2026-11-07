@@ -143,6 +143,7 @@ namespace A305.Learning
             historyView.OpenRequested += OpenPastFeedback;
             historyView.MoreRequested += LoadMoreHistory;
             InitializeReview();
+            InitializeReviewProgress();
         }
 
         private void Start()
@@ -193,6 +194,7 @@ namespace A305.Learning
             DialogueController.BackgroundFeedbackCompleted -= OnBackgroundFeedbackCompleted;
             CenterWindow.Shared.SetOpen(false);
             DisposeReview();
+            DisposeReviewProgress();
             GameClock.Shared.IsLearningWindowOpen = false;
             if (hudView != null)
             {

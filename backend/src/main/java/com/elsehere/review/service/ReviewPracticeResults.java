@@ -7,9 +7,11 @@ import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.review.dto.ReviewExpressionUsage;
+import com.elsehere.review.dto.ReviewPracticeProgressResponse;
 import com.elsehere.review.dto.ReviewPracticeResultResponse;
 import com.elsehere.review.dto.ReviewTarget;
 import com.elsehere.review.dto.ReviewUtterance;
+import com.elsehere.review.entity.ReviewCard;
 import com.elsehere.review.repository.ReviewCardRepository;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -31,6 +33,21 @@ public class ReviewPracticeResults {
   private final TurnRepository turnRepository;
   private final JsonMapper jsonMapper;
 
+  @Transactional(readOnly = true)
+  public ReviewPracticeProgressResponse progress(Long userId, Long cardId, Long conversationId) {
+    ReviewCard card =
+        cardRepository
+            .findByIdAndUserId(cardId, userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    conversationRepository
+        .findByIdAndUserId(conversationId, userId)
+        .filter(conversation -> cardId.equals(conversation.getReviewCardId()))
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    List<ReviewExpressionUsage> expressions = expressions(card, utterances(conversationId));
+    return new ReviewPracticeProgressResponse(
+        conversationId, cardId, usedExpressions(expressions).size(), expressions);
+  }
+
   @Transactional(propagation = Propagation.MANDATORY)
   public ReviewPracticeResultResponse record(Long userId, Conversation conversation) {
     if (conversation.getReviewResult() != null) {
@@ -42,38 +59,9 @@ public class ReviewPracticeResults {
       return null;
     }
     var card = owned.get();
-    List<ReviewUtterance> utterances =
-        turnRepository.findAllByConversationIdOrderBySeqAsc(conversation.getId()).stream()
-            .filter(
-                turn ->
-                    turn.getSpeaker() == Speaker.USER
-                        && !Boolean.TRUE.equals(turn.getGuardAbusive()))
-            .map(turn -> new ReviewUtterance(turn.getId(), turn.getText()))
-            .toList();
-    List<ReviewExpressionUsage> expressions =
-        Arrays.stream(jsonMapper.readValue(card.getTargets(), ReviewTarget[].class))
-            .map(
-                target ->
-                    new ReviewExpressionUsage(
-                        target.expression(),
-                        utterances.stream()
-                            .filter(
-                                turn ->
-                                    ReviewExpressionEvidence.matches(
-                                        target.expression(), turn.text()))
-                            .toList()))
-            .toList();
-    var distinctUsed =
-        expressions.stream()
-            .filter(item -> !item.evidence().isEmpty())
-            .map(ReviewExpressionUsage::expression)
-            .collect(
-                Collectors.toMap(
-                    ReviewExpressionEvidence::canonicalExpression,
-                    expression -> expression,
-                    (first, duplicate) -> first,
-                    LinkedHashMap::new));
-    List<String> used = List.copyOf(distinctUsed.values());
+    List<ReviewUtterance> utterances = utterances(conversation.getId());
+    List<ReviewExpressionUsage> expressions = expressions(card, utterances);
+    List<String> used = usedExpressions(expressions);
     card.recordPractice(conversation.getEndedAt(), jsonMapper.writeValueAsString(used));
     var result =
         new ReviewPracticeResultResponse(
@@ -87,6 +75,44 @@ public class ReviewPracticeResults {
             utterances);
     conversation.recordReviewResult(jsonMapper.writeValueAsString(result));
     return result;
+  }
+
+  private List<ReviewUtterance> utterances(Long conversationId) {
+    return turnRepository.findAllByConversationIdOrderBySeqAsc(conversationId).stream()
+        .filter(
+            turn ->
+                turn.getSpeaker() == Speaker.USER && !Boolean.TRUE.equals(turn.getGuardAbusive()))
+        .map(turn -> new ReviewUtterance(turn.getId(), turn.getText()))
+        .toList();
+  }
+
+  private List<ReviewExpressionUsage> expressions(
+      ReviewCard card, List<ReviewUtterance> utterances) {
+    return Arrays.stream(jsonMapper.readValue(card.getTargets(), ReviewTarget[].class))
+        .map(
+            target ->
+                new ReviewExpressionUsage(
+                    target.expression(),
+                    utterances.stream()
+                        .filter(
+                            turn ->
+                                ReviewExpressionEvidence.matches(target.expression(), turn.text()))
+                        .toList()))
+        .toList();
+  }
+
+  private List<String> usedExpressions(List<ReviewExpressionUsage> expressions) {
+    var distinctUsed =
+        expressions.stream()
+            .filter(item -> !item.evidence().isEmpty())
+            .map(ReviewExpressionUsage::expression)
+            .collect(
+                Collectors.toMap(
+                    ReviewExpressionEvidence::canonicalExpression,
+                    expression -> expression,
+                    (first, duplicate) -> first,
+                    LinkedHashMap::new));
+    return List.copyOf(distinctUsed.values());
   }
 
   @Transactional(readOnly = true)

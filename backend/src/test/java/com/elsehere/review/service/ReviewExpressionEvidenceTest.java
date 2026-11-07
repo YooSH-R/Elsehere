@@ -6,6 +6,24 @@ import org.junit.jupiter.api.Test;
 
 class ReviewExpressionEvidenceTest {
   @Test
+  void quotedExamplesAreNotEvidenceButUnquotedContractionsStillAre() {
+    assertThat(
+            ReviewExpressionEvidence.matches(
+                "Can I get that to go?", "The example is \"Could I get that to go?\"."))
+        .isFalse();
+    assertThat(
+            ReviewExpressionEvidence.matches(
+                "I'd like a coffee.", "The example is 'I'd like a coffee'."))
+        .isFalse();
+    assertThat(
+            ReviewExpressionEvidence.matches(
+                "Can I get that to go?", "Lily said “Can I get that to go?”"))
+        .isFalse();
+    assertThat(ReviewExpressionEvidence.matches("I'd like a coffee.", "I'd like a coffee."))
+        .isTrue();
+  }
+
+  @Test
   void findsConservativeRequestAndContractionVariantsInActualUtterances() {
     assertThat(
             ReviewExpressionEvidence.matches(

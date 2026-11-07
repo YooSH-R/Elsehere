@@ -169,6 +169,8 @@ namespace A305.EditorTools.Characters
                     child.transform.SetParent(bodySkin.transform, false);
                     var skin = child.AddComponent<SkinnedMeshRenderer>();
                     skin.sharedMesh = mesh;
+                    if (part.name.EndsWith("EyeJoin", StringComparison.Ordinal))
+                        NpcEmotionBuilder.MatchEyeJoinWeights(bodySkin.sharedMesh, mesh);
                     skin.sharedMaterial = mat;
                     skin.bones = bodySkin.bones;
                     skin.rootBone = bodySkin.rootBone;

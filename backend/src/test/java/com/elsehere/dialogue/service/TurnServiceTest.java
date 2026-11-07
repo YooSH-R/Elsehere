@@ -17,6 +17,7 @@ import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.NpcReplyListener;
 import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerTrace;
@@ -358,7 +359,18 @@ class TurnServiceTest {
   void send_abusive_countsAndWarns() {
     judges("닥쳐 멍청아", "닥쳐 멍청아", "Shut up, idiot.");
     guards("닥쳐 멍청아", true, null);
-    given(aiGateway.reply(any(), any(), any(), any(), eq("닥쳐 멍청아"), anyString(), anyInt(), any()))
+    given(
+            aiGateway.replyReacting(
+                any(),
+                any(),
+                any(),
+                any(),
+                eq("닥쳐 멍청아"),
+                anyString(),
+                anyInt(),
+                any(),
+                any(),
+                anyString()))
         .willReturn(reply("That's not okay to say.", null));
 
     TurnResponse response = send("닥쳐 멍청아");
@@ -369,7 +381,7 @@ class TurnServiceTest {
     assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
     then(aiGateway)
         .should()
-        .reply(
+        .replyReacting(
             any(),
             any(),
             any(),
@@ -377,10 +389,51 @@ class TurnServiceTest {
             eq("닥쳐 멍청아"),
             eq(TurnService.RUDE_WARNING),
             anyInt(),
-            any());
+            any(),
+            eq(NpcReplyListener.NONE),
+            eq("rude_warning"));
     TurnDetailResponse saved = conversationService.detail(userId, conversationId).turns().get(1);
     assertThat(saved.rude()).isTrue();
     assertThat(saved.translation()).isNull();
+  }
+
+  @Test
+  void send_secondRudeTurnRequestsStrongAngerWhileConversationStaysActive() {
+    for (int count = 1; count <= 2; count++) {
+      String text = "you idiot " + count;
+      judges(text, text, null);
+      guards(text, true, null);
+      given(
+              aiGateway.replyReacting(
+                  any(),
+                  any(),
+                  any(),
+                  any(),
+                  eq(text),
+                  anyString(),
+                  anyInt(),
+                  any(),
+                  any(),
+                  anyString()))
+          .willReturn(reply("Please stop.", null));
+    }
+    send("you idiot 1");
+    TurnResponse second = send("you idiot 2");
+    assertThat(second.conversation().rudeCount()).isEqualTo(2);
+    assertThat(second.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
+    then(aiGateway)
+        .should()
+        .replyReacting(
+            any(),
+            any(),
+            any(),
+            any(),
+            eq("you idiot 2"),
+            eq(TurnService.RUDE_WARNING),
+            anyInt(),
+            any(),
+            eq(NpcReplyListener.NONE),
+            eq("rude_repeated"));
   }
 
   @Test
@@ -390,7 +443,18 @@ class TurnServiceTest {
       String text = "you idiot " + count;
       judges(text, text, null);
       guards(text, true, null);
-      given(aiGateway.reply(any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
+      given(
+              aiGateway.replyReacting(
+                  any(),
+                  any(),
+                  any(),
+                  any(),
+                  eq(text),
+                  anyString(),
+                  anyInt(),
+                  any(),
+                  any(),
+                  anyString()))
           .willReturn(reply("Stop it.", null));
     }
 
@@ -403,7 +467,7 @@ class TurnServiceTest {
     assertThat(last.conversation().endReason()).isEqualTo(ConversationEndReason.RUDE);
     then(aiGateway)
         .should()
-        .reply(
+        .replyReacting(
             any(),
             any(),
             any(),
@@ -411,7 +475,9 @@ class TurnServiceTest {
             eq("you idiot 3"),
             eq(TurnService.RUDE_LEAVE),
             anyInt(),
-            any());
+            any(),
+            eq(NpcReplyListener.NONE),
+            eq("rude_final"));
     assertThat(conversationService.detail(userId, conversationId).endedAt()).isNotNull();
   }
 
@@ -422,7 +488,18 @@ class TurnServiceTest {
       String text = "you idiot " + count;
       judges(text, text, null);
       guards(text, true, null);
-      given(aiGateway.reply(any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
+      given(
+              aiGateway.replyReacting(
+                  any(),
+                  any(),
+                  any(),
+                  any(),
+                  eq(text),
+                  anyString(),
+                  anyInt(),
+                  any(),
+                  any(),
+                  anyString()))
           .willReturn(reply("Stop it.", null));
     }
 
@@ -487,8 +564,17 @@ class TurnServiceTest {
     judges("you idiot", "you idiot", null);
     guards("you idiot", true, null);
     given(
-            aiGateway.reply(
-                any(), any(), any(), any(), eq("you idiot"), anyString(), anyInt(), any()))
+            aiGateway.replyReacting(
+                any(),
+                any(),
+                any(),
+                any(),
+                eq("you idiot"),
+                anyString(),
+                anyInt(),
+                any(),
+                any(),
+                anyString()))
         .willReturn(reply("Not okay.", null));
     send("you idiot");
     judges("Sorry", "Sorry", null);
@@ -796,7 +882,19 @@ class TurnServiceTest {
   void send_notRudeWithEvents_raisesAffinityRightAway() {
     judgeRaises("I love this town!", 4);
     guards("I love this town!", false, null);
-    repliesTo("I love this town!", reply("Thank you!", null));
+    given(
+            aiGateway.replyReacting(
+                any(),
+                any(),
+                any(),
+                any(),
+                eq("I love this town!"),
+                eq(""),
+                anyInt(),
+                any(),
+                any(),
+                eq("compliment")))
+        .willReturn(reply("Thank you!", null));
 
     TurnResponse response = send("I love this town!");
 
@@ -951,7 +1049,18 @@ class TurnServiceTest {
         .willReturn(
             new GuardResult(
                 new GuardResult.Guard(true, null), affinityDelta, List.of(usage("guard"))));
-    given(aiGateway.reply(any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
+    given(
+            aiGateway.replyReacting(
+                any(),
+                any(),
+                any(),
+                any(),
+                eq(text),
+                anyString(),
+                anyInt(),
+                any(),
+                any(),
+                anyString()))
         .willReturn(reply("That's not okay to say.", null));
   }
 

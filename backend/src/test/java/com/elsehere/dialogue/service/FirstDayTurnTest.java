@@ -144,7 +144,8 @@ class FirstDayTurnTest {
   @Test
   void rudeTurnDoesNotApplyRecognizedGoals() {
     guards(true);
-    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), any()))
+    when(worker.replyReacting(
+            any(), any(), any(), any(), any(), any(), anyInt(), any(), any(), any()))
         .thenReturn(SAVED_REPLY);
 
     service.send(8L, 10L, new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null));
@@ -217,7 +218,8 @@ class FirstDayTurnTest {
   @DisplayName("무례로 센 턴은 목표를 모두 말해도 마무리하지 않는다")
   void rudeTurnDoesNotWrapUp() {
     guards(true);
-    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), any()))
+    when(worker.replyReacting(
+            any(), any(), any(), any(), any(), any(), anyInt(), any(), any(), any()))
         .thenReturn(SAVED_REPLY);
 
     service.send(8L, 10L, new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null));

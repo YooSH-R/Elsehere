@@ -61,6 +61,7 @@ class TutorialRelationshipServiceTest {
     assertThat(relation.getLastTalkedAt()).isEqualTo(NOW);
     assertThat(relation.getLastTalkGameDay()).isEqualTo(1);
     assertThat(relation.getMemoryCard()).contains("cafe");
+    assertThat(relation.getMemoryCard()).contains("Introduced themselves");
     assertThat(relation.getMemoryConversationId()).isNull();
   }
 

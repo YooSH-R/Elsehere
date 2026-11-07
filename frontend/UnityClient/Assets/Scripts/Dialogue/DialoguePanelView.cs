@@ -249,7 +249,7 @@ namespace A305.Dialogue
                 {
                     (RectTransform)inputField.transform,
                     (RectTransform)sendButton.transform,
-                    (RectTransform)exampleButton.transform,
+                    (RectTransform)hintButton.transform,
                 };
                 if (talkButton.gameObject.activeSelf)
                 {
@@ -263,13 +263,13 @@ namespace A305.Dialogue
         /// <summary>주고받은 대사 칸. 튜토리얼 코치 마크가 대화 시작 티칭에서 밝힌다.</summary>
         public RectTransform LinesRect => (RectTransform)historyScroll.transform;
 
-        /// <summary>[뜻]·[예시 문장] 중 보이는 버튼. 튜토리얼 코치 마크가 대화 시작 티칭에서 밝힌다.</summary>
+        /// <summary>[뜻]·[힌트]·확인용 [예시 문장] 중 보이는 버튼.</summary>
         public IReadOnlyList<RectTransform> ToolParts
         {
             get
             {
                 var parts = new List<RectTransform>();
-                foreach (Button button in new[] { meaningButton, exampleButton })
+                foreach (Button button in new[] { meaningButton, hintButton, exampleButton })
                 {
                     if (button.gameObject.activeSelf)
                     {
@@ -283,6 +283,12 @@ namespace A305.Dialogue
 
         /// <summary>왼쪽 도움 칸의 추천 단어 카드. 튜토리얼 코치 마크가 밝힌다.</summary>
         public RectTransform SuggestedWordsRect => (RectTransform)suggestText.transform.parent;
+
+        /// <summary>NPC 이름과 표시 중인 호감도·무례 경고를 함께 밝힌다.</summary>
+        public IReadOnlyList<RectTransform> RelationshipParts =>
+            standingText.gameObject.activeInHierarchy
+                ? new[] { npcNameText.rectTransform, standingText.rectTransform }
+                : new[] { npcNameText.rectTransform };
 
         /// <summary>[대화 종료]. 튜토리얼 코치 마크가 길 안내를 마친 뒤 밝힌다.</summary>
         public RectTransform EndButtonRect => (RectTransform)endButton.transform;

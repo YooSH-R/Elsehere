@@ -56,14 +56,14 @@ namespace A305.Tutorial
             new TutorialStepGuide(
                 TutorialStep.SaveWord,
                 "단어 모으기",
-                "가구를 클릭해 카드 고정 → {저장}",
-                "가구를 눌러 카드 고정 → {저장}",
+                "가구를 클릭해 카드 고정 → {단어장에 저장}",
+                "가구를 눌러 카드 고정 → {단어장에 저장}",
                 ""
             ),
             new TutorialStepGuide(
                 TutorialStep.OpenVocabulary,
                 "단어장",
-                "{≡} 메뉴에서 {단어장} 열기",
+                "오른쪽 위 {휴대폰}에서 {단어장} 열기",
                 "",
                 ""
             ),
@@ -107,9 +107,9 @@ namespace A305.Tutorial
             "Ben이 먼저 말을 걸었어요. 주고받은 대화는 여기에 쌓여요";
 
         [SerializeField]
-        [Tooltip("대화 시작 티칭의 둘째. [뜻]·[예시 문장]을 밝히며 보인다.")]
+        [Tooltip("대화 시작 티칭의 둘째. [뜻]·[힌트]를 밝히며 보인다.")]
         private string dialogueToolsCaption =
-            "Ben의 말이 어려우면 {뜻}으로 한국어 뜻을 봐요. {예시 문장}은 할 말을 입력칸에 채워 줘요";
+            "Ben의 말이 어려우면 {뜻}으로 한국어 뜻을 봐요. 대답이 떠오르지 않으면 {힌트}로 입력칸에 예시 답변을 채워요";
 
         [SerializeField]
         [Tooltip("대화 시작 티칭의 셋째. 왼쪽 [단어] 카드를 밝히며 보인다.")]
@@ -127,7 +127,7 @@ namespace A305.Tutorial
             "길 안내 대화에서 대사와 다른 문장을 보냈을 때의 설명. 아래에 입력할 대사와 뜻이 붙는다."
         )]
         private string guidedLineMissCaption =
-            "튜토리얼은 정해진 흐름대로 진행돼요. 이 대사와 같게 입력하거나 {예시 문장}으로 채워요";
+            "튜토리얼은 정해진 흐름대로 진행돼요. 이 대사와 같게 입력하거나 {힌트}로 채워요";
 
         [SerializeField]
         [Tooltip(
@@ -146,7 +146,7 @@ namespace A305.Tutorial
         [SerializeField]
         [Tooltip("대화 노트(피드백)를 열면 탭 줄을 밝히며 [다음]과 함께 보이는 첫 티칭")]
         private string feedbackSectionsCaption =
-            "Ben과 나눈 대화를 돌아보는 대화 노트예요. 탭을 눌러 {요약}·{문장}·{회화}·{표현}을 봐요";
+            "Ben과 나눈 대화를 돌아보는 대화 노트예요. 탭을 눌러 {요약}·{문장 교정}·{전체 대화}·{저장할 표현}을 봐요";
 
         [SerializeField]
         [Tooltip("대화 노트 티칭의 둘째. 본문 스크롤 영역을 밝히며 보인다.")]
@@ -163,7 +163,14 @@ namespace A305.Tutorial
             "단어장을 처음 열어 안내 카드가 숨은 동안 단어장 창 옆에 보이는 단어장 설명과 다음 할 일"
         )]
         private string vocabularyCaption =
-            "단어장에는 사물 카드에서 {저장}한 단어가 모여요. 뜻·예문을 다시 보고 {외웠어요}·메모로 정리해요\n다 봤으면 오른쪽 위 {X}로 닫고 밖으로 나가요";
+            "단어장에는 사물 카드나 대화에서 저장한 단어·표현이 모여요. 뜻·예문을 다시 보고 {외웠어요}·메모로 정리해요\n다 봤으면 오른쪽 위 {X}로 닫고 밖으로 나가요";
+
+        [SerializeField]
+        [Tooltip("NPC 이름을 밝히며 호감도와 무례 경고를 별도로 설명한다.")]
+        private string relationshipCaption =
+            "<b>Ben과 조금 친해졌어요!</b>\n인사를 나누니 이름 옆 하트의 호감도가 올랐어요. 인사·칭찬·도움처럼 긍정적인 대화로 관계를 쌓아 보세요.\n자유 대화에서 무례한 말을 하면 호감도가 내려가고 경고가 쌓여요. 경고 칸이 모두 차면 NPC가 대화를 끝내요.\n길 안내까지 마치면 Ben과의 호감도와 이 만남의 기억이 저장돼요.";
+
+        public string RelationshipCaption => relationshipCaption;
 
         [SerializeField]
         [Tooltip(

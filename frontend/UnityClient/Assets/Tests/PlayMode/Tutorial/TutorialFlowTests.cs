@@ -200,7 +200,7 @@ namespace A305.Tutorial.PlayModeTests
             DialogueController dialogue = Single<DialogueController>();
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "ExampleButton");
+                Click(panel, "HintButton");
                 Click(panel, "SendButton");
                 yield return null;
             }
@@ -414,7 +414,7 @@ namespace A305.Tutorial.PlayModeTests
 
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "ExampleButton");
+                Click(panel, "HintButton");
                 Click(panel, "SendButton");
                 yield return null;
             }
@@ -488,6 +488,30 @@ namespace A305.Tutorial.PlayModeTests
             Assert.That(coachMark.IsNextShowing, Is.False);
             Assert.That(coachMark.CaptionText, Does.Contain("정해진 흐름"));
             Assert.That(coachMark.CaptionRect.Overlaps(coachMark.Hole), Is.False);
+            Assert.That(
+                coachMark.SpotlightTargets,
+                Does.Contain(
+                    panel
+                        .GetComponentsInChildren<Button>(true)
+                        .Single(button => button.name == "HintButton")
+                        .transform
+                )
+            );
+
+            Click(panel, "HintButton");
+            yield return null;
+            Assert.That(input.text, Does.Contain("Nice to meet you"));
+            Click(panel, "SendButton");
+            yield return null;
+            yield return null;
+            Assert.That(coachMark.SpotlightTargets, Is.EqualTo(panel.RelationshipParts));
+            Assert.That(coachMark.CaptionText, Does.Contain("호감도"));
+            Assert.That(coachMark.CaptionText, Does.Contain("무례"));
+            Assert.That(coachMark.CaptionText, Does.Contain("저장"));
+            ClickNext(coachMark);
+            yield return null;
+            yield return null;
+            Assert.That(coachMark.SpotlightTargets, Does.Contain(input.transform));
         }
 
         [UnityTest]
@@ -593,7 +617,7 @@ namespace A305.Tutorial.PlayModeTests
             yield return FinishTour(Single<CoachMarkView>());
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "ExampleButton");
+                Click(panel, "HintButton");
                 Click(panel, "SendButton");
                 yield return null;
             }
@@ -668,7 +692,7 @@ namespace A305.Tutorial.PlayModeTests
             DialogueController dialogue = Single<DialogueController>();
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "ExampleButton");
+                Click(panel, "HintButton");
                 Click(panel, "SendButton");
                 yield return null;
                 Assert.That(voice.HasSpeech, Is.True, "Ben의 대답을 들려줍니다.");
@@ -692,7 +716,7 @@ namespace A305.Tutorial.PlayModeTests
             DialogueController dialogue = Single<DialogueController>();
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "ExampleButton");
+                Click(panel, "HintButton");
                 Click(panel, "SendButton");
                 yield return null;
             }

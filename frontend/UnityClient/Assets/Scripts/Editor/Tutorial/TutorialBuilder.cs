@@ -107,6 +107,54 @@ namespace A305.EditorTools.Tutorial
         /// 튜토리얼 단계가 바뀌어 안내 문구를 새로 맞춰야 할 때, 단계별 안내와 코치 마크 설명을 코드의 기본 문구로 되돌린다.
         /// 평소 Build는 고친 문구를 그대로 둔다.
         /// </summary>
+        [MenuItem("Tools/A305/Tutorial/Align Service Guide Texts")]
+        public static void AlignServiceGuideTexts()
+        {
+            BuilderTools.ThrowIfPlaying();
+            var guide = BuilderTools.LoadOrCreateAsset<TutorialGuideDefinition>(
+                GuideDefinitionPath
+            );
+            var defaults = ScriptableObject.CreateInstance<TutorialGuideDefinition>();
+            var fields = new SerializedObject(guide);
+            var defaultFields = new SerializedObject(defaults);
+            foreach (
+                string name in new[]
+                {
+                    "dialogueToolsCaption",
+                    "guidedLineMissCaption",
+                    "feedbackSectionsCaption",
+                    "vocabularyCaption",
+                    "relationshipCaption",
+                }
+            )
+                fields.CopyFromSerializedProperty(defaultFields.FindProperty(name));
+
+            SerializedProperty steps = fields.FindProperty("stepGuides");
+            SerializedProperty defaultSteps = defaultFields.FindProperty("stepGuides");
+            for (int index = 0; index < steps.arraySize; index++)
+            {
+                SerializedProperty step = steps.GetArrayElementAtIndex(index);
+                var kind = (TutorialStep)step.FindPropertyRelative("step").intValue;
+                if (kind != TutorialStep.SaveWord && kind != TutorialStep.OpenVocabulary)
+                    continue;
+                for (int candidate = 0; candidate < defaultSteps.arraySize; candidate++)
+                {
+                    SerializedProperty source = defaultSteps.GetArrayElementAtIndex(candidate);
+                    if (source.FindPropertyRelative("step").intValue != (int)kind)
+                        continue;
+                    foreach (string name in new[] { "task", "touchTask" })
+                        step.FindPropertyRelative(name).stringValue = source
+                            .FindPropertyRelative(name)
+                            .stringValue;
+                    break;
+                }
+            }
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            UnityEngine.Object.DestroyImmediate(defaults);
+            EditorUtility.SetDirty(guide);
+            AssetDatabase.SaveAssets();
+        }
+
         [MenuItem("Tools/A305/Tutorial/Reset Guide Texts")]
         public static void ResetGuideTexts()
         {
@@ -123,6 +171,7 @@ namespace A305.EditorTools.Tutorial
                     "stepGuides",
                     "talkOfferCaption",
                     "dialogueLinesCaption",
+                    "relationshipCaption",
                     "dialogueToolsCaption",
                     "guidedLineCaption",
                     "suggestedWordsCaption",

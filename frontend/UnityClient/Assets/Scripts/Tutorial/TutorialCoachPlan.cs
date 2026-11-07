@@ -5,6 +5,7 @@ namespace A305.Tutorial
     {
         /// <summary>대화 화면이 열려 있는지</summary>
         public bool IsTalking { get; set; }
+        public bool RelationshipExplained { get; set; }
 
         /// <summary>행인의 대화 제안이나 [말 걸기]가 떠 있는지</summary>
         public bool IsTalkOfferShowing { get; set; }
@@ -76,7 +77,9 @@ namespace A305.Tutorial
 
         /// <summary>대화 시작·대화 노트 티칭처럼 [다음]으로 넘기는 대상인지</summary>
         public static bool IsTour(TutorialCoachTarget target) =>
-            IsDialogueTour(target) || System.Array.IndexOf(FeedbackTour, target) >= 0;
+            IsDialogueTour(target)
+            || target == TutorialCoachTarget.DialogueRelationship
+            || System.Array.IndexOf(FeedbackTour, target) >= 0;
 
         /// <summary>
         /// 녹음하는 동안 [말하기]의 불 옆에 불이 무슨 뜻인지 알릴지. 할 대사를 알리는 동안(티칭 뒤, 길 안내를 마치기 전)에만 알린다.
@@ -116,6 +119,8 @@ namespace A305.Tutorial
                         return TutorialCoachTarget.None;
                     if (screen.IsGuidedCompleted)
                         return TutorialCoachTarget.DialogueEnd;
+                    if (screen.GuidedTurnIndex > 0 && !screen.RelationshipExplained)
+                        return TutorialCoachTarget.DialogueRelationship;
                     // 첫 대사를 보내기 전에는 티칭을 순서대로 보이고, 다 보거나 대사를 보냈으면 할 대사를 알린다.
                     if (
                         screen.GuidedTurnIndex == 0

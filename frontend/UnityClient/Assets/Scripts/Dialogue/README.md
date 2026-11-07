@@ -99,7 +99,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 
 | NPC 키 | 이름 | 대화 |
 | --- | --- | --- |
-| `TUTORIAL_PASSERBY`(대본 키) | Ben | 튜토리얼 동안 행인 Ben이 카페 가는 길을 묻는 정해진 3턴. `DialogueController.TryStart`의 `scriptKey`로 이 대본을 고릅니다. 튜토리얼 설명에 정해진 흐름대로 진행된다는 안내와 할 대사를 보여 주고, 대사마다 왼쪽 [단어]에 추천 단어를 보이며, 그 대사와 같게 보내야 다음 턴으로 넘어갑니다. 다르면 입력칸에 문장을 되돌리고 [예시 문장]으로 대사를 넣을 수 있다고 알립니다. 마지막 턴 뒤에는 입력을 받지 않습니다. 첫 말과 대답 3개는 Ben 목소리로 미리 합성한 음성(`Assets/Audio/Dialogue/TutorialBen`)을 대사와 함께 들려줍니다. |
+| `TUTORIAL_PASSERBY`(대본 키) | Ben | 튜토리얼 동안 Ben과 자기소개·인사를 나누고 카페 가는 길을 알려 주는 정해진 3턴. `DialogueController.TryStart`의 `scriptKey`로 이 대본을 고릅니다. 튜토리얼 설명에 정해진 흐름대로 진행된다는 안내와 할 대사를 보여 주고, 대사마다 왼쪽 [단어]에 추천 단어를 보이며, 그 대사와 같게 보내야 다음 턴으로 넘어갑니다. 다르면 입력칸에 문장을 되돌리고 [힌트]로 대사를 넣을 수 있다고 알립니다. 마지막 턴 뒤에는 입력을 받지 않습니다. 첫 말과 대답 3개는 Ben 목소리로 미리 합성한 음성(`Assets/Audio/Dialogue/TutorialBen`)을 대사와 함께 들려줍니다. |
 | `CAFE_STAFF` | Mia | 키워드 응답. `soy`+`latte`, `latte`, `dessert`, `coffee`, `thank` 순서로 확인합니다. |
 | `TOWN_PASSERBY` | Ben | 키워드 응답. `weather`, `cafe`, `thank` |
 | `TAXI_DRIVER` | Joe | 어디로 가는지 묻고 키워드 응답. `hotel`, `thank` |

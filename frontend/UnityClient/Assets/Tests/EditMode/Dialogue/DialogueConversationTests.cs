@@ -126,7 +126,7 @@ namespace A305.Dialogue.Tests
             Assert.That(isSent, Is.False);
             Assert.That(conversation.Lines.Count, Is.EqualTo(1));
             Assert.That(conversation.SuggestedEnglish, Is.EqualTo("Go straight ahead."));
-            Assert.That(conversation.StatusMessage, Does.Contain("[예시 문장]"));
+            Assert.That(conversation.StatusMessage, Does.Contain("[힌트]"));
             Assert.That(conversation.CanSend, Is.True);
         }
 
@@ -272,12 +272,23 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
-        public void ExampleSentence_InGuidedConversation_UsesCurrentSuggestion()
+        public void Hint_InGuidedConversation_UsesCurrentSuggestionInsteadOfMockExample()
         {
             var conversation = new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript());
             conversation.Send("Go straight ahead.");
 
-            Assert.That(conversation.ExampleSentence, Is.EqualTo("Turn left at the corner."));
+            Assert.That(conversation.ExampleSentence, Is.Null);
+            Assert.That(conversation.HasHint, Is.True);
+            Assert.That(
+                conversation.HintText,
+                Is.Null,
+                "힌트를 누르기 전에는 입력을 채우지 않습니다."
+            );
+            conversation.RequestHint();
+            Assert.That(conversation.HintText, Is.EqualTo("Turn left at the corner."));
+            conversation.Send("Turn left at the corner.");
+            Assert.That(conversation.HasHint, Is.False);
+            Assert.That(conversation.HintText, Is.Null);
         }
 
         [Test]

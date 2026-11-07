@@ -80,7 +80,11 @@ namespace A305.Tutorial.Tests
         {
             var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
 
-            Assert.That(guide.VocabularyCaption, Does.Contain("{저장}"), "무엇이 모이는지");
+            Assert.That(
+                guide.VocabularyCaption,
+                Does.Contain("저장한 단어·표현"),
+                "무엇이 모이는지"
+            );
             Assert.That(guide.VocabularyCaption, Does.Contain("{외웠어요}"), "무엇을 할 수 있는지");
             Assert.That(guide.VocabularyCaption, Does.Contain("밖으로"), "다음 할 일");
         }
@@ -96,7 +100,7 @@ namespace A305.Tutorial.Tests
             Assert.That(guide.GuidedLineMissCaption, Does.Contain("정해진 흐름"));
             Assert.That(guide.DialogueLinesCaption, Does.Contain("Ben"));
             Assert.That(guide.DialogueToolsCaption, Does.Contain("{뜻}"));
-            Assert.That(guide.DialogueToolsCaption, Does.Contain("{예시 문장}"));
+            Assert.That(guide.DialogueToolsCaption, Does.Contain("{힌트}"));
             Assert.That(guide.DialogueEndCaption, Does.Contain("{대화 종료}"));
             Assert.That(guide.FeedbackSectionsCaption, Does.Contain("{요약}"));
             Assert.That(guide.FeedbackPagesCaption, Does.Contain("스크롤"));

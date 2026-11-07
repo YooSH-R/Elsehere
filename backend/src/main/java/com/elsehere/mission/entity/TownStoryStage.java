@@ -120,7 +120,7 @@ public enum TownStoryStage {
       case "request_wash" -> "세탁기 사용 방법 확인";
       case "ask_haircut" -> "이발 요청";
       case "describe_style" -> "스타일 설명(길이와 어디를)";
-      case "choose_flower" -> "꽃 고르기(누구에게 왜)";
+      case "choose_flower" -> "선물할 꽃 고르기";
       case "ask_wrapping" -> "꽃 포장 요청";
       case "offer_flower" -> "꽃을 선물한다고 말하기";
       case "thank_barber" -> "Tony에게 감사하기(무엇이 고마운지)";
@@ -148,7 +148,7 @@ public enum TownStoryStage {
       case "request_wash" -> "직접 세탁기를 쓰겠다고 말하거나 시작 방법 묻기 (예: How do I start this washer?)";
       case "ask_haircut" -> "머리를 자르고 싶다고 말하기";
       case "describe_style" -> "길이와 부위 (예: a little shorter on the sides)";
-      case "choose_flower" -> "어떤 꽃을 누구에게 왜 주는지 말하기 (예: roses for Tony, to say thanks)";
+      case "choose_flower" -> "꽃을 선물하려는 마음과 받을 사람 또는 이유를 자유롭게 말해요.";
       case "ask_wrapping" -> "꽃을 포장해 달라고 하기";
       case "offer_flower" -> "꽃을 선물로 드린다고 말하기";
       case "thank_barber" -> "무엇이 고마운지 말하기 (예: thanks for the haircut)";
@@ -182,7 +182,7 @@ public enum TownStoryStage {
       case "describe_style" ->
           "The learner describes the cut with both length (shorter, a little off, how many centimeters) AND which part, such as the sides, back or top. A vague request like 'something nice' does not count.";
       case "choose_flower" ->
-          "The learner asks for a specific available flower AND says who it is for or why they are giving it.";
+          "The learner expresses an intention to buy or give flowers AND identifies a recipient OR a reason for the gift. The flower variety is optional. Accept natural paraphrases, including a thank-you gift for their barber, without requiring the hint's exact wording. Resolve pronouns using explicit facts from previous learner turns; the current utterance must add relevant information. A gift without any flower purchase/giving context is insufficient. Do not credit NPC-supplied facts, quoted examples, negatives or hypotheticals. Wrapping remains a separate objective.";
       case "ask_wrapping" -> "The learner asks for the flower to be wrapped.";
       case "offer_flower" -> "The learner offers the barber a flower as a gift.";
       case "thank_barber" ->

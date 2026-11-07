@@ -1,5 +1,6 @@
 using System;
 using A305.Player;
+using A305.Theme;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -67,6 +68,44 @@ namespace A305.Npc
         private Action onTalk;
         private bool isSignupPrompt;
         private string talkCaption;
+        private GameObject mealWaitBadge;
+        private TMP_Text mealWaitLabel;
+
+        public void ShowMealWaitPrompt(object requester, string remaining, Action stand)
+        {
+            ShowTalkPrompt(requester, "일어서기", null, stand);
+            if (mealWaitBadge == null)
+            {
+                mealWaitBadge = Instantiate(
+                    talkRemainingBadge,
+                    talkRemainingBadge.transform.parent
+                );
+                mealWaitBadge.name = "MealWaitBadge";
+                mealWaitBadge.transform.SetSiblingIndex(0);
+                mealWaitLabel = mealWaitBadge.GetComponentInChildren<TMP_Text>(true);
+                var theme = talkButton.GetComponent<ThemedElement>();
+                if (theme != null && theme.Catalog != null)
+                {
+                    (
+                        mealWaitBadge.GetComponent<ThemedElement>()
+                        ?? mealWaitBadge.AddComponent<ThemedElement>()
+                    ).Use(theme.Catalog, UiThemeRole.Card);
+                    (
+                        mealWaitLabel.GetComponent<ThemedElement>()
+                        ?? mealWaitLabel.gameObject.AddComponent<ThemedElement>()
+                    ).Use(theme.Catalog, UiThemeRole.Caption);
+                }
+                var size = mealWaitBadge.GetComponent<LayoutElement>();
+                if (size != null)
+                    size.minHeight = size.preferredHeight = 62;
+                mealWaitLabel.fontSize = 24;
+                mealWaitLabel.margin = new Vector4(16, 8, 16, 8);
+                mealWaitLabel.alignment = TextAlignmentOptions.Midline;
+            }
+            mealWaitLabel.text = remaining;
+            mealWaitLabel.gameObject.SetActive(true);
+            mealWaitBadge.SetActive(true);
+        }
 
         public bool IsShowing => owner != null;
 
@@ -257,6 +296,8 @@ namespace A305.Npc
 
         private void SetTalkRemaining(string text)
         {
+            if (mealWaitBadge != null)
+                mealWaitBadge.SetActive(false);
             SetOptionalText(talkRemainingLabel, text);
             if (talkRemainingBadge != null)
                 talkRemainingBadge.SetActive(talkRemainingLabel.gameObject.activeSelf);

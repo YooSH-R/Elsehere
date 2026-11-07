@@ -38,6 +38,26 @@ import org.springframework.beans.factory.annotation.Autowired;
 // 판정은 AI 워커 결과를 Mock으로 정하고, 저장 결과는 기다리는 목록(waiting)과 대화 시작에 쓰는 readyFor로 확인한다.
 @DialogueServiceTest
 class FollowUpServiceTest {
+  @Test
+  void dinerQuestDoesNotCreateAnotherLateMealCard() {
+    entityManager.persist(com.elsehere.mission.entity.TownStory.start(userId));
+    entityManager.flush();
+    owes(new WorkerFollowUp("breakfast", "아침 식사", "QUICK"));
+    assertThat(judge(endedConversation("DINER_STAFF", "Toast and coffee, please."))).isEmpty();
+    assertThat(followUpService.waiting(userId)).isEmpty();
+    then(aiGateway).should(never()).followUp(any(), any(), any());
+  }
+
+  @Test
+  void startingTheDinerQuestHidesAnOlderFreeConversationMealCard() {
+    owes(new WorkerFollowUp("breakfast", "아침 식사", "QUICK"));
+    assertThat(judge(endedConversation("DINER_STAFF", "Toast and coffee, please."))).isPresent();
+    entityManager.persist(com.elsehere.mission.entity.TownStory.start(userId));
+    entityManager.flush();
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(100));
+    assertThat(followUpService.waiting(userId)).isEmpty();
+    assertThat(followUpService.readyFor(userId, npcId(entityManager, "DINER_STAFF"))).isEmpty();
+  }
 
   private static final WorkerFollowUp LATTE = new WorkerFollowUp("iced latte", "아이스 라테", "QUICK");
 

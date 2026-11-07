@@ -26,6 +26,16 @@ namespace A305.Mission
         public Task<FirstDayMissionState> RestAsync() =>
             client.PostAsync<FirstDayMissionState>("/api/v1/missions/first-day/rest", null);
 
+        public async Task<FirstDayMissionState> ReceiveDinerMealAsync()
+        {
+            var state = await client.PostAsync<FirstDayMissionState>(
+                "/api/v1/missions/town-story/diner-meal",
+                null
+            );
+            state.IsTownStory = true;
+            return state;
+        }
+
         public Task<QuestBoardState> GetQuestBoardAsync() =>
             client.GetAsync<QuestBoardState>("/api/v1/missions/quests");
 

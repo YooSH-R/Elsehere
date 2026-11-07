@@ -36,6 +36,7 @@ namespace A305.Mission
         private bool busy;
         private bool refreshPending;
         private RestSeat[] cafeSeats;
+        private DinerMealRest dinerRest;
         private QuestNpcWaitSpot[] waitSpots;
         private UmbrellaHold umbrella;
 
@@ -54,6 +55,13 @@ namespace A305.Mission
                 return;
             }
             api = new FirstDayMissionApi(apiSettings.CreateClient());
+            if (sceneCode == "TOWN")
+                dinerRest = new DinerMealRest(
+                    player,
+                    dialogue,
+                    FindAnyObjectByType<PasserbyOfferView>(),
+                    ReceiveDinerMeal
+                );
             cafeSeats = FirstDayMissionState.ManagesSeatsIn(sceneCode)
                 ? FindObjectsByType<RestSeat>(FindObjectsSortMode.None)
                 : Array.Empty<RestSeat>();
@@ -77,8 +85,13 @@ namespace A305.Mission
 
         private void Start() => RequestRefresh();
 
+        private void Update() => dinerRest?.Tick(Time.unscaledDeltaTime, state, busy);
+
+        private void ReceiveDinerMeal() => _ = ExecuteAsync(api.ReceiveDinerMealAsync);
+
         private void OnDestroy()
         {
+            dinerRest?.Dispose();
             if (cafeSeats != null)
             {
                 foreach (RestSeat seat in cafeSeats)

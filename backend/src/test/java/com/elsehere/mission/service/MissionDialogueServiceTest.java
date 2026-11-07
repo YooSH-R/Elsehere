@@ -38,7 +38,10 @@ class MissionDialogueServiceTest {
     when(stories.findForUpdate(8L)).thenReturn(Optional.of(story));
     TownStoryService town =
         new TownStoryService(
-            stories, mock(FirstDayMissionRepository.class), mock(NpcRepository.class));
+            stories,
+            mock(FirstDayMissionRepository.class),
+            mock(NpcRepository.class),
+            mock(com.elsehere.conversation.repository.ConversationRepository.class));
     MissionDialogueService missions =
         new MissionDialogueService(mock(FirstDayMissionService.class), town);
     var context = missions.context(8L, "DINER_STAFF").orElseThrow();
@@ -47,6 +50,8 @@ class MissionDialogueServiceTest {
         "DINER_STAFF",
         context,
         new JudgeResult.Intent(null, List.of("order_breakfast", "explain_spill"), null));
-    assertThat(story.getStage()).isEqualTo(1);
+    assertThat(story.getStage()).isZero();
+    assertThat(story.hasGoal(0)).isTrue();
+    assertThat(story.hasGoal(1)).isFalse();
   }
 }

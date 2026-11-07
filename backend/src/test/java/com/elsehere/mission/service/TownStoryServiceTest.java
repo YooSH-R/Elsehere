@@ -53,7 +53,12 @@ class TownStoryServiceTest {
   private final FirstDayMissionRepository firstDay = mock(FirstDayMissionRepository.class);
   private final TownStoryRepository stories = mock(TownStoryRepository.class);
   private final NpcRepository npcs = mock(NpcRepository.class);
-  private final TownStoryService service = new TownStoryService(stories, firstDay, npcs);
+  private final TownStoryService service =
+      new TownStoryService(
+          stories,
+          firstDay,
+          npcs,
+          mock(com.elsehere.conversation.repository.ConversationRepository.class));
 
   @Test
   void washObjectiveUsesTheSelfServiceMachineWithoutAPickupTime() {
@@ -199,7 +204,9 @@ class TownStoryServiceTest {
         0,
         "DINER_STAFF",
         new JudgeResult.Intent(null, java.util.List.of("order_breakfast", "explain_spill"), null));
-    assertThat(story.getStage()).isEqualTo(1);
+    assertThat(story.getStage()).isZero();
+    assertThat(story.hasGoal(0)).isTrue();
+    assertThat(story.hasGoal(1)).isFalse();
   }
 
   @Test
@@ -210,8 +217,8 @@ class TownStoryServiceTest {
     FirstDayMissionService.Context bank = service.context(8L, "BANK_STAFF").orElseThrow();
     assertThat(diner.state().intents())
         .extracting(intent -> intent.id())
-        .containsExactly("order_breakfast", "explain_spill");
-    assertThat(diner.state().intents().get(1).desc()).containsIgnoringCase("clothes");
+        .containsExactly("order_breakfast");
+    assertThat(diner.state().intents().getFirst().desc()).containsIgnoringCase("breakfast");
     assertThat(diner.state().desc()).containsIgnoringCase("spill");
     assertThat(diner.instruction()).containsIgnoringCase("spill");
     assertThat(bank.state()).isNull();
@@ -312,9 +319,9 @@ class TownStoryServiceTest {
     when(stories.findById(8L)).thenReturn(Optional.of(story));
 
     var response = service.status(8L);
-    assertThat(response.situation()).contains("음료");
+    assertThat(response.situation()).contains("빈자리");
     assertThat(response.steps().getFirst().goals().getFirst().completed()).isTrue();
-    assertThat(response.steps().getFirst().goals().get(1).completed()).isFalse();
+    assertThat(response.steps().getFirst().goals()).hasSize(1);
   }
 
   @Test

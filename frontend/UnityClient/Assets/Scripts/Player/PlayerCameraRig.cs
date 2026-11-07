@@ -42,6 +42,23 @@ namespace A305.Player
         private Transform dialogueLookTarget;
         private Transform meetingLookTarget;
         private Transform vehicleView;
+        private Transform seatView;
+        public bool IsInSeatView => seatView != null;
+
+        /// <summary>부스에 앉은 동안 테이블 쪽 눈높이를 유지한다. 일어서면 기존 조작 시점으로 돌아간다.</summary>
+        public void EnterSeatView(Transform anchor)
+        {
+            seatView = anchor;
+            if (anchor != null)
+                transform.SetPositionAndRotation(anchor.position, anchor.rotation);
+        }
+
+        public void ExitSeatView()
+        {
+            seatView = null;
+            SnapBehindTarget();
+        }
+
         private PlayerTouchControls touchControls;
         private Vector3 thirdPersonPivot;
         private bool rotateHeldByUi;
@@ -177,6 +194,11 @@ namespace A305.Player
 
         private void LateUpdate()
         {
+            if (seatView != null)
+            {
+                transform.SetPositionAndRotation(seatView.position, seatView.rotation);
+                return;
+            }
             if (vehicleView != null)
             {
                 transform.SetPositionAndRotation(vehicleView.position, vehicleView.rotation);

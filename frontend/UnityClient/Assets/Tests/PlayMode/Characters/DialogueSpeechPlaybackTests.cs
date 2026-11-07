@@ -217,6 +217,67 @@ namespace A305.Characters.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator IncompleteStreamContinuesWithoutRepeatingTheMatchingFirstPhrase()
+        {
+            byte[] full = VoiceBytes("CafeThanksSpeech");
+            var decoded = DialogueSpeechWav.Read(full);
+            int prefixSamples = decoded.Frequency / 2;
+            using var buffer = new System.IO.MemoryStream();
+            using (var writer = new System.IO.BinaryWriter(buffer, System.Text.Encoding.UTF8, true))
+            {
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
+                writer.Write(36 + prefixSamples * decoded.Channels * 2);
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("WAVEfmt "));
+                writer.Write(16);
+                writer.Write((short)1);
+                writer.Write((short)decoded.Channels);
+                writer.Write(decoded.Frequency);
+                writer.Write(decoded.Frequency * decoded.Channels * 2);
+                writer.Write((short)(decoded.Channels * 2));
+                writer.Write((short)16);
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("data"));
+                writer.Write(prefixSamples * decoded.Channels * 2);
+                for (int i = 0; i < prefixSamples * decoded.Channels; i++)
+                    writer.Write((short)(decoded.Samples[i] * 32768));
+            }
+            link.QueueSpeechChunk(1, buffer.ToArray());
+            link.Download = Task.FromResult(full);
+
+            var recovery = link.CompleteStreamedSpeechAsync("/api/v1/turns/123/speech");
+            yield return new WaitUntil(() => recovery.IsCompleted);
+            Assert.That(recovery.Result, Is.True);
+            Assert.That(
+                voice.clip.samples,
+                Is.EqualTo(prefixSamples),
+                "첫 구절 재생을 중단하지 않는다."
+            );
+            player.Stop();
+            yield return null;
+            yield return null;
+            Assert.That(player.IsPlaying, Is.True);
+            Assert.That(
+                player.PlaybackTime,
+                Is.GreaterThanOrEqualTo(.49f),
+                "이미 재생한 음성은 반복하지 않는다."
+            );
+            Assert.That(voice.clip.samples, Is.EqualTo(decoded.Samples.Length / decoded.Channels));
+        }
+
+        [UnityTest]
+        public IEnumerator SpeakerChangeRejectsPendingPartialSpeechRecovery()
+        {
+            link.QueueSpeechChunk(1, VoiceBytes("CoffeeChoiceSpeech"));
+            var pending = new TaskCompletionSource<byte[]>();
+            link.Download = pending.Task;
+            var recovery = link.CompleteStreamedSpeechAsync("/api/v1/turns/123/speech");
+            link.SetSpeaker(null);
+            pending.SetResult(VoiceBytes("CafeThanksSpeech"));
+            yield return new WaitUntil(() => recovery.IsCompleted);
+            Assert.That(recovery.Result, Is.False);
+            Assert.That(player.IsPlaying, Is.False);
+        }
+
+        [UnityTest]
         public IEnumerator StoppingSpeechDropsTheQueuedChunks()
         {
             link.QueueSpeechChunk(1, VoiceBytes("CoffeeChoiceSpeech"));

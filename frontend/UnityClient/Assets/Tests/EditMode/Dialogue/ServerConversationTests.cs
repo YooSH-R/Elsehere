@@ -769,6 +769,26 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task Send_MissingMiddleSpeechRequiresRecoveryAndDoesNotSkipAhead()
+        {
+            await conversation.StartAsync();
+            var chunks = new List<NpcSpeechChunkData>();
+            conversation.NpcSpeechChunk += chunks.Add;
+            api.StreamSteps.Add(stream => stream.OnSpeechChunk(0, "First.", Wav));
+            api.StreamSteps.Add(stream => stream.OnSpeechChunk(1, "Second.", null));
+            api.StreamSteps.Add(stream => stream.OnSpeechChunk(2, "Third.", Wav));
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(
+                chunks,
+                Has.Count.EqualTo(1),
+                "빠진 문장을 건너뛰고 다음 문장을 읽지 않는다."
+            );
+            Assert.That(conversation.LastTurnSpokenInChunks, Is.True);
+        }
+
+        [Test]
         public async Task Send_StreamWithoutAnySpeech_LeavesTheWholeSpeechToPlay()
         {
             await conversation.StartAsync();

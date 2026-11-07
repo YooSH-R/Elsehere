@@ -28,7 +28,14 @@ namespace A305.Learning
         [SerializeField]
         private Button remove;
 
-        public float Show(ReviewCard card, float width, bool busy, Action start, Action delete)
+        public float Show(
+            ReviewCard card,
+            float width,
+            bool busy,
+            Action start,
+            Action delete,
+            Action openResult = null
+        )
         {
             const float padding = 58;
             bool narrow = width < 670;
@@ -45,6 +52,15 @@ namespace A305.Learning
                 )
             );
             progress.text = card.PracticeCount > 0 ? card.PracticeCount + "회 연습" : "처음 연습";
+            Button cardButton = GetComponent<Button>();
+            if (cardButton != null)
+            {
+                cardButton.interactable = !busy && card.PracticeCount > 0 && openResult != null;
+                cardButton.onClick.RemoveAllListeners();
+                if (openResult != null)
+                    cardButton.onClick.AddListener(() => openResult());
+                cardButton.transition = Selectable.Transition.None;
+            }
             float bodyWidth = Mathf.Max(160, width - padding * 2);
             float titleWidth = narrow ? bodyWidth - 56 : bodyWidth - 230;
             float titleHeight = Mathf.Max(

@@ -675,7 +675,11 @@ namespace A305.Dialogue
         {
             ActiveConversation stale = await api.GetActiveAsync();
             // 복습과 본편은 서로의 진행 중 대화를 끝내거나 이어받지 않는다.
-            if ((IsReview || stale?.ReviewCardId != null) && stale?.ReviewCardId != ReviewCardId)
+            if (
+                stale != null
+                && (IsReview || stale.ReviewCardId != null)
+                && stale.ReviewCardId != ReviewCardId
+            )
                 throw new ApiException(
                     AlreadyActiveCode,
                     409,

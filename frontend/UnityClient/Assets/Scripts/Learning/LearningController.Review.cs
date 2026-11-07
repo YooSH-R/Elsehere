@@ -1,6 +1,8 @@
+using System;
 using System.Collections;
 using System.Linq;
 using System.Threading.Tasks;
+using A305.Api;
 using A305.Dialogue;
 using A305.Npc;
 using A305.World;
@@ -15,6 +17,7 @@ namespace A305.Learning
         private ReviewApi reviewApi;
         private static ReviewCard pendingReview;
         private ReviewCard practicingReview;
+        private ReviewCard requestedReviewResult;
         private ReviewWorkbookView ReviewView => hudView.ReviewView;
 
         private void InitializeReview()
@@ -30,6 +33,7 @@ namespace A305.Learning
             ReviewView.MoreRequested += MoreReview;
             ReviewView.DeleteRequested += DeleteReview;
             ReviewView.PracticeRequested += PracticeReview;
+            ReviewView.ResultRequested += OpenReviewResult;
         }
 
         private void DisposeReview()
@@ -46,11 +50,13 @@ namespace A305.Learning
                 ReviewView.MoreRequested -= MoreReview;
                 ReviewView.DeleteRequested -= DeleteReview;
                 ReviewView.PracticeRequested -= PracticeReview;
+                ReviewView.ResultRequested -= OpenReviewResult;
             }
         }
 
         private void OpenReview()
         {
+            requestedReviewResult = null;
             if (reviewBook == null || dialogue.IsTalking)
                 return;
             ReviewView.Show(reviewBook);
@@ -60,11 +66,16 @@ namespace A305.Learning
 
         private void CloseReview()
         {
+            requestedReviewResult = null;
             ReviewView.Hide();
             UpdateMovementLock();
         }
 
-        private void FilterReview(string scene) => _ = LoadReviewAsync(scene);
+        private void FilterReview(string scene)
+        {
+            requestedReviewResult = null;
+            _ = LoadReviewAsync(scene);
+        }
 
         private async Task LoadReviewAsync(string scene)
         {
@@ -86,7 +97,11 @@ namespace A305.Learning
                 ReviewView.Refresh();
         }
 
-        private void DeleteReview(ReviewCard card) => _ = DeleteReviewAsync(card);
+        private void DeleteReview(ReviewCard card)
+        {
+            requestedReviewResult = null;
+            _ = DeleteReviewAsync(card);
+        }
 
         private async Task DeleteReviewAsync(ReviewCard card)
         {
@@ -99,6 +114,7 @@ namespace A305.Learning
 
         private void PracticeReview(ReviewCard card)
         {
+            requestedReviewResult = null;
             // 장소 이동과 대화 시작은 같은 작업에서 연결한다.
             StartReviewVisit(card);
         }
@@ -126,6 +142,45 @@ namespace A305.Learning
         }
 
         private void SaveReview() => _ = SaveReviewAsync();
+
+        private void OpenReviewResult(ReviewCard card) => _ = OpenReviewResultAsync(card);
+
+        private async Task OpenReviewResultAsync(ReviewCard card)
+        {
+            if (requestedReviewResult != null || reviewBook.IsBusy)
+                return;
+            requestedReviewResult = card;
+            hudView.ShowMessage("지난 연습을 불러오는 중이에요.");
+            try
+            {
+                ReviewPracticeResult result = await reviewApi.GetResultAsync(card.Id);
+                if (this == null || requestedReviewResult != card || !ReviewView.IsVisible)
+                    return;
+                card.PracticeCount = result.PracticeCount;
+                ReviewView.ShowResult(
+                    card,
+                    new DialogueRecord(
+                        card.Npc.NpcCode,
+                        card.Npc.Name,
+                        Array.Empty<DialogueLine>(),
+                        result.Utterances.Select(item => item.Text).ToArray(),
+                        false,
+                        reviewCardId: card.Id,
+                        reviewResult: result
+                    )
+                );
+            }
+            catch (ApiException exception)
+            {
+                if (this != null && requestedReviewResult == card)
+                    hudView.ShowMessage(exception.Message);
+            }
+            finally
+            {
+                if (this != null && requestedReviewResult == card)
+                    requestedReviewResult = null;
+            }
+        }
 
         private async Task SaveReviewAsync()
         {

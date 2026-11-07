@@ -48,6 +48,7 @@ namespace A305.Learning
         public event Action<string> FilterRequested;
         public event Action<ReviewCard> PracticeRequested;
         public event Action<ReviewCard> DeleteRequested;
+        public event Action<ReviewCard> ResultRequested;
         public bool IsVisible => panel.activeSelf;
 
         public void Show(ReviewBook source)
@@ -88,7 +89,8 @@ namespace A305.Learning
                     width - 48,
                     book.IsBusy,
                     () => PracticeRequested?.Invoke(card),
-                    () => DeleteRequested?.Invoke(card)
+                    () => DeleteRequested?.Invoke(card),
+                    () => ResultRequested?.Invoke(card)
                 );
                 ReviewWorkbookRow.Pin((RectTransform)row.transform, 24, top, width - 48, height);
                 top += height + 28;

@@ -15,6 +15,35 @@ namespace A305.Dialogue.Tests
     public class ServerConversationTests
     {
         [Test]
+        public async Task ReviewConflict_WhenThePreviousConversationHasAlreadyEnded_StartsAgainWithTheSameRequest()
+        {
+            var ids = new List<string>();
+            var review = new ServerConversation(
+                CafeStaffCode,
+                "Mia",
+                api,
+                false,
+                reviewCardId: 22,
+                reviewStart: requestId =>
+                {
+                    ids.Add(requestId);
+                    return ids.Count == 1
+                        ? Task.FromException<ConversationStart>(
+                            new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중")
+                        )
+                        : Task.FromResult(api.StartResponse);
+                }
+            );
+            api.Active = null;
+            await review.StartAsync();
+            Assert.That(ids, Has.Count.EqualTo(2));
+            Assert.That(ids[1], Is.EqualTo(ids[0]));
+            Assert.That(review.ConversationId, Is.EqualTo(ConversationId));
+            Assert.That(api.Starts, Is.Empty);
+            Assert.That(api.Ends, Is.Empty);
+        }
+
+        [Test]
         public async Task ReviewStart_DoesNotEndAnUnfinishedMainConversation()
         {
             api.Active = new ActiveConversation

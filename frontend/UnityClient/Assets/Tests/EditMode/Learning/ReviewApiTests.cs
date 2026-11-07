@@ -90,6 +90,21 @@ namespace A305.Learning.Tests
             Assert.That(transport.Request.Url, Is.EqualTo("/api/v1/review-cards/42"));
         }
 
+        [Test]
+        public async Task GetResult_ReadsSavedEvidenceWithoutStartingAnotherConversation()
+        {
+            transport.Body =
+                "{\"conversationId\":88,\"reviewCardId\":42,\"practiceCompleted\":true,\"verifiedExpressionCount\":2,\"expressions\":[{\"expression\":\"Can I get that to go?\",\"evidence\":[{\"turnId\":91,\"text\":\"Could I get that to go, please?\"}]}]}";
+            var result = await api.GetResultAsync(42);
+            Assert.That(transport.Request.Method, Is.EqualTo("GET"));
+            Assert.That(transport.Request.Url, Is.EqualTo("/api/v1/review-cards/42/result"));
+            Assert.That(result.VerifiedExpressionCount, Is.EqualTo(2));
+            Assert.That(
+                result.Expressions[0].Evidence[0].Text,
+                Is.EqualTo("Could I get that to go, please?")
+            );
+        }
+
         private sealed class RecordingTransport : IApiTransport
         {
             public string Body = "{}";

@@ -39,5 +39,8 @@ namespace A305.Learning
 
         private static string CardPath(long cardId) =>
             "/api/v1/review-cards/" + cardId.ToString(CultureInfo.InvariantCulture);
+
+        public Task<ReviewPracticeResult> GetResultAsync(long cardId) =>
+            client.GetAsync<ReviewPracticeResult>(CardPath(cardId) + "/result");
     }
 }

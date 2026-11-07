@@ -68,18 +68,22 @@ namespace A305.EditorTools.Learning
                 )
                 .ToArray();
             Object.DestroyImmediate(feedback);
-            foreach (Transform child in panel.transform)
-                child.gameObject.SetActive(
-                    new[]
-                    {
-                        "Title",
-                        "Summary",
-                        "AppIcon",
-                        "TopCloseButton",
-                        "Sections",
-                        "PageCard",
-                    }.Contains(child.name)
-                );
+            foreach (Transform child in panel.transform.Cast<Transform>().ToArray())
+            {
+                bool keep = new[]
+                {
+                    "Title",
+                    "Summary",
+                    "AppIcon",
+                    "TopCloseButton",
+                    "Sections",
+                    "PageCard",
+                }.Contains(child.name);
+                if (keep)
+                    child.gameObject.SetActive(true);
+                else
+                    Object.DestroyImmediate(child.gameObject);
+            }
             heading.text = "복습장";
             Image appIcon = panel.transform.Find("AppIcon").GetComponent<Image>();
             appIcon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(
@@ -118,6 +122,7 @@ namespace A305.EditorTools.Learning
             var row = Rect("ReviewRowTemplate", scroll.content)
                 .gameObject.AddComponent<ReviewWorkbookRow>();
             Image background = row.gameObject.AddComponent<Image>();
+            row.gameObject.AddComponent<Button>().targetGraphic = background;
             background.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(
                 "Assets/Art/UI/Feedback/FeedbackTile.png"
             );
@@ -164,6 +169,9 @@ namespace A305.EditorTools.Learning
             for (int i = 0; i < tabs.Length; i++)
                 filters.GetArrayElementAtIndex(i).objectReferenceValue = tabs[i];
             viewFields.ApplyModifiedPropertiesWithoutUndo();
+            foreach (Transform child in scroll.content.Cast<Transform>().ToArray())
+                if (child != row.transform && child != status.transform && child != more.transform)
+                    Object.DestroyImmediate(child.gameObject);
             panel.SetActive(false);
         }
 

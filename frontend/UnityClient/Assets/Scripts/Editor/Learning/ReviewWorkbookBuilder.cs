@@ -186,6 +186,14 @@ namespace A305.EditorTools.Learning
                     hud.transform
                 );
             screen.name = "ReviewWorkbook";
+            var screenRect = (RectTransform)screen.transform;
+            screenRect.localScale = Vector3.one;
+            screenRect.anchorMin = Vector2.zero;
+            screenRect.anchorMax = Vector2.one;
+            screenRect.pivot = new Vector2(.5f, .5f);
+            screenRect.offsetMin = screenRect.offsetMax = Vector2.zero;
+            // 원본은 독립 창으로도 검수한다. HUD 안에서는 바깥 캔버스의 배율을 따른다.
+            Object.DestroyImmediate(screen.GetComponent<CanvasScaler>());
             Transform phone = hud.transform.Find("Panel/Menu");
             Button template = phone.Find("HistoryButton").GetComponent<Button>();
             Button entry = Action(phone, template, "ReviewButton", "복습장", UiTone.Primary);

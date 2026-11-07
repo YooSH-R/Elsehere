@@ -19,6 +19,33 @@ namespace A305.Learning.PlayModeTests
     {
         private GameObject instance;
 
+        [UnityTest]
+        public IEnumerator PhoneEntry_OpensAWorkbookWithAVisibleViewport()
+        {
+            instance = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/Prefabs/Learning/LearningHud.prefab"
+                )
+            );
+            yield return null;
+            var hud = instance.GetComponent<LearningHudView>();
+            var book = new ReviewBook(new SavedCardApi());
+            book.LoadAsync().GetAwaiter().GetResult();
+            hud.ReviewRequested += () => hud.ReviewView.Show(book);
+            instance
+                .GetComponentsInChildren<Button>(true)
+                .Single(button => button.name == "ReviewButton")
+                .onClick.Invoke();
+            yield return null;
+            var canvas = (RectTransform)hud.ReviewView.transform;
+            var panel = (RectTransform)canvas.Find("Panel");
+            Assert.That(hud.ReviewView.IsVisible, Is.True);
+            Assert.That(canvas.rect.width, Is.GreaterThan(100));
+            Assert.That(canvas.rect.height, Is.GreaterThan(100));
+            Assert.That(panel.lossyScale.x, Is.GreaterThan(.01f));
+            hud.ReviewView.Hide();
+        }
+
         [TearDown]
         public void TearDown()
         {

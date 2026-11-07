@@ -38,14 +38,15 @@ namespace A305.EditorTools.Learning
             );
             foreach (Canvas other in BuilderTools.FindAllInScene<Canvas>(scene))
                 other.gameObject.SetActive(false);
-            GameObject root = UnityEngine.Object.Instantiate(
-                AssetDatabase.LoadAssetAtPath<GameObject>(ReviewWorkbookBuilder.PrefabPath)
-            );
+            var hud = BuilderTools.FindSingleInScene<LearningHudView>(scene);
+            GameObject root = hud.gameObject;
+            root.SetActive(true);
+            hud.ReviewView.gameObject.SetActive(true);
             Canvas canvas = root.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceCamera;
             canvas.worldCamera = camera;
             canvas.planeDistance = .5f;
-            var view = root.GetComponent<ReviewWorkbookView>();
+            var view = hud.ReviewView;
             var book = new ReviewBook(new PreviewApi());
             book.LoadAsync().GetAwaiter().GetResult();
             foreach (

@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from landmarks import measure
 from lid_visibility import keep_lid_lines_visible
 from eye_shading import smooth_eye_shading
+from smile_surface import keep_smiling_lids_in_front
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--source", type=Path, required=True)
@@ -300,6 +301,7 @@ for mesh in authored["meshes"] + authored["parts"]:
         mesh["normals"] = original["normals"]
     if "texture" in mesh:
         shutil.copyfile(work / "Canonical" / mesh["texture"], output / mesh["texture"])
+keep_smiling_lids_in_front(authored, originals)
 authored.update(name=source["name"], prefab=source["prefab"], newEyes=bool(new_eyes))
 with gzip.GzipFile(
     filename=str(output / "Emotions.json.gz"), mode="wb", mtime=0
@@ -330,7 +332,9 @@ for mesh in authored["parts"]:
     for shape in mesh["shapes"]:
         if shape["name"] == "mouthLaughOpen" and mesh["name"].endswith("EyeJoin"):
             key_name = shape["name"]
-        elif shape["name"].startswith("eyeSquint") and mesh["name"].endswith("LidLine"):
+        elif shape["name"].startswith("eyeSquint") and mesh["name"].endswith(
+            ("UpperLid", "LowerLid", "LidLine")
+        ):
             weight = shape.get("weight", 100)
             key_name = shape["name"] + ("" if weight == 100 else str(weight))
         else:

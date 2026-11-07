@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using A305.Dialogue;
+using A305.Player;
 using A305.Tutorial;
 using A305.World;
 using NUnit.Framework;
@@ -31,6 +32,64 @@ namespace A305.Npc.PlayModeTests
             TutorialState.Clear();
             NpcDuty.MissionNpcCode = null;
             SetClock(8 * 60);
+        }
+
+        [UnityTest]
+        public IEnumerator ReviewVisit_OffDutyStaffAppearOnlyForTheVisit()
+        {
+            SetClock(21 * 60);
+            yield return SceneManager.LoadSceneAsync("TownScene");
+            yield return null;
+            foreach (string code in new[] { "FLOWER_SHOP_STAFF", "BARBER_STAFF" })
+            {
+                var staff = Object
+                    .FindObjectsByType<NpcWorkPresence>(
+                        FindObjectsInactive.Include,
+                        FindObjectsSortMode.None
+                    )
+                    .Single(item => item.GetComponent<NpcIdentity>().Code == code);
+                Assert.That(staff.gameObject.activeSelf, Is.False, code);
+                Assert.That(
+                    Object.FindFirstObjectByType<NpcPopulation>().FindWorker(code),
+                    Is.EqualTo(staff.GetComponent<NpcIdentity>()),
+                    "거리의 같은 이름 대신 매장에 연결된 직원을 찾아야 합니다."
+                );
+                var room = Object
+                    .FindObjectsByType<ShopInterior>(FindObjectsSortMode.None)
+                    .Single(item => item.ContainsStaff(staff.transform));
+                using (var visit = new NpcReviewPresence(code))
+                {
+                    Assert.That(
+                        staff.ShouldBeAtWork,
+                        Is.True,
+                        "복습 요청이 실내 입장에도 적용되어야 합니다."
+                    );
+                    var door = room.GetComponentsInChildren<ShopDoorway>()
+                        .First(item => item.Room == room);
+                    Assert.That(
+                        door.TryEnter(Object.FindFirstObjectByType<PlayerMover>()),
+                        Is.True
+                    );
+                    float deadline = Time.realtimeSinceStartup + 10;
+                    while (
+                        (SpaceTravel.IsTraveling || SpaceTravelCurtain.IsCoveringScreen)
+                        && Time.realtimeSinceStartup < deadline
+                    )
+                        yield return null;
+                    yield return null;
+                    Assert.That(room.IsLoaded, Is.True);
+                    Assert.That(staff.gameObject.activeInHierarchy, Is.True, code);
+                    Assert.That(NpcDuty.MissionNpcCode, Is.Null);
+                    Assert.That(GameClock.Shared.Minutes, Is.EqualTo(21 * 60));
+                }
+                yield return null;
+                yield return null;
+                Assert.That(
+                    staff.gameObject.activeSelf,
+                    Is.False,
+                    "복습 요청을 해제하면 퇴근 상태로 돌아갑니다."
+                );
+            }
         }
 
         [UnityTest]

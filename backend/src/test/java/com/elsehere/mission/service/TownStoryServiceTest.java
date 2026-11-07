@@ -16,11 +16,40 @@ import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.repository.TownStoryRepository;
 import com.elsehere.world.entity.Npc;
 import com.elsehere.world.repository.NpcRepository;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class TownStoryServiceTest {
+  @Test
+  void flowerIntentAcceptsAGiftWithoutRequiringAFlowerVarietyOrHintWording() {
+    TownStory story = TownStory.start(8L);
+    for (int index = 0; index < TownStoryStage.FLOWERS.ordinal(); index++) {
+      TownStoryStage stage = story.current();
+      story.accept(story.getStage(), stage.npcCode(), stage.goalIds());
+      story.resume();
+    }
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+    var context = service.context(8L, "FLOWER_SHOP_STAFF").orElseThrow();
+    var flower =
+        context.state().intents().stream()
+            .filter(intent -> intent.id().equals("choose_flower"))
+            .findFirst()
+            .orElseThrow();
+    assertThat(flower.desc())
+        .contains("flower variety is optional", "recipient OR a reason", "paraphrases", "pronouns")
+        .doesNotContain("specific available flower");
+    assertThat(context.state().accumulateHistory()).isTrue();
+    assertThat(context.state().desc())
+        .contains("Never credit NPC lines, quoted examples, negatives or hypotheticals");
+    assertThat(TownStoryStage.goalHint("choose_flower")).doesNotContain("roses", "어떤 꽃");
+    story.accept(story.getStage(), "FLOWER_SHOP_STAFF", List.of("choose_flower"));
+    assertThat(story.current()).isEqualTo(TownStoryStage.FLOWERS);
+    assertThat(story.hasGoal(0)).isTrue();
+    assertThat(story.hasGoal(1)).isFalse();
+  }
+
   private final FirstDayMissionRepository firstDay = mock(FirstDayMissionRepository.class);
   private final TownStoryRepository stories = mock(TownStoryRepository.class);
   private final NpcRepository npcs = mock(NpcRepository.class);

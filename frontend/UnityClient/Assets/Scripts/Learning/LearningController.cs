@@ -93,12 +93,22 @@ namespace A305.Learning
                 history = new ConversationHistory(
                     new ConversationHistoryApi(apiSettings.CreateClient())
                 );
+                var meaningApi = new ConversationApi(
+                    apiSettings.CreateClient(30),
+                    apiSettings.CreateClient(30)
+                );
+                feedbackView.SetMeaningSource(
+                    new TranscriptMeanings(id =>
+                        meaningApi.GetMeaningAsync(id, Guid.NewGuid().ToString())
+                    )
+                );
             }
 
             // 대화 중 풀이 단어는 단어장 서버가 있을 때만 저장한다(VOCAB-02 NPC_LINE).
             dialogue.SetWordSaveAvailable(vocabulary != null);
             // 피드백의 [담기]는 단어장 서버가 있을 때 표현을 VOCAB-02 FEEDBACK으로 저장한다.
             feedbackView.SetSaveAvailable(vocabulary != null);
+            feedbackView.SetWordSaver(vocabulary == null ? null : SaveTranscriptWordAsync);
 
             dialogue.ConversationEnded += ShowFeedback;
             dialogue.WordSaveRequested += SaveDialogueWord;
@@ -174,6 +184,20 @@ namespace A305.Learning
         private void SaveDialogueWord(GlossaryWord word)
         {
             _ = SaveDialogueWordAsync(word);
+        }
+
+        private async Task<bool> SaveTranscriptWordAsync(GlossaryWord word)
+        {
+            VocabularySaveResult result = await vocabulary.SaveNpcLineWordAsync(
+                word.TurnId,
+                word.Text
+            );
+            if (this == null)
+                return false;
+            bool saved = result != VocabularySaveResult.Failed;
+            hudView.ShowMessage(saved ? "단어장에 담았어요." : vocabulary.LastFailureMessage);
+            hudView.SetVocabularyCount(vocabulary.Entries.Count);
+            return saved;
         }
 
         // 저장 결과는 대화창 단어 카드에 보이고, 새로 넣은 단어는 [단어장] 개수에도 바로 더한다.

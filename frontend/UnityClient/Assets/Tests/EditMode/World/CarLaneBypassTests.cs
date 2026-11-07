@@ -6,6 +6,19 @@ namespace A305.World.Tests
     public class CarLaneBypassTests
     {
         [Test]
+        public void CurvedApproach_YieldsOnItsPathButNotToPeopleOnTheDistantSidewalk()
+        {
+            var route = new CarLoopRoute(-25, 66, 1.5f);
+            float distance = route.SouthboundDistance(-13.52f);
+            Vector3 sidewalk = new Vector3(4.87f, .12f, -16.51f);
+            Assert.That(CarLaneBypass.ShouldYield(route, distance, 1.9f, sidewalk), Is.False);
+            Vector3 onPath = CarLaneBypass.PoseAt(route, distance + 3, 1.9f).Position;
+            Assert.That(CarLaneBypass.ShouldYield(route, distance, 1.9f, onPath), Is.True);
+            Vector3 behind = CarLaneBypass.PoseAt(route, distance - 3, 1.9f).Position;
+            Assert.That(CarLaneBypass.ShouldYield(route, distance, 1.9f, behind), Is.False);
+        }
+
+        [Test]
         public void SouthboundTaxi_ClearsTheParkedTruck_AndReturnsBeforeTheUTurn()
         {
             var route = new CarLoopRoute(-25, 66, 1.5f);

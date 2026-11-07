@@ -1,4 +1,6 @@
 using System;
+using System.Threading.Tasks;
+using A305.Dialogue;
 using A305.Theme;
 using TMPro;
 using UnityEngine;
@@ -21,11 +23,16 @@ namespace A305.Learning
             Button buttonTemplate,
             Sprite tileSprite,
             Sprite avatarSprite,
+            RectTransform wordCardTemplate,
+            Sprite wordCardBackground,
             ConversationFeedback feedback,
             FeedbackTranscriptDocument transcript,
             int? selectedReview,
             Action<int> selectReview,
             Action back,
+            bool loadingMeanings,
+            Action retryMeanings,
+            Func<GlossaryWord, Task<bool>> saveWord,
             out float height
         )
         {
@@ -57,10 +64,15 @@ namespace A305.Learning
                     displayFont,
                     tileSprite,
                     avatarSprite,
+                    wordCardTemplate,
+                    wordCardBackground,
                     feedback,
                     transcript,
                     peach,
-                    selectReview
+                    selectReview,
+                    loadingMeanings,
+                    retryMeanings,
+                    saveWord
                 );
             rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
             return root;
@@ -72,10 +84,15 @@ namespace A305.Learning
             TMP_FontAsset displayFont,
             Sprite tileSprite,
             Sprite avatarSprite,
+            RectTransform wordCardTemplate,
+            Sprite wordCardBackground,
             ConversationFeedback feedback,
             FeedbackTranscriptDocument transcript,
             Color peach,
-            Action<int> selectReview
+            Action<int> selectReview,
+            bool loadingMeanings,
+            Action retryMeanings,
+            Func<GlossaryWord, Task<bool>> saveWord
         )
         {
             float width = root.rect.width;
@@ -116,6 +133,23 @@ namespace A305.Learning
                 Vector2 preferred = measure.GetPreferredValues(entry.Text, maxBubble - 80, 0);
                 float bubbleWidth = Mathf.Min(maxBubble, Mathf.Max(220, preferred.x + 80));
                 float textHeight = measure.GetPreferredValues(entry.Text, bubbleWidth - 80, 0).y;
+                string meaning = npc
+                    ? entry.Korean
+                        ?? (
+                            entry.TurnId > 0
+                                ? loadingMeanings
+                                    ? "뜻을 불러오는 중이에요…"
+                                    : "뜻 다시 불러오기"
+                                : "저장된 뜻이 없어요."
+                        )
+                    : null;
+                float meaningHeight = 0;
+                if (npc)
+                {
+                    measure.font = fontSource.font;
+                    measure.fontSize = 23;
+                    meaningHeight = measure.GetPreferredValues(meaning, maxBubble - 24, 0).y;
+                }
                 measure.gameObject.SetActive(false);
                 DestroyNow(measure.gameObject);
                 float bubbleHeight = Mathf.Max(100, Mathf.Ceil(textHeight) + 80);
@@ -168,7 +202,7 @@ namespace A305.Learning
                     bubbleWidth,
                     bubbleHeight
                 );
-                Label(
+                TMP_Text utterance = Label(
                     bubble.rectTransform,
                     fontSource,
                     "Utterance",
@@ -181,6 +215,44 @@ namespace A305.Learning
                     textHeight + 8,
                     displayFont
                 );
+                utterance.richText = npc;
+                if (npc)
+                {
+                    string escaped = entry
+                        .Text.Replace("&", "&amp;")
+                        .Replace("<", "&lt;")
+                        .Replace(">", "&gt;");
+                    utterance.text = DialogueLinesText.LinkGlossary(
+                        escaped,
+                        entry.Glossary,
+                        0,
+                        null
+                    );
+                    utterance.raycastTarget = true;
+                    utterance
+                        .gameObject.AddComponent<FeedbackGlossaryHover>()
+                        .Configure(entry.Glossary, wordCardTemplate, wordCardBackground, saveWord);
+                    TMP_Text meaningLabel = Label(
+                        root,
+                        fontSource,
+                        "Meaning",
+                        meaning,
+                        23,
+                        Muted,
+                        x + 12,
+                        y + bubbleHeight - 12,
+                        maxBubble - 24,
+                        meaningHeight + 8
+                    );
+                    meaningLabel.richText = false;
+                    if (entry.Korean == null && entry.TurnId > 0 && !loadingMeanings)
+                    {
+                        meaningLabel.color = Coral;
+                        meaningLabel.raycastTarget = true;
+                        Button retry = meaningLabel.gameObject.AddComponent<Button>();
+                        retry.onClick.AddListener(() => retryMeanings());
+                    }
+                }
                 if (!npc && entry.ReviewIndex.HasValue)
                 {
                     int reviewIndex = entry.ReviewIndex.Value;
@@ -188,7 +260,7 @@ namespace A305.Learning
                     bubble.raycastTarget = true;
                     open.onClick.AddListener(() => selectReview(reviewIndex));
                 }
-                y += bubbleHeight + 28;
+                y += bubbleHeight + 28 + (npc ? meaningHeight + 12 : 0);
             }
             return y + 18;
         }

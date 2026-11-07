@@ -16,18 +16,18 @@ namespace A305.Npc.PlayModeTests
     /// <summary>
     /// 가까운 NPC 머리 위에 이름표가 뜬다. 근무 중인 직원은 역할 칩(예: 경찰서의 경찰관)을 함께 달고, 마을 행인과 쉬는 직원은 이름만 보인다.
     /// 멀리 있는 NPC와 플레이어가 대화·창으로 움직이지 못하는 동안에는 이름표를 띄우지 않는다.
-    /// 기본 시각은 12:15 근무 중으로 고정하고, 휴식 검사는 10:15에 나타나는 출퇴근 캐릭터를 확인한다.
+    /// 기본 시각은 12:15 근무 중으로 고정하고, 휴식 검사는 14:15에 나타나는 출퇴근 캐릭터를 확인한다.
     /// </summary>
     public class NpcNameTagViewTests
     {
         private const string StaffCode = "POLICE_OFFICER";
         private const string StaffName = "Dan";
         private const string StaffRole = "경찰관";
-        private const string PasserbyCode = "TOWN_RETIREE";
-        private const string PasserbyName = "Ruby";
+        private const string PasserbyCode = "TOWN_GRANDFATHER";
+        private const string PasserbyName = "Arthur";
 
-        // 경찰관 Dan의 쉬는 시간(10:00~10:30) 한가운데
-        private const int StaffBreakMinutes = 10 * 60 + 15;
+        // 경찰관 Dan의 쉬는 시간(14:00~14:30) 한가운데
+        private const int StaffBreakMinutes = 14 * 60 + 15;
 
         // 카메라가 플레이어를 따라와 자리 잡을 때까지 기다리는 프레임 수
         private const int SettleFrames = 10;

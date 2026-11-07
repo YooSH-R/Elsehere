@@ -21,6 +21,7 @@ namespace A305.EditorTools.Learning
         {
             LearningBuilder.Build();
             UiThemeBuilder.StyleFeaturePrefabs();
+            BindTranscriptWordCard();
             AssetDatabase.SaveAssets();
             Unity.CodeEditor.CodeEditor.CurrentEditor.SyncAll();
         }
@@ -39,6 +40,34 @@ namespace A305.EditorTools.Learning
                     AssetDatabase.LoadAssetAtPath<Sprite>(
                         "Assets/Art/UI/Feedback/HistoryAvatarCoral.png"
                     )
+                );
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        [MenuItem("Tools/A305/Learning/Bind Transcript Word Card")]
+        public static void BindTranscriptWordCard()
+        {
+            const string path = "Assets/Prefabs/Learning/FeedbackScreen.prefab";
+            GameObject root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                GameObject tooltip = AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/Prefabs/ObjectHover/WordTooltip.prefab"
+                );
+                BuilderTools.SetReference(
+                    root.GetComponent<FeedbackView>(),
+                    "transcriptWordCardTemplate",
+                    tooltip.transform.Find("Panel")
+                );
+                BuilderTools.SetReference(
+                    root.GetComponent<FeedbackView>(),
+                    "transcriptWordCardBackground",
+                    AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Theme/Jelly/Card.png")
                 );
                 PrefabUtility.SaveAsPrefabAsset(root, path);
             }

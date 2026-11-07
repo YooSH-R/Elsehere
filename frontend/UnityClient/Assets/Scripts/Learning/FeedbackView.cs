@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using A305.Api;
 using A305.Dialogue;
 using A305.Theme;
 using A305.World;
@@ -117,6 +119,12 @@ namespace A305.Learning
         [SerializeField]
         private Sprite transcriptAvatarSprite;
 
+        [SerializeField]
+        private RectTransform transcriptWordCardTemplate;
+
+        [SerializeField]
+        private Sprite transcriptWordCardBackground;
+
         // 표현 칸 마지막 칸 아래 → 제목 → 본문 칸 사이 간격(시안 px × 1.2). 표현 칸이 없을 때는 카드 맨 위에서 시작한다.
         // 칸 그림은 아래 32·위 12의 그림자 자리를 품고 있어, 보이는 간격이 시안(20, 14)이 되게 그만큼 뺀다.
         private const float RowShadowBottom = 32 * 1.2f;
@@ -153,6 +161,17 @@ namespace A305.Learning
         private bool isTranscriptShown;
         private int? selectedTranscriptReview;
         private FeedbackTranscriptDocument transcriptDocument;
+        private TranscriptMeanings meaningSource;
+        private int meaningVersion;
+        private int meaningLoadingVersion = -1;
+        private bool meaningsRequested;
+        private bool isMeaningLoading;
+
+        public void SetMeaningSource(TranscriptMeanings source) => meaningSource = source;
+
+        private Func<GlossaryWord, Task<bool>> wordSaver;
+
+        public void SetWordSaver(Func<GlossaryWord, Task<bool>> saver) => wordSaver = saver;
 
         // 고정된 본문 영역 안에서 모든 내용이 세로로 흐른다.
         private ScrollRect scroll;
@@ -289,7 +308,10 @@ namespace A305.Learning
         )
         {
             feedback = shownFeedback;
-            lines = conversationLines;
+            lines = conversationLines?.ToList();
+            meaningVersion++;
+            meaningsRequested = false;
+            isMeaningLoading = false;
             isRegenerating = false;
             isTranscriptShown = false;
             selectedTranscriptReview = null;
@@ -314,6 +336,8 @@ namespace A305.Learning
 
         public void Hide()
         {
+            meaningVersion++;
+            isMeaningLoading = false;
             feedback = null;
             lines = null;
             panel.SetActive(false);
@@ -680,11 +704,16 @@ namespace A305.Learning
                     sectionButtons[(int)FeedbackSection.Conversation],
                     tileSprite,
                     transcriptAvatarSprite,
+                    transcriptWordCardTemplate,
+                    transcriptWordCardBackground,
                     feedback,
                     transcriptDocument,
                     selectedTranscriptReview,
                     SelectReview,
                     BackToConversation,
+                    isMeaningLoading,
+                    () => _ = LoadTranscriptMeaningsAsync(true),
+                    wordSaver,
                     out float cardsHeight
                 );
                 additionalBodies.Add(cards);
@@ -779,6 +808,8 @@ namespace A305.Learning
             pages = FeedbackPages.Create(feedback, section);
             Refresh();
             scroll.verticalNormalizedPosition = 1;
+            if (IsTranscriptView && !meaningsRequested)
+                _ = LoadTranscriptMeaningsAsync(false);
         }
 
         public void PreviousPage() =>
@@ -814,6 +845,60 @@ namespace A305.Learning
             isTranscriptShown = !isTranscriptShown;
             selectedTranscriptReview = null;
             Refresh();
+            if (IsTranscriptView && !meaningsRequested)
+                _ = LoadTranscriptMeaningsAsync(false);
+        }
+
+        private async Task LoadTranscriptMeaningsAsync(bool retry)
+        {
+            if (meaningSource == null || lines == null || meaningLoadingVersion == meaningVersion)
+                return;
+            int version = meaningVersion;
+            var source = (List<DialogueLine>)lines;
+            meaningLoadingVersion = version;
+            meaningsRequested = true;
+            isMeaningLoading = true;
+            Refresh();
+            try
+            {
+                for (int i = 0; i < source.Count; i++)
+                {
+                    if (version != meaningVersion || !IsVisible)
+                        return;
+                    DialogueLine line = source[i];
+                    if (!line.IsNpc || line.Korean != null || line.TurnId <= 0)
+                        continue;
+                    try
+                    {
+                        DialogueLine resolved = await meaningSource.ResolveAsync(line, retry);
+                        if (this == null || version != meaningVersion || !IsVisible)
+                            return;
+                        source[i] = resolved;
+                        RefreshTranscriptKeepingPosition();
+                    }
+                    catch (ApiException)
+                    {
+                        // 원문은 계속 읽을 수 있다. 사용자가 다시 불러오기를 눌렀을 때만 재시도한다.
+                    }
+                }
+            }
+            finally
+            {
+                if (this != null && version == meaningVersion)
+                {
+                    isMeaningLoading = false;
+                    meaningLoadingVersion = -1;
+                    if (IsVisible)
+                        RefreshTranscriptKeepingPosition();
+                }
+            }
+        }
+
+        private void RefreshTranscriptKeepingPosition()
+        {
+            float position = scroll.verticalNormalizedPosition;
+            Refresh();
+            scroll.verticalNormalizedPosition = position;
         }
 
         private void SelectTranscriptReview(string linkId)

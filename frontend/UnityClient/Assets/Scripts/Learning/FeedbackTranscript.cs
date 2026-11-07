@@ -26,16 +26,29 @@ namespace A305.Learning
 
     public sealed class FeedbackTranscriptEntry
     {
-        public FeedbackTranscriptEntry(bool isNpc, string text, int? reviewIndex)
+        public FeedbackTranscriptEntry(
+            bool isNpc,
+            string text,
+            int? reviewIndex,
+            string korean = null,
+            IReadOnlyList<GlossaryWord> glossary = null,
+            long turnId = 0
+        )
         {
             IsNpc = isNpc;
             Text = text ?? "";
             ReviewIndex = reviewIndex;
+            Korean = korean;
+            Glossary = glossary;
+            TurnId = turnId;
         }
 
         public bool IsNpc { get; }
         public string Text { get; }
         public int? ReviewIndex { get; }
+        public string Korean { get; }
+        public IReadOnlyList<GlossaryWord> Glossary { get; }
+        public long TurnId { get; }
     }
 
     /// <summary>
@@ -77,8 +90,19 @@ namespace A305.Learning
 
                 if (line.IsNpc)
                 {
-                    entries.Add(new FeedbackTranscriptEntry(true, line.English, null));
+                    entries.Add(
+                        new FeedbackTranscriptEntry(
+                            true,
+                            line.English,
+                            null,
+                            line.Korean,
+                            line.Glossary,
+                            line.TurnId
+                        )
+                    );
                     AppendLine(body, Escape(npcName), Escape(line.English), NpcColor, null);
+                    if (!string.IsNullOrWhiteSpace(line.Korean))
+                        body.Append(Escape(line.Korean)).Append("\n\n");
                     continue;
                 }
 

@@ -135,7 +135,7 @@ namespace A305.Dialogue
 
         // 풀이 단어를 대사에서 찾아 "<대사 번호>/<풀이 번호>" 링크로 감싼다. 대사에서 찾지 못한 풀이는 아래 단어 풀이 줄에만 보인다.
         // 단어 카드에 보이는 단어는 칠해 둔다.
-        private static string LinkGlossary(
+        public static string LinkGlossary(
             string english,
             IReadOnlyList<GlossaryWord> glossary,
             int lineIndex,

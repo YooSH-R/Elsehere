@@ -1549,6 +1549,22 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task End_WithEmbeddedDetails_DoesNotMakeAnotherRequest()
+        {
+            await conversation.StartAsync();
+            api.EndResponse = Ended("DONE");
+            api.EndResponse.DetailedFeedback = new List<DetailedFeedbackItem>
+            {
+                new DetailedFeedbackItem { UserText = Order, Reason = "주문을 잘했어요." },
+            };
+
+            ServerFeedback feedback = await conversation.EndAsync();
+
+            Assert.That(api.DetailedRequestedFor, Is.Empty);
+            Assert.That(feedback.Details, Is.EqualTo(api.EndResponse.DetailedFeedback));
+        }
+
+        [Test]
         public async Task End_WithDoneFeedback_IncludesDetailedFeedback()
         {
             await conversation.StartAsync();

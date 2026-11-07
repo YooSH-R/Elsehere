@@ -50,6 +50,27 @@ namespace A305.Learning
         private GameObject phoneButtonBar;
 
         [SerializeField]
+        private TMP_Text feedbackCountText;
+
+        [SerializeField]
+        private TMP_Text phoneFeedbackCountText;
+
+        public void SetFeedbackCount(long count)
+        {
+            SetCount(feedbackCountText, count);
+            SetCount(phoneFeedbackCountText, count);
+            historyView.SetUnreadCount(count);
+        }
+
+        private static void SetCount(TMP_Text label, long count)
+        {
+            if (label == null)
+                return;
+            label.text = count.ToString();
+            label.transform.parent.gameObject.SetActive(count > 0);
+        }
+
+        [SerializeField]
         private TMP_Text messageText;
 
         [SerializeField]

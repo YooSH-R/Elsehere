@@ -138,6 +138,8 @@ namespace A305.Dialogue
         public string Status { get; set; }
         public FeedbackData Feedback { get; set; }
 
+        public List<DetailedFeedbackItem> DetailedFeedback { get; set; }
+
         /// <summary>대화에서 NPC가 준비해 곧 건네기로 한 것. 건넬 것이 없으면 null이다.</summary>
         public FollowUpData FollowUp { get; set; }
     }

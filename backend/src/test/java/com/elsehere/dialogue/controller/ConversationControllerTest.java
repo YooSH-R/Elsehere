@@ -149,6 +149,25 @@ class ConversationControllerTest {
   }
 
   @Test
+  @DisplayName("피드백 목록 요청은 완료된 피드백 필터와 기존 조회 조건을 함께 전달한다")
+  void list_feedbackOnly_passesCompletedFeedbackFilter() throws Exception {
+    given(conversationHistoryService.list(1L, "CAFE_STAFF", "60", 10, true))
+        .willReturn(new ConversationListResponse(List.of(), "58"));
+
+    mockMvc
+        .perform(
+            get("/api/v1/conversations")
+                .param("npcCode", "CAFE_STAFF")
+                .param("cursor", "60")
+                .param("size", "10")
+                .param("feedbackOnly", "true")
+                .with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items").isEmpty())
+        .andExpect(jsonPath("$.nextCursor").value("58"));
+  }
+
+  @Test
   @DisplayName("POST /api/v1/conversations는 201과 첫 NPC 턴·음성 주소를 돌려준다")
   void start_respondsCreated() throws Exception {
     given(

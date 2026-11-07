@@ -135,6 +135,7 @@ MonoBehaviour:
   suggestText: {fileID: 1089925567773070154}
   helpPanel: {fileID: 1603969606740812078}
   reviewFoldButton: {fileID: 3361288543623713115}
+  reviewBadges: {fileID: 6172965870863237607}
   historyScroll: {fileID: 3002427998618280954}
   waitPanel: {fileID: 2066626960669521525}
   waitText: {fileID: 1432147209637922180}
@@ -390,6 +391,7 @@ GameObject:
   - component: {fileID: 571611055596096481}
   - component: {fileID: 1089925567773070154}
   - component: {fileID: 3957377543401477908}
+  - component: {fileID: 6172965870863237607}
   m_Layer: 0
   m_Name: SuggestWords
   m_TagString: Untagged
@@ -536,6 +538,21 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+--- !u!114 &6172965870863237607
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384172075990412353}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcf0667cb88545642be1bccb72584824, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Dialogue::A305.Dialogue.ReviewReferenceBadges
+  source: {fileID: 1089925567773070154}
+  usedSprite: {fileID: 21300000, guid: 2299deff4e921fa4cb3890a547d9c970, type: 3}
+  pendingSprite: {fileID: 21300000, guid: 3300646d88fb7274eb49ea8eb2977b58, type: 3}
 --- !u!1 &408695841436958108
 GameObject:
   m_ObjectHideFlags: 0

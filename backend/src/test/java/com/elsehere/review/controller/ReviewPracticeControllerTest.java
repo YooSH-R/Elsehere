@@ -10,6 +10,7 @@ import com.elsehere.common.auth.LoginUser;
 import com.elsehere.common.config.SecuredWebMvcTest;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.review.dto.ReviewPracticeProgressResponse;
 import com.elsehere.review.dto.ReviewPracticeResultResponse;
 import com.elsehere.review.service.ReviewPracticeResults;
 import java.time.Instant;
@@ -24,6 +25,27 @@ import org.springframework.test.web.servlet.MockMvc;
 class ReviewPracticeControllerTest {
   @Autowired private MockMvc mvc;
   @MockitoBean private ReviewPracticeResults results;
+
+  @Test
+  void progressRequiresAuthentication() throws Exception {
+    mvc.perform(get("/api/v1/review-cards/42/conversations/77/progress"))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void progressRouteUsesTheAuthenticatedOwnerWithoutEndingPractice() throws Exception {
+    given(results.progress(1L, 42L, 77L))
+        .willReturn(new ReviewPracticeProgressResponse(77L, 42L, 1, List.of()));
+    var auth =
+        authentication(
+            UsernamePasswordAuthenticationToken.authenticated(new LoginUser(1L), null, List.of()));
+    mvc.perform(get("/api/v1/review-cards/42/conversations/77/progress").with(auth))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.conversationId").value(77))
+        .andExpect(jsonPath("$.verifiedExpressionCount").value(1))
+        .andExpect(jsonPath("$.completedAt").doesNotExist())
+        .andExpect(jsonPath("$.practiceCount").doesNotExist());
+  }
 
   @Test
   void missingOrOtherOwnersResultReturnsNotFound() throws Exception {

@@ -204,7 +204,20 @@ namespace A305.EditorTools.Learning
             scripts.TryGetScript("CAFE_STAFF", out DialogueScript script);
             view.Show(new DialogueConversation("CAFE_STAFF", script));
             view.SetReviewReference(
-                "<b>Can I get that to go?</b>\n<size=85%>포장해 주실 수 있나요?</size>\n\n<b>Could I get a little less ice?</b>\n<size=85%>얼음을 조금만 넣어 주세요.</size>"
+                new[]
+                {
+                    new ReviewReferenceItem(
+                        "Can I get that to go?",
+                        "포장해 주실 수 있나요?",
+                        true
+                    ),
+                    new ReviewReferenceItem(
+                        "Could I get a little less ice?",
+                        "얼음을 조금만 넣어 주세요.",
+                        false
+                    ),
+                },
+                1
             );
             var settings = AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>(
                 "Assets/Data/Cafe/CafeCameraSettings.asset"
@@ -230,6 +243,12 @@ namespace A305.EditorTools.Learning
                     );
                     camera.transform.SetPositionAndRotation(pose.position, pose.rotation);
                     view.UpdateLayout();
+                    foreach (
+                        ReviewReferenceBadges badges in view.GetComponentsInChildren<ReviewReferenceBadges>(
+                            true
+                        )
+                    )
+                        badges.SendMessage("LateUpdate");
                 },
                 Path.Combine(output, "practice-reference.png")
             );

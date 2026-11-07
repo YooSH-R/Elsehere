@@ -67,6 +67,24 @@
 - 진행 중인 복습의 카드는 `409 REVIEW_IN_PROGRESS`로 삭제를 막습니다. 시작 저장과 삭제는 같은 카드 행을 잠가, AI 응답을 기다리는 사이 삭제된 카드로 대화가 저장되지 않게 합니다.
 
 
+## 복습 중 표현 사용 표시
+
+`GET /api/v1/review-cards/{cardId}/conversations/{conversationId}/progress`는 해당 복습 대화에 저장된 사용자 발화를 읽고 현재 사용 근거를 반환합니다. 카드와 연결된 대화 모두 로그인 사용자의 것이어야 하며, 다른 카드의 시도·일반 대화·없는 카드는 `404 NOT_FOUND`입니다.
+
+```json
+{
+  "conversationId": 77,
+  "reviewCardId": 42,
+  "verifiedExpressionCount": 1,
+  "expressions": [
+    {"expression": "Can I get that to go?", "evidence": [{"turnId": 123, "text": "Could I get that to go, please?"}]},
+    {"expression": "Could I get less ice?", "evidence": []}
+  ]
+}
+```
+
+종료 결과와 같은 보수적인 근거 규칙을 사용하며, 조회는 대화를 끝내거나 연습 횟수·완료 결과·본편 진행을 변경하지 않습니다. 추가 모델 호출도 없습니다. Unity는 복습 대사의 응답을 받은 뒤 조회해 참고 카드의 원형 배지를 갱신합니다. 이전 요청의 늦은 응답과 닫힌 대화의 응답은 화면에 반영하지 않습니다. 확인되지 않은 표현은 빈 배지로 남으며 오답을 뜻하지 않습니다.
+
 ## 복습 종료 결과와 다시 보기
 
 복습 대화의 `POST /api/v1/conversations/{conversationId}/end` 응답에는 `reviewResult`가 추가됩니다. 일반 대화에서는 null입니다. 결과는 종료 트랜잭션에서 실제 사용자 발화로 만들고 `conversations.review_result`에 한 번 저장합니다. 같은 종료 요청의 동시 전송·재시도에도 카드의 `practiceCount`는 한 번만 증가하고 같은 결과를 돌려줍니다. NPC가 먼저 마친 대화도 종료 API를 받아 기록합니다. 종료 처리 전에 카드를 삭제했다면 결과는 null이고 삭제한 카드를 복원하지 않습니다.

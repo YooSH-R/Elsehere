@@ -9,6 +9,21 @@ namespace A305.Learning.Tests
         private RecordingTransport transport;
         private ReviewApi api;
 
+        [Test]
+        public async Task GetProgress_ReadsTheOwnedAttemptWithoutCreatingOrEndingConversation()
+        {
+            transport.Body =
+                "{\"conversationId\":77,\"reviewCardId\":42,\"verifiedExpressionCount\":1,\"expressions\":[]}";
+            ReviewPracticeProgress result = await api.GetProgressAsync(42, 77);
+            Assert.That(transport.Request, Is.Not.Null, "진행 조회 요청이 전송되어야 합니다.");
+            Assert.That(transport.Request.Method, Is.EqualTo("GET"));
+            Assert.That(
+                transport.Request.Url,
+                Is.EqualTo("/api/v1/review-cards/42/conversations/77/progress")
+            );
+            Assert.That(result.VerifiedExpressionCount, Is.EqualTo(1));
+        }
+
         [SetUp]
         public void SetUp()
         {

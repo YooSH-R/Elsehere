@@ -7,7 +7,7 @@ using A305.Dialogue;
 namespace A305.Learning
 {
     /// <summary>저장된 복습 카드와 REVIEW 대화 시작 API. 일반 대화 시작 경로와 분리한다.</summary>
-    public sealed class ReviewApi : IReviewApi
+    public sealed class ReviewApi : IReviewApi, IReviewProgressApi
     {
         private readonly ApiClient client;
 
@@ -42,5 +42,13 @@ namespace A305.Learning
 
         public Task<ReviewPracticeResult> GetResultAsync(long cardId) =>
             client.GetAsync<ReviewPracticeResult>(CardPath(cardId) + "/result");
+
+        public Task<ReviewPracticeProgress> GetProgressAsync(long cardId, long conversationId) =>
+            client.GetAsync<ReviewPracticeProgress>(
+                CardPath(cardId)
+                    + "/conversations/"
+                    + conversationId.ToString(CultureInfo.InvariantCulture)
+                    + "/progress"
+            );
     }
 }

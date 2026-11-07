@@ -26,8 +26,8 @@ namespace A305.Npc.PlayModeTests
     {
         private const string BenCode = "TOWN_PASSERBY";
         private const string BenName = "Ben";
-        private const string RubyCode = "TOWN_RETIREE";
-        private const string RubyName = "Ruby";
+        private const string ArthurCode = "TOWN_GRANDFATHER";
+        private const string ArthurName = "Arthur";
         private const float WaitTimeoutSeconds = 15f;
 
         // 카메라가 플레이어를 따라와 자리 잡을 때까지 기다리는 프레임 수
@@ -294,7 +294,7 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator ClickingRubysNameTagWhileBenOffers_DeclinesBenAndTalksToRuby()
+        public IEnumerator ClickingArthursNameTagWhileBenOffers_DeclinesBenAndTalksToArthur()
         {
             yield return LoadTownAfterTutorial();
             Passerby ben = FindPasserby(BenCode);
@@ -302,8 +302,8 @@ namespace A305.Npc.PlayModeTests
             PasserbyOfferView offer = Single<PasserbyOfferView>();
             yield return FaceFrom(ben, 4f);
             yield return WaitUntil(() => offer.IsShownBy(ben));
-            Passerby ruby = BringNpc(
-                RubyCode,
+            Passerby arthur = BringNpc(
+                ArthurCode,
                 new Pose(
                     ben.transform.position + ben.transform.right * 1.5f,
                     ben.transform.rotation
@@ -311,7 +311,7 @@ namespace A305.Npc.PlayModeTests
             );
             yield return LetCameraSettle();
 
-            Single<NpcClickTalk>().Click(NameTagOf(ruby, RubyName));
+            Single<NpcClickTalk>().Click(NameTagOf(arthur, ArthurName));
             yield return null;
             Assert.That(Single<DialogueController>().IsTalking, Is.False);
             Single<PasserbyOfferView>()
@@ -322,7 +322,7 @@ namespace A305.Npc.PlayModeTests
 
             Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Resting));
             Assert.That(offer.IsShowing, Is.False);
-            Assert.That(ruby.Phase, Is.EqualTo(PasserbyPhase.Talking));
+            Assert.That(arthur.Phase, Is.EqualTo(PasserbyPhase.Talking));
             Assert.That(Single<DialogueController>().IsTalking, Is.True);
         }
 
@@ -402,11 +402,11 @@ namespace A305.Npc.PlayModeTests
             KeepFromApproaching(ben);
             yield return FaceFrom(ben, 5f);
             yield return LetCameraSettle();
-            Passerby ruby = HoldNpcAlongCameraLine(ben, 1.5f);
-            yield return OverlapNameTags(ben, BenName, ruby, RubyName);
+            Passerby arthur = HoldNpcAlongCameraLine(ben, 1.5f);
+            yield return OverlapNameTags(ben, BenName, arthur, ArthurName);
 
-            ruby.IsApproachAllowed = true;
-            Single<NpcClickTalk>().Click(WhereNameTagsOverlap(BenName, RubyName));
+            arthur.IsApproachAllowed = true;
+            Single<NpcClickTalk>().Click(WhereNameTagsOverlap(BenName, ArthurName));
             yield return null;
             Assert.That(Single<DialogueController>().IsTalking, Is.False);
             Single<PasserbyOfferView>()
@@ -416,22 +416,22 @@ namespace A305.Npc.PlayModeTests
             yield return null;
 
             Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Talking));
-            Assert.That(ruby.Phase, Is.Not.EqualTo(PasserbyPhase.Talking));
+            Assert.That(arthur.Phase, Is.Not.EqualTo(PasserbyPhase.Talking));
         }
 
         [UnityTest]
-        public IEnumerator ClickingWhereNameTagsOverlap_TalksToTheNearerNpc_RubyInFront()
+        public IEnumerator ClickingWhereNameTagsOverlap_TalksToTheNearerNpc_ArthurInFront()
         {
             yield return LoadTownAfterTutorial();
             Passerby ben = FindPasserby(BenCode);
             KeepFromApproaching(ben);
             yield return FaceFrom(ben, 6.5f);
             yield return LetCameraSettle();
-            Passerby ruby = HoldNpcAlongCameraLine(ben, -1.5f);
-            yield return OverlapNameTags(ruby, RubyName, ben, BenName);
+            Passerby arthur = HoldNpcAlongCameraLine(ben, -1.5f);
+            yield return OverlapNameTags(arthur, ArthurName, ben, BenName);
 
-            ruby.IsApproachAllowed = true;
-            Single<NpcClickTalk>().Click(WhereNameTagsOverlap(RubyName, BenName));
+            arthur.IsApproachAllowed = true;
+            Single<NpcClickTalk>().Click(WhereNameTagsOverlap(ArthurName, BenName));
             yield return null;
             Assert.That(Single<DialogueController>().IsTalking, Is.False);
             Single<PasserbyOfferView>()
@@ -440,7 +440,7 @@ namespace A305.Npc.PlayModeTests
                 .onClick.Invoke();
             yield return null;
 
-            Assert.That(ruby.Phase, Is.EqualTo(PasserbyPhase.Talking));
+            Assert.That(arthur.Phase, Is.EqualTo(PasserbyPhase.Talking));
             Assert.That(ben.Phase, Is.Not.EqualTo(PasserbyPhase.Talking));
         }
 
@@ -540,26 +540,26 @@ namespace A305.Npc.PlayModeTests
             );
         }
 
-        // 마을 밖으로 옮겨 둔 행인 Ruby를 Ben 옆에 세운다. 생활은 끈 채로 두고 먼저 다가오지 않게 한다.
-        // 아무 행인이나 고르면 출퇴근하는 직원의 마을 몸(NpcPopulation)이 걸려 제자리를 지키지 않으므로 Ruby로 정한다.
-        // 다가온 Ben이 플레이어와 Ruby 사이를 가리지 않는 쪽을 고른다.
+        // 마을 밖으로 옮겨 둔 행인 Arthur를 Ben 옆에 세운다. 생활은 끈 채로 두고 먼저 다가오지 않게 한다.
+        // 아무 행인이나 고르면 출퇴근하는 직원의 마을 몸(NpcPopulation)이 걸려 제자리를 지키지 않으므로 Arthur로 정한다.
+        // 다가온 Ben이 플레이어와 Arthur 사이를 가리지 않는 쪽을 고른다.
         private static Passerby PlaceAnotherNpcBeside(Passerby ben)
         {
             Vector3 eye = Single<PlayerMover>().transform.position + Vector3.up * 1.5f;
             foreach (float side in new[] { 1.5f, -1.5f, 2.5f, -2.5f })
             {
-                Passerby ruby = BringNpc(
-                    RubyCode,
+                Passerby arthur = BringNpc(
+                    ArthurCode,
                     new Pose(
                         ben.transform.position + ben.transform.right * side,
                         ben.transform.rotation
                     )
                 );
                 Physics.SyncTransforms();
-                Vector3 chest = ruby.transform.position + Vector3.up * 1.1f;
-                if (new NpcPointerRaycast().Find(new Ray(eye, chest - eye), 30f) == ruby)
+                Vector3 chest = arthur.transform.position + Vector3.up * 1.1f;
+                if (new NpcPointerRaycast().Find(new Ray(eye, chest - eye), 30f) == arthur)
                 {
-                    return ruby;
+                    return arthur;
                 }
             }
 
@@ -592,7 +592,7 @@ namespace A305.Npc.PlayModeTests
                 ben.transform.position + towardBen * distanceFromBen,
                 ben.transform.rotation
             );
-            Passerby npc = BringNpc(RubyCode, pose);
+            Passerby npc = BringNpc(ArthurCode, pose);
             npc.IsApproachAllowed = false;
             npc.WaitAt(pose);
             return npc;

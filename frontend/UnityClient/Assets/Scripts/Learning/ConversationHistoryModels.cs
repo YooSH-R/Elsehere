@@ -55,6 +55,8 @@ namespace A305.Learning
 
     public sealed class TurnDetail
     {
+        public long TurnId { get; set; }
+        public List<GlossaryData> Glossary { get; set; }
         public int Seq { get; set; }
 
         /// <summary>USER 또는 NPC</summary>

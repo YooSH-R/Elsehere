@@ -7,6 +7,22 @@ namespace A305.Learning.Tests
     public class FeedbackTranscriptTests
     {
         [Test]
+        public void Build_PreservesNpcMeaningBelowItsSentence()
+        {
+            var lines = new[]
+            {
+                DialogueLine.FromNpc("For here or to go?", "매장에서 드실 건가요, 포장인가요?"),
+            };
+            var transcript = FeedbackTranscript.Build("Mia", lines, null, null);
+
+            Assert.That(transcript.Body, Does.Contain("매장에서 드실 건가요, 포장인가요?"));
+            Assert.That(
+                transcript.Body.IndexOf("For here"),
+                Is.LessThan(transcript.Body.IndexOf("매장에서"))
+            );
+        }
+
+        [Test]
         public void Build_ShowsEveryNpcAndLearnerLineInOrder()
         {
             var lines = new List<DialogueLine>

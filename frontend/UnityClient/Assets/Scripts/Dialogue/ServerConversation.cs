@@ -479,7 +479,8 @@ namespace A305.Dialogue
                     var withMeaning = DialogueLine.FromNpc(
                         LastNpcLine.English,
                         meaning.MeaningKo,
-                        GlossaryWord.FromMeaning(turn.TurnId, meaning.Glossary)
+                        GlossaryWord.FromMeaning(turn.TurnId, meaning.Glossary),
+                        turnId: turn.TurnId
                     );
                     lines[lines.IndexOf(LastNpcLine)] = withMeaning;
                     LastNpcLine = withMeaning;
@@ -742,6 +743,8 @@ namespace A305.Dialogue
                         {
                             TurnId = turn.TurnId,
                             Text = turn.Text,
+                            MeaningKo = turn.MeaningKo,
+                            Glossary = turn.Glossary,
                             SuggestWords = turn.SuggestWords,
                             Speech = turn.Speech,
                         }
@@ -749,7 +752,14 @@ namespace A305.Dialogue
                 }
                 else
                 {
-                    lines.Add(DialogueLine.FromNpc(turn.Text, null));
+                    lines.Add(
+                        DialogueLine.FromNpc(
+                            turn.Text,
+                            turn.MeaningKo,
+                            GlossaryWord.FromMeaning(turn.TurnId, turn.Glossary),
+                            turnId: turn.TurnId
+                        )
+                    );
                 }
             }
         }
@@ -768,14 +778,19 @@ namespace A305.Dialogue
 
             LastTurnSpokenInChunks = spokenInChunks;
 
-            DialogueLine line = DialogueLine.FromNpc(turn.Text, null);
+            DialogueLine line = DialogueLine.FromNpc(
+                turn.Text,
+                turn.MeaningKo,
+                turn.Glossary == null ? null : GlossaryWord.FromMeaning(turn.TurnId, turn.Glossary),
+                turnId: turn.TurnId
+            );
             lines.Add(line);
             LastNpcLine = line;
             LastNpcTurn = turn;
             SuggestWords = turn.SuggestWords;
             IsSuggestingWords = false;
             // 단어 풀이와 힌트는 지난 대사의 것이므로 새 대사에서는 다시 받는다.
-            LastNpcGlossary = null;
+            LastNpcGlossary = turn.Glossary;
             HintText = null;
             NpcSpoke?.Invoke(turn);
         }

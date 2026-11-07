@@ -97,7 +97,12 @@ namespace A305.Learning
                 .OrderBy(turn => turn.Seq)
                 .Select(turn =>
                     turn.Speaker == NpcSpeaker
-                        ? DialogueLine.FromNpc(turn.Text, turn.MeaningKo)
+                        ? DialogueLine.FromNpc(
+                            turn.Text,
+                            turn.MeaningKo,
+                            GlossaryWord.FromMeaning(turn.TurnId, turn.Glossary),
+                            turnId: turn.TurnId
+                        )
                         : DialogueLine.FromUser(turn.Text)
                 )
                 .ToList();

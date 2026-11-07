@@ -10,8 +10,8 @@ namespace A305.World
     public sealed class CarLoopRoute
     {
         // 차 가운데에서 이 거리 안, 차 폭 안쪽 앞에 사람이 있으면 멈춘다.
-        private const float YieldAheadMeters = 6f;
-        private const float YieldHalfWidthMeters = 1.4f;
+        internal const float YieldAheadMeters = 6f;
+        internal const float YieldHalfWidthMeters = 1.4f;
 
         private readonly float southZ;
         private readonly float northZ;

@@ -38,6 +38,8 @@ namespace A305.Dialogue
 
     public sealed class NpcTurnData
     {
+        public string MeaningKo { get; set; }
+        public List<GlossaryData> Glossary { get; set; }
         public long TurnId { get; set; }
         public string Text { get; set; }
         public List<string> SuggestWords { get; set; }
@@ -258,6 +260,8 @@ namespace A305.Dialogue
     /// <summary>진행 중인 대화의 한 턴. NPC 턴만 음성이 있다.</summary>
     public sealed class ActiveTurn
     {
+        public string MeaningKo { get; set; }
+        public List<GlossaryData> Glossary { get; set; }
         public long TurnId { get; set; }
 
         /// <summary>USER · NPC</summary>

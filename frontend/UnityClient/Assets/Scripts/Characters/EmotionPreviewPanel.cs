@@ -18,6 +18,10 @@ namespace A305.Characters
             "슬픔",
             "폭소",
             "무신경·시큰둥",
+            "분노",
+            "격한 분노",
+            "쑥스러움",
+            "누그러짐",
         };
 
         [SerializeField]

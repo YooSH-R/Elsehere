@@ -8,6 +8,16 @@ namespace A305.Learning
     [DefaultExecutionOrder(200)]
     public sealed class ReviewButtonLabel : MonoBehaviour
     {
+        [SerializeField]
+        private float verticalOffset;
+
+        public void SetVerticalOffset(float offset)
+        {
+            verticalOffset = offset;
+            arrangedText = null;
+            Arrange();
+        }
+
         private Vector2 arrangedSize;
         private Vector2 arrangedPosition;
         private string arrangedText;
@@ -41,7 +51,8 @@ namespace A305.Learning
             label.alignment = TextAlignmentOptions.Midline;
             label.ForceMeshUpdate(ignoreActiveState: true);
             // advance 폭·글꼴의 기준선 대신 화면에 그려지는 글자 경계의 중심을 쓴다.
-            rect.anchoredPosition = -(Vector2)label.textBounds.center;
+            rect.anchoredPosition =
+                new Vector2(0, verticalOffset) - (Vector2)label.textBounds.center;
             arrangedSize = button.rect.size;
             arrangedPosition = rect.anchoredPosition;
             arrangedText = label.text;

@@ -64,6 +64,14 @@ namespace A305.EditorTools.Learning
                     () => view.Show(book),
                     Path.Combine(output, "library-" + theme + ".png")
                 );
+                if (theme == UiThemeId.Jelly)
+                    Render(
+                        camera,
+                        3200,
+                        2000,
+                        () => view.Show(book),
+                        Path.Combine(output, "library-detail.png")
+                    );
             }
             Render(
                 camera,
@@ -149,6 +157,29 @@ namespace A305.EditorTools.Learning
                 label.Arrange();
             camera.Render();
             RenderTexture.active = target;
+            if (path.EndsWith("library-detail.png", StringComparison.Ordinal))
+            {
+                var row = UnityEngine.Object.FindObjectsByType<ReviewWorkbookRow>(
+                    FindObjectsSortMode.None
+                )[0];
+                var rect = (RectTransform)row.transform.Find("PracticeButton");
+                var corners = new Vector3[4];
+                rect.GetWorldCorners(corners);
+                Vector3 start = camera.WorldToScreenPoint(corners[0]);
+                Vector3 end = camera.WorldToScreenPoint(corners[2]);
+                int left = Mathf.Max(0, Mathf.FloorToInt(start.x) - 20);
+                int bottom = Mathf.Max(0, Mathf.FloorToInt(start.y) - 20);
+                int detailWidth = Mathf.CeilToInt(end.x - left) + 20;
+                int detailHeight = Mathf.CeilToInt(end.y - bottom) + 20;
+                var detail = new Texture2D(detailWidth, detailHeight, TextureFormat.RGB24, false);
+                detail.ReadPixels(new Rect(left, bottom, detailWidth, detailHeight), 0, 0);
+                detail.Apply();
+                File.WriteAllBytes(
+                    Path.Combine(Path.GetDirectoryName(path), "practice-button.png"),
+                    detail.EncodeToPNG()
+                );
+                UnityEngine.Object.DestroyImmediate(detail);
+            }
             var image = new Texture2D(width, height, TextureFormat.RGB24, false);
             image.ReadPixels(new Rect(0, 0, width, height), 0, 0);
             image.Apply();

@@ -317,7 +317,10 @@ namespace A305.EditorTools.Learning
             text.rectTransform.anchorMax = Vector2.one;
             text.rectTransform.offsetMin = new Vector2(18, 2);
             text.rectTransform.offsetMax = new Vector2(-18, -2);
-            button.gameObject.AddComponent<ReviewButtonLabel>().Arrange();
+            // 입체 버튼 아래층까지 포함해 눈에 보이는 중앙에 맞춘다(1600px 캡처 기준 약 3px 아래).
+            button
+                .gameObject.AddComponent<ReviewButtonLabel>()
+                .SetVerticalOffset(name == "PracticeButton" ? -4 : 0);
             return button;
         }
 

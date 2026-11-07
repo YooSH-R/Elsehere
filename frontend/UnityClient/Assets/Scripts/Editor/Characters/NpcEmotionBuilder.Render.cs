@@ -33,7 +33,7 @@ namespace A305.EditorTools.Characters
                 .OrderByDescending(s => s.sharedMesh.vertexCount)
                 .First();
             var mesh = new Mesh();
-            skin.BakeMesh(mesh, true);
+            skin.BakeMesh(mesh);
             int head = Array.FindIndex(skin.bones, b => b.name == "Head");
             var weights = skin.sharedMesh.boneWeights;
             var points = mesh

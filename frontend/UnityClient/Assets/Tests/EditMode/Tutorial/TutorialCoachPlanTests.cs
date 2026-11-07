@@ -127,13 +127,37 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
+        public void AfterGreeting_ExplainsRelationshipBeforeContinuingDirections()
+        {
+            var screen = new TutorialScreen { IsTalking = true, GuidedTurnIndex = 1 };
+            Assert.That(
+                Choose(TutorialStep.BenDialogue, screen),
+                Is.EqualTo(TutorialCoachTarget.DialogueRelationship)
+            );
+            Assert.That(
+                TutorialCoachPlan.IsTour(TutorialCoachTarget.DialogueRelationship),
+                Is.True
+            );
+            screen.RelationshipExplained = true;
+            Assert.That(
+                Choose(TutorialStep.BenDialogue, screen),
+                Is.EqualTo(TutorialCoachTarget.GuidedLine)
+            );
+        }
+
+        [Test]
         public void BenDialogue_AfterTheFirstLine_OnlyGuidesTheLine()
         {
             // 첫 대사를 보냈으면(티칭 중에 보냈어도) 남은 대사는 할 대사만 알린다.
             Assert.That(
                 Choose(
                     TutorialStep.BenDialogue,
-                    new TutorialScreen { IsTalking = true, GuidedTurnIndex = 1 }
+                    new TutorialScreen
+                    {
+                        IsTalking = true,
+                        GuidedTurnIndex = 1,
+                        RelationshipExplained = true,
+                    }
                 ),
                 Is.EqualTo(TutorialCoachTarget.GuidedLine)
             );
@@ -147,6 +171,7 @@ namespace A305.Tutorial.Tests
             {
                 IsTalking = true,
                 GuidedTurnIndex = 1,
+                RelationshipExplained = true,
                 IsVoiceLightOn = true,
             };
             Assert.That(
@@ -177,6 +202,7 @@ namespace A305.Tutorial.Tests
             {
                 IsTalking = true,
                 GuidedTurnIndex = 1,
+                RelationshipExplained = true,
                 IsVoiceLightOn = true,
             };
 

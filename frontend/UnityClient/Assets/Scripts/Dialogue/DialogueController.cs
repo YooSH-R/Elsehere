@@ -702,6 +702,11 @@ namespace A305.Dialogue
             {
                 _ = serverConversation.RequestHintAsync();
             }
+            else
+            {
+                conversation?.RequestHint();
+                panel.Refresh();
+            }
         }
 
         private void Retry()

@@ -99,6 +99,7 @@ namespace A305.Tutorial
 
         // 대화 시작·대화 노트 티칭에서 [다음]으로 넘긴 수. 대화를 새로 시작하면 처음부터 다시 보인다.
         private int dialogueTourStep;
+        private bool relationshipExplained;
         private int feedbackTourStep;
         private Object shownCoachObject;
         private string shownCaption;
@@ -486,6 +487,7 @@ namespace A305.Tutorial
                 IsGuidedCompleted = dialogue.IsGuidedCompleted,
                 GuidedTurnIndex = dialogue.GuidedTurnIndex,
                 DialogueTourStep = dialogueTourStep,
+                RelationshipExplained = relationshipExplained,
                 FeedbackTourStep = feedbackTourStep,
                 IsWordCardPinned = wordTooltip.IsPinned,
                 CanSaveWord = wordTooltip.CanSaveWord,
@@ -565,13 +567,18 @@ namespace A305.Tutorial
 
         private void RestartDialogueTour(string npcCode)
         {
+            relationshipExplained = false;
             dialogueTourStep = 0;
             feedbackTourStep = 0;
         }
 
         private void ContinueTour(TutorialCoachTarget target)
         {
-            if (TutorialCoachPlan.IsDialogueTour(target))
+            if (target == TutorialCoachTarget.DialogueRelationship)
+            {
+                relationshipExplained = true;
+            }
+            else if (TutorialCoachPlan.IsDialogueTour(target))
             {
                 dialogueTourStep++;
             }
@@ -618,6 +625,8 @@ namespace A305.Tutorial
                     return dialoguePanel.DialogueLinesParts;
                 case TutorialCoachTarget.DialogueTools:
                     return dialoguePanel.ToolParts;
+                case TutorialCoachTarget.DialogueRelationship:
+                    return dialoguePanel.RelationshipParts;
                 case TutorialCoachTarget.GuidedLine:
                     // 대사를 읽으며 말해야 하므로 대사 칸도 함께 밝혀, 둘레를 덮어도 대사가 그대로 보이게 한다.
                     var parts = new List<RectTransform>(dialoguePanel.DialogueLinesParts);
@@ -656,11 +665,11 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.TalkOffer:
                     return guide.TalkOfferCaption;
                 case TutorialCoachTarget.DialogueLines:
-                    return guide.DialogueLinesCaption
-                        + "\n\n<b>NPC와 친해지기</b>\n일반 NPC와 자유 대화할 때는 이름 옆에서 호감도를 확인할 수 있어요. 인사하거나 칭찬하는 등 긍정적인 대화를 나누면 호감도가 오를 수 있어요.";
+                    return guide.DialogueLinesCaption;
+                case TutorialCoachTarget.DialogueRelationship:
+                    return guide.RelationshipCaption;
                 case TutorialCoachTarget.DialogueTools:
-                    return guide.DialogueToolsCaption
-                        + "\n\n<b>서로 배려하며 대화해요</b>\n일반 NPC와 자유 대화할 때 무례한 말을 하면 호감도가 내려가고 경고가 쌓여요. 표시된 경고 한도에 도달하면 대화가 끝나요. 지금 Ben과는 정해진 대사로 길 안내를 연습해요.";
+                    return guide.DialogueToolsCaption;
                 case TutorialCoachTarget.SuggestedWords:
                     return guide.SuggestedWordsCaption;
                 case TutorialCoachTarget.GuidedLine:

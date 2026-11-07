@@ -25,24 +25,24 @@ namespace A305.Dialogue
                 npcName = "Ben",
                 roleLabel = "이웃",
                 opening = new LineEntry(
-                    "Excuse me! Could you tell me how to get to the café?",
-                    "실례합니다! 카페에 어떻게 가는지 알려 주실 수 있나요?"
+                    "Hi! I'm Ben. Excuse me, may I ask you something?",
+                    "안녕하세요! 저는 Ben이에요. 실례지만 잠깐 여쭤봐도 될까요?"
                 ),
                 guidedTurns = new List<GuidedTurnEntry>
                 {
                     new GuidedTurnEntry(
-                        "Go straight ahead.",
-                        "앞으로 곧장 가세요.",
+                        "Hi Ben! I'm {name}. Nice to meet you.",
+                        "안녕하세요 Ben! 제 이름은 {name}입니다. 만나서 반가워요.",
                         new LineEntry(
-                            "Straight ahead? And then where should I go?",
-                            "곧장이요? 그다음엔 어디로 가면 되나요?"
+                            "Nice to meet you too! Could you tell me how to get to the café?",
+                            "저도 반가워요! 카페에 어떻게 가는지 알려 주실 수 있나요?"
                         ),
-                        "straight · 곧장",
-                        "ahead · 앞으로"
+                        "nice to meet you · 만나서 반가워요",
+                        "name · 이름"
                     ),
                     new GuidedTurnEntry(
-                        "Turn left at the corner.",
-                        "모퉁이에서 왼쪽으로 도세요.",
+                        "Go straight ahead and turn left at the corner.",
+                        "앞으로 곧장 가서 모퉁이에서 왼쪽으로 도세요.",
                         new LineEntry("Got it. Is it far from here?", "알겠어요. 여기서 먼가요?"),
                         "turn left · 왼쪽으로 돌다",
                         "corner · 모퉁이"

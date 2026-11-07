@@ -18,7 +18,7 @@ public class TutorialRelationshipService {
 
   private static final String BEN_CARD =
       """
-      {"name":"","claims":[],"events":["Helped Ben find the cafe during the tutorial."],
+      {"name":"","claims":[],"events":["Introduced themselves and greeted Ben.","Helped Ben find the cafe during the tutorial."],
        "attitude":"grateful","struggled":[]}
       """;
 

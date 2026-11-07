@@ -67,6 +67,9 @@ namespace A305.Dialogue
 
         [SerializeField]
         private Button reviewFoldButton;
+
+        [SerializeField]
+        private ReviewReferenceBadges reviewBadges;
         private string reviewReference;
         private string originalHelpTitle;
         private TMP_Text reviewHelpTitle;
@@ -77,6 +80,9 @@ namespace A305.Dialogue
 
         public void SetReviewReference(string text)
         {
+            reviewBadges?.Clear();
+            if (text == null || reviewReference == null)
+                reviewFolded = false;
             var layout = suggestText.transform.parent.GetComponent<VerticalLayoutGroup>();
             var size = suggestText.GetComponent<LayoutElement>();
             if (text != null && reviewReference == null)
@@ -101,7 +107,6 @@ namespace A305.Dialogue
                 suggestText.gameObject.SetActive(true);
             }
             reviewReference = text;
-            reviewFolded = false;
             if (reviewHelpTitle == null)
             {
                 reviewHelpTitle = suggestText
@@ -111,6 +116,13 @@ namespace A305.Dialogue
                     originalHelpTitle = reviewHelpTitle.text;
             }
             Refresh();
+        }
+
+        public void SetReviewReference(IReadOnlyList<ReviewReferenceItem> items, int verifiedCount)
+        {
+            ReviewReferenceText formatted = ReviewReferenceText.Format(items, verifiedCount);
+            SetReviewReference(formatted.Text);
+            reviewBadges?.Show(formatted);
         }
 
         [SerializeField]

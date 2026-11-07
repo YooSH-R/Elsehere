@@ -18,6 +18,11 @@ namespace A305.Npc
         /// </summary>
         public static string MissionNpcCode { get; set; }
 
+        /// <summary>본편 미션 또는 복습 방문이 근무지에서 만나야 하는 NPC인지.</summary>
+        public static bool RequiresPresence(string npcCode) =>
+            npcCode != null
+            && (npcCode == MissionNpcCode || NpcReviewPresence.IsRequested(npcCode));
+
         /// <summary>일터에서 교대로 일하는 직원인지. 행인과 생활 데이터가 없는 NPC는 false다.</summary>
         /// <param name="role">생활 데이터의 역할(STAFF·PASSERBY)</param>
         public static bool IsStaff(string role)
@@ -30,7 +35,7 @@ namespace A305.Npc
         /// <param name="activity">지금 일과 활동(WORK·BREAK·FREE·OFF)</param>
         public static bool IsOffDuty(string npcCode, string role, string activity)
         {
-            return IsStaff(role) && activity != Work && npcCode != MissionNpcCode;
+            return IsStaff(role) && activity != Work && !RequiresPresence(npcCode);
         }
 
         /// <summary>

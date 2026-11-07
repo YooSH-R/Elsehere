@@ -59,6 +59,20 @@ namespace A305.Npc
             internal bool Warned;
         }
 
+        /// <summary>같은 코드의 거리 모습을 고르지 않고 근무지의 직원을 찾는다.</summary>
+        public NpcIdentity FindWorker(string npcCode)
+        {
+            foreach (Resident resident in residents)
+            {
+                if (resident.Worker == null)
+                    continue;
+                var identity = resident.Worker.GetComponent<NpcIdentity>();
+                if (identity != null && identity.Code == npcCode)
+                    return identity;
+            }
+            return null;
+        }
+
         private void Start()
         {
             dialogue = FindFirstObjectByType<DialogueController>();
@@ -93,6 +107,10 @@ namespace A305.Npc
                     resident.Worker != null ? resident.Worker.GetComponent<Passerby>() : null;
                 bool needed =
                     resident.Life.NpcId == NpcDuty.MissionNpcCode
+                    || (
+                        resident.Worker != null
+                        && NpcReviewPresence.IsRequested(resident.Life.NpcId)
+                    )
                     || (
                         workerBody != null
                         && (workerBody.IsGuidingTutorial || workerBody.IsWaitingForQuest)

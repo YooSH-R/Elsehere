@@ -39,6 +39,44 @@ class ReviewPracticeResultTest {
   private Long cardId;
   private Conversation review;
 
+  @Test
+  void progressRejectsOtherOwnersAndUnrelatedNormalConversations() {
+    Long other = UserTestData.insertUser(em, AuthProvider.GOOGLE, "progress-other", "Other");
+    assertThatThrownBy(() -> results.progress(other, cardId, review.getId()))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
+    Long sourceId = cards.detail(userId, cardId).sourceConversationId();
+    assertThatThrownBy(() -> results.progress(userId, cardId, sourceId))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
+  }
+
+  @Test
+  void liveProgressReadsAcceptedEvidenceWithoutEndingOrRecordingPractice() {
+    Turn first = userTurn(1, "Could you please hold my luggage?", false);
+    em.persist(Turn.npc(review, 2, "What time can I check in?", null, review.getStartedAt()));
+    userTurn(3, "What time can I check in?", true);
+    var progress = results.progress(userId, cardId, review.getId());
+    assertThat(progress.verifiedExpressionCount()).isEqualTo(1);
+    assertThat(progress.expressions().getFirst().evidence())
+        .extracting("turnId")
+        .containsExactly(first.getId());
+    assertThat(progress.expressions().get(1).evidence()).isEmpty();
+    assertThat(cards.detail(userId, cardId).practiceCount()).isZero();
+    assertThat(review.getReviewResult()).isNull();
+    assertThat(review.getEndedAt()).isNull();
+    assertThat(results.progress(userId, cardId, review.getId())).isEqualTo(progress);
+    userTurn(4, "What time can I check in?", null);
+    var updated = results.progress(userId, cardId, review.getId());
+    assertThat(updated.verifiedExpressionCount()).isEqualTo(2);
+    var ended =
+        service.end(userId, review.getId(), new EndConversationRequest(UUID.randomUUID(), false));
+    assertThat(ended.reviewResult().expressions()).isEqualTo(updated.expressions());
+    org.mockito.BDDMockito.then(gateway).shouldHaveNoInteractions();
+  }
+
   @BeforeEach
   void prepareReview() {
     userId = UserTestData.insertUser(em, AuthProvider.GOOGLE, "review-result-owner");

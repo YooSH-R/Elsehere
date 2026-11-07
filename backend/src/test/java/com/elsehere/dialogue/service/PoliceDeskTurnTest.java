@@ -98,7 +98,8 @@ class PoliceDeskTurnTest {
         new TownStoryService(
             mock(TownStoryRepository.class),
             mock(FirstDayMissionRepository.class),
-            mock(NpcRepository.class));
+            mock(NpcRepository.class),
+            mock(com.elsehere.conversation.repository.ConversationRepository.class));
     service =
         new TurnService(
             turns,

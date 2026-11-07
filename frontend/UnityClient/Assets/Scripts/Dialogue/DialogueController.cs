@@ -95,6 +95,8 @@ namespace A305.Dialogue
         public event Action<GlossaryWord> WordSaveRequested;
 
         public bool IsTalking => session.IsActive;
+        public long? ActiveReviewConversationId =>
+            serverConversation?.IsReview == true ? serverConversation.ConversationId : null;
 
         /// <summary>이 머리 위치를 가진 NPC가 현재 대화 상대인지.</summary>
         public bool IsTalkingTo(Transform lookTarget) =>
@@ -604,6 +606,9 @@ namespace A305.Dialogue
         }
 
         public void SetReviewReference(string text) => panel.SetReviewReference(text);
+
+        public void SetReviewReference(IReadOnlyList<ReviewReferenceItem> items, int count) =>
+            panel.SetReviewReference(items, count);
 
         private void ForwardPoliceDispatch(long turnId, string placeCode)
         {

@@ -18,6 +18,7 @@ namespace A305.Learning
         private static ReviewCard pendingReview;
         private ReviewCard practicingReview;
         private ReviewCard requestedReviewResult;
+        private NpcReviewPresence reviewPresence;
         private ReviewWorkbookView ReviewView => hudView.ReviewView;
 
         private void InitializeReview()
@@ -38,6 +39,7 @@ namespace A305.Learning
 
         private void DisposeReview()
         {
+            ReleaseReviewPresence();
             if (hudView == null)
                 return;
             hudView.ReviewRequested -= OpenReview;
@@ -217,81 +219,131 @@ namespace A305.Learning
             yield return null;
             while (SpaceTravel.IsTraveling || SpaceTravelCurtain.IsCoveringScreen)
                 yield return null;
-            NpcIdentity npc = FindObjectsByType<NpcIdentity>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None
-                )
-                .FirstOrDefault(item => item.Code == card.Npc?.NpcCode);
+            NpcIdentity npc = FindReviewNpc(card.Npc?.NpcCode);
             if (npc == null)
             {
                 hudView.ShowMessage("지금은 이 NPC가 여기에 없어요. 잠시 뒤 다시 시도해 주세요.");
                 yield break;
             }
-            ShopInterior room = FindObjectsByType<ShopInterior>(FindObjectsSortMode.None)
-                .FirstOrDefault(item => item.ContainsStaff(npc.transform));
-            if (room != null && !room.IsLoaded)
+            bool started = false;
+            ReleaseReviewPresence();
+            reviewPresence = new NpcReviewPresence(npc.Code);
+            try
             {
-                ShopDoorway door = room.GetComponentsInChildren<ShopDoorway>()
-                    .FirstOrDefault(item => item.Room == room);
-                if (door == null || !door.TryEnter(player))
+                ShopInterior room = FindObjectsByType<ShopInterior>(FindObjectsSortMode.None)
+                    .FirstOrDefault(item => item.ContainsStaff(npc.transform));
+                if (room != null && !room.IsLoaded)
                 {
-                    hudView.ShowMessage(
-                        "지금은 매장에 들어갈 수 없어요. 영업시간을 확인해 주세요."
-                    );
+                    ShopDoorway door = room.GetComponentsInChildren<ShopDoorway>()
+                        .FirstOrDefault(item => item.Room == room);
+                    if (door == null || !door.TryEnter(player))
+                    {
+                        hudView.ShowMessage(
+                            "지금은 매장에 들어갈 수 없어요. 영업시간을 확인해 주세요."
+                        );
+                        yield break;
+                    }
+                    while (SpaceTravel.IsTraveling || SpaceTravelCurtain.IsCoveringScreen)
+                        yield return null;
+                }
+                float activationDeadline = Time.realtimeSinceStartup + 2;
+                do
+                {
+                    yield return null;
+                } while (
+                    npc != null
+                    && !npc.gameObject.activeInHierarchy
+                    && Time.realtimeSinceStartup < activationDeadline
+                );
+                if (dialogue.IsTalking)
+                {
+                    hudView.ShowMessage("진행 중인 대화를 마친 뒤 복습을 시작해 주세요.");
                     yield break;
                 }
-                while (SpaceTravel.IsTraveling || SpaceTravelCurtain.IsCoveringScreen)
-                    yield return null;
-            }
-            if (!npc.gameObject.activeInHierarchy || dialogue.IsTalking)
-            {
-                hudView.ShowMessage(
-                    "지금은 이 NPC와 연습할 수 없어요. 잠시 뒤 다시 시도해 주세요."
+                if (npc == null || !npc.gameObject.activeInHierarchy)
+                {
+                    hudView.ShowMessage("복습할 NPC를 준비하지 못했어요. 다시 시도해 주세요.");
+                    yield break;
+                }
+                Vector3 standing = npc.transform.position + npc.transform.forward * 1.8f;
+                if (NavMesh.SamplePosition(standing, out NavMeshHit hit, 2, NavMesh.AllAreas))
+                    standing = hit.position;
+                Vector3 toward = npc.transform.position - standing;
+                toward.y = 0;
+                player.Teleport(
+                    standing,
+                    toward.sqrMagnitude > .01f
+                        ? Quaternion.LookRotation(toward)
+                        : player.transform.rotation
                 );
-                yield break;
-            }
-            Vector3 standing = npc.transform.position + npc.transform.forward * 1.8f;
-            if (NavMesh.SamplePosition(standing, out NavMeshHit hit, 2, NavMesh.AllAreas))
-                standing = hit.position;
-            Vector3 toward = npc.transform.position - standing;
-            toward.y = 0;
-            player.Teleport(
-                standing,
-                toward.sqrMagnitude > .01f
-                    ? Quaternion.LookRotation(toward)
-                    : player.transform.rotation
-            );
-            practicingReview = card;
-            if (
-                !dialogue.TryStart(
+                practicingReview = card;
+                started = dialogue.TryStart(
                     card.Npc.NpcCode,
                     npc.LookTarget,
                     ConversationInitiator.User,
                     reviewCardId: card.Id,
                     reviewStart: id => reviewApi.StartAsync(card.Id, id)
+                );
+                if (!started)
+                {
+                    practicingReview = null;
+                    hudView.ShowMessage(
+                        "복습 대화를 시작하지 못했어요. 서버 연결을 확인해 주세요."
+                    );
+                }
+                else
+                    dialogue.SetReviewReference(
+                        string.Join(
+                            "\n\n",
+                            card.Targets.Select(target =>
+                                "<b>"
+                                + ReviewWorkbookRow.Escape(target.Expression)
+                                + "</b>\n<size=85%>"
+                                + ReviewWorkbookRow.Escape(target.MeaningKo)
+                                + "</size>"
+                            )
+                        )
+                    );
+            }
+            finally
+            {
+                if (!started)
+                    ReleaseReviewPresence();
+            }
+        }
+
+        private static NpcIdentity FindReviewNpc(string npcCode)
+        {
+            if (string.IsNullOrWhiteSpace(npcCode))
+                return null;
+            foreach (
+                NpcPopulation population in FindObjectsByType<NpcPopulation>(
+                    FindObjectsSortMode.None
                 )
             )
             {
-                practicingReview = null;
-                hudView.ShowMessage("복습 대화를 시작하지 못했어요. 서버 연결을 확인해 주세요.");
+                NpcIdentity worker = population.FindWorker(npcCode);
+                if (worker != null)
+                    return worker;
             }
-            else
-                dialogue.SetReviewReference(
-                    string.Join(
-                        "\n\n",
-                        card.Targets.Select(target =>
-                            "<b>"
-                            + ReviewWorkbookRow.Escape(target.Expression)
-                            + "</b>\n<size=85%>"
-                            + ReviewWorkbookRow.Escape(target.MeaningKo)
-                            + "</size>"
-                        )
-                    )
-                );
+            return FindObjectsByType<NpcIdentity>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+                .Where(item => item.Code == npcCode)
+                .OrderBy(item => item.GetComponent<NpcTownWalker>() != null)
+                .FirstOrDefault();
+        }
+
+        private void ReleaseReviewPresence()
+        {
+            reviewPresence?.Dispose();
+            reviewPresence = null;
         }
 
         private void ShowReviewResult(DialogueRecord record)
         {
+            ReleaseReviewPresence();
             ReviewCard completed = practicingReview;
             practicingReview = null;
             if (ReviewView != null)

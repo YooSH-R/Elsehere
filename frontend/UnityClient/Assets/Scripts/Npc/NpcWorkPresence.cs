@@ -23,7 +23,7 @@ namespace A305.Npc
                         .At(
                             life,
                             GameClock.Shared.Minutes,
-                            life.NpcId == NpcDuty.MissionNpcCode
+                            NpcDuty.RequiresPresence(life.NpcId)
                                 || body.IsGuidingTutorial
                                 || body.IsWaitingForQuest
                         )

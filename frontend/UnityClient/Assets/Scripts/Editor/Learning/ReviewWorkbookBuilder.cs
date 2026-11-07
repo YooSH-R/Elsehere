@@ -17,6 +17,38 @@ namespace A305.EditorTools.Learning
         public const string PrefabPath = "Assets/Prefabs/Learning/ReviewWorkbook.prefab";
         private const string HudPath = "Assets/Prefabs/Learning/LearningHud.prefab";
 
+        [MenuItem("Tools/A305/Learning/Apply Review Reference Progress")]
+        public static void ApplyReferenceProgress()
+        {
+            BuilderTools.ThrowIfPlaying();
+            BuilderTools.UpdateOrCreatePrefab(
+                "Assets/Prefabs/Dialogue/DialoguePanel.prefab",
+                "DialoguePanel",
+                AttachReferenceProgress
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        private static void AttachReferenceProgress(GameObject root)
+        {
+            var fields = new SerializedObject(root.GetComponent<DialoguePanelView>());
+            TMP_Text source = Read<TMP_Text>(fields, "suggestText");
+            var badges =
+                source.GetComponent<ReviewReferenceBadges>()
+                ?? source.gameObject.AddComponent<ReviewReferenceBadges>();
+            badges.Configure(
+                source,
+                AssetDatabase.LoadAssetAtPath<Sprite>(
+                    "Assets/Art/UI/Onboarding/ConsentCheckOn.png"
+                ),
+                AssetDatabase.LoadAssetAtPath<Sprite>(
+                    "Assets/Art/UI/Onboarding/ConsentCheckOff.png"
+                )
+            );
+            Set(fields, "reviewBadges", badges);
+            fields.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         [MenuItem("Tools/A305/Learning/Build Review Workbook")]
         public static void Build()
         {
@@ -212,6 +244,7 @@ namespace A305.EditorTools.Learning
 
         private static void AttachReferenceFold(GameObject dialogueRoot)
         {
+            AttachReferenceProgress(dialogueRoot);
             var view = dialogueRoot.GetComponent<DialoguePanelView>();
             var fields = new SerializedObject(view);
             Transform card = Read<TMP_Text>(fields, "suggestText").transform.parent;

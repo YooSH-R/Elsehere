@@ -414,7 +414,7 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
-        public async Task RudeTurn_DoesNotShowItsTranslation()
+        public async Task RudeTurn_StillShowsItsTranslation()
         {
             await conversation.StartAsync();
             api.TurnResponse = Reply("무례한 발화", "Please be polite.", "ACTIVE");
@@ -426,7 +426,7 @@ namespace A305.Dialogue.Tests
 
             await conversation.SendAsync("무례한 발화");
 
-            Assert.That(conversation.UserTranslation, Is.Null);
+            Assert.That(conversation.UserTranslation, Is.EqualTo("Rude phrase."));
         }
 
         [Test]

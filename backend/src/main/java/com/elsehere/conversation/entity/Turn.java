@@ -157,9 +157,9 @@ public class Turn extends BaseEntity {
     policeDispatchPlaceCode = placeCode;
   }
 
-  /** 번역 카드는 번역이 있고 무례가 아니라고 확정된 사용자 턴에만 보여 준다. */
+  /** 한국어 발화의 영어 표현은 무례 판정과 관계없이 보여 준다. */
   public String shownTranslation() {
-    return Boolean.FALSE.equals(guardAbusive) ? translationEn : null;
+    return translationEn;
   }
 
   /**

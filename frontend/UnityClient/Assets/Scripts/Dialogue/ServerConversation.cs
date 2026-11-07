@@ -281,10 +281,7 @@ namespace A305.Dialogue
                     string sent = result.UserTurn?.Text ?? utterance;
                     lines.Add(DialogueLine.FromUser(sent));
                     userUtterances.Add(sent);
-                    string expression =
-                        result.UserTurn?.Rude == false
-                            ? result.UserTurn.Translation?.English
-                            : null;
+                    string expression = result.UserTurn?.Translation?.English;
                     UserTranslation = string.IsNullOrWhiteSpace(expression)
                         ? null
                         : expression.Trim();

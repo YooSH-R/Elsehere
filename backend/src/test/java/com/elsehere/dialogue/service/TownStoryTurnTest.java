@@ -51,7 +51,10 @@ class TownStoryTurnTest {
     var firstDay = mock(FirstDayMissionService.class);
     var town =
         new TownStoryService(
-            stories, mock(FirstDayMissionRepository.class), mock(NpcRepository.class));
+            stories,
+            mock(FirstDayMissionRepository.class),
+            mock(NpcRepository.class),
+            mock(com.elsehere.conversation.repository.ConversationRepository.class));
     var missions = new MissionDialogueService(firstDay, town);
     TurnRepository turns = mock(TurnRepository.class);
     when(turns.findByRequestId(any())).thenReturn(Optional.empty());
@@ -118,6 +121,8 @@ class TownStoryTurnTest {
     assertThatThrownBy(() -> service.send(8L, 10L, request)).isInstanceOf(BusinessException.class);
     assertThat(story.getStage()).isZero();
     service.send(8L, 10L, request);
-    assertThat(story.getStage()).isEqualTo(1);
+    assertThat(story.getStage()).isZero();
+    assertThat(story.hasGoal(0)).isTrue();
+    assertThat(story.hasGoal(1)).isFalse();
   }
 }

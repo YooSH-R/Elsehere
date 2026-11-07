@@ -12,6 +12,23 @@ import org.hibernate.annotations.ColumnDefault;
 @Entity
 @Table(name = "town_stories")
 public class TownStory extends BaseEntity {
+  // DINER의 세 번째 비트는 대화 목표가 아니라 착석 후 식사를 받은 상태다. 기존 단계 순서는 유지한다.
+  private static final int DINER_MEAL_RECEIVED = 1 << 2;
+
+  public boolean hasDinerMeal() {
+    return stage > 0 || (completedGoals & DINER_MEAL_RECEIVED) != 0;
+  }
+
+  public boolean canWaitForDinerMeal() {
+    return !paused && stage == 0 && hasGoal(0) && !hasDinerMeal();
+  }
+
+  public void receiveDinerMeal() {
+    if (canWaitForDinerMeal()) {
+      completedGoals |= DINER_MEAL_RECEIVED;
+    }
+  }
+
   @Id private Long userId;
 
   @Column(nullable = false)
@@ -78,7 +95,8 @@ public class TownStory extends BaseEntity {
         completedGoals |= 1 << index;
       }
     }
-    if (completedGoals == (1 << current.goalIds().size()) - 1) {
+    int goalMask = (1 << current.goalIds().size()) - 1;
+    if ((completedGoals & goalMask) == goalMask) {
       stage = expectedStage + 1;
       completedGoals = 0;
       // 퀘스트 하나를 끝내면 다음 퀘스트를 시작할 때까지 멈춘다.

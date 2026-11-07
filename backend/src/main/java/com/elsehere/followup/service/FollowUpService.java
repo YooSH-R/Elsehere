@@ -71,6 +71,15 @@ public class FollowUpService {
   private final AiGateway aiGateway;
   private final TransactionTemplate transactionTemplate;
   private final Clock clock;
+  private final com.elsehere.mission.repository.TownStoryRepository townStories;
+
+  private boolean questOwnsMeal(Long userId, Long npcId) {
+    return npcRepository
+            .findById(npcId)
+            .filter(npc -> "DINER_STAFF".equals(npc.getCode()))
+            .isPresent()
+        && townStories.existsById(userId);
+  }
 
   /**
    * 끝난 대화에서 NPC가 곧 건네기로 한 것을 판정해 저장한다. 같은 대화는 한 번만 판정하고, 다시 종료하면 저장한 것을 돌려준다. 판정에 실패하면 건넬 것이 없는 것으로
@@ -97,6 +106,7 @@ public class FollowUpService {
     return transactionTemplate.execute(
         status ->
             followUpRepository.findAllByUserIdAndDeliveredAtIsNullOrderByReadyAtAsc(userId).stream()
+                .filter(followUp -> !questOwnsMeal(userId, followUp.getNpcId()))
                 .map(this::response)
                 .toList());
   }
@@ -113,6 +123,9 @@ public class FollowUpService {
 
   /** 이 NPC가 지금 건넬 수 있는 것. 대화 시작(CONV-01)의 첫마디를 정할 때 쓴다. */
   public Optional<ReadyFollowUp> readyFor(Long userId, Long npcId) {
+    if (questOwnsMeal(userId, npcId)) {
+      return Optional.empty();
+    }
     Instant now = clock.instant();
     return followUpRepository
         .findFirstByUserIdAndNpcIdAndDeliveredAtIsNull(userId, npcId)
@@ -136,7 +149,11 @@ public class FollowUpService {
   private Optional<FollowUpResponse> judge(Long userId, Long conversationId, UUID requestId) {
     Optional<FollowUpResponse> saved =
         transactionTemplate.execute(
-            status -> followUpRepository.findByConversationId(conversationId).map(this::response));
+            status ->
+                followUpRepository
+                    .findByConversationId(conversationId)
+                    .filter(followUp -> !questOwnsMeal(userId, followUp.getNpcId()))
+                    .map(this::response));
     if (saved.isPresent()) {
       return saved;
     }
@@ -160,7 +177,7 @@ public class FollowUpService {
       return Optional.empty();
     }
     FollowUpWait wait = FollowUpWait.valueOf(owed.waitKind());
-    return Optional.of(
+    return Optional.ofNullable(
         transactionTemplate.execute(
             status -> promise(userId, job.npcId(), conversationId, owed, wait)));
   }
@@ -168,6 +185,9 @@ public class FollowUpService {
   // 같은 NPC에게 기다리던 것이 있으면 새 약속으로 바꾼다.
   private FollowUpResponse promise(
       Long userId, Long npcId, Long conversationId, WorkerFollowUp owed, FollowUpWait wait) {
+    if (questOwnsMeal(userId, npcId)) {
+      return null;
+    }
     followUpRepository.deleteAllByUserIdAndNpcIdAndDeliveredAtIsNull(userId, npcId);
     NpcFollowUp followUp =
         followUpRepository.save(
@@ -198,6 +218,7 @@ public class FollowUpService {
     return npcRepository
         .findById(conversation.getNpcId())
         .filter(npc -> !HANDS_OVER_ON_THE_SPOT.contains(npc.getCode()))
+        .filter(npc -> !questOwnsMeal(userId, npc.getId()))
         .filter(npc -> !PoliceOfficers.includes(npc.getCode()) || policeDispatch)
         .map(
             npc ->

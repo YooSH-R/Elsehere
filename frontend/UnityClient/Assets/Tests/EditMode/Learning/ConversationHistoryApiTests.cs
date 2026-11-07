@@ -31,7 +31,10 @@ namespace A305.Learning.Tests
             ConversationPage page = await api.GetPageAsync(null);
 
             Assert.That(transport.Request.Method, Is.EqualTo("GET"));
-            Assert.That(transport.Request.Url, Is.EqualTo("/api/v1/conversations?size=20"));
+            Assert.That(
+                transport.Request.Url,
+                Is.EqualTo("/api/v1/conversations?size=20&feedbackOnly=true")
+            );
             ConversationSummary item = page.Items[0];
             Assert.That(item.ConversationId, Is.EqualTo(58));
             Assert.That(item.Npc.Name, Is.EqualTo("Mia"));
@@ -53,7 +56,7 @@ namespace A305.Learning.Tests
 
             Assert.That(
                 transport.Request.Url,
-                Is.EqualTo("/api/v1/conversations?size=20&cursor=58")
+                Is.EqualTo("/api/v1/conversations?size=20&feedbackOnly=true&cursor=58")
             );
         }
 

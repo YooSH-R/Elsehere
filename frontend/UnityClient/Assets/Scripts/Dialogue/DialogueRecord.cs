@@ -13,7 +13,8 @@ namespace A305.Dialogue
             bool isGuidedCompleted,
             ServerFeedback serverFeedback = null,
             long? reviewCardId = null,
-            ReviewPracticeResult reviewResult = null
+            ReviewPracticeResult reviewResult = null,
+            bool isFeedbackDeferred = false
         )
         {
             NpcCode = npcCode;
@@ -24,6 +25,7 @@ namespace A305.Dialogue
             ServerFeedback = serverFeedback;
             ReviewCardId = reviewCardId;
             ReviewResult = reviewResult;
+            IsFeedbackDeferred = isFeedbackDeferred;
         }
 
         /// <summary>ERD npcs.code</summary>
@@ -42,5 +44,8 @@ namespace A305.Dialogue
         public ServerFeedback ServerFeedback { get; }
         public long? ReviewCardId { get; }
         public ReviewPracticeResult ReviewResult { get; }
+
+        /// <summary>사용자가 피드백 생성을 기다리지 않고 [나중에 확인하기]로 넘긴 대화인지.</summary>
+        public bool IsFeedbackDeferred { get; }
     }
 }

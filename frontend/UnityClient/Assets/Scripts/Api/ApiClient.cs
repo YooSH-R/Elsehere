@@ -33,14 +33,56 @@ namespace A305.Api
             { CsrfHeaderName, CsrfHeaderValue },
         };
 
+        // 스트림을 시작하기 전의 오류는 JSON으로 오므로 둘 다 받는다고 알린다(API 명세 CONV-03 스트리밍).
+        private static readonly IReadOnlyDictionary<string, string> StreamHeaders = new Dictionary<
+            string,
+            string
+        >
+        {
+            { CsrfHeaderName, CsrfHeaderValue },
+            { "Accept", "text/event-stream, application/json" },
+        };
+
         private readonly string baseUrl;
         private readonly IApiTransport transport;
+        private readonly IApiStreamTransport streamTransport;
 
         /// <param name="baseUrl">API 서버 주소. 같은 출처에서 제공하는 Web 빌드는 빈 문자열이다.</param>
-        public ApiClient(string baseUrl, IApiTransport transport)
+        /// <param name="streamTransport">이벤트 스트림 응답을 받는 전송. 스트림을 쓰지 않는 클라이언트는 null이다.</param>
+        public ApiClient(
+            string baseUrl,
+            IApiTransport transport,
+            IApiStreamTransport streamTransport = null
+        )
         {
             this.baseUrl = baseUrl.TrimEnd('/');
             this.transport = transport;
+            this.streamTransport = streamTransport;
+        }
+
+        /// <summary>
+        /// JSON 본문을 POST하고 서버가 보내는 이벤트 스트림(SSE)을 받는 대로 <paramref name="onEvent"/>(이벤트 이름, data)에 넘긴다.
+        /// 스트림을 시작하기 전의 오류는 다른 요청처럼 <see cref="ApiException"/>으로 던진다.
+        /// </summary>
+        public async Task PostStreamAsync(string path, object body, Action<string, string> onEvent)
+        {
+            if (streamTransport == null)
+            {
+                throw new InvalidOperationException("이벤트 스트림을 받을 전송이 없습니다.");
+            }
+
+            var request = new ApiTransportRequest(
+                "POST",
+                UrlFor(path),
+                body == null ? null : ApiJson.Serialize(body),
+                StreamHeaders
+            );
+            var reader = new ServerSentEventReader(onEvent);
+            ApiTransportResponse response = await streamTransport.SendStreamAsync(
+                request,
+                reader.Read
+            );
+            Check(response);
         }
 
         /// <summary>API 호출이 아니라 페이지 이동으로 여는 주소(예: 소셜 로그인 시작).</summary>
@@ -143,6 +185,13 @@ namespace A305.Api
         private async Task<string> ReceiveAsync(ApiTransportRequest request)
         {
             ApiTransportResponse response = await transport.SendAsync(request);
+            Check(response);
+            return response.Body;
+        }
+
+        // 응답을 받지 못했거나 오류 응답이면 ApiException으로 던진다.
+        private static void Check(ApiTransportResponse response)
+        {
             if (response.IsNetworkFailure)
             {
                 throw new ApiException(
@@ -156,8 +205,6 @@ namespace A305.Api
             {
                 throw ToException(response);
             }
-
-            return response.Body;
         }
 
         private static ApiException ToException(ApiTransportResponse response)

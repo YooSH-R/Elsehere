@@ -16,6 +16,7 @@ namespace A305.World
         private static readonly List<LoopingCar> Driving = new List<LoopingCar>();
 
         private const float SingleLaneClearanceMeters = 4f;
+        private readonly Collider[] nearbyPeople = new Collider[64];
 
         [SerializeField]
         [Tooltip("남쪽 유턴 지점 z")]
@@ -180,25 +181,32 @@ namespace A305.World
 
         private bool IsBlocked(CarLoopRoute.Pose pose)
         {
-            if (
-                !passengerOnBoard
-                && player != null
-                && CarLoopRoute.ShouldYield(pose.Position, pose.Forward, player.transform.position)
-            )
+            if (!passengerOnBoard && player != null && ShouldYieldTo(player.transform.position))
             {
                 return true;
             }
 
-            foreach (LoopingCar other in Driving)
+            // 신호가 없는 횡단보도에서도 사람을 지나칠 때까지 기다린다.
+            int count = Physics.OverlapSphereNonAlloc(
+                pose.Position + Vector3.up,
+                CarLoopRoute.YieldAheadMeters + CarLoopRoute.YieldHalfWidthMeters,
+                nearbyPeople,
+                Physics.DefaultRaycastLayers,
+                QueryTriggerInteraction.Ignore
+            );
+            for (int i = 0; i < count; i++)
             {
                 if (
-                    other != this
-                    && CarLoopRoute.ShouldYield(
-                        pose.Position,
-                        pose.Forward,
-                        other.transform.position
-                    )
+                    nearbyPeople[i] is CharacterController person
+                    && (player == null || person.gameObject != player.gameObject)
+                    && ShouldYieldTo(person.transform.position)
                 )
+                    return true;
+            }
+
+            foreach (LoopingCar other in Driving)
+            {
+                if (other != this && ShouldYieldTo(other.transform.position))
                 {
                     return true;
                 }
@@ -206,6 +214,9 @@ namespace A305.World
 
             return false;
         }
+
+        private bool ShouldYieldTo(Vector3 obstacle) =>
+            CarLaneBypass.ShouldYield(Route, Distance, parkedTruckBypassOffset, obstacle);
 
         private void Place()
         {

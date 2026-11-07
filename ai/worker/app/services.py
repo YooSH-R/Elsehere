@@ -60,7 +60,7 @@ def clean_events(raw: dict) -> list[str]:
 
 async def judge(llm: LLM, req: JudgeRequest) -> dict:
     """의도(+ 줄 사건)와 번역(한국어가 섞였을 때)을 동시에. 하나가 실패해도 턴은 이어 간다 (의도 → unclear·사건 없음, 번역 → error).
-    무례 판정은 /v1/guard가 따로 한다. 번역 카드를 보여 줄지(무례가 아님이 확정일 때만)는 그 결과로 Spring이 정한다.
+    무례 판정은 /v1/guard가 따로 한다. 생성된 영어 번역은 무례 판정과 관계없이 Spring이 표현 카드로 전달한다.
     affinity_delta는 줄 사건으로 바로 올릴 호감이다. 무례로 확정된 턴이면 Spring이 쓰지 않고 /v1/guard의 감점만 쓴다."""
     usage = Usage()
     text, had_action = P.strip_actions(req.text)
@@ -190,7 +190,8 @@ async def suggest(llm: LLM, req: SuggestRequest) -> dict:
 
 
 async def memory(llm: LLM, req: MemoryRequest) -> dict:
-    """NPC 기억 카드 갱신. 실패하면 HTTP 오류이고 Spring은 이전 카드를 그대로 둔다."""
+    """NPC 기억 카드 갱신과 이번 대화의 인상. 실패하면 HTTP 오류이고 Spring은 이전 카드·호감을 그대로 둔다.
+    affinity_delta는 좋은 대화로 올릴 호감이다(app.npc_relationship.good_conversation_affinity_delta). Spring이 카드를 저장하면서 더한다."""
     usage = Usage()
     out = await llm.chat(
         "memory",
@@ -202,14 +203,29 @@ async def memory(llm: LLM, req: MemoryRequest) -> dict:
         P.MEMORY_SCHEMA,
         hedge=False,
     )
-    return {"memory_card": P.parse_memory_card(out), "usage": usage.items}
+    card, impression = P.parse_memory_output(out)
+    rules, _ = npc_relationship.service_rules()
+    learner_turns = [(line.rude, line.events) for line in req.history if line.who == "me"]
+    return {
+        "memory_card": card,
+        "impression": impression,
+        "affinity_delta": npc_relationship.good_conversation_affinity_delta(impression, learner_turns, rules),
+        "usage": usage.items,
+    }
 
 
 async def follow_up(llm: LLM, req: FollowUpRequest) -> dict:
     """대화가 끝난 뒤 NPC가 지금 준비해 곧 건네기로 한 것. 없으면 follow_up이 null이다. 실패하면 HTTP 오류이고 Spring은 다시 부르지 않는다."""
     usage = Usage()
     out = await llm.chat(
-        "follow_up", "memory", P.follow_up_messages(req.npc, req.history), usage, 0.0, 120, P.FOLLOW_UP_SCHEMA, hedge=False
+        "follow_up",
+        "memory",
+        P.follow_up_messages(req.npc, req.history, req.kind),
+        usage,
+        0.0,
+        120,
+        P.FOLLOW_UP_KINDS[req.kind][1],
+        hedge=False,
     )
     return {"follow_up": P.parse_follow_up(load_object(out, "건넬 것")), "usage": usage.items}
 

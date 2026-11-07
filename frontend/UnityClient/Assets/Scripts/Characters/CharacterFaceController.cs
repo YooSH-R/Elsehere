@@ -22,6 +22,16 @@ namespace A305.Characters
 
     public sealed class CharacterFaceController : MonoBehaviour
     {
+        private static readonly string[] EmotionFamilies =
+        {
+            "browInnerUp",
+            "browOuterUp",
+            "browDown",
+            "eyeSquint",
+            "eyeWide",
+            "cheekRaise",
+            "mouthFrown",
+        };
         private static readonly string[] Channels =
         {
             "mouthSmileLeft",
@@ -119,6 +129,7 @@ namespace A305.Characters
             {
                 if (skin.sharedMesh == null)
                     continue;
+                ClearEmotion(skin);
                 for (int i = 0; i < Channels.Length; i++)
                 {
                     int index = skin.sharedMesh.GetBlendShapeIndex(Channels[i]);
@@ -188,6 +199,7 @@ namespace A305.Characters
             {
                 if (skin.sharedMesh == null)
                     continue;
+                ClearEmotion(skin);
                 for (int i = 0; i < weights.Length; i++)
                 {
                     int index = skin.sharedMesh.GetBlendShapeIndex(Channels[i]);
@@ -195,6 +207,174 @@ namespace A305.Characters
                         skin.SetBlendShapeWeight(index, weights[i] * 100);
                 }
             }
+        }
+
+        public void ApplySpeech(SpeechMouthSample mouth, FaceEmotionSample emotion, float blink)
+        {
+            ApplySpeech(mouth, 0, blink);
+            float articulation = 0;
+            for (
+                int pose = (int)CharacterFacePose.OpenMouth;
+                pose <= (int)CharacterFacePose.FlatEu;
+                pose++
+            )
+                articulation += mouth.Weight((CharacterFacePose)pose);
+            // Expressive opening occupies only the rest portion of the sample.
+            // It must not force a jaw-open pose through an active consonant.
+            float restOpening =
+                Mathf.Clamp01(emotion.restMouthOpen) * (1 - Mathf.Clamp01(articulation));
+            float laughOpening = Mathf.Min(
+                restOpening,
+                Mathf.Clamp01(emotion.restLaughOpen) * (1 - Mathf.Clamp01(articulation))
+            );
+            float contact = Mathf.Clamp01(
+                mouth.Weight(CharacterFacePose.ClosedLips)
+                    + mouth.Weight(CharacterFacePose.FV)
+                    + mouth.Weight(CharacterFacePose.TH)
+            );
+            float rounding = Mathf.Clamp01(
+                mouth.Weight(CharacterFacePose.OH) + mouth.Weight(CharacterFacePose.OU)
+            );
+            float opening = Mathf.Clamp01(
+                mouth.Weight(CharacterFacePose.OpenMouth)
+                    + mouth.Weight(CharacterFacePose.E)
+                    + mouth.Weight(CharacterFacePose.TH)
+                    + restOpening
+            );
+            float cornerFreedom = (1 - contact) * (1 - .75f * rounding) * (1 - .65f * opening);
+            float openEyes = 1 - Mathf.Clamp01(blink);
+            foreach (var skin in GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (skin.sharedMesh == null)
+                    continue;
+                SetSingle(skin, "mouthLaughOpen", laughOpening);
+                int jawIndex = skin.sharedMesh.GetBlendShapeIndex("viseme_AA");
+                if (jawIndex >= 0)
+                    skin.SetBlendShapeWeight(
+                        jawIndex,
+                        (mouth.Weight(CharacterFacePose.OpenMouth) + restOpening) * 100
+                    );
+                SetPair(skin, "mouthSmile", emotion.smile * cornerFreedom);
+                SetPair(
+                    skin,
+                    "mouthFrown",
+                    new Vector2(
+                        emotion.mouthFrown.x * (1 - Mathf.Clamp01(emotion.smile.x)),
+                        emotion.mouthFrown.y * (1 - Mathf.Clamp01(emotion.smile.y))
+                    ) * cornerFreedom
+                );
+                SetPair(skin, "browInnerUp", emotion.browInnerUp);
+                SetPair(skin, "browOuterUp", emotion.browOuterUp);
+                SetPair(skin, "browDown", emotion.browDown);
+                ApplyEyeClosure(
+                    skin,
+                    "Left",
+                    emotion.eyeSquint.x,
+                    emotion.eyeSquintOpening,
+                    emotion.eyeClosure.x,
+                    emotion.browDown.x,
+                    blink
+                );
+                ApplyEyeClosure(
+                    skin,
+                    "Right",
+                    emotion.eyeSquint.y,
+                    emotion.eyeSquintOpening,
+                    emotion.eyeClosure.y,
+                    emotion.browDown.y,
+                    blink
+                );
+                SetPair(skin, "eyeSquint", emotion.eyeSquint * openEyes);
+                SetPair(
+                    skin,
+                    "eyeWide",
+                    new Vector2(
+                        emotion.eyeWide.x
+                            * (
+                                1
+                                - Mathf.Clamp01(
+                                    Mathf.Max(emotion.eyeSquint.x, emotion.eyeClosure.x)
+                                )
+                            ),
+                        emotion.eyeWide.y
+                            * (
+                                1
+                                - Mathf.Clamp01(
+                                    Mathf.Max(emotion.eyeSquint.y, emotion.eyeClosure.y)
+                                )
+                            )
+                    ) * openEyes
+                );
+                SetPair(skin, "cheekRaise", emotion.cheekRaise * openEyes);
+            }
+        }
+
+        private static void ApplyEyeClosure(
+            SkinnedMeshRenderer skin,
+            string side,
+            float squint,
+            float squintOpening,
+            float closure,
+            float browDown,
+            float blink
+        )
+        {
+            // Authored eyeSquint is a curve correction, not a second closing
+            // trajectory. Share closure with blink so the convex eye stays covered.
+            float supportedSquint =
+                skin.sharedMesh.GetBlendShapeIndex("eyeSquint" + side) >= 0 ? squint : 0;
+            // Base 눈꺼풀의 낮은 가중치는 안구 뒤 준비 구간에 머문다.
+            // 찡그리는 눈썹과 함께 눈매를 보강한다. 기존 인자한 미소와 강한 감정은 유지한다.
+            float squintClosure =
+                supportedSquint < .5f
+                    ? .5f * Mathf.Pow(Mathf.Clamp01(supportedSquint / .5f), .25f)
+                    : supportedSquint;
+            squintClosure = Mathf.Lerp(supportedSquint, squintClosure, Mathf.Clamp01(browDown * 2));
+            // 웃는 눈 곡면과 완전 닫힘을 분리한다. 실제 깜빡임과 직접 눈 감기는 유지한다.
+            squintClosure *= 1 - Mathf.Clamp01(squintOpening);
+            SetSingle(skin, "eyeBlink" + side, Mathf.Max(blink, Mathf.Max(squintClosure, closure)));
+        }
+
+        public static string[] MissingEmotionChannels(Transform root)
+        {
+            var missing = new List<string>();
+            var skins = root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            foreach (string family in EmotionFamilies)
+            foreach (string side in new[] { "Left", "Right" })
+            {
+                string channel = family + side;
+                bool found = false;
+                foreach (var skin in skins)
+                    found |=
+                        skin.sharedMesh != null && skin.sharedMesh.GetBlendShapeIndex(channel) >= 0;
+                if (!found)
+                    missing.Add(channel);
+            }
+            return missing.ToArray();
+        }
+
+        private static void ClearEmotion(SkinnedMeshRenderer skin)
+        {
+            SetSingle(skin, "mouthLaughOpen", 0);
+            foreach (string family in EmotionFamilies)
+                SetPair(skin, family, Vector2.zero);
+        }
+
+        private static void SetSingle(SkinnedMeshRenderer skin, string channel, float weight)
+        {
+            int index = skin.sharedMesh.GetBlendShapeIndex(channel);
+            if (index >= 0)
+                skin.SetBlendShapeWeight(index, Mathf.Clamp01(weight) * 100);
+        }
+
+        private static void SetPair(SkinnedMeshRenderer skin, string family, Vector2 weights)
+        {
+            int left = skin.sharedMesh.GetBlendShapeIndex(family + "Left");
+            int right = skin.sharedMesh.GetBlendShapeIndex(family + "Right");
+            if (left >= 0)
+                skin.SetBlendShapeWeight(left, Mathf.Clamp01(weights.x) * 100);
+            if (right >= 0)
+                skin.SetBlendShapeWeight(right, Mathf.Clamp01(weights.y) * 100);
         }
 
         private static bool IsActive(CharacterFacePose pose, int channel) =>

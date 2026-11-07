@@ -4,12 +4,13 @@
 import re
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .npc_profile_models import NpcProfile
+from .speech_emotion import Mood
 
 # 대화 난이도 1~3 (백엔드 levelApplied). 1: 천천히 쉬운 단어·짧은 문장, 2: 자연스러운 일상 영어, 3: 원래 말투 그대로.
-# NPC 대답의 문장 수·길이·어휘, 말 속도, 힌트·추천 단어 수준이 바뀐다 (판정은 영향 없음). 규칙은 prompts.LEVEL_RULES
+# NPC 대답의 문장 수·길이·어휘, 힌트·추천 단어 수준이 바뀐다 (판정은 영향 없음). 규칙은 prompts.LEVEL_RULES
 Level = Literal[1, 2, 3]
 
 
@@ -26,7 +27,7 @@ class Npc(BaseModel):
     facts: str = ""
     scene: str = ""
     tts_voice: str = "af_heart"
-    tts_speed: float = Field(default=1.0, ge=0.5, le=2.0)  # 이 NPC의 타고난 말 속도. 난이도 배율을 곱한다
+    tts_speed: float = Field(default=1.0, ge=0.5, le=2.0)  # 호환용 필드. NPC 대화 음성은 1.1배로 고정한다
     # 공통 인격 스키마의 인격(백엔드 인격 설정의 npcProfile 그대로). 있으면 NPC 대답을 공통 규칙 + 인격으로 만든다 (app.npc_prompt)
     profile: NpcProfile | None = None
 
@@ -70,6 +71,7 @@ class State(BaseModel):
     id: str
     desc: str
     intents: list[Intent] = Field(min_length=1)
+    accumulate_history: bool = False  # 복합 미션 목표는 같은 대화의 학습자 발언에 나눠 말한 사실을 합쳐 판정한다.
     slots: Slots = Slots()
     current: dict = {}  # 지금 값 (예: {"order": "a latte"})
     more_intents: list[Intent] = []  # 같은 줄에서 이어서 할 수 있는 다음 단계 의도 (예: 포장 고르기 중의 '결제').
@@ -123,17 +125,40 @@ class ReplyRequest(BaseModel):
     text: str = Field(max_length=500)  # 학습자 원문 그대로 (한국어 섞인 채)
     # Spring 규칙이 정한 이번 대답에서 할 일. 퀘스트 단계 지시와 진행 규칙을 합치면 1500자 안팎이다
     instruction: str = Field(default="", max_length=3000)
+    reaction: Literal["rude_warning", "rude_repeated", "rude_final", "compliment", "apology_after_rude"] | None = None
     tts: bool = True
+    stream_chunks: bool = True  # false면 조각 이벤트·보관을 생략하고 done의 전체 음성만 만든다
     level: Level = 2
     suggest_words: bool = False  # true면 대답이 끝난 뒤 추천 단어를 만들어 스트림의 words 이벤트로 (음성 합성과 동시에)
     goal: str = Field(default="", max_length=300)  # 추천 단어용: 지금 상태에서 학습자가 할 일
     learner: Learner | None = None  # 있으면 캐릭터에 맞는 호칭만, 없으면 성별을 짐작한 호칭(Mr.·Ms.·sir·ma'am)을 쓰지 않는다
 
 
+class SpeechPhrase(BaseModel):
+    text: str = Field(min_length=1, max_length=400)
+    emotion: str | None = None
+    intensity: float = Field(default=0, ge=0, le=1, allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def validate_mood(self):
+        if self.emotion is not None:
+            Mood(self.emotion, self.intensity)
+        return self
+
+
 class TtsRequest(BaseModel):
     text: str = Field(min_length=1, max_length=400)
     voice: str = "af_heart"
     speed: float = Field(default=1.0, ge=0.5, le=2.0)
+    phrases: list[SpeechPhrase] = Field(default=[], max_length=40)
+
+    @model_validator(mode="after")
+    def phrases_match_text(self):
+        if self.phrases:
+            spoken = "".join("".join(phrase.text.split()) for phrase in self.phrases)
+            if spoken != "".join(self.text.split()):
+                raise ValueError("Speech phrases do not match the reply text")
+        return self
 
 
 class HintRequest(BaseModel):
@@ -194,6 +219,8 @@ class FollowUpRequest(BaseModel):
 
     npc: Npc
     history: list[Line] = Field(max_length=200)
+    # handover: 준비해 건넬 것(음료·음식·빨래 등), police_call: 경찰관이 출동해 정한 해결 결과(app.prompts.POLICE_CALL_SYSTEM)
+    kind: Literal["handover", "police_call"] = "handover"
 
     @field_validator("history")
     @classmethod

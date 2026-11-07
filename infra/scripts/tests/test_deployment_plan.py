@@ -32,6 +32,12 @@ class DeploymentPlanTest(unittest.TestCase):
         self.assertEqual(plan["checks"], ["unity"])
         self.assertEqual(plan["builds"], ["web"])
 
+    def test_browser_regressions_select_unity_checks_without_an_image_rebuild(self):
+        plan = select_deployment_work(["infra/tests/webgl_pronunciation.test.cjs"])
+        self.assertEqual(plan["checks"], ["infra", "unity"])
+        self.assertEqual(plan["builds"], [])
+        self.assertFalse(plan["deploy"])
+
     def test_ai_code_changes_select_ai_without_unity_rebuild(self):
         plan = select_deployment_work(["ai/worker/app/main.py"])
 
@@ -54,6 +60,7 @@ class DeploymentPlanTest(unittest.TestCase):
 
     def test_unity_test_input_changes_run_unity_without_rebuilding_images(self):
         for path in [
+            "infra/scripts/unity-test-scope.ps1",
             "infra/scripts/prepare-unity-test-inputs.ps1",
             "infra/tests/tripo/create_ci_fixtures.py",
             "infra/tests/tripo/test_ci_fixtures.py",

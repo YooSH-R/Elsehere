@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using A305.Api;
 using A305.Player;
 using A305.Voice;
+using A305.World;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -39,7 +40,9 @@ namespace A305.Dialogue
         private VoiceConsentAgreement voiceConsentAgreement;
         private DialogueConversation conversation;
         private ServerConversation serverConversation;
+        private NpcSpeechRecovery speechRecovery;
         private bool isEnding;
+        private Task pendingServerStart = Task.CompletedTask;
 
         // 대화 시점이 바라보는 NPC 머리 위치. 대화가 끝나면 플레이어를 이쪽으로 돌린다.
         private Transform partnerLookTarget;
@@ -56,11 +59,34 @@ namespace A305.Dialogue
         /// <summary>서버가 수락한 무례하지 않은 발화. 월드 상호작용은 이 시점에만 반영한다.</summary>
         public event Action<string, string> UserTurnAccepted;
 
+        /// <summary>경찰관이 신고를 받아 순찰차를 출동시킨 턴. NPC 코드와 출동할 장소 코드(null이면 본길 순찰)를 넘긴다.</summary>
+        public event Action<string, long, string> PoliceDispatchRequested;
+
         /// <summary>
         /// 대화가 끝나면 대화 기록을 알린다. 시점과 이동을 되돌린 뒤 가장 마지막에 알리므로,
         /// 받는 쪽이 피드백 화면을 열며 이동을 다시 잠가도 풀리지 않는다.
         /// </summary>
         public event Action<DialogueRecord> ConversationEnded;
+
+        public static event Action<DialogueRecord> BackgroundFeedbackCompleted;
+
+        private FeedbackDelivery feedbackDelivery;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetBackgroundFeedback() => BackgroundFeedbackCompleted = null;
+
+        /// <summary>전송한 종료 요청을 유지한 채 대화창과 이동 잠금만 닫는다.</summary>
+        public void CheckFeedbackLater()
+        {
+            if (
+                serverConversation == null
+                || serverConversation.IsReview
+                || feedbackDelivery == null
+                || !feedbackDelivery.TryDefer()
+            )
+                return;
+            Finish(serverConversation.ToRecord(null, true));
+        }
 
         /// <summary>
         /// 대사의 풀이 단어 카드에서 [단어장에 저장]을 누르면 그 단어를 알린다. 저장은 받는 쪽(Learning 모듈)이 하고
@@ -69,6 +95,12 @@ namespace A305.Dialogue
         public event Action<GlossaryWord> WordSaveRequested;
 
         public bool IsTalking => session.IsActive;
+        public long? ActiveReviewConversationId =>
+            serverConversation?.IsReview == true ? serverConversation.ConversationId : null;
+
+        /// <summary>이 머리 위치를 가진 NPC가 현재 대화 상대인지.</summary>
+        public bool IsTalkingTo(Transform lookTarget) =>
+            session.IsActive && lookTarget != null && partnerLookTarget == lookTarget;
 
         /// <summary>정해진 흐름(튜토리얼 길 안내)에서 지금 입력할 대사. 정해진 흐름이 아니거나 마쳤으면 null.</summary>
         public string GuidedLine => IsTalking ? conversation?.SuggestedEnglish : null;
@@ -152,14 +184,21 @@ namespace A305.Dialogue
             Transform lookTarget,
             ConversationInitiator initiatedBy = ConversationInitiator.Npc,
             string scriptKey = null,
-            bool npcOffDuty = false
+            bool npcOffDuty = false,
+            long? reviewCardId = null,
+            Func<string, Task<ConversationStart>> reviewStart = null
         )
         {
-            if (lookTarget == null || !session.TryStart(npcCode))
+            if (
+                (reviewCardId != null && (conversationApi == null || reviewStart == null))
+                || lookTarget == null
+                || !session.TryStart(npcCode)
+            )
             {
                 return false;
             }
 
+            GameClock.Shared.IsTalking = true;
             if (serverLink != null)
             {
                 var speaker = lookTarget.GetComponentInParent<DialogueSpeaker>();
@@ -176,14 +215,16 @@ namespace A305.Dialogue
             cameraRig.EnterDialogueView(lookTarget);
             player.SetMovementLocked(true);
 
-            bool isGuided = hasScript && script.GuidedTurns.Count > 0;
+            bool isGuided = reviewCardId == null && hasScript && script.GuidedTurns.Count > 0;
             if (conversationApi != null && !isGuided)
             {
                 StartServerConversation(
                     npcCode,
                     hasScript ? script.NpcName : npcCode,
                     initiatedBy,
-                    npcOffDuty
+                    npcOffDuty,
+                    reviewCardId,
+                    reviewStart
                 );
             }
             else
@@ -203,7 +244,8 @@ namespace A305.Dialogue
                 KeepMicrophoneOpen();
             }
 
-            Started?.Invoke(npcCode);
+            if (reviewCardId == null)
+                Started?.Invoke(npcCode);
             return true;
         }
 
@@ -224,8 +266,10 @@ namespace A305.Dialogue
                 return;
             }
 
+            TextPronunciation.Stop();
             if (serverConversation != null)
             {
+                speechRecovery?.Cancel();
                 serverLink.StopSpeech();
                 isEnding = true;
                 // 대화가 끝나면 녹음도 멈춘다(기능 명세 F-23). 끝내는 중이라 녹음 결과는 전사하지 않는다.
@@ -269,6 +313,12 @@ namespace A305.Dialogue
         private void Update()
         {
             ShowVoiceInput();
+            if (serverConversation != null && serverConversation.Tick(DateTimeOffset.UtcNow))
+            {
+                End();
+                return;
+            }
+
             if (
                 session.IsActive
                 && Keyboard.current != null
@@ -309,11 +359,13 @@ namespace A305.Dialogue
             }
 
             panel.EndRequested += End;
+            panel.FeedbackLaterRequested += CheckFeedbackLater;
             panel.SendRequested += Send;
             panel.WordSaveRequested += ForwardWordSave;
             panel.TalkStartRequested += StartRecording;
             panel.TalkStopRequested += StopRecording;
             panel.ReplayRequested += ReplaySpeech;
+            panel.UserTranslationListenRequested += ReadUserTranslation;
             panel.MeaningRequested += RequestMeaning;
             panel.HintRequested += RequestHint;
             panel.RetryRequested += Retry;
@@ -333,6 +385,10 @@ namespace A305.Dialogue
 
         private void OnDestroy()
         {
+            speechRecovery?.Dispose();
+            TextPronunciation.Stop();
+            if (session.IsActive)
+                GameClock.Shared.IsTalking = false;
             if (serverLink != null)
                 serverLink.SetSpeaker(null);
             if (serverLink != null && serverLink.VoiceRecorder != null)
@@ -349,6 +405,7 @@ namespace A305.Dialogue
                 panel.TalkStartRequested -= StartRecording;
                 panel.TalkStopRequested -= StopRecording;
                 panel.ReplayRequested -= ReplaySpeech;
+                panel.UserTranslationListenRequested -= ReadUserTranslation;
                 panel.MeaningRequested -= RequestMeaning;
                 panel.HintRequested -= RequestHint;
                 panel.RetryRequested -= Retry;
@@ -401,7 +458,9 @@ namespace A305.Dialogue
             string npcCode,
             string npcName,
             ConversationInitiator initiatedBy,
-            bool npcOffDuty
+            bool npcOffDuty,
+            long? reviewCardId = null,
+            Func<string, Task<ConversationStart>> reviewStart = null
         )
         {
             serverConversation = new ServerConversation(
@@ -410,49 +469,83 @@ namespace A305.Dialogue
                 conversationApi,
                 VoiceConsent.Shared.IsAgreed,
                 initiatedBy,
-                npcOffDuty: npcOffDuty
+                npcOffDuty: npcOffDuty,
+                reviewCardId: reviewCardId,
+                reviewStart: reviewStart
             );
+            speechRecovery = new NpcSpeechRecovery(serverConversation, PlayRecoveredSpeechAsync);
             serverConversation.Changed += panel.Refresh;
             serverConversation.NpcSpoke += PlayNpcSpeech;
+            serverConversation.NpcSpeechChunk += PlayNpcSpeechChunk;
             serverConversation.UserTurnAccepted += ForwardAcceptedTurn;
+            serverConversation.PoliceDispatchRequested += ForwardPoliceDispatch;
             panel.Show(serverConversation);
-            _ = serverConversation.StartAsync();
+            pendingServerStart = StartServerConversationAsync(
+                serverConversation,
+                pendingServerStart
+            );
+        }
+
+        private async Task StartServerConversationAsync(
+            ServerConversation starting,
+            Task previousStart
+        )
+        {
+            // 취소 직후 다시 말을 걸어도 이전 요청의 정리가 새로 시작한 대화를 닫지 않게 순서를 지킨다.
+            await previousStart;
+            await starting.StartAsync();
+            if (this != null && serverConversation != starting)
+            {
+                // 준비 중 취소한 대화의 서버 정리가 끝났다. 정리 전의 정지 응답으로 시계가 멈춰 있지 않게 한다.
+                GameClock.Shared.RequestSynchronization();
+            }
         }
 
         private async Task EndServerConversationAsync()
         {
             ServerConversation ending = serverConversation;
-            ServerFeedback feedback = await ending.EndAsync();
-            // 피드백을 기다리는 사이 씬을 떠났으면 이 컴포넌트는 이미 사라졌다.
-            if (this == null)
+            var delivery = new FeedbackDelivery(ending.EndAsync);
+            feedbackDelivery = delivery;
+            ServerFeedback feedback = await delivery.CompleteAsync();
+            DialogueRecord record = ending.ToRecord(feedback);
+            // 나중에 확인을 선택했거나 씬을 옮겼다면 새 대화를 닫거나 피드백 창을 강제로 열지 않는다.
+            if (delivery.IsDeferred || this == null || serverConversation != ending)
             {
+                BackgroundFeedbackCompleted?.Invoke(record);
                 return;
             }
-
-            Finish(ending.ToRecord(feedback));
+            Finish(record);
         }
 
         private void Finish(DialogueRecord record)
         {
             string endedNpcCode = Close();
-            Ended?.Invoke(endedNpcCode);
+            if (record.ReviewCardId == null)
+                Ended?.Invoke(endedNpcCode);
             ConversationEnded?.Invoke(record);
         }
 
         // 대화를 닫고 시점·이동을 되돌린다. 끝낸 NPC 코드를 돌려준다.
         private string Close()
         {
+            panel.SetReviewReference(null);
+            speechRecovery?.Dispose();
+            speechRecovery = null;
+            GameClock.Shared.IsTalking = false;
             string endedNpcCode = session.End();
             if (serverConversation != null)
             {
                 serverConversation.Changed -= panel.Refresh;
                 serverConversation.NpcSpoke -= PlayNpcSpeech;
+                serverConversation.NpcSpeechChunk -= PlayNpcSpeechChunk;
                 serverConversation.UserTurnAccepted -= ForwardAcceptedTurn;
+                serverConversation.PoliceDispatchRequested -= ForwardPoliceDispatch;
             }
 
             conversation = null;
             serverConversation = null;
             isEnding = false;
+            feedbackDelivery = null;
             if (serverLink != null)
             {
                 // 립싱크 대상을 놓으면서 지난 대사의 음성도 멈추고 버린다(ForgetSpeech 포함).
@@ -486,6 +579,7 @@ namespace A305.Dialogue
 
         private void Send(string text)
         {
+            TextPronunciation.Stop();
             if (serverConversation != null)
             {
                 _ = serverConversation.SendAsync(text);
@@ -511,6 +605,16 @@ namespace A305.Dialogue
             }
         }
 
+        public void SetReviewReference(string text) => panel.SetReviewReference(text);
+
+        public void SetReviewReference(IReadOnlyList<ReviewReferenceItem> items, int count) =>
+            panel.SetReviewReference(items, count);
+
+        private void ForwardPoliceDispatch(long turnId, string placeCode)
+        {
+            PoliceDispatchRequested?.Invoke(serverConversation.NpcCode, turnId, placeCode);
+        }
+
         private void ForwardAcceptedTurn(string text)
         {
             UserTurnAccepted?.Invoke(serverConversation.NpcCode, text);
@@ -521,9 +625,44 @@ namespace A305.Dialogue
             WordSaveRequested?.Invoke(word);
         }
 
+        private async void ReadUserTranslation(string text)
+        {
+            if (
+                serverConversation == null
+                || serverConversation.IsBusy
+                || text != serverConversation.UserTranslation
+            )
+                return;
+            speechRecovery?.Cancel();
+            serverLink.StopSpeech();
+            bool played = await TextPronunciation.SpeakAsync(text);
+            if (
+                !played
+                && this != null
+                && session.IsActive
+                && text == serverConversation?.UserTranslation
+            )
+                panel.ShowPronunciationFailure();
+        }
+
         private void PlayNpcSpeech(NpcTurnData turn)
         {
+            speechRecovery?.Cancel();
+            TextPronunciation.Stop();
             NpcResponded?.Invoke();
+            // 대답을 받는 동안 문장 조각 음성으로 이미 들려줬다. [다시 듣기]는 턴 전체 음성을 받아 재생한다.
+            if (serverConversation.LastTurnSpokenInChunks)
+            {
+                if (!isEnding && serverConversation.LastTurnSpeechIncomplete)
+                {
+                    if (turn.Speech?.IsReady == true)
+                        _ = serverConversation.PlaySpeechAsync(PlayRecoveredSpeechAsync);
+                    else
+                        speechRecovery?.Queue(turn);
+                }
+                return;
+            }
+
             if (!isEnding && turn.Speech != null && turn.Speech.IsReady)
             {
                 _ = serverConversation.PlaySpeechAsync(serverLink.PlaySpeechAsync);
@@ -531,6 +670,21 @@ namespace A305.Dialogue
             }
 
             serverLink.ForgetSpeech();
+            if (!isEnding)
+                speechRecovery?.Queue(turn);
+        }
+
+        private Task<bool> PlayRecoveredSpeechAsync(string url) =>
+            serverConversation.LastTurnSpokenInChunks
+                ? serverLink.CompleteStreamedSpeechAsync(url)
+                : serverLink.PlaySpeechAsync(url);
+
+        private void PlayNpcSpeechChunk(NpcSpeechChunkData chunk)
+        {
+            if (!isEnding)
+            {
+                serverLink.QueueSpeechChunk(chunk.Reply, chunk.Wav);
+            }
         }
 
         // 대본 대화는 뜻을 대본에 가지고 있어 서버 대화만 받아 온다(CONV-04).
@@ -548,6 +702,11 @@ namespace A305.Dialogue
             {
                 _ = serverConversation.RequestHintAsync();
             }
+            else
+            {
+                conversation?.RequestHint();
+                panel.Refresh();
+            }
         }
 
         private void Retry()
@@ -561,6 +720,7 @@ namespace A305.Dialogue
         // 음성을 받아 둔 턴은 다시 재생하고, 합성에 실패한 턴은 음성을 다시 만든 뒤 재생한다(CONV-06·07).
         private void ReplaySpeech()
         {
+            TextPronunciation.Stop();
             if (
                 serverConversation == null
                 || !serverConversation.CanReplaySpeech
@@ -623,8 +783,10 @@ namespace A305.Dialogue
 
         private void StartRecording()
         {
+            TextPronunciation.Stop();
             if (serverConversation != null && serverConversation.CanSend)
             {
+                speechRecovery?.Cancel();
                 serverLink.StopSpeech();
                 serverLink.VoiceRecorder.StartRecording();
                 serverConversation.ShowListening(serverLink.VoiceRecorder.MaxRecordingSeconds);

@@ -33,7 +33,7 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `STT_FALLBACK` | (구성 값, GMS 구성은 `gms:whisper-1`) | 음성 인식이 한도·오류·응답 없음일 때 한 번 더 부를 `공급자:모델`. 빈 값이면 끔. 녹음 자체 오류(400·413·415·422)는 넘기지 않음 |
 | `STT_FIRST_TIMEOUT_S` | 8 | 뒤에 다른 공급자가 있을 때 첫 음성 인식 호출의 상한 (마지막 공급자와 공급자가 하나뿐일 때는 30초) |
 | `STT_CHAIN` | (없음) | 음성 인식 공급자 순서 `공급자:모델,공급자:모델` (예: `gpu:turbo-lr1e4,gms:whisper-1,groq:whisper-large-v3-turbo`). 앞 공급자가 한도·오류·응답 없음이면 다음으로 넘김. 정하면 구성의 음성 인식과 `STT_FALLBACK` 대신 이 순서를 씀 |
-| `STT_GPU_BASE_URL` / `STT_GPU_TOKEN` | (`STT_CHAIN`에 `gpu`가 있으면 필수) | SSAFY GPU 서버에서 도는 자체 학습 STT([`ai/gpu_stt`](../gpu_stt/README.md))의 주소와 토큰. 학원 방화벽 때문에 GPU 서버가 배포 서버로 거는 역방향 SSH 터널 입구(예: `http://172.19.0.1:18431/v1`)를 가리킴 |
+| `STT_GPU_BASE_URL` / `STT_GPU_TOKEN` | (`STT_CHAIN`에 `gpu`가 있으면 필수) | SSAFY GPU 서버에서 도는 자체 학습 STT([`ai/gpu_stt`](../gpu_stt/README.md))의 주소와 토큰. 학원 방화벽 때문에 GPU 서버가 배포 서버로 거는 역방향 SSH 터널 입구(개발 예: `http://172.19.0.1:18431/v1`, 운영은 `172.30.0.1`)를 가리킴 |
 | `STT_NEXT_TIMEOUT_S` | 8 | 순서 중간 공급자(처음·마지막 아님)의 상한 |
 | `STT_BREAKER_FAILURES` / `STT_BREAKER_SKIP_S` | 3 / 60 | 같은 음성 인식 공급자가 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 다음 공급자로 바로 감. 마지막 공급자는 건너뛰지 않음. 횟수가 0이면 끔 |
 | `LLM_API_KEY`, `LLM_BASE_URL` | (구성 값) | 구성의 기본 공급자 키·주소를 덮어쓰기 |
@@ -53,21 +53,22 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `KOKORO_MODEL`, `KOKORO_VOICES` | (없음, 배포 이미지는 `/opt/kokoro/` 안 파일) | `kokoro-v1.0.int8.onnx`, `voices-v1.0.bin` 경로 ([kokoro-onnx 배포 파일](https://github.com/thewh1teagle/kokoro-onnx/releases)) |
 | `KOKORO_THREADS` | 0 (onnxruntime 기본, 보이는 코어 수) | 음성 합성 스레드 수. 컨테이너처럼 CPU 상한이 있으면 상한과 같게 (앱 Compose는 2). 상한보다 많으면 CPU 할당량에 걸려 몇 배 느려짐 |
 | `TTS_REQUIRE_TIMING` | `false` (배포 이미지 `true`) | 모델 워밍업에서 검증된 발음 시간표가 없으면 워커 시작 실패 |
-| `TTS_CHUNK_BUDGET_S` | 로컬 2.5, 앱 Compose 8 | NPC 대답 한 조각 합성이 이보다 늦으면 그 조각은 `tts: false`(바로 재생 없이 자막만). 턴 전체 음성에는 합성이 끝나는 대로 넣음 |
-| `TTS_GPU_BASE_URL` / `TTS_GPU_TOKEN` | (없음, 꺼짐) | SSAFY GPU 서버 합성 서버([`ai/gpu_tts`](../gpu_tts/README.md))의 주소와 토큰. 주면 다듬고 음소로 바꾼 글을 먼저 GPU로 보내고, 실패·시간 초과면 CPU Kokoro로 만듦. STT처럼 GPU 서버가 거는 역방향 SSH 터널 입구(예: `http://172.19.0.1:18433`) |
+| `TTS_CHUNK_BUDGET_S` | 로컬 2.5, 앱 Compose 8 | NPC 대답 한 조각 합성이 이보다 늦으면 그 조각은 `tts: false`(바로 재생 없이 자막만). 전체 음성 상한 안에 끝나면 턴 음성에 포함 |
+| `TTS_FULL_BUDGET_S` | 6 | 마지막 음성 조각 요청 뒤 전체 음성을 기다리는 상한. 넘으면 완성된 대사를 음성 없이 먼저 반환하며 기존 [다시 듣기]로 음성을 만들 수 있음 |
+| `TTS_GPU_BASE_URL` / `TTS_GPU_TOKEN` | (없음, 꺼짐) | SSAFY GPU 서버 합성 서버([`ai/gpu_tts`](../gpu_tts/README.md))의 주소와 토큰. 주면 다듬고 음소로 바꾼 글을 먼저 GPU로 보내고, 실패·시간 초과면 CPU Kokoro로 만듦. STT처럼 GPU 서버가 거는 역방향 SSH 터널 입구(개발 예: `http://172.19.0.1:18433`, 운영은 `172.30.0.1`) |
 | `TTS_GPU_TIMEOUT_S` | 10 | GPU 서버 합성 응답을 기다리는 상한. 동시 사용자가 많으면 GPU 앞에 줄이 서므로 넉넉히 잡음. 넘으면 재시도 없이 CPU로 |
 | `TTS_GPU_CONNECT_TIMEOUT_S` | 1 | GPU 서버 연결 상한. 서버가 꺼졌거나 터널이 끊겼으면 바로 CPU로 |
 | `TTS_BREAKER_FAILURES` / `TTS_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 합성이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 CPU로 바로 감. 횟수가 0이면 끔 |
 | `GUARD_LOCAL_MODEL` | (없음, 꺼짐) | 로컬 무례 판정기 폴더 (KcELECTRA 학습 결과 `best/`). 주면 한글 입력의 확신 구간은 판정용 LLM 없이 판정. `requirements-guard.txt` 필요, 없거나 못 읽으면 경고만 남기고 전부 LLM |
 | `GUARD_LOCAL_T_LO`, `GUARD_LOCAL_T_HI` | (모델을 주면 필수) | 로컬 점수 ≤ T_LO → 아님, ≥ T_HI → 무례, 그 사이는 LLM. 학습에 쓰지 않은 보정용 데이터에서 고른 값 |
-| `GUARD_GPU_MODEL` | (없음, 꺼짐) | SSAFY GPU 서버 vLLM에 올린 자체 학습 무례 판정 모델 이름(예: `guard-qwen3.8-27b-r16`). 주면 이 모델을 먼저 한 번 부르고, 실패·시간 초과면 구성의 `guard` 모델로 넘김 |
-| `GUARD_GPU_BASE_URL` / `GUARD_GPU_TOKEN` | (`GUARD_GPU_MODEL`을 주면 필수) | GPU 서버 vLLM의 주소와 키. STT처럼 GPU 서버가 거는 역방향 SSH 터널 입구(STT와 다른 포트, 예: `http://172.19.0.1:18432/v1`) |
+| `GUARD_GPU_MODEL` | (없음, 꺼짐) | SSAFY GPU 서버 vLLM에 올린 자체 학습 무례 판정 모델 이름(예: `guard-qwen3.8-27b-r16`). 주면 이 모델을 먼저 한 번 부르고, 실패·시간 초과면 구성의 `guard` 모델로 넘김. 한글 낱자모가 섞인 말(오타 "같ㅊ아", "ㄱㅅ")은 이 모델이 욕 줄임말로 잘못 읽어 처음부터 구성의 `guard` 모델로 |
+| `GUARD_GPU_BASE_URL` / `GUARD_GPU_TOKEN` | (`GUARD_GPU_MODEL`을 주면 필수) | GPU 서버 vLLM의 주소와 키. STT처럼 GPU 서버가 거는 역방향 SSH 터널 입구(STT와 다른 포트, 개발 예: `http://172.19.0.1:18432/v1`, 운영은 `172.30.0.1`) |
 | `GUARD_GPU_TIMEOUT_S` | 3 | GPU 서버 판정 한 번의 상한. vLLM이 처음 보는 동시 요청 수에서 한 번 2.4~2.7초가 걸려 그보다 길게 잡음. 넘으면 재시도 없이 구성의 `guard` 모델로 |
 | `GUARD_BREAKER_FAILURES` / `GUARD_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 판정이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 구성의 `guard` 모델로 바로 감. 횟수가 0이면 끔 |
 
 ## GPU 음성과 발음 시간표
 
-GPU 서버에는 발음 사전을 적용한 음소를 한 번 보내고, 반환된 PCM을 같은 음소 순서로 워커의 PocketSphinx에 정렬한다. 시간표를 얻으려고 CPU에서 음성을 다시 합성하지 않는다. GPU 장애 시에는 기존 CPU `create_timed` 경로로 대체하며, 두 경로 모두 음성과 검증된 시간표를 함께 캐시한다. 정렬에 실패하면 실제 음성은 유지하고 시간표는 생략한다.
+GPU 서버에는 발음 사전을 적용한 음소를 한 번 보내고, 반환된 PCM을 같은 음소 순서로 워커의 PocketSphinx에 정렬한다. 시간표를 얻으려고 CPU에서 음성을 다시 합성하지 않는다. GPU 장애 시에는 기존 CPU `create_timed` 경로로 대체하며, 두 경로 모두 음성과 검증된 시간표를 함께 캐시한다. CPU 정렬기의 실행 오류가 나면 같은 합성 모델이 제공한 유효한 발음 시간을 보존한다. 발음 순서·시간 범위가 맞지 않거나 모델 시간 자체가 없는 GPU 음성의 정렬이 실패하면 실제 음성만 유지하고 시간표는 생략한다.
 
 `tts_phoneme_timing`과 `TTS_REQUIRE_TIMING`은 시작 시 CPU 대체 모델의 워밍업 결과를 검증한다. GPU의 각 응답은 별도로 PCM 정렬을 거치므로 이 상태만으로 GPU 응답의 시간표나 처리 지연까지 확인됐다고 판단하지 않는다. GPU 서버에 duration 출력 모델을 추가로 배포할 필요는 없지만 워커에는 기존 PocketSphinx 의존성이 필요하다.
 
@@ -85,14 +86,16 @@ GPU 서버에는 발음 사전을 적용한 음소를 한 번 보내고, 반환�
 | `POST /v1/suggest` | NPC 대답이 끝난 뒤: 학습자가 쓸 추천 단어 3개 | JSON |
 | `POST /v1/meaning` | [뜻 보기]: NPC 대사의 한국어 뜻과 단어 풀이 | JSON |
 | `POST /v1/feedback` | 대화가 끝났을 때: 학습 피드백 (`ai/feedback` 계약 0.3.0, 그 모듈을 부름) | JSON |
-| `POST /v1/memory` | 대화가 끝났을 때: NPC 기억 카드 갱신 | JSON |
+| `POST /v1/memory` | 대화가 끝났을 때: NPC 기억 카드 갱신과 이번 대화 인상(좋은 대화면 호감 변화량) | JSON |
 | `GET /health` | 상태 확인 (토큰 없이) | JSON |
 
 - 모든 응답(스트림은 마지막 `done`)에 `usage`: 단계·실제로 쓴 모델·입출력 토큰·시간·대체 여부. Spring은 이걸로 크레딧을 차감합니다.
   단가는 `llm_profiles.json`의 `prices_per_1m_tokens_usd`.
 - 오류는 `{"error": {"code", "message"}}`: `invalid_request` 400, `unauthorized` 401, `not_found` 404, `method_not_allowed` 405, `provider_limit` 429, `internal_error` 500, `invalid_output` 502(모델 출력 형식 오류), `provider_unavailable` 503, `tts_unavailable` 503.
   판정·대화 종료는 일부가 실패해도 200으로 이어 갑니다 (의도 → `unclear`, 무례 → `abusive: null` 미판정, 기억 카드 → `null` + `errors`).
-- 추적: `X-Request-Id`(없으면 만들어 응답 헤더로 돌려줌), `X-User-Id`, `X-Conv-Id`를 요청마다 로그 한 줄(JSON)로 남깁니다. 대화 원문은 로그에 남기지 않습니다.
+- 추적: `X-Request-Id`(없으면 만들어 응답 헤더로 돌려줌), `X-User-Id`, `X-Conv-Id`를 요청마다 로그 한 줄(JSON)로 남깁니다. 성공한 `/health`는 생략하며 실패와 다른 요청은 기록합니다. 대화 원문은 로그에 남기지 않습니다. 배포 이미지는 Uvicorn 접근 로그를 끄고 이 요약을 사용하며, HTTPX의 정상 호출 로그는 생략합니다.
+- Spring은 `/v1/npc/reply`에 `stream_chunks: false`를 보내 `delta`·`audio` 전송과 조각 음성 보관을 생략합니다. `done`의 전체 음성·사용량은 그대로 받습니다. 옵션을 생략하면 기존 스트리밍 동작을 유지합니다.
+- 워커 음성 보관소는 조회·저장 시 만료 항목을 제거하며, 요청이 없어도 최대 30초 간격으로 정리합니다. 연결이 끝나면 대기 중인 합성 작업을 취소합니다. 이미 실행 중인 GPU 요청·CPU 추론은 강제로 중단할 수 없지만, 이후 대체 합성은 시작하지 않습니다.
 
 ### 구성 바꾸기
 
@@ -152,7 +155,7 @@ NPC가 첫 대사를 먼저 하고 이후 한 줄마다 대답합니다. 턴마�
 .venv/Scripts/python ../tools/npc_help_eval.py --rejudge ../tools/results/npc_help.jsonl   # 채점 기준만 고쳤을 때
 ```
 
-- 테스트셋은 `ai/tools/npc_help_eval/cases.json`입니다. `help` 줄은 막다른 거절을, 모든 줄은 알 만한 걸 모름과 지어내기를 셉니다.
+- 테스트셋은 `ai/tools/npc_help_eval/cases.json`입니다. `help` 줄은 막다른 거절을, 모든 줄은 알 만한 걸 모름·지어내기·길 틀림(마을 배치와 다른 길 안내)을 셉니다.
 - 줄마다 대답 하나에 한 글자(`X` 막다른 거절, `?` 알 만한 걸 모름, `F` 지어내기, `.` 통과)를 찍습니다. 판정 모델은 보조 채점이라 대답 원문(`--out`)도 읽어 봅니다.
 - 실제 모델을 부르므로 팀 공용 GMS 크레딧을 씁니다. 한 줄씩 순서대로 보냅니다.
 
@@ -214,6 +217,7 @@ NPC마다 정하는 것은 `ai/npcs/life/<npcId>.json`의 MBTI·역할·근무�
 
 사용자 × NPC 관계(알아봄 0~100, 호감 −100~100)는 공통 규칙(`ai/npcs/rules/world-rules.json`)으로 `app/npc_relationship.py`가 계산하고, 저장은 백엔드가 합니다(설계는 [docs/npc-life-design.md](../../docs/npc-life-design.md) 4·5·8절).
 
+- 도움 제공(`HELP`)은 구체적인 도움 제안·도움 요청 수락·NPC에게 필요한 정보 제공에 기본 호감 +6을 줍니다. 같은 대화에서 한 번만 세며, 학습자의 도움 요청이나 일반 주문·결제는 포함하지 않습니다. 실제 행동 수행·미션 성공을 확정하지 않습니다.
 - 매 턴 의도 판정(`/v1/judge`)이 같은 호출에서 학습자 줄의 대화 사건(`events`)과 그 사건으로 바로 올릴 호감(`affinity_delta`)도 돌려줍니다. 이번 대화에서 이미 센 사건은 다시 세지 않습니다. 백엔드는 사건을 줄마다 저장해 `history[].events`로 보내고, 무례가 아닌 턴이면 `affinity_delta`를 호감에 더합니다([계약](../../docs/api/ai-worker.md) 2.2절).
 - 무례 판정(`/v1/guard`)이 무례라고 하면 응답의 `affinity_delta`(NPC 성격에 따른 감점)를 백엔드가 무례 저장과 함께 호감에 더합니다(2.2.1절).
 - 대화가 끝나면 백엔드가 `/v1/npc/relationship`을 부르고, 돌려받은 알아봄 변화량(`recognition_delta`)을 저장값에 더합니다. 모델을 부르지 않으며, 호감은 대화 중에 이미 바뀌었으므로 계산하지 않습니다(2.7.2절).
@@ -261,12 +265,12 @@ ai/worker/.venv/Scripts/python ai/tools/synthesize_script_lines.py --models <모
 가짜 공급자(`tests/conftest.py`)가 시스템 프롬프트로 단계를 알아보고 정해 둔 답을 돌려줍니다.
 
 - `tests/test_api.py`: 시간 상한·재시도·대체 모델·하루 한도 건너뛰기·형식 강제 실패 재시도, 판정 값 정리, SSE 순서·느린 음성 대체, 기억 카드 정리
-- `tests/test_guard.py`: 무례 판정 `/v1/guard` — yes/no 해석, 행동 묘사만 있는 말, 빈 입력, 시간 상한(`GUARD_BUDGET_S`), 공급자 실패, 로컬 판정기 연결, GPU 서버 판정 모델 → 구성 모델 대체·건너뛰기, 무례일 때만 호감 감점(`affinity_delta`)과 성격(신경성)에 따른 크기
+- `tests/test_guard.py`: 무례 판정 `/v1/guard` — yes/no 해석, 행동 묘사만 있는 말, 빈 입력, 시간 상한(`GUARD_BUDGET_S`), 공급자 실패, 로컬 판정기 연결, GPU 서버 판정 모델 → 구성 모델 대체·건너뛰기, 낱자모가 섞인 말은 처음부터 구성 모델, 무례일 때만 호감 감점(`affinity_delta`)과 성격(신경성)에 따른 크기
 - `tests/test_stt.py`: 음성 인식 — 프롬프트 끝부분 되풀이만 거르기(여러 번 이어 붙인 것 포함, 예시 문장·장면 단어 하나·메아리 뒤 진짜 발화는 통과)·영어 메뉴 예시·장면 단어, 녹음 크기(413)·형식(415)·코덱 매개변수, Groq 실패(429·5xx·키 오류·응답 없음) 시 GMS whisper-1 대체·녹음 자체 오류는 안 넘김·첫 호출 짧은 상한, `STT_CHAIN` 순서(GPU 서버 → GMS → Groq, 자리별 상한, 모두 실패 시 공급자별 오류), 연속 실패한 공급자 잠시 건너뛰기·성공하면 초기화·마지막 공급자는 안 건너뜀
 - `tests/test_guard_local.py`: 무례 판정 단계적 구조. 가짜 판정기로 확신 구간·중간 구간·영어·로컬 실패·LLM 실패, 기준값 설정 검사 (torch 없이 돎)
 - `tests/test_hedge.py`: 늦은 호출에 같은 요청 하나 더 보내기, 오류 응답 뒤 남은 요청 기다리기, 판정 시간 상한, NPC 스트림 제외
 - `tests/test_contract.py`: 모델 출력이 깨졌을 때(JSON 객체가 아님, 칸 없음)와 빈 문장·없는 주소·프로그램 오류에도 계약의 실패 형식을 지키는지
-- `tests/test_learning_aids.py`: 뜻·단어 풀이(대사에 없는 말 버리기, 3개 제한), 추천 단어(정리·중복·3개), 형식 오류 502, 난이도별 NPC 지시문·대답 길이·말 속도·힌트 수준
+- `tests/test_learning_aids.py`: 뜻·단어 풀이(대사에 없는 말 버리기, 3개 제한), 추천 단어(정리·중복·3개), 형식 오류 502, 난이도별 NPC 지시문·대답 길이·힌트 수준과 공통 말 속도
 - `tests/test_feedback.py`: `ai/feedback`의 예시 입력·출력으로 피드백 계약(완료·발화 없음·공급자 실패·출력 오류·입력 오류), 피드백 전용 시간 상한과 같은 요청 더 보내기 끔
 - `tests/test_stream_hedge.py`: NPC 스트림의 첫 글자(또는 응답 머리)가 늦으면 같은 요청 스트림 하나 더, 이긴 쪽 글자만 이어짐, 진 쪽 닫기, 둘 다 늦으면 첫 글자 상한
 - `tests/test_turn.py`: 한 턴 구조 — 조각을 이어 붙인 턴 전체 음성, 조각 실패·음성 없음이면 `null`, 스트림 안의 추천 단어(`words`)와 그 실패
@@ -288,18 +292,24 @@ ai/worker/.venv/Scripts/python ai/tools/synthesize_script_lines.py --models <모
 - `tests/test_npc_reply_profile.py`의 마을 안내·규칙 확인: 인격이 있는 서비스 NPC 모두 같은 마을 안내(카페·드럭스토어·다이너·경찰서, 그 밖의 곳은 없음)를 받고, 공통 규칙이 "잘 모르겠다고 하라" 대신 구체적인 다음 길을 주라고 함
 - `tests/test_npc_prompt.py`: NPC 시스템 프롬프트 — 인격 부분(프로필 칸이 스키마 순서대로 한 줄씩, 생략·빈 칸은 줄째로 빠짐, Big Five 수치는 설정됐을 때만 상대값으로, 값 안의 줄바꿈이 새 부분을 열지 못함), 다섯 부분 순서(규칙·인격·상황·학습 수준·이번 턴), 주어진 사실만, 학습 수준 6단계 → 규칙 3묶음, 첫 대사는 시스템 프롬프트만·응답 턴은 이력 역할과 사용자 발화 마지막(계약 추론 요청 예시로)
 - `tests/test_npc_reply_profile.py`: 게임 대화 경로(`/v1/npc/reply`)의 인격 — 인격이 없으면 지금 지시문 그대로, 백엔드 인격 설정(`content/npc-configurations.json`)의 3명이 대답의 Character가 됨, 다섯 부분 순서, 인격이 있어도 장소·사실·기억·난이도·백엔드 지시가 들어감, 난이도 규칙이 말투를 정하지 않음, 스키마 밖 인격은 400, 힌트 등 다른 요청도 같은 npc를 받음
-- `tests/test_npc_relationship.py`: 관계 계산(`app/npc_relationship.py`) — 알아봄은 여유 날 뒤 하루씩 줄고 대화마다 갈수록 덜 오름(NPC 배수), 인상은 사건 한 번씩·무례 제외·목록 밖 버림, 무례 한 번의 감점(인상 × 따라가는 비율 × 반응 크기)과 같은 값의 기본값, 줄마다 새 사건만큼 바로 오르는 호감(반복한 사건은 0, 반응 크기 곱함), 줄마다 더한 합이 대화 전체 인상과 같음, 대화 뒤에는 알아봄만 정수 변화량, 오래 안 오면 알아봄 변화량이 음수, 처음 만남, 인격 카드로 계산한 배수가 생활 파일로 계산한 값과 같음, 지금 상태(처음 봄·본 적 있음·단골, 오래 안 오면 다시 낯섦, 좋아함·싫어함, 사적인 이야기, 무례 뒤 짜증과 성격별 지속, 사과하면 짜증이 줄어듦, 칭찬 뒤 좋은 기분, 잡담은 이어질 때만, 무례 줄의 다른 사건 버림, 함께면 더 큰 기분만), 잡담·사적인 질문은 호감을 움직이지 않음, 정수로 저장해도 호감이 쌓이는 대화 수
+- `tests/test_npc_relationship.py`: 관계 계산(`app/npc_relationship.py`) — 알아봄은 여유 날 뒤 하루씩 줄고 대화마다 갈수록 덜 오름(NPC 배수), 인상은 사건 한 번씩·무례 제외·목록 밖 버림, 무례 한 번의 감점(인상 × 따라가는 비율 × 반응 크기)과 같은 값의 기본값, 줄마다 새 사건만큼 바로 오르는 호감(반복한 사건은 0, 반응 크기 곱함), 칭찬 한 번 +7, 줄마다 더한 합이 대화 전체 인상과 같음, 대화 뒤에는 알아봄만 정수 변화량, 오래 안 오면 알아봄 변화량이 음수, 처음 만남, 인격 카드로 계산한 배수가 생활 파일로 계산한 값과 같음, 지금 상태(처음 봄·본 적 있음·단골, 오래 안 오면 다시 낯섦, 좋아함·싫어함, 사적인 이야기, 무례 뒤 짜증과 성격별 지속, 사과하면 짜증이 줄어듦, 칭찬 뒤 좋은 기분, 잡담은 이어질 때만, 무례 줄의 다른 사건 버림, 함께면 더 큰 기분만), 잡담·사적인 질문은 호감을 움직이지 않음, 정수로 저장해도 호감이 쌓이는 대화 수
 - `tests/test_npc_reply_relationship.py`: 대답 경로의 관계 — 두 지시문(인격·한 줄 역할) 모두 처음 봄, 알아보지 못하면 평범한 기억 숨김, 본 적 있음·단골의 기억, 오래 안 오면 다시 낯섦, 강한 일은 얼굴을 몰라도 기억(싫어해도), 좋아함·싫어함, 호감 문장이 카드 태도를 대신함, 가까운 단골만 자기 이야기, 무례 뒤 짜증, 줄 사건의 칭찬 뒤 좋은 기분, 숫자를 넣지 않음, 관계가 없으면 지금 기억 문장 그대로, 범위 밖 값은 400
+- `tests/test_memory_conversation_impression.py`: 좋은 대화 호감(`/v1/memory`) — 좋은 대화 +3·학습자 3줄 이상(사용자 결정 값), 짧은 대화·평범하거나 나쁜 대화·무례 줄이 있는 대화는 0(깎지 않음), 인상이 없거나 이상하면 neutral로 보고 카드는 저장, 모델에 이번 대화만의 인상을 묻는 스키마
 - `tests/test_npc_relationship_api.py`: 관계 갱신 API(`/v1/npc/relationship`) — 알아봄 변화량만 돌려줌(칭찬한 대화여도 호감 없음, 모델 호출 없음), 처음 만남, 인격 카드로 알아보는 속도가 다름, 학습자가 말하지 않은 대화는 400
+- `tests/test_help_affinity.py`: 도움 제공 시 즉시 +6, 같은 대화에서 반복 보상 방지, NPC 사건 배수와 반올림, 앞선 무례 줄의 도움은 미보상으로 처리
 - `tests/test_judge_events.py`: 의도 판정의 줄 사건 — 같은 호출에서 `events`를 고름(판정 형식의 목록), 무례·목록 밖·중복 버림, `events`가 없거나 목록이 아니면 `[]`, 의도 판정 실패면 `[]`·호감 0, 행동 묘사만이면 `null`, 지시문에 사건 정의 가이드 v1.0, 사건으로 바로 올릴 호감(`affinity_delta`) — 이력에서 이미 센 사건은 0, 앞선 무례 줄의 사건은 센 적 없음, 인격 카드의 반응 크기를 곱함
 
 프롬프트 문장의 품질(모델이 무엇을 고르는지)은 이 테스트로 보지 않습니다. 실제 모델을 부르는 회귀 테스트는 프로토타입 브랜치의 `prototype/mvp_web/tests/replay.py`에 있습니다.
 
 ## NPC 발음 시간표와 립싱크
 
+실제 `/v1/npc/reply`는 같은 LLM 응답에서 구절별 감정도 얻습니다. `app/npc_emotion.py`가 내부 표시를 대사에서 제거하고 `app/speech_emotion.py`가 합성된 음성에 `e305` 시간표를 붙입니다. 발음용 `a305`와 PCM은 보존합니다. 대사 길이·토큰 상한·오류 처리와 Unity 연결은 [NPC 대화 감정 표정](../../docs/unity/npc-dialogue-emotions.md)을 따릅니다. `tests/test_speech_emotion.py`에서 실제 요청 경로, 스트리밍 경계, 지연 합성, 전체 음성의 시간 이동과 잘못된 정보의 제외를 검사합니다.
+
+Spring이 이미 판정한 무례 횟수와 사건은 선택적 `reaction`으로 같은 요청에 전달합니다. 허용 값은 `rude_warning`, `rude_repeated`, `rude_final`, `compliment`, `apology_after_rude`이며 생략 시 기존 감정 선택을 유지합니다. 두 번째 무례부터 강한 분노로 적용하고, 확정된 반응과 다른 모델 표시는 워커에서 정규화합니다. 같은 최종 표정으로 합쳐지는 표시 때문에 TTS를 추가 분할하지 않습니다. 별도 LLM 호출이나 출력 토큰 상한 증가는 없습니다. 입력 프롬프트에 짧은 반응 지시문은 추가되므로 실제 서버 지연은 별도 측정 대상입니다.
+
 읽을 글 정리와 발음 사전을 먼저 적용하고, 그 음소열을 `create_timed(..., is_phonemes=True)`에 한 번만 넘깁니다. 시간표도 같은 합성의 발음 순서를 최종 PCM에 정렬해 만들며, 재생용 음성과 함께 캐시합니다. 시간표 미지원 모델은 동일한 발음 사전으로 음성만 생성합니다. `tests/test_pronunciation_timing.py`에서 두 경로와 캐시 재사용을 검사합니다.
 
-`kokoro-onnx==0.6.1`의 `create_timed()`로 음성과 발음 순서를 얻고, `pocketsphinx==5.0.4`의 로컬 음향 모델로 해당 발음 순서를 최종 PCM에 정렬합니다. TTS 내부 duration은 실제 발음 경계와 어긋날 수 있어 그대로 재생 시간표로 사용하지 않습니다. 별도의 음성 재생성, 외부 분석 API, 문장별 입모양 수작업은 필요하지 않습니다. `KOKORO_MODEL`은 **duration 출력이 포함된** [공식 model-files-v1.1 배포](https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.1)의 `kokoro-v1.0.int8.onnx`, `KOKORO_VOICES`는 해당 배포의 `voices-v1.0.bin`을 가리켜야 합니다. 파일명이 같은 이전 모델에는 duration 출력이 없을 수 있습니다. 시작 로그에 `model has no duration output` 경고가 있으면 정확한 립싱크를 사용할 수 없습니다. 모델은 배포 시 준비하며 요청 중에 다운로드하지 않습니다.
+`kokoro-onnx==0.6.1`의 `create_timed()`로 음성과 발음 순서를 얻고, `pocketsphinx==5.0.4`의 로컬 음향 모델로 해당 발음 순서를 최종 PCM에 정렬합니다. TTS 내부 duration은 실제 발음 경계와 어긋날 수 있어 음향 정렬 결과를 우선합니다. 정렬기 실행 오류(`RuntimeError`)일 때만 같은 합성의 검증된 모델 시간으로 대체하며, 이 경우 음향 정렬보다 경계 정확도가 낮을 수 있습니다. 발음 불일치(`ValueError`)는 이 대체 대상이 아닙니다. 별도의 음성 재생성, 외부 분석 API, 문장별 입모양 수작업은 필요하지 않습니다. `KOKORO_MODEL`은 **duration 출력이 포함된** [공식 model-files-v1.1 배포](https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.1)의 `kokoro-v1.0.int8.onnx`, `KOKORO_VOICES`는 해당 배포의 `voices-v1.0.bin`을 가리켜야 합니다. 파일명이 같은 이전 모델에는 duration 출력이 없을 수 있습니다. 시작 로그에 `model has no duration output` 경고가 있으면 정확한 립싱크를 사용할 수 없습니다. 모델은 배포 시 준비하며 요청 중에 다운로드하지 않습니다.
 
 `app/speech_timing.py`는 영어 IPA를 Unity 공통 음소 이름으로 변환합니다. `/aɪ/` 등 이중모음은 하나의 구간으로 묶어 Unity에서 입이 연속 변형되게 합니다. 음소기가 내는 `ɡ`(U+0261)는 `g`로 읽고, 길이(`ː`)·비음(`◌̃`)·구개음화(`ʲ`) 표시는 앞 음소 구간에 붙입니다. `app/speech_alignment.py`가 같은 최종 PCM을 두 번 분석해 단어·음소 경계를 구합니다. 단어 사이 공백을 무음으로 강제하지 않고 음향 모델이 찾은 무음만 사용합니다. 발음 순서가 누락·변경되거나 시간 범위가 잘못되면 해당 시간표를 폐기하고 음성만 반환하며 경고를 기록합니다. 원래 음성의 속도·샘플은 변경하지 않습니다. 정렬은 음향 모델의 추정이므로 모든 경계의 정확성을 보장하지 않으며 빠른 연결 발음은 실제 음성과 대조해야 합니다. 기존 얼굴의 한계 때문에 일부 자음은 가까운 입모양을 사용하며, 실제 혀·치아 전체의 조음 모델은 아닙니다.
 
@@ -315,4 +325,4 @@ ai/worker/.venv/Scripts/python ai/tools/synthesize_script_lines.py --models <모
 
 이미지 빌드와 워커 시작 때 `Ready.`를 CPU로 합성해 음성과 일치하는 시간표까지 검사합니다. `/health`의 `tts`는 음성 엔진 존재 여부, `tts_phoneme_timing`은 워밍업의 시간표 검증 결과입니다. 배포 이미지의 `TTS_REQUIRE_TIMING=true`에서는 모델 누락·구형 모델·시간표 변환 실패를 정상 시작으로 처리하지 않습니다. 기존 로컬 환경은 이 옵션을 생략하면 음성 없는 개발을 계속할 수 있습니다.
 
-앱 Compose의 합성 조각 대기 상한은 8초이며 환경 변수로 조정합니다. 상한을 넘긴 조각은 즉시 재생 이벤트에서 자막만 보내지만 합성은 취소하지 않고, 완료되면 턴 전체 음성에 포함합니다. 전체 요청의 시간 초과나 실제 합성 실패는 별도로 발생할 수 있습니다. 8초 응답 속도를 보장한다는 의미는 아닙니다. `AI_WORKER_CPUS`와 `AI_WORKER_MEMORY`의 기본은 2 CPU·1GiB이며, 배포 대상에서 여러 동시 대화의 지연·메모리·조각 누락을 측정한 후 조정해야 합니다. Spring의 단독 TTS 요청 제한은 기존 30초를 유지합니다.
+앱 Compose의 합성 조각 대기 상한은 8초, 마지막 조각 요청 뒤 턴 전체 음성을 기다리는 상한은 6초이며 각각 환경 변수로 조정합니다. 조각 상한을 넘겨도 전체 상한 안에 끝나면 턴 음성에 포함합니다. 전체 상한을 넘기면 남은 합성을 취소하고 완성된 대사를 자막으로 먼저 돌려줍니다. 음성은 기존 [다시 듣기]로 다시 만들 수 있습니다. 의도 판정·대사 생성 시간은 별도이므로 전체 대화가 6초 안에 끝난다는 뜻은 아닙니다. `AI_WORKER_CPUS`와 `AI_WORKER_MEMORY`의 기본은 2 CPU·1GiB이며, 배포 대상에서 여러 동시 대화의 지연·메모리·조각 누락을 측정한 후 조정해야 합니다. Spring의 단독 TTS 요청 제한은 기존 30초를 유지합니다.

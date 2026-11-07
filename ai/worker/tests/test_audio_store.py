@@ -1,6 +1,23 @@
 """음성 조각 보관소 (/v1/audio/{id}): 보관 시간과 함께 전체 크기로도 제한한다 (코드 리뷰 #9: 턴 전체 음성까지 담으면 메모리가 약 두 배)."""
 
+import asyncio
+
 from app.tts import AudioStore
+
+
+def test_expired_audio_is_released_when_read(monkeypatch):
+    now = [1000.0]
+    monkeypatch.setattr("app.tts.time.time", lambda: now[0])
+    store = AudioStore(ttl_s=10)
+    expired = store.put(b"old")
+    now[0] += 5
+    kept = store.put(b"keep")
+    now[0] += 6
+
+    assert store.get(expired) is None
+    assert store.get(kept) == b"keep"
+    assert store.total == 4
+    assert len(store.items) == 1
 
 
 def test_oldest_audio_is_dropped_when_total_size_is_over():
@@ -22,3 +39,21 @@ def test_settings_limit_reaches_the_store(provider):
 
     with make_client(provider, audio_max_mb=1.5) as c:
         assert c.app.state.audio.max_bytes == 1_500_000
+
+
+def test_expired_audio_is_released_without_another_request(provider):
+    from conftest import make_client
+
+    with make_client(provider, audio_ttl_s=0.01) as client:
+        store = client.app.state.audio
+        client.portal.call(store.put, b"expired")
+
+        async def wait_for_cleanup():
+            async def empty():
+                while store.items:
+                    await asyncio.sleep(0.01)
+
+            await asyncio.wait_for(empty(), timeout=1)
+
+        client.portal.call(wait_for_cleanup)
+        assert store.total == 0

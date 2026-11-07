@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using A305.Api;
 using NUnit.Framework;
@@ -6,6 +7,18 @@ namespace A305.Dialogue.Tests
 {
     public class ConversationAllowanceTests
     {
+        [Test]
+        public void AtKoreanMidnight_ExpiredDailyLimitDoesNotBlockTheNextStart()
+        {
+            DateTimeOffset now = DateTimeOffset.Parse("2026-11-06T23:59:59+09:00");
+            var allowance = new ConversationAllowance(() => now);
+            allowance.Apply(Status(canStart: false, remaining: 0));
+            Assert.That(allowance.CanStartConversation, Is.False);
+            now = DateTimeOffset.Parse("2026-11-07T00:00:00+09:00");
+            Assert.That(allowance.CanStartConversation, Is.True);
+            Assert.That(allowance.RemainingConversations, Is.Null);
+        }
+
         [Test]
         public void BeforeServerStatus_DoesNotBlockStarting()
         {
@@ -47,6 +60,22 @@ namespace A305.Dialogue.Tests
             allowance.Apply(Status(canStart: true, remaining: null));
 
             Assert.That(allowance.RemainingConversations, Is.Null);
+        }
+
+        // 피드백을 닫을 때 가입을 권할지 정한다(S15P31A305-605). 대화를 다 쓴 게스트만 해당하고, 남은 대화가 있거나 회원(남은 수 없음)이면 아니다.
+        [TestCase(0, true)]
+        [TestCase(1, false)]
+        [TestCase(null, false)]
+        public void IsGuestOutOfConversations_OnlyWhenAGuestHasNoneLeft(
+            int? remaining,
+            bool expected
+        )
+        {
+            var allowance = new ConversationAllowance();
+
+            allowance.Apply(Status(canStart: remaining != 0, remaining: remaining));
+
+            Assert.That(allowance.IsGuestOutOfConversations, Is.EqualTo(expected));
         }
 
         [Test]

@@ -29,6 +29,7 @@ import com.elsehere.feedback.repository.ConversationFeedbackRepository;
 import com.elsehere.feedback.repository.TurnFeedbackRepository;
 import com.elsehere.world.entity.Npc;
 import com.elsehere.world.repository.NpcRepository;
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -67,6 +68,7 @@ public class FeedbackService {
   private final AiGateway aiGateway;
   private final TransactionTemplate transactionTemplate;
   private final JsonMapper jsonMapper;
+  private final Clock clock;
 
   /**
    * CONV-08에서 대화를 끝낸 뒤 부른다. 이미 만든 피드백이 있으면 다시 만들지 않는다. 만들지 못해도 대화 종료는 성공으로 두고 FAILED를 돌려준다.
@@ -83,6 +85,20 @@ public class FeedbackService {
       return existing.get();
     }
     return generate(userId, conversationId, requestId, skip);
+  }
+
+  /** 완료됐으나 실제로 열어보지 않은 피드백 수. 목록 조회로는 읽음 처리하지 않는다. */
+  public long unreadCount(Long userId) {
+    return transactionTemplate.execute(
+        status -> conversationFeedbackRepository.countUnread(userId));
+  }
+
+  public void markRead(Long userId, Long conversationId) {
+    transactionTemplate.executeWithoutResult(
+        status -> {
+          conversationLookup.ownedConversation(userId, conversationId);
+          conversationFeedbackRepository.markRead(conversationId, clock.instant());
+        });
   }
 
   /** FB-02 다시 만들기. 실패한 피드백만 다시 만들고, 그 밖에는 저장된 피드백을 돌려준다. */

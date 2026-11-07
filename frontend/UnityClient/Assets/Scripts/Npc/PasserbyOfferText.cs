@@ -3,14 +3,27 @@ namespace A305.Npc
     /// <summary>대화 제안 화면에 보일 문구.</summary>
     public static class PasserbyOfferText
     {
+        /// <summary>대화 수락 버튼. 키보드를 쓰는 화면에만 E 안내를 붙인다.</summary>
+        public static string AcceptLabel(bool showKeyHint) =>
+            showKeyHint ? "대화하기 <size=75%>[E]</size>" : "대화하기";
+
+        /// <summary>대화 거절 버튼. 키보드를 쓰는 화면에만 Esc 안내를 붙인다.</summary>
+        public static string DeclineLabel(bool showKeyHint) =>
+            showKeyHint ? "지금은 안 할래요 <size=75%>[Esc]</size>" : "지금은 안 할래요";
+
         /// <summary>
         /// 누가 말을 걸었는지 알리는 머리말. 행인과 직원이 같은 제안 화면을 쓰므로 "행인이"로 고정하지 않는다.
-        /// 영어 이름만으로는 누구인지 알기 어려워 역할(드럭스토어 직원 등)이 있으면 역할로, 없으면 이름으로 알린다.
+        /// 이름과 역할이 있으면 함께 보이고, 이름을 받지 못했으면 역할로 알린다.
         /// </summary>
         /// <param name="npcName">대화 대본의 NPC 이름. 모르면 null.</param>
         /// <param name="roleLabel">대화 대본의 NPC 역할. 모르면 null.</param>
         public static string Hint(string npcName, string roleLabel = null)
         {
+            if (!string.IsNullOrEmpty(npcName) && !string.IsNullOrEmpty(roleLabel))
+            {
+                return $"{npcName}({roleLabel})의 대화 제안";
+            }
+
             string speaker = string.IsNullOrEmpty(roleLabel) ? npcName : roleLabel;
             return string.IsNullOrEmpty(speaker)
                 ? "누군가 말을 걸었어요"
@@ -57,14 +70,16 @@ namespace A305.Npc
         /// <summary>대화 버튼 위에 붙일 게스트의 남은 대화 수. 가입 사용자처럼 횟수 제한이 없으면 null이다.</summary>
         public static string RemainingConversations(int? remaining)
         {
-            return remaining == null ? null : $"게스트 남은 대화 {remaining}번";
+            return remaining == null ? null : $"오늘 남은 대화 {remaining}번";
         }
 
         /// <summary>새 대화를 시작할 수 없을 때 [말 걸기] 자리에 보일 이유.</summary>
         /// <param name="remaining">게스트의 남은 대화 수. 가입 사용자는 null.</param>
         public static string Blocked(int? remaining)
         {
-            return remaining == 0 ? "게스트 대화를 모두 썼어요" : "지금은 대화할 수 없어요";
+            return remaining == 0
+                ? "오늘의 대화를 모두 썼어요. 내일 다시 만나요."
+                : "지금은 대화할 수 없어요";
         }
 
         /// <summary>대화를 다 쓴 게스트에게 [말 걸기]·택시 버튼 자리에 보일 버튼. 누르면 가입 안내 창을 연다.</summary>
@@ -76,7 +91,7 @@ namespace A305.Npc
         /// <param name="remaining">게스트의 남은 대화 수. 가입 사용자는 null.</param>
         public static bool OffersSignup(int? remaining)
         {
-            return remaining == 0;
+            return false;
         }
     }
 }

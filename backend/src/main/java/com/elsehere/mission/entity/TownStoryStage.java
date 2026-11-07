@@ -51,11 +51,11 @@ public enum TownStoryStage {
       case DINER ->
           "The traveler orders breakfast and spills a drink on their clothes. Help them find the laundry when they ask. Any breakfast with a drink costs 7 coins.";
       case LAUNDRY ->
-          "The traveler spilled a drink and wants to know how to wash their clothes and the laundry price. Explain only when asked.";
+          "This is a self-service laundromat. The traveler spilled a drink and wants to know how to operate the machines and what they cost. Gus explains the machines, not a drop-off service. Explain only when asked and use only the prices and times in the Situation.";
       case BANK ->
           "The traveler needs cash for the laundry. Explain where the ATM is and how to withdraw without asking for a PIN or password.";
       case WASH ->
-          "The traveler has returned after asking the bank about cash. Discuss starting the wash; do not claim an actual payment occurred. A wash costs 6 coins.";
+          "This is a self-service laundromat. The traveler has returned after asking the bank about cash and will operate the machines themselves. Do not take the learner's clothes or offer a drop-off laundry service. Help them start a washer or choose wash, dry or both when asked. Use only the machine prices and times in the Situation; do not claim a payment occurred.";
       case HAIRCUT ->
           "While their laundry is washing, the traveler asks for a haircut. Ask what style they would like. A haircut costs 15 coins.";
       case FLOWERS ->
@@ -63,9 +63,9 @@ public enum TownStoryStage {
       case THANK_BARBER ->
           "The traveler returns after choosing a flower to thank you for the haircut. Respond warmly to their thanks.";
       case BAKERY ->
-          "The traveler wants a snack to thank the laundry owner. Help them choose from the bakery's listed items. A snack costs 4 coins.";
+          "The traveler wants a snack to thank Gus for explaining the laundry machines. Help them choose from the bakery's listed items. A snack costs 4 coins.";
       case THANK_LAUNDRY ->
-          "The traveler returns for their laundry and offers thanks and a snack. Acknowledge their kindness.";
+          "This is a self-service laundromat. The traveler returns to remove their own clothes from a machine, then offers thanks and a snack for your guidance. Explain how to check the cycle and remove the clothes when asked. Do not claim to have washed, dried or held their clothes, and do not invent a completed cycle. Acknowledge their kindness.";
       case HOME_STORE ->
           "The traveler is considering a lamp as a travel gift and asks about shipping. Do not promise delivery; suggest asking the post office.";
       case ARCADE ->
@@ -80,12 +80,12 @@ public enum TownStoryStage {
       case DINER -> "식당에서 아침 식사";
       case LAUNDRY -> "빨래방에서 세탁 문의";
       case BANK -> "은행에서 현금 인출 문의";
-      case WASH -> "빨래방에서 세탁 맡기기";
+      case WASH -> "셀프빨래방에서 세탁기 사용하기";
       case HAIRCUT -> "이발소에서 머리 손질";
       case FLOWERS -> "꽃집에서 감사 선물 고르기";
       case THANK_BARBER -> "이발소에 감사 전하기";
       case BAKERY -> "빵집에서 간식 고르기";
-      case THANK_LAUNDRY -> "빨래방에 감사 전하기";
+      case THANK_LAUNDRY -> "빨래방에서 빨래 꺼내고 감사 전하기";
       case HOME_STORE -> "생활용품점에서 램프 구경";
       case ARCADE -> "오락실에서 쉬어 가기";
       case POST_OFFICE -> "우체국에서 소포 문의";
@@ -95,14 +95,14 @@ public enum TownStoryStage {
   public String situation() {
     return switch (this) {
       case DINER -> "아침을 먹다가 옷에 음료를 쏟았어요. 식당 직원 Rosa에게 세탁할 곳을 물어봐요.";
-      case LAUNDRY -> "옷을 세탁하려고 빨래방에 왔어요. Gus에게 방법과 가격을 물어봐요.";
+      case LAUNDRY -> "셀프빨래방에 왔어요. Gus에게 세탁기 사용 방법과 요금을 물어봐요.";
       case BANK -> "세탁할 현금을 준비하려고 은행에 왔어요. Henry에게 ATM과 인출 방법을 물어봐요.";
-      case WASH -> "현금 인출 방법을 알아봤어요. 빨래방의 Gus에게 세탁을 요청해요.";
+      case WASH -> "빨래방에 돌아왔어요. 직접 세탁할 수 있도록 Gus에게 세탁기 사용 방법을 확인해요.";
       case HAIRCUT -> "세탁을 기다리는 동안 이발소에 들렀어요. Tony에게 원하는 머리를 설명해요.";
       case FLOWERS -> "마음에 드는 머리를 해 준 Tony에게 고마운 마음을 전할 꽃을 Lily와 골라요.";
       case THANK_BARBER -> "꽃을 골랐어요. 이발소의 Tony에게 선물하며 고마움을 전해요.";
       case BAKERY -> "빨래를 도와준 Gus에게 전할 간식을 빵집의 Grace와 골라요.";
-      case THANK_LAUNDRY -> "빨래방에 돌아왔어요. 세탁한 옷을 찾으며 Gus에게 감사를 전해요.";
+      case THANK_LAUNDRY -> "빨래방에 돌아왔어요. 빨래 꺼내는 방법을 확인하고 기계 사용을 도와준 Gus에게 감사를 전해요.";
       case HOME_STORE -> "여행을 기억할 선물로 램프를 구경해요. Nina에게 배송에 관해 물어봐요.";
       case ARCADE -> "우체국에 가는 길에 오락실에 들렀어요. Max에게 게임 방법을 물어봐요.";
       case POST_OFFICE -> "마을에서의 하루를 마무리하며 Linda에게 소포 보내는 방법을 물어봐요.";
@@ -117,21 +117,50 @@ public enum TownStoryStage {
       case "ask_cost" -> "세탁 가격 묻기";
       case "ask_atm" -> "ATM 위치 묻기";
       case "ask_withdrawal" -> "현금 인출 묻기(얼마를)";
-      case "request_wash" -> "세탁 맡기기(언제 찾으러 올지)";
+      case "request_wash" -> "세탁기 사용 방법 확인";
       case "ask_haircut" -> "이발 요청";
       case "describe_style" -> "스타일 설명(길이와 어디를)";
-      case "choose_flower" -> "꽃 고르기(누구에게 왜)";
+      case "choose_flower" -> "선물할 꽃 고르기";
       case "ask_wrapping" -> "꽃 포장 요청";
       case "offer_flower" -> "꽃을 선물한다고 말하기";
       case "thank_barber" -> "Tony에게 감사하기(무엇이 고마운지)";
       case "choose_snack" -> "간식 고르기(무엇을 몇 개, 누구에게)";
-      case "collect_laundry" -> "세탁물 찾기 요청";
+      case "collect_laundry" -> "빨래 꺼내는 방법 확인";
       case "thank_laundromat" -> "Gus에게 감사하기(무엇이 고마운지)";
       case "ask_lamp" -> "램프 묻기(누구에게 줄 선물인지)";
       case "ask_shipping" -> "배송 가능 여부 묻기";
       case "ask_game" -> "게임 방법 묻기";
       case "ask_parcel" -> "소포 보내기(어디로)";
       case "ask_price" -> "소포 가격 묻기";
+      default -> throw new IllegalArgumentException("Unknown town story goal: " + id);
+    };
+  }
+
+  /** 이 목표를 이루려면 말해야 할 정보. 퀘스트 카드 목표 아래에 보인다. */
+  public static String goalHint(String id) {
+    return switch (id) {
+      case "order_breakfast" -> "음식과 음료를 함께 (예: pancakes and orange juice)";
+      case "explain_spill" -> "무엇을 어디에 쏟았는지 설명하기 (예: coffee on my shirt)";
+      case "ask_laundry" -> "옷을 어떻게 빨 수 있는지 묻기";
+      case "ask_cost" -> "세탁 가격";
+      case "ask_atm" -> "ATM이 어디 있는지 묻기";
+      case "ask_withdrawal" -> "현금 뽑는 방법과 금액 (예: 20 dollars)";
+      case "request_wash" -> "직접 세탁기를 쓰겠다고 말하거나 시작 방법 묻기 (예: How do I start this washer?)";
+      case "ask_haircut" -> "머리를 자르고 싶다고 말하기";
+      case "describe_style" -> "길이와 부위 (예: a little shorter on the sides)";
+      case "choose_flower" -> "꽃을 선물하려는 마음과 받을 사람 또는 이유를 자유롭게 말해요.";
+      case "ask_wrapping" -> "꽃을 포장해 달라고 하기";
+      case "offer_flower" -> "꽃을 선물로 드린다고 말하기";
+      case "thank_barber" -> "무엇이 고마운지 말하기 (예: thanks for the haircut)";
+      case "choose_snack" -> "간식과 개수, 받을 사람 (예: two cookies for Gus)";
+      case "collect_laundry" -> "빨래를 꺼내도 되는지, 어떻게 꺼내는지 묻기 (예: Can I take my clothes out now?)";
+      case "thank_laundromat" ->
+          "기계 사용을 도와준 것에 감사하기 (예: Thanks for showing me how to use the washer.)";
+      case "ask_lamp" -> "램프와 선물 받을 사람 (예: for my family back home)";
+      case "ask_shipping" -> "램프를 포장하거나 보낼 수 있는지 묻기";
+      case "ask_game" -> "인형뽑기 하는 방법";
+      case "ask_parcel" -> "소포를 보낼 곳 (예: to Seoul, Korea)";
+      case "ask_price" -> "소포 값";
       default -> throw new IllegalArgumentException("Unknown town story goal: " + id);
     };
   }
@@ -148,21 +177,22 @@ public enum TownStoryStage {
       case "ask_withdrawal" ->
           "The learner asks how to withdraw cash AND says how much they want to take out.";
       case "request_wash" ->
-          "The learner asks to wash their clothes AND says when they will come back for them, such as in an hour or this afternoon.";
+          "The learner asks to use or start a washing machine, asks how to start it, or confirms wash or both in response to the attendant's wash/dry/both question (for example, 'Both, please.'). Use the preceding question to understand short answers. No pickup or return time is required. A refusal, an unrelated reply, or asking only about the price does not count.";
       case "ask_haircut" -> "The learner asks for a haircut.";
       case "describe_style" ->
           "The learner describes the cut with both length (shorter, a little off, how many centimeters) AND which part, such as the sides, back or top. A vague request like 'something nice' does not count.";
       case "choose_flower" ->
-          "The learner asks for a specific available flower AND says who it is for or why they are giving it.";
+          "The learner expresses an intention to buy or give flowers AND identifies a recipient OR a reason for the gift. The flower variety is optional. Accept natural paraphrases, including a thank-you gift for their barber, without requiring the hint's exact wording. Resolve pronouns using explicit facts from previous learner turns; the current utterance must add relevant information. A gift without any flower purchase/giving context is insufficient. Do not credit NPC-supplied facts, quoted examples, negatives or hypotheticals. Wrapping remains a separate objective.";
       case "ask_wrapping" -> "The learner asks for the flower to be wrapped.";
       case "offer_flower" -> "The learner offers the barber a flower as a gift.";
       case "thank_barber" ->
           "The learner thanks the barber AND says what they are thankful for, such as the haircut.";
       case "choose_snack" ->
           "The learner asks for a specific bakery item AND says how many or who it is for.";
-      case "collect_laundry" -> "The learner asks to collect their laundry.";
+      case "collect_laundry" ->
+          "The learner asks whether or how to remove their own clothes from the washer or dryer, checks whether the cycle is finished, or says they are taking their clothes out. Staff do not hold or collect the clothes for them. An unrelated question or a refusal does not count.";
       case "thank_laundromat" ->
-          "The learner thanks the laundry owner AND says what they are thankful for, such as washing their clothes.";
+          "The learner thanks Gus and says what they appreciated, such as his explanation or help with the machines. The reason can appear in an earlier learner turn in this conversation; a bare 'thank you' with no learner-provided reason does not count. Do not require thanks for a washing or drop-off service.";
       case "ask_lamp" ->
           "The learner asks about a lamp AND says who the gift is for, such as their family back home.";
       case "ask_shipping" -> "The learner asks if the lamp can be packaged or shipped.";

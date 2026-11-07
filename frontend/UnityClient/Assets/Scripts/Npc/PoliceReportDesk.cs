@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using A305.Dialogue;
 using A305.World;
 using UnityEngine;
@@ -5,10 +6,10 @@ using UnityEngine;
 namespace A305.Npc
 {
     /// <summary>
-    /// 경찰서 창구. 경찰관과 대화하는 동안 서버가 받아들인 발화로 신고를 접수하고(<see cref="PoliceReportIntake"/>),
-    /// 화면 위쪽 상태 판에 접수 내용을 보여 준다. 대화를 마치면 경찰서 옆 순찰차를 출동시켜, 밖으로 나온 플레이어가
-    /// 출동하는 모습을 보게 한다. 장소를 하나만 말했으면 그곳으로, 아니면 본길을 순찰한다.
-    /// 서버 오류·무례한 발화·NPC의 대화 종료로 끝난 발화는 접수하지 않는다(택시와 같은 기준).
+    /// 경찰서 창구. 서버가 문맥으로 판정한 출동 응답으로 신고를 접수하고,
+    /// 화면 위쪽 상태 판에 접수 내용을 보여 준다. 경찰서는 마을과 다른 장면이라 대화를 마치면 신고를 남겨 두고
+    /// (<see cref="PoliceDispatchOrder"/>), 밖으로 나와 마을이 열리면 경찰서 옆 순찰차가 그 신고로 출동한다.
+    /// 출동할 장소가 없으면 본길을 순찰한다. 무례한 말과 신고가 아닌 말은 서버가 출동 응답을 보내지 않는다.
     /// </summary>
     public sealed class PoliceReportDesk : MonoBehaviour
     {
@@ -17,7 +18,8 @@ namespace A305.Npc
         private NpcIdentity officer;
 
         [SerializeField]
-        private PoliceCar patrolCar;
+        [Tooltip("신고를 받을 수 있는 장소와 화면 이름. 순찰차의 출동 장소와 같은 목록이다.")]
+        private List<TaxiDestination> destinations = new List<TaxiDestination>();
 
         [SerializeField]
         private DialogueController dialogue;
@@ -25,12 +27,16 @@ namespace A305.Npc
         [SerializeField]
         private DialoguePanelView panel;
 
-        private readonly PoliceReportIntake intake = new PoliceReportIntake();
+        private bool hasReport;
+        private long reportedTurnId;
+        private string reportedPlace;
         private bool showingStatus;
+
+        public string OfficerCode => officer != null ? officer.Code : null;
 
         private void Awake()
         {
-            if (officer == null || patrolCar == null || dialogue == null || panel == null)
+            if (officer == null || dialogue == null || panel == null)
             {
                 Debug.LogError($"{name}의 PoliceReportDesk 연결이 비어 있습니다.", this);
                 enabled = false;
@@ -39,9 +45,15 @@ namespace A305.Npc
 
         private void OnEnable()
         {
+            // 경찰서 장면을 새로 열어도, 아직 순찰 중인 경찰관을 저장된 활성 상태로 다시 세우지 않는다.
+            if (officer != null && PoliceDispatchOrder.IsAway(officer.Code))
+            {
+                officer.gameObject.SetActive(false);
+                return;
+            }
             if (dialogue == null)
                 return;
-            dialogue.UserTurnAccepted += OnUserTurnAccepted;
+            dialogue.PoliceDispatchRequested += TakeReport;
             dialogue.Ended += OnDialogueEnded;
         }
 
@@ -49,23 +61,25 @@ namespace A305.Npc
         {
             if (dialogue == null)
                 return;
-            dialogue.UserTurnAccepted -= OnUserTurnAccepted;
+            dialogue.PoliceDispatchRequested -= TakeReport;
             dialogue.Ended -= OnDialogueEnded;
         }
 
-        private void OnUserTurnAccepted(string npcCode, string text)
+        public void TakeReport(string npcCode, long turnId, string placeCode)
         {
             if (npcCode != officer.Code)
                 return;
-            intake.Hear(text);
-            if (!intake.HasReport)
-                return;
-            if (patrolCar.Phase != PolicePhase.Parked)
+            hasReport = true;
+            reportedTurnId = turnId;
+            reportedPlace = placeCode;
+            if (PoliceDispatchOrder.IsPending || PoliceDispatchOrder.Current != null)
             {
-                Show("신고 접수 · 순찰차가 이미 출동해 있어요");
+                Show("신고 접수 · 앞선 신고를 마친 뒤 차례로 출동해요");
                 return;
             }
-            string placeName = patrolCar.DisplayNameOf(intake.Place);
+            string placeName = destinations
+                .Find(destination => destination.Code == placeCode)
+                ?.DisplayName;
             Show(
                 placeName != null
                     ? $"신고 접수 · {placeName} · 대화를 마치면 순찰차가 출동해요"
@@ -77,13 +91,17 @@ namespace A305.Npc
         {
             if (npcCode != officer.Code)
                 return;
-            if (intake.TryTakeDispatch(out string place))
-                patrolCar.Dispatch(place);
+            if (hasReport)
+                PoliceDispatchOrder.TryRequest(reportedTurnId, officer.Code, reportedPlace);
+            hasReport = false;
+            reportedPlace = null;
             if (showingStatus)
             {
                 showingStatus = false;
                 panel.SetVehicleStatus(null);
             }
+            if (PoliceDispatchOrder.IsAway(officer.Code))
+                officer.gameObject.SetActive(false);
         }
 
         private void Show(string message)

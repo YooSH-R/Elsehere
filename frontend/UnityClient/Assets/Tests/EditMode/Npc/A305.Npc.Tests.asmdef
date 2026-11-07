@@ -5,8 +5,14 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "A305.Api",
+        "A305.Characters",
+        "A305.Dialogue",
         "A305.Npc",
-        "A305.EditorTools"
+        "A305.ObjectHover",
+        "A305.Player",
+        "A305.EditorTools",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [
         "Editor"

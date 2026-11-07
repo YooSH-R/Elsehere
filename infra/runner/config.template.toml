@@ -2,7 +2,8 @@
 # Preserve each entry's id, token, token timestamps, name and URL.
 concurrent = 3
 
-# EC2 general runner tags: a305-linux-ci, a305-ec2, a305-linux (legacy jobs).
+# EC2 general runner tags: a305-linux-ci, a305-linux-light, a305-ec2, a305-linux (legacy jobs).
+# Idle general slots can also pick up light checks; the dedicated light slot stays separate.
 [[runners]]
   limit = 2
   executor = "docker"

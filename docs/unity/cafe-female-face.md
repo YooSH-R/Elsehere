@@ -2,6 +2,8 @@
 
 Tripo 카페 여자 `Assets/Prefabs/Npc/Barista.prefab`을 보존한 표정 복사본이다. 개별 표정 검수 씬과 실제 카페 NPC 대화 연결을 함께 제공한다. 원본 메시·텍스처·프리팹은 변경하지 않는다.
 
+말하는 동안 의문·찡그림·웃음 등 9종 감정을 합성하는 별도 카페 복사본은 [NPC 말하기 감정 검수](npc-speaking-emotions.md)에서 확인한다. 현재 Production의 고정 미소를 자동 감정 판정으로 교체한 기능은 아니다.
+
 ## Unity에서 확인
 
 1. `Assets/Scenes/Sandbox/CafeFemaleFacePreview.unity`를 연다.
@@ -45,7 +47,7 @@ Tripo 카페 여자 `Assets/Prefabs/Npc/Barista.prefab`을 보존한 표정 복�
 
 다른 NPC는 같은 채널 이름으로 제작한 얼굴에 `CharacterFaceController`를 붙여 `SetPose`를 재사용할 수 있다. `BlendPoses(from, to, progress, intensity)`는 두 포즈 사이를 0~1 진행률로 전환하며, 기존 관절 보정 채널을 유지한다. 얼굴 크기·정점 순서가 다른 NPC에 이 모델의 변형 값을 그대로 복사해서는 안 된다. 필수 채널이 빠졌으면 부분 적용 대신 오류를 반환한다.
 
-기존 문장 GIF는 수동 시간표 시안이었다. 현재 음성 검수 씬은 로컬 TTS가 WAV와 함께 생성한 Viseme 시각을 사용한다. LLM 감정값 연결, 운영 서버 배포·WebGL 동기화 확인, 전체 29개 채널의 파이프라인 검증은 별도 작업이다. 이 씬의 동작만으로 전체 표정·립싱크 검증을 통과했다고 처리하지 않는다.
+기존 문장 GIF는 수동 시간표 시안이었다. 현재 음성 검수 씬은 로컬 TTS가 WAV와 함께 생성한 Viseme 시각을 사용한다. 실제 대사의 감정값 연결은 [NPC 대화 감정 표정](npc-dialogue-emotions.md)을 따른다. 운영 서버 배포·WebGL 동기화 확인과 전체 29개 채널의 파이프라인 검증은 별도다. 이 씬의 동작만으로 전체 표정·립싱크 검증을 통과했다고 처리하지 않는다.
 
 `viseme_I`와 `viseme_EU`는 첨부된 한국어 이·으 기준이다. 기존 Tripo 전체 얼굴 검사의 `IH` 및 DD·KK·CH·SS·NN·RR, 추가 감정 채널과 자동으로 동일 취급하지 않는다. 전체 얼굴 검사 기준을 낮추거나 통과 처리하지 않는다.
 

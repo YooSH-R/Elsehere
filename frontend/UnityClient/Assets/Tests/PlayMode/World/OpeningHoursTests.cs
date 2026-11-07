@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using A305.Player;
 using A305.Tutorial;
 using NUnit.Framework;
@@ -15,6 +16,7 @@ namespace A305.World.PlayModeTests
     public class OpeningHoursTests
     {
         private const float TimeoutSeconds = 5f;
+        private const float SceneArrivalTimeoutSeconds = 30f;
 
         // 문 감지 영역에 닿고 거절 안내가 뜨기까지 넉넉히 기다리는 물리 갱신 수
         private const int DoorTouchFixedUpdates = 10;
@@ -32,6 +34,32 @@ namespace A305.World.PlayModeTests
         {
             TestGameClock.Restore();
             TutorialState.Clear();
+            OpeningHours.Use(PlaceHours.AlwaysOpen);
+        }
+
+        [UnityTest]
+        public IEnumerator ClosedCafe_TurnsOffItsLights_AndLightsAgainWhenOpen()
+        {
+            TestGameClock.Set(22 * 60);
+            yield return LoadSpace("TownScene");
+            Transform building = FindDoorway("CafeDoor").transform.parent;
+            Light[] lights = building
+                .GetComponentsInChildren<Light>(true)
+                .Where(light => light.type != LightType.Directional)
+                .ToArray();
+            Assert.That(lights, Is.Not.Empty, "카페 외관의 실제 조명을 확인합니다.");
+            yield return null;
+            Assert.That(lights.All(light => !light.enabled || light.intensity == 0), Is.True);
+
+            TestGameClock.Set(6 * 60);
+            yield return null;
+            yield return null;
+            Assert.That(lights.All(light => !light.enabled || light.intensity == 0), Is.True);
+
+            TestGameClock.Set(20 * 60);
+            yield return null;
+            yield return null;
+            Assert.That(lights.Any(light => light.enabled && light.intensity > 0), Is.True);
         }
 
         [UnityTest]
@@ -160,6 +188,14 @@ namespace A305.World.PlayModeTests
             yield return SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
             // 새 씬의 Start가 실행되도록 한 프레임 넘긴다.
             yield return null;
+            // 운영 데이터는 24시간 영업이다. 닫힘·마감 처리는 별도의 시간표로 검증한다.
+            OpeningHours.Use(
+                PlaceHours.FromJson(
+                    "{\"places\":["
+                        + "{\"code\":\"CAFE\",\"alwaysOpen\":false,\"from\":\"07:00\",\"to\":\"21:00\"},"
+                        + "{\"code\":\"POST_OFFICE\",\"alwaysOpen\":false,\"from\":\"09:00\",\"to\":\"17:00\"}]}"
+                )
+            );
         }
 
         private static IEnumerator WaitForFixedUpdates(int count)
@@ -173,7 +209,7 @@ namespace A305.World.PlayModeTests
 
         private static IEnumerator WaitForArrival(string sceneName)
         {
-            float deadline = Time.realtimeSinceStartup + TimeoutSeconds;
+            float deadline = Time.realtimeSinceStartup + SceneArrivalTimeoutSeconds;
             while (SceneManager.GetActiveScene().name != sceneName || SpaceTravel.IsTraveling)
             {
                 Assert.That(

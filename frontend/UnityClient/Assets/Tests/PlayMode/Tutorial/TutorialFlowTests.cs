@@ -10,8 +10,6 @@ using A305.World;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -24,6 +22,25 @@ namespace A305.Tutorial.PlayModeTests
     /// </summary>
     public class TutorialFlowTests
     {
+        [UnityTest]
+        public IEnumerator AbandoningGuidedConversation_ReleasesTheDialogueClockPause()
+        {
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+            Click(offer, "AcceptButton");
+            yield return null;
+            DialogueController dialogue = Single<DialogueController>();
+            Assert.That(dialogue.IsTalking, Is.True);
+            Assert.That(GameClock.Shared.IsTalking, Is.True);
+
+            dialogue.Abandon();
+
+            Assert.That(dialogue.IsTalking, Is.False);
+            Assert.That(GameClock.Shared.IsTalking, Is.False);
+        }
+
         private const string BenCode = "TOWN_PASSERBY";
         private const float WaitTimeoutSeconds = 15f;
 
@@ -183,7 +200,7 @@ namespace A305.Tutorial.PlayModeTests
             DialogueController dialogue = Single<DialogueController>();
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "ExampleButton");
+                Click(panel, "HintButton");
                 Click(panel, "SendButton");
                 yield return null;
             }
@@ -207,69 +224,6 @@ namespace A305.Tutorial.PlayModeTests
             yield return null;
             yield return null;
             Assert.That(player.IsMovementLocked, Is.False);
-        }
-
-        [UnityTest]
-        public IEnumerator Lodging_InFirstPerson_ShowsTheCompassArrowOnTheScreen()
-        {
-            // 1인칭에서는 발밑이 화면에 없으므로 화면 아래 화살표로 문 쪽을 알린다. 3인칭에서 발밑이 보이면 띄우지 않는다.
-            InputSettings.BackgroundBehavior oldBackground = InputSystem
-                .settings
-                .backgroundBehavior;
-            InputSettings.EditorInputBehaviorInPlayMode oldEditorInput = InputSystem
-                .settings
-                .editorInputBehaviorInPlayMode;
-            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
-            InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings
-                .EditorInputBehaviorInPlayMode
-                .AllDeviceInputAlwaysGoesToGameView;
-            Keyboard keyboard = InputSystem.AddDevice<Keyboard>();
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
-                yield return null;
-                TutorialProgress progress = TutorialState.GetOrCreate(BenCode);
-                progress.Continue();
-                progress.Report(TutorialAction.Walk);
-                progress.Report(TutorialAction.Run);
-                progress.Report(TutorialAction.Jump);
-                progress.Continue();
-                progress.Report(TutorialAction.Rotate);
-                progress.Report(TutorialAction.Zoom);
-                progress.Report(TutorialAction.ToggleView);
-                progress.Continue();
-                progress.ReportWordSaved();
-                progress.ReportVocabularyOpened();
-                for (int frame = 0; frame < 10; frame++)
-                    yield return null;
-
-                CoachMarkView coachMark = Single<CoachMarkView>();
-                Assert.That(coachMark.IsCompassShowing, Is.True, "준비: 발밑 나침반");
-                Assert.That(
-                    coachMark.IsCompassArrowShowing,
-                    Is.False,
-                    "3인칭에서 발밑이 보이면 화면 화살표는 띄우지 않습니다."
-                );
-
-                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.V));
-                yield return null;
-                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
-                for (int frame = 0; frame < 10; frame++)
-                    yield return null;
-
-                Assert.That(
-                    Single<PlayerCameraRig>().ViewMode,
-                    Is.EqualTo(CameraViewMode.FirstPerson),
-                    "준비: 1인칭"
-                );
-                Assert.That(coachMark.IsCompassArrowShowing, Is.True);
-            }
-            finally
-            {
-                InputSystem.RemoveDevice(keyboard);
-                InputSystem.settings.backgroundBehavior = oldBackground;
-                InputSystem.settings.editorInputBehaviorInPlayMode = oldEditorInput;
-            }
         }
 
         [UnityTest]
@@ -460,7 +414,7 @@ namespace A305.Tutorial.PlayModeTests
 
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "ExampleButton");
+                Click(panel, "HintButton");
                 Click(panel, "SendButton");
                 yield return null;
             }
@@ -488,12 +442,15 @@ namespace A305.Tutorial.PlayModeTests
 
             DialoguePanelView panel = Single<DialoguePanelView>();
             CoachMarkView coachMark = Single<CoachMarkView>();
+            RectTransform npcName = panel
+                .GetComponentsInChildren<TMP_Text>(true)
+                .Single(text => text.text == "Ben")
+                .rectTransform;
             RectTransform[][] tour =
             {
-                new[] { panel.LinesRect },
+                new[] { panel.LinesRect, npcName },
                 panel.ToolParts.ToArray(),
                 new[] { panel.SuggestedWordsRect },
-                new[] { panel.SuggestedSentenceRect },
             };
             foreach (RectTransform[] targets in tour)
             {
@@ -519,6 +476,11 @@ namespace A305.Tutorial.PlayModeTests
                 "대사는 밝힌 곳 안에 두어 그대로 보입니다."
             );
             Assert.That(
+                coachMark.SpotlightTargets,
+                Does.Contain(npcName),
+                "화자 이름도 밝힌 곳 안에 두어 Ben이 가려지지 않습니다."
+            );
+            Assert.That(
                 coachMark.IsDimmingOutside,
                 Is.True,
                 "말풍선이 눈에 띄게 둘레를 어둡게 덮습니다."
@@ -526,6 +488,30 @@ namespace A305.Tutorial.PlayModeTests
             Assert.That(coachMark.IsNextShowing, Is.False);
             Assert.That(coachMark.CaptionText, Does.Contain("정해진 흐름"));
             Assert.That(coachMark.CaptionRect.Overlaps(coachMark.Hole), Is.False);
+            Assert.That(
+                coachMark.SpotlightTargets,
+                Does.Contain(
+                    panel
+                        .GetComponentsInChildren<Button>(true)
+                        .Single(button => button.name == "HintButton")
+                        .transform
+                )
+            );
+
+            Click(panel, "HintButton");
+            yield return null;
+            Assert.That(input.text, Does.Contain("Nice to meet you"));
+            Click(panel, "SendButton");
+            yield return null;
+            yield return null;
+            Assert.That(coachMark.SpotlightTargets, Is.EqualTo(panel.RelationshipParts));
+            Assert.That(coachMark.CaptionText, Does.Contain("호감도"));
+            Assert.That(coachMark.CaptionText, Does.Contain("무례"));
+            Assert.That(coachMark.CaptionText, Does.Contain("저장"));
+            ClickNext(coachMark);
+            yield return null;
+            yield return null;
+            Assert.That(coachMark.SpotlightTargets, Does.Contain(input.transform));
         }
 
         [UnityTest]
@@ -631,7 +617,7 @@ namespace A305.Tutorial.PlayModeTests
             yield return FinishTour(Single<CoachMarkView>());
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "ExampleButton");
+                Click(panel, "HintButton");
                 Click(panel, "SendButton");
                 yield return null;
             }
@@ -706,7 +692,7 @@ namespace A305.Tutorial.PlayModeTests
             DialogueController dialogue = Single<DialogueController>();
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "ExampleButton");
+                Click(panel, "HintButton");
                 Click(panel, "SendButton");
                 yield return null;
                 Assert.That(voice.HasSpeech, Is.True, "Ben의 대답을 들려줍니다.");
@@ -716,8 +702,7 @@ namespace A305.Tutorial.PlayModeTests
         [UnityTest]
         public IEnumerator BenFeedback_TeachesTheNoteStepByStep_ThenHighlightsTheCloseButton()
         {
-            // 길 안내를 마치고 [대화 종료]를 누르면 대화 노트도 탭 → 쪽 넘기기를 하나씩 밝혀 [다음]으로 넘기고,
-            // 마지막에 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 넘어간다. 탭을 밝힐 때는 눌러서 바뀌는 결과 칸도 함께 밝히고, 쪽 넘기기는 "이 상황에서 자주 써요" 제목 옆 쪽 넘김만 밝힌다.
+            // 대화 노트를 탭 → 본문 스크롤 순서로 안내하고, 마지막에 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 넘어간다.
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
             PasserbyOfferView offer = Single<PasserbyOfferView>();
@@ -731,7 +716,7 @@ namespace A305.Tutorial.PlayModeTests
             DialogueController dialogue = Single<DialogueController>();
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "ExampleButton");
+                Click(panel, "HintButton");
                 Click(panel, "SendButton");
                 yield return null;
             }
@@ -763,19 +748,19 @@ namespace A305.Tutorial.PlayModeTests
             RectTransform[][] tour =
             {
                 new[] { feedback.SectionRowRect, feedback.PageCardRect },
-                new[] { feedback.SituationPagerRect },
+                new[] { feedback.ScrollAreaRect },
             };
             foreach (RectTransform[] targets in tour)
             {
                 Assert.That(coachMark.SpotlightTargets, Is.EqualTo(targets));
                 Assert.That(coachMark.IsDimmingOutside, Is.True);
                 Assert.That(coachMark.IsNextShowing, Is.True);
-                // 설명은 결과 칸 위에는 조금 올라가도 되지만, 설명하는 탭·화살표 줄은 가리지 않는다.
+                // 설명하는 탭·스크롤 영역은 가리지 않는다.
                 Assert.That(
                     ScreenRectOf((RectTransform)coachMark.transform.Find("Caption"))
                         .Overlaps(ScreenRectOf(targets[0])),
                     Is.False,
-                    "설명이 설명하는 버튼 줄을 가립니다."
+                    $"설명이 설명하는 영역을 가립니다. caption={ScreenRectOf((RectTransform)coachMark.transform.Find("Caption"))}, target={ScreenRectOf(targets[0])}, hole={coachMark.Hole}"
                 );
                 AssertCaptionClearsTheSkipCard(coachMark);
                 ClickNext(coachMark);

@@ -48,6 +48,7 @@ com.elsehere
 | `dialogue` | 없음 (대화 흐름: 대화 시작·발화·종료, 음성 인식·NPC 음성, 뜻 보기·힌트, 지난 대화 목록 API. 피드백·기억·미션·동의를 엮는다) |
 | `feedback` | conversation_feedback, turn_feedback (대화 종료 피드백과 문장별 상세 평가, 모범 음성). `conversation_feedback.reviews` JSON은 응답 DTO와 다른 저장 전용 타입(`entity.FeedbackReviews`)으로 읽고 쓴다. 이미 저장된 피드백을 읽어야 하므로 칸 이름을 바꾸지 않고, 응답 모양을 바꿀 때는 응답으로 옮겨 담는 부분만 고친다 |
 | `memory` | user_npc_relations (NPC 기억 카드와 관계) |
+| `review` | review_cards (종료한 대화의 상황 요약·피드백 표현과 복습 기록). 저장·목록·상세·삭제와 표현 사용 근거·결과 조회는 [복습장 API](../docs/api/review-workbook.md)를 따르며 AI를 호출하지 않는다. 종료 결과는 conversations.review_result에 한 번 저장한다 |
 | `followup` | npc_follow_ups (NPC가 대화에서 곧 건네기로 한 것: 대화 종료 때 판정·저장, 기다리는 목록 CONV-13, 대화 시작 첫마디로 건넴) |
 | `world` | scenes, npcs, scene_words, user_word_prefs, user_game_clocks (사용자별 게임 시간) |
 | `vocab` | vocabularies, user_vocab |
@@ -114,6 +115,7 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 - `code`, `unity_key`는 Unity 씬·빌더에 쓴 값과 같아야 합니다. 행을 추가하거나 고치면 `WorldSeedLoaderTest`의 기대값도 함께 고칩니다.
 - 공용 목록의 어휘 전체를 `vocabularies`에 적재합니다. SQL을 실행한 뒤 `WorldSeedLoader`가 단어 JSON의 공용 키를 `vocabularies.word_key`에 넣고, 연결 JSON의 씬별 공용 키 목록으로 `scene_words`(장소별 단어)를 맞춥니다. 연결 JSON에서 빠진 단어는 그 장소의 `scene_words`에서 지웁니다. WORLD-02 단어 카드, WORLD-03 숨김, VOCAB-02 사물 저장은 모두 이 공용 키(`wordKey`)를 씁니다. 사용자별 저장·숨김 상태(`user_vocab`, `user_word_prefs`)는 공용 에셋에 넣지 않습니다.
 - 사물 단어 발음 음성(WORLD-04)은 음성 볼륨의 하위 폴더(`elsehere.pronunciation.dir`, 기본 `${NPC_AUDIO_DIR}/pronunciation`)에 `{공용 키}.wav`로 둡니다. 관리자가 발음 생성 API(`POST /api/v1/admin/pronunciations`)로 발음 파일이 없는 단어만 AI 워커 TTS로 만듭니다([운영자 어드민](../docs/admin.md)). 시드 SQL이 발음 키를 Unity 에셋 값(대부분 비어 있음)으로 되돌리므로, `WorldSeedLoader`가 서버를 시작할 때마다 Unity 에셋에 발음 키가 없는 단어 중 이 폴더에 파일이 있는 단어에 파일 이름을 `pronunciation_audio_key`로 다시 넣습니다. 볼륨은 환경마다 따로라 개발·운영에서 각각 한 번 만듭니다.
+- 영어 표현을 바꿀 때는 기존 발음 파일과 구분되는 `pronunciationAudioKey`를 Unity 에셋에 지정하고, 배포 후 관리자 발음 생성으로 새 WAV를 준비합니다. 명시한 발음 키가 있으면 생성기는 `{공용 키}.wav` 대신 그 파일 이름을 사용합니다. 공용 키가 같다는 이유로 예전 표현의 음성을 재사용하지 않습니다.
 - Spring의 SQL 초기화(`spring.sql.init`)는 `@DataJpaTest`에서도 실행되어 테스트 데이터와 겹치므로 쓰지 않습니다. DB 테스트에서 시드가 필요하면 `WorldSeedLoader`를 `@Import`합니다.
 
 ## 인증과 오류 응답
@@ -141,13 +143,13 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 
 ### 게스트로 시작하기
 
-[MVP API 명세](../docs/api/mvp-api.md)의 AUTH-07입니다. `POST /api/v1/auth/guest`에 고른 캐릭터(`avatarType`)를 보내면 Google 로그인과 가입 화면 없이 새 사용자(`provider=GUEST`)를 만들고 그 사용자로 로그인합니다. 닉네임은 `guest-` 뒤에 여섯 자리 숫자를 붙이고 약관 동의 기록은 남기지 않습니다. 학습 언어·대화 난이도는 영어·초급으로 정해 튜토리얼부터 시작합니다. 모든 환경에서 열려 있습니다. 시작하기 전 캐릭터 선택 화면은 AUTH-08 `GET /api/v1/auth/guest`로 게스트가 대화할 수 있는 횟수(`conversationLimit`, 아래 `GUEST_CONVERSATION_LIMIT`)를 로그인 없이 읽습니다.
+[MVP API 명세](../docs/api/mvp-api.md)의 AUTH-07입니다. `POST /api/v1/auth/guest`에 고른 캐릭터(`avatarType`)를 보내면 Google 로그인과 가입 화면 없이 새 사용자(`provider=GUEST`)를 만들고 그 사용자로 로그인합니다. 닉네임은 `guest-` 뒤에 여섯 자리 숫자를 붙이고 약관 동의 기록은 남기지 않습니다. 학습 언어·대화 난이도는 영어·초급으로 정해 튜토리얼부터 시작합니다. 모든 환경에서 열려 있습니다. 시작 전 캐릭터 선택 화면은 AUTH-08 `GET /api/v1/auth/guest`로 일일 대화 한도(`conversationLimit`)를 읽습니다.
 
 | 환경변수 | 기본값 | 설명 |
 | --- | --- | --- |
-| `GUEST_CONVERSATION_LIMIT` | `3` | 게스트 계정 하나가 시작할 수 있는 NPC 대화 수(CONV-01). 다 쓰면 `AI_QUOTA_EXHAUSTED`이며 다시 채워지지 않습니다. |
+| `DAILY_CONVERSATION_LIMIT` | `30` | 계정별 하루 NPC 대화 시작 횟수(CONV-01). 한국 시간 자정에 초기화됩니다. |
 
-- 게스트 세션에서 Google로 가입하면 새 사용자를 만들지 않고 그 게스트 행을 회원으로 바꿉니다(`SignupService`, AUTH-02·04). 같은 `user_id`라 게스트 때 기록이 모두 이어지고, `provider`가 `GOOGLE`이 되므로 대화 횟수 제한과 아래 정리에서 빠집니다. Google 로그인 성공 처리 전에 Spring Security가 세션의 로그인 정보를 바꾸므로, 게스트였다는 사실은 `LoginSessionService.loginGuest`가 세션에 따로 남긴 값으로 읽습니다. 이미 가입한 Google 계정이면 그 계정으로 로그인하고 합치지 않습니다(`?existingAccount=true`).
+- 게스트 세션에서 Google로 가입하면 새 사용자를 만들지 않고 그 게스트 행을 회원으로 바꿉니다(`SignupService`, AUTH-02·04). 같은 `user_id`라 게스트 때 기록과 일일 대화 횟수가 이어지며 게스트 정리에서는 빠집니다. Google 로그인 성공 처리 전에 Spring Security가 세션의 로그인 정보를 바꾸므로, 게스트였다는 사실은 `LoginSessionService.loginGuest`가 세션에 따로 남긴 값으로 읽습니다. 이미 가입한 Google 계정이면 그 계정으로 로그인하고 합치지 않습니다(`?existingAccount=true`).
 - 게스트는 세션이 끝나면 다시 들어올 수 없는 일회용 계정입니다. `GuestContentCleanup`이 매시 30분에 마지막 활동 뒤 24시간(`elsehere.guest.content-retention`)이 지난 게스트의 **내용만** 지웁니다. 지우는 것은 발화 원문(`turns`)과 그 NPC 음성 파일(NPC 공용 말걸기 음성 제외), 대화 피드백, 문장 피드백(`turn_feedback`)과 그 모범 음성 파일, 기억 카드·관계, 저장 단어·숨김, 레벨 테스트, 학습용 녹음입니다. 사용자·대화·AI 호출 기록·미션 진행·언어 프로필·게임 시계 행은 남겨, 남은 행이 가리키는 곳이 사라지지 않고 게스트 수·대화 수·사용량을 집계할 수 있게 합니다. 집계는 [어드민 이용 현황](../docs/admin.md#이용-현황)에서 봅니다.
 - 회원 탈퇴(USER-05, `WithdrawalService`)도 같은 범위의 내용을 바로 지우고, 이메일을 비우며 소셜 계정 ID·닉네임을 `withdrawn-` 값으로 바꿔 사용자 행은 익명으로 남깁니다.
 - 지우는 범위는 `UserContentEraser`가 게스트 정리와 탈퇴에 함께 씁니다. 사용자·대화·턴을 가리키는 칸(`user_id`, `…conversation_id`, `…turn_id`)이 있는 테이블을 새로 만들면 `UserContentEraser`의 지움(`CLEARED_TABLES`)·남김(`RETAINED_TABLES`) 중 한쪽에 넣습니다. 빠뜨리면 `GuestContentCleanupTest`가 실패합니다.

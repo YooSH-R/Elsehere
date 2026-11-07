@@ -2,6 +2,7 @@ package com.elsehere.dialogue.service;
 
 import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.SttResult;
+import com.elsehere.ai.client.WorkerSpeechPhrase;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
@@ -19,8 +20,8 @@ import com.elsehere.user.service.OptionalConsentService;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -28,6 +29,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 /** 음성 인식(CONV-02)과 NPC 음성 다시 듣기·다시 만들기(CONV-06·07). */
 @Service
@@ -37,8 +40,8 @@ public class SpeechService {
   private static final long MAX_AUDIO_BYTES = 3L * 1024 * 1024;
   private static final Set<String> AUDIO_TYPES =
       Set.of("audio/webm", "audio/ogg", "audio/mp4", "audio/wav", "audio/x-wav", "audio/mpeg");
-  // 음성 합성(/v1/tts)은 난이도 배율을 Spring이 곱해 보낸다(AI 명세 1.1).
-  private static final Map<Integer, Double> LEVEL_SPEED = Map.of(1, 0.85, 2, 1.0, 3, 1.06);
+  // 대화 음성과 다시 만든 음성에 같은 속도를 적용한다.
+  private static final double NPC_SPEECH_SPEED = 1.1;
 
   private final TurnRepository turnRepository;
   private final ConversationLookup conversationLookup;
@@ -49,6 +52,7 @@ public class SpeechService {
   private final OptionalConsentService optionalConsentService;
   private final TrainingRecordingService trainingRecordingService;
   private final Clock clock;
+  private final JsonMapper jsonMapper;
 
   /**
    * 녹음을 전사한다. 발화 턴은 만들지 않는다. 음성은 외부 음성 인식 공급자로 가므로 음성 처리(VOICE)에 동의한 사용자의 것만 받는다. 받은 음성은 녹음 음성 학습
@@ -126,15 +130,23 @@ public class SpeechService {
                   turn.getText(),
                   npc.voiceId(),
                   conversation.getId(),
-                  conversation.getLevelApplied());
+                  turn.getSpeechPhrases());
             });
     if (target.npcAudioKey() != null || target.npcAudioDeletedAt() != null) {
       return SpeechResponse.of(turnId, target.npcAudioKey(), target.npcAudioDeletedAt());
     }
 
     WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
-    double speed = LEVEL_SPEED.getOrDefault(target.level(), 1.0);
-    byte[] wav = aiGateway.synthesize(trace, target.text(), target.voiceId(), speed);
+    List<WorkerSpeechPhrase> phrases =
+        target.speechPhrases() == null
+            ? List.of()
+            : jsonMapper.readValue(
+                target.speechPhrases(), new TypeReference<List<WorkerSpeechPhrase>>() {});
+    byte[] wav =
+        phrases.isEmpty()
+            ? aiGateway.synthesize(trace, target.text(), target.voiceId(), NPC_SPEECH_SPEED)
+            : aiGateway.synthesize(
+                trace, target.text(), target.voiceId(), NPC_SPEECH_SPEED, phrases);
     String key = npcAudioRetention.save(wav);
     if (key != null) {
       transactionTemplate.executeWithoutResult(
@@ -185,5 +197,5 @@ public class SpeechService {
       String text,
       String voiceId,
       Long conversationId,
-      int level) {}
+      String speechPhrases) {}
 }

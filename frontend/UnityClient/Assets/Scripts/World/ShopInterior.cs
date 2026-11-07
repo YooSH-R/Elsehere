@@ -6,6 +6,11 @@ using UnityEngine.SceneManagement;
 
 namespace A305.World
 {
+    public interface IShopStaffPresence
+    {
+        bool ShouldBeAtWork { get; }
+    }
+
     /// <summary>방문한 건물의 실내만 마을에 겹쳐 불러온다. 플레이어·순찰차·시간은 마을에 남는다.</summary>
     public sealed class ShopInterior : MonoBehaviour
     {
@@ -33,6 +38,20 @@ namespace A305.World
 
         public string PlaceName => placeName;
 
+        /// <summary>비활성 직원도 어느 매장에 속하는지 찾을 수 있다.</summary>
+        public bool ContainsStaff(Transform target)
+        {
+            if (target == null || staff == null)
+                return false;
+            foreach (GameObject member in staff)
+                if (
+                    member != null
+                    && (target == member.transform || target.IsChildOf(member.transform))
+                )
+                    return true;
+            return false;
+        }
+
         public bool IsLoaded => SceneManager.GetSceneByName(sceneName).isLoaded;
 
         /// <summary>플레이어가 지금 들어와 있는 매장. 매장 밖이면 null.</summary>
@@ -57,13 +76,6 @@ namespace A305.World
             }
             if (nearestDoor != null)
                 return nearestDoor.TryLeave(player, this);
-
-            // 경찰서처럼 실내 쪽 출입구와 문 밖 출입구를 한 쌍으로 둔 건물
-            foreach (InteriorDoorway doorway in GetComponentsInChildren<InteriorDoorway>())
-            {
-                if (doorway.LeadsOutOf(this))
-                    return doorway.TryLeave(player, this);
-            }
 
             Debug.LogError($"{name}에 밖으로 나가는 문이 없습니다.", this);
             return false;
@@ -95,7 +107,8 @@ namespace A305.World
                     townParents[i] = npc.transform.parent;
                     npc.transform.SetParent(null, true);
                     SceneManager.MoveGameObjectToScene(npc, room);
-                    npc.SetActive(true);
+                    IShopStaffPresence presence = npc.GetComponent<IShopStaffPresence>();
+                    npc.SetActive(presence == null || presence.ShouldBeAtWork);
                 }
                 current = this;
             }

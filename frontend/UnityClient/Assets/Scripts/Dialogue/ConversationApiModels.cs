@@ -17,6 +17,7 @@ namespace A305.Dialogue
 
     public sealed class ConversationStart
     {
+        public long? ReviewCardId { get; set; }
         public long ConversationId { get; set; }
         public NpcSummary Npc { get; set; }
         public NpcTurnData OpeningTurn { get; set; }
@@ -37,6 +38,8 @@ namespace A305.Dialogue
 
     public sealed class NpcTurnData
     {
+        public string MeaningKo { get; set; }
+        public List<GlossaryData> Glossary { get; set; }
         public long TurnId { get; set; }
         public string Text { get; set; }
         public List<string> SuggestWords { get; set; }
@@ -70,6 +73,16 @@ namespace A305.Dialogue
         public UserTurnData UserTurn { get; set; }
         public NpcTurnData NpcTurn { get; set; }
         public ConversationState Conversation { get; set; }
+
+        /// <summary>이 턴에서 경찰관이 신고를 받아 순찰차가 출동하면 출동할 곳. 출동하지 않으면 null이다.</summary>
+        public PoliceDispatchData PoliceDispatch { get; set; }
+    }
+
+    /// <summary>경찰서 창구에서 받은 신고. 신고를 받은 경찰관이 대화를 마치고 직접 순찰차로 간다.</summary>
+    public sealed class PoliceDispatchData
+    {
+        /// <summary>출동할 마을 장소 코드(CAFE, BAKERY, PARK 등). null이면 본길을 순찰한다.</summary>
+        public string PlaceCode { get; set; }
     }
 
     public sealed class UserTurnData
@@ -77,6 +90,13 @@ namespace A305.Dialogue
         public bool Rude { get; set; }
         public long TurnId { get; set; }
         public string Text { get; set; }
+        public UserTranslationData Translation { get; set; }
+    }
+
+    /// <summary>CONV-03에서 무례하지 않은 한국어·혼합 발화에만 보내는 학습자 말의 영어 표현.</summary>
+    public sealed class UserTranslationData
+    {
+        public string English { get; set; }
     }
 
     public sealed class ConversationState
@@ -94,6 +114,15 @@ namespace A305.Dialogue
 
         /// <summary>이 NPC의 지금 호감도(-100~100). 이 칸을 보내지 않는 서버면 null이다.</summary>
         public int? Affinity { get; set; }
+
+        /// <summary>서버가 계산한 기본 대화 제한 시각(ISO 8601).</summary>
+        public string TimeLimitAt { get; set; }
+
+        /// <summary>마지막 발화도 새로 받을 수 없는 시각(ISO 8601).</summary>
+        public string GraceUntil { get; set; }
+
+        public bool Closing { get; set; }
+        public int FinalTurnsRemaining { get; set; }
     }
 
     public sealed class EndBody
@@ -104,8 +133,12 @@ namespace A305.Dialogue
 
     public sealed class EndResult
     {
+        public long? ReviewCardId { get; set; }
+        public ReviewPracticeResult ReviewResult { get; set; }
         public string Status { get; set; }
         public FeedbackData Feedback { get; set; }
+
+        public List<DetailedFeedbackItem> DetailedFeedback { get; set; }
 
         /// <summary>대화에서 NPC가 준비해 곧 건네기로 한 것. 건넬 것이 없으면 null이다.</summary>
         public FollowUpData FollowUp { get; set; }
@@ -216,17 +249,21 @@ namespace A305.Dialogue
     /// <summary>진행 중인 대화(CONV-11). 끝내지 못한 같은 NPC 대화를 이어서 할 때 지난 턴을 다시 보인다.</summary>
     public sealed class ActiveConversation
     {
+        public long? ReviewCardId { get; set; }
         public long ConversationId { get; set; }
         public string Status { get; set; }
         public NpcSummary Npc { get; set; }
         public int? RudeCount { get; set; }
         public int? RudeLimit { get; set; }
+        public string StartedAt { get; set; }
         public List<ActiveTurn> Turns { get; set; }
     }
 
     /// <summary>진행 중인 대화의 한 턴. NPC 턴만 음성이 있다.</summary>
     public sealed class ActiveTurn
     {
+        public string MeaningKo { get; set; }
+        public List<GlossaryData> Glossary { get; set; }
         public long TurnId { get; set; }
 
         /// <summary>USER · NPC</summary>

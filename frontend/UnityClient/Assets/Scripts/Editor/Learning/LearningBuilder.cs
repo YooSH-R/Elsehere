@@ -39,6 +39,7 @@ namespace A305.EditorTools.Learning
             "CafeScene",
             "HotelScene",
             "ShopScene",
+            "PoliceStationScene",
         };
 
         // 다른 화면 위에 열리도록 대화 화면(120)보다 위에 둔다. 단어장은 피드백에서도 열 수 있어 그 위에 둔다.
@@ -232,7 +233,9 @@ namespace A305.EditorTools.Learning
                 22f,
                 SubTextColor
             );
-            Transform bodyParent = panel.Find("PageCard");
+            Transform bodyParent = panel.Find("PageCard/Content");
+            if (bodyParent == null)
+                bodyParent = panel.Find("PageCard");
             if (bodyParent == null)
                 bodyParent = panel;
             TMP_Text body = UiBuilderTools.FindOrCreateText(
@@ -243,7 +246,9 @@ namespace A305.EditorTools.Learning
                 Color.white
             );
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
-            Transform savedButton = panel.Find("PageCard/BodyTile/SaveButton");
+            Transform savedButton = panel.Find("PageCard/Content/BodyTile/SaveButton");
+            if (savedButton == null)
+                savedButton = panel.Find("PageCard/BodyTile/SaveButton");
             Button saveButton = UiBuilderTools.FindOrCreateButton(
                 savedButton != null ? savedButton.parent : buttons,
                 "SaveButton",

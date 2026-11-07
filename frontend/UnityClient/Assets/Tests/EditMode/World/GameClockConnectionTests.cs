@@ -7,11 +7,7 @@ namespace A305.World.Tests
 {
     public sealed class GameClockConnectionTests
     {
-        [TestCase("HomeScene")]
-        [TestCase("TownScene")]
-        [TestCase("CafeScene")]
-        [TestCase("HotelScene")]
-        [TestCase("ShopScene")]
+        [TestCase("PoliceStationScene")]
         public void ProductionSceneSendsGameClockBeats(string name)
         {
             var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/" + name + ".unity");

@@ -32,6 +32,8 @@ namespace A305.Learning
 
         /// <summary>짧은 피드백 상태(DONE, FAILED, SKIPPED). 피드백을 만들기 전이면 null.</summary>
         public string FeedbackStatus { get; set; }
+
+        public bool FeedbackUnread { get; set; }
     }
 
     /// <summary>FB-01 저장된 피드백. 짧은 피드백 형식은 대화 종료(CONV-08)와 같다.</summary>
@@ -55,6 +57,8 @@ namespace A305.Learning
 
     public sealed class TurnDetail
     {
+        public long TurnId { get; set; }
+        public List<GlossaryData> Glossary { get; set; }
         public int Seq { get; set; }
 
         /// <summary>USER 또는 NPC</summary>

@@ -164,17 +164,6 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(WordSaveButton().gameObject.activeInHierarchy, Is.True);
         }
 
-        // 서버는 문장을 저장하지 않으므로 대사 전체를 담던 [담기]는 두지 않는다.
-        [UnityTest]
-        public IEnumerator ToolRow_HasNoSentenceSaveButton()
-        {
-            Assert.That(
-                panelObject.transform.Find("Panel/Conversation/ToolRow/SaveButton"),
-                Is.Null
-            );
-            yield break;
-        }
-
         private IEnumerator TurnOnMeaning()
         {
             ClickCenterOf(Child<Button>("Panel/Conversation/ToolRow/MeaningButton"));
@@ -313,6 +302,7 @@ namespace A305.Dialogue.PlayModeTests
                 lines.Add(Latest);
             }
 
+            public string UserTranslation { get; set; }
             public string NpcName => "Ben";
             public IReadOnlyList<DialogueLine> Lines => lines;
             public DialogueLine LastNpcLine => Latest;
@@ -341,7 +331,7 @@ namespace A305.Dialogue.PlayModeTests
             public bool HasHint => true;
             public string HintText => null;
             public bool UsesVoice => true;
-            public ConversationStanding Standing => null;
+            public ConversationStanding Standing { get; set; }
             public DialogueWait Waiting => DialogueWait.None;
             public bool CanReplaySpeech => false;
             public bool SpeaksNpcLines => false;

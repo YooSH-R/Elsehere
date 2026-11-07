@@ -1,5 +1,6 @@
 using System;
 using A305.Player;
+using A305.Theme;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -67,6 +68,44 @@ namespace A305.Npc
         private Action onTalk;
         private bool isSignupPrompt;
         private string talkCaption;
+        private GameObject mealWaitBadge;
+        private TMP_Text mealWaitLabel;
+
+        public void ShowMealWaitPrompt(object requester, string remaining, Action stand)
+        {
+            ShowTalkPrompt(requester, "일어서기", null, stand);
+            if (mealWaitBadge == null)
+            {
+                mealWaitBadge = Instantiate(
+                    talkRemainingBadge,
+                    talkRemainingBadge.transform.parent
+                );
+                mealWaitBadge.name = "MealWaitBadge";
+                mealWaitBadge.transform.SetSiblingIndex(0);
+                mealWaitLabel = mealWaitBadge.GetComponentInChildren<TMP_Text>(true);
+                var theme = talkButton.GetComponent<ThemedElement>();
+                if (theme != null && theme.Catalog != null)
+                {
+                    (
+                        mealWaitBadge.GetComponent<ThemedElement>()
+                        ?? mealWaitBadge.AddComponent<ThemedElement>()
+                    ).Use(theme.Catalog, UiThemeRole.Card);
+                    (
+                        mealWaitLabel.GetComponent<ThemedElement>()
+                        ?? mealWaitLabel.gameObject.AddComponent<ThemedElement>()
+                    ).Use(theme.Catalog, UiThemeRole.Caption);
+                }
+                var size = mealWaitBadge.GetComponent<LayoutElement>();
+                if (size != null)
+                    size.minHeight = size.preferredHeight = 62;
+                mealWaitLabel.fontSize = 24;
+                mealWaitLabel.margin = new Vector4(16, 8, 16, 8);
+                mealWaitLabel.alignment = TextAlignmentOptions.Midline;
+            }
+            mealWaitLabel.text = remaining;
+            mealWaitLabel.gameObject.SetActive(true);
+            mealWaitBadge.SetActive(true);
+        }
 
         public bool IsShowing => owner != null;
 
@@ -122,7 +161,30 @@ namespace A305.Npc
             greetingLabel.text = greeting;
             SetOptionalText(remainingLabel, remaining);
             declineButton.gameObject.SetActive(canDecline);
+            bool showKeyHints = !PlayerTouchControls.ShouldShowControls();
+            acceptButton.GetComponentInChildren<TMP_Text>(true).text =
+                PasserbyOfferText.AcceptLabel(showKeyHints);
+            declineButton.GetComponentInChildren<TMP_Text>(true).text =
+                PasserbyOfferText.DeclineLabel(showKeyHints);
             panel.SetActive(true);
+        }
+
+        /// <summary>
+        /// 다른 NPC를 클릭해 말을 걸 때, 떠 있는 제안을 [지금은 안 할래요]를 누른 것처럼 닫는다.
+        /// 제안이 없거나 거절할 수 없는 제안(<see cref="IsDeclineShown"/>이 false)이면 그대로 둔다.
+        /// </summary>
+        public void DeclineShownOffer()
+        {
+            if (IsShowing && IsDeclineShown)
+            {
+                onDecline?.Invoke();
+            }
+        }
+
+        /// <summary>대화를 다 쓴 게스트가 NPC를 클릭했을 때 [가입하고 계속 대화하기]를 누른 것처럼 가입 안내 창을 연다.</summary>
+        public void ShowSignupDialog()
+        {
+            signupDialog.Show();
         }
 
         public void Hide(object requester)
@@ -234,6 +296,8 @@ namespace A305.Npc
 
         private void SetTalkRemaining(string text)
         {
+            if (mealWaitBadge != null)
+                mealWaitBadge.SetActive(false);
             SetOptionalText(talkRemainingLabel, text);
             if (talkRemainingBadge != null)
                 talkRemainingBadge.SetActive(talkRemainingLabel.gameObject.activeSelf);
@@ -272,14 +336,28 @@ namespace A305.Npc
 
         private void Update()
         {
-            if (
-                talkPromptOwner != null
-                && Keyboard.current != null
-                && Keyboard.current.eKey.wasPressedThisFrame
-            )
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard == null)
+                return;
+            if (owner != null && panel.activeInHierarchy)
             {
-                onTalk?.Invoke();
+                if (
+                    keyboard.escapeKey.wasPressedThisFrame
+                    && declineButton.gameObject.activeInHierarchy
+                    && declineButton.interactable
+                )
+                    onDecline?.Invoke();
+                else if (keyboard.eKey.wasPressedThisFrame && acceptButton.interactable)
+                    onAccept?.Invoke();
+                return;
             }
+            if (
+                keyboard.eKey.wasPressedThisFrame
+                && talkPromptOwner != null
+                && talkPromptPanel.activeInHierarchy
+                && talkButton.interactable
+            )
+                onTalk?.Invoke();
         }
     }
 }

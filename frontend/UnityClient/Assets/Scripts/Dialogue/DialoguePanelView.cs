@@ -9,8 +9,9 @@ using UnityEngine.UI;
 namespace A305.Dialogue
 {
     /// <summary>
-    /// 대화 중에 보이는 화면. 이번 대화의 대사, 상태 문구, 왼쪽 추천 단어·추천 문장 카드, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[대화 종료],
+    /// 대화 중에 보이는 화면. 이번 대화의 대사, 상태 문구, 추천 단어 카드, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[대화 종료],
     /// 서버 AI 대화와 튜토리얼 길 안내의 [말하기], 서버 AI 대화의 [다시 듣기]·[힌트]·[다시 시도]가 있다.
+    /// [힌트]로 받은 추천 문장은 따로 카드에 보이지 않고 입력창에 바로 넣는다.
     /// 음성 처리에 동의하지 않았으면 [말하기]를 회색으로 두고, 누르면 그 자리에서 동의할 수 있는 창을 연다.
     /// [뜻 보기]를 펼친 동안 대사의 풀이 단어를 누르면 그 단어 근처에 뜻과 [단어장에 저장]이 있는 호버 카드를 띄운다.
     /// NPC 대사를 음성으로 들려주는 대화는 [자막]으로 대사를 단어마다 회색 막대로 가려 듣고 이해하게 한다. 처음에는 자막이 꺼져 있다.
@@ -47,16 +48,82 @@ namespace A305.Dialogue
         private TMP_Text statusText;
 
         [SerializeField]
+        private RectTransform translationCard;
+
+        [SerializeField]
+        private TMP_Text translationText;
+
+        [SerializeField]
+        private Button translationListenButton;
+
+        [SerializeField]
+        private RectTransform translationDivider;
+
+        [SerializeField]
         private TMP_Text suggestText;
 
         [SerializeField]
         private RectTransform helpPanel;
 
         [SerializeField]
-        private TMP_Text hintText;
+        private Button reviewFoldButton;
 
         [SerializeField]
-        private Button useHintButton;
+        private ReviewReferenceBadges reviewBadges;
+        private string reviewReference;
+        private string originalHelpTitle;
+        private TMP_Text reviewHelpTitle;
+        private bool reviewFolded;
+        private float originalSuggestFont;
+        private float originalSuggestHeight;
+        private RectOffset originalSuggestPadding;
+
+        public void SetReviewReference(string text)
+        {
+            reviewBadges?.Clear();
+            if (text == null || reviewReference == null)
+                reviewFolded = false;
+            var layout = suggestText.transform.parent.GetComponent<VerticalLayoutGroup>();
+            var size = suggestText.GetComponent<LayoutElement>();
+            if (text != null && reviewReference == null)
+            {
+                originalSuggestFont = suggestText.fontSize;
+                originalSuggestHeight = size != null ? size.preferredHeight : -1;
+                if (layout != null)
+                    originalSuggestPadding = new RectOffset(
+                        layout.padding.left,
+                        layout.padding.right,
+                        layout.padding.top,
+                        layout.padding.bottom
+                    );
+            }
+            if (text == null && reviewReference != null)
+            {
+                suggestText.fontSize = originalSuggestFont;
+                if (size != null)
+                    size.preferredHeight = originalSuggestHeight;
+                if (layout != null && originalSuggestPadding != null)
+                    layout.padding = originalSuggestPadding;
+                suggestText.gameObject.SetActive(true);
+            }
+            reviewReference = text;
+            if (reviewHelpTitle == null)
+            {
+                reviewHelpTitle = suggestText
+                    .transform.parent.GetComponentsInChildren<TMP_Text>(true)
+                    .FirstOrDefault(item => item != suggestText);
+                if (reviewHelpTitle != null)
+                    originalHelpTitle = reviewHelpTitle.text;
+            }
+            Refresh();
+        }
+
+        public void SetReviewReference(IReadOnlyList<ReviewReferenceItem> items, int verifiedCount)
+        {
+            ReviewReferenceText formatted = ReviewReferenceText.Format(items, verifiedCount);
+            SetReviewReference(formatted.Text);
+            reviewBadges?.Show(formatted);
+        }
 
         [SerializeField]
         private ScrollRect historyScroll;
@@ -71,6 +138,9 @@ namespace A305.Dialogue
         [SerializeField]
         [Tooltip("대화를 끝내고 피드백을 기다리는 동안 화면 전체를 덮는 로딩 창")]
         private GameObject feedbackWait;
+
+        [SerializeField]
+        private Button feedbackLaterButton;
         private Vector2 lastCanvasSize;
 
         [SerializeField]
@@ -145,6 +215,9 @@ namespace A305.Dialogue
         private bool isRecording;
         private NpcLineCovers npcLineCovers;
 
+        // 입력창에 넣은 추천 문장. 같은 문장을 다시 그릴 때마다 넣으면 사용자가 고친 문장을 덮는다.
+        private string filledHint;
+
         // 음성 처리에 동의하지 않아 쓸 수 없는 [말하기]의 투명도. 누를 수는 있어 동의 창을 연다.
         private const float UnavailableTalkAlpha = 0.45f;
 
@@ -161,6 +234,10 @@ namespace A305.Dialogue
         // 자유 대화의 입력칸 안내("영어로 답하기…"). 정해진 대사를 따라가는 대화에서는 그 대사로 바꿔 보인다.
         private string freePlaceholder;
 
+        /// <summary>대사와 화자 이름을 함께 밝히는 튜토리얼 강조 영역.</summary>
+        public IReadOnlyList<RectTransform> DialogueLinesParts =>
+            new[] { LinesRect, npcNameText.rectTransform };
+
         /// <summary>
         /// 정해진 대사를 말하거나 입력하는 입력칸·[보내기]·[예시 문장]·[말하기]. 튜토리얼 코치 마크가 한 구멍으로 밝힌다.
         /// </summary>
@@ -172,7 +249,7 @@ namespace A305.Dialogue
                 {
                     (RectTransform)inputField.transform,
                     (RectTransform)sendButton.transform,
-                    (RectTransform)exampleButton.transform,
+                    (RectTransform)hintButton.transform,
                 };
                 if (talkButton.gameObject.activeSelf)
                 {
@@ -186,13 +263,13 @@ namespace A305.Dialogue
         /// <summary>주고받은 대사 칸. 튜토리얼 코치 마크가 대화 시작 티칭에서 밝힌다.</summary>
         public RectTransform LinesRect => (RectTransform)historyScroll.transform;
 
-        /// <summary>[뜻]·[예시 문장] 중 보이는 버튼. 튜토리얼 코치 마크가 대화 시작 티칭에서 밝힌다.</summary>
+        /// <summary>[뜻]·[힌트]·확인용 [예시 문장] 중 보이는 버튼.</summary>
         public IReadOnlyList<RectTransform> ToolParts
         {
             get
             {
                 var parts = new List<RectTransform>();
-                foreach (Button button in new[] { meaningButton, exampleButton })
+                foreach (Button button in new[] { meaningButton, hintButton, exampleButton })
                 {
                     if (button.gameObject.activeSelf)
                     {
@@ -204,17 +281,22 @@ namespace A305.Dialogue
             }
         }
 
-        /// <summary>왼쪽 도움 칸의 추천 문장 카드. 튜토리얼 코치 마크가 밝힌다.</summary>
-        public RectTransform SuggestedSentenceRect => (RectTransform)hintText.transform.parent;
-
         /// <summary>왼쪽 도움 칸의 추천 단어 카드. 튜토리얼 코치 마크가 밝힌다.</summary>
         public RectTransform SuggestedWordsRect => (RectTransform)suggestText.transform.parent;
+
+        /// <summary>NPC 이름과 표시 중인 호감도·무례 경고를 함께 밝힌다.</summary>
+        public IReadOnlyList<RectTransform> RelationshipParts =>
+            standingText.gameObject.activeInHierarchy
+                ? new[] { npcNameText.rectTransform, standingText.rectTransform }
+                : new[] { npcNameText.rectTransform };
 
         /// <summary>[대화 종료]. 튜토리얼 코치 마크가 길 안내를 마친 뒤 밝힌다.</summary>
         public RectTransform EndButtonRect => (RectTransform)endButton.transform;
 
         /// <summary>[대화 종료]를 누르면 알린다.</summary>
         public event Action EndRequested;
+
+        public event Action FeedbackLaterRequested;
 
         /// <summary>[보내기]나 Enter로 입력한 문장을 알린다.</summary>
         public event Action<string> SendRequested;
@@ -227,11 +309,12 @@ namespace A305.Dialogue
 
         /// <summary>[다시 듣기]를 누르면 알린다.</summary>
         public event Action ReplayRequested;
+        public event Action<string> UserTranslationListenRequested;
 
         /// <summary>[뜻 보기]로 뜻을 펼쳤는데 아직 뜻이 없으면 알린다. 서버 대화는 이때 뜻을 받아 온다.</summary>
         public event Action MeaningRequested;
 
-        /// <summary>[힌트]를 누르면 알린다.</summary>
+        /// <summary>추천 문장을 아직 받지 않았을 때 [힌트]를 누르면 알린다. 받은 뒤에는 묻지 않고 그 문장을 입력창에 다시 넣는다.</summary>
         public event Action HintRequested;
 
         /// <summary>대사에서 고른 풀이 단어의 [단어장에 저장]을 누르면 그 단어를 알린다. 결과는 <see cref="ShowWordSaveResult"/>로 받는다.</summary>
@@ -264,6 +347,7 @@ namespace A305.Dialogue
             glossaryCard = new GlossaryWordCard { IsSaveAvailable = IsWordSaveAvailable };
             standingDisplay = new ConversationStandingDisplay();
             inputField.text = "";
+            filledHint = null;
             ShowVoiceInput(isRecording: false, isHearingVoice: false);
             panel.SetActive(true);
             helpPanel.gameObject.SetActive(true);
@@ -282,7 +366,10 @@ namespace A305.Dialogue
         // NPC 첫 대사·대답은 대사 칸을 덮는 로딩으로, 오래 걸리는 피드백은 화면 가운데 로딩 창으로 알린다.
         private void ShowWait(DialogueWait wait)
         {
-            bool inLines = wait == DialogueWait.Opening || wait == DialogueWait.NpcReply;
+            bool inLines =
+                wait == DialogueWait.Opening
+                || wait == DialogueWait.NpcReply
+                || wait == DialogueWait.NpcSpeech;
             waitPanel.SetActive(inLines);
             // 로딩 카드는 대사 칸과 같은 크기라 둥근 모서리 틈으로 대사가 비치지 않게 그동안 대사를 감춘다.
             linesText.enabled = !inLines;
@@ -290,12 +377,17 @@ namespace A305.Dialogue
             if (inLines)
             {
                 waitText.text =
-                    wait == DialogueWait.Opening
-                        ? "대화를 준비하고 있어요"
-                        : $"{content.NpcName}의 대답을 기다리고 있어요";
+                    wait == DialogueWait.Opening ? "대화를 준비하고 있어요"
+                    : wait == DialogueWait.NpcSpeech ? "음성을 준비하고 있어요"
+                    : $"{content.NpcName}의 대답을 기다리고 있어요";
             }
 
             feedbackWait.SetActive(wait == DialogueWait.Feedback);
+            // 복습 대화는 피드백 없이 연습 결과만 받으므로 나중에 확인할 것이 없다.
+            if (feedbackLaterButton != null)
+                feedbackLaterButton.gameObject.SetActive(
+                    !(content is ServerConversation { IsReview: true })
+                );
         }
 
         /// <summary>녹음 중 [말하기]에 켜는 불. 튜토리얼 코치 마크가 옆에 불의 뜻을 알린다.</summary>
@@ -344,10 +436,21 @@ namespace A305.Dialogue
                 }
             }
 
+            // 새로 받은 추천 문장은 입력창에 넣어, 사용자가 확인하고 고쳐서 보내게 한다.
+            if (content.HintText != filledHint)
+            {
+                filledHint = content.HintText;
+                if (!string.IsNullOrEmpty(filledHint))
+                {
+                    inputField.text = filledHint;
+                }
+            }
+
             // 밑줄은 뜻을 펼친 동안만 보이므로, 뜻을 접으면(보내기 포함) 단어 카드도 닫는다.
             if (!isMeaningVisible)
                 glossaryCard.Close();
             ShowLines();
+            ShowTranslation();
             npcNameText.text = content.NpcName;
             UpdateStanding();
             statusText.text = FormatStatus();
@@ -361,7 +464,7 @@ namespace A305.Dialogue
                         || content.CanRetry
                         || content.IsGuidedCompleted
                         || NeedsVoiceConsent
-                        || !string.IsNullOrEmpty(content.StatusMessage)
+                        || !string.IsNullOrEmpty(statusText.text)
                     )
             );
             ShowWait(content.Waiting);
@@ -369,11 +472,14 @@ namespace A305.Dialogue
                 content.SuggestWords,
                 content.IsSuggestingWords
             );
-            string sentence = DialogueHelpText.Sentence(content.HintText, content.ExampleSentence);
-            hintText.text = string.IsNullOrEmpty(sentence)
-                ? "[힌트]를 누르면 추천 문장을 볼 수 있어요."
-                : sentence;
-            useHintButton.interactable = content.CanSend && !string.IsNullOrEmpty(sentence);
+            bool reviewing = reviewReference != null;
+            if (reviewing)
+                suggestText.text = reviewReference;
+            suggestText.gameObject.SetActive(!reviewing || !reviewFolded);
+            if (reviewHelpTitle != null)
+                reviewHelpTitle.text = reviewing ? "이번에 써 볼 표현" : originalHelpTitle;
+            if (reviewFoldButton != null)
+                reviewFoldButton.gameObject.SetActive(reviewing);
 
             sendButton.interactable = content.CanSend;
             // 정해진 대사를 따라가는 대화(튜토리얼 길 안내)는 대사를 다 마칠 때까지 끝낼 수 없다.
@@ -398,8 +504,7 @@ namespace A305.Dialogue
             replayButton.gameObject.SetActive(content.CanReplaySpeech);
             replayButton.interactable = content.LastNpcLine != null && !content.IsBusy;
             hintButton.gameObject.SetActive(content.HasHint);
-            hintButton.interactable =
-                content.LastNpcLine != null && content.CanSend && content.HintText == null;
+            hintButton.interactable = content.LastNpcLine != null && content.CanSend;
             retryButton.gameObject.SetActive(content.CanRetry);
             ShowSubtitleButton();
             UpdateLayout();
@@ -408,20 +513,51 @@ namespace A305.Dialogue
             historyScroll.verticalNormalizedPosition = 0;
         }
 
+        private string pronunciationNotice;
+        private string shownTranslation;
+
+        public void ShowPronunciationFailure()
+        {
+            pronunciationNotice =
+                "영어 음성을 재생할 수 없어요. 기기의 영어 음성과 소리 설정을 확인해 주세요.";
+            Refresh();
+        }
+
+        private void ShowTranslation()
+        {
+            if (translationCard == null)
+                return;
+            string expression = content?.UserTranslation;
+            if (shownTranslation != expression)
+                pronunciationNotice = null;
+            shownTranslation = expression;
+            bool shown = !string.IsNullOrWhiteSpace(expression);
+            translationCard.gameObject.SetActive(shown);
+            translationText.text = shown ? expression : string.Empty;
+            translationListenButton.interactable = shown && !content.IsBusy;
+        }
+
         private void Awake()
         {
+            if (reviewFoldButton != null)
+                reviewFoldButton.onClick.AddListener(() =>
+                {
+                    reviewFolded = !reviewFolded;
+                    reviewFoldButton.transform.Find("Arrow").localRotation = Quaternion.Euler(
+                        0,
+                        0,
+                        reviewFolded ? -90 : 90
+                    );
+                    Refresh();
+                });
             endButton.onClick.AddListener(() => EndRequested?.Invoke());
+            if (feedbackLaterButton != null)
+                feedbackLaterButton.onClick.AddListener(() => FeedbackLaterRequested?.Invoke());
             sendButton.onClick.AddListener(RequestSend);
             sendButton.TryGetComponent(out sendTheme);
             inputField.onSubmit.AddListener(_ => RequestSend());
             inputField.onValueChanged.AddListener(_ => HighlightSend());
             exampleButton.onClick.AddListener(FillExampleSentence);
-            useHintButton.onClick.AddListener(() =>
-            {
-                if (content != null && content.CanSend)
-                    inputField.text =
-                        DialogueHelpText.Sentence(content.HintText, content.ExampleSentence) ?? "";
-            });
             meaningButton.onClick.AddListener(ToggleMeaning);
             lineLinks.Clicked += SelectWord;
             wordSaveButton.onClick.AddListener(RequestWordSave);
@@ -429,7 +565,13 @@ namespace A305.Dialogue
             // 대사 칸을 스크롤하면 카드가 고른 단어를 따라간다.
             historyScroll.onValueChanged.AddListener(_ => PlaceWordCard());
             replayButton.onClick.AddListener(() => ReplayRequested?.Invoke());
-            hintButton.onClick.AddListener(() => HintRequested?.Invoke());
+            if (translationListenButton != null)
+                translationListenButton.onClick.AddListener(() =>
+                {
+                    if (!string.IsNullOrWhiteSpace(content?.UserTranslation) && !content.IsBusy)
+                        UserTranslationListenRequested?.Invoke(content.UserTranslation);
+                });
+            hintButton.onClick.AddListener(PressHint);
             retryButton.onClick.AddListener(RequestRetry);
             subtitleButton.onClick.AddListener(ToggleSubtitles);
             talkButton.onClick.AddListener(PressTalk);
@@ -479,6 +621,24 @@ namespace A305.Dialogue
             }
         }
 
+        // 이번 대사의 추천 문장을 이미 받았으면 서버에 다시 묻지 않고 입력창에 다시 넣는다.
+        private void PressHint()
+        {
+            if (content == null)
+            {
+                return;
+            }
+
+            if (string.IsNullOrEmpty(content.HintText))
+            {
+                HintRequested?.Invoke();
+            }
+            else
+            {
+                inputField.text = content.HintText;
+            }
+        }
+
         // 들은 문장이나 입력한 문장이 있으면 [보내기]를 강조해 다음에 누를 곳을 알린다.
         private void HighlightSend()
         {
@@ -501,17 +661,31 @@ namespace A305.Dialogue
 
         private string FormatStatus()
         {
+            string countdown = content is ServerConversation server
+                ? server.CountdownMessage
+                : null;
+            string message;
             if (string.IsNullOrEmpty(content.RecoveryGuide))
             {
                 // 녹음·오류 같은 지금 상황 안내가 먼저이고, 없을 때만 음성 동의 안내를 보인다.
-                return string.IsNullOrEmpty(content.StatusMessage) && NeedsVoiceConsent
-                    ? VoiceInputNotice.ConsentRequired
-                    : content.StatusMessage ?? "";
+                message =
+                    string.IsNullOrEmpty(content.StatusMessage) && NeedsVoiceConsent
+                        ? VoiceInputNotice.ConsentRequired
+                        : content.StatusMessage ?? "";
+            }
+            else
+            {
+                message = string.IsNullOrEmpty(content.StatusMessage)
+                    ? content.RecoveryGuide
+                    : $"{content.StatusMessage}\n{content.RecoveryGuide}";
             }
 
-            return string.IsNullOrEmpty(content.StatusMessage)
-                ? content.RecoveryGuide
-                : $"{content.StatusMessage}\n{content.RecoveryGuide}";
+            if (pronunciationNotice != null)
+                message = pronunciationNotice;
+
+            return string.IsNullOrEmpty(countdown) ? message
+                : string.IsNullOrEmpty(message) ? countdown
+                : $"{countdown}\n{message}";
         }
 
         private void RequestSend()
@@ -642,7 +816,7 @@ namespace A305.Dialogue
             PlaceWordCard();
         }
 
-        // 누른 단어 바로 위(자리가 없으면 아래)에 카드를 띄운다. 대화창 안에서만 움직여 그 위의 NPC 얼굴을 가리지 않는다.
+        // 누른 단어 바로 위(자리가 없으면 아래)에 카드를 띄운다. 이름·호감도 줄 아래에 두어 표시가 카드 안으로 비치지 않게 한다.
         private void PlaceWordCard()
         {
             if (content == null || !glossaryCard.IsVisible || !TryFindWordArea(out Rect word))
@@ -651,6 +825,19 @@ namespace A305.Dialogue
             var area = new Rect(Vector2.zero, frame.rect.size);
             area.min += Vector2.one * WordCardMargin;
             area.max -= Vector2.one * WordCardMargin;
+            area.yMax = Mathf.Min(
+                area.yMax,
+                npcNameText.rectTransform.anchoredPosition.y - WordCardMargin
+            );
+            if (!string.IsNullOrWhiteSpace(content.UserTranslation))
+            {
+                var history = (RectTransform)historyScroll.transform;
+                area.xMax = Mathf.Min(
+                    area.xMax,
+                    history.anchoredPosition.x + history.rect.width - WordCardMargin
+                );
+                area.yMax = Mathf.Min(area.yMax, history.anchoredPosition.y + history.rect.height);
+            }
             wordCard.anchoredPosition = WordCardPlacement.Place(word, wordCard.rect.size, area);
         }
 
@@ -771,7 +958,11 @@ namespace A305.Dialogue
                 DialogueCinemaLayout.ColumnWidth,
                 lastCanvasSize.x - 2 * DialogueCinemaLayout.SideMargin
             );
-            float linesHeight = VisibleLinesHeight(column, out bool hasEarlierLines);
+            bool hasTranslation = !string.IsNullOrWhiteSpace(content?.UserTranslation);
+            float linesHeight = VisibleLinesHeight(
+                DialogueCinemaLayout.LinesWidth(column, hasTranslation),
+                out bool hasEarlierLines
+            );
             float nameWidth = Mathf.Max(
                 MinNameWidth,
                 npcNameText.GetPreferredValues(npcNameText.text).x + 2 * NamePadding
@@ -780,7 +971,8 @@ namespace A305.Dialogue
                 lastCanvasSize,
                 linesHeight,
                 nameWidth,
-                hasEarlierLines
+                hasEarlierLines,
+                hasTranslation
             );
             frame.anchorMin = Vector2.zero;
             frame.anchorMax = new Vector2(1, 0);
@@ -808,6 +1000,17 @@ namespace A305.Dialogue
             // 대사 칸 높이가 달라져도 보던 아래쪽(보통 가장 최근 대사와 단어 풀이)이 가려지지 않게 스크롤 위치를 지킨다.
             float scroll = historyScroll.verticalNormalizedPosition;
             Place((RectTransform)historyScroll.transform, layout.Lines);
+            if (translationCard != null)
+            {
+                if (hasTranslation)
+                {
+                    Place(translationCard, layout.Translation);
+                    Place(translationDivider, layout.TranslationDivider);
+                }
+                translationDivider.gameObject.SetActive(
+                    hasTranslation && layout.TranslationDivider.width > 0
+                );
+            }
             Canvas.ForceUpdateCanvases();
             historyScroll.verticalNormalizedPosition = scroll;
             CoverHiddenWords();
@@ -839,6 +1042,31 @@ namespace A305.Dialogue
                 room / scale
             );
             PlaceVehicleStatus(layout);
+            if (reviewReference != null)
+            {
+                helpPanel.localScale = Vector3.one;
+                helpPanel.SetSizeWithCurrentAnchors(
+                    RectTransform.Axis.Horizontal,
+                    Mathf.Min(440, lastCanvasSize.x - 2 * HelpMargin)
+                );
+                var card = (RectTransform)suggestText.transform.parent;
+                var list = card.GetComponent<VerticalLayoutGroup>();
+                if (list != null)
+                    list.padding = new RectOffset(36, 36, 34, 38);
+                suggestText.fontSize = 24;
+                suggestText.enableAutoSizing = false;
+                suggestText.rectTransform.SetSizeWithCurrentAnchors(
+                    RectTransform.Axis.Horizontal,
+                    helpPanel.rect.width - 72
+                );
+                var size = suggestText.GetComponent<LayoutElement>();
+                if (size != null)
+                    size.preferredHeight =
+                        suggestText
+                            .GetPreferredValues(suggestText.text, helpPanel.rect.width - 72, 0)
+                            .y + 12;
+                LayoutRebuilder.ForceRebuildLayoutImmediate(helpContent);
+            }
         }
 
         // 대사 칸에는 가장 최근 두 줄(바로 앞 대사와 그다음 대사)과 그 뜻만 보이는 높이를 준다. 그 전 대사는 위로 스크롤해 본다.

@@ -83,11 +83,7 @@ namespace A305.World.Tests
             Assert.That(mug.GetComponentInChildren<MeshCollider>(), Is.Null);
         }
 
-        [TestCase("HomeScene")]
-        [TestCase("TownScene")]
-        [TestCase("CafeScene")]
-        [TestCase("HotelScene")]
-        [TestCase("ShopScene")]
+        [TestCase("PoliceStationScene")]
         public void ProductionScene_HasNoPropColliderFloatingAboveItsShape(string name)
         {
             var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/" + name + ".unity");

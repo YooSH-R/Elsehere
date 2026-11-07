@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using A305.Player;
 
 namespace A305.Dialogue
 {
@@ -13,7 +14,7 @@ namespace A305.Dialogue
     {
         /// <summary>정해진 대사와 다른 문장을 보냈을 때 입력칸 위에 보이는 안내</summary>
         public const string GuidedLineMissNotice =
-            "튜토리얼은 정해진 흐름대로 진행돼요. 안내한 대사와 같게 입력하거나 [예시 문장]으로 채워 보세요.";
+            "튜토리얼은 정해진 흐름대로 진행돼요. 안내한 대사와 같게 입력하거나 [힌트]로 채워 보세요.";
 
         /// <summary>말로 한 대사가 정해진 대사와 다르거나 알아듣지 못했어도 정해진 대사로 이어 갔다는 안내</summary>
         public const string GuidedVoiceNotice =
@@ -25,6 +26,9 @@ namespace A305.Dialogue
         private readonly List<string> userUtterances = new List<string>();
         private int guidedTurnIndex;
         private string statusMessage;
+        private string hintText;
+        private readonly string playerName;
+        private readonly ConversationStanding tutorialStanding;
 
         /// <param name="hasRecorder">녹음기가 연결되어 있는지. 정해진 대사를 따라가는 대화면 [말하기]를 둔다.</param>
         public DialogueConversation(string npcCode, DialogueScript script, bool hasRecorder = false)
@@ -32,6 +36,12 @@ namespace A305.Dialogue
             NpcCode = npcCode;
             this.script = script;
             this.hasRecorder = hasRecorder;
+            playerName = PlayerNickname.Name;
+            if (IsGuided && script.NpcName == "Ben" && script.GuidedTurns.Count == 3)
+            {
+                tutorialStanding = new ConversationStanding();
+                UpdateTutorialStanding();
+            }
 
             if (script.OpeningLine != null)
             {
@@ -42,6 +52,7 @@ namespace A305.Dialogue
         /// <summary>ERD npcs.code</summary>
         public string NpcCode { get; }
 
+        public string UserTranslation => null;
         public string NpcName => script.NpcName;
         public IReadOnlyList<DialogueLine> Lines => lines;
 
@@ -59,12 +70,14 @@ namespace A305.Dialogue
         public bool IsGuidedCompleted => IsGuided && guidedTurnIndex >= script.GuidedTurns.Count;
 
         /// <summary>정해진 흐름에서 이번에 읽을 대사. 자유 대화이거나 흐름을 마쳤으면 null이다.</summary>
-        public string SuggestedEnglish => CurrentGuidedTurn?.SuggestedEnglish;
+        public string SuggestedEnglish =>
+            CurrentGuidedTurn?.SuggestedEnglish?.Replace("{name}", playerName ?? "a visitor");
 
-        public string SuggestedKorean => CurrentGuidedTurn?.SuggestedKorean;
+        public string SuggestedKorean =>
+            CurrentGuidedTurn?.SuggestedKorean?.Replace("{name}", playerName ?? "여행자");
 
-        /// <summary>[예시 문장]으로 입력창에 넣어 줄 문장. 정해진 흐름에서는 이번에 읽을 대사다.</summary>
-        public string ExampleSentence => IsGuided ? SuggestedEnglish : script.ExampleSentence;
+        /// <summary>확인용 자유 대화의 [예시 문장]. 튜토리얼은 서비스와 같은 [힌트]를 쓴다.</summary>
+        public string ExampleSentence => IsGuided ? null : script.ExampleSentence;
 
         /// <summary>가장 최근 NPC 대사. [뜻 보기]·[표현 저장]이 이 대사를 쓴다.</summary>
         public DialogueLine LastNpcLine { get; private set; }
@@ -82,12 +95,18 @@ namespace A305.Dialogue
         public bool CanSend => !IsGuidedCompleted;
         public bool HasMeaning => true;
         public IReadOnlyList<GlossaryData> LastNpcGlossary => null;
-        public bool HasHint => false;
-        public string HintText => null;
+        public bool HasHint => IsGuided && !IsGuidedCompleted;
+        public string HintText => hintText;
+
+        public void RequestHint()
+        {
+            if (HasHint)
+                hintText = SuggestedEnglish;
+        }
 
         // 튜토리얼이라고 말하기를 빼지 않는다. 말한 녹음은 정해진 대사로 이어 가므로 음성 처리 동의 없이도 말해 볼 수 있다.
         public bool UsesVoice => IsGuided && hasRecorder;
-        public ConversationStanding Standing => null;
+        public ConversationStanding Standing => tutorialStanding;
         public bool CanTalk => UsesVoice;
         public bool CanReplaySpeech => false;
         public bool SpeaksNpcLines => false;
@@ -142,10 +161,26 @@ namespace A305.Dialogue
             }
 
             statusMessage = null;
+            hintText = null;
             lines.Add(DialogueLine.FromUser(utterance));
             userUtterances.Add(utterance);
             AddNpcLine(FindReply(utterance));
+            UpdateTutorialStanding();
             return true;
+        }
+
+        private void UpdateTutorialStanding()
+        {
+            // 길 안내 완료 API가 저장하는 기본 호감도 +6을 세 번의 긍정적인 응답으로 보여 준다.
+            // 실제 저장은 TutorialFinishRecorder가 완료 API를 한 번씩 재시도하는 경로를 쓴다.
+            tutorialStanding?.Apply(
+                new ConversationState
+                {
+                    Affinity = guidedTurnIndex * 2,
+                    RudeCount = 0,
+                    RudeLimit = 3,
+                }
+            );
         }
 
         public DialogueRecord ToRecord()

@@ -1,3 +1,4 @@
+using System.Linq;
 using A305.EditorTools.Common;
 using A305.EditorTools.Theme;
 using A305.Learning;
@@ -42,12 +43,12 @@ namespace A305.EditorTools.Learning
         {
             "요약",
             "문장 교정",
-            "회화 표현",
+            "전체 대화",
             "저장할 표현",
         };
 
         // 시안 탭 폭(글자 + 양옆 20)
-        private static readonly float[] TabWidths = { 69.91f, 104.17f, 104.48f, 119.5f };
+        private static readonly float[] TabWidths = { 69.91f, 104.17f, 119.5f, 119.5f };
 
         // 칸 그림의 둥근 모서리 자리(그림 px, 왼·아래·오른·위): 그림자 자리 + 모서리 24
         internal static readonly Vector4 TileBorder = new Vector4(96, 134, 96, 86);
@@ -56,6 +57,16 @@ namespace A305.EditorTools.Learning
         public static void ApplyToPrefab()
         {
             BuilderTools.UpdatePrefabIfExists(PrefabPath, root => Apply(root.transform));
+            var guide = AssetDatabase.LoadAssetAtPath<A305.Tutorial.TutorialGuideDefinition>(
+                "Assets/Data/Tutorial/TutorialGuide.asset"
+            );
+            if (guide != null)
+            {
+                var fields = new SerializedObject(guide);
+                fields.FindProperty("feedbackPagesCaption").stringValue =
+                    "표현과 요약이 길면 이 영역을 위아래로 스크롤해 보세요";
+                fields.ApplyModifiedPropertiesWithoutUndo();
+            }
             AssetDatabase.SaveAssets();
         }
 
@@ -72,8 +83,16 @@ namespace A305.EditorTools.Learning
 
             Header(panel);
             Tabs(panel.Find("Sections"));
+            var content = panel.Find("PageCard/Content");
+            if (content != null)
+            {
+                foreach (Transform child in content.Cast<Transform>().ToArray())
+                    child.SetParent(content.parent, false);
+                Object.DestroyImmediate(content.gameObject);
+            }
             Card(view, panel);
             Footer(panel);
+            view.ConfigureScroll();
         }
 
         // 머리줄(높이 104): 앱 아이콘(60), 제목(Jua 36), 부제(17, 자리는 FeedbackView가 제목 뒤에 맞춘다), 오른쪽 닫기(52)

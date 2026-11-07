@@ -99,6 +99,7 @@ namespace A305.Tutorial
 
         // 대화 시작·대화 노트 티칭에서 [다음]으로 넘긴 수. 대화를 새로 시작하면 처음부터 다시 보인다.
         private int dialogueTourStep;
+        private bool relationshipExplained;
         private int feedbackTourStep;
         private Object shownCoachObject;
         private string shownCaption;
@@ -303,6 +304,7 @@ namespace A305.Tutorial
         private void EndDialogue(DialogueRecord record)
         {
             progress.EndDialogue(record.NpcCode, record.IsGuidedCompleted);
+            SaveFinish();
         }
 
         // 길 안내 대화 중에 건너뛰면 마치지 못한 대화를 피드백 없이 닫는다. 정해진 대사를 마치기 전에는 [대화 종료]로 끝낼 수 없기 때문이다.
@@ -332,8 +334,8 @@ namespace A305.Tutorial
         private void ApplyStep()
         {
             appliedStep = progress.Step;
-            // 튜토리얼을 끝낸 순간과, 저장하지 못한 채 다음 장소에 들어온 순간(Awake에서 적용) 모두 여기서 보낸다.
-            if (appliedStep == TutorialStep.Completed)
+            // Ben 대화·전체 완료 직후와, 저장하지 못한 채 다음 단계·장소에 들어온 순간에 보낸다.
+            if (appliedStep == TutorialStep.Completed || progress.NeedsBenDialogueSave)
             {
                 SaveFinish();
             }
@@ -363,7 +365,10 @@ namespace A305.Tutorial
 
         private void SaveFinish()
         {
-            if (finishRecorder != null && progress.NeedsFinishSave)
+            if (
+                finishRecorder != null
+                && (progress.NeedsFinishSave || progress.NeedsBenDialogueSave)
+            )
             {
                 _ = SaveFinishAsync();
             }
@@ -372,13 +377,17 @@ namespace A305.Tutorial
         private async Task SaveFinishAsync()
         {
             TutorialFinishSaveStatus status = await finishRecorder.SaveAsync(progress);
+            if (status == TutorialFinishSaveStatus.Saved)
+            {
+                GameClock.Shared.RequestSynchronization();
+            }
             if (
                 status == TutorialFinishSaveStatus.Failed
                 || status == TutorialFinishSaveStatus.Rejected
             )
             {
                 Debug.LogWarning(
-                    $"튜토리얼을 끝낸 기록을 저장하지 못했습니다({status}, {finishRecorder.LastError.Code}): "
+                    $"튜토리얼 대화·완료 기록을 저장하지 못했습니다({status}, {finishRecorder.LastError.Code}): "
                         + finishRecorder.LastError.Message,
                     this
                 );
@@ -478,6 +487,7 @@ namespace A305.Tutorial
                 IsGuidedCompleted = dialogue.IsGuidedCompleted,
                 GuidedTurnIndex = dialogue.GuidedTurnIndex,
                 DialogueTourStep = dialogueTourStep,
+                RelationshipExplained = relationshipExplained,
                 FeedbackTourStep = feedbackTourStep,
                 IsWordCardPinned = wordTooltip.IsPinned,
                 CanSaveWord = wordTooltip.CanSaveWord,
@@ -557,13 +567,18 @@ namespace A305.Tutorial
 
         private void RestartDialogueTour(string npcCode)
         {
+            relationshipExplained = false;
             dialogueTourStep = 0;
             feedbackTourStep = 0;
         }
 
         private void ContinueTour(TutorialCoachTarget target)
         {
-            if (TutorialCoachPlan.IsDialogueTour(target))
+            if (target == TutorialCoachTarget.DialogueRelationship)
+            {
+                relationshipExplained = true;
+            }
+            else if (TutorialCoachPlan.IsDialogueTour(target))
             {
                 dialogueTourStep++;
             }
@@ -607,26 +622,26 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.TalkOffer:
                     return new[] { offerView.ShownButtonRect };
                 case TutorialCoachTarget.DialogueLines:
-                    return new[] { dialoguePanel.LinesRect };
+                    return dialoguePanel.DialogueLinesParts;
                 case TutorialCoachTarget.DialogueTools:
                     return dialoguePanel.ToolParts;
+                case TutorialCoachTarget.DialogueRelationship:
+                    return dialoguePanel.RelationshipParts;
                 case TutorialCoachTarget.GuidedLine:
                     // 대사를 읽으며 말해야 하므로 대사 칸도 함께 밝혀, 둘레를 덮어도 대사가 그대로 보이게 한다.
-                    var parts = new List<RectTransform> { dialoguePanel.LinesRect };
+                    var parts = new List<RectTransform>(dialoguePanel.DialogueLinesParts);
                     parts.AddRange(dialoguePanel.GuidedLineParts);
                     return parts;
-                case TutorialCoachTarget.SuggestedSentence:
-                    return new[] { dialoguePanel.SuggestedSentenceRect };
                 case TutorialCoachTarget.SuggestedWords:
                     return new[] { dialoguePanel.SuggestedWordsRect };
                 case TutorialCoachTarget.DialogueEnd:
                     return new[] { dialoguePanel.EndButtonRect };
                 // 탭을 누르면 바뀌는 결과 칸도 함께 밝혀 무엇이 달라지는지 보이게 한다.
-                // 쪽 넘기기는 처음 보이는 요약 탭의 "이 상황에서 자주 써요" 제목 옆 쪽 넘김만 밝힌다.
+                // 스크롤 안내에서는 고정된 본문 영역을 밝힌다.
                 case TutorialCoachTarget.FeedbackSections:
                     return new[] { feedbackView.SectionRowRect, feedbackView.PageCardRect };
                 case TutorialCoachTarget.FeedbackPages:
-                    return new[] { feedbackView.SituationPagerRect };
+                    return new[] { feedbackView.ScrollAreaRect };
                 case TutorialCoachTarget.FeedbackClose:
                     return new[] { feedbackView.CloseButtonRect };
                 case TutorialCoachTarget.Vocabulary:
@@ -651,12 +666,12 @@ namespace A305.Tutorial
                     return guide.TalkOfferCaption;
                 case TutorialCoachTarget.DialogueLines:
                     return guide.DialogueLinesCaption;
+                case TutorialCoachTarget.DialogueRelationship:
+                    return guide.RelationshipCaption;
                 case TutorialCoachTarget.DialogueTools:
                     return guide.DialogueToolsCaption;
                 case TutorialCoachTarget.SuggestedWords:
                     return guide.SuggestedWordsCaption;
-                case TutorialCoachTarget.SuggestedSentence:
-                    return guide.SuggestedSentenceCaption;
                 case TutorialCoachTarget.GuidedLine:
                     string notice = dialogue.IsGuidedLineMissed
                         ? guide.GuidedLineMissCaption

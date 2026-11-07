@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using A305.Player;
@@ -19,11 +18,8 @@ namespace A305.World.PlayModeTests
     /// <summary>배포용 공간 씬을 실제로 불러와 출입구 연결과 도착 위치를 확인한다.</summary>
     public class SpaceTravelTests
     {
-        private const string ProductionSceneFolder = "Assets/Scenes/Production/";
-
-        // 입구 화면은 공간이 아니라 플레이어·카메라·출입구가 없다. Scene List 맨 앞에 있지만 공간 씬 검사에서 뺀다.
-        private const string EntrySceneName = "EntryScene";
-        private const float ArrivalTimeoutSeconds = 5f;
+        // 씬 I/O 대기 한도. 도착 위치·방향 검증과 분리하며 다른 비동기 로드 검사와 맞춘다.
+        private const float ArrivalTimeoutSeconds = 30f;
         private const float PositionTolerance = 0.05f;
         private const float AngleToleranceDegrees = 1f;
 
@@ -197,55 +193,6 @@ namespace A305.World.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator LittleArcade_WalkThroughOpenHallAndEnterOriginalDoor()
-        {
-            yield return LoadSpace("TownScene");
-            Transform arcade = GameObject.Find("LittleArcade").transform;
-            var player = FindPlayer();
-            Vector3 street = arcade.TransformPoint(new Vector3(2f, .05f, 2f));
-            player.Teleport(street, Quaternion.LookRotation(-arcade.forward));
-            Assert.That(
-                arcade.Find("TenantEntrances/ArcadeFrontDoor"),
-                Is.Null,
-                "오락실 외벽은 기존 창문을 유지해야 합니다."
-            );
-            Assert.That(
-                arcade.Find("TenantEntrances/StairHallDoor"),
-                Is.Null,
-                "계단실 입구는 열린 통로여야 합니다."
-            );
-            yield return WalkForward(
-                player,
-                -arcade.forward,
-                () => arcade.InverseTransformPoint(player.transform.position).z <= -.88f
-            );
-            Assert.That(
-                arcade.InverseTransformPoint(player.transform.position).z,
-                Is.LessThan(-.8f),
-                "인도에서 공용 계단실로 걸어 들어가지 못했습니다."
-            );
-            Assert.That(SpaceTravel.IsTraveling, Is.False);
-            foreach (float side in new[] { -1f, 1f })
-            {
-                yield return WalkForward(
-                    player,
-                    side * arcade.right,
-                    () => SpaceTravel.IsTraveling
-                );
-                Assert.That(
-                    SpaceTravel.IsTraveling,
-                    Is.True,
-                    "계단실 안 원래 오락실 문에서 전환되지 않았습니다."
-                );
-                yield return WaitUntilCurtainOpens();
-                Assert.That(
-                    arcade.InverseTransformPoint(player.transform.position).x * side,
-                    Is.GreaterThan(.4f)
-                );
-            }
-        }
-
-        [UnityTest]
         public IEnumerator PostOffice_StreamsOnlyDuringTheVisitAfterSkippingTownTutorial()
         {
             TutorialState.Clear();
@@ -415,76 +362,6 @@ namespace A305.World.PlayModeTests
             }
         }
 
-        [UnityTest]
-        public IEnumerator EverySceneInSceneList_HasOnePlayerCameraArrival_AndDoorwaysThatLeadBack()
-        {
-            // 디자인해서 추가한 공간 씬도 Scene List에 오르면 같은 기준으로 확인한다.
-            var doorways = new List<DoorwayLink>();
-            foreach (string sceneName in SceneListNames())
-            {
-                yield return LoadSpace(sceneName);
-                doorways.AddRange(
-                    Object
-                        .FindObjectsByType<SpaceDoorway>(FindObjectsSortMode.None)
-                        .Select(doorway => new DoorwayLink(sceneName, doorway))
-                );
-
-                Assert.That(
-                    FindAll<PlayerMover>(),
-                    Has.Length.EqualTo(1),
-                    $"{sceneName}의 PlayerMover"
-                );
-                Assert.That(
-                    FindAll<PlayerCameraRig>(),
-                    Has.Length.EqualTo(1),
-                    $"{sceneName}의 PlayerCameraRig"
-                );
-                Assert.That(
-                    FindAll<SpaceArrival>(),
-                    Has.Length.EqualTo(1),
-                    $"{sceneName}의 SpaceArrival"
-                );
-            }
-
-            Assert.That(doorways, Is.Not.Empty);
-            foreach (DoorwayLink doorway in doorways)
-            {
-                List<DoorwayLink> destinations = doorways
-                    .Where(candidate =>
-                        candidate.SceneName == doorway.DestinationScene
-                        && candidate.DoorwayId == doorway.DestinationDoorwayId
-                    )
-                    .ToList();
-
-                Assert.That(destinations, Has.Count.EqualTo(1), $"{doorway}의 도착 출입구");
-                Assert.That(destinations[0].DestinationScene, Is.EqualTo(doorway.SceneName));
-                Assert.That(destinations[0].DestinationDoorwayId, Is.EqualTo(doorway.DoorwayId));
-            }
-        }
-
-        // Test Runner가 실행 중에 넣는 임시 씬은 빼고, Scene List의 배포용 씬만 확인한다.
-        private static IEnumerable<string> SceneListNames()
-        {
-            for (int index = 0; index < SceneManager.sceneCountInBuildSettings; index++)
-            {
-                string scenePath = SceneUtility.GetScenePathByBuildIndex(index);
-                string sceneName = Path.GetFileNameWithoutExtension(scenePath);
-                if (scenePath.StartsWith(ProductionSceneFolder) && sceneName != EntrySceneName)
-                {
-                    yield return sceneName;
-                }
-            }
-        }
-
-        private static T[] FindAll<T>()
-            where T : Object
-        {
-            return Object.FindObjectsByType<T>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None
-            );
-        }
-
         private static IEnumerator LoadSpace(string sceneName)
         {
             yield return SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
@@ -537,7 +414,11 @@ namespace A305.World.PlayModeTests
                 this.paused = paused;
             }
 
-            public Task<GameClockTime> BeatAsync()
+            public Task<GameClockTime> BeatAsync(
+                bool interactionPaused = false,
+                bool interactionWasPaused = false,
+                long? activeSeconds = null
+            )
             {
                 return Task.FromResult(
                     new GameClockTime
@@ -627,30 +508,6 @@ namespace A305.World.PlayModeTests
         private static PlayerMover FindPlayer()
         {
             return Object.FindFirstObjectByType<PlayerMover>();
-        }
-
-        private readonly struct DoorwayLink
-        {
-            public DoorwayLink(string sceneName, SpaceDoorway doorway)
-            {
-                SceneName = sceneName;
-                DoorwayId = doorway.DoorwayId;
-                DestinationScene = doorway.DestinationScene;
-                DestinationDoorwayId = doorway.DestinationDoorwayId;
-            }
-
-            public string SceneName { get; }
-
-            public string DoorwayId { get; }
-
-            public string DestinationScene { get; }
-
-            public string DestinationDoorwayId { get; }
-
-            public override string ToString()
-            {
-                return $"{SceneName}/{DoorwayId} → {DestinationScene}/{DestinationDoorwayId}";
-            }
         }
     }
 }

@@ -15,8 +15,9 @@ namespace A305.Learning
     /// [피드백 목록] 창은 지난 대화 목록(CONV-09)에서 고른 대화의 저장된 피드백을 같은 피드백 화면으로 다시 열고, 닫으면 목록으로 돌아온다.
     /// 피드백·단어장·피드백 목록 화면이 열려 있는 동안만 이동을 잠그며, 대화 중에는 대화가 정한 잠금을 건드리지 않는다.
     /// 대화 중 누른 풀이 단어는 NPC_LINE 출처로, 서버 피드백의 [담기]는 FEEDBACK 출처로 저장한다.
+    /// 대화를 다 쓴 게스트가 방금 끝낸 대화의 피드백을 닫으면 가입을 권한다(<see cref="GuestSignupPrompt"/>).
     /// </summary>
-    public class LearningController : MonoBehaviour
+    public partial class LearningController : MonoBehaviour
     {
         [SerializeField]
         private PlayerMover player;
@@ -46,6 +47,16 @@ namespace A305.Learning
         private bool isLocalVocabulary;
 
         private ConversationHistory history;
+        private ApiClient feedbackClient;
+        private readonly HashSet<long> pendingFeedbackReads = new HashSet<long>();
+        private bool refreshingFeedback;
+        private float nextFeedbackRefresh;
+        private int feedbackRevision;
+
+        private sealed class UnreadFeedback
+        {
+            public long Count { get; set; }
+        }
 
         private DialogueRecord feedbackRecord;
 
@@ -59,7 +70,10 @@ namespace A305.Learning
         public event Action<string, bool> FeedbackClosed;
 
         public bool IsShowingScreen =>
-            feedbackView.IsVisible || vocabularyView.IsVisible || historyView.IsVisible;
+            feedbackView.IsVisible
+            || vocabularyView.IsVisible
+            || historyView.IsVisible
+            || (hudView.ReviewView != null && hudView.ReviewView.IsVisible);
 
         /// <summary>단어장 화면이 열려 있는지. 튜토리얼이 단어장을 처음 열었을 때 설명을 붙인다.</summary>
         public bool IsShowingVocabulary => vocabularyView.IsVisible;
@@ -88,9 +102,19 @@ namespace A305.Learning
 
             if (apiSettings != null)
             {
+                feedbackClient = apiSettings.CreateClient();
                 vocabulary = new VocabularyBook(new VocabularyApi(apiSettings.CreateClient()));
                 history = new ConversationHistory(
                     new ConversationHistoryApi(apiSettings.CreateClient())
+                );
+                var meaningApi = new ConversationApi(
+                    apiSettings.CreateClient(30),
+                    apiSettings.CreateClient(30)
+                );
+                feedbackView.SetMeaningSource(
+                    new TranscriptMeanings(id =>
+                        meaningApi.GetMeaningAsync(id, Guid.NewGuid().ToString())
+                    )
                 );
             }
 
@@ -98,8 +122,10 @@ namespace A305.Learning
             dialogue.SetWordSaveAvailable(vocabulary != null);
             // 피드백의 [담기]는 단어장 서버가 있을 때 표현을 VOCAB-02 FEEDBACK으로 저장한다.
             feedbackView.SetSaveAvailable(vocabulary != null);
+            feedbackView.SetWordSaver(vocabulary == null ? null : SaveTranscriptWordAsync);
 
             dialogue.ConversationEnded += ShowFeedback;
+            DialogueController.BackgroundFeedbackCompleted += OnBackgroundFeedbackCompleted;
             dialogue.WordSaveRequested += SaveDialogueWord;
             feedbackView.CloseRequested += CloseFeedback;
             feedbackView.SaveRequested += SaveFeedbackExpression;
@@ -116,10 +142,13 @@ namespace A305.Learning
             historyView.CloseRequested += CloseHistory;
             historyView.OpenRequested += OpenPastFeedback;
             historyView.MoreRequested += LoadMoreHistory;
+            InitializeReview();
+            InitializeReviewProgress();
         }
 
         private void Start()
         {
+            ResumeReviewVisit();
             if (vocabulary != null)
             {
                 _ = LoadVocabularyAsync();
@@ -128,11 +157,18 @@ namespace A305.Learning
 
         private void Update()
         {
+            if (
+                feedbackClient != null
+                && Time.unscaledTime >= nextFeedbackRefresh
+                && !refreshingFeedback
+            )
+                _ = RefreshFeedbackCountAsync();
             hudView.SetVocabularyAvailable(!dialogue.IsTalking);
             hudView.SetTalking(dialogue.IsTalking);
             hudView.ControlsGuide.SetBlocked(dialogue.IsTalking || IsShowingScreen);
             hudView.SetHomeAvailable(gameObject.scene.name != "HomeScene" && !IsHomeBlocked);
             CenterWindow.Shared.SetOpen(IsShowingScreen);
+            GameClock.Shared.IsLearningWindowOpen = IsShowingScreen;
         }
 
         private bool IsHomeBlocked =>
@@ -155,7 +191,11 @@ namespace A305.Learning
 
         private void OnDestroy()
         {
+            DialogueController.BackgroundFeedbackCompleted -= OnBackgroundFeedbackCompleted;
             CenterWindow.Shared.SetOpen(false);
+            DisposeReview();
+            DisposeReviewProgress();
+            GameClock.Shared.IsLearningWindowOpen = false;
             if (hudView != null)
             {
                 hudView.HomeRequested -= ReturnHome;
@@ -171,6 +211,20 @@ namespace A305.Learning
         private void SaveDialogueWord(GlossaryWord word)
         {
             _ = SaveDialogueWordAsync(word);
+        }
+
+        private async Task<bool> SaveTranscriptWordAsync(GlossaryWord word)
+        {
+            VocabularySaveResult result = await vocabulary.SaveNpcLineWordAsync(
+                word.TurnId,
+                word.Text
+            );
+            if (this == null)
+                return false;
+            bool saved = result != VocabularySaveResult.Failed;
+            hudView.ShowMessage(saved ? "단어장에 담았어요." : vocabulary.LastFailureMessage);
+            hudView.SetVocabularyCount(vocabulary.Entries.Count);
+            return saved;
         }
 
         // 저장 결과는 대화창 단어 카드에 보이고, 새로 넣은 단어는 [단어장] 개수에도 바로 더한다.
@@ -209,7 +263,79 @@ namespace A305.Learning
             feedbackView.SetSaveAvailable(
                 vocabulary != null && shownServerFeedback?.ConversationId != null
             );
+            feedbackView.SetReviewAvailable(
+                reviewBook != null
+                    && shownServerFeedback?.ConversationId != null
+                    && shownServerFeedback.Summary?.Status == "DONE"
+            );
             feedbackView.Show(feedback, lines);
+            MarkShownFeedbackRead();
+        }
+
+        private void MarkShownFeedbackRead()
+        {
+            if (
+                shownServerFeedback?.Summary?.Status != "DONE"
+                || shownServerFeedback.ConversationId == null
+            )
+                return;
+            long conversationId = shownServerFeedback.ConversationId.Value;
+            pendingFeedbackReads.Add(conversationId);
+            feedbackRevision++;
+            nextFeedbackRefresh = 0;
+            if (history != null)
+                foreach (ConversationSummary item in history.Items)
+                    if (item.ConversationId == conversationId)
+                        item.FeedbackUnread = false;
+            if (historyView.IsVisible)
+                historyView.Refresh();
+        }
+
+        private void OnBackgroundFeedbackCompleted(DialogueRecord record)
+        {
+            nextFeedbackRefresh = 0;
+            if (record.ServerFeedback?.Summary?.Status == "DONE")
+                hudView.ShowMessage("피드백이 완성됐어요. 휴대폰에서 확인해 주세요.");
+            else if (
+                record.UserUtterances.Count > 0
+                && record.ServerFeedback?.Summary?.Status != "SKIPPED"
+            )
+                hudView.ShowMessage("피드백을 만들지 못했어요. 연결 상태를 확인해 주세요.");
+        }
+
+        // 미확인 수는 서버가 세므로 장소 이동·재접속 뒤에도 유지된다. 읽음 저장에 실패하면 다음 조회 때 다시 보낸다.
+        private async Task RefreshFeedbackCountAsync()
+        {
+            if (refreshingFeedback || feedbackClient == null)
+                return;
+            refreshingFeedback = true;
+            nextFeedbackRefresh = Time.unscaledTime + 5f;
+            int revision = feedbackRevision;
+            try
+            {
+                foreach (long conversationId in new List<long>(pendingFeedbackReads))
+                {
+                    await feedbackClient.PostAsync(
+                        $"/api/v1/conversations/{conversationId}/feedback/read",
+                        null
+                    );
+                    pendingFeedbackReads.Remove(conversationId);
+                }
+                UnreadFeedback unread = await feedbackClient.GetAsync<UnreadFeedback>(
+                    "/api/v1/feedback/unread"
+                );
+                if (this != null && revision == feedbackRevision)
+                    hudView.SetFeedbackCount(unread?.Count ?? 0);
+            }
+            catch (ApiException exception)
+            {
+                // 연결 실패로 알림을 지우지 않고 이전 표시를 유지한다. 인증 만료 처리는 ApiClient가 맡는다.
+                Debug.LogWarning($"피드백 확인 상태를 동기화하지 못했습니다: {exception.Code}");
+            }
+            finally
+            {
+                refreshingFeedback = false;
+            }
         }
 
         private void SaveFeedbackExpression(string expression, string meaningKo)
@@ -246,6 +372,16 @@ namespace A305.Learning
         // 내 발화가 없는 대화는 피드백을 만들지 않고, 이동 잠금도 건드리지 않는다.
         private void ShowFeedback(DialogueRecord record)
         {
+            if (record.ReviewCardId != null)
+            {
+                ShowReviewResult(record);
+                return;
+            }
+            if (record.IsFeedbackDeferred)
+            {
+                FeedbackClosed?.Invoke(record.NpcCode, record.IsGuidedCompleted);
+                return;
+            }
             if (record.UserUtterances.Count == 0)
             {
                 return;
@@ -333,6 +469,10 @@ namespace A305.Learning
             feedbackView.Hide();
             UpdateMovementLock();
             FeedbackClosed?.Invoke(closedRecord.NpcCode, closedRecord.IsGuidedCompleted);
+            if (dialogue.Allowance.IsGuestOutOfConversations)
+            {
+                SurveyPrompt.Request();
+            }
         }
 
         private void OpenHistory()
@@ -534,6 +674,7 @@ namespace A305.Learning
 
         private void UpdateMovementLock()
         {
+            GameClock.Shared.IsLearningWindowOpen = IsShowingScreen;
             if (dialogue.IsTalking)
             {
                 return;

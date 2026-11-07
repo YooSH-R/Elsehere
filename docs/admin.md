@@ -69,7 +69,7 @@ select id, nickname, email from users where role = 'ADMIN';
 - 앞뒤 공백은 지우고, 비운 칸은 빈 문자열로 저장합니다.
 - 이름·역할 이름·장소·목소리·먼저 말 걸기 대사는 화면에 보여 주기만 합니다. 이 값은 시드(`world.sql`)가 관리합니다.
 - 인격 카드([NPC 설정 v2 인격 구조](api/npc-ai-contracts/01_npc_configuration_spec_v2.md)의 성격·가치관·말투 등)는 이 화면에서 다루지 않습니다. 카드는 시드가 `content/npc-configurations.json`에서 넣습니다([백엔드 README](../backend/README.md#시드-데이터)).
-- 인격 카드가 있는 NPC(행인 Ben·카페 Mia·호텔 Jake·드럭스토어 Alex·택시 기사 Joe·경찰관 Dan과 거리 매장 직원 9명: 우체국 Linda·식당 Rosa·은행 Henry·빨래방 Gus·꽃집 Lily·이발소 Tony·베이커리 Grace·오락실 Max·생활용품점 Nina, 교대를 나눠 맡는 카페 Zoe·Leo·호텔 Owen·Clara·Walter·Diego·드럭스토어 Hannah·Samuel·경찰서 Victor·Kevin·Tyler·행인 Ruby·Ethan·Maya·Helen·Frank·Arthur·Margaret, 쉬는 날 마을에서 지내는 소방관 Ray·Rachel·Andre)는 NPC 대답을 카드로 만들고, `role`은 무례·의도 판정, 번역, 힌트·추천 단어, 뜻 보기, 기억 카드처럼 NPC를 짧게 소개하는 곳에만 씁니다. `facts`·`scene`은 카드와 함께 대답에도 씁니다. 카드가 없는 NPC는 세 칸으로 대답합니다.
+- 인격 카드가 있는 NPC(행인 Ben·카페 Mia·호텔 Jake·드럭스토어 Alex·택시 기사 Joe·경찰관 Dan과 거리 매장 직원 9명: 우체국 Linda·식당 Rosa·은행 Henry·빨래방 Gus·꽃집 Lily·이발소 Tony·베이커리 Grace·오락실 Max·생활용품점 Nina, 교대를 나눠 맡는 카페 Zoe·Leo·호텔 Owen·Clara·Walter·Diego·드럭스토어 Hannah·Samuel·경찰서 Victor·Kevin·Taylor·행인 Ruby·Ethan·Maya·Helen·Frank·Arthur·Margaret, 쉬는 날 마을에서 지내는 소방관 Ray·Rachel·Andre)는 NPC 대답을 카드로 만들고, `role`은 무례·의도 판정, 번역, 힌트·추천 단어, 뜻 보기, 기억 카드처럼 NPC를 짧게 소개하는 곳에만 씁니다. `facts`·`scene`은 카드와 함께 대답에도 씁니다. 카드가 없는 NPC는 세 칸으로 대답합니다.
 
 ### 시드와의 관계
 
@@ -151,6 +151,7 @@ AI 호출 기록(`ai_requests`)을 묶어 보여 줍니다. 호출 한 번이 �
 - 발음 파일이 없는 단어만 만들므로 여러 번 실행해도 됩니다. 합성에 실패한 단어는 건너뛰고 결과의 `failedWordKeys`에 남기며, 다시 실행하면 그 단어만 다시 만듭니다.
 - 한 번에 하나만 실행합니다. 진행 중에 다시 시작하면 새로 시작하지 않고 진행 상황만 돌려줍니다. 실행 상태와 마지막 결과는 서버 메모리에만 있어 서버를 다시 시작하면 사라집니다(만든 파일은 남습니다).
 - 개발·운영 볼륨은 따로이므로 환경마다 실행합니다. 새 사물 단어를 Unity에서 추가해 배포한 뒤에도 다시 실행합니다.
+- 영어 표현을 바꾸는 경우에는 공용 단어 키를 유지하고 Unity 에셋의 `pronunciationAudioKey`에 새 WAV 이름을 지정합니다. 생성기는 이 이름을 우선 사용하므로 예전 표현의 `{wordKey}.wav`를 재사용하지 않습니다. 명시한 발음 키는 파일 생성 전에도 카드에 연결되므로, 콘텐츠 배포 직후 발음 생성을 실행해 `missing`이 0인지 확인해야 합니다.
 - AI 워커에 TTS 모델이 준비되어 있어야 합니다. 준비되지 않았으면 모든 단어가 `failedWordKeys`에 남습니다.
 - 합성 호출은 실행한 관리자의 `ai_requests`(`kind: TTS`)로 기록합니다.
 

@@ -89,3 +89,22 @@ def test_gpu_alignment_failure_keeps_voice_without_invented_timing(monkeypatch):
     assert len(attempts) == 1
     assert read_timing(wav) is None and duration == 1 and cached is False
     assert len(server.requests) == 1 and engine.texts == []
+
+
+def test_cpu_aligner_runtime_failure_preserves_valid_times_from_the_same_synthesis(monkeypatch):
+    engine = SimpleNamespace(
+        has_timings=True,
+        tokenizer=SimpleNamespace(phonemize=lambda text, lang: "hɛlp"),
+        create_timed=lambda *a, **k: ([0] * 24000, 24000, [phone("h", 0.1, 0.2), phone("ɛ", 0.2, 0.5)]),
+    )
+    service = tts.Kokoro(engine, "fake")
+    monkeypatch.setattr(tts, "to_wav", lambda audio, rate: wav_file())
+
+    def unavailable(*args):
+        raise RuntimeError("Failed to stop utterance processing")
+
+    monkeypatch.setattr(tts, "align_timing", unavailable)
+    voice, _, _ = service.synth("Help", "af_heart", 1)
+    timing = read_timing(voice)
+    assert timing is not None
+    assert timing["phonemes"] == [dict(phoneme="h", start=0.1, end=0.2), dict(phoneme="eh", start=0.2, end=0.5)]

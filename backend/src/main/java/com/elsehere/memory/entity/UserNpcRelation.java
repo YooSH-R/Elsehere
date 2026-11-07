@@ -33,7 +33,7 @@ public class UserNpcRelation extends BaseEntity {
 
   @EmbeddedId private UserNpcRelationId id;
 
-  // 호감도(-100~100). 무례로 센 말마다 깎고(NpcAffinityService), 대화가 끝나면 관계 갱신 변화량을 더한다.
+  // 호감도(-100~100). 대화 중 발화마다 바꾸고(NpcAffinityService), 대화가 끝나면 좋은 대화 몫을 더한다(MemoryService).
   @ColumnDefault("0")
   @JdbcTypeCode(SqlTypes.SMALLINT)
   @Column(nullable = false)
@@ -83,6 +83,21 @@ public class UserNpcRelation extends BaseEntity {
     lastTalkedAt = endedAt;
     lastTalkGameDay = gameDay;
     memoryConversationId = conversationId;
+    return true;
+  }
+
+  /** 서버 대화를 만들지 않는 첫 길 안내도 방문으로 센다. 이미 대화 기록이 있으면 다시 올리지 않는다. */
+  public boolean recordTutorialVisit(
+      Instant endedAt, int gameDay, int recognitionGain, int affinityGain, String card) {
+    if (talkCount > 0) {
+      return false;
+    }
+    talkCount = 1;
+    lastTalkedAt = endedAt;
+    lastTalkGameDay = gameDay;
+    recognition = Math.max(0, Math.min(100, recognition + recognitionGain));
+    affinity = Math.max(-100, Math.min(100, affinity + affinityGain));
+    memoryCard = card;
     return true;
   }
 

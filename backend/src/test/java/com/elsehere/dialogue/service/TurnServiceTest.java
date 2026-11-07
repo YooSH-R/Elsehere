@@ -17,9 +17,12 @@ import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.NpcReplyListener;
 import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.common.config.AdjustableClock;
+import com.elsehere.common.config.TestClockConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.logging.LogCapture;
@@ -42,9 +45,11 @@ import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -70,6 +75,8 @@ class TurnServiceTest {
 
   @Autowired private EntityManager entityManager;
 
+  @Autowired private AdjustableClock clock;
+
   private Long userId;
   private Long conversationId;
   private UUID lastRequestId;
@@ -78,6 +85,211 @@ class TurnServiceTest {
   void setUp() {
     userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
     conversationId = startPasserby(userId).conversationId();
+  }
+
+  @AfterEach
+  void resetClock() {
+    clock.setInstant(TestClockConfig.NOW);
+  }
+
+  @Test
+  void send_savesReplyEmotionsEvenWhenSynthesisTimedOut() {
+    judges("Hello", "Hello", null);
+    repliesTo(
+        "Hello",
+        new NpcReply(
+            "Let me help.",
+            null,
+            null,
+            List.of(),
+            List.of(
+                new com.elsehere.ai.client.WorkerSpeechPhrase("Let me help.", "warm_smile", 0.8))));
+
+    TurnResponse response = send("Hello");
+    entityManager.flush();
+    entityManager.clear();
+
+    Turn saved = turnRepository.findById(response.npcTurn().turnId()).orElseThrow();
+    assertThat(saved.getNpcAudioKey()).isNull();
+    assertThat(saved.getSpeechPhrases()).contains("warm_smile", "Let me help.", "0.8");
+  }
+
+  @Test
+  @DisplayName("5분이 지나도 30턴 전이면 대화를 계속할 수 있다")
+  void send_afterFiveMinutes_conversationRemainsActive() {
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(600));
+    judges("Hello again.", "Hello again.", null);
+    repliesTo("Hello again.", reply("Hello!", null));
+
+    assertThat(send("Hello again.").conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
+  }
+
+  @Test
+  @DisplayName("30번째 사용자 발화에 답변한 뒤 종료하고 재시도는 기존 답변을 돌려준다")
+  void send_thirtiethTurn_endsAfterReplyAndReplays() {
+    judges("Hello.", "Hello.", null);
+    given(aiGateway.reply(any(), any(), any(), any(), eq("Hello."), anyString(), anyInt(), any()))
+        .willReturn(reply("Hello!", null));
+    for (int i = 0; i < 29; i++) {
+      assertThat(send("Hello.").conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
+    }
+    TurnRequest last = new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello.", null);
+    TurnResponse response = turnService.send(userId, conversationId, last);
+    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ENDED_BY_NPC);
+    assertThat(turnService.send(userId, conversationId, last)).isEqualTo(response);
+    assertThatThrownBy(() -> send("Hello."))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.CONVERSATION_NOT_ACTIVE));
+  }
+
+  @Test
+  @DisplayName("정확히 5분 뒤에도 일반 발화를 처리한다")
+  void send_atTimeLimit_acceptsFinalTurnAndEnds() {
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(300));
+    judges("By card, please.", "By card, please.", null);
+    given(
+            aiGateway.reply(
+                any(), any(), any(), any(), eq("By card, please."), eq(""), anyInt(), any()))
+        .willReturn(reply("You're all set. Have a nice day!", null));
+
+    TurnResponse response = send("By card, please.");
+
+    assertThat(response.npcTurn().text()).isEqualTo("You're all set. Have a nice day!");
+    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
+    assertThat(response.conversation().endReason()).isNull();
+    assertThat(response.conversation().finalTurnsRemaining()).isZero();
+  }
+
+  @Test
+  @DisplayName("대화 시작 후 5분이 되기 전의 새 발화는 정상 처리한다")
+  void send_beforeTimeLimit_acceptsTurn() {
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(299));
+    judges("One last question.", "One last question.", null);
+    repliesTo("One last question.", reply("Sure, go ahead.", null));
+
+    TurnResponse response = send("One last question.");
+
+    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
+    assertThat(response.npcTurn().text()).isEqualTo("Sure, go ahead.");
+  }
+
+  @Test
+  @DisplayName("답변 생성 중 5분이 지나도 대화가 계속된다")
+  void send_startedBeforeTimeLimit_completesReplyThenWaitsForFinalTurn() {
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(299));
+    judges("One last question.", "One last question.", null);
+    given(
+            aiGateway.reply(
+                any(), any(), any(), any(), eq("One last question."), eq(""), anyInt(), any()))
+        .willAnswer(
+            invocation -> {
+              clock.setInstant(TestClockConfig.NOW.plusSeconds(301));
+              return reply("Sure, go ahead.", null);
+            });
+
+    TurnResponse response = send("One last question.");
+
+    assertThat(response.npcTurn().text()).isEqualTo("Sure, go ahead.");
+    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
+    assertThat(response.conversation().closing()).isFalse();
+    assertThat(response.conversation().finalTurnsRemaining()).isZero();
+    assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(3);
+  }
+
+  @Test
+  @DisplayName("답변 생성이 5분 30초를 넘어도 대화가 계속된다")
+  void send_startedBeforeTimeLimit_completesAfterGraceThenEnds() {
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(299));
+    judges("One last question.", "One last question.", null);
+    given(
+            aiGateway.reply(
+                any(), any(), any(), any(), eq("One last question."), eq(""), anyInt(), any()))
+        .willAnswer(
+            invocation -> {
+              clock.setInstant(TestClockConfig.NOW.plusSeconds(331));
+              return reply("Sure, here is the answer.", null);
+            });
+
+    TurnResponse response = send("One last question.");
+
+    assertThat(response.npcTurn().text()).isEqualTo("Sure, here is the answer.");
+    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
+    assertThat(response.conversation().endReason()).isNull();
+  }
+
+  @Test
+  @DisplayName("5분 뒤 발화를 재시도해도 저장된 답변을 그대로 돌려준다")
+  void send_retryFinalTimeLimitedTurn_replaysSavedResponse() {
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(300));
+    judges("One last question.", "One last question.", null);
+    given(
+            aiGateway.reply(
+                any(), any(), any(), any(), eq("One last question."), eq(""), anyInt(), any()))
+        .willAnswer(
+            invocation -> {
+              return reply("Sure, go ahead.", null);
+            });
+    TurnRequest request =
+        new TurnRequest(UUID.randomUUID(), InputType.TEXT, "One last question.", null);
+    TurnResponse first = turnService.send(userId, conversationId, request);
+
+    TurnResponse replayed = turnService.send(userId, conversationId, request);
+
+    assertThat(replayed).isEqualTo(first);
+    assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(3);
+    then(aiGateway).should().judge(any(), any(), any(), any(), eq("One last question."));
+  }
+
+  @Test
+  @DisplayName("5분 30초가 지나도 새 발화를 처리한다")
+  void send_afterGracePeriod_endsBeforeCallingAi() {
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(330));
+
+    judges("Can we keep talking?", "Can we keep talking?", null);
+    repliesTo("Can we keep talking?", reply("Of course.", null));
+    assertThat(send("Can we keep talking?").conversation().status())
+        .isEqualTo(ConversationStatus.ACTIVE);
+  }
+
+  @Test
+  @DisplayName("경찰 신고를 DB에 저장한 뒤 다시 읽어도 같은 요청의 출동 정보를 돌려준다")
+  void send_policeDispatchPersistsAcrossReloads() {
+    Conversation police =
+        Conversation.start(
+            userId,
+            DialogueTestData.npcId(entityManager, "POLICE_OFFICER"),
+            InitiatedBy.NPC,
+            1,
+            TestClockConfig.NOW);
+    entityManager.persist(police);
+    entityManager.flush();
+    String report = "Someone took my wallet at the bakery.";
+    given(aiGateway.judge(any(), any(), any(), any(), eq(report)))
+        .willReturn(
+            new JudgeResult(
+                report,
+                false,
+                null,
+                null,
+                List.of(),
+                new JudgeResult.Intent(
+                    "report_incident",
+                    List.of("report_incident"),
+                    Map.of("place", "Maple Bakery"),
+                    null)));
+    guards(report, false, null);
+    given(aiGateway.reply(any(), any(), any(), any(), eq(report), anyString(), anyInt(), any()))
+        .willReturn(reply("I'm driving to the bakery. Goodbye!", null));
+    TurnRequest request = new TurnRequest(UUID.randomUUID(), InputType.TEXT, report, null);
+
+    TurnResponse first = turnService.send(userId, police.getId(), request);
+    entityManager.flush();
+    entityManager.clear();
+    TurnResponse retried = turnService.send(userId, police.getId(), request);
+
+    assertThat(retried.policeDispatch()).isEqualTo(first.policeDispatch());
+    assertThat(retried.policeDispatch().placeCode()).isEqualTo("BAKERY");
   }
 
   @Test
@@ -143,22 +355,33 @@ class TurnServiceTest {
   }
 
   @Test
-  @DisplayName("무례한 말은 횟수를 세고 경고 지시문으로 대답하며 번역 카드를 담지 않는다")
+  @DisplayName("무례한 말은 횟수를 세고 경고 지시문으로 대답하며 영어 번역도 보여 준다")
   void send_abusive_countsAndWarns() {
     judges("닥쳐 멍청아", "닥쳐 멍청아", "Shut up, idiot.");
     guards("닥쳐 멍청아", true, null);
-    given(aiGateway.reply(any(), any(), any(), any(), eq("닥쳐 멍청아"), anyString(), anyInt(), any()))
+    given(
+            aiGateway.replyReacting(
+                any(),
+                any(),
+                any(),
+                any(),
+                eq("닥쳐 멍청아"),
+                anyString(),
+                anyInt(),
+                any(),
+                any(),
+                anyString()))
         .willReturn(reply("That's not okay to say.", null));
 
     TurnResponse response = send("닥쳐 멍청아");
 
     assertThat(response.userTurn().rude()).isTrue();
-    assertThat(response.userTurn().translation()).isNull();
+    assertThat(response.userTurn().translation().english()).isEqualTo("Shut up, idiot.");
     assertThat(response.conversation().rudeCount()).isEqualTo(1);
     assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
     then(aiGateway)
         .should()
-        .reply(
+        .replyReacting(
             any(),
             any(),
             any(),
@@ -166,10 +389,51 @@ class TurnServiceTest {
             eq("닥쳐 멍청아"),
             eq(TurnService.RUDE_WARNING),
             anyInt(),
-            any());
+            any(),
+            eq(NpcReplyListener.NONE),
+            eq("rude_warning"));
     TurnDetailResponse saved = conversationService.detail(userId, conversationId).turns().get(1);
     assertThat(saved.rude()).isTrue();
-    assertThat(saved.translation()).isNull();
+    assertThat(saved.translation().english()).isEqualTo("Shut up, idiot.");
+  }
+
+  @Test
+  void send_secondRudeTurnRequestsStrongAngerWhileConversationStaysActive() {
+    for (int count = 1; count <= 2; count++) {
+      String text = "you idiot " + count;
+      judges(text, text, null);
+      guards(text, true, null);
+      given(
+              aiGateway.replyReacting(
+                  any(),
+                  any(),
+                  any(),
+                  any(),
+                  eq(text),
+                  anyString(),
+                  anyInt(),
+                  any(),
+                  any(),
+                  anyString()))
+          .willReturn(reply("Please stop.", null));
+    }
+    send("you idiot 1");
+    TurnResponse second = send("you idiot 2");
+    assertThat(second.conversation().rudeCount()).isEqualTo(2);
+    assertThat(second.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
+    then(aiGateway)
+        .should()
+        .replyReacting(
+            any(),
+            any(),
+            any(),
+            any(),
+            eq("you idiot 2"),
+            eq(TurnService.RUDE_WARNING),
+            anyInt(),
+            any(),
+            eq(NpcReplyListener.NONE),
+            eq("rude_repeated"));
   }
 
   @Test
@@ -179,7 +443,18 @@ class TurnServiceTest {
       String text = "you idiot " + count;
       judges(text, text, null);
       guards(text, true, null);
-      given(aiGateway.reply(any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
+      given(
+              aiGateway.replyReacting(
+                  any(),
+                  any(),
+                  any(),
+                  any(),
+                  eq(text),
+                  anyString(),
+                  anyInt(),
+                  any(),
+                  any(),
+                  anyString()))
           .willReturn(reply("Stop it.", null));
     }
 
@@ -192,7 +467,7 @@ class TurnServiceTest {
     assertThat(last.conversation().endReason()).isEqualTo(ConversationEndReason.RUDE);
     then(aiGateway)
         .should()
-        .reply(
+        .replyReacting(
             any(),
             any(),
             any(),
@@ -200,7 +475,9 @@ class TurnServiceTest {
             eq("you idiot 3"),
             eq(TurnService.RUDE_LEAVE),
             anyInt(),
-            any());
+            any(),
+            eq(NpcReplyListener.NONE),
+            eq("rude_final"));
     assertThat(conversationService.detail(userId, conversationId).endedAt()).isNotNull();
   }
 
@@ -211,7 +488,18 @@ class TurnServiceTest {
       String text = "you idiot " + count;
       judges(text, text, null);
       guards(text, true, null);
-      given(aiGateway.reply(any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
+      given(
+              aiGateway.replyReacting(
+                  any(),
+                  any(),
+                  any(),
+                  any(),
+                  eq(text),
+                  anyString(),
+                  anyInt(),
+                  any(),
+                  any(),
+                  anyString()))
           .willReturn(reply("Stop it.", null));
     }
 
@@ -229,8 +517,8 @@ class TurnServiceTest {
   }
 
   @Test
-  @DisplayName("무례 판정을 하지 못한 말은 무례로 세지 않고 이유를 남기며 번역 카드를 담지 않는다")
-  void send_guardUndecided_keepsCountAndHidesTranslation() {
+  @DisplayName("무례 판정을 하지 못한 말도 번역은 보여 주고 판정 실패 이유를 남긴다")
+  void send_guardUndecided_keepsCountAndShowsTranslation() {
     judges("네 맑아요", "네 맑아요", "Yes, it's sunny.");
     guards("네 맑아요", null, "timeout");
     repliesTo("네 맑아요", reply("Great!", null));
@@ -238,7 +526,7 @@ class TurnServiceTest {
     TurnResponse response = send("네 맑아요");
 
     assertThat(response.userTurn().rude()).isFalse();
-    assertThat(response.userTurn().translation()).isNull();
+    assertThat(response.userTurn().translation().english()).isEqualTo("Yes, it's sunny.");
     assertThat(response.conversation().rudeCount()).isZero();
     Turn saved = turnRepository.findByRequestId(lastRequestId).orElseThrow();
     assertThat(saved.getGuardAbusive()).isNull();
@@ -276,8 +564,17 @@ class TurnServiceTest {
     judges("you idiot", "you idiot", null);
     guards("you idiot", true, null);
     given(
-            aiGateway.reply(
-                any(), any(), any(), any(), eq("you idiot"), anyString(), anyInt(), any()))
+            aiGateway.replyReacting(
+                any(),
+                any(),
+                any(),
+                any(),
+                eq("you idiot"),
+                anyString(),
+                anyInt(),
+                any(),
+                any(),
+                anyString()))
         .willReturn(reply("Not okay.", null));
     send("you idiot");
     judges("Sorry", "Sorry", null);
@@ -585,7 +882,19 @@ class TurnServiceTest {
   void send_notRudeWithEvents_raisesAffinityRightAway() {
     judgeRaises("I love this town!", 4);
     guards("I love this town!", false, null);
-    repliesTo("I love this town!", reply("Thank you!", null));
+    given(
+            aiGateway.replyReacting(
+                any(),
+                any(),
+                any(),
+                any(),
+                eq("I love this town!"),
+                eq(""),
+                anyInt(),
+                any(),
+                any(),
+                eq("compliment")))
+        .willReturn(reply("Thank you!", null));
 
     TurnResponse response = send("I love this town!");
 
@@ -740,7 +1049,18 @@ class TurnServiceTest {
         .willReturn(
             new GuardResult(
                 new GuardResult.Guard(true, null), affinityDelta, List.of(usage("guard"))));
-    given(aiGateway.reply(any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
+    given(
+            aiGateway.replyReacting(
+                any(),
+                any(),
+                any(),
+                any(),
+                eq(text),
+                anyString(),
+                anyInt(),
+                any(),
+                any(),
+                anyString()))
         .willReturn(reply("That's not okay to say.", null));
   }
 

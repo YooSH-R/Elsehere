@@ -18,6 +18,7 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.ColumnTransformer;
 
 /**
@@ -75,6 +76,14 @@ public class Turn extends BaseEntity {
   @ColumnTransformer(write = "?::jsonb")
   private String events;
 
+  // 출동 장소와 접수 여부를 함께 저장해 첫 응답이 유실되어도 같은 요청에 같은 출동 정보를 돌려준다.
+  @Column(nullable = false)
+  @ColumnDefault("false")
+  private boolean policeDispatch;
+
+  @Column(length = 40)
+  private String policeDispatchPlaceCode;
+
   @Column(columnDefinition = "text")
   private String meaningKo;
 
@@ -96,6 +105,15 @@ public class Turn extends BaseEntity {
 
   @Column(length = 100)
   private String npcAudioKey;
+
+  // 구절·감정은 음성 성공 여부와 별개로 보존한다. 재합성한 PCM의 길이에 맞춰 시간을 다시 붙인다.
+  @Column(columnDefinition = "jsonb")
+  @ColumnTransformer(write = "?::jsonb")
+  private String speechPhrases;
+
+  public void attachSpeechPhrases(String phrases) {
+    this.speechPhrases = phrases;
+  }
 
   private Instant npcAudioCreatedAt;
 
@@ -133,9 +151,15 @@ public class Turn extends BaseEntity {
     return Boolean.TRUE.equals(guardAbusive);
   }
 
-  /** 번역 카드는 번역이 있고 무례가 아니라고 확정된 사용자 턴에만 보여 준다. */
+  /** 경찰 신고를 접수한 사용자 턴. 장소가 null이면 본길 순찰이다. */
+  public void recordPoliceDispatch(String placeCode) {
+    policeDispatch = true;
+    policeDispatchPlaceCode = placeCode;
+  }
+
+  /** 한국어 발화의 영어 표현은 무례 판정과 관계없이 보여 준다. */
   public String shownTranslation() {
-    return Boolean.FALSE.equals(guardAbusive) ? translationEn : null;
+    return translationEn;
   }
 
   /**

@@ -51,13 +51,18 @@ class TownStoryTurnTest {
     var firstDay = mock(FirstDayMissionService.class);
     var town =
         new TownStoryService(
-            stories, mock(FirstDayMissionRepository.class), mock(NpcRepository.class));
+            stories,
+            mock(FirstDayMissionRepository.class),
+            mock(NpcRepository.class),
+            mock(com.elsehere.conversation.repository.ConversationRepository.class));
     var missions = new MissionDialogueService(firstDay, town);
     TurnRepository turns = mock(TurnRepository.class);
     when(turns.findByRequestId(any())).thenReturn(Optional.empty());
     when(turns.save(any())).thenAnswer(call -> call.getArgument(0));
     ConversationLookup lookup = mock(ConversationLookup.class);
     when(lookup.ownedConversation(8L, 10L))
+        .thenReturn(Conversation.start(8L, 1L, InitiatedBy.USER, 1, Instant.EPOCH));
+    when(lookup.ownedConversationForUpdate(8L, 10L))
         .thenReturn(Conversation.start(8L, 1L, InitiatedBy.USER, 1, Instant.EPOCH));
     DialogueContexts contexts = mock(DialogueContexts.class);
     WorkerNpc npc = new WorkerNpc("DINER_STAFF", "Rosa", "server", "", "diner", "voice", 1);
@@ -104,15 +109,20 @@ class TownStoryTurnTest {
             mock(NpcAudioReceiver.class),
             worker,
             mock(MemoryService.class),
+            mock(com.elsehere.review.service.ReviewCardService.class),
+            mock(ReviewDialogue.class),
             mock(NpcAffinityService.class),
             transactions,
             missions,
-            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
+            new DialogueRequestLocks());
     TurnRequest request = new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null);
 
     assertThatThrownBy(() -> service.send(8L, 10L, request)).isInstanceOf(BusinessException.class);
     assertThat(story.getStage()).isZero();
     service.send(8L, 10L, request);
-    assertThat(story.getStage()).isEqualTo(1);
+    assertThat(story.getStage()).isZero();
+    assertThat(story.hasGoal(0)).isTrue();
+    assertThat(story.hasGoal(1)).isFalse();
   }
 }

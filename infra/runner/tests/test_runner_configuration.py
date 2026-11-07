@@ -46,6 +46,73 @@ class RunnerConfigurationTests(unittest.TestCase):
         self.assertIn("a305-linux-light", self.tags_for("dev:plan"))
         self.assertIn("a305-linux-light", self.tags_for("prod:plan"))
 
+    def test_new_dev_commit_cancels_only_candidates_without_started_unity_builds(self):
+        workflow = self.jobs["workflow"]
+        self.assertEqual(workflow["auto_cancel"]["on_new_commit"], "none")
+
+        dev_parent_rule = next(
+            rule
+            for rule in workflow["rules"]
+            if rule["if"] == '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"'
+        )
+        dev_child_rule = next(
+            rule
+            for rule in workflow["rules"]
+            if rule["if"]
+            == '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_DEPLOY_CHILD == "true" && $A305_DEPLOY_ENVIRONMENT == "dev"'
+        )
+        self.assertEqual(dev_parent_rule["auto_cancel"]["on_new_commit"], "none")
+        self.assertEqual(dev_child_rule["auto_cancel"]["on_new_commit"], "conservative")
+        self.assertEqual(self.jobs["unity:editor-and-webgl"]["interruptible"], "false")
+        self.assertEqual(self.jobs["unity:webgl-build"]["interruptible"], "false")
+        self.assertEqual(self.jobs["dev:child"]["interruptible"], "true")
+        child_fallback_rule = next(
+            rule
+            for rule in workflow["rules"]
+            if rule["if"] == '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_DEPLOY_CHILD == "true"'
+        )
+        branch_fallback_rule = next(
+            rule
+            for rule in workflow["rules"]
+            if rule["if"] == '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "main"'
+        )
+        self.assertLess(
+            workflow["rules"].index(dev_child_rule), workflow["rules"].index(child_fallback_rule)
+        )
+        self.assertLess(
+            workflow["rules"].index(dev_parent_rule), workflow["rules"].index(branch_fallback_rule)
+        )
+
+    def test_new_mr_commit_still_cancels_obsolete_mr_checks(self):
+        workflow = self.jobs["workflow"]
+        mr_rule = next(
+            rule
+            for rule in workflow["rules"]
+            if rule["if"]
+            == '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != "dev" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != "main"'
+        )
+        self.assertEqual(mr_rule["auto_cancel"]["on_new_commit"], "interruptible")
+        self.assertEqual(self.jobs["default"]["interruptible"], "true")
+
+    def test_running_deployment_and_production_pipeline_remain_protected(self):
+        self.assertEqual(self.jobs["dev:deliver"]["interruptible"], "false")
+        self.assertEqual(self.jobs["prod:child"]["interruptible"], "false")
+        self.assertEqual(self.jobs["prod:deliver"]["interruptible"], "false")
+
+        workflow = self.jobs["workflow"]
+        production_child_rule = next(
+            rule
+            for rule in workflow["rules"]
+            if rule["if"] == '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_DEPLOY_CHILD == "true"'
+        )
+        branch_rule = next(
+            rule
+            for rule in workflow["rules"]
+            if rule["if"] == '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "main"'
+        )
+        self.assertNotIn("auto_cancel", production_child_rule)
+        self.assertNotIn("auto_cancel", branch_rule)
+
     def test_laptop_accepts_two_jobs_and_keeps_the_host_socket_out_of_jobs(self):
         path = REPOSITORY / "infra/runner/laptop.config.template.toml"
         config = tomllib.loads(path.read_text())

@@ -163,7 +163,15 @@ namespace A305.EditorTools.World
             bool includePoliceStation
         )
         {
-            SpaceDoorway[] doors = BuilderTools.FindAllInScene<SpaceDoorway>(scene);
+            // 경찰서처럼 거리 매장이면서 따로 장면이 있는 곳은 거리 매장의 정차 지점 하나만 쓴다.
+            SpaceDoorway[] doors = BuilderTools
+                .FindAllInScene<SpaceDoorway>(scene)
+                .Where(door =>
+                    TownStorefrontBuilder.Storefronts.All(storefront =>
+                        storefront.PlaceCode != PlaceScenes.CodeOf(door.DestinationScene)
+                    )
+                )
+                .ToArray();
             TownStorefrontBuilder.Storefront[] storefronts = TownStorefrontBuilder
                 .Storefronts.Where(storefront =>
                     includePoliceStation || storefront.Name != "PoliceStation"
@@ -173,12 +181,8 @@ namespace A305.EditorTools.World
             int destinationIndex = 0;
             foreach (SpaceDoorway door in doors)
             {
-                string code = door.DestinationScene.Replace("Scene", "").ToUpperInvariant();
-                string label =
-                    code == "HOME" ? "집"
-                    : code == "HOTEL" ? "호텔"
-                    : code == "CAFE" ? "카페"
-                    : "드럭스토어";
+                string code = PlaceScenes.CodeOf(door.DestinationScene);
+                string label = PlaceScenes.NameOf(code);
                 Vector3 stop = new Vector3(
                     door.transform.position.x > 0 ? 1.5f : -1.5f,
                     0,
@@ -205,7 +209,7 @@ namespace A305.EditorTools.World
             }
         }
 
-        private static void SetDestination(
+        internal static void SetDestination(
             SerializedProperty target,
             string code,
             string name,
@@ -238,6 +242,21 @@ namespace A305.EditorTools.World
         private static void PoseDriver(Transform taxi, NpcIdentity identity)
         {
             Transform driver = identity.transform;
+            SeatAtTheWheel(taxi, driver);
+            Transform head = driver
+                .GetComponentInChildren<Animator>(true)
+                .GetBoneTransform(HumanBodyBones.Head);
+            identity.LookTarget.position = head.position;
+            foreach (Transform bone in driver.GetComponentsInChildren<Transform>(true))
+                PrefabUtility.RecordPrefabInstancePropertyModifications(bone);
+        }
+
+        /// <summary>
+        /// KayKit 도시 차(택시·승용차·순찰차는 같은 차체)의 운전석에 운전자를 앉히고 발과 손을 페달·핸들에 맞춘다.
+        /// driver는 차의 바로 아래 자식이고, 그 아래에 Animator가 있는 모델이 있다. 차에는 SteeringWheel·SteeringColumn이 있어야 한다.
+        /// </summary>
+        internal static void SeatAtTheWheel(Transform taxi, Transform driver)
+        {
             Animator animator = driver.GetComponentInChildren<Animator>(true);
             driver.localRotation = Quaternion.Euler(0, 90, 0);
             SeatDriver(taxi, driver, animator, DriverScale);
@@ -263,10 +282,6 @@ namespace A305.EditorTools.World
                 taxi.forward
             );
             VehicleDriverBuilder.FitSteering(taxi, driver);
-            Transform head = animator.GetBoneTransform(HumanBodyBones.Head);
-            identity.LookTarget.position = head.position;
-            foreach (Transform bone in driver.GetComponentsInChildren<Transform>(true))
-                PrefabUtility.RecordPrefabInstancePropertyModifications(bone);
         }
 
         // 기본 자세(근육 0)로 펴고 골반을 운전석에 맞춘다.
@@ -290,7 +305,7 @@ namespace A305.EditorTools.World
             driver.position += taxi.TransformPoint(DriverSeat) - hips.position;
         }
 
-        // 기사 스킨 메시의 가장 높은 점(택시 기준 높이)
+        // 기사 스킨 메시와 모자 같은 장신구 메시의 가장 높은 점(택시 기준 높이)
         private static float HighestPoint(Transform taxi, Transform driver)
         {
             float highest = float.NegativeInfinity;
@@ -310,6 +325,16 @@ namespace A305.EditorTools.World
             finally
             {
                 Object.DestroyImmediate(baked);
+            }
+            foreach (var filter in driver.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (filter.sharedMesh == null)
+                    continue;
+                foreach (Vector3 vertex in filter.sharedMesh.vertices)
+                    highest = Mathf.Max(
+                        highest,
+                        taxi.InverseTransformPoint(filter.transform.TransformPoint(vertex)).y
+                    );
             }
             return highest;
         }
@@ -373,7 +398,7 @@ namespace A305.EditorTools.World
             return MainstreetArtKit.Block(name, parent, position, size, material);
         }
 
-        private static void ConfigureStatus(DialoguePanelView panel)
+        internal static void ConfigureStatus(DialoguePanelView panel)
         {
             Transform canvas = panel.GetComponentInParent<Canvas>().transform;
             Transform existing = canvas.Find("TaxiTripStatus");

@@ -1,5 +1,5 @@
 backend:check-and-build:
-  extends: .docker-job
+  extends: [.docker-job, .record-mr-success]
   stage: verify
   needs: ["ci:yaml"]
   image: eclipse-temurin:21-jdk
@@ -10,6 +10,7 @@ backend:check-and-build:
     # Ryuk mounts this socket from the job's rootless Docker service.
     TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: /run/user/1000/docker.sock
   cache:
+    when: always
     key:
       prefix: gradle-java21
       files:
@@ -33,6 +34,7 @@ backend:check-and-build:
       - backend/build/test-results/
       - backend/build/libs/*.jar
       - backend/build/commit.txt
+      - dist/ci/success.json
   rules:
     - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_BACKEND == "true"'
     - !reference [.deployment-parent-skips, rules]

@@ -6,6 +6,7 @@ using A305.Api;
 using A305.EditorTools.Common;
 using A305.EditorTools.Learning;
 using A305.EditorTools.Mission;
+using A305.EditorTools.Npc;
 using A305.EditorTools.UI;
 using A305.Learning;
 using A305.Npc;
@@ -157,6 +158,13 @@ namespace A305.EditorTools.Theme
         {
             catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
             Style(OfferPath, StyleGuestSignupDialog);
+        }
+
+        /// <summary>대화 제안 화면의 NPC 머리 위 이름표만 테마로 칠한다. 제안 화면의 다른 요소는 건드리지 않는다.</summary>
+        public static void ApplyNpcNameTagTheme()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(OfferPath, StyleNpcNameTags);
         }
 
         /// <summary>입구의 게임 전 멈춤 화면(게스트 다시 접속·이미 가입한 계정)만 테마로 칠한다. 입구 화면의 다른 요소는 건드리지 않는다.</summary>
@@ -513,6 +521,35 @@ namespace A305.EditorTools.Theme
             ActionPill(root, rowPath + "/ViewButton", UiIcon.None, UiTone.Neutral, 110);
         }
 
+        /// <summary>
+        /// 가입 두 단계(약관 동의·가입 정보, S15P31A305-596)만 칠하고 시안 창으로 배치한 뒤 동의 체크를 맞춘다. 이미 시안 창이 된 다른 입구 화면은
+        /// 건드리지 않는다(입구 전체 테마는 시안 배치 전의 세로 줄 배치를 전제로 한다).
+        /// </summary>
+        public static void ApplyTermsStepTheme()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(
+                EntryPath,
+                root =>
+                {
+                    StyleTermsStep(root);
+                    // 시안 배치가 체크 동그라미(Box)를 줄 가운데에 두므로, 새로 만든 [전체 동의] 줄에 먼저 체크 모양을 입힌다.
+                    ConsentCheck(root.Find("TermsPanel/AllAgreeRow/Toggle"));
+                    A305.EditorTools.Onboarding.EntryScreensBuilder.ApplyTermsStep(root);
+                }
+            );
+            ApplyConsentChecks();
+        }
+
+        // 약관 줄·[전체 동의]·[다음]·[뒤로]는 시안 배치(EntryScreensBuilder)가 그림과 글자 모양을 모두 입힌다.
+        // 가입 정보 창에서 옮겨 온 약관 줄은 이미 시안 모양이라 테마 버튼 모양을 다시 입히지 않는다.
+        private static void StyleTermsStep(Transform root)
+        {
+            Role(root, "TermsPanel", UiThemeRole.Panel);
+            Role(root, "TermsPanel/Title", UiThemeRole.Title);
+            Role(root, "TermsPanel/VoiceConsentNote", UiThemeRole.Muted);
+        }
+
         /// <summary>약관·선택 동의 줄의 체크만 시안 모양으로 바꾼다. 입구 화면과 내 정보 창의 다른 요소는 건드리지 않는다.</summary>
         [MenuItem("Tools/A305/UI/Apply Consent Checks")]
         public static void ApplyConsentChecks()
@@ -522,7 +559,8 @@ namespace A305.EditorTools.Theme
                 EntryPath,
                 root =>
                 {
-                    ConsentCheck(root.Find("SignupPanel/Consents/ConsentRowTemplate/Toggle"));
+                    ConsentCheck(root.Find("TermsPanel/Consents/ConsentRowTemplate/Toggle"));
+                    ConsentCheck(root.Find("TermsPanel/AllAgreeRow/Toggle"));
                     ConsentCheck(root.Find("GuestPanel/VoiceConsentRow/Toggle"));
                 }
             );
@@ -623,6 +661,7 @@ namespace A305.EditorTools.Theme
             ActionPill(root, "Panel/Buttons/AcceptButton", UiIcon.Talk, UiTone.Primary, 220);
             ActionPill(root, "Panel/Buttons/DeclineButton", UiIcon.None, UiTone.Neutral, 220);
             Roomy(root, "Panel");
+            OfferShortcutsBuilder.SetUp(root.gameObject);
             // [말 걸기]·[택시 세우기]는 바탕 상자 없이 버튼 하나와 키 안내만 보인다.
             Transform prompt = root.Find("TalkPrompt");
             var promptTheme = prompt.GetComponent<ThemedElement>();
@@ -644,6 +683,7 @@ namespace A305.EditorTools.Theme
                 Role(root, "Panel/Remaining", UiThemeRole.Muted);
             StyleTalkPromptHints(root);
             StyleGuestSignupDialog(root);
+            StyleNpcNameTags(root);
         }
 
         [MenuItem("Tools/A305/UI/Update Talk Prompt Hints")]
@@ -758,6 +798,7 @@ namespace A305.EditorTools.Theme
                 string panel in new[]
                 {
                     "GuestPanel",
+                    "TermsPanel",
                     "SignupPanel",
                     "LanguagePanel",
                     "LevelSettingPanel",
@@ -802,11 +843,14 @@ namespace A305.EditorTools.Theme
             Role(root, "SignupPanel/AvatarLabel", UiThemeRole.Caption);
             QuietButton(root, "SignupPanel/AvatarRow/FemaleButton", "여성");
             QuietButton(root, "SignupPanel/AvatarRow/MaleButton", "남성");
-            Role(root, "SignupPanel/ConsentsLabel", UiThemeRole.Caption);
-            ConsentRow(root, "SignupPanel/Consents/ConsentRowTemplate");
-            if (root.Find("SignupPanel/VoiceConsentNote") != null)
-                Role(root, "SignupPanel/VoiceConsentNote", UiThemeRole.Muted);
+            ActionPill(root, "SignupPanel/BackButton", UiIcon.Previous, UiTone.Neutral, 280);
             ActionPill(root, "SignupPanel/SubmitButton", UiIcon.Check, UiTone.Primary, 280);
+
+            // 가입의 첫 단계(S15P31A305-596): [전체 동의]·약관 줄·음성 안내·[다음]
+            ConsentRow(root, "TermsPanel/AllAgreeRow");
+            ConsentRow(root, "TermsPanel/Consents/ConsentRowTemplate");
+            Role(root, "TermsPanel/VoiceConsentNote", UiThemeRole.Muted);
+            ActionPill(root, "TermsPanel/NextButton", UiIcon.None, UiTone.Primary, 280);
 
             foreach (string cards in new[] { "LanguagePanel/Cards", "LevelSettingPanel/Cards" })
             {
@@ -1197,9 +1241,6 @@ namespace A305.EditorTools.Theme
             Role(root, "HelpPanel/Viewport/Content/WordsCard", UiThemeRole.Card);
             Role(root, "HelpPanel/Viewport/Content/WordsCard/Title", UiThemeRole.Title);
             Role(root, "HelpPanel/Viewport/Content/WordsCard/SuggestWords", UiThemeRole.Body);
-            Role(root, "HelpPanel/Viewport/Content/HintCard", UiThemeRole.Card);
-            Role(root, "HelpPanel/Viewport/Content/HintCard/Title", UiThemeRole.Title);
-            Role(root, "HelpPanel/Viewport/Content/HintCard/Body", UiThemeRole.Body);
             A305.EditorTools.Dialogue.DialogueDockBuilder.Apply(root.gameObject);
             StyleDialogueWaiting(root);
             StyleVoiceConsentDialog(root);
@@ -1212,6 +1253,15 @@ namespace A305.EditorTools.Theme
             Role(root, "FeedbackWait/Card", UiThemeRole.Panel);
             Role(root, "FeedbackWait/Card/Title", UiThemeRole.Title);
             Role(root, "FeedbackWait/Card/Body", UiThemeRole.Muted);
+        }
+
+        // HUD의 시계·코인과 같은 둥근 유리 칩에 이름을 제목 글꼴로 쓴다. 직원 역할 칩은 Builder가 정한 옅은 파랑 그대로 둔다.
+        private static void StyleNpcNameTags(Transform root)
+        {
+            if (root.Find("NameTags/TagTemplate") == null)
+                return;
+            Role(root, "NameTags/TagTemplate", UiThemeRole.Chip);
+            Role(root, "NameTags/TagTemplate/Name", UiThemeRole.Title);
         }
 
         // 음성 처리 동의 창과 같은 모양. 주요 동작인 [Google로 가입하기]만 강조색으로 둔다.
@@ -1304,7 +1354,16 @@ namespace A305.EditorTools.Theme
         // 코치 마크 말풍선의 [다음]은 안내 카드의 주 버튼과 같은 모양으로 둔다.
         private static void StyleCoachMark(Transform root)
         {
-            PillButton(root, "Caption/NextButton", UiIcon.Play, UiTone.Positive);
+            Role(root, "Caption", UiThemeRole.Card);
+            Role(root, "Caption/Text", UiThemeRole.Body);
+            PillButton(root, "Caption/NextButton", UiIcon.None, UiTone.Primary);
+        }
+
+        /// <summary>코치 마크만 갱신할 때 쓰는 테마 연결.</summary>
+        public static void StyleTutorialCoachMark()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style("Assets/Prefabs/Tutorial/CoachMark.prefab", StyleCoachMark);
         }
 
         // 한 줄 안내 카드: 진행 점은 흐리게, 할 일 한 줄은 제목처럼 진하게. 건너뛰기 확인도 같은 카드 안에 그린다.
@@ -1462,6 +1521,13 @@ namespace A305.EditorTools.Theme
         }
 
         /// <summary>긴 이름이 필요한 버튼은 아이콘을 왼쪽에 둔 알약 모양 버튼으로 바꾼다.</summary>
+        /// <summary>복습장의 시작 버튼도 서비스 공용 알약 버튼을 사용한다.</summary>
+        public static void StyleReviewButton(Transform root, string path, UiTone tone)
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            PillButton(root, path, UiIcon.None, tone);
+        }
+
         private static void PillButton(Transform root, string path, UiIcon icon, UiTone tone)
         {
             Transform button = root.Find(path);

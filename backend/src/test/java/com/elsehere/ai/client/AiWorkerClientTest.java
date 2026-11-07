@@ -105,6 +105,30 @@ class AiWorkerClientTest {
   }
 
   @Test
+  void reply_preservesEmotionPhrasesWhenAudioFailedAndResendsThemForSynthesis() {
+    respond(
+        "/v1/npc/reply",
+        200,
+        "text/event-stream",
+        """
+        event: done
+        data: {"text":"Are you okay? Let me help.","audio_full_id":null,"speech_phrases":[{"text":"Are you okay?","emotion":"concerned","intensity":0.7},{"text":"Let me help.","emotion":"warm_smile","intensity":0.6}]}
+
+        """);
+    NpcReply reply = client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null);
+    assertThat(reply.speechPhrases())
+        .containsExactly(
+            new WorkerSpeechPhrase("Are you okay?", "concerned", 0.7),
+            new WorkerSpeechPhrase("Let me help.", "warm_smile", 0.6));
+    respond("/v1/tts", 200, "audio/wav", "RIFF");
+    client.synthesize(TRACE, reply.text(), "af_heart", 1.1, reply.speechPhrases());
+    assertThat(received.get("/v1/tts").body())
+        .contains(
+            "\"phrases\":[{\"text\":\"Are you okay?\",\"emotion\":\"concerned\",\"intensity\":0.7}")
+        .contains("\"emotion\":\"warm_smile\"");
+  }
+
+  @Test
   @DisplayName(
       "NPC 대답 스트림이 끝나면 첫 글자·LLM 생성·워커가 잰 시간, 음성 길이, 백엔드가 기다린 시간을 개발 서버(DEBUG)에 남긴다. 대답 글은 남기지 않는다")
   void reply_logsTimingAtDebug() {
@@ -157,6 +181,84 @@ class AiWorkerClientTest {
         .contains("\"tts_voice\":\"af_heart\"")
         .contains(
             "\"memory\":{\"visits\":2,\"last_order\":null,\"card\":{\"attitude\":\"friendly\"}}");
+  }
+
+  @Test
+  void reply_requestsWholeAudioWithoutChunkStream() {
+    respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
+
+    client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null);
+
+    assertThat(received.get("/v1/npc/reply").body()).contains("\"stream_chunks\":false");
+  }
+
+  @Test
+  void reply_sendsConfirmedSecondRudenessReactionOutsideTheLearnerText() {
+    respond(
+        "/v1/npc/reply",
+        200,
+        "text/event-stream",
+        "event: done\ndata: {\"text\":\"Please stop.\"}\n\n");
+    client.replyReacting(
+        TRACE,
+        NPC,
+        null,
+        List.of(),
+        "That was rude",
+        "Warn the learner",
+        2,
+        null,
+        NpcReplyListener.NONE,
+        "rude_repeated");
+    assertThat(received.get("/v1/npc/reply").body())
+        .contains("\"reaction\":\"rude_repeated\"")
+        .contains("\"text\":\"That was rude\"");
+  }
+
+  @Test
+  @DisplayName("받는 쪽을 넘기면 조각 스트림을 요청하고 글자·조각 음성을 온 순서대로 넘긴다")
+  void reply_withListener_forwardsDeltaAndChunksInOrder() {
+    respond(
+        "/v1/npc/reply",
+        200,
+        "text/event-stream",
+        """
+        event: delta
+        data: {"text": "Hi!"}
+
+        event: delta
+        data: {"text": " Sure."}
+
+        event: audio
+        data: {"seq": 0, "text": "Hi!", "audio_id": "a-0", "duration_s": 0.6, "tts": true}
+
+        event: audio
+        data: {"seq": 1, "text": "Sure.", "audio_id": null, "duration_s": null, "tts": false}
+
+        event: done
+        data: {"text": "Hi! Sure.", "audio_full_id": "full-1"}
+
+        """);
+    List<String> events = new java.util.ArrayList<>();
+    NpcReplyListener listener =
+        new NpcReplyListener() {
+          @Override
+          public void onDelta(String text) {
+            events.add("delta:" + text);
+          }
+
+          @Override
+          public void onChunk(NpcReplyChunk chunk) {
+            events.add("chunk:" + chunk.seq() + ":" + chunk.text() + ":" + chunk.audioId());
+          }
+        };
+
+    NpcReply reply = client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null, listener);
+
+    assertThat(received.get("/v1/npc/reply").body()).contains("\"stream_chunks\":true");
+    assertThat(events)
+        .containsExactly("delta:Hi!", "delta: Sure.", "chunk:0:Hi!:a-0", "chunk:1:Sure.:null");
+    assertThat(reply.text()).isEqualTo("Hi! Sure.");
   }
 
   @Test
@@ -535,6 +637,22 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("기억 카드 응답의 좋은 대화 호감 변화량을 읽고, 칸이 없으면(이전 워커) null이다")
+  void memoryCard_readsAffinityDelta() {
+    respond(
+        "/v1/memory",
+        200,
+        "application/json",
+        "{\"memory_card\": {\"name\": \"Sun\"}, \"impression\": \"good\", \"affinity_delta\": 3,"
+            + " \"usage\": []}");
+    assertThat(client.memoryCard(TRACE, NPC, "outcome", List.of(), null).affinityDelta())
+        .isEqualTo(3);
+
+    respond("/v1/memory", 200, "application/json", "{\"memory_card\": {}, \"usage\": []}");
+    assertThat(client.memoryCard(TRACE, NPC, "outcome", List.of(), null).affinityDelta()).isNull();
+  }
+
+  @Test
   @DisplayName("기억 카드가 객체가 아니면 AI_RESPONSE_INVALID, 워커 오류면 오류 코드로 던진다")
   void memoryCard_invalidOrError_throws() {
     respond("/v1/memory", 200, "application/json", "{\"memory_card\": null, \"usage\": []}");
@@ -617,6 +735,19 @@ class AiWorkerClientTest {
     assertThat(received.get("/v1/npc/follow-up").body())
         .contains("\"npc\":{\"id\":\"CAFE_STAFF\"")
         .contains("\"text\":\"One iced latte, please.\"");
+  }
+
+  @Test
+  @DisplayName("경찰 출동 결과 판정은 같은 엔드포인트에 kind police_call을 보내고, 다른 건넬 것 판정은 handover를 보낸다")
+  void policeCallOutcome_sendsThePoliceCallKind() {
+    respond("/v1/npc/follow-up", 200, "application/json", "{\"follow_up\": null, \"usage\": []}");
+
+    client.policeCallOutcome(
+        TRACE, NPC, List.of(WorkerLine.learner("Someone took my wallet.", null, false)));
+    assertThat(received.get("/v1/npc/follow-up").body()).contains("\"kind\":\"police_call\"");
+
+    client.followUp(TRACE, NPC, List.of(WorkerLine.learner("One latte.", null, false)));
+    assertThat(received.get("/v1/npc/follow-up").body()).contains("\"kind\":\"handover\"");
   }
 
   @Test

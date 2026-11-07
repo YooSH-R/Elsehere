@@ -13,6 +13,28 @@ namespace A305.Dialogue.Tests
     public class MockDialogueScriptsAssetTests
     {
         private const string ScriptsPath = "Assets/Data/Dialogue/MockDialogueScripts.asset";
+
+        [Test]
+        public void TutorialBen_GreetsThenBuildsAffinityAndFinishesWithinThreeTurns()
+        {
+            var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
+            scripts.TryGetScript("TUTORIAL_PASSERBY", out DialogueScript script);
+            Assert.That(script.OpeningLine.English, Does.Contain("I'm Ben"));
+            Assert.That(script.GuidedTurns, Has.Count.EqualTo(3));
+            var conversation = new DialogueConversation("TOWN_PASSERBY", script);
+            Assert.That(conversation.Standing, Is.Not.Null);
+            Assert.That(conversation.Standing.Affinity, Is.Zero);
+            Assert.That(conversation.SuggestedEnglish, Does.Contain("Nice to meet you"));
+            for (int turn = 1; turn <= 3; turn++)
+            {
+                Assert.That(conversation.Send(conversation.SuggestedEnglish), Is.True);
+                Assert.That(conversation.Standing.Affinity, Is.EqualTo(turn * 2));
+            }
+            Assert.That(conversation.IsGuidedCompleted, Is.True);
+            Assert.That(conversation.ToRecord().UserUtterances, Has.Count.EqualTo(3));
+            Assert.That(conversation.Send("One more thing"), Is.False);
+        }
+
         private const string SeedRelativePath = "backend/src/main/resources/db/seed/world.sql";
 
         // 이름과 역할은 서버 시드(world.sql npcs)와 같아야 서버 대화가 시작돼도 바뀌지 않는다.

@@ -1,8 +1,8 @@
 # 택시 승차와 목적지 이동
 
-마을 인도에서 [택시 세우기]를 누르면 택시가 손님 옆 길가에 서면서 바로 뒷좌석에 타고 기사와 대화가 시작된다. 택시가 다가와 서는 모습은 보이지 않는다. 목적지를 말하기 전에는 정차하며, 서버가 수락한 무례하지 않은 발화에서 명확한 이동 요청을 찾으면 출발한다. 신호와 다른 차량을 따르고 도착한 건물 쪽 인도에 내려준다.
+택시 중심에서 수평 반경 8m 안에 들어오면 방향이나 인도 위치와 관계없이 [택시 타기]가 표시된다. 버튼이나 E 키를 누르면 택시가 현재 위치에 정차하고 바로 뒷좌석에 타서 기사와 대화가 시작된다. 반경을 벗어나면 버튼이 사라지며, 누르는 순간에도 거리를 다시 확인한다. 목적지를 말하기 전에는 정차하며, 서버가 수락한 무례하지 않은 발화에서 명확한 이동 요청을 찾으면 출발한다. 신호와 다른 차량을 따르고 도착한 건물 쪽 인도에 내려준다.
 
-택시를 세우면 바로 기사와 대화하므로 게스트에게는 [택시 세우기] 위에 남은 대화 수를 보이고, 게스트가 대화를 다 쓰면 버튼 대신 [가입하고 계속 대화하기]로 가입 안내 창을 열고, 다른 이유로 새 대화를 시작할 수 없으면 버튼 대신 이유를 보인다([Npc 모듈](../../frontend/UnityClient/Assets/Scripts/Npc/README.md#택시)).
+택시에 타면 바로 기사와 대화하므로 [택시 타기] 위에 남은 대화 수를 보인다. 일일 대화를 다 쓰거나 다른 이유로 새 대화를 시작할 수 없으면 버튼 대신 이유를 보인다. 튜토리얼 중이거나 다른 대화·상호작용 중에는 탑승 버튼을 숨긴다([Npc 모듈](../../frontend/UnityClient/Assets/Scripts/Npc/README.md#택시)).
 
 | 장소 | 예시 요청 | 실내 진입 |
 | --- | --- | --- |
@@ -11,12 +11,12 @@
 | 드럭스토어 | Take me to the drugstore, please. | ShopScene |
 | 집 | I'd like to go home. | HomeScene |
 | 우체국 | Take me to the post office, please. | PostOfficeInterior |
-| 메이플 다이너 | The diner, please. | MapleDinerInterior |
+| 메이플 식당 | The diner, please. | MapleDinerInterior |
 | 타운 은행 | Could you take me to the bank? | TownBankInterior |
 | 빨래방 | Take me to the laundromat, please. | SudsLaundromatInterior |
 | 꽃집 | The flower shop, please. | BloomFlowersInterior |
 | 이발소 | Take me to the barber shop, please. | MainStreetBarberInterior |
-| 경찰서 | Take me to the police station, please. | PoliceStationInterior |
+| 경찰서 | Take me to the police station, please. | PoliceStationScene |
 
 택시는 건물 앞 보도에 내려준다. 실내로 자동 이동하지 않으며, 하차 후 사용자가 문으로 걸어 들어간다. 택시는 영업시간과 상관없이 데려다주고, 영업시간이 아닌 장소는 문 앞에서 들어가지 못한다([World 모듈의 영업시간](../../frontend/UnityClient/Assets/Scripts/World/README.md#영업시간)). 북쪽 기존 베이커리·오락실·서점·생활용품점·찻집은 현재 택시 목적지에 포함하지 않는다.
 

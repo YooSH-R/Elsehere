@@ -4,7 +4,7 @@ from pathlib import Path, PurePosixPath
 import yaml
 
 REPOSITORY = Path(__file__).resolve().parents[3]
-UNITY_MR_JOBS = ("unity:format", "unity:editor-tests", "unity:external-mr")
+UNITY_MR_JOBS = ("unity:format", "unity:external-mr")
 
 
 class UnityJobSelectionTests(unittest.TestCase):
@@ -49,6 +49,7 @@ class UnityJobSelectionTests(unittest.TestCase):
             "frontend/design/logo.png",
             "docs/api/mvp-api.md",
             "infra/scripts/run-unity-ci.ps1",
+            "infra/scripts/unity-test-scope.ps1",
             "infra/scripts/prepare-unity-test-inputs.ps1",
             "infra/scripts/unity-code-quality.ps1",
             "infra/tests/tripo/create_ci_fixtures.py",
@@ -65,15 +66,55 @@ class UnityJobSelectionTests(unittest.TestCase):
         ):
             with self.subTest(path=path):
                 self.assertTrue(self.selects_job("unity:format", [path]))
-                self.assertFalse(self.selects_job("unity:editor-tests", [path]))
                 self.assertFalse(self.selects_job("unity:external-mr", [path]))
 
-    def test_merge_request_tests_choose_their_scope_from_the_merge_base(self):
-        changed_since = '-ChangedSince "$env:CI_MERGE_REQUEST_DIFF_BASE_SHA"'
-        self.assertIn(changed_since, " ".join(self.jobs["unity:editor-tests"]["script"]))
-        # Merged candidates are checked in full before deployment.
-        self.assertNotIn(
-            "-ChangedSince", " ".join(self.jobs["unity:editor-and-webgl"]["script"])
+    def test_merge_requests_do_not_start_a_windows_editor_job(self):
+        for name, job in self.jobs.items():
+            if name.startswith(".") or job.get("extends") != ".unity-editor":
+                continue
+            with self.subTest(job=name):
+                self.assertTrue(job.get("rules"))
+                self.assertFalse(
+                    any(
+                        isinstance(rule, dict)
+                        and '"merge_request_event"' in rule.get("if", "")
+                        for rule in job["rules"]
+                    )
+                )
+
+    def test_production_tests_run_the_full_suite(self):
+        job = self.jobs["unity:editor-and-webgl"]
+        self.assertNotIn("-ChangedSince", " ".join(job["script"]))
+        self.assertIn("-Action test", " ".join(job["script"]))
+        self.assertTrue(
+            any(
+                isinstance(rule, dict)
+                and '"parent_pipeline"' in rule.get("if", "")
+                and 'A305_CHECK_UNITY == "true"' in rule.get("if", "")
+                and 'A305_DEPLOY_ENVIRONMENT == "prod"' in rule.get("if", "")
+                for rule in job["rules"]
+            )
+        )
+
+    def test_development_build_does_not_execute_editor_tests(self):
+        job = self.jobs["unity:webgl-build"]
+        script = " ".join(job["script"])
+        self.assertIn("-Action build", script)
+        self.assertNotIn("-Action test", script)
+        self.assertTrue(any('A305_BUILD_WEB == "true"' in rule.get("if", "") for rule in job["rules"]))
+        self.assertEqual(job["interruptible"], "false")
+
+    def test_external_unity_changes_remain_blocked(self):
+        job = self.jobs["unity:external-mr"]
+        self.assertEqual(job["allow_failure"], "false")
+        self.assertIn("exit 1", job["script"])
+        self.assertTrue(
+            any(
+                "CI_MERGE_REQUEST_SOURCE_PROJECT_ID != $CI_MERGE_REQUEST_PROJECT_ID"
+                in rule.get("if", "")
+                for rule in job["rules"]
+                if isinstance(rule, dict)
+            )
         )
 
     def test_ci_changes_do_not_hide_unity_changes_in_the_same_mr(self):
@@ -87,11 +128,9 @@ class UnityJobSelectionTests(unittest.TestCase):
 
     def test_unity_jobs_do_not_share_an_exclusive_resource_group(self):
         template_group = self.jobs[".unity-editor"].get("resource_group")
-        for job_name in ("unity:editor-tests", "unity:editor-and-webgl"):
-            with self.subTest(job=job_name):
-                self.assertIsNone(
-                    self.jobs[job_name].get("resource_group", template_group)
-                )
+        self.assertIsNone(
+            self.jobs["unity:editor-and-webgl"].get("resource_group", template_group)
+        )
 
 
 if __name__ == "__main__":

@@ -8,7 +8,9 @@ from .llm import LLM, Usage
 # Whisper 프롬프트: 한영 혼합 예시를 주면 "muffin 하나"의 muffin을 한글로 바꾸지 않는다 (asr_eval 음성으로 확인).
 # 메뉴 예시는 영어로 쓴다. 한글 '아이스 라떼'는 한국식 발음 'Iced americano'를 '아이스트 아메라카노'로 끌어당겼다 (S15P31A305-397)
 # 한국어 예시가 '음, 하나'뿐이면 짧은 한국어 문장을 영어 문장으로 번역해 적어서, 메뉴가 아닌 한국어 말을 앞뒤에 둔다 (S15P31A305-556)
-STT_PROMPT = "음, 그러니까... I want... an iced latte... Can I get a muffin, 음, 하나? 잠깐만요. The bus stop is over there."
+# 끝 문장 'The bus stop is over there.'는 한국식 발음 both를 bus로 끌어당겼다. 끝 영어 문장을 빼면 영어를 한글로 적는 일이 늘어서,
+# 짧고 헷갈리는 단어가 없는 영어 문장으로 바꾼다 (S15P31A305-639)
+STT_PROMPT = "음, 그러니까... I want... an iced latte... Can I get a muffin, 음, 하나? 잠깐만요. My friend lives over there."
 STT_MAX_BYTES = 3 * 1024 * 1024
 AUDIO_EXT = {"audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "mp4", "audio/wav": "wav", "audio/x-wav": "wav", "audio/mpeg": "mp3"}
 NORM = re.compile(r"[^a-z0-9가-힣 ]")
@@ -28,7 +30,7 @@ def is_prompt_echo(text: str, scene_words: list[str]) -> bool:
     """Whisper는 무음에 프롬프트 끝부분(마지막 문장, 장면 단어 목록, 프롬프트 전체)을 되풀이한다. 그 끝부분과 같으면 버린다.
     프롬프트 앞·중간의 예시 문장('Can I get a muffin?')과 장면 단어 하나('Iced Americano.')는 학습자가 실제로 하는 말이라 거르지 않는다.
     짧은 말 'Latte.'도 진짜 발화일 수 있어 12자 미만은 거르지 않는다.
-    끝부분을 여러 번 이어 붙이기도 해서('The bus stop is over there. The bus stop is over there.') 같은 메아리의 반복도 버린다."""
+    끝부분을 여러 번 이어 붙이기도 해서('My friend lives over there. My friend lives over there.') 같은 메아리의 반복도 버린다."""
     words = normalize(text).split()
     for times in range(1, len(words) + 1):
         once = words[: len(words) // times]
@@ -40,8 +42,15 @@ def is_prompt_echo(text: str, scene_words: list[str]) -> bool:
 def is_one_echo(t: str, scene_words: list[str]) -> bool:
     if len(t) < 12 or t in {normalize(w) for w in scene_words}:
         return False
-    endings = (normalize(STT_PROMPT), normalize(stt_prompt(scene_words)))
-    return any(p == t or p.endswith(" " + t) for p in endings)
+    # Match only complete sentence boundaries, not arbitrary word suffixes such as
+    # "lives over there", which can be a genuine learner utterance.
+    sentences = [part.strip() for part in re.split(r"[.!?]+", STT_PROMPT) if part.strip()]
+    endings = {normalize(" ".join(sentences[i:])) for i in range(len(sentences))}
+    words = ", ".join([w.strip() for w in scene_words if w.strip()][:30])
+    if words:
+        endings.update(normalize(" ".join(sentences[i:]) + " " + words) for i in range(len(sentences)))
+        endings.add(normalize(words))
+    return t in endings
 
 
 async def stt(llm: LLM, audio: bytes, mime: str, scene_words: list[str]) -> dict:

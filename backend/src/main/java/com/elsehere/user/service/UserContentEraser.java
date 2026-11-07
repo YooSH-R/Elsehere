@@ -30,12 +30,13 @@ public class UserContentEraser {
           "conversation_feedback",
           "user_npc_relations",
           "npc_follow_ups",
+          "review_cards",
           "user_vocab",
           "user_word_prefs",
           "level_tests",
           "training_recordings");
 
-  /** 내용이 없어 남기는 테이블. 사용자·대화 행과 사용량·진행 상태만 담는다 */
+  /** 사용자·대화 메타데이터와 사용량·진행 상태는 남긴다. 대화의 복습 원문 캐시는 별도로 비운다. */
   static final Set<String> RETAINED_TABLES =
       Set.of(
           "conversations",
@@ -88,9 +89,12 @@ public class UserContentEraser {
     // 문장 피드백은 턴 ID만 가지므로 턴을 지우기 전에 지운다.
     jdbcTemplate.update("delete from turn_feedback where turn_id in " + USER_TURNS, userId);
     jdbcTemplate.update("delete from turns where conversation_id in " + USER_CONVERSATIONS, userId);
+    // 대화 메타데이터는 보존하지만 결과에 복사한 발화 원문은 보존하지 않는다.
+    jdbcTemplate.update("update conversations set review_result = null where user_id = ?", userId);
     jdbcTemplate.update("delete from user_npc_relations where user_id = ?", userId);
     // NPC가 곧 건네기로 한 것은 주문한 내용이 담겨 있어 함께 지운다.
     jdbcTemplate.update("delete from npc_follow_ups where user_id = ?", userId);
+    jdbcTemplate.update("delete from review_cards where user_id = ?", userId);
     jdbcTemplate.update("delete from user_vocab where user_id = ?", userId);
     jdbcTemplate.update("delete from user_word_prefs where user_id = ?", userId);
     jdbcTemplate.update(

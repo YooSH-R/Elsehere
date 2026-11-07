@@ -29,7 +29,7 @@ import org.springframework.context.annotation.Import;
 @DataJpaTest(
     properties = {
       "spring.jpa.hibernate.ddl-auto=create-drop",
-      "elsehere.guest.conversation-limit=" + AiStatusServiceTest.GUEST_CONVERSATION_LIMIT
+      "elsehere.conversation.daily-limit=" + AiStatusServiceTest.GUEST_CONVERSATION_LIMIT
     })
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import({
@@ -41,28 +41,54 @@ import org.springframework.context.annotation.Import;
 })
 class AiStatusServiceTest {
 
-  static final int GUEST_CONVERSATION_LIMIT = 2;
-  private static final Instant NOW = Instant.parse("2026-10-28T01:00:00Z");
+  static final int GUEST_CONVERSATION_LIMIT = 30;
+  private static final Instant NOW = TestClockConfig.NOW;
   private static final Long NPC_ID = 1L;
 
   @Autowired private EntityManager entityManager;
 
   @Autowired private AiStatusService aiStatusService;
 
+  @Autowired private GuestConversationLimit conversationLimit;
+
   @Test
-  @DisplayName("가입 사용자는 게스트 한도보다 많이 대화했어도 AI를 쓸 수 있다")
+  @DisplayName("가입 사용자는 오늘 시작한 대화가 30회면 차단되고 다음 날 다시 이용할 수 있다")
+  void member_dailyLimit_resetsAtKoreanMidnight() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "daily-member");
+    for (int i = 0; i < 29; i++) {
+      entityManager.persist(
+          Conversation.start(userId, NPC_ID, InitiatedBy.NPC, 1, TestClockConfig.NOW));
+    }
+    var user = entityManager.find(com.elsehere.user.entity.User.class, userId);
+    conversationLimit.check(user);
+    entityManager.persist(
+        Conversation.start(userId, NPC_ID, InitiatedBy.NPC, 1, TestClockConfig.NOW));
+    assertThatThrownBy(() -> conversationLimit.check(user)).isInstanceOf(BusinessException.class);
+    // 한국 시간으로 다음 날 00:00 정각부터 한도가 초기화된다.
+    var clock = (com.elsehere.common.config.AdjustableClock) clockForTest;
+    clock.setInstant(Instant.parse("2026-11-02T15:00:00Z"));
+    try {
+      conversationLimit.check(user);
+    } finally {
+      clock.setInstant(TestClockConfig.NOW);
+    }
+  }
+
+  @Autowired private java.time.Clock clockForTest;
+
+  @Test
+  @DisplayName("가입 사용자도 일일 한도에 도달하면 새 대화를 시작할 수 없다")
   void member_isAvailableBeyondGuestLimit() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
     startConversations(userId, GUEST_CONVERSATION_LIMIT + 1);
 
     AiStatusResponse response = aiStatusService.status(userId);
 
-    assertThat(response.status()).isEqualTo(AiStatus.AI_AVAILABLE);
-    assertThat(response.capabilities().canStartConversation()).isTrue();
+    assertThat(response.status()).isEqualTo(AiStatus.AI_EXHAUSTED);
+    assertThat(response.capabilities().canStartConversation()).isFalse();
     assertThat(response.capabilities().canUseSpeech()).isTrue();
     assertThat(response.capabilities().canGenerateFeedback()).isTrue();
-    // 가입 사용자는 대화 횟수 제한이 없다.
-    assertThat(response.remainingConversations()).isNull();
+    assertThat(response.remainingConversations()).isZero();
   }
 
   @Test

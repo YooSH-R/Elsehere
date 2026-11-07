@@ -4,6 +4,18 @@ namespace A305.Npc.Tests
 {
     public class PasserbyOfferTextTests
     {
+        [TestCase("Mia", "카페 직원", "Mia(카페 직원)의 대화 제안")]
+        [TestCase("Mia", "바리스타", "Mia(바리스타)의 대화 제안")]
+        [TestCase("Alex", "드럭스토어 직원", "Alex(드럭스토어 직원)의 대화 제안")]
+        public void Hint_WithNameAndRole_IdentifiesTheStaffMember(
+            string name,
+            string role,
+            string expected
+        )
+        {
+            Assert.That(PasserbyOfferText.Hint(name, role), Is.EqualTo(expected));
+        }
+
         [Test]
         public void Hint_WithNpcName_NamesWhoIsTalking()
         {
@@ -12,15 +24,15 @@ namespace A305.Npc.Tests
         }
 
         [Test]
-        public void Hint_WithRoleLabel_SaysTheRoleWithTheRightParticle()
+        public void Hint_WithRoleButNoName_SaysTheRoleWithTheRightParticle()
         {
-            // 영어 이름만으로는 드럭스토어 직원인지 알 수 없어, 역할이 있으면 역할로 알린다.
+            // 이름을 받지 못해도 직원 역할과 자연스러운 조사는 남긴다.
             Assert.That(
-                PasserbyOfferText.Hint("Alex", "드럭스토어 직원"),
+                PasserbyOfferText.Hint(null, "드럭스토어 직원"),
                 Is.EqualTo("드럭스토어 직원이 말을 걸었어요")
             );
             Assert.That(
-                PasserbyOfferText.Hint("Mia", "바리스타"),
+                PasserbyOfferText.Hint(null, "바리스타"),
                 Is.EqualTo("바리스타가 말을 걸었어요")
             );
         }
@@ -51,7 +63,7 @@ namespace A305.Npc.Tests
         {
             Assert.That(
                 PasserbyOfferText.RemainingConversations(2),
-                Is.EqualTo("게스트 남은 대화 2번")
+                Is.EqualTo("오늘 남은 대화 2번")
             );
         }
 
@@ -65,7 +77,10 @@ namespace A305.Npc.Tests
         [Test]
         public void Blocked_GuestUsedAllConversations_SaysWhy()
         {
-            Assert.That(PasserbyOfferText.Blocked(0), Is.EqualTo("게스트 대화를 모두 썼어요"));
+            Assert.That(
+                PasserbyOfferText.Blocked(0),
+                Is.EqualTo("오늘의 대화를 모두 썼어요. 내일 다시 만나요.")
+            );
         }
 
         [Test]
@@ -78,7 +93,7 @@ namespace A305.Npc.Tests
         [Test]
         public void OffersSignup_OnlyWhenGuestUsedAllConversations()
         {
-            Assert.That(PasserbyOfferText.OffersSignup(0), Is.True);
+            Assert.That(PasserbyOfferText.OffersSignup(0), Is.False);
             Assert.That(PasserbyOfferText.OffersSignup(2), Is.False);
             // 가입 사용자가 다른 이유로 막혔으면 가입을 권하지 않는다.
             Assert.That(PasserbyOfferText.OffersSignup(null), Is.False);

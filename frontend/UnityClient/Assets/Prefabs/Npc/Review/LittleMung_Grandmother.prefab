@@ -372,7 +372,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 4300000, guid: 788a200ead6871d4ab80014a8f483ece, type: 2}
+  m_Mesh: {fileID: 4300000, guid: 3af4f880568f0234793dc50a92e42db3, type: 2}
   m_Bones:
   - {fileID: 1079795692600610262}
   - {fileID: 3673457233452227024}
@@ -891,7 +891,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 4300000, guid: 17c87efa50298fe48b0dad337210ac05, type: 2}
+  m_Mesh: {fileID: 4300000, guid: e10273232c936964e90ef0b28b210167, type: 2}
   m_Bones:
   - {fileID: 1079795692600610262}
   - {fileID: 3673457233452227024}
@@ -1146,7 +1146,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 4300000, guid: eb58d74ccef2c754bb833aefd84cefd7, type: 2}
+  m_Mesh: {fileID: 4300000, guid: 219fc3fdbc10f3343aca6ab614c205c2, type: 2}
   m_Bones:
   - {fileID: 1079795692600610262}
   - {fileID: 3673457233452227024}
@@ -1306,7 +1306,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 4300000, guid: 126aca0c2761d5d4b9c47ace3bf4bbdb, type: 2}
+  m_Mesh: {fileID: 4300000, guid: 4323a51776405b44ebc724cf0a12a19a, type: 2}
   m_Bones:
   - {fileID: 1079795692600610262}
   - {fileID: 3673457233452227024}
@@ -1517,7 +1517,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 4300000, guid: e07518ba4385a114ca5c87e8012b4569, type: 2}
+  m_Mesh: {fileID: 4300000, guid: 7b4ca1c2517f89f4cae4baf6a57d454c, type: 2}
   m_Bones:
   - {fileID: 1079795692600610262}
   - {fileID: 3673457233452227024}
@@ -1676,7 +1676,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 4300000, guid: 63980b805f4186b45a1cfbf6b475a104, type: 2}
+  m_Mesh: {fileID: 4300000, guid: 8ad289f087942414a92e51ae6da0796c, type: 2}
   m_Bones:
   - {fileID: 1079795692600610262}
   - {fileID: 3673457233452227024}
@@ -1930,7 +1930,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 4300000, guid: b875d18f207ab9b4e8a2aede36e959ee, type: 2}
+  m_Mesh: {fileID: 4300000, guid: 7adb510d260ae8746b6c5cb9dd78340c, type: 2}
   m_Bones:
   - {fileID: 1079795692600610262}
   - {fileID: 3673457233452227024}
@@ -2090,7 +2090,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 4300000, guid: 110532c9007e45242a29ba66d20aeca2, type: 2}
+  m_Mesh: {fileID: 4300000, guid: 772dd31327f0c6e42afa1bbc44142361, type: 2}
   m_Bones:
   - {fileID: 1079795692600610262}
   - {fileID: 3673457233452227024}
@@ -2316,7 +2316,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 4300000, guid: 74441913a0cbed24290d6a8c440ab39c, type: 2}
+  m_Mesh: {fileID: 4300000, guid: 3f4ce826f44a35445aed752982de3abf, type: 2}
   m_Bones:
   - {fileID: 1079795692600610262}
   - {fileID: 3673457233452227024}
@@ -2435,6 +2435,8 @@ GameObject:
   - component: {fileID: 7626426350032936863}
   - component: {fileID: 7013097067027527303}
   - component: {fileID: 2784395215089019754}
+  - component: {fileID: 8393445133332609368}
+  - component: {fileID: 117934944793604160}
   m_Layer: 0
   m_Name: LittleMung_Grandmother
   m_TagString: Untagged
@@ -2482,6 +2484,122 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 98fef14844693b34095c3d3b89ba3577, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.Characters::A305.Characters.CharacterIdleBlink
+--- !u!114 &8393445133332609368
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3706796317305058254}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2775f0c7eee2024583d16bb96d5d6e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Characters::A305.Characters.CharacterSpeechPlayer
+  face: {fileID: 7013097067027527303}
+  speechSource: {fileID: 117934944793604160}
+  speech: {fileID: 0}
+  expressions: {fileID: 11400000, guid: d971682af4970ba40801242aadc35ea0, type: 2}
+  emotionProfile: {fileID: 11400000, guid: 6c28dde4cfe379e4a899fb9cd031990d, type: 2}
+  speakingMood: 1
+  moodIntensity: 1
+--- !u!82 &117934944793604160
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3706796317305058254}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 0
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &3932166558278620828
 GameObject:
   m_ObjectHideFlags: 0
@@ -2566,7 +2684,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 4300000, guid: 2b1dd27acd29a524c959ce853a03636f, type: 2}
+  m_Mesh: {fileID: 4300000, guid: dac1f21ef5a2c3843b1c67fb615c94c6, type: 2}
   m_Bones:
   - {fileID: 1079795692600610262}
   - {fileID: 3673457233452227024}
@@ -2853,7 +2971,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 4300000, guid: 9440b9c487681f14fb8f69e2bbd99eb8, type: 2}
+  m_Mesh: {fileID: 4300000, guid: 07d863148ec5d6448bf735ea911cf595, type: 2}
   m_Bones:
   - {fileID: 1079795692600610262}
   - {fileID: 3673457233452227024}
@@ -3013,6 +3131,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.Player::A305.Player.LittleMungArmClearance
   handPadding: 0.016
+  refineSurfaceContact: 1
 --- !u!114 &7934429066897887426
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3208,7 +3327,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 4300000, guid: 526e2413027dbe44aa189f219f4a0c96, type: 2}
+  m_Mesh: {fileID: 4300000, guid: 8f7d815ca1a28264ba7a14f1329bf494, type: 2}
   m_Bones:
   - {fileID: 1079795692600610262}
   - {fileID: 3673457233452227024}
@@ -3400,7 +3519,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 4300000, guid: b74ea067528aacc42afa69d1b1f8a3ba, type: 2}
+  m_Mesh: {fileID: 4300000, guid: 7af5aa334d488ab4b878579c66b84e2b, type: 2}
   m_Bones:
   - {fileID: 1079795692600610262}
   - {fileID: 3673457233452227024}
@@ -3831,7 +3950,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 4300000, guid: 5b33d03864f833940b0e4b5c63856092, type: 2}
+  m_Mesh: {fileID: 4300000, guid: 17bfc3f04d8fa1942a3d7848d3b4e2ff, type: 2}
   m_Bones:
   - {fileID: 1079795692600610262}
   - {fileID: 3673457233452227024}
@@ -4309,7 +4428,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 4300000, guid: bfc7443c8f0ada54983f8c189342a75c, type: 2}
+  m_Mesh: {fileID: 4300000, guid: 00d6d5d9329313140ae12ff768da9059, type: 2}
   m_Bones:
   - {fileID: 1079795692600610262}
   - {fileID: 3673457233452227024}
@@ -4891,7 +5010,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 4300000, guid: 98243ae8d82d7a848b29ad13e4681e32, type: 2}
+  m_Mesh: {fileID: 4300000, guid: c1a123f84e35a0f4d9e214646e1bb708, type: 2}
   m_Bones:
   - {fileID: 1079795692600610262}
   - {fileID: 3673457233452227024}
@@ -5051,7 +5170,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 4300000, guid: 3d8ef889bac11b346a1e070654fa1f02, type: 2}
+  m_Mesh: {fileID: 4300000, guid: 25b3aa084656fb3469d55c29f89664d0, type: 2}
   m_Bones:
   - {fileID: 1079795692600610262}
   - {fileID: 3673457233452227024}

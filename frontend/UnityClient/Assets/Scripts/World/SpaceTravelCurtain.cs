@@ -38,7 +38,7 @@ namespace A305.World
         /// <summary>화면을 덮은 정도. 0이면 다 보이고 1이면 다 가려진다.</summary>
         public float Opacity => cover.alpha;
 
-        internal static bool IsCoveringScreen => instance != null && instance.canvas.enabled;
+        public static bool IsCoveringScreen => instance != null && instance.canvas.enabled;
 
         private static SpaceTravelCurtain GetOrCreate()
         {

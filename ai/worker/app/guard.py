@@ -15,6 +15,9 @@ from .schemas import GuardRequest, Line, Npc
 log = logging.getLogger("ai_worker")
 
 GUARD_ANSWER = re.compile(r"^\W*(yes|no)\b", re.IGNORECASE)
+# 한글 낱자모(ㄱ~ㅎ, ㅏ~ㅣ). GPU LoRA는 오타 낱자모("같ㅊ아")와 "ㄱㅅ"를 욕 줄임말로 읽어 무례로 보고, 프롬프트로도 고쳐지지 않았다
+# (S15P31A305-604). 이런 줄은 구성의 guard 모델이 판정한다.
+LOOSE_JAMO = re.compile(r"[ㄱ-ㆎ]")
 
 
 def guard_result(out: str) -> dict:
@@ -57,7 +60,7 @@ async def judge_rudeness(
                     trace["source"] = "local"
                     return {"abusive": s >= llm.s.guard_t_hi, "error": None, "error_code": None}
         # yes/no 한 단어로 받는다. JSON을 강제하면 욕설·위협에 빈 응답 → 400으로 턴이 죽었다
-        out = await llm.guard_chat(P.guard_messages(npc, history, text), usage)
+        out = await llm.guard_chat(P.guard_messages(npc, history, text), usage, gpu=not LOOSE_JAMO.search(text))
         return guard_result(out)
 
     try:

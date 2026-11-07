@@ -11,6 +11,12 @@ namespace A305.Player
     {
         [SerializeField, Min(0)]
         private float handPadding = .008f;
+
+        [SerializeField]
+        [Tooltip(
+            "중심점 보정 후 소매 표면이 남는 외형에만 추가 보정합니다. 기존 플레이어 자세에는 적용하지 않습니다."
+        )]
+        private bool refineSurfaceContact;
         private Transform space;
         private SkinnedVertexSamples head;
         private SkinnedVertexSamples torso;
@@ -19,6 +25,9 @@ namespace A305.Player
         private readonly Transform[] hands = new Transform[2];
         private SkinnedVertexSamples[] handSurface;
         private SkinnedVertexSamples[] forearmSurface;
+        private SkinnedVertexSamples contactHead,
+            contactTorso;
+        private readonly SkinnedVertexSamples[] contactArms = new SkinnedVertexSamples[2];
 
         private void Awake() => Initialize(GetComponentInParent<CharacterController>());
 
@@ -42,8 +51,25 @@ namespace A305.Player
                 if (bone != null)
                     torsoNames.Add(bone.name);
             }
-            head = new SkinnedVertexSamples(animator, headNames.Contains);
-            torso = new SkinnedVertexSamples(animator, torsoNames.Contains);
+            // 머리·몸통은 감싸는 상자만 쓰므로 바깥 끝 정점만 남긴다. 머리는 머리털·얼굴까지 정점이 2만 개가 넘어
+            // 모두 계산하면 NPC 한 명에 프레임마다 수 ms가 든다.
+            head = new SkinnedVertexSamples(animator, headNames.Contains, outermostOnly: true);
+            torso = new SkinnedVertexSamples(animator, torsoNames.Contains, outermostOnly: true);
+            if (refineSurfaceContact)
+            {
+                contactHead = new SkinnedVertexSamples(
+                    animator,
+                    headNames.Contains,
+                    .75f,
+                    outermostOnly: true
+                );
+                contactTorso = new SkinnedVertexSamples(
+                    animator,
+                    torsoNames.Contains,
+                    .75f,
+                    outermostOnly: true
+                );
+            }
             upper[0] = animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
             upper[1] = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
             lower[0] = animator.GetBoneTransform(HumanBodyBones.LeftLowerArm);
@@ -61,6 +87,12 @@ namespace A305.Player
                     animator,
                     name => name == lowerName
                 );
+                if (refineSurfaceContact)
+                    contactArms[side] = new SkinnedVertexSamples(
+                        animator,
+                        name => handNames.Contains(name) || name == lowerName,
+                        .75f
+                    );
             }
         }
 
@@ -110,6 +142,54 @@ namespace A305.Player
                     upper[side].rotation =
                         Quaternion.FromToRotation(reach, target) * upper[side].rotation;
                 }
+                if (refineSurfaceContact)
+                    RefineContact(side);
+            }
+        }
+
+        private void RefineContact(int side)
+        {
+            float Clearance() =>
+                contactArms[side]
+                    .ClearanceFrom(
+                        contactHead.BoundsIn(space),
+                        contactTorso.BoundsIn(space),
+                        space
+                    );
+            float clearance = Clearance();
+            // 중심점 보정 뒤 소매 끝·팔꿈치가 남은 경우에만 실제 표면을 확인한다.
+            for (int iteration = 0; iteration < 12 && clearance < .93f; iteration++)
+            {
+                Transform bestJoint = null;
+                Quaternion bestRotation = default;
+                float best = clearance;
+                for (int jointIndex = 0; jointIndex < 2; jointIndex++)
+                {
+                    Transform joint = jointIndex == 0 ? upper[side] : lower[side];
+                    Quaternion original = joint.rotation;
+                    for (int axis = 0; axis < 3; axis++)
+                    for (int direction = -1; direction <= 1; direction += 2)
+                    {
+                        var worldAxis = space.TransformDirection(
+                            axis == 0 ? Vector3.right
+                            : axis == 1 ? Vector3.up
+                            : Vector3.forward
+                        );
+                        joint.rotation = Quaternion.AngleAxis(direction * 3f, worldAxis) * original;
+                        float candidate = Clearance();
+                        if (candidate > best + .0001f)
+                        {
+                            best = candidate;
+                            bestJoint = joint;
+                            bestRotation = joint.rotation;
+                        }
+                    }
+                    joint.rotation = original;
+                }
+                if (bestJoint == null)
+                    break;
+                bestJoint.rotation = bestRotation;
+                clearance = best;
             }
         }
 

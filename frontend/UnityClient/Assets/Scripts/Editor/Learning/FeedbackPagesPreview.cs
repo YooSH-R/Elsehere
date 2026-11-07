@@ -21,8 +21,60 @@ namespace A305.EditorTools.Learning
         {
             LearningBuilder.Build();
             UiThemeBuilder.StyleFeaturePrefabs();
+            BindTranscriptWordCard();
             AssetDatabase.SaveAssets();
             Unity.CodeEditor.CodeEditor.CurrentEditor.SyncAll();
+        }
+
+        /// <summary>현재 피드백 프리팹 구조를 보존하면서 대화 NPC 표시 그림만 연결한다.</summary>
+        public static void BindTranscriptAvatar()
+        {
+            const string path = "Assets/Prefabs/Learning/FeedbackScreen.prefab";
+            GameObject root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                FeedbackView view = root.GetComponent<FeedbackView>();
+                BuilderTools.SetReference(
+                    view,
+                    "transcriptAvatarSprite",
+                    AssetDatabase.LoadAssetAtPath<Sprite>(
+                        "Assets/Art/UI/Feedback/HistoryAvatarCoral.png"
+                    )
+                );
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        [MenuItem("Tools/A305/Learning/Bind Transcript Word Card")]
+        public static void BindTranscriptWordCard()
+        {
+            const string path = "Assets/Prefabs/Learning/FeedbackScreen.prefab";
+            GameObject root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                GameObject tooltip = AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/Prefabs/ObjectHover/WordTooltip.prefab"
+                );
+                BuilderTools.SetReference(
+                    root.GetComponent<FeedbackView>(),
+                    "transcriptWordCardTemplate",
+                    tooltip.transform.Find("Panel")
+                );
+                BuilderTools.SetReference(
+                    root.GetComponent<FeedbackView>(),
+                    "transcriptWordCardBackground",
+                    AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Theme/Jelly/Card.png")
+                );
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
         }
 
         public static void Capture()
@@ -133,7 +185,28 @@ namespace A305.EditorTools.Learning
                 )
             );
             view.SetSaveAvailable(true);
-            view.Show(feedback, new DialogueLine[0]);
+            view.Show(
+                feedback,
+                new[]
+                {
+                    DialogueLine.FromNpc(
+                        "Hi there! What can I get started for you?",
+                        "안녕하세요! 무엇을 드릴까요?"
+                    ),
+                    DialogueLine.FromUser("I want drink iced coffee"),
+                    DialogueLine.FromNpc(
+                        "Sure. Would you like anything else?",
+                        "네. 더 필요한 건 있으세요?"
+                    ),
+                    DialogueLine.FromUser("I'm good!"),
+                    DialogueLine.FromNpc("Great, that'll be four dollars.", "좋아요, 4달러입니다."),
+                    DialogueLine.FromUser("Can I pay by card?"),
+                    DialogueLine.FromNpc(
+                        "Of course. Have a good one!",
+                        "물론이죠. 좋은 하루 보내세요!"
+                    ),
+                }
+            );
             foreach (
                 UiThemeId theme in new[] { UiThemeId.Jelly, UiThemeId.Sticker, UiThemeId.Cloud }
             )
@@ -152,9 +225,19 @@ namespace A305.EditorTools.Learning
                         1000
                     );
                 }
+                view.SelectSection(FeedbackSection.Conversation);
+                view.SelectReview(1);
+                Render(
+                    camera,
+                    view,
+                    Path.Combine(output, $"feedback-{theme}-SelectedReview.png"),
+                    1600,
+                    1000
+                );
             }
             UiThemeSelection.Shared.Select(UiThemeId.Jelly);
             Render(camera, view, Path.Combine(output, "feedback-portrait.png"), 900, 1400);
+            view.SelectSection(FeedbackSection.Summary);
             view.SelectSection(FeedbackSection.Conversation);
             Render(
                 camera,
@@ -190,18 +273,19 @@ namespace A305.EditorTools.Learning
             Render(camera, view, Path.Combine(output, "feedback-long-first.png"), 1600, 1000);
             var body = (TMPro.TMP_Text)
                 new SerializedObject(view).FindProperty("bodyText").objectReferenceValue;
-            if (body.textInfo.pageCount < 2)
-                throw new System.InvalidOperationException("Long feedback did not paginate.");
-            view.NextPage();
-            if (body.pageToDisplay != 2)
-                throw new System.InvalidOperationException("Next page did not advance.");
-            Render(camera, view, Path.Combine(output, "feedback-long-second.png"), 1600, 1000);
-            view.PreviousPage();
-            if (body.pageToDisplay != 1)
-                throw new System.InvalidOperationException("Previous page did not return.");
+            var scroll = view.GetComponentInChildren<UnityEngine.UI.ScrollRect>();
+            if (scroll.content.rect.height <= scroll.viewport.rect.height)
+                throw new System.InvalidOperationException(
+                    "Long feedback did not expand for scrolling."
+                );
+            scroll.verticalNormalizedPosition = 0;
+            Render(camera, view, Path.Combine(output, "feedback-long-bottom.png"), 1600, 1000);
+            view.SelectSection(FeedbackSection.Conversation);
+            view.SelectReview(0);
+            Render(camera, view, Path.Combine(output, "feedback-long-review.png"), 1600, 1000);
             File.WriteAllText(
-                Path.Combine(output, "pagination-check.txt"),
-                $"Long feedback pages: {body.textInfo.pageCount}; next/previous: passed; external model calls: 0"
+                Path.Combine(output, "scroll-check.txt"),
+                $"Content height: {scroll.content.rect.height}; viewport: {scroll.viewport.rect.height}; external model calls: 0"
             );
         }
 
@@ -220,6 +304,17 @@ namespace A305.EditorTools.Learning
             camera.Render();
             Canvas.ForceUpdateCanvases();
             view.UpdateLayout();
+            Canvas.ForceUpdateCanvases();
+            foreach (TMPro.TMP_Text text in view.GetComponentsInChildren<TMPro.TMP_Text>())
+            {
+                if (text.name != "Utterance" && text.transform.parent.name != "DetailCard")
+                    continue;
+                text.ForceMeshUpdate();
+                if (text.isTextOverflowing)
+                    throw new System.InvalidOperationException(
+                        $"Feedback text exceeds its card: {text.name} ({width}x{height})."
+                    );
+            }
             camera.Render();
             RenderTexture.active = target;
             pixels.ReadPixels(new Rect(0, 0, width, height), 0, 0);

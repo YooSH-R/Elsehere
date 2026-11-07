@@ -24,6 +24,9 @@ namespace A305.Npc
         // 사물 둘레에서 이만큼 떨어져 선다(몸 반지름 0.3m와 여유).
         private const float StandOffMeters = .45f;
 
+        // 도착 오차와 모델 머리 폭까지 포함해 작업·응대 자리 사이를 띄운다.
+        private const float StandingSpaceMeters = 1.25f;
+
         // 선 자리 후보를 NavMesh 위로 옮길 때 찾는 거리
         private const float SpotSnapMeters = .6f;
         private const int SpotDirections = 12;
@@ -163,6 +166,8 @@ namespace A305.Npc
         /// </summary>
         public bool IsOffDuty => life != null && NpcDuty.IsOffDuty(npcCode, role, life.Activity);
 
+        private bool StaysAtReception => npcCode == "HOTEL_STAFF" && !IsOffDuty;
+
         private void Awake()
         {
             body = GetComponent<Passerby>();
@@ -255,7 +260,7 @@ namespace A305.Npc
 
         /// <summary>
         /// 먼저 다가와 제안해도 되는지. 교대 밖의 직원은 제안하지 않는다. 카운터를 맡은 직원은 그 카운터를 응대하는 한 명이고
-        /// 손님이 카운터 가까이 와서 카운터 뒤 자리로 돌아갔을 때만 제안한다. 그 밖에는 플레이어가 먼저 [말 걸기]로 대화할 수 있다.
+        /// 손님이 카운터 가까이 와서 카운터 뒤 자리로 돌아갔을 때만 제안한다. 그 밖에는 플레이어가 클릭·탭으로 대화를 확인할 수 있다.
         /// </summary>
         internal bool CanOfferTo(Vector3 playerPosition)
         {
@@ -266,6 +271,8 @@ namespace A305.Npc
 
             return !hasCounter || (ServesCounter(playerPosition) && IsAtPost());
         }
+
+        internal bool HasServiceCounter => hasCounter;
 
         /// <summary>다가오지 않는 동안(기다림·쉬기) <see cref="Passerby"/>가 매 프레임 부른다.</summary>
         internal void Live(Vector3 playerPosition)
@@ -285,11 +292,27 @@ namespace A305.Npc
         {
             double now = GameClock.Shared.Minutes;
             life.Advance(now);
+            if (StaysAtReception)
+            {
+                if (ServesCounter(playerPosition))
+                {
+                    ServeAtCounter(playerPosition);
+                }
+                else
+                {
+                    WorkAtReception(now);
+                }
+                return;
+            }
+
             if (ServesCounter(playerPosition))
             {
                 ServeAtCounter(playerPosition);
                 return;
             }
+
+            if (spotAction != null && IsReservedForAnotherServer(spot.StandPoint))
+                Interrupt();
 
             if (life.Doing == null)
             {
@@ -305,6 +328,21 @@ namespace A305.Npc
 
             spotAction = null;
             LookAround();
+        }
+
+        // Jake는 호텔 프런트 데스크를 맡으므로 근무 중에는 다른 사물을 찾아다니지 않는다.
+        private void WorkAtReception(double now)
+        {
+            if (life.Doing == null)
+            {
+                life.ChooseNext(key => key == "reception_desk" && IsPlaced(key));
+            }
+
+            Pose post = body.HomePose;
+            if (GoTo(post.position, post.rotation) == Progress.Arrived && !life.IsUsing)
+            {
+                life.BeginUsing(now);
+            }
         }
 
         /// <summary>말을 걸러 가거나 대화하는 동안 <see cref="Passerby"/>가 부른다. 하던 일을 그만두고 앉아 있었으면 일어난다.</summary>
@@ -447,7 +485,7 @@ namespace A305.Npc
                         new CounterPost(
                             other.npcCode,
                             !other.IsOffDuty,
-                            other.Doing != null,
+                            other.Doing != null && !other.StaysAtReception,
                             other.MetersFromCounter()
                         )
                     );
@@ -486,6 +524,11 @@ namespace A305.Npc
         // 누가 응대하든 손님 바로 앞에 선다. 거리가 같으면 NPC 키 순서다.
         private Pose ServicePose()
         {
+            if (StaysAtReception)
+            {
+                return body.HomePose;
+            }
+
             NpcRoutine register = this;
             foreach (NpcRoutine other in Living)
             {
@@ -577,6 +620,8 @@ namespace A305.Npc
                 return;
             }
 
+            // 같은 행동을 다음 일과에서도 고르면 Doing 참조가 같아도 이전 앉기는 끝내야 한다.
+            StandUp();
             Progress progress = GoTo(spot.StandPoint, spot.Facing);
             if (progress == Progress.Stuck)
             {
@@ -617,7 +662,11 @@ namespace A305.Npc
         {
             if (!hasRoute || routeDestination != destination)
             {
-                PlanRoute(destination);
+                if (!PlanRoute(destination))
+                {
+                    body.StandFacing(transform.rotation);
+                    return Progress.Stuck;
+                }
             }
 
             if (Flat(destination - transform.position).magnitude <= ArrivedMeters)
@@ -632,6 +681,14 @@ namespace A305.Npc
             )
             {
                 routeCorner++;
+            }
+
+            Vector3 direction = Flat(route[routeCorner] - transform.position);
+            if (body.IsWaitingForSignal(direction) || body.IsHandlingCrossing)
+            {
+                stuckSeconds = 0f;
+                body.WalkToward(direction, walkSpeedMetersPerSecond);
+                return Progress.Walking;
             }
 
             float remaining = RemainingRouteMeters();
@@ -650,14 +707,11 @@ namespace A305.Npc
                 }
             }
 
-            body.WalkToward(
-                Flat(route[routeCorner] - transform.position),
-                walkSpeedMetersPerSecond
-            );
+            body.WalkToward(direction, walkSpeedMetersPerSecond);
             return Progress.Walking;
         }
 
-        private void PlanRoute(Vector3 destination)
+        private bool PlanRoute(Vector3 destination)
         {
             route.Clear();
             routeCorner = 0;
@@ -665,29 +719,30 @@ namespace A305.Npc
             hasRoute = true;
             closestRemaining = float.PositiveInfinity;
             stuckSeconds = 0f;
-            if (
-                NavMesh.SamplePosition(
-                    transform.position,
-                    out NavMeshHit start,
-                    1f,
-                    NavMesh.AllAreas
-                )
-                && NavMesh.CalculatePath(start.position, destination, NavMesh.AllAreas, path)
-                && path.status == NavMeshPathStatus.PathComplete
-            )
+            if (!NavMesh.SamplePosition(transform.position, out _, 1f, NavMesh.AllAreas))
             {
-                Vector3[] corners = path.corners;
-                for (int i = 1; i < corners.Length; i++)
-                {
-                    route.Add(corners[i]);
-                }
+                // NavMesh가 없는 장면에서는 기존처럼 곧장 걷는다.
+                route.Add(destination);
+                return true;
             }
 
-            if (route.Count == 0)
+            int areas = NpcTownWalker.WalkingAreas;
+            if (
+                !NavMesh.SamplePosition(transform.position, out NavMeshHit start, 1f, areas)
+                || !NavMesh.CalculatePath(start.position, destination, areas, path)
+                || path.status != NavMeshPathStatus.PathComplete
+            )
             {
-                // NavMesh가 없는 장면이면 곧장 걷는다. 막히면 그 사물은 포기한다.
-                route.Add(destination);
+                hasRoute = false;
+                return false;
             }
+
+            Vector3[] corners = path.corners;
+            for (int i = 1; i < corners.Length; i++)
+                route.Add(corners[i]);
+            if (route.Count == 0)
+                route.Add(destination);
+            return true;
         }
 
         private float RemainingRouteMeters()
@@ -770,6 +825,45 @@ namespace A305.Npc
             return TryStandBeside(bounds, hasWalkArea, out found, out float _);
         }
 
+        private bool IsReservedForAnotherServer(Vector3 point)
+        {
+            return hasCounter
+                && CounterServers.TryGetValue(counter, out string server)
+                && !string.IsNullOrEmpty(server)
+                && server != npcCode
+                && Flat(ServicePose().position - point).sqrMagnitude
+                    < StandingSpaceMeters * StandingSpaceMeters;
+        }
+
+        // 도착한 뒤뿐 아니라 이동 중에도 목적지를 예약해 같은 위치를 고르지 않는다.
+        private bool StandingPlaceTaken(Vector3 point)
+        {
+            if (IsReservedForAnotherServer(point))
+                return true;
+            float spacingSquared = StandingSpaceMeters * StandingSpaceMeters;
+            foreach (NpcRoutine other in Living)
+            {
+                if (other == this || other.gameObject.scene != gameObject.scene)
+                    continue;
+                if (
+                    other.StaysAtReception
+                    && Flat(other.body.HomePose.position - point).sqrMagnitude < spacingSquared
+                )
+                    return true;
+                if (
+                    other.spotAction != null
+                    && Flat(other.spot.StandPoint - point).sqrMagnitude < spacingSquared
+                )
+                    return true;
+                if (
+                    other.lookingAround
+                    && Flat(other.lookAroundSpot.StandPoint - point).sqrMagnitude < spacingSquared
+                )
+                    return true;
+            }
+            return false;
+        }
+
         // 사물 둘레 여러 방향에서 콜라이더 바깥으로 StandOffMeters 떨어진 바닥 중 걸어서 가장 가까운 곳에 사물을 보고 선다.
         private bool TryStandBeside(
             Bounds bounds,
@@ -780,9 +874,13 @@ namespace A305.Npc
         {
             found = default;
             bestLength = float.PositiveInfinity;
-            for (int i = 0; i < SpotDirections; i++)
+            // 작은 사물 바로 옆이 차 있으면 조금 물러선 자리도 찾는다.
+            for (int i = 0; i < SpotDirections * 2; i++)
             {
-                float angle = i * Mathf.PI * 2f / SpotDirections;
+                if (i == SpotDirections && bestLength < float.PositiveInfinity)
+                    break;
+                float angle = (i % SpotDirections) * Mathf.PI * 2f / SpotDirections;
+                float standOff = StandOffMeters * (1 + i / SpotDirections);
                 var direction = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
                 float toEdge = Mathf.Min(
                     Mathf.Abs(direction.x) > .0001f
@@ -794,10 +892,11 @@ namespace A305.Npc
                 );
                 Vector3 point =
                     new Vector3(bounds.center.x, transform.position.y, bounds.center.z)
-                    + direction * (toEdge + StandOffMeters);
+                    + direction * (toEdge + standOff);
                 if (
                     !TryReach(point, hasWalkArea, out Vector3 standPoint, out float length)
                     || length >= bestLength
+                    || StandingPlaceTaken(standPoint)
                 )
                 {
                     continue;
@@ -843,14 +942,25 @@ namespace A305.Npc
             }
 
             if (
-                !NavMesh.SamplePosition(point, out NavMeshHit hit, SpotSnapMeters, NavMesh.AllAreas)
+                !NavMesh.SamplePosition(
+                    point,
+                    out NavMeshHit hit,
+                    SpotSnapMeters,
+                    NpcTownWalker.StandingAreas
+                )
+                || NpcTownWalker.IsRoadSurface(hit.position, .4f)
                 || !NavMesh.SamplePosition(
                     transform.position,
                     out NavMeshHit start,
                     1f,
-                    NavMesh.AllAreas
+                    NpcTownWalker.WalkingAreas
                 )
-                || !NavMesh.CalculatePath(start.position, hit.position, NavMesh.AllAreas, path)
+                || !NavMesh.CalculatePath(
+                    start.position,
+                    hit.position,
+                    NpcTownWalker.WalkingAreas,
+                    path
+                )
                 || path.status != NavMeshPathStatus.PathComplete
             )
             {

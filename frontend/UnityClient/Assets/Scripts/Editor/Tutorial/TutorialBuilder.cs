@@ -36,6 +36,7 @@ namespace A305.EditorTools.Tutorial
             "CafeScene",
             "HotelScene",
             "ShopScene",
+            "PoliceStationScene",
         };
 
         private const string SandboxFolder = "Assets/Scenes/Sandbox";
@@ -63,7 +64,7 @@ namespace A305.EditorTools.Tutorial
         private static readonly Color CaptionTextColor = new Color(0.23f, 0.18f, 0.16f);
 
         // 밝힌 곳 옆에 두는 설명 말풍선 너비. 대화창 왼쪽 도움 카드 정도라 옆자리에 들어간다.
-        private const float CaptionWidth = 440f;
+        private const float CaptionWidth = 414f;
 
         // 잠긴 문 안내 띠: 연한 주황 바탕에 진한 주황 글자
         private static readonly Color NoticeColor = new Color(0.99f, 0.88f, 0.8f);
@@ -82,6 +83,16 @@ namespace A305.EditorTools.Tutorial
             Debug.Log($"튜토리얼 안내 카드를 준비했습니다: {GuidePrefabPath}");
         }
 
+        /// <summary>승인한 코치 마크 디자인만 갱신한다. 안내 문구와 장소 씬은 유지한다.</summary>
+        [MenuItem("Tools/A305/Tutorial/Apply Coach Mark Design")]
+        public static void ApplyCoachMarkDesign()
+        {
+            BuilderTools.ThrowIfPlaying();
+            BuilderTools.UpdateOrCreatePrefab(CoachMarkPrefabPath, "CoachMark", SetUpCoachMark);
+            UiThemeBuilder.StyleTutorialCoachMark();
+            AssetDatabase.SaveAssets();
+        }
+
         /// <summary>안내 문구(없을 때만)와 안내 카드 프리팹의 기능 구성을 맞춘다. 디자인은 유지한다.</summary>
         public static void PrepareAssets()
         {
@@ -96,6 +107,54 @@ namespace A305.EditorTools.Tutorial
         /// 튜토리얼 단계가 바뀌어 안내 문구를 새로 맞춰야 할 때, 단계별 안내와 코치 마크 설명을 코드의 기본 문구로 되돌린다.
         /// 평소 Build는 고친 문구를 그대로 둔다.
         /// </summary>
+        [MenuItem("Tools/A305/Tutorial/Align Service Guide Texts")]
+        public static void AlignServiceGuideTexts()
+        {
+            BuilderTools.ThrowIfPlaying();
+            var guide = BuilderTools.LoadOrCreateAsset<TutorialGuideDefinition>(
+                GuideDefinitionPath
+            );
+            var defaults = ScriptableObject.CreateInstance<TutorialGuideDefinition>();
+            var fields = new SerializedObject(guide);
+            var defaultFields = new SerializedObject(defaults);
+            foreach (
+                string name in new[]
+                {
+                    "dialogueToolsCaption",
+                    "guidedLineMissCaption",
+                    "feedbackSectionsCaption",
+                    "vocabularyCaption",
+                    "relationshipCaption",
+                }
+            )
+                fields.CopyFromSerializedProperty(defaultFields.FindProperty(name));
+
+            SerializedProperty steps = fields.FindProperty("stepGuides");
+            SerializedProperty defaultSteps = defaultFields.FindProperty("stepGuides");
+            for (int index = 0; index < steps.arraySize; index++)
+            {
+                SerializedProperty step = steps.GetArrayElementAtIndex(index);
+                var kind = (TutorialStep)step.FindPropertyRelative("step").intValue;
+                if (kind != TutorialStep.SaveWord && kind != TutorialStep.OpenVocabulary)
+                    continue;
+                for (int candidate = 0; candidate < defaultSteps.arraySize; candidate++)
+                {
+                    SerializedProperty source = defaultSteps.GetArrayElementAtIndex(candidate);
+                    if (source.FindPropertyRelative("step").intValue != (int)kind)
+                        continue;
+                    foreach (string name in new[] { "task", "touchTask" })
+                        step.FindPropertyRelative(name).stringValue = source
+                            .FindPropertyRelative(name)
+                            .stringValue;
+                    break;
+                }
+            }
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            UnityEngine.Object.DestroyImmediate(defaults);
+            EditorUtility.SetDirty(guide);
+            AssetDatabase.SaveAssets();
+        }
+
         [MenuItem("Tools/A305/Tutorial/Reset Guide Texts")]
         public static void ResetGuideTexts()
         {
@@ -112,9 +171,9 @@ namespace A305.EditorTools.Tutorial
                     "stepGuides",
                     "talkOfferCaption",
                     "dialogueLinesCaption",
+                    "relationshipCaption",
                     "dialogueToolsCaption",
                     "guidedLineCaption",
-                    "suggestedSentenceCaption",
                     "suggestedWordsCaption",
                     "guidedLineMissCaption",
                     "voiceLightCaption",
@@ -562,8 +621,8 @@ namespace A305.EditorTools.Tutorial
             var captionLayout = BuilderTools.GetOrAddComponent<VerticalLayoutGroup>(
                 caption.gameObject
             );
-            captionLayout.padding = new RectOffset(26, 26, 20, 20);
-            captionLayout.spacing = 14f;
+            captionLayout.padding = new RectOffset(32, 32, 28, 28);
+            captionLayout.spacing = 20f;
             captionLayout.childAlignment = TextAnchor.UpperRight;
             captionLayout.childControlWidth = captionLayout.childControlHeight = true;
             captionLayout.childForceExpandWidth = captionLayout.childForceExpandHeight = false;
@@ -586,12 +645,12 @@ namespace A305.EditorTools.Tutorial
                 captionRect,
                 "Text",
                 UiBuilderTools.BoldFont(),
-                22f,
+                23f,
                 CaptionTextColor
             );
             captionText.alignment = TextAlignmentOptions.TopLeft;
             captionText.enableAutoSizing = false;
-            captionText.fontSize = 22f;
+            captionText.fontSize = 23f;
             captionText.textWrappingMode = TextWrappingModes.Normal;
             captionText.raycastTarget = false;
             BuilderTools.GetOrAddComponent<LayoutElement>(captionText.gameObject).flexibleWidth =
@@ -602,7 +661,7 @@ namespace A305.EditorTools.Tutorial
                 "NextButton",
                 "다음",
                 UiBuilderTools.BoldFont(),
-                150f
+                116f
             );
             var nextSize = nextButton.GetComponent<LayoutElement>();
             nextSize.preferredHeight = 58f;

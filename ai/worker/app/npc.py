@@ -16,7 +16,9 @@ from . import prompts as P
 from . import services
 from .config import Settings
 from .llm import LLM, ModelOutputError, ProviderError, Usage, within
+from .npc_emotion import EMOTION_PROMPT, EmotionStream, reaction_instruction, response_mood
 from .schemas import Line, ReplyRequest, SuggestRequest
+from .speech_emotion import attach_emotion
 from .tts import AudioStore, Kokoro, join_wavs
 
 log = logging.getLogger("ai_worker")
@@ -59,41 +61,70 @@ async def first_within(gen, budget_s: float, t0: float):
         yield piece
 
 
-def _quiet(task: asyncio.Task):
-    """상한을 넘겨 버린 합성 작업의 오류를 조용히 (저장본은 캐시에 남아 다음에 바로 씀)."""
-    if not task.cancelled():
-        task.exception()
-
-
 async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Settings, req: ReplyRequest):
     usage, out, chunks = Usage(), asyncio.Queue(), asyncio.Queue()
     t0 = time.perf_counter()
     st = {"full": "", "first": None, "error": None, "seq": 0, "words": None}
     wavs: dict[int, bytes | None] = {}  # 조각 번호 → 합성한 음성 (실패·늦음은 None). 턴 전체 음성을 만든다
     late: dict[int, asyncio.Task] = {}  # 상한을 넘겨 자막만 보낸 조각의 합성 (턴 전체 음성에는 끝나는 대로 넣는다)
+    synthesis_tasks: list[asyncio.Task] = []
+    last_audio_requested_at = t0
     use_tts = req.tts and tts is not None
+    closing = False
+    moods = {}
+    speech_phrases = []
 
-    def schedule(text: str):
+    def schedule(text: str, mood=None):
+        nonlocal last_audio_requested_at
+        mood = response_mood(req.reaction, mood)
         task = None
+        last_audio_requested_at = time.perf_counter()
         if use_tts:
-            task = asyncio.create_task(tts.asynth(text, req.npc.tts_voice, P.npc_speed(req.npc, req.level)))
-            task.add_done_callback(_quiet)
+            task = asyncio.create_task(tts.asynth(text, req.npc.tts_voice, P.NPC_SPEECH_SPEED))
+            synthesis_tasks.append(task)
         chunks.put_nowait((st["seq"], text, task, time.perf_counter()))
+        moods[st["seq"]] = mood
+        speech_phrases.append({"text": text, "emotion": mood.emotion if mood else None, "intensity": mood.intensity if mood else 0})
         st["seq"] += 1
 
     async def run_llm():
         sp = Splitter()
+        expressions = EmotionStream()
+        current_mood = None
         msgs = P.npc_messages(req.npc, req.memory, req.history, req.text, req.instruction, req.level, req.relationship, req.learner)
-        gen = llm.stream("npc", "npc", msgs, usage, max_tokens=P.LEVEL_MAX_TOKENS[req.level])
+        msgs[0] = {**msgs[0], "content": msgs[0]["content"] + "\n\n" + EMOTION_PROMPT}
+        if note := reaction_instruction(req.reaction):
+            msgs[0]["content"] += "\n" + note
+        # 최대 네 개 표정 표시의 토큰을 따로 확보한다. 대사 길이 규칙은 기존 수준별 프롬프트를 유지한다.
+        gen = llm.stream("npc", "npc", msgs, usage, max_tokens=P.LEVEL_MAX_TOKENS[req.level] + 64)
         stopped, finished = False, False
+
+        def consume(parts):
+            nonlocal current_mood
+            for text, mood in parts:
+                mood = response_mood(req.reaction, mood)
+                if mood != current_mood:
+                    for part in sp.flush():
+                        schedule(part, current_mood)
+                    current_mood = mood
+                if not text:
+                    continue
+                if st["first"] is None:
+                    st["first"] = round(time.perf_counter() - t0, 2)
+                st["full"] += text
+                if req.stream_chunks:
+                    out.put_nowait(("delta", {"text": text}))
+                for part in sp.feed(text):
+                    schedule(part, current_mood)
 
         def finish():
             nonlocal finished
-            if finished:
+            if finished or closing:
                 return
             finished = True
+            consume(expressions.flush())
             for c in sp.flush():  # 오류로 끊겨도 이미 보낸 글자는 읽어 준다
-                schedule(c)
+                schedule(c, current_mood)
             chunks.put_nowait(None)
             if req.suggest_words and not st["error"] and st["full"].strip():  # 추천 단어는 남은 음성 합성과 동시에
                 st["words"] = asyncio.create_task(suggest_words(st["full"].strip().strip('"')))
@@ -103,17 +134,12 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
                 async for piece in first_within(gen, s.reply_first_budget_s, t0):
                     if stopped:  # 끝까지 읽어야 마지막에 오는 사용량(토큰 수)을 받는다 (크레딧 차감)
                         continue
-                    if not st["full"]:
+                    if not st["full"] and not expressions.buffer:
                         piece = piece.lstrip().lstrip('"')
                     stopped = "\n" in piece  # 한 줄만 (모델이 줄을 바꿔 다른 사람 대사를 이어 쓰는 경우)
                     piece = piece.split("\n")[0]
                     if piece:
-                        if st["first"] is None:
-                            st["first"] = round(time.perf_counter() - t0, 2)
-                        st["full"] += piece
-                        await out.put(("delta", {"text": piece}))
-                        for c in sp.feed(piece):
-                            schedule(c)
+                        consume(expressions.feed(piece))
                     if stopped and st["full"].strip():
                         finish()  # 마지막 조각의 합성은 바로 시작
             except ProviderError as e:
@@ -122,7 +148,8 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
                 await gen.aclose()
             if not st["error"] and not st["full"].strip():
                 st["full"] = FALLBACK_REPLY
-                await out.put(("delta", {"text": FALLBACK_REPLY}))
+                if req.stream_chunks:
+                    await out.put(("delta", {"text": FALLBACK_REPLY}))
                 schedule(FALLBACK_REPLY)
         finally:
             finish()
@@ -150,9 +177,12 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
             if task:
                 # 합성은 한 번에 하나라 앞 조각이 끝난 때부터 잰다 (재생은 앞 조각이 끝나야 이어지므로)
                 left = s.tts_chunk_budget_s - (time.perf_counter() - max(ready, prev_done))
+                left = min(left, last_audio_requested_at + s.tts_full_budget_s - time.perf_counter())
                 try:
                     wav, dur, _ = await asyncio.wait_for(asyncio.shield(task), max(left, 0.01))
-                    ev.update(audio_id=store.put(wav), duration_s=round(dur, 2), tts=True)
+                    wav = with_emotion(wav, seq)
+                    if req.stream_chunks:
+                        ev.update(audio_id=store.put(wav), duration_s=round(dur, 2), tts=True)
                     wavs[seq] = wav
                 except TimeoutError:  # 늦은 조각은 바로 재생 없이 자막만 (tts: false)
                     log.info(json.dumps({"event": "tts_chunk_late", "seq": seq}))
@@ -160,15 +190,29 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
                 except Exception:  # 합성 실패도 그 조각만 자막으로 (대답 스트림은 이어 감)
                     log.warning(json.dumps({"event": "tts_chunk_failed", "seq": seq}), exc_info=True)
             prev_done = time.perf_counter()
-            await out.put(("audio", ev))
+            if req.stream_chunks:
+                await out.put(("audio", ev))
         await out.put(("_end", None))
+
+    def with_emotion(wav, seq):
+        try:
+            return attach_emotion(wav, moods.get(seq))
+        except (ValueError, wave.Error, EOFError):
+            log.warning("NPC emotion timing rejected; preserving the synthesized voice", exc_info=True)
+            return wav
 
     async def whole_turn_audio() -> dict:
         """다시 듣기용 턴 전체 음성: 모든 조각을 합성했을 때만 (하나라도 빠지면 Spring이 /v1/tts로 다시 만든다).
-        상한을 넘긴 조각은 합성이 끝나기를 기다려 넣는다. Spring은 done까지 기다려 이 음성만 쓰므로 버리면 음성만 잃는다."""
+        느린 음성 때문에 완성된 대사까지 무한정 기다리지 않는다. 음성이 빠진 대사는 기존 다시 듣기로 합성할 수 있다."""
+        if late:
+            remaining = max(0, last_audio_requested_at + s.tts_full_budget_s - time.perf_counter())
+            _, pending = await asyncio.wait(late.values(), timeout=remaining)
+            if pending:
+                log.info(json.dumps({"event": "tts_full_late", "pending_chunks": len(pending)}))
+                return {"audio_full_id": None, "audio_full_s": None}
         for seq, task in late.items():
             try:
-                wavs[seq] = (await task)[0]
+                wavs[seq] = with_emotion((await task)[0], seq)
             except Exception:  # 합성 실패는 그 조각만 빠진다
                 log.warning(json.dumps({"event": "tts_chunk_failed", "seq": seq}), exc_info=True)
         parts = [wavs.get(i) for i in range(st["seq"])]
@@ -193,17 +237,23 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
         if st["error"]:
             yield "error", {"code": st["error"].code, "message": st["error"].message, "usage": usage.items}
         else:
+            full_audio = await whole_turn_audio()
             yield (
                 "done",
                 {
                     "text": st["full"].strip().strip('"'),
+                    "speech_phrases": speech_phrases,
                     "first_token_s": st["first"],
                     "total_s": round(time.perf_counter() - t0, 2),
-                    **(await whole_turn_audio()),
+                    **full_audio,
                     "usage": usage.items,
                 },
             )
     finally:
-        for w in [*workers, st["words"]]:  # Spring이 중간에 끊으면 모델 호출도 멈춘다
-            if w:
-                w.cancel()
+        closing = True
+        tasks = [*workers, *synthesis_tasks]
+        if st["words"]:
+            tasks.append(st["words"])
+        for task in tasks:  # 연결 종료·음성 상한 뒤에 남은 작업이 다음 대화를 붙잡지 않게 한다.
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)

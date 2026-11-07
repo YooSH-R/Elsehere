@@ -22,6 +22,7 @@ import httpx
 
 from .pronunciation import to_phonemes
 from .speech_alignment import align_timing
+from .speech_emotion import join_emotions
 from .speech_text import for_speech
 from .speech_timing import attach_timing, join_timing, phoneme_sequence, read_timing
 
@@ -55,7 +56,7 @@ def join_wavs(wavs: list[bytes]) -> tuple[bytes, float]:
         out.setframerate(params.framerate)
         out.writeframes(b"".join(frames))
     n = sum(len(f) for f in frames) // (params.sampwidth * params.nchannels)
-    return join_timing(buf.getvalue(), wavs), n / params.framerate
+    return join_emotions(join_timing(buf.getvalue(), wavs), wavs), n / params.framerate
 
 
 def silent_wav(seconds: float, sr: int = 24000) -> bytes:
@@ -174,13 +175,15 @@ class Kokoro:
         k.gpu = gpu
         return k
 
-    def synth(self, text: str, voice: str, speed: float) -> tuple[bytes, float, bool]:
+    def synth(self, text: str, voice: str, speed: float, cancelled: threading.Event | None = None) -> tuple[bytes, float, bool]:
         """반환: (wav, 소리 길이 초, 저장본인지). 읽을 것이 없으면(한글만 있는 조각 등) 짧은 무음."""
         spoken = for_speech(text)
         if not spoken:
             return silent_wav(self.NOTHING_TO_READ_S), self.NOTHING_TO_READ_S, False
         key = (spoken, voice, speed)
         with self.lock:
+            if cancelled is not None and cancelled.is_set():
+                raise asyncio.CancelledError
             if key in self.cache:
                 self.cache.move_to_end(key)
                 wav, dur = self.cache[key]
@@ -189,6 +192,9 @@ class Kokoro:
         # Keep the GPU wait outside the CPU synthesis lock.
         made = self.gpu.try_synth(spoken_phonemes, voice, speed) if self.gpu else None
         with self.lock:
+            # 실행 중인 추론 자체는 멈출 수 없지만, 연결 종료 뒤 대체 합성은 시작하지 않는다.
+            if cancelled is not None and cancelled.is_set():
+                raise asyncio.CancelledError
             if made is None:
                 if getattr(self.engine, "has_timings", False):
                     audio, sr, phonemes = self.engine.create_timed(
@@ -199,9 +205,16 @@ class Kokoro:
                     phonemes = []
                 wav, dur = to_wav(audio, sr), len(audio) / sr
                 try:
-                    timing = read_timing(attach_timing(wav, phonemes))
+                    model_timed_wav = attach_timing(wav, phonemes)
+                    timing = read_timing(model_timed_wav)
                     if timing:
-                        wav = align_timing(wav, timing["phonemes"])
+                        try:
+                            wav = align_timing(wav, timing["phonemes"])
+                        except RuntimeError:
+                            # 정렬기 실행 실패는 같은 합성의 유효한 모델 시간을 버릴 이유가 아니다.
+                            # 발음 불일치(ValueError)는 기존처럼 시간표를 사용하지 않는다.
+                            wav = model_timed_wav
+                            log.warning("Acoustic alignment unavailable; preserving validated model phoneme timing", exc_info=True)
                 except (ValueError, RuntimeError):
                     log.warning("Kokoro phoneme timing was rejected; returning voice without lip sync", exc_info=True)
             else:
@@ -216,7 +229,12 @@ class Kokoro:
         return wav, dur, False
 
     async def asynth(self, text: str, voice: str, speed: float = 1.0) -> tuple[bytes, float, bool]:
-        return await asyncio.to_thread(self.synth, text, voice, speed)
+        cancelled = threading.Event()
+        try:
+            return await asyncio.to_thread(self.synth, text, voice, speed, cancelled)
+        except asyncio.CancelledError:
+            cancelled.set()
+            raise
 
 
 class AudioStore:
@@ -239,7 +257,11 @@ class AudioStore:
         return audio_id
 
     def get(self, audio_id: str) -> bytes | None:
+        self.expire()
         item = self.items.get(audio_id)
-        if not item or item[0] < time.time():
-            return None
-        return item[1]
+        return item[1] if item else None
+
+    def expire(self) -> None:
+        now = time.time()
+        while self.items and next(iter(self.items.values()))[0] <= now:
+            self.total -= len(self.items.popitem(last=False)[1][1])

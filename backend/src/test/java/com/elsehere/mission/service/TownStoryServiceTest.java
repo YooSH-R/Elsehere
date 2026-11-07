@@ -16,15 +16,101 @@ import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.repository.TownStoryRepository;
 import com.elsehere.world.entity.Npc;
 import com.elsehere.world.repository.NpcRepository;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class TownStoryServiceTest {
+  @Test
+  void flowerIntentAcceptsAGiftWithoutRequiringAFlowerVarietyOrHintWording() {
+    TownStory story = TownStory.start(8L);
+    for (int index = 0; index < TownStoryStage.FLOWERS.ordinal(); index++) {
+      TownStoryStage stage = story.current();
+      story.accept(story.getStage(), stage.npcCode(), stage.goalIds());
+      story.resume();
+    }
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+    var context = service.context(8L, "FLOWER_SHOP_STAFF").orElseThrow();
+    var flower =
+        context.state().intents().stream()
+            .filter(intent -> intent.id().equals("choose_flower"))
+            .findFirst()
+            .orElseThrow();
+    assertThat(flower.desc())
+        .contains("flower variety is optional", "recipient OR a reason", "paraphrases", "pronouns")
+        .doesNotContain("specific available flower");
+    assertThat(context.state().accumulateHistory()).isTrue();
+    assertThat(context.state().desc())
+        .contains("Never credit NPC lines, quoted examples, negatives or hypotheticals");
+    assertThat(TownStoryStage.goalHint("choose_flower")).doesNotContain("roses", "어떤 꽃");
+    story.accept(story.getStage(), "FLOWER_SHOP_STAFF", List.of("choose_flower"));
+    assertThat(story.current()).isEqualTo(TownStoryStage.FLOWERS);
+    assertThat(story.hasGoal(0)).isTrue();
+    assertThat(story.hasGoal(1)).isFalse();
+  }
+
   private final FirstDayMissionRepository firstDay = mock(FirstDayMissionRepository.class);
   private final TownStoryRepository stories = mock(TownStoryRepository.class);
   private final NpcRepository npcs = mock(NpcRepository.class);
-  private final TownStoryService service = new TownStoryService(stories, firstDay, npcs);
+  private final TownStoryService service =
+      new TownStoryService(
+          stories,
+          firstDay,
+          npcs,
+          mock(com.elsehere.conversation.repository.ConversationRepository.class));
+
+  @Test
+  void washObjectiveUsesTheSelfServiceMachineWithoutAPickupTime() {
+    TownStory story = TownStory.start(8L);
+    for (int index = 0; index < TownStoryStage.WASH.ordinal(); index++) {
+      story.resume();
+      story.accept(index, story.current().npcCode(), story.current().goalIds());
+    }
+    story.resume();
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+
+    var context = service.context(8L, "LAUNDROMAT_STAFF").orElseThrow();
+
+    assertThat(context.instruction()).containsIgnoringCase("self-service");
+    assertThat(context.instruction()).contains("Do not take the learner's clothes");
+    assertThat(context.state().intents().getFirst().desc())
+        .contains("Both, please.")
+        .contains("No pickup or return time is required");
+    assertThat(TownStoryStage.WASH.title()).doesNotContain("맡기");
+    assertThat(TownStoryStage.goalHint("request_wash")).contains("세탁기").doesNotContain("찾으러");
+  }
+
+  @Test
+  void laundryVisitsDescribeOperatingAndEmptyingMachinesInsteadOfAStaffService() {
+    for (TownStoryStage stage :
+        java.util.List.of(
+            TownStoryStage.LAUNDRY, TownStoryStage.WASH, TownStoryStage.THANK_LAUNDRY)) {
+      assertThat(stage.instruction()).as(stage.name()).containsIgnoringCase("self-service");
+    }
+    assertThat(TownStoryStage.goalDescription("collect_laundry"))
+        .contains("remove their own clothes")
+        .doesNotContain("asks to collect their laundry");
+    assertThat(TownStoryStage.goalDescription("thank_laundromat"))
+        .contains("help with the machines")
+        .doesNotContain("washing their clothes");
+    assertThat(TownStoryStage.goalHint("collect_laundry")).contains("꺼내");
+    assertThat(com.elsehere.mission.entity.Quest.MORNING_AND_HAIRCUT.description())
+        .doesNotContain("맡긴");
+  }
+
+  @Test
+  void everyStoryObjectiveCanUseFactsAcrossLearnerTurns() {
+    TownStory story = TownStory.start(8L);
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+    for (TownStoryStage stage : TownStoryStage.values()) {
+      assertThat(service.context(8L, stage.npcCode()).orElseThrow().state().accumulateHistory())
+          .as(stage.name())
+          .isTrue();
+      story.accept(story.getStage(), stage.npcCode(), stage.goalIds());
+      story.resume();
+    }
+  }
 
   @BeforeEach
   void nameTheDinerStaff() {
@@ -67,6 +153,21 @@ class TownStoryServiceTest {
     assertThatThrownBy(() -> service.start(8L)).isInstanceOf(BusinessException.class);
   }
 
+  // 마을 퀘스트 목표마다 무엇을 말해야 하는지 카드에 보인다(예: 아침은 음식과 음료를 함께).
+  @Test
+  void everyTownGoalTellsTheLearnerWhatToSay() {
+    when(stories.findById(8L)).thenReturn(Optional.of(TownStory.start(8L)));
+
+    for (TownStoryStage stage : TownStoryStage.values()) {
+      for (String id : stage.goalIds()) {
+        assertThat(TownStoryStage.goalHint(id)).as(id).isNotBlank();
+      }
+    }
+    var order = service.status(8L).steps().getFirst().goals().getFirst();
+    assertThat(order.id()).isEqualTo("order_breakfast");
+    assertThat(order.hint()).contains("음식과 음료");
+  }
+
   @Test
   void restartingAfterCompletionOfFirstDayKeepsExistingTownProgress() {
     FirstDayMission completed = mock(FirstDayMission.class);
@@ -103,7 +204,9 @@ class TownStoryServiceTest {
         0,
         "DINER_STAFF",
         new JudgeResult.Intent(null, java.util.List.of("order_breakfast", "explain_spill"), null));
-    assertThat(story.getStage()).isEqualTo(1);
+    assertThat(story.getStage()).isZero();
+    assertThat(story.hasGoal(0)).isTrue();
+    assertThat(story.hasGoal(1)).isFalse();
   }
 
   @Test
@@ -114,8 +217,8 @@ class TownStoryServiceTest {
     FirstDayMissionService.Context bank = service.context(8L, "BANK_STAFF").orElseThrow();
     assertThat(diner.state().intents())
         .extracting(intent -> intent.id())
-        .containsExactly("order_breakfast", "explain_spill");
-    assertThat(diner.state().intents().get(1).desc()).containsIgnoringCase("clothes");
+        .containsExactly("order_breakfast");
+    assertThat(diner.state().intents().getFirst().desc()).containsIgnoringCase("breakfast");
     assertThat(diner.state().desc()).containsIgnoringCase("spill");
     assertThat(diner.instruction()).containsIgnoringCase("spill");
     assertThat(bank.state()).isNull();
@@ -216,9 +319,9 @@ class TownStoryServiceTest {
     when(stories.findById(8L)).thenReturn(Optional.of(story));
 
     var response = service.status(8L);
-    assertThat(response.situation()).contains("음료");
+    assertThat(response.situation()).contains("빈자리");
     assertThat(response.steps().getFirst().goals().getFirst().completed()).isTrue();
-    assertThat(response.steps().getFirst().goals().get(1).completed()).isFalse();
+    assertThat(response.steps().getFirst().goals()).hasSize(1);
   }
 
   @Test

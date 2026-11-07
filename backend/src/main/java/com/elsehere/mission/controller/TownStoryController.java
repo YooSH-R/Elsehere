@@ -26,4 +26,9 @@ public class TownStoryController {
     service.start(user.userId());
     return service.status(user.userId());
   }
+
+  @PostMapping("/diner-meal")
+  public FirstDayMissionResponse receiveDinerMeal(@AuthenticationPrincipal LoginUser user) {
+    return service.receiveDinerMeal(user.userId());
+  }
 }

@@ -68,11 +68,11 @@ class WorldSeedLoaderTest {
   @Test
   @DisplayName("애플리케이션이 시작되면 따로 부르지 않아도 시드가 들어가 있다")
   void applicationStart_loadsSeed() {
-    assertThat(sceneRepository.count()).isEqualTo(5);
+    assertThat(sceneRepository.count()).isEqualTo(6);
   }
 
   @Test
-  @DisplayName("드럭스토어 포함 장소 5개를 코드·이름·Unity 씬 이름과 함께 넣고, 모두 들어갈 수 있게 연다")
+  @DisplayName("드럭스토어·경찰서 포함 장소 6개를 코드·이름·Unity 씬 이름과 함께 넣고, 모두 들어갈 수 있게 연다")
   void load_insertsScenes() {
     worldSeedLoader.load();
 
@@ -83,7 +83,8 @@ class WorldSeedLoaderTest {
             tuple("TOWN", "마을", "TownScene", true),
             tuple("CAFE", "모퉁이 카페", "CafeScene", true),
             tuple("HOTEL", "호텔", "HotelScene", true),
-            tuple("SHOP", "드럭스토어", "ShopScene", true));
+            tuple("SHOP", "드럭스토어", "ShopScene", true),
+            tuple("POLICE_STATION", "경찰서", "PoliceStationScene", true));
   }
 
   @Test
@@ -227,20 +228,20 @@ class WorldSeedLoaderTest {
             tuple("HOTEL", "HOTEL_NIGHT_MANAGER", "Clara", NpcType.STAFF, "호텔 야간 매니저", false, null),
             tuple("SHOP", "SHOP_PHARMACIST", "Hannah", NpcType.STAFF, "약사", false, null),
             tuple("SHOP", "SHOP_NIGHT_CLERK", "Samuel", NpcType.STAFF, "드럭스토어 직원", false, null),
-            tuple("TOWN", "TOWN_RETIREE", "Ruby", NpcType.PASSERBY, "행인", false, null),
-            tuple("TOWN", "TOWN_STUDENT", "Ethan", NpcType.PASSERBY, "행인", false, null),
-            tuple("TOWN", "TOWN_EVENING_WALKER", "Maya", NpcType.PASSERBY, "행인", false, null),
+            tuple("TOWN", "TOWN_RETIREE", "Ruby", NpcType.STAFF, "우체국 직원", false, null),
+            tuple("TOWN", "TOWN_STUDENT", "Ethan", NpcType.STAFF, "오락실 직원", false, null),
+            tuple("TOWN", "TOWN_EVENING_WALKER", "Maya", NpcType.STAFF, "은행원", false, null),
             tuple("CAFE", "CAFE_SERVER", "Leo", NpcType.STAFF, "카페 직원", false, null),
-            tuple("HOTEL", "HOTEL_CONCIERGE", "Walter", NpcType.STAFF, "컨시어지", false, null),
+            tuple("TOWN", "HOTEL_CONCIERGE", "Walter", NpcType.STAFF, "꽃집 직원", false, null),
             tuple("HOTEL", "HOTEL_BELLHOP", "Diego", NpcType.STAFF, "벨보이", false, null),
-            tuple("TOWN", "TOWN_SHOPPER", "Helen", NpcType.PASSERBY, "행인", false, null),
-            tuple("TOWN", "TOWN_HANDYMAN", "Frank", NpcType.PASSERBY, "행인", false, null),
+            tuple("TOWN", "TOWN_SHOPPER", "Helen", NpcType.STAFF, "은행원", false, null),
+            tuple("TOWN", "TOWN_HANDYMAN", "Frank", NpcType.STAFF, "생활용품점 직원", false, null),
             tuple("TOWN", "POLICE_SERGEANT", "Victor", NpcType.STAFF, "경사", false, null),
-            tuple("TOWN", "POLICE_PATROL_OFFICER", "Kevin", NpcType.STAFF, "경찰관", false, null),
-            tuple("TOWN", "POLICE_ROOKIE", "Tyler", NpcType.STAFF, "신입 경찰관", false, null),
-            tuple("TOWN", "FIRE_CAPTAIN", "Ray", NpcType.PASSERBY, "소방대장", false, null),
-            tuple("TOWN", "FIRE_FIGHTER", "Rachel", NpcType.PASSERBY, "소방관", false, null),
-            tuple("TOWN", "FIRE_ROOKIE", "Andre", NpcType.PASSERBY, "신입 소방관", false, null),
+            tuple("TOWN", "POLICE_PATROL_OFFICER", "Kevin", NpcType.STAFF, "베이커리 직원", false, null),
+            tuple("TOWN", "POLICE_ROOKIE", "Taylor", NpcType.STAFF, "신입 경찰관", false, null),
+            tuple("TOWN", "FIRE_CAPTAIN", "Ray", NpcType.STAFF, "식당 직원", false, null),
+            tuple("TOWN", "FIRE_FIGHTER", "Rachel", NpcType.STAFF, "빨래방 직원", false, null),
+            tuple("TOWN", "FIRE_ROOKIE", "Andre", NpcType.STAFF, "이발소 직원", false, null),
             tuple("TOWN", "TOWN_GRANDFATHER", "Arthur", NpcType.PASSERBY, "행인", false, null),
             tuple("TOWN", "TOWN_GRANDMOTHER", "Margaret", NpcType.PASSERBY, "행인", false, null));
   }
@@ -267,7 +268,7 @@ class WorldSeedLoaderTest {
     worldSeedLoader.load();
     worldSeedLoader.load();
 
-    assertThat(sceneRepository.count()).isEqualTo(5);
+    assertThat(sceneRepository.count()).isEqualTo(6);
     assertThat(vocabularyRepository.count()).isEqualTo(catalog().words().size());
     assertThat(sceneWordRepository.count()).isEqualTo(expectedSceneWords().size());
     assertThat(npcRepository.count()).isEqualTo(36);

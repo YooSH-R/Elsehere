@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.conversation.repository.ConversationRepository;
+import com.elsehere.mission.dto.FirstDayMissionResponse;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
@@ -25,6 +26,65 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 class FirstDayMissionServiceTest {
+  @ParameterizedTest
+  @EnumSource(FirstDayStage.class)
+  void activeStageShowsTheAssignedNpcName(FirstDayStage stage) {
+    FirstDayMission mission = missionAt(stage);
+    mission.visit(stage.scene());
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+
+    assertThat(service.status(8L).direction()).contains(NAMES.get(stage.npc()));
+  }
+
+  @ParameterizedTest
+  @EnumSource(FirstDayStage.class)
+  void awayFromTheDestinationTheCardNamesTheAssignedNpc(FirstDayStage stage) {
+    FirstDayMission mission = missionAt(stage);
+    mission.visit("HOME");
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+
+    assertThat(service.status(8L).situation()).contains(NAMES.get(stage.npc()));
+  }
+
+  @Test
+  void rainyStreetUsesTheCurrentNpcNameInsteadOfTheOldFixedName() {
+    FirstDayMission mission = missionAt(FirstDayStage.RAINY_STREET);
+    mission.visit("TOWN");
+    Npc npc = mock(Npc.class);
+    when(npc.getName()).thenReturn("Robin");
+    when(npcs.findByCode("TOWN_PASSERBY")).thenReturn(Optional.of(npc));
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+
+    assertThat(service.status(8L).direction()).contains("Robin").doesNotContain("Ben");
+  }
+
+  @Test
+  void missingNpcKeepsTheOriginalDirection() {
+    FirstDayMission mission = missionAt(FirstDayStage.EARLY_ARRIVAL);
+    mission.visit("HOTEL");
+    when(npcs.findByCode("HOTEL_STAFF")).thenReturn(Optional.empty());
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+
+    assertThat(service.status(8L).direction()).isEqualTo(FirstDayStage.EARLY_ARRIVAL.direction());
+  }
+
+  @Test
+  void missionContextLeavesRoomForOrdinarySmallTalkWithoutSpoilingTasks() {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.MISSING_BAG)));
+    String instruction = service.context(8L, "HOTEL_STAFF").orElseThrow().instruction();
+    assertThat(instruction).contains("ordinary small talk", "personality");
+    assertThat(instruction).doesNotContain("Is there anything else I can help you with?");
+  }
+
+  @Test
+  void missingBagJudgementAllowsFactsFromEarlierLearnerTurns() {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.MISSING_BAG)));
+    var state = service.context(8L, "HOTEL_STAFF").orElseThrow().state();
+    var json = tools.jackson.databind.json.JsonMapper.builder().build().valueToTree(state);
+
+    assertThat(json.path("accumulate_history").asBoolean()).isTrue();
+  }
+
   private static final Map<String, String> NAMES =
       Map.of(
           "HOTEL_STAFF", "Jake", "CAFE_STAFF", "Mia", "TOWN_PASSERBY", "Ben", "SHOP_STAFF", "Alex");
@@ -337,6 +397,31 @@ class FirstDayMissionServiceTest {
     FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
 
     assertThat(context.instruction()).doesNotContain("under the name");
+  }
+
+  // 목표마다 무엇을 말해야 하는지 카드에 보인다. 예약자 이름은 계정 닉네임이고, 가방 모양·내용물은 찾을 가방 그대로다.
+  @Test
+  void everyGoalTellsTheLearnerWhatToSay() {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.EARLY_ARRIVAL)));
+    signedIn(AuthProvider.GOOGLE, "MinjiKim");
+
+    FirstDayMissionResponse status = service.status(8L);
+
+    assertThat(status.steps())
+        .flatExtracting(FirstDayMissionResponse.Step::goals)
+        .allSatisfy(goal -> assertThat(goal.hint()).as(goal.id()).isNotBlank());
+    assertThat(goal(status, "confirm_reservation").hint()).contains("MinjiKim");
+    assertThat(goal(status, "show_reservation").hint()).contains("MinjiKim");
+    assertThat(goal(status, "describe_bag").hint()).contains("파란", "빨간 열쇠고리");
+    assertThat(goal(status, "describe_contents").hint()).contains("여권", "책");
+  }
+
+  private static FirstDayMissionResponse.Goal goal(FirstDayMissionResponse status, String id) {
+    return status.steps().stream()
+        .flatMap(step -> step.goals().stream())
+        .filter(goal -> goal.id().equals(id))
+        .findFirst()
+        .orElseThrow();
   }
 
   private void signedIn(AuthProvider provider, String nickname) {

@@ -76,6 +76,7 @@ class FirstDayTurnTest {
     ConversationLookup lookup = mock(ConversationLookup.class);
     DialogueContexts contexts = mock(DialogueContexts.class);
     when(lookup.ownedConversation(8L, 10L)).thenReturn(conversation);
+    when(lookup.ownedConversationForUpdate(8L, 10L)).thenReturn(conversation);
     WorkerNpc npc = new WorkerNpc("HOTEL_STAFF", "Emma", "clerk", "", "hotel", "alloy", 1);
     when(contexts.npcOf(conversation))
         .thenReturn(
@@ -117,11 +118,14 @@ class FirstDayTurnTest {
             mock(NpcAudioReceiver.class),
             worker,
             mock(MemoryService.class),
+            mock(com.elsehere.review.service.ReviewCardService.class),
+            mock(ReviewDialogue.class),
             mock(NpcAffinityService.class),
             transactions,
             new com.elsehere.mission.service.MissionDialogueService(
                 firstDay, mock(com.elsehere.mission.service.TownStoryService.class)),
-            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
+            new DialogueRequestLocks());
   }
 
   @Test
@@ -140,7 +144,8 @@ class FirstDayTurnTest {
   @Test
   void rudeTurnDoesNotApplyRecognizedGoals() {
     guards(true);
-    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), any()))
+    when(worker.replyReacting(
+            any(), any(), any(), any(), any(), any(), anyInt(), any(), any(), any()))
         .thenReturn(SAVED_REPLY);
 
     service.send(8L, 10L, new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null));
@@ -213,7 +218,8 @@ class FirstDayTurnTest {
   @DisplayName("무례로 센 턴은 목표를 모두 말해도 마무리하지 않는다")
   void rudeTurnDoesNotWrapUp() {
     guards(true);
-    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), any()))
+    when(worker.replyReacting(
+            any(), any(), any(), any(), any(), any(), anyInt(), any(), any(), any()))
         .thenReturn(SAVED_REPLY);
 
     service.send(8L, 10L, new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null));

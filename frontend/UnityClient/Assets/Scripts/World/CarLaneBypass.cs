@@ -10,6 +10,40 @@ namespace A305.World
     {
         private const float SingleLaneNorthZ = -12f;
 
+        /// <summary>앞으로 실제 주행할 경로에 장애물이 있는지.</summary>
+        public static bool ShouldYield(
+            CarLoopRoute route,
+            float distance,
+            float offset,
+            Vector3 obstacle
+        )
+        {
+            Vector3 previous = PoseAt(route, distance, offset).Position;
+            // 굽은 곳의 순간 접선을 길게 늘리면 도로 밖의 사람을 앞에 있다고 오인한다.
+            // 실제 앞으로 지나갈 짧은 선분들을 검사하고, 기존 양보 거리와 차 폭은 유지한다.
+            for (float ahead = .5f; ahead <= CarLoopRoute.YieldAheadMeters; ahead += .5f)
+            {
+                Vector3 next = PoseAt(route, distance + ahead, offset).Position;
+                Vector3 segment = next - previous;
+                segment.y = 0;
+                Vector3 relative = obstacle - previous;
+                relative.y = 0;
+                if (segment.sqrMagnitude > .000001f)
+                {
+                    float along = Vector3.Dot(relative, segment) / segment.sqrMagnitude;
+                    if (
+                        along > 0
+                        && along <= 1
+                        && (relative - segment * along).magnitude
+                            < CarLoopRoute.YieldHalfWidthMeters
+                    )
+                        return true;
+                }
+                previous = next;
+            }
+            return false;
+        }
+
         public static CarLoopRoute.Pose PoseAt(CarLoopRoute route, float distance, float offset)
         {
             if (offset <= 0)

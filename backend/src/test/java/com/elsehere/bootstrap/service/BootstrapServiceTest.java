@@ -22,7 +22,6 @@ import com.elsehere.user.entity.OnboardingStep;
 import com.elsehere.user.entity.UiTheme;
 import com.elsehere.user.service.OptionalConsentService;
 import jakarta.persistence.EntityManager;
-import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +33,7 @@ import org.springframework.context.annotation.Import;
 @DataJpaTest(
     properties = {
       "spring.jpa.hibernate.ddl-auto=create-drop",
-      "elsehere.guest.conversation-limit=1"
+      "elsehere.conversation.daily-limit=1"
     })
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import({
@@ -114,8 +113,7 @@ class BootstrapServiceTest {
   @DisplayName("AI 이용 상태를 AI-01과 같은 형식으로 함께 돌려준다")
   void signedInUser_returnsAiStatus() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1");
-    entityManager.persist(
-        Conversation.start(userId, 1L, InitiatedBy.NPC, 1, Instant.parse("2026-10-28T01:00:00Z")));
+    entityManager.persist(Conversation.start(userId, 1L, InitiatedBy.NPC, 1, TestClockConfig.NOW));
 
     BootstrapResponse response = bootstrapService.findSignedIn(userId).orElseThrow();
 

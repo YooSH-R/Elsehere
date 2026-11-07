@@ -18,6 +18,27 @@ namespace A305.EditorTools.Dialogue
         private const string VoiceFolder = "Assets/Audio/Dialogue/TutorialBen";
         private const string TutorialNpcCode = "TUTORIAL_PASSERBY";
 
+        [MenuItem("Tools/A305/Dialogue/Apply Tutorial Ben Greeting")]
+        public static void ApplyGreeting()
+        {
+            var scripts = BuilderTools.LoadRequiredAsset<MockDialogueScriptSource>(
+                ScriptsPath,
+                DialogueBuilder.MenuPath
+            );
+            var defaults = ScriptableObject.CreateInstance<MockDialogueScriptSource>();
+            var target = new SerializedObject(scripts);
+            var source = new SerializedObject(defaults);
+            SerializedProperty entry = FindEntry(target.FindProperty("entries"));
+            SerializedProperty initial = FindEntry(source.FindProperty("entries"));
+            if (entry.propertyPath != initial.propertyPath)
+                throw new InvalidOperationException("튜토리얼 대본의 배열 위치가 변경됐습니다.");
+            target.CopyFromSerializedProperty(initial);
+            target.ApplyModifiedPropertiesWithoutUndo();
+            UnityEngine.Object.DestroyImmediate(defaults);
+            Apply();
+            A305.EditorTools.Tutorial.TutorialBuilder.AlignServiceGuideTexts();
+        }
+
         [MenuItem(MenuPath)]
         public static void Apply()
         {

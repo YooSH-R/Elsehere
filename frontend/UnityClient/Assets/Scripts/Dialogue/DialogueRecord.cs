@@ -11,7 +11,10 @@ namespace A305.Dialogue
             IReadOnlyList<DialogueLine> lines,
             IReadOnlyList<string> userUtterances,
             bool isGuidedCompleted,
-            ServerFeedback serverFeedback = null
+            ServerFeedback serverFeedback = null,
+            long? reviewCardId = null,
+            ReviewPracticeResult reviewResult = null,
+            bool isFeedbackDeferred = false
         )
         {
             NpcCode = npcCode;
@@ -20,6 +23,9 @@ namespace A305.Dialogue
             UserUtterances = userUtterances;
             IsGuidedCompleted = isGuidedCompleted;
             ServerFeedback = serverFeedback;
+            ReviewCardId = reviewCardId;
+            ReviewResult = reviewResult;
+            IsFeedbackDeferred = isFeedbackDeferred;
         }
 
         /// <summary>ERD npcs.code</summary>
@@ -36,5 +42,10 @@ namespace A305.Dialogue
 
         /// <summary>서버 AI와 나눈 대화의 종료 피드백. 대본 대화이거나 서버 대화를 시작하지 못했으면 null이다.</summary>
         public ServerFeedback ServerFeedback { get; }
+        public long? ReviewCardId { get; }
+        public ReviewPracticeResult ReviewResult { get; }
+
+        /// <summary>사용자가 피드백 생성을 기다리지 않고 [나중에 확인하기]로 넘긴 대화인지.</summary>
+        public bool IsFeedbackDeferred { get; }
     }
 }

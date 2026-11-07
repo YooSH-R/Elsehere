@@ -1,5 +1,6 @@
 package com.elsehere.dialogue.dto;
 
+import com.elsehere.conversation.dto.GlossaryResponse;
 import com.elsehere.conversation.entity.Speaker;
 import java.util.List;
 
@@ -18,4 +19,5 @@ public record TurnDetailResponse(
     List<String> suggestWords,
     String meaningKo,
     String hintText,
-    SpeechResponse speech) {}
+    SpeechResponse speech,
+    List<GlossaryResponse> glossary) {}

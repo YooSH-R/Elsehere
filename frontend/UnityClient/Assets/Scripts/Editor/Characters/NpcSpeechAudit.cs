@@ -22,6 +22,7 @@ namespace A305.EditorTools.Characters
             public string code;
             public bool supported;
             public string[] missingChannels;
+            public string[] missingEmotionChannels;
         }
 
         [Serializable]
@@ -43,6 +44,9 @@ namespace A305.EditorTools.Characters
                     code = npc.Code,
                     supported = missing.Length == 0,
                     missingChannels = missing,
+                    missingEmotionChannels = CharacterFaceController.MissingEmotionChannels(
+                        npc.transform
+                    ),
                 };
             }
         }
@@ -90,7 +94,10 @@ namespace A305.EditorTools.Characters
             }
             finally
             {
-                EditorSceneManager.RestoreSceneManagerSetup(setup);
+                if (setup.Any(s => s.isLoaded && s.isActive))
+                    EditorSceneManager.RestoreSceneManagerSetup(setup);
+                else
+                    EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             }
         }
     }

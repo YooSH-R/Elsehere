@@ -1,0 +1,96 @@
+using A305.World;
+using UnityEngine;
+using UnityEngine.AI;
+
+namespace A305.Npc
+{
+    /// <summary>횡단 중 신호가 바뀌면 초반에만 되돌아가고, 선택한 인도까지 방향을 유지한다.</summary>
+    internal sealed class NpcCrosswalk
+    {
+        private const float ReturnProgress = .2f;
+        private const float SidewalkMargin = .4f;
+        private Vector3 entrance;
+        private Vector3 exit;
+        private Vector3 forward;
+        private bool returning;
+        private bool committed;
+        private bool crossesMainRoad;
+
+        internal bool IsActive { get; private set; }
+
+        internal void Clear()
+        {
+            IsActive = false;
+            returning = false;
+            committed = false;
+        }
+
+        internal Vector3 Direction(TrafficLights lights, Vector3 position, Vector3 requested)
+        {
+            if (!IsActive)
+                Begin(lights, position, requested);
+            if (!IsActive)
+                return requested;
+
+            float length = Vector3.Dot(exit - entrance, forward);
+            float progress = Vector3.Dot(position - entrance, forward) / length;
+            if (progress > ReturnProgress)
+                committed = true;
+            if (!committed && lights != null && !lights.CanCross(crossesMainRoad, 0f))
+                returning = true;
+
+            Vector3 target = returning
+                ? entrance - forward * SidewalkMargin
+                : exit + forward * SidewalkMargin;
+            Vector3 direction = Vector3.ProjectOnPlane(target - position, Vector3.up);
+            if (direction.magnitude <= .06f)
+            {
+                Clear();
+                return Vector3.zero;
+            }
+            return direction;
+        }
+
+        private void Begin(TrafficLights lights, Vector3 position, Vector3 direction)
+        {
+            if (
+                !NpcTownWalker.IsRoadSurface(position, .1f)
+                || !NpcTownWalker.HasNearbySignal(lights, position)
+                || direction.sqrMagnitude < .0001f
+            )
+                return;
+            int area = NavMesh.GetAreaFromName("Crosswalk");
+            if (
+                area < 0
+                || !NavMesh.SamplePosition(position, out NavMeshHit crossing, .3f, 1 << area)
+            )
+                return;
+            crossesMainRoad = Mathf.Abs(direction.x) >= Mathf.Abs(direction.z);
+            forward = crossesMainRoad
+                ? Vector3.right * Mathf.Sign(direction.x)
+                : Vector3.forward * Mathf.Sign(direction.z);
+            int mask = 1 << area;
+            if (
+                !NavMesh.Raycast(
+                    crossing.position,
+                    crossing.position - forward * 100f,
+                    out NavMeshHit start,
+                    mask
+                )
+                || !NavMesh.Raycast(
+                    crossing.position,
+                    crossing.position + forward * 100f,
+                    out NavMeshHit end,
+                    mask
+                )
+                || Vector3.Dot(end.position - start.position, forward) < .2f
+            )
+                return;
+            entrance = start.position;
+            exit = end.position;
+            returning = false;
+            committed = false;
+            IsActive = true;
+        }
+    }
+}

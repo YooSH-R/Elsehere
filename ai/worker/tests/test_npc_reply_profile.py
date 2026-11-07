@@ -85,6 +85,18 @@ def test_without_a_profile_the_reply_keeps_the_current_prompt(client, provider):
     assert system.startswith("You are Mia, the barista at the corner cafe.") and "## Character" not in system
 
 
+@pytest.mark.parametrize("with_profile", [False, True])
+def test_current_game_time_takes_precedence_over_rubys_morning_routine(client, provider, with_profile):
+    npc = {**NPC, "name": "Ruby", "scene": "Town street. Current game time: day 2, 23:00 (24-hour clock)."}
+    if with_profile:
+        npc["profile"] = profile_of("TOWN_RETIREE")
+    system = system_of(reply_request(client, provider, npc))
+    assert "Current game time: day 2, 23:00" in system
+    assert "Use the current game time" in system
+    assert "takes precedence over routines, profile greetings and earlier dialogue" in system
+    assert "Never infer the current time from a character's usual morning or evening activity" in system
+
+
 @pytest.mark.parametrize("npc_id", SERVICE_NPCS)
 def test_the_profile_from_the_backend_settings_becomes_the_character(client, provider, npc_id):
     profile = profile_of(npc_id)
@@ -113,7 +125,7 @@ def test_with_a_profile_the_place_facts_memory_level_and_instruction_still_reach
     assert "Maple Town" in system and "The counter of the corner cafe." in system  # 장소
     assert "Menu: latte $5." in system  # 백엔드가 보낸 사실
     assert "Their name: Minsu" in system and "Last time they ordered a latte" in system  # 기억
-    assert "each under 12 words" in system and body["max_tokens"] == 90  # 난이도 1 (출력 상한은 그대로)
+    assert "each under 12 words" in system and body["max_tokens"] == 154  # 난이도 1 대사 규칙 + 표정 표시 64토큰
     assert "Ask what size they want." in system  # 이번 대답에서 할 일
 
 
@@ -125,6 +137,18 @@ def test_with_a_profile_every_npc_knows_the_whole_town(client, provider, npc_id)
     town = system.split("## Town")[1].split("## ")[0]
     assert "Corner Cafe" in town and "DRUGSTORE" in town and "Maple Diner" in town and "police station" in town
     assert "There are no other shops, restaurants or attractions" in town  # 없는 곳은 지어내지 않게
+
+
+def test_with_a_profile_every_npc_can_tell_where_places_are_including_the_fountain(client, provider):
+    """마을 안내에 분수대 공원이 없고 '그 밖엔 아무것도 없다'고만 해서 NPC가 분수대를 모른다고 했다(2026-11-05).
+    3D 마을(TownScene)에 있는 공원·서점·아이스크림 트럭까지 적고, 길을 알려 줄 수 있게 장소마다 어디쯤인지 적는다."""
+    system = system_of(reply_request(client, provider, {**NPC, "profile": profile_of("HOTEL_STAFF")}))
+    town = system.split("## Town")[1].split("## ")[0]
+    assert "fountain" in town and "benches" in town
+    assert "Paper & Leaf Books" in town and "ice cream truck" in town
+    assert "crossroads" in town  # 길 안내의 기준점 (본길 가운데 신호등 교차로)
+    park = next(line for line in town.splitlines() if "fountain" in line)
+    assert "across from Maple Bakery" in park
 
 
 def test_with_a_profile_the_rules_do_not_tell_the_npc_to_say_it_is_not_sure(client, provider):

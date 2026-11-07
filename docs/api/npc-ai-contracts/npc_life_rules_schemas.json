@@ -291,6 +291,16 @@
         "to": { "$ref": "#/$defs/Clock", "description": "from보다 이르면 자정을 넘긴다. 같으면 하루 전체." }
       }
     },
+    "Shift": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "from": { "$ref": "#/$defs/Clock" },
+        "to": { "$ref": "#/$defs/Clock", "description": "from보다 이르면 자정을 넘긴다. 같으면 하루 전체." },
+        "breakAt": { "$ref": "#/$defs/Clock", "description": "휴식 시작 시각. 교대 안에 있어야 하며 없으면 가운데에 쉰다. 다음 직원과 겹치는 시간으로 지정해 응대 공백을 막는다." }
+      }
+    },
     "Place": {
       "type": "object",
       "additionalProperties": false,
@@ -303,7 +313,7 @@
         "shifts": {
           "type": "object",
           "propertyNames": { "$ref": "#/$defs/Code" },
-          "additionalProperties": { "$ref": "#/$defs/TimeRange" },
+          "additionalProperties": { "$ref": "#/$defs/Shift" },
           "minProperties": 1,
           "description": "교대 이름 → 시간. NPC 생활 파일의 shift가 이 가운데 하나를 맡는다. 행인이 지내는 마을(TOWN)에서는 마을에 나와 있는 시간대다."
         }
@@ -316,7 +326,7 @@
       "properties": {
         "target": {
           "type": "string",
-          "pattern": "^(needRates\\.(HUNGER|ENERGY|SOCIAL|FUN|WORK)|recognitionRate|initiateTalkRate|personalTalkScale|eventScale\\.(GREETING|SMALL_TALK|PERSONAL_QUESTION|RUDE|APOLOGY|COMPLIMENT|TASK_DONE|LEAVE))$",
+          "pattern": "^(needRates\\.(HUNGER|ENERGY|SOCIAL|FUN|WORK)|recognitionRate|initiateTalkRate|personalTalkScale|eventScale\\.(GREETING|SMALL_TALK|PERSONAL_QUESTION|RUDE|APOLOGY|COMPLIMENT|HELP|TASK_DONE|LEAVE))$",
           "description": "계산할 생활 값 배수. 이름은 행동 조각 affects와 같다."
         },
         "axis": { "$ref": "#/$defs/Axis" },
@@ -339,6 +349,7 @@
         "role": { "$ref": "#/$defs/Role", "description": "역할 입력 노드. 맡은 교대를 하루 일과로 바꾸는 공통 규칙의 역할 규칙을 고른다." },
         "workplace": { "$ref": "#/$defs/Code", "description": "일하거나 지내는 곳. 공통 규칙 places의 장소 코드(검사 도구가 확인). 기본 장소(인격 파일의 defaultLocationId)와 다를 수 있다(거리 매장 직원은 마을)." },
         "shift": { "$ref": "#/$defs/Code", "description": "맡은 교대. workplace 장소의 shifts 이름 가운데 하나(검사 도구가 확인)." },
+        "resident": { "type": "boolean", "default": false, "description": "24시간 상주 여부. true이면 교대·휴식·퇴근 없이 근무지에 남는다. Mia·Jake·Alex만 사용한다." },
         "tutorialGuide": {
           "type": "boolean",
           "description": "튜토리얼 안내 NPC(하나뿐). 학습자가 튜토리얼을 마치기 전까지는 튜토리얼 모드로 정해진 흐름(Unity 대본)만 따르고, 생활 시뮬레이션·부탁·AI 자유 대화를 하지 않는다."
@@ -358,7 +369,7 @@
     },
     "EventId": {
       "type": "string",
-      "enum": ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "RUDE", "APOLOGY", "COMPLIMENT", "TASK_DONE", "LEAVE"],
+      "enum": ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "RUDE", "APOLOGY", "COMPLIMENT", "HELP", "TASK_DONE", "LEAVE"],
       "description": "대화 사건. AI 워커가 대사를 만드는 같은 호출에서 판정한다."
     },
     "Emotion": {
@@ -483,7 +494,7 @@
         "conversationEvents": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "RUDE", "APOLOGY", "COMPLIMENT", "TASK_DONE", "LEAVE"],
+          "required": ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "RUDE", "APOLOGY", "COMPLIMENT", "HELP", "TASK_DONE", "LEAVE"],
           "properties": {
             "GREETING": { "$ref": "#/$defs/EventEffect" },
             "SMALL_TALK": { "$ref": "#/$defs/EventEffect" },
@@ -491,6 +502,7 @@
             "RUDE": { "$ref": "#/$defs/EventEffect" },
             "APOLOGY": { "$ref": "#/$defs/EventEffect" },
             "COMPLIMENT": { "$ref": "#/$defs/EventEffect" },
+            "HELP": { "$ref": "#/$defs/EventEffect" },
             "TASK_DONE": { "$ref": "#/$defs/EventEffect" },
             "LEAVE": { "$ref": "#/$defs/EventEffect" }
           },
@@ -518,7 +530,9 @@
             "graceDays",
             "recognitionDropPerDay",
             "affinityFollowRate",
-            "rudeAffinityFallback"
+            "rudeAffinityFallback",
+            "goodConversationAffinity",
+            "goodConversationMinLearnerLines"
           ],
           "properties": {
             "recognitionPerConversation": {
@@ -554,6 +568,17 @@
               "minimum": -100,
               "maximum": 0,
               "description": "무례 판정(/v1/guard)이 무례라고 했는데 감점량(affinity_delta)이 비었을 때 백엔드가 쓰는 감점. 성격 배수가 없는 NPC의 감점과 같게 둔다."
+            },
+            "goodConversationAffinity": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "대화가 끝난 뒤 기억 카드를 만드는 모델(/v1/memory)이 이번 대화를 좋았다(good)고 보면 더하는 호감. 무례로 확정된 줄이 있는 대화에는 주지 않는다."
+            },
+            "goodConversationMinLearnerLines": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "좋은 대화 호감을 주려면 학습자가 이번 대화에서 말한 최소 줄 수. 짧게 끊고 다시 거는 반복으로 호감을 쌓지 못하게 한다."
             }
           }
         },

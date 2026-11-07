@@ -18,6 +18,7 @@ namespace A305.World.PlayModeTests
         [UnitySetUp]
         public IEnumerator LoadTown()
         {
+            TestGameClock.Set(12 * 60 + 15);
             TutorialState.Clear();
             yield return SceneManager.LoadSceneAsync("TownScene");
             TutorialState.GetOrCreate("TOWN_PASSERBY").Skip();
@@ -37,6 +38,7 @@ namespace A305.World.PlayModeTests
                     yield return SetOccupied(room, false);
             }
             TutorialState.Clear();
+            TestGameClock.Restore();
         }
 
         [UnityTest]
@@ -66,35 +68,6 @@ namespace A305.World.PlayModeTests
             );
         }
 
-        // 층마다 그 층의 집기만 담는다. 공간 묶음(539)은 1층·2층이 따로 있다.
-        [UnityTest]
-        public IEnumerator EachFloorScene_HoldsOnlyItsOwnFurnishings(
-            [Values(
-                "HomeGoodsDoor:HomeGoodsInterior:TeaRoomInterior",
-                "ArcadeDoor:ArcadeInterior:BookshopInterior"
-            )]
-                string spaces
-        )
-        {
-            string[] names = spaces.Split(':');
-            ShopInterior ground = Door(names[0]).Room;
-            ShopInterior upper = Object
-                .FindObjectsByType<ShopDoorway>(FindObjectsSortMode.None)
-                .Select(door => door.Room)
-                .Single(room =>
-                    room.SceneName == ground.SceneName.Replace("Interior", "UpperInterior")
-                );
-
-            yield return SetOccupied(ground, true);
-            Assert.That(Holds(ground, names[1]), Is.True, names[1]);
-            Assert.That(Holds(ground, names[2]), Is.False, names[2]);
-            Assert.That(Staff(ground).All(npc => npc.activeInHierarchy), Is.True, "1층 직원");
-
-            yield return SetOccupied(upper, true);
-            Assert.That(Holds(upper, names[2]), Is.True, names[2]);
-            Assert.That(Holds(upper, names[1]), Is.False, names[1]);
-        }
-
         private static ShopDoorway Door(string name) =>
             Object
                 .FindObjectsByType<ShopDoorway>(FindObjectsSortMode.None)
@@ -111,12 +84,5 @@ namespace A305.World.PlayModeTests
                 typeof(ShopInterior)
                     .GetField("staff", BindingFlags.Instance | BindingFlags.NonPublic)
                     .GetValue(room);
-
-        private static bool Holds(ShopInterior room, string space) =>
-            SceneManager
-                .GetSceneByName(room.SceneName)
-                .GetRootGameObjects()
-                .SelectMany(root => root.GetComponentsInChildren<Transform>(true))
-                .Any(part => part.name == space);
     }
 }

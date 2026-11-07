@@ -1,6 +1,9 @@
 using System.Collections;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
+using A305.Api;
+using A305.Dialogue;
 using A305.Tutorial;
 using A305.World;
 using NUnit.Framework;
@@ -12,12 +15,130 @@ using UnityEngine.UI;
 namespace A305.Learning.PlayModeTests
 {
     /// <summary>
-    /// 배포용 마을 씬에서 단어장·피드백 목록처럼 화면 가운데를 차지하는 창을 열어도 왼쪽 위 퀘스트 카드와 왼쪽 아래 미니맵을
-    /// 함께 볼 수 있고, 창은 그 둘과 겹치지 않는지 확인한다. 퀘스트 카드는 할 일 줄 수에 따라 높이가 바뀌므로 높이와 상관없이 겹치지 않아야 한다.
+    /// 단어장·피드백 목록을 열고 닫을 때 학습 창 상태와 게임 시계 정지가 함께 바뀌는지 확인한다.
     /// </summary>
     public class CenterWindowTests
     {
-        // 튜토리얼 동안에는 퀘스트 카드와 미니맵을 숨기므로, 마을 HUD가 보이는 튜토리얼을 마친 사용자로 시작한다.
+        [UnityTest]
+        public IEnumerator StartingAgainWhileCancelledOpeningIsPending_WaitsForItsCleanup()
+        {
+            yield return LoadTown();
+            Object.Destroy(Single<LearningController>());
+            yield return null;
+            var transport = new DelayedOpeningTransport();
+            var client = new ApiClient("", transport);
+            DialogueController dialogue = Single<DialogueController>();
+            typeof(DialogueController)
+                .GetField("conversationApi", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(dialogue, new ConversationApi(client, client));
+
+            Assert.That(dialogue.TryStart("CLOCK_TEST", dialogue.transform), Is.True);
+            dialogue.End();
+            Assert.That(dialogue.TryStart("CLOCK_TEST", dialogue.transform), Is.True);
+            Assert.That(transport.StartCalls, Is.EqualTo(1));
+
+            transport.Opening.SetResult(
+                ApiTransportResponse.Received(200, "{\"conversationId\":42}")
+            );
+            for (int frame = 0; frame < 10 && transport.StartCalls < 2; frame++)
+                yield return null;
+            yield return null;
+            Assert.That(transport.EndCalls, Is.EqualTo(1));
+            Assert.That(transport.StartCalls, Is.EqualTo(2));
+            Assert.That(dialogue.IsTalking, Is.True);
+            dialogue.End();
+            Assert.That(transport.EndCalls, Is.EqualTo(2));
+            Assert.That(dialogue.IsTalking, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator ClosingConversationThenFeedback_ResumesTheClockUntilTheNextConversation()
+        {
+            yield return LoadTown();
+            DialogueController dialogue = Single<DialogueController>();
+            typeof(DialogueController)
+                .GetField("conversationApi", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(dialogue, null);
+            typeof(DialogueController)
+                .GetField("serverLink", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(dialogue, null);
+
+            for (int attempt = 0; attempt < 2; attempt++)
+            {
+                Assert.That(dialogue.TryStart("CLOCK_TEST", dialogue.transform), Is.True);
+                double stopped = GameClock.Shared.Minutes;
+                GameClock.Shared.Flow(1);
+                Assert.That(GameClock.Shared.Minutes, Is.EqualTo(stopped));
+
+                DialoguePanelView panel = Single<DialoguePanelView>();
+                panel.SetInputText("Hello.");
+                panel
+                    .GetComponentsInChildren<Button>()
+                    .Single(button => button.name == "SendButton")
+                    .onClick.Invoke();
+                dialogue.End();
+                Assert.That(GameClock.Shared.IsTalking, Is.False);
+                Assert.That(Single<FeedbackView>().IsVisible, Is.True);
+                GameClock.Shared.Flow(1);
+                Assert.That(
+                    GameClock.Shared.Minutes,
+                    Is.EqualTo(stopped),
+                    "피드백 중에는 정지한다."
+                );
+
+                Single<FeedbackView>()
+                    .GetComponentsInChildren<Button>()
+                    .First(button => button.isActiveAndEnabled && button.name.Contains("Close"))
+                    .onClick.Invoke();
+                yield return null;
+                Assert.That(Single<LearningController>().IsShowingScreen, Is.False);
+                GameClock.Shared.Flow(1);
+                Assert.That(GameClock.Shared.Minutes, Is.GreaterThan(stopped));
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator CancelledServerOpening_ResumesTheClockAfterTheLateConversationIsClosed()
+        {
+            yield return LoadTown();
+            Object.Destroy(Single<LearningController>());
+            yield return null;
+            var transport = new DelayedOpeningTransport();
+            var client = new ApiClient("", transport);
+            DialogueController dialogue = Single<DialogueController>();
+            typeof(DialogueController)
+                .GetField("conversationApi", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(dialogue, new ConversationApi(client, client));
+
+            Assert.That(dialogue.TryStart("CLOCK_TEST", dialogue.transform), Is.True);
+            Assert.That(GameClock.Shared.IsTalking, Is.True);
+            dialogue.End();
+            Assert.That(dialogue.IsTalking, Is.False);
+
+            // 서버가 아직 준비 중인 대화를 활성 상태로 보고 정지 응답을 준다.
+            GameClock.Shared.TickAsync(
+                new FixedGameClockApi { Paused = true },
+                Time.realtimeSinceStartupAsDouble + 60
+            );
+            double stopped = GameClock.Shared.Minutes;
+            GameClock.Shared.Flow(1);
+            Assert.That(GameClock.Shared.Minutes, Is.EqualTo(stopped));
+
+            transport.Opening.SetResult(
+                ApiTransportResponse.Received(200, "{\"conversationId\":42}")
+            );
+            for (int frame = 0; frame < 10 && transport.EndCalls == 0; frame++)
+                yield return null;
+            yield return null;
+
+            Assert.That(transport.EndCalls, Is.EqualTo(1));
+            Assert.That(dialogue.IsTalking, Is.False);
+            Assert.That(GameClock.Shared.IsTalking, Is.False);
+            GameClock.Shared.Flow(1);
+            Assert.That(GameClock.Shared.Minutes, Is.GreaterThan(stopped));
+        }
+
+        // 학습 창을 여는 흐름만 확인하도록 튜토리얼을 마친 사용자로 시작한다.
         [SetUp]
         public void StartAfterTheTutorial()
         {
@@ -46,23 +167,29 @@ namespace A305.Learning.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator OpeningVocabulary_KeepsTheQuestCardAndMiniMapInSightAndClearOfTheWindow()
+        public IEnumerator VocabularyAndHistory_PauseTheClockWhileOpen()
         {
             yield return LoadTown();
-
-            yield return Open("VocabularyButton");
-
-            AssertMissionHudClears(Single<VocabularyView>().PanelRect);
-        }
-
-        [UnityTest]
-        public IEnumerator OpeningFeedbackList_KeepsTheQuestCardAndMiniMapInSightAndClearOfTheWindow()
-        {
-            yield return LoadTown();
-
-            yield return Open("HistoryButton");
-
-            AssertMissionHudClears(Single<LearningHudView>().HistoryView.PanelRect);
+            foreach (string app in new[] { "VocabularyButton", "HistoryButton" })
+            {
+                yield return Open(app);
+                Assert.That(GameClock.Shared.IsLearningWindowOpen, Is.True);
+                double stopped = GameClock.Shared.Minutes;
+                GameClock.Shared.Flow(60);
+                Assert.That(GameClock.Shared.Minutes, Is.EqualTo(stopped));
+                LearningController learning = Single<LearningController>();
+                RectTransform window =
+                    app == "VocabularyButton"
+                        ? Single<VocabularyView>().PanelRect
+                        : Single<LearningHudView>().HistoryView.PanelRect;
+                window
+                    .GetComponentsInChildren<Button>(true)
+                    .First(button => button.name == "CloseButton")
+                    .onClick.Invoke();
+                yield return null;
+                Assert.That(learning.IsShowingScreen, Is.False);
+                Assert.That(GameClock.Shared.IsLearningWindowOpen, Is.False);
+            }
         }
 
         private static IEnumerator LoadTown()
@@ -70,8 +197,13 @@ namespace A305.Learning.PlayModeTests
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
             yield return null;
-            Assert.That(QuestCard().gameObject.activeInHierarchy, Is.True, "준비: 퀘스트 카드");
-            Assert.That(MiniMap().gameObject.activeInHierarchy, Is.True, "준비: 미니맵");
+            // 창 경계 신호는 즉시 보내므로 실제 서버 대신 이 시험이 정한 시계만 사용한다.
+            foreach (
+                GameClockDriver driver in Object.FindObjectsByType<GameClockDriver>(
+                    FindObjectsSortMode.None
+                )
+            )
+                driver.enabled = false;
         }
 
         // 폰 메뉴의 앱 버튼. 폰을 접어 둔 채로 눌러도 같은 창을 연다.
@@ -85,45 +217,6 @@ namespace A305.Learning.PlayModeTests
             yield return null;
         }
 
-        private static void AssertMissionHudClears(RectTransform window)
-        {
-            Assert.That(window.gameObject.activeInHierarchy, Is.True, "준비: 창");
-            Canvas.ForceUpdateCanvases();
-            foreach (RectTransform hud in new[] { QuestCard(), MiniMap() })
-            {
-                Assert.That(
-                    hud.gameObject.activeInHierarchy,
-                    Is.True,
-                    $"창을 열어도 {hud.name}을 함께 봅니다."
-                );
-                Assert.That(
-                    ScreenRectOf(hud).Overlaps(ScreenRectOf(window)),
-                    Is.False,
-                    $"{hud.name}이 창과 겹칩니다."
-                );
-            }
-        }
-
-        // 마을 HUD는 미션 모듈의 화면이라 이름으로 찾는다(학습 모듈은 미션 모듈을 참조하지 않는다).
-        private static RectTransform QuestCard() => MissionHud("Content/CurrentGoal");
-
-        private static RectTransform MiniMap() => MissionHud("Content/MiniMap");
-
-        private static RectTransform MissionHud(string path)
-        {
-            Canvas mission = Object
-                .FindObjectsByType<Canvas>(FindObjectsSortMode.None)
-                .Single(canvas => canvas.isRootCanvas && canvas.name == "FirstDayMission");
-            return (RectTransform)mission.transform.Find(path);
-        }
-
-        private static Rect ScreenRectOf(RectTransform rect)
-        {
-            var corners = new Vector3[4];
-            rect.GetWorldCorners(corners);
-            return Rect.MinMaxRect(corners[0].x, corners[0].y, corners[2].x, corners[2].y);
-        }
-
         private static T Single<T>()
             where T : Object
         {
@@ -135,9 +228,58 @@ namespace A305.Learning.PlayModeTests
         // 1일차 오전 8시로 바로 답하는 게임 시계 신호
         private sealed class FixedGameClockApi : IGameClockApi
         {
-            public Task<GameClockTime> BeatAsync()
+            public bool Paused { get; set; }
+
+            public Task<GameClockTime> BeatAsync(
+                bool interactionPaused = false,
+                bool interactionWasPaused = false,
+                long? activeSeconds = null
+            )
             {
-                return Task.FromResult(new GameClockTime { Day = 1, MinuteOfDay = 8 * 60 });
+                return Task.FromResult(
+                    new GameClockTime
+                    {
+                        Day = 1,
+                        MinuteOfDay = 8 * 60,
+                        Paused = Paused,
+                    }
+                );
+            }
+        }
+
+        private sealed class DelayedOpeningTransport : IApiTransport
+        {
+            public TaskCompletionSource<ApiTransportResponse> Opening { get; } =
+                new TaskCompletionSource<ApiTransportResponse>();
+            public int EndCalls { get; private set; }
+            public int StartCalls { get; private set; }
+
+            public Task<ApiTransportResponse> SendAsync(ApiTransportRequest request)
+            {
+                if (request.Url == "/api/v1/conversations")
+                {
+                    StartCalls++;
+                    return StartCalls == 1
+                        ? Opening.Task
+                        : Task.FromResult(
+                            ApiTransportResponse.Received(
+                                200,
+                                "{\"conversationId\":43,\"openingTurn\":{\"turnId\":1,\"text\":\"Hello.\",\"suggestWords\":[\"hello\"]}}"
+                            )
+                        );
+                }
+                if (
+                    request.Url == "/api/v1/conversations/42/end"
+                    || request.Url == "/api/v1/conversations/43/end"
+                )
+                {
+                    EndCalls++;
+                    return Task.FromResult(
+                        ApiTransportResponse.Received(200, "{\"status\":\"ENDED_BY_USER\"}")
+                    );
+                }
+                Assert.Fail("예상하지 않은 대화 요청: " + request.Url);
+                return Task.FromResult(ApiTransportResponse.NetworkFailed());
             }
         }
     }

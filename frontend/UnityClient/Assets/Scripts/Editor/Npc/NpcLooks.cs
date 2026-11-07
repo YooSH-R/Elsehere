@@ -2,7 +2,7 @@ namespace A305.EditorTools.Npc
 {
     /// <summary>
     /// NPC가 쓰는 리틀 멍 외형과 색 범위. 플레이어(기본) 외형은 NPC에 쓰지 않는다.
-    /// 카페 유니폼(바리스타)은 카페에서만, 호텔 유니폼은 호텔에서만 쓰고, 경찰 제복은 호텔 유니폼의 바지·구두를 남색으로 바꾼 외형이다.
+    /// 카페·호텔·경찰 유니폼은 해당 일터에서만 쓴다. 생성·검수한 외형의 원래 배색을 기본으로 사용한다.
     /// 색 범위는 텍스처를 보고 정했다. 머리카락이 피부·바지와 비슷한 색인 외형은 몸 높이(머리는 0.5~0.6 위)로 나누고,
     /// 범위를 넓히면 피부까지 바뀌는 가닥 사이 선은 <see cref="NpcColorSwap.FillGaps"/>로 메운다.
     /// </summary>
@@ -10,13 +10,10 @@ namespace A305.EditorTools.Npc
     {
         private const string ReviewFolder = "Assets/Prefabs/Npc/Review/LittleMung_";
         private const string TripoNpcFolder = "Assets/Art/Characters/Tripo/NPC/LittleMung_";
-        private const string HotelierPrefab =
-            "Assets/Prefabs/Characters/Tripo/LittleMung_HotelStaff_male.prefab";
         private const string HotelierTexture =
             "Assets/Art/Characters/Tripo/LittleMung_HotelStaff_male/Textures/Material_0_color.png";
 
-        // 머리(얼굴·머리카락)가 그려진 몸 높이와 발(신발) 높이. 리틀 멍은 머리가 커서 몸 높이의 0.6 위가 머리다.
-        private static readonly (float, float) Head = (.6f, 1f);
+        // 신발이 그려진 몸 높이.
         private static readonly (float, float) Feet = (0f, .1f);
 
         // 목덜미·어깨까지 내려오는 뒷머리를 포함한 높이. 머리카락과 색이 비슷한 바지(몸 높이 0.3 아래)는 뺀다.
@@ -40,20 +37,21 @@ namespace A305.EditorTools.Npc
 
         public static readonly NpcLook Barista = new NpcLook(
             "Barista",
-            "Assets/Prefabs/Npc/Barista.prefab",
+            Characters.CafeDialogueBuilder.PrefabPath,
             "Assets/Art/Npc/Barista/BaristaColor.png",
-            onlyForCodePrefix: "CAFE_"
+            onlyForCodePrefix: "CAFE_",
+            initialScale: 1.6f
         )
             .Originally("blond", "sage", "brown", "green", secondClothes: "rust")
             .WithHair(new NpcColorRange((.085f, .16f), (.35f, .85f), (.55f, 1f), HeadAndBraids))
             .WithClothes(new NpcColorRange((.22f, .48f), (.12f, .6f), (.25f, .85f)))
             .WithSecondClothes(new NpcColorRange((.98f, .06f), (.45f, .85f), (.3f, .85f), Torso))
             .WithShoes(new NpcColorRange((.03f, .1f), (.25f, .7f), (.2f, .65f), Feet))
-            .WithEyes(true, new NpcColorRange((.15f, .5f), (.15f, 1f), (.05f, .5f), Head, 1.4f));
+            .WithEyes(false, SeparateIris);
 
         public static readonly NpcLook Hotelier = new NpcLook(
             "HotelStaff",
-            HotelierPrefab,
+            Characters.HotelierFaceBuilder.PrefabPath,
             HotelierTexture,
             onlyForCodePrefix: "HOTEL_"
         )
@@ -64,21 +62,30 @@ namespace A305.EditorTools.Npc
                 new NpcColorRange((.98f, .09f), (.3f, .75f), (.08f, .42f), (.1f, .6f))
             )
             .WithShoes(new NpcColorRange((.98f, .09f), (.2f, .8f), (.05f, .42f), Feet))
-            .WithEyes(true, new NpcColorRange((.02f, .12f), (.2f, 1f), (.05f, .32f), Head, 1.8f));
+            .WithEyes(false, SeparateIris);
 
-        // 경찰 제복: 호텔 유니폼의 어두운 갈색(조끼·바지·구두)을 남색으로 바꾼 재질(PoliceStationBuilder)이 바탕이다.
-        public static readonly NpcLook PoliceOfficer = new NpcLook(
-            "PoliceOfficer",
-            HotelierPrefab,
-            HotelierTexture,
-            onlyForCodePrefix: "POLICE_",
-            baseMaterialPath: "Assets/Art/World/PoliceStation/PoliceOfficerUniform.mat"
-        )
-            .Originally("light brown", "navy", "navy", "brown")
-            .WithHair(new NpcColorRange((.07f, .14f), (.32f, .75f), (.4f, .86f), HeadAboveCollar))
-            .WithClothes(new NpcColorRange((.58f, .72f), (.2f, .85f), (.1f, .6f), (.1f, 1f)))
-            .WithShoes(new NpcColorRange((.58f, .72f), (.2f, .85f), (.05f, .6f), Feet))
-            .WithEyes(true, new NpcColorRange((.02f, .12f), (.2f, 1f), (.05f, .32f), Head, 1.8f));
+        public static readonly NpcLook PoliceOfficer = Review("Police_Male", "POLICE_")
+            .Originally("brown", "navy", "black", "brown")
+            .WithHair(new NpcColorRange((0f, .13f), (.2f, .85f), (.12f, .6f), HeadAndNape))
+            .WithShoes(new NpcColorRange((0f, 1f), (0f, 1f), (.02f, .4f), Feet))
+            .WithEyes(false, SeparateIris);
+
+        // 원래 배색을 쓰는 새 외형. 역할과 성별이 맞는 NPC에만 연결한다.
+        public static readonly NpcLook CafeMale = Review("Cafe_Male", "CAFE_")
+            .Originally("brown", "terracotta", "cream", "brown", "cream")
+            .WithEyes(false, SeparateIris);
+        public static readonly NpcLook HotelierFemale = Review("HotelStaff_Female", "HOTEL_")
+            .Originally("blond", "navy", "black", "blue")
+            .WithEyes(false, SeparateIris);
+        public static readonly NpcLook Grandfather = Review("Grandfather")
+            .Originally("white", "olive", "brown", "brown")
+            .WithHair(new NpcColorRange((0f, 1f), (0f, .22f), (.35f, 1f), HeadAndNape))
+            .WithClothes(new NpcColorRange((.15f, .45f), (.08f, 1f), (.05f, 1f)))
+            .WithShoes(new NpcColorRange((.02f, .12f), (.2f, .8f), (.06f, .45f), Feet))
+            .WithEyes(false, SeparateIris);
+        public static readonly NpcLook PoliceFemale = Review("Police_Female", "POLICE_")
+            .Originally("brown", "navy", "black", "brown")
+            .WithEyes(false, SeparateIris);
 
         public static readonly NpcLook BlackYoungMale = Review("BlackYoung_Male")
             .Originally("dark brown", "blue", "white", "dark brown", secondClothes: "yellow")
@@ -106,7 +113,7 @@ namespace A305.EditorTools.Npc
 
         public static readonly NpcLook MiddleAgeFemale = Review("MiddleAge_Female")
             .Originally("caramel", "blue", "cream", "dark blue")
-            .WithHair(new NpcColorRange((.085f, .14f), (.4f, .85f), (.45f, .9f), HeadAndNape))
+            // 피부와 머리카락의 색 범위가 겹쳐 부분 배색하면 얼굴에 얼룩이 생긴다. 원래 금발을 유지한다.
             .WithClothes(new NpcColorRange((.55f, .72f), (.2f, 1f), (.15f, 1f)))
             .WithShoes(new NpcColorRange((0f, 1f), (0f, .3f), (.6f, 1f), Feet))
             .WithEyes(false, SeparateIris);
@@ -123,6 +130,10 @@ namespace A305.EditorTools.Npc
             Barista,
             Hotelier,
             PoliceOfficer,
+            CafeMale,
+            HotelierFemale,
+            Grandfather,
+            PoliceFemale,
             BlackYoungMale,
             BusinessMale,
             MiddleAgeMale,
@@ -130,12 +141,13 @@ namespace A305.EditorTools.Npc
             Grandmother,
         };
 
-        private static NpcLook Review(string name)
+        private static NpcLook Review(string name, string onlyForCodePrefix = null)
         {
             return new NpcLook(
                 name,
                 ReviewFolder + name + ".prefab",
-                TripoNpcFolder + name + "/Textures/Material_0_color.png"
+                TripoNpcFolder + name + "/Textures/Material_0_color.png",
+                onlyForCodePrefix: onlyForCodePrefix
             );
         }
     }

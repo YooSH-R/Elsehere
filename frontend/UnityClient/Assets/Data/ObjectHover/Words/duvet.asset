@@ -15,9 +15,9 @@ MonoBehaviour:
   details:
     key: duvet
     languageCode: en-US
-    text: duvet
+    text: comforter
     meaningKo: "\uC774\uBD88"
-    example: Pull the duvet over you.
-    exampleKo: "\uC774\uBD88\uC744 \uB36E\uC73C\uC138\uC694."
-    pronunciationAudioKey: 
+    example: This comforter is warm.
+    exampleKo: "\uC774 \uC774\uBD88\uC740 \uB530\uB73B\uD574\uC694."
+    pronunciationAudioKey: comforter.wav
   assetGuid: e1df2aaa21417204c8def4fc8cab8ad0

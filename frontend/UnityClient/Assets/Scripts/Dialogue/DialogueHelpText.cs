@@ -16,8 +16,5 @@ namespace A305.Dialogue
                 ? "추천 단어를 고르고 있어요..."
                 : "추천 단어가 아직 없어요. 대화를 이어가 보세요.";
         }
-
-        public static string Sentence(string hint, string example) =>
-            string.IsNullOrWhiteSpace(hint) ? example : hint;
     }
 }

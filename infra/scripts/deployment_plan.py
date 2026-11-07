@@ -20,6 +20,7 @@ def select_deployment_work(changed_paths):
         "infra/docker/web.Dockerfile": ("unity", "web"),
         "infra/nginx/web.conf": ("unity", "web"),
         "infra/scripts/run-unity-ci.ps1": ("unity", "web"),
+        "infra/scripts/publish-webgl-package.ps1": ("unity", "web"),
     }
 
     for path in changed_paths:
@@ -42,8 +43,14 @@ def select_deployment_work(changed_paths):
             runtime_configuration_changed = True
         elif path == "infra/scripts/docker_build.py":
             checks.update({"backend", "infra"})
-        elif path == "infra/scripts/prepare-unity-test-inputs.ps1" or path.startswith(
-            "infra/tests/tripo/"
+        elif (
+            path
+            in {
+                "infra/scripts/unity-test-scope.ps1",
+                "infra/scripts/prepare-unity-test-inputs.ps1",
+            }
+            or path.startswith("infra/tests/tripo/")
+            or (path.startswith("infra/tests/webgl_") and path.endswith(".test.cjs"))
         ):
             checks.update({"infra", "unity"})
         elif path.startswith("infra/"):

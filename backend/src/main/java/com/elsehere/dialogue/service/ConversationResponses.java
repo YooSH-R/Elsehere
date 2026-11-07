@@ -1,6 +1,8 @@
 package com.elsehere.dialogue.service;
 
+import com.elsehere.ai.client.WorkerSpeechPhrase;
 import com.elsehere.common.config.ClockConfig;
+import com.elsehere.conversation.dto.GlossaryResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
@@ -13,6 +15,7 @@ import com.elsehere.dialogue.dto.TranslationResponse;
 import com.elsehere.dialogue.dto.TurnDetailResponse;
 import com.elsehere.dialogue.dto.UserTurnResponse;
 import com.elsehere.memory.service.NpcAffinityService;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -29,11 +32,14 @@ class ConversationResponses {
 
   private static final ZoneId ZONE = ClockConfig.SERVICE_ZONE;
   private static final TypeReference<List<String>> STRING_LIST = new TypeReference<>() {};
+  private static final TypeReference<List<GlossaryResponse>> GLOSSARY_LIST =
+      new TypeReference<>() {};
 
   private final TurnRepository turnRepository;
   private final DialogueContexts dialogueContexts;
   private final NpcAffinityService npcAffinityService;
   private final JsonMapper jsonMapper;
+  private final Clock clock;
 
   NpcTurnResponse npcTurn(Turn turn) {
     return new NpcTurnResponse(
@@ -61,7 +67,11 @@ class ConversationResponses {
         conversation.getEndReason(),
         conversation.getRudeCount(),
         Conversation.RUDE_LIMIT,
-        npcAffinityService.affinity(conversation.getUserId(), conversation.getNpcId()));
+        npcAffinityService.affinity(conversation.getUserId(), conversation.getNpcId()),
+        null,
+        null,
+        false,
+        0);
   }
 
   ConversationDetailResponse detail(Conversation conversation) {
@@ -81,7 +91,8 @@ class ConversationResponses {
         toOffset(conversation.getEndedAt()),
         conversation.getRudeCount(),
         Conversation.RUDE_LIMIT,
-        turns);
+        turns,
+        conversation.getReviewCardId());
   }
 
   static OffsetDateTime toOffset(Instant instant) {
@@ -90,6 +101,10 @@ class ConversationResponses {
 
   String writeWords(List<String> words) {
     return words == null ? null : jsonMapper.writeValueAsString(words);
+  }
+
+  String writeSpeechPhrases(List<WorkerSpeechPhrase> phrases) {
+    return phrases == null || phrases.isEmpty() ? null : jsonMapper.writeValueAsString(phrases);
   }
 
   List<String> readWords(String json) {
@@ -110,7 +125,10 @@ class ConversationResponses {
         turn.getHintText(),
         npcTurn
             ? SpeechResponse.of(turn.getId(), turn.getNpcAudioKey(), turn.getNpcAudioDeletedAt())
-            : null);
+            : null,
+        npcTurn && turn.getGlossary() != null
+            ? jsonMapper.readValue(turn.getGlossary(), GLOSSARY_LIST)
+            : List.of());
   }
 
   private static TranslationResponse translation(Turn turn) {

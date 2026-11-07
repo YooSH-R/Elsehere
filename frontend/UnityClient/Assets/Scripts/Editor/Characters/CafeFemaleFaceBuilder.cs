@@ -371,14 +371,17 @@ namespace A305.EditorTools.Characters
                 for (int i = 0; i < skins.Length; i++)
                 {
                     meshes[i] = new Mesh();
-                    // Compensate the renderer scale before placing the baked mesh under that transform.
-                    skins[i].BakeMesh(meshes[i], true);
+                    // 같은 Transform 밑에 두므로 로컬 배율은 한 번만 적용한다.
+                    skins[i].BakeMesh(meshes[i]);
                     objects[i] = new GameObject("PoseRender");
                     objects[i].transform.SetParent(skins[i].transform, false);
                     objects[i].AddComponent<MeshFilter>().sharedMesh = meshes[i];
-                    objects[i].AddComponent<MeshRenderer>().sharedMaterials = skins[
-                        i
-                    ].sharedMaterials;
+                    var renderer = objects[i].AddComponent<MeshRenderer>();
+                    renderer.sharedMaterials = skins[i].sharedMaterials;
+                    renderer.shadowCastingMode = skins[i].shadowCastingMode;
+                    renderer.receiveShadows = skins[i].receiveShadows;
+                    renderer.renderingLayerMask = skins[i].renderingLayerMask;
+                    renderer.enabled = skins[i].enabled;
                     enabled[i] = skins[i].enabled;
                     skins[i].enabled = false;
                 }

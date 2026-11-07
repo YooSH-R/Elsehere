@@ -18,6 +18,17 @@ namespace A305.World
 
         public ShopInterior Room => room;
 
+        /// <summary>복습장처럼 목적지를 골라 방문할 때도 일반 출입문 전환을 사용한다.</summary>
+        public bool TryEnter(PlayerMover player)
+        {
+            if (!isActiveAndEnabled)
+                return false;
+            Vector3 inward = insideOnForwardSide ? transform.forward : -transform.forward;
+            var capsule = player.GetComponent<CharacterController>();
+            SpaceTravel.CrossShopDoor(player, PointBeyondThreshold(inward, capsule), room, true);
+            return SpaceTravel.IsTraveling;
+        }
+
         private void Awake()
         {
             threshold = GetComponent<BoxCollider>();

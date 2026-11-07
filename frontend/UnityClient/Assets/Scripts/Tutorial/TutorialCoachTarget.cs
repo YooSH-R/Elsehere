@@ -35,11 +35,8 @@ namespace A305.Tutorial
         /// <summary>대화 화면의 대사 칸. 대화 시작 티칭의 첫째</summary>
         DialogueLines,
 
-        /// <summary>대화 화면의 [뜻]·[예시 문장]</summary>
+        /// <summary>대화 화면의 [뜻]·[힌트]</summary>
         DialogueTools,
-
-        /// <summary>대화 화면 왼쪽의 추천 문장 카드와 [넣기]</summary>
-        SuggestedSentence,
 
         /// <summary>대화 화면 왼쪽의 추천 단어 카드</summary>
         SuggestedWords,
@@ -58,5 +55,8 @@ namespace A305.Tutorial
 
         /// <summary>왼쪽 위 퀘스트 카드. 누르면 여행 수첩이 열린다.</summary>
         QuestCard,
+
+        /// <summary>NPC 이름 옆에 표시되는 호감도와 무례 경고 안내.</summary>
+        DialogueRelationship,
     }
 }

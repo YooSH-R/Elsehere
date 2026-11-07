@@ -38,6 +38,26 @@ import org.springframework.beans.factory.annotation.Autowired;
 // 판정은 AI 워커 결과를 Mock으로 정하고, 저장 결과는 기다리는 목록(waiting)과 대화 시작에 쓰는 readyFor로 확인한다.
 @DialogueServiceTest
 class FollowUpServiceTest {
+  @Test
+  void dinerQuestDoesNotCreateAnotherLateMealCard() {
+    entityManager.persist(com.elsehere.mission.entity.TownStory.start(userId));
+    entityManager.flush();
+    owes(new WorkerFollowUp("breakfast", "아침 식사", "QUICK"));
+    assertThat(judge(endedConversation("DINER_STAFF", "Toast and coffee, please."))).isEmpty();
+    assertThat(followUpService.waiting(userId)).isEmpty();
+    then(aiGateway).should(never()).followUp(any(), any(), any());
+  }
+
+  @Test
+  void startingTheDinerQuestHidesAnOlderFreeConversationMealCard() {
+    owes(new WorkerFollowUp("breakfast", "아침 식사", "QUICK"));
+    assertThat(judge(endedConversation("DINER_STAFF", "Toast and coffee, please."))).isPresent();
+    entityManager.persist(com.elsehere.mission.entity.TownStory.start(userId));
+    entityManager.flush();
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(100));
+    assertThat(followUpService.waiting(userId)).isEmpty();
+    assertThat(followUpService.readyFor(userId, npcId(entityManager, "DINER_STAFF"))).isEmpty();
+  }
 
   private static final WorkerFollowUp LATTE = new WorkerFollowUp("iced latte", "아이스 라테", "QUICK");
 
@@ -169,6 +189,76 @@ class FollowUpServiceTest {
     assertThat(followUpService.deliveredIn(handover.getId())).contains(followUpId);
   }
 
+  @Test
+  @DisplayName("가게에서 물건을 바로 건네는 직원(드럭스토어 우산 등)과의 대화는 워커에 묻지 않고 기다리는 것도 만들지 않는다")
+  void afterConversation_goodsHandedOverOnTheSpot_owesNothing() {
+    owes(new WorkerFollowUp("umbrella", "우산", "QUICK"));
+
+    assertThat(judge(endedConversation("SHOP_STAFF", "I'll buy this umbrella. Cash, please.")))
+        .isEmpty();
+    assertThat(followUpService.waiting(userId)).isEmpty();
+    then(aiGateway).should(never()).followUp(any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("실제로 신고를 접수하지 않은 경찰 대화는 출동 결과를 만들지 않는다")
+  void afterConversation_policeTalkWithoutDispatch_doesNotJudgeAnOutcome() {
+    assertThat(judge(endedConversation("POLICE_OFFICER", "Hello, officer."))).isEmpty();
+    then(aiGateway).should(never()).policeCallOutcome(any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("경찰관에게 신고해 출동한 대화는 출동 결과로 판정해, 순찰을 마치고 돌아올 즈음(90초) 결과를 알릴 수 있게 저장한다")
+  void afterConversation_policeCall_savesTheResultTheOfficerWillReport() {
+    given(aiGateway.policeCallOutcome(any(), any(), any()))
+        .willReturn(
+            new FollowUpResult(
+                new WorkerFollowUp("your wallet, found at Maple Diner", "지갑 수색 결과", "SHORT"),
+                List.of(usage("follow_up"))));
+
+    Conversation reported =
+        endedConversation("POLICE_OFFICER", "Someone took my wallet at the diner.");
+    entityManager
+        .createQuery(
+            "select t from Turn t where t.conversation.id = :id and t.seq = 2",
+            com.elsehere.conversation.entity.Turn.class)
+        .setParameter("id", reported.getId())
+        .getSingleResult()
+        .recordPoliceDispatch("DINER");
+    entityManager.flush();
+    Optional<FollowUpResponse> result = judge(reported);
+
+    assertThat(result)
+        .hasValueSatisfying(
+            followUp -> {
+              assertThat(followUp.npc().npcCode()).isEqualTo("POLICE_OFFICER");
+              assertThat(followUp.item()).isEqualTo("your wallet, found at Maple Diner");
+              assertThat(followUp.itemKo()).isEqualTo("지갑 수색 결과");
+              assertThat(followUp.remainingSeconds()).isEqualTo(90);
+            });
+    then(aiGateway).should(never()).followUp(any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("학습자가 카드를 닫으면 기다리는 목록에서 빠지고 그 NPC가 다시 부르지 않는다. 다른 사용자는 닫을 수 없다")
+  void dismiss_removesTheCardAndTheCall() {
+    owes(LATTE);
+    Long followUpId =
+        judge(endedConversation("One iced latte, please.")).orElseThrow().followUpId();
+    Long otherUser =
+        UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-2", "Moon");
+
+    followUpService.dismiss(otherUser, followUpId);
+    assertThat(followUpService.waiting(userId)).hasSize(1);
+
+    followUpService.dismiss(userId, followUpId);
+    entityManager.flush();
+
+    assertThat(followUpService.waiting(userId)).isEmpty();
+    clock.setInstant(TestClockConfig.NOW.plusSeconds(60));
+    assertThat(followUpService.readyFor(userId, cafeStaffId)).isEmpty();
+  }
+
   private void isWaitingLatte(FollowUpResponse followUp) {
     assertThat(followUp.npc().npcCode()).isEqualTo("CAFE_STAFF");
     assertThat(followUp.sceneCode()).isEqualTo("CAFE");
@@ -191,7 +281,11 @@ class FollowUpServiceTest {
   }
 
   private Conversation endedConversation(String userText) {
-    Conversation conversation = conversation(entityManager, userId, "CAFE_STAFF");
+    return endedConversation("CAFE_STAFF", userText);
+  }
+
+  private Conversation endedConversation(String npcCode, String userText) {
+    Conversation conversation = conversation(entityManager, userId, npcCode);
     npcTurn(entityManager, conversation, 1, "Hi! What can I get for you?");
     textTurn(entityManager, conversation, 2, userText);
     npcTurn(entityManager, conversation, 3, "Coming right up.");

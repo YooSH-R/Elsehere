@@ -33,6 +33,16 @@ class TutorialControllerTest {
   @MockitoBean private TutorialService tutorialService;
 
   @Test
+  void completeBenDialogue_respondsWithoutFinishingTheTutorial() throws Exception {
+    given(tutorialService.completeBenDialogue(1L))
+        .willReturn(new TutorialResponse(OnboardingStep.TUTORIAL));
+    mockMvc
+        .perform(tutorialRequest("/api/v1/me/tutorial/ben-dialogue/complete"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.onboardingStep").value("TUTORIAL"));
+  }
+
+  @Test
   @DisplayName("튜토리얼 완료(TUT-01)는 로그인한 사용자로 처리하고 초기 설정 단계를 돌려준다")
   void complete_respondsOnboardingStep() throws Exception {
     given(tutorialService.complete(1L)).willReturn(new TutorialResponse(OnboardingStep.DONE));

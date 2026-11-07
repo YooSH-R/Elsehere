@@ -47,6 +47,22 @@ namespace A305.Voice.Tests
             Assert.That(voice.HasSpeech(SilenceLevel), Is.True);
         }
 
+        [Test]
+        public void QuietAnswer_IsSpeech()
+        {
+            RecordedVoice voice = Voice(Tone(.3f, 0f), Tone(.5f, .01f), Tone(.3f, 0f));
+
+            Assert.That(voice.HasSpeech(SilenceLevel), Is.True);
+        }
+
+        [Test]
+        public void SteadyQuietNoise_IsNotSpeech()
+        {
+            RecordedVoice voice = Voice(Tone(1.5f, .012f));
+
+            Assert.That(voice.HasSpeech(SilenceLevel), Is.False);
+        }
+
         private static RecordedVoice Voice(params float[][] parts)
         {
             var samples = new List<float>();

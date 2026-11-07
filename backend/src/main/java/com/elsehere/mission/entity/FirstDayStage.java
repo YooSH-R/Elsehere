@@ -15,9 +15,18 @@ public enum FirstDayStage {
       goal(
           "confirm_reservation",
           "예약 확인(예약자 이름)",
-          "Confirm an existing hotel reservation by giving the name it is under. Saying only that they have a reservation, without a name, does not count."),
-      goal("store_suitcase", "캐리어 맡기기", "Ask to store the large suitcase until check-in."),
-      goal("ask_cafe", "카페 위치 묻기", "Ask for a nearby cafe or directions to it.")),
+          "Confirm an existing hotel reservation by giving the name it is under. Saying only that they have a reservation, without a name, does not count.",
+          "예약자 이름: {name}"),
+      goal(
+          "store_suitcase",
+          "캐리어 맡기기",
+          "Ask to store the large suitcase until check-in.",
+          "체크인할 때까지 큰 캐리어를 맡아 달라고 하기"),
+      goal(
+          "ask_cafe",
+          "카페 위치 묻기",
+          "Ask for a nearby cafe or directions to it.",
+          "근처 카페가 어디 있는지 묻기")),
   CAFE_BREAK(
       "카페에서 잠깐 쉬어요",
       "CAFE",
@@ -29,12 +38,18 @@ public enum FirstDayStage {
       goal(
           "order_drink",
           "음료 주문(음료 이름)",
-          "Order a specific drink by name, such as a latte or orange juice; any drink is valid. Asking for just 'a drink' or 'something' does not count."),
+          "Order a specific drink by name, such as a latte or orange juice; any drink is valid. Asking for just 'a drink' or 'something' does not count.",
+          "마실 음료 이름 (예: latte, orange juice)"),
       goal(
           "set_options",
           "크기·온도 등 옵션 고르기",
-          "Choose a specific size, temperature, milk or another drink option. Saying only that they have no preference does not count."),
-      goal("dine_in", "매장 이용 말하기", "Say the learner will have the drink here, not take away.")),
+          "Choose a specific size, temperature, milk or another drink option. Saying only that they have no preference does not count.",
+          "크기나 온도 하나 (예: large, iced)"),
+      goal(
+          "dine_in",
+          "매장 이용 말하기",
+          "Say the learner will have the drink here, not take away.",
+          "여기서 마시겠다고 말하기 (for here)")),
   MISSING_BAG(
       "작은 가방이 없어요",
       "HOTEL",
@@ -46,11 +61,13 @@ public enum FirstDayStage {
       goal(
           "report_left_bag",
           "분실 설명(어떤 가방을 어디에)",
-          "Explain which bag is missing (the small bag) AND where they think they left it (the cafe). Saying only that something is lost does not count."),
+          "Explain that their bag is missing AND they think they left it at the cafe. Combine details from separate learner turns; 'my bag' or 'it' may refer to the bag already established in their conversation, without repeating its size or a fixed sentence. Losing something without a location anywhere in the learner's statements does not count.",
+          "작은 가방이 없고, 카페에 두고 온 것 같다고 말하기"),
       goal(
           "return_later",
           "다녀오겠다고 말하기",
-          "Say they will return after looking for or retrieving the bag.")),
+          "Say they will return after looking for or retrieving the bag.",
+          "카페에 가서 찾아오겠다고 말하기")),
   FIND_BAG(
       "카페에서 가방을 찾아요",
       "CAFE",
@@ -60,19 +77,25 @@ public enum FirstDayStage {
       "카페 직원에게 가방을 찾아 달라고 하세요. 가방 안에는 여권 지갑과 책이 있어요.",
       "You found a small blue shoulder bag with a red keyring. It contains a passport wallet and a book. Do not mention or offer the found bag before the learner asks about a lost bag. Ask for appearance and contents, one question at a time. Return it only after the learner describes matching appearance and contents and claims ownership. Do not invent other contents.",
       goal(
-          "ask_lost_bag", "분실물 문의", "Ask whether a lost bag was found or request help finding it."),
+          "ask_lost_bag",
+          "분실물 문의",
+          "Ask whether a lost bag was found or request help finding it.",
+          "잃어버린 가방이 들어왔는지 묻기"),
       goal(
           "describe_bag",
           "색·모양 설명",
-          "Describe this bag matching blue color AND shoulder bag type or red keyring. Wrong attributes do not count."),
+          "Describe this bag matching blue color AND shoulder bag type or red keyring. Wrong attributes do not count.",
+          "파란색 숄더백, 빨간 열쇠고리"),
       goal(
           "describe_contents",
           "내용물 설명",
-          "Identify the passport or passport wallet AND book inside the bag. Wrong contents do not count."),
+          "Identify the passport or passport wallet AND book inside the bag. Wrong contents do not count.",
+          "여권 지갑과 책"),
       goal(
           "confirm_ownership",
           "본인 물건 확인",
-          "Explicitly confirm the described bag is theirs or ask to collect their identified bag.")),
+          "Explicitly confirm the described bag is theirs or ask to collect their identified bag.",
+          "그 가방이 내 것이라고 말하기")),
   RAINY_STREET(
       "갑자기 비가 내려요",
       "TOWN",
@@ -84,11 +107,13 @@ public enum FirstDayStage {
       goal(
           "ask_umbrella_shop",
           "우산 판매처 묻기",
-          "Ask where to buy an umbrella or for a store selling one."),
+          "Ask where to buy an umbrella or for a store selling one.",
+          "우산을 어디서 살 수 있는지 묻기"),
       goal(
           "ask_directions",
           "드럭스토어 가는 길 묻기",
-          "Ask or confirm directions or the location of the drugstore.")),
+          "Ask or confirm directions or the location of the drugstore.",
+          "드럭스토어 가는 길")),
   BUY_UMBRELLA(
       "우산을 사요",
       "SHOP",
@@ -97,12 +122,13 @@ public enum FirstDayStage {
       "우산을 파는 드럭스토어예요. 우산은 8코인이에요.",
       "점원에게 우산을 사세요.",
       "Sell one umbrella for exactly 8 quest coins when the learner asks for one. Do not offer an umbrella or say its price before the learner asks. Ask how they want to pay (cash/card both accepted) only after the learner decides to buy. Purchase completes only when price, purchase intent and payment choice are all covered. Never change the price or charge twice.",
-      goal("ask_price", "가격 묻기", "Ask or confirm the umbrella price."),
-      goal("buy_umbrella", "구매 의사 말하기", "Explicitly decide to buy an umbrella."),
+      goal("ask_price", "가격 묻기", "Ask or confirm the umbrella price.", "우산 가격"),
+      goal("buy_umbrella", "구매 의사 말하기", "Explicitly decide to buy an umbrella.", "우산을 사겠다고 말하기"),
       goal(
           "choose_payment",
           "결제 방법 말하기",
-          "Choose cash, card or another payment method offered by the clerk.")),
+          "Choose cash, card or another payment method offered by the clerk.",
+          "현금 또는 카드")),
   CHECK_IN(
       "이제 체크인해요",
       "HOTEL",
@@ -111,13 +137,22 @@ public enum FirstDayStage {
       "여권이 든 가방도 찾고 우산도 샀어요. 호텔에서 체크인을 마무리해요.",
       "호텔 직원에게 요청하세요.",
       "Check-in time has arrived. The learner recovered the small bag and passport and bought an umbrella. The large suitcase is stored at this hotel. When the learner asks, confirm the reservation, check them in and return the suitcase. Do not start check-in, confirm the reservation or bring up the bag or suitcase before the learner does. Never ask them to fetch the bag again.",
-      goal("found_bag", "가방 찾았다고 말하기", "Say they found or got back their small bag."),
-      goal("request_checkin", "체크인 요청", "Ask to check in now."),
+      goal(
+          "found_bag",
+          "가방 찾았다고 말하기",
+          "Say they found or got back their small bag.",
+          "가방을 찾았다고 말하기"),
+      goal("request_checkin", "체크인 요청", "Ask to check in now.", "지금 체크인하고 싶다고 말하기"),
       goal(
           "show_reservation",
           "예약 정보 확인",
-          "Identify or confirm their reservation, name or booking."),
-      goal("collect_suitcase", "캐리어 찾기", "Ask to collect the stored large suitcase."));
+          "Identify or confirm their reservation, name or booking.",
+          "예약자 이름: {name}"),
+      goal(
+          "collect_suitcase",
+          "캐리어 찾기",
+          "Ask to collect the stored large suitcase.",
+          "맡긴 큰 캐리어를 찾겠다고 말하기"));
 
   private final String title;
   private final String scene;
@@ -147,8 +182,8 @@ public enum FirstDayStage {
     this.goals = List.of(goals);
   }
 
-  private static Goal goal(String id, String title, String description) {
-    return new Goal(id, title, description);
+  private static Goal goal(String id, String title, String description, String hint) {
+    return new Goal(id, title, description, hint);
   }
 
   public String title() {
@@ -197,5 +232,10 @@ public enum FirstDayStage {
     return goals.stream().map(Goal::id).toList();
   }
 
-  public record Goal(String id, String title, String description) {}
+  /**
+   * 단계 목표.
+   *
+   * @param hint 이 목표를 이루려면 말해야 할 정보. 퀘스트 카드 목표 아래에 보인다. {name}은 예약자 이름이다
+   */
+  public record Goal(String id, String title, String description, String hint) {}
 }

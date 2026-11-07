@@ -41,7 +41,8 @@ from .schemas import (
     SuggestRequest,
     TtsRequest,
 )
-from .tts import AudioStore, GpuSynth, Kokoro
+from .speech_emotion import Mood, attach_emotion
+from .tts import AudioStore, GpuSynth, Kokoro, join_wavs
 
 log = logging.getLogger("ai_worker")
 PUBLIC = {"/health"}  # Docker 상태 확인용. 나머지는 모두 내부 토큰 필요
@@ -111,8 +112,19 @@ def create_app(
                 ensure_ascii=False,
             )
         )
-        yield
-        await app.state.llm.aclose()
+
+        async def expire_audio():
+            while True:
+                await asyncio.sleep(min(30.0, max(0.01, s.audio_ttl_s)))
+                app.state.audio.expire()
+
+        cleanup = asyncio.create_task(expire_audio())
+        try:
+            yield
+        finally:
+            cleanup.cancel()
+            await asyncio.gather(cleanup, return_exceptions=True)
+            await app.state.llm.aclose()
 
     app = FastAPI(title="AI 워커", version="0.1.0", lifespan=lifespan)
 
@@ -128,6 +140,8 @@ def create_app(
         else:
             resp = await call_next(request)
         resp.headers["X-Request-Id"] = rid
+        if request.url.path == "/health" and resp.status_code == 200:
+            return resp
         log.info(
             json.dumps(
                 {
@@ -268,7 +282,16 @@ def create_app(
         if not engine:
             raise ApiError("tts_unavailable", "음성 합성 모델이 없습니다", 503)
         t = time.perf_counter()
-        wav, dur, hit = await engine.asynth(req.text.strip(), req.voice, req.speed)
+        if req.phrases:
+            parts, hit = [], True
+            for phrase in req.phrases:
+                part, _, cached = await engine.asynth(phrase.text.strip(), req.voice, req.speed)
+                mood = Mood(phrase.emotion, phrase.intensity) if phrase.emotion else None
+                parts.append(attach_emotion(part, mood))
+                hit = hit and cached
+            wav, dur = join_wavs(parts)
+        else:
+            wav, dur, hit = await engine.asynth(req.text.strip(), req.voice, req.speed)
         return Response(
             wav,
             media_type="audio/wav",
@@ -330,4 +353,5 @@ def create_app(
 
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout, format="%(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)
 app = create_app()

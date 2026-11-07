@@ -9,13 +9,15 @@
 
 import os
 
-# 공용 서버 규칙: 우리 팀은 5번 GPU만 쓴다. onnxruntime을 불러오기 전에 정해야 한다
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "5"
+from runtime import configure_device, require_cuda
+
+# 공용 서버의 5번 장치를 유지하며 Windows 개발 PC는 명시적으로 별도 선택한다.
+SYNTH_SLOTS = configure_device(os.environ, os.name)
 
 import hmac
 import io
 import json
+import logging
 import threading
 import time
 import wave
@@ -26,6 +28,9 @@ from pathlib import Path
 import numpy as np
 import onnxruntime as ort
 from kokoro_onnx import Kokoro
+
+logging.basicConfig(level=logging.WARNING, format="%(message)s")
+logging.getLogger("gpu_tts").setLevel(os.environ.get("GPU_LOG_LEVEL", "INFO").upper())
 
 MODEL_DIR = Path(os.environ.get("TTS_MODEL_DIR", str(Path.home() / "tts/models")))
 PORT = int(os.environ.get("TTS_PORT", "18433"))
@@ -45,6 +50,9 @@ def load_engine() -> Kokoro:
         options,
         providers=[("CUDAExecutionProvider", {"device_id": 0, "cudnn_conv_algo_search": "HEURISTIC"}), "CPUExecutionProvider"],
     )
+    require_cuda(session.get_providers())
+    # 실행 중 CUDA 오류도 워커에 실패로 전달한다. CPU 전환은 워커의 시간 제한 안에서만 한다.
+    session.disable_fallback()
     engine = Kokoro.from_session(session, str(MODEL_DIR / "voices-v1.0.bin"))
     # kokoro-onnx는 목소리 파일(npz)을 요청마다 같은 zip 핸들로 읽는다. 동시에 읽으면 BadZipFile이 나서 미리 다 읽어 둔다
     engine.voices = {name: engine.voices[name] for name in engine.voices.files}
@@ -55,7 +63,6 @@ engine = load_engine()
 # 여러 사람이 동시에 말하면 조각 요청이 몰린다. 한 번에 하나씩이면 동시 15요청에 약 6초가 걸려 워커가 CPU로 넘겼다.
 # H200에서 같은 세션으로 동시에 합성하면 15요청 약 2~2.6초, 60요청(20명분) 약 4.4~6.1초 (S15P31A305-486).
 # 상한은 워커 한 대가 동시에 보내는 합성 수(asyncio 기본 스레드 풀, CPU 수 + 4)와 비슷하게 잡는다
-SYNTH_SLOTS = 8
 synth_slots = threading.BoundedSemaphore(SYNTH_SLOTS)
 VOICES = set(engine.get_voices())
 WARMUP_LINES = ("Ready.", "Hi there, welcome in.", "That will be five dollars, and here is your receipt.")
@@ -105,8 +112,10 @@ def read_request(body: bytes) -> tuple[str, str, float]:
     return phonemes, voice, float(speed)
 
 
-def log(event: dict) -> None:
-    print(json.dumps({"t": time.strftime("%H:%M:%S"), **event}, ensure_ascii=False), flush=True)
+def log(event: dict, level: int = logging.INFO) -> None:
+    logger = logging.getLogger("gpu_tts")
+    if logger.isEnabledFor(level):
+        logger.log(level, json.dumps({"t": time.strftime("%H:%M:%S"), **event}, ensure_ascii=False))
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -125,7 +134,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path != "/health":
             return self.reply_json(404, {"error": {"message": "없는 주소"}})
-        self.reply_json(200, {"ok": True, "model": "kokoro-v1.0.onnx", "device": ort.get_device()})
+        self.reply_json(200, {"ok": True, "model": "kokoro-v1.0.onnx", "device": "GPU", "providers": engine.sess.get_providers()})
 
     def do_POST(self):
         if self.path.rstrip("/") != "/v1/synth":
@@ -141,7 +150,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply_json(400, {"error": {"message": str(e)}})
         started = time.perf_counter()
         wav, seconds = synth(phonemes, voice, speed)
-        log({"event": "synth", "audio_s": round(seconds, 2), "synth_s": round(time.perf_counter() - started, 3), "phonemes": len(phonemes)})
+        log(
+            {"event": "synth", "audio_s": round(seconds, 2), "synth_s": round(time.perf_counter() - started, 3), "phonemes": len(phonemes)},
+            logging.DEBUG,
+        )
         self.send_response(200)
         self.send_header("Content-Type", "audio/wav")
         self.send_header("Content-Length", str(len(wav)))

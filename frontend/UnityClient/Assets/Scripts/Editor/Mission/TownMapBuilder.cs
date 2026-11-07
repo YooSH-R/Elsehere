@@ -112,8 +112,8 @@ namespace A305.EditorTools.Mission
             );
             foreach (SpaceDoorway door in BuilderTools.FindAllInScene<SpaceDoorway>(town))
             {
-                string code = door.DestinationScene.Replace("Scene", "").ToUpperInvariant();
-                if (!PlaceStyles.ContainsKey(code))
+                string code = PlaceScenes.CodeOf(door.DestinationScene);
+                if (code == null || !PlaceStyles.ContainsKey(code))
                     continue;
                 float footprint =
                     code == "HOTEL" ? settings.HotelFootprintMeters

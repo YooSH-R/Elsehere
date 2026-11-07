@@ -4,10 +4,12 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
+        "UnityEngine.UI",
         "Unity.InputSystem",
         "A305.Player",
         "A305.Characters",
-        "A305.Tutorial"
+        "A305.Tutorial",
+        "A305.Onboarding"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

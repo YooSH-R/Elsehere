@@ -19,6 +19,8 @@ namespace A305.Dialogue
         public const float MinLinesHeight = 96;
         public const float MaxLinesHeight = 300;
         public const float NameHeight = 48;
+        public const float TranslationHeight = 160;
+        private const float TranslationSideBySideWidth = 1100;
 
         // 둥근 이름표가 대사 글자 줄보다 앞으로 나오는 폭. 같은 자리에서 시작하면 둥근 끝 때문에 이름표가 안쪽으로 들어가 보인다.
         public const float NameOutdent = 8;
@@ -33,6 +35,8 @@ namespace A305.Dialogue
         public Rect Lines;
         public Rect Name;
         public Rect Tools;
+        public Rect Translation;
+        public Rect TranslationDivider;
         public float Height;
 
         /// <param name="canvasSize">대화창이 놓인 캔버스 크기</param>
@@ -45,7 +49,8 @@ namespace A305.Dialogue
             Vector2 canvasSize,
             float linesHeight,
             float nameWidth,
-            bool hasEarlierLines = false
+            bool hasEarlierLines = false,
+            bool hasTranslation = false
         )
         {
             float width = Mathf.Min(ColumnWidth, canvasSize.x - 2 * SideMargin);
@@ -69,17 +74,38 @@ namespace A305.Dialogue
             layout.Lines = new Rect(
                 left,
                 layout.Status.yMax + 10,
-                width,
+                LinesWidth(width, hasTranslation),
                 hasEarlierLines
                     ? Mathf.Min(linesHeight, MaxLinesHeight)
                     : Mathf.Clamp(linesHeight, MinLinesHeight, MaxLinesHeight)
             );
-            layout.Name = new Rect(
-                left - NameOutdent,
-                layout.Lines.yMax + Gap,
-                nameWidth,
-                NameHeight
-            );
+            float bodyTop = layout.Lines.yMax;
+            if (hasTranslation)
+            {
+                bool sideBySide = width >= TranslationSideBySideWidth;
+                if (sideBySide)
+                {
+                    bodyTop = Mathf.Max(bodyTop, layout.Lines.yMin + TranslationHeight);
+                    layout.Translation = Rect.MinMaxRect(
+                        layout.Lines.xMax + 2 * Gap,
+                        bodyTop - TranslationHeight,
+                        right,
+                        bodyTop
+                    );
+                    layout.TranslationDivider = new Rect(
+                        layout.Lines.xMax + Gap,
+                        layout.Lines.yMin,
+                        1,
+                        bodyTop - layout.Lines.yMin
+                    );
+                }
+                else
+                {
+                    layout.Translation = new Rect(left, bodyTop + Gap, width, TranslationHeight);
+                    bodyTop = layout.Translation.yMax;
+                }
+            }
+            layout.Name = new Rect(left - NameOutdent, bodyTop + Gap, nameWidth, NameHeight);
             layout.Tools = Rect.MinMaxRect(
                 layout.Name.xMax + Gap,
                 layout.Name.yMin,
@@ -89,5 +115,10 @@ namespace A305.Dialogue
             layout.Height = layout.Name.yMax + FadeHeight;
             return layout;
         }
+
+        public static float LinesWidth(float columnWidth, bool hasTranslation) =>
+            hasTranslation && columnWidth >= TranslationSideBySideWidth
+                ? columnWidth * .54f
+                : columnWidth;
     }
 }

@@ -107,6 +107,39 @@ class AiWorkerClient {
       String instruction,
       int level,
       WorkerLearner learner) {
+    return reply(
+        trace, npc, memory, history, text, instruction, level, learner, NpcReplyListener.NONE);
+  }
+
+  /**
+   * NPC 대답. {@code listener}가 {@link NpcReplyListener#NONE}이 아니면 조각 스트림을 요청해 글자·문장 조각 음성을 받는 대로
+   * 넘긴다. 끝까지 모은 결과는 조각을 받지 않을 때와 같다.
+   */
+  public NpcReply reply(
+      WorkerTrace trace,
+      WorkerNpc npc,
+      WorkerMemory memory,
+      List<WorkerLine> history,
+      String text,
+      String instruction,
+      int level,
+      WorkerLearner learner,
+      NpcReplyListener listener) {
+    return replyReacting(
+        trace, npc, memory, history, text, instruction, level, learner, listener, null);
+  }
+
+  public NpcReply replyReacting(
+      WorkerTrace trace,
+      WorkerNpc npc,
+      WorkerMemory memory,
+      List<WorkerLine> history,
+      String text,
+      String instruction,
+      int level,
+      WorkerLearner learner,
+      NpcReplyListener listener,
+      String reaction) {
     ReplyBody body =
         new ReplyBody(
             npc,
@@ -116,10 +149,12 @@ class AiWorkerClient {
             text,
             instruction,
             true,
+            listener != NpcReplyListener.NONE,
             level,
             false,
             "",
-            learner);
+            learner,
+            reaction);
     long startedAt = System.nanoTime();
     HttpResponse<Stream<String>> response =
         send(
@@ -129,7 +164,7 @@ class AiWorkerClient {
       if (response.statusCode() != 200) {
         throw toError(response.statusCode(), lines.collect(Collectors.joining("\n")));
       }
-      return readReplyStream(lines, startedAt);
+      return readReplyStream(lines, startedAt, listener);
     }
   }
 
@@ -204,6 +239,17 @@ class AiWorkerClient {
     return readBytes(send(request, HttpResponse.BodyHandlers.ofByteArray()));
   }
 
+  public byte[] synthesize(
+      WorkerTrace trace,
+      String text,
+      String voice,
+      double speed,
+      List<WorkerSpeechPhrase> phrases) {
+    HttpRequest request =
+        jsonRequest("/v1/tts", trace, TTS_TIMEOUT, new TtsBody(text, voice, speed, phrases));
+    return readBytes(send(request, HttpResponse.BodyHandlers.ofByteArray()));
+  }
+
   /**
    * NPC 기억 카드 갱신. 이번 대화와 이전 카드로 새 카드 전체를 만든다. 실패(429·502·503)하면 오류로 던지며, 호출한 쪽은 이전 카드를 그대로 둔다.
    *
@@ -233,7 +279,8 @@ class AiWorkerClient {
         throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID);
       }
       MemoryEnvelope envelope = jsonMapper.readValue(response.body(), MemoryEnvelope.class);
-      return new MemoryCardResult(jsonMapper.writeValueAsString(card), usageOf(envelope.usage()));
+      return new MemoryCardResult(
+          jsonMapper.writeValueAsString(card), envelope.affinityDelta(), usageOf(envelope.usage()));
     } catch (JacksonException exception) {
       throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID, exception);
     }
@@ -263,8 +310,23 @@ class AiWorkerClient {
    * @param history 대화 전체(최대 200줄). 워커는 학습자가 말한 대화인지 확인한다
    */
   public FollowUpResult followUp(WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history) {
+    return followUp(trace, npc, history, "handover");
+  }
+
+  /**
+   * 경찰관이 신고를 받아 출동한 대화의 해결 결과(워커 문서 2.7.3 kind police_call). 출동하지 않은 대화면 결과의 followUp이 null이다. 형식은
+   * {@link #followUp}과 같다.
+   */
+  public FollowUpResult policeCallOutcome(
+      WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history) {
+    return followUp(trace, npc, history, "police_call");
+  }
+
+  private FollowUpResult followUp(
+      WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history, String kind) {
     HttpRequest request =
-        jsonRequest("/v1/npc/follow-up", trace, MEMORY_TIMEOUT, new FollowUpBody(npc, history));
+        jsonRequest(
+            "/v1/npc/follow-up", trace, MEMORY_TIMEOUT, new FollowUpBody(npc, history, kind));
     FollowUpResult result =
         readJson(send(request, HttpResponse.BodyHandlers.ofString()), FollowUpResult.class);
     return new FollowUpResult(result.followUp(), usageOf(result.usage()));
@@ -314,9 +376,10 @@ class AiWorkerClient {
     };
   }
 
-  // SSE는 "event: 이름", "data: JSON", 빈 줄 순서로 이벤트 하나가 온다. delta·audio 조각은 스트리밍 재생용이라 쓰지 않는다.
-  private NpcReply readReplyStream(Stream<String> lines, long startedAt) {
-    ReplyCollector collector = new ReplyCollector(startedAt);
+  // SSE는 "event: 이름", "data: JSON", 빈 줄 순서로 이벤트 하나가 온다. delta·audio 조각은 받는 쪽에 바로 넘긴다.
+  private NpcReply readReplyStream(
+      Stream<String> lines, long startedAt, NpcReplyListener listener) {
+    ReplyCollector collector = new ReplyCollector(startedAt, listener);
     String event = null;
     StringBuilder data = new StringBuilder();
     for (String line : (Iterable<String>) lines::iterator) {
@@ -337,11 +400,13 @@ class AiWorkerClient {
   private final class ReplyCollector {
 
     private final long startedAt;
+    private final NpcReplyListener listener;
     private DoneEvent done;
     private ErrorEvent error;
 
-    ReplyCollector(long startedAt) {
+    ReplyCollector(long startedAt, NpcReplyListener listener) {
       this.startedAt = startedAt;
+      this.listener = listener;
     }
 
     void accept(String event, String data) {
@@ -351,8 +416,13 @@ class AiWorkerClient {
       switch (event) {
         case "done" -> done = parse(data, DoneEvent.class);
         case "error" -> error = parse(data, ErrorEvent.class);
+        case "delta" -> listener.onDelta(parse(data, DeltaEvent.class).text());
+        case "audio" -> {
+          AudioEvent audio = parse(data, AudioEvent.class);
+          listener.onChunk(new NpcReplyChunk(audio.seq(), audio.text(), audio.audioId()));
+        }
         default -> {
-          // delta·audio
+          // words: 추천 단어는 따로 받는다(suggest_words: false)
         }
       }
     }
@@ -360,7 +430,12 @@ class AiWorkerClient {
     NpcReply result() {
       if (done != null) {
         logTiming();
-        return new NpcReply(done.text(), done.audioFullId(), null, usageOf(done.usage()));
+        return new NpcReply(
+            done.text(),
+            done.audioFullId(),
+            null,
+            usageOf(done.usage()),
+            done.speechPhrases() == null ? List.of() : done.speechPhrases());
       }
       if (error != null) {
         log.warn("npc_reply_failed code={}", error.code());
@@ -492,10 +567,12 @@ class AiWorkerClient {
       String text,
       String instruction,
       boolean tts,
+      boolean streamChunks,
       int level,
       boolean suggestWords,
       String goal,
-      WorkerLearner learner) {}
+      WorkerLearner learner,
+      String reaction) {}
 
   record MeaningBody(WorkerNpc npc, String text, int level) {}
 
@@ -504,16 +581,20 @@ class AiWorkerClient {
   record SuggestBody(
       WorkerNpc npc, String scene, String goal, List<WorkerLine> history, int level) {}
 
-  record TtsBody(String text, String voice, double speed) {}
+  record TtsBody(String text, String voice, double speed, List<WorkerSpeechPhrase> phrases) {
+    TtsBody(String text, String voice, double speed) {
+      this(text, voice, speed, List.of());
+    }
+  }
 
   record MemoryBody(WorkerNpc npc, String outcome, List<WorkerLine> history, Object memoryCard) {}
 
   record RelationshipBody(
       WorkerNpc npc, WorkerRelationship relationship, List<WorkerLine> history) {}
 
-  record FollowUpBody(WorkerNpc npc, List<WorkerLine> history) {}
+  record FollowUpBody(WorkerNpc npc, List<WorkerLine> history, String kind) {}
 
-  record MemoryEnvelope(List<WorkerUsage> usage) {}
+  record MemoryEnvelope(Integer affinityDelta, List<WorkerUsage> usage) {}
 
   record DoneEvent(
       String text,
@@ -521,9 +602,14 @@ class AiWorkerClient {
       Double firstTokenS,
       Double totalS,
       Double audioFullS,
-      List<WorkerUsage> usage) {}
+      List<WorkerUsage> usage,
+      List<WorkerSpeechPhrase> speechPhrases) {}
 
   record ErrorEvent(String code, List<WorkerUsage> usage) {}
+
+  record DeltaEvent(String text) {}
+
+  record AudioEvent(int seq, String text, String audioId) {}
 
   record FeedbackEnvelope(FeedbackBody feedback, List<WorkerUsage> usage) {}
 

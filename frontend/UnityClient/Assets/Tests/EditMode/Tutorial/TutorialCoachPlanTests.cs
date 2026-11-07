@@ -104,14 +104,13 @@ namespace A305.Tutorial.Tests
         [Test]
         public void BenDialogue_StartsWithAStepByStepTour_ThenGuidesTheLine()
         {
-            // 대화를 시작하면 무엇부터 볼지 대사 → [뜻]·[예시 문장] → 추천 단어 → 추천 문장 순서로 하나씩 밝히고,
+            // 대화를 시작하면 무엇부터 볼지 대사 → [뜻]·[예시 문장] → 추천 단어 순서로 하나씩 밝히고,
             // [다음]으로 다 보면 말하거나 입력할 대사를 알린다.
             TutorialCoachTarget[] expected =
             {
                 TutorialCoachTarget.DialogueLines,
                 TutorialCoachTarget.DialogueTools,
                 TutorialCoachTarget.SuggestedWords,
-                TutorialCoachTarget.SuggestedSentence,
                 TutorialCoachTarget.GuidedLine,
             };
             for (int tourStep = 0; tourStep < expected.Length; tourStep++)
@@ -128,13 +127,37 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
+        public void AfterGreeting_ExplainsRelationshipBeforeContinuingDirections()
+        {
+            var screen = new TutorialScreen { IsTalking = true, GuidedTurnIndex = 1 };
+            Assert.That(
+                Choose(TutorialStep.BenDialogue, screen),
+                Is.EqualTo(TutorialCoachTarget.DialogueRelationship)
+            );
+            Assert.That(
+                TutorialCoachPlan.IsTour(TutorialCoachTarget.DialogueRelationship),
+                Is.True
+            );
+            screen.RelationshipExplained = true;
+            Assert.That(
+                Choose(TutorialStep.BenDialogue, screen),
+                Is.EqualTo(TutorialCoachTarget.GuidedLine)
+            );
+        }
+
+        [Test]
         public void BenDialogue_AfterTheFirstLine_OnlyGuidesTheLine()
         {
             // 첫 대사를 보냈으면(티칭 중에 보냈어도) 남은 대사는 할 대사만 알린다.
             Assert.That(
                 Choose(
                     TutorialStep.BenDialogue,
-                    new TutorialScreen { IsTalking = true, GuidedTurnIndex = 1 }
+                    new TutorialScreen
+                    {
+                        IsTalking = true,
+                        GuidedTurnIndex = 1,
+                        RelationshipExplained = true,
+                    }
                 ),
                 Is.EqualTo(TutorialCoachTarget.GuidedLine)
             );
@@ -148,6 +171,7 @@ namespace A305.Tutorial.Tests
             {
                 IsTalking = true,
                 GuidedTurnIndex = 1,
+                RelationshipExplained = true,
                 IsVoiceLightOn = true,
             };
             Assert.That(
@@ -178,6 +202,7 @@ namespace A305.Tutorial.Tests
             {
                 IsTalking = true,
                 GuidedTurnIndex = 1,
+                RelationshipExplained = true,
                 IsVoiceLightOn = true,
             };
 

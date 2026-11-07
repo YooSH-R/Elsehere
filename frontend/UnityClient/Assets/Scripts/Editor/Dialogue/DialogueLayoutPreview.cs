@@ -20,6 +20,33 @@ namespace A305.EditorTools.Dialogue
     /// <summary>실제 NPC와 고정 대본으로 대화 구도·도움말 배치를 확인한다. Play·모델 호출 없음.</summary>
     public static class DialogueLayoutPreview
     {
+        public static void CaptureTranslation()
+        {
+            DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
+            var content = new WordPreviewContent { UserTranslation = "Where is the cafe?" };
+            view.Show(content);
+            SelectTheme(UiThemeId.Jelly);
+            string output = OutputFolder();
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "translation-wide.png"),
+                1920,
+                1080
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "translation-portrait.png"),
+                900,
+                1400
+            );
+        }
+
         public static void Capture()
         {
             string output = OutputFolder();
@@ -158,7 +185,7 @@ namespace A305.EditorTools.Dialogue
         }
 
         // 카페 씬의 대화 화면만 켜고 카메라 앞에 그린다. 플레이어 모델은 숨긴다.
-        private static DialoguePanelView OpenCafe(
+        internal static DialoguePanelView OpenCafe(
             out Camera camera,
             out Vector3 eye,
             out Vector3 face
@@ -195,13 +222,11 @@ namespace A305.EditorTools.Dialogue
             return view;
         }
 
-        // 서버 대화처럼 추천 단어·문장, 상태 줄과 [말하기]·[다시 듣기]·[힌트]를 채운다.
+        // 서버 대화처럼 추천 단어, 상태 줄과 [말하기]·[다시 듣기]·[힌트]를 채운다.
         private static void FillHelp(DialoguePanelView view)
         {
             Field<TMP_Text>(view, "suggestText").text =
                 "• iced latte\n• oat milk\n• for here\n• to go";
-            Field<TMP_Text>(view, "hintText").text =
-                "Could I have an iced latte with oat milk, please?";
             Field<TMP_Text>(view, "statusText").text = "Mia가 듣고 있어요";
             Field<MonoBehaviour>(view, "talkButton").gameObject.SetActive(true);
             Field<Button>(view, "replayButton").gameObject.SetActive(true);
@@ -259,12 +284,21 @@ namespace A305.EditorTools.Dialogue
             var pixels = new Texture2D(width, height, TextureFormat.RGB24, false);
             camera.targetTexture = target;
             camera.aspect = (float)width / height;
+            var settings = AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>(
+                "Assets/Data/Cafe/CafeCameraSettings.asset"
+            );
+            eye = DialogueFraming.CameraPosition(
+                face,
+                eye,
+                settings.DialogueDistanceMeters,
+                settings.DialogueHeightOffsetMeters
+            );
             Pose pose = DialogueFraming.Pose(
                 eye,
                 face,
                 camera.fieldOfView,
                 camera.aspect,
-                new Vector2(.64f, .66f)
+                settings.DialogueFacePosition
             );
             camera.transform.SetPositionAndRotation(pose.position, pose.rotation);
             camera.Render();
@@ -316,8 +350,16 @@ namespace A305.EditorTools.Dialogue
                 Question,
             };
 
+            public string UserTranslation { get; set; }
             public string NpcName => "Mia";
-            public IReadOnlyList<DialogueLine> Lines => lines;
+            public IReadOnlyList<DialogueLine> Lines =>
+                UserTranslation == null
+                    ? lines
+                    : new[]
+                    {
+                        DialogueLine.FromUser("카페 어디야?"),
+                        DialogueLine.FromNpc("It is on your right.", null),
+                    };
             public DialogueLine LastNpcLine => Question;
             public bool IsGuided => false;
             public bool IsGuidedCompleted => false;

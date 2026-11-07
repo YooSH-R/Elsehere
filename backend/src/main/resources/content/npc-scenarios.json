@@ -6,7 +6,8 @@
     "facts": [
       "One claw machine game is $1.",
       "Paper & Leaf Books, a separate bookshop, is upstairs.",
-      "The post office is right across the main street."
+      "The post office is right across the main street.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "BAKERY_STAFF": {
@@ -17,7 +18,8 @@
       "A loaf of bread is $4, a croissant is $3 and a slice of chocolate cake is $5.",
       "Coffee is $2.",
       "There are tables upstairs on the second floor for eating in.",
-      "Maple Bakery is next to the post office."
+      "Maple Bakery is next to the post office.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "BANK_STAFF": {
@@ -25,10 +27,11 @@
     "locationId": "TOWN",
     "situation": "The customer is at the teller window of Town Bank on the town's main street. There is an ATM just inside the entrance on the left and a few chairs to wait on.",
     "facts": [
-      "At the teller window, Henry can help with deposits and withdrawals.",
+      "At the teller window, The staff member on duty can help with deposits and withdrawals.",
       "Opening a new account needs a photo ID.",
       "The ATM is inside the bank, just inside the entrance on the left.",
-      "Suds Laundromat is right across the main street."
+      "Suds Laundromat is right across the main street.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "BARBER_STAFF": {
@@ -38,7 +41,8 @@
     "facts": [
       "A haircut is $20. A shave is $10.",
       "No appointment is needed. One chair is free right now.",
-      "Bloom Flowers is right across the main street."
+      "Bloom Flowers is right across the main street.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "CAFE_BARISTA": {
@@ -88,34 +92,42 @@
       "Breakfast is served all day.",
       "Menu: pancakes $7, cheeseburger $9, apple pie $4, coffee $2.",
       "Coffee refills are free.",
-      "Home & Living is right across the main street."
+      "Home & Living is right across the main street.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "FIRE_CAPTAIN": {
-    "scenarioId": "town_street",
+    "scenarioId": "diner_counter",
     "locationId": "TOWN",
-    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "situation": "The customer has just sat down on a stool at the long counter of Maple Diner on the town's main street. There are booths along the other wall and a menu board on the back wall.",
     "facts": [
-      "The other person lives in this town.",
-      "The corner cafe and the hotel are on the main street, right across from each other."
+      "Breakfast is served all day.",
+      "Menu: pancakes $7, cheeseburger $9, apple pie $4, coffee $2.",
+      "Coffee refills are free.",
+      "Home & Living is right across the main street.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "FIRE_FIGHTER": {
-    "scenarioId": "town_street",
+    "scenarioId": "laundromat",
     "locationId": "TOWN",
-    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "situation": "The customer has just walked into Suds Laundromat, a self-service laundromat on the town's main street. There are washing machines along the left wall, dryers on the back wall and a folding table in the middle. Customers operate the machines themselves; Gus can explain how to use them, but does not take clothes for a drop-off or pickup service.",
     "facts": [
-      "The other person lives in this town.",
-      "The corner cafe and the hotel are on the main street, right across from each other."
+      "A wash is $3 and a dryer is $2.",
+      "A wash takes about 30 minutes and drying takes about 40 minutes.",
+      "Town Bank is right across the main street.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "FIRE_ROOKIE": {
-    "scenarioId": "town_street",
+    "scenarioId": "barber_shop",
     "locationId": "TOWN",
-    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "situation": "The customer has just walked into Main St. Barber on the town's main street. There are two barber chairs in front of a long mirror and a sofa for waiting.",
     "facts": [
-      "The other person lives in this town.",
-      "The corner cafe and the hotel are on the main street, right across from each other."
+      "A haircut is $20. A shave is $10.",
+      "No appointment is needed. One chair is free right now.",
+      "Bloom Flowers is right across the main street.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "FLOWER_SHOP_STAFF": {
@@ -125,8 +137,9 @@
     "facts": [
       "Today's fresh flowers are roses, tulips, sunflowers and daisies.",
       "A single flower is $2. A bouquet is $15.",
-      "Lily can wrap any flowers in paper with a ribbon.",
-      "Main St. Barber is right across the main street."
+      "The staff member on duty can wrap any flowers in paper with a ribbon.",
+      "Main St. Barber is right across the main street.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "HOME_STORE_STAFF": {
@@ -136,7 +149,8 @@
     "facts": [
       "A lamp is $30. An armchair is $150.",
       "Leaf Tea Room, a separate shop, is upstairs. Its entrance is by the outside stairs.",
-      "Maple Diner is right across the main street."
+      "Maple Diner is right across the main street.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "HOTEL_BELLHOP": {
@@ -150,13 +164,15 @@
     ]
   },
   "HOTEL_CONCIERGE": {
-    "scenarioId": "hotel_front_desk",
-    "locationId": "HOTEL",
-    "situation": "The guest is at the front desk of the hotel lobby.",
+    "scenarioId": "flower_shop_counter",
+    "locationId": "TOWN",
+    "situation": "The customer is at the counter at the back of Bloom Flowers on the town's main street. Fresh cut flowers stand in buckets on steps along both walls.",
     "facts": [
-      "Check-in is from 3 p.m. Check-out is by 11 a.m.",
-      "There is a reservation under the guest's name: a standard room for one night, already paid.",
-      "Their room is 305 on the third floor. The elevators are in the lobby."
+      "Today's fresh flowers are roses, tulips, sunflowers and daisies.",
+      "A single flower is $2. A bouquet is $15.",
+      "The staff member on duty can wrap any flowers in paper with a ribbon.",
+      "Main St. Barber is right across the main street.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "HOTEL_NIGHT_MANAGER": {
@@ -192,11 +208,12 @@
   "LAUNDROMAT_STAFF": {
     "scenarioId": "laundromat",
     "locationId": "TOWN",
-    "situation": "The customer has just walked into Suds Laundromat on the town's main street. There are washing machines along the left wall, dryers on the back wall and a folding table in the middle.",
+    "situation": "The customer has just walked into Suds Laundromat, a self-service laundromat on the town's main street. There are washing machines along the left wall, dryers on the back wall and a folding table in the middle. Customers operate the machines themselves; Gus can explain how to use them, but does not take clothes for a drop-off or pickup service.",
     "facts": [
       "A wash is $3 and a dryer is $2.",
       "A wash takes about 30 minutes and drying takes about 40 minutes.",
-      "Town Bank is right across the main street."
+      "Town Bank is right across the main street.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "POLICE_OFFICER": {
@@ -209,12 +226,15 @@
     ]
   },
   "POLICE_PATROL_OFFICER": {
-    "scenarioId": "police_front_desk",
+    "scenarioId": "bakery_counter",
     "locationId": "TOWN",
-    "situation": "The visitor is at the front desk of the small police station at the south end of the town's main street. A patrol car is parked right next to the station.",
+    "situation": "The customer is at the counter of Maple Bakery on the town's main street. Bread, croissants and chocolate cake are in the display case.",
     "facts": [
-      "The patrol car can drive to any building on the main street: the cafe, the hotel, the drugstore, the post office, the diner, the bank, the laundromat, the flower shop, the barber shop and the visitor's home.",
-      "If the visitor does not say where it happened, the patrol car drives once around the main street."
+      "A loaf of bread is $4, a croissant is $3 and a slice of chocolate cake is $5.",
+      "Coffee is $2.",
+      "There are tables upstairs on the second floor for eating in.",
+      "Maple Bakery is next to the post office.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "POLICE_ROOKIE": {
@@ -241,8 +261,9 @@
     "situation": "The customer is at the counter of the small post office on the town's main street. There is a scale for packages on the counter and a wall of PO boxes.",
     "facts": [
       "A stamp for a letter is $1. Sending a package is $5.",
-      "Linda weighs every package on the scale before sending it.",
-      "The post office is between Maple Bakery and Home & Living. Little Arcade is right across the main street."
+      "The staff member on duty weighs every package on the scale before sending it.",
+      "The post office is between Maple Bakery and Home & Living. Little Arcade is right across the main street.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "SHOP_NIGHT_CLERK": {
@@ -281,12 +302,15 @@
     ]
   },
   "TOWN_EVENING_WALKER": {
-    "scenarioId": "town_street",
+    "scenarioId": "bank_counter",
     "locationId": "TOWN",
-    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "situation": "The customer is at the teller window of Town Bank on the town's main street. There is an ATM just inside the entrance on the left and a few chairs to wait on.",
     "facts": [
-      "The other person lives in this town.",
-      "The corner cafe and the hotel are on the main street, right across from each other."
+      "At the teller window, The staff member on duty can help with deposits and withdrawals.",
+      "Opening a new account needs a photo ID.",
+      "The ATM is inside the bank, just inside the entrance on the left.",
+      "Suds Laundromat is right across the main street.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "TOWN_GRANDFATHER": {
@@ -308,12 +332,14 @@
     ]
   },
   "TOWN_HANDYMAN": {
-    "scenarioId": "town_street",
+    "scenarioId": "home_store",
     "locationId": "TOWN",
-    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "situation": "The customer is looking around Home & Living, the furniture and home goods store on the town's main street. Armchairs, lamps, cabinets and nightstands are on display.",
     "facts": [
-      "The other person lives in this town.",
-      "The corner cafe and the hotel are on the main street, right across from each other."
+      "A lamp is $30. An armchair is $150.",
+      "Leaf Tea Room, a separate shop, is upstairs. Its entrance is by the outside stairs.",
+      "Maple Diner is right across the main street.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "TOWN_PASSERBY": {
@@ -326,30 +352,37 @@
     ]
   },
   "TOWN_RETIREE": {
-    "scenarioId": "town_street",
+    "scenarioId": "post_office_counter",
     "locationId": "TOWN",
-    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "situation": "The customer is at the counter of the small post office on the town's main street. There is a scale for packages on the counter and a wall of PO boxes.",
     "facts": [
-      "The other person lives in this town.",
-      "The corner cafe and the hotel are on the main street, right across from each other."
+      "A stamp for a letter is $1. Sending a package is $5.",
+      "The staff member on duty weighs every package on the scale before sending it.",
+      "The post office is between Maple Bakery and Home & Living. Little Arcade is right across the main street.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "TOWN_SHOPPER": {
-    "scenarioId": "town_street",
+    "scenarioId": "bank_counter",
     "locationId": "TOWN",
-    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "situation": "The customer is at the teller window of Town Bank on the town's main street. There is an ATM just inside the entrance on the left and a few chairs to wait on.",
     "facts": [
-      "The other person lives in this town.",
-      "The corner cafe and the hotel are on the main street, right across from each other."
+      "At the teller window, The staff member on duty can help with deposits and withdrawals.",
+      "Opening a new account needs a photo ID.",
+      "The ATM is inside the bank, just inside the entrance on the left.",
+      "Suds Laundromat is right across the main street.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   },
   "TOWN_STUDENT": {
-    "scenarioId": "town_street",
+    "scenarioId": "arcade",
     "locationId": "TOWN",
-    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "situation": "The visitor has just walked into Little Arcade on the town's main street. There are claw machines with stuffed bears and rabbits inside.",
     "facts": [
-      "The other person lives in this town.",
-      "The corner cafe and the hotel are on the main street, right across from each other."
+      "One claw machine game is $1.",
+      "Paper & Leaf Books, a separate bookshop, is upstairs.",
+      "The post office is right across the main street.",
+      "This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here."
     ]
   }
 }

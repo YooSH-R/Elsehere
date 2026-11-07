@@ -21,6 +21,24 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SecuredWebMvcTest(controllers = TownStoryController.class)
 class TownStoryControllerTest {
+  @Test
+  void mealReceiptRequiresLoginAndCsrfHeader() throws Exception {
+    mvc.perform(
+            post("/api/v1/missions/town-story/diner-meal")
+                .header("X-Requested-With", "ElsehereClient"))
+        .andExpect(status().isUnauthorized());
+    var auth =
+        UsernamePasswordAuthenticationToken.authenticated(new LoginUser(8L), null, List.of());
+    mvc.perform(post("/api/v1/missions/town-story/diner-meal").with(authentication(auth)))
+        .andExpect(status().isForbidden());
+    mvc.perform(
+            post("/api/v1/missions/town-story/diner-meal")
+                .with(authentication(auth))
+                .header("X-Requested-With", "ElsehereClient"))
+        .andExpect(status().isOk());
+    org.mockito.Mockito.verify(service).receiveDinerMeal(8L);
+  }
+
   @Autowired private MockMvc mvc;
   @MockitoBean private TownStoryService service;
 

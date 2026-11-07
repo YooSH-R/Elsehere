@@ -44,6 +44,11 @@ def test_need_rates_come_from_the_personality_and_default_to_one():
     assert jake["needRates"] == {need: rates.get(need, 1) for need in NEEDS}
 
 
+def test_street_staff_keeps_its_workplace_separate_from_the_town_scene():
+    assert exported("BANK_STAFF")["workplace"] == "BANK"
+    assert exported("BANK_STAFF")["scene"] == "TOWN"
+
+
 def test_shared_rules_are_copied_as_they_are_with_the_simulation_threshold():
     data, rules = npc_life_export.unity_life_data(), service_rules()
 
@@ -67,8 +72,21 @@ def test_place_hours_list_every_place_in_the_rules_order():
     assert [place["code"] for place in places] == list(service_rules()["places"])
 
 
-def test_a_place_with_hours_gives_them_and_a_place_without_is_always_open():
-    """Unity JsonUtility는 없는 칸을 구분하기 어려워, 24시간 여는 곳도 같은 모양으로 두고 시각을 비운다."""
+def test_every_service_place_is_exported_as_always_open():
+    """Unity JsonUtility가 읽을 수 있게 24시간 영업 장소도 빈 시각 칸을 내보낸다."""
+    places = npc_life_export.unity_place_hours()["places"]
+
+    assert all(place["alwaysOpen"] and place["from"] == place["to"] == "" for place in places)
+
+
+def test_a_place_with_hours_exports_its_time_window(tmp_path, monkeypatch):
+    """서비스는 모두 24시간 영업이지만, 영업시간을 지정하는 데이터 계약은 유지한다."""
+    rules = service_rules()
+    rules["places"]["CAFE"]["hours"] = {"from": "07:00", "to": "21:00"}
+    rules_file = tmp_path / "world-rules.json"
+    rules_file.write_text(json.dumps(rules), encoding="utf-8")
+    monkeypatch.setattr(npc_life_rules, "WORLD_RULES", rules_file)
+
     places = {place["code"]: place for place in npc_life_export.unity_place_hours()["places"]}
 
     assert places["CAFE"] == {"code": "CAFE", "alwaysOpen": False, "from": "07:00", "to": "21:00"}

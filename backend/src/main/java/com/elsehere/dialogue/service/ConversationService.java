@@ -30,11 +30,17 @@ import com.elsehere.mission.service.MissionDialogueService;
 import com.elsehere.onboarding.entity.UserLanguageProfile;
 import com.elsehere.onboarding.entity.UserLanguageProfileId;
 import com.elsehere.onboarding.repository.UserLanguageProfileRepository;
+import com.elsehere.review.dto.ReviewCardResponse;
+import com.elsehere.review.service.ReviewCardService;
+import com.elsehere.review.service.ReviewPracticeResults;
 import com.elsehere.user.entity.User;
 import com.elsehere.user.repository.UserRepository;
+import com.elsehere.world.service.PoliceOfficers;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -49,8 +55,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * <p>NPC가 대화에서 곧 건네기로 한 것은 종료할 때 판정해 응답에 담고, 준비된 뒤 그 NPC와 대화를 시작하면 첫마디로 건넨다({@link
  * FollowUpService}).
  *
- * <p>AI를 부르는 동안 DB 트랜잭션을 잡지 않도록 조회 → AI 호출 → 저장을 나눠 처리한다. 게스트는 대화 횟수로 제한한다. 사용자 AI 한도 예약·차감은 아직 하지
- * 않는다.
+ * <p>AI를 부르는 동안 DB 트랜잭션을 잡지 않도록 조회 → AI 호출 → 저장을 나눠 처리한다. 모든 계정은 하루 대화 시작 횟수가 제한된다.
  */
 @Slf4j
 @Service
@@ -60,24 +65,36 @@ public class ConversationService {
   // 직원의 첫 인사는 AI로 만든다(API 명세 [미정]). 학습자는 아직 말하지 않았으므로 다가온 상황만 알려 준다.
   private static final String GREETING_TEXT = "(The learner walks up to you.)";
   private static final String GREETING_INSTRUCTION =
-      "The learner just walked up to you. Greet them first and ask how you can help, "
-          + "like you would in your role. 1 short sentence.";
+      "The learner just walked up to you. Open in your own voice, following your personality, "
+          + "first-meeting behavior, familiarity and current situation. If you are a passerby, react "
+          + "as a local approached by someone, not a shop assistant: you may ask what brings them "
+          + "over, cautiously or warmly as fits your character. Only offer service if you are "
+          + "actually serving customers now. Give them an easy conversational opening. 1 or 2 short sentences.";
 
   // 미션 지시에는 학습자가 할 일과 NPC가 해 줄 수 있는 일이 담겨 있다. 첫 인사에서 이를 먼저 다 말하면 학습자가 요청할 일이 사라진다.
   private static final String MISSION_GREETING =
-      " Greet the learner and ask how you can help in one short sentence for this situation."
+      " Welcome the learner in your own voice, following your personality and first-meeting behavior. Invite their request in one short sentence for this situation."
           + " Do not mention the learner's tasks, your offers or directions yet; wait for the learner to ask."
           + " Do not assume their task is complete.";
 
   // 근무 시간이 아닌 NPC는 손님을 맞지 않으므로 무엇을 도와줄지 묻지 않고 쉬는 중에 만난 사람처럼 인사한다.
   private static final String OFF_DUTY_GREETING_INSTRUCTION =
       "The learner just walked up to you while you are off work. Greet them casually, the way"
-          + " you would in your free time. Do not offer to help or serve them. 1 short sentence.";
+          + " you would in your free time, following your personality, familiarity and first-meeting "
+          + "behavior. You may share a small observation or ask what brings them over. "
+          + "Do not offer to help or serve them. 1 or 2 short sentences.";
   // 준비된 것을 건네는 첫마디. 학습자는 아직 말하지 않았으므로 NPC가 먼저 부른다.
   private static final String HANDOVER_TEXT = "(The learner is waiting nearby for their order.)";
   private static final String HANDOVER_INSTRUCTION =
       "The %s the learner asked you for is ready now. Call them and hand it over warmly in your own"
           + " way, in one or two short sentences. Do not ask them to order again.";
+  // 경찰관이 신고를 받아 직접 순찰차로 다녀온 결과(PoliceDesk, FollowUpService). 학습자의 물건을 찾았으면 돌려준다.
+  private static final String POLICE_CALL_TEXT =
+      "(The learner who reported the trouble is back at the police station.)";
+  private static final String POLICE_CALL_INSTRUCTION =
+      "You are back from the call the learner reported, and this is how it ended: %s. Tell them in"
+          + " your own way in one or two short sentences, and if you found something of theirs,"
+          + " hand it back. Do not ask them to report it again.";
 
   private final ConversationRepository conversationRepository;
   private final TurnRepository turnRepository;
@@ -95,17 +112,48 @@ public class ConversationService {
   private final Clock clock;
   private final MissionDialogueService missionDialogueService;
   private final GuestConversationLimit guestConversationLimit;
+  private final DialogueRequestLocks requestLocks;
+  private final ReviewCardService reviewCardService;
+  private final ReviewDialogue reviewDialogue;
+  private final ReviewPracticeResults reviewPracticeResults;
 
   public ConversationStartResponse start(Long userId, StartConversationRequest request) {
+    return requestLocks.execute(
+        userId, request.requestId(), () -> startOnce(userId, request, null));
+  }
+
+  public ConversationStartResponse startReview(Long userId, Long cardId, UUID requestId) {
+    return requestLocks.execute(
+        userId,
+        requestId,
+        () -> {
+          ReviewCardResponse review = reviewCardService.detail(userId, cardId);
+          boolean offDuty =
+              transactionTemplate.execute(
+                  status ->
+                      conversationLookup
+                          .ownedConversation(userId, review.sourceConversationId())
+                          .isNpcOffDuty());
+          return startOnce(
+              userId,
+              new StartConversationRequest(
+                  requestId, review.npc().npcCode(), InitiatedBy.USER, offDuty),
+              review);
+        });
+  }
+
+  private ConversationStartResponse startOnce(
+      Long userId, StartConversationRequest request, ReviewCardResponse review) {
     // 응답을 받지 못해 같은 요청을 다시 보내면 새로 만들지 않고 처음 시작한 대화를 돌려준다(CONV-03과 같은 방식).
     Optional<ConversationStartResponse> replayed =
-        transactionTemplate.execute(status -> replay(userId, request.requestId()));
+        transactionTemplate.execute(
+            status -> replay(userId, request.requestId(), review == null ? null : review.id()));
     if (replayed.isPresent()) {
       return replayed.get();
     }
     StartContext context =
         transactionTemplate.execute(
-            status -> startContext(userId, request.npcCode(), request.npcOffDuty()));
+            status -> startContext(userId, request.npcCode(), request.npcOffDuty(), review));
     NpcContext npc = context.npc();
 
     // 이 NPC가 건넬 것이 준비됐으면 건네는 말로 시작한다. 말걸기 대사가 있는 NPC가 먼저 말을 걸었으면 그 대사로 시작한다.
@@ -116,15 +164,23 @@ public class ConversationService {
             .followUp()
             .map(
                 ready ->
-                    greetingOpening(
-                        trace,
-                        npc,
-                        context,
-                        HANDOVER_TEXT,
-                        HANDOVER_INSTRUCTION.formatted(ready.item())))
+                    PoliceOfficers.includes(npc.summary().npcCode())
+                        ? greetingOpening(
+                            trace,
+                            npc,
+                            context,
+                            POLICE_CALL_TEXT,
+                            POLICE_CALL_INSTRUCTION.formatted(ready.item()))
+                        : greetingOpening(
+                            trace,
+                            npc,
+                            context,
+                            HANDOVER_TEXT,
+                            HANDOVER_INSTRUCTION.formatted(ready.item())))
             .orElseGet(
                 () ->
-                    context.mission().isEmpty()
+                    context.review() == null
+                            && context.mission().isEmpty()
                             && !request.npcOffDuty()
                             && request.initiatedBy() == InitiatedBy.NPC
                             && npc.approachLine() != null
@@ -145,11 +201,15 @@ public class ConversationService {
                       .findForUpdate(userId)
                       .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
               // 같은 요청 ID의 재요청이 먼저 저장했으면 거절하지 않고 그 대화를 돌려준다.
-              Optional<ConversationStartResponse> saved = replay(userId, request.requestId());
+              Optional<ConversationStartResponse> saved =
+                  replay(userId, request.requestId(), review == null ? null : review.id());
               if (saved.isPresent()) {
                 return new Started(saved.get(), false);
               }
               ensureCanStart(user);
+              if (review != null) {
+                reviewCardService.lockForStart(userId, review.id());
+              }
               Conversation conversation =
                   conversationRepository.save(
                       Conversation.start(
@@ -159,6 +219,9 @@ public class ConversationService {
                           context.level(),
                           clock.instant()));
               conversation.attachStartRequest(request.requestId());
+              if (review != null) {
+                conversation.attachReviewCard(review.id());
+              }
               if (request.npcOffDuty()) {
                 conversation.markNpcOffDuty();
               }
@@ -178,6 +241,7 @@ public class ConversationService {
                   turnRepository.save(
                       Turn.npc(
                           conversation, 1, opening.text(), opening.npcAudioKey(), clock.instant()));
+              openingTurn.attachSpeechPhrases(opening.speechPhrases());
               Long deliveredFollowUpId =
                   context
                       .followUp()
@@ -202,12 +266,14 @@ public class ConversationService {
   }
 
   // 같은 요청 ID로 이미 시작한 대화의 시작 응답. 다른 사용자의 요청 ID면 REQUEST_ID_CONFLICT다.
-  private Optional<ConversationStartResponse> replay(Long userId, UUID requestId) {
+  private Optional<ConversationStartResponse> replay(
+      Long userId, UUID requestId, Long reviewCardId) {
     return conversationRepository
         .findByRequestId(requestId)
         .map(
             conversation -> {
-              if (!conversation.getUserId().equals(userId)) {
+              if (!conversation.getUserId().equals(userId)
+                  || !Objects.equals(conversation.getReviewCardId(), reviewCardId)) {
                 throw new BusinessException(ErrorCode.REQUEST_ID_CONFLICT);
               }
               Turn openingTurn =
@@ -218,7 +284,9 @@ public class ConversationService {
                   conversation,
                   dialogueContexts.npcById(conversation.getNpcId()),
                   openingTurn,
-                  followUpService.deliveredIn(conversation.getId()).orElse(null));
+                  conversation.isReview()
+                      ? null
+                      : followUpService.deliveredIn(conversation.getId()).orElse(null));
             });
   }
 
@@ -232,7 +300,8 @@ public class ConversationService {
         List.of(),
         conversationResponses.npcTurn(openingTurn),
         conversationResponses.state(conversation),
-        deliveredFollowUpId);
+        deliveredFollowUpId,
+        conversation.getReviewCardId());
   }
 
   /**
@@ -242,6 +311,9 @@ public class ConversationService {
   public EndConversationResponse end(
       Long userId, Long conversationId, EndConversationRequest request) {
     EndConversationResponse ended = endConversation(userId, conversationId);
+    if (ended.reviewCardId() != null) {
+      return ended;
+    }
     // 기억 카드 갱신은 따로 실행되어 피드백 생성과 함께 진행된다. 실패해도 종료·피드백에 영향이 없다.
     memoryService.updateAfterConversation(userId, conversationId, request.requestId());
     // 건넬 것 판정도 따로 실행해 피드백을 만드는 동안 끝낸다. 실패하면 없는 것으로 본다.
@@ -250,15 +322,23 @@ public class ConversationService {
     FeedbackResponse feedback =
         feedbackService.feedbackOnEnd(
             userId, conversationId, request.requestId(), request.skipFeedback());
-    return ended.withFeedback(feedback).withFollowUp(followUp.join().orElse(null));
+    return ended
+        .withFeedback(feedback)
+        .withDetailedFeedback(
+            feedback.status() == com.elsehere.feedback.entity.FeedbackStatus.DONE
+                ? feedbackService.detailed(userId, conversationId).items()
+                : List.of())
+        .withFollowUp(followUp.join().orElse(null));
   }
 
   private EndConversationResponse endConversation(Long userId, Long conversationId) {
     return transactionTemplate.execute(
         status -> {
-          Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
+          Conversation conversation =
+              conversationLookup.ownedConversationForUpdate(userId, conversationId);
           boolean endingNow = conversation.isActive();
-          conversation.endByUser(clock.instant());
+          Instant now = clock.instant();
+          conversation.endByUser(now);
           NpcContext npc = dialogueContexts.npcById(conversation.getNpcId());
           long userTurnCount =
               turnRepository.countByConversationIdAndSpeaker(conversationId, Speaker.USER);
@@ -272,16 +352,21 @@ public class ConversationService {
                 userTurnCount);
           }
           return new EndConversationResponse(
-              conversation.getId(),
-              conversation.getStatus(),
-              conversation.getEndReason(),
-              ConversationResponses.toOffset(conversation.getEndedAt()),
-              npc.summary(),
-              npc.sceneCode(),
-              userTurnCount,
-              null,
-              List.of(),
-              null);
+                  conversation.getId(),
+                  conversation.getStatus(),
+                  conversation.getEndReason(),
+                  ConversationResponses.toOffset(conversation.getEndedAt()),
+                  npc.summary(),
+                  npc.sceneCode(),
+                  userTurnCount,
+                  null,
+                  List.of(),
+                  null,
+                  conversation.getReviewCardId())
+              .withReviewResult(
+                  conversation.isReview()
+                      ? reviewPracticeResults.record(userId, conversation)
+                      : null);
         });
   }
 
@@ -301,13 +386,14 @@ public class ConversationService {
                 .map(conversationResponses::detail));
   }
 
-  private StartContext startContext(Long userId, String npcCode, boolean npcOffDuty) {
+  private StartContext startContext(
+      Long userId, String npcCode, boolean npcOffDuty, ReviewCardResponse review) {
     User user =
         userRepository
             .findById(userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     ensureCanStart(user);
-    NpcContext npc = dialogueContexts.npcByCode(npcCode, npcOffDuty);
+    NpcContext npc = dialogueContexts.npcByCode(userId, npcCode, npcOffDuty);
     if (!npc.sceneOpen()) {
       throw new BusinessException(ErrorCode.SCENE_CLOSED);
     }
@@ -315,12 +401,13 @@ public class ConversationService {
         npc,
         dialogueContexts.learner(user),
         selectedLevel(user),
-        memoryService.memoryFor(userId, npc.npcId()),
-        missionDialogueService.context(userId, npcCode),
-        followUpService.readyFor(userId, npc.npcId()));
+        review == null ? memoryService.memoryFor(userId, npc.npcId()) : null,
+        review == null ? missionDialogueService.context(userId, npcCode) : Optional.empty(),
+        review == null ? followUpService.readyFor(userId, npc.npcId()) : Optional.empty(),
+        review);
   }
 
-  // 진행 중인 대화가 없고 게스트 대화 횟수가 남아 있어야 시작할 수 있다. AI 호출 전과 저장 직전에 두 번 확인한다.
+  // 진행 중인 대화가 없고 오늘의 대화 횟수가 남아 있어야 시작할 수 있다. AI 호출 전과 저장 직전에 확인한다.
   private void ensureCanStart(User user) {
     conversationRepository
         .findFirstByUserIdAndStatus(user.getId(), ConversationStatus.ACTIVE)
@@ -343,7 +430,7 @@ public class ConversationService {
 
   // 행인 말걸기에 응답하면 이미 보여 준 말걸기 대사를 첫 턴으로 저장하고 AI를 부르지 않는다.
   private Opening approachOpening(NpcContext npc) {
-    return new Opening(npc.approachLine(), npc.approachAudioKey());
+    return new Opening(npc.approachLine(), npc.approachAudioKey(), null);
   }
 
   private Opening greetingOpening(
@@ -358,12 +445,19 @@ public class ConversationService {
             instruction,
             context.level(),
             context.learner());
-    return new Opening(reply.text(), npcAudioReceiver.save(trace, reply.audioFullId()));
+    return new Opening(
+        reply.text(),
+        npcAudioReceiver.save(trace, reply.audioFullId()),
+        conversationResponses.writeSpeechPhrases(reply.speechPhrases()));
   }
 
   // 첫날 미션 단계의 NPC는 미션 지시대로 인사한다. 미션 NPC가 근무 시간이 아닐 때 미션을 어떻게 할지는 아직 정하지 않아
   // (docs/npc-life-design.md 11절 "교대와 첫날 미션") 지금은 미션 지시를 따른다.
-  private static String greetingInstruction(StartContext context, boolean npcOffDuty) {
+  private String greetingInstruction(StartContext context, boolean npcOffDuty) {
+    if (context.review() != null) {
+      return reviewDialogue.instruction(context.review())
+          + " Open with one brief welcome and let the learner make their request.";
+    }
     return context
         .mission()
         .map(value -> value.detail().instruction() + MISSION_GREETING)
@@ -381,9 +475,10 @@ public class ConversationService {
       int level,
       WorkerMemory memory,
       Optional<MissionDialogueService.Context> mission,
-      Optional<FollowUpService.ReadyFollowUp> followUp) {}
+      Optional<FollowUpService.ReadyFollowUp> followUp,
+      ReviewCardResponse review) {}
 
-  private record Opening(String text, String npcAudioKey) {}
+  private record Opening(String text, String npcAudioKey, String speechPhrases) {}
 
   /**
    * @param created 이번 요청이 대화를 새로 만들었는지. 같은 요청 ID로 이미 만든 대화를 돌려주면 false

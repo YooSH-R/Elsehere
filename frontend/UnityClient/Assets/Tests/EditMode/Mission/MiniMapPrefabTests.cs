@@ -20,6 +20,19 @@ namespace A305.Mission.Tests
         private GameObject instance;
         private GameObject player;
 
+        [Test]
+        public void DinerBuildingLabelsUseRestaurantNameOnEveryMap()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            TMP_Text[] labels = prefab
+                .GetComponentsInChildren<TMP_Text>(true)
+                .Where(label => label.transform.parent.name == "DINER_STAFF")
+                .ToArray();
+
+            Assert.That(labels.Length, Is.GreaterThanOrEqualTo(2));
+            Assert.That(labels.Select(label => label.text), Is.All.EqualTo("식당"));
+        }
+
         [TearDown]
         public void DestroyMission()
         {
@@ -294,6 +307,31 @@ namespace A305.Mission.Tests
                 .Cast<RectTransform>()
                 .Where(child => child.name.EndsWith("Destination") && child.gameObject.activeSelf)
                 .ToArray();
+
+        // 터치 기기에서는 왼쪽 아래 이동 조이스틱과 겹치지 않게 미니맵을 오른쪽 위, 시계·코인 칩과 코인 바뀜 알약 아래로 옮긴다.
+        [Test]
+        public void MiniMap_OnTouchScreens_MovesTopRightUnderTheStatusChips()
+        {
+            Create();
+            var view = instance.GetComponent<FirstDayMissionView>();
+            var panel = (RectTransform)instance.transform.Find("Content/MiniMap");
+
+            view.PlaceMiniMap(touch: true);
+
+            Assert.That(panel.anchorMin, Is.EqualTo(Vector2.one));
+            Assert.That(panel.pivot, Is.EqualTo(Vector2.one));
+            Assert.That(panel.anchoredPosition.x, Is.EqualTo(-28 * 1.2f).Within(.01f));
+            Assert.That(
+                panel.anchoredPosition.y,
+                Is.LessThanOrEqualTo(-(28 + 64 + 10 + 46) * 1.2f),
+                "시계·코인 칩과 코인 바뀜 알약 아래"
+            );
+
+            view.PlaceMiniMap(touch: false);
+
+            Assert.That(panel.anchorMin, Is.EqualTo(Vector2.zero));
+            Assert.That(panel.anchoredPosition, Is.EqualTo(new Vector2(28, 28) * 1.2f));
+        }
 
         private TownMiniMapView Create(string sceneCode = "TOWN")
         {

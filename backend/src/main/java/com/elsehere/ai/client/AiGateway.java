@@ -62,13 +62,63 @@ public class AiGateway {
       String instruction,
       int level,
       WorkerLearner learner) {
+    return reply(
+        trace, npc, memory, history, text, instruction, level, learner, NpcReplyListener.NONE);
+  }
+
+  /** NPC 대답. 글자·문장 조각 음성을 받는 대로 {@code listener}에 넘긴다. 실패 처리는 조각을 받지 않을 때와 같다. */
+  public NpcReply reply(
+      WorkerTrace trace,
+      WorkerNpc npc,
+      WorkerMemory memory,
+      List<WorkerLine> history,
+      String text,
+      String instruction,
+      int level,
+      WorkerLearner learner,
+      NpcReplyListener listener) {
     NpcReply reply =
         send(
             trace,
             AiRequestKind.NPC,
             () ->
                 aiWorkerClient.reply(
-                    trace, npc, memory, history, text, instruction, level, learner));
+                    trace, npc, memory, history, text, instruction, level, learner, listener));
+    record(trace, AiRequestKind.NPC, reply.usage(), reply.succeeded());
+    if (!reply.succeeded()) {
+      throw new BusinessException(AiWorkerClient.toErrorCode(reply.errorCode()));
+    }
+    return reply;
+  }
+
+  /** 서버가 확정한 무례·칭찬·사과 반응을 같은 대사 생성 요청에 전달한다. */
+  public NpcReply replyReacting(
+      WorkerTrace trace,
+      WorkerNpc npc,
+      WorkerMemory memory,
+      List<WorkerLine> history,
+      String text,
+      String instruction,
+      int level,
+      WorkerLearner learner,
+      NpcReplyListener listener,
+      String reaction) {
+    NpcReply reply =
+        send(
+            trace,
+            AiRequestKind.NPC,
+            () ->
+                aiWorkerClient.replyReacting(
+                    trace,
+                    npc,
+                    memory,
+                    history,
+                    text,
+                    instruction,
+                    level,
+                    learner,
+                    listener,
+                    reaction));
     record(trace, AiRequestKind.NPC, reply.usage(), reply.succeeded());
     if (!reply.succeeded()) {
       throw new BusinessException(AiWorkerClient.toErrorCode(reply.errorCode()));
@@ -145,6 +195,22 @@ public class AiGateway {
     return wav;
   }
 
+  /** 원래 대답에서 정한 구절·표정을 유지하며 재합성한다. 감정을 다시 생성하지 않는다. */
+  public byte[] synthesize(
+      WorkerTrace trace,
+      String text,
+      String voice,
+      double speed,
+      List<WorkerSpeechPhrase> phrases) {
+    byte[] wav =
+        send(
+            trace,
+            AiRequestKind.TTS,
+            () -> aiWorkerClient.synthesize(trace, text, voice, speed, phrases));
+    record(trace, AiRequestKind.TTS, List.of(), true);
+    return wav;
+  }
+
   /**
    * NPC 기억 카드 갱신. 이번 대화와 이전 카드로 새 카드 전체를 만든다.
    *
@@ -186,6 +252,18 @@ public class AiGateway {
   public FollowUpResult followUp(WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history) {
     FollowUpResult result =
         send(trace, AiRequestKind.MEMORY, () -> aiWorkerClient.followUp(trace, npc, history));
+    record(trace, AiRequestKind.MEMORY, result.usage(), true);
+    return result;
+  }
+
+  /** 경찰관이 신고를 받아 출동한 대화의 해결 결과. 건넬 것 판정과 같은 자리·같은 모델이라 AI 요청 기록도 MEMORY로 남긴다. */
+  public FollowUpResult policeCallOutcome(
+      WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history) {
+    FollowUpResult result =
+        send(
+            trace,
+            AiRequestKind.MEMORY,
+            () -> aiWorkerClient.policeCallOutcome(trace, npc, history));
     record(trace, AiRequestKind.MEMORY, result.usage(), true);
     return result;
   }

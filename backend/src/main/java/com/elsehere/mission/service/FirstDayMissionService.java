@@ -36,7 +36,7 @@ public class FirstDayMissionService {
 
   @Transactional(readOnly = true)
   public FirstDayMissionResponse status(Long userId) {
-    return response(repository.findById(userId).orElse(null));
+    return response(repository.findById(userId).orElse(null), reservationHolder(userId));
   }
 
   public FirstDayMissionResponse start(Long userId) {
@@ -44,7 +44,7 @@ public class FirstDayMissionService {
     users.findForUpdate(userId).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     FirstDayMission mission =
         repository.findById(userId).orElseGet(() -> repository.save(FirstDayMission.start(userId)));
-    return response(mission);
+    return response(mission, reservationHolder(userId));
   }
 
   public FirstDayMissionResponse visit(Long userId, String scene) {
@@ -53,7 +53,7 @@ public class FirstDayMissionService {
     }
     Optional<FirstDayMission> mission = repository.findForUpdate(userId);
     mission.ifPresent(value -> value.visit(scene));
-    return response(mission.orElse(null));
+    return response(mission.orElse(null), reservationHolder(userId));
   }
 
   public FirstDayMissionResponse rest(Long userId) {
@@ -62,7 +62,7 @@ public class FirstDayMissionService {
             .findForUpdate(userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.MISSION_NOT_READY));
     if (mission.getStage() == 2) {
-      return response(mission); // 성공한 휴식의 재전송
+      return response(mission, reservationHolder(userId)); // 성공한 휴식의 재전송
     }
     if (!"CAFE".equals(mission.getScene())
         || !mission.canRest()
@@ -72,7 +72,7 @@ public class FirstDayMissionService {
       throw new BusinessException(ErrorCode.MISSION_NOT_READY);
     }
     mission.restAtCafe();
-    return response(mission);
+    return response(mission, reservationHolder(userId));
   }
 
   @Transactional(readOnly = true)
@@ -103,10 +103,11 @@ public class FirstDayMissionService {
                       ? new WorkerState(
                           "first_day_" + mission.getStage(),
                           stageInstruction
-                              + " Recognize only the learner's current utterance in context. Do not credit NPC lines, quoted examples, negatives, wishes without action or future hypothetical actions. One utterance may match several intents.",
+                              + " Evaluate the learner's current utterance together with explicit facts they gave earlier in this conversation. The current utterance must contribute to completing an objective; details may be spread across turns. Do not credit NPC lines, quoted examples, negatives, wishes without action or future hypothetical actions. One utterance may match several intents.",
                           stage.goals().stream()
                               .map(goal -> new WorkerState.Intent(goal.id(), goal.description()))
-                              .toList())
+                              .toList(),
+                          true)
                       : null;
               String instruction;
               if (!matches) {
@@ -175,7 +176,16 @@ public class FirstDayMissionService {
   // 시작 전과 여정 완료 뒤의 마을 날씨.
   private static final String CLEAR_WEATHER = "CLEAR";
 
-  private static FirstDayMissionResponse response(FirstDayMission mission) {
+  /** 퀘스트 카드에 보일 예약자 이름. 손님 계정의 닉네임은 사람 이름이 아니라 대조하지 않으므로 아무 이름이나 되게 '내 이름'이라 쓴다. */
+  private String reservationHolder(Long userId) {
+    return users
+        .findById(userId)
+        .filter(user -> user.getProvider() != AuthProvider.GUEST)
+        .map(user -> user.getNickname())
+        .orElse("내 이름");
+  }
+
+  private FirstDayMissionResponse response(FirstDayMission mission, String holder) {
     boolean started = mission != null;
     int current = started ? mission.getStage() : 0;
     List<FirstDayMissionResponse.Step> steps =
@@ -190,7 +200,10 @@ public class FirstDayMissionService {
                         started && (index < current || (index == current && mission.hasGoal(goal)));
                     goals.add(
                         new FirstDayMissionResponse.Goal(
-                            definition.id(), definition.title(), done));
+                            definition.id(),
+                            definition.title(),
+                            done,
+                            definition.hint().replace("{name}", holder)));
                   }
                   String status =
                       !started || index > current
@@ -209,7 +222,7 @@ public class FirstDayMissionService {
                 ? "체크인 완료! 오늘의 작은 소동을 모두 해결했어요."
                 : !scene.equals(mission.current().scene())
                     // 다른 장소에 있으면 갈 곳에서 누구에게 무엇을 할지 알린다.
-                    ? at(mission.current().scene()) + " " + mission.current().direction()
+                    ? at(mission.current().scene()) + " " + directionWithNpc(mission.current())
                     : mission.current().situation();
     String direction =
         !started
@@ -218,7 +231,7 @@ public class FirstDayMissionService {
                 ? "다른 NPC와 자유롭게 대화해 보세요."
                 : !scene.equals(mission.current().scene())
                     ? destination(mission.current().scene()) + " 이동하세요."
-                    : mission.current().direction();
+                    : directionWithNpc(mission.current());
     return new FirstDayMissionResponse(
         started,
         current,
@@ -236,6 +249,18 @@ public class FirstDayMissionService {
         steps);
   }
 
+  private String directionWithNpc(FirstDayStage stage) {
+    String direction = stage.direction();
+    String name = ownerName(stage.npc());
+    if (name == null || name.isBlank()) {
+      return direction;
+    }
+    if (stage == FirstDayStage.RAINY_STREET) {
+      return direction.replace("행인 Ben에게", "행인 " + name + "에게");
+    }
+    return direction + " (대화 상대: " + name + ")";
+  }
+
   private static String destination(String scene) {
     return switch (scene) {
       case "HOTEL" -> "호텔로";
@@ -251,8 +276,8 @@ public class FirstDayMissionService {
    */
   static final String LEARNER_LEADS =
       " Never be the first to bring up the learner's remaining tasks, the things they need or what happened to them; wait for the learner to raise them in their own words."
-          + " After the learner raises a request, you may ask only the follow-up question your role needs to complete it, such as size, payment method or a description."
-          + " If the learner seems unsure what to say, ask an open question such as \"Is there anything else I can help you with?\" without naming any task.";
+          + " After the learner raises a mission request, ask the follow-up question your role needs to complete it, such as size, payment method or a description."
+          + " In ordinary small talk, react to their topic and share brief details fitting your personality and current situation. If they seem unsure what to say, offer a small observation or an easy question in your own voice without naming undisclosed mission tasks.";
 
   /** 지금 단계 담당이 아닌 NPC에게 보내는 안내. 지금 할 일을 물으면 모른다고 하지 않고 담당 NPC와 장소를 알려 주게 한다. 이름을 찾지 못하면 장소만 알린다. */
   static String sendToOwner(String place, String owner) {

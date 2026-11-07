@@ -4,6 +4,8 @@ import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.WorkerState;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.conversation.entity.ConversationStatus;
+import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.mission.dto.FirstDayMissionResponse;
 import com.elsehere.mission.entity.Coins;
 import com.elsehere.mission.entity.FirstDayMission;
@@ -26,12 +28,36 @@ public class TownStoryService {
   private final TownStoryRepository stories;
   private final FirstDayMissionRepository firstDay;
   private final NpcRepository npcs;
+  private final ConversationRepository conversations;
 
   public TownStoryService(
-      TownStoryRepository stories, FirstDayMissionRepository firstDay, NpcRepository npcs) {
+      TownStoryRepository stories,
+      FirstDayMissionRepository firstDay,
+      NpcRepository npcs,
+      ConversationRepository conversations) {
     this.stories = stories;
     this.firstDay = firstDay;
     this.npcs = npcs;
+    this.conversations = conversations;
+  }
+
+  public FirstDayMissionResponse receiveDinerMeal(Long userId) {
+    TownStory story =
+        stories
+            .findForUpdate(userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.MISSION_NOT_READY));
+    if (story.hasDinerMeal()) {
+      return status(userId);
+    }
+    if (!story.canWaitForDinerMeal()
+        || firstDay.findById(userId).filter(mission -> "TOWN".equals(mission.getScene())).isEmpty()
+        || conversations
+            .findFirstByUserIdAndStatus(userId, ConversationStatus.ACTIVE)
+            .isPresent()) {
+      throw new BusinessException(ErrorCode.MISSION_NOT_READY);
+    }
+    story.receiveDinerMeal();
+    return status(userId);
   }
 
   public TownStory start(Long userId) {
@@ -61,7 +87,38 @@ public class TownStoryService {
     if (intent == null || intent.error() != null || intent.ids() == null) {
       return;
     }
-    stories.findForUpdate(userId).ifPresent(story -> story.accept(stage, npcCode, intent.ids()));
+    stories
+        .findForUpdate(userId)
+        .ifPresent(
+            story -> {
+              // AI가 미래 사건까지 한 번에 판정해도 현재 단계에서 허용한 목표만 반영한다.
+              List<String> allowed = availableGoals(story);
+              story.accept(
+                  stage, npcCode, intent.ids().stream().filter(allowed::contains).toList());
+            });
+  }
+
+  private static List<String> availableGoals(TownStory story) {
+    if (story.current() != TownStoryStage.DINER) {
+      return story.current() == null ? List.of() : story.current().goalIds();
+    }
+    if (story.hasDinerMeal()) {
+      return List.of("explain_spill");
+    }
+    return story.hasGoal(0) ? List.of() : List.of("order_breakfast");
+  }
+
+  private static String instruction(TownStory story) {
+    if (story.current() != TownStoryStage.DINER) {
+      return story.current().instruction();
+    }
+    if (story.hasDinerMeal()) {
+      return "The learner received breakfast after waiting at a table and accidentally spilled a drink on their clothes. Listen to their explanation and help them find the self-service laundromat when asked. Do not take another breakfast order or promise another meal.";
+    }
+    if (story.hasGoal(0)) {
+      return "The breakfast order is accepted. The learner should end this conversation and sit at a table while the food is prepared. Do not claim the food is ready, hand over food, repeat the order, or introduce a spill; the game handles those events after sitting.";
+    }
+    return "The traveler wants to order breakfast with a drink. Any breakfast with a drink costs 7 coins. Let the learner choose. Do not invent an order, hand over food, or introduce a spill before the meal has been received.";
   }
 
   public Optional<FirstDayMissionService.Context> context(Long userId, String npcCode) {
@@ -86,18 +143,21 @@ public class TownStoryService {
                   remaining.add(current.goalIds().get(index));
                 }
               }
+              List<String> allowed = availableGoals(story);
+              remaining.retainAll(allowed);
               WorkerState state =
                   new WorkerState(
                       "town_story_" + story.getStage(),
-                      current.instruction()
-                          + " Recognize only the learner's own current request, not a quoted example or hypothetical.",
-                      current.goalIds().stream()
+                      instruction(story)
+                          + " Combine explicit facts across learner turns; the current utterance must contribute. Never credit NPC lines, quoted examples, negatives or hypotheticals.",
+                      allowed.stream()
                           .map(id -> new WorkerState.Intent(id, TownStoryStage.goalDescription(id)))
-                          .toList());
+                          .toList(),
+                      true);
               return new FirstDayMissionService.Context(
                   story.getStage(),
                   state,
-                  current.instruction()
+                  instruction(story)
                       + " Objectives pending before this turn: "
                       + String.join(",", remaining)
                       + "."
@@ -122,8 +182,17 @@ public class TownStoryService {
       List<FirstDayMissionResponse.Goal> goals = new ArrayList<>();
       for (int goal = 0; goal < stage.goalIds().size(); goal++) {
         String id = stage.goalIds().get(goal);
+        if (index == current
+            && stage == TownStoryStage.DINER
+            && story != null
+            && !story.hasDinerMeal()
+            && "explain_spill".equals(id)) {
+          continue;
+        }
         boolean done = started && (index < current || (index == current && story.hasGoal(goal)));
-        goals.add(new FirstDayMissionResponse.Goal(id, TownStoryStage.goalTitle(id), done));
+        goals.add(
+            new FirstDayMissionResponse.Goal(
+                id, TownStoryStage.goalTitle(id), done, TownStoryStage.goalHint(id)));
       }
       String stepStatus =
           !started || index > current ? "UPCOMING" : index < current ? "DONE" : "CURRENT";
@@ -146,14 +215,20 @@ public class TownStoryService {
                     ? "마을에서의 하루를 마쳤어요."
                     : !"TOWN".equals(scene)
                         ? "마을로 나가 " + talkTo(story.current().npcCode())
-                        : story.current().situation();
+                        : story.current() == TownStoryStage.DINER
+                            ? story.hasDinerMeal()
+                                ? "음식을 받았는데 옷에 음료를 쏟았어요. Rosa에게 무슨 일이 있었는지 말해봐요."
+                                : story.hasGoal(0)
+                                    ? "주문했어요. 식당 안의 빈자리에 앉아 잠깐 기다려요."
+                                    : "식당에 왔어요. Rosa에게 원하는 아침과 음료를 주문해요."
+                            : story.current().situation();
     return new FirstDayMissionResponse(
         started,
         started ? current - first : 0,
         quest.name(),
         completed,
         scene,
-        false,
+        started && story.canWaitForDinerMeal() && "TOWN".equals(scene),
         false,
         "CLEAR",
         // 코인은 첫날 퀘스트와 마을 이야기 진행에서 함께 계산한다.

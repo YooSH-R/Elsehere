@@ -21,6 +21,14 @@ namespace A305.Learning
         private ConversationHistoryView historyView;
 
         [SerializeField]
+        private Button reviewButton;
+
+        [SerializeField]
+        private ReviewWorkbookView reviewView;
+        public event Action ReviewRequested;
+        public ReviewWorkbookView ReviewView => reviewView;
+
+        [SerializeField]
         [Tooltip("오른쪽 아래 조작법 카드")]
         private ControlsGuideView controlsGuide;
 
@@ -40,6 +48,27 @@ namespace A305.Learning
         [SerializeField]
         [Tooltip("오른쪽 위 휴대폰 버튼 줄. 대화 중에는 숨긴다.")]
         private GameObject phoneButtonBar;
+
+        [SerializeField]
+        private TMP_Text feedbackCountText;
+
+        [SerializeField]
+        private TMP_Text phoneFeedbackCountText;
+
+        public void SetFeedbackCount(long count)
+        {
+            SetCount(feedbackCountText, count);
+            SetCount(phoneFeedbackCountText, count);
+            historyView.SetUnreadCount(count);
+        }
+
+        private static void SetCount(TMP_Text label, long count)
+        {
+            if (label == null)
+                return;
+            label.text = count.ToString();
+            label.transform.parent.gameObject.SetActive(count > 0);
+        }
 
         [SerializeField]
         private TMP_Text messageText;
@@ -85,6 +114,8 @@ namespace A305.Learning
         {
             vocabularyButton.interactable = isAvailable;
             historyButton.interactable = isAvailable;
+            if (reviewButton != null)
+                reviewButton.interactable = isAvailable;
         }
 
         /// <summary>시안처럼 대화 중에는 오른쪽 위 휴대폰 버튼을 숨긴다.</summary>
@@ -100,6 +131,8 @@ namespace A305.Learning
         private void Awake()
         {
             historyButton.onClick.AddListener(() => HistoryRequested?.Invoke());
+            if (reviewButton != null)
+                reviewButton.onClick.AddListener(() => ReviewRequested?.Invoke());
             vocabularyButton.onClick.AddListener(() => VocabularyRequested?.Invoke());
             homeButton.onClick.AddListener(() => HomeRequested?.Invoke());
             MessageBox.SetActive(false);

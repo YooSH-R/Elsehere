@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using A305.Dialogue;
 using A305.Theme;
 using A305.Wayfinding;
@@ -181,6 +183,37 @@ namespace A305.Mission.Tests
         private static T Field<T>(Object owner, string name)
             where T : Object =>
             (T)new SerializedObject(owner).FindProperty(name).objectReferenceValue;
+
+        // 줄 끝의 X를 누르면 그 줄을 바로 지우고 서버에도 닫았다고 알린다.
+        [Test]
+        public void CloseButton_RemovesTheRowAndTellsTheServer()
+        {
+            var api = new DismissingApi();
+            card.Bind(api);
+            FollowUpStore.Shared.Receive(Item(7, "CAFE_STAFF", "Mia", "CAFE", "아이스 라테", 45));
+            view.SetAvailable(true);
+            card.Refresh();
+
+            card.GetComponentsInChildren<Button>(true)
+                .First(button => button.name == "Close" && button.gameObject.activeInHierarchy)
+                .onClick.Invoke();
+
+            Assert.That(FollowUpStore.Shared.IsEmpty, Is.True);
+            Assert.That(api.Dismissed, Is.EqualTo(new[] { 7L }));
+        }
+
+        private sealed class DismissingApi : IFollowUpApi
+        {
+            public List<long> Dismissed { get; } = new List<long>();
+
+            public Task<FollowUpList> GetFollowUpsAsync() => Task.FromResult(new FollowUpList());
+
+            public Task DismissAsync(long followUpId)
+            {
+                Dismissed.Add(followUpId);
+                return Task.CompletedTask;
+            }
+        }
 
         private static FollowUpData Item(
             long id,

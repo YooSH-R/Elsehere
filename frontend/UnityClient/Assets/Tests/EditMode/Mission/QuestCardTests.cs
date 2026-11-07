@@ -107,6 +107,81 @@ namespace A305.Mission.Tests
         }
 
         [Test]
+        public void QuestCard_UsesReadableTextSizes()
+        {
+            Refresh(Journey(current: 1));
+
+            Assert.That(Field<TMP_Text>("stepChip").fontSize, Is.GreaterThanOrEqualTo(24));
+            Assert.That(Field<TMP_Text>("place").fontSize, Is.GreaterThanOrEqualTo(26));
+            Assert.That(Field<TMP_Text>("direction").fontSize, Is.GreaterThanOrEqualTo(36));
+            Assert.That(Field<TMP_Text>("situation").fontSize, Is.GreaterThanOrEqualTo(22));
+            TMP_Text goal = Field<RectTransform>("goals")
+                .GetChild(0)
+                .GetComponentInChildren<TMP_Text>();
+            Assert.That(goal.fontSize, Is.GreaterThanOrEqualTo(25));
+        }
+
+        [Test]
+        public void CollapsedCard_ShowsOnlyCurrentStepAndUnfinishedGoals()
+        {
+            FirstDayMissionState state = Journey(current: 1);
+            state.Steps[1].Goals[0].Completed = true;
+            state
+                .Steps[1]
+                .Goals.Add(
+                    new FirstDayMissionGoal
+                    {
+                        Id = "drink",
+                        Title = "마실 음료 이름 말하기",
+                        Hint = "예: 카페라테",
+                    }
+                );
+            Refresh(state);
+
+            Field<Button>("collapseButton").onClick.Invoke();
+
+            Assert.That(Field<TMP_Text>("stepChip").text, Is.EqualTo("2 / 7"));
+            Assert.That(Field<TMP_Text>("place").text, Is.EqualTo("카페에서 휴식"));
+            Assert.That(Field<TMP_Text>("direction").gameObject.activeSelf, Is.False);
+            Assert.That(Field<TMP_Text>("situation").gameObject.activeSelf, Is.False);
+            Assert.That(Field<RectTransform>("progress").parent.gameObject.activeSelf, Is.False);
+            RectTransform goals = Field<RectTransform>("goals");
+            Assert.That(goals.GetChild(0).gameObject.activeSelf, Is.False);
+            Assert.That(goals.GetChild(1).gameObject.activeSelf, Is.True);
+            Assert.That(
+                goals.GetChild(1).GetComponentInChildren<TMP_Text>().text,
+                Is.EqualTo("마실 음료 이름 말하기")
+            );
+            Assert.That(HintOf(goals.GetChild(1)).text, Is.EqualTo("예: 카페라테"));
+            Assert.That(Field<QuestBoardView>("questBoard").IsOpen, Is.False);
+
+            view.Refresh(state, false, false);
+            Assert.That(
+                goals.GetChild(0).gameObject.activeSelf,
+                Is.False,
+                "갱신 뒤에도 접힌 상태를 유지한다"
+            );
+
+            Field<Button>("collapseButton").onClick.Invoke();
+            Assert.That(Field<TMP_Text>("direction").gameObject.activeSelf, Is.True);
+            Assert.That(goals.GetChild(0).gameObject.activeSelf, Is.True);
+        }
+
+        [Test]
+        public void CollapsedCard_WhenRestingShowsTheCurrentAction()
+        {
+            FirstDayMissionState state = Journey(current: 1);
+            state.CanRest = true;
+            Refresh(state);
+
+            Field<Button>("collapseButton").onClick.Invoke();
+
+            Assert.That(Field<RectTransform>("goals").gameObject.activeSelf, Is.False);
+            Assert.That(Field<TMP_Text>("direction").gameObject.activeSelf, Is.True);
+            Assert.That(Field<TMP_Text>("direction").text, Does.Contain("의자에 앉아"));
+        }
+
+        [Test]
         public void Progress_HasOneMarkPerStepDrawnByItsStatus()
         {
             Refresh(Journey(current: 5));
@@ -390,6 +465,36 @@ namespace A305.Mission.Tests
 
             TMP_Text direction = Field<TMP_Text>("direction");
             Assert.That(direction.GetTextInfo(direction.text).lineCount, Is.EqualTo(1));
+        }
+
+        // 목표 아래에 무엇을 말해야 하는지 작게 보인다. 말할 내용이 없는 목표는 이름만 보인다.
+        [Test]
+        public void Goal_ShowsWhatToSayUnderItsName()
+        {
+            FirstDayMissionState state = Journey(current: 3);
+            state.Steps[3].Goals[0].Hint = "파란색 숄더백, 빨간 열쇠고리";
+            state
+                .Steps[3]
+                .Goals.Add(new FirstDayMissionGoal { Id = "own", Title = "본인 물건 확인" });
+
+            Refresh(state);
+
+            RectTransform goals = Field<RectTransform>("goals");
+            TMP_Text first = HintOf(goals.GetChild(0));
+            Assert.That(first.text, Is.EqualTo("파란색 숄더백, 빨간 열쇠고리"));
+            Assert.That(first.gameObject.activeSelf, Is.True);
+            Assert.That(HintOf(goals.GetChild(1)).gameObject.activeSelf, Is.False);
+        }
+
+        private static TMP_Text HintOf(Transform row)
+        {
+            foreach (TMP_Text text in row.GetComponentsInChildren<TMP_Text>(true))
+            {
+                if (text.name == "Hint")
+                    return text;
+            }
+            Assert.Fail("목표 줄에 Hint 글자가 없습니다.");
+            return null;
         }
 
         private void Refresh(FirstDayMissionState state)

@@ -43,6 +43,16 @@ namespace A305.Learning
         private Button vocabularyButton;
 
         [SerializeField]
+        private Button reviewButton;
+        public event Action ReviewSaveRequested;
+
+        public void SetReviewAvailable(bool available)
+        {
+            if (reviewButton != null)
+                reviewButton.gameObject.SetActive(available);
+        }
+
+        [SerializeField]
         private Button closeButton;
 
         [SerializeField]
@@ -350,6 +360,8 @@ namespace A305.Learning
             saveButton.onClick.AddListener(RequestSave);
             detailButton.onClick.AddListener(ToggleDetail);
             vocabularyButton.onClick.AddListener(() => VocabularyRequested?.Invoke());
+            if (reviewButton != null)
+                reviewButton.onClick.AddListener(() => ReviewSaveRequested?.Invoke());
             closeButton.onClick.AddListener(() => CloseRequested?.Invoke());
             topCloseButton.onClick.AddListener(() => CloseRequested?.Invoke());
             regenerateButton.onClick.AddListener(() => RegenerateRequested?.Invoke());

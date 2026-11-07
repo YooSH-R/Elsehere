@@ -162,10 +162,16 @@ namespace A305.Dialogue
             Transform lookTarget,
             ConversationInitiator initiatedBy = ConversationInitiator.Npc,
             string scriptKey = null,
-            bool npcOffDuty = false
+            bool npcOffDuty = false,
+            long? reviewCardId = null,
+            Func<string, Task<ConversationStart>> reviewStart = null
         )
         {
-            if (lookTarget == null || !session.TryStart(npcCode))
+            if (
+                (reviewCardId != null && (conversationApi == null || reviewStart == null))
+                || lookTarget == null
+                || !session.TryStart(npcCode)
+            )
             {
                 return false;
             }
@@ -187,14 +193,16 @@ namespace A305.Dialogue
             cameraRig.EnterDialogueView(lookTarget);
             player.SetMovementLocked(true);
 
-            bool isGuided = hasScript && script.GuidedTurns.Count > 0;
+            bool isGuided = reviewCardId == null && hasScript && script.GuidedTurns.Count > 0;
             if (conversationApi != null && !isGuided)
             {
                 StartServerConversation(
                     npcCode,
                     hasScript ? script.NpcName : npcCode,
                     initiatedBy,
-                    npcOffDuty
+                    npcOffDuty,
+                    reviewCardId,
+                    reviewStart
                 );
             }
             else
@@ -214,7 +222,8 @@ namespace A305.Dialogue
                 KeepMicrophoneOpen();
             }
 
-            Started?.Invoke(npcCode);
+            if (reviewCardId == null)
+                Started?.Invoke(npcCode);
             return true;
         }
 
@@ -426,7 +435,9 @@ namespace A305.Dialogue
             string npcCode,
             string npcName,
             ConversationInitiator initiatedBy,
-            bool npcOffDuty
+            bool npcOffDuty,
+            long? reviewCardId = null,
+            Func<string, Task<ConversationStart>> reviewStart = null
         )
         {
             serverConversation = new ServerConversation(
@@ -435,7 +446,9 @@ namespace A305.Dialogue
                 conversationApi,
                 VoiceConsent.Shared.IsAgreed,
                 initiatedBy,
-                npcOffDuty: npcOffDuty
+                npcOffDuty: npcOffDuty,
+                reviewCardId: reviewCardId,
+                reviewStart: reviewStart
             );
             speechRecovery = new NpcSpeechRecovery(serverConversation, serverLink.PlaySpeechAsync);
             serverConversation.Changed += panel.Refresh;
@@ -481,13 +494,15 @@ namespace A305.Dialogue
         private void Finish(DialogueRecord record)
         {
             string endedNpcCode = Close();
-            Ended?.Invoke(endedNpcCode);
+            if (record.ReviewCardId == null)
+                Ended?.Invoke(endedNpcCode);
             ConversationEnded?.Invoke(record);
         }
 
         // 대화를 닫고 시점·이동을 되돌린다. 끝낸 NPC 코드를 돌려준다.
         private string Close()
         {
+            panel.SetReviewReference(null);
             speechRecovery?.Dispose();
             speechRecovery = null;
             GameClock.Shared.IsTalking = false;
@@ -562,6 +577,8 @@ namespace A305.Dialogue
                 panel.Refresh();
             }
         }
+
+        public void SetReviewReference(string text) => panel.SetReviewReference(text);
 
         private void ForwardPoliceDispatch(long turnId, string placeCode)
         {

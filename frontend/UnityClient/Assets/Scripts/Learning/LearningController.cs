@@ -17,7 +17,7 @@ namespace A305.Learning
     /// 대화 중 누른 풀이 단어는 NPC_LINE 출처로, 서버 피드백의 [담기]는 FEEDBACK 출처로 저장한다.
     /// 대화를 다 쓴 게스트가 방금 끝낸 대화의 피드백을 닫으면 가입을 권한다(<see cref="GuestSignupPrompt"/>).
     /// </summary>
-    public class LearningController : MonoBehaviour
+    public partial class LearningController : MonoBehaviour
     {
         [SerializeField]
         private PlayerMover player;
@@ -60,7 +60,10 @@ namespace A305.Learning
         public event Action<string, bool> FeedbackClosed;
 
         public bool IsShowingScreen =>
-            feedbackView.IsVisible || vocabularyView.IsVisible || historyView.IsVisible;
+            feedbackView.IsVisible
+            || vocabularyView.IsVisible
+            || historyView.IsVisible
+            || (hudView.ReviewView != null && hudView.ReviewView.IsVisible);
 
         /// <summary>단어장 화면이 열려 있는지. 튜토리얼이 단어장을 처음 열었을 때 설명을 붙인다.</summary>
         public bool IsShowingVocabulary => vocabularyView.IsVisible;
@@ -127,10 +130,12 @@ namespace A305.Learning
             historyView.CloseRequested += CloseHistory;
             historyView.OpenRequested += OpenPastFeedback;
             historyView.MoreRequested += LoadMoreHistory;
+            InitializeReview();
         }
 
         private void Start()
         {
+            ResumeReviewVisit();
             if (vocabulary != null)
             {
                 _ = LoadVocabularyAsync();
@@ -168,6 +173,7 @@ namespace A305.Learning
         private void OnDestroy()
         {
             CenterWindow.Shared.SetOpen(false);
+            DisposeReview();
             GameClock.Shared.IsLearningWindowOpen = false;
             if (hudView != null)
             {
@@ -236,6 +242,11 @@ namespace A305.Learning
             feedbackView.SetSaveAvailable(
                 vocabulary != null && shownServerFeedback?.ConversationId != null
             );
+            feedbackView.SetReviewAvailable(
+                reviewBook != null
+                    && shownServerFeedback?.ConversationId != null
+                    && shownServerFeedback.Summary?.Status == "DONE"
+            );
             feedbackView.Show(feedback, lines);
         }
 
@@ -273,6 +284,11 @@ namespace A305.Learning
         // 내 발화가 없는 대화는 피드백을 만들지 않고, 이동 잠금도 건드리지 않는다.
         private void ShowFeedback(DialogueRecord record)
         {
+            if (record.ReviewCardId != null)
+            {
+                ShowReviewResult(record);
+                return;
+            }
             if (record.UserUtterances.Count == 0)
             {
                 return;

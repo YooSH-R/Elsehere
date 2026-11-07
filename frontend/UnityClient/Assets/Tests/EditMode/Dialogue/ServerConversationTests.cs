@@ -14,6 +14,135 @@ namespace A305.Dialogue.Tests
 {
     public class ServerConversationTests
     {
+        [Test]
+        public async Task ReviewConflict_WhenThePreviousConversationHasAlreadyEnded_StartsAgainWithTheSameRequest()
+        {
+            var ids = new List<string>();
+            var review = new ServerConversation(
+                CafeStaffCode,
+                "Mia",
+                api,
+                false,
+                reviewCardId: 22,
+                reviewStart: requestId =>
+                {
+                    ids.Add(requestId);
+                    return ids.Count == 1
+                        ? Task.FromException<ConversationStart>(
+                            new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중")
+                        )
+                        : Task.FromResult(api.StartResponse);
+                }
+            );
+            api.Active = null;
+            await review.StartAsync();
+            Assert.That(ids, Has.Count.EqualTo(2));
+            Assert.That(ids[1], Is.EqualTo(ids[0]));
+            Assert.That(review.ConversationId, Is.EqualTo(ConversationId));
+            Assert.That(api.Starts, Is.Empty);
+            Assert.That(api.Ends, Is.Empty);
+        }
+
+        [Test]
+        public async Task ReviewStart_DoesNotEndAnUnfinishedMainConversation()
+        {
+            api.Active = new ActiveConversation
+            {
+                ConversationId = 99,
+                Npc = new NpcSummary { NpcCode = CafeStaffCode },
+            };
+            var review = new ServerConversation(
+                CafeStaffCode,
+                "Mia",
+                api,
+                false,
+                reviewCardId: 22,
+                reviewStart: _ =>
+                    Task.FromException<ConversationStart>(
+                        new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중")
+                    )
+            );
+            await review.StartAsync();
+            Assert.That(api.Ends, Is.Empty);
+            Assert.That(review.ConversationId, Is.Null);
+            Assert.That(review.StatusMessage, Does.Contain("진행 중인 대화"));
+        }
+
+        [Test]
+        public async Task ReviewEnd_KeepsEvidenceAndSkipsOrdinaryFeedbackDetails()
+        {
+            var review = new ServerConversation(
+                CafeStaffCode,
+                "Mia",
+                api,
+                false,
+                reviewCardId: 22,
+                reviewStart: _ => Task.FromResult(api.StartResponse)
+            );
+            var result = new ReviewPracticeResult
+            {
+                ReviewCardId = 22,
+                VerifiedExpressionCount = 2,
+                PracticeCompleted = true,
+            };
+            api.EndResponse.ReviewResult = result;
+            await review.StartAsync();
+            ServerFeedback feedback = await review.EndAsync();
+            DialogueRecord record = review.ToRecord(feedback);
+            Assert.That(feedback, Is.Null);
+            Assert.That(api.DetailedRequestedFor, Is.Empty);
+            Assert.That(record.ReviewCardId, Is.EqualTo(22));
+            Assert.That(record.ReviewResult, Is.SameAs(result));
+        }
+
+        [Test]
+        public async Task ReviewStart_UsesDedicatedEndpointAndDoesNotRequestAutomaticSuggestions()
+        {
+            var ids = new List<string>();
+            var review = new ServerConversation(
+                CafeStaffCode,
+                "Mia",
+                api,
+                false,
+                reviewCardId: 22,
+                reviewStart: requestId =>
+                {
+                    ids.Add(requestId);
+                    return Task.FromResult(api.StartResponse);
+                }
+            );
+            await review.StartAsync();
+            Assert.That(ids, Has.Count.EqualTo(1));
+            Assert.That(ids[0], Is.Not.Empty);
+            Assert.That(api.Starts, Is.Empty);
+            Assert.That(api.Calls, Does.Not.Contain("GetSuggestWords"));
+            Assert.That(review.ConversationId, Is.EqualTo(ConversationId));
+        }
+
+        [Test]
+        public async Task ReviewTurn_DoesNotNotifyTaxiOrMainWorldActions()
+        {
+            var review = new ServerConversation(
+                CafeStaffCode,
+                "Mia",
+                api,
+                false,
+                reviewCardId: 22,
+                reviewStart: _ => Task.FromResult(api.StartResponse)
+            );
+            int accepted = 0;
+            int dispatched = 0;
+            review.UserTurnAccepted += _ => accepted++;
+            review.PoliceDispatchRequested += (_, __) => dispatched++;
+            api.TurnResponse = Reply("Take me to the hotel.", "All right.", "ACTIVE");
+            api.TurnResponse.PoliceDispatch = new PoliceDispatchData { PlaceCode = "HOTEL" };
+            await review.StartAsync();
+            await review.SendAsync("Take me to the hotel.");
+            Assert.That(accepted, Is.Zero);
+            Assert.That(dispatched, Is.Zero);
+            Assert.That(review.ToRecord(null).UserUtterances, Has.Count.EqualTo(1));
+        }
+
         [TestCase(true)]
         [TestCase(false)]
         public async Task EndWhileFindingAnActiveConversation_ClosesItWithoutResumingOrRestarting(

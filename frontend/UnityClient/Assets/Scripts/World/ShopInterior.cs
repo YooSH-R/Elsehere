@@ -38,6 +38,20 @@ namespace A305.World
 
         public string PlaceName => placeName;
 
+        /// <summary>비활성 직원도 어느 매장에 속하는지 찾을 수 있다.</summary>
+        public bool ContainsStaff(Transform target)
+        {
+            if (target == null || staff == null)
+                return false;
+            foreach (GameObject member in staff)
+                if (
+                    member != null
+                    && (target == member.transform || target.IsChildOf(member.transform))
+                )
+                    return true;
+            return false;
+        }
+
         public bool IsLoaded => SceneManager.GetSceneByName(sceneName).isLoaded;
 
         /// <summary>플레이어가 지금 들어와 있는 매장. 매장 밖이면 null.</summary>

@@ -5,6 +5,131 @@ namespace A305.Characters.Tests
 {
     public sealed class SpeakingEmotionTests
     {
+        [TestCase(CharacterEmotion.Laugh)]
+        [TestCase(CharacterEmotion.BigLaugh)]
+        public void SmilingEyesRemainOpenWhileRealBlinkStillClosesThem(CharacterEmotion emotion)
+        {
+            var root = new GameObject("웃는 눈과 깜빡임 분리 검사");
+            var profile = ScriptableObject.CreateInstance<EmotionExpressionProfile>();
+            var mesh = new Mesh
+            {
+                vertices = new[] { Vector3.zero, Vector3.up, Vector3.right },
+                triangles = new[] { 0, 1, 2 },
+            };
+            foreach (
+                string name in new[]
+                {
+                    "eyeBlinkLeft",
+                    "eyeSquintLeft",
+                    "viseme_AA",
+                    "mouthLaughOpen",
+                    "eyeBlinkRight",
+                }
+            )
+                mesh.AddBlendShapeFrame(
+                    name,
+                    100,
+                    new[] { Vector3.up * .01f, Vector3.zero, Vector3.zero },
+                    null,
+                    null
+                );
+            try
+            {
+                var skin = root.AddComponent<SkinnedMeshRenderer>();
+                skin.sharedMesh = mesh;
+                var face = root.AddComponent<CharacterFaceController>();
+                var sample = profile.Sample(emotion);
+                face.ApplySpeech(SpeechMouthSample.Rest, sample, 0);
+                Assert.That(
+                    skin.GetBlendShapeWeight(0),
+                    Is.InRange(45, 65),
+                    "웃는 동안 눈동자가 보이도록 완전 닫힘을 피합니다."
+                );
+                Assert.That(
+                    skin.GetBlendShapeWeight(1),
+                    Is.GreaterThanOrEqualTo(90),
+                    "기존 웃는 눈의 곡면 보정은 유지합니다."
+                );
+                Assert.That(
+                    skin.GetBlendShapeWeight(2),
+                    Is.EqualTo(sample.restMouthOpen * 100).Within(.01)
+                );
+                Assert.That(
+                    skin.GetBlendShapeWeight(3),
+                    Is.EqualTo(sample.restLaughOpen * 100).Within(.01)
+                );
+                face.ApplySpeech(SpeechMouthSample.Rest, sample, 1);
+                Assert.That(skin.GetBlendShapeWeight(0), Is.EqualTo(100));
+                Assert.That(skin.GetBlendShapeWeight(1), Is.Zero);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+                Object.DestroyImmediate(mesh);
+                Object.DestroyImmediate(profile);
+            }
+        }
+
+        [Test]
+        public void PraiseAndApologyHaveDistinctEyeAndSmileReactions()
+        {
+            var profile = ScriptableObject.CreateInstance<EmotionExpressionProfile>();
+            try
+            {
+                var ordinary = profile.Sample(CharacterEmotion.WarmSmile);
+                var laugh = profile.Sample(CharacterEmotion.Laugh);
+                var shy = profile.Sample(CharacterEmotion.Shy);
+                var relief = profile.Sample(CharacterEmotion.Relieved);
+                Assert.That(laugh.smile.x, Is.GreaterThan(ordinary.smile.x + .25f));
+                Assert.That(laugh.cheekRaise.x, Is.GreaterThan(ordinary.cheekRaise.x + .3f));
+                Assert.That(shy.browInnerUp.x, Is.GreaterThan(laugh.browInnerUp.x + .3f));
+                Assert.That(shy.eyeClosure.x, Is.InRange(.15f, .4f));
+                Assert.That(
+                    shy.eyeClosure.y,
+                    Is.EqualTo(shy.eyeClosure.x),
+                    "쑥스러움을 윙크로 표현하지 않습니다."
+                );
+                Assert.That(relief.smile.x, Is.LessThan(ordinary.smile.x));
+                Assert.That(
+                    relief.browDown.x,
+                    Is.GreaterThan(0),
+                    "사과 직후 긴장이 한 번에 사라지지 않습니다."
+                );
+            }
+            finally
+            {
+                Object.DestroyImmediate(profile);
+            }
+        }
+
+        [Test]
+        public void SecondRudeReplyHasStrongerBrowsAndEyesThanTheFirstWarning()
+        {
+            var profile = ScriptableObject.CreateInstance<EmotionExpressionProfile>();
+            try
+            {
+                var warning = profile.Sample(CharacterEmotion.Frown);
+                var angry = profile.Sample(CharacterEmotion.Angry);
+                var furious = profile.Sample(CharacterEmotion.Furious);
+                Assert.That(angry.browDown.x, Is.GreaterThan(warning.browDown.x));
+                Assert.That(
+                    angry.browOuterUp.x,
+                    Is.GreaterThan(.5f),
+                    "눈썹 바깥쪽을 올려 졸린 눈매와 분노를 구분합니다."
+                );
+                Assert.That(angry.eyeSquint.x, Is.GreaterThan(warning.eyeSquint.x + .2f));
+                Assert.That(angry.mouthFrown.x, Is.GreaterThan(warning.mouthFrown.x));
+                Assert.That(angry.smile, Is.EqualTo(Vector2.zero));
+                Assert.That(furious.eyeWide.x, Is.GreaterThan(angry.eyeWide.x + .25f));
+                Assert.That(furious.browDown.x, Is.GreaterThanOrEqualTo(angry.browDown.x));
+                Assert.That(furious.smile, Is.EqualTo(Vector2.zero));
+            }
+            finally
+            {
+                Object.DestroyImmediate(profile);
+            }
+        }
+
         [Test]
         public void PlayfulWinkClosesThenReopensWithoutRepeatingInAdjacentPhrases()
         {

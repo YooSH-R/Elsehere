@@ -125,6 +125,21 @@ class AiWorkerClient {
       int level,
       WorkerLearner learner,
       NpcReplyListener listener) {
+    return replyReacting(
+        trace, npc, memory, history, text, instruction, level, learner, listener, null);
+  }
+
+  public NpcReply replyReacting(
+      WorkerTrace trace,
+      WorkerNpc npc,
+      WorkerMemory memory,
+      List<WorkerLine> history,
+      String text,
+      String instruction,
+      int level,
+      WorkerLearner learner,
+      NpcReplyListener listener,
+      String reaction) {
     ReplyBody body =
         new ReplyBody(
             npc,
@@ -138,7 +153,8 @@ class AiWorkerClient {
             level,
             false,
             "",
-            learner);
+            learner,
+            reaction);
     long startedAt = System.nanoTime();
     HttpResponse<Stream<String>> response =
         send(
@@ -555,7 +571,8 @@ class AiWorkerClient {
       int level,
       boolean suggestWords,
       String goal,
-      WorkerLearner learner) {}
+      WorkerLearner learner,
+      String reaction) {}
 
   record MeaningBody(WorkerNpc npc, String text, int level) {}
 

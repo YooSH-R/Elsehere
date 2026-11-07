@@ -23,6 +23,58 @@ def emotion_data(wav):
     return None
 
 
+@pytest.mark.parametrize(
+    ("reaction", "expected"),
+    [("rude_warning", "frown"), ("rude_repeated", "angry"), ("rude_final", "furious")],
+)
+def test_confirmed_rudeness_reaction_overrides_smiling_model_in_live_and_saved_voice(provider, reaction, expected):
+    provider.answers["npc"] = lambda body: stream(["[[warm_smile:0.4]]Please be respectful. [[laugh:0.5]]That is not okay."])
+    with make_client(provider, FakeTts(wav=True)) as client:
+        response = events(client.post("/v1/npc/reply", json={**REPLY, "reaction": reaction, "suggest_words": False}))
+        chunks = [data for name, data in response if name == "audio"]
+        for chunk in chunks:
+            wav = client.get("/v1/audio/" + chunk["audio_id"]).content
+            assert emotion_data(wav)["cues"][0]["emotion"] == expected
+        done = next(data for name, data in response if name == "done")
+        assert {phrase["emotion"] for phrase in done["speech_phrases"]} == {expected}
+        full = client.get("/v1/audio/" + done["audio_full_id"]).content
+        assert {cue["emotion"] for cue in emotion_data(full)["cues"]} == {expected}
+        assert done["text"] == "Please be respectful. That is not okay."
+        assert len(provider.calls) == 1
+
+
+@pytest.mark.parametrize(
+    ("reaction", "proposed", "expected"),
+    [
+        ("compliment", "warm_smile", "laugh"),
+        ("compliment", "shy", "shy"),
+        ("compliment", "laugh", "laugh"),
+        ("apology_after_rude", "big_laugh", "relieved"),
+        (None, "warm_smile", "warm_smile"),
+    ],
+)
+def test_compliment_and_apology_are_distinct_from_an_ordinary_greeting(provider, reaction, proposed, expected):
+    provider.answers["npc"] = lambda body: stream([f"[[{proposed}:0.5]]Thank you for saying that."])
+    with make_client(provider, FakeTts(wav=True)) as client:
+        response = events(client.post("/v1/npc/reply", json={**REPLY, "reaction": reaction, "suggest_words": False}))
+        done = next(data for name, data in response if name == "done")
+        assert done["speech_phrases"][0]["emotion"] == expected
+        regenerated = client.post("/v1/tts", json={"text": done["text"], "phrases": done["speech_phrases"]})
+        assert read_emotions(regenerated.content)["cues"][0]["emotion"] == expected
+        assert len(provider.calls) == 1
+
+
+def test_forced_reaction_does_not_split_synthesis_at_discarded_mood_markers(provider):
+    provider.answers["npc"] = lambda body: stream(["[[warm_smile:0.4]]Please [[laugh:0.8]]stop that."])
+    tts = FakeTts(wav=True)
+    with make_client(provider, tts) as client:
+        response = events(client.post("/v1/npc/reply", json={**REPLY, "reaction": "rude_repeated", "suggest_words": False}))
+        done = next(data for name, data in response if name == "done")
+        assert done["text"] == "Please stop that."
+        assert tts.texts == ["Please stop that."]
+        assert len(provider.calls) == 1
+
+
 def test_real_reply_path_carries_phrase_emotions_without_speaking_tags_or_extra_llm_calls(provider):
     provider.answers["npc"] = lambda body: stream(list("[[curious:0.7]]Really? [[warm_smile:0.8]]I'm glad to hear that."))
     tts = FakeTts(wav=True)

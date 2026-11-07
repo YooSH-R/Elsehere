@@ -17,6 +17,10 @@ namespace A305.Characters
         Sad,
         BigLaugh,
         Indifferent,
+        Angry,
+        Furious,
+        Shy,
+        Relieved,
     }
 
     [Serializable]
@@ -27,6 +31,9 @@ namespace A305.Characters
         public Vector2 browOuterUp;
         public Vector2 browDown;
         public Vector2 eyeSquint;
+
+        // 눈매 곡면은 유지하면서, 웃음에 따른 눈꺼풀 닫힘만 덜어낸다.
+        public float eyeSquintOpening;
         public Vector2 eyeWide;
         public Vector2 cheekRaise;
         public Vector2 mouthFrown;
@@ -52,6 +59,7 @@ namespace A305.Characters
                 browOuterUp = Vector2.Lerp(from.browOuterUp, to.browOuterUp, progress),
                 browDown = Vector2.Lerp(from.browDown, to.browDown, progress),
                 eyeSquint = Vector2.Lerp(from.eyeSquint, to.eyeSquint, progress),
+                eyeSquintOpening = Mathf.Lerp(from.eyeSquintOpening, to.eyeSquintOpening, progress),
                 eyeWide = Vector2.Lerp(from.eyeWide, to.eyeWide, progress),
                 cheekRaise = Vector2.Lerp(from.cheekRaise, to.cheekRaise, progress),
                 mouthFrown = Vector2.Lerp(from.mouthFrown, to.mouthFrown, progress),

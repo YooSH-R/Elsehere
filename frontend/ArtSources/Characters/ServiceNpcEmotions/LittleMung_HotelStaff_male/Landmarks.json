@@ -41,6 +41,8 @@
   "expressions": {
     "browLeft": 0.715577246516195,
     "browRight": 0.7158465857278051,
-    "restingMouthCurvature": 8.65174381301884
+    "restingMouthCurvature": 8.65174381301884,
+    "eyeSmileLiftLeft": 0.026634113855602427,
+    "eyeSmileLiftRight": 0.026473124602648713
   }
 }

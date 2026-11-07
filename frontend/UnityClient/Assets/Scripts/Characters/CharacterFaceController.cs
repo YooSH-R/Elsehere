@@ -270,6 +270,7 @@ namespace A305.Characters
                     skin,
                     "Left",
                     emotion.eyeSquint.x,
+                    emotion.eyeSquintOpening,
                     emotion.eyeClosure.x,
                     emotion.browDown.x,
                     blink
@@ -278,6 +279,7 @@ namespace A305.Characters
                     skin,
                     "Right",
                     emotion.eyeSquint.y,
+                    emotion.eyeSquintOpening,
                     emotion.eyeClosure.y,
                     emotion.browDown.y,
                     blink
@@ -311,6 +313,7 @@ namespace A305.Characters
             SkinnedMeshRenderer skin,
             string side,
             float squint,
+            float squintOpening,
             float closure,
             float browDown,
             float blink
@@ -327,6 +330,8 @@ namespace A305.Characters
                     ? .5f * Mathf.Pow(Mathf.Clamp01(supportedSquint / .5f), .25f)
                     : supportedSquint;
             squintClosure = Mathf.Lerp(supportedSquint, squintClosure, Mathf.Clamp01(browDown * 2));
+            // 웃는 눈 곡면과 완전 닫힘을 분리한다. 실제 깜빡임과 직접 눈 감기는 유지한다.
+            squintClosure *= 1 - Mathf.Clamp01(squintOpening);
             SetSingle(skin, "eyeBlink" + side, Mathf.Max(blink, Mathf.Max(squintClosure, closure)));
         }
 

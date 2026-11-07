@@ -193,6 +193,29 @@ class AiWorkerClientTest {
   }
 
   @Test
+  void reply_sendsConfirmedSecondRudenessReactionOutsideTheLearnerText() {
+    respond(
+        "/v1/npc/reply",
+        200,
+        "text/event-stream",
+        "event: done\ndata: {\"text\":\"Please stop.\"}\n\n");
+    client.replyReacting(
+        TRACE,
+        NPC,
+        null,
+        List.of(),
+        "That was rude",
+        "Warn the learner",
+        2,
+        null,
+        NpcReplyListener.NONE,
+        "rude_repeated");
+    assertThat(received.get("/v1/npc/reply").body())
+        .contains("\"reaction\":\"rude_repeated\"")
+        .contains("\"text\":\"That was rude\"");
+  }
+
+  @Test
   @DisplayName("받는 쪽을 넘기면 조각 스트림을 요청하고 글자·조각 음성을 온 순서대로 넘긴다")
   void reply_withListener_forwardsDeltaAndChunksInOrder() {
     respond(

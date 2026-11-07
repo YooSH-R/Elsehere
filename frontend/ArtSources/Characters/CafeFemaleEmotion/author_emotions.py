@@ -141,12 +141,15 @@ def displacement(points, family, side):
         else:
             result[:, 2] = 0.16 * vertical * influence
     elif family == "cheekRaise":
-        r = np.sqrt((dy / 0.070) ** 2 + ((z - 0.535) / 0.027) ** 2)
+        r = np.sqrt((dy / 0.070) ** 2 + ((z - 0.535) / 0.035) ** 2)
         influence = fade(r, 0.35, 1.4) * front
-        # Keep the eye itself still while lifting only the lower cheek.
-        influence *= fade(z, 0.522, 0.538)
-        result[:, 2] = 0.004 * influence
-        result[:, 0] = -0.0015 * influence
+        # Lift the lower lid and under-eye cheek together into a broad arc.
+        # The same field on skin, eye join and lids keeps their seam attached;
+        # the separate eyeball receives no cheek shape.
+        influence *= fade(z, 0.552, 0.573)
+        influence *= np.clip(1 - (dy / 0.065) ** 2, 0, 1) ** 2
+        result[:, 2] = 0.014 * influence
+        result[:, 0] = -0.003 * influence
     else:
         dy_mouth = y + 0.043
         r = np.sqrt((dy_mouth / 0.065) ** 2 + ((z - 0.479) / 0.040) ** 2)

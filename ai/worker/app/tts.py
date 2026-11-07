@@ -205,9 +205,16 @@ class Kokoro:
                     phonemes = []
                 wav, dur = to_wav(audio, sr), len(audio) / sr
                 try:
-                    timing = read_timing(attach_timing(wav, phonemes))
+                    model_timed_wav = attach_timing(wav, phonemes)
+                    timing = read_timing(model_timed_wav)
                     if timing:
-                        wav = align_timing(wav, timing["phonemes"])
+                        try:
+                            wav = align_timing(wav, timing["phonemes"])
+                        except RuntimeError:
+                            # 정렬기 실행 실패는 같은 합성의 유효한 모델 시간을 버릴 이유가 아니다.
+                            # 발음 불일치(ValueError)는 기존처럼 시간표를 사용하지 않는다.
+                            wav = model_timed_wav
+                            log.warning("Acoustic alignment unavailable; preserving validated model phoneme timing", exc_info=True)
                 except (ValueError, RuntimeError):
                     log.warning("Kokoro phoneme timing was rejected; returning voice without lip sync", exc_info=True)
             else:

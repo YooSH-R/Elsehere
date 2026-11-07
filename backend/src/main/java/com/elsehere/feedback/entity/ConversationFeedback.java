@@ -7,6 +7,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,6 +26,8 @@ import org.hibernate.annotations.ColumnTransformer;
 public class ConversationFeedback extends BaseEntity {
 
   @Id private Long conversationId;
+
+  private Instant readAt;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
@@ -56,6 +59,7 @@ public class ConversationFeedback extends BaseEntity {
 
   public void complete(String summary, String reviews, String model, String result) {
     this.status = FeedbackStatus.DONE;
+    this.readAt = null;
     this.summary = summary;
     this.reviews = reviews;
     this.model = model;

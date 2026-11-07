@@ -298,6 +298,8 @@ Table conversation_feedback [headercolor: #2E6B4F] {
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
 
+  read_at timestamptz [note: '실제 피드백 열람 시각 · DONE이며 NULL이면 미확인']
+
   Note: '짧은 피드백 · 대화 종료(CONV-08) 때 상세 평가(turn_feedback)와 함께 만든다'
 }
 

@@ -101,6 +101,53 @@ class FeedbackServiceTest {
   }
 
   @Test
+  @DisplayName("완성된 피드백은 미확인 개수에 쌓이고 해당 피드백을 읽으면 한 번만 차감한다")
+  void unreadCount_accumulatesCompletedFeedbackAndReadingIsIdempotent() {
+    given(aiGateway.feedback(any(), any())).willReturn(completed());
+    feedbackService.feedbackOnEnd(userId, conversation.getId(), UUID.randomUUID(), false);
+    entityManager.flush();
+    assertThat(feedbackService.unreadCount(userId)).isEqualTo(1);
+
+    feedbackService.markRead(userId, conversation.getId());
+    entityManager.flush();
+    entityManager.clear();
+    assertThat(feedbackService.unreadCount(userId)).isZero();
+    feedbackService.markRead(userId, conversation.getId());
+    assertThat(feedbackService.unreadCount(userId)).isZero();
+  }
+
+  @Test
+  @DisplayName("피드백 조회만으로는 미확인 수가 줄지 않고 완료된 내 피드백만 누적된다")
+  void unreadCount_onlyCountsMyCompletedFeedbackAndReadingTheListDoesNotClearIt() {
+    given(aiGateway.feedback(any(), any())).willReturn(completed());
+    feedbackService.feedbackOnEnd(userId, conversation.getId(), UUID.randomUUID(), false);
+    feedbackService.feedback(userId, conversation.getId());
+    Conversation second = conversation(entityManager, userId, "CAFE_STAFF");
+    ConversationFeedback done = ConversationFeedback.of(second.getId());
+    done.complete("완료", STORED_REVIEWS, "test", null);
+    entityManager.persist(done);
+    Conversation skipped = conversation(entityManager, userId, "CAFE_STAFF");
+    ConversationFeedback skippedFeedback = ConversationFeedback.of(skipped.getId());
+    skippedFeedback.skip(null);
+    entityManager.persist(skippedFeedback);
+    Long otherUserId =
+        UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-2", "Moon");
+    Conversation other = conversation(entityManager, otherUserId, "HOTEL_STAFF");
+    ConversationFeedback otherFeedback = ConversationFeedback.of(other.getId());
+    otherFeedback.complete("완료", STORED_REVIEWS, "test", null);
+    entityManager.persist(otherFeedback);
+    entityManager.flush();
+
+    assertThat(feedbackService.unreadCount(userId)).isEqualTo(2);
+    assertThat(feedbackService.unreadCount(otherUserId)).isEqualTo(1);
+    assertThatThrownBy(() -> feedbackService.markRead(userId, other.getId()))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.NOT_FOUND);
+    assertThat(feedbackService.unreadCount(otherUserId)).isEqualTo(1);
+  }
+
+  @Test
   @DisplayName(
       "완료된 피드백은 reviews 칸에 저장 형식(good·improve·suggestion·situationExpressions·vocabCandidates)으로 남긴다")
   void feedbackOnEnd_completed_savesReviewsInStoredFormat() {

@@ -295,6 +295,8 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 **Tools → A305 → Npc → Build Daily Life**(`Scripts/Editor/Npc/NpcLifeBuilder.cs`)는 카페·호텔·드럭스토어·마을에서 생활 데이터가 있는 NPC에 `NpcRoutine`을 붙이고, NPC 몸 크기(반지름 0.3m, 키 1.8m, 턱 0.3m)로 바닥을 구워 `Data/Npc/WalkAreas/`에 저장한 뒤 `NpcWalkArea`로 연결합니다. 사람·차·트리거 콜라이더는 굽지 않습니다. 장면의 `NavMeshModifier`·`NavMeshModifierVolume`이 정한 바닥 구역을 따릅니다. 마을 NPC는 [길 안내](../Wayfinding/README.md#횡단보도로-건너기)가 만든 차도(`Road`)를 경로에서 제외하고 횡단보도(`Crosswalk`)로 건너며, 차도와 횡단보도에 목적지를 두지 않습니다. 신호가 있는 교차로에서는 차량 신호가 충분히 빨간 동안에만 건너기 시작하고, 횡단 중에는 대화로 멈추지 않습니다. 차량 신호가 바뀌었을 때 횡단보도의 출발 경계부터 진행한 거리가 전체의 20% 이하이면 출발 인도로 돌아가 기다리고, 20%를 넘었으면 반대편 인도까지 계속 건넙니다. 복귀를 시작한 뒤에는 신호가 다시 바뀌어도 먼저 출발 인도까지 돌아갑니다. 차량은 앞에 NPC가 있으면 기다립니다. 가구 배치를 바꾸면 다시 실행합니다. 같은 메뉴가 `NpcAnimationBuilder`로 동작 FBX를 Humanoid로 가져오고 NPC 전용 Animator(`Art/Characters/Npc/NpcLife.controller`)를 만들어 `NpcRoutine`에 연결합니다. 장면에 저장된 모델은 플레이어와 같은 이동 컨트롤러 그대로 두고, 생활이 켜질 때 Humanoid 모델에 바꿔 끼웁니다(장면 모델의 키·발 높이 검사가 그대로 유지됩니다). 모델이 자기 Idle처럼 캐릭터 전용 클립을 덮어쓴 컨트롤러(`AnimatorOverrideController`)를 쓰면 `NpcLifeAnimator`가 그 클립을 생활 컨트롤러에 이어받습니다. 컨트롤러는 없을 때만 만들므로 구성을 바꾸려면 지우고 다시 실행합니다.
 
+마을 본길 양옆 상가 사이의 폭 2m 미만 틈은 보행 데이터를 만들 때 통행 불가로 표시합니다. 각 건물의 `Interior/Floor` 충돌 범위 사이를 사용하므로 간판·처마 돌출 때문에 인도가 막히지 않습니다. 숙소에서 상가로 갈 때는 넓은 연결 인도로 나와 본길 인도를 이용하며, 공원·상점 출입구와 기존 횡단보도 연결은 유지합니다. 마을 보행 데이터만 갱신하려면 **Tools → A305 → Npc → Rebake Town Walk Area**를 실행합니다. 건물·NPC의 물리 콜라이더나 시각 배치는 바꾸지 않습니다.
+
 ## 테스트
 
 | 어셈블리 | 위치 | 검증 |

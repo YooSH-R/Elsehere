@@ -19,6 +19,8 @@ namespace A305.Npc
     [RequireComponent(typeof(CharacterController), typeof(NpcIdentity))]
     public class Passerby : MonoBehaviour
     {
+        public NpcTravelContext TravelContext { get; internal set; }
+
         /// <summary>NPC 보행 데이터와 물리 캡슐이 함께 허용하는 턱 높이(월드 미터).</summary>
         public const float WalkableStepMeters = .3f;
         private readonly NpcObstacleDetour obstacleDetour = new NpcObstacleDetour();

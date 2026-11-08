@@ -85,7 +85,8 @@ namespace A305.Dialogue
             FollowUpStore followUps = null,
             bool npcOffDuty = false,
             long? reviewCardId = null,
-            Func<string, Task<ConversationStart>> reviewStart = null
+            Func<string, Task<ConversationStart>> reviewStart = null,
+            NpcTravelContext npcTravelContext = null
         )
         {
             NpcCode = npcCode;

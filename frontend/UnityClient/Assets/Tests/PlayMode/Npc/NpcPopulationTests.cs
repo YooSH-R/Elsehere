@@ -19,6 +19,73 @@ namespace A305.Npc.PlayModeTests
     public class NpcPopulationTests
     {
         [UnityTest]
+        public IEnumerator Town_WorkerKnowsTheRealCommuteAndKeepsItAfterArrival()
+        {
+            SetClock(17 * 60 + 59);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            var walker = Object
+                .FindObjectsByType<NpcTownWalker>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+                .Single(item => item.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER");
+            var body = walker.GetComponent<Passerby>();
+            Assert.That(body.TravelContext, Is.Not.Null);
+            Assert.That(body.TravelContext.Phase, Is.EqualTo("GOING_TO_WORK"));
+            Assert.That(body.TravelContext.RouteMeters, Is.GreaterThan(10));
+            Assert.That(body.TravelContext.DepartureLeadMinutes, Is.GreaterThan(0));
+            float previousDelta = Time.captureDeltaTime;
+            try
+            {
+                Time.captureDeltaTime = 1f / 30f;
+                PlaceWalker(walker, new Vector3(12, .1f, 22), Vector3.forward);
+                for (int frame = 0; frame < 30; frame++)
+                    yield return null;
+                Assert.That(body.TravelContext.WalkedMeters, Is.GreaterThan(.1));
+                double walked = body.TravelContext.WalkedMeters;
+                Vector3 door = walker.ScheduleDoor.Value;
+                GameClock
+                    .Shared.TickAsync(
+                        new FixedClock
+                        {
+                            Time = new GameClockTime
+                            {
+                                Day = 1,
+                                MinuteOfDay = 18 * 60,
+                                Paused = true,
+                            },
+                        },
+                        Time.realtimeSinceStartupAsDouble + 1e6
+                    )
+                    .GetAwaiter()
+                    .GetResult();
+                PlaceWalker(walker, door, Vector3.forward);
+                yield return null;
+                yield return null;
+                var worker = Object
+                    .FindFirstObjectByType<NpcPopulation>()
+                    .FindWorker("HOTEL_NIGHT_MANAGER")
+                    .GetComponent<Passerby>();
+                Assert.That(worker.TravelContext, Is.Not.Null);
+                Assert.That(worker.TravelContext.Phase, Is.EqualTo("AT_WORK"));
+                Assert.That(worker.TravelContext.WalkedMeters, Is.GreaterThanOrEqualTo(walked));
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDelta;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Town_StaffPassTheBankStairSupport() => CheckObservedStall(false);
 
         [UnityTest]

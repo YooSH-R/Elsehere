@@ -19,6 +19,73 @@ namespace A305.Npc.PlayModeTests
     public class NpcPopulationTests
     {
         [UnityTest]
+        public IEnumerator Town_CommutersPassOnANarrowSidewalk()
+        {
+            SetClock(21 * 60);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
+            Object
+                .FindFirstObjectByType<PlayerMover>()
+                .Teleport(new Vector3(0, 100, 0), Quaternion.identity);
+            var all = Object.FindObjectsByType<NpcTownWalker>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+            var first = all.Single(item =>
+                item.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER"
+            );
+            var second = all.Single(item =>
+                item.GetComponent<NpcIdentity>().Code == "CAFE_BARISTA"
+            );
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            floor.transform.position = new Vector3(500, -.1f, 500);
+            floor.transform.localScale = new Vector3(2.2f, .2f, 10);
+            NavMeshData nav = BuildWalkingFloor(floor);
+            var instance = NavMesh.AddNavMeshData(nav);
+            float previousDelta = Time.captureDeltaTime;
+            try
+            {
+                Time.captureDeltaTime = 1f / 60f;
+                PlaceWalker(first, new Vector3(500, .1f, 497), Vector3.forward);
+                PlaceWalker(second, new Vector3(500, .1f, 503), Vector3.back);
+                first.Destination = new Vector3(500, .1f, 503);
+                second.Destination = new Vector3(500, .1f, 497);
+                for (int frame = 0; frame < 900; frame++)
+                {
+                    yield return null;
+                    Assert.That(
+                        HorizontalDistance(first.transform.position, second.transform.position),
+                        Is.GreaterThanOrEqualTo(.95f)
+                    );
+                }
+                Assert.That(
+                    HorizontalDistance(first.transform.position, first.Destination),
+                    Is.LessThan(.2f)
+                );
+                Assert.That(
+                    HorizontalDistance(second.transform.position, second.Destination),
+                    Is.LessThan(.2f)
+                );
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDelta;
+                instance.Remove();
+                Object.Destroy(nav);
+                Object.Destroy(floor);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Town_LateCommuterRunsOnAnEmptyPathAndWalksNearThePlayer() =>
             CheckHurryingNpc(click: false);
 

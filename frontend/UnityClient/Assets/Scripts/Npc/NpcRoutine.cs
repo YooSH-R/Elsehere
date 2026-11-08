@@ -56,7 +56,7 @@ namespace A305.Npc
         private const float LookAroundRadiusMeters = 8f;
         private const float LookAroundStepMeters = 1.5f;
         private const int LookAroundTries = 4;
-        private const float LookAroundMinSeconds = 2f;
+        internal const float LookAroundMinSeconds = 2f;
         private const float LookAroundMaxSeconds = 5f;
 
         [SerializeField]

@@ -27,7 +27,12 @@ namespace A305.Npc
         public bool IsShortBreak { get; }
         public bool IsInTown => Phase != NpcDayPhase.Working && Phase != NpcDayPhase.Resting;
 
-        public static NpcDayPlan At(NpcLifeEntry npc, double minutes, bool requiredForMission, double commuteMinutes = 60)
+        public static NpcDayPlan At(
+            NpcLifeEntry npc,
+            double minutes,
+            bool requiredForMission,
+            double commuteMinutes = 60
+        )
         {
             string active = npc.Role == "PASSERBY" ? "FREE" : "WORK";
             if (requiredForMission || npc.ActivityAt(minutes) == active)
@@ -52,8 +57,9 @@ namespace A305.Npc
                     ? new NpcDayPlan(NpcDayPhase.LeavingWork, sinceWork / half, true)
                     : new NpcDayPlan(NpcDayPhase.GoingToWork, 1 - untilWork / half, true);
             }
-            if (untilWork <= 60)
-                return new NpcDayPlan(NpcDayPhase.GoingToWork, 1 - untilWork / 60);
+            double leadMinutes = Math.Min(gap, Math.Max(1, commuteMinutes));
+            if (untilWork <= leadMinutes)
+                return new NpcDayPlan(NpcDayPhase.GoingToWork, 1 - untilWork / leadMinutes);
             if (sinceWork < 30)
                 return new NpcDayPlan(NpcDayPhase.LeavingWork, sinceWork / 30);
             if (sinceWork < 120)

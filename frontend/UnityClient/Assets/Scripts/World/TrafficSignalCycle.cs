@@ -39,7 +39,13 @@ namespace A305.World
 
         private float Length => mainGreenSeconds + crossGreenSeconds + 2f * yellowSeconds;
 
-        public float MaximumPedestrianWaitSeconds(bool crossesMainRoad) => 0;
+        public float MaximumPedestrianWaitSeconds(bool crossesMainRoad)
+        {
+            float redSeconds =
+                (crossesMainRoad ? crossGreenSeconds : mainGreenSeconds) + yellowSeconds;
+            float startWindow = redSeconds - RequiredCrossingSeconds;
+            return startWindow > 0 ? Length - startWindow : float.PositiveInfinity;
+        }
 
         public PedestrianLight PedestrianAt(float seconds, bool crossesMainRoad)
         {

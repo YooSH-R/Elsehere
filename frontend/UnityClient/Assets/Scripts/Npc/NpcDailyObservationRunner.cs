@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,17 +9,18 @@ using System.Threading.Tasks;
 using A305.Dialogue;
 using A305.Npc;
 using A305.Player;
-using A305.Tutorial;
 using A305.World;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
-namespace A305.EditorTools.Npc
+namespace A305.Npc
 {
+    [AddComponentMenu("")]
     public sealed class NpcDailyObservationRunner : MonoBehaviour
     {
+        public Action PrepareScenario;
         private const BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
         private readonly List<Commute> commutes = new List<Commute>();
         private readonly List<Visit> visits = new List<Visit>();
@@ -47,6 +49,7 @@ namespace A305.EditorTools.Npc
             public bool arrived;
             public bool refusedConversation;
             public Vector3 finalPosition;
+            public double departureLeadMinutes;
         }
 
         [Serializable]
@@ -82,8 +85,7 @@ namespace A305.EditorTools.Npc
             )
             {
                 UnityEngine.Random.InitState(681);
-                TutorialState.Clear();
-                TutorialState.MarkFinishedOnServer();
+                PrepareScenario();
                 NpcDuty.MissionNpcCode = null;
                 typeof(GameClock)
                     .GetMethod("ResetShared", BindingFlags.Static | BindingFlags.NonPublic)
@@ -106,6 +108,7 @@ namespace A305.EditorTools.Npc
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None
                 );
+                var population = Object.FindFirstObjectByType<NpcPopulation>();
                 var walkersByCode = walkers.ToDictionary(walker =>
                     walker.GetComponent<NpcIdentity>().Code
                 );
@@ -140,6 +143,7 @@ namespace A305.EditorTools.Npc
                 var previous = new Dictionary<string, NpcDayPhase>();
                 var waits = new Dictionary<string, double>();
                 var current = new Dictionary<string, Commute>();
+                var wasCommuting = new Dictionary<string, bool>();
                 int lastHour = -1;
                 int stalledFrames = 0;
                 while (GameClock.Shared.Minutes < (warmupDays + 1) * 1440)
@@ -168,8 +172,13 @@ namespace A305.EditorTools.Npc
                         NpcDayPhase phase = NpcDayPlan.At(entry, now, false).Phase;
                         previous.TryGetValue(code, out NpcDayPhase before);
                         waits.TryGetValue(code, out double wait);
-                        if (phase == NpcDayPhase.GoingToWork && before != phase)
+                        bool commuting =
+                            walker.gameObject.activeSelf
+                            && walker.SchedulePhase == NpcDayPhase.GoingToWork;
+                        wasCommuting.TryGetValue(code, out bool previouslyCommuting);
+                        if (commuting && !previouslyCommuting)
                             wait = 0;
+                        wasCommuting[code] = commuting;
                         if (walker.gameObject.activeInHierarchy && bodies[code].IsWaitingAtSignal)
                             wait += Time.deltaTime;
                         waits[code] = wait;
@@ -184,6 +193,7 @@ namespace A305.EditorTools.Npc
                                 npc = code,
                                 signals = signals,
                                 scheduledMinute = Math.Round(now * 10) / 10,
+                                departureLeadMinutes = population.CommuteMinutesFor(code),
                             };
                             commutes.Add(trip);
                             current[code] = trip;
@@ -249,7 +259,10 @@ namespace A305.EditorTools.Npc
             }
             Time.captureDeltaTime = 0;
             Save();
-            EditorApplication.Exit(0);
+            if (Application.isBatchMode)
+                EditorApplication.Exit(0);
+            else
+                EditorApplication.isPlaying = false;
         }
 
         private void Save()
@@ -320,3 +333,4 @@ namespace A305.EditorTools.Npc
         }
     }
 }
+#endif

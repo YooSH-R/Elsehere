@@ -8,7 +8,7 @@ namespace A305.Npc
     internal static class NpcWalkingSpace
     {
         private const float GapMeters = .06f;
-        private const float ArrivalSearchRadiusMeters = 9f;
+        internal const float ArrivalSearchRadiusMeters = 9f;
         private static readonly List<Passerby> Bodies = new List<Passerby>();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

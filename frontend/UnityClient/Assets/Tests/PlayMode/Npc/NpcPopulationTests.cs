@@ -1444,7 +1444,16 @@ namespace A305.Npc.PlayModeTests
                     Assert.That(
                         walker.gameObject.activeSelf,
                         Is.EqualTo(
-                            NpcDayPlan.At(data.FindNpc(code), minutes, false).IsInTown && !isInside
+                            NpcDayPlan
+                                .At(
+                                    data.FindNpc(code),
+                                    minutes,
+                                    false,
+                                    Object
+                                        .FindFirstObjectByType<NpcPopulation>()
+                                        .CommuteMinutesFor(code)
+                                )
+                                .IsInTown && !isInside
                         ),
                         code + " / " + minutes
                     );

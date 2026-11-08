@@ -13,6 +13,8 @@ namespace A305.Npc
     [DefaultExecutionOrder(-50)]
     public sealed class NpcPopulation : MonoBehaviour
     {
+        private const float DoorArrivalMeters = .4f;
+
         [SerializeField]
         private TextAsset lifeData;
 
@@ -34,6 +36,7 @@ namespace A305.Npc
         private GameClock observedClock;
         private double lastMinutes;
         private NpcOutingCatalog outings;
+        private TrafficLights lights;
 
         [Serializable]
         public sealed class Resident
@@ -69,6 +72,12 @@ namespace A305.Npc
 
             [NonSerialized]
             internal NpcOutingVenue LeisureVenue;
+
+            [NonSerialized]
+            internal double CommuteMinutes = 60;
+
+            [NonSerialized]
+            internal float RouteMeters;
         }
 
         /// <summary>같은 코드의 거리 모습을 고르지 않고 근무지의 직원을 찾는다.</summary>
@@ -87,6 +96,7 @@ namespace A305.Npc
 
         private void Start()
         {
+            lights = FindFirstObjectByType<TrafficLights>();
             outings = Resources.Load<NpcOutingCatalog>("NpcOutings");
             NpcOutings.Shared.Synchronize(GameClock.Shared);
             NpcFacilityVisitors.Ensure(outings);
@@ -105,6 +115,16 @@ namespace A305.Npc
                 }
                 GameObject body = resident.Worker != null ? resident.Worker : resident.TownBody;
                 resident.Life = data.FindNpc(body.GetComponent<NpcIdentity>().Code);
+                if (resident.TownBody != null)
+                {
+                    var journey = MeasureJourney(dormDoor, resident.WorkplaceDoor);
+                    double minutes = NpcJourneyTime.LeadMinutes(
+                        journey.Meters,
+                        journey.WaitSeconds,
+                        ArrivalMarginMeters
+                    );
+                    resident.CommuteMinutes = double.IsInfinity(minutes) ? 60 : minutes;
+                }
             }
             Update();
         }
@@ -138,7 +158,12 @@ namespace A305.Npc
                         workerBody != null
                         && (workerBody.IsGuidingTutorial || workerBody.IsWaitingForQuest)
                     );
-                NpcDayPlan plan = NpcDayPlan.At(resident.Life, GameClock.Shared.Minutes, needed);
+                NpcDayPlan plan = NpcDayPlan.At(
+                    resident.Life,
+                    GameClock.Shared.Minutes,
+                    needed,
+                    resident.CommuteMinutes
+                );
                 resident.Plan = plan;
                 if (needed)
                 {
@@ -158,7 +183,7 @@ namespace A305.Npc
                                     resident.EntryDoor - resident.TownBody.transform.position,
                                     Vector3.up
                                 )
-                                .magnitude > .4f;
+                                .magnitude > DoorArrivalMeters;
                     }
                     resident.EnteringDoor = entering;
                 }
@@ -216,7 +241,17 @@ namespace A305.Npc
                 if (resident.LastPhase != plan.Phase)
                 {
                     var endpoints = Endpoints(resident, plan);
+                    if (
+                        !appeared
+                        && continuous
+                        && (
+                            plan.Phase == NpcDayPhase.LeavingWork
+                            || plan.Phase == NpcDayPhase.GoingHome
+                        )
+                    )
+                        endpoints = (resident.TownBody.transform.position, endpoints.To);
                     resident.Route = RouteBetween(endpoints.From, endpoints.To);
+                    resident.RouteMeters = resident.Route != null ? RouteLength(resident.Route) : 0;
                     resident.LastPhase = plan.Phase;
                 }
                 if (resident.Route == null)
@@ -235,6 +270,12 @@ namespace A305.Npc
                     continue;
                 }
                 float progress = (float)plan.Progress;
+                if (plan.Phase == NpcDayPhase.GoingToWork && !plan.IsShortBreak)
+                    progress = NpcJourneyTime.WalkingProgress(
+                        plan.Progress,
+                        resident.CommuteMinutes,
+                        resident.RouteMeters
+                    );
                 if (plan.Phase == NpcDayPhase.Leisure && resident.LeisureVenue != null)
                     progress = resident.LeisureVenue.IsOutdoor
                         ? Mathf.PingPong(progress * 6, 1)
@@ -314,7 +355,7 @@ namespace A305.Npc
                     outings.Venues,
                     venue =>
                         OpeningHours.IsOpenNow(venue.Code)
-                        && RouteBetween(resident.WorkplaceDoor, venue.Entrance) != null
+                        && CanVisit(resident, venue, NpcOutings.UntilHome(plan, now) - now)
                         && (!venue.IsOutdoor || RouteBetween(venue.Entrance, venue.WalkTo) != null)
                 );
                 if (resident.LeisureVenue != trip?.Venue)
@@ -357,7 +398,7 @@ namespace A305.Npc
                         resident.TownBody.transform.position - trip.Venue.Entrance,
                         Vector3.up
                     )
-                    .magnitude <= .4f
+                    .magnitude <= DoorArrivalMeters
             )
             {
                 trip.Arrived = true;
@@ -367,6 +408,74 @@ namespace A305.Npc
             if (!visiting && !trip.Arrived)
                 NpcOutings.Shared.Release(code);
             return false;
+        }
+
+        public double CommuteMinutesFor(string code)
+        {
+            foreach (Resident resident in residents)
+                if (resident.Life?.NpcId == code)
+                    return resident.CommuteMinutes;
+            return 60;
+        }
+
+        private static float ArrivalMarginMeters =>
+            NpcWalkingSpace.ArrivalSearchRadiusMeters + DoorArrivalMeters;
+
+        private bool CanVisit(Resident resident, NpcOutingVenue venue, double remainingMinutes)
+        {
+            Vector3 from = resident.TownBody.activeSelf
+                ? resident.TownBody.transform.position
+                : resident.WorkplaceDoor;
+            var journey = MeasureJourney(from, venue.Entrance);
+            return NpcJourneyTime.CanVisit(
+                journey.Meters,
+                journey.WaitSeconds,
+                remainingMinutes,
+                ArrivalMarginMeters
+            );
+        }
+
+        private (float Meters, float WaitSeconds) MeasureJourney(Vector3 from, Vector3 to)
+        {
+            Vector3[] route = RouteBetween(from, to);
+            if (route == null)
+                return (float.PositiveInfinity, 0);
+            float wait = 0;
+            bool wasCrossing = false;
+            int crossing = NavMesh.GetAreaFromName("Crosswalk");
+            int mask = crossing >= 0 ? 1 << crossing : 0;
+            for (int segment = 1; segment < route.Length; segment++)
+            {
+                Vector3 delta = route[segment] - route[segment - 1];
+                int samples = Mathf.Max(1, Mathf.CeilToInt(delta.magnitude / .5f));
+                for (int step = 0; step <= samples; step++)
+                {
+                    Vector3 point = Vector3.Lerp(
+                        route[segment - 1],
+                        route[segment],
+                        (float)step / samples
+                    );
+                    bool onCrossing =
+                        lights != null
+                        && mask != 0
+                        && NavMesh.SamplePosition(point, out _, .1f, mask)
+                        && NpcTownWalker.HasNearbySignal(lights, point);
+                    if (onCrossing && !wasCrossing)
+                        wait += lights.MaximumPedestrianWaitSeconds(
+                            Mathf.Abs(delta.x) >= Mathf.Abs(delta.z)
+                        );
+                    wasCrossing = onCrossing;
+                }
+            }
+            return (RouteLength(route), wait);
+        }
+
+        private static float RouteLength(IReadOnlyList<Vector3> route)
+        {
+            float meters = 0;
+            for (int i = 1; i < route.Count; i++)
+                meters += Vector3.Distance(route[i - 1], route[i]);
+            return meters;
         }
 
         private static bool IsTalking(GameObject npc)

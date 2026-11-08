@@ -1,3 +1,5 @@
+using A305.Npc;
+using A305.Tutorial;
 using UnityEditor;
 using UnityEngine;
 
@@ -29,7 +31,14 @@ namespace A305.EditorTools.Npc
             )
                 return;
             SessionState.SetBool(RunningKey, false);
-            new GameObject("NpcDailyObservation").AddComponent<NpcDailyObservationRunner>();
+            var runner = new GameObject(
+                "NpcDailyObservation"
+            ).AddComponent<NpcDailyObservationRunner>();
+            runner.PrepareScenario = () =>
+            {
+                TutorialState.Clear();
+                TutorialState.MarkFinishedOnServer();
+            };
         }
     }
 }

@@ -165,7 +165,7 @@ namespace A305.Npc
                 && body.HasRunningRoom(travel);
             IsRunning = IsHurrying && clear;
             float speed = Mathf.Min(hurry.Speed(clear), direction.magnitude / Time.deltaTime);
-            body.WalkToward(travel, speed);
+            body.WalkToward(travel, speed, direction);
         }
 
         internal static bool ShouldWaitForSignal(
@@ -232,6 +232,8 @@ namespace A305.Npc
                 // 상대를 지난 뒤에만 원래 경로로 돌아간다. 매 프레임 좌우를 다시 고르면 몸이 흔들린다.
                 if (
                     !passing.isActiveAndEnabled
+                    || toOther.magnitude > PassingLookAheadMeters + passingClearance
+                    || Vector3.Dot(toOther, forward) <= 0
                     || Vector3.Dot(toOther, passingForward) < -passingClearance * .5f
                     || Vector3.Dot(forward, passingForward) < 0
                     || DestinationIsOccupied(passing, passingClearance)
@@ -263,9 +265,13 @@ namespace A305.Npc
                 passing = other;
             }
 
-            return TryPassingDirection(passing, out Vector3 direction)
-                ? direction
-                : destinationOffset;
+            if (TryPassingDirection(passing, out Vector3 direction))
+                return direction;
+            passingOnRight = !passingOnRight;
+            if (TryPassingDirection(passing, out direction))
+                return direction;
+            passing = null;
+            return destinationOffset;
         }
 
         private bool DestinationIsOccupied(Passerby other, float clearance)
@@ -307,6 +313,9 @@ namespace A305.Npc
                 !NavMesh.SamplePosition(transform.position, out NavMeshHit start, .3f, WalkingAreas)
                 || !NavMesh.SamplePosition(waypoint, out NavMeshHit end, .2f, WalkingAreas)
                 || NavMesh.Raycast(start.position, end.position, out _, WalkingAreas)
+                || !GetComponent<Passerby>().HasWalkingRoom(direction, .35f)
+                || NpcWalkingSpace.LimitStep(GetComponent<Passerby>(), direction.normalized, .1f)
+                    < .005f
             )
                 return false;
             return direction.sqrMagnitude > .001f;

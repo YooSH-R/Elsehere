@@ -83,13 +83,13 @@ namespace A305.Npc
                 Vector3 far = position;
                 if (alongX)
                 {
-                    near.x = positive ? bounds.min.x : bounds.max.x;
+                    near.x = Mathf.Clamp(position.x, bounds.min.x, bounds.max.x);
                     far.x = positive ? bounds.max.x : bounds.min.x;
                     near.z = far.z = side == 0 ? bounds.min.z : bounds.max.z;
                 }
                 else
                 {
-                    near.z = positive ? bounds.min.z : bounds.max.z;
+                    near.z = Mathf.Clamp(position.z, bounds.min.z, bounds.max.z);
                     far.z = positive ? bounds.max.z : bounds.min.z;
                     near.x = far.x = side == 0 ? bounds.min.x : bounds.max.x;
                 }
@@ -99,7 +99,9 @@ namespace A305.Npc
                     || !IsClear(body, position, near, out _)
                     || !IsClear(body, near, far, out _)
                 )
+                {
                     continue;
+                }
                 float distance =
                     Flat(near - position).magnitude
                     + Flat(far - near).magnitude
@@ -175,6 +177,11 @@ namespace A305.Npc
                 )
                     continue;
                 if (hits[i].distance >= closest)
+                    continue;
+                // 이미 몸체 가장자리에 닿은 지지대도 그 반대쪽으로 빠져나오는 걸음은 허용한다.
+                Vector3 center = bounds.center + shift;
+                Vector3 outward = Flat(center - hit.ClosestPoint(center));
+                if (hits[i].distance <= .001f && Vector3.Dot(offset, outward) > .0001f)
                     continue;
                 closest = hits[i].distance;
                 blocker = hit;

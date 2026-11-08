@@ -25,10 +25,15 @@ namespace A305.Npc
             committed = false;
         }
 
-        internal Vector3 Direction(TrafficLights lights, Vector3 position, Vector3 requested)
+        internal Vector3 Direction(
+            TrafficLights lights,
+            Vector3 position,
+            Vector3 requested,
+            Vector3? plannedDirection = null
+        )
         {
             if (!IsActive)
-                Begin(lights, position, requested);
+                Begin(lights, position, plannedDirection ?? requested);
             if (!IsActive)
                 return requested;
 
@@ -73,9 +78,8 @@ namespace A305.Npc
             )
                 return;
             crossesMainRoad = Mathf.Abs(direction.x) >= Mathf.Abs(direction.z);
-            forward = crossesMainRoad
-                ? Vector3.right * Mathf.Sign(direction.x)
-                : Vector3.forward * Mathf.Sign(direction.z);
+            // 교차로의 경계는 대각선일 수도 있다. 교행 접선이나 가로·세로 축으로 출구를 정하면 차도 안에서 끝난다.
+            forward = Vector3.ProjectOnPlane(direction, Vector3.up).normalized;
             int mask = 1 << area;
             if (
                 !NavMesh.Raycast(

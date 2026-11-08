@@ -624,7 +624,11 @@ namespace A305.Npc
         }
 
         /// <summary>그 방향으로 한 프레임 걷는다. 생활(NpcRoutine)은 다가올 때와 다른 속도로 걷는다.</summary>
-        internal void WalkToward(Vector3 horizontalDirection, float speedMetersPerSecond)
+        internal void WalkToward(
+            Vector3 horizontalDirection,
+            float speedMetersPerSecond,
+            Vector3? plannedDirection = null
+        )
         {
             if (
                 IsTownResident
@@ -639,7 +643,8 @@ namespace A305.Npc
             horizontalDirection = crossing.Direction(
                 trafficLights,
                 transform.position,
-                horizontalDirection
+                horizontalDirection,
+                plannedDirection
             );
             IsWaitingAtSignal =
                 horizontalDirection.sqrMagnitude >= .0001f
@@ -669,6 +674,9 @@ namespace A305.Npc
 
         internal bool IsWaitingForSignal(Vector3 direction) =>
             NpcTownWalker.ShouldWaitForSignal(trafficLights, transform.position, direction);
+
+        internal bool HasWalkingRoom(Vector3 direction, float meters) =>
+            obstacleDetour.IsClearAhead(characterController, direction, meters);
 
         /// <summary>이번 프레임에 실제 보행이 신호 때문에 멈췄는지. 일과 관찰에서 대기 시간을 센다.</summary>
         public bool IsWaitingAtSignal { get; private set; }

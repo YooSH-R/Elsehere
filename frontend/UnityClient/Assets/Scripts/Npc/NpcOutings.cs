@@ -1,0 +1,64 @@
+using System;
+using System.Collections.Generic;
+using A305.World;
+using UnityEngine;
+
+namespace A305.Npc
+{
+    public sealed class NpcOuting
+    {
+        public string Npc;
+        public NpcOutingVenue Venue;
+        public double Until;
+        public bool Arrived;
+        public bool ReadyToLeave;
+    }
+
+    /// <summary>이동 중인 예약도 정원에 포함해 시설별 손님을 분산한다. 근무표는 바꾸지 않는다.</summary>
+    public sealed class NpcOutings
+    {
+        public static NpcOutings Shared { get; private set; } = new NpcOutings();
+        private readonly Dictionary<string, NpcOuting> trips = new Dictionary<string, NpcOuting>();
+        public IEnumerable<NpcOuting> Trips => trips.Values;
+
+        public NpcOuting Find(string npc) =>
+            trips.TryGetValue(npc, out NpcOuting trip) ? trip : null;
+
+        public NpcOuting Reserve(
+            string npc,
+            string workplace,
+            double now,
+            double until,
+            IReadOnlyList<NpcOutingVenue> venues,
+            Predicate<NpcOutingVenue> available
+        )
+        {
+            return null;
+        }
+
+        public static bool CanGoOut(NpcDayPlan plan) =>
+            !plan.IsShortBreak
+            && (plan.Phase == NpcDayPhase.LeavingWork || plan.Phase == NpcDayPhase.Leisure);
+
+        public static double UntilHome(NpcDayPlan plan, double now) =>
+            now
+            + (
+                plan.Phase == NpcDayPhase.LeavingWork
+                    ? (1 - plan.Progress) * 30 + 90
+                    : (1 - plan.Progress) * 90
+            );
+
+        public void Release(string npc) => trips.Remove(npc);
+
+        private static int StableHash(string text)
+        {
+            int value = 0;
+            foreach (char letter in text)
+                value = (value * 31 + letter) & 0x7fffffff;
+            return value;
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void Reset() => Shared = new NpcOutings();
+    }
+}

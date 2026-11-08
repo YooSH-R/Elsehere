@@ -19,6 +19,83 @@ namespace A305.Npc.PlayModeTests
     public class NpcPopulationTests
     {
         [UnityTest]
+        public IEnumerator Town_ScheduledSpawnKeepsTheVisualAboveTheGround()
+        {
+            SetClock(195);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            Object
+                .FindFirstObjectByType<PlayerMover>()
+                .Teleport(new Vector3(0, 100, 0), Quaternion.identity);
+            var walker = Object
+                .FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None)
+                .Single(item => item.GetComponent<NpcIdentity>().Code == "BARBER_STAFF");
+            var skin = walker
+                .GetComponentsInChildren<SkinnedMeshRenderer>()
+                .OrderByDescending(item => item.sharedMesh.vertexCount)
+                .First();
+            float previousDelta = Time.captureDeltaTime;
+#if UNITY_EDITOR
+            using var review = new NpcDailyReviewCapture(
+                System.Environment.GetEnvironmentVariable("NPC_OBSTACLE_REVIEW_OUTPUT")
+            );
+#endif
+            try
+            {
+                Time.captureDeltaTime = 1f / 30f;
+                GameClock.Shared.Current.Paused = false;
+                for (int frame = 0; frame < 300; frame++)
+                {
+                    GameClock.Shared.Flow(Time.deltaTime);
+                    yield return null;
+#if UNITY_EDITOR
+                    review.RecordScenario(
+                        "residence-scheduled-spawn",
+                        walker.transform,
+                        new Vector3(8, 3, 0),
+                        GameClock.Shared.Minutes
+                    );
+#endif
+                    if (frame % 30 != 0)
+                        continue;
+                    var baked = new Mesh();
+                    skin.BakeMesh(baked);
+                    Vector3 center = skin.transform.TransformPoint(baked.bounds.center);
+                    Vector3 sole = skin.transform.TransformPoint(
+                        new Vector3(
+                            baked.bounds.center.x,
+                            baked.bounds.min.y,
+                            baked.bounds.center.z
+                        )
+                    );
+                    Object.Destroy(baked);
+                    Assert.That(
+                        HorizontalDistance(center, walker.transform.position),
+                        Is.LessThan(1.5f),
+                        $"몸체 {walker.transform.position}, 외형 {center}"
+                    );
+                    Assert.That(
+                        sole.y - walker.transform.position.y,
+                        Is.GreaterThan(-.25f),
+                        $"몸체 {walker.transform.position.y}, 발 밑면 {sole.y}"
+                    );
+                }
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDelta;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Town_WorkerKnowsTheRealCommuteAndKeepsItAfterArrival()
         {
             SetClock(17 * 60 + 59);

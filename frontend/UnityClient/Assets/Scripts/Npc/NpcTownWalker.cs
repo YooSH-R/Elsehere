@@ -300,7 +300,9 @@ namespace A305.Npc
                 (passingClearance + .12f) / Mathf.Max(offset.magnitude, .001f)
             );
             direction = towardOther * Mathf.Sqrt(1f - sine * sine) + side * sine;
-            Vector3 waypoint = transform.position + direction * PassingLookAheadMeters;
+            // 좁은 보도에서 멀리 떨어진 접선 끝점까지 요구하면 양옆 모두 막혔다고 판단한다.
+            // 실제 한 걸음으로 갈 수 있는 구간부터 확인해 서로 반대쪽으로 조금씩 비켜 간다.
+            Vector3 waypoint = transform.position + direction * .35f;
             if (
                 !NavMesh.SamplePosition(transform.position, out NavMeshHit start, .3f, WalkingAreas)
                 || !NavMesh.SamplePosition(waypoint, out NavMeshHit end, .2f, WalkingAreas)

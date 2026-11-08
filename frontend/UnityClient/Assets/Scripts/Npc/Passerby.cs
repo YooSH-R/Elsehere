@@ -65,6 +65,12 @@ namespace A305.Npc
         // 생활 데이터가 있는 NPC만 붙는다. 다가오지 않는 동안 제자리로 돌아가는 대신 일과와 욕구에 따라 지낸다.
         private NpcRoutine routine;
 
+        internal void UseVisitRoutine(NpcRoutine visitor)
+        {
+            routine = visitor;
+            GetComponent<NpcTownWalker>().enabled = false;
+        }
+
         // 튜토리얼 동안 쓰는 대본·인사말 키. 튜토리얼이 아니면 null이고 NPC 키로 평소 대화한다.
         private string tutorialScriptKey;
 
@@ -237,6 +243,7 @@ namespace A305.Npc
 
         private void Update()
         {
+            IsWaitingAtSignal = false;
             if (IsTownResident)
                 GetComponent<NpcTownWalker>().RefreshHurry();
             if (playerTalkReach.HasValue && DeclinesConversation && !IsPlayerOccupied)
@@ -634,10 +641,11 @@ namespace A305.Npc
                 transform.position,
                 horizontalDirection
             );
-            if (
-                horizontalDirection.sqrMagnitude < .0001f
-                || (!crossing.IsActive && IsWaitingForSignal(horizontalDirection))
-            )
+            IsWaitingAtSignal =
+                horizontalDirection.sqrMagnitude >= .0001f
+                && !crossing.IsActive
+                && IsWaitingForSignal(horizontalDirection);
+            if (horizontalDirection.sqrMagnitude < .0001f || IsWaitingAtSignal)
             {
                 Stand();
                 return;
@@ -661,6 +669,9 @@ namespace A305.Npc
 
         internal bool IsWaitingForSignal(Vector3 direction) =>
             NpcTownWalker.ShouldWaitForSignal(trafficLights, transform.position, direction);
+
+        /// <summary>이번 프레임에 실제 보행이 신호 때문에 멈췄는지. 일과 관찰에서 대기 시간을 센다.</summary>
+        public bool IsWaitingAtSignal { get; private set; }
 
         /// <summary>제자리에 서서 그 방향으로 천천히 돈다.</summary>
         internal void StandFacing(Quaternion rotation)

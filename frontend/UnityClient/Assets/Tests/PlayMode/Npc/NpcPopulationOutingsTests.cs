@@ -123,6 +123,7 @@ namespace A305.Npc.PlayModeTests
                 for (int frame = 0; frame < 600 && !trip.ReadyToLeave; frame++)
                     yield return null;
                 Assert.That(trip.ReadyToLeave, Is.True, "문으로 걸어 나온 뒤 거리로 돌아갑니다.");
+                yield return null;
                 Assert.That(guest == null, Is.True);
             }
             finally
@@ -196,7 +197,7 @@ namespace A305.Npc.PlayModeTests
             GameClock
                 .Shared.TickAsync(
                     new FixedClock { Minute = minute },
-                    Time.realtimeSinceStartupAsDouble + 1e6
+                    Time.realtimeSinceStartupAsDouble + (reset ? 1e5 : 1e6)
                 )
                 .GetAwaiter()
                 .GetResult();

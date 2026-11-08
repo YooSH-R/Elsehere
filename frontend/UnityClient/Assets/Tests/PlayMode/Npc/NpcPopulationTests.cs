@@ -1430,9 +1430,17 @@ namespace A305.Npc.PlayModeTests
                 foreach (var walker in walkers)
                 {
                     string code = walker.GetComponent<NpcIdentity>().Code;
+                    NpcOuting visit = NpcOutings.Shared.Find(code);
+                    bool isInside =
+                        visit != null
+                        && visit.Arrived
+                        && !visit.Venue.IsOutdoor
+                        && !visit.ReadyToLeave;
                     Assert.That(
                         walker.gameObject.activeSelf,
-                        Is.EqualTo(NpcDayPlan.At(data.FindNpc(code), minutes, false).IsInTown),
+                        Is.EqualTo(
+                            NpcDayPlan.At(data.FindNpc(code), minutes, false).IsInTown && !isInside
+                        ),
                         code + " / " + minutes
                     );
                 }

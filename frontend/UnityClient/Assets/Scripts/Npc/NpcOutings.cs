@@ -19,10 +19,19 @@ namespace A305.Npc
     {
         public static NpcOutings Shared { get; private set; } = new NpcOutings();
         private readonly Dictionary<string, NpcOuting> trips = new Dictionary<string, NpcOuting>();
+        private GameClock observedClock;
         public IEnumerable<NpcOuting> Trips => trips.Values;
 
         public NpcOuting Find(string npc) =>
             trips.TryGetValue(npc, out NpcOuting trip) ? trip : null;
+
+        public void Synchronize(GameClock clock)
+        {
+            if (observedClock == clock)
+                return;
+            observedClock = clock;
+            trips.Clear();
+        }
 
         public NpcOuting Reserve(
             string npc,
@@ -33,19 +42,26 @@ namespace A305.Npc
             Predicate<NpcOutingVenue> available
         )
         {
-            if (trips.TryGetValue(npc, out NpcOuting existing) && existing.Until > now)
+            if (
+                trips.TryGetValue(npc, out NpcOuting existing)
+                && (existing.Until > now || (existing.Arrived && !existing.ReadyToLeave))
+            )
                 return existing;
             if (venues.Count == 0)
                 return null;
             int hash = StableHash(npc + ":" + Math.Floor(now / 1440));
             for (int offset = 0; offset < venues.Count; offset++)
             {
-                NpcOutingVenue venue = venues[(hash + offset) % venues.Count];
+                NpcOutingVenue venue = venues[(hash % venues.Count + offset) % venues.Count];
                 if (venue.Code == workplace || !available(venue))
                     continue;
                 int occupied = 0;
                 foreach (NpcOuting trip in trips.Values)
-                    if (trip.Npc != npc && trip.Venue.Code == venue.Code && trip.Until > now)
+                    if (
+                        trip.Npc != npc
+                        && trip.Venue.Code == venue.Code
+                        && (trip.Until > now || (trip.Arrived && !trip.ReadyToLeave))
+                    )
                         occupied++;
                 if (occupied >= venue.Capacity)
                     continue;

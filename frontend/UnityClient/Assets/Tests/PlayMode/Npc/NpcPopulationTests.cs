@@ -901,6 +901,10 @@ namespace A305.Npc.PlayModeTests
             CheckCrossingSignalChange(.3f, false, hurrying: true);
 
         [UnityTest]
+        public IEnumerator Town_LowFrameRateStillFinishesCrossing() =>
+            CheckCrossingSignalChange(.3f, false, frameSeconds: .1f);
+
+        [UnityTest]
         public IEnumerator Town_TwoCommutersPassBesideTheSharedSignalPole()
         {
             SetClock(21 * 60);
@@ -970,7 +974,8 @@ namespace A305.Npc.PlayModeTests
             float changeAtProgress,
             bool returns,
             bool pedestrianOnly = false,
-            bool hurrying = false
+            bool hurrying = false,
+            float frameSeconds = 1f / 60f
         )
         {
             SetClock(21 * 60);
@@ -1058,7 +1063,7 @@ namespace A305.Npc.PlayModeTests
             float previousDeltaTime = Time.captureDeltaTime;
             try
             {
-                Time.captureDeltaTime = 1f / 60f;
+                Time.captureDeltaTime = frameSeconds;
                 PlaceWalker(walker, new Vector3(497, .1f, 500), Vector3.right);
                 walker.Destination = new Vector3(503, 0, 500);
                 walker.HasScheduleDeadline = hurrying;

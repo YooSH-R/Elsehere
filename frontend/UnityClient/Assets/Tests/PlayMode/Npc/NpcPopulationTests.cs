@@ -79,6 +79,12 @@ namespace A305.Npc.PlayModeTests
                         HorizontalDistance(before, walker.transform.position),
                         Is.GreaterThan(.4f)
                     );
+                    walker.gameObject.SetActive(false);
+                    Assert.That(
+                        offer.IsEventShowing,
+                        Is.True,
+                        "NPC가 문으로 들어가도 사용자가 거절 메시지를 읽을 시간은 남겨야 합니다."
+                    );
                     offer
                         .GetComponentsInChildren<UnityEngine.UI.Button>(true)
                         .Single(button => button.name == "AcceptButton")
@@ -114,6 +120,16 @@ namespace A305.Npc.PlayModeTests
                         HorizontalDistance(before, walker.transform.position),
                         Is.InRange(.65f, .82f)
                     );
+                    walker
+                        .GetComponent<Passerby>()
+                        .WaitAt(new Pose(walker.transform.position, walker.transform.rotation));
+                    yield return null;
+                    Assert.That(
+                        walker.IsHurrying,
+                        Is.False,
+                        "퀘스트를 기다릴 때는 서두르지 않습니다."
+                    );
+                    Assert.That(walker.IsRunning, Is.False);
                 }
             }
             finally
@@ -671,6 +687,10 @@ namespace A305.Npc.PlayModeTests
             CheckCrossingSignalChange(.3f, false, pedestrianOnly: true);
 
         [UnityTest]
+        public IEnumerator Town_HurriedCommuterStillWaitsForTheSignalAndWalksAcross() =>
+            CheckCrossingSignalChange(.3f, false, hurrying: true);
+
+        [UnityTest]
         public IEnumerator Town_TwoCommutersPassBesideTheSharedSignalPole()
         {
             SetClock(21 * 60);
@@ -739,7 +759,8 @@ namespace A305.Npc.PlayModeTests
         private static IEnumerator CheckCrossingSignalChange(
             float changeAtProgress,
             bool returns,
-            bool pedestrianOnly = false
+            bool pedestrianOnly = false,
+            bool hurrying = false
         )
         {
             SetClock(21 * 60);
@@ -830,6 +851,8 @@ namespace A305.Npc.PlayModeTests
                 Time.captureDeltaTime = 1f / 60f;
                 PlaceWalker(walker, new Vector3(497, .1f, 500), Vector3.right);
                 walker.Destination = new Vector3(503, 0, 500);
+                walker.HasScheduleDeadline = hurrying;
+                walker.ScheduleDoor = walker.Destination;
                 for (int frame = 0; frame < 120; frame++)
                     yield return null;
                 Assert.That(
@@ -857,6 +880,7 @@ namespace A305.Npc.PlayModeTests
                     if (!walker.IsCrossing)
                         continue;
                     crossed = true;
+                    Assert.That(walker.IsRunning, Is.False, "급해도 횡단보도에서는 걷습니다.");
                     Assert.That(
                         walker.GetComponent<Passerby>().CanTalkByClick(10000),
                         Is.False,
@@ -963,6 +987,9 @@ namespace A305.Npc.PlayModeTests
             capsule.enabled = false;
             walker.transform.SetPositionAndRotation(position, Quaternion.LookRotation(forward));
             walker.Destination = position;
+            // 시각표와 무관한 수동 보행 준비다. 달리기 검사는 목적지를 정한 뒤 별도로 일정을 켠다.
+            walker.HasScheduleDeadline = false;
+            walker.ScheduleDoor = null;
             capsule.enabled = true;
             walker.gameObject.SetActive(true);
             Physics.SyncTransforms();

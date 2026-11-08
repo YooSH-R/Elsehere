@@ -27,7 +27,7 @@ namespace A305.Npc
         public bool IsShortBreak { get; }
         public bool IsInTown => Phase != NpcDayPhase.Working && Phase != NpcDayPhase.Resting;
 
-        public static NpcDayPlan At(NpcLifeEntry npc, double minutes, bool requiredForMission)
+        public static NpcDayPlan At(NpcLifeEntry npc, double minutes, bool requiredForMission, double commuteMinutes = 60)
         {
             string active = npc.Role == "PASSERBY" ? "FREE" : "WORK";
             if (requiredForMission || npc.ActivityAt(minutes) == active)

@@ -8,6 +8,7 @@
         "A305.Characters",
         "A305.Dialogue",
         "A305.Npc",
+        "A305.World",
         "A305.ObjectHover",
         "A305.Player",
         "A305.EditorTools",

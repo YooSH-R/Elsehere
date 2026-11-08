@@ -39,6 +39,8 @@ namespace A305.World
 
         private float Length => mainGreenSeconds + crossGreenSeconds + 2f * yellowSeconds;
 
+        public float MaximumPedestrianWaitSeconds(bool crossesMainRoad) => 0;
+
         public PedestrianLight PedestrianAt(float seconds, bool crossesMainRoad)
         {
             if (CanCross(seconds, crossesMainRoad, RequiredCrossingSeconds))

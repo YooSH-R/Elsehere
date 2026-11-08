@@ -31,11 +31,22 @@ namespace A305.World
 
         public IReadOnlyList<PedestrianSignalHead> PedestrianHeads => pedestrianHeads;
 
+#if UNITY_EDITOR
+        /// <summary>일과 관찰에서 대기 시간만 제거한다. 횡단 경로·기둥·차량 조건은 유지하며 빌드에는 포함하지 않는다.</summary>
+        public bool ObserveWithoutPedestrianWait { get; set; }
+#endif
+
         public SignalLight Main => Cycle.MainAt(elapsedSeconds);
 
         /// <summary>해당 차로가 충분한 시간 동안 빨간불이라 보행자가 횡단을 시작할 수 있는지.</summary>
-        public bool CanCross(bool crossesMainRoad, float secondsNeeded) =>
-            Cycle.CanCross(elapsedSeconds, crossesMainRoad, secondsNeeded);
+        public bool CanCross(bool crossesMainRoad, float secondsNeeded)
+        {
+#if UNITY_EDITOR
+            if (ObserveWithoutPedestrianWait)
+                return true;
+#endif
+            return Cycle.CanCross(elapsedSeconds, crossesMainRoad, secondsNeeded);
+        }
 
         private TrafficSignalCycle Cycle =>
             cycle ??= new TrafficSignalCycle(mainGreenSeconds, crossGreenSeconds, yellowSeconds);

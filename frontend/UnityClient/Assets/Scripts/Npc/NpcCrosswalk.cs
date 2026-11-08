@@ -109,17 +109,20 @@ namespace A305.Npc
                 return;
             entrance = start.position;
             exit = end.position;
-            departureLanding = Landing(entrance - forward * SidewalkMargin);
-            arrivalLanding = Landing(exit + forward * SidewalkMargin);
+            if (
+                !TryLanding(entrance - forward * SidewalkMargin, out departureLanding)
+                || !TryLanding(exit + forward * SidewalkMargin, out arrivalLanding)
+            )
+                return;
             returning = false;
             committed = false;
             IsActive = true;
         }
 
-        private static Vector3 Landing(Vector3 wanted)
+        private static bool TryLanding(Vector3 wanted, out Vector3 landing)
         {
-            // 횡단 영역의 끝이 인도와 일치하지 않을 수 있으므로 실제 서 있을 수 있는 쪽으로 물러난다.
-            for (int ring = 0; ring <= 8; ring++)
+            // 대각선 횡단의 끝은 교차로 중앙일 수도 있다. 인도를 찾지 못한 차도 좌표는 목표로 쓰지 않는다.
+            for (int ring = 0; ring <= 32; ring++)
             for (int slot = 0; slot < (ring == 0 ? 1 : 16); slot++)
             {
                 float angle = slot * Mathf.PI / 8;
@@ -154,9 +157,13 @@ namespace A305.Npc
                         break;
                     }
                 if (!blocked)
-                    return hit.position;
+                {
+                    landing = hit.position;
+                    return true;
+                }
             }
-            return wanted;
+            landing = default;
+            return false;
         }
     }
 }

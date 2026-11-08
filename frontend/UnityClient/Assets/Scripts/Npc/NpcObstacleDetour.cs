@@ -191,10 +191,13 @@ namespace A305.Npc
                 if (hits[i].distance >= closest)
                     continue;
                 // 이미 몸체 가장자리에 닿은 지지대도 그 반대쪽으로 빠져나오는 걸음은 허용한다.
-                Vector3 center = bounds.center + shift;
-                Vector3 outward = Flat(center - hit.ClosestPoint(center));
-                if (hits[i].distance <= .001f && Vector3.Dot(offset, outward) > .0001f)
-                    continue;
+                if (hits[i].distance <= .001f && !(hit is MeshCollider mesh && !mesh.convex))
+                {
+                    Vector3 center = bounds.center + shift;
+                    Vector3 outward = Flat(center - hit.ClosestPoint(center));
+                    if (Vector3.Dot(offset, outward) > .0001f)
+                        continue;
+                }
                 closest = hits[i].distance;
                 blocker = hit;
             }

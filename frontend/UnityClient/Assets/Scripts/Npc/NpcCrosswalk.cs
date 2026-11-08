@@ -43,11 +43,18 @@ namespace A305.Npc
                 ? entrance - forward * SidewalkMargin
                 : exit + forward * SidewalkMargin;
             Vector3 direction = Vector3.ProjectOnPlane(target - position, Vector3.up);
-            if (direction.magnitude <= .06f)
+            Vector3 crossingForward = returning ? -forward : forward;
+            if (
+                Vector3.Dot(direction, crossingForward) <= .06f
+                && !NpcTownWalker.IsRoadSurface(position, .1f)
+            )
             {
                 Clear();
                 return Vector3.zero;
             }
+            // 건널 방향은 유지하되, 앞사람을 비켜가는 보행 방향까지 덮어쓰지는 않는다.
+            if (requested.sqrMagnitude > .0001f && Vector3.Dot(requested, crossingForward) >= 0)
+                return Vector3.ClampMagnitude(requested, direction.magnitude);
             return direction;
         }
 

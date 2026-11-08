@@ -186,7 +186,8 @@ namespace A305.Dialogue
             string scriptKey = null,
             bool npcOffDuty = false,
             long? reviewCardId = null,
-            Func<string, Task<ConversationStart>> reviewStart = null
+            Func<string, Task<ConversationStart>> reviewStart = null,
+            NpcTravelContext npcTravelContext = null
         )
         {
             if (
@@ -224,7 +225,8 @@ namespace A305.Dialogue
                     initiatedBy,
                     npcOffDuty,
                     reviewCardId,
-                    reviewStart
+                    reviewStart,
+                    npcTravelContext
                 );
             }
             else
@@ -460,7 +462,8 @@ namespace A305.Dialogue
             ConversationInitiator initiatedBy,
             bool npcOffDuty,
             long? reviewCardId = null,
-            Func<string, Task<ConversationStart>> reviewStart = null
+            Func<string, Task<ConversationStart>> reviewStart = null,
+            NpcTravelContext npcTravelContext = null
         )
         {
             serverConversation = new ServerConversation(
@@ -470,6 +473,7 @@ namespace A305.Dialogue
                 VoiceConsent.Shared.IsAgreed,
                 initiatedBy,
                 npcOffDuty: npcOffDuty,
+                npcTravelContext: npcTravelContext,
                 reviewCardId: reviewCardId,
                 reviewStart: reviewStart
             );

@@ -35,6 +35,7 @@ namespace A305.Dialogue
                     NpcCode = npcCode,
                     InitiatedBy = initiatedBy,
                     NpcOffDuty = npcOffDuty,
+                    NpcTravelContext = npcTravelContext,
                 }
             );
         }

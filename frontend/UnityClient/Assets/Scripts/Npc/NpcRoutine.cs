@@ -180,6 +180,7 @@ namespace A305.Npc
         {
             isVisitor = true;
             body = GetComponent<Passerby>();
+            body.TravelContext = new A305.Dialogue.NpcTravelContext { Phase = "LEISURE" };
             characterController = GetComponent<CharacterController>();
             animationDriver = GetComponent<CharacterAnimationDriver>();
             path = new NavMeshPath();

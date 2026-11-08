@@ -78,6 +78,15 @@ namespace A305.Npc
 
             [NonSerialized]
             internal float RouteMeters;
+
+            [NonSerialized]
+            internal Vector3 LastJourneyPosition;
+
+            [NonSerialized]
+            internal bool HasJourneyPosition;
+
+            [NonSerialized]
+            internal double ExpectedWorkMinute;
         }
 
         /// <summary>같은 코드의 거리 모습을 고르지 않고 근무지의 직원을 찾는다.</summary>
@@ -165,6 +174,7 @@ namespace A305.Npc
                     resident.CommuteMinutes
                 );
                 resident.Plan = plan;
+                TrackJourney(resident, continuous, minutes);
                 if (needed)
                 {
                     NpcFacilityVisitors.Recall(resident.Life.NpcId);
@@ -186,6 +196,24 @@ namespace A305.Npc
                                 .magnitude > DoorArrivalMeters;
                     }
                     resident.EnteringDoor = entering;
+                }
+                var travel =
+                    resident.TownBody != null
+                        ? resident.TownBody.GetComponent<Passerby>().TravelContext
+                        : null;
+                if (
+                    plan.Phase == NpcDayPhase.Working
+                    && continuous
+                    && resident.TownBody != null
+                    && resident.TownBody.activeSelf
+                    && !entering
+                    && travel?.Phase == "GOING_TO_WORK"
+                )
+                {
+                    travel.Phase = "AT_WORK";
+                    NpcJourneyLog.Record(resident.Life.NpcId, travel);
+                    if (workerBody != null)
+                        workerBody.TravelContext = travel.Copy();
                 }
                 if (resident.Worker != null && !IsTalking(resident.Worker))
                 {
@@ -252,6 +280,28 @@ namespace A305.Npc
                         endpoints = (resident.TownBody.transform.position, endpoints.To);
                     resident.Route = RouteBetween(endpoints.From, endpoints.To);
                     resident.RouteMeters = resident.Route != null ? RouteLength(resident.Route) : 0;
+                    string phase = plan.IsShortBreak
+                        ? "BREAK"
+                        : plan.Phase switch
+                        {
+                            NpcDayPhase.GoingToWork => NpcDuty.IsStaff(resident.Life.Role)
+                                ? "GOING_TO_WORK"
+                                : "WALKING",
+                            NpcDayPhase.GoingHome => "GOING_HOME",
+                            NpcDayPhase.LeavingWork or NpcDayPhase.Leisure => "LEISURE",
+                            _ => "WALKING",
+                        };
+                    resident.TownBody.GetComponent<Passerby>().TravelContext = new NpcTravelContext
+                    {
+                        Phase = phase,
+                        RouteMeters = resident.RouteMeters,
+                        DepartureLeadMinutes =
+                            phase == "GOING_TO_WORK" ? (int)resident.CommuteMinutes : 0,
+                    };
+                    resident.HasJourneyPosition = false;
+                    if (plan.Phase == NpcDayPhase.GoingToWork)
+                        resident.ExpectedWorkMinute =
+                            minutes + (1 - plan.Progress) * resident.CommuteMinutes;
                     resident.LastPhase = plan.Phase;
                 }
                 if (resident.Route == null)
@@ -306,6 +356,32 @@ namespace A305.Npc
                 walker.IsStaff = NpcDuty.IsStaff(resident.Life.Role);
                 resident.TownBody.SetActive(true);
             }
+        }
+
+        private static void TrackJourney(Resident resident, bool continuous, double minutes)
+        {
+            if (resident.TownBody == null || !resident.TownBody.activeSelf)
+            {
+                resident.HasJourneyPosition = false;
+                return;
+            }
+            var travel = resident.TownBody.GetComponent<Passerby>().TravelContext;
+            Vector3 position = resident.TownBody.transform.position;
+            if (travel != null && continuous && resident.HasJourneyPosition)
+            {
+                float moved = Vector3
+                    .ProjectOnPlane(position - resident.LastJourneyPosition, Vector3.up)
+                    .magnitude;
+                if (moved < 2)
+                    travel.WalkedMeters = Math.Min(10000, travel.WalkedMeters + moved);
+                if (travel.Phase == "GOING_TO_WORK")
+                    travel.LateMinutes = Math.Min(
+                        1440,
+                        Math.Max(0, minutes - resident.ExpectedWorkMinute)
+                    );
+            }
+            resident.LastJourneyPosition = position;
+            resident.HasJourneyPosition = true;
         }
 
         private (Vector3 From, Vector3 To) Endpoints(Resident resident, NpcDayPlan plan)

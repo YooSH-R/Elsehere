@@ -19,7 +19,20 @@ namespace A305.Npc
     [RequireComponent(typeof(CharacterController), typeof(NpcIdentity))]
     public class Passerby : MonoBehaviour
     {
-        public NpcTravelContext TravelContext { get; internal set; }
+        private NpcTravelContext travelContext;
+#if UNITY_EDITOR
+        internal Vector3 LastWalkInput,
+            LastWalkDetour,
+            LastWalkDirection;
+        internal float LastWalkStep,
+            LastWalkMoved;
+        internal int LastWalkFrame;
+#endif
+        public NpcTravelContext TravelContext
+        {
+            get => travelContext ?? NpcJourneyLog.Find(GetComponent<NpcIdentity>().Code);
+            internal set => travelContext = value;
+        }
 
         /// <summary>NPC 보행 데이터와 물리 캡슐이 함께 허용하는 턱 높이(월드 미터).</summary>
         public const float WalkableStepMeters = .3f;
@@ -522,7 +535,8 @@ namespace A305.Npc
                     identity.LookTarget,
                     initiatedBy,
                     ScriptKey,
-                    IsOffDuty
+                    IsOffDuty,
+                    npcTravelContext: TravelContext
                 )
             )
             {
@@ -632,6 +646,10 @@ namespace A305.Npc
             Vector3? plannedDirection = null
         )
         {
+#if UNITY_EDITOR
+            LastWalkInput = horizontalDirection;
+            LastWalkFrame = Time.frameCount;
+#endif
             if (
                 IsTownResident
                 && !crossing.IsActive
@@ -642,6 +660,9 @@ namespace A305.Npc
                     characterController,
                     horizontalDirection
                 );
+#if UNITY_EDITOR
+            LastWalkDetour = horizontalDirection;
+#endif
             horizontalDirection = crossing.Direction(
                 trafficLights,
                 transform.position,
@@ -652,6 +673,11 @@ namespace A305.Npc
                 horizontalDirection.sqrMagnitude >= .0001f
                 && !crossing.IsActive
                 && IsWaitingForSignal(horizontalDirection);
+#if UNITY_EDITOR
+            LastWalkDirection = horizontalDirection;
+            LastWalkStep = 0;
+            LastWalkMoved = 0;
+#endif
             if (horizontalDirection.sqrMagnitude < .0001f || IsWaitingAtSignal)
             {
                 Stand();
@@ -669,6 +695,10 @@ namespace A305.Npc
             characterController.Move(velocity * Time.deltaTime);
             TurnToward(horizontalDirection);
             float moved = Vector3.ProjectOnPlane(transform.position - before, Vector3.up).magnitude;
+#if UNITY_EDITOR
+            LastWalkStep = step;
+            LastWalkMoved = moved;
+#endif
             ReportLocomotion(
                 Time.deltaTime > 0f ? Mathf.Min(speedMetersPerSecond, moved / Time.deltaTime) : 0f
             );

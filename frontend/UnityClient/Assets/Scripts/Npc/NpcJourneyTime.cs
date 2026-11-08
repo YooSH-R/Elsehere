@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using A305.Dialogue;
 using A305.World;
 
 namespace A305.Npc
@@ -37,5 +39,38 @@ namespace A305.Npc
             LeadMinutes(meters, signalSeconds, marginMeters)
                 + NpcRoutine.LookAroundMinSeconds * GameClock.GameMinutesPerRealSecond
             <= remainingMinutes;
+    }
+
+    /// <summary>같은 플레이 세션에서 거리 모습이 실내 직원에게 완료한 보행을 넘긴다.</summary>
+    internal static class NpcJourneyLog
+    {
+        private static GameClock observedClock;
+        private static readonly Dictionary<
+            string,
+            (NpcTravelContext Context, double Minute)
+        > Completed = new();
+
+        private static void Synchronize()
+        {
+            if (observedClock == GameClock.Shared)
+                return;
+            Completed.Clear();
+            observedClock = GameClock.Shared;
+        }
+
+        internal static void Record(string code, NpcTravelContext context)
+        {
+            Synchronize();
+            Completed[code] = (context.Copy(), GameClock.Shared.Minutes);
+        }
+
+        internal static NpcTravelContext Find(string code)
+        {
+            Synchronize();
+            if (code == null || !Completed.TryGetValue(code, out var saved))
+                return null;
+            double age = GameClock.Shared.Minutes - saved.Minute;
+            return age >= 0 && age < 1440 ? saved.Context.Copy() : null;
+        }
     }
 }

@@ -42,6 +42,7 @@ namespace A305.Dialogue
         public bool IsReview => ReviewCardId != null;
         private readonly ConversationInitiator initiatedBy;
         private readonly bool npcOffDuty;
+        private readonly NpcTravelContext npcTravelContext;
         private readonly FollowUpStore followUps;
 
         // 음성 처리 동의. 서버가 동의가 없다고 거절하면 끈다.
@@ -97,6 +98,7 @@ namespace A305.Dialogue
             this.canTalk = canTalk;
             this.initiatedBy = initiatedBy;
             this.npcOffDuty = npcOffDuty;
+            this.npcTravelContext = npcTravelContext?.Copy();
             this.followUps = followUps ?? FollowUpStore.Shared;
         }
 
@@ -211,7 +213,8 @@ namespace A305.Dialogue
                                     startRequestId,
                                     NpcCode,
                                     InitiatedByCode,
-                                    npcOffDuty
+                                    npcOffDuty,
+                                    npcTravelContext
                                 )
                         );
                     }
@@ -714,7 +717,13 @@ namespace A305.Dialogue
                 await BeginAsync(
                     IsReview
                         ? await reviewStart(startRequestId)
-                        : await api.StartAsync(NewRequestId(), NpcCode, InitiatedByCode, npcOffDuty)
+                        : await api.StartAsync(
+                            NewRequestId(),
+                            NpcCode,
+                            InitiatedByCode,
+                            npcOffDuty,
+                            npcTravelContext
+                        )
                 );
             }
         }

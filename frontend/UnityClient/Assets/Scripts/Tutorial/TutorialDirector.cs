@@ -23,6 +23,7 @@ namespace A305.Tutorial
     {
         // Ben 머리 위 화살표 높이(발밑 기준).
         private const float BenMarkerHeightMeters = 2.3f;
+        private const float FinishRetrySeconds = 5f;
 
         [SerializeField]
         private TutorialGuideDefinition guide;
@@ -81,6 +82,8 @@ namespace A305.Tutorial
 
         private TutorialProgress progress;
         private TutorialFinishRecorder finishRecorder;
+        private bool savingFinish;
+        private float nextFinishAttempt;
         private TutorialStep appliedStep;
         private bool isCardShown;
         private bool isSkipCardShown;
@@ -205,6 +208,11 @@ namespace A305.Tutorial
             if (progress.Step != appliedStep)
             {
                 ApplyStep();
+            }
+
+            if (Time.unscaledTime >= nextFinishAttempt)
+            {
+                SaveFinish();
             }
 
             RefreshCard();
@@ -367,6 +375,7 @@ namespace A305.Tutorial
         {
             if (
                 finishRecorder != null
+                && !savingFinish
                 && (progress.NeedsFinishSave || progress.NeedsBenDialogueSave)
             )
             {
@@ -376,7 +385,17 @@ namespace A305.Tutorial
 
         private async Task SaveFinishAsync()
         {
-            TutorialFinishSaveStatus status = await finishRecorder.SaveAsync(progress);
+            savingFinish = true;
+            TutorialFinishSaveStatus status;
+            try
+            {
+                status = await finishRecorder.SaveAsync(progress);
+            }
+            finally
+            {
+                savingFinish = false;
+                nextFinishAttempt = Time.unscaledTime + FinishRetrySeconds;
+            }
             if (status == TutorialFinishSaveStatus.Saved)
             {
                 GameClock.Shared.RequestSynchronization();

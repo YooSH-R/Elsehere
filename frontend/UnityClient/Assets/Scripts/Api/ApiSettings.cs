@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace A305.Api
@@ -8,6 +9,10 @@ namespace A305.Api
     [CreateAssetMenu(fileName = "ApiSettings", menuName = "A305/Api/Api Settings")]
     public class ApiSettings : ScriptableObject
     {
+#if UNITY_EDITOR
+        public static Func<int, ApiClient> EditorClientFactory { get; set; }
+#endif
+
         [SerializeField]
         [Tooltip("Editor·데스크톱 실행에서 쓰는 백엔드 주소")]
         private string editorBaseUrl = "http://localhost:8080";

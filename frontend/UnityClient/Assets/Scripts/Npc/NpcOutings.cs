@@ -33,6 +33,31 @@ namespace A305.Npc
             Predicate<NpcOutingVenue> available
         )
         {
+            if (trips.TryGetValue(npc, out NpcOuting existing) && existing.Until > now)
+                return existing;
+            if (venues.Count == 0)
+                return null;
+            int hash = StableHash(npc + ":" + Math.Floor(now / 1440));
+            for (int offset = 0; offset < venues.Count; offset++)
+            {
+                NpcOutingVenue venue = venues[(hash + offset) % venues.Count];
+                if (venue.Code == workplace || !available(venue))
+                    continue;
+                int occupied = 0;
+                foreach (NpcOuting trip in trips.Values)
+                    if (trip.Npc != npc && trip.Venue.Code == venue.Code && trip.Until > now)
+                        occupied++;
+                if (occupied >= venue.Capacity)
+                    continue;
+                var chosen = new NpcOuting
+                {
+                    Npc = npc,
+                    Venue = venue,
+                    Until = until,
+                };
+                trips[npc] = chosen;
+                return chosen;
+            }
             return null;
         }
 

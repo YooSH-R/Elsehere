@@ -18,6 +18,63 @@ namespace A305.Npc.PlayModeTests
 {
     public class NpcPopulationTests
     {
+        [UnityTest]
+        public IEnumerator Town_RestingTimeDoesNotHideACommuterBeforeReachingTheDoor()
+        {
+            SetClock(20 * 60 + 29);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            var walker = Object
+                .FindObjectsByType<NpcTownWalker>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+                .Single(item => item.GetComponent<NpcIdentity>().Code == "CAFE_SERVER");
+            Assert.That(walker.gameObject.activeSelf, Is.True, "준비: 귀가 중인 NPC입니다.");
+            PlaceWalker(walker, new Vector3(12, .1f, 22), Vector3.forward);
+            Vector3 before = walker.transform.position;
+            var clockApi = new FixedClock
+            {
+                Time = new GameClockTime
+                {
+                    Day = 1,
+                    MinuteOfDay = 20 * 60 + 30,
+                    Paused = true,
+                },
+            };
+            GameClock
+                .Shared.TickAsync(clockApi, Time.realtimeSinceStartupAsDouble + 1e6)
+                .GetAwaiter()
+                .GetResult();
+            yield return null;
+            yield return null;
+
+            Assert.That(
+                walker.gameObject.activeSelf,
+                Is.True,
+                "휴식 시각이 돼도 길 위에서 사라지면 안 됩니다."
+            );
+            Assert.That(HorizontalDistance(before, walker.transform.position), Is.LessThan(.5f));
+            Vector3 door = walker.Destination;
+            Assert.That(HorizontalDistance(door, before), Is.GreaterThan(2f));
+            PlaceWalker(walker, door, Vector3.forward);
+            yield return null;
+            yield return null;
+            Assert.That(
+                walker.gameObject.activeSelf,
+                Is.False,
+                "실제 출입문에 도착한 뒤 실내로 전환합니다."
+            );
+        }
+
         [SetUp]
         public void SetUp()
         {
@@ -342,7 +399,18 @@ namespace A305.Npc.PlayModeTests
             Vector3.ProjectOnPlane(first - second, Vector3.up).magnitude;
 
         [UnityTest]
-        public IEnumerator Town_CommuterReplansAroundNewObstaclesAndResumesWhenRouteReopens()
+        public IEnumerator Town_CommuterReplansAroundNewObstaclesAndResumesWhenRouteReopens() =>
+            CheckNewObstacle(carves: true, height: 2f);
+
+        [UnityTest]
+        public IEnumerator Town_CommuterDetoursAroundAPhysicalObstacleMissingFromNavMesh() =>
+            CheckNewObstacle(carves: false, height: 2f);
+
+        [UnityTest]
+        public IEnumerator Town_CommuterClimbsAWalkableCurbInsteadOfWalkingInPlace() =>
+            CheckNewObstacle(carves: false, height: .2f);
+
+        private static IEnumerator CheckNewObstacle(bool carves, float height)
         {
             SetClock(21 * 60);
             SceneManager.sceneLoaded += DisableWalkingTestApis;
@@ -387,13 +455,16 @@ namespace A305.Npc.PlayModeTests
 
                 // 이미 걷기 시작한 직선 경로를 막아 새 우회 경로가 필요한 상황을 만든다.
                 wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                wall.transform.position = new Vector3(500, 1, 500);
-                wall.transform.localScale = new Vector3(1, 2, 3);
-                var obstacle = wall.AddComponent<NavMeshObstacle>();
-                obstacle.shape = NavMeshObstacleShape.Box;
-                obstacle.size = Vector3.one;
-                obstacle.carveOnlyStationary = false;
-                obstacle.carving = true;
+                wall.transform.position = new Vector3(500, height / 2, 500);
+                wall.transform.localScale = new Vector3(1, height, 3);
+                if (carves)
+                {
+                    var obstacle = wall.AddComponent<NavMeshObstacle>();
+                    obstacle.shape = NavMeshObstacleShape.Box;
+                    obstacle.size = Vector3.one;
+                    obstacle.carveOnlyStationary = false;
+                    obstacle.carving = true;
+                }
                 Physics.SyncTransforms();
                 float widestDetour = 0;
                 for (int frame = 0; frame < 480; frame++)
@@ -410,21 +481,32 @@ namespace A305.Npc.PlayModeTests
                         "우회 중에도 순간이동하지 않습니다."
                     );
                     Vector3 position = walker.transform.position;
-                    Assert.That(
-                        Mathf.Abs(position.x - 500) < .5f && Mathf.Abs(position.z - 500) < 1.5f,
-                        Is.False,
-                        "장애물 내부를 통과하면 안 됩니다."
-                    );
+                    if (height > .3f)
+                        Assert.That(
+                            Mathf.Abs(position.x - 500) < .5f && Mathf.Abs(position.z - 500) < 1.5f,
+                            Is.False,
+                            "장애물 내부를 통과하면 안 됩니다."
+                        );
                 }
-                Assert.That(
-                    widestDetour,
-                    Is.GreaterThan(1.5f),
-                    "새 장애물을 옆으로 돌아가야 합니다."
-                );
+                if (height > .3f)
+                    Assert.That(
+                        widestDetour,
+                        Is.GreaterThan(1.5f),
+                        "새 장애물을 옆으로 돌아가야 합니다."
+                    );
+                else
+                    Assert.That(
+                        widestDetour,
+                        Is.LessThan(.2f),
+                        "낮은 보도 턱은 돌아가지 않고 올라섭니다."
+                    );
                 Assert.That(
                     HorizontalDistance(walker.transform.position, walker.Destination),
                     Is.LessThan(.12f)
                 );
+
+                if (!carves)
+                    yield break;
 
                 // 우회로까지 완전히 막힌 동안만 기다리고, 다시 열리면 같은 목적지로 재탐색한다.
                 PlaceWalker(walker, new Vector3(497, .1f, 500), Vector3.right);

@@ -37,5 +37,7 @@ BootstrapResponse boot = await client.GetAsync<BootstrapResponse>("/api/v1/boots
 
 ## 테스트
 
+Editor PlayMode 테스트에서는 `OfflineSceneApi`가 테스트 실행 콜백으로 `ApiSettings.EditorClientFactory`를 지정합니다. 씬에서 기본 생성하는 JSON·SSE 클라이언트는 실제 서버에 연결하지 않고 네트워크 연결 실패를 반환합니다. 로컬 백엔드의 실행 여부와 세션 쿠키가 이동 잠금·이름표·호버 등 씬 검사에 영향을 주지 않게 하기 위한 경계입니다. 서버 성공·거절·지연을 확인하는 테스트는 필요한 API나 전송을 직접 주입합니다. 실행이 끝나면 기본 생성으로 복원하며, 이 경계는 서비스 빌드에 포함되지 않습니다.
+
 `Tests/EditMode/Api/`(`A305.Api.Tests`)에서 요청 주소·헤더·본문, 응답 해석, 오류·네트워크 실패와 그 문구, 로그인 끊김 알림(401 `UNAUTHENTICATED`만, 가입 대기·다른 거절은 아님)을 검증합니다. 이벤트 스트림은 요청 헤더, 조각으로 끊겨 온 글자의 이벤트 순서(`
 ` 포함), 오류 상태·네트워크 실패를 가짜 스트림 전송으로 검증합니다(`ApiClientStreamTests`).

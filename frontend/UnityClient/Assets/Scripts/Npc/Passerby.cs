@@ -653,7 +653,7 @@ namespace A305.Npc
             float step = NpcWalkingSpace.LimitStep(
                 this,
                 horizontalDirection.normalized,
-                speedMetersPerSecond * Time.deltaTime
+                Mathf.Min(speedMetersPerSecond * Time.deltaTime, horizontalDirection.magnitude)
             );
             speedMetersPerSecond = Time.deltaTime > 0 ? step / Time.deltaTime : 0;
             Vector3 velocity = horizontalDirection.normalized * speedMetersPerSecond;

@@ -36,6 +36,8 @@ namespace A305.Npc
             && !GetComponent<Passerby>().IsGuidingTutorial
             && !GetComponent<Passerby>().IsWaitingForQuest;
         public bool IsRunning { get; private set; }
+        public bool DeclinesConversation =>
+            IsStaff && SchedulePhase == NpcDayPhase.Working && IsHurrying;
 
         /// <summary>횡단보도 위에서는 대화나 새 제안으로 걸음을 멈추지 않는다.</summary>
         public bool IsCrossing => IsRoadSurface(transform.position, .1f);

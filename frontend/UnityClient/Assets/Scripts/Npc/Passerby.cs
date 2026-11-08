@@ -239,7 +239,7 @@ namespace A305.Npc
         {
             if (IsTownResident)
                 GetComponent<NpcTownWalker>().RefreshHurry();
-            if (playerTalkReach.HasValue && IsHurrying && !IsPlayerOccupied)
+            if (playerTalkReach.HasValue && DeclinesConversation && !IsPlayerOccupied)
             {
                 CancelPlayerTalk();
                 ShowHurryEvent();
@@ -391,7 +391,7 @@ namespace A305.Npc
             }
 
             ConversationAllowance allowance = dialogue.Allowance;
-            if (IsHurrying)
+            if (DeclinesConversation)
                 return !IsOtherOfferShowing || offerView.IsDeclineShown;
             if (!allowance.CanStartConversation)
             {
@@ -413,7 +413,7 @@ namespace A305.Npc
                 return false;
             }
 
-            if (IsHurrying)
+            if (DeclinesConversation)
             {
                 ShowHurryEvent();
                 return true;
@@ -453,7 +453,11 @@ namespace A305.Npc
             CancelPlayerTalk();
             if (IsTownResident)
                 GetComponent<NpcTownWalker>().RefreshHurry();
-            if (!IsPlayerOccupied && HorizontalOffsetToPlayer().magnitude <= reach && IsHurrying)
+            if (
+                !IsPlayerOccupied
+                && HorizontalOffsetToPlayer().magnitude <= reach
+                && DeclinesConversation
+            )
             {
                 ShowHurryEvent();
                 return;
@@ -472,7 +476,8 @@ namespace A305.Npc
             offerView.Hide(this);
         }
 
-        private bool IsHurrying => IsTownResident && GetComponent<NpcTownWalker>().IsHurrying;
+        private bool DeclinesConversation =>
+            IsTownResident && GetComponent<NpcTownWalker>().DeclinesConversation;
 
         private void ShowHurryEvent()
         {

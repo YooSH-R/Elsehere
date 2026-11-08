@@ -192,6 +192,8 @@ namespace A305.Npc
                     var enteringWalker = resident.TownBody.GetComponent<NpcTownWalker>();
                     enteringWalker.Destination = resident.EntryDoor;
                     enteringWalker.HasScheduleDeadline = true;
+                    enteringWalker.SchedulePhase = plan.Phase;
+                    enteringWalker.IsStaff = NpcDuty.IsStaff(resident.Life.Role);
                     enteringWalker.ScheduleDoor = resident.EntryDoor;
                     continue;
                 }
@@ -232,6 +234,7 @@ namespace A305.Npc
                 }
                 var walker = resident.TownBody.GetComponent<NpcTownWalker>();
                 walker.Destination = target;
+                walker.SchedulePhase = plan.Phase;
                 walker.HasScheduleDeadline =
                     plan.Phase == NpcDayPhase.GoingToWork || plan.Phase == NpcDayPhase.GoingHome;
                 walker.ScheduleDoor = null;

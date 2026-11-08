@@ -38,7 +38,56 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_ReturningToRestStillAllowsConversation() =>
             CheckHurryingNpc(click: true, schedule: NpcDayPhase.Resting);
 
-        private static IEnumerator CheckHurryingNpc(bool click, NpcDayPhase schedule = NpcDayPhase.Working)
+        [UnityTest]
+        public IEnumerator Town_WorkScheduleEnablesRefusalOnlyAfterTheShiftStarts()
+        {
+            SetClock(17 * 60 + 59);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            var walker = Object
+                .FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None)
+                .Single(item => item.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER");
+            PlaceWalker(walker, new Vector3(12, .1f, 22), Vector3.forward);
+            yield return null;
+            Assert.That(walker.SchedulePhase, Is.EqualTo(NpcDayPhase.GoingToWork));
+            Assert.That(walker.DeclinesConversation, Is.False);
+            var clock = new FixedClock
+            {
+                Time = new GameClockTime
+                {
+                    Day = 1,
+                    MinuteOfDay = 18 * 60,
+                    Paused = true,
+                },
+            };
+            GameClock
+                .Shared.TickAsync(clock, Time.realtimeSinceStartupAsDouble + 1e6)
+                .GetAwaiter()
+                .GetResult();
+            yield return null;
+            yield return null;
+            Assert.That(walker.gameObject.activeSelf, Is.True);
+            Assert.That(walker.SchedulePhase, Is.EqualTo(NpcDayPhase.Working));
+            Assert.That(walker.IsStaff, Is.True);
+            Assert.That(
+                walker.DeclinesConversation,
+                Is.True,
+                "근무 시작 뒤 일터에 도착하지 못한 직원만 거절합니다."
+            );
+        }
+
+        private static IEnumerator CheckHurryingNpc(
+            bool click,
+            NpcDayPhase schedule = NpcDayPhase.Working
+        )
         {
             SetClock(21 * 60);
             SceneManager.sceneLoaded += DisableWalkingTestApis;
@@ -84,12 +133,26 @@ namespace A305.Npc.PlayModeTests
                     var offer = Object.FindFirstObjectByType<PasserbyOfferView>();
                     var dialogue = Object.FindFirstObjectByType<DialogueController>();
                     Assert.That(body.TalkByClick(NpcClickTalk.ReachMeters), Is.True);
+                    yield return RecordConversationReview(walker, schedule);
                     if (schedule != NpcDayPhase.Working)
                     {
                         Assert.That(offer.IsShowing, Is.True);
-                        Assert.That(offer.IsEventShowing, Is.False, "귀가·휴식·출근 전 이동은 대화를 거절하지 않습니다.");
+                        Assert.That(
+                            offer.IsEventShowing,
+                            Is.False,
+                            "귀가·휴식·출근 전 이동은 대화를 거절하지 않습니다."
+                        );
                         Assert.That(body.Phase, Is.Not.EqualTo(PasserbyPhase.Talking));
-                        offer.DeclineShownOffer();
+                        offer
+                            .GetComponentsInChildren<UnityEngine.UI.Button>(true)
+                            .Single(button => button.name == "AcceptButton")
+                            .onClick.Invoke();
+                        yield return null;
+                        Assert.That(
+                            dialogue.IsTalking,
+                            Is.True,
+                            "대화 확인을 수락하면 실제 대화가 시작됩니다."
+                        );
                         yield break;
                     }
                     Assert.That(offer.IsEventShowing, Is.True);
@@ -160,6 +223,64 @@ namespace A305.Npc.PlayModeTests
                 instance.Remove();
                 Object.Destroy(navData);
                 Object.Destroy(floor);
+            }
+        }
+
+        // 환경변수를 지정한 검수 실행에서만 실제 Play 프레임을 저장한다. 일정은 위 사례의 고정값이다.
+        private static IEnumerator RecordConversationReview(
+            NpcTownWalker walker,
+            NpcDayPhase schedule
+        )
+        {
+            string output = System.Environment.GetEnvironmentVariable("NPC_CONVERSATION_REVIEW");
+            if (string.IsNullOrEmpty(output))
+                yield break;
+            string folder = Path.Combine(output, schedule.ToString());
+            Directory.CreateDirectory(folder);
+            var camera = new GameObject("ConversationReviewCamera").AddComponent<Camera>();
+            camera.fieldOfView = 45;
+            camera.nearClipPlane = .03f;
+            camera.transform.position = walker.transform.position + new Vector3(-1, 2.6f, -5.5f);
+            camera.transform.LookAt(walker.transform.position + new Vector3(1, .8f, 0));
+            foreach (Camera other in Object.FindObjectsByType<Camera>(FindObjectsSortMode.None))
+                if (other != camera)
+                    other.enabled = false;
+            foreach (Canvas canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+                if (canvas.isRootCanvas)
+                {
+                    canvas.renderMode = RenderMode.ScreenSpaceCamera;
+                    canvas.worldCamera = camera;
+                    canvas.planeDistance = .2f;
+                }
+            var target = new RenderTexture(1200, 750, 24);
+            var pixels = new Texture2D(1200, 750, TextureFormat.RGB24, false);
+            try
+            {
+                camera.targetTexture = target;
+                for (int frame = 0; frame < 180; frame++)
+                {
+                    yield return null;
+                    if (frame % 4 != 0)
+                        continue;
+                    Canvas.ForceUpdateCanvases();
+                    camera.Render();
+                    RenderTexture.active = target;
+                    pixels.ReadPixels(new Rect(0, 0, 1200, 750), 0, 0);
+                    pixels.Apply();
+                    File.WriteAllBytes(
+                        Path.Combine(folder, $"{frame / 4:0000}.png"),
+                        pixels.EncodeToPNG()
+                    );
+                    RenderTexture.active = null;
+                }
+            }
+            finally
+            {
+                RenderTexture.active = null;
+                camera.targetTexture = null;
+                Object.Destroy(pixels);
+                Object.Destroy(target);
+                Object.Destroy(camera.gameObject);
             }
         }
 

@@ -25,7 +25,14 @@ namespace A305.Tutorial.PlayModeTests
     public class TutorialFlowTests
     {
         [UnityTest]
-        public IEnumerator FailedTutorialFinish_RetriesAndResumesTheClockWithoutChangingScenes()
+        public IEnumerator FailedTutorialFinish_RetriesAndResumesTheClockWithoutChangingScenes() =>
+            RetryFinishAndResumeClock(skipped: true);
+
+        [UnityTest]
+        public IEnumerator CompletedTutorial_RetriesAndResumesTheClockWithoutChangingScenes() =>
+            RetryFinishAndResumeClock(skipped: false);
+
+        private IEnumerator RetryFinishAndResumeClock(bool skipped)
         {
             var previousFactory = ApiSettings.EditorClientFactory;
             var transport = new RecoveringTutorialTransport();
@@ -37,13 +44,30 @@ namespace A305.Tutorial.PlayModeTests
                 yield return WaitUntil(() => GameClock.Shared.Current != null);
                 Assert.That(GameClock.Shared.Current.Paused, Is.True);
 
-                TutorialState.GetOrCreate(BenCode).Skip();
+                TutorialProgress progress = TutorialState.GetOrCreate(BenCode);
+                if (skipped)
+                {
+                    progress.Skip();
+                }
+                else
+                {
+                    progress.LeaveHome();
+                    progress.StartDialogue(BenCode);
+                    progress.EndDialogue(BenCode, true);
+                    progress.CloseFeedback(BenCode);
+                    progress.ReportJournalOpened();
+                    Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed));
+                }
                 yield return WaitUntil(() => transport.FinishCalls > 0);
                 float deadline = Time.unscaledTime + 7f;
                 while (transport.FinishCalls < 2 && Time.unscaledTime < deadline)
                     yield return null;
 
-                Assert.That(transport.FinishCalls, Is.EqualTo(2), "같은 씬에서 완료 저장을 재시도합니다.");
+                Assert.That(
+                    transport.FinishCalls,
+                    Is.EqualTo(2),
+                    "같은 씬에서 완료 저장을 재시도합니다."
+                );
                 yield return WaitUntil(() => !GameClock.Shared.Current.Paused);
                 double before = GameClock.Shared.Minutes;
                 yield return new WaitForSecondsRealtime(.2f);
@@ -62,7 +86,12 @@ namespace A305.Tutorial.PlayModeTests
 
             public Task<ApiTransportResponse> SendAsync(ApiTransportRequest request)
             {
-                if (request.Url.EndsWith("/tutorial/skip"))
+                if (request.Url.EndsWith("/tutorial/ben-dialogue/complete"))
+                    return Task.FromResult(ApiTransportResponse.Received(200, "{}"));
+                if (
+                    request.Url.EndsWith("/tutorial/skip")
+                    || request.Url.EndsWith("/tutorial/complete")
+                )
                 {
                     FinishCalls++;
                     return Task.FromResult(

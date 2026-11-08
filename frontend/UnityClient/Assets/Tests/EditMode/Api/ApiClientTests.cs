@@ -1,6 +1,7 @@
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace A305.Api.Tests
 {
@@ -16,6 +17,33 @@ namespace A305.Api.Tests
         {
             transport = new FakeTransport();
             client = new ApiClient(BaseUrl, transport);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Settings_UsesTheInjectedEditorClientInsteadOfTheLiveServer(bool explicitTimeout)
+        {
+            var settings = ScriptableObject.CreateInstance<ApiSettings>();
+            var previousFactory = ApiSettings.EditorClientFactory;
+            int receivedTimeout = 0;
+            ApiSettings.EditorClientFactory = timeout =>
+            {
+                receivedTimeout = timeout;
+                return client;
+            };
+            try
+            {
+                ApiClient actual = explicitTimeout
+                    ? settings.CreateClient(9)
+                    : settings.CreateClient();
+                Assert.That(actual, Is.SameAs(client));
+                Assert.That(receivedTimeout, Is.EqualTo(explicitTimeout ? 9 : 15));
+            }
+            finally
+            {
+                ApiSettings.EditorClientFactory = previousFactory;
+                Object.DestroyImmediate(settings);
+            }
         }
 
         [Test]

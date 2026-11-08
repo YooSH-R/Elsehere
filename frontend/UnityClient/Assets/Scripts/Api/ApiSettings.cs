@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace A305.Api
@@ -8,6 +9,11 @@ namespace A305.Api
     [CreateAssetMenu(fileName = "ApiSettings", menuName = "A305/Api/Api Settings")]
     public class ApiSettings : ScriptableObject
     {
+#if UNITY_EDITOR
+        /// <summary>Editor 씬 테스트의 API 경계. 실제 Play·빌드에서는 기본 전송을 사용한다.</summary>
+        public static Func<int, ApiClient> EditorClientFactory { get; set; }
+#endif
+
         [SerializeField]
         [Tooltip("Editor·데스크톱 실행에서 쓰는 백엔드 주소")]
         private string editorBaseUrl = "http://localhost:8080";
@@ -32,6 +38,10 @@ namespace A305.Api
         /// <param name="timeoutSeconds">AI 응답처럼 오래 걸리는 요청에 쓰는 대기 시간</param>
         public ApiClient CreateClient(int timeoutSeconds)
         {
+#if UNITY_EDITOR
+            if (EditorClientFactory != null)
+                return EditorClientFactory(timeoutSeconds);
+#endif
             return new ApiClient(
                 BaseUrl,
                 new UnityWebRequestTransport(timeoutSeconds),

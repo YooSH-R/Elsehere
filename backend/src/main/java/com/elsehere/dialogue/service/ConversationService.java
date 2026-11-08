@@ -151,9 +151,15 @@ public class ConversationService {
     if (replayed.isPresent()) {
       return replayed.get();
     }
+    String travelSituation =
+        review == null && request.npcTravelContext() != null
+            ? request.npcTravelContext().describe()
+            : null;
     StartContext context =
         transactionTemplate.execute(
-            status -> startContext(userId, request.npcCode(), request.npcOffDuty(), review));
+            status ->
+                startContext(
+                    userId, request.npcCode(), request.npcOffDuty(), review, travelSituation));
     NpcContext npc = context.npc();
 
     // 이 NPC가 건넬 것이 준비됐으면 건네는 말로 시작한다. 말걸기 대사가 있는 NPC가 먼저 말을 걸었으면 그 대사로 시작한다.
@@ -219,6 +225,7 @@ public class ConversationService {
                           context.level(),
                           clock.instant()));
               conversation.attachStartRequest(request.requestId());
+              conversation.recordNpcTravelSituation(travelSituation);
               if (review != null) {
                 conversation.attachReviewCard(review.id());
               }
@@ -387,13 +394,20 @@ public class ConversationService {
   }
 
   private StartContext startContext(
-      Long userId, String npcCode, boolean npcOffDuty, ReviewCardResponse review) {
+      Long userId,
+      String npcCode,
+      boolean npcOffDuty,
+      ReviewCardResponse review,
+      String travelSituation) {
     User user =
         userRepository
             .findById(userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     ensureCanStart(user);
-    NpcContext npc = dialogueContexts.npcByCode(userId, npcCode, npcOffDuty);
+    NpcContext npc =
+        dialogueContexts
+            .npcByCode(userId, npcCode, npcOffDuty)
+            .withTravelSituation(travelSituation);
     if (!npc.sceneOpen()) {
       throw new BusinessException(ErrorCode.SCENE_CLOSED);
     }

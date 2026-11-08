@@ -21,7 +21,18 @@ public record NpcContext(
     String approachAudioKey) {
 
   NpcContext withTravelSituation(String situation) {
-    return this;
+    if (situation == null || situation.isBlank()) {
+      return this;
+    }
+    return new NpcContext(
+        npcId,
+        summary,
+        sceneCode,
+        sceneOpen,
+        workerNpc.withScene(workerNpc.scene() + " " + situation),
+        voiceId,
+        approachLine,
+        approachAudioKey);
   }
 
   /**

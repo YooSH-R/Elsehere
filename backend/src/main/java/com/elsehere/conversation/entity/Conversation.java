@@ -117,7 +117,11 @@ public class Conversation extends BaseEntity {
   @Column(length = 1600)
   private String npcTravelSituation;
 
-  public void recordNpcTravelSituation(String situation) {}
+  public void recordNpcTravelSituation(String situation) {
+    if (npcTravelSituation == null) {
+      npcTravelSituation = situation;
+    }
+  }
 
   public void attachFirstDayStage(Integer stage) {
     this.firstDayStage = stage;

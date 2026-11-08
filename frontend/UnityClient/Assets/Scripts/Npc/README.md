@@ -334,6 +334,6 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 ### 실제 일과와 신호 지연 관찰
 
-**Tools → A305 → Npc → Observe Daily Commutes**는 운영 TownScene과 근무표를 연속 이틀 실행합니다. 첫날은 준비하고 둘째 날의 출근을 집계하며, 같은 난수 시드로 정상 신호와 보행 신호 제약만 제거한 경우를 비교합니다. 실제 게임 시각 배율·보행 속도·물리 설정은 유지하고 보행 프레임은 0.1초로 고정합니다. 진단에서는 서버 API와 UI·시각적 애니메이션을 제외합니다. 출근별 도착 지연·신호 대기·거절 상태·미도착 위치, 실제 여가 방문과 목적지별 최대 예약 인원을 JSON으로 기록합니다.
+**Tools → A305 → Npc → Observe Daily Commutes**는 운영 TownScene과 근무표를 연속 이틀 실행합니다. 첫날은 준비하고 둘째 날의 출근을 집계하며, 같은 난수 시드로 정상 신호와 보행 신호 제약만 제거한 경우를 비교합니다. 실제 게임 시각 배율·보행 속도·물리 설정은 유지하고 보행 프레임은 30fps로 고정합니다. 진단에서는 서버 API와 UI·시각적 애니메이션을 제외합니다. 출근별 도착 지연·신호 대기·거절 상태·미도착 위치, 실제 여가 방문과 목적지별 최대 예약 인원을 JSON으로 기록합니다.
 
-`NPC_DAILY_OBSERVATION_OUTPUT`으로 출력 파일을 지정합니다. `NPC_OBSERVATION_SIGNALS=off`는 대기 제거 사례만 실행합니다. batchmode에서는 `-executeMethod A305.EditorTools.Npc.NpcDailyObservation.Run`으로 실행하며 `-quit`을 함께 쓰지 않습니다. 관찰 완료 후 Unity가 종료됩니다. 이 도구는 상시 회귀 검사에 포함하지 않는 수동 진단입니다. 측정 종료 시 미도착 건은 완료된 이동의 평균 지연에 섞지 않고 별도로 집계합니다. 실제 서버·브라우저 플레이 검증과 구분합니다.
+`NPC_DAILY_OBSERVATION_OUTPUT`으로 출력 파일을 지정합니다. `NPC_OBSERVATION_SIGNALS=off`는 대기 제거 사례만 실행합니다. `NPC_OBSERVATION_WARMUP_DAYS=0`이면 준비일 없이 첫 하루를 측정합니다(기본 준비일 1일). batchmode에서는 `-executeMethod A305.EditorTools.Npc.NpcDailyObservation.Run`으로 실행하며 `-quit`을 함께 쓰지 않습니다. 관찰 완료 후 Unity가 종료됩니다. 이 도구는 상시 회귀 검사에 포함하지 않는 수동 진단입니다. 측정 종료 시 미도착 건은 완료된 이동의 평균 지연에 섞지 않고 별도로 집계합니다. 실제 서버·브라우저 플레이 검증과 구분합니다.

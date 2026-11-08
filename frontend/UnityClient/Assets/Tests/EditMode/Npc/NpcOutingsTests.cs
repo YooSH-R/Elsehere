@@ -69,12 +69,18 @@ namespace A305.Npc.Tests
         public void AGuestWalkingToTheExitStillCountsTowardsCapacity()
         {
             var outings = new NpcOutings();
-            var venues = new[] { new NpcOutingVenue { Code = "BANK", Capacity = 1 } };
+            var venues = new[]
+            {
+                new NpcOutingVenue { Code = "BANK", Capacity = 1 },
+            };
             NpcOuting first = outings.Reserve("First", "WORK", 100, 200, venues, _ => true);
             first.Arrived = true;
             Assert.That(outings.Reserve("Second", "WORK", 201, 300, venues, _ => true), Is.Null);
             first.ReadyToLeave = true;
-            Assert.That(outings.Reserve("Second", "WORK", 201, 300, venues, _ => true), Is.Not.Null);
+            Assert.That(
+                outings.Reserve("Second", "WORK", 201, 300, venues, _ => true),
+                Is.Not.Null
+            );
         }
     }
 }

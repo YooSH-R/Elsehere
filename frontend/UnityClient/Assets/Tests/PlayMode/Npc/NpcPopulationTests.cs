@@ -110,10 +110,15 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_DiagonalCrossingEndsOnAnActualSidewalk() =>
             CheckObservedStall(false, diagonal: true);
 
+        [UnityTest]
+        public IEnumerator Town_CommuterVisualFollowsTheWalkingBody() =>
+            CheckObservedStall(false, visual: true);
+
         private static IEnumerator CheckObservedStall(
             bool crowd,
             bool corner = false,
-            bool diagonal = false
+            bool diagonal = false,
+            bool visual = false
         )
         {
             SetClock(21 * 60);
@@ -221,6 +226,32 @@ namespace A305.Npc.PlayModeTests
                             )
                             .SetValue(lights, 0f);
                     yield return null;
+                    if (visual && frame % 30 == 0)
+                    {
+                        var model = walkers[0]
+                            .GetComponentsInChildren<SkinnedMeshRenderer>()
+                            .OrderByDescending(skin => skin.sharedMesh.vertexCount)
+                            .First();
+                        var baked = new Mesh();
+                        model.BakeMesh(baked);
+                        Bounds meshBounds = baked.bounds;
+                        Vector3 center = model.transform.TransformPoint(meshBounds.center);
+                        Vector3 sole = model.transform.TransformPoint(
+                            new Vector3(meshBounds.center.x, meshBounds.min.y, meshBounds.center.z)
+                        );
+                        Object.Destroy(baked);
+                        Vector3 bodyPosition = walkers[0].transform.position;
+                        Assert.That(
+                            HorizontalDistance(center, bodyPosition),
+                            Is.LessThan(1.5f),
+                            $"이동 몸체 {bodyPosition}와 실제 외형 {center}가 떨어져 있습니다."
+                        );
+                        Assert.That(
+                            sole.y - bodyPosition.y,
+                            Is.GreaterThan(-.25f),
+                            $"발 밑면 {sole.y}이 몸체 발 위치 {bodyPosition.y} 아래로 묻힙니다."
+                        );
+                    }
                     // 같은 출입구를 쓰는 두 사람도 먼저 도착한 사람이 문 안으로 들어가면 이어서 진입한다.
                     foreach (var walker in walkers)
                         if (

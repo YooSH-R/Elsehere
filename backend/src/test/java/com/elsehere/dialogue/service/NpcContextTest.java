@@ -10,6 +10,16 @@ import org.junit.jupiter.api.Test;
 
 class NpcContextTest {
 
+  @Test
+  void movementFactsReachTheWorkerWithoutChangingThePerson() {
+    NpcContext result =
+        ON_DUTY.offDuty().withTravelSituation("travelling to work; walked 35 metres; leave early");
+    assertThat(result.workerNpc().scene())
+        .contains("travelling to work", "35 metres", "leave early");
+    assertThat(result.workerNpc().profile()).isEqualTo(PROFILE);
+    assertThat(ON_DUTY.withTravelSituation(null)).isEqualTo(ON_DUTY);
+  }
+
   private static final Map<String, Object> PROFILE = Map.of("name", "Mia");
   private static final NpcContext ON_DUTY =
       new NpcContext(

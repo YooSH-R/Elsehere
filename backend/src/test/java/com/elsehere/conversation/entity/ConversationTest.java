@@ -11,6 +11,15 @@ class ConversationTest {
   private static final Instant STARTED_AT = Instant.parse("2026-11-05T00:00:00Z");
 
   @Test
+  void travelSnapshotKeepsTheFirstConversationSituation() {
+    Conversation conversation = Conversation.start(1L, 2L, InitiatedBy.USER, 1, STARTED_AT);
+    conversation.recordNpcTravelSituation("walked 80 metres and arrived at work");
+    conversation.recordNpcTravelSituation("going home");
+    assertThat(conversation.getNpcTravelSituation())
+        .isEqualTo("walked 80 metres and arrived at work");
+  }
+
+  @Test
   @DisplayName("이미 사용자가 끝낸 대화는 턴 제한으로 다시 끝내지 않는다")
   void endByTurnLimit_keepsEarlierEnd() {
     Conversation conversation = Conversation.start(1L, 2L, InitiatedBy.USER, 1, STARTED_AT);

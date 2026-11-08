@@ -40,7 +40,7 @@ namespace A305.Npc.Tests
         {
             int areas = NavMesh.AllAreas & ~(1 << NavMesh.GetAreaFromName("Road"));
             Assert.That(
-                NavMesh.SamplePosition(new Vector3(-18, .1f, 21), out var start, 2, areas),
+                NavMesh.SamplePosition(new Vector3(-20, .1f, 16.5f), out var start, 2, areas),
                 Is.True
             );
             foreach (

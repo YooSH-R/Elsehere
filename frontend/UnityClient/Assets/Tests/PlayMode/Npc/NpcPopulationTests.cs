@@ -64,6 +64,123 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator Town_ResidenceDoorWalksToTheRoadAndBackWithoutSinking()
+        {
+            SetClock(21 * 60);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
+            Object
+                .FindFirstObjectByType<PlayerMover>()
+                .Teleport(new Vector3(0, 100, 0), Quaternion.identity);
+            var all = Object.FindObjectsByType<NpcTownWalker>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+            foreach (var other in all)
+                other.gameObject.SetActive(false);
+            var walker = all.Single(item =>
+                item.GetComponent<NpcIdentity>().Code == "BARBER_STAFF"
+            );
+            Vector3 door = GameObject.Find("NpcOnlyEntrance").transform.position;
+            Vector3 road = new Vector3(-6, .1f, 15.5f);
+            PlaceWalker(walker, door, road - door);
+            var skin = walker
+                .GetComponentsInChildren<SkinnedMeshRenderer>()
+                .OrderByDescending(item => item.sharedMesh.vertexCount)
+                .First();
+            float previousDelta = Time.captureDeltaTime;
+#if UNITY_EDITOR
+            string output = System.Environment.GetEnvironmentVariable("NPC_OBSTACLE_REVIEW_OUTPUT");
+            using var review = new NpcDailyReviewCapture(output);
+#endif
+            try
+            {
+                Time.captureDeltaTime = 1f / 30f;
+                foreach (Vector3 goal in new[] { road, door })
+                {
+                    walker.Destination = goal;
+                    for (int frame = 0; frame < 750; frame++)
+                    {
+                        yield return null;
+#if UNITY_EDITOR
+                        review.RecordScenario(
+                            "residence-road-walk",
+                            walker.transform,
+                            new Vector3(1.5f, 3, -4),
+                            GameClock.Shared.Minutes
+                        );
+#endif
+                        if (frame > 15 && frame % 15 == 0)
+                        {
+                            Assert.That(
+                                walker.transform.position.y,
+                                Is.InRange(-.05f, .4f),
+                                "숙소와 인도 사이의 몸체가 바닥으로 빠집니다."
+                            );
+                            var baked = new Mesh();
+                            skin.BakeMesh(baked);
+                            Vector3 sole = skin.transform.TransformPoint(
+                                new Vector3(
+                                    baked.bounds.center.x,
+                                    baked.bounds.min.y,
+                                    baked.bounds.center.z
+                                )
+                            );
+                            Object.Destroy(baked);
+                            Assert.That(
+                                sole.y,
+                                Is.GreaterThan(-.15f),
+                                $"숙소 보행 중 외형 발 밑면 {sole}"
+                            );
+                        }
+                        if (HorizontalDistance(walker.transform.position, goal) < .25f)
+                            break;
+                    }
+                    Assert.That(
+                        HorizontalDistance(walker.transform.position, goal),
+                        Is.LessThan(.25f),
+                        $"숙소 출입 목표 {goal}, 현재 {walker.transform.position}"
+                    );
+                }
+                Assert.That(
+                    walker.StallRecoveryCount,
+                    Is.Zero,
+                    "위치 복구 없이 숙소와 도로를 왕복해야 합니다."
+                );
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDelta;
+            }
+#if UNITY_EDITOR
+            review.Dispose();
+            using var overview = new NpcDailyReviewCapture(output);
+            var focus = new GameObject("ResidenceReviewFocus");
+            focus.transform.position = new Vector3(-20, 3, 21);
+            for (int frame = 0; frame < 6; frame++)
+            {
+                overview.RecordScenario(
+                    "residence-overview",
+                    focus.transform,
+                    new Vector3(9, 10, -18),
+                    GameClock.Shared.Minutes
+                );
+                yield return null;
+            }
+            Object.Destroy(focus);
+#endif
+        }
+
+        [UnityTest]
         public IEnumerator Town_ScheduledSpawnKeepsTheVisualAboveTheGround()
         {
             SetClock(195);
@@ -312,13 +429,13 @@ namespace A305.Npc.PlayModeTests
                     new Vector3(6, .1f, 30),
                     new Vector3(6, .1f, 39),
                     new Vector3(6, .1f, 57),
-                    new Vector3(-18, .1f, 21),
-                    new Vector3(-18, .1f, 21),
+                    GameObject.Find("NpcOnlyEntrance").transform.position,
+                    GameObject.Find("NpcOnlyEntrance").transform.position,
                 }
                 : new[]
                 {
                     corner ? new Vector3(-6, .1f, -18)
-                    : diagonal ? new Vector3(-18, .1f, 21)
+                    : diagonal ? GameObject.Find("NpcOnlyEntrance").transform.position
                     : new Vector3(-6, .1f, 48),
                 };
             var walkers = codes

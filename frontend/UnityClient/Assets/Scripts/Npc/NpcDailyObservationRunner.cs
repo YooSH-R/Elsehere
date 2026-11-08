@@ -60,7 +60,7 @@ namespace A305.Npc
         private sealed class Report
         {
             public string method =
-                "운영 TownScene·근무표·시각 배율·물리 설정 유지, 30fps 보행 프레임, UI·시각적 애니메이션 제외, 정상 신호와 보행 신호 제약 제거 비교";
+                "운영 TownScene·근무표·시각 배율·물리 설정 유지, 30fps 보행 프레임, 서버 API 제외, 촬영 조건에서는 외형·HUD 포함, 정상 신호와 보행 신호 제약 제거 비교";
             public List<Commute> commutes;
             public List<Visit> visits;
             public int peakReservedPerVenue;

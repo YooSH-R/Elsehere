@@ -124,7 +124,7 @@ namespace A305.Npc.PlayModeTests
                     review.RecordScenario(
                         "facility-interior",
                         guest.transform,
-                        new Vector3(4, 3, -5),
+                        room.transform.TransformDirection(new Vector3(0, 2, -3)),
                         GameClock.Shared.Minutes
                     );
 #endif
@@ -143,7 +143,7 @@ namespace A305.Npc.PlayModeTests
                         review.RecordScenario(
                             "facility-interior",
                             guest.transform,
-                            new Vector3(4, 3, -5),
+                            room.transform.TransformDirection(new Vector3(0, 2, -3)),
                             GameClock.Shared.Minutes
                         );
 #endif

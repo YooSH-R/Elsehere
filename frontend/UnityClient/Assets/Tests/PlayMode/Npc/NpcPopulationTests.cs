@@ -60,7 +60,7 @@ namespace A305.Npc.PlayModeTests
                     review.RecordScenario(
                         "residence-scheduled-spawn",
                         walker.transform,
-                        new Vector3(8, 3, 0),
+                        new Vector3(1.5f, 3, -4),
                         GameClock.Shared.Minutes
                     );
 #endif

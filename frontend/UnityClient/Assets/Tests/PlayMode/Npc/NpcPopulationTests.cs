@@ -114,11 +114,16 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_CommuterVisualFollowsTheWalkingBody() =>
             CheckObservedStall(false, visual: true);
 
+        [UnityTest]
+        public IEnumerator Town_StuckRecoveryFindsFreeGroundBesideAnOccupiedGoal() =>
+            CheckObservedStall(false, recover: true);
+
         private static IEnumerator CheckObservedStall(
             bool crowd,
             bool corner = false,
             bool diagonal = false,
-            bool visual = false
+            bool visual = false,
+            bool recover = false
         )
         {
             SetClock(21 * 60);
@@ -198,6 +203,7 @@ namespace A305.Npc.PlayModeTests
                 .Select(code => all.Single(item => item.GetComponent<NpcIdentity>().Code == code))
                 .ToArray();
             float previousDelta = Time.captureDeltaTime;
+            GameObject recoveryBlocker = null;
 #if UNITY_EDITOR
             using var review = new NpcDailyReviewCapture(
                 System.Environment.GetEnvironmentVariable("NPC_OBSTACLE_REVIEW_OUTPUT")
@@ -210,6 +216,41 @@ namespace A305.Npc.PlayModeTests
                 {
                     PlaceWalker(walkers[i], starts[i], ends[i] - starts[i]);
                     walkers[i].Destination = ends[i];
+                }
+                if (recover)
+                {
+                    recoveryBlocker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    recoveryBlocker.transform.position = ends[0] + Vector3.up;
+                    recoveryBlocker.transform.localScale = new Vector3(1.5f, 2, 1.5f);
+                    walkers[0].ScheduleDoor = null;
+                    Physics.SyncTransforms();
+                    bool recovered = (bool)
+                        typeof(NpcTownWalker)
+                            .GetMethod(
+                                "TryRecoverToDestination",
+                                BindingFlags.Instance | BindingFlags.NonPublic
+                            )
+                            .Invoke(walkers[0], null);
+                    Assert.That(recovered, Is.True);
+                    Assert.That(walkers[0].StallRecoveryCount, Is.EqualTo(1));
+                    Vector3 position = walkers[0].transform.position;
+                    Assert.That(HorizontalDistance(position, ends[0]), Is.LessThan(3));
+                    Assert.That(
+                        recoveryBlocker
+                            .GetComponent<Collider>()
+                            .bounds.Contains(position + Vector3.up),
+                        Is.False
+                    );
+                    Assert.That(
+                        NavMesh.SamplePosition(
+                            position,
+                            out _,
+                            .2f,
+                            1 << NavMesh.GetAreaFromName("Road")
+                        ),
+                        Is.False
+                    );
+                    yield break;
                 }
                 if (diagonal)
                 {
@@ -300,6 +341,8 @@ namespace A305.Npc.PlayModeTests
             }
             finally
             {
+                if (recoveryBlocker != null)
+                    Object.Destroy(recoveryBlocker);
                 Time.captureDeltaTime = previousDelta;
             }
         }

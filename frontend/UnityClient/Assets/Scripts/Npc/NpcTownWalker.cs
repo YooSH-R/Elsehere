@@ -36,6 +36,10 @@ namespace A305.Npc
             && !GetComponent<Passerby>().IsGuidingTutorial
             && !GetComponent<Passerby>().IsWaitingForQuest;
         public bool IsRunning { get; private set; }
+        public int StallRecoveryCount { get; private set; }
+
+        internal bool TryRecoverToDestination() => false;
+
         public bool DeclinesConversation =>
             IsStaff && SchedulePhase == NpcDayPhase.Working && IsHurrying;
 

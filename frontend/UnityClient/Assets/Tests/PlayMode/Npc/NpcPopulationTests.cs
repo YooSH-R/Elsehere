@@ -99,10 +99,14 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_StaffPassTheBankStairSupport() => CheckObservedStall(false);
 
         [UnityTest]
+        public IEnumerator Town_CommuterLeavesTheCrosswalkAtTheSidewalkCorner() =>
+            CheckObservedStall(false, corner: true);
+
+        [UnityTest]
         public IEnumerator Town_ObservedJunctionCrowdReachesItsDestinations() =>
             CheckObservedStall(true);
 
-        private static IEnumerator CheckObservedStall(bool crowd)
+        private static IEnumerator CheckObservedStall(bool crowd, bool corner = false)
         {
             SetClock(21 * 60);
             SceneManager.sceneLoaded += DisableWalkingTestApis;
@@ -119,7 +123,15 @@ namespace A305.Npc.PlayModeTests
             Object
                 .FindFirstObjectByType<PlayerMover>()
                 .Teleport(new Vector3(0, 100, 0), Quaternion.identity);
-            Object.FindFirstObjectByType<TrafficLights>().ObserveWithoutPedestrianWait = true;
+            var lights = Object.FindFirstObjectByType<TrafficLights>();
+            lights.ObserveWithoutPedestrianWait = !corner;
+            if (corner)
+            {
+                lights.enabled = false;
+                typeof(TrafficLights)
+                    .GetField("elapsedSeconds", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SetValue(lights, 15f);
+            }
             var all = Object.FindObjectsByType<NpcTownWalker>(
                 FindObjectsInactive.Include,
                 FindObjectsSortMode.None
@@ -147,7 +159,12 @@ namespace A305.Npc.PlayModeTests
                     new Vector3(3.103f, .12f, 15.568f),
                     new Vector3(3.69f, .12f, 16.51f),
                 }
-                : new[] { new Vector3(-5.114f, .12f, 37.574f) };
+                : new[]
+                {
+                    corner
+                        ? new Vector3(-2.936f, .114f, 14.58f)
+                        : new Vector3(-5.114f, .12f, 37.574f),
+                };
             Vector3[] ends = crowd
                 ? new[]
                 {
@@ -158,7 +175,7 @@ namespace A305.Npc.PlayModeTests
                     new Vector3(-18, .1f, 21),
                     new Vector3(-18, .1f, 21),
                 }
-                : new[] { new Vector3(-6, .1f, 48) };
+                : new[] { corner ? new Vector3(-6, .1f, -18) : new Vector3(-6, .1f, 48) };
             var walkers = codes
                 .Select(code => all.Single(item => item.GetComponent<NpcIdentity>().Code == code))
                 .ToArray();
@@ -171,8 +188,15 @@ namespace A305.Npc.PlayModeTests
                     PlaceWalker(walkers[i], starts[i], ends[i] - starts[i]);
                     walkers[i].Destination = ends[i];
                 }
-                for (int frame = 0; frame < (crowd ? 1800 : 600); frame++)
+                for (int frame = 0; frame < (crowd || corner ? 1800 : 600); frame++)
                 {
+                    if (corner && frame == 180)
+                        typeof(TrafficLights)
+                            .GetField(
+                                "elapsedSeconds",
+                                BindingFlags.Instance | BindingFlags.NonPublic
+                            )
+                            .SetValue(lights, 0f);
                     yield return null;
                     // 같은 출입구를 쓰는 두 사람도 먼저 도착한 사람이 문 안으로 들어가면 이어서 진입한다.
                     foreach (var walker in walkers)
@@ -184,11 +208,24 @@ namespace A305.Npc.PlayModeTests
                             walker.gameObject.SetActive(false);
                 }
                 foreach (var walker in walkers)
+                {
+#if UNITY_EDITOR
+                    if (walker.gameObject.activeSelf)
+                        Debug.Log(
+                            NpcDailyObservationRunner.DescribeStall(
+                                walker,
+                                walkers,
+                                GameClock.Shared.Minutes,
+                                false
+                            )
+                        );
+#endif
                     Assert.That(
                         walker.gameObject.activeSelf,
                         Is.False,
                         walker.GetComponent<NpcIdentity>().Code + " / " + walker.transform.position
                     );
+                }
             }
             finally
             {

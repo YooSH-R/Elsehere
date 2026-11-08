@@ -12,6 +12,7 @@ using A305.Player;
 using A305.World;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
@@ -27,6 +28,7 @@ namespace A305.Npc
         private readonly HashSet<NpcOuting> visited = new HashSet<NpcOuting>();
         private int peakReserved;
         private int warmupDays;
+        private readonly List<string> stalls = new List<string>();
 
         [Serializable]
         public sealed class Visit
@@ -61,6 +63,7 @@ namespace A305.Npc
             public List<Visit> visits;
             public int peakReservedPerVenue;
             public int warmupDays;
+            public List<string> stalls;
         }
 
         private IEnumerator Start()
@@ -81,7 +84,9 @@ namespace A305.Npc
                 bool signals in Environment.GetEnvironmentVariable("NPC_OBSERVATION_SIGNALS")
                 == "off"
                     ? new[] { false }
-                    : new[] { true, false }
+                : Environment.GetEnvironmentVariable("NPC_OBSERVATION_SIGNALS") == "on"
+                    ? new[] { true }
+                : new[] { true, false }
             )
             {
                 UnityEngine.Random.InitState(681);
@@ -144,9 +149,21 @@ namespace A305.Npc
                 var waits = new Dictionary<string, double>();
                 var current = new Dictionary<string, Commute>();
                 var wasCommuting = new Dictionary<string, bool>();
+                using var review = new NpcDailyReviewCapture(
+                    signals ? Environment.GetEnvironmentVariable("NPC_DAILY_REVIEW_OUTPUT") : null
+                );
                 int lastHour = -1;
                 int stalledFrames = 0;
-                while (GameClock.Shared.Minutes < (warmupDays + 1) * 1440)
+                var anchors = new Dictionary<string, Vector3>();
+                var stopped = new Dictionary<string, float>();
+                var reported = new Dictionary<string, Vector3>();
+                double endMinute = double.TryParse(
+                    Environment.GetEnvironmentVariable("NPC_OBSERVATION_END_MINUTE"),
+                    out double limit
+                )
+                    ? limit
+                    : (warmupDays + 1) * 1440;
+                while (GameClock.Shared.Minutes < endMinute)
                 {
                     double beforeFlow = GameClock.Shared.Minutes;
                     GameClock.Shared.Flow(Time.deltaTime);
@@ -155,6 +172,7 @@ namespace A305.Npc
                         throw new InvalidOperationException("진단 중 게임 시각이 멈췄습니다.");
                     yield return null;
                     double now = GameClock.Shared.Minutes;
+                    review.Step(now, walkers);
                     int hour = (int)(now / 60);
                     if (hour != lastHour && hour % 4 == 0)
                     {
@@ -166,6 +184,36 @@ namespace A305.Npc
                     {
                         string code = pair.Key;
                         NpcTownWalker walker = pair.Value;
+                        if (
+                            walker.isActiveAndEnabled
+                            && walker.HasScheduleDeadline
+                            && !bodies[code].IsWaitingAtSignal
+                        )
+                        {
+                            anchors.TryGetValue(code, out Vector3 anchor);
+                            stopped.TryGetValue(code, out float seconds);
+                            if (Vector3.Distance(anchor, walker.transform.position) > .15f)
+                            {
+                                anchors[code] = walker.transform.position;
+                                seconds = 0;
+                            }
+                            else
+                                seconds += Time.deltaTime;
+                            stopped[code] = seconds;
+                            if (
+                                seconds > 5
+                                && (
+                                    !reported.TryGetValue(code, out Vector3 last)
+                                    || Vector3.Distance(last, anchor) > 1
+                                )
+                            )
+                            {
+                                reported[code] = anchor;
+                                stalls.Add(DescribeStall(walker, walkers, now, signals));
+                            }
+                        }
+                        else
+                            stopped[code] = 0;
                         entries.TryGetValue(code, out NpcLifeEntry entry);
                         if (entry == null || !NpcDuty.IsStaff(entry.Role))
                             continue;
@@ -280,10 +328,60 @@ namespace A305.Npc
                         visits = visits,
                         peakReservedPerVenue = peakReserved,
                         warmupDays = warmupDays,
+                        stalls = stalls,
                     },
                     true
                 )
             );
+        }
+
+        public static string DescribeStall(
+            NpcTownWalker walker,
+            NpcTownWalker[] walkers,
+            double now,
+            bool signals
+        )
+        {
+            Vector3 position = walker.transform.position;
+            var route = new NavMeshPath();
+            NavMesh.CalculatePath(position, walker.Destination, NpcTownWalker.WalkingAreas, route);
+            var passing =
+                typeof(NpcTownWalker).GetField("passing", PrivateInstance).GetValue(walker)
+                as Passerby;
+            var crossing =
+                typeof(Passerby)
+                    .GetField("crossing", PrivateInstance)
+                    .GetValue(walker.GetComponent<Passerby>()) as NpcCrosswalk;
+            string others = string.Join(
+                ";",
+                walkers
+                    .Where(other =>
+                        other != walker
+                        && other.isActiveAndEnabled
+                        && Vector3.Distance(position, other.transform.position) < 3
+                    )
+                    .Select(other =>
+                        $"{other.GetComponent<NpcIdentity>().Code}@{other.transform.position:F2}->{other.Destination:F2}"
+                    )
+            );
+            string solids = string.Join(
+                ";",
+                Physics
+                    .OverlapSphere(position + Vector3.up * .6f, .9f)
+                    .Where(collider =>
+                        !collider.isTrigger && collider.GetComponentInParent<Passerby>() == null
+                    )
+                    .Select(collider => $"{collider.name} bounds={collider.bounds}")
+            );
+            var body = walker.GetComponent<Passerby>();
+            string crossingState = string.Join(
+                ",",
+                crossing
+                    .GetType()
+                    .GetFields(PrivateInstance)
+                    .Select(field => $"{field.Name}={field.GetValue(crossing)}")
+            );
+            return $"{now:F1} signals={signals} {walker.GetComponent<NpcIdentity>().Code} {walker.SchedulePhase} pos={position:F3} destination={walker.Destination:F3} path={route.status}:{string.Join(";", route.corners.Select(point => point.ToString("F2")))} crossing={crossing?.IsActive} crossingState=[{crossingState}] motion=[age={Time.frameCount - body.LastWalkFrame} requested={body.LastWalkInput:F4} detour={body.LastWalkDetour:F4} final={body.LastWalkDirection:F4} step={body.LastWalkStep:F5} moved={body.LastWalkMoved:F5}] passing={passing?.GetComponent<NpcIdentity>().Code} others=[{others}] solids=[{solids}]";
         }
 
         private static void DisconnectApis(Scene scene, LoadSceneMode mode)

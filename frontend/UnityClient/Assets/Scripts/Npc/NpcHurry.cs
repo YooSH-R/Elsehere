@@ -6,10 +6,17 @@ namespace A305.Npc
         public const float WalkMetersPerSecond = 1.6f;
         public const float RunMetersPerSecond = 2.6f;
 
-        public bool IsHurrying => false;
+        public bool IsHurrying { get; private set; }
 
-        public void Update(bool hasDeadline, float lagMeters) { }
+        public void Update(bool hasDeadline, float lagMeters)
+        {
+            if (!hasDeadline || lagMeters <= 1.5f)
+                IsHurrying = false;
+            else if (lagMeters >= 4)
+                IsHurrying = true;
+        }
 
-        public float Speed(bool clearToRun) => WalkMetersPerSecond;
+        public float Speed(bool clearToRun) =>
+            IsHurrying && clearToRun ? RunMetersPerSecond : WalkMetersPerSecond;
     }
 }

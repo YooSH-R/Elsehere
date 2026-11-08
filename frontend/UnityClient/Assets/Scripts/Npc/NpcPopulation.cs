@@ -87,6 +87,9 @@ namespace A305.Npc
 
             [NonSerialized]
             internal double ExpectedWorkMinute;
+
+            [NonSerialized]
+            internal int ObservedRecoveryCount;
         }
 
         /// <summary>같은 코드의 거리 모습을 고르지 않고 근무지의 직원을 찾는다.</summary>
@@ -366,6 +369,12 @@ namespace A305.Npc
                 return;
             }
             var travel = resident.TownBody.GetComponent<Passerby>().TravelContext;
+            int recoveries = resident.TownBody.GetComponent<NpcTownWalker>().StallRecoveryCount;
+            if (resident.ObservedRecoveryCount != recoveries)
+            {
+                resident.HasJourneyPosition = false;
+                resident.ObservedRecoveryCount = recoveries;
+            }
             Vector3 position = resident.TownBody.transform.position;
             if (travel != null && continuous && resident.HasJourneyPosition)
             {

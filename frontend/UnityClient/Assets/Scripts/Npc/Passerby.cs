@@ -725,6 +725,16 @@ namespace A305.Npc
         internal bool IsWaitingForSignal(Vector3 direction) =>
             NpcTownWalker.ShouldWaitForSignal(trafficLights, transform.position, direction);
 
+        internal void RestoreWalkingPosition(Vector3 position)
+        {
+            crossing.Clear();
+            obstacleDetour.Clear();
+            characterController.enabled = false;
+            transform.position = position + Vector3.up * characterController.skinWidth;
+            characterController.enabled = true;
+            Physics.SyncTransforms();
+        }
+
         internal bool HasWalkingRoom(Vector3 direction, float meters) =>
             obstacleDetour.IsClearAhead(characterController, direction, meters);
 

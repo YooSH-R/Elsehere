@@ -50,8 +50,20 @@ namespace A305.Npc
                 * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
         }
 
-        internal static bool TryFindArrival(Passerby body, Vector3 target, out Vector3 position)
+        internal static bool TryFindArrival(Passerby body, Vector3 target, out Vector3 position) =>
+            TryFindPosition(body, target, out position, recovery: false);
+
+        internal static bool TryFindRecovery(Passerby body, Vector3 target, out Vector3 position) =>
+            TryFindPosition(body, target, out position, recovery: true);
+
+        private static bool TryFindPosition(
+            Passerby body,
+            Vector3 target,
+            out Vector3 position,
+            bool recovery
+        )
         {
+            int areas = recovery ? NpcTownWalker.StandingAreas : NavMesh.AllAreas;
             float spacing = Radius(body) * 2f + GapMeters;
             for (int ring = 0; ring * spacing <= ArrivalSearchRadiusMeters; ring++)
             {
@@ -62,18 +74,19 @@ namespace A305.Npc
                     Vector3 candidate =
                         target
                         + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * (ring * spacing);
-                    if (
-                        !NavMesh.SamplePosition(
-                            candidate,
-                            out NavMeshHit hit,
-                            .2f,
-                            NavMesh.AllAreas
-                        )
-                    )
+                    if (!NavMesh.SamplePosition(candidate, out NavMeshHit hit, .2f, areas))
                         continue;
-                    if (NavMesh.Raycast(target, hit.position, out _, NavMesh.AllAreas))
+                    if (!recovery && NavMesh.Raycast(target, hit.position, out _, areas))
                         continue;
                     if (!IsFree(body, hit.position))
+                        continue;
+                    if (
+                        recovery
+                        && (
+                            NpcTownWalker.IsRoadSurface(hit.position, .2f)
+                            || !HasStandingRoom(body, hit.position)
+                        )
+                    )
                         continue;
                     position = hit.position;
                     return true;
@@ -81,6 +94,32 @@ namespace A305.Npc
             }
             position = target;
             return false;
+        }
+
+        private static bool HasStandingRoom(Passerby body, Vector3 position)
+        {
+            Bounds bounds = body.GetComponent<CharacterController>().bounds;
+            float radius = Mathf.Max(bounds.extents.x, bounds.extents.z);
+            float height = Mathf.Max(radius * 2, bounds.size.y);
+            foreach (
+                Collider collider in Physics.OverlapCapsule(
+                    position + Vector3.up * (radius + .02f),
+                    position + Vector3.up * (height - radius + .02f),
+                    radius,
+                    ~0,
+                    QueryTriggerInteraction.Ignore
+                )
+            )
+            {
+                if (
+                    collider.transform.IsChildOf(body.transform)
+                    || collider.GetComponentInParent<Passerby>() != null
+                    || collider.bounds.max.y <= position.y + Passerby.WalkableStepMeters
+                )
+                    continue;
+                return false;
+            }
+            return true;
         }
 
         private static bool IsFree(Passerby body, Vector3 position)

@@ -23,6 +23,7 @@ namespace A305.Npc
         private bool passingOnRight;
         private float passingClearance;
         private readonly NpcHurry hurry = new NpcHurry();
+        private readonly NpcStuckRecovery stuckRecovery = new NpcStuckRecovery();
         private AnimatorOverrideController paceOverride;
 
         public Vector3 Destination { get; set; }
@@ -37,8 +38,52 @@ namespace A305.Npc
             && !GetComponent<Passerby>().IsWaitingForQuest;
         public bool IsRunning { get; private set; }
         public int StallRecoveryCount { get; private set; }
+        public Vector3 LastRecoveryFrom { get; private set; }
+        public Vector3 LastRecoveryTo { get; private set; }
 
-        internal bool TryRecoverToDestination() => false;
+        internal bool TryRecoverToDestination()
+        {
+            var body = GetComponent<Passerby>();
+            if (
+                !NpcWalkingSpace.TryFindRecovery(
+                    body,
+                    ScheduleDoor ?? Destination,
+                    out Vector3 safe
+                )
+            )
+                return false;
+            LastRecoveryFrom = transform.position;
+            body.RestoreWalkingPosition(safe);
+            LastRecoveryTo = transform.position;
+            passing = null;
+            stuckRecovery.Reset();
+            StallRecoveryCount++;
+            return true;
+        }
+
+        private void LateUpdate()
+        {
+            var body = GetComponent<Passerby>();
+            bool trying =
+                body.Phase == PasserbyPhase.Waiting || body.Phase == PasserbyPhase.Resting;
+            bool waiting =
+                body.IsWaitingAtSignal
+                || body.IsGuidingTutorial
+                || body.IsWaitingForQuest
+                || GameClock.Shared.IsHeld
+                || GameClock.Shared.Current?.Paused == true;
+            if (
+                stuckRecovery.ShouldRecover(
+                    transform.position,
+                    ScheduleDoor ?? Destination,
+                    trying,
+                    waiting,
+                    Time.deltaTime,
+                    30f / (float)GameClock.GameMinutesPerRealSecond
+                )
+            )
+                TryRecoverToDestination();
+        }
 
         public bool DeclinesConversation =>
             IsStaff && SchedulePhase == NpcDayPhase.Working && IsHurrying;
@@ -56,6 +101,7 @@ namespace A305.Npc
 
         private void OnDisable()
         {
+            stuckRecovery.Reset();
             passing = null;
             hurry.Update(false, 0);
             IsRunning = false;

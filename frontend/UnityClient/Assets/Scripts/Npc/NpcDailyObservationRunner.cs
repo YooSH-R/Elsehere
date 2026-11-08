@@ -29,6 +29,7 @@ namespace A305.Npc
         private int peakReserved;
         private int warmupDays;
         private readonly List<string> stalls = new List<string>();
+        private readonly List<string> recoveries = new List<string>();
 
         [Serializable]
         public sealed class Visit
@@ -52,6 +53,7 @@ namespace A305.Npc
             public bool refusedConversation;
             public Vector3 finalPosition;
             public double departureLeadMinutes;
+            public int recoveryCount;
         }
 
         [Serializable]
@@ -64,6 +66,7 @@ namespace A305.Npc
             public int peakReservedPerVenue;
             public int warmupDays;
             public List<string> stalls;
+            public List<string> recoveries;
         }
 
         private IEnumerator Start()
@@ -158,6 +161,8 @@ namespace A305.Npc
                 var waits = new Dictionary<string, double>();
                 var current = new Dictionary<string, Commute>();
                 var wasCommuting = new Dictionary<string, bool>();
+                var departureRecoveries = new Dictionary<string, int>();
+                var observedRecoveries = new Dictionary<string, int>();
                 using var review = new NpcDailyReviewCapture(
                     signals ? Environment.GetEnvironmentVariable("NPC_DAILY_REVIEW_OUTPUT") : null
                 );
@@ -193,6 +198,14 @@ namespace A305.Npc
                     {
                         string code = pair.Key;
                         NpcTownWalker walker = pair.Value;
+                        observedRecoveries.TryGetValue(code, out int recovered);
+                        if (recovered != walker.StallRecoveryCount)
+                        {
+                            observedRecoveries[code] = walker.StallRecoveryCount;
+                            recoveries.Add(
+                                $"{now:F1} signals={signals} {code} {walker.LastRecoveryFrom:F3} -> {walker.LastRecoveryTo:F3}"
+                            );
+                        }
                         if (
                             walker.isActiveAndEnabled
                             && walker.HasScheduleDeadline
@@ -234,7 +247,10 @@ namespace A305.Npc
                             && walker.SchedulePhase == NpcDayPhase.GoingToWork;
                         wasCommuting.TryGetValue(code, out bool previouslyCommuting);
                         if (commuting && !previouslyCommuting)
+                        {
                             wait = 0;
+                            departureRecoveries[code] = walker.StallRecoveryCount;
+                        }
                         wasCommuting[code] = commuting;
                         if (walker.gameObject.activeInHierarchy && bodies[code].IsWaitingAtSignal)
                             wait += Time.deltaTime;
@@ -260,6 +276,8 @@ namespace A305.Npc
                             active.delayMinutes = now - active.scheduledMinute;
                             active.signalWaitSeconds = wait;
                             active.finalPosition = walker.transform.position;
+                            departureRecoveries.TryGetValue(code, out int atDeparture);
+                            active.recoveryCount = walker.StallRecoveryCount - atDeparture;
                             active.refusedConversation =
                                 active.refusedConversation || walker.DeclinesConversation;
                             active.arrived = !walker.gameObject.activeInHierarchy;
@@ -338,6 +356,7 @@ namespace A305.Npc
                         peakReservedPerVenue = peakReserved,
                         warmupDays = warmupDays,
                         stalls = stalls,
+                        recoveries = recoveries,
                     },
                     true
                 )

@@ -28,6 +28,7 @@ namespace A305.Npc
         public Vector3 Destination { get; set; }
         public bool IsStaff { get; set; }
         public bool HasScheduleDeadline { get; set; }
+        public NpcDayPhase? SchedulePhase { get; set; }
         public Vector3? ScheduleDoor { get; set; }
         public bool IsHurrying =>
             HasScheduleDeadline

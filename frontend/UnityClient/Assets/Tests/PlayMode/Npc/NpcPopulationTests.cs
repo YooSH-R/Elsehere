@@ -26,7 +26,19 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_ClickingAHurryingNpcShowsAnEventAndNeverStartsDialogue() =>
             CheckHurryingNpc(click: true);
 
-        private static IEnumerator CheckHurryingNpc(bool click)
+        [UnityTest]
+        public IEnumerator Town_HurryingHomeStillAllowsConversation() =>
+            CheckHurryingNpc(click: true, schedule: NpcDayPhase.GoingHome);
+
+        [UnityTest]
+        public IEnumerator Town_BeforeWorkStillAllowsConversation() =>
+            CheckHurryingNpc(click: true, schedule: NpcDayPhase.GoingToWork);
+
+        [UnityTest]
+        public IEnumerator Town_ReturningToRestStillAllowsConversation() =>
+            CheckHurryingNpc(click: true, schedule: NpcDayPhase.Resting);
+
+        private static IEnumerator CheckHurryingNpc(bool click, NpcDayPhase schedule = NpcDayPhase.Working)
         {
             SetClock(21 * 60);
             SceneManager.sceneLoaded += DisableWalkingTestApis;
@@ -60,6 +72,8 @@ namespace A305.Npc.PlayModeTests
                 PlaceWalker(walker, new Vector3(497, .1f, 500), Vector3.right);
                 walker.Destination = new Vector3(503, .1f, 500);
                 walker.HasScheduleDeadline = true;
+                walker.SchedulePhase = schedule;
+                walker.IsStaff = true;
                 walker.ScheduleDoor = walker.Destination;
                 for (int frame = 0; frame < 8; frame++)
                     yield return null;
@@ -70,6 +84,14 @@ namespace A305.Npc.PlayModeTests
                     var offer = Object.FindFirstObjectByType<PasserbyOfferView>();
                     var dialogue = Object.FindFirstObjectByType<DialogueController>();
                     Assert.That(body.TalkByClick(NpcClickTalk.ReachMeters), Is.True);
+                    if (schedule != NpcDayPhase.Working)
+                    {
+                        Assert.That(offer.IsShowing, Is.True);
+                        Assert.That(offer.IsEventShowing, Is.False, "귀가·휴식·출근 전 이동은 대화를 거절하지 않습니다.");
+                        Assert.That(body.Phase, Is.Not.EqualTo(PasserbyPhase.Talking));
+                        offer.DeclineShownOffer();
+                        yield break;
+                    }
                     Assert.That(offer.IsEventShowing, Is.True);
                     Assert.That(dialogue.IsTalking, Is.False);
                     Assert.That(player.IsMovementLocked, Is.False);

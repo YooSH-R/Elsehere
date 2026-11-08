@@ -59,14 +59,14 @@ Ben 대화의 첫 안내에서 일반 NPC 자유 대화의 호감도(인사·칭
 | `TutorialProgress`, `TutorialStep` | 신호를 받아 단계를 넘기고, 행인이 다가와도 되는지·장소 이동 가능 여부·미션 표시 여부를 알려 줍니다. Unity 객체 없이 테스트합니다. |
 | `TutorialState` | 공간 씬이 바뀌어도 진행이 이어지도록 씬 밖에 둡니다. Play를 시작할 때마다 비우고 장소 이동 잠금도 풉니다. 서버에서 이미 튜토리얼을 끝낸 사용자는 입구 화면이 `MarkFinishedOnServer()`로 알려 `Completed`로 시작합니다. 이 기기에서 끝낸 적이 있으면 건너뛴 상태로 시작합니다. |
 | `TutorialDeviceRecord` | 이 기기(Web 빌드는 브라우저)에서 튜토리얼을 끝냈는지(`PlayerPrefs` 키 `A305.Tutorial.FinishedOnDevice`). 게스트는 들어올 때마다 새 계정이라 서버 기록만으로는 같은 사람이 튜토리얼을 다시 봅니다. Editor에서는 읽지도 쓰지도 않습니다. |
-| `TutorialFinishRecorder`, `ITutorialApi`, `TutorialApi` | Ben 길 안내를 마치면 TUT-03 `POST /api/v1/me/tutorial/ben-dialogue/complete`로 방문·알아봄·호감을 저장합니다. 전체를 끝낸 방법에 맞춰 완료(TUT-01 `/complete`)나 건너뛰기(TUT-02 `/skip`)를 저장하며, 길 안내 저장을 먼저 보냅니다. 네트워크 실패면 다음 단계·장소에서 다시 보내고, 409(튜토리얼 이전 단계)면 다시 보내지 않습니다. 전체 완료·건너뛰기는 이 기기에도 끝냈다고 남깁니다(서버 저장이 실패해도). Unity 객체 없이 테스트합니다. |
+| `TutorialFinishRecorder`, `ITutorialApi`, `TutorialApi` | Ben 길 안내를 마치면 TUT-03 `POST /api/v1/me/tutorial/ben-dialogue/complete`로 방문·알아봄·호감을 저장합니다. 전체를 끝낸 방법에 맞춰 완료(TUT-01 `/complete`)나 건너뛰기(TUT-02 `/skip`)를 저장하며, 길 안내 저장을 먼저 보냅니다. 네트워크 실패면 같은 씬에서도 5초 뒤 다시 보내며 중복 요청은 막고, 409(튜토리얼 이전 단계)면 다시 보내지 않습니다. 전체 완료·건너뛰기는 이 기기에도 끝냈다고 남깁니다(서버 저장이 실패해도). Unity 객체 없이 테스트합니다. |
 | `TutorialCoachPlan`, `TutorialCoachTarget`, `CoachMarkLayout` | 코치 마크가 밝힐 대상(Ben 대화 시작 티칭 순서 포함)과 녹음 중 불 설명을 띄울지를 고르고, 구멍·둘레 판, 설명 말풍선 자리·꼬리(가리면 안 되는 곳이 있으면 그곳을 피해 옆자리는 아래·위로 비키고, 옆에 조금 모자라면 화면 끝에 붙여 밝힌 곳에 절반까지 겹치며, 위·아래 자리는 왼쪽·오른쪽으로 비킴), 두 번째 말풍선의 너비·자리(불 오른쪽, 자리가 없으면 위)·꼬리, 화살표 자리·방향을 계산합니다. Unity 객체 없이 테스트합니다. |
 | `TutorialAction` | 걷기·둘러보기에서 해야 할 조작(걷기·달리기·시점 돌리기·확대·시점 바꾸기) |
 | `TutorialGuideText`, `TutorialAutoAdvance` | 안내 문구의 `{키}`를 `[키]` 표시로 바꾸고 해낸 할 일을 초록색으로 바꾸며 진행 점을 그리고, 해내면 끝나는 단계를 완료 표시 뒤 저절로 넘깁니다. Unity 객체 없이 테스트합니다. |
 | `TutorialGuideDefinition`, `TutorialStepGuide` | 단계별 짧은 이름과 할 일 한 줄(키보드·마우스, 터치 기기), 안내 카드가 숨는 동안의 코치 마크 설명([대화하기]·입력할 대사·추천 단어·다른 문장·녹음 중 불·[대화 종료]), 잠긴 문 안내, 숙소 씬 이름·길을 묻는 행인(Ben)·그동안 쓰는 대본 키(`TUTORIAL_PASSERBY`). 행인 코드와 대본 키는 `TutorialBuilder`가 코드 기본값으로 맞춥니다. 데이터 에셋 `Assets/Data/Tutorial/TutorialGuide.asset` |
 | `TutorialDirector` | 공간 씬마다 하나. 걷기·시점·단어 저장·단어장·공간 이동·대화·피드백·수첩 신호를 진행에 전하고, 안내 카드·코치 마크·행인 허용·장소 이동과 택시 잠금·미션 표시를 바꾸고, 튜토리얼을 마치거나 건너뛸 때까지 게임 시각을 멈춰 둡니다(`GameClock.IsHeld`). 숙소를 나오면 길 안내를 마칠 때까지 Ben을 바라보는 구도로 플레이어를 붙잡아 둡니다(`Passerby.IsPlayerWaiting`, `PlayerCameraRig.EnterMeetingView`). `Completed`가 되면(또는 저장하지 못한 채 다음 장소에 들어오면) 끝낸 기록을 서버에 저장하고, 저장이 끝나면 게임 시각을 바로 다시 받도록 요청합니다. `apiSettings`가 비어 있으면 저장하지 않습니다. |
 | `TutorialGuideView` | 화면 위쪽 가운데의 안내 카드(정렬 순서 115). 진행 점·단계 이름·할 일 한 줄과 건너뛰기 확인, 할 일 아래 잠깐 보이는 주의 띠. 할 일 카드를 가리는 화면 위에서는 단계 이름과 [건너뛰기]만 남긴 작은 카드(`ShowSkipOnly`, 정렬 순서 1100) |
-| `CoachMarkView` | 구멍 둘레를 덮는 판·테두리, 밝힌 곳 옆 설명 말풍선(꼬리·[다음])과 함께 띄우는 두 번째 말풍선(녹음 중 불 설명), 장면 속 대상 위 화살표. 화면을 덮는 막(`IScreenBackdrop`)이라 고정한 단어 카드가 판을 피해 옮겨 가지 않습니다. 대화·대화 노트 위에 남긴 [건너뛰기] 카드는 움직이지 않고, 말풍선이 그 카드(`KeepClear`)를 피해 놓입니다. |
+| `CoachMarkView` | 구멍 바깥의 어둠과 둥근 금색 테두리를 `Resources/TutorialSpotlight.shader`의 같은 거리 함수로 한 면에 그려 분할 이미지의 이음새를 없앱니다. 기존 네 판은 투명한 클릭 차단 영역으로만 유지합니다. 밝힌 곳 옆 설명 말풍선(꼬리·[다음])과 함께 띄우는 두 번째 말풍선(녹음 중 불 설명), 장면 속 대상 위 화살표. 화면을 덮는 막(`IScreenBackdrop`)이라 고정한 단어 카드가 판을 피해 옮겨 가지 않습니다. 대화·대화 노트 위에 남긴 [건너뛰기] 카드는 움직이지 않고, 말풍선이 그 카드(`KeepClear`)를 피해 놓입니다. |
 
 ## 의존성
 
@@ -110,3 +110,5 @@ Ben은 자신을 소개하고 잠깐 질문해도 되는지 묻습니다. 사용
 인사를 보낸 뒤 이름 옆 호감도와 무례 경고를 밝히며 별도로 설명합니다. 연습의 긍정적인 응답마다 호감도 2씩, 총 6을 표시합니다. 실제 저장은 기존 TUT-03 완료 API가 담당하며 서버 기본 보상(+6)과 맞춥니다. 서버의 튜토리얼 보상 설정을 변경하면 이 연습 표시도 함께 맞춰야 합니다. 완료하면 인사·자기소개와 카페 길 안내 기억, 호감도·알아봄·방문 기록을 남기고 이후 자유 대화에 전달합니다. 재요청은 같은 만남을 중복 적립하지 않습니다. 무례한 말을 직접 시도하는 단계는 없으며, 자유 대화에서는 경고 한도에 이르면 NPC가 대화를 끝낸다고 안내합니다.
 
 **Tools/A305/Dialogue/Apply Tutorial Ben Greeting**은 Ben 튜토리얼 대본만 현재 기본 흐름으로 갱신하고 미리 합성한 음성을 연결합니다. **Tools/A305/Tutorial/Align Service Guide Texts**는 휴대폰·저장 버튼·힌트·피드백 탭·관계 안내만 맞추며 다른 단계의 문구는 유지합니다.
+
+하이라이트 검수는 `A305.EditorTools.Tutorial.TutorialHighlightPreview.Capture`에 `TUTORIAL_PREVIEW_OUTPUT` 출력 폴더를 지정해 실행합니다. 실제 숙소 프리팹의 일반 HUD·휴대폰·단어장 강조를 렌더링하며 씬 저장이나 서버 호출은 하지 않습니다.

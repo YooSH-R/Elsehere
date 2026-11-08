@@ -35,6 +35,16 @@ namespace A305.Npc
         internal Vector3 Direction(CharacterController body, Vector3 desired)
         {
             Vector3 position = body.transform.position;
+            Vector3 ahead =
+                position + desired.normalized * Mathf.Min(desired.magnitude, LookAheadMeters);
+            if (IsClear(body, position, ahead, out Collider blocker))
+            {
+                // 횡단·새 경로로 장애물을 지난 뒤에도 이전 우회점으로 되돌아가지 않는다.
+                obstacle = null;
+                return desired;
+            }
+            if (obstacle != blocker)
+                obstacle = null;
             if (
                 obstacle != null
                 && obstacle.enabled
@@ -62,10 +72,6 @@ namespace A305.Npc
                 }
             }
             obstacle = null;
-            Vector3 ahead =
-                position + desired.normalized * Mathf.Min(desired.magnitude, LookAheadMeters);
-            if (IsClear(body, position, ahead, out Collider blocker))
-                return desired;
             if (Time.time < nextAttempt)
                 return Vector3.zero;
             nextAttempt = Time.time + RetrySeconds;
@@ -147,6 +153,12 @@ namespace A305.Npc
                 return true;
             Bounds bounds = body.bounds;
             float radius = Mathf.Max(bounds.extents.x, bounds.extents.z);
+            // 몸체가 허용하는 접촉 여유까지 장애물로 판정하면 모서리에 나란히 서서 빠져나오지 못한다.
+            float scale = Mathf.Max(
+                Mathf.Abs(body.transform.lossyScale.x),
+                Mathf.Abs(body.transform.lossyScale.z)
+            );
+            radius = Mathf.Max(.01f, radius - body.skinWidth * scale * .5f);
             Vector3 shift = from - body.transform.position;
             Vector3 top =
                 bounds.center + shift + Vector3.up * Mathf.Max(0, bounds.extents.y - radius);

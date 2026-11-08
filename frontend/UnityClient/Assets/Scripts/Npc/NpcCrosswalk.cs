@@ -12,6 +12,9 @@ namespace A305.Npc
         private Vector3 entrance;
         private Vector3 exit;
         private Vector3 forward;
+        private Vector3 departureLanding;
+        private Vector3 arrivalLanding;
+        private NavMeshPath landingPath;
         private bool returning;
         private bool committed;
         private bool crossesMainRoad;
@@ -44,9 +47,7 @@ namespace A305.Npc
             if (!committed && lights != null && !lights.CanCross(crossesMainRoad, 0f))
                 returning = true;
 
-            Vector3 target = returning
-                ? entrance - forward * SidewalkMargin
-                : exit + forward * SidewalkMargin;
+            Vector3 target = returning ? departureLanding : arrivalLanding;
             Vector3 direction = Vector3.ProjectOnPlane(target - position, Vector3.up);
             Vector3 crossingForward = returning ? -forward : forward;
             if (
@@ -58,8 +59,26 @@ namespace A305.Npc
                 return Vector3.zero;
             }
             // 건널 방향은 유지하되, 앞사람을 비켜가는 보행 방향까지 덮어쓰지는 않는다.
-            if (requested.sqrMagnitude > .0001f && Vector3.Dot(requested, crossingForward) >= 0)
+            bool avoiding =
+                plannedDirection.HasValue && Vector3.Angle(requested, plannedDirection.Value) > 1;
+            if (
+                avoiding
+                && requested.sqrMagnitude > .0001f
+                && Vector3.Dot(requested, crossingForward) >= 0
+            )
                 return Vector3.ClampMagnitude(requested, direction.magnitude);
+            landingPath ??= new NavMeshPath();
+            if (
+                NavMesh.CalculatePath(position, target, NpcTownWalker.WalkingAreas, landingPath)
+                && landingPath.status == NavMeshPathStatus.PathComplete
+                && landingPath.corners.Length > 2
+            )
+            {
+                Vector3 corner = landingPath.corners[1];
+                if (Vector3.ProjectOnPlane(corner - position, Vector3.up).sqrMagnitude < .01f)
+                    corner = landingPath.corners[2];
+                direction = Vector3.ProjectOnPlane(corner - position, Vector3.up);
+            }
             return direction;
         }
 
@@ -99,9 +118,54 @@ namespace A305.Npc
                 return;
             entrance = start.position;
             exit = end.position;
+            departureLanding = Landing(entrance - forward * SidewalkMargin);
+            arrivalLanding = Landing(exit + forward * SidewalkMargin);
             returning = false;
             committed = false;
             IsActive = true;
+        }
+
+        private static Vector3 Landing(Vector3 wanted)
+        {
+            // 횡단 영역의 끝이 인도와 일치하지 않을 수 있으므로 실제 서 있을 수 있는 쪽으로 물러난다.
+            for (int ring = 0; ring <= 8; ring++)
+            for (int slot = 0; slot < (ring == 0 ? 1 : 16); slot++)
+            {
+                float angle = slot * Mathf.PI / 8;
+                Vector3 candidate =
+                    wanted + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * (ring * .25f);
+                if (
+                    !NavMesh.SamplePosition(
+                        candidate,
+                        out NavMeshHit hit,
+                        .15f,
+                        NpcTownWalker.StandingAreas
+                    ) || NpcTownWalker.IsRoadSurface(hit.position, .2f)
+                )
+                    continue;
+                bool blocked = false;
+                foreach (
+                    Collider collider in Physics.OverlapCapsule(
+                        hit.position + Vector3.up * .45f,
+                        hit.position + Vector3.up * 1.4f,
+                        .35f,
+                        ~0,
+                        QueryTriggerInteraction.Ignore
+                    )
+                )
+                    if (
+                        collider.GetComponentInParent<Passerby>() == null
+                        && collider.GetComponentInParent<A305.Player.PlayerMover>() == null
+                        && collider.bounds.max.y > hit.position.y + Passerby.WalkableStepMeters
+                    )
+                    {
+                        blocked = true;
+                        break;
+                    }
+                if (!blocked)
+                    return hit.position;
+            }
+            return wanted;
         }
     }
 }

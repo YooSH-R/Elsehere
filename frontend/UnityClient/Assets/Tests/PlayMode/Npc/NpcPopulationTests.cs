@@ -207,6 +207,7 @@ namespace A305.Npc.PlayModeTests
                         )
                             walker.gameObject.SetActive(false);
                 }
+                var failures = new List<string>();
                 foreach (var walker in walkers)
                 {
 #if UNITY_EDITOR
@@ -220,12 +221,14 @@ namespace A305.Npc.PlayModeTests
                             )
                         );
 #endif
-                    Assert.That(
-                        walker.gameObject.activeSelf,
-                        Is.False,
-                        walker.GetComponent<NpcIdentity>().Code + " / " + walker.transform.position
-                    );
+                    if (walker.gameObject.activeSelf)
+                        failures.Add(
+                            walker.GetComponent<NpcIdentity>().Code
+                                + " / "
+                                + walker.transform.position
+                        );
                 }
+                Assert.That(failures, Is.Empty, string.Join("; ", failures));
             }
             finally
             {

@@ -45,7 +45,10 @@ namespace A305.Npc
         internal static int WalkingAreas => WithoutArea(NavMesh.AllAreas, "Road");
         internal static int StandingAreas => WithoutArea(WalkingAreas, "Crosswalk");
 
-        private void Awake() => path = new NavMeshPath();
+        private void Awake()
+        {
+            path = new NavMeshPath();
+        }
 
         private void OnDisable()
         {
@@ -137,7 +140,12 @@ namespace A305.Npc
                 }
                 direction = path.corners[1] - transform.position;
                 direction.y = 0;
-                if (direction.sqrMagnitude < .01f && path.corners.Length > 2)
+                if (
+                    direction.sqrMagnitude < .01f
+                    && path.corners.Length > 2
+                    && !NavMesh.Raycast(start.position, path.corners[2], out _, areas)
+                    && body.HasWalkingRoom(path.corners[2] - transform.position, .35f)
+                )
                 {
                     direction = path.corners[2] - transform.position;
                     direction.y = 0;

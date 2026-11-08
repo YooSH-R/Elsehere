@@ -669,6 +669,12 @@ namespace A305.Npc
                 horizontalDirection,
                 plannedDirection
             );
+            // 인도로 복귀하는 끝점에도 가로등 등이 있을 수 있다. 횡단 상태를 유지한 채 물리 장애물을 돌아간다.
+            if (IsTownResident && crossing.IsActive && horizontalDirection.sqrMagnitude > .0001f)
+                horizontalDirection = obstacleDetour.Direction(
+                    characterController,
+                    horizontalDirection
+                );
             IsWaitingAtSignal =
                 horizontalDirection.sqrMagnitude >= .0001f
                 && !crossing.IsActive
@@ -678,7 +684,8 @@ namespace A305.Npc
             LastWalkStep = 0;
             LastWalkMoved = 0;
 #endif
-            if (horizontalDirection.sqrMagnitude < .0001f || IsWaitingAtSignal)
+            // 길 모서리까지 1cm 미만이 남아도 마저 이동한다. 여기서 멈추면 다음 경로 조각을 고를 수 없다.
+            if (horizontalDirection.sqrMagnitude < .00000001f || IsWaitingAtSignal)
             {
                 Stand();
                 return;

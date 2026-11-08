@@ -31,6 +31,26 @@ namespace A305.World.Tests
             AssertNear(pose.Forward, Vector3.forward);
         }
 
+        [TestCase(-11f)]
+        [TestCase(6.85f)]
+        [TestCase(13.15f)]
+        public void PedestrianCrossing_StopsCarsBeforeTheCrosswalkInBothLanes(float crossingZ)
+        {
+            Assert.That(route.TryCrossingStops(crossingZ, 3.65f,
+                out float north, out float south), Is.True);
+            Assert.That(route.PoseAt(north).Position.z, Is.EqualTo(crossingZ - 3.65f).Within(.001f));
+            Assert.That(route.PoseAt(south).Position.z, Is.EqualTo(crossingZ + 3.65f).Within(.001f));
+            Assert.That(route.Advance(north - 1, 5, new[] { north, south }), Is.EqualTo(north).Within(.001f));
+            Assert.That(route.Advance(south - 1, 5, new[] { north, south }), Is.EqualTo(south).Within(.001f));
+        }
+
+        [TestCase(-24f)]
+        [TestCase(66f)]
+        public void CrossingOutsideTheStraightRoad_DoesNotCreateAWrappedStop(float crossingZ)
+        {
+            Assert.That(route.TryCrossingStops(crossingZ, 3.65f, out _, out _), Is.False);
+        }
+
         [Test]
         public void EastLane_GoesNorth()
         {

@@ -18,6 +18,63 @@ namespace A305.Npc.PlayModeTests
 {
     public class NpcPopulationTests
     {
+        [UnityTest]
+        public IEnumerator Town_RestingTimeDoesNotHideACommuterBeforeReachingTheDoor()
+        {
+            SetClock(20 * 60 + 29);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            var walker = Object
+                .FindObjectsByType<NpcTownWalker>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+                .Single(item => item.GetComponent<NpcIdentity>().Code == "CAFE_SERVER");
+            Assert.That(walker.gameObject.activeSelf, Is.True, "준비: 귀가 중인 NPC입니다.");
+            PlaceWalker(walker, new Vector3(12, .1f, 22), Vector3.forward);
+            Vector3 before = walker.transform.position;
+            var clockApi = new FixedClock
+            {
+                Time = new GameClockTime
+                {
+                    Day = 1,
+                    MinuteOfDay = 20 * 60 + 30,
+                    Paused = true,
+                },
+            };
+            GameClock
+                .Shared.TickAsync(clockApi, Time.realtimeSinceStartupAsDouble + 1e6)
+                .GetAwaiter()
+                .GetResult();
+            yield return null;
+            yield return null;
+
+            Assert.That(
+                walker.gameObject.activeSelf,
+                Is.True,
+                "휴식 시각이 돼도 길 위에서 사라지면 안 됩니다."
+            );
+            Assert.That(HorizontalDistance(before, walker.transform.position), Is.LessThan(.5f));
+            Vector3 door = walker.Destination;
+            Assert.That(HorizontalDistance(door, before), Is.GreaterThan(2f));
+            PlaceWalker(walker, door, Vector3.forward);
+            yield return null;
+            yield return null;
+            Assert.That(
+                walker.gameObject.activeSelf,
+                Is.False,
+                "실제 출입문에 도착한 뒤 실내로 전환합니다."
+            );
+        }
+
         [SetUp]
         public void SetUp()
         {
@@ -342,7 +399,18 @@ namespace A305.Npc.PlayModeTests
             Vector3.ProjectOnPlane(first - second, Vector3.up).magnitude;
 
         [UnityTest]
-        public IEnumerator Town_CommuterReplansAroundNewObstaclesAndResumesWhenRouteReopens()
+        public IEnumerator Town_CommuterReplansAroundNewObstaclesAndResumesWhenRouteReopens() =>
+            CheckNewObstacle(carves: true, height: 2f);
+
+        [UnityTest]
+        public IEnumerator Town_CommuterDetoursAroundAPhysicalObstacleMissingFromNavMesh() =>
+            CheckNewObstacle(carves: false, height: 2f);
+
+        [UnityTest]
+        public IEnumerator Town_CommuterClimbsAWalkableCurbInsteadOfWalkingInPlace() =>
+            CheckNewObstacle(carves: false, height: .2f);
+
+        private static IEnumerator CheckNewObstacle(bool carves, float height)
         {
             SetClock(21 * 60);
             SceneManager.sceneLoaded += DisableWalkingTestApis;
@@ -387,13 +455,16 @@ namespace A305.Npc.PlayModeTests
 
                 // 이미 걷기 시작한 직선 경로를 막아 새 우회 경로가 필요한 상황을 만든다.
                 wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                wall.transform.position = new Vector3(500, 1, 500);
-                wall.transform.localScale = new Vector3(1, 2, 3);
-                var obstacle = wall.AddComponent<NavMeshObstacle>();
-                obstacle.shape = NavMeshObstacleShape.Box;
-                obstacle.size = Vector3.one;
-                obstacle.carveOnlyStationary = false;
-                obstacle.carving = true;
+                wall.transform.position = new Vector3(500, height / 2, 500);
+                wall.transform.localScale = new Vector3(1, height, 3);
+                if (carves)
+                {
+                    var obstacle = wall.AddComponent<NavMeshObstacle>();
+                    obstacle.shape = NavMeshObstacleShape.Box;
+                    obstacle.size = Vector3.one;
+                    obstacle.carveOnlyStationary = false;
+                    obstacle.carving = true;
+                }
                 Physics.SyncTransforms();
                 float widestDetour = 0;
                 for (int frame = 0; frame < 480; frame++)
@@ -410,21 +481,32 @@ namespace A305.Npc.PlayModeTests
                         "우회 중에도 순간이동하지 않습니다."
                     );
                     Vector3 position = walker.transform.position;
-                    Assert.That(
-                        Mathf.Abs(position.x - 500) < .5f && Mathf.Abs(position.z - 500) < 1.5f,
-                        Is.False,
-                        "장애물 내부를 통과하면 안 됩니다."
-                    );
+                    if (height > .3f)
+                        Assert.That(
+                            Mathf.Abs(position.x - 500) < .5f && Mathf.Abs(position.z - 500) < 1.5f,
+                            Is.False,
+                            "장애물 내부를 통과하면 안 됩니다."
+                        );
                 }
-                Assert.That(
-                    widestDetour,
-                    Is.GreaterThan(1.5f),
-                    "새 장애물을 옆으로 돌아가야 합니다."
-                );
+                if (height > .3f)
+                    Assert.That(
+                        widestDetour,
+                        Is.GreaterThan(1.5f),
+                        "새 장애물을 옆으로 돌아가야 합니다."
+                    );
+                else
+                    Assert.That(
+                        widestDetour,
+                        Is.LessThan(.2f),
+                        "낮은 보도 턱은 돌아가지 않고 올라섭니다."
+                    );
                 Assert.That(
                     HorizontalDistance(walker.transform.position, walker.Destination),
                     Is.LessThan(.12f)
                 );
+
+                if (height < .3f)
+                    yield break;
 
                 // 우회로까지 완전히 막힌 동안만 기다리고, 다시 열리면 같은 목적지로 재탐색한다.
                 PlaceWalker(walker, new Vector3(497, .1f, 500), Vector3.right);
@@ -433,6 +515,9 @@ namespace A305.Npc.PlayModeTests
                 for (int frame = 0; frame < 12; frame++)
                     yield return null;
                 walker.Destination = new Vector3(503, 0, 500);
+                if (!carves)
+                    for (int frame = 0; frame < 120; frame++)
+                        yield return null;
                 Vector3 waiting = walker.transform.position;
                 for (int frame = 0; frame < 60; frame++)
                 {
@@ -440,6 +525,10 @@ namespace A305.Npc.PlayModeTests
                     Assert.That(
                         HorizontalDistance(waiting, walker.transform.position),
                         Is.LessThan(.001f)
+                    );
+                    Assert.That(
+                        walker.GetComponentInChildren<Animator>().GetFloat("Speed"),
+                        Is.LessThan(.01f)
                     );
                 }
                 wall.transform.localScale = new Vector3(1, 2, 3);
@@ -470,7 +559,81 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_CommuterReturnsToDepartureSideWhenSignalChangesEarly() =>
             CheckCrossingSignalChange(.1f, true);
 
-        private static IEnumerator CheckCrossingSignalChange(float changeAtProgress, bool returns)
+        [UnityTest]
+        public IEnumerator Town_CommuterWaitsForThePedestrianHeadWithoutAVehicleHeadNearby() =>
+            CheckCrossingSignalChange(.3f, false, pedestrianOnly: true);
+
+        [UnityTest]
+        public IEnumerator Town_TwoCommutersPassBesideTheSharedSignalPole()
+        {
+            SetClock(21 * 60);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
+            Object
+                .FindFirstObjectByType<A305.Player.PlayerMover>()
+                .Teleport(new Vector3(450, 20, 450), Quaternion.identity);
+            var walkers = Object.FindObjectsByType<NpcTownWalker>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+            var first = walkers.Single(w =>
+                w.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER"
+            );
+            var second = walkers.Single(w => w.GetComponent<NpcIdentity>().Code == "CAFE_STAFF");
+            foreach (Passerby body in Object.FindObjectsByType<Passerby>(FindObjectsSortMode.None))
+                if (
+                    body != first.GetComponent<Passerby>()
+                    && body != second.GetComponent<Passerby>()
+                )
+                    body.gameObject.SetActive(false);
+            float previousDelta = Time.captureDeltaTime;
+            try
+            {
+                Time.captureDeltaTime = 1f / 60f;
+                PlaceWalker(first, new Vector3(-4.1f, .1f, 3.5f), Vector3.forward);
+                PlaceWalker(second, new Vector3(-4.1f, .1f, 6.1f), Vector3.back);
+                for (int frame = 0; frame < 8; frame++)
+                    yield return null;
+                first.Destination = new Vector3(-4.1f, .1f, 6.1f);
+                second.Destination = new Vector3(-4.1f, .1f, 3.5f);
+                for (int frame = 0; frame < 420; frame++)
+                {
+                    yield return null;
+                    Assert.That(
+                        HorizontalDistance(first.transform.position, second.transform.position),
+                        Is.GreaterThan(.95f),
+                        "신호 기둥 옆에서도 얼굴을 겹치지 않고 비켜가야 합니다."
+                    );
+                }
+                Assert.That(
+                    HorizontalDistance(first.transform.position, first.Destination),
+                    Is.LessThan(.15f)
+                );
+                Assert.That(
+                    HorizontalDistance(second.transform.position, second.Destination),
+                    Is.LessThan(.15f)
+                );
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDelta;
+            }
+        }
+
+        private static IEnumerator CheckCrossingSignalChange(
+            float changeAtProgress,
+            bool returns,
+            bool pedestrianOnly = false
+        )
         {
             SetClock(21 * 60);
             SceneManager.sceneLoaded += DisableWalkingTestApis;
@@ -500,8 +663,15 @@ namespace A305.Npc.PlayModeTests
             lights.enabled = false;
             var signal = lights.Heads.First(head => head != null);
             Vector3 signalPosition = signal.transform.position;
-            signal.transform.position = new Vector3(500, 0, 502);
             const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var pedestrian = lights.PedestrianHeads.First(head => head.CrossesMainRoad);
+            Vector3 pedestrianCrossing = pedestrian.CrossingPoint;
+            if (pedestrianOnly)
+                typeof(PedestrianSignalHead)
+                    .GetField("crossingPoint", flags)
+                    .SetValue(pedestrian, new Vector3(500, 0, 500));
+            else
+                signal.transform.position = new Vector3(500, 0, 502);
             var phase = typeof(TrafficLights).GetField("elapsedSeconds", flags);
             phase.SetValue(lights, 0f);
             Assert.That(lights.CanCross(true, 8), Is.False);
@@ -616,6 +786,9 @@ namespace A305.Npc.PlayModeTests
             {
                 Time.captureDeltaTime = previousDeltaTime;
                 signal.transform.position = signalPosition;
+                typeof(PedestrianSignalHead)
+                    .GetField("crossingPoint", flags)
+                    .SetValue(pedestrian, pedestrianCrossing);
                 lights.enabled = true;
                 navInstance.Remove();
                 Object.Destroy(navData);

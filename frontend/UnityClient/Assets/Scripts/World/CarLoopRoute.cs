@@ -82,6 +82,22 @@ namespace A305.World
         /// <summary>남쪽으로 가는 차로에서 z 지점을 지날 때의 거리</summary>
         public float SouthboundDistance(float z) => Straight + Turn + (northZ - z);
 
+        /// <summary>횡단보도 양쪽의 차량 중심 정지 위치. 회차 구간 밖 신호는 적용하지 않는다.</summary>
+        public bool TryCrossingStops(
+            float crossingZ,
+            float clearance,
+            out float northbound,
+            out float southbound
+        )
+        {
+            northbound = southbound = 0;
+            if (crossingZ - clearance < southZ || crossingZ + clearance > northZ)
+                return false;
+            northbound = NorthboundDistance(crossingZ - clearance);
+            southbound = SouthboundDistance(crossingZ + clearance);
+            return true;
+        }
+
         /// <summary>
         /// step만큼 앞으로 간 거리를 돌려준다. 그 사이에 정지 지점이 있으면 그 자리에서 서고, 이미 정지 지점에 있으면 그대로 기다린다.
         /// </summary>

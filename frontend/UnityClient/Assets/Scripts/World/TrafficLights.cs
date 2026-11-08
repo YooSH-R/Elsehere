@@ -21,23 +21,21 @@ namespace A305.World
         [SerializeField]
         private List<TrafficSignalHead> heads = new List<TrafficSignalHead>();
 
+        [SerializeField]
+        private List<PedestrianSignalHead> pedestrianHeads = new List<PedestrianSignalHead>();
+
         private TrafficSignalCycle cycle;
         private float elapsedSeconds;
 
         public IReadOnlyList<TrafficSignalHead> Heads => heads;
 
+        public IReadOnlyList<PedestrianSignalHead> PedestrianHeads => pedestrianHeads;
+
         public SignalLight Main => Cycle.MainAt(elapsedSeconds);
 
         /// <summary>해당 차로가 충분한 시간 동안 빨간불이라 보행자가 횡단을 시작할 수 있는지.</summary>
-        public bool CanCross(bool crossesMainRoad, float secondsNeeded)
-        {
-            float cycleLength = mainGreenSeconds + crossGreenSeconds + 2f * yellowSeconds;
-            float phase = Mathf.Repeat(elapsedSeconds, cycleLength);
-            if (crossesMainRoad)
-                return Main == SignalLight.Red && cycleLength - phase >= secondsNeeded;
-            return Cycle.CrossAt(elapsedSeconds) == SignalLight.Red
-                && mainGreenSeconds + yellowSeconds - phase >= secondsNeeded;
-        }
+        public bool CanCross(bool crossesMainRoad, float secondsNeeded) =>
+            Cycle.CanCross(elapsedSeconds, crossesMainRoad, secondsNeeded);
 
         private TrafficSignalCycle Cycle =>
             cycle ??= new TrafficSignalCycle(mainGreenSeconds, crossGreenSeconds, yellowSeconds);
@@ -64,6 +62,12 @@ namespace A305.World
                     head.Show(main, cross);
                 }
             }
+            foreach (PedestrianSignalHead head in pedestrianHeads)
+                if (head != null)
+                    head.Show(
+                        Cycle.PedestrianAt(elapsedSeconds, head.CrossesMainRoad),
+                        elapsedSeconds
+                    );
         }
     }
 }

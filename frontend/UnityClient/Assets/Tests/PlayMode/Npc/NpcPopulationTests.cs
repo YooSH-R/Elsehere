@@ -106,7 +106,15 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_ObservedJunctionCrowdReachesItsDestinations() =>
             CheckObservedStall(true);
 
-        private static IEnumerator CheckObservedStall(bool crowd, bool corner = false)
+        [UnityTest]
+        public IEnumerator Town_DiagonalCrossingEndsOnAnActualSidewalk() =>
+            CheckObservedStall(false, diagonal: true);
+
+        private static IEnumerator CheckObservedStall(
+            bool crowd,
+            bool corner = false,
+            bool diagonal = false
+        )
         {
             SetClock(21 * 60);
             SceneManager.sceneLoaded += DisableWalkingTestApis;
@@ -161,9 +169,9 @@ namespace A305.Npc.PlayModeTests
                 }
                 : new[]
                 {
-                    corner
-                        ? new Vector3(-2.936f, .114f, 14.58f)
-                        : new Vector3(-5.114f, .12f, 37.574f),
+                    corner ? new Vector3(-2.936f, .114f, 14.58f)
+                    : diagonal ? new Vector3(3, .12f, 5.5f)
+                    : new Vector3(-5.114f, .12f, 37.574f),
                 };
             Vector3[] ends = crowd
                 ? new[]
@@ -175,7 +183,12 @@ namespace A305.Npc.PlayModeTests
                     new Vector3(-18, .1f, 21),
                     new Vector3(-18, .1f, 21),
                 }
-                : new[] { corner ? new Vector3(-6, .1f, -18) : new Vector3(-6, .1f, 48) };
+                : new[]
+                {
+                    corner ? new Vector3(-6, .1f, -18)
+                    : diagonal ? new Vector3(-18, .1f, 21)
+                    : new Vector3(-6, .1f, 48),
+                };
             var walkers = codes
                 .Select(code => all.Single(item => item.GetComponent<NpcIdentity>().Code == code))
                 .ToArray();
@@ -188,7 +201,17 @@ namespace A305.Npc.PlayModeTests
                     PlaceWalker(walkers[i], starts[i], ends[i] - starts[i]);
                     walkers[i].Destination = ends[i];
                 }
-                for (int frame = 0; frame < (crowd || corner ? 1800 : 600); frame++)
+                if (diagonal)
+                {
+                    // 실제 일과에서 남쪽 횡단 입구로 진입하던 경로의 방향을 그대로 재현한다.
+                    typeof(Passerby)
+                        .GetMethod("WalkToward", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .Invoke(
+                            walkers[0].GetComponent<Passerby>(),
+                            new object[] { new Vector3(-.42f, 0, .91f) * 4, 1.6f, false }
+                        );
+                }
+                for (int frame = 0; frame < (crowd || corner || diagonal ? 1800 : 600); frame++)
                 {
                     if (corner && frame == 180)
                         typeof(TrafficLights)

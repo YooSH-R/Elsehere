@@ -39,8 +39,23 @@ namespace A305.World
 
         private float Length => mainGreenSeconds + crossGreenSeconds + 2f * yellowSeconds;
 
-        public PedestrianLight PedestrianAt(float seconds, bool crossesMainRoad) =>
-            PedestrianLight.Stop;
+        public PedestrianLight PedestrianAt(float seconds, bool crossesMainRoad)
+        {
+            if (CanCross(seconds, crossesMainRoad, RequiredCrossingSeconds))
+                return PedestrianLight.Walk;
+            return CanCross(seconds, crossesMainRoad, 0)
+                ? PedestrianLight.Clearance
+                : PedestrianLight.Stop;
+        }
+
+        public bool CanCross(float seconds, bool crossesMainRoad, float secondsNeeded)
+        {
+            float phase = Mathf.Repeat(seconds, Length);
+            if (crossesMainRoad)
+                return MainAt(seconds) == SignalLight.Red && Length - phase >= secondsNeeded;
+            return CrossAt(seconds) == SignalLight.Red
+                && mainGreenSeconds + yellowSeconds - phase >= secondsNeeded;
+        }
 
         public SignalLight MainAt(float seconds)
         {

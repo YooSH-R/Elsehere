@@ -14,7 +14,7 @@ namespace A305.Npc
         private const float MaximumWalkSpeedMetersPerSecond = 1.6f;
         private const float PassingLookAheadMeters = 1.25f;
         private const float CrossingLookAheadMeters = .6f;
-        private const float RequiredRedSeconds = 8f;
+        private const float RequiredRedSeconds = TrafficSignalCycle.RequiredCrossingSeconds;
         private const float SignalRadiusMeters = 8f;
         private NavMeshPath path;
 
@@ -118,6 +118,15 @@ namespace A305.Npc
                 if (offset.sqrMagnitude <= SignalRadiusMeters * SignalRadiusMeters)
                     return true;
             }
+            foreach (PedestrianSignalHead head in lights.PedestrianHeads)
+            {
+                if (head == null)
+                    continue;
+                Vector3 offset = head.CrossingPoint - position;
+                offset.y = 0;
+                if (offset.sqrMagnitude <= SignalRadiusMeters * SignalRadiusMeters)
+                    return true;
+            }
             return false;
         }
 
@@ -180,9 +189,22 @@ namespace A305.Npc
                 : destinationOffset;
         }
 
-        private bool DestinationIsOccupied(Passerby other, float clearance) =>
-            Vector3.ProjectOnPlane(Destination - other.transform.position, Vector3.up).sqrMagnitude
-            < clearance * clearance;
+        private bool DestinationIsOccupied(Passerby other, float clearance)
+        {
+            // 서로 자리를 바꾸며 걷는 상대를 고정된 목적지 점유자로 보면 가까운 거리에서 둘 다 멈춘다.
+            bool leaving =
+                other.TryGetComponent(out NpcTownWalker walker)
+                && walker.isActiveAndEnabled
+                && (other.Phase == PasserbyPhase.Waiting || other.Phase == PasserbyPhase.Resting)
+                && Vector3
+                    .ProjectOnPlane(walker.Destination - other.transform.position, Vector3.up)
+                    .sqrMagnitude > .01f;
+            return !leaving
+                && Vector3
+                    .ProjectOnPlane(Destination - other.transform.position, Vector3.up)
+                    .sqrMagnitude
+                    < clearance * clearance;
+        }
 
         private bool TryPassingDirection(Passerby other, out Vector3 direction)
         {

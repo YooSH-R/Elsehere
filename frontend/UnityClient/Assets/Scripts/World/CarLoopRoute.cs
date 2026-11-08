@@ -83,11 +83,19 @@ namespace A305.World
         public float SouthboundDistance(float z) => Straight + Turn + (northZ - z);
 
         /// <summary>횡단보도 양쪽의 차량 중심 정지 위치. 회차 구간 밖 신호는 적용하지 않는다.</summary>
-        public bool TryCrossingStops(float crossingZ, float clearance,
-            out float northbound, out float southbound)
+        public bool TryCrossingStops(
+            float crossingZ,
+            float clearance,
+            out float northbound,
+            out float southbound
+        )
         {
             northbound = southbound = 0;
-            return false;
+            if (crossingZ - clearance < southZ || crossingZ + clearance > northZ)
+                return false;
+            northbound = NorthboundDistance(crossingZ - clearance);
+            southbound = SouthboundDistance(crossingZ + clearance);
+            return true;
         }
 
         /// <summary>

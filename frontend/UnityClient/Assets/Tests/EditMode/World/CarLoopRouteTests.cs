@@ -36,12 +36,26 @@ namespace A305.World.Tests
         [TestCase(13.15f)]
         public void PedestrianCrossing_StopsCarsBeforeTheCrosswalkInBothLanes(float crossingZ)
         {
-            Assert.That(route.TryCrossingStops(crossingZ, 3.65f,
-                out float north, out float south), Is.True);
-            Assert.That(route.PoseAt(north).Position.z, Is.EqualTo(crossingZ - 3.65f).Within(.001f));
-            Assert.That(route.PoseAt(south).Position.z, Is.EqualTo(crossingZ + 3.65f).Within(.001f));
-            Assert.That(route.Advance(north - 1, 5, new[] { north, south }), Is.EqualTo(north).Within(.001f));
-            Assert.That(route.Advance(south - 1, 5, new[] { north, south }), Is.EqualTo(south).Within(.001f));
+            Assert.That(
+                route.TryCrossingStops(crossingZ, 3.65f, out float north, out float south),
+                Is.True
+            );
+            Assert.That(
+                route.PoseAt(north).Position.z,
+                Is.EqualTo(crossingZ - 3.65f).Within(.001f)
+            );
+            Assert.That(
+                route.PoseAt(south).Position.z,
+                Is.EqualTo(crossingZ + 3.65f).Within(.001f)
+            );
+            Assert.That(
+                route.Advance(north - 1, 5, new[] { north, south }),
+                Is.EqualTo(north).Within(.001f)
+            );
+            Assert.That(
+                route.Advance(south - 1, 5, new[] { north, south }),
+                Is.EqualTo(south).Within(.001f)
+            );
         }
 
         [TestCase(-24f)]

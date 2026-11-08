@@ -19,6 +19,51 @@ namespace A305.Npc.PlayModeTests
     public class NpcPopulationTests
     {
         [UnityTest]
+        public IEnumerator Town_ResidencePavingSupportsFeetAtTheVisibleSurface()
+        {
+            SetClock(195);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            var paving = GameObject.Find("ResidencePaving").GetComponent<Renderer>();
+            var failures = new List<string>();
+            // 보이는 포장만 있고 충돌면이 없으면 NPC는 아래의 부지 바닥을 딛거나 떨어진다.
+            foreach (
+                Vector3 point in new[]
+                {
+                    new Vector3(-18, 0, 16),
+                    new Vector3(-18, 0, 21),
+                    new Vector3(-25, 0, 16),
+                }
+            )
+            {
+                var hits = Physics
+                    .RaycastAll(
+                        new Vector3(point.x, paving.bounds.max.y + .1f, point.z),
+                        Vector3.down,
+                        2,
+                        ~0,
+                        QueryTriggerInteraction.Ignore
+                    )
+                    .Where(hit => hit.collider.GetComponentInParent<CharacterController>() == null)
+                    .OrderBy(hit => hit.distance)
+                    .ToArray();
+                if (hits.Length == 0 || Mathf.Abs(hits[0].point.y - paving.bounds.max.y) > .06f)
+                    failures.Add(
+                        $"{point}: 포장 {paving.bounds.max.y:F3}, 충돌면 {(hits.Length == 0 ? "없음" : hits[0].point.y.ToString("F3"))}"
+                    );
+            }
+            Assert.That(failures, Is.Empty);
+        }
+
+        [UnityTest]
         public IEnumerator Town_ScheduledSpawnKeepsTheVisualAboveTheGround()
         {
             SetClock(195);

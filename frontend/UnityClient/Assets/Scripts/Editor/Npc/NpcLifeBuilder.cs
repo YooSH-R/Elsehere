@@ -27,8 +27,11 @@ namespace A305.EditorTools.Npc
         // NPC 몸(CharacterController 반지름 0.3m, 키 1.8m)과 같은 크기로 굽고, 보도 턱 정도(0.3m)는 오른다.
         private const float AgentRadiusMeters = .3f;
         private const float AgentHeightMeters = 1.8f;
-        private const float AgentClimbMeters = .3f;
+        private const float AgentClimbMeters = Passerby.WalkableStepMeters;
         private const float AgentSlopeDegrees = 45f;
+
+        // 본길 양옆 건물 사이 1m 틈은 통행로가 아니다. 정식 인도·출입구는 별도로 유지한다.
+        private const float MinimumBuildingPassageMeters = 2f;
 
         private static readonly string[] ScenePaths =
         {
@@ -95,6 +98,17 @@ namespace A305.EditorTools.Npc
             ConnectWalkArea(scene, BakeWalkArea(scene));
         }
 
+        [MenuItem("Tools/A305/Npc/Rebake Town Walk Area")]
+        public static void RebakeTownWalkArea()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            Scene scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/TownScene.unity");
+            RebakeWalkArea(scene);
+            AssetDatabase.SaveAssets();
+            Debug.Log("마을 NPC 보행 데이터를 다시 만들었습니다.");
+        }
+
         // 생활 데이터가 있는 NPC에만 붙인다. 튜토리얼 행인처럼 정해진 흐름대로 움직이는 NPC는 그대로 둔다.
         private static int ConnectRoutines(
             Scene scene,
@@ -151,6 +165,7 @@ namespace A305.EditorTools.Npc
             }
 
             sources.AddRange(AreaVolumes(scene));
+            sources.AddRange(BlockedTownBuildingGaps(scene));
 
             NavMeshBuildSettings settings = NavMesh.GetSettingsByID(0);
             settings.agentRadius = AgentRadiusMeters;
@@ -166,6 +181,58 @@ namespace A305.EditorTools.Npc
                 Quaternion.identity
             );
             return SaveWalkArea(baked, $"{WalkAreaFolder}/{scene.name}WalkArea.asset");
+        }
+
+        // 건물 자체나 물리 충돌체는 바꾸지 않고, 건물 사이 흙바닥만 길 찾기에서 제외한다.
+        // 실제 바닥의 범위를 사용하므로 간판·처마가 인도 쪽으로 돌출해도 인도를 막지 않는다.
+        private static IEnumerable<NavMeshBuildSource> BlockedTownBuildingGaps(Scene scene)
+        {
+            if (scene.name != "TownScene")
+                yield break;
+            Transform buildings = null;
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                if (root.name == "Environment")
+                    buildings = root.transform.Find("TownMainstreet/BackgroundBuildings");
+            }
+            if (buildings == null)
+                yield break;
+
+            var footprints = new List<Bounds>();
+            foreach (Transform building in buildings)
+            {
+                Transform floor = building.Find("Interior/Floor");
+                if (floor != null && floor.TryGetComponent(out Collider collider))
+                    footprints.Add(collider.bounds);
+            }
+            footprints.Sort((first, second) => first.min.z.CompareTo(second.min.z));
+            for (int i = 0; i < footprints.Count; i++)
+            for (int j = i + 1; j < footprints.Count; j++)
+            {
+                Bounds south = footprints[i];
+                Bounds north = footprints[j];
+                float gap = north.min.z - south.max.z;
+                float left = Mathf.Max(south.min.x, north.min.x);
+                float right = Mathf.Min(south.max.x, north.max.x);
+                if (gap <= 0 || gap >= MinimumBuildingPassageMeters || right <= left)
+                    continue;
+
+                yield return new NavMeshBuildSource
+                {
+                    shape = NavMeshBuildSourceShape.ModifierBox,
+                    transform = Matrix4x4.TRS(
+                        new Vector3(
+                            (left + right) * .5f,
+                            south.max.y + 1f,
+                            south.max.z + gap * .5f
+                        ),
+                        Quaternion.identity,
+                        Vector3.one
+                    ),
+                    size = new Vector3(right - left, 4f, gap),
+                    area = NavMesh.GetAreaFromName("Not Walkable"),
+                };
+            }
         }
 
         // 바닥 구역 표시(NavMeshModifier). 마을 차도처럼 붙은 사물과 그 아래 바닥을 다른 구역으로 굽는다.

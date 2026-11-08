@@ -32,6 +32,7 @@ namespace A305.ObjectHover.PlayModeTests
         [UnitySetUp]
         public IEnumerator LoadHome()
         {
+            LocalObjectWordApi.Forget();
             // 튜토리얼 첫 단계에서는 코치 마크가 화면을 덮어 가구를 가리킬 수 없으므로, 튜토리얼을 마친 사용자로 시작한다.
             TutorialState.Clear();
             TutorialState.MarkFinishedOnServer();
@@ -51,14 +52,16 @@ namespace A305.ObjectHover.PlayModeTests
         public void ClearTutorial()
         {
             TutorialState.Clear();
+            LocalObjectWordApi.Forget();
         }
 
         [UnityTest]
         public IEnumerator PointingAtSavedWord_NearPlayer_ShowsWordMeaningAndExample()
         {
-            // 확인용 단어 목록에서 TV는 단어장에 저장된 단어다.
+            // 저장 여부를 서버 응답이나 미리보기 기본값에 맡기지 않고 실제 저장 버튼으로 준비한다.
             HoverableObject tv = FindHoverable("tv");
             yield return StandPlayerNear(tv);
+            yield return SaveWordThroughTheCard(tv);
 
             hover.Refresh(ScreenPointOf(tv), LongerThanShowDelaySeconds);
 
@@ -66,7 +69,10 @@ namespace A305.ObjectHover.PlayModeTests
             Assert.That(tooltip.WordText, Is.EqualTo("TV"));
             Assert.That(tooltip.MeaningText, Is.EqualTo("텔레비전"));
             Assert.That(tooltip.IsExampleVisible, Is.True);
-            Assert.That(tooltip.ExampleText, Is.EqualTo("Let's watch TV together."));
+            Assert.That(
+                tooltip.ExampleText,
+                Is.EqualTo("Let's watch TV together.\n<color=#B8C0CC>같이 TV 보자.</color>")
+            );
         }
 
         [UnityTest]
@@ -74,12 +80,35 @@ namespace A305.ObjectHover.PlayModeTests
         {
             HoverableObject tv = FindHoverable("tv");
             yield return StandPlayerNear(tv);
+            yield return SaveWordThroughTheCard(tv);
 
             hover.Click(ScreenPointOf(tv));
 
             Assert.That(tooltip.IsPinned, Is.True);
             Assert.That(tooltip.IsExampleVisible, Is.True);
-            Assert.That(tooltip.ExampleText, Is.EqualTo("Let's watch TV together."));
+            Assert.That(
+                tooltip.ExampleText,
+                Is.EqualTo("Let's watch TV together.\n<color=#B8C0CC>같이 TV 보자.</color>")
+            );
+        }
+
+        private IEnumerator SaveWordThroughTheCard(HoverableObject target)
+        {
+            hover.Click(ScreenPointOf(target));
+            Button save = tooltip
+                .GetComponentsInChildren<Button>(true)
+                .Single(button => button.name == "SaveButton");
+            Assert.That(save.gameObject.activeInHierarchy, Is.True, "준비: 저장 버튼이 보입니다.");
+            Assert.That(save.interactable, Is.True, "준비: 저장 전 단어로 시작합니다.");
+            save.onClick.Invoke();
+            yield return null;
+            Assert.That(tooltip.CanSaveWord, Is.False, "준비: 저장을 마쳤습니다.");
+            tooltip
+                .GetComponentsInChildren<Button>(true)
+                .Single(button => button.name == "CloseButton")
+                .onClick.Invoke();
+            yield return null;
+            Assert.That(tooltip.IsPinned, Is.False);
         }
 
         [UnityTest]

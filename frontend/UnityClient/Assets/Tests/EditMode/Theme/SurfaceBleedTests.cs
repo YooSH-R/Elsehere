@@ -11,6 +11,26 @@ namespace A305.Theme.Tests
     /// </summary>
     public class SurfaceBleedTests
     {
+        [Test]
+        public void ModifyMesh_CollapsedNineSliceRows_KeepTheirSharedCenter()
+        {
+            SurfaceBleed bleed = Create(new Vector2(100, 60), new Vector2(12, 12));
+            using var mesh = new VertexHelper();
+            // 작은 칩에서 위·아래 테두리가 맞닿는 줄을 한쪽으로 밀면 가운데에 흰 띠가 생긴다.
+            mesh.AddVert(new Vector2(-50, 0), Color.white, new Vector2(0, .4f));
+            mesh.AddVert(new Vector2(-50, 0), Color.white, new Vector2(0, .6f));
+            mesh.AddVert(Vector2.zero, Color.white, new Vector2(.4f, .4f));
+            bleed.ModifyMesh(mesh);
+
+            UIVertex vertex = default;
+            mesh.PopulateUIVertex(ref vertex, 0);
+            Assert.That((Vector2)vertex.position, Is.EqualTo(new Vector2(-62, 0)));
+            mesh.PopulateUIVertex(ref vertex, 1);
+            Assert.That((Vector2)vertex.position, Is.EqualTo(new Vector2(-62, 0)));
+            mesh.PopulateUIVertex(ref vertex, 2);
+            Assert.That((Vector2)vertex.position, Is.EqualTo(Vector2.zero));
+        }
+
         private GameObject target;
 
         [TearDown]

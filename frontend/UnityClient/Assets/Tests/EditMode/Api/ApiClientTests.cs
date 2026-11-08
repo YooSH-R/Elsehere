@@ -33,7 +33,9 @@ namespace A305.Api.Tests
             };
             try
             {
-                ApiClient actual = explicitTimeout ? settings.CreateClient(9) : settings.CreateClient();
+                ApiClient actual = explicitTimeout
+                    ? settings.CreateClient(9)
+                    : settings.CreateClient();
                 Assert.That(actual, Is.SameAs(client));
                 Assert.That(receivedTimeout, Is.EqualTo(explicitTimeout ? 9 : 15));
             }

@@ -73,7 +73,7 @@ namespace A305.Npc.PlayModeTests
             DialogueController dialogue = Single<DialogueController>();
             for (int turn = 0; turn < MaxGuidedTurns && !dialogue.IsGuidedCompleted; turn++)
             {
-                Click(panel, "ExampleButton");
+                Click(panel, "HintButton");
                 Click(panel, "SendButton");
                 yield return null;
             }

@@ -71,6 +71,16 @@ namespace A305.Npc.PlayModeTests
                 PlaceWalker(walker, door, Vector3.forward);
                 yield return null;
                 yield return null;
+                SceneManager.sceneLoaded += DisableWalkingTestApis;
+                try
+                {
+                    yield return SceneManager.LoadSceneAsync("HotelScene");
+                    yield return null;
+                }
+                finally
+                {
+                    SceneManager.sceneLoaded -= DisableWalkingTestApis;
+                }
                 var worker = Object
                     .FindFirstObjectByType<NpcPopulation>()
                     .FindWorker("HOTEL_NIGHT_MANAGER")

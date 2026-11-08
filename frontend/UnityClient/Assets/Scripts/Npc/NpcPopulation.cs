@@ -31,6 +31,8 @@ namespace A305.Npc
         private DialogueController dialogue;
         private PlayerMover player;
         private PasserbyOfferView offerView;
+        private GameClock observedClock;
+        private double lastMinutes;
 
         [Serializable]
         public sealed class Resident
@@ -57,6 +59,12 @@ namespace A305.Npc
 
             [NonSerialized]
             internal bool Warned;
+
+            [NonSerialized]
+            internal bool EnteringDoor;
+
+            [NonSerialized]
+            internal Vector3 EntryDoor;
         }
 
         /// <summary>같은 코드의 거리 모습을 고르지 않고 근무지의 직원을 찾는다.</summary>
@@ -99,6 +107,13 @@ namespace A305.Npc
             // 장면을 내릴 때 대화 처리가 먼저 사라질 수 있다. 연결이 끊긴 출퇴근 NPC를 그 사이에 새로 깨우지 않는다.
             if (dialogue == null)
                 return;
+            // 초기 불러오기·시각을 크게 건너뛴 경우에는 그 시각의 위치를 복원한다.
+            // 연속 플레이에서는 시각표가 바뀌어도 실제 문에 도착하기 전에 모습을 끄지 않는다.
+            double minutes = GameClock.Shared.Minutes;
+            bool continuous =
+                observedClock == GameClock.Shared && Math.Abs(minutes - lastMinutes) < 5;
+            observedClock = GameClock.Shared;
+            lastMinutes = minutes;
             foreach (Resident resident in residents)
             {
                 if (resident.Life == null)
@@ -117,6 +132,23 @@ namespace A305.Npc
                     );
                 NpcDayPlan plan = NpcDayPlan.At(resident.Life, GameClock.Shared.Minutes, needed);
                 resident.Plan = plan;
+                bool entering = false;
+                if (resident.TownBody != null && !IsTalking(resident.TownBody))
+                {
+                    if (continuous && resident.TownBody.activeSelf && !plan.IsInTown)
+                    {
+                        resident.EntryDoor =
+                            plan.Phase == NpcDayPhase.Working ? resident.WorkplaceDoor : dormDoor;
+                        entering =
+                            Vector3
+                                .ProjectOnPlane(
+                                    resident.EntryDoor - resident.TownBody.transform.position,
+                                    Vector3.up
+                                )
+                                .magnitude > .4f;
+                    }
+                    resident.EnteringDoor = entering;
+                }
                 if (resident.Worker != null && !IsTalking(resident.Worker))
                 {
                     bool roomLoaded =
@@ -125,13 +157,16 @@ namespace A305.Npc
                     // 순찰차를 몰고 나간 경찰관은 돌아와 주차할 때까지 창구에 두지 않는다(PoliceCar).
                     resident.Worker.SetActive(
                         plan.Phase == NpcDayPhase.Working
+                            && !entering
                             && roomLoaded
                             && !PoliceCar.IsOutOnPatrol(resident.Life.NpcId)
                     );
                 }
                 if (resident.TownBody == null || IsTalking(resident.TownBody))
                     continue;
-                if (!plan.IsInTown || PoliceDispatchOrder.IsAway(resident.Life.NpcId))
+                if (
+                    (!plan.IsInTown && !entering) || PoliceDispatchOrder.IsAway(resident.Life.NpcId)
+                )
                 {
                     resident.TownBody.SetActive(false);
                     resident.LastPhase = null;
@@ -145,13 +180,19 @@ namespace A305.Npc
                     resident.Life == null
                     || resident.TownBody == null
                     || IsTalking(resident.TownBody)
-                    || !resident.Plan.IsInTown
+                    || (!resident.Plan.IsInTown && !resident.EnteringDoor)
                     || PoliceDispatchOrder.IsAway(resident.Life.NpcId)
                 )
                     continue;
                 if (player == null || offerView == null)
                     continue;
                 NpcDayPlan plan = resident.Plan;
+                if (resident.EnteringDoor)
+                {
+                    resident.TownBody.GetComponent<NpcTownWalker>().Destination =
+                        resident.EntryDoor;
+                    continue;
+                }
                 bool appeared = !resident.TownBody.activeSelf;
                 if (resident.LastPhase != plan.Phase)
                 {

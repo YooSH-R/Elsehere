@@ -25,8 +25,8 @@ namespace A305.EditorTools.Npc
         private const string ShopScenePath = "Assets/Scenes/Production/ShopScene.unity";
         private const string ReviewFolder = "Assets/Prefabs/Npc/Review/";
 
-        // 실내 직원·플레이어와 같은 계단 높이와 표면 두께. 행인 프리팹 기본값(0.3m·0.08m)이면 0.4m 가까운 가구도 밟고 올라서고 발이 바닥에서 떠 보인다.
-        private const float StepOffsetMeters = .15f;
+        // 보행 데이터와 같은 월드 턱 높이. 표면 두께는 발이 떠 보이지 않도록 작게 유지한다.
+        private const float StepOffsetMeters = Passerby.WalkableStepMeters;
         private const float SkinWidthMeters = .02f;
 
         // TownProductionBuilder·상점 Builder가 붙였던 뼈대 없는 도형 외형. 이 외형에 Generic 뼈대를 붙인 BenVisual도 함께 치운다.
@@ -166,7 +166,10 @@ namespace A305.EditorTools.Npc
         /// <summary>서 있는 NPC 캡슐의 계단 높이와 표면 두께를 실내 직원·플레이어와 맞춘다.</summary>
         public static void FitFooting(CharacterController capsule)
         {
-            capsule.stepOffset = StepOffsetMeters;
+            capsule.stepOffset = Mathf.Min(
+                capsule.height,
+                StepOffsetMeters / Mathf.Max(.01f, Mathf.Abs(capsule.transform.lossyScale.y))
+            );
             capsule.skinWidth = SkinWidthMeters;
             PrefabUtility.RecordPrefabInstancePropertyModifications(capsule);
         }

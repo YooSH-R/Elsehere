@@ -19,6 +19,9 @@ namespace A305.Npc
     [RequireComponent(typeof(CharacterController), typeof(NpcIdentity))]
     public class Passerby : MonoBehaviour
     {
+        /// <summary>NPC 보행 데이터와 물리 캡슐이 함께 허용하는 턱 높이(월드 미터).</summary>
+        public const float WalkableStepMeters = .3f;
+        private readonly NpcObstacleDetour obstacleDetour = new NpcObstacleDetour();
         private const float GroundedDownwardSpeedMetersPerSecond = -2f;
         private const float ArrivedDistanceMeters = 0.2f;
 
@@ -157,6 +160,11 @@ namespace A305.Npc
         {
             trafficLights = FindFirstObjectByType<TrafficLights>();
             characterController = GetComponent<CharacterController>();
+            float scaleY = Mathf.Max(.01f, Mathf.Abs(transform.lossyScale.y));
+            characterController.stepOffset = Mathf.Min(
+                characterController.height,
+                Mathf.Max(characterController.stepOffset, WalkableStepMeters / scaleY)
+            );
             // 프레임이 아주 빠르면 한 프레임 이동량이 기본 최소 이동 거리(0.001m)보다 작아 무시되므로 모두 반영한다.
             characterController.minMoveDistance = 0f;
             identity = GetComponent<NpcIdentity>();
@@ -211,6 +219,7 @@ namespace A305.Npc
         private void OnDisable()
         {
             crossing.Clear();
+            obstacleDetour.Clear();
             NpcWalkingSpace.Unregister(this);
             if (dialogue != null)
             {
@@ -563,6 +572,16 @@ namespace A305.Npc
         /// <summary>그 방향으로 한 프레임 걷는다. 생활(NpcRoutine)은 다가올 때와 다른 속도로 걷는다.</summary>
         internal void WalkToward(Vector3 horizontalDirection, float speedMetersPerSecond)
         {
+            if (
+                IsTownResident
+                && !crossing.IsActive
+                && !NpcTownWalker.IsRoadSurface(transform.position, .1f)
+                && horizontalDirection.sqrMagnitude > .0001f
+            )
+                horizontalDirection = obstacleDetour.Direction(
+                    characterController,
+                    horizontalDirection
+                );
             horizontalDirection = crossing.Direction(
                 trafficLights,
                 transform.position,
@@ -584,9 +603,13 @@ namespace A305.Npc
             speedMetersPerSecond = Time.deltaTime > 0 ? step / Time.deltaTime : 0;
             Vector3 velocity = horizontalDirection.normalized * speedMetersPerSecond;
             velocity.y = GroundedDownwardSpeedMetersPerSecond;
+            Vector3 before = transform.position;
             characterController.Move(velocity * Time.deltaTime);
             TurnToward(horizontalDirection);
-            ReportLocomotion(speedMetersPerSecond);
+            float moved = Vector3.ProjectOnPlane(transform.position - before, Vector3.up).magnitude;
+            ReportLocomotion(
+                Time.deltaTime > 0f ? Mathf.Min(speedMetersPerSecond, moved / Time.deltaTime) : 0f
+            );
         }
 
         internal bool IsWaitingForSignal(Vector3 direction) =>

@@ -505,7 +505,7 @@ namespace A305.Npc.PlayModeTests
                     Is.LessThan(.12f)
                 );
 
-                if (!carves)
+                if (height < .3f)
                     yield break;
 
                 // 우회로까지 완전히 막힌 동안만 기다리고, 다시 열리면 같은 목적지로 재탐색한다.
@@ -515,6 +515,9 @@ namespace A305.Npc.PlayModeTests
                 for (int frame = 0; frame < 12; frame++)
                     yield return null;
                 walker.Destination = new Vector3(503, 0, 500);
+                if (!carves)
+                    for (int frame = 0; frame < 120; frame++)
+                        yield return null;
                 Vector3 waiting = walker.transform.position;
                 for (int frame = 0; frame < 60; frame++)
                 {
@@ -522,6 +525,10 @@ namespace A305.Npc.PlayModeTests
                     Assert.That(
                         HorizontalDistance(waiting, walker.transform.position),
                         Is.LessThan(.001f)
+                    );
+                    Assert.That(
+                        walker.GetComponentInChildren<Animator>().GetFloat("Speed"),
+                        Is.LessThan(.01f)
                     );
                 }
                 wall.transform.localScale = new Vector3(1, 2, 3);

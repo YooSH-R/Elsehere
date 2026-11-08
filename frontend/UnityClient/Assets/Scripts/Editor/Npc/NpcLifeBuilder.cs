@@ -27,7 +27,7 @@ namespace A305.EditorTools.Npc
         // NPC 몸(CharacterController 반지름 0.3m, 키 1.8m)과 같은 크기로 굽고, 보도 턱 정도(0.3m)는 오른다.
         private const float AgentRadiusMeters = .3f;
         private const float AgentHeightMeters = 1.8f;
-        private const float AgentClimbMeters = .3f;
+        private const float AgentClimbMeters = Passerby.WalkableStepMeters;
         private const float AgentSlopeDegrees = 45f;
 
         // 본길 양옆 건물 사이 1m 틈은 통행로가 아니다. 정식 인도·출입구는 별도로 유지한다.

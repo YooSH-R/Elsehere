@@ -3,6 +3,11 @@ namespace A305.Npc
     /// <summary>대화 제안 화면에 보일 문구.</summary>
     public static class PasserbyOfferText
     {
+        public const string HurryGreeting =
+            "Sorry, I'm running late. Let's talk later!\n늦어서 서둘러야 해요. 다음에 이야기해요!";
+
+        public static string HurryHint(string npcName) => $"{npcName} · 서두르는 중";
+
         /// <summary>대화 수락 버튼. 키보드를 쓰는 화면에만 E 안내를 붙인다.</summary>
         public static string AcceptLabel(bool showKeyHint) =>
             showKeyHint ? "대화하기 <size=75%>[E]</size>" : "대화하기";

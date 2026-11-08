@@ -22,6 +22,25 @@ namespace A305.Npc
 
         internal static void Unregister(Passerby body) => Bodies.Remove(body);
 
+        internal static bool HasNearbyBody(Passerby body, float distance)
+        {
+            foreach (Passerby other in Bodies)
+                if (
+                    other != null
+                    && other != body
+                    && SameFloor(body.transform.position, other.transform.position)
+                    && Vector3
+                        .ProjectOnPlane(
+                            other.transform.position - body.transform.position,
+                            Vector3.up
+                        )
+                        .sqrMagnitude
+                        < distance * distance
+                )
+                    return true;
+            return false;
+        }
+
         private static float Radius(Passerby body)
         {
             var capsule = body.GetComponent<CharacterController>();

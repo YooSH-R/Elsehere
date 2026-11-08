@@ -1,3 +1,4 @@
+using A305.Characters;
 using A305.World;
 using UnityEngine;
 using UnityEngine.AI;
@@ -11,7 +12,6 @@ namespace A305.Npc
         private const float ArrivalToleranceMeters = .0001f;
 
         // 일터에서 말을 걸러 다가오는 속도는 0인 직원도 있으므로 출퇴근 속도와 분리한다.
-        private const float MaximumWalkSpeedMetersPerSecond = 1.6f;
         private const float PassingLookAheadMeters = 1.25f;
         private const float CrossingLookAheadMeters = .6f;
         private const float RequiredRedSeconds = TrafficSignalCycle.RequiredCrossingSeconds;
@@ -22,13 +22,19 @@ namespace A305.Npc
         private Vector3 passingForward;
         private bool passingOnRight;
         private float passingClearance;
+        private readonly NpcHurry hurry = new NpcHurry();
+        private AnimatorOverrideController paceOverride;
 
         public Vector3 Destination { get; set; }
         public bool IsStaff { get; set; }
         public bool HasScheduleDeadline { get; set; }
         public Vector3? ScheduleDoor { get; set; }
-        public bool IsHurrying => false;
-        public bool IsRunning => false;
+        public bool IsHurrying =>
+            HasScheduleDeadline
+            && hurry.IsHurrying
+            && !GetComponent<Passerby>().IsGuidingTutorial
+            && !GetComponent<Passerby>().IsWaitingForQuest;
+        public bool IsRunning { get; private set; }
 
         /// <summary>횡단보도 위에서는 대화나 새 제안으로 걸음을 멈추지 않는다.</summary>
         public bool IsCrossing => IsRoadSurface(transform.position, .1f);
@@ -38,7 +44,54 @@ namespace A305.Npc
 
         private void Awake() => path = new NavMeshPath();
 
-        private void OnDisable() => passing = null;
+        private void OnDisable()
+        {
+            passing = null;
+            hurry.Update(false, 0);
+            IsRunning = false;
+        }
+
+        private void Start()
+        {
+            var controller = Resources.Load<RuntimeAnimatorController>("NpcCommuter");
+            if (controller == null)
+                return;
+            foreach (Animator model in GetComponentsInChildren<Animator>(true))
+            {
+                if (model.avatar == null || !model.avatar.isHuman)
+                    continue;
+                model.runtimeAnimatorController = NpcLifeAnimator.KeepCharacterClips(
+                    controller,
+                    model.runtimeAnimatorController
+                );
+                paceOverride = model.runtimeAnimatorController as AnimatorOverrideController;
+                model.Rebind();
+                GetComponent<CharacterAnimationDriver>()?.BindAnimator(model);
+                break;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (paceOverride != null)
+                Destroy(paceOverride);
+        }
+
+        internal void RefreshHurry()
+        {
+            var body = GetComponent<Passerby>();
+            bool eligible =
+                HasScheduleDeadline
+                && !body.IsGuidingTutorial
+                && !body.IsWaitingForQuest
+                && (body.Phase == PasserbyPhase.Waiting || body.Phase == PasserbyPhase.Resting);
+            hurry.Update(
+                eligible,
+                Vector3.ProjectOnPlane(Destination - transform.position, Vector3.up).magnitude
+            );
+            if (!IsHurrying)
+                IsRunning = false;
+        }
 
         private static int WithoutArea(int areas, string name)
         {
@@ -49,6 +102,8 @@ namespace A305.Npc
         internal void Walk()
         {
             var body = GetComponent<Passerby>();
+            RefreshHurry();
+            IsRunning = false;
             Vector3 direction = Destination - transform.position;
             direction.y = 0;
             if (direction.magnitude <= ArrivalToleranceMeters || Time.deltaTime <= 0f)
@@ -86,11 +141,28 @@ namespace A305.Npc
                 }
             }
 
-            float speed = Mathf.Min(
-                MaximumWalkSpeedMetersPerSecond,
-                direction.magnitude / Time.deltaTime
-            );
-            body.WalkToward(PassingDirection(body, direction), speed);
+            Vector3 travel = PassingDirection(body, direction);
+            bool clear =
+                IsHurrying
+                && !IsCrossing
+                && !IsRoadSurface(transform.position + travel.normalized * 1.25f, .3f)
+                && (
+                    !ScheduleDoor.HasValue
+                    || Vector3
+                        .ProjectOnPlane(ScheduleDoor.Value - transform.position, Vector3.up)
+                        .magnitude > 2.5f
+                )
+                && Vector3.Dot(transform.forward, travel.normalized) > .8f
+                && !NavMesh.Raycast(
+                    start.position,
+                    start.position + travel.normalized * 2.5f,
+                    out _,
+                    StandingAreas
+                )
+                && body.HasRunningRoom(travel);
+            IsRunning = IsHurrying && clear;
+            float speed = Mathf.Min(hurry.Speed(clear), direction.magnitude / Time.deltaTime);
+            body.WalkToward(travel, speed);
         }
 
         internal static bool ShouldWaitForSignal(

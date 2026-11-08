@@ -189,8 +189,10 @@ namespace A305.Npc
                 NpcDayPlan plan = resident.Plan;
                 if (resident.EnteringDoor)
                 {
-                    resident.TownBody.GetComponent<NpcTownWalker>().Destination =
-                        resident.EntryDoor;
+                    var enteringWalker = resident.TownBody.GetComponent<NpcTownWalker>();
+                    enteringWalker.Destination = resident.EntryDoor;
+                    enteringWalker.HasScheduleDeadline = true;
+                    enteringWalker.ScheduleDoor = resident.EntryDoor;
                     continue;
                 }
                 bool appeared = !resident.TownBody.activeSelf;
@@ -230,6 +232,13 @@ namespace A305.Npc
                 }
                 var walker = resident.TownBody.GetComponent<NpcTownWalker>();
                 walker.Destination = target;
+                walker.HasScheduleDeadline =
+                    plan.Phase == NpcDayPhase.GoingToWork || plan.Phase == NpcDayPhase.GoingHome;
+                walker.ScheduleDoor = null;
+                if (plan.Phase == NpcDayPhase.GoingToWork)
+                    walker.ScheduleDoor = resident.WorkplaceDoor;
+                else if (plan.Phase == NpcDayPhase.GoingHome)
+                    walker.ScheduleDoor = dormDoor;
                 walker.IsStaff = NpcDuty.IsStaff(resident.Life.Role);
                 resident.TownBody.SetActive(true);
             }

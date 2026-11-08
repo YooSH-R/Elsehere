@@ -24,6 +24,14 @@ namespace A305.Npc
             nextAttempt = 0;
         }
 
+        internal bool IsClearAhead(CharacterController body, Vector3 direction, float distance) =>
+            IsClear(
+                body,
+                body.transform.position,
+                body.transform.position + direction.normalized * distance,
+                out _
+            );
+
         internal Vector3 Direction(CharacterController body, Vector3 desired)
         {
             Vector3 position = body.transform.position;

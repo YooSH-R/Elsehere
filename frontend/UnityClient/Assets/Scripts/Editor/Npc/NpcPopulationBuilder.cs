@@ -37,6 +37,7 @@ namespace A305.EditorTools.Npc
         {
             if (!BuilderTools.CanBuild())
                 return;
+            NpcHurryBuilder.Apply();
             BuilderTools.EnsureFolder(Folder);
             var asset = AssetDatabase.LoadAssetAtPath<TextAsset>(LifePath);
             var data = NpcLifeData.Parse(asset.text);

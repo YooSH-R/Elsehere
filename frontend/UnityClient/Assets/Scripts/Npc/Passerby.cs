@@ -228,13 +228,22 @@ namespace A305.Npc
 
             if (offerView != null)
             {
-                offerView.Hide(this);
+                // 짧은 거절 이벤트는 NPC가 문으로 들어가도 사용자가 읽거나 닫을 때까지 남긴다.
+                if (!offerView.IsEventShowing || !offerView.IsShownBy(this))
+                    offerView.Hide(this);
                 offerView.HideTalkPrompt(this);
             }
         }
 
         private void Update()
         {
+            if (IsTownResident)
+                GetComponent<NpcTownWalker>().RefreshHurry();
+            if (playerTalkReach.HasValue && IsHurrying && !IsPlayerOccupied)
+            {
+                CancelPlayerTalk();
+                ShowHurryEvent();
+            }
             Vector3 toPlayer = HorizontalOffsetToPlayer();
             if (playerTalkReach.HasValue)
             {
@@ -382,6 +391,8 @@ namespace A305.Npc
             }
 
             ConversationAllowance allowance = dialogue.Allowance;
+            if (IsHurrying)
+                return !IsOtherOfferShowing || offerView.IsDeclineShown;
             if (!allowance.CanStartConversation)
             {
                 return PasserbyOfferText.OffersSignup(allowance.RemainingConversations);
@@ -400,6 +411,12 @@ namespace A305.Npc
             if (!CanTalkByClick(reachMeters))
             {
                 return false;
+            }
+
+            if (IsHurrying)
+            {
+                ShowHurryEvent();
+                return true;
             }
 
             if (!dialogue.Allowance.CanStartConversation)
@@ -434,6 +451,13 @@ namespace A305.Npc
         {
             float reach = playerTalkReach ?? 0;
             CancelPlayerTalk();
+            if (IsTownResident)
+                GetComponent<NpcTownWalker>().RefreshHurry();
+            if (!IsPlayerOccupied && HorizontalOffsetToPlayer().magnitude <= reach && IsHurrying)
+            {
+                ShowHurryEvent();
+                return;
+            }
             if (
                 !IsPlayerOccupied
                 && dialogue.Allowance.CanStartConversation
@@ -447,6 +471,24 @@ namespace A305.Npc
             playerTalkReach = null;
             offerView.Hide(this);
         }
+
+        private bool IsHurrying => IsTownResident && GetComponent<NpcTownWalker>().IsHurrying;
+
+        private void ShowHurryEvent()
+        {
+            offerView.DeclineShownOffer();
+            string name = dialogue.FindNpcName(ScriptKey) ?? "이 NPC";
+            offerView.ShowEvent(
+                this,
+                PasserbyOfferText.HurryHint(name),
+                PasserbyOfferText.HurryGreeting
+            );
+        }
+
+        internal bool HasRunningRoom(Vector3 direction) =>
+            HorizontalOffsetToPlayer().sqrMagnitude > 2.5f * 2.5f
+            && !NpcWalkingSpace.HasNearbyBody(this, 2f)
+            && obstacleDetour.IsClearAhead(characterController, direction, 2.5f);
 
         // 다른 대화 중이거나 창이 열려 이동이 잠겼거나, 진행 흐름(튜토리얼)이 다가오기를 막았는지.
         // 다가오면 안 되는 때도 플레이어가 바쁠 때와 같게 다룬다. 이 행인을 기다리느라 잠긴 플레이어는 바쁘지 않다.

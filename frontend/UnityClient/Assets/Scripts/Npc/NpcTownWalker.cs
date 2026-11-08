@@ -152,6 +152,7 @@ namespace A305.Npc
                 }
             }
 
+            direction = body.PrepareWalkDirection(direction);
             Vector3 travel = PassingDirection(body, direction);
             bool clear =
                 IsHurrying
@@ -173,7 +174,7 @@ namespace A305.Npc
                 && body.HasRunningRoom(travel);
             IsRunning = IsHurrying && clear;
             float speed = Mathf.Min(hurry.Speed(clear), direction.magnitude / Time.deltaTime);
-            body.WalkToward(travel, speed, direction);
+            body.WalkToward(travel, speed, prepared: true);
         }
 
         internal static bool ShouldWaitForSignal(

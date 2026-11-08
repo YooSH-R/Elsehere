@@ -639,16 +639,12 @@ namespace A305.Npc
             WalkToward(horizontalDirection, CurrentSettings.WalkSpeedMetersPerSecond);
         }
 
-        /// <summary>그 방향으로 한 프레임 걷는다. 생활(NpcRoutine)은 다가올 때와 다른 속도로 걷는다.</summary>
-        internal void WalkToward(
-            Vector3 horizontalDirection,
-            float speedMetersPerSecond,
-            Vector3? plannedDirection = null
-        )
+        /// <summary>횡단 목표와 물리 장애물을 먼저 정한다. 다른 사람은 이 실제 목표를 기준으로 비켜간다.</summary>
+        internal Vector3 PrepareWalkDirection(Vector3 horizontalDirection)
         {
+            Vector3 plannedDirection = horizontalDirection;
 #if UNITY_EDITOR
             LastWalkInput = horizontalDirection;
-            LastWalkFrame = Time.frameCount;
 #endif
             if (
                 IsTownResident
@@ -675,6 +671,21 @@ namespace A305.Npc
                     characterController,
                     horizontalDirection
                 );
+            return horizontalDirection;
+        }
+
+        /// <summary>준비한 방향으로 한 프레임 걷는다. 생활(NpcRoutine)은 준비와 이동을 함께 요청한다.</summary>
+        internal void WalkToward(
+            Vector3 horizontalDirection,
+            float speedMetersPerSecond,
+            bool prepared = false
+        )
+        {
+            if (!prepared)
+                horizontalDirection = PrepareWalkDirection(horizontalDirection);
+#if UNITY_EDITOR
+            LastWalkFrame = Time.frameCount;
+#endif
             IsWaitingAtSignal =
                 horizontalDirection.sqrMagnitude >= .0001f
                 && !crossing.IsActive

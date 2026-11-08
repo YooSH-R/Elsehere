@@ -58,15 +58,6 @@ namespace A305.Npc
                 Clear();
                 return Vector3.zero;
             }
-            // 건널 방향은 유지하되, 앞사람을 비켜가는 보행 방향까지 덮어쓰지는 않는다.
-            bool avoiding =
-                plannedDirection.HasValue && Vector3.Angle(requested, plannedDirection.Value) > 1;
-            if (
-                avoiding
-                && requested.sqrMagnitude > .0001f
-                && Vector3.Dot(requested, crossingForward) >= 0
-            )
-                return Vector3.ClampMagnitude(requested, direction.magnitude);
             landingPath ??= new NavMeshPath();
             if (
                 NavMesh.CalculatePath(position, target, NpcTownWalker.WalkingAreas, landingPath)

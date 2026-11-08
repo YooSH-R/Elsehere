@@ -905,6 +905,10 @@ namespace A305.Npc.PlayModeTests
             CheckCrossingSignalChange(.3f, false, frameSeconds: .1f);
 
         [UnityTest]
+        public IEnumerator Town_OpposingCommutersPassWhileCrossing() =>
+            CheckCrossingSignalChange(.3f, false, opposing: true);
+
+        [UnityTest]
         public IEnumerator Town_TwoCommutersPassBesideTheSharedSignalPole()
         {
             SetClock(21 * 60);
@@ -975,7 +979,8 @@ namespace A305.Npc.PlayModeTests
             bool returns,
             bool pedestrianOnly = false,
             bool hurrying = false,
-            float frameSeconds = 1f / 60f
+            float frameSeconds = 1f / 60f,
+            bool opposing = false
         )
         {
             SetClock(21 * 60);
@@ -1003,6 +1008,20 @@ namespace A305.Npc.PlayModeTests
                 )
                 .Single(w => w.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER");
             var lights = Object.FindFirstObjectByType<TrafficLights>();
+            NpcTownWalker other = null;
+            if (opposing)
+            {
+                other = Object
+                    .FindObjectsByType<NpcTownWalker>(
+                        FindObjectsInactive.Include,
+                        FindObjectsSortMode.None
+                    )
+                    .Single(item => item.GetComponent<NpcIdentity>().Code == "CAFE_STAFF");
+                foreach (
+                    Passerby body in Object.FindObjectsByType<Passerby>(FindObjectsSortMode.None)
+                )
+                    body.gameObject.SetActive(false);
+            }
             lights.enabled = false;
             var signal = lights.Heads.First(head => head != null);
             Vector3 signalPosition = signal.transform.position;
@@ -1066,6 +1085,11 @@ namespace A305.Npc.PlayModeTests
                 Time.captureDeltaTime = frameSeconds;
                 PlaceWalker(walker, new Vector3(497, .1f, 500), Vector3.right);
                 walker.Destination = new Vector3(503, 0, 500);
+                if (other != null)
+                {
+                    PlaceWalker(other, new Vector3(503, .1f, 500), Vector3.left);
+                    other.Destination = new Vector3(497, 0, 500);
+                }
                 walker.HasScheduleDeadline = hurrying;
                 walker.ScheduleDoor = walker.Destination;
                 for (int frame = 0; frame < 120; frame++)
@@ -1092,6 +1116,12 @@ namespace A305.Npc.PlayModeTests
                 for (int frame = 0; frame < 300; frame++)
                 {
                     yield return null;
+                    if (other != null)
+                        Assert.That(
+                            HorizontalDistance(walker.transform.position, other.transform.position),
+                            Is.GreaterThan(.95f),
+                            "횡단 중에도 서로 겹치지 않고 지나가야 합니다."
+                        );
                     if (!walker.IsCrossing)
                         continue;
                     crossed = true;
@@ -1126,6 +1156,12 @@ namespace A305.Npc.PlayModeTests
                         HorizontalDistance(walker.transform.position, walker.Destination),
                         Is.LessThan(.12f),
                         "20%를 넘었으면 횡단 중 신호가 바뀌어도 반대편까지 건너야 합니다."
+                    );
+                if (other != null)
+                    Assert.That(
+                        HorizontalDistance(other.transform.position, other.Destination),
+                        Is.LessThan(.12f),
+                        "반대 방향에서 출발한 사람도 인도에 도착해야 합니다."
                     );
             }
             finally

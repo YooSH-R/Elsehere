@@ -19,6 +19,107 @@ namespace A305.Npc.PlayModeTests
     public class NpcPopulationTests
     {
         [UnityTest]
+        public IEnumerator Town_StaffPassTheBankStairSupport() => CheckObservedStall(false);
+
+        [UnityTest]
+        public IEnumerator Town_ObservedJunctionCrowdReachesItsDestinations() =>
+            CheckObservedStall(true);
+
+        private static IEnumerator CheckObservedStall(bool crowd)
+        {
+            SetClock(21 * 60);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
+            Object
+                .FindFirstObjectByType<PlayerMover>()
+                .Teleport(new Vector3(0, 100, 0), Quaternion.identity);
+            Object.FindFirstObjectByType<TrafficLights>().ObserveWithoutPedestrianWait = true;
+            var all = Object.FindObjectsByType<NpcTownWalker>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+            foreach (var body in Object.FindObjectsByType<Passerby>(FindObjectsSortMode.None))
+                body.gameObject.SetActive(false);
+            string[] codes = crowd
+                ? new[]
+                {
+                    "POLICE_OFFICER",
+                    "ARCADE_STAFF",
+                    "DINER_STAFF",
+                    "BARBER_STAFF",
+                    "HOTEL_BELLHOP",
+                    "TOWN_EVENING_WALKER",
+                }
+                : new[] { "BANK_STAFF" };
+            Vector3[] starts = crowd
+                ? new[]
+                {
+                    new Vector3(2.595f, .02f, 14.183f),
+                    new Vector3(1.878f, .02f, 12.920f),
+                    new Vector3(2.971f, .12f, 13.136f),
+                    new Vector3(4.311f, .12f, 15.588f),
+                    new Vector3(3.103f, .12f, 15.568f),
+                    new Vector3(3.69f, .12f, 16.51f),
+                }
+                : new[] { new Vector3(-5.114f, .12f, 37.574f) };
+            Vector3[] ends = crowd
+                ? new[]
+                {
+                    new Vector3(-6, .1f, -18),
+                    new Vector3(6, .1f, 30),
+                    new Vector3(6, .1f, 39),
+                    new Vector3(6, .1f, 57),
+                    new Vector3(-18, .1f, 21),
+                    new Vector3(-18, .1f, 21),
+                }
+                : new[] { new Vector3(-6, .1f, 48) };
+            var walkers = codes
+                .Select(code => all.Single(item => item.GetComponent<NpcIdentity>().Code == code))
+                .ToArray();
+            float previousDelta = Time.captureDeltaTime;
+            try
+            {
+                Time.captureDeltaTime = 1f / 30f;
+                for (int i = 0; i < walkers.Length; i++)
+                {
+                    PlaceWalker(walkers[i], starts[i], ends[i] - starts[i]);
+                    walkers[i].Destination = ends[i];
+                }
+                for (int frame = 0; frame < (crowd ? 1800 : 600); frame++)
+                {
+                    yield return null;
+                    // 같은 출입구를 쓰는 두 사람도 먼저 도착한 사람이 문 안으로 들어가면 이어서 진입한다.
+                    foreach (var walker in walkers)
+                        if (
+                            walker.gameObject.activeSelf
+                            && HorizontalDistance(walker.transform.position, walker.Destination)
+                                < .4f
+                        )
+                            walker.gameObject.SetActive(false);
+                }
+                foreach (var walker in walkers)
+                    Assert.That(
+                        walker.gameObject.activeSelf,
+                        Is.False,
+                        walker.GetComponent<NpcIdentity>().Code + " / " + walker.transform.position
+                    );
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDelta;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Town_CommutersPassOnANarrowSidewalk()
         {
             SetClock(21 * 60);

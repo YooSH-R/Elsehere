@@ -13,6 +13,19 @@ namespace A305.Dialogue
 
         /// <summary>맡은 교대 밖이라 일하지 않는 직원과의 대화면 true. 서버가 응대 대신 쉬는 중의 일상 상황으로 대화한다.</summary>
         public bool NpcOffDuty { get; set; }
+        public NpcTravelContext NpcTravelContext { get; set; }
+    }
+
+    /// <summary>대화 시작 시의 실제 이동 상태. 서버는 이 값으로 만든 사실을 대화 동안 보존한다.</summary>
+    public sealed class NpcTravelContext
+    {
+        public string Phase { get; set; }
+        public double RouteMeters { get; set; }
+        public double WalkedMeters { get; set; }
+        public int DepartureLeadMinutes { get; set; }
+        public double LateMinutes { get; set; }
+
+        public NpcTravelContext Copy() => (NpcTravelContext)MemberwiseClone();
     }
 
     public sealed class ConversationStart

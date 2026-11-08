@@ -619,6 +619,29 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task Start_FreezesTheRealJourneyAtConversationStart()
+        {
+            var journey = new NpcTravelContext
+            {
+                Phase = "GOING_TO_WORK",
+                RouteMeters = 80,
+                WalkedMeters = 35,
+                DepartureLeadMinutes = 190,
+            };
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                npcTravelContext: journey
+            );
+            journey.WalkedMeters = 99;
+            await conversation.StartAsync();
+            Assert.That(api.Starts[0].TravelContext, Is.Not.Null);
+            Assert.That(api.Starts[0].TravelContext.WalkedMeters, Is.EqualTo(35));
+        }
+
+        [Test]
         public async Task Start_WithStaffOffDuty_RequestsAnOffDutyConversationEvenAfterClosingAnOldOne()
         {
             // 교대 밖의 직원과 말하면 서버가 응대 대신 쉬는 중에 잡담하는 일상 상황으로 대화한다(CONV-01 npcOffDuty).
@@ -2425,19 +2448,22 @@ namespace A305.Dialogue.Tests
                 string requestId,
                 string npcCode,
                 string initiatedBy,
-                bool npcOffDuty
+                bool npcOffDuty,
+                NpcTravelContext npcTravelContext = null
             )
             {
                 RequestId = requestId;
                 NpcCode = npcCode;
                 InitiatedBy = initiatedBy;
                 NpcOffDuty = npcOffDuty;
+                TravelContext = npcTravelContext;
             }
 
             public string RequestId { get; }
             public string NpcCode { get; }
             public string InitiatedBy { get; }
             public bool NpcOffDuty { get; }
+            public NpcTravelContext TravelContext { get; }
         }
 
         private sealed class TurnRequest
@@ -2549,11 +2575,14 @@ namespace A305.Dialogue.Tests
                 string requestId,
                 string npcCode,
                 string initiatedBy,
-                bool npcOffDuty
+                bool npcOffDuty,
+                NpcTravelContext npcTravelContext = null
             )
             {
                 Calls.Add("Start");
-                Starts.Add(new StartRequest(requestId, npcCode, initiatedBy, npcOffDuty));
+                Starts.Add(
+                    new StartRequest(requestId, npcCode, initiatedBy, npcOffDuty, npcTravelContext)
+                );
                 if (StartErrors.Count > 0)
                 {
                     return Task.FromException<ConversationStart>(StartErrors.Dequeue());

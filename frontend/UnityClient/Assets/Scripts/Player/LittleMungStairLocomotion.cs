@@ -411,10 +411,10 @@ namespace A305.Player
                 + playerRoot.right * foot.lane;
             if (!FindLanding(foot, preferred, out var landing))
             {
-                // 천천히 걸을 때는 다음 프레임에 다시 찾는다. 갑자기 해제하면 몸이 튄다.
-                if (speed <= MaxPlannableSpeed)
+                // 서 있을 때만 디딤점을 기다린다. 몸체가 계속 걷는데 기다리면 외형이 옛 발자리에 붙잡힌다.
+                if (speed <= .05f)
                     return;
-                // 너무 빨라 디딜 곳을 찾을 수 없으면 몸이 옛 발자리에 붙잡히지 않게 바로 놓아준다.
+                // 높은 턱·좁은 디딤면 등으로 다음 발자리를 못 찾으면 일반 보행·접지 보정으로 돌아간다.
                 stairModeRequested = false;
                 blendWeight = 0;
                 initialized = false;

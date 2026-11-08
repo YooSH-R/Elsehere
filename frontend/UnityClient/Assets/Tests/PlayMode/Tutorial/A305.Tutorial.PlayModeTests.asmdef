@@ -2,6 +2,7 @@
     "name": "A305.Tutorial.PlayModeTests",
     "rootNamespace": "A305.Tutorial.PlayModeTests",
     "references": [
+        "A305.Api",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "A305.Tutorial",

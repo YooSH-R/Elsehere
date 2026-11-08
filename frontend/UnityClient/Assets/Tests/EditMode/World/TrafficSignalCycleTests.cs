@@ -52,5 +52,32 @@ namespace A305.World.Tests
             Assert.That(cycle.MainAt(length + 1f), Is.EqualTo(SignalLight.Green));
             Assert.That(cycle.CrossAt(length + 1f), Is.EqualTo(SignalLight.Red));
         }
+
+        [TestCase(0f, true, PedestrianLight.Stop)]
+        [TestCase(0f, false, PedestrianLight.Walk)]
+        [TestCase(7f, false, PedestrianLight.Walk)]
+        [TestCase(7.01f, false, PedestrianLight.Clearance)]
+        [TestCase(14.99f, true, PedestrianLight.Stop)]
+        [TestCase(15f, true, PedestrianLight.Walk)]
+        [TestCase(15f, false, PedestrianLight.Stop)]
+        [TestCase(17f, true, PedestrianLight.Walk)]
+        [TestCase(17.01f, true, PedestrianLight.Clearance)]
+        [TestCase(24.99f, true, PedestrianLight.Clearance)]
+        [TestCase(25f, true, PedestrianLight.Stop)]
+        [TestCase(40f, true, PedestrianLight.Walk)]
+        public void PedestrianSignal_MatchesTheCrossedRoadAndLeavesTimeToFinish(
+            float seconds,
+            bool crossesMainRoad,
+            PedestrianLight expected
+        )
+        {
+            Assert.That(cycle.PedestrianAt(seconds, crossesMainRoad), Is.EqualTo(expected));
+            if (expected != PedestrianLight.Stop)
+                Assert.That(
+                    crossesMainRoad ? cycle.MainAt(seconds) : cycle.CrossAt(seconds),
+                    Is.EqualTo(SignalLight.Red),
+                    "보행자가 건너는 동안 가로지르는 차로는 빨간불이어야 합니다."
+                );
+        }
     }
 }

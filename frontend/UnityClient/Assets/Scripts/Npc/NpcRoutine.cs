@@ -56,7 +56,7 @@ namespace A305.Npc
         private const float LookAroundRadiusMeters = 8f;
         private const float LookAroundStepMeters = 1.5f;
         private const int LookAroundTries = 4;
-        private const float LookAroundMinSeconds = 2f;
+        internal const float LookAroundMinSeconds = 2f;
         private const float LookAroundMaxSeconds = 5f;
 
         [SerializeField]
@@ -116,6 +116,7 @@ namespace A305.Npc
         private NpcLife life;
         private string npcCode;
         private string role;
+        private bool isVisitor;
         private bool hasStarted;
 
         // 지금 고른 행동과 그 행동을 할 자리
@@ -164,9 +165,47 @@ namespace A305.Npc
         /// 교대 밖(쉬는 시간·퇴근)이라 일하지 않는 직원인지. 먼저 다가와 제안하지 않고, 플레이어가 먼저 말을 걸면 일상 대화로 이어진다.
         /// 행인과 첫날 미션이 찾아가라고 한 NPC는 false다.
         /// </summary>
-        public bool IsOffDuty => life != null && NpcDuty.IsOffDuty(npcCode, role, life.Activity);
+        public bool IsOffDuty =>
+            isVisitor || (life != null && NpcDuty.IsOffDuty(npcCode, role, life.Activity));
 
-        private bool StaysAtReception => npcCode == "HOTEL_STAFF" && !IsOffDuty;
+        private bool StaysAtReception => !isVisitor && npcCode == "HOTEL_STAFF" && !IsOffDuty;
+
+        /// <summary>다른 시설에서는 손님으로 생활한다. 기존 직원 전용 행동·카운터 응대는 맡지 않는다.</summary>
+        public void ConfigureVisit(
+            NpcLifeData data,
+            NpcLifeEntry entry,
+            string place,
+            RuntimeAnimatorController animator
+        )
+        {
+            isVisitor = true;
+            body = GetComponent<Passerby>();
+            body.TravelContext = new A305.Dialogue.NpcTravelContext { Phase = "LEISURE" };
+            characterController = GetComponent<CharacterController>();
+            animationDriver = GetComponent<CharacterAnimationDriver>();
+            path = new NavMeshPath();
+            npcCode = entry.NpcId;
+            role = "PASSERBY";
+            stayInArea = false;
+            lifeAnimator = animator;
+            life = new NpcLife(
+                data,
+                new NpcLifeEntry
+                {
+                    NpcId = entry.NpcId,
+                    Role = role,
+                    Scene = place,
+                    Workplace = entry.Workplace,
+                    NeedRates = entry.NeedRates,
+                    Schedule = entry.Schedule,
+                },
+                GameClock.Shared.Minutes
+            );
+            enabled = true;
+            UseLifeAnimator();
+            if (hasStarted)
+                RefreshSceneObjects();
+        }
 
         private void Awake()
         {
@@ -218,7 +257,8 @@ namespace A305.Npc
             lookingAround = false;
             lookAroundTarget = null;
             CollectSceneObjects();
-            FindCounter();
+            if (!isVisitor)
+                FindCounter();
         }
 
         private void OnDisable()

@@ -29,7 +29,7 @@ namespace A305.EditorTools.Npc
             "TownScene",
             "PoliceStationScene",
         };
-        private static readonly Vector3 Dorm = new Vector3(-18, .1f, 21);
+        private static readonly Vector3 Dorm = new Vector3(-20, .1f, 16.5f);
         private static readonly Vector3 Park = new Vector3(11, .1f, 21);
 
         [MenuItem("Tools/A305/Npc/Build Population And Housing")]
@@ -37,6 +37,7 @@ namespace A305.EditorTools.Npc
         {
             if (!BuilderTools.CanBuild())
                 return;
+            NpcHurryBuilder.Apply();
             BuilderTools.EnsureFolder(Folder);
             var asset = AssetDatabase.LoadAssetAtPath<TextAsset>(LifePath);
             var data = NpcLifeData.Parse(asset.text);
@@ -209,7 +210,10 @@ namespace A305.EditorTools.Npc
         private static void PlaceDorm(Transform environment)
         {
             if (environment.Find("NpcResidence") != null)
+            {
+                FitDormToRoad(environment);
                 return;
+            }
             var root = new GameObject("NpcResidence");
             root.transform.SetParent(environment, false);
             var exterior = AssetDatabase.LoadAssetAtPath<GameObject>(
@@ -243,6 +247,136 @@ namespace A305.EditorTools.Npc
             var entrance = new GameObject("NpcOnlyEntrance");
             entrance.transform.SetParent(root.transform, false);
             entrance.transform.position = Dorm;
+            FitDormToRoad(environment);
+        }
+
+        [MenuItem("Tools/A305/Npc/Apply Road Facing Housing")]
+        public static void ApplyRoadFacingHousing()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            Scene scene = EditorSceneManager.OpenScene(SceneFolder + "TownScene.unity");
+            PlaceDorm(BuilderTools.EnsureGroups(scene).Environment);
+            var population = BuilderTools.FindSingleInScene<NpcPopulation>(scene);
+            var fields = new SerializedObject(population);
+            fields.FindProperty("dormDoor").vector3Value = Dorm;
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            Physics.SyncTransforms();
+            NpcLifeBuilder.RebakeWalkArea(scene);
+            BuilderTools.SaveScene(scene, scene.path);
+            AssetDatabase.SaveAssets();
+            Debug.Log(
+                "숙소 입구를 남쪽 도로로 돌리고 포장 충돌면·출입 위치·보행 경로를 맞췄습니다."
+            );
+            RenderHousingPreview();
+        }
+
+        private static void FitDormToRoad(Transform environment)
+        {
+            Transform residence = environment.Find("NpcResidence");
+            Transform building = residence.Find("BrickResidence3F");
+            building.SetPositionAndRotation(new Vector3(-20, .1f, 18), Quaternion.Euler(0, 180, 0));
+            PrefabUtility.RecordPrefabInstancePropertyModifications(building);
+            residence.Find("NpcOnlyEntrance").position = Dorm;
+
+            // 포장 메시는 장식만 생성하므로, 보이는 높이와 같은 실제 지지면을 별도로 만든다.
+            var paving = residence.Find("ResidencePaving");
+            Bounds mesh = paving.GetComponent<MeshFilter>().sharedMesh.bounds;
+            var support = BuilderTools.GetOrAddComponent<BoxCollider>(paving.gameObject);
+            support.center = mesh.center;
+            support.size = mesh.size;
+
+            // 기존 서쪽 경계가 숙소 앞마당을 가로지르지 않도록 포장의 바깥 둘레로 잇는다.
+            Transform street = environment.Find("TownMainstreet");
+            // 도로 끝 생울타리의 북쪽 끝도 앞마당 경계(14m)까지만 둔다.
+            // 14m 폭 그대로면 숙소 입구까지 가려 NavMesh가 문 앞에 닿지 못한다.
+            Transform streetEnd = street
+                .Cast<Transform>()
+                .First(child => child.name == "CrossStreetEnd14m" && child.position.x < 0);
+            streetEnd.localScale = new Vector3(8f / 14f, 1, 1);
+            PrefabUtility.RecordPrefabInstancePropertyModifications(streetEnd);
+            Transform boundary = street
+                .Cast<Transform>()
+                .First(child => child.name == "SideBoundary" && child.position.x < 0);
+            FitBoundary(boundary, new Vector3(-19.6f, 3, -9), new Vector3(.5f, 6, 46));
+            HousingBoundary(
+                residence,
+                "NorthBoundary",
+                new Vector3(-19.6f, 3, 49),
+                new Vector3(.5f, 6, 42)
+            );
+            HousingBoundary(
+                residence,
+                "WestBoundary",
+                new Vector3(-30, 3, 21),
+                new Vector3(.5f, 6, 14)
+            );
+            HousingBoundary(
+                residence,
+                "SouthBoundaryJoin",
+                new Vector3(-24.8f, 3, 14),
+                new Vector3(10.9f, 6, .5f)
+            );
+            HousingBoundary(
+                residence,
+                "NorthBoundaryJoin",
+                new Vector3(-24.8f, 3, 28),
+                new Vector3(10.9f, 6, .5f)
+            );
+
+            // 구름은 개발 예정 지역을 계속 가리되 숙소와 앞마당의 사용 영역 밖으로 물린다.
+            Transform clouds = environment.Find("FutureDistrictClouds");
+            if (clouds == null)
+                return;
+            Transform notice = clouds.Find("AirportBoundary/FloatingNotice");
+            if (notice != null)
+            {
+                notice.position = new Vector3(-32, notice.position.y, notice.position.z);
+                PrefabUtility.RecordPrefabInstancePropertyModifications(notice);
+            }
+            var courtyard = new Bounds(new Vector3(-22, 6, 21), new Vector3(18, 14, 18));
+            foreach (Transform cloud in clouds.GetComponentsInChildren<Transform>())
+            {
+                if (
+                    (cloud.name != "CloudBank" && cloud.name != "DistrictCloudTile")
+                    || cloud.position.x >= 0
+                )
+                    continue;
+                var renderers = cloud.GetComponentsInChildren<Renderer>();
+                if (renderers.Length == 0)
+                    continue;
+                Bounds bounds = renderers[0].bounds;
+                foreach (Renderer renderer in renderers)
+                    bounds.Encapsulate(renderer.bounds);
+                if (!bounds.Intersects(courtyard))
+                    continue;
+                cloud.position += Vector3.left * (bounds.max.x - courtyard.min.x + .5f);
+                PrefabUtility.RecordPrefabInstancePropertyModifications(cloud);
+            }
+        }
+
+        private static void HousingBoundary(
+            Transform parent,
+            string name,
+            Vector3 center,
+            Vector3 size
+        )
+        {
+            Transform wall = parent.Find(name);
+            if (wall == null)
+            {
+                wall = new GameObject(name).transform;
+                wall.SetParent(parent, false);
+            }
+            FitBoundary(wall, center, size);
+        }
+
+        private static void FitBoundary(Transform wall, Vector3 center, Vector3 size)
+        {
+            wall.position = center;
+            var collider = BuilderTools.GetOrAddComponent<BoxCollider>(wall.gameObject);
+            collider.center = Vector3.zero;
+            collider.size = size;
         }
 
         [MenuItem("Tools/A305/Npc/Render Housing Preview")]
@@ -251,10 +385,10 @@ namespace A305.EditorTools.Npc
             EditorSceneManager.OpenScene(SceneFolder + "TownScene.unity");
             var root = new GameObject("HousingPreviewCamera");
             var camera = root.AddComponent<Camera>();
-            camera.transform.position = new Vector3(-36, 24, 2);
-            camera.transform.LookAt(new Vector3(-14, 2, 22));
+            camera.transform.position = new Vector3(-12, 16, 1);
+            camera.transform.LookAt(new Vector3(-20, 4, 20));
             camera.orthographic = true;
-            camera.orthographicSize = 17;
+            camera.orthographicSize = 11;
             var target = new RenderTexture(1400, 1000, 24);
             camera.targetTexture = target;
             camera.Render();

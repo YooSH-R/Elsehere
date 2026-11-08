@@ -12,6 +12,9 @@ namespace A305.Npc
         private Vector3 entrance;
         private Vector3 exit;
         private Vector3 forward;
+        private Vector3 departureLanding;
+        private Vector3 arrivalLanding;
+        private NavMeshPath landingPath;
         private bool returning;
         private bool committed;
         private bool crossesMainRoad;
@@ -25,10 +28,15 @@ namespace A305.Npc
             committed = false;
         }
 
-        internal Vector3 Direction(TrafficLights lights, Vector3 position, Vector3 requested)
+        internal Vector3 Direction(
+            TrafficLights lights,
+            Vector3 position,
+            Vector3 requested,
+            Vector3? plannedDirection = null
+        )
         {
             if (!IsActive)
-                Begin(lights, position, requested);
+                Begin(lights, position, plannedDirection ?? requested);
             if (!IsActive)
                 return requested;
 
@@ -39,14 +47,28 @@ namespace A305.Npc
             if (!committed && lights != null && !lights.CanCross(crossesMainRoad, 0f))
                 returning = true;
 
-            Vector3 target = returning
-                ? entrance - forward * SidewalkMargin
-                : exit + forward * SidewalkMargin;
+            Vector3 target = returning ? departureLanding : arrivalLanding;
             Vector3 direction = Vector3.ProjectOnPlane(target - position, Vector3.up);
-            if (direction.magnitude <= .06f)
+            Vector3 crossingForward = returning ? -forward : forward;
+            if (
+                Vector3.Dot(direction, crossingForward) <= .06f
+                && !NpcTownWalker.IsRoadSurface(position, .1f)
+            )
             {
                 Clear();
                 return Vector3.zero;
+            }
+            landingPath ??= new NavMeshPath();
+            if (
+                NavMesh.CalculatePath(position, target, NpcTownWalker.WalkingAreas, landingPath)
+                && landingPath.status == NavMeshPathStatus.PathComplete
+                && landingPath.corners.Length > 2
+            )
+            {
+                Vector3 corner = landingPath.corners[1];
+                if (Vector3.ProjectOnPlane(corner - position, Vector3.up).sqrMagnitude < .01f)
+                    corner = landingPath.corners[2];
+                direction = Vector3.ProjectOnPlane(corner - position, Vector3.up);
             }
             return direction;
         }
@@ -66,9 +88,8 @@ namespace A305.Npc
             )
                 return;
             crossesMainRoad = Mathf.Abs(direction.x) >= Mathf.Abs(direction.z);
-            forward = crossesMainRoad
-                ? Vector3.right * Mathf.Sign(direction.x)
-                : Vector3.forward * Mathf.Sign(direction.z);
+            // 교차로의 경계는 대각선일 수도 있다. 교행 접선이나 가로·세로 축으로 출구를 정하면 차도 안에서 끝난다.
+            forward = Vector3.ProjectOnPlane(direction, Vector3.up).normalized;
             int mask = 1 << area;
             if (
                 !NavMesh.Raycast(
@@ -88,9 +109,61 @@ namespace A305.Npc
                 return;
             entrance = start.position;
             exit = end.position;
+            if (
+                !TryLanding(entrance - forward * SidewalkMargin, out departureLanding)
+                || !TryLanding(exit + forward * SidewalkMargin, out arrivalLanding)
+            )
+                return;
             returning = false;
             committed = false;
             IsActive = true;
+        }
+
+        private static bool TryLanding(Vector3 wanted, out Vector3 landing)
+        {
+            // 대각선 횡단의 끝은 교차로 중앙일 수도 있다. 인도를 찾지 못한 차도 좌표는 목표로 쓰지 않는다.
+            for (int ring = 0; ring <= 32; ring++)
+            for (int slot = 0; slot < (ring == 0 ? 1 : 16); slot++)
+            {
+                float angle = slot * Mathf.PI / 8;
+                Vector3 candidate =
+                    wanted + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * (ring * .25f);
+                if (
+                    !NavMesh.SamplePosition(
+                        candidate,
+                        out NavMeshHit hit,
+                        .15f,
+                        NpcTownWalker.StandingAreas
+                    ) || NpcTownWalker.IsRoadSurface(hit.position, .2f)
+                )
+                    continue;
+                bool blocked = false;
+                foreach (
+                    Collider collider in Physics.OverlapCapsule(
+                        hit.position + Vector3.up * .45f,
+                        hit.position + Vector3.up * 1.4f,
+                        .35f,
+                        ~0,
+                        QueryTriggerInteraction.Ignore
+                    )
+                )
+                    if (
+                        collider.GetComponentInParent<Passerby>() == null
+                        && collider.GetComponentInParent<A305.Player.PlayerMover>() == null
+                        && collider.bounds.max.y > hit.position.y + Passerby.WalkableStepMeters
+                    )
+                    {
+                        blocked = true;
+                        break;
+                    }
+                if (!blocked)
+                {
+                    landing = hit.position;
+                    return true;
+                }
+            }
+            landing = default;
+            return false;
         }
     }
 }

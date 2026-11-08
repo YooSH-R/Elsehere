@@ -108,6 +108,7 @@ namespace A305.Npc
         }
 
         public bool IsShowing => owner != null;
+        public bool IsEventShowing => false;
 
         public bool IsTalkPromptShowing => talkPromptOwner != null;
 

@@ -25,6 +25,10 @@ namespace A305.Npc
 
         public Vector3 Destination { get; set; }
         public bool IsStaff { get; set; }
+        public bool HasScheduleDeadline { get; set; }
+        public Vector3? ScheduleDoor { get; set; }
+        public bool IsHurrying => false;
+        public bool IsRunning => false;
 
         /// <summary>횡단보도 위에서는 대화나 새 제안으로 걸음을 멈추지 않는다.</summary>
         public bool IsCrossing => IsRoadSurface(transform.position, .1f);

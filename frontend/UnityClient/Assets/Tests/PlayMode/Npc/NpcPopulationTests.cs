@@ -19,6 +19,113 @@ namespace A305.Npc.PlayModeTests
     public class NpcPopulationTests
     {
         [UnityTest]
+        public IEnumerator Town_LateCommuterRunsOnAnEmptyPathAndWalksNearThePlayer() =>
+            CheckHurryingNpc(click: false);
+
+        [UnityTest]
+        public IEnumerator Town_ClickingAHurryingNpcShowsAnEventAndNeverStartsDialogue() =>
+            CheckHurryingNpc(click: true);
+
+        private static IEnumerator CheckHurryingNpc(bool click)
+        {
+            SetClock(21 * 60);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
+            var player = Object.FindFirstObjectByType<PlayerMover>();
+            player.Teleport(new Vector3(497, .1f, 505), Quaternion.identity);
+            var walker = Object
+                .FindObjectsByType<NpcTownWalker>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+                .Single(item => item.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER");
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            floor.transform.position = new Vector3(500, -.1f, 500);
+            floor.transform.localScale = new Vector3(16, .2f, 12);
+            NavMeshData navData = BuildWalkingFloor(floor);
+            var instance = NavMesh.AddNavMeshData(navData);
+            float previousDelta = Time.captureDeltaTime;
+            try
+            {
+                Time.captureDeltaTime = 1f / 60f;
+                PlaceWalker(walker, new Vector3(497, .1f, 500), Vector3.right);
+                walker.Destination = new Vector3(503, .1f, 500);
+                walker.HasScheduleDeadline = true;
+                walker.ScheduleDoor = walker.Destination;
+                for (int frame = 0; frame < 8; frame++)
+                    yield return null;
+                Vector3 before = walker.transform.position;
+                if (click)
+                {
+                    var body = walker.GetComponent<Passerby>();
+                    var offer = Object.FindFirstObjectByType<PasserbyOfferView>();
+                    var dialogue = Object.FindFirstObjectByType<DialogueController>();
+                    Assert.That(body.TalkByClick(NpcClickTalk.ReachMeters), Is.True);
+                    Assert.That(offer.IsEventShowing, Is.True);
+                    Assert.That(dialogue.IsTalking, Is.False);
+                    Assert.That(player.IsMovementLocked, Is.False);
+                    for (int frame = 0; frame < 30; frame++)
+                        yield return null;
+                    Assert.That(
+                        HorizontalDistance(before, walker.transform.position),
+                        Is.GreaterThan(.4f)
+                    );
+                    offer
+                        .GetComponentsInChildren<UnityEngine.UI.Button>(true)
+                        .Single(button => button.name == "AcceptButton")
+                        .onClick.Invoke();
+                    Assert.That(dialogue.IsTalking, Is.False);
+                    Assert.That(offer.IsShowing, Is.False);
+                    Assert.That(body.Phase, Is.Not.EqualTo(PasserbyPhase.Talking));
+                }
+                else
+                {
+                    Assert.That(walker.IsHurrying, Is.True);
+                    Assert.That(walker.IsRunning, Is.True);
+                    for (int frame = 0; frame < 30; frame++)
+                        yield return null;
+                    Assert.That(
+                        HorizontalDistance(before, walker.transform.position),
+                        Is.InRange(1.1f, 1.32f)
+                    );
+                    player.Teleport(
+                        walker.transform.position + Vector3.forward * 1.5f,
+                        Quaternion.identity
+                    );
+                    before = walker.transform.position;
+                    for (int frame = 0; frame < 30; frame++)
+                        yield return null;
+                    Assert.That(
+                        walker.IsHurrying,
+                        Is.True,
+                        "가까운 사람을 배려해 걸어도 늦은 상태는 이어집니다."
+                    );
+                    Assert.That(walker.IsRunning, Is.False);
+                    Assert.That(
+                        HorizontalDistance(before, walker.transform.position),
+                        Is.InRange(.65f, .82f)
+                    );
+                }
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDelta;
+                instance.Remove();
+                Object.Destroy(navData);
+                Object.Destroy(floor);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Town_RestingTimeDoesNotHideACommuterBeforeReachingTheDoor()
         {
             SetClock(20 * 60 + 29);

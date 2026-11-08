@@ -5,12 +5,13 @@ using System.IO;
 using System.Linq;
 using A305.World;
 using UnityEngine;
+using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
 
 namespace A305.Npc
 {
     /// <summary>실제 일과를 바꾸지 않고 정해진 구간의 Play 프레임을 기록한다.</summary>
-    internal sealed class NpcDailyReviewCapture : IDisposable
+    public sealed class NpcDailyReviewCapture : IDisposable
     {
         private readonly string output;
         private readonly HashSet<string> completed = new HashSet<string>();
@@ -22,8 +23,30 @@ namespace A305.Npc
         private int duration;
         private Vector3 focus;
         private Vector3 offset;
+        private NpcTownWalker follow;
+        private readonly Dictionary<SkinnedMeshRenderer, bool> originalOffscreen = new();
+        private string pendingImage;
 
-        internal NpcDailyReviewCapture(string output) => this.output = output;
+        public NpcDailyReviewCapture(string output)
+        {
+            this.output = output;
+            RenderPipelineManager.endCameraRendering += CameraRendered;
+        }
+
+        public void RecordScenario(
+            string name,
+            Transform character,
+            Vector3 viewOffset,
+            double minute
+        )
+        {
+            if (string.IsNullOrEmpty(output) || character == null || completed.Contains(name))
+                return;
+            if (clip == null)
+                Begin(name, character.position + Vector3.up, viewOffset, int.MaxValue);
+            focus = character.position + Vector3.up;
+            Step(minute, Array.Empty<NpcTownWalker>());
+        }
 
         internal void Step(double now, NpcTownWalker[] walkers)
         {
@@ -31,10 +54,46 @@ namespace A305.Npc
                 return;
             if (clip == null)
             {
-                if (now >= 230 && now < 300 && !completed.Contains("commute-crossing"))
-                    Begin("commute-crossing", new Vector3(0, 1, 13), new Vector3(14, 13, -18), 870);
-                else if (now >= 305 && now < 350 && !completed.Contains("bank-sidewalk"))
-                    Begin("bank-sidewalk", new Vector3(-5, 1, 38), new Vector3(7, 5, -6), 300);
+                var barber = walkers.FirstOrDefault(body =>
+                    body.isActiveAndEnabled
+                    && body.GetComponent<NpcIdentity>().Code == "BARBER_STAFF"
+                );
+                var banker = walkers.FirstOrDefault(body =>
+                    body.isActiveAndEnabled && body.GetComponent<NpcIdentity>().Code == "BANK_STAFF"
+                );
+                if (
+                    now >= 189
+                    && now < 229
+                    && barber != null
+                    && !completed.Contains("building-route")
+                )
+                {
+                    follow = barber;
+                    Begin(
+                        "building-route",
+                        barber.transform.position + Vector3.up,
+                        new Vector3(0, 12, -3),
+                        300
+                    );
+                }
+                else if (now >= 230 && now < 269 && !completed.Contains("commute-crossing"))
+                    Begin("commute-crossing", new Vector3(0, 1, 13), new Vector3(14, 13, -18), 480);
+                else if (
+                    now >= 270
+                    && banker != null
+                    && Vector3.Distance(banker.transform.position, new Vector3(-4.75f, .1f, 37.5f))
+                        < 3.5f
+                    && !completed.Contains("bank-sidewalk")
+                )
+                {
+                    follow = banker;
+                    Begin(
+                        "bank-sidewalk",
+                        banker.transform.position + Vector3.up,
+                        new Vector3(6, 2, 2),
+                        240
+                    );
+                }
                 else if (now > 1050 && !completed.Contains("facility-entrance"))
                 {
                     foreach (NpcOuting trip in NpcOutings.Shared.Trips)
@@ -66,38 +125,52 @@ namespace A305.Npc
             }
             if (clip == null)
                 return;
+            if (follow != null)
+                focus = follow.transform.position + Vector3.up;
             camera.transform.position = focus + offset;
             camera.transform.LookAt(focus);
-            if (frame % 6 == 0)
+            if (frame % 3 == 0)
             {
-                Canvas.ForceUpdateCanvases();
-                camera.Render();
-                RenderTexture.active = target;
-                pixels.ReadPixels(new Rect(0, 0, 960, 600), 0, 0);
-                pixels.Apply();
-                File.WriteAllBytes(
-                    Path.Combine(output, clip, $"{frame / 6:0000}.png"),
-                    pixels.EncodeToPNG()
-                );
+                if (frame == 0 && follow != null)
+                    File.WriteAllLines(
+                        Path.Combine(output, clip, "renderers.txt"),
+                        follow
+                            .GetComponentsInChildren<Renderer>(true)
+                            .Select(renderer =>
+                                $"{renderer.name} active={renderer.gameObject.activeInHierarchy} enabled={renderer.enabled} hidden={renderer.forceRenderingOff} bounds={renderer.bounds}"
+                            )
+                    );
+                pendingImage = Path.Combine(output, clip, $"{frame / 3:0000}.png");
                 File.AppendAllText(
                     Path.Combine(output, clip, "minutes.csv"),
-                    $"{frame / 6},{now:F3}\n"
+                    $"{frame / 3},{now:F3}\n"
                 );
-                RenderTexture.active = null;
             }
             if (++frame >= duration)
             {
                 completed.Add(clip);
                 clip = null;
+                follow = null;
                 camera.enabled = false;
-                foreach (
-                    var model in Object.FindObjectsByType<Animator>(
-                        FindObjectsInactive.Include,
-                        FindObjectsSortMode.None
-                    )
-                )
-                    model.enabled = false;
+                foreach (var saved in originalOffscreen)
+                    if (saved.Key != null)
+                        saved.Key.updateWhenOffscreen = saved.Value;
+                originalOffscreen.Clear();
             }
+        }
+
+        // Update 중 강제로 렌더하면 이번 프레임의 스킨·접지 보정이 반영되기 전 모습을 찍을 수 있다.
+        private void CameraRendered(ScriptableRenderContext context, Camera rendered)
+        {
+            if (rendered != camera || pendingImage == null)
+                return;
+            RenderTexture previous = RenderTexture.active;
+            RenderTexture.active = target;
+            pixels.ReadPixels(new Rect(0, 0, 960, 600), 0, 0);
+            pixels.Apply();
+            File.WriteAllBytes(pendingImage, pixels.EncodeToPNG());
+            RenderTexture.active = previous;
+            pendingImage = null;
         }
 
         private void Begin(string name, Vector3 center, Vector3 viewOffset, int frames)
@@ -143,7 +216,22 @@ namespace A305.Npc
                     FindObjectsSortMode.None
                 )
             )
+            {
+                model.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                 model.enabled = true;
+                if (model.isActiveAndEnabled && model.runtimeAnimatorController != null)
+                    model.Update(0);
+            }
+            foreach (
+                var skin in Object.FindObjectsByType<SkinnedMeshRenderer>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+            )
+            {
+                originalOffscreen.TryAdd(skin, skin.updateWhenOffscreen);
+                skin.updateWhenOffscreen = true;
+            }
             clip = name;
             focus = center;
             offset = viewOffset;
@@ -155,6 +243,10 @@ namespace A305.Npc
 
         public void Dispose()
         {
+            RenderPipelineManager.endCameraRendering -= CameraRendered;
+            foreach (var saved in originalOffscreen)
+                if (saved.Key != null)
+                    saved.Key.updateWhenOffscreen = saved.Value;
             RenderTexture.active = null;
             if (camera != null)
             {

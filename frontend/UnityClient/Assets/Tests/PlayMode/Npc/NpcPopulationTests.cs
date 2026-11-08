@@ -198,6 +198,11 @@ namespace A305.Npc.PlayModeTests
                 .Select(code => all.Single(item => item.GetComponent<NpcIdentity>().Code == code))
                 .ToArray();
             float previousDelta = Time.captureDeltaTime;
+#if UNITY_EDITOR
+            using var review = new NpcDailyReviewCapture(
+                System.Environment.GetEnvironmentVariable("NPC_OBSTACLE_REVIEW_OUTPUT")
+            );
+#endif
             try
             {
                 Time.captureDeltaTime = 1f / 30f;
@@ -226,6 +231,15 @@ namespace A305.Npc.PlayModeTests
                             )
                             .SetValue(lights, 0f);
                     yield return null;
+#if UNITY_EDITOR
+                    if (visual && walkers[0].gameObject.activeSelf)
+                        review.RecordScenario(
+                            "bank-obstacle",
+                            walkers[0].transform,
+                            new Vector3(5, 3, -3),
+                            GameClock.Shared.Minutes
+                        );
+#endif
                     if (visual && frame % 30 == 0)
                     {
                         var model = walkers[0]

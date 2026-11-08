@@ -109,11 +109,26 @@ namespace A305.Npc.PlayModeTests
             );
             Vector3 before = guest.transform.position;
             float previousDelta = Time.captureDeltaTime;
+#if UNITY_EDITOR
+            using var review = new NpcDailyReviewCapture(
+                System.Environment.GetEnvironmentVariable("NPC_FACILITY_REVIEW_OUTPUT")
+            );
+#endif
             try
             {
                 Time.captureDeltaTime = 1f / 60f;
                 for (int frame = 0; frame < 180; frame++)
+                {
                     yield return null;
+#if UNITY_EDITOR
+                    review.RecordScenario(
+                        "facility-interior",
+                        guest.transform,
+                        new Vector3(4, 3, -5),
+                        GameClock.Shared.Minutes
+                    );
+#endif
+                }
                 Assert.That(
                     Vector3.Distance(before, guest.transform.position) > .3f || guest.IsSeated,
                     Is.True,
@@ -121,7 +136,18 @@ namespace A305.Npc.PlayModeTests
                 );
                 SetClock(1201, reset: false);
                 for (int frame = 0; frame < 600 && !trip.ReadyToLeave; frame++)
+                {
                     yield return null;
+#if UNITY_EDITOR
+                    if (guest != null)
+                        review.RecordScenario(
+                            "facility-interior",
+                            guest.transform,
+                            new Vector3(4, 3, -5),
+                            GameClock.Shared.Minutes
+                        );
+#endif
+                }
                 Assert.That(trip.ReadyToLeave, Is.True, "문으로 걸어 나온 뒤 거리로 돌아갑니다.");
                 yield return null;
                 Assert.That(guest == null, Is.True);

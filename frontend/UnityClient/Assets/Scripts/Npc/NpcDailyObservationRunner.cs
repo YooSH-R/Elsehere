@@ -121,6 +121,11 @@ namespace A305.Npc
                     pair => pair.Key,
                     pair => pair.Value.GetComponent<Passerby>()
                 );
+                bool recording =
+                    signals
+                    && !string.IsNullOrEmpty(
+                        Environment.GetEnvironmentVariable("NPC_DAILY_REVIEW_OUTPUT")
+                    );
                 foreach (
                     TrafficLights lights in Object.FindObjectsByType<TrafficLights>(
                         FindObjectsSortMode.None
@@ -133,7 +138,11 @@ namespace A305.Npc
                         FindObjectsSortMode.None
                     )
                 )
-                    model.enabled = false;
+                {
+                    model.enabled = recording;
+                    if (recording)
+                        model.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                }
                 foreach (
                     Canvas canvas in Object.FindObjectsByType<Canvas>(
                         FindObjectsInactive.Include,

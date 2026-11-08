@@ -9,11 +9,19 @@ namespace A305.World
         Red,
     }
 
+    public enum PedestrianLight
+    {
+        Stop,
+        Walk,
+        Clearance,
+    }
+
     /// <summary>
     /// 교차로 신호 주기. 본길 초록 → 노랑 → 빨강을 돌고, 본길이 빨강인 동안 가로길이 초록 → 노랑이 된다.
     /// </summary>
     public sealed class TrafficSignalCycle
     {
+        public const float RequiredCrossingSeconds = 8f;
         private readonly float mainGreenSeconds;
         private readonly float crossGreenSeconds;
         private readonly float yellowSeconds;
@@ -30,6 +38,9 @@ namespace A305.World
         }
 
         private float Length => mainGreenSeconds + crossGreenSeconds + 2f * yellowSeconds;
+
+        public PedestrianLight PedestrianAt(float seconds, bool crossesMainRoad) =>
+            PedestrianLight.Stop;
 
         public SignalLight MainAt(float seconds)
         {

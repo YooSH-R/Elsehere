@@ -559,7 +559,81 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_CommuterReturnsToDepartureSideWhenSignalChangesEarly() =>
             CheckCrossingSignalChange(.1f, true);
 
-        private static IEnumerator CheckCrossingSignalChange(float changeAtProgress, bool returns)
+        [UnityTest]
+        public IEnumerator Town_CommuterWaitsForThePedestrianHeadWithoutAVehicleHeadNearby() =>
+            CheckCrossingSignalChange(.3f, false, pedestrianOnly: true);
+
+        [UnityTest]
+        public IEnumerator Town_TwoCommutersPassBesideTheSharedSignalPole()
+        {
+            SetClock(21 * 60);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
+            Object
+                .FindFirstObjectByType<A305.Player.PlayerMover>()
+                .Teleport(new Vector3(450, 20, 450), Quaternion.identity);
+            var walkers = Object.FindObjectsByType<NpcTownWalker>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+            var first = walkers.Single(w =>
+                w.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER"
+            );
+            var second = walkers.Single(w => w.GetComponent<NpcIdentity>().Code == "CAFE_STAFF");
+            foreach (Passerby body in Object.FindObjectsByType<Passerby>(FindObjectsSortMode.None))
+                if (
+                    body != first.GetComponent<Passerby>()
+                    && body != second.GetComponent<Passerby>()
+                )
+                    body.gameObject.SetActive(false);
+            float previousDelta = Time.captureDeltaTime;
+            try
+            {
+                Time.captureDeltaTime = 1f / 60f;
+                PlaceWalker(first, new Vector3(-4.1f, .1f, 3.5f), Vector3.forward);
+                PlaceWalker(second, new Vector3(-4.1f, .1f, 6.1f), Vector3.back);
+                for (int frame = 0; frame < 8; frame++)
+                    yield return null;
+                first.Destination = new Vector3(-4.1f, .1f, 6.1f);
+                second.Destination = new Vector3(-4.1f, .1f, 3.5f);
+                for (int frame = 0; frame < 420; frame++)
+                {
+                    yield return null;
+                    Assert.That(
+                        HorizontalDistance(first.transform.position, second.transform.position),
+                        Is.GreaterThan(.95f),
+                        "신호 기둥 옆에서도 얼굴을 겹치지 않고 비켜가야 합니다."
+                    );
+                }
+                Assert.That(
+                    HorizontalDistance(first.transform.position, first.Destination),
+                    Is.LessThan(.15f)
+                );
+                Assert.That(
+                    HorizontalDistance(second.transform.position, second.Destination),
+                    Is.LessThan(.15f)
+                );
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDelta;
+            }
+        }
+
+        private static IEnumerator CheckCrossingSignalChange(
+            float changeAtProgress,
+            bool returns,
+            bool pedestrianOnly = false
+        )
         {
             SetClock(21 * 60);
             SceneManager.sceneLoaded += DisableWalkingTestApis;
@@ -589,8 +663,15 @@ namespace A305.Npc.PlayModeTests
             lights.enabled = false;
             var signal = lights.Heads.First(head => head != null);
             Vector3 signalPosition = signal.transform.position;
-            signal.transform.position = new Vector3(500, 0, 502);
             const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var pedestrian = lights.PedestrianHeads.First(head => head.CrossesMainRoad);
+            Vector3 pedestrianCrossing = pedestrian.CrossingPoint;
+            if (pedestrianOnly)
+                typeof(PedestrianSignalHead)
+                    .GetField("crossingPoint", flags)
+                    .SetValue(pedestrian, new Vector3(500, 0, 500));
+            else
+                signal.transform.position = new Vector3(500, 0, 502);
             var phase = typeof(TrafficLights).GetField("elapsedSeconds", flags);
             phase.SetValue(lights, 0f);
             Assert.That(lights.CanCross(true, 8), Is.False);
@@ -705,6 +786,9 @@ namespace A305.Npc.PlayModeTests
             {
                 Time.captureDeltaTime = previousDeltaTime;
                 signal.transform.position = signalPosition;
+                typeof(PedestrianSignalHead)
+                    .GetField("crossingPoint", flags)
+                    .SetValue(pedestrian, pedestrianCrossing);
                 lights.enabled = true;
                 navInstance.Remove();
                 Object.Destroy(navData);

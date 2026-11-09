@@ -11,9 +11,10 @@ namespace A305.Onboarding
     /// </summary>
     public class LoginPanelView : MonoBehaviour
     {
-        // 로그인 전이라 약관 목록(AUTH-03)을 받지 않으므로 문서 주소를 여기 둔다. 서버 ConsentCatalog의 TERMS·PRIVACY와 같게 둔다.
-        private const string TermsUrl = "/terms/2026-10";
-        private const string PrivacyUrl = "/privacy/2026-11";
+        // 로그인 전이라 약관 목록(AUTH-03)을 받지 않으므로, 서버가 지금 버전 문서로 보내 주는 버전 없는 주소를 쓴다.
+        // 문서 버전이 바뀌어도 이 주소는 고치지 않는다.
+        private const string TermsUrl = "/terms";
+        private const string PrivacyUrl = "/privacy";
 
         [SerializeField]
         private Button googleButton;

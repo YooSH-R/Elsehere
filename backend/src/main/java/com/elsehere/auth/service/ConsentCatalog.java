@@ -3,6 +3,7 @@ package com.elsehere.auth.service;
 import com.elsehere.auth.dto.ConsentAgreement;
 import com.elsehere.user.entity.ConsentType;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 /**
@@ -17,7 +18,8 @@ public class ConsentCatalog {
   private static final List<ConsentTerm> CURRENT_TERMS =
       List.of(
           new ConsentTerm(ConsentType.TERMS, "2026-10", true, "서비스 이용약관", "/terms/2026-10"),
-          new ConsentTerm(ConsentType.PRIVACY, "2026-11", true, "개인정보 처리방침", "/privacy/2026-11"),
+          new ConsentTerm(
+              ConsentType.PRIVACY, "2026-11-09", true, "개인정보 처리방침", "/privacy/2026-11-09"),
           new ConsentTerm(ConsentType.AGE14, "2026-10", true, "만 14세 이상입니다", null),
           new ConsentTerm(ConsentType.VOICE, "2026-10", false, "음성 처리 동의", "/voice/2026-10"),
           new ConsentTerm(
@@ -40,6 +42,15 @@ public class ConsentCatalog {
   /** 선택 동의. 음성 처리, AI 개선 대화 기록, AI 개선 녹음 음성 순서다. 가입 뒤에도 켜고 끈다. */
   public List<ConsentTerm> optionalTerms() {
     return CURRENT_TERMS.stream().filter(term -> !term.required()).toList();
+  }
+
+  /** 문서 이름(terms·privacy·voice·ai-training)의 지금 버전 주소. 그런 문서가 없으면 비어 있다. */
+  public Optional<String> currentDocumentUrl(String document) {
+    String prefix = "/" + document + "/";
+    return CURRENT_TERMS.stream()
+        .map(ConsentTerm::url)
+        .filter(url -> url != null && url.startsWith(prefix))
+        .findFirst();
   }
 
   /** 지금 받는 약관의 문서 주소인지. 약관 페이지는 이 주소만 연다. */

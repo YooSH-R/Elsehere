@@ -14,3 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: A305.Player::A305.Player.PlayerTouchSettings
   stickDeadZone: 0.1
   lookSensitivity: 1
+  runThreshold: 0.9

@@ -125,6 +125,8 @@ class Settings:
     guard_gpu_timeout_s: float = 3.0
     guard_breaker_failures: int = 3  # GPU 서버 판정이 이만큼 연속 실패하면 잠시 건너뜀 (0이면 끔)
     guard_breaker_skip_s: float = 60.0  # 건너뛰는 시간. 지나면 다시 시도
+    # GPU 서버 판정이 무례라고 하면 구성의 guard 모델에 한 번 더 묻고 둘 다 무례일 때만 무례 (app/guard.py confirm_rude)
+    guard_confirm: bool = True
     reply_first_budget_s: float = 5.0  # NPC 대답 첫 글자까지의 상한 (재시도·대체 모델 포함)
     respond_budget_s: float = 30.0  # NPC 추론 API(/internal/ai/npc/respond) 요청 하나의 상한. 계약 10절 'AI 처리 제한 30초'
     exhausted_skip_s: float = 600.0  # 하루 한도에 걸린 모델은 이만큼 건너뜀
@@ -219,6 +221,7 @@ class Settings:
             guard_gpu_timeout_s=float(e.get("GUARD_GPU_TIMEOUT_S", cls.guard_gpu_timeout_s)),
             guard_breaker_failures=int(e.get("GUARD_BREAKER_FAILURES", cls.guard_breaker_failures)),
             guard_breaker_skip_s=float(e.get("GUARD_BREAKER_SKIP_S", cls.guard_breaker_skip_s)),
+            guard_confirm=e.get("GUARD_CONFIRM", "true").lower() == "true",
             audio_max_mb=float(e.get("AUDIO_MAX_MB", cls.audio_max_mb)),
             reply_first_budget_s=float(e.get("REPLY_FIRST_BUDGET_S", cls.reply_first_budget_s)),
             respond_budget_s=float(e.get("RESPOND_BUDGET_S", cls.respond_budget_s)),

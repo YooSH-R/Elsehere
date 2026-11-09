@@ -21,6 +21,13 @@ def test_explicit_windows_local_mode_uses_the_laptop_gpu_and_two_synthesis_slots
     assert environ["CUDA_VISIBLE_DEVICES"] == "0"
 
 
+def test_dedicated_rental_server_uses_its_only_gpu_with_server_synthesis_slots():
+    environ = {"TTS_DEDICATED_GPU": "1", "CUDA_VISIBLE_DEVICES": "5"}
+    assert configure_device(environ, "posix") == 8
+    assert environ["CUDA_VISIBLE_DEVICES"] == "0"
+    assert environ["CUDA_DEVICE_ORDER"] == "PCI_BUS_ID"
+
+
 def test_windows_local_flag_cannot_change_the_shared_linux_gpu_selection():
     with pytest.raises(ValueError, match="Windows"):
         configure_device({"TTS_LOCAL_WINDOWS": "1"}, "posix")

@@ -130,7 +130,10 @@ namespace A305.EditorTools.Player
             BuilderTools.EnsureFolder(VisualFolder);
             GameObject femaleVisual = CreateVisual("Female", LittleMungStairBuilder.PrefabPath);
             var maleVisual = BuilderTools.LoadRequiredAsset<GameObject>(
-                MaleVisualPath,
+                AssetDatabase.LoadAssetAtPath<GameObject>(PlayerHeadProportionBuilder.PrefabPath)
+                != null
+                    ? PlayerHeadProportionBuilder.PrefabPath
+                    : MaleVisualPath,
                 "Male master visual"
             );
             PlayerCharacterDefinition female = ConnectDefinition("F", femaleVisual);

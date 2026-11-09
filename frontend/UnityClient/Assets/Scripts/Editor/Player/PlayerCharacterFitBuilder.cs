@@ -28,7 +28,7 @@ namespace A305.EditorTools.Player
             PlayerCharacterBuilder.Build();
         }
 
-        private static void Fit(PlayerCharacterDefinition definition)
+        internal static void Fit(PlayerCharacterDefinition definition)
         {
             var copy = Object.Instantiate(definition.VisualPrefab);
             try

@@ -11,6 +11,10 @@ AI 워커의 음성 인식(STT)을 SSAFY GPU 서버(5번 GPU)에서 자체 학�
   - 인코더가 건당 약 0.035초로 GPU 계산 한계라, 4건 이상 묶으면 처리량이 초당 약 28건으로 같습니다(예전 한 건씩은 초당 약 2건).
   - `num_workers=4`로 한 건씩 동시에 받아 적는 방식은 같은 GPU에서 처리량이 늘지 않아 쓰지 않습니다(S15P31A305-511).
 - CTranslate2 기본 메모리 할당기(`cudaMallocAsync`)는 큰 블록을 요청마다 드라이버에서 다시 받습니다. 공용 GPU 서버에서 다른 팀이 드라이버를 바쁘게 쓰면 그 호출이 드라이버 잠금에서 몇 초씩 멈춰(1건 중앙 0.08초인데 p90 1.2초), 한 번 받은 블록을 계속 쓰는 `cub_caching` 할당기를 씁니다(`server.py`가 `CT2_CUDA_ALLOCATOR`·`CT2_CUDA_CACHING_ALLOCATOR_CONFIG` 기본값을 정함). 묶음 크기마다 처음 한 번은 메모리를 새로 받느라 느려, 요청을 받기 전에 1~16건을 한 번씩 돌려 둡니다(약 13초). 받아 둔 블록 때문에 GPU 메모리는 예열 뒤 약 10.2GB(모델만 약 3.0GB, 한 건씩 받아 적던 때 약 2.3GB)를 쓰고 그 뒤로는 늘지 않습니다.
+- 말소리가 없는 녹음은 GPU에 넘기지 않고 빈 결과(`text: ""`)를 돌려줍니다(`speech_gate.py`, S15P31A305-704). 워커는 빈 결과를 무음으로 보고 백엔드가 `STT_NO_SPEECH`로 다시 말하기를 안내합니다.
+  - large-v3-turbo는 '말소리 없음' 확률(`no_speech_prob`)을 내지 못해 무음·잡음에서도 0.0이고, 그런 녹음에 `I want... I want...`, `감사합니다` 같은 문장을 지어냅니다. 학습 전 원본도, 프롬프트가 없어도 같습니다. 같은 계산(`generate(return_no_speech_prob=True)`)으로 small 원본은 0.84~0.89, large-v3 원본은 프롬프트 없이 0.80~0.86(혼합 프롬프트가 있으면 0.21~0.24)이라 계산 위치가 아니라 turbo 모델의 성질입니다. 그래서 묶음 받아 적기의 말소리 없음 판정(`NO_SPEECH_THRESHOLD`)은 turbo에서 걸리지 않습니다.
+  - 대신 faster-whisper에 들어 있는 Silero VAD(문턱 0.5)로 말소리 구간이 하나라도 있는지 봅니다. 요청 스레드에서 돌고 3초 녹음에 약 5ms(CPU)입니다.
+  - 측정: 무음·흰 잡음·저음 잡음·60Hz 웅웅거림·딸깍 소리·숨소리(음량 0.002~0.06) 21개는 모두 걸렀습니다. 합성한 짧은 단어(`Yes.`, `Latte.` 등 10단어 × 목소리 3개, 잡음을 섞어도) 60/60, 게임 낭독 60/60, 팀원 녹음 키트 439/440이 통과했습니다. 걸린 1개는 다른 화자가 약 4초로 읽은 문장이 0.9초로 잘린 녹음입니다.
 - 파이썬 기본 HTTP 서버의 접속 대기열(5)로는 동시에 몰린 연결이 끊겨(동시 40건 중 2건), 대기열을 64로 늘렸습니다.
 
 ### 동시 요청 실측 (S15P31A305-513)
@@ -42,7 +46,7 @@ AI 워커의 음성 인식(STT)을 SSAFY GPU 서버(5번 GPU)에서 자체 학�
 
 ## 실행 (GPU 서버)
 
-이 폴더의 `server.py`·`supervise.sh`를 `~/stt/gpu_stt/`에 둡니다. 모델은 `~/stt/stt_finetune/checkpoints/turbo-lr1e4/ct2`, 실행 환경은 `~/stt/.venv`, `~/stt/gpu5.sh`가 5번 GPU만 보이게 하고 그 환경의 파이썬으로 실행합니다. 토큰은 `~/stt/gpu_stt/token`(권한 600)이고 같은 값을 워커의 `STT_GPU_TOKEN`으로 씁니다.
+이 폴더의 `server.py`·`speech_gate.py`·`supervise.sh`를 `~/stt/gpu_stt/`에 둡니다. 모델은 `~/stt/stt_finetune/checkpoints/turbo-lr1e4/ct2`, 실행 환경은 `~/stt/.venv`, `~/stt/gpu5.sh`가 5번 GPU만 보이게 하고 그 환경의 파이썬으로 실행합니다. 토큰은 `~/stt/gpu_stt/token`(권한 600)이고 같은 값을 워커의 `STT_GPU_TOKEN`으로 씁니다.
 
 ```bash
 setsid nohup ~/stt/gpu_stt/supervise.sh > ~/stt/gpu_stt/supervise.log 2>&1 &

@@ -277,6 +277,7 @@ ai/worker/.venv/Scripts/python ai/tools/synthesize_script_lines.py --models <모
 - `tests/test_audio_store.py`: 음성 보관소의 전체 크기 상한
 - `tests/test_speech_text.py`: 음성으로 읽을 글 다듬기(`app/speech_text.py`) — 가격(`$13` → 13 dollars, 센트·단수·쉼표), 시각(`10:00` → 10 o'clock, `9:05` → 9 oh 5, a.m.·p.m.), 별표, 한글은 자막으로만(남은 문장 부호 정리), 평범한 영어는 그대로, 읽을 게 없으면 빈 글. Kokoro가 다듬은 글을 음소로 엔진에 넘기고, 읽을 게 없으면 엔진 없이 같은 형식의 짧은 무음
 - `tests/test_pronunciation.py`: 발음 사전(`app/pronunciation.py`) — 사전 단어는 적어 둔 음소, 나머지는 음소화, 대소문자 무관·단어 경계(honest의 hon은 아님), 여러 단어 항목(café au lait), 사전 단어가 없으면 글 전체를 한 번에 음소화, 사전 음소가 Kokoro 어휘 기호만 쓰는지
+- `tests/test_gpu_stt_speech_gate.py`: GPU 서버 STT의 말소리 거르기(`ai/gpu_stt/speech_gate.py`) — 무음·잡음·웅웅거림은 말소리 아님, 짧은 단어(`Yes.`, `Latte.`, Kokoro 합성 `tests/fixtures/`)는 앞뒤 무음·잡음이 있어도 말소리. faster-whisper가 있는 환경(GPU 서버)에서만 돌고 CI에서는 건너뜀
 - `tests/test_tts_gpu.py`: GPU 서버 음성 합성 — 다듬고 음소로 바꾼 글·목소리·속도·토큰을 보내고 받은 WAV를 씀, 오류·시간 초과·WAV가 아닌 답이면 한 번만 부르고 CPU로, 연속 실패 시 잠시 건너뛰기·성공하면 초기화, 같은 문장·읽을 것이 없는 글은 GPU를 부르지 않음, 환경 변수(토큰 필수)
 - `tests/test_tts_roundtrip.py`: 음성 합성 왕복 평가(`ai/tools/tts_roundtrip.py`)의 채점 — 곡선 따옴표는 곧은 것으로 바꿔 정규화, 대소문자·문장 부호 무시, 붙여 쓰기·띄어 쓰기 차이, 이어서 틀린 단어를 한 덩어리로, 태그별 WER(단어 수 가중), 평가 문장 파일(id 중복·NPC·태그)
 - `tests/test_profiles.py`: `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, 음성 인식 대체(`STT_FALLBACK`)·순서(`STT_CHAIN`, gpu 주소·토큰 필수, 잘못된 값)·건너뛰기 설정, 음성 합성 스레드 수(`KOKORO_THREADS`), GPT-5 요청 칸

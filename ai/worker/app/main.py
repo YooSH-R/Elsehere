@@ -299,7 +299,7 @@ def create_app(
         )
 
     @app.post("/v1/stt")
-    async def transcribe(request: Request, file: UploadFile = File(...), scene_words: str = Form("")):
+    async def transcribe(request: Request, file: UploadFile = File(...), scene_words: str = Form(""), npc_line: str = Form("")):
         mime = (file.content_type or "").split(";")[0].strip()  # "audio/webm;codecs=opus" → "audio/webm"
         if mime not in stt.AUDIO_EXT:
             raise ApiError("audio_format_unsupported", f"지원하지 않는 녹음 형식입니다 ({file.content_type})", 415)
@@ -312,7 +312,7 @@ def create_app(
             words = json.loads(scene_words) if scene_words.strip().startswith("[") else scene_words.split(",")
         except ValueError:
             raise ApiError("invalid_request", "scene_words는 JSON 배열이나 쉼표로 구분한 글이어야 합니다", 400) from None
-        return await stt.stt(request.app.state.llm, audio, mime, [str(w) for w in words])
+        return await stt.stt(request.app.state.llm, audio, mime, [str(w) for w in words], npc_line)
 
     @app.post("/v1/hint")
     async def hint(req: HintRequest, request: Request):

@@ -48,6 +48,7 @@ setsid nohup ~/tts/gpu_tts/supervise.sh > ~/tts/gpu_tts/supervise.log 2>&1 &
 - 개발 터널은 `~/tts/gpu_tts/tunnel_enabled`, 운영 터널은 `~/tts/gpu_tts/prod_tunnel_enabled` 파일이 있을 때만 겁니다. 배포 서버 담당자가 `a305-stt-tunnel` 계정에 해당 입구 전달과 워커 컨테이너 방화벽을 허용한 뒤에 만듭니다([GPU 터널 네트워크](../../docs/gpu-worker-network.md)).
 - JupyterHub 세션이 꺼지면 감시 스크립트와 합성 서버도 같이 꺼지고, 그동안 워커는 CPU 합성으로 넘어가므로 음성은 계속 나옵니다. Jupyter 서버가 다시 시작되면(자동 보안 업데이트 뒤 서비스 재시작 등) [`ai/gpu_autostart`](../gpu_autostart/README.md) 훅이 감시 스크립트를 자동으로 다시 띄웁니다. 서버 재부팅처럼 Jupyter 서버가 뜨지 않으면 JupyterHub에 로그인할 때 같은 훅이 띄웁니다.
 - 공용 서버라 `server.py`가 onnxruntime을 불러오기 전에 5번 GPU만 보이게 정합니다. 다른 번호를 쓰지 않습니다.
+- [임대 GPU 서버](../gpu_rental/README.md)처럼 GPU 한 장을 우리만 쓰는 서버에서는 `TTS_DEDICATED_GPU=1`로 0번 GPU를 씁니다. 동시 합성 수는 8개로 같습니다.
 
 ## Windows 개발 PC의 NVIDIA GPU
 

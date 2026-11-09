@@ -6,6 +6,7 @@ using A305.Player;
 using A305.World;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.SceneManagement;
 
 namespace A305.Npc
 {
@@ -1073,18 +1074,20 @@ namespace A305.Npc
         }
 
         // 구역이 정해진 NPC는 구역 밖 사물·자리를 처음부터 모으지 않아, 일과·둘러보기 모두 구역 안에서만 고른다.
+        // 사물 크기(SolidBounds)는 구역을 볼 때만 잰다. 마을 사물 1,800여 개의 크기를 NPC마다 재면 약 5ms가 든다.
         private void CollectSceneObjects()
         {
-            foreach (
-                HoverableObject hoverable in FindObjectsByType<HoverableObject>(
-                    FindObjectsSortMode.None
-                )
-            )
+            SceneScan scan = SceneScan.ThisFrame();
+            foreach (HoverableObject hoverable in scan.Hoverables)
             {
                 if (
-                    hoverable.gameObject.scene != gameObject.scene
+                    hoverable == null
+                    || hoverable.gameObject.scene != gameObject.scene
                     || string.IsNullOrEmpty(hoverable.UnityKey)
-                    || !NpcStayArea.Allows(stayInArea, area, SolidBounds(hoverable).center)
+                    || (
+                        stayInArea
+                        && !NpcStayArea.Allows(stayInArea, area, SolidBounds(hoverable).center)
+                    )
                 )
                 {
                     continue;
@@ -1099,20 +1102,68 @@ namespace A305.Npc
                 sameKey.Add(hoverable);
             }
 
-            foreach (
-                MonoBehaviour behaviour in FindObjectsByType<MonoBehaviour>(
-                    FindObjectsSortMode.None
-                )
-            )
+            foreach (MonoBehaviour behaviour in scan.Behaviours)
             {
                 if (
-                    behaviour is INpcSeat candidate
+                    behaviour != null
+                    && behaviour is INpcSeat candidate
                     && behaviour.gameObject.scene == gameObject.scene
                     && NpcStayArea.Allows(stayInArea, area, candidate.SeatPoint.position)
                 )
                 {
                     seats.Add(candidate);
                 }
+            }
+        }
+
+        /// <summary>
+        /// 장면 전체에서 찾은 사물과 MonoBehaviour. 교대 시각처럼 한 프레임에 여러 NPC가 켜지면 장면을 한 번만 훑어 함께 쓴다
+        /// (마을 MonoBehaviour 5,500여 개를 훑는 데 NPC마다 수 ms가 든다). 다음 프레임이나 장면을 불러오고 내린 뒤에는 다시 훑는다.
+        /// </summary>
+        private sealed class SceneScan
+        {
+            private static SceneScan current;
+            private static int scannedFrame = -1;
+
+            private SceneScan()
+            {
+                Hoverables = Object.FindObjectsByType<HoverableObject>(FindObjectsSortMode.None);
+                Behaviours = Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+            }
+
+            public HoverableObject[] Hoverables { get; }
+
+            public MonoBehaviour[] Behaviours { get; }
+
+            public static SceneScan ThisFrame()
+            {
+                if (current == null || scannedFrame != Time.frameCount)
+                {
+                    current = new SceneScan();
+                    scannedFrame = Time.frameCount;
+                }
+
+                return current;
+            }
+
+            [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+            private static void ForgetOnSceneChanges()
+            {
+                Forget();
+                SceneManager.sceneLoaded -= ForgetLoaded;
+                SceneManager.sceneLoaded += ForgetLoaded;
+                SceneManager.sceneUnloaded -= Forget;
+                SceneManager.sceneUnloaded += Forget;
+            }
+
+            private static void ForgetLoaded(Scene scene, LoadSceneMode mode) => Forget();
+
+            private static void Forget(Scene scene) => Forget();
+
+            private static void Forget()
+            {
+                current = null;
+                scannedFrame = -1;
             }
         }
 

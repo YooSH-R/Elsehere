@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -32,6 +33,32 @@ namespace A305.EditorTools.Npc
 
         private static readonly Dictionary<string, float[]> HeightsByLook =
             new Dictionary<string, float[]>();
+
+        [MenuItem("Tools/A305/Npc/Repair Cast Textures")]
+        public static void RepairTextures()
+        {
+            BuilderTools.ThrowIfPlaying();
+            foreach (NpcCastMember member in NpcCast.Members)
+            {
+                string folder = ColorFolder + "/" + member.Code;
+                if (
+                    !Directory.Exists(folder)
+                    || !Directory.GetFiles(folder, "*.png").Any(path => !HasTextureDetails(path))
+                )
+                    continue;
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(member.Look.PrefabPath);
+                var copy = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                try
+                {
+                    Dress(copy, member);
+                }
+                finally
+                {
+                    Object.DestroyImmediate(copy);
+                }
+            }
+            AssetDatabase.SaveAssets();
+        }
 
         /// <summary>
         /// NPC(또는 외형 사본) 아래 외형의 몸·눈 재질을 배색 사본으로 바꾼다. 위치·연결은 그대로 둔다.
@@ -158,7 +185,7 @@ namespace A305.EditorTools.Npc
             string materialPath = folder + "/" + name + ".mat";
             string recipe = member.Recipe(name);
             var importer = AssetImporter.GetAtPath(texturePath);
-            if (importer == null || importer.userData != recipe)
+            if (importer == null || importer.userData != recipe || !HasTextureDetails(texturePath))
             {
                 float[] heights = size > 0 ? BodyHeights(member.Look, size) : null;
                 WriteRecolored(
@@ -229,6 +256,13 @@ namespace A305.EditorTools.Npc
             }
 
             texture.SetPixels32(recolored);
+            if (!HasColorVariation(recolored))
+            {
+                Object.DestroyImmediate(texture);
+                throw new InvalidOperationException(
+                    "NPC 배색의 색 정보가 사라졌습니다: " + targetPath
+                );
+            }
             File.WriteAllBytes(targetPath, texture.EncodeToPNG());
             Object.DestroyImmediate(texture);
             AssetDatabase.ImportAsset(targetPath);
@@ -236,16 +270,40 @@ namespace A305.EditorTools.Npc
 
         private static Texture2D Resize(Texture2D source, int size)
         {
-            RenderTexture previous = RenderTexture.active;
-            var target = RenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGB32);
-            Graphics.Blit(source, target);
-            RenderTexture.active = target;
+            // -nographics에서도 원본 색을 보존한다. GPU ReadPixels는 이 환경에서 단색을 반환한다.
+            source.wrapMode = TextureWrapMode.Clamp;
             var resized = new Texture2D(size, size, TextureFormat.RGBA32, false);
-            resized.ReadPixels(new Rect(0, 0, size, size), 0, 0);
+            var pixels = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+                pixels[y * size + x] = source.GetPixelBilinear((x + .5f) / size, (y + .5f) / size);
+            resized.SetPixels32(pixels);
             resized.Apply();
-            RenderTexture.active = previous;
-            RenderTexture.ReleaseTemporary(target);
             return resized;
+        }
+
+        private static bool HasTextureDetails(string path)
+        {
+            if (!File.Exists(path))
+                return false;
+            var texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            try
+            {
+                return texture.LoadImage(File.ReadAllBytes(path))
+                    && HasColorVariation(texture.GetPixels32());
+            }
+            finally
+            {
+                Object.DestroyImmediate(texture);
+            }
+        }
+
+        private static bool HasColorVariation(Color32[] pixels)
+        {
+            for (int index = 1; index < pixels.Length; index++)
+                if (!pixels[index].Equals(pixels[0]))
+                    return true;
+            return false;
         }
 
         private static float[] PaintHeights(SkinnedMeshRenderer body, string texturePath, int size)

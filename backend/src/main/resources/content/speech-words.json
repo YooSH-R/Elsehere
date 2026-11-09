@@ -1,0 +1,75 @@
+[
+  {
+    "npcs": ["CAFE_STAFF", "CAFE_BARISTA", "CAFE_SERVER"],
+    "words": [
+      "Americano",
+      "Iced Americano",
+      "Hot Americano",
+      "latte",
+      "soy latte",
+      "cappuccino",
+      "espresso",
+      "orange juice",
+      "soy milk",
+      "oat milk",
+      "muffin",
+      "croissant",
+      "for here",
+      "to go"
+    ]
+  },
+  {
+    "npcs": ["HOTEL_STAFF", "HOTEL_RECEPTIONIST", "HOTEL_NIGHT_MANAGER", "HOTEL_BELLHOP"],
+    "words": [
+      "reservation",
+      "check in",
+      "check out",
+      "room service",
+      "Wi-Fi",
+      "suitcase",
+      "luggage",
+      "key card",
+      "lobby"
+    ]
+  },
+  {
+    "npcs": ["SHOP_STAFF", "SHOP_PHARMACIST", "SHOP_NIGHT_CLERK"],
+    "words": ["umbrella", "medicine", "painkiller", "band-aid", "receipt", "cash", "card"]
+  },
+  {
+    "npcs": ["LAUNDROMAT_STAFF"],
+    "words": ["wash", "dryer", "both", "detergent", "laundry"]
+  },
+  {
+    "npcs": ["DINER_STAFF"],
+    "words": ["pancakes", "cheeseburger", "apple pie", "coffee", "refill"]
+  },
+  {
+    "npcs": ["BAKERY_STAFF"],
+    "words": ["bread", "croissant", "chocolate cake", "coffee"]
+  },
+  {
+    "npcs": ["FLOWER_SHOP_STAFF"],
+    "words": ["roses", "tulips", "sunflowers", "daisies", "bouquet"]
+  },
+  {
+    "npcs": ["BARBER_STAFF"],
+    "words": ["haircut", "shave"]
+  },
+  {
+    "npcs": ["POST_OFFICE_STAFF"],
+    "words": ["stamp", "letter", "package"]
+  },
+  {
+    "npcs": ["BANK_STAFF"],
+    "words": ["deposit", "withdrawal", "account", "photo ID", "ATM"]
+  },
+  {
+    "npcs": ["ARCADE_STAFF"],
+    "words": ["claw machine", "prize"]
+  },
+  {
+    "npcs": ["HOME_STORE_STAFF"],
+    "words": ["lamp", "armchair"]
+  }
+]

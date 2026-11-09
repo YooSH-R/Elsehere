@@ -2,6 +2,7 @@ package com.elsehere.dialogue.service;
 
 import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.SttResult;
+import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerSpeechPhrase;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.common.error.BusinessException;
@@ -16,11 +17,14 @@ import com.elsehere.conversation.service.NpcAudioRetention;
 import com.elsehere.conversation.service.TrainingRecordingService;
 import com.elsehere.dialogue.dto.SpeechResponse;
 import com.elsehere.dialogue.dto.TranscriptionResponse;
+import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.ConsentType;
+import com.elsehere.user.repository.UserRepository;
 import com.elsehere.user.service.OptionalConsentService;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -52,6 +56,8 @@ public class SpeechService {
   private final TransactionTemplate transactionTemplate;
   private final OptionalConsentService optionalConsentService;
   private final TrainingRecordingService trainingRecordingService;
+  private final UserRepository userRepository;
+  private final SpeechWords speechWords;
   private final Clock clock;
   private final JsonMapper jsonMapper;
 
@@ -86,7 +92,9 @@ public class SpeechService {
             requestId, userId, purpose == TranscriptionPurpose.TURN ? conversationId : null);
     byte[] recording = bytesOf(audio);
     String npcLine = purpose == TranscriptionPurpose.TURN ? lastNpcLine(conversationId) : null;
-    SttResult result = aiGateway.transcribe(trace, recording, contentType, npcLine);
+    SttResult result =
+        aiGateway.transcribe(
+            trace, recording, contentType, npcLine, sceneWords(userId, trace.conversationId()));
     if (result.text() == null || result.text().isBlank()) {
       throw new BusinessException(ErrorCode.STT_NO_SPEECH);
     }
@@ -171,6 +179,33 @@ public class SpeechService {
     if (!active) {
       throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
     }
+  }
+
+  /**
+   * 음성 인식에 철자를 알려 줄 장면 단어. 학습자 닉네임, 대화 NPC 이름, 그 NPC 장소의 메뉴·상품 이름 순서다. 한국식 발음 '아메리카노'가 American으로
+   * 적히지 않게 한다. 게스트 닉네임(guest-000123)은 사람 이름이 아니라 넣지 않는다.
+   *
+   * @param conversationId 자유 대화 발화일 때 대화. 튜토리얼이면 null이고 NPC 단어 없이 닉네임만 보낸다
+   */
+  private List<String> sceneWords(Long userId, Long conversationId) {
+    return transactionTemplate.execute(
+        status -> {
+          List<String> words = new ArrayList<>();
+          userRepository
+              .findById(userId)
+              .filter(user -> user.getProvider() != AuthProvider.GUEST)
+              .ifPresent(user -> words.add(user.getNickname()));
+          if (conversationId != null) {
+            WorkerNpc npc =
+                dialogueContexts
+                    .npcById(
+                        conversationLookup.ownedConversation(userId, conversationId).getNpcId())
+                    .workerNpc();
+            words.add(npc.name());
+            words.addAll(speechWords.placeWords(npc.id()));
+          }
+          return List.copyOf(words);
+        });
   }
 
   /** 음성 인식 문맥으로 쓸 직전 NPC 대사. 한국식 발음 '러닝'(running·learning)처럼 소리가 비슷한 말을 대사의 문맥에 맞춰 고르게 한다. */

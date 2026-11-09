@@ -31,17 +31,18 @@ def last_npc(history: list[Line]) -> str:
 GUARD_SYSTEM = """You moderate a role-play in an English-speaking practice game. A Korean learner talks with a person in a small American town.
 Decide one thing: is the learner's latest message abusive or offensive in this conversation?
 A yes is a penalty: the person scolds the learner and likes them less. Learners often say single words, names, half sentences and blunt Korean,
-so say yes only when the line clearly attacks the person or uses swear words. If it is not clearly abusive, answer no.
+so say yes only when the line fits one of the rules below. If none of them fits, answer no.
 Abusive means: insulting, swearing at, name-calling, mocking (teasing them again and again), rudely ordering around,
 threatening, sexually harassing, demanding personal details like their address after they refused, or hateful. English and Korean (including slang) both count.
 It also counts when the insult is aimed at a group the person belongs to or cares about (their team, fans, job, country, family),
 or when it is a slur or hateful word about any group of people.
-Making fun of how they look or how old they are counts, even when said as a joke (with "lol", "ㅋㅋ", "^^"), and so does sarcastic fake praise meant to mock them.
+Making fun of how they look or how old they are counts, even when said as a joke (with "lol", "ㅋㅋ", "^^"),
+including calling them by an age word ("sure, grandpa", "okay old man"), and so does sarcastic fake praise meant to mock them.
 In Korean, ordering a stranger around in condescending 반말 counts as rudely ordering around: with a dismissive "~(이)나" ("물이나 줘"),
 "내놔" ("영수증 내놔"), or a sharp "야" ("야 비켜").
 Insults about their mother or family are abusive, even very short ones ("yo mama", "느금마", "니엠마").
-An insult needs a target. Words that can be insults (like "원숭이", "멍청이", "clown") and family words (like "mom") are abusive only when they
-call or describe the person or their family that way ("이 원숭이야", "you look like a clown"). Said alone or about something else, like an answer,
+An insult needs a target. Words that can be insults (like "원숭이", "멍청이", "clown") are abusive only when they
+call or describe the person that way ("이 원숭이야", "you look like a clown"). Said alone or about something else, like an answer,
 a name, food, an animal or a place, they are not abusive.
 Threats count even without swear words: violence, arrest, getting them fired, robbery or extortion ("hand over the cash", "지갑 털기 전에 내놔"), intimidation ("call anyone and you'll regret it").
 Read the recent conversation: a calm-sounding line is still a threat if it continues a threat.

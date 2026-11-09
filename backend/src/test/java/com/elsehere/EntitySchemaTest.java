@@ -74,6 +74,7 @@ class EntitySchemaTest {
             "user_npc_relations",
             "training_recordings",
             "user_game_clocks",
+            "user_daily_activities",
             "npc_follow_ups",
             "review_cards")
         // 장소별 사물 단어로 바꾸면서 없앤 사물 단위 테이블은 다시 만들지 않는다.

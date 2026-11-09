@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.elsehere.auth.service.ConsentCatalog;
@@ -60,6 +61,29 @@ class LegalDocumentControllerTest {
     assertThat(LEGAL_LINK.matcher(html).results().map(link -> link.group(1)).toList())
         .isNotEmpty()
         .isSubsetOf(currentUrls);
+  }
+
+  @ParameterizedTest
+  @MethodSource("documentedTerms")
+  @DisplayName("버전 없는 약관 주소는 로그인하지 않아도 그 약관의 지금 버전 주소로 보낸다. 게임 화면은 이 주소로 연결해 버전이 바뀌어도 고치지 않는다")
+  void document_withoutVersion_redirectsToCurrentVersion(ConsentTerm term) throws Exception {
+    String withoutVersion = term.url().substring(0, term.url().lastIndexOf('/'));
+
+    mockMvc
+        .perform(get(withoutVersion))
+        .andExpect(status().isFound())
+        .andExpect(redirectedUrl(term.url()));
+  }
+
+  @Test
+  @DisplayName("개인정보 처리방침은 이용 기록으로 접속한 날짜, 장소 화면에 머문 시간, 게임 시간을 처리한다고 밝힌다")
+  void privacy_disclosesVisitDatesAndStayedTime() throws Exception {
+    mockMvc
+        .perform(get(new ConsentCatalog().currentTerm(ConsentType.PRIVACY).url()))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("접속한 날짜")))
+        .andExpect(content().string(containsString("머문 시간")))
+        .andExpect(content().string(containsString("게임 시간")));
   }
 
   @Test

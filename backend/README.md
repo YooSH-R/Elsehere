@@ -50,7 +50,7 @@ com.elsehere
 | `memory` | user_npc_relations (NPC 기억 카드와 관계) |
 | `review` | review_cards (종료한 대화의 상황 요약·피드백 표현과 복습 기록). 저장·목록·상세·삭제와 표현 사용 근거·결과 조회는 [복습장 API](../docs/api/review-workbook.md)를 따르며 AI를 호출하지 않는다. 종료 결과는 conversations.review_result에 한 번 저장한다 |
 | `followup` | npc_follow_ups (NPC가 대화에서 곧 건네기로 한 것: 대화 종료 때 판정·저장, 기다리는 목록 CONV-13, 대화 시작 첫마디로 건넴) |
-| `world` | scenes, npcs, scene_words, user_word_prefs, user_game_clocks (사용자별 게임 시간) |
+| `world` | scenes, npcs, scene_words, user_word_prefs, user_game_clocks (사용자별 게임 시간), user_daily_activities (날짜별 접속·머문 시간) |
 | `vocab` | vocabularies, user_vocab |
 | `mission` | missions, user_missions, first_day_missions, town_stories |
 | `onboarding` | user_language_profiles (학습 언어·대화 난이도 설정), level_tests, level_test_answers (레벨 테스트와 문항 응답) |

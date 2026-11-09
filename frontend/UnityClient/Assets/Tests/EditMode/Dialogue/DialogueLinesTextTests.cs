@@ -253,7 +253,7 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
-        public void FindWord_ByLinkId_ReturnsThatGlossaryWord()
+        public void FindWords_ByLinkId_ReturnsThatGlossaryWord()
         {
             var toGo = new GlossaryWord(107, "to go", "포장");
             DialogueLine line = WithGlossary(
@@ -262,24 +262,91 @@ namespace A305.Dialogue.Tests
                 toGo
             );
 
-            GlossaryWord found = DialogueLinesText.FindWord(new[] { Order, line }, "1/1");
+            IReadOnlyList<GlossaryWord> found = DialogueLinesText.FindWords(
+                new[] { Order, line },
+                "1/1"
+            );
 
-            Assert.That(found, Is.SameAs(toGo));
+            Assert.That(found, Is.EqualTo(new[] { toGo }));
         }
 
         [TestCase("")]
         [TestCase("0/0")]
         [TestCase("1/5")]
+        [TestCase("1/0,5")]
         [TestCase("9/0")]
         [TestCase("menu")]
-        public void FindWord_UnknownLink_IsNull(string linkId)
+        public void FindWords_UnknownLink_IsEmpty(string linkId)
         {
             DialogueLine line = WithGlossary(
                 "An iced latte?",
                 new GlossaryWord(105, "latte", "라떼")
             );
 
-            Assert.That(DialogueLinesText.FindWord(new[] { Order, line }, linkId), Is.Null);
+            Assert.That(DialogueLinesText.FindWords(new[] { Order, line }, linkId), Is.Empty);
+        }
+
+        private static readonly GlossaryWord GrabASeat = new GlossaryWord(
+            106,
+            "grab a seat",
+            "자리에 앉다"
+        );
+        private static readonly GlossaryWord Grab = new GlossaryWord(106, "grab", "잡다");
+        private static readonly GlossaryWord Seat = new GlossaryWord(106, "seat", "자리");
+
+        // 숙어(grab a seat)와 그 안의 단어(grab·seat)가 함께 풀이되면 겹치는 자리마다 조각 링크를 두고,
+        // 링크는 그 자리를 덮는 풀이를 모두(짧은 말부터) 가리킨다.
+        [Test]
+        public void Format_OverlappingGlossary_LinksEachPieceToEveryWordCoveringIt()
+        {
+            DialogueLine line = WithGlossary("Grab a seat, please.", GrabASeat, Grab, Seat);
+
+            string text = DialogueLinesText.Format(new[] { line }, "Ben", true, null);
+
+            Assert.That(
+                text,
+                Does.StartWith(
+                    "<color=#FFB199><b>Ben</b></color>  <link=\"0/1,0\"><u>Grab</u></link>"
+                        + "<link=\"0/0\"><u> a </u></link><link=\"0/2,0\"><u>seat</u></link>, please."
+                )
+            );
+        }
+
+        [Test]
+        public void FindWords_OnAWordInsideAnIdiom_ReturnsTheWordThenTheIdiom()
+        {
+            DialogueLine line = WithGlossary("Grab a seat, please.", GrabASeat, Grab, Seat);
+
+            Assert.That(
+                DialogueLinesText.FindWords(new[] { line }, "0/1,0"),
+                Is.EqualTo(new[] { Grab, GrabASeat })
+            );
+        }
+
+        // 카드가 숙어를 먼저 보이면(숙어의 a를 누름) 숙어 전체를, 단어를 먼저 보이면 그 단어만 칠한다.
+        [Test]
+        public void Format_MarksEveryPieceOfTheSelectedWord()
+        {
+            DialogueLine line = WithGlossary("Grab a seat, please.", GrabASeat, Grab, Seat);
+
+            string idiom = DialogueLinesText.Format(new[] { line }, "Ben", true, null, GrabASeat);
+            string word = DialogueLinesText.Format(new[] { line }, "Ben", true, null, Grab);
+
+            Assert.That(
+                idiom,
+                Does.Contain(
+                    "<link=\"0/1,0\"><mark=#F982564D><u>Grab</u></mark></link>"
+                        + "<link=\"0/0\"><mark=#F982564D><u> a </u></mark></link>"
+                        + "<link=\"0/2,0\"><mark=#F982564D><u>seat</u></mark></link>"
+                )
+            );
+            Assert.That(
+                word,
+                Does.Contain(
+                    "<link=\"0/1,0\"><mark=#F982564D><u>Grab</u></mark></link>"
+                        + "<link=\"0/0\"><u> a </u></link><link=\"0/2,0\"><u>seat</u></link>"
+                )
+            );
         }
 
         // 자막을 끄면 NPC 대사는 들어서 이해해야 한다. 글자는 투명하게 자리만 차지하고, 대사 칸이 그 자리를 단어마다 뿌옇게 덮는다.

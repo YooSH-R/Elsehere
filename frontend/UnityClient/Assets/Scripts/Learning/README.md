@@ -34,7 +34,7 @@
 | `FeedbackView`, `VocabularyView`, `ConversationHistoryView`, `LearningHudView` | 피드백 화면, 단어장 화면, 피드백 목록 창, 오른쪽 위 휴대폰 메뉴의 [단어장](저장 개수 배지)·[피드백 목록]·[집으로] 앱과 저장 알림입니다. 피드백 목록 창은 HUD 프리팹에 있어 장소 씬마다 배치하지 않습니다. 피드백 목록 창은 확정 시안(m3를 다듬은 것)대로 유리 판(1080×620 × 1.2)에 머리줄(앱 아이콘·제목·닫기)과 대화 줄 4개(`ConversationHistoryRow`: 흰 유리 칸, 색 아이콘, "NPC · 장소", 시간, [보기]), 아래 가운데 쪽 넘김을 두고, 열려 있는 동안 뒤 장면을 시안 그림자로 덮습니다. 배치는 **Tools → A305 → Learning → Apply Feedback List**(`FeedbackListBuilder`)가 만들고 테마 Builder도 이 Builder를 부릅니다. 내 정보 창의 닫기는 단어장처럼 창 오른쪽 위 X입니다. |
 | `HudMenu`, `HudMenuView` | 오른쪽 위 휴대폰 메뉴의 펼침 상태와 화면. 시안(g1)의 파란 휴대폰 버튼(오른쪽·위 28px, 시안을 렌더링한 그림)은 폰을 펼치고 접으며, 대화 중에는 시안(g4)처럼 숨깁니다(`LearningHudView.SetTalking`). 이 버튼은 폰 안의 버튼(앱·내비게이션 바)을 누르거나 바깥을 누르면 접습니다. 펼친 동안 캔버스 그리기 순서를 1000으로 올려 퀘스트 카드·시계 칩보다 위에 그립니다. `HudMenu`는 Unity 객체 없이 테스트합니다. |
 | `PhoneMenuView` | 삼성폰 모양 메뉴 화면(`Panel/Menu`). 상태 표시줄 시각, 잠금 화면처럼 큰 게임 시계와 날짜·닉네임(`PlayerNickname`), 코인, 퀘스트 위젯(단계 칩·할 일·진행 막대, World 모듈의 `JourneyStatus`. 단계가 7개보다 많으면 진행 칸을 줄여 카드 안에 넣고, 긴 할 일은 글자를 줄여 한 줄에 넣는다)을 펼칠 때 다시 씁니다. 앱은 단어장·피드백 목록·마을 지도·집으로·내 정보·조작법이고, [마을 지도]는 `JourneyStatus.RequestMap`으로 미션 화면의 큰 지도를 엽니다. 내비게이션 바(최근 앱·홈·뒤로)는 폰을 접습니다. 화면이 낮으면 폰을 줄여 맞춥니다. 화면은 **Tools → A305 → UI → Apply Phone Menu**(`PhoneMenuBuilder`)가 만듭니다. 폰 틀·화면·아이콘·위젯 바탕·진행 칸·배지·펼친 동안의 어두운 막은 확정 시안(m1) HTML을 그대로 렌더링한 그림(`Art/UI/Phone`)이고, 바뀌는 글자만 시안의 자리와 크기(시안 px × 1.2)로 얹습니다. Jua 글자는 시안 두께에 맞춘 재질(`Jua Phone.mat`)로 그립니다. 펼친 동안 오른쪽 위 휴대폰 버튼은 시안처럼 보이지 않고, 같은 자리를 누르면 접힙니다. |
-| `ControlsGuide`, `ControlsGuideText`, `ControlsGuideView` | 오른쪽 아래 조작법 카드. `ControlsGuide`는 카드를 X로 닫았는지 이 기기(Web 빌드는 브라우저)의 `PlayerPrefs`에 기억하고 보일지 정하며, `ControlsGuideText`는 PC·휴대폰 문구를 정합니다. 둘 다 Unity 객체 없이 테스트합니다. `ControlsGuideView`는 카드와 휴대폰 메뉴의 [조작법] 앱을 잇습니다. |
+| `ControlsGuide`, `ControlsGuideText`, `ControlsGuideView` | 오른쪽 아래 조작법 카드. `ControlsGuide`는 카드를 X로 닫았는지 이 기기(Web 빌드는 브라우저)의 `PlayerPrefs`에 기억하고 보일지 정하며, `ControlsGuideText`는 PC·휴대폰 문구를 정합니다. 둘 다 Unity 객체 없이 테스트합니다. `ControlsGuideView`는 카드와 휴대폰 메뉴의 [조작법] 앱을 잇고, 휴대폰·태블릿에서는 카드를 오른쪽 아래 [점프] 왼쪽 옆으로 옮깁니다. |
 | `SurveyPromptView`, `SurveyPromptSlide` | 설문을 권할 때(`A305.Api`의 `SurveyPrompt.Request`) 화면 위 가운데에서 내려오는 설문 카드("잠깐! 이용해 보니 어땠나요?", [설문 하러 가기]·오른쪽 위 X). [설문 하러 가기]는 설문을 새 탭에서 열고 카드를 닫습니다. 이미 보이는 동안 다시 요청해도 다시 내려오지 않습니다. 다른 창의 덮개 위에서도 누를 수 있게 따로 그리기 순서 1500의 캔버스를 두고, 화면을 덮지 않습니다. 문구·주소·모양은 이 카드 한 곳에서 바꾸고, 설문을 권하는 곳(게스트 가입 안내 창, 첫 호텔 퀘스트 완료 팡파레의 [다음])은 요청만 합니다. 내려오는 움직임(`SurveyPromptSlide`, 0.35초, 끝으로 갈수록 천천히)은 Unity 객체 없이 테스트합니다. HUD 프리팹에 있어 장소 씬마다 배치하지 않습니다(**Tools → A305 → UI → Add Survey Prompt**). |
 
 ## 의존성
@@ -49,7 +49,7 @@ REVIEW 대화는 본편 시작·종료·발화 행동 이벤트를 내보내지 
 | --- | --- |
 | `A305.Api` | `ApiClient`, `ApiSettings`, `ApiException` |
 | `A305.Dialogue` | `DialogueController.ConversationEnded`·`WordSaveRequested`·`ShowWordSaveResult`·`SetWordSaveAvailable`·`IsTalking`, `GlossaryWord`, `DialogueRecord`, `ServerFeedback`, `KeywordMatcher` |
-| `A305.Player` | `PlayerMover.SetMovementLocked`, `PlayerTouchControls.ShouldShowControls`(조작법 카드의 PC·휴대폰 문구) |
+| `A305.Player` | `PlayerMover.SetMovementLocked`, `PlayerTouchControls.ShouldShowControls`(조작법 카드의 PC·휴대폰 문구), `PlayerTouchControls.TryGetJumpButtonLeftPixels`(조작법 카드가 비켜 갈 [점프] 자리) |
 | `A305.Npc` | `NpcWhereabouts`·`NpcLifeData`·`NpcDuty`([이웃] 정보 카드의 지금 위치) |
 | uGUI, TextMeshPro | 피드백·단어장 화면 |
 
@@ -77,7 +77,7 @@ REVIEW 대화는 본편 시작·종료·발화 행동 이벤트를 내보내지 
 | 휴대폰 [이웃] | 마을의 모든 NPC를 한 쪽에 4명씩 보입니다. 끝까지 마친 대화(사용자가 한 마디 이상 하고 [대화 종료]·NPC 마무리·30턴 도달로 끝냄, 튜토리얼 길 안내 포함)가 있는 NPC만 열린 이웃이고, 나머지는 이름 없이 역할·장소만 흐리게 보입니다. 아무도 열리지 않았으면 줄 아래에 "NPC와 대화를 끝까지 나누면 이웃으로 열려요."를 보입니다. 열 때마다 다시 읽어 방금 끝낸 대화도 반영합니다. 대화처럼 다른 화면이 이동을 잠근 동안에는 누를 수 없습니다. |
 | [이웃]에서 열린 이웃 누름 | 줄 자리에 정보 카드를 보입니다. 잠긴 NPC 줄은 누를 수 없습니다. 지금 위치는 일과로 정한 한 줄(빵집에서 일하고 있어요, 빵집으로 출근하는 길이에요, 퇴근하는 길이에요, 마을에서 쉬고 있어요, 숙소에서 쉬고 있어요, 마을을 돌아다니고 있어요 등)이며 길 안내는 하지 않습니다. [목록으로]는 보던 쪽으로 돌아갑니다. |
 | 이웃 목록을 불러오지 못함 | 받은 목록이 없으면 줄 자리에 이유와 [다시 시도]를 보이고, 받은 목록이 있으면 그대로 두고 창 아래에 이유를 보여 줍니다. |
-| 장소에 들어옴 | 오른쪽 아래에 조작법 카드를 보입니다. PC는 이동·달리기·점프·시점 돌리기·거리·1인칭 전환·사물 클릭·NPC 클릭을, 휴대폰·태블릿은 조이스틱(끝까지 밀면 달리기)·점프 버튼·오른쪽 끌기·1인칭 버튼·사물 탭·NPC 탭을 보입니다. [E 대화하기]처럼 그 자리에서 뜨는 조작은 넣지 않습니다. 왼쪽 아래는 마을 미니맵과 휴대폰 조이스틱 자리라 쓰지 않습니다. |
+| 장소에 들어옴 | 오른쪽 아래에 조작법 카드를 보입니다. PC는 이동·달리기·점프·시점 돌리기·거리·1인칭 전환·사물 클릭·NPC 클릭을, 휴대폰·태블릿은 조이스틱(끝까지 밀면 달리기)·점프 버튼·오른쪽 끌기·1인칭 버튼·사물 탭·NPC 탭을 보입니다. [E 대화하기]처럼 그 자리에서 뜨는 조작은 넣지 않습니다. 휴대폰·태블릿에서는 같은 오른쪽 아래의 [점프]를 가리지 않게 그 왼쪽 옆에 보입니다. 왼쪽 아래는 마을 미니맵과 휴대폰 조이스틱 자리라 쓰지 않습니다. |
 | 조작법 카드 X | 카드를 닫고 이 기기에 기억해 새로고침·장소 이동 뒤에도 다시 띄우지 않습니다. 휴대폰 메뉴의 [조작법] 앱을 누르면 다시 보입니다. |
 | 대화 중이거나 피드백·단어장·피드백 목록이 열림 | 조작법 카드를 잠시 숨기고, 끝나면 닫지 않은 카드만 다시 보입니다. 메뉴를 펼친 동안에는 메뉴 바깥 영역이 카드를 덮어 카드를 눌러도 메뉴가 접힙니다. |
 

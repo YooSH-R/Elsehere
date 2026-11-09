@@ -18,7 +18,7 @@ PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동
 | `CameraCollisionDistance` | 가로등·사람 같은 가는 장애물에 줌이 흔들리지 않도록 구분하고, 벽에서 벗어나면 카메라 거리를 서서히 복구합니다. |
 | `MoveReferenceYaw` | 순간이동·대화 종료로 카메라가 플레이어 뒤로 다시 맞춰져도 누른 방향대로 곧게 움직이도록 이동 시작 방향을 유지합니다. 사용자가 직접 시점을 돌리면 기준을 갱신합니다. |
 | `TouchDragInput` | 손가락별 드래그 소유권, 조이스틱 방향과 한 번만 적용할 카메라 이동량을 관리합니다. |
-| `PlayerTouchControls`, `TouchDragArea`, `TouchJumpButton` | 왼쪽 조이스틱과 오른쪽 드래그 영역의 터치 입력, 조이스틱을 끝까지 민 달리기, 조이스틱 옆 [점프]와 오른쪽 가장자리 [1인칭]·[3인칭] 버튼 누름을 전달합니다. |
+| `PlayerTouchControls`, `TouchDragArea`, `TouchJumpButton` | 왼쪽 조이스틱과 오른쪽 드래그 영역의 터치 입력, 조이스틱을 끝까지 민 달리기, 조이스틱 반대쪽(오른쪽 아래) [점프]와 조이스틱 바로 위 [1인칭]·[3인칭] 버튼 누름을 전달합니다. [점프]의 화면 자리도 알려 조작법 카드가 비켜 가게 합니다. |
 | `TouchControlsAvailability` | 조이스틱과 드래그 영역을 보일 기기인지 정합니다. Unity 객체 없이 테스트합니다. |
 | `BrowserPointer`, `Plugins/WebGL/BrowserPointer.jslib` | Web 빌드에서 브라우저의 주 입력 장치가 손가락인지(CSS `pointer: coarse`)와 화면 배율(`devicePixelRatio`)을 읽습니다. |
 | `LookSensitivity` | 사용자가 마이페이지에서 고른 시점 회전 감도 배율(0.5~2배). `PlayerCameraRig`가 마우스·터치 회전에 곱하며, 이 기기에 `PlayerPrefs`로 저장합니다. |
@@ -58,7 +58,9 @@ PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동
 
 ### 모바일 터치 조작
 
-휴대폰·태블릿 브라우저에서는 화면 왼쪽 아래 조이스틱을 밀어 이동하고, 화면 오른쪽 빈 영역을 드래그해 카메라를 돌립니다. 두 손가락으로 이동과 회전을 동시에 조작할 수 있습니다. 손을 떼거나 앱을 전환하면 입력이 초기화됩니다. 대화 중에는 기존 이동·회전 잠금이 적용됩니다. V 키 대신 화면 오른쪽 가장자리(미니맵과 조작법 카드 사이)의 둥근 버튼으로 1인칭·3인칭을 바꿉니다. 버튼 글자는 누르면 바뀔 시점(3인칭일 때 [1인칭], 1인칭일 때 [3인칭])이고, 이동이 잠긴 동안 누른 것은 버리며 의자·차·대화·기다리는 구도에서는 버튼을 숨깁니다. 조이스틱을 가장자리 가까이(0.9)까지 밀면 달리고 그보다 덜 밀면 걸으며, 달리는 동안 손잡이가 파랑에서 주황으로 바뀝니다. 조이스틱 오른쪽 아래의 작은 [점프] 버튼은 손가락을 대는 순간 뛰고(`TouchJumpButton`), 조이스틱을 잡은 채 다른 손가락으로 눌러도 됩니다. 이동이 잠긴 동안 누른 점프는 버립니다.
+휴대폰·태블릿 브라우저에서는 화면 왼쪽 아래 조이스틱을 밀어 이동하고, 화면 오른쪽 빈 영역을 드래그해 카메라를 돌립니다. 두 손가락으로 이동과 회전을 동시에 조작할 수 있습니다. 손을 떼거나 앱을 전환하면 입력이 초기화됩니다. 대화 중에는 기존 이동·회전 잠금이 적용됩니다. V 키 대신 조이스틱 바로 위의 작은 둥근 버튼으로 1인칭·3인칭을 바꿉니다. 버튼 글자는 누르면 바뀔 시점(3인칭일 때 [1인칭], 1인칭일 때 [3인칭])이고, 이동이 잠긴 동안 누른 것은 버리며 의자·차·대화·기다리는 구도에서는 버튼을 숨깁니다. 조이스틱을 가장자리 가까이(0.9)까지 밀면 달리고 그보다 덜 밀면 걸으며, 달리는 동안 손잡이가 하늘색에서 코랄로 바뀝니다. 조이스틱 반대쪽(오른쪽 아래)의 [점프] 버튼은 손가락을 대는 순간 뛰고(`TouchJumpButton`), 왼손으로 조이스틱을 잡은 채 오른손으로 누릅니다. 이동이 잠긴 동안 누른 점프는 버립니다. 오른쪽 아래 조작법 카드는 열린 동안 [점프] 왼쪽 옆으로 비켜 버튼을 가리지 않습니다(`PlayerTouchControls.TryGetJumpButtonLeftPixels`). 위로 올리면 휴대폰 가로 화면에서 오른쪽 가운데 미니맵을 가리기 때문입니다.
+
+조작도 다른 화면과 같은 글래스 팝 디자인입니다(`UiThemeBuilder.ApplyTouchControlsTheme`). 조이스틱 바탕과 [1인칭]은 HUD 시계·코인과 같은 유리 칩, 손잡이는 하늘색 입체 버튼, [점프]는 노란 입체 버튼이고 글자는 Jua입니다. 자리는 왼쪽 위 퀘스트 카드, 휴대폰에서 오른쪽 가운데로 오는 미니맵, 오른쪽 위 시계·코인을 가리지 않게 잡았습니다(**Tools → A305 → Player → Build Touch Controls**).
 
 조이스틱과 드래그 영역을 보이는 기준은 다음과 같습니다.
 
@@ -123,4 +125,4 @@ Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어
 
 ## 테스트
 
-`Assets/Tests/EditMode/Player/`의 `A305.Player.Tests` 어셈블리가 `PlayerMotor`와 `CameraOrbit`의 이동·시점 규칙, `TouchDragInput`의 터치 드래그 처리, `TouchControlsAvailability`의 터치 조작 표시 기준, `SeatView`의 앉은 뒤 카메라 방향, `DialogueFraming`의 대화 시점 카메라 위치와 얼굴의 화면 자리, `MeetingFraming`의 어깨 너머 기다리는 구도, 프로젝트 입력 액션의 시점 회전 버튼(`PlayerInputActionsTests`), 팔 보정이 쓰는 바깥 끝 정점 고르기와 그 상자의 정확도(`OutermostPointsTests`), 모든 장소 카메라 설정의 3인칭 올려다보기 각도(`CameraLookUpLimitTests`)를 검증합니다. PlayMode `TouchControlsTests`는 터치로 올려다보기와 [1인칭]·[3인칭] 버튼을 확인합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다. 입력 연결과 카메라 연출은 Sandbox 씬의 Play로 확인합니다. `BrowserPointer.jslib`은 Editor에서 실행되지 않으므로 Web 빌드를 PC·모바일 브라우저에서 열어 조이스틱 표시 여부를 확인합니다.
+`Assets/Tests/EditMode/Player/`의 `A305.Player.Tests` 어셈블리가 `PlayerMotor`와 `CameraOrbit`의 이동·시점 규칙, `TouchDragInput`의 터치 드래그 처리, `TouchControlsAvailability`의 터치 조작 표시 기준, `SeatView`의 앉은 뒤 카메라 방향, `DialogueFraming`의 대화 시점 카메라 위치와 얼굴의 화면 자리, `MeetingFraming`의 어깨 너머 기다리는 구도, 프로젝트 입력 액션의 시점 회전 버튼(`PlayerInputActionsTests`), 팔 보정이 쓰는 바깥 끝 정점 고르기와 그 상자의 정확도(`OutermostPointsTests`), 모든 장소 카메라 설정의 3인칭 올려다보기 각도(`CameraLookUpLimitTests`)를 검증합니다. PlayMode `TouchControlsTests`는 터치로 올려다보기와 [1인칭]·[3인칭] 버튼, 조작법 카드가 [점프] 왼쪽 옆에 뜨는지를 확인합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다. 입력 연결과 카메라 연출은 Sandbox 씬의 Play로 확인합니다. `BrowserPointer.jslib`은 Editor에서 실행되지 않으므로 Web 빌드를 PC·모바일 브라우저에서 열어 조이스틱 표시 여부를 확인합니다.

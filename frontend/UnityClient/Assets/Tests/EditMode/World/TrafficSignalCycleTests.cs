@@ -20,6 +20,27 @@ namespace A305.World.Tests
         }
 
         [Test]
+        public void SecondsToCross_IsTheWalkAtPedestrianPacePlusAMargin()
+        {
+            // 6.4m를 1.6m/s로 4초에 건너고 1초 여유를 더한다.
+            Assert.That(TrafficSignalCycle.SecondsToCross(6.4f), Is.EqualTo(5f).Within(.001f));
+        }
+
+        // 본길 빨간불은 15~25초다. 5초면 건너는 횡단보도는 20초까지 걷기 신호다(8초 고정이면 17초까지뿐이었다).
+        [TestCase(15f, PedestrianLight.Walk)]
+        [TestCase(19f, PedestrianLight.Walk)]
+        [TestCase(20f, PedestrianLight.Walk)]
+        [TestCase(20.01f, PedestrianLight.Clearance)]
+        [TestCase(14.99f, PedestrianLight.Stop)]
+        public void PedestrianSignal_StaysWalkWhileTheCrosswalkCanStillBeCrossed(
+            float seconds,
+            PedestrianLight expected
+        )
+        {
+            Assert.That(cycle.PedestrianAt(seconds, true, 5f), Is.EqualTo(expected));
+        }
+
+        [Test]
         public void MainStreet_StartsGreenThenTurnsYellowThenRed()
         {
             Assert.That(cycle.MainAt(0f), Is.EqualTo(SignalLight.Green));

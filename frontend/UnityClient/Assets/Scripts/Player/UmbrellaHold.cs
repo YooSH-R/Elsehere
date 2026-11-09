@@ -7,8 +7,8 @@ namespace A305.Player
     /// 오른팔을 옆에서 굽혀 귀 바깥에 우산을 든다. 손목·손가락 자세는 걷기와 별도로 유지한다.
     /// 외형은 실행 중에 바뀌므로 펼 때 지금 외형의 팔 뼈대와 머리 크기를 읽는다. 플레이어 루트(CharacterController)에 붙인다.
     /// </summary>
-    // 걷기 동작과 팔 겹침 보정(LittleMungArmClearance) 뒤에 손을 옮긴다.
-    [DefaultExecutionOrder(650)]
+    // 걷기·팔 겹침 보정과 착석 자세(PlayerSeatPose) 뒤에 손과 우산을 함께 옮긴다.
+    [DefaultExecutionOrder(750)]
     public sealed class UmbrellaHold : MonoBehaviour
     {
         [SerializeField]

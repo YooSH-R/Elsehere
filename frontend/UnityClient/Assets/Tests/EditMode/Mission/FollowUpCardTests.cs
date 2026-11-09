@@ -103,6 +103,21 @@ namespace A305.Mission.Tests
         }
 
         [Test]
+        public async Task SeatedMealCompletion_HidesTheCardInsteadOfLeavingAReadyNotice()
+        {
+            view.SetAvailable(true);
+            FollowUpStore.Shared.Receive(Item(7, "CAFE_STAFF", "Mia", "CAFE", "아이스 라테", 60));
+            FollowUpStore.Shared.SetSeatedWaitRemaining("CAFE_STAFF", 5);
+            card.Refresh();
+            Assert.That(card.Card.activeSelf, Is.True);
+            Assert.That(Text(ShownRows()[0], "countdown"), Is.EqualTo("0:05"));
+            await FollowUpStore.Shared.CompleteSeatedWaitAsync(null, "CAFE_STAFF");
+            card.Refresh();
+            Assert.That(card.Card.activeSelf, Is.False);
+            Assert.That(FollowUpStore.Shared.TakeNewlyReady(), Is.Empty);
+        }
+
+        [Test]
         public void EachFollowUp_GetsARow_SoonestFirst()
         {
             view.SetAvailable(true);

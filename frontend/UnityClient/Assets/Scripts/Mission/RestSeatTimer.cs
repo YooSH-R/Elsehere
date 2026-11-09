@@ -4,7 +4,9 @@ namespace A305.Mission
     public sealed class RestSeatTimer
     {
         private readonly float requiredSeconds;
+        private float activeSeconds;
         private float elapsed;
+        public float RemainingSeconds => System.Math.Max(0, activeSeconds - elapsed);
         private bool active;
 
         public RestSeatTimer(float requiredSeconds)
@@ -12,8 +14,9 @@ namespace A305.Mission
             this.requiredSeconds = requiredSeconds;
         }
 
-        public void Begin()
+        public void Begin(float? seconds = null)
         {
+            activeSeconds = seconds ?? requiredSeconds;
             elapsed = 0f;
             active = true;
         }
@@ -23,7 +26,7 @@ namespace A305.Mission
             if (!active)
                 return false;
             elapsed += seconds;
-            if (elapsed < requiredSeconds)
+            if (elapsed < activeSeconds)
                 return false;
             active = false;
             return true;

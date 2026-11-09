@@ -6344,8 +6344,8 @@ Transform:
   m_GameObject: {fileID: 245755542}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.65, z: -0.97}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: 0.65, z: -0.77}
+  m_LocalScale: {x: 0.90140843, y: 1, z: 0.89285713}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 288506693}
@@ -48754,8 +48754,8 @@ Transform:
   m_GameObject: {fileID: 1698721586}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.95, z: -1.24}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: 0.94, z: -0.95}
+  m_LocalScale: {x: 0.8309859, y: 0.8666666, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 55786828}
@@ -61163,7 +61163,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.World::A305.World.TrafficLights
   mainGreenSeconds: 12
-  crossGreenSeconds: 7
+  crossGreenSeconds: 10
   yellowSeconds: 3
   heads:
   - {fileID: 1706116093}

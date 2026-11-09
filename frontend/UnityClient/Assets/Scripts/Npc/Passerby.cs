@@ -37,6 +37,9 @@ namespace A305.Npc
         /// <summary>NPC 보행 데이터와 물리 캡슐이 함께 허용하는 턱 높이(월드 미터).</summary>
         public const float WalkableStepMeters = .3f;
         private readonly NpcObstacleDetour obstacleDetour = new NpcObstacleDetour();
+
+        // 교차로 모퉁이까지 짧게 걷는 중일 때 실제로 건널 방향(PrepareWalkDirection이 받음). 없으면 걸음 방향으로 정한다.
+        private Vector3? preparedCrossingHeading;
         private const float GroundedDownwardSpeedMetersPerSecond = -2f;
         private const float ArrivedDistanceMeters = 0.2f;
 
@@ -652,9 +655,15 @@ namespace A305.Npc
         }
 
         /// <summary>횡단 목표와 물리 장애물을 먼저 정한다. 다른 사람은 이 실제 목표를 기준으로 비켜간다.</summary>
-        internal Vector3 PrepareWalkDirection(Vector3 horizontalDirection)
+        /// <param name="crossingHeading">교차로 모퉁이까지 짧게 걷는 중이면 실제로 건널 방향. 횡단보도를 고를 때 쓴다.</param>
+        internal Vector3 PrepareWalkDirection(
+            Vector3 horizontalDirection,
+            Vector3? crossingHeading = null
+        )
         {
-            Vector3 plannedDirection = horizontalDirection;
+            // 이어서 부르는 WalkToward가 신호를 볼 때도 같은 건널 방향을 쓴다.
+            preparedCrossingHeading = crossingHeading;
+            Vector3 plannedDirection = crossingHeading ?? horizontalDirection;
 #if UNITY_EDITOR
             LastWalkInput = horizontalDirection;
 #endif
@@ -701,7 +710,12 @@ namespace A305.Npc
             IsWaitingAtSignal =
                 horizontalDirection.sqrMagnitude >= .0001f
                 && !crossing.IsActive
-                && IsWaitingForSignal(horizontalDirection);
+                && NpcTownWalker.ShouldWaitForSignal(
+                    trafficLights,
+                    transform.position,
+                    horizontalDirection,
+                    preparedCrossingHeading
+                );
 #if UNITY_EDITOR
             LastWalkDirection = horizontalDirection;
             LastWalkStep = 0;

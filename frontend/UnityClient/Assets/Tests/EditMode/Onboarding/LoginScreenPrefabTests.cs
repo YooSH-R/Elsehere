@@ -31,6 +31,45 @@ namespace A305.Onboarding.Tests
         public void Close() => Object.DestroyImmediate(instance);
 
         [Test]
+        public void LoginButtons_KeepMatchingIconAndTextColumnsCentredAsOneGroup()
+        {
+            login.gameObject.SetActive(true);
+            var google = (RectTransform)login.Find("GoogleButton/Content");
+            var guest = (RectTransform)login.Find("GuestButton/Content");
+            LayoutRebuilder.ForceRebuildLayoutImmediate(google);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(guest);
+            Canvas.ForceUpdateCanvases();
+            var googleIcon = (RectTransform)google.Find("LoginIcon");
+            var guestIcon = (RectTransform)guest.Find("LoginIcon");
+            var googleText = google.Find("Label").GetComponent<TMP_Text>();
+            var guestText = guest.Find("Label").GetComponent<TMP_Text>();
+            Assert.That(
+                guestIcon.anchoredPosition.x,
+                Is.EqualTo(googleIcon.anchoredPosition.x).Within(.1f)
+            );
+            Assert.That(
+                guestText.rectTransform.anchoredPosition.x,
+                Is.EqualTo(googleText.rectTransform.anchoredPosition.x).Within(.1f)
+            );
+            Assert.That(guestText.font, Is.SameAs(googleText.font));
+            Assert.That(guestText.fontSize, Is.EqualTo(googleText.fontSize));
+            foreach (RectTransform content in new[] { google, guest })
+            {
+                var icon = (RectTransform)content.Find("LoginIcon");
+                var label = (RectTransform)content.Find("Label");
+                float left = icon.localPosition.x - icon.rect.width / 2;
+                float right = label.localPosition.x + label.rect.width / 2;
+                Assert.That((left + right) / 2, Is.EqualTo(content.rect.center.x).Within(.1f));
+                float gap =
+                    label.localPosition.x
+                    - label.rect.width / 2
+                    - icon.localPosition.x
+                    - icon.rect.width / 2;
+                Assert.That(gap, Is.InRange(16f * Px, 24f * Px));
+            }
+        }
+
+        [Test]
         public void Login_LiesOnTheTownWithTheCreamShadeInsteadOfACard()
         {
             Assert.That(Sprite("Backdrop/Town"), Is.EqualTo("LoginTown"));

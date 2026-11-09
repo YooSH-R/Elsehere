@@ -104,6 +104,7 @@ class AdminPageControllerTest {
                     List.of(new OverallUsageReport.UserCount("TUTORIAL", 3)),
                     List.of(new OverallUsageReport.UserCount("1. 호텔에 도착했어요", 4)),
                     List.of(new OverallUsageReport.UserCount("4. WASH", 1))),
+                new OverallUsageReport.Retention(0, 0, 0, 0, 0, 0),
                 List.of(
                     new OverallUsageReport.UserActivity(
                         7L, true, 2, 3, 1, 1800, "2030-01-10 08:30"))));
@@ -129,6 +130,31 @@ class AdminPageControllerTest {
   }
 
   @Test
+  @DisplayName("이용 현황 화면은 하루 평균 머문 시간, 날짜별 머문 시간, D1·D7·7일 안 재방문율을 보여 준다")
+  void usage_byAdmin_showsStayedTimeAndRetention() throws Exception {
+    given(adminAccess.isAdmin(1L)).willReturn(true);
+    given(adminUsageService.report(30))
+        .willReturn(
+            new OverallUsageReport(
+                usageReport(30),
+                new OverallUsageReport.Progress(List.of(), List.of(), List.of()),
+                new OverallUsageReport.Retention(12, 10, 4, 9, 3, 6),
+                List.of()));
+
+    // 활동한 하루 6번 동안 5,400초(하루 15분), 2030-01-09에 2,700초(45분) 머묾.
+    // D1 대상 10명 중 4명, D7 대상 9명 중 3명, 7일 안 6명
+    mockMvc
+        .perform(get("/admin/usage").param("days", "30").with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("15.0분")))
+        .andExpect(content().string(containsString("45.0")))
+        .andExpect(content().string(containsString("D1")))
+        .andExpect(content().string(containsString("40%")))
+        .andExpect(content().string(containsString("33%")))
+        .andExpect(content().string(containsString("67%")));
+  }
+
+  @Test
   @DisplayName("이용 현황 합계는 비율과 평균을 활동 사용자·대화 수로 나눠 보여 준다")
   void usage_byAdmin_showsRatios() throws Exception {
     given(adminAccess.isAdmin(1L)).willReturn(true);
@@ -137,6 +163,7 @@ class AdminPageControllerTest {
             new OverallUsageReport(
                 usageReport(7),
                 new OverallUsageReport.Progress(List.of(), List.of(), List.of()),
+                new OverallUsageReport.Retention(0, 0, 0, 0, 0, 0),
                 List.of()));
 
     // 활동 사용자 4명 중 다시 온 사용자 1명, 대화 5번 중 끝낸 대화 4번, 대화한 사용자 2명
@@ -284,8 +311,8 @@ class AdminPageControllerTest {
   private static UsageReport usageReport(int days) {
     return new UsageReport(
         days,
-        new UsageReport.Summary(4, 3, 1, 6, 1, 2, 1, 5, 4, 2, 1234, 3, 7200),
-        List.of(new UsageReport.Day("2030-01-09", 4, 3, 1, 2, 1, 5, 1, 3)),
+        new UsageReport.Summary(4, 3, 1, 6, 1, 2, 1, 5, 4, 2, 1234, 3, 7200, 5400),
+        List.of(new UsageReport.Day("2030-01-09", 4, 3, 1, 2, 1, 5, 1, 3, 2700)),
         List.of(new UsageReport.Count("NPC_ENDED", 3, 2)),
         List.of(new UsageReport.Count("Mia · 카페 직원", 5, 2)),
         List.of(new UsageReport.Count("VOICE", 8, 2)),

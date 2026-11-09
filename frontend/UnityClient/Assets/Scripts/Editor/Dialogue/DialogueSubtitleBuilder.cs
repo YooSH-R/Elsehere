@@ -32,7 +32,7 @@ namespace A305.EditorTools.Dialogue
             Button subtitle = UiBuilderTools.FindOrCreateButton(
                 tools,
                 "SubtitleButton",
-                "자막 끔",
+                "자막 켜기",
                 UiBuilderTools.BoldFont(),
                 108f
             );

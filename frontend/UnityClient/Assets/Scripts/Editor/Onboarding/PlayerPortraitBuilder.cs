@@ -56,11 +56,37 @@ namespace A305.EditorTools.Onboarding
             );
             var root = new GameObject("Portrait copy", typeof(CharacterController));
             var model = Object.Instantiate(definition.VisualPrefab, root.transform);
+            Animator animator = model.GetComponentInChildren<Animator>();
+            Transform headBone = animator.GetBoneTransform(HumanBodyBones.Head);
+            var torso = new[]
+            {
+                HumanBodyBones.Hips,
+                HumanBodyBones.Spine,
+                HumanBodyBones.Chest,
+                HumanBodyBones.UpperChest,
+                HumanBodyBones.Neck,
+                HumanBodyBones.Head,
+            }
+                .Select(animator.GetBoneTransform)
+                .Where(bone => bone != null)
+                .ToArray();
+            Quaternion[] rotations = torso.Select(bone => bone.rotation).ToArray();
+            Vector3 restFront = TripoModelPreview.GetViewDirection(model, 0);
             using var motion = new TripoMotionPreview(root);
             motion.Apply(TripoReviewMotion.Idle, 0);
-            Animator animator = model.GetComponentInChildren<Animator>();
-            using (var poseHandler = new HumanPoseHandler(animator.avatar, animator.transform))
+            Vector3 front = TripoModelPreview.GetViewDirection(model, 0);
+            if (id == "M")
             {
+                // 머리만 돌리면 Idle의 몸통 비틀림이 남는다. 골반부터 정면 자세를 복원한다.
+                Quaternion heading = Quaternion.FromToRotation(restFront, front);
+                for (int i = 0; i < torso.Length; i++)
+                    torso[i].rotation = heading * rotations[i];
+                FaceCamera(model, headBone, front);
+            }
+            else
+            {
+                // 여성 카드는 기존 촬영 자세를 그대로 유지한다.
+                using var poseHandler = new HumanPoseHandler(animator.avatar, animator.transform);
                 var pose = new HumanPose();
                 poseHandler.GetHumanPose(ref pose);
                 for (int i = 0; i < HumanTrait.MuscleName.Length; i++)
@@ -73,6 +99,7 @@ namespace A305.EditorTools.Onboarding
                         pose.muscles[i] = 0;
                 }
                 poseHandler.SetHumanPose(ref pose);
+                front = TripoModelPreview.GetViewDirection(model, 0);
             }
             var surfaces = new List<(Mesh Mesh, Transform Transform, Vector3[] BaseVertices)>();
             var skins = model.GetComponentsInChildren<SkinnedMeshRenderer>();
@@ -93,9 +120,6 @@ namespace A305.EditorTools.Onboarding
                 skin.enabled = false;
             }
             Bounds head = CharacterHeadProportions.HeadBounds(model);
-            Vector3 front = Vector3
-                .ProjectOnPlane(TripoModelPreview.GetViewDirection(model, 0), Vector3.up)
-                .normalized;
             var camera = new GameObject("Portrait camera").AddComponent<Camera>();
             camera.orthographic = true;
             // 캐릭터 높이·머리 위치 대신 사진에서 머리가 차지하는 높이와 위 여백을 맞춘다.
@@ -150,6 +174,84 @@ namespace A305.EditorTools.Onboarding
                 foreach (var surface in surfaces)
                     Object.DestroyImmediate(surface.Mesh);
             }
+        }
+
+        // 본의 축이 얼굴과 일치하지 않는 모델도 있어 실제 양쪽 눈 흰자 위치로 정면을 잡는다.
+        private static void FaceCamera(GameObject model, Transform headBone, Vector3 front)
+        {
+            Bounds head = CharacterHeadProportions.HeadBounds(model);
+            Vector3 right = Vector3.Cross(Vector3.up, front).normalized;
+            Bounds? leftEye = null,
+                rightEye = null;
+            foreach (var skin in model.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                string path = AssetDatabase.GetAssetPath(
+                    skin.sharedMaterial.GetTexture("_BaseMap")
+                );
+                if (string.IsNullOrEmpty(path))
+                    continue;
+                var texture = new Texture2D(2, 2);
+                var mesh = new Mesh();
+                try
+                {
+                    texture.LoadImage(File.ReadAllBytes(path));
+                    skin.BakeMesh(mesh, true);
+                    Vector3[] vertices = mesh.vertices;
+                    Vector2[] uv = mesh.uv;
+                    for (int i = 0; i < vertices.Length; i++)
+                    {
+                        Vector3 point = skin.transform.TransformPoint(vertices[i]);
+                        Vector3 offset = point - head.center;
+                        float x = Vector3.Dot(offset, right) / head.size.x;
+                        float y = (point.y - head.min.y) / head.size.y;
+                        if (
+                            Mathf.Abs(x) < .08f
+                            || Mathf.Abs(x) > .36f
+                            || y < .18f
+                            || y > .65f
+                            || Vector3.Dot(offset, front) < head.size.z * .2f
+                        )
+                            continue;
+                        Color color = texture.GetPixelBilinear(uv[i].x, uv[i].y);
+                        if (
+                            Mathf.Min(color.r, color.g, color.b) < .55f
+                            || Mathf.Max(color.r, color.g, color.b)
+                                - Mathf.Min(color.r, color.g, color.b)
+                                > .2f
+                        )
+                            continue;
+                        Bounds eye =
+                            (x < 0 ? leftEye : rightEye) ?? new Bounds(point, Vector3.zero);
+                        eye.Encapsulate(point);
+                        if (x < 0)
+                            leftEye = eye;
+                        else
+                            rightEye = eye;
+                    }
+                }
+                finally
+                {
+                    Object.DestroyImmediate(texture);
+                    Object.DestroyImmediate(mesh);
+                }
+            }
+            if (!leftEye.HasValue || !rightEye.HasValue)
+                throw new InvalidOperationException(
+                    "정면 촬영용 양쪽 눈 영역을 확인하지 못했습니다."
+                );
+            Quaternion correction = Quaternion.FromToRotation(
+                rightEye.Value.center - leftEye.Value.center,
+                right
+            );
+            float angle = Quaternion.Angle(Quaternion.identity, correction);
+            if (angle > 12)
+                throw new InvalidOperationException(
+                    "정면 촬영용 눈 영역이 예상 범위를 벗어났습니다."
+                );
+            headBone.rotation = correction * headBone.rotation;
+            Debug.Log(
+                $"카드 정면 보정: {model.name}, 눈 {leftEye.Value.center:F4} / {rightEye.Value.center:F4}, 회전 {angle:F2}도"
+            );
         }
 
         // 런타임 메시에는 표정 채널이 없으므로 촬영용으로 구운 메시의 입 주변만 부드럽게 변형한다.

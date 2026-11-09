@@ -366,7 +366,7 @@ namespace A305.EditorTools.Dialogue
                 "그럼요! 아이스 라떼는 드시고 가세요, 포장하세요?",
                 new[]
                 {
-                    new GlossaryWord(TurnId, "latte", "라떼"),
+                    new GlossaryWord(TurnId, "latte", "에스프레소에 우유를 넣은 커피(라테)"),
                     new GlossaryWord(TurnId, "to go", "포장해 가는"),
                     new GlossaryWord(TurnId, "go", "가다"),
                 }
@@ -411,7 +411,11 @@ namespace A305.EditorTools.Dialogue
             public IReadOnlyList<GlossaryData> LastNpcGlossary =>
                 new[]
                 {
-                    new GlossaryData { Text = "latte", MeaningKo = "라떼" },
+                    new GlossaryData
+                    {
+                        Text = "latte",
+                        MeaningKo = "에스프레소에 우유를 넣은 커피(라테)",
+                    },
                     new GlossaryData { Text = "to go", MeaningKo = "포장해 가는" },
                     new GlossaryData { Text = "go", MeaningKo = "가다" },
                 };

@@ -556,6 +556,13 @@ namespace A305.EditorTools.Dialogue
                 WordCardSize.x - WordCloseButtonWidth - 48
             );
             CardText(entry, "Meaning", regular, 22f, new Vector2(0, 1), new Vector2(24, -58), 372);
+            // 외래어는 뜻을 풀어 써("우유를 넣은 커피(라테)") 한 줄을 넘을 수 있으므로, 저장 버튼 위까지 두 줄로 글자를 줄여 넣는다.
+            var meaning = entry.Find("Meaning").GetComponent<TMP_Text>();
+            ((RectTransform)meaning.transform).sizeDelta = new Vector2(372, 38);
+            meaning.textWrappingMode = TextWrappingModes.Normal;
+            meaning.enableAutoSizing = true;
+            meaning.fontSizeMin = 15;
+            meaning.fontSizeMax = 22;
             TMP_Text note = UiBuilderTools.FindOrCreateText(
                 entry,
                 "Note",

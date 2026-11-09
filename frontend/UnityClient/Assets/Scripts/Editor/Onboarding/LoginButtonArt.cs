@@ -47,6 +47,45 @@ namespace A305.EditorTools.Onboarding
                 canvas.RoundRect(8, 6, 56, 30, 18, Color.white);
                 Save("LoginGuestIcon", canvas);
             }
+            TrimIcon("LoginGoogleIcon");
+            TrimIcon("LoginGuestIcon");
+        }
+
+        // 실제 그림 바깥의 투명 여백을 없애 같은 24px 아이콘 칸에 같은 크기로 보인다.
+        private static void TrimIcon(string name)
+        {
+            var original = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            original.LoadImage(File.ReadAllBytes(Folder + name + ".png"));
+            int left = original.width,
+                bottom = original.height,
+                right = -1,
+                top = -1;
+            for (int y = 0; y < original.height; y++)
+            for (int x = 0; x < original.width; x++)
+            {
+                if (original.GetPixel(x, y).a <= .02f)
+                    continue;
+                left = Mathf.Min(left, x);
+                right = Mathf.Max(right, x);
+                bottom = Mathf.Min(bottom, y);
+                top = Mathf.Max(top, y);
+            }
+            if (
+                right >= left
+                && (right - left + 1 != original.width || top - bottom + 1 != original.height)
+            )
+            {
+                var trimmed = new Texture2D(
+                    right - left + 1,
+                    top - bottom + 1,
+                    TextureFormat.RGBA32,
+                    false
+                );
+                trimmed.SetPixels(original.GetPixels(left, bottom, trimmed.width, trimmed.height));
+                trimmed.Apply();
+                SaveTexture(name, trimmed);
+            }
+            Object.DestroyImmediate(original);
         }
 
         private static void Save(string name, UiArtCanvas canvas)

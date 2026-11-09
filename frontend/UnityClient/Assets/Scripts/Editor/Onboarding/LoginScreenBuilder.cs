@@ -200,7 +200,7 @@ namespace A305.EditorTools.Onboarding
             RectTransform markRect = Rect("Mark", icon);
             markRect.anchorMin = markRect.anchorMax = markRect.pivot = new Vector2(.5f, .5f);
             markRect.anchoredPosition = Vector2.zero;
-            markRect.sizeDelta = Vector2.one * (google ? 28 : 32) * Px;
+            markRect.sizeDelta = Vector2.one * 24 * Px;
             Picture(
                 markRect.gameObject,
                 Sprite(google ? "LoginGoogleIcon" : "LoginGuestIcon")
@@ -215,12 +215,16 @@ namespace A305.EditorTools.Onboarding
             label.fontWeight = FontWeight.Regular;
             label.enableAutoSizing = false;
             label.textWrappingMode = TextWrappingModes.NoWrap;
-            label.alignment = TextAlignmentOptions.Midline;
+            label.alignment = TextAlignmentOptions.MidlineLeft;
             label.margin = Vector4.zero;
             label.color = google ? new Color32(47, 40, 32, 255) : Color.white;
             label.raycastTarget = false;
             var textSize = label.gameObject.AddComponent<LayoutElement>();
-            textSize.minWidth = textSize.preferredWidth = label.GetPreferredValues(label.text).x;
+            // 두 버튼 모두 같은 문구 칸을 사용해 아이콘 위치와 글자 시작점을 맞춘다.
+            textSize.minWidth = textSize.preferredWidth = Mathf.Max(
+                label.GetPreferredValues("Google로 계속하기").x,
+                label.GetPreferredValues("게스트로 둘러보기").x
+            );
             textSize.preferredHeight = 64 * Px;
         }
 

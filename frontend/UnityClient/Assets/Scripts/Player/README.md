@@ -116,6 +116,8 @@ Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어
 | `PlayerSeatPose.Stand()` | 앉기 전에 서 있던 곳에 자리 방향으로 세우고 이동 잠금을 풉니다. |
 | `UmbrellaHold.SetOpen(bool)` | 우산을 펴거나 접습니다. 외형의 팔 뼈대나 우산 프리팹이 없으면 펴지 않습니다. |
 
+우산을 펼치면 오른손의 손가락 뼈로 손바닥 중심·방향을 구하고 손목과 손가락을 쥐는 자세로 유지합니다. 머리 앞쪽 바깥 표면에 맞춰 우산대 기울기를 정하고, 캐노피 크기도 머리를 덮도록 맞춥니다. 걷기 이후의 자세에 적용하며 접을 때 손가락 자세를 복원합니다.
+
 ## 테스트
 
 `Assets/Tests/EditMode/Player/`의 `A305.Player.Tests` 어셈블리가 `PlayerMotor`와 `CameraOrbit`의 이동·시점 규칙, `TouchDragInput`의 터치 드래그 처리, `TouchControlsAvailability`의 터치 조작 표시 기준, `SeatView`의 앉은 뒤 카메라 방향, `DialogueFraming`의 대화 시점 카메라 위치와 얼굴의 화면 자리, `MeetingFraming`의 어깨 너머 기다리는 구도, 프로젝트 입력 액션의 시점 회전 버튼(`PlayerInputActionsTests`), 팔 보정이 쓰는 바깥 끝 정점 고르기와 그 상자의 정확도(`OutermostPointsTests`)를 검증합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다. 입력 연결과 카메라 연출은 Sandbox 씬의 Play로 확인합니다. `BrowserPointer.jslib`은 Editor에서 실행되지 않으므로 Web 빌드를 PC·모바일 브라우저에서 열어 조이스틱 표시 여부를 확인합니다.

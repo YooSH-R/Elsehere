@@ -4,7 +4,7 @@ using UnityEngine;
 namespace A305.Player
 {
     /// <summary>
-    /// 플레이어가 우산을 펴 든다. 오른팔을 몸 옆 어깨 높이로 뻗어 손잡이를 쥐게 하고, 우산대를 세워 캐노피가 머리 위를 덮게 한다.
+    /// 오른팔을 앞에서 굽혀 손바닥으로 우산을 쥔다. 손목·손가락 자세는 걷기와 별도로 유지한다.
     /// 외형은 실행 중에 바뀌므로 펼 때 지금 외형의 팔 뼈대와 머리 크기를 읽는다. 플레이어 루트(CharacterController)에 붙인다.
     /// </summary>
     // 걷기 동작과 팔 겹침 보정(LittleMungArmClearance) 뒤에 손을 옮긴다.
@@ -15,17 +15,15 @@ namespace A305.Player
         private HeldUmbrella umbrellaPrefab;
 
         [SerializeField]
-        [Tooltip(
-            "손 목표를 머리 옆면에서 바깥으로 얼마나 둘지(m). 팔이 짧으면 닿는 데까지만 뻗는다"
-        )]
+        [Tooltip("어깨에서 손목을 바깥쪽으로 둘 거리(m)")]
         private float gripBesideHead = .04f;
 
         [SerializeField]
-        [Tooltip("손잡이를 머리 중심보다 얼마나 앞에 쥘지(m)")]
+        [Tooltip("기본 전방 거리 0.2m에 더할 손목의 전방 거리(m)")]
         private float gripForward = .06f;
 
         [SerializeField]
-        [Tooltip("손잡이를 어깨보다 얼마나 낮게 쥘지(m)")]
+        [Tooltip("손목을 내리는 거리의 기준(m). 팔꿈치를 굽히기 위해 이 값의 40%를 적용합니다.")]
         private float gripBelowShoulder = .05f;
 
         [SerializeField]
@@ -33,7 +31,7 @@ namespace A305.Player
         private float headClearance = .06f;
 
         [SerializeField]
-        [Tooltip("우산대를 머리 쪽으로 기울이는 각도")]
+        [Tooltip("우산대를 얼굴 바깥으로 기울이는 최소 각도. 머리와 겹치면 더 기울입니다.")]
         private float leanDegrees = 14f;
 
         private HeldUmbrella umbrella;
@@ -42,6 +40,11 @@ namespace A305.Player
         private Transform lowerArm;
         private Transform hand;
         private Bounds head;
+        private SkinnedVertexSamples headSurface;
+        private Transform middle;
+        private Quaternion palmFrame;
+        private Vector3 gripInHand;
+        private readonly List<(Transform Bone, Quaternion Rotation, float Curl)> fingers = new();
 
         public bool IsOpen { get; private set; }
 
@@ -54,6 +57,10 @@ namespace A305.Player
         {
             if (open && !Prepare())
                 return;
+            if (!open && IsOpen)
+                foreach (var finger in fingers)
+                    if (finger.Bone != null)
+                        finger.Bone.localRotation = finger.Rotation;
             IsOpen = open;
             if (umbrella != null)
                 umbrella.gameObject.SetActive(open);
@@ -71,6 +78,8 @@ namespace A305.Player
                 upperArm = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
                 lowerArm = animator.GetBoneTransform(HumanBodyBones.RightLowerArm);
                 hand = animator.GetBoneTransform(HumanBodyBones.RightHand);
+                middle = animator.GetBoneTransform(HumanBodyBones.RightMiddleProximal);
+                PrepareGrip();
                 head = HeadBounds();
             }
 
@@ -79,6 +88,32 @@ namespace A305.Player
             if (umbrella == null)
                 umbrella = Instantiate(umbrellaPrefab, transform);
             return true;
+        }
+
+        private void PrepareGrip()
+        {
+            fingers.Clear();
+            if (hand == null || middle == null)
+                return;
+            Transform index = animator.GetBoneTransform(HumanBodyBones.RightIndexProximal);
+            Transform pinky = animator.GetBoneTransform(HumanBodyBones.RightLittleProximal);
+            Vector3 along = hand.InverseTransformPoint(middle.position);
+            Vector3 across = hand.InverseTransformDirection(index.position - pinky.position);
+            palmFrame = Quaternion.LookRotation(along, across);
+            gripInHand = along * .75f + Vector3.Cross(along, across).normalized * .015f;
+            foreach (string finger in new[] { "Index", "Middle", "Ring", "Little" })
+            {
+                string[] joints = { "Proximal", "Intermediate", "Distal" };
+                float[] angles = { 40, 60, 25 };
+                for (int i = 0; i < joints.Length; i++)
+                {
+                    var id = (HumanBodyBones)
+                        System.Enum.Parse(typeof(HumanBodyBones), "Right" + finger + joints[i]);
+                    Transform bone = animator.GetBoneTransform(id);
+                    if (bone != null)
+                        fingers.Add((bone, bone.localRotation, angles[i]));
+                }
+            }
         }
 
         // 머리뼈 아래 정점으로 잰 머리 크기(플레이어 기준). 렌더러 경계는 넉넉하게 잡혀 있어 쓰지 않는다.
@@ -91,27 +126,74 @@ namespace A305.Player
                     .GetComponentsInChildren<Transform>()
             )
                 names.Add(bone.name);
-            return new SkinnedVertexSamples(animator, names.Contains).BoundsIn(transform);
+            headSurface = new SkinnedVertexSamples(animator, names.Contains, outermostOnly: true);
+            return headSurface.BoundsIn(transform);
         }
 
         private void LateUpdate()
         {
             if (!IsOpen || hand == null)
                 return;
-            float shoulderHeight = upperArm.position.y - transform.position.y;
-            Vector3 grip = transform.TransformPoint(
+            Vector3 shoulder = transform.InverseTransformPoint(upperArm.position);
+            Vector3 wrist = transform.TransformPoint(
                 new Vector3(
-                    head.max.x + gripBesideHead,
-                    shoulderHeight - gripBelowShoulder,
-                    head.center.z + gripForward
+                    shoulder.x + gripBesideHead,
+                    shoulder.y - gripBelowShoulder * .4f,
+                    shoulder.z + .2f + gripForward
                 )
             );
-            TwoBonePose.Reach(upperArm, lowerArm, hand, grip, -transform.up + transform.forward);
+            TwoBonePose.Reach(
+                upperArm,
+                lowerArm,
+                hand,
+                wrist,
+                -transform.up + transform.right * .5f
+            );
 
+            // 대두 체형에서는 곧은 우산대가 머리를 뚫는다. 머리 앞쪽 접평면 밖으로 기울인다.
+            Quaternion tilt = transform.rotation;
             Vector3 holdAt = hand.position;
-            Quaternion lean = Quaternion.AngleAxis(leanDegrees, transform.forward);
-            umbrella.transform.SetPositionAndRotation(holdAt, lean * transform.rotation);
-            umbrella.Fit(head.max.y + headClearance - (holdAt.y - transform.position.y));
+            for (float degrees = Mathf.Clamp(leanDegrees, 0, 60); degrees <= 60; degrees += 2)
+            {
+                tilt = Quaternion.AngleAxis(degrees, transform.right) * transform.rotation;
+                if (middle != null)
+                    hand.rotation =
+                        Quaternion.LookRotation(transform.forward, tilt * Vector3.up)
+                        * Quaternion.Inverse(palmFrame);
+                holdAt = middle != null ? hand.TransformPoint(gripInHand) : hand.position;
+                if (headSurface.MinimumDistance(holdAt, tilt * Vector3.back) >= .025f)
+                    break;
+            }
+            if (middle != null)
+            {
+                foreach (var finger in fingers)
+                {
+                    finger.Bone.localRotation = finger.Rotation;
+                    finger.Bone.rotation =
+                        Quaternion.AngleAxis(-finger.Curl, tilt * Vector3.up)
+                        * finger.Bone.rotation;
+                }
+            }
+            umbrella.transform.SetPositionAndRotation(holdAt, tilt);
+            float length =
+                (head.max.y + headClearance + .06f - transform.InverseTransformPoint(holdAt).y)
+                / Vector3.Dot(tilt * Vector3.up, transform.up);
+            umbrella.Fit(length);
+            Vector3 center = transform.InverseTransformPoint(umbrella.Canopy.position);
+            float radius = .84f;
+            for (int i = 0; i < 24; i++)
+            {
+                float angle = i * Mathf.PI * 2 / 24;
+                Vector2 edge = new Vector2(
+                    head.center.x + head.extents.x * Mathf.Cos(angle),
+                    head.center.z + head.extents.z * Mathf.Sin(angle)
+                );
+                radius = Mathf.Max(
+                    radius,
+                    Vector2.Distance(edge, new Vector2(center.x, center.z)) + headClearance
+                );
+            }
+            umbrella.Canopy.localScale = new Vector3(radius / .84f, 1, radius / .84f);
         }
     }
 }

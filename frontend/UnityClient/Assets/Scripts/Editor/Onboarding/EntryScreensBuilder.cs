@@ -40,6 +40,16 @@ namespace A305.EditorTools.Onboarding
             .45f
         );
 
+        [MenuItem("Tools/A305/Onboarding/Apply Waiting Backdrop")]
+        public static void ApplyWaitingBackdrop()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                PrefabPath,
+                root => Background(root.transform.Find("Background"))
+            );
+            AssetDatabase.SaveAssets();
+        }
+
         [MenuItem(MenuPath)]
         public static void ApplyToPrefab()
         {
@@ -60,13 +70,22 @@ namespace A305.EditorTools.Onboarding
             Connection((RectTransform)root.Find("ConnectionPanel"));
         }
 
-        // 화면을 덮도록 비율을 지켜 늘린 흐린 마을 그림. 로그인 화면은 그 위에 자기 배경을 깐다.
+        // 접속 확인 중에도 로그인과 같은 마을 배경·크림색 그라데이션을 쓴다.
         private static void Background(Transform background)
         {
             RectTransform town = F.Rect("Town", background);
             town.SetAsFirstSibling();
             F.Fill(town);
-            F.Picture(town.gameObject, Sprite("EntryBackdrop"));
+            F.Picture(
+                town.gameObject,
+                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Login/LoginTown.png")
+            );
+            RectTransform shade = F.Rect("Shade", background);
+            F.Fill(shade);
+            F.Picture(
+                shade.gameObject,
+                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Login/LoginShade.png")
+            );
             var cover = BuilderTools.GetOrAddComponent<AspectRatioFitter>(town.gameObject);
             cover.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
             cover.aspectRatio = 16f / 9f;

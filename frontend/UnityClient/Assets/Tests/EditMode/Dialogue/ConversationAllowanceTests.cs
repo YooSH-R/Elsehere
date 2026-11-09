@@ -1,4 +1,3 @@
-using System;
 using System.Threading.Tasks;
 using A305.Api;
 using NUnit.Framework;
@@ -7,18 +6,6 @@ namespace A305.Dialogue.Tests
 {
     public class ConversationAllowanceTests
     {
-        [Test]
-        public void AtKoreanMidnight_ExpiredDailyLimitDoesNotBlockTheNextStart()
-        {
-            DateTimeOffset now = DateTimeOffset.Parse("2026-11-06T23:59:59+09:00");
-            var allowance = new ConversationAllowance(() => now);
-            allowance.Apply(Status(canStart: false, remaining: 0));
-            Assert.That(allowance.CanStartConversation, Is.False);
-            now = DateTimeOffset.Parse("2026-11-07T00:00:00+09:00");
-            Assert.That(allowance.CanStartConversation, Is.True);
-            Assert.That(allowance.RemainingConversations, Is.Null);
-        }
-
         [Test]
         public void BeforeServerStatus_DoesNotBlockStarting()
         {

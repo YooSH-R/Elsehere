@@ -63,7 +63,7 @@ namespace A305.Npc.Tests
         {
             Assert.That(
                 PasserbyOfferText.RemainingConversations(2),
-                Is.EqualTo("오늘 남은 대화 2번")
+                Is.EqualTo("게스트 남은 대화 2번")
             );
         }
 
@@ -77,10 +77,7 @@ namespace A305.Npc.Tests
         [Test]
         public void Blocked_GuestUsedAllConversations_SaysWhy()
         {
-            Assert.That(
-                PasserbyOfferText.Blocked(0),
-                Is.EqualTo("오늘의 대화를 모두 썼어요. 내일 다시 만나요.")
-            );
+            Assert.That(PasserbyOfferText.Blocked(0), Is.EqualTo("게스트 대화를 모두 썼어요"));
         }
 
         [Test]
@@ -93,7 +90,7 @@ namespace A305.Npc.Tests
         [Test]
         public void OffersSignup_OnlyWhenGuestUsedAllConversations()
         {
-            Assert.That(PasserbyOfferText.OffersSignup(0), Is.False);
+            Assert.That(PasserbyOfferText.OffersSignup(0), Is.True);
             Assert.That(PasserbyOfferText.OffersSignup(2), Is.False);
             // 가입 사용자가 다른 이유로 막혔으면 가입을 권하지 않는다.
             Assert.That(PasserbyOfferText.OffersSignup(null), Is.False);

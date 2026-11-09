@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * AI 이용 상태(AI-01, BOOT-01의 aiStatus).
  *
- * <p>가입 사용자와 게스트의 일일 NPC 대화 횟수 제한을 반영한다.
+ * <p>가입 사용자의 AI 사용량 한도(API 명세 1.4)는 수치가 정해지지 않아 아직 없으므로, 게스트의 대화 횟수 제한만 반영한다.
  */
 @Service
 @RequiredArgsConstructor

@@ -13,6 +13,8 @@ import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.config.TestClockConfig;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.InitiatedBy;
+import com.elsehere.conversation.entity.InputType;
+import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.service.TrainingRecordingService;
 import com.elsehere.conversation.service.TrainingRecordingStore;
 import com.elsehere.user.UserTestData;
@@ -22,6 +24,7 @@ import com.elsehere.user.entity.OnboardingStep;
 import com.elsehere.user.entity.UiTheme;
 import com.elsehere.user.service.OptionalConsentService;
 import jakarta.persistence.EntityManager;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +36,7 @@ import org.springframework.context.annotation.Import;
 @DataJpaTest(
     properties = {
       "spring.jpa.hibernate.ddl-auto=create-drop",
-      "elsehere.conversation.daily-limit=1"
+      "elsehere.guest.conversation-limit=1"
     })
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import({
@@ -113,7 +116,23 @@ class BootstrapServiceTest {
   @DisplayName("AI 이용 상태를 AI-01과 같은 형식으로 함께 돌려준다")
   void signedInUser_returnsAiStatus() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1");
-    entityManager.persist(Conversation.start(userId, 1L, InitiatedBy.NPC, 1, TestClockConfig.NOW));
+    Conversation conversation =
+        Conversation.start(userId, 1L, InitiatedBy.NPC, 1, TestClockConfig.NOW);
+    entityManager.persist(conversation);
+    // 게스트 횟수는 한 번이라도 주고받은 대화만 센다.
+    entityManager.persist(
+        Turn.user(
+            conversation,
+            1,
+            UUID.randomUUID(),
+            InputType.TEXT,
+            "Hi",
+            null,
+            null,
+            false,
+            null,
+            null));
+    entityManager.persist(Turn.npc(conversation, 2, "Hello!", null, TestClockConfig.NOW));
 
     BootstrapResponse response = bootstrapService.findSignedIn(userId).orElseThrow();
 

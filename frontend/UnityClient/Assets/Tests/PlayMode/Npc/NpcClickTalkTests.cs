@@ -207,9 +207,9 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator DailyLimitReached_ClickingBen_DoesNotOpenSignupOrConversation()
+        public IEnumerator GuestWhoUsedAllConversations_ClickingBen_OpensSignupDialog()
         {
-            // 일일 한도 소진은 가입을 유도하지 않고 대화를 막는다.
+            // [가입하고 계속 대화하기]를 누른 것과 같다(S15P31A305-578·705).
             yield return LoadTownAfterTutorial();
             Single<DialogueController>().Allowance.Apply(GuestOutOfConversations());
             Passerby ben = FindPasserby(BenCode);
@@ -218,7 +218,7 @@ namespace A305.Npc.PlayModeTests
             Single<NpcClickTalk>().Click(AimAt(ben));
             yield return null;
 
-            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.False);
+            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.True);
             Assert.That(Single<DialogueController>().IsTalking, Is.False);
         }
 
@@ -327,7 +327,7 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator DailyLimitReached_ClickingBensNameTag_DoesNotOpenSignupOrConversation()
+        public IEnumerator GuestWhoUsedAllConversations_ClickingBensNameTag_OpensSignupDialog()
         {
             yield return LoadTownAfterTutorial();
             Single<DialogueController>().Allowance.Apply(GuestOutOfConversations());
@@ -345,7 +345,7 @@ namespace A305.Npc.PlayModeTests
             Single<NpcClickTalk>().Click(NameTagOf(ben, BenName));
             yield return null;
 
-            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.False);
+            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.True);
             Assert.That(Single<DialogueController>().IsTalking, Is.False);
         }
 

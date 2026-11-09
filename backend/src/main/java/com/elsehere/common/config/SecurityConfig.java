@@ -48,6 +48,7 @@ public class SecurityConfig {
 
   /** 가입 화면에서 여는 약관 문서(AUTH-03의 url). 백엔드가 그린다. */
   private static final String[] LEGAL_DOCUMENTS = {
+    "/terms", "/privacy", "/voice", "/ai-training",
     "/terms/*", "/privacy/*", "/voice/*", "/ai-training/*"
   };
 

@@ -89,20 +89,7 @@ namespace A305.EditorTools.World
                 new Vector3(.45f, .08f, .38f),
                 trim
             );
-            Piece(
-                cabin,
-                "RearSeat",
-                new Vector3(0, .65f, -.97f),
-                new Vector3(1.42f, .16f, .56f),
-                upholstery
-            );
-            Piece(
-                cabin,
-                "RearBack",
-                new Vector3(0, .95f, -1.24f),
-                new Vector3(1.42f, .60f, .12f),
-                upholstery
-            );
+            ConfigureRearSeats(cabin);
             Piece(
                 cabin,
                 "Dashboard",
@@ -151,6 +138,26 @@ namespace A305.EditorTools.World
             fields.ApplyModifiedPropertiesWithoutUndo();
             ConfigureRoute(taxi.GetComponent<LoopingCar>());
             ConfigureStatus(panel);
+        }
+
+        internal static void ConfigureRearSeats(Transform cabin)
+        {
+            Material upholstery = MainstreetArtKit.Color("TaxiUpholstery", "#B9A17C");
+            // 차체가 위로 갈수록 좁아지고 뒷유리가 앞으로 기울어져 있어 등받이를 더 좁고 앞에 둔다.
+            Piece(
+                cabin,
+                "RearSeat",
+                new Vector3(0, .65f, -.77f),
+                new Vector3(1.28f, .16f, .50f),
+                upholstery
+            );
+            Piece(
+                cabin,
+                "RearBack",
+                new Vector3(0, .94f, -.95f),
+                new Vector3(1.18f, .52f, .12f),
+                upholstery
+            );
         }
 
         /// <summary>

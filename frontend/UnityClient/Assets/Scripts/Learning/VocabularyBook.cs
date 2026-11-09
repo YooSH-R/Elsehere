@@ -31,6 +31,9 @@ namespace A305.Learning
         /// <summary>외운 단어까지 모두 담은 단어장. 외웠어요는 기록을 지우지 않는다.</summary>
         public IReadOnlyList<VocabularyEntry> Entries => entries;
 
+        /// <summary>알림 배지는 목록 필터와 관계없이 아직 외우지 않은 표현만 센다.</summary>
+        public int UnlearnedCount => entries.Count(entry => !entry.IsLearned);
+
         /// <summary>[외운 표현도 보기]를 켰는지. 끄면 외운 단어를 목록에서 정리한다(기능 명세 F-35).</summary>
         public bool ShowsLearned { get; set; }
 

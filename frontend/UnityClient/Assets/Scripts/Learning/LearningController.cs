@@ -223,7 +223,7 @@ namespace A305.Learning
                 return false;
             bool saved = result != VocabularySaveResult.Failed;
             hudView.ShowMessage(saved ? "단어장에 담았어요." : vocabulary.LastFailureMessage);
-            hudView.SetVocabularyCount(vocabulary.Entries.Count);
+            hudView.SetVocabularyCount(vocabulary.UnlearnedCount);
             return saved;
         }
 
@@ -243,7 +243,7 @@ namespace A305.Learning
             {
                 case VocabularySaveResult.Saved:
                     dialogue.ShowWordSaveResult(word, true, "단어장에 저장했어요.");
-                    hudView.SetVocabularyCount(vocabulary.Entries.Count);
+                    hudView.SetVocabularyCount(vocabulary.UnlearnedCount);
                     break;
                 case VocabularySaveResult.AlreadySaved:
                     dialogue.ShowWordSaveResult(word, true, "이미 단어장에 있는 단어예요.");
@@ -366,7 +366,7 @@ namespace A305.Learning
             }
 
             feedbackView.ShowSaved(expression);
-            hudView.SetVocabularyCount(vocabulary.Entries.Count);
+            hudView.SetVocabularyCount(vocabulary.UnlearnedCount);
         }
 
         // 내 발화가 없는 대화는 피드백을 만들지 않고, 이동 잠금도 건드리지 않는다.
@@ -610,7 +610,7 @@ namespace A305.Learning
                 }
             }
 
-            hudView.SetVocabularyCount(vocabulary.Entries.Count);
+            hudView.SetVocabularyCount(vocabulary.UnlearnedCount);
             if (vocabularyView.IsVisible)
             {
                 vocabularyView.Refresh();
@@ -663,14 +663,17 @@ namespace A305.Learning
         {
             vocabularyView.ShowStatus("저장하는 중이에요…");
             bool saved = await change;
-            if (this == null || !vocabularyView.IsVisible)
+            if (this == null)
             {
                 return;
             }
 
+            hudView.SetVocabularyCount(vocabulary.UnlearnedCount);
+            if (!vocabularyView.IsVisible)
+                return;
+
             vocabularyView.Refresh();
             vocabularyView.ShowStatus(saved ? doneMessage : vocabulary.LastFailureMessage);
-            hudView.SetVocabularyCount(vocabulary.Entries.Count);
         }
 
         private void UpdateMovementLock()

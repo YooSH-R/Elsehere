@@ -1,9 +1,11 @@
 package com.elsehere.conversation.repository;
 
 import com.elsehere.conversation.entity.Conversation;
+import com.elsehere.conversation.entity.ConversationEndReason;
 import com.elsehere.conversation.entity.ConversationStatus;
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,6 +42,16 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
           + " (select t.id from Turn t where t.conversation = c"
           + " and t.speaker = com.elsehere.conversation.entity.Speaker.USER)")
   long countExchangedByUserId(@Param("userId") Long userId);
+
+  /** 사용자가 한 마디 이상 하고 endReasons 중 하나로 끝낸 대화가 있는 NPC들. */
+  @Query(
+      "select distinct c.npcId from Conversation c where c.userId = :userId"
+          + " and c.endReason in :endReasons and exists"
+          + " (select t.id from Turn t where t.conversation = c"
+          + " and t.speaker = com.elsehere.conversation.entity.Speaker.USER)")
+  List<Long> findNpcIdsEndedWith(
+      @Param("userId") Long userId,
+      @Param("endReasons") Collection<ConversationEndReason> endReasons);
 
   /**
    * 지난 대화 첫 페이지(최근 시작순). 시작 시각이 같으면 나중에 만든 대화(ID가 큰 쪽)가 먼저다. {@code npcId}가 null이면 모든 NPC와의 대화다.

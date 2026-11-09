@@ -139,6 +139,26 @@ namespace A305.EditorTools.Theme
             AssetDatabase.SaveAssets();
         }
 
+        /// <summary>
+        /// 휴대폰 [복습장] 옆에 [이웃] 버튼을 두고 [이웃] 창(S15P31A305-537)을 만든다.
+        /// HUD 전체를 다시 칠하면(Apply HUD Menu) 나중에 바꾼 디자인이 되돌아가므로 이 부분만 만든다.
+        /// </summary>
+        [MenuItem("Tools/A305/UI/Add Neighbors App")]
+        public static void ApplyNeighborsApp()
+        {
+            BuilderTools.ThrowIfPlaying();
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(
+                HudPath,
+                root =>
+                {
+                    NeighborsListBuilder.Add(root);
+                    StyleNeighbors(root);
+                }
+            );
+            AssetDatabase.SaveAssets();
+        }
+
         /// <summary>대화창의 로딩(대사 칸 로딩, 피드백 로딩 창)만 테마로 칠한다. 대화창의 다른 요소는 건드리지 않는다.</summary>
         public static void ApplyDialogueWaitingTheme()
         {
@@ -292,6 +312,7 @@ namespace A305.EditorTools.Theme
             StyleControlsGuide(root);
             StyleSessionExpired(root);
             StyleSurveyPrompt(root);
+            StyleNeighbors(root);
 
             RectTransform card = FindOrCreateRect(panel, "MessageCard");
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = false;
@@ -332,6 +353,17 @@ namespace A305.EditorTools.Theme
                 return;
             Role(root, "History", UiThemeRole.Panel);
             A305.EditorTools.Learning.FeedbackListBuilder.Apply(root);
+        }
+
+        /// <summary>[이웃] 창은 [피드백 목록]과 같은 테마 유리 판 위에 같은 자리로 놓는다(NeighborsListBuilder).</summary>
+        private static void StyleNeighbors(Transform root)
+        {
+            if (root.Find("Neighbors") == null)
+                return;
+            Role(root, "Neighbors", UiThemeRole.Panel);
+            NeighborsListBuilder.Apply(root);
+            ActionPill(root, "Neighbors/RetryButton", UiIcon.Retry, UiTone.Neutral, 200);
+            ActionPill(root, "Neighbors/Card/BackButton", UiIcon.None, UiTone.Neutral, 200);
         }
 
         /// <summary>오른쪽 아래 조작법 카드. 알림 카드처럼 작은 카드 바탕에 제목·조작·안내를 두고, 닫기는 오른쪽 위 X다.</summary>
@@ -733,7 +765,13 @@ namespace A305.EditorTools.Theme
             talkSize.minWidth = talkSize.preferredWidth = 332;
             talk.sizeDelta = new Vector2(332, talk.sizeDelta.y);
 
-            RectTransform key = FindOrCreateRect(talk, "KeyHint");
+            RectTransform key = StyleInteractionKeyHint(talk);
+            BuilderTools.SetReference(view, "talkKeyHint", key);
+        }
+
+        internal static RectTransform StyleInteractionKeyHint(Transform button)
+        {
+            RectTransform key = FindOrCreateRect(button, "KeyHint");
             key.SetAsFirstSibling();
             key.sizeDelta = new Vector2(32, 32);
             BuilderTools.GetOrAddComponent<LayoutElement>(key.gameObject).ignoreLayout = true;
@@ -752,7 +790,7 @@ namespace A305.EditorTools.Theme
             keyFace.type = Image.Type.Sliced;
             keyFace.color = new Color32(190, 90, 70, 255);
             keyFace.raycastTarget = false;
-            BuilderTools.SetReference(view, "talkKeyHint", key);
+            return key;
         }
 
         // 안내는 바닥 무늬와 테마에 관계없이 읽혀야 하므로 불투명 바탕과 고정 대비를 쓴다.

@@ -46,7 +46,8 @@ public class UserContentEraser {
           "town_stories",
           "user_consents",
           "user_language_profiles",
-          "user_game_clocks");
+          "user_game_clocks",
+          "user_daily_activities");
 
   private static final String USER_CONVERSATIONS =
       "(select id from conversations where user_id = ?)";

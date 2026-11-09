@@ -44,6 +44,7 @@ class FirstDayMissionServiceTest {
     when(repository.findById(8L)).thenReturn(Optional.of(mission));
 
     assertThat(service.status(8L).situation()).contains(NAMES.get(stage.npc()));
+    assertThat(service.status(8L).direction()).contains(NAMES.get(stage.npc()));
   }
 
   @Test
@@ -123,7 +124,7 @@ class FirstDayMissionServiceTest {
     mission.visit("CAFE");
     when(repository.findById(8L)).thenReturn(Optional.of(mission));
 
-    assertThat(service.status(8L).direction()).isEqualTo("마을 거리로 이동하세요.");
+    assertThat(service.status(8L).direction()).isEqualTo("마을 거리로 이동하세요. (대화 상대: Ben)");
     assertThat(service.status(8L).situation()).isEqualTo("마을 거리에서 행인 Ben에게 물어보세요.");
   }
 
@@ -456,7 +457,7 @@ class FirstDayMissionServiceTest {
     mission.visit("TOWN");
     when(repository.findById(8L)).thenReturn(Optional.of(mission));
 
-    assertThat(service.status(8L).direction()).isEqualTo("DRUGSTORE 드럭스토어로 이동하세요.");
+    assertThat(service.status(8L).direction()).isEqualTo("DRUGSTORE 드럭스토어로 이동하세요. (대화 상대: Alex)");
   }
 
   @Test

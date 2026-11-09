@@ -80,6 +80,7 @@ namespace A305.EditorTools.Mission
                 .gameObject;
             drawer.SetActive(false);
             Render(camera, view, Path.Combine(output, "quest-npc.png"), 1920, 1080);
+            Render(camera, view, Path.Combine(output, "quest-card-mobile.png"), 1080, 1920);
             drawer.SetActive(true);
             banner.SetActive(false);
             Render(camera, view, Path.Combine(output, "quest-journal.png"), 1920, 1080);

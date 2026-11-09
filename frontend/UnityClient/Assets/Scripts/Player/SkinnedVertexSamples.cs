@@ -7,6 +7,7 @@ namespace A305.Player
     /// <summary>
     /// 선택한 스킨 정점만 CPU에서 평가한다. 매 프레임 전체 메시를 Bake하지 않는다.
     /// 뼈 행렬은 고른 정점이 쓰는 뼈만 다시 구한다.
+    /// 같은 외형의 NPC가 여럿이므로, Play 중에는 메시마다 고른 정점을 한 번만 만들어 함께 쓴다.
     /// </summary>
     internal sealed class SkinnedVertexSamples
     {
@@ -21,7 +22,27 @@ namespace A305.Player
             public BoneWeight[] weights;
         }
 
+        /// <summary>한 메시에서 고른 정점. 여러 NPC가 함께 읽기만 한다.</summary>
+        private sealed class Selection
+        {
+            public Matrix4x4[] BindPoses;
+            public int[] UsedBones;
+            public Vector3[] Vertices;
+            public BoneWeight[] Weights;
+        }
+
+        // 메시·고른 뼈·영향 기준·바깥 끝만 남기기가 같으면 고른 정점도 같다. 고른 정점이 없으면 null을 담는다.
+        // NPC가 처음 켜질 때마다 메시 전체를 읽고 머리 정점 수만 개에서 바깥 끝을 다시 고르면 NPC 한 명에 수십 ms가 든다.
+        private static readonly Dictionary<
+            (Mesh, string, float, bool),
+            Selection
+        > SharedSelections = new();
+
         private readonly List<Surface> surfaces = new();
+
+        // 도메인 다시 불러오기를 끈 Editor에서도 지난 Play에서 고른 정점이 남지 않게 한다.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ForgetSharedSelections() => SharedSelections.Clear();
 
         /// <param name="outermostOnly">
         /// 감싸는 상자만 필요할 때 여러 방향으로 가장 바깥에 있는 정점만 남긴다(<see cref="OutermostPoints"/>).
@@ -36,57 +57,110 @@ namespace A305.Player
         {
             foreach (var skin in animator.GetComponentsInChildren<SkinnedMeshRenderer>())
             {
-                var mesh = skin.sharedMesh;
-                var flags = new bool[skin.bones.Length];
+                // skin.bones는 부를 때마다 배열을 새로 복사하므로 한 번만 받는다.
+                Transform[] bones = skin.bones;
+                var flags = new bool[bones.Length];
                 for (int i = 0; i < flags.Length; i++)
-                    flags[i] = includesBone(skin.bones[i].name);
-                var vertices = mesh.vertices;
-                var weights = mesh.boneWeights;
-                var selectedVertices = new List<Vector3>();
-                var selectedWeights = new List<BoneWeight>();
-                for (int i = 0; i < weights.Length; i++)
-                {
-                    var w = weights[i];
-                    float influence =
-                        (flags[w.boneIndex0] ? w.weight0 : 0)
-                        + (flags[w.boneIndex1] ? w.weight1 : 0)
-                        + (flags[w.boneIndex2] ? w.weight2 : 0)
-                        + (flags[w.boneIndex3] ? w.weight3 : 0);
-                    if (influence < minimumInfluence)
-                        continue;
-                    selectedVertices.Add(vertices[i]);
-                    selectedWeights.Add(w);
-                }
-                if (selectedVertices.Count == 0)
+                    flags[i] = includesBone(bones[i].name);
+                Selection selection = SelectionFor(
+                    skin.sharedMesh,
+                    flags,
+                    minimumInfluence,
+                    outermostOnly
+                );
+                if (selection == null)
                     continue;
-                if (outermostOnly)
-                {
-                    int[] kept = OutermostPoints.Select(selectedVertices);
-                    var keptVertices = new List<Vector3>(kept.Length);
-                    var keptWeights = new List<BoneWeight>(kept.Length);
-                    foreach (int index in kept)
-                    {
-                        keptVertices.Add(selectedVertices[index]);
-                        keptWeights.Add(selectedWeights[index]);
-                    }
-                    selectedVertices = keptVertices;
-                    selectedWeights = keptWeights;
-                }
                 surfaces.Add(
                     new Surface
                     {
                         skin = skin,
-                        bones = skin.bones,
-                        bindPoses = mesh.bindposes,
-                        matrices = new Matrix4x4[skin.bones.Length],
-                        usedBones = UsedBones(selectedWeights),
-                        vertices = selectedVertices.ToArray(),
-                        weights = selectedWeights.ToArray(),
+                        bones = bones,
+                        bindPoses = selection.BindPoses,
+                        matrices = new Matrix4x4[bones.Length],
+                        usedBones = selection.UsedBones,
+                        vertices = selection.Vertices,
+                        weights = selection.Weights,
                     }
                 );
             }
             if (surfaces.Count == 0)
                 throw new InvalidOperationException("스킨 검사 정점이 없습니다.");
+        }
+
+        // Editor 도구는 Play 밖에서 메시를 다시 가져온 뒤 검사하기도 하므로, 함께 쓰는 것은 Play 중에만 한다.
+        private static Selection SelectionFor(
+            Mesh mesh,
+            bool[] flags,
+            float minimumInfluence,
+            bool outermostOnly
+        )
+        {
+            if (!Application.isPlaying)
+                return Select(mesh, flags, minimumInfluence, outermostOnly);
+            var key = (mesh, FlagsKey(flags), minimumInfluence, outermostOnly);
+            if (!SharedSelections.TryGetValue(key, out Selection selection))
+            {
+                selection = Select(mesh, flags, minimumInfluence, outermostOnly);
+                SharedSelections.Add(key, selection);
+            }
+            return selection;
+        }
+
+        private static string FlagsKey(bool[] flags)
+        {
+            var key = new char[flags.Length];
+            for (int i = 0; i < flags.Length; i++)
+                key[i] = flags[i] ? '1' : '0';
+            return new string(key);
+        }
+
+        // 고른 뼈의 영향이 기준 이상인 정점을 모은다. 고른 정점이 없으면 null
+        private static Selection Select(
+            Mesh mesh,
+            bool[] flags,
+            float minimumInfluence,
+            bool outermostOnly
+        )
+        {
+            var vertices = mesh.vertices;
+            var weights = mesh.boneWeights;
+            var selectedVertices = new List<Vector3>();
+            var selectedWeights = new List<BoneWeight>();
+            for (int i = 0; i < weights.Length; i++)
+            {
+                var w = weights[i];
+                float influence =
+                    (flags[w.boneIndex0] ? w.weight0 : 0)
+                    + (flags[w.boneIndex1] ? w.weight1 : 0)
+                    + (flags[w.boneIndex2] ? w.weight2 : 0)
+                    + (flags[w.boneIndex3] ? w.weight3 : 0);
+                if (influence < minimumInfluence)
+                    continue;
+                selectedVertices.Add(vertices[i]);
+                selectedWeights.Add(w);
+            }
+            if (selectedVertices.Count == 0)
+                return null;
+            if (outermostOnly)
+            {
+                int[] kept = OutermostPoints.Select(selectedVertices);
+                var keptVertices = new List<Vector3>(kept.Length);
+                var keptWeights = new List<BoneWeight>(kept.Length);
+                foreach (int index in kept)
+                {
+                    keptVertices.Add(selectedVertices[index]);
+                    keptWeights.Add(selectedWeights[index]);
+                }
+                selectedVertices = keptVertices;
+                selectedWeights = keptWeights;
+            }
+            return new Selection
+            {
+                BindPoses = mesh.bindposes,
+                UsedBones = UsedBones(selectedWeights),
+                Vertices = selectedVertices.ToArray(),
+                Weights = selectedWeights.ToArray(),
+            };
         }
 
         private static int[] UsedBones(List<BoneWeight> weights)

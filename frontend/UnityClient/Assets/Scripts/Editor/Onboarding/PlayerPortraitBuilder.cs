@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using A305.EditorTools.Characters;
 using A305.EditorTools.Common;
 using A305.EditorTools.Tripo;
 using A305.Player;
@@ -91,17 +92,26 @@ namespace A305.EditorTools.Onboarding
                 surfaces.Add((mesh, part.transform, mesh.vertices));
                 skin.enabled = false;
             }
-            Vector3 front = TripoModelPreview.GetViewDirection(model, 0);
+            Bounds head = CharacterHeadProportions.HeadBounds(model);
+            Vector3 front = Vector3
+                .ProjectOnPlane(TripoModelPreview.GetViewDirection(model, 0), Vector3.up)
+                .normalized;
             var camera = new GameObject("Portrait camera").AddComponent<Camera>();
             camera.orthographic = true;
-            camera.orthographicSize = .64f;
+            // 캐릭터 높이·머리 위치 대신 사진에서 머리가 차지하는 높이와 위 여백을 맞춘다.
+            camera.orthographicSize = head.size.y / (2 * .76f);
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(.96f, .95f, .92f);
             camera.nearClipPlane = .01f;
             camera.farClipPlane = 20;
-            var focus = Vector3.up * 1.08f;
+            var focus = new Vector3(
+                head.center.x,
+                head.max.y - camera.orthographicSize * .84f,
+                head.center.z
+            );
             camera.transform.position = focus + front * 5;
             camera.transform.LookAt(focus);
+            Debug.Log($"카드 촬영 구도: {id}, 머리 {head}, 화면 높이 비율 0.76, 위 여백 0.08");
             var light = new GameObject("Portrait light").AddComponent<Light>();
             light.type = LightType.Directional;
             light.intensity = .9f;

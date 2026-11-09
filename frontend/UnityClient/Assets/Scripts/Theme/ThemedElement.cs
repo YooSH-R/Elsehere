@@ -63,6 +63,17 @@ namespace A305.Theme
             ApplyCurrent();
         }
 
+        public void SetIcon(UiIcon value)
+        {
+            if (icon == value)
+                return;
+            icon = value;
+            LayoutElement iconLayout = Child<LayoutElement>(transform, "Icon");
+            if (iconLayout != null)
+                iconLayout.ignoreLayout = value == UiIcon.None;
+            ApplyCurrent();
+        }
+
         public void ApplyCurrent()
         {
             if (catalog == null)

@@ -38,7 +38,9 @@ import com.elsehere.conversation.entity.ConversationEndReason;
 import com.elsehere.conversation.entity.ConversationStatus;
 import com.elsehere.conversation.entity.InitiatedBy;
 import com.elsehere.conversation.entity.InputType;
+import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.ConversationRepository;
+import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.dialogue.dto.ConversationDetailResponse;
 import com.elsehere.dialogue.dto.ConversationStartResponse;
 import com.elsehere.dialogue.dto.EndConversationRequest;
@@ -81,7 +83,12 @@ class ConversationServiceTest {
   // DialogueServiceTest에 설정한 elsehere.guest.conversation-limit
   private static final int GUEST_CONVERSATION_LIMIT = 2;
 
+  // DialogueServiceTest에 설정한 elsehere.conversation.daily-limit
+  private static final int DAILY_CONVERSATION_LIMIT = 2;
+
   @Autowired private ConversationService conversationService;
+
+  @Autowired private TurnRepository turnRepository;
 
   @Autowired private TurnService turnService;
 
@@ -548,12 +555,12 @@ class ConversationServiceTest {
     Long guestId =
         UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1", "guest-000001");
     for (int i = 0; i < GUEST_CONVERSATION_LIMIT - 1; i++) {
-      startAndEndPasserby(guestId);
+      talkWithPasserby(guestId);
     }
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willAnswer(
             invocation -> {
-              startAndEndPasserby(guestId);
+              talkWithPasserby(guestId);
               return reply("Hi! What can I get for you?", null);
             });
 
@@ -575,7 +582,7 @@ class ConversationServiceTest {
     Long guestId =
         UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1", "guest-000001");
     for (int i = 0; i < GUEST_CONVERSATION_LIMIT - 1; i++) {
-      startAndEndPasserby(guestId);
+      talkWithPasserby(guestId);
     }
     StartConversationRequest request =
         new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC);
@@ -615,12 +622,12 @@ class ConversationServiceTest {
   }
 
   @Test
-  @DisplayName("게스트는 정해진 횟수만큼 대화를 시작하면 더 시작할 수 없고 AI_QUOTA_EXHAUSTED로 거절된다")
+  @DisplayName("게스트는 정해진 횟수만큼 대화를 주고받으면 더 시작할 수 없고 AI_QUOTA_EXHAUSTED로 거절된다")
   void start_guestReachedLimit_throwsQuotaExhausted() {
     Long guestId =
         UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1", "guest-000001");
     for (int i = 0; i < GUEST_CONVERSATION_LIMIT; i++) {
-      startAndEndPasserby(guestId);
+      talkWithPasserby(guestId);
     }
 
     assertThatThrownBy(() -> startAndEndPasserby(guestId))
@@ -631,7 +638,9 @@ class ConversationServiceTest {
               // AI 사용량이 아니라 게스트 대화 횟수 때문에 막혔다고 알린다.
               assertThat(exception.getMessage())
                   .isEqualTo(
-                      "오늘의 NPC 대화 " + GUEST_CONVERSATION_LIMIT + "회를 모두 사용했어요. 내일 다시 대화할 수 있어요.");
+                      "게스트는 NPC와 "
+                          + GUEST_CONVERSATION_LIMIT
+                          + "번까지 대화할 수 있어요. 마을 탐험, 사물 카드, 단어장은 계속할 수 있어요.");
               assertThat(exception.getDetails())
                   .containsEntry("aiStatus", "AI_EXHAUSTED")
                   .containsEntry(
@@ -644,11 +653,25 @@ class ConversationServiceTest {
   @Test
   @DisplayName("가입 사용자도 일일 한도를 넘겨 대화를 시작할 수 없다")
   void start_memberBeyondGuestLimit_starts() {
-    for (int i = 0; i < GUEST_CONVERSATION_LIMIT; i++) {
+    for (int i = 0; i < DAILY_CONVERSATION_LIMIT; i++) {
       startAndEndPasserby(userId);
     }
     assertThatThrownBy(() -> startAndEndPasserby(userId)).isInstanceOf(BusinessException.class);
-    assertThat(conversationRepository.count()).isEqualTo(GUEST_CONVERSATION_LIMIT);
+    assertThat(conversationRepository.count()).isEqualTo(DAILY_CONVERSATION_LIMIT);
+  }
+
+  @Test
+  @DisplayName("게스트가 말을 주고받지 않고 끝낸 대화는 횟수로 세지 않아 계속 새 대화를 시작할 수 있다")
+  void start_guestConversationsWithoutExchange_doNotCount() {
+    Long guestId =
+        UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1", "guest-000001");
+    for (int i = 0; i < GUEST_CONVERSATION_LIMIT; i++) {
+      startAndEndPasserby(guestId);
+    }
+
+    startAndEndPasserby(guestId);
+
+    assertThat(conversationRepository.count()).isEqualTo(GUEST_CONVERSATION_LIMIT + 1);
   }
 
   @Test
@@ -657,7 +680,7 @@ class ConversationServiceTest {
     Long guestId =
         UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1", "guest-000001");
     for (int i = 0; i < GUEST_CONVERSATION_LIMIT; i++) {
-      startAndEndPasserby(guestId);
+      talkWithPasserby(guestId);
     }
 
     try (LogCapture logs = LogCapture.atInfo(GuestConversationLimit.class)) {
@@ -665,7 +688,7 @@ class ConversationServiceTest {
 
       assertThat(logs.messages(Level.INFO))
           .containsExactly(
-              "daily_conversation_limit_reached user_id="
+              "guest_conversation_limit_reached user_id="
                   + guestId
                   + " limit="
                   + GUEST_CONVERSATION_LIMIT);
@@ -982,7 +1005,7 @@ class ConversationServiceTest {
         userId, new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC));
   }
 
-  // 피드백·기억 갱신 없이 대화만 끝낸다. 대화 횟수 제한은 끝난 대화도 센다.
+  // 피드백·기억 갱신 없이 대화만 끝낸다. 가입 사용자의 하루 횟수는 끝난 대화도 센다.
   private void startAndEndPasserby(Long ownerId) {
     ConversationStartResponse started =
         conversationService.start(
@@ -992,6 +1015,32 @@ class ConversationServiceTest {
         .findById(started.conversationId())
         .orElseThrow()
         .endByUser(clock.instant());
+  }
+
+  // 한 번 주고받고 끝낸다. 게스트 횟수는 한 번이라도 주고받은 대화만 센다. 발화 처리처럼 사용자 턴과 NPC 대답을 함께 저장한다.
+  private void talkWithPasserby(Long ownerId) {
+    ConversationStartResponse started =
+        conversationService.start(
+            ownerId,
+            new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC));
+    Conversation conversation =
+        conversationRepository.findById(started.conversationId()).orElseThrow();
+    int lastSeq = turnRepository.findLastSeq(conversation.getId());
+    turnRepository.save(
+        Turn.user(
+            conversation,
+            lastSeq + 1,
+            UUID.randomUUID(),
+            InputType.TEXT,
+            "Where is the cafe?",
+            null,
+            null,
+            false,
+            null,
+            null));
+    turnRepository.save(
+        Turn.npc(conversation, lastSeq + 2, "It's right over there.", null, clock.instant()));
+    conversation.endByUser(clock.instant());
   }
 
   private ConversationStartResponse startCafe() {

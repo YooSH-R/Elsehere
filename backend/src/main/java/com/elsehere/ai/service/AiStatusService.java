@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * AI 이용 상태(AI-01, BOOT-01의 aiStatus).
  *
- * <p>가입 사용자와 게스트의 일일 NPC 대화 횟수 제한을 반영한다.
+ * <p>게스트의 전체 대화 횟수와 가입 사용자의 하루 NPC 대화 횟수 제한을 반영한다.
  */
 @Service
 @RequiredArgsConstructor
@@ -33,13 +33,19 @@ public class AiStatusService {
   }
 
   public AiStatusResponse statusOf(User user) {
-    Integer remainingConversations = guestConversationLimit.remaining(user);
-    if (remainingConversations != null && remainingConversations == 0) {
-      // 게스트 한도는 새 대화 시작만 막는다. 진행 중인 마지막 대화의 음성 입력과 피드백은 그대로 쓸 수 있다.
+    int remainingConversations = guestConversationLimit.remaining(user);
+    if (remainingConversations == 0) {
+      // 대화 횟수 한도는 새 대화 시작만 막는다. 진행 중인 마지막 대화의 음성 입력과 피드백은 그대로 쓸 수 있다.
       return new AiStatusResponse(
-          AiStatus.AI_EXHAUSTED, new Capabilities(false, true, true), remainingConversations);
+          AiStatus.AI_EXHAUSTED,
+          new Capabilities(false, true, true),
+          remainingConversations,
+          user.isGuest());
     }
     return new AiStatusResponse(
-        AiStatus.AI_AVAILABLE, new Capabilities(true, true, true), remainingConversations);
+        AiStatus.AI_AVAILABLE,
+        new Capabilities(true, true, true),
+        remainingConversations,
+        user.isGuest());
   }
 }

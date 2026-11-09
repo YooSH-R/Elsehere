@@ -37,7 +37,7 @@ public class GuestLoginController {
   /** 캐릭터 선택 화면에서 게스트가 NPC와 몇 번 대화할 수 있는지 미리 알린다. 계정을 만들기 전이라 서버 설정값을 그대로 준다. */
   @GetMapping
   public GuestGuideResponse getGuestGuide() {
-    return new GuestGuideResponse(guestConversationLimit.limit());
+    return new GuestGuideResponse(guestConversationLimit.guestLimit());
   }
 
   @PostMapping

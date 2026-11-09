@@ -130,7 +130,7 @@ class GuestLoginControllerTest {
   @Test
   @DisplayName("로그인하지 않은 상태에서 게스트 안내를 조회하면 게스트가 시작할 수 있는 NPC 대화 수로 응답한다")
   void getGuestGuide_withoutLogin_respondsConversationLimit() throws Exception {
-    given(guestConversationLimit.limit()).willReturn(3);
+    given(guestConversationLimit.guestLimit()).willReturn(3);
 
     mockMvc
         .perform(get("/api/v1/auth/guest"))

@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -78,11 +80,12 @@ namespace A305.Dialogue
                             sentenceIndent
                         )
                     );
-                    if (glossary != null && glossary.Count > 0)
+                    List<GlossaryData> notLinked = NotLinked(glossary, line);
+                    if (notLinked.Count > 0)
                     {
                         rows.Add(
                             Indented(
-                                $"<size={MeaningSize}><color={MeaningColor}>단어 풀이 · {FormatGlossary(glossary)}</color></size>",
+                                $"<size={MeaningSize}><color={MeaningColor}>단어 풀이 · {FormatGlossary(notLinked)}</color></size>",
                                 sentenceIndent
                             )
                         );
@@ -101,25 +104,44 @@ namespace A305.Dialogue
         private static string Indented(string text, float indent) =>
             indent > 0 ? $"<indent={indent:0.#}>{text}</indent>" : text;
 
-        /// <summary>대사 칸에서 누른 링크의 풀이 단어. 없는 링크면 null이다.</summary>
-        public static GlossaryWord FindWord(IReadOnlyList<DialogueLine> lines, string linkId)
+        /// <summary>
+        /// 대사 칸에서 누른 링크가 가리키는 풀이. 링크는 그 자리를 덮는 풀이(누른 단어와 그 단어가 든 숙어)를 짧은 말부터 가리킨다.
+        /// 없는 링크면 빈 목록이다.
+        /// </summary>
+        public static IReadOnlyList<GlossaryWord> FindWords(
+            IReadOnlyList<DialogueLine> lines,
+            string linkId
+        )
         {
             string[] parts = (linkId ?? "").Split('/');
             if (
                 parts.Length != 2
                 || !int.TryParse(parts[0], out int lineIndex)
-                || !int.TryParse(parts[1], out int wordIndex)
                 || lineIndex < 0
                 || lineIndex >= lines.Count
             )
             {
-                return null;
+                return Array.Empty<GlossaryWord>();
             }
 
             IReadOnlyList<GlossaryWord> glossary = lines[lineIndex].Glossary;
-            return glossary != null && wordIndex >= 0 && wordIndex < glossary.Count
-                ? glossary[wordIndex]
-                : null;
+            var words = new List<GlossaryWord>();
+            foreach (string part in parts[1].Split(','))
+            {
+                if (
+                    glossary == null
+                    || !int.TryParse(part, out int wordIndex)
+                    || wordIndex < 0
+                    || wordIndex >= glossary.Count
+                )
+                {
+                    return Array.Empty<GlossaryWord>();
+                }
+
+                words.Add(glossary[wordIndex]);
+            }
+
+            return words;
         }
 
         private static int FindLatestNpcIndex(IReadOnlyList<DialogueLine> lines)
@@ -133,8 +155,9 @@ namespace A305.Dialogue
             return -1;
         }
 
-        // 풀이 단어를 대사에서 찾아 "<대사 번호>/<풀이 번호>" 링크로 감싼다. 대사에서 찾지 못한 풀이는 아래 단어 풀이 줄에만 보인다.
-        // 단어 카드에 보이는 단어는 칠해 둔다.
+        // 풀이 단어를 대사에서 찾아 밑줄 링크로 감싼다. 숙어와 그 안의 단어처럼 풀이가 겹치면 겹침이 바뀌는 자리마다 조각을 나누고,
+        // 조각 링크 "<대사 번호>/<풀이 번호>,<풀이 번호>…"는 그 조각을 덮는 풀이를 짧은 말부터 모두 가리킨다.
+        // 대사에서 찾지 못한 풀이는 아래 단어 풀이 줄에만 보인다. 단어 카드가 먼저 보이는 풀이를 덮는 조각은 칠해 둔다.
         public static string LinkGlossary(
             string english,
             IReadOnlyList<GlossaryWord> glossary,
@@ -142,12 +165,114 @@ namespace A305.Dialogue
             GlossaryWord selected
         )
         {
-            if (glossary == null || glossary.Count == 0)
+            List<Piece> pieces = Pieces(english, glossary);
+            if (pieces.Count == 0)
             {
                 return english;
             }
 
-            var found = new List<(int Start, int Length, int WordIndex)>();
+            var linked = new StringBuilder();
+            int next = 0;
+            foreach (Piece piece in pieces)
+            {
+                linked.Append(english, next, piece.Start - next);
+                string text = $"<u>{english.Substring(piece.Start, piece.Length)}</u>";
+                if (piece.Words.Exists(index => glossary[index] == selected))
+                {
+                    text = $"<mark={SelectedWordMark}>{text}</mark>";
+                }
+
+                linked.Append(
+                    $"<link=\"{lineIndex}/{string.Join(",", piece.Words)}\">{text}</link>"
+                );
+                next = piece.Start + piece.Length;
+            }
+
+            linked.Append(english, next, english.Length - next);
+            return linked.ToString();
+        }
+
+        // 대사에서 밑줄을 칠 한 조각. Words는 이 조각을 덮는 풀이 번호이고 짧은 말이 먼저다.
+        private sealed class Piece
+        {
+            public int Start;
+            public int Length;
+            public List<int> Words;
+        }
+
+        // 찾은 풀이들의 시작·끝 자리로 대사를 자르고, 같은 풀이가 덮는 이웃 조각은 하나로 합친다.
+        private static List<Piece> Pieces(string english, IReadOnlyList<GlossaryWord> glossary)
+        {
+            List<(int Start, int End, int WordIndex)> matches = FindMatches(english, glossary);
+            var cuts = new SortedSet<int>();
+            foreach ((int start, int end, _) in matches)
+            {
+                cuts.Add(start);
+                cuts.Add(end);
+            }
+
+            var pieces = new List<Piece>();
+            int previous = -1;
+            foreach (int cut in cuts)
+            {
+                if (previous >= 0)
+                {
+                    List<int> words = Covering(matches, previous, cut);
+                    Piece last = pieces.Count > 0 ? pieces[pieces.Count - 1] : null;
+                    if (
+                        last != null
+                        && last.Start + last.Length == previous
+                        && last.Words.SequenceEqual(words)
+                    )
+                    {
+                        last.Length += cut - previous;
+                    }
+                    else if (words.Count > 0)
+                    {
+                        pieces.Add(
+                            new Piece
+                            {
+                                Start = previous,
+                                Length = cut - previous,
+                                Words = words,
+                            }
+                        );
+                    }
+                }
+
+                previous = cut;
+            }
+
+            return pieces;
+        }
+
+        // start~end 자리를 덮는 풀이 번호. 누른 말에 가까운 짧은 풀이부터 둔다.
+        private static List<int> Covering(
+            List<(int Start, int End, int WordIndex)> matches,
+            int start,
+            int end
+        )
+        {
+            return matches
+                .Where(match => match.Start <= start && end <= match.End)
+                .OrderBy(match => match.End - match.Start)
+                .ThenBy(match => match.WordIndex)
+                .Select(match => match.WordIndex)
+                .ToList();
+        }
+
+        // 풀이마다 대사에서 처음 나오는 자리를 찾는다. 숙어와 그 안의 단어처럼 다른 풀이와 겹쳐도 찾는다.
+        private static List<(int Start, int End, int WordIndex)> FindMatches(
+            string english,
+            IReadOnlyList<GlossaryWord> glossary
+        )
+        {
+            var matches = new List<(int Start, int End, int WordIndex)>();
+            if (glossary == null)
+            {
+                return matches;
+            }
+
             for (int wordIndex = 0; wordIndex < glossary.Count; wordIndex++)
             {
                 string text = glossary[wordIndex].Text;
@@ -157,35 +282,42 @@ namespace A305.Dialogue
                 }
 
                 Match match = WholeWords(text).Match(english);
-                while (match.Success && Overlaps(found, match))
-                {
-                    match = match.NextMatch();
-                }
-
                 if (match.Success)
                 {
-                    found.Add((match.Index, match.Length, wordIndex));
+                    matches.Add((match.Index, match.Index + match.Length, wordIndex));
                 }
             }
 
-            found.Sort((left, right) => left.Start.CompareTo(right.Start));
-            var linked = new StringBuilder();
-            int next = 0;
-            foreach ((int start, int length, int wordIndex) in found)
+            return matches;
+        }
+
+        // 대사 안에서 밑줄 링크가 된 풀이는 눌러서 볼 수 있으므로, 아래 단어 풀이 줄에는 링크하지 못한 풀이만 남긴다.
+        private static List<GlossaryData> NotLinked(
+            IReadOnlyList<GlossaryData> glossary,
+            DialogueLine line
+        )
+        {
+            var notLinked = new List<GlossaryData>();
+            if (glossary == null)
             {
-                linked.Append(english, next, start - next);
-                string word = $"<u>{english.Substring(start, length)}</u>";
-                if (glossary[wordIndex] == selected)
-                {
-                    word = $"<mark={SelectedWordMark}>{word}</mark>";
-                }
-
-                linked.Append($"<link=\"{lineIndex}/{wordIndex}\">{word}</link>");
-                next = start + length;
+                return notLinked;
             }
 
-            linked.Append(english, next, english.Length - next);
-            return linked.ToString();
+            var linked = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach ((_, _, int wordIndex) in FindMatches(line.English, line.Glossary))
+            {
+                linked.Add(line.Glossary[wordIndex].Text.Trim());
+            }
+
+            foreach (GlossaryData item in glossary)
+            {
+                if (!linked.Contains(item.Text?.Trim() ?? ""))
+                {
+                    notLinked.Add(item);
+                }
+            }
+
+            return notLinked;
         }
 
         // 서버 풀이는 문장 첫머리처럼 대소문자가 다를 수 있다. 다른 단어 속 글자(good의 go)는 고르지 않도록 앞뒤가 글자·숫자가 아닌 곳만 찾는다.
@@ -195,20 +327,6 @@ namespace A305.Dialogue
                 @"(?<![\p{L}\p{N}])" + Regex.Escape(text.Trim()) + @"(?![\p{L}\p{N}])",
                 RegexOptions.IgnoreCase
             );
-        }
-
-        private static bool Overlaps(
-            List<(int Start, int Length, int WordIndex)> found,
-            Match match
-        )
-        {
-            foreach (var (start, length, _) in found)
-            {
-                if (match.Index < start + length && start < match.Index + match.Length)
-                    return true;
-            }
-
-            return false;
         }
 
         private static string FormatGlossary(IReadOnlyList<GlossaryData> glossary)

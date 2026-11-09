@@ -6,6 +6,16 @@ import org.junit.jupiter.api.Test;
 
 class ReviewExpressionEvidenceTest {
   @Test
+  void exactMultiSentenceTargetsAndPoliteRefusalsAreRecognized() {
+    assertThat(ReviewExpressionEvidence.matches("No, thanks. I'm good.", "No, thanks. I'm good."))
+        .isTrue();
+    assertThat(ReviewExpressionEvidence.matches("I'm good.", "No, I'm good, thanks.")).isTrue();
+    assertThat(
+            ReviewExpressionEvidence.matches("It's pouring out there!", "it's pouring out there"))
+        .isTrue();
+  }
+
+  @Test
   void quotedExamplesAreNotEvidenceButUnquotedContractionsStillAre() {
     assertThat(
             ReviewExpressionEvidence.matches(

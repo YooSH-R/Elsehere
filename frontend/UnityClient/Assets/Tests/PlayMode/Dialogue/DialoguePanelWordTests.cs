@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using TMPro;
 using UnityEditor;
@@ -13,6 +14,7 @@ namespace A305.Dialogue.PlayModeTests
 {
     /// <summary>
     /// 실제 대화창 프리팹에서 [뜻]을 켠 대사의 풀이 단어를 눌러 단어 근처 호버 카드에서 뜻을 보고, [단어장에 저장]을 누를 수 있는지 확인한다.
+    /// 숙어 안의 단어를 누르면 단어와 숙어가 카드에 함께 쌓여 스크롤로 볼 수 있는지도 본다.
     /// </summary>
     public class DialoguePanelWordTests
     {
@@ -54,6 +56,13 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(CardText("Meaning").text, Is.EqualTo("라떼"));
             Assert.That(WordSaveButton().gameObject.activeInHierarchy, Is.True);
             Assert.That(WordSaveButton().interactable, Is.True);
+            Assert.That(
+                Child<Scrollbar>(
+                    "Panel/Conversation/WordCard/Scrollbar"
+                ).gameObject.activeInHierarchy,
+                Is.False,
+                "풀이가 하나면 스크롤 막대를 두지 않습니다."
+            );
         }
 
         [UnityTest]
@@ -164,6 +173,40 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(WordSaveButton().gameObject.activeInHierarchy, Is.True);
         }
 
+        // 숙어(grab a seat) 안의 단어(grab)를 누르면 단어와 숙어를 카드에 함께 쌓고, 카드보다 길면 아래로 스크롤해 숙어도 저장한다.
+        [UnityTest]
+        public IEnumerator WordInsideAnIdiom_ShowsTheWordThenTheIdiom_AndTheIdiomSavesAfterScrolling()
+        {
+            var requested = new List<GlossaryWord>();
+            view.WordSaveRequested += requested.Add;
+            view.Show(new WordContent(latest: SeatLine));
+            yield return null;
+            yield return TurnOnMeaning();
+
+            yield return ClickWordInLines("grab");
+
+            Assert.That(EntryTitles(), Is.EqualTo(new[] { "grab", "grab a seat" }));
+            var entries = Child<ScrollRect>("Panel/Conversation/WordCard/Entries");
+            Assert.That(
+                entries.content.rect.height,
+                Is.GreaterThan(entries.viewport.rect.height),
+                "풀이가 카드보다 길어 스크롤합니다."
+            );
+            Assert.That(
+                entries.verticalScrollbar.gameObject.activeInHierarchy,
+                Is.True,
+                "아래에 풀이가 더 있다는 스크롤 막대가 보입니다."
+            );
+
+            entries.verticalNormalizedPosition = 0;
+            yield return null;
+            ClickCenterOf(EntryPart<Button>(1, "SaveButton"));
+            yield return null;
+
+            Assert.That(requested, Has.Count.EqualTo(1));
+            Assert.That(requested[0].Text, Is.EqualTo("grab a seat"));
+        }
+
         private IEnumerator TurnOnMeaning()
         {
             ClickCenterOf(Child<Button>("Panel/Conversation/ToolRow/MeaningButton"));
@@ -227,11 +270,46 @@ namespace A305.Dialogue.PlayModeTests
 
         private RectTransform WordCard() => Child<RectTransform>("Panel/Conversation/WordCard");
 
-        private TMP_Text CardText(string name) =>
-            Child<TMP_Text>("Panel/Conversation/WordCard/" + name);
+        // 카드의 첫 풀이 줄
+        private TMP_Text CardText(string name) => EntryPart<TMP_Text>(0, name);
 
-        private Button WordSaveButton() =>
-            Child<Button>("Panel/Conversation/WordCard/WordSaveButton");
+        private Button WordSaveButton() => EntryPart<Button>(0, "SaveButton");
+
+        // 카드 풀이 목록의 index번째 보이는 줄에서 이름이 name인 부분
+        private T EntryPart<T>(int index, string name)
+            where T : Component
+        {
+            var content = Child<RectTransform>("Panel/Conversation/WordCard/Entries/Content");
+            var shown = new List<Transform>();
+            foreach (Transform entry in content)
+            {
+                if (entry.gameObject.activeSelf)
+                    shown.Add(entry);
+            }
+
+            Assert.That(
+                shown.Count,
+                Is.GreaterThan(index),
+                $"카드에 {index + 1}번째 풀이가 없습니다."
+            );
+            return shown[index].Find(name).GetComponent<T>();
+        }
+
+        private List<string> EntryTitles()
+        {
+            var titles = new List<string>();
+            foreach (
+                Transform entry in Child<RectTransform>(
+                    "Panel/Conversation/WordCard/Entries/Content"
+                )
+            )
+            {
+                if (entry.gameObject.activeSelf)
+                    titles.Add(entry.Find("Title").GetComponent<TMP_Text>().text);
+            }
+
+            return titles;
+        }
 
         // 대사 칸에서 그 단어 글자들이 차지한 영역을 대화창 기준 좌표로 구한다.
         private Rect WordInPanel(string word)
@@ -280,10 +358,23 @@ namespace A305.Dialogue.PlayModeTests
             return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
 
+        // 숙어와 그 안의 단어가 함께 풀이된 대사
+        private static readonly DialogueLine SeatLine = DialogueLine.FromNpc(
+            "Please grab a seat by the window.",
+            "창가 자리에 앉으세요.",
+            new[]
+            {
+                new GlossaryWord(TurnId, "grab a seat", "자리에 앉다"),
+                new GlossaryWord(TurnId, "grab", "잡다"),
+                new GlossaryWord(TurnId, "seat", "자리"),
+                new GlossaryWord(TurnId, "window", "창문"),
+            }
+        );
+
         /// <summary>[뜻 보기]로 뜻과 풀이를 받아 둔 Ben의 대사. 앞선 대사를 주면 그 뒤에 둔다.</summary>
         private class WordContent : IDialogueContent
         {
-            private static readonly DialogueLine Latest = DialogueLine.FromNpc(
+            private static readonly DialogueLine LatteLine = DialogueLine.FromNpc(
                 "Would you like an iced latte to go?",
                 "아이스 라떼 포장해 드릴까요?",
                 new[]
@@ -294,18 +385,20 @@ namespace A305.Dialogue.PlayModeTests
             );
 
             private readonly List<DialogueLine> lines = new List<DialogueLine>();
+            private readonly DialogueLine latest;
 
-            public WordContent(IEnumerable<DialogueLine> earlier = null)
+            public WordContent(IEnumerable<DialogueLine> earlier = null, DialogueLine latest = null)
             {
+                this.latest = latest ?? LatteLine;
                 if (earlier != null)
                     lines.AddRange(earlier);
-                lines.Add(Latest);
+                lines.Add(this.latest);
             }
 
             public string UserTranslation { get; set; }
             public string NpcName => "Ben";
             public IReadOnlyList<DialogueLine> Lines => lines;
-            public DialogueLine LastNpcLine => Latest;
+            public DialogueLine LastNpcLine => latest;
             public bool IsGuided => false;
             public bool IsGuidedCompleted => false;
             public string SuggestedEnglish => null;
@@ -322,11 +415,13 @@ namespace A305.Dialogue.PlayModeTests
             public bool HasMeaning => true;
 
             public IReadOnlyList<GlossaryData> LastNpcGlossary =>
-                new[]
-                {
-                    new GlossaryData { Text = "latte", MeaningKo = "라떼" },
-                    new GlossaryData { Text = "to go", MeaningKo = "포장" },
-                };
+                latest
+                    .Glossary.Select(word => new GlossaryData
+                    {
+                        Text = word.Text,
+                        MeaningKo = word.MeaningKo,
+                    })
+                    .ToList();
 
             public bool HasHint => true;
             public string HintText => null;

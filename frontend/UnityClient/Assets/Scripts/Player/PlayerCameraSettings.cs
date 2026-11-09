@@ -5,6 +5,9 @@ namespace A305.Player
     [CreateAssetMenu(fileName = "PlayerCameraSettings", menuName = "A305/Player/Camera Settings")]
     public class PlayerCameraSettings : ScriptableObject
     {
+        /// <summary>3인칭에서 수평보다 올려다볼 수 있는 각도. 하늘·간판을 보되 카메라가 바닥에 붙어 캐릭터 발만 보이지 않을 만큼만 연다.</summary>
+        public const float ThirdPersonLookUpDegrees = 15f;
+
         [Header("3인칭 거리")]
         [SerializeField]
         [Min(0.5f)]
@@ -31,7 +34,8 @@ namespace A305.Player
 
         [SerializeField]
         [Range(-89f, 89f)]
-        private float thirdPersonMinPitchDegrees = 0f;
+        [Tooltip("음수는 수평보다 올려다보는 각도. 카메라가 바닥에 닿으면 캐릭터 쪽으로 당겨진다.")]
+        private float thirdPersonMinPitchDegrees = -ThirdPersonLookUpDegrees;
 
         [SerializeField]
         [Range(-89f, 89f)]

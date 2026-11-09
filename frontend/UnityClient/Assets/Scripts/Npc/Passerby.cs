@@ -259,6 +259,17 @@ namespace A305.Npc
         private void Update()
         {
             IsWaitingAtSignal = false;
+            // 복습은 제안·수락 단계를 거치지 않는다. 대화의 실제 상대를 기준으로 생활 이동을 멈춘다.
+            if (dialogue.IsTalkingTo(identity.LookTarget))
+            {
+                CancelPlayerTalk();
+                offerView.HideTalkPrompt(this);
+                routine?.Interrupt();
+                Stand();
+                TurnToward(HorizontalOffsetToPlayer());
+                ShowAnimation(TalkAnimation);
+                return;
+            }
             if (IsTownResident)
                 GetComponent<NpcTownWalker>().RefreshHurry();
             if (playerTalkReach.HasValue && DeclinesConversation && !IsPlayerOccupied)

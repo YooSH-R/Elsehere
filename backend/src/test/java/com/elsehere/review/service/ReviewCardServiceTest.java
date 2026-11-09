@@ -84,6 +84,19 @@ class ReviewCardServiceTest {
   }
 
   @Test
+  void capturedBagScenarioKeepsItsFactsAfterTheOriginalStageChanges() {
+    source.attachFirstDayStage(com.elsehere.mission.entity.FirstDayStage.FIND_BAG.ordinal());
+    var saved = reviewCardService.create(userId, source.getId());
+    assertThat(saved.scenario().title()).isEqualTo("분실 가방 찾기");
+    source.attachFirstDayStage(com.elsehere.mission.entity.FirstDayStage.CAFE_BREAK.ordinal());
+    entityManager.flush();
+    entityManager.clear();
+    var loaded = reviewCardService.detail(userId, saved.id());
+    assertThat(loaded.scenario()).isEqualTo(saved.scenario());
+    assertThat(String.join(" ", loaded.scenario().learnerNotes())).contains("여권", "책");
+  }
+
+  @Test
   void listUsesAnOwnedNewestFirstCursorWithoutRepeatingRows() {
     var first = reviewCardService.create(userId, source.getId());
     var hotel = reviewCardService.create(userId, endedConversation(userId, "HOTEL_STAFF").getId());

@@ -12,6 +12,7 @@ import com.elsehere.feedback.entity.FeedbackStatus;
 import com.elsehere.feedback.repository.ConversationFeedbackRepository;
 import com.elsehere.review.dto.ReviewCardListResponse;
 import com.elsehere.review.dto.ReviewCardResponse;
+import com.elsehere.review.dto.ReviewScenario;
 import com.elsehere.review.dto.ReviewTarget;
 import com.elsehere.review.entity.ReviewCard;
 import com.elsehere.review.repository.ReviewCardRepository;
@@ -157,12 +158,16 @@ public class ReviewCardService {
                 npc.getScene().getCode(),
                 summary == null ? "지난 대화의 표현을 연습해요." : summary,
                 jsonMapper.writeValueAsString(targets)));
+    card.captureScenario(
+        jsonMapper.writeValueAsString(
+            ReviewScenarios.capture(conversation, npc.getCode(), summary)));
     return response(card, npc);
   }
 
   private ReviewCardResponse response(ReviewCard card, Npc npc) {
     List<ReviewTarget> targets =
-        Arrays.asList(jsonMapper.readValue(card.getTargets(), ReviewTarget[].class));
+        ReviewTargets.forPractice(
+            Arrays.asList(jsonMapper.readValue(card.getTargets(), ReviewTarget[].class)));
     List<String> used =
         Arrays.asList(jsonMapper.readValue(card.getUsedExpressions(), String[].class));
     return new ReviewCardResponse(
@@ -175,6 +180,12 @@ public class ReviewCardService {
         targets,
         card.getPracticeCount(),
         card.getLastPracticedAt(),
-        used);
+        used,
+        card.getScenario() != null
+            ? jsonMapper.readValue(card.getScenario(), ReviewScenario.class)
+            : ReviewScenarios.capture(
+                conversationRepository.findById(card.getSourceConversationId()).orElse(null),
+                npc.getCode(),
+                card.getSituationSummary()));
   }
 }

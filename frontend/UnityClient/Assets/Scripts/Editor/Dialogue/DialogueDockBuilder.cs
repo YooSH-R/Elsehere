@@ -276,11 +276,13 @@ namespace A305.EditorTools.Dialogue
         {
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = true;
             Theme(card, UiThemeRole.Card);
-            Theme(card.Find("Title"), UiThemeRole.Title);
-            Theme(card.Find("Meaning"), UiThemeRole.Accent);
-            Theme(card.Find("Note"), UiThemeRole.Muted);
+            // 풀이 한 줄. 풀이가 여럿이면 대화창이 이 줄을 복제하므로 복제한 줄도 같은 모양이다.
+            Transform entry = card.Find("Entries/Content/Entry");
+            Theme(entry.Find("Title"), UiThemeRole.Title);
+            Theme(entry.Find("Meaning"), UiThemeRole.Accent);
+            Theme(entry.Find("Note"), UiThemeRole.Muted);
             // 64px보다 낮은 버튼이라 아이콘 없이 이름만 둔다. 밝은 카드 위 버튼은 입체 알약으로 칠한다.
-            Pill(card.Find("WordSaveButton"), "단어장에 저장", UiIcon.Save, UiTone.Primary, 2f, 20);
+            Pill(entry.Find("SaveButton"), "단어장에 저장", UiIcon.Save, UiTone.Primary, 2f, 20);
             Pill(card.Find("CloseButton"), "닫기", UiIcon.Close, UiTone.Neutral, 2f, 18);
         }
 

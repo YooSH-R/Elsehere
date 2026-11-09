@@ -32,6 +32,9 @@ public interface TurnRepository extends JpaRepository<Turn, Long> {
 
   Optional<Turn> findByConversationIdAndSeq(Long conversationId, int seq);
 
+  Optional<Turn> findFirstByConversationIdAndSpeakerOrderBySeqDesc(
+      Long conversationId, Speaker speaker);
+
   long countByConversationIdAndSpeaker(Long conversationId, Speaker speaker);
 
   @Query("select coalesce(max(t.seq), 0) from Turn t where t.conversation.id = :conversationId")

@@ -16,46 +16,51 @@ AUDIO_EXT = {"audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "mp4", "audi
 NORM = re.compile(r"[^a-z0-9가-힣 ]")
 
 
-def stt_prompt(scene_words: list[str]) -> str:
-    """장면 단어 보정: 지금 장면의 단어(메뉴·상품·거리 이름)를 프롬프트에 붙여 철자를 맞춘다."""
+def stt_prompt(scene_words: list[str], npc_line: str = "") -> str:
+    """장면 단어 보정: 지금 장면의 단어(메뉴·상품·거리 이름)를 프롬프트에 붙여 철자를 맞춘다.
+    직전 NPC 대사는 맨 끝에 둔다. 소리가 비슷한 말(한국식 발음 '러닝' → running/learning)을 그 대사의 문맥에 맞춰 고르게 한다."""
+    return " ".join(part for part in (STT_PROMPT, scene_word_list(scene_words), npc_line.strip()) if part)
+
+
+def scene_word_list(scene_words: list[str]) -> str:
     words = [w.strip() for w in scene_words if w.strip()][:30]
-    return STT_PROMPT + (" " + ", ".join(words) + "." if words else "")
+    return ", ".join(words) + "." if words else ""
 
 
 def normalize(text: str) -> str:
     return " ".join(NORM.sub("", text.lower()).split())
 
 
-def is_prompt_echo(text: str, scene_words: list[str]) -> bool:
-    """Whisper는 무음에 프롬프트 끝부분(마지막 문장, 장면 단어 목록, 프롬프트 전체)을 되풀이한다. 그 끝부분과 같으면 버린다.
+def is_prompt_echo(text: str, scene_words: list[str], npc_line: str = "") -> bool:
+    """Whisper는 무음에 프롬프트 끝부분(마지막 문장, 장면 단어 목록, 직전 NPC 대사, 프롬프트 전체)을 되풀이한다. 그 끝부분과 같으면 버린다.
     프롬프트 앞·중간의 예시 문장('Can I get a muffin?')과 장면 단어 하나('Iced Americano.')는 학습자가 실제로 하는 말이라 거르지 않는다.
     짧은 말 'Latte.'도 진짜 발화일 수 있어 12자 미만은 거르지 않는다.
-    끝부분을 여러 번 이어 붙이기도 해서('My friend lives over there. My friend lives over there.') 같은 메아리의 반복도 버린다."""
+    끝부분을 여러 번 이어 붙이기도 해서('My friend lives over there. My friend lives over there.') 같은 메아리의 반복도 버린다.
+    학습자가 NPC 대사의 끝 문장을 그대로 따라 말해도 메아리와 구별할 수 없어 버린다."""
     words = normalize(text).split()
+    endings = prompt_endings(scene_words, npc_line)
+    singles = {normalize(w) for w in scene_words}
     for times in range(1, len(words) + 1):
-        once = words[: len(words) // times]
-        if once * times == words and is_one_echo(" ".join(once), scene_words):
+        once = " ".join(words[: len(words) // times])
+        if once.split() * times == words and len(once) >= 12 and once not in singles and once in endings:
             return True
     return False
 
 
-def is_one_echo(t: str, scene_words: list[str]) -> bool:
-    if len(t) < 12 or t in {normalize(w) for w in scene_words}:
-        return False
-    # Match only complete sentence boundaries, not arbitrary word suffixes such as
-    # "lives over there", which can be a genuine learner utterance.
-    sentences = [part.strip() for part in re.split(r"[.!?]+", STT_PROMPT) if part.strip()]
-    endings = {normalize(" ".join(sentences[i:])) for i in range(len(sentences))}
-    words = ", ".join([w.strip() for w in scene_words if w.strip()][:30])
-    if words:
-        endings.update(normalize(" ".join(sentences[i:]) + " " + words) for i in range(len(sentences)))
-        endings.add(normalize(words))
-    return t in endings
+def prompt_endings(scene_words: list[str], npc_line: str) -> set[str]:
+    """프롬프트 끝부분들. 문장 경계에서만 자른다("lives over there"처럼 문장 안에서 자른 끝은 실제 발화일 수 있다).
+    장면 단어나 NPC 대사를 붙이기 전의 끝(기본 프롬프트의 마지막 문장 등)도 메아리로 나와서 넣는다."""
+    endings = set()
+    prompts = [STT_PROMPT, stt_prompt(scene_words), stt_prompt(scene_words, npc_line)]
+    for prompt in prompts:
+        sentences = [part.strip() for part in re.split(r"[.!?]+", prompt) if part.strip()]
+        endings.update(normalize(" ".join(sentences[i:])) for i in range(len(sentences)))
+    return endings
 
 
-async def stt(llm: LLM, audio: bytes, mime: str, scene_words: list[str]) -> dict:
+async def stt(llm: LLM, audio: bytes, mime: str, scene_words: list[str], npc_line: str = "") -> dict:
     """mime은 AUDIO_EXT에 있는 형식만 받는다 (라우트가 매개변수를 떼고 걸러 415로 돌려줌)."""
     usage = Usage()
-    out = await llm.transcribe(audio, f"speech.{AUDIO_EXT[mime]}", mime, stt_prompt(scene_words), usage)
-    text = "" if is_prompt_echo(out["text"], scene_words) else out["text"]
+    out = await llm.transcribe(audio, f"speech.{AUDIO_EXT[mime]}", mime, stt_prompt(scene_words, npc_line), usage)
+    text = "" if is_prompt_echo(out["text"], scene_words, npc_line) else out["text"]
     return {"text": text, "latency_s": out["latency_s"], "audio_s": out["audio_s"], "usage": usage.items}

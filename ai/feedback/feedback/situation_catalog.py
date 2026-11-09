@@ -7,6 +7,7 @@ from pathlib import Path
 
 CATALOG_PATH = Path(__file__).resolve().parent.parent / "content" / "situation_expressions.ko.json"
 MAX_CANDIDATES = 8
+NPC_ONLY = {"you're all set", "you are all set", "what can i get you", "anything else", "how can i help you"}
 HANGUL = re.compile(r"[가-힣]")
 
 
@@ -22,6 +23,8 @@ def situation_candidates(request):
     scored = []
     for order, item in enumerate(_items()):
         if scene not in item["scenes"]:
+            continue
+        if _norm(item["expression"]).replace("'", "") in {value.replace("'", "") for value in NPC_ONLY}:
             continue
         hits = sum(1 for word in item["keywords"] if word in description)
         scored.append((-hits, item["kind"] != "idiom", order, item))
@@ -42,6 +45,8 @@ def keep_useful(situations, user_texts):
     kept = []
     for item in situations:
         expression = _norm(item["expression"])
+        if item.get("speaker_role") == "npc" or expression in NPC_ONLY:
+            continue
         if HANGUL.search(item["expression"]) or not HANGUL.search(item["meaning_ko"]):
             continue
         if expression and any(expression in text for text in spoken):

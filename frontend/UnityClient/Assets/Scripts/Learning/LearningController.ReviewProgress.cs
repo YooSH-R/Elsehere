@@ -40,7 +40,11 @@ namespace A305.Learning
         private async Task RefreshReviewProgressAsync(ReviewCard card, long conversationId)
         {
             liveReviewProgress.Begin(card, conversationId);
-            dialogue.SetReviewReference(liveReviewProgress.Items, liveReviewProgress.VerifiedCount);
+            dialogue.SetReviewReference(
+                liveReviewProgress.Items,
+                liveReviewProgress.VerifiedCount,
+                ReviewScenarioPresentation.Briefing(card)
+            );
             bool loaded = await liveReviewProgress.RefreshAsync();
             if (
                 this == null
@@ -51,7 +55,8 @@ namespace A305.Learning
             if (loaded)
                 dialogue.SetReviewReference(
                     liveReviewProgress.Items,
-                    liveReviewProgress.VerifiedCount
+                    liveReviewProgress.VerifiedCount,
+                    ReviewScenarioPresentation.Briefing(card)
                 );
             else if (liveReviewProgress.ErrorCode != null)
                 Debug.LogWarning($"복습 표현 표시 갱신 실패: {liveReviewProgress.ErrorCode}", this);

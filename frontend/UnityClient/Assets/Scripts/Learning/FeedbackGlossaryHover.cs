@@ -77,7 +77,8 @@ namespace A305.Learning
             string[] parts = text.textInfo.linkInfo[hit].GetLinkID().Split('/');
             if (
                 parts.Length != 2
-                || !int.TryParse(parts[1], out int index)
+                // 숙어 안의 단어 조각은 "단어,숙어" 번호를 담는다. 피드백 말풍선은 짧은 말(첫 번호) 하나만 보인다.
+                || !int.TryParse(parts[1].Split(',')[0], out int index)
                 || index < 0
                 || index >= glossary.Count
             )

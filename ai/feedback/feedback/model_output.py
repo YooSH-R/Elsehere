@@ -3,6 +3,7 @@
 from copy import deepcopy
 
 from .models import usable_turns
+from .situation_catalog import keep_useful
 
 COMPACT_VERSION = "compact-v1"
 SERVER_FIELDS = {
@@ -56,4 +57,11 @@ def restore_model_output(request, body):
         _server_fields(tag, "ReviewTag", {"tag_id": f"tag{index}", "assisted": any(users[turn_id].assistance_ids for turn_id in linked)})
     for index, candidate in enumerate(_objects(result.get("vocab_candidates")), 1):
         _server_fields(candidate, "VocabCandidate", {"candidate_id": f"vocab{index}"})
+    situations = _objects(result.get("situation_expressions", []))
+    for item in situations:
+        if item.get("speaker_role", "learner") not in ("learner", "npc", "both"):
+            raise ValueError("표현의 화자 역할을 확인하지 못했다")
+    result["situation_expressions"] = keep_useful(situations, [])
+    for item in result["situation_expressions"]:
+        item.pop("speaker_role", None)
     return body

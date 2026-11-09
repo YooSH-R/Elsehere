@@ -372,8 +372,13 @@ Translate idioms by meaning. Keep it short.
 
 Return JSON:
 - "meaning_ko": the Korean translation only (no notes, no parentheses).
-- "glossary": up to 3 words or phrases from the line that a learner at the given level may not know (slang, idioms, phrasal verbs, key words),
-  each copied exactly as it appears in the line, with "meaning_ko": its short Korean meaning in this line. Empty if every word is easy."""
+- "glossary": every content word (noun, main verb, adjective, adverb) and every idiom, phrasal verb, set phrase or
+  fixed sentence frame in the line (e.g. "All right", "check in", "to go", "Would you like", "Do you want to", "Can I get"),
+  at most 15, in the order they appear. Give a phrase as one item, then each content word inside it as its own item
+  (e.g. "grab a seat", "grab", "seat"), so the learner can look up either.
+  Skip names, numbers and function words (articles, pronouns, helping verbs, prepositions, conjunctions) when they stand alone;
+  keep them inside a phrase or sentence frame.
+  Copy each exactly as it appears in the line, with "meaning_ko": its short Korean meaning in this line. Empty only if no such word."""
 MEANING_SCHEMA = {
     "type": "object",
     "properties": {

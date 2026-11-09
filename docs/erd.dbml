@@ -325,6 +325,7 @@ Table review_cards [headercolor: #2E6B4F] {
   npc_id bigint [not null]
   scene_code varchar(30) [not null, note: '원본 대화의 장소 코드']
   situation_summary text [not null, note: '저장 당시 피드백의 상황 요약']
+  scenario jsonb [note: '복습 한 상황의 키·제목·시작 상황·학습자 역할·전달 정보 스냅샷. 이전 카드는 원본 대화의 단계에서 복원']
   targets jsonb [not null, note: '저장된 situationExpressions에서 가져온 서로 다른 표현 2~3개와 뜻·활용·예문']
   practice_count int [not null, default: 0]
   last_practiced_at timestamptz

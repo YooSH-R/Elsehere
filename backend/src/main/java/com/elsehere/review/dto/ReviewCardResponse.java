@@ -15,4 +15,30 @@ public record ReviewCardResponse(
     List<ReviewTarget> targets,
     int practiceCount,
     Instant lastPracticedAt,
-    List<String> usedExpressions) {}
+    List<String> usedExpressions,
+    ReviewScenario scenario) {
+  public ReviewCardResponse(
+      Long id,
+      Long sourceConversationId,
+      String sceneCode,
+      Long npcId,
+      NpcSummaryResponse npc,
+      String situationSummary,
+      List<ReviewTarget> targets,
+      int practiceCount,
+      Instant lastPracticedAt,
+      List<String> usedExpressions) {
+    this(
+        id,
+        sourceConversationId,
+        sceneCode,
+        npcId,
+        npc,
+        situationSummary,
+        targets,
+        practiceCount,
+        lastPracticedAt,
+        usedExpressions,
+        null);
+  }
+}

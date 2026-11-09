@@ -1,6 +1,7 @@
 using A305.EditorTools.Common;
 using A305.EditorTools.UI;
 using A305.Player;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
@@ -65,6 +66,21 @@ namespace A305.EditorTools.Player
                     var serializedLook = new SerializedObject(lookDrag);
                     serializedLook.FindProperty("controlsLook").boolValue = true;
                     serializedLook.ApplyModifiedPropertiesWithoutUndo();
+
+                    // 끌기 영역보다 뒤에 두어 버튼을 누르면 시점 돌리기가 아니라 버튼이 받는다.
+                    Button viewToggle = FindOrCreateViewToggle(root.transform);
+                    viewToggle.transform.SetAsLastSibling();
+                    BuilderTools.SetReference(controls, "viewToggle", viewToggle);
+                    BuilderTools.SetReference(
+                        controls,
+                        "toFirstPersonLabel",
+                        viewToggle.transform.Find("ToFirstPerson").gameObject
+                    );
+                    BuilderTools.SetReference(
+                        controls,
+                        "toThirdPersonLabel",
+                        viewToggle.transform.Find("ToThirdPerson").gameObject
+                    );
                 }
             );
 
@@ -112,6 +128,55 @@ namespace A305.EditorTools.Player
             knob.color = new Color(0.25f, 0.48f, 0.9f, 0.85f);
             knob.raycastTarget = false;
             return stick;
+        }
+
+        /// <summary>
+        /// 오른쪽 가장자리의 둥근 [1인칭]·[3인칭] 버튼. 오른손 엄지가 닿는 높이이면서, 휴대폰에서 오른쪽 가운데로 옮겨 오는 미니맵과 오른쪽 아래 조작법 카드 사이다.
+        /// 조이스틱 손잡이와 같은 파란색 바탕에 흰 글자로, 하늘·벽 어느 쪽 위에서도 읽힌다.
+        /// </summary>
+        private static Button FindOrCreateViewToggle(Transform parent)
+        {
+            Transform existing = parent.Find("ViewToggle");
+            RectTransform toggle =
+                existing != null ? (RectTransform)existing : CreateRect("ViewToggle", parent);
+            // 자리·크기는 다시 실행할 때도 이 값으로 맞춘다.
+            toggle.anchorMin = toggle.anchorMax = new Vector2(1f, 0.375f);
+            toggle.anchoredPosition = new Vector2(-72f, 0f);
+            toggle.sizeDelta = new Vector2(80f, 80f);
+            var background = BuilderTools.GetOrAddComponent<Image>(toggle.gameObject);
+            background.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+            background.color = new Color(0.25f, 0.48f, 0.9f, 0.85f);
+            var button = BuilderTools.GetOrAddComponent<Button>(toggle.gameObject);
+            button.targetGraphic = background;
+
+            TMP_FontAsset font = UiBuilderTools.BoldFont();
+            ViewLabel(toggle, "ToFirstPerson", "1인칭", font).SetActive(true);
+            ViewLabel(toggle, "ToThirdPerson", "3인칭", font).SetActive(false);
+            return button;
+        }
+
+        private static GameObject ViewLabel(
+            RectTransform toggle,
+            string name,
+            string text,
+            TMP_FontAsset font
+        )
+        {
+            TMP_Text label = UiBuilderTools.FindOrCreateText(
+                toggle,
+                name,
+                font,
+                24f,
+                Color.white,
+                text
+            );
+            label.alignment = TextAlignmentOptions.Center;
+            label.raycastTarget = false;
+            var rect = (RectTransform)label.transform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            return label.gameObject;
         }
 
         private static RectTransform CreateRect(string name, Transform parent)

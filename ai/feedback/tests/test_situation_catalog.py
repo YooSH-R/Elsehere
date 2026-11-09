@@ -11,6 +11,20 @@ class _Context:
         self.scene_description = scene_description
 
 
+def test_npc_role_expressions_are_not_learner_practice_targets():
+    situations = [
+        {"expression": "You're all set.", "meaning_ko": "다 됐어요."},
+        {"expression": "What can I get you?", "meaning_ko": "무엇을 드릴까요?", "speaker_role": "npc"},
+        {"expression": "Have a good one!", "meaning_ko": "좋은 하루 보내세요!", "speaker_role": "both"},
+    ]
+    assert [item["expression"] for item in keep_useful(situations, [])] == ["Have a good one!"]
+
+
+def test_provider_candidates_exclude_staff_only_lines():
+    candidates = situation_candidates(_Request("HOTEL", "호텔 체크인 예약"))
+    assert all(item["expression"] != "You're all set." for item in candidates)
+
+
 class _Request:
     def __init__(self, scene_id, scene_description=""):
         self.context = _Context(scene_id, scene_description)

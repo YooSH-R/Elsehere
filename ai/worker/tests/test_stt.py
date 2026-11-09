@@ -24,6 +24,36 @@ def test_stt_filters_prompt_echo_and_sends_scene_words(client, provider):
     assert client.post("/v1/stt", files={"file": ("a.webm", b"x" * 100, "audio/webm")}).json()["text"] == "Muffin."
 
 
+def test_stt_prompt_ends_with_npc_line(client, provider):
+    # 한국식 발음 '러닝'은 running·learning 둘 다 된다. 직전 NPC 대사("not running")를 프롬프트 끝에 두면 그 문맥에 맞춰 고른다
+    provider.answers["stt"] = lambda b: httpx.Response(200, json=WHISPER_OK)
+    client.post("/v1/stt", files=AUDIO, data={"scene_words": "latte", "npc_line": " I'm just taking a walk, not running. "})
+    prompt = provider.last_stt.decode()
+    assert "My friend lives over there. latte. I'm just taking a walk, not running." in prompt
+
+
+def test_stt_filters_npc_line_echo(client, provider):
+    # 무음에 직전 NPC 대사의 끝 문장을 되풀이한다 (GPU turbo-lr1e4 재현: "I'm in no rush. I'm in no rush.")
+    provider.answers["stt"] = lambda b: httpx.Response(200, json={"text": "I'm in no rush. I'm in no rush.", "duration": 2.0})
+    r = client.post("/v1/stt", files=AUDIO, data={"npc_line": "I'm just taking a walk, not running. I'm in no rush."})
+    assert r.json()["text"] == ""
+
+
+@pytest.mark.parametrize(
+    ("text", "echo"),
+    [
+        ("I'm in no rush.", True),  # NPC 대사 끝 문장
+        ("I'm just taking a walk, not running. I'm in no rush.", True),  # NPC 대사 전체
+        ("Iced Americano, latte. I'm just taking a walk, not running. I'm in no rush.", True),  # 장면 단어부터 끝까지
+        ("My friend lives over there.", True),  # 기본 프롬프트 끝 문장은 NPC 대사가 있어도 메아리
+        ("Your walking is weird.", False),  # NPC 대사 문맥에서 나온 진짜 발화
+        ("not running", False),  # 12자 미만은 진짜 발화일 수 있다
+    ],
+)
+def test_prompt_echo_includes_npc_line_ending(text, echo):
+    assert is_prompt_echo(text, ["Iced Americano", "latte"], "I'm just taking a walk, not running. I'm in no rush.") is echo
+
+
 def test_stt_keeps_realistic_prompt_sentence_suffix(client, provider):
     provider.answers["stt"] = lambda b: httpx.Response(200, json={"text": "lives over there", "duration": 1.5})
     response = client.post("/v1/stt", files=AUDIO)

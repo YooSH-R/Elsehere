@@ -89,6 +89,7 @@ public class ReviewPracticeResults {
   private List<ReviewExpressionUsage> expressions(
       ReviewCard card, List<ReviewUtterance> utterances) {
     return Arrays.stream(jsonMapper.readValue(card.getTargets(), ReviewTarget[].class))
+        .filter(target -> ReviewTargets.learnerCanSay(target.expression(), target.usageKo()))
         .map(
             target ->
                 new ReviewExpressionUsage(

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace A305.Player
 {
@@ -14,7 +15,18 @@ namespace A305.Player
         [SerializeField]
         private PlayerTouchSettings settings;
 
+        // 휴대폰에는 V 키가 없으므로 1인칭·3인칭을 바꾸는 버튼을 둔다. 글자는 누르면 바뀔 시점이다.
+        [SerializeField]
+        private Button viewToggle;
+
+        [SerializeField]
+        private GameObject toFirstPersonLabel;
+
+        [SerializeField]
+        private GameObject toThirdPersonLabel;
+
         private Vector2 previousSize;
+        private bool viewTogglePressed;
 
         public TouchDragInput Movement { get; } = new TouchDragInput();
 
@@ -51,6 +63,42 @@ namespace A305.Player
                 ? Movement.GetDirection(stick.rect.width * 0.5f, settings.StickDeadZone)
                 : Vector2.zero;
 
+        /// <summary>[1인칭]·[3인칭] 버튼을 눌렀는지. 한 번 읽으면 지우며, 이동이 잠긴 동안(대화·창) 누른 것은 버린다.</summary>
+        public bool ConsumeViewToggle()
+        {
+            bool pressed = viewTogglePressed;
+            viewTogglePressed = false;
+            return pressed && surfaceCanvas.enabled && !IsInputLocked;
+        }
+
+        /// <summary>
+        /// 시점을 바꿀 수 있을 때만 버튼을 보이고, 글자는 누르면 바뀔 시점으로 맞춘다. 의자·차·대화처럼 정한 구도에서는 숨긴다.
+        /// </summary>
+        public void ShowViewToggle(bool canToggle, bool isFirstPerson)
+        {
+            if (viewToggle == null)
+            {
+                return;
+            }
+
+            if (!canToggle)
+            {
+                viewTogglePressed = false;
+            }
+
+            viewToggle.gameObject.SetActive(canToggle);
+            toFirstPersonLabel.SetActive(!isFirstPerson);
+            toThirdPersonLabel.SetActive(isFirstPerson);
+        }
+
+        private void Awake()
+        {
+            if (viewToggle != null)
+            {
+                viewToggle.onClick.AddListener(() => viewTogglePressed = true);
+            }
+        }
+
         private void OnEnable()
         {
             surfaceCanvas.enabled = ShouldShowControls();
@@ -60,6 +108,7 @@ namespace A305.Player
         {
             Movement.Reset();
             Look.Reset();
+            viewTogglePressed = false;
         }
 
         private void OnDisable()

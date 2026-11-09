@@ -196,11 +196,13 @@ namespace A305.Player
         {
             if (seatView != null)
             {
+                ShowTouchViewToggle(false);
                 transform.SetPositionAndRotation(seatView.position, seatView.rotation);
                 return;
             }
             if (vehicleView != null)
             {
+                ShowTouchViewToggle(false);
                 transform.SetPositionAndRotation(vehicleView.position, vehicleView.rotation);
                 return;
             }
@@ -213,6 +215,9 @@ namespace A305.Player
             {
                 ApplyInput();
             }
+            ShowTouchViewToggle(
+                meetingLookTarget == null && orbit.ViewMode != CameraViewMode.Dialogue
+            );
 
             Pose desiredPose = GetDesiredPose(snap: false);
             // 프레임 속도와 관계없이 같은 빠르기로 따라가도록 지수 감쇠로 섞는다.
@@ -272,10 +277,24 @@ namespace A305.Player
                 orbit.Zoom(Mathf.Sign(scroll));
             }
 
-            ToggledViewThisFrame = toggleViewAction.action.WasPressedThisFrame();
+            // 휴대폰에는 V 키 대신 [1인칭]·[3인칭] 버튼이 있다.
+            ToggledViewThisFrame =
+                toggleViewAction.action.WasPressedThisFrame()
+                || (touchControls != null && touchControls.ConsumeViewToggle());
             if (ToggledViewThisFrame)
             {
                 orbit.ToggleFirstPerson();
+            }
+        }
+
+        private void ShowTouchViewToggle(bool canToggle)
+        {
+            if (touchControls != null)
+            {
+                touchControls.ShowViewToggle(
+                    canToggle,
+                    orbit.ViewMode == CameraViewMode.FirstPerson
+                );
             }
         }
 
@@ -285,6 +304,7 @@ namespace A305.Player
             if (touchControls != null)
             {
                 touchControls.ConsumeLookDelta();
+                touchControls.ConsumeViewToggle();
             }
 
             TurnedByUserThisFrame = false;

@@ -611,8 +611,11 @@ namespace A305.Dialogue
 
         public void SetReviewReference(string text) => panel.SetReviewReference(text);
 
-        public void SetReviewReference(IReadOnlyList<ReviewReferenceItem> items, int count) =>
-            panel.SetReviewReference(items, count);
+        public void SetReviewReference(
+            IReadOnlyList<ReviewReferenceItem> items,
+            int count,
+            string scenario = null
+        ) => panel.SetReviewReference(items, count, scenario);
 
         private void ForwardPoliceDispatch(long turnId, string placeCode)
         {

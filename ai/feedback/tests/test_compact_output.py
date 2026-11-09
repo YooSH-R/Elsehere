@@ -70,6 +70,34 @@ def test_compact_feedback_restores_original_and_references_without_losing_assess
     assert "format_version" not in response
 
 
+def test_speaker_roles_filter_npc_targets_without_changing_the_public_contract():
+    payload, legacy = sample("free_grammar")
+    body = compact(legacy)
+    body["result"]["situation_expressions"] = [
+        {
+            "expression": "What can I get you?",
+            "meaning_ko": "무엇을 드릴까요?",
+            "usage_ko": "직원이 주문을 받아요.",
+            "example_en": "What can I get you?",
+            "example_ko": "무엇을 드릴까요?",
+            "speaker_role": "npc",
+        },
+        {
+            "expression": "Have a good one!",
+            "meaning_ko": "좋은 하루 보내세요!",
+            "usage_ko": "헤어질 때 인사해요.",
+            "example_en": "Have a good one!",
+            "example_ko": "좋은 하루 보내세요!",
+            "speaker_role": "both",
+        },
+    ]
+    response = generate_feedback(payload, FixtureClient(body), ai_allowed=True)
+    assert response["status"] == "completed"
+    expressions = response["result"]["situation_expressions"]
+    assert [item["expression"] for item in expressions] == ["Have a good one!"]
+    assert "speaker_role" not in expressions[0]
+
+
 def test_provider_schema_does_not_ask_model_to_repeat_server_owned_fields():
     payload, _ = sample("free_grammar")
     schema = feedback_response_format(build_messages(payload))["json_schema"]["schema"]

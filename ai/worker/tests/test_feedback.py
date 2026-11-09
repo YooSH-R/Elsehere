@@ -72,8 +72,11 @@ def test_compact_provider_response_is_valid_and_restored_before_backend_receives
     ]
 
     def answer(body):
-        Draft202012Validator(body["response_format"]["json_schema"]["schema"]).validate(raw)
-        return ok(json.dumps(raw, ensure_ascii=False))
+        provider_response = copy.deepcopy(raw)
+        for expression in provider_response["result"]["situation_expressions"]:
+            expression["speaker_role"] = "learner"
+        Draft202012Validator(body["response_format"]["json_schema"]["schema"]).validate(provider_response)
+        return ok(json.dumps(provider_response, ensure_ascii=False))
 
     provider.answers["feedback"] = answer
     response = client.post("/v1/feedback", json=payload)

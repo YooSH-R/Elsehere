@@ -20,7 +20,8 @@ final class ReviewTargets {
           || expression.expression() == null
           || expression.meaningKo() == null
           || expression.expression().isBlank()
-          || expression.meaningKo().isBlank()) {
+          || expression.meaningKo().isBlank()
+          || !learnerCanSay(expression.expression(), expression.usageKo())) {
         continue;
       }
       String text = expression.expression().strip();
@@ -38,5 +39,29 @@ final class ReviewTargets {
       }
     }
     return List.copyOf(selected.values());
+  }
+
+  /** 화자 표시가 없던 기존 카드의 명백한 직원 전용 문장을 복습 목표에서 제외한다. */
+  static boolean learnerCanSay(String expression, String usage) {
+    String words = ReviewExpressionEvidence.canonicalExpression(expression);
+    if (words.equals("you re all set")
+        || words.equals("you are all set")
+        || words.equals("what can i get you")
+        || words.equals("anything else")
+        || words.equals("how can i help you")
+        || words.startsWith("enjoy your stay")) {
+      return false;
+    }
+    return usage == null
+        || !(usage.contains("직원이 사용하는")
+            || usage.contains("NPC가 사용하는")
+            || usage.contains("점원이 사용하는")
+            || usage.contains("직원 입장"));
+  }
+
+  static List<ReviewTarget> forPractice(List<ReviewTarget> targets) {
+    return targets.stream()
+        .filter(target -> learnerCanSay(target.expression(), target.usageKo()))
+        .toList();
   }
 }

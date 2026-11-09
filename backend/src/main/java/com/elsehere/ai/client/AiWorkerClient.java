@@ -174,10 +174,23 @@ class AiWorkerClient {
     return readBytes(send(request, HttpResponse.BodyHandlers.ofByteArray()));
   }
 
-  /** 녹음 전사. 파일 부분의 형식이 워커가 받는 녹음 형식이어야 한다. */
-  public SttResult transcribe(WorkerTrace trace, byte[] audio, String contentType) {
+  /**
+   * 녹음 전사. 파일 부분의 형식이 워커가 받는 녹음 형식이어야 한다.
+   *
+   * @param npcLine 인식 문맥으로 쓸 직전 NPC 대사. 비어 있으면 보내지 않는다
+   */
+  public SttResult transcribe(WorkerTrace trace, byte[] audio, String contentType, String npcLine) {
     String boundary = "elsehere-" + UUID.randomUUID();
     ByteArrayOutputStream body = new ByteArrayOutputStream();
+    if (npcLine != null && !npcLine.isBlank()) {
+      body.writeBytes(
+          ("--"
+                  + boundary
+                  + "\r\nContent-Disposition: form-data; name=\"npc_line\"\r\n\r\n"
+                  + npcLine
+                  + "\r\n")
+              .getBytes(StandardCharsets.UTF_8));
+    }
     body.writeBytes(
         ("--"
                 + boundary

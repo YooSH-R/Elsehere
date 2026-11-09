@@ -131,10 +131,17 @@ public class AiGateway {
     return aiWorkerClient.audio(trace, audioId);
   }
 
-  /** 녹음 전사. */
-  public SttResult transcribe(WorkerTrace trace, byte[] audio, String contentType) {
+  /**
+   * 녹음 전사.
+   *
+   * @param npcLine 인식 문맥으로 쓸 직전 NPC 대사. 없으면 null
+   */
+  public SttResult transcribe(WorkerTrace trace, byte[] audio, String contentType, String npcLine) {
     SttResult result =
-        send(trace, AiRequestKind.STT, () -> aiWorkerClient.transcribe(trace, audio, contentType));
+        send(
+            trace,
+            AiRequestKind.STT,
+            () -> aiWorkerClient.transcribe(trace, audio, contentType, npcLine));
     record(trace, AiRequestKind.STT, result.usage(), true);
     return result;
   }

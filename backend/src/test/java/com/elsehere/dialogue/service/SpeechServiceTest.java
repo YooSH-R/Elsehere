@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
@@ -83,7 +84,7 @@ class SpeechServiceTest {
   @Test
   @DisplayName("진행 중인 대화의 녹음을 전사해 문장과 길이를 돌려주고, 워커 요청에 요청 ID와 대화를 붙인다")
   void transcribe_turn_returnsText() {
-    given(aiGateway.transcribe(any(), eq(RECORDING), eq("audio/webm;codecs=opus")))
+    given(aiGateway.transcribe(any(), eq(RECORDING), eq("audio/webm;codecs=opus"), any()))
         .willReturn(new SttResult("I want a latte", 1.25, List.of()));
     UUID requestId = UUID.randomUUID();
 
@@ -101,13 +102,35 @@ class SpeechServiceTest {
         .transcribe(
             eq(new WorkerTrace(requestId, userId, conversation.getId())),
             eq(RECORDING),
-            eq("audio/webm;codecs=opus"));
+            eq("audio/webm;codecs=opus"),
+            any());
   }
 
   @Test
-  @DisplayName("튜토리얼 녹음은 대화 없이 전사하고 워커 요청에 대화 ID를 붙이지 않는다")
+  @DisplayName("대화 녹음은 마지막 NPC 대사를 문맥으로 워커에 보낸다")
+  void transcribe_turn_sendsLastNpcLine() {
+    textTurn(entityManager, conversation, 2, "Do you like running?");
+    npcTurn(entityManager, conversation, 3, "I'm just taking a walk, not running.");
+    entityManager.flush();
+    given(aiGateway.transcribe(any(), any(), anyString(), any()))
+        .willReturn(new SttResult("Your walking is weird.", 1.0, List.of()));
+
+    speechService.transcribe(
+        userId,
+        UUID.randomUUID(),
+        TranscriptionPurpose.TURN,
+        conversation.getId(),
+        recording("audio/wav", RECORDING));
+
+    then(aiGateway)
+        .should()
+        .transcribe(any(), any(), anyString(), eq("I'm just taking a walk, not running."));
+  }
+
+  @Test
+  @DisplayName("튜토리얼 녹음은 대화 없이 전사하고 워커 요청에 대화 ID와 NPC 대사를 붙이지 않는다")
   void transcribe_tutorial_doesNotNeedConversation() {
-    given(aiGateway.transcribe(any(), any(), anyString()))
+    given(aiGateway.transcribe(any(), any(), anyString(), any()))
         .willReturn(new SttResult("Hello", null, List.of()));
 
     TranscriptionResponse response =
@@ -120,7 +143,7 @@ class SpeechServiceTest {
 
     assertThat(response).isEqualTo(new TranscriptionResponse("Hello", 0));
     ArgumentCaptor<WorkerTrace> trace = ArgumentCaptor.forClass(WorkerTrace.class);
-    then(aiGateway).should().transcribe(trace.capture(), any(), anyString());
+    then(aiGateway).should().transcribe(trace.capture(), any(), anyString(), isNull());
     assertThat(trace.getValue().conversationId()).isNull();
   }
 
@@ -131,7 +154,7 @@ class SpeechServiceTest {
 
     assertErrorCode(
         () -> transcribeTurn(recording("audio/wav", RECORDING)), ErrorCode.VOICE_CONSENT_REQUIRED);
-    then(aiGateway).should(never()).transcribe(any(), any(), anyString());
+    then(aiGateway).should(never()).transcribe(any(), any(), anyString(), any());
   }
 
   @Test
@@ -147,7 +170,7 @@ class SpeechServiceTest {
         ErrorCode.AUDIO_FORMAT_UNSUPPORTED);
     assertErrorCode(
         () -> transcribeTurn(recording(null, RECORDING)), ErrorCode.AUDIO_FORMAT_UNSUPPORTED);
-    then(aiGateway).should(never()).transcribe(any(), any(), anyString());
+    then(aiGateway).should(never()).transcribe(any(), any(), anyString(), any());
   }
 
   @Test
@@ -170,7 +193,7 @@ class SpeechServiceTest {
   @Test
   @DisplayName("말소리를 알아듣지 못하면(빈 전사) STT_NO_SPEECH다")
   void transcribe_blankText_throwsNoSpeech() {
-    given(aiGateway.transcribe(any(), any(), anyString()))
+    given(aiGateway.transcribe(any(), any(), anyString(), any()))
         .willReturn(new SttResult("  ", 0.5, List.of()));
 
     assertErrorCode(
@@ -181,7 +204,7 @@ class SpeechServiceTest {
   @DisplayName("녹음 음성 학습 활용에 동의한 사용자는 전사한 녹음과 인식 결과를 학습용으로 저장한다")
   void transcribe_voiceTrainingAgreed_savesRecording() {
     optionalConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
-    given(aiGateway.transcribe(any(), any(), anyString()))
+    given(aiGateway.transcribe(any(), any(), anyString(), any()))
         .willReturn(new SttResult("I want a latte", 1.25, List.of()));
     UUID requestId = UUID.randomUUID();
 
@@ -206,7 +229,7 @@ class SpeechServiceTest {
   @DisplayName("녹음 음성 학습 활용에 동의하지 않았으면 녹음을 저장하지 않는다")
   void transcribe_voiceTrainingNotAgreed_doesNotSave() {
     optionalConsentService.change(userId, ConsentType.TRAINING_TEXT, true);
-    given(aiGateway.transcribe(any(), any(), anyString()))
+    given(aiGateway.transcribe(any(), any(), anyString(), any()))
         .willReturn(new SttResult("I want a latte", 1.25, List.of()));
 
     transcribeTurn(recording("audio/wav", RECORDING));
@@ -218,7 +241,7 @@ class SpeechServiceTest {
   @DisplayName("동의했어도 말소리를 알아듣지 못한 녹음은 저장하지 않는다")
   void transcribe_noSpeech_doesNotSave() {
     optionalConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
-    given(aiGateway.transcribe(any(), any(), anyString()))
+    given(aiGateway.transcribe(any(), any(), anyString(), any()))
         .willReturn(new SttResult("  ", 0.5, List.of()));
 
     assertErrorCode(
@@ -229,7 +252,7 @@ class SpeechServiceTest {
   @Test
   @DisplayName("음성 인식을 부르다 워커에 닿지 못하면 오류를 그대로 알린다")
   void transcribe_workerCallFails_throws() {
-    given(aiGateway.transcribe(any(), eq(RECORDING), eq("audio/webm;codecs=opus")))
+    given(aiGateway.transcribe(any(), eq(RECORDING), eq("audio/webm;codecs=opus"), any()))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
     UUID requestId = UUID.randomUUID();
 

@@ -11,7 +11,7 @@ namespace A305.EditorTools.Onboarding
     /// 로그인 메인(화면 01)을 확정한 A안(시안 e1을 다듬은 것)대로 만든다. 크기·자리는 시안 px에 1.2를 곱한 캔버스 단위다.
     /// 마을 배경 위 왼쪽을 크림색 그라데이션으로 덮고, 화면 세로 가운데에 놓인 왼쪽 열(폭 440)에 칩·로고·소개 문장,
     /// 같은 폭의 [Google로 계속하기]·[게스트로 둘러보기], 밑줄 친 약관 링크를 쌓는다. 가운데 카드는 두지 않는다.
-    /// 칩·로고·버튼처럼 그림인 부분은 렌더링한 그림(Art/UI/Login)을 쓰고, 소개 문장과 약관 링크는 글자로 둔다.
+    /// 칩·로고는 렌더링한 그림(Art/UI/Login)을 쓰고, 로그인 버튼은 공용 바탕·아이콘·TMP 글자를 나눠 배치한다.
     /// 로고는 ElseHere 로고(남색 Else, 코랄 Here)이고, 칩은 남색, [게스트로 둘러보기]는 코랄로 로고 색에 맞춘다.
     /// 마을 배경은 <see cref="LoginTownCapture"/>가 지금 마을에서 찍은 그림이다.
     /// </summary>
@@ -64,6 +64,7 @@ namespace A305.EditorTools.Onboarding
             subtitle.lineSpacing = 24;
             Place(subtitle.rectTransform, 0, 200, 440, 60.88f);
 
+            LoginButtonArt.Ensure();
             ArtButton(panel.Find("GoogleButton"), "LoginGoogle", 300.88f);
             ArtButton(panel.Find("GuestButton"), "LoginGuest", 300.88f + 64 + 18);
             LegalLinks(panel.Find("LegalLinks"));
@@ -122,11 +123,22 @@ namespace A305.EditorTools.Onboarding
             Picture(shade.gameObject, Sprite("LoginShade"));
         }
 
-        // 버튼 칸은 시안 버튼 자리(400×64)이고, 렌더링한 버튼 그림을 그림자 자리만큼 넓혀 깐다. 눌림·올림은 그림 색으로 보인다.
+        // 버튼 칸은 시안 자리(400×64)를 유지하고, 바탕 그림은 그림자 여백을 포함해 넓혀 깐다.
         // 예전 알약 버튼의 안쪽 배치(LayoutGroup)가 남으면 그림을 버튼 칸에 줄여 넣으므로 함께 지운다.
         private static void ArtButton(Transform button, string sprite, float top)
         {
-            foreach (string part in new[] { "Label", "Icon", "Outline", "Face", "Art" })
+            foreach (
+                string part in new[]
+                {
+                    "Label",
+                    "Icon",
+                    "Outline",
+                    "Face",
+                    "Art",
+                    "LoginIcon",
+                    "Content",
+                }
+            )
             {
                 Transform child = button.Find(part);
                 if (child != null)
@@ -152,15 +164,64 @@ namespace A305.EditorTools.Onboarding
             art.anchorMin = art.anchorMax = art.pivot = new Vector2(0, 1);
             art.anchoredPosition = new Vector2(-ArtPad, ArtPad) * Px;
             art.sizeDelta = new Vector2(400 + 2 * ArtPad, 64 + 2 * ArtPad + 12) * Px;
-            Image face = Picture(art.gameObject, Sprite(sprite));
+            // 원본 그림은 Google 로고의 출처와 기존 Builder 연결로 남기되, 그림 속 글자는 표시하지 않는다.
+            Picture(art.gameObject, Sprite(sprite)).enabled = false;
+            RectTransform surface = Rect("Surface", art);
+            Stretch(surface);
+            Image face = Picture(surface.gameObject, Sprite("LoginButtonSurface"));
+            bool google = sprite == "LoginGoogle";
+            // 선형 색 공간 UI의 버텍스 색 변환을 보정해 원래 코랄색을 유지한다.
+            face.color = google ? Color.white : ((Color)new Color32(237, 116, 88, 255)).gamma;
+            LoginButtonContent(button, google);
             var press = button.GetComponent<Button>();
             press.targetGraphic = face;
             press.transition = Selectable.Transition.ColorTint;
             ColorBlock colors = ColorBlock.defaultColorBlock;
-            colors.highlightedColor = new Color(.96f, .96f, .96f);
-            colors.pressedColor = new Color(.86f, .86f, .86f);
-            colors.selectedColor = Color.white;
+            colors.normalColor = face.color;
+            colors.highlightedColor = face.color * new Color(.96f, .96f, .96f, 1);
+            colors.pressedColor = face.color * new Color(.86f, .86f, .86f, 1);
+            colors.selectedColor = face.color;
             press.colors = colors;
+        }
+
+        private static void LoginButtonContent(Transform button, bool google)
+        {
+            RectTransform content = Rect("Content", button);
+            Stretch(content);
+            var layout = content.gameObject.AddComponent<HorizontalLayoutGroup>();
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.spacing = 18 * Px;
+            layout.childControlWidth = layout.childControlHeight = true;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+            var icon = Rect("LoginIcon", content);
+            var slot = icon.gameObject.AddComponent<LayoutElement>();
+            slot.minWidth = slot.preferredWidth = 32 * Px;
+            slot.minHeight = slot.preferredHeight = 32 * Px;
+            RectTransform markRect = Rect("Mark", icon);
+            markRect.anchorMin = markRect.anchorMax = markRect.pivot = new Vector2(.5f, .5f);
+            markRect.anchoredPosition = Vector2.zero;
+            markRect.sizeDelta = Vector2.one * (google ? 28 : 32) * Px;
+            Picture(
+                markRect.gameObject,
+                Sprite(google ? "LoginGoogleIcon" : "LoginGuestIcon")
+            ).preserveAspect = true;
+            TMP_Text label = Rect("Label", content).gameObject.AddComponent<TextMeshProUGUI>();
+            label.font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(
+                "Assets/Art/UI/Fonts/Jua-Regular SDF.asset"
+            );
+            label.text = google ? "Google로 계속하기" : "게스트로 둘러보기";
+            label.fontSize = 24 * Px;
+            label.fontStyle = FontStyles.Normal;
+            label.fontWeight = FontWeight.Regular;
+            label.enableAutoSizing = false;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.alignment = TextAlignmentOptions.Midline;
+            label.margin = Vector4.zero;
+            label.color = google ? new Color32(47, 40, 32, 255) : Color.white;
+            label.raycastTarget = false;
+            var textSize = label.gameObject.AddComponent<LayoutElement>();
+            textSize.minWidth = textSize.preferredWidth = label.GetPreferredValues(label.text).x;
+            textSize.preferredHeight = 64 * Px;
         }
 
         // 이용약관 · 개인정보 처리방침: 바탕 없이 밑줄 친 작은 글자, 버튼 줄 가운데

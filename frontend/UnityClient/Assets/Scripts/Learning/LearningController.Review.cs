@@ -293,16 +293,14 @@ namespace A305.Learning
                 }
                 else
                     dialogue.SetReviewReference(
-                        string.Join(
-                            "\n\n",
-                            card.Targets.Select(target =>
-                                "<b>"
-                                + ReviewWorkbookRow.Escape(target.Expression)
-                                + "</b>\n<size=85%>"
-                                + ReviewWorkbookRow.Escape(target.MeaningKo)
-                                + "</size>"
-                            )
-                        )
+                        card.Targets.Select(target => new ReviewReferenceItem(
+                                target.Expression,
+                                target.MeaningKo,
+                                false
+                            ))
+                            .ToArray(),
+                        0,
+                        ReviewScenarioPresentation.Briefing(card)
                     );
             }
             finally

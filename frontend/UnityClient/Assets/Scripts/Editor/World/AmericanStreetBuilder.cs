@@ -14,7 +14,7 @@ namespace A305.EditorTools.World
 {
     /// <summary>
     /// 마을 거리를 미국 소도시처럼 보이게 한다. 차선은 도로 전체에 이어 그리고, 교차로에는 횡단보도·정지선·신호등을 둔다.
-    /// 길가에는 속도 제한 표지판, 버스 정류장, 주차 미터기, 신문 판매함, 파란 우체통, 보행자 횡단 표지판을 두고,
+    /// 길가에는 속도 제한 표지판, 버스 정류장, 신문 판매함, 파란 우체통, 보행자 횡단 표지판을 두고,
     /// 호텔에 성조기 하나, 드럭스토어 앞에 ICE 냉동고와 OPEN 네온, 카페 앞에 입간판을 둔다.
     /// 소품 프리팹은 다른 거리 소품처럼 MainstreetArt에 없을 때만 만들고, 이미 놓았으면 배치를 다시 바꾸지 않는다.
     /// </summary>
@@ -79,16 +79,6 @@ namespace A305.EditorTools.World
             Place("ParkBench", group, new Vector3(-4.8f, .1f, 18f), Bench, 90);
             Prop("UsFlag", BuildFlag, group, new Vector3(7.02f, 4.0f, 2.3f), -90);
 
-            foreach (
-                Vector3 spot in new[]
-                {
-                    new Vector3(-3.25f, .1f, 4.4f),
-                    new Vector3(3.25f, .1f, 17.5f),
-                    new Vector3(3.25f, .1f, -3.4f),
-                    new Vector3(3.25f, .1f, 1f),
-                }
-            )
-                Prop("ParkingMeter", BuildParkingMeter, group, spot, 0);
             string[] boxes = { "NewspaperBoxBlue", "NewspaperBoxRed", "NewspaperBoxYellow" };
             for (int i = 0; i < boxes.Length; i++)
             {
@@ -625,36 +615,6 @@ namespace A305.EditorTools.World
                         UnityEngine.Color.white
                     )
             );
-        }
-
-        private static (GameObject Root, Action<Transform> Decorate) BuildParkingMeter()
-        {
-            var root = new GameObject("ParkingMeter");
-            Transform t = root.transform;
-            Material steel = Color("MeterSteel", "#A7B0B6");
-            Post("Post", t, new Vector3(0, .52f, 0), .06f, 1.04f, Color("MeterPost", "#3A3F44"));
-            Block("Head", t, new Vector3(0, 1.16f, 0), new Vector3(.18f, .27f, .14f), steel, .03f);
-            Ball("Dome", t, new Vector3(0, 1.3f, 0), new Vector3(.18f, .12f, .14f), steel);
-            foreach (float side in new[] { -1f, 1f })
-                Block(
-                    "Window",
-                    t,
-                    new Vector3(0, 1.2f, side * .068f),
-                    new Vector3(.11f, .07f, .01f),
-                    Color("MeterWindow", "#F2C230"),
-                    .005f
-                );
-            Hover(
-                root,
-                Word(
-                    "parking_meter",
-                    "parking meter",
-                    "주차 요금 기계",
-                    "Do I need to pay at the parking meter?",
-                    "주차 요금 기계에 돈을 내야 하나요?"
-                )
-            );
-            return (root, null);
         }
 
         private static (GameObject Root, Action<Transform> Decorate) BuildNewspaperBox(string name)

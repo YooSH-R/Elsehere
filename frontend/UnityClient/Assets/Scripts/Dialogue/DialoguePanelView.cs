@@ -71,6 +71,7 @@ namespace A305.Dialogue
         [SerializeField]
         private ReviewReferenceBadges reviewBadges;
         private string reviewReference;
+        private string reviewScenario;
         private string originalHelpTitle;
         private TMP_Text reviewHelpTitle;
         private bool reviewFolded;
@@ -81,6 +82,8 @@ namespace A305.Dialogue
         public void SetReviewReference(string text)
         {
             reviewBadges?.Clear();
+            if (text == null)
+                reviewScenario = null;
             if (text == null || reviewReference == null)
                 reviewFolded = false;
             var layout = suggestText.transform.parent.GetComponent<VerticalLayoutGroup>();
@@ -118,9 +121,18 @@ namespace A305.Dialogue
             Refresh();
         }
 
-        public void SetReviewReference(IReadOnlyList<ReviewReferenceItem> items, int verifiedCount)
+        public void SetReviewReference(
+            IReadOnlyList<ReviewReferenceItem> items,
+            int verifiedCount,
+            string scenario = null
+        )
         {
-            ReviewReferenceText formatted = ReviewReferenceText.Format(items, verifiedCount);
+            reviewScenario = scenario;
+            ReviewReferenceText formatted = ReviewReferenceText.Format(
+                items,
+                verifiedCount,
+                scenario
+            );
             SetReviewReference(formatted.Text);
             reviewBadges?.Show(formatted);
         }
@@ -170,21 +182,22 @@ namespace A305.Dialogue
         private TextLinkClicks lineLinks;
 
         [SerializeField]
-        [Tooltip("누른 풀이 단어 근처에 뜨는 호버 카드. 단어·뜻과 [단어장에 저장]이 있다.")]
+        [Tooltip(
+            "누른 풀이 단어 근처에 뜨는 호버 카드. 그 자리를 덮는 풀이(단어와 그 단어가 든 숙어)마다 뜻과 [단어장에 저장]이 있다."
+        )]
         private RectTransform wordCard;
 
         [SerializeField]
-        private TMP_Text wordTitleText;
+        [Tooltip(
+            "카드의 풀이 목록. 풀이가 여럿이면 다음 풀이 제목이 살짝 보이는 높이에서 스크롤한다."
+        )]
+        private ScrollRect wordEntries;
 
         [SerializeField]
-        private TMP_Text wordMeaningText;
-
-        [SerializeField]
-        [Tooltip("저장하는 중·저장 결과·실패 이유")]
-        private TMP_Text wordNoteText;
-
-        [SerializeField]
-        private Button wordSaveButton;
+        [Tooltip(
+            "풀이 한 줄(Title·Meaning·Note·SaveButton). 풀이가 여럿이면 복제해 아래로 쌓는다."
+        )]
+        private RectTransform wordEntryTemplate;
 
         [SerializeField]
         private Button wordCloseButton;
@@ -209,6 +222,7 @@ namespace A305.Dialogue
         private IDialogueContent content;
         private bool isMeaningVisible;
         private GlossaryWordCard glossaryCard = new GlossaryWordCard();
+        private readonly List<WordEntryRow> wordRows = new List<WordEntryRow>();
         private ConversationStandingDisplay standingDisplay = new ConversationStandingDisplay();
         private ThemedElement sendTheme;
         private CanvasGroup talkGroup;
@@ -223,6 +237,9 @@ namespace A305.Dialogue
 
         // 단어 카드와 대화창 가장자리 사이 여백
         private const float WordCardMargin = 12;
+
+        // 풀이가 여럿이면 카드 아래쪽에 다음 풀이의 제목이 보이도록 한 줄보다 이만큼 더 높게 두고 나머지는 스크롤한다.
+        private const float NextWordPeek = 64;
 
         // 대사 칸에 한 번에 보이는 최근 대사 수(바로 앞 대사와 그다음 대사)
         private const int VisibleLineCount = 2;
@@ -477,7 +494,9 @@ namespace A305.Dialogue
                 suggestText.text = reviewReference;
             suggestText.gameObject.SetActive(!reviewing || !reviewFolded);
             if (reviewHelpTitle != null)
-                reviewHelpTitle.text = reviewing ? "이번에 써 볼 표현" : originalHelpTitle;
+                reviewHelpTitle.text = reviewing
+                    ? (reviewScenario == null ? "이번에 써 볼 표현" : "이번 복습")
+                    : originalHelpTitle;
             if (reviewFoldButton != null)
                 reviewFoldButton.gameObject.SetActive(reviewing);
 
@@ -560,7 +579,7 @@ namespace A305.Dialogue
             exampleButton.onClick.AddListener(FillExampleSentence);
             meaningButton.onClick.AddListener(ToggleMeaning);
             lineLinks.Clicked += SelectWord;
-            wordSaveButton.onClick.AddListener(RequestWordSave);
+            wordRows.Add(CreateWordRow(0));
             wordCloseButton.onClick.AddListener(CloseWordCard);
             // 대사 칸을 스크롤하면 카드가 고른 단어를 따라간다.
             historyScroll.onValueChanged.AddListener(_ => PlaceWordCard());
@@ -707,17 +726,19 @@ namespace A305.Dialogue
         }
 
         // 지난 대사의 단어를 눌러도 보던 자리에 머물도록 대사 칸을 맨 아래로 내리지 않고 고른 단어 표시와 카드만 바꾼다.
+        // 숙어 안의 단어를 누르면 그 단어와 숙어를 함께 카드에 쌓고, 새로 고른 카드는 맨 위부터 보인다.
         private void SelectWord(string linkId)
         {
-            GlossaryWord word =
-                content != null && isMeaningVisible
-                    ? DialogueLinesText.FindWord(content.Lines, linkId)
-                    : null;
-            if (word == null)
+            if (content == null || !isMeaningVisible)
                 return;
-            glossaryCard.Select(word);
+            IReadOnlyList<GlossaryWord> words = DialogueLinesText.FindWords(content.Lines, linkId);
+            if (words.Count == 0)
+                return;
+            glossaryCard.Select(words);
             ShowLines();
             ShowWordCard();
+            wordEntries.StopMovement();
+            wordEntries.content.anchoredPosition = Vector2.zero;
         }
 
         private void CloseWordCard()
@@ -729,12 +750,15 @@ namespace A305.Dialogue
             ShowWordCard();
         }
 
-        private void RequestWordSave()
+        // 카드의 index번째 풀이를 저장한다.
+        private void RequestWordSave(int index)
         {
-            if (!glossaryCard.IsSaveInteractable)
+            if (index >= glossaryCard.Words.Count)
                 return;
-            GlossaryWord word = glossaryCard.Word;
-            glossaryCard.StartSaving();
+            GlossaryWord word = glossaryCard.Words[index];
+            if (!glossaryCard.IsSaveInteractable(word))
+                return;
+            glossaryCard.StartSaving(word);
             ShowWordCard();
             WordSaveRequested?.Invoke(word);
         }
@@ -794,26 +818,96 @@ namespace A305.Dialogue
         }
 
         // 호버 카드는 대사 위에 겹쳐 뜨므로 대사 칸 크기는 그대로 두고 카드 내용과 자리만 맞춘다.
+        // 풀이마다 한 줄을 아래로 쌓고, 둘 이상이면 다음 풀이 제목이 보이는 높이에서 스크롤한다.
         private void ShowWordCard()
         {
             wordCard.gameObject.SetActive(glossaryCard.IsVisible);
             if (!glossaryCard.IsVisible)
                 return;
-            wordTitleText.richText = wordMeaningText.richText = false;
-            wordTitleText.text = glossaryCard.Word.Text;
-            wordMeaningText.text = glossaryCard.Word.MeaningKo;
-            wordNoteText.text = glossaryCard.Note ?? "";
-            wordNoteText.gameObject.SetActive(!string.IsNullOrEmpty(glossaryCard.Note));
-            wordSaveButton.gameObject.SetActive(glossaryCard.IsSaveVisible);
-            wordSaveButton.interactable = glossaryCard.IsSaveInteractable;
-            // 저장 버튼이 없으면 안내 문구가 카드 아래쪽 폭을 다 쓴다.
-            var note = (RectTransform)wordNoteText.transform;
-            float saveWidth = ((RectTransform)wordSaveButton.transform).sizeDelta.x;
-            note.offsetMax = new Vector2(
-                glossaryCard.IsSaveVisible ? -(saveWidth + 28) : -16,
-                note.offsetMax.y
-            );
+            IReadOnlyList<GlossaryWord> words = glossaryCard.Words;
+            while (wordRows.Count < words.Count)
+                wordRows.Add(CreateWordRow(wordRows.Count));
+            for (int i = 0; i < wordRows.Count; i++)
+            {
+                wordRows[i].Root.gameObject.SetActive(i < words.Count);
+                if (i >= words.Count)
+                    continue;
+                wordRows[i].Root.anchoredPosition = new Vector2(0, -i * WordRowHeight);
+                ShowWordRow(wordRows[i], words[i]);
+            }
+
+            SizeWordCard(WantedWordCardHeight());
             PlaceWordCard();
+        }
+
+        // 풀이 한 줄 높이. 풀이가 하나뿐일 때의 카드 높이와 같다.
+        private float WordRowHeight => wordEntryTemplate.rect.height;
+
+        // 풀이가 여럿이면 다음 풀이 제목이 보이도록 한 줄보다 높게 둔다.
+        private float WantedWordCardHeight() =>
+            glossaryCard.Words.Count > 1 ? WordRowHeight + NextWordPeek : WordRowHeight;
+
+        // 카드 높이를 정하고, 목록 끝까지 내리면 마지막 풀이가 카드 맨 위에 오도록 목록 아래에 카드 높이만큼 자리를 둔다.
+        private void SizeWordCard(float height)
+        {
+            wordCard.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
+            wordEntries.content.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Vertical,
+                (glossaryCard.Words.Count - 1) * WordRowHeight + height
+            );
+        }
+
+        private void ShowWordRow(WordEntryRow row, GlossaryWord word)
+        {
+            row.Title.richText = row.Meaning.richText = false;
+            row.Title.text = word.Text;
+            row.Meaning.text = word.MeaningKo;
+            string note = glossaryCard.NoteFor(word);
+            row.Note.text = note ?? "";
+            row.Note.gameObject.SetActive(!string.IsNullOrEmpty(note));
+            bool canSave = glossaryCard.IsSaveVisible(word);
+            row.Save.gameObject.SetActive(canSave);
+            row.Save.interactable = glossaryCard.IsSaveInteractable(word);
+            // 저장 버튼이 없으면 안내 문구가 줄 아래쪽 폭을 다 쓴다.
+            var noteRect = (RectTransform)row.Note.transform;
+            float saveWidth = ((RectTransform)row.Save.transform).sizeDelta.x;
+            noteRect.offsetMax = new Vector2(
+                canSave ? -(saveWidth + 28) : -16,
+                noteRect.offsetMax.y
+            );
+        }
+
+        // 첫 줄은 프리팹의 풀이 줄을 그대로 쓰고, 그 뒤 줄은 복제한다. 줄마다 [단어장에 저장]이 자기 순서의 풀이를 저장한다.
+        private WordEntryRow CreateWordRow(int index)
+        {
+            RectTransform root =
+                index == 0
+                    ? wordEntryTemplate
+                    : Instantiate(wordEntryTemplate, wordEntryTemplate.parent);
+            var row = new WordEntryRow(root);
+            row.Save.onClick.AddListener(() => RequestWordSave(index));
+            return row;
+        }
+
+        // 카드의 풀이 한 줄
+        private sealed class WordEntryRow
+        {
+            public WordEntryRow(RectTransform root)
+            {
+                Root = root;
+                Title = root.Find("Title").GetComponent<TMP_Text>();
+                Meaning = root.Find("Meaning").GetComponent<TMP_Text>();
+                Note = root.Find("Note").GetComponent<TMP_Text>();
+                Save = root.Find("SaveButton").GetComponent<Button>();
+            }
+
+            public RectTransform Root { get; }
+            public TMP_Text Title { get; }
+            public TMP_Text Meaning { get; }
+
+            // 저장하는 중·저장 결과·실패 이유
+            public TMP_Text Note { get; }
+            public Button Save { get; }
         }
 
         // 누른 단어 바로 위(자리가 없으면 아래)에 카드를 띄운다. 이름·호감도 줄 아래에 두어 표시가 카드 안으로 비치지 않게 한다.
@@ -838,20 +932,28 @@ namespace A305.Dialogue
                 );
                 area.yMax = Mathf.Min(area.yMax, history.anchoredPosition.y + history.rect.height);
             }
+            // 높인 카드가 단어 위나 아래 자리에 다 들어가지 않으면 그 자리에 맞춰 줄여, 누른 단어를 가리지 않게 한다.
+            SizeWordCard(
+                WordCardPlacement.FitHeight(word, WantedWordCardHeight(), WordRowHeight, area)
+            );
             wordCard.anchoredPosition = WordCardPlacement.Place(word, wordCard.rect.size, area);
         }
 
-        // 고른 단어의 링크 글자들이 차지한 영역을 대화창 왼쪽 아래 기준 좌표로 구한다.
+        // 카드가 먼저 보이는 풀이를 덮는 링크 조각들이 차지한 영역을 대화창 왼쪽 아래 기준 좌표로 구한다.
+        // 숙어는 여러 조각으로 나뉘므로 조각을 모두 합친다.
         private bool TryFindWordArea(out Rect area)
         {
             area = default;
+            bool found = false;
             linesText.ForceMeshUpdate();
             TMP_TextInfo info = linesText.textInfo;
             for (int i = 0; i < info.linkCount; i++)
             {
                 TMP_LinkInfo link = info.linkInfo[i];
                 if (
-                    DialogueLinesText.FindWord(content.Lines, link.GetLinkID()) != glossaryCard.Word
+                    !DialogueLinesText
+                        .FindWords(content.Lines, link.GetLinkID())
+                        .Contains(glossaryCard.Word)
                 )
                     continue;
                 TMP_CharacterInfo first = info.characterInfo[link.linkTextfirstCharacterIndex];
@@ -861,16 +963,24 @@ namespace A305.Dialogue
                 var frame = (RectTransform)panel.transform;
                 Vector2 min = PanelPoint(frame, first.bottomLeft);
                 Vector2 max = PanelPoint(frame, last.topRight);
-                area = Rect.MinMaxRect(
+                var piece = Rect.MinMaxRect(
                     Mathf.Min(min.x, max.x),
                     Mathf.Min(min.y, max.y),
                     Mathf.Max(min.x, max.x),
                     Mathf.Max(min.y, max.y)
                 );
-                return true;
+                area = found
+                    ? Rect.MinMaxRect(
+                        Mathf.Min(area.xMin, piece.xMin),
+                        Mathf.Min(area.yMin, piece.yMin),
+                        Mathf.Max(area.xMax, piece.xMax),
+                        Mathf.Max(area.yMax, piece.yMax)
+                    )
+                    : piece;
+                found = true;
             }
 
-            return false;
+            return found;
         }
 
         private Vector2 PanelPoint(RectTransform frame, Vector3 linesPoint)

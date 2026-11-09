@@ -7,7 +7,7 @@
 - `Assets/Scenes/Production/TownScene.unity`를 열고 Play하면 기본 F 리틀 멍을 조작할 수 있다. 집·카페·호텔도 같은 공용 `Assets/Prefabs/Player/Player.prefab`을 사용한다.
 - 실제 가입·재접속은 `EntryScene`에서 시작한다. 가입의 F/M 선택은 기존 계정 API가 저장하고, `OnboardingFlow`가 가입 응답·bootstrap의 `avatarType`을 보존한다. `OnboardingScreen`이 월드로 넘어가기 전에 `PlayerCharacterSelection`에 전달한다.
 - F는 `LittleMungStairPlayer.prefab`의 보정 Visual 복사본을 사용하며, 공용 `Female.prefab`의 루트 배율은 1.6이다. 이 값은 키가 아닌 모델 배율이다. F 정의의 충돌 캡슐은 대기 자세의 실제 스킨 범위를 기준으로 높이 1.61m·반경 0.33m(머리 아래 몸통)이고, 큰 머리는 반지름 0.68m·발 기준 중심 높이 약 1.29m인 머리 구가 따로 막으며, 카메라 눈높이는 약 1.108m·3인칭 조준점은 0.966m이다.
-- M은 기본 남자 캐릭터 `Assets/Prefabs/Player/Characters/Male.prefab`을 사용한다. Tripo로 생성한 남자 메시를 마스터 골격(`LittleMungAdjusted.fbx`)에 다시 연결한 `Female.prefab` Variant이므로 골격·애니메이션·배율 1.6과 접지·계단·팔 관통 보정을 F와 함께 쓴다. 원본 FBX·메시·머티리얼·텍스처는 `Assets/Art/Player/LittleMung/Male/`에 둔다. M 정의의 충돌 캡슐은 높이 1.59m·반경 0.61m, 카메라 눈높이는 약 1.132m·3인칭 조준점은 0.954m이다.
+- M은 `Assets/Prefabs/Player/Characters/MaleHeadMatched.prefab`을 사용한다. 원래 `Male.prefab`을 상속한 사본으로, 머리 외곽 치수만 여성 리틀 멍에 맞추고 몸통·팔·발 정점, 골격·애니메이션·배율 1.6은 유지한다. 원본 FBX·메시·머티리얼·텍스처와 `Male.prefab`은 보존하며 보정 메시만 `Assets/Art/Player/LittleMung/Male/HeadMatched/`에 저장한다. **Tools → A305 → Player → Match Male Head To Female**로 원본에서 다시 생성하고 M 카탈로그에 연결한다. M 정의의 충돌 캡슐은 높이 1.60m·반경 0.33m이고 머리 구 반지름은 0.72m, 카메라 눈높이는 약 1.099m·3인칭 조준점은 0.960m이다. 머리 크기에 따른 충돌·카메라 수치는 사본에서 다시 측정한다.
 - 걷기·달리기·점프·회전 수치는 공용 Player의 `PlayerMover`가 `Assets/Data/Player/LittleMung/Movement.asset` 하나로 정한다. 캐릭터 정의에는 이동 설정이 없으므로 어떤 외형을 골라도 같은 조작감으로 움직인다.
 - 외형 크기를 바꾸면 캡슐·시점·관통을 다시 검수해야 한다.
 - `Assets/Data/Player/Characters/Catalog.asset`이 선택 ID와 `F.asset`·`M.asset`을 연결한다. 각 정의는 Visual 프리팹, 충돌 캡슐 크기와 선택적인 카메라 높이만 갖는다. 신규 ID는 서버에서 허용하는 선택값과 가입/설정 UI도 함께 확장해야 한다.

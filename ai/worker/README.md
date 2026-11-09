@@ -65,6 +65,7 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `GUARD_GPU_BASE_URL` / `GUARD_GPU_TOKEN` | (`GUARD_GPU_MODEL`을 주면 필수) | GPU 서버 vLLM의 주소와 키. STT처럼 GPU 서버가 거는 역방향 SSH 터널 입구(STT와 다른 포트, 개발 예: `http://172.19.0.1:18432/v1`, 운영은 `172.30.0.1`) |
 | `GUARD_GPU_TIMEOUT_S` | 3 | GPU 서버 판정 한 번의 상한. vLLM이 처음 보는 동시 요청 수에서 한 번 2.4~2.7초가 걸려 그보다 길게 잡음. 넘으면 재시도 없이 구성의 `guard` 모델로 |
 | `GUARD_BREAKER_FAILURES` / `GUARD_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 판정이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 구성의 `guard` 모델로 바로 감. 횟수가 0이면 끔 |
+| `GUARD_CONFIRM` | true | GPU 서버 판정이 무례라고 하면 구성의 `guard` 모델에 한 번 더 묻고 둘 다 무례일 때만 무례. GPU 모델이 대상 없는 단어("감자", 이름, "엄마")도 무례로 봐서 둠. 확인 호출이 실패하면 GPU 판정 그대로. `false`면 끔 |
 
 ## GPU 음성과 발음 시간표
 
@@ -266,17 +267,18 @@ ai/worker/.venv/Scripts/python ai/tools/synthesize_script_lines.py --models <모
 
 - `tests/test_api.py`: 시간 상한·재시도·대체 모델·하루 한도 건너뛰기·형식 강제 실패 재시도, 판정 값 정리, SSE 순서·느린 음성 대체, 기억 카드 정리
 - `tests/test_guard.py`: 무례 판정 `/v1/guard` — yes/no 해석, 행동 묘사만 있는 말, 빈 입력, 시간 상한(`GUARD_BUDGET_S`), 공급자 실패, 로컬 판정기 연결, GPU 서버 판정 모델 → 구성 모델 대체·건너뛰기, 낱자모가 섞인 말은 처음부터 구성 모델, 무례일 때만 호감 감점(`affinity_delta`)과 성격(신경성)에 따른 크기
-- `tests/test_stt.py`: 음성 인식 — 프롬프트 끝부분 되풀이만 거르기(여러 번 이어 붙인 것 포함, 예시 문장·장면 단어 하나·메아리 뒤 진짜 발화는 통과)·영어 메뉴 예시·장면 단어, 녹음 크기(413)·형식(415)·코덱 매개변수, Groq 실패(429·5xx·키 오류·응답 없음) 시 GMS whisper-1 대체·녹음 자체 오류는 안 넘김·첫 호출 짧은 상한, `STT_CHAIN` 순서(GPU 서버 → GMS → Groq, 자리별 상한, 모두 실패 시 공급자별 오류), 연속 실패한 공급자 잠시 건너뛰기·성공하면 초기화·마지막 공급자는 안 건너뜀
+- `tests/test_stt.py`: 음성 인식 — 프롬프트 끝부분 되풀이만 거르기(여러 번 이어 붙인 것 포함, 예시 문장·장면 단어 하나·메아리 뒤 진짜 발화는 통과)·영어 메뉴 예시·장면 단어·프롬프트 끝의 직전 NPC 대사(`npc_line`)와 그 메아리 거르기, 녹음 크기(413)·형식(415)·코덱 매개변수, Groq 실패(429·5xx·키 오류·응답 없음) 시 GMS whisper-1 대체·녹음 자체 오류는 안 넘김·첫 호출 짧은 상한, `STT_CHAIN` 순서(GPU 서버 → GMS → Groq, 자리별 상한, 모두 실패 시 공급자별 오류), 연속 실패한 공급자 잠시 건너뛰기·성공하면 초기화·마지막 공급자는 안 건너뜀
 - `tests/test_guard_local.py`: 무례 판정 단계적 구조. 가짜 판정기로 확신 구간·중간 구간·영어·로컬 실패·LLM 실패, 기준값 설정 검사 (torch 없이 돎)
 - `tests/test_hedge.py`: 늦은 호출에 같은 요청 하나 더 보내기, 오류 응답 뒤 남은 요청 기다리기, 판정 시간 상한, NPC 스트림 제외
 - `tests/test_contract.py`: 모델 출력이 깨졌을 때(JSON 객체가 아님, 칸 없음)와 빈 문장·없는 주소·프로그램 오류에도 계약의 실패 형식을 지키는지
-- `tests/test_learning_aids.py`: 뜻·단어 풀이(대사에 없는 말 버리기, 3개 제한), 추천 단어(정리·중복·3개), 형식 오류 502, 난이도별 NPC 지시문·대답 길이·힌트 수준과 공통 말 속도
+- `tests/test_learning_aids.py`: 뜻·단어 풀이(대사에 없는 말 버리기, 숙어와 그 안의 단어를 함께 남기고 나온 순서대로 15개 제한), 추천 단어(정리·중복·3개), 형식 오류 502, 난이도별 NPC 지시문·대답 길이·힌트 수준과 공통 말 속도
 - `tests/test_feedback.py`: `ai/feedback`의 예시 입력·출력으로 피드백 계약(완료·발화 없음·공급자 실패·출력 오류·입력 오류), 피드백 전용 시간 상한과 같은 요청 더 보내기 끔
 - `tests/test_stream_hedge.py`: NPC 스트림의 첫 글자(또는 응답 머리)가 늦으면 같은 요청 스트림 하나 더, 이긴 쪽 글자만 이어짐, 진 쪽 닫기, 둘 다 늦으면 첫 글자 상한
 - `tests/test_turn.py`: 한 턴 구조 — 조각을 이어 붙인 턴 전체 음성, 조각 실패·음성 없음이면 `null`, 스트림 안의 추천 단어(`words`)와 그 실패
 - `tests/test_audio_store.py`: 음성 보관소의 전체 크기 상한
 - `tests/test_speech_text.py`: 음성으로 읽을 글 다듬기(`app/speech_text.py`) — 가격(`$13` → 13 dollars, 센트·단수·쉼표), 시각(`10:00` → 10 o'clock, `9:05` → 9 oh 5, a.m.·p.m.), 별표, 한글은 자막으로만(남은 문장 부호 정리), 평범한 영어는 그대로, 읽을 게 없으면 빈 글. Kokoro가 다듬은 글을 음소로 엔진에 넘기고, 읽을 게 없으면 엔진 없이 같은 형식의 짧은 무음
 - `tests/test_pronunciation.py`: 발음 사전(`app/pronunciation.py`) — 사전 단어는 적어 둔 음소, 나머지는 음소화, 대소문자 무관·단어 경계(honest의 hon은 아님), 여러 단어 항목(café au lait), 사전 단어가 없으면 글 전체를 한 번에 음소화, 사전 음소가 Kokoro 어휘 기호만 쓰는지
+- `tests/test_gpu_stt_speech_gate.py`: GPU 서버 STT의 말소리 거르기(`ai/gpu_stt/speech_gate.py`) — 무음·잡음·웅웅거림은 말소리 아님, 짧은 단어(`Yes.`, `Latte.`, Kokoro 합성 `tests/fixtures/`)는 앞뒤 무음·잡음이 있어도 말소리. faster-whisper가 있는 환경(GPU 서버)에서만 돌고 CI에서는 건너뜀
 - `tests/test_tts_gpu.py`: GPU 서버 음성 합성 — 다듬고 음소로 바꾼 글·목소리·속도·토큰을 보내고 받은 WAV를 씀, 오류·시간 초과·WAV가 아닌 답이면 한 번만 부르고 CPU로, 연속 실패 시 잠시 건너뛰기·성공하면 초기화, 같은 문장·읽을 것이 없는 글은 GPU를 부르지 않음, 환경 변수(토큰 필수)
 - `tests/test_tts_roundtrip.py`: 음성 합성 왕복 평가(`ai/tools/tts_roundtrip.py`)의 채점 — 곡선 따옴표는 곧은 것으로 바꿔 정규화, 대소문자·문장 부호 무시, 붙여 쓰기·띄어 쓰기 차이, 이어서 틀린 단어를 한 덩어리로, 태그별 WER(단어 수 가중), 평가 문장 파일(id 중복·NPC·태그)
 - `tests/test_profiles.py`: `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, 음성 인식 대체(`STT_FALLBACK`)·순서(`STT_CHAIN`, gpu 주소·토큰 필수, 잘못된 값)·건너뛰기 설정, 음성 합성 스레드 수(`KOKORO_THREADS`), GPT-5 요청 칸

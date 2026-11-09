@@ -58,7 +58,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
       "spring.jpa.hibernate.ddl-auto=create-drop",
       "elsehere.npc-audio.dir=build/test-npc-audio",
       "elsehere.training-recording.dir=" + DialogueServiceTest.TRAINING_RECORDING_DIR,
-      "elsehere.conversation.daily-limit=2"
+      "elsehere.guest.conversation-limit=2"
     })
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @ImportAutoConfiguration(JacksonAutoConfiguration.class)

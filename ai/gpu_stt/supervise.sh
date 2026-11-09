@@ -30,7 +30,8 @@ while true; do
   ROUNDS=$((ROUNDS + 1))
   if ! pgrep -u "$(id -un)" -f "gpu_stt/server.py" > /dev/null; then  # 모델을 읽는 중(health 응답 전)에는 건드리지 않는다
     echo "$(date +%T) STT 서버 다시 띄움"
-    STT_TOKEN="$(cat "$DIR/token")" setsid nohup "$HOME/stt/gpu5.sh" "$DIR/server.py" >> "$DIR/server.log" 2>&1 &
+    # 실행기: SSAFY 서버는 5번 GPU만 보이게 하는 gpu5.sh, 임대 서버는 start.sh가 지정하는 ~/stt/run.sh
+    STT_TOKEN="$(cat "$DIR/token")" setsid nohup "${STT_RUNNER:-$HOME/stt/gpu5.sh}" "$DIR/server.py" >> "$DIR/server.log" 2>&1 &
   fi
   open_tunnel "$DEV_BIND"
   if [ -f "$DIR/prod_tunnel_enabled" ]; then

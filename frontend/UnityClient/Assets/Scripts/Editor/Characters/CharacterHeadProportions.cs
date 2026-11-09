@@ -19,6 +19,142 @@ namespace A305.EditorTools.Characters
 
         public static float Ratio(GameObject model) => Ratio(Capture(model), Vector3.zero, 1);
 
+        public static Vector3 MatchDimensions(GameObject candidate, GameObject reference)
+        {
+            if (EditorUtility.IsPersistent(candidate))
+                throw new ArgumentException("머리 치수는 생성한 복사본에서만 변경할 수 있습니다.");
+            Bounds from = HeadBounds(candidate),
+                to = HeadBounds(reference);
+            var scale = new Vector3(
+                to.size.x / from.size.x,
+                to.size.y / from.size.y,
+                to.size.z / from.size.z
+            );
+            if (
+                (scale - Vector3.one).sqrMagnitude < .00000001f
+                && (from.center - to.center).sqrMagnitude < .00000001f
+            )
+                return Vector3.one;
+            if (
+                !float.IsFinite(scale.x + scale.y + scale.z)
+                || Mathf.Min(scale.x, scale.y, scale.z) < .5f
+                || Mathf.Max(scale.x, scale.y, scale.z) > 2
+            )
+                throw new InvalidOperationException("머리 치수 보정 범위는 원본의 0.5~2배입니다.");
+            Matrix4x4 world =
+                Matrix4x4.Translate(to.center)
+                * Matrix4x4.Scale(scale)
+                * Matrix4x4.Translate(-from.center);
+            var surfaces = Capture(candidate);
+            // 목과 섞인 가중치에도 목표 외곽이 맞도록 같은 원본 정점에서 보정량을 수렴시킨다.
+            for (int iteration = 0; iteration < 16; iteration++)
+            {
+                var points = surfaces
+                    .SelectMany(s => s.world.Select((p, i) => (p, weight: s.influence[i])))
+                    .Where(v => v.weight > .8f)
+                    .Select(v => Vector3.Lerp(v.p, world.MultiplyPoint3x4(v.p), v.weight))
+                    .ToArray();
+                var measured = new Bounds(points[0], Vector3.zero);
+                foreach (Vector3 point in points)
+                    measured.Encapsulate(point);
+                if (
+                    (measured.size - to.size).sqrMagnitude < .0000000001f
+                    && (measured.center - to.center).sqrMagnitude < .0000000001f
+                )
+                    break;
+                var correction = new Vector3(
+                    to.size.x / measured.size.x,
+                    to.size.y / measured.size.y,
+                    to.size.z / measured.size.z
+                );
+                world =
+                    Matrix4x4.Translate(to.center)
+                    * Matrix4x4.Scale(correction)
+                    * Matrix4x4.Translate(-measured.center)
+                    * world;
+            }
+            scale = new Vector3(world.m00, world.m11, world.m22);
+            foreach (var surface in surfaces)
+            {
+                Mesh original = surface.skin.sharedMesh;
+                Mesh mesh = Object.Instantiate(original);
+                var vertices = mesh.vertices;
+                var normals = mesh.normals;
+                var tangents = mesh.tangents;
+                var transforms = new Matrix4x4[vertices.Length];
+                var normalTransforms = new Matrix4x4[vertices.Length];
+                for (int i = 0; i < vertices.Length; i++)
+                {
+                    Matrix4x4 blended = Matrix4x4.identity;
+                    for (int entry = 0; entry < 16; entry++)
+                        blended[entry] = Mathf.Lerp(
+                            blended[entry],
+                            world[entry],
+                            surface.influence[i]
+                        );
+                    transforms[i] = surface.rest[i].inverse * blended * surface.rest[i];
+                    normalTransforms[i] = transforms[i].inverse.transpose;
+                    // 몸통 정점은 부동소수점 재계산조차 하지 않아 그대로 보존한다.
+                    if (surface.influence[i] == 0)
+                        continue;
+                    vertices[i] = transforms[i].MultiplyPoint3x4(vertices[i]);
+                    if (normals.Length == vertices.Length)
+                        normals[i] = normalTransforms[i].MultiplyVector(normals[i]).normalized;
+                    if (tangents.Length == vertices.Length)
+                    {
+                        Vector3 direction = transforms[i].MultiplyVector(tangents[i]).normalized;
+                        tangents[i] = new Vector4(
+                            direction.x,
+                            direction.y,
+                            direction.z,
+                            tangents[i].w
+                        );
+                    }
+                }
+                mesh.vertices = vertices;
+                mesh.normals = normals;
+                mesh.tangents = tangents;
+                mesh.ClearBlendShapes();
+                var delta = new Vector3[mesh.vertexCount];
+                var normal = new Vector3[mesh.vertexCount];
+                var tangent = new Vector3[mesh.vertexCount];
+                var baseNormals = original.normals;
+                var baseTangents = original.tangents;
+                for (int shape = 0; shape < original.blendShapeCount; shape++)
+                for (int frame = 0; frame < original.GetBlendShapeFrameCount(shape); frame++)
+                {
+                    original.GetBlendShapeFrameVertices(shape, frame, delta, normal, tangent);
+                    for (int i = 0; i < delta.Length; i++)
+                    {
+                        if (surface.influence[i] == 0)
+                            continue;
+                        delta[i] = transforms[i].MultiplyVector(delta[i]);
+                        if (baseNormals.Length == delta.Length)
+                            normal[i] =
+                                normalTransforms[i]
+                                    .MultiplyVector(baseNormals[i] + normal[i])
+                                    .normalized - normals[i];
+                        if (baseTangents.Length == delta.Length)
+                            tangent[i] =
+                                transforms[i]
+                                    .MultiplyVector((Vector3)baseTangents[i] + tangent[i])
+                                    .normalized - (Vector3)tangents[i];
+                    }
+                    mesh.AddBlendShapeFrame(
+                        original.GetBlendShapeName(shape),
+                        original.GetBlendShapeFrameWeight(shape, frame),
+                        delta,
+                        normal,
+                        tangent
+                    );
+                }
+                mesh.RecalculateBounds();
+                surface.skin.sharedMesh = mesh;
+                surface.skin.localBounds = mesh.bounds;
+            }
+            return scale;
+        }
+
         // 모자 높이만 맞추면 좁은 얼굴이 남을 수 있어, 좌우 폭/머리 높이를 별도로 맞춘다.
         public static float MatchWidth(GameObject candidate, GameObject reference)
         {

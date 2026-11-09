@@ -70,6 +70,8 @@ namespace A305.Npc
         private string talkCaption;
         private GameObject mealWaitBadge;
         private TMP_Text mealWaitLabel;
+        private bool isEvent;
+        private float eventHideAt;
 
         public void ShowMealWaitPrompt(object requester, string remaining, Action stand)
         {
@@ -108,6 +110,7 @@ namespace A305.Npc
         }
 
         public bool IsShowing => owner != null;
+        public bool IsEventShowing => IsShowing && isEvent;
 
         public bool IsTalkPromptShowing => talkPromptOwner != null;
 
@@ -155,6 +158,7 @@ namespace A305.Npc
             // 같은 자리를 쓰므로 제안이 뜨면 [말 걸기]는 닫는다.
             CloseTalkPrompt();
             owner = requester;
+            isEvent = false;
             onAccept = accept;
             onDecline = decline;
             hintLabel.text = hint;
@@ -167,6 +171,23 @@ namespace A305.Npc
             declineButton.GetComponentInChildren<TMP_Text>(true).text =
                 PasserbyOfferText.DeclineLabel(showKeyHints);
             panel.SetActive(true);
+        }
+
+        /// <summary>대화를 만들지 않는 짧은 NPC 이벤트. 이동을 잠그지 않고 5초 뒤 닫는다.</summary>
+        public void ShowEvent(object requester, string hint, string message)
+        {
+            Show(
+                requester,
+                hint,
+                message,
+                false,
+                null,
+                () => Hide(requester),
+                () => Hide(requester)
+            );
+            isEvent = true;
+            eventHideAt = Time.unscaledTime + 5f;
+            acceptButton.GetComponentInChildren<TMP_Text>(true).text = "알겠어요";
         }
 
         /// <summary>
@@ -195,6 +216,7 @@ namespace A305.Npc
             }
 
             owner = null;
+            isEvent = false;
             onAccept = null;
             onDecline = null;
             HideIfPresent(panel);
@@ -336,11 +358,18 @@ namespace A305.Npc
 
         private void Update()
         {
+            if (IsEventShowing && Time.unscaledTime >= eventHideAt)
+                Hide(owner);
             Keyboard keyboard = Keyboard.current;
             if (keyboard == null)
                 return;
             if (owner != null && panel.activeInHierarchy)
             {
+                if (IsEventShowing && keyboard.escapeKey.wasPressedThisFrame)
+                {
+                    Hide(owner);
+                    return;
+                }
                 if (
                     keyboard.escapeKey.wasPressedThisFrame
                     && declineButton.gameObject.activeInHierarchy

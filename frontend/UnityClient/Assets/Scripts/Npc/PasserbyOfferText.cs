@@ -3,6 +3,11 @@ namespace A305.Npc
     /// <summary>대화 제안 화면에 보일 문구.</summary>
     public static class PasserbyOfferText
     {
+        public const string HurryGreeting =
+            "Sorry, I'm running late. Let's talk later!\n늦어서 서둘러야 해요. 다음에 이야기해요!";
+
+        public static string HurryHint(string npcName) => $"{npcName} · 서두르는 중";
+
         /// <summary>대화 수락 버튼. 키보드를 쓰는 화면에만 E 안내를 붙인다.</summary>
         public static string AcceptLabel(bool showKeyHint) =>
             showKeyHint ? "대화하기 <size=75%>[E]</size>" : "대화하기";
@@ -70,16 +75,14 @@ namespace A305.Npc
         /// <summary>대화 버튼 위에 붙일 게스트의 남은 대화 수. 가입 사용자처럼 횟수 제한이 없으면 null이다.</summary>
         public static string RemainingConversations(int? remaining)
         {
-            return remaining == null ? null : $"오늘 남은 대화 {remaining}번";
+            return remaining == null ? null : $"게스트 남은 대화 {remaining}번";
         }
 
         /// <summary>새 대화를 시작할 수 없을 때 [말 걸기] 자리에 보일 이유.</summary>
         /// <param name="remaining">게스트의 남은 대화 수. 가입 사용자는 null.</param>
         public static string Blocked(int? remaining)
         {
-            return remaining == 0
-                ? "오늘의 대화를 모두 썼어요. 내일 다시 만나요."
-                : "지금은 대화할 수 없어요";
+            return remaining == 0 ? "게스트 대화를 모두 썼어요" : "지금은 대화할 수 없어요";
         }
 
         /// <summary>대화를 다 쓴 게스트에게 [말 걸기]·택시 버튼 자리에 보일 버튼. 누르면 가입 안내 창을 연다.</summary>
@@ -91,7 +94,7 @@ namespace A305.Npc
         /// <param name="remaining">게스트의 남은 대화 수. 가입 사용자는 null.</param>
         public static bool OffersSignup(int? remaining)
         {
-            return false;
+            return remaining == 0;
         }
     }
 }

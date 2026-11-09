@@ -19,6 +19,24 @@ namespace A305.Npc
     [RequireComponent(typeof(CharacterController), typeof(NpcIdentity))]
     public class Passerby : MonoBehaviour
     {
+        private NpcTravelContext travelContext;
+#if UNITY_EDITOR
+        internal Vector3 LastWalkInput,
+            LastWalkDetour,
+            LastWalkDirection;
+        internal float LastWalkStep,
+            LastWalkMoved;
+        internal int LastWalkFrame;
+#endif
+        public NpcTravelContext TravelContext
+        {
+            get => travelContext ?? NpcJourneyLog.Find(GetComponent<NpcIdentity>().Code);
+            internal set => travelContext = value;
+        }
+
+        /// <summary>NPC 보행 데이터와 물리 캡슐이 함께 허용하는 턱 높이(월드 미터).</summary>
+        public const float WalkableStepMeters = .3f;
+        private readonly NpcObstacleDetour obstacleDetour = new NpcObstacleDetour();
         private const float GroundedDownwardSpeedMetersPerSecond = -2f;
         private const float ArrivedDistanceMeters = 0.2f;
 
@@ -61,6 +79,12 @@ namespace A305.Npc
 
         // 생활 데이터가 있는 NPC만 붙는다. 다가오지 않는 동안 제자리로 돌아가는 대신 일과와 욕구에 따라 지낸다.
         private NpcRoutine routine;
+
+        internal void UseVisitRoutine(NpcRoutine visitor)
+        {
+            routine = visitor;
+            GetComponent<NpcTownWalker>().enabled = false;
+        }
 
         // 튜토리얼 동안 쓰는 대본·인사말 키. 튜토리얼이 아니면 null이고 NPC 키로 평소 대화한다.
         private string tutorialScriptKey;
@@ -157,6 +181,11 @@ namespace A305.Npc
         {
             trafficLights = FindFirstObjectByType<TrafficLights>();
             characterController = GetComponent<CharacterController>();
+            float scaleY = Mathf.Max(.01f, Mathf.Abs(transform.lossyScale.y));
+            characterController.stepOffset = Mathf.Min(
+                characterController.height,
+                Mathf.Max(characterController.stepOffset, WalkableStepMeters / scaleY)
+            );
             // 프레임이 아주 빠르면 한 프레임 이동량이 기본 최소 이동 거리(0.001m)보다 작아 무시되므로 모두 반영한다.
             characterController.minMoveDistance = 0f;
             identity = GetComponent<NpcIdentity>();
@@ -211,6 +240,7 @@ namespace A305.Npc
         private void OnDisable()
         {
             crossing.Clear();
+            obstacleDetour.Clear();
             NpcWalkingSpace.Unregister(this);
             if (dialogue != null)
             {
@@ -219,13 +249,34 @@ namespace A305.Npc
 
             if (offerView != null)
             {
-                offerView.Hide(this);
+                // 짧은 거절 이벤트는 NPC가 문으로 들어가도 사용자가 읽거나 닫을 때까지 남긴다.
+                if (!offerView.IsEventShowing || !offerView.IsShownBy(this))
+                    offerView.Hide(this);
                 offerView.HideTalkPrompt(this);
             }
         }
 
         private void Update()
         {
+            IsWaitingAtSignal = false;
+            // 복습은 제안·수락 단계를 거치지 않는다. 대화의 실제 상대를 기준으로 생활 이동을 멈춘다.
+            if (dialogue.IsTalkingTo(identity.LookTarget))
+            {
+                CancelPlayerTalk();
+                offerView.HideTalkPrompt(this);
+                routine?.Interrupt();
+                Stand();
+                TurnToward(HorizontalOffsetToPlayer());
+                ShowAnimation(TalkAnimation);
+                return;
+            }
+            if (IsTownResident)
+                GetComponent<NpcTownWalker>().RefreshHurry();
+            if (playerTalkReach.HasValue && DeclinesConversation && !IsPlayerOccupied)
+            {
+                CancelPlayerTalk();
+                ShowHurryEvent();
+            }
             Vector3 toPlayer = HorizontalOffsetToPlayer();
             if (playerTalkReach.HasValue)
             {
@@ -357,7 +408,8 @@ namespace A305.Npc
         /// <summary>
         /// 플레이어가 클릭·탭으로 이 NPC에게 말을 걸 수 있는지(기능 명세 F-22). 커서를 올렸을 때 테두리도 이 값으로 그린다.
         /// 다른 대화·창·진행 흐름이 막으면 걸 수 없고, 클릭 거리 안이면 다가오거나 제안하는 중에도 걸 수 있다.
-        /// 일일 대화 한도에 닿았거나 다른 NPC가 거절할 수 없는 제안을 하는 중이면 걸 수 없다.
+        /// 새 대화를 시작할 수 없거나 다른 NPC가 거절할 수 없는 제안을 하는 중이면 걸 수 없다.
+        /// 대화를 다 쓴 게스트는 클릭하면 대화 대신 가입 안내 창을 연다.
         /// </summary>
         /// <param name="reachMeters">클릭으로 말을 걸 수 있는 수평 거리</param>
         public bool CanTalkByClick(float reachMeters)
@@ -373,6 +425,8 @@ namespace A305.Npc
             }
 
             ConversationAllowance allowance = dialogue.Allowance;
+            if (DeclinesConversation)
+                return !IsOtherOfferShowing || offerView.IsDeclineShown;
             if (!allowance.CanStartConversation)
             {
                 return PasserbyOfferText.OffersSignup(allowance.RemainingConversations);
@@ -391,6 +445,12 @@ namespace A305.Npc
             if (!CanTalkByClick(reachMeters))
             {
                 return false;
+            }
+
+            if (DeclinesConversation)
+            {
+                ShowHurryEvent();
+                return true;
             }
 
             if (!dialogue.Allowance.CanStartConversation)
@@ -425,6 +485,17 @@ namespace A305.Npc
         {
             float reach = playerTalkReach ?? 0;
             CancelPlayerTalk();
+            if (IsTownResident)
+                GetComponent<NpcTownWalker>().RefreshHurry();
+            if (
+                !IsPlayerOccupied
+                && HorizontalOffsetToPlayer().magnitude <= reach
+                && DeclinesConversation
+            )
+            {
+                ShowHurryEvent();
+                return;
+            }
             if (
                 !IsPlayerOccupied
                 && dialogue.Allowance.CanStartConversation
@@ -438,6 +509,25 @@ namespace A305.Npc
             playerTalkReach = null;
             offerView.Hide(this);
         }
+
+        private bool DeclinesConversation =>
+            IsTownResident && GetComponent<NpcTownWalker>().DeclinesConversation;
+
+        private void ShowHurryEvent()
+        {
+            offerView.DeclineShownOffer();
+            string name = dialogue.FindNpcName(ScriptKey) ?? "이 NPC";
+            offerView.ShowEvent(
+                this,
+                PasserbyOfferText.HurryHint(name),
+                PasserbyOfferText.HurryGreeting
+            );
+        }
+
+        internal bool HasRunningRoom(Vector3 direction) =>
+            HorizontalOffsetToPlayer().sqrMagnitude > 2.5f * 2.5f
+            && !NpcWalkingSpace.HasNearbyBody(this, 2f)
+            && obstacleDetour.IsClearAhead(characterController, direction, 2.5f);
 
         // 다른 대화 중이거나 창이 열려 이동이 잠겼거나, 진행 흐름(튜토리얼)이 다가오기를 막았는지.
         // 다가오면 안 되는 때도 플레이어가 바쁠 때와 같게 다룬다. 이 행인을 기다리느라 잠긴 플레이어는 바쁘지 않다.
@@ -457,7 +547,8 @@ namespace A305.Npc
                     identity.LookTarget,
                     initiatedBy,
                     ScriptKey,
-                    IsOffDuty
+                    IsOffDuty,
+                    npcTravelContext: TravelContext
                 )
             )
             {
@@ -560,18 +651,64 @@ namespace A305.Npc
             WalkToward(horizontalDirection, CurrentSettings.WalkSpeedMetersPerSecond);
         }
 
-        /// <summary>그 방향으로 한 프레임 걷는다. 생활(NpcRoutine)은 다가올 때와 다른 속도로 걷는다.</summary>
-        internal void WalkToward(Vector3 horizontalDirection, float speedMetersPerSecond)
+        /// <summary>횡단 목표와 물리 장애물을 먼저 정한다. 다른 사람은 이 실제 목표를 기준으로 비켜간다.</summary>
+        internal Vector3 PrepareWalkDirection(Vector3 horizontalDirection)
         {
+            Vector3 plannedDirection = horizontalDirection;
+#if UNITY_EDITOR
+            LastWalkInput = horizontalDirection;
+#endif
+            if (
+                IsTownResident
+                && !crossing.IsActive
+                && !NpcTownWalker.IsRoadSurface(transform.position, .1f)
+                && horizontalDirection.sqrMagnitude > .0001f
+            )
+                horizontalDirection = obstacleDetour.Direction(
+                    characterController,
+                    horizontalDirection
+                );
+#if UNITY_EDITOR
+            LastWalkDetour = horizontalDirection;
+#endif
             horizontalDirection = crossing.Direction(
                 trafficLights,
                 transform.position,
-                horizontalDirection
+                horizontalDirection,
+                plannedDirection
             );
-            if (
-                horizontalDirection.sqrMagnitude < .0001f
-                || (!crossing.IsActive && IsWaitingForSignal(horizontalDirection))
-            )
+            // 인도로 복귀하는 끝점에도 가로등 등이 있을 수 있다. 횡단 상태를 유지한 채 물리 장애물을 돌아간다.
+            if (IsTownResident && crossing.IsActive && horizontalDirection.sqrMagnitude > .0001f)
+                horizontalDirection = obstacleDetour.Direction(
+                    characterController,
+                    horizontalDirection
+                );
+            return horizontalDirection;
+        }
+
+        /// <summary>준비한 방향으로 한 프레임 걷는다. 생활(NpcRoutine)은 준비와 이동을 함께 요청한다.</summary>
+        internal void WalkToward(
+            Vector3 horizontalDirection,
+            float speedMetersPerSecond,
+            bool prepared = false
+        )
+        {
+            if (!prepared)
+                horizontalDirection = PrepareWalkDirection(horizontalDirection);
+#if UNITY_EDITOR
+            LastWalkFrame = Time.frameCount;
+#endif
+            IsWaitingAtSignal =
+                horizontalDirection.sqrMagnitude >= .0001f
+                && !crossing.IsActive
+                && IsWaitingForSignal(horizontalDirection);
+#if UNITY_EDITOR
+            LastWalkDirection = horizontalDirection;
+            LastWalkStep = 0;
+            LastWalkMoved = 0;
+#endif
+            // 길 모서리까지 1cm 미만이 남아도 마저 이동한다. 여기서 멈추면 다음 경로 조각을 고를 수 없다.
+            if (horizontalDirection.sqrMagnitude < .00000001f || IsWaitingAtSignal)
             {
                 Stand();
                 return;
@@ -579,18 +716,42 @@ namespace A305.Npc
             float step = NpcWalkingSpace.LimitStep(
                 this,
                 horizontalDirection.normalized,
-                speedMetersPerSecond * Time.deltaTime
+                Mathf.Min(speedMetersPerSecond * Time.deltaTime, horizontalDirection.magnitude)
             );
             speedMetersPerSecond = Time.deltaTime > 0 ? step / Time.deltaTime : 0;
             Vector3 velocity = horizontalDirection.normalized * speedMetersPerSecond;
             velocity.y = GroundedDownwardSpeedMetersPerSecond;
+            Vector3 before = transform.position;
             characterController.Move(velocity * Time.deltaTime);
             TurnToward(horizontalDirection);
-            ReportLocomotion(speedMetersPerSecond);
+            float moved = Vector3.ProjectOnPlane(transform.position - before, Vector3.up).magnitude;
+#if UNITY_EDITOR
+            LastWalkStep = step;
+            LastWalkMoved = moved;
+#endif
+            ReportLocomotion(
+                Time.deltaTime > 0f ? Mathf.Min(speedMetersPerSecond, moved / Time.deltaTime) : 0f
+            );
         }
 
         internal bool IsWaitingForSignal(Vector3 direction) =>
             NpcTownWalker.ShouldWaitForSignal(trafficLights, transform.position, direction);
+
+        internal void RestoreWalkingPosition(Vector3 position)
+        {
+            crossing.Clear();
+            obstacleDetour.Clear();
+            characterController.enabled = false;
+            transform.position = position + Vector3.up * characterController.skinWidth;
+            characterController.enabled = true;
+            Physics.SyncTransforms();
+        }
+
+        internal bool HasWalkingRoom(Vector3 direction, float meters) =>
+            obstacleDetour.IsClearAhead(characterController, direction, meters);
+
+        /// <summary>이번 프레임에 실제 보행이 신호 때문에 멈췄는지. 일과 관찰에서 대기 시간을 센다.</summary>
+        public bool IsWaitingAtSignal { get; private set; }
 
         /// <summary>제자리에 서서 그 방향으로 천천히 돈다.</summary>
         internal void StandFacing(Quaternion rotation)

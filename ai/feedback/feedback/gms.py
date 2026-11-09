@@ -32,6 +32,10 @@ def feedback_response_format(messages):
     definitions["FeedbackData"]["required"].append("situation_expressions")
     fields["situation_expressions"]["minItems"] = 2
     fields["situation_expressions"]["maxItems"] = 3
+    # 화자 분류는 생성 내부 메타데이터이며 공개 피드백 계약에는 넣지 않는다.
+    situation = definitions["SituationExpression"]
+    situation["properties"]["speaker_role"] = {"type": "string", "enum": ["learner", "npc", "both"]}
+    situation["required"].append("speaker_role")
     candidates = []
     try:
         request_data = json.loads(messages[-1]["content"])

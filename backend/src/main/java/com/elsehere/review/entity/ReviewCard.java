@@ -47,6 +47,16 @@ public class ReviewCard extends BaseEntity {
   @Column(nullable = false, columnDefinition = "text")
   private String situationSummary;
 
+  @Column(columnDefinition = "jsonb")
+  @ColumnTransformer(write = "?::jsonb")
+  private String scenario;
+
+  public void captureScenario(String snapshot) {
+    if (scenario == null) {
+      scenario = snapshot;
+    }
+  }
+
   @Column(nullable = false, columnDefinition = "jsonb")
   @ColumnTransformer(write = "?::jsonb")
   private String targets;

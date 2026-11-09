@@ -21,22 +21,34 @@ namespace A305.World
         [SerializeField]
         private List<TrafficSignalHead> heads = new List<TrafficSignalHead>();
 
+        [SerializeField]
+        private List<PedestrianSignalHead> pedestrianHeads = new List<PedestrianSignalHead>();
+
         private TrafficSignalCycle cycle;
         private float elapsedSeconds;
 
         public IReadOnlyList<TrafficSignalHead> Heads => heads;
 
+        public IReadOnlyList<PedestrianSignalHead> PedestrianHeads => pedestrianHeads;
+
+#if UNITY_EDITOR
+        /// <summary>일과 관찰에서 대기 시간만 제거한다. 횡단 경로·기둥·차량 조건은 유지하며 빌드에는 포함하지 않는다.</summary>
+        public bool ObserveWithoutPedestrianWait { get; set; }
+#endif
+
         public SignalLight Main => Cycle.MainAt(elapsedSeconds);
+
+        public float MaximumPedestrianWaitSeconds(bool crossesMainRoad) =>
+            Cycle.MaximumPedestrianWaitSeconds(crossesMainRoad);
 
         /// <summary>해당 차로가 충분한 시간 동안 빨간불이라 보행자가 횡단을 시작할 수 있는지.</summary>
         public bool CanCross(bool crossesMainRoad, float secondsNeeded)
         {
-            float cycleLength = mainGreenSeconds + crossGreenSeconds + 2f * yellowSeconds;
-            float phase = Mathf.Repeat(elapsedSeconds, cycleLength);
-            if (crossesMainRoad)
-                return Main == SignalLight.Red && cycleLength - phase >= secondsNeeded;
-            return Cycle.CrossAt(elapsedSeconds) == SignalLight.Red
-                && mainGreenSeconds + yellowSeconds - phase >= secondsNeeded;
+#if UNITY_EDITOR
+            if (ObserveWithoutPedestrianWait)
+                return true;
+#endif
+            return Cycle.CanCross(elapsedSeconds, crossesMainRoad, secondsNeeded);
         }
 
         private TrafficSignalCycle Cycle =>
@@ -64,6 +76,12 @@ namespace A305.World
                     head.Show(main, cross);
                 }
             }
+            foreach (PedestrianSignalHead head in pedestrianHeads)
+                if (head != null)
+                    head.Show(
+                        Cycle.PedestrianAt(elapsedSeconds, head.CrossesMainRoad),
+                        elapsedSeconds
+                    );
         }
     }
 }

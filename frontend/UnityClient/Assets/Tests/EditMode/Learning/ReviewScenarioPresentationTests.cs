@@ -1,0 +1,82 @@
+using System.Collections.Generic;
+using A305.Dialogue;
+using NUnit.Framework;
+
+namespace A305.Learning.Tests
+{
+    public class ReviewScenarioPresentationTests
+    {
+        [TestCase("FLOWER_SHOP_STAFF", "꽃집")]
+        [TestCase("LAUNDROMAT_STAFF", "빨래방")]
+        [TestCase("BARBER_STAFF", "이발소")]
+        [TestCase("DINER_STAFF", "식당")]
+        [TestCase("BANK_STAFF", "은행")]
+        [TestCase("BAKERY_STAFF", "빵집")]
+        [TestCase("POST_OFFICE_STAFF", "우체국")]
+        [TestCase("HOME_STORE_STAFF", "생활용품점")]
+        [TestCase("ARCADE_STAFF", "오락실")]
+        public void StableNpcCodesIdentifyBuildingsEvenWhenRolesSayOwnerOrBarber(
+            string code,
+            string building
+        )
+        {
+            var card = new ReviewCard
+            {
+                SceneCode = "TOWN",
+                Npc = new NpcSummary { NpcCode = code },
+            };
+            Assert.That(ReviewScenarioPresentation.BuildingName(card), Is.EqualTo(building));
+        }
+
+        [Test]
+        public void BagPracticeShowsSituationAndConcreteDetailsSeparatelyFromTargetExpressions()
+        {
+            var card = new ReviewCard
+            {
+                SceneCode = "CAFE",
+                Scenario = new ReviewScenarioInfo
+                {
+                    Title = "분실 가방 찾기",
+                    Situation = "카페에 두고 간 가방을 찾아요.",
+                    LearnerRole = "가방 주인",
+                    LearnerNotes = new List<string>
+                    {
+                        "파란색 숄더백, 빨간 열쇠고리",
+                        "여권 지갑과 책",
+                    },
+                },
+            };
+            string briefing = ReviewScenarioPresentation.Briefing(card);
+            Assert.That(briefing, Does.Contain("분실 가방 찾기"));
+            Assert.That(briefing, Does.Contain("파란색 숄더백").And.Contain("여권 지갑과 책"));
+            Assert.That(ReviewScenarioPresentation.BuildingName(card), Is.EqualTo("카페"));
+        }
+
+        [Test]
+        public void ShopsWithinTownAreGroupedByTheirBuildingAndNotAllCalledTown()
+        {
+            var flower = new ReviewCard
+            {
+                SceneCode = "TOWN",
+                Npc = new NpcSummary { RoleLabel = "꽃집 직원" },
+            };
+            var barber = new ReviewCard
+            {
+                SceneCode = "TOWN",
+                Npc = new NpcSummary { RoleLabel = "이발소 직원" },
+            };
+            Assert.That(ReviewScenarioPresentation.BuildingName(flower), Is.EqualTo("꽃집"));
+            Assert.That(ReviewScenarioPresentation.BuildingName(barber), Is.EqualTo("이발소"));
+        }
+
+        [Test]
+        public void OldCardUsesItsSavedSituationWithoutInventingBagDetails()
+        {
+            var card = new ReviewCard { SituationSummary = "검정 가방을 찾았어요." };
+            Assert.That(
+                ReviewScenarioPresentation.Briefing(card),
+                Does.Contain("검정 가방").And.Not.Contain("파란색")
+            );
+        }
+    }
+}

@@ -82,8 +82,8 @@ class AiGatewayTest {
         call(
             "음성 인식",
             AiRequestKind.STT,
-            (client, trace) -> client.transcribe(trace, new byte[] {1}, "audio/webm"),
-            (gateway, trace) -> gateway.transcribe(trace, new byte[] {1}, "audio/webm"),
+            (client, trace) -> client.transcribe(trace, new byte[] {1}, "audio/webm", null),
+            (gateway, trace) -> gateway.transcribe(trace, new byte[] {1}, "audio/webm", null),
             new SttResult("hi", 1.5, USAGE)),
         call(
             "뜻 보기",
@@ -165,14 +165,14 @@ class AiGatewayTest {
   @Test
   @DisplayName("사용량은 모델·입력/출력 토큰·음성 길이로 남긴다")
   void success_recordsUsage() {
-    given(aiWorkerClient.transcribe(trace, new byte[] {1}, "audio/webm"))
+    given(aiWorkerClient.transcribe(trace, new byte[] {1}, "audio/webm", null))
         .willReturn(
             new SttResult(
                 "hi",
                 1.5,
                 List.of(new WorkerUsage("stt", "whisper", null, null, 1.5, null, null))));
 
-    aiGateway.transcribe(trace, new byte[] {1}, "audio/webm");
+    aiGateway.transcribe(trace, new byte[] {1}, "audio/webm", null);
 
     AiRequest request = request(AiRequestKind.STT);
     assertThat(request.getModel()).isEqualTo("whisper");

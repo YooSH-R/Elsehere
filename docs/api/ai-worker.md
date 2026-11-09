@@ -249,6 +249,8 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 워커에 `GUARD_GPU_MODEL`을 주면 판정용 LLM 호출이 SSAFY GPU 서버의 vLLM에 올린 자체 학습 모델(Qwen3.8-27B + LoRA)을 먼저 한 번 부릅니다. 오류·시간 초과(`GUARD_GPU_TIMEOUT_S`)면 재시도 없이 구성의 판정 모델(기본 GPT-6 Luna)로 넘기고, 연속으로 `GUARD_BREAKER_FAILURES`(3)번 실패하면 `GUARD_BREAKER_SKIP_S`(60초) 동안 GPU를 건너뜁니다. 한글 낱자모(ㄱ~ㅎ, ㅏ~ㅣ)가 섞인 말은 GPU 모델이 오타("같ㅊ아")나 "ㄱㅅ"를 욕 줄임말로 읽어 무례로 보므로, 처음부터 구성의 판정 모델이 판정합니다(이때 `fallback`은 `false`). 응답 형식은 같고, `usage`의 `guard` 단계 `model`에 실제로 판정한 모델이, 넘겼으면 `fallback: true`가 남습니다. 프롬프트·yes/no 해석·`abusive: null` 규칙은 위와 같습니다.
 
+GPU 모델은 상대를 향하지 않은 단어("감자", 이름 "김사피", "엄마", "돼지")도 무례로 보고 프롬프트로는 고쳐지지 않았습니다. 그래서 GPU 모델이 무례라고 답한 줄만 구성의 판정 모델에 같은 질문을 한 번 더 하고, 둘 다 무례일 때만 `abusive: true`로 돌려줍니다(`GUARD_CONFIRM`, 기본 켜짐). 이 확인 호출은 `usage`에 `guard` 단계 `confirm: true`로 남습니다. 확인 호출이 실패하거나 yes/no가 아닌 답이면 GPU 판정을 그대로 씁니다. 확인은 무례로 본 줄에만 하고 `/v1/judge`와 동시에 돌아, 대부분의 턴은 늦어지지 않습니다(GMS 실측 의도 판정 중앙 1.8초, LoRA 0.45초 + 확인 약 1.2초). `GUARD_BUDGET_S` 안에서 셉니다.
+
 이진 판정이라 위협·성희롱 같은 **세부 유형은 구분하지 않습니다.** NPC가 먼저 잘못한 장면에서의 맞대응(정당방위)처럼 장면에 따라 봐줘야 하는 경우는, 유형을 돌려주는 계약이 생기기 전까지 Spring 규칙에서 자동 제재를 빼 주세요.
 
 ### 2.3 `POST /v1/npc/reply` — NPC 대답 (SSE)
@@ -312,11 +314,14 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 |---|---|
 | `file` | 녹음. 파일 부분의 `Content-Type`이 `audio/webm`·`audio/ogg`·`audio/mp4`·`audio/wav`·`audio/x-wav`·`audio/mpeg` 중 하나여야 합니다(`;codecs=...` 같은 매개변수는 붙어도 됨). 그 밖의 형식이나 `Content-Type`이 없으면(`application/octet-stream` 포함) 415 `audio_format_unsupported`, 3MB를 넘으면 413 `audio_too_large`, 비면 400 `invalid_request`입니다. 형식이 맞지 않으면 STT 공급자를 부르지 않습니다 |
 | `scene_words` | 장면 단어(메뉴·상품 이름). JSON 배열 또는 쉼표로 구분한 글. 최대 30개 사용 |
+| `npc_line` | 선택. 학습자가 대답하는 직전 NPC 대사. Spring은 자유 대화(`TURN`) 녹음에 그 대화의 마지막 NPC 턴을 보냅니다 |
 
 응답: `{"text": "...", "latency_s": 0.41, "audio_s": 2.9, "usage": [{"step": "stt", "model": "...", "audio_s": 2.9, "latency_s": 0.41, "fallback": false}]}`
 
-- 인식 프롬프트는 한영 혼합 예시(`음, 그러니까... I want... an iced latte... Can I get a muffin, 음, 하나? 잠깐만요. ...`) 뒤에 장면 단어를 붙인 것입니다. 메뉴 예시를 한글로 쓰면 한국식 발음 외래어(`Iced americano`)가 한글로 나오므로 영어로 씁니다. 메뉴가 아닌 한국어 말 예시가 없으면 짧은 한국어 문장이 영어 문장으로 번역되어 나오므로 앞뒤에 둡니다. 한국어 발화는 번역되지 않고 한글로 남습니다.
-- 무음일 때 Whisper가 프롬프트 끝부분(마지막 문장, 장면 단어 목록, 프롬프트 전체)을 되풀이한 결과는 `text: ""`로 거릅니다. 같은 끝부분을 여러 번 이어 붙인 결과(`My friend lives over there. My friend lives over there.`)도 거릅니다. 프롬프트 앞·중간의 예시 문장(`Can I get a muffin?`)과 장면 단어 하나(`Iced Americano.`)는 실제 발화로 보고 거르지 않습니다. 빈 결과면 다시 말하기를 안내합니다.
+- 인식 프롬프트는 한영 혼합 예시(`음, 그러니까... I want... an iced latte... Can I get a muffin, 음, 하나? 잠깐만요. ...`) 뒤에 장면 단어, 맨 끝에 `npc_line`을 붙인 것입니다. 메뉴 예시를 한글로 쓰면 한국식 발음 외래어(`Iced americano`)가 한글로 나오므로 영어로 씁니다. 메뉴가 아닌 한국어 말 예시가 없으면 짧은 한국어 문장이 영어 문장으로 번역되어 나오므로 앞뒤에 둡니다. 한국어 발화는 번역되지 않고 한글로 남습니다.
+- `npc_line`은 한국식 발음으로 소리가 비슷해지는 말(`러닝` → running·learning, `워킹` → walking·working)을 대사의 문맥에 맞춰 고르게 합니다. 대사에 나온 말이 아니면 고쳐지지 않습니다.
+- 무음일 때 Whisper가 프롬프트 끝부분(마지막 문장, 장면 단어 목록, `npc_line`, 프롬프트 전체)을 되풀이한 결과는 `text: ""`로 거릅니다. 같은 끝부분을 여러 번 이어 붙인 결과(`My friend lives over there. My friend lives over there.`)도 거릅니다. 프롬프트 앞·중간의 예시 문장(`Can I get a muffin?`)과 장면 단어 하나(`Iced Americano.`)는 실제 발화로 보고 거르지 않습니다. 학습자가 NPC 대사의 끝 문장을 그대로 따라 말한 것은 메아리와 구별할 수 없어 거릅니다. 빈 결과면 다시 말하기를 안내합니다.
+- GPU 서버 자체 모델([`ai/gpu_stt`](../../ai/gpu_stt/README.md))은 말소리 감지(Silero VAD)로 말소리 구간이 없는 녹음(무음·잡음)을 받아 적지 않고 `text: ""`를 돌려줍니다. 이 모델(large-v3-turbo)은 무음에 프롬프트와 상관없는 문장(`I want... I want...`, `감사합니다`)도 지어내 메아리 거르기로는 다 막을 수 없기 때문입니다. GMS·Groq로 넘어간 요청에는 이 거르기가 없습니다.
 - GMS 구성(기본 `gms-luna`)은 Groq Whisper(`whisper-large-v3-turbo`)로 인식하고, Groq가 한도(429)·서버 오류·키 오류·응답 없음이면 GMS `whisper-1`로 한 번 더 인식합니다. 이때 `usage`의 `model`은 `whisper-1`, `fallback: true`입니다. 녹음 자체를 공급자가 받지 않은 경우(400·413·415·422)는 넘기지 않습니다. 대체 쪽도 실패하면 429/503이고, 메시지에 두 오류가 함께 적힙니다.
 - 대체가 있으면 Groq 호출은 `STT_FIRST_TIMEOUT_S`(8초) 안에 답이 없을 때 넘깁니다. 응답의 `latency_s`는 실패한 첫 호출까지 포함한 전체 시간입니다. GMS `whisper-1`은 Groq보다 느립니다(6.5초 음성 기준 약 1.9초, Groq 약 0.4초).
 - 워커 환경 변수 `STT_CHAIN`으로 공급자 순서를 정할 수 있습니다(예: SSAFY GPU 서버의 자체 학습 모델 `gpu:turbo-lr1e4` → GMS `whisper-1` → Groq). 앞 공급자가 한도·오류·응답 없음이면 다음으로 넘기고, 녹음 자체 오류는 넘기지 않습니다. `usage`의 `model`은 실제로 인식한 모델이고, 첫 공급자가 아니면 `fallback: true`입니다. 모두 실패하면 마지막 공급자의 오류 코드(429/503)이고 메시지에 공급자별 오류가 함께 적힙니다.
@@ -341,16 +346,16 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 ### 2.6.2 `POST /v1/meaning` — NPC 대사 뜻과 단어 풀이 (백엔드 CONV-04)
 
-요청: `npc`, `text`(NPC가 한 말, 최대 1000자, 공백만이면 400), `level`(기본 `2`, 단어 풀이에 무엇을 고를지).
+요청: `npc`, `text`(NPC가 한 말, 최대 1000자, 공백만이면 400), `level`(기본 `2`, 학습자 수준으로 프롬프트에 함께 보냄).
 
 응답:
 
 ```json
-{"meaning_ko": "좋아요! 매장에서 드실 건가요, 가져가실 건가요?", "glossary": [{"text": "to go", "meaning_ko": "포장"}], "usage": [...]}
+{"meaning_ko": "좋아요! 매장에서 드실 건가요, 가져가실 건가요?", "glossary": [{"text": "Great", "meaning_ko": "좋아요"}, {"text": "for here", "meaning_ko": "매장에서"}, {"text": "to go", "meaning_ko": "포장"}], "usage": [...]}
 ```
 
 - `meaning_ko`: 말투를 살린 한국어 뜻 (가게 직원은 해요체, 친구 같은 말투는 반말). 괄호 풀이 없이 번역만.
-- `glossary`: 대사에서 학습자가 모를 만한 말(속어·관용구·구동사·핵심 단어) **최대 3개**. `text`는 대사에 **그대로 있는** 말만 남깁니다(대소문자 무시). 쉬운 대사면 빈 목록.
+- `glossary`: 대사의 내용어(명사·본동사·형용사·부사)와 숙어·구동사·관용 표현·정해진 문장 틀(`Would you like`, `Do you want to`, `Can I get`)을 나온 순서대로 **최대 15개**. 화면이 대사의 단어를 거의 다 눌러 뜻을 볼 수 있게 합니다. 숙어는 한 항목으로 두고, 그 뒤에 숙어 안의 내용어도 따로 둡니다(`grab a seat`, `grab`, `seat`). 화면은 겹치는 단어를 누르면 단어와 숙어를 함께 보입니다. 이름·숫자와 혼자 있는 기능어(관사·대명사·조동사·전치사·접속사)는 빼고, 숙어·문장 틀 안의 기능어는 그대로 둡니다. `text`는 대사에 **그대로 있는** 말만 남깁니다(대소문자 무시). 그런 말이 없으면 빈 목록.
 - 출력이 이 형식이 아니거나 `meaning_ko`가 비면 502 `invalid_output`. 같은 대사는 Spring이 저장해 다시 부르지 않습니다.
 
 ### 2.7 `POST /v1/feedback` — 대화 종료 피드백 (ai/feedback 계약 0.3.0)

@@ -19,10 +19,20 @@ namespace A305.Learning
         public long NpcId { get; set; }
         public NpcSummary Npc { get; set; }
         public string SituationSummary { get; set; }
+        public ReviewScenarioInfo Scenario { get; set; }
         public List<ReviewTarget> Targets { get; set; } = new List<ReviewTarget>();
         public int PracticeCount { get; set; }
         public DateTimeOffset? LastPracticedAt { get; set; }
         public List<string> UsedExpressions { get; set; } = new List<string>();
+    }
+
+    public sealed class ReviewScenarioInfo
+    {
+        public string Key { get; set; }
+        public string Title { get; set; }
+        public string Situation { get; set; }
+        public string LearnerRole { get; set; }
+        public List<string> LearnerNotes { get; set; } = new List<string>();
     }
 
     public sealed class ReviewTarget

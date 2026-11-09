@@ -35,6 +35,7 @@ namespace A305.Npc.PlayModeTests
                 dialogue.End();
             Object.Destroy(lookTarget);
             TutorialState.Clear();
+            NpcTestClock.Restore();
         }
 
         [UnityTest]
@@ -92,6 +93,66 @@ namespace A305.Npc.PlayModeTests
 
             Assert.That(dialogue.IsTalking, Is.True);
             Assert.That(Single<PlayerMover>().IsMovementLocked, Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator ReviewStartWithoutAnOffer_HoldsNpcAndCameraUntilTheResultCloses()
+        {
+            NpcTestClock.SetDaytime();
+            TutorialState.MarkFinishedOnServer();
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            foreach (
+                var population in Object.FindObjectsByType<NpcPopulation>(FindObjectsSortMode.None)
+            )
+                population.enabled = false;
+            var npc = Object
+                .FindObjectsByType<Passerby>(FindObjectsSortMode.None)
+                .First(item => item.GetComponent<NpcIdentity>().Code == "TOWN_PASSERBY");
+            var identity = npc.GetComponent<NpcIdentity>();
+            npc.GetComponent<NpcRoutine>().enabled = false;
+            npc.IsApproachAllowed = false;
+            var body = npc.GetComponent<CharacterController>();
+            body.enabled = false;
+            npc.transform.position += Vector3.right * 3;
+            body.enabled = true;
+            var player = Single<PlayerMover>();
+            player.Teleport(npc.transform.position + Vector3.forward * 2, Quaternion.identity);
+            dialogue = Single<DialogueController>();
+            api = new PendingApi();
+            SetField(dialogue, "conversationApi", api);
+            SetField(dialogue, "aiStatusApi", null);
+            SetField(dialogue, "followUpApi", null);
+            Assert.That(
+                dialogue.TryStart(
+                    identity.Code,
+                    identity.LookTarget,
+                    reviewCardId: 7,
+                    reviewStart: api.StartReviewAsync
+                ),
+                Is.True
+            );
+            // 순간 이동 뒤 캡슐의 겹침 해소가 끝난 뒤 생활 이동만 측정한다.
+            for (int frame = 0; frame < 10; frame++)
+                yield return null;
+            Vector3 start = npc.transform.position;
+            for (int frame = 0; frame < 30; frame++)
+                yield return null;
+            Assert.That(
+                Vector3.ProjectOnPlane(npc.transform.position - start, Vector3.up).magnitude,
+                Is.LessThan(.02f),
+                "복습은 제안 수락 없이 시작해도 NPC의 생활 이동을 멈춰야 합니다."
+            );
+            Assert.That(Single<PlayerCameraRig>().ViewMode, Is.EqualTo(CameraViewMode.Dialogue));
+            Assert.That(player.IsMovementLocked, Is.True);
+            dialogue.End();
+            api.Finish();
+            yield return null;
+            Assert.That(dialogue.IsTalking, Is.False);
+            Assert.That(
+                Single<PlayerCameraRig>().ViewMode,
+                Is.Not.EqualTo(CameraViewMode.Dialogue)
+            );
         }
 
         private IEnumerator BeginPendingFeedback(long? reviewCardId = null)
@@ -200,7 +261,8 @@ namespace A305.Npc.PlayModeTests
                 string requestId,
                 string npcCode,
                 string initiatedBy,
-                bool npcOffDuty
+                bool npcOffDuty,
+                NpcTravelContext npcTravelContext = null
             ) =>
                 Task.FromResult(
                     new ConversationStart

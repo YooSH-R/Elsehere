@@ -1,6 +1,7 @@
 package com.elsehere.dialogue.dto;
 
 import com.elsehere.conversation.entity.InitiatedBy;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
@@ -15,7 +16,13 @@ public record StartConversationRequest(
     @NotNull UUID requestId,
     @NotBlank String npcCode,
     @NotNull InitiatedBy initiatedBy,
-    Boolean npcOffDuty) {
+    Boolean npcOffDuty,
+    @Valid NpcTravelContext npcTravelContext) {
+
+  public StartConversationRequest(
+      UUID requestId, String npcCode, InitiatedBy initiatedBy, Boolean npcOffDuty) {
+    this(requestId, npcCode, initiatedBy, npcOffDuty, null);
+  }
 
   public StartConversationRequest {
     npcOffDuty = Boolean.TRUE.equals(npcOffDuty);

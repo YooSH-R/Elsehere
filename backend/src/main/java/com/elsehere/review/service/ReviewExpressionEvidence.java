@@ -17,11 +17,19 @@ final class ReviewExpressionEvidence {
     if (target.isBlank() || text == null) {
       return false;
     }
-    for (String sentence : QUOTED.matcher(text).replaceAll(" ").split("[.!?;]")) {
+    String unquoted = QUOTED.matcher(text).replaceAll(" ");
+    // 목표 자체가 여러 문장이거나 부정형인 경우도 똑같이 말했으면 사용 근거다.
+    if (target.equals(normalize(unquoted))) {
+      return true;
+    }
+    for (String sentence : unquoted.split("[.!?;]")) {
       String words = " " + normalize(sentence) + " ";
       String phrase = " " + target + " ";
       int found = words.indexOf(phrase);
-      if (found >= 0 && !NEGATION.matcher(words.substring(0, found)).find()) {
+      String prefix = found >= 0 ? words.substring(0, found) : "";
+      // “No, I'm good.”의 No는 앞선 제안에 대한 응답이지 good의 부정이 아니다.
+      boolean negated = NEGATION.matcher(prefix.replaceFirst("^\\s*no\\s*$", " ")).find();
+      if (found >= 0 && !negated) {
         return true;
       }
     }

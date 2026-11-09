@@ -555,7 +555,7 @@ class AiWorkerClientTest {
         "application/json",
         "{\"text\": \"I want a latte\", \"audio_s\": 1.2, \"usage\": [{\"step\": \"stt\"}]}");
 
-    SttResult result = client.transcribe(TRACE, new byte[] {1, 2, 3}, "audio/wav");
+    SttResult result = client.transcribe(TRACE, new byte[] {1, 2, 3}, "audio/wav", null);
 
     assertThat(result.text()).isEqualTo("I want a latte");
     assertThat(result.audioS()).isEqualTo(1.2);
@@ -563,7 +563,21 @@ class AiWorkerClientTest {
     assertThat(request.contentType()).startsWith("multipart/form-data; boundary=");
     assertThat(request.body())
         .contains("Content-Disposition: form-data; name=\"file\"")
-        .contains("Content-Type: audio/wav");
+        .contains("Content-Type: audio/wav")
+        .doesNotContain("name=\"npc_line\"");
+  }
+
+  @Test
+  @DisplayName("직전 NPC 대사가 있으면 npc_line 부분으로 함께 보낸다")
+  void transcribe_withNpcLine_sendsNpcLinePart() {
+    respond("/v1/stt", 200, "application/json", "{\"text\": \"Your walking is weird.\"}");
+
+    client.transcribe(TRACE, new byte[] {1}, "audio/wav", "I'm just taking a walk, not running.");
+
+    assertThat(received.get("/v1/stt").body())
+        .contains(
+            "Content-Disposition: form-data; name=\"npc_line\"\r\n\r\n"
+                + "I'm just taking a walk, not running.\r\n");
   }
 
   @Test

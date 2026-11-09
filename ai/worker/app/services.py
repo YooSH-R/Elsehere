@@ -159,7 +159,7 @@ def load_object(out: str, what: str) -> dict:
 async def meaning(llm: LLM, req: MeaningRequest) -> dict:
     """NPC 대사의 한국어 뜻과 단어 풀이. 풀이는 대사에 실제로 있는 말만 (화면이 그 말에 뜻을 붙인다)."""
     usage = Usage()
-    out = await llm.chat("meaning", "translate", P.meaning_messages(req.npc, req.text, req.level), usage, 0.0, 300, P.MEANING_SCHEMA)
+    out = await llm.chat("meaning", "translate", P.meaning_messages(req.npc, req.text, req.level), usage, 0.0, 800, P.MEANING_SCHEMA)
     res = load_object(out, "뜻 보기")
     meaning_ko, items = res.get("meaning_ko"), res.get("glossary")
     if not (isinstance(meaning_ko, str) and meaning_ko.strip() and isinstance(items, list)):
@@ -171,7 +171,7 @@ async def meaning(llm: LLM, req: MeaningRequest) -> dict:
         text, ko = str(it.get("text") or "").strip(), str(it.get("meaning_ko") or "").strip()
         if text and ko and text.casefold() in line and text.casefold() not in {g["text"].casefold() for g in glossary}:
             glossary.append({"text": text, "meaning_ko": ko})
-    return {"meaning_ko": meaning_ko.strip(), "glossary": glossary[:3], "usage": usage.items}
+    return {"meaning_ko": meaning_ko.strip(), "glossary": glossary[:15], "usage": usage.items}
 
 
 async def suggest(llm: LLM, req: SuggestRequest) -> dict:

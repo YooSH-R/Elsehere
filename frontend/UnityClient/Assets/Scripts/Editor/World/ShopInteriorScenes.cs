@@ -190,7 +190,7 @@ namespace A305.EditorTools.World
         /// 건물의 장소 코드와 영업시간 안내에 쓰는 이름. 거리 매장은 <see cref="TownStorefrontBuilder.Storefronts"/>를,
         /// 북쪽 상가는 1층 매장을 따른다(2층 서점·찻집은 같은 건물의 영업시간을 쓴다).
         /// </summary>
-        private static (string Code, string Name) PlaceOf(string buildingName)
+        internal static (string Code, string Name) PlaceOf(string buildingName)
         {
             TownStorefrontBuilder.Storefront storefront =
                 TownStorefrontBuilder.Storefronts.FirstOrDefault(shop => shop.Name == buildingName);

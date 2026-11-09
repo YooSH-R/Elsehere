@@ -33,5 +33,16 @@ namespace A305.Dialogue
             // 위·아래 어디에도 다 들어가지 않으면 단어를 조금 가리더라도 카드 위쪽을 대화창 안에 맞춘다.
             return new Vector2(x, Mathf.Max(area.yMin, area.yMax - card.y));
         }
+
+        /// <summary>
+        /// 카드 높이를 단어 위나 아래 중 넓은 쪽 남은 자리에 맞춰, 키운 카드가 단어를 가리지 않게 한다.
+        /// </summary>
+        /// <param name="wanted">자리가 있으면 쓸 높이</param>
+        /// <param name="least">자리가 좁아도 줄이지 않을 높이</param>
+        public static float FitHeight(Rect word, float wanted, float least, Rect area)
+        {
+            float room = Mathf.Max(area.yMax - (word.yMax + Gap), word.yMin - Gap - area.yMin);
+            return Mathf.Max(least, Mathf.Min(wanted, room));
+        }
     }
 }

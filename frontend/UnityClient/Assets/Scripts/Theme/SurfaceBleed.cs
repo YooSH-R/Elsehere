@@ -36,11 +36,15 @@ namespace A305.Theme
             {
                 mesh.PopulateUIVertex(ref vertex, i);
                 Vector3 position = vertex.position;
-                position.x += position.x < center.x ? -margin.x : margin.x;
-                position.y += position.y < center.y ? -margin.y : margin.y;
+                position.x += OutwardOffset(position.x - center.x, margin.x);
+                position.y += OutwardOffset(position.y - center.y, margin.y);
                 vertex.position = position;
                 mesh.SetUIVertex(vertex, i);
             }
         }
+
+        // 작은 9분할 그림의 가운데 줄은 양쪽 테두리가 공유한다. 한쪽으로 밀면 이음새가 드러난다.
+        private static float OutwardOffset(float distance, float amount) =>
+            Mathf.Abs(distance) < .001f ? 0f : (distance < 0f ? -amount : amount);
     }
 }

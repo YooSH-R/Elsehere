@@ -80,6 +80,13 @@ namespace A305.EditorTools.Learning
                 () => view.Show(book),
                 Path.Combine(output, "library-small.png")
             );
+            Render(
+                camera,
+                540,
+                960,
+                () => view.Show(book),
+                Path.Combine(output, "library-mobile.png")
+            );
             var result = new ReviewPracticeResult
             {
                 PracticeCompleted = true,
@@ -126,6 +133,13 @@ namespace A305.EditorTools.Learning
                 () => view.ShowResult(book.Items[0], record),
                 Path.Combine(output, "practice-result.png")
             );
+            Render(
+                camera,
+                540,
+                960,
+                () => view.ShowResult(book.Items[0], record),
+                Path.Combine(output, "practice-result-mobile.png")
+            );
             UnityEngine.Object.DestroyImmediate(root);
             CapturePractice(output);
             Debug.Log(
@@ -157,29 +171,6 @@ namespace A305.EditorTools.Learning
                 label.Arrange();
             camera.Render();
             RenderTexture.active = target;
-            if (path.EndsWith("library-detail.png", StringComparison.Ordinal))
-            {
-                var row = UnityEngine.Object.FindObjectsByType<ReviewWorkbookRow>(
-                    FindObjectsSortMode.None
-                )[0];
-                var rect = (RectTransform)row.transform.Find("PracticeButton");
-                var corners = new Vector3[4];
-                rect.GetWorldCorners(corners);
-                Vector3 start = camera.WorldToScreenPoint(corners[0]);
-                Vector3 end = camera.WorldToScreenPoint(corners[2]);
-                int left = Mathf.Max(0, Mathf.FloorToInt(start.x) - 20);
-                int bottom = Mathf.Max(0, Mathf.FloorToInt(start.y) - 20);
-                int detailWidth = Mathf.CeilToInt(end.x - left) + 20;
-                int detailHeight = Mathf.CeilToInt(end.y - bottom) + 20;
-                var detail = new Texture2D(detailWidth, detailHeight, TextureFormat.RGB24, false);
-                detail.ReadPixels(new Rect(left, bottom, detailWidth, detailHeight), 0, 0);
-                detail.Apply();
-                File.WriteAllBytes(
-                    Path.Combine(Path.GetDirectoryName(path), "practice-button.png"),
-                    detail.EncodeToPNG()
-                );
-                UnityEngine.Object.DestroyImmediate(detail);
-            }
             var image = new Texture2D(width, height, TextureFormat.RGB24, false);
             image.ReadPixels(new Rect(0, 0, width, height), 0, 0);
             image.Apply();
@@ -198,26 +189,32 @@ namespace A305.EditorTools.Learning
                 out Vector3 eye,
                 out Vector3 face
             );
-            var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(
-                "Assets/Data/Dialogue/MockDialogueScripts.asset"
+            var opening = DialogueLine.FromNpc(
+                "What does your bag look like?",
+                "가방이 어떻게 생겼나요?"
             );
-            scripts.TryGetScript("CAFE_STAFF", out DialogueScript script);
+            var script = new DialogueScript(
+                "Mia",
+                opening,
+                Array.Empty<GuidedTurn>(),
+                Array.Empty<KeywordReply>(),
+                opening,
+                "It's a small blue shoulder bag.",
+                "카페 직원"
+            );
             view.Show(new DialogueConversation("CAFE_STAFF", script));
             view.SetReviewReference(
                 new[]
                 {
                     new ReviewReferenceItem(
-                        "Can I get that to go?",
-                        "포장해 주실 수 있나요?",
+                        "I think I left my bag here.",
+                        "여기에 가방을 두고 간 것 같아요.",
                         true
                     ),
-                    new ReviewReferenceItem(
-                        "Could I get a little less ice?",
-                        "얼음을 조금만 넣어 주세요.",
-                        false
-                    ),
+                    new ReviewReferenceItem("That's the one!", "그게 제 가방이에요!", false),
                 },
-                1
+                1,
+                ReviewScenarioPresentation.Briefing(BagCard())
             );
             var settings = AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>(
                 "Assets/Data/Cafe/CafeCameraSettings.asset"
@@ -254,6 +251,45 @@ namespace A305.EditorTools.Learning
             );
         }
 
+        private static ReviewCard BagCard() =>
+            new ReviewCard
+            {
+                Id = 44,
+                SceneCode = "CAFE",
+                Npc = new NpcSummary
+                {
+                    NpcCode = "CAFE_STAFF",
+                    Name = "Mia",
+                    RoleLabel = "카페 직원",
+                },
+                SituationSummary = "카페에 두고 온 가방 찾기",
+                Scenario = new ReviewScenarioInfo
+                {
+                    Key = "first_day_FIND_BAG",
+                    Title = "분실 가방 찾기",
+                    LearnerRole = "가방 주인",
+                    Situation = "카페에 두고 간 작은 가방을 찾아요.",
+                    LearnerNotes = new List<string>
+                    {
+                        "파란색 숄더백, 빨간 열쇠고리",
+                        "가방 안: 여권 지갑과 책",
+                    },
+                },
+                Targets = new List<ReviewTarget>
+                {
+                    new ReviewTarget
+                    {
+                        Expression = "I think I left my bag here.",
+                        MeaningKo = "여기에 가방을 두고 간 것 같아요.",
+                    },
+                    new ReviewTarget
+                    {
+                        Expression = "That's the one!",
+                        MeaningKo = "그게 제 가방이에요!",
+                    },
+                },
+            };
+
         private sealed class PreviewApi : IReviewApi
         {
             public Task<ReviewPage> GetPageAsync(string scene, string cursor) =>
@@ -268,15 +304,31 @@ namespace A305.EditorTools.Learning
                                 SceneCode = "CAFE",
                                 Npc = new NpcSummary { Name = "Mia", NpcCode = "CAFE_STAFF" },
                                 SituationSummary = "음료 주문과 포장 부탁하기",
+                                Scenario = new ReviewScenarioInfo
+                                {
+                                    Title = "음료 주문하기",
+                                    Situation = "카페에서 아이스 라테를 주문하고 포장을 부탁해요.",
+                                    LearnerRole = "손님",
+                                },
                                 Targets = new List<ReviewTarget>
                                 {
-                                    new ReviewTarget { Expression = "Can I get that to go?" },
+                                    new ReviewTarget
+                                    {
+                                        Expression = "Can I get that to go?",
+                                        MeaningKo = "포장해 주실 수 있나요?",
+                                        UsageKo =
+                                            "음료를 가져가겠다는 요청을 할 때 쓰는 표현이에요.",
+                                    },
                                     new ReviewTarget
                                     {
                                         Expression = "Could I get a little less ice?",
+                                        MeaningKo = "얼음을 조금만 넣어 주실 수 있나요?",
+                                        UsageKo =
+                                            "원하는 얼음 양을 공손하게 부탁할 때 쓸 수 있어요.",
                                     },
                                 },
                             },
+                            BagCard(),
                             new ReviewCard
                             {
                                 Id = 43,

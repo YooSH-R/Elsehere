@@ -157,6 +157,21 @@ namespace A305.World
             if (lights != null && lights.Main != SignalLight.Green)
             {
                 stops.AddRange(signalStops);
+                foreach (PedestrianSignalHead head in lights.PedestrianHeads)
+                    if (
+                        head != null
+                        && head.CrossesMainRoad
+                        && Route.TryCrossingStops(
+                            head.CrossingPoint.z,
+                            3.65f,
+                            out float northbound,
+                            out float southbound
+                        )
+                    )
+                    {
+                        stops.Add(northbound);
+                        stops.Add(southbound);
+                    }
             }
 
             if (pullOverDistance.HasValue)

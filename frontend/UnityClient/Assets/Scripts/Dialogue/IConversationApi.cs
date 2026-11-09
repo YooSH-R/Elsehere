@@ -13,7 +13,8 @@ namespace A305.Dialogue
             string requestId,
             string npcCode,
             string initiatedBy,
-            bool npcOffDuty
+            bool npcOffDuty,
+            NpcTravelContext npcTravelContext = null
         );
 
         /// <summary>CONV-03 발화 전송.</summary>

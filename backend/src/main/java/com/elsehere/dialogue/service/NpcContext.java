@@ -20,6 +20,21 @@ public record NpcContext(
     String approachLine,
     String approachAudioKey) {
 
+  NpcContext withTravelSituation(String situation) {
+    if (situation == null || situation.isBlank()) {
+      return this;
+    }
+    return new NpcContext(
+        npcId,
+        summary,
+        sceneCode,
+        sceneOpen,
+        workerNpc.withScene(workerNpc.scene() + " " + situation),
+        voiceId,
+        approachLine,
+        approachAudioKey);
+  }
+
   /**
    * 근무 시간이 아닌 NPC. 워커에 보내는 상황(npc.scene)만 응대 상황에서 일상 상황으로 바꾼다.
    *

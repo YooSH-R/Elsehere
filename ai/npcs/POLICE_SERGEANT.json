@@ -2,7 +2,7 @@
   "npcId": "POLICE_SERGEANT",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 1,
+    "profileVersion": 2,
     "name": "Victor",
     "occupation": "night duty sergeant at the small police station on the main street",
     "ageRange": "forties",

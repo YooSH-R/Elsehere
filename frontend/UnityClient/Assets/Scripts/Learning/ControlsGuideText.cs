@@ -16,8 +16,8 @@ namespace A305.Learning
             + "<b>사물 클릭</b> 단어 카드 · <b>NPC 클릭</b> 말 걸기";
 
         private const string Touch =
-            "<b>왼쪽 조이스틱</b> 이동\n"
-            + "<b>오른쪽 끌기</b> 시점 돌리기\n"
+            "<b>왼쪽 조이스틱</b> 이동, 끝까지 밀면 달리기 · <b>점프 버튼</b> 점프\n"
+            + "<b>오른쪽 끌기</b> 시점 돌리기 · <b>1인칭 버튼</b> 1인칭·3인칭\n"
             + "<b>사물 탭</b> 단어 카드 · <b>NPC 탭</b> 말 걸기";
 
         public static string ReopenHint => $"닫아도 메뉴의 [{MenuLabel}]으로 다시 볼 수 있어요.";

@@ -87,7 +87,8 @@ namespace A305.EditorTools.Dialogue
         }
 
         /// <summary>
-        /// [뜻]을 켠 대사의 풀이 단어를 눌렀을 때 단어 근처에 뜨는 호버 카드를 찍는다. 저장 전·저장 뒤·숙어와 세로 화면이다.
+        /// [뜻]을 켠 대사의 풀이 단어를 눌렀을 때 단어 근처에 뜨는 호버 카드를 찍는다. 저장 전·저장 뒤·숙어,
+        /// 숙어 안의 단어(단어와 숙어를 쌓은 카드, 아래로 스크롤한 카드)와 세로 화면이다.
         /// 서버 호출 없이 고정 대사와 풀이를 쓴다.
         /// </summary>
         public static void CaptureWords()
@@ -101,13 +102,26 @@ namespace A305.EditorTools.Dialogue
             ShowWord(view, content, WordPreviewContent.LatteLink);
             Render(camera, view, eye, face, Path.Combine(output, "words.png"), 1920, 1080);
             view.ShowWordSaveResult(
-                DialogueLinesText.FindWord(content.Lines, WordPreviewContent.LatteLink),
+                DialogueLinesText.FindWords(content.Lines, WordPreviewContent.LatteLink)[0],
                 true,
                 "단어장에 저장했어요."
             );
             Render(camera, view, eye, face, Path.Combine(output, "words-saved.png"), 1920, 1080);
             ShowWord(view, content, WordPreviewContent.ToGoLink);
             Render(camera, view, eye, face, Path.Combine(output, "words-idiom.png"), 1920, 1080);
+            // 숙어(to go) 안의 단어(go)를 누르면 단어와 숙어가 함께 쌓이고, 아래로 스크롤해 숙어를 본다.
+            ShowWord(view, content, WordPreviewContent.GoLink);
+            Render(camera, view, eye, face, Path.Combine(output, "words-overlap.png"), 1920, 1080);
+            Field<ScrollRect>(view, "wordEntries").verticalNormalizedPosition = 0;
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "words-overlap-scrolled.png"),
+                1920,
+                1080
+            );
             ShowWord(view, content, WordPreviewContent.LatteLink);
             Render(camera, view, eye, face, Path.Combine(output, "words-portrait.png"), 900, 1400);
         }
@@ -255,7 +269,7 @@ namespace A305.EditorTools.Dialogue
                 typeof(DialoguePanelView)
                     .GetField("glossaryCard", BindingFlags.Instance | BindingFlags.NonPublic)
                     .GetValue(view);
-            if (card.Word != DialogueLinesText.FindWord(content.Lines, linkId))
+            if (card.Word != DialogueLinesText.FindWords(content.Lines, linkId).FirstOrDefault())
                 Invoke(view, "SelectWord", linkId);
         }
 
@@ -305,6 +319,18 @@ namespace A305.EditorTools.Dialogue
             Canvas.ForceUpdateCanvases();
             view.UpdateLayout();
             Canvas.ForceUpdateCanvases();
+            // 스크롤 막대 손잡이 크기는 Play 중 매 프레임(LateUpdate)에만 맞춰지므로 찍기 전에 한 번 맞춘다.
+            // Editor에서는 ScrollRect가 늘 스크롤할 것이 있다고 보므로, Play처럼 내용이 넘칠 때만 막대를 보인다.
+            foreach (ScrollRect scroll in view.GetComponentsInChildren<ScrollRect>())
+            {
+                typeof(ScrollRect)
+                    .GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .Invoke(scroll, null);
+                if (scroll.verticalScrollbar != null)
+                    scroll.verticalScrollbar.gameObject.SetActive(
+                        scroll.content.rect.height > scroll.viewport.rect.height + 0.01f
+                    );
+            }
             camera.Render();
             RenderTexture.active = target;
             pixels.ReadPixels(new Rect(0, 0, width, height), 0, 0);
@@ -320,13 +346,18 @@ namespace A305.EditorTools.Dialogue
         }
 
         /// <summary>
-        /// [뜻 보기]로 뜻과 풀이를 받아 둔 카페 서버 대화. 마지막 Mia 대사에 한 단어(latte)와 숙어(to go) 풀이가 있다.
+        /// [뜻 보기]로 뜻과 풀이를 받아 둔 카페 서버 대화. 마지막 Mia 대사에 한 단어(latte), 숙어(to go)와 숙어 안의 단어(go) 풀이가 있다.
         /// 서버 대화처럼 NPC 대사를 음성으로 들려주므로 [자막]을 끄면 대사를 가린다.
         /// </summary>
         private sealed class WordPreviewContent : IDialogueContent
         {
             public const string LatteLink = "2/0";
+
+            // to go의 "to " 조각. 숙어만 덮는다.
             public const string ToGoLink = "2/1";
+
+            // to go의 "go" 조각. 단어 go와 숙어 to go가 함께 덮는다.
+            public const string GoLink = "2/2,1";
 
             private const long TurnId = 105;
 
@@ -337,6 +368,7 @@ namespace A305.EditorTools.Dialogue
                 {
                     new GlossaryWord(TurnId, "latte", "라떼"),
                     new GlossaryWord(TurnId, "to go", "포장해 가는"),
+                    new GlossaryWord(TurnId, "go", "가다"),
                 }
             );
 
@@ -381,6 +413,7 @@ namespace A305.EditorTools.Dialogue
                 {
                     new GlossaryData { Text = "latte", MeaningKo = "라떼" },
                     new GlossaryData { Text = "to go", MeaningKo = "포장해 가는" },
+                    new GlossaryData { Text = "go", MeaningKo = "가다" },
                 };
 
             public bool HasHint => true;

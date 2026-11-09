@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Linq;
+using System.Threading.Tasks;
+using A305.Api;
 using A305.Dialogue;
 using A305.Learning;
 using A305.Mission;
@@ -22,6 +24,95 @@ namespace A305.Tutorial.PlayModeTests
     /// </summary>
     public class TutorialFlowTests
     {
+        [UnityTest]
+        public IEnumerator FailedTutorialFinish_RetriesAndResumesTheClockWithoutChangingScenes() =>
+            RetryFinishAndResumeClock(skipped: true);
+
+        [UnityTest]
+        public IEnumerator CompletedTutorial_RetriesAndResumesTheClockWithoutChangingScenes() =>
+            RetryFinishAndResumeClock(skipped: false);
+
+        private IEnumerator RetryFinishAndResumeClock(bool skipped)
+        {
+            var previousFactory = ApiSettings.EditorClientFactory;
+            var transport = new RecoveringTutorialTransport();
+            ApiSettings.EditorClientFactory = _ => new ApiClient("", transport);
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
+                yield return null;
+                yield return WaitUntil(() => GameClock.Shared.Current != null);
+                Assert.That(GameClock.Shared.Current.Paused, Is.True);
+
+                TutorialProgress progress = TutorialState.GetOrCreate(BenCode);
+                if (skipped)
+                {
+                    progress.Skip();
+                }
+                else
+                {
+                    progress.LeaveHome();
+                    progress.StartDialogue(BenCode);
+                    progress.EndDialogue(BenCode, true);
+                    progress.CloseFeedback(BenCode);
+                    progress.ReportJournalOpened();
+                    Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed));
+                }
+                yield return WaitUntil(() => transport.FinishCalls > 0);
+                float deadline = Time.unscaledTime + 7f;
+                while (transport.FinishCalls < 2 && Time.unscaledTime < deadline)
+                    yield return null;
+
+                Assert.That(
+                    transport.FinishCalls,
+                    Is.EqualTo(2),
+                    "같은 씬에서 완료 저장을 재시도합니다."
+                );
+                yield return WaitUntil(() => !GameClock.Shared.Current.Paused);
+                double before = GameClock.Shared.Minutes;
+                yield return new WaitForSecondsRealtime(.2f);
+                Assert.That(GameClock.Shared.Minutes, Is.GreaterThan(before));
+                Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("HomeScene"));
+            }
+            finally
+            {
+                ApiSettings.EditorClientFactory = previousFactory;
+            }
+        }
+
+        private sealed class RecoveringTutorialTransport : IApiTransport
+        {
+            public int FinishCalls { get; private set; }
+
+            public Task<ApiTransportResponse> SendAsync(ApiTransportRequest request)
+            {
+                if (request.Url.EndsWith("/tutorial/ben-dialogue/complete"))
+                    return Task.FromResult(ApiTransportResponse.Received(200, "{}"));
+                if (
+                    request.Url.EndsWith("/tutorial/skip")
+                    || request.Url.EndsWith("/tutorial/complete")
+                )
+                {
+                    FinishCalls++;
+                    return Task.FromResult(
+                        FinishCalls == 1
+                            ? ApiTransportResponse.NetworkFailed()
+                            : ApiTransportResponse.Received(200, "{\"onboardingStep\":\"DONE\"}")
+                    );
+                }
+                if (request.Url.EndsWith("/game-clock/beats"))
+                    return Task.FromResult(
+                        ApiTransportResponse.Received(
+                            200,
+                            "{\"day\":1,\"minuteOfDay\":480,\"paused\":"
+                                + (FinishCalls < 2 ? "true" : "false")
+                                + "}"
+                        )
+                    );
+                return Task.FromResult(ApiTransportResponse.NetworkFailed());
+            }
+        }
+
         [UnityTest]
         public IEnumerator AbandoningGuidedConversation_ReleasesTheDialogueClockPause()
         {

@@ -109,7 +109,8 @@ namespace A305.Dialogue.Tests
                 string requestId,
                 string npcCode,
                 string initiatedBy,
-                bool npcOffDuty
+                bool npcOffDuty,
+                NpcTravelContext npcTravelContext = null
             )
             {
                 throw new NotSupportedException();

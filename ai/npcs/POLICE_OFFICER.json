@@ -2,7 +2,7 @@
   "npcId": "POLICE_OFFICER",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 1,
+    "profileVersion": 2,
     "name": "Dan",
     "occupation": "police officer at the small police station on the main street",
     "personality": {

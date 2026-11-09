@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using A305.Dialogue;
 using A305.Theme;
 using A305.World;
@@ -35,6 +34,7 @@ namespace A305.Learning
         [SerializeField]
         private Button[] filters;
         private readonly List<ReviewWorkbookRow> rows = new List<ReviewWorkbookRow>();
+        private readonly List<TMP_Text> buildingHeaders = new List<TMP_Text>();
         private ReviewBook book;
         private float lastWidth;
         private bool isResult;
@@ -78,22 +78,44 @@ namespace A305.Learning
             ClearRows();
             float width = scroll.content.rect.width;
             float top = 14;
-            foreach (ReviewCard card in book.Items)
+            foreach (
+                var building in book
+                    .Items.Where(card => card != null)
+                    .GroupBy(ReviewScenarioPresentation.BuildingName)
+            )
             {
-                if (card == null)
-                    continue;
-                ReviewWorkbookRow row = Instantiate(rowTemplate, scroll.content);
-                rows.Add(row);
-                float height = row.Show(
-                    card,
-                    width - 48,
-                    book.IsBusy,
-                    () => PracticeRequested?.Invoke(card),
-                    () => DeleteRequested?.Invoke(card),
-                    () => ResultRequested?.Invoke(card)
-                );
-                ReviewWorkbookRow.Pin((RectTransform)row.transform, 24, top, width - 48, height);
-                top += height + 28;
+                TMP_Text header = Instantiate(status, scroll.content);
+                header.name = "BuildingHeader";
+                header.text = ReviewWorkbookRow.Escape(building.Key);
+                header.fontSize = 30;
+                header.fontStyle = FontStyles.Bold;
+                header.raycastTarget = false;
+                header.gameObject.SetActive(true);
+                buildingHeaders.Add(header);
+                ReviewWorkbookRow.Pin(header.rectTransform, 58, top + 6, width - 116, 46);
+                top += 66;
+                foreach (ReviewCard card in building)
+                {
+                    ReviewWorkbookRow row = Instantiate(rowTemplate, scroll.content);
+                    rows.Add(row);
+                    float height = row.Show(
+                        card,
+                        width - 48,
+                        book.IsBusy,
+                        () => PracticeRequested?.Invoke(card),
+                        () => DeleteRequested?.Invoke(card),
+                        () => ResultRequested?.Invoke(card)
+                    );
+                    ReviewWorkbookRow.Pin(
+                        (RectTransform)row.transform,
+                        24,
+                        top,
+                        width - 48,
+                        height
+                    );
+                    top += height + 28;
+                }
+                top += 16;
             }
             status.text = book.IsBusy
                 ? "불러오는 중…"
@@ -106,6 +128,7 @@ namespace A305.Learning
             ReviewWorkbookRow.Pin(status.rectTransform, 58, top, width - 116, 90);
             top += 102;
             more.gameObject.SetActive(book.HasMore);
+            more.GetComponentInChildren<TMP_Text>().text = "더 보기";
             more.interactable = !book.IsBusy;
             ReviewWorkbookRow.Pin((RectTransform)more.transform, (width - 178) / 2, top, 178, 54);
             scroll.content.SetSizeWithCurrentAnchors(
@@ -125,7 +148,13 @@ namespace A305.Learning
         private void Awake()
         {
             close.onClick.AddListener(() => CloseRequested?.Invoke());
-            more.onClick.AddListener(() => MoreRequested?.Invoke());
+            more.onClick.AddListener(() =>
+            {
+                if (isResult && resultCard != null)
+                    PracticeRequested?.Invoke(resultCard);
+                else
+                    MoreRequested?.Invoke();
+            });
             string[] codes = { null, "CAFE", "HOTEL", "TOWN" };
             for (int i = 0; i < filters.Length; i++)
             {
@@ -146,69 +175,35 @@ namespace A305.Learning
             UiLayer.Open(this);
             Fit();
             ClearRows();
-            more.gameObject.SetActive(false);
+            more.gameObject.SetActive(card != null);
+            more.interactable = true;
+            more.GetComponentInChildren<TMP_Text>().text = "다시 연습";
             float width = scroll.content.rect.width;
-            float top = 14;
-            if (card != null)
-            {
-                ReviewWorkbookRow row = Instantiate(rowTemplate, scroll.content);
-                rows.Add(row);
-                float height = row.Show(
-                    card,
-                    width - 48,
-                    false,
-                    () => PracticeRequested?.Invoke(card),
-                    () => { }
-                );
-                row.transform.Find("RemoveButton").gameObject.SetActive(false);
-                ReviewWorkbookRow.Pin((RectTransform)row.transform, 24, top, width - 48, height);
-                top += height + 24;
-            }
-            var text = new StringBuilder();
-            ReviewPracticeResult result = record.ReviewResult;
-            if (result == null)
-                text.AppendLine("결과를 받지 못했어요. 복습장을 다시 열어 기록을 확인해 주세요.\n");
-            else
-            {
-                text.AppendLine(
-                    result.PracticeCompleted
-                        ? "목표 표현 2개를 사용했어요!\n"
-                        : "표현을 다시 떠올려 보세요.\n"
-                );
-                foreach (
-                    ReviewExpressionEvidence expression in result.Expressions
-                        ?? new List<ReviewExpressionEvidence>()
-                )
-                {
-                    bool used = expression.Evidence?.Count > 0;
-                    text.Append(used ? "✓ " : "○ ")
-                        .AppendLine(ReviewWorkbookRow.Escape(expression.Expression));
-                    if (used)
-                        foreach (ReviewUtterance evidence in expression.Evidence)
-                            text.Append("   “")
-                                .Append(ReviewWorkbookRow.Escape(evidence.Text))
-                                .AppendLine("”");
-                    else
-                        text.AppendLine("   이번 대화에서는 사용 근거를 찾지 못했어요.");
-                    text.AppendLine();
-                }
-                text.AppendLine(
-                    "다르게 표현한 말은 틀린 답이 아니에요. 아래 대화도 함께 돌아보세요.\n"
-                );
-            }
-            text.AppendLine("내가 한 말\n");
-            foreach (
-                string utterance in result?.Utterances?.Select(item => item.Text)
-                    ?? record.UserUtterances
-            )
-                text.Append("• ").AppendLine(ReviewWorkbookRow.Escape(utterance)).AppendLine();
-            status.text = text.ToString();
+            float top = 24;
+            status.text =
+                card == null
+                    ? ""
+                    : "<b>"
+                        + ReviewWorkbookRow.Escape(ReviewScenarioPresentation.Title(card))
+                        + "</b>\n"
+                        + ReviewWorkbookRow.Escape(ReviewScenarioPresentation.BuildingName(card))
+                        + " · "
+                        + ReviewWorkbookRow.Escape(card.Npc?.Name)
+                        + "\n\n";
+            status.text += ReviewPracticeFeedback.Format(card, record.ReviewResult);
             float bodyWidth = Mathf.Max(160, width - 116);
             float bodyHeight = status.GetPreferredValues(status.text, bodyWidth, 0).y + 36;
             ReviewWorkbookRow.Pin(status.rectTransform, 58, top, bodyWidth, bodyHeight);
+            ReviewWorkbookRow.Pin(
+                (RectTransform)more.transform,
+                (width - 178) / 2,
+                top + bodyHeight + 24,
+                178,
+                54
+            );
             scroll.content.SetSizeWithCurrentAnchors(
                 RectTransform.Axis.Vertical,
-                Mathf.Max(scroll.viewport.rect.height, top + bodyHeight + 40)
+                Mathf.Max(scroll.viewport.rect.height, top + bodyHeight + (card == null ? 40 : 114))
             );
             scroll.verticalNormalizedPosition = 1;
             lastWidth = width;
@@ -216,6 +211,15 @@ namespace A305.Learning
 
         private void ClearRows()
         {
+            foreach (var header in buildingHeaders)
+            {
+                header.gameObject.SetActive(false);
+                if (Application.isPlaying)
+                    Destroy(header.gameObject);
+                else
+                    DestroyImmediate(header.gameObject);
+            }
+            buildingHeaders.Clear();
             foreach (ReviewWorkbookRow row in rows)
             {
                 row.gameObject.SetActive(false);

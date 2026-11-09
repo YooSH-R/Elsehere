@@ -55,7 +55,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * <p>NPC가 대화에서 곧 건네기로 한 것은 종료할 때 판정해 응답에 담고, 준비된 뒤 그 NPC와 대화를 시작하면 첫마디로 건넨다({@link
  * FollowUpService}).
  *
- * <p>AI를 부르는 동안 DB 트랜잭션을 잡지 않도록 조회 → AI 호출 → 저장을 나눠 처리한다. 모든 계정은 하루 대화 시작 횟수가 제한된다.
+ * <p>AI를 부르는 동안 DB 트랜잭션을 잡지 않도록 조회 → AI 호출 → 저장을 나눠 처리한다. 게스트는 대화 횟수로 제한하고, 대화 하나는 발화 30턴까지다. 사용자
+ * AI 한도 예약·차감은 아직 하지 않는다.
  */
 @Slf4j
 @Service
@@ -151,9 +152,15 @@ public class ConversationService {
     if (replayed.isPresent()) {
       return replayed.get();
     }
+    String travelSituation =
+        review == null && request.npcTravelContext() != null
+            ? request.npcTravelContext().describe()
+            : null;
     StartContext context =
         transactionTemplate.execute(
-            status -> startContext(userId, request.npcCode(), request.npcOffDuty(), review));
+            status ->
+                startContext(
+                    userId, request.npcCode(), request.npcOffDuty(), review, travelSituation));
     NpcContext npc = context.npc();
 
     // 이 NPC가 건넬 것이 준비됐으면 건네는 말로 시작한다. 말걸기 대사가 있는 NPC가 먼저 말을 걸었으면 그 대사로 시작한다.
@@ -219,6 +226,7 @@ public class ConversationService {
                           context.level(),
                           clock.instant()));
               conversation.attachStartRequest(request.requestId());
+              conversation.recordNpcTravelSituation(travelSituation);
               if (review != null) {
                 conversation.attachReviewCard(review.id());
               }
@@ -387,13 +395,20 @@ public class ConversationService {
   }
 
   private StartContext startContext(
-      Long userId, String npcCode, boolean npcOffDuty, ReviewCardResponse review) {
+      Long userId,
+      String npcCode,
+      boolean npcOffDuty,
+      ReviewCardResponse review,
+      String travelSituation) {
     User user =
         userRepository
             .findById(userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     ensureCanStart(user);
-    NpcContext npc = dialogueContexts.npcByCode(userId, npcCode, npcOffDuty);
+    NpcContext npc =
+        dialogueContexts
+            .npcByCode(userId, npcCode, npcOffDuty)
+            .withTravelSituation(travelSituation);
     if (!npc.sceneOpen()) {
       throw new BusinessException(ErrorCode.SCENE_CLOSED);
     }
@@ -407,7 +422,7 @@ public class ConversationService {
         review);
   }
 
-  // 진행 중인 대화가 없고 오늘의 대화 횟수가 남아 있어야 시작할 수 있다. AI 호출 전과 저장 직전에 확인한다.
+  // 진행 중인 대화가 없고 게스트 대화 횟수가 남아 있어야 시작할 수 있다. AI 호출 전과 저장 직전에 확인한다.
   private void ensureCanStart(User user) {
     conversationRepository
         .findFirstByUserIdAndStatus(user.getId(), ConversationStatus.ACTIVE)

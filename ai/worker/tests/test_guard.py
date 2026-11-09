@@ -8,6 +8,7 @@ from test_npc_reply_profile import profile_of
 
 from app import config
 from app import npc_relationship as rel
+from app import prompts as P
 from app.config import Settings, profile_models
 from app.guard import guard_result
 from conftest import TOKEN, make_client, ok
@@ -137,11 +138,82 @@ def guard_by_model(answers: dict):
 
 def test_gpu_guard_model_answers_first(provider):
     provider.answers["guard"] = guard_by_model({GPU_MODEL: lambda b: ok("yes")})
-    with make_client(provider, **GPU) as c:
+    with make_client(provider, **GPU, guard_confirm=False) as c:
         body = c.post("/v1/guard", json=guard_body("you idiot")).json()
     assert body["guard"]["abusive"] is True
     assert provider.calls == [("guard", GPU_MODEL)]
     assert [(u["model"], u["fallback"]) for u in body["usage"]] == [(GPU_MODEL, False)]
+
+
+# ---------- GPU 서버 판정이 무례라고 하면 구성의 판정 모델이 한 번 더 확인 ----------
+# GPU LoRA는 대상 없는 단어("감자", "김사피", "엄마")도 무례로 보고 프롬프트로는 고쳐지지 않았다 (S15P31A305-703).
+# 둘 다 무례라고 할 때만 감점한다. 확인은 무례라고 본 줄에만 하고 의도 판정과 동시에 돌아 턴은 거의 늦어지지 않는다.
+def test_gpu_rude_answer_is_dropped_when_profile_guard_disagrees(provider):
+    profile_guard = profile_models("groq")[0]["guard"]
+    provider.answers["guard"] = guard_by_model({GPU_MODEL: lambda b: ok("yes"), profile_guard: lambda b: ok("no")})
+    with make_client(provider, **GPU) as c:
+        body = c.post("/v1/guard", json=guard_body("감자")).json()
+    assert body["guard"]["abusive"] is False and body["affinity_delta"] is None
+    assert provider.calls == [("guard", GPU_MODEL), ("guard", profile_guard)]
+    assert [(u["model"], u.get("confirm", False)) for u in body["usage"]] == [(GPU_MODEL, False), (profile_guard, True)]
+
+
+def test_gpu_rude_answer_stands_when_profile_guard_agrees(provider):
+    profile_guard = profile_models("groq")[0]["guard"]
+    provider.answers["guard"] = guard_by_model({GPU_MODEL: lambda b: ok("yes"), profile_guard: lambda b: ok("yes")})
+    with make_client(provider, **GPU) as c:
+        body = c.post("/v1/guard", json=guard_body("you idiot")).json()
+    assert body["guard"]["abusive"] is True and body["affinity_delta"] < 0
+
+
+def test_gpu_screens_with_its_own_criteria_and_confirmation_uses_the_main_ones(provider):
+    """GPU LoRA는 원칙 문구("모욕은 대상이 있어야")를 받으면 은근한 조롱을 더 놓쳤다. 그래서 LoRA는 넓게 거르는 GPU용 기준,
+    확인과 단독 판정은 GUARD_SYSTEM을 쓴다 (S15P31A305-703)."""
+    profile_guard = profile_models("groq")[0]["guard"]
+    systems = {}
+
+    def answer(b):
+        systems[b["model"]] = b["messages"][0]["content"]
+        return ok("yes")
+
+    provider.answers["guard"] = answer
+    with make_client(provider, **GPU) as c:
+        c.post("/v1/guard", json=guard_body("you idiot"))
+    assert systems == {GPU_MODEL: P.GUARD_SYSTEM_GPU, profile_guard: P.GUARD_SYSTEM}
+    assert P.GUARD_SYSTEM_GPU != P.GUARD_SYSTEM
+
+
+@pytest.mark.parametrize("answer", [lambda b: httpx.Response(503, text="down"), lambda b: ok("")])
+def test_gpu_rude_answer_stands_when_confirmation_fails(provider, answer):
+    """확인 모델이 고장 나거나 yes/no가 아닌 답을 내면 GPU 판정을 그대로 쓴다 (확인이 무례 판정 자체를 끄지 않게)."""
+    provider.answers["guard"] = lambda b: ok("yes") if b["model"] == GPU_MODEL else answer(b)  # 구성 모델의 대체 모델도 같은 답
+    with make_client(provider, **GPU) as c:
+        body = c.post("/v1/guard", json=guard_body("you idiot")).json()
+    assert body["guard"] == {"abusive": True, "error": None, "error_code": None}
+
+
+def test_gpu_polite_answer_needs_no_confirmation(provider):
+    provider.answers["guard"] = guard_by_model({GPU_MODEL: lambda b: ok("no")})
+    with make_client(provider, **GPU) as c:
+        assert c.post("/v1/guard", json=guard_body("hello")).json()["guard"]["abusive"] is False
+    assert provider.calls == [("guard", GPU_MODEL)]
+
+
+def test_profile_guard_answer_after_gpu_failure_is_not_confirmed_again(provider):
+    profile_guard = profile_models("groq")[0]["guard"]
+    provider.answers["guard"] = guard_by_model({GPU_MODEL: lambda b: httpx.Response(503, text="down"), profile_guard: lambda b: ok("yes")})
+    with make_client(provider, **GPU) as c:
+        assert c.post("/v1/guard", json=guard_body("you idiot")).json()["guard"]["abusive"] is True
+    assert provider.calls == [("guard", GPU_MODEL), ("guard", profile_guard)]
+
+
+def test_guard_confirm_from_env(monkeypatch):
+    env = {"AI_WORKER_TOKEN": TOKEN, "LLM_PROFILE": "groq", "GROQ_API_KEY": "q"}
+    monkeypatch.setattr(config, "load_dotenv", lambda *a, **kw: None)
+    monkeypatch.setattr(config.os, "environ", env)
+    assert Settings.from_env().guard_confirm is True
+    env["GUARD_CONFIRM"] = "false"
+    assert Settings.from_env().guard_confirm is False
 
 
 @pytest.mark.parametrize("text", ["음... 맛있군 좀 살 것 같ㅊ아", "ㄱㅅ", "ㅅㅂ 맛없네"])

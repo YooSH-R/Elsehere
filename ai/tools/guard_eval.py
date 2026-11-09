@@ -3,6 +3,9 @@
     ai/worker/.venv/Scripts/python ai/tools/guard_eval.py --data ~/data/guard_eval/dev_own_v1_1.jsonl --model gpt-6-luna
     python ai/tools/guard_eval.py --data dev.jsonl --base-url http://<GPU 서버>:8000/v1 --key-env GUARD_VLLM_KEY --model openai/gpt-oss-120b --concurrency 16
 
+서비스의 GPU LoRA(GUARD_GPU_MODEL)는 --criteria gpu(GUARD_SYSTEM_GPU)로 잰다. 서비스는 LoRA가 무례라고 한 줄만 구성의 판정 모델이
+GUARD_SYSTEM(--criteria main, 기본)으로 다시 확인하므로, 서비스 판정은 두 결과가 모두 무례인 줄이다.
+
 --provider는 ai/worker/llm_profiles.json의 공급자 이름(기본 gms)이고, 키는 그 공급자의 key_env에서 읽는다.
 --base-url을 주면 그 주소(GPU 서버의 vLLM 같은 OpenAI 호환 서버)로 보내고, 키는 --key-env가 가리키는 환경 변수(.env 포함)에서 읽는다.
 재시도·대체 모델 없이 그 모델 자신의 답만 잰다. 판정하지 못한 답(빈 답·거절·오류)은 따로 센다.
@@ -41,15 +44,20 @@ def history_of(item: dict) -> list[Line]:
     return [Line(who="npc", text=item["prev"])] if item["prev"] else []
 
 
-def messages(item: dict) -> list[dict]:
-    return P.guard_messages(Npc.model_validate(item["npc"]), history_of(item), item["text"])
+CRITERIA = {"main": P.GUARD_SYSTEM, "gpu": P.GUARD_SYSTEM_GPU}  # 서비스: GPU LoRA는 gpu, 구성의 판정 모델(단독·확인)은 main
 
 
-async def judge(client: httpx.AsyncClient, body: dict, item: dict, timeout: float) -> dict:
+def messages(item: dict, criteria: str = "main") -> list[dict]:
+    return P.guard_messages(Npc.model_validate(item["npc"]), history_of(item), item["text"], CRITERIA[criteria])
+
+
+async def judge(client: httpx.AsyncClient, body: dict, item: dict, timeout: float, criteria: str) -> dict:
     t = time.perf_counter()
     row = {"id": item.get("id"), "rude": item["rude"], "pred": None, "raw": "", "error": None}
     try:
-        r = await client.post("/chat/completions", json={**body, "messages": messages(item)}, timeout=httpx.Timeout(timeout, connect=10.0))
+        r = await client.post(
+            "/chat/completions", json={**body, "messages": messages(item, criteria)}, timeout=httpx.Timeout(timeout, connect=10.0)
+        )
         if r.status_code >= 400:
             row["error"] = f"http {r.status_code}: {r.text[:80]}"
         else:
@@ -92,6 +100,7 @@ async def main():
     ap.add_argument("--concurrency", type=int, default=1, help="동시에 보낼 요청 수. 공용 키(GMS)는 1~2로")
     ap.add_argument("--timeout", type=float, default=30.0)
     ap.add_argument("--limit", type=int, default=0, help="앞에서 N문장만 (시험용)")
+    ap.add_argument("--criteria", choices=list(CRITERIA), default="main", help="판정 기준 문구. 서비스의 GPU LoRA를 잴 때는 gpu")
     ap.add_argument("--env", default=str(ROOT / ".env"))
     ap.add_argument("--out")
     a = ap.parse_args()
@@ -113,7 +122,7 @@ async def main():
 
         async def one(item: dict) -> dict:
             async with gate:
-                return await judge(client, body, item, a.timeout)
+                return await judge(client, body, item, a.timeout, a.criteria)
 
         started = time.perf_counter()
         rows = await asyncio.gather(*(one(it) for it in items))

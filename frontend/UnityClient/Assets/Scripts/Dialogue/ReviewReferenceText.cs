@@ -24,12 +24,15 @@ namespace A305.Dialogue
 
         public static ReviewReferenceText Format(
             IReadOnlyList<ReviewReferenceItem> items,
-            int verifiedCount
+            int verifiedCount,
+            string scenario = null
         )
         {
             items = items ?? Array.Empty<ReviewReferenceItem>();
             var text = new StringBuilder();
             var markers = new List<ReviewReferenceMarker>();
+            if (!string.IsNullOrEmpty(scenario))
+                text.Append(scenario).AppendLine();
             text.Append("<color=#C9794A><b>")
                 .Append(Math.Min(items.Count, Math.Max(0, verifiedCount)))
                 .Append(" / ")

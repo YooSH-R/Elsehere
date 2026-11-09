@@ -472,17 +472,15 @@ namespace A305.EditorTools.Dialogue
             BuilderTools.SetReference(view, "meaningButton", meaningButton);
             BuilderTools.SetReference(view, "lineLinks", lineLinks);
             BuilderTools.SetReference(view, "wordCard", wordCard);
-            BuilderTools.SetReference(view, "wordTitleText", CardPart<TMP_Text>(wordCard, "Title"));
             BuilderTools.SetReference(
                 view,
-                "wordMeaningText",
-                CardPart<TMP_Text>(wordCard, "Meaning")
+                "wordEntries",
+                CardPart<ScrollRect>(wordCard, "Entries")
             );
-            BuilderTools.SetReference(view, "wordNoteText", CardPart<TMP_Text>(wordCard, "Note"));
             BuilderTools.SetReference(
                 view,
-                "wordSaveButton",
-                CardPart<Button>(wordCard, "WordSaveButton")
+                "wordEntryTemplate",
+                CardPart<RectTransform>(wordCard, "Entries/Content/Entry")
             );
             BuilderTools.SetReference(
                 view,
@@ -510,8 +508,9 @@ namespace A305.EditorTools.Dialogue
         }
 
         /// <summary>
-        /// 대사에서 누른 풀이 단어 근처에 뜨는 호버 카드. 단어·뜻·저장 안내와 [단어장에 저장]·닫기(X)가 있다.
-        /// 자리는 <see cref="DialoguePanelView"/>가 누른 단어에 맞춰 정하므로 레이아웃에서 빼고, 대사 위에 겹쳐 보이도록 맨 앞에 둔다.
+        /// 대사에서 누른 풀이 단어 근처에 뜨는 호버 카드. 오른쪽 위 [닫기]와 풀이 목록(Entries)이 있고, 목록의 풀이 한 줄(Entry)에
+        /// 단어·뜻·저장 안내와 [단어장에 저장]이 있다. 누른 단어가 숙어 안에 있으면 <see cref="DialoguePanelView"/>가 줄을 복제해
+        /// 숙어를 아래에 쌓고 목록을 스크롤한다. 자리는 누른 단어에 맞춰 정하므로 레이아웃에서 빼고, 대사 위에 겹쳐 보이도록 맨 앞에 둔다.
         /// 단어를 누르기 전에는 숨긴다. 모양은 <see cref="DialogueDockBuilder"/>가 정한다.
         /// </summary>
         private static RectTransform FindOrCreateWordCard(
@@ -545,9 +544,10 @@ namespace A305.EditorTools.Dialogue
                     Object.DestroyImmediate(old.gameObject);
             }
 
+            RectTransform entry = FindOrCreateWordEntries(card);
             // 단어가 길어도 오른쪽 위 [닫기]에 걸리지 않는 폭이다.
             CardText(
-                card,
+                entry,
                 "Title",
                 bold,
                 30f,
@@ -555,9 +555,9 @@ namespace A305.EditorTools.Dialogue
                 new Vector2(24, -16),
                 WordCardSize.x - WordCloseButtonWidth - 48
             );
-            CardText(card, "Meaning", regular, 22f, new Vector2(0, 1), new Vector2(24, -58), 372);
+            CardText(entry, "Meaning", regular, 22f, new Vector2(0, 1), new Vector2(24, -58), 372);
             TMP_Text note = UiBuilderTools.FindOrCreateText(
-                card,
+                entry,
                 "Note",
                 regular,
                 18f,
@@ -575,8 +575,8 @@ namespace A305.EditorTools.Dialogue
             note.fontSizeMax = 18;
 
             Button save = UiBuilderTools.FindOrCreateButton(
-                card,
-                "WordSaveButton",
+                entry,
+                "SaveButton",
                 "단어장에 저장",
                 bold,
                 WordSaveButtonWidth
@@ -596,9 +596,109 @@ namespace A305.EditorTools.Dialogue
                 WordCloseButtonWidth
             );
             Corner(close.transform, Vector2.one, new Vector2(-12, -12), WordCloseButtonWidth, 44);
+            // 스크롤하는 풀이 목록 위에 [닫기]가 늘 보이게 맨 앞에 그린다.
+            close.transform.SetAsLastSibling();
 
             card.gameObject.SetActive(false);
             return card;
+        }
+
+        /// <summary>
+        /// 카드를 채우는 풀이 목록(Entries, 스크롤)과 그 첫 줄(Entries/Content/Entry). 예전에 카드에 바로 붙어 있던 단어·뜻·안내·저장 버튼은
+        /// 디자인을 그대로 둔 채 첫 줄로 옮긴다. 줄 높이는 한 풀이만 보일 때의 카드 높이와 같다.
+        /// </summary>
+        private static RectTransform FindOrCreateWordEntries(RectTransform card)
+        {
+            RectTransform entries = FindOrCreateChild(card, "Entries");
+            entries.SetAsFirstSibling();
+            entries.anchorMin = Vector2.zero;
+            entries.anchorMax = Vector2.one;
+            entries.offsetMin = entries.offsetMax = Vector2.zero;
+            BuilderTools.GetOrAddComponent<RectMask2D>(entries.gameObject);
+            // 줄 사이 빈 곳에서도 휠·끌기로 스크롤하도록 보이지 않는 바탕이 클릭을 받는다.
+            var hitArea = BuilderTools.GetOrAddComponent<Image>(entries.gameObject);
+            hitArea.color = Color.clear;
+            hitArea.raycastTarget = true;
+
+            RectTransform content = FindOrCreateChild(entries, "Content");
+            content.anchorMin = new Vector2(0, 1);
+            content.anchorMax = Vector2.one;
+            content.pivot = new Vector2(0.5f, 1);
+            content.anchoredPosition = Vector2.zero;
+            content.sizeDelta = new Vector2(0, WordCardSize.y);
+
+            var scroll = BuilderTools.GetOrAddComponent<ScrollRect>(entries.gameObject);
+            scroll.viewport = entries;
+            scroll.content = content;
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 40;
+            scroll.verticalScrollbar = FindOrCreateWordScrollbar(card);
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+
+            RectTransform entry = FindOrCreateChild(content, "Entry");
+            entry.anchorMin = new Vector2(0, 1);
+            entry.anchorMax = Vector2.one;
+            entry.pivot = new Vector2(0.5f, 1);
+            entry.anchoredPosition = Vector2.zero;
+            entry.sizeDelta = new Vector2(0, WordCardSize.y);
+            foreach (
+                (string old, string name) in new[]
+                {
+                    ("Title", "Title"),
+                    ("Meaning", "Meaning"),
+                    ("Note", "Note"),
+                    ("WordSaveButton", "SaveButton"),
+                }
+            )
+            {
+                Transform part = card.Find(old);
+                if (part == null)
+                    continue;
+                part.SetParent(entry, false);
+                part.name = name;
+            }
+
+            return entry;
+        }
+
+        // 풀이가 카드보다 길 때만 보이는 오른쪽 가는 스크롤 막대. 아래에 풀이가 더 있다는 것을 알린다.
+        // [닫기] 아래부터 카드 아래쪽까지 두고, 저장 버튼(오른쪽 16)과 겹치지 않게 카드 오른쪽 끝에 붙인다.
+        private static Scrollbar FindOrCreateWordScrollbar(RectTransform card)
+        {
+            RectTransform bar = FindOrCreateChild(card, "Scrollbar");
+            bar.anchorMin = new Vector2(1, 0);
+            bar.anchorMax = Vector2.one;
+            bar.pivot = new Vector2(1, 0.5f);
+            bar.offsetMin = new Vector2(-10, 12);
+            bar.offsetMax = new Vector2(-4, -60);
+            var track = BuilderTools.GetOrAddComponent<Image>(bar.gameObject);
+            track.color = new Color(0, 0, 0, 0.06f);
+
+            RectTransform handle = FindOrCreateChild(bar, "Handle");
+            handle.anchorMin = Vector2.zero;
+            handle.anchorMax = Vector2.one;
+            handle.offsetMin = handle.offsetMax = Vector2.zero;
+            var handleImage = BuilderTools.GetOrAddComponent<Image>(handle.gameObject);
+            handleImage.color = new Color(0, 0, 0, 0.3f);
+
+            var scrollbar = BuilderTools.GetOrAddComponent<Scrollbar>(bar.gameObject);
+            scrollbar.handleRect = handle;
+            scrollbar.targetGraphic = handleImage;
+            scrollbar.direction = Scrollbar.Direction.BottomToTop;
+            return scrollbar;
+        }
+
+        private static RectTransform FindOrCreateChild(RectTransform parent, string name)
+        {
+            Transform existing = parent.Find(name);
+            RectTransform child =
+                existing != null
+                    ? (RectTransform)existing
+                    : new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
+            child.SetParent(parent, false);
+            return child;
         }
 
         private static void CardText(

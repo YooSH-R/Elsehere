@@ -3,7 +3,7 @@
 MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서버 API로 나눈 초안입니다. 데이터 구조는 [ERD v3.7](../erd.dbml), 수용 조건은 [요구사항명세서](../A305_기획안/04_AI용_요구사항명세서.md)를 따릅니다. 이 문서는 초안이며 팀 리뷰를 거쳐 확정합니다.
 
 - `[미정]`은 팀 결정이 필요한 항목, `[제안]`은 작성자 제안입니다.
-- MVP에서 뺀 기능은 7절에 모았습니다. 와이어프레임에 화면이 없는 기능 중 NPC 호감도 조회는 따로 API를 만들지 않았습니다. 대화 중인 NPC의 호감도만 대화 시작·발화 전송 응답(CONV-01·03의 `conversation.affinity`)에 실어 대화 화면에 보여 줍니다. 집에서 고르는 화면 테마(USER-01)와 마이페이지의 닉네임 변경(USER-04)은 와이어프레임 밖에서 추가한 기능입니다.
+- MVP에서 뺀 기능은 7절에 모았습니다. NPC 호감도는 두 곳에서 조회합니다. 대화 중인 NPC의 호감도는 대화 시작·발화 전송 응답(CONV-01·03의 `conversation.affinity`)에 실어 대화 화면에 보여 주고, 끝까지 대화한 NPC의 호감도는 휴대폰 [이웃]의 마을 NPC 목록(WORLD-08)으로 보여 줍니다. 호감도 설정과 NPC 프로필 수정은 MVP에서 뺐습니다. 집에서 고르는 화면 테마(USER-01), 마이페이지의 닉네임 변경(USER-04), 휴대폰 [이웃](WORLD-08)은 와이어프레임 밖에서 추가한 기능입니다.
 - 대화 턴은 REST로 작성했습니다. 스트리밍을 선택하면 요청·응답의 의미와 식별자는 유지하고 전송 방식만 바꿉니다.
 - 종료한 대화의 표현으로 다시 연습할 상황을 보관하는 API는 [상황 복습장](review-workbook.md)에 정리합니다.
 
@@ -244,6 +244,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | WORLD-05 | `PUT /api/v1/me/last-scene` | 현재 장소 저장(재접속 위치) | - | 09, 14 |
 | WORLD-06 | `GET /api/v1/me/game-clock` | 사용자별 게임 시각 | - | 화면 없음(월드 장면) |
 | WORLD-07 | `POST /api/v1/me/game-clock/beats` | 플레이 중 신호, 게임 시간 흐르게 하기 | - | 화면 없음(월드 장면) |
+| WORLD-08 | `GET /api/v1/me/npcs` | 마을 NPC 목록(이웃 열림·정보·호감도·아는 정도) | - | 휴대폰 [이웃] |
 | MIS-01 | `GET /api/v1/missions` | 오늘의 미션과 진행 상태(자동 시작) | - | 13 |
 | CONV-01 | `POST /api/v1/conversations` | 대화 시작, NPC 첫 대사 | LLM, TTS(말걸기 대사가 없는 NPC) | 14 |
 | CONV-02 | `POST /api/v1/speech/transcriptions` | 녹음 전사(STT) | STT | 11, 15 |
@@ -729,6 +730,54 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 첫 신호는 시계를 시작만 하고 더하지 않습니다. 신호 사이가 60초보다 길면(창을 닫았거나 백그라운드) 60초까지만 더합니다. 튜토리얼을 마치거나 건너뛴(TUT-01·02) 뒤 신호부터 흐릅니다.
 - 신호마다 그날(한국 날짜)의 접속을 `user_daily_activities`에 남깁니다. 첫·마지막 신호 시각을 남기고, 신호 사이 실제 시간을 머문 시간으로 더합니다. 머문 시간은 게임 시계가 멈춘 대화·학습 화면과 튜토리얼 중에도 세고, 신호가 60초 넘게 끊긴 사이(창을 닫았거나 숨김)는 넣지 않습니다. 어드민 이용 현황의 활동한 날·머문 시간·재방문에 씁니다([어드민](../admin.md#이용-현황)).
 - 두 API 모두 로그인한 사용자만 호출할 수 있으며, 로그인하지 않았으면 `401 UNAUTHENTICATED`입니다. WORLD-07은 `X-Requested-With` 헤더가 필요합니다.
+
+#### WORLD-08 `GET /api/v1/me/npcs`
+
+```json
+// 응답 200
+{
+  "neighborCount": 1,
+  "totalCount": 36,
+  "npcs": [
+    {
+      "npcCode": "ARCADE_STAFF",
+      "unlocked": true,
+      "name": "Max",
+      "roleLabel": "오락실 직원",
+      "sceneCode": "TOWN",
+      "sceneName": "마을",
+      "occupation": "attendant at Little Arcade on the main street",
+      "interests": ["video games"],
+      "affinity": 12,
+      "recognition": 30,
+      "talkCount": 3,
+      "lastTalkedAt": "2026-11-09T14:12:00+09:00"
+    },
+    {
+      "npcCode": "CAFE_BARISTA",
+      "unlocked": false,
+      "name": null,
+      "roleLabel": "카페 직원",
+      "sceneCode": "CAFE",
+      "sceneName": "모퉁이 카페",
+      "occupation": null,
+      "interests": [],
+      "affinity": null,
+      "recognition": null,
+      "talkCount": null,
+      "lastTalkedAt": null
+    }
+  ]
+}
+```
+
+- 휴대폰 [이웃]의 마을 NPC 목록입니다. 와이어프레임 밖에서 추가한 화면입니다. 마을의 모든 NPC(`npcs`)를 담습니다.
+- 끝까지 마친 대화가 있는 NPC만 이웃으로 열립니다(`unlocked: true`). 끝까지 마친 대화는 사용자가 한 마디 이상 하고 [대화 종료](`USER_ENDED`)·NPC 마무리(`NPC_ENDED`)·30턴 도달(`TURN_LIMIT`)로 끝낸 대화입니다. 무례 퇴장(`RUDE`)으로 끝났거나 끝내지 않은 대화는 세지 않습니다. 서버 대화 없이 방문으로 세는 튜토리얼 길 안내(TUT)도 끝까지 마친 대화로 봅니다. 게스트도 같은 기준으로 자기 목록을 받습니다.
+- 열린 이웃은 이름, 인격 카드(`npcs.profile`)의 직업(`occupation`)·관심사(`background.interests`, 영어)와 관계 값을 담습니다. `affinity`는 지금 호감도(-100~100)이며 대화 화면의 `conversation.affinity`(CONV-01·03)와 같은 값입니다. `recognition`은 알아봄(0~100, 화면 이름은 아는 정도), `talkCount`는 끝낸 대화 수, `lastTalkedAt`은 마지막으로 대화를 끝낸 시각(한국 시각 `+09:00`)입니다.
+- 열리지 않은 NPC는 역할(`roleLabel`)과 장소(`sceneCode`, `sceneName`)만 담고 나머지는 `null`(관심사는 `[]`)입니다.
+- `roleLabel`은 WORLD-02와 같은 역할 이름(`npcs.role_label`)입니다. `sceneCode`, `sceneName`은 NPC가 일하거나 지내는 장소(`scenes.code`, `scenes.name`)이며 거리 매장 직원은 마을입니다. NPC가 지금 어디서 무엇을 하는지는 서버가 모르므로 화면이 일과(Unity `NpcLife.json`)로 계산합니다.
+- `neighborCount`는 열린 이웃 수, `totalCount`는 전체 NPC 수입니다. 열린 이웃이 먼저 마지막으로 대화한 시각이 최근인 순서(같으면 이름순)로 오고, 그 뒤에 열리지 않은 NPC가 장소·역할 순서로 옵니다.
+- 로그인하지 않았으면 `401 UNAUTHENTICATED`입니다.
 
 ### 4.5 미션
 
@@ -1580,4 +1629,4 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 | 단어장 중요도 | 18 | 목록은 최근 저장순 |
 | 문장 저장, 피드백 숙어 저장, 단어장 유형 필터 | 16~18 | 숙어는 NPC 대사 단어 풀이에서만 저장. 피드백 단어장 후보의 숙어와 문장 저장은 이후 검토 |
 | 회상 복습 | 18 | 요구사항명세서 REQ-17·18(정답 기록, 5회 정답 시 카드 숨김)과 다른 점으로 기록 |
-| NPC 호감도 조회, 설정, 프로필 수정 | - | 와이어프레임에 화면 없음. 대화 중인 NPC의 호감도는 CONV-01·03 응답으로 보여 줌 |
+| NPC 호감도 설정, 프로필 수정 | - | 와이어프레임에 화면 없음. 호감도 조회는 대화 화면(CONV-01·03 응답)과 휴대폰 [이웃](WORLD-08)에서 함 |

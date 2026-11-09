@@ -1,0 +1,268 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
+using A305.Api;
+using A305.Npc;
+using A305.World;
+using NUnit.Framework;
+using TMPro;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace A305.Learning.Tests
+{
+    /// <summary>
+    /// 휴대폰 [복습장] 옆 [이웃] 버튼으로 여는 창. 열린 이웃은 이름·역할, 장소·대화 수·아는 정도, 호감도를 한 줄에 보이고,
+    /// 잠긴 NPC는 역할과 장소만 보인다. 열린 이웃을 누르면 정보 카드(지금 위치 포함)를 보인다.
+    /// </summary>
+    public class NeighborsViewTests
+    {
+        private const string HudPrefabPath = "Assets/Prefabs/Learning/LearningHud.prefab";
+        private const string LifeDataPath = "Assets/Data/Npc/NpcLife.json";
+
+        private GameObject hud;
+        private NeighborsView view;
+        private FakeNeighborsApi api;
+
+        [SetUp]
+        public void CreateHud()
+        {
+            hud = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(HudPrefabPath));
+            view = hud.GetComponent<NeighborsView>();
+            typeof(NeighborsView)
+                .GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(view, null);
+            api = new FakeNeighborsApi();
+        }
+
+        [TearDown]
+        public void DestroyHud()
+        {
+            Object.DestroyImmediate(hud);
+        }
+
+        private static Neighbor Max() =>
+            new Neighbor
+            {
+                NpcCode = "ARCADE_STAFF",
+                Unlocked = true,
+                Name = "Max",
+                RoleLabel = "오락실 직원",
+                SceneName = "마을",
+                Occupation = "attendant at Little Arcade on the main street",
+                Interests = new List<string> { "video games" },
+                Affinity = 12,
+                Recognition = 30,
+                TalkCount = 3,
+            };
+
+        private static Neighbor LockedCafeStaff() =>
+            new Neighbor
+            {
+                NpcCode = "CAFE_BARISTA",
+                Unlocked = false,
+                RoleLabel = "카페 직원",
+                SceneName = "모퉁이 카페",
+            };
+
+        [Test]
+        public async Task Show_FillsNeighborAndLockedRows()
+        {
+            api.Neighbors.Add(Max());
+            api.Neighbors.Add(LockedCafeStaff());
+
+            await ShowLoaded();
+
+            Assert.That(Shown("Neighbors"), Is.True);
+            Assert.That(Text("Neighbors/Count"), Is.EqualTo("1 / 2명"));
+            Assert.That(Text("Neighbors/Rows/Row0/Name"), Is.EqualTo(NeighborsText.Name(Max())));
+            Assert.That(
+                Text("Neighbors/Rows/Row0/Detail"),
+                Is.EqualTo("마을 · 대화 3번 · 아는 정도 30")
+            );
+            Assert.That(
+                Text("Neighbors/Rows/Row0/Affinity"),
+                Is.EqualTo("<color=#FF6B81>♥</color> 12")
+            );
+            Assert.That(Text("Neighbors/Rows/Row0/Avatar/Letter"), Is.EqualTo("M"));
+            Assert.That(Find("Neighbors/Rows/Row0").GetComponent<Button>().interactable, Is.True);
+            Assert.That(
+                Text("Neighbors/Rows/Row1/Name"),
+                Is.EqualTo("??? <size=80%>카페 직원</size>")
+            );
+            Assert.That(Text("Neighbors/Rows/Row1/Affinity"), Is.EqualTo("잠김"));
+            Assert.That(Find("Neighbors/Rows/Row1").GetComponent<Button>().interactable, Is.False);
+            Assert.That(Shown("Neighbors/Rows/Row2"), Is.False);
+            Assert.That(Shown("Neighbors/Card"), Is.False);
+            Assert.That(Text("Neighbors/Empty"), Is.Empty);
+            Assert.That(Text("Neighbors/Pager/PageNumber"), Is.EqualTo("1 / 1"));
+            Assert.That(Shown("Neighbors/RetryButton"), Is.False);
+        }
+
+        [Test]
+        public async Task NeighborRow_OpensTheCardWithWhereabouts_AndBackReturnsToTheList()
+        {
+            api.Neighbors.Add(Max());
+            await ShowLoaded();
+
+            Find("Neighbors/Rows/Row0").GetComponent<Button>().onClick.Invoke();
+
+            NpcLifeEntry life = NpcLifeData
+                .Parse(AssetDatabase.LoadAssetAtPath<TextAsset>(LifeDataPath).text)
+                .Npcs.Single(entry => entry.NpcId == "ARCADE_STAFF");
+            string whereabouts = NpcWhereabouts.Describe(
+                life,
+                GameClock.Shared.Minutes,
+                NpcDuty.RequiresPresence("ARCADE_STAFF")
+            );
+            Assert.That(Shown("Neighbors/Card"), Is.True);
+            Assert.That(Shown("Neighbors/Rows"), Is.False);
+            Assert.That(Shown("Neighbors/Pager"), Is.False);
+            Assert.That(Text("Neighbors/Card/Name"), Is.EqualTo(NeighborsText.Name(Max())));
+            Assert.That(
+                Text("Neighbors/Card/Facts"),
+                Is.EqualTo(NeighborsText.Facts(Max(), whereabouts))
+            );
+
+            Find("Neighbors/Card/BackButton").GetComponent<Button>().onClick.Invoke();
+
+            Assert.That(Shown("Neighbors/Card"), Is.False);
+            Assert.That(Shown("Neighbors/Rows"), Is.True);
+            Assert.That(Shown("Neighbors/Pager"), Is.True);
+        }
+
+        [Test]
+        public async Task Show_NobodyOpenYet_SaysHowToOpenUnderTheRows()
+        {
+            api.Neighbors.Add(LockedCafeStaff());
+
+            await ShowLoaded();
+
+            Assert.That(Shown("Neighbors/Rows/Row0"), Is.True);
+            Assert.That(Text("Neighbors/Status"), Is.EqualTo(NeighborsText.NoneOpenYet));
+        }
+
+        [Test]
+        public async Task Show_Failed_OffersRetry()
+        {
+            api.Failure = new ApiException(
+                ApiErrorCodes.NetworkError,
+                0,
+                "서버에 연결하지 못했습니다."
+            );
+
+            await ShowLoaded();
+
+            Assert.That(Text("Neighbors/Empty"), Is.EqualTo(NeighborsText.Failed));
+            Assert.That(Shown("Neighbors/RetryButton"), Is.True);
+        }
+
+        [Test]
+        public async Task NextButton_ShowsTheNextPage()
+        {
+            for (int i = 1; i <= 5; i++)
+                api.Neighbors.Add(
+                    new Neighbor
+                    {
+                        Unlocked = true,
+                        Name = "NPC" + i,
+                        TalkCount = 1,
+                    }
+                );
+            await ShowLoaded();
+
+            Find("Neighbors/Pager/NextButton").GetComponent<Button>().onClick.Invoke();
+
+            Assert.That(Text("Neighbors/Rows/Row0/Name"), Is.EqualTo("NPC5"));
+            Assert.That(Shown("Neighbors/Rows/Row1"), Is.False);
+            Assert.That(Text("Neighbors/Pager/PageNumber"), Is.EqualTo("2 / 2"));
+        }
+
+        [Test]
+        public async Task CloseButton_HidesTheWindow()
+        {
+            await ShowLoaded();
+
+            Find("Neighbors/CloseButton").GetComponent<Button>().onClick.Invoke();
+
+            Assert.That(Shown("Neighbors"), Is.False);
+            Assert.That(Shown("NeighborsShade"), Is.False);
+        }
+
+        // [조작법] 앱과 [복습장] 버튼은 그대로 두고, [복습장] 오른쪽 빈칸에 아이콘과 글자로 된 작은 [이웃] 버튼을 둔다.
+        [Test]
+        public void PhoneButton_SitsRightOfTheReviewButton_AndOpensNeighbors()
+        {
+            const float Px = 1.2f;
+            const float PhoneWidth = 430;
+            Transform phone = Find("Panel/Menu");
+            var review = (RectTransform)phone.Find("ReviewButton");
+            var neighbors = (RectTransform)phone.Find("NeighborsButton");
+
+            Assert.That(neighbors, Is.Not.Null);
+            Assert.That(phone.Find("ControlsButton"), Is.Not.Null);
+            Assert.That(review.sizeDelta, Is.EqualTo(new Vector2(234, 54) * Px));
+            Assert.That(
+                neighbors.anchoredPosition.y,
+                Is.EqualTo(review.anchoredPosition.y).Within(.01f)
+            );
+            Assert.That(neighbors.sizeDelta.y, Is.EqualTo(review.sizeDelta.y).Within(.01f));
+            Assert.That(
+                neighbors.anchoredPosition.x,
+                Is.GreaterThanOrEqualTo(review.anchoredPosition.x + review.sizeDelta.x)
+            );
+            Assert.That(
+                neighbors.anchoredPosition.x + neighbors.sizeDelta.x,
+                Is.LessThanOrEqualTo(PhoneWidth * Px)
+            );
+            Assert.That(
+                neighbors.Find("Label").GetComponent<TMP_Text>().text,
+                Is.EqualTo(NeighborsText.AppLabel)
+            );
+            Assert.That(neighbors.Find("Icon").GetComponent<Image>().sprite, Is.Not.Null);
+            Assert.That(Reference<Button>(view, "openButton").transform, Is.SameAs(neighbors));
+        }
+
+        private async Task ShowLoaded()
+        {
+            var book = new NeighborsBook(api);
+            await book.LoadAsync();
+            view.Show(book);
+        }
+
+        private Transform Find(string path)
+        {
+            Transform found = hud.transform.Find(path);
+            Assert.That(found, Is.Not.Null, path);
+            return found;
+        }
+
+        private bool Shown(string path) => Find(path).gameObject.activeSelf;
+
+        private string Text(string path) => Find(path).GetComponent<TMP_Text>().text;
+
+        private static T Reference<T>(Object owner, string field)
+            where T : Object =>
+            (T)new SerializedObject(owner).FindProperty(field).objectReferenceValue;
+
+        private sealed class FakeNeighborsApi : INeighborsApi
+        {
+            public readonly List<Neighbor> Neighbors = new List<Neighbor>();
+            public ApiException Failure;
+
+            public Task<NeighborList> GetNeighborsAsync() =>
+                Failure != null
+                    ? Task.FromException<NeighborList>(Failure)
+                    : Task.FromResult(
+                        new NeighborList
+                        {
+                            NeighborCount = Neighbors.Count(neighbor => neighbor.Unlocked),
+                            TotalCount = Neighbors.Count,
+                            Npcs = Neighbors.ToList(),
+                        }
+                    );
+        }
+    }
+}

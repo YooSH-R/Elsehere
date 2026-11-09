@@ -204,6 +204,7 @@ namespace A305.Mission
         private Vector2 coinFloatHome;
         private bool available;
         private string mapSceneCode;
+        private bool insideShop;
 
         // 미니맵을 터치 기기 자리(오른쪽 위)에 두었는지. 처음 화면을 그릴 때 정한다.
         private bool? miniMapOnRight;
@@ -782,6 +783,12 @@ namespace A305.Mission
 
         private void Update()
         {
+            bool currentInside = ShopInterior.Occupied != null;
+            if (insideShop != currentInside)
+            {
+                insideShop = currentInside;
+                UpdateLeftHudVisibility();
+            }
             bool touch = PlayerTouchControls.ShouldShowControls();
             if (miniMapOnRight != touch)
                 PlaceMiniMap(touch);
@@ -831,7 +838,13 @@ namespace A305.Mission
                 || (mapOverlay != null && mapOverlay.activeSelf);
             if (miniMapPanel != null)
                 miniMapPanel.SetActive(
-                    available && !talking && mapSceneCode == "TOWN" && !isLeftCovered
+                    available
+                        && !talking
+                        && FirstDayMissionState.CanShowMiniMapIn(
+                            mapSceneCode,
+                            ShopInterior.Occupied != null
+                        )
+                        && !isLeftCovered
                 );
             // 기다리는 카드는 퀘스트 카드처럼 대화 중에도 보인다.
             if (followUpCard != null)

@@ -10,6 +10,9 @@ namespace A305.Npc
         private const float ClearanceMeters = .15f;
         private const float WaypointToleranceMeters = .12f;
         private const float RetrySeconds = .5f;
+
+        // 길 지도에 없는 새 장애물은 표면 바로 앞에도 길 지도가 깔려 있고, 길 지도에 든 장애물은 둘레가 0.2m 넘게 비어 있다.
+        private const float KnownObstacleGapMeters = .1f;
         private readonly RaycastHit[] hits = new RaycastHit[32];
         private Collider obstacle;
         private Vector3 first;
@@ -177,6 +180,14 @@ namespace A305.Npc
                 ~0,
                 QueryTriggerInteraction.Ignore
             );
+            float groundY = NavMesh.SamplePosition(
+                from,
+                out NavMeshHit ground,
+                .4f,
+                NavMesh.AllAreas
+            )
+                ? ground.position.y
+                : from.y;
             float closest = float.PositiveInfinity;
             for (int i = 0; i < count; i++)
             {
@@ -190,10 +201,12 @@ namespace A305.Npc
                     continue;
                 if (hits[i].distance >= closest)
                     continue;
+                Vector3 center = bounds.center + shift;
+                if (IsAvoidedByWalkingMap(hits[i], center, groundY))
+                    continue;
                 // 이미 몸체 가장자리에 닿은 지지대도 그 반대쪽으로 빠져나오는 걸음은 허용한다.
                 if (hits[i].distance <= .001f && !(hit is MeshCollider mesh && !mesh.convex))
                 {
-                    Vector3 center = bounds.center + shift;
                     Vector3 outward = Flat(center - hit.ClosestPoint(center));
                     if (Vector3.Dot(offset, outward) > .0001f)
                         continue;
@@ -202,6 +215,27 @@ namespace A305.Npc
                 blocker = hit;
             }
             return blocker == null;
+        }
+
+        // 가로등·건물 벽처럼 길 지도에 이미 들어 있는 장애물인지. 길 지도는 장애물 둘레를 비워 두므로(굽는 격자 오차를 빼도 0.2m 넘게)
+        // 장애물 표면 바로 앞 바닥에 길 지도가 없다. 이런 장애물은 길 지도의 경로가 이미 비켜 가므로 다시 막지 않는다.
+        // 몸 크기 검사는 길 지도의 여유보다 조금 넓어, 경로가 붙어 지나가는 가로등 옆에서 막혔다고 보고 돌아갈 길을 못 찾아 멈췄다.
+        private static bool IsAvoidedByWalkingMap(RaycastHit hit, Vector3 center, float groundY)
+        {
+            Vector3 surface;
+            if (hit.distance > .001f)
+                surface = hit.point;
+            else if (hit.collider is MeshCollider mesh && !mesh.convex)
+                return false;
+            else
+                surface = hit.collider.ClosestPoint(center);
+            surface.y = groundY;
+            return !NavMesh.SamplePosition(
+                surface,
+                out _,
+                KnownObstacleGapMeters,
+                NavMesh.AllAreas
+            );
         }
 
         private static Vector3 Flat(Vector3 direction) =>

@@ -69,7 +69,7 @@ select id, nickname, email from users where role = 'ADMIN';
 - 앞뒤 공백은 지우고, 비운 칸은 빈 문자열로 저장합니다.
 - 이름·역할 이름·장소·목소리·먼저 말 걸기 대사는 화면에 보여 주기만 합니다. 이 값은 시드(`world.sql`)가 관리합니다.
 - 인격 카드([NPC 설정 v2 인격 구조](api/npc-ai-contracts/01_npc_configuration_spec_v2.md)의 성격·가치관·말투 등)는 이 화면에서 다루지 않습니다. 카드는 시드가 `content/npc-configurations.json`에서 넣습니다([백엔드 README](../backend/README.md#시드-데이터)).
-- 인격 카드가 있는 NPC(행인 Ben·카페 Mia·호텔 Jake·드럭스토어 Alex·택시 기사 Joe·경찰관 Dan과 거리 매장 직원 9명: 우체국 Linda·식당 Rosa·은행 Henry·빨래방 Gus·꽃집 Lily·이발소 Tony·베이커리 Grace·오락실 Max·생활용품점 Nina, 교대를 나눠 맡는 카페 Zoe·Leo·호텔 Owen·Clara·Walter·Diego·드럭스토어 Hannah·Samuel·경찰서 Victor·Kevin·Taylor·행인 Ruby·Ethan·Maya·Helen·Frank·Arthur·Margaret, 쉬는 날 마을에서 지내는 소방관 Ray·Rachel·Andre)는 NPC 대답을 카드로 만들고, `role`은 무례·의도 판정, 번역, 힌트·추천 단어, 뜻 보기, 기억 카드처럼 NPC를 짧게 소개하는 곳에만 씁니다. `facts`·`scene`은 카드와 함께 대답에도 씁니다. 카드가 없는 NPC는 세 칸으로 대답합니다.
+- 인격 카드가 있는 NPC는 카드와 `facts`·`scene`을 함께 써서 대답합니다. `role`은 무례·의도 판정, 번역, 힌트·추천 단어, 뜻 보기, 기억 카드에서 NPC를 짧게 소개할 때 씁니다. 카드가 없는 NPC는 세 칸으로 대답합니다. NPC별 현재 근무지는 [NPC 생활·관계 설계](npc-life-design.md#일과와-교대)의 교대표를 참고합니다.
 
 ### 시드와의 관계
 
@@ -77,6 +77,7 @@ select id, nickname, email from users where role = 'ADMIN';
 
 - 새 NPC는 지금처럼 `world.sql`에 추가합니다. 처음 페르소나는 시드 값이 들어가고, 그 뒤로는 어드민에서 고칩니다.
 - 이미 있는 NPC의 페르소나를 `world.sql`에서 고쳐도 반영되지 않습니다. 어드민에서 고칩니다.
+- 인격 카드는 카드가 비어 있는 NPC에만 시드에서 채웁니다. 근무지나 역할을 바꿀 때는 해당 환경의 기존 카드도 DB에서 갱신하고, 신규 DB용 기본값은 `ai/npcs/`에서 수정한 뒤 다시 내보냅니다.
 - 새로 만든 DB(로컬 DB 초기화 등)에는 시드의 처음 값이 들어갑니다. 환경 사이에 페르소나를 옮기는 기능은 없습니다.
 
 ## 이용 현황

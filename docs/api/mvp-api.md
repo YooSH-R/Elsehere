@@ -1015,13 +1015,17 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 {
   "turnId": 105,
   "meaningKo": "좋아요! 매장에서 드실 건가요, 가져가실 건가요?",
-  "glossary": [{ "text": "to go", "meaningKo": "포장" }]
+  "glossary": [
+    { "text": "Great", "meaningKo": "좋아요" },
+    { "text": "for here", "meaningKo": "매장에서" },
+    { "text": "to go", "meaningKo": "포장" }
+  ]
 }
 ```
 
 - 화면 15의 [뜻 보기]입니다. NPC 턴에만 요청할 수 있습니다. 사용자 턴과 다른 사용자의 턴은 `404 NOT_FOUND`입니다.
 - 한 번 만든 뜻은 저장하고(`turns.meaning_ko`, `turns.glossary`) 다시 요청하면 AI를 호출하지 않습니다. `turns.glossary`는 응답의 `glossary`와 같은 `[{ text, meaningKo }]` JSON입니다.
-- 뜻과 단어 풀이는 AI 워커 `/v1/meaning`이 대화 난이도(`levelApplied`)에 맞춰 만듭니다. `glossary`는 대사에 그대로 있는 말만 최대 3개이며, 쉬운 대사면 빈 배열입니다.
+- 뜻과 단어 풀이는 AI 워커 `/v1/meaning`이 만들며, 대화 난이도(`levelApplied`)를 함께 보냅니다. `glossary`는 대사에 그대로 있는 내용어(명사·본동사·형용사·부사)와 숙어·구동사·관용 표현을 나온 순서대로 최대 10개까지 담고, 이름·숫자·기능어는 뺍니다. 그런 말이 없으면 빈 배열입니다.
 - AI 호출이 실패하면 1.5의 AI 오류 코드를 돌려주고 아무것도 저장하지 않습니다. 다시 요청하면 새로 만듭니다.
 
 #### CONV-05 `POST /api/v1/turns/{turnId}/hint`

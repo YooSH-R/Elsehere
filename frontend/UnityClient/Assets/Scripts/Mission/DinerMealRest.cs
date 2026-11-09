@@ -70,6 +70,7 @@ namespace A305.Mission
                     receive();
                     return;
                 }
+                FollowUpStore.Shared.SetSeatedWaitRemaining("DINER_STAFF", timer.RemainingSeconds);
                 offer.ShowMealWaitPrompt(
                     this,
                     $"음식 준비 중 · {Mathf.CeilToInt(timer.RemainingSeconds)}초",

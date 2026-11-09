@@ -43,12 +43,59 @@ namespace A305.Dialogue
 
         public bool IsEmpty => items.Count == 0;
 
+        // 착석으로 받은 주문은 늦게 도착한 서버 목록이 다시 띄우지 않게 기억한다.
+        private readonly HashSet<long> completedSeatedWaits = new HashSet<long>();
+        private readonly HashSet<long> unsavedSeatedWaits = new HashSet<long>();
+
+        public void SetSeatedWaitRemaining(string npcCode, float remainingSeconds)
+        {
+            WaitingFollowUp item = items.Find(wait => IsSameNpc(wait, npcCode));
+            if (item == null)
+                return;
+            double now = Now;
+            int before = item.RemainingSeconds(now);
+            item.ReadyAtSeconds = now + Math.Max(0, remainingSeconds);
+            if (before != item.RemainingSeconds(now))
+                SortAndNotify();
+        }
+
+        /// <summary>착석 대기가 끝나면 그 주문만 즉시 닫고 CONV-14로 수령을 저장한다.</summary>
+        public async Task CompleteSeatedWaitAsync(IFollowUpApi api, string npcCode)
+        {
+            foreach (WaitingFollowUp item in items.FindAll(wait => IsSameNpc(wait, npcCode)))
+            {
+                completedSeatedWaits.Add(item.FollowUpId);
+                unsavedSeatedWaits.Add(item.FollowUpId);
+            }
+            Remove(0, npcCode);
+            if (api != null)
+                await SaveSeatedCompletionsAsync(api);
+        }
+
+        private async Task SaveSeatedCompletionsAsync(IFollowUpApi api)
+        {
+            foreach (long id in new List<long>(unsavedSeatedWaits))
+            {
+                try
+                {
+                    await api.DismissAsync(id);
+                    unsavedSeatedWaits.Remove(id);
+                }
+                catch (ApiException)
+                {
+                    // 화면은 닫힌 채 두고 다음 목록 갱신에서 다시 저장한다.
+                }
+            }
+        }
+
         /// <summary>
         /// 대화 종료(CONV-08)에서 받은 것을 더한다. 서버는 NPC마다 기다리는 것을 하나만 두므로, 같은 NPC의 줄이 있으면 새것으로 바꾼다.
         /// 같은 것을 다시 받으면 새 남은 시간으로 바꾸고, 다 됐다고 이미 알렸으면 다시 알리지 않는다.
         /// </summary>
         public void Receive(FollowUpData followUp)
         {
+            if (completedSeatedWaits.Contains(followUp.FollowUpId))
+                return;
             WaitingFollowUp received = WaitingFollowUp.From(followUp, Now);
             WaitingFollowUp same = items.Find(item => item.FollowUpId == received.FollowUpId);
             if (same != null)
@@ -95,6 +142,8 @@ namespace A305.Dialogue
             double now = Now;
             foreach (FollowUpData followUp in followUps)
             {
+                if (completedSeatedWaits.Contains(followUp.FollowUpId))
+                    continue;
                 WaitingFollowUp restored = WaitingFollowUp.From(followUp, now);
                 restored.IsReadyAnnounced = announced.Contains(restored.FollowUpId);
                 items.Add(restored);
@@ -119,6 +168,7 @@ namespace A305.Dialogue
         /// <summary>서버 목록(CONV-13)으로 다시 맞춘다. 받지 못하면 지금 기억하는 것을 그대로 둔다.</summary>
         public async Task RefreshAsync(IFollowUpApi api)
         {
+            await SaveSeatedCompletionsAsync(api);
             FollowUpList list;
             try
             {
@@ -166,6 +216,8 @@ namespace A305.Dialogue
 
         public void Clear()
         {
+            completedSeatedWaits.Clear();
+            unsavedSeatedWaits.Clear();
             if (items.Count == 0)
             {
                 return;
@@ -230,7 +282,7 @@ namespace A305.Dialogue
         /// <summary>화면에 보일 이름. 한국어 이름이 없으면 영어 이름이다.</summary>
         public string ItemKo { get; }
 
-        public double ReadyAtSeconds { get; }
+        public double ReadyAtSeconds { get; internal set; }
 
         // 다 됐다는 알림을 이미 보였는지. 씬을 옮겨도 다시 반짝이지 않게 목록이 기억한다.
         internal bool IsReadyAnnounced { get; set; }

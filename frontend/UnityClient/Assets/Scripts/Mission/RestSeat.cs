@@ -47,6 +47,7 @@ namespace A305.Mission
         // 카페에서는 첫날 미션이 요청 중에 막는다. 다른 장소의 자리는 미션과 상관없이 열려 있다.
         private bool available = true;
         private bool resting;
+        private bool mealWait;
         private UnityEngine.Object npcSitter;
 
         public event Action RestCompleted;
@@ -54,6 +55,8 @@ namespace A305.Mission
         public Transform SeatPoint => transform;
         public float CushionTopMeters => cushionTopMeters;
         public float FrontEdgeMeters => frontEdgeMeters;
+        public bool IsPlayerSeated => resting;
+        public float RemainingSeconds => timer.RemainingSeconds;
         public bool IsTaken => resting || npcSitter != null;
 
         public bool TryTake(UnityEngine.Object npc)
@@ -72,9 +75,10 @@ namespace A305.Mission
                 npcSitter = null;
         }
 
-        public void SetAvailable(bool value)
+        public void SetAvailable(bool value, bool mealWait = false)
         {
             available = value;
+            this.mealWait = mealWait;
             if (!available && offerView != null)
                 offerView.HideTalkPrompt(this);
         }
@@ -101,7 +105,7 @@ namespace A305.Mission
         {
             if (resting)
             {
-                if (!timer.Tick(Time.deltaTime))
+                if (!timer.Tick(Time.unscaledDeltaTime))
                     return;
                 resting = false;
                 pose.Stand();
@@ -157,7 +161,7 @@ namespace A305.Mission
             if (!pose.Sit(transform, cushionTopMeters, frontEdgeMeters))
                 return;
             resting = true;
-            timer.Begin();
+            timer.Begin(mealWait ? SeatedMealTimer.RequiredSeconds : RestSeconds);
         }
 
         private void OnDisable()

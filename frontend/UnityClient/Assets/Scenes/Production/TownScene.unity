@@ -61163,7 +61163,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.World::A305.World.TrafficLights
   mainGreenSeconds: 12
-  crossGreenSeconds: 7
+  crossGreenSeconds: 10
   yellowSeconds: 3
   heads:
   - {fileID: 1706116093}

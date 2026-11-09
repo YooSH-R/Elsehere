@@ -6,6 +6,7 @@ import com.elsehere.common.config.ClockConfig;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,8 +19,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
- * 어드민 이용 현황 집계. 로그인·접속 기록 표가 없으므로 DB에 남은 활동 흔적을 모아 센다. 모든 집계는 {@code since} 뒤의 기록만 보고, {@code
- * userId}가 있으면 그 사용자만 센다. 날짜는 한국 날짜로 묶는다.
+ * 어드민 이용 현황 집계. 로그인 기록 표는 없으므로 일별 접속 기록(user_daily_activities)과 DB에 남은 활동 흔적을 모아 센다. 모든 집계는 {@code
+ * since} 뒤의 기록만 보고, {@code userId}가 있으면 그 사용자만 센다. 날짜는 한국 날짜로 묶는다.
  */
 @Repository
 @RequiredArgsConstructor
@@ -45,28 +46,37 @@ public class AdminUsageRepository {
       """;
 
   /**
-   * 활동 흔적 한 줄(사용자, 시각, 종류). 기간 안의 흔적만 period_facts로 남긴다. 게임 시계는 마지막 신호만 남아 그 전에 돌아다니기만 한 날은 세지 못한다.
+   * 활동 흔적 한 줄(사용자, 시각, 종류, 머문 초). 일별 접속 기록(VISIT)은 그날 마지막 접속 시각과 장소 화면에 머문 초를 담고, 다른 흔적의 머문 초는 0이다.
+   * 일별 접속 기록이 생기기 전 기간은 게임 시계 마지막 신호(BEAT)만 남아 돌아다니기만 한 날을 세지 못한다.
    */
-  private static final String PERIOD_FACTS =
+  private static final String FACTS =
       "with "
           + CONVERSIONS
           + """
-      , facts (user_id, at, kind) as (
-        select id, created_at, 'START' from users
+      , facts (user_id, at, kind, stayed_seconds) as (
+        select id, created_at, 'START', cast(0 as bigint) from users
         union all
-        select user_id, converted_at, 'CONVERSION' from conversions
+        select user_id, converted_at, 'CONVERSION', 0 from conversions
         union all
-        select user_id, started_at, 'CONVERSATION' from conversations
+        select user_id, started_at, 'CONVERSATION', 0 from conversations
         union all
-        select user_id, created_at, 'AI' from ai_requests where status <> 'RESERVED'
+        select user_id, created_at, 'AI', 0 from ai_requests where status <> 'RESERVED'
         union all
-        select user_id, saved_at, 'WORD' from user_vocab
+        select user_id, saved_at, 'WORD', 0 from user_vocab
         union all
-        select user_id, completed_at, 'MISSION' from user_missions where status = 'DONE'
+        select user_id, completed_at, 'MISSION', 0 from user_missions where status = 'DONE'
         union all
-        select user_id, last_beat_at, 'BEAT' from user_game_clocks where last_beat_at is not null
-      ),
-      period_facts as (
+        select user_id, last_beat_at, 'BEAT', 0 from user_game_clocks where last_beat_at is not null
+        union all
+        select user_id, last_seen_at, 'VISIT', active_seconds from user_daily_activities
+      )
+      """;
+
+  /** 기간 안의 흔적만 period_facts로 남긴다. */
+  private static final String PERIOD_FACTS =
+      FACTS
+          + """
+      , period_facts as (
         select * from facts
         where at >= :since and (cast(:userId as bigint) is null or user_id = :userId)
       )
@@ -106,7 +116,8 @@ public class AdminUsageRepository {
               select count(*) filter (where kind = 'START') as new_users,
                      count(*) filter (where kind = 'CONVERSION') as conversions,
                      count(*) filter (where kind = 'MISSION') as missions_completed,
-                     count(*) filter (where kind = 'WORD') as words_saved
+                     count(*) filter (where kind = 'WORD') as words_saved,
+                     coalesce(sum(stayed_seconds), 0) as active_seconds
               from period_facts
             ) events
             cross join (
@@ -136,7 +147,8 @@ public class AdminUsageRepository {
               count(*) filter (where f.kind = 'CONVERSION') as conversions,
               count(*) filter (where f.kind = 'CONVERSATION') as conversations,
               count(*) filter (where f.kind = 'MISSION') as missions_completed,
-              count(*) filter (where f.kind = 'WORD') as words_saved
+              count(*) filter (where f.kind = 'WORD') as words_saved,
+              coalesce(sum(f.stayed_seconds), 0) as active_seconds
             from period_facts f
             join users u on u.id = f.user_id
             group by 1
@@ -313,6 +325,50 @@ public class AdminUsageRepository {
         sql,
         params(since, null).addValue("limit", limit),
         new DataClassRowMapper<>(OverallUsageReport.UserActivity.class));
+  }
+
+  /**
+   * 기간 안에 계정을 만든 사용자의 재방문. 계정을 만든 한국 날짜를 0일째로 세고, 활동은 기간과 관계없이 모든 흔적으로 본다. {@code today}(오늘 한국 날짜)는
+   * 아직 끝나지 않아 확인할 날로 치지 않는다.
+   */
+  public OverallUsageReport.Retention retention(Instant since, LocalDate today) {
+    String sql =
+        FACTS
+            + """
+            , active_days as (
+              select distinct user_id, cast(at at time zone '%1$s' as date) as day from facts
+            ),
+            started as (
+              select id as user_id, cast(created_at at time zone '%1$s' as date) as start_day
+              from users
+              where created_at >= :since
+            ),
+            returns as (
+              select s.start_day,
+                     exists (select 1 from active_days a
+                             where a.user_id = s.user_id and a.day = s.start_day + 1) as day1,
+                     exists (select 1 from active_days a
+                             where a.user_id = s.user_id and a.day = s.start_day + 7) as day7,
+                     exists (select 1 from active_days a
+                             where a.user_id = s.user_id
+                               and a.day between s.start_day + 1 and s.start_day + 7) as week1
+              from started s
+            )
+            select count(*) as started_users,
+                   count(*) filter (where start_day + 1 < :today) as day1_eligible,
+                   count(*) filter (where start_day + 1 < :today and day1) as day1_returned,
+                   count(*) filter (where start_day + 7 < :today) as day7_eligible,
+                   count(*) filter (where start_day + 7 < :today and day7) as day7_returned,
+                   count(*) filter (where start_day + 7 < :today and week1) as week1_returned
+            from returns
+            """
+                .formatted(ClockConfig.SERVICE_ZONE_ID);
+    return jdbcTemplate.queryForObject(
+        sql,
+        new MapSqlParameterSource()
+            .addValue("since", Timestamp.from(since))
+            .addValue("today", today, Types.DATE),
+        new DataClassRowMapper<>(OverallUsageReport.Retention.class));
   }
 
   /** 사용자 한 명의 개요. 없는 사용자면 비어 있다. */

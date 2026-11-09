@@ -1,14 +1,18 @@
 package com.elsehere.world.service;
 
+import com.elsehere.common.config.ClockConfig;
 import com.elsehere.conversation.entity.ConversationStatus;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.user.entity.OnboardingStep;
 import com.elsehere.user.repository.UserRepository;
 import com.elsehere.world.dto.GameClockResponse;
 import com.elsehere.world.entity.UserGameClock;
+import com.elsehere.world.repository.UserDailyActivityRepository;
 import com.elsehere.world.repository.UserGameClockRepository;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>클라이언트가 실제 진행 초를 보내면 화면을 열기 전까지의 시간을 보존하고, 서버 신호 간격·상한·새 대화 시작 시각으로 제한한다. 새로고침 뒤 남은 대화는 이어하기용으로
  * 보존하며 시계를 멈추지 않는다. 진행 초가 없는 이전 클라이언트는 서버 대화 상태도 함께 따른다.
+ *
+ * <p>신호마다 그날(한국 날짜)의 접속과 화면에 머문 시간도 남긴다(user_daily_activities). 어드민 이용 현황이 활동한 날과 재방문을 센다.
  */
 @Service
 @RequiredArgsConstructor
@@ -28,6 +34,7 @@ public class GameClockService {
   static final Duration MAX_BEAT_GAP = Duration.ofSeconds(60);
 
   private final UserGameClockRepository userGameClockRepository;
+  private final UserDailyActivityRepository userDailyActivityRepository;
   private final ConversationRepository conversationRepository;
   private final UserRepository userRepository;
   private final Clock clock;
@@ -74,8 +81,24 @@ public class GameClockService {
       allowed = Duration.ofSeconds(Math.clamp(beforeDialogue, 0, MAX_BEAT_GAP.getSeconds()));
     }
     boolean skipInterval = activeSeconds == null ? paused || interactionWasPaused : tutorial;
-    gameClock.beat(clock.instant(), skipInterval, allowed, activeSeconds);
+    Instant now = clock.instant();
+    Instant previousBeatAt = gameClock.getLastBeatAt();
+    gameClock.beat(now, skipInterval, allowed, activeSeconds);
+    userDailyActivityRepository.recordVisit(
+        userId,
+        LocalDate.ofInstant(now, ClockConfig.SERVICE_ZONE),
+        now,
+        stayedSeconds(previousBeatAt, now));
     return GameTime.ofPlaySeconds(gameClock.getPlaySeconds()).response(paused);
+  }
+
+  // 화면에 머문 시간은 게임 시계가 멈춰도(대화·학습 창, 튜토리얼) 센다. 신호가 끊긴 사이(창을 닫았거나 숨김)는 머문 시간이 아니다.
+  private static long stayedSeconds(Instant previousBeatAt, Instant now) {
+    if (previousBeatAt == null) {
+      return 0;
+    }
+    long elapsed = Duration.between(previousBeatAt, now).getSeconds();
+    return elapsed < 0 || elapsed > MAX_BEAT_GAP.getSeconds() ? 0 : elapsed;
   }
 
   /** 지금 게임 날짜. 호출하는 쪽의 트랜잭션 안에서 부른다. */

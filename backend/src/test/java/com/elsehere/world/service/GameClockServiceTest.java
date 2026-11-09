@@ -12,6 +12,7 @@ import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.world.dto.GameClockResponse;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 // 신호 사이에 지난 실제 시간은 테스트 시계로 정한다. 대화는 시드의 NPC로 만든다.
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
@@ -43,6 +45,8 @@ class GameClockServiceTest {
   @Autowired private AdjustableClock clock;
 
   @Autowired private EntityManager entityManager;
+
+  @Autowired private JdbcTemplate jdbcTemplate;
 
   private Long userId;
 
@@ -134,6 +138,68 @@ class GameClockServiceTest {
     assertThat(gameClockService.currentDay(userId)).isEqualTo(1);
     assertThat(gameClockService.now(otherUserId)).isEqualTo(new GameClockResponse(1, 480, false));
   }
+
+  @Test
+  @DisplayName("신호를 받으면 그날(한국 날짜) 접속을 남기고, 신호 사이에 지난 실제 시간을 머문 시간으로 더한다")
+  void beat_recordsKoreanDayVisitWithStayedSeconds() {
+    gameClockService.beat(userId);
+    clock.setInstant(NOW.plusSeconds(30));
+    gameClockService.beat(userId);
+
+    // NOW는 한국 2026-10-30 10:00
+    assertThat(visits()).containsExactly(new Visit("2026-10-30", NOW, NOW.plusSeconds(30), 30));
+  }
+
+  @Test
+  @DisplayName("대화·학습 창이 열려 게임 시계가 멈춘 동안에도 화면에 머문 시간은 센다")
+  void beat_whileInteractionPaused_stillCountsStayedSeconds() {
+    gameClockService.beat(userId, true, false, 0L);
+    clock.setInstant(NOW.plusSeconds(30));
+    gameClockService.beat(userId, true, true, 0L);
+
+    assertThat(visits()).extracting(Visit::activeSeconds).containsExactly(30L);
+  }
+
+  @Test
+  @DisplayName("신호가 60초 넘게 끊겼다가 다시 오면(창을 닫았거나 숨김) 끊긴 사이는 머문 시간에 넣지 않는다")
+  void beat_afterLongGap_addsNoStayedSeconds() {
+    gameClockService.beat(userId);
+    clock.setInstant(NOW.plusSeconds(600));
+    gameClockService.beat(userId);
+
+    assertThat(visits()).containsExactly(new Visit("2026-10-30", NOW, NOW.plusSeconds(600), 0));
+  }
+
+  @Test
+  @DisplayName("한국 자정을 넘긴 신호는 다음 날 접속으로 남긴다")
+  void beat_afterKoreanMidnight_recordsNextDay() {
+    Instant beforeMidnight = Instant.parse("2026-10-30T14:59:50Z");
+    Instant afterMidnight = beforeMidnight.plusSeconds(30);
+    clock.setInstant(beforeMidnight);
+    gameClockService.beat(userId);
+    clock.setInstant(afterMidnight);
+    gameClockService.beat(userId);
+
+    assertThat(visits())
+        .containsExactly(
+            new Visit("2026-10-30", beforeMidnight, beforeMidnight, 0),
+            new Visit("2026-10-31", afterMidnight, afterMidnight, 30));
+  }
+
+  private List<Visit> visits() {
+    return jdbcTemplate.query(
+        "select to_char(activity_date, 'YYYY-MM-DD'), first_seen_at, last_seen_at, active_seconds"
+            + " from user_daily_activities where user_id = ? order by activity_date",
+        (row, rowNumber) ->
+            new Visit(
+                row.getString(1),
+                row.getTimestamp(2).toInstant(),
+                row.getTimestamp(3).toInstant(),
+                row.getLong(4)),
+        userId);
+  }
+
+  private record Visit(String day, Instant firstSeenAt, Instant lastSeenAt, long activeSeconds) {}
 
   // 튜토리얼 완료 API(TUT-01)를 거치지 않고 온보딩 단계만 바꾼다.
   private void setOnboardingStep(String step) {

@@ -14,8 +14,10 @@ namespace A305.Npc
         // 일터에서 말을 걸러 다가오는 속도는 0인 직원도 있으므로 출퇴근 속도와 분리한다.
         private const float PassingLookAheadMeters = 1.25f;
         private const float CrossingLookAheadMeters = .6f;
-        private const float RequiredRedSeconds = TrafficSignalCycle.RequiredCrossingSeconds;
         private const float SignalRadiusMeters = 8f;
+
+        // 경로의 다음 모서리가 이만큼 안이면, 그 모서리까지의 짧은 걸음은 횡단 방향을 정하지 않는다.
+        private const float CornerApproachMeters = 1f;
         private NavMeshPath path;
 
         private Passerby passing;
@@ -169,6 +171,7 @@ namespace A305.Npc
             }
 
             int areas = WalkingAreas;
+            Vector3? crossingHeading = null;
             if (
                 !NavMesh.SamplePosition(transform.position, out NavMeshHit start, 1f, areas)
                 || !NavMesh.SamplePosition(Destination, out NavMeshHit end, 1f, areas)
@@ -200,9 +203,16 @@ namespace A305.Npc
                     direction = path.corners[2] - transform.position;
                     direction.y = 0;
                 }
+                // 교차로 모퉁이에서는 본길·가로길 횡단보도가 만난다. 모퉁이까지 짧게 걷는 중이면 그 걸음이 아니라
+                // 다음 구간(실제로 건널 방향)으로 어느 길을 건너는지 정한다. 짧은 걸음으로 정하면 가로길 신호를 기다리며 멈췄다.
+                if (path.corners.Length > 2 && direction.magnitude <= CornerApproachMeters)
+                    crossingHeading = Vector3.ProjectOnPlane(
+                        path.corners[2] - path.corners[1],
+                        Vector3.up
+                    );
             }
 
-            direction = body.PrepareWalkDirection(direction);
+            direction = body.PrepareWalkDirection(direction, crossingHeading);
             Vector3 travel = PassingDirection(body, direction);
             bool clear =
                 IsHurrying
@@ -227,10 +237,14 @@ namespace A305.Npc
             body.WalkToward(travel, speed, prepared: true);
         }
 
+        /// <param name="crossingHeading">
+        /// 모퉁이까지 짧게 걷는 중일 때 실제로 건널 방향(경로의 다음 구간). 없으면 지금 걸음 방향으로 정한다.
+        /// </param>
         internal static bool ShouldWaitForSignal(
             TrafficLights lights,
             Vector3 position,
-            Vector3 direction
+            Vector3 direction,
+            Vector3? crossingHeading = null
         )
         {
             if (lights == null || IsRoadSurface(position, .1f) || direction.sqrMagnitude < .0001f)
@@ -238,9 +252,39 @@ namespace A305.Npc
             Vector3 ahead = position + direction.normalized * CrossingLookAheadMeters;
             if (!OnCrosswalk(ahead, .2f))
                 return false;
-            bool crossesMainRoad = Mathf.Abs(direction.x) >= Mathf.Abs(direction.z);
+            Vector3 across =
+                crossingHeading.HasValue && crossingHeading.Value.sqrMagnitude > .0001f
+                    ? crossingHeading.Value
+                    : direction;
+            bool crossesMainRoad = Mathf.Abs(across.x) >= Mathf.Abs(across.z);
+            // 앞에서 기다리던 사람이 출발한 뒤 연석에 닿은 사람도, 자기가 건널 시간만 남았으면 따라 건넌다.
             return HasNearbySignal(lights, ahead)
-                && !lights.CanCross(crossesMainRoad, RequiredRedSeconds);
+                && !lights.CanCross(crossesMainRoad, SecondsToCrossFrom(position, ahead, across));
+        }
+
+        /// <summary>
+        /// 지금 자리에서 횡단보도 건너편 끝까지 걸어서 건너는 시간. 횡단보도 구역을 벗어나는 곳까지 재고,
+        /// 재지 못하면 예전처럼 넉넉한 시간(<see cref="TrafficSignalCycle.RequiredCrossingSeconds"/>)을 쓴다.
+        /// </summary>
+        private static float SecondsToCrossFrom(Vector3 position, Vector3 ahead, Vector3 direction)
+        {
+            int crossing = NavMesh.GetAreaFromName("Crosswalk");
+            Vector3 forward = Vector3.ProjectOnPlane(direction, Vector3.up).normalized;
+            if (
+                crossing < 0
+                || !NavMesh.SamplePosition(ahead, out NavMeshHit onCrosswalk, .3f, 1 << crossing)
+                || !NavMesh.Raycast(
+                    onCrosswalk.position,
+                    onCrosswalk.position + forward * 100f,
+                    out NavMeshHit farEdge,
+                    1 << crossing
+                )
+            )
+                return TrafficSignalCycle.RequiredCrossingSeconds;
+            float meters = Vector3
+                .ProjectOnPlane(farEdge.position - position, Vector3.up)
+                .magnitude;
+            return TrafficSignalCycle.SecondsToCross(meters);
         }
 
         internal static bool HasNearbySignal(TrafficLights lights, Vector3 position)

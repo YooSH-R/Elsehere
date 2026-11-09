@@ -7,14 +7,16 @@
 일반 Linux 검사는 EC2와 노트북이 나눠 받지만 `prod:plan`·`prod:deliver`는 `a305-ec2` 태그를 추가로 요구해 EC2에서만 실행합니다. Runner 태그와 노트북 제한은 [검사 파이프라인](ci-runner.md#노트북-linux-runner)을 따릅니다.
 
 1. `dev → main` 릴리스 MR을 병합하기 전에 [운영 통합 검증](ci-cd.md#4-운영-배포-전-통합-테스트-기준)을 완료합니다. 별도 통합 환경에서 로그인·권한·대화·음성·결과 저장과 실패 처리를 확인하고 검증한 코드·이미지·설정을 기록합니다.
-2. 운영 DB의 스키마·이전 앱 호환성, 백업과 격리 DB 복원 결과를 릴리스 MR에 기록합니다. 앱 시작 시 Flyway가 검토된 `db/migration` SQL을 버전 순서대로 적용하고 JPA가 `JPA_DDL_AUTO=validate`로 검사합니다. 필요한 설정과 마이그레이션의 적용 순서를 병합 전에 확인합니다. 앱 복구로 DB는 되돌아가지 않으므로 이전 앱이 새 스키마에서도 동작해야 합니다. 호환되지 않는 변경은 별도 적용 순서와 중지 계획을 확정한 뒤 릴리스합니다.
+2. 운영 DB 변경이 있으면 적용 순서·복구 계획과 자동 검증으로 확인할 범위를 릴리스 MR에 기록합니다. 앱 시작 시 Flyway가 검토된 `db/migration` SQL을 버전 순서대로 적용하고 JPA가 `JPA_DDL_AUTO=validate`로 검사합니다. 앱 복구 후에도 이전 앱이 새 스키마에서 동작해야 합니다. 호환되지 않는 변경은 별도 적용 순서와 중지 계획을 병합 전에 확정합니다.
 3. [릴리스 절차](development.md#릴리스와-긴급-수정)에 따라 리뷰 후 보호된 `main`에 병합합니다. 병합으로 발생한 Push 파이프라인이 `prod:plan`을 자동 실행합니다. 별도 변수 입력이나 배포 버튼은 필요하지 않습니다. 직접 Push를 막고 리뷰·병합 권한을 제한하는 브랜치 보호 정책을 유지합니다.
 4. 마지막 운영 성공 커밋과의 누적 차이로 이미지 빌드 범위를 정합니다. `prod:child`는 운영 배포를 직렬화하며 변경 영역과 관계없이 백엔드·AI·Unity Editor·인프라·앱 실행·관측 검사를 모두 수행합니다. 부모의 중복 검사는 생략하고 실제 `main` 커밋을 자식에서 검사합니다. WebGL은 이미지 입력이 바뀐 경우에만 새로 빌드합니다. 재사용 이미지의 ID와 실제 빌드 소스도 성공 기록에 남습니다.
-5. 모든 필수 검사가 성공하면 `prod:deliver`가 검증한 이미지만 자동 전달합니다. 전달 전 후보가 여전히 최신 `main`인지 확인하고, 서버는 상태 토큰·환경 이름·파이프라인 순서를 확인합니다. 개발 키나 개발 번들은 운영 수신기에서 거절합니다.
+5. 모든 필수 검사가 성공하면 `prod:deliver`가 검증한 이미지만 자동 전달합니다. 전달 전 후보가 여전히 최신 `main`인지 확인하고, 서버는 상태 토큰·환경 이름·파이프라인 순서를 확인합니다. 개발 키나 개발 번들은 운영 수신기에서 거절합니다. DB 마이그레이션 검사가 필요한 배포에서는 서버가 앱을 교체하기 전에 운영 백업을 생성하고 복원을 검증합니다.
 6. 운영 Compose·환경 파일·관측 및 운영 워커 네트워크 추가 Compose로 필요한 앱만 교체합니다. DB·호스트 Nginx·인증서·모니터링 스택은 교체하지 않습니다.
 7. 컨테이너 상태·이미지 ID·DB health·HTTPS·공개 WebGL 버전·인증된 관리 포트·운영 Prometheus 수집을 확인합니다. 모든 점검과 이미지 보관에 성공해야 성공 기록을 갱신합니다. 실패 시 이전 앱 복구를 시도하며 성공 기록을 유지합니다.
 
-자동 CI의 정적 WebGL fixture는 실제 브라우저 학습 흐름 검증을 대신하지 않습니다. MR에 기록한 통합 검증·DB 복원 시험과 동료 리뷰는 병합 전에 완료해야 합니다. 검증 후 코드·이미지·설정이 달라졌다면 필요한 검증을 다시 수행합니다.
+자동 CI의 정적 WebGL fixture는 실제 브라우저 학습 흐름 검증을 대신하지 않습니다. 통합 검증, 자동 DB 검사 범위를 벗어나는 변경의 별도 검증, 동료 리뷰는 병합 전에 완료합니다. 검증 후 코드·이미지·설정이 달라졌다면 필요한 검증을 다시 수행합니다.
+
+이전 운영 버전이 있고 마지막 성공 배포 이후 마이그레이션이 바뀌면, 운영 배포 자식의 `backend:database-upgrade`가 앱 전달 전에 실행됩니다. 직전 운영 백엔드의 소스 커밋에서 빌드한 JAR로 일회용 PostgreSQL 16을 준비하고 테스트 계정을 만듭니다. 후보 JAR를 기동해 마이그레이션과 기존 계정 보존을 확인한 뒤, 이전 JAR를 다시 기동해 장소 조회와 테스트 계정 생성이 되는지 확인합니다. 배포 간 차이를 확인할 수 없으면 검사합니다. 일반 MR과 개발 배포에는 이 작업을 추가하지 않습니다.
 
 Windows 빌드에서 운영 전달 작업으로 WebGL을 옮길 때도 [WebGL 빌드 전달과 정리](dev-auto-deployment.md#webgl-빌드-전달과-정리)의 프로젝트 내부 임시 패키지를 사용합니다. 운영 수신기와 서버의 이미지 보관·롤백 경로는 기존 구성을 유지합니다.
 
@@ -81,6 +83,8 @@ sudo install -m 644 infra/scripts/deployment_server.py \
   /usr/local/lib/a305-prod-deploy/deployment_server.py
 sudo install -m 644 infra/scripts/dev_worker_network.py \
   /usr/local/lib/a305-prod-deploy/dev_worker_network.py
+sudo install -m 644 infra/scripts/production_database_backup.py \
+  /usr/local/lib/a305-prod-deploy/production_database_backup.py
 install -d -m 700 "$HOME/apps/a305/prod/config"
 install -m 600 infra/compose/compose.prod-worker-network.yaml \
   "$HOME/apps/a305/prod/config/compose.prod-worker-network.yaml"
@@ -129,6 +133,14 @@ ssh -T -i "$HOME/.ssh/a305-prod-deploy" \
   -o UserKnownHostsFile="$HOME/apps/a305/prod/deploy-known-hosts" \
   ubuntu@k15a305.p.ssafy.io state
 ```
+
+### 운영 백업 복원 검증 준비
+
+운영 담당자는 마이그레이션을 포함한 첫 배포 전에 업데이트된 수신기와 OpenSSL을 설치하고 `/etc/a305-prod-deploy.json`의 `database_backup`을 설정합니다. 예제의 `certificate`와 `key`에는 자동 검증 전용 PEM 인증서와 대응하는 무인 실행용 개인 키의 서버 경로를 지정합니다. 배포 수신기 계정이 백업 디렉터리와 개인 키를 소유해야 합니다. 디렉터리는 `700`, 키는 `600`으로 관리하고, 장애 복구에 쓸 키 사본은 운영 서버 외부의 승인된 비밀 저장소에 보관합니다. 기존 수신기를 갱신할 때는 배포가 실행 중이지 않은지 확인하고 수신기를 다시 초기화하지 않습니다.
+
+`main` 병합 후 `backend:database-upgrade`가 필요한 배포에서 같은 조건으로 복원 검증을 실행합니다. 운영 수신기는 배포 잠금 안에서 현재 DB를 읽어 CMS AES-256-GCM 백업을 생성하고, 같은 PostgreSQL 이미지로 띄운 별도 컨테이너에 복호화한 스트림을 복원합니다. 임시 DB에는 운영 볼륨, 외부 네트워크, 공개 포트가 없습니다. `pg_restore --exit-on-error`로 전체 덤프를 적용하고 Flyway 성공 이력과 사용자·대화 테이블 조회를 확인합니다. 복원 DB와 임시 볼륨을 제거한 뒤 검증된 암호화 파일을 `600`으로 보관합니다.
+
+수신기나 복원 키가 준비되지 않았거나 백업 생성·복원·정리에 실패하면 앱 교체 전에 배포를 중단합니다. GitLab에는 배포 결과와 검증한 백업 파일명만 기록합니다. 호스트 종료 등으로 정리가 중단되면 담당자가 `org.elsehere.purpose=production-backup-restore` 라벨로 임시 컨테이너를 찾아 해당 임시 컨테이너와 볼륨만 정리합니다. 자동 검증의 범위는 이번 배포가 만든 DB 백업입니다. 기존 백업의 키와 서버 외부 보관본, DB 서버의 역할·권한, 음성 파일은 각 복구 절차로 관리합니다.
 
 ## 보관과 실패 복구
 

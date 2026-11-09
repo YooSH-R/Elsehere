@@ -103,6 +103,12 @@ namespace A305.Npc.PlayModeTests
                     .Any(label => label.text.Contains("택시 타기")),
                 Is.True
             );
+            var speechIcon = offer.ShownButtonRect.Find("Icon").GetComponent<Image>();
+            Assert.That(
+                speechIcon.isActiveAndEnabled,
+                Is.True,
+                "택시 타기에 말풍선이 보여야 합니다."
+            );
 
             player.Teleport(outside, Quaternion.identity);
             yield return null;

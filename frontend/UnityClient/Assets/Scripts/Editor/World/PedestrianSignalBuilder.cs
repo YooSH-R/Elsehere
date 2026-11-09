@@ -385,7 +385,7 @@ namespace A305.EditorTools.World
             camera.farClipPlane = 150;
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new UnityEngine.Color(.7f, .8f, .85f);
-            var cycle = new TrafficSignalCycle(12, 7, 3);
+            var cycle = new TrafficSignalCycle(12, TrafficLights.CrossGreenSeconds, 3);
             PreviewPhase(cycle, 15);
             Save(camera, "intersection", new Vector3(0, 8, -3), new Vector3(0, .7f, 10));
             Save(

@@ -1312,6 +1312,63 @@ namespace A305.Npc.PlayModeTests
             CheckNewObstacle(carves: false, height: .2f);
 
         [UnityTest]
+        public IEnumerator Town_CommuterAtAJunctionCornerCrossesTheRoadItIsHeadingAcross()
+        {
+            // 서쪽 교차로 모퉁이(-2.9, 14.6)는 본길 횡단보도와 가로길 횡단보도가 만난다. 본길을 건너려는 사람이 모퉁이까지
+            // 남쪽으로 한 걸음 가야 할 때, 그 짧은 걸음 방향으로 가로길 횡단으로 잘못 보고 가로길 신호를 기다리며 멈췄다.
+            SetClock(21 * 60);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            foreach (
+                var population in Object.FindObjectsByType<NpcPopulation>(FindObjectsSortMode.None)
+            )
+                population.enabled = false;
+            Object
+                .FindFirstObjectByType<A305.Player.PlayerMover>()
+                .Teleport(new Vector3(450, 20, 450), Quaternion.identity);
+            var walker = Object
+                .FindObjectsByType<NpcTownWalker>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+                .Single(w => w.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER");
+            var lights = Object.FindFirstObjectByType<TrafficLights>();
+            lights.enabled = false;
+            // 본길은 빨간불(건널 수 있음)이 시작되고 가로길은 초록불이다.
+            typeof(TrafficLights)
+                .GetField("elapsedSeconds", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(lights, 15f);
+            Assume.That(lights.CanCross(true, 8), Is.True);
+            Assume.That(lights.CanCross(false, 0), Is.False);
+            float previousDeltaTime = Time.captureDeltaTime;
+            try
+            {
+                Time.captureDeltaTime = 1f / 60f;
+                PlaceWalker(walker, new Vector3(-3f, .15f, 15.3f), Vector3.back);
+                walker.Destination = new Vector3(4.2f, .15f, 14.6f);
+                for (int frame = 0; frame < 360; frame++)
+                    yield return null;
+                Assert.That(
+                    walker.transform.position.x,
+                    Is.GreaterThan(2.5f),
+                    "본길 빨간불 동안 모퉁이에서 본길을 건너야 합니다."
+                );
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDeltaTime;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Town_CommuterPassesAStreetLampThatTheWalkingMapAlreadyAvoids()
         {
             // 길 지도는 카페에서 서쪽 가게로 가는 인도의 가로등(-3.45, 15)을 이미 비켜 가는데,
@@ -1521,6 +1578,116 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_LowFrameRateStillFinishesCrossing() =>
             CheckCrossingSignalChange(.3f, false, frameSeconds: .1f);
 
+        // 본길 빨간불이 6초 남았다. 2m 횡단보도는 2.25초면 건너므로 출발한다(예전에는 늘 8초가 남아야 출발해 줄이 밀렸다).
+        [UnityTest]
+        public IEnumerator Town_CommuterStartsAShortCrossingWhileItCanStillFinish() =>
+            CheckCrossingSignalChange(.3f, false, crossingPhase: 19f);
+
+        [UnityTest]
+        public IEnumerator Town_CommutersQueuedForASignalWaitSideBySideAndCrossTogether()
+        {
+            // 한 줄로 횡단보도에 온 세 사람이 빨간불 동안 연석을 따라 나란히 서고, 다음 초록에 함께 건넌다.
+            // 예전에는 앞사람 뒤 1.2m 간격으로 줄을 서서 뒷사람이 연석에 닿기 전에 출발할 수 있는 때가 지났다.
+            SetClock(21 * 60);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            foreach (
+                var population in Object.FindObjectsByType<NpcPopulation>(FindObjectsSortMode.None)
+            )
+                population.enabled = false;
+            Object
+                .FindFirstObjectByType<A305.Player.PlayerMover>()
+                .Teleport(new Vector3(450, 20, 450), Quaternion.identity);
+            NpcTownWalker[] walkers = Object
+                .FindObjectsByType<NpcTownWalker>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+                .Where(w =>
+                    new[] { "HOTEL_NIGHT_MANAGER", "CAFE_STAFF", "BARBER_STAFF" }.Contains(
+                        w.GetComponent<NpcIdentity>().Code
+                    )
+                )
+                .ToArray();
+            Assert.That(walkers, Has.Length.EqualTo(3));
+            foreach (Passerby body in Object.FindObjectsByType<Passerby>(FindObjectsSortMode.None))
+                body.gameObject.SetActive(false);
+
+            var lights = Object.FindFirstObjectByType<TrafficLights>();
+            lights.enabled = false;
+            var signal = lights.Heads.First(head => head != null);
+            Vector3 signalPosition = signal.transform.position;
+            signal.transform.position = new Vector3(500, 0, 502);
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var phase = typeof(TrafficLights).GetField("elapsedSeconds", flags);
+            phase.SetValue(lights, 0f);
+            Assert.That(lights.CanCross(true, 0), Is.False, "준비: 본길이 초록불");
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            floor.transform.position = new Vector3(500, -.1f, 500);
+            floor.transform.localScale = new Vector3(12, .2f, 6);
+            NavMeshData navData = BuildWalkingFloor(
+                floor,
+                new NavMeshBuildSource
+                {
+                    shape = NavMeshBuildSourceShape.ModifierBox,
+                    transform = Matrix4x4.Translate(new Vector3(500, 0, 500)),
+                    size = new Vector3(2, 4, 6),
+                    area = NavMesh.GetAreaFromName("Crosswalk"),
+                }
+            );
+            var navInstance = NavMesh.AddNavMeshData(navData);
+            float previousDeltaTime = Time.captureDeltaTime;
+            try
+            {
+                Time.captureDeltaTime = 1f / 60f;
+                for (int i = 0; i < walkers.Length; i++)
+                {
+                    PlaceWalker(
+                        walkers[i],
+                        new Vector3(497.6f - i * 1.25f, .1f, 500),
+                        Vector3.right
+                    );
+                    walkers[i].Destination = new Vector3(503f + i * 1.2f, 0, 500);
+                }
+                for (int frame = 0; frame < 360; frame++)
+                    yield return null;
+                foreach (NpcTownWalker walker in walkers)
+                    Assert.That(
+                        walker.transform.position.x,
+                        Is.InRange(497.7f, 498.9f),
+                        "세 사람 모두 연석 앞에서 나란히 기다려야 합니다: "
+                            + walker.GetComponent<NpcIdentity>().Code
+                    );
+
+                phase.SetValue(lights, 15f);
+                for (int frame = 0; frame < 360; frame++)
+                    yield return null;
+                foreach (NpcTownWalker walker in walkers)
+                    Assert.That(
+                        walker.transform.position.x,
+                        Is.GreaterThan(501.2f),
+                        "한 번의 초록에 함께 건너야 합니다: "
+                            + walker.GetComponent<NpcIdentity>().Code
+                    );
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDeltaTime;
+                signal.transform.position = signalPosition;
+                navInstance.Remove();
+                Object.Destroy(navData);
+                Object.Destroy(floor);
+            }
+        }
+
         [UnityTest]
         public IEnumerator Town_OpposingCommutersPassWhileCrossing() =>
             CheckCrossingSignalChange(.3f, false, opposing: true);
@@ -1597,7 +1764,8 @@ namespace A305.Npc.PlayModeTests
             bool pedestrianOnly = false,
             bool hurrying = false,
             float frameSeconds = 1f / 60f,
-            bool opposing = false
+            bool opposing = false,
+            float crossingPhase = 15f
         )
         {
             SetClock(21 * 60);
@@ -1726,8 +1894,8 @@ namespace A305.Npc.PlayModeTests
                     );
                 }
 
-                phase.SetValue(lights, 15f);
-                Assert.That(lights.CanCross(true, 8), Is.True);
+                phase.SetValue(lights, crossingPhase);
+                Assert.That(lights.CanCross(true, 0), Is.True, "준비: 본길이 빨간불");
                 bool crossed = false;
                 bool changed = false;
                 for (int frame = 0; frame < 300; frame++)

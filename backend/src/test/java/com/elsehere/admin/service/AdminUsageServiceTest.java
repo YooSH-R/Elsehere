@@ -12,6 +12,7 @@ import com.elsehere.admin.dto.OverallUsageReport;
 import com.elsehere.admin.dto.UsageReport;
 import com.elsehere.admin.dto.UserUsageReport;
 import com.elsehere.admin.repository.AdminUsageRepository;
+import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
@@ -89,8 +90,8 @@ class AdminUsageServiceTest {
 
     assertThat(report.usage().byDay())
         .containsExactly(
-            new UsageReport.Day("2030-01-09", 2, 1, 1, 0, 0, 1, 0, 0),
-            new UsageReport.Day("2030-01-10", 3, 2, 1, 1, 0, 0, 1, 1));
+            new UsageReport.Day("2030-01-09", 2, 1, 1, 0, 0, 1, 0, 0, 0),
+            new UsageReport.Day("2030-01-10", 3, 2, 1, 1, 0, 0, 1, 1, 0));
   }
 
   @Test
@@ -397,6 +398,55 @@ class AdminUsageServiceTest {
             exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
   }
 
+  @Test
+  @DisplayName("일별 접속 기록만 있는 날도 활동한 날로 세고, 날짜별과 기간 전체의 머문 시간을 더한다")
+  void report_countsVisitDaysAndActiveTime() {
+    Long member = user(AuthProvider.GOOGLE, "google-sub-1", "Sun");
+    // 한국 2030-01-09 09:00까지 10분, 2030-01-10 08:00까지 5분 머묾
+    visit(member, NOW.minus(1, DAYS), 600);
+    visit(member, NOW.minus(1, HOURS), 300);
+
+    UsageReport usage = adminUsageService.report(7).usage();
+
+    assertThat(usage.byDay())
+        .extracting(
+            UsageReport.Day::day, UsageReport.Day::activeUsers, UsageReport.Day::activeSeconds)
+        .containsExactly(tuple("2030-01-09", 1L, 600L), tuple("2030-01-10", 1L, 300L));
+    assertThat(usage.summary())
+        .extracting(
+            UsageReport.Summary::activeUsers,
+            UsageReport.Summary::activeUserDays,
+            UsageReport.Summary::returningUsers,
+            UsageReport.Summary::activeSeconds)
+        .containsExactly(1L, 2L, 1L, 900L);
+    assertThat(usage.summary().averageDailyActiveMinutes()).isEqualTo(7.5);
+  }
+
+  @Test
+  @DisplayName("재방문은 기간 안에 계정을 만든 사용자를 만든 날부터 세고, 확인할 날이 다 지난 사용자만 D1·D7·7일 안 재방문 대상으로 삼는다")
+  void report_countsRetentionOfStartedUsers() {
+    // 오늘은 한국 2030-01-10이다.
+    Long both = startedOn("2030-01-01", "google-sub-1");
+    Long midWeek = startedOn("2030-01-01", "google-sub-2");
+    startedOn("2030-01-01", "google-sub-3");
+    Long yesterdayReturned = startedOn("2030-01-08", "google-sub-4");
+    Long tooRecent = startedOn("2030-01-09", "google-sub-5");
+    Long beforePeriod = startedOn("2029-12-01", "google-sub-6");
+    visit(both, koreanTenAm("2030-01-02"), 300);
+    visit(both, koreanTenAm("2030-01-08"), 300);
+    conversation(midWeek, "CAFE_STAFF", "ACTIVE", null, koreanTenAm("2030-01-05"));
+    visit(yesterdayReturned, koreanTenAm("2030-01-09"), 300);
+    visit(tooRecent, NOW, 300);
+    visit(beforePeriod, koreanTenAm("2029-12-02"), 300);
+
+    OverallUsageReport.Retention retention = adminUsageService.report(30).retention();
+
+    // 기간 안에 만든 사용자 5명. D1 대상은 다음 날이 다 지난 4명이고 그중 2명이 다음 날 왔다.
+    // D7·7일 안 대상은 1월 1일에 만든 3명이고, 7일째에 1명, 1~7일째 중 하루라도 2명이 왔다.
+    assertThat(retention).isEqualTo(new OverallUsageReport.Retention(5, 4, 2, 3, 1, 2));
+    assertThat(retention.day1Rate()).isEqualTo(0.5);
+  }
+
   @ParameterizedTest
   @ValueSource(ints = {0, -1, 91})
   @DisplayName("기간이 1~90일을 벗어나면 전체·사용자별 이용 현황 모두 VALIDATION_FAILED로 거절한다")
@@ -524,6 +574,29 @@ class AdminUsageServiceTest {
         userId,
         LocalDate.of(2030, 1, 1).plusDays(nextMissionDay.getAndIncrement()),
         Timestamp.from(completedAt));
+  }
+
+  // 그날(한국 날짜) lastSeenAt까지 activeSeconds 동안 머문 일별 접속 기록
+  private void visit(Long userId, Instant lastSeenAt, long activeSeconds) {
+    jdbcTemplate.update(
+        "insert into user_daily_activities (user_id, activity_date, first_seen_at, last_seen_at,"
+            + " active_seconds) values (?, ?, ?, ?, ?)",
+        userId,
+        LocalDate.ofInstant(lastSeenAt, ClockConfig.SERVICE_ZONE),
+        Timestamp.from(lastSeenAt.minusSeconds(activeSeconds)),
+        Timestamp.from(lastSeenAt),
+        activeSeconds);
+  }
+
+  // 한국 날짜 오전 10시에 계정을 만든 가입자
+  private Long startedOn(String koreanDay, String providerUid) {
+    Long userId = user(AuthProvider.GOOGLE, providerUid, providerUid);
+    createdAt(userId, koreanTenAm(koreanDay));
+    return userId;
+  }
+
+  private static Instant koreanTenAm(String koreanDay) {
+    return LocalDate.parse(koreanDay).atTime(10, 0).atZone(ClockConfig.SERVICE_ZONE).toInstant();
   }
 
   private void gameClock(Long userId, long playSeconds, Instant lastBeatAt) {

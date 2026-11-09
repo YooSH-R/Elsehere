@@ -144,6 +144,7 @@ namespace A305.Npc
 
         private INpcSeat seat;
         private SeatedLegs legs;
+        private SeatedArms arms;
         private StandingPoseCorrections standingCorrections;
         private Vector3 standingPosition;
         private Vector3 standingVisualPosition;
@@ -634,6 +635,7 @@ namespace A305.Npc
                     seat.CushionTopMeters,
                     seat.FrontEdgeMeters
                 );
+                arms?.Apply(seat.SeatPoint);
             }
         }
 
@@ -1030,6 +1032,7 @@ namespace A305.Npc
             }
 
             visual = ModelRoot(animator.transform);
+            arms = SeatedArms.Find(animator);
             seat = target;
             standingPosition = transform.position;
             standingVisualPosition = visual.localPosition;
@@ -1056,6 +1059,7 @@ namespace A305.Npc
 
             seat.Release(this);
             seat = null;
+            arms?.Restore();
             visual.localPosition = standingVisualPosition;
             standingCorrections.Restore();
             transform.position = standingPosition;

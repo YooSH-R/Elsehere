@@ -15,15 +15,15 @@ namespace A305.Player
         private HeldUmbrella umbrellaPrefab;
 
         [SerializeField]
-        [Tooltip("기본 측면 거리 0.13m에 더할 손목의 바깥쪽 거리(m)")]
+        [Tooltip("기본 측면 거리 0.14m에 더할 손목의 바깥쪽 거리(m)")]
         private float gripBesideHead = .04f;
 
         [SerializeField]
-        [Tooltip("귀 옆 머리 중심보다 손목을 앞에 둘 거리(m)")]
+        [Tooltip("어깨에서 기본 6cm에 더할 손목의 전방 거리(m)")]
         private float gripForward = .06f;
 
         [SerializeField]
-        [Tooltip("손목을 내리는 거리의 기준(m). 팔꿈치를 굽히기 위해 이 값의 40%를 적용합니다.")]
+        [Tooltip("기본 4cm에 더할 손목을 내리는 거리(m)")]
         private float gripBelowShoulder = .05f;
 
         [SerializeField]
@@ -31,7 +31,7 @@ namespace A305.Player
         private float headClearance = .06f;
 
         [SerializeField]
-        [Tooltip("손잡이 위 연결부를 오른쪽 귀 바깥으로 기울이는 최소 각도")]
+        [Tooltip("곡선 기둥이 시작되는 손잡이의 최소 기울기. 머리와 겹치면 더 기울입니다.")]
         private float leanDegrees = 14f;
 
         private HeldUmbrella umbrella;
@@ -138,9 +138,9 @@ namespace A305.Player
             Vector3 shoulder = transform.InverseTransformPoint(upperArm.position);
             Vector3 wrist = transform.TransformPoint(
                 new Vector3(
-                    shoulder.x + .13f + gripBesideHead,
-                    shoulder.y - gripBelowShoulder * .4f,
-                    head.center.z + gripForward
+                    shoulder.x + .14f + gripBesideHead,
+                    shoulder.y - .04f - gripBelowShoulder,
+                    shoulder.z + .06f + gripForward
                 )
             );
             TwoBonePose.Reach(
@@ -151,18 +151,24 @@ namespace A305.Player
                 -transform.up + transform.right * .5f
             );
 
-            // 짧은 팔은 귀까지 닿지 않는다. 손잡이 위 연결부만 머리 오른쪽 접평면 밖으로 기울인다.
+            // 곡선의 시작 접선을 머리 바깥으로 둔다. 제어점도 이 평면 바깥에 두어 머리를 통과하지 않는다.
             Quaternion tilt = transform.rotation;
             Vector3 holdAt = hand.position;
+            Vector3 outward = transform.right;
+            Vector3 tiltAxis = Vector3.Cross(transform.up, outward);
+            Vector3 fingersForward = transform.TransformDirection(
+                new Vector3(.6427876f, 0, .7660444f)
+            );
             for (float degrees = Mathf.Clamp(leanDegrees, 0, 60); degrees <= 60; degrees += 2)
             {
-                tilt = Quaternion.AngleAxis(-degrees, transform.forward) * transform.rotation;
+                tilt = Quaternion.AngleAxis(degrees, tiltAxis) * transform.rotation;
                 if (middle != null)
                     hand.rotation =
-                        Quaternion.LookRotation(tilt * Vector3.right, tilt * Vector3.up)
+                        Quaternion.LookRotation(fingersForward, tilt * Vector3.up)
                         * Quaternion.Inverse(palmFrame);
                 holdAt = middle != null ? hand.TransformPoint(gripInHand) : hand.position;
-                if (headSurface.MinimumDistance(holdAt, tilt * Vector3.left) >= .025f)
+                Vector3 inward = Vector3.ProjectOnPlane(-outward, tilt * Vector3.up).normalized;
+                if (headSurface.MinimumDistance(holdAt, inward) >= .03f)
                     break;
             }
             if (middle != null)
@@ -171,18 +177,20 @@ namespace A305.Player
                 {
                     finger.Bone.localRotation = finger.Rotation;
                     finger.Bone.rotation =
-                        Quaternion.AngleAxis(-finger.Curl, tilt * Vector3.up)
-                        * finger.Bone.rotation;
+                        Quaternion.AngleAxis(
+                            -finger.Curl,
+                            Vector3.ProjectOnPlane(tilt * Vector3.up, fingersForward).normalized
+                        ) * finger.Bone.rotation;
                 }
             }
             umbrella.transform.SetPositionAndRotation(holdAt, tilt);
             Vector3 localGrip = transform.InverseTransformPoint(holdAt);
             Vector3 stemDirection = transform.InverseTransformDirection(tilt * Vector3.up);
-            float side = Mathf.Max(head.max.x + .03f, localGrip.x + .03f);
-            Vector3 bend =
-                localGrip
-                + stemDirection * ((side - localGrip.x) / Mathf.Max(.01f, stemDirection.x));
-            Vector3 center = new Vector3(side, head.max.y + headClearance + .06f, localGrip.z);
+            float roofHeight = head.max.y + headClearance + .06f;
+            float sideX = head.max.x + .06f;
+            Vector3 side = localGrip + stemDirection * ((sideX - localGrip.x) / stemDirection.x);
+            side.z = head.center.z + .03f;
+            Vector3 center = new Vector3(side.x, roofHeight, side.z);
             float radius = .84f;
             for (int i = 0; i < 24; i++)
             {
@@ -197,7 +205,7 @@ namespace A305.Player
                 );
             }
             umbrella.Fit(
-                transform.TransformPoint(bend),
+                transform.TransformPoint(side),
                 transform.TransformPoint(center),
                 transform.rotation,
                 radius

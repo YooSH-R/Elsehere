@@ -70,10 +70,24 @@ namespace A305.Player.Tests
                 .GetComponentsInChildren<Transform>()
                 .Select(bone => bone.name)
                 .ToHashSet();
-            Transform uprightShaft = hold.Umbrella.transform.Find("Shaft");
+            var shaftPoints = hold.Umbrella.ShaftPoints;
+            Assert.That(
+                Vector3.Distance(shaftPoints[0], hold.Umbrella.transform.position),
+                Is.LessThan(.001f)
+            );
+            for (int i = 1; i < shaftPoints.Count - 1; i++)
+                Assert.That(
+                    Vector3.Angle(
+                        shaftPoints[i] - shaftPoints[i - 1],
+                        shaftPoints[i + 1] - shaftPoints[i]
+                    ),
+                    Is.LessThan(20),
+                    "곡선 기둥에 급하게 꺾이는 부분이 없어야 합니다."
+                );
+            Vector3 shaftTop = shaftPoints[shaftPoints.Count - 1];
             using var body = new BodyClearanceProbe(animator, player.transform);
             body.Record("umbrella beside ear");
-            Vector3 shaftPosition = player.transform.InverseTransformPoint(uprightShaft.position);
+            Vector3 shaftPosition = player.transform.InverseTransformPoint(shaftTop);
             Assert.That(
                 shaftPosition.x,
                 Is.GreaterThan(body.Head.max.x + .014f),
@@ -115,7 +129,7 @@ namespace A305.Player.Tests
                         );
                         clearance = Mathf.Min(
                             clearance,
-                            Vector3.Dot(point - uprightShaft.position, -player.transform.right)
+                            Vector3.Dot(point - shaftTop, -player.transform.right)
                         );
                     }
                     Assert.That(

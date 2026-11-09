@@ -26,7 +26,7 @@ PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동
 | `PlayerTouchSettings` | 조이스틱 중앙 무시 영역과 터치 회전 감도를 설정합니다. |
 | `PlayerMovementSettings`, `PlayerCameraSettings` | 속도·점프 높이·카메라 거리·회전 감도 등 수치를 담는 데이터 에셋입니다. 대화 시점의 얼굴까지 거리·얼굴보다 높은 정도·얼굴의 화면 자리와, 기다리는 구도의 뒤로 물러난 거리·오른쪽으로 비킨 거리·높이도 `PlayerCameraSettings`에서 조절합니다. |
 | `PlayerSeatPose` | 의자·벤치·소파에 앉은 동안 이동을 잠그고 Humanoid 골격을 앉는 면 높이에 맞춰 구부립니다. 다리가 짧은 리틀멍은 자리 앞쪽에 앉혀 허벅지를 쿠션 위에 눕히고 무릎 아래를 앞 모서리 밖으로 내려뜨립니다. 일어서면 앉기 전에 서 있던 곳으로 돌아갑니다. 서 있던 곳은 캡슐이 들어가 있던 빈 자리라 탁자·팔걸이·벽에 끼지 않습니다. |
-| `UmbrellaHold`, `HeldUmbrella` | 플레이어 루트에 붙어 우산을 펴 듭니다. 지금 외형의 오른팔 뼈대와 머리 크기(머리뼈 아래 정점)를 읽고, 몸 옆에서 팔꿈치를 굽혀 손바닥으로 손잡이를 쥡니다(`TwoBonePose`). 손잡이 위 연결부가 머리를 피해 오른쪽으로 기울어지고 주 우산대는 귀 바깥에서 수직으로 섭니다. 캐노피는 머리 위에서 수평을 유지합니다. 펴고 접는 일은 [Mission 모듈](../Mission/README.md)이 정합니다. 우산 모델(`Prefabs/Player/HeldUmbrella.prefab`, 살 8개 돔 `Art/Player/HeldUmbrellaCanopy.asset`)과 마을 플레이어 연결은 **Tools → A305 → Player → Add Umbrella Hold**(`PlayerUmbrellaBuilder`)가 만들며, 우산 모델은 없을 때만 만듭니다. |
+| `UmbrellaHold`, `HeldUmbrella` | 플레이어 루트에 붙어 우산을 펴 듭니다. 지금 외형의 오른팔 뼈대와 머리 크기(머리뼈 아래 정점)를 읽고, 몸 옆·앞에서 팔꿈치를 굽혀 손바닥으로 손잡이를 쥡니다(`TwoBonePose`). 기둥은 손잡이부터 귀 바깥까지 부드러운 곡선으로 이어지고, 그 위는 수직으로 섭니다. 캐노피는 머리 위에서 수평을 유지합니다. 펴고 접는 일은 [Mission 모듈](../Mission/README.md)이 정합니다. 우산 모델(`Prefabs/Player/HeldUmbrella.prefab`, 살 8개 돔 `Art/Player/HeldUmbrellaCanopy.asset`)과 마을 플레이어 연결은 **Tools → A305 → Player → Add Umbrella Hold**(`PlayerUmbrellaBuilder`)가 만들며, 우산 모델은 없을 때만 만듭니다. |
 | `SeatedLegs` | Humanoid 다리 뼈를 찾아 앉는 면 높이에 맞춰 구부리는 계산입니다. `PlayerSeatPose`와 쉬는 NPC([Npc 모듈](../Npc/README.md#생활)의 `NpcRoutine`)가 함께 씁니다. |
 | `StandingPoseCorrections` | 리틀 멍 외형의 서 있는 자세 보정(`LittleMungGroundContact`·`LittleMungTerrainContact`·`LittleMungStairLocomotion`·`LittleMungArmClearance`)을 앉아 있는 동안 끄고, 일어서면 켜져 있던 것만 다시 켭니다. `PlayerSeatPose`와 `NpcRoutine`이 함께 씁니다. |
 | `LittleMungArmClearance` | 손·전완의 중심을 머리·몸통 밖으로 옮깁니다. 머리·몸통은 감싸는 상자만 쓰므로 처음에 여러 방향(구 위 300개와 x·y·z 축)으로 가장 바깥에 있는 정점만 골라 두고(`OutermostPoints`) 매 프레임 그 정점만 계산합니다. 머리털·얼굴까지 2만 개가 넘던 머리 정점을 모두 계산하지 않아도 상자의 각 면은 크기의 약 1% 안에서 같습니다. 선택적 `refineSurfaceContact`는 기존 검사에 실패한 NPC 검수 사본에서만 켜며 플레이어는 기존 설정을 유지합니다. 이 추가 보정은 소매의 실제 스킨 정점으로 확인하고 상완·전완을 작은 각도로 조정합니다. 최대 12회로 제한하며 더 나은 자세를 찾지 못하면 중단합니다. 본 위치와 손목 로컬 회전은 바꾸지 않습니다. 전체 옷의 삼각형 충돌을 푸는 기능은 아니므로 캐릭터별 동작·외관 검수가 필요합니다. |
@@ -116,7 +116,7 @@ Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어
 | `PlayerSeatPose.Stand()` | 앉기 전에 서 있던 곳에 자리 방향으로 세우고 이동 잠금을 풉니다. |
 | `UmbrellaHold.SetOpen(bool)` | 우산을 펴거나 접습니다. 외형의 팔 뼈대나 우산 프리팹이 없으면 펴지 않습니다. |
 
-우산을 펼치면 오른손의 손가락 뼈로 손바닥 중심·방향을 구하고, 오른팔을 옆에서 굽혀 손목과 손가락을 쥐는 자세로 유지합니다. 손잡이 위의 짧은 연결부는 머리 오른쪽 바깥 표면에 맞춰 기울이고, 그 위 우산대는 귀 옆에서 수직으로 세워 얼굴을 가리지 않게 합니다. 수평 캐노피의 크기도 머리를 덮도록 맞춥니다. 걷기 이후의 자세에 적용하며 접을 때 손가락 자세를 복원합니다.
+우산을 펼치면 오른손의 손가락 뼈로 손바닥 중심·방향을 구하고, 팔꿈치를 굽혀 몸 옆·앞에서 쥐는 자세로 유지합니다. 손잡이에서 귀 옆으로 이어지는 기둥은 머리 바깥 접평면을 따라 부드러운 곡선으로 만들고, 그 위 기둥은 수직으로 세웁니다. 곡선의 양 끝 접선이 손잡이·수직 기둥과 이어져 각진 연결부가 보이지 않게 합니다. 기둥 반지름은 1.4cm이며, 수평 캐노피 크기는 실제 머리를 덮도록 맞춥니다. 걷기 이후의 자세에 적용하고 접을 때 손가락 자세를 복원합니다.
 
 ## 테스트
 

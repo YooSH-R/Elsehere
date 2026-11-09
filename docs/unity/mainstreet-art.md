@@ -10,6 +10,8 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 
 ## Production 장소 구분과 편집
 
+북남쪽 길 끝의 원경 이미지·하늘·화단과 울타리 경계는 [마을 원경과 길 끝 경계](town-horizon.md)에서 관리한다.
+
 ### 확장 예정 지역 구름
 
 동서 미개발 공간은 `Environment/FutureDistrictClouds/DistrictCloudCoverage`의 구름으로 덮는다. 양쪽 경계(-32~70m)를 따라 구름을 이어 배치하고 바깥쪽에 한 겹 더 쌓아 건물 사이로 빈 지면이 드러나는 것을 줄인다. 기존 북쪽 거리와 경계 Collider는 유지한다.

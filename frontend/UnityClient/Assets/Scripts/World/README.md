@@ -119,6 +119,7 @@
 - 주차장·순찰차 프리팹·경찰관 외형은 없을 때만 만들고, 이미 있으면 배치를 두고 연결(본길 설정·진입로 조절점·목적지·경광등·창구)만 맞춥니다. **Capture Police Station**은 검토용 화면을 `artifacts/unity/police-station/`에 저장합니다.
 - 새 사물 단어는 경찰차·경찰관·주차장입니다.
 - 경찰서 출입은 다른 장소처럼 `SpaceDoorway`가 맡습니다. 마을 경찰서 정면의 `Entrance/PoliceStationDoorway`(출입구 이름 `PoliceStationDoor`)에 닿으면 경찰서 장면의 `Entrance/TownDoorway`(`TownDoor`) 도착 지점(문 안쪽 2m, 창구를 봄)에 서고, 경찰서에서 그 문에 닿으면 마을 문 앞 1m(본길을 봄)에 나옵니다. 건물에 그려진 문짝(`PoliceStationDoor`)은 여닫지 않고, 출입구 프리팹의 문 그림은 끄고 막는 충돌만 남깁니다. 경찰관과 대화하며 신고하고 나오면 마을이 열릴 때 순찰차가 출발해 출동하는 모습을 봅니다. 매장 Builder는 경찰서 프리팹의 여닫이 문 기능과 예전 같은 장면 출입구 한 쌍을 지웁니다.
+- 드럭스토어의 우산 통 두 개는 창가에 나란히 두어 진열대 앞 통로를 확보하고, 펼친 초록 우산 장식은 두지 않습니다. 표지판은 출입문 옆에 두며, 두 줄 문구는 판 안쪽 여백에 맞춰 크기를 조절합니다. 기존 프리팹에는 **Tools → A305 → World → Apply Drugstore Entrance Display**(`DrugstoreInteriorBuilder.ApplyEntranceDisplay`)로 배치와 글자 영역을 적용합니다.
 - 거리 매장 천장에는 카메라를 막는 충돌이 있습니다. 위층이 없는 경찰서는 천장이 막지 않으면 내려다볼 때 카메라가 천장 위로 빠집니다(드럭스토어와 같은 문제). 매장 Builder는 충돌이 없는 기존 매장 프리팹에 충돌만 더합니다.
 
 ## 매장 실내 소품

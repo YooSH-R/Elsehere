@@ -32,7 +32,6 @@ import org.springframework.context.annotation.Import;
 @DataJpaTest(
     properties = {
       "spring.jpa.hibernate.ddl-auto=create-drop",
-      "elsehere.conversation.daily-limit=" + AiStatusServiceTest.DAILY_CONVERSATION_LIMIT,
       "elsehere.guest.conversation-limit=" + AiStatusServiceTest.GUEST_CONVERSATION_LIMIT
     })
 @AutoConfigureTestDatabase(replace = Replace.NONE)
@@ -45,7 +44,6 @@ import org.springframework.context.annotation.Import;
 })
 class AiStatusServiceTest {
 
-  static final int DAILY_CONVERSATION_LIMIT = 30;
   static final int GUEST_CONVERSATION_LIMIT = 3;
   private static final Instant NOW = TestClockConfig.NOW;
   private static final Long NPC_ID = 1L;
@@ -57,61 +55,30 @@ class AiStatusServiceTest {
   @Autowired private GuestConversationLimit conversationLimit;
 
   @Test
-  @DisplayName("가입 사용자는 오늘 시작한 대화가 30회면 차단되고 다음 날 다시 이용할 수 있다")
-  void member_dailyLimit_resetsAtKoreanMidnight() {
-    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "daily-member");
-    for (int i = 0; i < 29; i++) {
-      entityManager.persist(
-          Conversation.start(userId, NPC_ID, InitiatedBy.NPC, 1, TestClockConfig.NOW));
-    }
-    var user = entityManager.find(com.elsehere.user.entity.User.class, userId);
-    conversationLimit.check(user);
-    entityManager.persist(
-        Conversation.start(userId, NPC_ID, InitiatedBy.NPC, 1, TestClockConfig.NOW));
-    assertThatThrownBy(() -> conversationLimit.check(user)).isInstanceOf(BusinessException.class);
-    // 한국 시간으로 다음 날 00:00 정각부터 한도가 초기화된다.
-    var clock = (com.elsehere.common.config.AdjustableClock) clockForTest;
-    clock.setInstant(Instant.parse("2026-11-02T15:00:00Z"));
-    try {
-      conversationLimit.check(user);
-    } finally {
-      clock.setInstant(TestClockConfig.NOW);
-    }
-  }
-
-  @Autowired private java.time.Clock clockForTest;
-
-  @Test
-  @DisplayName("가입 사용자도 일일 한도에 도달하면 새 대화를 시작할 수 없다")
+  @DisplayName("가입 사용자는 대화 횟수 제한이 없어 게스트 횟수보다 많이 대화해도 AI를 쓸 수 있고 남은 수를 담지 않는다")
   void member_isAvailableBeyondGuestLimit() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
-    startConversations(userId, DAILY_CONVERSATION_LIMIT + 1);
-
-    AiStatusResponse response = aiStatusService.status(userId);
-
-    assertThat(response.status()).isEqualTo(AiStatus.AI_EXHAUSTED);
-    assertThat(response.capabilities().canStartConversation()).isFalse();
-    assertThat(response.capabilities().canUseSpeech()).isTrue();
-    assertThat(response.capabilities().canGenerateFeedback()).isTrue();
-    assertThat(response.remainingConversations()).isZero();
-    assertThat(response.guest()).isFalse();
-  }
-
-  @Test
-  @DisplayName("가입 사용자는 게스트 횟수와 관계없이 오늘 남은 대화 수를 받는다")
-  void member_beyondGuestLimit_getsDailyRemaining() {
-    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
-    exchangeIn(startConversations(userId, GUEST_CONVERSATION_LIMIT));
+    exchangeIn(startConversations(userId, GUEST_CONVERSATION_LIMIT + 1));
 
     AiStatusResponse response = aiStatusService.status(userId);
 
     assertThat(response.status()).isEqualTo(AiStatus.AI_AVAILABLE);
-    assertThat(response.remainingConversations())
-        .isEqualTo(DAILY_CONVERSATION_LIMIT - GUEST_CONVERSATION_LIMIT);
+    assertThat(response.capabilities().canStartConversation()).isTrue();
+    assertThat(response.remainingConversations()).isNull();
   }
 
   @Test
-  @DisplayName("게스트가 아직 대화 횟수를 다 쓰지 않았으면 AI를 쓸 수 있고 남은 대화 수와 게스트임을 알려 준다")
+  @DisplayName("가입 사용자는 하루에 많이 대화해도 새 대화를 시작할 수 있다")
+  void member_manyConversationsInADay_canStillStart() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    exchangeIn(startConversations(userId, 31));
+    var member = entityManager.find(com.elsehere.user.entity.User.class, userId);
+
+    conversationLimit.check(member);
+  }
+
+  @Test
+  @DisplayName("게스트가 아직 대화 횟수를 다 쓰지 않았으면 AI를 쓸 수 있고 남은 대화 수를 알려 준다")
   void guestBelowLimit_isAvailableWithRemainingConversations() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1");
     exchangeIn(startConversations(userId, GUEST_CONVERSATION_LIMIT - 1));
@@ -121,7 +88,6 @@ class AiStatusServiceTest {
     assertThat(response.status()).isEqualTo(AiStatus.AI_AVAILABLE);
     assertThat(response.capabilities().canStartConversation()).isTrue();
     assertThat(response.remainingConversations()).isEqualTo(1);
-    assertThat(response.guest()).isTrue();
   }
 
   @Test
@@ -192,20 +158,6 @@ class AiStatusServiceTest {
               assertThat(exception.getMessage())
                   .isEqualTo("게스트는 NPC와 3번까지 대화할 수 있어요. 마을 탐험, 사물 카드, 단어장은 계속할 수 있어요.");
             });
-  }
-
-  @Test
-  @DisplayName("게스트 횟수는 날이 바뀌어도 다시 채우지 않는다")
-  void guestLimit_doesNotResetAtKoreanMidnight() {
-    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1");
-    exchangeIn(startConversations(userId, GUEST_CONVERSATION_LIMIT));
-    var clock = (com.elsehere.common.config.AdjustableClock) clockForTest;
-    clock.setInstant(Instant.parse("2026-11-02T15:00:00Z"));
-    try {
-      assertThat(aiStatusService.status(userId).remainingConversations()).isZero();
-    } finally {
-      clock.setInstant(TestClockConfig.NOW);
-    }
   }
 
   @Test

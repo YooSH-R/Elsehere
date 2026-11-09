@@ -83,9 +83,6 @@ class ConversationServiceTest {
   // DialogueServiceTest에 설정한 elsehere.guest.conversation-limit
   private static final int GUEST_CONVERSATION_LIMIT = 2;
 
-  // DialogueServiceTest에 설정한 elsehere.conversation.daily-limit
-  private static final int DAILY_CONVERSATION_LIMIT = 2;
-
   @Autowired private ConversationService conversationService;
 
   @Autowired private TurnRepository turnRepository;
@@ -651,13 +648,15 @@ class ConversationServiceTest {
   }
 
   @Test
-  @DisplayName("가입 사용자도 일일 한도를 넘겨 대화를 시작할 수 없다")
+  @DisplayName("가입 사용자는 게스트 한도보다 많이 대화해도 새 대화를 시작할 수 있다")
   void start_memberBeyondGuestLimit_starts() {
-    for (int i = 0; i < DAILY_CONVERSATION_LIMIT; i++) {
-      startAndEndPasserby(userId);
+    for (int i = 0; i <= GUEST_CONVERSATION_LIMIT; i++) {
+      talkWithPasserby(userId);
     }
-    assertThatThrownBy(() -> startAndEndPasserby(userId)).isInstanceOf(BusinessException.class);
-    assertThat(conversationRepository.count()).isEqualTo(DAILY_CONVERSATION_LIMIT);
+
+    startAndEndPasserby(userId);
+
+    assertThat(conversationRepository.count()).isEqualTo(GUEST_CONVERSATION_LIMIT + 2);
   }
 
   @Test
@@ -1005,7 +1004,7 @@ class ConversationServiceTest {
         userId, new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC));
   }
 
-  // 피드백·기억 갱신 없이 대화만 끝낸다. 가입 사용자의 하루 횟수는 끝난 대화도 센다.
+  // 피드백·기억 갱신 없이 대화만 끝낸다. 말을 주고받지 않았으므로 게스트 횟수에 들어가지 않는다.
   private void startAndEndPasserby(Long ownerId) {
     ConversationStartResponse started =
         conversationService.start(

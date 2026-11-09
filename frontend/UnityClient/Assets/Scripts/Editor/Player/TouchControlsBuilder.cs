@@ -81,6 +81,20 @@ namespace A305.EditorTools.Player
                         "toThirdPersonLabel",
                         viewToggle.transform.Find("ToThirdPerson").gameObject
                     );
+
+                    // 조이스틱을 끝까지 밀어 달리는 동안 손잡이 색을 바꾼다.
+                    BuilderTools.SetReference(
+                        controls,
+                        "stickHandle",
+                        stick.Find("Handle").GetComponent<Image>()
+                    );
+                    RectTransform jump = FindOrCreateJumpButton(root.transform);
+                    jump.SetAsLastSibling();
+                    BuilderTools.SetReference(
+                        BuilderTools.GetOrAddComponent<TouchJumpButton>(jump.gameObject),
+                        "controls",
+                        controls
+                    );
                 }
             );
 
@@ -153,6 +167,26 @@ namespace A305.EditorTools.Player
             ViewLabel(toggle, "ToFirstPerson", "1인칭", font).SetActive(true);
             ViewLabel(toggle, "ToThirdPerson", "3인칭", font).SetActive(false);
             return button;
+        }
+
+        /// <summary>
+        /// 조이스틱 오른쪽 아래의 작은 둥근 [점프] 버튼. 조이스틱(가로 30~190)과 띄워 두어 이동하다 잘못 누르지 않게 하고,
+        /// [1인칭] 버튼과 같은 파란 바탕에 흰 글자다. 누르는 순간 점프하도록 Button 대신 TouchJumpButton이 받는다.
+        /// </summary>
+        private static RectTransform FindOrCreateJumpButton(Transform parent)
+        {
+            Transform existing = parent.Find("JumpButton");
+            RectTransform jump =
+                existing != null ? (RectTransform)existing : CreateRect("JumpButton", parent);
+            // 자리·크기는 다시 실행할 때도 이 값으로 맞춘다.
+            jump.anchorMin = jump.anchorMax = Vector2.zero;
+            jump.anchoredPosition = new Vector2(240f, 64f);
+            jump.sizeDelta = new Vector2(64f, 64f);
+            var background = BuilderTools.GetOrAddComponent<Image>(jump.gameObject);
+            background.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+            background.color = new Color(0.25f, 0.48f, 0.9f, 0.85f);
+            ViewLabel(jump, "Label", "점프", UiBuilderTools.BoldFont()).SetActive(true);
+            return jump;
         }
 
         private static GameObject ViewLabel(

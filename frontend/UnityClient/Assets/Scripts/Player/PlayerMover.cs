@@ -170,11 +170,14 @@ namespace A305.Player
                 cameraTransform.eulerAngles.y,
                 cameraRig != null && cameraRig.TurnedByUserThisFrame
             );
+            // 휴대폰은 조이스틱을 끝까지 밀면 달리고, 조이스틱 옆 [점프]로 뛴다.
+            bool touchSprint = touchControls != null && touchControls.IsSprinting;
+            bool touchJump = touchControls != null && touchControls.ConsumeJump();
             var input = new PlayerMoveInput(
                 move,
                 referenceYaw,
-                sprintAction.action.IsPressed(),
-                jumpAction.action.WasPressedThisFrame()
+                sprintAction.action.IsPressed() || touchSprint,
+                jumpAction.action.WasPressedThisFrame() || touchJump
             );
             bool isOnEdge = characterController.isGrounded && IsHeldByEdge();
             bool isGrounded = characterController.isGrounded && !isOnEdge;

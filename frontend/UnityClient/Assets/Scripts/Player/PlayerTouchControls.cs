@@ -25,8 +25,16 @@ namespace A305.Player
         [SerializeField]
         private GameObject toThirdPersonLabel;
 
+        // 달리는 동안 조이스틱 손잡이를 주황으로 바꿔, 끝까지 밀었다는 것을 보인다.
+        [SerializeField]
+        private Image stickHandle;
+
+        private static readonly Color RunningHandleColor = new Color(1f, 0.55f, 0.2f, 0.9f);
+
         private Vector2 previousSize;
         private bool viewTogglePressed;
+        private bool jumpPressed;
+        private Color walkingHandleColor;
 
         public TouchDragInput Movement { get; } = new TouchDragInput();
 
@@ -63,6 +71,23 @@ namespace A305.Player
                 ? Movement.GetDirection(stick.rect.width * 0.5f, settings.StickDeadZone)
                 : Vector2.zero;
 
+        /// <summary>조이스틱을 가장자리 가까이(<see cref="PlayerTouchSettings.RunThreshold"/>)까지 밀었으면 달리고, 덜 밀었으면 걷는다.</summary>
+        public bool IsSprinting => Move.magnitude >= settings.RunThreshold;
+
+        /// <summary>조이스틱 옆 [점프] 버튼에 손가락을 댔다. 떼는 순간까지 기다리지 않게 누르는 순간에 부른다(<see cref="TouchJumpButton"/>).</summary>
+        public void PressJump()
+        {
+            jumpPressed = true;
+        }
+
+        /// <summary>[점프]를 눌렀는지. 한 번 읽으면 지우며, 이동이 잠긴 동안(대화·창) 누른 것은 버린다.</summary>
+        public bool ConsumeJump()
+        {
+            bool pressed = jumpPressed;
+            jumpPressed = false;
+            return pressed && surfaceCanvas.enabled && !IsInputLocked;
+        }
+
         /// <summary>[1인칭]·[3인칭] 버튼을 눌렀는지. 한 번 읽으면 지우며, 이동이 잠긴 동안(대화·창) 누른 것은 버린다.</summary>
         public bool ConsumeViewToggle()
         {
@@ -97,6 +122,19 @@ namespace A305.Player
             {
                 viewToggle.onClick.AddListener(() => viewTogglePressed = true);
             }
+
+            if (stickHandle != null)
+            {
+                walkingHandleColor = stickHandle.color;
+            }
+        }
+
+        private void LateUpdate()
+        {
+            if (stickHandle != null)
+            {
+                stickHandle.color = IsSprinting ? RunningHandleColor : walkingHandleColor;
+            }
         }
 
         private void OnEnable()
@@ -109,6 +147,7 @@ namespace A305.Player
             Movement.Reset();
             Look.Reset();
             viewTogglePressed = false;
+            jumpPressed = false;
         }
 
         private void OnDisable()

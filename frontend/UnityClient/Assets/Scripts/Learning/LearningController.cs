@@ -16,7 +16,6 @@ namespace A305.Learning
     /// 피드백·단어장·피드백 목록 화면이 열려 있는 동안만 이동을 잠그며, 대화 중에는 대화가 정한 잠금을 건드리지 않는다.
     /// 대화 중 누른 풀이 단어는 NPC_LINE 출처로, 서버 피드백의 [담기]는 FEEDBACK 출처로 저장한다.
     /// 대화를 다 쓴 게스트가 방금 끝낸 대화의 피드백을 닫으면 가입을 권한다(<see cref="GuestSignupPrompt"/>, 가입 안내 창이 설문도 권한다).
-    /// 오늘 대화를 다 쓴 회원에게는 설문만 권한다(<see cref="SurveyPrompt"/>).
     /// </summary>
     public partial class LearningController : MonoBehaviour
     {
@@ -474,10 +473,6 @@ namespace A305.Learning
             if (dialogue.Allowance.IsGuestOutOfConversations)
             {
                 GuestSignupPrompt.Request();
-            }
-            else if (dialogue.Allowance.IsOutOfConversations)
-            {
-                SurveyPrompt.Request();
             }
         }
 

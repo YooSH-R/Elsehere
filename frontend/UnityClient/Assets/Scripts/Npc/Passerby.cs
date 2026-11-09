@@ -397,7 +397,8 @@ namespace A305.Npc
         /// <summary>
         /// 플레이어가 클릭·탭으로 이 NPC에게 말을 걸 수 있는지(기능 명세 F-22). 커서를 올렸을 때 테두리도 이 값으로 그린다.
         /// 다른 대화·창·진행 흐름이 막으면 걸 수 없고, 클릭 거리 안이면 다가오거나 제안하는 중에도 걸 수 있다.
-        /// 일일 대화 한도에 닿았거나 다른 NPC가 거절할 수 없는 제안을 하는 중이면 걸 수 없다.
+        /// 새 대화를 시작할 수 없거나 다른 NPC가 거절할 수 없는 제안을 하는 중이면 걸 수 없다.
+        /// 대화를 다 쓴 게스트는 클릭하면 대화 대신 가입 안내 창을 연다.
         /// </summary>
         /// <param name="reachMeters">클릭으로 말을 걸 수 있는 수평 거리</param>
         public bool CanTalkByClick(float reachMeters)
@@ -417,10 +418,7 @@ namespace A305.Npc
                 return !IsOtherOfferShowing || offerView.IsDeclineShown;
             if (!allowance.CanStartConversation)
             {
-                return PasserbyOfferText.OffersSignup(
-                    allowance.RemainingConversations,
-                    allowance.IsGuest
-                );
+                return PasserbyOfferText.OffersSignup(allowance.RemainingConversations);
             }
 
             return !IsOtherOfferShowing || offerView.IsDeclineShown;
@@ -465,10 +463,7 @@ namespace A305.Npc
                 "대화 시작",
                 $"{name}에게 말을 걸까요?",
                 true,
-                PasserbyOfferText.RemainingConversations(
-                    dialogue.Allowance.RemainingConversations,
-                    dialogue.Allowance.IsGuest
-                ),
+                PasserbyOfferText.RemainingConversations(dialogue.Allowance.RemainingConversations),
                 ConfirmPlayerTalk,
                 CancelPlayerTalk
             );
@@ -587,8 +582,7 @@ namespace A305.Npc
             }
 
             string remaining = PasserbyOfferText.RemainingConversations(
-                dialogue.Allowance.RemainingConversations,
-                dialogue.Allowance.IsGuest
+                dialogue.Allowance.RemainingConversations
             );
             offerView.Show(this, hint, greeting, approach.CanDecline, remaining, Accept, Decline);
         }

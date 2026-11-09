@@ -473,29 +473,6 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator DailyLimitReached_NoNearbyButtonOrClickConversation()
-        {
-            // 회원이 오늘 대화를 다 쓰면 근접 버튼이나 가입 안내 없이 새 대화를 막는다.
-            yield return LoadTownAfterTutorial();
-            Single<DialogueController>().Allowance.Apply(MemberStatus(remaining: 0));
-            Passerby passerby = FindPasserby(BenCode);
-            StandNear(BenCode, 4f);
-            yield return new WaitForSeconds(1.5f);
-
-            PasserbyOfferView offer = Single<PasserbyOfferView>();
-            Assert.That(offer.IsShowing, Is.False);
-            Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Waiting));
-
-            StandNear(BenCode, 1.5f);
-            yield return new WaitForSeconds(.5f);
-            Assert.That(offer.IsTalkPromptShowing, Is.False);
-            Assert.That(passerby.TalkByClick(NpcClickTalk.ReachMeters), Is.False);
-            yield return null;
-            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.False);
-            Assert.That(Single<DialogueController>().IsTalking, Is.False);
-        }
-
-        [UnityTest]
         public IEnumerator GuestWithConversationsLeft_ClickConfirmationShowsRemainingCount()
         {
             yield return LoadTownWithPlayerNearBen(afterTutorial: true);
@@ -531,18 +508,13 @@ namespace A305.Npc.PlayModeTests
                 );
         }
 
-        private static AiStatusData GuestStatus(int remaining) => Status(remaining, guest: true);
-
-        private static AiStatusData MemberStatus(int remaining) => Status(remaining, guest: false);
-
-        private static AiStatusData Status(int remaining, bool guest)
+        private static AiStatusData GuestStatus(int remaining)
         {
             return new AiStatusData
             {
                 Status = remaining > 0 ? "AI_AVAILABLE" : "AI_EXHAUSTED",
                 Capabilities = new AiCapabilities { CanStartConversation = remaining > 0 },
                 RemainingConversations = remaining,
-                Guest = guest,
             };
         }
 

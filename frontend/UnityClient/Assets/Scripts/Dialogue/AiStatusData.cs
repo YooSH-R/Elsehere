@@ -8,11 +8,8 @@ namespace A305.Dialogue
 
         public AiCapabilities Capabilities { get; set; }
 
-        /// <summary>더 시작할 수 있는 NPC 대화 수. 게스트는 남은 전체 횟수, 가입 사용자는 오늘 남은 횟수다.</summary>
+        /// <summary>게스트가 더 시작할 수 있는 NPC 대화 수. 가입 사용자는 횟수 제한이 없어 null이다.</summary>
         public int? RemainingConversations { get; set; }
-
-        /// <summary>게스트인지. 게스트가 대화를 다 쓰면 가입을 권하고, 회원에게는 내일 다시 대화하라고 안내한다.</summary>
-        public bool Guest { get; set; }
     }
 
     public sealed class AiCapabilities

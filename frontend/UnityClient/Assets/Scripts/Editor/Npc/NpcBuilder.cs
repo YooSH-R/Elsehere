@@ -519,7 +519,7 @@ namespace A305.EditorTools.Npc
                 font,
                 20f,
                 new Color(0.8f, 0.82f, 0.86f),
-                PasserbyOfferText.RemainingConversations(3, guest: true)
+                PasserbyOfferText.RemainingConversations(3)
             );
             if (isNew)
             {

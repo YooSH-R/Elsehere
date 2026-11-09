@@ -15,7 +15,7 @@
 | `UnityWebRequestStreamTransport`, `BrowserStreamTransport`, `Plugins/WebGL/ApiStream.jslib` | 스트림 전송. Editor·데스크톱은 `UnityWebRequest`(`DownloadHandlerScript`)로, Web 빌드는 `UnityWebRequest`가 응답이 끝나야 본문을 넘겨주므로 브라우저 `fetch`·`ReadableStream`으로 받아 매 프레임 꺼냅니다. `ApiSettings.CreateClient`가 플랫폼에 맞게 고릅니다. 브라우저 연동은 Editor 테스트에서 실행하지 않아 실제 브라우저에서 확인합니다. |
 | `ApiSettings` | 서버 주소와 응답 대기 시간(`Data/Api/ApiSettings.asset`). Web 빌드는 같은 출처라 상대 경로, Editor는 `http://localhost:8080`입니다. |
 | `BrowserRedirect`, `AuthPaths`, `Plugins/WebGL/BrowserRedirect.jslib` | API 호출이 아니라 페이지 이동으로 여는 Google 로그인(AUTH-01)을 같은 탭에서 엽니다. 입구 화면과 장소의 게스트 가입 안내 창이 함께 씁니다. Editor는 브라우저 쿠키를 쓰지 않아 로그인 세션이 이어지지 않습니다. |
-| `SurveyPrompt` | 사용자 설문 주소와 "설문을 권할 때" 신호(`Request`·`Requested`). 설문을 권하는 곳은 `SurveyPrompt.Request()`만 부르고, 장소 HUD의 설문 카드([Learning](../Learning/README.md)의 `SurveyPromptView`)가 받아 화면 위 가운데에서 내려옵니다. 지금은 대화를 다 쓴 게스트의 가입 안내 창과, 오늘 대화를 다 쓴 회원이 피드백을 닫을 때([Learning](../Learning/README.md)의 `LearningController`) 부르고, 첫 호텔 퀘스트(`CHECK_IN`)를 끝낸 회원의 완료 창도 같은 신호를 쓰면 됩니다. 주소는 팀 사용자 설문(Google 설문지)의 응답 페이지이며, 설문을 바꾸면 `SurveyPrompt.Url`만 바꿉니다. |
+| `SurveyPrompt` | 사용자 설문 주소와 "설문을 권할 때" 신호(`Request`·`Requested`). 설문을 권하는 곳은 `SurveyPrompt.Request()`만 부르고, 장소 HUD의 설문 카드([Learning](../Learning/README.md)의 `SurveyPromptView`)가 받아 화면 위 가운데에서 내려옵니다. 지금은 대화를 다 쓴 게스트의 가입 안내 창이 부르고, 첫 호텔 퀘스트(`CHECK_IN`)를 끝낸 회원의 완료 창도 같은 신호를 쓰면 됩니다. 주소는 팀 사용자 설문(Google 설문지)의 응답 페이지이며, 설문을 바꾸면 `SurveyPrompt.Url`만 바꿉니다. |
 | `GuestSignupPrompt` | 대화를 다 쓴 게스트에게 "가입을 권할 때" 신호(`Request`·`Requested`). 마지막 대화의 피드백을 닫을 때([Learning](../Learning/README.md)의 `LearningController`) 부르고, 장소마다 있는 가입 안내 창([Npc](../Npc/README.md)의 `GuestSignupDialogView`)이 받아 엽니다. 피드백 화면과 가입 안내 창이 서로의 모듈을 모르고 이어지게 둔 것입니다. |
 
 ## 의존성

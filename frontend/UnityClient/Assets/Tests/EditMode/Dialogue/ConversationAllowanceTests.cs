@@ -1,4 +1,3 @@
-using System;
 using System.Threading.Tasks;
 using A305.Api;
 using NUnit.Framework;
@@ -7,33 +6,6 @@ namespace A305.Dialogue.Tests
 {
     public class ConversationAllowanceTests
     {
-        [Test]
-        public void AtKoreanMidnight_ExpiredDailyLimitDoesNotBlockTheNextStart()
-        {
-            DateTimeOffset now = DateTimeOffset.Parse("2026-11-06T23:59:59+09:00");
-            var allowance = new ConversationAllowance(() => now);
-            allowance.Apply(Status(canStart: false, remaining: 0));
-            Assert.That(allowance.CanStartConversation, Is.False);
-            now = DateTimeOffset.Parse("2026-11-07T00:00:00+09:00");
-            Assert.That(allowance.CanStartConversation, Is.True);
-            Assert.That(allowance.RemainingConversations, Is.Null);
-        }
-
-        // 게스트 횟수는 하루가 지나도 다시 채워지지 않는다(S15P31A305-705).
-        [Test]
-        public void AtKoreanMidnight_GuestLimitStillBlocksTheNextStart()
-        {
-            DateTimeOffset now = DateTimeOffset.Parse("2026-11-06T23:59:59+09:00");
-            var allowance = new ConversationAllowance(() => now);
-            allowance.Apply(Status(canStart: false, remaining: 0, guest: true));
-
-            now = DateTimeOffset.Parse("2026-11-07T00:00:00+09:00");
-
-            Assert.That(allowance.CanStartConversation, Is.False);
-            Assert.That(allowance.RemainingConversations, Is.EqualTo(0));
-            Assert.That(allowance.IsGuestOutOfConversations, Is.True);
-        }
-
         [Test]
         public void BeforeServerStatus_DoesNotBlockStarting()
         {
@@ -77,34 +49,20 @@ namespace A305.Dialogue.Tests
             Assert.That(allowance.RemainingConversations, Is.Null);
         }
 
-        // 피드백을 닫을 때 가입을 권할지 정한다(S15P31A305-605). 대화를 다 쓴 게스트만 해당하고,
-        // 남은 대화가 있거나 오늘 대화를 다 쓴 회원이면 아니다(S15P31A305-705).
-        [TestCase(0, true, true)]
-        [TestCase(1, true, false)]
-        [TestCase(0, false, false)]
-        [TestCase(null, false, false)]
+        // 피드백을 닫을 때 가입을 권할지 정한다(S15P31A305-605). 대화를 다 쓴 게스트만 해당하고, 남은 대화가 있거나 회원(남은 수 없음)이면 아니다.
+        [TestCase(0, true)]
+        [TestCase(1, false)]
+        [TestCase(null, false)]
         public void IsGuestOutOfConversations_OnlyWhenAGuestHasNoneLeft(
             int? remaining,
-            bool guest,
             bool expected
         )
         {
             var allowance = new ConversationAllowance();
 
-            allowance.Apply(Status(canStart: remaining != 0, remaining: remaining, guest: guest));
+            allowance.Apply(Status(canStart: remaining != 0, remaining: remaining));
 
             Assert.That(allowance.IsGuestOutOfConversations, Is.EqualTo(expected));
-        }
-
-        [TestCase(true)]
-        [TestCase(false)]
-        public void Apply_KeepsWhetherTheUserIsAGuest(bool guest)
-        {
-            var allowance = new ConversationAllowance();
-
-            allowance.Apply(Status(canStart: true, remaining: 2, guest: guest));
-
-            Assert.That(allowance.IsGuest, Is.EqualTo(guest));
         }
 
         [Test]
@@ -132,14 +90,13 @@ namespace A305.Dialogue.Tests
             Assert.That(allowance.RemainingConversations, Is.EqualTo(0));
         }
 
-        private static AiStatusData Status(bool canStart, int? remaining, bool guest = false)
+        private static AiStatusData Status(bool canStart, int? remaining)
         {
             return new AiStatusData
             {
                 Status = canStart ? "AI_AVAILABLE" : "AI_EXHAUSTED",
                 Capabilities = new AiCapabilities { CanStartConversation = canStart },
                 RemainingConversations = remaining,
-                Guest = guest,
             };
         }
 

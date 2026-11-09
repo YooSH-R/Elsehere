@@ -49,19 +49,6 @@ namespace A305.Npc.PlayModeTests
             );
         }
 
-        // 오늘 대화를 다 쓴 회원은 가입할 필요가 없으므로 설문 카드만 내려온다.
-        [UnityTest]
-        public IEnumerator MemberOutOfTodaysConversations_ClosingFeedback_ShowsSurveyWithoutSignup()
-        {
-            yield return FinishConversationWithBen();
-            Single<DialogueController>().Allowance.Apply(MemberStatus(remaining: 0));
-
-            yield return CloseFeedback();
-
-            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.False);
-            Assert.That(Single<SurveyPromptView>().IsShowing, Is.True);
-        }
-
         [UnityTest]
         public IEnumerator GuestWithConversationsLeft_ClosingFeedback_DoesNotOpenSignup()
         {
@@ -108,18 +95,13 @@ namespace A305.Npc.PlayModeTests
             yield return null;
         }
 
-        private static AiStatusData GuestStatus(int remaining) => Status(remaining, guest: true);
-
-        private static AiStatusData MemberStatus(int remaining) => Status(remaining, guest: false);
-
-        private static AiStatusData Status(int remaining, bool guest)
+        private static AiStatusData GuestStatus(int remaining)
         {
             return new AiStatusData
             {
                 Status = remaining > 0 ? "AI_AVAILABLE" : "AI_EXHAUSTED",
                 Capabilities = new AiCapabilities { CanStartConversation = remaining > 0 },
                 RemainingConversations = remaining,
-                Guest = guest,
             };
         }
 

@@ -160,7 +160,7 @@ namespace A305.Npc
                 return;
             }
 
-            // 택시를 세우면 바로 기사와 대화하므로 대화를 다 쓰면 두 버튼 대신 이유나 가입 버튼을 보인다(기능 명세 F-39).
+            // 택시를 세우면 바로 기사와 대화하므로 게스트 대화를 다 쓰면 두 버튼 대신 이유를 보인다(기능 명세 F-39).
             ConversationAllowance allowance = dialogue.Allowance;
             bool canBoard = IsHailAllowed && TaxiFare.CanHail(transform.position, customer);
             TaxiPrompt prompt = TaxiPrompt.Choose(
@@ -168,7 +168,6 @@ namespace A305.Npc
                 fare.Phase == TaxiPhase.Waiting && canBoard,
                 allowance.CanStartConversation,
                 allowance.RemainingConversations,
-                allowance.IsGuest,
                 dialogue.FindNpcName(driver.Code)
             );
             switch (prompt.Kind)

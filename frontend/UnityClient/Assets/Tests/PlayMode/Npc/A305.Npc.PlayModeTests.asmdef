@@ -13,6 +13,7 @@
         "A305.Tutorial",
         "A305.Mission",
         "A305.Onboarding",
+        "A305.Theme",
         "UnityEngine.UI",
         "Unity.TextMeshPro",
         "Unity.InputSystem"

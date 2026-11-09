@@ -765,7 +765,13 @@ namespace A305.EditorTools.Theme
             talkSize.minWidth = talkSize.preferredWidth = 332;
             talk.sizeDelta = new Vector2(332, talk.sizeDelta.y);
 
-            RectTransform key = FindOrCreateRect(talk, "KeyHint");
+            RectTransform key = StyleInteractionKeyHint(talk);
+            BuilderTools.SetReference(view, "talkKeyHint", key);
+        }
+
+        internal static RectTransform StyleInteractionKeyHint(Transform button)
+        {
+            RectTransform key = FindOrCreateRect(button, "KeyHint");
             key.SetAsFirstSibling();
             key.sizeDelta = new Vector2(32, 32);
             BuilderTools.GetOrAddComponent<LayoutElement>(key.gameObject).ignoreLayout = true;
@@ -784,7 +790,7 @@ namespace A305.EditorTools.Theme
             keyFace.type = Image.Type.Sliced;
             keyFace.color = new Color32(190, 90, 70, 255);
             keyFace.raycastTarget = false;
-            BuilderTools.SetReference(view, "talkKeyHint", key);
+            return key;
         }
 
         // 안내는 바닥 무늬와 테마에 관계없이 읽혀야 하므로 불투명 바탕과 고정 대비를 쓴다.

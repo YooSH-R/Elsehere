@@ -128,7 +128,7 @@ namespace A305.Mission
                 && !offerView.IsShowing
                 && !anotherPrompt
             )
-                offerView.ShowTalkPrompt(this, "잠깐 앉기", Sit);
+                offerView.ShowTalkPrompt(this, "잠깐 앉기", Sit, showTalkIcon: false);
             else
                 offerView.HideTalkPrompt(this);
         }

@@ -111,7 +111,8 @@ namespace A305.Mission
                         if (seatedHere)
                             player.CameraRig?.EnterSeatView(nearest.Find("MealView"));
                     }
-                }
+                },
+                showTalkIcon: false
             );
         }
 

@@ -48,11 +48,11 @@ namespace A305.Dialogue.PlayModeTests
             Button subtitle = FindButton("SubtitleButton");
             Assert.That(subtitle.transform.parent.name, Is.EqualTo("ToolRow"));
             Assert.That(subtitle.gameObject.activeInHierarchy, Is.True);
-            Assert.That(Caption(subtitle), Is.EqualTo("자막 끔"));
+            Assert.That(Caption(subtitle), Is.EqualTo("자막 켜기"));
         }
 
         [UnityTest]
-        public IEnumerator SubtitleButton_Clicked_ShowsTheNpcLineAndRemembersIt()
+        public IEnumerator SubtitleButton_Clicked_TogglesCaptionAndRemembersPreference()
         {
             yield return Show(new SpokenContent(speaksNpcLines: true));
             Button subtitle = FindButton("SubtitleButton");
@@ -62,12 +62,20 @@ namespace A305.Dialogue.PlayModeTests
 
             Assert.That(VisibleNpcLetters(), Is.EqualTo(NpcSentence.Replace(" ", "").Length));
             Assert.That(ActiveCovers(), Is.Empty);
-            Assert.That(Caption(subtitle), Is.EqualTo("자막 켬"));
+            Assert.That(Caption(subtitle), Is.EqualTo("자막 끄기"));
             NpcSubtitlePreference.Reload();
             Assert.That(NpcSubtitlePreference.ShowsSubtitles, Is.True);
+
+            ClickCenterOf(subtitle);
+            yield return null;
+
+            Assert.That(VisibleNpcLetters(), Is.Zero);
+            Assert.That(Caption(subtitle), Is.EqualTo("자막 켜기"));
+            NpcSubtitlePreference.Reload();
+            Assert.That(NpcSubtitlePreference.ShowsSubtitles, Is.False);
         }
 
-        // 켜 둔 채 대화를 열면 레이아웃이 버튼 높이를 정하기 전에 [자막 켬] 알약을 칠한다.
+        // 켜 둔 채 대화를 열면 레이아웃이 버튼 높이를 정하기 전에 [자막 끄기] 알약을 칠한다.
         // 높이가 정해진 뒤에도 알약 위아래 모서리가 버튼 높이를 넘으면 가운데 줄이 테이프처럼 양옆으로 삐져나온다.
         [UnityTest]
         public IEnumerator SubtitlesOn_PillCornersFitInsideTheButtonHeight()

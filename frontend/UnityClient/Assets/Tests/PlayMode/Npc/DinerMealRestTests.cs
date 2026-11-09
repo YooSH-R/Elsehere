@@ -77,6 +77,22 @@ namespace A305.Npc.PlayModeTests
                     Assert.That(player.CameraRig.IsInSeatView, Is.True);
                     rest.Tick(4, state, false);
                     yield return null;
+                    var animator = player.GetComponentInChildren<Animator>();
+                    var hips = animator.GetBoneTransform(HumanBodyBones.Hips);
+                    foreach (
+                        var bone in new[] { HumanBodyBones.LeftHand, HumanBodyBones.RightHand }
+                    )
+                    {
+                        float ahead = Vector3.Dot(
+                            animator.GetBoneTransform(bone).position - hips.position,
+                            player.transform.forward
+                        );
+                        Assert.That(
+                            ahead,
+                            Is.GreaterThan(.1f),
+                            "실제 착석에서도 양손이 몸 앞에 나옵니다."
+                        );
+                    }
                     rest.Tick(0, state, false);
                     Assert.That(offer.ShownButtonRect.gameObject.activeInHierarchy, Is.True);
                     Assert.That(received, Is.Zero);
@@ -89,7 +105,19 @@ namespace A305.Npc.PlayModeTests
                     Assert.That(player.CameraRig.IsInSeatView, Is.False);
                     rest.Tick(100, state, false);
                     Assert.That(received, Is.Zero, "일어선 동안 준비 시간은 멈춥니다.");
+                    var umbrella = player.GetComponent<UmbrellaHold>();
+                    umbrella.SetOpen(true);
                     offer.ShownButtonRect.GetComponent<Button>().onClick.Invoke();
+                    yield return null;
+                    Assert.That(
+                        Vector3.Distance(
+                            umbrella.Hand.position,
+                            umbrella.Umbrella.transform.position
+                        ),
+                        Is.LessThan(.1f),
+                        "앉아도 들고 있는 우산은 손에 붙어 있어야 합니다."
+                    );
+                    umbrella.SetOpen(false);
                     rest.Tick(6, state, false);
                     Assert.That(received, Is.EqualTo(1));
                     Assert.That(pose.IsSeated, Is.False);

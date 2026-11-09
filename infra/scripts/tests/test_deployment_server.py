@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from copy import deepcopy
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
 import deployment_server
@@ -117,6 +117,7 @@ class DeploymentServerTests(unittest.TestCase):
         branch="dev",
         environment="dev",
         ready_deployment=False,
+        verify_database_backup=None,
     ):
         builds = ["backend"] if builds is None else builds
         state = self.server.state()
@@ -144,6 +145,8 @@ class DeploymentServerTests(unittest.TestCase):
         }
         if ready_deployment:
             manifest["verified_base_commit"] = state["candidate_commit"]
+        if verify_database_backup is not None:
+            manifest["verify_database_backup"] = verify_database_backup
         files = {
             "manifest.json": json.dumps(manifest).encode(),
             "compose.app.yaml": b"services: {}\n",
@@ -158,6 +161,51 @@ class DeploymentServerTests(unittest.TestCase):
                 archive.addfile(member, io.BytesIO(content))
         output.seek(0)
         return output
+
+    def test_production_records_verified_backup_before_activating_release(self):
+        self.config["environment"] = "prod"
+        self.server = DeploymentServer(self.config, self.runtime)
+        self.server.initialize()
+        backup = "before-main-10-test.dump.cms"
+        self.runtime.verify_database_backup = Mock(return_value=backup)
+        activate = self.server.activate_release
+
+        def activate_after_backup(previous, record, services):
+            self.runtime.verify_database_backup.assert_called_once_with(10)
+            return activate(previous, record, services)
+
+        self.server.activate_release = activate_after_backup
+        result = self.server.apply(
+            self.release_archive(
+                branch="main", environment="prod", verify_database_backup=True
+            )
+        )
+
+        self.assertEqual(result["verified_database_backup"], backup)
+
+    def test_failed_production_backup_verification_leaves_running_release_intact(self):
+        self.config["environment"] = "prod"
+        self.server = DeploymentServer(self.config, self.runtime)
+        self.server.initialize()
+        previous = self.server.state()
+        self.runtime.verify_database_backup = Mock(
+            side_effect=RuntimeError("Backup restoration failed.")
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "Backup restoration failed"):
+            self.server.apply(
+                self.release_archive(
+                    branch="main", environment="prod", verify_database_backup=True
+                )
+            )
+
+        self.assertEqual(self.server.state(), previous)
+
+    def test_development_release_cannot_request_production_backup(self):
+        self.server.initialize()
+
+        with self.assertRaisesRegex(ValueError, "production backup"):
+            self.server.apply(self.release_archive(verify_database_backup=True))
 
     def test_production_receiver_accepts_main_and_rejects_development_releases(self):
         self.config["environment"] = "prod"

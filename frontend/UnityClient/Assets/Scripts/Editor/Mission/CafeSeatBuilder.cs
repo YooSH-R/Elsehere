@@ -12,7 +12,7 @@ using UnityEngine.SceneManagement;
 
 namespace A305.EditorTools.Mission
 {
-    /// <summary>기존 카페 디자인은 유지하고 원형 테이블 의자에 앉기 지점을 연결한다.</summary>
+    /// <summary>기존 카페 디자인은 유지하고 양쪽 테이블의 의자에 앉기 지점을 연결한다.</summary>
     public static class CafeSeatBuilder
     {
         private static readonly string[] ScenePaths =
@@ -52,12 +52,10 @@ namespace A305.EditorTools.Mission
 
             Transform[] chairs = cornerCafe
                 .GetComponentsInChildren<Transform>(true)
-                .Where(item => item.name == "CafeChair" && HasRoundTableParent(item))
+                .Where(item => item.name == "CafeChair" && item.gameObject.activeInHierarchy)
                 .ToArray();
-            if (chairs.Length != 4)
-                throw new InvalidOperationException(
-                    $"Expected four round-table cafe chairs in {scene.name}; found {chairs.Length}."
-                );
+            if (chairs.Length == 0)
+                throw new InvalidOperationException($"No cafe chairs were found in {scene.name}.");
 
             for (int index = 0; index < chairs.Length; index++)
             {
@@ -74,14 +72,6 @@ namespace A305.EditorTools.Mission
                 BuilderTools.SetReference(seat, "dialogue", dialogue);
                 BuilderTools.SetReference(seat, "offerView", offer);
             }
-        }
-
-        private static bool HasRoundTableParent(Transform child)
-        {
-            for (Transform parent = child.parent; parent != null; parent = parent.parent)
-                if (parent.name == "RoundTableSet")
-                    return true;
-            return false;
         }
     }
 }

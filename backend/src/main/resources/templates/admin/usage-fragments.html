@@ -27,6 +27,7 @@
       <th>대화</th>
       <th>미션 완료</th>
       <th>단어 저장</th>
+      <th>머문 시간(분)</th>
     </tr>
     </thead>
     <tbody>
@@ -40,9 +41,10 @@
       <td th:text="${#numbers.formatInteger(day.conversations, 1, 'COMMA')}">0</td>
       <td th:text="${#numbers.formatInteger(day.missionsCompleted, 1, 'COMMA')}">0</td>
       <td th:text="${#numbers.formatInteger(day.wordsSaved, 1, 'COMMA')}">0</td>
+      <td th:text="${#numbers.formatDecimal(day.activeSeconds / 60.0, 1, 'COMMA', 1, 'POINT')}">0.0</td>
     </tr>
     <tr th:if="${#lists.isEmpty(usage.byDay)}">
-      <td colspan="9" class="muted">이 기간에 활동이 없습니다.</td>
+      <td colspan="10" class="muted">이 기간에 활동이 없습니다.</td>
     </tr>
     </tbody>
   </table>

@@ -8,6 +8,7 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.TranscriptionPurpose;
 import com.elsehere.conversation.entity.Conversation;
+import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.conversation.service.ConversationLookup;
@@ -84,7 +85,8 @@ public class SpeechService {
         new WorkerTrace(
             requestId, userId, purpose == TranscriptionPurpose.TURN ? conversationId : null);
     byte[] recording = bytesOf(audio);
-    SttResult result = aiGateway.transcribe(trace, recording, contentType);
+    String npcLine = purpose == TranscriptionPurpose.TURN ? lastNpcLine(conversationId) : null;
+    SttResult result = aiGateway.transcribe(trace, recording, contentType, npcLine);
     if (result.text() == null || result.text().isBlank()) {
       throw new BusinessException(ErrorCode.STT_NO_SPEECH);
     }
@@ -169,6 +171,14 @@ public class SpeechService {
     if (!active) {
       throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
     }
+  }
+
+  /** 음성 인식 문맥으로 쓸 직전 NPC 대사. 한국식 발음 '러닝'(running·learning)처럼 소리가 비슷한 말을 대사의 문맥에 맞춰 고르게 한다. */
+  private String lastNpcLine(Long conversationId) {
+    return turnRepository
+        .findFirstByConversationIdAndSpeakerOrderBySeqDesc(conversationId, Speaker.NPC)
+        .map(Turn::getText)
+        .orElse(null);
   }
 
   // "audio/webm;codecs=opus"처럼 매개변수가 붙어도 형식만 본다.

@@ -281,7 +281,7 @@ namespace A305.Npc
                         )
                     )
                         endpoints = (resident.TownBody.transform.position, endpoints.To);
-                    resident.Route = RouteBetween(endpoints.From, endpoints.To);
+                    resident.Route = NpcWalkRoute.Between(endpoints.From, endpoints.To);
                     resident.RouteMeters = resident.Route != null ? RouteLength(resident.Route) : 0;
                     string phase = plan.IsShortBreak
                         ? "BREAK"
@@ -441,7 +441,10 @@ namespace A305.Npc
                     venue =>
                         OpeningHours.IsOpenNow(venue.Code)
                         && CanVisit(resident, venue, NpcOutings.UntilHome(plan, now) - now)
-                        && (!venue.IsOutdoor || RouteBetween(venue.Entrance, venue.WalkTo) != null)
+                        && (
+                            !venue.IsOutdoor
+                            || NpcWalkRoute.Between(venue.Entrance, venue.WalkTo) != null
+                        )
                 );
                 if (resident.LeisureVenue != trip?.Venue)
                     resident.LastPhase = null;
@@ -522,7 +525,7 @@ namespace A305.Npc
 
         private (float Meters, float WaitSeconds) MeasureJourney(Vector3 from, Vector3 to)
         {
-            Vector3[] route = RouteBetween(from, to);
+            Vector3[] route = NpcWalkRoute.Between(from, to);
             if (route == null)
                 return (float.PositiveInfinity, 0);
             float wait = 0;
@@ -568,23 +571,6 @@ namespace A305.Npc
             return npc.activeInHierarchy
                 && npc.TryGetComponent(out Passerby body)
                 && (body.Phase == PasserbyPhase.Talking || body.Phase == PasserbyPhase.Offering);
-        }
-
-        private static Vector3[] RouteBetween(Vector3 from, Vector3 to)
-        {
-            int walkableAreas = NpcTownWalker.WalkingAreas;
-            if (
-                !NavMesh.SamplePosition(from, out NavMeshHit start, 2, walkableAreas)
-                || !NavMesh.SamplePosition(to, out NavMeshHit end, 2, walkableAreas)
-            )
-                return null;
-            var path = new NavMeshPath();
-            if (
-                !NavMesh.CalculatePath(start.position, end.position, walkableAreas, path)
-                || path.status != NavMeshPathStatus.PathComplete
-            )
-                return null;
-            return path.corners.Length > 0 ? path.corners : new[] { start.position };
         }
 
         internal static Vector3 PositionOnRoute(IReadOnlyList<Vector3> route, float progress)

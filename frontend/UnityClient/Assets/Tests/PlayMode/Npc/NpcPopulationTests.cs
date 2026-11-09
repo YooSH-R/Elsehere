@@ -1329,49 +1329,18 @@ namespace A305.Npc.PlayModeTests
         {
             // 남동쪽 모서리에서 숙소로 가는 길은 남쪽 본길 횡단과 동쪽 가로길 횡단 둘 다 비슷하다.
             // 몇 cm 움직일 때마다 기다릴 신호를 바꾸면 두 신호의 출발 가능 시간이 겹치지 않아 영영 건너지 못한다.
-            SetClock(21 * 60);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
-            Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
-            Object
-                .FindFirstObjectByType<PlayerMover>()
-                .Teleport(new Vector3(0, 100, 0), Quaternion.identity);
-            var lights = Object.FindFirstObjectByType<TrafficLights>();
-            lights.enabled = false;
-            FieldInfo elapsed = typeof(TrafficLights).GetField(
-                "elapsedSeconds",
-                BindingFlags.Instance | BindingFlags.NonPublic
-            );
-            elapsed.SetValue(lights, 0f);
-            foreach (var other in Object.FindObjectsByType<Passerby>(FindObjectsSortMode.None))
-                other.gameObject.SetActive(false);
-            var walker = Object
-                .FindObjectsByType<NpcTownWalker>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None
-                )
-                .Single(item => item.GetComponent<NpcIdentity>().Code == "POLICE_SERGEANT");
+            yield return LoadTownWithStoppedSignals();
             Vector3 start = new Vector3(3.49f, .12f, 6.46f);
-            Vector3 dormitory = new Vector3(-20, .1f, 16.5f);
             float previousDelta = Time.captureDeltaTime;
             try
             {
                 Time.captureDeltaTime = 1f / 30f;
-                PlaceWalker(walker, start, dormitory - start);
-                walker.Destination = dormitory;
+                var walker = PlaceSergeant(start, new Vector3(-20, .1f, 16.5f));
                 bool leftTheCorner = false;
                 // 신호 두 주기(50초) 안에 한 번은 건넌다.
                 for (int frame = 0; frame < 1500 && !leftTheCorner; frame++)
                 {
-                    elapsed.SetValue(lights, frame / 30f);
+                    SetSignalSeconds(frame / 30f);
                     yield return null;
                     leftTheCorner = HorizontalDistance(walker.transform.position, start) > 3;
                 }
@@ -1390,46 +1359,17 @@ namespace A305.Npc.PlayModeTests
             bool expectArrival
         )
         {
-            SetClock(21 * 60);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
-            Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
-            Object
-                .FindFirstObjectByType<PlayerMover>()
-                .Teleport(new Vector3(0, 100, 0), Quaternion.identity);
-            var lights = Object.FindFirstObjectByType<TrafficLights>();
-            lights.enabled = false;
-            typeof(TrafficLights)
-                .GetField("elapsedSeconds", BindingFlags.Instance | BindingFlags.NonPublic)
-                .SetValue(lights, signalSeconds);
-            foreach (var body in Object.FindObjectsByType<Passerby>(FindObjectsSortMode.None))
-                body.gameObject.SetActive(false);
-            var walker = Object
-                .FindObjectsByType<NpcTownWalker>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None
-                )
-                .Single(item => item.GetComponent<NpcIdentity>().Code == "POLICE_SERGEANT");
+            yield return LoadTownWithStoppedSignals();
+            SetSignalSeconds(signalSeconds);
             float previousDelta = Time.captureDeltaTime;
             try
             {
                 Time.captureDeltaTime = 1f / 30f;
-                PlaceWalker(walker, start, destination - start);
-                walker.Destination = destination;
+                var walker = PlaceSergeant(start, destination);
                 var body = walker.GetComponent<Passerby>();
-                FieldInfo crossingField = typeof(Passerby).GetField(
-                    "crossing",
-                    BindingFlags.Instance | BindingFlags.NonPublic
-                );
-                object crossing = crossingField.GetValue(body);
+                object crossing = typeof(Passerby)
+                    .GetField("crossing", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .GetValue(body);
                 FieldInfo returning = crossing
                     .GetType()
                     .GetField("returning", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -1463,6 +1403,47 @@ namespace A305.Npc.PlayModeTests
             {
                 Time.captureDeltaTime = previousDelta;
             }
+        }
+
+        // 마을의 다른 사람과 출퇴근을 멈추고 신호도 멈춘다. 신호 시각은 테스트가 정한다.
+        private static IEnumerator LoadTownWithStoppedSignals()
+        {
+            SetClock(21 * 60);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
+            Object
+                .FindFirstObjectByType<PlayerMover>()
+                .Teleport(new Vector3(0, 100, 0), Quaternion.identity);
+            Object.FindFirstObjectByType<TrafficLights>().enabled = false;
+            foreach (var body in Object.FindObjectsByType<Passerby>(FindObjectsSortMode.None))
+                body.gameObject.SetActive(false);
+        }
+
+        private static void SetSignalSeconds(float seconds) =>
+            typeof(TrafficLights)
+                .GetField("elapsedSeconds", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(Object.FindFirstObjectByType<TrafficLights>(), seconds);
+
+        private static NpcTownWalker PlaceSergeant(Vector3 start, Vector3 destination)
+        {
+            var walker = Object
+                .FindObjectsByType<NpcTownWalker>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+                .Single(item => item.GetComponent<NpcIdentity>().Code == "POLICE_SERGEANT");
+            PlaceWalker(walker, start, destination - start);
+            walker.Destination = destination;
+            return walker;
         }
 
         [UnityTest]

@@ -24,9 +24,8 @@ namespace A305.Dialogue
         // 녹음을 시작했지만 마이크가 아직 열리는 중. 이때 한 말은 녹음되지 않는다. 눌러서 그만둘 수는 있다.
         private const string PreparingTalkCaption = "준비 중";
 
-        // [자막]은 누르면 바뀔 동작이 아니라 지금 상태를 보인다.
-        private const string SubtitleOnCaption = "자막 켬";
-        private const string SubtitleOffCaption = "자막 끔";
+        private const string EnableSubtitlesCaption = "자막 켜기";
+        private const string DisableSubtitlesCaption = "자막 끄기";
 
         [SerializeField]
         private GameObject panel;
@@ -790,8 +789,8 @@ namespace A305.Dialogue
             subtitleButton.gameObject.SetActive(content.SpeaksNpcLines);
             bool showsSubtitles = NpcSubtitlePreference.ShowsSubtitles;
             subtitleButton.GetComponentInChildren<TMP_Text>(true).text = showsSubtitles
-                ? SubtitleOnCaption
-                : SubtitleOffCaption;
+                ? DisableSubtitlesCaption
+                : EnableSubtitlesCaption;
             if (subtitleButton.TryGetComponent(out ThemedElement theme))
                 theme.SetSelected(showsSubtitles);
         }

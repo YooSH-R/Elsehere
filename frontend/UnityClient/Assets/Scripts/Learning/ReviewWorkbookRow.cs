@@ -39,12 +39,14 @@ namespace A305.Learning
         {
             const float padding = 58;
             bool narrow = width < 670;
-            title.text =
+            title.text = Escape(ReviewScenarioPresentation.Title(card));
+            situation.text =
                 "<color=#F2633F>"
-                + PlaceScenes.NameOf(card.SceneCode)
-                + "</color><color=#8B7C6B> · </color>"
-                + Escape(card.Npc?.Name);
-            situation.text = Escape(card.SituationSummary);
+                + Escape(ReviewScenarioPresentation.BuildingName(card))
+                + "</color> · <color=#8B7C6B>"
+                + Escape(card.Npc?.Name)
+                + "</color>\n\n"
+                + Escape(card.Scenario?.Situation ?? card.SituationSummary);
             expressions.text = string.Join(
                 "\n\n",
                 (card.Targets ?? new System.Collections.Generic.List<ReviewTarget>()).Select(

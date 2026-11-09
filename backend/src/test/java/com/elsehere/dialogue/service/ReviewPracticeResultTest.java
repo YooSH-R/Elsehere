@@ -129,6 +129,42 @@ class ReviewPracticeResultTest {
   }
 
   @Test
+  void legacyStaffTargetIsHiddenAndExactLearnerSentencesAppearInProgressAndFinalResult() {
+    var original = cards.detail(userId, cardId);
+    var source = conversation(em, userId, "HOTEL_STAFF");
+    source.endByUser(review.getStartedAt());
+    var legacy =
+        com.elsehere.review.entity.ReviewCard.of(
+            userId,
+            source.getId(),
+            original.npcId(),
+            "HOTEL",
+            "상황 복습",
+            """
+        [{"expression":"You're all set.","meaningKo":"다 됐어요."},
+         {"expression":"No, thanks. I'm good.","meaningKo":"아니요, 괜찮아요."},
+         {"expression":"That's the one!","meaningKo":"바로 그거예요!"}]
+        """);
+    em.persist(legacy);
+    review.attachReviewCard(legacy.getId());
+    Turn first = userTurn(1, "No, thanks. I'm good.", false);
+    userTurn(2, "That's the one!", null);
+    var progress = results.progress(userId, legacy.getId(), review.getId());
+    assertThat(cards.detail(userId, legacy.getId()).targets()).hasSize(2);
+    assertThat(progress.verifiedExpressionCount()).isEqualTo(2);
+    assertThat(progress.expressions().getFirst().evidence())
+        .extracting("turnId")
+        .containsExactly(first.getId());
+    var ended =
+        service.end(userId, review.getId(), new EndConversationRequest(UUID.randomUUID(), false));
+    assertThat(ended.reviewResult().verifiedExpressionCount())
+        .isEqualTo(progress.verifiedExpressionCount());
+    assertThat(ended.reviewResult().practiceCompleted()).isTrue();
+    assertThat(ended.reviewResult().expressions()).hasSize(2);
+    org.mockito.BDDMockito.then(gateway).shouldHaveNoInteractions();
+  }
+
+  @Test
   void contentErasureAlsoClearsUtterancesCachedOnRetainedConversationRows() {
     userTurn(1, "Could you hold my luggage?", false);
     service.end(userId, review.getId(), new EndConversationRequest(UUID.randomUUID(), false));

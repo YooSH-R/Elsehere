@@ -71,6 +71,7 @@ namespace A305.Dialogue
         [SerializeField]
         private ReviewReferenceBadges reviewBadges;
         private string reviewReference;
+        private string reviewScenario;
         private string originalHelpTitle;
         private TMP_Text reviewHelpTitle;
         private bool reviewFolded;
@@ -81,6 +82,8 @@ namespace A305.Dialogue
         public void SetReviewReference(string text)
         {
             reviewBadges?.Clear();
+            if (text == null)
+                reviewScenario = null;
             if (text == null || reviewReference == null)
                 reviewFolded = false;
             var layout = suggestText.transform.parent.GetComponent<VerticalLayoutGroup>();
@@ -118,9 +121,18 @@ namespace A305.Dialogue
             Refresh();
         }
 
-        public void SetReviewReference(IReadOnlyList<ReviewReferenceItem> items, int verifiedCount)
+        public void SetReviewReference(
+            IReadOnlyList<ReviewReferenceItem> items,
+            int verifiedCount,
+            string scenario = null
+        )
         {
-            ReviewReferenceText formatted = ReviewReferenceText.Format(items, verifiedCount);
+            reviewScenario = scenario;
+            ReviewReferenceText formatted = ReviewReferenceText.Format(
+                items,
+                verifiedCount,
+                scenario
+            );
             SetReviewReference(formatted.Text);
             reviewBadges?.Show(formatted);
         }
@@ -477,7 +489,9 @@ namespace A305.Dialogue
                 suggestText.text = reviewReference;
             suggestText.gameObject.SetActive(!reviewing || !reviewFolded);
             if (reviewHelpTitle != null)
-                reviewHelpTitle.text = reviewing ? "이번에 써 볼 표현" : originalHelpTitle;
+                reviewHelpTitle.text = reviewing
+                    ? (reviewScenario == null ? "이번에 써 볼 표현" : "이번 복습")
+                    : originalHelpTitle;
             if (reviewFoldButton != null)
                 reviewFoldButton.gameObject.SetActive(reviewing);
 

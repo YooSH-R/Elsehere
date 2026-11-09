@@ -9,6 +9,25 @@ import org.junit.jupiter.api.Test;
 
 class ReviewTargetsTest {
   @Test
+  void staffLinesDoNotBecomeLearnerTargetsButSharedFarewellsRemain() {
+    var selected =
+        ReviewTargets.select(
+            List.of(
+                expression("You're all set.", "이제 다 됐어요."),
+                new SituationExpression(
+                    "What can I get you?",
+                    "무엇을 드릴까요?",
+                    "직원이 주문을 받을 때 써요.",
+                    "What can I get you?",
+                    "무엇을 드릴까요?"),
+                expression("I think I left my bag here.", "여기에 가방을 두고 간 것 같아요."),
+                expression("Have a good one!", "좋은 하루 보내세요!")));
+    assertThat(selected)
+        .extracting(target -> target.expression())
+        .containsExactly("I think I left my bag here.", "Have a good one!");
+  }
+
+  @Test
   void selectKeepsThreeDistinctExpressionsAndTheirOriginalLearningContext() {
     var first = expression("Can I get that to go?", "포장해 주실 수 있나요?");
     var second = expression("Could I get less ice?", "얼음을 조금만 넣어 주세요.");

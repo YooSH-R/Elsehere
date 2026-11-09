@@ -5,6 +5,21 @@ namespace A305.Dialogue.Tests
     public sealed class ReviewReferenceTextTests
     {
         [Test]
+        public void ScenarioNotesDoNotShiftUsageBadgesToTheWrongLine()
+        {
+            var formatted = ReviewReferenceText.Format(
+                new[] { new ReviewReferenceItem("That's the one!", "제 가방이에요!", true) },
+                1,
+                "<b>분실 가방 찾기</b>\n가방 안: 여권 지갑과 책\n"
+            );
+            Assert.That(
+                formatted.Text.Substring(formatted.Markers[0].SourceIndex),
+                Does.StartWith("That's the one!")
+            );
+            Assert.That(formatted.Markers[0].Used, Is.True);
+        }
+
+        [Test]
         public void ExpressionsAndMeaningsRemainLiteralWhileBadgesAreSeparateFromText()
         {
             var formatted = ReviewReferenceText.Format(

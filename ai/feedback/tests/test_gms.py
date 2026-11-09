@@ -153,7 +153,8 @@ class GmsTests(unittest.TestCase):
         field = data["properties"]["situation_expressions"]
         self.assertEqual((field["minItems"], field["maxItems"]), (2, 3))
         item = schema["$defs"]["SituationExpression"]
-        self.assertEqual(set(item["properties"]), {"expression", "meaning_ko", "usage_ko", "example_en", "example_ko"})
+        self.assertEqual(set(item["properties"]), {"expression", "meaning_ko", "usage_ko", "example_en", "example_ko", "speaker_role"})
+        self.assertEqual(item["properties"]["speaker_role"]["enum"], ["learner", "npc", "both"])
         self.assertEqual(set(item["required"]), set(item["properties"]))
 
     def test_invalid_http_body_is_sanitized(self):

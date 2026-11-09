@@ -52,9 +52,17 @@ namespace A305.EditorTools.World
                     folder,
                     car.name + "-side.png"
                 );
+                CaptureView(
+                    camera,
+                    car.transform,
+                    new Vector3(-2.4f, 1.5f, -3.2f),
+                    folder,
+                    car.name + "-rear.png"
+                );
             }
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-            EditorSceneManager.RestoreSceneManagerSetup(previousScenes);
+            if (previousScenes.Length > 0)
+                EditorSceneManager.RestoreSceneManagerSetup(previousScenes);
         }
 
         private static void CaptureView(

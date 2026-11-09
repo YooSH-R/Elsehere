@@ -9,6 +9,11 @@
   ],
   "public_health_url": "https://elsehere.kr/api/health",
   "public_version_url": "https://elsehere.kr/version.json",
+  "database_backup": {
+    "directory": "/home/ubuntu/apps/a305/prod/backups",
+    "certificate": "/home/ubuntu/apps/a305/prod/config/backup-recovery.crt",
+    "key": "/home/ubuntu/apps/a305/prod/config/backup-recovery.key"
+  },
   "minimum_backend_commit": "REPLACE_WITH_DEPLOYED_MONITORING_COMMIT",
   "bootstrap_sources": {
     "backend": "REPLACE_WITH_RUNNING_BACKEND_SOURCE_COMMIT",

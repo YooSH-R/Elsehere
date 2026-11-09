@@ -6,6 +6,7 @@ import com.elsehere.admin.dto.UsageReport;
 import com.elsehere.admin.dto.UserUsageReport;
 import com.elsehere.admin.repository.AdminUsageRepository;
 import com.elsehere.admin.repository.AdminUsageRepository.ProfileRow;
+import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.mission.entity.FirstDayStage;
@@ -13,6 +14,7 @@ import com.elsehere.mission.entity.TownStoryStage;
 import com.elsehere.user.entity.OnboardingStep;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,7 +24,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 어드민 이용 현황 화면. DB에 남은 활동 흔적으로 최근 며칠의 사용량과 진행 단계를 묶는다. */
+/** 어드민 이용 현황 화면. 일별 접속 기록과 DB에 남은 활동 흔적으로 최근 며칠의 사용량, 재방문, 진행 단계를 묶는다. */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -52,6 +54,8 @@ public class AdminUsageService {
                 adminUsageRepository.activeUsersByFirstDayStage(since), FIRST_DAY_STAGE_NAMES),
             stageCounts(
                 adminUsageRepository.activeUsersByTownStoryStage(since), TOWN_STORY_STAGE_NAMES)),
+        adminUsageRepository.retention(
+            since, LocalDate.ofInstant(clock.instant(), ClockConfig.SERVICE_ZONE)),
         adminUsageRepository.activeUsers(since, USER_LIST_LIMIT));
   }
 

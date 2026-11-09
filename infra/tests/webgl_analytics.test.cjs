@@ -104,22 +104,26 @@ async function runUnityLoader(page, result) {
   await new Promise(resolve => setImmediate(resolve));
 }
 
-test("analytics loads only after the visitor accepts", () => {
+test("analytics starts on the first visit and shows a notice the visitor can refuse", () => {
   const page = createPage();
 
-  assert.equal(page.scripts.length, 0);
-  assert.equal(page.elements.get("analytics-consent").hidden, false);
-  page.elements.get("analytics-accept").click();
   assert.equal(page.scripts.length, 1);
   assert.match(page.scripts[0].src, /googletagmanager\.com\/gtag\/js\?id=G-209TJ3SH81/);
+  assert.equal(page.elements.get("analytics-consent").hidden, false);
+  page.elements.get("analytics-accept").click();
+  assert.equal(page.values.get("elsehere.analytics.consent"), "granted");
+  assert.equal(page.elements.get("analytics-consent").hidden, true);
+  assert.equal(page.scripts.length, 1);
 });
 
-test("rejecting analytics saves the choice without loading Google and allows reopening settings", () => {
+test("refusing on the first visit stops measurement, saves the choice and allows reopening settings", () => {
   const page = createPage();
 
   page.elements.get("analytics-reject").click();
-  assert.equal(page.scripts.length, 0);
+  assert.equal(page.window["ga-disable-G-209TJ3SH81"], true);
   assert.equal(page.values.get("elsehere.analytics.consent"), "denied");
+  assert.ok(page.cookies.some(cookie => cookie.startsWith("_ga=")));
+  assert.equal(page.getReloads(), 1);
   assert.equal(page.elements.get("analytics-consent").hidden, true);
   page.elements.get("analytics-settings").click();
   assert.equal(page.elements.get("analytics-consent").hidden, false);
@@ -152,13 +156,10 @@ test("only production domains can start analytics, and saved rejection stays rej
   assert.equal(rejected.elements.get("analytics-consent").hidden, true);
 });
 
-test("a load completed before consent is sent only after acceptance", () => {
+test("a load on the first visit is sent without waiting for the visitor's choice", () => {
   const page = createPage();
 
   page.window.reportUnityLoad("loaded", 1.5);
-  assert.equal(page.scripts.length, 0);
-  assert.equal(page.window.dataLayer, undefined);
-  page.elements.get("analytics-accept").click();
   const events = page.window.dataLayer.map(args => Array.from(args));
   const event = events.find(args => args[0] === "event" && args[1] === "webgl_loaded");
   assert.ok(event);

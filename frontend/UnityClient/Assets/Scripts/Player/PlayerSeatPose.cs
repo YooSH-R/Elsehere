@@ -4,7 +4,7 @@ using UnityEngine;
 namespace A305.Player
 {
     /// <summary>
-    /// 의자·벤치·소파에 앉은 동안 기존 Humanoid 골격을 앉는 면 높이에 맞춰 구부린다(<see cref="SeatedLegs"/>). 일어서면 앉기 전에 서 있던
+    /// 의자·벤치·소파에 앉은 동안 다리를 구부리고(<see cref="SeatedLegs"/>) 양손을 허벅지 앞에 둔다(<see cref="SeatedArms"/>). 일어서면 앉기 전에 서 있던
     /// 곳으로 돌아간다.
     /// </summary>
     [DefaultExecutionOrder(700)]
@@ -15,6 +15,7 @@ namespace A305.Player
         private CharacterController controller;
         private Transform visual;
         private SeatedLegs legs;
+        private SeatedArms arms;
         private StandingPoseCorrections standingCorrections;
         private Vector3 originalVisualPosition;
         private Vector3 standingPosition;
@@ -47,6 +48,7 @@ namespace A305.Player
             );
             if (legs == null)
                 return false;
+            arms = SeatedArms.Find(visual.GetComponentInChildren<Animator>());
 
             // 서 있던 곳은 캡슐이 들어가 있던 빈 자리라, 일어설 때 탁자·팔걸이·벽에 끼지 않는다.
             standingPosition = transform.position;
@@ -83,6 +85,7 @@ namespace A305.Player
 
             // Animator가 매 프레임 기본 자세를 갱신한 뒤 몸을 옮긴다.
             legs.Apply(visual, originalVisualPosition, seat, cushionTopMeters, frontEdgeMeters);
+            arms?.Apply(seat);
         }
 
         public void Stand()
@@ -91,6 +94,7 @@ namespace A305.Player
                 return;
 
             seat = null;
+            arms?.Restore();
             visual.localPosition = originalVisualPosition;
             standingCorrections.Restore();
             mover.Teleport(standingPosition, standingRotation);

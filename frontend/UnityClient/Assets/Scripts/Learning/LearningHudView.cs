@@ -94,12 +94,12 @@ namespace A305.Learning
 
         public void SetHomeAvailable(bool available) => homeButton.interactable = available;
 
-        /// <summary>숫자 배지가 있으면 버튼 이름은 그대로 두고 배지에 개수를 보인다. 모은 표현이 없으면 배지를 숨긴다.</summary>
+        /// <summary>아직 외우지 않은 표현 수를 보이고, 모두 외웠으면 숫자 배지를 숨긴다.</summary>
         public void SetVocabularyCount(int count)
         {
             if (vocabularyCountText == null)
             {
-                vocabularyButtonLabel.text = $"단어장 {count}";
+                vocabularyButtonLabel.text = count > 0 ? $"단어장 {count}" : "단어장";
                 return;
             }
             vocabularyButtonLabel.text = "단어장";

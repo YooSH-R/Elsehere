@@ -1,4 +1,5 @@
 using A305.EditorTools.Common;
+using A305.EditorTools.Theme;
 using A305.Npc;
 using TMPro;
 using UnityEditor;
@@ -30,6 +31,15 @@ namespace A305.EditorTools.Npc
                 PasserbyOfferText.DeclineLabel(true),
                 320
             );
+            Transform accept = root.transform.Find("Panel/Buttons/AcceptButton");
+            RectTransform key = UiThemeBuilder.StyleInteractionKeyHint(accept);
+            var view = root.GetComponent<PasserbyOfferView>();
+            BuilderTools.SetReference(
+                view,
+                "acceptLabel",
+                accept.GetComponentInChildren<TMP_Text>(true)
+            );
+            BuilderTools.SetReference(view, "acceptKeyHint", key);
         }
 
         private static void SetButton(Transform button, string caption, float width)

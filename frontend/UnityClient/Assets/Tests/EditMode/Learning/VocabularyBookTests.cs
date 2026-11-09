@@ -23,6 +23,44 @@ namespace A305.Learning.Tests
         [TearDown]
         public void ForgetLearnedWords() => ObjectWordCards.ShareLearnedWords(new string[0]);
 
+        [Test]
+        public async Task UnlearnedCount_ExcludesMemorizedWordsRegardlessOfListFilter()
+        {
+            api.Pages[null] = Page(
+                null,
+                Item(31, "sofa", "소파"),
+                Item(32, "table", "탁자", memorized: true)
+            );
+            await book.LoadAsync();
+            book.ShowsLearned = true;
+
+            Assert.That(book.UnlearnedCount, Is.EqualTo(1));
+            Assert.That(book.Entries.Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task UnlearnedCount_MemorizingLastWordClearsCountAndUnmarkingRestoresIt()
+        {
+            VocabularyEntry entry = await LoadOne(Item(31, "sofa", "소파"));
+
+            await book.ToggleLearnedAsync(entry);
+            Assert.That(book.UnlearnedCount, Is.Zero);
+
+            await book.ToggleLearnedAsync(entry);
+            Assert.That(book.UnlearnedCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task UnlearnedCount_FailedMemorizationKeepsCount()
+        {
+            VocabularyEntry entry = await LoadOne(Item(31, "sofa", "소파"));
+            api.Failure = NetworkError();
+
+            await book.ToggleLearnedAsync(entry);
+
+            Assert.That(book.UnlearnedCount, Is.EqualTo(1));
+        }
+
         // 외운 단어는 사물 카드도 호버로 띄우지 않으므로, 단어장을 받거나 외웠어요를 바꾸거나 지우면 사물 카드에 알린다.
         [Test]
         public async Task LoadAsync_TellsObjectCardsWhichWordsAreLearned()

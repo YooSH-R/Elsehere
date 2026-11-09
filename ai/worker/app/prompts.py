@@ -412,7 +412,11 @@ Return JSON:
   (e.g. "grab a seat", "grab", "seat"), so the learner can look up either.
   Skip names, numbers and function words (articles, pronouns, helping verbs, prepositions, conjunctions) when they stand alone;
   keep them inside a phrase or sentence frame.
-  Copy each exactly as it appears in the line, with "meaning_ko": its short Korean meaning in this line. Empty only if no such word."""
+  Copy each exactly as it appears in the line, with "meaning_ko": its short Korean meaning in this line. Empty only if no such word.
+  A meaning must tell the learner what the word is. Never give only the English sound written in Hangul
+  (프런트 데스크, 로비, 키 카드, 라테); say what it is in plain Korean and put the loanword in parentheses,
+  e.g. "front desk" → "호텔 접수·안내 창구(프런트)", "lobby" → "건물 입구의 넓은 홀(로비)", "latte" → "우유를 넣은 커피(라테)".
+  Keep each meaning within about 15 Korean characters."""
 MEANING_SCHEMA = {
     "type": "object",
     "properties": {

@@ -4,6 +4,7 @@
 - Authorization: Bearer <STT_TOKEN>이 맞아야 응답한다.
 - 받아 적은 문장은 로그에 남기지 않는다. 시간·길이만 남긴다.
 - 동시에 들어온 요청은 한 묶음으로 받아 적는다 (transcribe_batch).
+- 말소리가 없는 녹음은 받아 적지 않고 빈 결과를 돌려준다 (speech_gate.py). turbo는 무음·잡음에도 문장을 지어낸다.
 실행: STT_TOKEN=... ~/stt/gpu5.sh ~/stt/gpu_stt/server.py   (gpu5.sh가 5번 GPU만 보이게 한다)
 """
 
@@ -27,6 +28,7 @@ from faster_whisper import WhisperModel
 from faster_whisper.audio import pad_or_trim
 from faster_whisper.tokenizer import Tokenizer
 from faster_whisper.transcribe import get_suppressed_tokens
+from speech_gate import heard_speech
 
 logging.basicConfig(level=logging.WARNING, format="%(message)s")
 logging.getLogger("gpu_stt").setLevel(os.environ.get("GPU_LOG_LEVEL", "INFO").upper())
@@ -201,6 +203,9 @@ def batch_loop() -> None:
 
 
 def transcribe(audio: np.ndarray, prompt: str) -> dict:
+    # turbo의 no_speech_prob는 무음에도 0.0이라 transcribe_window의 말소리 없음 판정이 걸리지 않는다. GPU 대기열에 넣기 전에 거른다
+    if not heard_speech(audio):
+        return verbose_json(LANGUAGE or "", audio, [])
     job = Job(audio, prompt)
     jobs.put(job)
     job.done.wait()
@@ -274,6 +279,7 @@ def warm_up() -> None:
     """묶음 크기마다 처음 한 번은 GPU 메모리를 새로 받고 커널을 골라 수 초가 걸린다. 받기 전에 크기별로 한 번씩 돌린다."""
     started = time.perf_counter()
     silence = np.zeros(16000, dtype=np.float32)
+    heard_speech(silence)  # 말소리 판정 모델(Silero VAD)도 첫 요청 전에 불러 둔다
     for size in range(1, BATCH_MAX + 1):
         transcribe_batch([(silence, "")] * size)
     log({"event": "warm", "s": round(time.perf_counter() - started, 1)})

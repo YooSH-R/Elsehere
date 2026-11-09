@@ -217,6 +217,46 @@ namespace A305.World.Tests
         }
 
         [Test]
+        public async Task TickAsync_Updated_KeepsTheTimeThatFlowedWhileWaitingForTheServer()
+        {
+            // 서버 시각은 요청을 받은 때의 시각이다. 응답을 기다리는 동안 흐른 시간을 버리면 응답이 늦을수록 시계가
+            // 뒤로 튀고(실제 2초가 게임 5분), 그 시각에 맞춰 NPC 출퇴근이 한꺼번에 다시 놓인다.
+            var api = new FakeGameClockApi { Reply = Time(1, 600) };
+            var clock = new GameClock();
+            await clock.TickAsync(api, 1);
+            api.Gate = new TaskCompletionSource<GameClockTime>();
+
+            Task<GameClockBeatStatus> pending = clock.TickAsync(api, 31);
+            clock.Flow(3);
+            api.Gate.SetResult(Time(1, 610));
+            await pending;
+
+            Assert.That(
+                clock.Minutes,
+                Is.EqualTo(610 + 3 * GameClock.GameMinutesPerRealSecond).Within(.001)
+            );
+        }
+
+        [Test]
+        public async Task TickAsync_AfterAFailedBeat_SendsItsSecondsWithTheNextBeat()
+        {
+            // 실패한 신호의 진행 초를 버리면 서버 시각이 그만큼 늦어져, 다음 신호에서 시계가 크게 뒤로 튄다(30초면 게임 72분).
+            // 서버가 받았는데 응답만 실패했더라도 서버는 지난 신호부터 실제로 지난 시간까지만 더하므로 두 번 더해지지 않는다.
+            var api = new FakeGameClockApi { Reply = Time(1, 480) };
+            var clock = new GameClock();
+            await clock.TickAsync(api, 1);
+            clock.Flow(30);
+            api.Failure = new ApiException(ApiErrorCodes.NetworkError, 0, "연결 실패");
+            await clock.TickAsync(api, 31);
+            api.Failure = null;
+            clock.Flow(30);
+
+            await clock.TickAsync(api, 61);
+
+            Assert.That(api.ActiveSeconds, Is.EqualTo(60));
+        }
+
+        [Test]
         public async Task Flow_WhileTheServerSaysPaused_StandsStill()
         {
             var api = new FakeGameClockApi

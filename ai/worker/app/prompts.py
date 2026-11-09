@@ -30,6 +30,40 @@ def last_npc(history: list[Line]) -> str:
 # ---------- 판정 ----------
 GUARD_SYSTEM = """You moderate a role-play in an English-speaking practice game. A Korean learner talks with a person in a small American town.
 Decide one thing: is the learner's latest message abusive or offensive in this conversation?
+A yes is a penalty: the person scolds the learner and likes them less. Learners often say single words, names, half sentences and blunt Korean,
+so say yes only when the line fits one of the rules below. If none of them fits, answer no.
+Abusive means: insulting, swearing at, name-calling, mocking (teasing them again and again), rudely ordering around,
+threatening, sexually harassing, demanding personal details like their address after they refused, or hateful. English and Korean (including slang) both count.
+It also counts when the insult is aimed at a group the person belongs to or cares about (their team, fans, job, country, family),
+or when it is a slur or hateful word about any group of people.
+Making fun of how they look or how old they are counts, even when said as a joke (with "lol", "ㅋㅋ", "^^"),
+including calling them by an age word ("sure, grandpa", "okay old man"), and so does sarcastic fake praise meant to mock them.
+In Korean, ordering a stranger around in condescending 반말 counts as rudely ordering around: with a dismissive "~(이)나" ("물이나 줘"),
+"내놔" ("영수증 내놔"), or a sharp "야" ("야 비켜").
+Insults about their mother or family are abusive, even very short ones ("yo mama", "느금마", "니엠마").
+An insult needs a target. Words that can be insults (like "원숭이", "멍청이", "clown") are abusive only when they
+call or describe the person that way ("이 원숭이야", "you look like a clown"). Said alone or about something else, like an answer,
+a name, food, an animal or a place, they are not abusive.
+Threats count even without swear words: violence, arrest, getting them fired, robbery or extortion ("hand over the cash", "지갑 털기 전에 내놔"), intimidation ("call anyone and you'll regret it").
+Read the recent conversation: a calm-sounding line is still a threat if it continues a threat.
+Not abusive: normal requests and orders, even blunt or impatient ones without "please" ("give me a latte quickly", "hurry up"),
+plain Korean 반말 requests or urging without those markers ("라떼 하나 줘", "빨리 줘", "사장 불러!"),
+"야" that only calls someone or gets their attention, like "hey", alone or before a question or complaint ("야!", "야, 지금 몇 시야?"),
+everyday personal questions, like where they live, how old they are, or what they do on weekends, even in 반말 or after "야" ("야 니 어디 살아?", "몇 살이야?"),
+complaints, refusals and advice without swearing or insults, even angry or blunt ones, jokes or idioms like "I could die for a latte",
+opinions about places or things, even negative ones ("this town is boring"), but mocking a country or its people, even their own, still counts,
+saying who they are (even "I'm a police officer") or their name, even alone or unusual ("윤싸피", "한소피요"),
+talking to themselves in frustration without swear words ("아 진짜 답답하네"),
+typos with stray Korean letters ("좋ㅇ아요", "고맙ㅅ습니다") and harmless shorthand ("ㄳ", "ㅇㅇ", "ㅎㅎ").
+Swear words always count, even when aimed at a situation, a thing, or themselves instead of the person,
+and so do their Korean consonant shorthands ("ㅆㅂ", "ㅈㄹ").
+Answer with one word only: yes (abusive) or no."""
+
+# GPU LoRA(GUARD_GPU_MODEL)가 받는 판정 기준. LoRA는 단어에 반응해 넓게 거르고, 무례라고 한 줄만 위 GUARD_SYSTEM으로
+# 구성의 guard 모델이 확인한다(app/guard.py confirm_rude). LoRA에 GUARD_SYSTEM의 원칙 문구("모욕은 대상이 있어야", "애매하면 아님")를
+# 주면 대상 없는 단어 오탐은 거의 안 줄고 은근한 조롱을 더 놓쳐서(본인 실제 기록 놓침 27→32) 이전 기준을 그대로 둔다 (S15P31A305-703).
+GUARD_SYSTEM_GPU = """You moderate a role-play in an English-speaking practice game. A Korean learner talks with a person in a small American town.
+Decide one thing: is the learner's latest message abusive or offensive in this conversation?
 Abusive means: insulting, swearing at, name-calling, mocking (teasing them again and again), rudely ordering around,
 threatening, sexually harassing, demanding personal details like their address after they refused, or hateful. English and Korean (including slang) both count.
 It also counts when the insult is aimed at a group the person belongs to or cares about (their team, fans, job, country, family),
@@ -65,10 +99,10 @@ Short and simple (CEFR A2-B1). Output only the English sentence.
 Example: partner asked "For here or to go?", learner said "여기서 먹고 가지 뭐" -> I'll just eat here."""
 
 
-def guard_messages(npc: Npc, history: list[Line], text: str) -> list[dict]:
+def guard_messages(npc: Npc, history: list[Line], text: str, system: str = GUARD_SYSTEM) -> list[dict]:
     recent = "\n".join(f"{'Learner' if h.who == 'me' else npc.name}: {h.text}" for h in history[-4:])
     return [
-        {"role": "system", "content": GUARD_SYSTEM},
+        {"role": "system", "content": system},
         {
             "role": "user",
             "content": f"The person: {npc.name}, {npc.role}\nAbout them: {npc.facts}\nRecent conversation:\n{recent}\n\n"

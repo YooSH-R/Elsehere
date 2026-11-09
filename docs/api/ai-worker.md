@@ -249,6 +249,8 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 워커에 `GUARD_GPU_MODEL`을 주면 판정용 LLM 호출이 SSAFY GPU 서버의 vLLM에 올린 자체 학습 모델(Qwen3.8-27B + LoRA)을 먼저 한 번 부릅니다. 오류·시간 초과(`GUARD_GPU_TIMEOUT_S`)면 재시도 없이 구성의 판정 모델(기본 GPT-6 Luna)로 넘기고, 연속으로 `GUARD_BREAKER_FAILURES`(3)번 실패하면 `GUARD_BREAKER_SKIP_S`(60초) 동안 GPU를 건너뜁니다. 한글 낱자모(ㄱ~ㅎ, ㅏ~ㅣ)가 섞인 말은 GPU 모델이 오타("같ㅊ아")나 "ㄱㅅ"를 욕 줄임말로 읽어 무례로 보므로, 처음부터 구성의 판정 모델이 판정합니다(이때 `fallback`은 `false`). 응답 형식은 같고, `usage`의 `guard` 단계 `model`에 실제로 판정한 모델이, 넘겼으면 `fallback: true`가 남습니다. 프롬프트·yes/no 해석·`abusive: null` 규칙은 위와 같습니다.
 
+GPU 모델은 상대를 향하지 않은 단어("감자", 이름 "김사피", "엄마", "돼지")도 무례로 보고 프롬프트로는 고쳐지지 않았습니다. 그래서 GPU 모델이 무례라고 답한 줄만 구성의 판정 모델에 같은 질문을 한 번 더 하고, 둘 다 무례일 때만 `abusive: true`로 돌려줍니다(`GUARD_CONFIRM`, 기본 켜짐). 이 확인 호출은 `usage`에 `guard` 단계 `confirm: true`로 남습니다. 확인 호출이 실패하거나 yes/no가 아닌 답이면 GPU 판정을 그대로 씁니다. 확인은 무례로 본 줄에만 하고 `/v1/judge`와 동시에 돌아, 대부분의 턴은 늦어지지 않습니다(GMS 실측 의도 판정 중앙 1.8초, LoRA 0.45초 + 확인 약 1.2초). `GUARD_BUDGET_S` 안에서 셉니다.
+
 이진 판정이라 위협·성희롱 같은 **세부 유형은 구분하지 않습니다.** NPC가 먼저 잘못한 장면에서의 맞대응(정당방위)처럼 장면에 따라 봐줘야 하는 경우는, 유형을 돌려주는 계약이 생기기 전까지 Spring 규칙에서 자동 제재를 빼 주세요.
 
 ### 2.3 `POST /v1/npc/reply` — NPC 대답 (SSE)

@@ -60,14 +60,32 @@ async def judge_rudeness(
                     trace["source"] = "local"
                     return {"abusive": s >= llm.s.guard_t_hi, "error": None, "error_code": None}
         # yes/no 한 단어로 받는다. JSON을 강제하면 욕설·위협에 빈 응답 → 400으로 턴이 죽었다
-        out = await llm.guard_chat(P.guard_messages(npc, history, text), usage, gpu=not LOOSE_JAMO.search(text))
-        return guard_result(out)
+        messages = P.guard_messages(npc, history, text)
+        gpu_messages = None if LOOSE_JAMO.search(text) else P.guard_messages(npc, history, text, P.GUARD_SYSTEM_GPU)
+        result = guard_result(await llm.guard_chat(messages, usage, gpu_messages))
+        answered_by_gpu = usage.items[-1]["model"] == llm.s.guard_gpu_model
+        if result["abusive"] and answered_by_gpu and llm.s.guard_confirm:
+            return await confirm_rude(llm, messages, usage, result)
+        return result
 
     try:
         result = await within(decide(), budget_s)
     except (ProviderError, ValueError) as e:
         result = guard_failure(e)
     return result | trace
+
+
+async def confirm_rude(llm: LLM, messages: list[dict], usage: Usage, gpu_result: dict) -> dict:
+    """GPU LoRA가 무례라고 한 줄을 구성의 guard 모델에 한 번 더 묻는다. LoRA는 대상 없는 단어("감자", 이름 "김사피", "엄마")도
+    무례로 보고 프롬프트로는 고쳐지지 않았다 (S15P31A305-703). 확인 모델이 아니라고 하면 아님.
+    확인 호출이 실패하거나 yes/no가 아닌 답이면 GPU 판정을 그대로 쓴다 (확인이 무례 판정 자체를 끄지 않게)."""
+    try:
+        out = await llm.chat("guard", "guard", messages, usage, 0.0, 5)
+    except (ProviderError, ValueError):
+        return gpu_result
+    usage.items[-1]["confirm"] = True
+    confirmed = guard_result(out)
+    return gpu_result if confirmed["abusive"] is None else confirmed
 
 
 async def guard(llm: LLM, req: GuardRequest, local: LocalGuard | None = None) -> dict:

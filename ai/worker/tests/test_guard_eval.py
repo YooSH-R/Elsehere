@@ -17,6 +17,13 @@ def test_item_with_only_prev_is_judged_after_that_npc_line():
     assert G.messages(item) == P.guard_messages(Npc(**NPC), [Line(who="npc", text="What can I get you?")], "라떼 하나")
 
 
+def test_gpu_criteria_match_what_the_service_sends_to_the_gpu_model():
+    """서비스는 GPU LoRA에 GUARD_SYSTEM_GPU, 구성의 판정 모델(단독·확인)에 GUARD_SYSTEM을 보낸다 (--criteria)."""
+    item = {"text": "감자", "prev": "", "npc": NPC}
+    assert G.messages(item, "gpu")[0]["content"] == P.GUARD_SYSTEM_GPU
+    assert G.messages(item)[0]["content"] == P.GUARD_SYSTEM
+
+
 def test_item_without_prev_has_no_history():
     item = {"text": "hello", "prev": "", "npc": NPC}
     assert G.messages(item) == P.guard_messages(Npc(**NPC), [], "hello")

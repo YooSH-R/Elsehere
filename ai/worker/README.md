@@ -65,6 +65,7 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `GUARD_GPU_BASE_URL` / `GUARD_GPU_TOKEN` | (`GUARD_GPU_MODEL`을 주면 필수) | GPU 서버 vLLM의 주소와 키. STT처럼 GPU 서버가 거는 역방향 SSH 터널 입구(STT와 다른 포트, 개발 예: `http://172.19.0.1:18432/v1`, 운영은 `172.30.0.1`) |
 | `GUARD_GPU_TIMEOUT_S` | 3 | GPU 서버 판정 한 번의 상한. vLLM이 처음 보는 동시 요청 수에서 한 번 2.4~2.7초가 걸려 그보다 길게 잡음. 넘으면 재시도 없이 구성의 `guard` 모델로 |
 | `GUARD_BREAKER_FAILURES` / `GUARD_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 판정이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 구성의 `guard` 모델로 바로 감. 횟수가 0이면 끔 |
+| `GUARD_CONFIRM` | true | GPU 서버 판정이 무례라고 하면 구성의 `guard` 모델에 한 번 더 묻고 둘 다 무례일 때만 무례. GPU 모델이 대상 없는 단어("감자", 이름, "엄마")도 무례로 봐서 둠. 확인 호출이 실패하면 GPU 판정 그대로. `false`면 끔 |
 
 ## GPU 음성과 발음 시간표
 

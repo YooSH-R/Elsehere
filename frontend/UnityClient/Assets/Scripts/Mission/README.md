@@ -36,7 +36,7 @@
 
 ## 의자·벤치·소파 앉기
 
-카페 양쪽 테이블 의자 6개, 마을 벤치 4개, 호텔 대기 소파 2개에 같은 조작으로 앉습니다. 앉을 자리마다 `RestSeat`가 하나씩 있고, 벤치·소파는 앉을 위치를 왼쪽·오른쪽 중에서 고르게 가구 폭 방향으로 두 자리를 둡니다. 쉬는 NPC도 같은 자리에 앉으므로(`INpcSeat`, [Npc 모듈](../Npc/README.md#생활)) 한 자리에는 한 명만 앉습니다.
+카페 양쪽 테이블 의자 6개와 왼쪽 부스 소파 2개, 마을 벤치 4개, 호텔 대기 소파 2개에 같은 조작으로 앉습니다. 앉을 자리마다 `RestSeat`가 하나씩 있고, 벤치·소파는 앉을 위치를 왼쪽·오른쪽 중에서 고르게 가구 폭 방향으로 두 자리를 둡니다. 카페는 의자 6자리와 소파 4자리 모두 주문 후 5초 착석을 같은 퀘스트 휴식으로 인정합니다. 쉬는 NPC도 같은 자리에 앉으므로(`INpcSeat`, [Npc 모듈](../Npc/README.md#생활)) 한 자리에는 한 명만 앉습니다.
 
 | 상황 | 동작 |
 | --- | --- |
@@ -51,11 +51,12 @@
 | 가구 | 모델 | 쿠션 윗면 | 앞 모서리 | 자리 |
 | --- | --- | --- | --- | --- |
 | 카페 의자 | `CafeChair` | 0.33m | 0.30m | 의자마다 1개 |
+| 카페 부스 소파 | `BoothSet/Bench` | 0.57m | 0.44m | 폭 2.6m를 반씩, x = ±0.65m |
 | 메인스트리트 벤치 | `ParkBench_HoneyWood`(`MainstreetArtKit.Bench`) | 0.325m | 0.205m | 폭 1.6m를 반씩, x = ±0.4m |
 | 공원 벤치 | TinyTreats `bench.fbx`를 0.8배 | 0.40m | 0.527m | 폭 1.6m를 반씩, x = ±0.4m |
 | 세이지 소파 | `Home_SageSofa_Sage`(`HomeInteriorKit.Sofa`) | 0.705m | 0.485m | 쿠션 두 개의 가운데, x = ±0.57m |
 
-**Tools → A305 → Cafe → Connect Chair Sitting**(`CafeSeatBuilder`)은 `CafeScene`·`CafeInteriorSandbox`의 원형 테이블 의자에 `CafeSeat1~4`를 둡니다. **Tools → A305 → Mission → Connect Bench And Sofa Sitting**(`BenchSofaSeatBuilder`)은 `TownScene`·`HotelScene`에서 위 벤치·소파 모델을 그리는 활성 가구마다 자식 `RestSeat1`, `RestSeat2`를 두고 플레이어·대화·상호작용 화면과 앉는 면 값을 연결합니다. 두 Builder 모두 가구 배치와 디자인은 바꾸지 않습니다. 다른 벤치·소파 모델을 앉을 수 있게 하려면 `BenchSofaSeatBuilder`의 모델 목록에 메시 경로, 잰 값, 자리 위치를 추가합니다.
+**Tools → A305 → Cafe → Connect Chair Sitting**(`CafeSeatBuilder`)은 `CafeScene`·`CafeInteriorSandbox`의 양쪽 테이블 의자에 `CafeSeat1~6`을 맞추고, 부스 소파마다 자식 `RestSeat1`, `RestSeat2`를 연결합니다. **Tools → A305 → Mission → Connect Bench And Sofa Sitting**(`BenchSofaSeatBuilder`)은 `TownScene`·`HotelScene`에서 위 벤치·소파 모델을 그리는 활성 가구마다 자식 `RestSeat1`, `RestSeat2`를 두고 플레이어·대화·상호작용 화면과 앉는 면 값을 연결합니다. 두 Builder 모두 가구 배치와 디자인은 바꾸지 않습니다. 다른 벤치·소파 모델을 앉을 수 있게 하려면 `BenchSofaSeatBuilder`의 모델 목록에 메시 경로, 잰 값, 자리 위치를 추가합니다.
 
 ## 튜토리얼용 기본 미션
 
@@ -124,7 +125,10 @@
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
 | `A305.Mission.Tests` | `Assets/Tests/EditMode/Mission/` | 미션 시작, 다른 미션으로 교체, 없는 미션 거절, 여러 문장에 나뉜 키워드로 완료, 다른 NPC·빠진 키워드·시작 전에는 미완료, 완료한 미션 재시작 거절, 시작·교체 알림 문구, 미션 줄의 말할 단어 표시, 닿는 거리 안의 가장 가까운 자리 고르기(`RestSeatPicker`), 앉아 쉰 시간(`RestSeatTimer`), 미션이 자리를 다루는 장소는 카페뿐인지, 퀘스트 카드가 지금 단계 장소를 길 안내에 알리고 끝내거나 미션 화면을 끄면 멈추는지, 크게 본 지도에 길 안내 켜기·끄기 버튼이 있는지. 기다리는 카드: 남은 시간 분:초, 준비 중 줄(받을 것·누가 어디서·남은 시간)과 다 된 줄(준비됐어요·받으러 가세요, 받침에 맞는 조사), 마을 매장 직원은 가게 이름·그 밖은 씬 이름(`FollowUpCardTextTests`), 프리팹의 카드가 퀘스트 카드 바로 다음에 같은 폭·유리로 있고 누르기를 받지 않는지, 기다리는 것이 없거나 건넨 뒤·미션 화면을 끄면 숨는지, 먼저 되는 것부터 한 줄씩 보이는지(`FollowUpCardTests`) |
-| `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 공간 기능 연결이 미션 창과 미션 처리를 한 번씩 붙이고 대화 처리와 연결하는지, 카페 양쪽 테이블 의자 6개(`CafeSeatingConnectionTests`)와 마을 벤치 4개·호텔 소파 2개에 두 자리씩(`BenchSofaSeatSceneTests`) 앉기가 연결됐는지 |
+| `A305.Mission.PlayModeTests` | `Assets/Tests/PlayMode/Mission/` | 퀘스트 화면의 표시·조작, 카페의 모든 의자·소파에서 앉기 안내·실제 착석·5초 후 단일 휴식 요청까지의 연결 |
+| `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 공간 기능 연결이 미션 창과 미션 처리를 한 번씩 붙이고 대화 처리와 연결하는지 |
+
+카페 의자·소파의 좌석 연결은 `A305.Mission.Tests`에서 검사합니다. PlayMode의 카페 검증은 실제 씬을 사용하고 API 응답은 대체 구현으로 처리합니다.
 
 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.
 

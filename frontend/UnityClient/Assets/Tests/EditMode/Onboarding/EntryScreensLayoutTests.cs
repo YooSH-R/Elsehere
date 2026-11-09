@@ -139,11 +139,15 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
-        public void Background_IsTheBlurredTown()
+        public void Background_MatchesTheLoginTownAndCreamShade()
         {
             Assert.That(
                 Screens().Find("Background/Town").GetComponent<Image>().sprite.name,
-                Is.EqualTo("EntryBackdrop")
+                Is.EqualTo("LoginTown")
+            );
+            Assert.That(
+                Screens().Find("Background/Shade").GetComponent<Image>().sprite.name,
+                Is.EqualTo("LoginShade")
             );
         }
     }

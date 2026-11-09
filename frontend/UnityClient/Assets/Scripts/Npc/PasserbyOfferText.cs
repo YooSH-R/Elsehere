@@ -10,7 +10,10 @@ namespace A305.Npc
 
         /// <summary>대화 수락 버튼. 키보드를 쓰는 화면에만 E 안내를 붙인다.</summary>
         public static string AcceptLabel(bool showKeyHint) =>
-            showKeyHint ? "대화하기 <size=75%>[E]</size>" : "대화하기";
+            InteractionLabel("대화하기", showKeyHint);
+
+        internal static string InteractionLabel(string caption, bool showKeyHint) =>
+            showKeyHint ? $"{caption}<space=20><size=85%><color=#FFFFFF>E</color></size>" : caption;
 
         /// <summary>대화 거절 버튼. 키보드를 쓰는 화면에만 Esc 안내를 붙인다.</summary>
         public static string DeclineLabel(bool showKeyHint) =>

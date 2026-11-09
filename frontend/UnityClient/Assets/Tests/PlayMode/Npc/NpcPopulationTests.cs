@@ -1311,6 +1311,55 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_CommuterClimbsAWalkableCurbInsteadOfWalkingInPlace() =>
             CheckNewObstacle(carves: false, height: .2f);
 
+        [UnityTest]
+        public IEnumerator Town_CommuterPassesAStreetLampThatTheWalkingMapAlreadyAvoids()
+        {
+            // 길 지도는 카페에서 서쪽 가게로 가는 인도의 가로등(-3.45, 15)을 이미 비켜 가는데,
+            // 장애물 우회가 같은 가로등을 길 지도보다 넓게 막혔다고 보고 돌아갈 길을 찾지 못해 그 자리에 섰다.
+            SetClock(21 * 60);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            foreach (
+                var population in Object.FindObjectsByType<NpcPopulation>(FindObjectsSortMode.None)
+            )
+                population.enabled = false;
+            Object
+                .FindFirstObjectByType<A305.Player.PlayerMover>()
+                .Teleport(new Vector3(450, 20, 450), Quaternion.identity);
+            var walker = Object
+                .FindObjectsByType<NpcTownWalker>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+                .Single(w => w.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER");
+            float previousDeltaTime = Time.captureDeltaTime;
+            try
+            {
+                Time.captureDeltaTime = 1f / 60f;
+                PlaceWalker(walker, new Vector3(-3.03f, .15f, 14.6f), Vector3.forward);
+                walker.Destination = new Vector3(-3f, .15f, 15.3f);
+                for (int frame = 0; frame < 120; frame++)
+                    yield return null;
+                Assert.That(
+                    HorizontalDistance(walker.transform.position, walker.Destination),
+                    Is.LessThan(.12f),
+                    "가로등 옆에서 멈추지 않고 지나가야 합니다."
+                );
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDeltaTime;
+            }
+        }
+
         private static IEnumerator CheckNewObstacle(bool carves, float height)
         {
             SetClock(21 * 60);

@@ -70,6 +70,25 @@ namespace A305.Player.Tests
                 .GetComponentsInChildren<Transform>()
                 .Select(bone => bone.name)
                 .ToHashSet();
+            Transform uprightShaft = hold.Umbrella.transform.Find("Shaft");
+            using var body = new BodyClearanceProbe(animator, player.transform);
+            body.Record("umbrella beside ear");
+            Vector3 shaftPosition = player.transform.InverseTransformPoint(uprightShaft.position);
+            Assert.That(
+                shaftPosition.x,
+                Is.GreaterThan(body.Head.max.x + .014f),
+                "우산대는 얼굴 앞이 아니라 오른쪽 귀·머리 바깥에 있어야 합니다."
+            );
+            Assert.That(
+                Mathf.Abs(shaftPosition.z - body.Head.center.z),
+                Is.LessThan(.12f),
+                "우산대가 귀 옆에서 얼굴 앞쪽으로 벗어나면 안 됩니다."
+            );
+            Assert.That(
+                Vector3.Dot(hold.Umbrella.Canopy.up, player.transform.up),
+                Is.GreaterThan(.999f),
+                "캐노피는 머리 위에서 수평을 유지해야 합니다."
+            );
             foreach (var skin in visual.GetComponentsInChildren<SkinnedMeshRenderer>())
             {
                 var mesh = new Mesh();
@@ -91,8 +110,12 @@ namespace A305.Player.Tests
                             clearance,
                             Vector3.Dot(
                                 point - hold.Umbrella.transform.position,
-                                -hold.Umbrella.transform.forward
+                                -hold.Umbrella.transform.right
                             )
+                        );
+                        clearance = Mathf.Min(
+                            clearance,
+                            Vector3.Dot(point - uprightShaft.position, -player.transform.right)
                         );
                     }
                     Assert.That(

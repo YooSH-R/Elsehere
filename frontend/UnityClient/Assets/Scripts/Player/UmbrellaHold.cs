@@ -4,7 +4,7 @@ using UnityEngine;
 namespace A305.Player
 {
     /// <summary>
-    /// 오른팔을 앞에서 굽혀 손바닥으로 우산을 쥔다. 손목·손가락 자세는 걷기와 별도로 유지한다.
+    /// 오른팔을 옆에서 굽혀 귀 바깥에 우산을 든다. 손목·손가락 자세는 걷기와 별도로 유지한다.
     /// 외형은 실행 중에 바뀌므로 펼 때 지금 외형의 팔 뼈대와 머리 크기를 읽는다. 플레이어 루트(CharacterController)에 붙인다.
     /// </summary>
     // 걷기 동작과 팔 겹침 보정(LittleMungArmClearance) 뒤에 손을 옮긴다.
@@ -15,11 +15,11 @@ namespace A305.Player
         private HeldUmbrella umbrellaPrefab;
 
         [SerializeField]
-        [Tooltip("어깨에서 손목을 바깥쪽으로 둘 거리(m)")]
+        [Tooltip("기본 측면 거리 0.13m에 더할 손목의 바깥쪽 거리(m)")]
         private float gripBesideHead = .04f;
 
         [SerializeField]
-        [Tooltip("기본 전방 거리 0.2m에 더할 손목의 전방 거리(m)")]
+        [Tooltip("귀 옆 머리 중심보다 손목을 앞에 둘 거리(m)")]
         private float gripForward = .06f;
 
         [SerializeField]
@@ -31,7 +31,7 @@ namespace A305.Player
         private float headClearance = .06f;
 
         [SerializeField]
-        [Tooltip("우산대를 얼굴 바깥으로 기울이는 최소 각도. 머리와 겹치면 더 기울입니다.")]
+        [Tooltip("손잡이 위 연결부를 오른쪽 귀 바깥으로 기울이는 최소 각도")]
         private float leanDegrees = 14f;
 
         private HeldUmbrella umbrella;
@@ -134,12 +134,13 @@ namespace A305.Player
         {
             if (!IsOpen || hand == null)
                 return;
+            head = headSurface.BoundsIn(transform);
             Vector3 shoulder = transform.InverseTransformPoint(upperArm.position);
             Vector3 wrist = transform.TransformPoint(
                 new Vector3(
-                    shoulder.x + gripBesideHead,
+                    shoulder.x + .13f + gripBesideHead,
                     shoulder.y - gripBelowShoulder * .4f,
-                    shoulder.z + .2f + gripForward
+                    head.center.z + gripForward
                 )
             );
             TwoBonePose.Reach(
@@ -150,18 +151,18 @@ namespace A305.Player
                 -transform.up + transform.right * .5f
             );
 
-            // 대두 체형에서는 곧은 우산대가 머리를 뚫는다. 머리 앞쪽 접평면 밖으로 기울인다.
+            // 짧은 팔은 귀까지 닿지 않는다. 손잡이 위 연결부만 머리 오른쪽 접평면 밖으로 기울인다.
             Quaternion tilt = transform.rotation;
             Vector3 holdAt = hand.position;
             for (float degrees = Mathf.Clamp(leanDegrees, 0, 60); degrees <= 60; degrees += 2)
             {
-                tilt = Quaternion.AngleAxis(degrees, transform.right) * transform.rotation;
+                tilt = Quaternion.AngleAxis(-degrees, transform.forward) * transform.rotation;
                 if (middle != null)
                     hand.rotation =
-                        Quaternion.LookRotation(transform.forward, tilt * Vector3.up)
+                        Quaternion.LookRotation(tilt * Vector3.right, tilt * Vector3.up)
                         * Quaternion.Inverse(palmFrame);
                 holdAt = middle != null ? hand.TransformPoint(gripInHand) : hand.position;
-                if (headSurface.MinimumDistance(holdAt, tilt * Vector3.back) >= .025f)
+                if (headSurface.MinimumDistance(holdAt, tilt * Vector3.left) >= .025f)
                     break;
             }
             if (middle != null)
@@ -175,11 +176,13 @@ namespace A305.Player
                 }
             }
             umbrella.transform.SetPositionAndRotation(holdAt, tilt);
-            float length =
-                (head.max.y + headClearance + .06f - transform.InverseTransformPoint(holdAt).y)
-                / Vector3.Dot(tilt * Vector3.up, transform.up);
-            umbrella.Fit(length);
-            Vector3 center = transform.InverseTransformPoint(umbrella.Canopy.position);
+            Vector3 localGrip = transform.InverseTransformPoint(holdAt);
+            Vector3 stemDirection = transform.InverseTransformDirection(tilt * Vector3.up);
+            float side = Mathf.Max(head.max.x + .03f, localGrip.x + .03f);
+            Vector3 bend =
+                localGrip
+                + stemDirection * ((side - localGrip.x) / Mathf.Max(.01f, stemDirection.x));
+            Vector3 center = new Vector3(side, head.max.y + headClearance + .06f, localGrip.z);
             float radius = .84f;
             for (int i = 0; i < 24; i++)
             {
@@ -193,7 +196,12 @@ namespace A305.Player
                     Vector2.Distance(edge, new Vector2(center.x, center.z)) + headClearance
                 );
             }
-            umbrella.Canopy.localScale = new Vector3(radius / .84f, 1, radius / .84f);
+            umbrella.Fit(
+                transform.TransformPoint(bend),
+                transform.TransformPoint(center),
+                transform.rotation,
+                radius
+            );
         }
     }
 }

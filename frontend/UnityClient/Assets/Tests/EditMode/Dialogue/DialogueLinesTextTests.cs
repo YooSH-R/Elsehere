@@ -103,6 +103,54 @@ namespace A305.Dialogue.Tests
         private static DialogueLine WithGlossary(string english, params GlossaryWord[] words) =>
             DialogueLine.FromNpc(english, "뜻", words);
 
+        // 풀이가 대사의 내용어 대부분으로 늘어나, 대사 안에서 눌러 볼 수 있는 말까지 아래 줄에 다시 쓰면 대사 칸이 길어진다.
+        // 아래 단어 풀이 줄에는 대사에서 찾지 못해 밑줄을 칠 수 없는 풀이만 남긴다.
+        [Test]
+        public void Format_WithMeaning_ListsOnlyGlossaryNotUnderlinedInTheLine()
+        {
+            DialogueLine line = WithGlossary(
+                "Would you like an iced latte to go?",
+                new GlossaryWord(105, "latte", "라떼"),
+                new GlossaryWord(105, "to go", "포장"),
+                new GlossaryWord(105, "takeout", "포장 주문")
+            );
+            var glossary = new List<GlossaryData>
+            {
+                new GlossaryData { Text = "latte", MeaningKo = "라떼" },
+                new GlossaryData { Text = "to go", MeaningKo = "포장" },
+                new GlossaryData { Text = "takeout", MeaningKo = "포장 주문" },
+            };
+
+            string text = DialogueLinesText.Format(new[] { line }, "Ben", true, glossary);
+
+            Assert.That(
+                text,
+                Does.EndWith(
+                    "<size=80%><color=#E6D3BC>단어 풀이 · takeout 포장 주문</color></size>"
+                )
+            );
+        }
+
+        [Test]
+        public void Format_WithMeaning_OmitsGlossaryRowWhenEveryWordIsUnderlined()
+        {
+            DialogueLine line = WithGlossary(
+                "Would you like an iced latte to go?",
+                new GlossaryWord(105, "latte", "라떼"),
+                new GlossaryWord(105, "to go", "포장")
+            );
+            var glossary = new List<GlossaryData>
+            {
+                new GlossaryData { Text = "latte", MeaningKo = "라떼" },
+                new GlossaryData { Text = "to go", MeaningKo = "포장" },
+            };
+
+            string text = DialogueLinesText.Format(new[] { line }, "Ben", true, glossary);
+
+            Assert.That(text, Does.Not.Contain("단어 풀이"));
+            Assert.That(text, Does.EndWith("<size=80%><color=#E6D3BC>뜻</color></size>"));
+        }
+
         // 풀이 단어를 대사 안에서 바로 눌러 뜻을 보고 저장할 수 있게 밑줄 친 링크로 둔다.
         [Test]
         public void Format_WithMeaning_UnderlinesGlossaryWordsInTheirLine()

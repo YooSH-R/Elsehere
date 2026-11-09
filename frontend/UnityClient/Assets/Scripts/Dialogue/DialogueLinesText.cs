@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -78,11 +79,12 @@ namespace A305.Dialogue
                             sentenceIndent
                         )
                     );
-                    if (glossary != null && glossary.Count > 0)
+                    List<GlossaryData> notLinked = NotLinked(glossary, line);
+                    if (notLinked.Count > 0)
                     {
                         rows.Add(
                             Indented(
-                                $"<size={MeaningSize}><color={MeaningColor}>단어 풀이 · {FormatGlossary(glossary)}</color></size>",
+                                $"<size={MeaningSize}><color={MeaningColor}>단어 풀이 · {FormatGlossary(notLinked)}</color></size>",
                                 sentenceIndent
                             )
                         );
@@ -142,12 +144,43 @@ namespace A305.Dialogue
             GlossaryWord selected
         )
         {
-            if (glossary == null || glossary.Count == 0)
+            List<(int Start, int Length, int WordIndex)> found = FindLinks(english, glossary);
+            if (found.Count == 0)
             {
                 return english;
             }
 
+            var linked = new StringBuilder();
+            int next = 0;
+            foreach ((int start, int length, int wordIndex) in found)
+            {
+                linked.Append(english, next, start - next);
+                string word = $"<u>{english.Substring(start, length)}</u>";
+                if (glossary[wordIndex] == selected)
+                {
+                    word = $"<mark={SelectedWordMark}>{word}</mark>";
+                }
+
+                linked.Append($"<link=\"{lineIndex}/{wordIndex}\">{word}</link>");
+                next = start + length;
+            }
+
+            linked.Append(english, next, english.Length - next);
+            return linked.ToString();
+        }
+
+        // 대사 안에서 링크할 풀이 단어의 자리를 앞에서부터 찾는다. 이미 찾은 말과 겹치는 풀이는 링크하지 않는다.
+        private static List<(int Start, int Length, int WordIndex)> FindLinks(
+            string english,
+            IReadOnlyList<GlossaryWord> glossary
+        )
+        {
             var found = new List<(int Start, int Length, int WordIndex)>();
+            if (glossary == null)
+            {
+                return found;
+            }
+
             for (int wordIndex = 0; wordIndex < glossary.Count; wordIndex++)
             {
                 string text = glossary[wordIndex].Text;
@@ -169,23 +202,36 @@ namespace A305.Dialogue
             }
 
             found.Sort((left, right) => left.Start.CompareTo(right.Start));
-            var linked = new StringBuilder();
-            int next = 0;
-            foreach ((int start, int length, int wordIndex) in found)
-            {
-                linked.Append(english, next, start - next);
-                string word = $"<u>{english.Substring(start, length)}</u>";
-                if (glossary[wordIndex] == selected)
-                {
-                    word = $"<mark={SelectedWordMark}>{word}</mark>";
-                }
+            return found;
+        }
 
-                linked.Append($"<link=\"{lineIndex}/{wordIndex}\">{word}</link>");
-                next = start + length;
+        // 대사 안에서 밑줄 링크가 된 풀이는 눌러서 볼 수 있으므로, 아래 단어 풀이 줄에는 링크하지 못한 풀이만 남긴다.
+        private static List<GlossaryData> NotLinked(
+            IReadOnlyList<GlossaryData> glossary,
+            DialogueLine line
+        )
+        {
+            var notLinked = new List<GlossaryData>();
+            if (glossary == null)
+            {
+                return notLinked;
             }
 
-            linked.Append(english, next, english.Length - next);
-            return linked.ToString();
+            var linked = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach ((_, _, int wordIndex) in FindLinks(line.English, line.Glossary))
+            {
+                linked.Add(line.Glossary[wordIndex].Text.Trim());
+            }
+
+            foreach (GlossaryData item in glossary)
+            {
+                if (!linked.Contains(item.Text?.Trim() ?? ""))
+                {
+                    notLinked.Add(item);
+                }
+            }
+
+            return notLinked;
         }
 
         // 서버 풀이는 문장 첫머리처럼 대소문자가 다를 수 있다. 다른 단어 속 글자(good의 go)는 고르지 않도록 앞뒤가 글자·숫자가 아닌 곳만 찾는다.

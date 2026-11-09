@@ -22,6 +22,15 @@ public class LegalDocumentController {
 
   private final ConsentCatalog consentCatalog;
 
+  /** 버전 없는 주소는 지금 버전 문서로 보낸다. 게임 화면은 이 주소로 연결해, 문서 버전이 바뀌어도 게임을 고치지 않는다. */
+  @GetMapping("/{document:terms|privacy|voice|ai-training}")
+  public String currentDocument(@PathVariable String document) {
+    return "redirect:"
+        + consentCatalog
+            .currentDocumentUrl(document)
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
   @GetMapping("/{document:terms|privacy|voice|ai-training}/{version}")
   public String document(@PathVariable String document, @PathVariable String version, Model model) {
     if (!consentCatalog.hasDocument("/" + document + "/" + version)) {

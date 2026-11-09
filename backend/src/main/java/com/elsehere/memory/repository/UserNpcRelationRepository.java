@@ -2,6 +2,8 @@ package com.elsehere.memory.repository;
 
 import com.elsehere.memory.entity.UserNpcRelation;
 import com.elsehere.memory.entity.UserNpcRelationId;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -41,4 +43,46 @@ public interface UserNpcRelationRepository
               + " where user_id = :userId and npc_id = :npcId",
       nativeQuery = true)
   void addRecognition(Long userId, Long npcId, int delta);
+
+  /** 마을의 모든 NPC와 장소, 그리고 이 사용자와의 관계 값. 관계 행이 없는 NPC(처음 보는 NPC)는 관계 값이 null이다. */
+  @Query(
+      "select npc.id as npcId, npc.code as npcCode, npc.name as npcName,"
+          + " npc.roleLabel as roleLabel, npc.profile as profile,"
+          + " scene.code as sceneCode, scene.name as sceneName,"
+          + " relation.affinity as affinity, relation.recognition as recognition,"
+          + " relation.talkCount as talkCount, relation.lastTalkedAt as lastTalkedAt,"
+          + " relation.memoryConversationId as memoryConversationId"
+          + " from Npc npc join npc.scene scene"
+          + " left join UserNpcRelation relation"
+          + " on relation.id.npcId = npc.id and relation.id.userId = :userId")
+  List<NpcWithRelation> findNpcsWithRelation(Long userId);
+
+  /** NPC 하나와 이 사용자와의 관계. */
+  interface NpcWithRelation {
+    Long getNpcId();
+
+    String getNpcCode();
+
+    String getNpcName();
+
+    String getRoleLabel();
+
+    /** 인격 카드 JSON. 없을 수 있다. */
+    String getProfile();
+
+    String getSceneCode();
+
+    String getSceneName();
+
+    Integer getAffinity();
+
+    Integer getRecognition();
+
+    Integer getTalkCount();
+
+    Instant getLastTalkedAt();
+
+    /** 방문으로 센 마지막 서버 대화. 튜토리얼 길 안내처럼 서버 대화 없이 센 방문뿐이면 null이다. */
+    Long getMemoryConversationId();
+  }
 }

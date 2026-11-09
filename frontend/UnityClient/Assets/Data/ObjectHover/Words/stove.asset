@@ -16,7 +16,7 @@ MonoBehaviour:
     key: stove
     languageCode: en-US
     text: stove
-    meaningKo: "\uB808\uC778\uC9C0"
+    meaningKo: "\uBD88\uB85C \uC74C\uC2DD\uC744 \uC775\uD788\uB294 \uC870\uB9AC \uAE30\uAD6C(\uB808\uC778\uC9C0)"
     example: There is a kettle on the stove.
     exampleKo: "\uB808\uC778\uC9C0 \uC704\uC5D0 \uC8FC\uC804\uC790\uAC00 \uC788\uC5B4\uC694."
     pronunciationAudioKey: 

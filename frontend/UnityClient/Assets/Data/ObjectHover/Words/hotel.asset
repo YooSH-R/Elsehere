@@ -16,7 +16,7 @@ MonoBehaviour:
     key: hotel
     languageCode: en-US
     text: hotel
-    meaningKo: "\uD638\uD154"
+    meaningKo: "\uB3C8\uC744 \uB0B4\uACE0 \uBB35\uB294 \uC219\uBC15 \uC2DC\uC124(\uD638\uD154)"
     example: We are staying at this hotel.
     exampleKo: "\uC6B0\uB9AC\uB294 \uC774 \uD638\uD154\uC5D0 \uBA38\uBB3C\uACE0 \uC788\uC5B4\uC694."
     pronunciationAudioKey: 

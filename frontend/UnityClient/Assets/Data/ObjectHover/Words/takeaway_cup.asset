@@ -16,7 +16,8 @@ MonoBehaviour:
     key: takeaway_cup
     languageCode: en-US
     text: to-go cup
-    meaningKo: "\uD14C\uC774\uD06C\uC544\uC6C3 \uCEF5"
+    meaningKo: "\uB4E4\uACE0 \uAC00\uB294 \uC77C\uD68C\uC6A9 \uCEF5(\uD14C\uC774\uD06C\uC544\uC6C3
+      \uCEF5)"
     example: Can I get a to-go cup?
     exampleKo: "\uD14C\uC774\uD06C\uC544\uC6C3 \uCEF5\uC744 \uBC1B\uC744 \uC218 \uC788\uC744\uAE4C\uC694?"
     pronunciationAudioKey: to_go_cup.wav

@@ -16,7 +16,7 @@ MonoBehaviour:
     key: truck
     languageCode: en-US
     text: truck
-    meaningKo: "\uD2B8\uB7ED"
+    meaningKo: "\uC9D0\uC744 \uC2E3\uB294 \uD654\uBB3C\uCC28(\uD2B8\uB7ED)"
     example: The truck is delivering bread.
     exampleKo: "\uD2B8\uB7ED\uC774 \uBE75\uC744 \uBC30\uB2EC\uD558\uACE0 \uC788\uC5B4\uC694."
     pronunciationAudioKey: 

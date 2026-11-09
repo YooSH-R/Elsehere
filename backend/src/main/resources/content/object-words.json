@@ -4,7 +4,7 @@
             "key": "air_conditioner",
             "languageCode": "en-US",
             "text": "air conditioner",
-            "meaningKo": "에어컨",
+            "meaningKo": "실내를 시원하게 하는 냉방기(에어컨)",
             "example": "Can you turn on the air conditioner?",
             "exampleKo": "에어컨 좀 켜 줄래요?",
             "pronunciationAudioKey": ""
@@ -40,7 +40,7 @@
             "key": "bench",
             "languageCode": "en-US",
             "text": "bench",
-            "meaningKo": "벤치",
+            "meaningKo": "여럿이 앉는 긴 의자(벤치)",
             "example": "Let's sit on the bench.",
             "exampleKo": "벤치에 앉아요.",
             "pronunciationAudioKey": ""
@@ -112,7 +112,7 @@
             "key": "cafe",
             "languageCode": "en-US",
             "text": "cafe",
-            "meaningKo": "카페",
+            "meaningKo": "커피·음료를 파는 가게(카페)",
             "example": "Let's meet at the cafe.",
             "exampleKo": "카페에서 만나요.",
             "pronunciationAudioKey": ""
@@ -121,7 +121,7 @@
             "key": "cake",
             "languageCode": "en-US",
             "text": "cake",
-            "meaningKo": "케이크",
+            "meaningKo": "크림을 얹은 달콤한 빵(케이크)",
             "example": "May I have a slice of cake?",
             "exampleKo": "케이크 한 조각 주시겠어요?",
             "pronunciationAudioKey": ""
@@ -166,7 +166,7 @@
             "key": "chandelier",
             "languageCode": "en-US",
             "text": "chandelier",
-            "meaningKo": "샹들리에",
+            "meaningKo": "천장에 다는 화려한 조명(샹들리에)",
             "example": "There is a chandelier in the lobby.",
             "exampleKo": "로비에 샹들리에가 있어요.",
             "pronunciationAudioKey": ""
@@ -193,7 +193,7 @@
             "key": "coffee_machine",
             "languageCode": "en-US",
             "text": "coffee machine",
-            "meaningKo": "커피 머신",
+            "meaningKo": "커피를 내리는 기계(커피 머신)",
             "example": "The coffee machine is behind the counter.",
             "exampleKo": "커피 머신은 계산대 뒤에 있어요.",
             "pronunciationAudioKey": ""
@@ -238,7 +238,7 @@
             "key": "croissant",
             "languageCode": "en-US",
             "text": "croissant",
-            "meaningKo": "크루아상",
+            "meaningKo": "겹겹이 구운 버터 빵(크루아상)",
             "example": "I'd like a croissant with my coffee.",
             "exampleKo": "커피와 함께 크루아상을 먹고 싶어요.",
             "pronunciationAudioKey": ""
@@ -256,7 +256,7 @@
             "key": "cup",
             "languageCode": "en-US",
             "text": "cup",
-            "meaningKo": "컵",
+            "meaningKo": "음료를 담는 잔(컵)",
             "example": "May I have a cup of coffee?",
             "exampleKo": "커피 한 잔 주시겠어요?",
             "pronunciationAudioKey": ""
@@ -265,7 +265,7 @@
             "key": "curtain",
             "languageCode": "en-US",
             "text": "curtain",
-            "meaningKo": "커튼",
+            "meaningKo": "창을 가리는 천(커튼)",
             "example": "Close the curtain before you go to bed.",
             "exampleKo": "자기 전에 커튼을 닫으세요.",
             "pronunciationAudioKey": ""
@@ -274,7 +274,7 @@
             "key": "cushion",
             "languageCode": "en-US",
             "text": "cushion",
-            "meaningKo": "쿠션",
+            "meaningKo": "기대거나 받치는 푹신한 베개(쿠션)",
             "example": "Put the cushion on the sofa.",
             "exampleKo": "쿠션을 소파 위에 놓으세요.",
             "pronunciationAudioKey": ""
@@ -292,7 +292,7 @@
             "key": "donut",
             "languageCode": "en-US",
             "text": "donut",
-            "meaningKo": "도넛",
+            "meaningKo": "고리 모양으로 튀긴 빵(도넛)",
             "example": "This donut is sweet.",
             "exampleKo": "이 도넛은 달아요.",
             "pronunciationAudioKey": ""
@@ -328,7 +328,7 @@
             "key": "elevator",
             "languageCode": "en-US",
             "text": "elevator",
-            "meaningKo": "엘리베이터",
+            "meaningKo": "층을 오르내리는 승강기(엘리베이터)",
             "example": "Take the elevator to the second floor.",
             "exampleKo": "엘리베이터를 타고 2층으로 가세요.",
             "pronunciationAudioKey": ""
@@ -454,7 +454,7 @@
             "key": "hotel",
             "languageCode": "en-US",
             "text": "hotel",
-            "meaningKo": "호텔",
+            "meaningKo": "돈을 내고 묵는 숙박 시설(호텔)",
             "example": "We are staying at this hotel.",
             "exampleKo": "우리는 이 호텔에 머물고 있어요.",
             "pronunciationAudioKey": ""
@@ -526,7 +526,7 @@
             "key": "luggage_cart",
             "languageCode": "en-US",
             "text": "luggage cart",
-            "meaningKo": "짐 운반 카트",
+            "meaningKo": "여행 가방을 실어 나르는 수레(카트)",
             "example": "Put your suitcase on the luggage cart.",
             "exampleKo": "여행 가방을 짐 운반 카트에 올려놓으세요.",
             "pronunciationAudioKey": ""
@@ -544,7 +544,7 @@
             "key": "mattress",
             "languageCode": "en-US",
             "text": "mattress",
-            "meaningKo": "매트리스",
+            "meaningKo": "침대에 까는 푹신한 요(매트리스)",
             "example": "This mattress is comfortable.",
             "exampleKo": "이 매트리스는 편안해요.",
             "pronunciationAudioKey": ""
@@ -553,7 +553,7 @@
             "key": "menu",
             "languageCode": "en-US",
             "text": "menu",
-            "meaningKo": "메뉴",
+            "meaningKo": "음식 이름과 값을 적은 차림표(메뉴)",
             "example": "Can I see the menu, please?",
             "exampleKo": "메뉴 좀 볼 수 있을까요?",
             "pronunciationAudioKey": ""
@@ -571,7 +571,7 @@
             "key": "muffin",
             "languageCode": "en-US",
             "text": "muffin",
-            "meaningKo": "머핀",
+            "meaningKo": "컵 모양의 작고 달콤한 빵(머핀)",
             "example": "I'd like a muffin, please.",
             "exampleKo": "머핀 하나 주세요.",
             "pronunciationAudioKey": ""
@@ -580,7 +580,7 @@
             "key": "mug",
             "languageCode": "en-US",
             "text": "mug",
-            "meaningKo": "머그잔",
+            "meaningKo": "손잡이 달린 큰 컵(머그잔)",
             "example": "I drink tea from this mug.",
             "exampleKo": "나는 이 머그잔으로 차를 마셔요.",
             "pronunciationAudioKey": ""
@@ -589,7 +589,7 @@
             "key": "note",
             "languageCode": "en-US",
             "text": "note",
-            "meaningKo": "메모",
+            "meaningKo": "짧게 적어 둔 글(메모)",
             "example": "There is a note on the refrigerator.",
             "exampleKo": "냉장고에 메모가 붙어 있어요.",
             "pronunciationAudioKey": ""
@@ -679,7 +679,7 @@
             "key": "reception_desk",
             "languageCode": "en-US",
             "text": "front desk",
-            "meaningKo": "프런트 데스크",
+            "meaningKo": "호텔 접수·안내 창구(프런트)",
             "example": "Please check in at the front desk.",
             "exampleKo": "프런트 데스크에서 체크인해 주세요.",
             "pronunciationAudioKey": "front_desk.wav"
@@ -742,7 +742,7 @@
             "key": "shutter",
             "languageCode": "en-US",
             "text": "shutter",
-            "meaningKo": "셔터",
+            "meaningKo": "가게 앞을 막는 철제 덧문(셔터)",
             "example": "The shop's shutter is closed.",
             "exampleKo": "가게의 셔터가 닫혀 있어요.",
             "pronunciationAudioKey": ""
@@ -769,7 +769,7 @@
             "key": "sink",
             "languageCode": "en-US",
             "text": "sink",
-            "meaningKo": "싱크대",
+            "meaningKo": "설거지하는 개수대(싱크대)",
             "example": "Please wash the cup in the sink.",
             "exampleKo": "싱크대에서 컵을 씻어 주세요.",
             "pronunciationAudioKey": ""
@@ -778,7 +778,7 @@
             "key": "sofa",
             "languageCode": "en-US",
             "text": "sofa",
-            "meaningKo": "소파",
+            "meaningKo": "여럿이 앉는 푹신한 의자(소파)",
             "example": "He is sitting on the sofa.",
             "exampleKo": "그는 소파에 앉아 있어요.",
             "pronunciationAudioKey": ""
@@ -796,7 +796,7 @@
             "key": "stove",
             "languageCode": "en-US",
             "text": "stove",
-            "meaningKo": "레인지",
+            "meaningKo": "불로 음식을 익히는 조리 기구(레인지)",
             "example": "There is a kettle on the stove.",
             "exampleKo": "레인지 위에 주전자가 있어요.",
             "pronunciationAudioKey": ""
@@ -832,7 +832,7 @@
             "key": "takeaway_cup",
             "languageCode": "en-US",
             "text": "to-go cup",
-            "meaningKo": "테이크아웃 컵",
+            "meaningKo": "들고 가는 일회용 컵(테이크아웃 컵)",
             "example": "Can I get a to-go cup?",
             "exampleKo": "테이크아웃 컵을 받을 수 있을까요?",
             "pronunciationAudioKey": "to_go_cup.wav"
@@ -868,7 +868,7 @@
             "key": "truck",
             "languageCode": "en-US",
             "text": "truck",
-            "meaningKo": "트럭",
+            "meaningKo": "짐을 싣는 화물차(트럭)",
             "example": "The truck is delivering bread.",
             "exampleKo": "트럭이 빵을 배달하고 있어요.",
             "pronunciationAudioKey": ""
@@ -877,7 +877,7 @@
             "key": "tv",
             "languageCode": "en-US",
             "text": "TV",
-            "meaningKo": "텔레비전",
+            "meaningKo": "방송을 보는 화면 기기(텔레비전)",
             "example": "Let's watch TV together.",
             "exampleKo": "같이 TV 보자.",
             "pronunciationAudioKey": ""
@@ -949,7 +949,7 @@
             "key": "word_27d3dc992bf0dee46a465b3bb93c0a08",
             "languageCode": "en-US",
             "text": "ice cream",
-            "meaningKo": "아이스크림",
+            "meaningKo": "얼려 만든 차고 단 간식(아이스크림)",
             "example": "Can I have a vanilla ice cream?",
             "exampleKo": "바닐라 아이스크림 하나 주세요.",
             "pronunciationAudioKey": ""
@@ -976,7 +976,7 @@
             "key": "word_369eb9ba5bdd95a4e82191d96b289f34",
             "languageCode": "en-US",
             "text": "stool",
-            "meaningKo": "스툴 의자",
+            "meaningKo": "등받이 없는 작은 의자(스툴)",
             "example": "Can I sit on this stool?",
             "exampleKo": "이 의자에 앉아도 될까요?",
             "pronunciationAudioKey": ""
@@ -985,7 +985,7 @@
             "key": "word_3f1b31e72fbacea48bed046e884e6255",
             "languageCode": "en-US",
             "text": "patio umbrella",
-            "meaningKo": "야외 파라솔",
+            "meaningKo": "야외 탁자에 펴는 큰 양산(파라솔)",
             "example": "Let's sit under the patio umbrella.",
             "exampleKo": "야외 파라솔 아래에 앉아요.",
             "pronunciationAudioKey": "patio_umbrella.wav"
@@ -1012,7 +1012,7 @@
             "key": "word_47611d6211561694cb7aa0e9039a893a",
             "languageCode": "en-US",
             "text": "bagel",
-            "meaningKo": "베이글",
+            "meaningKo": "가운데 구멍 난 쫄깃한 빵(베이글)",
             "example": "I'd like a bagel, please.",
             "exampleKo": "베이글 하나 주세요.",
             "pronunciationAudioKey": ""
@@ -1021,7 +1021,7 @@
             "key": "word_49745493800188e47bee4b59a9a41f49",
             "languageCode": "en-US",
             "text": "ice cream truck",
-            "meaningKo": "아이스크림 트럭",
+            "meaningKo": "아이스크림을 파는 차(아이스크림 트럭)",
             "example": "Let's get ice cream from the ice cream truck.",
             "exampleKo": "아이스크림 트럭에서 아이스크림을 사 먹자.",
             "pronunciationAudioKey": ""
@@ -1192,7 +1192,7 @@
             "key": "word_f7bedd45ef4077348a8fb4ff422f2399",
             "languageCode": "en-US",
             "text": "taxi",
-            "meaningKo": "택시",
+            "meaningKo": "요금을 내고 타는 영업용 차(택시)",
             "example": "Can you call a taxi for me?",
             "exampleKo": "택시 좀 불러 주실래요?",
             "pronunciationAudioKey": ""

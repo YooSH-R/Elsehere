@@ -16,7 +16,7 @@ MonoBehaviour:
     key: coffee_machine
     languageCode: en-US
     text: coffee machine
-    meaningKo: "\uCEE4\uD53C \uBA38\uC2E0"
+    meaningKo: "\uCEE4\uD53C\uB97C \uB0B4\uB9AC\uB294 \uAE30\uACC4(\uCEE4\uD53C \uBA38\uC2E0)"
     example: The coffee machine is behind the counter.
     exampleKo: "\uCEE4\uD53C \uBA38\uC2E0\uC740 \uACC4\uC0B0\uB300 \uB4A4\uC5D0 \uC788\uC5B4\uC694."
     pronunciationAudioKey: 

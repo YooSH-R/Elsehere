@@ -17,6 +17,28 @@ namespace A305.EditorTools.Learning
         public const string PrefabPath = "Assets/Prefabs/Learning/ReviewWorkbook.prefab";
         private const string HudPath = "Assets/Prefabs/Learning/LearningHud.prefab";
 
+        [MenuItem("Tools/A305/Learning/Align Review Header Icon")]
+        public static void AlignHeaderIcon()
+        {
+            BuilderTools.ThrowIfPlaying();
+            BuilderTools.UpdateOrCreatePrefab(PrefabPath, "ReviewWorkbook", CenterBookIcon);
+            AssetDatabase.SaveAssets();
+        }
+
+        private static void CenterBookIcon(GameObject root)
+        {
+            var book = (RectTransform)root.transform.Find("Panel/AppIcon/Book");
+            if (book == null)
+                throw new System.InvalidOperationException(
+                    "복습장 머리줄의 책 아이콘이 필요합니다."
+                );
+            book.anchorMin = book.anchorMax = book.pivot = new Vector2(.5f, .5f);
+            // 배경 PNG의 아래쪽 투명 여백을 제외한 실제 코랄 배지의 중심.
+            book.anchoredPosition = new Vector2(0, 10);
+            book.sizeDelta = new Vector2(60, 60);
+            book.GetComponent<Image>().preserveAspect = true;
+        }
+
         [MenuItem("Tools/A305/Learning/Apply Review Reference Progress")]
         public static void ApplyReferenceProgress()
         {
@@ -130,7 +152,7 @@ namespace A305.EditorTools.Learning
                 bookIcon.rectTransform.anchorMax =
                 bookIcon.rectTransform.pivot =
                     new Vector2(.5f, .5f);
-            bookIcon.rectTransform.anchoredPosition = Vector2.zero;
+            CenterBookIcon(root);
             bookIcon.rectTransform.sizeDelta = new Vector2(60, 60);
             heading.rectTransform.sizeDelta = new Vector2(220, heading.rectTransform.sizeDelta.y);
             var subtitle = panel.transform.Find("Summary").GetComponent<TMP_Text>();

@@ -18,6 +18,12 @@ namespace A305.EditorTools.Learning
     /// <summary>고정 데이터로 실제 복습장 프리팹을 렌더링한다. 서버·AI를 호출하거나 씬을 저장하지 않는다.</summary>
     public static class ReviewWorkbookPreview
     {
+        public static void CaptureAlignedHeader()
+        {
+            ReviewWorkbookBuilder.AlignHeaderIcon();
+            Capture();
+        }
+
         [MenuItem("Tools/A305/Learning/Capture Review Workbook")]
         public static void Capture()
         {

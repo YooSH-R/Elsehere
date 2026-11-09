@@ -144,7 +144,7 @@ namespace A305.Npc
 
         /// <param name="requester">제안하는 행인. 같은 행인만 닫을 수 있다.</param>
         /// <param name="hint">누가 말을 걸었는지 알리는 머리말(<see cref="PasserbyOfferText.Hint"/>)</param>
-        /// <param name="remaining">게스트의 남은 대화 수(<see cref="PasserbyOfferText.RemainingConversations"/>). 없으면 null.</param>
+        /// <param name="remaining">남은 대화 수(<see cref="PasserbyOfferText.RemainingConversations"/>). 없으면 null.</param>
         public void Show(
             object requester,
             string hint,
@@ -228,7 +228,7 @@ namespace A305.Npc
         /// </summary>
         /// <param name="requester">말을 걸 NPC. 같은 NPC만 닫을 수 있다.</param>
         /// <param name="label">버튼 문구(<see cref="PasserbyOfferText.TalkLabel"/>)</param>
-        /// <param name="remaining">게스트의 남은 대화 수(<see cref="PasserbyOfferText.RemainingConversations"/>). 없으면 null.</param>
+        /// <param name="remaining">남은 대화 수(<see cref="PasserbyOfferText.RemainingConversations"/>). 없으면 null.</param>
         public void ShowTalkPrompt(object requester, string label, string remaining, Action talk)
         {
             talkPromptOwner = requester;

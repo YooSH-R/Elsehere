@@ -15,7 +15,8 @@ namespace A305.Learning
     /// [피드백 목록] 창은 지난 대화 목록(CONV-09)에서 고른 대화의 저장된 피드백을 같은 피드백 화면으로 다시 열고, 닫으면 목록으로 돌아온다.
     /// 피드백·단어장·피드백 목록 화면이 열려 있는 동안만 이동을 잠그며, 대화 중에는 대화가 정한 잠금을 건드리지 않는다.
     /// 대화 중 누른 풀이 단어는 NPC_LINE 출처로, 서버 피드백의 [담기]는 FEEDBACK 출처로 저장한다.
-    /// 대화를 다 쓴 게스트가 방금 끝낸 대화의 피드백을 닫으면 가입을 권한다(<see cref="GuestSignupPrompt"/>).
+    /// 대화를 다 쓴 게스트가 방금 끝낸 대화의 피드백을 닫으면 가입을 권한다(<see cref="GuestSignupPrompt"/>, 가입 안내 창이 설문도 권한다).
+    /// 오늘 대화를 다 쓴 회원에게는 설문만 권한다(<see cref="SurveyPrompt"/>).
     /// </summary>
     public partial class LearningController : MonoBehaviour
     {
@@ -469,7 +470,12 @@ namespace A305.Learning
             feedbackView.Hide();
             UpdateMovementLock();
             FeedbackClosed?.Invoke(closedRecord.NpcCode, closedRecord.IsGuidedCompleted);
+            // 마지막 대화를 마친 게스트는 다시 말을 걸지 않고 나갈 수 있으므로, 그 대화의 피드백을 닫을 때 가입을 권한다.
             if (dialogue.Allowance.IsGuestOutOfConversations)
+            {
+                GuestSignupPrompt.Request();
+            }
+            else if (dialogue.Allowance.IsOutOfConversations)
             {
                 SurveyPrompt.Request();
             }

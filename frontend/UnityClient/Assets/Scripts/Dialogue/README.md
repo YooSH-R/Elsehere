@@ -35,7 +35,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 | `FollowUpStore`, `WaitingFollowUp`, `IFollowUpApi`, `FollowUpApi` | 대화를 마친 NPC가 준비해 곧 건네기로 한 것(아이스 라테·아침 식사·빨래 등, CONV-08 `followUp`)의 목록. 공간 씬이 바뀌어도 남도록 씬 밖(`FollowUpStore.Shared`)에 두고, 씬마다 `DialogueController`가 시작할 때 아직 건네지 않은 것 전부(CONV-13 `GET /api/v1/follow-ups`)로 다시 맞춥니다. 받지 못하면 기억하던 것을 둡니다. 서버처럼 NPC마다 하나만 기다리므로, 같은 NPC의 새 `followUp`(다른 ID)을 받으면 그 NPC의 줄을 바꿉니다. NPC가 첫 대사로 건네면(CONV-01 `deliveredFollowUpId`) 그 ID와 그 NPC의 줄을 지웁니다. 남은 시간은 서버가 센 `remainingSeconds`를 받은 때부터 이 기기의 실제 시간으로 줄이고, 기기 시계로 `readyAt`을 다시 세지 않습니다. 같은 것을 다시 받으면 바꾸고, 먼저 되는 것부터 늘어놓으며, 다 됐다는 알림은 한 번만 꺼내 줍니다(`TakeNewlyReady`). Play를 시작할 때마다 비웁니다. 가짜 API와 시계로 Unity 객체 없이 테스트합니다. |
 | `ConversationStanding` | 서버 대화의 NPC 호감도와 무례 경고 칸(3아웃) 값. CONV-01·03 응답의 `conversation`(`affinity`, `rudeCount`, `rudeLimit`)으로 바뀌며, 호감도가 바뀐 턴에는 변화량을 한 번 냅니다(무례로 센 턴은 예: -6과 "무례한 말 1/3 · 3번이면 대화가 끝나요" 문구, 칭찬·인사 같은 사건이 있는 턴은 예: 칭찬 +7). 이 칸을 보내지 않는 서버면 `IsKnown`이 false입니다. Unity 객체 없이 테스트합니다. |
 | `ConversationStandingDisplay` | 대화창 NPC 이름 옆 한 줄 "♥ 12   ○○○". 새 상태를 받은 뒤 4초 동안 변화량(깎이면 빨강, 오르면 초록)과 무례 경고 문구를 붙였다가 지웁니다. 글자는 서비스 글꼴(NanumSquareRound)에 있는 ♥·●·○를 씁니다. Unity 객체 없이 테스트합니다. |
-| `ConversationAllowance`, `IAiStatusApi`, `AiStatusApi` | 새 NPC 대화를 시작할 수 있는지와 오늘 남은 대화 수(AI-01)를 관리합니다. 공간에 들어올 때와 대화가 끝날 때 다시 받고, 받지 못하면 직전 상태를 둡니다. 최종 확인은 CONV-01에서 합니다. |
+| `ConversationAllowance`, `IAiStatusApi`, `AiStatusApi` | 새 NPC 대화를 시작할 수 있는지와 남은 대화 수, 게스트인지(AI-01)를 관리합니다. 게스트는 남은 전체 횟수(한 번이라도 주고받은 대화만 셈, 다시 채워지지 않음), 회원은 오늘 남은 횟수입니다. 게스트가 대화를 다 썼는지(`IsGuestOutOfConversations`)와 대화를 다 썼는지(`IsOutOfConversations`)를 알려 줍니다. 공간에 들어올 때와 대화가 끝날 때 다시 받고, 받지 못하면 직전 상태를 둡니다. 최종 확인은 CONV-01에서 합니다. |
 | `VoiceInputNotice` | 말하기 안내 문구. 녹음 중, [종료]를 누르기 전에 녹음이 끝난 이유(최대 시간·말 멈춤·창 이동), 마이크를 쓸 수 없는 이유(권한 거부·장치 없음·미지원)를 나눠 알립니다. 음성 처리에 동의하지 않아 [말하기]가 회색인 대화에서는 다른 상태 안내가 없을 때 도구 줄 위 상태 줄에 "[말하기]를 눌러 음성 처리에 동의해 주세요"를 보입니다. |
 | `TalkButtonRules` | [말하기]를 보일지, 쓸 수 있는 모양으로 그릴지, 누르면 녹음 시작·끝·동의 묻기 중 무엇을 할지 정합니다. 정해진 대본 대화는 아직 음성을 받지 않아 숨기고(S15P31A305-422 뒤에 붙임), 서버 대화에서 동의하지 않았으면 회색으로 두되 누르면 동의 창을 엽니다. Unity 객체 없이 테스트합니다. |
 | `VoiceConsentDialogView`, `VoiceConsentAgreement`, `IVoiceConsentApi`, `VoiceConsentApi` | 회색 [말하기]를 누르면 뜨는 음성 처리 동의 창. 음성을 어디에 쓰는지 알리고 [문서 보기](`VoiceConsent.DocumentUrl`)·[닫기]·[동의하고 켜기]를 둡니다. [동의하고 켜기]는 USER-03(`PUT /api/v1/me/consents`, `VOICE` 켜기)을 부르고, 저장되면 게임 전체의 `VoiceConsent`를 켜고 지금 대화의 [말하기]도 바로 씁니다(`ServerConversation.AllowTalk`). 저장하지 못하면 창 안에 이유를 보이고 다시 누를 수 있습니다. 창 요소는 **Tools → A305 → Dialogue → Apply Voice Consent Dialog**로 대화창 프리팹에 더합니다. 저장 처리는 가짜 API로 Unity 객체 없이 테스트합니다. |
@@ -56,7 +56,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 | 상황 | 안내 |
 | --- | --- |
 | 연결 실패·시간 초과, 서버·AI 장애(5xx), 요청 속도 제한 | 대화 시작이나 발화가 실패했으면 [다시 시도]를 보여 줍니다. 발화는 같은 문장을 같은 요청 ID로 다시 보냅니다. |
-| AI 사용량 소진(`AI_QUOTA_EXHAUSTED`) | 하루 대화 횟수를 다 쓰면 서버가 내일 다시 대화할 수 있다고 안내합니다. 진행 중인 대화의 종료 피드백은 사용할 수 있습니다. |
+| AI 사용량 소진(`AI_QUOTA_EXHAUSTED`) | 게스트가 대화 횟수를 다 쓰면 서버가 "게스트는 NPC와 3번까지 대화할 수 있어요…"를, 회원이 하루 대화 횟수를 다 쓰면 내일 다시 대화할 수 있다는 안내를 보냅니다. 보통은 그 전에 대화 시작이 막혀 이 화면까지 오지 않습니다. 진행 중인 대화의 종료 피드백은 사용할 수 있습니다. |
 | 대화 중 사용량 소진(`endReason: QUOTA_EXHAUSTED`) | 오류가 아닌 정상 종료지만, NPC가 왜 대화를 마쳤는지와 계속 쓸 수 있는 기능을 알립니다. |
 | 무례 누적으로 종료(`endReason: RUDE`) | "무례한 말이 쌓여 (NPC)이(가) 대화를 마쳤어요."와 함께 [대화 종료]로 피드백을 볼 수 있다고 알립니다. |
 | 용건이 끝나 NPC가 마무리(`endReason: NPC_ENDED`) | 미션 목표를 마쳤거나 작별·용건 끝냄을 말한 턴에 서버가 대화를 끝냅니다. "(NPC)이(가) 대화를 마쳤어요."와 함께 [대화 종료]로 피드백을 볼 수 있다고 알립니다. |
@@ -82,7 +82,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 | `DialogueController.End()` | 대화를 끝내고 플레이어를 대화하던 NPC 쪽으로 돌린 뒤 시점과 이동을 되돌립니다. [대화 종료] 버튼과 Esc도 이 동작을 합니다. |
 | `DialogueController.RegenerateFeedbackAsync(ServerFeedback)` | 만들지 못한 피드백을 다시 만듭니다. 서버 대화가 아니거나 대화 ID가 없으면 받은 피드백을 그대로 돌려줍니다. |
 | `DialogueController.IsTalking` | 대화 중인지 |
-| `DialogueController.Allowance` | 새 NPC 대화를 시작할 수 있는지(`CanStartConversation`)와 오늘 남은 대화 수(`RemainingConversations`). 행인의 대화 제안과 클릭 대화가 씁니다. |
+| `DialogueController.Allowance` | 새 NPC 대화를 시작할 수 있는지(`CanStartConversation`), 남은 대화 수(`RemainingConversations`), 게스트인지(`IsGuest`). 행인의 대화 제안과 클릭 대화, 택시가 씁니다. |
 | `DialogueController.FindNpcName(string npcCode)` | 대화 대본에 적힌 NPC 이름. 대본이 없으면 null입니다. 행인 제안 화면의 머리말에 씁니다. |
 | `DialogueController.Started` | 대화가 시작되면 NPC 키를 알립니다. |
 | `DialogueController.Ended` | 대화가 끝나면 끝난 NPC 키를 알립니다. |

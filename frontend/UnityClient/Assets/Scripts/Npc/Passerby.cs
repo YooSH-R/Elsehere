@@ -417,7 +417,10 @@ namespace A305.Npc
                 return !IsOtherOfferShowing || offerView.IsDeclineShown;
             if (!allowance.CanStartConversation)
             {
-                return PasserbyOfferText.OffersSignup(allowance.RemainingConversations);
+                return PasserbyOfferText.OffersSignup(
+                    allowance.RemainingConversations,
+                    allowance.IsGuest
+                );
             }
 
             return !IsOtherOfferShowing || offerView.IsDeclineShown;
@@ -462,7 +465,10 @@ namespace A305.Npc
                 "대화 시작",
                 $"{name}에게 말을 걸까요?",
                 true,
-                PasserbyOfferText.RemainingConversations(dialogue.Allowance.RemainingConversations),
+                PasserbyOfferText.RemainingConversations(
+                    dialogue.Allowance.RemainingConversations,
+                    dialogue.Allowance.IsGuest
+                ),
                 ConfirmPlayerTalk,
                 CancelPlayerTalk
             );
@@ -581,7 +587,8 @@ namespace A305.Npc
             }
 
             string remaining = PasserbyOfferText.RemainingConversations(
-                dialogue.Allowance.RemainingConversations
+                dialogue.Allowance.RemainingConversations,
+                dialogue.Allowance.IsGuest
             );
             offerView.Show(this, hint, greeting, approach.CanDecline, remaining, Accept, Decline);
         }

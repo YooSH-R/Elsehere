@@ -62,7 +62,16 @@ namespace A305.Npc.Tests
         public void RemainingConversations_Guest_SaysHowManyAreLeft()
         {
             Assert.That(
-                PasserbyOfferText.RemainingConversations(2),
+                PasserbyOfferText.RemainingConversations(2, guest: true),
+                Is.EqualTo("게스트 남은 대화 2번")
+            );
+        }
+
+        [Test]
+        public void RemainingConversations_Member_SaysHowManyAreLeftToday()
+        {
+            Assert.That(
+                PasserbyOfferText.RemainingConversations(2, guest: false),
                 Is.EqualTo("오늘 남은 대화 2번")
             );
         }
@@ -70,33 +79,46 @@ namespace A305.Npc.Tests
         [Test]
         public void RemainingConversations_WithoutLimit_ShowsNothing()
         {
-            // 가입 사용자는 대화 횟수 제한이 없다.
-            Assert.That(PasserbyOfferText.RemainingConversations(null), Is.Null);
+            // 서버 상태를 아직 받지 못했으면 남은 수를 모른다.
+            Assert.That(PasserbyOfferText.RemainingConversations(null, guest: false), Is.Null);
         }
 
         [Test]
         public void Blocked_GuestUsedAllConversations_SaysWhy()
         {
             Assert.That(
-                PasserbyOfferText.Blocked(0),
+                PasserbyOfferText.Blocked(0, guest: true),
+                Is.EqualTo("게스트 대화를 모두 썼어요")
+            );
+        }
+
+        [Test]
+        public void Blocked_MemberUsedTodaysConversations_SaysComeBackTomorrow()
+        {
+            Assert.That(
+                PasserbyOfferText.Blocked(0, guest: false),
                 Is.EqualTo("오늘의 대화를 모두 썼어요. 내일 다시 만나요.")
             );
         }
 
         [Test]
-        public void Blocked_WithoutGuestLimit_SaysTalkIsUnavailable()
+        public void Blocked_WithoutLimit_SaysTalkIsUnavailable()
         {
-            // 게스트 횟수가 아닌 이유로 막혔으면 게스트라고 말하지 않는다.
-            Assert.That(PasserbyOfferText.Blocked(null), Is.EqualTo("지금은 대화할 수 없어요"));
+            // 대화 횟수가 아닌 이유로 막혔으면 횟수를 말하지 않는다.
+            Assert.That(
+                PasserbyOfferText.Blocked(null, guest: true),
+                Is.EqualTo("지금은 대화할 수 없어요")
+            );
         }
 
         [Test]
         public void OffersSignup_OnlyWhenGuestUsedAllConversations()
         {
-            Assert.That(PasserbyOfferText.OffersSignup(0), Is.False);
-            Assert.That(PasserbyOfferText.OffersSignup(2), Is.False);
-            // 가입 사용자가 다른 이유로 막혔으면 가입을 권하지 않는다.
-            Assert.That(PasserbyOfferText.OffersSignup(null), Is.False);
+            Assert.That(PasserbyOfferText.OffersSignup(0, guest: true), Is.True);
+            Assert.That(PasserbyOfferText.OffersSignup(2, guest: true), Is.False);
+            // 오늘 대화를 다 쓴 회원과 다른 이유로 막힌 사용자에게는 가입을 권하지 않는다.
+            Assert.That(PasserbyOfferText.OffersSignup(0, guest: false), Is.False);
+            Assert.That(PasserbyOfferText.OffersSignup(null, guest: false), Is.False);
         }
     }
 }

@@ -16,7 +16,18 @@ namespace A305.Npc
         private const float CrossingLookAheadMeters = .6f;
         private const float RequiredRedSeconds = TrafficSignalCycle.RequiredCrossingSeconds;
         private const float SignalRadiusMeters = 8f;
-        private NavMeshPath path;
+
+        // 다가가던 횡단보도에서 이만큼 멀어지면(목적지가 바뀌었거나 밀려남) 정해 둔 횡단을 푼다.
+        private const float CrossingReleaseMeters = 1.5f;
+
+        // 발 디딜 곳에 이만큼 다가가면 닿은 것으로 본다.
+        private const float StepInReachedMeters = .05f;
+
+        private NpcWalkRoute route;
+
+        // 횡단보도로 들어가는 길을 따라 다가왔는지. 인도를 걷다 끝자락을 밟은 걸음과 구분한다.
+        private bool approachedCrossing;
+        private NpcWalkRoute.CrossingApproach committedCrossing;
 
         private Passerby passing;
         private Vector3 passingForward;
@@ -56,6 +67,7 @@ namespace A305.Npc
             body.RestoreWalkingPosition(safe);
             LastRecoveryTo = transform.position;
             passing = null;
+            approachedCrossing = false;
             stuckRecovery.Reset();
             StallRecoveryCount++;
             return true;
@@ -96,13 +108,15 @@ namespace A305.Npc
 
         private void Awake()
         {
-            path = new NavMeshPath();
+            // NavMeshPath는 필드 초기화에서 만들 수 없다.
+            route = new NpcWalkRoute();
         }
 
         private void OnDisable()
         {
             stuckRecovery.Reset();
             passing = null;
+            approachedCrossing = false;
             hurry.Update(false, 0);
             IsRunning = false;
         }
@@ -168,41 +182,43 @@ namespace A305.Npc
                 return;
             }
 
-            int areas = WalkingAreas;
             if (
-                !NavMesh.SamplePosition(transform.position, out NavMeshHit start, 1f, areas)
-                || !NavMesh.SamplePosition(Destination, out NavMeshHit end, 1f, areas)
+                !route.TryPlan(transform.position, Destination)
+                || !NavMesh.SamplePosition(
+                    transform.position,
+                    out NavMeshHit start,
+                    1f,
+                    WalkingAreas
+                )
             )
             {
                 body.StandFacing(transform.rotation);
                 return;
             }
-            if (NavMesh.Raycast(start.position, end.position, out _, areas))
-            {
-                if (
-                    !NavMesh.CalculatePath(start.position, end.position, areas, path)
-                    || path.status != NavMeshPathStatus.PathComplete
-                    || path.corners.Length < 2
-                )
-                {
-                    body.StandFacing(transform.rotation);
-                    return;
-                }
-                direction = path.corners[1] - transform.position;
-                direction.y = 0;
-                if (
-                    direction.sqrMagnitude < .01f
-                    && path.corners.Length > 2
-                    && !NavMesh.Raycast(start.position, path.corners[2], out _, areas)
-                    && body.HasWalkingRoom(path.corners[2] - transform.position, .35f)
-                )
-                {
-                    direction = path.corners[2] - transform.position;
-                    direction.y = 0;
-                }
-            }
+            direction = Vector3.ProjectOnPlane(route.Next - transform.position, Vector3.up);
+            if (
+                direction.sqrMagnitude < .01f
+                && route.AfterNext is Vector3 afterNext
+                && body.HasWalkingRoom(afterNext - transform.position, .35f)
+            )
+                direction = Vector3.ProjectOnPlane(afterNext - transform.position, Vector3.up);
 
-            direction = body.PrepareWalkDirection(direction);
+            // 인도를 따라 걷다 횡단보도 끝을 스치는 걸음은 신호를 기다리거나 횡단을 시작하지 않는다.
+            // 길이 실제로 횡단보도로 들어갈 때만 그 횡단보도를 정해 신호를 보고, 발밑이 횡단보도가 된 뒤에만 횡단을 시작한다.
+            bool onSidewalk = NpcWalkRoute.IsOnSidewalk(transform.position);
+            if (onSidewalk)
+                direction = FollowCommittedCrossing(route, direction);
+            bool waitForSignal =
+                approachedCrossing
+                && onSidewalk
+                && body.ShouldWaitAtCrossing(committedCrossing.Entry, committedCrossing.Across);
+
+            // 횡단 방향은 연석 모서리까지의 짧은 구간이 아니라 길이 횡단보도를 지나는 방향으로 정해, 기다린 신호와 같은 신호를 보고 건넌다.
+            direction = body.PrepareWalkDirection(
+                direction,
+                approachedCrossing && !onSidewalk,
+                committedCrossing.Across
+            );
             Vector3 travel = PassingDirection(body, direction);
             bool clear =
                 IsHurrying
@@ -224,7 +240,44 @@ namespace A305.Npc
                 && body.HasRunningRoom(travel);
             IsRunning = IsHurrying && clear;
             float speed = Mathf.Min(hurry.Speed(clear), direction.magnitude / Time.deltaTime);
-            body.WalkToward(travel, speed, prepared: true);
+            body.WalkToward(travel, speed, prepared: true, waitForSignal);
+        }
+
+        /// <summary>
+        /// 인도 위에서 횡단보도로 들어가는 길을 따라 다가가면 그 횡단보도(들어설 지점·건너는 방향)를 정해 두고 그쪽으로 걷는다.
+        /// 모서리에서는 몇 cm 차이로 경로가 다른 횡단보도로 바뀌는데, 정해 둔 횡단보도로 건너야 기다린 신호를 놓치지 않는다.
+        /// </summary>
+        private Vector3 FollowCommittedCrossing(NpcWalkRoute plan, Vector3 direction)
+        {
+            Vector3 toStepIn = Vector3.ProjectOnPlane(
+                committedCrossing.StepIn - transform.position,
+                Vector3.up
+            );
+            // 길이 더는 건너지 않거나, 정해 둔 곳에서 멀어졌거나, 발 디딜 곳에 닿았는데도 인도 위면 정해 둔 횡단을 푼다.
+            if (
+                approachedCrossing
+                && (
+                    !plan.CrossesRoad
+                    || Vector3
+                        .ProjectOnPlane(committedCrossing.Entry - transform.position, Vector3.up)
+                        .magnitude > CrossingReleaseMeters
+                    || toStepIn.sqrMagnitude <= StepInReachedMeters * StepInReachedMeters
+                )
+            )
+                approachedCrossing = false;
+            if (
+                !approachedCrossing
+                && plan.TryFindCrossingAhead(
+                    CrossingLookAheadMeters,
+                    out NpcWalkRoute.CrossingApproach approach
+                )
+            )
+            {
+                approachedCrossing = true;
+                committedCrossing = approach;
+                toStepIn = Vector3.ProjectOnPlane(approach.StepIn - transform.position, Vector3.up);
+            }
+            return approachedCrossing ? toStepIn : direction;
         }
 
         internal static bool ShouldWaitForSignal(
@@ -236,10 +289,20 @@ namespace A305.Npc
             if (lights == null || IsRoadSurface(position, .1f) || direction.sqrMagnitude < .0001f)
                 return false;
             Vector3 ahead = position + direction.normalized * CrossingLookAheadMeters;
-            if (!OnCrosswalk(ahead, .2f))
+            return OnCrosswalk(ahead, .2f) && ShouldWaitAtCrossing(lights, ahead, direction);
+        }
+
+        /// <summary>entry에서 across 쪽으로 길을 건너려 할 때 차량 신호가 충분히 빨간 동안이 아니면 기다린다.</summary>
+        internal static bool ShouldWaitAtCrossing(
+            TrafficLights lights,
+            Vector3 entry,
+            Vector3 across
+        )
+        {
+            if (lights == null)
                 return false;
-            bool crossesMainRoad = Mathf.Abs(direction.x) >= Mathf.Abs(direction.z);
-            return HasNearbySignal(lights, ahead)
+            bool crossesMainRoad = Mathf.Abs(across.x) >= Mathf.Abs(across.z);
+            return HasNearbySignal(lights, entry)
                 && !lights.CanCross(crossesMainRoad, RequiredRedSeconds);
         }
 

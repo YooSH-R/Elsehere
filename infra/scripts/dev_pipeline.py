@@ -88,6 +88,17 @@ def create_child_pipeline(
     }
     if environment == "prod":
         variables["A305_PROD_AUTOMATIC"] = str(automatic).lower()
+        check_database_upgrade = bool(
+            plan.get("base_commit")
+            and (
+                plan.get("reason", "cumulative-diff") != "cumulative-diff"
+                or any(
+                    path.startswith("backend/src/main/resources/db/migration/")
+                    for path in plan.get("changed_paths", [])
+                )
+            )
+        )
+        variables["A305_CHECK_DB_UPGRADE"] = str(check_database_upgrade).lower()
     pipeline = {
         "include": [{"local": ".gitlab-ci.yml"}],
         "variables": variables,
@@ -95,6 +106,10 @@ def create_child_pipeline(
             "needs": [{"job": job, "artifacts": True} for job in jobs]
         },
     }
+    if environment == "prod" and check_database_upgrade:
+        pipeline["prod:deliver"]["needs"].append(
+            {"job": "backend:database-upgrade", "artifacts": False}
+        )
     if reused:
         pipeline.update({job: {"rules": [{"when": "never"}]} for job in reused})
         pipeline["dev:reuse-checks"] = {
@@ -296,6 +311,9 @@ def deliver_pipeline(repository, candidate, branch, pipeline_id, environment="de
     directory = repository / "dist/deployment"
     directory.mkdir(parents=True, exist_ok=True)
     plan = json.loads(os.environ["A305_DEPLOY_PLAN"])
+    verify_database_backup = (
+        environment == "prod" and os.environ.get("A305_CHECK_DB_UPGRADE") == "true"
+    )
     reused = plan.get("reused_jobs", {}) if environment == "dev" else {}
     state = json.loads(os.environ["A305_DEPLOY_STATE"])
     if state.get("environment", "dev") != environment:
@@ -317,6 +335,11 @@ def deliver_pipeline(repository, candidate, branch, pipeline_id, environment="de
         plan = current_plan
     else:
         verify_current_candidate(repository, branch, candidate)
+        if verify_database_backup and not state.get("database_backup_configured"):
+            raise ValueError(
+                "Install and configure production database backup verification "
+                "on the deployment server, then start a new pipeline."
+            )
     images = state["images"].copy()
     dockerfiles = {
         "backend": "backend.Dockerfile",
@@ -396,6 +419,8 @@ def deliver_pipeline(repository, candidate, branch, pipeline_id, environment="de
     }
     if environment == "dev":
         manifest["verified_base_commit"] = state["candidate_commit"]
+    elif verify_database_backup:
+        manifest["verify_database_backup"] = True
     manifest_path = directory / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     bundle = directory / "release.tar"
@@ -412,6 +437,8 @@ def deliver_pipeline(repository, candidate, branch, pipeline_id, environment="de
         verify_current_candidate(repository, branch, candidate)
     with bundle.open("rb") as source:
         result = server_request("apply", source, environment)
+    if verify_database_backup and not result.get("verified_database_backup"):
+        raise RuntimeError("Production deployment did not report a verified backup.")
     (directory / "result.json").write_text(
         json.dumps(result, indent=2) + "\n", encoding="utf-8"
     )

@@ -50,6 +50,37 @@ namespace A305.Dialogue.Tests
             Assert.That(position, Is.EqualTo(new Vector2(340, 242)));
         }
 
+        // 풀이가 여럿인 카드는 다음 풀이 제목이 보이게 높이 두되, 자리가 있으면 그 높이를 그대로 쓴다.
+        [Test]
+        public void FitHeight_WithRoom_KeepsTheWantedHeight()
+        {
+            var word = new Rect(500, 100, 80, 30);
+
+            Assert.That(WordCardPlacement.FitHeight(word, 220, 156, Panel), Is.EqualTo(220));
+        }
+
+        // 카드가 단어를 가리지 않도록 단어 위나 아래 중 넓은 쪽 자리에 맞춰 줄인다.
+        [Test]
+        public void FitHeight_WithLittleRoom_ShrinksToTheLargerSide()
+        {
+            var word = new Rect(500, 140, 80, 30);
+            var panel = new Rect(0, 0, 1200, 360);
+
+            float height = WordCardPlacement.FitHeight(word, 220, 156, panel);
+
+            Assert.That(height, Is.EqualTo(360 - 170 - WordCardPlacement.Gap));
+        }
+
+        // 자리가 아주 좁아도 풀이 한 줄은 다 보이게 그보다 줄이지 않는다.
+        [Test]
+        public void FitHeight_NeverShrinksBelowOneEntry()
+        {
+            var word = new Rect(500, 100, 80, 30);
+            var panel = new Rect(0, 0, 1200, 250);
+
+            Assert.That(WordCardPlacement.FitHeight(word, 220, 156, panel), Is.EqualTo(156));
+        }
+
         // 위·아래 어디에도 다 들어가지 않으면 카드 위쪽을 대화창 안에 맞춰 NPC 얼굴 쪽으로 넘지 않게 한다.
         [Test]
         public void Place_WithoutRoomAboveOrBelow_KeepsTheTopInsideThePanel()

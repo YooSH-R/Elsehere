@@ -45,11 +45,17 @@ def test_meaning_gives_korean_and_glossary_from_the_line(client, provider):
     assert "Great! For here or to go?" in user_msg(seen["body"]) and "Mia" in user_msg(seen["body"])
 
 
-def test_meaning_glossary_is_at_most_three(client, provider):
-    items = [{"text": w, "meaning_ko": "뜻"} for w in ("grab", "a", "quick", "bite")]
-    provider.answers["meaning"] = lambda b: ok(json.dumps({"meaning_ko": "빨리 뭐 좀 먹자", "glossary": items}))
-    r = client.post("/v1/meaning", json={"npc": NPC, "text": "Let's grab a quick bite"}).json()
-    assert len(r["glossary"]) == 3
+def test_meaning_glossary_keeps_phrases_and_their_words_up_to_fifteen_in_order(client, provider):
+    # 화면이 대사의 내용어·숙어를 거의 다 눌러 볼 수 있게 하고, 숙어 안의 단어(grab)도 숙어(grab a quick bite)와 따로 남긴다
+    line = "All right, I need to check in early and grab a quick bite before the big meeting downtown tonight"
+    words = (
+        "All right", "right", "need", "check in", "check", "early", "grab a quick bite", "grab", "quick", "bite",
+        "before", "big meeting", "big", "meeting", "downtown", "tonight",
+    )  # fmt: skip
+    items = [{"text": w, "meaning_ko": "뜻"} for w in words]
+    provider.answers["meaning"] = lambda b: ok(json.dumps({"meaning_ko": "좋아, 일찍 체크인하고 간단히 먹어야 해", "glossary": items}))
+    r = client.post("/v1/meaning", json={"npc": NPC, "text": line}).json()
+    assert [g["text"] for g in r["glossary"]] == list(words[:15])
 
 
 @pytest.mark.parametrize("out", ["not json", "[]", '{"glossary": []}', '{"meaning_ko": "", "glossary": []}'])

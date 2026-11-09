@@ -41,6 +41,92 @@ namespace A305.World.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator ReviewReturn_RestoresTheSavedShopInteriorAndCanLeaveItForTheStreet()
+        {
+            yield return LoadSpace("TownScene");
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+            ShopInterior room = Object
+                .FindObjectsByType<ShopInterior>(FindObjectsSortMode.None)
+                .First(item => item.SceneName == "SudsLaundromatInterior");
+            var outside = new Pose(player.transform.position, player.transform.rotation);
+            ShopDoorway door = Object
+                .FindObjectsByType<ShopDoorway>(FindObjectsSortMode.None)
+                .First(item => item.Room == room);
+            Assert.That(door.TryEnter(player), Is.True);
+            yield return WaitForReviewRestore();
+            var inside = new Pose(player.transform.position, player.transform.rotation);
+            Assert.That(SpaceTravel.TryRestoreReviewPosition(player, outside, null, 10), Is.True);
+            yield return WaitForReviewRestore();
+            Assert.That(SpaceTravel.TryRestoreReviewPosition(player, inside, room, 90), Is.True);
+            yield return WaitForReviewRestore();
+            Assert.That(ShopInterior.Occupied, Is.SameAs(room));
+            Assert.That(room.IsLoaded, Is.True);
+            Assert.That(player.transform.position.x, Is.EqualTo(inside.position.x).Within(.05f));
+            Assert.That(player.transform.position.z, Is.EqualTo(inside.position.z).Within(.05f));
+
+            Assert.That(SpaceTravel.TryRestoreReviewPosition(player, outside, null, 10), Is.True);
+            yield return WaitForReviewRestore();
+            Assert.That(ShopInterior.Occupied, Is.Null);
+            Assert.That(room.IsLoaded, Is.False);
+            Assert.That(player.IsMovementLocked, Is.False);
+            Assert.That(player.transform.position.x, Is.EqualTo(outside.position.x).Within(.05f));
+            Assert.That(player.transform.position.z, Is.EqualTo(outside.position.z).Within(.05f));
+        }
+
+        private static IEnumerator WaitForReviewRestore()
+        {
+            float deadline = Time.realtimeSinceStartup + 20;
+            while (
+                (SpaceTravel.IsTraveling || SpaceTravelCurtain.IsCoveringScreen)
+                && Time.realtimeSinceStartup < deadline
+            )
+                yield return null;
+            Assert.That(SpaceTravel.IsTraveling, Is.False);
+            Assert.That(SpaceTravelCurtain.IsCoveringScreen, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator ReviewReturn_RestoresSavedStandingAndViewAndUnlocksMovement()
+        {
+            yield return LoadSpace("HomeScene");
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+            yield return null;
+            var saved = new Pose(player.transform.position, player.transform.rotation);
+            float viewYaw = 73;
+            player.Teleport(saved.position + Vector3.right, Quaternion.Euler(0, 170, 0));
+
+            Assert.That(
+                SpaceTravel.TryRestoreReviewPosition(player, saved, null, viewYaw),
+                Is.True
+            );
+            Assert.That(
+                SpaceTravel.TryRestoreReviewPosition(player, saved, null, viewYaw),
+                Is.False,
+                "복귀 중에는 같은 복귀를 중복 시작하지 않습니다."
+            );
+            float deadline = Time.realtimeSinceStartup + 10;
+            while (
+                (SpaceTravel.IsTraveling || SpaceTravelCurtain.IsCoveringScreen)
+                && Time.realtimeSinceStartup < deadline
+            )
+                yield return null;
+
+            Assert.That(SpaceTravel.IsTraveling, Is.False);
+            Assert.That(SpaceTravelCurtain.IsCoveringScreen, Is.False);
+            Assert.That(player.IsMovementLocked, Is.False);
+            Assert.That(player.transform.position.x, Is.EqualTo(saved.position.x).Within(.05f));
+            Assert.That(player.transform.position.z, Is.EqualTo(saved.position.z).Within(.05f));
+            Assert.That(
+                Quaternion.Angle(player.transform.rotation, saved.rotation),
+                Is.LessThan(1)
+            );
+            Assert.That(
+                Mathf.Abs(Mathf.DeltaAngle(player.CameraRig.ViewYawDegrees, viewYaw)),
+                Is.LessThan(1)
+            );
+        }
+
+        [UnityTest]
         public IEnumerator Travel_WhenAnotherSceneIsUnloading_DoesNotBlockLaterSceneLoads()
         {
             yield return LoadSpace("HomeScene");

@@ -19,6 +19,7 @@ namespace A305.Learning.Tests
 
         [TestCase("조이스틱")]
         [TestCase("오른쪽 끌기")]
+        [TestCase("1인칭 버튼")]
         [TestCase("사물 탭")]
         [TestCase("NPC 탭")]
         public void Body_ListsTouchControlsOnPhonesAndTablets(string control)

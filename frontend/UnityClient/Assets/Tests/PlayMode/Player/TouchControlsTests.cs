@@ -116,6 +116,67 @@ namespace A305.Player.PlayModeTests
             Assert.That(HorizontalDistance(stopped, player.transform.position), Is.LessThan(0.01f));
         }
 
+        [UnityTest]
+        public IEnumerator LookDragUp_LooksUpAboveTheHorizonWithoutGoingUnderTheFloor()
+        {
+            var camera = Object.FindFirstObjectByType<PlayerCameraRig>();
+            controls.Look.Begin(2, Vector2.zero);
+            controls.Look.Drag(2, Vector2.up * 5000f);
+            yield return new WaitForSeconds(0.5f);
+            controls.Look.End(2);
+
+            // 수평보다 15°까지 올려다본다. 카메라가 바닥에 닿으면 캐릭터 쪽으로 당겨져 바닥 아래로 들어가지 않는다.
+            Assert.That(camera.ViewMode, Is.EqualTo(CameraViewMode.ThirdPerson));
+            Assert.That(
+                camera.transform.forward.y,
+                Is.EqualTo(Mathf.Sin(15f * Mathf.Deg2Rad)).Within(.02f)
+            );
+            Assert.That(
+                camera.transform.position.y,
+                Is.GreaterThan(player.transform.position.y + .05f)
+            );
+        }
+
+        [UnityTest]
+        public IEnumerator ViewButton_SwitchesToFirstPersonAndBack()
+        {
+            var camera = Object.FindFirstObjectByType<PlayerCameraRig>();
+            Transform button = controls.transform.Find("ViewToggle");
+            Assert.That(button, Is.Not.Null, "휴대폰 화면에 1인칭 버튼이 있어야 합니다.");
+            Assert.That(camera.ViewMode, Is.EqualTo(CameraViewMode.ThirdPerson));
+            Assert.That(button.Find("ToFirstPerson").gameObject.activeSelf, Is.True);
+            Assert.That(button.Find("ToThirdPerson").gameObject.activeSelf, Is.False);
+
+            button.GetComponent<UnityEngine.UI.Button>().onClick.Invoke();
+            yield return null;
+            yield return null;
+            Assert.That(camera.ViewMode, Is.EqualTo(CameraViewMode.FirstPerson));
+            Assert.That(button.Find("ToFirstPerson").gameObject.activeSelf, Is.False);
+            Assert.That(button.Find("ToThirdPerson").gameObject.activeSelf, Is.True);
+
+            button.GetComponent<UnityEngine.UI.Button>().onClick.Invoke();
+            yield return null;
+            yield return null;
+            Assert.That(camera.ViewMode, Is.EqualTo(CameraViewMode.ThirdPerson));
+        }
+
+        [UnityTest]
+        public IEnumerator ViewButton_DoesNothingWhileTheMovementIsLocked()
+        {
+            var camera = Object.FindFirstObjectByType<PlayerCameraRig>();
+            player.SetMovementLocked(true);
+            controls
+                .transform.Find("ViewToggle")
+                .GetComponent<UnityEngine.UI.Button>()
+                .onClick.Invoke();
+            yield return null;
+            yield return null;
+            player.SetMovementLocked(false);
+            yield return null;
+
+            Assert.That(camera.ViewMode, Is.EqualTo(CameraViewMode.ThirdPerson));
+        }
+
         private static float HorizontalDistance(Vector3 from, Vector3 to)
         {
             Vector3 difference = to - from;

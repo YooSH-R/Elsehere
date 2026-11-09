@@ -35,6 +35,9 @@ namespace A305.Mission
         private FirstDayMissionState state;
         private bool busy;
         private bool refreshPending;
+        private bool cafeRestPending;
+        private bool dinerMealPending;
+        private IFollowUpApi followUpApi;
         private RestSeat[] cafeSeats;
         private DinerMealRest dinerRest;
         private QuestNpcWaitSpot[] waitSpots;
@@ -70,10 +73,11 @@ namespace A305.Mission
             waitSpots = FindObjectsByType<QuestNpcWaitSpot>(FindObjectsSortMode.None);
             view.BindMap(sceneCode, player.transform);
             umbrella = player.GetComponent<UmbrellaHold>();
+            followUpApi = new FollowUpApi(apiSettings.CreateClient());
             // 기다리는 카드의 X로 닫은 것을 서버에 알린다.
             var followUps = view.GetComponent<FollowUpCardView>();
             if (followUps != null)
-                followUps.Bind(new FollowUpApi(apiSettings.CreateClient()));
+                followUps.Bind(followUpApi);
             view.StartRequested += StartMission;
             view.RestRequested += Rest;
             view.RetryRequested += RequestRefresh;
@@ -85,9 +89,27 @@ namespace A305.Mission
 
         private void Start() => RequestRefresh();
 
-        private void Update() => dinerRest?.Tick(Time.unscaledDeltaTime, state, busy);
+        private void Update()
+        {
+            dinerRest?.Tick(Time.unscaledDeltaTime, state, busy);
+            if (state?.CountsAsCafeRest != true)
+                return;
+            foreach (RestSeat seat in cafeSeats)
+                if (seat != null && seat.IsPlayerSeated)
+                    FollowUpStore.Shared.SetSeatedWaitRemaining(
+                        "CAFE_STAFF",
+                        seat.RemainingSeconds
+                    );
+        }
 
-        private void ReceiveDinerMeal() => _ = ExecuteAsync(api.ReceiveDinerMealAsync);
+        private void ReceiveDinerMeal()
+        {
+            _ = FollowUpStore.Shared.CompleteSeatedWaitAsync(followUpApi, "DINER_STAFF");
+            if (busy)
+                dinerMealPending = true;
+            else
+                _ = ExecuteAsync(api.ReceiveDinerMealAsync);
+        }
 
         private void OnDestroy()
         {
@@ -130,7 +152,12 @@ namespace A305.Mission
 
         private void Rest()
         {
-            if (state != null && state.CountsAsCafeRest && !busy)
+            if (state?.CountsAsCafeRest != true)
+                return;
+            _ = FollowUpStore.Shared.CompleteSeatedWaitAsync(followUpApi, "CAFE_STAFF");
+            if (busy)
+                cafeRestPending = true;
+            else
                 _ = ExecuteAsync(api.RestAsync);
         }
 
@@ -260,6 +287,16 @@ namespace A305.Mission
                     // 퀘스트를 시작하거나 진행이 바뀌면 열려 있는 목록도 새로 받는다.
                     if (view.IsQuestBoardOpen)
                         LoadQuestBoard();
+                    if (dinerMealPending)
+                    {
+                        dinerMealPending = false;
+                        ReceiveDinerMeal();
+                    }
+                    if (cafeRestPending)
+                    {
+                        cafeRestPending = false;
+                        Rest();
+                    }
                     if (refreshPending)
                     {
                         refreshPending = false;
@@ -287,7 +324,7 @@ namespace A305.Mission
             foreach (RestSeat seat in cafeSeats)
             {
                 if (seat != null)
-                    seat.SetAvailable(canSit);
+                    seat.SetAvailable(canSit, state?.CountsAsCafeRest == true);
             }
         }
     }

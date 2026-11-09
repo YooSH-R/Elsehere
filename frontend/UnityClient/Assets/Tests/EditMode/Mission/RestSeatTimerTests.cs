@@ -5,6 +5,19 @@ namespace A305.Mission.Tests
     public class RestSeatTimerTests
     {
         [Test]
+        public void MealWaitOverridesOnlyThisRestAndCompletesAtFiveSeconds()
+        {
+            var timer = new RestSeatTimer(3f);
+            timer.Begin(SeatedMealTimer.RequiredSeconds);
+            Assert.That(timer.Tick(4.9f), Is.False);
+            Assert.That(timer.Tick(.1f), Is.True);
+            Assert.That(timer.RemainingSeconds, Is.Zero);
+            Assert.That(timer.Tick(1f), Is.False);
+            timer.Begin();
+            Assert.That(timer.Tick(3f), Is.True);
+        }
+
+        [Test]
         public void RestCompletesOnlyAfterHoldingSeatForRequiredTime()
         {
             var timer = new RestSeatTimer(2f);

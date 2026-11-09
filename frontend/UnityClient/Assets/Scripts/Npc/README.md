@@ -281,6 +281,8 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 모든 NPC의 외형(리틀 멍 외형 프리팹)과 머리·옷·신발·눈동자 배색은 `Scripts/Editor/Npc/NpcCast.cs` 한 곳에서 정합니다. 외형별로 바꿀 수 있는 색 범위는 `NpcLooks.cs`, 색을 바꾼 텍스처·재질 사본은 `NpcCastDresser`가 `Art/Characters/NpcCast/<NPC 키>/`에 만듭니다. 배색을 비운 부분은 외형의 원래 색이고, 배색이 없는 NPC는 원래 재질을 씁니다.
 
+배색 이미지 축소는 CPU에서 수행하므로 `-nographics` 백그라운드 실행에서도 피부·머리·옷의 색을 보존합니다. 캐시가 단색이면 배색 기록이 같아도 원본에서 다시 만들고, 단색 결과는 저장하지 않습니다. **Tools → A305 → Npc → Repair Cast Textures**는 손상된 배색만 복원하며 기존 텍스처 GUID와 씬·출퇴근 프리팹의 연결을 유지합니다.
+
 | 규칙 | 내용 |
 | --- | --- |
 | 쓰는 외형 | 플레이어(기본) 외형은 NPC에 쓰지 않습니다. 바리스타·카페 남자 유니폼은 카페 직원만, 남녀 호텔 유니폼은 호텔 직원만, 검수한 남녀 경찰 제복은 경찰관만 입습니다. 일반 행인 외형은 다른 역할에서도 쓸 수 있습니다. 경로와 배정은 `NpcLooks`·`NpcCast`가 관리합니다. |

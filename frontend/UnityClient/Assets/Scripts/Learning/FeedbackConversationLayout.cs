@@ -337,8 +337,27 @@ namespace A305.Learning
             float cardWidth = width - Margin * 2;
             float columnWidth = (cardWidth - Gap) / 2;
             float y = 108;
-            string better = review.Reference?.English ?? review.Utterance;
-            if (columnWidth >= 300)
+            string better = review.Reference?.English;
+            if (!review.HasAlternative)
+            {
+                y =
+                    DetailTile(
+                        root,
+                        fontSource,
+                        displayFont,
+                        tileSprite,
+                        Color.white,
+                        "잘 표현했어요",
+                        review.Utterance,
+                        Margin,
+                        y,
+                        cardWidth,
+                        CardHeight(root, fontSource, review.Utterance, cardWidth, displayFont, 32),
+                        displayFont,
+                        32
+                    ) + Gap;
+            }
+            else if (columnWidth >= 300)
             {
                 float pairHeight = Mathf.Max(
                     CardHeight(root, fontSource, review.Utterance, columnWidth, displayFont, 32),
@@ -411,11 +430,9 @@ namespace A305.Learning
                         32
                     ) + Gap;
             }
-            string reason = review.Reference?.Reason;
-            if (string.IsNullOrWhiteSpace(reason))
-                reason = string.IsNullOrWhiteSpace(review.Comment)
-                    ? "별도의 교정 없이도 자연스럽게 전달됐어요."
-                    : review.Comment;
+            string reason = string.IsNullOrWhiteSpace(review.Explanation)
+                ? "별도의 교정 없이도 자연스럽게 전달됐어요."
+                : review.Explanation;
             y =
                 DetailTile(
                     root,
@@ -423,7 +440,7 @@ namespace A305.Learning
                     displayFont,
                     tileSprite,
                     new Color(1f, 1f, 1f, .86f),
-                    "이 표현을 쓰는 이유",
+                    review.HasAlternative ? "이 표현을 쓰는 이유" : "자연스러웠던 점",
                     reason,
                     Margin,
                     y,

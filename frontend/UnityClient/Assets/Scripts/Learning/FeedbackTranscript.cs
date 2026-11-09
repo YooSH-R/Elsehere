@@ -175,7 +175,7 @@ namespace A305.Learning
                 .Append(Escape(review.Utterance))
                 .Append("\n\n");
 
-            if (review.Reference != null)
+            if (review.HasAlternative)
             {
                 body.Append("<b>이렇게 말해요</b>\n").Append(Escape(review.Reference.English));
                 if (!string.IsNullOrWhiteSpace(review.Reference.Reason))
@@ -184,9 +184,9 @@ namespace A305.Learning
             else
             {
                 body.Append(
-                    string.IsNullOrWhiteSpace(review.Comment)
+                    string.IsNullOrWhiteSpace(review.Explanation)
                         ? "별도의 교정 없이도 자연스럽게 전달됐어요."
-                        : Escape(review.Comment)
+                        : Escape(review.Explanation)
                 );
             }
 

@@ -28,6 +28,52 @@ namespace A305.Learning.PlayModeTests
         public void DestroyScreen() => Object.Destroy(instance);
 
         [UnityTest]
+        public IEnumerator NaturalSentence_ShowsOnceWithoutAFakeCorrectionCard()
+        {
+            const string sentence = "I have a reservation under Kim.";
+            foreach (string better in new string[] { null, sentence })
+            {
+                if (instance != null)
+                    Object.DestroyImmediate(instance);
+                instance = Object.Instantiate(
+                    AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath)
+                );
+                view = instance.GetComponentInChildren<FeedbackView>(true);
+                view.Show(
+                    ConversationFeedback.FromServer(
+                        "Jake",
+                        1,
+                        new ServerFeedback(
+                            new FeedbackData { Status = "DONE", Summary = "예약 확인" },
+                            new List<DetailedFeedbackItem>
+                            {
+                                new DetailedFeedbackItem
+                                {
+                                    UserText = sentence,
+                                    BetterText = better,
+                                    Reason = "예약자 이름을 자연스럽게 전달했어요.",
+                                },
+                            },
+                            null
+                        )
+                    ),
+                    new[] { DialogueLine.FromUser(sentence) }
+                );
+                view.SelectSection(FeedbackSection.Conversation);
+                view.SelectReview(0);
+                yield return null;
+                yield return null;
+                TMP_Text[] shown = instance
+                    .GetComponentsInChildren<TMP_Text>()
+                    .Where(text => text.gameObject.activeInHierarchy)
+                    .ToArray();
+                Assert.That(shown.Count(text => text.text == sentence), Is.EqualTo(1));
+                Assert.That(shown.Any(text => text.text == "이렇게 말해요"), Is.False);
+                Assert.That(shown.Any(text => text.text == "잘 표현했어요"), Is.True);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator ManySituations_AllRemainInTheScrollableContent()
         {
             yield return Show(situationCount: 5, summary: Summary);

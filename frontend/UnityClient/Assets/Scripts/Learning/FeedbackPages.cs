@@ -53,7 +53,7 @@ namespace A305.Learning
                         var body = new StringBuilder("<b>내가 한 말</b>\n").Append(
                             review.Utterance
                         );
-                        if (review.Reference != null)
+                        if (review.HasAlternative)
                         {
                             body.Append("\n\n<b>이렇게 말해요</b>\n")
                                 .Append(review.Reference.English);
@@ -63,12 +63,16 @@ namespace A305.Learning
                         else
                             body.Append("\n\n")
                                 .Append(
-                                    string.IsNullOrEmpty(review.Comment)
+                                    string.IsNullOrEmpty(review.Explanation)
                                         ? "이 문장에는 별도의 교정이 없어요."
-                                        : review.Comment
+                                        : review.Explanation
                                 );
                         pages.Add(
-                            new FeedbackPage("내가 한 말", body.ToString(), review.Reference)
+                            new FeedbackPage(
+                                "내가 한 말",
+                                body.ToString(),
+                                review.HasAlternative ? review.Reference : null
+                            )
                         );
                     }
                     break;

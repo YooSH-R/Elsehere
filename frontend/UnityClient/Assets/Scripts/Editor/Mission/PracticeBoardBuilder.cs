@@ -13,20 +13,24 @@ namespace A305.EditorTools.Mission
     /// <summary>
     /// 퀘스트 창의 [이야기 | 장소 연습] 탭과 장소 연습 쪽(시안 mock.html #place)을 만든다. 자리는 시안 px × 1.2 캔버스 단위이고,
     /// 그림은 시안을 2.4배로 렌더링한 Art/UI/Quest/Practice* 조각이다. 글자(장소·상황·직원)는 Jua·Pretendard TMP로 쓴다.
-    /// 이야기 쪽 머리줄(아이콘·제목·닫기)을 그대로 쓰고 제목 옆에 탭을 둔다. 판은 이야기 쪽과 같은 1520×770이고,
-    /// 머리줄이 시안보다 30 낮아 내용은 시안 자리보다 30 위에 둔다.
+    /// 판(1520×800)과 머리줄(아이콘·'퀘스트'·탭·닫기)은 이야기 쪽과 같고, 자리는 시안 판 기준 그대로다.
     /// </summary>
     internal static class PracticeBoardBuilder
     {
         private const float Px = Ui.Px;
 
-        // 시안 판(1520×800)에서 내용이 올라가는 만큼
-        private const float BodyLift = 30;
+        // 시안 판 자리에서 내용을 옮기는 만큼(머리줄이 시안과 같아 0)
+        private const float BodyLift = 0;
 
-        // 탭(시안 .tabs 290×56)은 제목 '퀘스트'(Jua 36, 폭 86.33) 끝에서 40(머리줄 사이 22 + 탭 왼쪽 18),
-        // 머리 아이콘(위 23, 높이 60)과 세로 가운데에 둔다.
-        private const float TabsLeft = 113 + 86.33f + 40;
-        private const float TabsTop = 23 + (60 - 56) / 2f;
+        // 머리줄(시안 .head 높이 76): 아이콘 타일(76) 왼쪽 41·위 35, '퀘스트'(Jua 46) 왼쪽 139, 탭(.tabs 290×56) 289.31·45, 둥근 닫기(76) 1403
+        private const float TabsLeft = 289.31f;
+        private const float TabsTop = 45;
+        private static readonly (float left, float top, float right, float bottom) HeadPad = (
+            16,
+            10,
+            16,
+            22
+        );
 
         // 시안의 반투명 잉크(.58·.45·.75)를 밝은 바탕에 얹은 색. 선형 색 공간의 UI는 반투명 글자가 더 옅어 보여 불투명으로 쓴다.
         private static readonly Color Ink = new Color32(47, 37, 27, 255);
@@ -53,8 +57,52 @@ namespace A305.EditorTools.Mission
             ("POST_OFFICE", "PostOffice"),
         };
 
-        /// <summary>머리줄 제목 옆 [이야기 | 장소 연습] 탭. 쪽마다 지금 쪽이 켜진 그림을 두고 두 칸을 누르는 자리로 덮는다.</summary>
-        internal static void Tabs(QuestBoardView view, RectTransform page, bool storyShown)
+        /// <summary>
+        /// 두 탭 쪽의 머리줄(시안 .head): 아이콘 타일·'퀘스트'·[이야기 | 장소 연습] 탭·둥근 닫기. 탭은 쪽마다 지금 쪽이 켜진 그림을 두고
+        /// 두 칸을 누르는 자리로 덮는다.
+        /// </summary>
+        internal static void Header(QuestBoardView view, RectTransform page, bool storyShown)
+        {
+            Quest.Picture(
+                page,
+                "HeaderIcon",
+                41,
+                35,
+                76,
+                76,
+                HeadPad,
+                Quest.Art("QuestHeaderTile")
+            );
+            // TMP의 Jua는 칸 가운데에 두면 브라우저보다 낮게 그려져, 캡처로 잰 만큼(시안 px) 올린다.
+            TMP_Text title = Quest.Text(
+                page,
+                "Title",
+                139,
+                44 - 3.5f,
+                300,
+                58,
+                Ui.DisplayFontPath,
+                46,
+                Ink
+            );
+            title.text = "퀘스트";
+            Tabs(view, page, storyShown);
+            Quest.Listen(
+                Quest.ArtButton(
+                    page,
+                    "Close",
+                    1403,
+                    35,
+                    76,
+                    76,
+                    HeadPad,
+                    Quest.Art("QuestCloseRound")
+                ),
+                view.Close
+            );
+        }
+
+        private static void Tabs(QuestBoardView view, RectTransform page, bool storyShown)
         {
             RectTransform tabs = Ui.Rect("Tabs", page);
             Ui.TopLeft(tabs, TabsLeft, TabsTop, 290, 56);
@@ -80,31 +128,7 @@ namespace A305.EditorTools.Mission
             var practice = page.gameObject.AddComponent<PracticeBoardView>();
             var fields = new SerializedObject(practice);
 
-            Quest.Picture(
-                page,
-                "HeaderIcon",
-                37,
-                23,
-                60,
-                60,
-                (14, 8, 14, 22),
-                Quest.Art("QuestHeaderIcon")
-            );
-            TMP_Text title = Quest.Text(
-                page,
-                "Title",
-                113,
-                33.5f,
-                400,
-                39,
-                Ui.DisplayFontPath,
-                36,
-                Ink
-            );
-            title.text = "퀘스트";
-            title.margin = new Vector4(0, 3 * Px, 0, 0);
-            Tabs(view, page, storyShown: false);
-            Quest.Listen(Quest.Close(page, Quest.TabCloseLeft), view.Close);
+            Header(view, page, storyShown: false);
 
             BuildList(fields, page);
             BuildPane(view, fields, page);
@@ -221,7 +245,7 @@ namespace A305.EditorTools.Mission
                 content,
                 "Name",
                 89,
-                16.5f,
+                16.5f - 1,
                 250,
                 30,
                 Ui.DisplayFontPath,
@@ -314,7 +338,7 @@ namespace A305.EditorTools.Mission
                 content,
                 "PlaceName",
                 154,
-                44,
+                44 - 3,
                 400,
                 44,
                 Ui.DisplayFontPath,
@@ -413,7 +437,7 @@ namespace A305.EditorTools.Mission
                 root,
                 "ScenarioTitle",
                 93,
-                24.5f,
+                24.5f - 1.5f,
                 649.14f,
                 34,
                 Ui.DisplayFontPath,

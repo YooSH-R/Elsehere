@@ -42,6 +42,7 @@ namespace A305.Mission
 
         private bool allowed;
         private long shownSecond = -1;
+        private float bottomLimit = float.MaxValue;
 
         // 닫은 것을 서버에 알릴 API. 서버 없이 띄운 화면에서는 이 기기에서만 지운다.
         private IFollowUpApi api;
@@ -52,6 +53,12 @@ namespace A305.Mission
         private static FollowUpStore Store => FollowUpStore.Shared;
 
         public GameObject Card => card.gameObject;
+
+        /// <summary>
+        /// 왼쪽 열이 내려갈 수 있는 끝(왼쪽 위에서 잰 캔버스 단위 거리). 데스크톱은 미니맵 위, 휴대폰은 조이스틱 위다.
+        /// 퀘스트 카드 아래에 두면 이 끝을 넘을 때는 퀘스트 카드 오른쪽 옆에 둔다. 미션 화면이 매 프레임 정한다.
+        /// </summary>
+        public void SetBottomLimit(float limit) => bottomLimit = limit;
 
         /// <summary>X로 닫은 것을 알릴 서버 API를 정한다.</summary>
         public void Bind(IFollowUpApi api) => this.api = api;
@@ -144,6 +151,7 @@ namespace A305.Mission
         }
 
         // 퀘스트 카드 높이는 할 일 줄 수에 따라 바뀌므로 매 프레임 그 아래에 붙이고, 좁은 화면에서 줄어든 폭도 따른다.
+        // 아래에 두면 왼쪽 아래(미니맵·조이스틱)까지 내려가면 퀘스트 카드 오른쪽 옆으로 옮긴다.
         // 하는 퀘스트가 없어 퀘스트 아이콘이 대신 보이면 아이콘 아래에 붙인다.
         private void LateUpdate()
         {
@@ -158,9 +166,12 @@ namespace A305.Mission
                 && !questCard.gameObject.activeInHierarchy
                     ? questIcon
                     : questCard;
-            card.anchoredPosition =
-                above.anchoredPosition + Vector2.down * (above.rect.height + Gap);
             card.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, questCard.rect.width);
+            Vector2 below = above.anchoredPosition + Vector2.down * (above.rect.height + Gap);
+            bool fitsBelow = -below.y + card.rect.height <= bottomLimit;
+            card.anchoredPosition = fitsBelow
+                ? below
+                : above.anchoredPosition + Vector2.right * (above.rect.width + Gap);
         }
     }
 }

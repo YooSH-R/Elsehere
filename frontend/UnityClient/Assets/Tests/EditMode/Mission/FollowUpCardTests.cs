@@ -92,6 +92,46 @@ namespace A305.Mission.Tests
             );
         }
 
+        // 퀘스트 카드 아래에 자리가 없으면(데스크톱 미니맵, 휴대폰 조이스틱이 있는 왼쪽 아래까지 내려가면) 퀘스트 카드 오른쪽 위에 둔다.
+        [Test]
+        public void NoRoomBelowTheQuestCard_SitsBesideIt()
+        {
+            Transform content = instance.transform.Find("Content");
+            var questCard = (RectTransform)content.Find("CurrentGoal");
+            FollowUpStore.Shared.Receive(Item(7, "CAFE_STAFF", "Mia", "CAFE", "아이스 라테", 45));
+            view.SetAvailable(true);
+            card.Refresh();
+            var followUps = (RectTransform)card.Card.transform;
+            MethodInfo lateUpdate = typeof(FollowUpCardView).GetMethod(
+                "LateUpdate",
+                BindingFlags.Instance | BindingFlags.NonPublic
+            );
+
+            card.SetBottomLimit(-questCard.anchoredPosition.y + questCard.rect.height + 10);
+            lateUpdate.Invoke(card, null);
+
+            Assert.That(
+                followUps.anchoredPosition.x,
+                Is.EqualTo(questCard.anchoredPosition.x + questCard.rect.width + 12 * 1.2f)
+                    .Within(.5f),
+                "퀘스트 카드 오른쪽"
+            );
+            Assert.That(
+                followUps.anchoredPosition.y,
+                Is.EqualTo(questCard.anchoredPosition.y).Within(.5f),
+                "퀘스트 카드와 같은 높이"
+            );
+
+            card.SetBottomLimit(float.MaxValue);
+            lateUpdate.Invoke(card, null);
+
+            Assert.That(
+                followUps.anchoredPosition.x,
+                Is.EqualTo(questCard.anchoredPosition.x).Within(.5f),
+                "자리가 있으면 다시 퀘스트 카드 아래"
+            );
+        }
+
         [Test]
         public void NothingWaiting_HidesTheCard()
         {

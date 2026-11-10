@@ -12,6 +12,12 @@ namespace A305.Player
         [SerializeField]
         private RectTransform stick;
 
+        /// <summary>왼쪽 아래 이동 조이스틱. 다른 화면이 왼쪽 아래를 비울 때 그 자리를 잰다.</summary>
+        public RectTransform Stick => stick;
+
+        /// <summary>이 기기에서 터치 조작을 보이고 있는지</summary>
+        public bool IsShown => surfaceCanvas != null && surfaceCanvas.enabled;
+
         [SerializeField]
         private PlayerTouchSettings settings;
 

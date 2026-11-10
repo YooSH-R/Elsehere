@@ -28,7 +28,7 @@ MonoBehaviour:
   - npcCode: POST_OFFICE_STAFF
     greeting: Hello. Welcome to the post office. Are you sending something today?
   - npcCode: DINER_STAFF
-    greeting: Hi, hon! Welcome to Maple Diner. Table for one?
+    greeting: Hi, hon! Welcome to Maple Burger. What can I get you?
   - npcCode: BANK_STAFF
     greeting: Hello. Welcome to Town Bank. How may I help you?
   - npcCode: LAUNDROMAT_STAFF
@@ -76,7 +76,7 @@ MonoBehaviour:
   - npcCode: TOWN_HANDYMAN
     greeting: Welcome to Home and Living. Feel free to look around.
   - npcCode: FIRE_CAPTAIN
-    greeting: Hi, hon! Welcome to Maple Diner. Table for one?
+    greeting: Hi, hon! Welcome to Maple Burger. What can I get you?
   - npcCode: FIRE_FIGHTER
     greeting: Hey there! Need a hand with the machines?
   - npcCode: FIRE_ROOKIE

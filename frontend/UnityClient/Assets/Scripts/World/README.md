@@ -88,6 +88,8 @@
 
 두 Builder는 `TownMainstreet` 아래 `AmericanStreetDetails`·`StreetLife` 묶음이 이미 있으면 배치를 바꾸지 않습니다. 조각 프리팹은 각각 `Assets/Prefabs/World/MainstreetArt/`, `Assets/Prefabs/World/StreetLife/`에 없을 때만 만들고, 새 사물의 공용 단어(신호등·택시·자전거 등)는 뜻·예문과 함께 없을 때만 만듭니다.
 
+**Tools → A305 → World → Fit Pedestrian Crossing Sign**은 기존 `PedXingSign` 프리팹의 봉을 표지판 뒤로 옮겨, `PED XING` 글자 사이로 봉이 드러나지 않게 합니다. 표지판과 글자의 위치, 마을의 배치는 유지합니다.
+
 - 북쪽 기존 빈 건물 세 동은 아래의 층별 상가로 사용합니다. 나머지 배경 주거동은 닫힌 외관을 유지합니다. 식당·공항의 도형 외관과 임시 간판은 현재 배치에서 사용하지 않습니다.
 - 씬 이름은 ERD `scenes.unity_key` 값으로 사용합니다. 공간 이름 같은 서버 데이터는 Unity에 두지 않습니다. 영업시간은 AI 도구가 NPC 생활 규칙에서 만든 `Data/World/PlaceHours.json`을 읽고 Unity에서 고치지 않습니다([영업시간](#영업시간)).
 - TownScene 외관은 `Prefabs/World/TownProduction`과 `CafeBlenderKit`을 사용합니다. HomeScene은 `Prefabs/Home/CozyCottage`의 실내 외형을 사용하며 기존 가구 사물 키와 문 연결을 유지합니다. 카페·호텔의 실내는 도형 대체 공간을 유지합니다. 아래 Builder를 다시 실행해도 기존 디자인을 덮어쓰지 않습니다.
@@ -99,7 +101,7 @@
 | 프리팹 | 간판 | 건물 앞 위치(x, z) |
 | --- | --- | --- |
 | `PostOffice` | POST OFFICE | (-7, 30) |
-| `MapleDiner` | MAPLE DINER | (7, 39) |
+| `MapleDiner` | MAPLE BURGER | (7, 39) |
 | `TownBank` | TOWN BANK | (-7, 48) |
 | `SudsLaundromat` | SUDS LAUNDROMAT | (7, 48) |
 | `BloomFlowers` | BLOOM FLOWERS | (-7, 57) |
@@ -107,6 +109,14 @@
 | `PoliceStation` | POLICE | (-7, -20) |
 
 **Build Town Storefronts Sandbox**로 검토용 씬을 만들고 **Apply Town Storefronts To Town**으로 TownScene에 적용합니다(두 메뉴 모두 **Tools → A305 → World**). 프리팹은 없을 때만 생성하며 기존 디자인은 유지합니다. 원래 배경 건물은 비활성으로 보존합니다. 적용 후 **Apply Taxi Cabin**으로 목적지를 연결하고 **ObjectHover → Register All Scene Words**로 단어 등록과 백엔드 내보내기를 완료합니다. 새 사물 단어는 사서함·소포·스툴·ATM·세탁기·건조기·꽃·이발 의자·경찰서입니다.
+
+### 카페와 버거 주문 메뉴
+
+**Tools → A305 → World → Apply Cafe And Burger Menus**(`ShopMenuBuilder`)는 카페 벽 메뉴와 `MapleDiner` 매장의 간판·메뉴·주문 예시를 갱신합니다. 기존 매장의 빨간 좌석과 크림색 카운터를 살리고 버거 모양 표식을 사용한 `MAPLE BURGER`입니다. 장소 코드 `DINER`와 기존 프리팹·씬 경로는 저장 위치와 목적지 연결을 유지하기 위해 바꾸지 않습니다. 택시·경찰의 장소 판정은 새 이름과 기존 `Maple Diner` 이름을 모두 받습니다.
+
+- 카페: 아메리카노 $4, 라테·카푸치노 $5, 머핀 $3. 따뜻함·차가움, 큰 크기 +$1, 일반 우유·두유(추가 비용 없음), 샷 추가 +$1을 메뉴와 주문 예시로 안내합니다.
+- 버거: Classic $7, Cheese $9, Crispy Chicken $8, Veggie $8. 주방 앞 메뉴판에 각각의 재료를 적고, 카운터 옆에는 재료 빼기(무료), 치즈 추가 +$1, 패티 추가 +$2와 짧은 영어 주문 예시를 둡니다. 감자튀김 $3, 콜라·레모네이드 $2, 감자튀김과 음료 세트 추가 +$4입니다.
+- 실제 직원 대화의 메뉴와 변경 조건은 `ai/npcs/scenarios/cafe_counter.json`, `diner_counter.json`에 있습니다. 메뉴를 바꿀 때 화면·상황 설정·식당 직원 프로필·음성 단어·확인용 대본도 함께 맞춥니다. 화면은 주문 연습 안내이며 결제나 재료 조립 기능은 아닙니다.
 
 ### 경찰서와 순찰차
 
@@ -130,7 +140,7 @@
 | --- | --- | --- |
 | `BarberShopInterior` | 이발소 1층 | 이발대 서랍장·소독액 병·도구, 바퀴 도구함, 머리 건조기 의자, 샴푸 세면대와 의자, 수건·제품 선반, 가격판, 대기 의자·잡지 꽂이·코트걸이 |
 | `BakeryInterior`, `BakeryLoungeInterior` | 빵집 1층, 2층 | 뒷벽 빵 선반, 진열대 조명·가격표, 창가 케이크 탁자, 계단참 아래 데크 오븐·쟁반 선반, 계단 아래 빵 상자·밀가루 포대 / 2층 깔개·의자·장식장·그림 |
-| `MapleDinerInterior` | 식당 1층 | 뒷벽 주방(냉장고·조리대·레인지와 후드), 소스·냅킨·버거, 부스 위 조명, 주크박스·껌 기계, 오늘의 파이 안내판 |
+| `MapleDinerInterior` | 식당 1층 | 뒷벽 주방(냉장고·조리대·레인지와 후드), 소스·냅킨·버거, 부스 위 조명, 주크박스·껌 기계, 버거 메뉴와 재료 변경 안내판 |
 | `PostOfficeInterior` | 우체국 1층 | 우편 분류 칸, 우편 수레, 소포 더미, 줄서기 기둥, 양식 탁자, 파란 우체통, 게시판 |
 | `TownBankInterior` | 은행 1층 | 창구 의자·화면, 금고 문, 서류함, 대기 깔개, 안내 책자 꽂이, 정수기, 금리 안내판 |
 | `LaundromatInterior` | 빨래방 1층 | 빨래 바구니·세제, 벽 선반, 세제 자판기, 빨래 수레, 옷걸이, 게시판, 동전 교환기 |
@@ -156,6 +166,8 @@
 | `(-7, 0.1, 21)` | `NorthBlock/MapleBakery` | 1층 베이커리, 2층 좌석 | 매장 안 복층 계단 |
 | `(7, 0.1, 30)` | `NorthBlock/LittleArcade` | 1층 오락실, 2층 Paper & Leaf 서점 | 공용 계단실에서 각 층의 매장 문으로 진입 |
 | `(-7, 0.1, 39)` | `NorthBlock/HomeLiving` | 1층 생활용품점, 2층 Leaf Tea Room | 1층 독립 출입구, 전면 외부 계단으로 2층 진입 |
+
+**Tools → A305 → World → Fit Tea Room Chairs**는 `HomeLiving` 2층의 의자 8개를 테이블에 맞춥니다. 의자는 원본의 60% 크기(높이 54cm)로 두고, 테이블 양옆 중심에서 1.15m 떨어뜨려 가장자리 사이에 약 15cm 여유를 둡니다. 테이블과 찻잔 배치는 유지하며, 공유 의자 프리팹과 다른 매장의 의자는 바꾸지 않습니다.
 
 `ShopInteriorScenes`는 Play 및 빌드 시 건물별 실내 씬에서 외관·공용 구조물을 제외하고 출입구를 연결합니다. 마을 씬에 새로 추가된 집기도 이 단계에서 제외하지만, 저장된 씬 자체를 정리하려면 **Remove Town Interior Furnishings**를 실행합니다. `ShopDoorway`는 캐릭터 머리가 닫힌 문에 닿기 전에 몸통을 감지해 입·퇴장을 시작하고, 그 문이 여는 실내(`Room`)와 길 안내가 끝나는 문 밖 지점(`ApproachPoint`)을 제공합니다. 매장 직원은 방문 중에만 활동하며, 원본 프리팹에서 실내 배치를 편집할 수 있습니다. 새 매장은 **Tools → A305 → World → Register Shop Interior Scenes**로 빌드 목록에 등록한 뒤 마을 집기를 정리합니다.
 

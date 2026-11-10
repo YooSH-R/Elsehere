@@ -62,7 +62,7 @@ namespace A305.EditorTools.Npc
                 "POST_OFFICE_STAFF",
                 "Hello. Welcome to the post office. Are you sending something today?"
             ),
-            ("DINER_STAFF", "Hi, hon! Welcome to Maple Diner. Table for one?"),
+            ("DINER_STAFF", "Hi, hon! Welcome to Maple Burger. What can I get you?"),
             ("BANK_STAFF", "Hello. Welcome to Town Bank. How may I help you?"),
             ("LAUNDROMAT_STAFF", "Hey there! Need a hand with the machines?"),
             (
@@ -92,7 +92,7 @@ namespace A305.EditorTools.Npc
             ("TOWN_EVENING_WALKER", "Hello. Welcome to Town Bank. How may I help you?"),
             ("TOWN_SHOPPER", "Hello. Welcome to Town Bank. How may I help you?"),
             ("TOWN_HANDYMAN", "Welcome to Home and Living. Feel free to look around."),
-            ("FIRE_CAPTAIN", "Hi, hon! Welcome to Maple Diner. Table for one?"),
+            ("FIRE_CAPTAIN", "Hi, hon! Welcome to Maple Burger. What can I get you?"),
             ("FIRE_FIGHTER", "Hey there! Need a hand with the machines?"),
             ("FIRE_ROOKIE", "Hey! Come on in. Just a trim today?"),
             ("TOWN_GRANDFATHER", "Hello. It's nice to be out for a walk."),

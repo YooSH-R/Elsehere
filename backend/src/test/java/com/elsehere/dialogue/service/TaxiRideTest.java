@@ -11,6 +11,17 @@ import org.junit.jupiter.api.Test;
 class TaxiRideTest {
 
   @Test
+  void destination_recognizesTheBurgerShopName() {
+    var destination = TaxiRide.destination(judged(List.of("go_to"), "Maple Burger"));
+    assertThat(destination)
+        .hasValueSatisfying(
+            value -> {
+              assertThat(value.placeCode()).isEqualTo("DINER");
+              assertThat(value.placeLabel()).isEqualTo("Maple Burger");
+            });
+  }
+
+  @Test
   @DisplayName("택시 기사에게 한 말만 목적지로 판정한다")
   void serves_onlyTheTaxiDriver() {
     assertThat(TaxiRide.serves("TAXI_DRIVER")).isTrue();

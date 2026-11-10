@@ -39,6 +39,7 @@ namespace A305.Mission.Tests
             Object.DestroyImmediate(instance);
             Object.DestroyImmediate(player);
             A305.World.JourneyStatus.Shared.Clear();
+            A305.Npc.NpcTracking.Shared.Clear();
         }
 
         [Test]
@@ -359,6 +360,95 @@ namespace A305.Mission.Tests
                 "터치 지도는 상태 칩보다 아래에 있어야 한다"
             );
         }
+
+        // [이웃]에서 고른 NPC는 미니맵과 큰 지도 모두에 핀으로 보인다. 몸이 없으면 일과로 일터 칸 가운데에 찍는다.
+        // 마을에 켜진 몸을 따라가는 것은 NpcLocator·TownMapArt 시험과 PlayMode 이름표 시험이 확인한다.
+        [Test]
+        public void TrackedNeighbor_PinsTheirWorkplaceOnBothMaps()
+        {
+            ResetClock();
+            TownMiniMapView miniMap = Create("HOTEL");
+            var mission = instance.GetComponent<FirstDayMissionView>();
+            TownMiniMapView largeMap = Field<TownMiniMapView>(mission, "largeMap");
+            A305.Npc.NpcTracking.Shared.Track("BAKERY_STAFF", "Mia", WorkingFromSix("BAKERY"));
+            Rect bakery = TownMapArt.Tile("BAKERY_STAFF").Value;
+
+            foreach (TownMiniMapView map in new[] { miniMap, largeMap })
+            {
+                map.Redraw();
+                RectTransform pin = Field<RectTransform>(map, "neighbor");
+                Assert.That(pin.gameObject.activeSelf, Is.True);
+                Assert.That(
+                    pin.anchoredPosition,
+                    Is.EqualTo(new Vector2(bakery.center.x, -bakery.yMin))
+                );
+                Assert.That(pin.Find("Letter").GetComponent<TMP_Text>().text, Is.EqualTo("M"));
+                Assert.That(
+                    pin.Find("Name/Label").GetComponent<TMP_Text>().text,
+                    Is.EqualTo("Mia")
+                );
+                Assert.That(
+                    pin.GetSiblingIndex(),
+                    Is.LessThan(Field<RectTransform>(map, "player").GetSiblingIndex()),
+                    "내 위치 화살표가 핀 위에 그려집니다."
+                );
+            }
+        }
+
+        [Test]
+        public void Pin_HidesWhenNobodyIsTrackedOrTheyAreResting()
+        {
+            ResetClock();
+            TownMiniMapView map = Create("HOTEL");
+            RectTransform pin = Field<RectTransform>(map, "neighbor");
+
+            map.Redraw();
+            Assert.That(pin.gameObject.activeSelf, Is.False, "찾는 이웃 없음");
+
+            // 08시는 14~22시에 일하는 NPC가 숙소에 들어가 쉬는 때다.
+            A305.Npc.NpcLifeEntry nightShift = WorkingFromSix("BAKERY");
+            nightShift.Schedule[0].From = "14:00";
+            nightShift.Schedule[0].To = "22:00";
+            nightShift.Schedule[1].From = "22:00";
+            nightShift.Schedule[1].To = "14:00";
+            A305.Npc.NpcTracking.Shared.Track("BAKERY_STAFF", "Mia", nightShift);
+            map.Redraw();
+            Assert.That(pin.gameObject.activeSelf, Is.False, "숙소에서 쉬는 중");
+        }
+
+        // 06~18시에 일해 08시(시계를 처음 상태로 돌린 시각)에 일터에 있는 NPC
+        private static A305.Npc.NpcLifeEntry WorkingFromSix(string workplace) =>
+            new A305.Npc.NpcLifeEntry
+            {
+                NpcId = "BAKERY_STAFF",
+                Role = "STAFF",
+                Scene = "TOWN",
+                Workplace = workplace,
+                Schedule = new System.Collections.Generic.List<A305.Npc.NpcScheduleBlock>
+                {
+                    new A305.Npc.NpcScheduleBlock
+                    {
+                        From = "06:00",
+                        To = "18:00",
+                        Activity = "WORK",
+                    },
+                    new A305.Npc.NpcScheduleBlock
+                    {
+                        From = "18:00",
+                        To = "06:00",
+                        Activity = "OFF",
+                    },
+                },
+            };
+
+        // 서버 시각을 받기 전처럼 1일차 08시로 돌린다.
+        private static void ResetClock() =>
+            typeof(A305.World.GameClock)
+                .GetMethod(
+                    "ResetShared",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static
+                )
+                .Invoke(null, null);
 
         private TownMiniMapView Create(string sceneCode = "TOWN")
         {

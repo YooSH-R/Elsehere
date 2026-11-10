@@ -128,5 +128,41 @@ namespace A305.Learning.Tests
             Assert.That(facts, Does.Contain("좋아하는 것 · 아직 몰라요\n"));
             Assert.That(facts, Does.EndWith("\n대화 3번"));
         }
+
+        // 지도에 찍을 자리가 있으면 [지도에서 보기]를 보이고(안내 없음), 없으면 버튼 대신 이유를 보인다.
+        [TestCase(A305.Npc.NpcSpot.Body, true)]
+        [TestCase(A305.Npc.NpcSpot.Workplace, false)]
+        public void MapHint_IsNullWhenTheMapCanShowThem(A305.Npc.NpcSpot spot, bool playerInTown)
+        {
+            Assert.That(NeighborsText.MapHint(spot, playerInTown), Is.Null);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void MapHint_RestingNeighborCannotBeMetNow(bool playerInTown)
+        {
+            Assert.That(
+                NeighborsText.MapHint(A305.Npc.NpcSpot.Resting, playerInTown),
+                Is.EqualTo("숙소에서 쉬고 있어서 지금은 만날 수 없어요.")
+            );
+        }
+
+        [Test]
+        public void MapHint_WalkingNeighborOutsideTown_ShowsUpOnceThePlayerGoesOut()
+        {
+            Assert.That(
+                NeighborsText.MapHint(A305.Npc.NpcSpot.Unknown, playerInTown: false),
+                Is.EqualTo("마을에 나가면 지도에서 찾을 수 있어요.")
+            );
+        }
+
+        [Test]
+        public void MapHint_UnknownInTown_SaysTheMapCannotFindThem()
+        {
+            Assert.That(
+                NeighborsText.MapHint(A305.Npc.NpcSpot.Unknown, playerInTown: true),
+                Is.EqualTo("지금은 지도에서 찾을 수 없어요.")
+            );
+        }
     }
 }

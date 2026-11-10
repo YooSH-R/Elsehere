@@ -87,5 +87,18 @@ namespace A305.Npc.Tests
         {
             Assert.That(NpcNameTags.IsShown(1f, isPlayerBusy: true), Is.False);
         }
+
+        // [이웃]에서 찾는 NPC는 멀리서도 머리 위 표시로 알아보게 이름표를 띄운다.
+        [Test]
+        public void TrackedNpc_ShowsFromFarAway()
+        {
+            Assert.That(NpcNameTags.IsShown(60f, isPlayerBusy: false, isTracked: true), Is.True);
+        }
+
+        [Test]
+        public void TrackedNpc_StillHidesWhileThePlayerIsBusy()
+        {
+            Assert.That(NpcNameTags.IsShown(60f, isPlayerBusy: true, isTracked: true), Is.False);
+        }
     }
 }

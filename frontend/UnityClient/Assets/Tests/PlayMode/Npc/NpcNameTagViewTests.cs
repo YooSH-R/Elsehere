@@ -140,9 +140,20 @@ namespace A305.Npc.PlayModeTests
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
             NpcIdentity passerby = HoldStill(PasserbyCode);
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
             NpcTracking.Shared.Track(PasserbyCode, PasserbyName, null);
             yield return StandFacing(passerby, NpcNameTags.ShowRadiusMeters + 12f);
 
+            Assert.That(
+                Vector3.Distance(player.transform.position, passerby.transform.position),
+                Is.GreaterThan(NpcNameTags.ShowRadiusMeters),
+                "준비: 평소 이름표가 보이는 거리 밖에서 찾습니다."
+            );
+            Assert.That(
+                Camera.main.WorldToScreenPoint(passerby.LookTarget.position).z,
+                Is.Positive,
+                "준비: 찾는 이웃은 카메라 앞에 있습니다."
+            );
             TagView far = ShownTags().SingleOrDefault(shown => shown.Name == PasserbyName);
             Assert.That(far, Is.Not.Null, "찾는 이웃은 멀리서도 이름표가 보입니다.");
             Assert.That(far.Tracked, Is.True, "찾는 이웃 표시가 달립니다.");
@@ -178,12 +189,12 @@ namespace A305.Npc.PlayModeTests
 
         private static IEnumerator StandFacing(NpcIdentity npc, float distanceMeters)
         {
-            Vector3 forward = npc.transform.forward;
-            forward.y = 0f;
-            Vector3 position = npc.transform.position + forward.normalized * distanceMeters;
-            Object
-                .FindFirstObjectByType<PlayerMover>()
-                .Teleport(position, Quaternion.LookRotation(-forward.normalized));
+            Vector3 forward = Vector3.ProjectOnPlane(npc.transform.forward, Vector3.up).normalized;
+            Vector3 position = npc.transform.position + forward * distanceMeters;
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+            player.Teleport(position, Quaternion.LookRotation(-forward));
+            // 순간이동으로 몸을 돌려도 독립적으로 회전하는 카메라 방향은 바뀌지 않는다.
+            player.CameraRig.SnapBehindTarget();
             for (int i = 0; i < SettleFrames; i++)
                 yield return null;
         }

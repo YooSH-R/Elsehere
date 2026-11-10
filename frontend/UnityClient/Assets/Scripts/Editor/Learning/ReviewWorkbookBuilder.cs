@@ -55,9 +55,9 @@ namespace A305.EditorTools.Learning
         {
             var fields = new SerializedObject(root.GetComponent<DialoguePanelView>());
             TMP_Text source = Read<TMP_Text>(fields, "suggestText");
-            var badges =
-                source.GetComponent<ReviewReferenceBadges>()
-                ?? source.gameObject.AddComponent<ReviewReferenceBadges>();
+            var badges = source.GetComponent<ReviewReferenceBadges>();
+            if (badges == null)
+                badges = source.gameObject.AddComponent<ReviewReferenceBadges>();
             badges.Configure(
                 source,
                 AssetDatabase.LoadAssetAtPath<Sprite>(

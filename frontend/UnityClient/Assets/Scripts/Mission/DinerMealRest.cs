@@ -58,7 +58,8 @@ namespace A305.Mission
             EnsureSeats(SceneManager.GetSceneByName(shop.SceneName));
             if (seatedHere && !pose.IsSeated)
             {
-                player.CameraRig?.ExitSeatView();
+                if (player.CameraRig != null)
+                    player.CameraRig.ExitSeatView();
                 seatedHere = false;
             }
             if (seatedHere)
@@ -108,8 +109,8 @@ namespace A305.Mission
                     else
                     {
                         seatedHere = pose.Sit(nearest, .48f, .25f);
-                        if (seatedHere)
-                            player.CameraRig?.EnterSeatView(nearest.Find("MealView"));
+                        if (seatedHere && player.CameraRig != null)
+                            player.CameraRig.EnterSeatView(nearest.Find("MealView"));
                     }
                 },
                 showTalkIcon: false
@@ -153,7 +154,8 @@ namespace A305.Mission
             if (seatedHere && pose != null)
             {
                 pose.Stand();
-                player.CameraRig?.ExitSeatView();
+                if (player.CameraRig != null)
+                    player.CameraRig.ExitSeatView();
             }
             seatedHere = false;
         }

@@ -80,7 +80,8 @@ namespace A305.Dialogue
 
         public void SetReviewReference(string text)
         {
-            reviewBadges?.Clear();
+            if (reviewBadges != null)
+                reviewBadges.Clear();
             if (text == null)
                 reviewScenario = null;
             if (text == null || reviewReference == null)
@@ -133,7 +134,8 @@ namespace A305.Dialogue
                 scenario
             );
             SetReviewReference(formatted.Text);
-            reviewBadges?.Show(formatted);
+            if (reviewBadges != null)
+                reviewBadges.Show(formatted);
         }
 
         [SerializeField]

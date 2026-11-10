@@ -16,7 +16,7 @@ namespace A305.EditorTools.Mission
     /// 그림은 시안을 2.4배로 렌더링한 Art/UI/Quest 조각이다. 판은 다른 시트처럼 테마 유리(Panel)다.
     /// 왼쪽 위 퀘스트 카드를 누르면 수첩 대신 목록을 열고, 목록의 카드를 누르면 그 퀘스트의 도장 지도로 가도록 버튼을 연결한다.
     /// 연계 퀘스트의 잠금을 푸는 연출(띠·자물쇠·흰 막 조각·빛 테두리·[퀘스트 시작])도 목록 위에 만든다.
-    /// 머리줄 제목 옆 [이야기 | 장소 연습] 탭과 장소 연습 쪽은 PracticeBoardBuilder가 만든다.
+    /// 머리줄 제목 옆 [이야기 | 장소 연습] 탭과 장소 연습 쪽은 PracticeBoardBuilder가 만든다. 두 탭은 같은 판(시안 #story·#place)을 쓴다.
     /// </summary>
     public static class QuestBoardBuilder
     {
@@ -33,14 +33,24 @@ namespace A305.EditorTools.Mission
         // 렌더링한 그림은 2.4배라 캔버스 1단위 = 그림 2px
         private const float ArtPixels = 2.4f;
 
-        // 목록(시안 f2) 판 1240×500 안: 카드 378×322(가로 394 간격, 한 쪽 한 줄 세 장). 도장 지도(시안 q2) 판은 1240×770이고
+        // [이야기]·[장소 연습] 탭의 판은 시안(1520×800)과 같은 폭이고, 머리줄이 시안보다 30 낮아 높이는 770이다.
+        // 닫기는 1240 판(x 1153)에서처럼 판 오른쪽에서 87 안에 둔다. 도장 지도(시안 q2) 판은 1240×770이다.
+        internal const float TabSheetWidth = 1520;
+        internal const float TabSheetHeight = 770;
+        internal const float TabCloseLeft = TabSheetWidth - (1240 - 1153);
+
+        // 카드(시안 f2 .qc 378×322)는 내용째 같은 비율로 키워 시안 #story 카드 폭 462에 맞춘다.
+        // 자리는 시안 카드 가운데(왼쪽 41·529·1017)와 위(151)에서 머리줄 차이 30을 뺀 121이다. 한 쪽에 세 장씩이다.
         // 들르는 곳 칸은 282.5×96(간격 12)이다.
         private const int CardsPerPage = 3;
         private const float CardWidth = 378;
         private const float CardHeight = 322;
+        private const float CardScale = 462f / CardWidth;
+        private const float CardTop = 121;
+        private static readonly float[] CardLefts = { 41, 529, 1017 };
 
-        // 쪽이 여럿이면 판을 570으로 늘리고 카드 아래 22에 쪽 넘기기를 둔다.
-        private const float PagerTop = 111 + CardHeight + 22;
+        // 쪽이 여럿이면 카드 아래 22에 쪽 넘기기를 둔다.
+        private const float PagerTop = CardTop + CardHeight * CardScale + 22;
 
         private static readonly Color Ink = new Color32(47, 37, 27, 255);
         private static readonly Color Muted = new Color32(125, 110, 91, 255);
@@ -95,7 +105,7 @@ namespace A305.EditorTools.Mission
             RectTransform sheet = Ui.Rect("Sheet", board);
             sheet.anchorMin = sheet.anchorMax = sheet.pivot = new Vector2(.5f, .5f);
             sheet.anchoredPosition = Vector2.zero;
-            sheet.sizeDelta = new Vector2(1240, 500) * Px;
+            sheet.sizeDelta = new Vector2(TabSheetWidth, TabSheetHeight) * Px;
             Glass(sheet, SheetCorner);
             Set(fields, "sheet", sheet);
 
@@ -126,7 +136,7 @@ namespace A305.EditorTools.Mission
             title.text = "퀘스트";
             title.margin = new Vector4(0, 3 * Px, 0, 0);
             PracticeBoardBuilder.Tabs(view, list, storyShown: true);
-            Listen(Close(list), view.Close);
+            Listen(Close(list, TabCloseLeft), view.Close);
 
             // 들르는 곳 알약과 사이 화살표 견본. 알약 그림은 사방 4의 여백이 있어 그만큼 안쪽 여백과 간격을 고친다.
             // 알약 폭은 QuestBoardView가 글자 폭에 맞춰 정하고, 글자는 알약 가운데에 둔다.
@@ -153,7 +163,7 @@ namespace A305.EditorTools.Mission
 
             // 쪽 넘기기: [앞] 12 [1 / 2] 12 [뒤], 판 가운데
             const float pagerWidth = 163.44f;
-            float left = 620 - pagerWidth / 2;
+            float left = (TabSheetWidth - pagerWidth) / 2;
             Listen(
                 ArtButton(
                     list,
@@ -224,7 +234,8 @@ namespace A305.EditorTools.Mission
         {
             RectTransform card = Ui.Rect("Card" + index, list);
             card.name = "Card";
-            Ui.TopLeft(card, 37 + index * 394, 111, CardWidth, CardHeight);
+            Ui.TopLeft(card, CardLefts[index], CardTop, CardWidth, CardHeight);
+            card.localScale = Vector3.one * CardScale;
             Image area = card.gameObject.AddComponent<Image>();
             area.color = Color.clear;
             var group = card.gameObject.AddComponent<CanvasGroup>();
@@ -337,7 +348,8 @@ namespace A305.EditorTools.Mission
         {
             RectTransform toast = Ui.Rect("UnlockToast", list);
             toast.anchorMin = toast.anchorMax = toast.pivot = new Vector2(.5f, 1);
-            toast.anchoredPosition = new Vector2(0, 108) * Px;
+            // 판이 화면 높이에 가까워 위에 띠를 둘 자리가 없으므로, 머리줄 가운데 빈 곳(탭과 닫기 사이)에 머리 아이콘과 세로 가운데로 둔다.
+            toast.anchoredPosition = new Vector2(0, -(23 + 60 / 2f - 72 / 2f)) * Px;
             toast.sizeDelta = new Vector2(409.62f, 72) * Px;
             RectTransform toastArt = Ui.Rect("Art", toast);
             Ui.Spread(toastArt, 24, 12, 24, 54);
@@ -347,7 +359,9 @@ namespace A305.EditorTools.Mission
             toast.gameObject.SetActive(false);
 
             RectTransform unlock = Ui.Rect("Unlock", list);
+            // 열리는 카드와 같은 자리·크기에 겹치도록 카드처럼 키운다.
             Ui.TopLeft(unlock, 0, 0, CardWidth, CardHeight);
+            unlock.localScale = Vector3.one * CardScale;
             var effect = unlock.gameObject.AddComponent<QuestUnlockEffect>();
             var fields = new SerializedObject(effect);
 

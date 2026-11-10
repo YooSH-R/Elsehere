@@ -13,8 +13,8 @@ namespace A305.EditorTools.Mission
     /// <summary>
     /// 퀘스트 창의 [이야기 | 장소 연습] 탭과 장소 연습 쪽(시안 mock.html #place)을 만든다. 자리는 시안 px × 1.2 캔버스 단위이고,
     /// 그림은 시안을 2.4배로 렌더링한 Art/UI/Quest/Practice* 조각이다. 글자(장소·상황·직원)는 Jua·Pretendard TMP로 쓴다.
-    /// 이야기 쪽 머리줄(아이콘·제목·닫기)은 그대로 쓰고 제목 옆에 탭을 둔다. 장소 연습 판은 시안처럼 1520 폭이고,
-    /// 머리줄이 시안보다 30 낮아 판 높이는 770, 내용은 시안 자리보다 30 위에 둔다.
+    /// 이야기 쪽 머리줄(아이콘·제목·닫기)을 그대로 쓰고 제목 옆에 탭을 둔다. 판은 이야기 쪽과 같은 1520×770이고,
+    /// 머리줄이 시안보다 30 낮아 내용은 시안 자리보다 30 위에 둔다.
     /// </summary>
     internal static class PracticeBoardBuilder
     {
@@ -22,10 +22,6 @@ namespace A305.EditorTools.Mission
 
         // 시안 판(1520×800)에서 내용이 올라가는 만큼
         private const float BodyLift = 30;
-        private const float SheetWidth = 1520;
-
-        // 목록 머리줄의 닫기는 판 오른쪽에서 87(1240 판의 1153)
-        private const float CloseFromRight = 1240 - 1153;
 
         // 탭(시안 .tabs 290×56)은 제목 '퀘스트'(Jua 36, 폭 86.33) 끝에서 40(머리줄 사이 22 + 탭 왼쪽 18),
         // 머리 아이콘(위 23, 높이 60)과 세로 가운데에 둔다.
@@ -108,7 +104,7 @@ namespace A305.EditorTools.Mission
             title.text = "퀘스트";
             title.margin = new Vector4(0, 3 * Px, 0, 0);
             Tabs(view, page, storyShown: false);
-            Quest.Listen(Quest.Close(page, SheetWidth - CloseFromRight), view.Close);
+            Quest.Listen(Quest.Close(page, Quest.TabCloseLeft), view.Close);
 
             BuildList(fields, page);
             BuildPane(view, fields, page);

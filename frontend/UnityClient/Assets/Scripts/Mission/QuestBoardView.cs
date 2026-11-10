@@ -37,14 +37,10 @@ namespace A305.Mission
         private const float UnlockedRouteBottom = 241;
         private const float UnlockedMetaTop = 267;
 
-        // 판 크기: 목록 한 쪽(시안 f2)은 1240×500, 쪽 넘기기가 있으면 높이 570, 도장 지도(시안 q2)는 높이 770.
-        // 장소 연습(시안 #place)은 왼쪽 목록과 오른쪽 판이 들어가게 1520×770이다.
-        private const float SheetWidth = 1240;
-        private const float ListHeight = 500;
-        private const float PagedListHeight = 570;
-        private const float MapHeight = 770;
-        private const float PracticeWidth = 1520;
-        private const float PracticeHeight = 770;
+        // 판 크기: [이야기]·[장소 연습] 탭(시안 #story·#place)은 같은 1520×770, 도장 지도(시안 q2)는 1240×770이다.
+        private const float TabWidth = 1520;
+        private const float MapWidth = 1240;
+        private const float SheetHeight = 770;
 
         // 도장 지도: 지도 그림(2000×800)을 시안 1168×467에 담는다. 도장은 건물이 보이게 24 위로 찍는다.
         private const float MapScaleX = 1168f / 2000f;
@@ -338,22 +334,16 @@ namespace A305.Mission
 
         public void RequestStart() => StartRequested?.Invoke();
 
-        // 판 크기를 보이는 쪽에 맞춘다. 목록은 쪽이 하나면 쪽 넘기기를 숨긴다.
+        // 판 크기를 보이는 쪽에 맞춘다(두 탭은 같은 크기). 목록은 쪽이 하나면 쪽 넘기기를 숨긴다.
         private void FitSheet()
         {
             bool paged = PageCount > 1;
             foreach (Selectable pager in new Selectable[] { previousButton, nextButton })
                 pager.gameObject.SetActive(paged);
             pageText.gameObject.SetActive(paged);
-            bool practice = practicePage.gameObject.activeSelf;
-            float height =
-                practice ? PracticeHeight
-                : mapPage.activeSelf ? MapHeight
-                : paged ? PagedListHeight
-                : ListHeight;
-            float width = practice ? PracticeWidth : SheetWidth;
+            float width = mapPage.activeSelf ? MapWidth : TabWidth;
             sheet.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width * Px);
-            sheet.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height * Px);
+            sheet.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, SheetHeight * Px);
         }
 
         private void FillCards()

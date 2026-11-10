@@ -5,11 +5,107 @@ using System.Text.RegularExpressions;
 using A305.EditorTools.Deployment;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEditor.Build.Reporting;
+using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace A305.Deployment.Tests
 {
     public class WebGlBuildTests
     {
+        [TestCase(false)]
+        [TestCase(true)]
+        public void WebBuildUsesDesktopPipelineOnlyDuringBuild(bool buildFails)
+        {
+            int originalQualityLevel = QualitySettings.GetQualityLevel();
+            int desktopLevel = Array.IndexOf(QualitySettings.names, "PC");
+            int mobileLevel = Array.IndexOf(QualitySettings.names, "Mobile");
+            RenderPipelineAsset editorDesktopPipeline = QualitySettings.GetRenderPipelineAssetAt(
+                desktopLevel
+            );
+            RenderPipelineAsset mobilePipeline = QualitySettings.GetRenderPipelineAssetAt(
+                mobileLevel
+            );
+            RenderPipelineAsset webDesktopPipeline =
+                AssetDatabase.LoadAssetAtPath<RenderPipelineAsset>(
+                    "Assets/Data/Player/WebDesktop_RPAsset.asset"
+                );
+            Assert.That(webDesktopPipeline, Is.Not.Null);
+
+            var buildError = new InvalidOperationException("Build failed");
+            BuildReport BuildPlayer()
+            {
+                Assert.That(
+                    QualitySettings.GetRenderPipelineAssetAt(desktopLevel),
+                    Is.SameAs(webDesktopPipeline)
+                );
+                Assert.That(
+                    QualitySettings.GetRenderPipelineAssetAt(mobileLevel),
+                    Is.SameAs(mobilePipeline)
+                );
+                Assert.That(QualitySettings.GetQualityLevel(), Is.EqualTo(originalQualityLevel));
+                if (buildFails)
+                    throw buildError;
+                return null;
+            }
+
+            if (buildFails)
+                Assert.That(
+                    Assert.Throws<InvalidOperationException>(() =>
+                        WebGlBuild.BuildWithDesktopPipeline(BuildPlayer)
+                    ),
+                    Is.SameAs(buildError)
+                );
+            else
+                WebGlBuild.BuildWithDesktopPipeline(BuildPlayer);
+
+            Assert.That(
+                QualitySettings.GetRenderPipelineAssetAt(desktopLevel),
+                Is.SameAs(editorDesktopPipeline)
+            );
+            Assert.That(QualitySettings.GetQualityLevel(), Is.EqualTo(originalQualityLevel));
+        }
+
+        [Test]
+        public void WebDesktopBuildKeepsTheOriginalWebRenderingBudget()
+        {
+            int selectedLevel = QualitySettings.GetQualityLevel();
+            int desktopLevel = Array.IndexOf(QualitySettings.names, "PC");
+            int mobileLevel = Array.IndexOf(QualitySettings.names, "Mobile");
+            try
+            {
+                QualitySettings.SetQualityLevel(mobileLevel);
+                var webBudget = ReadRenderingBudget();
+                QualitySettings.SetQualityLevel(desktopLevel);
+                var editorBudget = ReadRenderingBudget();
+
+                WebGlBuild.BuildWithDesktopPipeline(() =>
+                {
+                    Assert.That(ReadRenderingBudget(), Is.EqualTo(webBudget));
+                    return null;
+                });
+
+                Assert.That(ReadRenderingBudget(), Is.EqualTo(editorBudget));
+            }
+            finally
+            {
+                QualitySettings.SetQualityLevel(selectedLevel);
+            }
+        }
+
+        private static (
+            float LodBias,
+            SkinWeights SkinWeights,
+            AnisotropicFiltering AnisotropicFiltering,
+            ShadowmaskMode ShadowmaskMode
+        ) ReadRenderingBudget() =>
+            (
+                QualitySettings.lodBias,
+                QualitySettings.skinWeights,
+                QualitySettings.anisotropicFiltering,
+                QualitySettings.shadowmaskMode
+            );
+
         [Test]
         public void BuildUsesEnabledScenesInTheConfiguredOrder()
         {

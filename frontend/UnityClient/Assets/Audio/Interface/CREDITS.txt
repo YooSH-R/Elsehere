@@ -1,0 +1,12 @@
+UI sound effects
+Button, Get Item, Clear Combo 4, Combine Special by freesound_gamestudio.
+Pop Tap Click FX by Virtual_Vibes.
+Source URLs and original input hashes: audio-manifest.json.
+License: Pixabay Content License, https://pixabay.com/service/terms/
+Summary: https://pixabay.com/service/license-summary/
+These edited effects are incorporated into the ELSEHERE game, not distributed as a standalone sound library.
+
+Entry music: ELSEHERE - Town (balanced ensemble).
+Original procedural melody arrangement and oscillator synthesis made for this project.
+No external music recording, sample pack, or generative-model service was used.
+Reproducible source: infra/audio/render-entry-music.py.

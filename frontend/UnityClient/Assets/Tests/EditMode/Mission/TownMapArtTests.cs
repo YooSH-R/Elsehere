@@ -89,5 +89,67 @@ namespace A305.Mission.Tests
             Assert.That(tile.Contains(door), Is.False);
             Assert.That(near.Contains(door), Is.True);
         }
+
+        // [이웃]에서 찾는 NPC가 일터에 있으면 생활 데이터의 근무지 코드로 그 건물 칸을 찾는다.
+        [TestCase("BAKERY", "BAKERY_STAFF")]
+        [TestCase("BARBER", "BARBER_STAFF")]
+        [TestCase("HOTEL", "HOTEL")]
+        [TestCase("CAFE", "CAFE")]
+        [TestCase("SHOP", "SHOP")]
+        public void WorkplaceTile_FindsTheBuildingByWorkplaceCode(string workplace, string tileCode)
+        {
+            Assert.That(TownMapArt.WorkplaceTile(workplace), Is.EqualTo(TownMapArt.Tile(tileCode)));
+        }
+
+        [Test]
+        public void WorkplaceTile_PoliceStationUsesTheLabelledBuildingOnTheMap()
+        {
+            Assert.That(
+                TownMapArt.WorkplaceTile("POLICE_STATION"),
+                Is.EqualTo(TownMapArt.PoliceTile)
+            );
+        }
+
+        [TestCase("TOWN")]
+        [TestCase("TAXI")]
+        [TestCase(null)]
+        public void WorkplaceTile_IsNullWithoutABuilding(string workplace)
+        {
+            Assert.That(TownMapArt.WorkplaceTile(workplace), Is.Null);
+        }
+
+        [Test]
+        public void NeighborPoint_FollowsTheBodyInTown()
+        {
+            var body = new Vector3(0, 0, 18);
+
+            Assert.That(
+                TownMapArt.NeighborPoint(A305.Npc.NpcLocation.AtBody(body)),
+                Is.EqualTo(TownMapArt.ToArt(body))
+            );
+        }
+
+        // 핀 아래 이름표가 건물 아래 이름표(장소 이름)를 가리지 않게 건물 칸 위쪽 가장자리 가운데에 꽂는다.
+        [Test]
+        public void NeighborPoint_SitsOnTopOfTheWorkplace()
+        {
+            Rect bakery = TownMapArt.Tile("BAKERY_STAFF").Value;
+
+            Assert.That(
+                TownMapArt.NeighborPoint(A305.Npc.NpcLocation.AtWorkplace("BAKERY")),
+                Is.EqualTo(new Vector2(bakery.center.x, bakery.yMin))
+            );
+        }
+
+        [Test]
+        public void NeighborPoint_IsNullWhenTheSpotIsNotOnTheMap()
+        {
+            Assert.That(TownMapArt.NeighborPoint(A305.Npc.NpcLocation.Resting), Is.Null);
+            Assert.That(TownMapArt.NeighborPoint(A305.Npc.NpcLocation.Unknown), Is.Null);
+            Assert.That(
+                TownMapArt.NeighborPoint(A305.Npc.NpcLocation.AtWorkplace("TAXI")),
+                Is.Null
+            );
+        }
     }
 }

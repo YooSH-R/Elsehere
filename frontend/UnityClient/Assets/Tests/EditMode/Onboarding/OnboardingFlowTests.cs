@@ -491,6 +491,114 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
+        public async Task StartLevelTest_ShowsTheFirstItemOfTheStartedTest()
+        {
+            await StartAtLevelTest();
+
+            await flow.StartLevelTestAsync();
+
+            Assert.That(api.LevelTestStartedFor, Is.EqualTo("en-US"));
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.LevelTest));
+            Assert.That(flow.LevelTest.TestId, Is.EqualTo(9));
+            Assert.That(flow.LevelTest.CurrentItem.ItemCode, Is.EqualTo("EN_LT_L1"));
+        }
+
+        [Test]
+        public async Task SubmitLevelTestAnswer_SavesTheChoiceAndShowsTheNextItem()
+        {
+            await StartAtLevelTest();
+            await flow.StartLevelTestAsync();
+            flow.LevelTest.Choose(1);
+
+            await flow.SubmitLevelTestAnswerAsync();
+
+            Assert.That(api.Answers, Is.EqualTo(new[] { "9/EN_LT_L1/나" }));
+            Assert.That(flow.LevelTest.CurrentItem.ItemCode, Is.EqualTo("EN_LT_S1"));
+            Assert.That(api.CompleteCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task SubmitLastLevelTestAnswer_CompletesAndShowsTheResult()
+        {
+            await StartAtLastLevelTestItem();
+            flow.LevelTest.ChangeAnswer("I left my bag here.");
+
+            await flow.SubmitLevelTestAnswerAsync();
+
+            Assert.That(api.Answers[1], Is.EqualTo("9/EN_LT_S1/I left my bag here."));
+            Assert.That(api.CompleteCount, Is.EqualTo(1));
+            Assert.That(flow.LevelTest.Result.ResultLevel, Is.EqualTo(2));
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.LevelTest));
+        }
+
+        // 채점(ONB-05)이 실패해도 마지막 문항에 남아 [다음]으로 다시 채점할 수 있다. 같은 문항 답은 서버가 덮어쓴다.
+        [Test]
+        public async Task CompleteLevelTestFails_StaysOnTheLastItemAndRetryCompletes()
+        {
+            await StartAtLastLevelTestItem();
+            flow.LevelTest.ChangeAnswer("I left my bag here.");
+            api.CompleteError = new ApiException(
+                "AI_UNAVAILABLE",
+                503,
+                "잠시 후 다시 시도해 주세요."
+            );
+
+            await flow.SubmitLevelTestAnswerAsync();
+
+            Assert.That(flow.ErrorMessage, Is.EqualTo("잠시 후 다시 시도해 주세요."));
+            Assert.That(flow.LevelTest.CurrentItem.ItemCode, Is.EqualTo("EN_LT_S1"));
+            Assert.That(flow.LevelTest.Result, Is.Null);
+
+            api.CompleteError = null;
+            await flow.SubmitLevelTestAnswerAsync();
+
+            Assert.That(flow.ErrorMessage, Is.Null);
+            Assert.That(flow.LevelTest.Result, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task QuitLevelTest_QuitsAndShowsLevelSettingWithTheProfileReadAgain()
+        {
+            await StartAtLevelTest();
+            await flow.StartLevelTestAsync();
+            int profileReads = api.ProfileReads;
+
+            await flow.QuitLevelTestAsync();
+
+            Assert.That(api.QuitTestId, Is.EqualTo(9));
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.LevelSetting));
+            Assert.That(api.ProfileReads, Is.EqualTo(profileReads + 1));
+            Assert.That(flow.LanguageProfile.LevelTest.Status, Is.EqualTo(LevelTestStatus.Quit));
+        }
+
+        // 결과 화면의 [다음]은 학습 설정을 다시 읽어 화면 05에 추천 난이도 배지가 붙게 한다.
+        [Test]
+        public async Task ContinueAfterLevelTest_ShowsLevelSettingWithTheRecommendation()
+        {
+            await StartAtLastLevelTestItem();
+            flow.LevelTest.ChangeAnswer("I left my bag here.");
+            await flow.SubmitLevelTestAnswerAsync();
+
+            await flow.ContinueAfterLevelTestAsync();
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.LevelSetting));
+            Assert.That(flow.LanguageProfile.RecommendedLevel, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task TranscribeLevelTestAnswer_ReplacesTheAnswerWithWhatWasHeard()
+        {
+            await StartAtLastLevelTestItem();
+            flow.LevelTest.ChangeAnswer("typed before");
+            byte[] wav = { 1, 2, 3 };
+
+            await flow.TranscribeLevelTestAnswerAsync(wav);
+
+            Assert.That(api.TranscribedWav, Is.SameAs(wav));
+            Assert.That(flow.LevelTest.SpokenAnswer, Is.EqualTo("I think I left my bag here."));
+        }
+
+        [Test]
         public async Task SelectLevel_MovesToTutorial()
         {
             api.Bootstrap = SignedIn(OnboardingStep.Level, currentLanguage: "en-US");
@@ -618,6 +726,21 @@ namespace A305.Onboarding.Tests
             await flow.StartAsync();
             flow.SignupForm.SetAgreed("TERMS", true);
             flow.ContinueToProfile();
+        }
+
+        private async Task StartAtLevelTest()
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Level, currentLanguage: "en-US");
+            await flow.StartAsync();
+        }
+
+        // 듣기 문항에 답하고 마지막(말하기) 문항까지 온다.
+        private async Task StartAtLastLevelTestItem()
+        {
+            await StartAtLevelTest();
+            await flow.StartLevelTestAsync();
+            flow.LevelTest.Choose(0);
+            await flow.SubmitLevelTestAnswerAsync();
         }
 
         private static BootstrapResponse SignedIn(OnboardingStep step, string currentLanguage)
@@ -812,7 +935,105 @@ namespace A305.Onboarding.Tests
             public Task<LanguageProfileResponse> GetLanguageProfileAsync(string languageCode)
             {
                 ProfileRequestedFor = languageCode;
+                ProfileReads++;
                 return Task.FromResult(Profile);
+            }
+
+            public int ProfileReads { get; private set; }
+            public string LevelTestStartedFor { get; private set; }
+
+            /// <summary>보낸 답. "테스트 ID/문항/답" 형식이다.</summary>
+            public List<string> Answers { get; } = new List<string>();
+            public int CompleteCount { get; private set; }
+            public ApiException CompleteError { get; set; }
+            public long? QuitTestId { get; private set; }
+            public byte[] TranscribedWav { get; private set; }
+
+            public Task<LevelTestStartResponse> StartLevelTestAsync(string languageCode)
+            {
+                LevelTestStartedFor = languageCode;
+                return Task.FromResult(
+                    new LevelTestStartResponse
+                    {
+                        TestId = 9,
+                        Status = LevelTestStatus.InProgress,
+                        TotalItems = 2,
+                        Items = new List<LevelTestItem>
+                        {
+                            new LevelTestItem
+                            {
+                                ItemCode = "EN_LT_L1",
+                                Type = LevelTestItemType.Listen,
+                                Choices = new List<string> { "가", "나", "다", "라" },
+                                Cues = new List<string>(),
+                            },
+                            new LevelTestItem
+                            {
+                                ItemCode = "EN_LT_S1",
+                                Type = LevelTestItemType.Speak,
+                                Choices = new List<string>(),
+                                Cues = new List<string> { "파란 숄더백" },
+                            },
+                        },
+                    }
+                );
+            }
+
+            public Task AnswerLevelTestAsync(long testId, string itemCode, string answer)
+            {
+                Answers.Add($"{testId}/{itemCode}/{answer}");
+                return Task.CompletedTask;
+            }
+
+            public Task<LevelTestResultResponse> CompleteLevelTestAsync(long testId)
+            {
+                if (CompleteError != null)
+                {
+                    return Task.FromException<LevelTestResultResponse>(CompleteError);
+                }
+
+                CompleteCount++;
+                Profile.RecommendedLevel = 2;
+                Profile.LevelTest = new LevelTestSummary
+                {
+                    TestId = testId,
+                    Status = LevelTestStatus.Done,
+                };
+                return Task.FromResult(
+                    new LevelTestResultResponse
+                    {
+                        TestId = testId,
+                        Status = LevelTestStatus.Done,
+                        ResultLevel = 2,
+                        ListeningScore = 1,
+                        SpeakingPassed = 1,
+                    }
+                );
+            }
+
+            public Task<LevelTestResultResponse> QuitLevelTestAsync(long testId)
+            {
+                QuitTestId = testId;
+                Profile.LevelTest = new LevelTestSummary
+                {
+                    TestId = testId,
+                    Status = LevelTestStatus.Quit,
+                };
+                return Task.FromResult(
+                    new LevelTestResultResponse { TestId = testId, Status = LevelTestStatus.Quit }
+                );
+            }
+
+            public Task<SpeechTranscription> TranscribeLevelTestAsync(string requestId, byte[] wav)
+            {
+                TranscribedWav = wav;
+                return Task.FromResult(
+                    new SpeechTranscription
+                    {
+                        SttRawText = "I think I left my bag here.",
+                        DurationMs = 2300,
+                    }
+                );
             }
 
             public Task<LevelTestResultResponse> SkipLevelTestAsync(string languageCode)

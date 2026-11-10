@@ -67,7 +67,7 @@ public class SpeechService {
    * 녹음을 전사한다. 발화 턴은 만들지 않는다. 음성은 외부 음성 인식 공급자로 가므로 음성 처리(VOICE)에 동의한 사용자의 것만 받는다. 받은 음성은 녹음 음성 학습
    * 활용(TRAINING_VOICE)에 동의한 사용자의 것만 인식 결과와 함께 보관하고, 그 밖에는 보관하지 않는다.
    *
-   * @param conversationId 자유 대화 발화(TURN)일 때 진행 중인 대화. 튜토리얼이면 null
+   * @param conversationId 자유 대화 발화(TURN)일 때 진행 중인 대화. 튜토리얼·레벨 테스트면 null
    */
   public TranscriptionResponse transcribe(
       Long userId,
@@ -101,7 +101,9 @@ public class SpeechService {
       throw new BusinessException(ErrorCode.STT_NO_SPEECH);
     }
     Integer durationMs = result.audioS() == null ? null : (int) Math.round(result.audioS() * 1000);
-    if (optionalConsentService.hasAgreed(userId, ConsentType.TRAINING_VOICE)) {
+    // 학습용 녹음은 대화·튜토리얼 발화만 모은다. 레벨 테스트 답은 보관하지 않는다.
+    if (purpose != TranscriptionPurpose.LEVEL_TEST
+        && optionalConsentService.hasAgreed(userId, ConsentType.TRAINING_VOICE)) {
       trainingRecordingService.save(
           trace.userId(),
           trace.requestId(),

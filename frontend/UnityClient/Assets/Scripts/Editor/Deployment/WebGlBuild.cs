@@ -6,11 +6,14 @@ using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace A305.EditorTools.Deployment
 {
     public static class WebGlBuild
     {
+        private const string DesktopPipelinePath = "Assets/Data/Player/WebDesktop_RPAsset.asset";
+
         public static BuildPlayerOptions CreateOptions(
             string outputDirectory,
             EditorBuildSettingsScene[] scenes
@@ -79,7 +82,9 @@ namespace A305.EditorTools.Deployment
                 PlayerSettings.WebGL.decompressionFallback = false;
                 // A cached file from another release must not share the same URL.
                 PlayerSettings.WebGL.nameFilesAsHashes = true;
-                BuildReport report = BuildPipeline.BuildPlayer(options);
+                BuildReport report = BuildWithDesktopPipeline(() =>
+                    BuildPipeline.BuildPlayer(options)
+                );
                 if (report.summary.result != BuildResult.Succeeded)
                 {
                     throw new BuildFailedException("WebGL build failed. See the Unity build log.");
@@ -95,6 +100,92 @@ namespace A305.EditorTools.Deployment
                 PlayerSettings.WebGL.compressionFormat = originalCompression;
                 PlayerSettings.WebGL.decompressionFallback = originalFallback;
                 PlayerSettings.WebGL.nameFilesAsHashes = originalHashedNames;
+            }
+        }
+
+        public static BuildReport BuildWithDesktopPipeline(Func<BuildReport> buildPlayer)
+        {
+            int desktopLevel = Array.IndexOf(QualitySettings.names, "PC");
+            int mobileLevel = Array.IndexOf(QualitySettings.names, "Mobile");
+            RenderPipelineAsset desktopPipeline =
+                AssetDatabase.LoadAssetAtPath<RenderPipelineAsset>(DesktopPipelinePath);
+            if (desktopLevel < 0 || mobileLevel < 0 || desktopPipeline == null)
+            {
+                throw new BuildFailedException(
+                    $"WebGL requires the PC and Mobile quality levels and the pipeline at {DesktopPipelinePath}."
+                );
+            }
+
+            int selectedLevel = QualitySettings.GetQualityLevel();
+            RenderPipelineAsset originalPipeline = QualitySettings.GetRenderPipelineAssetAt(
+                desktopLevel
+            );
+            RenderingBudget originalBudget = RenderingBudget.Read(desktopLevel);
+            RenderingBudget webBudget = RenderingBudget.Read(mobileLevel);
+            try
+            {
+                // The Web profile improves shadows while keeping the original Web mesh and texture costs.
+                SetDesktopGraphics(desktopLevel, desktopPipeline, webBudget, selectedLevel);
+                return buildPlayer();
+            }
+            finally
+            {
+                SetDesktopGraphics(desktopLevel, originalPipeline, originalBudget, selectedLevel);
+            }
+        }
+
+        private static void SetDesktopGraphics(
+            int desktopLevel,
+            RenderPipelineAsset pipeline,
+            RenderingBudget budget,
+            int selectedLevel
+        )
+        {
+            QualitySettings.SetQualityLevel(desktopLevel, applyExpensiveChanges: false);
+            try
+            {
+                QualitySettings.renderPipeline = pipeline;
+                budget.Apply();
+            }
+            finally
+            {
+                QualitySettings.SetQualityLevel(selectedLevel, applyExpensiveChanges: false);
+            }
+        }
+
+        private struct RenderingBudget
+        {
+            private float lodBias;
+            private SkinWeights skinWeights;
+            private AnisotropicFiltering anisotropicFiltering;
+            private ShadowmaskMode shadowmaskMode;
+
+            public static RenderingBudget Read(int qualityLevel)
+            {
+                int selectedLevel = QualitySettings.GetQualityLevel();
+                QualitySettings.SetQualityLevel(qualityLevel, applyExpensiveChanges: false);
+                try
+                {
+                    return new RenderingBudget
+                    {
+                        lodBias = QualitySettings.lodBias,
+                        skinWeights = QualitySettings.skinWeights,
+                        anisotropicFiltering = QualitySettings.anisotropicFiltering,
+                        shadowmaskMode = QualitySettings.shadowmaskMode,
+                    };
+                }
+                finally
+                {
+                    QualitySettings.SetQualityLevel(selectedLevel, applyExpensiveChanges: false);
+                }
+            }
+
+            public void Apply()
+            {
+                QualitySettings.lodBias = lodBias;
+                QualitySettings.skinWeights = skinWeights;
+                QualitySettings.anisotropicFiltering = anisotropicFiltering;
+                QualitySettings.shadowmaskMode = shadowmaskMode;
             }
         }
     }

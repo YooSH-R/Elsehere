@@ -14,6 +14,7 @@ namespace A305.Learning
             "지금은 이웃 목록을 받아 오지 못했어요. 잠시 후 다시 시도해 주세요.";
         public const string Retry = "다시 시도";
         public const string Back = "목록으로";
+        public const string ShowOnMap = "지도에서 보기";
         public const string Locked = "잠김";
 
         private const string HiddenName = "???";
@@ -81,6 +82,19 @@ namespace A305.Learning
                 talks
             );
         }
+
+        /// <summary>
+        /// 정보 카드의 [지도에서 보기] 대신 보일 안내. 지도에 찍을 자리가 있으면 null이라 버튼을 보인다.
+        /// 숙소에서 쉬면 만날 수 없고, 걸어 다니는 중이면 마을에 켜진 몸을 봐야 자리를 안다.
+        /// </summary>
+        public static string MapHint(A305.Npc.NpcSpot spot, bool playerInTown) =>
+            spot switch
+            {
+                A305.Npc.NpcSpot.Body or A305.Npc.NpcSpot.Workplace => null,
+                A305.Npc.NpcSpot.Resting => "숙소에서 쉬고 있어서 지금은 만날 수 없어요.",
+                _ when playerInTown => "지금은 지도에서 찾을 수 없어요.",
+                _ => "마을에 나가면 지도에서 찾을 수 있어요.",
+            };
 
         public static string AvatarLetter(Neighbor neighbor) =>
             neighbor.Unlocked ? AvatarName(neighbor).Substring(0, 1).ToUpperInvariant() : "?";

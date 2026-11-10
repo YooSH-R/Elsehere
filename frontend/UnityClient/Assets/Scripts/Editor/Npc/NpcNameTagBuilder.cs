@@ -31,6 +31,9 @@ namespace A305.EditorTools.Npc
         private static readonly Color StaffChipColor = new Color(0.13f, 0.47f, 0.78f);
         private static readonly Color StaffChipInk = Color.white;
 
+        // [이웃]에서 찾는 NPC 표시. 지도 핀과 같은 글래스 팝 보조색 코랄이라 같은 사람을 가리킨다는 것을 알 수 있다.
+        private static readonly Color TrackedChipColor = new Color32(255, 119, 89, 255);
+
         /// <summary>제안 화면 프리팹에 이름표 층만 더하고 테마를 칠한다. 행인 전체 Builder를 다시 돌리지 않아도 된다.</summary>
         [MenuItem(MenuPath)]
         public static void Apply()
@@ -48,6 +51,7 @@ namespace A305.EditorTools.Npc
             RectTransform template = FindOrCreateTemplate(layer);
             // 이미 있는 이름표도 바탕 전체(이름·역할 칩 포함)로 클릭을 받게 한다. 글자와 칩은 받지 않아 바탕이 대신 받는다.
             template.GetComponent<Image>().raycastTarget = true;
+            CreateTrackedMark(template);
 
             BuilderTools.SetReference(
                 view,
@@ -138,20 +142,49 @@ namespace A305.EditorTools.Npc
         // 직원만 켜는 역할 칩(예: 경찰관). 이름 위에 둔다.
         private static void CreateRoleChip(RectTransform template)
         {
+            Chip(template, "RoleChip", StaffChipColor, "직원");
+        }
+
+        // [이웃]에서 찾는 NPC만 켜는 코랄 표시. 역할 칩보다도 위, 이름표 맨 위에 둔다. 이미 있으면 다시 만든다.
+        private static void CreateTrackedMark(RectTransform template)
+        {
+            Transform previous = template.Find("Tracked");
+            if (previous != null)
+            {
+                Object.DestroyImmediate(previous.gameObject);
+            }
+
+            RectTransform mark = Chip(
+                template,
+                "Tracked",
+                TrackedChipColor,
+                NpcNameTags.TrackedLabel
+            );
+            mark.SetAsFirstSibling();
+            mark.gameObject.SetActive(false);
+        }
+
+        private static RectTransform Chip(
+            RectTransform template,
+            string name,
+            Color color,
+            string text
+        )
+        {
             var chip = new GameObject(
-                "RoleChip",
+                name,
                 typeof(RectTransform),
                 typeof(Image),
                 typeof(HorizontalLayoutGroup)
             ).GetComponent<RectTransform>();
             chip.SetParent(template, false);
-            // 테마의 칩 그림은 유리 재질로 칠해야 보이는 바탕이라, 칩은 Unity 기본 둥근 사각형에 옅은 파랑을 깐다.
+            // 테마의 칩 그림은 유리 재질로 칠해야 보이는 바탕이라, 칩은 Unity 기본 둥근 사각형에 진한 색을 깐다.
             var background = chip.GetComponent<Image>();
             background.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>(
                 "UI/Skin/UISprite.psd"
             );
             background.type = Image.Type.Sliced;
-            background.color = StaffChipColor;
+            background.color = color;
             background.raycastTarget = false;
             var row = chip.GetComponent<HorizontalLayoutGroup>();
             row.padding = new RectOffset(10, 10, 1, 2);
@@ -167,10 +200,11 @@ namespace A305.EditorTools.Npc
                 UiBuilderTools.BoldFont(),
                 18f,
                 StaffChipInk,
-                "직원"
+                text
             );
             label.alignment = TextAlignmentOptions.Center;
             label.raycastTarget = false;
+            return chip;
         }
     }
 }

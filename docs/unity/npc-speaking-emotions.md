@@ -96,6 +96,8 @@ Blender 제작 원본은 `frontend/ArtSources/Characters/CafeFemaleEmotion/`에 
 
 캐릭터별 제작 결과는 `ServiceNpcEmotions/<캐릭터 이름>/`의 `.blend`, `Landmarks.json`, 압축된 `Emotions.json.gz`로 보관합니다. **Tools → A305 → Characters → Apply Reviewed NPC Emotions**는 이 데이터를 기존 프리팹에 연결합니다. 기준 정점이 달라지거나 발음 채널을 덮어쓰는 입력이면 거부합니다. 감정 제작 결과를 다시 적용하는 명령이므로 직접 수정한 감정 메시가 있다면 먼저 보존해야 합니다. `NPC_EMOTION_CHARACTER`로 한 캐릭터만 지정할 수 있습니다.
 
+웹 빌드 데이터를 줄이려고 눈꺼풀 메시(`Assets/Art/Npc/Emotions/<캐릭터 이름>/Face/Blink/`)의 깜빡임·찡그림은 25·50·75·90·100 다섯 단계 중 50·100 두 단계만 남깁니다. 눈꺼풀 하나의 표정 데이터에서 이 중간 단계가 80%를 차지했습니다. **Tools → A305 → Characters → Trim NPC Eyelid Frames**(`EyelidFrameTrimmer`)가 이미 만든 메시에서 단계만 고르며, 채널 순서·단계 하나짜리 채널·노멀 유무는 그대로 둡니다. 50·100 단계가 없는 채널은 바꾸지 않습니다. 남긴 단계 사이는 Unity가 보간합니다. 무게 25·75는 원래 보간 결과와 같아 모습이 바뀌지 않고, 90% 눈 감기 프레임이 빠져 무게 90에서는 눈이 완전히 닫히지 않습니다(깜빡임 중 한두 프레임). 감정 제작 결과를 다시 적용하면 다섯 단계로 돌아오므로 이 명령을 다시 실행합니다.
+
 웃는 눈은 기존 닫힌 눈의 곡률에 맞춰 들어 올리고, 눈꺼풀 선이 얇아져 끊겨 보이지 않도록 감정 변형에서 두께와 눈꺼풀 앞쪽 위치를 유지합니다. `smile_surface.py`는 덜 닫은 눈·애교살 올림을 합친 상태에서 눈꺼풀이 안구 앞에 있도록 웃는 눈 채널의 깊이를 보정합니다. 중립·깜빡임·바깥 접합 링은 보존합니다. 폭소의 혀는 해당 입 벌림 윤곽 안에 둡니다. 이 보정은 감정 채널에만 적용하며 기존 발음 채널은 보존합니다.
 
 **Build NPC Emotion Sandbox**는 비교 씬을 다시 만듭니다. Production 씬은 변경하지 않습니다. `NpcEmotionBuilder.Audit`는 내보낸 원본 경로와 현재 프리팹의 중립 정점·UV·노멀·가중치·bind pose·텍스처·발음 프레임을 비교해 `Preservation.json`으로 기록합니다.

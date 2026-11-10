@@ -232,6 +232,16 @@ class AiWorkerClient {
     return readJson(send(request, HttpResponse.BodyHandlers.ofString()), MeaningResult.class);
   }
 
+  /** 레벨 테스트 말하기 답의 문항별 통과 여부와 한 줄 피드백(ONB-05). */
+  public LevelTestSpeakingResult judgeLevelTestSpeaking(
+      WorkerTrace trace, List<WorkerLevelTestSpeakingItem> items) {
+    HttpRequest request =
+        jsonRequest(
+            "/v1/level-test/speaking", trace, HELP_TIMEOUT, new LevelTestSpeakingBody(items));
+    return readJson(
+        send(request, HttpResponse.BodyHandlers.ofString()), LevelTestSpeakingResult.class);
+  }
+
   /**
    * 학습자가 다음에 할 만한 말(CONV-05 힌트).
    *
@@ -604,6 +614,8 @@ class AiWorkerClient {
       String reaction) {}
 
   record MeaningBody(WorkerNpc npc, String text, int level) {}
+
+  record LevelTestSpeakingBody(List<WorkerLevelTestSpeakingItem> items) {}
 
   record HintBody(WorkerNpc npc, String scene, String goal, List<WorkerLine> history, int level) {}
 

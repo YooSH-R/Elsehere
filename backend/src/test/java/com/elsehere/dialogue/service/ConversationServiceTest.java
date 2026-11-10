@@ -373,6 +373,46 @@ class ConversationServiceTest {
   }
 
   @Test
+  void dinerConversationsKeepTheirOwnGoalsAfterTheStoryAdvances() {
+    TownStory story = townStoryRepository.saveAndFlush(TownStory.start(userId));
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("How can I help you?", null));
+
+    var order =
+        conversationService.start(
+            userId,
+            new StartConversationRequest(UUID.randomUUID(), "DINER_STAFF", InitiatedBy.USER));
+    conversationRepository
+        .findById(order.conversationId())
+        .orElseThrow()
+        .endByUser(clock.instant());
+    story.accept(0, "DINER_STAFF", List.of("order_breakfast"));
+    story.receiveDinerMeal();
+
+    var spill =
+        conversationService.start(
+            userId,
+            new StartConversationRequest(UUID.randomUUID(), "DINER_STAFF", InitiatedBy.USER));
+    story.accept(0, "DINER_STAFF", List.of("explain_spill"));
+    entityManager.flush();
+    entityManager.clear();
+
+    assertThat(townStoryRepository.findById(userId).orElseThrow().getStage()).isEqualTo(1);
+    assertThat(
+            conversationRepository
+                .findById(order.conversationId())
+                .orElseThrow()
+                .getTownStoryGoalIds())
+        .containsExactly("order_breakfast");
+    assertThat(
+            conversationRepository
+                .findById(spill.conversationId())
+                .orElseThrow()
+                .getTownStoryGoalIds())
+        .containsExactly("explain_spill");
+  }
+
+  @Test
   @DisplayName("말걸기 대사가 있는 행인이 먼저 말을 걸었으면 그 대사로 시작하고 AI를 부르지 않는다")
   void start_passerbyApproach_usesApproachLineWithoutAi() {
     ConversationStartResponse response =

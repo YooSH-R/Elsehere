@@ -240,7 +240,7 @@ public class TownStoryService {
             : completed
                 ? "마을의 이웃들과 자유롭게 대화해 보세요."
                 : !"TOWN".equals(scene)
-                    ? "마을로 나가 다음 목표를 확인하세요."
+                    ? "마을로 나가 " + talkTo(story.current().npcCode())
                     : talkTo(story.current().npcCode()),
         steps);
   }

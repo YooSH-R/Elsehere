@@ -122,9 +122,10 @@ namespace A305.Mission.Tests
         }
 
         [Test]
-        public void CollapsedCard_ShowsOnlyCurrentStepAndUnfinishedGoals()
+        public void CardKeepsNpcGuidanceAndGoalsVisibleAcrossQuestChanges()
         {
             FirstDayMissionState state = Journey(current: 1);
+            state.Direction = "카페 직원 Mia에게 이야기해 보세요.";
             state.Steps[1].Goals[0].Completed = true;
             state
                 .Steps[1]
@@ -133,48 +134,47 @@ namespace A305.Mission.Tests
                     {
                         Id = "drink",
                         Title = "마실 음료 이름 말하기",
-                        Hint = "예: 카페라테",
+                        Hint = "마실 음료 이름",
                     }
                 );
             Refresh(state);
 
-            Field<Button>("collapseButton").onClick.Invoke();
+            Assert.That(
+                instance.transform.Find("Content/CurrentGoal/Header/CollapseButton"),
+                Is.Null
+            );
 
             Assert.That(Field<TMP_Text>("stepChip").text, Is.EqualTo("2 / 7"));
             Assert.That(Field<TMP_Text>("place").text, Is.EqualTo("카페에서 휴식"));
-            Assert.That(Field<TMP_Text>("direction").gameObject.activeSelf, Is.False);
-            Assert.That(Field<TMP_Text>("situation").gameObject.activeSelf, Is.False);
-            Assert.That(Field<RectTransform>("progress").parent.gameObject.activeSelf, Is.False);
+            Assert.That(Field<TMP_Text>("direction").gameObject.activeSelf, Is.True);
+            Assert.That(Field<TMP_Text>("direction").text, Does.Contain("Mia"));
+            Assert.That(Field<TMP_Text>("situation").gameObject.activeSelf, Is.True);
+            Assert.That(Field<RectTransform>("progress").parent.gameObject.activeSelf, Is.True);
             RectTransform goals = Field<RectTransform>("goals");
-            Assert.That(goals.GetChild(0).gameObject.activeSelf, Is.False);
+            Assert.That(goals.GetChild(0).gameObject.activeSelf, Is.True);
             Assert.That(goals.GetChild(1).gameObject.activeSelf, Is.True);
             Assert.That(
                 goals.GetChild(1).GetComponentInChildren<TMP_Text>().text,
                 Is.EqualTo("마실 음료 이름 말하기")
             );
-            Assert.That(HintOf(goals.GetChild(1)).text, Is.EqualTo("예: 카페라테"));
+            Assert.That(HintOf(goals.GetChild(1)).text, Is.EqualTo("마실 음료 이름"));
             Assert.That(Field<QuestBoardView>("questBoard").IsOpen, Is.False);
 
+            state.IsTownStory = true;
+            state.Direction = "빨래방 주인 Gus에게 이야기해 보세요.";
+            state.Steps[1].Title = "빨래방에서 세탁 문의";
             view.Refresh(state, false, false);
-            Assert.That(
-                goals.GetChild(0).gameObject.activeSelf,
-                Is.False,
-                "갱신 뒤에도 접힌 상태를 유지한다"
-            );
-
-            Field<Button>("collapseButton").onClick.Invoke();
             Assert.That(Field<TMP_Text>("direction").gameObject.activeSelf, Is.True);
+            Assert.That(Field<TMP_Text>("direction").text, Does.Contain("Gus"));
             Assert.That(goals.GetChild(0).gameObject.activeSelf, Is.True);
         }
 
         [Test]
-        public void CollapsedCard_WhenRestingShowsTheCurrentAction()
+        public void CardWhenRestingShowsTheCurrentAction()
         {
             FirstDayMissionState state = Journey(current: 1);
             state.CanRest = true;
             Refresh(state);
-
-            Field<Button>("collapseButton").onClick.Invoke();
 
             Assert.That(Field<RectTransform>("goals").gameObject.activeSelf, Is.False);
             Assert.That(Field<TMP_Text>("direction").gameObject.activeSelf, Is.True);

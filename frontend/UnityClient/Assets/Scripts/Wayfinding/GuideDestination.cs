@@ -1,3 +1,4 @@
+using System;
 using A305.World;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -29,6 +30,9 @@ namespace A305.Wayfinding
         /// </summary>
         public void Show(string placeCode)
         {
+            // 마을 퀘스트는 지도 표시를 위해 담당 NPC 코드를 보낸다. 길 안내는 같은 매장의 장소 코드를 쓴다.
+            if (placeCode != null && placeCode.EndsWith("_STAFF", StringComparison.Ordinal))
+                placeCode = placeCode.Substring(0, placeCode.Length - "_STAFF".Length);
             if (placeCode == PlaceCode)
                 return;
             PlaceCode = placeCode;

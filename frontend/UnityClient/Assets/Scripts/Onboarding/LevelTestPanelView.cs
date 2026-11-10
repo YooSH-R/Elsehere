@@ -117,8 +117,13 @@ namespace A305.Onboarding
 
         /// <param name="test">푸는 테스트. 시작하기 전이면 null이고 안내를 보인다.</param>
         /// <param name="voiceAgreed">음성 처리에 동의했는지. 동의하지 않았으면 마이크를 막고 직접 쓰게 한다.</param>
-        public void Show(LevelTestSession test, bool voiceAgreed)
+        public void Show(LevelTestSession test, bool voiceAgreed, bool guestPreview = false)
         {
+            TMP_Text introNote = introPage.transform.Find("Note")?.GetComponent<TMP_Text>();
+            if (introNote != null)
+                introNote.text = guestPreview
+                    ? "게스트는 초급으로 시작해요. 레벨테스트는 로그인 후 이용할 수 있어요."
+                    : "건너뛰면 초급으로 시작해요. 난이도는 다음 화면에서 바꿀 수 있어요.";
             shownTest = test;
             canSpeak = voiceAgreed;
             bool hasResult = test?.Result != null;

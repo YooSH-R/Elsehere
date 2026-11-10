@@ -113,7 +113,7 @@ public enum PracticeScenario {
       1,
       "자리 잡기",
       "몇 명인지 말하고 창가 자리를 부탁해요. 자리가 없으면 얼마나 기다리는지 물어요.",
-      "The learner has just walked into the diner and is standing at the entrance, waiting for a table. All the window tables are taken right now; one should be free in about 10 minutes. A booth by the wall is free now if they do not want to wait.",
+      "The learner has just walked into Maple Burger and is standing at the entrance, waiting for a table. All the window tables are taken right now; one should be free in about 10 minutes. A booth by the wall is free now if they do not want to wait.",
       goal(
           "say_party_window",
           "인원 말하고 창가 자리 부탁하기",
@@ -129,7 +129,7 @@ public enum PracticeScenario {
       2,
       "못 먹는 재료 말하기",
       "알레르기가 있는 재료를 말하고 빼 달라고 해요.",
-      "The learner is ordering and has a food allergy. Pancakes ($7) come with butter and chopped walnuts on top. The cheeseburger ($9) comes with cheese, tomato and onion. The kitchen can leave out any topping the learner names. Confirm which dish they want and that it will be made without that ingredient.",
+      "The learner is ordering and has a food allergy. At Maple Burger, the Classic ($7) contains beef, lettuce, tomato, onion, pickles and ketchup in a bun. The Cheese ($9) contains beef, cheese, lettuce, onion, pickles and ketchup in a bun. The kitchen can leave out a listed ingredient for free; extra cheese is $1 and an extra patty is $2. Confirm which dish they want and that it will be made without that ingredient.",
       goal(
           "say_allergy",
           "알레르기 재료 말하기",
@@ -145,7 +145,7 @@ public enum PracticeScenario {
       3,
       "따로 계산하고 포장하기",
       "계산을 나눠 달라고 하고, 남은 음식을 싸 달라고 해요.",
-      "The learner and a friend have finished eating and are ready to pay. They had two orders of pancakes ($7 each) and two coffees ($2 each), $18 in total, and some pancakes are left over. You can split the bill so each of them pays $9, and you can pack the leftovers in a to-go box for free.",
+      "The learner and a friend have finished eating and are ready to pay. They had two Classic burgers ($7 each) and two colas ($2 each), $18 in total, and some burger is left over. You can split the bill so each of them pays $9, and you can pack the leftovers in a to-go box for free.",
       goal(
           "ask_split_bill",
           "계산 나눠 달라고 하기",

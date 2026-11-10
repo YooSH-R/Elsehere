@@ -180,12 +180,17 @@ namespace A305.EditorTools.World
                 if (child.name == "BurgerMenus" || child.name == "WallSign")
                     Object.DestroyImmediate(child.gameObject);
                 // 판매하지 않는 케이크 전시는 새 버거 메뉴와 혼동되지 않게 뺀다.
-                else if (child.name == "DisplayCase" || child.name == "ChocolateCake" || child.name == "CoffeeMachine")
+                else if (
+                    child.name == "DisplayCase"
+                    || child.name == "ChocolateCake"
+                    || child.name == "CoffeeMachine"
+                )
                     Object.DestroyImmediate(child.gameObject);
                 else if (child.name == "Mug")
                 {
                     var cupPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
-                        "Assets/Prefabs/World/TinyTreats/BakeryInterior/TakeawayCup.prefab");
+                        "Assets/Prefabs/World/TinyTreats/BakeryInterior/TakeawayCup.prefab"
+                    );
                     var cup = (GameObject)PrefabUtility.InstantiatePrefab(cupPrefab, interior);
                     cup.name = "TakeawayCup";
                     cup.transform.localPosition = child.localPosition;

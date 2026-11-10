@@ -1065,14 +1065,24 @@ PrefabInstance:
       propertyPath: m_Name
       value: MenuBoard
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 6462473467152026991, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 4549499419089152878, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 5987814358652625018, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 5483452867276381624, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 328144938768426618, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 0}
+    - targetCorrespondingSourceObject: {fileID: 1361910173045395486, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 0}
+    - targetCorrespondingSourceObject: {fileID: 6549117826076888647, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 0}
+    - targetCorrespondingSourceObject: {fileID: 1366965700376746991, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}

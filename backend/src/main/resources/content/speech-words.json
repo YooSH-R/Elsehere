@@ -54,25 +54,11 @@
     },
     {
       "npcs": ["SHOP_STAFF", "SHOP_PHARMACIST", "SHOP_NIGHT_CLERK"],
-      "words": [
-        "umbrella",
-        "medicine",
-        "painkiller",
-        "band-aid",
-        "receipt",
-        "cash",
-        "card"
-      ]
+      "words": ["umbrella", "medicine", "painkiller", "band-aid", "receipt", "cash", "card"]
     },
     {
       "npcs": ["LAUNDROMAT_STAFF"],
-      "words": [
-        "wash",
-        "dryer",
-        "both",
-        "detergent",
-        "laundry"
-      ]
+      "words": ["wash", "dryer", "both", "detergent", "laundry"]
     },
     {
       "npcs": ["DINER_STAFF", "FIRE_CAPTAIN"],
@@ -104,61 +90,31 @@
     },
     {
       "npcs": ["BAKERY_STAFF"],
-      "words": [
-        "bread",
-        "croissant",
-        "chocolate cake",
-        "coffee"
-      ]
+      "words": ["bread", "croissant", "chocolate cake", "coffee"]
     },
     {
       "npcs": ["FLOWER_SHOP_STAFF"],
-      "words": [
-        "roses",
-        "tulips",
-        "sunflowers",
-        "daisies",
-        "bouquet"
-      ]
+      "words": ["roses", "tulips", "sunflowers", "daisies", "bouquet"]
     },
     {
       "npcs": ["BARBER_STAFF"],
-      "words": [
-        "haircut",
-        "shave"
-      ]
+      "words": ["haircut", "shave"]
     },
     {
       "npcs": ["POST_OFFICE_STAFF"],
-      "words": [
-        "stamp",
-        "letter",
-        "package"
-      ]
+      "words": ["stamp", "letter", "package"]
     },
     {
       "npcs": ["BANK_STAFF"],
-      "words": [
-        "deposit",
-        "withdrawal",
-        "account",
-        "photo ID",
-        "ATM"
-      ]
+      "words": ["deposit", "withdrawal", "account", "photo ID", "ATM"]
     },
     {
       "npcs": ["ARCADE_STAFF"],
-      "words": [
-        "claw machine",
-        "prize"
-      ]
+      "words": ["claw machine", "prize"]
     },
     {
       "npcs": ["HOME_STORE_STAFF"],
-      "words": [
-        "lamp",
-        "armchair"
-      ]
+      "words": ["lamp", "armchair"]
     }
   ]
 }

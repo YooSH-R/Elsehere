@@ -16,7 +16,7 @@ MonoBehaviour:
     key: air_conditioner
     languageCode: en-US
     text: air conditioner
-    meaningKo: "\uC5D0\uC5B4\uCEE8"
+    meaningKo: "\uC2E4\uB0B4\uB97C \uC2DC\uC6D0\uD558\uAC8C \uD558\uB294 \uB0C9\uBC29\uAE30(\uC5D0\uC5B4\uCEE8)"
     example: Can you turn on the air conditioner?
     exampleKo: "\uC5D0\uC5B4\uCEE8 \uC880 \uCF1C \uC904\uB798\uC694?"
     pronunciationAudioKey: 

@@ -2,6 +2,7 @@
 # GPU STT 시제품 감시: STT 서버(127.0.0.1:18431)와 배포 서버로 거는 역방향 SSH 터널이 죽으면 30초 안에 다시 띄운다.
 # 터널 입구는 배포 서버의 도커 게이트웨이(개발 172.19.0.1:18431, 운영 172.30.0.1:18431)라 워커 컨테이너만 닿고 인터넷에는 열리지 않는다.
 # 운영 터널은 배포 서버가 운영 입구 전달과 방화벽을 허용한 뒤 만드는 prod_tunnel_enabled 파일이 있을 때만 건다.
+# 개발 터널은 기본으로 걸고, 다른 GPU(노트북 등)가 개발 입구를 맡을 때는 dev_tunnel_disabled 파일을 만들어 끈다.
 # 배포 서버가 tunnel_key.pub를 포트 전달 전용으로 등록하고 GatewayPorts clientspecified를 켠 뒤에만 실행한다.
 # 실행: setsid nohup ~/stt/gpu_stt/supervise.sh > ~/stt/gpu_stt/supervise.log 2>&1 &
 # Jupyter 세션이 꺼지면 이 스크립트도 같이 꺼진다 (systemd KillMode=control-group). 그동안 워커는 Groq로 넘긴다.
@@ -33,7 +34,9 @@ while true; do
     # 실행기: SSAFY 서버는 5번 GPU만 보이게 하는 gpu5.sh, 임대 서버는 start.sh가 지정하는 ~/stt/run.sh
     STT_TOKEN="$(cat "$DIR/token")" setsid nohup "${STT_RUNNER:-$HOME/stt/gpu5.sh}" "$DIR/server.py" >> "$DIR/server.log" 2>&1 &
   fi
-  open_tunnel "$DEV_BIND"
+  if [ ! -f "$DIR/dev_tunnel_disabled" ]; then
+    open_tunnel "$DEV_BIND"
+  fi
   if [ -f "$DIR/prod_tunnel_enabled" ]; then
     open_tunnel "$PROD_BIND"
   fi

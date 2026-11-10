@@ -105,7 +105,7 @@ class VocabServiceTest {
     assertThat(item.vocab().vocabId()).isNotNull();
     assertThat(item.vocab().type()).isEqualTo(VocabularyType.WORD);
     assertThat(item.vocab().text()).isEqualTo("sofa");
-    assertThat(item.vocab().meaningKo()).isEqualTo("소파");
+    assertThat(item.vocab().meaningKo()).isEqualTo("여럿이 앉는 푹신한 의자(소파)");
     assertThat(item.context())
         .isEqualTo(new VocabItemResponse.Context("He is sitting on the sofa.", "그는 소파에 앉아 있어요."));
     assertThat(item.memo()).isNull();
@@ -398,7 +398,7 @@ class VocabServiceTest {
     VocabSaveResponse response = vocabService.saveNpcLineWord(userId, line.getId(), "Sofa");
 
     assertThat(response.item().vocab().text()).isEqualTo("sofa");
-    assertThat(response.item().vocab().meaningKo()).isEqualTo("소파");
+    assertThat(response.item().vocab().meaningKo()).isEqualTo("여럿이 앉는 푹신한 의자(소파)");
     assertThat(response.item().context().text()).isEqualTo("Please have a seat on the sofa.");
     assertThat(vocabularyRepository.count()).isEqualTo(vocabularyCount);
   }

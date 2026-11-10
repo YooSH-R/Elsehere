@@ -16,7 +16,7 @@ MonoBehaviour:
     key: luggage_cart
     languageCode: en-US
     text: luggage cart
-    meaningKo: "\uC9D0 \uC6B4\uBC18 \uCE74\uD2B8"
+    meaningKo: "\uC5EC\uD589 \uAC00\uBC29\uC744 \uC2E4\uC5B4 \uB098\uB974\uB294 \uC218\uB808(\uCE74\uD2B8)"
     example: Put your suitcase on the luggage cart.
     exampleKo: "\uC5EC\uD589 \uAC00\uBC29\uC744 \uC9D0 \uC6B4\uBC18 \uCE74\uD2B8\uC5D0
       \uC62C\uB824\uB193\uC73C\uC138\uC694."

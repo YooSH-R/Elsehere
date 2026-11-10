@@ -13,7 +13,7 @@ using UnityEngine.UI;
 namespace A305.Dialogue.PlayModeTests
 {
     /// <summary>
-    /// 대사 칸에는 가장 최근 두 줄(바로 앞 대사와 그다음 대사)만 보이고, 그 전 대사는 위로 스크롤해 다시 본다.
+    /// 대사 칸에는 가장 최근 네 대사가 보이고, 그 전 대사는 위로 스크롤해 다시 본다.
     /// 서버 없이 대화 내용을 흉내 낸다.
     /// </summary>
     public class DialoguePanelLatestLinesTests
@@ -51,27 +51,27 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator LongConversation_ShowsOnlyTheLatestTwoLines()
+        public IEnumerator LongConversation_ShowsTheLatestFourLines()
         {
             yield return Show(Conversation);
 
             TMP_Text lines = Field<TMP_Text>("linesText");
             var scroll = Field<ScrollRect>("historyScroll");
             float viewport = ((RectTransform)scroll.transform).rect.height;
-            string latestTwo = DialogueLinesText.Format(
-                Conversation.Skip(Conversation.Length - 2).ToArray(),
+            string latestFour = DialogueLinesText.Format(
+                Conversation.Skip(Conversation.Length - 4).ToArray(),
                 "Jake",
                 false,
                 null
             );
             float latestHeight = lines
-                .GetPreferredValues(latestTwo, lines.rectTransform.rect.width, 0)
+                .GetPreferredValues(latestFour, lines.rectTransform.rect.width, 0)
                 .y;
 
             Assert.That(
                 viewport,
                 Is.EqualTo(latestHeight).Within(2f),
-                "최근 두 줄 높이만큼 보입니다."
+                "최근 네 대사 높이만큼 보입니다."
             );
             Assert.That(
                 lines.preferredHeight,

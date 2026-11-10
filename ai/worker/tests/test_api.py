@@ -5,6 +5,7 @@ import json
 import logging
 
 import httpx
+import pytest
 
 from app.npc import Splitter
 from conftest import FakeTts, make_client, ok, stream
@@ -116,7 +117,7 @@ def test_intent_schema_follows_place_slots(client, provider):
     r = client.post("/v1/judge", json=judge_body("I have a headache", PHARMACY_STATE)).json()
     assert r["intent"]["id"] == "describe_symptom"
     props = seen["schema"]["properties"]
-    assert set(props) == {"intents", "items", "events"}  # events: 줄 사건 (test_judge_events)
+    assert set(props) == {"intents", "items", "events", "english_correction"}
     assert set(props["items"]["items"]["properties"]) == {"name", "qty"}
     assert "products: pain reliever, cough syrup" in seen["prompt"] and "iced" not in seen["prompt"]
 
@@ -148,6 +149,38 @@ def test_korean_line_gets_translation_without_guard(client, provider):
     r = client.post("/v1/judge", json=judge_body("닥치고 커피 내놔")).json()
     assert r["translation"] == {"english": "Shut up and give me coffee.", "error": None}
     assert sorted(step for step, _ in provider.calls) == ["intent", "translate"]
+
+
+def translated(provider, client, answer: str, text: str = "제 이름은 김사피예요") -> dict:
+    provider.answers["intent"] = lambda b: ok(json.dumps({"intent": "unclear", "items": [], "choice": "none"}))
+    provider.answers["translate"] = lambda b: ok(answer)
+    return client.post("/v1/judge", json=judge_body(text)).json()["translation"]
+
+
+def test_translation_keeps_a_name_in_double_quotes_at_the_end(client, provider):
+    # 영어 철자가 없는 이름(한글 닉네임)은 로마자로 바꾸지 않고 따옴표로 그대로 둔다. 끝 따옴표가 지워지면 안 된다
+    assert translated(provider, client, 'My name is "김사피"')["english"] == 'My name is "김사피"'
+
+
+@pytest.mark.parametrize(
+    ("answer", "english"),
+    [('"I\'ll just eat here."', "I'll just eat here."), ('"My name is "김사피"."', 'My name is "김사피".')],
+)
+def test_translation_wrapped_in_quotes_is_unwrapped(client, provider, answer, english):
+    assert translated(provider, client, answer)["english"] == english
+
+
+def test_translation_prompt_keeps_names_without_an_english_spelling_as_said(client, provider):
+    seen = {}
+
+    def answer(b):
+        seen["system"] = b["messages"][0]["content"]
+        return ok('My name is "김사피".')
+
+    provider.answers["intent"] = lambda b: ok(json.dumps({"intent": "unclear", "items": [], "choice": "none"}))
+    provider.answers["translate"] = answer
+    client.post("/v1/judge", json=judge_body("제 이름은 김사피예요"))
+    assert "never romanize" in seen["system"] and 'My name is "김사피".' in seen["system"]
 
 
 def test_action_only_is_dropped_without_model_call(client, provider):

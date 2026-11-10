@@ -45,6 +45,21 @@ def test_meaning_gives_korean_and_glossary_from_the_line(client, provider):
     assert "Great! For here or to go?" in user_msg(seen["body"]) and "Mia" in user_msg(seen["body"])
 
 
+def test_meaning_prompt_keeps_proper_names_in_english_in_double_quotes(client, provider):
+    # 'Maple Town'을 '단풍 마을'처럼 옮기거나 '메이플 타운'처럼 소리로 적지 않고 원문 그대로 따옴표 안에 둔다
+    seen = {}
+
+    def answer(b):
+        seen["system"] = b["messages"][0]["content"]
+        return ok(json.dumps({"meaning_ko": '"Maple Town"에 오신 걸 환영해요!', "glossary": []}))
+
+    provider.answers["meaning"] = answer
+    r = client.post("/v1/meaning", json={"npc": NPC, "text": "Welcome to Maple Town!"}).json()
+    assert r["meaning_ko"] == '"Maple Town"에 오신 걸 환영해요!'
+    assert "exactly as written in English, in double quotes" in seen["system"]
+    assert '"Maple Town"에 오신 걸 환영해요!' in seen["system"]
+
+
 def test_meaning_glossary_keeps_phrases_and_their_words_up_to_twenty_five_in_order(client, provider):
     # 화면이 대사의 단어를 하나하나 눌러 볼 수 있게 하고, 숙어 안의 단어(grab)도 숙어(grab a quick bite)와 따로 남긴다.
     # 두세 문장인 대사도 뒤쪽 단어가 잘리지 않게 25개까지 둔다
@@ -64,7 +79,7 @@ def test_meaning_glossary_keeps_phrases_and_their_words_up_to_twenty_five_in_ord
 
 
 def test_meaning_prompt_asks_for_every_easy_word_and_the_words_inside_each_phrase(client, provider):
-    # 모델이 just·still·here 같은 쉬운 말을 학습자 수준에 맞춰 빼거나, 숙어(new here)만 주고 그 안의 단어를 빼던 것을 막는다
+    # 모델이 just·still·here 같은 쉬운 말을 빼거나, 숙어(new here)만 주고 그 안의 단어를 빼던 것을 막는다
     seen = {}
     provider.answers["meaning"] = lambda b: (seen.update(body=b), ok(json.dumps({"meaning_ko": "뜻", "glossary": []})))[1]
     client.post("/v1/meaning", json={"npc": NPC, "text": "Hi! I'm just out for a walk. I'm still new here."})

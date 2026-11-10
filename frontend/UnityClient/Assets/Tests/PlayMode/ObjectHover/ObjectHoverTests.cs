@@ -67,7 +67,7 @@ namespace A305.ObjectHover.PlayModeTests
 
             Assert.That(tooltip.IsVisible, Is.True);
             Assert.That(tooltip.WordText, Is.EqualTo("TV"));
-            Assert.That(tooltip.MeaningText, Is.EqualTo("텔레비전"));
+            Assert.That(tooltip.MeaningText, Is.EqualTo("방송을 보는 화면 기기(텔레비전)"));
             Assert.That(tooltip.IsExampleVisible, Is.True);
             Assert.That(
                 tooltip.ExampleText,
@@ -122,7 +122,7 @@ namespace A305.ObjectHover.PlayModeTests
             hover.Refresh(ScreenCenter(), LongerThanShowDelaySeconds);
 
             Assert.That(tooltip.IsVisible, Is.True);
-            Assert.That(tooltip.MeaningText, Is.EqualTo("에어컨"));
+            Assert.That(tooltip.MeaningText, Is.EqualTo("실내를 시원하게 하는 냉방기(에어컨)"));
             Assert.That(tooltip.IsExampleVisible, Is.False);
         }
 

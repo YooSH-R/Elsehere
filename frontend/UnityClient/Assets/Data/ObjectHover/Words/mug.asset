@@ -16,7 +16,7 @@ MonoBehaviour:
     key: mug
     languageCode: en-US
     text: mug
-    meaningKo: "\uBA38\uADF8\uC794"
+    meaningKo: "\uC190\uC7A1\uC774 \uB2EC\uB9B0 \uD070 \uCEF5(\uBA38\uADF8\uC794)"
     example: I drink tea from this mug.
     exampleKo: "\uB098\uB294 \uC774 \uBA38\uADF8\uC794\uC73C\uB85C \uCC28\uB97C \uB9C8\uC154\uC694."
     pronunciationAudioKey: 

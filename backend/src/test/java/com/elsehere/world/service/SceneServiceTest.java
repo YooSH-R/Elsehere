@@ -88,7 +88,11 @@ class SceneServiceTest {
                       ObjectVocabResponse::example,
                       ObjectVocabResponse::exampleKo)
                   .containsExactly(
-                      WORD, "sofa", "소파", "He is sitting on the sofa.", "그는 소파에 앉아 있어요.");
+                      WORD,
+                      "sofa",
+                      "여럿이 앉는 푹신한 의자(소파)",
+                      "He is sitting on the sofa.",
+                      "그는 소파에 앉아 있어요.");
             });
   }
 

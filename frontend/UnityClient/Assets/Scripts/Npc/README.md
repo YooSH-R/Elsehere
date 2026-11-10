@@ -42,7 +42,7 @@ NPC 몸·이름표 클릭은 “이름에게 말을 걸까요?” 확인 창을 
 | `NpcWalkRoute` | 마을 NPC가 다음에 향할 길 지점과 출퇴근 경로를 고릅니다. 인도만으로 갈 수 있는 목적지는 횡단보도를 밟지 않는 인도 길로 가고, 인도 길이 건너는 길의 1.25배+1.5m보다 길 때만 길을 건넙니다. 건너는 길에서도 횡단보도 바닥을 인도의 두 배 거리로 쳐서 건너기 전후에 횡단보도 끝자락을 밟지 않게 합니다. 정한 길이 앞으로 0.6m 안에서 횡단보도로 들어가는지와 건너는 방향, 발밑이 인도인지도 알려 줍니다. 횡단보도 경계선을 따라 붙어 가는 구간은 들어가는 것으로 보지 않습니다. 실제 마을 보행 데이터로 EditMode `NpcWalkRouteTests`가 확인합니다. |
 | `NpcAnimation`, `NpcAnimations` | 사물을 쓰는 동안 재생할 동작(일하기·물건 집기·앉기)을 행동 이름으로 고릅니다. 값은 NPC 전용 Animator의 `Action` 번호와 같습니다. |
 | `INpcSeat` | NPC도 앉을 수 있는 자리. [Mission 모듈](../Mission/README.md#의자벤치소파-앉기)의 `RestSeat`가 구현합니다. |
-| `NpcLineSource`, `MockNpcLineSource` | 행인이 먼저 건네는 말을 찾는 곳과 서버 연동 전 확인용 인사말입니다. |
+| `NpcLineSource`, `MockNpcLineSource` | 대화를 시작하기 전 제안 창의 인사말을 NPC 코드로 찾습니다. 실제 화면은 `Assets/Data/Npc/MockNpcLines.asset`을 읽습니다. 근무지와 역할에 맞는 문구를 쓰고, 고정 문구에 게임 시각을 단정하지 않습니다. Builder의 기본 문구를 고쳤다면 **Tools → A305 → Npc → Refresh Default Offer Greetings**로 에셋에 반영합니다. 이 메뉴는 등록된 기본 문구를 다시 적용합니다. |
 
 ## 의존성
 

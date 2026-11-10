@@ -2,6 +2,7 @@ package com.elsehere.onboarding.service;
 
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.onboarding.dto.TutorialResponse;
 import com.elsehere.user.entity.OnboardingStep;
 import com.elsehere.user.entity.User;
@@ -18,6 +19,7 @@ public class TutorialService {
 
   private final UserRepository userRepository;
   private final TutorialRelationshipService tutorialRelationshipService;
+  private final FirstDayMissionService firstDayMissionService;
 
   public TutorialResponse complete(Long userId) {
     return finishTutorial(userId, true);
@@ -39,9 +41,14 @@ public class TutorialService {
   // 완료만 Ben 관계를 보완한다. 이미 끝낸 사용자는 추가 보상 없이 같은 DONE 상태를 돌려준다.
   private TutorialResponse finishTutorial(Long userId, boolean completed) {
     User user = tutorialUser(userId);
-    // 이전 클라이언트 또는 길 안내 저장 실패 뒤 전체 완료도 같은 첫 방문을 보완한다.
-    if (completed && user.getOnboardingStep() == OnboardingStep.TUTORIAL) {
-      tutorialRelationshipService.recordBenDialogue(userId);
+    if (user.getOnboardingStep() == OnboardingStep.TUTORIAL) {
+      // 이전 클라이언트 또는 길 안내 저장 실패 뒤 전체 완료도 같은 첫 방문을 보완한다.
+      if (completed) {
+        tutorialRelationshipService.recordBenDialogue(userId);
+      }
+      // 건너뛴 사용자는 퀘스트 카드 안내를 보지 못해 퀘스트가 있는지 모르므로, 마치는 방법과 상관없이 첫 퀘스트를 시작해
+      // 왼쪽 위 카드와 길 안내가 바로 보이게 한다. 이미 시작했으면 그 진행을 그대로 둔다.
+      firstDayMissionService.start(userId);
     }
     user.finishTutorial();
     return new TutorialResponse(user.getOnboardingStep());

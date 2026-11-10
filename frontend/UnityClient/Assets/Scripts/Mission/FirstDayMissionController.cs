@@ -161,7 +161,8 @@ namespace A305.Mission
                 _ = ExecuteAsync(api.RestAsync);
         }
 
-        private void RequestRefresh()
+        /// <summary>서버에서 지금 퀘스트 진행을 다시 읽는다. 튜토리얼 저장처럼 이 화면 밖에서 퀘스트가 시작됐을 때도 부른다.</summary>
+        public void RequestRefresh()
         {
             if (busy)
             {

@@ -11,12 +11,16 @@ import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.config.TestClockConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.mission.entity.FirstDayMission;
+import com.elsehere.mission.repository.FirstDayMissionRepository;
+import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.onboarding.dto.TutorialResponse;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.OnboardingStep;
 import com.elsehere.user.repository.UserRepository;
 import jakarta.persistence.EntityManager;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,13 +36,18 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   TestcontainersConfiguration.class,
   TestClockConfig.class,
   JpaAuditingConfig.class,
-  TutorialService.class
+  TutorialService.class,
+  FirstDayMissionService.class
 })
 class TutorialServiceTest {
 
   @Autowired private TutorialService tutorialService;
 
+  @Autowired private FirstDayMissionService firstDayMissionService;
+
   @Autowired private UserRepository userRepository;
+
+  @Autowired private FirstDayMissionRepository firstDayMissionRepository;
 
   @Autowired private EntityManager entityManager;
 
@@ -141,6 +150,52 @@ class TutorialServiceTest {
     assertThat(onboardingStep(userId)).isEqualTo(OnboardingStep.DONE);
   }
 
+  @Test
+  @DisplayName("튜토리얼을 건너뛰면 첫 퀘스트를 처음 단계부터 시작한다")
+  void skip_inTutorial_startsFirstQuest() {
+    Long userId = insertUserAt(OnboardingStep.TUTORIAL);
+
+    tutorialService.skip(userId);
+
+    assertThat(firstQuestStage(userId)).contains(0);
+  }
+
+  @Test
+  @DisplayName("튜토리얼을 마치면 첫 퀘스트를 처음 단계부터 시작한다")
+  void complete_inTutorial_startsFirstQuest() {
+    Long userId = insertUserAt(OnboardingStep.TUTORIAL);
+
+    tutorialService.complete(userId);
+
+    assertThat(firstQuestStage(userId)).contains(0);
+  }
+
+  @Test
+  @DisplayName("튜토리얼 중에 이미 시작한 첫 퀘스트는 튜토리얼을 마쳐도 처음으로 돌아가지 않는다")
+  void complete_withQuestAlreadyStarted_keepsItsStage() {
+    Long userId = insertUserAt(OnboardingStep.TUTORIAL);
+    firstDayMissionService.start(userId);
+    entityManager
+        .createNativeQuery("update first_day_missions set stage = 3 where user_id = ?")
+        .setParameter(1, userId)
+        .executeUpdate();
+    entityManager.clear();
+
+    tutorialService.complete(userId);
+
+    assertThat(firstQuestStage(userId)).contains(3);
+  }
+
+  @Test
+  @DisplayName("이미 초기 설정을 끝낸(DONE) 사용자가 다시 보내도 첫 퀘스트를 새로 시작하지 않는다")
+  void skip_alreadyDone_doesNotStartFirstQuest() {
+    Long userId = insertUserAt(OnboardingStep.DONE);
+
+    tutorialService.skip(userId);
+
+    assertThat(firstQuestStage(userId)).isEmpty();
+  }
+
   // 사용자 테스트 데이터는 초기 설정을 마친(DONE) 상태라, 원하는 단계로 바꿔 둔다.
   private Long insertUserAt(OnboardingStep step) {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
@@ -157,5 +212,11 @@ class TutorialServiceTest {
     entityManager.flush();
     entityManager.clear();
     return userRepository.findById(userId).orElseThrow().getOnboardingStep();
+  }
+
+  private Optional<Integer> firstQuestStage(Long userId) {
+    entityManager.flush();
+    entityManager.clear();
+    return firstDayMissionRepository.findById(userId).map(FirstDayMission::getStage);
   }
 }

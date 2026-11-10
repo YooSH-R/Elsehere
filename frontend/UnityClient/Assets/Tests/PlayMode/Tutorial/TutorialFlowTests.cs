@@ -114,6 +114,73 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator SkippingTutorial_ShowsTheFirstQuestCardOnceTheServerSavesIt()
+        {
+            // 건너뛰면 오늘의 목표(퀘스트 카드) 안내를 보지 못한다. 서버가 건너뛰기 저장과 함께 첫 퀘스트를 시작하므로,
+            // 장소를 옮기거나 대화하지 않아도 작은 퀘스트 알약 대신 할 일을 담은 퀘스트 카드가 바로 보여야 한다.
+            var previousFactory = ApiSettings.EditorClientFactory;
+            var transport = new QuestStartingTutorialTransport();
+            ApiSettings.EditorClientFactory = _ => new ApiClient("", transport);
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
+                yield return null;
+                yield return WaitUntil(() => transport.VisitCalls > 0);
+                FirstDayMissionView mission = Single<FirstDayMissionView>();
+
+                TutorialGuideView guideView = Single<TutorialGuideView>();
+                Click(guideView, "SkipButton");
+                Click(guideView, "ConfirmSkipButton");
+                yield return WaitUntil(() => transport.TutorialFinished);
+                float deadline = Time.realtimeSinceStartup + 3f;
+                while (IsQuestIcon(mission) && Time.realtimeSinceStartup < deadline)
+                    yield return null;
+
+                Assert.That(
+                    IsQuestIcon(mission),
+                    Is.False,
+                    "건너뛰기를 저장한 뒤에도 작은 퀘스트 알약만 보입니다."
+                );
+                Assert.That(mission.QuestCardRect.gameObject.activeInHierarchy, Is.True);
+            }
+            finally
+            {
+                ApiSettings.EditorClientFactory = previousFactory;
+            }
+        }
+
+        private static bool IsQuestIcon(FirstDayMissionView mission) =>
+            mission.QuestCardRect.name == "QuestIcon";
+
+        private sealed class QuestStartingTutorialTransport : IApiTransport
+        {
+            public int VisitCalls { get; private set; }
+            public bool TutorialFinished { get; private set; }
+
+            public Task<ApiTransportResponse> SendAsync(ApiTransportRequest request)
+            {
+                if (request.Url.EndsWith("/tutorial/skip"))
+                {
+                    TutorialFinished = true;
+                    return Received("{\"onboardingStep\":\"DONE\"}");
+                }
+                if (request.Url == "/api/v1/missions/first-day/visit")
+                {
+                    VisitCalls++;
+                    // 서버는 튜토리얼 저장과 함께 첫 퀘스트를 시작한다.
+                    string started = TutorialFinished ? "true" : "false";
+                    return Received($"{{\"started\":{started},\"completed\":false,\"steps\":[]}}");
+                }
+                if (request.Url.EndsWith("/game-clock/beats"))
+                    return Received("{\"day\":1,\"minuteOfDay\":480,\"paused\":false}");
+                return Task.FromResult(ApiTransportResponse.NetworkFailed());
+            }
+
+            private static Task<ApiTransportResponse> Received(string body) =>
+                Task.FromResult(ApiTransportResponse.Received(200, body));
+        }
+
+        [UnityTest]
         public IEnumerator AbandoningGuidedConversation_ReleasesTheDialogueClockPause()
         {
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);

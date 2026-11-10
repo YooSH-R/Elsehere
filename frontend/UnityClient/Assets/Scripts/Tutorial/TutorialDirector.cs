@@ -399,6 +399,10 @@ namespace A305.Tutorial
             if (status == TutorialFinishSaveStatus.Saved)
             {
                 GameClock.Shared.RequestSynchronization();
+                // 서버가 튜토리얼 완료·건너뛰기와 함께 첫 퀘스트를 시작하므로, 건너뛰어 퀘스트 카드 안내를 못 본 사용자도
+                // 장소를 옮기거나 대화하기 전에 작은 퀘스트 알약 대신 할 일이 담긴 카드를 보게 다시 읽는다.
+                if (progress.Step == TutorialStep.Completed)
+                    mission.RefreshStory();
             }
             if (
                 status == TutorialFinishSaveStatus.Failed

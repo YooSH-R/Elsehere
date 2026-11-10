@@ -20,7 +20,7 @@
 
 ## 기다리는 카드
 
-카페 음료 주문처럼 대화를 마친 NPC가 무언가를 준비해 곧 건네기로 하면, 왼쪽 위 퀘스트 카드 바로 아래에 기다리는 카드(`Content/FollowUpCard`, `FollowUpCardView`)를 보입니다. 아이스 라테·아침 식사·빨래·꽃다발처럼 무엇을 준비하는지는 서버가 정하고(대화 종료 CONV-08의 `followUp`), NPC별 데이터 없이 모든 NPC에 같은 카드를 씁니다. 기다리는 목록은 [Dialogue 모듈](../Dialogue/README.md)의 `FollowUpStore`가 씬 밖에서 기억하고, 다 되면 그 NPC가 제자리에서 부릅니다([Npc 모듈](../Npc/README.md#동작-규칙)).
+카페 음료 주문처럼 대화를 마친 NPC가 무언가를 준비해 곧 건네기로 하면, 왼쪽 위 퀘스트 카드 바로 아래에 기다리는 카드(`Content/FollowUpCard`, `FollowUpCardView`)를 보입니다. 목표가 많아 퀘스트 카드가 길어져 아래에 두면 왼쪽 아래(데스크톱 미니맵, 휴대폰 이동 조이스틱)까지 내려가면, 퀘스트 카드 오른쪽 옆 같은 높이에 둡니다(`FirstDayMissionView`가 매 프레임 왼쪽 열이 내려갈 수 있는 끝을 알림). 아이스 라테·아침 식사·빨래·꽃다발처럼 무엇을 준비하는지는 서버가 정하고(대화 종료 CONV-08의 `followUp`), NPC별 데이터 없이 모든 NPC에 같은 카드를 씁니다. 기다리는 목록은 [Dialogue 모듈](../Dialogue/README.md)의 `FollowUpStore`가 씬 밖에서 기억하고, 다 되면 그 NPC가 제자리에서 부릅니다([Npc 모듈](../Npc/README.md#동작-규칙)).
 
 | 상황 | 동작 |
 | --- | --- |

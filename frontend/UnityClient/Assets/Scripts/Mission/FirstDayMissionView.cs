@@ -209,6 +209,12 @@ namespace A305.Mission
         // 미니맵을 터치 기기 자리(오른쪽 위)에 두었는지. 처음 화면을 그릴 때 정한다.
         private bool? miniMapOnRight;
 
+        // 왼쪽 아래 이동 조이스틱을 가진 터치 조작. 왼쪽 열이 조이스틱을 가리지 않게 그 자리를 잰다.
+        private PlayerTouchControls touchControls;
+
+        // 왼쪽 열과 왼쪽 아래 미니맵·조이스틱 사이(시안 12px)
+        private const float LeftColumnGap = 12 * 1.2f;
+
         // 하는 퀘스트가 없어 카드 대신 퀘스트 아이콘을 두는지
         private bool idle;
 
@@ -792,6 +798,8 @@ namespace A305.Mission
             bool touch = PlayerTouchControls.ShouldShowControls();
             if (miniMapOnRight != touch)
                 PlaceMiniMap(touch);
+            if (followUpCard != null)
+                followUpCard.SetBottomLimit(LeftColumnBottom());
             ShowClock();
             CenterWindow.Shared.SetLeftHud(LeftHudScreenWidth());
             bool escape =
@@ -849,6 +857,41 @@ namespace A305.Mission
             // 기다리는 카드는 퀘스트 카드처럼 대화 중에도 보인다.
             if (followUpCard != null)
                 followUpCard.SetAllowed(available && !isLeftCovered);
+        }
+
+        /// <summary>
+        /// 왼쪽 열(퀘스트 카드·기다리는 카드)이 내려갈 수 있는 끝. 콘텐츠 위에서 잰 캔버스 단위 거리다.
+        /// 데스크톱은 왼쪽 아래 미니맵 위, 휴대폰은 이동 조이스틱 위에서 카드 사이(12)만큼 띄운다. 둘 다 없으면 화면 아래 여백까지다.
+        /// </summary>
+        private float LeftColumnBottom()
+        {
+            var area = (RectTransform)content.transform;
+            float reserved = Margin;
+            if (miniMapPanel != null && miniMapPanel.activeInHierarchy && miniMapOnRight != true)
+            {
+                var map = (RectTransform)miniMapPanel.transform;
+                reserved = map.anchoredPosition.y + map.rect.height + LeftColumnGap;
+            }
+            touchControls ??= FindAnyObjectByType<PlayerTouchControls>();
+            if (touchControls != null && touchControls.IsShown)
+            {
+                RectTransform stick = touchControls.Stick;
+                stick.GetWorldCorners(hudCorners);
+                Vector2 top = RectTransformUtility.WorldToScreenPoint(
+                    CenterWindow.CameraOf(stick),
+                    hudCorners[1]
+                );
+                if (
+                    RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                        area,
+                        top,
+                        CenterWindow.CameraOf(area),
+                        out Vector2 local
+                    )
+                )
+                    reserved = Mathf.Max(reserved, local.y - area.rect.yMin + LeftColumnGap);
+            }
+            return area.rect.height - reserved;
         }
 
         // 단어장·피드백 같은 가운데 창이 그 오른쪽에 놓이도록, 보이는 퀘스트 카드·기다리는 카드·미니맵이 화면 왼쪽에서 차지하는 폭(화면 픽셀).

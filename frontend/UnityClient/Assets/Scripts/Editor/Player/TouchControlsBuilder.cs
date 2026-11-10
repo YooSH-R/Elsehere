@@ -149,8 +149,8 @@ namespace A305.EditorTools.Player
         }
 
         /// <summary>
-        /// 조이스틱 바로 위의 작은 둥근 [1인칭]·[3인칭] 버튼. 가끔 누르는 조작이라 이동하는 왼손 엄지 쪽에 두되, 조이스틱과 띄워
-        /// 이동하다 잘못 누르지 않게 한다. 왼쪽 위 퀘스트 카드와 오른쪽 가운데 미니맵(휴대폰)을 가리지 않는다.
+        /// 조이스틱 오른쪽 옆의 작은 둥근 [1인칭]·[3인칭] 버튼. 가끔 누르는 조작이라 이동하는 왼손 엄지 쪽에 두되, 조이스틱과 띄워
+        /// 이동하다 잘못 누르지 않게 한다. 조이스틱보다 높이 올리지 않아, 목표가 많아 길어진 왼쪽 위 퀘스트 카드 열에 가리지 않는다.
         /// 모양은 HUD 시계·코인 칩과 같은 유리 칩이다(<see cref="UiThemeBuilder.ApplyTouchControlsTheme"/>).
         /// </summary>
         private static Button FindOrCreateViewToggle(Transform parent)
@@ -160,7 +160,8 @@ namespace A305.EditorTools.Player
                 existing != null ? (RectTransform)existing : CreateRect("ViewToggle", parent);
             // 자리·크기는 다시 실행할 때도 이 값으로 맞춘다.
             toggle.anchorMin = toggle.anchorMax = Vector2.zero;
-            toggle.anchoredPosition = new Vector2(110f, 250f);
+            // 조이스틱(가운데 110, 지름 160) 오른쪽 끝에서 30 띄우고, 아래 끝을 조이스틱 아래 끝에 맞춘다.
+            toggle.anchoredPosition = new Vector2(252f, 62f);
             toggle.sizeDelta = new Vector2(64f, 64f);
             var background = BuilderTools.GetOrAddComponent<Image>(toggle.gameObject);
             var button = BuilderTools.GetOrAddComponent<Button>(toggle.gameObject);

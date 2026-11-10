@@ -176,6 +176,8 @@ namespace A305.Learning
         private int meaningLoadingVersion = -1;
         private bool meaningsRequested;
         private bool isMeaningLoading;
+        private bool isExpanded;
+        private Button expandButton;
 
         public void SetMeaningSource(TranscriptMeanings source) => meaningSource = source;
 
@@ -317,6 +319,9 @@ namespace A305.Learning
             IReadOnlyList<DialogueLine> conversationLines
         )
         {
+            EnsureExpandButton();
+            isExpanded = false;
+            UpdateExpandIcon();
             feedback = shownFeedback;
             lines = conversationLines?.ToList();
             meaningVersion++;
@@ -346,6 +351,7 @@ namespace A305.Learning
 
         public void Hide()
         {
+            isExpanded = false;
             meaningVersion++;
             isMeaningLoading = false;
             feedback = null;
@@ -663,7 +669,112 @@ namespace A305.Learning
 
         private Rect FreeArea()
         {
-            return CenterWindow.Shared.FreeArea((RectTransform)panel.transform.parent);
+            var canvas = (RectTransform)panel.transform.parent;
+            if (!isExpanded)
+                return CenterWindow.Shared.FreeArea(canvas);
+            return new Rect(
+                24,
+                24,
+                Mathf.Max(1, canvas.rect.width - 48),
+                Mathf.Max(1, canvas.rect.height - 48)
+            );
+        }
+
+        /// <summary>현재 탭·선택 문장·스크롤 위치를 유지한 채 창을 넓히거나 원래 크기로 되돌린다.</summary>
+        public void ToggleExpanded()
+        {
+            if (feedback == null)
+                return;
+            float position = scroll != null ? scroll.verticalNormalizedPosition : 1;
+            isExpanded = !isExpanded;
+            UpdateLayout();
+            Canvas.ForceUpdateCanvases();
+            scroll.StopMovement();
+            scroll.Rebuild(CanvasUpdate.PostLayout);
+            scroll.verticalNormalizedPosition = position;
+            UpdateExpandIcon();
+        }
+
+        private void UpdateExpandIcon()
+        {
+            foreach (Transform corner in expandButton.transform.Find("ExpandIcon"))
+                corner.localRotation = Quaternion.Euler(0, 0, isExpanded ? 180 : 0);
+        }
+
+        // 본문 밖 왼쪽 아래에 공용 닫기 버튼과 같은 재질·크기의 확대 아이콘을 둔다.
+        // 기존 프리팹과 모든 테마에 붙여도 기능 연결이나 머리줄 탭 배치를 바꾸지 않는다.
+        private void EnsureExpandButton()
+        {
+            if (expandButton != null)
+                return;
+            var root = new GameObject(
+                "ExpandButton",
+                typeof(RectTransform),
+                typeof(Image),
+                typeof(Button)
+            );
+            root.transform.SetParent(panel.transform, false);
+            var rect = (RectTransform)root.transform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
+            rect.anchoredPosition = new Vector2(40, 30);
+            rect.sizeDelta = new Vector2(56, 56);
+            Image image = root.GetComponent<Image>();
+            Image close = topCloseButton.GetComponent<Image>();
+            image.sprite = close.sprite;
+            image.type = close.type;
+            image.pixelsPerUnitMultiplier = close.pixelsPerUnitMultiplier;
+            image.color = close.color;
+            foreach (Shadow source in topCloseButton.GetComponents<Shadow>())
+            {
+                var shadow = (Shadow)root.AddComponent(source.GetType());
+                shadow.effectColor = source.effectColor;
+                shadow.effectDistance = source.effectDistance;
+            }
+            expandButton = root.GetComponent<Button>();
+            expandButton.targetGraphic = image;
+            expandButton.colors = topCloseButton.colors;
+            expandButton.onClick.AddListener(ToggleExpanded);
+            var icon = new GameObject(
+                "ExpandIcon",
+                typeof(RectTransform)
+            ).GetComponent<RectTransform>();
+            icon.SetParent(rect, false);
+            icon.anchorMin = icon.anchorMax = icon.pivot = new Vector2(.5f, .5f);
+            icon.sizeDelta = new Vector2(24, 24);
+            foreach (
+                Vector2 corner in new[]
+                {
+                    new Vector2(-1, -1),
+                    new Vector2(-1, 1),
+                    new Vector2(1, -1),
+                    new Vector2(1, 1),
+                }
+            )
+            {
+                var point = new GameObject(
+                    "Corner",
+                    typeof(RectTransform)
+                ).GetComponent<RectTransform>();
+                point.SetParent(icon, false);
+                point.anchoredPosition = corner * 10;
+                point.sizeDelta = Vector2.zero;
+                ExpandStroke(point, new Vector2(-corner.x * 3, 0), new Vector2(8, 2.5f));
+                ExpandStroke(point, new Vector2(0, -corner.y * 3), new Vector2(2.5f, 8));
+            }
+        }
+
+        private static void ExpandStroke(RectTransform parent, Vector2 position, Vector2 size)
+        {
+            var stroke = new GameObject(
+                "Stroke",
+                typeof(RectTransform),
+                typeof(Image)
+            ).GetComponent<Image>();
+            stroke.transform.SetParent(parent, false);
+            stroke.color = TabInk;
+            stroke.raycastTarget = false;
+            stroke.rectTransform.anchoredPosition = position;
+            stroke.rectTransform.sizeDelta = size;
         }
 
         // 마을 HUD(퀘스트 카드·미니맵)를 함께 볼 수 있게 그 오른쪽 빈 곳 가운데에 둔다.
@@ -673,10 +784,20 @@ namespace A305.Learning
             var frame = (RectTransform)panel.transform;
             lastFreeArea = FreeArea();
             frame.sizeDelta = new Vector2(
-                Mathf.Min(FrameWidth, lastFreeArea.width / FrameScale),
-                Mathf.Min(FrameHeight, lastFreeArea.height / FrameScale)
+                isExpanded
+                    ? lastFreeArea.width / FrameScale
+                    : Mathf.Min(FrameWidth, lastFreeArea.width / FrameScale),
+                isExpanded
+                    ? lastFreeArea.height / FrameScale
+                    : Mathf.Min(FrameHeight, lastFreeArea.height / FrameScale)
             );
-            CenterWindow.Shared.Place(frame, FrameScale);
+            if (isExpanded)
+            {
+                frame.localScale = Vector3.one * FrameScale;
+                frame.anchoredPosition = Vector2.zero;
+            }
+            else
+                CenterWindow.Shared.Place(frame, FrameScale);
         }
 
         public void UpdateLayout()

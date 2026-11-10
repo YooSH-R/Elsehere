@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from .clients import ModelClient, ProviderCallError
 from .model_output import restore_model_output
-from .models import INPUT, LLM_OUTPUT, usable_turns, validate_pair
+from .models import INPUT, LLM_OUTPUT, surface_only_change, usable_turns, validate_pair
 from .prompt import build_messages
 from .situation_catalog import keep_useful
 from .spoken_usage import build_spoken_notes
@@ -34,7 +34,34 @@ def _base(request):
 def _response(request, *, status, result=None, problem=None):
     response = _base(request) | {"status": status, "result": result, "problem": problem}
     _, checked = validate_pair(request, response)
-    return checked.model_dump(mode="json")
+    payload = checked.model_dump(mode="json")
+    if status == "completed":
+        payload["result"]["review_tags"] = _review_tags(payload["result"])
+    return payload
+
+
+def _review_tags(result):
+    """아쉬운 점은 문장 교정 탭의 첫 실제 교정과 같은 발화·설명을 쓴다."""
+    strengths = [tag for tag in result["review_tags"] if tag["kind"] == "strength"]
+    tags = strengths[:2]
+    for review in result["turn_reviews"]:
+        if review["verdict"] != "improvement_suggested" or not review["suggestions"]:
+            continue
+        suggestion = review["suggestions"][0]  # 상세 화면도 첫 제안을 보여 준다.
+        if suggestion["kind"] in ("natural_alternative", "idiomatic_expression"):
+            continue
+        if surface_only_change(review["original_text"], suggestion["suggested_expression"]):
+            continue
+        tags = strengths[:1] + [
+            {
+                "kind": "improvement",
+                "label_ko": review["explanation_ko"],
+                "evidence": [suggestion["source"]],
+                "assisted": review["assisted"],
+            }
+        ]
+        break
+    return [dict(tag, tag_id=f"tag{index}") for index, tag in enumerate(tags, 1)]
 
 
 def _failed(request, code, message):

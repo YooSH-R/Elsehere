@@ -65,9 +65,9 @@ FREE_TALK = {
     "intents": [{"id": "chat", "desc": "Anything the learner says in the conversation."}],
 }
 MISSION_SUFFIX = (
-    " Evaluate the learner's current utterance together with explicit facts they gave earlier in this conversation. "
-    "The current utterance must contribute to completing an objective; details may be spread across turns. "
-    "Do not credit NPC lines, quoted examples, negatives, wishes without action or future hypothetical actions. One utterance may match several intents."
+    " Accept clear paraphrases, indirect requests and short answers understood from the partner's question. Do not require exact wording or perfect grammar."
+    " Check each objective independently. Combine explicit details from earlier learner turns in this conversation when the latest line contributes; they need not repeat them."
+    " Never credit NPC lines, quoted examples, negatives or hypotheticals. A bare mention does not count. If a required detail is still missing or ambiguous, leave only that objective pending."
 )
 STAGES = {
     "EARLY_ARRIVAL": (
@@ -83,8 +83,8 @@ STAGES = {
         },
     ),
     "CAFE_BREAK": (
-        "Ask what they would like without listing or recommending drinks; after they order, ask one follow-up about size, temperature or milk. Every drink costs 4 coins. The learner may choose any drink. "
-        "They need to dine in, then explicitly rest after ending the conversation. Do not mention a lost bag yet.",
+        "Ask what they would like without listing or recommending drinks. Once they order, ask about a specific drink option only if none was given, or ask for here or to go if the option is clear but their choice of where to drink is missing. "
+        "Every drink costs 4 coins. The learner may choose any drink. They need to dine in, then rest after ending the conversation. Do not mention a lost bag yet.",
         {
             "order_drink": "Order a specific drink by name, such as a latte or orange juice; any drink is valid. Asking for just 'a drink' or 'something' does not count.",
             "set_options": "Choose a specific size, temperature, milk or another drink option. Saying only that they have no preference does not count.",
@@ -103,11 +103,11 @@ STAGES = {
     "FIND_BAG": (
         "You found a small blue shoulder bag with a red keyring. It contains a passport wallet and a book. "
         "Do not mention or offer the found bag before the learner asks about a lost bag. "
-        "Ask for appearance and contents, one question at a time. Return it only after the learner describes matching appearance "
-        "and contents and claims ownership. Do not invent other contents.",
+        "After they ask, check only the missing required detail about appearance, contents or ownership, one question at a time. "
+        "Return it only after the learner has provided the required details and claims ownership. Do not invent other contents.",
         {
             "ask_lost_bag": "Ask whether a lost bag was found or request help finding it.",
-            "describe_bag": "Describe this bag matching blue color AND shoulder bag type or red keyring. Wrong attributes do not count.",
+            "describe_bag": "Describe the bag as blue AND give at least one of these details: shoulder bag type or red keyring. Wrong attributes do not count.",
             "describe_contents": "Identify the passport or passport wallet AND book inside the bag. Wrong contents do not count.",
             "confirm_ownership": "Explicitly confirm the described bag is theirs or ask to collect their identified bag.",
         },
@@ -124,7 +124,7 @@ STAGES = {
     "BUY_UMBRELLA": (
         "Sell one umbrella for exactly 8 quest coins when the learner asks for one. "
         "Do not offer an umbrella or say its price before the learner asks. "
-        "Ask how they want to pay (cash/card both accepted) only after the learner decides to buy. "
+        "Ask how they want to pay only after the learner decides to buy, and only if they have not already chosen a payment method. Cash and card are both accepted. "
         "Purchase completes only when price, purchase intent and payment choice are all covered. Never change the price or charge twice.",
         {
             "ask_price": "Ask or confirm the umbrella price.",
@@ -140,7 +140,7 @@ STAGES = {
         {
             "found_bag": "Say they found or got back their small bag.",
             "request_checkin": "Ask to check in now.",
-            "show_reservation": "Identify or confirm their reservation, name or booking.",
+            "show_reservation": "Identify or confirm their reservation by giving the name it is under.",
             "collect_suitcase": "Ask to collect the stored large suitcase.",
         },
     ),

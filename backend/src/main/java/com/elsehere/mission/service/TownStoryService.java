@@ -148,8 +148,7 @@ public class TownStoryService {
               WorkerState state =
                   new WorkerState(
                       "town_story_" + story.getStage(),
-                      instruction(story)
-                          + " Combine explicit facts across learner turns; the current utterance must contribute. Never credit NPC lines, quoted examples, negatives or hypotheticals.",
+                      instruction(story) + FirstDayMissionService.QUEST_EVIDENCE,
                       allowed.stream()
                           .map(id -> new WorkerState.Intent(id, TownStoryStage.goalDescription(id)))
                           .toList(),

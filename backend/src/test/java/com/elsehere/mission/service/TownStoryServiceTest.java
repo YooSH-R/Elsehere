@@ -23,6 +23,45 @@ import org.junit.jupiter.api.Test;
 
 class TownStoryServiceTest {
   @Test
+  void bankAcceptsIndirectLocationRequestsAndAsksOnlyAboutMissingWithdrawalDetails() {
+    TownStory story = TownStory.start(8L);
+    story.accept(0, "DINER_STAFF", List.of("order_breakfast", "explain_spill"));
+    story.accept(1, "LAUNDROMAT_STAFF", List.of("ask_laundry", "ask_cost"));
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+
+    var context = service.context(8L, "BANK_STAFF").orElseThrow();
+    assertThat(context.state().intents())
+        .anySatisfy(
+            goal -> {
+              assertThat(goal.id()).isEqualTo("ask_atm");
+              assertThat(goal.desc()).contains("I'm looking for an ATM");
+            });
+
+    String reply =
+        context.replyInstruction(new JudgeResult.Intent("ask_atm", List.of("ask_atm"), null));
+    assertThat(reply)
+        .contains("Remaining objectives after this turn: ask_withdrawal.")
+        .contains("says how much they want to take out")
+        .contains("ask one short question about only the missing required detail")
+        .doesNotContain("I'm looking for an ATM");
+  }
+
+  @Test
+  void bakeryCardMakesQuantityAndRecipientAlternatives() {
+    TownStory story = TownStory.start(8L);
+    while (story.current() != TownStoryStage.BAKERY) {
+      story.accept(story.getStage(), story.current().npcCode(), story.current().goalIds());
+    }
+    story.resume();
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+
+    var goal = service.status(8L).steps().getFirst().goals().getFirst();
+
+    assertThat(goal.title()).isEqualTo("간식 고르기");
+    assertThat(goal.hint()).isEqualTo("간식 이름과 함께 개수나 받을 사람 중 하나 말하기");
+  }
+
+  @Test
   void everyTownVisitNamesTheNpcBothInTownAndAway() {
     TownStory story = TownStory.start(8L);
     when(stories.findById(8L)).thenReturn(Optional.of(story));

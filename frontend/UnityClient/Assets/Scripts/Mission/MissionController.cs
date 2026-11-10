@@ -30,6 +30,13 @@ namespace A305.Mission
                 firstDayMission.SetAvailable(storyAvailable);
         }
 
+        /// <summary>서버에서 퀘스트 진행을 다시 읽는다. 튜토리얼을 마치거나 건너뛰면 서버가 첫 퀘스트를 시작하므로 그때 부른다.</summary>
+        public void RefreshStory()
+        {
+            if (firstDayMission != null && firstDayMission.isActiveAndEnabled)
+                firstDayMission.RequestRefresh();
+        }
+
         private MissionBoard board;
 
         /// <summary>미션을 시작하면 미션 키를 알린다.</summary>

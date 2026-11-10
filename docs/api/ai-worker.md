@@ -178,7 +178,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `intent.ids` | 말한 순서대로 최대 3개. Spring이 **하나씩 현재 상태에서 다시 검증**해 적용. `id`는 `ids[0]` |
 | `intent.slots` | 요청 `state.slots`에 있는 칸만. 상품은 `catalog` 안의 이름만, `iced`는 `iced_ok`에 있을 때만. 선택 칸(`option`)은 `labels` 중 하나, 말하지 않았으면 `"none"`. 경찰서 창구는 이 칸(`place`)으로 신고 장소를 고름(백엔드 `PoliceDesk`, 평가 `ai/tools/police_report_eval.py`) |
 | `intent.error` | 의도 판정 실패 시 메시지, 이때 `id`는 `unclear`. **상태·금액을 바꾸지 말고 다시 물을 것** |
-| `translation` | 한글이 섞였을 때만 `{"english", "error"}`. 화면에 보여 줄지는 `/v1/guard` 결과로 Spring이 정함(0.1절 번역 카드) |
+| `translation` | 한글이 섞였을 때만 `{"english", "error"}`. 화면에 보여 줄지는 `/v1/guard` 결과로 Spring이 정함(0.1절 번역 카드). 대화에 영어로 나온 이름(상대 NPC, 마을, 가게)은 그 철자로 쓰고, 영어 철자가 없는 이름(한글 닉네임 등)은 로마자로 바꾸지 않고 따옴표 안에 말한 그대로 둡니다(`My name is "김사피".`) |
 | `events` | 이 줄에서 학습자가 한 대화 사건. `GREETING`·`SMALL_TALK`·`PERSONAL_QUESTION`·`APOLOGY`·`COMPLIMENT`·`HELP`·`TASK_DONE`·`LEAVE` 중 0개 이상. 의도 판정과 같은 호출에서 고름. 의도 판정이 실패하면 `[]`, `dropped`면 `null`. **이 줄에 저장해 다음 요청의 `history[].events`로 보냄** |
 | `affinity_delta` | 이 줄의 사건으로 바로 올릴 호감(정수, 0 이상). 의도 판정이 실패하면 `0`, `dropped`면 `null`. 아래 설명 |
 
@@ -363,7 +363,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 {"meaning_ko": "좋아요! 매장에서 드실 건가요, 가져가실 건가요?", "glossary": [{"text": "Great", "meaning_ko": "좋아요"}, {"text": "for here", "meaning_ko": "매장에서"}, {"text": "to go", "meaning_ko": "포장"}], "usage": [...]}
 ```
 
-- `meaning_ko`: 말투를 살린 한국어 뜻 (가게 직원은 해요체, 친구 같은 말투는 반말). 괄호 풀이 없이 번역만.
+- `meaning_ko`: 말투를 살린 한국어 뜻 (가게 직원은 해요체, 친구 같은 말투는 반말). 괄호 풀이 없이 번역만. 고유명사(사람·마을·가게·거리·상표 이름)는 옮기거나 한글 소리로 적지 않고 영어 원문 그대로 따옴표 안에 둡니다(`"Maple Town"에 오신 걸 환영해요!`).
 - `glossary`: 대사의 내용어(명사·본동사·형용사·부사)와 숙어·구동사·관용 표현·정해진 문장 틀(`Would you like`, `Do you want to`, `Can I get`)을 나온 순서대로 **최대 15개**. 화면이 대사의 단어를 거의 다 눌러 뜻을 볼 수 있게 합니다. 숙어는 한 항목으로 두고, 그 뒤에 숙어 안의 내용어도 따로 둡니다(`grab a seat`, `grab`, `seat`). 화면은 겹치는 단어를 누르면 단어와 숙어를 함께 보입니다. 이름·숫자와 혼자 있는 기능어(관사·대명사·조동사·전치사·접속사)는 빼고, 숙어·문장 틀 안의 기능어는 그대로 둡니다. `text`는 대사에 **그대로 있는** 말만 남깁니다(대소문자 무시). 그런 말이 없으면 빈 목록. 풀이의 `meaning_ko`는 그 대사에서의 짧은 뜻(15자 안팎)이고, 한글 표기만 되는 외래어는 무엇인지 풀어 쓰고 표기는 괄호에 둡니다(`front desk` → `호텔 접수·안내 창구(프런트)`, `latte` → `우유를 넣은 커피(라테)`).
 - 출력이 이 형식이 아니거나 `meaning_ko`가 비면 502 `invalid_output`. 같은 대사는 Spring이 저장해 다시 부르지 않습니다.
 

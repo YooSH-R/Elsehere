@@ -196,6 +196,9 @@ namespace A305.Learning
             ReviewCard saved = await reviewBook.SaveAsync(conversationId.Value);
             if (this == null)
                 return;
+            // 담은 뒤에는 같은 자리의 버튼이 [복습장에 추가됨]으로 바뀐다. 다른 피드백으로 바뀌었으면 그대로 둔다.
+            if (saved != null && shownServerFeedback?.ConversationId == conversationId)
+                feedbackView.ShowReviewSaved();
             hudView.ShowMessage(
                 saved != null
                     ? "복습장에 담았어요. 메뉴에서 다시 연습할 수 있어요."

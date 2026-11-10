@@ -1155,16 +1155,10 @@ namespace A305.EditorTools.Theme
                 36
             );
             QuietButton(root, "Panel/Sections/SummaryButton", "요약", selectedTint: true);
-            QuietButton(root, "Panel/Sections/CorrectionsButton", "문장", selectedTint: true);
-            QuietButton(root, "Panel/Sections/ConversationButton", "회화", selectedTint: true);
-            QuietButton(root, "Panel/Sections/ExpressionsButton", "표현", selectedTint: true);
+            QuietButton(root, "Panel/Sections/CorrectionsButton", "문장 교정", selectedTint: true);
+            QuietButton(root, "Panel/Sections/ConversationButton", "전체 대화", selectedTint: true);
             CompactArrow(root, "Panel/Navigation/PreviousButton", UiIcon.Previous);
             CompactArrow(root, "Panel/Navigation/NextButton", UiIcon.Next);
-            string savePath =
-                root.Find("Panel/PageCard/BodyTile/SaveButton") != null
-                    ? "Panel/PageCard/BodyTile/SaveButton"
-                    : "Panel/Buttons/SaveButton";
-            QuietButton(root, savePath, "담기");
             QuietButton(root, "Panel/Buttons/DetailButton", "자세히");
             QuietButton(root, "Panel/Buttons/RegenerateButton", "다시 만들기");
             QuietButton(root, "Panel/Buttons/TranscriptButton", "대화 기록");

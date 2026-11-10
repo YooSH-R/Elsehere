@@ -120,6 +120,19 @@ namespace A305.Tutorial.Tests
             Assert.That(guide.SuggestedWordsCaption, Does.Contain("추천 단어"));
         }
 
+        // 피드백 탭은 요약·문장 교정·전체 대화 셋이다. 없어진 탭을 안내하지 않는다.
+        [Test]
+        public void FeedbackSectionsCaption_NamesTheThreeFeedbackTabs()
+        {
+            var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
+
+            Assert.That(
+                guide.FeedbackSectionsCaption,
+                Does.Contain("{요약}·{문장 교정}·{전체 대화}")
+            );
+            Assert.That(guide.FeedbackSectionsCaption, Does.Not.Contain("저장할 표현"));
+        }
+
         [Test]
         public void VoiceLightCaption_ExplainsTheGreenAndTheDimLight()
         {

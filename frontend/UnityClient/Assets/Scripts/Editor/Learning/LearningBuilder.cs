@@ -246,16 +246,7 @@ namespace A305.EditorTools.Learning
                 Color.white
             );
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
-            Transform savedButton = panel.Find("PageCard/Content/BodyTile/SaveButton");
-            if (savedButton == null)
-                savedButton = panel.Find("PageCard/BodyTile/SaveButton");
-            Button saveButton = UiBuilderTools.FindOrCreateButton(
-                savedButton != null ? savedButton.parent : buttons,
-                "SaveButton",
-                "표현 저장",
-                bold,
-                180f
-            );
+            // 표현·문장마다 [담기]가 있으므로(FeedbackScreenBuilder) 아래 줄의 [표현 저장]은 두지 않는다.
             Button detailButton = UiBuilderTools.FindOrCreateButton(
                 buttons,
                 "DetailButton",
@@ -278,7 +269,7 @@ namespace A305.EditorTools.Learning
                 180f
             );
 
-            // 피드백을 받지 못했을 때만 [표현 저장]·[상세 보기] 대신 보인다. 새로 붙이면 [단어장 보기] 앞에 둔다.
+            // 피드백을 받지 못했을 때만 보인다. 새로 붙이면 [단어장 보기] 앞에 둔다.
             bool isRegenerateNew = buttons.Find("RegenerateButton") == null;
             Button regenerateButton = UiBuilderTools.FindOrCreateButton(
                 buttons,
@@ -307,7 +298,6 @@ namespace A305.EditorTools.Learning
             BuilderTools.SetReference(view, "titleText", title);
             BuilderTools.SetReference(view, "summaryText", summary);
             BuilderTools.SetReference(view, "bodyText", body);
-            BuilderTools.SetReference(view, "saveButton", saveButton);
             BuilderTools.SetReference(view, "detailButton", detailButton);
             BuilderTools.SetReference(
                 view,

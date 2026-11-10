@@ -383,6 +383,22 @@ class SpeechServiceTest {
   }
 
   @Test
+  @DisplayName("중급 대화의 NPC 턴은 대화 중과 같은 1.3배 속도로 다시 합성한다")
+  void regenerateSpeech_intermediateConversation_usesIntermediateSpeed() {
+    Conversation intermediate = conversation(entityManager, userId, "CAFE_STAFF", 2);
+    Turn intermediateTurn = npcTurn(entityManager, intermediate, 1, "We ran out of oat milk.");
+    entityManager.flush();
+    given(aiGateway.synthesize(any(), eq(intermediateTurn.getText()), eq("af_heart"), anyDouble()))
+        .willReturn(WAV);
+
+    speechService.regenerateSpeech(userId, intermediateTurn.getId(), UUID.randomUUID());
+
+    then(aiGateway)
+        .should()
+        .synthesize(any(), eq(intermediateTurn.getText()), eq("af_heart"), eq(1.3));
+  }
+
+  @Test
   void regenerateSpeech_preservesSavedPhraseEmotionsAfterReload() {
     npcTurn.attachSpeechPhrases(
         """

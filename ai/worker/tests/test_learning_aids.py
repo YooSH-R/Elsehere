@@ -96,6 +96,56 @@ def test_suggest_without_npc_line_still_works(client, provider):
     assert r.status_code == 200 and r.json()["words"] == ["hello", "latte", "please"]
 
 
+def test_suggest_pairs_useful_vocabulary_with_meanings_and_drops_personal_details(client, provider):
+    seen = {}
+
+    def answer(body):
+        seen["body"] = body
+        return ok(
+            json.dumps(
+                {
+                    "words": [
+                        {"text": "Kim", "meaning_ko": "김", "kind": "personal_detail"},
+                        {"text": "under the name of", "meaning_ko": "~ 이름으로", "kind": "vocabulary"},
+                        {"text": " Under the name of ", "meaning_ko": "중복", "kind": "vocabulary"},
+                        {"text": "booking confirmation", "meaning_ko": "예약 확인서", "kind": "vocabulary"},
+                        {"text": "surname", "meaning_ko": "성", "kind": "vocabulary"},
+                    ]
+                },
+                ensure_ascii=False,
+            )
+        )
+
+    provider.answers["suggest"] = answer
+    response = client.post("/v1/suggest", json={"npc": NPC, "history": HISTORY})
+
+    assert response.status_code == 200
+    assert response.json()["words"] == [
+        "under the name of — ~ 이름으로",
+        "booking confirmation — 예약 확인서",
+        "surname — 성",
+    ]
+    assert len(provider.calls) == 1  # 뜻을 붙이려고 별도 번역 호출을 하지 않는다.
+    prompt = seen["body"]["messages"][0]["content"]
+    assert "Do not invent names, dates, room numbers or prices" in prompt
+    assert "not words mechanically extracted from a suggested sentence" in prompt
+
+
+def test_suggest_does_not_show_a_structured_word_without_a_korean_meaning(client, provider):
+    provider.answers["suggest"] = lambda b: ok(
+        json.dumps(
+            {
+                "words": [
+                    {"text": "Kim", "meaning_ko": "김", "kind": "personal_detail"},
+                    {"text": "surname", "meaning_ko": "", "kind": "vocabulary"},
+                ]
+            }
+        )
+    )
+    response = client.post("/v1/suggest", json={"npc": NPC, "history": HISTORY})
+    assert response.status_code == 502
+
+
 @pytest.mark.parametrize("out", ["not json", "{}", '{"words": "latte"}', '{"words": []}'])
 def test_suggest_output_that_breaks_format_is_invalid_output(client, provider, out):
     provider.answers["suggest"] = lambda b: ok(out)
@@ -123,27 +173,30 @@ def reply(provider, level=None, npc=NPC, tts=None):
 
 @pytest.mark.parametrize(
     ("level", "rule", "max_tokens"),
-    [(1, "nervous beginner", 154), (2, "natural everyday American English", 184), (3, "at full speed", 234)],
+    [(1, "nervous beginner", 154), (2, "intermediate learner", 184), (3, "at full speed", 234)],
 )
 def test_reply_follows_level(provider, level, rule, max_tokens):
     b = reply(provider, level)
     assert rule in b["messages"][0]["content"] and b["max_tokens"] == max_tokens
 
 
-def test_reply_default_level_is_normal(provider):
+def test_reply_default_level_is_intermediate(provider):
     b = reply(provider)
     # 대사 길이 규칙을 유지하며 표정 표시용 최대 64토큰만 별도로 확보한다.
-    assert "natural everyday American English" in b["messages"][0]["content"] and b["max_tokens"] == 184
+    assert "intermediate learner" in b["messages"][0]["content"] and b["max_tokens"] == 184
 
 
-@pytest.mark.parametrize(("level", "npc_speed"), [(1, 0.8), (1, 1.0), (2, 1.1), (3, 1.2)])
-def test_reply_voice_speed_is_1_1_for_every_level_and_npc(provider, level, npc_speed):
+@pytest.mark.parametrize(("level", "speed"), [(1, 1.1), (2, 1.3), (3, 1.3)])
+@pytest.mark.parametrize("npc_speed", [0.8, 1.0, 1.2])
+def test_reply_voice_speed_follows_level_not_npc(provider, level, speed, npc_speed):
+    """중급은 초급보다 빠르게 말한다(S15P31A305-751). NPC의 호환용 tts_speed는 쓰지 않는다."""
     tts = FakeTts()
     reply(provider, level, npc=NPC | {"tts_speed": npc_speed}, tts=tts)
-    assert tts.speeds and all(s == 1.1 for s in tts.speeds)
+    assert tts.speeds and all(s == speed for s in tts.speeds)
 
 
-def test_hint_follows_level(client, provider):
+@pytest.mark.parametrize(("level", "learner"), [(1, "very simple (CEFR A1-A2)"), (2, "(CEFR B1)")])
+def test_hint_follows_level(client, provider, level, learner):
     seen = {}
 
     def answer(b):
@@ -151,8 +204,8 @@ def test_hint_follows_level(client, provider):
         return ok(json.dumps({"say_this": [{"en": "For here.", "ko": "여기서요."}], "keywords": [{"en": "for here", "ko": "매장"}]}))
 
     provider.answers["hint"] = answer
-    client.post("/v1/hint", json={"npc": NPC, "goal": "choose", "history": HISTORY, "level": 1})
-    assert "very simple (CEFR A1-A2)" in user_msg(seen["body"])
+    client.post("/v1/hint", json={"npc": NPC, "goal": "choose", "history": HISTORY, "level": level})
+    assert learner in user_msg(seen["body"])
 
 
 @pytest.mark.parametrize("level", [0, 4, "hard"])

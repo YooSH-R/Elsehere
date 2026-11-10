@@ -28,6 +28,41 @@ namespace A305.Learning.PlayModeTests
         public void DestroyScreen() => Object.Destroy(instance);
 
         [UnityTest]
+        public IEnumerator EveryFeedbackSection_CanExpandAndRestoreWithoutLosingScroll()
+        {
+            yield return Show(
+                situationCount: 5,
+                summary: string.Join(" ", Enumerable.Repeat(Summary, 12))
+            );
+            foreach (FeedbackSection section in System.Enum.GetValues(typeof(FeedbackSection)))
+            {
+                view.SelectSection(section);
+                yield return null;
+                ScrollRect scroll = instance.GetComponentInChildren<ScrollRect>();
+                Vector2 initialSize = view.PanelRect.rect.size;
+                scroll.verticalNormalizedPosition = .35f;
+                var expand = instance
+                    .GetComponentsInChildren<Button>()
+                    .SingleOrDefault(button => button.name == "ExpandButton");
+                Assert.That(expand, Is.Not.Null, "모든 탭에 확대 버튼이 있어야 합니다.");
+                expand.onClick.Invoke();
+                yield return null;
+                Assert.That(view.PanelRect.rect.width, Is.GreaterThan(initialSize.x));
+                Assert.That(view.PanelRect.rect.height, Is.GreaterThan(initialSize.y));
+                if (scroll.content.rect.height > scroll.viewport.rect.height)
+                    Assert.That(
+                        scroll.verticalNormalizedPosition,
+                        Is.EqualTo(.35f).Within(.02f),
+                        section.ToString()
+                    );
+                Assert.That(view.CloseButtonRect.gameObject.activeInHierarchy, Is.True);
+                expand.onClick.Invoke();
+                yield return null;
+                Assert.That(view.PanelRect.rect.size.x, Is.EqualTo(initialSize.x).Within(1f));
+            }
+        }
+
+        [UnityTest]
         public IEnumerator NaturalSentence_ShowsOnceWithoutAFakeCorrectionCard()
         {
             const string sentence = "I have a reservation under Kim.";

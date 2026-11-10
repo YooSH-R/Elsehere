@@ -9,8 +9,9 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from .npc_profile_models import NpcProfile
 from .speech_emotion import Mood
 
-# 대화 난이도 1~3 (백엔드 levelApplied). 1: 천천히 쉬운 단어·짧은 문장, 2: 자연스러운 일상 영어, 3: 원래 말투 그대로.
-# NPC 대답의 문장 수·길이·어휘, 힌트·추천 단어 수준이 바뀐다 (판정은 영향 없음). 규칙은 prompts.LEVEL_RULES
+# 대화 난이도 1~3 (백엔드 levelApplied). 1: 쉬운 단어·짧은 문장, 2: 중급(B1-B2, 더 길고 빠르게), 3: 원래 말투 그대로.
+# NPC 대답의 문장 수·길이·어휘·말 속도, 힌트·추천 단어 수준이 바뀐다 (판정은 영향 없음).
+# 규칙은 prompts.LEVEL_RULES·LEVEL_SPEECH_SPEED
 Level = Literal[1, 2, 3]
 
 
@@ -27,7 +28,7 @@ class Npc(BaseModel):
     facts: str = ""
     scene: str = ""
     tts_voice: str = "af_heart"
-    tts_speed: float = Field(default=1.0, ge=0.5, le=2.0)  # 호환용 필드. NPC 대화 음성은 1.1배로 고정한다
+    tts_speed: float = Field(default=1.0, ge=0.5, le=2.0)  # 호환용 필드. NPC 대화 음성은 난이도별 속도(prompts.LEVEL_SPEECH_SPEED)
     # 공통 인격 스키마의 인격(백엔드 인격 설정의 npcProfile 그대로). 있으면 NPC 대답을 공통 규칙 + 인격으로 만든다 (app.npc_prompt)
     profile: NpcProfile | None = None
 

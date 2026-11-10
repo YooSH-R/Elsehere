@@ -79,8 +79,9 @@ namespace A305.Mission.Tests
             Assert.That(started, Is.True, "열린 카드의 [퀘스트 시작]으로 바로 시작합니다.");
         }
 
-        [Test]
-        public void FinishingALaterQuest_DoesNotAskForTheSurvey()
+        [TestCase("CHECK_IN")]
+        [TestCase("MORNING_AND_HAIRCUT")]
+        public void QuestCompletionDoesNotAskForTheSurvey(string questId)
         {
             FirstDayMissionView view = Create();
             int requests = 0;
@@ -88,11 +89,13 @@ namespace A305.Mission.Tests
             A305.Api.SurveyPrompt.Requested += Count;
             try
             {
-                view.ShowQuestComplete(Board(), "MORNING_AND_HAIRCUT");
+                view.ShowQuestComplete(Board(), questId);
+                Assert.That(requests, Is.Zero, "팡파레 중에는 설문을 요청하지 않습니다.");
+
                 QuestCompleteView complete = Field<QuestCompleteView>(view, "questComplete");
                 Find(complete, "Next").GetComponent<Button>().onClick.Invoke();
 
-                Assert.That(requests, Is.Zero);
+                Assert.That(requests, Is.Zero, "팡파레를 닫아도 설문을 요청하지 않습니다.");
             }
             finally
             {

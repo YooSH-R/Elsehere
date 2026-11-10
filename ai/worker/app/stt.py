@@ -23,7 +23,9 @@ def stt_prompt(scene_words: list[str], npc_line: str = "") -> str:
 
 
 def scene_word_list(scene_words: list[str]) -> str:
-    words = [w.strip() for w in scene_words if w.strip()][:30]
+    # 40개면 기본 프롬프트·직전 NPC 대사와 합쳐도 Whisper 프롬프트 한도(224토큰, 넘으면 앞의 한영 혼합 예시부터 잘림) 안에 든다.
+    # 카페(닉네임·NPC 이름 셋·마을 13·메뉴 14 = 31개)에 긴 NPC 대사를 붙여도 약 165토큰 (S15P31A305-747)
+    words = [w.strip() for w in scene_words if w.strip()][:40]
     return ", ".join(words) + "." if words else ""
 
 

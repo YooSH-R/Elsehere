@@ -73,8 +73,8 @@ namespace A305.EditorTools.Learning
             var toggle = BuilderTools.GetOrAddComponent<BackgroundSoundToggle>(rect.gameObject);
             toggle.Configure(button, icon, on, off);
             toggle.ConfigureIconLayout(
-                OpticalIconPlacement.Measure(on, A305.World.HudTopBarLayout.Size),
-                OpticalIconPlacement.Measure(off, A305.World.HudTopBarLayout.Size)
+                OpticalIconPlacement.Measure(on, A305.World.HudTopBarLayout.SpeakerHeight),
+                OpticalIconPlacement.Measure(off, A305.World.HudTopBarLayout.SpeakerHeight)
             );
         }
 

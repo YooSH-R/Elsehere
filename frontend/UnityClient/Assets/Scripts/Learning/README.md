@@ -152,4 +152,4 @@ BackgroundSoundToggle은 A305.Ambience의 기기 설정에 연결된 메인 화�
 
 프리팹 연결은 `Tools/A305/Learning/Apply Survey HUD Entry` (`SurveyHudBuilder.Build`)로 갱신합니다. 실제 PC 화면은 `SURVEY_HUD_PREVIEW_OUTPUT`을 저장 경로로 설정하고 `SurveyHudPreview.Capture`를 실행해 외부 API 호출 없이 안내 전·안내 중·아이콘 상태를 렌더링할 수 있습니다. 이 도구는 씬을 저장하지 않습니다.
 
-상단 아이콘은 PNG 전체가 아닌 알파 230 이상인 실제 그림 경계를 기준으로 시간·코인 칩과 높이와 중심을 맞춥니다. 가로세로 비율을 유지하고 실제 그림 사이 간격은 공통 Gap을 사용합니다. 스피커는 켜짐·음소거 그림을 따로 측정하며 `SurveyHudBuilder.Build`가 이 배치를 연결합니다.
+상단 아이콘은 PNG 전체가 아닌 알파 230 이상인 실제 그림 경계를 기준으로 중심을 맞춥니다. 휴대폰·설문은 시간·코인 칩 높이에 맞추고, 스피커는 휴대폰의 그림 폭 안에 들어오는 작은 크기를 유지합니다. 가로세로 비율을 유지하고 실제 그림 사이 간격은 공통 Gap을 사용합니다. 스피커는 켜짐·음소거 그림을 따로 측정하며 `SurveyHudBuilder.Build`가 이 배치를 연결합니다.

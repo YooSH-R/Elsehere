@@ -87,6 +87,7 @@ GPU 서버에는 발음 사전을 적용한 음소를 한 번 보내고, 반환�
 | `POST /v1/hint` | 학습자가 💡를 누른 때 | JSON |
 | `POST /v1/suggest` | NPC 대답이 끝난 뒤: 학습자가 쓸 추천 단어 3개 | JSON |
 | `POST /v1/meaning` | [뜻 보기]: NPC 대사의 한국어 뜻과 단어 풀이 | JSON |
+| `POST /v1/level-test/speaking` | 레벨 테스트를 끝낼 때: 말하기 문항별 통과 여부와 한국어 피드백 한 문장 | JSON |
 | `POST /v1/feedback` | 대화가 끝났을 때: 학습 피드백 (`ai/feedback` 계약 0.3.0, 그 모듈을 부름) | JSON |
 | `POST /v1/memory` | 대화가 끝났을 때: NPC 기억 카드 갱신과 이번 대화 인상(좋은 대화면 호감 변화량) | JSON |
 | `GET /health` | 상태 확인 (토큰 없이) | JSON |

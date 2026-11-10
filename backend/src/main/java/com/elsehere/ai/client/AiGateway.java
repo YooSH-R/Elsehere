@@ -289,6 +289,22 @@ public class AiGateway {
     return result;
   }
 
+  /**
+   * 레벨 테스트 말하기 답을 문항별 통과 기준으로 판정한다(ONB-05). 학습자의 영어를 평가하는 호출이라 피드백(FEEDBACK) 종류로 남긴다. 보낸 문항마다 결과가
+   * 오지 않으면 쓸 수 없는 결과로 보고 AI_RESPONSE_INVALID로 던진다.
+   */
+  public LevelTestSpeakingResult judgeLevelTestSpeaking(
+      WorkerTrace trace, List<WorkerLevelTestSpeakingItem> items) {
+    LevelTestSpeakingResult result =
+        send(
+            trace,
+            AiRequestKind.FEEDBACK,
+            () -> aiWorkerClient.judgeLevelTestSpeaking(trace, items));
+    boolean usable = result.results() != null && result.results().size() == items.size();
+    requireUsable(trace, AiRequestKind.FEEDBACK, result.usage(), usable);
+    return result;
+  }
+
   // 워커 오류(연결 실패·시간 초과·오류 응답)로 끝나면 FAILED로 남기고 그대로 던진다.
   private <T> T send(WorkerTrace trace, AiRequestKind kind, Supplier<T> call) {
     try {

@@ -289,6 +289,26 @@ class SpeechServiceTest {
   }
 
   @Test
+  @DisplayName("레벨 테스트 말하기 녹음은 대화 없이 전사하고, 학습 활용에 동의했어도 학습용으로 저장하지 않는다")
+  void transcribe_levelTest_doesNotNeedConversationOrSaveForTraining() {
+    optionalConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
+    given(aiGateway.transcribe(any(), any(), anyString(), any(), any()))
+        .willReturn(new SttResult("I left my bag here", 1.5, List.of()));
+
+    TranscriptionResponse response =
+        speechService.transcribe(
+            userId,
+            UUID.randomUUID(),
+            TranscriptionPurpose.LEVEL_TEST,
+            null,
+            recording("audio/wav", RECORDING));
+
+    assertThat(response).isEqualTo(new TranscriptionResponse("I left my bag here", 1500));
+    then(aiGateway).should().transcribe(any(), any(), anyString(), isNull(), any());
+    assertThat(trainingRecordingRepository.findByUserId(userId)).isEmpty();
+  }
+
+  @Test
   @DisplayName("녹음 음성 학습 활용에 동의하지 않았으면 녹음을 저장하지 않는다")
   void transcribe_voiceTrainingNotAgreed_doesNotSave() {
     optionalConsentService.change(userId, ConsentType.TRAINING_TEXT, true);

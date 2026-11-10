@@ -129,7 +129,7 @@ namespace A305.Ambience
                     body.isGrounded,
                     walking
                 );
-                Source.volume = (player != null ? .85f : .17f) * duck;
+                Source.volume = (player != null ? .42f : .065f) * duck;
                 if (step)
                     Source.PlayOneShot(clips.Step(clipIndex++));
             }

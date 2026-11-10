@@ -28,7 +28,7 @@ namespace A305.Ambience.Tests
         public void ConversationLowersAmbienceWithoutChangingTheOriginalMix()
         {
             Assert.That(AmbiencePlan.Volume(.8f, false), Is.EqualTo(.8f));
-            Assert.That(AmbiencePlan.Volume(.8f, true), Is.EqualTo(.24f).Within(.001f));
+            Assert.That(AmbiencePlan.Volume(.8f, true), Is.EqualTo(.12f).Within(.001f));
             Assert.That(AmbiencePlan.Volume(0, true), Is.Zero);
         }
 

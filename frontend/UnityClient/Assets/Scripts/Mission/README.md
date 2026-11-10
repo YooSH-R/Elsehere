@@ -4,7 +4,7 @@
 
 새 여정의 가게 9곳은 모두 마을 씬 안에 있습니다. `TownMapArt.Shops`는 담당 NPC를 가게 이름과 지도 그림의 건물 칸에 연결합니다. **Tools → A305 → Mission → Refresh Town Maps**는 이 칸과 마을 도로를 읽어 수첩·큰 지도를 함께 갱신합니다.
 
-튜토리얼 뒤에는 **첫날의 작은 소동** 연계 미션을 진행합니다. 왼쪽 위에 퀘스트 카드를 두고, 카드 본문을 누르면 퀘스트 목록을 엽니다. 카드의 [접기]를 누르면 현재 단계 번호·제목과 아직 남은 목표·힌트만 보이고, 목표가 없는 휴식 단계에서는 지금 할 행동을 보입니다. [펼치기]를 누르면 안내·진행 막대·전체 목표가 다시 보입니다. 오른쪽 위 메뉴 버튼 왼쪽에는 게임 시계 칩(`GameClockText`: "1일차 · 오후 1:40")과 코인 칩(미션 잔액)을 둡니다. 지도의 길과 건물 칸은 `TownMapBuilder`가 TownScene 배치에서 그리고, `TownMapView`는 내 위치와 목적지 표시만 바꿉니다. 서버가 `/v1/judge`의 의미 판정 제안을 현재 NPC·단계에 맞춰 적용하고 사용자별 진행을 저장합니다. 새로고침과 씬 이동 후에도 서버 상태를 읽어 복원합니다. 퀘스트가 여러 개가 되므로 화면 문구에는 '첫날'·'여정'을 쓰지 않습니다(수첩 제목 '퀘스트', 시작 버튼 '퀘스트 시작'). 이미 만든 프리팹과 튜토리얼 안내의 옛 문구는 **Tools → A305 → Mission → Apply Quest Wording**(`QuestWordingBuilder`)이 바꿉니다.
+튜토리얼 뒤에는 **첫날의 작은 소동** 연계 미션을 진행합니다. 왼쪽 위에 퀘스트 카드를 두고, 카드 본문을 누르면 퀘스트 목록을 엽니다. 카드는 접기 없이 단계 번호·전체 제목·담당 NPC·상황·목표를 계속 보여 줍니다. 긴 제목은 줄바꿈하며, 목표가 없는 휴식 단계에서는 지금 할 행동을 보입니다. 목표 아래에는 해야 할 내용만 적고 영어 예시는 대화 화면의 추천 단어·힌트를 사용합니다. **Tools → A305 → Mission → Apply Quest Card Readability**로 기존 프리팹의 접기 버튼을 제거하고 제목 줄바꿈을 적용합니다. 오른쪽 위 메뉴 버튼 왼쪽에는 게임 시계 칩(`GameClockText`: "1일차 · 오후 1:40")과 코인 칩(미션 잔액)을 둡니다. 지도의 길과 건물 칸은 `TownMapBuilder`가 TownScene 배치에서 그리고, `TownMapView`는 내 위치와 목적지 표시만 바꿉니다. 서버가 `/v1/judge`의 의미 판정 제안을 현재 NPC·단계에 맞춰 적용하고 사용자별 진행을 저장합니다. 새로고침과 씬 이동 후에도 서버 상태를 읽어 복원합니다. 퀘스트가 여러 개가 되므로 화면 문구에는 '첫날'·'여정'을 쓰지 않습니다(수첩 제목 '퀘스트', 시작 버튼 '퀘스트 시작'). 이미 만든 프리팹과 튜토리얼 안내의 옛 문구는 **Tools → A305 → Mission → Apply Quest Wording**(`QuestWordingBuilder`)이 바꿉니다.
 
 왼쪽 위 퀘스트 카드를 누르면 수첩 대신 퀘스트 목록(시안 f2, `Content/QuestBoard`, `QuestBoardView`)을 엽니다. 목록은 서버 `GET /api/v1/missions/quests`([마을 이야기 문서](../../../../../docs/api/town-story.md#퀘스트-목록과-보상))의 퀘스트를 한 줄에 세 장씩 카드로 보이고, 쪽이 여럿일 때만 아래 가운데에서 쪽을 넘깁니다. 들르는 곳 알약이 카드 폭을 넘으면 다음 줄로 넘깁니다. 카드에는 아이콘·상태 칩(진행 중·새 퀘스트)·제목·설명·들르는 곳 알약(처음 들르는 순서로 한 번씩, 가 본 곳은 코랄)·보상과 도장 수를 두고, 끝낸 퀘스트는 '완료' 도장, 잠긴 퀘스트는 옅은 흰 막과 가운데 자물쇠로 표시합니다. 카드를 누르면 그 퀘스트의 도장 지도(시안 q2)로 갑니다. 마을 지도 그림(`Art/UI/Quest/QuestMap.png`) 위에 가 본 곳마다 잉크 도장을 한 번, 지금 갈 곳에 번호 핀과 '지금 갈 곳' 칩을 두고, 지나온 길을 점으로 잇습니다(`QuestStampMap`, 칸이 없는 거리 행인은 지도에 두지 않음). 아래에는 들르는 곳 칸을 옆으로 넘기며 보이고, 시작할 수 있는 퀘스트에는 [퀘스트 시작]을 둡니다. 화면 글자는 `QuestBoardText`가 만들고, 그림 조각은 시안을 렌더링한 `Art/UI/Quest`입니다. **Tools → A305 → Mission → Apply Quest Board**(`QuestBoardBuilder`)가 만들고 퀘스트 카드 버튼을 목록 열기에 연결합니다.
 
@@ -20,7 +20,7 @@
 
 ## 기다리는 카드
 
-카페 음료 주문처럼 대화를 마친 NPC가 무언가를 준비해 곧 건네기로 하면, 왼쪽 위 퀘스트 카드 바로 아래에 기다리는 카드(`Content/FollowUpCard`, `FollowUpCardView`)를 보입니다. 아이스 라테·아침 식사·빨래·꽃다발처럼 무엇을 준비하는지는 서버가 정하고(대화 종료 CONV-08의 `followUp`), NPC별 데이터 없이 모든 NPC에 같은 카드를 씁니다. 기다리는 목록은 [Dialogue 모듈](../Dialogue/README.md)의 `FollowUpStore`가 씬 밖에서 기억하고, 다 되면 그 NPC가 제자리에서 부릅니다([Npc 모듈](../Npc/README.md#동작-규칙)).
+카페 음료 주문처럼 대화를 마친 NPC가 무언가를 준비해 곧 건네기로 하면, 왼쪽 위 퀘스트 카드 바로 아래에 기다리는 카드(`Content/FollowUpCard`, `FollowUpCardView`)를 보입니다. 목표가 많아 퀘스트 카드가 길어져 아래에 두면 왼쪽 아래(데스크톱 미니맵, 휴대폰 이동 조이스틱)까지 내려가면, 퀘스트 카드 오른쪽 옆 같은 높이에 둡니다(`FirstDayMissionView`가 매 프레임 왼쪽 열이 내려갈 수 있는 끝을 알림). 아이스 라테·아침 식사·빨래·꽃다발처럼 무엇을 준비하는지는 서버가 정하고(대화 종료 CONV-08의 `followUp`), NPC별 데이터 없이 모든 NPC에 같은 카드를 씁니다. 기다리는 목록은 [Dialogue 모듈](../Dialogue/README.md)의 `FollowUpStore`가 씬 밖에서 기억하고, 다 되면 그 NPC가 제자리에서 부릅니다([Npc 모듈](../Npc/README.md#동작-규칙)).
 
 | 상황 | 동작 |
 | --- | --- |
@@ -36,7 +36,7 @@
 
 ## 의자·벤치·소파 앉기
 
-카페 양쪽 테이블 의자 6개, 마을 벤치 4개, 호텔 대기 소파 2개에 같은 조작으로 앉습니다. 앉을 자리마다 `RestSeat`가 하나씩 있고, 벤치·소파는 앉을 위치를 왼쪽·오른쪽 중에서 고르게 가구 폭 방향으로 두 자리를 둡니다. 쉬는 NPC도 같은 자리에 앉으므로(`INpcSeat`, [Npc 모듈](../Npc/README.md#생활)) 한 자리에는 한 명만 앉습니다.
+카페 양쪽 테이블 의자 6개와 왼쪽 부스 소파 2개, 마을 벤치 4개, 호텔 대기 소파 2개에 같은 조작으로 앉습니다. 앉을 자리마다 `RestSeat`가 하나씩 있고, 벤치·소파는 앉을 위치를 왼쪽·오른쪽 중에서 고르게 가구 폭 방향으로 두 자리를 둡니다. 카페는 의자 6자리와 소파 4자리 모두 주문 후 5초 착석을 같은 퀘스트 휴식으로 인정합니다. 쉬는 NPC도 같은 자리에 앉으므로(`INpcSeat`, [Npc 모듈](../Npc/README.md#생활)) 한 자리에는 한 명만 앉습니다.
 
 | 상황 | 동작 |
 | --- | --- |
@@ -51,11 +51,12 @@
 | 가구 | 모델 | 쿠션 윗면 | 앞 모서리 | 자리 |
 | --- | --- | --- | --- | --- |
 | 카페 의자 | `CafeChair` | 0.33m | 0.30m | 의자마다 1개 |
+| 카페 부스 소파 | `BoothSet/Bench` | 0.57m | 0.44m | 폭 2.6m를 반씩, x = ±0.65m |
 | 메인스트리트 벤치 | `ParkBench_HoneyWood`(`MainstreetArtKit.Bench`) | 0.325m | 0.205m | 폭 1.6m를 반씩, x = ±0.4m |
 | 공원 벤치 | TinyTreats `bench.fbx`를 0.8배 | 0.40m | 0.527m | 폭 1.6m를 반씩, x = ±0.4m |
 | 세이지 소파 | `Home_SageSofa_Sage`(`HomeInteriorKit.Sofa`) | 0.705m | 0.485m | 쿠션 두 개의 가운데, x = ±0.57m |
 
-**Tools → A305 → Cafe → Connect Chair Sitting**(`CafeSeatBuilder`)은 `CafeScene`·`CafeInteriorSandbox`의 원형 테이블 의자에 `CafeSeat1~4`를 둡니다. **Tools → A305 → Mission → Connect Bench And Sofa Sitting**(`BenchSofaSeatBuilder`)은 `TownScene`·`HotelScene`에서 위 벤치·소파 모델을 그리는 활성 가구마다 자식 `RestSeat1`, `RestSeat2`를 두고 플레이어·대화·상호작용 화면과 앉는 면 값을 연결합니다. 두 Builder 모두 가구 배치와 디자인은 바꾸지 않습니다. 다른 벤치·소파 모델을 앉을 수 있게 하려면 `BenchSofaSeatBuilder`의 모델 목록에 메시 경로, 잰 값, 자리 위치를 추가합니다.
+**Tools → A305 → Cafe → Connect Chair Sitting**(`CafeSeatBuilder`)은 `CafeScene`·`CafeInteriorSandbox`의 양쪽 테이블 의자에 `CafeSeat1~6`을 맞추고, 부스 소파마다 자식 `RestSeat1`, `RestSeat2`를 연결합니다. **Tools → A305 → Mission → Connect Bench And Sofa Sitting**(`BenchSofaSeatBuilder`)은 `TownScene`·`HotelScene`에서 위 벤치·소파 모델을 그리는 활성 가구마다 자식 `RestSeat1`, `RestSeat2`를 두고 플레이어·대화·상호작용 화면과 앉는 면 값을 연결합니다. 두 Builder 모두 가구 배치와 디자인은 바꾸지 않습니다. 다른 벤치·소파 모델을 앉을 수 있게 하려면 `BenchSofaSeatBuilder`의 모델 목록에 메시 경로, 잰 값, 자리 위치를 추가합니다.
 
 ## 튜토리얼용 기본 미션
 
@@ -124,7 +125,10 @@
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
 | `A305.Mission.Tests` | `Assets/Tests/EditMode/Mission/` | 미션 시작, 다른 미션으로 교체, 없는 미션 거절, 여러 문장에 나뉜 키워드로 완료, 다른 NPC·빠진 키워드·시작 전에는 미완료, 완료한 미션 재시작 거절, 시작·교체 알림 문구, 미션 줄의 말할 단어 표시, 닿는 거리 안의 가장 가까운 자리 고르기(`RestSeatPicker`), 앉아 쉰 시간(`RestSeatTimer`), 미션이 자리를 다루는 장소는 카페뿐인지, 퀘스트 카드가 지금 단계 장소를 길 안내에 알리고 끝내거나 미션 화면을 끄면 멈추는지, 크게 본 지도에 길 안내 켜기·끄기 버튼이 있는지. 기다리는 카드: 남은 시간 분:초, 준비 중 줄(받을 것·누가 어디서·남은 시간)과 다 된 줄(준비됐어요·받으러 가세요, 받침에 맞는 조사), 마을 매장 직원은 가게 이름·그 밖은 씬 이름(`FollowUpCardTextTests`), 프리팹의 카드가 퀘스트 카드 바로 다음에 같은 폭·유리로 있고 누르기를 받지 않는지, 기다리는 것이 없거나 건넨 뒤·미션 화면을 끄면 숨는지, 먼저 되는 것부터 한 줄씩 보이는지(`FollowUpCardTests`) |
-| `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 공간 기능 연결이 미션 창과 미션 처리를 한 번씩 붙이고 대화 처리와 연결하는지, 카페 양쪽 테이블 의자 6개(`CafeSeatingConnectionTests`)와 마을 벤치 4개·호텔 소파 2개에 두 자리씩(`BenchSofaSeatSceneTests`) 앉기가 연결됐는지 |
+| `A305.Mission.PlayModeTests` | `Assets/Tests/PlayMode/Mission/` | 퀘스트 화면의 표시·조작, 카페의 모든 의자·소파에서 앉기 안내·실제 착석·5초 후 단일 휴식 요청까지의 연결 |
+| `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 공간 기능 연결이 미션 창과 미션 처리를 한 번씩 붙이고 대화 처리와 연결하는지 |
+
+카페 의자·소파의 좌석 연결은 `A305.Mission.Tests`에서 검사합니다. PlayMode의 카페 검증은 실제 씬을 사용하고 API 응답은 대체 구현으로 처리합니다.
 
 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.
 

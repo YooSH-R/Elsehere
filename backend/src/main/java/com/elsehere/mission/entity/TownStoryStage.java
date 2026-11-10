@@ -139,27 +139,26 @@ public enum TownStoryStage {
   /** 이 목표를 이루려면 말해야 할 정보. 퀘스트 카드 목표 아래에 보인다. */
   public static String goalHint(String id) {
     return switch (id) {
-      case "order_breakfast" -> "음식과 음료를 함께 (예: pancakes and orange juice)";
-      case "explain_spill" -> "무엇을 어디에 쏟았는지 설명하기 (예: coffee on my shirt)";
+      case "order_breakfast" -> "음식과 음료를 함께";
+      case "explain_spill" -> "무엇을 어디에 쏟았는지 설명하기";
       case "ask_laundry" -> "옷을 어떻게 빨 수 있는지 묻기";
       case "ask_cost" -> "세탁 가격";
       case "ask_atm" -> "ATM이 어디 있는지 묻기";
-      case "ask_withdrawal" -> "현금 뽑는 방법과 금액 (예: 20 dollars)";
-      case "request_wash" -> "직접 세탁기를 쓰겠다고 말하거나 시작 방법 묻기 (예: How do I start this washer?)";
+      case "ask_withdrawal" -> "현금 뽑는 방법과 금액";
+      case "request_wash" -> "직접 세탁기를 쓰겠다고 말하거나 시작 방법 묻기";
       case "ask_haircut" -> "머리를 자르고 싶다고 말하기";
-      case "describe_style" -> "길이와 부위 (예: a little shorter on the sides)";
+      case "describe_style" -> "길이와 부위";
       case "choose_flower" -> "꽃을 선물하려는 마음과 받을 사람 또는 이유를 자유롭게 말해요.";
       case "ask_wrapping" -> "꽃을 포장해 달라고 하기";
       case "offer_flower" -> "꽃을 선물로 드린다고 말하기";
-      case "thank_barber" -> "무엇이 고마운지 말하기 (예: thanks for the haircut)";
-      case "choose_snack" -> "간식과 개수, 받을 사람 (예: two cookies for Gus)";
-      case "collect_laundry" -> "빨래를 꺼내도 되는지, 어떻게 꺼내는지 묻기 (예: Can I take my clothes out now?)";
-      case "thank_laundromat" ->
-          "기계 사용을 도와준 것에 감사하기 (예: Thanks for showing me how to use the washer.)";
-      case "ask_lamp" -> "램프와 선물 받을 사람 (예: for my family back home)";
+      case "thank_barber" -> "무엇이 고마운지 말하기";
+      case "choose_snack" -> "간식과 개수, 받을 사람";
+      case "collect_laundry" -> "빨래를 꺼내도 되는지, 어떻게 꺼내는지 묻기";
+      case "thank_laundromat" -> "기계 사용을 도와준 것에 감사하기";
+      case "ask_lamp" -> "램프와 선물 받을 사람";
       case "ask_shipping" -> "램프를 포장하거나 보낼 수 있는지 묻기";
       case "ask_game" -> "인형뽑기 하는 방법";
-      case "ask_parcel" -> "소포를 보낼 곳 (예: to Seoul, Korea)";
+      case "ask_parcel" -> "소포를 보낼 곳";
       case "ask_price" -> "소포 값";
       default -> throw new IllegalArgumentException("Unknown town story goal: " + id);
     };

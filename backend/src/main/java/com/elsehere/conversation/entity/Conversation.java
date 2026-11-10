@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -82,6 +83,12 @@ public class Conversation extends BaseEntity {
 
   private Integer firstDayStage;
   private Integer townStoryStage;
+
+  // 같은 식당 단계 안에서도 주문과 식사 후 사건은 별개 대화다. null은 이 정보를 저장하기 전의 기록이다.
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(columnDefinition = "jsonb")
+  private List<String> townStoryGoalIds;
+
   private Long reviewCardId;
 
   @Column(columnDefinition = "jsonb")
@@ -129,6 +136,12 @@ public class Conversation extends BaseEntity {
 
   public void attachTownStoryStage(Integer stage) {
     this.townStoryStage = stage;
+  }
+
+  public void recordTownStoryGoals(List<String> goalIds) {
+    if (townStoryGoalIds == null) {
+      townStoryGoalIds = List.copyOf(goalIds);
+    }
   }
 
   public void attachStartRequest(UUID requestId) {

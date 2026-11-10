@@ -62,7 +62,7 @@ namespace A305.Ambience
         }
 
         public static float Volume(float normal, bool talking) =>
-            Math.Max(0, Math.Min(1, normal)) * (talking ? .3f : 1f);
+            Math.Max(0, Math.Min(1, normal)) * (talking ? .15f : 1f);
 
         public static bool IsStreet(AmbienceBed bed) =>
             bed == AmbienceBed.Street || bed == AmbienceBed.Rain;

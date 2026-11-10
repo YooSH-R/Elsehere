@@ -238,7 +238,6 @@ namespace A305.EditorTools.World
             DetergentBottles(washers, new Vector3(-3.63f, 1.6f, -2.65f), 90);
             PlainShelf(washers, new Vector3(-SideWall, 1.6f, -4.55f), 90);
             TowelStack(washers, new Vector3(-3.63f, 1.6f, -4.55f), 90);
-            Treat("HousePlants", "SnakePlant", washers, new Vector3(-3.3f, 0, -.55f));
 
             Transform back = Zone("BackCorner", space);
             DetergentVending(back, new Vector3(-3.3f, 0, -7.42f), 0);

@@ -140,7 +140,7 @@
 
 - 소품은 `Prefabs/World/TownInteriors/Props/`에 있습니다. [KayKit 가구·주방 모델](../../ThirdParty/CREDITS.md#마을-매장-실내)을 감싼 래퍼는 원본의 0.7배(주방 가구는 벽에 붙도록 앞뒤 0.42배)로 줄였고, 받은 모델에 없는 것은 둥근 도형으로 만든 조각입니다. 조각은 재질별로 메시를 합쳐 `Art/World/TownInteriors/Meshes/`에 두고, 재질은 `Art/World/TownInteriors/`에 둡니다. Tiny Treats·북쪽 상가 소품·집 책장은 기존 프리팹을 그대로 씁니다.
 - 바닥에 놓는 큰 가구에만 이동 충돌을 둡니다. 상자 윗면이 겉모양보다 뜨면 `PropColliderShape`로 메시 모양 충돌로 바꾸고, 선반·탁자 위에 올린 재사용 프리팹(빵·케이크 받침·인형·계산기)은 이동 충돌을 뺍니다. 문 앞 통로, 직원 자리, 계단과 계단 입구는 비웁니다.
-- 호버 단어는 뜻이 맞는 기존 단어만 다시 씁니다(시계·그림·깔개·단지·레인지·냉장고·싱크대 등). 맞는 단어가 없는 소품(주크박스·오븐·빨래 바구니·옷걸이 등)은 단어를 비우므로, 기존 매장 소품처럼 가리키면 건물 단어(shop)가 뜹니다. 그 호버 영역은 마을 씬이 아니라 매장 건물 프리팹에 둡니다.
+- 호버 단어는 뜻이 맞는 기존 단어를 다시 씁니다(시계·그림·깔개·단지·레인지·냉장고·싱크대 등). 맞는 단어가 없는 소품(주크박스·오븐 등)은 건물 단어가 뜹니다. 빨래방에서는 바구니·세제·접어 놓은 수건·빨래 수레·세제 자판기·행거·동전 교환기에 각 단어를 연결합니다. **Tools → A305 → World → Update Laundromat Props**로 빨래방의 단어 연결과 실내 식물 제거를 기존 배치에 적용합니다. 호버 영역은 매장 건물 프리팹에 둡니다.
 - **Tools → A305 → World → Build Town Shop Interiors**는 없는 프리팹만 만들고 아직 끼우지 않은 건물에 끼웁니다. **Rebuild Town Shop Interiors (Overwrite)**는 코드로 바꾼 배치를 반영하려고 공간·소품 프리팹을 같은 GUID로 덮어씁니다. 프리팹에서 손으로 고친 내용은 사라집니다. **Capture Town Shop Interiors**는 공간마다 문 안쪽 시점과 천장을 걷은 내려다보기, 비교용 카페·호텔 실내와 모음 두 장을 `artifacts/unity/town-interiors/`에 저장합니다.
 - 큰 가구를 바꾼 뒤에는 **Npc → Build Building Staff**로 매장 직원이 다닐 바닥을 다시 굽고, **ObjectHover → Export Backend Data**로 장소 단어(`backend/src/main/resources/content/object-word-bindings.json`)를 다시 내보냅니다.
 - 공간 묶음과 다른 실내 집기는 건물별 실내 씬(`Scenes/ShopInteriors/<건물>Interior.unity`)에서 불러옵니다. 저장된 마을 씬의 건물 인스턴스에서는 집기를 제거하고 바닥·천장·계단과 경찰 신고 창구를 유지합니다. 편집 원본인 공간 프리팹·매장 건물 프리팹은 유지합니다. 건물 프리팹에 집기를 추가하거나 교체한 뒤에는 **Tools → A305 → World → Remove Town Interior Furnishings**로 마을 씬에 남은 집기를 다시 정리합니다.
@@ -157,7 +157,7 @@
 | `(7, 0.1, 30)` | `NorthBlock/LittleArcade` | 1층 오락실, 2층 Paper & Leaf 서점 | 공용 계단실에서 각 층의 매장 문으로 진입 |
 | `(-7, 0.1, 39)` | `NorthBlock/HomeLiving` | 1층 생활용품점, 2층 Leaf Tea Room | 1층 독립 출입구, 전면 외부 계단으로 2층 진입 |
 
-`ShopInteriorScenes`는 Play 및 빌드 시 건물별 실내 씬에서 외관·공용 구조물을 제외하고 출입구를 연결합니다. 마을 씬에 새로 추가된 집기도 이 단계에서 제외하지만, 저장된 씬 자체를 정리하려면 **Remove Town Interior Furnishings**를 실행합니다. `ShopDoorway`는 캐릭터 머리가 닫힌 문에 닿기 전에 몸통을 감지해 입·퇴장을 시작하고, 그 문이 여는 실내(`Room`)를 가집니다. 매장 직원은 방문 중에만 활동하며, 원본 프리팹에서 실내 배치를 편집할 수 있습니다. 새 매장은 **Tools → A305 → World → Register Shop Interior Scenes**로 빌드 목록에 등록한 뒤 마을 집기를 정리합니다.
+`ShopInteriorScenes`는 Play 및 빌드 시 건물별 실내 씬에서 외관·공용 구조물을 제외하고 출입구를 연결합니다. 마을 씬에 새로 추가된 집기도 이 단계에서 제외하지만, 저장된 씬 자체를 정리하려면 **Remove Town Interior Furnishings**를 실행합니다. `ShopDoorway`는 캐릭터 머리가 닫힌 문에 닿기 전에 몸통을 감지해 입·퇴장을 시작하고, 그 문이 여는 실내(`Room`)와 길 안내가 끝나는 문 밖 지점(`ApproachPoint`)을 제공합니다. 매장 직원은 방문 중에만 활동하며, 원본 프리팹에서 실내 배치를 편집할 수 있습니다. 새 매장은 **Tools → A305 → World → Register Shop Interior Scenes**로 빌드 목록에 등록한 뒤 마을 집기를 정리합니다.
 
 1층과 2층이 다른 가게인 건물(2층 높이에 따로 문이 있는 `LittleArcade`·`HomeLiving`)은 층마다 실내 씬을 나눕니다. 1층 문은 `<건물>Interior`, 2층 문은 `<건물>UpperInterior`를 열고, 각 씬에는 그 층 집기만 남깁니다(집기의 가장 낮은 곳이 건물 바닥에서 3.5m 이상이면 2층). 직원은 모두 1층에 있어 2층 가게를 방문할 때는 켜지지 않으므로, 바로 아래층 직원이 2층 손님에게 말을 걸지 않습니다. 매장 안 계단으로 오르는 복층(`MapleBakery`)은 한 씬입니다. 2층 문이 있는 건물을 새로 만들면 Register Shop Interior Scenes가 `UpperInterior` 씬도 만들어 등록합니다.
 

@@ -200,19 +200,19 @@ class LLM:
         return self.others.get(self.s.role_provider.get(role, ""), self.client)
 
     async def _send(
-        self, client: httpx.AsyncClient, b: dict, timeout: httpx.Timeout, stream: bool, hedge: bool = True
+        self, client: httpx.AsyncClient, b: dict, timeout: httpx.Timeout, stream: bool, hedge_after_s: float = 0
     ) -> tuple[httpx.Response, bool]:
-        """요청 하나. 한 번에 받는 호출이 hedge_after_s 안에 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 쓴다.
+        """요청 하나. 한 번에 받는 호출이 hedge_after_s 안에 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 쓴다 (0이면 하나만).
         반환: (응답, 더 보냈나). 둘 다 실패하면 마지막 오류를 던진다. 스트림은 응답 머리가 먼저 와서 늦음을 알 수 없어 그대로."""
 
         def start_request():
             return client.send(client.build_request("POST", "/chat/completions", json=b, timeout=timeout), stream=stream)
 
-        after = 0 if stream or not hedge else self.s.hedge_after_s
+        after = 0 if stream else hedge_after_s
         return await race(start_request, after, lambda r: r.status_code < 400, lambda r: r.aclose())
 
     async def _open(
-        self, body: dict, stream: bool = False, role: str = "", timeout_s: float | None = None, hedge: bool = True
+        self, body: dict, stream: bool = False, role: str = "", timeout_s: float | None = None, hedge_after_s: float = 0
     ) -> tuple[httpx.Response, str, bool]:
         """대체 모델 사슬을 따라 첫 성공 응답을 연다. 반환: (응답, 실제로 쓴 모델, 같은 요청을 더 보냈나)."""
         model, last, limited, tried = body["model"], "", False, set()
@@ -228,7 +228,7 @@ class LLM:
             b = model_body({**body, "model": model}, self.s.model_params)
             for attempt in range(2):
                 try:
-                    r, hedged = await self._send(client, b, timeout, stream, hedge)
+                    r, hedged = await self._send(client, b, timeout, stream, hedge_after_s)
                 except httpx.TimeoutException as e:
                     # 오류 없이 30초 넘게 멈춘 호출이 있었다 (2026-10-13). 짧게 끊고 다시 보낸다
                     last = f"응답 없음({timeout_s}s): {type(e).__name__}"
@@ -264,16 +264,19 @@ class LLM:
         schema: dict | None = None,
         timeout_s: float | None = None,
         hedge: bool = True,
+        hedge_after_s: float | None = None,
     ) -> str:
         """한 번에 받는 호출. 반환: 모델 출력 문자열 (schema가 있으면 JSON 문자열).
-        timeout_s: 이 호출의 상한 (없으면 CALL_TIMEOUT_S), hedge: 늦을 때 같은 요청 하나 더 보내기 (길게 생성하는 호출은 끔)."""
+        timeout_s: 이 호출의 상한 (없으면 CALL_TIMEOUT_S), hedge: 늦을 때 같은 요청 하나 더 보내기 (길게 생성하는 호출은 끔),
+        hedge_after_s: 더 보내는 기준 (없으면 HEDGE_AFTER_S)."""
+        after = (self.s.hedge_after_s if hedge_after_s is None else hedge_after_s) if hedge else 0
         requested = self.model(role)
         body = {"model": requested, "temperature": temperature, "max_tokens": max_tokens, "messages": messages}
         if schema:
             body["response_format"] = {"type": "json_schema", "json_schema": {"name": "out", "schema": schema, "strict": True}}
         t = time.perf_counter()
         try:
-            r, used, hedged = await self._open(body, role=role, timeout_s=timeout_s, hedge=hedge)
+            r, used, hedged = await self._open(body, role=role, timeout_s=timeout_s, hedge_after_s=after)
         except ProviderError as e:
             if not schema or "validate JSON" not in e.message:
                 raise
@@ -285,7 +288,7 @@ class LLM:
                 },
                 *messages[1:],
             ]
-            r, used, hedged = await self._open(body, role=role, timeout_s=timeout_s, hedge=hedge)
+            r, used, hedged = await self._open(body, role=role, timeout_s=timeout_s, hedge_after_s=after)
         data = response_json(r)
         usage.add(step, used, requested, data, time.perf_counter() - t, **({"hedged": True} if hedged else {}))  # 늦은 쪽 토큰은 모름
         return message_text(data)

@@ -116,7 +116,7 @@ def test_intent_schema_follows_place_slots(client, provider):
     r = client.post("/v1/judge", json=judge_body("I have a headache", PHARMACY_STATE)).json()
     assert r["intent"]["id"] == "describe_symptom"
     props = seen["schema"]["properties"]
-    assert set(props) == {"intents", "items", "events"}  # events: 줄 사건 (test_judge_events)
+    assert set(props) == {"intents", "items", "events", "english_correction"}
     assert set(props["items"]["items"]["properties"]) == {"name", "qty"}
     assert "products: pain reliever, cough syrup" in seen["prompt"] and "iced" not in seen["prompt"]
 

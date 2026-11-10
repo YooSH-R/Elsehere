@@ -157,7 +157,7 @@ public class Turn extends BaseEntity {
     policeDispatchPlaceCode = placeCode;
   }
 
-  /** 한국어 발화의 영어 표현은 무례 판정과 관계없이 보여 준다. */
+  /** 생성된 영어 번역·교정 표현은 무례 판정과 관계없이 보여 준다. */
   public String shownTranslation() {
     return translationEn;
   }

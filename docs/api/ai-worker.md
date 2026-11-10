@@ -36,7 +36,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 ## 0.1 AI 쪽 규칙 (백엔드 명세에 없는 것)
 
 - **무례 판정**: `/v1/guard`의 `guard.abusive`가 `true`면 무례, `false`면 정상, **`null`이면 판정 못 함**(무례로 세지 않음, 2.2.1절). 무례를 몇 번에 어떻게 제재할지는 Spring 규칙이 정합니다. 누적·퇴장 규칙과 NPC 지시문은 [무례 처리 합의안](rudeness-handling.md)에 있습니다. NPC가 먼저 잘못한 장면의 맞대응(정당방위)은 MVP 장소에 그런 장면이 없어 MVP에서 제외합니다(합의안 4절).
-- **번역 카드**: 학습자 말에 한글이 섞이면 `/v1/judge`가 `translation.english`를 줍니다. 화면에는 `english`가 있으면 무례 판정과 관계없이 보여 줍니다. `/v1/guard`의 결과는 NPC 반응과 무례 횟수 처리에 사용하며 번역 카드를 숨기지 않습니다.
+- **영어 표현 카드**: 학습자 말에 한글이 섞이면 `/v1/judge`가 영어 번역을, 영어에 명확한 문법 오류가 있으면 교정문을 `translation.english`로 줍니다. 화면에는 `english`가 있으면 무례 판정과 관계없이 보여 줍니다. `/v1/guard`의 결과는 NPC 반응과 무례 횟수 처리에 사용하며 번역 카드를 숨기지 않습니다.
 - **행동 묘사**: `*...*`는 지우고 말만 판정합니다. 행동 묘사만 있으면 `dropped: true`이고 턴으로 세지 않습니다.
 - **난이도**: 1.1절 `level` 표. 판정에는 영향이 없습니다.
 - **한 턴 구조**: NPC 한 턴은 `turnId` 하나, 대답 한 줄(난이도에 따라 1~3문장)입니다. 문장으로 쪼개 저장하지 않습니다(뜻 보기·힌트·추천 단어가 턴 단위).
@@ -116,7 +116,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 |---|---|---|
 | `who` | `npc` 또는 `me` (필수) | 말한 사람 (`me`는 학습자) |
 | `text` | 문자열 (필수, 최대 1000자) | 말한 내용 |
-| `english` | 문자열 또는 `null` | 학습자 줄의 영어 번역 (판정의 `translation.english`) |
+| `english` | 문자열 또는 `null` | 학습자 줄의 생성된 영어 번역·교정문 (판정의 `translation.english`). 학습자가 직접 말한 원문은 `text` |
 | `rude` | 불 (기본 `false`) | 학습자 줄의 무례 판정이 `true`였는지 (`null`은 `false`로) |
 | `events` | 문자열 목록 (기본 `[]`) | 학습자 줄의 대화 사건 (판정의 `events` 그대로). 대화 중 기분(2.3절)과, 이번 대화에서 이미 센 사건을 거르는 데(2.2절 `affinity_delta`) 씀 |
 
@@ -144,9 +144,9 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 `profile`은 수집 기록의 `profile` 칸에 그대로 남깁니다. `guard_local`은 로컬 무례 판정기를 켰을 때만 `{"model": "v2-mix", "t_lo": 0.05, "t_hi": 0.95}`이고, 끄면(기본) `null`입니다.
 
-### 2.2 `POST /v1/judge` — 의도·번역
+### 2.2 `POST /v1/judge` — 의도·번역·영어 교정
 
-학습자 한 줄을 받아 의도와 번역(한글이 있을 때만)을 **동시에** 돌립니다. 무례 판정은 하지 않습니다. 같은 줄로 `/v1/guard`(2.2.1절)를 동시에 불러 주세요.
+학습자 한 줄의 의도·줄 사건과 영어 문법 교정을 같은 모델 호출에서 판정합니다. 한글이 섞이면 기존 번역 호출을 **동시에** 실행합니다. 영어 교정을 위한 추가 모델 호출은 없습니다. 무례 판정은 하지 않습니다. 같은 줄로 `/v1/guard`(2.2.1절)를 동시에 불러 주세요.
 
 요청: `npc`, `scene`(비면 `npc.scene`), `state`(지금 상태: `id`, `desc`, `intents`, `slots`, `current`, `more_intents`, `accumulate_history`), `history`(최대 40줄), `text`(최대 500자, 공백만이면 400 `invalid_request`).
 
@@ -175,7 +175,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `intent.ids` | 말한 순서대로 최대 3개. Spring이 **하나씩 현재 상태에서 다시 검증**해 적용. `id`는 `ids[0]` |
 | `intent.slots` | 요청 `state.slots`에 있는 칸만. 상품은 `catalog` 안의 이름만, `iced`는 `iced_ok`에 있을 때만. 선택 칸(`option`)은 `labels` 중 하나, 말하지 않았으면 `"none"`. 경찰서 창구는 이 칸(`place`)으로 신고 장소를 고름(백엔드 `PoliceDesk`, 평가 `ai/tools/police_report_eval.py`) |
 | `intent.error` | 의도 판정 실패 시 메시지, 이때 `id`는 `unclear`. **상태·금액을 바꾸지 말고 다시 물을 것** |
-| `translation` | 한글이 섞였을 때만 `{"english", "error"}`. 화면에 보여 줄지는 `/v1/guard` 결과로 Spring이 정함(0.1절 번역 카드) |
+| `translation` | 영어 번역 또는 문법 교정문을 `{"english", "error"}`로 전달. 정상 영어·동일 문장·대소문자/구두점만 다른 경우는 `null`. 생성된 표현이 있으면 무례 판정과 관계없이 기존 카드에 표시(0.1절). 교정 실패가 대화를 막지 않음 |
 | `events` | 이 줄에서 학습자가 한 대화 사건. `GREETING`·`SMALL_TALK`·`PERSONAL_QUESTION`·`APOLOGY`·`COMPLIMENT`·`HELP`·`TASK_DONE`·`LEAVE` 중 0개 이상. 의도 판정과 같은 호출에서 고름. 의도 판정이 실패하면 `[]`, `dropped`면 `null`. **이 줄에 저장해 다음 요청의 `history[].events`로 보냄** |
 | `affinity_delta` | 이 줄의 사건으로 바로 올릴 호감(정수, 0 이상). 의도 판정이 실패하면 `0`, `dropped`면 `null`. 아래 설명 |
 

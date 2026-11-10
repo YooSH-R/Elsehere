@@ -4,12 +4,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 의도·번역 판정(/v1/judge) 결과. 의도는 제안이며 상태를 바꿀지는 Spring이 정한다.
+ * 의도·번역·영어 교정 판정(/v1/judge) 결과. 의도는 제안이며 상태를 바꿀지는 Spring이 정한다.
  *
  * @param text 행동 묘사({@code *...*})를 지운 말. 대답·기록에는 이것을 쓴다
  * @param dropped 행동 묘사만 있었으면 true. 턴으로 세지 않고 {@code notice}를 보여 준다
  * @param notice 학습자에게 보여 줄 한국어 안내
- * @param translation 학습자 말에 한글이 섞였을 때만 있는 영어 번역
+ * @param translation 학습자 말의 영어 번역 또는 오류가 있을 때의 영어 교정문
  * @param events 이 줄에서 학습자가 한 대화 사건(GREETING·APOLOGY 등). 의도 판정이 실패하면 빈 목록, 워커가 보내지 않으면 null
  * @param affinityDelta 이 줄의 사건으로 바로 올릴 호감도. 이번 대화에서 이미 센 사건은 빠진다. 무례로 센 턴에는 쓰지 않으며, 워커가 보내지 않으면(이
  *     칸을 모르는 이전 워커) null

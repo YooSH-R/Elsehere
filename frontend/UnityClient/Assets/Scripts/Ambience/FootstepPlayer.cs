@@ -74,7 +74,7 @@ namespace A305.Ambience
                 return;
             if (Time.unscaledTime >= refreshAt)
                 RefreshWalkers();
-            float duck = dialogue != null && dialogue.IsTalking ? .3f : 1f;
+            float duck = AmbiencePlan.Volume(1, dialogue != null && dialogue.IsTalking);
             foreach (Walker walker in walkers)
                 walker.Tick(catalog, duck, taxi != null && taxi.IsPassenger);
         }

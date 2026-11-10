@@ -12,6 +12,7 @@ namespace A305.Ambience
     /// <summary>서비스 씬과 실제 출입·대화·차량 상태만 관찰한다. 서버 호출이나 이동 처리를 하지 않는다.</summary>
     public sealed class ServiceAmbiencePlayer : MonoBehaviour
     {
+        private const float NormalVolume = .6f;
         private static ServiceAmbiencePlayer instance;
         private ServiceAmbienceCatalog catalog;
         private readonly AudioSource[] loops = new AudioSource[2];
@@ -132,7 +133,7 @@ namespace A305.Ambience
             wasPassenger = passenger;
             if (next != bed)
                 ChangePlace(next);
-            float gain = AmbiencePlan.Volume(.8f, Talking);
+            float gain = AmbiencePlan.Volume(NormalVolume, Talking);
             for (int index = 0; index < loops.Length; index++)
             {
                 AudioSource source = loops[index];
@@ -175,7 +176,7 @@ namespace A305.Ambience
             AudioClip clip = catalog.Effect(effect);
             if (clip == null)
                 return;
-            effects.volume = AmbiencePlan.Volume(.8f, Talking);
+            effects.volume = AmbiencePlan.Volume(NormalVolume, Talking);
             effects.PlayOneShot(clip);
         }
 

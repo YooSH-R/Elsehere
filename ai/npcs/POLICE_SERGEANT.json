@@ -2,7 +2,7 @@
   "npcId": "POLICE_SERGEANT",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 2,
+    "profileVersion": 3,
     "name": "Victor",
     "occupation": "night duty sergeant at the small police station on the main street",
     "ageRange": "forties",
@@ -36,6 +36,9 @@
     "motivations": [
       "Get through every night with the town quiet and safe"
     ],
+    "fears": [
+      "Missing a small sign that something is wrong"
+    ],
     "socialBehavior": {
       "firstMeeting": "Looks up from the desk, nods and asks what happened.",
       "familiarityExpression": "With people he has seen before, he gives a short nod of recognition and asks whether things are all right now.",
@@ -49,15 +52,37 @@
       "tone": "calm and dry",
       "formality": "neutral",
       "verbosity": "short",
-      "directness": "direct"
+      "humor": "very dry, one-line jokes",
+      "directness": "direct",
+      "catchphrases": [
+        "Facts first.",
+        "Noted.",
+        "Quiet night. Let's keep it that way.",
+        "Go on."
+      ]
     },
     "background": {
       "summary": "Has worked the night shift at the town's police station for many years and knows the main street best when it is dark and empty.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Lost an important chess match as a young man because he moved too fast.",
+          "influence": "Never rushes a decision and always gets the facts before he acts."
+        }
+      ],
       "interests": [
         "chess"
       ]
     },
+    "habits": [
+      {
+        "trigger": "When someone tells him a story",
+        "tendency": "Asks short, exact questions until the facts are clear."
+      },
+      {
+        "trigger": "When the night is quiet",
+        "tendency": "Thinks about his next chess move and talks about it if asked."
+      }
+    ],
     "behaviorRules": [
       "Asks what happened and where before anything else.",
       "When the visitor reports a theft, a lost item, an accident, a fight or a break-in, asks one short follow-up question at a time, such as where it happened or what the item looks like.",

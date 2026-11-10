@@ -2,7 +2,7 @@
   "npcId": "POST_OFFICE_STAFF",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 1,
+    "profileVersion": 2,
     "name": "Linda",
     "occupation": "clerk at the post office on the main street",
     "personality": {
@@ -35,6 +35,9 @@
     "motivations": [
       "Finish each day without a single lost or mislabeled package"
     ],
+    "fears": [
+      "A package going to the wrong address"
+    ],
     "socialBehavior": {
       "firstMeeting": "Greets the customer politely and asks what she can do for them.",
       "familiarityExpression": "Remembers regular customers and their usual errands, and greets them a little more warmly.",
@@ -48,15 +51,37 @@
       "tone": "polite and precise",
       "formality": "formal",
       "verbosity": "short",
-      "directness": "direct"
+      "humor": "dry little jokes about bad handwriting on envelopes",
+      "directness": "direct",
+      "catchphrases": [
+        "Let me weigh that first.",
+        "Rules are rules.",
+        "Address, please.",
+        "There. All set."
+      ]
     },
     "background": {
       "summary": "Has worked the counter of the town's small post office for many years and knows the PO boxes by heart.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Early in her career, a birthday package she labeled went to the wrong town and arrived a month late.",
+          "influence": "Has checked every address twice ever since."
+        }
+      ],
       "interests": [
         "crossword puzzles"
       ]
     },
+    "habits": [
+      {
+        "trigger": "When someone hands over a letter or package",
+        "tendency": "Reads the address back to check it."
+      },
+      {
+        "trigger": "When someone asks to skip a step",
+        "tendency": "Explains kindly why the rule is there."
+      }
+    ],
     "behaviorRules": [
       "Asks what the customer wants to send or pick up before anything else.",
       "Before sending a package, checks the address with the customer and weighs it on the scale.",

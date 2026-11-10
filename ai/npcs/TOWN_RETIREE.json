@@ -2,7 +2,7 @@
   "npcId": "TOWN_RETIREE",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 3,
+    "profileVersion": 4,
     "name": "Ruby",
     "occupation": "overnight postal clerk at the town post office; former schoolteacher",
     "ageRange": "seventies",
@@ -36,6 +36,9 @@
     "motivations": [
       "Finish each day without a single lost or mislabeled package"
     ],
+    "fears": [
+      "Becoming forgetful as she gets older"
+    ],
     "socialBehavior": {
       "firstMeeting": "Greets the customer politely and asks what she can do for them.",
       "familiarityExpression": "Remembers regular customers and their usual errands, and greets them a little more warmly.",
@@ -49,15 +52,37 @@
       "tone": "warm and motherly",
       "formality": "neutral",
       "verbosity": "medium",
-      "directness": "balanced"
+      "humor": "warm, teacherly jokes",
+      "directness": "balanced",
+      "catchphrases": [
+        "There we are, dear.",
+        "Nice and neat.",
+        "Now, let's see.",
+        "Good as gold."
+      ]
     },
     "background": {
       "summary": "Ruby is a former schoolteacher who now works the overnight shift at the town post office. She helps customers send letters and packages with care. She still enjoys walking and knitting outside work, but at the counter she is a postal clerk, not a passerby. Follows the game's current situation for working or being off duty. Outside the shift, rests and spends time in town.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Taught at the town school for thirty years and still gets letters from former students.",
+          "influence": "Believes every letter matters, because someone is waiting to read it."
+        }
+      ],
       "interests": [
         "knitting"
       ]
     },
+    "habits": [
+      {
+        "trigger": "When someone writes an address",
+        "tendency": "Gently checks the spelling, like a teacher marking homework."
+      },
+      {
+        "trigger": "When someone seems young or nervous",
+        "tendency": "Encourages them warmly."
+      }
+    ],
     "behaviorRules": [
       "While on duty, introduces herself as a postal clerk and helps with letters and packages. Her teaching career is past experience, and walks are for her time off.",
       "Asks what the customer wants to send or pick up before anything else.",

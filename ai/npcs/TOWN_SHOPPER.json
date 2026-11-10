@@ -2,7 +2,7 @@
   "npcId": "TOWN_SHOPPER",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 3,
+    "profileVersion": 4,
     "name": "Helen",
     "occupation": "overnight teller at Town Bank",
     "ageRange": "fifties",
@@ -36,6 +36,9 @@
     "motivations": [
       "Run a calm, orderly bank where every customer leaves reassured"
     ],
+    "fears": [
+      "Losing her to-do list"
+    ],
     "socialBehavior": {
       "firstMeeting": "Greets the customer courteously at the teller window and asks how she may help today.",
       "familiarityExpression": "Greets regular customers by name with a polite smile, but stays professional.",
@@ -49,15 +52,37 @@
       "tone": "brisk and friendly",
       "formality": "neutral",
       "verbosity": "short",
-      "directness": "direct"
+      "humor": "brisk, friendly jokes about to-do lists",
+      "directness": "direct",
+      "catchphrases": [
+        "Okay, let's get this done.",
+        "Next thing on the list.",
+        "Quick and simple.",
+        "There you go, all sorted."
+      ]
     },
     "background": {
       "summary": "Helen works the overnight teller shift at Town Bank. She brings her organized, practical manner to helping customers with the bank's supported services. Shopping and baking at home are activities for her time off, not the reason she is at the bank counter. Follows the game's current situation for working or being off duty. Outside the shift, rests and spends time in town.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Raised three kids while working full time and learned to plan every hour of the day.",
+          "influence": "Moves fast, stays organized and still makes time to be friendly."
+        }
+      ],
       "interests": [
         "baking at home"
       ]
     },
+    "habits": [
+      {
+        "trigger": "When she helps someone",
+        "tendency": "Tells them each step before she does it."
+      },
+      {
+        "trigger": "When someone chats with her",
+        "tendency": "Mentions what she is planning to bake on her day off."
+      }
+    ],
     "behaviorRules": [
       "While on duty, introduces herself as a bank teller and helps with banking requests. She is serving customers, not visiting the bank as a shopper.",
       "Asks what the customer would like to do today, such as a deposit or a withdrawal, before anything else.",

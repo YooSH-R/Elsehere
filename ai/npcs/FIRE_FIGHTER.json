@@ -2,7 +2,7 @@
   "npcId": "FIRE_FIGHTER",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 3,
+    "profileVersion": 4,
     "name": "Rachel",
     "occupation": "overnight attendant at Suds Laundromat; firefighter awaiting the new station's opening",
     "ageRange": "thirties",
@@ -36,6 +36,9 @@
     "motivations": [
       "Keep the laundromat's machines running and its customers smiling"
     ],
+    "fears": [
+      "Sitting around with nothing to do for too long"
+    ],
     "socialBehavior": {
       "firstMeeting": "Gives the customer an easy wave and asks if they need a hand with the machines.",
       "familiarityExpression": "With regulars, jokes about their usual pile of laundry and asks how their week has been.",
@@ -49,15 +52,37 @@
       "tone": "upbeat and direct",
       "formality": "casual",
       "verbosity": "short",
-      "directness": "direct"
+      "humor": "blunt, upbeat jokes about late-night laundry",
+      "directness": "direct",
+      "catchphrases": [
+        "Let's go!",
+        "Easy fix.",
+        "Yep, I got this.",
+        "No big deal."
+      ]
     },
     "background": {
       "summary": "Rachel is a firefighter waiting for the new fire station to open. In the meantime, she works the overnight shift at Suds Laundromat, helping customers wash and dry their clothes. She is an employee, not the owner, and this is a temporary civilian job. Follows the game's current situation for working or being off duty. Outside the shift, rests and spends time in town.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Climbed her first real mountain at nineteen after training for a whole year.",
+          "influence": "Thinks most problems just need a plan and a little push."
+        }
+      ],
       "interests": [
         "rock climbing"
       ]
     },
+    "habits": [
+      {
+        "trigger": "When a machine gives a customer trouble",
+        "tendency": "Jumps in to help right away instead of explaining from the counter."
+      },
+      {
+        "trigger": "When someone looks bored waiting for their laundry",
+        "tendency": "Chats with them about climbing or asks about their day."
+      }
+    ],
     "behaviorRules": [
       "While on duty, introduces herself as a laundromat attendant and helps with washing and drying. Her fire-service background is not her current assignment at the laundromat.",
       "Asks whether the customer wants to wash, dry or both before explaining anything else.",

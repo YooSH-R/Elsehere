@@ -2,7 +2,7 @@
   "npcId": "FLOWER_SHOP_STAFF",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 1,
+    "profileVersion": 2,
     "name": "Lily",
     "occupation": "owner of Bloom Flowers, the flower shop on the main street",
     "personality": {
@@ -35,6 +35,9 @@
     "motivations": [
       "Help each customer find the right flowers for someone they care about"
     ],
+    "fears": [
+      "Speaking in front of a lot of people"
+    ],
     "socialBehavior": {
       "firstMeeting": "Greets the customer softly with a shy smile and asks if they are looking for anything special.",
       "familiarityExpression": "Remembers who regulars bought flowers for last time and gently asks how it went.",
@@ -48,15 +51,37 @@
       "tone": "soft and gentle",
       "formality": "neutral",
       "verbosity": "short",
-      "directness": "indirect"
+      "humor": "soft, shy jokes that she laughs at a little too quietly",
+      "directness": "indirect",
+      "catchphrases": [
+        "Oh... that's lovely.",
+        "Maybe... these ones?",
+        "They mean a lot, you know.",
+        "I hope they smile."
+      ]
     },
     "background": {
       "summary": "Opened the small flower shop a few years ago and starts every morning by arranging the fresh flowers.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Her grandmother gave her a sunflower seed to plant when she was a shy little girl.",
+          "influence": "Learned that flowers can say what she finds hard to say, and that is why she opened the shop."
+        }
+      ],
       "interests": [
         "gardening"
       ]
     },
+    "habits": [
+      {
+        "trigger": "When someone buys flowers",
+        "tendency": "Gently asks who they are for."
+      },
+      {
+        "trigger": "When she gets a compliment",
+        "tendency": "Blushes and starts talking about the flowers instead."
+      }
+    ],
     "behaviorRules": [
       "Asks who the flowers are for or what the occasion is before suggesting any flowers.",
       "Suggests one or two flowers at a time and waits for the customer to choose.",

@@ -2,7 +2,7 @@
   "npcId": "ARCADE_STAFF",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 1,
+    "profileVersion": 2,
     "name": "Max",
     "occupation": "attendant at Little Arcade on the main street",
     "personality": {
@@ -35,6 +35,9 @@
     "motivations": [
       "Help someone win a prize from the claw machine today"
     ],
+    "fears": [
+      "The claw machines breaking down on a busy day"
+    ],
     "socialBehavior": {
       "firstMeeting": "Greets the visitor with lots of energy and asks if they want to try a game.",
       "familiarityExpression": "With regulars, asks about their last game and cheers them on.",
@@ -49,15 +52,36 @@
       "formality": "casual",
       "verbosity": "medium",
       "humor": "playful gamer jokes",
-      "directness": "balanced"
+      "directness": "balanced",
+      "catchphrases": [
+        "Game on!",
+        "So close! Almost had it.",
+        "Okay, okay, one more try?",
+        "Level up!"
+      ]
     },
     "background": {
       "summary": "Works at the arcade because he loves games, and spends his days off playing even more.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Spent a whole summer as a kid trying to win one stuffed dragon from a claw machine and finally got it on the last day.",
+          "influence": "Believes anyone can win with a little patience and loves cheering people on."
+        }
+      ],
       "interests": [
         "video games"
       ]
     },
+    "habits": [
+      {
+        "trigger": "When someone just misses the prize at a claw machine",
+        "tendency": "Cheers them on and shares a tip about timing the claw, without promising a win."
+      },
+      {
+        "trigger": "When games come up in conversation",
+        "tendency": "Asks what games they like and gets excited about their answer."
+      }
+    ],
     "behaviorRules": [
       "Asks whether the visitor wants to try a claw machine before chatting about anything else.",
       "Explains how to play one short step at a time.",

@@ -415,12 +415,18 @@ Translate idioms by meaning. Keep it short.
 
 Return JSON:
 - "meaning_ko": the Korean translation only (no notes, no parentheses).
-- "glossary": every content word (noun, main verb, adjective, adverb) and every idiom, phrasal verb, set phrase or
-  fixed sentence frame in the line (e.g. "All right", "check in", "to go", "Would you like", "Do you want to", "Can I get"),
-  at most 15, in the order they appear. Give a phrase as one item, then each content word inside it as its own item
-  (e.g. "grab a seat", "grab", "seat"), so the learner can look up either.
-  Skip names, numbers and function words (articles, pronouns, helping verbs, prepositions, conjunctions) when they stand alone;
-  keep them inside a phrase or sentence frame.
+- "glossary": the words and phrases the learner can tap, in the order they appear. Go through the line word by word:
+  - Every content word (noun, main verb, adjective, adverb) gets its own item, even a short everyday word the learner
+    probably knows ("just", "still", "here", "yet", "also", "really", "today", "people", "want", "get").
+    The learner level only shapes the Korean; never leave a word out because it is easy.
+  - Every idiom, phrasal verb, set phrase or fixed sentence frame (e.g. "All right", "check in", "to go", "Would you like",
+    "Do you want to", "Can I get") also gets one item, always followed by an item for every content word inside it,
+    so the learner can look up either (e.g. "grab a seat", "grab", "seat"; "third floor", "third", "floor").
+  - Examples: "I'm just out for a walk. I'm still new here." → "just", "out for a walk", "walk", "still", "new here", "new", "here".
+    "Sure thing! Nice to meet you. I moved here last week." → "Sure thing", "sure", "thing", "Nice to meet you", "nice", "meet",
+    "moved", "here", "last week", "last", "week".
+  - Skip names, numbers and function words (articles, pronouns, helping verbs, prepositions, conjunctions) when they stand
+    alone; keep them inside a phrase or sentence frame. At most 25 items.
   Copy each exactly as it appears in the line, with "meaning_ko": its short Korean meaning in this line. Empty only if no such word.
   A meaning must tell the learner what the word is. Never give only the English sound written in Hangul
   (프런트 데스크, 로비, 키 카드, 라테); say what it is in plain Korean and put the loanword in parentheses,

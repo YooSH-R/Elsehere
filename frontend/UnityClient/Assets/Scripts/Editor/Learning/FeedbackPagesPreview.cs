@@ -81,7 +81,9 @@ namespace A305.EditorTools.Learning
 
         public static void CaptureNaturalSentence() => Capture(naturalOnly: true);
 
-        private static void Capture(bool naturalOnly)
+        public static void CaptureExpanded() => Capture(naturalOnly: false, expanded: true);
+
+        private static void Capture(bool naturalOnly, bool expanded = false)
         {
             string output = System.Environment.GetEnvironmentVariable("FEEDBACK_PREVIEW_OUTPUT");
             if (string.IsNullOrWhiteSpace(output))
@@ -211,6 +213,8 @@ namespace A305.EditorTools.Learning
                     ),
                 }
             );
+            if (expanded)
+                view.ToggleExpanded();
             if (naturalOnly)
             {
                 const string sentence = "I have a reservation under Kim.";

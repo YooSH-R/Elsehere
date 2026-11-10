@@ -73,6 +73,8 @@ class State(BaseModel):
     desc: str
     intents: list[Intent] = Field(min_length=1)
     accumulate_history: bool = False  # 복합 미션 목표는 같은 대화의 학습자 발언에 나눠 말한 사실을 합쳐 판정한다.
+    # 0보다 크면 판정에 최근 대화 몇 줄(무례로 센 줄 제외)을 함께 보여 준다. '거기'처럼 앞에서 말한 것을 가리키는 말을 알아듣게 한다 (택시 목적지)
+    recent_lines: int = Field(default=0, ge=0, le=12)
     slots: Slots = Slots()
     current: dict = {}  # 지금 값 (예: {"order": "a latte"})
     more_intents: list[Intent] = []  # 같은 줄에서 이어서 할 수 있는 다음 단계 의도 (예: 포장 고르기 중의 '결제').

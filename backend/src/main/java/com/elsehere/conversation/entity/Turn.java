@@ -84,6 +84,10 @@ public class Turn extends BaseEntity {
   @Column(length = 40)
   private String policeDispatchPlaceCode;
 
+  // 택시 기사가 이 턴에서 알아들은 목적지. 첫 응답이 유실되어도 같은 요청에 같은 목적지를 돌려준다.
+  @Column(length = 40)
+  private String taxiDestinationCode;
+
   @Column(columnDefinition = "text")
   private String meaningKo;
 
@@ -155,6 +159,11 @@ public class Turn extends BaseEntity {
   public void recordPoliceDispatch(String placeCode) {
     policeDispatch = true;
     policeDispatchPlaceCode = placeCode;
+  }
+
+  /** 택시 기사가 목적지를 알아들은 사용자 턴. */
+  public void recordTaxiDestination(String placeCode) {
+    taxiDestinationCode = placeCode;
   }
 
   /** 생성된 영어 번역·교정 표현은 무례 판정과 관계없이 보여 준다. */

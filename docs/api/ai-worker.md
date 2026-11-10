@@ -149,9 +149,11 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 학습자 한 줄의 의도·줄 사건과 영어 문법 교정을 같은 모델 호출에서 판정합니다. 한글이 섞이면 기존 번역 호출을 **동시에** 실행합니다. 영어 교정을 위한 추가 모델 호출은 없습니다. 무례 판정은 하지 않습니다. 같은 줄로 `/v1/guard`(2.2.1절)를 동시에 불러 주세요.
 
-요청: `npc`, `scene`(비면 `npc.scene`), `state`(지금 상태: `id`, `desc`, `intents`, `slots`, `current`, `more_intents`, `accumulate_history`), `history`(최대 40줄), `text`(최대 500자, 공백만이면 400 `invalid_request`).
+요청: `npc`, `scene`(비면 `npc.scene`), `state`(지금 상태: `id`, `desc`, `intents`, `slots`, `current`, `more_intents`, `accumulate_history`, `recent_lines`), `history`(최대 40줄), `text`(최대 500자, 공백만이면 400 `invalid_request`).
 
 `state.accumulate_history`는 기본 `false`이며 첫날 미션은 `true`로 보냅니다. 복합 목표를 여러 발언에 나눠 설명하면 같은 대화의 이전 학습자 발언과 이번 발언을 합쳐 판정합니다. 이번 발언이 목표 완성에 기여해야 하며, NPC가 대신 말한 사실·무례로 확정된 이전 발언·인용 예문·부정·가정만으로 목표를 달성시키지 않습니다. 줄 사건(`events`)은 이번 발언만 판정합니다.
+
+`state.recent_lines`는 기본 `0`(상대의 마지막 줄만 보여 줌)이며 0~12입니다. 0보다 크면 무례로 확정된 줄을 뺀 최근 대화를 그 줄 수만큼 판정에 함께 보여 줘서, "거기"·"the first one"처럼 앞에서 말한 것을 가리키는 말을 알아듣게 합니다. 택시 목적지(`taxi_ride`)는 6으로 보냅니다.
 
 응답:
 

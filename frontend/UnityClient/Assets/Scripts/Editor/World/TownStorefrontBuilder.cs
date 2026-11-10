@@ -185,7 +185,7 @@ namespace A305.EditorTools.World
             ),
             new Storefront(
                 "PoliceStation",
-                TaxiDestinationRequest.PoliceStation,
+                "POLICE_STATION",
                 "SageResidence1F",
                 new Vector3(-7, .1f, -20),
                 90,

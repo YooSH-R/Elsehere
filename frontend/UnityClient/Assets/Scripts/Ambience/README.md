@@ -40,3 +40,23 @@
 **Tools → A305 → Audio → Build Footsteps** (`FootstepAudioBuilder.Build`)가 `Footsteps.asset`을 생성합니다. `Audio/Ambience/Footsteps`의 단발 WAV 6개(전체 약118KiB)를 모노·Vorbis·DecompressOnLoad로 가져옵니다. 첫 뒤꿈치 충격음을 덜어 내고 남은 밑창 소리를 부드럽게 가공했습니다. 연속 청음 샘플이나 비교 음원은 포함하지 않습니다. 출처는 해당 폴더의 `provenance.json`에 기록합니다. 기존 장소 카탈로그와 독립적으로 연결합니다.
 
 보행 정책 테스트는 정상 걸음, 벽·공중·이동 잠금·순간이동·일시정지·긴 프레임 무음, 정지 시 잔여 거리 초기화를 확인합니다. 실제 캐릭터의 발 착지와 청감은 Unity/WebGL에서 별도 확인합니다.
+
+
+## UI 효과음과 접속 화면 음악
+
+`InterfaceAudioPlayer`는 기존 생활소음과 별도의 지속 오디오 오브젝트입니다. `UiSoundEvents`로 전달된 실제 화면 동작만 재생하며, 일반 클릭은 활성화된 버튼의 실제 클릭·키보드 제출에서 발생합니다. 마이크·녹음 버튼은 클릭음을 넣지 않습니다. 동적으로 생긴 버튼도 연결하며, 프로그램이 직접 `onClick`을 호출한 경우에는 클릭음을 만들지 않습니다.
+
+| 동작 | 음원 | 재생 조건 |
+| --- | --- | --- |
+| 일반 클릭 | click.ogg | 누를 수 있는 버튼을 실제로 누름 |
+| 휴대폰 열기·닫기 | menu.ogg | 휴대폰 메뉴 버튼을 누름 |
+| 코인 획득 | coin.ogg | 이미 알고 있는 잔액이 증가함 |
+| 구매·코인 지출 | spend.ogg | 이미 알고 있는 잔액이 감소함. 잔액 감소 표시와 칩 흔들림을 함께 사용 |
+| 퀘스트 완료 | quest.ogg | 완료 팡파레를 실제로 표시함 |
+| 표현 저장 성공 | saved.ogg | 서버가 새로 저장했다고 응답함. 실패·중복 저장은 제외 |
+
+처음 받은 잔액·동일한 잔액 재수신은 효과음이 없습니다. 연타와 중복 보상은 `UiSoundGate`로 간격을 제한하고, 퀘스트 완료음 직후의 획득음은 겹치지 않게 합니다. UI 효과음과 접속 음악도 기존 스피커의 `BackgroundSoundPreference`를 따르며 NPC 음성은 변경하지 않습니다.
+
+접속 음악은 `EntryScene`에서만, 첫 클릭·터치·키 입력 이후 작게 반복됩니다. 브라우저 자동재생 제한을 우회하지 않습니다. 게임 공간으로 이동하면 약 0.5초에 걸쳐 꺼지고 기존 장소별 생활소음이 이어집니다. 음악은 외부 곡·샘플 없이 직접 합성한 약 31초 루프이며 원본 합성 도구는 `infra/audio/render-entry-music.py`입니다. 버전·길이·효과음 출처·라이선스는 `Assets/Audio/Interface/audio-manifest.json`과 `CREDITS.txt`에 기록합니다.
+
+**Tools → A305 → Audio → Build Interface Audio** (`InterfaceAudioBuilder.Build`)가 가져오기 설정과 `Resources/Ambience/InterfaceAudio.asset`을 연결합니다. 음악은 스테레오 Vorbis·CompressedInMemory·비동기 읽기, 짧은 효과음은 모노·DecompressOnLoad입니다. 씬·기존 화면 프리팹을 재생성하지 않습니다.

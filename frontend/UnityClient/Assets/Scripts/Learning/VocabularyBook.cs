@@ -192,6 +192,7 @@ namespace A305.Learning
                 entries.Insert(0, new VocabularyEntry(saved));
             }
 
+            A305.World.UiSoundEvents.Play(A305.World.UiSound.Saved);
             return VocabularySaveResult.Saved;
         }
 

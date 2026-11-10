@@ -1,0 +1,73 @@
+{
+  "effects": [
+    {
+      "cue": "click",
+      "source": "freesound_gamestudio-button-394464.mp3",
+      "source_seconds": 0.144,
+      "processed_seconds": 0.0992,
+      "source_sha256": "dbf0297a3ddf61bceec7f6f035168446d016bb4a340ac7d81c958b3538d5276e",
+      "source_url": "https://pixabay.com/sound-effects/film-special-effects-button-394464/",
+      "license": "Pixabay Content License",
+      "creator": "freesound_gamestudio"
+    },
+    {
+      "cue": "menu",
+      "source": "virtual_vibes-pop-tap-click-fx-383733.mp3",
+      "source_seconds": 2.136,
+      "processed_seconds": 0.2483,
+      "source_sha256": "a2c7f24ede43dcb3d802124aa6c717a61b4eaf078819839df24f68fecf5bdb66",
+      "source_url": "https://pixabay.com/sound-effects/film-special-effects-pop-tap-click-fx-383733/",
+      "license": "Pixabay Content License",
+      "creator": "Virtual_Vibes"
+    },
+    {
+      "cue": "coin",
+      "source": "freesound_gamestudio-get-item-394523.mp3",
+      "source_seconds": 2.5339,
+      "processed_seconds": 0.8,
+      "source_sha256": "eac99cdd32d17b2b60b929bec66f77ae37da94c1de6e1ebe7741754ab7a32d8e",
+      "source_url": "https://pixabay.com/sound-effects/film-special-effects-get-item-394523/",
+      "license": "Pixabay Content License",
+      "creator": "freesound_gamestudio"
+    },
+    {
+      "cue": "quest",
+      "source": "freesound_gamestudio-clear-combo-4-394493.mp3",
+      "source_seconds": 1.044,
+      "processed_seconds": 0.7745,
+      "source_sha256": "22bdc1a00fd789e410385cde256e130cb07326c0d9fc24a25c42da60180055fa",
+      "source_url": "https://pixabay.com/sound-effects/film-special-effects-clear-combo-4-394493/",
+      "license": "Pixabay Content License",
+      "creator": "freesound_gamestudio"
+    },
+    {
+      "cue": "saved",
+      "source": "freesound_gamestudio-combine-special-394482.mp3",
+      "source_seconds": 0.9,
+      "processed_seconds": 0.7726,
+      "source_sha256": "978525283d2b722a4cacccc75294c7cbd5f0572e2b761c2c786ef337b5e01900",
+      "source_url": "https://pixabay.com/sound-effects/film-special-effects-combine-special-394482/",
+      "license": "Pixabay Content License",
+      "creator": "freesound_gamestudio"
+    },
+    {
+      "cue": "spend",
+      "source": "freesound_gamestudio-get-item-394523.mp3",
+      "source_seconds": 2.5339,
+      "processed_seconds": 0.3333,
+      "source_sha256": "eac99cdd32d17b2b60b929bec66f77ae37da94c1de6e1ebe7741754ab7a32d8e",
+      "source_url": "https://pixabay.com/sound-effects/film-special-effects-get-item-394523/",
+      "license": "Pixabay Content License",
+      "creator": "freesound_gamestudio",
+      "processing": "First coin hit, pitch lowered by resampling 44100 to 37044 Hz and faded"
+    }
+  ],
+  "music": {
+    "file": "entry-town-ensemble.ogg",
+    "source": "Project original procedural composition; no external samples or AI service calls",
+    "bpm": 124,
+    "seconds": 30.9677324263,
+    "version": "town-balanced-v6"
+  },
+  "license_url": "https://pixabay.com/service/terms/"
+}

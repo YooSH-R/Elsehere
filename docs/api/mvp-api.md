@@ -321,7 +321,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `onboardingStep: DONE` | `lastSceneCode` 장소. 없으면 마을 |
 
 - `activeConversationId`가 있으면 CONV-11 규칙에 따라 처리합니다.
-- `aiStatus`의 형식과 판단 기준은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다. 게스트면 남은 대화 수(`remainingConversations`)도 담습니다. 가입 대기 상태(`SIGNUP_REQUIRED`)에는 담지 않습니다.
+- `aiStatus`의 형식과 판단 기준은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다. 게스트 대화 횟수 제한을 켠 경우(`GUEST_CONVERSATION_LIMIT` 1 이상) 게스트면 남은 대화 수(`remainingConversations`)도 담습니다. 가입 대기 상태(`SIGNUP_REQUIRED`)에는 담지 않습니다.
 - `user.uiTheme`은 계정에 저장한 화면 테마(`JELLY`, `STICKER`, `CLOUD`)입니다. 고른 적 없으면 `JELLY`이며 USER-01로 바꿉니다.
 - `user.voiceConsent`는 지금 버전의 음성 처리(`VOICE`)에 동의했는지입니다. `false`면 클라이언트는 녹음을 막고 [말하기]를 회색으로 보이며, 누르면 동의 창에서 USER-03으로 동의를 켤 수 있게 합니다. AUTH-04·07 응답의 `user`에도 같은 값이 있으며, USER-03으로 바꾸면 그 결과를 따릅니다.
 - `user.guest`는 게스트로 시작한 사용자(AUTH-07)인지입니다. 클라이언트는 게스트에게 마이페이지의 [회원 탈퇴](USER-05)를 보이지 않습니다. AUTH-04 응답은 `false`, AUTH-07 응답은 `true`입니다.
@@ -456,11 +456,11 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ```json
 // 응답 200
-{ "conversationLimit": 3 }
+{ "conversationLimit": 0 }
 ```
 
-- `conversationLimit`은 게스트 한 계정이 할 수 있는 NPC 대화 수로, 서버 설정값(`GUEST_CONVERSATION_LIMIT`, 기본 3)입니다. 한 번이라도 말을 주고받은 대화만 셉니다. 시작한 뒤의 남은 횟수는 AI-01·BOOT-01의 `remainingConversations`입니다.
-- 화면은 읽지 못해도 캐릭터 선택과 [시작하기]를 막지 않고, 횟수 없이 "횟수가 정해져 있어요"로 안내합니다.
+- `conversationLimit`은 게스트 한 계정이 할 수 있는 NPC 대화 수로, 서버 설정값(`GUEST_CONVERSATION_LIMIT`, 기본 0)입니다. `0`이면 가입 사용자처럼 제한이 없습니다. 1 이상이면 한 번이라도 말을 주고받은 대화만 셉니다. 시작한 뒤의 남은 횟수는 AI-01·BOOT-01의 `remainingConversations`입니다.
+- 화면은 읽지 못해도 캐릭터 선택과 [시작하기]를 막지 않고, 횟수 안내 없이 닉네임 안내만 보입니다. `0`이면 "게스트도 NPC와 마음껏 대화할 수 있어요"로 안내합니다.
 
 ### 4.2 초기 설정
 
@@ -990,7 +990,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 장소 연습(PRC-02)으로 시작한 대화의 응답은 `practiceScenarioId`에 상황 ID를 담습니다. 이 API로 시작한 일반 대화와 복습 대화는 `null`입니다.
 - `levelApplied`는 사용자의 `selected_level`입니다.
 - 1.4의 규칙대로 한 턴과 피드백에 쓸 토큰이 남아 있어야 시작하며, 피드백용 토큰을 예약합니다. 부족하면 `AI_QUOTA_EXHAUSTED`입니다.
-- 게스트(AUTH-07)는 한 번이라도 말을 주고받은 대화 수(끝난 대화 포함)가 서버 설정값(`GUEST_CONVERSATION_LIMIT`, 기본 3)에 이르면 대화를 시작하지 않고 `AI_QUOTA_EXHAUSTED`입니다. 말을 걸었다가 한 마디도 주고받지 않고 끝낸 대화는 세지 않습니다. `message`는 "게스트는 NPC와 3번까지 대화할 수 있어요. 마을 탐험, 사물 카드, 단어장은 계속할 수 있어요."입니다(횟수는 설정값). 게스트 한도는 다시 채워지지 않으므로 `resumeAt`을 담지 않습니다. 남은 횟수는 AI-01·BOOT-01의 `remainingConversations`이고, 시작하기 전 한도는 AUTH-08의 `conversationLimit`입니다.
+- 게스트 대화 횟수 제한은 기본으로 꺼져 있어(`GUEST_CONVERSATION_LIMIT=0`) 게스트도 가입 사용자처럼 제한이 없습니다. 이 값을 1 이상으로 켜면 게스트(AUTH-07)는 한 번이라도 말을 주고받은 대화 수(끝난 대화 포함)가 그 값에 이르면 대화를 시작하지 않고 `AI_QUOTA_EXHAUSTED`입니다. 말을 걸었다가 한 마디도 주고받지 않고 끝낸 대화는 세지 않습니다. `message`는 "게스트는 NPC와 3번까지 대화할 수 있어요. 마을 탐험, 사물 카드, 단어장은 계속할 수 있어요."입니다(횟수는 설정값). 게스트 한도는 다시 채워지지 않으므로 `resumeAt`을 담지 않습니다. 남은 횟수는 AI-01·BOOT-01의 `remainingConversations`이고, 시작하기 전 한도는 AUTH-08의 `conversationLimit`입니다.
 - 가입 사용자는 NPC 대화 횟수 제한이 없습니다. 대화 하나의 길이는 사용자 발화 30턴으로 제한합니다(CONV-03).
 - 게스트 한도에 이르러도 진행 중인 대화의 발화와 종료 피드백은 계속 사용할 수 있습니다.
 - 진행 중인 대화가 있으면 `CONVERSATION_ALREADY_ACTIVE`를 `activeConversationId`와 함께 돌려줍니다.
@@ -1567,15 +1567,15 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 - HUD의 "AI 사용 가능" 표시와 화면 19의 사용량 소진 안내에 씁니다. `canStartConversation`은 한 턴과 피드백에 쓸 토큰이 남아 있는지(1.4)를 반영합니다.
 - 클라이언트는 접속할 때(BOOT-01), 대화가 토큰 소진으로 끝났을 때, AI 요청이 거절됐을 때 상태를 갱신합니다. 소진 상태에서는 AI가 필요한 버튼을 비활성화하고, 탐험·사물 카드·단어장·지난 기록은 계속 제공합니다.
 - `quota`는 한도 정책이 정해진 경우에만 `{ "periodStart": "2026-10-21", "usedTokens": 1200, "remainingTokens": 8800 }` 형식으로 채웁니다. 화면 19의 "갱신 시점"은 `resumeAt`이며, 정해지지 않았으면 `[정책 미정]`으로 표시합니다.
-- 현재 구현: 가입 사용자의 토큰 한도(1.4)는 수치가 `[미정]`이라 아직 없고, 게스트의 대화 횟수 제한(CONV-01)만 반영합니다. 한도 정책이 없으므로 `quota`·`resumeAt`은 응답에 담지 않습니다.
+- 현재 구현: 가입 사용자의 토큰 한도(1.4)는 수치가 `[미정]`이라 아직 없고, 게스트의 대화 횟수 제한(CONV-01, 켠 경우)만 반영합니다. 한도 정책이 없으므로 `quota`·`resumeAt`은 응답에 담지 않습니다.
 
 | 사용자 | `status` | `canStartConversation` | `canUseSpeech` | `canGenerateFeedback` | `remainingConversations` |
 | --- | --- | --- | --- | --- | --- |
-| 가입 사용자 | `AI_AVAILABLE` | `true` | `true` | `true` | 담지 않음 |
+| 가입 사용자, 제한이 꺼진 게스트(기본) | `AI_AVAILABLE` | `true` | `true` | `true` | 담지 않음 |
 | 대화 횟수가 남은 게스트 | `AI_AVAILABLE` | `true` | `true` | `true` | 1 이상 |
 | 대화 횟수를 다 쓴 게스트 | `AI_EXHAUSTED` | `false` | `true` | `true` | `0` |
 
-- `remainingConversations`는 게스트가 더 시작할 수 있는 NPC 대화 수입니다(CONV-01의 `GUEST_CONVERSATION_LIMIT`에서 한 번이라도 말을 주고받은 대화 수를 뺀 값). 다시 채워지지 않습니다. 화면은 대화 제안과 대화 시작 확인 창에 남은 횟수를 붙이고, `0`이면 행인 말걸기를 멈추고 NPC를 누르거나 택시 버튼 자리의 [가입하고 계속 대화하기]를 누를 때 가입 안내 창을 띄웁니다. 대화가 끝나면 이 값을 다시 받고, `0`이면 그 대화의 피드백을 닫을 때도 가입 안내 창과 설문 카드를 띄웁니다. 가입 사용자는 횟수 제한이 없어 담지 않습니다.
+- `remainingConversations`는 게스트 대화 횟수 제한을 켠 경우에만 담는, 게스트가 더 시작할 수 있는 NPC 대화 수입니다(CONV-01의 `GUEST_CONVERSATION_LIMIT`에서 한 번이라도 말을 주고받은 대화 수를 뺀 값). 다시 채워지지 않습니다. 화면은 대화 제안과 대화 시작 확인 창에 남은 횟수를 붙이고, `0`이면 행인 말걸기를 멈추고 NPC를 누르거나 택시 버튼 자리의 [가입하고 계속 대화하기]를 누를 때 가입 안내 창을 띄웁니다. 대화가 끝나면 이 값을 다시 받고, `0`이면 그 대화의 피드백을 닫을 때도 가입 안내 창을 띄웁니다. 가입 사용자와 제한이 꺼진 게스트는 담지 않습니다. 게스트 가입 안내 창은 제한과 상관없이 첫 호텔 퀘스트(`CHECK_IN`)를 끝낸 팡파레의 [다음]에서도 띄웁니다.
 - 게스트 한도는 새 대화 시작만 막습니다. 마지막 대화에서 말을 주고받는 순간 `AI_EXHAUSTED`가 되지만, 그 대화의 음성 입력과 피드백은 그대로 쓸 수 있으므로 클라이언트는 `status`가 아니라 기능별 값으로 버튼을 켜고 끕니다.
 - 외부 AI 장애(`AI_TEMPORARILY_UNAVAILABLE`)와 운영 제한(`AI_RESTRICTED`)은 아직 판단하지 않습니다. 장애는 각 AI 요청의 오류 응답(1.5)으로 알립니다.
 

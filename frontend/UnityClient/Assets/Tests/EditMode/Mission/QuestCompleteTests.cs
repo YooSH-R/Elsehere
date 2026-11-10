@@ -103,6 +103,38 @@ namespace A305.Mission.Tests
             }
         }
 
+        // 게스트는 대화 횟수 제한이 없어져 대화를 다 쓸 때가 없으므로, 첫 호텔 퀘스트를 끝낸 팡파레의 [다음]에서 가입을 권한다.
+        [TestCase(true, "CHECK_IN", 1)]
+        [TestCase(false, "CHECK_IN", 0)]
+        [TestCase(true, "MORNING_AND_HAIRCUT", 0)]
+        public void FinishingTheFirstHotelQuestAsAGuest_AsksToSignUpOnNext(
+            bool guest,
+            string questId,
+            int expectedRequests
+        )
+        {
+            A305.Api.PlayerAccount.SetGuest(guest);
+            FirstDayMissionView view = Create();
+            int requests = 0;
+            void Count() => requests++;
+            A305.Api.GuestSignupPrompt.Requested += Count;
+            try
+            {
+                view.ShowQuestComplete(Board(), questId);
+                Assert.That(requests, Is.Zero, "팡파레 중에는 가입 안내를 띄우지 않습니다.");
+
+                QuestCompleteView complete = Field<QuestCompleteView>(view, "questComplete");
+                Find(complete, "Next").GetComponent<Button>().onClick.Invoke();
+
+                Assert.That(requests, Is.EqualTo(expectedRequests));
+            }
+            finally
+            {
+                A305.Api.GuestSignupPrompt.Requested -= Count;
+                A305.Api.PlayerAccount.SetGuest(false);
+            }
+        }
+
         private FirstDayMissionView Create()
         {
             instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));

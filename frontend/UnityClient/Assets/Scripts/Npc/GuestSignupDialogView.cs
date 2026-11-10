@@ -5,8 +5,9 @@ using UnityEngine.UI;
 namespace A305.Npc
 {
     /// <summary>
-    /// 대화를 다 쓴 게스트가 [가입하고 계속 대화하기]를 누르거나 마지막 대화의 피드백을 닫으면(<see cref="GuestSignupPrompt"/>)
-    /// 뜨는 가입 안내 창. [Google로 가입하기]는 Google 로그인(AUTH-01)으로
+    /// 게스트가 첫 호텔 퀘스트를 끝낸 팡파레의 [다음]을 누르면(<see cref="GuestSignupPrompt"/>) 뜨는 가입 안내 창.
+    /// 서버에서 게스트 대화 횟수 제한을 켠 경우에는 대화를 다 쓴 게스트가 [가입하고 계속 대화하기]를 누르거나 마지막 대화의 피드백을 닫을 때도 뜬다.
+    /// [Google로 가입하기]는 Google 로그인(AUTH-01)으로
     /// 페이지를 옮기고, 가입하면 게스트 때 기록이 그대로 이어진다(AUTH-04). 설문 안내 시점과는 독립적이다.
     /// </summary>
     public class GuestSignupDialogView : MonoBehaviour

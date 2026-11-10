@@ -16,7 +16,8 @@
 | `ApiSettings` | 서버 주소와 응답 대기 시간(`Data/Api/ApiSettings.asset`). Web 빌드는 같은 출처라 상대 경로, Editor는 `http://localhost:8080`입니다. |
 | `BrowserRedirect`, `AuthPaths`, `Plugins/WebGL/BrowserRedirect.jslib` | API 호출이 아니라 페이지 이동으로 여는 Google 로그인(AUTH-01)을 같은 탭에서 엽니다. 입구 화면과 장소의 게스트 가입 안내 창이 함께 씁니다. Editor는 브라우저 쿠키를 쓰지 않아 로그인 세션이 이어지지 않습니다. |
 | `SurveyPrompt` | 사용자 설문 주소와 안내 신호(`Requested`). 튜토리얼을 제외한 첫 일반 대화 피드백을 닫으면 `RequestAfterFeedback(true)`로 한 번 안내하고, 기기의 PlayerPrefs에 기록해 장소 이동·재접속에도 반복하지 않습니다. 튜토리얼·대본 대화는 `false`로 전달해 안내 기회를 소모하지 않습니다. 가입 안내와 퀘스트 완료는 설문을 별도로 요청하지 않습니다. 기존 v1 기록은 튜토리얼 안내와 구별할 수 없어 새 v2 기록으로 일반 대화 뒤 한 번 안내합니다. 명시적인 `Request()`는 그대로 사용할 수 있습니다. 장소 HUD의 설문 카드([Learning](../Learning/README.md)의 `SurveyPromptView`)가 받아 화면 위 가운데에서 내려오며, × 또는 6초 뒤 재열기 아이콘으로 접힙니다. `EntryVisible`은 아이콘이 드러난 시점을 공유해 시간·코인 HUD가 필요한 만큼만 자리를 비우게 합니다. 재접속 시 안내 기록으로 아이콘을 복원합니다. 설문을 바꾸면 `SurveyPrompt.Url`만 바꿉니다. |
-| `GuestSignupPrompt` | 대화를 다 쓴 게스트에게 "가입을 권할 때" 신호(`Request`·`Requested`). 마지막 대화의 피드백을 닫을 때([Learning](../Learning/README.md)의 `LearningController`) 부르고, 장소마다 있는 가입 안내 창([Npc](../Npc/README.md)의 `GuestSignupDialogView`)이 받아 엽니다. 피드백 화면과 가입 안내 창이 서로의 모듈을 모르고 이어지게 둔 것입니다. |
+| `GuestSignupPrompt` | 게스트에게 "가입을 권할 때" 신호(`Request`·`Requested`). 게스트가 첫 호텔 퀘스트를 끝낸 팡파레의 [다음]을 누르면([Mission](../Mission/README.md)의 `FirstDayMissionView`, `RequestAfterQuest`) 부르고, 서버에서 게스트 대화 횟수 제한을 켠 경우에는 대화를 다 쓴 마지막 대화의 피드백을 닫을 때([Learning](../Learning/README.md)의 `LearningController`)도 부르며, 장소마다 있는 가입 안내 창([Npc](../Npc/README.md)의 `GuestSignupDialogView`)이 받아 엽니다. 피드백 화면과 가입 안내 창이 서로의 모듈을 모르고 이어지게 둔 것입니다. |
+| `PlayerAccount` | 지금 접속한 계정이 게스트인지(`IsGuest`). 입구 화면([Onboarding](../Onboarding/README.md)의 `OnboardingFlow`)이 BOOT-01 응답으로 정하고, 장면을 옮겨도 남아 장소 화면이 읽습니다. 입구를 거치지 않고 장소 씬을 바로 연 편집기 실행에서는 회원으로 봅니다. |
 
 ## 의존성
 

@@ -6,7 +6,7 @@ import re
 
 from . import npc_relationship
 from .llm import ModelOutputError
-from .npc_prompt import CONVERSATION_FLOW, learner_section, reply_system_prompt
+from .npc_prompt import CONVERSATION_FLOW, MIDDLE, learner_section, reply_system_prompt
 from .schemas import Learner, LevelTestSpeakingItem, Line, Memory, Npc, Relationship, State
 
 TOWN = "Maple Town, a small, friendly town in the United States."
@@ -291,10 +291,7 @@ LEVEL_RULES = {
         "(slang and idioms are fine), and your own signature expressions now and then. "
         "Still sound like yourself through your warmth, humor, and what you choose to talk about."
     ),
-    2: (
-        "Speak natural everyday American English: contractions, and the common idioms, casual slang and your own expressions "
-        "in most replies. One or two sentences, under 25 words in total."
-    ),
+    2: MIDDLE,  # 인격 카드가 있는 NPC와 같은 중급 규칙 (S15P31A305-751)
     3: (
         "Talk exactly the way you really talk, at full speed: your slang, idioms, phrasal verbs, regional expressions, running jokes. "
         "Two or three sentences, under 45 words. Do not slow down or simplify for them. "
@@ -302,10 +299,12 @@ LEVEL_RULES = {
     ),
 }
 LEVEL_MAX_TOKENS = {1: 90, 2: 120, 3: 170}  # NPC 대답 출력 상한 (문장 수·길이 규칙에 맞춰)
-NPC_SPEECH_SPEED = 1.1  # 모든 난이도와 NPC에 같은 말 속도를 적용한다
-LEVEL_LEARNER = {  # 힌트·추천 단어·단어 풀이에서 학습자 수준을 알려 주는 말
+# NPC 말 속도(Kokoro speed). 같은 난이도면 모든 NPC가 같다. 백엔드가 음성을 다시 만들 때도 같은 값을 쓴다
+# (backend SpeechService). 고급은 아직 고를 수 없어 중급과 같게 둔다
+LEVEL_SPEECH_SPEED = {1: 1.1, 2: 1.3, 3: 1.3}
+LEVEL_LEARNER = {  # 힌트·추천 단어·단어 풀이에서 학습자 수준을 알려 주는 말. 백엔드 FeedbackInputs도 같은 말을 쓴다
     1: "very simple (CEFR A1-A2), short",
-    2: "simple and natural (CEFR A2-B1)",
+    2: "natural everyday English (CEFR B1)",
     3: "natural, can use a common idiom (CEFR B1-B2)",
 }
 

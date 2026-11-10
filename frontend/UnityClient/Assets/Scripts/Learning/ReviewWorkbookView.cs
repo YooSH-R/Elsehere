@@ -33,7 +33,14 @@ namespace A305.Learning
 
         [SerializeField]
         private Button[] filters;
+
+        [SerializeField]
+        private Sprite resultUsedMark;
+
+        [SerializeField]
+        private Sprite resultUnusedMark;
         private readonly List<ReviewWorkbookRow> rows = new List<ReviewWorkbookRow>();
+        private readonly List<RectTransform> resultRows = new List<RectTransform>();
         private readonly List<TMP_Text> buildingHeaders = new List<TMP_Text>();
         private ReviewBook book;
         private float lastWidth;
@@ -76,6 +83,7 @@ namespace A305.Learning
             if (isResult)
                 return;
             ClearRows();
+            status.gameObject.SetActive(true);
             float width = scroll.content.rect.width;
             float top = 14;
             foreach (
@@ -180,37 +188,103 @@ namespace A305.Learning
             more.GetComponentInChildren<TMP_Text>().text = "다시 연습";
             float width = scroll.content.rect.width;
             float top = 24;
-            status.text =
-                card == null
-                    ? ""
-                    : "<b>"
-                        + ReviewWorkbookRow.Escape(ReviewScenarioPresentation.Title(card))
-                        + "</b>\n"
-                        + ReviewWorkbookRow.Escape(ReviewScenarioPresentation.BuildingName(card))
-                        + " · "
-                        + ReviewWorkbookRow.Escape(card.Npc?.Name)
-                        + "\n\n";
-            status.text += ReviewPracticeFeedback.Format(card, record.ReviewResult);
-            float bodyWidth = Mathf.Max(160, width - 116);
-            float bodyHeight = status.GetPreferredValues(status.text, bodyWidth, 0).y + 36;
-            ReviewWorkbookRow.Pin(status.rectTransform, 58, top, bodyWidth, bodyHeight);
+            status.gameObject.SetActive(record?.ReviewResult == null);
+            if (record?.ReviewResult == null)
+            {
+                status.text = ReviewPracticeFeedback.Format(card, null);
+                float bodyHeight = status.GetPreferredValues(status.text, width - 116, 0).y + 36;
+                ReviewWorkbookRow.Pin(status.rectTransform, 58, top, width - 116, bodyHeight);
+                top += bodyHeight;
+            }
+            else
+            {
+                UiThemeCatalog theme = panel.GetComponent<ThemedElement>().Catalog;
+                top +=
+                    ResultHeading(
+                        ReviewScenarioPresentation.Title(card)
+                            + " · "
+                            + ReviewScenarioPresentation.BuildingName(card),
+                        30,
+                        UiThemeRole.Title,
+                        top,
+                        width,
+                        theme
+                    ) + 20;
+                var expressions = ReviewPracticeFeedback.Expressions(card, record.ReviewResult);
+                top +=
+                    ResultHeading(
+                        ReviewPracticeFeedback.Summary(expressions),
+                        25,
+                        UiThemeRole.Accent,
+                        top,
+                        width,
+                        theme
+                    ) + 34;
+                foreach (ReviewExpressionFeedback expression in expressions)
+                {
+                    RectTransform row = ReviewResultRow.Create(
+                        scroll.content,
+                        status,
+                        theme,
+                        expression,
+                        expression.Used ? resultUsedMark : resultUnusedMark,
+                        width - 48
+                    );
+                    resultRows.Add(row);
+                    float height = row.sizeDelta.y;
+                    ReviewWorkbookRow.Pin(row, 24, top, width - 48, height);
+                    top += height + 28;
+                }
+            }
             ReviewWorkbookRow.Pin(
                 (RectTransform)more.transform,
                 (width - 178) / 2,
-                top + bodyHeight + 24,
+                top + 24,
                 178,
                 54
             );
             scroll.content.SetSizeWithCurrentAnchors(
                 RectTransform.Axis.Vertical,
-                Mathf.Max(scroll.viewport.rect.height, top + bodyHeight + (card == null ? 40 : 114))
+                Mathf.Max(scroll.viewport.rect.height, top + (card == null ? 40 : 114))
             );
             scroll.verticalNormalizedPosition = 1;
             lastWidth = width;
         }
 
+        private float ResultHeading(
+            string text,
+            float fontSize,
+            UiThemeRole role,
+            float top,
+            float width,
+            UiThemeCatalog theme
+        )
+        {
+            TMP_Text label = ReviewResultRow.Text(
+                scroll.content,
+                status,
+                text,
+                fontSize,
+                role,
+                theme
+            );
+            buildingHeaders.Add(label);
+            float height = Mathf.Max(38, label.GetPreferredValues(label.text, width - 116, 0).y);
+            ReviewWorkbookRow.Pin(label.rectTransform, 58, top, width - 116, height);
+            return height;
+        }
+
         private void ClearRows()
         {
+            foreach (RectTransform row in resultRows)
+            {
+                row.gameObject.SetActive(false);
+                if (Application.isPlaying)
+                    Destroy(row.gameObject);
+                else
+                    DestroyImmediate(row.gameObject);
+            }
+            resultRows.Clear();
             foreach (var header in buildingHeaders)
             {
                 header.gameObject.SetActive(false);
@@ -272,7 +346,7 @@ namespace A305.Learning
                     ? Mathf.Clamp((frame.rect.width - 104) / 4, 64, 92)
                     : 92;
             }
-            scroll.viewport.offsetMax = new Vector2(-43.2f, narrow ? -188 : -125);
+            scroll.viewport.offsetMax = new Vector2(-43.2f, narrow && !isResult ? -188 : -125);
             scroll.viewport.offsetMin = new Vector2(43.2f, 32);
             Canvas.ForceUpdateCanvases();
         }

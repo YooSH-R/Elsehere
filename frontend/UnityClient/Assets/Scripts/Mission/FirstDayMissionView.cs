@@ -221,6 +221,9 @@ namespace A305.Mission
         private QuestBoardState finishedBoard;
         private int unlockedQuest = -1;
 
+        // 팡파레로 보인 퀘스트. [다음]에서 첫 호텔 퀘스트를 끝낸 게스트에게 가입을 권하는 데 쓴다.
+        private string finishedQuestId;
+
         // 퀘스트 카드·미니맵의 화면 자리를 구하는 데 매 프레임 다시 쓴다.
         private readonly Vector3[] hudCorners = new Vector3[4];
 
@@ -617,6 +620,7 @@ namespace A305.Mission
             if (rewardExpected)
                 ShowCoins(latestBalance - finished.Reward, latestPurchase);
             finishedBoard = board;
+            finishedQuestId = questId;
             bool opensNext =
                 index + 1 < board.Quests.Count
                 && board.Quests[index + 1].Status == QuestEntry.Available;
@@ -639,6 +643,7 @@ namespace A305.Mission
 
         /// <summary>
         /// 팡파레의 [다음]: 팡파레를 닫고, 열린 다음 퀘스트가 있으면 퀘스트 목록에서 그 잠금을 푼다. 연결은 QuestCompleteBuilder가 넣는다.
+        /// 첫 호텔 퀘스트를 끝낸 게스트에게는 가입을 권한다(<see cref="A305.Api.GuestSignupPrompt.RequestAfterQuest"/>).
         /// </summary>
         public void ShowNextQuest()
         {
@@ -651,6 +656,8 @@ namespace A305.Mission
             }
             unlockedQuest = -1;
             UpdateBoardLayer();
+            A305.Api.GuestSignupPrompt.RequestAfterQuest(finishedQuestId);
+            finishedQuestId = null;
         }
 
         /// <summary>

@@ -137,6 +137,8 @@ namespace A305.Onboarding
             UiTheme = boot.User?.UiTheme;
             Nickname = boot.User?.Nickname;
             IsVoiceAgreed = boot.User?.VoiceConsent ?? false;
+            // 장소 화면이 게스트에게만 가입을 권하도록 장면을 옮겨도 남는 곳에 둔다.
+            A305.Api.PlayerAccount.SetGuest(boot.User?.Guest == true);
 
             LevelTestStatus? lastLevelTest = null;
             if (boot.User?.OnboardingStep == OnboardingStep.Level)

@@ -688,6 +688,8 @@ namespace A305.EditorTools.Theme
             {
                 Button chip = OrderChoice(row, name, "", 0, width, 42);
                 chip.transform.SetAsLastSibling();
+                // 빈 글자로 만든 버튼은 라벨이 꺼져 있다. 글자는 VocabularyView가 개수와 함께 쓴다.
+                chip.transform.Find("Label").gameObject.SetActive(true);
                 // 고르지 않은 칩도 목록 줄처럼 옅은 흰 카드로 보여 누를 수 있는 칸임을 알린다.
                 Image card = SolidCard(Rect(chip.transform, "Card"), RowCardColor);
                 card.pixelsPerUnitMultiplier = 1.7f;

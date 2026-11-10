@@ -565,6 +565,7 @@ namespace A305.Learning.Tests
             Assert.That(Shown("Panel/PlaceChips"), Is.True);
             Assert.That(Text("Panel/PlaceChips/All/Label"), Is.EqualTo("전체 3"));
             Assert.That(Text("Panel/PlaceChips/Food/Label"), Is.EqualTo("음식 2"));
+            Assert.That(Shown("Panel/PlaceChips/Food/Label"), Is.True, "칩 글자가 보여야 합니다.");
             Assert.That(Text("Panel/PlaceChips/Services/Label"), Is.EqualTo("생활 서비스 1"));
             Assert.That(Shown("Panel/PlaceChips/Shopping"), Is.False);
             Assert.That(Shown("Panel/PlaceChips/Safety"), Is.False);

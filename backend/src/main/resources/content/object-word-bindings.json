@@ -4,7 +4,7 @@
         {
             "sceneCode": "HOME",
             "unityKey": "HomeScene",
-            "objectCount": 49,
+            "objectCount": 69,
             "detailCount": 50,
             "wordKeys": [
                 "air_conditioner",
@@ -52,7 +52,7 @@
         {
             "sceneCode": "CAFE",
             "unityKey": "CafeScene",
-            "objectCount": 63,
+            "objectCount": 83,
             "detailCount": 8,
             "wordKeys": [
                 "bench",
@@ -70,6 +70,7 @@
                 "door",
                 "floor",
                 "flowerpot",
+                "handle",
                 "menu",
                 "muffin",
                 "mug",
@@ -86,7 +87,7 @@
         {
             "sceneCode": "HOTEL",
             "unityKey": "HotelScene",
-            "objectCount": 48,
+            "objectCount": 68,
             "detailCount": 14,
             "wordKeys": [
                 "bell",
@@ -100,6 +101,7 @@
                 "floor",
                 "flowerpot",
                 "guestbook",
+                "handle",
                 "key_cabinet",
                 "lamp",
                 "luggage_cart",
@@ -117,8 +119,8 @@
         {
             "sceneCode": "TOWN",
             "unityKey": "TownScene",
-            "objectCount": 2144,
-            "detailCount": 86,
+            "objectCount": 3680,
+            "detailCount": 154,
             "wordKeys": [
                 "awning",
                 "bed",
@@ -225,7 +227,6 @@
                 "word_b4a755c63d1d408438a71815ba75d475",
                 "word_be12390675add1b488faf55f8e9aeb96",
                 "word_cfe407d309ec44540a66769b307075c8",
-                "word_dc738621f28e03c49bfa7b6f67dbf4b3",
                 "word_e438a4ee4f2a3494eaadb31ccfda0859",
                 "word_efe358bf0753d334891d16f6961a2d08",
                 "word_f1493503fe49b48488b6a1674ff150cd",
@@ -237,7 +238,7 @@
         {
             "sceneCode": "SHOP",
             "unityKey": "ShopScene",
-            "objectCount": 80,
+            "objectCount": 79,
             "detailCount": 0,
             "wordKeys": [
                 "ceiling",
@@ -258,6 +259,32 @@
                 "window",
                 "word_a115a59d89b32af4bbbe5aa6c17f8273"
             ]
+        },
+        {
+            "sceneCode": "POLICE_STATION",
+            "unityKey": "PoliceStationScene",
+            "objectCount": 85,
+            "detailCount": 1,
+            "wordKeys": [
+                "cabinet",
+                "ceiling",
+                "chair",
+                "cornice",
+                "door",
+                "floor",
+                "flowerpot",
+                "handle",
+                "lamp",
+                "note",
+                "plant",
+                "reception_desk",
+                "roof",
+                "sign",
+                "wall",
+                "window",
+                "word_513415d5ad951964c9ede7ba32b0596f",
+                "word_57394345ad5fd5c46a1e107b2d2a7656"
+            ]
         }
     ],
     "prefabs": [
@@ -269,9 +296,11 @@
                 "counter",
                 "door",
                 "floor",
+                "handle",
                 "menu",
                 "table",
-                "wall"
+                "wall",
+                "window"
             ]
         },
         {
@@ -536,10 +565,12 @@
                 "cabinet",
                 "door",
                 "floor",
+                "handle",
                 "refrigerator",
                 "sofa",
                 "tv",
-                "wall"
+                "wall",
+                "window"
             ]
         },
         {
@@ -549,10 +580,12 @@
                 "door",
                 "elevator",
                 "floor",
+                "handle",
                 "reception_desk",
                 "sign",
                 "sofa",
-                "wall"
+                "wall",
+                "window"
             ]
         },
         {
@@ -689,7 +722,9 @@
             "path": "Assets/Prefabs/Town/CafeBuilding.prefab",
             "wordKeys": [
                 "door",
-                "roof"
+                "handle",
+                "roof",
+                "window"
             ]
         },
         {
@@ -697,7 +732,9 @@
             "path": "Assets/Prefabs/Town/HomeBuilding.prefab",
             "wordKeys": [
                 "door",
-                "roof"
+                "handle",
+                "roof",
+                "window"
             ]
         },
         {
@@ -705,7 +742,9 @@
             "path": "Assets/Prefabs/Town/HotelBuilding.prefab",
             "wordKeys": [
                 "door",
-                "roof"
+                "handle",
+                "roof",
+                "window"
             ]
         },
         {
@@ -913,6 +952,50 @@
             ]
         },
         {
+            "guid": "0a4ee76cc994f2e4e93d6d167266d956",
+            "path": "Assets/Prefabs/World/CloudBoundaries/AirportBoundary.prefab",
+            "wordKeys": [
+                "cloud",
+                "sign"
+            ]
+        },
+        {
+            "guid": "65816bbc26751504a9c6a577c78f053b",
+            "path": "Assets/Prefabs/World/CloudBoundaries/AirportSkyNotice.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
+            "guid": "30dddc7ff8015a945b0441a2f15dd720",
+            "path": "Assets/Prefabs/World/CloudBoundaries/CloudBank.prefab",
+            "wordKeys": [
+                "cloud"
+            ]
+        },
+        {
+            "guid": "fc338e42bb8c127489d7ad658980434c",
+            "path": "Assets/Prefabs/World/CloudBoundaries/DistrictCloudTile.prefab",
+            "wordKeys": [
+                "cloud"
+            ]
+        },
+        {
+            "guid": "e916ff3741a500a479b40b6200f8e2ce",
+            "path": "Assets/Prefabs/World/CloudBoundaries/ParkBoundary.prefab",
+            "wordKeys": [
+                "cloud",
+                "sign"
+            ]
+        },
+        {
+            "guid": "553e6cdaf1f0d6d4baaa0dcbdd410dbf",
+            "path": "Assets/Prefabs/World/CloudBoundaries/ParkSkyNotice.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
             "guid": "fa28e285858e1494f893c372f193563e",
             "path": "Assets/Prefabs/World/Drugstore/CoffeeCounter.prefab",
             "wordKeys": [
@@ -1021,6 +1104,13 @@
             "path": "Assets/Prefabs/World/Drugstore/UmbrellaBin.prefab",
             "wordKeys": [
                 "word_a115a59d89b32af4bbbe5aa6c17f8273"
+            ]
+        },
+        {
+            "guid": "eef3b421d11c950448ba7e90d91ec48a",
+            "path": "Assets/Prefabs/World/HudNotice.prefab",
+            "wordKeys": [
+                "plate"
             ]
         },
         {
@@ -1188,13 +1278,6 @@
             ]
         },
         {
-            "guid": "77ce941845a94b6479e72474bfde108d",
-            "path": "Assets/Prefabs/World/MainstreetArt/ParkingMeter.prefab",
-            "wordKeys": [
-                "word_dc738621f28e03c49bfa7b6f67dbf4b3"
-            ]
-        },
-        {
             "guid": "4c4a89361c66a8e4f897682aedf4b28e",
             "path": "Assets/Prefabs/World/MainstreetArt/PedXingSign.prefab",
             "wordKeys": [
@@ -1213,6 +1296,15 @@
             "path": "Assets/Prefabs/World/MainstreetArt/RoundTree.prefab",
             "wordKeys": [
                 "tree"
+            ]
+        },
+        {
+            "guid": "ab8fbf6b8885d0b49b6225aa2bc46a60",
+            "path": "Assets/Prefabs/World/MainstreetArt/ShopEntrance.prefab",
+            "wordKeys": [
+                "door",
+                "handle",
+                "window"
             ]
         },
         {
@@ -1858,6 +1950,15 @@
             "path": "Assets/Prefabs/World/TinyTreats/PrettyPark/TrashCan.prefab",
             "wordKeys": [
                 "trash_can"
+            ]
+        },
+        {
+            "guid": "0e2554534829ff14fb602c9e032f3f8f",
+            "path": "Assets/Prefabs/World/TownHorizon/BoundaryOverlook.prefab",
+            "wordKeys": [
+                "fence",
+                "flowerbed",
+                "sidewalk"
             ]
         },
         {

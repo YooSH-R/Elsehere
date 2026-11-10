@@ -141,16 +141,18 @@ namespace A305.EditorTools.Learning
                     .GetArrayElementAtIndex(0)
                     .objectReferenceValue;
             Button close = Read<Button>(fields, "topCloseButton");
-            Button[] tabs = Enumerable
-                .Range(0, 4)
-                .Select(i =>
-                    (Button)
-                        fields
-                            .FindProperty("sectionButtons")
-                            .GetArrayElementAtIndex(i)
-                            .objectReferenceValue
-                )
-                .ToArray();
+            SerializedProperty sections = fields.FindProperty("sectionButtons");
+            var tabs = Enumerable
+                .Range(0, sections.arraySize)
+                .Select(i => (Button)sections.GetArrayElementAtIndex(i).objectReferenceValue)
+                .ToList();
+            // 복습장 장소 필터는 넷이다. 피드백 탭이 셋이 된 뒤에는 마지막 탭을 복사해 채운다.
+            while (tabs.Count < 4)
+            {
+                Button copy = Object.Instantiate(tabs[tabs.Count - 1], tabs[0].transform.parent);
+                copy.name = $"FilterButton{tabs.Count}";
+                tabs.Add(copy);
+            }
             Object.DestroyImmediate(feedback);
             foreach (Transform child in panel.transform.Cast<Transform>().ToArray())
             {
@@ -193,7 +195,7 @@ namespace A305.EditorTools.Learning
             );
             subtitle.gameObject.SetActive(false); // 좁은 창에서도 제목과 필터가 겹치지 않는다.
             string[] labels = { "전체", "카페", "호텔", "마을" };
-            for (int i = 0; i < tabs.Length; i++)
+            for (int i = 0; i < tabs.Count; i++)
             {
                 tabs[i].GetComponentInChildren<TMP_Text>(true).text = labels[i];
                 var size = tabs[i].GetComponent<LayoutElement>();
@@ -249,8 +251,8 @@ namespace A305.EditorTools.Learning
             Set(viewFields, "more", more);
             Set(viewFields, "close", close);
             var filters = viewFields.FindProperty("filters");
-            filters.arraySize = tabs.Length;
-            for (int i = 0; i < tabs.Length; i++)
+            filters.arraySize = tabs.Count;
+            for (int i = 0; i < tabs.Count; i++)
                 filters.GetArrayElementAtIndex(i).objectReferenceValue = tabs[i];
             viewFields.ApplyModifiedPropertiesWithoutUndo();
             foreach (Transform child in scroll.content.Cast<Transform>().ToArray())
@@ -337,29 +339,9 @@ namespace A305.EditorTools.Learning
             buttonObject.SetActive(false);
         }
 
-        private static void AttachSaveButton(GameObject feedbackRoot)
-        {
-            var view = feedbackRoot.GetComponent<FeedbackView>();
-            var fields = new SerializedObject(view);
-            var panel = Read<GameObject>(fields, "panel").transform;
-            Transform old = panel.Find("ReviewSaveButton");
-            if (old != null)
-                Object.DestroyImmediate(old.gameObject);
-            var button = Action(
-                panel,
-                Read<Button>(fields, "vocabularyButton"),
-                "ReviewSaveButton",
-                "복습장에 담기",
-                UiTone.Neutral
-            );
-            var rect = (RectTransform)button.transform;
-            rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
-            rect.anchoredPosition = new Vector2(44, 34);
-            rect.sizeDelta = new Vector2(240, 60);
-            Set(fields, "reviewButton", button);
-            fields.ApplyModifiedPropertiesWithoutUndo();
-            button.gameObject.SetActive(false);
-        }
+        // 피드백 창 왼쪽 아래 [복습장에 추가]는 피드백 화면 시안 그림이다(FeedbackScreenBuilder).
+        private static void AttachSaveButton(GameObject feedbackRoot) =>
+            FeedbackScreenBuilder.ReviewSaveButton(feedbackRoot.transform);
 
         private static Button Action(
             Transform parent,

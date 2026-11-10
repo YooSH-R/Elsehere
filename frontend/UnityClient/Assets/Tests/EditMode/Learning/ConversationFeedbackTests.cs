@@ -167,6 +167,26 @@ namespace A305.Learning.Tests
             );
         }
 
+        // 요약 카드는 잘한 점(잘했어요)과 아쉬운 점(더 해 봐요)을 나란한 두 메모로 따로 보인다.
+        [Test]
+        public void FromServer_DoneFeedback_KeepsGoodAndImproveNotesApart()
+        {
+            var feedback = ConversationFeedback.FromServer(
+                "Mia",
+                4,
+                new ServerFeedback(DoneSummary(), null, null)
+            );
+
+            Assert.That(
+                feedback.GoodNotes,
+                Is.EqualTo(new[] { "원하는 메뉴와 사이즈를 분명하게 말했어요." })
+            );
+            Assert.That(
+                feedback.ImproveNotes,
+                Is.EqualTo(new[] { "I want 대신 I'd like를 쓰면 더 공손해요." })
+            );
+        }
+
         [Test]
         public void FromServer_DoneFeedbackWithSuggestion_SuggestsBetterTextForNextConversation()
         {

@@ -2,6 +2,8 @@ import json
 import unittest
 from pathlib import Path
 
+from run_evaluation import check_expectations
+
 from feedback.clients import FixtureClient
 from feedback.models import INPUT
 from feedback.prompt import build_messages
@@ -51,6 +53,18 @@ class RobustnessTests(unittest.TestCase):
                 actual = [(t["turn_id"], t["final_text"]) for t in prompt["turns"] if t["speaker"] == "user"]
                 self.assertEqual(actual, expected)
                 self.assertEqual(prompt["required_review_turn_ids"], [turn_id for turn_id, _ in expected])
+
+    def test_korean_only_case_expects_an_english_expression_for_each_clear_korean_turn(self):
+        case = next(case for case in read("samples/robustness/index.json") if case["case_id"] == "korean_only")
+
+        def response(verdict, kinds):
+            reviews = [
+                {"turn_id": turn_id, "verdict": verdict, "suggestions": [{"kind": kind} for kind in kinds]} for turn_id in ("t02", "t04")
+            ]
+            return {"status": "completed", "result": {"turn_reviews": reviews, "vocab_candidates": []}}
+
+        self.assertNotEqual(check_expectations(response("not_assessable", []), case["expect"]), [])
+        self.assertEqual(check_expectations(response("improvement_suggested", ["context_fit"]), case["expect"]), [])
 
     def test_voice_case_only_correction_is_rejected(self):
         payload = read("samples/inputs/free_correct_alternative.json")

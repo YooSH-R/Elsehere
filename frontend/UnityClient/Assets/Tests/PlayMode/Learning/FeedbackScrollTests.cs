@@ -141,10 +141,7 @@ namespace A305.Learning.PlayModeTests
             yield return Show(situationCount: 2, summary: longSummary);
             ScrollRect scroll = instance.GetComponentInChildren<ScrollRect>();
             Assert.That(scroll, Is.Not.Null);
-            Assert.That(
-                Field<TMP_Text>("bodyText").overflowMode,
-                Is.EqualTo(TextOverflowModes.Overflow)
-            );
+            Assert.That(SummaryText().overflowMode, Is.EqualTo(TextOverflowModes.Overflow));
             Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
             AssertSummaryShownWhole();
             scroll.verticalNormalizedPosition = 0;
@@ -153,7 +150,7 @@ namespace A305.Learning.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator FewSituationRows_KeepTheSummaryBelowThem()
+        public IEnumerator FewSituationRows_KeepTheWholeSummaryAboveThem()
         {
             yield return Show(situationCount: 2, summary: Summary);
 
@@ -205,15 +202,18 @@ namespace A305.Learning.PlayModeTests
             yield return null;
         }
 
-        // 요약 칸이 짧은 요약 글 전체를 담는지. 모자라면 앞부분만 보이거나 아무것도 보이지 않는다.
+        // 요약 카드가 요약 글 전체를 담는지. 모자라면 앞부분만 보이거나 아무것도 보이지 않는다.
         private void AssertSummaryShownWhole()
         {
-            TMP_Text body = Field<TMP_Text>("bodyText");
+            TMP_Text text = SummaryText();
             Canvas.ForceUpdateCanvases();
-            float needed = body.GetPreferredValues(body.text, body.rectTransform.rect.width, 0).y;
-            Assert.That(body.text, Does.Contain(Summary));
-            Assert.That(body.rectTransform.rect.height + 1f, Is.GreaterThanOrEqualTo(needed));
+            float needed = text.GetPreferredValues(text.text, text.rectTransform.rect.width, 0).y;
+            Assert.That(text.text, Does.Contain(Summary));
+            Assert.That(text.rectTransform.rect.height + 1f, Is.GreaterThanOrEqualTo(needed));
         }
+
+        private TMP_Text SummaryText() =>
+            Field<RectTransform>("summaryCard").Find("Text").GetComponent<TMP_Text>();
 
         private static string RowText(GameObject row) =>
             string.Join(" ", row.GetComponentsInChildren<TMP_Text>().Select(text => text.text));

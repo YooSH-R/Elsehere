@@ -106,7 +106,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `AUDIO_TOO_LARGE` | 413 | 녹음 크기 초과(3MB) |
 | `AUDIO_FORMAT_UNSUPPORTED` | 415 | 지원하지 않는 녹음 형식 |
 | `STT_NO_SPEECH` | 422 | 무음 또는 인식 실패 |
-| `VOCAB_SOURCE_MISMATCH` | 422 | 저장하려는 단어가 출처(사물 카드, 대사 단어 풀이, 피드백 단어장 후보)에 없음 |
+| `VOCAB_SOURCE_MISMATCH` | 422 | 저장하려는 단어가 출처(사물 카드, 대사 단어 풀이, 피드백 단어장 후보·상황 표현·고친 문장)에 없음 |
 | `AI_QUOTA_EXHAUSTED` | 429 | 사용자 AI 한도 소진, 게스트 대화 횟수 소진 |
 | `AI_RATE_LIMITED` | 429 | 요청 속도 제한 |
 | `AI_RESPONSE_INVALID` | 502 | 제한 횟수만큼 재시도해도 AI 응답 형식 오류 |
@@ -1306,7 +1306,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 화면 16의 짧은 피드백을 그립니다. "Mia · 카페 · 발화 4번"은 `npc`, `sceneCode`, `userTurnCount`, "미션 완료"는 `completedMissions`, 개선 표현 상자는 `suggestion`입니다.
 - `summary`는 `conversation_feedback.summary`, `reviews`·`suggestion`·`situationExpressions`·`vocabCandidates`는 `conversation_feedback.reviews` JSON(`{ good, improve, suggestion, situationExpressions, vocabCandidates }`)에 저장합니다. 저장 형식은 응답과 따로 관리하므로 응답 필드 이름을 바꿔도 이미 저장된 피드백을 그대로 읽습니다.
 - `situationExpressions`는 이 장면에서 자주 쓰는 관용·추천 표현 0~3개입니다(표현, 뜻, 쓰는 때, 학습 예문과 번역). 사용자 발화 평가와 별개로 화면 16·17의 회화 칸에 보여 줍니다. 이 필드를 넣기 전에 만든 피드백과 `DONE`이 아닌 피드백은 빈 배열입니다. 예문은 학습용이며 사용자가 한 말이 아닙니다.
-- `vocabCandidates`는 단어장에 저장할 수 있는 단어(표현, 뜻, 학습 예문과 번역)입니다. 피드백의 단어장 후보(`vocab_candidates`)를 단어·숙어·문장 종류와 상관없이 담습니다. `situationExpressions`의 숙어·문장도 VOCAB-02 `FEEDBACK`으로 저장할 수 있습니다. 화면 16·17의 [단어장에 저장]은 이 목록의 `expression`을 VOCAB-02 `FEEDBACK`으로 보냅니다. 이 필드를 넣기 전에 만든 피드백과 `DONE`이 아닌 피드백은 빈 배열입니다.
+- `vocabCandidates`는 단어장에 저장할 수 있는 단어(표현, 뜻, 학습 예문과 번역)입니다. 피드백의 단어장 후보(`vocab_candidates`)를 단어·숙어·문장 종류와 상관없이 담습니다. `situationExpressions`의 숙어·문장과 문장별 평가(`detailedFeedback`)의 고친 문장 `betterText`도 VOCAB-02 `FEEDBACK`으로 저장할 수 있습니다. 화면 16·17의 [담기]는 이 목록의 `expression`이나 고친 문장을 VOCAB-02 `FEEDBACK`으로 보냅니다. 이 필드를 넣기 전에 만든 피드백과 `DONE`이 아닌 피드백은 빈 배열입니다.
 - 피드백은 대화를 시작할 때 예약한 토큰으로 만듭니다(1.4). 토큰이 떨어져 NPC가 대화를 끝낸 경우에도 피드백을 받습니다.
 - [대화 종료 (Esc)]와 오류 화면의 [대화 종료]에서 호출합니다. 어떤 오류 상태에서도 종료할 수 있습니다.
 - NPC가 대화를 끝낸 경우(`ENDED_BY_NPC`)에도 피드백을 받으려면 호출합니다. 이때 상태는 바꾸지 않고 피드백만 만듭니다.
@@ -1520,14 +1520,16 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 | --- | --- | --- | --- |
 | `OBJECT` | 사물 카드의 단어 | `vocabularies.meaning_ko` (시드) | 사물 카드 예문 `example` · `example_ko` (없으면 `null`) |
 | `NPC_LINE` | 그 턴의 CONV-04 단어 풀이(`glossary`)에 있는 단어·숙어 | `glossary[].meaningKo` | NPC 대사 전문 · CONV-04 대사 뜻 |
-| `FEEDBACK` | 그 대화 피드백의 단어장 후보 중 CONV-08·FB-01 `feedback.vocabCandidates`에 있는 것 | 후보의 `meaningKo` | 후보의 `exampleEn` · `exampleKo` |
+| `FEEDBACK` | 그 대화 피드백의 단어장 후보(CONV-08·FB-01 `feedback.vocabCandidates`)와 "이 상황에서 자주 써요" 표현(`feedback.situationExpressions`)에 있는 것 | 후보·표현의 `meaningKo` | 후보·표현의 `exampleEn` · `exampleKo` |
+| `FEEDBACK` (문장 교정) | 그 대화 문장별 평가(FB-03 `detailedFeedback`)의 고친 문장 `betterText`. 한국어로 말한 발화의 영어 문장도 포함 | 그 평가의 `reason` | 없음(`null`) |
 
 - 표에 없는 단어·숙어, 아직 뜻 보기(CONV-04)를 하지 않은 대사의 단어는 저장하지 않고 `422 VOCAB_SOURCE_MISMATCH`를 돌려줍니다. 클라이언트는 표의 단어에만 저장 버튼을 보여줍니다.
 - 새로 저장하면 `201`, 이미 저장한 단어면 처음 저장한 항목(문장 포함)을 그대로 `200`으로 돌려줍니다. 응답 형식은 VOCAB-01의 항목에 `created` 필드를 더한 것입니다.
 - 사전에 없는 단어는 `vocabularies`에 새로 만듭니다. 한 단어면 `type: WORD`, 두 단어 이상인 숙어면 `type: IDIOM`, 문장 부호로 끝나는 여러 단어 표현이면 `type: SENTENCE`입니다(`source`는 `NPC` 또는 `FEEDBACK`). 이미 있는 단어는 기존 뜻을 그대로 씁니다. 대소문자만 다른 단어(문장 첫머리의 `Latte` 등)는 같은 단어로 봅니다.
 - `NPC_LINE`은 `source_turn_id`에 `turnId`를, `source_conversation_id`에 그 턴의 대화를 기록합니다. `FEEDBACK`은 `source_conversation_id`에 요청의 `conversationId`를 기록합니다.
 - 이 규칙은 대화 쪽이 CONV-04의 단어 풀이와 피드백의 단어장 후보를 저장해 두는 것을 전제로 합니다.
-- 피드백을 만들지 못한 대화와 `vocabCandidates`를 넣기 전에 만든 피드백의 단어는 확인할 후보가 없어 `422 VOCAB_SOURCE_MISMATCH`입니다.
+- 피드백을 만들지 못한 대화와 `vocabCandidates`를 넣기 전에 만든 피드백의 단어는 확인할 후보가 없어 `422 VOCAB_SOURCE_MISMATCH`입니다. 다른 대화의 고친 문장도 같은 오류입니다.
+- 같은 말이 단어장 후보·상황 표현과 고친 문장에 모두 있으면 뜻과 예문이 있는 후보·표현으로 저장합니다.
 - `OBJECT`의 `wordKey`는 WORLD-02 단어 카드의 `wordKey`입니다.
 - `sourceType`이 없거나, `OBJECT`인데 `wordKey`가 비어 있거나, `NPC_LINE`인데 `turnId`·`text`가, `FEEDBACK`인데 `conversationId`·`text`가 비어 있으면 `400 VALIDATION_FAILED`입니다. 없는 단어 키면 `404 NOT_FOUND`입니다.
 - `NPC_LINE`의 턴이 없거나, 다른 사용자의 턴이거나, NPC가 아닌 사용자 턴이면 CONV-04와 같이 `404 NOT_FOUND`입니다. `FEEDBACK`의 대화가 없거나 다른 사용자의 대화여도 `404 NOT_FOUND`입니다.

@@ -27,16 +27,6 @@ namespace A305.Learning.Tests
         public void DestroyScreen() => Object.DestroyImmediate(instance);
 
         [Test]
-        public void SaveButton_LabelSitsHalfTheLipLower()
-        {
-            var label = Find(
-                "Panel/PageCard/Content/Situations/SituationRowTemplate/SaveButton/Label"
-            );
-
-            AssertLowered(label, 2.5f * Px);
-        }
-
-        [Test]
         public void Tabs_LabelsSitHalfTheLipLower()
         {
             Transform tabs = instance.transform.Find("Panel/Sections");

@@ -167,6 +167,15 @@ def test_every_learner_level_asks_for_everyday_idioms_and_slang():
         assert "No idioms" not in section, level
 
 
+def test_the_middle_level_stays_close_to_the_beginner_level_in_length():
+    """중급은 두 문장, 합쳐 20단어 안팎(최대 25)이다(2026-11-10 결정, S15P31A305-752).
+    두세 문장을 허용하면 25~28단어에 정보 3개가 나와 초급(한두 문장, 문장마다 12단어 미만)과 차이가 너무 크다."""
+    middle = level_section("B1")
+
+    assert "Two sentences, about 20 words in total and never over 25" in middle
+    assert "Two or three sentences" not in middle
+
+
 def test_the_opening_turn_sends_only_the_system_prompt():
     """첫 대사는 사용자 발화가 없다. 가짜 사용자 메시지를 만들지 않는다 (계약 4.1)."""
     messages = npc_messages(request_example("opening"))

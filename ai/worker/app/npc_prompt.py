@@ -140,9 +140,12 @@ BEGINNER = (
     "Sound like a real local, not a textbook: work an everyday idiom, a casual phrase or one of your catchphrases "
     "this character would say into most replies (slang and idioms are fine)."
 )
+# 중급은 초급과 너무 벌어지지 않게 두 문장, 합쳐 20단어 안팎(최대 25)으로 둔다(2026-11-10 결정). 두세 문장을 허용하면
+# 25~28단어에 정보 3개가 나와 초급과 차이가 너무 컸다
 MIDDLE = (
-    "Use natural everyday English, and work the idioms, casual slang and catchphrases this character would say into most replies. "
-    "Two or three sentences at most."
+    "Use natural everyday English, and work one or two of the idioms, phrasal verbs, casual slang and catchphrases "
+    "this character would say into most replies, without explaining them. "
+    "Two sentences, about 20 words in total and never over 25, with at most three pieces of information."
 )
 ADVANCED = "Talk as you naturally would, with your idioms, slang, phrasal verbs and catchphrases. Three sentences at most."
 LEVEL_RULES = {"A1": BEGINNER, "A2": BEGINNER, "B1": MIDDLE, "B2": MIDDLE, "C1": ADVANCED, "C2": ADVANCED}

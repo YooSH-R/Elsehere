@@ -292,6 +292,7 @@ namespace A305.EditorTools.Learning
             Set(fields, "reviewButton", entry);
             Set(fields, "reviewView", screen.GetComponent<ReviewWorkbookView>());
             fields.ApplyModifiedPropertiesWithoutUndo();
+            PhoneLearningMenuBuilder.Apply(hud);
         }
 
         private static void AttachReferenceFold(GameObject dialogueRoot)

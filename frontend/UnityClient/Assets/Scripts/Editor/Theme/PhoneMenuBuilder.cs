@@ -192,6 +192,7 @@ namespace A305.EditorTools.Theme
             Apps(view, phone);
             NavigationKeys(phone);
             Surroundings(root.transform);
+            PhoneLearningMenuBuilder.Apply(root);
         }
 
         // 시안처럼 폰을 펼친 동안 뒤 화면 가장자리를 어둡게 덮고(누르면 접히는 바탕), 오른쪽 위 휴대폰 버튼은 보이지 않게 한다.
@@ -270,7 +271,11 @@ namespace A305.EditorTools.Theme
             for (int i = phone.childCount - 1; i >= 0; i--)
             {
                 Transform child = phone.GetChild(i);
-                if (System.Array.IndexOf(AppNames, child.name) < 0)
+                if (
+                    System.Array.IndexOf(AppNames, child.name) < 0
+                    && child.name != "ReviewButton"
+                    && child.name != "NeighborsButton"
+                )
                     Object.DestroyImmediate(child.gameObject);
             }
             RemoveDecorations(phone.gameObject);

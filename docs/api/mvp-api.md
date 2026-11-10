@@ -48,7 +48,7 @@ AI를 호출하는 요청과 중복 반영되면 안 되는 요청은 본문(mul
 - 클라이언트의 버튼 활성화와 관계없이 최종 허용 여부는 서버가 판단합니다.
 - AI 호출 기록(`ai_requests`)은 호출 한 번이 한 행입니다. 한 턴에서 같은 `requestId`로 무례 판정·의도 판정·NPC 대답을 부르므로 `kind`(`STT`, `GUARD`, `JUDGE`, `NPC`, `TTS`, `HINT`, `MEANING`, `FEEDBACK`)로 구분합니다. 한도 예약은 턴 단위로 한 번 하고, 행별 실제 사용량으로 정산합니다.
 - 음성 인식(STT)은 토큰이 아니라 음성 길이로 사용량이 나옵니다. 길이는 `ai_requests.audio_ms`에 기록하고, 사용자 한도에서는 초당 토큰으로 환산해 차감합니다.
-- 튜토리얼 음성 인식(CONV-02 `purpose: TUTORIAL`)은 사용자 한도에서 차감하지 않고 비용 근거만 기록합니다.
+- 튜토리얼·레벨 테스트 음성 인식(CONV-02 `purpose: TUTORIAL`·`LEVEL_TEST`)은 사용자 한도에서 차감하지 않고 비용 근거만 기록합니다.
 - 한 턴의 예상 토큰, 피드백 예약량, 한도 수치, 갱신 주기, STT의 초당 토큰 환산 비율은 서버 설정값이며 `[미정]`입니다.
 - 게스트(AUTH-07)는 이와 별도로 계정마다 시작할 수 있는 NPC 대화 수를 제한합니다(CONV-01).
 
@@ -141,9 +141,11 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | | 게스트가 가입: 캐릭터는 게스트 때 것을 쓰므로 고르지 않고 닉네임·약관만 받은 뒤, 03~05 없이 게스트 때 단계(튜토리얼·마지막 장소)로 갑니다. | AUTH-03, AUTH-04 |
 | 03 배울 언어 선택 | 언어 카드(선택 가능·준비 중) | ONB-01 |
 | | [다음] | ONB-02 |
-| 04 레벨 테스트 | 첫 화면 [레벨 테스트 진행하기] (MVP는 클라이언트에서 비활성) | ONB-03 |
+| 04 레벨 테스트 | 첫 화면 [시작하기] | ONB-03 |
 | | 첫 화면 [건너뛰기] | ONB-07 |
 | | 문항, "문항 3 / N" 진행률, [다음] (응답 저장), 마지막 문항 뒤 결과 | ONB-04, ONB-05 |
+| | 듣기 문항 음성 | ONB-10 |
+| | 말하기 문항 녹음 → 음성 인식 | CONV-02(`purpose: LEVEL_TEST`) |
 | | 문항을 푸는 도중 [그만하기] | ONB-06 |
 | 05 NPC AI 난이도 설정 | "레벨 테스트 추천" 배지, 단계 카드(선택 가능·추후 제공) | ONB-08 |
 | | [설정 완료] | ONB-09 |
@@ -229,9 +231,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | ONB-02 | `PUT /api/v1/me/languages/{languageCode}` | 학습 언어 선택 | - | 03 |
 | ONB-03 | `POST /api/v1/level-tests` | 레벨 테스트 시작, 문항 조회 | - | 04 |
 | ONB-04 | `PUT /api/v1/level-tests/{testId}/answers/{itemCode}` | 문항 응답 저장 | - | 04 |
-| ONB-05 | `POST /api/v1/level-tests/{testId}/complete` | 채점·추천 레벨 (MVP는 초급 고정) | - | 04 |
+| ONB-05 | `POST /api/v1/level-tests/{testId}/complete` | 채점·추천 레벨(초급·중급), 말하기 AI 판정 | FEEDBACK | 04 |
 | ONB-06 | `POST /api/v1/level-tests/{testId}/quit` | 테스트 그만하기 | - | 04 |
 | ONB-07 | `POST /api/v1/level-tests/skip` | 테스트 건너뛰기 | - | 04 |
+| ONB-10 | `GET /api/v1/level-tests/items/{itemCode}/speech` | 듣기 문항 음성(WAV) | TTS(문항마다 한 번) | 04 |
 | ONB-08 | `GET /api/v1/me/languages/{languageCode}` | 추천 레벨과 선택 가능한 난이도 | - | 05 |
 | ONB-09 | `PUT /api/v1/me/languages/{languageCode}/level` | 대화 난이도 선택 | - | 05 |
 | TUT-01 | `POST /api/v1/me/tutorial/complete` | 튜토리얼 완료 | - | 12 |
@@ -475,44 +478,71 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - ONB-01 목록에 없거나 `available: false`인 언어는 `VALIDATION_FAILED`입니다.
 - 이미 고른 적 있는 언어를 다시 고르면 학습 설정(추천·선택 난이도)을 새로 만들지 않고 학습 언어만 바꿉니다. 언어 선택 단계를 지난 사용자의 `onboardingStep`은 바뀌지 않습니다.
 
-#### ONB-03~07 레벨 테스트
+#### ONB-03~07·10 레벨 테스트
 
-레벨 테스트 방식은 `[미정]`입니다. MVP는 흐름만 만들어 두고 실제 레벨 판정은 하지 않습니다.
+듣기 4문항과 말하기 2문항으로 초급(1)과 중급(2) 중 추천 난이도를 정합니다. 지금 퀘스트가 초급 기준이라, 문항은 그보다 위(B1)를 알아듣고 말할 수 있는지를 봅니다. 문법 문항은 두지 않습니다.
 
-- 문항은 서버 설정 데이터의 en-US 예시 선택형 5개입니다. 문항 원본을 둘 테이블이 ERD에 없으므로 `itemCode`로 문항을 구분합니다.
-- 결과 레벨은 점수와 상관없이 초급(1)으로 고정합니다.
-- 화면 04의 첫 화면에는 [레벨 테스트 진행하기]와 [건너뛰기]를 둡니다. MVP에서는 클라이언트가 [진행하기]를 비활성("준비 중")으로 막아 두므로 실제로는 ONB-07만 씁니다. ONB-03~06은 막아 둔 버튼을 열면 바로 쓸 수 있게 만들어 둔 API입니다.
+- 문항은 서버 설정 데이터(`LevelTestCatalog`)의 en-US 6개입니다. 문항 원본을 둘 테이블이 ERD에 없으므로 `itemCode`로 문항을 구분합니다.
+- 듣기(`LISTEN`): 마을 NPC가 말하는 두 문장 안팎의 대사를 자막 없이 듣고, 한국어 보기 4개 중 뜻을 고릅니다. 음성은 ONB-10으로 받습니다. 대사와 정답은 응답에 담지 않습니다.
+- 말하기(`SPEAK`): 상황 카드(`question`)와 말할 정보(`cues`)를 보고 한두 문장으로 말합니다. 녹음은 CONV-02(`purpose: LEVEL_TEST`)로 받아 적고, 받아 적은 말이나 직접 쓴 말을 ONB-04로 저장합니다. 통과 기준은 서버에만 있고 응답에 담지 않습니다.
+- 화면 04의 첫 화면에는 [시작하기]와 [건너뛰기]를 둡니다.
 
 ```json
-// ONB-03 POST /api/v1/level-tests  요청 ([진행하기]를 누를 때)
+// ONB-03 POST /api/v1/level-tests  요청 ([시작하기]를 누를 때)
 { "languageCode": "en-US" }
 
 // 응답 201
 {
   "testId": 9,
   "status": "IN_PROGRESS",
-  "totalItems": 5,
+  "totalItems": 6,
   "items": [
     {
-      "itemCode": "EN_L1_001",
-      "type": "CHOICE",
-      "instruction": "빈칸에 알맞은 말을 고르세요.",
-      "question": "Can I ______ a coffee, please?",
-      "choices": ["have", "has", "having", "had"]
+      "itemCode": "EN_LT_L2",
+      "type": "LISTEN",
+      "instruction": "잘 듣고 무슨 뜻인지 고르세요.",
+      "question": "무슨 뜻일까요?",
+      "choices": ["왼쪽 기계는 고장이라 창가 기계를 쓰고, 25센트 동전만 된다", "…", "…", "…"],
+      "speaker": "Gus · 빨래방 주인",
+      "cues": []
+    },
+    {
+      "itemCode": "EN_LT_S1",
+      "type": "SPEAK",
+      "instruction": "상황에 맞게 한두 문장으로 말해 보세요.",
+      "question": "카페에 가방을 두고 왔어요. 가방이 어떻게 생겼는지 말하고 찾아 달라고 하세요.",
+      "choices": [],
+      "cues": ["파란 숄더백", "빨간 열쇠고리", "안에 여권 지갑과 책"]
     }
   ]
 }
 ```
 
-- ONB-03은 [진행하기]를 누를 때 새 테스트(`IN_PROGRESS`)를 만들고 학습 설정의 `last_test_id`를 이 테스트로 바꿉니다. 정답은 응답에 담지 않습니다.
+- ONB-03은 [시작하기]를 누를 때 새 테스트(`IN_PROGRESS`)를 만들고 학습 설정의 `last_test_id`를 이 테스트로 바꿉니다.
 - 진행 중인 테스트가 있어도 다시 시작하면 새 테스트를 만듭니다. 중간에 나갔다 오면 이어서 풀지 않고 처음부터 다시 풉니다.
 - 화면 04의 "문항 3 / N"과 진행률은 `totalItems`와 현재 문항 순서로 그립니다.
-- ONB-04 `PUT /api/v1/level-tests/{testId}/answers/{itemCode}`는 `{ "answer": "have" }`를 저장하고 `204`를 돌려줍니다. 정답 여부도 함께 기록하며, 같은 문항에 다시 답하면 덮어씁니다. 없는 문항이면 `404 NOT_FOUND`입니다.
-- ONB-05는 `{ "testId": 9, "status": "DONE", "score": 3, "resultLevel": 1 }`을 돌려주고 `recommended_level`을 1로 저장합니다. `score`는 맞힌 문항 수이며, 답하지 않은 문항은 틀린 것으로 셉니다. 말하기 문항처럼 AI 채점이 필요해지면 AI 사용량 검사 대상이 됩니다.
+- ONB-10 `GET /api/v1/level-tests/items/{itemCode}/speech`는 듣기 문항 대사를 그 NPC 목소리로 만든 WAV를 돌려줍니다. 대사는 모든 사용자에게 같으므로 서버가 문항마다 한 번만 만들어 두고 다시 씁니다. 말하기 문항이나 없는 문항이면 `404 NOT_FOUND`입니다.
+- ONB-04 `PUT /api/v1/level-tests/{testId}/answers/{itemCode}`는 `{ "answer": "…" }`를 저장하고 `204`를 돌려줍니다. 듣기 문항은 고른 보기를 정답과 비교해 기록하고, 말하기 문항은 답만 저장해 완료할 때 판정합니다. 같은 문항에 다시 답하면 덮어씁니다. 없는 문항이면 `404 NOT_FOUND`입니다.
+
+```json
+// ONB-05 POST /api/v1/level-tests/{testId}/complete  응답 200
+{
+  "testId": 9,
+  "status": "DONE",
+  "score": 5,
+  "resultLevel": 2,
+  "listeningScore": 3,
+  "speakingPassed": 2,
+  "feedback": "설명은 잘했어요. 부탁할 때 Could you…? 같은 표현을 더 연습해 보세요."
+}
+```
+
+- ONB-05는 답한 말하기 문항을 AI 워커(`/v1/level-test/speaking`, 기록 종류 `FEEDBACK`)에 보내 문항별 통과 여부와 한 줄 피드백을 받습니다. AI를 기다리는 동안 DB 트랜잭션을 잡지 않고, 판정에 실패하면 테스트는 진행 중으로 남아 다시 완료할 수 있습니다. 답한 말하기 문항이 없으면 AI를 부르지 않고 `feedback`을 담지 않습니다.
+- 듣기 4개 중 3개 이상을 맞히고 말하기 2개를 모두 통과하면 중급(2), 그 밖은 초급(1)을 추천하고 `recommended_level`에 저장합니다. 답하지 않은 문항은 틀린 것으로 셉니다. `score`는 맞힌 듣기와 통과한 말하기 문항 수(0~6)입니다.
 - ONB-06 [그만하기]는 일부 응답 후 멈춘 기록(`QUIT`)입니다. `{ "testId": 9, "status": "QUIT" }`를 돌려주고 추천 레벨은 바꾸지 않습니다.
 - 응답·완료·그만하기는 진행 중인 테스트에만 할 수 있습니다. 이미 끝난 테스트면 `409 LEVEL_TEST_NOT_IN_PROGRESS`, 다른 사용자의 테스트면 `404 NOT_FOUND`입니다.
 - 고른 적 없는 언어로 시작하거나 건너뛰면 `404 NOT_FOUND`입니다.
-- 문항 하나만 건너뛰는 기능의 필요 여부는 `[미정]`입니다.
+- 문항 하나만 건너뛰는 기능은 두지 않습니다. 듣기에서 모르겠으면 아무 보기나 고르고, 말하기는 답하지 않고 넘어가면 통과하지 못한 것으로 셉니다.
 
 ```json
 // ONB-07 POST /api/v1/level-tests/skip  요청
@@ -522,7 +552,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 { "testId": 10, "status": "SKIPPED" }
 ```
 
-- ONB-07 [건너뛰기]는 테스트를 시작하기 전에 누르므로 테스트 ID 없이 학습 언어만 보냅니다. 테스트를 치르지 않고 넘어간 기록(`SKIPPED`)을 만들고 `last_test_id`를 이 기록으로 바꿉니다. 추천 레벨 없이 화면 05로 갑니다.
+- ONB-07 [건너뛰기]는 테스트를 시작하기 전에 누르므로 테스트 ID 없이 학습 언어만 보냅니다. 테스트를 치르지 않고 넘어간 기록(`SKIPPED`)을 만들고 `last_test_id`를 이 기록으로 바꿉니다. 추천 레벨 없이 화면 05로 가고, 초급으로 시작합니다.
 
 #### ONB-08 `GET /api/v1/me/languages/{languageCode}`
 
@@ -892,8 +922,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | 필드 | 설명 |
 | --- | --- |
 | `requestId` | 요청 ID |
-| `purpose` | `TURN`(자유 대화 발화) 또는 `TUTORIAL`(튜토리얼 대본 대사) |
-| `conversationId` | `TURN`일 때 진행 중인 대화 ID. `TUTORIAL`이면 보내지 않습니다. |
+| `purpose` | `TURN`(자유 대화 발화), `TUTORIAL`(튜토리얼 대본 대사), `LEVEL_TEST`(레벨 테스트 말하기 답) |
+| `conversationId` | `TURN`일 때 진행 중인 대화 ID. `TUTORIAL`·`LEVEL_TEST`면 보내지 않습니다. |
 | `audio` | 녹음 파일 |
 
 ```json
@@ -908,7 +938,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 서버는 인식에 철자 힌트를 함께 보냅니다. 학습자 닉네임(게스트 제외), `TURN`이면 대화 NPC 이름·같은 장소 NPC 이름·그 장소의 메뉴·상품 이름(예: 카페의 `Iced Americano`)과 직전 NPC 대사, 그리고 늘 마을·가게 이름(`Maple Town`, `Maple Bakery` 등)입니다. 장소별 단어와 마을 단어는 [`content/speech-words.json`](../../backend/src/main/resources/content/speech-words.json)에 둡니다.
 - 녹음 형식은 `webm`, `ogg`, `mp4`, `wav`, `mpeg`이며 Unity는 16kHz 모노 16비트 WAV로 보냅니다. `audio` 파일 부분에 `Content-Type`(예: `audio/wav`)을 붙입니다.
 - 녹음은 최대 3MB입니다. 서버는 AI를 호출하기 전에 크기와 형식을 확인해 `AUDIO_TOO_LARGE`(413), `AUDIO_FORMAT_UNSUPPORTED`(415)로 거절합니다. 녹음 길이(최대 15초, 무음이 3초 넘게 이어지면 자동 종료)는 클라이언트 녹음 규칙으로 지킵니다. `durationMs`는 인식 뒤에 알 수 있으므로 거절 기준으로 쓰지 않습니다.
-- 받은 음성은 전사 후 보관하지 않습니다. 녹음 음성 활용(`TRAINING_VOICE`)에 동의한 사용자의 녹음만 인식 결과와 함께 학습용으로 보관합니다(`training_recordings`, [AI 개선 데이터 활용 기준](../ai-training-data.md)). 무음·인식 실패는 보관하지 않고, 보관에 실패해도 전사 응답은 그대로 돌려줍니다.
+- 받은 음성은 전사 후 보관하지 않습니다. 녹음 음성 활용(`TRAINING_VOICE`)에 동의한 사용자의 대화·튜토리얼 녹음만 인식 결과와 함께 학습용으로 보관합니다. 레벨 테스트(`LEVEL_TEST`) 녹음은 보관하지 않습니다(`training_recordings`, [AI 개선 데이터 활용 기준](../ai-training-data.md)). 무음·인식 실패는 보관하지 않고, 보관에 실패해도 전사 응답은 그대로 돌려줍니다.
 - 음성은 외부 음성 인식 공급자로 가므로 지금 버전의 음성 처리(`VOICE`)에 동의한 사용자만 쓸 수 있습니다. 동의하지 않았으면 녹음을 확인하거나 AI를 부르기 전에 `403 VOICE_CONSENT_REQUIRED`로 거절합니다. 클라이언트는 BOOT-01의 `user.voiceConsent`로 미리 녹음을 막고, 회색 [말하기]를 누르면 동의 창(USER-03)을 띄웁니다.
 
 #### CONV-03 `POST /api/v1/conversations/{conversationId}/turns`
@@ -1592,7 +1622,7 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 | --- | --- | --- |
 | 예문 표시 시점 | WORLD-02 | 사물 카드에 예문을 저장 전부터 보여줄지(와이어프레임), 저장 후에만 보여줄지 정합니다. |
 | 사물 저장 출처 | VOCAB-01 | 사물에서 저장한 표현은 어느 사물에서 저장했는지 기록하지 않습니다. 화면에 사물 이름이 필요하면 `user_vocab`에 사물 ID를 추가합니다. |
-| 레벨 테스트 문항 | ONB-03~05 | 문항 원본 테이블이 없어 서버 설정 데이터로 둡니다. MVP는 en-US 예시 선택형 5문항입니다. |
+| 레벨 테스트 문항 | ONB-03~05 | 문항 원본 테이블이 없어 서버 설정 데이터로 둡니다. en-US 듣기 4·말하기 2문항입니다. |
 | 힌트 단계 | CONV-05 | 자유 대화 힌트는 추천 단어·추천 문장 2단계로 요구사항명세서의 3단계와 다릅니다. 요구사항명세서와 다른 점으로 기록합니다. |
 
 ## 6. 정할 사항
@@ -1613,7 +1643,6 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 | 피드백 건너뛰기 버튼 | CONV-08 | 배치 여부 |
 | 대화 중 새로고침 | CONV-11 | 이어서 진행 / 종료 처리. Unity는 대화를 시작할 때 `CONVERSATION_ALREADY_ACTIVE`를 받으면 CONV-11로 남은 대화를 받습니다. 지금 말을 건 NPC와의 대화면 지난 대사를 다시 보이고 이어서 진행합니다(새 대화를 만들지 않아 게스트 대화 횟수를 다시 쓰지 않음). 다른 NPC와의 대화면 피드백 없이 끝내고(`skipFeedback: true`) 새로 시작합니다. |
 | 미션 완료 행동 | MIS-01 | 대화만(초안) / 장소 방문·단어 저장 등 추가 |
-| 레벨 테스트 방식·문항 건너뛰기 | ONB-03~07 | 선택형 / 말하기 포함, 채점 기준, 문항 단위 건너뛰기 여부. MVP는 예시 문항·초급 고정으로 흐름만 두고 [진행하기]를 막아 둡니다. |
 | 일일 미션 보상 | MIS-01 | 보상 여부 (날짜 기준은 MVP에서 `Asia/Seoul`로 확정) |
 | 맵 확장 시 사물 조회 | WORLD-02 | 주변 사물 `wordKey` 묶음 조회 `[제안]` / 서버 반경 조회 |
 | 사용량 소진 HTTP 상태 코드 | 1.5 | 429 `[제안]` / 403 |

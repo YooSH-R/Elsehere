@@ -32,6 +32,7 @@ from .schemas import (
     GuardRequest,
     HintRequest,
     JudgeRequest,
+    LevelTestSpeakingRequest,
     MeaningRequest,
     MemoryRequest,
     PersonaDeriveRequest,
@@ -321,6 +322,11 @@ def create_app(
     @app.post("/v1/meaning")
     async def meaning(req: MeaningRequest, request: Request):
         return await services.meaning(request.app.state.llm, req)
+
+    @app.post("/v1/level-test/speaking")
+    async def level_test_speaking(req: LevelTestSpeakingRequest, request: Request):
+        """레벨 테스트 말하기 문항마다 통과 여부와 한국어 피드백. 백엔드가 테스트를 끝낼 때 한 번 부른다 (워커는 저장하지 않음)."""
+        return await services.level_test_speaking(request.app.state.llm, req)
 
     @app.post("/v1/suggest")
     async def suggest(req: SuggestRequest, request: Request):

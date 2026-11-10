@@ -25,6 +25,8 @@ import jakarta.persistence.EntityManager;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,19 +60,40 @@ class LevelTestServiceTest {
 
   @Autowired private LevelTestRepository levelTestRepository;
 
+  @Autowired private LevelTestCatalog levelTestCatalog;
+
   @Test
-  @DisplayName("시작하면 진행 중인 테스트와 문항 5개를 돌려주고 학습 설정의 마지막 테스트를 이 테스트로 바꾼다")
+  @DisplayName("시작하면 진행 중인 테스트와 듣기 4·말하기 2 문항을 돌려주고 학습 설정의 마지막 테스트를 이 테스트로 바꾼다")
   void start_createsInProgressTestAndRecordsItAsLastTest() {
     User user = persistUserWithLanguage();
 
     LevelTestStartResponse response = levelTestService.start(user.getId(), "en-US");
 
     assertThat(response.status()).isEqualTo(LevelTestStatus.IN_PROGRESS);
-    assertThat(response.totalItems()).isEqualTo(5);
+    assertThat(response.totalItems()).isEqualTo(6);
     assertThat(response.items())
-        .extracting(LevelTestItemResponse::itemCode)
-        .containsExactly("EN_L1_001", "EN_L1_002", "EN_L1_003", "EN_L1_004", "EN_L1_005");
+        .extracting(LevelTestItemResponse::itemCode, LevelTestItemResponse::type)
+        .containsExactly(
+            tuple("EN_LT_L1", LevelTestItemType.LISTEN),
+            tuple("EN_LT_L2", LevelTestItemType.LISTEN),
+            tuple("EN_LT_L3", LevelTestItemType.LISTEN),
+            tuple("EN_LT_L4", LevelTestItemType.LISTEN),
+            tuple("EN_LT_S1", LevelTestItemType.SPEAK),
+            tuple("EN_LT_S2", LevelTestItemType.SPEAK));
     assertThat(findProfile(user).getLastTestId()).isEqualTo(response.testId());
+  }
+
+  @Test
+  @DisplayName("듣기 문항은 말한 사람과 보기 4개를, 말하기 문항은 상황과 말할 정보를 담는다")
+  void start_itemsCarryWhatEachScreenShows() {
+    User user = persistUserWithLanguage();
+
+    List<LevelTestItemResponse> items = levelTestService.start(user.getId(), "en-US").items();
+
+    assertThat(items.get(1).speaker()).isEqualTo("Gus · 빨래방 주인");
+    assertThat(items.get(1).choices()).hasSize(4);
+    assertThat(items.get(4).question()).startsWith("카페에 가방을 두고 왔어요.");
+    assertThat(items.get(4).cues()).containsExactly("파란 숄더백", "빨간 열쇠고리", "안에 여권 지갑과 책");
   }
 
   @Test
@@ -85,19 +108,19 @@ class LevelTestServiceTest {
   }
 
   @Test
-  @DisplayName("응답하면 문항별로 저장하고 정답 여부를 기록한다")
+  @DisplayName("듣기 문항은 답하면 정답 여부를 기록하고, 말하기 문항은 받아 적은 말만 저장해 완료할 때 판정한다")
   void answer_savesAnswerWithCorrectness() {
     User user = persistUserWithLanguage();
     Long testId = levelTestService.start(user.getId(), "en-US").testId();
 
-    levelTestService.answer(user.getId(), testId, "EN_L1_001", "have");
-    levelTestService.answer(user.getId(), testId, "EN_L1_002", "are");
+    levelTestService.answer(user.getId(), testId, "EN_LT_L1", correctChoice("EN_LT_L1"));
+    levelTestService.answer(user.getId(), testId, "EN_LT_L2", wrongChoice("EN_LT_L2"));
+    levelTestService.answer(user.getId(), testId, "EN_LT_S1", "I left my blue bag here.");
 
     assertThat(answerRepository.findAll())
-        .extracting(
-            LevelTestAnswer::getItemCode, LevelTestAnswer::getAnswer, LevelTestAnswer::isCorrect)
+        .extracting(LevelTestAnswer::getItemCode, LevelTestAnswer::isCorrect)
         .containsExactlyInAnyOrder(
-            tuple("EN_L1_001", "have", true), tuple("EN_L1_002", "are", false));
+            tuple("EN_LT_L1", true), tuple("EN_LT_L2", false), tuple("EN_LT_S1", false));
   }
 
   @Test
@@ -105,14 +128,13 @@ class LevelTestServiceTest {
   void answerSameItemAgain_overwritesAnswer() {
     User user = persistUserWithLanguage();
     Long testId = levelTestService.start(user.getId(), "en-US").testId();
-    levelTestService.answer(user.getId(), testId, "EN_L1_001", "has");
+    levelTestService.answer(user.getId(), testId, "EN_LT_L1", wrongChoice("EN_LT_L1"));
 
-    levelTestService.answer(user.getId(), testId, "EN_L1_001", "have");
+    levelTestService.answer(user.getId(), testId, "EN_LT_L1", correctChoice("EN_LT_L1"));
 
     assertThat(answerRepository.findAll())
-        .extracting(
-            LevelTestAnswer::getItemCode, LevelTestAnswer::getAnswer, LevelTestAnswer::isCorrect)
-        .containsExactly(tuple("EN_L1_001", "have", true));
+        .extracting(LevelTestAnswer::getItemCode, LevelTestAnswer::isCorrect)
+        .containsExactly(tuple("EN_LT_L1", true));
   }
 
   @Test
@@ -121,7 +143,7 @@ class LevelTestServiceTest {
     User user = persistUserWithLanguage();
     Long testId = levelTestService.start(user.getId(), "en-US").testId();
 
-    assertThatThrownBy(() -> levelTestService.answer(user.getId(), testId, "EN_L9_999", "have"))
+    assertThatThrownBy(() -> levelTestService.answer(user.getId(), testId, "EN_LT_X9", "have"))
         .isInstanceOfSatisfying(
             BusinessException.class,
             exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
@@ -134,28 +156,91 @@ class LevelTestServiceTest {
     Long testId = levelTestService.start(owner.getId(), "en-US").testId();
     User other = persistUser("google-sub-2", "Moon");
 
-    assertThatThrownBy(() -> levelTestService.answer(other.getId(), testId, "EN_L1_001", "have"))
+    assertThatThrownBy(() -> levelTestService.answer(other.getId(), testId, "EN_LT_L1", "anything"))
         .isInstanceOfSatisfying(
             BusinessException.class,
             exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
   }
 
   @Test
-  @DisplayName("완료하면 맞힌 개수를 점수로, 결과 레벨은 점수와 상관없이 초급(1)으로 정하고 추천 난이도를 1로 저장한다")
-  void complete_scoresCorrectAnswersAndRecommendsBeginner() {
+  @DisplayName("판정에 보낼 말하기 응답은 답한 말하기 문항과 그 말이다")
+  void speakingAnswers_areTheAnsweredSpeakingItems() {
     User user = persistUserWithLanguage();
     Long testId = levelTestService.start(user.getId(), "en-US").testId();
-    levelTestService.answer(user.getId(), testId, "EN_L1_001", "have");
-    levelTestService.answer(user.getId(), testId, "EN_L1_002", "is");
-    levelTestService.answer(user.getId(), testId, "EN_L1_003", "Yes, I do.");
+    levelTestService.answer(user.getId(), testId, "EN_LT_L1", correctChoice("EN_LT_L1"));
+    levelTestService.answer(user.getId(), testId, "EN_LT_S2", "The stain is still there.");
 
-    LevelTestResultResponse result = levelTestService.complete(user.getId(), testId);
+    List<LevelTestSpeakingAnswer> answers = levelTestService.speakingAnswers(user.getId(), testId);
+
+    assertThat(answers)
+        .extracting(answer -> answer.item().itemCode(), LevelTestSpeakingAnswer::answer)
+        .containsExactly(tuple("EN_LT_S2", "The stain is still there."));
+  }
+
+  @Test
+  @DisplayName("듣기 3개 이상을 맞히고 말하기 2개를 모두 통과하면 중급(2)을 추천하고 저장한다")
+  void completeWithListeningAndBothSpeakingPassed_recommendsMiddle() {
+    User user = persistUserWithLanguage();
+    Long testId = levelTestService.start(user.getId(), "en-US").testId();
+    answerListening(user, testId, 3);
+    levelTestService.answer(user.getId(), testId, "EN_LT_S1", "I left my blue shoulder bag here.");
+    levelTestService.answer(user.getId(), testId, "EN_LT_S2", "The coffee stain is still there.");
+
+    LevelTestResultResponse result =
+        levelTestService.complete(
+            user.getId(),
+            testId,
+            new SpeakingJudgement(Set.of("EN_LT_S1", "EN_LT_S2"), "설명을 잘했어요."));
 
     assertThat(result.status()).isEqualTo(LevelTestStatus.DONE);
-    assertThat(result.score()).isEqualTo(2);
-    assertThat(result.resultLevel()).isEqualTo(1);
+    assertThat(result.listeningScore()).isEqualTo(3);
+    assertThat(result.speakingPassed()).isEqualTo(2);
+    assertThat(result.score()).isEqualTo(5);
+    assertThat(result.resultLevel()).isEqualTo(2);
+    assertThat(result.feedback()).isEqualTo("설명을 잘했어요.");
     assertThat(levelTestRepository.findById(testId).orElseThrow().getCompletedAt()).isEqualTo(NOW);
+    assertThat(findProfile(user).getRecommendedLevel()).isEqualTo(2);
+    assertThat(answerRepository.findAll())
+        .filteredOn(answer -> answer.getItemCode().startsWith("EN_LT_S"))
+        .allMatch(LevelTestAnswer::isCorrect);
+  }
+
+  @Test
+  @DisplayName("듣기를 다 맞혀도 말하기를 하나라도 통과하지 못하면 초급(1)을 추천한다")
+  void completeWithOneSpeakingFailed_recommendsBeginner() {
+    User user = persistUserWithLanguage();
+    Long testId = levelTestService.start(user.getId(), "en-US").testId();
+    answerListening(user, testId, 4);
+    levelTestService.answer(user.getId(), testId, "EN_LT_S1", "I left my blue shoulder bag here.");
+    levelTestService.answer(user.getId(), testId, "EN_LT_S2", "shirt coffee");
+
+    LevelTestResultResponse result =
+        levelTestService.complete(
+            user.getId(), testId, new SpeakingJudgement(Set.of("EN_LT_S1"), "부탁하는 말을 연습해 보세요."));
+
+    assertThat(result.listeningScore()).isEqualTo(4);
+    assertThat(result.speakingPassed()).isEqualTo(1);
+    assertThat(result.resultLevel()).isEqualTo(1);
     assertThat(findProfile(user).getRecommendedLevel()).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("말하기를 모두 통과해도 듣기를 2개 이하로 맞히면 초급(1)이다. 답하지 않은 문항은 틀린 것으로 센다")
+  void completeWithTwoListeningCorrect_recommendsBeginner() {
+    User user = persistUserWithLanguage();
+    Long testId = levelTestService.start(user.getId(), "en-US").testId();
+    answerListening(user, testId, 2);
+    levelTestService.answer(user.getId(), testId, "EN_LT_S1", "I left my blue shoulder bag here.");
+    levelTestService.answer(user.getId(), testId, "EN_LT_S2", "The coffee stain is still there.");
+
+    LevelTestResultResponse result =
+        levelTestService.complete(
+            user.getId(),
+            testId,
+            new SpeakingJudgement(Set.of("EN_LT_S1", "EN_LT_S2"), "듣기를 더 연습해 보세요."));
+
+    assertThat(result.listeningScore()).isEqualTo(2);
+    assertThat(result.resultLevel()).isEqualTo(1);
   }
 
   @Test
@@ -163,9 +248,9 @@ class LevelTestServiceTest {
   void answerFinishedTest_isRejected() {
     User user = persistUserWithLanguage();
     Long testId = levelTestService.start(user.getId(), "en-US").testId();
-    levelTestService.complete(user.getId(), testId);
+    levelTestService.complete(user.getId(), testId, SpeakingJudgement.none());
 
-    assertThatThrownBy(() -> levelTestService.answer(user.getId(), testId, "EN_L1_001", "have"))
+    assertThatThrownBy(() -> levelTestService.answer(user.getId(), testId, "EN_LT_L1", "anything"))
         .isInstanceOfSatisfying(
             BusinessException.class,
             exception ->
@@ -178,9 +263,10 @@ class LevelTestServiceTest {
   void completeFinishedTest_isRejected() {
     User user = persistUserWithLanguage();
     Long testId = levelTestService.start(user.getId(), "en-US").testId();
-    levelTestService.complete(user.getId(), testId);
+    levelTestService.complete(user.getId(), testId, SpeakingJudgement.none());
 
-    assertThatThrownBy(() -> levelTestService.complete(user.getId(), testId))
+    assertThatThrownBy(
+            () -> levelTestService.complete(user.getId(), testId, SpeakingJudgement.none()))
         .isInstanceOfSatisfying(
             BusinessException.class,
             exception ->
@@ -193,7 +279,7 @@ class LevelTestServiceTest {
   void quit_endsTestWithoutRecommendation() {
     User user = persistUserWithLanguage();
     Long testId = levelTestService.start(user.getId(), "en-US").testId();
-    levelTestService.answer(user.getId(), testId, "EN_L1_001", "have");
+    levelTestService.answer(user.getId(), testId, "EN_LT_L1", correctChoice("EN_LT_L1"));
 
     LevelTestResultResponse result = levelTestService.quit(user.getId(), testId);
 
@@ -232,7 +318,7 @@ class LevelTestServiceTest {
   void quitFinishedTest_isRejected() {
     User user = persistUserWithLanguage();
     Long testId = levelTestService.start(user.getId(), "en-US").testId();
-    levelTestService.complete(user.getId(), testId);
+    levelTestService.complete(user.getId(), testId, SpeakingJudgement.none());
 
     assertThatThrownBy(() -> levelTestService.quit(user.getId(), testId))
         .isInstanceOfSatisfying(
@@ -240,6 +326,27 @@ class LevelTestServiceTest {
             exception ->
                 assertThat(exception.getErrorCode())
                     .isEqualTo(ErrorCode.LEVEL_TEST_NOT_IN_PROGRESS));
+  }
+
+  private void answerListening(User user, Long testId, int correctCount) {
+    List<String> listening = List.of("EN_LT_L1", "EN_LT_L2", "EN_LT_L3", "EN_LT_L4");
+    for (int i = 0; i < listening.size(); i++) {
+      String itemCode = listening.get(i);
+      String choice = i < correctCount ? correctChoice(itemCode) : wrongChoice(itemCode);
+      levelTestService.answer(user.getId(), testId, itemCode, choice);
+    }
+  }
+
+  private String correctChoice(String itemCode) {
+    return levelTestCatalog.findItem(itemCode).orElseThrow().answer();
+  }
+
+  private String wrongChoice(String itemCode) {
+    LevelTestItem item = levelTestCatalog.findItem(itemCode).orElseThrow();
+    return item.choices().stream()
+        .filter(choice -> !choice.equals(item.answer()))
+        .findFirst()
+        .orElseThrow();
   }
 
   private User persistUser() {

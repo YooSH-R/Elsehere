@@ -69,7 +69,9 @@ namespace A305.Onboarding
         private GuestReturnPanelView guestReturnPanel;
 
         [SerializeField]
-        [Tooltip("입구 화면 뒤 배경. 가운데 창이 뜨면 왼쪽 크림색 그라데이션 없이 흐린 마을만 보여 준다.")]
+        [Tooltip(
+            "입구 화면 뒤 배경. 가운데 창이 뜨면 왼쪽 크림색 그라데이션 없이 흐린 마을만 보여 준다."
+        )]
         private EntryBackdropView backdrop;
 
         private IOnboardingApi api;

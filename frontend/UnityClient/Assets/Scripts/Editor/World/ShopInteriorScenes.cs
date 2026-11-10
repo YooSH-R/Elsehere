@@ -18,7 +18,7 @@ namespace A305.EditorTools.World
     /// <summary>건물 프리팹을 편집 원본으로 두고 마을의 집기를 정리하며 Play·빌드 시 실내와 출입구를 구성한다.</summary>
     public sealed class ShopInteriorScenes : IProcessSceneWithReport
     {
-        private const string Folder = "Assets/Scenes/ShopInteriors";
+        internal const string Folder = "Assets/Scenes/ShopInteriors";
         private const string BuildingsPath = "TownMainstreet/BackgroundBuildings";
         private const string UpperSuffix = "UpperInterior";
 

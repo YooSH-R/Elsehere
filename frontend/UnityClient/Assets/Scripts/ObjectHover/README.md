@@ -131,7 +131,7 @@ Inspector의 **백엔드 데이터 내보내기** 버튼 또는 **Tools → A305
 2. 프리팹의 `HoverableObject.Word`에 에셋을 지정합니다. Builder 자동 연결이 필요하면 `Scripts/Editor/ObjectHover/ObjectWordBindings.json`에 프리팹 또는 의미 있는 사물 루트 이름과 내부 공용 키를 추가합니다.
 3. 세부 영역이 있는 가구는 **Assets → Create → A305 → Object Hover → Parts**로 `Data/ObjectHover/Parts/`에 에셋을 만들고, 부분별 단어와 가구 로컬 좌표의 영역을 입력해 `HoverableObject.Parts`에 연결합니다. 작은 부분을 앞에 두면 겹치는 큰 영역보다 우선합니다.
 4. `BuilderTools`로 프리팹과 씬을 저장하면 알려진 사물에 에셋과 호버 전용 Trigger를 연결합니다. 이미 지정한 Word와 Parts는 유지합니다. 세부 데이터가 있는 합쳐진 모델은 떨어진 모양마다 호버 Trigger를 나눕니다. 이동 충돌은 유지합니다.
-5. **Tools → A305 → ObjectHover → Register All Scene Words**로 배포용 집·카페·호텔·마을의 누락 검사를 통과시킵니다. 보고서 경로는 `A305_WORD_REPORTS` 환경변수 또는 임시 폴더의 `A305ObjectWords/registration.txt`입니다.
+5. **Tools → A305 → ObjectHover → Register All Scene Words**로 장소 씬(`Scenes/Production/`의 집·카페·호텔·마을·상점·경찰서)과 마을 매장 실내 씬(`Scenes/ShopInteriors/`)의 누락 검사를 통과시킵니다. 실내 씬은 건물 프리팹 인스턴스만 담으므로 씬을 고치지 않고 검사만 하며, 실행 중 마을 씬에 덧붙여 불러오므로 실내 사물의 단어는 마을(`TOWN`) 단어로 내보냅니다. 매장 실내 씬은 폴더에서 찾으므로 매장이 늘어도 목록을 고치지 않습니다. 보고서 경로는 `A305_WORD_REPORTS` 환경변수 또는 임시 폴더의 `A305ObjectWords/registration.txt`입니다.
 6. 전체 등록은 백엔드 파일도 내보냅니다. **Check Backend Export** 또는 `sync-object-words.ps1 -Check`를 통과시킵니다. 에셋·연결표·생성 데이터·프리팹·씬·새 `.meta`를 함께 반영합니다.
 
 공간 씬의 호버 처리와 툴팁은 [World 모듈의 공간 기능 연결](../World/README.md#새-공간-씬-만들기)이 붙이므로 씬마다 직접 배치하지 않습니다.

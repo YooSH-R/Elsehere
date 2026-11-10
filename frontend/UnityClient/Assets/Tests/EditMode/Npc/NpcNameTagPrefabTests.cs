@@ -50,6 +50,27 @@ namespace A305.Npc.Tests
             Assert.That(roleLabel.GetComponent<TMP_Text>(), Is.Not.Null);
         }
 
+        // [이웃]에서 찾는 NPC는 이름 위에 코랄 표시를 달아 멀리서도 알아보게 한다. 평소에는 숨겨 둔다.
+        [Test]
+        public void Template_HasAHiddenTrackedMarkAboveTheName()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            var view = new SerializedObject(prefab.GetComponentInChildren<NpcNameTagView>(true));
+            var template = (RectTransform)view.FindProperty("tagTemplate").objectReferenceValue;
+
+            Transform mark = template.Find("Tracked");
+            Assert.That(mark, Is.Not.Null);
+            Assert.That(mark.gameObject.activeSelf, Is.False);
+            Assert.That(
+                mark.GetSiblingIndex(),
+                Is.LessThan(template.Find("Name").GetSiblingIndex())
+            );
+            Assert.That(
+                mark.Find("Label").GetComponent<TMP_Text>().text,
+                Is.EqualTo(NpcNameTags.TrackedLabel)
+            );
+        }
+
         [Test]
         public void NameTagLayer_CatchesClicksOnTheWholeTag()
         {

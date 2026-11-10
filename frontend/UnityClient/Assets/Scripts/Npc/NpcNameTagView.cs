@@ -60,7 +60,7 @@ namespace A305.Npc
             for (int i = 0; i < shownTags.Count; i++)
             {
                 ShownTag shown = shownTags[i];
-                SlotAt(i).Show(shown.Npc, shown.Tag, ToLayer(shown.ScreenPoint));
+                SlotAt(i).Show(shown.Npc, shown.Tag, shown.IsTracked, ToLayer(shown.ScreenPoint));
             }
 
             for (int i = shownTags.Count; i < slots.Count; i++)
@@ -101,7 +101,15 @@ namespace A305.Npc
             foreach (NpcIdentity npc in NpcIdentity.Active)
             {
                 float meters = Vector3.Distance(npc.transform.position, player.transform.position);
-                NpcNameTag? tag = NpcNameTags.IsShown(meters, player.IsMovementLocked)
+                bool isTracked = NpcTracking.Shared.IsTracking(npc.Code);
+                if (isTracked && NpcTracking.HasArrived(meters))
+                {
+                    // [이웃]에서 찾던 NPC에게 다가왔다. 지도 핀과 머리 위 표시를 함께 거둔다.
+                    NpcTracking.Shared.Clear();
+                    isTracked = false;
+                }
+
+                NpcNameTag? tag = NpcNameTags.IsShown(meters, player.IsMovementLocked, isTracked)
                     ? TagOf(npc.Code)
                     : null;
                 Vector3 screen = viewer.WorldToScreenPoint(HeadTopOf(npc));
@@ -112,7 +120,12 @@ namespace A305.Npc
                 }
 
                 shownTags.Add(
-                    new ShownTag(npc, NpcNameTags.ForDuty(tag.Value, IsOffDuty(npc)), screen)
+                    new ShownTag(
+                        npc,
+                        NpcNameTags.ForDuty(tag.Value, IsOffDuty(npc)),
+                        screen,
+                        isTracked
+                    )
                 );
             }
         }
@@ -187,16 +200,20 @@ namespace A305.Npc
         /// <summary>이번 프레임에 띄울 이름표 하나</summary>
         private readonly struct ShownTag
         {
-            public ShownTag(NpcIdentity npc, NpcNameTag tag, Vector3 screenPoint)
+            public ShownTag(NpcIdentity npc, NpcNameTag tag, Vector3 screenPoint, bool isTracked)
             {
                 Npc = npc;
                 Tag = tag;
                 ScreenPoint = screenPoint;
+                IsTracked = isTracked;
             }
 
             public NpcIdentity Npc { get; }
 
             public NpcNameTag Tag { get; }
+
+            /// <summary>[이웃]에서 찾는 NPC라 코랄 표시를 다는지</summary>
+            public bool IsTracked { get; }
 
             /// <summary>머리 위 자리의 화면 좌표. z는 카메라에서의 거리</summary>
             public Vector3 ScreenPoint { get; }
@@ -208,6 +225,7 @@ namespace A305.Npc
             private readonly TMP_Text nameLabel;
             private readonly GameObject roleChip;
             private readonly TMP_Text roleLabel;
+            private readonly GameObject trackedMark;
 
             public TagSlot(RectTransform rect)
             {
@@ -215,6 +233,7 @@ namespace A305.Npc
                 nameLabel = rect.Find("Name").GetComponent<TMP_Text>();
                 roleChip = rect.Find("RoleChip").gameObject;
                 roleLabel = roleChip.transform.Find("Label").GetComponent<TMP_Text>();
+                trackedMark = rect.Find("Tracked").gameObject;
             }
 
             public RectTransform Rect { get; }
@@ -222,9 +241,14 @@ namespace A305.Npc
             /// <summary>이 이름표를 띄운 NPC. 숨겼으면 null</summary>
             public NpcIdentity Npc { get; private set; }
 
-            public void Show(NpcIdentity npc, NpcNameTag tag, Vector2 layerPoint)
+            public void Show(NpcIdentity npc, NpcNameTag tag, bool isTracked, Vector2 layerPoint)
             {
                 Npc = npc;
+                if (trackedMark.activeSelf != isTracked)
+                {
+                    trackedMark.SetActive(isTracked);
+                }
+
                 if (nameLabel.text != tag.Name)
                 {
                     nameLabel.text = tag.Name;

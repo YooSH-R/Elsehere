@@ -390,6 +390,17 @@ namespace A305.EditorTools.Theme
             NeighborsListBuilder.Apply(root);
             ActionPill(root, "Neighbors/RetryButton", UiIcon.Retry, UiTone.Neutral, 200);
             ActionPill(root, "Neighbors/Card/BackButton", UiIcon.None, UiTone.Neutral, 200);
+            // 카드에서 할 수 있는 주된 동작이라 노란 강조 버튼으로 둔다.
+            ActionPill(root, "Neighbors/Card/MapButton", UiIcon.Map, UiTone.Primary, 240);
+        }
+
+        /// <summary>[이웃] 창만 다시 놓고 칠한다(정보 카드의 [지도에서 보기] 포함). HUD의 다른 요소는 건드리지 않는다.</summary>
+        public static void ApplyNeighborsTheme()
+        {
+            BuilderTools.ThrowIfPlaying();
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(HudPath, StyleNeighbors);
+            AssetDatabase.SaveAssets();
         }
 
         /// <summary>오른쪽 아래 조작법 카드. 알림 카드처럼 작은 카드 바탕에 제목·조작·안내를 두고, 닫기는 오른쪽 위 X다.</summary>

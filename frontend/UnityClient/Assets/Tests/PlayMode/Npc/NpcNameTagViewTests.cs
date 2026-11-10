@@ -44,6 +44,7 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator ClearTutorialAndClock()
         {
             TutorialState.Clear();
+            NpcTracking.Shared.Clear();
             // 마을의 시계가 서버 없이 보낸 신호는 응답을 기다린 채로 남아, 바로 뒤 시험이 시각을 맞추지 못한다.
             // 마을이 아직 열려 있으므로 신호를 멈춘 뒤, Play를 새로 시작할 때처럼 시계를 비운다(World 시험의 TestGameClock과 같은 방법).
             foreach (
@@ -132,6 +133,36 @@ namespace A305.Npc.PlayModeTests
             Assert.That(ShownTags(), Is.Empty);
         }
 
+        // [이웃]에서 고른 NPC는 멀리서도 이름표와 코랄 표시가 보이고, 3m 안에 다가가면 찾기를 끝내 표시를 거둔다.
+        [UnityTest]
+        public IEnumerator TrackedNeighbor_ShowsAMarkFromFarAway_AndArrivingStopsTracking()
+        {
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            NpcIdentity passerby = HoldStill(PasserbyCode);
+            NpcTracking.Shared.Track(PasserbyCode, PasserbyName, null);
+            yield return StandFacing(passerby, NpcNameTags.ShowRadiusMeters + 12f);
+
+            TagView far = ShownTags().SingleOrDefault(shown => shown.Name == PasserbyName);
+            Assert.That(far, Is.Not.Null, "찾는 이웃은 멀리서도 이름표가 보입니다.");
+            Assert.That(far.Tracked, Is.True, "찾는 이웃 표시가 달립니다.");
+            Assert.That(
+                ShownTags()
+                    .Where(shown => shown.Name != PasserbyName)
+                    .Select(shown => shown.Tracked),
+                Has.None.True,
+                "다른 NPC에는 표시가 없습니다."
+            );
+            Assert.That(NpcTracking.Shared.IsTracking(PasserbyCode), Is.True);
+
+            yield return StandFacing(passerby, 2f);
+
+            Assert.That(NpcTracking.Shared.Code, Is.Null, "다가가면 찾기를 끝냅니다.");
+            TagView near = ShownTags().SingleOrDefault(shown => shown.Name == PasserbyName);
+            Assert.That(near, Is.Not.Null);
+            Assert.That(near.Tracked, Is.False);
+        }
+
         // 다가와 말을 걸거나 일하러 걸어가지 않게 세워 둔다. 이름표는 NPC 키(NpcIdentity)로 그대로 찾는다.
         private static NpcIdentity HoldStill(string code)
         {
@@ -178,7 +209,12 @@ namespace A305.Npc.PlayModeTests
                     chip != null && chip.gameObject.activeSelf
                         ? chip.Find("Label").GetComponent<TMP_Text>().text
                         : null;
+                Transform mark = rect.Find("Tracked");
+                Tracked = mark != null && mark.gameObject.activeSelf;
             }
+
+            /// <summary>[이웃]에서 찾는 NPC 표시가 켜졌는지</summary>
+            public bool Tracked { get; }
 
             public RectTransform Rect { get; }
 

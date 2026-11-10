@@ -111,6 +111,17 @@ namespace A305.Npc.Tests
             Assert.That(NpcWhereabouts.Describe(passerby, minutes, false), Is.EqualTo(expected));
         }
 
+        [TestCase(11 * Hour + 10, "가게에 들르는 중이에요")]
+        [TestCase(11 * Hour + 50, "가게에 들렀다 돌아오는 길이에요")]
+        public void Passerby_SaysWhenTheyDropIntoShops(double minutes, string expected)
+        {
+            NpcLifeEntry passerby = Staff("TOWN");
+            passerby.Role = "PASSERBY";
+            passerby.Schedule[0].Activity = "FREE";
+
+            Assert.That(NpcWhereabouts.Describe(passerby, minutes, false), Is.EqualTo(expected));
+        }
+
         [Test]
         public void TaxiDriverAtWork_IsDriving()
         {

@@ -122,7 +122,7 @@
             },
             "review_tags": [
               {
-                "tag_id": "tag01",
+                "tag_id": "tag1",
                 "kind": "strength",
                 "label_ko": "목적지를 전달했어요",
                 "evidence": [
@@ -134,9 +134,9 @@
                 "assisted": false
               },
               {
-                "tag_id": "tag02",
+                "tag_id": "tag2",
                 "kind": "improvement",
-                "label_ko": "동사 형태를 연습해 보세요",
+                "label_ko": "want 뒤에 동작을 말할 때는 to와 동사원형을 사용해요.",
                 "evidence": [
                   {
                     "turn_id": "t02",
@@ -334,7 +334,7 @@
             },
             "review_tags": [
               {
-                "tag_id": "tag01",
+                "tag_id": "tag1",
                 "kind": "strength",
                 "label_ko": "목적지를 전달했어요",
                 "evidence": [
@@ -346,9 +346,9 @@
                 "assisted": false
               },
               {
-                "tag_id": "tag02",
+                "tag_id": "tag2",
                 "kind": "improvement",
-                "label_ko": "동사 형태를 연습해 보세요",
+                "label_ko": "want 뒤에 동작을 말할 때는 to와 동사원형을 사용해요.",
                 "evidence": [
                   {
                     "turn_id": "t02",

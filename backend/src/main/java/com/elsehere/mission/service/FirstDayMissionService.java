@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -102,8 +103,7 @@ public class FirstDayMissionService {
                   matches
                       ? new WorkerState(
                           "first_day_" + mission.getStage(),
-                          stageInstruction
-                              + " Evaluate the learner's current utterance together with explicit facts they gave earlier in this conversation. The current utterance must contribute to completing an objective; details may be spread across turns. Do not credit NPC lines, quoted examples, negatives, wishes without action or future hypothetical actions. One utterance may match several intents.",
+                          stageInstruction + QUEST_EVIDENCE,
                           stage.goals().stream()
                               .map(goal -> new WorkerState.Intent(goal.id(), goal.description()))
                               .toList(),
@@ -276,13 +276,16 @@ public class FirstDayMissionService {
     return name == null || name.isBlank() ? direction : direction + " (대화 상대: " + name + ")";
   }
 
-  /**
-   * 퀘스트 목표는 학습자가 먼저 말해야 영어로 말할 거리가 생긴다. 담당 NPC가 남은 목표·필요한 물건·겪은 일을 먼저 꺼내거나 권하지 않고, 학습자가 요청한 뒤에는 그
-   * 요청을 마치는 데 필요한 질문(크기·결제 방법·생김새 등)만 하게 한다.
-   */
+  static final String QUEST_EVIDENCE =
+      " Accept clear paraphrases, indirect requests and short answers understood from the partner's question. Do not require exact wording or perfect grammar."
+          + " Check each objective independently. Combine explicit details from earlier learner turns in this conversation when the latest line contributes; they need not repeat them."
+          + " Never credit NPC lines, quoted examples, negatives or hypotheticals. A bare mention does not count. If a required detail is still missing or ambiguous, leave only that objective pending.";
+
+  /** 퀘스트 목표는 학습자가 먼저 말해야 영어로 말할 거리가 생긴다. 요청을 꺼낸 뒤에는 그 요청에 빠진 정보만 확인한다. */
   static final String LEARNER_LEADS =
       " Never be the first to bring up the learner's remaining tasks, the things they need or what happened to them; wait for the learner to raise them in their own words."
-          + " After the learner raises a mission request, ask the follow-up question your role needs to complete it, such as size, payment method or a description."
+          + " After the learner raises a mission request, acknowledge what is clear and ask one short question about only the missing required detail in that request."
+          + " Use details the learner already gave or clearly selected. If the request is complete, answer it without another question. Do not ask for known details, introduce an unrelated pending goal, or correct grammar in the reply."
           + " In ordinary small talk, react to their topic and share brief details fitting your personality and current situation. If they seem unsure what to say, offer a small observation or an easy question in your own voice without naming undisclosed mission tasks.";
 
   /** 지금 단계 담당이 아닌 NPC에게 보내는 안내. 지금 할 일을 물으면 모른다고 하지 않고 담당 NPC와 장소를 알려 주게 한다. 이름을 찾지 못하면 장소만 알린다. */
@@ -330,13 +333,18 @@ public class FirstDayMissionService {
       List<String> recognized = recognized(intent);
       List<String> pending =
           remainingGoals.stream().filter(id -> !recognized.contains(id)).toList();
+      String pendingDetails =
+          state.intents().stream()
+              .filter(goal -> pending.contains(goal.id()))
+              .map(goal -> goal.id() + ": " + goal.desc())
+              .collect(Collectors.joining("\n"));
       String nextQuestion =
           pending.isEmpty()
               ? " No objectives remain for this stage. Acknowledge what was completed without asking another mission question or assuming later stages are complete."
               : " Remaining objectives after this turn: "
                   + String.join(",", pending)
-                  + "."
-                  + LEARNER_LEADS;
+                  + ". Required details for those objectives:\n"
+                  + pendingDetails;
       return instruction
           + " This turn recognized: "
           + String.join(",", recognized)

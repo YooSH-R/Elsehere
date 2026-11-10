@@ -24,7 +24,7 @@ Spring에서 호출하는 `POST /v1/feedback`의 연결 기준이다. 사용자�
 | 도움 사용 | 실제 `assistance_events`와 해당 턴의 `assistance_ids`를 연결 |
 | 첫날 퀘스트 단계 대화 | 대화 시작 때 저장한 `first_day_goal_ids`만 이번 대화의 할 일로 보낸다. 다시 말을 걸어도 이전 대화에서 완료한 목표를 요구하지 않는다. 빈 목록은 목표 없음이며, 목표 기록이 없는 예전 대화는 실제 발화만 평가한다 |
 | 마을 퀘스트 대화 | 대화 시작 때 저장한 `town_story_goal_ids`만 이번 대화의 할 일로 보낸다. 식당 주문·식사 수령 대기·쏟은 일 설명을 구분하고, 목록 밖의 목표를 누락으로 평가하지 않는다. 목표 기록이 없는 예전 식당 대화는 실제 발화만 평가한다 |
-| 대화 난이도 | `settings_version`은 `level-N`, `vocabulary_profile`은 `level-N: 수준 설명`(워커 힌트와 같은 CEFR 설명)이다. 현재 `analysis_config_version`은 `elsehere-feedback-v4`이다 |
+| 대화 난이도 | `settings_version`은 `level-N`, `vocabulary_profile`은 `level-N: 수준 설명`(워커 힌트와 같은 CEFR 설명)이다. 현재 `analysis_config_version`은 `elsehere-feedback-v5`이다 |
 
 null 판정은 무례가 아님을 뜻하지 않는다. 원래 null·실패 이유는 Spring 기록에 유지한다. 한글 입력도 원문 그대로 전달한다. 모듈은 blocked·미확정 사용자 줄을 평가·원문 인용·교정·회화 용법·단어장 후보에서 제외한다.
 
@@ -44,7 +44,7 @@ null 판정은 무례가 아님을 뜻하지 않는다. 원래 null·실패 이�
 
 ## 화면에 넘길 데이터
 
-- 짧은 피드백: conversation_summary, communication, review_tags와 summary_suggestion_id가 가리키는 실제 교정.
+- 짧은 피드백: conversation_summary는 실제 대화의 요청·답변·결정만 담는다. 남은 목표는 게임의 퀘스트 진행으로 표시한다. review_tags의 아쉬운 점은 상세 문장 교정과 같은 발화·이유를 워커가 연결하며, 교정이 없으면 장점만 남긴다. 대표 개선 표현은 summary_suggestion_id가 가리킨다.
 - 상세 피드백: 원래 순서의 turn_reviews. 문법·어휘 오류와 context_fit을 구별하고, 적절한 표현을 오류로 표시하지 않는다.
 - 단어장: vocab_candidates는 저장 후보다. 사용자 선택과 백엔드 저장 성공 전에는 저장 완료라고 표시하지 않는다. BE는 단어장이 단어·숙어·문장을 모두 저장하므로 후보를 종류와 상관없이 `conversation_feedback.reviews`에 함께 저장하고 FB-01·CONV-08 응답의 `feedback.vocabCandidates`로 내려 준다. 저장은 VOCAB-02 `FEEDBACK`이 이 목록과 `situationExpressions`(이 상황에서 자주 써요)로 단어·숙어·문장을 확인한다.
 - 회화 보충: `spoken_usage_notes`는 교정 아래의 선택적 설명 0~1개다. 현재 로컬 확장 필드이며 BE·Unity 적용 합의가 별도로 필요하다. 필드 누락은 빈 목록으로 처리할 수 있어야 하며, 설명이 없다고 실패로 처리하지 않는다.

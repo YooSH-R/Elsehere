@@ -5,7 +5,7 @@ from .models import INPUT
 from .situation_catalog import situation_candidates
 from .spoken_usage import spoken_candidates
 
-PROMPT_VERSION = "feedback_prompt_v0.8.0"
+PROMPT_VERSION = "feedback_prompt_v0.9.0"
 SYSTEM_PATH = Path(__file__).resolve().parent.parent / "prompts" / "feedback_system.ko.md"
 
 

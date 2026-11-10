@@ -10,7 +10,7 @@ Spring에서 호출하는 `POST /v1/feedback`의 연결 기준이다. 사용자�
 4. 응답은 `{ "feedback": { ... }, "usage": [ ... ] }`다. `feedback.status`를 확인하고 요청 식별자·scope·revision·설정 버전이 해당 작업과 맞는지 대조한다. 이전 작업의 늦은 응답으로 최신 결과를 덮지 않는다.
 5. 생성 결과와 저장 결과를 구별한다. 저장 후 재조회하는 화면은 저장된 결과를 사용하고, 다시 열 때 AI를 재호출하지 않는다.
 
-마을 퀘스트 목표를 저장하는 `V28` 마이그레이션과 백엔드를 함께 반영한다. 기존 피드백은 그대로 유지되며 정책 버전을 올려도 이미 완료된 결과를 자동으로 재생성하지 않는다.
+마을 퀘스트 목표를 저장하는 `V28`, 첫날 퀘스트 목표를 저장하는 `V29` 마이그레이션과 백엔드를 함께 반영한다. 기존 피드백은 그대로 유지되며 정책 버전을 올려도 이미 완료된 결과를 자동으로 재생성하지 않는다.
 
 ## 입력 변환
 
@@ -22,9 +22,9 @@ Spring에서 호출하는 `POST /v1/feedback`의 연결 기준이다. 사용자�
 | NPC 대사 | speaker는 npc, input_type은 generated. 실제 확정 대사 사용 |
 | judge가 만든 영어 번역 | 사용자 `final_text`를 대체하지 않음 |
 | 도움 사용 | 실제 `assistance_events`와 해당 턴의 `assistance_ids`를 연결 |
-| 첫날 퀘스트 단계 대화 | `scene_description`에 장소·NPC·상황·안내와 그 단계의 할 일(목표 제목과 설명)을 넣는다. 모델이 단계에 맞는 표현만 권하게 한다 |
+| 첫날 퀘스트 단계 대화 | 대화 시작 때 저장한 `first_day_goal_ids`만 이번 대화의 할 일로 보낸다. 다시 말을 걸어도 이전 대화에서 완료한 목표를 요구하지 않는다. 빈 목록은 목표 없음이며, 목표 기록이 없는 예전 대화는 실제 발화만 평가한다 |
 | 마을 퀘스트 대화 | 대화 시작 때 저장한 `town_story_goal_ids`만 이번 대화의 할 일로 보낸다. 식당 주문·식사 수령 대기·쏟은 일 설명을 구분하고, 목록 밖의 목표를 누락으로 평가하지 않는다. 목표 기록이 없는 예전 식당 대화는 실제 발화만 평가한다 |
-| 대화 난이도 | `settings_version`은 `level-N`, `vocabulary_profile`은 `level-N: 수준 설명`(워커 힌트와 같은 CEFR 설명)이다. 현재 `analysis_config_version`은 `elsehere-feedback-v3`이다 |
+| 대화 난이도 | `settings_version`은 `level-N`, `vocabulary_profile`은 `level-N: 수준 설명`(워커 힌트와 같은 CEFR 설명)이다. 현재 `analysis_config_version`은 `elsehere-feedback-v4`이다 |
 
 null 판정은 무례가 아님을 뜻하지 않는다. 원래 null·실패 이유는 Spring 기록에 유지한다. 한글 입력도 원문 그대로 전달한다. 모듈은 blocked·미확정 사용자 줄을 평가·원문 인용·교정·회화 용법·단어장 후보에서 제외한다.
 

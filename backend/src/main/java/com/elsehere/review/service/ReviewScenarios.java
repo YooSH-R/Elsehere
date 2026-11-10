@@ -13,25 +13,19 @@ final class ReviewScenarios {
     Integer firstDay = source == null ? null : source.getFirstDayStage();
     if (firstDay != null && firstDay >= 0 && firstDay < FirstDayStage.values().length) {
       var stage = FirstDayStage.values()[firstDay];
-      if (stage.npc().equals(npcCode)) {
-        String title =
-            switch (stage) {
-              case EARLY_ARRIVAL -> "예약 확인과 짐 맡기기";
-              case CAFE_BREAK -> "음료 주문하기";
-              case MISSING_BAG -> "가방을 두고 온 사정 설명하기";
-              case FIND_BAG -> "분실 가방 찾기";
-              case RAINY_STREET -> "우산을 살 곳과 길 묻기";
-              case BUY_UMBRELLA -> "우산 구매하기";
-              case CHECK_IN -> "호텔 체크인하기";
-            };
+      List<String> goalIds = source.getFirstDayGoalIds();
+      if (stage.npc().equals(npcCode) && goalIds != null && !goalIds.isEmpty()) {
+        List<FirstDayStage.Goal> goals =
+            stage.goals().stream().filter(goal -> goalIds.contains(goal.id())).toList();
+        List<String> notes =
+            goals.stream().map(goal -> goal.hint().replace("{name}", "본인의 예약자 이름")).toList();
+        String title = goals.size() == 1 ? goals.getFirst().title() : stage.title();
         return new ReviewScenario(
-            "first_day_" + stage.name(),
+            "first_day_" + stage.name() + "_" + String.join("_", goalIds),
             title,
-            stage.situation(),
+            title + ". " + String.join(". ", notes),
             "여행자",
-            stage.goals().stream()
-                .map(goal -> goal.hint().replace("{name}", "본인의 예약자 이름"))
-                .toList());
+            notes);
       }
     }
     Integer story = source == null ? null : source.getTownStoryStage();

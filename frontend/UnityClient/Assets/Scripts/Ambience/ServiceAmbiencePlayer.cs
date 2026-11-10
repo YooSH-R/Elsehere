@@ -121,12 +121,9 @@ namespace A305.Ambience
                 && weather.Current != null
                 && weather.Current.Code != null
                 && weather.Current.Code.Contains("RAIN");
-            AmbienceBed next = AmbiencePlan.Resolve(
-                scene,
-                ShopInterior.Occupied?.PlaceCode,
-                passenger,
-                rain
-            );
+            ShopInterior occupiedShop = ShopInterior.Occupied;
+            string placeCode = occupiedShop != null ? occupiedShop.PlaceCode : null;
+            AmbienceBed next = AmbiencePlan.Resolve(scene, placeCode, passenger, rain);
             if (passenger != wasPassenger && next != AmbienceBed.None)
                 Play(AmbienceEffect.TaxiDoorClose);
             wasPassenger = passenger;

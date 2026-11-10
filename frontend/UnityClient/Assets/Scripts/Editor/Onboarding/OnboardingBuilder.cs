@@ -266,6 +266,7 @@ namespace A305.EditorTools.Onboarding
                 "guestReturnPanel",
                 SetUpGuestReturnPanel(root, bold, regular)
             );
+            GuestLevelTestLoginBuilder.Apply(root);
             BuilderTools.RequireReferences(screen);
         }
 

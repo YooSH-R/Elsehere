@@ -90,18 +90,19 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
-        public async Task GuestLogin_SendsChosenCharacterAndMovesToTutorial()
+        public async Task GuestLogin_SendsChosenCharacterAndShowsLevelTestIntro()
         {
             await StartAtLogin();
             flow.ChooseGuest();
             flow.SelectGuestAvatar(AvatarType.M);
             api.Bootstrap = SignedIn(OnboardingStep.Tutorial, currentLanguage: "en-US");
             api.Bootstrap.User.AvatarType = AvatarType.M;
+            api.Bootstrap.User.Guest = true;
 
             await flow.GuestLoginAsync();
 
             Assert.That(api.GuestAvatarSent, Is.EqualTo(AvatarType.M));
-            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Tutorial));
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.LevelTest));
             Assert.That(flow.SelectedAvatar, Is.EqualTo(AvatarType.M));
         }
 
@@ -349,6 +350,8 @@ namespace A305.Onboarding.Tests
 
             flow.ContinueToGame();
 
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.LevelTest));
+            await flow.SkipLevelTestAsync();
             Assert.That(flow.Screen, Is.EqualTo(EntryScreen.World));
             Assert.That(flow.LastSceneName, Is.EqualTo("CafeScene"));
         }
@@ -362,11 +365,13 @@ namespace A305.Onboarding.Tests
 
             flow.ContinueToGame();
 
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.LevelTest));
+            await flow.SkipLevelTestAsync();
             Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Tutorial));
         }
 
         [Test]
-        public async Task GuestJustStarted_GoesToTutorialWithoutAskingToSignUp()
+        public async Task GuestJustStarted_ShowsLevelTestWithoutCallingItsApi()
         {
             flow.ChooseGuest();
             flow.SelectGuestAvatar(AvatarType.F);
@@ -375,7 +380,48 @@ namespace A305.Onboarding.Tests
 
             await flow.GuestLoginAsync();
 
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.LevelTest));
+            Assert.That(flow.LevelTest, Is.Null);
+            Assert.That(api.LevelTestStartedFor, Is.Null);
+        }
+
+        [Test]
+        public async Task GuestStartingLevelTest_ShowsLoginPromptWithoutCreatingATest()
+        {
+            flow.ChooseGuest();
+            flow.SelectGuestAvatar(AvatarType.F);
+            api.Bootstrap = SignedIn(OnboardingStep.Tutorial, currentLanguage: "en-US");
+            api.Bootstrap.User.Guest = true;
+            await flow.GuestLoginAsync();
+
+            await flow.StartLevelTestAsync();
+
+            Assert.That(flow.GuestLevelTestLoginRequired, Is.True);
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.LevelTest));
+            Assert.That(flow.LevelTest, Is.Null);
+            Assert.That(api.LevelTestStartedFor, Is.Null);
+            flow.DismissGuestLevelTestLogin();
+            Assert.That(flow.GuestLevelTestLoginRequired, Is.False);
+        }
+
+        [Test]
+        public async Task GuestSkippingLevelTest_GoesToTutorialWithoutWritingASkipRecord()
+        {
+            flow.ChooseGuest();
+            flow.SelectGuestAvatar(AvatarType.M);
+            api.Bootstrap = SignedIn(OnboardingStep.Tutorial, currentLanguage: "en-US");
+            api.Bootstrap.User.Guest = true;
+            api.Bootstrap.User.AvatarType = AvatarType.M;
+            await flow.GuestLoginAsync();
+            await flow.StartLevelTestAsync();
+
+            await flow.SkipLevelTestAsync();
+
             Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Tutorial));
+            Assert.That(flow.GuestLevelTestLoginRequired, Is.False);
+            Assert.That(api.LevelTestSkippedFor, Is.Null);
+            Assert.That(api.LevelTestStartedFor, Is.Null);
+            Assert.That(flow.SelectedAvatar, Is.EqualTo(AvatarType.M));
         }
 
         [Test]

@@ -51,6 +51,7 @@ namespace A305.Dialogue
         private readonly ConversationInitiator initiatedBy;
         private readonly bool npcOffDuty;
         private readonly NpcTravelContext npcTravelContext;
+        private readonly string placeCode;
         private readonly FollowUpStore followUps;
 
         // 음성 처리 동의. 서버가 동의가 없다고 거절하면 끈다.
@@ -98,7 +99,8 @@ namespace A305.Dialogue
             Func<string, Task<ConversationStart>> reviewStart = null,
             NpcTravelContext npcTravelContext = null,
             string practiceScenarioId = null,
-            Func<string, Task<ConversationStart>> practiceStart = null
+            Func<string, Task<ConversationStart>> practiceStart = null,
+            string placeCode = null
         )
         {
             NpcCode = npcCode;
@@ -112,6 +114,7 @@ namespace A305.Dialogue
             this.initiatedBy = initiatedBy;
             this.npcOffDuty = npcOffDuty;
             this.npcTravelContext = npcTravelContext?.Copy();
+            this.placeCode = placeCode;
             this.followUps = followUps ?? FollowUpStore.Shared;
         }
 
@@ -756,7 +759,8 @@ namespace A305.Dialogue
                 NpcCode,
                 InitiatedByCode,
                 npcOffDuty,
-                npcTravelContext
+                npcTravelContext,
+                placeCode
             );
         }
 

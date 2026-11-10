@@ -61,7 +61,7 @@ class SpeechEmotionRegenerationTest {
               return callback.doInTransaction(mock(TransactionStatus.class));
             });
 
-    service.regenerateSpeech(2L, 9L, UUID.randomUUID());
+    service.regenerateSpeech(2L, 9L, UUID.randomUUID(), 1.1);
 
     verify(worker)
         .synthesize(

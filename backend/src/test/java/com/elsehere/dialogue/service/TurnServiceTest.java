@@ -313,7 +313,33 @@ class TurnServiceTest {
             eq("네 맑아요"),
             anyString(),
             anyInt(),
-            eq(new WorkerLearner("Sun", "F")));
+            eq(new WorkerLearner("Sun", "F", 1.1)));
+  }
+
+  @Test
+  @DisplayName("NPC 대답은 학습자가 설정창에서 고른 말 빠르기로 말한다")
+  void send_passesTheChosenSpeechSpeedToTheNpcReply() {
+    judges("네 맑아요", "네 맑아요", "Yes, it's sunny.");
+    given(aiGateway.reply(any(), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt(), any()))
+        .willReturn(reply("Great day for a walk!", "audio-2"));
+    given(aiGateway.audio(any(), eq("audio-2"))).willReturn(WAV);
+
+    turnService.send(
+        userId,
+        conversationId,
+        new TurnRequest(UUID.randomUUID(), InputType.TEXT, "네 맑아요", null, 1.4));
+
+    then(aiGateway)
+        .should()
+        .reply(
+            any(),
+            any(),
+            any(),
+            any(),
+            eq("네 맑아요"),
+            anyString(),
+            anyInt(),
+            eq(new WorkerLearner("Sun", "F", 1.4)));
   }
 
   @Test

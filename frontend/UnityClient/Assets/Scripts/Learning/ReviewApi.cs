@@ -34,7 +34,7 @@ namespace A305.Learning
         public Task<ConversationStart> StartAsync(long cardId, string requestId) =>
             client.PostAsync<ConversationStart>(
                 CardPath(cardId) + "/conversations",
-                new { requestId }
+                new { requestId, speechSpeed = NpcSpeechSpeed.ForRequest }
             );
 
         private static string CardPath(long cardId) =>

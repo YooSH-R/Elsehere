@@ -67,7 +67,7 @@
 
 ## 저장한 상황으로 연습 시작
 
-`POST /api/v1/review-cards/{cardId}/conversations`에 `{ "requestId": "UUID" }`를 보냅니다. 응답은 대화 시작(CONV-01)과 같고 `reviewCardId`가 추가됩니다. 일반 대화에서는 null, 복습 대화에서는 카드 ID입니다. 같은 ID는 대화 상세(CONV-10), 진행 중 대화(CONV-11), 종료(CONV-08)에도 유지됩니다. 클라이언트는 이 값을 확인해 본편 미션·튜토리얼·NPC 상호작용 완료 이벤트를 발생시키지 않습니다.
+`POST /api/v1/review-cards/{cardId}/conversations`에 `{ "requestId": "UUID", "speechSpeed": 1.1 }`를 보냅니다. `speechSpeed`는 사용자가 고른 NPC 말 빠르기로 CONV-01과 같은 규칙입니다(선택, 0.8~1.5, 없으면 `1.1`). 응답은 대화 시작(CONV-01)과 같고 `reviewCardId`가 추가됩니다. 일반 대화에서는 null, 복습 대화에서는 카드 ID입니다. 같은 ID는 대화 상세(CONV-10), 진행 중 대화(CONV-11), 종료(CONV-08)에도 유지됩니다. 클라이언트는 이 값을 확인해 본편 미션·튜토리얼·NPC 상호작용 완료 이벤트를 발생시키지 않습니다.
 
 - 사용자 본인의 카드만 시작할 수 있고 타인의 카드는 `404 NOT_FOUND`입니다.
 - 진행 중인 본편 또는 복습 대화가 있으면 기존 `409 CONVERSATION_ALREADY_ACTIVE`입니다. 기존 대화를 몰래 종료하지 않습니다. 동일 요청 ID의 재전송은 같은 복습 대화를 돌려주며 다른 모드·카드에 재사용하면 `409 REQUEST_ID_CONFLICT`입니다.

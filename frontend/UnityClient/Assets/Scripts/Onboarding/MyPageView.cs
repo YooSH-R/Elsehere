@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using A305.Api;
+using A305.Dialogue;
 using A305.Player;
 using A305.Theme;
 using A305.Voice;
@@ -13,7 +14,7 @@ namespace A305.Onboarding
 {
     /// <summary>
     /// 공간 화면의 마이페이지. 오른쪽 위 [내 정보]로 열어 내 정보를 보고 닉네임을 바꾸거나 로그아웃한다.
-    /// 시점 회전 감도도 여기서 조절한다(<see cref="LookSensitivity"/>, 이 기기에만 저장).
+    /// 시점 회전 감도와 NPC 말 빠르기도 여기서 조절한다(<see cref="LookSensitivity"/>, <see cref="NpcSpeechSpeed"/>, 이 기기에만 저장).
     /// 로그아웃은 확인 창을 거쳐 서버 세션을 끝낸 뒤(AUTH-05) 입구 씬의 로그인 화면으로 돌아간다.
     /// 단어장 HUD 프리팹에 붙어 있어 장소 씬마다 따로 배치하지 않는다.
     /// </summary>
@@ -71,6 +72,16 @@ namespace A305.Onboarding
         [SerializeField]
         [Tooltip("슬라이더 옆에 지금 감도 배율을 보여 준다. 슬라이더를 움직이는 동안에도 바뀐다.")]
         private TMP_Text lookSensitivityText;
+
+        [SerializeField]
+        [Tooltip("NPC 대화 음성 빠르기 배율. 이 기기에만 저장하고 다음 NPC 대사부터 쓴다.")]
+        private Slider npcSpeechSpeedSlider;
+
+        [SerializeField]
+        [Tooltip(
+            "슬라이더 옆에 지금 말 빠르기 배율을 보여 준다. 슬라이더를 움직이는 동안에도 바뀐다."
+        )]
+        private TMP_Text npcSpeechSpeedText;
 
         [SerializeField]
         private Button logoutButton;
@@ -137,6 +148,9 @@ namespace A305.Onboarding
             lookSensitivitySlider.minValue = LookSensitivity.Min;
             lookSensitivitySlider.maxValue = LookSensitivity.Max;
             lookSensitivitySlider.onValueChanged.AddListener(ChangeLookSensitivity);
+            npcSpeechSpeedSlider.minValue = NpcSpeechSpeed.Min;
+            npcSpeechSpeedSlider.maxValue = NpcSpeechSpeed.Max;
+            npcSpeechSpeedSlider.onValueChanged.AddListener(ChangeNpcSpeechSpeed);
             overlay.SetActive(false);
             UiLayer.Close(this);
         }
@@ -167,6 +181,8 @@ namespace A305.Onboarding
             nicknameInput.text = "";
             lookSensitivitySlider.SetValueWithoutNotify(LookSensitivity.Current);
             RenderLookSensitivity(LookSensitivity.Current);
+            npcSpeechSpeedSlider.SetValueWithoutNotify(NpcSpeechSpeed.Current);
+            RenderNpcSpeechSpeed(NpcSpeechSpeed.Current);
             ShowProfile();
             await RunAsync(flow.LoadAsync(), LoadingMessage);
             ApplyVoiceConsent();
@@ -229,6 +245,18 @@ namespace A305.Onboarding
         private void RenderLookSensitivity(float value)
         {
             lookSensitivityText.text = $"{value:0.0}배";
+        }
+
+        // 서버가 음성을 만들 때 쓰므로 바로 저장해 다음 대화 요청부터 실린다.
+        private void ChangeNpcSpeechSpeed(float value)
+        {
+            NpcSpeechSpeed.Current = value;
+            RenderNpcSpeechSpeed(NpcSpeechSpeed.Current);
+        }
+
+        private void RenderNpcSpeechSpeed(float value)
+        {
+            npcSpeechSpeedText.text = $"{value:0.0}배";
         }
 
         private void AskLogout()

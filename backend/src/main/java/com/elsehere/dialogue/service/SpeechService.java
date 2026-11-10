@@ -28,7 +28,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -47,10 +46,6 @@ public class SpeechService {
   private static final long MAX_AUDIO_BYTES = 3L * 1024 * 1024;
   private static final Set<String> AUDIO_TYPES =
       Set.of("audio/webm", "audio/ogg", "audio/mp4", "audio/wav", "audio/x-wav", "audio/mpeg");
-  // 대화 음성과 다시 만든 음성에 같은 속도를 적용한다. 난이도별 값은 워커(ai/worker/app/prompts.py
-  // LEVEL_SPEECH_SPEED)와 같다. 난이도가 없는 예전 대화는 초급 속도로 만든다.
-  private static final Map<Integer, Double> LEVEL_SPEECH_SPEED = Map.of(1, 1.1, 2, 1.3, 3, 1.3);
-  private static final double BEGINNER_SPEECH_SPEED = LEVEL_SPEECH_SPEED.get(1);
 
   private final TurnRepository turnRepository;
   private final ConversationLookup conversationLookup;
@@ -132,8 +127,11 @@ public class SpeechService {
   /**
    * 음성 합성에 실패한 NPC 턴의 음성을 다시 만든다. 이미 음성이 있거나 보관 정책으로 지운 음성이면 새로 만들지 않는다. 다시 만든 음성을 보관 상한 때문에 저장하지
    * 못하면 FAILED로 돌려주고 자막만 보여 준다.
+   *
+   * @param speechSpeed 학습자가 지금 고른 NPC 말 빠르기. 대화 난이도와 상관없다
    */
-  public SpeechResponse regenerateSpeech(Long userId, Long turnId, UUID requestId) {
+  public SpeechResponse regenerateSpeech(
+      Long userId, Long turnId, UUID requestId, double speechSpeed) {
     SpeechTarget target =
         transactionTemplate.execute(
             status -> {
@@ -147,8 +145,7 @@ public class SpeechService {
                   turn.getText(),
                   npc.voiceId(),
                   conversation.getId(),
-                  turn.getSpeechPhrases(),
-                  speechSpeed(conversation.getLevelApplied()));
+                  turn.getSpeechPhrases());
             });
     if (target.npcAudioKey() != null || target.npcAudioDeletedAt() != null) {
       return SpeechResponse.of(turnId, target.npcAudioKey(), target.npcAudioDeletedAt());
@@ -162,8 +159,8 @@ public class SpeechService {
                 target.speechPhrases(), new TypeReference<List<WorkerSpeechPhrase>>() {});
     byte[] wav =
         phrases.isEmpty()
-            ? aiGateway.synthesize(trace, target.text(), target.voiceId(), target.speed())
-            : aiGateway.synthesize(trace, target.text(), target.voiceId(), target.speed(), phrases);
+            ? aiGateway.synthesize(trace, target.text(), target.voiceId(), speechSpeed)
+            : aiGateway.synthesize(trace, target.text(), target.voiceId(), speechSpeed, phrases);
     String key = npcAudioRetention.save(wav);
     if (key != null) {
       transactionTemplate.executeWithoutResult(
@@ -256,12 +253,5 @@ public class SpeechService {
       String text,
       String voiceId,
       Long conversationId,
-      String speechPhrases,
-      double speed) {}
-
-  private static double speechSpeed(Integer level) {
-    return level == null
-        ? BEGINNER_SPEECH_SPEED
-        : LEVEL_SPEECH_SPEED.getOrDefault(level, BEGINNER_SPEECH_SPEED);
-  }
+      String speechPhrases) {}
 }

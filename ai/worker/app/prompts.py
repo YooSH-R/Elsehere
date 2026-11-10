@@ -320,9 +320,6 @@ LEVEL_RULES = {
     ),
 }
 LEVEL_MAX_TOKENS = {1: 90, 2: 120, 3: 170}  # NPC 대답 출력 상한 (문장 수·길이 규칙에 맞춰)
-# NPC 말 속도(Kokoro speed). 같은 난이도면 모든 NPC가 같다. 백엔드가 음성을 다시 만들 때도 같은 값을 쓴다
-# (backend SpeechService). 고급은 아직 고를 수 없어 중급과 같게 둔다
-LEVEL_SPEECH_SPEED = {1: 1.1, 2: 1.3, 3: 1.3}
 LEVEL_LEARNER = {  # 힌트·추천 단어·단어 풀이에서 학습자 수준을 알려 주는 말. 백엔드 FeedbackInputs도 같은 말을 쓴다
     1: "very simple (CEFR A1-A2), short",
     2: "natural everyday English (CEFR B1)",

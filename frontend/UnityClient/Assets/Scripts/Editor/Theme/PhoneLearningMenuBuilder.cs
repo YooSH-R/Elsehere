@@ -75,12 +75,11 @@ namespace A305.EditorTools.Theme
                 app.GetComponent<Button>().targetGraphic = hit;
                 Picture(Rect(app, "Icon", -7, -12, 124, 124), "PhoneLearningApp" + i);
                 Label(app, Labels[i], 0, 110, 110, 24, 18);
+                app.Find("CountBadge")?.SetAsLastSibling();
                 app.SetAsLastSibling();
             }
             Utility(phone.Find("HomeButton"), "집으로", "PhoneUtilityHome", 48);
             Utility(phone.Find("ControlsButton"), "조작법", "PhoneUtilityControls", 228);
-            // 기존 배지의 위치·숫자·숨김 동작은 그대로 두고 그림보다 위에 그린다.
-            phone.Find("VocabularyButton/CountBadge")?.SetAsLastSibling();
         }
 
         private static void Utility(Transform button, string caption, string icon, float left)

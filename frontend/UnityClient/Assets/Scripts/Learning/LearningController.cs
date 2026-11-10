@@ -144,11 +144,12 @@ namespace A305.Learning
             historyView.MoreRequested += LoadMoreHistory;
             InitializeReview();
             InitializeReviewProgress();
+            InitializePractice();
         }
 
         private void Start()
         {
-            ResumeReviewVisit();
+            ResumeVisit();
             if (vocabulary != null)
             {
                 _ = LoadVocabularyAsync();
@@ -195,6 +196,7 @@ namespace A305.Learning
             CenterWindow.Shared.SetOpen(false);
             DisposeReview();
             DisposeReviewProgress();
+            DisposePractice();
             GameClock.Shared.IsLearningWindowOpen = false;
             if (hudView != null)
             {
@@ -375,6 +377,11 @@ namespace A305.Learning
             if (record.ReviewCardId != null)
             {
                 ShowReviewResult(record);
+                return;
+            }
+            if (record.PracticeScenarioId != null)
+            {
+                ShowPracticeResult();
                 return;
             }
             if (record.IsFeedbackDeferred)

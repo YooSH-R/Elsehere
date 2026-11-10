@@ -18,6 +18,8 @@ namespace A305.Learning
 
         private readonly List<UtteranceReview> reviews = new List<UtteranceReview>();
         private readonly List<string> notes = new List<string>();
+        private readonly List<string> goodNotes = new List<string>();
+        private readonly List<string> improveNotes = new List<string>();
 
         public ConversationFeedback(
             string npcName,
@@ -40,7 +42,7 @@ namespace A305.Learning
             UtteranceCount = reviews.Count;
             if (UtteranceCount > 0)
             {
-                notes.Add($"잘했어요 · {UtteranceCount}개의 문장을 끝까지 영어로 말했어요.");
+                AddGood($"{UtteranceCount}개의 문장을 끝까지 영어로 말했어요.");
             }
 
             SituationExpressions = situations ?? new List<SituationExpressionData>();
@@ -72,6 +74,12 @@ namespace A305.Learning
 
         /// <summary>서버 피드백의 잘한 점·아쉬운 점. 대본 대화는 비어 있다.</summary>
         public IReadOnlyList<string> Notes => notes;
+
+        /// <summary>잘한 점. 요약 카드의 "잘했어요" 메모에 보인다.</summary>
+        public IReadOnlyList<string> GoodNotes => goodNotes;
+
+        /// <summary>아쉬운 점. 요약 카드의 "더 해 봐요" 메모에 보인다.</summary>
+        public IReadOnlyList<string> ImproveNotes => improveNotes;
 
         /// <summary>서버 AI가 만든 피드백인지. 아니면 키워드 규칙으로 만든 예시다.</summary>
         public bool IsFromServer { get; }
@@ -126,11 +134,12 @@ namespace A305.Learning
                 summary.SituationExpressions ?? new List<SituationExpressionData>();
             foreach (string good in summary.Reviews?.Good ?? new List<string>())
             {
-                feedback.notes.Add("잘했어요 · " + good);
+                feedback.AddGood(good);
             }
 
             foreach (string improve in summary.Reviews?.Improve ?? new List<string>())
             {
+                feedback.improveNotes.Add(improve);
                 feedback.notes.Add("아쉬워요 · " + improve);
             }
 
@@ -158,6 +167,12 @@ namespace A305.Learning
             }
 
             return feedback;
+        }
+
+        private void AddGood(string good)
+        {
+            goodNotes.Add(good);
+            notes.Add("잘했어요 · " + good);
         }
 
         private static string FailedSummary(ServerFeedback server, bool canRegenerate)

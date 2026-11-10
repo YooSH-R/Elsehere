@@ -23,6 +23,25 @@ namespace A305.Npc.PlayModeTests
     {
         private const float WaitTimeoutSeconds = 15f;
         private const int MaxGuidedTurns = 20;
+        private bool hadSurveyInvitation;
+        private int savedSurveyInvitation;
+
+        [SetUp]
+        public void StartWithNoSurveyInvitation()
+        {
+            hadSurveyInvitation = PlayerPrefs.HasKey(A305.Api.SurveyPrompt.InvitationKey);
+            savedSurveyInvitation = PlayerPrefs.GetInt(A305.Api.SurveyPrompt.InvitationKey);
+            PlayerPrefs.DeleteKey(A305.Api.SurveyPrompt.InvitationKey);
+        }
+
+        [TearDown]
+        public void RestoreSurveyInvitation()
+        {
+            if (hadSurveyInvitation)
+                PlayerPrefs.SetInt(A305.Api.SurveyPrompt.InvitationKey, savedSurveyInvitation);
+            else
+                PlayerPrefs.DeleteKey(A305.Api.SurveyPrompt.InvitationKey);
+        }
 
         [SetUp]
         [TearDown]

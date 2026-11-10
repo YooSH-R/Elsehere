@@ -230,7 +230,7 @@ public class FirstDayMissionService {
             : complete
                 ? "다른 NPC와 자유롭게 대화해 보세요."
                 : !scene.equals(mission.current().scene())
-                    ? destination(mission.current().scene()) + " 이동하세요."
+                    ? travelDirection(mission.current())
                     : directionWithNpc(mission.current());
     return new FirstDayMissionResponse(
         started,
@@ -268,6 +268,12 @@ public class FirstDayMissionService {
       case "SHOP" -> "DRUGSTORE 드럭스토어로";
       default -> "마을 거리로";
     };
+  }
+
+  private String travelDirection(FirstDayStage stage) {
+    String direction = destination(stage.scene()) + " 이동하세요.";
+    String name = ownerName(stage.npc());
+    return name == null || name.isBlank() ? direction : direction + " (대화 상대: " + name + ")";
   }
 
   /**

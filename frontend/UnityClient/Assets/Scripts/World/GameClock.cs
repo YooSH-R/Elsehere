@@ -17,6 +17,9 @@ namespace A305.World
         /// <summary>실제 600초가 게임 하루다(서버 GameTime.REAL_SECONDS_PER_DAY).</summary>
         public const double GameMinutesPerRealSecond = MinutesPerDay / 600;
 
+        /// <summary>한 프레임에서 플레이한 시간으로 세는 최대 실제 시간(초). 이보다 긴 프레임은 Unity가 멈춰 있던 시간이 섞인 것이다.</summary>
+        public const double MaxFrameSeconds = 1;
+
         private const double MinutesPerDay = 24 * 60;
         private const double StartMinutes = 8 * 60;
 
@@ -114,6 +117,16 @@ namespace A305.World
 
             activeSecondsSinceBeat += realSeconds;
             Minutes += realSeconds * GameMinutesPerRealSecond;
+        }
+
+        /// <summary>
+        /// 한 프레임 동안 흐른 실제 시간만큼 게임 시각을 흘리되, 한 프레임에서는 <see cref="MaxFrameSeconds"/>까지만 센다.
+        /// 창이 포커스를 잃거나 탭이 숨으면 Unity가 멈췄다가 돌아온 첫 프레임에 떠나 있던 시간이 한꺼번에 들어오는데,
+        /// 그 시간은 플레이한 시간이 아니다. 그대로 더하면 시계와 NPC 일과가 몇 시간 앞으로 튀었다가 서버 응답에서 되돌아간다.
+        /// </summary>
+        public void FlowFrame(double frameSeconds)
+        {
+            Flow(Math.Min(frameSeconds, MaxFrameSeconds));
         }
 
         /// <summary>마지막 신호가 실패한 이유. 실패하지 않았으면 null.</summary>

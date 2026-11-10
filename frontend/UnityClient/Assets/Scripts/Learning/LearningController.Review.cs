@@ -71,6 +71,7 @@ namespace A305.Learning
             requestedReviewResult = null;
             ReviewView.Hide();
             UpdateMovementLock();
+            ResumeReviewReturn();
         }
 
         private void FilterReview(string scene)
@@ -125,6 +126,8 @@ namespace A305.Learning
         {
             if (dialogue.IsTalking || SpaceTravel.IsTraveling || reviewBook.IsBusy)
                 return;
+            if (!RememberReviewOrigin())
+                return;
             string scene = PlaceScenes.SceneOf(card.SceneCode) ?? "TownScene";
             pendingReview = card;
             if (feedbackView.IsVisible)
@@ -139,6 +142,7 @@ namespace A305.Learning
             else if (!SpaceTravel.TryTravel(scene, null))
             {
                 pendingReview = null;
+                reviewReturn.Clear();
                 hudView.ShowMessage("지금은 그 장소로 이동할 수 없어요.");
             }
         }
@@ -201,13 +205,18 @@ namespace A305.Learning
 
         private void ResumeReviewVisit()
         {
+            if (reviewReturn.IsReturning)
+            {
+                ResumeReviewReturn();
+                return;
+            }
             if (pendingReview == null)
                 return;
             ReviewCard card = pendingReview;
             pendingReview = null;
             if (reviewApi == null)
             {
-                hudView.ShowMessage("복습 서버 연결을 확인해 주세요.");
+                BeginReviewReturn(null, null, "복습 서버 연결을 확인해 주세요.");
                 return;
             }
             StartCoroutine(ArriveForReview(card));
@@ -222,7 +231,11 @@ namespace A305.Learning
             NpcIdentity npc = FindReviewNpc(card.Npc?.NpcCode);
             if (npc == null)
             {
-                hudView.ShowMessage("지금은 이 NPC가 여기에 없어요. 잠시 뒤 다시 시도해 주세요.");
+                BeginReviewReturn(
+                    null,
+                    null,
+                    "지금은 이 NPC가 여기에 없어요. 원래 자리로 돌아왔어요."
+                );
                 yield break;
             }
             bool started = false;
@@ -306,7 +319,10 @@ namespace A305.Learning
             finally
             {
                 if (!started)
+                {
                     ReleaseReviewPresence();
+                    BeginReviewReturn(null, null, "복습을 시작하지 못해 원래 자리로 돌아왔어요.");
+                }
             }
         }
 
@@ -344,13 +360,7 @@ namespace A305.Learning
             ReleaseReviewPresence();
             ReviewCard completed = practicingReview;
             practicingReview = null;
-            if (ReviewView != null)
-            {
-                if (completed != null && record.ReviewResult != null)
-                    completed.PracticeCount = record.ReviewResult.PracticeCount;
-                ReviewView.ShowResult(completed, record);
-                UpdateMovementLock();
-            }
+            BeginReviewReturn(completed, record);
         }
     }
 }

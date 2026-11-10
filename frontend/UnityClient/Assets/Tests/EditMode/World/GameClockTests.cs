@@ -204,6 +204,42 @@ namespace A305.World.Tests
         }
 
         [Test]
+        public async Task FlowFrame_FirstFrameAfterUnityStoodStill_CountsAtMostOneSecond()
+        {
+            // 창이 포커스를 잃거나 탭이 숨으면 Unity가 멈췄다가, 돌아온 첫 프레임에 떠나 있던 시간이 한꺼번에 들어온다.
+            // 그대로 더하면 81초가 게임 3시간이라, 시계와 NPC 일과가 앞으로 튀었다가 서버 응답(최대 60초)에서 되돌아간다.
+            var api = new FakeGameClockApi { Reply = Time(1, 480) };
+            var clock = new GameClock();
+            await clock.TickAsync(api, 1);
+
+            clock.FlowFrame(81);
+
+            Assert.That(
+                clock.Minutes,
+                Is.EqualTo(480 + 1 * GameClock.GameMinutesPerRealSecond).Within(.001)
+            );
+            await clock.TickAsync(api, 82);
+            Assert.That(
+                api.ActiveSeconds,
+                Is.EqualTo(1),
+                "떠나 있던 시간은 플레이한 시간으로 보내지 않는다"
+            );
+        }
+
+        [Test]
+        public void FlowFrame_OrdinaryFrame_FlowsAsItIs()
+        {
+            var clock = new GameClock();
+
+            clock.FlowFrame(0.5);
+
+            Assert.That(
+                clock.Minutes,
+                Is.EqualTo(480 + 0.5 * GameClock.GameMinutesPerRealSecond).Within(.001)
+            );
+        }
+
+        [Test]
         public async Task TickAsync_Updated_MovesFlowingTimeToTheServerTime()
         {
             var api = new FakeGameClockApi { Reply = Time(2, 600) };

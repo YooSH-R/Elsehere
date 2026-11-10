@@ -41,7 +41,8 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `MODEL_FALLBACK` | (구성 값) | 대체 모델 사슬 `a=b,c=d` |
 | `LLM_PROFILES` | `llm_profiles.json` | 구성 파일 경로 |
 | `CALL_TIMEOUT_S` | 8 | 모델 호출 하나의 상한. 넘으면 끊고 재시도·대체 모델 |
-| `HEDGE_AFTER_S` | 3 | 한 번에 받는 호출(판정·번역·힌트 등, NPC 스트림 제외)이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀. 0이면 끔. 측정은 [`ai/tools/llm_latency.py`](../tools/llm_latency.py) |
+| `JUDGE_HEDGE_AFTER_S` | 2 | 판정(`/v1/judge`의 의도·번역)만 이만큼 답이 없으면 같은 요청을 하나 더 보냄. NPC 대답이 판정을 기다리므로 다른 호출보다 일찍. 0이면 끔 |
+| `HEDGE_AFTER_S` | 3 | 판정을 뺀 한 번에 받는 호출(무례 판정·힌트 등, NPC 스트림 제외)이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀. 0이면 끔. 측정은 [`ai/tools/llm_latency.py`](../tools/llm_latency.py) |
 | `STREAM_HEDGE_AFTER_S` | 2.5 | NPC 대답 스트림의 첫 글자가 이만큼 안 오면 같은 요청 스트림을 하나 더 열어 먼저 글자를 낸 쪽을 씀. 0이면 끔. 측정은 `ai/tools/llm_latency.py --mode stream` |
 | `FEEDBACK_TIMEOUT_S` | 60 | 대화 종료 피드백의 전체 상한 (재시도·대체 모델 포함, 같은 요청 더 보내기 없음). 넘으면 `AI_TIMEOUT` |
 | `AUDIO_MAX_MB` | 200 | 음성 조각·턴 전체 음성 보관소의 전체 크기 상한 (넘으면 오래된 것부터 버림) |
@@ -147,17 +148,17 @@ NPC가 첫 대사를 먼저 하고 이후 한 줄마다 대답합니다. 턴마�
 - 크레딧은 `llm_profiles.json`의 단가로 계산하며, 같은 요청을 하나 더 보낸 턴은 진 쪽 토큰이 빠져 실제 차감이 더 클 수 있다고 표시합니다.
 - 입력을 파이프로 넘기면 줄마다 한 턴씩 말합니다 (`Get-Content lines.txt | .venv/Scripts/python ../tools/npc_chat.py`).
 
-## NPC 막다른 거절·지어내기 평가
+## NPC 막다른 거절·지어내기·연락 미룸 평가
 
-공통 규칙이나 마을 안내, 인격 카드를 고친 뒤 NPC가 손님 요청을 "잘 모르겠다"로 막지 않는지, 마을에 없는 곳이나 가격을 지어내지 않는지 잽니다. 게임 대답 경로(`/v1/npc/reply`, 인격 카드 + 백엔드 시드의 페르소나)로 대답을 만들고 판정 모델이 채점합니다.
+공통 규칙이나 마을 안내, 인격 카드를 고친 뒤 NPC가 손님 요청을 "잘 모르겠다"로 막지 않는지, 마을에 없는 곳이나 가격을 지어내지 않는지, 게임에 나오지 않는 사람(매니저·요리사·친구 등)에게 나중에 연락하겠다고만 하고 끝내지 않는지 잽니다. 게임 대답 경로(`/v1/npc/reply`, 인격 카드 + 백엔드 시드의 페르소나)로 대답을 만들고 판정 모델이 채점합니다.
 
 ```bash
 .venv/Scripts/python ../tools/npc_help_eval.py --runs 3 --out ../tools/results/npc_help.jsonl
 .venv/Scripts/python ../tools/npc_help_eval.py --rejudge ../tools/results/npc_help.jsonl   # 채점 기준만 고쳤을 때
 ```
 
-- 테스트셋은 `ai/tools/npc_help_eval/cases.json`입니다. `help` 줄은 막다른 거절을, 모든 줄은 알 만한 걸 모름·지어내기·길 틀림(마을 배치와 다른 길 안내)을 셉니다.
-- 줄마다 대답 하나에 한 글자(`X` 막다른 거절, `?` 알 만한 걸 모름, `F` 지어내기, `.` 통과)를 찍습니다. 판정 모델은 보조 채점이라 대답 원문(`--out`)도 읽어 봅니다.
+- 테스트셋은 `ai/tools/npc_help_eval/cases.json`입니다. `help` 줄은 막다른 거절을, 모든 줄은 알 만한 걸 모름·지어내기·길 틀림(마을 배치와 다른 길 안내)·연락 미룸을 셉니다. `contact-`로 시작하는 줄은 화면 밖 사람에게 연락할 만한 요청입니다.
+- 줄마다 대답 하나에 한 글자(`F` 지어내기, `X` 막다른 거절, `C` 연락 미룸, `?` 알 만한 걸 모름, `W` 길 틀림, `.` 통과)를 찍습니다. 판정 모델은 보조 채점이라 대답 원문(`--out`)도 읽어 봅니다.
 - 실제 모델을 부르므로 팀 공용 GMS 크레딧을 씁니다. 한 줄씩 순서대로 보냅니다.
 
 ## NPC 인격 모델 (자동 생성)

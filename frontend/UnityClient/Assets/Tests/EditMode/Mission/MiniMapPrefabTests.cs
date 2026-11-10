@@ -333,6 +333,33 @@ namespace A305.Mission.Tests
             Assert.That(panel.anchoredPosition, Is.EqualTo(new Vector2(28, 28) * 1.2f));
         }
 
+        // 데스크톱과 터치 화면 모두에서 주요 HUD가 서로 다른 화면 모서리를 사용해 겹치지 않는다.
+        [Test]
+        public void ResponsiveHud_KeepsQuestStatusAndMapInSeparateScreenRegions()
+        {
+            Create();
+            var view = instance.GetComponent<FirstDayMissionView>();
+            var quest = (RectTransform)instance.transform.Find("Content/CurrentGoal");
+            var status = (RectTransform)instance.transform.Find("Content/Status");
+            var map = (RectTransform)instance.transform.Find("Content/MiniMap");
+
+            Assert.That(quest.anchorMin, Is.EqualTo(Vector2.up), "퀘스트는 왼쪽 위");
+            Assert.That(quest.anchorMax, Is.EqualTo(Vector2.up), "퀘스트는 왼쪽 위");
+            Assert.That(status.anchorMin, Is.EqualTo(Vector2.one), "상태 칩은 오른쪽 위");
+            Assert.That(status.anchorMax, Is.EqualTo(Vector2.one), "상태 칩은 오른쪽 위");
+
+            view.PlaceMiniMap(touch: false);
+            Assert.That(map.anchorMin, Is.EqualTo(Vector2.zero), "데스크톱 지도는 왼쪽 아래");
+
+            view.PlaceMiniMap(touch: true);
+            Assert.That(map.anchorMin, Is.EqualTo(Vector2.one), "터치 지도는 오른쪽 위");
+            Assert.That(
+                -map.anchoredPosition.y,
+                Is.GreaterThan(status.rect.height),
+                "터치 지도는 상태 칩보다 아래에 있어야 한다"
+            );
+        }
+
         private TownMiniMapView Create(string sceneCode = "TOWN")
         {
             instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));

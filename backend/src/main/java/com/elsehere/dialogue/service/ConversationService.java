@@ -240,6 +240,7 @@ public class ConversationService {
                         if (value.detail().state() != null) {
                           if (value.townStory()) {
                             conversation.attachTownStoryStage(value.detail().stage());
+                            conversation.recordTownStoryGoals(value.detail().remainingGoals());
                           } else {
                             conversation.attachFirstDayStage(value.detail().stage());
                           }

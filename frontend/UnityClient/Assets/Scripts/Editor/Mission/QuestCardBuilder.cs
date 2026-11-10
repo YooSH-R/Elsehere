@@ -19,7 +19,8 @@ namespace A305.EditorTools.Mission
     public static class QuestCardBuilder
     {
         private const string MenuPath = "Tools/A305/Mission/Apply Quest Card";
-        private const string CompactMenuPath = "Tools/A305/Mission/Apply Compact Quest Card";
+        private const string ReadabilityMenuPath =
+            "Tools/A305/Mission/Apply Quest Card Readability";
         private const string PlaceholderMenuPath =
             "Tools/A305/Mission/Apply Quest Card Placeholder";
         private const string CoinChangeMenuPath = "Tools/A305/Mission/Apply Coin Change Labels";
@@ -55,16 +56,12 @@ namespace A305.EditorTools.Mission
             AssetDatabase.SaveAssets();
         }
 
-        [MenuItem(CompactMenuPath)]
-        public static void ApplyCompactToPrefab()
+        [MenuItem(ReadabilityMenuPath)]
+        public static void ApplyReadabilityToPrefab()
         {
             BuilderTools.UpdatePrefabIfExists(
                 PrefabPath,
-                root =>
-                    CompactQuestCard(
-                        root.GetComponent<FirstDayMissionView>(),
-                        (RectTransform)root.transform.Find("Content/CurrentGoal")
-                    )
+                root => ReadableQuestCard((RectTransform)root.transform.Find("Content/CurrentGoal"))
             );
             AssetDatabase.SaveAssets();
         }
@@ -324,7 +321,8 @@ namespace A305.EditorTools.Mission
             TMP_Text place = Text(header, "Place", DisplayFontPath, 22, Muted, "호텔에 도착");
             place.alignment = TextAlignmentOptions.MidlineLeft;
             place.margin = new Vector4(0, 2 * Px, 0, 0);
-            place.overflowMode = TextOverflowModes.Ellipsis;
+            place.overflowMode = TextOverflowModes.Overflow;
+            place.textWrappingMode = TextWrappingModes.Normal;
             BuilderTools.GetOrAddComponent<LayoutElement>(place.gameObject).flexibleWidth = 1;
 
             // 할 일(Jua 26, 위 12), 상황(Pretendard 16, 위 4)
@@ -390,14 +388,19 @@ namespace A305.EditorTools.Mission
             BuilderTools.SetReference(view, "upcomingMark", Sprite("QuestStepUpcoming"));
             BuilderTools.SetReference(view, "goalOpen", Sprite("CheckEmpty"));
             BuilderTools.SetReference(view, "goalDone", Sprite("CheckDone"));
-            CompactQuestCard(view, card);
+            ReadableQuestCard(card);
         }
 
-        // 기존 프리팹의 목표·진행 칸을 다시 만들지 않고 카드 글자와 접기 버튼만 갱신한다.
-        private static void CompactQuestCard(FirstDayMissionView view, RectTransform card)
+        // 목표·진행 칸은 유지하고 접기 버튼을 제거한다. 긴 제목은 카드 높이를 늘려 모두 보여 준다.
+        private static void ReadableQuestCard(RectTransform card)
         {
             RectTransform header = (RectTransform)card.Find("Header");
-            Height(header, 40);
+            var headerSize = BuilderTools.GetOrAddComponent<LayoutElement>(header.gameObject);
+            headerSize.minHeight = 40 * Px;
+            headerSize.preferredHeight = -1;
+            var headerRow = header.GetComponent<HorizontalLayoutGroup>();
+            headerRow.childControlHeight = true;
+            headerRow.childForceExpandHeight = false;
             RectTransform chip = (RectTransform)header.Find("StepChip");
             Box(header, "StepChip", 80, 40);
             ((RectTransform)chip.Find("Art")).sizeDelta = new Vector2(
@@ -405,29 +408,24 @@ namespace A305.EditorTools.Mission
                 (40 + 2 * ArtPad) * Px
             );
             Style(chip.Find("Label").GetComponent<TMP_Text>(), DisplayFontPath, 20, Color.white);
-            Style(header.Find("Place").GetComponent<TMP_Text>(), DisplayFontPath, 22, Muted);
-
-            RectTransform collapseRect = Box(header, "CollapseButton", 72, 40);
-            var collapseImage = BuilderTools.GetOrAddComponent<Image>(collapseRect.gameObject);
-            collapseImage.sprite = Design().InputSprite;
-            collapseImage.type = Image.Type.Sliced;
-            collapseImage.color = Design().CardTint;
-            collapseImage.material = Design().GlassMaterial;
-            var collapseButton = BuilderTools.GetOrAddComponent<Button>(collapseRect.gameObject);
-            collapseButton.targetGraphic = collapseImage;
-            if (collapseButton.onClick.GetPersistentEventCount() == 0)
-                QuestBoardBuilder.Listen(collapseButton, view.ToggleQuestCard);
-            TMP_Text collapseLabel = Text(collapseRect, "Label", DisplayFontPath, 18, Ink, "접기");
-            Fill(collapseLabel.rectTransform);
-            collapseLabel.alignment = TextAlignmentOptions.Center;
-            BuilderTools.SetReference(view, "collapseButton", collapseButton);
-            BuilderTools.SetReference(view, "collapseLabel", collapseLabel);
+            TMP_Text place = header.Find("Place").GetComponent<TMP_Text>();
+            Style(place, DisplayFontPath, 22, Muted);
+            place.textWrappingMode = TextWrappingModes.Normal;
+            place.overflowMode = TextOverflowModes.Overflow;
+            var titleSize = BuilderTools.GetOrAddComponent<LayoutElement>(place.gameObject);
+            titleSize.minWidth = 0;
+            titleSize.flexibleWidth = 1;
+            Transform collapse = header.Find("CollapseButton");
+            if (collapse != null)
+                Object.DestroyImmediate(collapse.gameObject);
 
             TMP_Text direction = card.Find("Direction").GetComponent<TMP_Text>();
+            direction.gameObject.SetActive(true);
             Style(direction, DisplayFontPath, 30, Ink);
             direction.text = DirectionPlaceholder;
             LineBox(direction, 12, 30 * 1.2f);
             TMP_Text situation = card.Find("Situation").GetComponent<TMP_Text>();
+            situation.gameObject.SetActive(true);
             Style(situation, BodyFontPath, 19, Muted);
             LineBox(situation, 4, 24);
 

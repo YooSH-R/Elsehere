@@ -9,6 +9,25 @@ namespace A305.Npc.Tests
     public sealed class GuestSignupDialogPrefabTests
     {
         private const string PrefabPath = "Assets/Prefabs/Npc/PasserbyOffer.prefab";
+        private bool hadSurveyInvitation;
+        private int savedSurveyInvitation;
+
+        [SetUp]
+        public void StartWithoutAnInvitation()
+        {
+            hadSurveyInvitation = PlayerPrefs.HasKey(SurveyPrompt.InvitationKey);
+            savedSurveyInvitation = PlayerPrefs.GetInt(SurveyPrompt.InvitationKey);
+            PlayerPrefs.DeleteKey(SurveyPrompt.InvitationKey);
+        }
+
+        [TearDown]
+        public void RestoreInvitation()
+        {
+            if (hadSurveyInvitation)
+                PlayerPrefs.SetInt(SurveyPrompt.InvitationKey, savedSurveyInvitation);
+            else
+                PlayerPrefs.DeleteKey(SurveyPrompt.InvitationKey);
+        }
 
         [Test]
         public void OfferView_ConnectsHiddenGuestSignupDialog()

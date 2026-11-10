@@ -178,18 +178,21 @@ class AiWorkerClient {
    * 녹음 전사. 파일 부분의 형식이 워커가 받는 녹음 형식이어야 한다.
    *
    * @param npcLine 인식 문맥으로 쓸 직전 NPC 대사. 비어 있으면 보내지 않는다
+   * @param sceneWords 철자를 알려 줄 장면 단어(사람 이름, 메뉴·상품 이름). 비어 있으면 보내지 않는다
    */
-  public SttResult transcribe(WorkerTrace trace, byte[] audio, String contentType, String npcLine) {
+  public SttResult transcribe(
+      WorkerTrace trace,
+      byte[] audio,
+      String contentType,
+      String npcLine,
+      List<String> sceneWords) {
     String boundary = "elsehere-" + UUID.randomUUID();
     ByteArrayOutputStream body = new ByteArrayOutputStream();
     if (npcLine != null && !npcLine.isBlank()) {
-      body.writeBytes(
-          ("--"
-                  + boundary
-                  + "\r\nContent-Disposition: form-data; name=\"npc_line\"\r\n\r\n"
-                  + npcLine
-                  + "\r\n")
-              .getBytes(StandardCharsets.UTF_8));
+      writeFormField(body, boundary, "npc_line", npcLine);
+    }
+    if (!sceneWords.isEmpty()) {
+      writeFormField(body, boundary, "scene_words", jsonMapper.writeValueAsString(sceneWords));
     }
     body.writeBytes(
         ("--"
@@ -207,6 +210,19 @@ class AiWorkerClient {
             .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray()))
             .build();
     return readJson(send(request, HttpResponse.BodyHandlers.ofString()), SttResult.class);
+  }
+
+  private static void writeFormField(
+      ByteArrayOutputStream body, String boundary, String name, String value) {
+    body.writeBytes(
+        ("--"
+                + boundary
+                + "\r\nContent-Disposition: form-data; name=\""
+                + name
+                + "\"\r\n\r\n"
+                + value
+                + "\r\n")
+            .getBytes(StandardCharsets.UTF_8));
   }
 
   /** NPC 대사 한 줄의 한국어 뜻과 단어 풀이(CONV-04 뜻 보기). */

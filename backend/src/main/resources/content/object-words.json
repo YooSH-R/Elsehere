@@ -919,6 +919,15 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_0587befb29840ad49a62604219dc7715",
+            "languageCode": "en-US",
+            "text": "change machine",
+            "meaningKo": "동전 교환기",
+            "example": "The change machine gives you quarters for the washers.",
+            "exampleKo": "동전 교환기에서 세탁기에 쓸 25센트 동전을 받을 수 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_0744fa563d6a7994f9f3a91758a794f9",
             "languageCode": "en-US",
             "text": "package",
@@ -979,6 +988,15 @@
             "meaningKo": "스툴 의자",
             "example": "Can I sit on this stool?",
             "exampleKo": "이 의자에 앉아도 될까요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_386c8564b884cfe47b66fdbc77ec87b9",
+            "languageCode": "en-US",
+            "text": "clothes rack",
+            "meaningKo": "옷걸이 행거",
+            "example": "Hang your shirt on the clothes rack.",
+            "exampleKo": "셔츠를 행거에 걸어 두세요.",
             "pronunciationAudioKey": ""
         },
         {
@@ -1063,6 +1081,15 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_57d53390c38c2204588cba13f10a5f9a",
+            "languageCode": "en-US",
+            "text": "laundry basket",
+            "meaningKo": "빨래 바구니",
+            "example": "Put your clean clothes in the laundry basket.",
+            "exampleKo": "깨끗한 옷을 빨래 바구니에 넣으세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_583992ed64934fe4ba5f273e34106ceb",
             "languageCode": "en-US",
             "text": "mailbox",
@@ -1087,6 +1114,15 @@
             "meaningKo": "주차장",
             "example": "The police car is in the parking lot.",
             "exampleKo": "경찰차가 주차장에 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_6f2d682aa1edd004a86774dbc32603a3",
+            "languageCode": "en-US",
+            "text": "detergent vending machine",
+            "meaningKo": "세제 자판기",
+            "example": "You can buy detergent from the detergent vending machine.",
+            "exampleKo": "세제 자판기에서 세제를 살 수 있어요.",
             "pronunciationAudioKey": ""
         },
         {
@@ -1123,6 +1159,33 @@
             "meaningKo": "자전거 거치대",
             "example": "You can park your bike at the bike rack.",
             "exampleKo": "자전거 거치대에 자전거를 세울 수 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_a469e283225b24f48b585f804e782bec",
+            "languageCode": "en-US",
+            "text": "laundry detergent",
+            "meaningKo": "세탁 세제",
+            "example": "Add a little laundry detergent before you start the washer.",
+            "exampleKo": "세탁기를 돌리기 전에 세탁 세제를 조금 넣으세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_af4d769b378ec384a8ef3edbaf346e9d",
+            "languageCode": "en-US",
+            "text": "folded towels",
+            "meaningKo": "접어 놓은 수건",
+            "example": "The folded towels are on the shelf.",
+            "exampleKo": "접어 놓은 수건은 선반에 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_b1de7b60fd9e56c4282fa85b4a09e4b2",
+            "languageCode": "en-US",
+            "text": "laundry cart",
+            "meaningKo": "빨래 수레",
+            "example": "Use the laundry cart to take your clothes to the dryer.",
+            "exampleKo": "빨래 수레를 써서 옷을 건조기로 옮기세요.",
             "pronunciationAudioKey": ""
         },
         {

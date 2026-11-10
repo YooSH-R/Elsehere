@@ -158,6 +158,15 @@ def test_with_a_profile_the_rules_do_not_tell_the_npc_to_say_it_is_not_sure(clie
     assert "Never end with only" in rules and "concrete next step" in rules
 
 
+def test_with_a_profile_the_npc_contacts_off_screen_people_in_the_same_reply(client, provider):
+    """NPC가 매니저·요리사·친구처럼 게임에 나오지 않는 사람에게 '연락해 볼게요'라고만 하고 끝나, 그 연락이 영영 오지 않았다.
+    연락이 필요하면 같은 대답 안에서 바로 하고 그 사람의 답을 전한다. 나중에 연락하겠다는 약속과 메시지 남기기는 하지 않는다."""
+    rules = system_of(reply_request(client, provider, {**NPC, "profile": profile_of("HOTEL_STAFF")})).split("## Character")[0]
+    assert "take a message" not in rules
+    assert "right now, in this reply" in rules and "pass on their answer" in rules
+    assert "Never promise to contact someone later" in rules
+
+
 @pytest.mark.parametrize("instruction", ["", "Ask what size they want."])
 def test_with_a_profile_this_turn_says_their_words_were_not_rude_unless_the_backend_said_so(client, provider, instruction):
     """무례를 못 참는 카페 사장이 판정기가 무례 아님으로 본 재촉("hurry up")에 정중히 말하라고 했다.

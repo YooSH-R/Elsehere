@@ -37,7 +37,20 @@ final class ReviewScenarios {
     Integer story = source == null ? null : source.getTownStoryStage();
     if (story != null && story >= 0 && story < TownStoryStage.values().length) {
       var stage = TownStoryStage.values()[story];
-      if (stage.npcCode().equals(npcCode)) {
+      List<String> goals = source.getTownStoryGoalIds();
+      if (stage.npcCode().equals(npcCode) && goals != null && !goals.isEmpty()) {
+        List<String> notes = goals.stream().map(TownStoryStage::goalHint).toList();
+        String title =
+            goals.size() == 1 ? TownStoryStage.goalTitle(goals.getFirst()) : stage.title();
+        return new ReviewScenario(
+            "town_story_" + stage.name() + "_" + String.join("_", goals),
+            title,
+            title + ". " + String.join(". ", notes),
+            "손님",
+            notes);
+      }
+      // 식당의 예전 기록은 주문과 쏟은 사건 중 어느 대화였는지 알 수 없다.
+      if (stage.npcCode().equals(npcCode) && goals == null && stage != TownStoryStage.DINER) {
         return new ReviewScenario(
             "town_story_" + stage.name(),
             stage.title(),

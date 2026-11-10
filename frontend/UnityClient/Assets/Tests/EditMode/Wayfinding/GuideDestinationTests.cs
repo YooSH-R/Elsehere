@@ -5,6 +5,33 @@ namespace A305.Wayfinding.Tests
     public class GuideDestinationTests
     {
         [Test]
+        public void TownStoryNpcDestinationsMatchTheirShopAndArrival()
+        {
+            var destination = new GuideDestination();
+            foreach (
+                string place in new[]
+                {
+                    "DINER",
+                    "LAUNDROMAT",
+                    "BANK",
+                    "BARBER",
+                    "FLOWER_SHOP",
+                    "BAKERY",
+                    "HOME_STORE",
+                    "ARCADE",
+                    "POST_OFFICE",
+                }
+            )
+            {
+                destination.Show(place + "_STAFF");
+                Assert.That(destination.PlaceCode, Is.EqualTo(place));
+                Assert.That(destination.Arrived, Is.False);
+                destination.EnterPlace(place);
+                Assert.That(destination.Arrived, Is.True);
+            }
+        }
+
+        [Test]
         public void Show_GuidesToThePlaceTheMissionAskedFor()
         {
             var destination = new GuideDestination();

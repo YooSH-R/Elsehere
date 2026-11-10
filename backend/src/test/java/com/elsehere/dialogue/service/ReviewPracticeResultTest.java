@@ -40,6 +40,41 @@ class ReviewPracticeResultTest {
   private Conversation review;
 
   @Test
+  void lastSpokenFarewellIsIncludedWhenPracticeEndsImmediately() {
+    var original = cards.detail(userId, cardId);
+    var source = conversation(em, userId, "HOTEL_STAFF");
+    source.endByUser(review.getStartedAt());
+    var card =
+        com.elsehere.review.entity.ReviewCard.of(
+            userId,
+            source.getId(),
+            original.npcId(),
+            "CAFE",
+            "분실물 찾기",
+            """
+        [{"expression":"Has anyone turned in a blue bag?","meaningKo":"파란 가방 맡긴 것 있나요?"},
+         {"expression":"That's the one!","meaningKo":"바로 그거예요!"},
+         {"expression":"You're a lifesaver!","meaningKo":"정말 큰 도움이 됐어요!"}]
+        """);
+    em.persist(card);
+    review.attachReviewCard(card.getId());
+    userTurn(1, "Has anyone turned in a blue bag?", false);
+    userTurn(3, "That's the one!", false);
+    assertThat(results.progress(userId, card.getId(), review.getId()).verifiedExpressionCount())
+        .isEqualTo(2);
+    Turn last = userTurn(5, "Thank you. You are a lifesaver!", false);
+    var ended =
+        service.end(userId, review.getId(), new EndConversationRequest(UUID.randomUUID(), false));
+    assertThat(ended.reviewResult().verifiedExpressionCount()).isEqualTo(3);
+    assertThat(ended.reviewResult().expressions().getLast().evidence())
+        .extracting("turnId")
+        .containsExactly(last.getId());
+    assertThat(results.latest(userId, card.getId()).expressions())
+        .isEqualTo(ended.reviewResult().expressions());
+    org.mockito.BDDMockito.then(gateway).shouldHaveNoInteractions();
+  }
+
+  @Test
   void progressRejectsOtherOwnersAndUnrelatedNormalConversations() {
     Long other = UserTestData.insertUser(em, AuthProvider.GOOGLE, "progress-other", "Other");
     assertThatThrownBy(() -> results.progress(other, cardId, review.getId()))

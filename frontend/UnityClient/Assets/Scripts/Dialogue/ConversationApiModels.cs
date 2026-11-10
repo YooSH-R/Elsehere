@@ -89,6 +89,16 @@ namespace A305.Dialogue
 
         /// <summary>이 턴에서 경찰관이 신고를 받아 순찰차가 출동하면 출동할 곳. 출동하지 않으면 null이다.</summary>
         public PoliceDispatchData PoliceDispatch { get; set; }
+
+        /// <summary>이 턴에서 택시 기사가 알아들은 목적지. 목적지를 말하지 않았으면 null이다.</summary>
+        public TaxiDestinationData TaxiDestination { get; set; }
+    }
+
+    /// <summary>택시 기사가 대화 문맥으로 알아들은 목적지. 택시는 이 장소로 가서 내려 준다.</summary>
+    public sealed class TaxiDestinationData
+    {
+        /// <summary>갈 마을 장소 코드(CAFE, BAKERY, PARK 등).</summary>
+        public string PlaceCode { get; set; }
     }
 
     /// <summary>경찰서 창구에서 받은 신고. 신고를 받은 경찰관이 대화를 마치고 직접 순찰차로 간다.</summary>

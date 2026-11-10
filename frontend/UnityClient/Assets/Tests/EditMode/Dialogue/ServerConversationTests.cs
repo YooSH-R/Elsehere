@@ -134,8 +134,10 @@ namespace A305.Dialogue.Tests
             int dispatched = 0;
             review.UserTurnAccepted += _ => accepted++;
             review.PoliceDispatchRequested += (_, __) => dispatched++;
+            review.TaxiDestinationChosen += _ => dispatched++;
             api.TurnResponse = Reply("Take me to the hotel.", "All right.", "ACTIVE");
             api.TurnResponse.PoliceDispatch = new PoliceDispatchData { PlaceCode = "HOTEL" };
+            api.TurnResponse.TaxiDestination = new TaxiDestinationData { PlaceCode = "HOTEL" };
             await review.StartAsync();
             await review.SendAsync("Take me to the hotel.");
             Assert.That(accepted, Is.Zero);
@@ -249,6 +251,33 @@ namespace A305.Dialogue.Tests
             await conversation.SendAsync("Hello.");
 
             Assert.That(dispatched, Is.Empty);
+        }
+
+        // 택시 목적지는 서버의 의도 판정이 대화 문맥으로 고른다. Unity는 응답의 장소 코드를 그대로 택시에 전한다.
+        [Test]
+        public async Task TurnWithATaxiDestination_NotifiesThePlace()
+        {
+            var chosen = new List<string>();
+            conversation.TaxiDestinationChosen += place => chosen.Add(place);
+            api.TurnResponse = Reply("Go there, please.", "Sure, the bakery it is.", "ACTIVE");
+            api.TurnResponse.TaxiDestination = new TaxiDestinationData { PlaceCode = "BAKERY" };
+            await conversation.StartAsync();
+
+            await conversation.SendAsync("Go there, please.");
+
+            Assert.That(chosen, Is.EqualTo(new[] { "BAKERY" }));
+        }
+
+        [Test]
+        public async Task TurnWithoutATaxiDestination_DoesNotNotify()
+        {
+            var chosen = new List<string>();
+            conversation.TaxiDestinationChosen += place => chosen.Add(place);
+            await conversation.StartAsync();
+
+            await conversation.SendAsync("How long does it take?");
+
+            Assert.That(chosen, Is.Empty);
         }
 
         private const string CafeStaffCode = "CAFE_STAFF";

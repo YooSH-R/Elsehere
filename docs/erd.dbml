@@ -249,6 +249,7 @@ Table turns [headercolor: #2E6B4F] {
   events jsonb [note: '의도 판정(/v1/judge)이 고른 대화 사건 문자열 배열 (GREETING · APOLOGY 등) · 다음 요청의 history[].events · 사용자 턴만, 워커가 보내지 않으면 null']
   police_dispatch boolean [not null, default: false, note: '이 사용자 턴이 접수한 경찰 출동 · 재시도에도 동일한 출동 정보를 반환']
   police_dispatch_place_code varchar(40) [note: '경찰 출동 목적지 · 접수됐는데 NULL이면 본길 순찰']
+  taxi_destination_code varchar(40) [note: '이 사용자 턴에서 택시 기사가 알아들은 목적지 · 재시도에도 같은 목적지를 반환']
   meaning_ko text [note: '뜻 보기']
   glossary jsonb [note: '단어 호버 뜻']
   suggest_words jsonb [note: '추천 단어 3개']

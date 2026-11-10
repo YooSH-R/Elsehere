@@ -5,7 +5,7 @@ using UnityEngine;
 namespace A305.Npc
 {
     /// <summary>
-    /// 서버 연동 전에 쓰는 확인용 행인 인사말. 서버 API가 준비되면 서버에서 받는 대사로 바꾸고 이 에셋은 개발 확인에만 쓴다.
+    /// 튜토리얼과 직원의 대화 제안 화면에 쓰는 인사말 에셋이다.
     /// </summary>
     [CreateAssetMenu(menuName = "A305/Npc/Mock Npc Lines", fileName = "MockNpcLines")]
     public class MockNpcLineSource : NpcLineSource

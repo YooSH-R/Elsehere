@@ -5,7 +5,7 @@ AI 워커의 음성 인식(STT)을 SSAFY GPU 서버(5번 GPU)에서 자체 학�
 ## 구조
 
 - 워커가 Groq를 부르는 OpenAI 호환 형식(`POST /v1/audio/transcriptions`, `verbose_json`)을 그대로 받습니다. 언어는 `ko` 고정에 워커가 보내는 장면 단어 프롬프트를 씁니다(게임 녹음 평가에서 가장 좋았던 설정).
-- faster-whisper(CTranslate2) float16, beam 5로 돌립니다. 요청을 받는 스레드는 녹음을 해독해 대기열에 넣고, GPU 일꾼 하나가 앞 묶음을 받아 적는 동안 쌓인 요청을 최대 16개까지 한 묶음으로 받아 적습니다(S15P31A305-513). 혼자 들어온 요청은 기다리지 않고 바로 1건 묶음으로 처리합니다.
+- faster-whisper(CTranslate2) float16, beam 5로 돌립니다. 요청을 받는 스레드는 녹음을 해독해 대기열에 넣고, GPU 일꾼 하나가 앞 묶음을 받아 적는 동안 쌓인 요청을 최대 16개(`STT_BATCH_MAX`)까지 한 묶음으로 받아 적습니다(S15P31A305-513). 혼자 들어온 요청은 기다리지 않고 바로 1건 묶음으로 처리합니다.
   - faster-whisper의 `BatchedInferencePipeline`은 녹음 하나를 잘라 묶는 용도라 요청끼리는 묶지 못해, 같은 내부 단계(특징 추출 → 인코더 → beam 생성)를 여러 녹음에 한꺼번에 돌립니다. CTranslate2는 프롬프트 토큰 수가 같은 것끼리만 함께 생성할 수 있어 프롬프트 길이별로 나눠 생성합니다.
   - 묶음은 타임스탬프 없이(`without_timestamps`) 받아 적습니다. 타임스탬프 규칙을 켜면 CTranslate2 묶음 생성이 크게 느려져(16건 생성 3.05초, 끄면 0.035초) 묶는 이득이 없습니다. 워커는 `text`·`duration`만 쓰므로 `segments`는 녹음 전체를 한 구간으로 돌려줍니다. 30초가 넘는 녹음만 예전처럼 한 건씩 받아 적습니다.
   - 인코더가 건당 약 0.035초로 GPU 계산 한계라, 4건 이상 묶으면 처리량이 초당 약 28건으로 같습니다(예전 한 건씩은 초당 약 2건).
@@ -57,3 +57,4 @@ setsid nohup ~/stt/gpu_stt/supervise.sh > ~/stt/gpu_stt/supervise.log 2>&1 &
 - `server.py`를 바꾼 뒤에는 실행 중인 서버 프로세스(`pgrep -f gpu_stt/server.py`)를 끝내면 감시 스크립트가 30초 안에 새 코드로 다시 띄웁니다. 다시 뜨는 동안 워커는 다음 공급자로 넘깁니다.
 - JupyterHub 세션이 꺼지면 감시 스크립트와 서버도 같이 꺼집니다. Jupyter 서버가 다시 시작되면(자동 보안 업데이트 뒤 서비스 재시작 등) [`ai/gpu_autostart`](../gpu_autostart/README.md) 훅이 감시 스크립트를 자동으로 다시 띄웁니다. 서버 재부팅처럼 Jupyter 서버가 뜨지 않으면 JupyterHub에 로그인할 때 같은 훅이 띄웁니다.
 - SSAFY 서버를 쓸 수 없을 때는 [임대 GPU 서버](../gpu_rental/README.md)로 옮깁니다. 감시 스크립트는 `STT_RUNNER`로 서버 실행기를 바꿀 수 있습니다(기본 `~/stt/gpu5.sh`). 임대 서버에서는 `start.sh`가 `~/stt/run.sh`를 지정합니다.
+- 묶음 상한은 `STT_BATCH_MAX`(기본 16)로 바꿉니다. 감시 스크립트를 띄우는 환경에 지정하면 서버까지 이어집니다. 8GB GPU(RTX 4070 Laptop)에서는 16건 묶음이 GPU 메모리에 다 들어가지 않아 시스템 메모리로 넘치고(예열 177초, 동시 15건 28초), 4로 낮추면 동시 15건 4.3초였습니다(TTS와 같은 GPU, S15P31A305-769). 1보다 작으면 시작하지 않습니다.

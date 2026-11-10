@@ -5,8 +5,9 @@ import json
 import httpx
 import pytest
 from test_api import judge_body
+from test_judge_gpu import GPU, GPU_MODEL, PROFILE_INTENT, intent_by_model
 
-from conftest import ok
+from conftest import make_client, ok
 
 
 def test_english_grammar_correction_uses_the_existing_intent_call(client, provider):
@@ -102,3 +103,25 @@ def test_intent_schema_requests_a_nullable_correction_and_preserves_existing_fie
     assert schema["properties"]["english_correction"] == {"type": ["string", "null"]}
     assert "english_correction" in schema["required"]
     assert {"intents", "items", "events", "choice"} <= schema["properties"].keys()
+
+
+@pytest.mark.parametrize("gpu_fails", [False, True])
+def test_gpu_judgment_and_profile_fallback_both_return_the_correction(provider, gpu_fails):
+    seen = []
+
+    def answer(body):
+        seen.append(body)
+        if body["model"] == GPU_MODEL and gpu_fails:
+            return httpx.Response(503, text="unavailable")
+        return ok(json.dumps({"intents": ["unclear"], "events": [], "english_correction": "I want coffee."}))
+
+    provider.answers["intent"] = intent_by_model({GPU_MODEL: answer, PROFILE_INTENT: answer})
+    with make_client(provider, **GPU) as client:
+        response = client.post("/v1/judge", json=judge_body("I wants coffee."))
+
+    assert response.status_code == 200
+    assert response.json()["translation"] == {"english": "I want coffee.", "error": None}
+    expected_models = [GPU_MODEL, PROFILE_INTENT] if gpu_fails else [GPU_MODEL]
+    assert provider.calls == [("intent", model) for model in expected_models]
+    assert all(body["max_tokens"] == 200 for body in seen)
+    assert all("english_correction" in body["response_format"]["json_schema"]["schema"]["required"] for body in seen)

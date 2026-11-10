@@ -96,15 +96,8 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
     hedge_after_s = llm.s.judge_hedge_after_s  # NPC 대답이 판정을 기다리므로 다른 호출보다 일찍 같은 요청을 더 보낸다
 
     async def intent():
-        out = await llm.chat(
-            "intent",
-            "intent",
-            P.intent_messages(req.npc, req.state, req.history, text),
-            usage,
-            0.0,
-            280,
-            P.intent_schema(req.state),
-            hedge_after_s=hedge_after_s,
+        out = await llm.intent_chat(
+            P.intent_messages(req.npc, req.state, req.history, text), usage, P.intent_schema(req.state), hedge_after_s=hedge_after_s
         )
         raw = json.loads(out)
         return clean_intent(raw, req.state), clean_events(raw), clean_english_correction(raw, text)

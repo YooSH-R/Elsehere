@@ -85,6 +85,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | `STREAM_HEDGE_AFTER_S` | 2.5초 | NPC 대답 스트림의 **첫 글자**가 이만큼 안 오면 같은 요청 스트림을 하나 더 열어 먼저 글자를 낸 쪽을 씀(진 쪽은 닫음). GMS 스트리밍이 가끔 첫 글자를 10초 넘게 늦게 보내는 것 대비. 평소 첫 글자는 1.7초 안 |
 | `WORDS_BUDGET_S` | 3초 | NPC 대답 스트림 안 추천 단어(`words`). 넘으면 `words: null`, `error: "timeout"`으로 넘기고 `done`을 보냄 |
 | `JUDGE_BUDGET_S` | 5초 | `/v1/judge`의 의도·번역 **각각**. 넘으면 그 칸만 `timeout` 오류 |
+| `JUDGE_GPU_TIMEOUT_S` | 2초 | GPU 서버 의도 판정 모델(`JUDGE_GPU_MODEL`) 호출 한 번. 평소 0.5초 안팎(동시 20건 p90 약 2.4초). 넘으면 재시도 없이 구성의 의도 모델로. `JUDGE_BUDGET_S` 안에서 셈 |
 | `GUARD_BUDGET_S` | 5초 | `/v1/guard` 무례 판정 (로컬 판정기 + LLM). 넘으면 `abusive: null`, `error_code: timeout` |
 | `GUARD_GPU_TIMEOUT_S` | 3초 | GPU 서버 판정 모델(`GUARD_GPU_MODEL`) 호출 한 번. 평소 0.3초(10개 동시 약 1초)지만 vLLM이 처음 보는 동시 요청 수에서는 한 번 2.4~2.7초가 걸림. 넘으면 재시도 없이 구성의 판정 모델로. `GUARD_BUDGET_S` 안에서 셈 |
 | `TTS_GPU_TIMEOUT_S` | 10초 | GPU 서버 음성 합성(`TTS_GPU_BASE_URL`) 응답 한 번. 넘으면 재시도 없이 CPU Kokoro로. 여러 사람이 동시에 말하면 GPU 앞에 줄이 서는데(20명분 동시 60조각 최대 약 4~6초), CPU 합성이 훨씬 느려 넉넉히 기다림. NPC 대답 조각은 `TTS_CHUNK_BUDGET_S` 안에서 셈 |
@@ -190,6 +191,10 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 - 지금 호감을 모르고 계산하므로 끝(100)에 가까울수록 덜 오르는 완충은 없습니다(무례 감점과 같음).
 - 잡담은 대화 중 기분만 좋게 하고 호감은 올리지 않습니다. 영어 실수·한국어·짧은 대답은 호감을 깎을 일로 보지 않습니다(요구사항 REQ-24).
 - 비어 있으면(이 칸을 모르는 이전 워커) 백엔드는 호감을 바꾸지 않습니다.
+
+**GPU 서버 의도 판정 모델을 켰을 때 (기본 꺼짐)**
+
+워커에 `JUDGE_GPU_MODEL`(예: `Qwen/Qwen3.8-27B`, 무례 판정과 같은 vLLM의 기본 모델)을 주면 의도·사건 판정 호출이 GPU 서버를 먼저 한 번 부릅니다. 주소와 키는 `GUARD_GPU_BASE_URL`·`GUARD_GPU_TOKEN`을 같이 씁니다. 오류·시간 초과(`JUDGE_GPU_TIMEOUT_S`, 2초)·JSON이 아닌 답이면 재시도 없이 구성의 의도 모델(기본 GPT-6 Luna, `JUDGE_HEDGE_AFTER_S` 적용)로 넘기고, 연속으로 `JUDGE_BREAKER_FAILURES`(3)번 실패하면 `JUDGE_BREAKER_SKIP_S`(60초) 동안 GPU를 건너뜁니다. 번역은 켜도 구성 모델 그대로입니다. 응답 형식은 같고, `usage`의 `intent` 단계 `model`에 실제로 판정한 모델이, 넘겼으면 `fallback: true`가 남습니다. 개발셋 평가에서 미션 의도는 Luna와 같은 수준이었지만 호감 사건 오탐이 조금 많고, 동시 20건에서는 Luna보다 느려 개발 서버에서 실제 턴 지연·대체 비율·사건 분포를 먼저 봅니다.
 
 ### 2.2.1 `POST /v1/guard` — 무례 판정만
 

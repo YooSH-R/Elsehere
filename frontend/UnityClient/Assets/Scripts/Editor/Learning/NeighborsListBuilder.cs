@@ -110,6 +110,7 @@ namespace A305.EditorTools.Learning
             CardLayout(panel, view);
             BuilderTools.SetReference(view, "panel", panel.gameObject);
             BuilderTools.RequireReferences(view);
+            A305.EditorTools.Theme.PhoneLearningMenuBuilder.Apply(hud.gameObject);
         }
 
         // [복습장] 오른쪽 빈칸의 작은 버튼: 휴대폰 앱처럼 [이웃] 아이콘 아래에 이름을 둔다. 누르는 자리는 버튼 전체다.

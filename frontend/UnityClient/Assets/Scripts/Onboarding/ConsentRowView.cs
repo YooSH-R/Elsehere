@@ -37,6 +37,8 @@ namespace A305.Onboarding
 
         public void OnPointerClick(PointerEventData eventData)
         {
+            if (toggle.IsInteractable())
+                A305.World.UiSoundEvents.Play(A305.World.UiSound.Click);
             toggle.OnPointerClick(eventData);
         }
     }

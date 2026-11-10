@@ -291,7 +291,7 @@ namespace A305.Dialogue
         private const float NextWordPeek = 64;
 
         // 대사 칸에 한 번에 보이는 최근 대사 수(바로 앞 대사와 그다음 대사)
-        private const int VisibleLineCount = 2;
+        private const int VisibleLineCount = 4;
 
         /// <summary>녹음 중 목소리가 들릴 때 [종료] 버튼의 불 색.</summary>
         public static readonly Color VoiceHeardColor = new Color32(76, 217, 100, 255);
@@ -1242,7 +1242,7 @@ namespace A305.Dialogue
             }
         }
 
-        // 대사 칸에는 가장 최근 두 줄(바로 앞 대사와 그다음 대사)과 그 뜻만 보이는 높이를 준다. 그 전 대사는 위로 스크롤해 본다.
+        // 최근 네 대사와 그 뜻이 보이는 높이를 준다. 긴 내용·작은 화면과 그 이전 대사는 스크롤한다.
         private float VisibleLinesHeight(float width, out bool hasEarlierLines)
         {
             IReadOnlyList<DialogueLine> lines = content?.Lines;

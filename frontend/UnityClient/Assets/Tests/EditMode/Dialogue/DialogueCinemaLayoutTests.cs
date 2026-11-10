@@ -116,6 +116,28 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        [TestCase(1920, 720, false)]
+        [TestCase(900, 850, true)]
+        public void LongConversation_OnAShortScreen_KeepsTheWholePanelWithinTheCanvas(
+            float width,
+            float height,
+            bool translation
+        )
+        {
+            DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
+                new Vector2(width, height),
+                2000,
+                120,
+                hasEarlierLines: true,
+                hasTranslation: translation
+            );
+            Assert.That(layout.Height, Is.LessThanOrEqualTo(height + .1f));
+            Assert.That(layout.Lines.height, Is.GreaterThan(0));
+            Assert.That(layout.Input.yMin, Is.EqualTo(DialogueCinemaLayout.BottomMargin));
+            Assert.That(layout.Name.yMin, Is.GreaterThanOrEqualTo(layout.Lines.yMax));
+        }
+
+        [Test]
         public void LongLines_GrowTheLinesUpToALimit()
         {
             DialogueCinemaLayout shortLines = DialogueCinemaLayout.Compute(

@@ -14,6 +14,7 @@ namespace A305.Learning
         private static string returnNotice;
         private bool restoringReviewOrigin;
 
+        // 복습·장소 연습 방문 전 자리를 기억한다. 앞 방문에서 아직 돌아오지 않았으면 새로 시작하지 않는다.
         private bool RememberReviewOrigin()
         {
             ShopInterior occupied = ShopInterior.Occupied;
@@ -27,7 +28,7 @@ namespace A305.Learning
             );
             if (reviewReturn.TryBegin(point))
                 return true;
-            hudView.ShowMessage("복습을 마친 원래 자리로 돌아온 뒤 다시 연습해 주세요.");
+            hudView.ShowMessage("연습을 마친 원래 자리로 돌아온 뒤 다시 연습해 주세요.");
             return false;
         }
 
@@ -37,6 +38,8 @@ namespace A305.Learning
             {
                 if (record != null)
                     ShowReturnedReviewResult(card, record);
+                if (!string.IsNullOrEmpty(notice))
+                    hudView.ShowMessage(notice);
                 return;
             }
             returningReview = card;
@@ -156,6 +159,7 @@ namespace A305.Learning
             returningRecord = null;
             returnNotice = null;
             pendingReview = null;
+            pendingPractice = null;
         }
     }
 }

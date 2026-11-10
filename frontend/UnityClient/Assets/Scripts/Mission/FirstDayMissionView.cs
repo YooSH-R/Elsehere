@@ -237,6 +237,9 @@ namespace A305.Mission
         /// <summary>퀘스트 목록을 열어 서버의 퀘스트 목록이 필요하다.</summary>
         public event Action QuestBoardRequested;
 
+        /// <summary>장소 연습 탭을 열어 서버의 장소 연습 목록이 필요하다.</summary>
+        public event Action PracticeBoardRequested;
+
         private RectTransform Banner => (RectTransform)situation.transform.parent;
 
         public bool IsJournalOpen => journal.activeSelf;
@@ -593,6 +596,10 @@ namespace A305.Mission
             JournalOpened?.Invoke();
         }
 
+        /// <summary>서버에서 받은 장소 연습 목록을 보인다.</summary>
+        public void ShowPracticeBoard(PracticeBoardState board) =>
+            questBoard.ShowPracticePlaces(board);
+
         /// <summary>퀘스트를 끝냈다. 그 보상은 팡파레의 코인이 코인 칩에 닿을 때 더하도록 그때까지 코인 칩을 그대로 둔다.</summary>
         public void ExpectQuestReward() => rewardExpected = true;
 
@@ -688,6 +695,8 @@ namespace A305.Mission
 
         private void RequestQuestBoard() => QuestBoardRequested?.Invoke();
 
+        private void RequestPracticeBoard() => PracticeBoardRequested?.Invoke();
+
         private void OnBoardOpenChanged(bool open) => UpdateBoardLayer();
 
         private void Awake()
@@ -698,6 +707,7 @@ namespace A305.Mission
             else
             {
                 questBoard.Requested += RequestQuestBoard;
+                questBoard.PracticeRequested += RequestPracticeBoard;
                 questBoard.StartRequested += StartMission;
                 questBoard.OpenChanged += OnBoardOpenChanged;
             }
@@ -725,6 +735,7 @@ namespace A305.Mission
             if (questBoard != null)
             {
                 questBoard.Requested -= RequestQuestBoard;
+                questBoard.PracticeRequested -= RequestPracticeBoard;
                 questBoard.StartRequested -= StartMission;
                 questBoard.OpenChanged -= OnBoardOpenChanged;
             }

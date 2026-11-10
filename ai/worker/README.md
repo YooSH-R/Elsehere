@@ -173,6 +173,19 @@ NPC가 첫 대사를 먼저 하고 이후 한 줄마다 대답합니다. 턴마�
 ```
 
 - 서비스 NPC 카드는 유머·말버릇(3개 이상)·습관(2개 이상)·두려움·지난 경험을 채웁니다. 학습 수준 규칙이 대답 길이를 정해 말 길이로는 인물이 갈리지 않기 때문입니다. 말버릇은 NPC끼리 겹치지 않게 둡니다(`tests/test_npc_configs.py`).
+
+## 난이도별 NPC 대답 비교
+
+난이도 규칙(`app/npc_prompt.py`의 `BEGINNER`·`MIDDLE`, `app/prompts.py`의 `LEVEL_RULES`)을 고친 뒤 난이도마다 대답이 실제로 다른지 잽니다. 같은 일상 장면을 난이도별로 게임 대답 경로(인격 카드 + 백엔드 페르소나 + 표정 표시 지시)로 만들고, 글에서 단어·문장 수, 문장당 단어 수, 이어 주는 말, 선택지 질문과 열린 질문을 셉니다. 단어 빈도(`wordfreq`)로 드문 단어(Zipf 4 미만) 비율과 평균 Zipf를 재고, 판정 모델은 어휘·문법 CEFR 수준, 구동사·관용구 수, 학습자 말을 되짚어 확인했는지, 다시 말해 달라고 했는지를 매깁니다.
+
+```bash
+.venv/Scripts/python -m pip install wordfreq==3.1.1   # 이 도구에서만 쓰는 단어 빈도표 (서비스·CI 의존성 아님)
+.venv/Scripts/python ../tools/level_eval.py --levels 1,2 --runs 2 --show --out ../tools/results/level_eval.jsonl
+```
+
+- 장면 세트는 `ai/tools/level_eval/cases.json`입니다. `talk` 줄은 평범한 한 턴, `broken` 줄은 학습자 말이 너무 끊겨 뜻이 애매한 턴이며 되묻기는 이 줄에서만 셉니다. 페르소나는 `npc_help_eval.py`와 같은 것을 씁니다.
+- `--show`는 줄마다 난이도별 첫 대답을 나란히 찍습니다. 판정 모델의 CEFR은 보조 지표라 대답 원문도 읽어 봅니다.
+- 말 속도는 대답 글과 따로 정해진 값(`app/prompts.py`의 `LEVEL_SPEECH_SPEED`)이라 이 도구로 재지 않습니다.
 - 실제 모델을 부르므로 팀 공용 GMS 크레딧을 씁니다. 한 줄씩 순서대로 보냅니다.
 
 ## NPC 인격 모델 (자동 생성)
@@ -286,7 +299,7 @@ ai/worker/.venv/Scripts/python ai/tools/synthesize_script_lines.py --models <모
 - `tests/test_guard_local.py`: 무례 판정 단계적 구조. 가짜 판정기로 확신 구간·중간 구간·영어·로컬 실패·LLM 실패, 기준값 설정 검사 (torch 없이 돎)
 - `tests/test_hedge.py`: 늦은 호출에 같은 요청 하나 더 보내기, 오류 응답 뒤 남은 요청 기다리기, 판정 시간 상한, NPC 스트림 제외
 - `tests/test_contract.py`: 모델 출력이 깨졌을 때(JSON 객체가 아님, 칸 없음)와 빈 문장·없는 주소·프로그램 오류에도 계약의 실패 형식을 지키는지
-- `tests/test_learning_aids.py`: 뜻·단어 풀이(대사에 없는 말 버리기, 숙어와 그 안의 단어를 함께 남기고 나온 순서대로 15개 제한), 추천 단어(정리·중복·3개), 형식 오류 502, 난이도별 NPC 지시문·대답 길이·힌트 수준과 공통 말 속도
+- `tests/test_learning_aids.py`: 뜻·단어 풀이(대사에 없는 말 버리기, 숙어와 그 안의 단어를 함께 남기고 나온 순서대로 15개 제한), 추천 단어(정리·중복·3개), 형식 오류 502, 난이도별 NPC 지시문·대답 길이·힌트 수준과 난이도별 말 속도
 - `tests/test_feedback.py`: `ai/feedback`의 예시 입력·출력으로 피드백 계약(완료·발화 없음·공급자 실패·출력 오류·입력 오류), 피드백 전용 시간 상한과 같은 요청 더 보내기 끔
 - `tests/test_stream_hedge.py`: NPC 스트림의 첫 글자(또는 응답 머리)가 늦으면 같은 요청 스트림 하나 더, 이긴 쪽 글자만 이어짐, 진 쪽 닫기, 둘 다 늦으면 첫 글자 상한
 - `tests/test_turn.py`: 한 턴 구조 — 조각을 이어 붙인 턴 전체 음성, 조각 실패·음성 없음이면 `null`, 스트림 안의 추천 단어(`words`)와 그 실패

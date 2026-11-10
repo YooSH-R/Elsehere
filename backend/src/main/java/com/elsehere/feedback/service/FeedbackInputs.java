@@ -29,7 +29,7 @@ final class FeedbackInputs {
   private static final Map<Integer, String> LEVEL_LEARNER =
       Map.of(
           1, "very simple (CEFR A1-A2), short",
-          2, "simple and natural (CEFR A2-B1)",
+          2, "natural everyday English (CEFR B1)",
           3, "natural, can use a common idiom (CEFR B1-B2)");
 
   private FeedbackInputs() {}

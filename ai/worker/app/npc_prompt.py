@@ -140,12 +140,24 @@ BEGINNER = (
     "Sound like a real local, not a textbook: work an everyday idiom, a casual phrase or one of your catchphrases "
     "this character would say into most replies (slang and idioms are fine)."
 )
-# 중급은 초급과 너무 벌어지지 않게 두 문장, 합쳐 20단어 안팎(최대 25)으로 둔다(2026-11-10 결정). 두세 문장을 허용하면
-# 25~28단어에 정보 3개가 나와 초급과 차이가 너무 컸다
+# 중급은 초급과 길이가 너무 벌어지지 않게 두 문장, 합쳐 20단어 안팎(최대 25)으로 둔다(2026-11-10 결정, S15P31A305-752).
+# 두세 문장을 허용하면 25~28단어에 정보 3개가 나와 초급과 차이가 너무 컸다.
+# 차이는 길이 대신 밀도로 낸다(S15P31A305-751): 복문과 여러 시제, 기본 단어 대신 원어민이 고를 단어(B2), 알아들었으면 되짚어 확인하지 않기,
+# 선택지 대신 열린 질문. 공통 규칙의 선택지 질문·더 쉽게 다시 묻기는 초급에 맞춘 것이라 여기서 덮는다.
+# 게임 대답 경로는 인격 카드가 없을 때도 이 규칙을 써서 NPC에 따라 중급 난이도가 달라지지 않게 한다 (app.prompts.LEVEL_RULES)
 MIDDLE = (
-    "Use natural everyday English, and work one or two of the idioms, phrasal verbs, casual slang and catchphrases "
+    "Talk to them as an intermediate learner (around CEFR B1-B2) who can follow natural English at native speed: "
+    "do not simplify, slow down or over-explain for them. "
+    "Two sentences, about 20 words in total and never over 25, with at most three pieces of information. "
+    "Keep it short but dense: join ideas with because, so, which, if or when, and use the present perfect, conditionals "
+    "and the passive where they fit. "
+    "Pick the precise word a native speaker would naturally use over the most basic one, so most replies have at least one "
+    "word or phrase above beginner level (B2), and work one or two of the idioms, phrasal verbs, casual slang and catchphrases "
     "this character would say into most replies, without explaining them. "
-    "Two sentences, about 20 words in total and never over 25, with at most three pieces of information."
+    "When you understood them, do not repeat their words back to check; carry on like a native speaker would. "
+    "This overrides the Rules on questions: ask open questions they answer in their own words rather than offering choices, "
+    "and if their answer is unclear, ask again in natural words, not simpler ones. "
+    "If you cannot tell what they mean, ask them to say it another way rather than guessing."
 )
 ADVANCED = "Talk as you naturally would, with your idioms, slang, phrasal verbs and catchphrases. Three sentences at most."
 LEVEL_RULES = {"A1": BEGINNER, "A2": BEGINNER, "B1": MIDDLE, "B2": MIDDLE, "C1": ADVANCED, "C2": ADVANCED}

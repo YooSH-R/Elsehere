@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from app.npc_prompt import MIDDLE
 from conftest import ok, stream
 
 CONFIGURATIONS = Path(__file__).resolve().parents[3] / "backend/src/main/resources/content/npc-configurations.json"
@@ -217,6 +218,14 @@ def test_this_turn_asks_for_an_unused_catchphrase_that_fits(client, provider):
 
     assert "if one of your catchphrases fits this reply and you have not said it in this conversation yet, use it" in this_turn
     assert "catchphrases" not in plain_turn
+
+
+def test_intermediate_level_rule_is_the_same_with_or_without_a_profile(client, provider):
+    """중급(S15P31A305-751)은 인격 카드가 있든 없든 같은 규칙으로 말한다. 경로마다 다르면 NPC에 따라 난이도가 달라진다."""
+    with_profile = system_of(reply_request(client, provider, {**NPC, "profile": profile_of("HOTEL_STAFF")}, level=2))
+    without_profile = system_of(reply_request(client, provider, NPC, level=2))
+
+    assert MIDDLE in with_profile and MIDDLE in without_profile
 
 
 @pytest.mark.parametrize(("path", "value"), [("name", None), ("nickname", "Mimi")])

@@ -195,7 +195,8 @@ namespace A305.World
                 || !state.TryBegin()
             )
                 return false;
-            ShopInterior changedInterior = savedInterior ?? ShopInterior.Occupied;
+            ShopInterior changedInterior =
+                savedInterior != null ? savedInterior : ShopInterior.Occupied;
             SpaceTravelCurtain.CrossShopDoor(
                 player,
                 destination,

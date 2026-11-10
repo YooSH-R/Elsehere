@@ -413,6 +413,47 @@ class ConversationServiceTest {
   }
 
   @Test
+  void firstDayReopenedConversationsKeepPendingGoalsAfterRest() {
+    FirstDayMission mission = FirstDayMission.start(userId);
+    mission.accept(0, "HOTEL_STAFF", FirstDayStage.EARLY_ARRIVAL.intentIds());
+    mission.accept(1, "CAFE_STAFF", List.of("order_drink"));
+    mission = firstDayMissionRepository.saveAndFlush(mission);
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("How can I help you?", null));
+
+    var pending =
+        conversationService.start(
+            userId,
+            new StartConversationRequest(UUID.randomUUID(), "CAFE_STAFF", InitiatedBy.USER));
+    conversationRepository
+        .findById(pending.conversationId())
+        .orElseThrow()
+        .endByUser(clock.instant());
+    mission.accept(1, "CAFE_STAFF", List.of("set_options", "dine_in"));
+    var waiting =
+        conversationService.start(
+            userId,
+            new StartConversationRequest(UUID.randomUUID(), "CAFE_STAFF", InitiatedBy.USER));
+    mission.restAtCafe();
+    entityManager.flush();
+    entityManager.clear();
+
+    assertThat(firstDayMissionRepository.findById(userId).orElseThrow().getStage()).isEqualTo(2);
+    assertThat(
+            conversationRepository
+                .findById(pending.conversationId())
+                .orElseThrow()
+                .getFirstDayGoalIds())
+        .containsExactly("set_options", "dine_in");
+    assertThat(
+            conversationRepository
+                .findById(waiting.conversationId())
+                .orElseThrow()
+                .getFirstDayGoalIds())
+        .isEmpty();
+  }
+
+  @Test
   @DisplayName("말걸기 대사가 있는 행인이 먼저 말을 걸었으면 그 대사로 시작하고 AI를 부르지 않는다")
   void start_passerbyApproach_usesApproachLineWithoutAi() {
     ConversationStartResponse response =

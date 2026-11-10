@@ -135,7 +135,9 @@ namespace A305.Npc
                 );
                 paceOverride = model.runtimeAnimatorController as AnimatorOverrideController;
                 model.Rebind();
-                GetComponent<CharacterAnimationDriver>()?.BindAnimator(model);
+                var animationDriver = GetComponent<CharacterAnimationDriver>();
+                if (animationDriver != null)
+                    animationDriver.BindAnimator(model);
                 break;
             }
         }

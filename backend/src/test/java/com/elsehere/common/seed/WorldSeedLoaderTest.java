@@ -13,6 +13,7 @@ import com.elsehere.vocab.repository.VocabularyRepository;
 import com.elsehere.world.PronunciationTestFiles;
 import com.elsehere.world.entity.Npc;
 import com.elsehere.world.entity.NpcType;
+import com.elsehere.world.entity.PlaceGroup;
 import com.elsehere.world.entity.Scene;
 import com.elsehere.world.repository.NpcRepository;
 import com.elsehere.world.repository.SceneRepository;
@@ -244,6 +245,52 @@ class WorldSeedLoaderTest {
             tuple("TOWN", "FIRE_ROOKIE", "Andre", NpcType.STAFF, "이발소 직원", false, null),
             tuple("TOWN", "TOWN_GRANDFATHER", "Arthur", NpcType.PASSERBY, "행인", false, null),
             tuple("TOWN", "TOWN_GRANDMOTHER", "Margaret", NpcType.PASSERBY, "행인", false, null));
+  }
+
+  @Test
+  @DisplayName("NPC마다 일하는 곳과 단어장 장소 묶음을 넣는다. 코드 이름이 아니라 실제 근무지 기준이다(FIRE_CAPTAIN은 식당)")
+  void load_setsNpcWorkplaces() {
+    worldSeedLoader.load();
+
+    assertThat(npcRepository.findAll())
+        .extracting(Npc::getCode, Npc::getPlaceName, Npc::getPlaceGroup)
+        .containsExactlyInAnyOrder(
+            tuple("TOWN_PASSERBY", "거리", PlaceGroup.DAILY),
+            tuple("TOWN_GRANDFATHER", "거리", PlaceGroup.DAILY),
+            tuple("TOWN_GRANDMOTHER", "거리", PlaceGroup.DAILY),
+            tuple("CAFE_STAFF", "카페", PlaceGroup.FOOD),
+            tuple("CAFE_BARISTA", "카페", PlaceGroup.FOOD),
+            tuple("CAFE_SERVER", "카페", PlaceGroup.FOOD),
+            tuple("DINER_STAFF", "식당", PlaceGroup.FOOD),
+            tuple("FIRE_CAPTAIN", "식당", PlaceGroup.FOOD),
+            tuple("BAKERY_STAFF", "빵집", PlaceGroup.FOOD),
+            tuple("POLICE_PATROL_OFFICER", "빵집", PlaceGroup.FOOD),
+            tuple("SHOP_STAFF", "드럭스토어", PlaceGroup.SHOPPING),
+            tuple("SHOP_PHARMACIST", "드럭스토어", PlaceGroup.SHOPPING),
+            tuple("SHOP_NIGHT_CLERK", "드럭스토어", PlaceGroup.SHOPPING),
+            tuple("FLOWER_SHOP_STAFF", "꽃집", PlaceGroup.SHOPPING),
+            tuple("HOTEL_CONCIERGE", "꽃집", PlaceGroup.SHOPPING),
+            tuple("HOME_STORE_STAFF", "생활용품점", PlaceGroup.SHOPPING),
+            tuple("TOWN_HANDYMAN", "생활용품점", PlaceGroup.SHOPPING),
+            tuple("ARCADE_STAFF", "오락실", PlaceGroup.SHOPPING),
+            tuple("TOWN_STUDENT", "오락실", PlaceGroup.SHOPPING),
+            tuple("BANK_STAFF", "은행", PlaceGroup.SERVICES),
+            tuple("TOWN_EVENING_WALKER", "은행", PlaceGroup.SERVICES),
+            tuple("TOWN_SHOPPER", "은행", PlaceGroup.SERVICES),
+            tuple("POST_OFFICE_STAFF", "우체국", PlaceGroup.SERVICES),
+            tuple("TOWN_RETIREE", "우체국", PlaceGroup.SERVICES),
+            tuple("LAUNDROMAT_STAFF", "빨래방", PlaceGroup.SERVICES),
+            tuple("FIRE_FIGHTER", "빨래방", PlaceGroup.SERVICES),
+            tuple("BARBER_STAFF", "이발소", PlaceGroup.SERVICES),
+            tuple("FIRE_ROOKIE", "이발소", PlaceGroup.SERVICES),
+            tuple("HOTEL_STAFF", "호텔", PlaceGroup.SERVICES),
+            tuple("HOTEL_RECEPTIONIST", "호텔", PlaceGroup.SERVICES),
+            tuple("HOTEL_NIGHT_MANAGER", "호텔", PlaceGroup.SERVICES),
+            tuple("HOTEL_BELLHOP", "호텔", PlaceGroup.SERVICES),
+            tuple("TAXI_DRIVER", "택시", PlaceGroup.SERVICES),
+            tuple("POLICE_OFFICER", "경찰서", PlaceGroup.SAFETY),
+            tuple("POLICE_SERGEANT", "경찰서", PlaceGroup.SAFETY),
+            tuple("POLICE_ROOKIE", "경찰서", PlaceGroup.SAFETY));
   }
 
   @Test

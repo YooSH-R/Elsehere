@@ -4,6 +4,7 @@ import com.elsehere.vocab.entity.UserVocab;
 import com.elsehere.vocab.entity.UserVocabSourceType;
 import com.elsehere.vocab.entity.Vocabulary;
 import com.elsehere.vocab.entity.VocabularyType;
+import com.elsehere.world.entity.PlaceGroup;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 
@@ -28,14 +29,33 @@ public record VocabItemResponse(
 
   public record Context(String text, String meaningKo) {}
 
-  public record Source(UserVocabSourceType sourceType, String npcName, Long conversationId) {}
-
   /**
-   * 저장 시각은 {@code zone} 기준으로 보여준다.
+   * 저장한 곳.
    *
    * @param npcName 출처 대화의 NPC 이름. 사물에서 저장한 단어는 null이다.
+   * @param placeName 출처 대화 NPC가 일하는 곳(카페, 우체국). 사물에서 저장했거나 근무 시간 밖 대화면 null이다.
+   * @param placeGroup 단어장에서 대화 표현을 나누는 장소 묶음. 근무 시간 밖 대화는 DAILY, 사물에서 저장한 단어는 null이다.
    */
-  public static VocabItemResponse from(UserVocab userVocab, String npcName, ZoneId zone) {
+  public record Source(
+      UserVocabSourceType sourceType,
+      String npcName,
+      Long conversationId,
+      String placeName,
+      PlaceGroup placeGroup) {}
+
+  /**
+   * 출처 대화의 NPC. 사물에서 저장한 단어는 {@link #NONE}이다.
+   *
+   * @param placeName 일하는 곳. 근무 시간 밖 대화면 null이다.
+   * @param placeGroup 장소 묶음. 근무 시간 밖 대화는 DAILY다.
+   */
+  public record SourceNpc(String name, String placeName, PlaceGroup placeGroup) {
+
+    public static final SourceNpc NONE = new SourceNpc(null, null, null);
+  }
+
+  /** 저장 시각은 {@code zone} 기준으로 보여준다. */
+  public static VocabItemResponse from(UserVocab userVocab, SourceNpc npc, ZoneId zone) {
     Vocabulary vocabulary = userVocab.getVocabulary();
     Context context =
         userVocab.getContextText() == null
@@ -52,6 +72,11 @@ public record VocabItemResponse(
         userVocab.getMemo(),
         userVocab.getMemorizedAt() != null,
         userVocab.getSavedAt().atZone(zone).toOffsetDateTime(),
-        new Source(userVocab.getSourceType(), npcName, userVocab.getSourceConversationId()));
+        new Source(
+            userVocab.getSourceType(),
+            npc.name(),
+            userVocab.getSourceConversationId(),
+            npc.placeName(),
+            npc.placeGroup()));
   }
 }

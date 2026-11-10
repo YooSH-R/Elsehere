@@ -289,3 +289,45 @@ def test_voice_surface_only_suggestion_is_dropped_and_review_becomes_appropriate
     assert review["suggestions"] == []
     assert response["result"]["summary_suggestion_id"] is None
     assert response["result"]["vocab_candidates"] == []
+
+
+def _grammar_feedback_with_explanation(explanation):
+    payload, body = sample("free_grammar")
+    body = compact(body)
+    review = body["result"]["turn_reviews"][0]
+    review["explanation_ko"] = explanation
+    review["suggestions"][0]["explanation_ko"] = explanation
+    return payload, body
+
+
+def test_explanation_naming_a_fix_missing_from_the_suggestion_is_rewritten_to_the_actual_change():
+    # 설명은 “wanna”를 넣으라는데 추천 문장은 to만 넣었다. 화면의 '이렇게 말해요'와 '이유'가 서로 다르면 안 된다 (S15P31A305-780)
+    payload, body = _grammar_feedback_with_explanation("“want go”에는 “wanna”가 빠져 있어 자연스럽지 않아요.")
+    response = generate_feedback(payload, FixtureClient(body), ai_allowed=True)
+
+    assert response["status"] == "completed"
+    review = response["result"]["turn_reviews"][0]
+    for explanation in (review["explanation_ko"], review["suggestions"][0]["explanation_ko"]):
+        assert "wanna" not in explanation
+        assert "“want go”" in explanation and "“want to go”" in explanation
+
+
+def test_review_explanation_off_the_suggestion_takes_the_suggestions_matching_explanation():
+    # 한국어 뜻 풀이와 "want to ~" 같은 형태 설명은 원문과 비교하지 않는다. 맞는 쪽 설명으로 어긋난 쪽을 바꾼다
+    fitting = "“역에 가고 싶어요”라는 뜻이면 “want to go”처럼 “want to ~” 형태로 말해요."
+    payload, body = _grammar_feedback_with_explanation(fitting)
+    body["result"]["turn_reviews"][0]["explanation_ko"] = "“want go”에는 “wanna”가 빠져 있어요."
+    response = generate_feedback(payload, FixtureClient(body), ai_allowed=True)
+
+    review = response["result"]["turn_reviews"][0]
+    assert review["explanation_ko"] == fitting
+    assert review["suggestions"][0]["explanation_ko"] == fitting
+
+
+def test_model_writes_the_suggestion_before_explaining_it():
+    # 설명을 먼저 쓰면 설명과 다른 문장을 고치는 일이 생긴다. 교정 문장을 먼저 정하고 그 교정을 설명하게 한다
+    payload, _ = sample("free_grammar")
+    schema = feedback_response_format(build_messages(payload))["json_schema"]["schema"]
+    properties = list(schema["$defs"]["TurnReview"]["properties"])
+
+    assert properties.index("suggestions") < properties.index("explanation_ko")

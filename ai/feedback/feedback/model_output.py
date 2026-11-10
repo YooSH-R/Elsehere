@@ -1,9 +1,14 @@
 """모델 전용 축약 응답을 공개 피드백 계약으로 복원한다. 평가·근거 검증은 기존 검증기가 맡는다."""
 
+import difflib
+import re
 from copy import deepcopy
 
-from .models import surface_only_change, usable_turns
+from .models import contains_korean, surface_only_change, usable_turns
 from .situation_catalog import keep_useful
+
+# 설명이 인용한 말. “…”, "…", ‘…’ (닫는 ’ 뒤에 글자가 오면 I’ve 같은 축약의 아포스트로피라 인용 끝이 아니다)
+_QUOTED = re.compile(r"“([^”]+)”|\"([^\"]+)\"|‘(.+?)’(?![A-Za-z])")
 
 COMPACT_VERSION = "compact-v1"
 SERVER_FIELDS = {
@@ -53,6 +58,65 @@ def _drop_voice_surface_suggestions(result, users):
         remaining = [review["turn_id"] for review in result["turn_reviews"] if review["suggestions"]]
         result["summary_suggestion_id"] = remaining[0] if remaining else None
     return removed
+
+
+def _plain(text):
+    """인용 비교용: 소문자, 둥근 따옴표를 곧은 따옴표로, 문장부호를 빼고 공백 하나로."""
+    text = text.lower().replace("’", "'").replace("‘", "'")
+    return " ".join(re.sub(r"[^a-z0-9' ]+", " ", text).split())
+
+
+def _names_missing_words(explanation, original, suggested):
+    """설명이 원문에도 고친 문장에도 없는 영어를 인용하는지. 그런 설명은 화면의 '이렇게 말해요'와 다른 교정을 말한다.
+    한국어 인용(뜻 풀이)과 ~·… 이 든 형태 설명("want to ~")은 문장 비교 대상이 아니다."""
+    words = (_plain(original), _plain(suggested))
+    for match in _QUOTED.finditer(explanation):
+        quote = next(group for group in match.groups() if group is not None)
+        if contains_korean(quote) or any(mark in quote for mark in ("~", "…", "...")) or not re.search(r"[A-Za-z]", quote):
+            continue
+        if not any(f" {_plain(quote)} " in f" {text} " for text in words):
+            return True
+    return False
+
+
+def _change_note(original, suggested):
+    """원문과 고친 문장의 실제 차이를 앞뒤 한 단어와 함께 보여 주는 설명. 모델 설명이 교정과 어긋날 때만 쓴다."""
+    before, after = original.split(), suggested.split()
+    plain_before = [_plain(word) for word in before]
+    plain_after = [_plain(word) for word in after]
+    changes = [op for op in difflib.SequenceMatcher(a=plain_before, b=plain_after, autojunk=False).get_opcodes() if op[0] != "equal"]
+    if not changes:
+        return f"“{original.strip()}” 대신 “{suggested.strip()}”라고 하면 자연스러워요."
+    start_a, start_b = max(changes[0][1] - 1, 0), max(changes[0][3] - 1, 0)
+    end_a, end_b = min(changes[-1][2] + 1, len(before)), min(changes[-1][4] + 1, len(after))
+    return f"“{' '.join(before[start_a:end_a])}” 대신 “{' '.join(after[start_b:end_b])}”라고 하면 자연스러워요."
+
+
+def _align_explanations(result, users):
+    """'이 표현을 쓰는 이유'가 '이렇게 말해요'에 없는 교정을 말하지 않게 한다(S15P31A305-780).
+    모델이 설명과 다르게 문장을 고치면, 어긋난 설명을 맞는 쪽 설명이나 실제 차이를 짚는 설명으로 바꾼다."""
+    for review in result["turn_reviews"]:
+        if not review["suggestions"]:
+            continue
+        suggestion = review["suggestions"][0]
+        original, suggested = users[review["turn_id"]].final_text, suggestion.get("suggested_expression")
+        if not isinstance(suggested, str):
+            continue
+        fits = {
+            field: isinstance(owner.get("explanation_ko"), str) and not _names_missing_words(owner["explanation_ko"], original, suggested)
+            for field, owner in (("review", review), ("suggestion", suggestion))
+        }
+        if all(fits.values()):
+            continue
+        if fits["suggestion"]:
+            replacement = suggestion["explanation_ko"]
+        elif fits["review"]:
+            replacement = review["explanation_ko"]
+        else:
+            replacement = _change_note(original, suggested)
+        for field, owner in (("review", review), ("suggestion", suggestion)):
+            if not fits[field]:
+                owner["explanation_ko"] = replacement
 
 
 def _vocab_source_text(source, users, reviews):
@@ -112,6 +176,7 @@ def restore_model_output(request, body):
             # 생성 스키마는 발화당 제안 하나만 허용한다. 참조는 실제 사용자 turn_id로 통일한다.
             _server_fields(suggestion, "Suggestion", {"suggestion_id": turn_id})
     removed = _drop_voice_surface_suggestions(result, users)
+    _align_explanations(result, users)
     for index, tag in enumerate(_objects(result.get("review_tags")), 1):
         evidence = _objects(tag.get("evidence"))
         linked = [item.get("turn_id") for item in evidence]

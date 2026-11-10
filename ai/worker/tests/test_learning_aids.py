@@ -45,6 +45,21 @@ def test_meaning_gives_korean_and_glossary_from_the_line(client, provider):
     assert "Great! For here or to go?" in user_msg(seen["body"]) and "Mia" in user_msg(seen["body"])
 
 
+def test_meaning_prompt_keeps_proper_names_in_english_in_double_quotes(client, provider):
+    # 'Maple Town'을 '단풍 마을'처럼 옮기거나 '메이플 타운'처럼 소리로 적지 않고 원문 그대로 따옴표 안에 둔다
+    seen = {}
+
+    def answer(b):
+        seen["system"] = b["messages"][0]["content"]
+        return ok(json.dumps({"meaning_ko": '"Maple Town"에 오신 걸 환영해요!', "glossary": []}))
+
+    provider.answers["meaning"] = answer
+    r = client.post("/v1/meaning", json={"npc": NPC, "text": "Welcome to Maple Town!"}).json()
+    assert r["meaning_ko"] == '"Maple Town"에 오신 걸 환영해요!'
+    assert "exactly as written in English, in double quotes" in seen["system"]
+    assert '"Maple Town"에 오신 걸 환영해요!' in seen["system"]
+
+
 def test_meaning_glossary_keeps_phrases_and_their_words_up_to_fifteen_in_order(client, provider):
     # 화면이 대사의 내용어·숙어를 거의 다 눌러 볼 수 있게 하고, 숙어 안의 단어(grab)도 숙어(grab a quick bite)와 따로 남긴다
     line = "All right, I need to check in early and grab a quick bite before the big meeting downtown tonight"

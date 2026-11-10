@@ -53,7 +53,7 @@ GMS_MODEL=gpt-5.4
 | `conversation_summary` | 실제로 주고받은 요청·답변·결정의 한국어 요약과 확정 발화 근거 |
 | `communication` | 의도 전달 평가. 문법 교정과 구분 |
 | `review_tags` | 잘한 점과 실제 문장 교정의 이유. 새 결과는 최대 2개이며 기존 계약은 최대 3개까지 읽음 |
-| `turn_reviews` | 모든 확정 사용자 발화를 원래 순서로 한 번씩 평가 |
+| `turn_reviews` | 모든 확정 사용자 발화를 원래 순서로 한 번씩 평가. 모델은 고친 문장(`suggested_expression`)을 먼저 쓰고 설명(`explanation_ko`)을 쓰며, 설명이 원문에도 고친 문장에도 없는 영어를 인용하면 서버가 맞는 쪽 설명이나 실제 차이(“think lost” 대신 “think I lost”)로 바꿉니다 |
 | `summary_suggestion_id` | 짧은 카드에서 보여줄 실제 교정 제안 참조 |
 | `vocab_candidates` | 표현·뜻·예문·출처. 저장 완료 결과가 아님 |
 | `spoken_usage_notes` | 검토한 회화 용법 설명 0~1개. 교정 아래의 별도 보충 자료이며 단어장 저장 출처가 아님 |

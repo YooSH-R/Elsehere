@@ -28,6 +28,9 @@ def feedback_response_format(messages):
     fields["review_tags"]["maxItems"] = 2
     fields["vocab_candidates"]["maxItems"] = 2
     definitions["TurnReview"]["properties"]["suggestions"]["maxItems"] = 1
+    # 설명을 먼저 쓰면 설명과 다르게 고친 문장이 나온다(S15P31A305-780). 고친 문장을 먼저 정하고 그 교정을 설명하게 순서를 바꾼다.
+    review = definitions["TurnReview"]["properties"]
+    review["explanation_ko"] = review.pop("explanation_ko")
     # 기존 결과 호환용 기본값이 있는 필드라 strict 생성에서는 필수로 바꾸고, 장면 표현을 2~3개 받는다.
     definitions["FeedbackData"]["required"].append("situation_expressions")
     fields["situation_expressions"]["minItems"] = 2

@@ -69,6 +69,7 @@ namespace A305.EditorTools.Onboarding
                 GuestReturn((RectTransform)root.Find("GuestReturnPanel"));
             LevelTestScreenBuilder.Apply((RectTransform)root.Find("LevelTestPanel"));
             Connection((RectTransform)root.Find("ConnectionPanel"));
+            GuestLevelTestLoginBuilder.Apply(root.gameObject);
         }
 
         // 접속 확인 중에는 로그인과 같은 마을 배경·크림색 그라데이션을 쓰고, 가운데 창이 뜨면 시안(e2~e5)의 흐린 마을로 바꾼다.

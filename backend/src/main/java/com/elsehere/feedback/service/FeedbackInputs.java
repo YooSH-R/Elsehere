@@ -7,10 +7,12 @@ import com.elsehere.conversation.entity.InputType;
 import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.mission.entity.FirstDayStage;
+import com.elsehere.mission.entity.PracticeScenario;
 import com.elsehere.mission.entity.TownStoryStage;
 import com.elsehere.world.entity.Npc;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -58,8 +60,11 @@ final class FeedbackInputs {
         townStage != null && townStage >= 0 && townStage < TownStoryStage.values().length
             ? TownStoryStage.values()[townStage]
             : null;
+    Optional<PracticeScenario> practice = PracticeScenario.find(conversation.getPracticeScenario());
     String situation = null;
-    if (townQuest != null && townQuest.npcCode().equals(npc.getCode())) {
+    if (practice.isPresent()) {
+      situation = practiceSituation(practice.get());
+    } else if (townQuest != null && townQuest.npcCode().equals(npc.getCode())) {
       situation = townSituation(conversation, townQuest);
     } else if (quest != null && quest.npc().equals(npc.getCode())) {
       situation = firstDaySituation(conversation, quest);
@@ -95,6 +100,19 @@ final class FeedbackInputs {
   // 퀘스트가 없는 대화의 상황. 근무 시간이 아닌 NPC와의 대화는 응대 상황으로 평가하지 않도록 일상 대화라고 알린다.
   private static String freeTalk(Conversation conversation) {
     return conversation.isNpcOffDuty() ? "근무가 아닐 때의 일상 대화" : "자유 대화";
+  }
+
+  // 장소 연습은 고른 상황의 목표만 평가한다. 다시 한 연습도 같은 목표다.
+  private static String practiceSituation(PracticeScenario scenario) {
+    String goals =
+        scenario.goals().stream()
+            .map(goal -> goal.title() + " (" + goal.description() + ")")
+            .collect(Collectors.joining(", "));
+    return "장소 연습 "
+        + scenario.title()
+        + " · 이번 대화의 할 일: "
+        + goals
+        + ". 이 목록에 없는 다른 목표는 누락으로 평가하지 않습니다.";
   }
 
   private static String townSituation(Conversation conversation, TownStoryStage stage) {

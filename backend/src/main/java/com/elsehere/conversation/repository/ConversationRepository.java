@@ -36,6 +36,12 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
   List<Conversation> findReviewResults(
       @Param("userId") Long userId, @Param("cardId") Long cardId, Limit limit);
 
+  /** 사용자가 목표를 모두 이룬 적이 있는 장소 연습 상황 ID. */
+  @Query(
+      "select distinct c.practiceScenario from Conversation c"
+          + " where c.userId = :userId and c.practiceDoneAt is not null")
+  List<String> findFinishedPracticeScenarios(@Param("userId") Long userId);
+
   /** 사용자가 한 번이라도 말을 주고받은 대화 수. 사용자 턴은 NPC 대답과 함께 저장되므로 사용자 턴이 있는 대화를 센다. */
   @Query(
       "select count(c) from Conversation c where c.userId = :userId and exists"

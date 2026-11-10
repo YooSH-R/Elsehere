@@ -12,15 +12,17 @@ namespace A305.Learning.Tests
             float after = HudTopBarLayout.StatusRight(true);
             Assert.That(
                 before,
-                Is.EqualTo(HudTopBarLayout.PhoneRight + HudTopBarLayout.Size + HudTopBarLayout.Gap)
+                Is.EqualTo(
+                    HudTopBarLayout.PhoneRight + HudTopBarLayout.PhoneWidth + HudTopBarLayout.Gap
+                )
             );
             Assert.That(
                 after - before,
-                Is.EqualTo(HudTopBarLayout.Size + HudTopBarLayout.Gap).Within(.001f)
+                Is.EqualTo(HudTopBarLayout.SurveyWidth + HudTopBarLayout.Gap).Within(.001f)
             );
             Assert.That(
                 HudTopBarLayout.PhoneRight,
-                Is.GreaterThan(HudTopBarLayout.Margin + HudTopBarLayout.Size)
+                Is.GreaterThan(HudTopBarLayout.Margin + HudTopBarLayout.SpeakerWidth)
             );
         }
     }

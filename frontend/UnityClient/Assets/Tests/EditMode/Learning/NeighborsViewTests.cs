@@ -41,6 +41,7 @@ namespace A305.Learning.Tests
         public void DestroyHud()
         {
             Object.DestroyImmediate(hud);
+            NpcTracking.Shared.Clear();
         }
 
         private static Neighbor Max() =>
@@ -131,6 +132,68 @@ namespace A305.Learning.Tests
             Assert.That(Shown("Neighbors/Card"), Is.False);
             Assert.That(Shown("Neighbors/Rows"), Is.True);
             Assert.That(Shown("Neighbors/Pager"), Is.True);
+        }
+
+        // 08시(시계를 처음 상태로 돌린 시각)에 오락실에서 일하는 Max는 지도 오락실 칸에 찍을 수 있다.
+        [Test]
+        public async Task MapButton_TracksTheNeighbor_ClosesTheWindow_AndOpensTheMap()
+        {
+            ResetClock();
+            api.Neighbors.Add(Max());
+            await ShowLoaded();
+            int mapRequests = 0;
+            void CountMapRequest() => mapRequests++;
+            JourneyStatus.Shared.MapRequested += CountMapRequest;
+            try
+            {
+                Find("Neighbors/Rows/Row0").GetComponent<Button>().onClick.Invoke();
+
+                Assert.That(Shown("Neighbors/Card/MapButton"), Is.True);
+                Assert.That(Shown("Neighbors/Card/MapHint"), Is.False);
+                Assert.That(
+                    Find("Neighbors/Card/MapButton/Label").GetComponent<TMP_Text>().text,
+                    Is.EqualTo(NeighborsText.ShowOnMap)
+                );
+
+                Find("Neighbors/Card/MapButton").GetComponent<Button>().onClick.Invoke();
+
+                Assert.That(NpcTracking.Shared.IsTracking("ARCADE_STAFF"), Is.True);
+                Assert.That(NpcTracking.Shared.Name, Is.EqualTo("Max"));
+                Assert.That(NpcTracking.Shared.Life.NpcId, Is.EqualTo("ARCADE_STAFF"));
+                Assert.That(Shown("Neighbors"), Is.False, "지도를 가리지 않게 창을 닫습니다.");
+                Assert.That(mapRequests, Is.EqualTo(1), "큰 지도를 엽니다.");
+            }
+            finally
+            {
+                JourneyStatus.Shared.MapRequested -= CountMapRequest;
+            }
+        }
+
+        // 14~22시에 일하는 경찰관은 08시에 숙소에서 쉬어 지도에 찍지 않고 이유만 보인다.
+        [Test]
+        public async Task RestingNeighbor_ShowsWhyInsteadOfTheMapButton()
+        {
+            ResetClock();
+            api.Neighbors.Add(
+                new Neighbor
+                {
+                    NpcCode = "POLICE_ROOKIE",
+                    Unlocked = true,
+                    Name = "Leo",
+                    TalkCount = 1,
+                }
+            );
+            await ShowLoaded();
+
+            Find("Neighbors/Rows/Row0").GetComponent<Button>().onClick.Invoke();
+
+            Assert.That(Shown("Neighbors/Card/MapButton"), Is.False);
+            Assert.That(Shown("Neighbors/Card/MapHint"), Is.True);
+            Assert.That(
+                Text("Neighbors/Card/MapHint"),
+                Is.EqualTo(NeighborsText.MapHint(NpcSpot.Resting, playerInTown: false))
+            );
+            Assert.That(NpcTracking.Shared.Code, Is.Null);
         }
 
         [Test]
@@ -224,6 +287,12 @@ namespace A305.Learning.Tests
             Assert.That(neighbors.Find("Icon").GetComponent<Image>().sprite, Is.Not.Null);
             Assert.That(Reference<Button>(view, "openButton").transform, Is.SameAs(neighbors));
         }
+
+        // 서버 시각을 받기 전처럼 1일차 08시로 돌린다.
+        private static void ResetClock() =>
+            typeof(GameClock)
+                .GetMethod("ResetShared", BindingFlags.NonPublic | BindingFlags.Static)
+                .Invoke(null, null);
 
         private async Task ShowLoaded()
         {

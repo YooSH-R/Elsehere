@@ -10,6 +10,42 @@ namespace A305.Ambience.PlayModeTests
     public class ServiceAmbiencePlaybackTests
     {
         [UnityTest]
+        public IEnumerator MutingAndUnmutingKeepsTheCurrentLoopAvailable()
+        {
+            bool enabled = BackgroundSoundPreference.Enabled;
+            Scene original = SceneManager.GetActiveScene();
+            Scene room = SceneManager.CreateScene("HomeScene");
+            var root = new GameObject("Background toggle check");
+            try
+            {
+                BackgroundSoundPreference.Enabled = true;
+                SceneManager.SetActiveScene(room);
+                var catalog = Resources.Load<ServiceAmbienceCatalog>(
+                    ServiceAmbienceCatalog.ResourcePath
+                );
+                root.AddComponent<ServiceAmbiencePlayer>().Configure(catalog);
+                yield return new WaitForSecondsRealtime(.2f);
+                var loop = root.GetComponentsInChildren<AudioSource>()
+                    .Single(source => source.loop && source.clip != null);
+                BackgroundSoundPreference.Enabled = false;
+                yield return null;
+                Assert.That(loop.mute, Is.True);
+                Assert.That(loop.clip, Is.EqualTo(catalog.Bed(AmbienceBed.Room)));
+                BackgroundSoundPreference.Enabled = true;
+                yield return null;
+                Assert.That(loop.mute, Is.False);
+                Assert.That(loop.isPlaying, Is.True);
+            }
+            finally
+            {
+                BackgroundSoundPreference.Enabled = enabled;
+                Object.Destroy(root);
+                SceneManager.SetActiveScene(original);
+                SceneManager.UnloadSceneAsync(room);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator ActualSources_ChangeFromRoomToStreetAndStopAtEntry()
         {
             Scene original = SceneManager.GetActiveScene();

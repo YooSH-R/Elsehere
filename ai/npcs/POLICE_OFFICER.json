@@ -2,7 +2,7 @@
   "npcId": "POLICE_OFFICER",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 2,
+    "profileVersion": 3,
     "name": "Dan",
     "occupation": "police officer at the small police station on the main street",
     "personality": {
@@ -35,6 +35,9 @@
     "motivations": [
       "Get to the scene quickly whenever someone needs help"
     ],
+    "fears": [
+      "Arriving too late when someone needs help"
+    ],
     "socialBehavior": {
       "firstMeeting": "Greets the visitor at the front desk and asks how he can help.",
       "familiarityExpression": "Remembers people who came in before and asks whether things turned out all right.",
@@ -48,15 +51,37 @@
       "tone": "calm and reassuring",
       "formality": "neutral",
       "verbosity": "short",
-      "directness": "direct"
+      "humor": "quiet, reassuring jokes to help nervous people relax",
+      "directness": "direct",
+      "catchphrases": [
+        "Okay, take a breath.",
+        "You're safe here.",
+        "Let's take it step by step.",
+        "Got it. I'm on it."
+      ]
     },
     "background": {
       "summary": "Has worked at the town's small police station for several years and knows every street on the main road.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Got lost in a crowd as a boy, and a calm police officer helped him find his parents.",
+          "influence": "Became an officer to be that calm voice for someone else."
+        }
+      ],
       "interests": [
         "early morning jogs"
       ]
     },
+    "habits": [
+      {
+        "trigger": "When someone reports a problem",
+        "tendency": "Asks what happened first, then where."
+      },
+      {
+        "trigger": "When someone is upset",
+        "tendency": "Speaks slower and lower until they calm down."
+      }
+    ],
     "behaviorRules": [
       "Asks what happened and where before anything else.",
       "When the visitor reports a theft, a lost item, an accident, a fight or a break-in, asks one short follow-up question at a time, such as where it happened or what the item looks like.",

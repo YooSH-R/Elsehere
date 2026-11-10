@@ -1730,11 +1730,17 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_CommuterStartsAShortCrossingWhileItCanStillFinish() =>
             CheckCrossingSignalChange(.3f, false, crossingPhase: 19f);
 
-        [UnityTest]
-        public IEnumerator Town_CommutersQueuedForASignalWaitSideBySideAndCrossTogether()
+        private static readonly string[] CrosswalkQueueLeaders =
         {
-            // 한 줄로 횡단보도에 온 세 사람이 빨간불 동안 연석을 따라 나란히 서고, 다음 초록에 함께 건넌다.
-            // 예전에는 앞사람 뒤 1.2m 간격으로 줄을 서서 뒷사람이 연석에 닿기 전에 출발할 수 있는 때가 지났다.
+            "HOTEL_NIGHT_MANAGER",
+            "BARBER_STAFF",
+        };
+
+        [UnityTest]
+        public IEnumerator Town_CommutersQueuedForASignalWaitSideBySideAndCrossTogether(
+            [ValueSource(nameof(CrosswalkQueueLeaders))] string leaderCode
+        )
+        {
             SetClock(21 * 60);
             SceneManager.sceneLoaded += DisableWalkingTestApis;
             try
@@ -1753,18 +1759,19 @@ namespace A305.Npc.PlayModeTests
             Object
                 .FindFirstObjectByType<A305.Player.PlayerMover>()
                 .Teleport(new Vector3(450, 20, 450), Quaternion.identity);
-            NpcTownWalker[] walkers = Object
-                .FindObjectsByType<NpcTownWalker>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None
-                )
-                .Where(w =>
-                    new[] { "HOTEL_NIGHT_MANAGER", "CAFE_STAFF", "BARBER_STAFF" }.Contains(
-                        w.GetComponent<NpcIdentity>().Code
-                    )
+            NpcTownWalker[] townWalkers = Object.FindObjectsByType<NpcTownWalker>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+            // 체격이 다른 NPC의 출발 위치가 Unity의 객체 검색 순서에 따라 바뀌지 않게 한다.
+            string secondCode =
+                leaderCode == "HOTEL_NIGHT_MANAGER" ? "BARBER_STAFF" : "HOTEL_NIGHT_MANAGER";
+            string[] npcCodes = { leaderCode, secondCode, "CAFE_STAFF" };
+            NpcTownWalker[] walkers = npcCodes
+                .Select(code =>
+                    townWalkers.Single(walker => walker.GetComponent<NpcIdentity>().Code == code)
                 )
                 .ToArray();
-            Assert.That(walkers, Has.Length.EqualTo(3));
             foreach (Passerby body in Object.FindObjectsByType<Passerby>(FindObjectsSortMode.None))
                 body.gameObject.SetActive(false);
 
@@ -1806,23 +1813,46 @@ namespace A305.Npc.PlayModeTests
                 }
                 for (int frame = 0; frame < 360; frame++)
                     yield return null;
-                foreach (NpcTownWalker walker in walkers)
+                float crossingCenter = floor.transform.position.x;
+                for (int i = 0; i < walkers.Length; i++)
+                {
+                    NpcTownWalker walker = walkers[i];
+                    Vector3 position = walker.transform.position;
                     Assert.That(
-                        walker.transform.position.x,
-                        Is.InRange(497.7f, 498.9f),
-                        "세 사람 모두 연석 앞에서 나란히 기다려야 합니다: "
-                            + walker.GetComponent<NpcIdentity>().Code
+                        position.x < crossingCenter
+                            && NpcWalkRoute.IsOnSidewalk(position)
+                            && walker.GetComponent<Passerby>().IsWaitingAtSignal,
+                        Is.True,
+                        $"출발 쪽 인도에서 빨간불을 기다려야 합니다: {npcCodes[i]}"
                     );
+                }
 
                 phase.SetValue(lights, 15f);
+                Assert.That(
+                    lights.CanCross(true, 0),
+                    Is.True,
+                    "준비: NPC가 본길을 건널 수 있는 신호"
+                );
+                var reachedFarSidewalk = new bool[walkers.Length];
                 for (int frame = 0; frame < 360; frame++)
+                {
                     yield return null;
-                foreach (NpcTownWalker walker in walkers)
+                    for (int i = 0; i < walkers.Length; i++)
+                    {
+                        Vector3 position = walkers[i].transform.position;
+                        if (position.x > crossingCenter && NpcWalkRoute.IsOnSidewalk(position))
+                            reachedFarSidewalk[i] = true;
+                        else if (reachedFarSidewalk[i])
+                            Assert.Fail(
+                                $"횡단을 끝낸 NPC가 인도를 벗어났습니다: {npcCodes[i]}, {position}"
+                            );
+                    }
+                }
+                for (int i = 0; i < walkers.Length; i++)
                     Assert.That(
-                        walker.transform.position.x,
-                        Is.GreaterThan(501.2f),
-                        "한 번의 초록에 함께 건너야 합니다: "
-                            + walker.GetComponent<NpcIdentity>().Code
+                        reachedFarSidewalk[i],
+                        Is.True,
+                        $"한 번의 초록에 건너편 인도에 도착해야 합니다: {npcCodes[i]}"
                     );
             }
             finally

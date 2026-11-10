@@ -38,7 +38,11 @@ LANGUAGE = os.environ.get("STT_LANGUAGE", "ko") or None  # 게임 녹음 평가�
 PORT = int(os.environ.get("STT_PORT", "18431"))
 TOKEN = os.environ["STT_TOKEN"]
 MAX_BYTES = 3 * 1024 * 1024 + 64 * 1024  # 워커 녹음 상한 3MB + multipart 머리
-BATCH_MAX = 16  # 인코더가 건당 약 0.035초로 GPU 계산 한계라 4건부터 처리량이 초당 약 28건으로 같다. 16이면 40명이 몰려도 묶음 세 번
+# 인코더가 건당 약 0.035초로 GPU 계산 한계라 4건부터 처리량이 초당 약 28건으로 같다. 16이면 40명이 몰려도 묶음 세 번.
+# 8GB 노트북 GPU는 16건 묶음이 메모리에 다 들어가지 않아 4로 낮춰 띄운다.
+BATCH_MAX = int(os.environ.get("STT_BATCH_MAX", "16"))
+if BATCH_MAX < 1:
+    raise SystemExit(f"STT_BATCH_MAX는 1 이상이어야 합니다: {BATCH_MAX}")
 
 # CTranslate2 기본 할당기(cudaMallocAsync)는 큰 블록을 요청마다 드라이버에서 다시 받는다. 공용 서버에서 다른 팀이
 # 드라이버를 바쁘게 쓰면 그 호출이 드라이버 잠금에서 몇 초씩 멈췄다(1건 중앙 0.08초인데 p90 1.2초, 16건 중앙 4.8초).

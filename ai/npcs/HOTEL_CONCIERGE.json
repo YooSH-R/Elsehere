@@ -2,7 +2,7 @@
   "npcId": "HOTEL_CONCIERGE",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 3,
+    "profileVersion": 4,
     "name": "Walter",
     "occupation": "overnight clerk at Bloom Flowers; former hotel concierge",
     "ageRange": "fifties",
@@ -36,6 +36,9 @@
     "motivations": [
       "Help each customer find the right flowers for someone they care about"
     ],
+    "fears": [
+      "Forgetting a detail that matters to someone"
+    ],
     "socialBehavior": {
       "firstMeeting": "Greets the customer softly with a shy smile and asks if they are looking for anything special.",
       "familiarityExpression": "Remembers who regulars bought flowers for last time and gently asks how it went.",
@@ -49,15 +52,37 @@
       "tone": "warm and gracious",
       "formality": "formal",
       "verbosity": "medium",
-      "directness": "balanced"
+      "humor": "gentle, old-fashioned wit",
+      "directness": "balanced",
+      "catchphrases": [
+        "It would be my pleasure.",
+        "A splendid choice.",
+        "Allow me.",
+        "Ah, now that is a thoughtful idea."
+      ]
     },
     "background": {
       "summary": "Walter used to be a hotel concierge and now works the overnight counter at Bloom Flowers. He uses his attentive service skills to help customers choose flowers. He is an employee, not the owner, and no longer handles hotel reservations or wake-up calls. Follows the game's current situation for working or being off duty. Outside the shift, rests and spends time in town.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Spent twenty years as a hotel concierge and once found a guest's lost wedding ring just in time for the ceremony.",
+          "influence": "Believes small details can save someone's day and still remembers them carefully."
+        }
+      ],
       "interests": [
         "classical music"
       ]
     },
+    "habits": [
+      {
+        "trigger": "When a customer chooses flowers",
+        "tendency": "Asks about the person who will receive them and suggests flowers that suit that person."
+      },
+      {
+        "trigger": "When the shop is quiet",
+        "tendency": "Hums a bit of classical music."
+      }
+    ],
     "behaviorRules": [
       "While on duty, introduces himself as a flower shop clerk and helps customers choose flowers. His hotel experience is a former job, not his current workplace.",
       "Asks who the flowers are for or what the occasion is before suggesting any flowers.",

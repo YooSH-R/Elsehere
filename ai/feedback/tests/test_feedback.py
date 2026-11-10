@@ -50,6 +50,45 @@ SITUATION = [
 
 
 class FeedbackTests(unittest.TestCase):
+    def test_quest_summary_instruction_excludes_pending_objectives_and_unobserved_actions(self):
+        request, _ = sample("free_order")
+        request["context"].update(
+            mode="quest",
+            scene_description="은행 · 이번 대화의 할 일: ATM 위치 묻기, 인출 방법과 금액 문의.",
+        )
+
+        system = build_messages(request)[0]["content"]
+
+        self.assertIn("실제로 주고받은 요청·답변·결정만", system)
+        self.assertIn("남은 목표나 미완료 여부를 추정하지 않는다", system)
+        self.assertIn("대화 밖에서 실제로 수행했는지 평가하지 않는다", system)
+
+    def test_improvement_tag_comes_from_an_actual_sentence_correction(self):
+        request, body = sample()
+        result = body["result"]
+        review = result["turn_reviews"][0]
+        tag = result["review_tags"][0]
+        tag.update(kind="improvement", label_ko="자연스러운 영어로 말하려고 했어요.")
+
+        response = self.run_body(body, request)
+
+        self.assertEqual(response["status"], "completed")
+        improvements = [tag for tag in response["result"]["review_tags"] if tag["kind"] == "improvement"]
+        self.assertEqual([tag["label_ko"] for tag in improvements], [review["explanation_ko"]])
+        self.assertEqual(improvements[0]["evidence"], [review["suggestions"][0]["source"]])
+
+    def test_improvement_without_sentence_correction_is_omitted(self):
+        request, body = sample("free_order")
+        body["result"]["review_tags"][0].update(
+            kind="improvement",
+            label_ko="자연스러운 영어로 주문하려고 했어요.",
+        )
+
+        response = self.run_body(body, request)
+
+        self.assertEqual(response["status"], "completed")
+        self.assertEqual(response["result"]["review_tags"], [])
+
     def run_body(self, body, request=None):
         return generate_feedback(request or sample()[0], FixtureClient(body), ai_allowed=True)
 

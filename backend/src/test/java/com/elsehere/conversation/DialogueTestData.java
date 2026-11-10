@@ -27,8 +27,14 @@ public final class DialogueTestData {
 
   public static Conversation conversation(
       EntityManager entityManager, Long userId, String npcCode) {
+    return conversation(entityManager, userId, npcCode, 1);
+  }
+
+  public static Conversation conversation(
+      EntityManager entityManager, Long userId, String npcCode, int level) {
     Conversation conversation =
-        Conversation.start(userId, npcId(entityManager, npcCode), InitiatedBy.NPC, 1, STARTED_AT);
+        Conversation.start(
+            userId, npcId(entityManager, npcCode), InitiatedBy.NPC, level, STARTED_AT);
     entityManager.persist(conversation);
     return conversation;
   }

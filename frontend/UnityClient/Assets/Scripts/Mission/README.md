@@ -4,7 +4,7 @@
 
 새 여정의 가게 9곳은 모두 마을 씬 안에 있습니다. `TownMapArt.Shops`는 담당 NPC를 가게 이름과 지도 그림의 건물 칸에 연결합니다. **Tools → A305 → Mission → Refresh Town Maps**는 이 칸과 마을 도로를 읽어 수첩·큰 지도를 함께 갱신합니다.
 
-튜토리얼 뒤에는 **첫날의 작은 소동** 연계 미션을 진행합니다. 왼쪽 위에 퀘스트 카드를 두고, 카드 본문을 누르면 퀘스트 목록을 엽니다. 카드는 접기 없이 단계 번호·전체 제목·담당 NPC·상황·목표를 계속 보여 줍니다. 긴 제목은 줄바꿈하며, 목표가 없는 휴식 단계에서는 지금 할 행동을 보입니다. 목표 아래에는 해야 할 내용만 적고 영어 예시는 대화 화면의 추천 단어·힌트를 사용합니다. **Tools → A305 → Mission → Apply Quest Card Readability**로 기존 프리팹의 접기 버튼을 제거하고 제목 줄바꿈을 적용합니다. 오른쪽 위 메뉴 버튼 왼쪽에는 게임 시계 칩(`GameClockText`: "1일차 · 오후 1:40")과 코인 칩(미션 잔액)을 둡니다. 지도의 길과 건물 칸은 `TownMapBuilder`가 TownScene 배치에서 그리고, `TownMapView`는 내 위치와 목적지 표시만 바꿉니다. 서버가 `/v1/judge`의 의미 판정 제안을 현재 NPC·단계에 맞춰 적용하고 사용자별 진행을 저장합니다. 새로고침과 씬 이동 후에도 서버 상태를 읽어 복원합니다. 퀘스트가 여러 개가 되므로 화면 문구에는 '첫날'·'여정'을 쓰지 않습니다(수첩 제목 '퀘스트', 시작 버튼 '퀘스트 시작'). 이미 만든 프리팹과 튜토리얼 안내의 옛 문구는 **Tools → A305 → Mission → Apply Quest Wording**(`QuestWordingBuilder`)이 바꿉니다.
+튜토리얼 뒤에는 **첫날의 작은 소동** 연계 미션을 진행합니다. 튜토리얼을 마치거나 건너뛰면 서버가 이 퀘스트를 바로 시작하므로([TUT-01·02](../../../../../docs/api/mvp-api.md)), 건너뛴 사용자도 [퀘스트 시작]을 찾지 않고 첫 단계 카드를 봅니다. 왼쪽 위에 퀘스트 카드를 두고, 카드 본문을 누르면 퀘스트 목록을 엽니다. 카드는 접기 없이 단계 번호·전체 제목·담당 NPC·상황·목표를 계속 보여 줍니다. 긴 제목은 줄바꿈하며, 목표가 없는 휴식 단계에서는 지금 할 행동을 보입니다. 목표 아래에는 해야 할 내용만 적고 영어 예시는 대화 화면의 추천 단어·힌트를 사용합니다. **Tools → A305 → Mission → Apply Quest Card Readability**로 기존 프리팹의 접기 버튼을 제거하고 제목 줄바꿈을 적용합니다. 오른쪽 위 메뉴 버튼 왼쪽에는 게임 시계 칩(`GameClockText`: "1일차 · 오후 1:40")과 코인 칩(미션 잔액)을 둡니다. 지도의 길과 건물 칸은 `TownMapBuilder`가 TownScene 배치에서 그리고, `TownMapView`는 내 위치와 목적지 표시만 바꿉니다. 서버가 `/v1/judge`의 의미 판정 제안을 현재 NPC·단계에 맞춰 적용하고 사용자별 진행을 저장합니다. 새로고침과 씬 이동 후에도 서버 상태를 읽어 복원합니다. 퀘스트가 여러 개가 되므로 화면 문구에는 '첫날'·'여정'을 쓰지 않습니다(수첩 제목 '퀘스트', 시작 버튼 '퀘스트 시작'). 이미 만든 프리팹과 튜토리얼 안내의 옛 문구는 **Tools → A305 → Mission → Apply Quest Wording**(`QuestWordingBuilder`)이 바꿉니다.
 
 왼쪽 위 퀘스트 카드를 누르면 수첩 대신 퀘스트 목록(시안 f2, `Content/QuestBoard`, `QuestBoardView`)을 엽니다. 목록은 서버 `GET /api/v1/missions/quests`([마을 이야기 문서](../../../../../docs/api/town-story.md#퀘스트-목록과-보상))의 퀘스트를 한 줄에 세 장씩 카드로 보이고, 쪽이 여럿일 때만 아래 가운데에서 쪽을 넘깁니다. 들르는 곳 알약이 카드 폭을 넘으면 다음 줄로 넘깁니다. 카드에는 아이콘·상태 칩(진행 중·새 퀘스트)·제목·설명·들르는 곳 알약(처음 들르는 순서로 한 번씩, 가 본 곳은 코랄)·보상과 도장 수를 두고, 끝낸 퀘스트는 '완료' 도장, 잠긴 퀘스트는 옅은 흰 막과 가운데 자물쇠로 표시합니다. 카드를 누르면 그 퀘스트의 도장 지도(시안 q2)로 갑니다. 마을 지도 그림(`Art/UI/Quest/QuestMap.png`) 위에 가 본 곳마다 잉크 도장을 한 번, 지금 갈 곳에 번호 핀과 '지금 갈 곳' 칩을 두고, 지나온 길을 점으로 잇습니다(`QuestStampMap`, 칸이 없는 거리 행인은 지도에 두지 않음). 아래에는 들르는 곳 칸을 옆으로 넘기며 보이고, 시작할 수 있는 퀘스트에는 [퀘스트 시작]을 둡니다. 화면 글자는 `QuestBoardText`가 만들고, 그림 조각은 시안을 렌더링한 `Art/UI/Quest`입니다. **Tools → A305 → Mission → Apply Quest Board**(`QuestBoardBuilder`)가 만들고 퀘스트 카드 버튼을 목록 열기에 연결합니다.
 
@@ -17,6 +17,8 @@
 **Tools → A305 → Mission → Build First Day Journey**가 다섯 공간의 기능 연결, 수첩 프리팹, 상점과 출입구를 준비합니다. 기존 씬 디자인은 유지합니다. `SpaceSceneSetup`도 같은 기능을 연결하므로 공간을 다시 구성해도 연결이 남습니다.
 
 미니맵과 큰 지도는 건물과 공원에 같은 TextMeshPro 이름표를 표시합니다. 그림 좌표 기준 32 크기의 굵은 글씨와 연한 하늘색의 둥근 바탕, 얇은 테두리와 약한 그림자를 사용하고, 긴 이름도 자동 축소하지 않습니다. 모든 이름표 폭은 글자 폭에 같은 좌우 여백 18을 더해 정하며, 상하 여백은 6입니다. **Tools → A305 → Mission → Update Town Map Building Labels**는 기존 지도·표시 연결을 유지하며 두 지도의 이름표를 갱신합니다. 지도를 다시 만들 때도 같은 이름표가 적용됩니다.
+
+[이웃]의 [지도에서 보기]로 고른 NPC(`NpcTracking`)는 미니맵과 큰 지도에 같은 핀으로 보입니다(`TownMiniMapView`). 핀은 흰 테두리의 코랄 원에 이름 첫 글자를 쓰고 아래에 이름표를 달며, 건물 이름표 위·내 위치 화살표 아래에 그립니다. 자리는 Npc 모듈의 `NpcLocator`가 정합니다. 마을에 켜진 몸이 있으면 그 몸을 따라가고, 몸이 없으면 일과로 일터 건물 칸 위쪽 가장자리 가운데(`TownMapArt.NeighborPoint`)에 꽂아 건물 아래의 장소 이름표를 가리지 않습니다. 근무지 코드로 건물 칸을 찾는 `TownMapArt.WorkplaceTile`은 미션 장소가 아닌 경찰서도 지도 그림의 경찰서 칸(`TownMapArt.PoliceTile`)으로 찾습니다. 숙소에서 쉬거나 걸어 다녀 자리를 모르면 핀을 숨깁니다. 그 NPC 3m 안에 다가가거나 다른 이웃을 고르면 핀이 사라집니다. 이미 만든 지도에는 **Tools → A305 → Mission → Apply Neighbor Pin**(`MiniMapBuilder.ApplyNeighborPin`)으로 핀만 더합니다.
 
 ## 기다리는 카드
 
@@ -80,7 +82,7 @@
 | --- | --- |
 | `A305.Dialogue` | `DialogueController.ConversationEnded`, `DialogueRecord`, `KeywordMatcher`. 앉기 제안은 대화 중에 띄우지 않습니다. 기다리는 카드의 목록 `FollowUpStore` |
 | `A305.Player` | 첫날 미션 지도의 플레이어 위치, 앉기의 `PlayerMover`·`PlayerSeatPose` |
-| `A305.Npc` | [잠깐 앉기]를 띄우는 `PasserbyOfferView`의 상호작용 버튼, 기다리는 카드 문구의 받침에 맞는 조사(`PasserbyOfferText.SubjectParticle`) |
+| `A305.Npc` | [잠깐 앉기]를 띄우는 `PasserbyOfferView`의 상호작용 버튼, 기다리는 카드 문구의 받침에 맞는 조사(`PasserbyOfferText.SubjectParticle`), 지도의 [이웃] 핀(`NpcTracking`·`NpcLocator`·`NpcDuty`) |
 | `A305.Weather` | 첫날 미션의 예보 날씨를 마을에 보여 주는 `WeatherPresenter` |
 | `A305.Wayfinding` | 지금 단계의 장소를 길 안내에 알리는 `GuideDestination`, 크게 본 지도의 길 안내 켜기·끄기 버튼(`GuideRouteToggle`) |
 | uGUI, TextMeshPro | 미션 창 |
@@ -114,6 +116,7 @@
 | --- | --- |
 | `MissionController.MissionStarted` | 미션을 시작하면 미션 키를 알립니다. |
 | `MissionController.SetPanelVisible(bool)` | 미션 창을 보이거나 숨깁니다. |
+| `MissionController.RefreshStory()` | 서버에서 퀘스트 진행을 다시 읽습니다. 튜토리얼을 마치거나 건너뛰면 서버가 첫 퀘스트를 시작하므로, 튜토리얼이 저장을 마친 뒤 부릅니다. |
 | `MissionProgress.Clear()` | 미션 진행을 비웁니다. 테스트에서 상태를 비울 때 씁니다. |
 
 ## Builder
@@ -124,7 +127,7 @@
 
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
-| `A305.Mission.Tests` | `Assets/Tests/EditMode/Mission/` | 미션 시작, 다른 미션으로 교체, 없는 미션 거절, 여러 문장에 나뉜 키워드로 완료, 다른 NPC·빠진 키워드·시작 전에는 미완료, 완료한 미션 재시작 거절, 시작·교체 알림 문구, 미션 줄의 말할 단어 표시, 닿는 거리 안의 가장 가까운 자리 고르기(`RestSeatPicker`), 앉아 쉰 시간(`RestSeatTimer`), 미션이 자리를 다루는 장소는 카페뿐인지, 퀘스트 카드가 지금 단계 장소를 길 안내에 알리고 끝내거나 미션 화면을 끄면 멈추는지, 크게 본 지도에 길 안내 켜기·끄기 버튼이 있는지. 기다리는 카드: 남은 시간 분:초, 준비 중 줄(받을 것·누가 어디서·남은 시간)과 다 된 줄(준비됐어요·받으러 가세요, 받침에 맞는 조사), 마을 매장 직원은 가게 이름·그 밖은 씬 이름(`FollowUpCardTextTests`), 프리팹의 카드가 퀘스트 카드 바로 다음에 같은 폭·유리로 있고 누르기를 받지 않는지, 기다리는 것이 없거나 건넨 뒤·미션 화면을 끄면 숨는지, 먼저 되는 것부터 한 줄씩 보이는지(`FollowUpCardTests`) |
+| `A305.Mission.Tests` | `Assets/Tests/EditMode/Mission/` | 미션 시작, 다른 미션으로 교체, 없는 미션 거절, 여러 문장에 나뉜 키워드로 완료, 다른 NPC·빠진 키워드·시작 전에는 미완료, 완료한 미션 재시작 거절, 시작·교체 알림 문구, 미션 줄의 말할 단어 표시, 닿는 거리 안의 가장 가까운 자리 고르기(`RestSeatPicker`), 앉아 쉰 시간(`RestSeatTimer`), 미션이 자리를 다루는 장소는 카페뿐인지, 퀘스트 카드가 지금 단계 장소를 길 안내에 알리고 끝내거나 미션 화면을 끄면 멈추는지, 크게 본 지도에 길 안내 켜기·끄기 버튼이 있는지. 기다리는 카드: 남은 시간 분:초, 준비 중 줄(받을 것·누가 어디서·남은 시간)과 다 된 줄(준비됐어요·받으러 가세요, 받침에 맞는 조사), 마을 매장 직원은 가게 이름·그 밖은 씬 이름(`FollowUpCardTextTests`), 프리팹의 카드가 퀘스트 카드 바로 다음에 같은 폭·유리로 있고 누르기를 받지 않는지, 기다리는 것이 없거나 건넨 뒤·미션 화면을 끄면 숨는지, 먼저 되는 것부터 한 줄씩 보이는지(`FollowUpCardTests`). [이웃] 핀: 근무지 코드로 건물 칸 찾기(경찰서 포함)·핀 자리(마을의 몸, 일터 칸 위쪽 가장자리, 지도에 없으면 없음, `TownMapArtTests`), 미니맵과 큰 지도의 핀 표시·이름 첫 글자와 이름·숨김(`MiniMapPrefabTests`) |
 | `A305.Mission.PlayModeTests` | `Assets/Tests/PlayMode/Mission/` | 퀘스트 화면의 표시·조작, 카페의 모든 의자·소파에서 앉기 안내·실제 착석·5초 후 단일 휴식 요청까지의 연결 |
 | `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 공간 기능 연결이 미션 창과 미션 처리를 한 번씩 붙이고 대화 처리와 연결하는지 |
 

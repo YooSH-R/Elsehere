@@ -27,6 +27,7 @@ STEPS = {
     "You decide how a police call ends": "follow_up",  # 경찰관 출동 결과(같은 /v1/npc/follow-up)
     "You translate one line said by a character": "meaning",
     "You suggest words": "suggest",
+    "You grade a Korean learner's spoken answers": "level_test_speaking",
 }
 
 

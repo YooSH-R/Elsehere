@@ -115,7 +115,7 @@ class OnboardingServiceTest {
     assertThat(response.selectedLevel()).isNull();
     assertThat(response.levels())
         .extracting(ConversationLevel::level, ConversationLevel::available)
-        .containsExactly(tuple(1, true), tuple(2, false), tuple(3, false));
+        .containsExactly(tuple(1, true), tuple(2, true), tuple(3, false));
   }
 
   @Test
@@ -187,12 +187,25 @@ class OnboardingServiceTest {
   }
 
   @Test
-  @DisplayName("아직 제공하지 않는 난이도를 고르면 VALIDATION_FAILED로 거절하고 단계를 바꾸지 않는다")
+  @DisplayName("중급을 고르면 저장해 이후 대화 난이도로 쓴다")
+  void selectMiddleLevel_savesIt() {
+    User user = persistNewUser();
+    onboardingService.chooseLanguage(user.getId(), "en-US");
+
+    LevelSelectionResponse response = onboardingService.selectLevel(user.getId(), "en-US", 2);
+
+    assertThat(response.selectedLevel()).isEqualTo(2);
+    assertThat(onboardingService.getLanguageProfile(user.getId(), "en-US").selectedLevel())
+        .isEqualTo(2);
+  }
+
+  @Test
+  @DisplayName("아직 제공하지 않는 난이도(고급)를 고르면 VALIDATION_FAILED로 거절하고 단계를 바꾸지 않는다")
   void selectUnavailableLevel_isRejected() {
     User user = persistNewUser();
     onboardingService.chooseLanguage(user.getId(), "en-US");
 
-    assertThatThrownBy(() -> onboardingService.selectLevel(user.getId(), "en-US", 2))
+    assertThatThrownBy(() -> onboardingService.selectLevel(user.getId(), "en-US", 3))
         .isInstanceOfSatisfying(
             BusinessException.class,
             exception ->

@@ -122,21 +122,20 @@ namespace A305.Ambience
                 && weather.Current != null
                 && weather.Current.Code != null
                 && weather.Current.Code.Contains("RAIN");
-            AmbienceBed next = AmbiencePlan.Resolve(
-                scene,
-                ShopInterior.Occupied?.PlaceCode,
-                passenger,
-                rain
-            );
+            ShopInterior occupiedShop = ShopInterior.Occupied;
+            string placeCode = occupiedShop != null ? occupiedShop.PlaceCode : null;
+            AmbienceBed next = AmbiencePlan.Resolve(scene, placeCode, passenger, rain);
             if (passenger != wasPassenger && next != AmbienceBed.None)
                 Play(AmbienceEffect.TaxiDoorClose);
             wasPassenger = passenger;
             if (next != bed)
                 ChangePlace(next);
             float gain = AmbiencePlan.Volume(NormalVolume, Talking);
+            bool muted = !BackgroundSoundPreference.Enabled;
             for (int index = 0; index < loops.Length; index++)
             {
                 AudioSource source = loops[index];
+                source.mute = muted;
                 float target = index == current && bed != AmbienceBed.None ? gain : 0;
                 source.volume = Mathf.MoveTowards(
                     source.volume,
@@ -147,8 +146,13 @@ namespace A305.Ambience
                     source.Stop();
             }
             effects.volume = gain;
+            effects.mute = muted;
             foreach (CarSound car in cars)
+            {
+                if (car.Source != null)
+                    car.Source.mute = muted;
                 car.Tick(player, AmbiencePlan.IsStreet(bed), gain, catalog);
+            }
         }
 
         private void ChangePlace(AmbienceBed next)
@@ -173,6 +177,8 @@ namespace A305.Ambience
 
         private void Play(AmbienceEffect effect)
         {
+            if (!BackgroundSoundPreference.Enabled)
+                return;
             AudioClip clip = catalog.Effect(effect);
             if (clip == null)
                 return;

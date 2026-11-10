@@ -133,8 +133,8 @@ class SpeechServiceTest {
   }
 
   @Test
-  @DisplayName("대화 녹음은 학습자 닉네임, NPC 이름, 그 NPC 장소의 단어를 장면 단어로 워커에 보낸다")
-  void transcribe_turn_sendsNamesAndPlaceWords() {
+  @DisplayName("대화 녹음은 학습자 닉네임, NPC 이름, 같은 장소 NPC 이름, 마을 단어, 그 장소의 단어를 장면 단어로 워커에 보낸다")
+  void transcribe_turn_sendsNamesTownAndPlaceWords() {
     given(aiGateway.transcribe(any(), any(), anyString(), any(), any()))
         .willReturn(new SttResult("Iced Americano, please.", 1.0, List.of()));
 
@@ -142,8 +142,10 @@ class SpeechServiceTest {
 
     then(aiGateway).should().transcribe(any(), any(), anyString(), any(), sceneWords.capture());
     assertThat(sceneWords.getValue())
-        .startsWith("Sun", "Mia")
-        .contains("Americano", "Iced Americano", "latte");
+        .startsWith("Sun", "Mia", "Zoe", "Leo", "Maple Town")
+        .contains("Maple Bakery", "Americano", "Iced Americano", "latte")
+        .endsWith("for here", "to go")
+        .doesNotHaveDuplicates();
   }
 
   @Test
@@ -169,8 +171,8 @@ class SpeechServiceTest {
   }
 
   @Test
-  @DisplayName("튜토리얼 녹음은 대화 NPC가 없으니 학습자 닉네임만 장면 단어로 보낸다")
-  void transcribe_tutorial_sendsOnlyNickname() {
+  @DisplayName("튜토리얼 녹음은 대화 NPC가 없으니 학습자 닉네임과 마을 단어만 장면 단어로 보낸다")
+  void transcribe_tutorial_sendsNicknameAndTownWords() {
     given(aiGateway.transcribe(any(), any(), anyString(), any(), any()))
         .willReturn(new SttResult("My name is Sun.", 1.0, List.of()));
 
@@ -182,7 +184,10 @@ class SpeechServiceTest {
         recording("audio/wav", RECORDING));
 
     then(aiGateway).should().transcribe(any(), any(), anyString(), any(), sceneWords.capture());
-    assertThat(sceneWords.getValue()).containsExactly("Sun");
+    assertThat(sceneWords.getValue())
+        .startsWith("Sun", "Maple Town")
+        .contains("Maple Bakery")
+        .doesNotContain("Mia", "Americano");
   }
 
   @Test
@@ -284,6 +289,26 @@ class SpeechServiceTest {
   }
 
   @Test
+  @DisplayName("레벨 테스트 말하기 녹음은 대화 없이 전사하고, 학습 활용에 동의했어도 학습용으로 저장하지 않는다")
+  void transcribe_levelTest_doesNotNeedConversationOrSaveForTraining() {
+    optionalConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
+    given(aiGateway.transcribe(any(), any(), anyString(), any(), any()))
+        .willReturn(new SttResult("I left my bag here", 1.5, List.of()));
+
+    TranscriptionResponse response =
+        speechService.transcribe(
+            userId,
+            UUID.randomUUID(),
+            TranscriptionPurpose.LEVEL_TEST,
+            null,
+            recording("audio/wav", RECORDING));
+
+    assertThat(response).isEqualTo(new TranscriptionResponse("I left my bag here", 1500));
+    then(aiGateway).should().transcribe(any(), any(), anyString(), isNull(), any());
+    assertThat(trainingRecordingRepository.findByUserId(userId)).isEmpty();
+  }
+
+  @Test
   @DisplayName("녹음 음성 학습 활용에 동의하지 않았으면 녹음을 저장하지 않는다")
   void transcribe_voiceTrainingNotAgreed_doesNotSave() {
     optionalConsentService.change(userId, ConsentType.TRAINING_TEXT, true);
@@ -355,6 +380,22 @@ class SpeechServiceTest {
             eq(npcTurn.getText()),
             eq("af_heart"),
             eq(1.1));
+  }
+
+  @Test
+  @DisplayName("중급 대화의 NPC 턴은 대화 중과 같은 1.3배 속도로 다시 합성한다")
+  void regenerateSpeech_intermediateConversation_usesIntermediateSpeed() {
+    Conversation intermediate = conversation(entityManager, userId, "CAFE_STAFF", 2);
+    Turn intermediateTurn = npcTurn(entityManager, intermediate, 1, "We ran out of oat milk.");
+    entityManager.flush();
+    given(aiGateway.synthesize(any(), eq(intermediateTurn.getText()), eq("af_heart"), anyDouble()))
+        .willReturn(WAV);
+
+    speechService.regenerateSpeech(userId, intermediateTurn.getId(), UUID.randomUUID());
+
+    then(aiGateway)
+        .should()
+        .synthesize(any(), eq(intermediateTurn.getText()), eq("af_heart"), eq(1.3));
   }
 
   @Test

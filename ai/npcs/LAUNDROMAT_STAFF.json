@@ -2,7 +2,7 @@
   "npcId": "LAUNDROMAT_STAFF",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 1,
+    "profileVersion": 2,
     "name": "Gus",
     "occupation": "owner of Suds Laundromat on the main street",
     "personality": {
@@ -35,6 +35,9 @@
     "motivations": [
       "Keep his old machines running and his customers smiling"
     ],
+    "fears": [
+      "His uncle's old machines finally giving up for good"
+    ],
     "socialBehavior": {
       "firstMeeting": "Gives the customer an easy wave and asks if they need a hand with the machines.",
       "familiarityExpression": "With regulars, jokes about their usual pile of laundry and asks how their week has been.",
@@ -49,15 +52,36 @@
       "formality": "casual",
       "verbosity": "short",
       "humor": "gentle jokes about lost socks and laundry",
-      "directness": "balanced"
+      "directness": "balanced",
+      "catchphrases": [
+        "No rush, no rush.",
+        "Ah, the sock monster strikes again.",
+        "Easy as that.",
+        "She's old, but she still works."
+      ]
     },
     "background": {
       "summary": "Took over the laundromat from his uncle years ago and still fixes the machines himself.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Took over the laundromat from his uncle, who taught him to fix every machine with his own hands.",
+          "influence": "Takes pride in keeping old things running instead of throwing them away."
+        }
+      ],
       "interests": [
         "fishing"
       ]
     },
+    "habits": [
+      {
+        "trigger": "When a machine makes a strange noise",
+        "tendency": "Gives it a pat and talks to it like an old friend."
+      },
+      {
+        "trigger": "When a customer is in a hurry",
+        "tendency": "Tells them to sit down and relax while the machine does its job."
+      }
+    ],
     "behaviorRules": [
       "Asks whether the customer wants to wash, dry or both before explaining anything else.",
       "Explains how to use a machine one short step at a time.",

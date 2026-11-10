@@ -250,11 +250,7 @@ namespace A305.EditorTools.Onboarding
                 "languagePanel",
                 SetUpLanguagePanel(root, bold, regular)
             );
-            BuilderTools.SetReference(
-                screen,
-                "levelTestPanel",
-                SetUpLevelTestPanel(root, bold, regular)
-            );
+            BuilderTools.SetReference(screen, "levelTestPanel", SetUpLevelTestPanel(root));
             BuilderTools.SetReference(
                 screen,
                 "levelSettingPanel",
@@ -719,50 +715,11 @@ namespace A305.EditorTools.Onboarding
             return view;
         }
 
-        private static LevelTestPanelView SetUpLevelTestPanel(
-            GameObject root,
-            TMP_FontAsset bold,
-            TMP_FontAsset regular
-        )
+        // 화면 04는 안내·문항·결과를 한 창에서 바꿔 보여 기능 구성과 시안 배치를 함께 만든다(LevelTestScreenBuilder).
+        private static LevelTestPanelView SetUpLevelTestPanel(GameObject root)
         {
             RectTransform panel = CenterPanel(root.transform, "LevelTestPanel");
-            var view = BuilderTools.GetOrAddComponent<LevelTestPanelView>(panel.gameObject);
-            UiBuilderTools.FindOrCreateText(panel, "Title", bold, 36f, Color.white, "레벨 테스트");
-            UiBuilderTools.FindOrCreateText(
-                panel,
-                "Body",
-                regular,
-                24f,
-                SubTextColor,
-                "대화 난이도를 정하기 위해 간단한 문제를 풀어 볼 수 있어요."
-            );
-            Button start = UiBuilderTools.FindOrCreateButton(
-                panel,
-                "StartButton",
-                "레벨 테스트 진행하기 (준비 중)",
-                bold,
-                PanelWidth
-            );
-            Button skip = FindOrCreateSecondaryButton(
-                panel,
-                "SkipButton",
-                "건너뛰기",
-                regular,
-                PanelWidth
-            );
-            UiBuilderTools.FindOrCreateText(
-                panel,
-                "SkipNote",
-                regular,
-                20f,
-                SubTextColor,
-                "건너뛰면 초급으로 시작해요."
-            );
-
-            BuilderTools.SetReference(view, "startButton", start);
-            BuilderTools.SetReference(view, "skipButton", skip);
-            BuilderTools.RequireReferences(view);
-            return view;
+            return LevelTestScreenBuilder.Apply(panel);
         }
 
         // 접속 상태를 확인하지 못했을 때의 화면. 실패한 이유는 화면 아래 안내 문구가 보여 준다.

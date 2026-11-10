@@ -1,3 +1,6 @@
+using A305.Npc;
+using A305.World;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -5,7 +8,8 @@ namespace A305.Mission
 {
     /// <summary>
     /// 왼쪽 아래 미니맵. 둥근 창 안에서 마을 지도 그림을 움직여 내 위치가 가운데 오게 하고,
-    /// 그 위에 내 위치 화살표와 지금 가야 할 장소 테두리를 얹는다. 좌표는 <see cref="TownMapArt"/>를 따른다.
+    /// 그 위에 내 위치 화살표와 지금 가야 할 장소 테두리, [이웃]에서 찾는 NPC 핀(<see cref="NpcTracking"/>)을 얹는다.
+    /// 좌표는 <see cref="TownMapArt"/>를 따른다.
     /// 큰 지도도 같은 화면을 쓴다. 창이 지도 그림 전체 크기라 그림은 움직이지 않고 표시만 따라간다.
     /// 끌면 지도가 커서를 따라 움직여 주변을 둘러볼 수 있고(<see cref="MiniMapPan"/>), 끌고 놓았을 때는 큰 지도를 열지 않는다.
     /// </summary>
@@ -34,9 +38,14 @@ namespace A305.Mission
         [Tooltip("지도 그림 위의 목적지 테두리")]
         private RectTransform destination;
 
+        [SerializeField]
+        [Tooltip("[이웃]에서 찾는 NPC 핀. 자식 Letter(이름 첫 글자)와 Name/Label(이름)을 쓴다")]
+        private RectTransform neighbor;
+
         private readonly MiniMapPan pan = new MiniMapPan();
         private string sceneCode;
         private Transform follow;
+        private string shownNeighborName;
 
         /// <summary>마을에서는 플레이어 위치와 방향을 따라가고, 건물 안에서는 그 건물 출입문에 내 위치를 둔다.</summary>
         public void Bind(string currentSceneCode, Transform playerTransform)
@@ -59,6 +68,7 @@ namespace A305.Mission
 
         public void Redraw()
         {
+            ShowNeighbor();
             if (sceneCode == TownSceneCode && follow != null)
             {
                 Show(
@@ -83,6 +93,41 @@ namespace A305.Mission
             player.localEulerAngles = new Vector3(0f, 0f, rotationDegrees);
             Vector2 corner = TownMapArt.Window(pan.Centre(point, Time.unscaledTime), Window);
             map.anchoredPosition = new Vector2(-corner.x, corner.y) * map.localScale.x;
+        }
+
+        // 찾는 NPC를 지도에 찍는다. 마을에 켜진 몸은 그대로 따라가고, 몸이 없으면 일과로 일터 칸에 둔다(NpcLocator).
+        // 숙소에서 쉬거나 걸어 다녀 자리를 모르면 핀을 숨긴다.
+        private void ShowNeighbor()
+        {
+            if (neighbor == null)
+                return;
+            NpcTracking tracking = NpcTracking.Shared;
+            Vector2? point =
+                tracking.Code != null ? TownMapArt.NeighborPoint(Locate(tracking)) : null;
+            if (neighbor.gameObject.activeSelf != point.HasValue)
+                neighbor.gameObject.SetActive(point.HasValue);
+            if (!point.HasValue)
+                return;
+            neighbor.anchoredPosition = OnMap(point.Value);
+            if (shownNeighborName == tracking.Name)
+                return;
+            shownNeighborName = tracking.Name;
+            string name = string.IsNullOrEmpty(tracking.Name) ? "?" : tracking.Name;
+            neighbor.Find("Letter").GetComponent<TMP_Text>().text = name.Substring(0, 1)
+                .ToUpperInvariant();
+            neighbor.Find("Name/Label").GetComponent<TMP_Text>().text = name;
+        }
+
+        private NpcLocation Locate(NpcTracking tracking)
+        {
+            NpcIdentity body = NpcTracking.FindBody(tracking.Code);
+            return NpcLocator.Locate(
+                tracking.Life,
+                GameClock.Shared.Minutes,
+                NpcDuty.RequiresPresence(tracking.Code),
+                sceneCode == TownSceneCode,
+                body != null ? body.transform.position : (Vector3?)null
+            );
         }
 
         // 창 크기와 지금 창에 보이는 가운데(그림 단위)

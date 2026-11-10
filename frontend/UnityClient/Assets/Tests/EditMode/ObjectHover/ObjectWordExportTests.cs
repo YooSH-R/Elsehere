@@ -1,5 +1,7 @@
+using System.Linq;
 using A305.EditorTools.ObjectHover;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 namespace A305.ObjectHover.Tests
@@ -96,6 +98,20 @@ namespace A305.ObjectHover.Tests
             StringAssert.Contains("'It''s a chair.'", sql);
             StringAssert.Contains("'MASTER', NULL)", sql);
             StringAssert.Contains("ON CONFLICT (language_code, text) DO UPDATE", sql);
+        }
+
+        // 빌드에 넣은 장소 씬과 매장 실내 씬은 모두 단어 등록·내보내기가 읽어야 한다.
+        // 마을 매장을 실내 씬으로 나눴을 때 내보내기가 장소 씬 6개만 읽어 실내 단어가 빠졌다. 입장 씬에는 사물이 없다.
+        [Test]
+        public void WordScenes_IncludeEveryBuildSceneButTheEntryScene()
+        {
+            string[] buildScenes = EditorBuildSettings
+                .scenes.Where(scene => scene.enabled)
+                .Select(scene => scene.path)
+                .Where(path => !path.EndsWith("/EntryScene.unity"))
+                .ToArray();
+
+            Assert.That(ObjectWordAuthoring.WordScenePaths(), Is.EquivalentTo(buildScenes));
         }
     }
 }

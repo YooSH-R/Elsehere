@@ -221,11 +221,6 @@ namespace A305.Mission
         private QuestBoardState finishedBoard;
         private int unlockedQuest = -1;
 
-        // 첫 호텔 퀘스트(서버 Quest.CHECK_IN)를 끝낸 팡파레의 [다음]에서 사용자 설문을 권한다.
-        // 게스트는 대화 3번으로 이 퀘스트를 끝낼 수 없어 사실상 회원만 받고, 게스트는 대화를 다 쓸 때 따로 받는다.
-        private const string SurveyQuestId = "CHECK_IN";
-        private bool asksSurveyOnNext;
-
         // 퀘스트 카드·미니맵의 화면 자리를 구하는 데 매 프레임 다시 쓴다.
         private readonly Vector3[] hudCorners = new Vector3[4];
 
@@ -465,6 +460,10 @@ namespace A305.Mission
             CoinChange? change = CoinChange.Between(shownBalance, balance, purchase);
             int from = shownBalance ?? balance;
             shownBalance = balance;
+            if (change.HasValue)
+                A305.World.UiSoundEvents.Play(
+                    change.Value.IsGain ? A305.World.UiSound.Coin : A305.World.UiSound.Spend
+                );
             if (change.HasValue && coinFloat != null && coinReceipt != null)
                 ShowCoinChange(change.Value, from, balance);
             else if (coinChange == null)
@@ -503,7 +502,12 @@ namespace A305.Mission
                 // 칩이 한 번 통 튀고, 글자는 위로 떠오르다 끝에서 사라진다.
                 float punch = Mathf.Sin(Mathf.Clamp01(t / CoinPunchSeconds) * Mathf.PI) * .12f;
                 if (coinChip != null)
+                {
                     coinChip.localScale = Vector3.one * (1f + punch);
+                    float spendWobble =
+                        to < from ? Mathf.Sin(t * 28f) * 3f * (1f - Mathf.Clamp01(t / .35f)) : 0f;
+                    coinChip.localRotation = Quaternion.Euler(0, 0, spendWobble);
+                }
                 amount.anchoredPosition =
                     coinFloatHome
                     + Vector2.up * (CoinFloatRise * Mathf.Clamp01(t / CoinChangeSeconds));
@@ -512,7 +516,10 @@ namespace A305.Mission
             }
             coins.text = to.ToString();
             if (coinChip != null)
+            {
                 coinChip.localScale = Vector3.one;
+                coinChip.localRotation = Quaternion.identity;
+            }
             amount.anchoredPosition = coinFloatHome;
             coinFloat.gameObject.SetActive(false);
             coinReceipt.transform.parent.gameObject.SetActive(false);
@@ -551,6 +558,11 @@ namespace A305.Mission
             if (canvas == null || situation == null)
                 return;
             var screen = (RectTransform)canvas.transform;
+            if (statusBar != null)
+                ((RectTransform)statusBar.transform).anchoredPosition = new Vector2(
+                    -HudTopBarLayout.StatusRight(A305.Api.SurveyPrompt.EntryVisible),
+                    -HudTopBarLayout.Margin
+                );
             Banner.SetSizeWithCurrentAnchors(
                 RectTransform.Axis.Horizontal,
                 Mathf.Min(CardWidth, screen.rect.width - Margin * 2)
@@ -601,6 +613,7 @@ namespace A305.Mission
                 return;
             }
             QuestEntry finished = board.Quests[index];
+            A305.World.UiSoundEvents.Play(A305.World.UiSound.Quest);
             if (rewardExpected)
                 ShowCoins(latestBalance - finished.Reward, latestPurchase);
             finishedBoard = board;
@@ -608,7 +621,6 @@ namespace A305.Mission
                 index + 1 < board.Quests.Count
                 && board.Quests[index + 1].Status == QuestEntry.Available;
             unlockedQuest = opensNext ? index + 1 : -1;
-            asksSurveyOnNext = questId == SurveyQuestId;
             ShowLargeMap(false);
             if (IsQuestBoardOpen)
                 questBoard.Close();
@@ -627,7 +639,6 @@ namespace A305.Mission
 
         /// <summary>
         /// 팡파레의 [다음]: 팡파레를 닫고, 열린 다음 퀘스트가 있으면 퀘스트 목록에서 그 잠금을 푼다. 연결은 QuestCompleteBuilder가 넣는다.
-        /// 첫 호텔 퀘스트였으면 팡파레를 다 본 이때 설문 카드를 내린다.
         /// </summary>
         public void ShowNextQuest()
         {
@@ -640,11 +651,6 @@ namespace A305.Mission
             }
             unlockedQuest = -1;
             UpdateBoardLayer();
-            if (asksSurveyOnNext)
-            {
-                asksSurveyOnNext = false;
-                A305.Api.SurveyPrompt.Request();
-            }
         }
 
         /// <summary>
@@ -773,6 +779,16 @@ namespace A305.Mission
             if (followUpCard != null)
                 followUpCard.SetBottomLimit(LeftColumnBottom());
             ShowClock();
+            var status = (RectTransform)statusBar.transform;
+            Vector2 statusPosition = new Vector2(
+                -HudTopBarLayout.StatusRight(A305.Api.SurveyPrompt.EntryVisible),
+                -HudTopBarLayout.Margin
+            );
+            status.anchoredPosition = Vector2.Lerp(
+                status.anchoredPosition,
+                statusPosition,
+                1f - Mathf.Exp(-18f * Time.unscaledDeltaTime)
+            );
             CenterWindow.Shared.SetLeftHud(LeftHudScreenWidth());
             bool escape =
                 Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;

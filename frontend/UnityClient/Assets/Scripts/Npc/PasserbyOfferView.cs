@@ -95,14 +95,14 @@ namespace A305.Npc
                 var theme = talkButton.GetComponent<ThemedElement>();
                 if (theme != null && theme.Catalog != null)
                 {
-                    (
-                        mealWaitBadge.GetComponent<ThemedElement>()
-                        ?? mealWaitBadge.AddComponent<ThemedElement>()
-                    ).Use(theme.Catalog, UiThemeRole.Card);
-                    (
-                        mealWaitLabel.GetComponent<ThemedElement>()
-                        ?? mealWaitLabel.gameObject.AddComponent<ThemedElement>()
-                    ).Use(theme.Catalog, UiThemeRole.Caption);
+                    var badgeTheme = mealWaitBadge.GetComponent<ThemedElement>();
+                    if (badgeTheme == null)
+                        badgeTheme = mealWaitBadge.AddComponent<ThemedElement>();
+                    badgeTheme.Use(theme.Catalog, UiThemeRole.Card);
+                    var labelTheme = mealWaitLabel.GetComponent<ThemedElement>();
+                    if (labelTheme == null)
+                        labelTheme = mealWaitLabel.gameObject.AddComponent<ThemedElement>();
+                    labelTheme.Use(theme.Catalog, UiThemeRole.Caption);
                 }
                 var size = mealWaitBadge.GetComponent<LayoutElement>();
                 if (size != null)

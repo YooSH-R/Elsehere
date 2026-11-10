@@ -243,6 +243,7 @@ public class ConversationService {
                             conversation.recordTownStoryGoals(value.detail().remainingGoals());
                           } else {
                             conversation.attachFirstDayStage(value.detail().stage());
+                            conversation.recordFirstDayGoals(value.detail().remainingGoals());
                           }
                         }
                       });

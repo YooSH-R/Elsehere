@@ -1,5 +1,5 @@
 using System;
-using System.Linq;
+using A305.EditorTools.Deployment;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
@@ -21,14 +21,12 @@ namespace A305.EditorTools.Common
         {
             A305.EditorTools.Player.TouchControlsBuilder.PrepareAssets();
             Configure();
-            BuildReport report = BuildPipeline.BuildPlayer(
-                EditorBuildSettings
-                    .scenes.Where(scene => scene.enabled)
-                    .Select(scene => scene.path)
-                    .ToArray(),
+            BuildPlayerOptions options = WebGlBuild.CreateOptions(
                 "Builds/Web",
-                BuildTarget.WebGL,
-                BuildOptions.None
+                EditorBuildSettings.scenes
+            );
+            BuildReport report = WebGlBuild.BuildWithDesktopPipeline(() =>
+                BuildPipeline.BuildPlayer(options)
             );
             if (report.summary.result != BuildResult.Succeeded)
             {

@@ -7,7 +7,7 @@ namespace A305.Learning.Tests
     public class ReviewPracticeFeedbackTests
     {
         [Test]
-        public void UsedExpressionExplainsItsMeaningAndQuotesOnlyTheActualLearnerSentence()
+        public void UsedExpressionShowsUsageWithoutRepeatingTheLearnerSentenceOrTranslation()
         {
             var result = new ReviewPracticeResult
             {
@@ -28,8 +28,9 @@ namespace A305.Learning.Tests
                 },
             };
             string text = ReviewPracticeFeedback.Format(Card(), result);
-            Assert.That(text, Does.Contain("여기에 가방을 두고 간 것 같아요"));
-            Assert.That(text, Does.Contain("I think I left my bag here, earlier today."));
+            Assert.That(text, Does.Contain("I think I left my bag here."));
+            Assert.That(text, Does.Not.Contain("여기에 가방을 두고 간 것 같아요"));
+            Assert.That(text, Does.Not.Contain("I think I left my bag here, earlier today."));
             Assert.That(text, Does.Contain("분실한 물건을 문의"));
             Assert.That(text, Does.Not.Contain("Is this your bag?"));
         }
@@ -45,7 +46,8 @@ namespace A305.Learning.Tests
                 },
             };
             string text = ReviewPracticeFeedback.Format(Card(), result);
-            Assert.That(text, Does.Contain("다음에 써 볼 표현"));
+            Assert.That(text, Does.Contain("I think I left my bag here."));
+            Assert.That(text, Does.Not.Contain("다음에 써 볼 표현"));
             Assert.That(text, Does.Not.Contain("직접 사용했어요"));
             Assert.That(text, Does.Not.Contain("자연스러웠어요"));
         }

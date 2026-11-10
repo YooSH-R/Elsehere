@@ -1,5 +1,6 @@
 """v0.3: 대화 요약·리뷰 태그·전체 발화 평가·단어장 후보. 의미 품질 판정은 별도."""
 
+import re
 from typing import Annotated, Literal, Union
 
 from pydantic import Field, TypeAdapter, model_validator
@@ -7,6 +8,10 @@ from pydantic import Field, TypeAdapter, model_validator
 from . import contract_v01 as core
 
 VERSION = "0.3.0"
+
+
+def contains_korean(text):
+    return bool(re.search(r"[가-힣ㄱ-ㅎㅏ-ㅣ]", text))
 
 
 class Context(core.ConversationContext):
@@ -283,6 +288,14 @@ def validate_pair(request, response):
             raise ValueError("평가 원문이 해당 final_text 전체와 다르다")
         if review.assisted != bool(turn.assistance_ids):
             raise ValueError("발화 평가의 도움 사용 표시 불일치")
+        if contains_korean(turn.final_text) and review.verdict in ("appropriate", "improvement_suggested"):
+            if not any(
+                item.kind == "context_fit"
+                and re.search(r"[A-Za-z]", item.suggested_expression)
+                and not contains_korean(item.suggested_expression)
+                for item in review.suggestions
+            ):
+                raise ValueError("의도가 분명한 한국어 발화에는 같은 의미의 영어 표현이 필요하다")
         for item in review.suggestions:
             if item.source.turn_id != review.turn_id:
                 raise ValueError("개선 표현의 근거는 해당 평가 발화여야 한다")

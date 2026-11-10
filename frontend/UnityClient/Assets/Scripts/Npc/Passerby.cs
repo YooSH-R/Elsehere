@@ -267,7 +267,8 @@ namespace A305.Npc
             {
                 CancelPlayerTalk();
                 offerView.HideTalkPrompt(this);
-                routine?.Interrupt();
+                if (routine != null)
+                    routine.Interrupt();
                 Stand();
                 TurnToward(HorizontalOffsetToPlayer());
                 ShowAnimation(TalkAnimation);

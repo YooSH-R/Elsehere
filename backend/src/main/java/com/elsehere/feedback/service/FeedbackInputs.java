@@ -23,13 +23,13 @@ final class FeedbackInputs {
 
   static final String SCHEMA_VERSION = "0.3.0";
   // 모델·프롬프트·검증 정책을 바꾸면 올린다. 같은 대화라도 버전이 다르면 다른 결과로 본다.
-  static final String ANALYSIS_CONFIG_VERSION = "elsehere-feedback-v3";
+  static final String ANALYSIS_CONFIG_VERSION = "elsehere-feedback-v5";
 
   // 학습자 수준 설명. 워커 힌트·추천 단어(ai/worker/app/prompts.py LEVEL_LEARNER)와 같은 말을 쓴다.
   private static final Map<Integer, String> LEVEL_LEARNER =
       Map.of(
           1, "very simple (CEFR A1-A2), short",
-          2, "simple and natural (CEFR A2-B1)",
+          2, "natural everyday English (CEFR B1)",
           3, "natural, can use a common idiom (CEFR B1-B2)");
 
   private FeedbackInputs() {}
@@ -58,10 +58,12 @@ final class FeedbackInputs {
         townStage != null && townStage >= 0 && townStage < TownStoryStage.values().length
             ? TownStoryStage.values()[townStage]
             : null;
-    String situation =
-        townQuest != null && townQuest.npcCode().equals(npc.getCode())
-            ? townSituation(conversation, townQuest)
-            : quest != null ? quest.situation() + " " + quest.direction() + goals(quest) : null;
+    String situation = null;
+    if (townQuest != null && townQuest.npcCode().equals(npc.getCode())) {
+      situation = townSituation(conversation, townQuest);
+    } else if (quest != null && quest.npc().equals(npc.getCode())) {
+      situation = firstDaySituation(conversation, quest);
+    }
     return new FeedbackInput(
         SCHEMA_VERSION,
         requestId.toString(),
@@ -117,12 +119,19 @@ final class FeedbackInputs {
     return stage.title() + " · 이번 대화의 할 일: " + goals + ". 이 목록에 없는 다른 목표는 누락으로 평가하지 않습니다.";
   }
 
-  // 이 단계에서 학습자가 할 일. 모델이 장면에 맞는 표현만 권하게 한다.
-  private static String goals(FirstDayStage quest) {
-    return " · 할 일: "
-        + quest.goals().stream()
-            .map(goal -> goal.title() + "(" + goal.description() + ")")
-            .collect(Collectors.joining(", "));
+  private static String firstDaySituation(Conversation conversation, FirstDayStage stage) {
+    List<String> goalIds = conversation.getFirstDayGoalIds();
+    if (goalIds == null) {
+      return stage.title() + " · 당시의 세부 목표 기록이 없으므로 실제 발화만 평가하고, 말하지 않은 퀘스트 목표를 요구하지 않습니다.";
+    }
+    String goals =
+        goalIds.isEmpty()
+            ? "없음"
+            : stage.goals().stream()
+                .filter(goal -> goalIds.contains(goal.id()))
+                .map(goal -> goal.title() + " (" + goal.description() + ")")
+                .collect(Collectors.joining(", "));
+    return stage.title() + " · 이번 대화의 할 일: " + goals + ". 이 목록에 없는 다른 목표는 누락으로 평가하지 않습니다.";
   }
 
   private static FeedbackInput.Turn toInputTurn(Turn turn, FeedbackInput.Difficulty difficulty) {

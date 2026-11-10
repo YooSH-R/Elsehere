@@ -132,6 +132,21 @@ namespace A305.EditorTools.Learning
                 reviewCardId: 42,
                 reviewResult: result
             );
+            foreach (
+                UiThemeId theme in new[] { UiThemeId.Jelly, UiThemeId.Sticker, UiThemeId.Cloud }
+            )
+            {
+                UiThemeSelection.Shared.Select(theme);
+                foreach (ThemedElement element in root.GetComponentsInChildren<ThemedElement>(true))
+                    element.ApplyCurrent();
+                Render(
+                    camera,
+                    1600,
+                    1000,
+                    () => view.ShowResult(book.Items[0], record),
+                    Path.Combine(output, "practice-result-" + theme + ".png")
+                );
+            }
             Render(
                 camera,
                 1600,
@@ -254,6 +269,21 @@ namespace A305.EditorTools.Learning
                         badges.SendMessage("LateUpdate");
                 },
                 Path.Combine(output, "practice-reference.png")
+            );
+            Render(
+                camera,
+                1600,
+                1000,
+                () =>
+                {
+                    view.UpdateLayout();
+                    Canvas.ForceUpdateCanvases();
+                    var scroll =
+                        view.SuggestedWordsRect.GetComponentInParent<UnityEngine.UI.ScrollRect>();
+                    scroll.verticalNormalizedPosition = 0;
+                    Canvas.ForceUpdateCanvases();
+                },
+                Path.Combine(output, "practice-reference-scrolled.png")
             );
         }
 

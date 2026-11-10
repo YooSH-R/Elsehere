@@ -96,10 +96,10 @@ namespace A305.Npc.PlayModeTests
                     rest.Tick(0, state, false);
                     Assert.That(offer.ShownButtonRect.gameObject.activeInHierarchy, Is.True);
                     Assert.That(received, Is.Zero);
-                    CaptureIfRequested(
-                        player.GetComponent<PlayerCameraRig>()
-                            ?? Object.FindFirstObjectByType<PlayerCameraRig>()
-                    );
+                    var cameraRig = player.GetComponent<PlayerCameraRig>();
+                    if (cameraRig == null)
+                        cameraRig = Object.FindFirstObjectByType<PlayerCameraRig>();
+                    CaptureIfRequested(cameraRig);
                     offer.ShownButtonRect.GetComponent<Button>().onClick.Invoke();
                     Assert.That(pose.IsSeated, Is.False);
                     Assert.That(player.CameraRig.IsInSeatView, Is.False);

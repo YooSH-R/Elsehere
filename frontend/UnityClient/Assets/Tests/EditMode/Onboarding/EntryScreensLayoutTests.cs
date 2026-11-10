@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace A305.Onboarding.Tests
 {
     /// <summary>
-    /// 로그인 뒤 진입 화면(e2 게스트 캐릭터·e3 가입 정보·e4 레벨 테스트·e5 접속 실패)은 흐린 마을 위 화면 가운데의 유리 창이다.
+    /// 로그인 뒤 진입 화면(e2 게스트 캐릭터·e3 가입 정보·L1 레벨 테스트 안내·e5 접속 실패)은 흐린 마을 위 화면 가운데의 유리 창이다.
     /// 크기는 시안 px에 1.2를 곱한 값이고, 버튼·캐릭터 카드는 시안을 렌더링한 그림이다.
     /// </summary>
     public class EntryScreensLayoutTests
@@ -17,7 +17,6 @@ namespace A305.Onboarding.Tests
             AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath).transform;
 
         [TestCase("GuestPanel", 620f, 645.5f)]
-        [TestCase("LevelTestPanel", 620f, 519f)]
         [TestCase("ConnectionPanel", 600f, 382.5f)]
         public void Panel_IsACentredSheetOfTheMockupSize(string name, float width, float height)
         {
@@ -28,6 +27,24 @@ namespace A305.Onboarding.Tests
             Assert.That(panel.anchoredPosition, Is.EqualTo(Vector2.zero));
             Assert.That(panel.sizeDelta.x, Is.EqualTo(width * 1.2f).Within(.1f));
             Assert.That(panel.sizeDelta.y, Is.EqualTo(height * 1.2f).Within(.1f));
+        }
+
+        // S15P31A305-755: 화면 04 창은 보이는 쪽(안내 640·듣기 720·말하기 553·결과 608)에 맞춰 높이가 바뀌고, 처음 보이는 안내는 L1 시안 높이다.
+        [Test]
+        public void LevelTestPanel_IsACentredSheetSizedToTheShownPage()
+        {
+            var panel = (RectTransform)Screens().Find("LevelTestPanel");
+            var intro = panel.Find("IntroPage").GetComponent<LayoutElement>();
+
+            Assert.That(panel.anchorMin, Is.EqualTo(new Vector2(.5f, .5f)));
+            Assert.That(panel.anchorMax, Is.EqualTo(new Vector2(.5f, .5f)));
+            Assert.That(panel.sizeDelta.x, Is.EqualTo(620f * 1.2f).Within(.1f));
+            Assert.That(
+                panel.GetComponent<ContentSizeFitter>().verticalFit,
+                Is.EqualTo(ContentSizeFitter.FitMode.PreferredSize)
+            );
+            Assert.That(intro.gameObject.activeSelf, Is.True);
+            Assert.That(intro.preferredHeight, Is.EqualTo(640f * 1.2f).Within(.1f));
         }
 
         [Test]
@@ -49,8 +66,9 @@ namespace A305.Onboarding.Tests
         [TestCase("SignupPanel/BackButton/Art", "EntryBack")]
         [TestCase("TermsPanel/NextButton/Art", "EntryNext")]
         [TestCase("SignupPanel/NicknameRow/CheckNicknameButton/Art", "EntryCheckName")]
-        [TestCase("LevelTestPanel/StartButton/Art", "EntryLevelOff")]
-        [TestCase("LevelTestPanel/SkipButton/Art", "EntrySkip")]
+        // S15P31A305-755: 준비 중이던 [레벨 테스트 진행하기]를 연 [시작하기]와 [건너뛰기]는 L1 시안 버튼 그림이다.
+        [TestCase("LevelTestPanel/IntroPage/StartButton/Art", "LevelTestPrimary")]
+        [TestCase("LevelTestPanel/IntroPage/SkipButton/Art", "LevelTestGhost")]
         [TestCase("ConnectionPanel/RetryButton/Art", "EntryRetry")]
         [TestCase("ConnectionPanel/Icon", "EntryWifi")]
         public void Part_IsTheMockupArt(string path, string sprite)
@@ -138,17 +156,88 @@ namespace A305.Onboarding.Tests
             Assert.That(signup.Find("VoiceConsentNote"), Is.Null);
         }
 
+        // 접속 확인 중에는 창이 없어 로그인 화면과 같은 마을·크림색 그라데이션을 보여 준다(S15P31A305-718).
         [Test]
-        public void Background_MatchesTheLoginTownAndCreamShade()
+        public void Background_StartsAsTheLoginTownAndCreamShade()
         {
+            Transform background = Screens().Find("Background");
+
             Assert.That(
-                Screens().Find("Background/Town").GetComponent<Image>().sprite.name,
+                background.Find("Town").GetComponent<Image>().sprite.name,
                 Is.EqualTo("LoginTown")
             );
             Assert.That(
-                Screens().Find("Background/Shade").GetComponent<Image>().sprite.name,
+                background.Find("Shade").GetComponent<Image>().sprite.name,
                 Is.EqualTo("LoginShade")
             );
+            Assert.That(background.Find("Town").gameObject.activeSelf, Is.True);
+            Assert.That(background.Find("Shade").gameObject.activeSelf, Is.True);
+            Assert.That(background.Find("WindowTown").gameObject.activeSelf, Is.False);
+        }
+
+        // S15P31A305-763: 가운데 창 뒤에는 왼쪽 크림색 그라데이션 없이 시안(e2~e5)처럼 흐린 마을만 깐다.
+        [Test]
+        public void Background_BehindACentredWindow_ShowsOnlyTheBlurredTown()
+        {
+            GameObject screens = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath)
+            );
+            try
+            {
+                Transform background = screens.transform.Find("Background");
+                var backdrop = background.GetComponent<EntryBackdropView>();
+
+                backdrop.Show(behindWindow: true);
+
+                Assert.That(background.Find("WindowTown").gameObject.activeSelf, Is.True);
+                Assert.That(
+                    background.Find("WindowTown").GetComponent<Image>().sprite.name,
+                    Is.EqualTo("EntryBackdrop")
+                );
+                Assert.That(background.Find("Town").gameObject.activeSelf, Is.False);
+                Assert.That(background.Find("Shade").gameObject.activeSelf, Is.False);
+
+                backdrop.Show(behindWindow: false);
+
+                Assert.That(background.Find("WindowTown").gameObject.activeSelf, Is.False);
+                Assert.That(background.Find("Town").gameObject.activeSelf, Is.True);
+                Assert.That(background.Find("Shade").gameObject.activeSelf, Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(screens);
+            }
+        }
+
+        [Test]
+        public void OnboardingScreen_SwitchesTheBackground()
+        {
+            var screen = Screens().GetComponent<OnboardingScreen>();
+            var backdrop = Screens().Find("Background").GetComponent<EntryBackdropView>();
+
+            Assert.That(backdrop, Is.Not.Null);
+            Assert.That(
+                new SerializedObject(screen).FindProperty("backdrop").objectReferenceValue,
+                Is.SameAs(backdrop)
+            );
+        }
+
+        // 로그인 창은 자기 배경을 깔고, 튜토리얼·장소는 장면을 바꾼다. 그 밖의 입구 창은 모두 화면 가운데에 뜬다.
+        [TestCase(EntryScreen.Login, false)]
+        [TestCase(EntryScreen.Tutorial, false)]
+        [TestCase(EntryScreen.World, false)]
+        [TestCase(EntryScreen.GuestCharacter, true)]
+        [TestCase(EntryScreen.Terms, true)]
+        [TestCase(EntryScreen.Signup, true)]
+        [TestCase(EntryScreen.Language, true)]
+        [TestCase(EntryScreen.LevelTest, true)]
+        [TestCase(EntryScreen.LevelSetting, true)]
+        [TestCase(EntryScreen.ConnectionFailed, true)]
+        [TestCase(EntryScreen.GuestReturn, true)]
+        [TestCase(EntryScreen.ExistingAccount, true)]
+        public void CentredWindowScreens_UseTheBlurredTown(EntryScreen screen, bool behindWindow)
+        {
+            Assert.That(EntryBackdropView.IsBehindWindow(screen), Is.EqualTo(behindWindow));
         }
     }
 }

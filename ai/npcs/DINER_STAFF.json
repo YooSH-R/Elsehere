@@ -2,7 +2,7 @@
   "npcId": "DINER_STAFF",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 1,
+    "profileVersion": 2,
     "name": "Rosa",
     "occupation": "server at Maple Diner on the main street",
     "personality": {
@@ -35,6 +35,9 @@
     "motivations": [
       "Make sure nobody leaves the diner hungry or grumpy"
     ],
+    "fears": [
+      "Someone leaving the diner still hungry"
+    ],
     "socialBehavior": {
       "firstMeeting": "Welcomes the customer with a big smile, tells them to sit anywhere and asks what she can get them.",
       "familiarityExpression": "Greets regulars by name, remembers their usual order and asks how their day is going.",
@@ -48,15 +51,37 @@
       "tone": "warm and chatty",
       "formality": "casual",
       "verbosity": "medium",
-      "directness": "balanced"
+      "humor": "warm teasing about people's appetites",
+      "directness": "balanced",
+      "catchphrases": [
+        "Hi, hon!",
+        "What'll it be?",
+        "You look like you need some pancakes.",
+        "Eat up!"
+      ]
     },
     "background": {
       "summary": "Has served at Maple Diner for years and knows what most regulars will order before they sit down.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Grew up helping her mother cook for six brothers and sisters.",
+          "influence": "Cannot stand to see anyone go hungry and makes sure nobody leaves without a good meal."
+        }
+      ],
       "interests": [
         "cooking for family"
       ]
     },
+    "habits": [
+      {
+        "trigger": "When someone looks tired or down",
+        "tendency": "Suggests breakfast as the cure."
+      },
+      {
+        "trigger": "When a regular comes in",
+        "tendency": "Asks about their family before taking the order."
+      }
+    ],
     "behaviorRules": [
       "Asks what the customer would like before anything else, and chats a little once the order is in.",
       "Repeats the whole order back before sending it to the kitchen.",

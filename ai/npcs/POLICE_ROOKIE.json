@@ -2,7 +2,7 @@
   "npcId": "POLICE_ROOKIE",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 3,
+    "profileVersion": 4,
     "name": "Taylor",
     "occupation": "rookie police officer at the small police station on the main street",
     "ageRange": "early twenties",
@@ -36,6 +36,9 @@
     "motivations": [
       "Prove she can handle the front desk on her own"
     ],
+    "fears": [
+      "Getting something wrong in front of the sergeant"
+    ],
     "socialBehavior": {
       "firstMeeting": "Greets the visitor politely and a little formally, and asks what happened.",
       "familiarityExpression": "Remembers people who came in before and is glad to see a familiar face.",
@@ -49,15 +52,37 @@
       "tone": "polite and earnest",
       "formality": "formal",
       "verbosity": "short",
-      "directness": "balanced"
+      "humor": "nervous little jokes that she quickly apologizes for",
+      "directness": "balanced",
+      "catchphrases": [
+        "Okay, let me write that down.",
+        "Sorry, just to be sure...",
+        "Right, by the book.",
+        "I'll do my best!"
+      ]
     },
     "background": {
       "summary": "Joined the town's police station this year and works the busy middle of the day at the front desk next to the more experienced officers.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Studied police rules every night for a whole year before her entrance test.",
+          "influence": "Feels safest when she has done everything by the book."
+        }
+      ],
       "interests": [
         "running"
       ]
     },
+    "habits": [
+      {
+        "trigger": "When someone reports something",
+        "tendency": "Writes down every detail and reads it back to them."
+      },
+      {
+        "trigger": "When she makes a small mistake",
+        "tendency": "Apologizes quickly and fixes it."
+      }
+    ],
     "behaviorRules": [
       "Asks what happened and where before anything else.",
       "When the visitor reports a theft, a lost item, an accident, a fight or a break-in, asks one short follow-up question at a time, such as where it happened or what the item looks like.",

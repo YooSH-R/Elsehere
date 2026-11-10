@@ -82,6 +82,12 @@ public class Conversation extends BaseEntity {
   private Instant endedAt;
 
   private Integer firstDayStage;
+
+  // 같은 단계에 다시 말을 걸어도 이전 대화에서 끝낸 목표를 다시 요구하지 않는다.
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(columnDefinition = "jsonb")
+  private List<String> firstDayGoalIds;
+
   private Integer townStoryStage;
 
   // 같은 식당 단계 안에서도 주문과 식사 후 사건은 별개 대화다. null은 이 정보를 저장하기 전의 기록이다.
@@ -132,6 +138,12 @@ public class Conversation extends BaseEntity {
 
   public void attachFirstDayStage(Integer stage) {
     this.firstDayStage = stage;
+  }
+
+  public void recordFirstDayGoals(List<String> goalIds) {
+    if (firstDayGoalIds == null) {
+      firstDayGoalIds = List.copyOf(goalIds);
+    }
   }
 
   public void attachTownStoryStage(Integer stage) {

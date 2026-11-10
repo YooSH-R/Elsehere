@@ -85,14 +85,16 @@ GPU 서버에는 발음 사전을 적용한 음소를 한 번 보내고, 반환�
 | `POST /v1/tts` | 모범 발화·단어 발음 같은 단독 합성 | audio/wav |
 | `POST /v1/stt` | 녹음 인식 (multipart `file`, 선택 `scene_words`) | JSON |
 | `POST /v1/hint` | 학습자가 💡를 누른 때 | JSON |
-| `POST /v1/suggest` | NPC 대답이 끝난 뒤: 학습자가 쓸 추천 단어 3개 | JSON |
+| `POST /v1/suggest` | NPC 대답이 끝난 뒤: 학습자가 다음 답변에 쓸 어휘·짧은 구와 문맥상 한국어 뜻(최대 3개) | JSON |
 | `POST /v1/meaning` | [뜻 보기]: NPC 대사의 한국어 뜻과 단어 풀이 | JSON |
+| `POST /v1/level-test/speaking` | 레벨 테스트를 끝낼 때: 말하기 문항별 통과 여부와 한국어 피드백 한 문장 | JSON |
 | `POST /v1/feedback` | 대화가 끝났을 때: 학습 피드백 (`ai/feedback` 계약 0.3.0, 그 모듈을 부름) | JSON |
 | `POST /v1/memory` | 대화가 끝났을 때: NPC 기억 카드 갱신과 이번 대화 인상(좋은 대화면 호감 변화량) | JSON |
 | `GET /health` | 상태 확인 (토큰 없이) | JSON |
 
 - 모든 응답(스트림은 마지막 `done`)에 `usage`: 단계·실제로 쓴 모델·입출력 토큰·시간·대체 여부. Spring은 이걸로 크레딧을 차감합니다.
   단가는 `llm_profiles.json`의 `prices_per_1m_tokens_usd`.
+- 추천 단어의 공개 응답은 기존 `words: string[]`을 유지하며, 신규 생성 항목은 `under the name of — ~ 이름으로`처럼 뜻을 함께 표시합니다. 모델의 내부 출력은 영어·뜻·어휘/개인정보 구분을 갖고, 이름·날짜·가격 같은 고정 답변은 제외합니다. 뜻은 같은 호출에서 생성하며 별도 번역 호출을 추가하지 않습니다. 추천 문장을 잘라 만든 단어보다 다음 답변을 스스로 구성하는 어휘를 우선합니다. 이전 캐시·고정 응답의 영어 문자열도 계속 읽습니다.
 - 오류는 `{"error": {"code", "message"}}`: `invalid_request` 400, `unauthorized` 401, `not_found` 404, `method_not_allowed` 405, `provider_limit` 429, `internal_error` 500, `invalid_output` 502(모델 출력 형식 오류), `provider_unavailable` 503, `tts_unavailable` 503.
   판정·대화 종료는 일부가 실패해도 200으로 이어 갑니다 (의도 → `unclear`, 무례 → `abusive: null` 미판정, 기억 카드 → `null` + `errors`).
 - 추적: `X-Request-Id`(없으면 만들어 응답 헤더로 돌려줌), `X-User-Id`, `X-Conv-Id`를 요청마다 로그 한 줄(JSON)로 남깁니다. 성공한 `/health`는 생략하며 실패와 다른 요청은 기록합니다. 대화 원문은 로그에 남기지 않습니다. 배포 이미지는 Uvicorn 접근 로그를 끄고 이 요약을 사용하며, HTTPX의 정상 호출 로그는 생략합니다.
@@ -161,6 +163,31 @@ NPC가 첫 대사를 먼저 하고 이후 한 줄마다 대답합니다. 턴마�
 - 줄마다 대답 하나에 한 글자(`F` 지어내기, `X` 막다른 거절, `C` 연락 미룸, `?` 알 만한 걸 모름, `W` 길 틀림, `.` 통과)를 찍습니다. 판정 모델은 보조 채점이라 대답 원문(`--out`)도 읽어 봅니다.
 - 실제 모델을 부르므로 팀 공용 GMS 크레딧을 씁니다. 한 줄씩 순서대로 보냅니다.
 
+## NPC 개성 구분 평가
+
+인격 카드를 고친 뒤 같은 곳의 동료 NPC끼리 대답이 실제로 달라졌는지 잽니다. 카페·호텔·은행·경찰서·드럭스토어 동료 16명에게 같은 학습자 말 네 줄을 걸고(게임 대답 경로, 난이도 2), 판정 모델이 동료들의 성격 특징과 어조만 보고 누가 말했는지 맞힙니다. 지금 카드의 말버릇이 대답에 나온 비율과 한 대화에서 같은 말버릇을 다시 쓴 대화 수도 셉니다.
+
+```bash
+.venv/Scripts/python ../tools/npc_voice_eval.py --runs 2 --out ../tools/results/npc_voice.jsonl
+.venv/Scripts/python ../tools/npc_voice_eval.py --runs 2 --cards <이전 카드 폴더>     # 이전 카드로 대답을 만들어 비교
+```
+
+- 서비스 NPC 카드는 유머·말버릇(3개 이상)·습관(2개 이상)·두려움·지난 경험을 채웁니다. 학습 수준 규칙이 대답 길이를 정해 말 길이로는 인물이 갈리지 않기 때문입니다. 말버릇은 NPC끼리 겹치지 않게 둡니다(`tests/test_npc_configs.py`).
+
+## 난이도별 NPC 대답 비교
+
+난이도 규칙(`app/npc_prompt.py`의 `BEGINNER`·`MIDDLE`, `app/prompts.py`의 `LEVEL_RULES`)을 고친 뒤 난이도마다 대답이 실제로 다른지 잽니다. 같은 일상 장면을 난이도별로 게임 대답 경로(인격 카드 + 백엔드 페르소나 + 표정 표시 지시)로 만들고, 글에서 단어·문장 수, 문장당 단어 수, 이어 주는 말, 선택지 질문과 열린 질문을 셉니다. 단어 빈도(`wordfreq`)로 드문 단어(Zipf 4 미만) 비율과 평균 Zipf를 재고, 판정 모델은 어휘·문법 CEFR 수준, 구동사·관용구 수, 학습자 말을 되짚어 확인했는지, 다시 말해 달라고 했는지를 매깁니다.
+
+```bash
+.venv/Scripts/python -m pip install wordfreq==3.1.1   # 이 도구에서만 쓰는 단어 빈도표 (서비스·CI 의존성 아님)
+.venv/Scripts/python ../tools/level_eval.py --levels 1,2 --runs 2 --show --out ../tools/results/level_eval.jsonl
+```
+
+- 장면 세트는 `ai/tools/level_eval/cases.json`입니다. `talk` 줄은 평범한 한 턴, `broken` 줄은 학습자 말이 너무 끊겨 뜻이 애매한 턴이며 되묻기는 이 줄에서만 셉니다. 페르소나는 `npc_help_eval.py`와 같은 것을 씁니다.
+- `--show`는 줄마다 난이도별 첫 대답을 나란히 찍습니다. 판정 모델의 CEFR은 보조 지표라 대답 원문도 읽어 봅니다.
+- 말 속도는 대답 글과 따로 정해진 값(`app/prompts.py`의 `LEVEL_SPEECH_SPEED`)이라 이 도구로 재지 않습니다.
+- 실제 모델을 부르므로 팀 공용 GMS 크레딧을 씁니다. 한 줄씩 순서대로 보냅니다.
+
 ## NPC 인격 모델 (자동 생성)
 
 `app/npc_profile_models.py`는 백엔드와 함께 쓰는 공통 인격 스키마([`npc_shared_schemas_v2.json`](../../docs/api/npc-ai-contracts/npc_shared_schemas_v2.json))에서 만든 Pydantic 모델입니다. 직접 고치지 말고 스키마를 고친 뒤 다시 만듭니다. 커밋한 파일이 지금 스키마로 만든 결과와 다르면 테스트가 실패합니다.
@@ -182,7 +209,7 @@ NPC 설정 파일(NPC마다 하나)을 검사하고 백엔드 전달용 배열(`
 
 ### 백엔드 시드로 내보내기
 
-아래 두 생성 파일은 백엔드가 `npcs`의 인격·이름·목소리·상황을 채울 때 쓸 내용 파일입니다. 백엔드가 이 파일을 읽는 연결은 아직 없고 별도 작업에서 붙입니다. 원본은 `ai/npcs`이고, 생성 파일은 직접 고치지 않습니다. `ai/npcs`를 고쳤으면 저장소 최상위에서 다시 만듭니다.
+아래 두 생성 파일은 백엔드가 `npcs`의 인격·이름·목소리·상황을 채울 때 쓸 내용 파일입니다. 백엔드 시드는 인격 카드가 없는 NPC에 카드를 넣고, `profileVersion`이 DB보다 높은 카드는 새 카드로 바꿉니다([백엔드 README](../../backend/README.md#시드-데이터)). 그래서 카드 내용을 고치면 `profileVersion`을 1 올립니다. 원본은 `ai/npcs`이고, 생성 파일은 직접 고치지 않습니다. `ai/npcs`를 고쳤으면 저장소 최상위에서 다시 만듭니다.
 
 ```bash
 ai/worker/.venv/Scripts/python ai/tools/npc_configs.py ai/npcs --out backend/src/main/resources/content/npc-configurations.json --scenarios-out backend/src/main/resources/content/npc-scenarios.json
@@ -272,7 +299,7 @@ ai/worker/.venv/Scripts/python ai/tools/synthesize_script_lines.py --models <모
 - `tests/test_guard_local.py`: 무례 판정 단계적 구조. 가짜 판정기로 확신 구간·중간 구간·영어·로컬 실패·LLM 실패, 기준값 설정 검사 (torch 없이 돎)
 - `tests/test_hedge.py`: 늦은 호출에 같은 요청 하나 더 보내기, 오류 응답 뒤 남은 요청 기다리기, 판정 시간 상한, NPC 스트림 제외
 - `tests/test_contract.py`: 모델 출력이 깨졌을 때(JSON 객체가 아님, 칸 없음)와 빈 문장·없는 주소·프로그램 오류에도 계약의 실패 형식을 지키는지
-- `tests/test_learning_aids.py`: 뜻·단어 풀이(대사에 없는 말 버리기, 숙어와 그 안의 단어를 함께 남기고 나온 순서대로 15개 제한), 추천 단어(정리·중복·3개), 형식 오류 502, 난이도별 NPC 지시문·대답 길이·힌트 수준과 공통 말 속도
+- `tests/test_learning_aids.py`: 뜻·단어 풀이(대사에 없는 말 버리기, 숙어와 그 안의 단어를 함께 남기고 나온 순서대로 15개 제한), 추천 단어(정리·중복·3개), 형식 오류 502, 난이도별 NPC 지시문·대답 길이·힌트 수준과 난이도별 말 속도
 - `tests/test_feedback.py`: `ai/feedback`의 예시 입력·출력으로 피드백 계약(완료·발화 없음·공급자 실패·출력 오류·입력 오류), 피드백 전용 시간 상한과 같은 요청 더 보내기 끔
 - `tests/test_stream_hedge.py`: NPC 스트림의 첫 글자(또는 응답 머리)가 늦으면 같은 요청 스트림 하나 더, 이긴 쪽 글자만 이어짐, 진 쪽 닫기, 둘 다 늦으면 첫 글자 상한
 - `tests/test_turn.py`: 한 턴 구조 — 조각을 이어 붙인 턴 전체 음성, 조각 실패·음성 없음이면 `null`, 스트림 안의 추천 단어(`words`)와 그 실패
@@ -285,7 +312,7 @@ ai/worker/.venv/Scripts/python ai/tools/synthesize_script_lines.py --models <모
 - `tests/test_profiles.py`: `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, 음성 인식 대체(`STT_FALLBACK`)·순서(`STT_CHAIN`, gpu 주소·토큰 필수, 잘못된 값)·건너뛰기 설정, 음성 합성 스레드 수(`KOKORO_THREADS`), GPT-5 요청 칸
 - `tests/test_npc_chat.py`: 터미널 대화 도구(`ai/tools/npc_chat.py`)의 크레딧 계산(입력·출력 단가, 단가 모르는 모델, 같은 요청 더 보냄 표시), 첫 대사는 시스템 프롬프트만 보내고 기억, 이력을 붙인 대답과 대화 기록, 공급자 실패 때 기록 유지, GMS 키만으로 실행
 - `tests/test_npc_profile_models.py`: 커밋한 인격 모델이 지금 스키마로 다시 만든 것과 같은지, 계약 예시를 Python 이름으로 읽고 계약 JSON으로 되돌리기, 스키마가 막는 값(모르는 키·빈 글·정해진 값 밖·길이·개수) 거부
-- `tests/test_npc_configs.py`: 원본 스키마 검사 — 계약 예시와 서비스 NPC 파일(`ai/npcs`) 통과, 활성 NPC의 `voiceId`, 생성 모델이 놓치는 규칙(중복·`null`·형변환)을 어긴 위치로 알려 주기, 여러 오류를 한 번에. NPC 파일 합치기 — 파일 이름 순, 파일끼리 `npcId` 중복, 파일 이름을 붙인 스키마 오류, JSON이 아닌 파일, 빈 폴더(스키마의 배열 규칙), 명령줄 검사만·`--out` 저장(BOM 없음)·문제가 있으면 저장 안 함. 서비스 상황 — `npcId`로 모으기, 연결 없음·없는 NPC·없는 파일·형식 위반·장소 불일치, `--scenarios-out` 저장, 서비스 NPC마다 연결한 상황, 서비스 NPC마다 성별·나이·성격에 맞춘 목소리(`voiceId`)와 같은 근무지(마을 행인은 한 무리)끼리는 겹치지 않는 목소리(다른 곳과는 겹쳐도 됨), 백엔드 생성 파일이 원본과 같은지
+- `tests/test_npc_configs.py`: 원본 스키마 검사 — 계약 예시와 서비스 NPC 파일(`ai/npcs`) 통과, 활성 NPC의 `voiceId`, 생성 모델이 놓치는 규칙(중복·`null`·형변환)을 어긴 위치로 알려 주기, 여러 오류를 한 번에. NPC 파일 합치기 — 파일 이름 순, 파일끼리 `npcId` 중복, 파일 이름을 붙인 스키마 오류, JSON이 아닌 파일, 빈 폴더(스키마의 배열 규칙), 명령줄 검사만·`--out` 저장(BOM 없음)·문제가 있으면 저장 안 함. 서비스 상황 — `npcId`로 모으기, 연결 없음·없는 NPC·없는 파일·형식 위반·장소 불일치, `--scenarios-out` 저장, 서비스 NPC마다 연결한 상황, 서비스 NPC마다 성별·나이·성격에 맞춘 목소리(`voiceId`)와 같은 근무지(마을 행인은 한 무리)끼리는 겹치지 않는 목소리(다른 곳과는 겹쳐도 됨), 서비스 NPC마다 유머·말버릇·습관·두려움·지난 경험을 채웠는지와 NPC끼리 겹치지 않는 말버릇, 백엔드 생성 파일이 원본과 같은지
 - `tests/test_npc_derive.py`: 자동 계산(`ai/tools/npc_derive.py`) — MBTI 네 글자·-T/-A 꼬리를 성격 5축으로(대소문자 무관, 형식이 아니면 거부), 연결 규칙의 직선 계산, Mia의 계산값, 행동 조각 뽑기(성격 쪽만·범주당 하나·같은 씨앗 같은 결과·충돌 제외·맞는 조각이 적으면 적게), 배수 합치기(곱하기, 기억 세기 보너스는 더해 최대 2), 생활 파일에서 한 번에 계산, 맡은 교대를 역할 규칙으로 바꾼 하루(6시간 넘는 교대는 가운데 30분 휴식·30분 단위로 맞춤, 6시간 이하는 휴식 없음, 자정을 넘는 야간 교대, 하루 전체 교대는 퇴근 없음, 행인은 자유 시간만)에 기본 장소를 넣은 일과(지금은 각자 기본 장소 안에서만, 거리 매장 직원은 기본 장소 마을에 매장 교대 시각), 서비스 NPC마다 최종 값이 인격 글의 성격 방향을 재현하는지, 인격 카드 자동 칸(성격 5축을 스키마 칸 순서로, 손으로 쓴 규칙 뒤 행동 조각, 다시 계산해도 중복 없음, 원본 불변, 서비스 인격 파일 동기화, 명령은 생활 파일 있는 NPC만 고침)
 - `tests/test_npc_persona_api.py`: 인격 카드 조합 API(`/v1/npc/persona/generate`·`/derive`) — 필수 입력(npcId·역할·장소)만으로 초안과 고른 MBTI, 같은 요청 같은 결과, 고정 입력 유지, DB 후보와 다른 NPC 이름, 만들 수 없는 요청(장소에 직업 없음·틀린 MBTI·고를 이름 없음·필요한 쪽 성격 특징 없음)은 400, 사연은 사연 칸만·모델을 어긴 사연은 502, MBTI를 바꾼 카드의 자동 칸만 다시 계산, 모델 밖 카드는 400
 - `tests/test_npc_generate.py`: 인격 카드 생성(`app/npc_persona.py`, 명령 `ai/tools/npc_generate.py`) — MBTI 없이 고르기, 고정 칸 유지·한 칸 고정이 다른 칸을 바꾸지 않음, 고정 직업의 나이대, 후보 목록은 준 목록만 바꿈, 재료 파일 검사(스키마 위치, 축 양쪽 특징 2개 이상, 없는 나이대, 특징 이름 중복), 같은 id 같은 NPC·다른 id 다른 NPC, MBTI 16 × 직원(카페·호텔)·행인 48가지가 공통 인격 스키마·생활 파일 스키마 통과, 초안 표시, 축마다 기운 쪽 특징, 반대 쪽·다른 역할 재료 없음, 직업·나이대, 쓰는 이름 제외, 말투·사회적 행동 규칙, 자동 칸, 장소에 직업이 없으면 오류, 명령이 두 파일을 씀(생활 파일에 근무지·교대)·장소에 없는 교대는 거절, LLM은 사연 칸만 쓰고(가짜 공급자) 카드와 금지 사항을 받으며 스키마 밖 사연·JSON이 아닌 출력은 거절

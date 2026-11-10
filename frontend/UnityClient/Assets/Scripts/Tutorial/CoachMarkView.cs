@@ -131,19 +131,20 @@ namespace A305.Tutorial
         private void MatchServiceTheme()
         {
             TutorialGuideView guide = FindFirstObjectByType<TutorialGuideView>();
-            UiThemeCatalog catalog =
-                guide != null ? guide.PanelRect.GetComponent<ThemedElement>()?.Catalog : null;
+            ThemedElement guideTheme =
+                guide != null ? guide.PanelRect.GetComponent<ThemedElement>() : null;
+            UiThemeCatalog catalog = guideTheme != null ? guideTheme.Catalog : null;
             if (catalog == null)
             {
                 return;
             }
 
-            var captionTheme =
-                caption.GetComponent<ThemedElement>()
-                ?? caption.gameObject.AddComponent<ThemedElement>();
-            var textTheme =
-                captionText.GetComponent<ThemedElement>()
-                ?? captionText.gameObject.AddComponent<ThemedElement>();
+            var captionTheme = caption.GetComponent<ThemedElement>();
+            if (captionTheme == null)
+                captionTheme = caption.gameObject.AddComponent<ThemedElement>();
+            var textTheme = captionText.GetComponent<ThemedElement>();
+            if (textTheme == null)
+                textTheme = captionText.gameObject.AddComponent<ThemedElement>();
             captionTheme.Use(catalog, UiThemeRole.Card);
             textTheme.Use(catalog, UiThemeRole.Body);
         }

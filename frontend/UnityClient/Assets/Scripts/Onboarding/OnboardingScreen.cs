@@ -21,6 +21,8 @@ namespace A305.Onboarding
         private const string ExistingAccountQuery = "existingAccount=true";
         private const string CheckingMessage = "접속 상태를 확인하고 있어요.";
         private const string WaitingMessage = "잠시만 기다려 주세요...";
+        private const string GradingMessage = "채점하고 있어요. 잠시만 기다려 주세요...";
+        private const string TranscribingMessage = "말한 내용을 받아 적고 있어요...";
 
         [SerializeField]
         private ApiSettings apiSettings;
@@ -65,6 +67,12 @@ namespace A305.Onboarding
             "게스트로 다시 접속했거나 이미 가입한 계정으로 들어왔을 때 게임에 들어가기 전에 보이는 화면"
         )]
         private GuestReturnPanelView guestReturnPanel;
+
+        [SerializeField]
+        [Tooltip(
+            "입구 화면 뒤 배경. 가운데 창이 뜨면 왼쪽 크림색 그라데이션 없이 흐린 마을만 보여 준다."
+        )]
+        private EntryBackdropView backdrop;
 
         private IOnboardingApi api;
         private OnboardingFlow flow;
@@ -141,8 +149,46 @@ namespace A305.Onboarding
 
             languagePanel.LanguageChosen += languageCode =>
                 Run(() => flow.ChooseLanguageAsync(languageCode));
-            levelTestPanel.SkipRequested += () => Run(flow.SkipLevelTestAsync);
+            ConnectLevelTestPanel();
             levelSettingPanel.LevelConfirmed += level => Run(() => flow.SelectLevelAsync(level));
+        }
+
+        // 화면 04: 시작·건너뛰기·그만하기와 문항 [다음]·결과 [다음]은 서버를 부르고, 보기·답·들은 횟수는 테스트 상태만 바꾼다.
+        private void ConnectLevelTestPanel()
+        {
+            levelTestPanel.StartRequested += () => Run(flow.StartLevelTestAsync);
+            levelTestPanel.SkipRequested += () => Run(flow.SkipLevelTestAsync);
+            levelTestPanel.QuitRequested += () => Run(flow.QuitLevelTestAsync);
+            levelTestPanel.NextRequested += () =>
+                Run(flow.SubmitLevelTestAnswerAsync, SubmitWaitingMessage());
+            levelTestPanel.FinishRequested += () => Run(flow.ContinueAfterLevelTestAsync);
+            levelTestPanel.ChoiceSelected += choice => EditLevelTest(test => test.Choose(choice));
+            levelTestPanel.ListeningPlayed += () =>
+                EditLevelTest(test => test.RecordListeningPlay());
+            levelTestPanel.AnswerChanged += answer =>
+                EditLevelTest(test => test.ChangeAnswer(answer));
+            levelTestPanel.AnswerRecorded += wav =>
+                Run(() => flow.TranscribeLevelTestAnswerAsync(wav), TranscribingMessage);
+            levelTestPanel.NoticeRaised += notice => messageText.text = notice;
+        }
+
+        // 마지막 문항의 [다음]은 말하기 답을 AI가 판정하느라 몇 초 걸려 채점 중임을 알린다.
+        private string SubmitWaitingMessage()
+        {
+            return flow.LevelTest != null && flow.LevelTest.IsLastItem
+                ? GradingMessage
+                : WaitingMessage;
+        }
+
+        private void EditLevelTest(Action<LevelTestSession> edit)
+        {
+            if (flow.Screen != EntryScreen.LevelTest || flow.LevelTest == null)
+            {
+                return;
+            }
+
+            edit(flow.LevelTest);
+            levelTestPanel.Show(flow.LevelTest, flow.IsVoiceAgreed);
         }
 
         private void ShowGuestPanel()
@@ -215,6 +261,7 @@ namespace A305.Onboarding
             UiThemeSelection.Shared.Select(UiThemeCodes.Parse(flow.UiTheme));
             VoiceConsent.Shared.Set(flow.IsVoiceAgreed);
             messageText.text = flow.ErrorMessage ?? "";
+            backdrop.Show(EntryBackdropView.IsBehindWindow(flow.Screen));
             switch (flow.Screen)
             {
                 case EntryScreen.Tutorial:
@@ -247,6 +294,7 @@ namespace A305.Onboarding
                     break;
                 case EntryScreen.LevelTest:
                     ShowOnly(levelTestPanel.gameObject);
+                    levelTestPanel.Show(flow.LevelTest, flow.IsVoiceAgreed);
                     break;
                 case EntryScreen.LevelSetting:
                     ShowOnly(levelSettingPanel.gameObject);

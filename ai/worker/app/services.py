@@ -1,4 +1,4 @@
-"""판정·힌트·뜻 보기·추천 단어·기억 카드. 상태는 바꾸지 않는다 (상태 전환은 Spring 규칙)."""
+"""판정·힌트·뜻 보기·추천 단어·레벨 테스트 말하기 판정·기억 카드. 상태는 바꾸지 않는다 (상태 전환은 Spring 규칙)."""
 
 import asyncio
 import json
@@ -11,6 +11,7 @@ from .schemas import (
     FollowUpRequest,
     HintRequest,
     JudgeRequest,
+    LevelTestSpeakingRequest,
     MeaningRequest,
     MemoryRequest,
     RelationshipRequest,
@@ -185,18 +186,61 @@ async def meaning(llm: LLM, req: MeaningRequest) -> dict:
 
 
 async def suggest(llm: LLM, req: SuggestRequest) -> dict:
-    """학습자가 다음 대답에 쓸 단어·짧은 구 3개 (공백 정리, 대소문자 무시 중복 제거)."""
+    """다음 답변을 만드는 어휘와 뜻. 기존 words 문자열 배열 계약을 유지한다."""
     usage = Usage()
     msgs = P.suggest_messages(req.npc, req.scene or req.npc.scene, req.goal, req.history, req.level)
-    res = load_object(await llm.chat("suggest", "hint", msgs, usage, 0.3, 80, P.SUGGEST_SCHEMA), "추천 단어")
+    res = load_object(await llm.chat("suggest", "hint", msgs, usage, 0.3, 320, P.SUGGEST_SCHEMA), "추천 단어")
     words = []
+    seen = set()
     for w in res.get("words") if isinstance(res.get("words"), list) else []:
-        w = w.strip() if isinstance(w, str) else ""
-        if w and len(w) <= 40 and w.casefold() not in {x.casefold() for x in words}:
-            words.append(w)
+        if isinstance(w, dict):
+            text, meaning = w.get("text"), w.get("meaning_ko")
+            if w.get("kind") != "vocabulary" or not isinstance(text, str) or not isinstance(meaning, str):
+                continue
+            text, meaning = " ".join(text.split()), " ".join(meaning.split())
+            if not meaning or len(meaning) > 60:
+                continue
+            label = f"{text} — {meaning}"
+        else:  # 이전 고정 응답·캐시와의 호환. 신규 모델 출력은 위의 구조를 사용한다.
+            text = w.strip() if isinstance(w, str) else ""
+            label = text
+        if text and len(text) <= 60 and text.casefold() not in seen:
+            seen.add(text.casefold())
+            words.append(label)
     if not words:
         raise ModelOutputError("추천 단어 출력에 단어가 없음")
     return {"words": words[:3], "usage": usage.items}
+
+
+async def level_test_speaking(llm: LLM, req: LevelTestSpeakingRequest) -> dict:
+    """레벨 테스트 말하기 문항마다 통과 여부와 한국어 한 줄 피드백. 학습자 영어를 평가하는 일이라 피드백 역할의 모델을 쓴다.
+    결과는 요청 문항 순서다. 모델이 문항을 빠뜨리거나, 요청에 없는 문항을 내거나, passed가 불이 아니거나, 피드백이 비면 ModelOutputError."""
+    usage = Usage()
+    msgs = P.level_test_speaking_messages(req.items)
+    out = await llm.chat("level_test_speaking", "feedback", msgs, usage, 0.0, 400, P.LEVEL_TEST_SPEAKING_SCHEMA)
+    res = load_object(out, "레벨 테스트 말하기 판정")
+    results, feedback_ko = res.get("results"), res.get("feedback_ko")
+    if not (isinstance(results, list) and isinstance(feedback_ko, str) and feedback_ko.strip()):
+        raise ModelOutputError("레벨 테스트 말하기 판정 출력에 results·feedback_ko가 없음")
+    item_codes = [item.item_code for item in req.items]
+    passed_by_code: dict[str, bool] = {}
+    for result in results:
+        if not isinstance(result, dict):
+            raise ModelOutputError("레벨 테스트 말하기 판정 결과가 JSON 객체가 아님")
+        code, passed = result.get("item_code"), result.get("passed")
+        if code not in item_codes or code in passed_by_code:
+            raise ModelOutputError(f"레벨 테스트 말하기 판정 출력에 요청에 없거나 겹친 문항이 있음: {code}")
+        if not isinstance(passed, bool):
+            raise ModelOutputError(f"레벨 테스트 말하기 판정 출력의 passed가 참·거짓이 아님: {code}")
+        passed_by_code[code] = passed
+    missing = [code for code in item_codes if code not in passed_by_code]
+    if missing:
+        raise ModelOutputError(f"레벨 테스트 말하기 판정 출력에 빠진 문항이 있음: {', '.join(missing)}")
+    return {
+        "results": [{"item_code": code, "passed": passed_by_code[code]} for code in item_codes],
+        "feedback_ko": feedback_ko.strip(),
+        "usage": usage.items,
+    }
 
 
 async def memory(llm: LLM, req: MemoryRequest) -> dict:

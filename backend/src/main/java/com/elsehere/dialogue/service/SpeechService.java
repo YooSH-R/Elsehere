@@ -21,12 +21,14 @@ import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.ConsentType;
 import com.elsehere.user.repository.UserRepository;
 import com.elsehere.user.service.OptionalConsentService;
+import com.elsehere.world.repository.NpcRepository;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -45,8 +47,10 @@ public class SpeechService {
   private static final long MAX_AUDIO_BYTES = 3L * 1024 * 1024;
   private static final Set<String> AUDIO_TYPES =
       Set.of("audio/webm", "audio/ogg", "audio/mp4", "audio/wav", "audio/x-wav", "audio/mpeg");
-  // 대화 음성과 다시 만든 음성에 같은 속도를 적용한다.
-  private static final double NPC_SPEECH_SPEED = 1.1;
+  // 대화 음성과 다시 만든 음성에 같은 속도를 적용한다. 난이도별 값은 워커(ai/worker/app/prompts.py
+  // LEVEL_SPEECH_SPEED)와 같다. 난이도가 없는 예전 대화는 초급 속도로 만든다.
+  private static final Map<Integer, Double> LEVEL_SPEECH_SPEED = Map.of(1, 1.1, 2, 1.3, 3, 1.3);
+  private static final double BEGINNER_SPEECH_SPEED = LEVEL_SPEECH_SPEED.get(1);
 
   private final TurnRepository turnRepository;
   private final ConversationLookup conversationLookup;
@@ -58,6 +62,7 @@ public class SpeechService {
   private final TrainingRecordingService trainingRecordingService;
   private final UserRepository userRepository;
   private final SpeechWords speechWords;
+  private final NpcRepository npcRepository;
   private final Clock clock;
   private final JsonMapper jsonMapper;
 
@@ -65,7 +70,7 @@ public class SpeechService {
    * 녹음을 전사한다. 발화 턴은 만들지 않는다. 음성은 외부 음성 인식 공급자로 가므로 음성 처리(VOICE)에 동의한 사용자의 것만 받는다. 받은 음성은 녹음 음성 학습
    * 활용(TRAINING_VOICE)에 동의한 사용자의 것만 인식 결과와 함께 보관하고, 그 밖에는 보관하지 않는다.
    *
-   * @param conversationId 자유 대화 발화(TURN)일 때 진행 중인 대화. 튜토리얼이면 null
+   * @param conversationId 자유 대화 발화(TURN)일 때 진행 중인 대화. 튜토리얼·레벨 테스트면 null
    */
   public TranscriptionResponse transcribe(
       Long userId,
@@ -99,7 +104,9 @@ public class SpeechService {
       throw new BusinessException(ErrorCode.STT_NO_SPEECH);
     }
     Integer durationMs = result.audioS() == null ? null : (int) Math.round(result.audioS() * 1000);
-    if (optionalConsentService.hasAgreed(userId, ConsentType.TRAINING_VOICE)) {
+    // 학습용 녹음은 대화·튜토리얼 발화만 모은다. 레벨 테스트 답은 보관하지 않는다.
+    if (purpose != TranscriptionPurpose.LEVEL_TEST
+        && optionalConsentService.hasAgreed(userId, ConsentType.TRAINING_VOICE)) {
       trainingRecordingService.save(
           trace.userId(),
           trace.requestId(),
@@ -140,7 +147,8 @@ public class SpeechService {
                   turn.getText(),
                   npc.voiceId(),
                   conversation.getId(),
-                  turn.getSpeechPhrases());
+                  turn.getSpeechPhrases(),
+                  speechSpeed(conversation.getLevelApplied()));
             });
     if (target.npcAudioKey() != null || target.npcAudioDeletedAt() != null) {
       return SpeechResponse.of(turnId, target.npcAudioKey(), target.npcAudioDeletedAt());
@@ -154,9 +162,8 @@ public class SpeechService {
                 target.speechPhrases(), new TypeReference<List<WorkerSpeechPhrase>>() {});
     byte[] wav =
         phrases.isEmpty()
-            ? aiGateway.synthesize(trace, target.text(), target.voiceId(), NPC_SPEECH_SPEED)
-            : aiGateway.synthesize(
-                trace, target.text(), target.voiceId(), NPC_SPEECH_SPEED, phrases);
+            ? aiGateway.synthesize(trace, target.text(), target.voiceId(), target.speed())
+            : aiGateway.synthesize(trace, target.text(), target.voiceId(), target.speed(), phrases);
     String key = npcAudioRetention.save(wav);
     if (key != null) {
       transactionTemplate.executeWithoutResult(
@@ -182,10 +189,11 @@ public class SpeechService {
   }
 
   /**
-   * 음성 인식에 철자를 알려 줄 장면 단어. 학습자 닉네임, 대화 NPC 이름, 그 NPC 장소의 메뉴·상품 이름 순서다. 한국식 발음 '아메리카노'가 American으로
-   * 적히지 않게 한다. 게스트 닉네임(guest-000123)은 사람 이름이 아니라 넣지 않는다.
+   * 음성 인식에 철자를 알려 줄 장면 단어. 학습자 닉네임, 대화 NPC 이름, 같은 장소 NPC 이름, 마을·가게 이름, 그 장소의 메뉴·상품 이름 순서다. 메뉴를 끝에
+   * 두어야 프롬프트가 긴 이름 목록으로 끝날 때보다 문장부호가 덜 빠지고 대화 정확도가 덜 떨어진다(S15P31A305-747 dev GPU 측정). 한국식 발음
+   * '아메리카노'가 American으로, Maple Town이 다른 말로 적히지 않게 한다. 게스트 닉네임(guest-000123)은 사람 이름이 아니라 넣지 않는다.
    *
-   * @param conversationId 자유 대화 발화일 때 대화. 튜토리얼이면 null이고 NPC 단어 없이 닉네임만 보낸다
+   * @param conversationId 자유 대화 발화일 때 대화. 튜토리얼이면 null이고 NPC 단어 없이 닉네임과 마을 단어만 보낸다
    */
   private List<String> sceneWords(Long userId, Long conversationId) {
     return transactionTemplate.execute(
@@ -202,7 +210,13 @@ public class SpeechService {
                         conversationLookup.ownedConversation(userId, conversationId).getNpcId())
                     .workerNpc();
             words.add(npc.name());
+            for (String code : speechWords.coworkerCodes(npc.id())) {
+              npcRepository.findByCode(code).ifPresent(coworker -> words.add(coworker.getName()));
+            }
+            words.addAll(speechWords.townWords());
             words.addAll(speechWords.placeWords(npc.id()));
+          } else {
+            words.addAll(speechWords.townWords());
           }
           return List.copyOf(words);
         });
@@ -242,5 +256,12 @@ public class SpeechService {
       String text,
       String voiceId,
       Long conversationId,
-      String speechPhrases) {}
+      String speechPhrases,
+      double speed) {}
+
+  private static double speechSpeed(Integer level) {
+    return level == null
+        ? BEGINNER_SPEECH_SPEED
+        : LEVEL_SPEECH_SPEED.getOrDefault(level, BEGINNER_SPEECH_SPEED);
+  }
 }

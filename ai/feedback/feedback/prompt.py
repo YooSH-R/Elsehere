@@ -1,11 +1,11 @@
 import json
 from pathlib import Path
 
-from .models import INPUT
+from .models import INPUT, contains_korean
 from .situation_catalog import situation_candidates
 from .spoken_usage import spoken_candidates
 
-PROMPT_VERSION = "feedback_prompt_v0.8.0"
+PROMPT_VERSION = "feedback_prompt_v0.10.0"
 SYSTEM_PATH = Path(__file__).resolve().parent.parent / "prompts" / "feedback_system.ko.md"
 
 
@@ -37,6 +37,9 @@ def build_messages(payload):
     body = {
         "context": request.context.model_dump(),
         "required_review_turn_ids": [turn.turn_id for turn in final_turns if turn.speaker == "user"],
+        "english_expression_turn_ids": [
+            turn.turn_id for turn in final_turns if turn.speaker == "user" and contains_korean(turn.final_text)
+        ],
         "difficulty_profiles": profiles,
         "turns": compact_turns,
         "assistance_events": [event.model_dump() for event in request.assistance_events if event.assistance_id in used],

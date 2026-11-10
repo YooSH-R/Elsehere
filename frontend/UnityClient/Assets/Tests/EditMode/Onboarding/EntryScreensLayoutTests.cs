@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace A305.Onboarding.Tests
 {
     /// <summary>
-    /// 로그인 뒤 진입 화면(e2 게스트 캐릭터·e3 가입 정보·e4 레벨 테스트·e5 접속 실패)은 흐린 마을 위 화면 가운데의 유리 창이다.
+    /// 로그인 뒤 진입 화면(e2 게스트 캐릭터·e3 가입 정보·L1 레벨 테스트 안내·e5 접속 실패)은 흐린 마을 위 화면 가운데의 유리 창이다.
     /// 크기는 시안 px에 1.2를 곱한 값이고, 버튼·캐릭터 카드는 시안을 렌더링한 그림이다.
     /// </summary>
     public class EntryScreensLayoutTests
@@ -17,7 +17,6 @@ namespace A305.Onboarding.Tests
             AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath).transform;
 
         [TestCase("GuestPanel", 620f, 645.5f)]
-        [TestCase("LevelTestPanel", 620f, 519f)]
         [TestCase("ConnectionPanel", 600f, 382.5f)]
         public void Panel_IsACentredSheetOfTheMockupSize(string name, float width, float height)
         {
@@ -28,6 +27,24 @@ namespace A305.Onboarding.Tests
             Assert.That(panel.anchoredPosition, Is.EqualTo(Vector2.zero));
             Assert.That(panel.sizeDelta.x, Is.EqualTo(width * 1.2f).Within(.1f));
             Assert.That(panel.sizeDelta.y, Is.EqualTo(height * 1.2f).Within(.1f));
+        }
+
+        // S15P31A305-755: 화면 04 창은 보이는 쪽(안내 640·듣기 720·말하기 553·결과 608)에 맞춰 높이가 바뀌고, 처음 보이는 안내는 L1 시안 높이다.
+        [Test]
+        public void LevelTestPanel_IsACentredSheetSizedToTheShownPage()
+        {
+            var panel = (RectTransform)Screens().Find("LevelTestPanel");
+            var intro = panel.Find("IntroPage").GetComponent<LayoutElement>();
+
+            Assert.That(panel.anchorMin, Is.EqualTo(new Vector2(.5f, .5f)));
+            Assert.That(panel.anchorMax, Is.EqualTo(new Vector2(.5f, .5f)));
+            Assert.That(panel.sizeDelta.x, Is.EqualTo(620f * 1.2f).Within(.1f));
+            Assert.That(
+                panel.GetComponent<ContentSizeFitter>().verticalFit,
+                Is.EqualTo(ContentSizeFitter.FitMode.PreferredSize)
+            );
+            Assert.That(intro.gameObject.activeSelf, Is.True);
+            Assert.That(intro.preferredHeight, Is.EqualTo(640f * 1.2f).Within(.1f));
         }
 
         [Test]
@@ -49,8 +66,9 @@ namespace A305.Onboarding.Tests
         [TestCase("SignupPanel/BackButton/Art", "EntryBack")]
         [TestCase("TermsPanel/NextButton/Art", "EntryNext")]
         [TestCase("SignupPanel/NicknameRow/CheckNicknameButton/Art", "EntryCheckName")]
-        [TestCase("LevelTestPanel/StartButton/Art", "EntryLevelOff")]
-        [TestCase("LevelTestPanel/SkipButton/Art", "EntrySkip")]
+        // S15P31A305-755: 준비 중이던 [레벨 테스트 진행하기]를 연 [시작하기]와 [건너뛰기]는 L1 시안 버튼 그림이다.
+        [TestCase("LevelTestPanel/IntroPage/StartButton/Art", "LevelTestPrimary")]
+        [TestCase("LevelTestPanel/IntroPage/SkipButton/Art", "LevelTestGhost")]
         [TestCase("ConnectionPanel/RetryButton/Art", "EntryRetry")]
         [TestCase("ConnectionPanel/Icon", "EntryWifi")]
         public void Part_IsTheMockupArt(string path, string sprite)

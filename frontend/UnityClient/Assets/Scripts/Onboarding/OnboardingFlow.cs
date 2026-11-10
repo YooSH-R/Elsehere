@@ -327,6 +327,88 @@ namespace A305.Onboarding
             });
         }
 
+        /// <summary>화면 04에서 푸는 레벨 테스트. [시작하기] 전이거나 테스트를 마치고 화면 05로 가면 null이다.</summary>
+        public LevelTestSession LevelTest { get; private set; }
+
+        /// <summary>화면 04 [시작하기]. 새 테스트를 만들고(ONB-03) 첫 문항을 보인다.</summary>
+        public Task StartLevelTestAsync()
+        {
+            return RunAsync(async () =>
+            {
+                LevelTestStartResponse started = await api.StartLevelTestAsync(LanguageCode);
+                LevelTest = new LevelTestSession(started);
+            });
+        }
+
+        /// <summary>
+        /// 문항의 [다음]. 답을 저장하고(ONB-04) 다음 문항을 보인다. 마지막 문항이면 채점해(ONB-05) 결과를 보인다.
+        /// 채점이 실패하면 마지막 문항에 남아 다시 누를 수 있고, 같은 문항 답은 서버가 덮어쓴다.
+        /// </summary>
+        public Task SubmitLevelTestAnswerAsync()
+        {
+            LevelTestSession test = LevelTest;
+            if (test == null || test.Result != null || !test.CanGoNext)
+            {
+                return Task.CompletedTask;
+            }
+
+            return RunAsync(async () =>
+            {
+                await api.AnswerLevelTestAsync(test.TestId, test.CurrentItem.ItemCode, test.Answer);
+                if (test.IsLastItem)
+                {
+                    test.Finish(await api.CompleteLevelTestAsync(test.TestId));
+                }
+                else
+                {
+                    test.MoveToNextItem();
+                }
+            });
+        }
+
+        /// <summary>문항을 푸는 도중 [그만하기](ONB-06). 추천 난이도 없이 화면 05로 간다.</summary>
+        public Task QuitLevelTestAsync()
+        {
+            LevelTestSession test = LevelTest;
+            if (test == null)
+            {
+                return Task.CompletedTask;
+            }
+
+            return RunAsync(async () =>
+            {
+                await api.QuitLevelTestAsync(test.TestId);
+                await EnterAsync(EntryScreen.LevelSetting);
+            });
+        }
+
+        /// <summary>결과의 [다음]. 학습 설정을 다시 읽어 화면 05에 추천 난이도 배지가 붙게 한다.</summary>
+        public Task ContinueAfterLevelTestAsync()
+        {
+            return RunAsync(() => EnterAsync(EntryScreen.LevelSetting));
+        }
+
+        /// <summary>
+        /// 말하기 답 녹음을 받아 적어(CONV-02 <c>LEVEL_TEST</c>) 답 칸을 바꾼다. 받아 적지 못하면 답 칸은 그대로 두고 이유를 알린다.
+        /// </summary>
+        public Task TranscribeLevelTestAnswerAsync(byte[] wav)
+        {
+            LevelTestSession test = LevelTest;
+            if (test == null)
+            {
+                return Task.CompletedTask;
+            }
+
+            return RunAsync(async () =>
+            {
+                SpeechTranscription heard = await api.TranscribeLevelTestAsync(
+                    Guid.NewGuid().ToString(),
+                    wav
+                );
+                test.ChangeAnswer(heard.SttRawText);
+            });
+        }
+
         public Task SelectLevelAsync(int level)
         {
             return RunAsync(async () =>
@@ -357,8 +439,13 @@ namespace A305.Onboarding
                 case EntryScreen.Language:
                     Languages = await api.GetLanguagesAsync();
                     break;
+                // 화면 04는 안내부터 시작하고, 화면 05로 가면 푼 테스트를 내려놓는다. 도중에 나갔던 테스트도 이어 풀지 않는다.
+                case EntryScreen.LevelTest:
+                    LevelTest = null;
+                    break;
                 case EntryScreen.LevelSetting:
                     LanguageProfile = await api.GetLanguageProfileAsync(LanguageCode);
+                    LevelTest = null;
                     break;
             }
 

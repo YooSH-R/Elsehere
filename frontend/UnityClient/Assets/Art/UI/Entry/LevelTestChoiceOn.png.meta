@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 0c148c23bb0c1264ca4a177e0a37dcca
+guid: cb8a8635d6bc59d41be92675085a5646
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 938853329355060439
-    second: EntryLevelOff_0
+      213: -4715523895256339725
+    second: LevelTestChoiceOn_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -52,7 +52,7 @@ TextureImporter:
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
-  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteBorder: {x: 58, y: 58, z: 58, w: 58}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
   alphaIsTransparency: 1
@@ -96,30 +96,17 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: WebGL
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: EntryLevelOff_0
+      name: LevelTestChoiceOn_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 1339
-        height: 269
+        width: 240
+        height: 139
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +115,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 7d4b668f02a770d00800000000000000
-      internalID: 938853329355060439
+      spriteID: 3fa216d40081f8eb0800000000000000
+      internalID: -4715523895256339725
       vertices: []
       indices: 
       edges: []

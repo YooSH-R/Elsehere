@@ -853,7 +853,7 @@ namespace A305.EditorTools.Theme
         }
 
         /// <summary>
-        /// 로그인·캐릭터·가입·언어·난이도·레벨 테스트·연결 안내 창을 기본 테마의 창과 알약 버튼으로 칠한다.
+        /// 로그인·캐릭터·가입·언어·난이도·연결 안내 창을 기본 테마의 창과 알약 버튼으로 칠한다.
         /// 고르는 캐릭터 버튼과 카드는 카드 모양으로 두고, 실행 중 고른 것만 강조색 쪽으로 칠한다.
         /// </summary>
         private static void StyleEntry(Transform root)
@@ -866,7 +866,6 @@ namespace A305.EditorTools.Theme
                     "SignupPanel",
                     "LanguagePanel",
                     "LevelSettingPanel",
-                    "LevelTestPanel",
                     "ConnectionPanel",
                 }
             )
@@ -925,10 +924,7 @@ namespace A305.EditorTools.Theme
             }
             ActionPill(root, "LevelSettingPanel/ConfirmButton", UiIcon.Check, UiTone.Primary, 280);
 
-            Role(root, "LevelTestPanel/Body", UiThemeRole.Body);
-            Role(root, "LevelTestPanel/SkipNote", UiThemeRole.Muted);
-            ActionPill(root, "LevelTestPanel/StartButton", UiIcon.Play, UiTone.Primary, 400);
-            ActionPill(root, "LevelTestPanel/SkipButton", UiIcon.Skip, UiTone.Neutral, 400);
+            // 화면 04 레벨 테스트 창은 시안 그림과 글자로만 만든다(LevelTestScreenBuilder).
 
             Role(root, "ConnectionPanel/Body", UiThemeRole.Body);
             ActionPill(root, "ConnectionPanel/RetryButton", UiIcon.Retry, UiTone.Primary, 220);

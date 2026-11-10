@@ -115,6 +115,12 @@ namespace A305.Api
             return ApiJson.Deserialize<T>(responseBody);
         }
 
+        /// <summary>응답 본문이 없는 PUT 요청(예: 204 No Content).</summary>
+        public async Task PutAsync(string path, object body)
+        {
+            await SendAsync("PUT", path, body);
+        }
+
         public async Task<T> PatchAsync<T>(string path, object body)
         {
             string responseBody = await SendAsync("PATCH", path, body);

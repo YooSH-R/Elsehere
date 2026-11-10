@@ -197,18 +197,13 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator ReviewReference_KeepsTheHintAvailableWithoutHidingTheReference()
+        public IEnumerator ReviewReference_KeepsExistingTargetsWithoutGeneralSuggestionCards()
         {
             view.SetReviewReference("분실한 파란 가방을 찾고 물건을 설명해 보세요.");
             view.Refresh();
             yield return null;
-            Button hint = FindButton("HintButton");
-            Assert.That(hint.gameObject.activeInHierarchy, Is.True);
-            Assert.That(FindChild("HelpPanel").gameObject.activeInHierarchy, Is.True);
-            content.HintText = HintSentence;
-            ClickCenterOf(hint);
-            yield return null;
-            Assert.That(FindChild("HintSentence").gameObject.activeInHierarchy, Is.True);
+            Assert.That(FindButton("HintButton").gameObject.activeInHierarchy, Is.False);
+            Assert.That(FindChild("Suggestions").gameObject.activeInHierarchy, Is.False);
             Assert.That(FindChild("HelpPanel").gameObject.activeInHierarchy, Is.True);
         }
 

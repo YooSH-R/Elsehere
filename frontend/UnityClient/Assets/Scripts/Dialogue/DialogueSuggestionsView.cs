@@ -35,18 +35,6 @@ namespace A305.Dialogue
         public event Action HideRequested;
         public event Action SentenceSelected;
         public RectTransform WordsRect => wordsCard;
-        private bool referenceMode;
-
-        public void SetReferenceMode(bool enabled)
-        {
-            referenceMode = enabled;
-            wordsCard.gameObject.SetActive(!enabled);
-        }
-
-        public float ReferenceHintHeight(float availableHeight) =>
-            referenceMode && hintCard.gameObject.activeSelf
-                ? Mathf.Min(160, availableHeight * .4f)
-                : 0;
 
         private void Awake()
         {
@@ -82,12 +70,6 @@ namespace A305.Dialogue
             root.anchorMin = root.anchorMax = root.pivot = Vector2.one;
             root.anchoredPosition = offset;
             root.sizeDelta = new Vector2(width, height);
-            if (referenceMode)
-            {
-                float hintHeight = ReferenceHintHeight(height);
-                Place(hintCard, height - hintHeight, width, hintHeight);
-                return;
-            }
             float gap = hintCard.gameObject.activeSelf ? 12 : 0;
             float wordsHeight = hintCard.gameObject.activeSelf ? (height - gap) * .6f : height;
             Place(wordsCard, 0, width, Mathf.Max(0, wordsHeight));

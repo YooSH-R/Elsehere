@@ -563,8 +563,7 @@ namespace A305.Dialogue
             bool reviewing = reviewReference != null;
             if (suggestions != null)
             {
-                suggestions.gameObject.SetActive(!reviewing || content.HasHint);
-                suggestions.SetReferenceMode(reviewing);
+                suggestions.gameObject.SetActive(!reviewing);
                 helpPanel.gameObject.SetActive(reviewing);
                 suggestions.Show(
                     suggestText.text,
@@ -1236,22 +1235,15 @@ namespace A305.Dialogue
             helpPanel.anchoredPosition = new Vector2(-HelpMargin, -HelpTop);
             float helpRoom =
                 lastCanvasSize.y - HelpTop - layout.Name.yMax - 2 * DialogueCinemaLayout.Gap;
-            if (suggestions != null)
+            if (suggestions != null && reviewReference == null)
             {
-                float suggestionHeight = Mathf.Clamp(helpRoom, 0, 440);
                 suggestions.SetBounds(
                     new Vector2(-HelpMargin, -HelpTop),
                     Mathf.Min(HelpWidth, lastCanvasSize.x - 2 * HelpMargin),
-                    suggestionHeight
+                    Mathf.Clamp(helpRoom, 0, 440)
                 );
-                if (reviewReference == null)
-                {
-                    PlaceVehicleStatus(layout);
-                    return;
-                }
-                // 복습 상황 설명 아래에도 같은 힌트 카드를 두되, 두 카드의 합이 대화창 위 여유 높이를 넘지 않는다.
-                float hintHeight = suggestions.ReferenceHintHeight(suggestionHeight);
-                helpRoom = Mathf.Max(0, suggestionHeight - hintHeight - (hintHeight > 0 ? 12 : 0));
+                PlaceVehicleStatus(layout);
+                return;
             }
             // 단어·문장 카드가 남는 높이보다 길면 아래가 잘려 보이지 않게 묶음째 줄여 넣는다(DialogueHelpFit).
             float room = Mathf.Clamp(helpRoom, 160, 600);

@@ -57,6 +57,10 @@
 
 처음 받은 잔액·동일한 잔액 재수신은 효과음이 없습니다. 연타와 중복 보상은 `UiSoundGate`로 간격을 제한하고, 퀘스트 완료음 직후의 획득음은 겹치지 않게 합니다. UI 효과음과 접속 음악도 기존 스피커의 `BackgroundSoundPreference`를 따르며 NPC 음성은 변경하지 않습니다.
 
-접속 음악은 `EntryScene`에서만, 첫 클릭·터치·키 입력 이후 작게 반복됩니다. 브라우저 자동재생 제한을 우회하지 않습니다. 게임 공간으로 이동하면 약 0.5초에 걸쳐 꺼지고 기존 장소별 생활소음이 이어집니다. 음악은 외부 곡·샘플 없이 직접 합성한 약 31초 루프이며 원본 합성 도구는 `infra/audio/render-entry-music.py`입니다. 버전·길이·효과음 출처·라이선스는 `Assets/Audio/Interface/audio-manifest.json`과 `CREDITS.txt`에 기록합니다.
+접속 음악은 게임 파일을 받는 로딩 화면과 입구 화면(`EntryScene`)에서 작게 반복됩니다. Web 빌드에서는 로딩 페이지(`WebGLTemplates/A305Responsive/index.html`)가 같은 곡의 MP3(`entry-town-ensemble.mp3`)를 Web Audio로 틀기 시작합니다. Unity가 켜지면 `InterfaceAudioPlayer`가 그 음악을 지금 음량 그대로 이어받아(`LoadingPageMusic`, `Plugins/WebGL/LoadingPageMusic.jslib`) 음량과 재생을 정하므로, 입구 화면에서 끊기거나 처음부터 다시 시작하지 않습니다. 브라우저가 자동재생을 막으면 로딩 화면이나 입구 화면의 첫 클릭·터치·키 입력 뒤에 들리며, 자동재생 제한을 우회하지 않습니다. Google 로그인처럼 페이지를 떠나는 동안에는 끊기고, 돌아와 로딩 화면이 다시 열리면 처음부터 틉니다. 로딩 페이지에 음악이 없으면(Editor, 음원을 받지 못함) Unity가 첫 클릭·터치·키 입력 뒤에 자기 음악을 작게 시작해 키웁니다. 게임 공간으로 이동하면 약 0.5초에 걸쳐 꺼지고 기존 장소별 생활소음이 이어집니다. 언제 틀고 얼마나 크게 낼지는 `EntryMusicFader`가 정합니다. 스피커를 끄면 접속 음악도 꺼지고, 이 선택을 브라우저 저장소(`elsehere.audio.background.enabled`)에도 남겨 다음 로딩 화면에서도 틀지 않습니다.
+
+음악은 외부 곡·샘플 없이 직접 합성한 약 31초 루프이며 원본 합성 도구는 `infra/audio/render-entry-music.py`입니다. 같은 도구가 OGG(Unity용)와 함께 만드는 160kbps MP3를 로딩 페이지에 씁니다. Safari도 재생할 수 있도록 OGG 대신 MP3를 씁니다. 버전·길이·효과음 출처·라이선스는 `Assets/Audio/Interface/audio-manifest.json`과 `CREDITS.txt`에 기록합니다.
+
+`EntryMusicFaderTests`가 로딩 페이지 음악을 입구 화면에서 클릭 없이 잇기, 게임 공간에서 약 0.5초에 걸쳐 끄기, 스피커를 꺼 둔 로딩 화면 뒤에 스피커를 켜면 틀기, 로딩 페이지 음악이 없을 때 첫 클릭 뒤에 시작하기를 확인합니다. 로딩 페이지 스크립트와 연결(`.jslib`)은 Editor에서 실행되지 않으므로 `infra/tests/webgl_entry_music.test.cjs`가 가짜 브라우저에서 확인합니다. 확인하는 것은 함께 배포되는 음원 반복, 자동재생이 막혔을 때 첫 입력으로 켜기, Unity가 줄여도 처음부터 다시 틀지 않기, 스피커 선택 남기기, 음원이나 Web Audio가 없을 때 Unity 음악으로 넘기기입니다. 실제 소리는 Web 빌드를 브라우저에서 열어 확인합니다.
 
 **Tools → A305 → Audio → Build Interface Audio** (`InterfaceAudioBuilder.Build`)가 가져오기 설정과 `Resources/Ambience/InterfaceAudio.asset`을 연결합니다. 음악은 스테레오 Vorbis·CompressedInMemory·비동기 읽기, 짧은 효과음은 모노·DecompressOnLoad입니다. 씬·기존 화면 프리팹을 재생성하지 않습니다.

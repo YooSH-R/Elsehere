@@ -57,9 +57,109 @@ namespace A305.Npc.Tests
             );
             Assert.That(NpcOutings.CanGoOut(new NpcDayPlan(NpcDayPhase.Leisure, .5)), Is.True);
             Assert.That(
-                NpcOutings.UntilHome(new NpcDayPlan(NpcDayPhase.Leisure, .5), 600),
+                NpcOutings.UntilOutingEnds(new NpcDayPlan(NpcDayPhase.Leisure, .5), 600),
                 Is.EqualTo(645)
             );
+        }
+
+        [Test]
+        public void AnErrandEndsBeforeTheWayBack()
+        {
+            Assert.That(
+                NpcOutings.UntilOutingEnds(
+                    new NpcDayPlan(NpcDayPhase.Leisure, .5, errand: true),
+                    600
+                ),
+                Is.EqualTo(622.5)
+            );
+        }
+
+        [Test]
+        public void ErrandsOnlyGoIntoShops_ButLeisureMayBeAStreetWalk()
+        {
+            var shop = Venue("BAKERY");
+            var walk = new NpcOutingVenue
+            {
+                Code = "WALK",
+                Capacity = 2,
+                IsOutdoor = true,
+            };
+            var errand = new NpcDayPlan(NpcDayPhase.Leisure, 0, errand: true);
+            var leisure = new NpcDayPlan(NpcDayPhase.Leisure, 0);
+
+            Assert.That(NpcOutings.Suits(errand, shop), Is.True);
+            Assert.That(NpcOutings.Suits(errand, walk), Is.False);
+            Assert.That(NpcOutings.Suits(leisure, walk), Is.True);
+        }
+
+        [Test]
+        public void ArrivingStaysAtMostFortyFiveMinutes()
+        {
+            var outings = new NpcOutings();
+            var venues = new[] { Venue("CAFE") };
+            NpcOuting longVisit = outings.Reserve("Ben", "WORK", 100, 200, venues, _ => true);
+            NpcOuting shortVisit = outings.Reserve("Mia", "WORK", 100, 120, venues, _ => true);
+
+            longVisit.Arrive(110);
+            longVisit.Arrive(150);
+            shortVisit.Arrive(110);
+
+            Assert.That(longVisit.Arrived, Is.True);
+            Assert.That(longVisit.Until, Is.EqualTo(155), "두 번 도착해도 처음 도착부터 셉니다.");
+            Assert.That(shortVisit.Until, Is.EqualTo(120), "남은 여가보다 오래 머물지 않습니다.");
+        }
+
+        [Test]
+        public void TheNextVisitTheSameDayGoesSomewhereNew()
+        {
+            var outings = new NpcOutings();
+            var venues = new[] { Venue("CAFE"), Venue("BANK"), Venue("BAKERY") };
+            var visited = new System.Collections.Generic.List<string>();
+            for (int visit = 0; visit < 3; visit++)
+            {
+                NpcOuting trip = outings.Reserve(
+                    "Ben",
+                    "WORK",
+                    100 + visit * 50,
+                    140 + visit * 50,
+                    venues,
+                    _ => true
+                );
+                Assert.That(trip, Is.Not.Null, "방문 " + visit);
+                Assert.That(visited, Does.Not.Contain(trip.Venue.Code));
+                visited.Add(trip.Venue.Code);
+                trip.Arrive(110 + visit * 50);
+                if (visit < 2)
+                    outings.Finish("Ben");
+                else
+                    trip.ReadyToLeave = true;
+            }
+
+            NpcOuting again = outings.Reserve("Ben", "WORK", 300, 340, venues, _ => true);
+            Assert.That(
+                again.Venue.Code,
+                Is.Not.EqualTo(visited[2]),
+                "다 들렀으면 방금 걸어 나온 곳만 빼고 다시 고릅니다."
+            );
+            outings.Release("Ben");
+            Assert.That(
+                outings.Reserve("Ben", "WORK", 350, 390, venues, venue => venue.Code == visited[2]),
+                Is.Null,
+                "방금 나온 곳에는 바로 다시 들어가지 않습니다."
+            );
+        }
+
+        [Test]
+        public void APlaceGivenUpOnTheWay_CanBeChosenAgain()
+        {
+            var outings = new NpcOutings();
+            var venues = new[] { Venue("CAFE"), Venue("BANK") };
+            NpcOuting first = outings.Reserve("Ben", "WORK", 100, 140, venues, _ => true);
+            outings.Release("Ben");
+
+            NpcOuting again = outings.Reserve("Ben", "WORK", 150, 190, venues, _ => true);
+
+            Assert.That(again.Venue.Code, Is.EqualTo(first.Venue.Code));
         }
 
         private static NpcOutingVenue Venue(string code) =>

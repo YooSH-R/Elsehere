@@ -249,6 +249,9 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | WORLD-07 | `POST /api/v1/me/game-clock/beats` | 플레이 중 신호, 게임 시간 흐르게 하기 | - | 화면 없음(월드 장면) |
 | WORLD-08 | `GET /api/v1/me/npcs` | 마을 NPC 목록(이웃 열림·정보·호감도·아는 정도) | - | 휴대폰 [이웃] |
 | MIS-01 | `GET /api/v1/missions` | 오늘의 미션과 진행 상태(자동 시작) | - | 13 |
+| PRC-01 | `GET /api/v1/practice-places` | 장소 연습 목록(가게 12곳 × 상황 3개, 끝낸 상황 표시) | - | 퀘스트 창 [장소 연습] |
+| PRC-02 | `POST /api/v1/practice-scenarios/{scenarioId}/conversations` | 장소 연습 대화 시작, 직원 첫 대사 | LLM, TTS | 퀘스트 창 [장소 연습] → 15 |
+| PRC-03 | `GET /api/v1/practice-scenarios/{scenarioId}/conversations/{conversationId}/progress` | 장소 연습 대화의 목표 진행 | - | 15 |
 | CONV-01 | `POST /api/v1/conversations` | 대화 시작, NPC 첫 대사 | LLM, TTS(말걸기 대사가 없는 NPC) | 14 |
 | CONV-02 | `POST /api/v1/speech/transcriptions` | 녹음 전사(STT) | STT | 11, 15 |
 | CONV-03 | `POST /api/v1/conversations/{conversationId}/turns` | 발화 전송, NPC 응답 | LLM, TTS | 15 |
@@ -318,7 +321,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `onboardingStep: DONE` | `lastSceneCode` 장소. 없으면 마을 |
 
 - `activeConversationId`가 있으면 CONV-11 규칙에 따라 처리합니다.
-- `aiStatus`의 형식과 판단 기준은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다. 게스트면 남은 대화 수(`remainingConversations`)도 담습니다. 가입 대기 상태(`SIGNUP_REQUIRED`)에는 담지 않습니다.
+- `aiStatus`의 형식과 판단 기준은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다. 게스트 대화 횟수 제한을 켠 경우(`GUEST_CONVERSATION_LIMIT` 1 이상) 게스트면 남은 대화 수(`remainingConversations`)도 담습니다. 가입 대기 상태(`SIGNUP_REQUIRED`)에는 담지 않습니다.
 - `user.uiTheme`은 계정에 저장한 화면 테마(`JELLY`, `STICKER`, `CLOUD`)입니다. 고른 적 없으면 `JELLY`이며 USER-01로 바꿉니다.
 - `user.voiceConsent`는 지금 버전의 음성 처리(`VOICE`)에 동의했는지입니다. `false`면 클라이언트는 녹음을 막고 [말하기]를 회색으로 보이며, 누르면 동의 창에서 USER-03으로 동의를 켤 수 있게 합니다. AUTH-04·07 응답의 `user`에도 같은 값이 있으며, USER-03으로 바꾸면 그 결과를 따릅니다.
 - `user.guest`는 게스트로 시작한 사용자(AUTH-07)인지입니다. 클라이언트는 게스트에게 마이페이지의 [회원 탈퇴](USER-05)를 보이지 않습니다. AUTH-04 응답은 `false`, AUTH-07 응답은 `true`입니다.
@@ -453,11 +456,11 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ```json
 // 응답 200
-{ "conversationLimit": 3 }
+{ "conversationLimit": 0 }
 ```
 
-- `conversationLimit`은 게스트 한 계정이 할 수 있는 NPC 대화 수로, 서버 설정값(`GUEST_CONVERSATION_LIMIT`, 기본 3)입니다. 한 번이라도 말을 주고받은 대화만 셉니다. 시작한 뒤의 남은 횟수는 AI-01·BOOT-01의 `remainingConversations`입니다.
-- 화면은 읽지 못해도 캐릭터 선택과 [시작하기]를 막지 않고, 횟수 없이 "횟수가 정해져 있어요"로 안내합니다.
+- `conversationLimit`은 게스트 한 계정이 할 수 있는 NPC 대화 수로, 서버 설정값(`GUEST_CONVERSATION_LIMIT`, 기본 0)입니다. `0`이면 가입 사용자처럼 제한이 없습니다. 1 이상이면 한 번이라도 말을 주고받은 대화만 셉니다. 시작한 뒤의 남은 횟수는 AI-01·BOOT-01의 `remainingConversations`입니다.
+- 화면은 읽지 못해도 캐릭터 선택과 [시작하기]를 막지 않고, 횟수 안내 없이 닉네임 안내만 보입니다. `0`이면 "게스트도 NPC와 마음껏 대화할 수 있어요"로 안내합니다.
 
 ### 4.2 초기 설정
 
@@ -865,6 +868,83 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - MVP의 미션 완료 행동은 대상 NPC와의 대화입니다. 대화 외 행동(장소 방문, 단어 저장 등)으로 완료하는 미션이 필요한지는 `[미정]`입니다.
 - 일일 미션의 날짜는 MVP에서 `Asia/Seoul` 기준으로 고정하며, 자정에 바뀝니다. 미션 보상은 `[미정]`입니다.
 
+#### 장소 연습 (PRC-01~03)
+
+퀘스트 창의 [장소 연습] 탭입니다. 가게 12곳마다 직원과 연습할 상황이 세 가지(모두 36개) 있고, 상황마다 학습자가 먼저 말해야 하는 목표가 두 개 있습니다. 이야기 퀘스트와 별도로 처음부터 모두 열려 있고 몇 번이든 다시 할 수 있습니다. 코인·도장은 없으며, 상황의 목표를 모두 이룬 적이 있는지만 기록합니다. 상황·목표·직원 지시 콘텐츠는 백엔드 `PracticeScenario`에 있습니다.
+
+##### PRC-01 `GET /api/v1/practice-places`
+
+```json
+{
+  "places": [
+    {
+      "placeCode": "DINER",
+      "name": "식당",
+      "summary": "자리 잡기 · 못 먹는 재료 말하기",
+      "npcCode": "DINER_STAFF",
+      "npcName": "Rosa",
+      "roleLabel": "식당 종업원",
+      "sceneCode": "TOWN",
+      "doneCount": 1,
+      "totalCount": 3,
+      "scenarios": [
+        {
+          "scenarioId": "DINER_TABLE",
+          "number": 1,
+          "title": "자리 잡기",
+          "description": "몇 명인지 말하고 창가 자리를 부탁해요. 자리가 없으면 얼마나 기다리는지 물어요.",
+          "done": true,
+          "goals": [
+            { "goalId": "say_party_window", "title": "인원 말하고 창가 자리 부탁하기", "hint": "몇 명인지 말하고 창가 자리를 부탁하기" },
+            { "goalId": "ask_wait_time", "title": "기다리는 시간 묻기", "hint": "얼마나 기다려야 하는지 묻기" }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+- 장소는 `HOTEL`·`CAFE`·`DINER`·`LAUNDRY`·`BANK`·`BARBER`·`FLORIST`·`BAKERY`·`DRUGSTORE`·`HOME_STORE`·`ARCADE`·`POST_OFFICE` 순서이고, 상황은 `number`(1~3) 순서입니다.
+- `summary`는 앞의 두 상황 제목을 ` · `로 이은 목록 아래 줄입니다.
+- `npcName`·`roleLabel`·`sceneCode`는 그 가게 직원 NPC(`npcs`)의 값입니다.
+- `done`은 이 사용자가 그 상황의 목표를 모두 이룬 연습 대화가 하나라도 있는지(`conversations.practice_done_at`), `doneCount`는 그 가게에서 `done`인 상황 수입니다.
+- `hint`는 목표를 이루려면 무엇을 말하면 되는지 알려 주는 한국어 안내입니다. 의도 판정 기준(영어)과 직원 지시는 서버 내부 정보라 응답하지 않습니다.
+
+##### PRC-02 `POST /api/v1/practice-scenarios/{scenarioId}/conversations`
+
+```json
+// 요청
+{ "requestId": "6f1c2a7e-4b8d-4b7a-9a52-1f0f3d2c9e11" }
+
+// 응답 201: CONV-01과 같은 형식에 practiceScenarioId가 더해집니다.
+{ "conversationId": 91, "status": "ACTIVE", "npc": { "npcCode": "DINER_STAFF", "name": "Rosa", "roleLabel": "식당 종업원" }, "openingTurn": { "...": "..." }, "practiceScenarioId": "DINER_TABLE", "...": "..." }
+```
+
+- 그 상황 가게의 직원과 학습자가 말을 거는 대화(`initiatedBy: USER`, 근무 중)를 시작합니다. 없는 `scenarioId`면 `404 NOT_FOUND`입니다.
+- 오류와 같은 `requestId` 재전송 처리는 CONV-01과 같습니다(`CONVERSATION_ALREADY_ACTIVE`, `SCENE_CLOSED`, 게스트 대화 횟수 등). 같은 `requestId`를 다른 상황이나 일반·복습 대화 시작에 쓰면 `409 REQUEST_ID_CONFLICT`입니다.
+- 직원의 첫 대사는 상황에 맞게 인사하고 요청을 기다립니다. 학습자가 할 일을 직원이 먼저 꺼내지 않습니다.
+- 장소 연습 대화에는 지금 하는 이야기 퀘스트, 이 NPC와의 기억 카드, 건넬 것(`followUp`)을 섞지 않고, 대화 결과를 이야기 퀘스트·호감도·기억에 반영하지 않습니다. 대화 종료(CONV-08)는 일반 대화처럼 피드백을 만들고, 피드백은 상황의 목표를 기준으로 평가합니다. `followUp`은 항상 `null`입니다.
+- 발화(CONV-03)는 상황의 남은 목표로 의도를 판정합니다(판정 상태 `practice_<scenarioId>`, 같은 대화의 앞선 학습자 발화를 합쳐 판정). 인식한 목표는 그 대화에 기록하고(`conversations.practice_completed_goals`), 직원은 인식한 요청에 답한 뒤 남은 요청에 빠진 정보만 묻습니다. 목표를 모두 이룬 턴에 끝낸 시각을 남기고 직원이 마무리 대사로 대화를 끝냅니다(`ENDED_BY_NPC`, `NPC_ENDED`).
+- 힌트(CONV-05)는 상황에서 아직 이루지 않은 첫 목표를 기준으로 만듭니다.
+- 다시 하면 새 대화라 목표를 처음부터 판정합니다. 앞서 끝낸 기록(PRC-01의 `done`)은 그대로 남습니다.
+
+##### PRC-03 `GET /api/v1/practice-scenarios/{scenarioId}/conversations/{conversationId}/progress`
+
+```json
+{
+  "scenarioId": "DINER_TABLE",
+  "goals": [
+    { "goalId": "say_party_window", "title": "인원 말하고 창가 자리 부탁하기", "hint": "몇 명인지 말하고 창가 자리를 부탁하기", "completed": true },
+    { "goalId": "ask_wait_time", "title": "기다리는 시간 묻기", "hint": "얼마나 기다려야 하는지 묻기", "completed": false }
+  ],
+  "done": false
+}
+```
+
+- 이 대화에서 이룬 목표와, 상황의 목표를 모두 이뤘는지(`done`)입니다. 클라이언트는 NPC 대답을 받을 때마다 읽어 목표 체크를 갱신하고, 대화가 끝나면 `done`으로 결과("연습 완료!" 등)를 보여 줍니다.
+- 자신의 그 상황 장소 연습 대화만 읽을 수 있습니다. 다른 사용자의 대화, 다른 상황이나 장소 연습이 아닌 대화, 없는 `scenarioId`는 `404 NOT_FOUND`입니다.
+
 ### 4.6 대화
 
 #### CONV-01 `POST /api/v1/conversations`
@@ -907,9 +987,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 첫 대사의 추천 단어는 응답을 기다리게 하지 않도록 따로 만들므로 `suggestWords`는 `null`입니다. 클라이언트가 대사를 보여 준 뒤 CONV-12로 받습니다.
 - 첫 인사를 만들지 못하면 대화를 만들지 않고 AI 오류 코드(`AI_TEMPORARILY_UNAVAILABLE` 등)를 돌려줍니다.
 - `runningMissions`는 이 NPC가 대상인 진행 중인 미션이며 상단의 "미션 · …" 표시에 씁니다.
+- 장소 연습(PRC-02)으로 시작한 대화의 응답은 `practiceScenarioId`에 상황 ID를 담습니다. 이 API로 시작한 일반 대화와 복습 대화는 `null`입니다.
 - `levelApplied`는 사용자의 `selected_level`입니다.
 - 1.4의 규칙대로 한 턴과 피드백에 쓸 토큰이 남아 있어야 시작하며, 피드백용 토큰을 예약합니다. 부족하면 `AI_QUOTA_EXHAUSTED`입니다.
-- 게스트(AUTH-07)는 한 번이라도 말을 주고받은 대화 수(끝난 대화 포함)가 서버 설정값(`GUEST_CONVERSATION_LIMIT`, 기본 3)에 이르면 대화를 시작하지 않고 `AI_QUOTA_EXHAUSTED`입니다. 말을 걸었다가 한 마디도 주고받지 않고 끝낸 대화는 세지 않습니다. `message`는 "게스트는 NPC와 3번까지 대화할 수 있어요. 마을 탐험, 사물 카드, 단어장은 계속할 수 있어요."입니다(횟수는 설정값). 게스트 한도는 다시 채워지지 않으므로 `resumeAt`을 담지 않습니다. 남은 횟수는 AI-01·BOOT-01의 `remainingConversations`이고, 시작하기 전 한도는 AUTH-08의 `conversationLimit`입니다.
+- 게스트 대화 횟수 제한은 기본으로 꺼져 있어(`GUEST_CONVERSATION_LIMIT=0`) 게스트도 가입 사용자처럼 제한이 없습니다. 이 값을 1 이상으로 켜면 게스트(AUTH-07)는 한 번이라도 말을 주고받은 대화 수(끝난 대화 포함)가 그 값에 이르면 대화를 시작하지 않고 `AI_QUOTA_EXHAUSTED`입니다. 말을 걸었다가 한 마디도 주고받지 않고 끝낸 대화는 세지 않습니다. `message`는 "게스트는 NPC와 3번까지 대화할 수 있어요. 마을 탐험, 사물 카드, 단어장은 계속할 수 있어요."입니다(횟수는 설정값). 게스트 한도는 다시 채워지지 않으므로 `resumeAt`을 담지 않습니다. 남은 횟수는 AI-01·BOOT-01의 `remainingConversations`이고, 시작하기 전 한도는 AUTH-08의 `conversationLimit`입니다.
 - 가입 사용자는 NPC 대화 횟수 제한이 없습니다. 대화 하나의 길이는 사용자 발화 30턴으로 제한합니다(CONV-03).
 - 게스트 한도에 이르러도 진행 중인 대화의 발화와 종료 피드백은 계속 사용할 수 있습니다.
 - 진행 중인 대화가 있으면 `CONVERSATION_ALREADY_ACTIVE`를 `activeConversationId`와 함께 돌려줍니다.
@@ -1009,7 +1090,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 조각 음성을 재생한 턴은 `turn`을 받은 뒤 턴 전체 음성을 다시 자동 재생하지 않습니다. [다시 듣기]는 `npcTurn.speech`의 턴 전체 음성(CONV-06)을 씁니다.
 - 대화 시작(CONV-01)은 아직 JSON 응답만 있습니다.
 
-**학습자 말 번역** — `userTurn.translation`은 학습자 말의 영어 번역 `{ "english": "Medium size, please." }`입니다. 생성된 영어 번역이 있으면 무례 판정과 관계없이 담으며, 번역이 없으면 `null`입니다. 한국어나 한영 혼용으로 말했을 때 "영어로는 이렇게 말해요" 카드에 씁니다. 표시 위치는 Unity와 정합니다.
+**학습자 영어 표현** — `userTurn.translation`은 학습자 말의 영어 번역 또는 문법 교정문 `{ "english": "Medium size, please." }`입니다. 한국어·한영 혼용은 영어로 번역하고, 잘못된 영어 문법은 원래 의미를 보존해 최소한으로 교정합니다. 생성된 표현이 있으면 무례 판정과 관계없이 기존 "영어로는 이렇게 말해요" 카드에 담습니다. 정상 구어체·짧은 답·대소문자/구두점만 다른 경우에는 `null`입니다. `userTurn.text`와 전사 원문은 교정문으로 대체하지 않으며 퀘스트·피드백은 계속 원문을 사용합니다. API 필드와 Unity 표시 경로는 유지합니다.
 
 **무례 판정** — 학습자 말이 무례한지(욕설·위협·모욕·조롱·하대) 턴마다 판정하고, 대화 하나 안에서 셉니다.
 
@@ -1162,6 +1243,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 #### CONV-08 `POST /api/v1/conversations/{conversationId}/end`
 
 상황 복습 대화는 `reviewCardId`와 `reviewResult`를 함께 돌려주고 `feedback`, `followUp`, `detailedFeedback`은 null입니다. 추가 AI 평가·기억 갱신 대신 저장된 목표 표현의 실제 발화 근거를 한 번 기록합니다. 일반 대화의 두 복습 필드는 null이며 기존 동작을 유지합니다. 자세한 종료·재조회 계약은 [상황 복습장](review-workbook.md#복습-종료-결과와-다시-보기)을 따릅니다.
+
+장소 연습 대화(PRC-02)는 일반 대화처럼 `feedback`과 `detailedFeedback`을 만들고 상황의 목표를 기준으로 평가합니다. NPC 기억 카드는 갱신하지 않고 `followUp`은 null입니다. 연습을 끝냈는지는 PRC-03의 `done`으로 확인합니다.
 
 ```json
 // 요청
@@ -1484,15 +1567,15 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 - HUD의 "AI 사용 가능" 표시와 화면 19의 사용량 소진 안내에 씁니다. `canStartConversation`은 한 턴과 피드백에 쓸 토큰이 남아 있는지(1.4)를 반영합니다.
 - 클라이언트는 접속할 때(BOOT-01), 대화가 토큰 소진으로 끝났을 때, AI 요청이 거절됐을 때 상태를 갱신합니다. 소진 상태에서는 AI가 필요한 버튼을 비활성화하고, 탐험·사물 카드·단어장·지난 기록은 계속 제공합니다.
 - `quota`는 한도 정책이 정해진 경우에만 `{ "periodStart": "2026-10-21", "usedTokens": 1200, "remainingTokens": 8800 }` 형식으로 채웁니다. 화면 19의 "갱신 시점"은 `resumeAt`이며, 정해지지 않았으면 `[정책 미정]`으로 표시합니다.
-- 현재 구현: 가입 사용자의 토큰 한도(1.4)는 수치가 `[미정]`이라 아직 없고, 게스트의 대화 횟수 제한(CONV-01)만 반영합니다. 한도 정책이 없으므로 `quota`·`resumeAt`은 응답에 담지 않습니다.
+- 현재 구현: 가입 사용자의 토큰 한도(1.4)는 수치가 `[미정]`이라 아직 없고, 게스트의 대화 횟수 제한(CONV-01, 켠 경우)만 반영합니다. 한도 정책이 없으므로 `quota`·`resumeAt`은 응답에 담지 않습니다.
 
 | 사용자 | `status` | `canStartConversation` | `canUseSpeech` | `canGenerateFeedback` | `remainingConversations` |
 | --- | --- | --- | --- | --- | --- |
-| 가입 사용자 | `AI_AVAILABLE` | `true` | `true` | `true` | 담지 않음 |
+| 가입 사용자, 제한이 꺼진 게스트(기본) | `AI_AVAILABLE` | `true` | `true` | `true` | 담지 않음 |
 | 대화 횟수가 남은 게스트 | `AI_AVAILABLE` | `true` | `true` | `true` | 1 이상 |
 | 대화 횟수를 다 쓴 게스트 | `AI_EXHAUSTED` | `false` | `true` | `true` | `0` |
 
-- `remainingConversations`는 게스트가 더 시작할 수 있는 NPC 대화 수입니다(CONV-01의 `GUEST_CONVERSATION_LIMIT`에서 한 번이라도 말을 주고받은 대화 수를 뺀 값). 다시 채워지지 않습니다. 화면은 대화 제안과 대화 시작 확인 창에 남은 횟수를 붙이고, `0`이면 행인 말걸기를 멈추고 NPC를 누르거나 택시 버튼 자리의 [가입하고 계속 대화하기]를 누를 때 가입 안내 창을 띄웁니다. 대화가 끝나면 이 값을 다시 받고, `0`이면 그 대화의 피드백을 닫을 때도 가입 안내 창과 설문 카드를 띄웁니다. 가입 사용자는 횟수 제한이 없어 담지 않습니다.
+- `remainingConversations`는 게스트 대화 횟수 제한을 켠 경우에만 담는, 게스트가 더 시작할 수 있는 NPC 대화 수입니다(CONV-01의 `GUEST_CONVERSATION_LIMIT`에서 한 번이라도 말을 주고받은 대화 수를 뺀 값). 다시 채워지지 않습니다. 화면은 대화 제안과 대화 시작 확인 창에 남은 횟수를 붙이고, `0`이면 행인 말걸기를 멈추고 NPC를 누르거나 택시 버튼 자리의 [가입하고 계속 대화하기]를 누를 때 가입 안내 창을 띄웁니다. 대화가 끝나면 이 값을 다시 받고, `0`이면 그 대화의 피드백을 닫을 때도 가입 안내 창을 띄웁니다. 가입 사용자와 제한이 꺼진 게스트는 담지 않습니다. 게스트 가입 안내 창은 제한과 상관없이 첫 호텔 퀘스트(`CHECK_IN`)를 끝낸 팡파레의 [다음]에서도 띄웁니다.
 - 게스트 한도는 새 대화 시작만 막습니다. 마지막 대화에서 말을 주고받는 순간 `AI_EXHAUSTED`가 되지만, 그 대화의 음성 입력과 피드백은 그대로 쓸 수 있으므로 클라이언트는 `status`가 아니라 기능별 값으로 버튼을 켜고 끕니다.
 - 외부 AI 장애(`AI_TEMPORARILY_UNAVAILABLE`)와 운영 제한(`AI_RESTRICTED`)은 아직 판단하지 않습니다. 장애는 각 AI 요청의 오류 응답(1.5)으로 알립니다.
 

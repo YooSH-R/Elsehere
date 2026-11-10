@@ -57,6 +57,10 @@ namespace A305.Npc
                     return life.Workplace == Taxi
                         ? "택시를 몰고 있어요"
                         : $"{place}에서 일하고 있어요";
+                case NpcDayPhase.Leisure when plan.IsErrand:
+                    return "가게에 들르는 중이에요";
+                case NpcDayPhase.GoingToWork when plan.IsErrand:
+                    return "가게에 들렀다 돌아오는 길이에요";
                 case NpcDayPhase.GoingToWork when plan.IsShortBreak:
                 case NpcDayPhase.LeavingWork when plan.IsShortBreak:
                     return wanders || life.Workplace == Taxi

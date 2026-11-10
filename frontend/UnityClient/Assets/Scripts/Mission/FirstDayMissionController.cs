@@ -285,8 +285,9 @@ namespace A305.Mission
                 {
                     Render();
                     // 퀘스트를 시작하거나 진행이 바뀌면 열려 있는 목록도 새로 받는다.
+                    // 진행은 방금 읽었으므로 목록만 받는다. 진행을 다시 읽으면 실패할 때마다 끝없이 되풀이한다.
                     if (view.IsQuestBoardOpen)
-                        LoadQuestBoard();
+                        _ = LoadQuestBoardAsync();
                     if (dinerMealPending)
                     {
                         dinerMealPending = false;

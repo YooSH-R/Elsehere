@@ -77,6 +77,9 @@ namespace A305.Dialogue
         private ReviewReferenceBadges reviewBadges;
         private string reviewReference;
         private string reviewScenario;
+
+        // 참고 카드 제목. 비우면 복습 제목(이번 복습·이번에 써 볼 표현)을 쓴다.
+        private string reviewHeading;
         private string originalHelpTitle;
         private TMP_Text reviewHelpTitle;
         private bool reviewFolded;
@@ -90,7 +93,10 @@ namespace A305.Dialogue
             if (reviewBadges != null)
                 reviewBadges.Clear();
             if (text == null)
+            {
                 reviewScenario = null;
+                reviewHeading = null;
+            }
             if (text == null || reviewReference == null)
                 reviewFolded = false;
             var layout = suggestText.transform.parent.GetComponent<VerticalLayoutGroup>();
@@ -176,14 +182,18 @@ namespace A305.Dialogue
         public void SetReviewReference(
             IReadOnlyList<ReviewReferenceItem> items,
             int verifiedCount,
-            string scenario = null
+            string scenario = null,
+            string heading = null,
+            string countLabel = "말해봤어요"
         )
         {
             reviewScenario = scenario;
+            reviewHeading = heading;
             ReviewReferenceText formatted = ReviewReferenceText.Format(
                 items,
                 verifiedCount,
-                scenario
+                scenario,
+                countLabel
             );
             SetReviewReference(formatted.Text);
             if (reviewBadges != null)
@@ -460,10 +470,11 @@ namespace A305.Dialogue
             }
 
             feedbackWait.SetActive(wait == DialogueWait.Feedback);
-            // 복습 대화는 피드백 없이 연습 결과만 받으므로 나중에 확인할 것이 없다.
+            // 복습·장소 연습 대화는 피드백 없이 연습 결과만 받으므로 나중에 확인할 것이 없다.
             if (feedbackLaterButton != null)
                 feedbackLaterButton.gameObject.SetActive(
                     !(content is ServerConversation { IsReview: true })
+                        && !(content is ServerConversation { IsPractice: true })
                 );
         }
 
@@ -570,9 +581,11 @@ namespace A305.Dialogue
                 suggestText.text = reviewReference;
             suggestText.gameObject.SetActive(!reviewing || !reviewFolded);
             if (reviewHelpTitle != null)
-                reviewHelpTitle.text = reviewing
-                    ? (reviewScenario == null ? "이번에 써 볼 표현" : "이번 복습")
-                    : originalHelpTitle;
+                reviewHelpTitle.text =
+                    !reviewing ? originalHelpTitle
+                    : reviewHeading != null ? reviewHeading
+                    : reviewScenario == null ? "이번에 써 볼 표현"
+                    : "이번 복습";
             if (reviewFoldButton != null)
                 reviewFoldButton.gameObject.SetActive(reviewing);
 

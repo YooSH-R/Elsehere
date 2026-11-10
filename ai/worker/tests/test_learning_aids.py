@@ -171,7 +171,7 @@ def test_suggest_output_that_breaks_format_is_invalid_output(client, provider, o
 # ---------------------------------------------------------------------
 # 난이도
 # ---------------------------------------------------------------------
-def reply(provider, level=None, npc=NPC, tts=None):
+def reply_response(provider, level=None, npc=NPC, tts=None, extra=None):
     seen = {}
 
     def answer(b):
@@ -181,9 +181,14 @@ def reply(provider, level=None, npc=NPC, tts=None):
     provider.answers["npc"] = answer
     body = {"npc": npc, "history": [], "text": "one latte", "tts": tts is not None} | ({"level": level} if level else {})
     with make_client(provider, tts=tts) as c:
-        r = c.post("/v1/npc/reply", json=body)
+        r = c.post("/v1/npc/reply", json=body | (extra or {}))
+    return r, seen.get("body")
+
+
+def reply(provider, level=None, npc=NPC, tts=None, extra=None):
+    r, body = reply_response(provider, level, npc, tts, extra)
     assert r.status_code == 200
-    return seen["body"]
+    return body
 
 
 @pytest.mark.parametrize(
@@ -201,13 +206,26 @@ def test_reply_default_level_is_intermediate(provider):
     assert "intermediate learner" in b["messages"][0]["content"] and b["max_tokens"] == 184
 
 
-@pytest.mark.parametrize(("level", "speed"), [(1, 1.1), (2, 1.3), (3, 1.3)])
-@pytest.mark.parametrize("npc_speed", [0.8, 1.0, 1.2])
-def test_reply_voice_speed_follows_level_not_npc(provider, level, speed, npc_speed):
-    """중급은 초급보다 빠르게 말한다(S15P31A305-751). NPC의 호환용 tts_speed는 쓰지 않는다."""
+@pytest.mark.parametrize("level", [1, 2, 3])
+@pytest.mark.parametrize("speech_speed", [0.8, 1.2, 1.5])
+def test_reply_voice_speed_follows_learner_setting_not_level_or_npc(provider, level, speech_speed):
+    """말 빠르기는 학습자가 설정창에서 고른 값이다(S15P31A305-778). 난이도와 NPC의 호환용 tts_speed는 쓰지 않는다."""
     tts = FakeTts()
-    reply(provider, level, npc=NPC | {"tts_speed": npc_speed}, tts=tts)
-    assert tts.speeds and all(s == speed for s in tts.speeds)
+    reply(provider, level, npc=NPC | {"tts_speed": 1.0}, tts=tts, extra={"learner": {"speech_speed": speech_speed}})
+    assert tts.speeds and all(s == speech_speed for s in tts.speeds)
+
+
+@pytest.mark.parametrize("level", [1, 2])
+def test_reply_voice_speed_defaults_to_1_1_without_learner_setting(provider, level):
+    tts = FakeTts()
+    reply(provider, level, tts=tts)
+    assert tts.speeds and all(s == 1.1 for s in tts.speeds)
+
+
+@pytest.mark.parametrize("speech_speed", [0.7, 1.6])
+def test_reply_rejects_speech_speed_outside_setting_range(provider, speech_speed):
+    r, _ = reply_response(provider, tts=FakeTts(), extra={"learner": {"speech_speed": speech_speed}})
+    assert r.status_code == 400
 
 
 @pytest.mark.parametrize(("level", "learner"), [(1, "very simple (CEFR A1-A2)"), (2, "(CEFR B1)")])

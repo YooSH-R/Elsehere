@@ -11,12 +11,12 @@ namespace A305.Learning.Tests
 {
     /// <summary>
     /// 피드백을 열자마자 보이는 요약 탭에 이 상황에서 자주 쓰는 표현을 보여 주고, 표현마다 바로 담을 수 있는지 확인한다.
-    /// 회화 탭을 눌러 한 장씩 넘겨야 보이면 잘 와닿지 않는다. 아래 대화 요약 자리가 남도록 표현은 두 개씩 보이고
-    /// 고정 영역을 넘는 내용은 세로 스크롤로 본다.
+    /// 표현 줄은 요약 카드 아래에 놓이고, 고정 영역을 넘는 내용은 세로 스크롤로 본다.
     /// </summary>
     public class FeedbackSituationRowsTests
     {
         private const string PrefabPath = "Assets/Prefabs/Learning/FeedbackScreen.prefab";
+        private const string Summary = "예약 확인부터 캐리어 보관까지 차례대로 잘 요청했어요.";
 
         private static readonly List<SituationExpressionData> Expressions =
             new List<SituationExpressionData>
@@ -72,14 +72,13 @@ namespace A305.Learning.Tests
             );
         }
 
-        // 회화 표현 탭은 같은 표현 칸을 보인다(FeedbackScreenLayoutTests). 문장 교정·저장할 표현 탭에는 없다.
-        [TestCase(FeedbackSection.Corrections)]
-        [TestCase(FeedbackSection.Expressions)]
-        public void CorrectionsAndExpressionsTabs_HideTheSituationRows(FeedbackSection section)
+        // 표현 줄은 요약 탭에만 있다. 문장 교정 탭은 발화 카드만 보인다.
+        [Test]
+        public void CorrectionsTab_HidesTheSituationRows()
         {
             Show(Expressions);
 
-            view.SelectSection(section);
+            view.SelectSection(FeedbackSection.Corrections);
 
             Assert.That(Rows(), Is.Empty);
         }
@@ -92,23 +91,21 @@ namespace A305.Learning.Tests
             Assert.That(Rows(), Is.Empty);
         }
 
-        // 요약 글은 표현 줄 아래에서 시작해 표현 줄과 겹치지 않는다.
+        // 표현 줄은 요약 카드 아래에서 시작해 요약 카드와 겹치지 않는다.
         [Test]
-        public void SummaryText_StartsBelowTheSituationRows()
+        public void SituationRows_StartBelowTheSummaryCard()
         {
             Show(Expressions);
-            var body = (TMP_Text)
-                new SerializedObject(view).FindProperty("bodyText").objectReferenceValue;
             Canvas.ForceUpdateCanvases();
 
-            float rowsBottom = Rows().Min(row => Corners((RectTransform)row.transform)[0].y);
-            Assert.That(Corners(body.rectTransform)[1].y, Is.LessThanOrEqualTo(rowsBottom + 0.01f));
+            float rowsTop = Rows().Max(row => Corners((RectTransform)row.transform)[1].y);
+            Assert.That(rowsTop, Is.LessThanOrEqualTo(Corners(SummaryCard())[0].y + 0.01f));
         }
 
-        // 표현이 길어 두 줄로 넘어가도 처음 열 때부터 요약 글이 표현 줄 아래에서 시작한다.
-        // 다른 탭에 다녀와야 제자리로 내려가면 처음 보는 요약 글 첫 줄이 표현 줄에 가린다.
+        // 요약이 길어 여러 줄로 넘어가도 처음 열 때부터 표현 줄이 요약 카드 아래에서 시작한다.
+        // 다른 탭에 다녀와야 제자리로 내려가면 처음 보는 표현 줄이 요약 카드에 가린다.
         [Test]
-        public void SummaryText_StartsBelowWrappedSituationRows_OnFirstShow()
+        public void SituationRows_StartBelowAWrappedSummaryCard_OnFirstShow()
         {
             Show(
                 new List<SituationExpressionData>
@@ -123,14 +120,13 @@ namespace A305.Learning.Tests
                         "근처에 약국이 있나요?",
                         "약국의 위치를 간단히 물을 때 쓸 수 있습니다."
                     ),
-                }
+                },
+                string.Join(" ", Enumerable.Repeat(Summary, 6))
             );
-            var body = (TMP_Text)
-                new SerializedObject(view).FindProperty("bodyText").objectReferenceValue;
             Canvas.ForceUpdateCanvases();
 
-            float rowsBottom = Rows().Min(row => Corners((RectTransform)row.transform)[0].y);
-            Assert.That(Corners(body.rectTransform)[1].y, Is.LessThanOrEqualTo(rowsBottom + 0.01f));
+            float rowsTop = Rows().Max(row => Corners((RectTransform)row.transform)[1].y);
+            Assert.That(rowsTop, Is.LessThanOrEqualTo(Corners(SummaryCard())[0].y + 0.01f));
         }
 
         [Test]
@@ -144,18 +140,13 @@ namespace A305.Learning.Tests
             Assert.That(Rows(), Is.Empty);
         }
 
-        [Test]
-        public void SingleSituationExpression_HasOnlyItsOwnSaveButton()
+        private RectTransform SummaryCard()
         {
-            Show(new List<SituationExpressionData> { Expressions[0] });
-
-            var pageSave = (Button)
-                new SerializedObject(view).FindProperty("saveButton").objectReferenceValue;
-            Assert.That(pageSave.gameObject.activeInHierarchy, Is.False);
-            Assert.That(Rows().Single().GetComponentInChildren<Button>(), Is.Not.Null);
+            var fields = new SerializedObject(view);
+            return (RectTransform)fields.FindProperty("summaryCard").objectReferenceValue;
         }
 
-        private void Show(List<SituationExpressionData> expressions)
+        private void Show(List<SituationExpressionData> expressions, string summary = Summary)
         {
             instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
             view = instance.GetComponentInChildren<FeedbackView>(true);
@@ -167,7 +158,7 @@ namespace A305.Learning.Tests
                         new FeedbackData
                         {
                             Status = "DONE",
-                            Summary = "예약 확인부터 캐리어 보관까지 차례대로 잘 요청했어요.",
+                            Summary = summary,
                             SituationExpressions = expressions,
                         },
                         new List<DetailedFeedbackItem>(),

@@ -146,7 +146,7 @@ namespace A305.Tutorial
         [SerializeField]
         [Tooltip("대화 노트(피드백)를 열면 탭 줄을 밝히며 [다음]과 함께 보이는 첫 티칭")]
         private string feedbackSectionsCaption =
-            "Ben과 나눈 대화를 돌아보는 대화 노트예요. 탭을 눌러 {요약}·{문장 교정}·{전체 대화}·{저장할 표현}을 봐요";
+            "Ben과 나눈 대화를 돌아보는 대화 노트예요. 탭을 눌러 {요약}·{문장 교정}·{전체 대화}를 봐요";
 
         [SerializeField]
         [Tooltip("대화 노트 티칭의 둘째. 본문 스크롤 영역을 밝히며 보인다.")]

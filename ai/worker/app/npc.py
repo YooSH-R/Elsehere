@@ -80,7 +80,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
         task = None
         last_audio_requested_at = time.perf_counter()
         if use_tts:
-            task = asyncio.create_task(tts.asynth(text, req.npc.tts_voice, P.LEVEL_SPEECH_SPEED[req.level]))
+            task = asyncio.create_task(tts.asynth(text, req.npc.tts_voice, req.speech_speed))
             synthesis_tasks.append(task)
         chunks.put_nowait((st["seq"], text, task, time.perf_counter()))
         moods[st["seq"]] = mood

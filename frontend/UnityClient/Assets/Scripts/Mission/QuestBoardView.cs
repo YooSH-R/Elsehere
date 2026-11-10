@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using A305.World;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,6 +14,8 @@ namespace A305.Mission
     /// 퀘스트를 끝내고 [다음]을 누르면 다음 퀘스트 카드의 잠금을 푸는 연출을 한다.
     /// 도장 지도는 가 본 곳의 잉크 도장,
     /// 지금 갈 곳의 번호 핀, 지나온 길을 마을 지도 위에 얹는다. 자리는 시안 px × 1.2이고 버튼 연결은 QuestBoardBuilder가 넣는다.
+    /// 머리줄의 [이야기 | 장소 연습] 탭으로 이야기 퀘스트 목록과 장소 연습 쪽(<see cref="PracticeBoardView"/>)을 오간다.
+    /// 장소 연습에서 상황의 [연습하기]를 누르면 창을 닫고 그 가게 직원에게 연습하러 가자고 알린다(<see cref="PracticeVisit"/>).
     /// </summary>
     public sealed class QuestBoardView : MonoBehaviour
     {
@@ -34,10 +37,14 @@ namespace A305.Mission
         private const float UnlockedRouteBottom = 241;
         private const float UnlockedMetaTop = 267;
 
-        // 판 높이: 목록 한 쪽(시안 f2)은 500, 쪽 넘기기가 있으면 570, 도장 지도(시안 q2)는 770
+        // 판 크기: 목록 한 쪽(시안 f2)은 1240×500, 쪽 넘기기가 있으면 높이 570, 도장 지도(시안 q2)는 높이 770.
+        // 장소 연습(시안 #place)은 왼쪽 목록과 오른쪽 판이 들어가게 1520×770이다.
+        private const float SheetWidth = 1240;
         private const float ListHeight = 500;
         private const float PagedListHeight = 570;
         private const float MapHeight = 770;
+        private const float PracticeWidth = 1520;
+        private const float PracticeHeight = 770;
 
         // 도장 지도: 지도 그림(2000×800)을 시안 1168×467에 담는다. 도장은 건물이 보이게 24 위로 찍는다.
         private const float MapScaleX = 1168f / 2000f;
@@ -54,6 +61,10 @@ namespace A305.Mission
 
         [SerializeField]
         private GameObject mapPage;
+
+        [SerializeField]
+        [Tooltip("[장소 연습] 탭의 쪽")]
+        private PracticeBoardView practicePage;
 
         [SerializeField]
         private Button startButton;
@@ -168,6 +179,9 @@ namespace A305.Mission
 
         public event Action<bool> OpenChanged;
 
+        /// <summary>장소 연습 탭을 열 때마다 서버에 장소 목록을 묻는다.</summary>
+        public event Action PracticeRequested;
+
         public bool IsOpen => gameObject.activeSelf;
 
         public void Open()
@@ -199,8 +213,42 @@ namespace A305.Mission
         {
             listPage.SetActive(true);
             mapPage.SetActive(false);
+            practicePage.gameObject.SetActive(false);
             shownQuest = -1;
             FitSheet();
+        }
+
+        /// <summary>[이야기] 탭. 장소 연습을 보는 사이 바뀌었을 수 있어 퀘스트 목록을 다시 묻는다.</summary>
+        public void ShowStoryTab()
+        {
+            ShowList();
+            Requested?.Invoke();
+        }
+
+        /// <summary>[장소 연습] 탭. 열 때마다 끝낸 기록을 새로 받는다.</summary>
+        public void ShowPracticeTab()
+        {
+            listPage.SetActive(false);
+            mapPage.SetActive(false);
+            practicePage.gameObject.SetActive(true);
+            shownQuest = -1;
+            FitSheet();
+            PracticeRequested?.Invoke();
+        }
+
+        /// <summary>서버에서 받은 장소 연습 목록을 보인다.</summary>
+        public void ShowPracticePlaces(PracticeBoardState state) => practicePage.Show(state);
+
+        /// <summary>
+        /// 오른쪽 slot번째 상황의 [연습하기]·[다시 하기]. 창을 닫고 그 가게 직원에게 연습하러 가자고 알린다.
+        /// </summary>
+        public void StartPractice(int slot)
+        {
+            PracticeVisitPlan plan = practicePage.PlanFor(slot);
+            if (plan == null)
+                return;
+            Close();
+            PracticeVisit.Shared.Request(plan);
         }
 
         /// <summary>목록에서 index번째 퀘스트 카드의 잠금을 푼다(시안 f2). 그 카드가 있는 쪽을 보인다.</summary>
@@ -245,6 +293,7 @@ namespace A305.Mission
                 return;
             shownQuest = index;
             listPage.SetActive(false);
+            practicePage.gameObject.SetActive(false);
             mapPage.SetActive(true);
             FitSheet();
             ClearMade();
@@ -289,17 +338,21 @@ namespace A305.Mission
 
         public void RequestStart() => StartRequested?.Invoke();
 
-        // 판 높이를 보이는 쪽에 맞춘다. 목록은 쪽이 하나면 쪽 넘기기를 숨긴다.
+        // 판 크기를 보이는 쪽에 맞춘다. 목록은 쪽이 하나면 쪽 넘기기를 숨긴다.
         private void FitSheet()
         {
             bool paged = PageCount > 1;
             foreach (Selectable pager in new Selectable[] { previousButton, nextButton })
                 pager.gameObject.SetActive(paged);
             pageText.gameObject.SetActive(paged);
+            bool practice = practicePage.gameObject.activeSelf;
             float height =
-                mapPage.activeSelf ? MapHeight
+                practice ? PracticeHeight
+                : mapPage.activeSelf ? MapHeight
                 : paged ? PagedListHeight
                 : ListHeight;
+            float width = practice ? PracticeWidth : SheetWidth;
+            sheet.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width * Px);
             sheet.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height * Px);
         }
 

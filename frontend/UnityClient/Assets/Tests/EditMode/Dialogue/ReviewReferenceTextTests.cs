@@ -20,6 +20,25 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public void PracticeGoals_CountWhatWasDoneWithTheirOwnWording()
+        {
+            var formatted = ReviewReferenceText.Format(
+                new[]
+                {
+                    new ReviewReferenceItem("인원 말하고 창가 자리 부탁하기", "Two, please.", true),
+                    new ReviewReferenceItem("기다리는 시간 묻기", "How long is the wait?", false),
+                },
+                1,
+                "<b>자리 잡기</b>\n",
+                "해냈어요"
+            );
+            Assert.That(formatted.Text, Does.Contain("1 / 2</b>  해냈어요"));
+            Assert.That(formatted.Text, Does.Not.Contain("말해봤어요"));
+            Assert.That(formatted.Markers[0].Used, Is.True);
+            Assert.That(formatted.Markers[1].Used, Is.False);
+        }
+
+        [Test]
         public void ExpressionsAndMeaningsRemainLiteralWhileBadgesAreSeparateFromText()
         {
             var formatted = ReviewReferenceText.Format(

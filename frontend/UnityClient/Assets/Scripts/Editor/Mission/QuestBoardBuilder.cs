@@ -16,6 +16,7 @@ namespace A305.EditorTools.Mission
     /// 그림은 시안을 2.4배로 렌더링한 Art/UI/Quest 조각이다. 판은 다른 시트처럼 테마 유리(Panel)다.
     /// 왼쪽 위 퀘스트 카드를 누르면 수첩 대신 목록을 열고, 목록의 카드를 누르면 그 퀘스트의 도장 지도로 가도록 버튼을 연결한다.
     /// 연계 퀘스트의 잠금을 푸는 연출(띠·자물쇠·흰 막 조각·빛 테두리·[퀘스트 시작])도 목록 위에 만든다.
+    /// 머리줄 제목 옆 [이야기 | 장소 연습] 탭과 장소 연습 쪽은 PracticeBoardBuilder가 만든다.
     /// </summary>
     public static class QuestBoardBuilder
     {
@@ -100,6 +101,7 @@ namespace A305.EditorTools.Mission
 
             BuildList(view, fields, Page("List", sheet));
             BuildMap(view, fields, Page("Map", sheet));
+            PracticeBoardBuilder.Build(view, fields, sheet);
             fields.ApplyModifiedPropertiesWithoutUndo();
             board.gameObject.SetActive(false);
 
@@ -112,7 +114,7 @@ namespace A305.EditorTools.Mission
             BuilderTools.SetReference(mission, "questBoard", view);
         }
 
-        // 목록(f2): 머리줄 아이콘·'퀘스트'·닫기, 카드 한 줄 세 장, 쪽이 여럿이면 아래 가운데 쪽 넘기기
+        // 목록(f2): 머리줄 아이콘·'퀘스트'·탭·닫기, 카드 한 줄 세 장, 쪽이 여럿이면 아래 가운데 쪽 넘기기
         private static void BuildList(
             QuestBoardView view,
             SerializedObject fields,
@@ -123,6 +125,7 @@ namespace A305.EditorTools.Mission
             TMP_Text title = Text(list, "Title", 113, 33.5f, 400, 39, Ui.DisplayFontPath, 36, Ink);
             title.text = "퀘스트";
             title.margin = new Vector4(0, 3 * Px, 0, 0);
+            PracticeBoardBuilder.Tabs(view, list, storyShown: true);
             Listen(Close(list), view.Close);
 
             // 들르는 곳 알약과 사이 화살표 견본. 알약 그림은 사방 4의 여백이 있어 그만큼 안쪽 여백과 간격을 고친다.
@@ -738,11 +741,12 @@ namespace A305.EditorTools.Mission
             role.ApplyCurrent();
         }
 
-        private static Button Close(RectTransform page) =>
+        // 머리줄 오른쪽 닫기. 1240 판에서는 x 1153이다.
+        internal static Button Close(RectTransform page, float x = 1153) =>
             ArtButton(
                 page,
                 "Close",
-                1153,
+                x,
                 27,
                 52,
                 52,

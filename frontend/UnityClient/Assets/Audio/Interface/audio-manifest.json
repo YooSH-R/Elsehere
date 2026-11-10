@@ -64,6 +64,7 @@
   ],
   "music": {
     "file": "entry-town-ensemble.ogg",
+    "loading_page_file": "Assets/WebGLTemplates/A305Responsive/entry-town-ensemble.mp3",
     "source": "Project original procedural composition; no external samples or AI service calls",
     "bpm": 124,
     "seconds": 30.9677324263,

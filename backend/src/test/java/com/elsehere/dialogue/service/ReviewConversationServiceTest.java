@@ -16,6 +16,7 @@ import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.HintResult;
 import com.elsehere.ai.client.JudgeResult;
+import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
@@ -42,7 +43,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -88,11 +91,26 @@ class ReviewConversationServiceTest {
   }
 
   @Test
+  @DisplayName("복습 대화의 첫인사도 학습자가 고른 NPC 말 빠르기로 말한다")
+  void reviewGreetingUsesTheChosenSpeechSpeed() {
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Welcome!", null));
+
+    conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.3);
+
+    ArgumentCaptor<WorkerLearner> learner = ArgumentCaptor.forClass(WorkerLearner.class);
+    then(aiGateway)
+        .should()
+        .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), learner.capture());
+    assertThat(learner.getValue().speechSpeed()).isEqualTo(1.3);
+  }
+
+  @Test
   void reviewRequestIdCannotStartANormalConversation() {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Welcome!", null));
     UUID requestId = UUID.randomUUID();
-    conversationService.startReview(userId, cardId, requestId);
+    conversationService.startReview(userId, cardId, requestId, 1.1);
     assertThatThrownBy(
             () ->
                 conversationService.start(
@@ -112,7 +130,8 @@ class ReviewConversationServiceTest {
               entityManager.flush();
               return reply("Welcome!", null);
             });
-    assertThatThrownBy(() -> conversationService.startReview(userId, cardId, UUID.randomUUID()))
+    assertThatThrownBy(
+            () -> conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1))
         .isInstanceOfSatisfying(
             BusinessException.class,
             error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
@@ -124,9 +143,9 @@ class ReviewConversationServiceTest {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Welcome!", null));
     UUID requestId = UUID.randomUUID();
-    var started = conversationService.startReview(userId, cardId, requestId);
+    var started = conversationService.startReview(userId, cardId, requestId, 1.1);
     assertThat(started.reviewCardId()).isEqualTo(cardId);
-    assertThat(conversationService.startReview(userId, cardId, requestId)).isEqualTo(started);
+    assertThat(conversationService.startReview(userId, cardId, requestId, 1.1)).isEqualTo(started);
     assertThat(conversationService.active(userId).orElseThrow().reviewCardId()).isEqualTo(cardId);
     assertThat(conversationService.detail(userId, started.conversationId()).reviewCardId())
         .isEqualTo(cardId);
@@ -146,7 +165,8 @@ class ReviewConversationServiceTest {
   @Test
   void existingActiveConversationIsNotClosedForReview() {
     Conversation normal = conversation(entityManager, userId, "CAFE_STAFF");
-    assertThatThrownBy(() -> conversationService.startReview(userId, cardId, UUID.randomUUID()))
+    assertThatThrownBy(
+            () -> conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1))
         .isInstanceOfSatisfying(
             BusinessException.class,
             error ->
@@ -159,7 +179,7 @@ class ReviewConversationServiceTest {
   void anotherUsersCardCannotStartReview() {
     Long other =
         UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "review-other", "Other");
-    assertThatThrownBy(() -> conversationService.startReview(other, cardId, UUID.randomUUID()))
+    assertThatThrownBy(() -> conversationService.startReview(other, cardId, UUID.randomUUID(), 1.1))
         .isInstanceOfSatisfying(
             BusinessException.class,
             error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
@@ -170,7 +190,7 @@ class ReviewConversationServiceTest {
   void hintUsesSavedSituationInsteadOfCurrentQuest() {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Welcome!", null));
-    var started = conversationService.startReview(userId, cardId, UUID.randomUUID());
+    var started = conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
     given(aiGateway.hint(any(), any(), any(), anyString(), anyInt()))
         .willReturn(
             new HintResult(
@@ -206,7 +226,7 @@ class ReviewConversationServiceTest {
                 any(),
                 anyString()))
         .willReturn(reply("Please be polite.", null));
-    var started = conversationService.startReview(userId, cardId, UUID.randomUUID());
+    var started = conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
     given(aiGateway.guard(any(), any(), any(), anyString()))
         .willReturn(new GuardResult(new GuardResult.Guard(true, null), -20, List.of()));
     given(aiGateway.judge(any(), any(), any(), any(), anyString()))
@@ -234,7 +254,7 @@ class ReviewConversationServiceTest {
   void reviewIsNotListedAsAnUnreviewedMainConversation() {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Welcome!", null));
-    var started = conversationService.startReview(userId, cardId, UUID.randomUUID());
+    var started = conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
     assertThat(historyService.list(userId, null, null, 20).items())
         .noneMatch(item -> item.conversationId().equals(started.conversationId()));
   }
@@ -243,7 +263,7 @@ class ReviewConversationServiceTest {
   void activeReviewCannotBeDeleted() {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Welcome!", null));
-    conversationService.startReview(userId, cardId, UUID.randomUUID());
+    conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
 
     assertThatThrownBy(() -> reviewCardService.delete(userId, cardId))
         .isInstanceOfSatisfying(
@@ -256,7 +276,7 @@ class ReviewConversationServiceTest {
   void reviewTurnKeepsMainQuestAndAffinityUnchanged() {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Of course. How can I help?", null));
-    var started = conversationService.startReview(userId, cardId, UUID.randomUUID());
+    var started = conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
     given(aiGateway.guard(any(), any(), any(), anyString()))
         .willReturn(new GuardResult(new GuardResult.Guard(false, null), List.of()));
     given(aiGateway.judge(any(), any(), any(), any(), anyString()))
@@ -301,7 +321,7 @@ class ReviewConversationServiceTest {
         .willReturn(reply("Welcome! How can I help you?", null));
     given(followUpService.afterConversation(any(), any(), any()))
         .willReturn(CompletableFuture.completedFuture(Optional.empty()));
-    var started = conversationService.startReview(userId, cardId, UUID.randomUUID());
+    var started = conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
 
     var ended =
         conversationService.end(
@@ -319,7 +339,7 @@ class ReviewConversationServiceTest {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Welcome! How can I help you?", null));
 
-    var started = conversationService.startReview(userId, cardId, UUID.randomUUID());
+    var started = conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
 
     assertThat(started).isNotNull();
     assertThat(started.npc().npcCode()).isEqualTo("HOTEL_STAFF");

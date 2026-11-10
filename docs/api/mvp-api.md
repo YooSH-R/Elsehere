@@ -871,7 +871,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ```json
 // 요청
-{ "requestId": "6f1c2a7e-4b8d-4b7a-9a52-1f0f3d2c9e11", "npcCode": "CAFE_STAFF", "initiatedBy": "USER", "npcOffDuty": false }
+{ "requestId": "6f1c2a7e-4b8d-4b7a-9a52-1f0f3d2c9e11", "npcCode": "CAFE_STAFF", "initiatedBy": "USER", "npcOffDuty": false, "speechSpeed": 1.1 }
 
 // 응답 201
 {
@@ -902,6 +902,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   - 첫 대사는 저장된 말걸기 대사가 아니라 AI가 만든 일상 인사이며, 무엇을 도와줄지 묻지 않습니다. 대화 종료 피드백은 일상 대화로 평가합니다.
   - 사적인 화제를 얼마나 여는지는 근무 중과 같이 인격 카드와 이 NPC와의 알아봄·호감(워커 관계 규칙)을 따릅니다. 근무가 아니라고 처음 만난 학습자에게 사적인 이야기를 더 하지 않습니다.
   - 첫날 미션 단계의 NPC는 근무 시간이 아니어도 미션 지시대로 인사합니다. 미션 NPC가 퇴근한 뒤의 미션 처리는 아직 정하지 않았습니다([NPC 생활·관계 설계](../npc-life-design.md) 11절 "교대와 첫날 미션").
+- `speechSpeed`(선택, 0.8~1.5)는 사용자가 마이페이지 [NPC 말 빠르기] 슬라이더로 고른 NPC 음성 빠르기 배율입니다. 첫인사 음성을 이 빠르기로 만들며 대화 난이도와는 상관없습니다. 없거나 `null`이면 `1.1`이고, 범위를 벗어나면 `400 VALIDATION_FAILED`입니다. 값은 기기(브라우저)에 저장하고 서버에는 저장하지 않으므로 CONV-03·CONV-07·복습 대화 시작에도 매번 보냅니다.
 - `npcTravelContext`(선택)는 Unity가 관찰한 이동 사실입니다. `phase`는 `GOING_TO_WORK`·`AT_WORK`·`GOING_HOME`·`LEISURE`·`BREAK`·`RESTING`·`WALKING` 중 하나이며, `routeMeters`(0~2000m), `walkedMeters`(0~10000m), `departureLeadMinutes`(0~1440게임분), `lateMinutes`(0~1440게임분)를 보냅니다. 자유 문장 대신 제한된 상태와 수치를 받고, 이 사실로 만든 상황을 대화에 저장해 이후 대사·힌트·재접속에도 사용합니다. 근무 시각이나 관계 수치를 바꾸는 요청은 아닙니다. 이전 클라이언트와 기존 대화에는 이 값이 없어도 됩니다. 복습 대화에는 현재의 이동 상황을 덧붙이지 않습니다.
 - 직원처럼 `approachLine`이 없는 NPC는 `initiatedBy`와 관계없이 AI가 첫 인사를 만들고 음성을 합성합니다. 이 NPC와 끝낸 대화가 있으면 기억 카드를 함께 넘겨 다시 만난 인사를 합니다. 미리 작성한 인사로 바꿀지는 `[미정]`입니다(6절).
 - 첫 대사의 추천 단어는 응답을 기다리게 하지 않도록 따로 만들므로 `suggestWords`는 `null`입니다. 클라이언트가 대사를 보여 준 뒤 CONV-12로 받습니다.
@@ -951,7 +952,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   "requestId": "0d4f6a0b-2a7c-4e3f-8d0e-5b9a1c2d3e4f",
   "inputType": "VOICE",
   "text": "Medium size, please",
-  "sttRawText": "Medium size, please"
+  "sttRawText": "Medium size, please",
+  "speechSpeed": 1.1
 }
 
 // 응답 200
@@ -980,6 +982,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```
 
 - `text`는 사용자가 보낸 최종 문장입니다. `inputType`이 `VOICE`면 STT 결과를 그대로 `text`와 `sttRawText`로 보내고, 마이크를 쓸 수 없어 텍스트로 입력하면 `TEXT`로 보냅니다.
+- `speechSpeed`(선택, 0.8~1.5)는 이번 NPC 대답 음성의 빠르기입니다. 규칙은 CONV-01과 같습니다(없으면 `1.1`, 범위 밖은 `VALIDATION_FAILED`).
 - 영어, 한국어, 한영 혼용, 미완성 발화를 모두 받습니다. 최대 길이는 서버 설정값이며 넘으면 `VALIDATION_FAILED`입니다.
 - 추천 단어는 NPC 응답을 기다리게 하지 않도록 따로 만듭니다. 응답의 `suggestWords`는 `null`이고, 클라이언트가 대사를 보여 준 뒤 CONV-12로 받아 대사 아래에 보여줍니다. 대화가 끝난 턴에는 요청하지 않습니다.
 - 같은 `requestId`로 다시 보내면 턴을 새로 만들지 않고 이전 응답을 그대로 돌려줍니다(`turns.request_id`). 화면 19의 [다시 시도]가 이 규칙을 씁니다.
@@ -1153,7 +1156,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 #### CONV-06·07 NPC 음성
 
 - CONV-06 `GET /api/v1/turns/{turnId}/speech`는 만들어 둔 음성 파일을 돌려줍니다. [다시 듣기]는 이 API를 쓰며 TTS를 새로 만들지 않습니다. 키나 파일이 없거나 보관 기간이 만료됐으면 `404 NOT_FOUND`입니다.
-- CONV-07 `POST /api/v1/turns/{turnId}/speech`는 TTS가 실패했을 때 `{ "requestId": "..." }`로 다시 만듭니다. 이미 유효한 음성이 있으면 새로 만들지 않고 CONV-06 주소를 돌려줍니다. 정기 정리 전이라도 만료됐거나 저장했던 파일이 없으면 `EXPIRED`로 응답하고 합성하지 않습니다. 다시 만든 음성을 보관 상한 때문에 저장하지 못하면 오류 대신 `speech.status: FAILED`로 응답합니다.
+- CONV-07 `POST /api/v1/turns/{turnId}/speech`는 TTS가 실패했을 때 `{ "requestId": "...", "speechSpeed": 1.1 }`로 다시 만듭니다. `speechSpeed`는 CONV-01과 같은 규칙이며, 대화 때의 빠르기가 아니라 지금 고른 빠르기로 만듭니다. 이미 유효한 음성이 있으면 새로 만들지 않고 CONV-06 주소를 돌려줍니다. 정기 정리 전이라도 만료됐거나 저장했던 파일이 없으면 `EXPIRED`로 응답하고 합성하지 않습니다. 다시 만든 음성을 보관 상한 때문에 저장하지 못하면 오류 대신 `speech.status: FAILED`로 응답합니다.
 - NPC 음성 파일 키는 `turns.npc_audio_key`에 저장합니다. 앱 Compose는 환경별 영구 볼륨을 백엔드의 `/app/data/npc-audio`에 연결하며, 저장 위치와 배포 시 보존 기준은 [NPC 음성 저장 운영 문서](../npc-audio-storage.md)를 따릅니다.
 - 보관 정책: 음성 생성 시각(`turns.npc_audio_created_at`)부터 최대 30일, 개발·운영 각각의 NPC 턴 음성 합계 5,000,000,000바이트까지 둡니다(서버 설정값, 매일 정리에서 맞추므로 정리 사이에는 넘을 수 있음). 기존 음성의 보관 시작 시각은 턴 생성 시각으로 초기화하며 재배포·파일 이전·DB 복원으로 기한을 다시 시작하지 않습니다. 정리 순서와 공용 음성·하위 폴더 제외, 백업·복원 기준은 [NPC 음성 저장 운영](../npc-audio-storage.md#보관삭제-정책)을 따릅니다.
 - `speech.status`는 `READY`(음성 있음), `FAILED`(처음 합성에 실패했거나 저장하지 못함, CONV-07로 다시 시도), `EXPIRED`(보관 정책으로 재생 차단, `turns.npc_audio_deleted_at`)입니다. 파일 삭제 실패로 재시도 중인 경우도 `EXPIRED`이며 CONV-07을 불러도 다시 만들지 않습니다. 클라이언트는 [다시 듣기]를 숨기고 자막을 유지합니다.

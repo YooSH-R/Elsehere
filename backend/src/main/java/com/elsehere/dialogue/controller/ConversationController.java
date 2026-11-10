@@ -9,6 +9,7 @@ import com.elsehere.dialogue.dto.ConversationListResponse;
 import com.elsehere.dialogue.dto.ConversationStartResponse;
 import com.elsehere.dialogue.dto.EndConversationRequest;
 import com.elsehere.dialogue.dto.EndConversationResponse;
+import com.elsehere.dialogue.dto.NpcSpeechSpeed;
 import com.elsehere.dialogue.dto.StartConversationRequest;
 import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.dialogue.dto.TurnResponse;
@@ -17,6 +18,8 @@ import com.elsehere.dialogue.service.ConversationService;
 import com.elsehere.dialogue.service.TurnService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +51,14 @@ public class ConversationController {
   private final ConversationHistoryService conversationHistoryService;
   private final JsonMapper jsonMapper;
 
-  public record StartReviewRequest(@NotNull UUID requestId) {}
+  public record StartReviewRequest(
+      @NotNull UUID requestId,
+      @DecimalMin(NpcSpeechSpeed.MIN) @DecimalMax(NpcSpeechSpeed.MAX) Double speechSpeed) {
+
+    public StartReviewRequest {
+      speechSpeed = NpcSpeechSpeed.orDefault(speechSpeed);
+    }
+  }
 
   @PostMapping("/api/v1/review-cards/{cardId}/conversations")
   @ResponseStatus(HttpStatus.CREATED)
@@ -56,7 +66,8 @@ public class ConversationController {
       @AuthenticationPrincipal LoginUser loginUser,
       @PathVariable Long cardId,
       @Valid @RequestBody StartReviewRequest request) {
-    return conversationService.startReview(loginUser.userId(), cardId, request.requestId());
+    return conversationService.startReview(
+        loginUser.userId(), cardId, request.requestId(), request.speechSpeed());
   }
 
   @PostMapping("/api/v1/conversations")

@@ -140,7 +140,8 @@ public class TurnService {
 
     TurnContextSelection selection =
         transactionTemplate.execute(
-            status -> turnContext(userId, conversationId, request.requestId()));
+            status ->
+                turnContext(userId, conversationId, request.requestId(), request.speechSpeed()));
     if (selection.rejected()) {
       throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
     }
@@ -413,7 +414,7 @@ public class TurnService {
   }
 
   private TurnContextSelection turnContext(
-      Long userId, Long conversationId, java.util.UUID requestId) {
+      Long userId, Long conversationId, java.util.UUID requestId, double speechSpeed) {
     Conversation conversation =
         conversationLookup.ownedConversationForUpdate(userId, conversationId);
     if (!conversation.isActive()) {
@@ -431,7 +432,7 @@ public class TurnService {
     return new TurnContextSelection(
         new TurnContext(
             dialogueContexts.npcOf(conversation),
-            dialogueContexts.learner(userId),
+            dialogueContexts.learner(userId, speechSpeed),
             dialogueContexts.history(conversationId),
             conversation.getLevelApplied(),
             conversation.isReview()

@@ -3,6 +3,7 @@
     "rootNamespace": "A305.Onboarding",
     "references": [
         "A305.Api",
+        "A305.Dialogue",
         "A305.Player",
         "A305.Theme",
         "A305.Tutorial",

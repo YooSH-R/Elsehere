@@ -9,10 +9,13 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from .npc_profile_models import NpcProfile
 from .speech_emotion import Mood
 
-# 대화 난이도 1~3 (백엔드 levelApplied). 1: 쉬운 단어·짧은 문장, 2: 중급(B1-B2, 더 길고 빠르게), 3: 원래 말투 그대로.
-# NPC 대답의 문장 수·길이·어휘·말 속도, 힌트·추천 단어 수준이 바뀐다 (판정은 영향 없음).
-# 규칙은 prompts.LEVEL_RULES·LEVEL_SPEECH_SPEED
+# 대화 난이도 1~3 (백엔드 levelApplied). 1: 쉬운 단어·짧은 문장, 2: 중급(B1-B2, 더 촘촘하게), 3: 원래 말투 그대로.
+# NPC 대답의 문장 수·길이·어휘, 힌트·추천 단어 수준이 바뀐다 (판정·말 속도는 영향 없음). 규칙은 prompts.LEVEL_RULES
 Level = Literal[1, 2, 3]
+
+# NPC 대화 음성 빠르기(Kokoro speed). 학습자가 설정창 슬라이더로 고른 값을 백엔드가 learner에 담는다 (S15P31A305-778)
+SpeechSpeed = Annotated[float, Field(ge=0.8, le=1.5, allow_inf_nan=False)]
+DEFAULT_SPEECH_SPEED = 1.1
 
 
 def not_blank(v: str) -> str:
@@ -28,7 +31,7 @@ class Npc(BaseModel):
     facts: str = ""
     scene: str = ""
     tts_voice: str = "af_heart"
-    tts_speed: float = Field(default=1.0, ge=0.5, le=2.0)  # 호환용 필드. NPC 대화 음성은 난이도별 속도(prompts.LEVEL_SPEECH_SPEED)
+    tts_speed: float = Field(default=1.0, ge=0.5, le=2.0)  # 호환용 필드. NPC 대화 음성은 요청의 speech_speed
     # 공통 인격 스키마의 인격(백엔드 인격 설정의 npcProfile 그대로). 있으면 NPC 대답을 공통 규칙 + 인격으로 만든다 (app.npc_prompt)
     profile: NpcProfile | None = None
 
@@ -114,10 +117,11 @@ class Relationship(BaseModel):
 
 
 class Learner(BaseModel):
-    """대답 상대인 학습자. 캐릭터 기본형(F·M)과 닉네임이며, NPC가 부르는 호칭을 정할 때만 쓴다."""
+    """대답 상대인 학습자. 캐릭터 기본형(F·M)과 닉네임은 NPC가 부르는 호칭을 정할 때만 쓰고, 말 빠르기는 대답 음성에 쓴다."""
 
     nickname: str | None = Field(default=None, max_length=32)
     avatar_type: Literal["F", "M"] | None = None
+    speech_speed: SpeechSpeed = DEFAULT_SPEECH_SPEED  # 학습자가 고른 NPC 음성 빠르기
 
 
 class ReplyRequest(BaseModel):
@@ -135,6 +139,10 @@ class ReplyRequest(BaseModel):
     suggest_words: bool = False  # true면 대답이 끝난 뒤 추천 단어를 만들어 스트림의 words 이벤트로 (음성 합성과 동시에)
     goal: str = Field(default="", max_length=300)  # 추천 단어용: 지금 상태에서 학습자가 할 일
     learner: Learner | None = None  # 있으면 캐릭터에 맞는 호칭만, 없으면 성별을 짐작한 호칭(Mr.·Ms.·sir·ma'am)을 쓰지 않는다
+
+    @property
+    def speech_speed(self) -> float:
+        return self.learner.speech_speed if self.learner else DEFAULT_SPEECH_SPEED
 
 
 class SpeechPhrase(BaseModel):

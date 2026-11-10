@@ -357,18 +357,20 @@ class SpeechServiceTest {
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
     UUID requestId = UUID.randomUUID();
 
-    assertThatThrownBy(() -> speechService.regenerateSpeech(userId, npcTurn.getId(), requestId))
+    assertThatThrownBy(
+            () -> speechService.regenerateSpeech(userId, npcTurn.getId(), requestId, 1.1))
         .isInstanceOf(BusinessException.class);
   }
 
   @Test
-  @DisplayName("음성이 없는 NPC 턴은 1.1배 속도로 다시 합성해 저장하고, 이후 다시 듣기로 받을 수 있다")
+  @DisplayName("음성이 없는 NPC 턴은 받은 말 빠르기로 다시 합성해 저장하고, 이후 다시 듣기로 받을 수 있다")
   void regenerateSpeech_withoutAudio_synthesizesAndSaves() {
     given(aiGateway.synthesize(any(), eq(npcTurn.getText()), eq("af_heart"), eq(1.1)))
         .willReturn(WAV);
     UUID requestId = UUID.randomUUID();
 
-    SpeechResponse response = speechService.regenerateSpeech(userId, npcTurn.getId(), requestId);
+    SpeechResponse response =
+        speechService.regenerateSpeech(userId, npcTurn.getId(), requestId, 1.1);
 
     assertThat(response.status()).isEqualTo(SpeechStatus.READY);
     assertThat(response.url()).isEqualTo("/api/v1/turns/" + npcTurn.getId() + "/speech");
@@ -383,19 +385,19 @@ class SpeechServiceTest {
   }
 
   @Test
-  @DisplayName("중급 대화의 NPC 턴은 대화 중과 같은 1.3배 속도로 다시 합성한다")
-  void regenerateSpeech_intermediateConversation_usesIntermediateSpeed() {
+  @DisplayName("NPC 턴은 난이도와 상관없이 학습자가 고른 말 빠르기로 다시 합성한다")
+  void regenerateSpeech_usesChosenSpeechSpeedRegardlessOfLevel() {
     Conversation intermediate = conversation(entityManager, userId, "CAFE_STAFF", 2);
     Turn intermediateTurn = npcTurn(entityManager, intermediate, 1, "We ran out of oat milk.");
     entityManager.flush();
     given(aiGateway.synthesize(any(), eq(intermediateTurn.getText()), eq("af_heart"), anyDouble()))
         .willReturn(WAV);
 
-    speechService.regenerateSpeech(userId, intermediateTurn.getId(), UUID.randomUUID());
+    speechService.regenerateSpeech(userId, intermediateTurn.getId(), UUID.randomUUID(), 1.4);
 
     then(aiGateway)
         .should()
-        .synthesize(any(), eq(intermediateTurn.getText()), eq("af_heart"), eq(1.3));
+        .synthesize(any(), eq(intermediateTurn.getText()), eq("af_heart"), eq(1.4));
   }
 
   @Test
@@ -417,7 +419,7 @@ class SpeechServiceTest {
                 any(), eq("Hi! What can I get for you?"), eq("af_heart"), eq(1.1), eq(phrases)))
         .willReturn(WAV);
 
-    assertThat(speechService.regenerateSpeech(userId, turnId, UUID.randomUUID()).status())
+    assertThat(speechService.regenerateSpeech(userId, turnId, UUID.randomUUID(), 1.1).status())
         .isEqualTo(SpeechStatus.READY);
     assertThat(speechService.npcSpeech(userId, turnId)).isEqualTo(WAV);
     then(aiGateway).should(never()).synthesize(any(), anyString(), anyString(), anyDouble());
@@ -427,10 +429,10 @@ class SpeechServiceTest {
   @DisplayName("이미 음성이 있는 NPC 턴은 다시 합성하지 않는다")
   void regenerateSpeech_withAudio_doesNotSynthesize() {
     given(aiGateway.synthesize(any(), anyString(), anyString(), anyDouble())).willReturn(WAV);
-    speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID());
+    speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID(), 1.1);
 
     SpeechResponse again =
-        speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID());
+        speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID(), 1.1);
 
     assertThat(again.status()).isEqualTo(SpeechStatus.READY);
     then(aiGateway).should().synthesize(any(), anyString(), anyString(), anyDouble());
@@ -443,7 +445,7 @@ class SpeechServiceTest {
     entityManager.flush();
 
     SpeechResponse response =
-        speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID());
+        speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID(), 1.1);
 
     assertThat(response.status()).isEqualTo(SpeechStatus.EXPIRED);
     assertThat(response.url()).isNull();
@@ -459,7 +461,7 @@ class SpeechServiceTest {
     entityManager.flush();
 
     SpeechResponse response =
-        speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID());
+        speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID(), 1.1);
 
     assertThat(response.status()).isEqualTo(SpeechStatus.EXPIRED);
     assertThat(response.url()).isNull();
@@ -495,7 +497,7 @@ class SpeechServiceTest {
     assertErrorCode(
         () -> speechService.npcSpeech(otherUserId, npcTurn.getId()), ErrorCode.NOT_FOUND);
     assertErrorCode(
-        () -> speechService.regenerateSpeech(otherUserId, npcTurn.getId(), UUID.randomUUID()),
+        () -> speechService.regenerateSpeech(otherUserId, npcTurn.getId(), UUID.randomUUID(), 1.1),
         ErrorCode.NOT_FOUND);
   }
 

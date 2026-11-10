@@ -123,7 +123,8 @@ public class ConversationService {
         userId, request.requestId(), () -> startOnce(userId, request, null));
   }
 
-  public ConversationStartResponse startReview(Long userId, Long cardId, UUID requestId) {
+  public ConversationStartResponse startReview(
+      Long userId, Long cardId, UUID requestId, double speechSpeed) {
     return requestLocks.execute(
         userId,
         requestId,
@@ -138,7 +139,7 @@ public class ConversationService {
           return startOnce(
               userId,
               new StartConversationRequest(
-                  requestId, review.npc().npcCode(), InitiatedBy.USER, offDuty),
+                  requestId, review.npc().npcCode(), InitiatedBy.USER, offDuty, null, speechSpeed),
               review);
         });
   }
@@ -160,7 +161,12 @@ public class ConversationService {
         transactionTemplate.execute(
             status ->
                 startContext(
-                    userId, request.npcCode(), request.npcOffDuty(), review, travelSituation));
+                    userId,
+                    request.npcCode(),
+                    request.npcOffDuty(),
+                    request.speechSpeed(),
+                    review,
+                    travelSituation));
     NpcContext npc = context.npc();
 
     // 이 NPC가 건넬 것이 준비됐으면 건네는 말로 시작한다. 말걸기 대사가 있는 NPC가 먼저 말을 걸었으면 그 대사로 시작한다.
@@ -400,6 +406,7 @@ public class ConversationService {
       Long userId,
       String npcCode,
       boolean npcOffDuty,
+      double speechSpeed,
       ReviewCardResponse review,
       String travelSituation) {
     User user =
@@ -416,7 +423,7 @@ public class ConversationService {
     }
     return new StartContext(
         npc,
-        dialogueContexts.learner(user),
+        dialogueContexts.learner(user, speechSpeed),
         selectedLevel(user),
         review == null ? memoryService.memoryFor(userId, npc.npcId()) : null,
         review == null ? missionDialogueService.context(userId, npcCode) : Optional.empty(),

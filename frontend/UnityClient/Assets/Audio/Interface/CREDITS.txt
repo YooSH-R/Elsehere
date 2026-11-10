@@ -10,3 +10,4 @@ Entry music: ELSEHERE - Town (balanced ensemble).
 Original procedural melody arrangement and oscillator synthesis made for this project.
 No external music recording, sample pack, or generative-model service was used.
 Reproducible source: infra/audio/render-entry-music.py.
+Loading page copy: Assets/WebGLTemplates/A305Responsive/entry-town-ensemble.mp3 (MP3 output of the same render).

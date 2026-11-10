@@ -877,7 +877,25 @@ class ConversationServiceTest {
     then(aiGateway)
         .should()
         .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), learner.capture());
-    assertThat(learner.getValue()).isEqualTo(new WorkerLearner("Sun", "F"));
+    assertThat(learner.getValue()).isEqualTo(new WorkerLearner("Sun", "F", 1.1));
+  }
+
+  @Test
+  @DisplayName("AI 첫인사는 학습자가 설정창에서 고른 NPC 말 빠르기로 말한다")
+  void start_aiGreeting_sendsTheChosenSpeechSpeed() {
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Hi!", null));
+
+    conversationService.start(
+        userId,
+        new StartConversationRequest(
+            UUID.randomUUID(), "CAFE_STAFF", InitiatedBy.NPC, false, null, 0.9));
+
+    ArgumentCaptor<WorkerLearner> learner = ArgumentCaptor.forClass(WorkerLearner.class);
+    then(aiGateway)
+        .should()
+        .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), learner.capture());
+    assertThat(learner.getValue().speechSpeed()).isEqualTo(0.9);
   }
 
   @Test

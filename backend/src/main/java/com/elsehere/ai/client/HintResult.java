@@ -15,5 +15,9 @@ public record HintResult(List<Phrase> sayThis, List<Phrase> keywords, List<Worke
     return sayThis == null || sayThis.isEmpty() ? null : sayThis.get(0).en();
   }
 
+  public String firstMeaningKo() {
+    return sayThis == null || sayThis.isEmpty() ? null : sayThis.get(0).ko();
+  }
+
   public record Phrase(String en, String ko) {}
 }

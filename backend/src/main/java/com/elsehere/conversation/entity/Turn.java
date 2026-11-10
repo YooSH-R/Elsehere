@@ -102,6 +102,9 @@ public class Turn extends BaseEntity {
   @Column(columnDefinition = "text")
   private String hintText;
 
+  @Column(columnDefinition = "text")
+  private String hintMeaningKo;
+
   private Instant hintOpenedAt;
 
   @Column(length = 255)
@@ -221,7 +224,12 @@ public class Turn extends BaseEntity {
 
   /** 처음 연 힌트를 저장한다. 연 시각은 힌트 사용 기록이다. */
   public void openHint(String hintText, Instant openedAt) {
+    openHint(hintText, null, openedAt);
+  }
+
+  public void openHint(String hintText, String hintMeaningKo, Instant openedAt) {
     this.hintText = hintText;
+    this.hintMeaningKo = hintMeaningKo;
     this.hintOpenedAt = openedAt;
   }
 }

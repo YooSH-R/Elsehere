@@ -257,6 +257,7 @@ Table turns [headercolor: #2E6B4F] {
   glossary jsonb [note: '단어 호버 뜻']
   suggest_words jsonb [note: '추천 단어 3개']
   hint_text text [note: '힌트 추천 문장']
+  hint_meaning_ko text [note: '힌트 추천 문장의 한국어 뜻 · 기존 힌트는 NULL']
   hint_opened_at timestamptz [note: '힌트 사용 기록']
   audio_path varchar(255) [note: '쓰지 않음 · 학습 활용에 동의한 녹음은 training_recordings에 저장']
   npc_audio_key varchar(100) [note: 'NPC 턴 TTS 음성 파일 키 · 다시 듣기용 · 음성 생성 후 최대 30일, 환경 전체 5GB(docs/npc-audio-storage.md)']

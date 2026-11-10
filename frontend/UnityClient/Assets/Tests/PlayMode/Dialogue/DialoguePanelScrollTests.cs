@@ -63,6 +63,11 @@ namespace A305.Dialogue.PlayModeTests
                 Is.EqualTo(0f).Within(.01f),
                 "가장 최근 대사를 볼 수 있도록 스크롤이 맨 아래에 있습니다."
             );
+            Assert.That(
+                bar.handleRect.anchorMin.y,
+                Is.LessThan(.01f),
+                "최근 대사를 보는 중이라 손잡이가 아래에 있습니다."
+            );
         }
 
         [UnityTest]

@@ -19,6 +19,7 @@ import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.HintResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.WorkerFeedback;
+import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerState;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
@@ -81,12 +82,24 @@ class PlacePracticeConversationTest {
   }
 
   @Test
+  @DisplayName("장소 연습 첫인사도 학습자가 고른 NPC 말 빠르기로 말한다")
+  void start_greetsWithTheChosenSpeechSpeed() {
+    conversationService.startPractice(userId, SCENARIO, UUID.randomUUID(), 1.4);
+
+    ArgumentCaptor<WorkerLearner> learner = ArgumentCaptor.forClass(WorkerLearner.class);
+    then(aiGateway)
+        .should()
+        .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), learner.capture());
+    assertThat(learner.getValue().speechSpeed()).isEqualTo(1.4);
+  }
+
+  @Test
   @DisplayName("장소 연습은 고른 상황으로 직원과 대화를 시작하고 이야기 퀘스트·기억·건넬 것을 섞지 않는다")
   void start_opensTheScenarioWithoutStoryQuestMemoryOrFollowUp() {
     UUID requestId = UUID.randomUUID();
 
     ConversationStartResponse started =
-        conversationService.startPractice(userId, SCENARIO, requestId);
+        conversationService.startPractice(userId, SCENARIO, requestId, 1.1);
 
     assertThat(started.practiceScenarioId()).isEqualTo(SCENARIO);
     assertThat(started.npc().npcCode()).isEqualTo("HOTEL_STAFF");
@@ -110,7 +123,8 @@ class PlacePracticeConversationTest {
     then(followUpService).shouldHaveNoInteractions();
     Conversation saved = entityManager.find(Conversation.class, started.conversationId());
     assertThat(saved.getFirstDayStage()).isNull();
-    assertThat(conversationService.startPractice(userId, SCENARIO, requestId)).isEqualTo(started);
+    assertThat(conversationService.startPractice(userId, SCENARIO, requestId, 1.1))
+        .isEqualTo(started);
     assertThatThrownBy(
             () ->
                 conversationService.start(
@@ -125,7 +139,9 @@ class PlacePracticeConversationTest {
   @DisplayName("없는 상황은 AI를 부르지 않고 NOT_FOUND다")
   void start_unknownScenarioIsNotFound() {
     assertThatThrownBy(
-            () -> conversationService.startPractice(userId, "NO_SUCH_SCENARIO", UUID.randomUUID()))
+            () ->
+                conversationService.startPractice(
+                    userId, "NO_SUCH_SCENARIO", UUID.randomUUID(), 1.1))
         .isInstanceOfSatisfying(
             BusinessException.class,
             error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
@@ -136,7 +152,7 @@ class PlacePracticeConversationTest {
   @DisplayName("연습 대화의 발화는 상황의 남은 목표로 판정해 이룬 목표만 기록하고, 이야기 퀘스트와 호감도는 바꾸지 않는다")
   void turn_judgesScenarioGoalsAndRecordsRecognizedOnes() {
     ConversationStartResponse started =
-        conversationService.startPractice(userId, SCENARIO, UUID.randomUUID());
+        conversationService.startPractice(userId, SCENARIO, UUID.randomUUID(), 1.1);
 
     TurnResponse turn =
         say(
@@ -182,7 +198,7 @@ class PlacePracticeConversationTest {
   @DisplayName("모든 목표를 이룬 턴에 직원이 마무리하며 대화를 끝내고 그 연습을 완료로 남긴다")
   void turn_completingEveryGoalWrapsUpAndRecordsDone() {
     ConversationStartResponse started =
-        conversationService.startPractice(userId, SCENARIO, UUID.randomUUID());
+        conversationService.startPractice(userId, SCENARIO, UUID.randomUUID(), 1.1);
     say(started.conversationId(), "My room is too noisy.", "describe_room_problem");
     clearInvocations(aiGateway);
 
@@ -210,7 +226,7 @@ class PlacePracticeConversationTest {
   @DisplayName("끝낸 연습을 다시 하면 목표를 처음부터 다시 판정하고, 완료 기록은 남는다")
   void start_againAfterFinishingBeginsWithFreshGoals() {
     ConversationStartResponse first =
-        conversationService.startPractice(userId, SCENARIO, UUID.randomUUID());
+        conversationService.startPractice(userId, SCENARIO, UUID.randomUUID(), 1.1);
     say(
         first.conversationId(),
         "My room is noisy. Can I change rooms?",
@@ -219,7 +235,7 @@ class PlacePracticeConversationTest {
     clearInvocations(aiGateway);
 
     ConversationStartResponse again =
-        conversationService.startPractice(userId, SCENARIO, UUID.randomUUID());
+        conversationService.startPractice(userId, SCENARIO, UUID.randomUUID(), 1.1);
     say(again.conversationId(), "Hello.");
 
     assertThat(again.conversationId()).isNotEqualTo(first.conversationId());
@@ -237,7 +253,7 @@ class PlacePracticeConversationTest {
   @DisplayName("연습 대화를 끝내면 상황과 목표로 피드백을 만들고 기억·건넬 것은 만들지 않는다")
   void end_givesFeedbackOnTheScenarioWithoutMemoryOrFollowUp() {
     ConversationStartResponse started =
-        conversationService.startPractice(userId, SCENARIO, UUID.randomUUID());
+        conversationService.startPractice(userId, SCENARIO, UUID.randomUUID(), 1.1);
     say(started.conversationId(), "My room is too noisy.", "describe_room_problem");
     given(aiGateway.feedback(any(), any()))
         .willReturn(new WorkerFeedback("failed", "AI_TIMEOUT", null, null, List.of()));
@@ -260,7 +276,7 @@ class PlacePracticeConversationTest {
   @DisplayName("연습 대화의 힌트는 이야기 퀘스트 대신 상황의 다음 목표로 만든다")
   void hint_usesTheNextScenarioGoal() {
     ConversationStartResponse started =
-        conversationService.startPractice(userId, SCENARIO, UUID.randomUUID());
+        conversationService.startPractice(userId, SCENARIO, UUID.randomUUID(), 1.1);
     given(aiGateway.hint(any(), any(), any(), anyString(), anyInt()))
         .willReturn(
             new HintResult(

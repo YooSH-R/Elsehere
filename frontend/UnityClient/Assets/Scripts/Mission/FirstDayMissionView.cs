@@ -221,11 +221,6 @@ namespace A305.Mission
         private QuestBoardState finishedBoard;
         private int unlockedQuest = -1;
 
-        // 첫 호텔 퀘스트(서버 Quest.CHECK_IN)를 끝낸 팡파레의 [다음]에서 사용자 설문을 권한다.
-        // 게스트는 대화 3번으로 이 퀘스트를 끝낼 수 없어 사실상 회원만 받고, 게스트는 대화를 다 쓸 때 따로 받는다.
-        private const string SurveyQuestId = "CHECK_IN";
-        private bool asksSurveyOnNext;
-
         // 퀘스트 카드·미니맵의 화면 자리를 구하는 데 매 프레임 다시 쓴다.
         private readonly Vector3[] hudCorners = new Vector3[4];
 
@@ -608,7 +603,6 @@ namespace A305.Mission
                 index + 1 < board.Quests.Count
                 && board.Quests[index + 1].Status == QuestEntry.Available;
             unlockedQuest = opensNext ? index + 1 : -1;
-            asksSurveyOnNext = questId == SurveyQuestId;
             ShowLargeMap(false);
             if (IsQuestBoardOpen)
                 questBoard.Close();
@@ -640,11 +634,6 @@ namespace A305.Mission
             }
             unlockedQuest = -1;
             UpdateBoardLayer();
-            if (asksSurveyOnNext)
-            {
-                asksSurveyOnNext = false;
-                A305.Api.SurveyPrompt.RequestUnlessInvited();
-            }
         }
 
         /// <summary>

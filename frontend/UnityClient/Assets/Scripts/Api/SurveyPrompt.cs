@@ -4,7 +4,7 @@ namespace A305.Api
 {
     /// <summary>
     /// 사용자 설문. 설문을 권할 때가 되면 <see cref="Request"/>로 알리고, 장소 HUD의 설문 카드가 받아 화면 위 가운데에서 내려온다.
-    /// 첫 대화 피드백을 닫으면 기기에서 한 번 안내한다. 뒤늦은 가입·퀘스트 안내는 중복 요청하지 않는다.
+    /// 튜토리얼을 제외한 첫 일반 대화 피드백을 닫으면 기기에서 한 번 안내한다.
     /// 문구·주소·모양은 설문 카드 한 곳에서 바꾼다.
     /// </summary>
     public static class SurveyPrompt
@@ -18,23 +18,17 @@ namespace A305.Api
 
         public static void Request() => Requested?.Invoke();
 
-        public const string InvitationKey = "elsehere.survey.first-feedback.invited.v1";
+        // v1은 튜토리얼에서도 소비돼 일반 대화 안내 여부를 구별할 수 없다.
+        public const string InvitationKey = "elsehere.survey.first-real-feedback.invited.v2";
 
-        public static bool RequestAfterFeedback()
+        public static bool RequestAfterFeedback(bool isRegularConversation = true)
         {
-            if (UnityEngine.PlayerPrefs.GetInt(InvitationKey, 0) != 0)
+            if (!isRegularConversation || UnityEngine.PlayerPrefs.GetInt(InvitationKey, 0) != 0)
                 return false;
             UnityEngine.PlayerPrefs.SetInt(InvitationKey, 1);
             UnityEngine.PlayerPrefs.Save();
             Request();
             return true;
-        }
-
-        // 예전 자동 안내 시점이 늦게 와도 첫 피드백에서 이미 안내했다면 반복하지 않는다.
-        public static void RequestUnlessInvited()
-        {
-            if (UnityEngine.PlayerPrefs.GetInt(InvitationKey, 0) == 0)
-                Request();
         }
     }
 }

@@ -13,7 +13,7 @@ namespace A305.Dialogue.PlayModeTests
 {
     /// <summary>
     /// 서버 없이 실제 대화창 프리팹에서 [힌트]를 메뉴를 거치지 않고 바로 누를 수 있는지,
-    /// 받은 추천 문장이 따로 카드 없이 입력창에 들어가는지 확인한다.
+    /// 고정 카드에서 추천 문장을 펼치고 가리며, 문장을 직접 눌렀을 때만 입력창에 들어가는지 확인한다.
     /// </summary>
     public class DialoguePanelHintTests
     {
@@ -52,7 +52,8 @@ namespace A305.Dialogue.PlayModeTests
             view.HintRequested += () => requests++;
             Button hint = FindButton("HintButton");
 
-            Assert.That(hint.transform.parent.name, Is.EqualTo("ToolRow"));
+            Assert.That(hint.transform.IsChildOf(FindChild("HintCard")), Is.True);
+            Assert.That(FindChild("Panel/Conversation/ToolRow/HintButton"), Is.Null);
             Assert.That(hint.gameObject.activeInHierarchy, Is.True);
             Assert.That(hint.interactable, Is.True);
             Assert.That(FindChild("MoreButton"), Is.Null);
@@ -64,15 +65,16 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator HintText_AfterServerAnswers_FillsTheInputWithoutASentenceCard()
+        public IEnumerator HintText_AfterServerAnswers_StaysHiddenWithoutChangingTheDraft()
         {
             content.HintText = HintSentence;
             view.Refresh();
             yield return null;
 
-            Assert.That(Input.text, Is.EqualTo(HintSentence));
-            Assert.That(FindChild("HintCard"), Is.Null);
-            Assert.That(FindChild("UseHintButton"), Is.Null);
+            Assert.That(Input.text, Is.Empty);
+            Assert.That(FindChild("HintCard"), Is.Not.Null);
+            Assert.That(FindChild("HintCover").gameObject.activeInHierarchy, Is.True);
+            Assert.That(FindChild("HintSentence").gameObject.activeInHierarchy, Is.False);
         }
 
         [UnityTest]
@@ -90,7 +92,7 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator HintButton_AfterHintArrived_RefillsTheInputWithoutAskingAgain()
+        public IEnumerator RevealedSentence_WhenClicked_FillsTheInputWithoutSendingOrAskingAgain()
         {
             content.HintText = HintSentence;
             view.Refresh();
@@ -104,6 +106,13 @@ namespace A305.Dialogue.PlayModeTests
             ClickCenterOf(hint);
             yield return null;
 
+            Assert.That(Input.text, Is.Empty);
+            Assert.That(
+                FindChild("HintSentence").GetComponent<TMP_Text>().text,
+                Does.Contain("아이스라테 한 잔 주시겠어요?")
+            );
+            ClickCenterOf(FindButton("UseHintButton"));
+            yield return null;
             Assert.That(Input.text, Is.EqualTo(HintSentence));
             Assert.That(requests, Is.EqualTo(0));
         }
@@ -133,14 +142,74 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator HintRequest_UnchangedDraftCanBeReplacedByTheRequestedHint()
+        public IEnumerator HintRequest_UnchangedDraftIsKeptUntilTheSentenceIsClicked()
         {
             Input.text = "My first draft";
             ClickCenterOf(FindButton("HintButton"));
             content.HintText = HintSentence;
             view.Refresh();
             yield return null;
-            Assert.That(Input.text, Is.EqualTo(HintSentence));
+            Assert.That(Input.text, Is.EqualTo("My first draft"));
+        }
+
+        [UnityTest]
+        public IEnumerator HintToggle_ReusesReceivedTextAndKeepsTheCardSize()
+        {
+            int requests = 0;
+            view.HintRequested += () =>
+            {
+                requests++;
+                content.HintText = HintSentence;
+            };
+            RectTransform card = (RectTransform)FindChild("HintCard");
+            Vector2 before = card.rect.size;
+            ClickCenterOf(FindButton("HintButton"));
+            yield return null;
+            Assert.That(FindChild("HintSentence").gameObject.activeInHierarchy, Is.True);
+            Assert.That(card.rect.size, Is.EqualTo(before));
+            ClickCenterOf(FindButton("HideHintButton"));
+            yield return null;
+            Assert.That(FindChild("HintCover").gameObject.activeInHierarchy, Is.True);
+            ClickCenterOf(FindButton("HintButton"));
+            yield return null;
+            Assert.That(requests, Is.EqualTo(1));
+            Assert.That(card.rect.size, Is.EqualTo(before));
+        }
+
+        [UnityTest]
+        public IEnumerator LongHint_ScrollsInsideTheFixedCardAndResetsForTheNextNpcLine()
+        {
+            content.HintText = string.Join("\n", new string[20])
+                .Replace("\n", "A longer practice sentence.\n");
+            view.Refresh();
+            ClickCenterOf(FindButton("HintButton"));
+            yield return null;
+            ScrollRect scroll = FindChild("HintSentence").GetComponentInParent<ScrollRect>();
+            Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
+            RectTransform card = (RectTransform)FindChild("HintCard");
+            Vector2 size = card.rect.size;
+            content.CurrentLine = DialogueLine.FromNpc("Anything else?", null);
+            content.HintText = null;
+            view.Refresh();
+            yield return null;
+            Assert.That(FindChild("HintCover").gameObject.activeInHierarchy, Is.True);
+            Assert.That(card.rect.size, Is.EqualTo(size));
+        }
+
+        [UnityTest]
+        public IEnumerator ReviewReference_KeepsTheHintAvailableWithoutHidingTheReference()
+        {
+            view.SetReviewReference("분실한 파란 가방을 찾고 물건을 설명해 보세요.");
+            view.Refresh();
+            yield return null;
+            Button hint = FindButton("HintButton");
+            Assert.That(hint.gameObject.activeInHierarchy, Is.True);
+            Assert.That(FindChild("HelpPanel").gameObject.activeInHierarchy, Is.True);
+            content.HintText = HintSentence;
+            ClickCenterOf(hint);
+            yield return null;
+            Assert.That(FindChild("HintSentence").gameObject.activeInHierarchy, Is.True);
+            Assert.That(FindChild("HelpPanel").gameObject.activeInHierarchy, Is.True);
         }
 
         private TMP_InputField Input => panelObject.GetComponentInChildren<TMP_InputField>(true);
@@ -203,12 +272,13 @@ namespace A305.Dialogue.PlayModeTests
 
             public string UserTranslation { get; set; }
             public string NpcName => "Alex";
-            public IReadOnlyList<DialogueLine> Lines => new[] { Opening };
-            public DialogueLine LastNpcLine => Opening;
+            public DialogueLine CurrentLine { get; set; } = Opening;
+            public IReadOnlyList<DialogueLine> Lines => new[] { CurrentLine };
+            public DialogueLine LastNpcLine => CurrentLine;
             public bool IsGuided { get; set; }
             public bool IsGuidedCompleted => false;
             public string SuggestedEnglish => null;
-            public string SuggestedKorean => null;
+            public string SuggestedKorean => "아이스라테 한 잔 주시겠어요?";
             public string ExampleSentence => null;
             public bool IsBusy => false;
             public string StatusMessage => null;

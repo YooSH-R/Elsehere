@@ -321,6 +321,7 @@ namespace A305.Dialogue
 
         /// <summary>NPC 대사에 대답할 만한 영어 문장</summary>
         public string HintText { get; set; }
+        public string HintMeaningKo { get; set; }
     }
 
     /// <summary>추천 단어(CONV-12).</summary>

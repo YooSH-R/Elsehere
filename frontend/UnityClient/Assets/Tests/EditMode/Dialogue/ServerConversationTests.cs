@@ -2341,6 +2341,22 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task RequestHint_KeepsTheMeaningFromTheSameResponseWithoutAnotherRequest()
+        {
+            await conversation.StartAsync();
+            api.Hint = new HintData
+            {
+                TurnId = OpeningTurnId,
+                HintText = "For here, please.",
+                HintMeaningKo = "매장에서 먹을게요.",
+            };
+            await conversation.RequestHintAsync();
+            await conversation.RequestHintAsync();
+            Assert.That(conversation.HintMeaningKo, Is.EqualTo("매장에서 먹을게요."));
+            Assert.That(api.HintRequestedFor, Is.EqualTo(new[] { OpeningTurnId }));
+        }
+
+        [Test]
         public async Task RequestHint_WhenServerFails_ShowsReasonWithoutHint()
         {
             await conversation.StartAsync();

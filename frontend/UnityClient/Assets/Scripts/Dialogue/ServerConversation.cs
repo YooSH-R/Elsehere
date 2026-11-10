@@ -179,6 +179,7 @@ namespace A305.Dialogue
         public IReadOnlyList<GlossaryData> LastNpcGlossary { get; private set; }
         public bool HasHint => true;
         public string HintText { get; private set; }
+        public string HintMeaningKo { get; private set; }
         public bool UsesVoice => true;
         public ConversationStanding Standing { get; } = new ConversationStanding();
         public bool CanTalk => canTalk;
@@ -513,6 +514,7 @@ namespace A305.Dialogue
                 {
                     HintData hint = await api.GetHintAsync(turn.TurnId, NewRequestId());
                     HintText = hint.HintText;
+                    HintMeaningKo = hint.HintMeaningKo;
                 }
             );
         }
@@ -814,6 +816,7 @@ namespace A305.Dialogue
             // 단어 풀이와 힌트는 지난 대사의 것이므로 새 대사에서는 다시 받는다.
             LastNpcGlossary = turn.Glossary;
             HintText = null;
+            HintMeaningKo = null;
             NpcSpoke?.Invoke(turn);
         }
 

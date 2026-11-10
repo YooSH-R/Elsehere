@@ -61,10 +61,12 @@
     {
       "file": "loops\\02_street_speech.wav",
       "loop": true,
-      "seconds": 43.8,
-      "peak_db": -12.77,
-      "join_jump": 0.001312255859375,
-      "constant_volume": true
+      "seconds": 46.5,
+      "peak_db": -4.91,
+      "join_jump": 0.004180908203125,
+      "constant_volume": true,
+      "speech_source": "대화소리.wav 18s; replacing previous indoor foreground caller",
+      "speech_rms_db": -28.5
     },
     {
       "file": "loops\\03_cafe.wav",

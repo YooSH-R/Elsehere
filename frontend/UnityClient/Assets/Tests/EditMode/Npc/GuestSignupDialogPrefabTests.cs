@@ -48,9 +48,9 @@ namespace A305.Npc.Tests
             Assert.That(window.Find("Dialog/Buttons/SignupButton"), Is.Not.Null);
         }
 
-        // 설문은 창 안이 아니라 화면 위 설문 카드(HUD)로 따로 띄운다. 창이 열릴 때 요청만 한다.
+        // 가입 안내가 튜토리얼 피드백의 설문 제외를 우회하지 않아야 한다.
         [Test]
-        public void ShowingGuestSignupDialog_RequestsTheSurveyCard()
+        public void ShowingGuestSignupDialogDoesNotIndependentlyRequestTheSurvey()
         {
             GameObject offer = Object.Instantiate(
                 AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath)
@@ -62,7 +62,7 @@ namespace A305.Npc.Tests
             {
                 offer.GetComponent<GuestSignupDialogView>().Show();
 
-                Assert.That(requests, Is.EqualTo(1));
+                Assert.That(requests, Is.Zero);
             }
             finally
             {

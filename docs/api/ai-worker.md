@@ -314,7 +314,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 | 칸 | 내용 |
 |---|---|
 | `file` | 녹음. 파일 부분의 `Content-Type`이 `audio/webm`·`audio/ogg`·`audio/mp4`·`audio/wav`·`audio/x-wav`·`audio/mpeg` 중 하나여야 합니다(`;codecs=...` 같은 매개변수는 붙어도 됨). 그 밖의 형식이나 `Content-Type`이 없으면(`application/octet-stream` 포함) 415 `audio_format_unsupported`, 3MB를 넘으면 413 `audio_too_large`, 비면 400 `invalid_request`입니다. 형식이 맞지 않으면 STT 공급자를 부르지 않습니다 |
-| `scene_words` | 장면 단어(사람 이름, 메뉴·상품 이름). JSON 배열 또는 쉼표로 구분한 글. 최대 30개 사용. Spring은 학습자 닉네임(게스트 제외)과, 자유 대화(`TURN`)면 대화 NPC 이름과 그 NPC 장소의 단어(`backend/src/main/resources/content/speech-words.json`)를 이 순서로 JSON 배열로 보냅니다 |
+| `scene_words` | 장면 단어(사람 이름, 메뉴·상품 이름, 마을·가게 이름). JSON 배열 또는 쉼표로 구분한 글. 최대 40개 사용(기본 프롬프트·`npc_line`과 합쳐도 Whisper 프롬프트 한도 224토큰 안). Spring은 학습자 닉네임(게스트 제외), 자유 대화(`TURN`)면 대화 NPC 이름·같은 장소 NPC 이름, 늘 마을·가게 이름(`Maple Town`, `Maple Bakery` 등), 자유 대화면 마지막으로 그 장소의 단어를 이 순서로 JSON 배열로 보냅니다. 메뉴를 끝에 두면 긴 이름 목록으로 끝날 때보다 결과의 문장부호가 덜 빠집니다. 장소 단어와 마을 단어는 `backend/src/main/resources/content/speech-words.json`에 둡니다 |
 | `npc_line` | 선택. 학습자가 대답하는 직전 NPC 대사. Spring은 자유 대화(`TURN`) 녹음에 그 대화의 마지막 NPC 턴을 보냅니다 |
 
 응답: `{"text": "...", "latency_s": 0.41, "audio_s": 2.9, "usage": [{"step": "stt", "model": "...", "audio_s": 2.9, "latency_s": 0.41, "fallback": false}]}`

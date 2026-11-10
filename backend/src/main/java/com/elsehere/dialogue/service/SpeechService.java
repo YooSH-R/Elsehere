@@ -21,6 +21,7 @@ import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.ConsentType;
 import com.elsehere.user.repository.UserRepository;
 import com.elsehere.user.service.OptionalConsentService;
+import com.elsehere.world.repository.NpcRepository;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
@@ -58,6 +59,7 @@ public class SpeechService {
   private final TrainingRecordingService trainingRecordingService;
   private final UserRepository userRepository;
   private final SpeechWords speechWords;
+  private final NpcRepository npcRepository;
   private final Clock clock;
   private final JsonMapper jsonMapper;
 
@@ -182,10 +184,11 @@ public class SpeechService {
   }
 
   /**
-   * 음성 인식에 철자를 알려 줄 장면 단어. 학습자 닉네임, 대화 NPC 이름, 그 NPC 장소의 메뉴·상품 이름 순서다. 한국식 발음 '아메리카노'가 American으로
-   * 적히지 않게 한다. 게스트 닉네임(guest-000123)은 사람 이름이 아니라 넣지 않는다.
+   * 음성 인식에 철자를 알려 줄 장면 단어. 학습자 닉네임, 대화 NPC 이름, 같은 장소 NPC 이름, 마을·가게 이름, 그 장소의 메뉴·상품 이름 순서다. 메뉴를 끝에
+   * 두어야 프롬프트가 긴 이름 목록으로 끝날 때보다 문장부호가 덜 빠지고 대화 정확도가 덜 떨어진다(S15P31A305-747 dev GPU 측정). 한국식 발음
+   * '아메리카노'가 American으로, Maple Town이 다른 말로 적히지 않게 한다. 게스트 닉네임(guest-000123)은 사람 이름이 아니라 넣지 않는다.
    *
-   * @param conversationId 자유 대화 발화일 때 대화. 튜토리얼이면 null이고 NPC 단어 없이 닉네임만 보낸다
+   * @param conversationId 자유 대화 발화일 때 대화. 튜토리얼이면 null이고 NPC 단어 없이 닉네임과 마을 단어만 보낸다
    */
   private List<String> sceneWords(Long userId, Long conversationId) {
     return transactionTemplate.execute(
@@ -202,7 +205,13 @@ public class SpeechService {
                         conversationLookup.ownedConversation(userId, conversationId).getNpcId())
                     .workerNpc();
             words.add(npc.name());
+            for (String code : speechWords.coworkerCodes(npc.id())) {
+              npcRepository.findByCode(code).ifPresent(coworker -> words.add(coworker.getName()));
+            }
+            words.addAll(speechWords.townWords());
             words.addAll(speechWords.placeWords(npc.id()));
+          } else {
+            words.addAll(speechWords.townWords());
           }
           return List.copyOf(words);
         });

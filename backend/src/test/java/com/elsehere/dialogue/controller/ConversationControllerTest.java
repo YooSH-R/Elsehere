@@ -115,6 +115,44 @@ class ConversationControllerTest {
   }
 
   @Test
+  void startPracticeUsesAuthenticatedOwnerAndReturnsScenario() throws Exception {
+    given(conversationService.startPractice(1L, "DINER_TABLE", REQUEST_ID, 1.1))
+        .willReturn(
+            new ConversationStartResponse(
+                77L,
+                ConversationStatus.ACTIVE,
+                1,
+                NPC,
+                List.of(),
+                null,
+                null,
+                null,
+                null,
+                "DINER_TABLE"));
+    mockMvc
+        .perform(
+            post("/api/v1/practice-scenarios/DINER_TABLE/conversations")
+                .with(authentication(loggedIn(1L)))
+                .header("X-Requested-With", "XMLHttpRequest")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"requestId\":\"" + REQUEST_ID + "\"}"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.conversationId").value(77))
+        .andExpect(jsonPath("$.practiceScenarioId").value("DINER_TABLE"));
+  }
+
+  @Test
+  @DisplayName("장소 연습 대화 시작에 실은 NPC 말 빠르기를 서비스에 넘긴다")
+  void startPractice_withSpeechSpeed_passesSpeechSpeed() throws Exception {
+    mockMvc.perform(
+        request(
+            post("/api/v1/practice-scenarios/DINER_TABLE/conversations"),
+            "{\"requestId\": \"" + REQUEST_ID + "\", \"speechSpeed\": 1.4}"));
+
+    then(conversationService).should().startPractice(1L, "DINER_TABLE", REQUEST_ID, 1.4);
+  }
+
+  @Test
   @DisplayName("GET /api/v1/conversations는 NPC·커서·크기를 넘겨 지난 대화 목록 한 페이지를 돌려준다")
   void list_respondsPage() throws Exception {
     ConversationSummaryResponse item =
@@ -327,7 +365,7 @@ class ConversationControllerTest {
 
   @ParameterizedTest
   @ValueSource(doubles = {0.7, 1.6})
-  @DisplayName("NPC 말 빠르기가 0.8~1.5배 밖이면 대화 시작·발화 전송·복습 시작 모두 400 VALIDATION_FAILED다")
+  @DisplayName("NPC 말 빠르기가 0.8~1.5배 밖이면 대화 시작·발화 전송·복습·장소 연습 시작 모두 400 VALIDATION_FAILED다")
   void speechSpeedOutsideSettingRange_isRejected(double speechSpeed) throws Exception {
     mockMvc
         .perform(
@@ -356,6 +394,13 @@ class ConversationControllerTest {
         .perform(
             request(
                 post("/api/v1/review-cards/42/conversations"),
+                "{\"requestId\": \"" + REQUEST_ID + "\", \"speechSpeed\": " + speechSpeed + "}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+    mockMvc
+        .perform(
+            request(
+                post("/api/v1/practice-scenarios/DINER_TABLE/conversations"),
                 "{\"requestId\": \"" + REQUEST_ID + "\", \"speechSpeed\": " + speechSpeed + "}"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));

@@ -55,6 +55,26 @@ namespace A305.Onboarding.Tests
             Assert.That(flow.UiTheme, Is.EqualTo("CLOUD"));
         }
 
+        // 장소 화면(첫 퀘스트 팡파레)이 게스트에게만 가입을 권하도록, 접속한 계정이 게스트인지 장면을 옮겨도 남는 곳에 둔다.
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task BootstrapTellsTheGameWhetherTheAccountIsAGuest(bool guest)
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Done, currentLanguage: "en-US");
+            api.Bootstrap.User.Guest = guest;
+            A305.Api.PlayerAccount.SetGuest(!guest);
+            try
+            {
+                await flow.StartAsync();
+
+                Assert.That(A305.Api.PlayerAccount.IsGuest, Is.EqualTo(guest));
+            }
+            finally
+            {
+                A305.Api.PlayerAccount.SetGuest(false);
+            }
+        }
+
         [Test]
         public async Task BootstrapTellsWhetherTheUserAgreedToVoiceInput()
         {

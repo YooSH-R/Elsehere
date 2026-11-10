@@ -13,6 +13,7 @@ import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.dialogue.dto.HintResponse;
 import com.elsehere.dialogue.dto.MeaningResponse;
 import com.elsehere.dialogue.dto.SuggestWordsResponse;
+import com.elsehere.mission.entity.PracticeScenario;
 import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.mission.service.MissionDialogueService;
 import com.elsehere.review.service.ReviewCardService;
@@ -149,6 +150,16 @@ public class TurnHelpService {
           + card.targets().stream()
               .map(com.elsehere.review.dto.ReviewTarget::expression)
               .collect(java.util.stream.Collectors.joining("; "));
+    }
+    if (conversation.isPractice()) {
+      // 장소 연습은 이야기 퀘스트 대신 고른 상황에서 아직 이루지 않은 첫 목표다.
+      return PracticeScenario.find(conversation.getPracticeScenario())
+          .flatMap(
+              scenario ->
+                  scenario.remainingGoals(conversation.getPracticeCompletedGoals()).stream()
+                      .findFirst())
+          .map(PracticeScenario.Goal::description)
+          .orElse("");
     }
     if (conversation.isNpcOffDuty()) {
       return "";

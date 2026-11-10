@@ -130,6 +130,7 @@ namespace A305.Ambience
                     walking
                 );
                 Source.volume = (player != null ? .42f : .065f) * duck;
+                Source.mute = !BackgroundSoundPreference.Enabled;
                 if (step)
                     Source.PlayOneShot(clips.Step(clipIndex++));
             }

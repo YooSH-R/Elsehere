@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using A305.Api;
+using A305.Dialogue;
 using NUnit.Framework;
 
 namespace A305.Learning.Tests
@@ -89,10 +90,23 @@ namespace A305.Learning.Tests
         {
             transport.Body = "{\"conversationId\":88,\"reviewCardId\":42}";
 
-            var started = await api.StartAsync(42, "test-request");
+            float saved = NpcSpeechSpeed.Current;
+            NpcSpeechSpeed.Current = 1.2f;
+            ConversationStart started;
+            try
+            {
+                started = await api.StartAsync(42, "test-request");
+            }
+            finally
+            {
+                NpcSpeechSpeed.Current = saved;
+            }
 
             Assert.That(transport.Request.Url, Is.EqualTo("/api/v1/review-cards/42/conversations"));
-            Assert.That(transport.Request.JsonBody, Is.EqualTo("{\"requestId\":\"test-request\"}"));
+            Assert.That(
+                transport.Request.JsonBody,
+                Is.EqualTo("{\"requestId\":\"test-request\",\"speechSpeed\":1.2}")
+            );
             Assert.That(started.ConversationId, Is.EqualTo(88));
         }
 

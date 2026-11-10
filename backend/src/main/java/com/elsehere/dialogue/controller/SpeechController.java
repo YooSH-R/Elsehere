@@ -55,6 +55,7 @@ public class SpeechController {
       @AuthenticationPrincipal LoginUser loginUser,
       @PathVariable Long turnId,
       @Valid @RequestBody SpeechRegenerateRequest request) {
-    return speechService.regenerateSpeech(loginUser.userId(), turnId, request.requestId());
+    return speechService.regenerateSpeech(
+        loginUser.userId(), turnId, request.requestId(), request.speechSpeed());
   }
 }

@@ -2,6 +2,8 @@ package com.elsehere.dialogue.dto;
 
 import com.elsehere.conversation.entity.InitiatedBy;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
@@ -17,7 +19,17 @@ public record StartConversationRequest(
     @NotBlank String npcCode,
     @NotNull InitiatedBy initiatedBy,
     Boolean npcOffDuty,
-    @Valid NpcTravelContext npcTravelContext) {
+    @Valid NpcTravelContext npcTravelContext,
+    @DecimalMin(NpcSpeechSpeed.MIN) @DecimalMax(NpcSpeechSpeed.MAX) Double speechSpeed) {
+
+  public StartConversationRequest(
+      UUID requestId,
+      String npcCode,
+      InitiatedBy initiatedBy,
+      Boolean npcOffDuty,
+      NpcTravelContext npcTravelContext) {
+    this(requestId, npcCode, initiatedBy, npcOffDuty, npcTravelContext, null);
+  }
 
   public StartConversationRequest(
       UUID requestId, String npcCode, InitiatedBy initiatedBy, Boolean npcOffDuty) {
@@ -26,6 +38,7 @@ public record StartConversationRequest(
 
   public StartConversationRequest {
     npcOffDuty = Boolean.TRUE.equals(npcOffDuty);
+    speechSpeed = NpcSpeechSpeed.orDefault(speechSpeed);
   }
 
   /** 근무 중인 NPC와의 대화. */

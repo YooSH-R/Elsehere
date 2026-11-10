@@ -119,6 +119,33 @@ namespace A305.EditorTools.Theme
             Debug.Log("HUD에 로그인 끊김 안내 창을 덧붙였습니다.");
         }
 
+        /// <summary>
+        /// HUD 내 정보 창에 NPC 말 빠르기 줄만 덧붙이고 칠한다(S15P31A305-778). HUD 전체 Builder를 다시 돌리면 다른 Builder가
+        /// 마무리한 HUD 디자인까지 바뀌므로 이 줄만 다룬다.
+        /// </summary>
+        [MenuItem("Tools/A305/UI/Add NPC Speech Speed Setting")]
+        public static void ApplyNpcSpeechSpeed()
+        {
+            BuilderTools.ThrowIfPlaying();
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            BuilderTools.UpdatePrefabIfExists(
+                HudPath,
+                root =>
+                {
+                    LearningBuilder.AddNpcSpeechSpeed(root);
+                    StyleMyPage(root.transform);
+                    foreach (
+                        ThemedElement element in root
+                            .transform.Find("MyPage/Window/NpcSpeechSpeed")
+                            .GetComponentsInChildren<ThemedElement>(true)
+                    )
+                        element.ApplyCurrent();
+                }
+            );
+            AssetDatabase.SaveAssets();
+            Debug.Log("내 정보 창에 NPC 말 빠르기 줄을 덧붙였습니다.");
+        }
+
         /// <summary>대화 제안·로그인과 가입·피드백 목록·내 정보 창의 바탕과 버튼을 다른 화면과 같은 테마 규칙으로 맞춘다.</summary>
         [MenuItem("Tools/A305/UI/Apply Unified Dialogs")]
         public static void ApplyUnifiedDialogs()
@@ -505,6 +532,11 @@ namespace A305.EditorTools.Theme
             Role(root, "MyPage/Window/LookSensitivity/Row/Slow", UiThemeRole.Caption);
             Role(root, "MyPage/Window/LookSensitivity/Row/Fast", UiThemeRole.Caption);
             Role(root, "MyPage/Window/LookSensitivity/Row/Value", UiThemeRole.Accent);
+            Role(root, "MyPage/Window/NpcSpeechSpeed/Title", UiThemeRole.Title);
+            Role(root, "MyPage/Window/NpcSpeechSpeed/Help", UiThemeRole.Muted);
+            Role(root, "MyPage/Window/NpcSpeechSpeed/Row/Slow", UiThemeRole.Caption);
+            Role(root, "MyPage/Window/NpcSpeechSpeed/Row/Fast", UiThemeRole.Caption);
+            Role(root, "MyPage/Window/NpcSpeechSpeed/Row/Value", UiThemeRole.Accent);
             ActionPill(
                 root,
                 "MyPage/Window/NicknameRow/NicknameButton",

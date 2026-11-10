@@ -16,6 +16,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | 백엔드 API | AI API | 대응 |
 |---|---|---|
 | ONB-08·09 난이도, CONV-01 `levelApplied` | 모든 대화 요청의 `level` | 그대로 넘김 (MVP는 `1`) |
+| ONB-05 레벨 테스트 완료 (말하기 문항 채점) | `POST /v1/level-test/speaking` | 테스트를 끝낼 때 말하기 문항과 답을 모아 한 번 부름. 문항별 `results[].passed`와 `feedback_ko`를 받음 (2.6.3절) |
 | CONV-01 대화 시작 · 첫 인사 | `/v1/npc/reply` | 이 NPC가 곧 건네기로 한 것(2.7.3절)이 준비됐으면 건네는 지시로 AI가 만듦. 말걸기 대사가 있는 NPC가 먼저 말을 걸면 그 대사(AI 호출 없음). 그 밖에는 인사 지시(`instruction`)로 AI가 만듦. `relationship`도 실으면 알아보는 인사가 됨(2.3절) |
 | CONV-12 추천 단어 | `POST /v1/suggest` | `suggestWords` ← `words`. NPC 대답 응답(CONV-01·03)을 기다리게 하지 않도록 `/v1/npc/reply`는 `suggest_words: false`로 부르고, 대사를 받은 뒤 클라이언트가 CONV-12로 따로 요청함. 끝난 대화의 턴은 요청하지 않음 |
 | CONV-02 음성 인식 | `POST /v1/stt` | `sttRawText` ← `text`, `durationMs` ← `audio_s`×1000. `text: ""`이면 `STT_NO_SPEECH`. 413 `audio_too_large` → `AUDIO_TOO_LARGE`, 415 `audio_format_unsupported` → `AUDIO_FORMAT_UNSUPPORTED` |
@@ -121,7 +122,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 ### 1.1 대화 난이도 `level`
 
-`level` — 대화 난이도(백엔드 `levelApplied`). `1`·`2`·`3` 중 하나이고 기본은 `2`입니다. MVP는 `1`만 보냅니다. 판정(`/v1/judge`)에는 영향이 없습니다.
+`level` — 대화 난이도(백엔드 `levelApplied`). `1`·`2`·`3` 중 하나이고 기본은 `2`입니다. 백엔드는 사용자가 고른 `1`(초급)·`2`(중급)를 보냅니다. `3`(고급)은 잠가 두어 보내지 않습니다. 판정(`/v1/judge`)에는 영향이 없습니다.
 
 | 단계 | NPC 대답 | 말 속도 | 힌트·추천 단어·단어 풀이 수준 |
 |---|---|---|---|
@@ -359,6 +360,45 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 - `glossary`: 대사의 내용어(명사·본동사·형용사·부사)와 숙어·구동사·관용 표현·정해진 문장 틀(`Would you like`, `Do you want to`, `Can I get`)을 나온 순서대로 **최대 15개**. 화면이 대사의 단어를 거의 다 눌러 뜻을 볼 수 있게 합니다. 숙어는 한 항목으로 두고, 그 뒤에 숙어 안의 내용어도 따로 둡니다(`grab a seat`, `grab`, `seat`). 화면은 겹치는 단어를 누르면 단어와 숙어를 함께 보입니다. 이름·숫자와 혼자 있는 기능어(관사·대명사·조동사·전치사·접속사)는 빼고, 숙어·문장 틀 안의 기능어는 그대로 둡니다. `text`는 대사에 **그대로 있는** 말만 남깁니다(대소문자 무시). 그런 말이 없으면 빈 목록.
 - 출력이 이 형식이 아니거나 `meaning_ko`가 비면 502 `invalid_output`. 같은 대사는 Spring이 저장해 다시 부르지 않습니다.
 
+### 2.6.3 `POST /v1/level-test/speaking` — 레벨 테스트 말하기 문항 판정 (백엔드 ONB-05)
+
+레벨 테스트의 말하기 문항마다 학습자의 답이 통과 기준을 영어로 해냈는지 판정하고, 한국어 피드백 한 문장을 만듭니다. 백엔드가 테스트를 끝낼 때 말하기 문항을 모아 한 번 부릅니다. 워커는 저장하지 않습니다.
+
+요청: `items`(문항 1~5개). `item_code`가 겹치거나 문항 수가 범위를 벗어나면 400 `invalid_request`입니다.
+
+| 칸 | 형식 | 뜻 |
+|---|---|---|
+| `item_code` | 문자열 (필수, 최대 64자) | 문항 코드 |
+| `situation` | 문자열 (필수, 최대 500자) | 학습자에게 보여 준 상황 (한국어) |
+| `cues` | 문자열 목록 (기본 `[]`, 최대 10개) | 답에 넣어야 할 내용 (한국어) |
+| `criteria` | 문자열 (필수, 최대 1000자) | 통과 기준 (영어) |
+| `answer` | 문자열 (기본 `""`, 최대 1000자) | 학습자가 말한 답(음성 인식 결과) 또는 쓴 답. 비었거나 한국어·서툰 영어일 수 있음 |
+
+```json
+{
+  "items": [
+    {
+      "item_code": "EN_LT_S1",
+      "situation": "카페에 가방을 두고 왔어요. 가방이 어떻게 생겼는지 말하고 찾아 달라고 하세요.",
+      "cues": ["파란 숄더백", "빨간 열쇠고리", "안에 여권 지갑과 책"],
+      "criteria": "Says they left or lost a bag at the cafe and describes it with all three details (a blue shoulder bag, a red keyring, a passport wallet and a book inside), in English sentences rather than a list of words.",
+      "answer": "I think I left my bag here. It's a blue shoulder bag with a red keyring. My passport wallet and a book are in it."
+    }
+  ]
+}
+```
+
+응답:
+
+```json
+{"results": [{"item_code": "EN_LT_S1", "passed": true}], "feedback_ko": "설명은 잘했어요. 부탁할 때 Could you…? 같은 표현을 더 연습해 보세요.", "usage": [...]}
+```
+
+- `results`: 요청 문항마다 하나씩, **요청 순서대로**입니다. `passed`는 답이 `criteria`를 영어 문장으로 해냈을 때만 `true`입니다. 초급·중급을 가르는 판정이라 작은 문법 실수는 통과로 봅니다. 빈 답, 단어 하나나 단어 나열, 한국어 답, 기준이 요구한 내용이 빠진 답(한국어로만 말한 내용 포함)은 `false`입니다.
+- `feedback_ko`: 답을 바탕으로 잘한 점과 연습할 점 하나를 담은 짧은 해요체 한국어 한 문장입니다. 모델에 60자 이내로 지시하며, 워커가 자르지는 않습니다.
+- 학습자 영어를 평가하는 일이라 `feedback` 역할의 모델을 temperature 0으로 부릅니다. 사용량 단계는 `level_test_speaking`입니다. 학습자의 답은 프롬프트에서 지시가 아닌 데이터로 다룹니다.
+- 공급자 실패는 429/503입니다. 모델 출력이 문항을 빠뜨리거나, 요청에 없거나 겹친 문항을 내거나, `passed`가 참·거짓이 아니거나, `feedback_ko`가 비면 502 `invalid_output`입니다. 일부 문항만 돌려주지 않습니다.
+
 ### 2.7 `POST /v1/feedback` — 대화 종료 피드백 (ai/feedback 계약 0.3.0)
 
 대화가 끝나면 학습 피드백을 만듭니다. **요청·응답 형식은 `ai/feedback` 모듈의 계약(0.3.0)을 그대로 따릅니다.**
@@ -476,7 +516,7 @@ NPC 음성 재합성에는 선택 필드 `phrases`로 원래 `done.speech_phrase
 
 | 칸 | 뜻 |
 |---|---|
-| `step` | `intent`·`guard`·`translate`·`npc`·`hint`·`suggest`·`meaning`·`feedback`·`memory`·`narrate`·`stt` |
+| `step` | `intent`·`guard`·`translate`·`npc`·`hint`·`suggest`·`meaning`·`level_test_speaking`·`feedback`·`memory`·`narrate`·`stt` |
 | `model` | **실제로 쓴** 모델 (대체 모델이면 그 이름) |
 | `fallback` | 요청한 모델이 아닌 대체 모델을 썼는지 |
 | `hedged` | (있을 때만 `true`) 답이 늦어 같은 요청을 하나 더 보냈음(NPC 대답은 첫 글자 기준). 토큰은 먼저 온 답의 것만 기록되고, 늦은 쪽 사용량은 알 수 없음 (크레딧이 조금 더 나갔을 수 있음) |

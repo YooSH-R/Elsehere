@@ -230,6 +230,31 @@ class FollowUpRequest(BaseModel):
         return v
 
 
+# ---------- 레벨 테스트 ----------
+class LevelTestSpeakingItem(BaseModel):
+    """레벨 테스트 말하기 문항 하나와 학습자의 답."""
+
+    item_code: str = Field(min_length=1, max_length=64, pattern=r"\S")
+    situation: str = Field(min_length=1, max_length=500)  # 학습자에게 보여 준 상황 (한국어)
+    cues: list[str] = Field(default=[], max_length=10)  # 답에 넣어야 할 내용 (한국어)
+    criteria: str = Field(min_length=1, max_length=1000)  # 통과 기준 (영어)
+    answer: str = Field(default="", max_length=1000)  # 학습자가 말한(음성 인식) 또는 쓴 답. 비었거나 한국어일 수 있다
+
+
+class LevelTestSpeakingRequest(BaseModel):
+    """레벨 테스트 말하기 문항 판정 (app.prompts.LEVEL_TEST_SPEAKING_SYSTEM). 백엔드가 테스트를 끝낼 때 한 번 부른다."""
+
+    items: list[LevelTestSpeakingItem] = Field(min_length=1, max_length=5)
+
+    @field_validator("items")
+    @classmethod
+    def distinct_item_codes(cls, v: list[LevelTestSpeakingItem]) -> list[LevelTestSpeakingItem]:
+        codes = [item.item_code for item in v]
+        if len(set(codes)) != len(codes):
+            raise ValueError("같은 문항 코드가 두 번 있습니다")
+        return v
+
+
 # ---------- NPC 인격 카드 조합 (어드민 랜덤 생성, app.npc_persona) ----------
 Axis = Literal["openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism"]
 Role = Literal["STAFF", "PASSERBY"]

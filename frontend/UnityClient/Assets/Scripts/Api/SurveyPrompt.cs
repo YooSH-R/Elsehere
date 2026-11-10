@@ -18,6 +18,14 @@ namespace A305.Api
 
         public static void Request() => Requested?.Invoke();
 
+        /// <summary>안내가 접힌 뒤 남는 메인 화면의 설문 진입점.</summary>
+        public static bool EntryVisible { get; private set; }
+
+        public static void RevealEntry() => EntryVisible = true;
+
+        public static void RestoreEntry() =>
+            EntryVisible = UnityEngine.PlayerPrefs.GetInt(InvitationKey, 0) != 0;
+
         // v1은 튜토리얼에서도 소비돼 일반 대화 안내 여부를 구별할 수 없다.
         public const string InvitationKey = "elsehere.survey.first-real-feedback.invited.v2";
 

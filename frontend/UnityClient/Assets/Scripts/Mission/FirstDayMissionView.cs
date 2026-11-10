@@ -546,6 +546,11 @@ namespace A305.Mission
             if (canvas == null || situation == null)
                 return;
             var screen = (RectTransform)canvas.transform;
+            if (statusBar != null)
+                ((RectTransform)statusBar.transform).anchoredPosition = new Vector2(
+                    -HudTopBarLayout.StatusRight(A305.Api.SurveyPrompt.EntryVisible),
+                    -HudTopBarLayout.Margin
+                );
             Banner.SetSizeWithCurrentAnchors(
                 RectTransform.Axis.Horizontal,
                 Mathf.Min(CardWidth, screen.rect.width - Margin * 2)
@@ -761,6 +766,16 @@ namespace A305.Mission
             if (followUpCard != null)
                 followUpCard.SetBottomLimit(LeftColumnBottom());
             ShowClock();
+            var status = (RectTransform)statusBar.transform;
+            Vector2 statusPosition = new Vector2(
+                -HudTopBarLayout.StatusRight(A305.Api.SurveyPrompt.EntryVisible),
+                -HudTopBarLayout.Margin
+            );
+            status.anchoredPosition = Vector2.Lerp(
+                status.anchoredPosition,
+                statusPosition,
+                1f - Mathf.Exp(-18f * Time.unscaledDeltaTime)
+            );
             CenterWindow.Shared.SetLeftHud(LeftHudScreenWidth());
             bool escape =
                 Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;

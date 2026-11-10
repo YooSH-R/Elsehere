@@ -5,12 +5,15 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.GlossaryResponse;
 import com.elsehere.conversation.entity.Conversation;
+import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.ConversationRepository;
+import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.feedback.entity.ConversationFeedback;
 import com.elsehere.feedback.entity.FeedbackReviews;
 import com.elsehere.feedback.repository.ConversationFeedbackRepository;
+import com.elsehere.feedback.repository.TurnFeedbackRepository;
 import com.elsehere.user.entity.User;
 import com.elsehere.vocab.dto.VocabItemResponse;
 import com.elsehere.vocab.dto.VocabListResponse;
@@ -25,6 +28,7 @@ import com.elsehere.world.repository.NpcRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -61,6 +65,8 @@ public class VocabService {
   private final ConversationLookup conversationLookup;
   private final ConversationRepository conversationRepository;
   private final ConversationFeedbackRepository conversationFeedbackRepository;
+  private final TurnRepository turnRepository;
+  private final TurnFeedbackRepository turnFeedbackRepository;
   private final NpcRepository npcRepository;
   private final JsonMapper jsonMapper;
   private final Clock clock;
@@ -175,8 +181,8 @@ public class VocabService {
   }
 
   /**
-   * 대화 피드백의 단어장 후보나 "이 상황에서 자주 써요" 표현에서 단어·숙어·문장을 저장한다(VOCAB-02 FEEDBACK). 뜻은 후보의 뜻, 문장은 후보의 학습 예문과
-   * 예문 뜻이다.
+   * 대화 피드백의 단어장 후보, "이 상황에서 자주 써요" 표현, 문장 교정의 고친 문장에서 단어·숙어·문장을 저장한다(VOCAB-02 FEEDBACK). 후보와 표현은 그
+   * 뜻과 학습 예문·예문 뜻을, 고친 문장은 고친 이유를 뜻으로 저장하고 예문은 비운다.
    *
    * <p>다른 사용자의 대화는 존재 여부를 드러내지 않도록 NOT_FOUND로 응답한다.
    */
@@ -184,12 +190,15 @@ public class VocabService {
     Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
     // 피드백을 만들지 못했거나 후보를 넣기 전에 만든 피드백은 저장할 단어를 확인할 수 없다.
     List<FeedbackReviews.VocabCandidate> candidates =
-        conversationFeedbackRepository
-            .findById(conversation.getId())
-            .map(ConversationFeedback::getReviews)
-            .map(reviews -> jsonMapper.readValue(reviews, FeedbackReviews.class))
-            .map(VocabService::feedbackEntries)
-            .orElse(List.of());
+        new ArrayList<>(
+            conversationFeedbackRepository
+                .findById(conversation.getId())
+                .map(ConversationFeedback::getReviews)
+                .map(reviews -> jsonMapper.readValue(reviews, FeedbackReviews.class))
+                .map(VocabService::feedbackEntries)
+                .orElse(List.of()));
+    // 같은 말이 후보에도 있으면 뜻과 예문이 있는 후보를 먼저 쓴다.
+    candidates.addAll(correctedSentences(conversation));
     FeedbackReviews.VocabCandidate word =
         SourceWords.find(candidates, FeedbackReviews.VocabCandidate::expression, text)
             .orElseThrow(() -> new BusinessException(ErrorCode.VOCAB_SOURCE_MISMATCH));
@@ -210,7 +219,7 @@ public class VocabService {
 
   // 저장할 수 있는 말: 단어장 후보와 "이 상황에서 자주 써요" 숙어·문장. 이 필드를 넣기 전의 피드백은 null이다.
   private static List<FeedbackReviews.VocabCandidate> feedbackEntries(FeedbackReviews reviews) {
-    List<FeedbackReviews.VocabCandidate> entries = new java.util.ArrayList<>();
+    List<FeedbackReviews.VocabCandidate> entries = new ArrayList<>();
     if (reviews.vocabCandidates() != null) {
       entries.addAll(reviews.vocabCandidates());
     }
@@ -223,6 +232,22 @@ public class VocabService {
           .forEach(entries::add);
     }
     return entries;
+  }
+
+  // 문장 교정(FB-03)의 고친 문장. 한국어로 말한 발화의 영어 문장도 여기 있다. 학습 예문이 없으므로 고친 이유를 뜻으로 둔다.
+  private List<FeedbackReviews.VocabCandidate> correctedSentences(Conversation conversation) {
+    List<Long> userTurnIds =
+        turnRepository.findAllByConversationIdOrderBySeqAsc(conversation.getId()).stream()
+            .filter(turn -> turn.getSpeaker() == Speaker.USER)
+            .map(Turn::getId)
+            .toList();
+    return turnFeedbackRepository.findAllByTurnIdInOrderByTurnIdAsc(userTurnIds).stream()
+        .filter(feedback -> feedback.getBetterText() != null)
+        .map(
+            feedback ->
+                new FeedbackReviews.VocabCandidate(
+                    feedback.getBetterText(), feedback.getReason(), null, null))
+        .toList();
   }
 
   /** 이미 저장한 단어면 새로 만들지 않고 처음 저장한 항목(문장 포함)을 그대로 돌려준다. */

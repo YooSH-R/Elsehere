@@ -399,12 +399,14 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName("인격 카드는 처음 넣을 때만 쓰고, 다시 실행해도 이미 있는 카드를 바꾸지 않는다")
-  void load_keepsExistingProfile() {
+  @DisplayName("DB 카드의 profileVersion이 설정 파일과 같거나 높으면 다시 실행해도 카드를 바꾸지 않는다")
+  void load_keepsProfileOfSameVersion() throws IOException {
     worldSeedLoader.load();
+    int fileVersion = profilesInConfigurations().get("CAFE_STAFF").get("profileVersion").asInt();
     entityManager
         .createNativeQuery(
-            "update npcs set profile = '{\"name\": \"edited\"}' where code = 'CAFE_STAFF'")
+            "update npcs set profile = cast(:profile as jsonb) where code = 'CAFE_STAFF'")
+        .setParameter("profile", "{\"profileVersion\": " + fileVersion + ", \"name\": \"edited\"}")
         .executeUpdate();
 
     worldSeedLoader.load();
@@ -415,6 +417,28 @@ class WorldSeedLoaderTest {
         .extracting(Npc::getProfile)
         .asString()
         .contains("edited");
+  }
+
+  @Test
+  @DisplayName("설정 파일의 profileVersion이 DB 카드보다 높으면 카드를 설정 파일의 것으로 바꾼다")
+  void load_replacesProfileOfOlderVersion() throws IOException {
+    worldSeedLoader.load();
+    JsonNode expected = profilesInConfigurations().get("CAFE_STAFF");
+    entityManager
+        .createNativeQuery(
+            "update npcs set profile = cast(:profile as jsonb) where code = 'CAFE_STAFF'")
+        .setParameter(
+            "profile",
+            "{\"profileVersion\": "
+                + (expected.get("profileVersion").asInt() - 1)
+                + ", \"name\": \"old\"}")
+        .executeUpdate();
+
+    worldSeedLoader.load();
+    entityManager.clear();
+
+    String profile = npcRepository.findByCode("CAFE_STAFF").orElseThrow().getProfile();
+    assertThat(new JsonMapper().readTree(profile)).isEqualTo(expected);
   }
 
   private Map<String, JsonNode> profilesInConfigurations() throws IOException {

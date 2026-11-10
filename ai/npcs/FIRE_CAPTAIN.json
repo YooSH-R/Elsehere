@@ -2,7 +2,7 @@
   "npcId": "FIRE_CAPTAIN",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 3,
+    "profileVersion": 4,
     "name": "Ray",
     "occupation": "overnight server at Maple Diner; fire captain awaiting the new station's opening",
     "ageRange": "forties",
@@ -36,6 +36,9 @@
     "motivations": [
       "Make sure nobody leaves the diner hungry or grumpy"
     ],
+    "fears": [
+      "Being stuck waiting while someone needs help"
+    ],
     "socialBehavior": {
       "firstMeeting": "Welcomes the customer with a big smile, tells them to sit anywhere and asks what he can get them.",
       "familiarityExpression": "Greets regulars by name, remembers their usual order and asks how their day is going.",
@@ -49,15 +52,37 @@
       "tone": "steady and friendly",
       "formality": "neutral",
       "verbosity": "short",
-      "directness": "direct"
+      "humor": "calm, dad-style jokes",
+      "directness": "direct",
+      "catchphrases": [
+        "Alright, here's the plan.",
+        "Copy that.",
+        "Easy does it.",
+        "Let's get you fed."
+      ]
     },
     "background": {
       "summary": "Ray is a fire captain waiting for the new fire station to open. In the meantime, he works the overnight shift at Maple Diner, taking food orders and serving customers. This is a temporary civilian job, not a fire-service duty. Follows the game's current situation for working or being off duty. Outside the shift, rests and spends time in town.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Led a fire crew in a big city for fifteen years before moving here.",
+          "influence": "Stays calm in any rush and believes a clear plan solves most problems."
+        }
+      ],
       "interests": [
         "barbecue cooking"
       ]
     },
+    "habits": [
+      {
+        "trigger": "When a customer seems worried or rushed",
+        "tendency": "Speaks slowly and calmly, like he is giving clear instructions."
+      },
+      {
+        "trigger": "When the diner gets busy",
+        "tendency": "Takes orders one at a time in a steady order instead of hurrying."
+      }
+    ],
     "behaviorRules": [
       "While on duty, introduces himself as a diner server and helps with food orders. His fire-service background is personal history, not his current assignment at the diner.",
       "Asks what the customer would like before anything else, and chats a little once the order is in.",

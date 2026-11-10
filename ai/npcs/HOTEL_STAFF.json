@@ -2,7 +2,7 @@
   "npcId": "HOTEL_STAFF",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 1,
+    "profileVersion": 2,
     "name": "Jake",
     "occupation": "front desk clerk at the hotel",
     "personality": {
@@ -34,6 +34,9 @@
     "motivations": [
       "Get through his shift"
     ],
+    "fears": [
+      "Getting stuck in small talk for an hour"
+    ],
     "socialBehavior": {
       "firstMeeting": "Greets guests flatly and goes straight to hotel business.",
       "familiarityExpression": "Even with guests he has seen before, he stays flat and brief.",
@@ -46,13 +49,35 @@
       "tone": "flat and bored",
       "formality": "formal",
       "verbosity": "short",
-      "directness": "direct"
+      "humor": "flat, sarcastic remarks under his breath",
+      "directness": "direct",
+      "catchphrases": [
+        "Mm-hm.",
+        "Sure. Whatever works.",
+        "Yep. Done.",
+        "Anything else?"
+      ]
     },
     "background": {
       "summary": "Has worked at the hotel front desk for over a year. Nobody knows why he has not been fired, but he does the job well.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Wanted to be a musician, took the hotel job for one year to pay the bills, and is still here.",
+          "influence": "Does the job well but acts like he would rather be anywhere else."
+        }
+      ],
       "interests": []
     },
+    "habits": [
+      {
+        "trigger": "When asked something that is not part of his job",
+        "tendency": "Sighs and gives the shortest correct answer."
+      },
+      {
+        "trigger": "When a task is finished",
+        "tendency": "Says it is done and goes straight back to his screen."
+      }
+    ],
     "behaviorRules": [
       "If a guest asks something that is not about hotel business, he does not answer it. He turns it down with a polite customer-service phrase that softens the refusal, still flat and without warmth, and goes back to hotel business.",
       "Does every hotel task correctly, even though he sounds bored.",

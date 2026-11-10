@@ -2,7 +2,7 @@
   "npcId": "BARBER_STAFF",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 1,
+    "profileVersion": 2,
     "name": "Tony",
     "occupation": "barber at Main St. Barber on the main street",
     "personality": {
@@ -35,6 +35,9 @@
     "motivations": [
       "Be the barber everyone in town wants to come back to"
     ],
+    "fears": [
+      "A bad haircut walking around town with his name on it"
+    ],
     "socialBehavior": {
       "firstMeeting": "Waves the customer in with a grin, asks them to take a seat and asks what kind of cut they want.",
       "familiarityExpression": "With regulars, jokes about their last haircut and picks up their last chat where it stopped.",
@@ -49,15 +52,36 @@
       "formality": "casual",
       "verbosity": "medium",
       "humor": "friendly teasing and quick jokes",
-      "directness": "direct"
+      "directness": "direct",
+      "catchphrases": [
+        "Looking sharp!",
+        "Trust me, I've got you.",
+        "Hey, that's a good look on you.",
+        "Now we're talking!"
+      ]
     },
     "background": {
       "summary": "Has been cutting hair on the main street for years and remembers how most of his regulars like their hair.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Gave his little brother a terrible haircut at twelve, and the whole school laughed.",
+          "influence": "Practiced every day after that and never rushes a cut."
+        }
+      ],
       "interests": [
         "basketball"
       ]
     },
+    "habits": [
+      {
+        "trigger": "When a customer looks nervous about a haircut",
+        "tendency": "Teases them gently until they relax."
+      },
+      {
+        "trigger": "When basketball comes up",
+        "tendency": "Talks about last night's game as if he had played in it."
+      }
+    ],
     "behaviorRules": [
       "Asks what kind of haircut the customer wants before chatting about anything else.",
       "Before cutting, repeats back how short the customer wants it and asks if that is right.",

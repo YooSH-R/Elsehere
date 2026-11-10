@@ -186,15 +186,27 @@ async def meaning(llm: LLM, req: MeaningRequest) -> dict:
 
 
 async def suggest(llm: LLM, req: SuggestRequest) -> dict:
-    """학습자가 다음 대답에 쓸 단어·짧은 구 3개 (공백 정리, 대소문자 무시 중복 제거)."""
+    """다음 답변을 만드는 어휘와 뜻. 기존 words 문자열 배열 계약을 유지한다."""
     usage = Usage()
     msgs = P.suggest_messages(req.npc, req.scene or req.npc.scene, req.goal, req.history, req.level)
-    res = load_object(await llm.chat("suggest", "hint", msgs, usage, 0.3, 80, P.SUGGEST_SCHEMA), "추천 단어")
+    res = load_object(await llm.chat("suggest", "hint", msgs, usage, 0.3, 320, P.SUGGEST_SCHEMA), "추천 단어")
     words = []
+    seen = set()
     for w in res.get("words") if isinstance(res.get("words"), list) else []:
-        w = w.strip() if isinstance(w, str) else ""
-        if w and len(w) <= 40 and w.casefold() not in {x.casefold() for x in words}:
-            words.append(w)
+        if isinstance(w, dict):
+            text, meaning = w.get("text"), w.get("meaning_ko")
+            if w.get("kind") != "vocabulary" or not isinstance(text, str) or not isinstance(meaning, str):
+                continue
+            text, meaning = " ".join(text.split()), " ".join(meaning.split())
+            if not meaning or len(meaning) > 60:
+                continue
+            label = f"{text} — {meaning}"
+        else:  # 이전 고정 응답·캐시와의 호환. 신규 모델 출력은 위의 구조를 사용한다.
+            text = w.strip() if isinstance(w, str) else ""
+            label = text
+        if text and len(text) <= 60 and text.casefold() not in seen:
+            seen.add(text.casefold())
+            words.append(label)
     if not words:
         raise ModelOutputError("추천 단어 출력에 단어가 없음")
     return {"words": words[:3], "usage": usage.items}

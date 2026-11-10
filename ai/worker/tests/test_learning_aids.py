@@ -96,6 +96,56 @@ def test_suggest_without_npc_line_still_works(client, provider):
     assert r.status_code == 200 and r.json()["words"] == ["hello", "latte", "please"]
 
 
+def test_suggest_pairs_useful_vocabulary_with_meanings_and_drops_personal_details(client, provider):
+    seen = {}
+
+    def answer(body):
+        seen["body"] = body
+        return ok(
+            json.dumps(
+                {
+                    "words": [
+                        {"text": "Kim", "meaning_ko": "김", "kind": "personal_detail"},
+                        {"text": "under the name of", "meaning_ko": "~ 이름으로", "kind": "vocabulary"},
+                        {"text": " Under the name of ", "meaning_ko": "중복", "kind": "vocabulary"},
+                        {"text": "booking confirmation", "meaning_ko": "예약 확인서", "kind": "vocabulary"},
+                        {"text": "surname", "meaning_ko": "성", "kind": "vocabulary"},
+                    ]
+                },
+                ensure_ascii=False,
+            )
+        )
+
+    provider.answers["suggest"] = answer
+    response = client.post("/v1/suggest", json={"npc": NPC, "history": HISTORY})
+
+    assert response.status_code == 200
+    assert response.json()["words"] == [
+        "under the name of — ~ 이름으로",
+        "booking confirmation — 예약 확인서",
+        "surname — 성",
+    ]
+    assert len(provider.calls) == 1  # 뜻을 붙이려고 별도 번역 호출을 하지 않는다.
+    prompt = seen["body"]["messages"][0]["content"]
+    assert "Do not invent names, dates, room numbers or prices" in prompt
+    assert "not words mechanically extracted from a suggested sentence" in prompt
+
+
+def test_suggest_does_not_show_a_structured_word_without_a_korean_meaning(client, provider):
+    provider.answers["suggest"] = lambda b: ok(
+        json.dumps(
+            {
+                "words": [
+                    {"text": "Kim", "meaning_ko": "김", "kind": "personal_detail"},
+                    {"text": "surname", "meaning_ko": "", "kind": "vocabulary"},
+                ]
+            }
+        )
+    )
+    response = client.post("/v1/suggest", json={"npc": NPC, "history": HISTORY})
+    assert response.status_code == 502
+
+
 @pytest.mark.parametrize("out", ["not json", "{}", '{"words": "latte"}', '{"words": []}'])
 def test_suggest_output_that_breaks_format_is_invalid_output(client, provider, out):
     provider.answers["suggest"] = lambda b: ok(out)

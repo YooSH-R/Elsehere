@@ -85,7 +85,7 @@ GPU 서버에는 발음 사전을 적용한 음소를 한 번 보내고, 반환�
 | `POST /v1/tts` | 모범 발화·단어 발음 같은 단독 합성 | audio/wav |
 | `POST /v1/stt` | 녹음 인식 (multipart `file`, 선택 `scene_words`) | JSON |
 | `POST /v1/hint` | 학습자가 💡를 누른 때 | JSON |
-| `POST /v1/suggest` | NPC 대답이 끝난 뒤: 학습자가 쓸 추천 단어 3개 | JSON |
+| `POST /v1/suggest` | NPC 대답이 끝난 뒤: 학습자가 다음 답변에 쓸 어휘·짧은 구와 문맥상 한국어 뜻(최대 3개) | JSON |
 | `POST /v1/meaning` | [뜻 보기]: NPC 대사의 한국어 뜻과 단어 풀이 | JSON |
 | `POST /v1/level-test/speaking` | 레벨 테스트를 끝낼 때: 말하기 문항별 통과 여부와 한국어 피드백 한 문장 | JSON |
 | `POST /v1/feedback` | 대화가 끝났을 때: 학습 피드백 (`ai/feedback` 계약 0.3.0, 그 모듈을 부름) | JSON |
@@ -94,6 +94,7 @@ GPU 서버에는 발음 사전을 적용한 음소를 한 번 보내고, 반환�
 
 - 모든 응답(스트림은 마지막 `done`)에 `usage`: 단계·실제로 쓴 모델·입출력 토큰·시간·대체 여부. Spring은 이걸로 크레딧을 차감합니다.
   단가는 `llm_profiles.json`의 `prices_per_1m_tokens_usd`.
+- 추천 단어의 공개 응답은 기존 `words: string[]`을 유지하며, 신규 생성 항목은 `under the name of — ~ 이름으로`처럼 뜻을 함께 표시합니다. 모델의 내부 출력은 영어·뜻·어휘/개인정보 구분을 갖고, 이름·날짜·가격 같은 고정 답변은 제외합니다. 뜻은 같은 호출에서 생성하며 별도 번역 호출을 추가하지 않습니다. 추천 문장을 잘라 만든 단어보다 다음 답변을 스스로 구성하는 어휘를 우선합니다. 이전 캐시·고정 응답의 영어 문자열도 계속 읽습니다.
 - 오류는 `{"error": {"code", "message"}}`: `invalid_request` 400, `unauthorized` 401, `not_found` 404, `method_not_allowed` 405, `provider_limit` 429, `internal_error` 500, `invalid_output` 502(모델 출력 형식 오류), `provider_unavailable` 503, `tts_unavailable` 503.
   판정·대화 종료는 일부가 실패해도 200으로 이어 갑니다 (의도 → `unclear`, 무례 → `abusive: null` 미판정, 기억 카드 → `null` + `errors`).
 - 추적: `X-Request-Id`(없으면 만들어 응답 헤더로 돌려줌), `X-User-Id`, `X-Conv-Id`를 요청마다 로그 한 줄(JSON)로 남깁니다. 성공한 `/health`는 생략하며 실패와 다른 요청은 기록합니다. 대화 원문은 로그에 남기지 않습니다. 배포 이미지는 Uvicorn 접근 로그를 끄고 이 요약을 사용하며, HTTPX의 정상 호출 로그는 생략합니다.

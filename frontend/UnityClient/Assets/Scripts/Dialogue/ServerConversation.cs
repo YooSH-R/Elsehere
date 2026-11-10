@@ -29,6 +29,7 @@ namespace A305.Dialogue
         private const string RudeReason = "RUDE";
         private const string TimeLimitReason = "TIME_LIMIT";
         private const string FeedbackDone = "DONE";
+        private const string EndFeedbackGuide = "[대화 종료]를 누르면 피드백을 볼 수 있어요.";
 
         private const string RetryGuide = "[다시 시도]를 누르거나 [대화 종료]로 나갈 수 있어요.";
         private const string QuotaGuide = "[대화 종료]를 누르면 마을 탐험으로 돌아가요.";
@@ -177,6 +178,11 @@ namespace A305.Dialogue
 
         /// <summary>NPC가 대화를 끝냈는지(무례 누적, 사용량 소진 등).</summary>
         public bool IsEnded { get; private set; }
+
+        internal bool ShowsEndFeedbackNotice =>
+            IsEnded
+            && !endRequested
+            && StatusMessage?.EndsWith(EndFeedbackGuide, StringComparison.Ordinal) == true;
 
         public bool CanSend => ConversationId != null && !IsBusy && !IsEnded && !deadlineExpired;
 
@@ -331,8 +337,7 @@ namespace A305.Dialogue
                     "TURN_LIMIT" => "대화가 30턴에 도달하여 ",
                     _ => "",
                 };
-                StatusMessage =
-                    $"{reason}{NpcName}이(가) 대화를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요.";
+                StatusMessage = $"{reason}{NpcName}이(가) 대화를 마쳤어요. {EndFeedbackGuide}";
                 RecoveryGuide = isQuotaExhausted ? QuotaEndedGuide : null;
                 Changed?.Invoke();
             }

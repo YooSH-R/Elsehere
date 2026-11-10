@@ -221,6 +221,9 @@ namespace A305.Mission
         private QuestBoardState finishedBoard;
         private int unlockedQuest = -1;
 
+        // 팡파레로 보인 퀘스트. [다음]에서 첫 호텔 퀘스트를 끝낸 게스트에게 가입을 권하는 데 쓴다.
+        private string finishedQuestId;
+
         // 퀘스트 카드·미니맵의 화면 자리를 구하는 데 매 프레임 다시 쓴다.
         private readonly Vector3[] hudCorners = new Vector3[4];
 
@@ -233,6 +236,9 @@ namespace A305.Mission
 
         /// <summary>퀘스트 목록을 열어 서버의 퀘스트 목록이 필요하다.</summary>
         public event Action QuestBoardRequested;
+
+        /// <summary>장소 연습 탭을 열어 서버의 장소 연습 목록이 필요하다.</summary>
+        public event Action PracticeBoardRequested;
 
         private RectTransform Banner => (RectTransform)situation.transform.parent;
 
@@ -590,6 +596,10 @@ namespace A305.Mission
             JournalOpened?.Invoke();
         }
 
+        /// <summary>서버에서 받은 장소 연습 목록을 보인다.</summary>
+        public void ShowPracticeBoard(PracticeBoardState board) =>
+            questBoard.ShowPracticePlaces(board);
+
         /// <summary>퀘스트를 끝냈다. 그 보상은 팡파레의 코인이 코인 칩에 닿을 때 더하도록 그때까지 코인 칩을 그대로 둔다.</summary>
         public void ExpectQuestReward() => rewardExpected = true;
 
@@ -617,6 +627,7 @@ namespace A305.Mission
             if (rewardExpected)
                 ShowCoins(latestBalance - finished.Reward, latestPurchase);
             finishedBoard = board;
+            finishedQuestId = questId;
             bool opensNext =
                 index + 1 < board.Quests.Count
                 && board.Quests[index + 1].Status == QuestEntry.Available;
@@ -639,6 +650,7 @@ namespace A305.Mission
 
         /// <summary>
         /// 팡파레의 [다음]: 팡파레를 닫고, 열린 다음 퀘스트가 있으면 퀘스트 목록에서 그 잠금을 푼다. 연결은 QuestCompleteBuilder가 넣는다.
+        /// 첫 호텔 퀘스트를 끝낸 게스트에게는 가입을 권한다(<see cref="A305.Api.GuestSignupPrompt.RequestAfterQuest"/>).
         /// </summary>
         public void ShowNextQuest()
         {
@@ -651,6 +663,8 @@ namespace A305.Mission
             }
             unlockedQuest = -1;
             UpdateBoardLayer();
+            A305.Api.GuestSignupPrompt.RequestAfterQuest(finishedQuestId);
+            finishedQuestId = null;
         }
 
         /// <summary>
@@ -681,6 +695,8 @@ namespace A305.Mission
 
         private void RequestQuestBoard() => QuestBoardRequested?.Invoke();
 
+        private void RequestPracticeBoard() => PracticeBoardRequested?.Invoke();
+
         private void OnBoardOpenChanged(bool open) => UpdateBoardLayer();
 
         private void Awake()
@@ -691,6 +707,7 @@ namespace A305.Mission
             else
             {
                 questBoard.Requested += RequestQuestBoard;
+                questBoard.PracticeRequested += RequestPracticeBoard;
                 questBoard.StartRequested += StartMission;
                 questBoard.OpenChanged += OnBoardOpenChanged;
             }
@@ -718,6 +735,7 @@ namespace A305.Mission
             if (questBoard != null)
             {
                 questBoard.Requested -= RequestQuestBoard;
+                questBoard.PracticeRequested -= RequestPracticeBoard;
                 questBoard.StartRequested -= StartMission;
                 questBoard.OpenChanged -= OnBoardOpenChanged;
             }

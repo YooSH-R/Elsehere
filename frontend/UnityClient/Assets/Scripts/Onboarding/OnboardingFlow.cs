@@ -23,6 +23,8 @@ namespace A305.Onboarding
 
         // 게임에 들어가기 전에 멈춘 화면(게스트 다시 접속·이미 가입한 계정 안내) 다음에 갈 튜토리얼이나 마을
         private EntryScreen screenAfterNotice;
+        private EntryScreen? guestGameScreen;
+        private bool isGuest;
 
         public OnboardingFlow(IOnboardingApi api)
         {
@@ -30,6 +32,11 @@ namespace A305.Onboarding
         }
 
         public EntryScreen Screen { get; private set; } = EntryScreen.Login;
+
+        public bool GuestLevelTestLoginRequired { get; private set; }
+        public bool IsGuest => isGuest;
+
+        public void DismissGuestLevelTestLogin() => GuestLevelTestLoginRequired = false;
 
         public AvatarType? SelectedAvatar { get; private set; }
 
@@ -102,6 +109,7 @@ namespace A305.Onboarding
             if (Screen == EntryScreen.GuestReturn || Screen == EntryScreen.ExistingAccount)
             {
                 Screen = screenAfterNotice;
+                OfferGuestLevelTest();
             }
         }
 
@@ -132,11 +140,16 @@ namespace A305.Onboarding
         )
         {
             BootstrapResponse boot = await api.GetBootstrapAsync();
+            isGuest = boot.User?.Guest ?? false;
+            guestGameScreen = null;
+            GuestLevelTestLoginRequired = false;
             LanguageCode = boot.User?.CurrentLanguage;
             SelectedAvatar = boot.User?.AvatarType;
             UiTheme = boot.User?.UiTheme;
             Nickname = boot.User?.Nickname;
             IsVoiceAgreed = boot.User?.VoiceConsent ?? false;
+            // 장소 화면이 게스트에게만 가입을 권하도록 장면을 옮겨도 남는 곳에 둔다.
+            A305.Api.PlayerAccount.SetGuest(boot.User?.Guest == true);
 
             LevelTestStatus? lastLevelTest = null;
             if (boot.User?.OnboardingStep == OnboardingStep.Level)
@@ -153,6 +166,16 @@ namespace A305.Onboarding
 
             await EnterAsync(screen);
             PauseBeforeGame(boot.User, offersGuestSignup, signedInToExistingAccount);
+            OfferGuestLevelTest();
+        }
+
+        private void OfferGuestLevelTest()
+        {
+            if (!isGuest || (Screen != EntryScreen.Tutorial && Screen != EntryScreen.World))
+                return;
+            guestGameScreen = Screen;
+            LevelTest = null;
+            Screen = EntryScreen.LevelTest;
         }
 
         private void PauseBeforeGame(
@@ -237,11 +260,13 @@ namespace A305.Onboarding
         public void BackToLogin()
         {
             ErrorMessage = null;
+            GuestLevelTestLoginRequired = false;
+            guestGameScreen = null;
             Screen = EntryScreen.Login;
         }
 
         /// <summary>
-        /// 고른 캐릭터로 게스트를 시작한 뒤 접속 상태를 다시 읽는다. 서버가 언어·난이도를 정해 두므로 튜토리얼로 이어진다.
+        /// 게스트 접속 뒤 레벨테스트 안내를 먼저 보인다. 건너뛰면 서버가 정한 튜토리얼·마을로 이어진다.
         /// </summary>
         public async Task GuestLoginAsync()
         {
@@ -255,7 +280,7 @@ namespace A305.Onboarding
             await RunAsync(() => api.GuestLoginAsync(avatar, voiceConsent));
             if (ErrorMessage == null)
             {
-                // 방금 게스트로 시작했으므로 가입을 권하지 않고 바로 튜토리얼로 간다.
+                // 재접속 가입 안내 대신 레벨테스트 소개를 먼저 보여 준다.
                 await RestartAsync(offersGuestSignup: false, signedInToExistingAccount: false);
             }
         }
@@ -320,6 +345,13 @@ namespace A305.Onboarding
 
         public Task SkipLevelTestAsync()
         {
+            if (isGuest && guestGameScreen.HasValue)
+            {
+                GuestLevelTestLoginRequired = false;
+                Screen = guestGameScreen.Value;
+                guestGameScreen = null;
+                return Task.CompletedTask;
+            }
             return RunAsync(async () =>
             {
                 await api.SkipLevelTestAsync(LanguageCode);
@@ -333,6 +365,11 @@ namespace A305.Onboarding
         /// <summary>화면 04 [시작하기]. 새 테스트를 만들고(ONB-03) 첫 문항을 보인다.</summary>
         public Task StartLevelTestAsync()
         {
+            if (isGuest)
+            {
+                GuestLevelTestLoginRequired = true;
+                return Task.CompletedTask;
+            }
             return RunAsync(async () =>
             {
                 LevelTestStartResponse started = await api.StartLevelTestAsync(LanguageCode);

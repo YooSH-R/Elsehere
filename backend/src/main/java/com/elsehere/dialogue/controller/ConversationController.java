@@ -36,7 +36,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * NPC 자유 대화: 시작(CONV-01), 발화(CONV-03), 종료(CONV-08), 지난 대화 목록(CONV-09), 상세(CONV-10), 진행 중인
- * 대화(CONV-11).
+ * 대화(CONV-11). 상황 복습과 장소 연습(PRC-02)의 대화 시작도 받는다.
  */
 @Slf4j
 @RestController
@@ -57,6 +57,18 @@ public class ConversationController {
       @PathVariable Long cardId,
       @Valid @RequestBody StartReviewRequest request) {
     return conversationService.startReview(loginUser.userId(), cardId, request.requestId());
+  }
+
+  public record StartPracticeRequest(@NotNull UUID requestId) {}
+
+  /** 장소 연습 시작(PRC-02). 고른 상황의 가게 직원과 대화를 시작한다. */
+  @PostMapping("/api/v1/practice-scenarios/{scenarioId}/conversations")
+  @ResponseStatus(HttpStatus.CREATED)
+  public ConversationStartResponse startPractice(
+      @AuthenticationPrincipal LoginUser loginUser,
+      @PathVariable String scenarioId,
+      @Valid @RequestBody StartPracticeRequest request) {
+    return conversationService.startPractice(loginUser.userId(), scenarioId, request.requestId());
   }
 
   @PostMapping("/api/v1/conversations")

@@ -1,9 +1,12 @@
+using System;
 using System.Linq;
+using A305.World;
 using NUnit.Framework;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 namespace A305.Mission.Tests
 {
@@ -102,6 +105,107 @@ namespace A305.Mission.Tests
             Assert.That(shownStamps.Select(image => image.sprite), Is.All.EqualTo(fallback));
         }
 
+        [Test]
+        public void PlaceTab_ShowsThePracticePageAndAsksForThePlaces()
+        {
+            FirstDayMissionView mission = Create();
+            QuestBoardView board = Field<QuestBoardView>(mission, "questBoard");
+            int requested = 0;
+            board.PracticeRequested += () => requested++;
+            board.Open();
+
+            ActiveButton(board, "PlaceTab").onClick.Invoke();
+
+            Assert.That(
+                requested,
+                Is.EqualTo(1),
+                "장소 연습 탭을 열면 서버에 장소 목록을 묻습니다."
+            );
+            Assert.That(Page(board, "Practice").activeSelf, Is.True);
+            Assert.That(Page(board, "List").activeSelf, Is.False);
+
+            ActiveButton(board, "StoryTab").onClick.Invoke();
+
+            Assert.That(Page(board, "List").activeSelf, Is.True);
+            Assert.That(Page(board, "Practice").activeSelf, Is.False);
+        }
+
+        [Test]
+        public void PickingAPlace_SwapsOnlyTheRightPane()
+        {
+            QuestBoardView board = OpenPractice();
+            Button[] rows = ActiveButtons(board, "PlaceRow");
+
+            Assert.That(rows, Has.Length.EqualTo(3));
+            Assert.That(Text(rows[1], "Count"), Is.EqualTo("3 / 3"));
+            Assert.That(
+                TextOf(rows[1], "Count").color,
+                Is.EqualTo((Color)new Color32(61, 154, 91, 255)),
+                "모두 끝낸 장소는 초록으로 셉니다."
+            );
+            Assert.That(
+                Text(board, "PlaceName"),
+                Is.EqualTo("호텔"),
+                "처음에는 첫 장소를 고릅니다."
+            );
+
+            rows[2].onClick.Invoke();
+
+            Assert.That(Text(board, "PlaceName"), Is.EqualTo("식당"));
+            Assert.That(Text(board, "NpcChipText"), Is.EqualTo("Rosa · 식당 직원"));
+            RectTransform[] slots = Slots(board);
+            Assert.That(
+                slots.Select(slot => Text(slot, "ScenarioTitle")),
+                Is.EqualTo(new[] { "자리 잡기", "못 먹는 재료 말하기", "따로 계산하고 포장하기" })
+            );
+            Assert.That(slots[0].Find("DoneChip").gameObject.activeSelf, Is.True);
+            Assert.That(slots[0].Find("Again").gameObject.activeSelf, Is.True);
+            Assert.That(slots[0].Find("Start").gameObject.activeSelf, Is.False);
+            Assert.That(slots[1].Find("DoneChip").gameObject.activeSelf, Is.False);
+            Assert.That(slots[1].Find("Start").gameObject.activeSelf, Is.True);
+            Assert.That(
+                ActiveButtons(board, "PlaceRow").Select(row => Text(row, "Name")),
+                Is.EqualTo(new[] { "호텔", "카페", "식당" }),
+                "왼쪽 목록은 그대로입니다."
+            );
+        }
+
+        [Test]
+        public void PracticeButton_ClosesTheWindowAndGoesToPracticeThatScenario()
+        {
+            QuestBoardView board = OpenPractice();
+            ActiveButtons(board, "PlaceRow")[2].onClick.Invoke();
+            PracticeVisitPlan plan = null;
+            Action<PracticeVisitPlan> listen = chosen => plan = chosen;
+            PracticeVisit.Shared.Requested += listen;
+            try
+            {
+                Slots(board)[1].Find("Start").GetComponent<Button>().onClick.Invoke();
+            }
+            finally
+            {
+                PracticeVisit.Shared.Requested -= listen;
+            }
+
+            Assert.That(board.IsOpen, Is.False);
+            Assert.That(plan, Is.Not.Null);
+            Assert.That(plan.ScenarioId, Is.EqualTo("DINER_ALLERGY"));
+            Assert.That(plan.PlaceName, Is.EqualTo("식당"));
+            Assert.That(plan.NpcCode, Is.EqualTo("DINER_STAFF"));
+            Assert.That(plan.NpcName, Is.EqualTo("Rosa"));
+            Assert.That(plan.SceneCode, Is.EqualTo("TOWN"));
+            Assert.That(plan.Title, Is.EqualTo("못 먹는 재료 말하기"));
+            Assert.That(
+                plan.Description,
+                Is.EqualTo("알레르기가 있는 재료를 말하고 빼 달라고 해요.")
+            );
+            Assert.That(
+                plan.Goals.Select(goal => goal.Title),
+                Is.EqualTo(new[] { "알레르기 재료 말하기", "빼 달라고 부탁하기" })
+            );
+            Assert.That(plan.Goals[0].Hint, Is.EqualTo("I'm allergic to peanuts."));
+        }
+
         private static QuestBoardState Board()
         {
             (string place, string scene)[] stops =
@@ -152,6 +256,123 @@ namespace A305.Mission.Tests
             );
             return new QuestBoardState { Balance = 20, Quests = { first, locked } };
         }
+
+        private QuestBoardView OpenPractice()
+        {
+            FirstDayMissionView mission = Create();
+            QuestBoardView board = Field<QuestBoardView>(mission, "questBoard");
+            board.Open();
+            ActiveButton(board, "PlaceTab").onClick.Invoke();
+            board.ShowPracticePlaces(Places());
+            return board;
+        }
+
+        private static PracticeBoardState Places()
+        {
+            var state = new PracticeBoardState();
+            state.Places.Add(Place("HOTEL", "호텔", "Jake", "호텔 직원", "HOTEL", 1, 3));
+            state.Places.Add(Place("CAFE", "카페", "Mia", "카페 직원", "CAFE", 3, 3));
+            PracticePlace diner = Place("DINER", "식당", "Rosa", "식당 직원", "TOWN", 1, 3);
+            diner.Scenarios.Add(
+                Scenario(
+                    "DINER_TABLE",
+                    1,
+                    "자리 잡기",
+                    "몇 명인지 말하고 창가 자리를 부탁해요.",
+                    true
+                )
+            );
+            PracticeScenario allergy = Scenario(
+                "DINER_ALLERGY",
+                2,
+                "못 먹는 재료 말하기",
+                "알레르기가 있는 재료를 말하고 빼 달라고 해요.",
+                false
+            );
+            allergy.Goals.Add(
+                new PracticeGoal
+                {
+                    GoalId = "say_allergy",
+                    Title = "알레르기 재료 말하기",
+                    Hint = "I'm allergic to peanuts.",
+                }
+            );
+            allergy.Goals.Add(
+                new PracticeGoal
+                {
+                    GoalId = "ask_without",
+                    Title = "빼 달라고 부탁하기",
+                    Hint = "Could you make it without peanuts?",
+                }
+            );
+            diner.Scenarios.Add(allergy);
+            diner.Scenarios.Add(
+                Scenario(
+                    "DINER_SPLIT_TO_GO",
+                    3,
+                    "따로 계산하고 포장하기",
+                    "계산을 나눠 달라고 하고, 남은 음식을 싸 달라고 해요.",
+                    false
+                )
+            );
+            state.Places.Add(diner);
+            return state;
+        }
+
+        private static PracticePlace Place(
+            string code,
+            string name,
+            string npc,
+            string role,
+            string scene,
+            int done,
+            int total
+        ) =>
+            new PracticePlace
+            {
+                PlaceCode = code,
+                Name = name,
+                Summary = name + " 연습",
+                NpcCode = code + "_STAFF",
+                NpcName = npc,
+                RoleLabel = role,
+                SceneCode = scene,
+                DoneCount = done,
+                TotalCount = total,
+            };
+
+        private static PracticeScenario Scenario(
+            string id,
+            int number,
+            string title,
+            string description,
+            bool done
+        ) =>
+            new PracticeScenario
+            {
+                ScenarioId = id,
+                Number = number,
+                Title = title,
+                Description = description,
+                Done = done,
+            };
+
+        private static GameObject Page(QuestBoardView board, string name) =>
+            board.transform.Find("Sheet/" + name).gameObject;
+
+        private static Button ActiveButton(Component root, string name) =>
+            ActiveButtons(root, name).Single();
+
+        private static Button[] ActiveButtons(Component root, string name) =>
+            root.GetComponentsInChildren<Button>().Where(button => button.name == name).ToArray();
+
+        private static RectTransform[] Slots(Component root) =>
+            root.GetComponentsInChildren<RectTransform>()
+                .Where(item => item.name == "Scenario")
+                .ToArray();
+
+        private static TMP_Text TextOf(Component root, string name) =>
+            root.GetComponentsInChildren<TMP_Text>(true).First(text => text.name == name);
 
         private FirstDayMissionView Create()
         {

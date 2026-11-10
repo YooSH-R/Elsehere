@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import re
 
 from . import npc_relationship
 from . import prompts as P
@@ -59,8 +60,23 @@ def clean_events(raw: dict) -> list[str]:
     return [event for event in dict.fromkeys(e for e in got if isinstance(e, str)) if event in P.LINE_EVENTS]
 
 
+def clean_english_correction(raw: dict, text: str) -> str | None:
+    """영어 교정문만 표현 카드로 보낸다. 번역·표면 표기 차이는 여기서 만들지 않는다."""
+    correction = raw.get("english_correction")
+    if P.HANGUL.search(text) or not isinstance(correction, str):
+        return None
+    correction = correction.strip()
+    if not re.search(r"[A-Za-z]", correction) or P.HANGUL.search(correction):
+        return None
+
+    def words(value: str) -> list[str]:
+        return re.findall(r"\w+(?:'\w+)*", value.casefold().replace("’", "'"))
+
+    return correction if words(correction) != words(text) else None
+
+
 async def judge(llm: LLM, req: JudgeRequest) -> dict:
-    """의도(+ 줄 사건)와 번역(한국어가 섞였을 때)을 동시에. 하나가 실패해도 턴은 이어 간다 (의도 → unclear·사건 없음, 번역 → error).
+    """의도·줄 사건·영어 교정을 함께 판정하고, 한국어 번역은 동시에 받는다. 실패해도 턴은 이어 간다.
     무례 판정은 /v1/guard가 따로 한다. 생성된 영어 번역은 무례 판정과 관계없이 Spring이 표현 카드로 전달한다.
     affinity_delta는 줄 사건으로 바로 올릴 호감이다. 무례로 확정된 턴이면 Spring이 쓰지 않고 /v1/guard의 감점만 쓴다."""
     usage = Usage()
@@ -84,7 +100,7 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
             P.intent_messages(req.npc, req.state, req.history, text), usage, P.intent_schema(req.state), hedge_after_s=hedge_after_s
         )
         raw = json.loads(out)
-        return clean_intent(raw, req.state), clean_events(raw)
+        return clean_intent(raw, req.state), clean_events(raw), clean_english_correction(raw, text)
 
     async def translate():
         out = await llm.chat(
@@ -98,8 +114,8 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
         jobs.append(within(translate(), budget))
     res = await asyncio.gather(*jobs, return_exceptions=True)
     failed = {"id": "unclear", "ids": ["unclear"], "slots": {}, "error": str(res[0])[:160]}
-    it, events = res[0] if not isinstance(res[0], BaseException) else (failed, [])
-    translation = None
+    it, events, correction = res[0] if not isinstance(res[0], BaseException) else (failed, [], None)
+    translation = {"english": correction, "error": None} if correction else None
     if len(res) == 2:
         english = "" if isinstance(res[1], BaseException) else res[1]
         english = "" if english == "-" else english

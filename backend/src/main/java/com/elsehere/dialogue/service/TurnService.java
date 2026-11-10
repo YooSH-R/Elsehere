@@ -24,7 +24,9 @@ import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.dialogue.dto.TurnResponse;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
+import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.mission.service.MissionDialogueService;
+import com.elsehere.mission.service.PlacePracticeService;
 import com.elsehere.review.dto.ReviewCardResponse;
 import com.elsehere.review.service.ReviewCardService;
 import java.time.Clock;
@@ -48,6 +50,9 @@ import org.springframework.transaction.support.TransactionTemplate;
  * NPC의 호감도를 깎고, 한도에 닿으면 NPC가 대화를 끝낸다(docs/api/rudeness-handling.md). 무례가 아닌 말은 의도 판정이 고른 대화
  * 사건(칭찬·인사 등)만큼 호감도를 올린다(docs/api/ai-worker.md 2.2절). 미션 목표를 마친 턴이나 학습자가 작별·용건 끝냄을 말한 턴에는 NPC가 마무리
  * 대사로 대화를 끝낸다({@link WrapUp}). 대화당 사용자 발화는 최대 30턴이다.
+ *
+ * <p>장소 연습 대화는 이야기 퀘스트 대신 고른 상황의 남은 목표를 판정해 그 대화에 기록하고, 목표를 모두 이룬 턴에 마무리한다. 복습처럼 기억과 호감도에는 반영하지
+ * 않는다.
  */
 @Slf4j
 @Service
@@ -92,6 +97,7 @@ public class TurnService {
   private final MissionDialogueService missionDialogueService;
   private final Clock clock;
   private final DialogueRequestLocks requestLocks;
+  private final PlacePracticeService placePractice;
 
   public TurnResponse send(Long userId, Long conversationId, TurnRequest request) {
     return send(userId, conversationId, request, null);
@@ -147,11 +153,16 @@ public class TurnService {
     TurnContext context = selection.context();
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, conversationId);
     Optional<MissionDialogueService.Context> mission =
-        context.review() == null
+        context.review() == null && context.practice() == null
             ? missionDialogueService.context(userId, context.npc().summary().npcCode())
             : Optional.empty();
+    // 이 턴에 판정할 목표. 장소 연습은 이야기 퀘스트 대신 고른 상황의 남은 목표를 판정한다.
+    Optional<FirstDayMissionService.Context> goals =
+        context.practice() != null
+            ? Optional.of(context.practice())
+            : mission.map(MissionDialogueService.Context::detail);
 
-    Optional<WorkerState> missionState = mission.map(value -> value.detail().state());
+    Optional<WorkerState> missionState = goals.map(FirstDayMissionService.Context::state);
     // 경찰관은 미션 목표를 맡지 않은 동안 창구에서 신고를 받는다.
     boolean policeDesk =
         context.review() == null
@@ -192,11 +203,11 @@ public class TurnService {
         taxiRide && !rude ? TaxiRide.destination(judge) : Optional.empty();
     // 출동하는 경찰관은 직접 순찰차로 가야 하므로 이 턴에 대화를 마친다.
     // 택시는 대화가 끝나면 승객이 내리므로 작별·용건 끝냄으로 마치지 않고, 도착하면 Unity가 대화를 마친다.
-    boolean wrapUp = dispatch.isPresent() || (!taxiRide && WrapUp.ends(rude, mission, judge));
+    boolean wrapUp = dispatch.isPresent() || (!taxiRide && WrapUp.ends(rude, goals, judge));
     String instruction =
         rude
             ? (leaving ? RUDE_LEAVE : RUDE_WARNING)
-            : mission.map(value -> value.detail().replyInstruction(judge.intent())).orElse("");
+            : goals.map(detail -> detail.replyInstruction(judge.intent())).orElse("");
     if (context.review() != null) {
       instruction = join(reviewDialogue.instruction(context.review()), instruction);
     }
@@ -245,9 +256,11 @@ public class TurnService {
                       guard.abusive(),
                       guard.errorCode(),
                       conversationResponses.writeWords(judge.events())));
+          // 복습과 장소 연습은 연습이라 이 NPC와의 호감도에 반영하지 않는다.
+          boolean affectsAffinity = !conversation.isReview() && !conversation.isPractice();
           if (rude) {
             conversation.countRude(Conversation.RUDE_LIMIT, clock.instant());
-            if (!conversation.isReview()) {
+            if (affectsAffinity) {
               npcAffinityService.deductForRudeness(
                   userId, conversation.getNpcId(), guard.affinityDelta());
             }
@@ -259,7 +272,7 @@ public class TurnService {
                   conversation.getStatus(),
                   conversation.getEndReason());
             }
-          } else if (!conversation.isReview()) {
+          } else if (affectsAffinity) {
             npcAffinityService.raiseForEvents(
                 userId, conversation.getNpcId(), judge.affinityDelta());
           }
@@ -292,6 +305,9 @@ public class TurnService {
                 value ->
                     missionDialogueService.accept(
                         userId, context.npc().summary().npcCode(), value, judge.intent()));
+            if (context.practice() != null) {
+              placePractice.accept(conversation, judge.intent());
+            }
           }
           dispatch.ifPresent(value -> userTurn.recordPoliceDispatch(value.placeCode()));
           destination.ifPresent(value -> userTurn.recordTaxiDestination(value.placeCode()));
@@ -434,14 +450,15 @@ public class TurnService {
             dialogueContexts.learner(userId),
             dialogueContexts.history(conversationId),
             conversation.getLevelApplied(),
-            conversation.isReview()
+            conversation.isReview() || conversation.isPractice()
                 ? null
                 : memoryService.memoryFor(userId, conversation.getNpcId()),
             conversation.getRudeCount(),
             conversation.isNpcOffDuty(),
             conversation.isReview()
                 ? reviewCardService.detail(userId, conversation.getReviewCardId())
-                : null),
+                : null,
+            placePractice.context(conversation).orElse(null)),
         false,
         finalTurn);
   }
@@ -464,6 +481,7 @@ public class TurnService {
    * @param learner 대답 상대인 학습자. NPC가 캐릭터에 맞는 호칭을 쓰게 한다
    * @param memory 이 NPC와의 이전 대화 기억. 처음 만나면 null
    * @param rudeCount 이 턴 전까지 무례로 센 말 수
+   * @param practice 장소 연습 대화에서 이 턴 전까지 남은 목표와 직원 지시. 장소 연습이 아니면 null
    */
   private record TurnContext(
       NpcContext npc,
@@ -473,7 +491,8 @@ public class TurnService {
       WorkerMemory memory,
       int rudeCount,
       boolean npcOffDuty,
-      ReviewCardResponse review) {}
+      ReviewCardResponse review,
+      FirstDayMissionService.Context practice) {}
 
   private record TurnContextSelection(TurnContext context, boolean rejected, boolean finalTurn) {}
 }

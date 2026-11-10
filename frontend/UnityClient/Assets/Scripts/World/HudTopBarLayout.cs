@@ -6,10 +6,14 @@ namespace A305.World
         public const float Margin = 33.6f;
         public const float Size = 76.8f;
         public const float Gap = 14.4f;
-        public const float PhoneRight = Margin + Size + Gap;
-        public const float SurveyRight = PhoneRight + Size + Gap;
+        public const float PhoneWidth = Size * 153f / 165f;
+        public const float SpeakerWidth = PhoneWidth;
+        public const float SpeakerHeight = SpeakerWidth * 70f / 101f;
+        public const float SurveyWidth = Size * 71f / 106f;
+        public const float PhoneRight = Margin + SpeakerWidth + Gap;
+        public const float SurveyRight = PhoneRight + PhoneWidth + Gap;
 
         public static float StatusRight(bool surveyVisible) =>
-            surveyVisible ? SurveyRight + Size + Gap : SurveyRight;
+            surveyVisible ? SurveyRight + SurveyWidth + Gap : SurveyRight;
     }
 }

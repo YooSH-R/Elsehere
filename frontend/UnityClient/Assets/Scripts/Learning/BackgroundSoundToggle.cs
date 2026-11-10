@@ -18,6 +18,19 @@ namespace A305.Learning
         [SerializeField]
         private Sprite mutedSprite;
 
+        [SerializeField]
+        private Rect enabledIconGeometry;
+
+        [SerializeField]
+        private Rect mutedIconGeometry;
+
+        public void ConfigureIconLayout(Rect enabled, Rect muted)
+        {
+            enabledIconGeometry = enabled;
+            mutedIconGeometry = muted;
+            Refresh();
+        }
+
         public void Configure(Button target, Image picture, Sprite on, Sprite off)
         {
             if (button != null)
@@ -52,8 +65,15 @@ namespace A305.Learning
 
         private void Refresh()
         {
-            if (icon != null)
-                icon.sprite = BackgroundSoundPreference.Enabled ? enabledSprite : mutedSprite;
+            if (icon == null)
+                return;
+            bool enabled = BackgroundSoundPreference.Enabled;
+            icon.sprite = enabled ? enabledSprite : mutedSprite;
+            Rect fit = enabled ? enabledIconGeometry : mutedIconGeometry;
+            if (fit.height <= 0)
+                return;
+            icon.rectTransform.anchoredPosition = fit.position;
+            icon.rectTransform.sizeDelta = fit.size;
         }
     }
 }

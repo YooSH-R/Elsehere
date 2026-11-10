@@ -62,17 +62,18 @@ Web 실행은 `Application.targetFrameRate`의 기본값 `-1`을 유지해 브�
 
 ### 브라우저 그래픽 품질
 
-`BrowserGraphicsQuality`가 Web 게임의 첫 씬을 불러오기 전에 실행 환경에 맞는 품질을 적용합니다. PC 브라우저는 `QualitySettings`의 `PC`를 선택하고, 휴대폰·태블릿은 Web 기본값인 `Mobile`을 유지합니다. iPadOS Safari처럼 Mac UA를 보내는 기기는 주 입력 장치가 손가락인지(`pointer: coarse`)도 확인합니다. 터치스크린이 있다는 이유만으로 PC를 모바일로 분류하지 않습니다.
+`BrowserGraphicsQuality`가 Web 게임의 첫 씬을 불러오기 전에 실행 환경에 맞는 품질을 적용합니다. PC 브라우저는 Web 빌드가 `PC` 품질에 연결한 브라우저용 렌더링 설정을 사용하고, 휴대폰·태블릿은 Web 기본값인 `Mobile`을 사용합니다. iPadOS Safari처럼 Mac UA를 보내는 기기는 주 입력 장치가 손가락인지(`pointer: coarse`)도 확인합니다. 터치스크린이 있다는 이유만으로 PC를 모바일로 분류하지 않습니다.
 
 | 항목 | PC 브라우저 | 모바일 브라우저 |
 | --- | --- | --- |
-| 렌더링 설정 | `Assets/Settings/PC_RPAsset.asset` | `Assets/Settings/Mobile_RPAsset.asset` |
-| 내부 렌더링 배율 | 1.0 | 0.8 |
+| 렌더링 설정 | `Assets/Data/Player/WebDesktop_RPAsset.asset` | `Assets/Settings/Mobile_RPAsset.asset` |
+| 내부 렌더링 배율 | 0.8 | 0.8 |
 | 주 광원 그림자 맵 | 2048 | 1024 |
-| 그림자 거리 분할(캐스케이드) | 4개 | 1개 |
-| 부드러운 그림자 | 켬 | 끔 |
+| 그림자 거리와 분할(캐스케이드) | 30m, 2개 | 50m, 1개 |
+| 부드러운 그림자 | 켬, 낮은 필터 비용 | 끔 |
+| 렌더러 | Forward, SSAO·추가 광원 그림자 끔 | Forward, SSAO·추가 광원 그림자 끔 |
 
-두 품질을 모두 Web 빌드에 포함해야 하며, PC 전환은 런타임에서 수행하므로 적용하려면 WebGL을 다시 빌드·배포해야 합니다. Editor와 네이티브 실행의 선택된 품질은 이 초기화에서 바꾸지 않습니다. 품질 선택 동작은 `A305.Player.Tests`에서 검증하며, 배포 전 PC 브라우저에서는 콘솔의 `Browser graphics quality: PC`와 실제 그림자·선명도·프레임을 확인합니다. 모바일과 iPadOS에서는 기존 품질 및 터치 조작을 확인합니다.
+Web 빌드 메뉴와 CI는 `WebGlBuild.BuildWithDesktopPipeline`을 통해 빌드 동안 `PC`에 브라우저용 에셋을 연결합니다. 모델 디테일 전환, 스키닝 가중치, 비등방 필터링, 섀도우 마스크에는 기존 웹 품질인 `Mobile`의 값을 사용합니다. 빌드가 끝나면 Editor의 설정을 복원합니다. 브라우저용 에셋은 가까운 곳의 그림자 해상도를 높이고 먼 곳의 그림자 렌더링 비용을 줄입니다. 품질 선택과 빌드 후 복원은 `A305.Player.Tests`와 `A305.Deployment.Tests`에서 검증합니다. 실제 WebGL 빌드는 PC 브라우저에서 콘솔의 `Browser graphics quality: PC`, 그림자 모양, 프레임 속도를 함께 확인합니다. FPS를 비교할 때는 활성 창에서 같은 장면과 캔버스 해상도를 사용합니다.
 
 ### 웹 이용 통계
 

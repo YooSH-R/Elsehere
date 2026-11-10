@@ -18,6 +18,8 @@
 
 미니맵과 큰 지도는 건물과 공원에 같은 TextMeshPro 이름표를 표시합니다. 그림 좌표 기준 32 크기의 굵은 글씨와 연한 하늘색의 둥근 바탕, 얇은 테두리와 약한 그림자를 사용하고, 긴 이름도 자동 축소하지 않습니다. 모든 이름표 폭은 글자 폭에 같은 좌우 여백 18을 더해 정하며, 상하 여백은 6입니다. **Tools → A305 → Mission → Update Town Map Building Labels**는 기존 지도·표시 연결을 유지하며 두 지도의 이름표를 갱신합니다. 지도를 다시 만들 때도 같은 이름표가 적용됩니다.
 
+[이웃]의 [지도에서 보기]로 고른 NPC(`NpcTracking`)는 미니맵과 큰 지도에 같은 핀으로 보입니다(`TownMiniMapView`). 핀은 흰 테두리의 코랄 원에 이름 첫 글자를 쓰고 아래에 이름표를 달며, 건물 이름표 위·내 위치 화살표 아래에 그립니다. 자리는 Npc 모듈의 `NpcLocator`가 정합니다. 마을에 켜진 몸이 있으면 그 몸을 따라가고, 몸이 없으면 일과로 일터 건물 칸 위쪽 가장자리 가운데(`TownMapArt.NeighborPoint`)에 꽂아 건물 아래의 장소 이름표를 가리지 않습니다. 근무지 코드로 건물 칸을 찾는 `TownMapArt.WorkplaceTile`은 미션 장소가 아닌 경찰서도 지도 그림의 경찰서 칸(`TownMapArt.PoliceTile`)으로 찾습니다. 숙소에서 쉬거나 걸어 다녀 자리를 모르면 핀을 숨깁니다. 그 NPC 3m 안에 다가가거나 다른 이웃을 고르면 핀이 사라집니다. 이미 만든 지도에는 **Tools → A305 → Mission → Apply Neighbor Pin**(`MiniMapBuilder.ApplyNeighborPin`)으로 핀만 더합니다.
+
 ## 기다리는 카드
 
 카페 음료 주문처럼 대화를 마친 NPC가 무언가를 준비해 곧 건네기로 하면, 왼쪽 위 퀘스트 카드 바로 아래에 기다리는 카드(`Content/FollowUpCard`, `FollowUpCardView`)를 보입니다. 목표가 많아 퀘스트 카드가 길어져 아래에 두면 왼쪽 아래(데스크톱 미니맵, 휴대폰 이동 조이스틱)까지 내려가면, 퀘스트 카드 오른쪽 옆 같은 높이에 둡니다(`FirstDayMissionView`가 매 프레임 왼쪽 열이 내려갈 수 있는 끝을 알림). 아이스 라테·아침 식사·빨래·꽃다발처럼 무엇을 준비하는지는 서버가 정하고(대화 종료 CONV-08의 `followUp`), NPC별 데이터 없이 모든 NPC에 같은 카드를 씁니다. 기다리는 목록은 [Dialogue 모듈](../Dialogue/README.md)의 `FollowUpStore`가 씬 밖에서 기억하고, 다 되면 그 NPC가 제자리에서 부릅니다([Npc 모듈](../Npc/README.md#동작-규칙)).
@@ -80,7 +82,7 @@
 | --- | --- |
 | `A305.Dialogue` | `DialogueController.ConversationEnded`, `DialogueRecord`, `KeywordMatcher`. 앉기 제안은 대화 중에 띄우지 않습니다. 기다리는 카드의 목록 `FollowUpStore` |
 | `A305.Player` | 첫날 미션 지도의 플레이어 위치, 앉기의 `PlayerMover`·`PlayerSeatPose` |
-| `A305.Npc` | [잠깐 앉기]를 띄우는 `PasserbyOfferView`의 상호작용 버튼, 기다리는 카드 문구의 받침에 맞는 조사(`PasserbyOfferText.SubjectParticle`) |
+| `A305.Npc` | [잠깐 앉기]를 띄우는 `PasserbyOfferView`의 상호작용 버튼, 기다리는 카드 문구의 받침에 맞는 조사(`PasserbyOfferText.SubjectParticle`), 지도의 [이웃] 핀(`NpcTracking`·`NpcLocator`·`NpcDuty`) |
 | `A305.Weather` | 첫날 미션의 예보 날씨를 마을에 보여 주는 `WeatherPresenter` |
 | `A305.Wayfinding` | 지금 단계의 장소를 길 안내에 알리는 `GuideDestination`, 크게 본 지도의 길 안내 켜기·끄기 버튼(`GuideRouteToggle`) |
 | uGUI, TextMeshPro | 미션 창 |
@@ -124,7 +126,7 @@
 
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
-| `A305.Mission.Tests` | `Assets/Tests/EditMode/Mission/` | 미션 시작, 다른 미션으로 교체, 없는 미션 거절, 여러 문장에 나뉜 키워드로 완료, 다른 NPC·빠진 키워드·시작 전에는 미완료, 완료한 미션 재시작 거절, 시작·교체 알림 문구, 미션 줄의 말할 단어 표시, 닿는 거리 안의 가장 가까운 자리 고르기(`RestSeatPicker`), 앉아 쉰 시간(`RestSeatTimer`), 미션이 자리를 다루는 장소는 카페뿐인지, 퀘스트 카드가 지금 단계 장소를 길 안내에 알리고 끝내거나 미션 화면을 끄면 멈추는지, 크게 본 지도에 길 안내 켜기·끄기 버튼이 있는지. 기다리는 카드: 남은 시간 분:초, 준비 중 줄(받을 것·누가 어디서·남은 시간)과 다 된 줄(준비됐어요·받으러 가세요, 받침에 맞는 조사), 마을 매장 직원은 가게 이름·그 밖은 씬 이름(`FollowUpCardTextTests`), 프리팹의 카드가 퀘스트 카드 바로 다음에 같은 폭·유리로 있고 누르기를 받지 않는지, 기다리는 것이 없거나 건넨 뒤·미션 화면을 끄면 숨는지, 먼저 되는 것부터 한 줄씩 보이는지(`FollowUpCardTests`) |
+| `A305.Mission.Tests` | `Assets/Tests/EditMode/Mission/` | 미션 시작, 다른 미션으로 교체, 없는 미션 거절, 여러 문장에 나뉜 키워드로 완료, 다른 NPC·빠진 키워드·시작 전에는 미완료, 완료한 미션 재시작 거절, 시작·교체 알림 문구, 미션 줄의 말할 단어 표시, 닿는 거리 안의 가장 가까운 자리 고르기(`RestSeatPicker`), 앉아 쉰 시간(`RestSeatTimer`), 미션이 자리를 다루는 장소는 카페뿐인지, 퀘스트 카드가 지금 단계 장소를 길 안내에 알리고 끝내거나 미션 화면을 끄면 멈추는지, 크게 본 지도에 길 안내 켜기·끄기 버튼이 있는지. 기다리는 카드: 남은 시간 분:초, 준비 중 줄(받을 것·누가 어디서·남은 시간)과 다 된 줄(준비됐어요·받으러 가세요, 받침에 맞는 조사), 마을 매장 직원은 가게 이름·그 밖은 씬 이름(`FollowUpCardTextTests`), 프리팹의 카드가 퀘스트 카드 바로 다음에 같은 폭·유리로 있고 누르기를 받지 않는지, 기다리는 것이 없거나 건넨 뒤·미션 화면을 끄면 숨는지, 먼저 되는 것부터 한 줄씩 보이는지(`FollowUpCardTests`). [이웃] 핀: 근무지 코드로 건물 칸 찾기(경찰서 포함)·핀 자리(마을의 몸, 일터 칸 위쪽 가장자리, 지도에 없으면 없음, `TownMapArtTests`), 미니맵과 큰 지도의 핀 표시·이름 첫 글자와 이름·숨김(`MiniMapPrefabTests`) |
 | `A305.Mission.PlayModeTests` | `Assets/Tests/PlayMode/Mission/` | 퀘스트 화면의 표시·조작, 카페의 모든 의자·소파에서 앉기 안내·실제 착석·5초 후 단일 휴식 요청까지의 연결 |
 | `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 공간 기능 연결이 미션 창과 미션 처리를 한 번씩 붙이고 대화 처리와 연결하는지 |
 

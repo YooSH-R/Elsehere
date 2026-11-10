@@ -768,7 +768,7 @@ namespace A305.Learning
                 MarkPicked(pick);
         }
 
-        // [담기]를 흰 [✓ 담음]으로 바꾼다. 오른쪽 끝과 세로 가운데는 그대로 둔다.
+        // [담기]를 흰 [담음]으로 바꾼다. 오른쪽 끝과 세로 가운데는 그대로 둔다.
         private void MarkPicked(Button pick)
         {
             if (pick == null)

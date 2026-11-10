@@ -61,6 +61,6 @@
 
 음악은 외부 곡·샘플 없이 직접 합성한 약 31초 루프이며 원본 합성 도구는 `infra/audio/render-entry-music.py`입니다. 같은 도구가 OGG(Unity용)와 함께 만드는 160kbps MP3를 로딩 페이지에 씁니다. Safari도 재생할 수 있도록 OGG 대신 MP3를 씁니다. 버전·길이·효과음 출처·라이선스는 `Assets/Audio/Interface/audio-manifest.json`과 `CREDITS.txt`에 기록합니다.
 
-`EntryMusicFaderTests`가 로딩 페이지 음악을 입구 화면에서 클릭 없이 잇기, 게임 공간에서 약 0.5초에 걸쳐 끄기, 스피커를 꺼 둔 로딩 화면 뒤에 스피커를 켜면 틀기, 로딩 페이지 음악이 없을 때 첫 클릭 뒤에 시작하기를 확인합니다. 로딩 페이지와의 연결(`.jslib`)은 Editor에서 실행되지 않으므로 Web 빌드를 브라우저에서 열어 확인합니다.
+`EntryMusicFaderTests`가 로딩 페이지 음악을 입구 화면에서 클릭 없이 잇기, 게임 공간에서 약 0.5초에 걸쳐 끄기, 스피커를 꺼 둔 로딩 화면 뒤에 스피커를 켜면 틀기, 로딩 페이지 음악이 없을 때 첫 클릭 뒤에 시작하기를 확인합니다. 로딩 페이지 스크립트와 연결(`.jslib`)은 Editor에서 실행되지 않으므로 `infra/tests/webgl_entry_music.test.cjs`가 가짜 브라우저에서 확인합니다. 확인하는 것은 함께 배포되는 음원 반복, 자동재생이 막혔을 때 첫 입력으로 켜기, Unity가 줄여도 처음부터 다시 틀지 않기, 스피커 선택 남기기, 음원이나 Web Audio가 없을 때 Unity 음악으로 넘기기입니다. 실제 소리는 Web 빌드를 브라우저에서 열어 확인합니다.
 
 **Tools → A305 → Audio → Build Interface Audio** (`InterfaceAudioBuilder.Build`)가 가져오기 설정과 `Resources/Ambience/InterfaceAudio.asset`을 연결합니다. 음악은 스테레오 Vorbis·CompressedInMemory·비동기 읽기, 짧은 효과음은 모노·DecompressOnLoad입니다. 씬·기존 화면 프리팹을 재생성하지 않습니다.

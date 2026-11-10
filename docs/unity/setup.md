@@ -51,7 +51,7 @@ Build And Run은 로컬 웹 서버를 사용합니다. 생성된 `index.html`을
 - 그림과 문구 목록은 `index.html`의 `introSlides`에서 관리합니다.
 - 진행 막대는 받은 만큼 0.4초에 걸쳐 따라 찹니다. 파일을 다 받은 뒤 게임을 준비하는 동안에는 브라우저가 화면을 갱신하지 못해 막대가 잠시 멈출 수 있습니다. 그래서 로딩이 끝나면 막대가 끝까지 차는 모습을 보인 뒤 로딩 화면을 닫습니다.
 - Unity 로더는 서버가 보내는 `Content-Length`로 진행률을 계산합니다. 이 헤더가 없으면 막대는 파일을 다 받을 때까지 움직이지 않다가 한 번에 찹니다. 로컬에서 직접 띄운 서버로 확인할 때도 이 헤더를 보내야 합니다.
-- 로딩 화면에서부터 접속 음악(`entry-town-ensemble.mp3`)을 틀고, Unity가 켜지면 입구 화면까지 끊지 않고 이어 씁니다. 브라우저가 자동재생을 막으면 첫 클릭·키·터치 뒤에 들립니다. 재생 규칙은 [Ambience 문서](../../frontend/UnityClient/Assets/Scripts/Ambience/README.md#ui-효과음과-접속-화면-음악)를 따릅니다.
+- 로딩 화면에서부터 접속 음악(`entry-town-ensemble.mp3`)을 틀고, Unity가 켜지면 입구 화면까지 끊지 않고 이어 씁니다. 브라우저가 자동재생을 막으면 첫 클릭·키·터치 뒤에 들립니다. 재생 규칙은 [Ambience 문서](../../frontend/UnityClient/Assets/Scripts/Ambience/README.md#ui-효과음과-접속-화면-음악)를 따르고, 저장소 최상위에서 `node --test infra/tests/webgl_entry_music.test.cjs`로 검증합니다.
 
 Web 실행은 `Application.targetFrameRate`의 기본값 `-1`을 유지해 브라우저의 화면 갱신 주기를 따릅니다. 실제 프레임은 기기 성능·화면 주사율·브라우저 정책에 따라 달라집니다. 144·240fps를 고정값으로 강제하지 않으며, 모바일 발열·배터리를 위한 별도 상한은 성능 검증 후 결정합니다. 동작 기준은 [Unity의 Web 프레임 제어](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/Application-targetFrameRate.html)를 따릅니다.
 

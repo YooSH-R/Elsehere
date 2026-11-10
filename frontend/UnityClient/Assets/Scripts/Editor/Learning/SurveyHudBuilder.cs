@@ -48,7 +48,19 @@ namespace A305.EditorTools.Learning
             var phone = (RectTransform)root.transform.Find("Panel/MenuBar");
             BuilderTools.GetOrAddComponent<LayoutElement>(phone.gameObject).ignoreLayout = true;
             phone.anchorMin = phone.anchorMax = phone.pivot = Vector2.one;
-            phone.sizeDelta = Vector2.one * HudTopBarLayout.Size;
+            phone.sizeDelta = new Vector2(HudTopBarLayout.PhoneWidth, HudTopBarLayout.Size);
+            foreach (string name in new[] { "MenuButton", "OpenMenuButton" })
+            {
+                Transform button = phone.Find(name);
+                var size = button.GetComponent<LayoutElement>();
+                size.minWidth = size.preferredWidth = HudTopBarLayout.PhoneWidth;
+                size.minHeight = size.preferredHeight = HudTopBarLayout.Size;
+                if (button.Find("Art") != null)
+                    OpticalIconPlacement.Apply(
+                        button.Find("Art").GetComponent<Image>(),
+                        HudTopBarLayout.Size
+                    );
+            }
             BuilderTools.GetOrAddComponent<HudTopBarView>(root).Configure(phone);
             var rootRect = (RectTransform)root.transform;
             phone.position = rootRect.TransformPoint(
@@ -172,7 +184,7 @@ namespace A305.EditorTools.Learning
                 -HudTopBarLayout.SurveyRight,
                 -HudTopBarLayout.Margin
             );
-            entryRect.sizeDelta = Vector2.one * HudTopBarLayout.Size;
+            entryRect.sizeDelta = new Vector2(HudTopBarLayout.SurveyWidth, HudTopBarLayout.Size);
             Image hit = entry.GetComponent<Image>();
             hit.color = Color.clear;
             Button click = entry.GetComponent<Button>();
@@ -184,7 +196,7 @@ namespace A305.EditorTools.Learning
                 picture.rectTransform.pivot =
                     Vector2.one * .5f;
             picture.rectTransform.anchoredPosition = Vector2.zero;
-            picture.rectTransform.sizeDelta = Vector2.one * 88;
+            OpticalIconPlacement.Apply(picture, HudTopBarLayout.Size);
             entry.SetActive(false);
             BuilderTools.SetReference(layer.GetComponent<SurveyPromptView>(), "entryButton", click);
             card.gameObject.SetActive(false);

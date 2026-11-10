@@ -42,7 +42,10 @@ namespace A305.EditorTools.Learning
                 -A305.World.HudTopBarLayout.Margin,
                 -A305.World.HudTopBarLayout.Margin
             );
-            rect.sizeDelta = Vector2.one * A305.World.HudTopBarLayout.Size;
+            rect.sizeDelta = new Vector2(
+                A305.World.HudTopBarLayout.SpeakerWidth,
+                A305.World.HudTopBarLayout.Size
+            );
             rect.SetAsLastSibling();
             var button = rect.GetComponent<Button>();
             var hit = rect.GetComponent<Image>();
@@ -67,9 +70,12 @@ namespace A305.EditorTools.Learning
             icon.rectTransform.sizeDelta = Vector2.one * 88;
             icon.raycastTarget = false;
             icon.preserveAspect = true;
-            BuilderTools
-                .GetOrAddComponent<BackgroundSoundToggle>(rect.gameObject)
-                .Configure(button, icon, on, off);
+            var toggle = BuilderTools.GetOrAddComponent<BackgroundSoundToggle>(rect.gameObject);
+            toggle.Configure(button, icon, on, off);
+            toggle.ConfigureIconLayout(
+                OpticalIconPlacement.Measure(on, A305.World.HudTopBarLayout.Size),
+                OpticalIconPlacement.Measure(off, A305.World.HudTopBarLayout.Size)
+            );
         }
 
         private static Sprite SaveSprite(string name, bool muted)

@@ -71,7 +71,7 @@ namespace A305.EditorTools.Onboarding
             Connection((RectTransform)root.Find("ConnectionPanel"));
         }
 
-        // 접속 확인 중에도 로그인과 같은 마을 배경·크림색 그라데이션을 쓴다.
+        // 접속 확인 중에는 로그인과 같은 마을 배경·크림색 그라데이션을 쓰고, 가운데 창이 뜨면 시안(e2~e5)의 흐린 마을로 바꾼다.
         private static void Background(Transform background)
         {
             RectTransform town = F.Rect("Town", background);
@@ -81,13 +81,33 @@ namespace A305.EditorTools.Onboarding
                 town.gameObject,
                 AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Login/LoginTown.png")
             );
+            CoverScreen(town);
             RectTransform shade = F.Rect("Shade", background);
             F.Fill(shade);
             F.Picture(
                 shade.gameObject,
                 AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Login/LoginShade.png")
             );
-            var cover = BuilderTools.GetOrAddComponent<AspectRatioFitter>(town.gameObject);
+            RectTransform windowTown = F.Rect("WindowTown", background);
+            windowTown.SetSiblingIndex(shade.GetSiblingIndex() + 1);
+            F.Fill(windowTown);
+            F.Picture(windowTown.gameObject, Sprite("EntryBackdrop"));
+            CoverScreen(windowTown);
+            windowTown.gameObject.SetActive(false);
+
+            var backdrop = BuilderTools.GetOrAddComponent<EntryBackdropView>(background.gameObject);
+            BuilderTools.SetReference(backdrop, "loginTown", town.gameObject);
+            BuilderTools.SetReference(backdrop, "creamShade", shade.gameObject);
+            BuilderTools.SetReference(backdrop, "windowTown", windowTown.gameObject);
+            var screen = background.parent.GetComponent<OnboardingScreen>();
+            if (screen != null)
+                BuilderTools.SetReference(screen, "backdrop", backdrop);
+        }
+
+        // 화면을 덮도록 16:9 비율을 지켜 늘린다.
+        private static void CoverScreen(RectTransform picture)
+        {
+            var cover = BuilderTools.GetOrAddComponent<AspectRatioFitter>(picture.gameObject);
             cover.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
             cover.aspectRatio = 16f / 9f;
         }

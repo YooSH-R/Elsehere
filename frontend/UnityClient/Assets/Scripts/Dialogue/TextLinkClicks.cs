@@ -27,6 +27,7 @@ namespace A305.Dialogue
             );
             if (link >= 0)
             {
+                A305.World.UiSoundEvents.Play(A305.World.UiSound.Click);
                 Clicked?.Invoke(text.textInfo.linkInfo[link].GetLinkID());
             }
         }

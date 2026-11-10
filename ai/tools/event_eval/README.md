@@ -4,7 +4,7 @@
 
 - 측정 도구: `ai/tools/event_eval.py`
 - 테스트셋: `cases.json` (109줄). 잠가 두고 지시문을 다듬을 때 보지 않습니다.
-- 개발셋: `dev_cases.json`. 지시문을 다듬을 때 보는 줄입니다. 테스트셋 문장을 넣지 않습니다(`test_event_eval.py`가 확인).
+- 개발셋: `dev_cases.json` (98줄, 그중 미션 의도 줄 34). 지시문을 다듬거나 모델을 고를 때 보는 줄입니다. 테스트셋 문장을 넣지 않습니다(`test_event_eval.py`가 확인).
 - 문장은 모두 직접 지어낸 것입니다. 팀원 기록·AI Hub 데이터는 넣지 않습니다.
 
 ## 무엇을 확인하나
@@ -67,3 +67,5 @@ ai/worker/.venv/Scripts/python ai/tools/event_eval.py --variant service --cases 
 `before`·`after`는 사건 판정을 넣을 때 비교한 기록용입니다(`after`는 협의서 초안 지시문을 덧붙임). 지금 서비스 판정은 `service`로 잽니다.
 
 `--cases`(기본 `test`, 개발셋은 `dev`), `--profile`(기본 `gms-luna`), `--env`(키를 읽을 `.env`, 기본 저장소 루트), `--only clear,none`(묶음 고르기), `--out 결과.jsonl`(줄마다의 기록)을 쓸 수 있습니다.
+
+GPU 서버 vLLM 모델과 비교할 때는 `--gpu-model Qwen/Qwen3.8-27B`를 줍니다. 구성의 intent 모델 대신 워커의 `gpu_llm` 공급자(`GUARD_GPU_BASE_URL`·`GUARD_GPU_TOKEN`)로 같은 지시문·출력 형식을 보냅니다. 개발 PC에서는 배포 서버를 거쳐 GPU 터널 입구로 포워딩한 주소를 넣습니다. `--concurrency 10`은 10줄씩 동시에 보내 동시 요청 때의 지연을 잽니다(기본 1). 지연은 응답이 온 호출만 중앙·p90·최대로 찍습니다. 공용 키·공용 GPU라 동시 측정은 작게, 짧게 합니다.

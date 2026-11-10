@@ -43,6 +43,8 @@ services:
       GUARD_GPU_MODEL: ${GUARD_GPU_MODEL:-}
       GUARD_GPU_BASE_URL: ${GUARD_GPU_BASE_URL:-}
       GUARD_GPU_TOKEN: ${GUARD_GPU_TOKEN:-}
+      # Optional intent judge on the same GPU server vLLM first, then the profile's intent model. Empty keeps the profile's intent.
+      JUDGE_GPU_MODEL: ${JUDGE_GPU_MODEL:-}
       # Optional speech synthesis on the GPU server first, then the local CPU Kokoro. Empty keeps CPU only.
       TTS_GPU_BASE_URL: ${TTS_GPU_BASE_URL:-}
       TTS_GPU_TOKEN: ${TTS_GPU_TOKEN:-}

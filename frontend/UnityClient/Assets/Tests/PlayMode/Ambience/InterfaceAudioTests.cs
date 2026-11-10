@@ -66,6 +66,11 @@ namespace A305.Ambience.PlayModeTests
                 player.Configure(settings);
                 BackgroundSoundPreference.Enabled = false;
                 yield return null;
+                // 접속 화면에는 카메라 귀(AudioListener)가 없어 BGM이 들리지 않았다. 다른 귀가 없으면 오디오가 스스로 귀를 켠다.
+                Assert.That(
+                    Object.FindObjectsByType<AudioListener>(FindObjectsSortMode.None),
+                    Has.Some.Matches<AudioListener>(listener => listener.isActiveAndEnabled)
+                );
                 Assert.That(player.EffectsSource.mute, Is.True);
                 Assert.That(player.MusicSource.volume, Is.Zero);
                 Assert.That(player.MusicSource.loop, Is.True);
@@ -88,6 +93,41 @@ namespace A305.Ambience.PlayModeTests
                     BackgroundSoundPreference.Enabled = saved;
                 else
                     PlayerPrefs.DeleteKey(BackgroundSoundPreference.Key);
+            }
+        }
+
+        // 버튼만이 아니라 토글처럼 누르는 조작에도 가장 작은 클릭음을 낸다. 끌어서 쓰는 슬라이더는 소리를 내지 않는다.
+        [UnityTest]
+        public IEnumerator TogglesClickButSlidersStayQuiet()
+        {
+            var toggle = new GameObject(
+                "AgreeToggle",
+                typeof(RectTransform),
+                typeof(Image),
+                typeof(Toggle)
+            );
+            var slider = new GameObject(
+                "VolumeSlider",
+                typeof(RectTransform),
+                typeof(Image),
+                typeof(Slider)
+            );
+            UiSound? heard = null;
+            void Hear(UiSound sound) => heard = sound;
+            UiSoundEvents.Requested += Hear;
+            try
+            {
+                yield return null;
+                InterfaceAudioPlayer.AttachClickSounds();
+                Assert.That(slider.GetComponent<UiClickSound>(), Is.Null);
+                toggle.GetComponent<UiClickSound>().OnSubmit(new BaseEventData(null));
+                Assert.That(heard, Is.EqualTo(UiSound.Click));
+            }
+            finally
+            {
+                UiSoundEvents.Requested -= Hear;
+                Object.DestroyImmediate(toggle);
+                Object.DestroyImmediate(slider);
             }
         }
     }

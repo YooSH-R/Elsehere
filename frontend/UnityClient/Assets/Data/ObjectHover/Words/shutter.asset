@@ -16,7 +16,7 @@ MonoBehaviour:
     key: shutter
     languageCode: en-US
     text: shutter
-    meaningKo: "\uC154\uD130"
+    meaningKo: "\uAC00\uAC8C \uC55E\uC744 \uB9C9\uB294 \uCCA0\uC81C \uB367\uBB38(\uC154\uD130)"
     example: The shop's shutter is closed.
     exampleKo: "\uAC00\uAC8C\uC758 \uC154\uD130\uAC00 \uB2EB\uD600 \uC788\uC5B4\uC694."
     pronunciationAudioKey: 

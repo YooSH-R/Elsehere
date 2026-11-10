@@ -13,6 +13,9 @@ namespace A305.Ambience
         private InterfaceAudioCatalog catalog;
         private AudioSource music;
         private AudioSource effects;
+
+        // 접속 화면처럼 카메라 귀(AudioListener)가 없는 씬에서만 켜는 귀. 다른 귀가 있으면 끈다.
+        private AudioListener ears;
         private readonly UiSoundGate gate = new UiSoundGate();
         private bool unlocked;
         private float scanAt;
@@ -47,9 +50,11 @@ namespace A305.Ambience
             music.clip = settings.Music;
             music.loop = true;
             music.volume = 0;
+            ears = gameObject.AddComponent<AudioListener>();
+            UpdateEars();
             UiSoundEvents.Requested += PlayCue;
             SceneManager.sceneLoaded += SceneLoaded;
-            AttachClicks();
+            AttachClickSounds();
         }
 
         private AudioSource Source(string label)
@@ -65,7 +70,8 @@ namespace A305.Ambience
         private void SceneLoaded(Scene scene, LoadSceneMode mode)
         {
             scanAt = 0;
-            AttachClicks();
+            UpdateEars();
+            AttachClickSounds();
         }
 
         private void OnDestroy()
@@ -100,20 +106,35 @@ namespace A305.Ambience
             if (Time.unscaledTime >= scanAt)
             {
                 scanAt = Time.unscaledTime + .35f;
-                AttachClicks();
+                UpdateEars();
+                AttachClickSounds();
             }
         }
 
-        private static void AttachClicks()
+        // 소리를 들을 귀가 하나는 있게 한다. 카메라 귀가 있는 씬에서는 내 귀를 꺼 귀가 둘이 되지 않게 한다.
+        private void UpdateEars()
+        {
+            bool other = false;
+            foreach (
+                AudioListener listener in FindObjectsByType<AudioListener>(FindObjectsSortMode.None)
+            )
+                other |= listener != ears && listener.isActiveAndEnabled;
+            ears.enabled = !other;
+        }
+
+        /// <summary>
+        /// 누르는 조작(버튼·토글·드롭다운)에 클릭음을 붙인다. 끌어서 쓰는 슬라이더·스크롤바와 글자 입력칸에는 붙이지 않는다.
+        /// </summary>
+        public static void AttachClickSounds()
         {
             foreach (
-                Button button in FindObjectsByType<Button>(
+                Selectable control in FindObjectsByType<Selectable>(
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None
                 )
             )
-                if (!button.TryGetComponent<UiClickSound>(out _))
-                    button.gameObject.AddComponent<UiClickSound>();
+                if (UiClickSound.Clicks(control) && !control.TryGetComponent<UiClickSound>(out _))
+                    control.gameObject.AddComponent<UiClickSound>();
         }
 
         private void PlayCue(UiSound sound)

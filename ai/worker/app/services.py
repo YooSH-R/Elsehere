@@ -80,15 +80,8 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
     hedge_after_s = llm.s.judge_hedge_after_s  # NPC 대답이 판정을 기다리므로 다른 호출보다 일찍 같은 요청을 더 보낸다
 
     async def intent():
-        out = await llm.chat(
-            "intent",
-            "intent",
-            P.intent_messages(req.npc, req.state, req.history, text),
-            usage,
-            0.0,
-            200,
-            P.intent_schema(req.state),
-            hedge_after_s=hedge_after_s,
+        out = await llm.intent_chat(
+            P.intent_messages(req.npc, req.state, req.history, text), usage, P.intent_schema(req.state), hedge_after_s=hedge_after_s
         )
         raw = json.loads(out)
         return clean_intent(raw, req.state), clean_events(raw)
@@ -97,7 +90,7 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
         out = await llm.chat(
             "translate", "translate", P.translate_messages(req.npc, scene, req.history, text), usage, 0.0, 80, hedge_after_s=hedge_after_s
         )
-        return out.split("\n")[0].strip().strip('"')
+        return unwrap_quotes(out.split("\n")[0].strip())
 
     budget = llm.s.judge_budget_s
     jobs = [within(intent(), budget)]
@@ -124,6 +117,14 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
         "affinity_delta": line_affinity(req, events),
         "usage": usage.items,
     }
+
+
+def unwrap_quotes(line: str) -> str:
+    """모델이 번역문 전체를 따옴표로 감싸면 벗긴다. 이름을 그대로 둔 따옴표('My name is "김사피"')는 남긴다."""
+    inner = line[1:-1]
+    if len(line) >= 2 and line[0] == line[-1] == '"' and inner.count('"') % 2 == 0:
+        return inner
+    return line
 
 
 def line_affinity(req: JudgeRequest, events: list[str]) -> int:

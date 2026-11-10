@@ -20,6 +20,58 @@ namespace A305.EditorTools.Dialogue
     /// <summary>실제 NPC와 고정 대본으로 대화 구도·도움말 배치를 확인한다. Play·모델 호출 없음.</summary>
     public static class DialogueLayoutPreview
     {
+        public static void CaptureFourLines()
+        {
+            DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
+            view.Show(
+                new WordPreviewContent
+                {
+                    PreviewLines = new[]
+                    {
+                        DialogueLine.FromNpc(
+                            "Good morning! What can I get for you?",
+                            "안녕하세요! 무엇을 드릴까요?"
+                        ),
+                        DialogueLine.FromUser("I'd like an iced latte, please."),
+                        DialogueLine.FromNpc(
+                            "Sure! For here or to go?",
+                            "좋아요! 드시고 가세요, 포장하세요?"
+                        ),
+                        DialogueLine.FromUser("For here, please."),
+                        DialogueLine.FromNpc(
+                            "Of course. Would you like anything else?",
+                            "그럼요. 더 필요한 건 있으세요?"
+                        ),
+                    },
+                }
+            );
+            typeof(DialoguePanelView)
+                .GetMethod("ToggleMeaning", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(view, null);
+            SelectTheme(UiThemeId.Jelly);
+            string output = OutputFolder();
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "four-lines-desktop.png"),
+                1920,
+                1080,
+                showLatest: true
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "four-lines-short.png"),
+                844,
+                390,
+                showLatest: true
+            );
+        }
+
         public static void CaptureTranslation()
         {
             DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
@@ -291,7 +343,8 @@ namespace A305.EditorTools.Dialogue
             Vector3 face,
             string path,
             int width,
-            int height
+            int height,
+            bool showLatest = false
         )
         {
             var target = new RenderTexture(width, height, 24);
@@ -326,6 +379,8 @@ namespace A305.EditorTools.Dialogue
                 typeof(ScrollRect)
                     .GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic)
                     .Invoke(scroll, null);
+                if (showLatest)
+                    scroll.verticalNormalizedPosition = 0;
                 if (scroll.verticalScrollbar != null)
                     scroll.verticalScrollbar.gameObject.SetActive(
                         scroll.content.rect.height > scroll.viewport.rect.height + 0.01f
@@ -383,15 +438,16 @@ namespace A305.EditorTools.Dialogue
             };
 
             public string UserTranslation { get; set; }
+            public IReadOnlyList<DialogueLine> PreviewLines { get; set; }
             public string NpcName => "Mia";
             public IReadOnlyList<DialogueLine> Lines =>
-                UserTranslation == null
-                    ? lines
-                    : new[]
-                    {
-                        DialogueLine.FromUser("카페 어디야?"),
-                        DialogueLine.FromNpc("It is on your right.", null),
-                    };
+                PreviewLines != null ? PreviewLines
+                : UserTranslation == null ? lines
+                : new[]
+                {
+                    DialogueLine.FromUser("카페 어디야?"),
+                    DialogueLine.FromNpc("It is on your right.", null),
+                };
             public DialogueLine LastNpcLine => Question;
             public bool IsGuided => false;
             public bool IsGuidedCompleted => false;
@@ -426,7 +482,7 @@ namespace A305.EditorTools.Dialogue
             public ConversationStanding Standing => null;
             public bool CanTalk => true;
             public bool CanReplaySpeech => true;
-            public bool SpeaksNpcLines => true;
+            public bool SpeaksNpcLines => PreviewLines == null;
             public bool IsNpcSpeechReady => true;
         }
     }

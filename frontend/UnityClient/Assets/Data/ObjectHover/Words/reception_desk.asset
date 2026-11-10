@@ -16,7 +16,7 @@ MonoBehaviour:
     key: reception_desk
     languageCode: en-US
     text: front desk
-    meaningKo: "\uD504\uB7F0\uD2B8 \uB370\uC2A4\uD06C"
+    meaningKo: "\uD638\uD154 \uC811\uC218\xB7\uC548\uB0B4 \uCC3D\uAD6C(\uD504\uB7F0\uD2B8)"
     example: Please check in at the front desk.
     exampleKo: "\uD504\uB7F0\uD2B8 \uB370\uC2A4\uD06C\uC5D0\uC11C \uCCB4\uD06C\uC778\uD574
       \uC8FC\uC138\uC694."

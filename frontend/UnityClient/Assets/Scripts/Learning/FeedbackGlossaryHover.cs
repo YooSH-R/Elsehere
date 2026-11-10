@@ -83,6 +83,8 @@ namespace A305.Learning
                 || index >= glossary.Count
             )
                 return;
+            if (pin)
+                A305.World.UiSoundEvents.Play(A305.World.UiSound.Click);
             Canvas canvas = GetComponentInParent<Canvas>().rootCanvas;
             RectTransform canvasRect = (RectTransform)canvas.transform;
             Rect bounds = canvasRect.rect;

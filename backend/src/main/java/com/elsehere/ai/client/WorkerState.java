@@ -8,24 +8,31 @@ import java.util.List;
  *
  * @param intents 이 상태에서 학습자가 할 수 있는 일
  * @param slots 의도와 함께 고를 값. 없으면 {@link Slots#NONE}
+ * @param recentLines 판정에 함께 보여 줄 최근 대화 줄 수. '거기'처럼 앞에서 말한 것을 가리키는 말을 알아듣게 한다. 0이면 상대의 마지막 줄만 보여 준다
  */
 public record WorkerState(
     String id,
     String desc,
     List<Intent> intents,
     @JsonProperty("accumulate_history") boolean accumulateHistory,
-    Slots slots) {
+    Slots slots,
+    @JsonProperty("recent_lines") int recentLines) {
 
   public WorkerState(String id, String desc, List<Intent> intents) {
-    this(id, desc, intents, false, Slots.NONE);
+    this(id, desc, intents, false, Slots.NONE, 0);
   }
 
   public WorkerState(String id, String desc, List<Intent> intents, boolean accumulateHistory) {
-    this(id, desc, intents, accumulateHistory, Slots.NONE);
+    this(id, desc, intents, accumulateHistory, Slots.NONE, 0);
   }
 
   public WorkerState(String id, String desc, List<Intent> intents, Slots slots) {
-    this(id, desc, intents, false, slots);
+    this(id, desc, intents, false, slots, 0);
+  }
+
+  public WorkerState(
+      String id, String desc, List<Intent> intents, boolean accumulateHistory, Slots slots) {
+    this(id, desc, intents, accumulateHistory, slots, 0);
   }
 
   public record Intent(String id, String desc) {}

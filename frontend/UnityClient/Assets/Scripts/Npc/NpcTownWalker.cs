@@ -220,7 +220,11 @@ namespace A305.Npc
                 approachedCrossing && !onSidewalk,
                 approachedCrossing ? committedCrossing.Across : null
             );
-            Vector3 travel = PassingDirection(body, direction);
+            Vector3 travel = PassingDirection(
+                body,
+                direction,
+                stayOnSidewalk: onSidewalk && !route.CrossesRoad
+            );
             bool clear =
                 IsHurrying
                 && !IsCrossing
@@ -389,7 +393,11 @@ namespace A305.Npc
             return crossing >= 0 && NavMesh.SamplePosition(point, out _, distance, 1 << crossing);
         }
 
-        private Vector3 PassingDirection(Passerby body, Vector3 destinationOffset)
+        private Vector3 PassingDirection(
+            Passerby body,
+            Vector3 destinationOffset,
+            bool stayOnSidewalk
+        )
         {
             Vector3 forward = destinationOffset.normalized;
             if (passing != null)
@@ -422,19 +430,19 @@ namespace A305.Npc
                 passingForward = forward;
                 passingOnRight = true;
                 passingClearance = clearance;
-                if (!TryPassingDirection(other, out _))
+                if (!TryPassingDirection(other, stayOnSidewalk, out _))
                 {
                     passingOnRight = false;
-                    if (!TryPassingDirection(other, out _))
+                    if (!TryPassingDirection(other, stayOnSidewalk, out _))
                         return destinationOffset;
                 }
                 passing = other;
             }
 
-            if (TryPassingDirection(passing, out Vector3 direction))
+            if (TryPassingDirection(passing, stayOnSidewalk, out Vector3 direction))
                 return direction;
             passingOnRight = !passingOnRight;
-            if (TryPassingDirection(passing, out direction))
+            if (TryPassingDirection(passing, stayOnSidewalk, out direction))
                 return direction;
             passing = null;
             return destinationOffset;
@@ -457,7 +465,7 @@ namespace A305.Npc
                     < clearance * clearance;
         }
 
-        private bool TryPassingDirection(Passerby other, out Vector3 direction)
+        private bool TryPassingDirection(Passerby other, bool stayOnSidewalk, out Vector3 direction)
         {
             Vector3 offset = Vector3.ProjectOnPlane(
                 other.transform.position - transform.position,
@@ -475,10 +483,18 @@ namespace A305.Npc
             // 좁은 보도에서 멀리 떨어진 접선 끝점까지 요구하면 양옆 모두 막혔다고 판단한다.
             // 실제 한 걸음으로 갈 수 있는 구간부터 확인해 서로 반대쪽으로 조금씩 비켜 간다.
             Vector3 waypoint = transform.position + direction * .35f;
+            // 좁은 인도 가장자리는 가까운 보행 지점으로 보정하되 차도·횡단보도로는 돌아가지 않는다.
             if (
-                !NavMesh.SamplePosition(transform.position, out NavMeshHit start, .3f, WalkingAreas)
-                || !NavMesh.SamplePosition(waypoint, out NavMeshHit end, .2f, WalkingAreas)
-                || NavMesh.Raycast(start.position, end.position, out _, WalkingAreas)
+                stayOnSidewalk
+                && IsRoadSurface(waypoint, .1f)
+                && !NpcWalkRoute.IsOnSidewalk(waypoint)
+            )
+                return false;
+            int passingAreas = stayOnSidewalk ? StandingAreas : WalkingAreas;
+            if (
+                !NavMesh.SamplePosition(transform.position, out NavMeshHit start, .3f, passingAreas)
+                || !NavMesh.SamplePosition(waypoint, out NavMeshHit end, .2f, passingAreas)
+                || NavMesh.Raycast(start.position, end.position, out _, passingAreas)
                 || !GetComponent<Passerby>().HasWalkingRoom(direction, .35f)
                 || NpcWalkingSpace.LimitStep(GetComponent<Passerby>(), direction.normalized, .1f)
                     < .005f

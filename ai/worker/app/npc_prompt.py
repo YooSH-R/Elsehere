@@ -63,7 +63,13 @@ def character_section(profile: NpcProfile) -> str:
                 ("Talkativeness", speech.verbosity),
                 ("Humor", speech.humor),
                 ("Directness", speech.directness),
-                ("Catchphrases (only now and then, not in every reply)", catchphrases),  # 매 턴 반복하는 틀이 아니다 (설정 명세)
+                # 매 턴 반복하는 틀이 아니다 (설정 명세). "가끔만"이라고만 하면 거의 쓰지 않아(대답 128개 중 4개, npc_voice_eval)
+                # 세 번에 한 번쯤으로 정하고, 같은 대화에서 되풀이하지 않게 한다
+                (
+                    "Catchphrases (your own signature lines: work one into about one reply in three, the one that fits the moment, "
+                    "and never repeat one in the same conversation)",
+                    catchphrases,
+                ),
             ]
         ),
     )
@@ -126,17 +132,18 @@ There are no other shops, restaurants or attractions in town."""
 # 학습 수준 6단계(계약 userLevel)를 규칙 세 묶음으로 (2026-10-26 결정). 말투(talkativeness)보다 이 규칙이 우선한다.
 # 관용구·속어는 막지 않는다(2026-11-04 결정): 막으면 짧은 대답에 인물다운 표현이 들어갈 자리가 없어 모든 NPC가 같은 매장 직원 말투가 된다.
 # 모르는 표현은 학습자가 뜻 보기(CONV-04)의 풀이로 익힌다. 쓸 수 있다고만 하면 거의 넣지 않아(실제 모델 비교) 대부분의 대답에 넣으라고 하고,
-# 예시 표현은 주지 않는다(예시를 주면 NPC마다 그 표현을 그대로 따라 한다)
+# 예시 표현은 주지 않는다(예시를 주면 NPC마다 그 표현을 그대로 따라 한다). 대신 인물 카드의 말버릇을 가리킨다:
+# 인격 칸 속 한 줄로만 두면 거의 쓰지 않는다(npc_voice_eval). 얼마나 자주 쓸지는 인격 칸의 말버릇 줄이 정한다
 BEGINNER = (
     "Keep it short and easy: one or two sentences, each under 12 words, with simple everyday words. "
-    "Sound like a real local, not a textbook: work an everyday idiom or casual phrase this character would say into most replies "
-    "(slang and idioms are fine)."
+    "Sound like a real local, not a textbook: work an everyday idiom, a casual phrase or one of your catchphrases "
+    "this character would say into most replies (slang and idioms are fine)."
 )
 MIDDLE = (
-    "Use natural everyday English, and work the idioms and casual slang this character would say into most replies. "
+    "Use natural everyday English, and work the idioms, casual slang and catchphrases this character would say into most replies. "
     "Two or three sentences at most."
 )
-ADVANCED = "Talk as you naturally would, with your idioms, slang and phrasal verbs. Three sentences at most."
+ADVANCED = "Talk as you naturally would, with your idioms, slang, phrasal verbs and catchphrases. Three sentences at most."
 LEVEL_RULES = {"A1": BEGINNER, "A2": BEGINNER, "B1": MIDDLE, "B2": MIDDLE, "C1": ADVANCED, "C2": ADVANCED}
 # 게임 대화 경로(/v1/npc/reply)의 난이도 1~3. 그 경로의 원래 난이도 문장(app.prompts.LEVEL_RULES)은 따뜻함·유머를 내라고 해서
 # 불친절한 인격과 부딪히므로, 인격을 쓸 때는 말투를 정하지 않는 이 세 묶음을 쓴다
@@ -206,6 +213,14 @@ NOT_RUDE_UNLESS_TOLD = (
 )
 
 
+# 말버릇은 인격 칸과 학습 수준 문장에서 가리켜도 대답 128개 중 10개에만 나왔다(npc_voice_eval). 모델이 가장 잘 따르는
+# 대답 바로 앞 칸에서 한 번 더 말한다. 같은 대화에서 되풀이하지 않게 해 틀처럼 들리지 않게 한다
+SOUND_LIKE_YOURSELF = (
+    "Sound like yourself, not like any clerk: if one of your catchphrases fits this reply and you have not said it "
+    "in this conversation yet, use it."
+)
+
+
 def reply_system_prompt(profile: NpcProfile, place: str, facts: str, memory: str, level: int, note: str, learner: str = "") -> str:
     """게임 대화 경로(/v1/npc/reply)용. ① 공통 규칙 ② 인격은 추론 API와 같고, ③~⑤는 그 경로가 받는 값으로 채운다.
 
@@ -216,6 +231,8 @@ def reply_system_prompt(profile: NpcProfile, place: str, facts: str, memory: str
     situation = ["## Situation", f"Place: {place}", *labeled([("Facts", one_line(facts))]), *([memory] if memory else [])]
     turn = f"IMPORTANT for your next reply: {note}" if note else TURN_INSTRUCTIONS["USER_MESSAGE"]
     turn += f"\n{NOT_RUDE_UNLESS_TOLD}"
+    if profile.speech_style.catchphrases:
+        turn += f"\n{SOUND_LIKE_YOURSELF}"
     sections = [
         RULES,
         character_section(profile),

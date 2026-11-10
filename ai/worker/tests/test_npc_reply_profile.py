@@ -195,6 +195,30 @@ def test_every_level_asks_for_the_idioms_and_slang_a_local_really_uses(client, p
         assert "No idioms" not in system and "No slang" not in system and "Skip the heavy slang" not in system, npc["id"]
 
 
+@pytest.mark.parametrize("level", [1, 2, 3])
+def test_every_level_points_to_the_characters_own_catchphrases(client, provider, level):
+    """말버릇은 긴 인격 칸 속 한 줄이라, 대답 길이를 정하는 학습 수준 문장에서 함께 가리키지 않으면 거의 쓰지 않는다
+    (대답 128개 중 8개, npc_voice_eval). 관용구를 넣으라는 문장이 인물 자신의 말버릇도 가리킨다."""
+    system = system_of(reply_request(client, provider, {**NPC, "profile": profile_of("CAFE_BARISTA")}, level=level))
+    level_part = system.split("## Learner level")[1].split("## This turn")[0]
+
+    assert "catchphrases" in level_part
+
+
+def test_this_turn_asks_for_an_unused_catchphrase_that_fits(client, provider):
+    """인격 칸·학습 수준 문장만으로는 말버릇이 대답 128개 중 10개였고, 대답 바로 앞 칸에서 한 번 더 말하면 18개였다
+    (같은 대화에서 되풀이 0, npc_voice_eval). 말버릇이 없는 인물에게는 이 줄을 넣지 않는다."""
+    with_phrases = profile_of("CAFE_BARISTA")
+    without_phrases = profile_of("CAFE_BARISTA")
+    del without_phrases["speechStyle"]["catchphrases"]
+
+    this_turn = system_of(reply_request(client, provider, {**NPC, "profile": with_phrases})).split("## This turn")[1]
+    plain_turn = system_of(reply_request(client, provider, {**NPC, "profile": without_phrases})).split("## This turn")[1]
+
+    assert "if one of your catchphrases fits this reply and you have not said it in this conversation yet, use it" in this_turn
+    assert "catchphrases" not in plain_turn
+
+
 @pytest.mark.parametrize(("path", "value"), [("name", None), ("nickname", "Mimi")])
 def test_a_profile_outside_the_shared_schema_is_an_invalid_request(client, path, value):
     profile = profile_of("CAFE_STAFF")

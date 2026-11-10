@@ -53,14 +53,15 @@ namespace A305.Dialogue.PlayModeTests
         {
             yield return Show(Conversation);
 
-            Scrollbar bar = Field<ScrollRect>("historyScroll").verticalScrollbar;
+            ScrollRect historyScroll = Field<ScrollRect>("historyScroll");
+            Scrollbar bar = historyScroll.verticalScrollbar;
 
             Assert.That(bar, Is.Not.Null, "대사 칸에 세로 스크롤바가 있습니다.");
             Assert.That(bar.gameObject.activeInHierarchy, Is.True, "지난 대사가 있으면 보입니다.");
             Assert.That(
-                bar.handleRect.anchorMax.y,
-                Is.LessThan(.5f),
-                "최근 대사를 보는 중이라 손잡이가 아래에 있습니다."
+                historyScroll.verticalNormalizedPosition,
+                Is.EqualTo(0f).Within(.01f),
+                "가장 최근 대사를 볼 수 있도록 스크롤이 맨 아래에 있습니다."
             );
         }
 

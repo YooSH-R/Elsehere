@@ -31,6 +31,7 @@ namespace A305.Dialogue
     public sealed class ConversationStart
     {
         public long? ReviewCardId { get; set; }
+        public string PracticeScenarioId { get; set; }
         public long ConversationId { get; set; }
         public NpcSummary Npc { get; set; }
         public NpcTurnData OpeningTurn { get; set; }

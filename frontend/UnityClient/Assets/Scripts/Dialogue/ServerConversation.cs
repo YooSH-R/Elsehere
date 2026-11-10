@@ -37,9 +37,17 @@ namespace A305.Dialogue
 
         private readonly IConversationApi api;
         private readonly Func<string, Task<ConversationStart>> reviewStart;
+        private readonly Func<string, Task<ConversationStart>> practiceStart;
         public long? ReviewCardId { get; private set; }
         public ReviewPracticeResult ReviewResult { get; private set; }
         public bool IsReview => ReviewCardId != null;
+
+        /// <summary>장소 연습(PRC-02)으로 연 대화의 상황 ID. 장소 연습이 아니면 null이다.</summary>
+        public string PracticeScenarioId { get; }
+        public bool IsPractice => PracticeScenarioId != null;
+
+        // 복습·장소 연습처럼 이야기와 따로 하는 연습 대화. 퀘스트·택시 같은 마을 동작, 준비물, 추천 단어, 일반 피드백을 쓰지 않는다.
+        private bool IsSeparatePractice => IsReview || IsPractice;
         private readonly ConversationInitiator initiatedBy;
         private readonly bool npcOffDuty;
         private readonly NpcTravelContext npcTravelContext;
@@ -77,6 +85,7 @@ namespace A305.Dialogue
         /// <param name="initiatedBy">누가 먼저 말을 걸었는지. 서버의 대화 시작(CONV-01) initiatedBy로 보낸다.</param>
         /// <param name="followUps">NPC가 준비해 건네기로 한 것을 기억할 곳. 비우면 게임 전체가 함께 쓰는 곳(<see cref="FollowUpStore.Shared"/>)이다.</param>
         /// <param name="npcOffDuty">교대 밖이라 일하지 않는 직원과의 대화인지. 서버의 대화 시작(CONV-01) npcOffDuty로 보낸다.</param>
+        /// <param name="practiceStart">장소 연습 대화를 여는 요청(PRC-02). 요청 ID를 받는다.</param>
         public ServerConversation(
             string npcCode,
             string npcName,
@@ -87,7 +96,9 @@ namespace A305.Dialogue
             bool npcOffDuty = false,
             long? reviewCardId = null,
             Func<string, Task<ConversationStart>> reviewStart = null,
-            NpcTravelContext npcTravelContext = null
+            NpcTravelContext npcTravelContext = null,
+            string practiceScenarioId = null,
+            Func<string, Task<ConversationStart>> practiceStart = null
         )
         {
             NpcCode = npcCode;
@@ -95,6 +106,8 @@ namespace A305.Dialogue
             this.api = api;
             ReviewCardId = reviewCardId;
             this.reviewStart = reviewStart;
+            PracticeScenarioId = practiceScenarioId;
+            this.practiceStart = practiceStart;
             this.canTalk = canTalk;
             this.initiatedBy = initiatedBy;
             this.npcOffDuty = npcOffDuty;
@@ -209,17 +222,7 @@ namespace A305.Dialogue
                 {
                     try
                     {
-                        await BeginAsync(
-                            IsReview
-                                ? await reviewStart(startRequestId)
-                                : await api.StartAsync(
-                                    startRequestId,
-                                    NpcCode,
-                                    InitiatedByCode,
-                                    npcOffDuty,
-                                    npcTravelContext
-                                )
-                        );
+                        await BeginAsync(await RequestStartAsync(startRequestId));
                     }
                     catch (ApiException exception) when (exception.Code == AlreadyActiveCode)
                     {
@@ -229,7 +232,7 @@ namespace A305.Dialogue
                 StartAsync,
                 DialogueWait.Opening
             );
-            if (!endRequested && !IsReview)
+            if (!endRequested && !IsSeparatePractice)
             {
                 _ = SuggestWordsAsync();
             }
@@ -297,14 +300,19 @@ namespace A305.Dialogue
                     IsEnded =
                         result.Conversation != null && result.Conversation.Status != ActiveStatus;
                     responseEndReason = result.Conversation?.EndReason;
-                    if (!IsReview && !IsEnded && result.UserTurn != null && !result.UserTurn.Rude)
+                    if (
+                        !IsSeparatePractice
+                        && !IsEnded
+                        && result.UserTurn != null
+                        && !result.UserTurn.Rude
+                    )
                         UserTurnAccepted?.Invoke(sent);
-                    if (!IsReview && result.PoliceDispatch != null)
+                    if (!IsSeparatePractice && result.PoliceDispatch != null)
                         PoliceDispatchRequested?.Invoke(
                             result.UserTurn.TurnId,
                             result.PoliceDispatch.PlaceCode
                         );
-                    if (!IsReview && result.TaxiDestination != null)
+                    if (!IsSeparatePractice && result.TaxiDestination != null)
                         TaxiDestinationChosen?.Invoke(result.TaxiDestination.PlaceCode);
                 },
                 () => SendAsync(utterance),
@@ -328,7 +336,7 @@ namespace A305.Dialogue
                 Changed?.Invoke();
             }
 
-            if (!IsReview)
+            if (!IsSeparatePractice)
                 _ = SuggestWordsAsync();
         }
 
@@ -537,7 +545,7 @@ namespace A305.Dialogue
             {
                 EndResult end = await api.EndAsync(conversationId, NewRequestId(), false);
                 ReviewResult = end?.ReviewResult;
-                if (IsReview)
+                if (IsSeparatePractice)
                     return null;
                 // 상세 평가를 기다리기 전에 남겨, 피드백 창이 뜰 때 왼쪽 카드에도 기다리는 것이 보이게 한다.
                 if (end?.FollowUp != null)
@@ -650,7 +658,8 @@ namespace A305.Dialogue
                 feedback,
                 ReviewCardId,
                 ReviewResult,
-                isFeedbackDeferred
+                isFeedbackDeferred,
+                PracticeScenarioId
             );
         }
 
@@ -673,7 +682,7 @@ namespace A305.Dialogue
             ApplyState(start.Conversation);
             // NPC가 준비해 둔 것을 첫 대사로 건넸으면 기다리는 목록에서 지운다. NPC가 불러 시작했든 먼저 말을 걸었든 같다.
             // NPC마다 하나만 기다리므로 ID가 기억하던 줄과 달라도 이 NPC의 줄을 지운다.
-            if (!IsReview && start.DeliveredFollowUpId is long delivered)
+            if (!IsSeparatePractice && start.DeliveredFollowUpId is long delivered)
             {
                 followUps.Remove(delivered, NpcCode);
             }
@@ -686,6 +695,13 @@ namespace A305.Dialogue
         private async Task ResumeOrRestartAsync()
         {
             ActiveConversation stale = await api.GetActiveAsync();
+            // 장소 연습도 남은 대화를 끝내거나 이어받지 않는다. 진행 중인 대화 조회(CONV-11)는 연습 상황을 알리지 않는다.
+            if (stale != null && IsPractice)
+                throw new ApiException(
+                    AlreadyActiveCode,
+                    409,
+                    "진행 중인 대화를 먼저 마친 뒤 연습해 주세요."
+                );
             // 복습과 본편은 서로의 진행 중 대화를 끝내거나 이어받지 않는다.
             if (
                 stale != null
@@ -719,18 +735,27 @@ namespace A305.Dialogue
 
             if (!endRequested)
             {
+                // 복습·장소 연습은 처음 요청 ID로 다시 열고, 일반 대화는 남은 대화를 끝냈으니 새 요청으로 연다.
                 await BeginAsync(
-                    IsReview
-                        ? await reviewStart(startRequestId)
-                        : await api.StartAsync(
-                            NewRequestId(),
-                            NpcCode,
-                            InitiatedByCode,
-                            npcOffDuty,
-                            npcTravelContext
-                        )
+                    await RequestStartAsync(IsSeparatePractice ? startRequestId : NewRequestId())
                 );
             }
+        }
+
+        // 복습·장소 연습은 각자의 시작 경로로, 그 밖의 대화는 일반 대화 시작(CONV-01)으로 연다.
+        private Task<ConversationStart> RequestStartAsync(string requestId)
+        {
+            if (IsReview)
+                return reviewStart(requestId);
+            if (IsPractice)
+                return practiceStart(requestId);
+            return api.StartAsync(
+                requestId,
+                NpcCode,
+                InitiatedByCode,
+                npcOffDuty,
+                npcTravelContext
+            );
         }
 
         // 지난 대사를 다시 보이고 마지막 NPC 대사는 처음 시작할 때처럼 들려준다.

@@ -12,7 +12,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * 게스트의 NPC 대화 횟수 제한. AI 사용량을 아끼려고 게스트는 계정마다 정해진 횟수까지만 대화한다.
+ * 게스트의 NPC 대화 횟수 제한. 기본값 0은 제한이 없어 게스트도 회원처럼 대화한다. AI 사용량을 줄여야 할 때 서버 설정
+ * (GUEST_CONVERSATION_LIMIT)을 1 이상으로 켜면 게스트는 계정마다 그 횟수까지만 대화한다.
  *
  * <p>한 번이라도 말을 주고받은 대화만 센다. 말을 걸었다가 한 마디도 주고받지 않고 끝낸 대화는 체험으로 치지 않는다. 게스트는 로그아웃하면 같은 계정으로 다시 들어올 수
  * 없으므로 횟수를 다시 채우지 않는다. 가입 사용자는 대화 횟수 제한이 없다. 대화 하나의 길이는 발화 30턴({@code Conversation.TURN_LIMIT})으로
@@ -31,12 +32,12 @@ public class GuestConversationLimit {
 
   public GuestConversationLimit(
       ConversationRepository conversationRepository,
-      @Value("${elsehere.guest.conversation-limit:3}") int limit) {
+      @Value("${elsehere.guest.conversation-limit:0}") int limit) {
     this.conversationRepository = conversationRepository;
     this.limit = limit;
   }
 
-  /** 게스트 한 계정이 할 수 있는 NPC 대화 수(서버 설정 GUEST_CONVERSATION_LIMIT). */
+  /** 게스트 한 계정이 할 수 있는 NPC 대화 수(서버 설정 GUEST_CONVERSATION_LIMIT). 0이면 제한이 없다. */
   public int limit() {
     return limit;
   }
@@ -52,9 +53,9 @@ public class GuestConversationLimit {
     }
   }
 
-  /** 게스트가 더 시작할 수 있는 대화 수. 끝난 대화도 쓴 것으로 센다. 가입 사용자는 횟수 제한이 없어 null이다. */
+  /** 게스트가 더 시작할 수 있는 대화 수. 끝난 대화도 쓴 것으로 센다. 가입 사용자와 제한이 꺼진(0) 게스트는 제한이 없어 null이다. */
   public Integer remaining(User user) {
-    if (!user.isGuest()) {
+    if (!user.isGuest() || limit <= 0) {
       return null;
     }
     long used = conversationRepository.countExchangedByUserId(user.getId());

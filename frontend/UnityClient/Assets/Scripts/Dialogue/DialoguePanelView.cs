@@ -77,6 +77,7 @@ namespace A305.Dialogue
         private float originalSuggestFont;
         private float originalSuggestHeight;
         private RectOffset originalSuggestPadding;
+        private Scrollbar reviewScrollbar;
 
         public void SetReviewReference(string text)
         {
@@ -109,6 +110,51 @@ namespace A305.Dialogue
                 suggestText.gameObject.SetActive(true);
             }
             reviewReference = text;
+            // 고정된 바깥 카드는 유지하고, 그 안의 글자와 사용 표시만 스크롤한다.
+            var reviewCard = suggestText.transform.parent;
+            var innerTheme = reviewCard.GetComponent<ThemedElement>();
+            innerTheme.enabled = text == null;
+            reviewCard.GetComponent<Image>().enabled = text == null;
+            var outerTheme = helpPanel.GetComponent<ThemedElement>();
+            if (outerTheme != null)
+                outerTheme.enabled = text != null;
+            helpPanel.GetComponent<Image>().enabled = text != null;
+            var reviewViewport = (RectTransform)helpPanel.Find("Viewport");
+            var reviewScroll = reviewViewport.GetComponent<ScrollRect>();
+            reviewViewport.offsetMin = text != null ? new Vector2(24, 20) : Vector2.zero;
+            reviewViewport.offsetMax = text != null ? new Vector2(-24, -20) : Vector2.zero;
+            if (text != null)
+            {
+                var outer =
+                    helpPanel.GetComponent<ThemedElement>()
+                    ?? helpPanel.gameObject.AddComponent<ThemedElement>();
+                outer.enabled = true;
+                outer.Use(innerTheme.Catalog, UiThemeRole.Card);
+                if (reviewScrollbar == null && historyScroll.verticalScrollbar != null)
+                {
+                    reviewScrollbar = Instantiate(historyScroll.verticalScrollbar, helpPanel);
+                    reviewScrollbar.name = "ReviewScrollbar";
+                    var bar = (RectTransform)reviewScrollbar.transform;
+                    bar.anchorMin = new Vector2(1, 0);
+                    bar.anchorMax = Vector2.one;
+                    bar.pivot = new Vector2(1, .5f);
+                    bar.offsetMin = new Vector2(-12, 20);
+                    bar.offsetMax = new Vector2(-6, -20);
+                    reviewScrollbar.handleRect.GetComponent<Image>().color = new Color(
+                        0.3f,
+                        0.25f,
+                        0.2f,
+                        .35f
+                    );
+                }
+                reviewScroll.verticalScrollbar = reviewScrollbar;
+                reviewScroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+            }
+            else if (reviewScrollbar != null)
+            {
+                reviewScroll.verticalScrollbar = null;
+                reviewScrollbar.gameObject.SetActive(false);
+            }
             if (reviewHelpTitle == null)
             {
                 reviewHelpTitle = suggestText
@@ -1164,14 +1210,20 @@ namespace A305.Dialogue
             if (reviewReference != null)
             {
                 helpPanel.localScale = Vector3.one;
+                // 일반 도움말의 축소 비율을 되돌린 뒤 높이도 실제 여유 공간으로 되돌린다.
+                // 내용 길이에 따라 창을 늘리지 않고 기존 Viewport 안에서 스크롤한다.
+                helpPanel.SetSizeWithCurrentAnchors(
+                    RectTransform.Axis.Vertical,
+                    Mathf.Clamp(helpRoom, 0, 440)
+                );
                 helpPanel.SetSizeWithCurrentAnchors(
                     RectTransform.Axis.Horizontal,
-                    Mathf.Min(440, lastCanvasSize.x - 2 * HelpMargin)
+                    Mathf.Min(400, lastCanvasSize.x - 2 * HelpMargin)
                 );
                 var card = (RectTransform)suggestText.transform.parent;
                 var list = card.GetComponent<VerticalLayoutGroup>();
                 if (list != null)
-                    list.padding = new RectOffset(36, 36, 34, 38);
+                    list.padding = new RectOffset(12, 12, 16, 20);
                 suggestText.fontSize = 24;
                 suggestText.enableAutoSizing = false;
                 suggestText.rectTransform.SetSizeWithCurrentAnchors(

@@ -255,6 +255,21 @@ namespace A305.EditorTools.Learning
                 },
                 Path.Combine(output, "practice-reference.png")
             );
+            Render(
+                camera,
+                1600,
+                1000,
+                () =>
+                {
+                    view.UpdateLayout();
+                    Canvas.ForceUpdateCanvases();
+                    var scroll =
+                        view.SuggestedWordsRect.GetComponentInParent<UnityEngine.UI.ScrollRect>();
+                    scroll.verticalNormalizedPosition = 0;
+                    Canvas.ForceUpdateCanvases();
+                },
+                Path.Combine(output, "practice-reference-scrolled.png")
+            );
         }
 
         private static ReviewCard BagCard() =>

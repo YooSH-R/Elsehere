@@ -880,7 +880,6 @@ namespace A305.EditorTools.World
                 );
             NorthBlockAssets.Place("Chair", interior, new Vector3(3.2f, 0, -1.6f), -90);
             NorthBlockAssets.Place("Chair", interior, new Vector3(3.2f, 0, -2.6f), -90);
-            NorthBlockAssets.Place("Plant", interior, new Vector3(3.2f, 0, -5.4f));
         }
 
         // 양쪽 꽃 계단 진열대, 가운데 화분 테이블, 뒤쪽 계산대

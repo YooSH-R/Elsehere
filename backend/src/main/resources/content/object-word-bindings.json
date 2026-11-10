@@ -1983,9 +1983,7 @@
             "path": "Assets/Prefabs/World/TownInteriors/LaundromatInterior.prefab",
             "wordKeys": [
                 "clock",
-                "flowerpot",
                 "note",
-                "plant",
                 "shelf",
                 "sign",
                 "trash_can"
@@ -3179,11 +3177,9 @@
                 "cornice",
                 "door",
                 "floor",
-                "flowerpot",
                 "handle",
                 "lamp",
                 "note",
-                "plant",
                 "roof",
                 "shelf",
                 "shop",
@@ -3193,6 +3189,13 @@
                 "wall",
                 "window",
                 "word_0161d483cee300c40b1861ae4d0e85a0",
+                "word_0587befb29840ad49a62604219dc7715",
+                "word_386c8564b884cfe47b66fdbc77ec87b9",
+                "word_57d53390c38c2204588cba13f10a5f9a",
+                "word_6f2d682aa1edd004a86774dbc32603a3",
+                "word_a469e283225b24f48b585f804e782bec",
+                "word_af4d769b378ec384a8ef3edbaf346e9d",
+                "word_b1de7b60fd9e56c4282fa85b4a09e4b2",
                 "word_fae84acd881cae244bb14dd79ae14bf5"
             ]
         },

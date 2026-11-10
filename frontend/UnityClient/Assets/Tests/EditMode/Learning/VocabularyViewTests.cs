@@ -518,7 +518,9 @@ namespace A305.Learning.Tests
         public async Task WordSavedFromObjectCard_ShowsItsSentenceAsExampleSentence()
         {
             await Open(new SampleApi { CounterExample = true });
+            Click("Panel/Tabs/ObjectsTab");
 
+            Assert.That(Text("Panel/Content/Details/Word"), Is.EqualTo("counter"));
             Assert.That(Text("Panel/Content/Details/Context/Title"), Is.EqualTo("예시 문장"));
         }
 
@@ -541,6 +543,48 @@ namespace A305.Learning.Tests
             Assert.That(meaning.GetComponent<TMP_Text>().text, Is.EqualTo("우산이 필요해요."));
         }
 
+        // 대화 표현 탭에는 저장한 표현이 있는 장소 묶음 칩만 개수와 함께 보이고, 칩을 누르면 그 묶음 표현만 남는다.
+        // 목록 줄 오른쪽 위에는 일하는 곳을 붙인다. 사물 단어 탭은 칩 대신 안내를 보인다.
+        [Test]
+        public async Task PlaceChips_ShowOnlyGroupsWithExpressions_AndFilterTheList()
+        {
+            await Open(
+                new SampleApi
+                {
+                    Expressions = new[]
+                    {
+                        ("For here or to go?", "FOOD", "카페"),
+                        ("a stamp", "SERVICES", "우체국"),
+                        ("a refill", "FOOD", "식당"),
+                    },
+                }
+            );
+
+            Assert.That(Text("Panel/Tabs/ConversationTab/Label"), Is.EqualTo("대화 표현 3"));
+            Assert.That(Text("Panel/Tabs/ObjectsTab/Label"), Is.EqualTo("사물 단어 0"));
+            Assert.That(Shown("Panel/PlaceChips"), Is.True);
+            Assert.That(Text("Panel/PlaceChips/All/Label"), Is.EqualTo("전체 3"));
+            Assert.That(Text("Panel/PlaceChips/Food/Label"), Is.EqualTo("음식 2"));
+            Assert.That(Text("Panel/PlaceChips/Services/Label"), Is.EqualTo("생활 서비스 1"));
+            Assert.That(Shown("Panel/PlaceChips/Shopping"), Is.False);
+            Assert.That(Shown("Panel/PlaceChips/Safety"), Is.False);
+            Assert.That(Shown("Panel/PlaceChips/Daily"), Is.False);
+            Assert.That(Text("Panel/Content/Entries/Rows/Entry0/Place"), Is.EqualTo("카페"));
+
+            Click("Panel/PlaceChips/Services");
+            Assert.That(Text("Panel/Content/Page"), Is.EqualTo("1 / 1"));
+            Assert.That(Text("Panel/Content/Details/Word"), Is.EqualTo("a stamp"));
+
+            Click("Panel/Tabs/ObjectsTab");
+            Assert.That(Shown("Panel/PlaceChips"), Is.False);
+            Assert.That(Shown("Panel/ObjectsHint"), Is.True);
+            Assert.That(Shown("Panel/Content"), Is.False);
+            Assert.That(
+                Text("Panel/EmptyState/Title"),
+                Is.EqualTo("사물 카드에서 담은 단어가 없어요")
+            );
+        }
+
         private sealed class SampleApi : IVocabularyApi
         {
             public Task<VocabItem> SaveFeedbackWordAsync(long conversationId, string text) =>
@@ -558,6 +602,9 @@ namespace A305.Learning.Tests
 
             // counter를 사물 카드에서 예문과 함께 저장한 단어로 둔다.
             public bool CounterExample { get; set; }
+
+            // 정해 두면 기본 단어 대신 이 대화 표현들(표현, 장소 묶음, 일하는 곳)을 최근 저장순으로 돌려준다.
+            public (string Text, string PlaceGroup, string PlaceName)[] Expressions { get; set; }
 
             // Words로 만든 단어의 뜻과 예시 문장
             public string WordMeaning { get; set; }
@@ -580,6 +627,7 @@ namespace A305.Learning.Tests
                     {
                         UserVocabId = 1,
                         Vocab = new VocabWord { Text = "counter", MeaningKo = "조리대" },
+                        Source = new VocabSource { SourceType = "FEEDBACK" },
                     },
                     new VocabItem
                     {
@@ -604,6 +652,7 @@ namespace A305.Learning.Tests
                                 Text = "word" + items.Count,
                                 MeaningKo = "단어",
                             },
+                            Source = new VocabSource { SourceType = "FEEDBACK" },
                         }
                     );
                 if (Count < items.Count)
@@ -621,6 +670,27 @@ namespace A305.Learning.Tests
                                         MeaningKo = WordMeaning ?? "뜻",
                                     },
                                     Context = WordContext,
+                                }
+                        )
+                        .ToList();
+                if (Expressions != null)
+                    items = Expressions
+                        .Select(
+                            (expression, i) =>
+                                new VocabItem
+                                {
+                                    UserVocabId = 200 + i,
+                                    Vocab = new VocabWord
+                                    {
+                                        Text = expression.Text,
+                                        MeaningKo = "뜻",
+                                    },
+                                    Source = new VocabSource
+                                    {
+                                        SourceType = "NPC_LINE",
+                                        PlaceGroup = expression.PlaceGroup,
+                                        PlaceName = expression.PlaceName,
+                                    },
                                 }
                         )
                         .ToList();

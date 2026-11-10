@@ -24,6 +24,10 @@ namespace A305.Learning
         private const string AllLearnedTitle = "모든 단어를 외웠어요";
         private const string AllLearnedHint =
             "[외운 표현도 보기]를 누르면 외운 단어를 다시 볼 수 있어요.";
+        private const string ConversationTabEmptyTitle = "대화에서 담은 표현이 없어요";
+        private const string ConversationTabEmptyHint =
+            "NPC와 대화하며 대사의 단어나 피드백 표현을 [담기]로 저장해 보세요.";
+        private const string ObjectsTabEmptyTitle = "사물 카드에서 담은 단어가 없어요";
         private const string ShowLearnedLabel = "외운 표현도 보기";
         private const string HideLearnedLabel = "외운 표현 숨기기";
 
@@ -49,6 +53,24 @@ namespace A305.Learning
 
         [SerializeField]
         private TMP_Text showLearnedButtonLabel;
+
+        [SerializeField]
+        [Tooltip("머리줄의 [대화 표현 | 사물 단어]의 [대화 표현]. 고른 쪽은 Selection을 켠다")]
+        private Button conversationTabButton;
+
+        [SerializeField]
+        [Tooltip("머리줄의 [대화 표현 | 사물 단어]의 [사물 단어]")]
+        private Button objectsTabButton;
+
+        [SerializeField]
+        [Tooltip(
+            "대화 표현 탭의 장소 묶음 칩 줄. 칩 이름이 All 또는 VocabularyPlaceGroup 이름이고, 표현이 없는 묶음은 숨긴다"
+        )]
+        private RectTransform placeChips;
+
+        [SerializeField]
+        [Tooltip("사물 단어 탭에서 칩 줄 자리에 보이는 안내")]
+        private GameObject objectsHint;
 
         [SerializeField]
         [Tooltip("목록 바로 위 [최근순 | 알파벳순]의 [최근순]. 고른 쪽은 Selection을 켠다")]
@@ -179,8 +201,9 @@ namespace A305.Learning
         public void Show(VocabularyBook shownBook)
         {
             book = shownBook;
-            // 열 때마다 외운 단어를 정리한 목록부터 보인다.
+            // 열 때마다 외운 단어를 정리한 목록부터, 고른 탭·묶음 없이 보인다.
             book.ShowsLearned = false;
+            book.ResetFilters();
             selectedIndex = 0;
             panel.SetActive(true);
             UiLayer.Open(this);
@@ -224,6 +247,7 @@ namespace A305.Learning
                 book.ShowsLearned || book.Entries.Any(entry => entry.IsLearned)
             );
             showLearnedButtonLabel.text = book.ShowsLearned ? HideLearnedLabel : ShowLearnedLabel;
+            ShowTabsAndPlaceChips(state);
             ShowOrderChoice(recentOrderButton, !book.SortsAlphabetically);
             ShowOrderChoice(alphabeticalOrderButton, book.SortsAlphabetically);
             // 알파벳순일 때만 A~Z를 두고, 그 글자로 시작하는 단어가 없으면 누를 수 없게 흐리게 둔다.
@@ -237,9 +261,9 @@ namespace A305.Learning
             // 서버 목록이 빈 것을 확인했을 때만 '단어 없음'을 보이고, 받기 전이나 받지 못했으면 같은 자리에 안내를 보인다.
             // 모두 외워 정리했으면 같은 자리에서 [외운 표현도 보기]를 알린다.
             bool allLearned = state == VocabularyListState.AllLearned;
-            emptyState.SetActive(state == VocabularyListState.Empty || allLearned);
-            emptyTitleText.text = allLearned ? AllLearnedTitle : EmptyTitle;
-            emptyHintText.text = allLearned ? AllLearnedHint : EmptyHint;
+            bool tabEmpty = state == VocabularyListState.TabEmpty;
+            emptyState.SetActive(state == VocabularyListState.Empty || allLearned || tabEmpty);
+            ShowEmptyMessage(state);
             loadState.SetActive(
                 state == VocabularyListState.Loading || state == VocabularyListState.Failed
             );
@@ -259,6 +283,7 @@ namespace A305.Learning
                 // 서버 원문은 TMP 태그로 해석하지 않는다.
                 english.richText = korean.richText = false;
                 english.text = entry.English;
+                ShowPlaceTag(row, english, entry.PlaceName);
                 // [외운 표현도 보기]를 켜면 외운 단어도 섞여 보이므로 뜻 뒤에 표시한다.
                 korean.text = entry.Korean + (entry.IsLearned ? " · 외웠어요" : "");
                 row.Find("Selection").gameObject.SetActive(index == selectedIndex);
@@ -390,6 +415,21 @@ namespace A305.Learning
             showLearnedButton.onClick.AddListener(() =>
                 ChangeList(() => book.ShowsLearned = !book.ShowsLearned)
             );
+            conversationTabButton.onClick.AddListener(() =>
+                ChangeList(() => book.ShownTab = VocabularyTab.Conversation)
+            );
+            objectsTabButton.onClick.AddListener(() =>
+                ChangeList(() => book.ShownTab = VocabularyTab.Objects)
+            );
+            foreach (Transform chip in placeChips)
+            {
+                VocabularyPlaceGroup? group =
+                    chip.name == "All"
+                        ? (VocabularyPlaceGroup?)null
+                        : (VocabularyPlaceGroup)Enum.Parse(typeof(VocabularyPlaceGroup), chip.name);
+                chip.GetComponent<Button>()
+                    .onClick.AddListener(() => ChangeList(() => book.ShownPlaceGroup = group));
+            }
             recentOrderButton.onClick.AddListener(() =>
                 ChangeList(() => book.SortsAlphabetically = false)
             );
@@ -403,6 +443,111 @@ namespace A305.Learning
             }
             Hide();
         }
+
+        private static readonly Dictionary<VocabularyPlaceGroup, string> PlaceGroupNames =
+            new Dictionary<VocabularyPlaceGroup, string>
+            {
+                { VocabularyPlaceGroup.Food, "음식" },
+                { VocabularyPlaceGroup.Shopping, "쇼핑" },
+                { VocabularyPlaceGroup.Services, "생활 서비스" },
+                { VocabularyPlaceGroup.Safety, "안전" },
+                { VocabularyPlaceGroup.Daily, "일상" },
+            };
+
+        // 단어 자체가 없거나 아직 받지 못했으면 나눌 것이 없어 탭과 칩을 숨긴다.
+        // 칩은 대화 표현 탭에만 두고, 표현이 없는 묶음은 숨겨 처음에는 다닌 곳의 칩만 보인다.
+        private void ShowTabsAndPlaceChips(VocabularyListState state)
+        {
+            bool showsTabs =
+                state == VocabularyListState.Entries
+                || state == VocabularyListState.AllLearned
+                || state == VocabularyListState.TabEmpty;
+            conversationTabButton.transform.parent.gameObject.SetActive(showsTabs);
+            bool conversationTab = book.ShownTab == VocabularyTab.Conversation;
+            ShowTab(
+                conversationTabButton,
+                $"대화 표현 {book.CountIn(VocabularyTab.Conversation)}",
+                conversationTab
+            );
+            ShowTab(
+                objectsTabButton,
+                $"사물 단어 {book.CountIn(VocabularyTab.Objects)}",
+                !conversationTab
+            );
+            objectsHint.SetActive(showsTabs && !conversationTab);
+            bool showsChips =
+                showsTabs && conversationTab && book.CountIn(VocabularyTab.Conversation) > 0;
+            placeChips.gameObject.SetActive(showsChips);
+            if (!showsChips)
+                return;
+            foreach (Transform chip in placeChips)
+            {
+                if (chip.name == "All")
+                {
+                    ShowTab(
+                        chip.GetComponent<Button>(),
+                        $"전체 {book.CountIn(VocabularyTab.Conversation)}",
+                        book.ShownPlaceGroup == null
+                    );
+                    continue;
+                }
+                var group = (VocabularyPlaceGroup)
+                    Enum.Parse(typeof(VocabularyPlaceGroup), chip.name);
+                int count = book.CountIn(group);
+                chip.gameObject.SetActive(count > 0);
+                ShowTab(
+                    chip.GetComponent<Button>(),
+                    $"{PlaceGroupNames[group]} {count}",
+                    book.ShownPlaceGroup == group
+                );
+            }
+        }
+
+        private static void ShowTab(Button tab, string caption, bool chosen)
+        {
+            tab.transform.Find("Label").GetComponent<TMP_Text>().text = caption;
+            ShowOrderChoice(tab, chosen);
+        }
+
+        private void ShowEmptyMessage(VocabularyListState state)
+        {
+            if (state == VocabularyListState.AllLearned)
+            {
+                emptyTitleText.text = AllLearnedTitle;
+                emptyHintText.text = AllLearnedHint;
+            }
+            else if (state == VocabularyListState.TabEmpty)
+            {
+                bool conversationTab = book.ShownTab == VocabularyTab.Conversation;
+                emptyTitleText.text = conversationTab
+                    ? ConversationTabEmptyTitle
+                    : ObjectsTabEmptyTitle;
+                emptyHintText.text = conversationTab ? ConversationTabEmptyHint : EmptyHint;
+            }
+            else
+            {
+                emptyTitleText.text = EmptyTitle;
+                emptyHintText.text = EmptyHint;
+            }
+        }
+
+        // 줄 오른쪽 위에 일하는 곳(카페, 우체국)을 붙이고, 그만큼 영어 단어 칸을 줄여 겹치지 않게 한다.
+        private static void ShowPlaceTag(Transform row, TMP_Text english, string placeName)
+        {
+            var place = row.Find("Place").GetComponent<TMP_Text>();
+            bool hasPlace = !string.IsNullOrEmpty(placeName);
+            place.richText = false;
+            place.text = placeName ?? "";
+            place.gameObject.SetActive(hasPlace);
+            english.rectTransform.sizeDelta = new Vector2(
+                hasPlace ? EnglishWidthWithPlace : EnglishWidth,
+                english.rectTransform.sizeDelta.y
+            );
+        }
+
+        // 목록 한 줄의 영어 단어 칸 너비. 장소 꼬리표가 있으면 그 자리만큼 줄인다.
+        private const float EnglishWidth = 294;
+        private const float EnglishWidthWithPlace = 196;
 
         // 정렬 두 칸 중 지금 순서는 고른 줄과 같은 색으로 칠하고, 다른 쪽은 글자를 흐리게 둔다.
         private static void ShowOrderChoice(Button choice, bool chosen)

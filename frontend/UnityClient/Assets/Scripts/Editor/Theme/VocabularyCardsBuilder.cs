@@ -48,7 +48,7 @@ namespace A305.EditorTools.Theme
             RemoveLayout(panel);
             panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(.5f, .5f);
             panel.anchoredPosition = Vector2.zero;
-            panel.sizeDelta = new Vector2(1160, 700);
+            panel.sizeDelta = new Vector2(1160, 756);
             Skin(panel, UiThemeRole.Panel);
             Text(panel, "Title", "단어장", 34, 40, 26, 320, 52, UiThemeRole.Title);
             foreach (string old in new[] { "Hint", "List", "Buttons", "MemoRow" })
@@ -72,7 +72,7 @@ namespace A305.EditorTools.Theme
                 48
             );
             RectTransform content = Rect(panel, "Content");
-            Position(content, 0, 100, 1160, 552);
+            Position(content, 0, 156, 1160, 552);
             // 목록 순서는 목록 바로 위 [최근순 | 알파벳순] 두 칸에서 고른다. 지금 순서는 고른 줄과 같은 강조색 카드로 칠한다.
             // 알파벳순일 때는 목록 맨 왼쪽의 A~Z로 그 글자 묶음에 간다.
             foreach (
@@ -290,9 +290,9 @@ namespace A305.EditorTools.Theme
                 48
             );
             Button delete = IconButton(content, "DeleteButton", UiIcon.Delete, 1088, 2);
-            TMP_Text status = Text(panel, "Status", "", 21, 40, 654, 1080, 34, UiThemeRole.Muted);
+            TMP_Text status = Text(panel, "Status", "", 21, 40, 710, 1080, 34, UiThemeRole.Muted);
             RectTransform empty = Rect(panel, "EmptyState");
-            Position(empty, 180, 216, 800, 286);
+            Position(empty, 180, 272, 800, 286);
             RectTransform bookIcon = Rect(empty, "Book");
             Position(bookIcon, 368, 12, 64, 64);
             Skin(bookIcon, UiThemeRole.PillButton, UiTone.Neutral, UiIcon.Book);
@@ -326,7 +326,7 @@ namespace A305.EditorTools.Theme
             emptyHint.alignment = TextAlignmentOptions.Top;
             // 불러오는 중이거나 불러오지 못했을 때 빈 상태와 같은 자리에 보이는 안내와 [다시 시도](S15P31A305-419)
             RectTransform load = Rect(panel, "LoadState");
-            Position(load, 180, 216, 800, 286);
+            Position(load, 180, 272, 800, 286);
             TMP_Text loadTitle = Text(
                 load,
                 "Title",
@@ -400,7 +400,60 @@ namespace A305.EditorTools.Theme
                 }
             );
             fields.ApplyModifiedPropertiesWithoutUndo();
+            ApplyPlaceFilters(root);
             panel.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// 이미 다듬은 단어장 프리팹에 탭·장소 칩·장소 꼬리표만 더한다(S15P31A305-748).
+        /// 전체 배치를 다시 적용하면 기존 버튼을 새로 만들어 프리팹이 크게 바뀌므로, 새 요소와 위치만 맞춘다.
+        /// </summary>
+        [MenuItem("Tools/A305/UI/Apply Vocabulary Place Filters")]
+        public static void BuildPlaceFilters()
+        {
+            BuilderTools.ThrowIfPlaying();
+            BuilderTools.UpdatePrefabIfExists(BookPath, ApplyPlaceFilters);
+            AssetDatabase.SaveAssets();
+        }
+
+        public static void ApplyPlaceFilters(GameObject root)
+        {
+            var view = root.GetComponent<VocabularyView>();
+            var panel = (RectTransform)root.transform.Find("Panel");
+            // 칩 줄(칩 42px와 아래 간격 14px)만큼 판을 늘리고 본문·아래 안내·빈 상태를 내린다.
+            panel.sizeDelta = new Vector2(1160, 756);
+            Position((RectTransform)panel.Find("Content"), 0, 156, 1160, 552);
+            Position((RectTransform)panel.Find("Status"), 40, 710, 1080, 34);
+            Position((RectTransform)panel.Find("EmptyState"), 180, 272, 800, 286);
+            Position((RectTransform)panel.Find("LoadState"), 180, 272, 800, 286);
+            // 어디서 저장했는지로 나누는 [대화 표현 | 사물 단어]는 제목 오른쪽, 대화 표현의 장소 묶음 칩은 그 아래 한 줄에 둔다.
+            RectTransform tabs = Rect(panel, "Tabs");
+            Position(tabs, 170, 28, 364, 48);
+            SolidCard(tabs, RowCardColor).pixelsPerUnitMultiplier = 1.7f;
+            Button conversationTab = OrderChoice(tabs, "ConversationTab", "대화 표현", 3, 176, 42);
+            Button objectsTab = OrderChoice(tabs, "ObjectsTab", "사물 단어", 185, 176, 42);
+            RectTransform chips = PlaceChips(panel);
+            TMP_Text objectsHint = Text(
+                panel,
+                "ObjectsHint",
+                "사물 카드에서 저장한 단어예요. 같은 사물이 여러 곳에 있어 장소로 나누지 않아요.",
+                20,
+                46,
+                100,
+                1060,
+                42,
+                UiThemeRole.Muted
+            );
+            objectsHint.alignment = TextAlignmentOptions.MidlineLeft;
+            // 대화 표현은 줄 오른쪽 위에 NPC가 일하는 곳(카페, 우체국)을 작게 붙인다. 없으면 VocabularyView가 숨긴다.
+            Transform template = panel.Find("Content/Entries/Rows/EntryTemplate");
+            TMP_Text place = Text(template, "Place", "", 16, 222, 12, 90, 28, UiThemeRole.Accent);
+            place.alignment = TextAlignmentOptions.TopRight;
+            place.textWrappingMode = TextWrappingModes.NoWrap;
+            BuilderTools.SetReference(view, "conversationTabButton", conversationTab);
+            BuilderTools.SetReference(view, "objectsTabButton", objectsTab);
+            BuilderTools.SetReference(view, "placeChips", chips);
+            BuilderTools.SetReference(view, "objectsHint", objectsHint.gameObject);
         }
 
         // 단어 카드 버튼 묶음: 카드 안쪽 너비(440 - 좌우 여백 32×2), 버튼 높이, 버튼 사이
@@ -572,7 +625,14 @@ namespace A305.EditorTools.Theme
         }
 
         // 정렬 두 칸 중 한 칸. 고른 칸은 Selection(목록에서 고른 줄과 같은 강조색 카드)을 켜고, VocabularyView가 고른다.
-        private static Button OrderChoice(RectTransform tabs, string name, string caption, float x)
+        private static Button OrderChoice(
+            RectTransform tabs,
+            string name,
+            string caption,
+            float x,
+            float width = 122,
+            float height = 39
+        )
         {
             Button choice = TextButton(
                 tabs,
@@ -582,8 +642,8 @@ namespace A305.EditorTools.Theme
                 UiTone.Neutral,
                 x,
                 3,
-                122,
-                39
+                width,
+                height
             );
             Object.DestroyImmediate(choice.GetComponent<ThemedElement>());
             choice.GetComponent<Image>().color = Color.clear;
@@ -602,6 +662,40 @@ namespace A305.EditorTools.Theme
             label.fontSize = 21;
             Letter(label, UiThemeRole.Body, bold: true);
             return choice;
+        }
+
+        // 대화 표현 탭의 장소 묶음 칩. 칩 이름은 All 또는 VocabularyPlaceGroup 이름이고, 글자는 VocabularyView가 개수와 함께 쓴다.
+        // 표현이 없는 칩은 숨기므로 가로 배치로 빈자리 없이 왼쪽부터 채운다.
+        private static RectTransform PlaceChips(RectTransform panel)
+        {
+            RectTransform row = Rect(panel, "PlaceChips");
+            Position(row, 40, 100, 1080, 42);
+            var layout = BuilderTools.GetOrAddComponent<HorizontalLayoutGroup>(row.gameObject);
+            layout.spacing = 10;
+            layout.childAlignment = TextAnchor.MiddleLeft;
+            layout.childControlWidth = layout.childControlHeight = false;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+            (string name, float width)[] chips =
+            {
+                ("All", 116),
+                (nameof(VocabularyPlaceGroup.Food), 116),
+                (nameof(VocabularyPlaceGroup.Shopping), 116),
+                (nameof(VocabularyPlaceGroup.Services), 176),
+                (nameof(VocabularyPlaceGroup.Safety), 116),
+                (nameof(VocabularyPlaceGroup.Daily), 116),
+            };
+            foreach ((string name, float width) in chips)
+            {
+                Button chip = OrderChoice(row, name, "", 0, width, 42);
+                chip.transform.SetAsLastSibling();
+                // 고르지 않은 칩도 목록 줄처럼 옅은 흰 카드로 보여 누를 수 있는 칸임을 알린다.
+                Image card = SolidCard(Rect(chip.transform, "Card"), RowCardColor);
+                card.pixelsPerUnitMultiplier = 1.7f;
+                card.raycastTarget = false;
+                Stretch(card.rectTransform);
+                card.transform.SetAsFirstSibling();
+            }
+            return row;
         }
 
         // 알파벳순일 때 목록 맨 왼쪽의 A~Z. 글자마다 버튼이고, 그 글자로 시작하는 단어가 없으면 흐리게 보인다.

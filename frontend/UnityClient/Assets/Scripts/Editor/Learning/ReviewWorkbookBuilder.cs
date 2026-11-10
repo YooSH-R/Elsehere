@@ -17,6 +17,35 @@ namespace A305.EditorTools.Learning
         public const string PrefabPath = "Assets/Prefabs/Learning/ReviewWorkbook.prefab";
         private const string HudPath = "Assets/Prefabs/Learning/LearningHud.prefab";
 
+        [MenuItem("Tools/A305/Learning/Apply Review Result Cards")]
+        public static void ApplyResultCards()
+        {
+            BuilderTools.ThrowIfPlaying();
+            BuilderTools.UpdateOrCreatePrefab(
+                PrefabPath,
+                "ReviewWorkbook",
+                root =>
+                {
+                    var view = root.GetComponent<ReviewWorkbookView>();
+                    BuilderTools.SetReference(
+                        view,
+                        "resultUsedMark",
+                        AssetDatabase.LoadAssetAtPath<Sprite>(
+                            "Assets/Art/UI/Onboarding/ConsentCheckOn.png"
+                        )
+                    );
+                    BuilderTools.SetReference(
+                        view,
+                        "resultUnusedMark",
+                        AssetDatabase.LoadAssetAtPath<Sprite>(
+                            "Assets/Art/UI/Onboarding/ConsentCheckOff.png"
+                        )
+                    );
+                }
+            );
+            AssetDatabase.SaveAssets();
+        }
+
         [MenuItem("Tools/A305/Learning/Align Review Header Icon")]
         public static void AlignHeaderIcon()
         {
@@ -83,6 +112,7 @@ namespace A305.EditorTools.Learning
             SetUp(root);
             PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
+            ApplyResultCards();
             BuilderTools.UpdateOrCreatePrefab(HudPath, "LearningHud", AttachToHud);
             BuilderTools.UpdateOrCreatePrefab(
                 "Assets/Prefabs/Learning/FeedbackScreen.prefab",

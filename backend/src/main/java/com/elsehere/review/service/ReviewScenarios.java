@@ -19,11 +19,19 @@ final class ReviewScenarios {
             stage.goals().stream().filter(goal -> goalIds.contains(goal.id())).toList();
         List<String> notes =
             goals.stream().map(goal -> goal.hint().replace("{name}", "본인의 예약자 이름")).toList();
-        String title = goals.size() == 1 ? goals.getFirst().title() : stage.title();
+        boolean allGoalsPending = goals.size() == stage.goals().size();
+        String title;
+        if (allGoalsPending) {
+          title = firstDayReviewTitle(stage);
+        } else {
+          title = goals.size() == 1 ? goals.getFirst().title() : stage.title();
+        }
+        String situation =
+            allGoalsPending ? stage.situation() : title + ". " + String.join(". ", notes);
         return new ReviewScenario(
             "first_day_" + stage.name() + "_" + String.join("_", goalIds),
             title,
-            title + ". " + String.join(". ", notes),
+            situation,
             "여행자",
             notes);
       }
@@ -67,5 +75,17 @@ final class ReviewScenarios {
         List.of(
             "위에 저장된 상황을 처음부터 다시 대화해 보세요.",
             "구체적인 정보가 없는 경우 색·물건·수량 등을 직접 정해서 말해도 돼요. 첫 질문에서 정한 정보를 계속 사용해요."));
+  }
+
+  private static String firstDayReviewTitle(FirstDayStage stage) {
+    return switch (stage) {
+      case EARLY_ARRIVAL -> "예약 확인과 짐 맡기기";
+      case CAFE_BREAK -> "음료 주문하기";
+      case MISSING_BAG -> "가방을 두고 온 사정 설명하기";
+      case FIND_BAG -> "분실 가방 찾기";
+      case RAINY_STREET -> "우산을 살 곳과 길 묻기";
+      case BUY_UMBRELLA -> "우산 구매하기";
+      case CHECK_IN -> "호텔 체크인하기";
+    };
   }
 }

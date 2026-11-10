@@ -6,7 +6,9 @@
         "A305.Npc",
         "A305.Player",
         "A305.World",
-        "A305.Weather"
+        "A305.Weather",
+        "UnityEngine.UI",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

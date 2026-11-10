@@ -8,6 +8,7 @@ using A305.Player;
 using A305.World;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace A305.Learning
@@ -92,6 +93,14 @@ namespace A305.Learning
         [SerializeField]
         private Button backButton;
 
+        [SerializeField]
+        [Tooltip("정보 카드의 [지도에서 보기]. 지도에 찍을 자리가 있을 때만 보인다.")]
+        private Button mapButton;
+
+        [SerializeField]
+        [Tooltip("[지도에서 보기] 대신 보이는 안내(숙소에서 쉼·마을에 나가면 보임)")]
+        private TMP_Text mapHintText;
+
         private NeighborsBook book;
         private PlayerMover player;
         private Dictionary<string, NpcLifeEntry> lives;
@@ -117,6 +126,7 @@ namespace A305.Learning
             }
             closeButton.onClick.AddListener(Close);
             retryButton.onClick.AddListener(() => _ = LoadAsync());
+            mapButton.onClick.AddListener(ShowOnMap);
             lives =
                 lifeData == null
                     ? new Dictionary<string, NpcLifeEntry>()
@@ -222,6 +232,10 @@ namespace A305.Learning
             {
                 cardNameText.text = NeighborsText.Name(selected);
                 cardFactsText.text = NeighborsText.Facts(selected, Whereabouts(selected));
+                string mapHint = NeighborsText.MapHint(Locate(selected).Spot, IsPlayerInTown());
+                mapButton.gameObject.SetActive(mapHint == null);
+                mapHintText.gameObject.SetActive(mapHint != null);
+                mapHintText.text = mapHint ?? "";
                 emptyText.text = "";
                 statusText.text = "";
                 retryButton.gameObject.SetActive(false);
@@ -257,13 +271,49 @@ namespace A305.Learning
         // 지금 게임 시각의 일과로 정한다. 다른 장면에 있는 NPC도 같은 시각이면 같은 상태다.
         private string Whereabouts(Neighbor neighbor)
         {
-            lives.TryGetValue(neighbor.NpcCode ?? "", out NpcLifeEntry life);
             return NpcWhereabouts.Describe(
-                life,
+                LifeOf(neighbor),
                 GameClock.Shared.Minutes,
                 NpcDuty.RequiresPresence(neighbor.NpcCode)
             );
         }
+
+        // 지도에 찍을 자리. 마을에 켜진 몸이 있으면 그 몸을, 없으면 일과로 일터나 숙소를 고른다.
+        private NpcLocation Locate(Neighbor neighbor)
+        {
+            NpcIdentity body = NpcTracking.FindBody(neighbor.NpcCode);
+            return NpcLocator.Locate(
+                LifeOf(neighbor),
+                GameClock.Shared.Minutes,
+                NpcDuty.RequiresPresence(neighbor.NpcCode),
+                IsPlayerInTown(),
+                body != null ? body.transform.position : (Vector3?)null
+            );
+        }
+
+        // 고른 이웃을 찾기 시작하고, 지도를 가리지 않게 창을 닫은 뒤 큰 지도를 연다.
+        // 지도 핀과 머리 위 표시는 그 NPC 3m 안에 다가가거나 다른 이웃을 고를 때까지 남는다.
+        private void ShowOnMap()
+        {
+            Neighbor selected = book?.Selected;
+            if (selected == null)
+            {
+                return;
+            }
+
+            NpcTracking.Shared.Track(selected.NpcCode, selected.Name, LifeOf(selected));
+            Close();
+            JourneyStatus.Shared.RequestMap();
+        }
+
+        private NpcLifeEntry LifeOf(Neighbor neighbor)
+        {
+            lives.TryGetValue(neighbor.NpcCode ?? "", out NpcLifeEntry life);
+            return life;
+        }
+
+        private static bool IsPlayerInTown() =>
+            PlaceScenes.CodeOf(SceneManager.GetActiveScene().name) == "TOWN";
 
         private void SetMovementLocked(bool isLocked)
         {

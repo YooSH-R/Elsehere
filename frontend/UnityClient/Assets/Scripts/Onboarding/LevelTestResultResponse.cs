@@ -5,7 +5,17 @@ namespace A305.Onboarding
     {
         public long TestId { get; set; }
         public LevelTestStatus Status { get; set; }
+
+        /// <summary>맞힌 듣기 문항과 통과한 말하기 문항 수</summary>
         public int? Score { get; set; }
+
+        /// <summary>추천 난이도. 초급(1) 또는 중급(2)</summary>
         public int? ResultLevel { get; set; }
+
+        public int? ListeningScore { get; set; }
+        public int? SpeakingPassed { get; set; }
+
+        /// <summary>결과 화면의 한 줄 피드백. 말하기 답이 없으면 null이다.</summary>
+        public string Feedback { get; set; }
     }
 }

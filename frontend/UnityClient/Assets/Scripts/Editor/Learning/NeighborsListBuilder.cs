@@ -345,18 +345,40 @@ namespace A305.EditorTools.Learning
             facts.textWrappingMode = TextWrappingModes.Normal;
             facts.lineSpacing = 18;
             F.TopLeft(facts.rectTransform, 48, 88, 900, 250);
+            // 아래 줄 가운데를 기준으로 왼쪽에 [지도에서 보기](또는 그 대신 이유), 오른쪽에 [목록으로]를 둔다.
             Transform back = card.Find("BackButton");
             if (back != null)
             {
                 var backLayout = BuilderTools.GetOrAddComponent<LayoutElement>(back.gameObject);
                 backLayout.ignoreLayout = true;
-                F.TopLeft((RectTransform)back, (RowWidth - 200) / 2, 350, 200, 56);
+                F.TopLeft((RectTransform)back, RowWidth / 2 + ButtonGap / 2, 350, 200, 56);
                 BuilderTools.SetReference(view, "backButton", back.GetComponent<Button>());
             }
+            Button map = UiBuilderTools.FindOrCreateButton(
+                card,
+                "MapButton",
+                NeighborsText.ShowOnMap,
+                UiBuilderTools.BoldFont(),
+                MapButtonWidth
+            );
+            BuilderTools.GetOrAddComponent<LayoutElement>(map.gameObject).ignoreLayout = true;
+            float mapLeft = RowWidth / 2 - ButtonGap / 2 - MapButtonWidth;
+            F.TopLeft((RectTransform)map.transform, mapLeft, 350, MapButtonWidth, 56);
+            TMP_Text hint = Label(card, "MapHint", F.BodyFontPath, 17, F.Ink);
+            hint.alignment = TextAlignmentOptions.MidlineRight;
+            hint.textWrappingMode = TextWrappingModes.Normal;
+            F.TopLeft(hint.rectTransform, 48, 350, RowWidth / 2 - ButtonGap / 2 - 48, 56);
+            hint.gameObject.SetActive(false);
             BuilderTools.SetReference(view, "card", card.gameObject);
             BuilderTools.SetReference(view, "cardNameText", name);
             BuilderTools.SetReference(view, "cardFactsText", facts);
+            BuilderTools.SetReference(view, "mapButton", map);
+            BuilderTools.SetReference(view, "mapHintText", hint);
         }
+
+        // 정보 카드 아래 줄 버튼 사이 간격과 [지도에서 보기] 폭
+        private const float ButtonGap = 24;
+        private const float MapButtonWidth = 240;
 
         private static Transform FindOrNewButton(Transform parent, string name)
         {

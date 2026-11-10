@@ -32,7 +32,7 @@ namespace A305.Npc
         public void Show()
         {
             dialog.SetActive(true);
-            SurveyPrompt.Request();
+            SurveyPrompt.RequestUnlessInvited();
         }
 
         public void Hide()

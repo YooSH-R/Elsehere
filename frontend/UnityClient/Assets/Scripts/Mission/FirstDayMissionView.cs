@@ -643,7 +643,7 @@ namespace A305.Mission
             if (asksSurveyOnNext)
             {
                 asksSurveyOnNext = false;
-                A305.Api.SurveyPrompt.Request();
+                A305.Api.SurveyPrompt.RequestUnlessInvited();
             }
         }
 

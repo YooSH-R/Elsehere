@@ -38,8 +38,11 @@ namespace A305.EditorTools.Learning
                     ).GetComponent<RectTransform>();
             rect.SetParent(owner, false);
             rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one;
-            rect.anchoredPosition = new Vector2(-130, -38);
-            rect.sizeDelta = new Vector2(77, 77);
+            rect.anchoredPosition = new Vector2(
+                -A305.World.HudTopBarLayout.Margin,
+                -A305.World.HudTopBarLayout.Margin
+            );
+            rect.sizeDelta = Vector2.one * A305.World.HudTopBarLayout.Size;
             rect.SetAsLastSibling();
             var button = rect.GetComponent<Button>();
             var hit = rect.GetComponent<Image>();

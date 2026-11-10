@@ -19,6 +19,7 @@ import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.dialogue.dto.PoliceDispatchResponse;
+import com.elsehere.dialogue.dto.TaxiDestinationResponse;
 import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.dialogue.dto.TurnResponse;
 import com.elsehere.memory.service.MemoryService;
@@ -157,6 +158,12 @@ public class TurnService {
             && !context.npcOffDuty()
             && missionState.isEmpty()
             && PoliceDesk.serves(context.npc().summary().npcCode());
+    // 택시 기사는 미션 목표를 맡지 않은 동안 뒷좌석 승객의 목적지를 듣는다.
+    boolean taxiRide =
+        context.review() == null
+            && !context.npcOffDuty()
+            && missionState.isEmpty()
+            && TaxiRide.serves(context.npc().summary().npcCode());
 
     CompletableFuture<GuardResult> guarding = guardAsync(trace, context, request.text());
     JudgeResult judge =
@@ -165,7 +172,8 @@ public class TurnService {
             context.npc().workerNpc(),
             context.review() != null
                 ? reviewDialogue.state(context.review())
-                : missionState.orElse(policeDesk ? PoliceDesk.STATE : FREE_TALK),
+                : missionState.orElse(
+                    policeDesk ? PoliceDesk.STATE : taxiRide ? TaxiRide.STATE : FREE_TALK),
             context.history(),
             request.text());
     if (judge.dropped()) {
@@ -180,8 +188,11 @@ public class TurnService {
     boolean leaving = rude && context.rudeCount() + 1 >= Conversation.RUDE_LIMIT;
     Optional<PoliceDesk.Dispatch> dispatch =
         policeDesk && !rude ? PoliceDesk.dispatch(judge) : Optional.empty();
+    Optional<TaxiRide.Destination> destination =
+        taxiRide && !rude ? TaxiRide.destination(judge) : Optional.empty();
     // 출동하는 경찰관은 직접 순찰차로 가야 하므로 이 턴에 대화를 마친다.
-    boolean wrapUp = dispatch.isPresent() || WrapUp.ends(rude, mission, judge);
+    // 택시는 대화가 끝나면 승객이 내리므로 작별·용건 끝냄으로 마치지 않고, 도착하면 Unity가 대화를 마친다.
+    boolean wrapUp = dispatch.isPresent() || (!taxiRide && WrapUp.ends(rude, mission, judge));
     String instruction =
         rude
             ? (leaving ? RUDE_LEAVE : RUDE_WARNING)
@@ -191,6 +202,9 @@ public class TurnService {
     }
     if (policeDesk && !rude) {
       instruction = join(instruction, PoliceDesk.instruction(judge, dispatch));
+    }
+    if (taxiRide && !rude) {
+      instruction = join(instruction, TaxiRide.instruction(judge, destination));
     }
     if (wrapUp) {
       instruction = WrapUp.instruction(instruction);
@@ -280,6 +294,7 @@ public class TurnService {
                         userId, context.npc().summary().npcCode(), value, judge.intent()));
           }
           dispatch.ifPresent(value -> userTurn.recordPoliceDispatch(value.placeCode()));
+          destination.ifPresent(value -> userTurn.recordTaxiDestination(value.placeCode()));
           return response(conversation, userTurn, npcTurn);
         });
   }
@@ -439,7 +454,10 @@ public class TurnService {
         List.of(),
         userTurn.isPoliceDispatch()
             ? new PoliceDispatchResponse(userTurn.getPoliceDispatchPlaceCode())
-            : null);
+            : null,
+        userTurn.getTaxiDestinationCode() == null
+            ? null
+            : new TaxiDestinationResponse(userTurn.getTaxiDestinationCode()));
   }
 
   /**

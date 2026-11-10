@@ -9,7 +9,8 @@ namespace A305.Npc
 {
     /// <summary>
     /// 본길을 도는 택시. 택시의 탑승 반경 안에 들어오면 [택시 타기]가 보이고, 누르면 현재 위치에 서면서
-    /// 바로 뒷좌석에 태워 기사와 대화를 시작한다. 명확한 목적지를 말하면 이동해 보도에 내려준다.
+    /// 바로 뒷좌석에 태워 기사와 대화를 시작한다. 서버의 의도 판정이 대화 문맥으로 목적지를 알아들으면
+    /// (<see cref="DialogueController.TaxiDestinationChosen"/>) 그곳으로 가서 보도에 내려 준다. 가는 도중에 다른 곳을 말하면 그곳으로 바꾼다.
     /// 버튼은 행인의 [말 걸기]와 같은 자리(<see cref="PasserbyOfferView"/>)에 뜨고 E 키로도 누른다.
     /// </summary>
     [RequireComponent(typeof(LoopingCar))]
@@ -90,7 +91,7 @@ namespace A305.Npc
             if (dialogue != null)
             {
                 dialogue.Ended += OnDialogueEnded;
-                dialogue.UserTurnAccepted += OnUserTurnAccepted;
+                dialogue.TaxiDestinationChosen += ChooseDestination;
             }
         }
 
@@ -99,7 +100,7 @@ namespace A305.Npc
             if (dialogue != null)
             {
                 dialogue.Ended -= OnDialogueEnded;
-                dialogue.UserTurnAccepted -= OnUserTurnAccepted;
+                dialogue.TaxiDestinationChosen -= ChooseDestination;
             }
 
             if (passenger)
@@ -277,14 +278,10 @@ namespace A305.Npc
             }
         }
 
-        private void OnUserTurnAccepted(string npcCode, string text)
+        /// <summary>기사가 알아들은 목적지로 간다. 도착해 내리기 전이면 다른 곳으로 바꿀 수 있다.</summary>
+        public void ChooseDestination(string npcCode, string code)
         {
-            if (
-                !passenger
-                || npcCode != driver.Code
-                || destination != null
-                || !TaxiDestinationRequest.TryResolve(text, out string code)
-            )
+            if (!passenger || npcCode != driver.Code || arriving)
                 return;
             foreach (TaxiDestination candidate in destinations)
             {

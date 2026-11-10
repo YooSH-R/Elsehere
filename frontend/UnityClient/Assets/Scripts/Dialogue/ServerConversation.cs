@@ -112,6 +112,9 @@ namespace A305.Dialogue
         /// </summary>
         public event Action<long, string> PoliceDispatchRequested;
 
+        /// <summary>택시 기사가 목적지를 알아들은 턴. 갈 장소 코드를 넘긴다.</summary>
+        public event Action<string> TaxiDestinationChosen;
+
         /// <summary>NPC가 새로 말했다. 음성 재생에 쓴다.</summary>
         public event Action<NpcTurnData> NpcSpoke;
 
@@ -301,6 +304,8 @@ namespace A305.Dialogue
                             result.UserTurn.TurnId,
                             result.PoliceDispatch.PlaceCode
                         );
+                    if (!IsReview && result.TaxiDestination != null)
+                        TaxiDestinationChosen?.Invoke(result.TaxiDestination.PlaceCode);
                 },
                 () => SendAsync(utterance),
                 DialogueWait.NpcReply

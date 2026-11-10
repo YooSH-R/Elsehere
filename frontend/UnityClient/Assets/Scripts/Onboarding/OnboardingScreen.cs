@@ -69,6 +69,9 @@ namespace A305.Onboarding
         private GuestReturnPanelView guestReturnPanel;
 
         [SerializeField]
+        private GuestLevelTestLoginView guestLevelTestLogin;
+
+        [SerializeField]
         [Tooltip(
             "입구 화면 뒤 배경. 가운데 창이 뜨면 왼쪽 크림색 그라데이션 없이 흐린 마을만 보여 준다."
         )]
@@ -150,6 +153,13 @@ namespace A305.Onboarding
             languagePanel.LanguageChosen += languageCode =>
                 Run(() => flow.ChooseLanguageAsync(languageCode));
             ConnectLevelTestPanel();
+            guestLevelTestLogin.LoginRequested += () => BrowserRedirect.GoTo(api.GoogleLoginUrl);
+            guestLevelTestLogin.ContinueRequested += () => Run(flow.SkipLevelTestAsync);
+            guestLevelTestLogin.CloseRequested += () =>
+            {
+                flow.DismissGuestLevelTestLogin();
+                Render();
+            };
             levelSettingPanel.LevelConfirmed += level => Run(() => flow.SelectLevelAsync(level));
         }
 
@@ -294,7 +304,8 @@ namespace A305.Onboarding
                     break;
                 case EntryScreen.LevelTest:
                     ShowOnly(levelTestPanel.gameObject);
-                    levelTestPanel.Show(flow.LevelTest, flow.IsVoiceAgreed);
+                    levelTestPanel.Show(flow.LevelTest, flow.IsVoiceAgreed, flow.IsGuest);
+                    guestLevelTestLogin.Show(flow.GuestLevelTestLoginRequired);
                     break;
                 case EntryScreen.LevelSetting:
                     ShowOnly(levelSettingPanel.gameObject);
@@ -316,6 +327,7 @@ namespace A305.Onboarding
 
         private void ShowOnly(GameObject panel)
         {
+            guestLevelTestLogin.Show(false);
             connectionPanel.gameObject.SetActive(connectionPanel.gameObject == panel);
             guestReturnPanel.gameObject.SetActive(guestReturnPanel.gameObject == panel);
             loginPanel.gameObject.SetActive(loginPanel.gameObject == panel);

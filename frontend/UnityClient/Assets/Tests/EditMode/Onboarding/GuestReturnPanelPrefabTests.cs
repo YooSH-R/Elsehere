@@ -30,6 +30,20 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
+        public void GuestLevelTestLogin_HasASeparateBlockingOverlayAndThreeConnectedActions()
+        {
+            var screen = new SerializedObject(prefab.GetComponent<OnboardingScreen>());
+            var dialog = (GuestLevelTestLoginView)
+                screen.FindProperty("guestLevelTestLogin").objectReferenceValue;
+            Assert.That(dialog, Is.Not.Null);
+            Assert.That(dialog.gameObject.activeSelf, Is.False);
+            Assert.That(dialog.GetComponent<UnityEngine.UI.Image>().raycastTarget, Is.True);
+            var fields = new SerializedObject(dialog);
+            foreach (string action in new[] { "loginButton", "continueButton", "closeButton" })
+                Assert.That(fields.FindProperty(action).objectReferenceValue, Is.Not.Null, action);
+        }
+
+        [Test]
         public void SignupPanel_ConnectsSubtitleForGuestGuidance()
         {
             var signup = new SerializedObject(

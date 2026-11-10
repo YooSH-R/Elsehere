@@ -82,6 +82,7 @@ namespace A305.Mission
             view.RestRequested += Rest;
             view.RetryRequested += RequestRefresh;
             view.QuestBoardRequested += LoadQuestBoard;
+            view.PracticeBoardRequested += LoadPracticeBoard;
             dialogue.NpcResponded += RequestRefresh;
             dialogue.Ended += OnEnded;
             dialogue.Started += OnStarted;
@@ -128,6 +129,7 @@ namespace A305.Mission
                 view.RestRequested -= Rest;
                 view.RetryRequested -= RequestRefresh;
                 view.QuestBoardRequested -= LoadQuestBoard;
+                view.PracticeBoardRequested -= LoadPracticeBoard;
             }
             if (dialogue != null)
             {
@@ -202,6 +204,34 @@ namespace A305.Mission
                 {
                     Debug.LogException(exception, this);
                     view.ShowMessage("퀘스트 목록을 불러오지 못했어요. 다시 열어 주세요.");
+                }
+            }
+        }
+
+        private void LoadPracticeBoard() => _ = LoadPracticeBoardAsync();
+
+        // 장소 연습 목록(PRC-01)은 탭을 열 때마다 다시 읽어 방금 끝낸 상황도 보인다.
+        private async Task LoadPracticeBoardAsync()
+        {
+            if (api == null)
+                return;
+            try
+            {
+                PracticeBoardState board = await api.GetPracticeBoardAsync();
+                if (this != null)
+                    view.ShowPracticeBoard(board);
+            }
+            catch (ApiException exception)
+            {
+                if (this != null)
+                    view.ShowMessage(exception.Message);
+            }
+            catch (Exception exception)
+            {
+                if (this != null)
+                {
+                    Debug.LogException(exception, this);
+                    view.ShowMessage("장소 연습 목록을 불러오지 못했어요. 다시 열어 주세요.");
                 }
             }
         }

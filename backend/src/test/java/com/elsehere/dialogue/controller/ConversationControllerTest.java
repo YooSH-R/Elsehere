@@ -103,6 +103,33 @@ class ConversationControllerTest {
   }
 
   @Test
+  void startPracticeUsesAuthenticatedOwnerAndReturnsScenario() throws Exception {
+    given(conversationService.startPractice(1L, "DINER_TABLE", REQUEST_ID))
+        .willReturn(
+            new ConversationStartResponse(
+                77L,
+                ConversationStatus.ACTIVE,
+                1,
+                NPC,
+                List.of(),
+                null,
+                null,
+                null,
+                null,
+                "DINER_TABLE"));
+    mockMvc
+        .perform(
+            post("/api/v1/practice-scenarios/DINER_TABLE/conversations")
+                .with(authentication(loggedIn(1L)))
+                .header("X-Requested-With", "XMLHttpRequest")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"requestId\":\"" + REQUEST_ID + "\"}"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.conversationId").value(77))
+        .andExpect(jsonPath("$.practiceScenarioId").value("DINER_TABLE"));
+  }
+
+  @Test
   @DisplayName("GET /api/v1/conversations는 NPC·커서·크기를 넘겨 지난 대화 목록 한 페이지를 돌려준다")
   void list_respondsPage() throws Exception {
     ConversationSummaryResponse item =

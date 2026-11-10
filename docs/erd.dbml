@@ -217,6 +217,7 @@ Table conversations [headercolor: #2E6B4F] {
   review_result jsonb [note: '복습 종료 시 1회 저장하는 표현별 실제 발화 근거·연습 결과. 일반 대화/종료 전에는 NULL. 내용 삭제 시 제거']
   first_day_stage int [note: '대화 시작 시 첫날 연계 미션 단계 0~6. 피드백 상황 복원용이며 자유 대화는 NULL']
   town_story_stage int [note: '대화 시작 시 마을 여정 단계 0~11. 피드백 상황 복원용이며 해당 여정이 아니면 NULL']
+  town_story_goal_ids jsonb [note: '대화 시작 시 수행 가능한 남은 마을 퀘스트 목표 ID 배열. 빈 배열은 목표 없음, NULL은 저장 전 기존 기록. 피드백·복습에서 사용']
   request_id uuid [unique, note: '대화 시작(CONV-01) 요청 ID · 재전송 시 새 대화를 만들지 않고 같은 대화를 돌려줌 (V10 전에 시작한 대화는 NULL)']
   time_limit_final_request_id uuid [note: '30번째 발화를 선점한 요청 ID · 실패 시 해제. 기존 컬럼 이름 유지']
   npc_off_duty boolean [not null, default: false, note: '근무 시간(교대) 밖의 NPC와 시작한 대화 (CONV-01 npcOffDuty) · AI 워커에 응대 상황 대신 일상 상황을 보냄 · V11 전 대화는 false']

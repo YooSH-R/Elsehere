@@ -23,7 +23,7 @@ final class FeedbackInputs {
 
   static final String SCHEMA_VERSION = "0.3.0";
   // 모델·프롬프트·검증 정책을 바꾸면 올린다. 같은 대화라도 버전이 다르면 다른 결과로 본다.
-  static final String ANALYSIS_CONFIG_VERSION = "elsehere-feedback-v2";
+  static final String ANALYSIS_CONFIG_VERSION = "elsehere-feedback-v3";
 
   // 학습자 수준 설명. 워커 힌트·추천 단어(ai/worker/app/prompts.py LEVEL_LEARNER)와 같은 말을 쓴다.
   private static final Map<Integer, String> LEVEL_LEARNER =
@@ -59,8 +59,8 @@ final class FeedbackInputs {
             ? TownStoryStage.values()[townStage]
             : null;
     String situation =
-        townQuest != null
-            ? townQuest.situation()
+        townQuest != null && townQuest.npcCode().equals(npc.getCode())
+            ? townSituation(conversation, townQuest)
             : quest != null ? quest.situation() + " " + quest.direction() + goals(quest) : null;
     return new FeedbackInput(
         SCHEMA_VERSION,
@@ -93,6 +93,28 @@ final class FeedbackInputs {
   // 퀘스트가 없는 대화의 상황. 근무 시간이 아닌 NPC와의 대화는 응대 상황으로 평가하지 않도록 일상 대화라고 알린다.
   private static String freeTalk(Conversation conversation) {
     return conversation.isNpcOffDuty() ? "근무가 아닐 때의 일상 대화" : "자유 대화";
+  }
+
+  private static String townSituation(Conversation conversation, TownStoryStage stage) {
+    List<String> goalIds = conversation.getTownStoryGoalIds();
+    if (goalIds == null) {
+      // 예전 식당 기록은 주문 전후를 구분할 수 없다. 현재 진행이나 대화 내용으로 목표를 추측하지 않는다.
+      return stage == TownStoryStage.DINER
+          ? "식당에서 나눈 대화. 당시의 세부 목표 기록이 없으므로 실제 발화만 평가하고, 말하지 않은 퀘스트 목표를 요구하지 않습니다."
+          : stage.situation();
+    }
+    String goals =
+        goalIds.isEmpty()
+            ? "없음"
+            : goalIds.stream()
+                .map(
+                    id ->
+                        TownStoryStage.goalTitle(id)
+                            + " ("
+                            + TownStoryStage.goalDescription(id)
+                            + ")")
+                .collect(Collectors.joining(", "));
+    return stage.title() + " · 이번 대화의 할 일: " + goals + ". 이 목록에 없는 다른 목표는 누락으로 평가하지 않습니다.";
   }
 
   // 이 단계에서 학습자가 할 일. 모델이 장면에 맞는 표현만 권하게 한다.

@@ -108,6 +108,41 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(requests, Is.EqualTo(0));
         }
 
+        [UnityTest]
+        public IEnumerator TutorialDraft_LateHintDoesNotReplaceTheSentenceBeingTyped()
+        {
+            content.IsGuided = true;
+            view.Show(content);
+            Input.text = "Turn left at the corner.";
+            content.HintText = "Go straight ahead.";
+            view.Refresh();
+            yield return null;
+            Assert.That(Input.text, Is.EqualTo("Turn left at the corner."));
+        }
+
+        [UnityTest]
+        public IEnumerator HintRequest_DraftEditedWhileWaitingIsKept()
+        {
+            Input.text = "My first draft";
+            ClickCenterOf(FindButton("HintButton"));
+            Input.text = "My new draft";
+            content.HintText = HintSentence;
+            view.Refresh();
+            yield return null;
+            Assert.That(Input.text, Is.EqualTo("My new draft"));
+        }
+
+        [UnityTest]
+        public IEnumerator HintRequest_UnchangedDraftCanBeReplacedByTheRequestedHint()
+        {
+            Input.text = "My first draft";
+            ClickCenterOf(FindButton("HintButton"));
+            content.HintText = HintSentence;
+            view.Refresh();
+            yield return null;
+            Assert.That(Input.text, Is.EqualTo(HintSentence));
+        }
+
         private TMP_InputField Input => panelObject.GetComponentInChildren<TMP_InputField>(true);
 
         // 버튼 가운데를 실제 화면 좌표로 눌러, 다른 UI에 가려지지 않고 버튼이 클릭을 받는지 본다.
@@ -170,7 +205,7 @@ namespace A305.Dialogue.PlayModeTests
             public string NpcName => "Alex";
             public IReadOnlyList<DialogueLine> Lines => new[] { Opening };
             public DialogueLine LastNpcLine => Opening;
-            public bool IsGuided => false;
+            public bool IsGuided { get; set; }
             public bool IsGuidedCompleted => false;
             public string SuggestedEnglish => null;
             public string SuggestedKorean => null;

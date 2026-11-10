@@ -137,12 +137,6 @@ namespace A305.Mission
         private Button journalButton;
 
         [SerializeField]
-        private Button collapseButton;
-
-        [SerializeField]
-        private TMP_Text collapseLabel;
-
-        [SerializeField]
         private Button closeButton;
 
         [SerializeField]
@@ -204,15 +198,19 @@ namespace A305.Mission
         private Vector2 coinFloatHome;
         private bool available;
         private string mapSceneCode;
+        private bool insideShop;
 
         // 미니맵을 터치 기기 자리(오른쪽 위)에 두었는지. 처음 화면을 그릴 때 정한다.
         private bool? miniMapOnRight;
 
+        // 왼쪽 아래 이동 조이스틱을 가진 터치 조작. 왼쪽 열이 조이스틱을 가리지 않게 그 자리를 잰다.
+        private PlayerTouchControls touchControls;
+
+        // 왼쪽 열과 왼쪽 아래 미니맵·조이스틱 사이(시안 12px)
+        private const float LeftColumnGap = 12 * 1.2f;
+
         // 하는 퀘스트가 없어 카드 대신 퀘스트 아이콘을 두는지
         private bool idle;
-
-        private bool cardCollapsed;
-        private IReadOnlyList<FirstDayMissionGoal> currentGoals;
 
         // 끝낸 퀘스트의 보상은 팡파레와 함께 더하므로 그때까지 코인 칩을 바꾸지 않는다. 그동안 받은 코인과 산 것을 기억한다.
         private bool rewardExpected;
@@ -296,7 +294,8 @@ namespace A305.Mission
                 ? "가까운 의자에 앉아 잠깐 쉬어 가세요."
                 : state.Direction;
             // NPC가 할 일을 먼저 말하지 않으므로, 요청 안내 아래 이번 단계 목표를 보여 주어 무엇을 요청할지 알게 한다.
-            currentGoals = state.CanRest || current == null ? null : current.Goals;
+            IReadOnlyList<FirstDayMissionGoal> currentGoals =
+                state.CanRest || current == null ? null : current.Goals;
             this.talking = talking;
             idle = !state.Started || state.Completed;
             Banner.gameObject.SetActive(!idle && !journal.activeSelf);
@@ -313,7 +312,7 @@ namespace A305.Mission
             stepChip.transform.parent.gameObject.SetActive(chip != null);
             place.text = current != null ? CompactTitle(current.Title) : "";
             ShowProgress(state.Steps);
-            ApplyCardMode();
+            ShowGoals(currentGoals);
             ShowClock();
             // 폰 메뉴의 오늘의 여정 위젯이 같은 내용을 보인다.
             JourneyStatus.Shared.Show(
@@ -386,16 +385,14 @@ namespace A305.Mission
         private void ShowGoals(IReadOnlyList<FirstDayMissionGoal> current)
         {
             int count = current?.Count ?? 0;
-            goals.gameObject.SetActive(
-                current != null && (!cardCollapsed || current.Any(goal => !goal.Completed))
-            );
+            goals.gameObject.SetActive(current != null);
             GameObject template = goals.GetChild(0).gameObject;
             while (goals.childCount < count)
                 Instantiate(template, goals, false);
             for (int i = 0; i < goals.childCount; i++)
             {
                 GameObject row = goals.GetChild(i).gameObject;
-                bool visible = i < count && (!cardCollapsed || !current[i].Completed);
+                bool visible = i < count;
                 row.SetActive(visible);
                 if (!visible)
                     continue;
@@ -415,24 +412,6 @@ namespace A305.Mission
                 hint.gameObject.SetActive(showsHint);
                 hint.GetComponent<TMP_Text>().text = showsHint ? goal.Hint : "";
             }
-        }
-
-        /// <summary>접으면 지금 단계의 남은 목표와 힌트만 남긴다. 목표가 없으면 현재 행동 안내를 보여 준다.</summary>
-        public void ToggleQuestCard()
-        {
-            cardCollapsed = !cardCollapsed;
-            ApplyCardMode();
-        }
-
-        private void ApplyCardMode()
-        {
-            bool hasUnfinishedGoal =
-                currentGoals != null && currentGoals.Any(goal => !goal.Completed);
-            direction.gameObject.SetActive(!cardCollapsed || !hasUnfinishedGoal);
-            situation.gameObject.SetActive(!cardCollapsed);
-            progress.parent.gameObject.SetActive(!cardCollapsed);
-            collapseLabel.text = cardCollapsed ? "펼치기" : "접기";
-            ShowGoals(currentGoals);
         }
 
         /// <summary>단계 칩 글자. 지금 단계가 몇 번째인지 전체 단계 수와 함께 쓰고, 모두 끝냈으면 마지막 단계로, 시작 전이면 null이다.</summary>
@@ -782,9 +761,17 @@ namespace A305.Mission
 
         private void Update()
         {
+            bool currentInside = ShopInterior.Occupied != null;
+            if (insideShop != currentInside)
+            {
+                insideShop = currentInside;
+                UpdateLeftHudVisibility();
+            }
             bool touch = PlayerTouchControls.ShouldShowControls();
             if (miniMapOnRight != touch)
                 PlaceMiniMap(touch);
+            if (followUpCard != null)
+                followUpCard.SetBottomLimit(LeftColumnBottom());
             ShowClock();
             CenterWindow.Shared.SetLeftHud(LeftHudScreenWidth());
             bool escape =
@@ -831,11 +818,52 @@ namespace A305.Mission
                 || (mapOverlay != null && mapOverlay.activeSelf);
             if (miniMapPanel != null)
                 miniMapPanel.SetActive(
-                    available && !talking && mapSceneCode == "TOWN" && !isLeftCovered
+                    available
+                        && !talking
+                        && FirstDayMissionState.CanShowMiniMapIn(
+                            mapSceneCode,
+                            ShopInterior.Occupied != null
+                        )
+                        && !isLeftCovered
                 );
             // 기다리는 카드는 퀘스트 카드처럼 대화 중에도 보인다.
             if (followUpCard != null)
                 followUpCard.SetAllowed(available && !isLeftCovered);
+        }
+
+        /// <summary>
+        /// 왼쪽 열(퀘스트 카드·기다리는 카드)이 내려갈 수 있는 끝. 콘텐츠 위에서 잰 캔버스 단위 거리다.
+        /// 데스크톱은 왼쪽 아래 미니맵 위, 휴대폰은 이동 조이스틱 위에서 카드 사이(12)만큼 띄운다. 둘 다 없으면 화면 아래 여백까지다.
+        /// </summary>
+        private float LeftColumnBottom()
+        {
+            var area = (RectTransform)content.transform;
+            float reserved = Margin;
+            if (miniMapPanel != null && miniMapPanel.activeInHierarchy && miniMapOnRight != true)
+            {
+                var map = (RectTransform)miniMapPanel.transform;
+                reserved = map.anchoredPosition.y + map.rect.height + LeftColumnGap;
+            }
+            touchControls ??= FindAnyObjectByType<PlayerTouchControls>();
+            if (touchControls != null && touchControls.IsShown)
+            {
+                RectTransform stick = touchControls.Stick;
+                stick.GetWorldCorners(hudCorners);
+                Vector2 top = RectTransformUtility.WorldToScreenPoint(
+                    CenterWindow.CameraOf(stick),
+                    hudCorners[1]
+                );
+                if (
+                    RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                        area,
+                        top,
+                        CenterWindow.CameraOf(area),
+                        out Vector2 local
+                    )
+                )
+                    reserved = Mathf.Max(reserved, local.y - area.rect.yMin + LeftColumnGap);
+            }
+            return area.rect.height - reserved;
         }
 
         // 단어장·피드백 같은 가운데 창이 그 오른쪽에 놓이도록, 보이는 퀘스트 카드·기다리는 카드·미니맵이 화면 왼쪽에서 차지하는 폭(화면 픽셀).

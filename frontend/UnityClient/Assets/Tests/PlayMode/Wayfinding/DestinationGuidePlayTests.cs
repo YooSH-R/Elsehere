@@ -43,6 +43,22 @@ namespace A305.Wayfinding.PlayModeTests
         {
             yield return LoadTown();
 
+            foreach (
+                string shop in new[]
+                {
+                    "DINER",
+                    "LAUNDROMAT",
+                    "BANK",
+                    "BARBER",
+                    "FLOWER_SHOP",
+                    "BAKERY",
+                    "HOME_STORE",
+                    "ARCADE",
+                    "POST_OFFICE",
+                }
+            )
+                Assert.That(Entrance(shop), Is.Not.Null, shop + " 출입문을 찾지 못했습니다.");
+
             GuideDestination.Shared.Show("HOTEL");
             yield return new WaitForSeconds(LaidSeconds);
 
@@ -77,6 +93,24 @@ namespace A305.Wayfinding.PlayModeTests
                 Is.LessThan(.5f),
                 "새 목적지로 길이 옮겨 가지 않습니다."
             );
+
+            foreach (string shop in new[] { "DINER", "LAUNDROMAT" })
+            {
+                GuideDestination.Shared.Show(shop);
+                yield return new WaitForSeconds(LaidSeconds);
+                Assert.That(Glow().activeSelf, Is.True, shop);
+                Assert.That(route.enabled, Is.True, shop);
+                Assert.That(
+                    Flat(Glow().transform.position, Entrance(shop).position),
+                    Is.LessThan(.01f),
+                    shop
+                );
+                Assert.That(
+                    Flat(route.GetPosition(route.positionCount - 1), Entrance(shop).position),
+                    Is.LessThan(.5f),
+                    shop
+                );
+            }
 
             GuideRoutePreference.ShowsRoute = false;
             yield return null;

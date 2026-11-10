@@ -230,6 +230,8 @@ namespace A305.Dialogue
 
         // 입력창에 넣은 추천 문장. 같은 문장을 다시 그릴 때마다 넣으면 사용자가 고친 문장을 덮는다.
         private string filledHint;
+        private string draftWhenHintRequested;
+        private bool awaitingHint;
 
         // 음성 처리에 동의하지 않아 쓸 수 없는 [말하기]의 투명도. 누를 수는 있어 동의 창을 연다.
         private const float UnavailableTalkAlpha = 0.45f;
@@ -364,6 +366,8 @@ namespace A305.Dialogue
             standingDisplay = new ConversationStandingDisplay();
             inputField.text = "";
             filledHint = null;
+            awaitingHint = false;
+            draftWhenHintRequested = null;
             ShowVoiceInput(isRecording: false, isHearingVoice: false);
             panel.SetActive(true);
             helpPanel.gameObject.SetActive(true);
@@ -452,14 +456,16 @@ namespace A305.Dialogue
                 }
             }
 
-            // 새로 받은 추천 문장은 입력창에 넣어, 사용자가 확인하고 고쳐서 보내게 한다.
+            // 요청 뒤 직접 작성한 문장은 덮어쓰지 않는다. 튜토리얼은 명시적으로 누른 힌트만 채운다.
             if (content.HintText != filledHint)
             {
                 filledHint = content.HintText;
-                if (!string.IsNullOrEmpty(filledHint))
-                {
+                bool unchangedRequest = awaitingHint && inputField.text == draftWhenHintRequested;
+                bool emptyServerDraft = !content.IsGuided && string.IsNullOrEmpty(inputField.text);
+                if (!string.IsNullOrEmpty(filledHint) && (unchangedRequest || emptyServerDraft))
                     inputField.text = filledHint;
-                }
+                awaitingHint = false;
+                draftWhenHintRequested = null;
             }
 
             // 밑줄은 뜻을 펼친 동안만 보이므로, 뜻을 접으면(보내기 포함) 단어 카드도 닫는다.
@@ -649,6 +655,8 @@ namespace A305.Dialogue
 
             if (string.IsNullOrEmpty(content.HintText))
             {
+                awaitingHint = true;
+                draftWhenHintRequested = inputField.text;
                 HintRequested?.Invoke();
             }
             else
@@ -714,6 +722,8 @@ namespace A305.Dialogue
             }
 
             string text = inputField.text;
+            awaitingHint = false;
+            draftWhenHintRequested = null;
             inputField.text = "";
             isMeaningVisible = false;
             SendRequested?.Invoke(text);

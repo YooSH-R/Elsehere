@@ -46,6 +46,8 @@ final class ReviewExpressionEvidence {
     }
     return text.toLowerCase(Locale.ROOT)
         .replace('\u2019', '\'')
+        .replaceAll("\\b(you|we|they)'re\\b", "$1 are")
+        .replaceAll("\\b(it|that)'s\\b", "$1 is")
         .replaceAll("\\bi'm\\b", "i am")
         .replaceAll("\\bi'd\\b", "i would")
         .replaceAll("\\bi'll\\b", "i will")

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: laundry_basket
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_57d53390c38c2204588cba13f10a5f9a
+    languageCode: en-US
+    text: laundry basket
+    meaningKo: "\uBE68\uB798 \uBC14\uAD6C\uB2C8"
+    example: Put your clean clothes in the laundry basket.
+    exampleKo: "\uAE68\uB057\uD55C \uC637\uC744 \uBE68\uB798 \uBC14\uAD6C\uB2C8\uC5D0
+      \uB123\uC73C\uC138\uC694."
+    pronunciationAudioKey: 
+  assetGuid: 57d53390c38c2204588cba13f10a5f9a

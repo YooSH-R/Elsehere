@@ -23,6 +23,31 @@ import org.junit.jupiter.api.Test;
 
 class TownStoryServiceTest {
   @Test
+  void everyTownVisitNamesTheNpcBothInTownAndAway() {
+    TownStory story = TownStory.start(8L);
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+    FirstDayMission journey = mock(FirstDayMission.class);
+    when(firstDay.findById(8L)).thenReturn(Optional.of(journey));
+    String[] names = {
+      "Rosa", "Gus", "Henry", "Gus", "Tony", "Lily", "Tony", "Grace", "Gus", "Nina", "Max", "Linda"
+    };
+    for (String name : names) {
+      story.resume();
+      Npc owner = mock(Npc.class);
+      when(owner.getName()).thenReturn(name);
+      when(owner.getRoleLabel()).thenReturn("직원");
+      when(npcs.findByCode(story.current().npcCode())).thenReturn(Optional.of(owner));
+      for (String scene : List.of("TOWN", "HOME")) {
+        when(journey.getScene()).thenReturn(scene);
+        assertThat(service.status(8L).direction())
+            .as(story.current() + " from " + scene)
+            .contains(name);
+      }
+      story.accept(story.getStage(), story.current().npcCode(), story.current().goalIds());
+    }
+  }
+
+  @Test
   void flowerIntentAcceptsAGiftWithoutRequiringAFlowerVarietyOrHintWording() {
     TownStory story = TownStory.start(8L);
     for (int index = 0; index < TownStoryStage.FLOWERS.ordinal(); index++) {

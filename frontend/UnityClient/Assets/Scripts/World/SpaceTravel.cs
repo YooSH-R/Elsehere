@@ -180,6 +180,33 @@ namespace A305.World
             return true;
         }
 
+        /// <summary>복습 전에 저장한 같은 공간의 자리와 실내를 복원한다. 새로운 물건 구매나 미션 진행은 하지 않는다.</summary>
+        public static bool TryRestoreReviewPosition(
+            PlayerMover player,
+            Pose destination,
+            ShopInterior savedInterior,
+            float viewYaw
+        )
+        {
+            if (
+                player == null
+                || player.IsMovementLocked
+                || SpaceTravelCurtain.IsCoveringScreen
+                || !state.TryBegin()
+            )
+                return false;
+            ShopInterior changedInterior = savedInterior ?? ShopInterior.Occupied;
+            SpaceTravelCurtain.CrossShopDoor(
+                player,
+                destination,
+                changedInterior,
+                savedInterior != null,
+                viewYaw,
+                () => state.CompleteArrival()
+            );
+            return true;
+        }
+
         private static bool RefuseIfLocked()
         {
             if (!state.IsLocked)

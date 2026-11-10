@@ -39,17 +39,17 @@ public enum FirstDayStage {
           "order_drink",
           "음료 주문(음료 이름)",
           "Order a specific drink by name, such as a latte or orange juice; any drink is valid. Asking for just 'a drink' or 'something' does not count.",
-          "마실 음료 이름 (예: latte, orange juice)"),
+          "마실 음료 이름"),
       goal(
           "set_options",
           "크기·온도 등 옵션 고르기",
           "Choose a specific size, temperature, milk or another drink option. Saying only that they have no preference does not count.",
-          "크기나 온도 하나 (예: large, iced)"),
+          "크기나 온도 하나"),
       goal(
           "dine_in",
           "매장 이용 말하기",
           "Say the learner will have the drink here, not take away.",
-          "여기서 마시겠다고 말하기 (for here)")),
+          "여기서 마시겠다고 말하기")),
   MISSING_BAG(
       "작은 가방이 없어요",
       "HOTEL",

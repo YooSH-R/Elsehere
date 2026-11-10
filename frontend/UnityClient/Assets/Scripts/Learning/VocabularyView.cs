@@ -140,12 +140,12 @@ namespace A305.Learning
         private float[] memoPartOffsets;
 
         // 상세 제목·뜻의 글자 크기. 문장처럼 길면 두 줄(최대 높이) 안에 들 때까지 최소 크기까지 줄인다.
-        private const float WordFontSize = 34;
+        private const float WordFontSize = 40;
         private const float WordMinFontSize = 20;
-        private const float WordMaxHeight = 72;
-        private const float MeaningFontSize = 22;
+        private const float WordMaxHeight = 82;
+        private const float MeaningFontSize = 26;
         private const float MeaningMinFontSize = 16;
-        private const float MeaningMaxHeight = 56;
+        private const float MeaningMaxHeight = 62;
 
         // 제목과 뜻 사이, 뜻과 예시 문장 사이, 예시 문장과 메모 사이
         private const float WordGap = 6;
@@ -311,7 +311,7 @@ namespace A305.Learning
                 sentence.anchoredPosition.y - sentenceHeight - 6
             );
             // 긴 대사의 뜻도 따뜻한 색 칸 안에 들도록 두 줄 안에서 글자를 줄인다.
-            FitLines(contextMeaningText, 18, 14, 44);
+            FitLines(contextMeaningText, 21, 14, 50);
         }
 
         // 마을 HUD(퀘스트 카드·미니맵)를 함께 볼 수 있게 그 오른쪽 빈 곳 가운데에 둔다.

@@ -18,10 +18,20 @@ namespace A305.Ambience
 
         public void OnSubmit(BaseEventData data) => Play();
 
+        /// <summary>누르는 조작인지. 슬라이더·스크롤바는 끌어서 쓰고, 입력칸은 글자를 쓰므로 클릭음을 내지 않는다.</summary>
+        public static bool Clicks(Selectable control) =>
+            !(control is Slider || control is Scrollbar || control is InputField)
+            && !control.GetType().Name.Contains("InputField");
+
         private void Play()
         {
-            Button button = GetComponent<Button>();
-            if (button == null || !button.isActiveAndEnabled || !button.IsInteractable())
+            var control = GetComponent<Selectable>();
+            if (
+                control == null
+                || !Clicks(control)
+                || !control.isActiveAndEnabled
+                || !control.IsInteractable()
+            )
                 return;
             // 마이크 입력에 클릭음이 섞이지 않도록 녹음 조작은 건드리지 않는다.
             foreach (string part in new[] { "Record", "Speak", "Voice", "Mic" })

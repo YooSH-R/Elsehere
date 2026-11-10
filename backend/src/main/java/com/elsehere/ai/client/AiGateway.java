@@ -135,13 +135,19 @@ public class AiGateway {
    * 녹음 전사.
    *
    * @param npcLine 인식 문맥으로 쓸 직전 NPC 대사. 없으면 null
+   * @param sceneWords 철자를 알려 줄 장면 단어(사람 이름, 메뉴·상품 이름)
    */
-  public SttResult transcribe(WorkerTrace trace, byte[] audio, String contentType, String npcLine) {
+  public SttResult transcribe(
+      WorkerTrace trace,
+      byte[] audio,
+      String contentType,
+      String npcLine,
+      List<String> sceneWords) {
     SttResult result =
         send(
             trace,
             AiRequestKind.STT,
-            () -> aiWorkerClient.transcribe(trace, audio, contentType, npcLine));
+            () -> aiWorkerClient.transcribe(trace, audio, contentType, npcLine, sceneWords));
     record(trace, AiRequestKind.STT, result.usage(), true);
     return result;
   }

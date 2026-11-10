@@ -37,6 +37,7 @@ namespace A305.EditorTools.Theme
         private const string HudPath = "Assets/Prefabs/Learning/LearningHud.prefab";
         private const string OfferPath = "Assets/Prefabs/Npc/PasserbyOffer.prefab";
         private const string EntryPath = "Assets/Prefabs/Onboarding/EntryScreens.prefab";
+        private const string TouchControlsPath = "Assets/Prefabs/Player/TouchControls.prefab";
         private const string HomeScenePath = "Assets/Scenes/Production/HomeScene.unity";
         private const string FontFolder = "Assets/Art/UI/Fonts";
         private const string HudMenuPath = "Panel/Menu";
@@ -88,6 +89,7 @@ namespace A305.EditorTools.Theme
             Style("Assets/Prefabs/ObjectHover/WordTooltip.prefab", StyleTooltip);
             Style(OfferPath, StyleOffer);
             Style(EntryPath, StyleEntry);
+            Style(TouchControlsPath, StyleTouchControls);
         }
 
         /// <summary>
@@ -178,6 +180,30 @@ namespace A305.EditorTools.Theme
         {
             catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
             Style(OfferPath, StyleGuestSignupDialog);
+        }
+
+        /// <summary>휴대폰 조이스틱·[점프]·[1인칭] 버튼만 테마로 칠한다(TouchControlsBuilder가 자리를 잡은 뒤 부른다).</summary>
+        public static void ApplyTouchControlsTheme()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(TouchControlsPath, StyleTouchControls);
+        }
+
+        /// <summary>
+        /// 장면 위에 바로 놓이는 휴대폰 조작도 다른 화면과 같은 글래스 팝으로 칠한다. 조이스틱 바탕과 [1인칭]은 HUD 시계·코인과 같은
+        /// 유리 칩, 손잡이와 [점프]는 입체 버튼이다(손잡이 하늘, 점프 노랑). 달리는 동안 손잡이는 코랄로 바뀐다(PlayerTouchControls).
+        /// </summary>
+        private static void StyleTouchControls(Transform root)
+        {
+            Role(root, "Stick", UiThemeRole.Chip);
+            // 유리 칩 그림(72px, 모서리 34px)은 작은 칩에 맞춘 모서리라, 지름 160의 조이스틱에서는 둥근 네모가 된다.
+            // 모서리를 키워 원으로 그린다(그림자 여백도 같은 비율로 SurfaceBleed가 맞춘다).
+            root.Find("Stick").GetComponent<Image>().pixelsPerUnitMultiplier = .42f;
+            Role(root, "Stick/Handle", UiThemeRole.PillButton, UiTone.Accent);
+            Role(root, "JumpButton", UiThemeRole.PillButton, UiTone.Primary);
+            Role(root, "ViewToggle", UiThemeRole.Chip);
+            Role(root, "ViewToggle/ToFirstPerson", UiThemeRole.Title);
+            Role(root, "ViewToggle/ToThirdPerson", UiThemeRole.Title);
         }
 
         /// <summary>대화 제안 화면의 NPC 머리 위 이름표만 테마로 칠한다. 제안 화면의 다른 요소는 건드리지 않는다.</summary>

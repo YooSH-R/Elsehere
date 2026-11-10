@@ -77,7 +77,11 @@ namespace A305.EditorTools.Learning
             }
         }
 
-        public static void Capture()
+        public static void Capture() => Capture(naturalOnly: false);
+
+        public static void CaptureNaturalSentence() => Capture(naturalOnly: true);
+
+        private static void Capture(bool naturalOnly)
         {
             string output = System.Environment.GetEnvironmentVariable("FEEDBACK_PREVIEW_OUTPUT");
             if (string.IsNullOrWhiteSpace(output))
@@ -207,6 +211,51 @@ namespace A305.EditorTools.Learning
                     ),
                 }
             );
+            if (naturalOnly)
+            {
+                const string sentence = "I have a reservation under Kim.";
+                feedback = ConversationFeedback.FromServer(
+                    "Jake",
+                    1,
+                    new ServerFeedback(
+                        new FeedbackData { Status = "DONE", Summary = "예약을 확인했어요." },
+                        new List<DetailedFeedbackItem>
+                        {
+                            new DetailedFeedbackItem
+                            {
+                                UserText = sentence,
+                                BetterText = sentence,
+                                Reason = "예약자 이름을 자연스럽게 전달해 예약 확인이 쉬웠어요.",
+                            },
+                        },
+                        null
+                    )
+                );
+                view.Show(
+                    feedback,
+                    new[]
+                    {
+                        DialogueLine.FromNpc("Do you have a reservation?", "예약하셨나요?"),
+                        DialogueLine.FromUser(sentence),
+                    }
+                );
+                foreach (
+                    UiThemeId theme in new[] { UiThemeId.Jelly, UiThemeId.Sticker, UiThemeId.Cloud }
+                )
+                {
+                    UiThemeSelection.Shared.Select(theme);
+                    foreach (
+                        ThemedElement element in BuilderTools.FindAllInScene<ThemedElement>(scene)
+                    )
+                        element.ApplyCurrent();
+                    view.SelectSection(FeedbackSection.Conversation);
+                    view.SelectReview(0);
+                    Render(camera, view, Path.Combine(output, $"natural-{theme}.png"), 1600, 1000);
+                }
+                Render(camera, view, Path.Combine(output, "natural-mobile.png"), 540, 960);
+                return;
+            }
+
             foreach (
                 UiThemeId theme in new[] { UiThemeId.Jelly, UiThemeId.Sticker, UiThemeId.Cloud }
             )

@@ -6,6 +6,8 @@
 - help 줄: 실제 직원이면 처리하거나 어디로 가면 되는지 알려 줄 요청이다. 그 둘 다 없이 거절하면 막다른 거절로 센다.
 - 모든 줄: 마을에 없는 장소·시설, 사실에 없는 가격, 지시문이 막은 결과(체크인·객실 키)를 말하면 지어내기로 센다.
 - 모든 줄: 장소가 어디 있는지 말했는데 마을 배치와 다르면 길 틀림으로 센다.
+- 모든 줄: 화면 밖 사람(매니저·요리사·친구 등)에게 나중에 연락하겠다고만 하고 그 답을 주지 않으면 연락 미룸으로 센다.
+  화면 밖 사람은 게임에 나오지 않아 그 약속을 지킬 수 없다.
 지금 코드의 공통 규칙(app.npc_prompt.RULES)을 그대로 쓰므로, 규칙을 바꾼 뒤 다시 돌려 전후를 비교한다.
 공용 키라 한 줄씩 순서대로 보내고, 결과는 집계만 찍고 줄마다의 기록은 --out jsonl로.
 """
@@ -113,6 +115,13 @@ a back room) are NOT fabricated.
 "wrong_way": true if the reply says where a place is (its side, end, neighbor or what it is across from) and that
 contradicts the World layout. Vague but correct directions ("up the main street") are not wrong.
 
+"dangling_contact": true if the character says it will contact, call, text, email, ask or check with a person who is not
+in this conversation (a manager, coworker, owner, cook, housekeeping, a friend or family member) and the reply does not
+already give that person's answer. Examples: "Let me check with my manager and get back to you", "I'll ask the cook",
+"I'll have someone call your room", "I'll ask around and let you know". It is false when the reply contacts the person
+within the reply and passes on their answer ("I just texted my manager. She says 2 p.m. is fine"), or when the character
+only tells the learner where to go or whom to ask themselves.
+
 "reason": one short sentence."""
 JUDGE_SCHEMA = {
     "type": "object",
@@ -121,9 +130,10 @@ JUDGE_SCHEMA = {
         "not_sure": {"type": "boolean"},
         "fabricated": {"type": "boolean"},
         "wrong_way": {"type": "boolean"},
+        "dangling_contact": {"type": "boolean"},
         "reason": {"type": "string"},
     },
-    "required": ["dead_end", "not_sure", "fabricated", "wrong_way", "reason"],
+    "required": ["dead_end", "not_sure", "fabricated", "wrong_way", "dangling_contact", "reason"],
     "additionalProperties": False,
 }
 LEVEL = 2
@@ -178,11 +188,13 @@ async def run_case(client: httpx.AsyncClient, s: config.Settings, case: dict, re
 
 
 def mark(row: dict) -> str:
-    """대답 하나의 표시 글자. 여럿에 걸리면 앞의 것: F 지어내기, X 막다른 거절, ? 알 만한 걸 모름, W 길 틀림, . 통과"""
+    """대답 하나의 표시 글자. 여럿에 걸리면 앞의 것: F 지어내기, X 막다른 거절, C 연락 미룸, ? 알 만한 걸 모름, W 길 틀림, . 통과"""
     if row["fabricated"]:
         return "F"
     if row["kind"] == "help" and row["dead_end"]:
         return "X"
+    if row["dangling_contact"]:
+        return "C"
     if row["not_sure"]:
         return "?"
     return "W" if row["wrong_way"] else "."
@@ -195,11 +207,13 @@ def report(rows: list[dict]):
     unsure = sum(r["not_sure"] for r in done)
     fab = sum(r["fabricated"] for r in done)
     wrong = sum(r["wrong_way"] for r in done)
+    contact = sum(r["dangling_contact"] for r in done)
     print(f"대답 {len(rows)}개, 호출 실패 {len(rows) - len(done)}")
     print(f"  막다른 거절 {dead}/{len(help_rows)} (help 줄)")
     print(f"  알 만한 걸 모름 {unsure}/{len(done)} (모든 줄)")
     print(f"  지어내기 {fab}/{len(done)} (모든 줄)")
     print(f"  길 틀림 {wrong}/{len(done)} (모든 줄)")
+    print(f"  연락 미룸 {contact}/{len(done)} (모든 줄)")
     by_case: dict[str, list[dict]] = {}
     for r in done:
         by_case.setdefault(r["id"], []).append(r)

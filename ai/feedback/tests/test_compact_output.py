@@ -229,3 +229,63 @@ def test_maximum_length_turn_id_is_preserved_in_generated_ids_and_references():
     review = response["result"]["turn_reviews"][0]
     assert review["review_id"] == review["suggestions"][0]["suggestion_id"] == turn_id
     assert response["result"]["summary_suggestion_id"] == turn_id
+
+
+def test_vocab_expression_inside_its_quote_is_kept_with_the_exact_quote():
+    # 모델이 원문 일부("go to the station")만 표현으로 뽑고 quote에는 원문 전체를 넣은 경우
+    payload, body = sample("free_grammar")
+    body = compact(body)
+    body["result"]["vocab_candidates"] = [
+        {
+            "kind": "idiom",
+            "expression": "go to the station",
+            "meaning_ko": "역에 가다",
+            "example_en": "I go to the station every morning.",
+            "example_ko": "나는 매일 아침 역에 가요.",
+            "source": {"type": "user_turn", "turn_id": "t02", "quote": "I want go to the station."},
+        }
+    ]
+    response = generate_feedback(payload, FixtureClient(body), ai_allowed=True)
+
+    assert response["status"] == "completed"
+    candidate = response["result"]["vocab_candidates"][0]
+    assert candidate["expression"] == candidate["source"]["quote"] == "go to the station"
+
+
+def test_vocab_candidate_not_found_in_its_source_is_dropped_without_failing_feedback():
+    payload, body = sample("free_grammar")
+    body = compact(body)
+    body["result"]["vocab_candidates"][0]["expression"] = "I'd like to go to the station."
+    response = generate_feedback(payload, FixtureClient(body), ai_allowed=True)
+
+    assert response["status"] == "completed"
+    assert response["result"]["vocab_candidates"] == []
+    assert response["result"]["turn_reviews"][0]["suggestions"][0]["suggested_expression"] == "I want to go to the station."
+
+
+def test_voice_surface_only_suggestion_is_dropped_and_review_becomes_appropriate():
+    # 음성 원문에 대소문자·물음표만 바꾼 교정은 계약상 오류가 아니다. 그 교정만 빼고 피드백은 살린다
+    payload, body = sample("free_grammar")
+    turn = next(turn for turn in payload["turns"] if turn["turn_id"] == "t02")
+    turn.update(input_type="voice", original_transcript="what is your favorite movie", final_text="what is your favorite movie")
+    body = compact(body)
+    result = body["result"]
+    for evidence in result["conversation_summary"]["evidence"] + result["communication"]["evidence"]:
+        if evidence["turn_id"] == "t02":
+            evidence["quote"] = "what is your favorite movie"
+    for tag in result["review_tags"]:
+        for evidence in tag["evidence"]:
+            evidence["quote"] = "what is your favorite movie"
+    suggestion = result["turn_reviews"][0]["suggestions"][0]
+    suggestion["source"]["quote"] = "what is your favorite movie"
+    suggestion["suggested_expression"] = "What is your favorite movie?"
+    result["vocab_candidates"][0]["expression"] = "What is your favorite movie?"
+    result["vocab_candidates"][0]["source"]["quote"] = "What is your favorite movie?"
+    response = generate_feedback(payload, FixtureClient(body), ai_allowed=True)
+
+    assert response["status"] == "completed"
+    review = response["result"]["turn_reviews"][0]
+    assert review["verdict"] == "appropriate"
+    assert review["suggestions"] == []
+    assert response["result"]["summary_suggestion_id"] is None
+    assert response["result"]["vocab_candidates"] == []

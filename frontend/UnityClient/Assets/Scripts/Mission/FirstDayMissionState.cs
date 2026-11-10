@@ -63,6 +63,9 @@ namespace A305.Mission
         /// </summary>
         public static bool ManagesSeatsIn(string sceneCode) => sceneCode == "CAFE";
 
+        public static bool CanShowMiniMapIn(string sceneCode, bool insideShop) =>
+            sceneCode == "TOWN" && !insideShop;
+
         /// <summary>이번 휴식이 미션의 '카페에서 잠깐 쉬기'로 인정되는지. 주문을 마친 뒤 처음 쉬는 한 번뿐이다.</summary>
         public bool CountsAsCafeRest => Started && !Completed && Stage == 1 && CanRest;
 

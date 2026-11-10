@@ -6,6 +6,23 @@ import org.junit.jupiter.api.Test;
 
 class ReviewExpressionEvidenceTest {
   @Test
+  void recognizesFarewellContractionsInTheLastSpokenSentence() {
+    assertThat(
+            ReviewExpressionEvidence.matches(
+                "You're a lifesaver!", "Thank you. You are a lifesaver!"))
+        .isTrue();
+    assertThat(ReviewExpressionEvidence.matches("That's the one!", "Yes, that is the one."))
+        .isTrue();
+    assertThat(ReviewExpressionEvidence.matches("It's on me.", "It is on me.")).isTrue();
+    assertThat(ReviewExpressionEvidence.matches("You're a lifesaver!", "You are not a lifesaver."))
+        .isFalse();
+    assertThat(
+            ReviewExpressionEvidence.matches(
+                "You're a lifesaver!", "The example is \"You are a lifesaver.\""))
+        .isFalse();
+  }
+
+  @Test
   void exactMultiSentenceTargetsAndPoliteRefusalsAreRecognized() {
     assertThat(ReviewExpressionEvidence.matches("No, thanks. I'm good.", "No, thanks. I'm good."))
         .isTrue();

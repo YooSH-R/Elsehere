@@ -231,6 +231,15 @@ def usable_turns(request):
     return [turn for turn in request.turns if turn.speaker == "user" and turn.text_status == "final"]
 
 
+def surface_only_change(original, suggested):
+    """대소문자·끝 문장부호만 다른 교정인가. 음성 원문 표기는 STT가 정하므로 이런 교정은 회화 교정이 아니다."""
+
+    def plain(text):
+        return text.strip().rstrip(".!?").casefold()
+
+    return plain(original) == plain(suggested)
+
+
 def evidence_turn(evidence, turns, *, user_only=True):
     turn = turns.get(evidence.turn_id)
     if turn is None or turn.text_status != "final" or turn.speaker not in ("user", "npc"):
@@ -278,12 +287,8 @@ def validate_pair(request, response):
             if item.source.turn_id != review.turn_id:
                 raise ValueError("개선 표현의 근거는 해당 평가 발화여야 한다")
             evidence_turn(item.source, turns)
-            if turn.input_type == "voice":
-                # 음성 원문 표기는 STT가 정한다. 표기만 바꾼 문장을 회화 교정으로 제시하지 않는다.
-                original = turn.final_text.strip().rstrip(".!?").casefold()
-                suggested = item.suggested_expression.strip().rstrip(".!?").casefold()
-                if original == suggested:
-                    raise ValueError("음성 발화의 대소문자·종결 부호만 바꾼 교정")
+            if turn.input_type == "voice" and surface_only_change(turn.final_text, item.suggested_expression):
+                raise ValueError("음성 발화의 대소문자·종결 부호만 바꾼 교정")
     reviews_by_turn = {review.turn_id: review for review in result.turn_reviews}
     for note in result.spoken_usage_notes:
         turn = evidence_turn(note.source, turns)

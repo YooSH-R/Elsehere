@@ -608,6 +608,7 @@ namespace A305.EditorTools.Theme
                 180
             );
             Roomy(root, "MyPage/WithdrawDialog");
+            A305.EditorTools.Onboarding.MyPageLayoutBuilder.Apply(root.gameObject);
         }
 
         /// <summary>약관·선택 동의 한 줄: 동그란 체크, 본문 글자, 작은 [보기] 알약 버튼.</summary>

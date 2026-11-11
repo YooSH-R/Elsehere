@@ -21,9 +21,11 @@ namespace A305.Onboarding
         public Toggle Toggle => toggle;
         public Button ViewButton => viewButton;
 
-        public void Show(ConsentTerm term)
+        public void Show(ConsentTerm term, bool showRequirement = true)
         {
-            labelText.text = term.Required ? $"[필수] {term.Title}" : $"[선택] {term.Title}";
+            labelText.text = showRequirement
+                ? (term.Required ? $"[필수] {term.Title}" : $"[선택] {term.Title}")
+                : term.Title;
             labelText.raycastTarget = true;
             viewButton.gameObject.SetActive(!string.IsNullOrEmpty(term.Url));
         }

@@ -6,6 +6,34 @@ namespace A305.Learning.Tests
 {
     public class ConversationFeedbackTests
     {
+        [TestCase("I have a reservation under Kim.", "I have a reservation under Kim.")]
+        [TestCase("i have a reservation under Kim", "I have a reservation under Kim.")]
+        [TestCase("I'd  like a latte.", "I’d like a latte!")]
+        public void IdenticalSpokenSentence_IsNotPresentedAsAnAlternative(
+            string original,
+            string suggested
+        )
+        {
+            var reference = new ReferenceExpression(suggested, "", "자연스럽게 전달했어요.");
+            var review = new UtteranceReview(original, reference);
+            Assert.That(review.HasAlternative, Is.False);
+            Assert.That(review.Reference, Is.SameAs(reference), "원본 데이터 계약은 유지합니다.");
+        }
+
+        [TestCase("I want go.", "I want to go.")]
+        [TestCase("I want coffee.", "I want a coffee.")]
+        [TestCase("I do like it.", "I do not like it.")]
+        public void ChangedWords_RemainARealAlternative(string original, string suggested)
+        {
+            Assert.That(
+                new UtteranceReview(
+                    original,
+                    new ReferenceExpression(suggested, "", "이유")
+                ).HasAlternative,
+                Is.True
+            );
+        }
+
         private static readonly ReferenceExpression SoyLatte = new ReferenceExpression(
             "Could I have a soy latte, please?",
             "두유 카페라테 한 잔 주시겠어요?",
@@ -136,6 +164,26 @@ namespace A305.Learning.Tests
                         "아쉬워요 · I want 대신 I'd like를 쓰면 더 공손해요.",
                     }
                 )
+            );
+        }
+
+        // 요약 카드는 잘한 점(잘했어요)과 아쉬운 점(더 해 봐요)을 나란한 두 메모로 따로 보인다.
+        [Test]
+        public void FromServer_DoneFeedback_KeepsGoodAndImproveNotesApart()
+        {
+            var feedback = ConversationFeedback.FromServer(
+                "Mia",
+                4,
+                new ServerFeedback(DoneSummary(), null, null)
+            );
+
+            Assert.That(
+                feedback.GoodNotes,
+                Is.EqualTo(new[] { "원하는 메뉴와 사이즈를 분명하게 말했어요." })
+            );
+            Assert.That(
+                feedback.ImproveNotes,
+                Is.EqualTo(new[] { "I want 대신 I'd like를 쓰면 더 공손해요." })
             );
         }
 

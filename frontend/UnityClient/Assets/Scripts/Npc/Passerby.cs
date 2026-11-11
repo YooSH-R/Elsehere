@@ -37,6 +37,9 @@ namespace A305.Npc
         /// <summary>NPC 보행 데이터와 물리 캡슐이 함께 허용하는 턱 높이(월드 미터).</summary>
         public const float WalkableStepMeters = .3f;
         private readonly NpcObstacleDetour obstacleDetour = new NpcObstacleDetour();
+
+        // 교차로 모퉁이까지 짧게 걷는 중일 때 실제로 건널 방향(PrepareWalkDirection이 받음). 없으면 걸음 방향으로 정한다.
+        private Vector3? preparedCrossingHeading;
         private const float GroundedDownwardSpeedMetersPerSecond = -2f;
         private const float ArrivedDistanceMeters = 0.2f;
 
@@ -264,7 +267,8 @@ namespace A305.Npc
             {
                 CancelPlayerTalk();
                 offerView.HideTalkPrompt(this);
-                routine?.Interrupt();
+                if (routine != null)
+                    routine.Interrupt();
                 Stand();
                 TurnToward(HorizontalOffsetToPlayer());
                 ShowAnimation(TalkAnimation);
@@ -408,7 +412,8 @@ namespace A305.Npc
         /// <summary>
         /// 플레이어가 클릭·탭으로 이 NPC에게 말을 걸 수 있는지(기능 명세 F-22). 커서를 올렸을 때 테두리도 이 값으로 그린다.
         /// 다른 대화·창·진행 흐름이 막으면 걸 수 없고, 클릭 거리 안이면 다가오거나 제안하는 중에도 걸 수 있다.
-        /// 일일 대화 한도에 닿았거나 다른 NPC가 거절할 수 없는 제안을 하는 중이면 걸 수 없다.
+        /// 새 대화를 시작할 수 없거나 다른 NPC가 거절할 수 없는 제안을 하는 중이면 걸 수 없다.
+        /// 대화를 다 쓴 게스트는 클릭하면 대화 대신 가입 안내 창을 연다.
         /// </summary>
         /// <param name="reachMeters">클릭으로 말을 걸 수 있는 수평 거리</param>
         public bool CanTalkByClick(float reachMeters)
@@ -651,9 +656,17 @@ namespace A305.Npc
         }
 
         /// <summary>횡단 목표와 물리 장애물을 먼저 정한다. 다른 사람은 이 실제 목표를 기준으로 비켜간다.</summary>
-        internal Vector3 PrepareWalkDirection(Vector3 horizontalDirection)
+        /// <param name="mayBeginCrossing">횡단보도 위에서 새 횡단을 시작해도 되는지. 마을 보행은 횡단보도로 들어가는 길을 따라 다가왔을 때만 시작한다.</param>
+        /// <param name="crossingHeading">길이 횡단보도를 지나는 방향(실제로 건널 방향). 없으면 걸으려는 방향으로 횡단 방향을 정한다.</param>
+        internal Vector3 PrepareWalkDirection(
+            Vector3 horizontalDirection,
+            bool mayBeginCrossing = true,
+            Vector3? crossingHeading = null
+        )
         {
-            Vector3 plannedDirection = horizontalDirection;
+            // 이어서 부르는 WalkToward가 신호를 볼 때도 같은 건널 방향을 쓴다.
+            preparedCrossingHeading = crossingHeading;
+            Vector3 plannedDirection = crossingHeading ?? horizontalDirection;
 #if UNITY_EDITOR
             LastWalkInput = horizontalDirection;
 #endif
@@ -674,7 +687,8 @@ namespace A305.Npc
                 trafficLights,
                 transform.position,
                 horizontalDirection,
-                plannedDirection
+                plannedDirection,
+                mayBeginCrossing
             );
             // 인도로 복귀하는 끝점에도 가로등 등이 있을 수 있다. 횡단 상태를 유지한 채 물리 장애물을 돌아간다.
             if (IsTownResident && crossing.IsActive && horizontalDirection.sqrMagnitude > .0001f)
@@ -686,10 +700,12 @@ namespace A305.Npc
         }
 
         /// <summary>준비한 방향으로 한 프레임 걷는다. 생활(NpcRoutine)은 준비와 이동을 함께 요청한다.</summary>
+        /// <param name="waitForSignal">걸을 길로 신호 대기를 이미 정했으면 그 결과. 없으면 걷는 방향 앞을 보고 정한다.</param>
         internal void WalkToward(
             Vector3 horizontalDirection,
             float speedMetersPerSecond,
-            bool prepared = false
+            bool prepared = false,
+            bool? waitForSignal = null
         )
         {
             if (!prepared)
@@ -700,7 +716,15 @@ namespace A305.Npc
             IsWaitingAtSignal =
                 horizontalDirection.sqrMagnitude >= .0001f
                 && !crossing.IsActive
-                && IsWaitingForSignal(horizontalDirection);
+                && (
+                    waitForSignal
+                    ?? NpcTownWalker.ShouldWaitForSignal(
+                        trafficLights,
+                        transform.position,
+                        horizontalDirection,
+                        preparedCrossingHeading
+                    )
+                );
 #if UNITY_EDITOR
             LastWalkDirection = horizontalDirection;
             LastWalkStep = 0;
@@ -735,6 +759,14 @@ namespace A305.Npc
 
         internal bool IsWaitingForSignal(Vector3 direction) =>
             NpcTownWalker.ShouldWaitForSignal(trafficLights, transform.position, direction);
+
+        internal bool ShouldWaitAtCrossing(Vector3 onCrosswalk, Vector3 across) =>
+            NpcTownWalker.ShouldWaitAtCrossing(
+                trafficLights,
+                transform.position,
+                onCrosswalk,
+                across
+            );
 
         internal void RestoreWalkingPosition(Vector3 position)
         {

@@ -37,6 +37,7 @@ uv pip install -q --python "$STT/.venv/bin/python" \
   ctranslate2==4.8.3 faster-whisper==1.2.1 av==19.0.1 numpy==2.5.4 \
   nvidia-cublas-cu12==12.8.4.1 nvidia-cudnn-cu12==9.19.0.56
 install -m 644 "$AI/gpu_stt/server.py" "$STT/gpu_stt/server.py"
+install -m 644 "$AI/gpu_stt/speech_gate.py" "$STT/gpu_stt/speech_gate.py"
 install -m 755 "$AI/gpu_stt/supervise.sh" "$STT/gpu_stt/supervise.sh"
 install -m 755 "$AI/gpu_rental/stt_run.sh" "$STT/run.sh"
 

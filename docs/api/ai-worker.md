@@ -16,16 +16,17 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | 백엔드 API | AI API | 대응 |
 |---|---|---|
 | ONB-08·09 난이도, CONV-01 `levelApplied` | 모든 대화 요청의 `level` | 그대로 넘김 (MVP는 `1`) |
+| ONB-05 레벨 테스트 완료 (말하기 문항 채점) | `POST /v1/level-test/speaking` | 테스트를 끝낼 때 말하기 문항과 답을 모아 한 번 부름. 문항별 `results[].passed`와 `feedback_ko`를 받음 (2.6.3절) |
 | CONV-01 대화 시작 · 첫 인사 | `/v1/npc/reply` | 이 NPC가 곧 건네기로 한 것(2.7.3절)이 준비됐으면 건네는 지시로 AI가 만듦. 말걸기 대사가 있는 NPC가 먼저 말을 걸면 그 대사(AI 호출 없음). 그 밖에는 인사 지시(`instruction`)로 AI가 만듦. `relationship`도 실으면 알아보는 인사가 됨(2.3절) |
 | CONV-12 추천 단어 | `POST /v1/suggest` | `suggestWords` ← `words`. NPC 대답 응답(CONV-01·03)을 기다리게 하지 않도록 `/v1/npc/reply`는 `suggest_words: false`로 부르고, 대사를 받은 뒤 클라이언트가 CONV-12로 따로 요청함. 끝난 대화의 턴은 요청하지 않음 |
 | CONV-02 음성 인식 | `POST /v1/stt` | `sttRawText` ← `text`, `durationMs` ← `audio_s`×1000. `text: ""`이면 `STT_NO_SPEECH`. 413 `audio_too_large` → `AUDIO_TOO_LARGE`, 415 `audio_format_unsupported` → `AUDIO_FORMAT_UNSUPPORTED` |
 | CONV-03 발화 전송 | `POST /v1/judge`와 `POST /v1/guard`를 동시에 → (Spring 규칙) → `POST /v1/npc/reply` | 판정의 `intent.ids`를 Spring 규칙이 검증해 상태·미션을 확정(`ai_candidates`). 무례 판정은 `/v1/guard`(2.2.1절). 판정의 `events`는 그 학습자 턴에 저장해 이후 `history[].events`로 보냄. 무례가 아닌 턴이면 판정의 `affinity_delta`를 호감에 더함(2.2절). `npcTurn.text` ← `done.text` |
 | CONV-03 `npcTurn.speech` | `done.audio_full_id` → `GET /v1/audio/{id}` | 턴 전체 음성 하나를 받아 저장(`npc_audio_key`). `null`이면 `speech.status: FAILED` |
-| CONV-03 스트리밍(`Accept: text/event-stream`) | `/v1/npc/reply`를 `stream_chunks: true`로 | `delta` → `delta` 그대로, `audio`의 `audio_id` → `GET /v1/audio/{id}`로 받은 조각 WAV를 base64로 실어 `audio`(`audio_id: null`이면 `wav: null`), `done` → 턴 저장 뒤 `turn`. 판정까지는 JSON 응답과 같음 |
+| CONV-03 스트리밍(`Accept: text/event-stream`) | `/v1/npc/reply`를 `stream_chunks: true`로 | `delta` → `delta` 그대로, `audio`의 `audio_id` → `GET /v1/audio/{id}`로 받은 조각 WAV를 base64로 실어 `audio`(`audio_id: null`이면 `wav: null`), `done` → 턴 저장 뒤 `turn`. 판정까지는 JSON 응답과 같음. 판정 결과가 지시문에 들어가지 않는 대화(이 NPC에게 판정할 미션 목표가 없고 경찰 창구·택시가 아님. 미션 중 다른 NPC와의 대화 포함)는 `/v1/judge`·`/v1/guard`와 동시에 `/v1/npc/reply`를 무례·사건 없음으로 먼저 부르고, 판정 뒤 요청이 달라지면 그 스트림을 다음 이벤트에서 끊고 다시 부름. 끊긴 호출은 기록하지 않음 |
 | CONV-04 뜻 보기 | `POST /v1/meaning` | `meaningKo` ← `meaning_ko`, `glossary[].meaningKo` ← `glossary[].meaning_ko` |
 | CONV-05 힌트 | `POST /v1/hint` | `hintText` ← `say_this[0].en` (`say_this[0].ko`·`keywords`는 3단계 힌트용으로 남음) |
 | CONV-06 다시 듣기 | (없음) | CONV-03에서 저장한 턴 전체 음성 |
-| CONV-07 NPC 음성 다시 만들기 | `POST /v1/tts` | `text` ← 대사 전문, `voice` ← `npc.tts_voice`, `speed` ← `1.1`, `phrases` ← 턴에 저장한 구절별 감정(있을 때) |
+| CONV-07 NPC 음성 다시 만들기 | `POST /v1/tts` | `text` ← 대사 전문, `voice` ← `npc.tts_voice`, `speed` ← 다시 만들기 요청의 `speechSpeed`(학습자가 마이페이지에서 고른 NPC 말 빠르기, 0.8~1.5배, 없으면 `1.1`. 대화 난이도와 상관없음), `phrases` ← 턴에 저장한 구절별 감정(있을 때) |
 | CONV-08 대화 종료 피드백 | `POST /v1/feedback` (+ `POST /v1/memory`, `POST /v1/npc/relationship`, `POST /v1/npc/follow-up`) | `ai/feedback` 계약 0.3.0. CONV-08 형식 변환 위치는 `ai/feedback` 담당과 정함. 관계 갱신(2.7.2절)으로 알아봄을, 기억 카드(2.7.1절)의 `affinity_delta`로 좋은 대화 호감을 더함. 곧 건넬 것(2.7.3절)이 있으면 `followUp`(`itemKo` ← `item_ko`) |
 | FB-04 모범 음성 | `POST /v1/tts` | |
 | 어드민 NPC 랜덤 생성 (S15P31A305-290, 백엔드 `[미정]`) | `POST /v1/npc/persona/generate` | 고정 칸·DB 후보를 실어 보내고, 받은 `npc_configuration`을 `npcs`에 저장 (2.9절) |
@@ -35,7 +36,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 ## 0.1 AI 쪽 규칙 (백엔드 명세에 없는 것)
 
 - **무례 판정**: `/v1/guard`의 `guard.abusive`가 `true`면 무례, `false`면 정상, **`null`이면 판정 못 함**(무례로 세지 않음, 2.2.1절). 무례를 몇 번에 어떻게 제재할지는 Spring 규칙이 정합니다. 누적·퇴장 규칙과 NPC 지시문은 [무례 처리 합의안](rudeness-handling.md)에 있습니다. NPC가 먼저 잘못한 장면의 맞대응(정당방위)은 MVP 장소에 그런 장면이 없어 MVP에서 제외합니다(합의안 4절).
-- **번역 카드**: 학습자 말에 한글이 섞이면 `/v1/judge`가 `translation.english`를 줍니다. 화면에는 `english`가 있으면 무례 판정과 관계없이 보여 줍니다. `/v1/guard`의 결과는 NPC 반응과 무례 횟수 처리에 사용하며 번역 카드를 숨기지 않습니다.
+- **영어 표현 카드**: 학습자 말에 한글이 섞이면 `/v1/judge`가 영어 번역을, 영어에 명확한 문법 오류가 있으면 교정문을 `translation.english`로 줍니다. 화면에는 `english`가 있으면 무례 판정과 관계없이 보여 줍니다. `/v1/guard`의 결과는 NPC 반응과 무례 횟수 처리에 사용하며 번역 카드를 숨기지 않습니다.
 - **행동 묘사**: `*...*`는 지우고 말만 판정합니다. 행동 묘사만 있으면 `dropped: true`이고 턴으로 세지 않습니다.
 - **난이도**: 1.1절 `level` 표. 판정에는 영향이 없습니다.
 - **한 턴 구조**: NPC 한 턴은 `turnId` 하나, 대답 한 줄(난이도에 따라 1~3문장)입니다. 문장으로 쪼개 저장하지 않습니다(뜻 보기·힌트·추천 단어가 턴 단위).
@@ -79,10 +80,12 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | 변수 | 기본 | 적용 |
 |---|---|---|
 | `CALL_TIMEOUT_S` | 8초 | 모델 호출 **한 번**. 넘으면 끊고 재시도·대체 모델 |
-| `HEDGE_AFTER_S` | 3초 | 한 번에 받는 호출이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀 (NPC 스트림은 제외). 공급자가 혼잡할 때 응답 없이 멈춘 호출을 기다리지 않기 위함. 평소 응답(gms-luna 판정 p99 약 2.5~3.9초)보다 길게 잡아 평소에는 거의 더 보내지 않음 |
+| `JUDGE_HEDGE_AFTER_S` | 2초 | 판정(`/v1/judge`의 의도·번역)만 이 기준으로 같은 요청을 하나 더 보냄. NPC 대답이 판정 결과를 기다려 판정 지연이 그대로 첫 음성 지연이 되기 때문. 평소 판정은 1~2초라 늦은 턴에만 더 보냄 |
+| `HEDGE_AFTER_S` | 3초 | 판정을 뺀 한 번에 받는 호출이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀 (NPC 스트림은 제외). 공급자가 혼잡할 때 응답 없이 멈춘 호출을 기다리지 않기 위함. 평소 응답(gms-luna 판정 p99 약 2.5~3.9초)보다 길게 잡아 평소에는 거의 더 보내지 않음 |
 | `STREAM_HEDGE_AFTER_S` | 2.5초 | NPC 대답 스트림의 **첫 글자**가 이만큼 안 오면 같은 요청 스트림을 하나 더 열어 먼저 글자를 낸 쪽을 씀(진 쪽은 닫음). GMS 스트리밍이 가끔 첫 글자를 10초 넘게 늦게 보내는 것 대비. 평소 첫 글자는 1.7초 안 |
 | `WORDS_BUDGET_S` | 3초 | NPC 대답 스트림 안 추천 단어(`words`). 넘으면 `words: null`, `error: "timeout"`으로 넘기고 `done`을 보냄 |
 | `JUDGE_BUDGET_S` | 5초 | `/v1/judge`의 의도·번역 **각각**. 넘으면 그 칸만 `timeout` 오류 |
+| `JUDGE_GPU_TIMEOUT_S` | 2초 | GPU 서버 의도 판정 모델(`JUDGE_GPU_MODEL`) 호출 한 번. 평소 0.5초 안팎(동시 20건 p90 약 2.4초). 넘으면 재시도 없이 구성의 의도 모델로. `JUDGE_BUDGET_S` 안에서 셈 |
 | `GUARD_BUDGET_S` | 5초 | `/v1/guard` 무례 판정 (로컬 판정기 + LLM). 넘으면 `abusive: null`, `error_code: timeout` |
 | `GUARD_GPU_TIMEOUT_S` | 3초 | GPU 서버 판정 모델(`GUARD_GPU_MODEL`) 호출 한 번. 평소 0.3초(10개 동시 약 1초)지만 vLLM이 처음 보는 동시 요청 수에서는 한 번 2.4~2.7초가 걸림. 넘으면 재시도 없이 구성의 판정 모델로. `GUARD_BUDGET_S` 안에서 셈 |
 | `TTS_GPU_TIMEOUT_S` | 10초 | GPU 서버 음성 합성(`TTS_GPU_BASE_URL`) 응답 한 번. 넘으면 재시도 없이 CPU Kokoro로. 여러 사람이 동시에 말하면 GPU 앞에 줄이 서는데(20명분 동시 60조각 최대 약 4~6초), CPU 합성이 훨씬 느려 넉넉히 기다림. NPC 대답 조각은 `TTS_CHUNK_BUDGET_S` 안에서 셈 |
@@ -105,7 +108,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `facts` | 문자열 | 메뉴·가격·성격 등 NPC가 아는 사실 |
 | `scene` | 문자열 | 장면 설명 (요청의 `scene`이 비면 이것). 대화 시작·후속 발화·힌트에는 서버가 읽은 사용자별 게임 날짜와 24시간제 시각(`Current game time`)을 포함함. 인사와 시간 언급은 프로필의 평소 일과·이전 대사보다 이 시각을 우선하고, 시각이 없으면 시간 중립 인사를 사용함. 근무 시간이 아닌 NPC와의 대화(API CONV-01 `npcOffDuty`)면 백엔드가 응대 장면 대신 쉬는 중에 잡담하는 일상 상황을 넣음 |
 | `tts_voice` | 문자열 (기본 `af_heart`) | Kokoro 목소리 이름 |
-| `tts_speed` | 수 0.5~2.0 (기본 1.0) | 호환용 필드. NPC 대화 음성에는 적용하지 않으며 모든 난이도에서 1.1배 사용 |
+| `tts_speed` | 수 0.5~2.0 (기본 1.0) | 호환용 필드. NPC 대화 음성에는 적용하지 않으며 `learner.speech_speed`(학습자가 고른 말 빠르기)를 사용 |
 | `profile` | 객체 또는 `null` (기본 `null`) | 인격. 백엔드 인격 설정(`content/npc-configurations.json`)에서 이 NPC의 `npcProfile`을 칸 이름(camelCase)까지 그대로 넣음. 형식은 [공통 인격 스키마](npc-ai-contracts/01_npc_configuration_spec_v2.md)이고 맞지 않으면 400 `invalid_request`. 있으면 NPC 대답을 공통 규칙과 인격으로 만듦(2.3절). 인격이 없는 NPC는 `null` |
 
 `history`의 한 줄
@@ -114,21 +117,21 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 |---|---|---|
 | `who` | `npc` 또는 `me` (필수) | 말한 사람 (`me`는 학습자) |
 | `text` | 문자열 (필수, 최대 1000자) | 말한 내용 |
-| `english` | 문자열 또는 `null` | 학습자 줄의 영어 번역 (판정의 `translation.english`) |
+| `english` | 문자열 또는 `null` | 학습자 줄의 생성된 영어 번역·교정문 (판정의 `translation.english`). 학습자가 직접 말한 원문은 `text` |
 | `rude` | 불 (기본 `false`) | 학습자 줄의 무례 판정이 `true`였는지 (`null`은 `false`로) |
 | `events` | 문자열 목록 (기본 `[]`) | 학습자 줄의 대화 사건 (판정의 `events` 그대로). 대화 중 기분(2.3절)과, 이번 대화에서 이미 센 사건을 거르는 데(2.2절 `affinity_delta`) 씀 |
 
 ### 1.1 대화 난이도 `level`
 
-`level` — 대화 난이도(백엔드 `levelApplied`). `1`·`2`·`3` 중 하나이고 기본은 `2`입니다. MVP는 `1`만 보냅니다. 판정(`/v1/judge`)에는 영향이 없습니다.
+`level` — 대화 난이도(백엔드 `levelApplied`). `1`·`2`·`3` 중 하나이고 기본은 `2`입니다. 백엔드는 사용자가 고른 `1`(초급)·`2`(중급)를 보냅니다. `3`(고급)은 잠가 두어 보내지 않습니다. 판정(`/v1/judge`)과 NPC 음성 빠르기에는 영향이 없습니다. 음성 빠르기는 학습자가 마이페이지 슬라이더로 고른 값(`learner.speech_speed`)을 씁니다(S15P31A305-778).
 
-| 단계 | NPC 대답 | 말 속도 | 힌트·추천 단어·단어 풀이 수준 |
-|---|---|---|---|
-| `1` | 초보자에게 말하듯 천천히, 쉬운 일상 단어. 한 문장(많아야 두 문장), 문장마다 14단어 미만. 일상 관용구·가벼운 속어를 대부분의 대답에 넣음 | 1.1배 | 아주 쉽고 짧게 (CEFR A1-A2) |
-| `2` | 자연스러운 일상 미국 영어(줄임말, 흔한 관용구·가벼운 속어를 대부분의 대답에). 한두 문장, 모두 25단어 미만 | 1.1배 | 쉽고 자연스럽게 (CEFR A2-B1) |
-| `3` | 원래 말투 그대로(속어·관용구·구동사). 두세 문장, 45단어 미만 | 1.1배 | 자연스럽게, 흔한 관용구 가능 (CEFR B1-B2) |
+| 단계 | NPC 대답 | 힌트·추천 단어·단어 풀이 수준 |
+|---|---|---|
+| `1` | 초보자에게 말하듯 천천히, 쉬운 일상 단어. 한 문장(많아야 두 문장), 문장마다 14단어 미만. 일상 관용구·가벼운 속어를 대부분의 대답에 넣음 | 아주 쉽고 짧게 (CEFR A1-A2) |
+| `2` | 중급(CEFR B1-B2) 학습자에게 쉽게 바꾸거나 늦추지 않고 말함. 두 문장, 합쳐 20단어 안팎(최대 25)에 정보 셋까지(초급과 길이가 너무 벌어지지 않게, S15P31A305-752). 차이는 밀도로: 이어 주는 말(because·so·which·if·when)로 묶은 복문과 현재완료·조건문·수동태, 기본 단어 대신 원어민이 고를 단어로 대부분의 대답에 B2 단어·표현 하나 이상, 그 인물의 관용구·구동사·속어·말버릇 한두 개(풀어 주지 않음). 알아들었으면 학습자 말을 되짚어 확인하지 않고, 공통 규칙의 선택지 질문·더 쉽게 다시 묻기 대신 열린 질문, 답이 애매하면 자연스러운 말로 다시 묻고, 뜻을 모르겠으면 짐작하지 않고 다시 말해 달라고 함 | 자연스러운 일상 영어 (CEFR B1) |
+| `3` | 원래 말투 그대로(속어·관용구·구동사). 두세 문장, 45단어 미만 | 자연스럽게, 흔한 관용구 가능 (CEFR B1-B2) |
 
-인격 카드(`npc.profile`)가 있는 NPC는 말투를 인격에 맡기는 학습 수준 규칙을 씁니다(`1`은 한두 문장·문장마다 12단어 미만, `2`는 두세 문장, `3`은 세 문장까지). 어느 쪽이든 관용구·속어를 막지 않고, 그 인물이 실제로 쓸 표현을 대부분의 대답에 넣게 합니다(2026-11-04 결정). 막으면 짧은 대답에 인물다운 표현이 들어갈 자리가 없어 모든 NPC가 같은 매장 직원 말투가 됩니다. 모르는 표현은 학습자가 뜻 보기(CONV-04)의 풀이로 익힙니다.
+인격 카드(`npc.profile`)가 있는 NPC는 말투를 인격에 맡기는 학습 수준 규칙을 씁니다(`1`은 한두 문장·문장마다 12단어 미만, `2`는 위 표와 같은 중급 규칙(`app/npc_prompt.py`의 `MIDDLE`, 인격 카드가 없을 때도 같은 문장), `3`은 세 문장까지). 어느 쪽이든 관용구·속어를 막지 않고, 그 인물이 실제로 쓸 표현을 대부분의 대답에 넣게 합니다(2026-11-04 결정). 막으면 짧은 대답에 인물다운 표현이 들어갈 자리가 없어 모든 NPC가 같은 매장 직원 말투가 됩니다. 모르는 표현은 학습자가 뜻 보기(CONV-04)의 풀이로 익힙니다.
 
 ## 2. 엔드포인트
 
@@ -142,13 +145,15 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 `profile`은 수집 기록의 `profile` 칸에 그대로 남깁니다. `guard_local`은 로컬 무례 판정기를 켰을 때만 `{"model": "v2-mix", "t_lo": 0.05, "t_hi": 0.95}`이고, 끄면(기본) `null`입니다.
 
-### 2.2 `POST /v1/judge` — 의도·번역
+### 2.2 `POST /v1/judge` — 의도·번역·영어 교정
 
-학습자 한 줄을 받아 의도와 번역(한글이 있을 때만)을 **동시에** 돌립니다. 무례 판정은 하지 않습니다. 같은 줄로 `/v1/guard`(2.2.1절)를 동시에 불러 주세요.
+학습자 한 줄의 의도·줄 사건과 영어 문법 교정을 같은 모델 호출에서 판정합니다. 한글이 섞이면 기존 번역 호출을 **동시에** 실행합니다. 영어 교정을 위한 추가 모델 호출은 없습니다. 무례 판정은 하지 않습니다. 같은 줄로 `/v1/guard`(2.2.1절)를 동시에 불러 주세요.
 
-요청: `npc`, `scene`(비면 `npc.scene`), `state`(지금 상태: `id`, `desc`, `intents`, `slots`, `current`, `more_intents`, `accumulate_history`), `history`(최대 40줄), `text`(최대 500자, 공백만이면 400 `invalid_request`).
+요청: `npc`, `scene`(비면 `npc.scene`), `state`(지금 상태: `id`, `desc`, `intents`, `slots`, `current`, `more_intents`, `accumulate_history`, `recent_lines`), `history`(최대 40줄), `text`(최대 500자, 공백만이면 400 `invalid_request`).
 
 `state.accumulate_history`는 기본 `false`이며 첫날 미션은 `true`로 보냅니다. 복합 목표를 여러 발언에 나눠 설명하면 같은 대화의 이전 학습자 발언과 이번 발언을 합쳐 판정합니다. 이번 발언이 목표 완성에 기여해야 하며, NPC가 대신 말한 사실·무례로 확정된 이전 발언·인용 예문·부정·가정만으로 목표를 달성시키지 않습니다. 줄 사건(`events`)은 이번 발언만 판정합니다.
+
+`state.recent_lines`는 기본 `0`(상대의 마지막 줄만 보여 줌)이며 0~12입니다. 0보다 크면 무례로 확정된 줄을 뺀 최근 대화를 그 줄 수만큼 판정에 함께 보여 줘서, "거기"·"the first one"처럼 앞에서 말한 것을 가리키는 말을 알아듣게 합니다. 택시 목적지(`taxi_ride`)는 6으로 보냅니다.
 
 응답:
 
@@ -173,7 +178,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `intent.ids` | 말한 순서대로 최대 3개. Spring이 **하나씩 현재 상태에서 다시 검증**해 적용. `id`는 `ids[0]` |
 | `intent.slots` | 요청 `state.slots`에 있는 칸만. 상품은 `catalog` 안의 이름만, `iced`는 `iced_ok`에 있을 때만. 선택 칸(`option`)은 `labels` 중 하나, 말하지 않았으면 `"none"`. 경찰서 창구는 이 칸(`place`)으로 신고 장소를 고름(백엔드 `PoliceDesk`, 평가 `ai/tools/police_report_eval.py`) |
 | `intent.error` | 의도 판정 실패 시 메시지, 이때 `id`는 `unclear`. **상태·금액을 바꾸지 말고 다시 물을 것** |
-| `translation` | 한글이 섞였을 때만 `{"english", "error"}`. 화면에 보여 줄지는 `/v1/guard` 결과로 Spring이 정함(0.1절 번역 카드) |
+| `translation` | 영어 번역 또는 문법 교정문을 `{"english", "error"}`로 전달. 정상 영어·동일 문장·대소문자/구두점만 다른 경우는 `null`. 생성된 표현이 있으면 무례 판정과 관계없이 기존 카드에 표시(0.1절). 교정 실패가 대화를 막지 않음. 대화에 영어로 나온 이름(상대 NPC, 마을, 가게)은 그 철자로 쓰고, 영어 철자가 없는 이름(한글 닉네임 등)은 로마자로 바꾸지 않고 따옴표 안에 말한 그대로 둡니다(`My name is "김사피".`) |
 | `events` | 이 줄에서 학습자가 한 대화 사건. `GREETING`·`SMALL_TALK`·`PERSONAL_QUESTION`·`APOLOGY`·`COMPLIMENT`·`HELP`·`TASK_DONE`·`LEAVE` 중 0개 이상. 의도 판정과 같은 호출에서 고름. 의도 판정이 실패하면 `[]`, `dropped`면 `null`. **이 줄에 저장해 다음 요청의 `history[].events`로 보냄** |
 | `affinity_delta` | 이 줄의 사건으로 바로 올릴 호감(정수, 0 이상). 의도 판정이 실패하면 `0`, `dropped`면 `null`. 아래 설명 |
 
@@ -188,6 +193,10 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 - 지금 호감을 모르고 계산하므로 끝(100)에 가까울수록 덜 오르는 완충은 없습니다(무례 감점과 같음).
 - 잡담은 대화 중 기분만 좋게 하고 호감은 올리지 않습니다. 영어 실수·한국어·짧은 대답은 호감을 깎을 일로 보지 않습니다(요구사항 REQ-24).
 - 비어 있으면(이 칸을 모르는 이전 워커) 백엔드는 호감을 바꾸지 않습니다.
+
+**GPU 서버 의도 판정 모델을 켰을 때 (기본 꺼짐)**
+
+워커에 `JUDGE_GPU_MODEL`(예: `Qwen/Qwen3.8-27B`, 무례 판정과 같은 vLLM의 기본 모델)을 주면 의도·사건 판정 호출이 GPU 서버를 먼저 한 번 부릅니다. 주소와 키는 `GUARD_GPU_BASE_URL`·`GUARD_GPU_TOKEN`을 같이 씁니다. 오류·시간 초과(`JUDGE_GPU_TIMEOUT_S`, 2초)·JSON이 아닌 답이면 재시도 없이 구성의 의도 모델(기본 GPT-6 Luna, `JUDGE_HEDGE_AFTER_S` 적용)로 넘기고, 연속으로 `JUDGE_BREAKER_FAILURES`(3)번 실패하면 `JUDGE_BREAKER_SKIP_S`(60초) 동안 GPU를 건너뜁니다. 번역은 켜도 구성 모델 그대로입니다. 응답 형식은 같고, `usage`의 `intent` 단계 `model`에 실제로 판정한 모델이, 넘겼으면 `fallback: true`가 남습니다. 개발셋 평가에서 미션 의도는 Luna와 같은 수준이었지만 호감 사건 오탐이 조금 많고, 동시 20건에서는 Luna보다 느려 개발 서버에서 실제 턴 지연·대체 비율·사건 분포를 먼저 봅니다.
 
 ### 2.2.1 `POST /v1/guard` — 무례 판정만
 
@@ -249,15 +258,17 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 워커에 `GUARD_GPU_MODEL`을 주면 판정용 LLM 호출이 SSAFY GPU 서버의 vLLM에 올린 자체 학습 모델(Qwen3.8-27B + LoRA)을 먼저 한 번 부릅니다. 오류·시간 초과(`GUARD_GPU_TIMEOUT_S`)면 재시도 없이 구성의 판정 모델(기본 GPT-6 Luna)로 넘기고, 연속으로 `GUARD_BREAKER_FAILURES`(3)번 실패하면 `GUARD_BREAKER_SKIP_S`(60초) 동안 GPU를 건너뜁니다. 한글 낱자모(ㄱ~ㅎ, ㅏ~ㅣ)가 섞인 말은 GPU 모델이 오타("같ㅊ아")나 "ㄱㅅ"를 욕 줄임말로 읽어 무례로 보므로, 처음부터 구성의 판정 모델이 판정합니다(이때 `fallback`은 `false`). 응답 형식은 같고, `usage`의 `guard` 단계 `model`에 실제로 판정한 모델이, 넘겼으면 `fallback: true`가 남습니다. 프롬프트·yes/no 해석·`abusive: null` 규칙은 위와 같습니다.
 
+GPU 모델은 상대를 향하지 않은 단어("감자", 이름 "김사피", "엄마", "돼지")도 무례로 보고 프롬프트로는 고쳐지지 않았습니다. 그래서 GPU 모델이 무례라고 답한 줄만 구성의 판정 모델에 같은 질문을 한 번 더 하고, 둘 다 무례일 때만 `abusive: true`로 돌려줍니다(`GUARD_CONFIRM`, 기본 켜짐). 이 확인 호출은 `usage`에 `guard` 단계 `confirm: true`로 남습니다. 확인 호출이 실패하거나 yes/no가 아닌 답이면 GPU 판정을 그대로 씁니다. 확인은 무례로 본 줄에만 하고 `/v1/judge`와 동시에 돌아, 대부분의 턴은 늦어지지 않습니다(GMS 실측 의도 판정 중앙 1.8초, LoRA 0.45초 + 확인 약 1.2초). `GUARD_BUDGET_S` 안에서 셉니다.
+
 이진 판정이라 위협·성희롱 같은 **세부 유형은 구분하지 않습니다.** NPC가 먼저 잘못한 장면에서의 맞대응(정당방위)처럼 장면에 따라 봐줘야 하는 경우는, 유형을 돌려주는 계약이 생기기 전까지 Spring 규칙에서 자동 제재를 빼 주세요.
 
 ### 2.3 `POST /v1/npc/reply` — NPC 대답 (SSE)
 
 기존 대사 생성 요청에서 구절별 표정 종류·강도도 함께 생성합니다. 내부 감정 표시는 `delta`·`audio`·`done`의 대사와 TTS 입력에서 제거하며, 합성한 WAV의 `e305` 청크에 실제 음성 길이 기준 시간표를 넣습니다. 추가 감정 분석 요청은 없습니다. 수준별 대사 길이는 유지하고 출력 상한에 감정 표시용 64토큰을 더합니다. `done.speech_phrases`에는 음성 성공 여부와 별개로 `[{"text":"Really?","emotion":"curious","intensity":0.6}]` 형식의 구절 목록을 반환합니다. 감정 표시가 없거나 잘못된 구절은 `emotion: null, intensity: 0`입니다. Spring은 이 목록을 턴에 저장하고 음성 재합성에 사용합니다. 형식·검증·다시 듣기는 [NPC 대화 감정 표정](../unity/npc-dialogue-emotions.md)을 따릅니다.
 
-요청: `npc`, `memory`(선택: `visits`, `last_order`, `card`), `relationship`(선택, 아래 표), `history`(최대 40줄), `text`(학습자 원문, 최대 500자), `instruction`(Spring 규칙이 정한 이번 대답에서 할 일, 최대 3000자), `tts`(기본 `true`), `level`(기본 `2`), `suggest_words`(기본 `false`, 추천 단어를 스트림으로), `goal`(추천 단어용: 지금 상태에서 학습자가 할 일, 최대 300자), `learner`(선택: `nickname` 최대 32자, `avatar_type` `F`·`M`). **한 턴의 대답은 난이도에 따라 한 문장에서 세 문장까지**이며 한 줄로 옵니다.
+요청: `npc`, `memory`(선택: `visits`, `last_order`, `card`), `relationship`(선택, 아래 표), `history`(최대 40줄), `text`(학습자 원문, 최대 500자), `instruction`(Spring 규칙이 정한 이번 대답에서 할 일, 최대 3000자), `tts`(기본 `true`), `level`(기본 `2`), `suggest_words`(기본 `false`, 추천 단어를 스트림으로), `goal`(추천 단어용: 지금 상태에서 학습자가 할 일, 최대 300자), `learner`(선택: `nickname` 최대 32자, `avatar_type` `F`·`M`, `speech_speed` 0.8~1.5 기본 1.1). **한 턴의 대답은 난이도에 따라 한 문장에서 세 문장까지**이며 한 줄로 옵니다.
 
-`learner`는 대답 상대인 학습자입니다. NPC는 `avatar_type`에 맞는 호칭만 씁니다(`F`는 ma'am·Ms., `M`은 sir·Mr.). 칸을 빼거나 `avatar_type`이 없으면 Mr.·Ms.·sir·ma'am처럼 성별을 짐작한 호칭을 쓰지 않습니다. `nickname`은 영어 글자로 된 실제 이름일 때만 부릅니다. Spring은 대화를 시작한 사용자의 닉네임과 캐릭터 기본형을 첫 인사와 매 턴 대답에 보냅니다.
+`learner`는 대답 상대인 학습자입니다. NPC는 `avatar_type`에 맞는 호칭만 씁니다(`F`는 ma'am·Ms., `M`은 sir·Mr.). 칸을 빼거나 `avatar_type`이 없으면 Mr.·Ms.·sir·ma'am처럼 성별을 짐작한 호칭을 쓰지 않습니다. `nickname`은 영어 글자로 된 실제 이름일 때만 부릅니다. Spring은 대화를 시작한 사용자의 닉네임과 캐릭터 기본형을 첫 인사와 매 턴 대답에 보냅니다. `speech_speed`는 대답 음성의 빠르기(Kokoro speed)이며, Spring이 Unity 요청의 `speechSpeed`(학습자가 마이페이지에서 고른 값)를 그대로 넣습니다. `learner`가 없거나 칸이 없으면 1.1배이고, 범위를 벗어나면 `400 invalid_request`입니다.
 
 `relationship`은 이 사용자와 NPC의 관계입니다. 백엔드가 저장한 값(알아봄은 대화 뒤 2.7.2절, 호감은 대화 중 발화마다 2.2·2.2.1절로 바뀜)을 그대로 보냅니다. 처음 만나면 모두 `0`이고, 칸을 빼면 `0`입니다.
 
@@ -283,7 +294,7 @@ delta*  →  audio*  →  words?  →  done | error
 | `done` | `{"text": "...", "first_token_s": 0.62, "total_s": 2.1, "audio_full_id": "7c1e...", "audio_full_s": 3.4, "usage": [...]}` | **생성 완료**. 클라이언트 재생 완료가 아님. `text`가 대답 전문. `audio_full_id`는 모든 조각을 순서대로 이어 붙인 **턴 전체 음성**(다시 듣기용, `GET /v1/audio/{id}`). 조각 하나라도 합성에 실패했거나 요청이 `tts: false`면 `null` → `/v1/tts`로 다시 만듦(늦은 조각은 마지막 합성 요청부터 TTS_FULL_BUDGET_S 안에서만 기다림). `usage`에 추천 단어(`suggest`)도 포함 |
 | `error` | `{"code": "provider_unavailable", "message": "...", "usage": [...]}` | 생성 실패. 이미 보낸 `delta`·`audio`는 유효. `code`는 `provider_unavailable`·`provider_limit`·`timeout` |
 
-- `npc.profile`이 있으면 대답 지시문을 공통 규칙 → 인격 → 마을 안내 → 상황(장소·`facts`·기억) → 학습 수준 → 이번 턴(`instruction`) 순서로 만듭니다(`app/npc_prompt.py`의 공통 시스템 프롬프트). 마을 안내(`TOWN_GUIDE`)는 모든 NPC가 같이 받는 3D 마을(TownScene)의 장소 목록과 자리(남북 본길의 끝·교차로·맞은편)이며, 길을 물으면 이 자리로 안내합니다. 마을에 장소가 생기거나 옮겨지면 이 목록도 고칩니다. 공통 규칙은 가격·결제·예약·`facts`의 물건과 마을에 없는 장소만 지어내지 못하게 하고, 그 밖에는 그 직업의 실제 사람처럼 처리하게 합니다(담당자 호출, 길 안내, 방으로 올려 보내기 등). 못 하는 일이어도 갈 곳이나 물을 사람을 알려 주며, "잘 모르겠다"로만 끝내지 않습니다. 평가는 `ai/tools/npc_help_eval.py`(막다른 거절·알 만한 걸 모름·지어내기·길 틀림)입니다. 학습 수준은 말투를 정하지 않는 규칙을 써서 인격의 말투를 덮지 않고, 출력 상한과 말 속도는 `profile`이 없을 때와 같습니다. 무례 여부는 NPC가 스스로 판단하지 않습니다. 이번 턴에는 "`instruction`이 무례라고 하지 않으면 퉁명하거나 재촉해도 무례가 아니다"를 늘 붙여, 무례를 못 참는 인격도 백엔드가 무례 경고·퇴장 지시문을 보낼 때만 무례에 반응합니다(사적인 질문처럼 인격이 정한 반응은 그대로). `profile`이 없으면 `name`·`role` 한 줄로 만든 지금 지시문을 씁니다.
+- `npc.profile`이 있으면 대답 지시문을 공통 규칙 → 인격 → 마을 안내 → 상황(장소·`facts`·기억) → 학습 수준 → 이번 턴(`instruction`) 순서로 만듭니다(`app/npc_prompt.py`의 공통 시스템 프롬프트). 마을 안내(`TOWN_GUIDE`)는 모든 NPC가 같이 받는 3D 마을(TownScene)의 장소 목록과 자리(남북 본길의 끝·교차로·맞은편)이며, 길을 물으면 이 자리로 안내합니다. 마을에 장소가 생기거나 옮겨지면 이 목록도 고칩니다. 공통 규칙은 가격·결제·예약·`facts`의 물건과 마을에 없는 장소만 지어내지 못하게 하고, 그 밖에는 그 직업의 실제 사람처럼 처리하게 합니다(담당자 호출, 길 안내, 방으로 올려 보내기 등). 못 하는 일이어도 갈 곳이나 물을 사람을 알려 주며, "잘 모르겠다"로만 끝내지 않습니다. 매니저·요리사·친구처럼 게임에 나오지 않는 사람에게 연락해야 하면 같은 대답 안에서 바로 연락하고 그 답을 전하며, 나중에 연락하겠다는 약속은 하지 않습니다(지킬 방법이 없음). 평가는 `ai/tools/npc_help_eval.py`(막다른 거절·알 만한 걸 모름·지어내기·길 틀림·연락 미룸)입니다. 학습 수준은 말투를 정하지 않는 규칙을 써서 인격의 말투를 덮지 않고, 출력 상한은 `profile`이 없을 때와 같습니다. 무례 여부는 NPC가 스스로 판단하지 않습니다. 이번 턴에는 "`instruction`이 무례라고 하지 않으면 퉁명하거나 재촉해도 무례가 아니다"를 늘 붙여, 무례를 못 참는 인격도 백엔드가 무례 경고·퇴장 지시문을 보낼 때만 무례에 반응합니다(사적인 질문처럼 인격이 정한 반응은 그대로). `profile`이 없으면 `name`·`role` 한 줄로 만든 지금 지시문을 씁니다.
 - `relationship`이 있으면 지시문의 기억 자리에 "About this person"을 넣습니다(`app/npc_relationship.py`, `app/prompts.py`의 `person_note`). 숫자는 넣지 않고 말로 풉니다.
   - 지난 날만큼 줄어든 알아봄으로 처음 봄·본 적 있음·단골을 정합니다. 알아봐야(본 적 있음부터) 기억 카드의 이름·했던 말·지난 주문을 떠올립니다. 알아보지 못해도 카드의 `attitude`가 `friendly`·`wary`면 그 일(`events`)은 떠올립니다.
   - 호감이 기준을 넘으면 좋아하거나 차갑게 대하는 티를 내고, 알아봄과 호감이 모두 높으면 자기 이야기를 조금 합니다.
@@ -311,14 +322,15 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 | 칸 | 내용 |
 |---|---|
 | `file` | 녹음. 파일 부분의 `Content-Type`이 `audio/webm`·`audio/ogg`·`audio/mp4`·`audio/wav`·`audio/x-wav`·`audio/mpeg` 중 하나여야 합니다(`;codecs=...` 같은 매개변수는 붙어도 됨). 그 밖의 형식이나 `Content-Type`이 없으면(`application/octet-stream` 포함) 415 `audio_format_unsupported`, 3MB를 넘으면 413 `audio_too_large`, 비면 400 `invalid_request`입니다. 형식이 맞지 않으면 STT 공급자를 부르지 않습니다 |
-| `scene_words` | 장면 단어(메뉴·상품 이름). JSON 배열 또는 쉼표로 구분한 글. 최대 30개 사용 |
+| `scene_words` | 장면 단어(사람 이름, 메뉴·상품 이름, 마을·가게 이름). JSON 배열 또는 쉼표로 구분한 글. 최대 40개 사용(기본 프롬프트·`npc_line`과 합쳐도 Whisper 프롬프트 한도 224토큰 안). Spring은 학습자 닉네임(게스트 제외), 자유 대화(`TURN`)면 대화 NPC 이름·같은 장소 NPC 이름, 늘 마을·가게 이름(`Maple Town`, `Maple Bakery` 등), 자유 대화면 마지막으로 그 장소의 단어를 이 순서로 JSON 배열로 보냅니다. 메뉴를 끝에 두면 긴 이름 목록으로 끝날 때보다 결과의 문장부호가 덜 빠집니다. 장소 단어와 마을 단어는 `backend/src/main/resources/content/speech-words.json`에 둡니다 |
 | `npc_line` | 선택. 학습자가 대답하는 직전 NPC 대사. Spring은 자유 대화(`TURN`) 녹음에 그 대화의 마지막 NPC 턴을 보냅니다 |
 
 응답: `{"text": "...", "latency_s": 0.41, "audio_s": 2.9, "usage": [{"step": "stt", "model": "...", "audio_s": 2.9, "latency_s": 0.41, "fallback": false}]}`
 
-- 인식 프롬프트는 한영 혼합 예시(`음, 그러니까... I want... an iced latte... Can I get a muffin, 음, 하나? 잠깐만요. ...`) 뒤에 장면 단어, 맨 끝에 `npc_line`을 붙인 것입니다. 메뉴 예시를 한글로 쓰면 한국식 발음 외래어(`Iced americano`)가 한글로 나오므로 영어로 씁니다. 메뉴가 아닌 한국어 말 예시가 없으면 짧은 한국어 문장이 영어 문장으로 번역되어 나오므로 앞뒤에 둡니다. 한국어 발화는 번역되지 않고 한글로 남습니다.
+- 인식 프롬프트는 한영 혼합 예시(`음, 그러니까... I want... an iced latte... Can I get a muffin, 음, 하나? 잠깐만요. ...`) 뒤에 장면 단어, `npc_line`을 붙이고 맨 끝에 짧은 한국어 말(`음, 잠깐만요.`)을 둔 것입니다. 메뉴 예시를 한글로 쓰면 한국식 발음 외래어(`Iced americano`)가 한글로 나오므로 영어로 씁니다. 메뉴가 아닌 한국어 말 예시가 없으면 짧은 한국어 문장이 영어 문장으로 번역되어 나오므로 앞뒤에 둡니다. Whisper는 프롬프트 끝을 가장 많이 따라서, 영어 장면 단어나 `npc_line`으로 끝나면 한국어 발화(`왜 뭐 불러주세요`)를 영어 문장(`Why? What do you say?`)으로 바꿔 적습니다. 맨 끝의 한국어 말이 이를 막아 한국어 발화는 한글로 남습니다.
 - `npc_line`은 한국식 발음으로 소리가 비슷해지는 말(`러닝` → running·learning, `워킹` → walking·working)을 대사의 문맥에 맞춰 고르게 합니다. 대사에 나온 말이 아니면 고쳐지지 않습니다.
-- 무음일 때 Whisper가 프롬프트 끝부분(마지막 문장, 장면 단어 목록, `npc_line`, 프롬프트 전체)을 되풀이한 결과는 `text: ""`로 거릅니다. 같은 끝부분을 여러 번 이어 붙인 결과(`My friend lives over there. My friend lives over there.`)도 거릅니다. 프롬프트 앞·중간의 예시 문장(`Can I get a muffin?`)과 장면 단어 하나(`Iced Americano.`)는 실제 발화로 보고 거르지 않습니다. 학습자가 NPC 대사의 끝 문장을 그대로 따라 말한 것은 메아리와 구별할 수 없어 거릅니다. 빈 결과면 다시 말하기를 안내합니다.
+- 무음일 때 Whisper가 프롬프트 끝부분(마지막 문장, 장면 단어 목록, `npc_line`, 프롬프트 전체, 맨 끝의 한국어 말을 뺀 끝)을 되풀이한 결과는 `text: ""`로 거릅니다. 맨 끝의 한국어 말(`음, 잠깐만요.`)은 짧아도 메아리로 보고 거릅니다(`잠깐만요.`만 나온 것은 실제 발화로 봅니다). 같은 끝부분을 여러 번 이어 붙인 결과(`My friend lives over there. My friend lives over there.`)도 거릅니다. 프롬프트 앞·중간의 예시 문장(`Can I get a muffin?`)과 장면 단어 하나(`Iced Americano.`)는 실제 발화로 보고 거르지 않습니다. 학습자가 NPC 대사의 끝 문장을 그대로 따라 말한 것은 메아리와 구별할 수 없어 거릅니다. 빈 결과면 다시 말하기를 안내합니다.
+- GPU 서버 자체 모델([`ai/gpu_stt`](../../ai/gpu_stt/README.md))은 말소리 감지(Silero VAD)로 말소리 구간이 없는 녹음(무음·잡음)을 받아 적지 않고 `text: ""`를 돌려줍니다. 이 모델(large-v3-turbo)은 무음에 프롬프트와 상관없는 문장(`I want... I want...`, `감사합니다`)도 지어내 메아리 거르기로는 다 막을 수 없기 때문입니다. GMS·Groq로 넘어간 요청에는 이 거르기가 없습니다.
 - GMS 구성(기본 `gms-luna`)은 Groq Whisper(`whisper-large-v3-turbo`)로 인식하고, Groq가 한도(429)·서버 오류·키 오류·응답 없음이면 GMS `whisper-1`로 한 번 더 인식합니다. 이때 `usage`의 `model`은 `whisper-1`, `fallback: true`입니다. 녹음 자체를 공급자가 받지 않은 경우(400·413·415·422)는 넘기지 않습니다. 대체 쪽도 실패하면 429/503이고, 메시지에 두 오류가 함께 적힙니다.
 - 대체가 있으면 Groq 호출은 `STT_FIRST_TIMEOUT_S`(8초) 안에 답이 없을 때 넘깁니다. 응답의 `latency_s`는 실패한 첫 호출까지 포함한 전체 시간입니다. GMS `whisper-1`은 Groq보다 느립니다(6.5초 음성 기준 약 1.9초, Groq 약 0.4초).
 - 워커 환경 변수 `STT_CHAIN`으로 공급자 순서를 정할 수 있습니다(예: SSAFY GPU 서버의 자체 학습 모델 `gpu:turbo-lr1e4` → GMS `whisper-1` → Groq). 앞 공급자가 한도·오류·응답 없음이면 다음으로 넘기고, 녹음 자체 오류는 넘기지 않습니다. `usage`의 `model`은 실제로 인식한 모델이고, 첫 공급자가 아니면 `fallback: true`입니다. 모두 실패하면 마지막 공급자의 오류 코드(429/503)이고 메시지에 공급자별 오류가 함께 적힙니다.
@@ -351,9 +363,48 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 {"meaning_ko": "좋아요! 매장에서 드실 건가요, 가져가실 건가요?", "glossary": [{"text": "Great", "meaning_ko": "좋아요"}, {"text": "for here", "meaning_ko": "매장에서"}, {"text": "to go", "meaning_ko": "포장"}], "usage": [...]}
 ```
 
-- `meaning_ko`: 말투를 살린 한국어 뜻 (가게 직원은 해요체, 친구 같은 말투는 반말). 괄호 풀이 없이 번역만.
-- `glossary`: 대사의 내용어(명사·본동사·형용사·부사)와 숙어·구동사·관용 표현·정해진 문장 틀(`Would you like`, `Do you want to`, `Can I get`)을 나온 순서대로 **최대 15개**. 화면이 대사의 단어를 거의 다 눌러 뜻을 볼 수 있게 합니다. 숙어는 한 항목으로 두고, 그 뒤에 숙어 안의 내용어도 따로 둡니다(`grab a seat`, `grab`, `seat`). 화면은 겹치는 단어를 누르면 단어와 숙어를 함께 보입니다. 이름·숫자와 혼자 있는 기능어(관사·대명사·조동사·전치사·접속사)는 빼고, 숙어·문장 틀 안의 기능어는 그대로 둡니다. `text`는 대사에 **그대로 있는** 말만 남깁니다(대소문자 무시). 그런 말이 없으면 빈 목록.
+- `meaning_ko`: 말투를 살린 한국어 뜻 (가게 직원은 해요체, 친구 같은 말투는 반말). 괄호 풀이 없이 번역만. 고유명사(사람·마을·가게·거리·상표 이름)는 옮기거나 한글 소리로 적지 않고 영어 원문 그대로 따옴표 안에 둡니다(`"Maple Town"에 오신 걸 환영해요!`). 모델에게는 굽은 따옴표(“ ”)로 쓰게 하고 워커가 곧은 따옴표로 바꿔 보냅니다. JSON 문자열 안의 곧은 따옴표는 모델이 이스케이프하지 않으면 문자열이 닫혀 뜻이 이름 앞에서 잘리기 때문입니다.
+- `glossary`: 대사의 내용어(명사·본동사·형용사·부사)와 숙어·구동사·관용 표현·정해진 문장 틀(`Would you like`, `Do you want to`, `Can I get`)을 나온 순서대로 **최대 25개**. 화면이 대사의 단어를 하나하나 눌러 뜻을 볼 수 있게 합니다. `just`, `still`, `here`처럼 학습자가 알 만한 쉬운 말도 빼지 않습니다. 숙어는 한 항목으로 두고, 그 뒤에 숙어 안의 내용어도 따로 둡니다(`grab a seat`, `grab`, `seat`). 화면은 겹치는 단어를 누르면 단어와 숙어를 함께 보입니다. 이름·숫자와 혼자 있는 기능어(관사·대명사·조동사·전치사·접속사)는 빼고, 숙어·문장 틀 안의 기능어는 그대로 둡니다. `text`는 대사에 **그대로 있는** 말만 남깁니다(대소문자 무시). 그런 말이 없으면 빈 목록. 풀이의 `meaning_ko`는 그 대사에서의 짧은 뜻(15자 안팎)이고, 한글 표기만 되는 외래어는 무엇인지 풀어 쓰고 표기는 괄호에 둡니다(`front desk` → `호텔 접수·안내 창구(프런트)`, `latte` → `우유를 넣은 커피(라테)`).
 - 출력이 이 형식이 아니거나 `meaning_ko`가 비면 502 `invalid_output`. 같은 대사는 Spring이 저장해 다시 부르지 않습니다.
+
+### 2.6.3 `POST /v1/level-test/speaking` — 레벨 테스트 말하기 문항 판정 (백엔드 ONB-05)
+
+레벨 테스트의 말하기 문항마다 학습자의 답이 통과 기준을 영어로 해냈는지 판정하고, 한국어 피드백 한 문장을 만듭니다. 백엔드가 테스트를 끝낼 때 말하기 문항을 모아 한 번 부릅니다. 워커는 저장하지 않습니다.
+
+요청: `items`(문항 1~5개). `item_code`가 겹치거나 문항 수가 범위를 벗어나면 400 `invalid_request`입니다.
+
+| 칸 | 형식 | 뜻 |
+|---|---|---|
+| `item_code` | 문자열 (필수, 최대 64자) | 문항 코드 |
+| `situation` | 문자열 (필수, 최대 500자) | 학습자에게 보여 준 상황 (한국어) |
+| `cues` | 문자열 목록 (기본 `[]`, 최대 10개) | 답에 넣어야 할 내용 (한국어) |
+| `criteria` | 문자열 (필수, 최대 1000자) | 통과 기준 (영어) |
+| `answer` | 문자열 (기본 `""`, 최대 1000자) | 학습자가 말한 답(음성 인식 결과) 또는 쓴 답. 비었거나 한국어·서툰 영어일 수 있음 |
+
+```json
+{
+  "items": [
+    {
+      "item_code": "EN_LT_S1",
+      "situation": "카페에 가방을 두고 왔어요. 가방이 어떻게 생겼는지 말하고 찾아 달라고 하세요.",
+      "cues": ["파란 숄더백", "빨간 열쇠고리", "안에 여권 지갑과 책"],
+      "criteria": "Says they left or lost a bag at the cafe and describes it with all three details (a blue shoulder bag, a red keyring, a passport wallet and a book inside), in English sentences rather than a list of words.",
+      "answer": "I think I left my bag here. It's a blue shoulder bag with a red keyring. My passport wallet and a book are in it."
+    }
+  ]
+}
+```
+
+응답:
+
+```json
+{"results": [{"item_code": "EN_LT_S1", "passed": true}], "feedback_ko": "설명은 잘했어요. 부탁할 때 Could you…? 같은 표현을 더 연습해 보세요.", "usage": [...]}
+```
+
+- `results`: 요청 문항마다 하나씩, **요청 순서대로**입니다. `passed`는 답이 `criteria`를 영어 문장으로 해냈을 때만 `true`입니다. 초급·중급을 가르는 판정이라 작은 문법 실수는 통과로 봅니다. 빈 답, 단어 하나나 단어 나열, 한국어 답, 기준이 요구한 내용이 빠진 답(한국어로만 말한 내용 포함)은 `false`입니다.
+- `feedback_ko`: 답을 바탕으로 잘한 점과 연습할 점 하나를 담은 짧은 해요체 한국어 한 문장입니다. 모델에 60자 이내로 지시하며, 워커가 자르지는 않습니다.
+- 학습자 영어를 평가하는 일이라 `feedback` 역할의 모델을 temperature 0으로 부릅니다. 사용량 단계는 `level_test_speaking`입니다. 학습자의 답은 프롬프트에서 지시가 아닌 데이터로 다룹니다.
+- 공급자 실패는 429/503입니다. 모델 출력이 문항을 빠뜨리거나, 요청에 없거나 겹친 문항을 내거나, `passed`가 참·거짓이 아니거나, `feedback_ko`가 비면 502 `invalid_output`입니다. 일부 문항만 돌려주지 않습니다.
 
 ### 2.7 `POST /v1/feedback` — 대화 종료 피드백 (ai/feedback 계약 0.3.0)
 
@@ -484,7 +535,7 @@ NPC 음성 재합성에는 선택 필드 `phrases`로 원래 `done.speech_phrase
 
 | 칸 | 뜻 |
 |---|---|
-| `step` | `intent`·`performance_intent`·`guard`·`translate`·`npc`·`hint`·`suggest`·`meaning`·`feedback`·`memory`·`narrate`·`stt` |
+| `step` | `intent`·`performance_intent`·`guard`·`translate`·`npc`·`hint`·`suggest`·`meaning`·`level_test_speaking`·`feedback`·`memory`·`narrate`·`stt` |
 | `model` | **실제로 쓴** 모델 (대체 모델이면 그 이름) |
 | `fallback` | 요청한 모델이 아닌 대체 모델을 썼는지 |
 | `hedged` | (있을 때만 `true`) 답이 늦어 같은 요청을 하나 더 보냈음(NPC 대답은 첫 글자 기준). 토큰은 먼저 온 답의 것만 기록되고, 늦은 쪽 사용량은 알 수 없음 (크레딧이 조금 더 나갔을 수 있음) |

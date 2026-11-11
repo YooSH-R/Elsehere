@@ -13,7 +13,7 @@ Unity 클라이언트는 `frontend/UnityClient`에서 관리하며 WebGL 기반 
 | 스크립트 | C# |
 | 시작 Scene | `Assets/Scenes/Production/HomeScene.unity` |
 
-Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Packages/manifest.json`과 `Packages/packages-lock.json`을 기준으로 맞춥니다. 버전 변경은 호환성을 검증하고 MR에 변경 내용을 기록해 공유합니다. 모바일 화면은 아래 반응형 Web 템플릿으로 대응하며, 모바일 터치 조작과 대상 브라우저의 기능 지원 범위는 별도로 검증합니다.
+Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Packages/manifest.json`과 `Packages/packages-lock.json`을 기준으로 맞춥니다. 버전 변경은 호환성을 검증하고 MR에 변경 내용을 기록해 공유합니다. 모바일 화면은 아래 반응형 Web 템플릿으로 대응하며, 모바일 터치 조작과 대상 브라우저의 기능 지원 범위는 별도로 검증합니다. 이용자 기기에 필요한 조건은 [이용 환경과 최소 사양](client-requirements.md)에 정리합니다.
 
 ## 설치와 프로젝트 열기
 
@@ -51,6 +51,7 @@ Build And Run은 로컬 웹 서버를 사용합니다. 생성된 `index.html`을
 - 그림과 문구 목록은 `index.html`의 `introSlides`에서 관리합니다.
 - 진행 막대는 받은 만큼 0.4초에 걸쳐 따라 찹니다. 파일을 다 받은 뒤 게임을 준비하는 동안에는 브라우저가 화면을 갱신하지 못해 막대가 잠시 멈출 수 있습니다. 그래서 로딩이 끝나면 막대가 끝까지 차는 모습을 보인 뒤 로딩 화면을 닫습니다.
 - Unity 로더는 서버가 보내는 `Content-Length`로 진행률을 계산합니다. 이 헤더가 없으면 막대는 파일을 다 받을 때까지 움직이지 않다가 한 번에 찹니다. 로컬에서 직접 띄운 서버로 확인할 때도 이 헤더를 보내야 합니다.
+- 로딩 화면에서부터 접속 음악(`entry-town-ensemble.mp3`)을 틀고, Unity가 켜지면 입구 화면까지 끊지 않고 이어 씁니다. 브라우저가 자동재생을 막으면 첫 클릭·키·터치 뒤에 들립니다. 재생 규칙은 [Ambience 문서](../../frontend/UnityClient/Assets/Scripts/Ambience/README.md#ui-효과음과-접속-화면-음악)를 따르고, 저장소 최상위에서 `node --test infra/tests/webgl_entry_music.test.cjs`로 검증합니다.
 
 Web 실행은 `Application.targetFrameRate`의 기본값 `-1`을 유지해 브라우저의 화면 갱신 주기를 따릅니다. 실제 프레임은 기기 성능·화면 주사율·브라우저 정책에 따라 달라집니다. 144·240fps를 고정값으로 강제하지 않으며, 모바일 발열·배터리를 위한 별도 상한은 성능 검증 후 결정합니다. 동작 기준은 [Unity의 Web 프레임 제어](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/Application-targetFrameRate.html)를 따릅니다.
 
@@ -58,15 +59,32 @@ Web 실행은 `Application.targetFrameRate`의 기본값 `-1`을 유지해 브�
 - **Tools → A305 → Web → Build**는 이 템플릿을 적용하고 현재 Scene List의 활성 씬을 `Builds/Web`으로 빌드합니다. 먼저 Build Profiles에서 Web을 활성 플랫폼으로 전환합니다. 같은 프로젝트가 Editor에 열려 있지 않으면 아래 명령을 사용하며, 새 환경에서도 Web용 렌더링 설정이 포함되도록 `-buildTarget WebGL`을 명시합니다.
 - 템플릿을 수정한 뒤에는 다시 빌드합니다. `Builds/Web`의 HTML·CSS는 생성 결과이므로 직접 수정하지 않습니다.
 - 브라우저 확장 프로그램 스크립트(`chrome-extension://`, `moz-extension://`, `safari-web-extension://`)에서 난 오류는 Unity 로더에 넘기지 않습니다. MetaMask처럼 페이지에 스크립트를 넣는 확장 프로그램의 오류가 로딩 실패나 Unity 오류 창으로 뜨지 않게 하기 위해서이며, 오류는 브라우저 콘솔에 그대로 남습니다. 게임 빌드에서 났거나 어디서 났는지 알 수 없는 오류는 지금처럼 Unity 로더가 알립니다. 저장소 최상위에서 `node --test infra/tests/webgl_extension_errors.test.cjs`로 검증합니다.
+- UI가 가로 화면에 맞춰져 있어, 휴대폰·태블릿(주 입력이 손가락, CSS `pointer: coarse`)을 세로로 들면(`orientation: portrait`) 로딩 중에도 게임 위에 "가로 화면을 권장해요" 카드를 띄웁니다. 가로로 돌리면 저절로 사라지고, PC 창이 세로로 길어도 띄우지 않습니다. [세로로 계속하기]를 누르면 이번 방문(탭) 동안 다시 띄우지 않습니다(브라우저 세션 저장소 `elsehere.orientationHint.dismissed`). 카드가 뜬 동안에는 뒤를 덮어 게임을 누르지 않습니다.
+- 게임 화면은 손가락 제스처를 게임이 받으므로(`touch-action: none`) 페이지가 한 번 확대되면 다시 줄일 수 없습니다. 그래서 viewport에 `maximum-scale=1`을 둡니다. 휴대폰에서 입력 플러그인(WebGLInput)이 띄우는 입력칸은 글자 크기가 화면 높이의 5%라 가로 휴대폰에서 16px보다 작아지는데, 아이폰 사파리는 16px보다 작은 입력칸에 포커스가 가면 페이지를 확대합니다. 그래서 `style.css`에서 입력칸 글자를 최소 16px(`max(16px, 5vh)`)로 둡니다.
 - 모바일의 세로·가로 전환, 주소창 표시·숨김, 노치 영역, 로딩·오류 메시지와 게임 UI 가장자리의 잘림을 실제 기기에서 확인합니다. 모바일에서는 왼쪽 아래 조이스틱으로 이동하고 오른쪽 빈 영역을 드래그해 시점을 돌립니다. 두 손가락 동시 조작과 앱 전환·화면 회전 후 입력이 멈추는지도 확인합니다. PC의 키보드·마우스 조작은 그대로 사용할 수 있습니다.
+
+### 브라우저 그래픽 품질
+
+`BrowserGraphicsQuality`가 Web 게임의 첫 씬을 불러오기 전에 실행 환경에 맞는 품질을 적용합니다. PC 브라우저는 Web 빌드가 `PC` 품질에 연결한 브라우저용 렌더링 설정을 사용하고, 휴대폰·태블릿은 Web 기본값인 `Mobile`을 사용합니다. iPadOS Safari처럼 Mac UA를 보내는 기기는 주 입력 장치가 손가락인지(`pointer: coarse`)도 확인합니다. 터치스크린이 있다는 이유만으로 PC를 모바일로 분류하지 않습니다.
+
+| 항목 | PC 브라우저 | 모바일 브라우저 |
+| --- | --- | --- |
+| 렌더링 설정 | `Assets/Data/Player/WebDesktop_RPAsset.asset` | `Assets/Settings/Mobile_RPAsset.asset` |
+| 내부 렌더링 배율 | 0.8 | 0.8 |
+| 주 광원 그림자 맵 | 2048 | 1024 |
+| 그림자 거리와 분할(캐스케이드) | 30m, 2개 | 50m, 1개 |
+| 부드러운 그림자 | 켬, Medium 필터(9개 샘플) | 끔 |
+| 렌더러 | Forward, SSAO·추가 광원 그림자 끔 | Forward, SSAO·추가 광원 그림자 끔 |
+
+Web 빌드 메뉴와 CI는 `WebGlBuild.BuildWithDesktopPipeline`을 통해 빌드 동안 `PC`에 브라우저용 에셋을 연결합니다. 모델 디테일 전환, 스키닝 가중치, 비등방 필터링, 섀도우 마스크에는 기존 웹 품질인 `Mobile`의 값을 사용합니다. 빌드가 끝나면 Editor의 설정을 복원합니다. 브라우저용 에셋은 가까운 곳의 그림자 해상도를 높이고 먼 곳의 그림자 렌더링 비용을 줄입니다. 품질 선택과 빌드 후 복원은 `A305.Player.Tests`와 `A305.Deployment.Tests`에서 검증합니다. 실제 WebGL 빌드는 PC 브라우저에서 콘솔의 `Browser graphics quality: PC`, 그림자 모양, 프레임 속도를 함께 확인합니다. FPS를 비교할 때는 활성 창에서 같은 장면과 캔버스 해상도를 사용합니다. **Tools → A305 → Deployment → Soften Desktop Shadow Edges**는 PC 브라우저 에셋의 필터를 Medium으로 맞추고, 빌드 씬의 그림자를 만드는 방향광에 URP 품질 연결을 추가합니다. 이 연결이 없으면 URP가 파이프라인 설정과 관계없이 Low 필터를 사용합니다. 낮·밤 Builder도 같은 연결을 유지합니다. 게임 시각에 따라 이동하는 햇빛은 유지하며, 필터로 그림자 경계의 계단과 이동 중의 거친 변화를 완화합니다.
 
 ### 웹 이용 통계
 
-웹 템플릿은 `elsehere.kr`과 `www.elsehere.kr`에서만 Google 애널리틱스 측정 ID `G-209TJ3SH81`을 사용합니다. 방문자가 통계 수집에 동의하기 전에는 Google 태그를 불러오지 않습니다. 거부해도 게임을 이용할 수 있고, 화면 오른쪽 아래의 **통계 수집 설정**에서 나중에 선택을 바꿀 수 있습니다. 동의를 철회하면 측정을 중지하고 분석 쿠키를 지운 뒤 페이지를 다시 불러옵니다. 브라우저의 사이트별 저장소를 사용하므로 두 도메인의 선택은 각각 유지됩니다.
+웹 템플릿은 `elsehere.kr`과 `www.elsehere.kr`에서만 Google 애널리틱스 측정 ID `G-209TJ3SH81`을 사용합니다. 처음 방문하면 바로 측정을 시작하고, 통계를 수집하고 있다는 안내와 [수집 거부]·[수집 허용]을 보입니다. 거부해도 게임을 이용할 수 있고, 화면 오른쪽 아래의 **통계 수집 설정**에서 나중에 선택을 바꿀 수 있습니다. 거부하면 측정을 중지하고 분석 쿠키를 지운 뒤 페이지를 다시 불러오며, 거부한 선택은 다음 방문에도 유지됩니다. 브라우저의 사이트별 저장소를 사용하므로 두 도메인의 선택은 각각 유지됩니다. 저장소를 쓸 수 없는 브라우저는 매번 측정을 시작하고 안내를 다시 보입니다. 처리방침(`/privacy/2026-11-09`) 7절은 분석 쿠키 사용과 거부 방법을 밝히고 있어 이 방식과 맞습니다.
 
 동의한 방문에는 페이지 조회와 WebGL 로딩 완료(`webgl_loaded`, `duration_seconds`) 또는 실패(`webgl_load_failed`, `failure_stage`)를 전송합니다. 실패 단계는 `loader` 또는 `initialization`만 사용하며 오류 원문과 사용자 정보는 보내지 않습니다. 페이지 주소는 도메인까지만, 유입 주소는 출처 도메인까지만 전달해 경로와 쿼리를 제외합니다. Google 신호와 광고 맞춤설정은 태그에서도 끕니다. 개발 주소와 로컬에서는 태그와 동의 화면이 실행되지 않습니다.
 
-배포 전에는 팀이 검토한 `2026-11` 개인정보 처리방침과 로그인 화면의 링크가 함께 반영되었는지 확인해야 합니다. 템플릿의 동의 화면은 `/privacy/2026-11`로 연결하므로 백엔드 문서가 먼저 준비되지 않으면 링크가 열리지 않습니다. 변경된 처리방침과 동의 안내를 확인하기 전에는 이 템플릿을 운영에 배포하지 않습니다.
+템플릿의 동의 화면과 로그인 화면은 지금 버전의 개인정보 처리방침 주소(`/privacy/2026-11-09`)로 연결합니다. 웹 Nginx는 버전이 붙은 경로만 백엔드로 넘기므로 버전 없는 `/privacy`는 열리지 않습니다. 처리방침 버전을 올리면 두 링크도 함께 바꾸고, Unity EditMode 시험(`WebGlBuildTests`, `LoginScreenPrefabTests`)이 백엔드 `ConsentCatalog`의 지금 주소와 같은지 확인합니다. 변경된 처리방침과 동의 안내를 확인하기 전에는 이 템플릿을 운영에 배포하지 않습니다.
 
 Unity EditMode 검사 외에 저장소 최상위에서 `node --test infra/tests/webgl_analytics.test.cjs`를 실행하면 동의·거부·철회, 운영 주소 제한과 로딩 이벤트를 네트워크 없이 검증합니다. 운영 배포 후에는 동의 전과 거부 시 요청이 없는지, 동의 후 실시간 보고서에 이벤트가 들어오는지 확인합니다.
 

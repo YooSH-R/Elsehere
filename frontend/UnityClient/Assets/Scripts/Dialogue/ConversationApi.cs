@@ -34,7 +34,8 @@ namespace A305.Dialogue
             string npcCode,
             string initiatedBy,
             bool npcOffDuty,
-            NpcTravelContext npcTravelContext = null
+            NpcTravelContext npcTravelContext = null,
+            string placeCode = null
         )
         {
             return client.PostAsync<ConversationStart>(
@@ -46,6 +47,8 @@ namespace A305.Dialogue
                     InitiatedBy = initiatedBy,
                     NpcOffDuty = npcOffDuty,
                     NpcTravelContext = npcTravelContext,
+                    SpeechSpeed = NpcSpeechSpeed.ForRequest,
+                    PlaceCode = placeCode,
                 }
             );
         }
@@ -66,6 +69,7 @@ namespace A305.Dialogue
                 InputType = inputType,
                 Text = text,
                 SttRawText = sttRawText,
+                SpeechSpeed = NpcSpeechSpeed.ForRequest,
             };
             return stream == null
                 ? client.PostAsync<TurnResult>(path, body)
@@ -167,7 +171,11 @@ namespace A305.Dialogue
         {
             return client.PostAsync<SpeechData>(
                 $"/api/v1/turns/{turnId}/speech",
-                new RequestIdBody { RequestId = requestId }
+                new SpeechRegenerateBody
+                {
+                    RequestId = requestId,
+                    SpeechSpeed = NpcSpeechSpeed.ForRequest,
+                }
             );
         }
 

@@ -22,6 +22,7 @@ import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.mission.service.MissionDialogueService;
+import com.elsehere.mission.service.PlacePracticeService;
 import com.elsehere.mission.service.TownStoryService;
 import com.elsehere.review.service.ReviewCardService;
 import com.elsehere.user.service.GuestContentCleanup;
@@ -58,7 +59,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
       "spring.jpa.hibernate.ddl-auto=create-drop",
       "elsehere.npc-audio.dir=build/test-npc-audio",
       "elsehere.training-recording.dir=" + DialogueServiceTest.TRAINING_RECORDING_DIR,
-      "elsehere.conversation.daily-limit=2"
+      "elsehere.guest.conversation-limit=2"
     })
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @ImportAutoConfiguration(JacksonAutoConfiguration.class)
@@ -74,8 +75,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   com.elsehere.review.service.ReviewPracticeResults.class,
   ConversationHistoryService.class,
   TurnService.class,
+  EarlyReplies.class,
   DialogueRequestLocks.class,
   SpeechService.class,
+  SpeechWords.class,
   TurnHelpService.class,
   ConversationLookup.class,
   DialogueContexts.class,
@@ -99,6 +102,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   FirstDayMissionService.class,
   TownStoryService.class,
   MissionDialogueService.class,
+  PlacePracticeService.class,
   GameClockService.class,
   GuestContentCleanup.class,
   UserContentEraser.class,

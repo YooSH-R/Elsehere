@@ -44,6 +44,7 @@ class FirstDayMissionServiceTest {
     when(repository.findById(8L)).thenReturn(Optional.of(mission));
 
     assertThat(service.status(8L).situation()).contains(NAMES.get(stage.npc()));
+    assertThat(service.status(8L).direction()).contains(NAMES.get(stage.npc()));
   }
 
   @Test
@@ -79,7 +80,7 @@ class FirstDayMissionServiceTest {
   @Test
   void missingBagJudgementAllowsFactsFromEarlierLearnerTurns() {
     when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.MISSING_BAG)));
-    var state = service.context(8L, "HOTEL_STAFF").orElseThrow().state();
+    var state = service.context(8L, "HOTEL_STAFF").orElseThrow().goals().orElseThrow().state();
     var json = tools.jackson.databind.json.JsonMapper.builder().build().valueToTree(state);
 
     assertThat(json.path("accumulate_history").asBoolean()).isTrue();
@@ -110,7 +111,7 @@ class FirstDayMissionServiceTest {
   void otherNpcsSendTheLearnerToBenOnTheMainStreet() {
     when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.RAINY_STREET)));
 
-    FirstDayMissionService.Context context = service.context(8L, "CAFE_STAFF").orElseThrow();
+    QuestTalk context = service.context(8L, "CAFE_STAFF").orElseThrow();
 
     assertThat(context.instruction())
         .contains("the main street", "talk to Ben", "instead of saying you do not know");
@@ -123,7 +124,7 @@ class FirstDayMissionServiceTest {
     mission.visit("CAFE");
     when(repository.findById(8L)).thenReturn(Optional.of(mission));
 
-    assertThat(service.status(8L).direction()).isEqualTo("마을 거리로 이동하세요.");
+    assertThat(service.status(8L).direction()).isEqualTo("마을 거리로 이동하세요. (대화 상대: Ben)");
     assertThat(service.status(8L).situation()).isEqualTo("마을 거리에서 행인 Ben에게 물어보세요.");
   }
 
@@ -159,7 +160,7 @@ class FirstDayMissionServiceTest {
   void staffElsewhereDirectsUmbrellaBuyersToTheDrugstoreSign() {
     when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.BUY_UMBRELLA)));
 
-    FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
+    QuestTalk context = service.context(8L, "HOTEL_STAFF").orElseThrow();
 
     assertThat(context.instruction())
         .contains("the DRUGSTORE")
@@ -172,10 +173,10 @@ class FirstDayMissionServiceTest {
     mission.accept(0, "HOTEL_STAFF", FirstDayStage.EARLY_ARRIVAL.intentIds());
     when(repository.findById(8L)).thenReturn(Optional.of(mission));
 
-    FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
+    QuestTalk context = service.context(8L, "HOTEL_STAFF").orElseThrow();
 
     assertThat(context.stage()).isEqualTo(1);
-    assertThat(context.state()).isNull();
+    assertThat(context).isInstanceOf(QuestTalk.Guide.class);
     assertThat(context.instruction())
         .doesNotContain("Offer drinks")
         .doesNotContain(FirstDayStage.CAFE_BREAK.instruction())
@@ -207,7 +208,7 @@ class FirstDayMissionServiceTest {
     mission.accept(1, "CAFE_STAFF", FirstDayStage.CAFE_BREAK.intentIds());
     when(repository.findById(8L)).thenReturn(Optional.of(mission));
 
-    FirstDayMissionService.Context context = service.context(8L, "CAFE_STAFF").orElseThrow();
+    QuestTalk context = service.context(8L, "CAFE_STAFF").orElseThrow();
 
     assertThat(context.stage()).isEqualTo(1);
     assertThat(context.instruction()).doesNotContain("Offer drinks").contains("already ordered");
@@ -258,8 +259,8 @@ class FirstDayMissionServiceTest {
       if (npc.equals(stage.npc())) {
         continue;
       }
-      FirstDayMissionService.Context context = service.context(8L, npc).orElseThrow();
-      assertThat(context.state()).as("%s talking to %s", stage, npc).isNull();
+      QuestTalk context = service.context(8L, npc).orElseThrow();
+      assertThat(context).as("%s talking to %s", stage, npc).isInstanceOf(QuestTalk.Guide.class);
       assertThat(context.instruction())
           .doesNotContain(stage.instruction())
           .contains("Stay in your own role", "help with directions if asked")
@@ -273,10 +274,10 @@ class FirstDayMissionServiceTest {
   @EnumSource(FirstDayStage.class)
   void everyStageRetainsItsOwnerInstructionsAndAllowedIntents(FirstDayStage stage) {
     when(repository.findById(8L)).thenReturn(Optional.of(missionAt(stage)));
-    FirstDayMissionService.Context context = service.context(8L, stage.npc()).orElseThrow();
+    QuestTalk context = service.context(8L, stage.npc()).orElseThrow();
 
     assertThat(context.instruction()).contains(stage.instruction());
-    assertThat(context.state().intents())
+    assertThat(context.goals().orElseThrow().state().intents())
         .extracting("id")
         .containsExactlyElementsOf(stage.intentIds());
   }
@@ -287,7 +288,7 @@ class FirstDayMissionServiceTest {
   @EnumSource(FirstDayStage.class)
   void ownerLetsTheLearnerBringUpEveryObjective(FirstDayStage stage) {
     when(repository.findById(8L)).thenReturn(Optional.of(missionAt(stage)));
-    FirstDayMissionService.Context context = service.context(8L, stage.npc()).orElseThrow();
+    QuestTalk context = service.context(8L, stage.npc()).orElseThrow();
 
     String reply = context.replyInstruction(new JudgeResult.Intent(null, List.of(), null));
 
@@ -336,7 +337,7 @@ class FirstDayMissionServiceTest {
   @Test
   void missingOrFailedIntentDoesNotPretendObjectivesAreComplete() {
     when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.CAFE_BREAK)));
-    FirstDayMissionService.Context context = service.context(8L, "CAFE_STAFF").orElseThrow();
+    QuestTalk context = service.context(8L, "CAFE_STAFF").orElseThrow();
 
     assertThat(context.replyInstruction(null)).isEqualTo(context.instruction());
     assertThat(context.replyInstruction(new JudgeResult.Intent(null, List.of(), "timeout")))
@@ -354,8 +355,8 @@ class FirstDayMissionServiceTest {
     FirstDayMission mission = missionAt(FirstDayStage.CHECK_IN);
     mission.accept(6, "HOTEL_STAFF", FirstDayStage.CHECK_IN.intentIds());
     when(repository.findById(8L)).thenReturn(Optional.of(mission));
-    FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
-    assertThat(context.state()).isNull();
+    QuestTalk context = service.context(8L, "HOTEL_STAFF").orElseThrow();
+    assertThat(context).isInstanceOf(QuestTalk.Guide.class);
     assertThat(context.instruction()).contains("journey is complete", "Do not restart");
   }
 
@@ -367,10 +368,10 @@ class FirstDayMissionServiceTest {
     when(repository.findById(8L)).thenReturn(Optional.of(missionAt(stage)));
     signedIn(AuthProvider.GOOGLE, "MinjiKim");
 
-    FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
+    QuestTalk context = service.context(8L, "HOTEL_STAFF").orElseThrow();
 
     // 판정(state)과 NPC 대답(instruction) 모두 같은 이름으로 대조한다.
-    assertThat(context.state().desc())
+    assertThat(context.goals().orElseThrow().state().desc())
         .contains(
             "The reservation is under the name \"MinjiKim\"", "A different name never counts");
     assertThat(context.instruction())
@@ -383,9 +384,9 @@ class FirstDayMissionServiceTest {
     when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.EARLY_ARRIVAL)));
     signedIn(AuthProvider.GUEST, "guest-000123");
 
-    FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
+    QuestTalk context = service.context(8L, "HOTEL_STAFF").orElseThrow();
 
-    assertThat(context.state().desc()).doesNotContain("under the name");
+    assertThat(context.goals().orElseThrow().state().desc()).doesNotContain("under the name");
     assertThat(context.instruction()).doesNotContain("under the name");
   }
 
@@ -394,7 +395,7 @@ class FirstDayMissionServiceTest {
     when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.MISSING_BAG)));
     signedIn(AuthProvider.GOOGLE, "MinjiKim");
 
-    FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
+    QuestTalk context = service.context(8L, "HOTEL_STAFF").orElseThrow();
 
     assertThat(context.instruction()).doesNotContain("under the name");
   }
@@ -456,7 +457,7 @@ class FirstDayMissionServiceTest {
     mission.visit("TOWN");
     when(repository.findById(8L)).thenReturn(Optional.of(mission));
 
-    assertThat(service.status(8L).direction()).isEqualTo("DRUGSTORE 드럭스토어로 이동하세요.");
+    assertThat(service.status(8L).direction()).isEqualTo("DRUGSTORE 드럭스토어로 이동하세요. (대화 상대: Alex)");
   }
 
   @Test

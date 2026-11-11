@@ -112,7 +112,7 @@ class SpeechControllerTest {
   @Test
   @DisplayName("POST /api/v1/turns/{turnId}/speech는 다시 만든 음성의 상태와 주소를 돌려준다")
   void regenerateSpeech_respondsSpeech() throws Exception {
-    given(speechService.regenerateSpeech(1L, 12L, REQUEST_ID))
+    given(speechService.regenerateSpeech(1L, 12L, REQUEST_ID, 1.1))
         .willReturn(SpeechResponse.of(12L, "a.wav"));
 
     mockMvc
@@ -125,6 +125,37 @@ class SpeechControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("READY"))
         .andExpect(jsonPath("$.url").value("/api/v1/turns/12/speech"));
+  }
+
+  @Test
+  @DisplayName("음성 다시 만들기에 실은 NPC 말 빠르기를 서비스에 넘긴다")
+  void regenerateSpeech_withSpeechSpeed_passesSpeechSpeed() throws Exception {
+    given(speechService.regenerateSpeech(1L, 12L, REQUEST_ID, 1.3))
+        .willReturn(SpeechResponse.of(12L, "a.wav"));
+
+    mockMvc
+        .perform(
+            post("/api/v1/turns/12/speech")
+                .header(CsrfHeaderFilter.HEADER_NAME, "ElsehereClient")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"requestId\": \"" + REQUEST_ID + "\", \"speechSpeed\": 1.3}")
+                .with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("READY"));
+  }
+
+  @Test
+  @DisplayName("음성 다시 만들기의 NPC 말 빠르기가 0.8~1.5배 밖이면 400 VALIDATION_FAILED다")
+  void regenerateSpeech_speechSpeedOutsideSettingRange_isRejected() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/v1/turns/12/speech")
+                .header(CsrfHeaderFilter.HEADER_NAME, "ElsehereClient")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"requestId\": \"" + REQUEST_ID + "\", \"speechSpeed\": 1.6}")
+                .with(authentication(loggedIn(1L))))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
   }
 
   private static Authentication loggedIn(Long userId) {

@@ -1,0 +1,37 @@
+services:
+  gitlab-runners:
+    image: python:3.12-alpine
+    command: ["python", "-B", "/app/gitlab_runners.py"]
+    restart: unless-stopped
+    user: "65534:65534"
+    group_add:
+      - "${MONITORING_SECRET_GID:?Set the group ID that can read the secret files}"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      GITLAB_URL: https://lab.ssafy.com
+      GITLAB_PROJECT_ID: "1456165"
+    volumes:
+      - ./gitlab_runners.py:/app/gitlab_runners.py:ro
+      - ./runner-hosts.json:/app/runner-hosts.json:ro
+    secrets:
+      - gitlab-monitoring-token
+    networks:
+      - monitoring
+      - runners-egress
+    cpus: 0.25
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  runners-egress: {}
+
+secrets:
+  gitlab-monitoring-token:
+    file: ${MONITORING_SECRETS_DIRECTORY:?Set the server secret directory}/gitlab-monitoring-token

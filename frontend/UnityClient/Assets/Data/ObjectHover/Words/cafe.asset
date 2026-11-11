@@ -16,7 +16,7 @@ MonoBehaviour:
     key: cafe
     languageCode: en-US
     text: cafe
-    meaningKo: "\uCE74\uD398"
+    meaningKo: "\uCEE4\uD53C\xB7\uC74C\uB8CC\uB97C \uD30C\uB294 \uAC00\uAC8C(\uCE74\uD398)"
     example: Let's meet at the cafe.
     exampleKo: "\uCE74\uD398\uC5D0\uC11C \uB9CC\uB098\uC694."
     pronunciationAudioKey: 

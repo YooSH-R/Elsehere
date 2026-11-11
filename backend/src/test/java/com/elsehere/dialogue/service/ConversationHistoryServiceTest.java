@@ -5,6 +5,7 @@ import static com.elsehere.conversation.DialogueTestData.npcTurn;
 import static com.elsehere.conversation.DialogueTestData.textTurn;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
@@ -16,6 +17,7 @@ import com.elsehere.dialogue.dto.ConversationListResponse;
 import com.elsehere.dialogue.dto.ConversationSummaryResponse;
 import com.elsehere.feedback.entity.ConversationFeedback;
 import com.elsehere.feedback.entity.FeedbackStatus;
+import com.elsehere.review.entity.ReviewCard;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
@@ -197,7 +199,7 @@ class ConversationHistoryServiceTest {
     entityManager.flush();
 
     ConversationListResponse response =
-        conversationHistoryService.list(userId, null, null, 20, true);
+        conversationHistoryService.list(userId, null, null, null, 20, true);
 
     assertThat(response.items())
         .extracting(ConversationSummaryResponse::conversationId)
@@ -224,9 +226,9 @@ class ConversationHistoryServiceTest {
     entityManager.flush();
 
     ConversationListResponse first =
-        conversationHistoryService.list(userId, "CAFE_STAFF", null, 2, true);
+        conversationHistoryService.list(userId, "CAFE_STAFF", null, null, 2, true);
     ConversationListResponse last =
-        conversationHistoryService.list(userId, "CAFE_STAFF", first.nextCursor(), 2, true);
+        conversationHistoryService.list(userId, "CAFE_STAFF", null, first.nextCursor(), 2, true);
 
     assertThat(first.items())
         .extracting(ConversationSummaryResponse::conversationId)
@@ -245,9 +247,58 @@ class ConversationHistoryServiceTest {
       start(userId, "CAFE_STAFF", MORNING.plusSeconds(i));
     }
     entityManager.flush();
-    ConversationListResponse result = conversationHistoryService.list(userId, null, null, 2, true);
+    ConversationListResponse result =
+        conversationHistoryService.list(userId, null, null, null, 2, true);
     assertThat(result.items()).isEmpty();
     assertThat(result.nextCursor()).isNull();
+  }
+
+  @Test
+  @DisplayName("대화마다 그 대화로 다시 연습한 횟수를 돌려주고, 연습하지 않은 대화는 0이다")
+  void list_feedbackOnly_returnsPracticeCountPerConversation() {
+    Conversation practiced = start(userId, "CAFE_STAFF", MORNING);
+    completeFeedback(practiced);
+    Conversation fresh = start(userId, "CAFE_STAFF", MORNING.plusSeconds(60));
+    completeFeedback(fresh);
+    ReviewCard card =
+        ReviewCard.of(userId, practiced.getId(), practiced.getNpcId(), "CAFE", "라테를 주문했어요.", "[]");
+    card.recordPractice(MORNING.plusSeconds(900), "[]");
+    card.recordPractice(MORNING.plusSeconds(1200), "[]");
+    entityManager.persist(card);
+    entityManager.flush();
+
+    ConversationListResponse response =
+        conversationHistoryService.list(userId, null, null, null, 20, true);
+
+    assertThat(response.items())
+        .extracting(
+            ConversationSummaryResponse::conversationId, ConversationSummaryResponse::practiceCount)
+        .containsExactly(tuple(fresh.getId(), 0), tuple(practiced.getId(), 2));
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  @DisplayName("장소 코드를 주면 그 장소의 NPC와 나눈 대화만 돌려준다")
+  void list_byScene_returnsOnlyThatPlace(boolean feedbackOnly) {
+    Conversation cafe = start(userId, "CAFE_STAFF", MORNING);
+    completeFeedback(cafe);
+    completeFeedback(start(userId, "HOTEL_STAFF", MORNING.plusSeconds(60)));
+    entityManager.flush();
+
+    ConversationListResponse response =
+        conversationHistoryService.list(userId, null, "CAFE", null, 20, feedbackOnly);
+
+    assertThat(response.items())
+        .extracting(ConversationSummaryResponse::conversationId)
+        .containsExactly(cafe.getId());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", " "})
+  @DisplayName("비어 있는 장소 코드는 VALIDATION_FAILED로 거절한다")
+  void list_blankScene_isRejected(String sceneCode) {
+    assertValidationFailed(
+        () -> conversationHistoryService.list(userId, null, sceneCode, null, 20, true));
   }
 
   private void completeFeedback(Conversation conversation) {

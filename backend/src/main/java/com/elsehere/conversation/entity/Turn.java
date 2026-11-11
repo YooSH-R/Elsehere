@@ -84,6 +84,10 @@ public class Turn extends BaseEntity {
   @Column(length = 40)
   private String policeDispatchPlaceCode;
 
+  // 택시 기사가 이 턴에서 알아들은 목적지. 첫 응답이 유실되어도 같은 요청에 같은 목적지를 돌려준다.
+  @Column(length = 40)
+  private String taxiDestinationCode;
+
   @Column(columnDefinition = "text")
   private String meaningKo;
 
@@ -97,6 +101,9 @@ public class Turn extends BaseEntity {
 
   @Column(columnDefinition = "text")
   private String hintText;
+
+  @Column(columnDefinition = "text")
+  private String hintMeaningKo;
 
   private Instant hintOpenedAt;
 
@@ -157,7 +164,12 @@ public class Turn extends BaseEntity {
     policeDispatchPlaceCode = placeCode;
   }
 
-  /** 한국어 발화의 영어 표현은 무례 판정과 관계없이 보여 준다. */
+  /** 택시 기사가 목적지를 알아들은 사용자 턴. */
+  public void recordTaxiDestination(String placeCode) {
+    taxiDestinationCode = placeCode;
+  }
+
+  /** 생성된 영어 번역·교정 표현은 무례 판정과 관계없이 보여 준다. */
   public String shownTranslation() {
     return translationEn;
   }
@@ -212,7 +224,12 @@ public class Turn extends BaseEntity {
 
   /** 처음 연 힌트를 저장한다. 연 시각은 힌트 사용 기록이다. */
   public void openHint(String hintText, Instant openedAt) {
+    openHint(hintText, null, openedAt);
+  }
+
+  public void openHint(String hintText, String hintMeaningKo, Instant openedAt) {
     this.hintText = hintText;
+    this.hintMeaningKo = hintMeaningKo;
     this.hintOpenedAt = openedAt;
   }
 }

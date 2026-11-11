@@ -40,8 +40,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * NPC가 대화에서 곧 건네기로 한 것(음료·음식·빨래 등). 대화가 끝나면 AI 워커로 판정해 준비 시각과 함께 저장하고, 준비된 뒤 그 NPC와 대화를 시작하면 첫마디로
  * 건넨다(CONV-08·13·01).
  *
- * <p>사용자 × NPC마다 기다리는 것은 하나다. 같은 NPC에게 새로 약속받으면 앞의 것을 바꾼다. 진열된 물건을 그 자리에서 건네는 가게 직원은 기다릴 것이 없으므로
- * 판정하지 않는다. 학습자는 기다리는 카드를 닫을 수 있다.
+ * <p>사용자 × NPC마다 기다리는 것은 하나다. 같은 NPC에게 새로 약속받으면 앞의 것을 바꾼다. 진열된 물건을 그 자리에서 건네는 가게 직원과 바로 태워 주는 택시
+ * 기사는 기다릴 것이 없으므로 판정하지 않는다. 학습자는 기다리는 카드를 닫을 수 있다.
  */
 @Slf4j
 @Service
@@ -50,7 +50,7 @@ public class FollowUpService {
 
   private static final int HISTORY_LIMIT = 200;
 
-  // 산 것을 그 자리에서 건네는 직원(우산·간식·꽃·램프·인형뽑기·소포·현금·이발). 기다리는 카드를 만들지 않는다.
+  // 요청을 그 자리에서 들어주는 직원(우산·간식·꽃·램프·인형뽑기·소포·현금·이발·택시 운행). 기다리는 카드를 만들지 않는다.
   private static final Set<String> HANDS_OVER_ON_THE_SPOT =
       Set.of(
           "SHOP_STAFF",
@@ -60,7 +60,8 @@ public class FollowUpService {
           "ARCADE_STAFF",
           "POST_OFFICE_STAFF",
           "BANK_STAFF",
-          "BARBER_STAFF");
+          "BARBER_STAFF",
+          "TAXI_DRIVER");
 
   private final NpcFollowUpRepository followUpRepository;
   private final ConversationRepository conversationRepository;

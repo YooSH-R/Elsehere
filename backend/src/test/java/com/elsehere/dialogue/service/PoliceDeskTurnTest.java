@@ -115,7 +115,9 @@ class PoliceDeskTurnTest {
             transactions,
             new MissionDialogueService(mock(FirstDayMissionService.class), noStory),
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
-            new DialogueRequestLocks());
+            new DialogueRequestLocks(),
+            mock(com.elsehere.mission.service.PlacePracticeService.class),
+            new EarlyReplies(true));
   }
 
   @Test

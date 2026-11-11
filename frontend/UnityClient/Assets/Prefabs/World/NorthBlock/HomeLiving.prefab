@@ -20548,8 +20548,20 @@ PrefabInstance:
       value: Chair
       objectReference: {fileID: 0}
     - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.05
+      value: -0.85
       objectReference: {fileID: 0}
     - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
       propertyPath: m_LocalPosition.y
@@ -20872,8 +20884,20 @@ PrefabInstance:
       value: Chair
       objectReference: {fileID: 0}
     - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -2.95
+      value: -3.15
       objectReference: {fileID: 0}
     - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
       propertyPath: m_LocalPosition.y
@@ -20934,8 +20958,20 @@ PrefabInstance:
       value: Chair
       objectReference: {fileID: 0}
     - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.75000006
+      value: 0.5500001
       objectReference: {fileID: 0}
     - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
       propertyPath: m_LocalPosition.y
@@ -21506,8 +21542,20 @@ PrefabInstance:
       value: Chair
       objectReference: {fileID: 0}
     - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -2.95
+      value: -3.15
       objectReference: {fileID: 0}
     - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
       propertyPath: m_LocalPosition.y
@@ -22315,8 +22363,20 @@ PrefabInstance:
       value: Chair
       objectReference: {fileID: 0}
     - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.75000006
+      value: 0.5500001
       objectReference: {fileID: 0}
     - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
       propertyPath: m_LocalPosition.y
@@ -22647,8 +22707,20 @@ PrefabInstance:
       value: Chair
       objectReference: {fileID: 0}
     - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 2.65
+      value: 2.85
       objectReference: {fileID: 0}
     - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
       propertyPath: m_LocalPosition.y
@@ -22771,8 +22843,20 @@ PrefabInstance:
       value: Chair
       objectReference: {fileID: 0}
     - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.05
+      value: -0.85
       objectReference: {fileID: 0}
     - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
       propertyPath: m_LocalPosition.y
@@ -22833,8 +22917,20 @@ PrefabInstance:
       value: Chair
       objectReference: {fileID: 0}
     - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 2.65
+      value: 2.85
       objectReference: {fileID: 0}
     - target: {fileID: 8290554176417704672, guid: e192048e433d38d4eb52e1db25753913, type: 3}
       propertyPath: m_LocalPosition.y

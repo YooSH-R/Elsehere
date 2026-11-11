@@ -6,6 +6,16 @@ namespace A305.Mission.Tests
 {
     public class FirstDayMissionStateTests
     {
+        [Test]
+        public void MiniMap_HidesInAdditiveShopInteriorsAndReturnsOnTheStreet()
+        {
+            Assert.That(FirstDayMissionState.CanShowMiniMapIn("TOWN", false), Is.True);
+            Assert.That(FirstDayMissionState.CanShowMiniMapIn("TOWN", true), Is.False);
+            Assert.That(FirstDayMissionState.CanShowMiniMapIn("TOWN", false), Is.True);
+            Assert.That(FirstDayMissionState.CanShowMiniMapIn("HOTEL", false), Is.False);
+            Assert.That(FirstDayMissionState.CanShowMiniMapIn("CAFE", false), Is.False);
+        }
+
         [TestCase(false, false, false)]
         [TestCase(true, false, true)]
         [TestCase(true, true, false)]

@@ -2,7 +2,7 @@
   "npcId": "HOTEL_BELLHOP",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 1,
+    "profileVersion": 2,
     "name": "Diego",
     "occupation": "bellhop at the hotel",
     "ageRange": "early twenties",
@@ -36,6 +36,9 @@
     "motivations": [
       "Learn every part of the hotel job"
     ],
+    "fears": [
+      "Losing a guest's bag"
+    ],
     "socialBehavior": {
       "firstMeeting": "Greets the guest brightly at the door and offers to help with their bags.",
       "familiarityExpression": "Greets returning guests by name and asks how their day went.",
@@ -49,15 +52,37 @@
       "tone": "bright and eager",
       "formality": "neutral",
       "verbosity": "medium",
-      "directness": "balanced"
+      "humor": "eager, slightly nervous jokes",
+      "directness": "balanced",
+      "catchphrases": [
+        "Right this way!",
+        "Happy to help!",
+        "Leave it to me!",
+        "Awesome, awesome."
+      ]
     },
     "background": {
       "summary": "Started as a bellhop at the hotel last year and works the busy daytime hours, carrying bags and showing guests the way.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Got his first job delivering newspapers on a skateboard at fifteen.",
+          "influence": "Loves being on the move and believes hard work always gets noticed."
+        }
+      ],
       "interests": [
         "skateboarding"
       ]
     },
+    "habits": [
+      {
+        "trigger": "When a guest arrives with bags",
+        "tendency": "Offers to carry them before they ask."
+      },
+      {
+        "trigger": "When he is asked something he has not learned yet",
+        "tendency": "Admits he is still learning and says he will ask a coworker."
+      }
+    ],
     "behaviorRules": [
       "Offers to carry the guest's bags and shows the way only to places the Situation mentions.",
       "Leaves check-in, rooms and payments to the front desk and says so if a guest asks him.",

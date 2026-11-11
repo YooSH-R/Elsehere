@@ -1,5 +1,6 @@
 """v0.3: 대화 요약·리뷰 태그·전체 발화 평가·단어장 후보. 의미 품질 판정은 별도."""
 
+import re
 from typing import Annotated, Literal, Union
 
 from pydantic import Field, TypeAdapter, model_validator
@@ -7,6 +8,10 @@ from pydantic import Field, TypeAdapter, model_validator
 from . import contract_v01 as core
 
 VERSION = "0.3.0"
+
+
+def contains_korean(text):
+    return bool(re.search(r"[가-힣ㄱ-ㅎㅏ-ㅣ]", text))
 
 
 class Context(core.ConversationContext):
@@ -231,6 +236,15 @@ def usable_turns(request):
     return [turn for turn in request.turns if turn.speaker == "user" and turn.text_status == "final"]
 
 
+def surface_only_change(original, suggested):
+    """대소문자·끝 문장부호만 다른 교정인가. 음성 원문 표기는 STT가 정하므로 이런 교정은 회화 교정이 아니다."""
+
+    def plain(text):
+        return text.strip().rstrip(".!?").casefold()
+
+    return plain(original) == plain(suggested)
+
+
 def evidence_turn(evidence, turns, *, user_only=True):
     turn = turns.get(evidence.turn_id)
     if turn is None or turn.text_status != "final" or turn.speaker not in ("user", "npc"):
@@ -274,16 +288,20 @@ def validate_pair(request, response):
             raise ValueError("평가 원문이 해당 final_text 전체와 다르다")
         if review.assisted != bool(turn.assistance_ids):
             raise ValueError("발화 평가의 도움 사용 표시 불일치")
+        if contains_korean(turn.final_text) and review.verdict in ("appropriate", "improvement_suggested"):
+            if not any(
+                item.kind == "context_fit"
+                and re.search(r"[A-Za-z]", item.suggested_expression)
+                and not contains_korean(item.suggested_expression)
+                for item in review.suggestions
+            ):
+                raise ValueError("의도가 분명한 한국어 발화에는 같은 의미의 영어 표현이 필요하다")
         for item in review.suggestions:
             if item.source.turn_id != review.turn_id:
                 raise ValueError("개선 표현의 근거는 해당 평가 발화여야 한다")
             evidence_turn(item.source, turns)
-            if turn.input_type == "voice":
-                # 음성 원문 표기는 STT가 정한다. 표기만 바꾼 문장을 회화 교정으로 제시하지 않는다.
-                original = turn.final_text.strip().rstrip(".!?").casefold()
-                suggested = item.suggested_expression.strip().rstrip(".!?").casefold()
-                if original == suggested:
-                    raise ValueError("음성 발화의 대소문자·종결 부호만 바꾼 교정")
+            if turn.input_type == "voice" and surface_only_change(turn.final_text, item.suggested_expression):
+                raise ValueError("음성 발화의 대소문자·종결 부호만 바꾼 교정")
     reviews_by_turn = {review.turn_id: review for review in result.turn_reviews}
     for note in result.spoken_usage_notes:
         turn = evidence_turn(note.source, turns)

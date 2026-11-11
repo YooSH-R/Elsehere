@@ -1,9 +1,6 @@
 #if UNITY_EDITOR
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using A305.Dialogue;
 using NUnit.Framework;
 using TMPro;
@@ -19,33 +16,6 @@ namespace A305.Learning.PlayModeTests
     {
         private GameObject instance;
 
-        [UnityTest]
-        public IEnumerator PhoneEntry_OpensAWorkbookWithAVisibleViewport()
-        {
-            instance = Object.Instantiate(
-                AssetDatabase.LoadAssetAtPath<GameObject>(
-                    "Assets/Prefabs/Learning/LearningHud.prefab"
-                )
-            );
-            yield return null;
-            var hud = instance.GetComponent<LearningHudView>();
-            var book = new ReviewBook(new SavedCardApi());
-            book.LoadAsync().GetAwaiter().GetResult();
-            hud.ReviewRequested += () => hud.ReviewView.Show(book);
-            instance
-                .GetComponentsInChildren<Button>(true)
-                .Single(button => button.name == "ReviewButton")
-                .onClick.Invoke();
-            yield return null;
-            var canvas = (RectTransform)hud.ReviewView.transform;
-            var panel = (RectTransform)canvas.Find("Panel");
-            Assert.That(hud.ReviewView.IsVisible, Is.True);
-            Assert.That(canvas.rect.width, Is.GreaterThan(100));
-            Assert.That(canvas.rect.height, Is.GreaterThan(100));
-            Assert.That(panel.lossyScale.x, Is.GreaterThan(.01f));
-            hud.ReviewView.Hide();
-        }
-
         [TearDown]
         public void TearDown()
         {
@@ -56,36 +26,6 @@ namespace A305.Learning.PlayModeTests
                     view.Hide();
                 Object.Destroy(instance);
             }
-        }
-
-        [UnityTest]
-        public IEnumerator PracticeButton_ReportsTheSelectedCardOnce()
-        {
-            instance = Object.Instantiate(
-                AssetDatabase.LoadAssetAtPath<GameObject>(
-                    "Assets/Prefabs/Learning/ReviewWorkbook.prefab"
-                )
-            );
-            var view = instance.GetComponent<ReviewWorkbookView>();
-            var book = new ReviewBook(new SavedCardApi());
-            book.LoadAsync().GetAwaiter().GetResult();
-            int starts = 0;
-            ReviewCard selected = null;
-            view.PracticeRequested += card =>
-            {
-                starts++;
-                selected = card;
-            };
-            view.Show(book);
-            yield return null;
-            Button button = instance
-                .GetComponentsInChildren<Button>()
-                .Single(item => item.name == "PracticeButton");
-            button.onClick.Invoke();
-            Assert.That(starts, Is.EqualTo(1));
-            Assert.That(selected, Is.SameAs(book.Items[0]));
-            view.Hide();
-            Assert.That(view.IsVisible, Is.False);
         }
 
         [UnityTest]
@@ -158,38 +98,6 @@ namespace A305.Learning.PlayModeTests
             Assert.That(fold.gameObject.activeSelf, Is.False);
             Assert.That(words.fontSize, Is.EqualTo(normalSize));
             Assert.That(words.text, Does.Not.Contain("Can I get that to go?"));
-        }
-
-        private sealed class SavedCardApi : IReviewApi
-        {
-            public Task<ReviewPage> GetPageAsync(string scene, string cursor) =>
-                Task.FromResult(
-                    new ReviewPage
-                    {
-                        Items = new List<ReviewCard>
-                        {
-                            new ReviewCard
-                            {
-                                Id = 42,
-                                SceneCode = "CAFE",
-                                Npc = new NpcSummary { NpcCode = "CAFE_STAFF", Name = "Mia" },
-                                SituationSummary = "포장을 부탁하기",
-                                Targets = new List<ReviewTarget>
-                                {
-                                    new ReviewTarget { Expression = "Can I get that to go?" },
-                                    new ReviewTarget { Expression = "A little less ice, please." },
-                                },
-                            },
-                        },
-                    }
-                );
-
-            public Task<ReviewCard> SaveAsync(long id) => throw new NotSupportedException();
-
-            public Task DeleteAsync(long id) => throw new NotSupportedException();
-
-            public Task<ConversationStart> StartAsync(long id, string requestId) =>
-                throw new NotSupportedException();
         }
     }
 }

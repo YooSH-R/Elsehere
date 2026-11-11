@@ -64,6 +64,35 @@ namespace A305.Mission.Tests
         }
 
         [Test]
+        public void CoinSoundPlaysOnlyWhenTheBalanceIncreases()
+        {
+            FirstDayMissionState state = Journey(current: 5);
+            state.Balance = 91;
+            Refresh(state);
+            var sounds = new List<UiSound>();
+            UiSoundEvents.Requested += sounds.Add;
+            try
+            {
+                view.Refresh(state, false, talking: true);
+                view.Refresh(state, false, talking: false);
+                Assert.That(sounds, Is.Empty);
+
+                state.Balance = 88;
+                state.LastPurchase = "음료";
+                view.Refresh(state, false, talking: true);
+                Assert.That(sounds, Is.Empty);
+
+                state.Balance = 98;
+                view.Refresh(state, false, talking: false);
+                Assert.That(sounds, Is.EqualTo(new[] { UiSound.Coin }));
+            }
+            finally
+            {
+                UiSoundEvents.Requested -= sounds.Add;
+            }
+        }
+
+        [Test]
         public void TownStoryPreservesFirstDayBelongings()
         {
             FirstDayMissionState state = Journey(current: 0);
@@ -122,9 +151,10 @@ namespace A305.Mission.Tests
         }
 
         [Test]
-        public void CollapsedCard_ShowsOnlyCurrentStepAndUnfinishedGoals()
+        public void CardKeepsNpcGuidanceAndGoalsVisibleAcrossQuestChanges()
         {
             FirstDayMissionState state = Journey(current: 1);
+            state.Direction = "카페 직원 Mia에게 이야기해 보세요.";
             state.Steps[1].Goals[0].Completed = true;
             state
                 .Steps[1]
@@ -133,48 +163,66 @@ namespace A305.Mission.Tests
                     {
                         Id = "drink",
                         Title = "마실 음료 이름 말하기",
-                        Hint = "예: 카페라테",
+                        Hint = "마실 음료 이름",
                     }
                 );
             Refresh(state);
 
-            Field<Button>("collapseButton").onClick.Invoke();
+            Assert.That(
+                instance.transform.Find("Content/CurrentGoal/Header/CollapseButton"),
+                Is.Null
+            );
 
             Assert.That(Field<TMP_Text>("stepChip").text, Is.EqualTo("2 / 7"));
             Assert.That(Field<TMP_Text>("place").text, Is.EqualTo("카페에서 휴식"));
-            Assert.That(Field<TMP_Text>("direction").gameObject.activeSelf, Is.False);
-            Assert.That(Field<TMP_Text>("situation").gameObject.activeSelf, Is.False);
-            Assert.That(Field<RectTransform>("progress").parent.gameObject.activeSelf, Is.False);
+            Assert.That(Field<TMP_Text>("direction").gameObject.activeSelf, Is.True);
+            Assert.That(Field<TMP_Text>("direction").text, Does.Contain("Mia"));
+            Assert.That(Field<TMP_Text>("situation").gameObject.activeSelf, Is.True);
+            Assert.That(Field<RectTransform>("progress").parent.gameObject.activeSelf, Is.True);
             RectTransform goals = Field<RectTransform>("goals");
-            Assert.That(goals.GetChild(0).gameObject.activeSelf, Is.False);
+            Assert.That(goals.GetChild(0).gameObject.activeSelf, Is.True);
             Assert.That(goals.GetChild(1).gameObject.activeSelf, Is.True);
             Assert.That(
                 goals.GetChild(1).GetComponentInChildren<TMP_Text>().text,
                 Is.EqualTo("마실 음료 이름 말하기")
             );
-            Assert.That(HintOf(goals.GetChild(1)).text, Is.EqualTo("예: 카페라테"));
+            Assert.That(HintOf(goals.GetChild(1)).text, Is.EqualTo("마실 음료 이름"));
             Assert.That(Field<QuestBoardView>("questBoard").IsOpen, Is.False);
 
+            state.IsTownStory = true;
+            state.Direction = "빨래방 주인 Gus에게 이야기해 보세요.";
+            state.Steps[1].Title = "빨래방에서 세탁 문의";
             view.Refresh(state, false, false);
-            Assert.That(
-                goals.GetChild(0).gameObject.activeSelf,
-                Is.False,
-                "갱신 뒤에도 접힌 상태를 유지한다"
-            );
-
-            Field<Button>("collapseButton").onClick.Invoke();
             Assert.That(Field<TMP_Text>("direction").gameObject.activeSelf, Is.True);
+            Assert.That(Field<TMP_Text>("direction").text, Does.Contain("Gus"));
             Assert.That(goals.GetChild(0).gameObject.activeSelf, Is.True);
         }
 
         [Test]
-        public void CollapsedCard_WhenRestingShowsTheCurrentAction()
+        public void CardHidesRepeatedSituationAndShowsNewDetailsOnRefresh()
+        {
+            FirstDayMissionState state = Journey(current: 0);
+            state.Direction = "마을로 나가 식당 종업원 Rosa에게 이야기해 보세요.";
+            state.Situation = "마을로 나가 식당 종업원 Rosa에게 이야기 해 보세요";
+            Refresh(state);
+
+            Assert.That(Field<TMP_Text>("direction").text, Is.EqualTo(state.Direction));
+            TMP_Text situation = Field<TMP_Text>("situation");
+            Assert.That(situation.gameObject.activeSelf, Is.False);
+
+            state.Situation = "아침 식사는 음식과 음료를 모두 주문해야 해요.";
+            view.Refresh(state, false, false);
+
+            Assert.That(situation.gameObject.activeSelf, Is.True);
+            Assert.That(situation.text, Is.EqualTo(state.Situation));
+        }
+
+        [Test]
+        public void CardWhenRestingShowsTheCurrentAction()
         {
             FirstDayMissionState state = Journey(current: 1);
             state.CanRest = true;
             Refresh(state);
-
-            Field<Button>("collapseButton").onClick.Invoke();
 
             Assert.That(Field<RectTransform>("goals").gameObject.activeSelf, Is.False);
             Assert.That(Field<TMP_Text>("direction").gameObject.activeSelf, Is.True);
@@ -257,21 +305,29 @@ namespace A305.Mission.Tests
             Assert.That(coin.preferredWidth, Is.EqualTo(coin.preferredHeight).Within(.01f));
         }
 
-        // 시안(g4)처럼 대화 중에는 오른쪽 위 시계·코인 칩과 미니맵을 숨긴다.
         [Test]
-        public void WhileTalking_HidesTheClockCoinsAndMiniMap()
+        public void WhileTalking_HidesTheClockAndCoinsEvenWhenTheBalanceChanges()
         {
             instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
             view = instance.GetComponent<FirstDayMissionView>();
             view.SetAvailable(true);
             view.BindMap("TOWN", instance.transform);
 
-            view.Refresh(Journey(current: 5), false, talking: true);
-
-            Assert.That(instance.transform.Find("Content/Status").gameObject.activeSelf, Is.False);
+            FirstDayMissionState state = Journey(current: 5);
+            state.Balance = 96;
+            view.Refresh(state, false, talking: true);
+            GameObject status = Field<GameObject>("statusBar");
+            Assert.That(status.activeSelf, Is.False);
             Assert.That(Field<GameObject>("miniMapPanel").activeSelf, Is.False);
-            view.Refresh(Journey(current: 5), false, talking: false);
-            Assert.That(instance.transform.Find("Content/Status").gameObject.activeSelf, Is.True);
+
+            state.Balance = 88;
+            state.LastPurchase = "우산";
+            view.Refresh(state, false, talking: true);
+            Assert.That(status.activeSelf, Is.False);
+
+            view.Refresh(state, false, talking: false);
+            Assert.That(status.activeSelf, Is.True);
+            Assert.That(Field<TMP_Text>("coins").text, Is.EqualTo("88"));
             Assert.That(Field<GameObject>("miniMapPanel").activeSelf, Is.True);
         }
 
@@ -285,9 +341,9 @@ namespace A305.Mission.Tests
             Assert.That(Field<TMP_Text>("coins").text, Is.EqualTo("20"));
         }
 
-        // 물건을 사면 코인 칩 옆에 줄어든 만큼과 산 것을 보인다. 대화 중에는 숨어 있던 코인 칩도 잠깐 보인다.
+        // 물건을 사면 코인 칩 옆에 줄어든 만큼과 산 것을 보인다.
         [Test]
-        public void CoinChange_ShowsTheAmountAndWhatWasBought_EvenWhileTalking()
+        public void CoinChange_ShowsTheAmountAndWhatWasBoughtDuringExploration()
         {
             FirstDayMissionState before = Journey(current: 5);
             before.Balance = 96;
@@ -296,7 +352,7 @@ namespace A305.Mission.Tests
             after.Balance = 88;
             after.LastPurchase = "우산";
 
-            view.Refresh(after, false, talking: true);
+            view.Refresh(after, false, talking: false);
 
             TMP_Text amount = Field<TMP_Text>("coinFloat");
             TMP_Text receipt = Field<TMP_Text>("coinReceipt");
@@ -304,11 +360,7 @@ namespace A305.Mission.Tests
             Assert.That(amount.text, Is.EqualTo("−8"));
             Assert.That(receipt.gameObject.activeInHierarchy, Is.True);
             Assert.That(receipt.text, Does.Contain("우산"));
-            Assert.That(
-                Field<GameObject>("statusBar").activeSelf,
-                Is.True,
-                "대화 중에도 잠깐 보인다"
-            );
+            Assert.That(Field<GameObject>("statusBar").activeSelf, Is.True);
         }
 
         [Test]
@@ -316,10 +368,72 @@ namespace A305.Mission.Tests
         {
             Refresh(Journey(current: 5));
 
+            TMP_Text clock = Field<TMP_Text>("clock");
+            clock.ForceMeshUpdate();
             Assert.That(
-                Field<TMP_Text>("clock").text,
+                clock.GetParsedText(),
                 Is.EqualTo(GameClockText.Format(GameClock.Shared.Minutes))
             );
+        }
+
+        [Test]
+        public void Clock_KeepsTheTimeAlignedAndFitsLongDays()
+        {
+            var sharedProperty = typeof(GameClock).GetProperty(nameof(GameClock.Shared));
+            GameClock previousClock = GameClock.Shared;
+            var gameClock = new GameClock();
+            sharedProperty.SetValue(null, gameClock);
+            try
+            {
+                FirstDayMissionState state = Journey(current: 5);
+                Refresh(state);
+                TMP_Text label = Field<TMP_Text>("clock");
+                var chip = (RectTransform)label.transform.parent;
+                var status = (RectTransform)chip.parent;
+                RectTransform coins = Field<RectTransform>("coinChip");
+
+                var morning = MeasureClock();
+                var twoDigitHour = AtMinute(11 * 60 + 11);
+                var afternoon = AtMinute(13 * 60 + 59);
+                var tenDays = AtMinute(9 * 1440 + 12 * 60);
+                var longDay = AtMinute(999999 * 1440 + 12 * 60);
+
+                Assert.That(twoDigitHour.Colon, Is.EqualTo(morning.Colon).Within(.1f));
+                Assert.That(afternoon.Colon, Is.EqualTo(morning.Colon).Within(.1f));
+                Assert.That(twoDigitHour.Width, Is.EqualTo(morning.Width).Within(.1f));
+                Assert.That(tenDays.TextFits, Is.True);
+                Assert.That(longDay.TextFits, Is.True);
+                Assert.That(label.GetParsedText(), Is.EqualTo("1000000일차 · 오후 12:00"));
+                Assert.That(longDay.Width, Is.GreaterThan(tenDays.Width));
+                Assert.That(longDay.CoinRight, Is.EqualTo(morning.CoinRight).Within(.1f));
+
+                (float Colon, float Width, bool TextFits, float CoinRight) AtMinute(int minutes)
+                {
+                    gameClock.Flow(
+                        (minutes + .1 - gameClock.Minutes) / GameClock.GameMinutesPerRealSecond
+                    );
+                    view.Refresh(state, false, false);
+                    return MeasureClock();
+                }
+
+                (float Colon, float Width, bool TextFits, float CoinRight) MeasureClock()
+                {
+                    LayoutRebuilder.ForceRebuildLayoutImmediate(status);
+                    label.ForceMeshUpdate();
+                    int colon = label.GetParsedText().IndexOf(':');
+                    float colonX = label.textInfo.characterInfo[colon].origin;
+                    return (
+                        label.rectTransform.TransformPoint(colonX, 0, 0).x,
+                        chip.rect.width,
+                        label.preferredWidth <= label.rectTransform.rect.width + .1f,
+                        coins.TransformPoint(coins.rect.xMax, 0, 0).x
+                    );
+                }
+            }
+            finally
+            {
+                sharedProperty.SetValue(null, previousClock);
+            }
         }
 
         // 폰 메뉴의 오늘의 여정 위젯이 같은 내용을 보이도록 여정을 함께 알린다.

@@ -1,6 +1,6 @@
 {
   "version": "0.1",
-  "note": "help: 실제 직원이면 처리하거나 구체적인 다음 길을 줄 요청 (막다른 거절이면 실패). no_fabricate: 마을·게임에 없는 장소·가격·결과를 지어내면 실패. 모든 줄은 지어내기도 함께 채점한다.",
+  "note": "help: 실제 직원이면 처리하거나 구체적인 다음 길을 줄 요청 (막다른 거절이면 실패). no_fabricate: 마을·게임에 없는 장소·가격·결과를 지어내면 실패. 모든 줄은 지어내기도 함께 채점한다. contact-로 시작하는 줄은 화면 밖 사람(매니저·요리사·친구 등)에게 연락할 만한 요청이다. 모든 줄은 나중에 연락하겠다고만 하고 끝나는 대답도 함께 채점한다.",
   "cases": [
     {"id": "hotel-room-service", "kind": "help", "npc": "HOTEL_STAFF", "stage": "free",
      "history": [], "text": "Can I order room service?"},
@@ -77,6 +77,22 @@
     {"id": "bank-bakery-where", "kind": "help", "npc": "BANK_STAFF", "stage": "free",
      "history": [], "text": "Where is the bakery?"},
     {"id": "student-zoo", "kind": "no_fabricate", "npc": "TOWN_STUDENT", "stage": "free",
-     "history": [], "text": "Is there a zoo or a museum around here?"}
+     "history": [], "text": "Is there a zoo or a museum around here?"},
+    {"id": "contact-hotel-late-checkout", "kind": "help", "npc": "HOTEL_STAFF", "stage": "free",
+     "history": [], "text": "Can I check out late tomorrow, like 2 p.m.?"},
+    {"id": "contact-hotel-lost-charger", "kind": "help", "npc": "HOTEL_STAFF", "stage": "free",
+     "history": [], "text": "I left my phone charger in my room last night. Can you find it?"},
+    {"id": "contact-cafe-oat-milk", "kind": "help", "npc": "CAFE_STAFF", "stage": "free",
+     "history": [], "text": "You don't have oat milk? Can you ask the owner to get some?"},
+    {"id": "contact-diner-no-onion", "kind": "help", "npc": "DINER_STAFF", "stage": "free",
+     "history": [], "text": "Can the cook make the cheeseburger without onions?"},
+    {"id": "contact-bank-lost-card", "kind": "help", "npc": "BANK_STAFF", "stage": "free",
+     "history": [], "text": "I lost my bank card. Can you help me?"},
+    {"id": "contact-taxi-mechanic", "kind": "help", "npc": "TAXI_DRIVER", "stage": "free",
+     "history": [], "text": "Do you know a good mechanic? My bike is broken."},
+    {"id": "contact-student-part-time", "kind": "help", "npc": "TOWN_STUDENT", "stage": "free",
+     "history": [], "text": "I'm looking for a part-time job. Can you ask your friends?"},
+    {"id": "contact-shop-back-room", "kind": "help", "npc": "SHOP_STAFF", "stage": "free",
+     "history": [], "text": "Do you have a blue umbrella in the back? Can you check?"}
   ]
 }

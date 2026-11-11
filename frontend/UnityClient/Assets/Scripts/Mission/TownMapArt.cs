@@ -78,6 +78,39 @@ namespace A305.Mission
                 _ => null,
             };
 
+        /// <summary>지도 그림의 경찰서 칸. 미션 장소는 아니라 <see cref="Tile"/>에는 없고, 이름표와 [이웃] 핀이 쓴다.</summary>
+        public static readonly Rect PoliceTile = new Rect(164, 106, 152, 150);
+
+        /// <summary>
+        /// 생활 데이터의 근무지 코드(BAKERY·HOTEL·POLICE_STATION 등)가 가리키는 건물 칸. 거리 매장은 담당 직원 키로 찾는다.
+        /// 마을 거리·택시처럼 정해진 건물이 없으면 null이다.
+        /// </summary>
+        public static Rect? WorkplaceTile(string workplace) =>
+            workplace switch
+            {
+                null => null,
+                "POLICE_STATION" => PoliceTile,
+                _ => Tile(workplace) ?? Tile(workplace + "_STAFF"),
+            };
+
+        /// <summary>
+        /// [이웃]에서 찾는 NPC의 핀 자리. 마을의 몸은 그 위치를 쓴다. 일터는 건물 칸 위쪽 가장자리 가운데에 꽂아,
+        /// 핀 아래 이름표가 건물 아래의 장소 이름표를 가리지 않게 한다. 지도에 없으면 null이다.
+        /// </summary>
+        public static Vector2? NeighborPoint(A305.Npc.NpcLocation location)
+        {
+            switch (location.Spot)
+            {
+                case A305.Npc.NpcSpot.Body:
+                    return ToArt(location.BodyPosition);
+                case A305.Npc.NpcSpot.Workplace:
+                    Rect? tile = WorkplaceTile(location.Workplace);
+                    return tile.HasValue ? new Vector2(tile.Value.center.x, tile.Value.yMin) : null;
+                default:
+                    return null;
+            }
+        }
+
         /// <summary>장소 출입문 자리. 마을의 출입문 위치를 그림 좌표로 옮긴 값이다.</summary>
         public static Vector2? Door(string sceneCode) =>
             sceneCode switch

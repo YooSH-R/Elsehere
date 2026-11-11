@@ -50,6 +50,8 @@
      "_note": "생각(reasoning)에도 토큰을 써서 출력 상한을 넉넉히"},
     {"match": "guard-qwen", "set": {"chat_template_kwargs": {"enable_thinking": false}},
      "_note": "GPU 서버 vLLM의 자체 학습 무례 판정 모델(Qwen3.8 + LoRA). 생각 없이 yes/no로 학습했다. 아래 qwen3 규칙보다 먼저 맞아야 한다"},
+    {"match": "Qwen/Qwen3", "set": {"chat_template_kwargs": {"enable_thinking": false}},
+     "_note": "GPU 서버 vLLM의 기본 모델(Qwen/Qwen3.8-27B, 의도 판정 JUDGE_GPU_MODEL). vLLM은 reasoning_effort가 아니라 채팅 템플릿 인자로 생각을 끈다"},
     {"match": "qwen3", "set": {"reasoning_effort": "none"}},
     {"match": "gpt-6.1-sol", "set": {"reasoning_effort": "low"}, "min_max_tokens": 600, "drop": ["temperature"], "rename": {"max_tokens": "max_completion_tokens"},
      "_note": "GMS에서 확인 (2026-10-21): reasoning_effort는 low·medium·high·xhigh만(none 안 됨), temperature는 기본값만, max_tokens 대신 max_completion_tokens. 생각에도 출력 토큰을 써서 상한을 넉넉히"},

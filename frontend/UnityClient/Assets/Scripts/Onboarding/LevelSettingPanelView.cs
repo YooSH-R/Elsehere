@@ -50,9 +50,26 @@ namespace A305.Onboarding
                 cardsByLevel[level.Level] = card;
             }
 
-            // 고른 적이 없으면 고를 수 있는 첫 단계(초급)를 미리 골라 둔다.
-            int firstAvailable = profile.Levels.First(level => level.Available).Level;
-            Select(profile.SelectedLevel ?? firstAvailable);
+            Select(InitialLevel(profile));
+        }
+
+        /// <summary>
+        /// 화면 05에 들어올 때 미리 골라 둘 난이도. 고른 적이 있으면 그 단계, 없으면 레벨 테스트 추천 단계(고를 수 있을 때),
+        /// 그것도 없으면 고를 수 있는 첫 단계(초급)다.
+        /// </summary>
+        public static int InitialLevel(LanguageProfileResponse profile)
+        {
+            if (profile.SelectedLevel != null)
+            {
+                return profile.SelectedLevel.Value;
+            }
+
+            bool canChooseRecommended = profile.Levels.Any(level =>
+                level.Available && level.Level == profile.RecommendedLevel
+            );
+            return canChooseRecommended
+                ? profile.RecommendedLevel.Value
+                : profile.Levels.First(level => level.Available).Level;
         }
 
         private void Select(int level)

@@ -9,6 +9,7 @@ import com.elsehere.dialogue.dto.ConversationListResponse;
 import com.elsehere.dialogue.dto.ConversationStartResponse;
 import com.elsehere.dialogue.dto.EndConversationRequest;
 import com.elsehere.dialogue.dto.EndConversationResponse;
+import com.elsehere.dialogue.dto.NpcSpeechSpeed;
 import com.elsehere.dialogue.dto.StartConversationRequest;
 import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.dialogue.dto.TurnResponse;
@@ -17,6 +18,8 @@ import com.elsehere.dialogue.service.ConversationService;
 import com.elsehere.dialogue.service.TurnService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +39,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * NPC 자유 대화: 시작(CONV-01), 발화(CONV-03), 종료(CONV-08), 지난 대화 목록(CONV-09), 상세(CONV-10), 진행 중인
- * 대화(CONV-11).
+ * 대화(CONV-11). 상황 복습과 장소 연습(PRC-02)의 대화 시작도 받는다.
  */
 @Slf4j
 @RestController
@@ -48,7 +51,14 @@ public class ConversationController {
   private final ConversationHistoryService conversationHistoryService;
   private final JsonMapper jsonMapper;
 
-  public record StartReviewRequest(@NotNull UUID requestId) {}
+  public record StartReviewRequest(
+      @NotNull UUID requestId,
+      @DecimalMin(NpcSpeechSpeed.MIN) @DecimalMax(NpcSpeechSpeed.MAX) Double speechSpeed) {
+
+    public StartReviewRequest {
+      speechSpeed = NpcSpeechSpeed.orDefault(speechSpeed);
+    }
+  }
 
   @PostMapping("/api/v1/review-cards/{cardId}/conversations")
   @ResponseStatus(HttpStatus.CREATED)
@@ -56,7 +66,28 @@ public class ConversationController {
       @AuthenticationPrincipal LoginUser loginUser,
       @PathVariable Long cardId,
       @Valid @RequestBody StartReviewRequest request) {
-    return conversationService.startReview(loginUser.userId(), cardId, request.requestId());
+    return conversationService.startReview(
+        loginUser.userId(), cardId, request.requestId(), request.speechSpeed());
+  }
+
+  public record StartPracticeRequest(
+      @NotNull UUID requestId,
+      @DecimalMin(NpcSpeechSpeed.MIN) @DecimalMax(NpcSpeechSpeed.MAX) Double speechSpeed) {
+
+    public StartPracticeRequest {
+      speechSpeed = NpcSpeechSpeed.orDefault(speechSpeed);
+    }
+  }
+
+  /** 장소 연습 시작(PRC-02). 고른 상황의 가게 직원과 대화를 시작한다. */
+  @PostMapping("/api/v1/practice-scenarios/{scenarioId}/conversations")
+  @ResponseStatus(HttpStatus.CREATED)
+  public ConversationStartResponse startPractice(
+      @AuthenticationPrincipal LoginUser loginUser,
+      @PathVariable String scenarioId,
+      @Valid @RequestBody StartPracticeRequest request) {
+    return conversationService.startPractice(
+        loginUser.userId(), scenarioId, request.requestId(), request.speechSpeed());
   }
 
   @PostMapping("/api/v1/conversations")
@@ -129,11 +160,10 @@ public class ConversationController {
       @RequestParam(required = false) String npcCode,
       @RequestParam(required = false) String cursor,
       @RequestParam(defaultValue = "20") int size,
-      @RequestParam(defaultValue = "false") boolean feedbackOnly) {
-    if (feedbackOnly) {
-      return conversationHistoryService.list(loginUser.userId(), npcCode, cursor, size, true);
-    }
-    return conversationHistoryService.list(loginUser.userId(), npcCode, cursor, size);
+      @RequestParam(defaultValue = "false") boolean feedbackOnly,
+      @RequestParam(required = false) String sceneCode) {
+    return conversationHistoryService.list(
+        loginUser.userId(), npcCode, sceneCode, cursor, size, feedbackOnly);
   }
 
   @GetMapping("/api/v1/conversations/active")

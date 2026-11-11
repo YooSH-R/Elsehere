@@ -20,8 +20,8 @@ import com.elsehere.conversation.entity.InitiatedBy;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.conversation.service.ConversationLookup;
-import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.mission.service.MissionDialogueService;
+import com.elsehere.mission.service.QuestTalk;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -84,7 +84,7 @@ class TurnHelpMissionTest {
             Optional.of(
                 new MissionDialogueService.Context(
                     false,
-                    new FirstDayMissionService.Context(
+                    new QuestTalk.Goals(
                         2, state, "NPC-only instructions", List.of("report_left_bag")))));
     when(gateway.hint(any(), any(), anyList(), anyString(), anyInt()))
         .thenReturn(

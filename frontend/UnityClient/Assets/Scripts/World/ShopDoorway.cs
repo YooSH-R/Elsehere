@@ -8,6 +8,7 @@ namespace A305.World
     public sealed class ShopDoorway : MonoBehaviour
     {
         private BoxCollider threshold;
+        private Transform approachPoint;
 
         [SerializeField]
         private bool insideOnForwardSide;
@@ -18,7 +19,28 @@ namespace A305.World
 
         public ShopInterior Room => room;
 
-        /// <summary>복습장처럼 목적지를 골라 방문할 때도 일반 출입문 전환을 사용한다.</summary>
+        /// <summary>길 안내가 끝나는 문 밖 지점. 문턱 감지 영역에 들어가기 전에 도착한다.</summary>
+        public Transform ApproachPoint
+        {
+            get
+            {
+                if (approachPoint == null)
+                {
+                    threshold = GetComponent<BoxCollider>();
+                    Vector3 outward = insideOnForwardSide ? -transform.forward : transform.forward;
+                    float halfDepth = threshold.size.z * Mathf.Abs(transform.lossyScale.z) / 2f;
+                    approachPoint = new GameObject("GuideApproachPoint").transform;
+                    approachPoint.SetParent(transform, false);
+                    approachPoint.SetPositionAndRotation(
+                        ThresholdCenter() + outward * (halfDepth + 1f),
+                        Quaternion.LookRotation(outward)
+                    );
+                }
+                return approachPoint;
+            }
+        }
+
+        /// <summary>대화 노트의 [다시 연습]처럼 목적지를 골라 방문할 때도 일반 출입문 전환을 사용한다.</summary>
         public bool TryEnter(PlayerMover player)
         {
             if (!isActiveAndEnabled)

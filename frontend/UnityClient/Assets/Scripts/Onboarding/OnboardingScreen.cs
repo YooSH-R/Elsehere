@@ -5,9 +5,9 @@ using A305.Player;
 using A305.Theme;
 using A305.Tutorial;
 using A305.Voice;
+using A305.World;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace A305.Onboarding
 {
@@ -21,6 +21,11 @@ namespace A305.Onboarding
         private const string ExistingAccountQuery = "existingAccount=true";
         private const string CheckingMessage = "접속 상태를 확인하고 있어요.";
         private const string WaitingMessage = "잠시만 기다려 주세요...";
+        private const string GradingMessage = "채점하고 있어요. 잠시만 기다려 주세요...";
+        private const string TranscribingMessage = "말한 내용을 받아 적고 있어요...";
+
+        // 웹 로딩 화면과 같은 문구
+        private const string EnteringSpaceMessage = "마을을 불러오는 중이에요.";
 
         [SerializeField]
         private ApiSettings apiSettings;
@@ -66,8 +71,18 @@ namespace A305.Onboarding
         )]
         private GuestReturnPanelView guestReturnPanel;
 
+        [SerializeField]
+        private GuestLevelTestLoginView guestLevelTestLogin;
+
+        [SerializeField]
+        [Tooltip(
+            "입구 화면 뒤 배경. 가운데 창이 뜨면 왼쪽 크림색 그라데이션 없이 흐린 마을만 보여 준다."
+        )]
+        private EntryBackdropView backdrop;
+
         private IOnboardingApi api;
         private OnboardingFlow flow;
+        private bool isEnteringSpace;
 
         private void Awake()
         {
@@ -141,8 +156,53 @@ namespace A305.Onboarding
 
             languagePanel.LanguageChosen += languageCode =>
                 Run(() => flow.ChooseLanguageAsync(languageCode));
-            levelTestPanel.SkipRequested += () => Run(flow.SkipLevelTestAsync);
+            ConnectLevelTestPanel();
+            guestLevelTestLogin.LoginRequested += () => BrowserRedirect.GoTo(api.GoogleLoginUrl);
+            guestLevelTestLogin.ContinueRequested += () => Run(flow.SkipLevelTestAsync);
+            guestLevelTestLogin.CloseRequested += () =>
+            {
+                flow.DismissGuestLevelTestLogin();
+                Render();
+            };
             levelSettingPanel.LevelConfirmed += level => Run(() => flow.SelectLevelAsync(level));
+        }
+
+        // 화면 04: 시작·건너뛰기·그만하기와 문항 [다음]·결과 [다음]은 서버를 부르고, 보기·답·들은 횟수는 테스트 상태만 바꾼다.
+        private void ConnectLevelTestPanel()
+        {
+            levelTestPanel.StartRequested += () => Run(flow.StartLevelTestAsync);
+            levelTestPanel.SkipRequested += () => Run(flow.SkipLevelTestAsync);
+            levelTestPanel.QuitRequested += () => Run(flow.QuitLevelTestAsync);
+            levelTestPanel.NextRequested += () =>
+                Run(flow.SubmitLevelTestAnswerAsync, SubmitWaitingMessage());
+            levelTestPanel.FinishRequested += () => Run(flow.ContinueAfterLevelTestAsync);
+            levelTestPanel.ChoiceSelected += choice => EditLevelTest(test => test.Choose(choice));
+            levelTestPanel.ListeningPlayed += () =>
+                EditLevelTest(test => test.RecordListeningPlay());
+            levelTestPanel.AnswerChanged += answer =>
+                EditLevelTest(test => test.ChangeAnswer(answer));
+            levelTestPanel.AnswerRecorded += wav =>
+                Run(() => flow.TranscribeLevelTestAnswerAsync(wav), TranscribingMessage);
+            levelTestPanel.NoticeRaised += notice => messageText.text = notice;
+        }
+
+        // 마지막 문항의 [다음]은 말하기 답을 AI가 판정하느라 몇 초 걸려 채점 중임을 알린다.
+        private string SubmitWaitingMessage()
+        {
+            return flow.LevelTest != null && flow.LevelTest.IsLastItem
+                ? GradingMessage
+                : WaitingMessage;
+        }
+
+        private void EditLevelTest(Action<LevelTestSession> edit)
+        {
+            if (flow.Screen != EntryScreen.LevelTest || flow.LevelTest == null)
+            {
+                return;
+            }
+
+            edit(flow.LevelTest);
+            levelTestPanel.Show(flow.LevelTest, flow.IsVoiceAgreed);
         }
 
         private void ShowGuestPanel()
@@ -199,6 +259,19 @@ namespace A305.Onboarding
             Render();
         }
 
+        // 장소 씬은 휴대폰에서 몇 초씩 걸린다. 한 번에 바꾸면 다 불러올 때까지 입구 화면이 멈춘 채 보이므로,
+        // 장소 이동처럼 화면을 덮고 문구·진행 막대를 보이며 겹쳐 불러온다. 서버 응답 뒤 다시 그려도 한 번만 들어간다.
+        private void EnterSpace(string sceneName)
+        {
+            if (isEnteringSpace)
+            {
+                return;
+            }
+
+            isEnteringSpace = true;
+            SpaceTravelCurtain.Travel(sceneName, EnteringSpaceMessage);
+        }
+
         // 재접속할 장소가 없거나, 서버가 알려 준 씬이 이 빌드의 Scene List에 없으면 기본 마을로 간다.
         private string WorldSceneName()
         {
@@ -215,15 +288,16 @@ namespace A305.Onboarding
             UiThemeSelection.Shared.Select(UiThemeCodes.Parse(flow.UiTheme));
             VoiceConsent.Shared.Set(flow.IsVoiceAgreed);
             messageText.text = flow.ErrorMessage ?? "";
+            backdrop.Show(EntryBackdropView.IsBehindWindow(flow.Screen));
             switch (flow.Screen)
             {
                 case EntryScreen.Tutorial:
-                    SceneManager.LoadScene(settings.TutorialSceneName);
+                    EnterSpace(settings.TutorialSceneName);
                     return;
                 case EntryScreen.World:
                     // 서버 단계가 튜토리얼 이후면 장소에서 튜토리얼 안내를 다시 띄우지 않는다.
                     TutorialState.MarkFinishedOnServer();
-                    SceneManager.LoadScene(WorldSceneName());
+                    EnterSpace(WorldSceneName());
                     return;
                 case EntryScreen.Login:
                     ShowOnly(loginPanel.gameObject);
@@ -247,6 +321,8 @@ namespace A305.Onboarding
                     break;
                 case EntryScreen.LevelTest:
                     ShowOnly(levelTestPanel.gameObject);
+                    levelTestPanel.Show(flow.LevelTest, flow.IsVoiceAgreed, flow.IsGuest);
+                    guestLevelTestLogin.Show(flow.GuestLevelTestLoginRequired);
                     break;
                 case EntryScreen.LevelSetting:
                     ShowOnly(levelSettingPanel.gameObject);
@@ -268,6 +344,7 @@ namespace A305.Onboarding
 
         private void ShowOnly(GameObject panel)
         {
+            guestLevelTestLogin.Show(false);
             connectionPanel.gameObject.SetActive(connectionPanel.gameObject == panel);
             guestReturnPanel.gameObject.SetActive(guestReturnPanel.gameObject == panel);
             loginPanel.gameObject.SetActive(loginPanel.gameObject == panel);

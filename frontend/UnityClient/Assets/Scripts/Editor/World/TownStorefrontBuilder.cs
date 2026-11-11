@@ -122,9 +122,9 @@ namespace A305.EditorTools.World
                 "BrickResidence2F",
                 new Vector3(7, .1f, 39),
                 270,
-                "메이플 식당",
-                "MAPLE DINER",
-                "BREAKFAST ALL DAY",
+                "메이플 버거",
+                "MAPLE BURGER",
+                "BURGERS · FRIES · MADE YOUR WAY",
                 "#A8402F",
                 "#F3E2C7",
                 "#FFFFFF",
@@ -185,7 +185,7 @@ namespace A305.EditorTools.World
             ),
             new Storefront(
                 "PoliceStation",
-                TaxiDestinationRequest.PoliceStation,
+                "POLICE_STATION",
                 "SageResidence1F",
                 new Vector3(-7, .1f, -20),
                 90,
@@ -226,7 +226,7 @@ namespace A305.EditorTools.World
         }
 
         /// <summary>기존 배치와 목적지 코드를 보존하며 식당의 한국어 표시만 갱신한다.</summary>
-        [MenuItem("Tools/A305/World/Rename Diner Labels To Restaurant")]
+        [MenuItem("Tools/A305/World/Rename Diner Labels To Burger Shop")]
         public static void RenameDinerLabels()
         {
             BuilderTools.ThrowIfPlaying();
@@ -258,9 +258,9 @@ namespace A305.EditorTools.World
             {
                 if (field.propertyType == SerializedPropertyType.String)
                     field.stringValue = field
-                        .stringValue.Replace("메이플 다이너예요", "메이플 식당이에요")
-                        .Replace("메이플 다이너는", "메이플 식당은")
-                        .Replace("메이플 다이너", "메이플 식당");
+                        .stringValue.Replace("메이플 다이너예요", "메이플 버거예요")
+                        .Replace("메이플 다이너는", "메이플 버거는")
+                        .Replace("메이플 다이너", "메이플 버거");
             }
             scriptFields.ApplyModifiedPropertiesWithoutUndo();
             foreach (
@@ -287,7 +287,7 @@ namespace A305.EditorTools.World
                     {
                         SerializedProperty place = places.GetArrayElementAtIndex(index);
                         if (place.FindPropertyRelative("code")?.stringValue == "DINER")
-                            place.FindPropertyRelative("displayName").stringValue = "메이플 식당";
+                            place.FindPropertyRelative("displayName").stringValue = "메이플 버거";
                     }
                     if (fields.ApplyModifiedPropertiesWithoutUndo())
                         PrefabUtility.RecordPrefabInstancePropertyModifications(component);
@@ -693,17 +693,8 @@ namespace A305.EditorTools.World
                 Post("StoolPost", stool, new Vector3(0, -.37f, 0), .04f, .7f, chrome);
                 Post("StoolFoot", stool, new Vector3(0, -.72f, 0), .18f, .03f, chrome);
             }
-            Treat("BakeryInterior", "DisplayCase", interior, new Vector3(-3.0f, 1.06f, -5.6f), 90);
-            Treat("BakedGoods", "ChocolateCake", interior, new Vector3(-3.0f, 1.2f, -5.6f));
-            Treat(
-                "BakeryInterior",
-                "CoffeeMachine",
-                interior,
-                new Vector3(-3.1f, 1.06f, -6.7f),
-                90
-            );
-            Treat("BakeryInterior", "Mug", interior, new Vector3(-2.75f, 1.06f, -3.0f));
-            Treat("BakeryInterior", "Mug", interior, new Vector3(-2.75f, 1.06f, -4.2f));
+            Treat("BakeryInterior", "TakeawayCup", interior, new Vector3(-2.75f, 1.06f, -3.0f));
+            Treat("BakeryInterior", "TakeawayCup", interior, new Vector3(-2.75f, 1.06f, -4.2f));
 
             foreach (float z in new[] { -2.8f, -5.6f })
             {
@@ -736,22 +727,9 @@ namespace A305.EditorTools.World
                     );
                 }
                 Treat("BakeryInterior", "Plate", interior, new Vector3(2.6f, .77f, z));
-                Treat("BakeryInterior", "Mug", interior, new Vector3(3.2f, .77f, z));
+                Treat("BakeryInterior", "TakeawayCup", interior, new Vector3(3.2f, .77f, z));
             }
-            WallBoard(
-                interior,
-                "MENU",
-                new Vector3(.6f, 2.85f, -7.7f),
-                2.6f,
-                Paint("MenuBoard", "#2F3A33")
-            );
-            WallText(
-                interior,
-                "PANCAKES · BURGERS\nAPPLE PIE · COFFEE",
-                new Vector3(.6f, 2.3f, -7.66f),
-                0,
-                .15f
-            );
+            ShopMenuBuilder.ApplyBurgerShop(interior.parent.gameObject);
         }
 
         // 뒤쪽 창구와 유리 칸막이, 줄서기 기둥, 오른쪽 현금 인출기, 왼쪽 대기 의자
@@ -880,7 +858,6 @@ namespace A305.EditorTools.World
                 );
             NorthBlockAssets.Place("Chair", interior, new Vector3(3.2f, 0, -1.6f), -90);
             NorthBlockAssets.Place("Chair", interior, new Vector3(3.2f, 0, -2.6f), -90);
-            NorthBlockAssets.Place("Plant", interior, new Vector3(3.2f, 0, -5.4f));
         }
 
         // 양쪽 꽃 계단 진열대, 가운데 화분 테이블, 뒤쪽 계산대

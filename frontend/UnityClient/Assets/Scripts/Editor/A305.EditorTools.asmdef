@@ -25,7 +25,8 @@
         "Unity.TextMeshPro",
         "UnityEngine.UI",
         "Unity.Animation.Rigging",
-        "Unity.Collections"
+        "Unity.Collections",
+        "A305.Ambience"
     ],
     "includePlatforms": [
         "Editor"

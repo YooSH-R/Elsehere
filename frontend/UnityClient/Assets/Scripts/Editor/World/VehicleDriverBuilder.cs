@@ -14,6 +14,71 @@ namespace A305.EditorTools.World
         private const string TownPath = "Assets/Scenes/Production/TownScene.unity";
         private const string SedanPath = "Assets/Prefabs/World/StreetLife/Sedan.prefab";
 
+        [MenuItem("Tools/A305/World/Apply Vehicle Seats")]
+        public static void ApplySeats()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+
+            var previousScenes = EditorSceneManager.GetSceneManagerSetup();
+            try
+            {
+                var scene = EditorSceneManager.OpenScene(TownPath);
+                Transform taxiCabin = BuilderTools
+                    .FindSingleInScene<TaxiRide>(scene)
+                    .transform.Find("PassengerCabin");
+                if (taxiCabin == null)
+                    throw new InvalidOperationException("택시의 좌석 구성이 필요합니다.");
+                TaxiCabinBuilder.ConfigureRearSeats(taxiCabin);
+
+                GameObject sedan = PrefabUtility.LoadPrefabContents(SedanPath);
+                try
+                {
+                    Transform cabin = sedan.transform.Find("PassengerCabin");
+                    if (cabin == null)
+                        cabin = BuilderTools.CreateEmpty(
+                            "PassengerCabin",
+                            sedan.transform,
+                            Vector3.zero,
+                            Quaternion.identity
+                        );
+                    // 같은 차체의 좌석 메시·재질·단어 연결을 재사용하고 기존 편집은 보존한다.
+                    foreach (
+                        string part in new[]
+                        {
+                            "DriverSeat",
+                            "DriverBack",
+                            "DriverHeadrest",
+                            "FrontPassengerSeat",
+                            "FrontPassengerBack",
+                            "FrontPassengerHeadrest",
+                            "RearSeat",
+                            "RearBack",
+                        }
+                    )
+                        if (cabin.Find(part) == null)
+                            CopyChild(taxiCabin.Find(part), cabin, part);
+                    TaxiCabinBuilder.ConfigureRearSeats(cabin);
+                    PrefabUtility.SaveAsPrefabAsset(sedan, SedanPath);
+                }
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(sedan);
+                }
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
+                AssetDatabase.SaveAssets();
+                Debug.Log("승용차 좌석을 추가하고 두 차량의 뒷좌석을 차체 안에 맞췄습니다.");
+            }
+            finally
+            {
+                if (previousScenes.Length > 0)
+                    EditorSceneManager.RestoreSceneManagerSetup(previousScenes);
+                else
+                    EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            }
+        }
+
         [MenuItem("Tools/A305/World/Adjust Driver Steering")]
         public static void AdjustSteering()
         {

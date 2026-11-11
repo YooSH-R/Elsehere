@@ -134,13 +134,98 @@ namespace A305.Dialogue.Tests
             int dispatched = 0;
             review.UserTurnAccepted += _ => accepted++;
             review.PoliceDispatchRequested += (_, __) => dispatched++;
+            review.TaxiDestinationChosen += _ => dispatched++;
             api.TurnResponse = Reply("Take me to the hotel.", "All right.", "ACTIVE");
             api.TurnResponse.PoliceDispatch = new PoliceDispatchData { PlaceCode = "HOTEL" };
+            api.TurnResponse.TaxiDestination = new TaxiDestinationData { PlaceCode = "HOTEL" };
             await review.StartAsync();
             await review.SendAsync("Take me to the hotel.");
             Assert.That(accepted, Is.Zero);
             Assert.That(dispatched, Is.Zero);
             Assert.That(review.ToRecord(null).UserUtterances, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task PracticeStart_UsesTheScenarioEndpointAndLeavesStoryActionsAlone()
+        {
+            var ids = new List<string>();
+            var practice = new ServerConversation(
+                CafeStaffCode,
+                "Mia",
+                api,
+                false,
+                practiceScenarioId: "CAFE_RECOMMEND",
+                practiceStart: requestId =>
+                {
+                    ids.Add(requestId);
+                    return Task.FromResult(api.StartResponse);
+                }
+            );
+            int notified = 0;
+            practice.UserTurnAccepted += _ => notified++;
+            practice.TaxiDestinationChosen += _ => notified++;
+            api.TurnResponse = Reply("Something not too sweet?", "Try our cold brew.", "ACTIVE");
+            api.TurnResponse.TaxiDestination = new TaxiDestinationData { PlaceCode = "HOTEL" };
+
+            await practice.StartAsync();
+            await practice.SendAsync("Something not too sweet?");
+
+            Assert.That(practice.IsPractice, Is.True);
+            Assert.That(ids, Has.Count.EqualTo(1));
+            Assert.That(ids[0], Is.Not.Empty);
+            Assert.That(api.Starts, Is.Empty, "장소 연습은 일반 대화 시작을 부르지 않습니다.");
+            Assert.That(api.Calls, Does.Not.Contain("GetSuggestWords"));
+            Assert.That(notified, Is.Zero, "이야기 퀘스트·택시 같은 마을 동작을 알리지 않습니다.");
+            Assert.That(practice.ConversationId, Is.EqualTo(ConversationId));
+        }
+
+        [Test]
+        public async Task PracticeStart_DoesNotTakeOverAnUnfinishedConversation()
+        {
+            api.Active = new ActiveConversation
+            {
+                ConversationId = 99,
+                Npc = new NpcSummary { NpcCode = CafeStaffCode },
+            };
+            var practice = new ServerConversation(
+                CafeStaffCode,
+                "Mia",
+                api,
+                false,
+                practiceScenarioId: "CAFE_RECOMMEND",
+                practiceStart: _ =>
+                    Task.FromException<ConversationStart>(
+                        new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중")
+                    )
+            );
+
+            await practice.StartAsync();
+
+            Assert.That(api.Ends, Is.Empty);
+            Assert.That(practice.ConversationId, Is.Null);
+            Assert.That(practice.StatusMessage, Does.Contain("진행 중인 대화"));
+        }
+
+        [Test]
+        public async Task PracticeEnd_SkipsOrdinaryFeedbackAndRecordsTheScenario()
+        {
+            var practice = new ServerConversation(
+                CafeStaffCode,
+                "Mia",
+                api,
+                false,
+                practiceScenarioId: "CAFE_RECOMMEND",
+                practiceStart: _ => Task.FromResult(api.StartResponse)
+            );
+            await practice.StartAsync();
+
+            ServerFeedback feedback = await practice.EndAsync();
+            DialogueRecord record = practice.ToRecord(feedback);
+
+            Assert.That(feedback, Is.Null);
+            Assert.That(api.DetailedRequestedFor, Is.Empty);
+            Assert.That(record.PracticeScenarioId, Is.EqualTo("CAFE_RECOMMEND"));
+            Assert.That(record.ReviewCardId, Is.Null);
         }
 
         [TestCase(true)]
@@ -249,6 +334,33 @@ namespace A305.Dialogue.Tests
             await conversation.SendAsync("Hello.");
 
             Assert.That(dispatched, Is.Empty);
+        }
+
+        // 택시 목적지는 서버의 의도 판정이 대화 문맥으로 고른다. Unity는 응답의 장소 코드를 그대로 택시에 전한다.
+        [Test]
+        public async Task TurnWithATaxiDestination_NotifiesThePlace()
+        {
+            var chosen = new List<string>();
+            conversation.TaxiDestinationChosen += place => chosen.Add(place);
+            api.TurnResponse = Reply("Go there, please.", "Sure, the bakery it is.", "ACTIVE");
+            api.TurnResponse.TaxiDestination = new TaxiDestinationData { PlaceCode = "BAKERY" };
+            await conversation.StartAsync();
+
+            await conversation.SendAsync("Go there, please.");
+
+            Assert.That(chosen, Is.EqualTo(new[] { "BAKERY" }));
+        }
+
+        [Test]
+        public async Task TurnWithoutATaxiDestination_DoesNotNotify()
+        {
+            var chosen = new List<string>();
+            conversation.TaxiDestinationChosen += place => chosen.Add(place);
+            await conversation.StartAsync();
+
+            await conversation.SendAsync("How long does it take?");
+
+            Assert.That(chosen, Is.Empty);
         }
 
         private const string CafeStaffCode = "CAFE_STAFF";
@@ -735,6 +847,31 @@ namespace A305.Dialogue.Tests
             await conversation.StartAsync();
             Assert.That(api.Starts[0].TravelContext, Is.Not.Null);
             Assert.That(api.Starts[0].TravelContext.WalkedMeters, Is.EqualTo(35));
+        }
+
+        [Test]
+        public async Task Start_SendsThePlaceWhereTheConversationHappens()
+        {
+            // 다른 매장에 들른 NPC가 아직 길이나 일터에 있는 줄 알지 않도록, 대화가 열린 장소를 서버에 알린다(CONV-01 placeCode).
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                ConversationInitiator.User,
+                npcOffDuty: true,
+                placeCode: "LAUNDROMAT"
+            );
+            api.StartErrors.Enqueue(
+                new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중인 대화가 있습니다.")
+            );
+            api.Active = new ActiveConversation { ConversationId = 41 };
+
+            await conversation.StartAsync();
+
+            Assert.That(api.Starts, Has.Count.EqualTo(2));
+            Assert.That(api.Starts[0].PlaceCode, Is.EqualTo("LAUNDROMAT"));
+            Assert.That(api.Starts[1].PlaceCode, Is.EqualTo("LAUNDROMAT"));
         }
 
         [Test]
@@ -2408,6 +2545,22 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task RequestHint_KeepsTheMeaningFromTheSameResponseWithoutAnotherRequest()
+        {
+            await conversation.StartAsync();
+            api.Hint = new HintData
+            {
+                TurnId = OpeningTurnId,
+                HintText = "For here, please.",
+                HintMeaningKo = "매장에서 먹을게요.",
+            };
+            await conversation.RequestHintAsync();
+            await conversation.RequestHintAsync();
+            Assert.That(conversation.HintMeaningKo, Is.EqualTo("매장에서 먹을게요."));
+            Assert.That(api.HintRequestedFor, Is.EqualTo(new[] { OpeningTurnId }));
+        }
+
+        [Test]
         public async Task RequestHint_WhenServerFails_ShowsReasonWithoutHint()
         {
             await conversation.StartAsync();
@@ -2545,7 +2698,8 @@ namespace A305.Dialogue.Tests
                 string npcCode,
                 string initiatedBy,
                 bool npcOffDuty,
-                NpcTravelContext npcTravelContext = null
+                NpcTravelContext npcTravelContext = null,
+                string placeCode = null
             )
             {
                 RequestId = requestId;
@@ -2553,6 +2707,7 @@ namespace A305.Dialogue.Tests
                 InitiatedBy = initiatedBy;
                 NpcOffDuty = npcOffDuty;
                 TravelContext = npcTravelContext;
+                PlaceCode = placeCode;
             }
 
             public string RequestId { get; }
@@ -2560,6 +2715,7 @@ namespace A305.Dialogue.Tests
             public string InitiatedBy { get; }
             public bool NpcOffDuty { get; }
             public NpcTravelContext TravelContext { get; }
+            public string PlaceCode { get; }
         }
 
         private sealed class TurnRequest
@@ -2689,12 +2845,20 @@ namespace A305.Dialogue.Tests
                 string npcCode,
                 string initiatedBy,
                 bool npcOffDuty,
-                NpcTravelContext npcTravelContext = null
+                NpcTravelContext npcTravelContext = null,
+                string placeCode = null
             )
             {
                 Calls.Add("Start");
                 Starts.Add(
-                    new StartRequest(requestId, npcCode, initiatedBy, npcOffDuty, npcTravelContext)
+                    new StartRequest(
+                        requestId,
+                        npcCode,
+                        initiatedBy,
+                        npcOffDuty,
+                        npcTravelContext,
+                        placeCode
+                    )
                 );
                 if (StartErrors.Count > 0)
                 {

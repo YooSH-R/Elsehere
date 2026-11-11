@@ -171,17 +171,6 @@ namespace A305.EditorTools.World
             }
             Kit("PictureSmallA", booths, new Vector3(SideWall, 1.85f, -2.8f), -90);
             FramedPrint(booths, new Vector3(SideWall, 1.9f, -5.6f), -90, "Botanical");
-            WallBoard(
-                "PieBoard",
-                booths,
-                new Vector3(SideWall, 2.6f, -4.2f),
-                -90,
-                "PIE OF THE DAY",
-                "APPLE · CHERRY",
-                1.6f,
-                .6f,
-                "#A8402F"
-            );
 
             Transform entrance = Zone("Entrance", space);
             Jukebox(entrance, new Vector3(2.6f, 0, -.48f), 180);
@@ -238,7 +227,6 @@ namespace A305.EditorTools.World
             DetergentBottles(washers, new Vector3(-3.63f, 1.6f, -2.65f), 90);
             PlainShelf(washers, new Vector3(-SideWall, 1.6f, -4.55f), 90);
             TowelStack(washers, new Vector3(-3.63f, 1.6f, -4.55f), 90);
-            Treat("HousePlants", "SnakePlant", washers, new Vector3(-3.3f, 0, -.55f));
 
             Transform back = Zone("BackCorner", space);
             DetergentVending(back, new Vector3(-3.3f, 0, -7.42f), 0);

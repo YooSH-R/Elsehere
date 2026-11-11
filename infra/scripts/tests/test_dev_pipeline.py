@@ -64,6 +64,59 @@ class ChildPipelineTests(unittest.TestCase):
         self.assertEqual(pipeline["variables"]["A305_DEPLOY_ENVIRONMENT"], "prod")
         self.assertEqual(pipeline["variables"]["A305_CHECK_INFRA"], "true")
 
+    def test_production_delivery_waits_for_database_upgrade_when_migrations_change(
+        self,
+    ):
+        pipeline = create_child_pipeline(
+            {
+                "checks": [],
+                "builds": ["backend"],
+                "base_commit": "a" * 40,
+                "changed_paths": [
+                    "backend/src/main/resources/db/migration/V27__new.sql"
+                ],
+            },
+            "123",
+            environment="prod",
+        )
+
+        self.assertEqual(pipeline["variables"]["A305_CHECK_DB_UPGRADE"], "true")
+        self.assertIn(
+            {"job": "backend:database-upgrade", "artifacts": False},
+            pipeline["prod:deliver"]["needs"],
+        )
+
+    def test_production_backend_only_change_skips_database_upgrade_check(self):
+        pipeline = create_child_pipeline(
+            {
+                "checks": [],
+                "builds": ["backend"],
+                "base_commit": "a" * 40,
+                "changed_paths": ["backend/src/main/java/Example.java"],
+            },
+            "123",
+            environment="prod",
+        )
+
+        self.assertEqual(pipeline["variables"]["A305_CHECK_DB_UPGRADE"], "false")
+        self.assertNotIn(
+            "backend:database-upgrade",
+            {need["job"] for need in pipeline["prod:deliver"]["needs"]},
+        )
+
+    def test_first_production_release_has_no_previous_database_to_upgrade(self):
+        pipeline = create_child_pipeline(
+            {"checks": [], "builds": ["backend"], "base_commit": None},
+            "123",
+            environment="prod",
+        )
+
+        self.assertEqual(pipeline["variables"]["A305_CHECK_DB_UPGRADE"], "false")
+        self.assertNotIn(
+            "backend:database-upgrade",
+            {need["job"] for need in pipeline["prod:deliver"]["needs"]},
+        )
+
     def test_large_asset_change_keeps_child_variables_small_without_losing_builds(self):
         pipeline = create_child_pipeline(
             {
@@ -206,7 +259,7 @@ class ChildPipelineTests(unittest.TestCase):
         )
 
 
-class DevelopmentDeliveryTests(unittest.TestCase):
+class DeliveryTests(unittest.TestCase):
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
@@ -242,6 +295,55 @@ class DevelopmentDeliveryTests(unittest.TestCase):
         return subprocess.CompletedProcess(
             ["git"], 0, stdout=f"{commit}\trefs/heads/dev\n".encode()
         )
+
+    def test_production_migration_requires_backup_capable_receiver(self):
+        self.state["environment"] = "prod"
+        with (
+            patch.dict(
+                "os.environ",
+                {
+                    "A305_DEPLOY_STATE": json.dumps(self.state),
+                    "A305_CHECK_DB_UPGRADE": "true",
+                },
+            ),
+            patch("dev_pipeline.verify_current_candidate"),
+            patch("dev_pipeline.server_request") as request,
+            self.assertRaisesRegex(ValueError, "configure production database backup"),
+        ):
+            dev_pipeline.deliver_pipeline(
+                self.repository, self.candidate, "main", "123", "prod"
+            )
+        request.assert_not_called()
+
+    def test_production_migration_requests_backup_and_saves_server_result(self):
+        self.state.update(environment="prod", database_backup_configured=True)
+        backup = "before-main-123-test.dump.cms"
+        result = {
+            "result": "deployed",
+            "candidate_commit": self.candidate,
+            "verified_database_backup": backup,
+        }
+        with (
+            patch.dict(
+                "os.environ",
+                {
+                    "A305_DEPLOY_STATE": json.dumps(self.state),
+                    "A305_CHECK_DB_UPGRADE": "true",
+                },
+            ),
+            patch("dev_pipeline.verify_current_candidate"),
+            patch("dev_pipeline.server_request", return_value=result),
+        ):
+            dev_pipeline.deliver_pipeline(
+                self.repository, self.candidate, "main", "123", "prod"
+            )
+        deployment = self.repository / "dist/deployment"
+        manifest = json.loads(
+            (deployment / "manifest.json").read_text(encoding="utf-8")
+        )
+        self.assertIs(manifest["verify_database_backup"], True)
+        result = json.loads((deployment / "result.json").read_text(encoding="utf-8"))
+        self.assertEqual(result["verified_database_backup"], backup)
 
     def test_invalid_web_package_cannot_start_image_builds(self):
         self.plan["builds"] = ["web"]

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from app.npc_prompt import MIDDLE
 from conftest import ok, stream
 
 CONFIGURATIONS = Path(__file__).resolve().parents[3] / "backend/src/main/resources/content/npc-configurations.json"
@@ -158,6 +159,15 @@ def test_with_a_profile_the_rules_do_not_tell_the_npc_to_say_it_is_not_sure(clie
     assert "Never end with only" in rules and "concrete next step" in rules
 
 
+def test_with_a_profile_the_npc_contacts_off_screen_people_in_the_same_reply(client, provider):
+    """NPC가 매니저·요리사·친구처럼 게임에 나오지 않는 사람에게 '연락해 볼게요'라고만 하고 끝나, 그 연락이 영영 오지 않았다.
+    연락이 필요하면 같은 대답 안에서 바로 하고 그 사람의 답을 전한다. 나중에 연락하겠다는 약속과 메시지 남기기는 하지 않는다."""
+    rules = system_of(reply_request(client, provider, {**NPC, "profile": profile_of("HOTEL_STAFF")})).split("## Character")[0]
+    assert "take a message" not in rules
+    assert "right now, in this reply" in rules and "pass on their answer" in rules
+    assert "Never promise to contact someone later" in rules
+
+
 @pytest.mark.parametrize("instruction", ["", "Ask what size they want."])
 def test_with_a_profile_this_turn_says_their_words_were_not_rude_unless_the_backend_said_so(client, provider, instruction):
     """무례를 못 참는 카페 사장이 판정기가 무례 아님으로 본 재촉("hurry up")에 정중히 말하라고 했다.
@@ -184,6 +194,38 @@ def test_every_level_asks_for_the_idioms_and_slang_a_local_really_uses(client, p
 
         assert "idioms" in system and "slang" in system, npc["id"]
         assert "No idioms" not in system and "No slang" not in system and "Skip the heavy slang" not in system, npc["id"]
+
+
+@pytest.mark.parametrize("level", [1, 2, 3])
+def test_every_level_points_to_the_characters_own_catchphrases(client, provider, level):
+    """말버릇은 긴 인격 칸 속 한 줄이라, 대답 길이를 정하는 학습 수준 문장에서 함께 가리키지 않으면 거의 쓰지 않는다
+    (대답 128개 중 8개, npc_voice_eval). 관용구를 넣으라는 문장이 인물 자신의 말버릇도 가리킨다."""
+    system = system_of(reply_request(client, provider, {**NPC, "profile": profile_of("CAFE_BARISTA")}, level=level))
+    level_part = system.split("## Learner level")[1].split("## This turn")[0]
+
+    assert "catchphrases" in level_part
+
+
+def test_this_turn_asks_for_an_unused_catchphrase_that_fits(client, provider):
+    """인격 칸·학습 수준 문장만으로는 말버릇이 대답 128개 중 10개였고, 대답 바로 앞 칸에서 한 번 더 말하면 18개였다
+    (같은 대화에서 되풀이 0, npc_voice_eval). 말버릇이 없는 인물에게는 이 줄을 넣지 않는다."""
+    with_phrases = profile_of("CAFE_BARISTA")
+    without_phrases = profile_of("CAFE_BARISTA")
+    del without_phrases["speechStyle"]["catchphrases"]
+
+    this_turn = system_of(reply_request(client, provider, {**NPC, "profile": with_phrases})).split("## This turn")[1]
+    plain_turn = system_of(reply_request(client, provider, {**NPC, "profile": without_phrases})).split("## This turn")[1]
+
+    assert "if one of your catchphrases fits this reply and you have not said it in this conversation yet, use it" in this_turn
+    assert "catchphrases" not in plain_turn
+
+
+def test_intermediate_level_rule_is_the_same_with_or_without_a_profile(client, provider):
+    """중급(S15P31A305-751)은 인격 카드가 있든 없든 같은 규칙으로 말한다. 경로마다 다르면 NPC에 따라 난이도가 달라진다."""
+    with_profile = system_of(reply_request(client, provider, {**NPC, "profile": profile_of("HOTEL_STAFF")}, level=2))
+    without_profile = system_of(reply_request(client, provider, NPC, level=2))
+
+    assert MIDDLE in with_profile and MIDDLE in without_profile
 
 
 @pytest.mark.parametrize(("path", "value"), [("name", None), ("nickname", "Mimi")])

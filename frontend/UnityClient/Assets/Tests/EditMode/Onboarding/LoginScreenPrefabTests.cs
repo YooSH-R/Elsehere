@@ -1,3 +1,7 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using TMPro;
 using UnityEditor;
@@ -13,6 +17,8 @@ namespace A305.Onboarding.Tests
     public sealed class LoginScreenPrefabTests
     {
         private const string PrefabPath = "Assets/Prefabs/Onboarding/EntryScreens.prefab";
+        private const string ConsentCatalogPath =
+            "backend/src/main/java/com/elsehere/auth/service/ConsentCatalog.java";
 
         // 시안 1px = 캔버스 1.2
         private const float Px = 1.2f;
@@ -29,6 +35,45 @@ namespace A305.Onboarding.Tests
 
         [TearDown]
         public void Close() => Object.DestroyImmediate(instance);
+
+        [Test]
+        public void LoginButtons_KeepMatchingIconAndTextColumnsCentredAsOneGroup()
+        {
+            login.gameObject.SetActive(true);
+            var google = (RectTransform)login.Find("GoogleButton/Content");
+            var guest = (RectTransform)login.Find("GuestButton/Content");
+            LayoutRebuilder.ForceRebuildLayoutImmediate(google);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(guest);
+            Canvas.ForceUpdateCanvases();
+            var googleIcon = (RectTransform)google.Find("LoginIcon");
+            var guestIcon = (RectTransform)guest.Find("LoginIcon");
+            var googleText = google.Find("Label").GetComponent<TMP_Text>();
+            var guestText = guest.Find("Label").GetComponent<TMP_Text>();
+            Assert.That(
+                guestIcon.anchoredPosition.x,
+                Is.EqualTo(googleIcon.anchoredPosition.x).Within(.1f)
+            );
+            Assert.That(
+                guestText.rectTransform.anchoredPosition.x,
+                Is.EqualTo(googleText.rectTransform.anchoredPosition.x).Within(.1f)
+            );
+            Assert.That(guestText.font, Is.SameAs(googleText.font));
+            Assert.That(guestText.fontSize, Is.EqualTo(googleText.fontSize));
+            foreach (RectTransform content in new[] { google, guest })
+            {
+                var icon = (RectTransform)content.Find("LoginIcon");
+                var label = (RectTransform)content.Find("Label");
+                float left = icon.localPosition.x - icon.rect.width / 2;
+                float right = label.localPosition.x + label.rect.width / 2;
+                Assert.That((left + right) / 2, Is.EqualTo(content.rect.center.x).Within(.1f));
+                float gap =
+                    label.localPosition.x
+                    - label.rect.width / 2
+                    - icon.localPosition.x
+                    - icon.rect.width / 2;
+                Assert.That(gap, Is.InRange(16f * Px, 24f * Px));
+            }
+        }
 
         [Test]
         public void Login_LiesOnTheTownWithTheCreamShadeInsteadOfACard()
@@ -114,6 +159,38 @@ namespace A305.Onboarding.Tests
                     "버튼 바탕 없음"
                 );
             }
+        }
+
+        // 웹 Nginx는 /문서/버전 주소만 백엔드로 넘겨, 버전 없는 /terms·/privacy는 404다.
+        // 로그인 전이라 약관 목록(AUTH-03)을 받지 않으므로 서버가 지금 받는 버전 주소를 직접 연다.
+        [Test]
+        public void LegalLinks_OpenTheDocumentVersionsTheServerServes()
+        {
+            var view = login.GetComponent<LoginPanelView>();
+            typeof(LoginPanelView)
+                .GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(view, null);
+            var opened = new List<string>();
+            view.DocumentRequested += opened.Add;
+            Transform links = login.Find("LegalLinks");
+
+            links.Find("TermsButton").GetComponent<Button>().onClick.Invoke();
+            links.Find("PrivacyButton").GetComponent<Button>().onClick.Invoke();
+
+            Assert.That(
+                opened,
+                Is.EqualTo(new[] { CurrentDocumentUrl("terms"), CurrentDocumentUrl("privacy") })
+            );
+        }
+
+        private static string CurrentDocumentUrl(string document)
+        {
+            string catalog = File.ReadAllText(
+                Path.Combine(Application.dataPath, "../../..", ConsentCatalogPath)
+            );
+            Match url = Regex.Match(catalog, "\"(/" + document + "/[^\"]+)\"");
+            Assert.That(url.Success, Is.True, document + " 문서의 지금 주소");
+            return url.Groups[1].Value;
         }
 
         private string Sprite(string path)

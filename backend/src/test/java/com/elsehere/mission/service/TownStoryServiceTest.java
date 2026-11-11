@@ -23,6 +23,70 @@ import org.junit.jupiter.api.Test;
 
 class TownStoryServiceTest {
   @Test
+  void bankAcceptsIndirectLocationRequestsAndAsksOnlyAboutMissingWithdrawalDetails() {
+    TownStory story = TownStory.start(8L);
+    story.accept(0, "DINER_STAFF", List.of("order_breakfast", "explain_spill"));
+    story.accept(1, "LAUNDROMAT_STAFF", List.of("ask_laundry", "ask_cost"));
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+
+    var context = service.context(8L, "BANK_STAFF").orElseThrow();
+    assertThat(context.goals().orElseThrow().state().intents())
+        .anySatisfy(
+            goal -> {
+              assertThat(goal.id()).isEqualTo("ask_atm");
+              assertThat(goal.desc()).contains("I'm looking for an ATM");
+            });
+
+    String reply =
+        context.replyInstruction(new JudgeResult.Intent("ask_atm", List.of("ask_atm"), null));
+    assertThat(reply)
+        .contains("Remaining objectives after this turn: ask_withdrawal.")
+        .contains("says how much they want to take out")
+        .contains("ask one short question about only the missing required detail")
+        .doesNotContain("I'm looking for an ATM");
+  }
+
+  @Test
+  void bakeryCardMakesQuantityAndRecipientAlternatives() {
+    TownStory story = TownStory.start(8L);
+    while (story.current() != TownStoryStage.BAKERY) {
+      story.accept(story.getStage(), story.current().npcCode(), story.current().goalIds());
+    }
+    story.resume();
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+
+    var goal = service.status(8L).steps().getFirst().goals().getFirst();
+
+    assertThat(goal.title()).isEqualTo("간식 고르기");
+    assertThat(goal.hint()).isEqualTo("간식 이름과 함께 개수나 받을 사람 중 하나 말하기");
+  }
+
+  @Test
+  void everyTownVisitNamesTheNpcBothInTownAndAway() {
+    TownStory story = TownStory.start(8L);
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+    FirstDayMission journey = mock(FirstDayMission.class);
+    when(firstDay.findById(8L)).thenReturn(Optional.of(journey));
+    String[] names = {
+      "Rosa", "Gus", "Henry", "Gus", "Tony", "Lily", "Tony", "Grace", "Gus", "Nina", "Max", "Linda"
+    };
+    for (String name : names) {
+      story.resume();
+      Npc owner = mock(Npc.class);
+      when(owner.getName()).thenReturn(name);
+      when(owner.getRoleLabel()).thenReturn("직원");
+      when(npcs.findByCode(story.current().npcCode())).thenReturn(Optional.of(owner));
+      for (String scene : List.of("TOWN", "HOME")) {
+        when(journey.getScene()).thenReturn(scene);
+        assertThat(service.status(8L).direction())
+            .as(story.current() + " from " + scene)
+            .contains(name);
+      }
+      story.accept(story.getStage(), story.current().npcCode(), story.current().goalIds());
+    }
+  }
+
+  @Test
   void flowerIntentAcceptsAGiftWithoutRequiringAFlowerVarietyOrHintWording() {
     TownStory story = TownStory.start(8L);
     for (int index = 0; index < TownStoryStage.FLOWERS.ordinal(); index++) {
@@ -33,15 +97,15 @@ class TownStoryServiceTest {
     when(stories.findById(8L)).thenReturn(Optional.of(story));
     var context = service.context(8L, "FLOWER_SHOP_STAFF").orElseThrow();
     var flower =
-        context.state().intents().stream()
+        context.goals().orElseThrow().state().intents().stream()
             .filter(intent -> intent.id().equals("choose_flower"))
             .findFirst()
             .orElseThrow();
     assertThat(flower.desc())
         .contains("flower variety is optional", "recipient OR a reason", "paraphrases", "pronouns")
         .doesNotContain("specific available flower");
-    assertThat(context.state().accumulateHistory()).isTrue();
-    assertThat(context.state().desc())
+    assertThat(context.goals().orElseThrow().state().accumulateHistory()).isTrue();
+    assertThat(context.goals().orElseThrow().state().desc())
         .contains("Never credit NPC lines, quoted examples, negatives or hypotheticals");
     assertThat(TownStoryStage.goalHint("choose_flower")).doesNotContain("roses", "어떤 꽃");
     story.accept(story.getStage(), "FLOWER_SHOP_STAFF", List.of("choose_flower"));
@@ -74,7 +138,7 @@ class TownStoryServiceTest {
 
     assertThat(context.instruction()).containsIgnoringCase("self-service");
     assertThat(context.instruction()).contains("Do not take the learner's clothes");
-    assertThat(context.state().intents().getFirst().desc())
+    assertThat(context.goals().orElseThrow().state().intents().getFirst().desc())
         .contains("Both, please.")
         .contains("No pickup or return time is required");
     assertThat(TownStoryStage.WASH.title()).doesNotContain("맡기");
@@ -104,7 +168,14 @@ class TownStoryServiceTest {
     TownStory story = TownStory.start(8L);
     when(stories.findById(8L)).thenReturn(Optional.of(story));
     for (TownStoryStage stage : TownStoryStage.values()) {
-      assertThat(service.context(8L, stage.npcCode()).orElseThrow().state().accumulateHistory())
+      assertThat(
+              service
+                  .context(8L, stage.npcCode())
+                  .orElseThrow()
+                  .goals()
+                  .orElseThrow()
+                  .state()
+                  .accumulateHistory())
           .as(stage.name())
           .isTrue();
       story.accept(story.getStage(), stage.npcCode(), stage.goalIds());
@@ -125,7 +196,7 @@ class TownStoryServiceTest {
   void otherStaffSendTheVisitorToTheCurrentStaff() {
     when(stories.findById(8L)).thenReturn(Optional.of(TownStory.start(8L)));
 
-    FirstDayMissionService.Context bakery = service.context(8L, "BAKERY_STAFF").orElseThrow();
+    QuestTalk bakery = service.context(8L, "BAKERY_STAFF").orElseThrow();
 
     assertThat(bakery.instruction())
         .contains("the diner", "talk to Rosa", "instead of saying you do not know");
@@ -213,15 +284,16 @@ class TownStoryServiceTest {
   void onlyTheCurrentStaffReceivesTheStoryObjectives() {
     when(stories.findById(8L)).thenReturn(Optional.of(TownStory.start(8L)));
 
-    FirstDayMissionService.Context diner = service.context(8L, "DINER_STAFF").orElseThrow();
-    FirstDayMissionService.Context bank = service.context(8L, "BANK_STAFF").orElseThrow();
-    assertThat(diner.state().intents())
+    QuestTalk diner = service.context(8L, "DINER_STAFF").orElseThrow();
+    QuestTalk bank = service.context(8L, "BANK_STAFF").orElseThrow();
+    assertThat(diner.goals().orElseThrow().state().intents())
         .extracting(intent -> intent.id())
         .containsExactly("order_breakfast");
-    assertThat(diner.state().intents().getFirst().desc()).containsIgnoringCase("breakfast");
-    assertThat(diner.state().desc()).containsIgnoringCase("spill");
+    assertThat(diner.goals().orElseThrow().state().intents().getFirst().desc())
+        .containsIgnoringCase("breakfast");
+    assertThat(diner.goals().orElseThrow().state().desc()).containsIgnoringCase("spill");
     assertThat(diner.instruction()).containsIgnoringCase("spill");
-    assertThat(bank.state()).isNull();
+    assertThat(bank).isInstanceOf(QuestTalk.Guide.class);
   }
 
   @Test
@@ -239,7 +311,14 @@ class TownStoryServiceTest {
       var current = story.current();
       assertThat(service.context(8L, current.npcCode()).orElseThrow().instruction())
           .containsIgnoringCase(situation);
-      assertThat(service.context(8L, current.npcCode()).orElseThrow().state().intents())
+      assertThat(
+              service
+                  .context(8L, current.npcCode())
+                  .orElseThrow()
+                  .goals()
+                  .orElseThrow()
+                  .state()
+                  .intents())
           .allSatisfy(intent -> assertThat(intent.desc()).containsIgnoringCase("learner"));
       story.accept(story.getStage(), current.npcCode(), current.goalIds());
     }
@@ -254,7 +333,7 @@ class TownStoryServiceTest {
       if (story.isPaused()) {
         story.resume();
       }
-      FirstDayMissionService.Context context = service.context(8L, stage.npcCode()).orElseThrow();
+      QuestTalk context = service.context(8L, stage.npcCode()).orElseThrow();
 
       String reply =
           context.replyInstruction(new JudgeResult.Intent(null, java.util.List.of(), null));

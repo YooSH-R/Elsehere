@@ -64,6 +64,7 @@ namespace A305.EditorTools.Dialogue
             Waiting(conversation.Find("History/Wait"));
             HelpCards(root.transform.Find("HelpPanel"));
             DialogueTranslationBuilder.SetUp(root);
+            DialogueSuggestionsBuilder.SetUp(root);
         }
 
         // 코랄 이름표 위의 NPC 이름, 그 옆 호감도, 오른쪽 끝의 [다시 시도]·[대화 종료]
@@ -247,10 +248,11 @@ namespace A305.EditorTools.Dialogue
         internal static void ToolRow(Transform tools)
         {
             Row(tools);
-            Ghost(tools.Find("SubtitleButton"), "자막 끔", UiIcon.None, 108);
+            Ghost(tools.Find("SubtitleButton"), "자막 켜기", UiIcon.None, 108);
             Ghost(tools.Find("ReplayButton"), "다시 듣기", UiIcon.Replay, 128);
             Ghost(tools.Find("MeaningButton"), "뜻", UiIcon.Meaning, 80);
-            Ghost(tools.Find("HintButton"), "힌트", UiIcon.Hint, 92);
+            if (tools.Find("HintButton") != null)
+                Ghost(tools.Find("HintButton"), "힌트", UiIcon.Hint, 92);
             Ghost(tools.Find("ExampleButton"), "예시 문장", UiIcon.Example, 128);
             foreach (
                 string name in new[]
@@ -262,7 +264,7 @@ namespace A305.EditorTools.Dialogue
                     "ExampleButton",
                 }
             )
-                tools.Find(name).SetAsLastSibling();
+                tools.Find(name)?.SetAsLastSibling();
             Transform more = tools.Find("MoreButton");
             if (more != null)
                 Object.DestroyImmediate(more.gameObject);

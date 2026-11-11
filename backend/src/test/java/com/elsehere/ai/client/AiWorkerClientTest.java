@@ -280,14 +280,14 @@ class AiWorkerClientTest {
   }
 
   @Test
-  @DisplayName("대답 상대인 학습자의 닉네임과 캐릭터 기본형을 learner로 보낸다")
-  void reply_sendsLearnerNicknameAndAvatarType() {
+  @DisplayName("대답 상대인 학습자의 닉네임·캐릭터 기본형과 고른 말 빠르기를 learner로 보낸다")
+  void reply_sendsLearnerNicknameAvatarTypeAndSpeechSpeed() {
     respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
 
-    client.reply(TRACE, NPC, null, List.of(), "Hello", "", 2, new WorkerLearner("Sun", "F"));
+    client.reply(TRACE, NPC, null, List.of(), "Hello", "", 2, new WorkerLearner("Sun", "F", 1.3));
 
     assertThat(received.get("/v1/npc/reply").body())
-        .contains("\"learner\":{\"nickname\":\"Sun\",\"avatar_type\":\"F\"}");
+        .contains("\"learner\":{\"nickname\":\"Sun\",\"avatar_type\":\"F\",\"speech_speed\":1.3}");
   }
 
   @Test
@@ -573,7 +573,7 @@ class AiWorkerClientTest {
         "application/json",
         "{\"text\": \"I want a latte\", \"audio_s\": 1.2, \"usage\": [{\"step\": \"stt\"}]}");
 
-    SttResult result = client.transcribe(TRACE, new byte[] {1, 2, 3}, "audio/wav", null);
+    SttResult result = client.transcribe(TRACE, new byte[] {1, 2, 3}, "audio/wav", null, List.of());
 
     assertThat(result.text()).isEqualTo("I want a latte");
     assertThat(result.audioS()).isEqualTo(1.2);
@@ -582,7 +582,8 @@ class AiWorkerClientTest {
     assertThat(request.body())
         .contains("Content-Disposition: form-data; name=\"file\"")
         .contains("Content-Type: audio/wav")
-        .doesNotContain("name=\"npc_line\"");
+        .doesNotContain("name=\"npc_line\"")
+        .doesNotContain("name=\"scene_words\"");
   }
 
   @Test
@@ -590,12 +591,26 @@ class AiWorkerClientTest {
   void transcribe_withNpcLine_sendsNpcLinePart() {
     respond("/v1/stt", 200, "application/json", "{\"text\": \"Your walking is weird.\"}");
 
-    client.transcribe(TRACE, new byte[] {1}, "audio/wav", "I'm just taking a walk, not running.");
+    client.transcribe(
+        TRACE, new byte[] {1}, "audio/wav", "I'm just taking a walk, not running.", List.of());
 
     assertThat(received.get("/v1/stt").body())
         .contains(
             "Content-Disposition: form-data; name=\"npc_line\"\r\n\r\n"
                 + "I'm just taking a walk, not running.\r\n");
+  }
+
+  @Test
+  @DisplayName("장면 단어가 있으면 scene_words 부분에 JSON 배열로 함께 보내고, 없으면 보내지 않는다")
+  void transcribe_withSceneWords_sendsSceneWordsPart() {
+    respond("/v1/stt", 200, "application/json", "{\"text\": \"Iced Americano, please.\"}");
+
+    client.transcribe(TRACE, new byte[] {1}, "audio/wav", null, List.of("Mia", "Iced Americano"));
+
+    assertThat(received.get("/v1/stt").body())
+        .contains(
+            "Content-Disposition: form-data; name=\"scene_words\"\r\n\r\n"
+                + "[\"Mia\",\"Iced Americano\"]\r\n");
   }
 
   @Test

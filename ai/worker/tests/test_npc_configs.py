@@ -387,6 +387,44 @@ def test_the_service_npcs_each_have_a_voice_that_fits_the_character():
     }
 
 
+def test_the_service_npcs_fill_the_fields_that_make_them_individual():
+    """학습 수준 규칙이 대답 길이를 정해 말 길이로는 인물이 갈리지 않는다. 대신 무엇을 말하고 어떻게 반응하는지에서
+    갈리도록, 스키마가 선택으로 둔 유머·말버릇·습관·두려움·지난 경험을 서비스 NPC마다 채운다(S15P31A305-750).
+    말버릇은 매 턴 쓰지 않으므로 여러 개를 두어 돌려 쓰게 한다."""
+    configs, _ = service_npcs()
+    missing = {}
+    for config in configs:
+        profile = config["npcProfile"]
+        speech, background = profile["speechStyle"], profile["background"]
+        gaps = [
+            field
+            for field, filled in [
+                ("humor", bool(speech.get("humor"))),
+                ("catchphrases", len(speech.get("catchphrases") or []) >= 3),
+                ("habits", len(profile.get("habits") or []) >= 2),
+                ("fears", len(profile.get("fears") or []) >= 1),
+                ("experiences", len(background["experiences"]) >= 1),
+            ]
+            if not filled
+        ]
+        if gaps:
+            missing[config["npcId"]] = gaps
+
+    assert missing == {}
+
+
+def test_each_npc_has_catchphrases_of_their_own():
+    """같은 말버릇을 여러 NPC가 쓰면 인물이 갈리지 않는다. 대소문자·문장부호를 빼고 같은 말은 한 NPC만 쓴다."""
+    configs, _ = service_npcs()
+    owners: dict[str, list[str]] = {}
+    for config in configs:
+        for phrase in config["npcProfile"]["speechStyle"].get("catchphrases") or []:
+            key = "".join(ch for ch in phrase.lower() if ch.isalnum() or ch == " ").strip()
+            owners.setdefault(key, []).append(config["npcId"])
+
+    assert {phrase: npcs for phrase, npcs in owners.items() if len(npcs) > 1} == {}
+
+
 def test_the_backend_content_files_match_the_npc_sources():
     """백엔드 시드용 생성 파일(백엔드 연결은 별도 작업). ai/npcs를 고쳤으면 저장소 최상위에서 REGENERATE 명령으로 다시 만든다."""
     configs, scenarios = service_npcs()

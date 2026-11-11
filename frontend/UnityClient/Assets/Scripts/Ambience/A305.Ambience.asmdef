@@ -1,0 +1,22 @@
+{
+    "name": "A305.Ambience",
+    "rootNamespace": "A305.Ambience",
+    "references": [
+        "A305.Dialogue",
+        "A305.Npc",
+        "A305.Player",
+        "A305.World",
+        "A305.Weather",
+        "UnityEngine.UI",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

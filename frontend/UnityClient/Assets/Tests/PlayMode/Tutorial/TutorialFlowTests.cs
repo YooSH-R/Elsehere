@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using A305.Api;
@@ -12,6 +13,7 @@ using A305.World;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -111,6 +113,73 @@ namespace A305.Tutorial.PlayModeTests
                     );
                 return Task.FromResult(ApiTransportResponse.NetworkFailed());
             }
+        }
+
+        [UnityTest]
+        public IEnumerator SkippingTutorial_ShowsTheFirstQuestCardOnceTheServerSavesIt()
+        {
+            // 건너뛰면 오늘의 목표(퀘스트 카드) 안내를 보지 못한다. 서버가 건너뛰기 저장과 함께 첫 퀘스트를 시작하므로,
+            // 장소를 옮기거나 대화하지 않아도 작은 퀘스트 알약 대신 할 일을 담은 퀘스트 카드가 바로 보여야 한다.
+            var previousFactory = ApiSettings.EditorClientFactory;
+            var transport = new QuestStartingTutorialTransport();
+            ApiSettings.EditorClientFactory = _ => new ApiClient("", transport);
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
+                yield return null;
+                yield return WaitUntil(() => transport.VisitCalls > 0);
+                FirstDayMissionView mission = Single<FirstDayMissionView>();
+
+                TutorialGuideView guideView = Single<TutorialGuideView>();
+                Click(guideView, "SkipButton");
+                Click(guideView, "ConfirmSkipButton");
+                yield return WaitUntil(() => transport.TutorialFinished);
+                float deadline = Time.realtimeSinceStartup + 3f;
+                while (IsQuestIcon(mission) && Time.realtimeSinceStartup < deadline)
+                    yield return null;
+
+                Assert.That(
+                    IsQuestIcon(mission),
+                    Is.False,
+                    "건너뛰기를 저장한 뒤에도 작은 퀘스트 알약만 보입니다."
+                );
+                Assert.That(mission.QuestCardRect.gameObject.activeInHierarchy, Is.True);
+            }
+            finally
+            {
+                ApiSettings.EditorClientFactory = previousFactory;
+            }
+        }
+
+        private static bool IsQuestIcon(FirstDayMissionView mission) =>
+            mission.QuestCardRect.name == "QuestIcon";
+
+        private sealed class QuestStartingTutorialTransport : IApiTransport
+        {
+            public int VisitCalls { get; private set; }
+            public bool TutorialFinished { get; private set; }
+
+            public Task<ApiTransportResponse> SendAsync(ApiTransportRequest request)
+            {
+                if (request.Url.EndsWith("/tutorial/skip"))
+                {
+                    TutorialFinished = true;
+                    return Received("{\"onboardingStep\":\"DONE\"}");
+                }
+                if (request.Url == "/api/v1/missions/first-day/visit")
+                {
+                    VisitCalls++;
+                    // 서버는 튜토리얼 저장과 함께 첫 퀘스트를 시작한다.
+                    string started = TutorialFinished ? "true" : "false";
+                    return Received($"{{\"started\":{started},\"completed\":false,\"steps\":[]}}");
+                }
+                if (request.Url.EndsWith("/game-clock/beats"))
+                    return Received("{\"day\":1,\"minuteOfDay\":480,\"paused\":false}");
+                return Task.FromResult(ApiTransportResponse.NetworkFailed());
+            }
+
+            private static Task<ApiTransportResponse> Received(string body) =>
+                Task.FromResult(ApiTransportResponse.Received(200, body));
         }
 
         [UnityTest]
@@ -579,17 +648,13 @@ namespace A305.Tutorial.PlayModeTests
             Assert.That(coachMark.IsNextShowing, Is.False);
             Assert.That(coachMark.CaptionText, Does.Contain("정해진 흐름"));
             Assert.That(coachMark.CaptionRect.Overlaps(coachMark.Hole), Is.False);
-            Assert.That(
-                coachMark.SpotlightTargets,
-                Does.Contain(
-                    panel
-                        .GetComponentsInChildren<Button>(true)
-                        .Single(button => button.name == "HintButton")
-                        .transform
-                )
-            );
+            Button hint = panel
+                .GetComponentsInChildren<Button>(true)
+                .Single(button => button.name == "HintButton");
+            Assert.That(coachMark.SpotlightTargets, Does.Contain(hint.transform));
 
-            Click(panel, "HintButton");
+            Assert.That(input.text, Is.Empty);
+            ClickAtScreenCenter(hint);
             yield return null;
             Assert.That(input.text, Does.Contain("Nice to meet you"));
             Click(panel, "SendButton");
@@ -971,6 +1036,32 @@ namespace A305.Tutorial.PlayModeTests
                 $"{buttonName}이 보이지 않습니다."
             );
             button.onClick.Invoke();
+        }
+
+        // 코치 마크의 어두운 영역이 클릭을 가로채는지 확인하려면 실제 버튼 좌표를 눌러야 한다.
+        private static void ClickAtScreenCenter(Button button)
+        {
+            Canvas.ForceUpdateCanvases();
+            var rect = (RectTransform)button.transform;
+            var pointer = new PointerEventData(EventSystem.current)
+            {
+                position = RectTransformUtility.WorldToScreenPoint(
+                    null,
+                    rect.TransformPoint(rect.rect.center)
+                ),
+            };
+            var hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(pointer, hits);
+            Assert.That(hits, Is.Not.Empty, "힌트 버튼 위치에 클릭을 받는 UI가 없습니다.");
+
+            GameObject hit = hits[0].gameObject;
+            GameObject clicked = ExecuteEvents.GetEventHandler<IPointerClickHandler>(hit);
+            Assert.That(
+                clicked,
+                Is.EqualTo(button.gameObject),
+                $"{hit.name}이 힌트 클릭을 막습니다."
+            );
+            ExecuteEvents.Execute(clicked, pointer, ExecuteEvents.pointerClickHandler);
         }
 
         // 대화·대화 노트 위에 남긴 [건너뛰기] 카드는 그대로 두고, 코치 마크 설명 말풍선이 그 카드를 피해 놓인다.

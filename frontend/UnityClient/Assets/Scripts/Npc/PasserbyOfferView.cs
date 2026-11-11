@@ -33,6 +33,13 @@ namespace A305.Npc
         private Button acceptButton;
 
         [SerializeField]
+        private TMP_Text acceptLabel;
+
+        [SerializeField]
+        [Tooltip("대화하기 버튼의 E 글자 뒤에 놓는 키보드 키 모양")]
+        private RectTransform acceptKeyHint;
+
+        [SerializeField]
         private Button declineButton;
 
         [SerializeField]
@@ -75,7 +82,7 @@ namespace A305.Npc
 
         public void ShowMealWaitPrompt(object requester, string remaining, Action stand)
         {
-            ShowTalkPrompt(requester, "일어서기", null, stand);
+            ShowTalkPrompt(requester, "일어서기", null, stand, showTalkIcon: false);
             if (mealWaitBadge == null)
             {
                 mealWaitBadge = Instantiate(
@@ -88,14 +95,14 @@ namespace A305.Npc
                 var theme = talkButton.GetComponent<ThemedElement>();
                 if (theme != null && theme.Catalog != null)
                 {
-                    (
-                        mealWaitBadge.GetComponent<ThemedElement>()
-                        ?? mealWaitBadge.AddComponent<ThemedElement>()
-                    ).Use(theme.Catalog, UiThemeRole.Card);
-                    (
-                        mealWaitLabel.GetComponent<ThemedElement>()
-                        ?? mealWaitLabel.gameObject.AddComponent<ThemedElement>()
-                    ).Use(theme.Catalog, UiThemeRole.Caption);
+                    var badgeTheme = mealWaitBadge.GetComponent<ThemedElement>();
+                    if (badgeTheme == null)
+                        badgeTheme = mealWaitBadge.AddComponent<ThemedElement>();
+                    badgeTheme.Use(theme.Catalog, UiThemeRole.Card);
+                    var labelTheme = mealWaitLabel.GetComponent<ThemedElement>();
+                    if (labelTheme == null)
+                        labelTheme = mealWaitLabel.gameObject.AddComponent<ThemedElement>();
+                    labelTheme.Use(theme.Catalog, UiThemeRole.Caption);
                 }
                 var size = mealWaitBadge.GetComponent<LayoutElement>();
                 if (size != null)
@@ -166,8 +173,9 @@ namespace A305.Npc
             SetOptionalText(remainingLabel, remaining);
             declineButton.gameObject.SetActive(canDecline);
             bool showKeyHints = !PlayerTouchControls.ShouldShowControls();
-            acceptButton.GetComponentInChildren<TMP_Text>(true).text =
-                PasserbyOfferText.AcceptLabel(showKeyHints);
+            acceptLabel.text = PasserbyOfferText.AcceptLabel(showKeyHints);
+            acceptKeyHint.gameObject.SetActive(showKeyHints);
+            SetTalkIcon(acceptButton, true);
             declineButton.GetComponentInChildren<TMP_Text>(true).text =
                 PasserbyOfferText.DeclineLabel(showKeyHints);
             panel.SetActive(true);
@@ -187,7 +195,9 @@ namespace A305.Npc
             );
             isEvent = true;
             eventHideAt = Time.unscaledTime + 5f;
-            acceptButton.GetComponentInChildren<TMP_Text>(true).text = "알겠어요";
+            acceptLabel.text = "알겠어요";
+            acceptKeyHint.gameObject.SetActive(false);
+            SetTalkIcon(acceptButton, false);
         }
 
         /// <summary>
@@ -229,21 +239,34 @@ namespace A305.Npc
         /// <param name="requester">말을 걸 NPC. 같은 NPC만 닫을 수 있다.</param>
         /// <param name="label">버튼 문구(<see cref="PasserbyOfferText.TalkLabel"/>)</param>
         /// <param name="remaining">게스트의 남은 대화 수(<see cref="PasserbyOfferText.RemainingConversations"/>). 없으면 null.</param>
-        public void ShowTalkPrompt(object requester, string label, string remaining, Action talk)
+        /// <param name="showTalkIcon">앉기·택시 타기처럼 대화가 아닌 동작은 false로 둔다.</param>
+        public void ShowTalkPrompt(
+            object requester,
+            string label,
+            string remaining,
+            Action talk,
+            bool showTalkIcon = true
+        )
         {
             talkPromptOwner = requester;
             onTalk = talk;
             isSignupPrompt = false;
             SetTalkLabel(label, !PlayerTouchControls.ShouldShowControls());
+            SetTalkIcon(talkButton, showTalkIcon);
             talkButton.interactable = true;
             SetTalkRemaining(remaining);
             talkPromptPanel.SetActive(true);
         }
 
         /// <summary>남은 대화 수 없이 버튼만 보인다. 택시 세우기처럼 NPC 대화가 아닌 동작에도 같은 자리를 쓴다.</summary>
-        public void ShowTalkPrompt(object requester, string label, Action talk)
+        public void ShowTalkPrompt(
+            object requester,
+            string label,
+            Action talk,
+            bool showTalkIcon = true
+        )
         {
-            ShowTalkPrompt(requester, label, null, talk);
+            ShowTalkPrompt(requester, label, null, talk, showTalkIcon);
         }
 
         /// <summary>
@@ -257,6 +280,7 @@ namespace A305.Npc
             onTalk = null;
             isSignupPrompt = false;
             SetTalkLabel(reason, false);
+            SetTalkIcon(talkButton, false);
             talkButton.interactable = false;
             SetTalkRemaining(null);
             talkPromptPanel.SetActive(true);
@@ -274,6 +298,7 @@ namespace A305.Npc
             onTalk = signupDialog.Show;
             isSignupPrompt = true;
             SetTalkLabel(label, !PlayerTouchControls.ShouldShowControls());
+            SetTalkIcon(talkButton, false);
             talkButton.interactable = true;
             SetTalkRemaining(note);
             talkPromptPanel.SetActive(true);
@@ -312,8 +337,16 @@ namespace A305.Npc
         private void SetTalkLabel(string caption, bool showKeyHint)
         {
             talkCaption = caption;
-            talkLabel.text = showKeyHint ? $"{caption}<space=20><size=85%>E</size>" : caption;
+            talkLabel.text = PasserbyOfferText.InteractionLabel(caption, showKeyHint);
             talkKeyHint.gameObject.SetActive(showKeyHint);
+        }
+
+        private static void SetTalkIcon(Button button, bool show)
+        {
+            // 그림만 끄면 테마 갱신 때 되살아나므로 테마의 아이콘 설정도 바꾼다.
+            var theme = button.GetComponent<ThemedElement>();
+            if (theme != null)
+                theme.SetIcon(show ? UiIcon.Talk : UiIcon.None);
         }
 
         private void SetTalkRemaining(string text)
@@ -333,6 +366,7 @@ namespace A305.Npc
         private void Awake()
         {
             talkLabel.OnPreRenderText += PositionTalkKeyHint;
+            acceptLabel.OnPreRenderText += PositionAcceptKeyHint;
             acceptButton.onClick.AddListener(() => onAccept?.Invoke());
             declineButton.onClick.AddListener(() => onDecline?.Invoke());
             talkButton.onClick.AddListener(() => onTalk?.Invoke());
@@ -343,40 +377,67 @@ namespace A305.Npc
         // 글자 크기 조정과 가운데 정렬이 끝난 뒤 E의 실제 위치에 맞춰 키 테두리를 놓는다.
         private void PositionTalkKeyHint(TMP_TextInfo textInfo)
         {
-            if (!talkKeyHint.gameObject.activeSelf || textInfo.characterCount == 0)
+            PositionKeyHint(talkLabel, talkKeyHint, textInfo);
+        }
+
+        private void PositionAcceptKeyHint(TMP_TextInfo textInfo)
+        {
+            PositionKeyHint(acceptLabel, acceptKeyHint, textInfo);
+        }
+
+        private static void PositionKeyHint(
+            TMP_Text label,
+            RectTransform keyHint,
+            TMP_TextInfo textInfo
+        )
+        {
+            if (!keyHint.gameObject.activeSelf || textInfo.characterCount == 0)
                 return;
             TMP_CharacterInfo key = textInfo.characterInfo[textInfo.characterCount - 1];
             Vector3 center = (key.bottomLeft + key.topRight) / 2;
-            talkKeyHint.position = talkLabel.transform.TransformPoint(center);
+            keyHint.position = label.transform.TransformPoint(center);
         }
 
         private void OnDestroy()
         {
             if (talkLabel != null)
                 talkLabel.OnPreRenderText -= PositionTalkKeyHint;
+            if (acceptLabel != null)
+                acceptLabel.OnPreRenderText -= PositionAcceptKeyHint;
         }
+
+        // ESC는 사건 알림이면 닫고, 제안이면 [거절]과 같다. ESC 목록(UiEscape)에 올려 나중에 연 창보다 먼저 닫히지 않게 한다.
+        private UiEscapeWindow offerEscape;
 
         private void Update()
         {
             if (IsEventShowing && Time.unscaledTime >= eventHideAt)
                 Hide(owner);
+            offerEscape ??= new UiEscapeWindow(
+                () =>
+                    owner != null
+                    && panel.activeInHierarchy
+                    && (
+                        IsEventShowing
+                        || (
+                            declineButton.gameObject.activeInHierarchy && declineButton.interactable
+                        )
+                    ),
+                () =>
+                {
+                    if (IsEventShowing)
+                        Hide(owner);
+                    else
+                        onDecline?.Invoke();
+                }
+            );
+            offerEscape.Watch();
             Keyboard keyboard = Keyboard.current;
             if (keyboard == null)
                 return;
             if (owner != null && panel.activeInHierarchy)
             {
-                if (IsEventShowing && keyboard.escapeKey.wasPressedThisFrame)
-                {
-                    Hide(owner);
-                    return;
-                }
-                if (
-                    keyboard.escapeKey.wasPressedThisFrame
-                    && declineButton.gameObject.activeInHierarchy
-                    && declineButton.interactable
-                )
-                    onDecline?.Invoke();
-                else if (keyboard.eKey.wasPressedThisFrame && acceptButton.interactable)
+                if (keyboard.eKey.wasPressedThisFrame && acceptButton.interactable)
                     onAccept?.Invoke();
                 return;
             }

@@ -20,6 +20,111 @@ namespace A305.EditorTools.Dialogue
     /// <summary>실제 NPC와 고정 대본으로 대화 구도·도움말 배치를 확인한다. Play·모델 호출 없음.</summary>
     public static class DialogueLayoutPreview
     {
+        public static void CaptureSuggestions()
+        {
+            DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
+            var content = new WordPreviewContent
+            {
+                PreviewLines = new[]
+                {
+                    DialogueLine.FromUser("I'd like an iced latte, please."),
+                    DialogueLine.FromNpc("Sure! For here or to go?", "드시고 가세요, 포장하세요?"),
+                    DialogueLine.FromUser("For here, please."),
+                    DialogueLine.FromNpc(
+                        "Of course. Would you like anything else?",
+                        "더 필요한 건 있으세요?"
+                    ),
+                },
+            };
+            view.Show(content);
+            string output = OutputFolder();
+            SelectTheme(UiThemeId.Jelly);
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "suggestions-hidden.png"),
+                1920,
+                1080
+            );
+            Invoke(view, "PressHint");
+            RenderThemes(camera, view, eye, face, output, "suggestions-visible");
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "suggestions-short.png"),
+                844,
+                390
+            );
+            view.SetReviewReference(
+                "분실한 파란 가방을 카페 직원에게 물어보고, 가방의 특징을 설명해 보세요.\n\n이번에 써 볼 표현\nHas anyone turned in a blue bag?\n파란 가방 맡겨진 거 있나요?"
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "suggestions-review.png"),
+                1920,
+                1080
+            );
+        }
+
+        public static void CaptureFourLines()
+        {
+            DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
+            view.Show(
+                new WordPreviewContent
+                {
+                    PreviewLines = new[]
+                    {
+                        DialogueLine.FromNpc(
+                            "Good morning! What can I get for you?",
+                            "안녕하세요! 무엇을 드릴까요?"
+                        ),
+                        DialogueLine.FromUser("I'd like an iced latte, please."),
+                        DialogueLine.FromNpc(
+                            "Sure! For here or to go?",
+                            "좋아요! 드시고 가세요, 포장하세요?"
+                        ),
+                        DialogueLine.FromUser("For here, please."),
+                        DialogueLine.FromNpc(
+                            "Of course. Would you like anything else?",
+                            "그럼요. 더 필요한 건 있으세요?"
+                        ),
+                    },
+                }
+            );
+            typeof(DialoguePanelView)
+                .GetMethod("ToggleMeaning", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(view, null);
+            SelectTheme(UiThemeId.Jelly);
+            string output = OutputFolder();
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "four-lines-desktop.png"),
+                1920,
+                1080,
+                showLatest: true
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "four-lines-short.png"),
+                844,
+                390,
+                showLatest: true
+            );
+        }
+
         public static void CaptureTranslation()
         {
             DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
@@ -44,6 +149,56 @@ namespace A305.EditorTools.Dialogue
                 Path.Combine(output, "translation-portrait.png"),
                 900,
                 1400
+            );
+            // 길게 말한 표현은 카드가 문장에 맞춰 커져 두 번째 줄부터 잘리지 않는지 본다.
+            content.UserTranslation =
+                "You have no conscience, do you? I should've just left you to die. "
+                + "What were you even thinking back there?";
+            view.Refresh();
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "translation-long-wide.png"),
+                1920,
+                1080
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "translation-long-portrait.png"),
+                900,
+                1400
+            );
+            // 카드 상한보다 긴 표현은 오른쪽 막대가 보이고, 끝까지 내리면 마지막 줄이 보인다.
+            content.UserTranslation =
+                "You have no conscience, do you? I should've just left you to die. "
+                + "What were you even thinking back there? I waited for you at the bus stop "
+                + "for almost an hour in the rain, and you didn't even call me once. "
+                + "Next time, please tell me before you change your plans, because I really "
+                + "worried about you and I almost called the police.";
+            view.Refresh();
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "translation-overflow-top.png"),
+                1920,
+                1080
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "translation-overflow-end.png"),
+                1920,
+                1080,
+                showLatest: true
             );
         }
 
@@ -127,7 +282,7 @@ namespace A305.EditorTools.Dialogue
         }
 
         /// <summary>
-        /// [자막]을 끄고 켠 NPC 대사를 세 테마로 찍는다. 끄면 NPC 대사가 단어마다 회색 막대로 가려지고 [자막 끔]이 반투명, 켜면 대사와 강조색 [자막 켬]이 보인다.
+        /// [자막]을 끄고 켠 NPC 대사를 세 테마로 찍는다. 끄면 NPC 대사가 단어마다 회색 막대로 가려지고 [자막 켜기]가 반투명, 켜면 대사와 강조색 [자막 끄기]가 보인다.
         /// 자막을 끈 채 대답을 기다리는 화면도 찍어, 로딩 카드 위로 지난 대사의 막대가 비치지 않는지 본다.
         /// 이 기기의 자막 설정은 찍은 뒤 되돌린다.
         /// </summary>
@@ -291,7 +446,8 @@ namespace A305.EditorTools.Dialogue
             Vector3 face,
             string path,
             int width,
-            int height
+            int height,
+            bool showLatest = false
         )
         {
             var target = new RenderTexture(width, height, 24);
@@ -323,6 +479,9 @@ namespace A305.EditorTools.Dialogue
             // Editor에서는 ScrollRect가 늘 스크롤할 것이 있다고 보므로, Play처럼 내용이 넘칠 때만 막대를 보인다.
             foreach (ScrollRect scroll in view.GetComponentsInChildren<ScrollRect>())
             {
+                if (showLatest)
+                    scroll.verticalNormalizedPosition = 0;
+                // 옮긴 스크롤 위치에 막대 손잡이도 맞춘다.
                 typeof(ScrollRect)
                     .GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic)
                     .Invoke(scroll, null);
@@ -366,7 +525,7 @@ namespace A305.EditorTools.Dialogue
                 "그럼요! 아이스 라떼는 드시고 가세요, 포장하세요?",
                 new[]
                 {
-                    new GlossaryWord(TurnId, "latte", "라떼"),
+                    new GlossaryWord(TurnId, "latte", "에스프레소에 우유를 넣은 커피(라테)"),
                     new GlossaryWord(TurnId, "to go", "포장해 가는"),
                     new GlossaryWord(TurnId, "go", "가다"),
                 }
@@ -383,27 +542,34 @@ namespace A305.EditorTools.Dialogue
             };
 
             public string UserTranslation { get; set; }
+            public IReadOnlyList<DialogueLine> PreviewLines { get; set; }
             public string NpcName => "Mia";
             public IReadOnlyList<DialogueLine> Lines =>
-                UserTranslation == null
-                    ? lines
-                    : new[]
-                    {
-                        DialogueLine.FromUser("카페 어디야?"),
-                        DialogueLine.FromNpc("It is on your right.", null),
-                    };
+                PreviewLines != null ? PreviewLines
+                : UserTranslation == null ? lines
+                : new[]
+                {
+                    DialogueLine.FromUser("카페 어디야?"),
+                    DialogueLine.FromNpc("It is on your right.", null),
+                };
             public DialogueLine LastNpcLine => Question;
             public bool IsGuided => false;
             public bool IsGuidedCompleted => false;
             public string SuggestedEnglish => null;
-            public string SuggestedKorean => null;
+            public string SuggestedKorean => "매장에서 먹을게요.";
             public string ExampleSentence => null;
             public bool IsBusy => false;
             public string StatusMessage => null;
             public DialogueWait Waiting { get; set; }
             public string RecoveryGuide => null;
             public bool CanRetry => false;
-            public IReadOnlyList<string> SuggestWords => new[] { "for here", "to go", "please" };
+            public IReadOnlyList<string> SuggestWords =>
+                new[]
+                {
+                    "for here — 매장에서 먹을게요",
+                    "to go — 포장해 주세요",
+                    "oat milk — 귀리 우유",
+                };
             public bool IsSuggestingWords => false;
             public bool CanSend => true;
             public bool HasMeaning => true;
@@ -411,7 +577,11 @@ namespace A305.EditorTools.Dialogue
             public IReadOnlyList<GlossaryData> LastNpcGlossary =>
                 new[]
                 {
-                    new GlossaryData { Text = "latte", MeaningKo = "라떼" },
+                    new GlossaryData
+                    {
+                        Text = "latte",
+                        MeaningKo = "에스프레소에 우유를 넣은 커피(라테)",
+                    },
                     new GlossaryData { Text = "to go", MeaningKo = "포장해 가는" },
                     new GlossaryData { Text = "go", MeaningKo = "가다" },
                 };
@@ -422,7 +592,7 @@ namespace A305.EditorTools.Dialogue
             public ConversationStanding Standing => null;
             public bool CanTalk => true;
             public bool CanReplaySpeech => true;
-            public bool SpeaksNpcLines => true;
+            public bool SpeaksNpcLines => PreviewLines == null;
             public bool IsNpcSpeechReady => true;
         }
     }

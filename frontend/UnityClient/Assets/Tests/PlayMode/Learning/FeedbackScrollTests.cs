@@ -28,6 +28,87 @@ namespace A305.Learning.PlayModeTests
         public void DestroyScreen() => Object.Destroy(instance);
 
         [UnityTest]
+        public IEnumerator EveryFeedbackSection_CanExpandAndRestoreWithoutLosingScroll()
+        {
+            yield return Show(
+                situationCount: 5,
+                summary: string.Join(" ", Enumerable.Repeat(Summary, 12))
+            );
+            foreach (FeedbackSection section in System.Enum.GetValues(typeof(FeedbackSection)))
+            {
+                view.SelectSection(section);
+                yield return null;
+                ScrollRect scroll = instance.GetComponentInChildren<ScrollRect>();
+                Vector2 initialSize = view.PanelRect.rect.size;
+                scroll.verticalNormalizedPosition = .35f;
+                var expand = instance
+                    .GetComponentsInChildren<Button>()
+                    .SingleOrDefault(button => button.name == "ExpandButton");
+                Assert.That(expand, Is.Not.Null, "모든 탭에 확대 버튼이 있어야 합니다.");
+                expand.onClick.Invoke();
+                yield return null;
+                Assert.That(view.PanelRect.rect.width, Is.GreaterThan(initialSize.x));
+                Assert.That(view.PanelRect.rect.height, Is.GreaterThan(initialSize.y));
+                if (scroll.content.rect.height > scroll.viewport.rect.height)
+                    Assert.That(
+                        scroll.verticalNormalizedPosition,
+                        Is.EqualTo(.35f).Within(.02f),
+                        section.ToString()
+                    );
+                Assert.That(view.CloseButtonRect.gameObject.activeInHierarchy, Is.True);
+                expand.onClick.Invoke();
+                yield return null;
+                Assert.That(view.PanelRect.rect.size.x, Is.EqualTo(initialSize.x).Within(1f));
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator NaturalSentence_ShowsOnceWithoutAFakeCorrectionCard()
+        {
+            const string sentence = "I have a reservation under Kim.";
+            foreach (string better in new string[] { null, sentence })
+            {
+                if (instance != null)
+                    Object.DestroyImmediate(instance);
+                instance = Object.Instantiate(
+                    AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath)
+                );
+                view = instance.GetComponentInChildren<FeedbackView>(true);
+                view.Show(
+                    ConversationFeedback.FromServer(
+                        "Jake",
+                        1,
+                        new ServerFeedback(
+                            new FeedbackData { Status = "DONE", Summary = "예약 확인" },
+                            new List<DetailedFeedbackItem>
+                            {
+                                new DetailedFeedbackItem
+                                {
+                                    UserText = sentence,
+                                    BetterText = better,
+                                    Reason = "예약자 이름을 자연스럽게 전달했어요.",
+                                },
+                            },
+                            null
+                        )
+                    ),
+                    new[] { DialogueLine.FromUser(sentence) }
+                );
+                view.SelectSection(FeedbackSection.Conversation);
+                view.SelectReview(0);
+                yield return null;
+                yield return null;
+                TMP_Text[] shown = instance
+                    .GetComponentsInChildren<TMP_Text>()
+                    .Where(text => text.gameObject.activeInHierarchy)
+                    .ToArray();
+                Assert.That(shown.Count(text => text.text == sentence), Is.EqualTo(1));
+                Assert.That(shown.Any(text => text.text == "이렇게 말해요"), Is.False);
+                Assert.That(shown.Any(text => text.text == "잘 표현했어요"), Is.True);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator ManySituations_AllRemainInTheScrollableContent()
         {
             yield return Show(situationCount: 5, summary: Summary);
@@ -60,10 +141,7 @@ namespace A305.Learning.PlayModeTests
             yield return Show(situationCount: 2, summary: longSummary);
             ScrollRect scroll = instance.GetComponentInChildren<ScrollRect>();
             Assert.That(scroll, Is.Not.Null);
-            Assert.That(
-                Field<TMP_Text>("bodyText").overflowMode,
-                Is.EqualTo(TextOverflowModes.Overflow)
-            );
+            Assert.That(SummaryText().overflowMode, Is.EqualTo(TextOverflowModes.Overflow));
             Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
             AssertSummaryShownWhole();
             scroll.verticalNormalizedPosition = 0;
@@ -72,7 +150,7 @@ namespace A305.Learning.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator FewSituationRows_KeepTheSummaryBelowThem()
+        public IEnumerator FewSituationRows_KeepTheWholeSummaryAboveThem()
         {
             yield return Show(situationCount: 2, summary: Summary);
 
@@ -124,15 +202,18 @@ namespace A305.Learning.PlayModeTests
             yield return null;
         }
 
-        // 요약 칸이 짧은 요약 글 전체를 담는지. 모자라면 앞부분만 보이거나 아무것도 보이지 않는다.
+        // 요약 카드가 요약 글 전체를 담는지. 모자라면 앞부분만 보이거나 아무것도 보이지 않는다.
         private void AssertSummaryShownWhole()
         {
-            TMP_Text body = Field<TMP_Text>("bodyText");
+            TMP_Text text = SummaryText();
             Canvas.ForceUpdateCanvases();
-            float needed = body.GetPreferredValues(body.text, body.rectTransform.rect.width, 0).y;
-            Assert.That(body.text, Does.Contain(Summary));
-            Assert.That(body.rectTransform.rect.height + 1f, Is.GreaterThanOrEqualTo(needed));
+            float needed = text.GetPreferredValues(text.text, text.rectTransform.rect.width, 0).y;
+            Assert.That(text.text, Does.Contain(Summary));
+            Assert.That(text.rectTransform.rect.height + 1f, Is.GreaterThanOrEqualTo(needed));
         }
+
+        private TMP_Text SummaryText() =>
+            Field<RectTransform>("summaryCard").Find("Text").GetComponent<TMP_Text>();
 
         private static string RowText(GameObject row) =>
             string.Join(" ", row.GetComponentsInChildren<TMP_Text>().Select(text => text.text));

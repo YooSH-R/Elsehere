@@ -1,6 +1,9 @@
 using System.Collections;
+using System.Linq;
+using System.Reflection;
 using A305.Player;
 using A305.Tutorial;
+using A305.World;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -37,11 +40,92 @@ namespace A305.Wayfinding.PlayModeTests
             GuideRoutePreference.ShowsRoute = savedShowsRoute;
         }
 
+        [UnityTearDown]
+        public IEnumerator LeaveShop()
+        {
+            if (ShopInterior.Occupied != null)
+                yield return SetOccupied(ShopInterior.Occupied, false);
+        }
+
+        [UnityTest]
+        public IEnumerator OccupiedShop_HidesOutdoorGuide_AndRestoresPendingDestinationOnExit()
+        {
+            yield return LoadTown();
+            GuideDestination.Shared.Show("HOTEL");
+            yield return new WaitForSeconds(LaidSeconds);
+            Assert.That(Route().enabled, Is.True);
+
+            ShopInterior diner = Object
+                .FindObjectsByType<ShopInterior>(FindObjectsSortMode.None)
+                .Single(room => room.PlaceCode == "DINER");
+            yield return SetOccupied(diner, true);
+            yield return null;
+            Assert.That(
+                Route().enabled,
+                Is.False,
+                "목적지가 다른 건물이어도 실내에서는 길을 숨깁니다."
+            );
+            Assert.That(Glow().activeSelf, Is.False);
+
+            GuideDestination.Shared.Show("CAFE");
+            yield return new WaitForSeconds(LaidSeconds);
+            Assert.That(
+                Route().enabled,
+                Is.False,
+                "실내에서 퀘스트 목적지가 바뀌어도 길을 숨깁니다."
+            );
+
+            yield return SetOccupied(diner, false);
+            yield return new WaitForSeconds(LaidSeconds);
+            Assert.That(
+                Route().enabled,
+                Is.True,
+                "밖으로 나오면 현재 목적지까지의 길을 다시 표시합니다."
+            );
+            Assert.That(Glow().activeSelf, Is.True);
+            Assert.That(
+                Flat(Glow().transform.position, Entrance("CAFE").position),
+                Is.LessThan(.01f)
+            );
+
+            GuideRoutePreference.ShowsRoute = false;
+            yield return SetOccupied(diner, true);
+            yield return SetOccupied(diner, false);
+            yield return new WaitForSeconds(LaidSeconds);
+            Assert.That(
+                Route().enabled,
+                Is.False,
+                "사용자가 꺼 둔 안내선을 입퇴장으로 다시 켜지 않습니다."
+            );
+        }
+
+        private static IEnumerator SetOccupied(ShopInterior room, bool occupied) =>
+            (IEnumerator)
+                typeof(ShopInterior)
+                    .GetMethod("SetOccupied", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .Invoke(room, new object[] { occupied });
+
         // 마을을 불러오는 데 대부분의 시간이 들어, 목적지를 바꿔 가며 한 번 불러온 마을에서 이어서 본다.
         [UnityTest]
         public IEnumerator Destination_LaysTheRoute_MovesWithANewOne_AndClears()
         {
             yield return LoadTown();
+
+            foreach (
+                string shop in new[]
+                {
+                    "DINER",
+                    "LAUNDROMAT",
+                    "BANK",
+                    "BARBER",
+                    "FLOWER_SHOP",
+                    "BAKERY",
+                    "HOME_STORE",
+                    "ARCADE",
+                    "POST_OFFICE",
+                }
+            )
+                Assert.That(Entrance(shop), Is.Not.Null, shop + " 출입문을 찾지 못했습니다.");
 
             GuideDestination.Shared.Show("HOTEL");
             yield return new WaitForSeconds(LaidSeconds);
@@ -77,6 +161,24 @@ namespace A305.Wayfinding.PlayModeTests
                 Is.LessThan(.5f),
                 "새 목적지로 길이 옮겨 가지 않습니다."
             );
+
+            foreach (string shop in new[] { "DINER", "LAUNDROMAT" })
+            {
+                GuideDestination.Shared.Show(shop);
+                yield return new WaitForSeconds(LaidSeconds);
+                Assert.That(Glow().activeSelf, Is.True, shop);
+                Assert.That(route.enabled, Is.True, shop);
+                Assert.That(
+                    Flat(Glow().transform.position, Entrance(shop).position),
+                    Is.LessThan(.01f),
+                    shop
+                );
+                Assert.That(
+                    Flat(route.GetPosition(route.positionCount - 1), Entrance(shop).position),
+                    Is.LessThan(.5f),
+                    shop
+                );
+            }
 
             GuideRoutePreference.ShowsRoute = false;
             yield return null;

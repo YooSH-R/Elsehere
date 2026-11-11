@@ -24,6 +24,9 @@ namespace A305.Npc
         /// <summary>플레이어에서 이 거리 안의 NPC만 이름표를 띄운다. 멀리 있는 NPC까지 띄우면 화면이 이름으로 덮인다.</summary>
         public const float ShowRadiusMeters = 8f;
 
+        /// <summary>[이웃]에서 찾는 NPC 이름 위에 다는 코랄 표시 글자</summary>
+        public const string TrackedLabel = "찾는 이웃";
+
         /// <param name="name">대본의 NPC 이름. 모르면 이름표를 띄우지 않는다.</param>
         /// <param name="roleLabel">대본의 역할 이름(예: 벨보이)</param>
         /// <param name="lifeRole">생활 데이터의 역할(STAFF·PASSERBY). 없으면 null</param>
@@ -47,9 +50,14 @@ namespace A305.Npc
         }
 
         /// <param name="isPlayerBusy">대화나 창 때문에 플레이어가 움직이지 못하는지. 그동안에는 이름표가 화면을 가리지 않게 숨긴다.</param>
-        public static bool IsShown(float metersFromPlayer, bool isPlayerBusy)
+        /// <param name="isTracked">[이웃]에서 찾는 NPC인지(<see cref="NpcTracking"/>). 멀리서도 알아보게 거리와 상관없이 띄운다.</param>
+        public static bool IsShown(
+            float metersFromPlayer,
+            bool isPlayerBusy,
+            bool isTracked = false
+        )
         {
-            return !isPlayerBusy && metersFromPlayer <= ShowRadiusMeters;
+            return !isPlayerBusy && (isTracked || metersFromPlayer <= ShowRadiusMeters);
         }
     }
 }

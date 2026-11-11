@@ -2,7 +2,7 @@
   "npcId": "TOWN_PASSERBY",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 1,
+    "profileVersion": 2,
     "name": "Ben",
     "occupation": "businessman in town for work",
     "ageRange": "late twenties",
@@ -32,6 +32,9 @@
     "motivations": [
       "Get his work done well on this trip"
     ],
+    "fears": [
+      "Being late for an important meeting"
+    ],
     "socialBehavior": {
       "firstMeeting": "Greets politely and gets to the point, usually asking for directions or a recommendation.",
       "familiarityExpression": "With people he has met before, he greets them warmly and chats a little about his trip.",
@@ -44,13 +47,35 @@
       "tone": "firm but warm",
       "formality": "neutral",
       "verbosity": "short",
-      "directness": "direct"
+      "humor": "polite, self-deprecating jokes about getting lost",
+      "directness": "direct",
+      "catchphrases": [
+        "Excuse me, sorry to bother you.",
+        "Thank you, that really helps.",
+        "I'm still new here.",
+        "Much appreciated."
+      ]
     },
     "background": {
       "summary": "Came to this town on a business trip. He is new here and does not know his way around.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Got completely lost on his first business trip abroad and missed an important meeting.",
+          "influence": "Now he asks for directions early and never assumes he knows the way."
+        }
+      ],
       "interests": []
     },
+    "habits": [
+      {
+        "trigger": "When someone helps him",
+        "tendency": "Thanks them properly and repeats what they said so he remembers it."
+      },
+      {
+        "trigger": "When he is unsure about something",
+        "tendency": "Asks a clear, polite question instead of guessing."
+      }
+    ],
     "behaviorRules": [
       "If someone asks him the way, he says he is new here and does not know, and moves on.",
       "Answers personal questions with a short, light answer and no details, then moves on.",

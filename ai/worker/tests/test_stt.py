@@ -24,12 +24,45 @@ def test_stt_filters_prompt_echo_and_sends_scene_words(client, provider):
     assert client.post("/v1/stt", files={"file": ("a.webm", b"x" * 100, "audio/webm")}).json()["text"] == "Muffin."
 
 
+def test_stt_sends_up_to_40_scene_words(client, provider):
+    # Spring은 닉네임·NPC 이름·같은 장소 NPC 이름·장소 단어·마을 단어를 보낸다. 카페는 31개라 30개 상한이면 마을 단어가 잘렸다 (S15P31A305-747)
+    provider.answers["stt"] = lambda b: httpx.Response(200, json=WHISPER_OK)
+    words = [f"word{i}" for i in range(1, 42)]
+    client.post("/v1/stt", files=AUDIO, data={"scene_words": ", ".join(words)})
+    prompt = provider.last_stt.decode()
+    assert "word39, word40." in prompt and "word41" not in prompt
+
+
 def test_stt_prompt_ends_with_npc_line(client, provider):
     # 한국식 발음 '러닝'은 running·learning 둘 다 된다. 직전 NPC 대사("not running")를 프롬프트 끝에 두면 그 문맥에 맞춰 고른다
     provider.answers["stt"] = lambda b: httpx.Response(200, json=WHISPER_OK)
     client.post("/v1/stt", files=AUDIO, data={"scene_words": "latte", "npc_line": " I'm just taking a walk, not running. "})
     prompt = provider.last_stt.decode()
     assert "My friend lives over there. latte. I'm just taking a walk, not running." in prompt
+
+
+def test_stt_prompt_ends_with_korean_after_npc_line(client, provider):
+    # 영어 장면 단어·NPC 대사로 끝나면 한국어로 한 말('왜 뭐 불러주세요')을 영어 문장('Why? What do you say?')으로 바꿔 적었다.
+    # 맨 끝에 짧은 한국어 말을 두면 한글로 남고, 영어 녹음은 한글로 바뀌지 않았다 (본인 dev 녹음 284개, S15P31A305-787)
+    provider.answers["stt"] = lambda b: httpx.Response(200, json=WHISPER_OK)
+    client.post("/v1/stt", files=AUDIO, data={"scene_words": "latte", "npc_line": "I'm in no rush."})
+    assert "latte. I'm in no rush. 음, 잠깐만요.\r\n" in provider.last_stt.decode()  # prompt 칸 값의 끝
+    client.post("/v1/stt", files=AUDIO)
+    assert "My friend lives over there. 음, 잠깐만요.\r\n" in provider.last_stt.decode()
+
+
+@pytest.mark.parametrize(
+    ("text", "echo"),
+    [
+        ("음, 잠깐만요.", True),  # 짧은 소리('아')에 끝의 한국어 말을 되풀이했다
+        ("음, 잠깐만요. 음, 잠깐만요.", True),
+        ("I'm in no rush. 음, 잠깐만요.", True),
+        ("잠깐만요.", False),  # 학습자가 실제로 하는 한국어 말일 수 있다
+        ("음, 잠깐만요. I want a latte.", False),  # 메아리 뒤 진짜 발화
+    ],
+)
+def test_prompt_echo_includes_korean_ending(text, echo):
+    assert is_prompt_echo(text, ["latte"], "I'm in no rush.") is echo
 
 
 def test_stt_filters_npc_line_echo(client, provider):

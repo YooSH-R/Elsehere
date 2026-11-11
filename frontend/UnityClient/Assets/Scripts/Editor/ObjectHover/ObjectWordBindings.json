@@ -448,6 +448,7 @@
         "SidewalkTile2m",
         "Paving2m",
         "Paving",
+        "ResidencePaving",
         "Curb",
         "SidewalkJunctionSouth",
         "SidewalkJunctionNorth",
@@ -540,6 +541,12 @@
       "key": "freezer",
       "names": [
         "IceCreamFreezer"
+      ]
+    },
+    {
+      "key": "handle",
+      "names": [
+        "PullHandle"
       ]
     }
   ]

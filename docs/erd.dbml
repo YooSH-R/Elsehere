@@ -1,7 +1,7 @@
 Project elsehere {
   database_type: 'PostgreSQL'
   Note: '''
-  ELSEHERE ERD v3.9 (MVP 기준) · PostgreSQL 16 + pgvector
+  ELSEHERE ERD v3.10 (MVP 기준) · PostgreSQL 16 + pgvector
   회의 보드 결정 + MVP 와이어프레임 피드백 기준. W3 사건 · 세계 사실 테이블은 제외
   API: docs/api/mvp-api.md
   모든 테이블은 created_at · updated_at을 가진다 (백엔드 BaseEntity가 기록). started_at · saved_at 같은 업무 시각은 별도 컬럼으로 유지
@@ -216,7 +216,12 @@ Table conversations [headercolor: #2E6B4F] {
   review_card_id bigint [note: '상황 복습 카드 ID. NULL이면 본편 대화, 값이 있으면 본편 진행과 분리된 REVIEW 대화']
   review_result jsonb [note: '복습 종료 시 1회 저장하는 표현별 실제 발화 근거·연습 결과. 일반 대화/종료 전에는 NULL. 내용 삭제 시 제거']
   first_day_stage int [note: '대화 시작 시 첫날 연계 미션 단계 0~6. 피드백 상황 복원용이며 자유 대화는 NULL']
+  first_day_goal_ids jsonb [note: '대화 시작 시 남은 첫날 퀘스트 목표 ID 배열. 빈 배열은 목표 없음, NULL은 저장 전 기존 기록. 피드백·복습에서 사용']
   town_story_stage int [note: '대화 시작 시 마을 여정 단계 0~11. 피드백 상황 복원용이며 해당 여정이 아니면 NULL']
+  town_story_goal_ids jsonb [note: '대화 시작 시 수행 가능한 남은 마을 퀘스트 목표 ID 배열. 빈 배열은 목표 없음, NULL은 저장 전 기존 기록. 피드백·복습에서 사용']
+  practice_scenario varchar(40) [note: '장소 연습(PRC-02)으로 시작한 대화의 상황 ID(예: DINER_TABLE). NULL이면 장소 연습이 아닌 대화 · 이야기 퀘스트·기억·호감도·건넬 것에 반영하지 않음']
+  practice_completed_goals jsonb [note: '이 장소 연습 대화에서 이룬 목표 ID 배열. 시작 시 빈 배열, 장소 연습이 아니면 NULL · 다시 하면 새 대화라 처음부터 판정']
+  practice_done_at timestamptz [note: '이 대화에서 상황의 목표를 모두 이룬 시각. 장소 연습 목록(PRC-01)의 완료는 이 값이 있는 대화가 하나라도 있는지로 봄']
   request_id uuid [unique, note: '대화 시작(CONV-01) 요청 ID · 재전송 시 새 대화를 만들지 않고 같은 대화를 돌려줌 (V10 전에 시작한 대화는 NULL)']
   time_limit_final_request_id uuid [note: '30번째 발화를 선점한 요청 ID · 실패 시 해제. 기존 컬럼 이름 유지']
   npc_off_duty boolean [not null, default: false, note: '근무 시간(교대) 밖의 NPC와 시작한 대화 (CONV-01 npcOffDuty) · AI 워커에 응대 상황 대신 일상 상황을 보냄 · V11 전 대화는 false']
@@ -247,10 +252,12 @@ Table turns [headercolor: #2E6B4F] {
   events jsonb [note: '의도 판정(/v1/judge)이 고른 대화 사건 문자열 배열 (GREETING · APOLOGY 등) · 다음 요청의 history[].events · 사용자 턴만, 워커가 보내지 않으면 null']
   police_dispatch boolean [not null, default: false, note: '이 사용자 턴이 접수한 경찰 출동 · 재시도에도 동일한 출동 정보를 반환']
   police_dispatch_place_code varchar(40) [note: '경찰 출동 목적지 · 접수됐는데 NULL이면 본길 순찰']
+  taxi_destination_code varchar(40) [note: '이 사용자 턴에서 택시 기사가 알아들은 목적지 · 재시도에도 같은 목적지를 반환']
   meaning_ko text [note: '뜻 보기']
   glossary jsonb [note: '단어 호버 뜻']
   suggest_words jsonb [note: '추천 단어 3개']
   hint_text text [note: '힌트 추천 문장']
+  hint_meaning_ko text [note: '힌트 추천 문장의 한국어 뜻 · 기존 힌트는 NULL']
   hint_opened_at timestamptz [note: '힌트 사용 기록']
   audio_path varchar(255) [note: '쓰지 않음 · 학습 활용에 동의한 녹음은 training_recordings에 저장']
   npc_audio_key varchar(100) [note: 'NPC 턴 TTS 음성 파일 키 · 다시 듣기용 · 음성 생성 후 최대 30일, 환경 전체 5GB(docs/npc-audio-storage.md)']
@@ -271,7 +278,7 @@ Table training_recordings [headercolor: #2E6B4F] {
   id bigint [pk, increment]
   user_id bigint [not null]
   request_id uuid [not null, note: '음성 인식(CONV-02) 요청 ID']
-  purpose varchar(20) [not null, note: 'TURN · TUTORIAL']
+  purpose varchar(20) [not null, note: 'TURN · TUTORIAL · LEVEL_TEST (LEVEL_TEST는 검사 조건에만 있고 보관하지 않음)']
   conversation_id bigint [note: 'TURN일 때 대화 · TUTORIAL이면 NULL']
   audio_key varchar(100) [not null, note: '녹음 파일 이름 · 학습용 녹음 폴더(TRAINING_RECORDING_DIR)']
   content_type varchar(100) [not null, note: '받은 녹음 형식(audio/wav 등)']
@@ -369,6 +376,22 @@ Table user_game_clocks [headercolor: #C8642A] {
   updated_at timestamptz [not null, default: `now()`]
 
   Note: '사용자별 게임 시계 (docs/api/mvp-api.md WORLD-06·07)'
+}
+
+Table user_daily_activities [headercolor: #C8642A] {
+  user_id bigint [not null]
+  activity_date date [not null, note: '한국 날짜(Asia/Seoul)']
+  first_seen_at timestamptz [not null, note: '그날 첫 신호(WORLD-07) 시각']
+  last_seen_at timestamptz [not null, note: '그날 마지막 신호 시각']
+  active_seconds bigint [not null, default: 0, note: '장소 화면에 머문 실제 초 · 대화·학습 창을 보는 시간 포함 · 신호가 60초 넘게 끊긴 구간은 뺌']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (activity_date, user_id) [pk]
+  }
+
+  Note: '사용자가 장소 화면에 들어온 하루 · 게임 시계 신호마다 쌓음 · 어드민 이용 현황의 활동한 날·머문 시간·재방문(D1·D7) (docs/admin.md)'
 }
 
 Table npc_follow_ups [headercolor: #C8642A] {
@@ -566,6 +589,7 @@ TableGroup dialogue {
 TableGroup relation_memory {
   user_npc_relations
   user_game_clocks
+  user_daily_activities
   affinity_logs
   npc_memories
 }
@@ -616,6 +640,7 @@ Ref: turn_feedback.turn_id - turns.id [color: #9AA3AE]
 Ref: user_npc_relations.user_id > users.id [color: #9AA3AE]
 Ref: user_npc_relations.npc_id > npcs.id [color: #9AA3AE]
 Ref: user_game_clocks.user_id - users.id [color: #9AA3AE]
+Ref: user_daily_activities.user_id > users.id [color: #9AA3AE]
 Ref: npc_follow_ups.user_id > users.id [color: #9AA3AE]
 Ref: npc_follow_ups.npc_id > npcs.id [color: #9AA3AE]
 Ref: npc_follow_ups.conversation_id - conversations.id [color: #9AA3AE]

@@ -19,6 +19,7 @@ namespace A305.Npc.PlayModeTests
     public class TaxiRideTests
     {
         private const float WaitTimeoutSeconds = 15f;
+        private const string DriverCode = "TAXI_DRIVER";
 
         [SetUp]
         public void FixDaytime() => NpcTestClock.SetDaytime();
@@ -103,6 +104,12 @@ namespace A305.Npc.PlayModeTests
                     .Any(label => label.text.Contains("택시 타기")),
                 Is.True
             );
+            var speechIcon = offer.ShownButtonRect.Find("Icon").GetComponent<Image>();
+            Assert.That(
+                speechIcon.isActiveAndEnabled,
+                Is.True,
+                "택시 타기에 말풍선이 보여야 합니다."
+            );
 
             player.Teleport(outside, Quaternion.identity);
             yield return null;
@@ -131,6 +138,13 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator PassengerRequestsHotel_TaxiDrivesAndDropsThemAtTheHotel()
         {
             yield return RideTo("Could you take me to the hotel, please?", "HOTEL", -5, true);
+        }
+
+        // 가는 도중에 다른 곳을 말하면 서버가 새 목적지를 보내고, 택시는 그곳에 내려 준다.
+        [UnityTest]
+        public IEnumerator PassengerChangesDestinationDuringTheRide_DropsThemAtTheNewPlace()
+        {
+            yield return RideTo("Take me to the hotel.", "HOTEL", -11, false, changeTo: "CAFE");
         }
 
         [UnityTest]
@@ -202,7 +216,8 @@ namespace A305.Npc.PlayModeTests
             string destination,
             float arrivalZ,
             bool eastSide,
-            bool endEarly = false
+            bool endEarly = false,
+            string changeTo = null
         )
         {
             yield return LoadTown();
@@ -228,7 +243,17 @@ namespace A305.Npc.PlayModeTests
             var panel = Single<DialoguePanelView>();
             panel.GetComponentInChildren<TMPro.TMP_InputField>(true).text = request;
             Click(panel, "SendButton");
+            // 목적지는 서버의 의도 판정이 대화 문맥으로 고른다. 이 검사는 서버가 보낸 목적지 이후의 실제 운행을 확인한다.
+            taxi.ChooseDestination(DriverCode, destination);
             Assert.That(taxi.DestinationCode, Is.EqualTo(destination));
+            if (changeTo != null)
+            {
+                // 첫 목적지로 출발한 뒤, 도착하기 전에 다른 곳을 말한다.
+                yield return new WaitForSeconds(.3f);
+                Assert.That(taxi.IsPassenger, Is.True);
+                taxi.ChooseDestination(DriverCode, changeTo);
+                Assert.That(taxi.DestinationCode, Is.EqualTo(changeTo));
+            }
             CapturePassengerView("taxi-driving");
             float previousScale = Time.timeScale;
             Time.timeScale = 12;

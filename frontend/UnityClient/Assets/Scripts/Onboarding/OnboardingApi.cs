@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
 using A305.Api;
 
@@ -9,6 +10,7 @@ namespace A305.Onboarding
     public sealed class OnboardingApi : IOnboardingApi, IMyPageApi, ILogoutApi
     {
         private const string ConsentsPath = "/api/v1/me/consents";
+        private const string LevelTestsPath = "/api/v1/level-tests";
 
         private readonly ApiClient client;
 
@@ -109,9 +111,59 @@ namespace A305.Onboarding
         public Task<LevelTestResultResponse> SkipLevelTestAsync(string languageCode)
         {
             return client.PostAsync<LevelTestResultResponse>(
-                "/api/v1/level-tests/skip",
+                LevelTestsPath + "/skip",
                 new LevelTestLanguageRequest { LanguageCode = languageCode }
             );
+        }
+
+        public Task<LevelTestStartResponse> StartLevelTestAsync(string languageCode)
+        {
+            return client.PostAsync<LevelTestStartResponse>(
+                LevelTestsPath,
+                new LevelTestLanguageRequest { LanguageCode = languageCode }
+            );
+        }
+
+        public Task AnswerLevelTestAsync(long testId, string itemCode, string answer)
+        {
+            return client.PutAsync(
+                LevelTestPath(testId) + "/answers/" + Uri.EscapeDataString(itemCode),
+                new LevelTestAnswerRequest { Answer = answer }
+            );
+        }
+
+        public Task<LevelTestResultResponse> CompleteLevelTestAsync(long testId)
+        {
+            return client.PostAsync<LevelTestResultResponse>(
+                LevelTestPath(testId) + "/complete",
+                null
+            );
+        }
+
+        public Task<LevelTestResultResponse> QuitLevelTestAsync(long testId)
+        {
+            return client.PostAsync<LevelTestResultResponse>(LevelTestPath(testId) + "/quit", null);
+        }
+
+        // 대화 밖의 녹음이라 conversationId 없이 보낸다(CONV-02).
+        public Task<SpeechTranscription> TranscribeLevelTestAsync(string requestId, byte[] wav)
+        {
+            var fields = new Dictionary<string, string>
+            {
+                { "requestId", requestId },
+                { "purpose", "LEVEL_TEST" },
+            };
+            return client.PostMultipartAsync<SpeechTranscription>(
+                "/api/v1/speech/transcriptions",
+                fields,
+                new ApiFile("audio", "speech.wav", "audio/wav", wav)
+            );
+        }
+
+        /// <summary>ONB-10 듣기 문항 음성(WAV). 오디오로 받으므로 JSON API가 아니라 주소만 만든다.</summary>
+        public static string LevelTestSpeechPath(string itemCode)
+        {
+            return LevelTestsPath + "/items/" + Uri.EscapeDataString(itemCode) + "/speech";
         }
 
         public Task<LevelSelectionResponse> SelectLevelAsync(string languageCode, int level)
@@ -125,6 +177,11 @@ namespace A305.Onboarding
         public Task<List<SceneSummary>> GetScenesAsync()
         {
             return client.GetAsync<List<SceneSummary>>("/api/v1/scenes");
+        }
+
+        private static string LevelTestPath(long testId)
+        {
+            return LevelTestsPath + "/" + testId.ToString(CultureInfo.InvariantCulture);
         }
 
         private static string LanguagePath(string languageCode)

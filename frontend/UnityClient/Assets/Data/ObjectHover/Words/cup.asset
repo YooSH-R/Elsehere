@@ -16,7 +16,7 @@ MonoBehaviour:
     key: cup
     languageCode: en-US
     text: cup
-    meaningKo: "\uCEF5"
+    meaningKo: "\uC74C\uB8CC\uB97C \uB2F4\uB294 \uC794(\uCEF5)"
     example: May I have a cup of coffee?
     exampleKo: "\uCEE4\uD53C \uD55C \uC794 \uC8FC\uC2DC\uACA0\uC5B4\uC694?"
     pronunciationAudioKey: 

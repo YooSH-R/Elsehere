@@ -13,7 +13,8 @@ using UnityEngine.UI;
 namespace A305.Learning
 {
     /// <summary>
-    /// 대화가 끝난 뒤의 피드백을 주제별로 나누고 문장·표현을 고정 영역 안에서 세로 스크롤로 보여 준다.
+    /// 대화가 끝난 뒤의 피드백을 요약·문장 교정·전체 대화 탭으로 나누고 고정 영역 안에서 세로 스크롤로 보여 준다(확정 시안 F1·F2).
+    /// 요약 탭은 요약 카드와 "이 상황에서 자주 써요" 표현 줄, 문장 교정 탭은 발화마다 카드를 두고 담을 문장마다 [담기]를 둔다.
     /// 피드백을 받지 못했으면 평가를 지어내지 않고 [다시 만들기]와 [대화 기록 보기]를 보여 준다(기능 명세 F-32).
     /// </summary>
     public class FeedbackView : MonoBehaviour
@@ -28,10 +29,8 @@ namespace A305.Learning
         private TMP_Text summaryText;
 
         [SerializeField]
+        [Tooltip("받지 못한 피드백·다시 만드는 중·빈 탭의 안내 글")]
         private TMP_Text bodyText;
-
-        [SerializeField]
-        private Button saveButton;
 
         [SerializeField]
         private Button detailButton;
@@ -43,20 +42,20 @@ namespace A305.Learning
         private Button vocabularyButton;
 
         [SerializeField]
-        private Button reviewButton;
-        public event Action ReviewSaveRequested;
-
-        public void SetReviewAvailable(bool available)
-        {
-            if (reviewButton != null)
-                reviewButton.gameObject.SetActive(available);
-        }
-
-        [SerializeField]
         private Button closeButton;
 
         [SerializeField]
         private Button topCloseButton;
+
+        [SerializeField]
+        [Tooltip("머리줄 X 왼쪽의 확대 버튼")]
+        private Button expandButton;
+
+        [SerializeField]
+        private Sprite expandSprite;
+
+        [SerializeField]
+        private Sprite collapseSprite;
 
         [SerializeField]
         private Button regenerateButton;
@@ -66,9 +65,6 @@ namespace A305.Learning
 
         [SerializeField]
         private TMP_Text transcriptButtonLabel;
-
-        private ConversationFeedback feedback;
-        private IReadOnlyList<DialogueLine> lines;
 
         [SerializeField]
         private Button previousButton;
@@ -95,7 +91,11 @@ namespace A305.Learning
         private RectTransform navigationRow;
 
         [SerializeField]
-        [Tooltip("요약·회화 표현 탭의 '이 상황에서 자주 써요' 표현 줄 묶음")]
+        [Tooltip("요약 탭의 요약 글과 잘했어요·더 해 봐요 메모")]
+        private RectTransform summaryCard;
+
+        [SerializeField]
+        [Tooltip("요약 탭의 '이 상황에서 자주 써요' 제목(Header)과 표현 줄 묶음")]
         private RectTransform situationRows;
 
         [SerializeField]
@@ -103,27 +103,40 @@ namespace A305.Learning
         private GameObject situationRowTemplate;
 
         [SerializeField]
-        [Tooltip("표현 줄 아래 '대화 요약' 제목. 요약 탭에서 요약 글이 있을 때 보인다")]
-        private TMP_Text summaryTitle;
+        [Tooltip("문장 교정 카드 원본. 숨겨 두고 발화마다 복사해 쓴다")]
+        private RectTransform correctionCardTemplate;
 
         [SerializeField]
-        [Tooltip("이전 프리팹의 표현 쪽 넘김 참조. 스크롤 화면에서는 숨긴다")]
-        private RectTransform situationPager;
+        private Sprite pickSprite;
 
         [SerializeField]
-        [Tooltip("이전 프리팹의 요약 쪽 넘김 참조. 스크롤 화면에서는 숨긴다")]
-        private RectTransform summaryPager;
+        private Sprite pickedSprite;
 
         [SerializeField]
-        [Tooltip("본문 글 뒤의 칸. 글 높이에 맞춰 늘어난다")]
+        private Sprite saidChipSprite;
+
+        [SerializeField]
+        private Sprite saidKoreanChipSprite;
+
+        [SerializeField]
+        private Sprite betterChipSprite;
+
+        [SerializeField]
+        private Sprite englishChipSprite;
+
+        [SerializeField]
+        private Sprite goodChipSprite;
+
+        [SerializeField]
+        [Tooltip("안내 글 뒤의 칸. 글 높이에 맞춰 늘어난다")]
         private Image bodyTile;
 
         [SerializeField]
-        [Tooltip("요약 탭 본문 칸(따뜻한 색)")]
+        [Tooltip("요약 탭 안내 칸(따뜻한 색)")]
         private Sprite summaryTileSprite;
 
         [SerializeField]
-        [Tooltip("다른 탭 본문 칸(흰 유리)")]
+        [Tooltip("다른 탭 안내 칸·대화 말풍선(흰 유리)")]
         private Sprite tileSprite;
 
         [SerializeField]
@@ -135,36 +148,34 @@ namespace A305.Learning
         [SerializeField]
         private Sprite transcriptWordCardBackground;
 
-        // 표현 칸 마지막 칸 아래 → 제목 → 본문 칸 사이 간격(시안 px × 1.2). 표현 칸이 없을 때는 카드 맨 위에서 시작한다.
-        // 칸 그림은 아래 32·위 12의 그림자 자리를 품고 있어, 보이는 간격이 시안(20, 14)이 되게 그만큼 뺀다.
-        private const float RowShadowBottom = 32 * 1.2f;
-        private const float TileShadowTop = 12 * 1.2f;
-        private const float GapBelowRows = 20 * 1.2f;
-        private const float GapBelowHeading = 14 * 1.2f;
-        private const float BodyTopPadding = 0;
-        private const float SummaryTitleHeight = 26 * 1.2f;
-        private const float SubtitleGap = 16 * 1.2f;
+        private const float Px = FeedbackCardsLayout.Px;
+
+        // 요약 카드 → '이 상황에서 자주 써요' 제목 → 표현 줄 사이(시안 px): 카드 아래 18, 제목 높이 25, 제목 아래 10, 줄 사이 10.
+        // 문장 교정 카드 사이는 12다.
+        private const float GapBelowSummary = 18 * Px;
+        private const float SituationTitleHeight = 25 * Px;
+        private const float GapBelowSituationTitle = 10 * Px;
+        private const float GapBetweenRows = 10 * Px;
+        private const float GapBetweenCards = 12 * Px;
+
+        // 안내 글 칸 그림은 그림자 자리(옆 16·위 12·아래 32)를 품고, 그 안쪽에 글 여백(옆 22·위아래 20)을 둔다.
+        private const float TileSide = (16 + 22) * Px;
+        private const float TileTop = (12 + 20) * Px;
+        private const float TileBottom = (32 + 20) * Px;
+        private const float PageTitleHeight = 26 * Px;
+        private const float GapBelowPageTitle = 14 * Px;
+        private const float SubtitleGap = 16 * Px;
 
         // 판 안은 시안 판(1240×770)을 1.2배로 배치하고, 화면에는 시안 크기로 줄여 보인다. 폭은 시안보다 좁은 1080으로,
-        // 머리줄의 부제(○○와 나눈 대화)와 오른쪽 탭 사이가 남는 만큼만 줄였다.
-        private const float FrameWidth = 1080 * 1.2f;
-        private const float FrameHeight = 770 * 1.2f;
-        private const float FrameScale = 1 / 1.2f;
+        // 마을 HUD를 함께 볼 수 있게 머리줄의 부제(○○와 나눈 대화)와 오른쪽 탭·버튼 사이가 남는 만큼만 줄였다.
+        private const float FrameWidth = 1080 * Px;
+        private const float FrameHeight = 770 * Px;
+        private const float FrameScale = 1 / Px;
         private static readonly Color TabInk = new Color32(47, 37, 27, 255);
         private static readonly Color TabMuted = new Color32(125, 110, 91, 255);
 
-        // 본문 칸 그림은 그림자 자리(옆 16·위 12·아래 32)를 품고, 그 안쪽에 글 여백(옆 22·위아래 20)을 둔다.
-        private const float TileSide = (16 + 22) * 1.2f;
-        private const float TileTop = (12 + 20) * 1.2f;
-        private const float TileBottom = (32 + 20) * 1.2f;
-
-        private readonly List<GameObject> situationRowItems = new List<GameObject>();
-
-        // 표현마다 [담기] 버튼. 저장하면 "담음"으로 바꾼다.
-        private readonly Dictionary<string, Button> saveButtons = new Dictionary<string, Button>(
-            StringComparer.OrdinalIgnoreCase
-        );
-        private IReadOnlyList<FeedbackPage> pages;
+        private ConversationFeedback feedback;
+        private IReadOnlyList<DialogueLine> lines;
         private FeedbackSection section;
         private bool isRegenerating;
         private Rect lastFreeArea;
@@ -176,16 +187,75 @@ namespace A305.Learning
         private int meaningLoadingVersion = -1;
         private bool meaningsRequested;
         private bool isMeaningLoading;
+        private bool isExpanded;
+        private bool isSaveAvailable = true;
+        private Func<GlossaryWord, Task<bool>> wordSaver;
+
+        // 고정된 본문 영역 안에서 모든 내용이 세로로 흐른다. 탭을 바꿀 때마다 줄·카드를 새로 만든다.
+        private ScrollRect scroll;
+        private readonly List<GameObject> builtItems = new List<GameObject>();
+
+        // 표현·문장마다 [담기]. 담은 표현은 다른 탭에 다녀와도 [담음]으로 남는다.
+        private readonly Dictionary<string, List<Button>> pickButtons = new(
+            StringComparer.OrdinalIgnoreCase
+        );
+        private readonly HashSet<string> savedExpressions = new HashSet<string>(
+            StringComparer.OrdinalIgnoreCase
+        );
+
+        /// <summary>[닫기]를 누르면 알린다.</summary>
+        public event Action CloseRequested;
+
+        /// <summary>[담기]로 그 영어 표현·문장과 한국어 뜻을 알린다. 고친 문장은 뜻이 없어 빈 문자열이다.</summary>
+        public event Action<string, string> SaveRequested;
+
+        /// <summary>[단어장]을 누르면 알린다.</summary>
+        public event Action VocabularyRequested;
+
+        /// <summary>[다시 만들기]를 누르면 알린다.</summary>
+        public event Action RegenerateRequested;
+
+        public bool IsVisible => panel.activeSelf;
+
+        /// <summary>피드백 창 전체. 튜토리얼 코치 마크가 첫 대화의 피드백을 밝힌다.</summary>
+        public RectTransform PanelRect => (RectTransform)panel.transform;
+
+        /// <summary>[요약]·[문장 교정]·[전체 대화] 탭 줄. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
+        public RectTransform SectionRowRect => sectionRow;
+
+        /// <summary>피드백 본문의 스크롤 영역. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
+        public RectTransform ScrollAreaRect => PageCardRect;
+
+        /// <summary>탭을 누르면 바뀌는 결과 칸. 튜토리얼 코치 마크가 피드백 티칭에서 탭과 함께 밝힌다.</summary>
+        public RectTransform PageCardRect =>
+            scroll != null
+                ? (RectTransform)scroll.transform
+                : (RectTransform)bodyText.transform.parent;
+
+        /// <summary>오른쪽 위 X. 튜토리얼 코치 마크가 피드백 티칭 끝에 밝힌다.</summary>
+        public RectTransform CloseButtonRect => (RectTransform)topCloseButton.transform;
 
         public void SetMeaningSource(TranscriptMeanings source) => meaningSource = source;
 
-        private Func<GlossaryWord, Task<bool>> wordSaver;
-
         public void SetWordSaver(Func<GlossaryWord, Task<bool>> saver) => wordSaver = saver;
 
-        // 고정된 본문 영역 안에서 모든 내용이 세로로 흐른다.
-        private ScrollRect scroll;
-        private readonly List<GameObject> additionalBodies = new List<GameObject>();
+        /// <summary>[담기]를 보여 줄지. 저장할 곳이 없으면 끈다.</summary>
+        public void SetSaveAvailable(bool available)
+        {
+            isSaveAvailable = available;
+        }
+
+        /// <summary>단어장에 넣은 표현·문장의 [담기]를 [담음]으로 바꾸고 다시 누르지 않게 한다.</summary>
+        public void ShowSaved(string expression)
+        {
+            if (string.IsNullOrWhiteSpace(expression))
+                return;
+            savedExpressions.Add(expression.Trim());
+            if (!pickButtons.TryGetValue(expression.Trim(), out List<Button> picks))
+                return;
+            foreach (Button pick in picks)
+                MarkPicked(pick);
+        }
 
         /// <summary>Builder와 실행 화면이 같은 고정 스크롤 영역을 쓴다.</summary>
         public void ConfigureScroll()
@@ -260,63 +330,14 @@ namespace A305.Learning
             bodyText.overflowMode = TextOverflowModes.Overflow;
         }
 
-        private bool isSaveAvailable = true;
-
-        /// <summary>[닫기]를 누르면 알린다.</summary>
-        public event Action CloseRequested;
-
-        /// <summary>[표현 저장]으로 현재 카드의 영어 문장과 한국어 뜻을 알린다.</summary>
-        public event Action<string, string> SaveRequested;
-
-        /// <summary>[단어장 보기]를 누르면 알린다.</summary>
-        public event Action VocabularyRequested;
-
-        /// <summary>[다시 만들기]를 누르면 알린다.</summary>
-        public event Action RegenerateRequested;
-
-        public bool IsVisible => panel.activeSelf;
-
-        /// <summary>피드백 창 전체. 튜토리얼 코치 마크가 첫 대화의 피드백을 밝힌다.</summary>
-        public RectTransform PanelRect => (RectTransform)panel.transform;
-
-        /// <summary>[요약]·[문장]·[회화]·[표현] 탭 줄. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
-        public RectTransform SectionRowRect => sectionRow;
-
-        /// <summary>피드백 본문의 스크롤 영역. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
-        public RectTransform ScrollAreaRect => PageCardRect;
-
-        /// <summary>탭·화살표를 누르면 바뀌는 결과 칸. 튜토리얼 코치 마크가 피드백 티칭에서 탭과 함께 밝힌다.</summary>
-        public RectTransform PageCardRect =>
-            scroll != null
-                ? (RectTransform)scroll.transform
-                : (RectTransform)bodyText.transform.parent;
-
-        /// <summary>오른쪽 위 X. 튜토리얼 코치 마크가 피드백 티칭 끝에 밝힌다.</summary>
-        public RectTransform CloseButtonRect => (RectTransform)topCloseButton.transform;
-
-        /// <summary>[표현 저장]을 보여 줄지. 저장할 곳이 없으면 끈다.</summary>
-        public void SetSaveAvailable(bool available)
-        {
-            isSaveAvailable = available;
-        }
-
-        /// <summary>단어장에 넣은 표현의 [담기]를 "담음"으로 바꾸고 다시 누르지 않게 한다.</summary>
-        public void ShowSaved(string expression)
-        {
-            if (!saveButtons.TryGetValue(expression, out Button save))
-                return;
-            save.interactable = false;
-            TMP_Text label = save.GetComponentInChildren<TMP_Text>(true);
-            if (label != null)
-                label.text = "담음";
-        }
-
         /// <param name="conversationLines">[대화 기록 보기]로 보여 줄 방금 나눈 대화</param>
         public void Show(
             ConversationFeedback shownFeedback,
             IReadOnlyList<DialogueLine> conversationLines
         )
         {
+            isExpanded = false;
+            UpdateExpandIcon();
             feedback = shownFeedback;
             lines = conversationLines?.ToList();
             meaningVersion++;
@@ -325,6 +346,7 @@ namespace A305.Learning
             isRegenerating = false;
             isTranscriptShown = false;
             selectedTranscriptReview = null;
+            savedExpressions.Clear();
             panel.SetActive(true);
             UiLayer.Open(this);
             SelectSection(FeedbackSection.Summary);
@@ -340,12 +362,12 @@ namespace A305.Learning
             navigationRow.gameObject.SetActive(false);
             regenerateButton.interactable = false;
             transcriptButton.interactable = false;
-            ShowSituationRows(Array.Empty<SituationExpressionData>(), false);
             UpdateLayout();
         }
 
         public void Hide()
         {
+            isExpanded = false;
             meaningVersion++;
             isMeaningLoading = false;
             feedback = null;
@@ -357,13 +379,11 @@ namespace A305.Learning
         private void Awake()
         {
             ConfigureScroll();
-            saveButton.onClick.AddListener(RequestSave);
             detailButton.onClick.AddListener(ToggleDetail);
             vocabularyButton.onClick.AddListener(() => VocabularyRequested?.Invoke());
-            if (reviewButton != null)
-                reviewButton.onClick.AddListener(() => ReviewSaveRequested?.Invoke());
             closeButton.onClick.AddListener(() => CloseRequested?.Invoke());
             topCloseButton.onClick.AddListener(() => CloseRequested?.Invoke());
+            expandButton.onClick.AddListener(ToggleExpanded);
             regenerateButton.onClick.AddListener(() => RegenerateRequested?.Invoke());
             transcriptButton.onClick.AddListener(ToggleTranscript);
             TextLinkClicks links = bodyText.GetComponent<TextLinkClicks>();
@@ -396,7 +416,7 @@ namespace A305.Learning
                 ? selectedTranscriptReview.HasValue
                     ? "문장 피드백"
                     : "전체 대화"
-                : pages[0].Title;
+                : "이번 대화";
             transcriptDocument = IsTranscriptView
                 ? FeedbackTranscript.Build(
                     feedback.NpcName,
@@ -405,7 +425,7 @@ namespace A305.Learning
                     selectedTranscriptReview
                 )
                 : null;
-            bodyText.text = IsTranscriptView ? "" : pages[0].Body;
+            bodyText.text = IsTranscriptView ? "" : MessageText();
             bodyText.pageToDisplay = 1;
             transcriptButtonLabel.text = isTranscriptShown ? "돌아가기" : "대화 기록";
             pageTitleText.gameObject.SetActive(feedback.IsFailed && !IsTranscriptView);
@@ -417,24 +437,10 @@ namespace A305.Learning
                 // 고른 탭은 흰 알약 위의 진한 글자, 나머지는 옅은 글자다.
                 TMP_Text tab = sectionButtons[i].GetComponentInChildren<TMP_Text>(true);
                 if (tab != null)
-                {
-                    if (i == (int)FeedbackSection.Conversation)
-                        tab.text = "전체 대화";
                     tab.color = i == (int)section ? TabInk : TabMuted;
-                }
             }
 
-            // 받지 못한 피드백은 저장할 표현이나 상세 평가가 없으므로 그 버튼 대신 다시 만들기·대화 기록을 보여 준다.
-            // 본문 옆 [담기]는 지금 장에 담을 표현이 있을 때만 둔다. 추천 표현 줄은 각자 버튼을 가진다.
-            saveButton.gameObject.SetActive(
-                isSaveAvailable
-                    && !feedback.IsFailed
-                    && !IsTranscriptView
-                    && CurrentExpression != null
-                    && pages[0].Situations == null
-            );
-            saveButton.interactable = CurrentExpression != null;
-            saveButton.GetComponentInChildren<TMP_Text>(true).text = "담기";
+            // 받지 못한 피드백은 상세 평가가 없으므로 다시 만들기·대화 기록을 보여 준다.
             detailButton.gameObject.SetActive(false);
             regenerateButton.gameObject.SetActive(feedback.CanRegenerate);
             regenerateButton.interactable = true;
@@ -442,36 +448,21 @@ namespace A305.Learning
             transcriptButton.interactable = true;
             // 모든 탭은 같은 본문 영역을 스크롤하므로 이전 쪽 넘김 줄을 숨긴다.
             navigationRow.gameObject.SetActive(false);
-            // 표현 줄 높이는 패널 너비에 따라 달라지므로 화면에 맞춘 패널 크기부터 정한다.
-            FitFrameToCanvas();
-            ShowSituationRows(SituationsShown(), false);
             UpdateLayout();
         }
 
-        // 상황 표현은 요약 탭에 모아 두고, 전체 대화 탭은 주고받은 문장에 집중한다.
-        private IReadOnlyList<SituationExpressionData> SituationsShown()
+        // 받지 못한 피드백의 이유와 교정할 발화가 없을 때의 안내. 요약 카드·교정 카드를 그리면 비어 있다.
+        private string MessageText()
         {
-            if (feedback.IsFailed || IsTranscriptView)
-                return Array.Empty<SituationExpressionData>();
-            return section == FeedbackSection.Summary
-                ? SummarySituations.ToList()
-                : pages
-                    .Where(page => page.Situations != null)
-                    .SelectMany(page => page.Situations)
-                    .ToList();
+            if (feedback.IsFailed)
+                return feedback.Summary;
+            if (section == FeedbackSection.Corrections && feedback.Reviews.Count == 0)
+                return FeedbackPages.NoCorrections;
+            return "";
         }
 
-        // 요약 탭이 위 표현 칸과 아래 요약 칸으로 나뉘는 상태인지
         private bool IsTranscriptView =>
             isTranscriptShown || section == FeedbackSection.Conversation;
-
-        private bool IsSummarySplit =>
-            section == FeedbackSection.Summary && !feedback.IsFailed && !IsTranscriptView;
-
-        private IEnumerable<SituationExpressionData> SummarySituations =>
-            feedback.SituationExpressions.Where(expression =>
-                !string.IsNullOrWhiteSpace(expression.Expression)
-            );
 
         // 부제(○○와 나눈 대화)는 제목 글자 바로 뒤에 둔다. 제목은 피드백을 받지 못하면 길어진다.
         private void PlaceSubtitle()
@@ -486,174 +477,6 @@ namespace A305.Learning
             );
         }
 
-        /// <summary>
-        /// 피드백을 열자마자 보이도록 요약 탭 위쪽에 이 상황에서 자주 쓰는 표현을 모두 보이고, 칸마다 [담기]로 그 표현과 뜻을 담게 한다.
-        /// 회화 표현 탭도 같은 칸을 쓰고 예문을 한 줄 더 둔다. 요약 글은 표현 칸 아래 '대화 요약' 제목 밑의 따뜻한 색 칸에서 시작한다.
-        /// </summary>
-        private void ShowSituationRows(
-            IReadOnlyList<SituationExpressionData> expressions,
-            bool withExamples
-        )
-        {
-            foreach (GameObject row in situationRowItems)
-            {
-                row.SetActive(false);
-                if (Application.isPlaying)
-                    Destroy(row);
-                else
-                    DestroyImmediate(row);
-            }
-            situationRowItems.Clear();
-            saveButtons.Clear();
-            if (saveButton.gameObject.activeSelf && CurrentExpression != null)
-                saveButtons[CurrentExpression.English] = saveButton;
-
-            foreach (SituationExpressionData expression in expressions)
-            {
-                if (string.IsNullOrWhiteSpace(expression.Expression))
-                    continue;
-                GameObject row = Instantiate(situationRowTemplate, situationRows);
-                row.name = "SituationRow";
-                SetRowText(row, "Texts/Line/Phrase", expression.Expression);
-                SetRowText(row, "Texts/Line/Meaning", expression.MeaningKo);
-                SetRowText(row, "Texts/Usage", expression.UsageKo);
-                SetRowText(
-                    row,
-                    "Texts/Example",
-                    withExamples && !string.IsNullOrEmpty(expression.ExampleEn)
-                        ? string.IsNullOrEmpty(expression.ExampleKo)
-                            ? $"예) {expression.ExampleEn}"
-                            : $"예) {expression.ExampleEn} · {expression.ExampleKo}"
-                        : ""
-                );
-                Button save = row.GetComponentInChildren<Button>(true);
-                save.gameObject.SetActive(isSaveAvailable);
-                save.onClick.AddListener(() =>
-                    SaveRequested?.Invoke(expression.Expression, expression.MeaningKo)
-                );
-                saveButtons[expression.Expression] = save;
-                row.SetActive(true);
-                situationRowItems.Add(row);
-            }
-
-            bool visible = situationRowItems.Count > 0;
-            situationRows.gameObject.SetActive(visible);
-            float top = BodyTopPadding;
-            if (visible)
-            {
-                // 카드 크기는 패널이 정한다. 방금 켠 패널은 배치가 아직 돌지 않아 원래 크기라서, 줄 너비를 재기 전에 먼저 배치한다.
-                LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)panel.transform);
-                LayoutRebuilder.ForceRebuildLayoutImmediate(situationRows);
-                foreach (GameObject row in situationRowItems)
-                    ArrangeFirstLine((RectTransform)row.transform.Find("Texts/Line"));
-                LayoutRebuilder.ForceRebuildLayoutImmediate(situationRows);
-                top =
-                    -situationRows.anchoredPosition.y
-                    + situationRows.rect.height
-                    - RowShadowBottom
-                    + GapBelowRows;
-            }
-            // 표현 칸이 없어도 요약 글이 있으면 '대화 요약' 제목을 둔다.
-            bool summaryHeading = IsSummarySplit && !string.IsNullOrEmpty(bodyText.text);
-            summaryTitle.gameObject.SetActive(summaryHeading);
-            // 받지 못한 피드백·대화 기록의 장 제목도 같은 자리(본문 칸 위)에 둔다.
-            TMP_Text heading =
-                summaryHeading ? summaryTitle
-                : pageTitleText.gameObject.activeSelf ? pageTitleText
-                : null;
-            if (heading != null)
-            {
-                // 장 제목은 판 아래에 있으므로 본문 칸 위쪽 자리만큼 더 내린다.
-                var card = (RectTransform)bodyText.rectTransform.parent;
-                float cardTop = heading.transform.parent == card ? 0 : card.offsetMax.y;
-                RectTransform titleRect = heading.rectTransform;
-                titleRect.anchoredPosition = new Vector2(
-                    titleRect.anchoredPosition.x,
-                    cardTop - top
-                );
-                top += SummaryTitleHeight + GapBelowHeading - TileShadowTop;
-            }
-            RectTransform body = bodyText.rectTransform;
-            var saveRect = (RectTransform)saveButton.transform;
-            float saveRoom = saveButton.gameObject.activeSelf ? saveRect.sizeDelta.x + 24 : 0;
-            body.offsetMax = new Vector2(-TileSide - saveRoom, -(top + TileTop));
-            PlaceBodyTile(top);
-        }
-
-        // 본문 글 뒤의 칸을 글 높이에 맞춘다. 요약 탭은 따뜻한 색, 다른 탭은 흰 유리 칸이고, 글이 없으면 숨긴다.
-        private void PlaceBodyTile(float top)
-        {
-            bool shown = !string.IsNullOrEmpty(bodyText.text);
-            bodyTile.gameObject.SetActive(shown);
-            if (!shown)
-                return;
-            bodyTile.sprite =
-                section == FeedbackSection.Summary && !IsTranscriptView
-                    ? summaryTileSprite
-                    : tileSprite;
-            RectTransform body = bodyText.rectTransform;
-            float contentHeight = Mathf.Min(
-                bodyText.GetPreferredValues(bodyText.text, body.rect.width, 0).y,
-                body.rect.height
-            );
-            var saveRect = (RectTransform)saveButton.transform;
-            if (saveButton.gameObject.activeSelf)
-                contentHeight = Mathf.Max(contentHeight, saveRect.sizeDelta.y);
-            float height = contentHeight + TileTop + TileBottom;
-            RectTransform tile = bodyTile.rectTransform;
-            tile.anchorMin = new Vector2(0, 1);
-            tile.anchorMax = Vector2.one;
-            tile.pivot = new Vector2(.5f, 1);
-            tile.offsetMin = new Vector2(body.offsetMin.x - TileSide, -(top + height));
-            tile.offsetMax = new Vector2(0, -top);
-            saveRect.anchoredPosition = new Vector2(-TileSide, -TileTop);
-        }
-
-        private static void SetRowText(GameObject row, string path, string value)
-        {
-            TMP_Text text = row.transform.Find(path).GetComponent<TMP_Text>();
-            text.text = value ?? "";
-            text.gameObject.SetActive(!string.IsNullOrEmpty(value));
-        }
-
-        // 표현 칸 첫 줄: 영어 표현 뒤에 자리가 있으면 한국어 뜻을 같은 줄에, 모자라면 다음 줄에 둔다.
-        private static void ArrangeFirstLine(RectTransform line)
-        {
-            var phrase = line.Find("Phrase").GetComponent<TMP_Text>();
-            var meaning = line.Find("Meaning").GetComponent<TMP_Text>();
-            float width = line.rect.width;
-            Vector2 phraseSize = phrase.GetPreferredValues(phrase.text, width, 0);
-            float phraseWidth = Mathf.Min(phraseSize.x, width);
-            Vector2 meaningSize = meaning.GetPreferredValues(meaning.text, width, 0);
-            bool sameLine = SituationRowLayout.MeaningOnSameLine(phraseWidth, meaningSize.x, width);
-            float phraseHeight = phrase.GetPreferredValues(phrase.text, phraseWidth, 0).y;
-            Pin(phrase.rectTransform, 0, 0, sameLine ? phraseWidth : width, phraseHeight);
-            if (sameLine)
-                Pin(
-                    meaning.rectTransform,
-                    phraseWidth + SituationRowLayout.Gap,
-                    (phraseHeight - meaningSize.y) / 2,
-                    meaningSize.x,
-                    meaningSize.y
-                );
-            else
-                Pin(meaning.rectTransform, 0, phraseHeight, width, meaningSize.y);
-            line.GetComponent<LayoutElement>().preferredHeight = sameLine
-                ? Mathf.Max(phraseHeight, meaningSize.y)
-                : phraseHeight + meaningSize.y;
-        }
-
-        // 줄 왼쪽 위 기준 (x, y) 자리에 폭·높이를 둔다.
-        private static void Pin(RectTransform rect, float x, float y, float width, float height)
-        {
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0, 1);
-            rect.anchoredPosition = new Vector2(x, -y);
-            rect.sizeDelta = new Vector2(width, height);
-        }
-
-        private ReferenceExpression CurrentExpression =>
-            pages != null && pages.Count > 0 ? pages[0].Expression : null;
-
         // 화면 크기가 바뀌거나 마을 HUD가 나타나고 사라져 빈 곳이 바뀌면 판을 다시 맞춘다.
         private void LateUpdate()
         {
@@ -663,7 +486,37 @@ namespace A305.Learning
 
         private Rect FreeArea()
         {
-            return CenterWindow.Shared.FreeArea((RectTransform)panel.transform.parent);
+            var canvas = (RectTransform)panel.transform.parent;
+            if (!isExpanded)
+                return CenterWindow.Shared.FreeArea(canvas);
+            return new Rect(
+                24,
+                24,
+                Mathf.Max(1, canvas.rect.width - 48),
+                Mathf.Max(1, canvas.rect.height - 48)
+            );
+        }
+
+        /// <summary>현재 탭·선택 문장·스크롤 위치를 유지한 채 창을 넓히거나 원래 크기로 되돌린다.</summary>
+        public void ToggleExpanded()
+        {
+            if (feedback == null)
+                return;
+            float position = scroll != null ? scroll.verticalNormalizedPosition : 1;
+            isExpanded = !isExpanded;
+            UpdateLayout();
+            Canvas.ForceUpdateCanvases();
+            scroll.StopMovement();
+            scroll.Rebuild(CanvasUpdate.PostLayout);
+            scroll.verticalNormalizedPosition = position;
+            UpdateExpandIcon();
+        }
+
+        // 펼친 창에서는 같은 둥근 버튼에 접기 아이콘을 보인다.
+        private void UpdateExpandIcon()
+        {
+            Image icon = expandButton.transform.Find("Icon").GetComponent<Image>();
+            icon.sprite = isExpanded ? collapseSprite : expandSprite;
         }
 
         // 마을 HUD(퀘스트 카드·미니맵)를 함께 볼 수 있게 그 오른쪽 빈 곳 가운데에 둔다.
@@ -673,10 +526,20 @@ namespace A305.Learning
             var frame = (RectTransform)panel.transform;
             lastFreeArea = FreeArea();
             frame.sizeDelta = new Vector2(
-                Mathf.Min(FrameWidth, lastFreeArea.width / FrameScale),
-                Mathf.Min(FrameHeight, lastFreeArea.height / FrameScale)
+                isExpanded
+                    ? lastFreeArea.width / FrameScale
+                    : Mathf.Min(FrameWidth, lastFreeArea.width / FrameScale),
+                isExpanded
+                    ? lastFreeArea.height / FrameScale
+                    : Mathf.Min(FrameHeight, lastFreeArea.height / FrameScale)
             );
-            CenterWindow.Shared.Place(frame, FrameScale);
+            if (isExpanded)
+            {
+                frame.localScale = Vector3.one * FrameScale;
+                frame.anchoredPosition = Vector2.zero;
+            }
+            else
+                CenterWindow.Shared.Place(frame, FrameScale);
         }
 
         public void UpdateLayout()
@@ -687,129 +550,230 @@ namespace A305.Learning
             if (scroll == null)
                 ConfigureScroll();
             Canvas.ForceUpdateCanvases();
-            foreach (GameObject block in additionalBodies)
-            {
-                block.SetActive(false);
-                if (Application.isPlaying)
-                    Destroy(block);
-                else
-                    DestroyImmediate(block);
-            }
-            additionalBodies.Clear();
+            ClearBuiltItems();
             navigationRow.gameObject.SetActive(false);
-            if (situationPager != null)
-            {
-                situationPager.gameObject.SetActive(false);
-            }
-            if (summaryPager != null)
-            {
-                summaryPager.gameObject.SetActive(false);
-            }
             float width = scroll.content.rect.width;
+            bool cards = !IsTranscriptView && !isRegenerating && !feedback.IsFailed;
+            summaryCard.gameObject.SetActive(false);
+            situationRows.gameObject.SetActive(false);
+            float height;
             if (IsTranscriptView && !isRegenerating)
-            {
-                bodyTile.gameObject.SetActive(false);
-                GameObject cards = FeedbackConversationLayout.Build(
-                    scroll.content,
-                    bodyText,
-                    titleText.font,
-                    sectionButtons[(int)FeedbackSection.Conversation],
-                    tileSprite,
-                    transcriptAvatarSprite,
-                    transcriptWordCardTemplate,
-                    transcriptWordCardBackground,
-                    feedback,
-                    transcriptDocument,
-                    selectedTranscriptReview,
-                    SelectReview,
-                    BackToConversation,
-                    isMeaningLoading,
-                    () => _ = LoadTranscriptMeaningsAsync(true),
-                    wordSaver,
-                    out float cardsHeight
-                );
-                additionalBodies.Add(cards);
-                scroll.content.SetSizeWithCurrentAnchors(
-                    RectTransform.Axis.Vertical,
-                    Mathf.Max(scroll.viewport.rect.height, cardsHeight)
-                );
-                return;
-            }
-            // 줄바꿈이 끝난 표현 칸 아래부터 제목과 본문을 차례로 쌓는다.
-            if (situationRows.gameObject.activeSelf)
-            {
-                LayoutRebuilder.ForceRebuildLayoutImmediate(situationRows);
-                foreach (GameObject row in situationRowItems)
-                    ArrangeFirstLine((RectTransform)row.transform.Find("Texts/Line"));
-                LayoutRebuilder.ForceRebuildLayoutImmediate(situationRows);
-            }
-            float top = situationRows.gameObject.activeSelf
-                ? situationRows.rect.height - RowShadowBottom + GapBelowRows
-                : 0;
-            bool summaryHeading = IsSummarySplit && !string.IsNullOrEmpty(bodyText.text);
-            summaryTitle.gameObject.SetActive(summaryHeading);
-            if (summaryHeading)
-            {
-                Pin(summaryTitle.rectTransform, 0, top, width, SummaryTitleHeight);
-                top += SummaryTitleHeight + GapBelowHeading;
-            }
-            top = LayoutBody(bodyText, bodyTile, saveButton, top, width);
-            if (!IsTranscriptView && !isRegenerating)
-            {
-                foreach (FeedbackPage page in pages.Skip(1))
-                {
-                    if (string.IsNullOrEmpty(page.Body))
-                        continue;
-                    Image tile = Instantiate(bodyTile, scroll.content);
-                    TMP_Text text = Instantiate(bodyText, scroll.content);
-                    Button save = tile.GetComponentInChildren<Button>(true);
-                    additionalBodies.Add(tile.gameObject);
-                    additionalBodies.Add(text.gameObject);
-                    text.text = page.Body;
-                    if (save != null)
-                    {
-                        save.onClick.RemoveAllListeners();
-                        ReferenceExpression expression = page.Expression;
-                        save.gameObject.SetActive(isSaveAvailable && expression != null);
-                        save.interactable = true;
-                        if (expression != null)
-                        {
-                            save.onClick.AddListener(() =>
-                                SaveRequested?.Invoke(expression.English, expression.Korean)
-                            );
-                            saveButtons[expression.English] = save;
-                        }
-                    }
-                    top = LayoutBody(text, tile, save, top, width);
-                }
-            }
+                height = LayoutConversation(width);
+            else if (cards && section == FeedbackSection.Summary && !HasMessage)
+                height = LayoutSummary(width);
+            else if (cards && section == FeedbackSection.Corrections && !HasMessage)
+                height = LayoutCorrections(width);
+            else
+                height = LayoutMessage(width);
+            if (!(IsTranscriptView && !isRegenerating))
+                bodyText.ForceMeshUpdate();
             scroll.content.SetSizeWithCurrentAnchors(
                 RectTransform.Axis.Vertical,
-                Mathf.Max(scroll.viewport.rect.height, top)
+                Mathf.Max(scroll.viewport.rect.height, height)
             );
-            bodyText.ForceMeshUpdate();
         }
 
-        private float LayoutBody(TMP_Text text, Image tile, Button save, float top, float width)
+        private bool HasMessage => !string.IsNullOrEmpty(bodyText.text);
+
+        // 전체 대화 탭: NPC·내 말풍선, 내 말을 누르면 그 문장의 피드백
+        private float LayoutConversation(float width)
+        {
+            bodyTile.gameObject.SetActive(false);
+            GameObject conversation = FeedbackConversationLayout.Build(
+                scroll.content,
+                bodyText,
+                titleText.font,
+                sectionButtons[(int)FeedbackSection.Conversation],
+                tileSprite,
+                transcriptAvatarSprite,
+                transcriptWordCardTemplate,
+                transcriptWordCardBackground,
+                feedback,
+                transcriptDocument,
+                selectedTranscriptReview,
+                SelectReview,
+                BackToConversation,
+                isMeaningLoading,
+                () => _ = LoadTranscriptMeaningsAsync(true),
+                wordSaver,
+                out float cardsHeight
+            );
+            builtItems.Add(conversation);
+            return cardsHeight;
+        }
+
+        // 요약 탭(시안 F1): 요약 카드, 그 아래 '이 상황에서 자주 써요' 제목과 표현 줄
+        private float LayoutSummary(float width)
+        {
+            bodyTile.gameObject.SetActive(false);
+            summaryCard.gameObject.SetActive(true);
+            float y = FeedbackCardsLayout.SummaryCard(summaryCard, feedback, width);
+            PlaceAt(summaryCard, 0);
+            IReadOnlyList<SituationExpressionData> situations = FeedbackPages.Situations(feedback);
+            if (situations.Count == 0)
+                return y;
+
+            situationRows.gameObject.SetActive(true);
+            y += GapBelowSummary;
+            Pin(situationRows, 0, y, width, 0);
+            var heading = (RectTransform)situationRows.Find("Header");
+            Pin(heading, 4 * Px, 0, width - 4 * Px, SituationTitleHeight);
+            float rowTop = SituationTitleHeight + GapBelowSituationTitle;
+            foreach (SituationExpressionData situation in situations)
+            {
+                GameObject row = Instantiate(situationRowTemplate, situationRows);
+                row.name = "SituationRow";
+                row.SetActive(true);
+                builtItems.Add(row);
+                Button pick = row.transform.Find("SaveButton").GetComponent<Button>();
+                pick.gameObject.SetActive(isSaveAvailable);
+                pick.onClick.AddListener(() =>
+                    SaveRequested?.Invoke(situation.Expression, situation.MeaningKo)
+                );
+                var rect = (RectTransform)row.transform;
+                float rowHeight = FeedbackCardsLayout.SituationRow(
+                    rect,
+                    situation,
+                    width,
+                    pickSprite
+                );
+                PlaceAt(rect, rowTop);
+                RegisterPick(situation.Expression, pick);
+                rowTop += rowHeight + GapBetweenRows;
+            }
+            float rowsHeight = rowTop - GapBetweenRows;
+            situationRows.sizeDelta = new Vector2(width, rowsHeight);
+            return y + rowsHeight;
+        }
+
+        // 문장 교정 탭(시안 F2): 발화마다 카드를 사이 12로 쌓는다.
+        private float LayoutCorrections(float width)
+        {
+            bodyTile.gameObject.SetActive(false);
+            float y = 0;
+            foreach (CorrectionCard model in CorrectionCard.From(feedback))
+            {
+                RectTransform card = Instantiate(correctionCardTemplate, scroll.content);
+                card.name = "CorrectionCard";
+                card.gameObject.SetActive(true);
+                builtItems.Add(card.gameObject);
+                Button pick = card.Find("SaveButton").GetComponent<Button>();
+                pick.gameObject.SetActive(isSaveAvailable);
+                string english = model.Better;
+                pick.onClick.AddListener(() => SaveRequested?.Invoke(english, ""));
+                float height = FeedbackCardsLayout.Correction(
+                    card,
+                    model,
+                    width,
+                    SaidChip(model.Kind),
+                    model.Kind == CorrectionKind.Korean ? englishChipSprite : betterChipSprite,
+                    pickSprite
+                );
+                PlaceAt(card, y);
+                if (pick.gameObject.activeSelf)
+                    RegisterPick(english, pick);
+                y += height + GapBetweenCards;
+            }
+            return Mathf.Max(0, y - GapBetweenCards);
+        }
+
+        private Sprite SaidChip(CorrectionKind kind) =>
+            kind switch
+            {
+                CorrectionKind.Corrected => saidChipSprite,
+                CorrectionKind.Korean => saidKoreanChipSprite,
+                _ => goodChipSprite,
+            };
+
+        // 받지 못한 피드백·다시 만드는 중·빈 탭: 장 제목(있으면) 아래 칸에 안내 글
+        private float LayoutMessage(float width)
+        {
+            float top = 0;
+            if (pageTitleText.gameObject.activeSelf)
+            {
+                // 장 제목은 판 아래에 있으므로 본문 칸 위쪽 자리에 맞춘다.
+                var card = (RectTransform)scroll.transform;
+                RectTransform titleRect = pageTitleText.rectTransform;
+                titleRect.anchoredPosition = new Vector2(
+                    titleRect.anchoredPosition.x,
+                    card.offsetMax.y
+                );
+                top = PageTitleHeight + GapBelowPageTitle;
+            }
+            bodyTile.sprite =
+                section == FeedbackSection.Summary && !IsTranscriptView
+                    ? summaryTileSprite
+                    : tileSprite;
+            return LayoutBody(bodyText, bodyTile, top, width);
+        }
+
+        private float LayoutBody(TMP_Text text, Image tile, float top, float width)
         {
             bool shown = !string.IsNullOrEmpty(text.text);
             tile.gameObject.SetActive(shown);
             if (!shown)
                 return top;
             text.overflowMode = TextOverflowModes.Overflow;
-            float saveRoom =
-                save != null && save.gameObject.activeSelf
-                    ? ((RectTransform)save.transform).sizeDelta.x + 24
-                    : 0;
-            float textWidth = Mathf.Max(1, width - TileSide * 2 - saveRoom);
+            float textWidth = Mathf.Max(1, width - TileSide * 2);
             float height = text.GetPreferredValues(text.text, textWidth, 0).y;
-            if (save != null && save.gameObject.activeSelf)
-                height = Mathf.Max(height, ((RectTransform)save.transform).sizeDelta.y);
             Pin(text.rectTransform, TileSide, top + TileTop, textWidth, height);
             Pin(tile.rectTransform, 0, top, width, height + TileTop + TileBottom);
-            if (save != null)
-                ((RectTransform)save.transform).anchoredPosition = new Vector2(-TileSide, -TileTop);
-            return top + height + TileTop + TileBottom + GapBelowRows;
+            return top + height + TileTop + TileBottom;
+        }
+
+        private void RegisterPick(string expression, Button pick)
+        {
+            if (string.IsNullOrWhiteSpace(expression))
+                return;
+            string key = expression.Trim();
+            if (!pickButtons.TryGetValue(key, out List<Button> picks))
+            {
+                picks = new List<Button>();
+                pickButtons[key] = picks;
+            }
+            picks.Add(pick);
+            if (savedExpressions.Contains(key))
+                MarkPicked(pick);
+        }
+
+        // [담기]를 흰 [담음]으로 바꾼다. 오른쪽 끝과 세로 가운데는 그대로 둔다.
+        private void MarkPicked(Button pick)
+        {
+            if (pick == null)
+                return;
+            var rect = (RectTransform)pick.transform;
+            float right = rect.anchoredPosition.x + rect.sizeDelta.x;
+            float middle = -rect.anchoredPosition.y + rect.sizeDelta.y / 2;
+            FeedbackCardsLayout.PlacePick(pick, pickedSprite, right, middle);
+            pick.interactable = false;
+        }
+
+        private void ClearBuiltItems()
+        {
+            foreach (GameObject item in builtItems)
+            {
+                if (item == null)
+                    continue;
+                item.SetActive(false);
+                if (Application.isPlaying)
+                    Destroy(item);
+                else
+                    DestroyImmediate(item);
+            }
+            builtItems.Clear();
+            pickButtons.Clear();
+        }
+
+        // 콘텐츠 맨 위에서 y만큼 아래에 둔다.
+        private static void PlaceAt(RectTransform rect, float y) =>
+            rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, -y);
+
+        // 부모 왼쪽 위 기준 (x, y) 자리에 폭·높이를 둔다.
+        private static void Pin(RectTransform rect, float x, float y, float width, float height)
+        {
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0, 1);
+            rect.anchoredPosition = new Vector2(x, -y);
+            rect.sizeDelta = new Vector2(width, height);
         }
 
         public void SelectSection(FeedbackSection selected)
@@ -817,7 +781,6 @@ namespace A305.Learning
             section = selected;
             if (section != FeedbackSection.Conversation)
                 selectedTranscriptReview = null;
-            pages = FeedbackPages.Create(feedback, section);
             Refresh();
             scroll.verticalNormalizedPosition = 1;
             if (IsTranscriptView && !meaningsRequested)
@@ -833,15 +796,6 @@ namespace A305.Learning
             scroll.verticalNormalizedPosition = Mathf.Clamp01(
                 scroll.verticalNormalizedPosition - .75f
             );
-
-        private void RequestSave()
-        {
-            ReferenceExpression expression = CurrentExpression;
-            if (expression != null)
-            {
-                SaveRequested?.Invoke(expression.English, expression.Korean);
-            }
-        }
 
         private void ToggleDetail()
         {

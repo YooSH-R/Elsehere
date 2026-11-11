@@ -13,8 +13,9 @@ import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.dialogue.dto.HintResponse;
 import com.elsehere.dialogue.dto.MeaningResponse;
 import com.elsehere.dialogue.dto.SuggestWordsResponse;
-import com.elsehere.mission.service.FirstDayMissionService;
+import com.elsehere.mission.entity.PracticeScenario;
 import com.elsehere.mission.service.MissionDialogueService;
+import com.elsehere.mission.service.QuestTalk;
 import com.elsehere.review.service.ReviewCardService;
 import java.time.Clock;
 import java.time.Instant;
@@ -78,19 +79,21 @@ public class TurnHelpService {
   public HintResponse hint(Long userId, Long turnId, UUID requestId) {
     HintTarget target = transactionTemplate.execute(status -> hintTarget(userId, turnId));
     if (target.hintText() != null) {
-      return new HintResponse(turnId, target.hintText());
+      return new HintResponse(turnId, target.hintText(), target.hintMeaningKo());
     }
 
     WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
-    String hintText =
-        aiGateway
-            .hint(trace, target.npc(), target.history(), target.goal(), target.level())
-            .firstSentence();
+    var result =
+        aiGateway.hint(trace, target.npc(), target.history(), target.goal(), target.level());
+    String hintText = result.firstSentence();
+    String meaningKo = result.firstMeaningKo();
     Instant openedAt = clock.instant();
     transactionTemplate.executeWithoutResult(
         status ->
-            turnRepository.findById(turnId).ifPresent(turn -> turn.openHint(hintText, openedAt)));
-    return new HintResponse(turnId, hintText);
+            turnRepository
+                .findById(turnId)
+                .ifPresent(turn -> turn.openHint(hintText, meaningKo, openedAt)));
+    return new HintResponse(turnId, hintText, meaningKo);
   }
 
   /** 추천 단어는 대답 응답(CONV-01·03)을 기다리게 하지 않도록 NPC 대사를 받은 뒤 따로 만든다. */
@@ -131,6 +134,7 @@ public class TurnHelpService {
     NpcContext npc = dialogueContexts.npcOf(conversation);
     return new HintTarget(
         turn.getHintText(),
+        turn.getHintMeaningKo(),
         turn.getSuggestWords(),
         conversation.getId(),
         conversation.getLevelApplied(),
@@ -150,6 +154,16 @@ public class TurnHelpService {
               .map(com.elsehere.review.dto.ReviewTarget::expression)
               .collect(java.util.stream.Collectors.joining("; "));
     }
+    if (conversation.isPractice()) {
+      // 장소 연습은 이야기 퀘스트 대신 고른 상황에서 아직 이루지 않은 첫 목표다.
+      return PracticeScenario.find(conversation.getPracticeScenario())
+          .flatMap(
+              scenario ->
+                  scenario.remainingGoals(conversation.getPracticeCompletedGoals()).stream()
+                      .findFirst())
+          .map(PracticeScenario.Goal::description)
+          .orElse("");
+    }
     if (conversation.isNpcOffDuty()) {
       return "";
     }
@@ -161,12 +175,13 @@ public class TurnHelpService {
     MissionDialogueService.Context mission = active.get();
     Integer conversationStage =
         mission.townStory() ? conversation.getTownStoryStage() : conversation.getFirstDayStage();
-    FirstDayMissionService.Context detail = mission.detail();
-    if (!Objects.equals(conversationStage, detail.stage()) || !detail.hasGoals()) {
+    if (!(mission.detail() instanceof QuestTalk.Goals goals)
+        || !Objects.equals(conversationStage, goals.stage())
+        || !goals.hasGoals()) {
       return "";
     }
-    return detail.state().intents().stream()
-        .filter(intent -> detail.remainingGoals().contains(intent.id()))
+    return goals.state().intents().stream()
+        .filter(intent -> goals.remainingGoals().contains(intent.id()))
         .map(intent -> intent.desc())
         .findFirst()
         .orElse("");
@@ -189,6 +204,7 @@ public class TurnHelpService {
    */
   private record HintTarget(
       String hintText,
+      String hintMeaningKo,
       String suggestWords,
       Long conversationId,
       int level,

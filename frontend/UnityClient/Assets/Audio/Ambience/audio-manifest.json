@@ -1,0 +1,128 @@
+{
+  "sample_rate": 44100,
+  "format": "stereo PCM16 WAV / Vorbis OGG",
+  "constant_volume": true,
+  "ducking_baked": false,
+  "entrance_effects_baked_into_loops": false,
+  "footsteps_added": false,
+  "cafe_used_approved_mix_seconds": [
+    1.6,
+    11.5
+  ],
+  "files": [
+    {
+      "file": "effects\\car_pass.wav",
+      "loop": false,
+      "seconds": 5.5,
+      "peak_db": -15.41,
+      "join_jump": 0.0,
+      "constant_volume": true
+    },
+    {
+      "file": "effects\\door_close.wav",
+      "loop": false,
+      "seconds": 1.1484,
+      "peak_db": -15.89,
+      "join_jump": 0.0,
+      "constant_volume": true
+    },
+    {
+      "file": "effects\\hotel_bell.wav",
+      "loop": false,
+      "seconds": 2.6845,
+      "peak_db": -20.0,
+      "join_jump": 0.0,
+      "constant_volume": true
+    },
+    {
+      "file": "effects\\short_horn.wav",
+      "loop": false,
+      "seconds": 0.55,
+      "peak_db": -19.17,
+      "join_jump": 0.0,
+      "constant_volume": true
+    },
+    {
+      "file": "effects\\taxi_door_close.wav",
+      "loop": false,
+      "seconds": 0.79,
+      "peak_db": -15.95,
+      "join_jump": 0.0,
+      "constant_volume": true
+    },
+    {
+      "file": "loops\\01_hotel.wav",
+      "loop": true,
+      "seconds": 58.8,
+      "peak_db": -14.12,
+      "join_jump": 0.001861572265625,
+      "constant_volume": true
+    },
+    {
+      "file": "loops\\02_street_speech.wav",
+      "loop": true,
+      "seconds": 46.5,
+      "peak_db": -4.91,
+      "join_jump": 0.004180908203125,
+      "constant_volume": true,
+      "speech_source": "대화소리.wav 18s; replacing previous indoor foreground caller",
+      "speech_rms_db": -28.5
+    },
+    {
+      "file": "loops\\03_cafe.wav",
+      "loop": true,
+      "seconds": 9.0,
+      "peak_db": -11.87,
+      "join_jump": 0.00555419921875,
+      "constant_volume": true
+    },
+    {
+      "file": "loops\\04_restaurant.wav",
+      "loop": true,
+      "seconds": 43.8,
+      "peak_db": -12.49,
+      "join_jump": 0.00140380859375,
+      "constant_volume": true
+    },
+    {
+      "file": "loops\\05_laundromat.wav",
+      "loop": true,
+      "seconds": 38.8,
+      "peak_db": -19.49,
+      "join_jump": 0.00244140625,
+      "constant_volume": true
+    },
+    {
+      "file": "loops\\06_taxi.wav",
+      "loop": true,
+      "seconds": 58.8,
+      "peak_db": -16.16,
+      "join_jump": 0.001556396484375,
+      "constant_volume": true
+    },
+    {
+      "file": "loops\\07_umbrella_rain.wav",
+      "loop": true,
+      "seconds": 58.8,
+      "peak_db": -13.27,
+      "join_jump": 0.004241943359375,
+      "constant_volume": true
+    },
+    {
+      "file": "loops\\08_quiet_shop.wav",
+      "loop": true,
+      "seconds": 38.8,
+      "peak_db": -16.35,
+      "join_jump": 0.000732421875,
+      "constant_volume": true
+    },
+    {
+      "file": "loops\\09_room.wav",
+      "loop": true,
+      "seconds": 13.8,
+      "peak_db": -24.83,
+      "join_jump": 0.000732421875,
+      "constant_volume": true
+    }
+  ]
+}

@@ -45,7 +45,8 @@ def history_of(item: dict) -> list[Line]:
 
 
 def prompt_ids(tok, item: dict) -> list[int]:
-    messages = P.guard_messages(Npc.model_validate(item["npc"]), history_of(item), item["text"])
+    # 서비스의 GPU LoRA가 받는 기준 문구로 학습한다 (구성의 판정 모델이 받는 GUARD_SYSTEM과 다르다, S15P31A305-703)
+    messages = P.guard_messages(Npc.model_validate(item["npc"]), history_of(item), item["text"], P.GUARD_SYSTEM_GPU)
     # 서비스(vLLM)에서도 생각을 끄고 부른다
     return tok.apply_chat_template(messages, add_generation_prompt=True, enable_thinking=False, tokenize=True, return_dict=False)
 

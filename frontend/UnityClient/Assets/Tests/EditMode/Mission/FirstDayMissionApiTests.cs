@@ -22,6 +22,43 @@ namespace A305.Mission.Tests
             Assert.That(transport.Request.Headers.ContainsKey(ApiClient.CsrfHeaderName), Is.True);
         }
 
+        [Test]
+        public async Task PracticePlaces_AreReadWithTheirScenariosAndGoals()
+        {
+            var transport = new BodyTransport(
+                "{\"places\":[{\"placeCode\":\"DINER\",\"name\":\"식당\","
+                    + "\"summary\":\"자리 잡기 · 못 먹는 재료 말하기\",\"npcCode\":\"DINER_STAFF\","
+                    + "\"npcName\":\"Rosa\",\"roleLabel\":\"식당 직원\",\"sceneCode\":\"TOWN\","
+                    + "\"doneCount\":1,\"totalCount\":3,\"scenarios\":[{\"scenarioId\":\"DINER_TABLE\","
+                    + "\"number\":1,\"title\":\"자리 잡기\",\"description\":\"창가 자리를 부탁해요.\","
+                    + "\"done\":true,\"goals\":[{\"goalId\":\"say_party_window\","
+                    + "\"title\":\"인원 말하고 창가 자리 부탁하기\",\"hint\":\"Two, please.\"}]}]}]}"
+            );
+            var api = new FirstDayMissionApi(new ApiClient("", transport));
+
+            PracticeBoardState board = await api.GetPracticeBoardAsync();
+
+            Assert.That(transport.Request.Url, Is.EqualTo("/api/v1/practice-places"));
+            Assert.That(transport.Request.Method, Is.EqualTo("GET"));
+            PracticePlace diner = board.Places[0];
+            Assert.That(diner.PlaceCode, Is.EqualTo("DINER"));
+            Assert.That(diner.Summary, Is.EqualTo("자리 잡기 · 못 먹는 재료 말하기"));
+            Assert.That(diner.NpcCode, Is.EqualTo("DINER_STAFF"));
+            Assert.That(diner.NpcName, Is.EqualTo("Rosa"));
+            Assert.That(diner.RoleLabel, Is.EqualTo("식당 직원"));
+            Assert.That(diner.SceneCode, Is.EqualTo("TOWN"));
+            Assert.That(diner.DoneCount, Is.EqualTo(1));
+            Assert.That(diner.TotalCount, Is.EqualTo(3));
+            PracticeScenario table = diner.Scenarios[0];
+            Assert.That(table.ScenarioId, Is.EqualTo("DINER_TABLE"));
+            Assert.That(table.Number, Is.EqualTo(1));
+            Assert.That(table.Title, Is.EqualTo("자리 잡기"));
+            Assert.That(table.Done, Is.True);
+            Assert.That(table.Goals[0].GoalId, Is.EqualTo("say_party_window"));
+            Assert.That(table.Goals[0].Title, Is.EqualTo("인원 말하고 창가 자리 부탁하기"));
+            Assert.That(table.Goals[0].Hint, Is.EqualTo("Two, please."));
+        }
+
         [TestCase(false, false)]
         [TestCase(true, true)]
         public async Task CurrentJourneyUsesTownStoryOnlyAfterFirstDayCompletes(
@@ -105,6 +142,21 @@ namespace A305.Mission.Tests
                 string body = TownStoryRequested
                     ? "{\"started\":false,\"completed\":false,\"steps\":[]}"
                     : $"{{\"started\":true,\"completed\":{firstDayCompleted.ToString().ToLowerInvariant()},\"steps\":[]}}";
+                return Task.FromResult(ApiTransportResponse.Received(200, body));
+            }
+        }
+
+        private sealed class BodyTransport : IApiTransport
+        {
+            private readonly string body;
+
+            public BodyTransport(string body) => this.body = body;
+
+            public ApiTransportRequest Request { get; private set; }
+
+            public Task<ApiTransportResponse> SendAsync(ApiTransportRequest request)
+            {
+                Request = request;
                 return Task.FromResult(ApiTransportResponse.Received(200, body));
             }
         }

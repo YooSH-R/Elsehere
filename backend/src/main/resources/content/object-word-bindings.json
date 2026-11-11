@@ -4,7 +4,7 @@
         {
             "sceneCode": "HOME",
             "unityKey": "HomeScene",
-            "objectCount": 49,
+            "objectCount": 69,
             "detailCount": 50,
             "wordKeys": [
                 "air_conditioner",
@@ -52,7 +52,7 @@
         {
             "sceneCode": "CAFE",
             "unityKey": "CafeScene",
-            "objectCount": 63,
+            "objectCount": 83,
             "detailCount": 8,
             "wordKeys": [
                 "bench",
@@ -70,6 +70,7 @@
                 "door",
                 "floor",
                 "flowerpot",
+                "handle",
                 "menu",
                 "muffin",
                 "mug",
@@ -86,7 +87,7 @@
         {
             "sceneCode": "HOTEL",
             "unityKey": "HotelScene",
-            "objectCount": 48,
+            "objectCount": 68,
             "detailCount": 14,
             "wordKeys": [
                 "bell",
@@ -100,6 +101,7 @@
                 "floor",
                 "flowerpot",
                 "guestbook",
+                "handle",
                 "key_cabinet",
                 "lamp",
                 "luggage_cart",
@@ -117,8 +119,8 @@
         {
             "sceneCode": "TOWN",
             "unityKey": "TownScene",
-            "objectCount": 2144,
-            "detailCount": 86,
+            "objectCount": 3691,
+            "detailCount": 152,
             "wordKeys": [
                 "awning",
                 "bed",
@@ -132,7 +134,6 @@
                 "cash_register",
                 "ceiling",
                 "chair",
-                "chalkboard",
                 "clock",
                 "cloud",
                 "coffee_machine",
@@ -201,12 +202,14 @@
                 "wall",
                 "window",
                 "word_0161d483cee300c40b1861ae4d0e85a0",
+                "word_0587befb29840ad49a62604219dc7715",
                 "word_0744fa563d6a7994f9f3a91758a794f9",
                 "word_0a8bd7882c5b7b04e84b90f02a9345c1",
                 "word_27d3dc992bf0dee46a465b3bb93c0a08",
                 "word_2a482726948f5bf41a0068cc69f541ca",
                 "word_2ed81ce347fb9724d8df37ac679e41d9",
                 "word_369eb9ba5bdd95a4e82191d96b289f34",
+                "word_386c8564b884cfe47b66fdbc77ec87b9",
                 "word_3f1b31e72fbacea48bed046e884e6255",
                 "word_3fc84a99d1f166d49a24ed5d59f38a89",
                 "word_44f9cc0d067b770438b25673c21c1358",
@@ -216,16 +219,21 @@
                 "word_510320b4ce2ab1646975c5e1c03333fb",
                 "word_513415d5ad951964c9ede7ba32b0596f",
                 "word_57394345ad5fd5c46a1e107b2d2a7656",
+                "word_57d53390c38c2204588cba13f10a5f9a",
                 "word_583992ed64934fe4ba5f273e34106ceb",
                 "word_5ca110b3066a4e04f83c2f7776bb5070",
                 "word_5ef79e2727edae54ab972ddb33844750",
+                "word_6f2d682aa1edd004a86774dbc32603a3",
                 "word_6fcf1f9c3c1a4f54499c6072d2b9f385",
                 "word_856ac06ac71774f41bd23a7b97da2cc1",
                 "word_a31ccaa6d412b78428976a47663eff21",
+                "word_a469e283225b24f48b585f804e782bec",
+                "word_af4d769b378ec384a8ef3edbaf346e9d",
+                "word_b1de7b60fd9e56c4282fa85b4a09e4b2",
+                "word_b455dfb83439d7546bf34d8766404f6f",
                 "word_b4a755c63d1d408438a71815ba75d475",
                 "word_be12390675add1b488faf55f8e9aeb96",
                 "word_cfe407d309ec44540a66769b307075c8",
-                "word_dc738621f28e03c49bfa7b6f67dbf4b3",
                 "word_e438a4ee4f2a3494eaadb31ccfda0859",
                 "word_efe358bf0753d334891d16f6961a2d08",
                 "word_f1493503fe49b48488b6a1674ff150cd",
@@ -237,7 +245,7 @@
         {
             "sceneCode": "SHOP",
             "unityKey": "ShopScene",
-            "objectCount": 80,
+            "objectCount": 79,
             "detailCount": 0,
             "wordKeys": [
                 "ceiling",
@@ -258,6 +266,32 @@
                 "window",
                 "word_a115a59d89b32af4bbbe5aa6c17f8273"
             ]
+        },
+        {
+            "sceneCode": "POLICE_STATION",
+            "unityKey": "PoliceStationScene",
+            "objectCount": 85,
+            "detailCount": 1,
+            "wordKeys": [
+                "cabinet",
+                "ceiling",
+                "chair",
+                "cornice",
+                "door",
+                "floor",
+                "flowerpot",
+                "handle",
+                "lamp",
+                "note",
+                "plant",
+                "reception_desk",
+                "roof",
+                "sign",
+                "wall",
+                "window",
+                "word_513415d5ad951964c9ede7ba32b0596f",
+                "word_57394345ad5fd5c46a1e107b2d2a7656"
+            ]
         }
     ],
     "prefabs": [
@@ -269,9 +303,11 @@
                 "counter",
                 "door",
                 "floor",
+                "handle",
                 "menu",
                 "table",
-                "wall"
+                "wall",
+                "window"
             ]
         },
         {
@@ -536,10 +572,12 @@
                 "cabinet",
                 "door",
                 "floor",
+                "handle",
                 "refrigerator",
                 "sofa",
                 "tv",
-                "wall"
+                "wall",
+                "window"
             ]
         },
         {
@@ -549,10 +587,12 @@
                 "door",
                 "elevator",
                 "floor",
+                "handle",
                 "reception_desk",
                 "sign",
                 "sofa",
-                "wall"
+                "wall",
+                "window"
             ]
         },
         {
@@ -689,7 +729,9 @@
             "path": "Assets/Prefabs/Town/CafeBuilding.prefab",
             "wordKeys": [
                 "door",
-                "roof"
+                "handle",
+                "roof",
+                "window"
             ]
         },
         {
@@ -697,7 +739,9 @@
             "path": "Assets/Prefabs/Town/HomeBuilding.prefab",
             "wordKeys": [
                 "door",
-                "roof"
+                "handle",
+                "roof",
+                "window"
             ]
         },
         {
@@ -705,7 +749,9 @@
             "path": "Assets/Prefabs/Town/HotelBuilding.prefab",
             "wordKeys": [
                 "door",
-                "roof"
+                "handle",
+                "roof",
+                "window"
             ]
         },
         {
@@ -913,6 +959,50 @@
             ]
         },
         {
+            "guid": "0a4ee76cc994f2e4e93d6d167266d956",
+            "path": "Assets/Prefabs/World/CloudBoundaries/AirportBoundary.prefab",
+            "wordKeys": [
+                "cloud",
+                "sign"
+            ]
+        },
+        {
+            "guid": "65816bbc26751504a9c6a577c78f053b",
+            "path": "Assets/Prefabs/World/CloudBoundaries/AirportSkyNotice.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
+            "guid": "30dddc7ff8015a945b0441a2f15dd720",
+            "path": "Assets/Prefabs/World/CloudBoundaries/CloudBank.prefab",
+            "wordKeys": [
+                "cloud"
+            ]
+        },
+        {
+            "guid": "fc338e42bb8c127489d7ad658980434c",
+            "path": "Assets/Prefabs/World/CloudBoundaries/DistrictCloudTile.prefab",
+            "wordKeys": [
+                "cloud"
+            ]
+        },
+        {
+            "guid": "e916ff3741a500a479b40b6200f8e2ce",
+            "path": "Assets/Prefabs/World/CloudBoundaries/ParkBoundary.prefab",
+            "wordKeys": [
+                "cloud",
+                "sign"
+            ]
+        },
+        {
+            "guid": "553e6cdaf1f0d6d4baaa0dcbdd410dbf",
+            "path": "Assets/Prefabs/World/CloudBoundaries/ParkSkyNotice.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
             "guid": "fa28e285858e1494f893c372f193563e",
             "path": "Assets/Prefabs/World/Drugstore/CoffeeCounter.prefab",
             "wordKeys": [
@@ -1024,6 +1114,13 @@
             ]
         },
         {
+            "guid": "eef3b421d11c950448ba7e90d91ec48a",
+            "path": "Assets/Prefabs/World/HudNotice.prefab",
+            "wordKeys": [
+                "plate"
+            ]
+        },
+        {
             "guid": "617d53606f88bf146b3159c8a2592306",
             "path": "Assets/Prefabs/World/MainstreetArt/BlueMailbox.prefab",
             "wordKeys": [
@@ -1062,7 +1159,7 @@
             "guid": "0f79d4fb5c1a1614aa90f0a8888d43e2",
             "path": "Assets/Prefabs/World/MainstreetArt/CoffeeSandwichBoard.prefab",
             "wordKeys": [
-                "chalkboard"
+                "word_b455dfb83439d7546bf34d8766404f6f"
             ]
         },
         {
@@ -1188,13 +1285,6 @@
             ]
         },
         {
-            "guid": "77ce941845a94b6479e72474bfde108d",
-            "path": "Assets/Prefabs/World/MainstreetArt/ParkingMeter.prefab",
-            "wordKeys": [
-                "word_dc738621f28e03c49bfa7b6f67dbf4b3"
-            ]
-        },
-        {
             "guid": "4c4a89361c66a8e4f897682aedf4b28e",
             "path": "Assets/Prefabs/World/MainstreetArt/PedXingSign.prefab",
             "wordKeys": [
@@ -1213,6 +1303,15 @@
             "path": "Assets/Prefabs/World/MainstreetArt/RoundTree.prefab",
             "wordKeys": [
                 "tree"
+            ]
+        },
+        {
+            "guid": "ab8fbf6b8885d0b49b6225aa2bc46a60",
+            "path": "Assets/Prefabs/World/MainstreetArt/ShopEntrance.prefab",
+            "wordKeys": [
+                "door",
+                "handle",
+                "window"
             ]
         },
         {
@@ -1861,6 +1960,15 @@
             ]
         },
         {
+            "guid": "0e2554534829ff14fb602c9e032f3f8f",
+            "path": "Assets/Prefabs/World/TownHorizon/BoundaryOverlook.prefab",
+            "wordKeys": [
+                "fence",
+                "flowerbed",
+                "sidewalk"
+            ]
+        },
+        {
             "guid": "176ed71c05414fd468c06b8cccffdb48",
             "path": "Assets/Prefabs/World/TownInteriors/ArcadeInterior.prefab",
             "wordKeys": [
@@ -1983,9 +2091,7 @@
             "path": "Assets/Prefabs/World/TownInteriors/LaundromatInterior.prefab",
             "wordKeys": [
                 "clock",
-                "flowerpot",
                 "note",
-                "plant",
                 "shelf",
                 "sign",
                 "trash_can"
@@ -2005,7 +2111,6 @@
                 "plant",
                 "plate",
                 "refrigerator",
-                "sign",
                 "stove"
             ]
         },
@@ -3080,13 +3185,10 @@
             "path": "Assets/Prefabs/World/TownStorefronts/MapleDiner.prefab",
             "wordKeys": [
                 "bell",
-                "cake",
                 "ceiling",
                 "clock",
-                "coffee_machine",
                 "cornice",
                 "counter",
-                "display_case",
                 "door",
                 "floor",
                 "flowerpot",
@@ -3094,7 +3196,6 @@
                 "kitchen_counter",
                 "lamp",
                 "menu",
-                "mug",
                 "picture",
                 "plant",
                 "plate",
@@ -3105,6 +3206,7 @@
                 "sofa",
                 "stove",
                 "table",
+                "takeaway_cup",
                 "wall",
                 "window",
                 "word_369eb9ba5bdd95a4e82191d96b289f34"
@@ -3179,11 +3281,9 @@
                 "cornice",
                 "door",
                 "floor",
-                "flowerpot",
                 "handle",
                 "lamp",
                 "note",
-                "plant",
                 "roof",
                 "shelf",
                 "shop",
@@ -3193,6 +3293,13 @@
                 "wall",
                 "window",
                 "word_0161d483cee300c40b1861ae4d0e85a0",
+                "word_0587befb29840ad49a62604219dc7715",
+                "word_386c8564b884cfe47b66fdbc77ec87b9",
+                "word_57d53390c38c2204588cba13f10a5f9a",
+                "word_6f2d682aa1edd004a86774dbc32603a3",
+                "word_a469e283225b24f48b585f804e782bec",
+                "word_af4d769b378ec384a8ef3edbaf346e9d",
+                "word_b1de7b60fd9e56c4282fa85b4a09e4b2",
                 "word_fae84acd881cae244bb14dd79ae14bf5"
             ]
         },

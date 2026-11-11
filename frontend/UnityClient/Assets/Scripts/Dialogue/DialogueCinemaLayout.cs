@@ -5,7 +5,7 @@ namespace A305.Dialogue
     /// <summary>
     /// 상자 없는 대화창의 배치. 화면 아래 전체 폭에 어두운 그라데이션을 깔고, 가운데 읽기 좋은 폭의 열 안에
     /// 아래부터 입력 줄(입력칸·보내기·말하기) → 상태 줄 → 대사 → 이름표와 도구 줄 순서로 쌓는다.
-    /// 대사 칸은 보이는 대사(최근 두 줄)에 맞춰 위로 키우고, 그 전 대사와 넘치는 대사는 대사 칸 안에서 스크롤한다. 좌표는 대화창 왼쪽 아래 기준이다.
+    /// 대사 칸은 최근 네 대사에 맞춰 위로 키우되 화면 높이 안에 두고, 그 전 대사와 넘치는 대사는 안에서 스크롤한다.
     /// </summary>
     public struct DialogueCinemaLayout
     {
@@ -17,9 +17,10 @@ namespace A305.Dialogue
         public const float Gap = 16;
         public const float StatusHeight = 32;
         public const float MinLinesHeight = 96;
-        public const float MaxLinesHeight = 300;
+        public const float MaxLinesHeight = 600;
         public const float NameHeight = 48;
         public const float TranslationHeight = 160;
+        public const float MaxTranslationHeight = 320;
         private const float TranslationSideBySideWidth = 1100;
 
         // 둥근 이름표가 대사 글자 줄보다 앞으로 나오는 폭. 같은 자리에서 시작하면 둥근 끝 때문에 이름표가 안쪽으로 들어가 보인다.
@@ -50,7 +51,8 @@ namespace A305.Dialogue
             float linesHeight,
             float nameWidth,
             bool hasEarlierLines = false,
-            bool hasTranslation = false
+            bool hasTranslation = false,
+            float translationHeight = TranslationHeight
         )
         {
             float width = Mathf.Min(ColumnWidth, canvasSize.x - 2 * SideMargin);
@@ -71,13 +73,26 @@ namespace A305.Dialogue
                 BottomMargin + RowHeight
             );
             layout.Status = new Rect(left, layout.Input.yMax + 12, width, StatusHeight);
+            bool stackedTranslation = hasTranslation && width < TranslationSideBySideWidth;
+            float reservedHeight = layout.Status.yMax + 10 + Gap + NameHeight + FadeHeight;
+            // 영어 표현 카드는 문장이 다 보이게 키우되, 상한과 화면 높이 안에서만 키우고 넘치는 문장은 카드 안에서 스크롤한다.
+            float cardRoom = canvasSize.y - reservedHeight;
+            if (stackedTranslation)
+                cardRoom -= Gap + MinLinesHeight;
+            float cardHeight = Mathf.Min(
+                Mathf.Clamp(translationHeight, TranslationHeight, MaxTranslationHeight),
+                Mathf.Max(TranslationHeight, cardRoom)
+            );
+            if (stackedTranslation)
+                reservedHeight += cardHeight + Gap;
+            float maxLines = Mathf.Min(MaxLinesHeight, Mathf.Max(0, canvasSize.y - reservedHeight));
             layout.Lines = new Rect(
                 left,
                 layout.Status.yMax + 10,
                 LinesWidth(width, hasTranslation),
                 hasEarlierLines
-                    ? Mathf.Min(linesHeight, MaxLinesHeight)
-                    : Mathf.Clamp(linesHeight, MinLinesHeight, MaxLinesHeight)
+                    ? Mathf.Min(linesHeight, maxLines)
+                    : Mathf.Clamp(linesHeight, Mathf.Min(MinLinesHeight, maxLines), maxLines)
             );
             float bodyTop = layout.Lines.yMax;
             if (hasTranslation)
@@ -85,10 +100,10 @@ namespace A305.Dialogue
                 bool sideBySide = width >= TranslationSideBySideWidth;
                 if (sideBySide)
                 {
-                    bodyTop = Mathf.Max(bodyTop, layout.Lines.yMin + TranslationHeight);
+                    bodyTop = Mathf.Max(bodyTop, layout.Lines.yMin + cardHeight);
                     layout.Translation = Rect.MinMaxRect(
                         layout.Lines.xMax + 2 * Gap,
-                        bodyTop - TranslationHeight,
+                        bodyTop - cardHeight,
                         right,
                         bodyTop
                     );
@@ -101,7 +116,7 @@ namespace A305.Dialogue
                 }
                 else
                 {
-                    layout.Translation = new Rect(left, bodyTop + Gap, width, TranslationHeight);
+                    layout.Translation = new Rect(left, bodyTop + Gap, width, cardHeight);
                     bodyTop = layout.Translation.yMax;
                 }
             }
@@ -119,6 +134,12 @@ namespace A305.Dialogue
         public static float LinesWidth(float columnWidth, bool hasTranslation) =>
             hasTranslation && columnWidth >= TranslationSideBySideWidth
                 ? columnWidth * .54f
+                : columnWidth;
+
+        /// <summary>영어 표현 카드의 폭. 넓은 화면에서는 대사 칸 오른쪽 나머지, 좁은 화면에서는 열 전체다.</summary>
+        public static float TranslationWidth(float columnWidth) =>
+            columnWidth >= TranslationSideBySideWidth
+                ? columnWidth - LinesWidth(columnWidth, true) - 2 * Gap
                 : columnWidth;
     }
 }

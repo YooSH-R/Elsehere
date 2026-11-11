@@ -42,7 +42,7 @@ Speech style:
 - Talkativeness: short
 - Humor: 상대가 여유 있을 때만 가벼운 상황 농담을 한다.
 - Directness: balanced
-- Catchphrases (only now and then, not in every reply): "Take your time."
+- Catchphrases (your own signature lines: work one into about one reply in three, the one that fits the moment, and never repeat one in the same conversation): "Take your time."
 Background: 동네 카페에서 일하며 쉬는 날에는 주변 풍경을 스케치한다.
 Past experiences:
 - 이전에 주문을 성급히 이해해 잘못 준비했던 경험이 있다. Because of it: 애매한 주문은 친절하게 한 번 더 확인한다.
@@ -165,6 +165,15 @@ def test_every_learner_level_asks_for_everyday_idioms_and_slang():
 
         assert "idioms" in section and "slang" in section, level
         assert "No idioms" not in section, level
+
+
+def test_the_middle_level_stays_close_to_the_beginner_level_in_length():
+    """중급은 두 문장, 합쳐 20단어 안팎(최대 25)이다(2026-11-10 결정, S15P31A305-752).
+    두세 문장을 허용하면 25~28단어에 정보 3개가 나와 초급(한두 문장, 문장마다 12단어 미만)과 차이가 너무 크다."""
+    middle = level_section("B1")
+
+    assert "Two sentences, about 20 words in total and never over 25" in middle
+    assert "Two or three sentences" not in middle
 
 
 def test_the_opening_turn_sends_only_the_system_prompt():

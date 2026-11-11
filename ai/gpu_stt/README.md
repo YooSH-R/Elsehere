@@ -5,12 +5,16 @@ AI 워커의 음성 인식(STT)을 SSAFY GPU 서버(5번 GPU)에서 자체 학�
 ## 구조
 
 - 워커가 Groq를 부르는 OpenAI 호환 형식(`POST /v1/audio/transcriptions`, `verbose_json`)을 그대로 받습니다. 언어는 `ko` 고정에 워커가 보내는 장면 단어 프롬프트를 씁니다(게임 녹음 평가에서 가장 좋았던 설정).
-- faster-whisper(CTranslate2) float16, beam 5로 돌립니다. 요청을 받는 스레드는 녹음을 해독해 대기열에 넣고, GPU 일꾼 하나가 앞 묶음을 받아 적는 동안 쌓인 요청을 최대 16개까지 한 묶음으로 받아 적습니다(S15P31A305-513). 혼자 들어온 요청은 기다리지 않고 바로 1건 묶음으로 처리합니다.
+- faster-whisper(CTranslate2) float16, beam 5로 돌립니다. 요청을 받는 스레드는 녹음을 해독해 대기열에 넣고, GPU 일꾼 하나가 앞 묶음을 받아 적는 동안 쌓인 요청을 최대 16개(`STT_BATCH_MAX`)까지 한 묶음으로 받아 적습니다(S15P31A305-513). 혼자 들어온 요청은 기다리지 않고 바로 1건 묶음으로 처리합니다.
   - faster-whisper의 `BatchedInferencePipeline`은 녹음 하나를 잘라 묶는 용도라 요청끼리는 묶지 못해, 같은 내부 단계(특징 추출 → 인코더 → beam 생성)를 여러 녹음에 한꺼번에 돌립니다. CTranslate2는 프롬프트 토큰 수가 같은 것끼리만 함께 생성할 수 있어 프롬프트 길이별로 나눠 생성합니다.
   - 묶음은 타임스탬프 없이(`without_timestamps`) 받아 적습니다. 타임스탬프 규칙을 켜면 CTranslate2 묶음 생성이 크게 느려져(16건 생성 3.05초, 끄면 0.035초) 묶는 이득이 없습니다. 워커는 `text`·`duration`만 쓰므로 `segments`는 녹음 전체를 한 구간으로 돌려줍니다. 30초가 넘는 녹음만 예전처럼 한 건씩 받아 적습니다.
   - 인코더가 건당 약 0.035초로 GPU 계산 한계라, 4건 이상 묶으면 처리량이 초당 약 28건으로 같습니다(예전 한 건씩은 초당 약 2건).
   - `num_workers=4`로 한 건씩 동시에 받아 적는 방식은 같은 GPU에서 처리량이 늘지 않아 쓰지 않습니다(S15P31A305-511).
 - CTranslate2 기본 메모리 할당기(`cudaMallocAsync`)는 큰 블록을 요청마다 드라이버에서 다시 받습니다. 공용 GPU 서버에서 다른 팀이 드라이버를 바쁘게 쓰면 그 호출이 드라이버 잠금에서 몇 초씩 멈춰(1건 중앙 0.08초인데 p90 1.2초), 한 번 받은 블록을 계속 쓰는 `cub_caching` 할당기를 씁니다(`server.py`가 `CT2_CUDA_ALLOCATOR`·`CT2_CUDA_CACHING_ALLOCATOR_CONFIG` 기본값을 정함). 묶음 크기마다 처음 한 번은 메모리를 새로 받느라 느려, 요청을 받기 전에 1~16건을 한 번씩 돌려 둡니다(약 13초). 받아 둔 블록 때문에 GPU 메모리는 예열 뒤 약 10.2GB(모델만 약 3.0GB, 한 건씩 받아 적던 때 약 2.3GB)를 쓰고 그 뒤로는 늘지 않습니다.
+- 말소리가 없는 녹음은 GPU에 넘기지 않고 빈 결과(`text: ""`)를 돌려줍니다(`speech_gate.py`, S15P31A305-704). 워커는 빈 결과를 무음으로 보고 백엔드가 `STT_NO_SPEECH`로 다시 말하기를 안내합니다.
+  - large-v3-turbo는 '말소리 없음' 확률(`no_speech_prob`)을 내지 못해 무음·잡음에서도 0.0이고, 그런 녹음에 `I want... I want...`, `감사합니다` 같은 문장을 지어냅니다. 학습 전 원본도, 프롬프트가 없어도 같습니다. 같은 계산(`generate(return_no_speech_prob=True)`)으로 small 원본은 0.84~0.89, large-v3 원본은 프롬프트 없이 0.80~0.86(혼합 프롬프트가 있으면 0.21~0.24)이라 계산 위치가 아니라 turbo 모델의 성질입니다. 그래서 묶음 받아 적기의 말소리 없음 판정(`NO_SPEECH_THRESHOLD`)은 turbo에서 걸리지 않습니다.
+  - 대신 faster-whisper에 들어 있는 Silero VAD(문턱 0.5)로 말소리 구간이 하나라도 있는지 봅니다. 요청 스레드에서 돌고 3초 녹음에 약 5ms(CPU)입니다.
+  - 측정: 무음·흰 잡음·저음 잡음·60Hz 웅웅거림·딸깍 소리·숨소리(음량 0.002~0.06) 21개는 모두 걸렀습니다. 합성한 짧은 단어(`Yes.`, `Latte.` 등 10단어 × 목소리 3개, 잡음을 섞어도) 60/60, 게임 낭독 60/60, 팀원 녹음 키트 439/440이 통과했습니다. 걸린 1개는 다른 화자가 약 4초로 읽은 문장이 0.9초로 잘린 녹음입니다.
 - 파이썬 기본 HTTP 서버의 접속 대기열(5)로는 동시에 몰린 연결이 끊겨(동시 40건 중 2건), 대기열을 64로 늘렸습니다.
 
 ### 동시 요청 실측 (S15P31A305-513)
@@ -42,14 +46,15 @@ AI 워커의 음성 인식(STT)을 SSAFY GPU 서버(5번 GPU)에서 자체 학�
 
 ## 실행 (GPU 서버)
 
-이 폴더의 `server.py`·`supervise.sh`를 `~/stt/gpu_stt/`에 둡니다. 모델은 `~/stt/stt_finetune/checkpoints/turbo-lr1e4/ct2`, 실행 환경은 `~/stt/.venv`, `~/stt/gpu5.sh`가 5번 GPU만 보이게 하고 그 환경의 파이썬으로 실행합니다. 토큰은 `~/stt/gpu_stt/token`(권한 600)이고 같은 값을 워커의 `STT_GPU_TOKEN`으로 씁니다.
+이 폴더의 `server.py`·`speech_gate.py`·`supervise.sh`를 `~/stt/gpu_stt/`에 둡니다. 모델은 `~/stt/stt_finetune/checkpoints/turbo-lr1e4/ct2`, 실행 환경은 `~/stt/.venv`, `~/stt/gpu5.sh`가 5번 GPU만 보이게 하고 그 환경의 파이썬으로 실행합니다. 토큰은 `~/stt/gpu_stt/token`(권한 600)이고 같은 값을 워커의 `STT_GPU_TOKEN`으로 씁니다.
 
 ```bash
 setsid nohup ~/stt/gpu_stt/supervise.sh > ~/stt/gpu_stt/supervise.log 2>&1 &
 ```
 
 - 감시 스크립트가 30초마다 STT 서버와 터널을 확인해 죽어 있으면 다시 띄우고, 30분마다 Jupyter API를 불러 JupyterHub 유휴 종료(24시간)를 막습니다.
-- 개발 터널은 항상 걸고, 운영 터널은 `~/stt/gpu_stt/prod_tunnel_enabled` 파일이 있을 때만 겁니다. 배포 서버 담당자가 운영 입구 전달·방화벽·운영 워커 고정 주소를 준비한 뒤에 만듭니다([GPU 터널 네트워크](../../docs/gpu-worker-network.md)).
+- 개발 터널은 기본으로 걸고 `~/stt/gpu_stt/dev_tunnel_disabled` 파일이 있으면 걸지 않습니다. 다른 GPU(팀 노트북 등)가 개발 입구를 맡을 때 이 파일을 만들고 이미 걸린 개발 터널(`pkill -u "$(id -un)" -f "ssh .*-R 172.19.0.1:18431:"`)을 끝냅니다. 같은 입구는 한 곳만 잡을 수 있습니다. 운영 터널은 `~/stt/gpu_stt/prod_tunnel_enabled` 파일이 있을 때만 겁니다. 배포 서버 담당자가 운영 입구 전달·방화벽·운영 워커 고정 주소를 준비한 뒤에 만듭니다([GPU 터널 네트워크](../../docs/gpu-worker-network.md)).
 - `server.py`를 바꾼 뒤에는 실행 중인 서버 프로세스(`pgrep -f gpu_stt/server.py`)를 끝내면 감시 스크립트가 30초 안에 새 코드로 다시 띄웁니다. 다시 뜨는 동안 워커는 다음 공급자로 넘깁니다.
 - JupyterHub 세션이 꺼지면 감시 스크립트와 서버도 같이 꺼집니다. Jupyter 서버가 다시 시작되면(자동 보안 업데이트 뒤 서비스 재시작 등) [`ai/gpu_autostart`](../gpu_autostart/README.md) 훅이 감시 스크립트를 자동으로 다시 띄웁니다. 서버 재부팅처럼 Jupyter 서버가 뜨지 않으면 JupyterHub에 로그인할 때 같은 훅이 띄웁니다.
 - SSAFY 서버를 쓸 수 없을 때는 [임대 GPU 서버](../gpu_rental/README.md)로 옮깁니다. 감시 스크립트는 `STT_RUNNER`로 서버 실행기를 바꿀 수 있습니다(기본 `~/stt/gpu5.sh`). 임대 서버에서는 `start.sh`가 `~/stt/run.sh`를 지정합니다.
+- 묶음 상한은 `STT_BATCH_MAX`(기본 16)로 바꿉니다. 감시 스크립트를 띄우는 환경에 지정하면 서버까지 이어집니다. 8GB GPU(RTX 4070 Laptop)에서는 16건 묶음이 GPU 메모리에 다 들어가지 않아 시스템 메모리로 넘치고(예열 177초, 동시 15건 28초), 4로 낮추면 동시 15건 4.3초였습니다(TTS와 같은 GPU, S15P31A305-769). 1보다 작으면 시작하지 않습니다.

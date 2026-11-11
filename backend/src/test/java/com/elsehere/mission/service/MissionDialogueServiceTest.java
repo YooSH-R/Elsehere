@@ -20,14 +20,14 @@ class MissionDialogueServiceTest {
     FirstDayMissionService firstDay = mock(FirstDayMissionService.class);
     TownStoryService town = mock(TownStoryService.class);
     var townContext =
-        new FirstDayMissionService.Context(
+        new QuestTalk.Goals(
             0, new WorkerState("town_story_0", "story", List.of()), "story", List.of());
     when(town.context(8L, "DINER_STAFF")).thenReturn(Optional.of(townContext));
 
     var selected =
         new MissionDialogueService(firstDay, town).context(8L, "DINER_STAFF").orElseThrow();
     assertThat(selected.townStory()).isTrue();
-    assertThat(selected.detail().state().id()).isEqualTo("town_story_0");
+    assertThat(selected.detail().goals().orElseThrow().state().id()).isEqualTo("town_story_0");
   }
 
   @Test

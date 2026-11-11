@@ -9,10 +9,10 @@
 - Builder는 규약의 [Builder 동작 기준](../docs/unity/conventions.md#에셋-builder)에 따라 디자인 작업이 들어가는 에셋을 덮어쓰지 않습니다. 대체 에셋은 없을 때만 만들고, 기능 프리팹은 컴포넌트와 연결만 맞춥니다.
 - Editor가 프로젝트를 열고 있어 batchmode를 실행할 수 없으면, Editor의 `Tools/A305/...` 메뉴로 Builder를 실행하도록 안내하고 결과를 받아 진행합니다.
 - `.meta` 파일은 직접 만들거나 수정하지 않습니다. batchmode 실행이나 Editor 가져오기로 Unity가 생성한 `.meta`를 에셋과 함께 커밋합니다.
-- 씬 디자인에서 사물을 추가할 때는 공용 단어 연결도 함께 완료합니다. 편집 원본은 `UnityClient/Assets/Data/ObjectHover/Words/`의 `ObjectWordDefinition` 에셋이며, 프리팹의 `HoverableObject.Word`가 직접 참조합니다. 기존 단어를 재사용하고, 새 단어가 필요하면 뜻·영문 예문·예문 해석을 함께 등록합니다. 내부 공용 키는 도구가 관리하므로 배치마다 식별자를 입력하지 않습니다.
+- 씬 디자인에서 사물을 추가할 때는 공용 단어 연결도 함께 완료합니다. 편집 원본은 `UnityClient/Assets/Data/ObjectHover/Words/`의 `ObjectWordDefinition` 에셋이며, 프리팹의 `HoverableObject.Word`가 직접 참조합니다. 기존 단어를 재사용하고, 새 단어가 필요하면 뜻·영문 예문·예문 해석을 함께 등록합니다. 뜻은 발음만 한글로 옮기지 않고 무엇인지 풀어 쓰며 외래어 표기는 괄호에 둡니다(예: 여럿이 앉는 긴 의자(벤치)). 내부 공용 키는 도구가 관리하므로 배치마다 식별자를 입력하지 않습니다.
 - 침대의 베개·이불, 식물의 화분처럼 의미 있는 세부 부분도 등록합니다. 가구별 영역과 공용 단어는 `Data/ObjectHover/Parts/`의 `ObjectWordPartsDefinition` 에셋에서 관리하고 프리팹은 참조만 가집니다. 멀리서는 가구 전체, 설정 거리 안에서는 실제 가리킨 부분을 표시합니다. 거리·지연·포인터 간격·화면 여백은 `Data/ObjectHover/ObjectHoverSettings.asset`에서 관리합니다.
 - `BuilderTools`로 프리팹·씬을 저장하면 `UnityClient/Assets/Scripts/Editor/ObjectHover/ObjectWordBindings.json`에 등록된 이름의 사물에 공용 에셋과 호버 영역을 연결합니다. 이미 지정한 에셋 참조는 유지합니다. 새 이름은 연결표에 추가하거나 Builder에서 에셋을 직접 지정합니다.
-- 디자인 완료 전에 `Tools/A305/ObjectHover/Register All Scene Words`를 실행해 배포용 4개 씬의 누락 검사를 통과시킵니다. 이 도구는 백엔드 파일도 내보냅니다. 내용만 수정했다면 `Export Backend Data`, 검증은 `Check Backend Export` 메뉴를 사용합니다. Editor가 닫혀 있으면 저장소 루트의 `./infra/scripts/sync-object-words.ps1`과 `-Check`로 같은 작업을 실행합니다. 백엔드의 생성 JSON·SQL 어휘 구간은 따로 편집하지 않습니다.
+- 디자인 완료 전에 `Tools/A305/ObjectHover/Register All Scene Words`를 실행해 장소 씬과 마을 매장 실내 씬의 누락 검사를 통과시킵니다. 이 도구는 백엔드 파일도 내보냅니다. 내용만 수정했다면 `Export Backend Data`, 검증은 `Check Backend Export` 메뉴를 사용합니다. Editor가 닫혀 있으면 저장소 루트의 `./infra/scripts/sync-object-words.ps1`과 `-Check`로 같은 작업을 실행합니다. 백엔드의 생성 JSON·SQL 어휘 구간은 따로 편집하지 않습니다.
 - `Packages/manifest.json`의 패키지 추가와 변경은 필요성을 설명하고 확인을 받은 뒤 진행합니다.
 
 ## 테스트 대상과 방식

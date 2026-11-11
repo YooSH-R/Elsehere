@@ -110,7 +110,8 @@ namespace A305.Dialogue.Tests
                 string npcCode,
                 string initiatedBy,
                 bool npcOffDuty,
-                NpcTravelContext npcTravelContext = null
+                NpcTravelContext npcTravelContext = null,
+                string placeCode = null
             )
             {
                 throw new NotSupportedException();

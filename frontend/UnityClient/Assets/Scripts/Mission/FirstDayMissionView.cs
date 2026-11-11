@@ -715,10 +715,8 @@ namespace A305.Mission
             CoinChange? change = CoinChange.Between(shownBalance, balance, purchase);
             int from = shownBalance ?? balance;
             shownBalance = balance;
-            if (change.HasValue)
-                A305.World.UiSoundEvents.Play(
-                    change.Value.IsGain ? A305.World.UiSound.Coin : A305.World.UiSound.Spend
-                );
+            if (change.HasValue && change.Value.IsGain)
+                UiSoundEvents.Play(UiSound.Coin);
             if (change.HasValue && coinFloat != null && coinReceipt != null)
                 ShowCoinChange(change.Value, from, balance);
             else if (coinChange == null)

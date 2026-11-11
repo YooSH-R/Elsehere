@@ -8,6 +8,7 @@
     "Paper & Leaf Books",
     "Home & Living",
     "Leaf Tea Room",
+    "Maple Burger",
     "Maple Diner",
     "Town Bank",
     "Suds Laundromat",
@@ -30,6 +31,9 @@
         "oat milk",
         "muffin",
         "croissant",
+        "extra shot",
+        "no sugar",
+        "no ice",
         "for here",
         "to go"
       ]
@@ -57,8 +61,32 @@
       "words": ["wash", "dryer", "both", "detergent", "laundry"]
     },
     {
-      "npcs": ["DINER_STAFF"],
-      "words": ["pancakes", "cheeseburger", "apple pie", "coffee", "refill"]
+      "npcs": ["DINER_STAFF", "FIRE_CAPTAIN"],
+      "words": [
+        "Maple Burger",
+        "Classic",
+        "Cheese",
+        "Crispy Chicken",
+        "Veggie",
+        "beef patty",
+        "bean patty",
+        "lettuce",
+        "tomato",
+        "onion",
+        "pickles",
+        "ketchup",
+        "mayo",
+        "extra cheese",
+        "extra patty",
+        "no onions",
+        "without pickles",
+        "fries",
+        "cola",
+        "lemonade",
+        "combo",
+        "for here",
+        "to go"
+      ]
     },
     {
       "npcs": ["BAKERY_STAFF"],

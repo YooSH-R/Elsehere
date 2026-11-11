@@ -198,19 +198,7 @@ namespace A305.EditorTools.World
         internal static GameObject Menu()
         {
             var root = new GameObject("MenuBoard");
-            Block("Frame", root.transform, Vector3.zero, V(4.2f, 1.35f, .14f), LightOak);
-            Block("Board", root.transform, V(0, 0, -.085f), V(4.02f, 1.17f, .04f), Green);
-            Text("MenuTitle", "COFFEE  /  TEA", root.transform, V(0, .32f, -.12f), .24f);
-            Text(
-                "MenuOptions",
-                "ESPRESSO   LATTE   TEA\nBAKED FRESH DAILY",
-                root.transform,
-                V(0, -.12f, -.12f),
-                .18f
-            );
-            Solid(root.transform, Vector3.zero, V(4.2f, 1.35f, .2f));
-            foreach (TMPro.TextMeshPro label in root.GetComponentsInChildren<TMPro.TextMeshPro>())
-                label.transform.localRotation = Quaternion.identity;
+            ShopMenuBuilder.BuildCafeMenu(root.transform);
             return root;
         }
 

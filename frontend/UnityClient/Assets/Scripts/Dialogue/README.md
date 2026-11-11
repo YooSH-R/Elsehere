@@ -4,7 +4,7 @@
 
 대화 준비·진행 중에는 게임 시간을 멈추고, 대화창을 닫으면 대화에 의한 정지를 해제합니다. 피드백·단어장·튜토리얼의 정지는 각 화면과 진행 흐름이 별도로 유지합니다. 준비 중 Esc로 닫은 뒤 시작 응답이 늦게 도착하면 그 서버 대화를 피드백 없이 종료하고, 정리 전의 시간 정지 응답을 버리도록 시계를 재동기화합니다. 취소한 대화를 다시 표시하거나 추천 단어를 요청하지 않습니다. 취소 직후 다시 말을 걸면 이전 준비 요청의 서버 정리가 끝난 뒤 새 대화를 요청해 두 대화의 정리가 섞이지 않게 합니다.
 
-한국어·한영 혼합 발화의 응답(CONV-03)에 `userTurn.translation.english`가 있으면 대화 옆의 작은 카드에 표시합니다. 제목은 “방금 한 말의 영어 표현이에요.”입니다. 원 발화를 유지하고 번역문을 다시 보내지 않으며, 다음 발화를 보내면 이전 표현을 비웁니다. 무례 판정과 관계없이 영어 번역이 있으면 표시하고, 번역이 없는 응답에서는 카드를 숨깁니다. 좁은 화면에서는 대사 위에 쌓고 긴 문장은 카드 안에서 스크롤합니다. [듣기]는 기기 영어 음성을 사용하며 추가 AI 요청을 만들지 않습니다. `DialogueTranslationBuilder`가 프리팹과 연결을 갱신합니다.
+한국어·한영 혼합 발화의 응답(CONV-03)에 `userTurn.translation.english`가 있으면 대화 옆의 작은 카드에 표시합니다. 제목은 “방금 한 말의 영어 표현이에요.”입니다. 원 발화를 유지하고 번역문을 다시 보내지 않으며, 다음 발화를 보내면 이전 표현을 비웁니다. 무례 판정과 관계없이 영어 번역이 있으면 표시하고, 번역이 없는 응답에서는 카드를 숨깁니다. 좁은 화면에서는 대사 위에 쌓습니다. 카드는 문장이 다 보이도록 높이를 키우고(최대 320, 화면 높이 안), 그보다 긴 문장만 카드 안에서 스크롤합니다. [듣기]는 기기 영어 음성을 사용하며 추가 AI 요청을 만들지 않습니다. `DialogueTranslationBuilder`가 프리팹과 연결을 갱신합니다.
 
 NPC 음성을 다시 합성하거나 내려받아 재생을 준비하는 동안에는 `DialogueWait.NpcSpeech`로 대사 칸을 로딩 상태로 유지합니다. 준비가 끝나면 자막 설정을 적용하므로 자막이 음성보다 먼저 노출되지 않습니다. 생성 실패·만료가 확정된 음성의 자막 대체와 다시 듣기 재시도는 유지합니다. 이전 대사의 늦은 음성 응답은 현재 대사의 표시를 바꾸지 않습니다.
 
@@ -83,7 +83,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 
 | API | 설명 |
 | --- | --- |
-| `DialogueController.TryStart(string npcCode, Transform lookTarget, ConversationInitiator initiatedBy = Npc)` | 대화를 시작합니다. 이미 대화 중이면 false를 돌려줍니다. 플레이어가 [말 걸기]나 NPC 클릭·탭으로 먼저 건 대화는 `ConversationInitiator.User`로 넘기고, 서버 대화 시작(CONV-01)에 `initiatedBy: USER`로 보냅니다. NPC가 제안한 대화는 기본값(`NPC`)입니다. |
+| `DialogueController.TryStart(string npcCode, Transform lookTarget, ConversationInitiator initiatedBy = Npc)` | 대화를 시작합니다. 이미 대화 중이면 false를 돌려줍니다. 플레이어가 [말 걸기]나 NPC 클릭·탭으로 먼저 건 대화는 `ConversationInitiator.User`로 넘기고, 서버 대화 시작(CONV-01)에 `initiatedBy: USER`로 보냅니다. NPC가 제안한 대화는 기본값(`NPC`)입니다. 서버 대화 시작에는 대화가 열린 장소 코드(`placeCode`)도 보냅니다. 따로 넘기지 않으면 플레이어가 있는 곳(`ShopInterior.Occupied`의 매장, 아니면 플레이어가 있는 씬의 `PlaceScenes` 코드)이고, 택시는 `TAXI`를 넘깁니다. |
 | `DialogueController.TryStart(..., practiceScenarioId, practiceStart)` | 장소 연습 대화를 시작합니다. `practiceStart`가 장소 연습 시작(PRC-02)으로 대화를 열고, 복습 대화처럼 `Started`·`Ended`와 마을 동작(택시·신고·행동 판정), 준비물, 추천 단어, 종료 피드백, [나중에 확인]을 쓰지 않습니다. 남은 진행 중 대화는 끝내거나 이어받지 않습니다. 종료 기록의 `DialogueRecord.PracticeScenarioId`로 구분합니다. |
 | `DialogueController.ActivePracticeConversationId`, `SetPracticeReference(goals, completedCount, briefing)` | 지금 장소 연습 대화의 서버 ID와, 복습 참고 카드와 같은 자리에 '이번 연습' 설명·목표·해낸 수를 보이는 카드 |
 | `DialogueController.End()` | 대화를 끝내고 플레이어를 대화하던 NPC 쪽으로 돌린 뒤 시점과 이동을 되돌립니다. [대화 종료] 버튼과 Esc도 이 동작을 합니다. |
@@ -111,7 +111,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 | `TOWN_PASSERBY` | Ben | 키워드 응답. `weather`, `cafe`, `thank` |
 | `TAXI_DRIVER` | Joe | 어디로 가는지 묻고 키워드 응답. `hotel`, `thank` |
 | `POLICE_OFFICER` | Dan | 무슨 일이 있었는지 묻고 키워드 응답. `stolen`·`lost`·`accident`, `thank` |
-| 거리 매장 직원 9명([Npc 모듈](../Npc/README.md#거리-매장-직원)) | Linda·Rosa·Henry·Gus·Lily·Tony·Grace·Max·Nina | 가게 인사 뒤 키워드 응답 두 개(예: 우체국 `stamp`·`package`, 식당 `pancake`·`coffee`). 가격은 서버 상황 문장과 같습니다. |
+| 거리 매장 직원 9명([Npc 모듈](../Npc/README.md#거리-매장-직원)) | Linda·Rosa·Henry·Gus·Lily·Tony·Grace·Max·Nina | 가게 인사 뒤 키워드 응답 두 개(예: 우체국 `stamp`·`package`, 버거 가게 `classic`·`cola`). 가격은 서버 상황 문장과 같습니다. |
 
 - 키워드는 대소문자를 구분하지 않고 단어 일부여도 맞습니다(`desserts`도 `dessert`에 맞음). 규칙은 위에서부터 확인해 처음 맞는 규칙으로 답합니다.
 - 필드 초기값은 에셋을 처음 만들 때 들어가는 예시이며, 이후 수정은 에셋에서 합니다. 이름·대사는 서버 데이터라 서버 연동 후에는 서버 값을 씁니다.

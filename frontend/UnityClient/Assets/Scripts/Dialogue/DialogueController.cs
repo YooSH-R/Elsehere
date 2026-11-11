@@ -190,6 +190,9 @@ namespace A305.Dialogue
         /// 장소 연습으로 여는 대화면 그 상황 ID. 복습처럼 이야기와 따로 하므로 대화 시작·끝(<see cref="Started"/>·<see cref="Ended"/>)을 알리지 않는다.
         /// </param>
         /// <param name="practiceStart">장소 연습 대화를 여는 요청(PRC-02). 요청 ID를 받는다.</param>
+        /// <param name="placeCode">
+        /// 대화가 열린 장소 코드(CONV-01). 비우면 플레이어가 있는 곳으로 정한다. 택시처럼 플레이어 위치와 다른 곳이면 넘긴다.
+        /// </param>
         /// <returns>대화를 시작했으면 true. 이미 대화 중이면 false.</returns>
         public bool TryStart(
             string npcCode,
@@ -201,7 +204,8 @@ namespace A305.Dialogue
             Func<string, Task<ConversationStart>> reviewStart = null,
             NpcTravelContext npcTravelContext = null,
             string practiceScenarioId = null,
-            Func<string, Task<ConversationStart>> practiceStart = null
+            Func<string, Task<ConversationStart>> practiceStart = null,
+            string placeCode = null
         )
         {
             bool isSeparatePractice = reviewCardId != null || practiceScenarioId != null;
@@ -246,7 +250,8 @@ namespace A305.Dialogue
                     reviewStart,
                     npcTravelContext,
                     practiceScenarioId,
-                    practiceStart
+                    practiceStart,
+                    placeCode ?? PlayerPlaceCode()
                 );
             }
             else
@@ -476,6 +481,16 @@ namespace A305.Dialogue
             Application.OpenURL(VoiceConsent.DocumentUrl);
         }
 
+        // 말을 거는 플레이어가 NPC 바로 옆에 있으므로 플레이어가 있는 곳이 NPC가 지금 있는 곳이다.
+        private string PlayerPlaceCode()
+        {
+            ShopInterior shop = ShopInterior.Occupied;
+            return PlaceScenes.CodeOf(
+                player.gameObject.scene.name,
+                shop != null ? shop.PlaceCode : null
+            );
+        }
+
         private void StartServerConversation(
             string npcCode,
             string npcName,
@@ -485,7 +500,8 @@ namespace A305.Dialogue
             Func<string, Task<ConversationStart>> reviewStart = null,
             NpcTravelContext npcTravelContext = null,
             string practiceScenarioId = null,
-            Func<string, Task<ConversationStart>> practiceStart = null
+            Func<string, Task<ConversationStart>> practiceStart = null,
+            string placeCode = null
         )
         {
             serverConversation = new ServerConversation(
@@ -496,6 +512,7 @@ namespace A305.Dialogue
                 initiatedBy,
                 npcOffDuty: npcOffDuty,
                 npcTravelContext: npcTravelContext,
+                placeCode: placeCode,
                 reviewCardId: reviewCardId,
                 reviewStart: reviewStart,
                 practiceScenarioId: practiceScenarioId,

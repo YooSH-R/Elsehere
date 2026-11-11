@@ -66,6 +66,35 @@ namespace A305.Mission.Tests
         }
 
         [Test]
+        public void CoinSoundPlaysOnlyWhenTheBalanceIncreases()
+        {
+            FirstDayMissionState state = Journey(current: 5);
+            state.Balance = 91;
+            Refresh(state);
+            var sounds = new List<UiSound>();
+            UiSoundEvents.Requested += sounds.Add;
+            try
+            {
+                view.Refresh(state, false, talking: true);
+                view.Refresh(state, false, talking: false);
+                Assert.That(sounds, Is.Empty);
+
+                state.Balance = 88;
+                state.LastPurchase = "음료";
+                view.Refresh(state, false, talking: true);
+                Assert.That(sounds, Is.Empty);
+
+                state.Balance = 98;
+                view.Refresh(state, false, talking: false);
+                Assert.That(sounds, Is.EqualTo(new[] { UiSound.Coin }));
+            }
+            finally
+            {
+                UiSoundEvents.Requested -= sounds.Add;
+            }
+        }
+
+        [Test]
         public void TownStoryPreservesFirstDayBelongings()
         {
             FirstDayMissionState state = Journey(current: 0);

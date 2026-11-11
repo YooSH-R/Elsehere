@@ -23,7 +23,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from . import feedback_bridge, guard, npc_persona, services, stt
 from .config import Settings
 from .guard_local import LocalGuard
-from .llm import LLM, ModelOutputError, ProviderError, Usage
+from .llm import LLM, REQUEST_NOTES, ModelOutputError, ProviderError, Usage
 from .npc import reply_events
 from .npc_profile_models import NpcProfile
 from .npc_respond import ContractError, load_payload, parse_request, readable_request_id, respond
@@ -134,6 +134,8 @@ def create_app(
         """내부 토큰 확인 + 추적 id(X-Request-Id·X-User-Id·X-Conv-Id)를 로그에 남긴다 (Spring 턴 기록과 잇는 열쇠)."""
         rid = request.headers.get("X-Request-Id") or secrets.token_hex(8)
         t = time.perf_counter()
+        notes: dict = {}
+        REQUEST_NOTES.set(notes)  # 모델 호출이 여기에 재요청 기록을 남긴다 (hedged·hedge_won)
         if request.url.path not in PUBLIC and not secrets.compare_digest(
             request.headers.get("X-Internal-Token", ""), request.app.state.settings.token
         ):
@@ -153,6 +155,7 @@ def create_app(
                     "path": request.url.path,
                     "status": resp.status_code,
                     "latency_s": round(time.perf_counter() - t, 3),
+                    **notes,
                 },
                 ensure_ascii=False,
             )

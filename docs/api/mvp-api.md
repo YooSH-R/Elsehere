@@ -952,7 +952,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ```json
 // 요청
-{ "requestId": "6f1c2a7e-4b8d-4b7a-9a52-1f0f3d2c9e11", "npcCode": "CAFE_STAFF", "initiatedBy": "USER", "npcOffDuty": false, "speechSpeed": 1.1 }
+{ "requestId": "6f1c2a7e-4b8d-4b7a-9a52-1f0f3d2c9e11", "npcCode": "CAFE_STAFF", "initiatedBy": "USER", "npcOffDuty": false, "speechSpeed": 1.1, "placeCode": "CAFE" }
 
 // 응답 201
 {
@@ -985,6 +985,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   - 첫날 미션 단계의 NPC는 근무 시간이 아니어도 미션 지시대로 인사합니다. 미션 NPC가 퇴근한 뒤의 미션 처리는 아직 정하지 않았습니다([NPC 생활·관계 설계](../npc-life-design.md) 11절 "교대와 첫날 미션").
 - `speechSpeed`(선택, 0.8~1.5)는 사용자가 마이페이지 [NPC 말 빠르기] 슬라이더로 고른 NPC 음성 빠르기 배율입니다. 첫인사 음성을 이 빠르기로 만들며 대화 난이도와는 상관없습니다. 없거나 `null`이면 `1.1`이고, 범위를 벗어나면 `400 VALIDATION_FAILED`입니다. 값은 기기(브라우저)에 저장하고 서버에는 저장하지 않으므로 CONV-03·CONV-07·복습 대화 시작·장소 연습 시작(PRC-02)에도 매번 보냅니다.
 - `npcTravelContext`(선택)는 Unity가 관찰한 이동 사실입니다. `phase`는 `GOING_TO_WORK`·`AT_WORK`·`GOING_HOME`·`LEISURE`·`BREAK`·`RESTING`·`WALKING` 중 하나이며, `routeMeters`(0~2000m), `walkedMeters`(0~10000m), `departureLeadMinutes`(0~1440게임분), `lateMinutes`(0~1440게임분)를 보냅니다. 자유 문장 대신 제한된 상태와 수치를 받고, 이 사실로 만든 상황을 대화에 저장해 이후 대사·힌트·재접속에도 사용합니다. 근무 시각이나 관계 수치를 바꾸는 요청은 아닙니다. 이전 클라이언트와 기존 대화에는 이 값이 없어도 됩니다. 복습 대화에는 현재의 이동 상황을 덧붙이지 않습니다.
+- `placeCode`(선택)는 대화가 열린 장소 코드입니다. 말을 거는 플레이어가 NPC 바로 옆에 있으므로 Unity는 플레이어가 있는 곳을 보냅니다. 거리 매장 실내에 들어가 있으면 그 매장(`DINER`·`LAUNDROMAT` 등), 아니면 지금 씬의 장소(`TOWN`·`CAFE`·`SHOP`·`HOTEL`·`POLICE_STATION`·`HOME`)이고, 택시 안 대화는 `TAXI`입니다. 대문자 장소 코드만 받으며(형식이 다르면 `VALIDATION_FAILED`), 서버가 "지금 있는 곳은 Suds Laundromat 안이고, 자기 일터가 아니면 들른 것"이라는 사실로 바꿔 이동 사실과 함께 대화에 저장합니다. 일과에 따라 다른 매장에 들른 NPC가 아직 길이나 일터에 있는 것처럼 말하지 않게 하려는 값입니다. 장소 이름은 백엔드 `ConversationPlace`에 있고 워커의 마을 안내(`TOWN_GUIDE`)와 같게 둡니다. 없거나 서버가 모르는 코드면 위치 사실을 넣지 않습니다. 복습 대화에는 덧붙이지 않습니다.
 - 직원처럼 `approachLine`이 없는 NPC는 `initiatedBy`와 관계없이 AI가 첫 인사를 만들고 음성을 합성합니다. 이 NPC와 끝낸 대화가 있으면 기억 카드를 함께 넘겨 다시 만난 인사를 합니다. 미리 작성한 인사로 바꿀지는 `[미정]`입니다(6절).
 - 첫 대사의 추천 단어는 응답을 기다리게 하지 않도록 따로 만들므로 `suggestWords`는 `null`입니다. 클라이언트가 대사를 보여 준 뒤 CONV-12로 받습니다.
 - 첫 인사를 만들지 못하면 대화를 만들지 않고 AI 오류 코드(`AI_TEMPORARILY_UNAVAILABLE` 등)를 돌려줍니다.

@@ -56,5 +56,12 @@ namespace A305.World
 
             return null;
         }
+
+        /// <summary>
+        /// 플레이어가 지금 있는 장소 코드. 매장 실내는 마을 씬에 겹쳐 불러오고 플레이어는 마을 씬에 남으므로, 들어가 있는 매장(<see cref="ShopInterior.Occupied"/>)이
+        /// 있으면 그 매장이다. 둘 다 장소가 아니면 null.
+        /// </summary>
+        public static string CodeOf(string unitySceneName, string occupiedShopCode) =>
+            string.IsNullOrEmpty(occupiedShopCode) ? CodeOf(unitySceneName) : occupiedShopCode;
     }
 }

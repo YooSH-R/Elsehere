@@ -111,7 +111,8 @@ Understand what they mean, and always reply in English.
 
 # 마을 전체 안내. 모든 NPC가 일하는 곳과 마을을 아는 사람처럼 답하고 길을 알려 주며, 3D 마을에 없는 곳은 지어내지 않게 한다.
 # Unity TownScene·HotelScene에 실제로 있는 곳과 자리만 적는다 (장소를 더하거나 옮기면 여기도 고친다).
-# 가게 이름을 더하거나 바꾸면 음성 인식 철자 힌트(backend/src/main/resources/content/speech-words.json의 town)도 고친다.
+# 가게 이름을 더하거나 바꾸면 음성 인식 철자 힌트(backend/src/main/resources/content/speech-words.json의 town)와
+# 백엔드 ConversationPlace(NPC가 지금 있는 곳)도 고친다.
 # 본길은 남북으로 뻗고 집에서 나오면 북쪽을 본다. 왼쪽·오른쪽은 걷는 방향마다 달라지므로 끝·교차로·맞은편·옆으로 적는다
 TOWN_GUIDE = """## Town
 Maple Town is small, and everyone who works here knows the whole main street and can give simple directions.
@@ -124,7 +125,7 @@ The main street runs north and south, with a crossroads with traffic lights in t
 - Past the crossroads, going north, the shops come in pairs facing each other across the street:
   - Maple Bakery, and across from Maple Bakery a small park with a fountain, benches and flower planters, just past the crossroads.
   - The post office (stamps, letters and packages), across from Little Arcade (claw machines) with Paper & Leaf Books (a bookshop) upstairs.
-  - Home & Living (furniture) with Leaf Tea Room upstairs, across from Maple Diner (breakfast all day and simple meals).
+  - Home & Living (furniture) with Leaf Tea Room upstairs, across from Maple Burger (formerly Maple Diner; burgers, fries and drinks, with optional ingredient additions and removals).
   - Town Bank (deposits, withdrawals and an ATM), across from Suds Laundromat.
   - Bloom Flowers (flower shop), across from Main St. Barber, at the north end of the main street.
 - Houses line the rest of the street. A yellow taxi drives along the main street.

@@ -305,31 +305,34 @@ MonoBehaviour:
     npcName: Rosa
     roleLabel: "\uC2DD\uB2F9 \uC885\uC5C5\uC6D0"
     opening:
-      english: Hi, honey! Welcome to Maple Diner. What can I get you?
-      korean: "\uC5B4\uC11C \uC640\uC694! \uBA54\uC774\uD50C \uC2DD\uB2F9\uC774\uC5D0\uC694.
+      english: Hi, honey! Welcome to Maple Burger. What can I get you?
+      korean: "\uC5B4\uC11C \uC640\uC694! \uBA54\uC774\uD50C \uBC84\uAC70\uC774\uC5D0\uC694.
         \uBB58 \uB4DC\uB9B4\uAE4C\uC694?"
       voice: {fileID: 0}
     guidedTurns: []
     keywordReplies:
     - keywords:
-      - pancake
+      - classic
       reply:
-        english: Pancakes, great choice! That's seven dollars.
-        korean: "\uD32C\uCF00\uC774\uD06C, \uC88B\uC740 \uC120\uD0DD\uC774\uC5D0\uC694!
-          7\uB2EC\uB7EC\uC608\uC694."
+        english: The Classic is seven dollars. Would you like to leave anything out?
+        korean: "\uD074\uB798\uC2DD \uBC84\uAC70\uB294 7\uB2EC\uB7EC\uC608\uC694.
+          \uBE7C\uACE0 \uC2F6\uC740 \uC7AC\uB8CC\uAC00 \uC788\uB098\uC694?"
         voice: {fileID: 0}
     - keywords:
-      - coffee
+      - cola
       reply:
-        english: Coffee is two dollars, and refills are free.
-        korean: "\uCEE4\uD53C\uB294 2\uB2EC\uB7EC\uACE0 \uB9AC\uD544\uC740 \uBB34\uB8CC\uC608\uC694."
+        english: Cola is two dollars. Would you like fries as well?
+        korean: "\uCF5C\uB77C\uB294 2\uB2EC\uB7EC\uC608\uC694. \uAC10\uC790\uD280\uAE40\uB3C4
+          \uB4DC\uB9B4\uAE4C\uC694?"
         voice: {fileID: 0}
     defaultReply:
-      english: We have pancakes, burgers, apple pie and coffee.
-      korean: "\uD32C\uCF00\uC774\uD06C, \uBC84\uAC70, \uC560\uD50C\uD30C\uC774,
-        \uCEE4\uD53C\uAC00 \uC788\uC5B4\uC694."
+      english: We have Classic, Cheese, Crispy Chicken and Veggie burgers. You can
+        add cheese or leave out onions.
+      korean: "\uD074\uB798\uC2DD, \uCE58\uC988, \uD06C\uB9AC\uC2A4\uD53C \uCE58\uD0A8,
+        \uBCA0\uC9C0 \uBC84\uAC70\uAC00 \uC788\uC5B4\uC694. \uCE58\uC988\uB97C \uCD94\uAC00\uD558\uAC70\uB098
+        \uC591\uD30C\uB97C \uBE84 \uC218 \uC788\uC5B4\uC694."
       voice: {fileID: 0}
-    exampleSentence: Can I have pancakes and coffee, please?
+    exampleSentence: Can I have a Classic with no onions, please?
   - npcCode: BANK_STAFF
     npcName: Henry
     roleLabel: "\uC740\uD589\uC6D0"
@@ -992,31 +995,34 @@ MonoBehaviour:
     npcName: Ray
     roleLabel: "\uC2DD\uB2F9 \uC9C1\uC6D0"
     opening:
-      english: Hi, honey! Welcome to Maple Diner. What can I get you?
-      korean: "\uC5B4\uC11C \uC640\uC694! \uBA54\uC774\uD50C \uC2DD\uB2F9\uC774\uC5D0\uC694.
+      english: Hi, honey! Welcome to Maple Burger. What can I get you?
+      korean: "\uC5B4\uC11C \uC640\uC694! \uBA54\uC774\uD50C \uBC84\uAC70\uC774\uC5D0\uC694.
         \uBB58 \uB4DC\uB9B4\uAE4C\uC694?"
       voice: {fileID: 0}
     guidedTurns: []
     keywordReplies:
     - keywords:
-      - pancake
+      - classic
       reply:
-        english: Pancakes, great choice! That's seven dollars.
-        korean: "\uD32C\uCF00\uC774\uD06C, \uC88B\uC740 \uC120\uD0DD\uC774\uC5D0\uC694!
-          7\uB2EC\uB7EC\uC608\uC694."
+        english: The Classic is seven dollars. Would you like to leave anything out?
+        korean: "\uD074\uB798\uC2DD \uBC84\uAC70\uB294 7\uB2EC\uB7EC\uC608\uC694.
+          \uBE7C\uACE0 \uC2F6\uC740 \uC7AC\uB8CC\uAC00 \uC788\uB098\uC694?"
         voice: {fileID: 0}
     - keywords:
-      - coffee
+      - cola
       reply:
-        english: Coffee is two dollars, and refills are free.
-        korean: "\uCEE4\uD53C\uB294 2\uB2EC\uB7EC\uACE0 \uB9AC\uD544\uC740 \uBB34\uB8CC\uC608\uC694."
+        english: Cola is two dollars. Would you like fries as well?
+        korean: "\uCF5C\uB77C\uB294 2\uB2EC\uB7EC\uC608\uC694. \uAC10\uC790\uD280\uAE40\uB3C4
+          \uB4DC\uB9B4\uAE4C\uC694?"
         voice: {fileID: 0}
     defaultReply:
-      english: We have pancakes, burgers, apple pie and coffee.
-      korean: "\uD32C\uCF00\uC774\uD06C, \uBC84\uAC70, \uC560\uD50C\uD30C\uC774,
-        \uCEE4\uD53C\uAC00 \uC788\uC5B4\uC694."
+      english: We have Classic, Cheese, Crispy Chicken and Veggie burgers. You can
+        add cheese or leave out onions.
+      korean: "\uD074\uB798\uC2DD, \uCE58\uC988, \uD06C\uB9AC\uC2A4\uD53C \uCE58\uD0A8,
+        \uBCA0\uC9C0 \uBC84\uAC70\uAC00 \uC788\uC5B4\uC694. \uCE58\uC988\uB97C \uCD94\uAC00\uD558\uAC70\uB098
+        \uC591\uD30C\uB97C \uBE84 \uC218 \uC788\uC5B4\uC694."
       voice: {fileID: 0}
-    exampleSentence: Can I have pancakes and coffee, please?
+    exampleSentence: Can I have a Classic with no onions, please?
   - npcCode: FIRE_FIGHTER
     npcName: Rachel
     roleLabel: "\uBE68\uB798\uBC29 \uC9C1\uC6D0"

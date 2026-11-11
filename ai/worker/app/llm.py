@@ -7,6 +7,7 @@
 """
 
 import asyncio
+import contextvars
 import json
 import logging
 import time
@@ -19,6 +20,15 @@ from .config import Settings
 
 log = logging.getLogger("ai_worker")
 RETRY_CODES = (429, 500, 502, 503)
+# 요청 하나의 로그 줄에 덧붙일 기록 (main의 guard_and_trace가 요청마다 빈 dict를 넣는다). 시간 상한에 걸려 usage가 비는 요청에서도 남는다.
+REQUEST_NOTES: contextvars.ContextVar[dict | None] = contextvars.ContextVar("request_notes", default=None)
+
+
+def note_hedge(key: str, role: str):
+    """같은 요청을 하나 더 보낸 호출(hedged)·그중 나중 요청의 답을 쓴 호출(hedge_won)을 역할 이름으로 요청 로그에 남긴다."""
+    notes = REQUEST_NOTES.get()
+    if notes is not None:
+        notes.setdefault(key, []).append(role or "?")
 
 
 class ModelOutputError(ValueError):
@@ -117,16 +127,19 @@ def stream_piece(data: dict) -> str:
     return delta.get("content") or ""
 
 
-async def race(start: Callable[[], Awaitable], after: float, ok: Callable[[object], bool], discard: Callable[[object], Awaitable]):
+async def race(
+    start: Callable[[], Awaitable], after: float, ok: Callable[[object], bool], discard: Callable[[object], Awaitable], role: str = ""
+):
     """start()로 시작한 작업이 after초 안에 끝나지 않으면 같은 작업을 하나 더 시작해 먼저 ok인 결과를 쓴다 (after가 0이면 하나만).
     ok가 아닌 결과(예: 503 응답)는 남은 쪽을 기다리고, 둘 다 ok가 아니면 마지막 결과를, 결과 없이 둘 다 실패하면 마지막 오류를 낸다.
     반환: (결과, 하나 더 시작했나). 쓰지 않은 결과는 discard로 정리하고 끝나지 않은 작업은 취소한다 —
-    위에서 취소돼 나갈 때도 같다 (취소 직전에 끝난 응답이 열린 채 남지 않게)."""
+    위에서 취소돼 나갈 때도 같다 (취소 직전에 끝난 응답이 열린 채 남지 않게). role은 요청 로그에 남길 이름."""
     tasks, winner = [asyncio.ensure_future(start())], None
     try:
         done, _ = await asyncio.wait(tasks, timeout=after or None)
         if not done:
             tasks.append(asyncio.ensure_future(start()))
+            note_hedge("hedged", role)
         pending, last_error, last_bad = set(tasks), None, None
         while pending:
             done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
@@ -135,6 +148,8 @@ async def race(start: Callable[[], Awaitable], after: float, ok: Callable[[objec
                     last_error = t.exception()
                 elif ok(t.result()):
                     winner = t
+                    if t is not tasks[0]:
+                        note_hedge("hedge_won", role)
                     return t.result(), len(tasks) > 1
                 else:
                     last_bad = t
@@ -200,7 +215,7 @@ class LLM:
         return self.others.get(self.s.role_provider.get(role, ""), self.client)
 
     async def _send(
-        self, client: httpx.AsyncClient, b: dict, timeout: httpx.Timeout, stream: bool, hedge_after_s: float = 0
+        self, client: httpx.AsyncClient, b: dict, timeout: httpx.Timeout, stream: bool, hedge_after_s: float = 0, role: str = ""
     ) -> tuple[httpx.Response, bool]:
         """요청 하나. 한 번에 받는 호출이 hedge_after_s 안에 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 쓴다 (0이면 하나만).
         반환: (응답, 더 보냈나). 둘 다 실패하면 마지막 오류를 던진다. 스트림은 응답 머리가 먼저 와서 늦음을 알 수 없어 그대로."""
@@ -209,7 +224,7 @@ class LLM:
             return client.send(client.build_request("POST", "/chat/completions", json=b, timeout=timeout), stream=stream)
 
         after = 0 if stream else hedge_after_s
-        return await race(start_request, after, lambda r: r.status_code < 400, lambda r: r.aclose())
+        return await race(start_request, after, lambda r: r.status_code < 400, lambda r: r.aclose(), role)
 
     async def _open(
         self, body: dict, stream: bool = False, role: str = "", timeout_s: float | None = None, hedge_after_s: float = 0
@@ -228,7 +243,7 @@ class LLM:
             b = model_body({**body, "model": model}, self.s.model_params)
             for attempt in range(2):
                 try:
-                    r, hedged = await self._send(client, b, timeout, stream, hedge_after_s)
+                    r, hedged = await self._send(client, b, timeout, stream, hedge_after_s, role)
                 except httpx.TimeoutException as e:
                     # 오류 없이 30초 넘게 멈춘 호출이 있었다 (2026-10-13). 짧게 끊고 다시 보낸다
                     last = f"응답 없음({timeout_s}s): {type(e).__name__}"
@@ -364,7 +379,7 @@ class LLM:
         GMS는 첫 글자가 나올 때 응답 머리를 보내므로 머리가 늦은 경우도 같이 잡힌다. 진 쪽은 닫는다.
         반환: _first_text의 값 + 하나 더 보냈는지."""
         res, hedged = await race(
-            lambda: self._first_text(body, role), self.s.stream_hedge_after_s, lambda _: True, lambda res: res[0].aclose()
+            lambda: self._first_text(body, role), self.s.stream_hedge_after_s, lambda _: True, lambda res: res[0].aclose(), role
         )
         return (*res, hedged)
 

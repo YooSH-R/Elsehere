@@ -262,6 +262,101 @@ body {
   font-size: 12px;
 }
 
+/* UI가 가로 화면에 맞춰져 있어 휴대폰·태블릿(손가락 입력)을 세로로 들면 가로로 돌리라고 권한다.
+   PC 창이 세로로 길어도 띄우지 않고, 가로로 돌리면 저절로 사라진다. 뒤를 덮어 카드가 뜬 동안 게임을 누르지 않게 한다. */
+.orientation-hint {
+  display: none;
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  .orientation-hint {
+    position: fixed;
+    z-index: 20;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: max(24px, var(--safe-top)) max(24px, var(--safe-right)) max(24px, var(--safe-bottom)) max(24px, var(--safe-left));
+    background: rgb(23 16 12 / 72%);
+  }
+}
+
+.orientation-hint-dismissed .orientation-hint {
+  display: none;
+}
+
+.orientation-hint-card {
+  width: min(100%, 320px);
+  padding: 24px 22px 20px;
+  border-radius: 20px;
+  background: #fff8ec;
+  color: #2b1c14;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 45%);
+  text-align: center;
+  word-break: keep-all;
+}
+
+.orientation-hint-phone {
+  width: 88px;
+  height: 88px;
+  fill: none;
+  stroke: #2b1c14;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.orientation-hint-arrow {
+  stroke: #e86a4a;
+}
+
+/* 휴대폰 그림이 세로에서 가로로 천천히 눕는다. */
+.orientation-hint-device {
+  transform-origin: 48px 48px;
+  animation: orientation-hint-turn 2.4s ease-in-out infinite;
+}
+
+@keyframes orientation-hint-turn {
+  0%,
+  25% {
+    transform: rotate(0deg);
+  }
+  60%,
+  100% {
+    transform: rotate(-90deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orientation-hint-device {
+    animation: none;
+  }
+}
+
+.orientation-hint-card h2 {
+  margin: 8px 0 6px;
+  font-size: 20px;
+}
+
+.orientation-hint-card p {
+  margin: 0 0 18px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgb(43 28 20 / 80%);
+}
+
+.orientation-hint-card button {
+  min-height: 44px;
+  padding: 10px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: #ffc23d;
+  box-shadow: 0 3px 0 #d89a1c;
+  color: #2b1c14;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
 [hidden] {
   display: none !important;
 }

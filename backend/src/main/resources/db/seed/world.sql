@@ -327,6 +327,7 @@ FROM (
     ('CAFE_SERVER', '카페', 'FOOD'),
     ('DINER_STAFF', '식당', 'FOOD'),
     ('FIRE_CAPTAIN', '식당', 'FOOD'),
+    ('TOWN_JOHN_PARK', '식당', 'FOOD'),
     ('BAKERY_STAFF', '빵집', 'FOOD'),
     ('POLICE_PATROL_OFFICER', '빵집', 'FOOD'),
     ('SHOP_STAFF', '드럭스토어', 'SHOPPING'),

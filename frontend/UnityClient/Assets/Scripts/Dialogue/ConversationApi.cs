@@ -35,22 +35,55 @@ namespace A305.Dialogue
             string initiatedBy,
             bool npcOffDuty,
             NpcTravelContext npcTravelContext = null,
-            string placeCode = null
+            string placeCode = null,
+            ITurnStream stream = null
         )
         {
-            return client.PostAsync<ConversationStart>(
-                "/api/v1/conversations",
-                new StartConversationBody
-                {
-                    RequestId = requestId,
-                    NpcCode = npcCode,
-                    InitiatedBy = initiatedBy,
-                    NpcOffDuty = npcOffDuty,
-                    NpcTravelContext = npcTravelContext,
-                    SpeechSpeed = NpcSpeechSpeed.ForRequest,
-                    PlaceCode = placeCode,
-                }
-            );
+            const string path = "/api/v1/conversations";
+            var body = new StartConversationBody
+            {
+                RequestId = requestId,
+                NpcCode = npcCode,
+                InitiatedBy = initiatedBy,
+                NpcOffDuty = npcOffDuty,
+                NpcTravelContext = npcTravelContext,
+                SpeechSpeed = NpcSpeechSpeed.ForRequest,
+                PlaceCode = placeCode,
+            };
+            return Streams(stream)
+                ? StartStreamingAsync(path, body, stream)
+                : client.PostAsync<ConversationStart>(path, body);
+        }
+
+        // 받을 쪽이 있고 클라이언트에 이벤트 스트림을 받을 전송이 있을 때만 스트리밍으로 보낸다. 아니면 JSON 한 번으로 받는다.
+        private bool Streams(ITurnStream stream)
+        {
+            return stream != null && client.CanStream;
+        }
+
+        // CONV-01 스트리밍. 서버는 연결이 끊겨도 첫 인사를 끝까지 받아 대화를 저장하므로, 시작한 대화를 받지 못하고 끝나면 같은 요청 ID로 다시 묻는다.
+        private async Task<ConversationStart> StartStreamingAsync(
+            string path,
+            StartConversationBody body,
+            ITurnStream stream
+        )
+        {
+            var events = new TurnEventReader(stream);
+            try
+            {
+                await client.PostStreamAsync(path, body, events.Read);
+            }
+            catch (ApiException exception) when (exception.Code == ApiErrorCodes.NetworkError)
+            {
+                return await client.PostAsync<ConversationStart>(path, body);
+            }
+
+            if (events.Error != null)
+            {
+                throw events.Error;
+            }
+
+            return events.Conversation ?? await client.PostAsync<ConversationStart>(path, body);
         }
 
         public Task<TurnResult> SendTurnAsync(
@@ -71,9 +104,9 @@ namespace A305.Dialogue
                 SttRawText = sttRawText,
                 SpeechSpeed = NpcSpeechSpeed.ForRequest,
             };
-            return stream == null
-                ? client.PostAsync<TurnResult>(path, body)
-                : SendTurnStreamingAsync(path, body, stream);
+            return Streams(stream)
+                ? SendTurnStreamingAsync(path, body, stream)
+                : client.PostAsync<TurnResult>(path, body);
         }
 
         // CONV-03 스트리밍. 서버는 연결이 끊겨도 턴을 끝까지 저장하므로, 저장된 턴을 받지 못하고 끝나면 같은 요청 ID로 다시 묻는다.

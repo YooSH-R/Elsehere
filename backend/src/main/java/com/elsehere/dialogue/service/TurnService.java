@@ -4,7 +4,6 @@ import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
-import com.elsehere.ai.client.NpcReplyChunk;
 import com.elsehere.ai.client.NpcReplyListener;
 import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerLine;
@@ -366,7 +365,7 @@ public class TurnService {
       ReplyRequest request,
       TurnEvents events,
       EarlyReply early) {
-    NpcReplyListener listener = events == null ? NpcReplyListener.NONE : relayTo(trace, events);
+    NpcReplyListener listener = NpcReplyRelay.to(aiGateway, trace, events);
     if (early == null) {
       return reply(trace, context, request, listener);
     }
@@ -418,33 +417,6 @@ public class TurnService {
         context.level(),
         context.learner(),
         listener);
-  }
-
-  // 조각 음성은 워커 메모리에서 바로 받아 넘긴다(같은 서버라 조각마다 수 ms). 받지 못한 조각은 자막만 보여 주도록 음성 없이 넘긴다.
-  private NpcReplyListener relayTo(WorkerTrace trace, TurnEvents events) {
-    return new NpcReplyListener() {
-      @Override
-      public void onDelta(String text) {
-        events.delta(text);
-      }
-
-      @Override
-      public void onChunk(NpcReplyChunk chunk) {
-        events.audio(chunk.seq(), chunk.text(), chunkAudio(trace, chunk.audioId()));
-      }
-    };
-  }
-
-  private byte[] chunkAudio(WorkerTrace trace, String audioId) {
-    if (audioId == null) {
-      return null;
-    }
-    try {
-      return aiGateway.audio(trace, audioId);
-    } catch (BusinessException exception) {
-      log.warn("npc_chunk_audio_download_failed code={}", exception.getErrorCode());
-      return null;
-    }
   }
 
   // 의도 판정과 같은 문장으로 동시에 부른다. 워커에 닿지 못해도 턴을 막지 않고 판정하지 못한 것으로 둔다.

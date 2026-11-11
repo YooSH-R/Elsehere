@@ -2,6 +2,7 @@ package com.elsehere.dialogue.service;
 
 import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.NpcReplyListener;
 import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerTrace;
@@ -124,8 +125,20 @@ public class ConversationService {
   private final PlacePracticeService placePractice;
 
   public ConversationStartResponse start(Long userId, StartConversationRequest request) {
+    return start(userId, request, null);
+  }
+
+  /**
+   * 대화 시작을 스트리밍으로 받는다. AI가 만드는 첫 인사의 글자 조각과 문장 조각 음성을 만들어지는 대로 {@code events}에 넘기고, 처리 순서·저장·결과는
+   * {@link #start(Long, StartConversationRequest)}와 같다. 말걸기 대사로 시작하거나 같은 요청 ID로 이미 시작한 대화를 돌려줄 때는
+   * AI를 부르지 않으므로 조각을 넘기지 않는다.
+   *
+   * @param events null이면 첫 인사를 끝까지 모아 한 번에 응답한다
+   */
+  public ConversationStartResponse start(
+      Long userId, StartConversationRequest request, TurnEvents events) {
     return requestLocks.execute(
-        userId, request.requestId(), () -> startOnce(userId, request, null, null));
+        userId, request.requestId(), () -> startOnce(userId, request, null, null, events));
   }
 
   public ConversationStartResponse startReview(
@@ -152,6 +165,7 @@ public class ConversationService {
                   speechSpeed,
                   null),
               review,
+              null,
               null);
         });
   }
@@ -174,14 +188,16 @@ public class ConversationService {
                     null,
                     speechSpeed),
                 null,
-                practice));
+                practice,
+                null));
   }
 
   private ConversationStartResponse startOnce(
       Long userId,
       StartConversationRequest request,
       ReviewCardResponse review,
-      PracticeScenario practice) {
+      PracticeScenario practice,
+      TurnEvents events) {
     Long reviewCardId = review == null ? null : review.id();
     String practiceScenarioId = practice == null ? null : practice.name();
     // 응답을 받지 못해 같은 요청을 다시 보내면 새로 만들지 않고 처음 시작한 대화를 돌려준다(CONV-03과 같은 방식).
@@ -209,6 +225,7 @@ public class ConversationService {
     // 이 NPC가 건넬 것이 준비됐으면 건네는 말로 시작한다. 말걸기 대사가 있는 NPC가 먼저 말을 걸었으면 그 대사로 시작한다.
     // 직원처럼 말걸기 대사가 없거나 근무 시간이 아니면 AI로 첫 인사를 만든다.
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, null);
+    NpcReplyListener listener = NpcReplyRelay.to(aiGateway, trace, events);
     Opening opening =
         context
             .followUp()
@@ -217,12 +234,14 @@ public class ConversationService {
                     PoliceOfficers.includes(npc.summary().npcCode())
                         ? greetingOpening(
                             trace,
+                            listener,
                             npc,
                             context,
                             POLICE_CALL_TEXT,
                             POLICE_CALL_INSTRUCTION.formatted(ready.item()))
                         : greetingOpening(
                             trace,
+                            listener,
                             npc,
                             context,
                             HANDOVER_TEXT,
@@ -237,6 +256,7 @@ public class ConversationService {
                         ? approachOpening(npc)
                         : greetingOpening(
                             trace,
+                            listener,
                             npc,
                             context,
                             GREETING_TEXT,
@@ -498,18 +518,35 @@ public class ConversationService {
     return new Opening(npc.approachLine(), npc.approachAudioKey(), null);
   }
 
+  // 스트리밍 요청이면 첫 인사의 글자 조각과 문장 조각 음성을 받는 대로 listener로 넘긴다. 전체 음성은 다시 듣기용으로 저장한다.
   private Opening greetingOpening(
-      WorkerTrace trace, NpcContext npc, StartContext context, String text, String instruction) {
+      WorkerTrace trace,
+      NpcReplyListener listener,
+      NpcContext npc,
+      StartContext context,
+      String text,
+      String instruction) {
     NpcReply reply =
-        aiGateway.reply(
-            trace,
-            npc.workerNpc(),
-            context.memory(),
-            List.of(),
-            text,
-            instruction,
-            context.level(),
-            context.learner());
+        listener == NpcReplyListener.NONE
+            ? aiGateway.reply(
+                trace,
+                npc.workerNpc(),
+                context.memory(),
+                List.of(),
+                text,
+                instruction,
+                context.level(),
+                context.learner())
+            : aiGateway.reply(
+                trace,
+                npc.workerNpc(),
+                context.memory(),
+                List.of(),
+                text,
+                instruction,
+                context.level(),
+                context.learner(),
+                listener);
     return new Opening(
         reply.text(),
         npcAudioReceiver.save(trace, reply.audioFullId()),

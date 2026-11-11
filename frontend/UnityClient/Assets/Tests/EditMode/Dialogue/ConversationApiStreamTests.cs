@@ -160,6 +160,159 @@ namespace A305.Dialogue.Tests
             Assert.That(result.NpcTurn.TurnId, Is.EqualTo(12));
         }
 
+        // 스트림을 받을 전송이 없는 클라이언트(ApiClient의 streamTransport가 null)는 스트림을 넘겨도 JSON 한 번으로 받는다.
+        [Test]
+        public async Task SendTurn_ClientWithoutStreamTransport_SendsOnePlainRequest()
+        {
+            rest.Body = "{\"npcTurn\":{\"turnId\":12,\"text\":\"Sure!\"}}";
+            var plain = new ApiClient("", rest);
+
+            TurnResult result = await new ConversationApi(plain, plain).SendTurnAsync(
+                58,
+                "r-1",
+                "TEXT",
+                "A latte",
+                null,
+                received
+            );
+
+            Assert.That(rest.Calls, Is.EqualTo(1));
+            Assert.That(result.NpcTurn.TurnId, Is.EqualTo(12));
+        }
+
+        [Test]
+        public async Task Start_ClientWithoutStreamTransport_SendsOnePlainRequest()
+        {
+            rest.Body = "{\"conversationId\":58,\"openingTurn\":{\"turnId\":101,\"text\":\"Hi!\"}}";
+            var plain = new ApiClient("", rest);
+
+            ConversationStart started = await new ConversationApi(plain, plain).StartAsync(
+                "r-1",
+                "CAFE_STAFF",
+                "USER",
+                false,
+                stream: received
+            );
+
+            Assert.That(rest.Calls, Is.EqualTo(1));
+            Assert.That(started.ConversationId, Is.EqualTo(58));
+        }
+
+        // CONV-01 스트리밍. 첫 인사도 같은 이벤트로 오고 마지막에 시작한 대화(conversation)가 온다.
+        private const string ConversationEvent =
+            "event: conversation\ndata: {\"conversationId\":58,"
+            + "\"npc\":{\"npcCode\":\"CAFE_STAFF\",\"name\":\"Mia\"},"
+            + "\"openingTurn\":{\"turnId\":101,\"text\":\"Hi! What can I get you?\","
+            + "\"speech\":{\"status\":\"READY\",\"url\":\"/api/v1/turns/101/speech\"}}}\n\n";
+
+        [Test]
+        public async Task Start_WithStream_PassesGreetingTextAndSpeechChunksThenReturnsTheStartedConversation()
+        {
+            stream.Pieces.Add("event: delta\ndata: {\"text\":\"Hi!\"}\n\n");
+            stream.Pieces.Add(
+                "event: audio\ndata: {\"seq\":0,\"text\":\"Hi!\",\"wav\":\"UklGRg==\"}\n\n"
+            );
+            stream.Pieces.Add(ConversationEvent);
+
+            ConversationStart started = await api.StartAsync(
+                "r-1",
+                "CAFE_STAFF",
+                "USER",
+                false,
+                stream: received
+            );
+
+            Assert.That(stream.Request.Url, Is.EqualTo("/api/v1/conversations"));
+            Assert.That(stream.Request.JsonBody, Does.Contain("\"requestId\":\"r-1\""));
+            Assert.That(stream.Request.JsonBody, Does.Contain("\"npcCode\":\"CAFE_STAFF\""));
+            Assert.That(
+                received.Events,
+                Is.EqualTo(new[] { "delta:Hi!", "audio:0:Hi!:82,73,70,70" })
+            );
+            Assert.That(started.ConversationId, Is.EqualTo(58));
+            Assert.That(started.OpeningTurn.TurnId, Is.EqualTo(101));
+            Assert.That(started.OpeningTurn.Speech.IsReady, Is.True);
+            Assert.That(rest.Calls, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task Start_StreamCut_AsksAgainWithSameRequestIdWithoutStream()
+        {
+            // 서버는 끊긴 뒤에도 끝까지 처리해 대화를 저장하므로, 같은 요청 ID로 다시 물으면 처음 시작한 대화를 받는다.
+            stream.Pieces.Add("event: delta\ndata: {\"text\":\"Hi\"}\n\n");
+            stream.CutAfterPieces = true;
+            rest.Body =
+                "{\"conversationId\":58,\"openingTurn\":{\"turnId\":101,\"text\":\"Hi! What can I get you?\"}}";
+
+            ConversationStart started = await api.StartAsync(
+                "r-1",
+                "CAFE_STAFF",
+                "USER",
+                false,
+                stream: received
+            );
+
+            Assert.That(stream.Request, Is.Not.Null);
+            Assert.That(rest.Calls, Is.EqualTo(1));
+            Assert.That(rest.Request.Url, Is.EqualTo("/api/v1/conversations"));
+            Assert.That(rest.Request.JsonBody, Does.Contain("\"requestId\":\"r-1\""));
+            Assert.That(started.OpeningTurn.Text, Is.EqualTo("Hi! What can I get you?"));
+        }
+
+        [Test]
+        public async Task Start_StreamEndsWithoutConversation_AsksAgainWithoutStream()
+        {
+            stream.Pieces.Add("event: delta\ndata: {\"text\":\"Hi\"}\n\n");
+            rest.Body = "{\"conversationId\":58,\"openingTurn\":{\"turnId\":101,\"text\":\"Hi!\"}}";
+
+            ConversationStart started = await api.StartAsync(
+                "r-1",
+                "CAFE_STAFF",
+                "USER",
+                false,
+                stream: received
+            );
+
+            Assert.That(stream.Request, Is.Not.Null);
+            Assert.That(rest.Calls, Is.EqualTo(1));
+            Assert.That(started.ConversationId, Is.EqualTo(58));
+        }
+
+        [Test]
+        public void Start_ServerRejectsBeforeStream_ThrowsWithoutAskingAgain()
+        {
+            // 진행 중인 대화가 있으면 대화창이 그 대화를 이어 열 수 있도록 지금처럼 오류 코드를 그대로 알린다.
+            stream.ErrorStatus = 409;
+            stream.ErrorBody =
+                "{\"error\":{\"code\":\"CONVERSATION_ALREADY_ACTIVE\",\"message\":\"진행 중인 대화\"}}";
+
+            var exception = Assert.ThrowsAsync<ApiException>(() =>
+                api.StartAsync("r-1", "CAFE_STAFF", "USER", false, stream: received)
+            );
+
+            Assert.That(exception.Code, Is.EqualTo("CONVERSATION_ALREADY_ACTIVE"));
+            Assert.That(exception.StatusCode, Is.EqualTo(409));
+            Assert.That(rest.Calls, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void Start_ErrorEvent_ThrowsTheServerErrorWithItsStatus()
+        {
+            stream.Pieces.Add("event: delta\ndata: {\"text\":\"Hi\"}\n\n");
+            stream.Pieces.Add(
+                "event: error\ndata: {\"status\":503,\"error\":{\"code\":\"AI_TEMPORARILY_UNAVAILABLE\","
+                    + "\"message\":\"AI가 잠시 응답하지 않습니다.\"}}\n\n"
+            );
+
+            var exception = Assert.ThrowsAsync<ApiException>(() =>
+                api.StartAsync("r-1", "CAFE_STAFF", "USER", false, stream: received)
+            );
+
+            Assert.That(exception.Code, Is.EqualTo("AI_TEMPORARILY_UNAVAILABLE"));
+            Assert.That(exception.StatusCode, Is.EqualTo(503));
+            Assert.That(rest.Calls, Is.EqualTo(0));
+        }
+
         private sealed class RecordingTurnStream : ITurnStream
         {
             public List<string> Events { get; } = new List<string>();

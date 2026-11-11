@@ -1,6 +1,7 @@
 -- Update existing staff without overwriting the rest of their saved persona.
 UPDATE npcs
 SET role_label = '햄버거 가게 직원',
+    place_name = '햄버거 가게',
     persona = jsonb_set(
         persona,
         '{facts}',

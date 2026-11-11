@@ -312,7 +312,7 @@ SET scene_id = EXCLUDED.scene_id,
     updated_at = now();
 
 -- NPC가 일하는 곳과 단어장 장소 묶음(FOOD·SHOPPING·SERVICES·SAFETY·DAILY). 코드 이름이 아니라 인격 카드의 실제 근무지 기준이다
--- (FIRE_CAPTAIN은 식당 야간 직원). 단어장은 이 값으로 대화 표현을 나누고, 근무 시간 밖에 만난 대화는 DAILY로 둔다.
+-- (FIRE_CAPTAIN은 햄버거 가게 야간 직원). 단어장은 이 값으로 대화 표현을 나누고, 근무 시간 밖에 만난 대화는 DAILY로 둔다.
 UPDATE npcs
 SET place_name = seed.place_name,
     place_group = seed.place_group,
@@ -325,8 +325,8 @@ FROM (
     ('CAFE_STAFF', '카페', 'FOOD'),
     ('CAFE_BARISTA', '카페', 'FOOD'),
     ('CAFE_SERVER', '카페', 'FOOD'),
-    ('DINER_STAFF', '식당', 'FOOD'),
-    ('FIRE_CAPTAIN', '식당', 'FOOD'),
+    ('DINER_STAFF', '햄버거 가게', 'FOOD'),
+    ('FIRE_CAPTAIN', '햄버거 가게', 'FOOD'),
     ('BAKERY_STAFF', '빵집', 'FOOD'),
     ('POLICE_PATROL_OFFICER', '빵집', 'FOOD'),
     ('SHOP_STAFF', '드럭스토어', 'SHOPPING'),

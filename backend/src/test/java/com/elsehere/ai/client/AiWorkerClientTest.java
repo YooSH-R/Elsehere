@@ -38,6 +38,24 @@ class AiWorkerClientTest {
   private HttpServer server;
   private AiWorkerClient client;
 
+  @Test
+  void performanceIntentSendsOnlyTextAndPreservesUsageWithoutReplyOrTts() {
+    respond(
+        "/v1/performance/intent",
+        200,
+        "application/json",
+        "{\"intent\":\"REPLAY_RAP\",\"usage\":[{\"step\":\"performance_intent\",\"model\":\"fake\",\"input_tokens\":80,\"output_tokens\":8}]}");
+    var result = client.performanceIntent(TRACE, "An encore?");
+    assertThat(result.intent()).isEqualTo("REPLAY_RAP");
+    assertThat(result.usage())
+        .singleElement()
+        .extracting(WorkerUsage::step)
+        .isEqualTo("performance_intent");
+    assertThat(received.keySet()).containsExactly("/v1/performance/intent");
+    assertThat(received.get("/v1/performance/intent").body())
+        .isEqualTo("{\"text\":\"An encore?\"}");
+  }
+
   @BeforeEach
   void startFakeWorker() throws IOException {
     server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);

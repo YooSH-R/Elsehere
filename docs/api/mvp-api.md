@@ -1061,6 +1061,19 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - AI 호출이 실패하면 1.5의 AI 오류 코드를 돌려주고, 단어가 하나도 오지 않으면 `502 AI_RESPONSE_INVALID`입니다. 두 경우 모두 저장하지 않습니다.
 - 추천 단어는 자유 대화 힌트의 첫 단계(CONV-05)라 AI 호출 기록(`ai_requests.kind`)은 `HINT`로 남깁니다. 사용량 항목의 단계 이름(`suggest`)으로 힌트 문장과 구분합니다.
 
+#### 저장 공연 `POST /api/v1/conversations/{conversationId}/performance-intent`
+
+- John(`TOWN_JOHN_PARK`)과 진행 중인 본인 소유의 자유 대화에만 사용합니다. 다른 소유자는 404,
+  끝난 대화는 `CONVERSATION_NOT_ACTIVE`, 복습은 `REVIEW_IN_PROGRESS`, 다른 NPC는 `VALIDATION_FAILED`입니다.
+- 요청: `{"requestId":"UUID","text":"I'd love an encore of that burger beat."}`. 공백이 아닌 500자 이하입니다.
+- 응답: `{"intent":"REPLAY_RAP"}` 또는 `{"intent":"CONVERSATION"}`. 사용자 턴·NPC 대사·TTS·번역을 만들지 않습니다.
+- 모호한 재생 요청만 분류합니다. 명확한 요청·안내·랩 버튼·뜻 보기는 Unity에 포함된 저장 에셋을 사용합니다.
+  `REPLAY_RAP`이면 저장 안내를 재생하고 버튼을 강조하며, `CONVERSATION`만 기존 발화 API로 전달합니다.
+- 분류 사용량은 `ai_requests.kind=JUDGE`, 워커 `usage.step=performance_intent`로 기록합니다.
+  이 요청은 자동 재시도하거나 결과를 캐시하지 않습니다. 수동 재요청은 다시 모델 비용이 발생할 수 있습니다.
+  UI는 분류 중 중복 전송과 종료 후 늦은 결과를 차단하고, 오류일 때 새 대사를 생성하는 대신 버튼을 안내합니다.
+- 음성 입력의 STT와 일반 대화의 시작·종료·평가는 기존 경로를 유지합니다.
+
 #### CONV-06·07 NPC 음성
 
 - CONV-06 `GET /api/v1/turns/{turnId}/speech`는 만들어 둔 음성 파일을 돌려줍니다. [다시 듣기]는 이 API를 쓰며 TTS를 새로 만들지 않습니다. 키나 파일이 없거나 보관 기간이 만료됐으면 `404 NOT_FOUND`입니다.

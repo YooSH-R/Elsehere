@@ -25,6 +25,19 @@ public class AiGateway {
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
 
+  public PerformanceIntentResult performanceIntent(WorkerTrace trace, String text) {
+    PerformanceIntentResult result =
+        send(trace, AiRequestKind.JUDGE, () -> aiWorkerClient.performanceIntent(trace, text));
+    boolean usable =
+        result != null
+            && ("REPLAY_RAP".equals(result.intent()) || "CONVERSATION".equals(result.intent()));
+    record(trace, AiRequestKind.JUDGE, result == null ? List.of() : result.usage(), usable);
+    if (!usable) {
+      throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID);
+    }
+    return result;
+  }
+
   /** 의도·번역 판정. */
   public JudgeResult judge(
       WorkerTrace trace, WorkerNpc npc, WorkerState state, List<WorkerLine> history, String text) {

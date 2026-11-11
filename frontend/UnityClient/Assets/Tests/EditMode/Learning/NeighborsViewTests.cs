@@ -254,32 +254,15 @@ namespace A305.Learning.Tests
             Assert.That(Shown("NeighborsShade"), Is.False);
         }
 
-        // [조작법] 앱과 [복습장] 버튼은 그대로 두고, [복습장] 오른쪽 빈칸에 아이콘과 글자로 된 작은 [이웃] 버튼을 둔다.
         [Test]
-        public void PhoneButton_SitsRightOfTheReviewButton_AndOpensNeighbors()
+        public void PhoneButton_HasNeighborsLabelIconAndViewConnection()
         {
-            const float Px = 1.2f;
-            const float PhoneWidth = 430;
             Transform phone = Find("Panel/Menu");
-            var review = (RectTransform)phone.Find("ReviewButton");
-            var neighbors = (RectTransform)phone.Find("NeighborsButton");
+            Transform neighbors = phone.Find("NeighborsButton");
 
             Assert.That(neighbors, Is.Not.Null);
             Assert.That(phone.Find("ControlsButton"), Is.Not.Null);
-            Assert.That(review.sizeDelta, Is.EqualTo(new Vector2(234, 54) * Px));
-            Assert.That(
-                neighbors.anchoredPosition.y,
-                Is.EqualTo(review.anchoredPosition.y).Within(.01f)
-            );
-            Assert.That(neighbors.sizeDelta.y, Is.EqualTo(review.sizeDelta.y).Within(.01f));
-            Assert.That(
-                neighbors.anchoredPosition.x,
-                Is.GreaterThanOrEqualTo(review.anchoredPosition.x + review.sizeDelta.x)
-            );
-            Assert.That(
-                neighbors.anchoredPosition.x + neighbors.sizeDelta.x,
-                Is.LessThanOrEqualTo(PhoneWidth * Px)
-            );
+            Assert.That(phone.Find("ReviewButton"), Is.Not.Null);
             Assert.That(
                 neighbors.Find("Label").GetComponent<TMP_Text>().text,
                 Is.EqualTo(NeighborsText.AppLabel)

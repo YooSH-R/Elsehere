@@ -88,12 +88,14 @@ async def complete(client: httpx.AsyncClient, s: config.Settings, body: dict) ->
     return r.json()["choices"][0]["message"]["content"].strip()
 
 
-async def conversation(client, s, npc: Npc) -> list[str]:
+async def conversation(client, s, npc: Npc, model: str | None = None) -> list[str]:
+    """model을 주면 그 모델로 대답한다 (client는 그 모델의 공급자)."""
     history: list[Line] = []
     replies = []
     for text in LEARNER_LINES:
         msgs = P.npc_messages(npc, None, history, text, "", LEVEL, None, LEARNER)
-        reply = await complete(client, s, {"temperature": 0.6, "max_tokens": P.LEVEL_MAX_TOKENS[LEVEL], "messages": msgs})
+        body = {"temperature": 0.6, "max_tokens": P.LEVEL_MAX_TOKENS[LEVEL], "messages": msgs}
+        reply = await complete(client, s, {**body, "model": model} if model else body)
         reply = reply.strip('"').split("\n")[0]
         replies.append(reply)
         history += [Line(who="me", text=text), Line(who="npc", text=reply)]
@@ -152,6 +154,10 @@ async def main():
     ap.add_argument("--judge-cards", default=str(ROOT / "ai/npcs"), help="판정 모델 설명과 말버릇 집계에 쓸 카드 폴더")
     ap.add_argument("--profile", default="gms-luna")
     ap.add_argument("--env", default=str(ROOT / ".env"))
+    ap.add_argument(
+        "--reply-gpu-model",
+        help="대답만 GPU 서버 vLLM 모델로 만들기 (예: Qwen/Qwen3.8-27B, GUARD_GPU_BASE_URL·TOKEN 필요). 맞히기 판정은 구성의 npc 모델 그대로",
+    )
     ap.add_argument("--out")
     a = ap.parse_args()
     config.load_dotenv(Path(a.env))
@@ -164,6 +170,10 @@ async def main():
     async with httpx.AsyncClient(
         base_url=s.base_url, headers={"Authorization": f"Bearer {s.api_key}", "User-Agent": "ai-worker/0.1"}, timeout=60
     ) as client:
+        reply_client = None
+        if a.reply_gpu_model:
+            gpu = s.providers["gpu_llm"]
+            reply_client = httpx.AsyncClient(base_url=gpu["base_url"], headers={"Authorization": f"Bearer {gpu['api_key']}"}, timeout=60)
         for group, members in GROUPS.items():
             coworkers = {m: described(card(judge_cards, m)) for m in members}
             for npc_id in members:
@@ -174,7 +184,7 @@ async def main():
                 for _ in range(a.runs):
                     row = {"group": group, "npc": npc_id}
                     try:
-                        row["replies"] = await conversation(client, s, npc)
+                        row["replies"] = await conversation(reply_client or client, s, npc, a.reply_gpu_model)
                         row["catchphrases"] = [catchphrases_in(reply, phrases) for reply in row["replies"]]
                         judged = await guess(client, s, coworkers, row["replies"])
                         row["guess"], row["reason"] = judged["npc"], judged["reason"]
@@ -182,11 +192,13 @@ async def main():
                         row["error"] = f"{type(e).__name__}: {str(e)[:120]}"
                     rows.append(row)
                     print(".", end="", flush=True)
+        if reply_client:
+            await reply_client.aclose()
     print()
     if a.out:
         Path(a.out).parent.mkdir(parents=True, exist_ok=True)
         Path(a.out).write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
-    print(f"{a.profile} 대답 {s.models['npc']}, 카드 {cards}")
+    print(f"{a.profile} 대답 {a.reply_gpu_model or s.models['npc']}, 카드 {cards}")
     report(rows)
 
 

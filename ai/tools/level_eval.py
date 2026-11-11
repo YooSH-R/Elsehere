@@ -112,15 +112,24 @@ async def ask(client: httpx.AsyncClient, s: config.Settings, body: dict) -> str:
     return r.json()["choices"][0]["message"]["content"]
 
 
-async def run_case(client: httpx.AsyncClient, s: config.Settings, case: dict, level: int) -> dict:
+async def run_case(
+    client: httpx.AsyncClient,
+    s: config.Settings,
+    case: dict,
+    level: int,
+    reply_client: httpx.AsyncClient | None = None,
+    reply_model: str | None = None,
+) -> dict:
+    """reply_client·reply_model을 주면 대답만 그 공급자·모델로 만들고 판정은 구성의 npc 모델이 한다 (GPU 서버 모델 비교)."""
     npc = H.npc_of(case["npc"])
     history = [Line(who=h["who"], text=h["text"]) for h in case["history"]]
     msgs = P.npc_messages(npc, None, history, case["text"], "", level, None, H.LEARNER)
     msgs[0] = {**msgs[0], "content": msgs[0]["content"] + "\n\n" + EMOTION_PROMPT}  # 게임 대답 스트림(app.npc)과 같게
     row = {"id": case["id"], "kind": case["kind"], "npc": case["npc"], "level": level}
     try:
-        body = {"model": s.models["npc"], "temperature": 0.6, "max_tokens": P.LEVEL_MAX_TOKENS[level] + 64, "messages": msgs}
-        reply = spoken((await ask(client, s, body)).split("\n")[0].strip('"'))
+        model = reply_model or s.models["npc"]
+        body = {"model": model, "temperature": 0.6, "max_tokens": P.LEVEL_MAX_TOKENS[level] + 64, "messages": msgs}
+        reply = spoken((await ask(reply_client or client, s, body)).split("\n")[0].strip('"'))
         row["reply"] = reply
         row.update(measure(reply))
         row["vocabulary"] = rare_words(reply)
@@ -195,6 +204,10 @@ async def main():
     ap.add_argument("--only", help="줄 id 고르기 (쉼표로)")
     ap.add_argument("--env", default=str(H.ROOT / ".env"))
     ap.add_argument("--show", action="store_true", help="줄마다 난이도별 대답도 찍기")
+    ap.add_argument(
+        "--reply-gpu-model",
+        help="대답만 GPU 서버 vLLM 모델로 만들기 (예: Qwen/Qwen3.8-27B, GUARD_GPU_BASE_URL·TOKEN 필요). 판정은 구성의 npc 모델 그대로",
+    )
     ap.add_argument("--out")
     a = ap.parse_args()
     config.load_dotenv(Path(a.env))
@@ -210,11 +223,21 @@ async def main():
     async with httpx.AsyncClient(
         base_url=s.base_url, headers={"Authorization": f"Bearer {s.api_key}", "User-Agent": "ai-worker/0.1"}, timeout=60
     ) as client:
-        for case in cases:
-            for level in levels:
-                for _ in range(a.runs):
-                    rows.append(await run_case(client, s, case, level))
-    print(f"{a.profile} 대답·판정 {s.models['npc']}, 줄 {len(cases)} × 난이도 {len(levels)} × {a.runs}회")
+        reply_client = None
+        if a.reply_gpu_model:
+            gpu = s.providers["gpu_llm"]
+            reply_client = httpx.AsyncClient(base_url=gpu["base_url"], headers={"Authorization": f"Bearer {gpu['api_key']}"}, timeout=60)
+        try:
+            for case in cases:
+                for level in levels:
+                    for _ in range(a.runs):
+                        rows.append(await run_case(client, s, case, level, reply_client, a.reply_gpu_model))
+        finally:
+            if reply_client:
+                await reply_client.aclose()
+    print(
+        f"{a.profile} 대답 {a.reply_gpu_model or s.models['npc']}·판정 {s.models['npc']}, 줄 {len(cases)} × 난이도 {len(levels)} × {a.runs}회"
+    )
     report(rows, levels)
     if a.show:
         show(rows, levels)

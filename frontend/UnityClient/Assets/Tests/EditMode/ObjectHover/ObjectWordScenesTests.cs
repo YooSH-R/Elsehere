@@ -22,6 +22,27 @@ namespace A305.ObjectHover.Tests
             Assert.That(sceneCode, Is.EqualTo(expected));
         }
 
+        // 마을 매장 실내의 사물 단어는 서버에서 마을(TOWN) 장소로 내보낸다.
+        [TestCase("PostOfficeInterior")]
+        [TestCase("MapleDinerInterior")]
+        [TestCase("TownBankInterior")]
+        [TestCase("SudsLaundromatInterior")]
+        [TestCase("BloomFlowersInterior")]
+        [TestCase("MainStreetBarberInterior")]
+        [TestCase("MapleBakeryInterior")]
+        [TestCase("LittleArcadeInterior")]
+        [TestCase("LittleArcadeUpperInterior")]
+        [TestCase("HomeLivingInterior")]
+        [TestCase("HomeLivingUpperInterior")]
+        public void TryGetSceneCode_TownShopScene_UsesTheTownWords(string unitySceneName)
+        {
+            Assert.That(
+                ObjectWordScenes.TryGetSceneCode(unitySceneName, out string sceneCode),
+                Is.True
+            );
+            Assert.That(sceneCode, Is.EqualTo("TOWN"));
+        }
+
         [Test]
         public void TryGetSceneCode_ReviewScene_HasNoServerScene()
         {

@@ -17,6 +17,18 @@ namespace A305.ObjectHover
             { "HotelScene", "HOTEL" },
             { "ShopScene", "SHOP" },
             { "PoliceStationScene", "POLICE_STATION" },
+            // 마을 매장 실내 씬. 서버는 매장을 마을의 일부로 보고 매장 사물 단어도 마을 장소로 내보낸다(World.PlaceScenes와 같은 목록).
+            { "PostOfficeInterior", "TOWN" },
+            { "MapleDinerInterior", "TOWN" },
+            { "TownBankInterior", "TOWN" },
+            { "SudsLaundromatInterior", "TOWN" },
+            { "BloomFlowersInterior", "TOWN" },
+            { "MainStreetBarberInterior", "TOWN" },
+            { "MapleBakeryInterior", "TOWN" },
+            { "LittleArcadeInterior", "TOWN" },
+            { "LittleArcadeUpperInterior", "TOWN" },
+            { "HomeLivingInterior", "TOWN" },
+            { "HomeLivingUpperInterior", "TOWN" },
         };
 
         public static bool TryGetSceneCode(string unitySceneName, out string sceneCode)

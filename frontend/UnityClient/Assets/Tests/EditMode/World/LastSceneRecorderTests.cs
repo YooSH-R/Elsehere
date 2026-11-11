@@ -27,6 +27,20 @@ namespace A305.World.Tests
             Assert.That(api.SavedSceneCodes, Is.EqualTo(new[] { sceneCode }));
         }
 
+        // 서버는 마을 매장을 마을의 일부로 보므로 매장 실내 씬에서는 마을을 재접속 위치로 저장한다.
+        [TestCase("PostOfficeInterior")]
+        [TestCase("LittleArcadeUpperInterior")]
+        public async Task RecordAsync_TownShopScene_SavesTheTown(string unitySceneName)
+        {
+            var api = new FakeLastSceneApi();
+            var recorder = new LastSceneRecorder(api);
+
+            LastSceneRecordStatus status = await recorder.RecordAsync(unitySceneName);
+
+            Assert.That(status, Is.EqualTo(LastSceneRecordStatus.Saved));
+            Assert.That(api.SavedSceneCodes, Is.EqualTo(new[] { "TOWN" }));
+        }
+
         [TestCase("EntryScene")]
         [TestCase("SampleScene")]
         [TestCase("")]

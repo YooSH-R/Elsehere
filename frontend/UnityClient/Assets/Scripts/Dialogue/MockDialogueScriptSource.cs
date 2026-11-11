@@ -1213,6 +1213,21 @@ namespace A305.Dialogue
                 ),
                 exampleSentence = "Good morning! Do you walk here every day?",
             },
+            new Entry
+            {
+                npcCode = "TOWN_JOHN_PARK",
+                npcName = "John",
+                roleLabel = "뮤지션",
+                opening = new LineEntry(
+                    "Hi, I'm John. Want to hear my order rap?",
+                    "안녕, John이야. 주문 랩 들어볼래?"
+                ),
+                defaultReply = new LineEntry(
+                    "I like music and a good burger. What about you?",
+                    "난 음악과 맛있는 버거를 좋아해. 너는 어때?"
+                ),
+                exampleSentence = "Can you play that rap again?",
+            },
         };
 
         [SerializeField]

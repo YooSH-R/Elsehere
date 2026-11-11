@@ -125,6 +125,14 @@ namespace A305.EditorTools.Npc
             .WithShoes(new NpcColorRange((.03f, .12f), (.15f, .5f), (.2f, .6f), Feet))
             .WithEyes(false, SeparateIris);
 
+        public static readonly NpcLook John = new NpcLook(
+            "John",
+            JohnParkRhythmBuilder.PrefabPath,
+            JohnParkRhythmBuilder.ArtFolder + "/LittleMung_JohnPark_Male_BaseColor.jpg",
+            onlyForCodePrefix: "TOWN_JOHN_PARK",
+            usesRecordedPerformance: true
+        ).Originally("black", "black", "black", "brown");
+
         public static readonly NpcLook[] All =
         {
             Barista,
@@ -139,6 +147,7 @@ namespace A305.EditorTools.Npc
             MiddleAgeMale,
             MiddleAgeFemale,
             Grandmother,
+            John,
         };
 
         private static NpcLook Review(string name, string onlyForCodePrefix = null)

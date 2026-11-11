@@ -151,6 +151,7 @@ fit_path = output / "EyeFit.json"
 eye_settings = (
     json.loads(fit_path.read_text(encoding="utf-8")) if fit_path.exists() else None
 )
+replace_eye_openings = bool(eye_settings and eye_settings.get("replaceEyeOpenings"))
 for side, sign in [("Left", 1), ("Right", -1)]:
     # Measured businessman eye centers. Preserve the reviewed eye size, not head size.
     center, cz = sign * 0.1455197133, 0.6378430941
@@ -177,7 +178,7 @@ for side, sign in [("Left", 1), ("Right", -1)]:
         return tuple(round(c, 6) for c in vertices[i])
 
     for index, ids in enumerate(triangles):
-        if touches_existing_opening(ids):
+        if not replace_eye_openings and touches_existing_opening(ids):
             continue
         p = sum((vertices[i] for i in ids), Vector()) / 3
         if (
@@ -217,7 +218,11 @@ for side, sign in [("Left", 1), ("Right", -1)]:
                 lookup[key(a)], lookup[key(b)] = a, b
         neighbors = defaultdict(list)
         for (a, b), count in edges.items():
-            if count == 1:
+            # Detached source eyes can leave openings entirely inside the replaced
+            # patch. Only edges shared with retained skin need a replacement join.
+            if count == 1 and (
+                not replace_eye_openings or source_edges[tuple(sorted((a, b)))] > 1
+            ):
                 neighbors[a].append(b)
                 neighbors[b].append(a)
         bad = {k for k, v in neighbors.items() if len(v) != 2}
@@ -227,7 +232,7 @@ for side, sign in [("Left", 1), ("Right", -1)]:
         for index, ids in enumerate(triangles):
             if (
                 index in selected
-                or touches_existing_opening(ids)
+                or (not replace_eye_openings and touches_existing_opening(ids))
                 or not any(key(i) in bad for i in ids)
             ):
                 continue

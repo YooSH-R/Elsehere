@@ -6,10 +6,20 @@ using A305.Api;
 namespace A305.Dialogue
 {
     /// <summary>서버 대화 API의 경로와 본문. 경로는 API 명세(docs/api/mvp-api.md 4.6·4.7)를 따른다.</summary>
-    public sealed class ConversationApi : IConversationApi
+    public sealed class ConversationApi : IConversationApi, IPerformanceIntentApi
     {
         private readonly ApiClient client;
         private readonly ApiClient feedbackClient;
+
+        public Task<PerformanceIntentResult> ClassifyPerformanceAsync(
+            long conversationId,
+            string requestId,
+            string text
+        ) =>
+            client.PostAsync<PerformanceIntentResult>(
+                $"/api/v1/conversations/{conversationId}/performance-intent",
+                new PerformanceIntentBody { RequestId = requestId, Text = text }
+            );
 
         /// <param name="client">대화 시작·발화·음성 요청용</param>
         /// <param name="feedbackClient">종료 피드백처럼 오래 걸리는 요청용(대기 시간이 긴 클라이언트)</param>

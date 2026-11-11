@@ -1,0 +1,1 @@
+frontend/UnityClient/Assets/Art/Npc/LittleMung_JohnPark_Male/LittleMung_JohnPark_Male_BaseColor.jpg

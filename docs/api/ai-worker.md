@@ -482,7 +482,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 NPC 음성 재합성에는 선택 필드 `phrases`로 원래 `done.speech_phrases`를 보냅니다. 최대 40개이며 각 항목은 `text`·`emotion`·`intensity`입니다. 구절을 이은 글자가 전체 `text`와 일치해야 하고, 감정 종류와 0~1 강도를 검증한 뒤 합성합니다(공백 차이는 허용). 기존 구절 음성 캐시를 재사용하고 실제 PCM 길이로 `e305` 시간표를 다시 붙입니다. 감정을 다시 판단하는 LLM 호출은 없습니다. 필드가 없거나 빈 배열이면 기존 한 문장 합성을 유지합니다.
 
-합성 전에 읽을 글로 다듬습니다(`app/speech_text.py`). Kokoro가 `$13`을 "dollar thirteen", `10:00`을 "ten zero zero"로 읽고 별표·한글을 소리 내 읽기 때문입니다. 가격은 `13 dollars`·`8 dollars and 50 cents`로, 시각은 `10 o'clock`·`6 30`·`9 oh 5`(`a.m.`·`p.m.`가 붙으면 `11 a.m.`)로 바꾸고, `*`와 한글은 읽지 않습니다. 다듬은 뒤 읽을 것이 없으면 0.2초 무음 WAV를 돌려줍니다. 이어서 발음 사전(`app/pronunciation.py`)을 거칩니다. 사전 단어(croissant·barista, kimchi·soju 같은 한국 음식, Busan·Itaewon 같은 지명, hon·tryna 같은 구어)는 적어 둔 미국식 음소로, 나머지는 기존 음소화 그대로 Kokoro에 음소로 넘깁니다.
+합성 전에 읽을 글로 다듬습니다(`app/speech_text.py`). Kokoro가 `$13`을 "dollar thirteen", `10:00`을 "ten zero zero"로 읽고 별표·한글을 소리 내 읽기 때문입니다. 가격은 `13 dollars`·`8 dollars and 50 cents`로, 시각은 `10 o'clock`·`6 30`·`9 oh 5`(`a.m.`·`p.m.`가 붙으면 `11 a.m.`)로 바꾸고, `*`와 한글은 읽지 않습니다. 다듬은 뒤 읽을 것이 없으면 0.2초 무음 WAV를 돌려줍니다. 이어서 발음 사전(`app/pronunciation.py`)을 거칩니다. 사전 단어(croissant·barista, kimchi·soju 같은 한국 음식, Busan·Itaewon 같은 지명, hon·tryna 같은 구어, Mm-hm·Mhm 같은 맞장구)는 적어 둔 미국식 음소로, 나머지는 기존 음소화 그대로 Kokoro에 음소로 넘깁니다.
 
 ### 2.9 `POST /v1/npc/persona/generate` — NPC 인격 카드 초안 (어드민 랜덤 생성)
 
@@ -519,11 +519,23 @@ NPC 음성 재합성에는 선택 필드 `phrases`로 원래 `done.speech_phrase
 
 ## 3. 사용량 (`usage`)
 
+### 저장 공연 의도 분류
+
+`POST /v1/performance/intent`는 `{"text":"I'd love an encore of that burger beat."}`를 받아
+`{"intent":"REPLAY_RAP","usage":[...]}` 또는 `CONVERSATION`을 반환합니다. 입력은 공백이 아닌
+500자 이하이며 다른 워커 API와 같은 내부 토큰이 필요합니다. 사용자 문장 하나를 짧은 JSON으로
+분류하고 NPC 답변·번역·TTS는 생성하지 않습니다. `usage.step`은 `performance_intent`입니다.
+불명확한 모델 응답은 502 오류로 처리하며 새 대사로 대체하지 않습니다.
+
+명확한 요청은 Unity가 이 API도 호출하지 않고 저장 안내를 재생합니다. 모호한 요청만 이 경로를
+사용하므로 분류 호출의 토큰 비용은 발생할 수 있습니다. 재생 버튼·저장 안내·뜻 보기는 로컬 에셋을
+사용합니다. 음성 입력의 STT는 별도이며 일반 대화의 시작·종료·후속 답변 비용도 이 분류와 별개입니다.
+
 모델 호출 한 번마다 항목 하나가 생깁니다.
 
 | 칸 | 뜻 |
 |---|---|
-| `step` | `intent`·`guard`·`translate`·`npc`·`hint`·`suggest`·`meaning`·`level_test_speaking`·`feedback`·`memory`·`narrate`·`stt` |
+| `step` | `intent`·`performance_intent`·`guard`·`translate`·`npc`·`hint`·`suggest`·`meaning`·`level_test_speaking`·`feedback`·`memory`·`narrate`·`stt` |
 | `model` | **실제로 쓴** 모델 (대체 모델이면 그 이름) |
 | `fallback` | 요청한 모델이 아닌 대체 모델을 썼는지 |
 | `hedged` | (있을 때만 `true`) 답이 늦어 같은 요청을 하나 더 보냈음(NPC 대답은 첫 글자 기준). 토큰은 먼저 온 답의 것만 기록되고, 늦은 쪽 사용량은 알 수 없음 (크레딧이 조금 더 나갔을 수 있음) |

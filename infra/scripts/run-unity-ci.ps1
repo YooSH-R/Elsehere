@@ -71,7 +71,8 @@ function Read-UnityTestResults {
     if (-not (Test-Path -LiteralPath $ResultPath)) {
         throw "Unity produced no $TestPlatform test result."
     }
-    [xml] $results = Get-Content -LiteralPath $ResultPath -Raw
+    $results = [System.Xml.XmlDocument]::new()
+    $results.Load($ResultPath)
     $testRun = $results.'test-run'
     if (-not $testRun -or $testRun.result -ne 'Passed' -or
         [int] $testRun.failed -ne 0 -or [int] $testRun.passed -lt 1 -or

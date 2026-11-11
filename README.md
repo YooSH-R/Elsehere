@@ -83,6 +83,7 @@ AI 워커는 Spring과 같은 서버에서 별도 프로세스(컨테이너)로 
 - [공통 코드 규약](docs/code-conventions.md)
 - [변경 영역별 CI/CD와 운영 통합 검증 기준](docs/ci-cd.md)
 - [Unity 개발 환경과 Web 실행](docs/unity/setup.md)
+- [이용 환경과 최소 사양](docs/unity/client-requirements.md)
 - [Unity 개발 규약](docs/unity/conventions.md)
 - [AI 코드·문서 작성 지침](AGENTS.md)
 - [AI 공통 검사와 테스트](ai/README.md)

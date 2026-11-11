@@ -186,7 +186,7 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName("기존 NPC 36명과 Jone을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
+  @DisplayName("기존 NPC 36명과 John을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
   void load_insertsNpcs() {
     worldSeedLoader.load();
 
@@ -243,7 +243,7 @@ class WorldSeedLoaderTest {
             tuple("TOWN", "FIRE_ROOKIE", "Andre", NpcType.STAFF, "이발소 직원", false, null),
             tuple("TOWN", "TOWN_GRANDFATHER", "Arthur", NpcType.PASSERBY, "행인", false, null),
             tuple("TOWN", "TOWN_GRANDMOTHER", "Margaret", NpcType.PASSERBY, "행인", false, null),
-            tuple("TOWN", "TOWN_JOHN_PARK", "Jone", NpcType.PASSERBY, "뮤지션", false, null));
+            tuple("TOWN", "TOWN_JOHN_PARK", "John", NpcType.PASSERBY, "뮤지션", false, null));
   }
 
   @Test

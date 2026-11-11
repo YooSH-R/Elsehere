@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: A305.Dialogue::A305.Dialogue.MockDialogueScriptSource
   entries:
   - npcCode: TOWN_JOHN_PARK
-    npcName: Jone
+    npcName: John
     roleLabel: "\uBBA4\uC9C0\uC158 \xB7 \uB85C\uCEEC \uC74C\uC131 \uAC80\uC218"
     opening:
       english: Oh, that order is wrong. I'm sorry about that. Let me make a fresh

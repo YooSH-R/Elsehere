@@ -235,7 +235,7 @@ namespace A305.EditorTools.Npc
             entries.arraySize = 1;
             var entry = entries.GetArrayElementAtIndex(0);
             entry.FindPropertyRelative("npcCode").stringValue = JohnParkEmotionBuilder.NpcCode;
-            entry.FindPropertyRelative("npcName").stringValue = "Jone";
+            entry.FindPropertyRelative("npcName").stringValue = "John";
             entry.FindPropertyRelative("roleLabel").stringValue = "뮤지션 · 로컬 음성 검수";
             entry.FindPropertyRelative("guidedTurns").arraySize = 0;
             entry.FindPropertyRelative("keywordReplies").arraySize = 2;

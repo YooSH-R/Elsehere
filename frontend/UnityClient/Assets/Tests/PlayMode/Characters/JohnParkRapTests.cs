@@ -170,7 +170,7 @@ namespace A305.Characters.PlayModeTests
                 {
                     send.Invoke(dialogue, new object[] { request });
                     var conversation = (DialogueConversation)state.GetValue(dialogue);
-                    Assert.That(conversation.NpcName, Is.EqualTo("Jone"));
+                    Assert.That(conversation.NpcName, Is.EqualTo("John"));
                     Assert.That(
                         conversation.LastNpcLine.English,
                         Does.StartWith("Cheeseburger, fries"),

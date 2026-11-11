@@ -40,7 +40,7 @@ namespace A305.EditorTools.Npc
                 "'랩 다시 듣기'를 누르면 다시 들려줄게요."
             );
             var script = new DialogueScript(
-                "Jone",
+                "John",
                 reply,
                 Array.Empty<GuidedTurn>(),
                 Array.Empty<KeywordReply>(),
@@ -59,16 +59,16 @@ namespace A305.EditorTools.Npc
                 var replay = (Button)data.FindProperty("replayButton").objectReferenceValue;
                 var button = CreateButton(name.rectTransform, replay);
                 var status = (TMP_Text)data.FindProperty("statusText").objectReferenceValue;
-                status.text = "Jone과 대화 중";
+                status.text = "John과 대화 중";
                 string output = Path.GetFullPath(
                     Path.Combine(Application.dataPath, "../../../artifacts/JohnParkRhythm/UiPlan")
                 );
                 Directory.CreateDirectory(output);
-                Render(camera, view, face, Path.Combine(output, "JoneRapButton.png"));
+                Render(camera, view, face, Path.Combine(output, "JohnRapButton.png"));
                 button.GetComponentInChildren<TMP_Text>().text = "랩 멈추기";
-                status.text = "Jone의 랩을 듣고 있어요";
-                Render(camera, view, face, Path.Combine(output, "JoneRapPlaying.png"));
-                Debug.Log("Jone 전용 랩 버튼 UI 시안 저장: " + output);
+                status.text = "John의 랩을 듣고 있어요";
+                Render(camera, view, face, Path.Combine(output, "JohnRapPlaying.png"));
+                Debug.Log("John 전용 랩 버튼 UI 시안 저장: " + output);
             }
             finally
             {

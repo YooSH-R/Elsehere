@@ -117,7 +117,8 @@ namespace A305.Dialogue
             if (IsGuided || !CanSend || reply?.Speech == null)
                 return false;
             statusMessage = null;
-            lines.Add(DialogueLine.FromUser(text));
+            if (!string.IsNullOrWhiteSpace(text))
+                lines.Add(DialogueLine.FromUser(text));
             AddNpcLine(reply);
             return true;
         }

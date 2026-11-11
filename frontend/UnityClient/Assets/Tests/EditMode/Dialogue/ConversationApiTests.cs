@@ -7,6 +7,27 @@ namespace A305.Dialogue.Tests
     public class ConversationApiTests
     {
         [Test]
+        public async Task PerformanceIntent_SendsOnlyTextToDedicatedEndpoint()
+        {
+            var transport = new RecordingTransport { ReplyBody = "{\"intent\":\"REPLAY_RAP\"}" };
+            var api = new ConversationApi(
+                new ApiClient("", transport),
+                new ApiClient("", transport)
+            );
+            var result = await api.ClassifyPerformanceAsync(58, "intent-1", "An encore?");
+            Assert.That(result.Intent, Is.EqualTo("REPLAY_RAP"));
+            Assert.That(transport.Request.Method, Is.EqualTo("POST"));
+            Assert.That(
+                transport.Request.Url,
+                Is.EqualTo("/api/v1/conversations/58/performance-intent")
+            );
+            Assert.That(
+                transport.Request.JsonBody,
+                Is.EqualTo("{\"requestId\":\"intent-1\",\"text\":\"An encore?\"}")
+            );
+        }
+
+        [Test]
         public async Task StartAsync_SendsActualJourneyFacts()
         {
             var transport = new RecordingTransport();

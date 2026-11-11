@@ -3,9 +3,9 @@
 import argparse
 import io
 import json
-from pathlib import Path
 import sys
 import wave
+from pathlib import Path
 
 import numpy as np
 import onnxruntime as ort
@@ -46,23 +46,24 @@ def main():
     aligned = align_timing(pcm, expected)
     duration = len(samples) / rate
     packaged = write_emotions(
-        aligned, [dict(start=0, end=duration, emotion="warm_smile", intensity=0.5)]
+        aligned,
+        [{"start": 0, "end": duration, "emotion": "warm_smile", "intensity": 0.5}],
     )
     assert identity(packaged) == identity(pcm)
     folder = Path(__file__).parent / "LittleMung_JohnPark_Male/ReplayGuide"
     folder.mkdir(exist_ok=True)
     (folder / "Guide.json").write_text(
         json.dumps(
-            dict(
-                english=text,
-                korean=korean,
-                voice="am_onyx",
-                speed=1.1,
-                duration=duration,
-                emotion="warm_smile",
-                pcmSha256=identity(pcm)[0],
-                timeline=read_timing(packaged),
-            ),
+            {
+                "english": text,
+                "korean": korean,
+                "voice": "am_onyx",
+                "speed": 1.1,
+                "duration": duration,
+                "emotion": "warm_smile",
+                "pcmSha256": identity(pcm)[0],
+                "timeline": read_timing(packaged),
+            },
             ensure_ascii=False,
             indent=2,
         ),
@@ -77,11 +78,11 @@ def main():
     review.write_bytes(packaged)
     print(
         json.dumps(
-            dict(
-                duration=duration,
-                phonemes=len(read_timing(packaged)["phonemes"]),
-                output=str(target),
-            )
+            {
+                "duration": duration,
+                "phonemes": len(read_timing(packaged)["phonemes"]),
+                "output": str(target),
+            }
         )
     )
 

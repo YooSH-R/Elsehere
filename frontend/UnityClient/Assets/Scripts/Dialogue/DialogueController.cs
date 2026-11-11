@@ -34,6 +34,7 @@ namespace A305.Dialogue
 
         private readonly DialogueSession session = new DialogueSession();
         private DialogueServerLink serverLink;
+        private bool emphasizePerformance;
         private IConversationApi conversationApi;
         private IAiStatusApi aiStatusApi;
         private IFollowUpApi followUpApi;
@@ -315,6 +316,7 @@ namespace A305.Dialogue
         private void Update()
         {
             ShowVoiceInput();
+            RefreshPerformanceButton();
             if (serverConversation != null && serverConversation.Tick(DateTimeOffset.UtcNow))
             {
                 End();
@@ -367,6 +369,7 @@ namespace A305.Dialogue
             panel.TalkStartRequested += StartRecording;
             panel.TalkStopRequested += StopRecording;
             panel.ReplayRequested += ReplaySpeech;
+            panel.PerformanceRequested += TogglePerformance;
             panel.UserTranslationListenRequested += ReadUserTranslation;
             panel.MeaningRequested += RequestMeaning;
             panel.HintRequested += RequestHint;
@@ -407,6 +410,7 @@ namespace A305.Dialogue
                 panel.TalkStartRequested -= StartRecording;
                 panel.TalkStopRequested -= StopRecording;
                 panel.ReplayRequested -= ReplaySpeech;
+                panel.PerformanceRequested -= TogglePerformance;
                 panel.UserTranslationListenRequested -= ReadUserTranslation;
                 panel.MeaningRequested -= RequestMeaning;
                 panel.HintRequested -= RequestHint;
@@ -532,6 +536,7 @@ namespace A305.Dialogue
         // 대화를 닫고 시점·이동을 되돌린다. 끝낸 NPC 코드를 돌려준다.
         private string Close()
         {
+            emphasizePerformance = false;
             panel.SetReviewReference(null);
             speechRecovery?.Dispose();
             speechRecovery = null;
@@ -586,6 +591,16 @@ namespace A305.Dialogue
             TextPronunciation.Stop();
             if (TryPlayPerformance(text))
                 return;
+            if (
+                CanUsePerformance
+                && PerformanceRequest.NeedsIntent(text)
+                && serverConversation != null
+            )
+            {
+                _ = ClassifyPerformanceRequest(text);
+                return;
+            }
+            emphasizePerformance = false;
             if (serverConversation != null)
             {
                 _ = serverConversation.SendAsync(text);
@@ -619,28 +634,90 @@ namespace A305.Dialogue
         private bool TryPlayPerformance(string text)
         {
             var performance = Performance;
-            if (isEnding || performance == null || !performance.Accepts(text))
+            if (!CanUsePerformance || !performance.Accepts(text))
                 return false;
-            if (
+            return ShowPerformanceGuide(text);
+        }
+
+        private bool CanUsePerformance =>
+            !isEnding
+            && Performance != null
+            && Performance.IsReady
+            && (
                 serverConversation != null
-                && (!serverConversation.CanSend || serverConversation.IsReview)
-            )
-                return false;
-            if (conversation != null && (!conversation.CanSend || conversation.IsGuided))
-                return false;
-            if (serverConversation == null && conversation == null)
-                return false;
+                    ? serverConversation.CanSend && !serverConversation.IsReview
+                    : conversation != null && conversation.CanSend && !conversation.IsGuided
+            );
+
+        private async Task ClassifyPerformanceRequest(string text)
+        {
+            var current = serverConversation;
+            var performer = Performance;
+            string intent = await current.ClassifyPerformanceAsync(text);
+            if (serverConversation != current || Performance != performer || !CanUsePerformance)
+                return;
+            if (intent == "REPLAY_RAP")
+                ShowPerformanceGuide(text);
+            else if (intent == "CONVERSATION")
+                await current.SendAsync(text);
+            else
+            {
+                emphasizePerformance = true;
+                RefreshPerformanceButton();
+            }
+        }
+
+        private bool ShowPerformanceGuide(string text)
+        {
             speechRecovery?.Cancel();
-            if (!performance.Play(serverLink))
+            if (!Performance.PlayGuide(serverLink))
                 return false;
-            var line = performance.Definition.CreateLine();
+            ShowRecordedLine(text, Performance.Definition.CreateGuideLine());
+            emphasizePerformance = true;
+            RefreshPerformanceButton();
+            return true;
+        }
+
+        private void ShowRecordedLine(string text, DialogueLine line)
+        {
             if (serverConversation != null)
                 serverConversation.ShowRecordedReply(text, line);
             else
                 conversation.ShowRecordedReply(text, line);
             panel.Refresh();
             NpcResponded?.Invoke();
-            return true;
+        }
+
+        private void TogglePerformance()
+        {
+            if (!CanUsePerformance)
+                return;
+            TextPronunciation.Stop();
+            speechRecovery?.Cancel();
+            emphasizePerformance = false;
+            if (Performance.IsPerforming)
+                Performance.Stop(serverLink);
+            else if (Performance.Play(serverLink))
+                ShowRecordedLine(null, Performance.Definition.CreateLine());
+            RefreshPerformanceButton();
+        }
+
+        private void RefreshPerformanceButton()
+        {
+            if (panel == null)
+                return;
+            var performer = Performance;
+            bool visible =
+                session.IsActive
+                && performer != null
+                && performer.IsReady
+                && !(serverConversation?.IsReview ?? conversation?.IsGuided ?? false);
+            panel.SetPerformanceState(
+                visible,
+                CanUsePerformance,
+                performer != null && performer.IsPerforming,
+                emphasizePerformance
+            );
         }
 
         public void SetReviewReference(string text) => panel.SetReviewReference(text);

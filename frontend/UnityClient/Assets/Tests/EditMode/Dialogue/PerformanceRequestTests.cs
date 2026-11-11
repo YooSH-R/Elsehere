@@ -4,6 +4,25 @@ namespace A305.Dialogue.Tests
 {
     public sealed class PerformanceRequestTests
     {
+        [TestCase("랩 다시 들려줘")]
+        [TestCase("Can you play that rap again?")]
+        public void DirectReplayRequestsNeedNoModel(string request)
+        {
+            Assert.That(PerformanceRequest.Matches(request), Is.True);
+            Assert.That(PerformanceRequest.NeedsIntent(request), Is.False);
+        }
+
+        [TestCase("I'd love an encore of that burger beat.")]
+        [TestCase("아까 주문하던 거 한번 더 해줄래?")]
+        public void IndirectPerformanceRequestsNeedIntent(string request) =>
+            Assert.That(PerformanceRequest.NeedsIntent(request), Is.True);
+
+        [TestCase("I like rap music")]
+        [TestCase("Don't play that rap again")]
+        [TestCase("How are you?")]
+        public void OrdinaryConversationDoesNotNeedPerformanceIntent(string request) =>
+            Assert.That(PerformanceRequest.NeedsIntent(request), Is.False);
+
         [TestCase("랩 해줘")]
         [TestCase("다시 보여줘")]
         [TestCase("한 번 더 들려주세요")]

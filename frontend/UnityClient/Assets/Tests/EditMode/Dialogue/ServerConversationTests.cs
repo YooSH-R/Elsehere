@@ -414,6 +414,65 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task PerformanceIntent_UsesOnlyClassifierAndSavedGuideNeedsNoMeaningRequest()
+        {
+            var john = new ServerConversation("TOWN_JOHN_PARK", "John", api, false);
+            await john.StartAsync();
+            Assert.That(
+                await john.ClassifyPerformanceAsync("An encore of that beat?"),
+                Is.EqualTo("REPLAY_RAP")
+            );
+            Assert.That(api.IntentCalls, Is.EqualTo(1));
+            var guide = DialogueLine.FromNpc(
+                "Tap 'Replay rap'!",
+                "랩 다시 듣기를 눌러 주세요.",
+                speech: new byte[] { 1 }
+            );
+            Assert.That(john.ShowRecordedReply("An encore of that beat?", guide), Is.True);
+            await john.RequestMeaningAsync();
+            Assert.That(john.LastNpcLine.Korean, Is.EqualTo(guide.Korean));
+            Assert.That(api.MeaningRequestedFor, Is.Empty);
+            Assert.That(api.Turns, Is.Empty);
+            Assert.That(api.SpeechRegeneratedFor, Is.Empty);
+        }
+
+        [Test]
+        public async Task PerformanceIntent_BusyRequestsAreIgnoredAndLateResultAfterExitIsDiscarded()
+        {
+            var john = new ServerConversation("TOWN_JOHN_PARK", "John", api, false);
+            await john.StartAsync();
+            api.PendingIntent = new TaskCompletionSource<PerformanceIntentResult>();
+            var pending = john.ClassifyPerformanceAsync("An encore?");
+            Assert.That(john.IsBusy, Is.True);
+            Assert.That(await john.ClassifyPerformanceAsync("An encore?"), Is.Null);
+            await john.EndAsync();
+            api.PendingIntent.SetResult(new PerformanceIntentResult { Intent = "REPLAY_RAP" });
+            Assert.That(await pending, Is.Null);
+            Assert.That(api.IntentCalls, Is.EqualTo(1));
+            Assert.That(api.Turns, Is.Empty);
+        }
+
+        [Test]
+        public async Task PerformanceIntent_FailureDoesNotGenerateReplyOrOfferAutomaticRetry()
+        {
+            var john = new ServerConversation("TOWN_JOHN_PARK", "John", api, false);
+            await john.StartAsync();
+            api.IntentError = new ApiException("AI_TEMPORARILY_UNAVAILABLE", 503, "분류 실패");
+            Assert.That(await john.ClassifyPerformanceAsync("An encore?"), Is.Null);
+            Assert.That(john.RecoveryGuide, Does.Contain("랩 다시 듣기"));
+            Assert.That(john.CanRetry, Is.False);
+            Assert.That(api.Turns, Is.Empty);
+        }
+
+        [Test]
+        public async Task PerformanceIntent_OtherNpcDoesNotCallClassifier()
+        {
+            await conversation.StartAsync();
+            Assert.That(await conversation.ClassifyPerformanceAsync("An encore?"), Is.Null);
+            Assert.That(api.IntentCalls, Is.Zero);
+        }
+
+        [Test]
         public async Task RecordedPerformance_RepeatsWithoutServerTurnsAndKeepsOrdinaryDialogue()
         {
             await conversation.StartAsync();
@@ -2552,8 +2611,25 @@ namespace A305.Dialogue.Tests
         }
 
         /// <summary>테스트용 대화 API. 응답과 실패를 테스트가 정하고, 받은 요청을 순서대로 남긴다.</summary>
-        private sealed class FakeConversationApi : IConversationApi
+        private sealed class FakeConversationApi : IConversationApi, IPerformanceIntentApi
         {
+            public int IntentCalls;
+            public TaskCompletionSource<PerformanceIntentResult> PendingIntent;
+            public ApiException IntentError;
+
+            public Task<PerformanceIntentResult> ClassifyPerformanceAsync(
+                long conversationId,
+                string requestId,
+                string text
+            )
+            {
+                IntentCalls++;
+                if (IntentError != null)
+                    return Task.FromException<PerformanceIntentResult>(IntentError);
+                return PendingIntent?.Task
+                    ?? Task.FromResult(new PerformanceIntentResult { Intent = "REPLAY_RAP" });
+            }
+
             public ConversationStart StartResponse { get; } =
                 new ConversationStart
                 {

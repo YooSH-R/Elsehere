@@ -27,3 +27,12 @@ FBX의 메시 로컬축과 공통 저작 도구의 정면축이 다릅니다. `J
 5. `JohnParkDialogueBuilder.BuildAndValidate`로 같은 프리팹에 적용하고 검수 씬과 렌더를 만듭니다. 자동 검사 결과와 실제 정면·사선 렌더를 함께 확인합니다.
 
 `BoundaryProtection.json`에는 얼굴·눈썹과 보호 정점 목록, `Landmarks.json`에는 얼굴 좌표 변환, `.blend`에는 공통 규격의 Shape Key가 있습니다. 검수 WAV는 로컬 예문 음성으로, 실제 존박의 목소리가 아닙니다.
+
+## 저장 재생 안내
+
+상위 폴더의 `create_john_replay_guide.py --model-dir <로컬 Kokoro 모델 폴더>`는 설치된 ONNX 모델과
+`voices-v1.0.bin`만 사용해 안내를 합성합니다. `ReplayGuide/Guide.json`에 영문·번역·목소리·합성 속도·
+발음 시간표·PCM 해시를 기록하고, Unity `ReplayGuide.bytes`에 음성·음소·감정을 함께 포장합니다.
+새 외부 음성 API를 호출하지 않으며 기존 랩 음성은 바꾸지 않습니다.
+`RecordedPerformanceUiBuilder.Build`로 이 안내와 기존 랩을 `OrderRap.asset`, 공용 대화창의 전용
+버튼에 연결합니다. 뜻 보기는 이 에셋의 번역을 재사용합니다.

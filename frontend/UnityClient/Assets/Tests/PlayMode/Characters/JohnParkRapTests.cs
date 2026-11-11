@@ -10,11 +10,68 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 
 namespace A305.Characters.PlayModeTests
 {
     public sealed class JohnParkRapTests
     {
+        [UnityTest]
+        public IEnumerator SavedGuideDrivesFaceWithoutStartingRapMotion()
+        {
+            var root = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/Prefabs/Npc/LittleMung_JohnPark_Male.prefab"
+                )
+            );
+            var linkObject = new GameObject("저장 안내 검사");
+            try
+            {
+                var performer = root.GetComponent<RecordedNpcPerformance>();
+                var speech = root.GetComponent<CharacterSpeechPlayer>();
+                var link = linkObject.AddComponent<DialogueServerLink>();
+                root.GetComponent<AudioSource>().mute = true;
+                link.SetSpeaker(speech);
+                yield return null;
+                Assert.That(performer.PlayGuide(link), Is.True);
+                speech.Pause();
+                Assert.That(performer.IsPerforming, Is.False);
+                Assert.That(link.LipSyncNotice, Is.Null.Or.Empty);
+                Assert.That(link.EmotionNotice, Is.Null.Or.Empty);
+                var line = performer.Definition.CreateGuideLine();
+                Assert.That(line.English, Does.StartWith("Tap"));
+                Assert.That(line.Korean, Does.Contain("랩 다시 듣기"));
+                var decoded = DialogueSpeechWav.Read(line.Speech);
+                Assert.That(decoded.Emotions, Is.Not.Null);
+                var lips = root.GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .Single(s => s.name == "SpeakingLips");
+                float mouthPeak = 0,
+                    smilePeak = 0;
+                for (float time = 0; time < decoded.Timeline.Duration; time += 1f / 24)
+                {
+                    speech.ApplyAtAudioTime(time);
+                    mouthPeak = Mathf.Max(
+                        mouthPeak,
+                        lips.GetBlendShapeWeight(lips.sharedMesh.GetBlendShapeIndex("viseme_AA"))
+                    );
+                    smilePeak = Mathf.Max(
+                        smilePeak,
+                        lips.GetBlendShapeWeight(
+                            lips.sharedMesh.GetBlendShapeIndex("mouthSmileLeft")
+                        )
+                    );
+                }
+                Assert.That(mouthPeak, Is.GreaterThan(20));
+                Assert.That(smilePeak, Is.GreaterThan(5));
+                link.SetSpeaker(null);
+            }
+            finally
+            {
+                Object.Destroy(root);
+                Object.Destroy(linkObject);
+            }
+        }
+
         [UnityTest]
         public IEnumerator RapKeepsLipCornersBalancedWithoutLosingArticulation()
         {
@@ -129,7 +186,7 @@ namespace A305.Characters.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator RequestsRestartRecordedRapAndExitStopsSpeech()
+        public IEnumerator RequestsPlayGuideAndOnlyButtonStartsRap()
         {
             const string path = "Assets/Scenes/Sandbox/NpcJohnParkDialogueSandbox.unity";
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
@@ -146,6 +203,7 @@ namespace A305.Characters.PlayModeTests
                 var npc = roots.SelectMany(r => r.GetComponentsInChildren<NpcIdentity>()).Single();
                 var speech = npc.GetComponent<DialogueSpeaker>().Player;
                 var source = npc.GetComponent<AudioSource>();
+                var performer = npc.GetComponent<RecordedNpcPerformance>();
                 source.mute = true;
                 Assert.That(dialogue.TryStart(npc.Code, npc.LookTarget), Is.True);
                 yield return null;
@@ -171,12 +229,16 @@ namespace A305.Characters.PlayModeTests
                     send.Invoke(dialogue, new object[] { request });
                     var conversation = (DialogueConversation)state.GetValue(dialogue);
                     Assert.That(conversation.NpcName, Is.EqualTo("John"));
-                    Assert.That(
-                        conversation.LastNpcLine.English,
-                        Does.StartWith("Cheeseburger, fries"),
-                        request
-                    );
+                    Assert.That(conversation.LastNpcLine.English, Does.StartWith("Tap"), request);
+                    Assert.That(conversation.LastNpcLine.Korean, Is.Not.Empty);
+                    Assert.That(performer.IsPerforming, Is.False, "요청은 안내만 재생합니다.");
                     Assert.That(speech.IsPlaying, Is.True);
+                    var button = roots
+                        .SelectMany(r => r.GetComponentsInChildren<Button>(true))
+                        .Single(b => b.name == "PerformanceButton");
+                    Assert.That(button.gameObject.activeInHierarchy, Is.True);
+                    button.onClick.Invoke();
+                    Assert.That(performer.IsPerforming, Is.True);
                     Assert.That(source.clip.length, Is.EqualTo(8.113875f).Within(.002f));
                     Assert.That(
                         speech.PlaybackTime,
@@ -184,6 +246,8 @@ namespace A305.Characters.PlayModeTests
                         "재요청은 처음부터 재생해야 합니다."
                     );
                     yield return new WaitForSeconds(.12f);
+                    button.onClick.Invoke();
+                    Assert.That(performer.IsPerforming, Is.False);
                 }
                 send.Invoke(dialogue, new object[] { "How are you?" });
                 Assert.That(

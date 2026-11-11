@@ -48,7 +48,6 @@ namespace A305.EditorTools.World
             "UpperLanding",
             "Ceiling",
             "Stairs",
-            "StairDirection",
         };
 
         // 오락실 공용 계단실. 인도에서 걸어 들어가 2층 서점 문으로 가므로 마을에 남긴다.
@@ -58,7 +57,6 @@ namespace A305.EditorTools.World
             "Ceiling",
             "Stairs",
             "UpperLanding",
-            "StairDirection",
         };
 
         private sealed class Shop

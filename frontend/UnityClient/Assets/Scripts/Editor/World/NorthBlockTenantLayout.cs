@@ -24,10 +24,7 @@ namespace A305.EditorTools.World
             AssetDatabase.SaveAssets();
         }
 
-        /// <summary>
-        /// 기존 오락실 프리팹의 계단실 안내만 맞춘다. 2층 서점 문 간판은 문틀에 가리지 않는 자리와 방향으로,
-        /// 계단실 입구 위 안내판은 2층 서점만 알리는 판으로 바꾼다.
-        /// </summary>
+        /// <summary>기존 오락실 프리팹의 계단실 안내만 맞춘다(<see cref="ArcadeStairHallSigns"/>).</summary>
         [MenuItem("Tools/A305/World/Fit Arcade Stair Hall Signs")]
         public static void FitArcadeStairHallSigns()
         {
@@ -37,14 +34,26 @@ namespace A305.EditorTools.World
                 path,
                 root =>
                 {
-                    Transform layout = root.transform.Find("TenantEntrances");
-                    FitBookshopDoorSign(layout);
-                    StairHallDirectory(layout);
+                    ArcadeStairHallSigns(root.transform);
                     // 새 안내판에도 호버 영역을 프리팹 안에 붙여, 씬마다 따로 붙지 않게 한다.
                     ObjectWordRegistration.ApplyToPrefab(root, path);
                 }
             );
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// 오락실 공용 계단실 안내. 계단실 입구 위에는 2층 서점만 알리는 판을, 계단을 다 올라와 마주 보는 앞벽에는
+        /// 2층 서점 간판을 둔다. 첫 계단 앞의 UPSTAIRS 글자는 두지 않는다. 다시 실행해도 같은 모습이 된다.
+        /// </summary>
+        internal static void ArcadeStairHallSigns(Transform root)
+        {
+            Transform upstairs = root.Find("Interior/StairDirection");
+            if (upstairs != null)
+                Object.DestroyImmediate(upstairs.gameObject);
+            Transform layout = root.Find("TenantEntrances");
+            StairHallDirectory(layout);
+            BookshopWallSign(layout);
         }
 
         internal static void Apply(GameObject root, string name)
@@ -108,17 +117,9 @@ namespace A305.EditorTools.World
                 "wall"
             );
             Door(layout, "BookshopDoor", new Vector3(0, 4, -1.75f), -90, 1.7f);
-            Text(
-                "TenantDoorSign",
-                "2F  PAPER & LEAF",
-                layout,
-                new Vector3(.12f, 6.84f, -.85f),
-                .12f
-            );
-            FitBookshopDoorSign(layout);
             Sign(layout, "1F  LITTLE ARCADE", new Vector3(-1.7f, 3.2f, .25f), 3.9f, Navy);
             Sign(layout, "2F  PAPER & LEAF BOOKS", new Vector3(0, 6.5f, .25f), 6.4f, Green);
-            StairHallDirectory(layout);
+            ArcadeStairHallSigns(root);
             for (int index = 0; index < 2; index++)
             {
                 var shelf = AssetDatabase.LoadAssetAtPath<GameObject>(
@@ -143,7 +144,7 @@ namespace A305.EditorTools.World
 
         /// <summary>
         /// 이미 만든 오락실 프리팹에서 계단실 1층의 오락실 문을 건물 앞면으로 옮기고, 그 자리는 칸막이 벽으로 막는다.
-        /// 문짝은 덧댄 문틀·손잡이(<see cref="ShopEntranceBuilder"/>)와 함께 그대로 옮기고, 2층 서점 문 간판은 지우지 않고 자리와 방향만 맞춘다.
+        /// 문짝은 덧댄 문틀·손잡이(<see cref="ShopEntranceBuilder"/>)와 함께 그대로 옮긴다.
         /// </summary>
         internal static void MoveArcadeDoorToFront(Transform root)
         {
@@ -158,7 +159,6 @@ namespace A305.EditorTools.World
             layout
                 .Find("ArcadeDoor")
                 .SetLocalPositionAndRotation(ArcadeDoorHinge, Quaternion.identity);
-            FitBookshopDoorSign(layout);
         }
 
         // 계단실은 인도 쪽 입구(+x)에서 2층 서점 문으로만 이어진다. 1층 칸막이는 문 없이 앞벽부터 뒷벽까지,
@@ -214,17 +214,43 @@ namespace A305.EditorTools.World
             label.fontSizeMax = 2.3f;
         }
 
-        // 2층 서점 문 간판. 글자 앞면이 계단실(+x)을 보게 돌려 계단참에서 바로 읽힌다.
-        // 덧댄 문틀 윗부분(DoorLintel)이 6.66m 높이까지 벽에서 0.15m 튀어나와 글자 아래쪽을 가리므로, 그 위 천장 아래 벽면에 둔다.
-        private static void FitBookshopDoorSign(Transform layout)
+        /// <summary>
+        /// 2층 서점 간판. 돌아오는 계단(x 0.15~1.95)을 다 올라오면 바로 마주 보는 앞벽 안쪽(z -0.2)에, 그 계단 폭 가운데
+        /// 눈높이보다 조금 위로 초록 판을 붙이고 글자를 둔다. 서점 문은 그 바로 왼쪽이다.
+        /// 문 위에 있던 기존 글자는 바꾼 글꼴을 지키도록 옮겨 다시 쓴다.
+        /// </summary>
+        private static void BookshopWallSign(Transform layout)
         {
-            layout
-                .Cast<Transform>()
-                .Single(part => part.name == "TenantDoorSign")
-                .SetLocalPositionAndRotation(
-                    new Vector3(.12f, 6.84f, -.85f),
-                    Quaternion.Euler(0, -90, 0)
+            var board = new Vector3(1.05f, 5.75f, -.23f);
+            if (layout.Find("TenantDoorSignBoard") == null)
+                Solid(
+                    "TenantDoorSignBoard",
+                    layout,
+                    board,
+                    new Vector3(1.7f, .45f, .06f),
+                    Green,
+                    "sign",
+                    false
                 );
+            Transform sign = layout
+                .Cast<Transform>()
+                .SingleOrDefault(part => part.name == "TenantDoorSign");
+            TextMeshPro label =
+                sign != null
+                    ? sign.GetComponent<TextMeshPro>()
+                    : Text("TenantDoorSign", "", layout, Vector3.zero, .2f);
+            label.text = "2F  PAPER & LEAF";
+            // 글자 앞면이 계단을 올라오는 쪽(-z)을 본다.
+            label.transform.SetLocalPositionAndRotation(
+                board + Vector3.back * .04f,
+                Quaternion.identity
+            );
+            label.rectTransform.sizeDelta = new Vector2(1.5f, .32f);
+            label.alignment = TextAlignmentOptions.Center;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 1;
+            label.fontSizeMax = 2.2f;
         }
 
         private static void ExternalStairShops(Transform root, Transform interior, Transform layout)

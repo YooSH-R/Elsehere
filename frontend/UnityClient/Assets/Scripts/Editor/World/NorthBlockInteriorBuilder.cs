@@ -412,7 +412,7 @@ namespace A305.EditorTools.World
         /// 앞에서 뒤로 오른 뒤 계단참에서 돌아 앞쪽 2층 계단참으로 오르는 실내 계단.
         /// 빵집은 왼쪽으로 돌고, 오락실 공용 계단실은 오른쪽으로 돌아 마지막 단 바로 왼쪽에 2층 서점 문이 온다.
         /// </summary>
-        private static void Stairs(Transform parent, string building, bool withDirection = true)
+        private static void Stairs(Transform parent, string building)
         {
             bool isBakery = building == "MapleBakery";
             bool turnsRight = TurnsRight(building);
@@ -475,8 +475,6 @@ namespace A305.EditorTools.World
                 );
             if (isBakery)
                 BakeryStairDetails(parent, stairs);
-            else if (withDirection)
-                Text("StairDirection", "UPSTAIRS", parent, new Vector3(firstX, 2.5f, -1.3f), .16f);
         }
 
         private static bool TurnsRight(string building) => building == "LittleArcade";
@@ -486,7 +484,7 @@ namespace A305.EditorTools.World
 
         /// <summary>
         /// 이미 만든 오락실 프리팹의 공용 계단실을 다시 만든다. 계단을 오른쪽으로 도는 방향으로 바꾸고,
-        /// 계단실 벽의 오락실 문을 건물 앞면으로 옮긴다. 간판·집기 등 나머지 배치는 그대로 둔다.
+        /// 계단실 벽의 오락실 문을 건물 앞면으로 옮기며 계단실 안내를 맞춘다. 건물 간판·집기 등 나머지 배치는 그대로 둔다.
         /// </summary>
         [MenuItem("Tools/A305/World/Rebuild Little Arcade Stair Hall")]
         public static void RebuildArcadeStairHall()
@@ -498,15 +496,12 @@ namespace A305.EditorTools.World
                 path,
                 root =>
                 {
-                    // 계단 묶음은 단·난간뿐이라 새로 만들고, 글꼴을 바꾼 안내 글자는 첫 계단 앞으로 옮기기만 한다.
+                    // 계단 묶음은 단·난간뿐이라 새로 만든다.
                     Transform interior = root.transform.Find("Interior");
-                    Transform direction = interior.Find("StairDirection");
-                    Vector3 directionPosition = direction.localPosition;
                     Object.DestroyImmediate(interior.Find("Stairs").gameObject);
-                    Stairs(interior, root.name, withDirection: false);
-                    directionPosition.x = FirstFlightX(root.name);
-                    direction.localPosition = directionPosition;
+                    Stairs(interior, root.name);
                     NorthBlockTenantLayout.MoveArcadeDoorToFront(root.transform);
+                    NorthBlockTenantLayout.ArcadeStairHallSigns(root.transform);
                     // 새 계단·벽·문에도 호버 영역을 프리팹 안에 붙여, 씬마다 따로 붙지 않게 한다.
                     ObjectWordRegistration.ApplyToPrefab(root, path);
                 }

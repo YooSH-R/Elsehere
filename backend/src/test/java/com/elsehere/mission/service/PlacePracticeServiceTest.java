@@ -92,7 +92,8 @@ class PlacePracticeServiceTest {
             PracticePlaceListResponse.Place::npcName,
             PracticePlaceListResponse.Place::roleLabel,
             PracticePlaceListResponse.Place::sceneCode)
-        .containsExactly("식당", "자리 잡기 · 못 먹는 재료 말하기", "DINER_STAFF", "Rosa", "식당 종업원", "TOWN");
+        .containsExactly(
+            "햄버거 가게", "자리 잡기 · 못 먹는 재료 말하기", "DINER_STAFF", "Rosa", "햄버거 가게 직원", "TOWN");
     PracticePlaceListResponse.Scenario table = diner.scenarios().getFirst();
     assertThat(table.scenarioId()).isEqualTo("DINER_TABLE");
     assertThat(table.description()).isEqualTo("몇 명인지 말하고 창가 자리를 부탁해요. 자리가 없으면 얼마나 기다리는지 물어요.");

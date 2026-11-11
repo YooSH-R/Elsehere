@@ -325,25 +325,25 @@ namespace A305.Dialogue
             {
                 npcCode = "DINER_STAFF",
                 npcName = "Rosa",
-                roleLabel = "식당 종업원",
+                roleLabel = "햄버거 가게 직원",
                 opening = new LineEntry(
                     "Hi, honey! Welcome to Maple Burger. What can I get you?",
-                    "어서 와요! 메이플 버거이에요. 뭘 드릴까요?"
+                    "어서 와요! 메이플 버거예요. 뭘 드릴까요?"
                 ),
                 keywordReplies = new List<KeywordReplyEntry>
                 {
                     new KeywordReplyEntry(
                         new[] { "classic" },
                         new LineEntry(
-                            "The Classic is seven dollars. Would you like to leave anything out?",
-                            "클래식 버거는 7달러예요. 빼고 싶은 재료가 있나요?"
+                            "The Classic has beef, lettuce, tomato, onion, pickles and ketchup. Would you like to leave anything out?",
+                            "클래식 버거에는 소고기 패티, 양상추, 토마토, 양파, 피클과 케첩이 들어가요. 빼고 싶은 재료가 있나요?"
                         )
                     ),
                     new KeywordReplyEntry(
                         new[] { "cola" },
                         new LineEntry(
-                            "Cola is two dollars. Would you like fries as well?",
-                            "콜라는 2달러예요. 감자튀김도 드릴까요?"
+                            "Would you like cola and fries with your burger?",
+                            "버거와 함께 콜라와 감자튀김도 드릴까요?"
                         )
                     ),
                 },
@@ -1069,25 +1069,25 @@ namespace A305.Dialogue
             {
                 npcCode = "FIRE_CAPTAIN",
                 npcName = "Ray",
-                roleLabel = "식당 직원",
+                roleLabel = "햄버거 가게 직원",
                 opening = new LineEntry(
                     "Hi, honey! Welcome to Maple Burger. What can I get you?",
-                    "어서 와요! 메이플 버거이에요. 뭘 드릴까요?"
+                    "어서 와요! 메이플 버거예요. 뭘 드릴까요?"
                 ),
                 keywordReplies = new List<KeywordReplyEntry>
                 {
                     new KeywordReplyEntry(
                         new[] { "classic" },
                         new LineEntry(
-                            "The Classic is seven dollars. Would you like to leave anything out?",
-                            "클래식 버거는 7달러예요. 빼고 싶은 재료가 있나요?"
+                            "The Classic has beef, lettuce, tomato, onion, pickles and ketchup. Would you like to leave anything out?",
+                            "클래식 버거에는 소고기 패티, 양상추, 토마토, 양파, 피클과 케첩이 들어가요. 빼고 싶은 재료가 있나요?"
                         )
                     ),
                     new KeywordReplyEntry(
                         new[] { "cola" },
                         new LineEntry(
-                            "Cola is two dollars. Would you like fries as well?",
-                            "콜라는 2달러예요. 감자튀김도 드릴까요?"
+                            "Would you like cola and fries with your burger?",
+                            "버거와 함께 콜라와 감자튀김도 드릴까요?"
                         )
                     ),
                 },

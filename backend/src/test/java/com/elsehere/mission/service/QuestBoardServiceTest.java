@@ -86,7 +86,7 @@ class QuestBoardServiceTest {
         .containsExactly("DONE", "IN_PROGRESS", "LOCKED");
     assertThat(board.quests().get(1).stops())
         .extracting(QuestBoardResponse.Stop::place)
-        .containsExactly("식당", "빨래방", "은행", "빨래방", "이발소", "꽃집", "이발소");
+        .containsExactly("햄버거 가게", "빨래방", "은행", "빨래방", "이발소", "꽃집", "이발소");
     assertThat(board.quests().get(1).stops().get(5).current()).isTrue();
     // 첫 퀘스트 −12 +10, 마을 이야기 5단계까지 아침 7·세탁 6·이발 15코인
     assertThat(board.balance()).isEqualTo(100 - 12 + 10 - 7 - 6 - 15);

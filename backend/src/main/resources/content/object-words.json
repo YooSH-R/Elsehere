@@ -973,6 +973,15 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_2b9999d8d017255459f2137b005edde2",
+            "languageCode": "en-US",
+            "text": "mustard",
+            "meaningKo": "머스터드",
+            "example": "Could I have some mustard?",
+            "exampleKo": "머스터드를 좀 주시겠어요?",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_2ed81ce347fb9724d8df37ac679e41d9",
             "languageCode": "en-US",
             "text": "claw machine",
@@ -1045,6 +1054,15 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_49eee5ac436a87e4b9a91a1c5352bf8a",
+            "languageCode": "en-US",
+            "text": "ketchup",
+            "meaningKo": "케첩",
+            "example": "Could I have some ketchup?",
+            "exampleKo": "케첩을 좀 주시겠어요?",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_50a95568007664e448ac53663da03962",
             "languageCode": "en-US",
             "text": "pigeon",
@@ -1096,6 +1114,15 @@
             "meaningKo": "우체통",
             "example": "Where is the nearest mailbox?",
             "exampleKo": "가장 가까운 우체통이 어디예요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_5aa5c077f56247047be360a583703f0f",
+            "languageCode": "en-US",
+            "text": "napkin",
+            "meaningKo": "냅킨",
+            "example": "Could I have a napkin?",
+            "exampleKo": "냅킨 하나 주시겠어요?",
             "pronunciationAudioKey": ""
         },
         {

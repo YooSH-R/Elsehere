@@ -38,7 +38,7 @@ namespace A305.EditorTools.Npc
                 "PostOffice",
                 new Vector3(-1.5f, 0, -4.5f)
             ),
-            new Staff("DINER_STAFF", "DinerStaff", "MapleDiner", new Vector3(.4f, 0, -6.4f)),
+            new Staff("DINER_STAFF", "DinerStaff", "MapleDiner", new Vector3(.4f, .44f, -7.15f)),
             new Staff("BANK_STAFF", "BankStaff", "TownBank", new Vector3(2.5f, 0, -4.6f)),
             new Staff(
                 "LAUNDROMAT_STAFF",
@@ -105,7 +105,7 @@ namespace A305.EditorTools.Npc
                 "FIRE_CAPTAIN",
                 "DinerNightStaff",
                 "MapleDiner",
-                new Vector3(.4f, 0, -6.4f),
+                new Vector3(.4f, .44f, -7.15f),
                 true
             ),
             new Staff(

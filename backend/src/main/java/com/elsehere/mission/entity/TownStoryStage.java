@@ -77,7 +77,7 @@ public enum TownStoryStage {
 
   public String title() {
     return switch (this) {
-      case DINER -> "식당에서 아침 식사";
+      case DINER -> "햄버거 가게에서 아침 식사";
       case LAUNDRY -> "빨래방에서 세탁 문의";
       case BANK -> "은행에서 현금 인출 문의";
       case WASH -> "셀프빨래방에서 세탁기 사용하기";
@@ -94,7 +94,7 @@ public enum TownStoryStage {
 
   public String situation() {
     return switch (this) {
-      case DINER -> "아침을 먹다가 옷에 음료를 쏟았어요. 식당 직원 Rosa에게 세탁할 곳을 물어봐요.";
+      case DINER -> "아침을 먹다가 옷에 음료를 쏟았어요. 햄버거 가게 직원 Rosa에게 세탁할 곳을 물어봐요.";
       case LAUNDRY -> "셀프빨래방에 왔어요. Gus에게 세탁기 사용 방법과 요금을 물어봐요.";
       case BANK -> "Henry에게 ATM 위치와 현금 인출 방법을 묻고, 얼마를 뽑을지 말해요.";
       case WASH -> "빨래방에 돌아왔어요. 직접 세탁할 수 있도록 Gus에게 세탁기 사용 방법을 확인해요.";

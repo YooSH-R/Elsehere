@@ -135,7 +135,7 @@ namespace A305.EditorTools.Mission
                 string name = shop.Key switch
                 {
                     "HOME_STORE_STAFF" => "생활용품",
-                    "DINER_STAFF" => "식당",
+                    "DINER_STAFF" => "햄버거 가게",
                     _ => shop.Value.Name,
                 };
                 BuildingLabel(labels, shop.Key, name, shop.Value.Tile);
@@ -178,17 +178,26 @@ namespace A305.EditorTools.Mission
             );
             label.fontStyle = FontStyles.Bold;
             label.alignment = TextAlignmentOptions.Center;
-            label.enableAutoSizing = false;
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 26;
+            label.fontSizeMax = BuildingLabelFontSize;
             label.textWrappingMode = TextWrappingModes.NoWrap;
             label.ForceMeshUpdate(ignoreActiveState: true);
+            float preferredWidth = label.GetPreferredValues(name).x;
+            float maxWidth = tile.width + 28;
+            float padding =
+                preferredWidth + BuildingLabelHorizontalPadding * 2 > maxWidth
+                    ? 8
+                    : BuildingLabelHorizontalPadding;
+            // 이웃 건물까지 이름표가 뻗지 않도록 긴 이름만 여백과 글자 크기를 줄인다.
             plate.sizeDelta = new Vector2(
-                label.GetPreferredValues(name).x + BuildingLabelHorizontalPadding * 2,
+                Mathf.Min(preferredWidth + padding * 2, maxWidth),
                 BuildingLabelHeight
             );
             label.margin = new Vector4(
-                BuildingLabelHorizontalPadding,
+                padding,
                 BuildingLabelVerticalPadding,
-                BuildingLabelHorizontalPadding,
+                padding,
                 BuildingLabelVerticalPadding
             );
             RectTransform textRect = label.rectTransform;

@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c941ad8866de1f94dbe0f36910012d9c, type: 3}
+  m_Name: OfflineDialogue
+  m_EditorClassIdentifier: A305.Dialogue::A305.Dialogue.MockDialogueScriptSource
+  entries:
+  - npcCode: TOWN_JOHN_PARK
+    npcName: Jone
+    roleLabel: "\uBBA4\uC9C0\uC158 \xB7 \uB85C\uCEEC \uC74C\uC131 \uAC80\uC218"
+    opening:
+      english: Oh, that order is wrong. I'm sorry about that. Let me make a fresh
+        coffee for you.
+      korean: "\uC8FC\uBB38\uC774 \uC798\uBABB\uB410\uB124\uC694. \uC8C4\uC1A1\uD574\uC694.
+        \uC0C8 \uCEE4\uD53C\uB97C \uB9CC\uB4E4\uC5B4 \uB4DC\uB9B4\uAC8C\uC694. (\uAE30\uC874
+        \uAC80\uC218 \uC74C\uC131)"
+      voice: {fileID: 4900000, guid: 8bd2b6f7effaba742af6ac3a63991ee7, type: 3}
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - sad
+      reply:
+        english: Oh, that order is wrong. I'm sorry about that. Let me make a fresh
+          coffee for you.
+        korean: "\uC8FC\uBB38\uC774 \uC798\uBABB\uB410\uB124\uC694. \uC8C4\uC1A1\uD574\uC694.
+          \uC0C8 \uCEE4\uD53C\uB97C \uB9CC\uB4E4\uC5B4 \uB4DC\uB9B4\uAC8C\uC694.
+          (\uAE30\uC874 \uAC80\uC218 \uC74C\uC131)"
+        voice: {fileID: 4900000, guid: 2c2460954cbd7ce4dbbd175b84d6724a, type: 3}
+    - keywords:
+      - angry
+      reply:
+        english: Oh, that order is wrong. I'm sorry about that. Let me make a fresh
+          coffee for you.
+        korean: "\uC8FC\uBB38\uC774 \uC798\uBABB\uB410\uB124\uC694. \uC8C4\uC1A1\uD574\uC694.
+          \uC0C8 \uCEE4\uD53C\uB97C \uB9CC\uB4E4\uC5B4 \uB4DC\uB9B4\uAC8C\uC694.
+          (\uAE30\uC874 \uAC80\uC218 \uC74C\uC131)"
+        voice: {fileID: 4900000, guid: 8bd2b6f7effaba742af6ac3a63991ee7, type: 3}
+    defaultReply:
+      english: Wait, you put salt in the coffee? That's a new recipe. You really
+        made my day!
+      korean: "\uCEE4\uD53C\uC5D0 \uC18C\uAE08\uC744 \uB123\uC5C8\uB2E4\uACE0\uC694?
+        \uC0C8\uB85C\uC6B4 \uB808\uC2DC\uD53C\uB124\uC694. \uB355\uBD84\uC5D0 \uC815\uB9D0
+        \uC990\uAC70\uC6E0\uC5B4\uC694! (\uAE30\uC874 \uAC80\uC218 \uC74C\uC131)"
+      voice: {fileID: 4900000, guid: 9f053c1e1997e604f9c4902224020b86, type: 3}
+    exampleSentence: sad
+  fallback:
+    npcCode: 
+    npcName: Neighbor
+    roleLabel: 
+    opening:
+      english: Hello! Nice to meet you.
+      korean: "\uC548\uB155\uD558\uC138\uC694! \uB9CC\uB098\uC11C \uBC18\uAC00\uC6CC\uC694."
+      voice: {fileID: 0}
+    guidedTurns: []
+    keywordReplies: []
+    defaultReply:
+      english: I see!
+      korean: "\uADF8\uB807\uAD70\uC694!"
+      voice: {fileID: 0}
+    exampleSentence: Nice to meet you, too.

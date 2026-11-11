@@ -1,4 +1,6 @@
-# 존박 전용 리듬 캐릭터
+# Jone 전용 리듬 캐릭터
+
+게임 표시 이름은 Jone입니다. 기존 참조를 유지하기 위해 파일명과 내부 NPC 코드는 `LittleMung_JohnPark_Male`, `TOWN_JOHN_PARK`로 유지합니다.
 
 원본 Tripo 모델을 보존한 골격 복사본입니다. 마스터 본 67개의 이름과 부모 관계를 재사용하며, 관절의 휴식 위치는 앰프를 잡은 비대칭 자세에 맞췄습니다. 몸·왼팔·손목으로 리듬을 타고 오른팔은 가슴을 따라가며 잡는 자세를 유지합니다.
 
@@ -43,8 +45,10 @@
 - 표정: `mouthSmileLeft/Right`, `eyeBlinkLeft/Right`.
 - 발음: `viseme_AA`, `FF`, `TH`, `PP`, `E`, `OH`, `OU`, `I`, `EU`의 9개 채널.
 - 제어: 기존 `CharacterFaceController`, 자동 눈 감기 `CharacterIdleBlink`.
-- 음성 준비: 기존 `CharacterSpeechPlayer`와 `AudioSource`, `FriendlySpeechExpression` 연결. 서비스에서 음성과 발음 시간표를 공급하면 동일한 제어 경로로 재생합니다. 프리팹에는 임의의 대사나 존박 음성을 넣지 않습니다.
+- 음성 재생: 기존 `CharacterSpeechPlayer`와 `AudioSource`, `FriendlySpeechExpression` 연결. 일반 대화는 서비스의 음성과 발음·감정 시간표를 재생합니다. 저장 주문 랩은 `RecordedNpcPerformance`와 `OrderRap.asset`으로 재생하며, 실제 인물의 녹음이나 복제 음성은 사용하지 않습니다.
 
 얼굴 데이터는 `frontend/ArtSources/Characters/ServiceNpcs/LittleMung_JohnPark_Male/`에 보관하며 제작 절차는 해당 폴더의 README를 참고합니다. `Tools → A305 → Npc → John Park → Apply Authored Face`는 이 프리팹의 저작 결과만 갱신하고 얼굴 Sandbox를 다시 만듭니다. 수동 편집한 메시·Sandbox는 먼저 별도 저장합니다.
 
-`Validate Face And Capture`는 12가지 확인 자세(중립 포함)의 실제 정점 변형, 13채널 누락, 얼굴 외 정점·가중치 보존, 기존 로컬 음성 시간표 92프레임과 리듬의 동시 재생, 오른손·앰프 형태를 확인합니다. 표정 검수 결과는 `artifacts/JohnParkRhythm/Face`에 저장합니다. 검사용 음성은 기존 카페 여성 음성으로, 존박의 실제 목소리나 새로 합성한 음성이 아닙니다. 눈썹·볼·놀람 등 추가 감정 채널은 이번 범위에 포함하지 않습니다.
+`Validate Face And Capture`는 기본 얼굴 제작 단계의 12가지 확인 자세(중립 포함), 13채널, 얼굴 외 정점·가중치 보존과 오른손·앰프 형태를 확인합니다. 최종 프리팹은 추가 감정 변형까지 총 28채널을 사용하며, 공통 감정 16종은 `NpcJohnParkEmotionSandbox`, 대화 연결은 `NpcJohnParkDialogueSandbox`에서 확인합니다. 일반 대화의 검수용 음성은 기존 카페 여성 음성을 재사용하므로 실제 서비스의 남성 목소리와 구분합니다.
+
+저장 랩은 남성 `am_onyx` 1.5배 음성, 121BPM, 약 8.1초입니다. 좌우 입꼬리가 같은 `warm_smile`과 음소 시간표를 사용하고 왼팔·몸의 리듬을 같은 재생 시각에 맞춥니다. 사용 방법과 Jone 전용 버튼 제안은 [말하기 표정 문서](../../../../../../docs/unity/npc-speaking-emotions.md#존박-저장-주문-랩)를 따릅니다. 전용 버튼은 현재 UI 시안이며, 구현된 재생 경로는 텍스트 요청과 공용 [다시 듣기]입니다.

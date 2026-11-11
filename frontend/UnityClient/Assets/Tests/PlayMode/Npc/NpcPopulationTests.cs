@@ -976,6 +976,62 @@ namespace A305.Npc.PlayModeTests
             );
         }
 
+        // 출근은 신호 대기 여유까지 넣어 일찍 나서므로 근무 시작 전에 일터 문에 닿는다. 문 앞에 서서 기다리지 않고 들어간다.
+        [UnityTest]
+        public IEnumerator Town_CommuterReachingTheWorkplaceDoorBeforeTheShiftGoesInside()
+        {
+            SetClock(9 * 60 + 40);
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+            var walker = Object
+                .FindObjectsByType<NpcTownWalker>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+                .Single(item => item.GetComponent<NpcIdentity>().Code == "CAFE_SERVER");
+            Assert.That(
+                walker.SchedulePhase,
+                Is.EqualTo(NpcDayPhase.GoingToWork),
+                "준비: 10시 근무로 출근하는 카페 직원"
+            );
+            Vector3 door = walker.ScheduleDoor.Value;
+            walker.gameObject.SetActive(true);
+            PlaceWalker(walker, door, Vector3.forward);
+            for (int frame = 0; frame < 5; frame++)
+                yield return null;
+
+            Assert.That(walker.gameObject.activeSelf, Is.False, "일터 문에 닿으면 들어갑니다.");
+            Assert.That(NpcWorkArrivals.HasArrived("CAFE_SERVER", 10 * 60), Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator Cafe_StaffWhoWalkedInEarlyAreInsideBeforeTheShiftStarts()
+        {
+            SetClock(9 * 60 + 40);
+            NpcWorkArrivals.MarkArrived("CAFE_SERVER", 10 * 60);
+            yield return SceneManager.LoadSceneAsync("CafeScene");
+            yield return null;
+            yield return null;
+
+            NpcIdentity server = Object
+                .FindObjectsByType<NpcIdentity>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+                .Single(npc =>
+                    npc.Code == "CAFE_SERVER" && npc.GetComponent<NpcTownWalker>() == null
+                );
+            Assert.That(server.gameObject.activeSelf, Is.True);
+        }
+
         [SetUp]
         public void SetUp()
         {

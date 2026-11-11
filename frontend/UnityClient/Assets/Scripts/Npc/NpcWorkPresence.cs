@@ -19,15 +19,15 @@ namespace A305.Npc
                         .Parse(lifeData.text)
                         .FindNpc(GetComponent<NpcIdentity>().Code);
                 var body = GetComponent<Passerby>();
-                return NpcDayPlan
-                        .At(
-                            life,
-                            GameClock.Shared.Minutes,
-                            NpcDuty.RequiresPresence(life.NpcId)
-                                || body.IsGuidingTutorial
-                                || body.IsWaitingForQuest
-                        )
-                        .Phase == NpcDayPhase.Working;
+                double minutes = GameClock.Shared.Minutes;
+                NpcDayPlan plan = NpcDayPlan.At(
+                    life,
+                    minutes,
+                    NpcDuty.RequiresPresence(life.NpcId)
+                        || body.IsGuidingTutorial
+                        || body.IsWaitingForQuest
+                );
+                return NpcWorkArrivals.IsAtWork(life, plan, minutes);
             }
         }
     }

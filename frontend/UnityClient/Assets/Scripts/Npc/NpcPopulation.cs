@@ -15,6 +15,9 @@ namespace A305.Npc
     {
         private const float DoorArrivalMeters = .4f;
 
+        // 장면을 열 때 일터 문에 닿았어야 할 출근 직원을 이만큼 앞에서 걸어 들어오게 한다.
+        private const float ArrivingSpawnMeters = 3f;
+
         [SerializeField]
         private TextAsset lifeData;
 
@@ -237,7 +240,7 @@ namespace A305.Npc
                         && IsTalking(resident.TownBody);
                     // 순찰차를 몰고 나간 경찰관은 돌아와 주차할 때까지 창구에 두지 않는다(PoliceCar).
                     resident.Worker.SetActive(
-                        plan.Phase == NpcDayPhase.Working
+                        NpcWorkArrivals.IsAtWork(resident.Life, plan, minutes)
                             && !entering
                             && !talkingOnTheWay
                             && roomLoaded
@@ -279,6 +282,8 @@ namespace A305.Npc
                 if (LivesOnTheStreet(resident) && resident.Worker.activeSelf)
                     continue;
                 NpcDayPlan plan = resident.Plan;
+                if (EnteredWorkplaceEarly(resident, plan, minutes))
+                    continue;
                 if (UpdateOuting(resident, plan, minutes))
                     continue;
                 if (resident.EnteringDoor)
@@ -361,10 +366,22 @@ namespace A305.Npc
                 Vector3 target = PositionOnRoute(resident.Route, progress);
                 if (appeared)
                 {
+                    // 장면을 열 때 이미 일터 문에 닿았어야 할 출근 직원은 문 앞에서 나타나 걸어 들어가게 한다.
+                    // 문 위에 바로 세우면 그 자리에서 들어가 버려 출근하는 모습을 볼 수 없다.
+                    Vector3 spawn =
+                        plan.Phase == NpcDayPhase.GoingToWork
+                        && !plan.IsShortBreak
+                        && !plan.IsErrand
+                        && resident.RouteMeters > ArrivingSpawnMeters
+                            ? PositionOnRoute(
+                                resident.Route,
+                                Mathf.Min(progress, 1 - ArrivingSpawnMeters / resident.RouteMeters)
+                            )
+                            : target;
                     if (
                         !NpcWalkingSpace.TryFindArrival(
                             resident.TownBody.GetComponent<Passerby>(),
-                            resident.HandOff ?? target,
+                            resident.HandOff ?? spawn,
                             out Vector3 arrival
                         )
                     )
@@ -539,6 +556,45 @@ namespace A305.Npc
         }
 
         // 행인처럼 마을 거리에서 지내는 NPC는 정해진 문이 없다. 거리에서 마지막으로 있던 자리에서 나서고 그 자리로 돌아온다.
+        // 출근은 신호 대기 여유까지 넣어 일찍 나서므로 근무 시작 전에 일터 문에 닿는다. 문 앞에 서서 기다리지 않고 들어가고,
+        // 일터 장면이 근무 시작 전에도 안에 두도록 들어간 근무를 기록한다(NpcWorkArrivals).
+        private static bool EnteredWorkplaceEarly(Resident resident, NpcDayPlan plan, double now)
+        {
+            if (
+                plan.Phase != NpcDayPhase.GoingToWork
+                || plan.IsErrand
+                || LivesOnTheStreet(resident)
+            )
+                return false;
+            double? shiftStart = NpcDayPlan.NextWorkStart(resident.Life, now);
+            if (!shiftStart.HasValue)
+                return false;
+            string code = resident.Life.NpcId;
+            if (!NpcWorkArrivals.HasArrived(code, shiftStart.Value))
+            {
+                bool atDoor =
+                    resident.TownBody.activeSelf
+                    && Vector3
+                        .ProjectOnPlane(
+                            resident.WorkplaceDoor - resident.TownBody.transform.position,
+                            Vector3.up
+                        )
+                        .magnitude <= DoorArrivalMeters;
+                if (!atDoor)
+                    return false;
+                NpcWorkArrivals.MarkArrived(code, shiftStart.Value);
+                var travel = resident.TownBody.GetComponent<Passerby>().TravelContext;
+                if (travel?.Phase == "GOING_TO_WORK")
+                {
+                    travel.Phase = "AT_WORK";
+                    NpcJourneyLog.Record(code, travel);
+                }
+            }
+            resident.TownBody.SetActive(false);
+            resident.LastPhase = null;
+            return true;
+        }
+
         private static bool LivesOnTheStreet(Resident resident) =>
             resident.Worker != null && resident.Life.Workplace == "TOWN";
 

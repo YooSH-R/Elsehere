@@ -45,19 +45,22 @@ def test_meaning_gives_korean_and_glossary_from_the_line(client, provider):
     assert "Great! For here or to go?" in user_msg(seen["body"]) and "Mia" in user_msg(seen["body"])
 
 
-def test_meaning_prompt_keeps_proper_names_in_english_in_double_quotes(client, provider):
-    # 'Maple Town'을 '단풍 마을'처럼 옮기거나 '메이플 타운'처럼 소리로 적지 않고 원문 그대로 따옴표 안에 둔다
+def test_meaning_prompt_keeps_proper_names_in_english_in_curly_quotes_shown_as_double_quotes(client, provider):
+    # 'Maple Town'을 '단풍 마을'처럼 옮기거나 '메이플 타운'처럼 소리로 적지 않고 원문 그대로 따옴표 안에 둔다.
+    # JSON 문자열 안의 곧은 따옴표는 모델이 이스케이프하지 않으면 문자열이 닫혀 뜻이 이름 앞에서 잘린다.
+    # 그래서 모델은 이스케이프가 필요 없는 굽은 따옴표로 쓰고, 화면에는 곧은 따옴표로 바꿔 보낸다
     seen = {}
 
     def answer(b):
         seen["system"] = b["messages"][0]["content"]
-        return ok(json.dumps({"meaning_ko": '"Maple Town"에 오신 걸 환영해요!', "glossary": []}))
+        return ok(json.dumps({"meaning_ko": "“Maple Town”에 오신 걸 환영해요!", "glossary": []}, ensure_ascii=False))
 
     provider.answers["meaning"] = answer
     r = client.post("/v1/meaning", json={"npc": NPC, "text": "Welcome to Maple Town!"}).json()
     assert r["meaning_ko"] == '"Maple Town"에 오신 걸 환영해요!'
-    assert "exactly as written in English, in double quotes" in seen["system"]
-    assert '"Maple Town"에 오신 걸 환영해요!' in seen["system"]
+    assert "exactly as written in English, in curly double quotes “”" in seen["system"]
+    assert "“Maple Town”에 오신 걸 환영해요!" in seen["system"]
+    assert '"Maple Town"' not in seen["system"]
 
 
 def test_meaning_glossary_keeps_phrases_and_their_words_up_to_twenty_five_in_order(client, provider):

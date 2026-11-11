@@ -1,4 +1,5 @@
 using System;
+using A305.Player;
 using UnityEngine;
 
 namespace A305.World
@@ -67,6 +68,7 @@ namespace A305.World
 
         /// <summary>
         /// 가운데 기준점인 창 판을 빈 곳 가운데에 둔다. 판이 빈 곳에 들어가지 않으면 <paramref name="scale"/>보다 더 줄인다.
+        /// 판에 <see cref="WindowFrame"/>이 있으면 이 자리·배율을 원래 자리로 넘겨, 사용자가 옮기고 바꾼 만큼을 그 위에 더한다.
         /// </summary>
         public void Place(RectTransform panel, float scale = 1f)
         {
@@ -79,8 +81,16 @@ namespace A305.World
                 fit = Mathf.Min(scale, area.width / size.x, area.height / size.y);
             }
 
+            Vector2 position = area.center - canvasRect.rect.size * panel.anchorMin;
+            WindowFrame frame = panel.GetComponent<WindowFrame>();
+            if (frame != null)
+            {
+                frame.SetBase(position, fit);
+                return;
+            }
+
             panel.localScale = new Vector3(fit, fit, 1f);
-            panel.anchoredPosition = area.center - canvasRect.rect.size * panel.anchorMin;
+            panel.anchoredPosition = position;
         }
 
         /// <summary>화면 좌표와 바꿀 때 쓸 카메라. 화면 위에 바로 그리는 캔버스는 카메라 없이(null) 바꾼다.</summary>

@@ -705,6 +705,7 @@ namespace A305.Mission
 
         private void Awake()
         {
+            WindowFrame.Attach((RectTransform)journal.transform);
             journal.SetActive(false);
             if (questBoard == null)
                 journalButton.onClick.AddListener(ToggleJournal);

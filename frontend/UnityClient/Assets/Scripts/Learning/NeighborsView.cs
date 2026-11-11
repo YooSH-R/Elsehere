@@ -119,6 +119,7 @@ namespace A305.Learning
 
         private void Awake()
         {
+            WindowFrame.Attach((RectTransform)panel.transform);
             previousButton.onClick.AddListener(() => Change(() => book.PreviousPage()));
             nextButton.onClick.AddListener(() => Change(() => book.NextPage()));
             backButton.onClick.AddListener(() => Change(() => book.Back()));

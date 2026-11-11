@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using A305.Player;
 using A305.Theme;
 using A305.World;
 using TMPro;
@@ -363,6 +364,7 @@ namespace A305.Learning
 
         private void Awake()
         {
+            WindowFrame.Attach(PanelRect);
             memoPartOffsets = memoParts
                 .Select(part => memoParts[0].anchoredPosition.y - part.anchoredPosition.y)
                 .ToArray();

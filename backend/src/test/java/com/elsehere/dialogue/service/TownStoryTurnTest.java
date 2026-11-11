@@ -116,7 +116,8 @@ class TownStoryTurnTest {
             missions,
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
             new DialogueRequestLocks(),
-            mock(com.elsehere.mission.service.PlacePracticeService.class));
+            mock(com.elsehere.mission.service.PlacePracticeService.class),
+            new EarlyReplies(true));
     TurnRequest request = new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null);
 
     assertThatThrownBy(() -> service.send(8L, 10L, request)).isInstanceOf(BusinessException.class);

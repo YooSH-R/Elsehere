@@ -43,6 +43,7 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 | DEBUG | `npc_audio_saved` | `bytes`, `download_ms`, `save_ms` | NPC 대답 음성을 워커에서 받아 저장했을 때(개발 서버에서만 보임) |
 | INFO | `turn_stream_timing` | `result`(`turn` 또는 오류 코드), `first_delta_ms`, `first_audio_ms`, `total_ms`, `chunks`, `silent_chunks`, `client_gone` | 발화 전송을 스트리밍(CONV-03)으로 보낸 요청이 끝날 때. 시간은 요청을 받은 때부터이며 대사는 남기지 않음 |
 | INFO | `turn_stream_client_gone` | `event` | 스트리밍 중 사용자 연결이 끊김. 턴은 끝까지 처리해 저장 |
+| INFO | `npc_early_reply` | `result`(`kept` 또는 `discarded`), (버렸으면) `changed`(`text`·`instruction`·`reaction` 중 판정 뒤 달라진 칸) | 판정을 기다리지 않고 먼저 시작한 NPC 대답(CONV-03 스트리밍, 목표 없는 대화)을 판정 뒤에 쓰거나 버렸을 때. 버린 대답은 AI 호출 기록(`ai_requests`)에 남지 않으므로 버린 수와 그만큼의 사용량은 이 로그로 셈 |
 
 대화 시작·NPC 대답이 오래 걸리면 같은 `request_id`의 `http_request`(요청 전체), `npc_reply_timing`, `npc_audio_saved`를 함께 봅니다.
 

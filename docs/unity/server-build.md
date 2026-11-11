@@ -52,4 +52,4 @@ mkdir -p "$(dirname "$WEBGL_BUILD_DIRECTORY")"
   -logFile "$WEBGL_BUILD_DIRECTORY.log"
 ```
 
-스크립트는 활성화된 Scene List를 순서대로 빌드하고 gzip 압축과 버전 파일을 생성합니다. 빈 Scene 목록과 `Assets` 내부 출력은 거부하고, 빌드 실패를 성공으로 처리하지 않습니다. 실행 환경의 자원 상한은 위 명령과 별도로 설정해야 합니다.
+스크립트는 활성화된 Scene List를 순서대로 빌드하고 gzip 압축과 버전 파일을 생성합니다. PC용(DXT)과 휴대폰용(ASTC) 텍스처 데이터를 함께 만들려고 두 번 빌드합니다([PC용·휴대폰용 텍스처 데이터](setup.md#pc용휴대폰용-텍스처-데이터)). 빈 Scene 목록과 `Assets` 내부 출력은 거부하고, 빌드 실패를 성공으로 처리하지 않습니다. 실행 환경의 자원 상한은 위 명령과 별도로 설정해야 합니다.

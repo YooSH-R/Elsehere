@@ -334,6 +334,20 @@
         };
       })();
     </script>
+    <script id="texture-data">
+      // 휴대폰 GPU는 PC용 DXT 텍스처를 읽지 못해, Unity가 불러올 때 CPU로 풀어 느리고 메모리를 많이 쓴다.
+      // WebGL 빌드(WebGlBuild)가 휴대폰용 ASTC 데이터를 함께 넣고 그 이름을 적는다. DXT를 못 읽고 ASTC를 읽는 기기만 그 데이터를 받는다.
+      // 로컬 빌드처럼 휴대폰용 데이터가 없으면(이름 자리 그대로) PC용을 쓴다.
+      window.chooseTextureData = (desktopFile, mobileFile) => {
+        if (!mobileFile.includes(".data")) return desktopFile;
+        const gl = document.createElement("canvas").getContext("webgl2");
+        if (!gl) return desktopFile;
+        const readsDxt = !!gl.getExtension("WEBGL_compressed_texture_s3tc");
+        const readsAstc = !!gl.getExtension("WEBGL_compressed_texture_astc");
+        gl.getExtension("WEBGL_lose_context")?.loseContext();
+        return !readsDxt && readsAstc ? mobileFile : desktopFile;
+      };
+    </script>
     <script>
       const canvas = document.querySelector("#unity-canvas");
       const loading = document.querySelector("#unity-loading");
@@ -527,7 +541,12 @@
       const buildUrl = "Build";
       const config = {
         arguments: [],
-        dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+        // 텍스처 데이터를 고르는 스크립트가 없으면 PC용을 쓴다.
+        dataUrl:
+          buildUrl +
+          "/" +
+          (window.chooseTextureData?.("{{{ DATA_FILENAME }}}", "A305_MOBILE_TEXTURE_DATA") ??
+            "{{{ DATA_FILENAME }}}"),
         frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
 #if USE_THREADS
         workerUrl: buildUrl + "/{{{ WORKER_FILENAME }}}",

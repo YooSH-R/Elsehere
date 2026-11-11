@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text.RegularExpressions;
 using A305.EditorTools.Deployment;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -64,6 +67,258 @@ namespace A305.Deployment.Tests
                 Is.SameAs(editorDesktopPipeline)
             );
             Assert.That(QualitySettings.GetQualityLevel(), Is.EqualTo(originalQualityLevel));
+        }
+
+        // 휴대폰 GPU는 PC용 DXT 텍스처를 읽지 못해 Unity가 불러올 때 CPU로 풀어 느리고 메모리를 많이 쓴다.
+        // 휴대폰용(ASTC)을 옆 임시 폴더에 빌드한 다음 PC용(지금 설정)을 빌드해, 휴대폰용 데이터만 PC 빌드에 넣고 페이지에 그 이름을 적는다.
+        [TestCase(false)]
+        [TestCase(true)]
+        public void BuildsMobileThenDesktopTextures_AndAddsOnlyTheMobileData(bool mobileBuildFails)
+        {
+            string root = CreateTemporaryDirectory();
+            string output = Path.Combine(root, "webgl");
+            var calls = new List<(string Location, WebGLTextureSubtarget Textures)>();
+            BuildReport BuildPlayer(BuildPlayerOptions options, WebGLTextureSubtarget textures)
+            {
+                calls.Add((options.locationPathName, textures));
+                bool mobile = textures == WebGLTextureSubtarget.ASTC;
+                if (mobile && mobileBuildFails)
+                    throw new BuildFailedException("ASTC build failed");
+                WriteFakeBuild(
+                    options.locationPathName,
+                    mobile ? "mobile123" : "desktop456",
+                    mobile ? "astc textures" : "dxt textures",
+                    "same engine"
+                );
+                return null;
+            }
+
+            try
+            {
+                var options = new BuildPlayerOptions { locationPathName = output };
+                if (mobileBuildFails)
+                    Assert.Throws<BuildFailedException>(() =>
+                        WebGlBuild.BuildBothTextureFormats(options, BuildPlayer)
+                    );
+                else
+                    WebGlBuild.BuildBothTextureFormats(options, BuildPlayer);
+
+                Assert.That(calls[0].Textures, Is.EqualTo(WebGLTextureSubtarget.ASTC));
+                Assert.That(calls[0].Location, Is.Not.EqualTo(output));
+                Assert.That(
+                    Directory.Exists(calls[0].Location),
+                    Is.False,
+                    "휴대폰용 임시 빌드는 지운다."
+                );
+                if (mobileBuildFails)
+                {
+                    Assert.That(calls, Has.Count.EqualTo(1), "휴대폰용이 실패하면 멈춘다.");
+                    return;
+                }
+
+                Assert.That(calls[1].Textures, Is.EqualTo(WebGLTextureSubtarget.Generic));
+                Assert.That(calls[1].Location, Is.EqualTo(output));
+
+                Assert.That(
+                    File.ReadAllText(Path.Combine(output, "Build", "mobile123.data.gz")),
+                    Is.EqualTo("astc textures")
+                );
+                Assert.That(
+                    Directory.GetFiles(Path.Combine(output, "Build"), "*.wasm.gz"),
+                    Has.Length.EqualTo(1),
+                    "엔진 코드는 PC 빌드 것 하나만 둔다."
+                );
+                string page = File.ReadAllText(Path.Combine(output, "index.html"));
+                Assert.That(page, Does.Contain("\"mobile123.data.gz\""));
+                Assert.That(page, Does.Not.Contain(WebGlBuild.MobileTextureDataToken));
+            }
+            finally
+            {
+                Directory.Delete(root, true);
+            }
+        }
+
+        // 실제 Unity 빌드는 다른 자리에 다시 빌드하면 앞선 빌드의 Build 폴더를 지웠다(증분 빌드의 이전 산출물 정리).
+        // 앞선 빌드 결과가 사라져도 PC 빌드에 휴대폰용 데이터가 들어가야 한다.
+        [Test]
+        public void MobileTextureData_SurvivesTheNextBuildCleaningEarlierOutput()
+        {
+            string root = CreateTemporaryDirectory();
+            string output = Path.Combine(root, "webgl");
+            var built = new List<string>();
+            BuildReport BuildPlayer(BuildPlayerOptions options, WebGLTextureSubtarget textures)
+            {
+                foreach (string earlier in built)
+                    Directory.Delete(Path.Combine(earlier, "Build"), true);
+                built.Add(options.locationPathName);
+                bool mobile = textures == WebGLTextureSubtarget.ASTC;
+                WriteFakeBuild(
+                    options.locationPathName,
+                    mobile ? "mobile123" : "desktop456",
+                    mobile ? "astc textures" : "dxt textures",
+                    "same engine"
+                );
+                return null;
+            }
+
+            try
+            {
+                WebGlBuild.BuildBothTextureFormats(
+                    new BuildPlayerOptions { locationPathName = output },
+                    BuildPlayer
+                );
+
+                Assert.That(
+                    File.ReadAllText(Path.Combine(output, "Build", "mobile123.data.gz")),
+                    Is.EqualTo("astc textures")
+                );
+                Assert.That(
+                    File.ReadAllText(Path.Combine(output, "Build", "desktop456.data.gz")),
+                    Is.EqualTo("dxt textures")
+                );
+            }
+            finally
+            {
+                Directory.Delete(root, true);
+            }
+        }
+
+        // 데이터만 바꿔 쓰므로 두 빌드의 엔진 코드가 다르면 섞지 않고 빌드를 멈춘다.
+        [Test]
+        public void MobileTextureData_IsRejectedWhenItsEngineCodeDiffers()
+        {
+            string root = CreateTemporaryDirectory();
+            string output = Path.Combine(root, "webgl");
+            BuildReport BuildPlayer(BuildPlayerOptions options, WebGLTextureSubtarget textures)
+            {
+                bool mobile = textures == WebGLTextureSubtarget.ASTC;
+                WriteFakeBuild(
+                    options.locationPathName,
+                    mobile ? "mobile123" : "desktop456",
+                    "textures",
+                    mobile ? "mobile engine" : "desktop engine"
+                );
+                return null;
+            }
+
+            try
+            {
+                Assert.Throws<BuildFailedException>(() =>
+                    WebGlBuild.BuildBothTextureFormats(
+                        new BuildPlayerOptions { locationPathName = output },
+                        BuildPlayer
+                    )
+                );
+                Assert.That(
+                    File.Exists(Path.Combine(output, "Build", "mobile123.data.gz")),
+                    Is.False
+                );
+            }
+            finally
+            {
+                Directory.Delete(root, true);
+            }
+        }
+
+        // 실제 두 빌드는 로더(loader.js)의 wasm 크기 힌트만 달랐다. 로더는 텍스처와 무관하므로 엔진(wasm·framework)만 같으면 된다.
+        [Test]
+        public void MobileTextureData_IsAddedWhenOnlyTheLoaderDiffers()
+        {
+            string root = CreateTemporaryDirectory();
+            string output = Path.Combine(root, "webgl");
+            BuildReport BuildPlayer(BuildPlayerOptions options, WebGLTextureSubtarget textures)
+            {
+                bool mobile = textures == WebGLTextureSubtarget.ASTC;
+                WriteFakeBuild(
+                    options.locationPathName,
+                    mobile ? "mobile123" : "desktop456",
+                    "textures",
+                    "same engine"
+                );
+                File.WriteAllText(
+                    Path.Combine(
+                        options.locationPathName,
+                        "Build",
+                        (mobile ? "mobile123" : "desktop456") + ".loader.js"
+                    ),
+                    mobile ? "wasmFileSize:62983135" : "wasmFileSize:0"
+                );
+                return null;
+            }
+
+            try
+            {
+                WebGlBuild.BuildBothTextureFormats(
+                    new BuildPlayerOptions { locationPathName = output },
+                    BuildPlayer
+                );
+                Assert.That(
+                    File.Exists(Path.Combine(output, "Build", "mobile123.data.gz")),
+                    Is.True
+                );
+            }
+            finally
+            {
+                Directory.Delete(root, true);
+            }
+        }
+
+        [Test]
+        public void WebTemplateChoosesTheDataFileTheBuildNames()
+        {
+            // 빌드가 바꿀 자리는 한 곳뿐이고, 로더 설정의 데이터 주소가 그 이름과 PC용 이름 중에서 고른다.
+            string page = File.ReadAllText("Assets/WebGLTemplates/A305Responsive/index.html");
+
+            Assert.That(
+                Regex.Matches(page, WebGlBuild.MobileTextureDataToken).Count,
+                Is.EqualTo(1)
+            );
+            Assert.That(
+                page,
+                Does.Contain(
+                    "chooseTextureData?.(\"{{{ DATA_FILENAME }}}\", \""
+                        + WebGlBuild.MobileTextureDataToken
+                        + "\")"
+                )
+            );
+        }
+
+        private static string CreateTemporaryDirectory()
+        {
+            string directory = Path.Combine(
+                Path.GetTempPath(),
+                "A305WebGlBuildTests-" + Guid.NewGuid().ToString("N")
+            );
+            Directory.CreateDirectory(directory);
+            return directory;
+        }
+
+        // Unity WebGL 빌드처럼 index.html과 Build 폴더(해시 이름의 로더·엔진 코드·데이터)를 만든다. .gz는 실제 gzip이다.
+        private static void WriteFakeBuild(string location, string name, string data, string engine)
+        {
+            string build = Path.Combine(location, "Build");
+            Directory.CreateDirectory(build);
+            File.WriteAllText(
+                Path.Combine(location, "index.html"),
+                "dataUrl: buildUrl + \"/\" + chooseTextureData(\""
+                    + name
+                    + ".data.gz\", \""
+                    + WebGlBuild.MobileTextureDataToken
+                    + "\"),"
+            );
+            File.WriteAllText(Path.Combine(build, name + ".data.gz"), data);
+            File.WriteAllText(Path.Combine(build, name + ".loader.js"), "loader");
+            WriteGzip(Path.Combine(build, name + ".wasm.gz"), engine + " wasm");
+            WriteGzip(Path.Combine(build, name + ".framework.js.gz"), engine + " framework");
+        }
+
+        // 같은 내용이어도 압축할 때마다 머리 부분(시각 등)이 달라질 수 있어 이름·바이트가 아니라 푼 내용으로 비교하는지 본다.
+        private static void WriteGzip(string path, string text)
+        {
+            using FileStream file = File.Create(path);
+            using var zip = new GZipStream(file, System.IO.Compression.CompressionLevel.Optimal);
+            byte[] bytes = System.Text.Encoding.UTF8.GetBytes(text);
+            zip.Write(bytes, 0, bytes.Length);
         }
 
         [Test]

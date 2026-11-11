@@ -22,6 +22,7 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -98,6 +99,23 @@ public class ConversationController {
     return conversationService.start(loginUser.userId(), request);
   }
 
+  /**
+   * 대화 시작(CONV-01)을 스트리밍으로 받는다. Accept에 text/event-stream이 있으면 이 메서드가 받는다. AI가 만드는 첫 인사의 글자와 문장 조각
+   * 음성을 만들어지는 대로 보내고, 대화를 저장하면 REST 응답과 같은 본문을 마지막에 보낸다.
+   */
+  @PostMapping(path = "/api/v1/conversations", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  public void startStream(
+      @AuthenticationPrincipal LoginUser loginUser,
+      @Valid @RequestBody StartConversationRequest request,
+      HttpServletResponse response) {
+    TurnEventStream stream = TurnEventStream.forOpening(response, jsonMapper);
+    ConversationStartResponse started =
+        streamed(stream, () -> conversationService.start(loginUser.userId(), request, stream));
+    if (started != null) {
+      stream.conversation(started);
+    }
+  }
+
   @PostMapping("/api/v1/conversations/{conversationId}/turns")
   public TurnResponse sendTurn(
       @AuthenticationPrincipal LoginUser loginUser,
@@ -121,9 +139,19 @@ public class ConversationController {
       @Valid @RequestBody TurnRequest request,
       HttpServletResponse response) {
     TurnEventStream stream = new TurnEventStream(response, jsonMapper);
-    TurnResponse turn;
+    TurnResponse turn =
+        streamed(
+            stream, () -> turnService.send(loginUser.userId(), conversationId, request, stream));
+    if (turn != null) {
+      stream.turn(turn);
+    }
+  }
+
+  // 대사를 보내기 전에 난 오류는 던져 공통 오류 처리기가 지금처럼 HTTP 오류로 응답하게 한다. 보내기 시작한 뒤에는 상태를 바꿀 수 없어 error
+  // 이벤트로 알리고 null을 돌려준다.
+  private <T> T streamed(TurnEventStream stream, Supplier<T> call) {
     try {
-      turn = turnService.send(loginUser.userId(), conversationId, request, stream);
+      return call.get();
     } catch (BusinessException exception) {
       if (!stream.isStarted()) {
         throw exception;
@@ -132,7 +160,7 @@ public class ConversationController {
           exception.getErrorCode().getStatus().value(),
           ErrorResponse.of(
               exception.getErrorCode(), exception.getMessage(), exception.getDetails()));
-      return;
+      return null;
     } catch (RuntimeException exception) {
       if (!stream.isStarted()) {
         throw exception;
@@ -141,9 +169,8 @@ public class ConversationController {
       stream.error(
           ErrorCode.INTERNAL_ERROR.getStatus().value(),
           ErrorResponse.of(ErrorCode.INTERNAL_ERROR, null));
-      return;
+      return null;
     }
-    stream.turn(turn);
   }
 
   @PostMapping("/api/v1/conversations/{conversationId}/end")

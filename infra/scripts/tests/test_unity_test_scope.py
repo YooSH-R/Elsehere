@@ -98,6 +98,7 @@ class UnityTestScopeTests(unittest.TestCase):
             check=False,
             capture_output=True,
             text=True,
+            errors="replace",
             timeout=120,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -111,6 +112,25 @@ class UnityTestScopeTests(unittest.TestCase):
         self.assertIn("-testPlatform PlayMode", runs[1])
         self.assertTrue(all("-assemblyNames" not in run for run in runs), runs)
         self.assertTrue(prepared)
+
+    def test_windows_powershell_accepts_utf8_reports_with_korean_test_names(self):
+        report = self.repository / "korean-report.xml"
+        report.write_text(
+            '<?xml version="1.0" encoding="utf-8"?>\n'
+            '<test-run result="Passed" passed="1" failed="0" skipped="0">\n'
+            '<test-case name="추천 난이도를 미리 고른다" '
+            'fullname="LevelSettingPreselectionTests.추천 난이도를 미리 고른다" '
+            'result="Passed" />\n'
+            "</test-run>\n",
+            encoding="utf-8",
+        )
+        with (self.repository / "editor.ps1").open("a", encoding="ascii") as editor:
+            editor.write(
+                "Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'korean-report.xml') "
+                "-Destination $args[$resultIndex + 1] -Force\n"
+            )
+
+        self.assert_full_run(*self.run_tests())
 
     def create_assemblies(self):
         definitions = {

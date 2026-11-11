@@ -92,6 +92,30 @@ namespace A305.Mission.Tests
             );
         }
 
+        // 하는 퀘스트를 알약으로 접어 두면 펼친 카드 자리를 띄우지 않고 알약 바로 아래에 붙는다.
+        [Test]
+        public void FoldedQuest_SitsRightUnderThePill()
+        {
+            Transform content = instance.transform.Find("Content");
+            var pill = (RectTransform)content.Find("QuestPill");
+            FollowUpStore.Shared.Receive(Item(7, "CAFE_STAFF", "Mia", "CAFE", "아이스 라테", 45));
+            view.SetAvailable(true);
+            content.Find("CurrentGoal").gameObject.SetActive(false);
+            content.Find("QuestIcon").gameObject.SetActive(false);
+            pill.gameObject.SetActive(true);
+            card.Refresh();
+
+            typeof(FollowUpCardView)
+                .GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(card, null);
+
+            var followUps = (RectTransform)card.Card.transform;
+            Assert.That(
+                followUps.anchoredPosition.y,
+                Is.EqualTo(pill.anchoredPosition.y - pill.rect.height - 12 * 1.2f).Within(.5f)
+            );
+        }
+
         // 퀘스트 카드 아래에 자리가 없으면(데스크톱 미니맵, 휴대폰 조이스틱이 있는 왼쪽 아래까지 내려가면) 퀘스트 카드 오른쪽 위에 둔다.
         [Test]
         public void NoRoomBelowTheQuestCard_SitsBesideIt()

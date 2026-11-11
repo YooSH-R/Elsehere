@@ -34,6 +34,8 @@ namespace A305.Learning
 
         private void BeginReviewReturn(ReviewCard card, DialogueRecord record, string notice = null)
         {
+            // 연습을 시작하지 못해 돌아가도 왼쪽 위 퀘스트 카드는 이야기로 돌아온다.
+            PracticeVisit.Shared.End();
             if (!reviewReturn.RequestReturn())
             {
                 if (record != null)

@@ -174,6 +174,19 @@ namespace A305.Deployment.Tests
         }
 
         [Test]
+        public void TypingOnAPhone_DoesNotZoomThePage()
+        {
+            // 휴대폰에서는 입력 플러그인(WebGLInput)이 글자 크기 5vh인 HTML 입력칸을 띄워, 가로 휴대폰에서는 16px보다 작아진다.
+            // 아이폰 사파리는 16px보다 작은 입력칸에 포커스가 가면 페이지를 확대하고, 게임 화면은 손가락 제스처를 게임이 받으므로
+            // (touch-action: none) 다시 줄일 수 없다. 페이지 확대를 막고 입력칸 글자를 16px 이상으로 둔다.
+            string page = File.ReadAllText("Assets/WebGLTemplates/A305Responsive/index.html");
+            string style = File.ReadAllText("Assets/WebGLTemplates/A305Responsive/style.css");
+
+            Assert.That(page, Does.Contain("maximum-scale=1"));
+            Assert.That(style, Does.Contain("font-size: max(16px, 5vh) !important"));
+        }
+
+        [Test]
         public void UnitySplashScreenIsHidden()
         {
             // 게임 파일을 받는 동안 웹 로딩 화면이 소개 장면을 보여 주므로, 다 받은 뒤 Unity 시작 로고로 로그인을 더 늦추지 않는다.

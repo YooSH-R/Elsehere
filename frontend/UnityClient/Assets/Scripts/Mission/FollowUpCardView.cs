@@ -30,6 +30,10 @@ namespace A305.Mission
         private RectTransform questIcon;
 
         [SerializeField]
+        [Tooltip("하는 퀘스트를 접어 둔 알약. 카드를 접은 동안에는 이 알약 바로 아래에 붙인다.")]
+        private RectTransform questPill;
+
+        [SerializeField]
         [Tooltip("줄들. 첫 줄을 본떠 기다리는 것 수만큼 줄을 만든다.")]
         private RectTransform rows;
 
@@ -152,7 +156,7 @@ namespace A305.Mission
 
         // 퀘스트 카드 높이는 할 일 줄 수에 따라 바뀌므로 매 프레임 그 아래에 붙이고, 좁은 화면에서 줄어든 폭도 따른다.
         // 아래에 두면 왼쪽 아래(미니맵·조이스틱)까지 내려가면 퀘스트 카드 오른쪽 옆으로 옮긴다.
-        // 하는 퀘스트가 없어 퀘스트 아이콘이 대신 보이면 아이콘 아래에 붙인다.
+        // 카드를 알약으로 접었거나 하는 퀘스트가 없어 퀘스트 아이콘이 대신 보이면 그 아래에 붙인다.
         private void LateUpdate()
         {
             if (!card.gameObject.activeInHierarchy || questCard == null)
@@ -160,18 +164,22 @@ namespace A305.Mission
                 return;
             }
 
-            RectTransform above =
-                questIcon != null
-                && questIcon.gameObject.activeInHierarchy
-                && !questCard.gameObject.activeInHierarchy
-                    ? questIcon
-                    : questCard;
+            RectTransform above = questCard;
+            if (!questCard.gameObject.activeInHierarchy)
+            {
+                if (questPill != null && questPill.gameObject.activeInHierarchy)
+                    above = questPill;
+                else if (questIcon != null && questIcon.gameObject.activeInHierarchy)
+                    above = questIcon;
+            }
             card.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, questCard.rect.width);
-            Vector2 below = above.anchoredPosition + Vector2.down * (above.rect.height + Gap);
+            // 좁은 화면에서 줄여 그린 알약은 줄인 크기로 잰다.
+            Vector2 size = Vector2.Scale(above.rect.size, above.localScale);
+            Vector2 below = above.anchoredPosition + Vector2.down * (size.y + Gap);
             bool fitsBelow = -below.y + card.rect.height <= bottomLimit;
             card.anchoredPosition = fitsBelow
                 ? below
-                : above.anchoredPosition + Vector2.right * (above.rect.width + Gap);
+                : above.anchoredPosition + Vector2.right * (size.x + Gap);
         }
     }
 }

@@ -764,7 +764,8 @@ namespace A305.Mission.Tests
                 );
         }
 
-        // 세로 휴대폰처럼 좁은 화면에서는 왼쪽 위 알약·펼친 카드가 오른쪽 위 시계·코인 칩과 겹치지 않게 줄인다.
+        // 세로 휴대폰처럼 좁은 화면에서는 왼쪽 위 알약·펼친 카드가 오른쪽 위 시계·코인 칩과 겹치지 않게 통째로 줄인다.
+        // 카드는 폭을 좁혀 줄을 바꾸지 않고 글자까지 같은 비율로 작게 그린다.
         [Test]
         public void NarrowScreen_KeepsThePillAndCardLeftOfTheClock()
         {
@@ -794,6 +795,12 @@ namespace A305.Mission.Tests
                 Is.LessThanOrEqualTo(StatusLeft()),
                 "카드"
             );
+            Assert.That(
+                ((RectTransform)Card).rect.width,
+                Is.EqualTo(410 * 1.2f).Within(.01f),
+                "카드 폭은 그대로 두고"
+            );
+            Assert.That(Card.localScale.x, Is.LessThan(1f), "글자까지 같은 비율로 줄입니다");
         }
 
         private static Vector3 Corner(RectTransform rect, int index)

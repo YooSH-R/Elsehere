@@ -753,7 +753,7 @@ namespace A305.Mission
 
         /// <summary>
         /// 퀘스트 카드와 수첩은 화면 왼쪽 위 모서리에 붙인다. 세로 휴대폰처럼 좁은 화면에서는 카드·알약이 오른쪽 위 시계·코인 칩과 겹치지 않게
-        /// 카드는 폭을 줄이고(글자 크기는 두고 줄을 바꾼다) 알약은 통째로 줄여 그린다.
+        /// 카드와 알약을 글자까지 같은 비율로 통째로 줄여 그린다.
         /// </summary>
         public void UpdateLayout()
         {
@@ -781,20 +781,24 @@ namespace A305.Mission
 
         private void OnRectTransformDimensionsChange() => UpdateLayout();
 
-        // 카드는 폭을, 알약은 크기를 왼쪽 위에서 쓸 수 있는 폭에 맞춘다.
+        // 카드·알약이 왼쪽 위에서 쓸 수 있는 폭보다 넓으면 통째로 줄인다.
         private void FitLeftCards(RectTransform screen)
         {
             float room = LeftCardRoom(screen);
-            Banner.SetSizeWithCurrentAnchors(
-                RectTransform.Axis.Horizontal,
-                Mathf.Min(CardWidth, room)
-            );
-            if (questPill == null)
-                return;
-            var pill = (RectTransform)questPill.transform;
-            float width = LayoutUtility.GetPreferredWidth(pill);
+            Banner.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, CardWidth);
+            ShrinkToFit(Banner, CardWidth, room);
+            if (questPill != null)
+            {
+                var pill = (RectTransform)questPill.transform;
+                ShrinkToFit(pill, LayoutUtility.GetPreferredWidth(pill), room);
+            }
+        }
+
+        // 폭(width)이 쓸 수 있는 폭(room)을 넘으면 글자까지 같은 비율로 통째로 줄여 그린다.
+        private static void ShrinkToFit(RectTransform target, float width, float room)
+        {
             float scale = width > room && room > 0 ? room / width : 1f;
-            pill.localScale = new Vector3(scale, scale, 1);
+            target.localScale = new Vector3(scale, scale, 1);
         }
 
         // 책 버튼 오른쪽의 카드·알약이 쓸 수 있는 폭(캔버스 단위). 오른쪽 위 시계·코인 칩이 보이면 그 왼쪽에서 사이(12)만큼 띄운다.

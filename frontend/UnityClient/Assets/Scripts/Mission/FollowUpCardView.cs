@@ -172,7 +172,11 @@ namespace A305.Mission
                 else if (questIcon != null && questIcon.gameObject.activeInHierarchy)
                     above = questIcon;
             }
-            card.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, questCard.rect.width);
+            // 좁은 화면에서 줄여 그린 퀘스트 카드와 같은 폭으로 보인다.
+            card.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Horizontal,
+                questCard.rect.width * questCard.localScale.x
+            );
             // 좁은 화면에서 줄여 그린 알약은 줄인 크기로 잰다.
             Vector2 size = Vector2.Scale(above.rect.size, above.localScale);
             Vector2 below = above.anchoredPosition + Vector2.down * (size.y + Gap);

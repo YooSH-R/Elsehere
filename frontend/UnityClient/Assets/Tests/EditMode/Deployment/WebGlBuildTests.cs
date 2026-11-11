@@ -220,5 +220,28 @@ namespace A305.Deployment.Tests
             Assert.That(page, Does.Contain("id=\"analytics-accept\""));
             Assert.That(page, Does.Contain("id=\"analytics-reject\""));
         }
+
+        [Test]
+        public void AnalyticsNoticeLinksThePrivacyPolicyVersionTheServerServes()
+        {
+            // 웹 Nginx는 /privacy/버전 주소만 백엔드로 넘기므로 버전 없는 /privacy는 404다.
+            string page = File.ReadAllText("Assets/WebGLTemplates/A305Responsive/index.html");
+            string catalog = File.ReadAllText(
+                Path.Combine(
+                    Application.dataPath,
+                    "../../..",
+                    "backend/src/main/java/com/elsehere/auth/service/ConsentCatalog.java"
+                )
+            );
+            string privacy = Regex.Match(catalog, "\"(/privacy/[^\"]+)\"").Groups[1].Value;
+            string[] links = Regex
+                .Matches(page, "href=\"(/privacy[^\"]*)\"")
+                .Cast<Match>()
+                .Select(match => match.Groups[1].Value)
+                .ToArray();
+
+            Assert.That(privacy, Is.Not.Empty, "처리방침의 지금 주소");
+            Assert.That(links, Is.EqualTo(new[] { privacy }));
+        }
     }
 }

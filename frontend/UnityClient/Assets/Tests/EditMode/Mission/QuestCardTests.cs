@@ -810,6 +810,26 @@ namespace A305.Mission.Tests
             return corners[index];
         }
 
+        // 책 버튼은 혼자 있을 때 넓고 밝게 빛나고, 옆에 알약·카드가 뜨면 그 창에 빛이 비치지 않게 작고 옅게 빛난다.
+        [Test]
+        public void QuestButtonGlow_IsSoftWhileAPillOrCardIsBeside()
+        {
+            FirstDayMissionState notStarted = Journey(current: 0);
+            notStarted.Started = false;
+            Refresh(notStarted);
+            Image glow = Field<Image>("questButtonArt");
+            Assert.That(glow.sprite, Is.SameAs(Field<Sprite>("questButtonGlow")), "혼자");
+
+            view.Refresh(Journey(current: 2), false, false);
+            Assert.That(
+                glow.sprite,
+                Is.SameAs(Field<Sprite>("questButtonSoftGlow")),
+                "알약·카드 옆"
+            );
+            view.FoldQuestCard();
+            Assert.That(glow.sprite, Is.SameAs(Field<Sprite>("questButtonSoftGlow")), "알약 옆");
+        }
+
         private Transform Card => instance.transform.Find("Content/CurrentGoal");
 
         // 알약 진행 칸을 칠한 색으로 읽는다: 이야기(코랄)·연습(파랑)·빈 칸

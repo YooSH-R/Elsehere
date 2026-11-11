@@ -491,7 +491,8 @@ namespace A305.EditorTools.Mission
         }
 
         // 왼쪽 위 모서리(28)의 책 [퀘스트] 버튼: 오른쪽 위 HUD(휴대폰 버튼·시계·코인 칩)와 같은 64 자리에 책(높이 64)을 두고, 배경에 묻히지 않게
-        // 흰 테두리(2.5)와 넓은 흰 빛 번짐(높이 150, 책 왼쪽으로 치우친 타원이라 오른쪽 12에서 시작하는 알약·카드에는 비치지 않는다)을 함께 렌더링했다(그림은 자리 사방으로 43 넓다). 하는 퀘스트가 있든 없든 늘 보이고, 누르면 퀘스트 창을 연다.
+        // 흰 테두리(2.5)와 넓고 밝은 흰 빛 번짐(지름 150)을 함께 렌더링했다(그림은 자리 사방으로 43 넓다).
+        // 옆에 알약·카드가 뜨면 그 창에 빛이 비치지 않게 작고 옅은 빛(지름 104) 그림으로 바꾼다(FirstDayMissionView). 하는 퀘스트가 있든 없든 늘 보이고, 누르면 퀘스트 창을 연다.
         private static void QuestIcon(FirstDayMissionView view, Transform content)
         {
             const float Glow = 43;
@@ -515,6 +516,9 @@ namespace A305.EditorTools.Mission
             click.targetGraphic = art.GetComponent<Image>();
             QuestBoardBuilder.Listen(click, view.OpenQuestBoard);
             BuilderTools.SetReference(view, "questIcon", click);
+            BuilderTools.SetReference(view, "questButtonArt", art.GetComponent<Image>());
+            BuilderTools.SetReference(view, "questButtonGlow", Sprite("QuestBookButton"));
+            BuilderTools.SetReference(view, "questButtonSoftGlow", Sprite("QuestBookButtonSoft"));
             button.gameObject.SetActive(true);
         }
 

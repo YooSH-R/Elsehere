@@ -163,6 +163,18 @@ namespace A305.Mission
         private Button questIcon;
 
         [SerializeField]
+        [Tooltip(
+            "책 버튼 그림. 혼자 있을 때는 넓고 밝은 빛, 옆에 알약·카드가 뜨면 작고 옅은 빛 그림을 쓴다."
+        )]
+        private Image questButtonArt;
+
+        [SerializeField]
+        private Sprite questButtonGlow;
+
+        [SerializeField]
+        private Sprite questButtonSoftGlow;
+
+        [SerializeField]
         [Tooltip("퀘스트를 끝내면 띄우는 '퀘스트 완료!' 팡파레")]
         private QuestCompleteView questComplete;
 
@@ -541,6 +553,9 @@ namespace A305.Mission
             if (questPill != null)
                 questPill.gameObject.SetActive(open && active && !fold.Expanded);
             questIcon.gameObject.SetActive(open);
+            // 옆에 알약·카드가 뜨면 그 창에 빛이 비치지 않게 책 버튼의 빛을 작고 옅게 한다.
+            if (questButtonArt != null)
+                questButtonArt.sprite = active ? questButtonSoftGlow : questButtonGlow;
             ShowAutoFold();
         }
 

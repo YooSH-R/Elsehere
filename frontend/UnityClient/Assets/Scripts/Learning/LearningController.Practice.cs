@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using System.Threading.Tasks;
 using A305.Dialogue;
 using A305.Npc;
@@ -11,6 +12,7 @@ namespace A305.Learning
     /// 장소 연습 방문. 퀘스트 창이 고른 상황(<see cref="PracticeVisit"/>)을 받아 복습 방문과 같은 길로 그 가게 직원 앞에 세우고
     /// 장소 연습 대화(PRC-02)를 연다. NPC가 대답할 때마다 목표 진행(PRC-03)을 대화 위 참고 카드에 표시하고,
     /// 대화가 끝나면 마지막 진행을 한 번 더 읽어 원래 자리로 돌아간 뒤 "연습 완료!" 또는 남은 목표를 짧게 알린다.
+    /// [연습하기]부터 대화가 끝날 때까지는 방문과 해낸 목표를 <see cref="PracticeVisit"/>에 알려 왼쪽 위 퀘스트 카드가 그 연습을 보이게 한다.
     /// 끝낸 기록은 퀘스트 창의 장소 연습 탭을 열 때마다 새로 읽는다.
     /// </summary>
     public partial class LearningController
@@ -47,8 +49,12 @@ namespace A305.Learning
             if (!RememberReviewOrigin())
                 return;
             pendingPractice = plan;
+            PracticeVisit.Shared.Begin(plan);
             if (!TravelForVisit(plan.SceneCode))
+            {
                 pendingPractice = null;
+                PracticeVisit.Shared.End();
+            }
         }
 
         private void ResumePracticeVisit()
@@ -109,11 +115,16 @@ namespace A305.Learning
             )
                 return;
             if (loaded)
+            {
                 dialogue.SetPracticeReference(
                     livePracticeProgress.Items,
                     livePracticeProgress.CompletedCount,
                     PracticePresentation.Briefing(plan)
                 );
+                PracticeVisit.Shared.ReportProgress(
+                    livePracticeProgress.Items.Select(goal => goal.Used).ToArray()
+                );
+            }
             else if (livePracticeProgress.ErrorCode != null)
                 Debug.LogWarning(
                     $"장소 연습 목표 표시 갱신 실패: {livePracticeProgress.ErrorCode}",
@@ -127,6 +138,7 @@ namespace A305.Learning
             ReleaseReviewPresence();
             PracticeVisitPlan plan = practicing;
             practicing = null;
+            PracticeVisit.Shared.End();
             _ = FinishPracticeAsync(plan);
         }
 

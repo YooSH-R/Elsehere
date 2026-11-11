@@ -48,6 +48,7 @@ namespace A305.Mission.Tests
             FirstDayMissionView mission = Create();
             QuestBoardView board = Field<QuestBoardView>(mission, "questBoard");
             Field<Button>(mission, "journalButton").onClick.Invoke();
+            ActiveButton(board, "StoryOption").onClick.Invoke();
             board.Show(Board());
             Button[] cards = board
                 .GetComponentsInChildren<Button>()
@@ -105,8 +106,30 @@ namespace A305.Mission.Tests
             Assert.That(shownStamps.Select(image => image.sprite), Is.All.EqualTo(fallback));
         }
 
+        // 퀘스트를 누르면 같은 크기의 창 가운데에 이야기·장소 연습을 고르는 큰 그림 두 개를 먼저 보인다(시안 2-B ①).
         [Test]
-        public void PlaceTab_ShowsThePracticePageAndAsksForThePlaces()
+        public void Opening_ShowsTheStoryAndPracticeChooserFirst()
+        {
+            FirstDayMissionView mission = Create();
+            QuestBoardView board = Field<QuestBoardView>(mission, "questBoard");
+
+            board.Open();
+
+            Assert.That(Page(board, "Choose").activeSelf, Is.True);
+            Assert.That(Page(board, "List").activeSelf, Is.False);
+            Assert.That(Page(board, "Practice").activeSelf, Is.False);
+            Assert.That(Text(ActiveButton(board, "StoryOption"), "Label"), Is.EqualTo("이야기"));
+            Assert.That(Text(ActiveButton(board, "PlaceOption"), "Label"), Is.EqualTo("장소 연습"));
+            Assert.That(
+                Field<RectTransform>(board, "sheet").rect.size,
+                Is.EqualTo(new Vector2(1520, 800) * 1.2f),
+                "퀘스트 창 크기는 그대로"
+            );
+        }
+
+        // 하나를 고르면 지금 화면을 그대로 열고, 머리줄 왼쪽 ‹ 로 고르기 화면에 돌아간다(시안 2-B ②).
+        [Test]
+        public void ChoosingOne_OpensItsPage_AndBackReturnsToTheChooser()
         {
             FirstDayMissionView mission = Create();
             QuestBoardView board = Field<QuestBoardView>(mission, "questBoard");
@@ -114,20 +137,40 @@ namespace A305.Mission.Tests
             board.PracticeRequested += () => requested++;
             board.Open();
 
-            ActiveButton(board, "PlaceTab").onClick.Invoke();
-
-            Assert.That(
-                requested,
-                Is.EqualTo(1),
-                "장소 연습 탭을 열면 서버에 장소 목록을 묻습니다."
-            );
-            Assert.That(Page(board, "Practice").activeSelf, Is.True);
+            ActiveButton(board, "StoryOption").onClick.Invoke();
+            Assert.That(Page(board, "List").activeSelf, Is.True);
+            Assert.That(Page(board, "Choose").activeSelf, Is.False);
+            Assert.That(Text(Page(board, "List").transform, "Title"), Is.EqualTo("이야기"));
+            ActiveButton(board, "Back").onClick.Invoke();
+            Assert.That(Page(board, "Choose").activeSelf, Is.True);
             Assert.That(Page(board, "List").activeSelf, Is.False);
 
-            ActiveButton(board, "StoryTab").onClick.Invoke();
-
-            Assert.That(Page(board, "List").activeSelf, Is.True);
+            ActiveButton(board, "PlaceOption").onClick.Invoke();
+            Assert.That(Page(board, "Practice").activeSelf, Is.True);
+            Assert.That(Text(Page(board, "Practice").transform, "Title"), Is.EqualTo("장소 연습"));
+            Assert.That(requested, Is.EqualTo(1), "장소 연습을 열면 서버에 장소 목록을 묻습니다.");
+            ActiveButton(board, "Back").onClick.Invoke();
+            Assert.That(Page(board, "Choose").activeSelf, Is.True);
             Assert.That(Page(board, "Practice").activeSelf, Is.False);
+        }
+
+        // 이야기 카드는 줄인 크기(400×420)로, 창 폭에 사이 60씩 고르게 벌려 놓는다.
+        [Test]
+        public void StoryCards_AreSmallerAndSpreadEvenly()
+        {
+            FirstDayMissionView mission = Create();
+            QuestBoardView board = Field<QuestBoardView>(mission, "questBoard");
+            board.Open();
+            ActiveButton(board, "StoryOption").onClick.Invoke();
+            board.Show(Board());
+
+            RectTransform[] cards = ActiveButtons(board, "Card")
+                .Select(card => (RectTransform)card.transform)
+                .ToArray();
+            Assert.That(cards[0].rect.size, Is.EqualTo(new Vector2(400, 420) * 1.2f));
+            float gap =
+                cards[1].anchoredPosition.x - cards[0].anchoredPosition.x - cards[0].rect.width;
+            Assert.That(gap, Is.EqualTo(60 * 1.2f).Within(1f));
         }
 
         [Test]
@@ -262,7 +305,7 @@ namespace A305.Mission.Tests
             FirstDayMissionView mission = Create();
             QuestBoardView board = Field<QuestBoardView>(mission, "questBoard");
             board.Open();
-            ActiveButton(board, "PlaceTab").onClick.Invoke();
+            ActiveButton(board, "PlaceOption").onClick.Invoke();
             board.ShowPracticePlaces(Places());
             return board;
         }

@@ -262,6 +262,7 @@ class WorldSeedLoaderTest {
             tuple("CAFE_BARISTA", "카페", PlaceGroup.FOOD),
             tuple("CAFE_SERVER", "카페", PlaceGroup.FOOD),
             tuple("DINER_STAFF", "식당", PlaceGroup.FOOD),
+            tuple("TOWN_JOHN_PARK", "식당", PlaceGroup.FOOD),
             tuple("FIRE_CAPTAIN", "식당", PlaceGroup.FOOD),
             tuple("BAKERY_STAFF", "빵집", PlaceGroup.FOOD),
             tuple("POLICE_PATROL_OFFICER", "빵집", PlaceGroup.FOOD),

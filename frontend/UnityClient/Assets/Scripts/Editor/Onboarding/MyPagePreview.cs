@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using A305.EditorTools.Common;
 using A305.EditorTools.Theme;
+using A305.Learning;
 using A305.Onboarding;
 using A305.Player;
 using A305.Theme;
@@ -90,11 +91,17 @@ namespace A305.EditorTools.Onboarding
             template.gameObject.SetActive(false);
             SetSlider(overlay, "Window/LookSensitivity", "1.0배", 1f);
             SetSlider(overlay, "Window/NpcSpeechSpeed", "1.1배", 1.1f);
-            ShowLevels(overlay.Find("Window/ConversationLevel/Choices"), selected: 2);
+            ShowLevels(overlay.Find("Window/ConversationLevel/Row/Choices"), selected: 2);
             Canvas canvas = root.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceCamera;
             canvas.worldCamera = camera;
             canvas.planeDistance = .5f;
+            // 게임에서는 매 프레임 휴대폰을 스피커 왼쪽으로 옮기므로, 프레임을 돌리지 않는 캡처에서도 한 번 옮긴다.
+            foreach (HudTopBarView topBar in root.GetComponentsInChildren<HudTopBarView>(true))
+            {
+                Canvas.ForceUpdateCanvases();
+                topBar.Place();
+            }
             foreach (
                 UiThemeId theme in new[] { UiThemeId.Jelly, UiThemeId.Sticker, UiThemeId.Cloud }
             )
@@ -105,7 +112,12 @@ namespace A305.EditorTools.Onboarding
                 Render(camera, overlay, 1600, 1000, Path.Combine(output, $"my-page-{theme}.png"));
             }
             Render(camera, overlay, 540, 960, Path.Combine(output, "my-page-mobile.png"));
-            Debug.Log($"내 정보 창을 {output}에 저장했습니다.");
+            // 16:9 PC 화면은 캔버스 기준 높이(1080)가 가장 빠듯하므로 창이 이 높이 안에 드는지 따로 본다.
+            Render(camera, overlay, 1920, 1080, Path.Combine(output, "my-page-16x9.png"));
+            float windowHeight = ((RectTransform)overlay.Find("Window")).rect.height;
+            Debug.Log(
+                $"내 정보 창을 {output}에 저장했습니다. 창 높이 {windowHeight:0}(캔버스 기준 1080)."
+            );
         }
 
         private static void SetSlider(Transform overlay, string path, string label, float value)

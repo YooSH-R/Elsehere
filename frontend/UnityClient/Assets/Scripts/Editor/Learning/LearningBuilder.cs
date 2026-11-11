@@ -114,8 +114,7 @@ namespace A305.EditorTools.Learning
             SetUpConversationLevel(
                 hud.GetComponent<MyPageView>(),
                 (RectTransform)hud.transform.Find("MyPage/Window"),
-                UiBuilderTools.BoldFont(),
-                UiBuilderTools.RegularFont()
+                UiBuilderTools.BoldFont()
             );
 
         /// <summary>씬에 피드백·단어장 화면과 학습 처리가 없으면 붙이고 플레이어·대화 처리와 연결한다.</summary>
@@ -862,7 +861,7 @@ namespace A305.EditorTools.Learning
             );
             lookSensitivity.SetSiblingIndex(profile.Find("Status").GetSiblingIndex() + 1);
             SetUpNpcSpeechSpeed(view, profile, bold, regular);
-            SetUpConversationLevel(view, profile, bold, regular);
+            SetUpConversationLevel(view, profile, bold);
             RectTransform profileButtons = UiBuilderTools.FindOrCreateButtonRow(profile, "Buttons");
             // 이미 만든 화면에 새로 붙는 줄은 맨 아래에 생기므로 버튼 줄 위로 옮긴다.
             // 이미 버튼 줄 위에 있는 줄까지 옮기면 제목·목록·버튼 순서가 뒤집히므로 아래에 있는 줄만 옮긴다.
@@ -1051,26 +1050,20 @@ namespace A305.EditorTools.Learning
             group.SetSiblingIndex(profile.Find("LookSensitivity").GetSiblingIndex() + 1);
         }
 
-        // NPC 말 빠르기 줄 바로 아래에 제목·설명과 단계 버튼 줄을 둔다. 버튼은 서버가 준 단계 수만큼 화면이 복제한다.
-        // 버튼 모양과 고른 단계의 강조색은 UiThemeBuilder가 가입 화면의 캐릭터 버튼처럼 칠한다.
+        // NPC 말 빠르기 줄 아래에 제목과 단계 버튼을 한 줄로 둔다. 창이 16:9 화면 높이를 넘지 않게 설명 줄은 두지 않고,
+        // "다음 대화부터 적용돼요"는 바꿀 때 상태 문구로 알린다. 버튼은 서버가 준 단계 수만큼 화면이 복제한다.
+        // 카드 모양과 고른 단계의 강조색은 UiThemeBuilder·MyPageLayoutBuilder가 칠한다.
         private static void SetUpConversationLevel(
             MyPageView view,
             RectTransform profile,
-            TMP_FontAsset bold,
-            TMP_FontAsset regular
+            TMP_FontAsset bold
         )
         {
             RectTransform group = UiBuilderTools.FindOrCreateColumn(profile, "ConversationLevel");
-            UiBuilderTools.FindOrCreateText(group, "Title", bold, 26f, Color.white, "대화 난이도");
-            UiBuilderTools.FindOrCreateText(
-                group,
-                "Help",
-                regular,
-                20f,
-                SubTextColor,
-                "NPC가 쓰는 문장과 표현의 수준이에요.\n바꾸면 다음 대화부터 적용돼요. 고급은 추후 제공돼요."
-            );
-            RectTransform choices = UiBuilderTools.FindOrCreateButtonRow(group, "Choices");
+            RectTransform row = UiBuilderTools.FindOrCreateButtonRow(group, "Row");
+            row.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+            UiBuilderTools.FindOrCreateText(row, "Title", bold, 26f, Color.white, "대화 난이도");
+            RectTransform choices = UiBuilderTools.FindOrCreateButtonRow(row, "Choices");
             choices.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
             Button template = UiBuilderTools.FindOrCreateButton(
                 choices,

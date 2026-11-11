@@ -798,7 +798,7 @@ namespace A305.EditorTools.World
                 );
                 face.localRotation = Quaternion.Euler(side * 12f, 0, 0);
             }
-            Hover(root, Word("chalkboard"));
+            Hover(root, Word("sidewalk_sign"));
             return (
                 root,
                 top =>

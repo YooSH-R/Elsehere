@@ -34,7 +34,7 @@ namespace A305.Learning.Tests
                 SceneName = "모퉁이 카페",
             };
 
-        // 같은 NPC는 [피드백 목록]과 [이웃]에서 같은 색 아이콘·글자로 보인다.
+        // 같은 NPC는 [대화 노트]와 [이웃]에서 같은 색 아이콘·글자로 보인다.
         [TestCase("Jake")]
         [TestCase("Mia")]
         [TestCase("Ben")]

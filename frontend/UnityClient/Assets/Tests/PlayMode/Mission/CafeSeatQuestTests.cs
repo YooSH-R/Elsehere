@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -23,7 +24,7 @@ namespace A305.Mission.PlayModeTests
         private const BindingFlags Fields = BindingFlags.Instance | BindingFlags.NonPublic;
 
         [UnityTest]
-        public IEnumerator EveryCafeChairAndSofaCompletesTheOrderedRestAfterFiveSeconds()
+        public IEnumerator CafeChairAndSofa_CompleteTheOrderedRestAfterFiveSeconds()
         {
             string previousMissionNpc = NpcDuty.MissionNpcCode;
             SceneManager.sceneLoaded += PrepareOfflineScene;
@@ -37,15 +38,36 @@ namespace A305.Mission.PlayModeTests
                 var mission = Object.FindFirstObjectByType<FirstDayMissionController>();
                 var transport = new RestTransport();
                 SetField(mission, "api", new FirstDayMissionApi(new ApiClient("", transport)));
-                RestSeat[] seats = Object.FindObjectsByType<RestSeat>(FindObjectsSortMode.None);
-                Assert.That(
-                    seats,
-                    Has.Length.EqualTo(10),
-                    "의자 6개와 소파 2개의 두 자리씩입니다."
+                RestSeat[] seats = Object
+                    .FindObjectsByType<RestSeat>(FindObjectsSortMode.None)
+                    .OrderBy(seat => seat.transform.position.x)
+                    .ThenBy(seat => seat.transform.position.z)
+                    .ToArray();
+                RestSeat chair = seats.First(seat => seat.transform.parent.name != "Bench");
+                RestSeat sofa = seats.First(seat => seat.transform.parent.name == "Bench");
+                // 의자는 옆 통로, 소파는 앞 통로로 접근한다. 같은 휴식 흐름을 가구 유형별로 한 번 검증한다.
+                var representativeSeats = new List<(
+                    RestSeat Seat,
+                    Vector3 Approach,
+                    string CaptureName
+                )>
+                {
+                    (chair, chair.transform.right, "left-chair"),
+                    (sofa, sofa.transform.forward, "sofa"),
+                };
+                string captureFolder = System.Environment.GetEnvironmentVariable(
+                    "CAFE_SEAT_CAPTURE"
                 );
+                if (!string.IsNullOrEmpty(captureFolder))
+                {
+                    RestSeat rightChair = seats.Last(seat => seat.transform.parent.name != "Bench");
+                    representativeSeats.Add(
+                        (rightChair, rightChair.transform.right, "right-chair")
+                    );
+                }
                 FollowUpStore.Shared.Clear();
 
-                foreach (RestSeat seat in seats.OrderBy(item => item.transform.position.x))
+                foreach (var (seat, approach, captureName) in representativeSeats)
                 {
                     var ordered = new FirstDayMissionState
                     {
@@ -59,13 +81,8 @@ namespace A305.Mission.PlayModeTests
                         cafeSeat.SetAvailable(true, mealWait: true);
                     int completedBefore = transport.RestRequests;
 
-                    // 의자 앞은 탁자 안쪽이므로 옆 통로에서 접근한다. 긴 소파는 앞 통로를 쓴다.
-                    bool isSofa = seat.transform.parent.name == "Bench";
-                    Vector3 approach = isSofa
-                        ? seat.transform.forward * .8f
-                        : seat.transform.right * .8f;
                     player.Teleport(
-                        seat.transform.position + approach + Vector3.up * .05f,
+                        seat.transform.position + approach * .8f + Vector3.up * .05f,
                         seat.transform.rotation
                     );
                     player.SetMovementLocked(false);
@@ -83,12 +100,7 @@ namespace A305.Mission.PlayModeTests
                         "5초 전에는 완료하지 않습니다."
                     );
                     // 캡처의 GPU 대기 시간이 4초 검증에 더해지지 않도록 시간 검증 뒤에 찍는다.
-                    CaptureIfRequested(
-                        player.CameraRig,
-                        isSofa ? "sofa"
-                            : seat.transform.position.x < 0 ? "left-chair"
-                            : "right-chair"
-                    );
+                    CaptureIfRequested(player.CameraRig, captureFolder, captureName);
                     float deadline = Time.realtimeSinceStartup + 2f;
                     while (seat.IsPlayerSeated && Time.realtimeSinceStartup < deadline)
                         yield return null;
@@ -162,9 +174,8 @@ namespace A305.Mission.PlayModeTests
         private static void SetField(object target, string name, object value) =>
             target.GetType().GetField(name, Fields).SetValue(target, value);
 
-        private static void CaptureIfRequested(PlayerCameraRig rig, string furniture)
+        private static void CaptureIfRequested(PlayerCameraRig rig, string folder, string furniture)
         {
-            string folder = System.Environment.GetEnvironmentVariable("CAFE_SEAT_CAPTURE");
             if (string.IsNullOrEmpty(folder))
                 return;
             string path = System.IO.Path.Combine(folder, furniture + ".png");

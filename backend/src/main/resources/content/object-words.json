@@ -1189,6 +1189,15 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_b455dfb83439d7546bf34d8766404f6f",
+            "languageCode": "en-US",
+            "text": "sidewalk sign",
+            "meaningKo": "입간판",
+            "example": "A sidewalk sign advertises fresh coffee.",
+            "exampleKo": "입간판이 갓 내린 커피를 홍보해요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_b4a755c63d1d408438a71815ba75d475",
             "languageCode": "en-US",
             "text": "cat",

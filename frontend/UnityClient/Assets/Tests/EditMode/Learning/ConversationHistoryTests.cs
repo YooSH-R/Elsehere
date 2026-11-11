@@ -50,6 +50,20 @@ namespace A305.Learning.Tests
             Assert.That(history.HasMore, Is.False);
         }
 
+        // 장소 탭을 고르면 그 장소의 대화만 받고, 다음 쪽도 같은 장소에서 이어 받는다.
+        [Test]
+        public async Task Load_ForAPlace_AsksOnlyThatPlaceAndKeepsItForTheNextPage()
+        {
+            api.Pages[""] = Page("59", Conversation(60));
+            api.Pages["59"] = Page(null, Conversation(58));
+
+            await history.LoadAsync("CAFE");
+            await history.LoadMoreAsync();
+
+            Assert.That(history.SceneCode, Is.EqualTo("CAFE"));
+            Assert.That(api.RequestedScenes, Is.EqualTo(new[] { "CAFE", "CAFE" }));
+        }
+
         [Test]
         public async Task LoadMore_OnLastPage_DoesNotRequest()
         {
@@ -232,6 +246,8 @@ namespace A305.Learning.Tests
 
             public List<string> RequestedCursors { get; } = new List<string>();
 
+            public List<string> RequestedScenes { get; } = new List<string>();
+
             public PastFeedback Feedback { get; set; } = new PastFeedback();
 
             public ConversationDetail Detail { get; set; } = new ConversationDetail();
@@ -240,9 +256,10 @@ namespace A305.Learning.Tests
 
             public List<long> OpenedConversationIds { get; } = new List<long>();
 
-            public async Task<ConversationPage> GetPageAsync(string cursor)
+            public async Task<ConversationPage> GetPageAsync(string cursor, string sceneCode)
             {
                 RequestedCursors.Add(cursor);
+                RequestedScenes.Add(sceneCode);
                 if (PageGate != null)
                 {
                     await PageGate.Task;

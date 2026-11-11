@@ -48,14 +48,14 @@ namespace A305.Learning
         public static string Format(ReviewCard card, ReviewPracticeResult result)
         {
             if (result == null)
-                return "결과를 받지 못했어요. 복습장을 다시 열어 기록을 확인해 주세요.\n";
+                return "결과를 받지 못했어요. 대화 노트에서 다시 연습할 수 있어요.\n";
             var expressions = Expressions(card, result);
             var text = new StringBuilder(Summary(expressions)).AppendLine();
             foreach (ReviewExpressionFeedback expression in expressions)
             {
                 text.Append(expression.Used ? "✓ " : "○ ")
-                    .AppendLine(ReviewWorkbookRow.Escape(expression.Expression));
-                text.AppendLine(ReviewWorkbookRow.Escape(expression.Explanation)).AppendLine();
+                    .AppendLine(ReviewResultRow.Escape(expression.Expression));
+                text.AppendLine(ReviewResultRow.Escape(expression.Explanation)).AppendLine();
             }
             return text.ToString();
         }

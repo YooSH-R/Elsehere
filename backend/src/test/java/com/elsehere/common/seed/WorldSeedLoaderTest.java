@@ -186,8 +186,7 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName(
-      "NPC 36명(행인 11명·카페 직원 3명·호텔 직원 5명·드럭스토어 직원 3명·택시 기사·경찰관 4명과 거리 매장 직원 9명)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
+  @DisplayName("기존 NPC 36명과 Jone을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
   void load_insertsNpcs() {
     worldSeedLoader.load();
 
@@ -243,7 +242,8 @@ class WorldSeedLoaderTest {
             tuple("TOWN", "FIRE_FIGHTER", "Rachel", NpcType.STAFF, "빨래방 직원", false, null),
             tuple("TOWN", "FIRE_ROOKIE", "Andre", NpcType.STAFF, "이발소 직원", false, null),
             tuple("TOWN", "TOWN_GRANDFATHER", "Arthur", NpcType.PASSERBY, "행인", false, null),
-            tuple("TOWN", "TOWN_GRANDMOTHER", "Margaret", NpcType.PASSERBY, "행인", false, null));
+            tuple("TOWN", "TOWN_GRANDMOTHER", "Margaret", NpcType.PASSERBY, "행인", false, null),
+            tuple("TOWN", "TOWN_JOHN_PARK", "Jone", NpcType.PASSERBY, "뮤지션", false, null));
   }
 
   @Test
@@ -271,7 +271,7 @@ class WorldSeedLoaderTest {
     assertThat(sceneRepository.count()).isEqualTo(6);
     assertThat(vocabularyRepository.count()).isEqualTo(catalog().words().size());
     assertThat(sceneWordRepository.count()).isEqualTo(expectedSceneWords().size());
-    assertThat(npcRepository.count()).isEqualTo(36);
+    assertThat(npcRepository.count()).isEqualTo(37);
     assertThat(missionRepository.count()).isEqualTo(2);
   }
 

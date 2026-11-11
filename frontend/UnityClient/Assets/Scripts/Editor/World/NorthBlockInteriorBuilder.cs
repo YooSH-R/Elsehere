@@ -211,7 +211,7 @@ namespace A305.EditorTools.World
                 Cream,
                 "ceiling"
             );
-            Stairs(interior, name == "MapleBakery");
+            Stairs(interior, name);
             for (int floor = 0; floor < 2; floor++)
             {
                 float y = floor * 4;
@@ -408,8 +408,17 @@ namespace A305.EditorTools.World
                 );
         }
 
-        private static void Stairs(Transform parent, bool isBakery)
+        /// <summary>
+        /// 앞에서 뒤로 오른 뒤 계단참에서 돌아 앞쪽 2층 계단참으로 오르는 실내 계단.
+        /// 빵집은 왼쪽으로 돌고, 오락실 공용 계단실은 오른쪽으로 돌아 마지막 단 바로 왼쪽에 2층 서점 문이 온다.
+        /// </summary>
+        private static void Stairs(Transform parent, string building, bool withDirection = true)
         {
+            bool isBakery = building == "MapleBakery";
+            bool turnsRight = TurnsRight(building);
+            float firstX = FirstFlightX(building);
+            float returnX = 4 - firstX;
+            float firstWallSideX = turnsRight ? 3.73f : .12f;
             Transform stairs = Group("Stairs", parent, Vector3.zero);
             NorthBlockAssets.Bind(stairs.gameObject, "stairs");
             const int steps = 15;
@@ -421,7 +430,7 @@ namespace A305.EditorTools.World
                 Solid(
                     "Step",
                     stairs,
-                    new Vector3(1.05f, rise / 2, z),
+                    new Vector3(firstX, rise / 2, z),
                     new Vector3(1.8f, rise, run / steps),
                     Wood,
                     "stairs"
@@ -430,7 +439,7 @@ namespace A305.EditorTools.World
                 Solid(
                     "Step",
                     stairs,
-                    new Vector3(2.95f, 2 + rise / 2, returnZ),
+                    new Vector3(returnX, 2 + rise / 2, returnZ),
                     new Vector3(1.8f, rise, run / steps),
                     Wood,
                     "stairs"
@@ -444,22 +453,65 @@ namespace A305.EditorTools.World
                 Wood,
                 "floor"
             );
-            Rail(stairs, new Vector3(.12f, .95f, -1.6f), new Vector3(.12f, 2.95f, -5.6f));
+            Rail(
+                stairs,
+                new Vector3(firstWallSideX, .95f, -1.6f),
+                new Vector3(firstWallSideX, 2.95f, -5.6f)
+            );
             Rail(stairs, new Vector3(2, .95f, -1.6f), new Vector3(2, 2.95f, -5.6f));
             Rail(stairs, new Vector3(2, 2.95f, -5.6f), new Vector3(2, 4.95f, -1.6f));
-            // Guard the upper-floor opening; leave both stair mouths and the turning landing clear.
-            Solid(
-                "UpperRailing",
-                stairs,
-                new Vector3(.12f, 4.5f, -4.65f),
-                new Vector3(.08f, 1, 6.1f),
-                Green,
-                "railing"
-            );
+            if (turnsRight)
+                // 공용 계단실 벽이 2층 매장 쪽을 막는다. 첫 계단 위로 열린 2층 계단참 가장자리만 난간으로 막는다.
+                Rail(stairs, new Vector3(2, 4.95f, -1.6f), new Vector3(3.73f, 4.95f, -1.6f));
+            else
+                // Guard the upper-floor opening; leave both stair mouths and the turning landing clear.
+                Solid(
+                    "UpperRailing",
+                    stairs,
+                    new Vector3(.12f, 4.5f, -4.65f),
+                    new Vector3(.08f, 1, 6.1f),
+                    Green,
+                    "railing"
+                );
             if (isBakery)
                 BakeryStairDetails(parent, stairs);
-            else
-                Text("StairDirection", "UPSTAIRS", parent, new Vector3(1.05f, 2.5f, -1.3f), .16f);
+            else if (withDirection)
+                Text("StairDirection", "UPSTAIRS", parent, new Vector3(firstX, 2.5f, -1.3f), .16f);
+        }
+
+        private static bool TurnsRight(string building) => building == "LittleArcade";
+
+        // 입구에서 안쪽(-z)을 보면 +x가 왼쪽이다. 오른쪽으로 돌면 첫 계단이 왼쪽 절반, 돌아오는 계단이 오른쪽 절반이다.
+        private static float FirstFlightX(string building) => TurnsRight(building) ? 2.95f : 1.05f;
+
+        /// <summary>
+        /// 이미 만든 오락실 프리팹의 공용 계단실을 다시 만든다. 계단을 오른쪽으로 도는 방향으로 바꾸고,
+        /// 계단실 벽의 오락실 문을 건물 앞면으로 옮긴다. 간판·집기 등 나머지 배치는 그대로 둔다.
+        /// </summary>
+        [MenuItem("Tools/A305/World/Rebuild Little Arcade Stair Hall")]
+        public static void RebuildArcadeStairHall()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            string path = NorthBlockAssets.Folder + "/LittleArcade.prefab";
+            BuilderTools.UpdatePrefabIfExists(
+                path,
+                root =>
+                {
+                    // 계단 묶음은 단·난간뿐이라 새로 만들고, 글꼴을 바꾼 안내 글자는 첫 계단 앞으로 옮기기만 한다.
+                    Transform interior = root.transform.Find("Interior");
+                    Transform direction = interior.Find("StairDirection");
+                    Vector3 directionPosition = direction.localPosition;
+                    Object.DestroyImmediate(interior.Find("Stairs").gameObject);
+                    Stairs(interior, root.name, withDirection: false);
+                    directionPosition.x = FirstFlightX(root.name);
+                    direction.localPosition = directionPosition;
+                    NorthBlockTenantLayout.MoveArcadeDoorToFront(root.transform);
+                    // 새 계단·벽·문에도 호버 영역을 프리팹 안에 붙여, 씬마다 따로 붙지 않게 한다.
+                    ObjectWordRegistration.ApplyToPrefab(root, path);
+                }
+            );
+            AssetDatabase.SaveAssets();
         }
 
         private static void Rail(Transform parent, Vector3 from, Vector3 to)

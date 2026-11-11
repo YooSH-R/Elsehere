@@ -166,8 +166,31 @@ namespace A305.World.Tests
             );
         }
 
+        // 오락실 문은 건물 앞면(오락실 쪽)에 있어 인도에서 바로 드나든다. 공용 계단실은 2층 서점으로만 이어진다.
+        [Test]
+        public void ArcadeDoor_OpensOntoTheSidewalkInFrontOfTheArcade()
+        {
+            Transform arcade = town.GetRootGameObjects()
+                .Single(root => root.name == "Environment")
+                .transform.Find("TownMainstreet/BackgroundBuildings/LittleArcade");
+            Vector3 arrival = arcade.InverseTransformPoint(
+                BuilderTools
+                    .FindAllInScene<SpaceDoorway>(town)
+                    .Single(door => door.DestinationScene == "LittleArcadeInterior")
+                    .ArrivalPoint.position
+            );
+
+            Assert.That(arrival.z, Is.GreaterThan(0), "오락실에서 나오면 건물 앞 인도에 선다.");
+            Assert.That(arrival.x, Is.LessThan(0), "계단실 입구(+x)가 아니라 오락실 쪽 앞면이다.");
+            Assert.That(
+                BuildingParts("LittleArcade", "TenantEntrances"),
+                Has.Exactly(1).EqualTo("TenantDoorSign"),
+                "계단실 벽에는 2층 서점 문 간판만 남는다."
+            );
+        }
+
         // 출근·여가 방문 NPC는 마을에서 실제 매장 문 앞(씬 전환 도착 지점)까지 걸어가 들어가고,
-        // 매장 장면에서는 마을 문 안쪽 도착 지점에서 나타나 그곳으로 나간다. 문이 공용 계단실에 있는 오락실로 확인한다.
+        // 매장 장면에서는 마을 문 안쪽 도착 지점에서 나타나 그곳으로 나간다. 오락실로 확인한다.
         [Test]
         public void ShopVisitsAndCommutesGoThroughTheShopDoor()
         {

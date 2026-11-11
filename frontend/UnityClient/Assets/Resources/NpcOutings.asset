@@ -31,8 +31,8 @@ MonoBehaviour:
     Capacity: 2
   - Code: ARCADE
     Scene: LittleArcadeInterior
-    Entrance: {x: 7.8999996, y: 0.1, z: 31.07}
-    Inside: {x: 7.9000015, y: 0.1, z: 27.93}
+    Entrance: {x: 5.9100003, y: 0.1, z: 29.05}
+    Inside: {x: 9.050001, y: 0.1, z: 29.05}
     WalkTo: {x: 0, y: 0, z: 0}
     IsOutdoor: 0
     Capacity: 2

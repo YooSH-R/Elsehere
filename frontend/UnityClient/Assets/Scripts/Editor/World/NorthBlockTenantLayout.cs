@@ -58,43 +58,40 @@ namespace A305.EditorTools.World
                 ExternalStairShops(root.transform, interior, layout);
         }
 
+        // 오락실 문은 "1F LITTLE ARCADE" 간판 아래 건물 앞면에 둔다. 안쪽 앞 왼편의 경품 진열(PrizeCorner)을 피해
+        // 칸막이 쪽으로 붙인다. 왼쪽 경첩 자리와 문짝 폭.
+        private static readonly Vector3 ArcadeDoorHinge = new Vector3(-1.8f, 0, .02f);
+        private const float ArcadeDoorWidth = 1.7f;
+
         private static void SharedStairShops(Transform root, Transform interior, Transform layout)
         {
-            MoveFrontEntrance(root, false, 2);
-            for (int floor = 0; floor < 2; floor++)
-            {
-                float y = floor * 4;
-                Solid(
-                    "StairHallWall",
-                    layout,
-                    new Vector3(0, y + 1.5f, -4.9f),
-                    new Vector3(.14f, 3, 6.2f),
-                    Cream,
-                    "wall"
-                );
-                Solid(
-                    "DoorHeader",
-                    layout,
-                    new Vector3(0, y + 2.75f, -.9f),
-                    new Vector3(.14f, .5f, 1.8f),
-                    Cream,
-                    "wall"
-                );
-                Door(
-                    layout,
-                    floor == 0 ? "ArcadeDoor" : "BookshopDoor",
-                    new Vector3(0, y, -1.75f),
-                    -90,
-                    1.7f
-                );
-                Text(
-                    "TenantDoorSign",
-                    floor == 0 ? "1F  LITTLE ARCADE" : "2F  PAPER & LEAF",
-                    layout,
-                    new Vector3(.12f, y + 2.65f, -.85f),
-                    .12f
-                ).transform.localRotation = Quaternion.Euler(0, 90, 0);
-            }
+            GroundFloorStairHall(root, layout);
+            Door(layout, "ArcadeDoor", ArcadeDoorHinge, 0, ArcadeDoorWidth);
+            Solid(
+                "StairHallWall",
+                layout,
+                new Vector3(0, 5.5f, -4.9f),
+                new Vector3(.14f, 3, 6.2f),
+                Cream,
+                "wall"
+            );
+            Solid(
+                "DoorHeader",
+                layout,
+                new Vector3(0, 6.75f, -.9f),
+                new Vector3(.14f, .5f, 1.8f),
+                Cream,
+                "wall"
+            );
+            Door(layout, "BookshopDoor", new Vector3(0, 4, -1.75f), -90, 1.7f);
+            Text(
+                "TenantDoorSign",
+                "2F  PAPER & LEAF",
+                layout,
+                new Vector3(.12f, 6.65f, -.85f),
+                .12f
+            );
+            FaceStairHall(layout);
             Sign(layout, "1F  LITTLE ARCADE", new Vector3(-1.7f, 3.2f, .25f), 3.9f, Navy);
             Sign(layout, "2F  PAPER & LEAF BOOKS", new Vector3(0, 6.5f, .25f), 6.4f, Green);
             Text(
@@ -126,6 +123,53 @@ namespace A305.EditorTools.World
                 );
         }
 
+        /// <summary>
+        /// 이미 만든 오락실 프리팹에서 계단실 1층의 오락실 문을 건물 앞면으로 옮기고, 그 자리는 칸막이 벽으로 막는다.
+        /// 문짝은 덧댄 문틀·손잡이(<see cref="ShopEntranceBuilder"/>)와 함께 그대로 옮기고, 2층 서점 문 간판은 방향만 돌린다.
+        /// </summary>
+        internal static void MoveArcadeDoorToFront(Transform root)
+        {
+            Transform layout = root.Find("TenantEntrances");
+            foreach (Transform part in layout.Cast<Transform>().ToArray())
+                if (
+                    (part.name is "StairHallWall" or "DoorHeader" or "TenantDoorSign")
+                    && part.localPosition.y < 4
+                )
+                    Object.DestroyImmediate(part.gameObject);
+            GroundFloorStairHall(root, layout);
+            layout
+                .Find("ArcadeDoor")
+                .SetLocalPositionAndRotation(ArcadeDoorHinge, Quaternion.identity);
+            FaceStairHall(layout);
+        }
+
+        // 계단실은 인도 쪽 입구(+x)에서 2층 서점 문으로만 이어진다. 1층 칸막이는 문 없이 앞벽부터 뒷벽까지,
+        // 2층 바닥 높이까지 막고, 건물 앞면에는 오락실 문과 계단실 입구를 낸다.
+        private static void GroundFloorStairHall(Transform root, Transform layout)
+        {
+            FrontEntrances(
+                root,
+                false,
+                (ArcadeDoorHinge.x + ArcadeDoorWidth / 2, ArcadeDoorWidth + .1f),
+                (2, 2.4f)
+            );
+            Solid(
+                "StairHallWall",
+                layout,
+                new Vector3(0, 2, -4.05f),
+                new Vector3(.14f, 4, 7.7f),
+                Cream,
+                "wall"
+            );
+        }
+
+        // 2층 서점 문 간판의 글자 앞면이 계단실(+x)을 보게 돌려 계단참에서 바로 읽힌다.
+        private static void FaceStairHall(Transform layout)
+        {
+            layout.Cast<Transform>().Single(part => part.name == "TenantDoorSign").localRotation =
+                Quaternion.Euler(0, -90, 0);
+        }
+
         private static void ExternalStairShops(Transform root, Transform interior, Transform layout)
         {
             foreach (
@@ -144,8 +188,8 @@ namespace A305.EditorTools.World
                 Wood,
                 "floor"
             );
-            MoveFrontEntrance(root, false, 2.7f);
-            MoveFrontEntrance(root, true, 2.7f);
+            FrontEntrances(root, false, (2.7f, 2.4f));
+            FrontEntrances(root, true, (2.7f, 2.4f));
             Door(layout, "HomeGoodsDoor", new Vector3(1.6f, 0, .02f), 0, 2.2f);
             Door(layout, "TeaRoomDoor", new Vector3(1.6f, 4, .02f), 0, 2.2f);
             Transform stairs = Group("ExteriorStairs", layout, Vector3.zero);
@@ -261,7 +305,15 @@ namespace A305.EditorTools.World
             BuilderTools.GetOrAddComponent<MeshCollider>(surface.gameObject).sharedMesh = mesh;
         }
 
-        private static void MoveFrontEntrance(Transform root, bool upper, float center)
+        /// <summary>
+        /// 층 앞벽을 다시 세우며 출입구(가운데 x, 폭)마다 2.6m 높이로 비운다.
+        /// 계단·입구가 있는 +x 쪽 창과 출입구에 걸리는 앞 창은 끈다.
+        /// </summary>
+        private static void FrontEntrances(
+            Transform root,
+            bool upper,
+            params (float center, float width)[] openings
+        )
         {
             Transform floor = root.Cast<Transform>()
                 .Single(child =>
@@ -276,7 +328,14 @@ namespace A305.EditorTools.World
                 Transform window in floor
                     .Cast<Transform>()
                     .Where(child =>
-                        child.name.StartsWith("ClosedWindow") && child.localPosition.x > 0
+                        child.name.StartsWith("ClosedWindow")
+                        && (
+                            child.localPosition.x > 0
+                            || openings.Any(opening =>
+                                Mathf.Abs(child.localPosition.x - opening.center)
+                                < opening.width / 2 + .8f
+                            )
+                        )
                     )
             )
             {
@@ -284,30 +343,44 @@ namespace A305.EditorTools.World
                 PrefabUtility.RecordPrefabInstancePropertyModifications(window.gameObject);
             }
             float height = upper ? 3 : 4;
-            float left = center - 1.2f;
-            float right = center + 1.2f;
-            Solid(
-                "FrontWall",
-                shell,
-                new Vector3((left - 4) / 2, height / 2, -.1f),
-                new Vector3(left + 4, height, .2f),
-                wall,
-                "wall"
-            );
-            if (right < 4)
-                Solid(
-                    "FrontWall",
+            float wallStart = -4;
+            foreach (var opening in openings.OrderBy(opening => opening.center))
+            {
+                FrontWallSegment(
                     shell,
-                    new Vector3((right + 4) / 2, height / 2, -.1f),
-                    new Vector3(4 - right, height, .2f),
+                    wall,
+                    wallStart,
+                    opening.center - opening.width / 2,
+                    height
+                );
+                Solid(
+                    "DoorHeader",
+                    shell,
+                    new Vector3(opening.center, (height + 2.6f) / 2, -.1f),
+                    new Vector3(opening.width, height - 2.6f, .2f),
                     wall,
                     "wall"
                 );
+                wallStart = opening.center + opening.width / 2;
+            }
+            FrontWallSegment(shell, wall, wallStart, 4, height);
+        }
+
+        private static void FrontWallSegment(
+            Transform shell,
+            Material wall,
+            float from,
+            float to,
+            float height
+        )
+        {
+            if (to - from < .01f)
+                return;
             Solid(
-                "DoorHeader",
+                "FrontWall",
                 shell,
-                new Vector3(center, (height + 2.6f) / 2, -.1f),
-                new Vector3(2.4f, height - 2.6f, .2f),
+                new Vector3((from + to) / 2, height / 2, -.1f),
+                new Vector3(to - from, height, .2f),
                 wall,
                 "wall"
             );

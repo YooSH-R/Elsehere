@@ -157,22 +157,22 @@
 - 문 안쪽에 마을로 나가는 출입구(`TownDoorway`, 이름 `TownDoor`)를 두고, 마을에서 들어오면 문 안쪽 2m에서 매장 안을 보고 섭니다. 마을의 매장 문 바깥에는 매장 장면으로 가는 출입구(`<매장>Doorway`, 이름 `<매장>Door`)를 두고, 매장에서 나오면 문 앞 1m에서 문을 등지고 섭니다. 건물에 그려진 여닫이 문은 그대로 두고 출입구 프리팹의 문 그림은 끕니다.
 - 1층과 2층이 다른 가게인 건물(`LittleArcade`·`HomeLiving`)은 층마다 장면을 나누고 그 층 집기만 남깁니다(집기의 가장 낮은 곳이 건물 바닥에서 3.5m 이상이면 2층). 바닥·천장·계단은 두 층 장면에 모두 둡니다. 매장 안 계단으로 오르는 복층(`MapleBakery`)은 한 장면입니다.
 - 매장 직원은 그 건물 1층 매장 장면에 있고(마을에서 옮김), 일과에 맞춰 마을 문으로 드나듭니다. 플레이어가 매장 안에 있을 때 근무 10분 전이 되면 문 안쪽 도착 지점에 나타나 일하러 걸어가고, 근무가 끝나면 문으로 걸어 나갑니다([Npc 모듈](../Npc/README.md#출퇴근과-숙소)). 출근·여가 방문 NPC는 마을에서 실제 매장 문 앞(그 문의 도착 지점)까지 걸어가 들어갑니다. 2층 가게에는 직원이 없습니다. 장면마다 직원의 바닥을 굽고(`Data/Npc/WalkAreas/<장면>WalkArea`) 1층 안에서만 지내게 합니다.
-- 마을에는 매장 안 바닥·천장·2층 바닥과 직원이 남지 않습니다. 따로 장면인 경찰서의 마을 쪽 실내도 지웁니다. 오락실 공용 계단실(1층 오락실·2층 서점 문으로 가는 통로)과 생활용품점 바깥 계단은 마을에 남깁니다. 마을 보행 바닥(`TownSceneWalkArea`)도 다시 굽습니다.
+- 마을에는 매장 안 바닥·천장·2층 바닥과 직원이 남지 않습니다. 따로 장면인 경찰서의 마을 쪽 실내도 지웁니다. 오락실 공용 계단실(2층 서점 문으로 가는 통로)과 생활용품점 바깥 계단은 마을에 남깁니다. 마을 보행 바닥(`TownSceneWalkArea`)도 다시 굽습니다.
 - 이미 만든 매장 장면은 디자인을 두고 연결만 다시 맞춥니다. 건물 프리팹에 집기를 더하거나 바꾸면 매장 장면에 반영되고, 마을에는 들어가지 않습니다.
 
 ## 확인 방법
 
 ### 북쪽 상가
 
-북쪽 상가 3곳도 매장 장면을 사용합니다. 인도에서 Little Arcade의 열린 공용 계단실로 걸어 들어가 각 층의 매장 문을 이용합니다. 공용 계단실의 계단과 바닥은 마을 씬에 남습니다.
+북쪽 상가 3곳도 매장 장면을 사용합니다. Little Arcade의 1층 오락실은 `1F LITTLE ARCADE` 간판 아래 앞면 문으로 인도에서 바로 들어갑니다. 2층 서점은 건물 앞에서 볼 때 왼쪽 입구의 열린 공용 계단실로 걸어 들어가 오른쪽으로 돌아 오르는 계단 끝 서점 문을 이용합니다. 공용 계단실의 계단과 바닥은 마을 씬에 남습니다.
 
 | 기존 건물 앞 좌표 | 프리팹 | 층별 용도 | 출입 방식 |
 | --- | --- | --- | --- |
 | `(-7, 0.1, 21)` | `NorthBlock/MapleBakery` | 1층 베이커리, 2층 좌석 | 매장 안 복층 계단 |
-| `(7, 0.1, 30)` | `NorthBlock/LittleArcade` | 1층 오락실, 2층 Paper & Leaf 서점 | 공용 계단실에서 각 층의 매장 문으로 진입 |
+| `(7, 0.1, 30)` | `NorthBlock/LittleArcade` | 1층 오락실, 2층 Paper & Leaf 서점 | 1층 앞면 출입구, 공용 계단실로 2층 진입 |
 | `(-7, 0.1, 39)` | `NorthBlock/HomeLiving` | 1층 생활용품점, 2층 Leaf Tea Room | 1층 독립 출입구, 전면 외부 계단으로 2층 진입 |
 
-**Tools → A305 → World → Build North Block Interior Sandbox**로 `Scenes/Sandbox/NorthBlockInteriorSandbox.unity`를 준비합니다. 기존 프리팹 디자인을 유지하며 없는 프리팹만 만듭니다. **Set Up North Block Tenant Entrances**는 초안의 단일 매장 구조에 층별 출입 구조가 없을 때 한 번 적용합니다. 외부 계단이 이미 있는 건물에는 계단 앞 `TEA ROOM 2F >` 안내판(`TenantEntrances/StairSign`)이 없을 때 기둥과 판을 만들고, 기존 안내판은 글자 영역만 판 안쪽으로 맞춥니다. **Fit Tea Room Stair Sign**으로 이 안내판만 갱신할 수도 있습니다. 안내 글자는 판 안쪽에 여백을 두고 한 줄로 맞추며, 글씨가 판 밖으로 나가지 않도록 크기를 자동 조정합니다. **Apply North Block Interiors**로 검토한 프리팹을 TownScene에 배치합니다. 기존 배경 인스턴스는 비활성 상태로 보존합니다. **Capture North Block Interiors**는 검토용 이미지를 `artifacts/unity/north-block/`에 저장합니다.
+**Tools → A305 → World → Build North Block Interior Sandbox**로 `Scenes/Sandbox/NorthBlockInteriorSandbox.unity`를 준비합니다. 기존 프리팹 디자인을 유지하며 없는 프리팹만 만듭니다. **Set Up North Block Tenant Entrances**는 초안의 단일 매장 구조에 층별 출입 구조가 없을 때 한 번 적용합니다. 외부 계단이 이미 있는 건물에는 계단 앞 `TEA ROOM 2F >` 안내판(`TenantEntrances/StairSign`)이 없을 때 기둥과 판을 만들고, 기존 안내판은 글자 영역만 판 안쪽으로 맞춥니다. **Fit Tea Room Stair Sign**으로 이 안내판만 갱신할 수도 있습니다. **Rebuild Little Arcade Stair Hall**은 기존 오락실 프리팹의 공용 계단실(계단·난간·칸막이·서점 문과 문 간판)과 앞면 오락실 문만 다시 만들고 간판·집기는 그대로 둡니다. 바꾼 뒤 **Build Town Shop Scenes**로 마을과 매장 장면의 문 연결을 다시 맞춥니다. 안내 글자는 판 안쪽에 여백을 두고 한 줄로 맞추며, 글씨가 판 밖으로 나가지 않도록 크기를 자동 조정합니다. **Apply North Block Interiors**로 검토한 프리팹을 TownScene에 배치합니다. 기존 배경 인스턴스는 비활성 상태로 보존합니다. **Capture North Block Interiors**는 검토용 이미지를 `artifacts/unity/north-block/`에 저장합니다.
 
 `SpaceTravelTests`는 우체국 문을 걸어 들어가고 나오며 마을과 우체국 장면이 바뀌어 한 장면만 남는지 확인합니다. `TownShopScenesTests`(EditMode)는 마을의 매장 문 11개가 각 매장 장면의 `TownDoor`로 이어지는지, 마을에 매장 안 구조와 직원이 남지 않았는지, 대표 매장 장면(우체국·오락실 2층 서점)의 플레이어·직원·나가는 문과 층별 집기를 확인합니다. Unity에서 `TownScene`을 직접 Play할 때는 Ben 튜토리얼을 완료하거나 건너뛴 뒤 시험합니다. 서버 없이 Play하면 1일차 오전 8시에서 시작하므로, 9시 전에는 우체국·은행처럼 늦게 여는 매장 문이 열리지 않습니다([영업시간](#영업시간)).
 

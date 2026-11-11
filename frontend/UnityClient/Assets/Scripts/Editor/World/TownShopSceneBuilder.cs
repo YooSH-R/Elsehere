@@ -51,7 +51,7 @@ namespace A305.EditorTools.World
             "StairDirection",
         };
 
-        // 오락실 공용 계단실. 인도에서 걸어 들어가 1층 오락실·2층 서점 문으로 가므로 마을에 남긴다.
+        // 오락실 공용 계단실. 인도에서 걸어 들어가 2층 서점 문으로 가므로 마을에 남긴다.
         private static readonly string[] StairHallNames =
         {
             "Floor",
@@ -85,9 +85,8 @@ namespace A305.EditorTools.World
             /// <summary>마을에서 이 매장으로 들어가는 출입구 이름. 매장 장면 이름의 Interior를 Door로 바꾼다.</summary>
             public string TownDoorId => Scene.Replace("Interior", "Door");
 
-            // 오락실 문은 건물 옆 공용 계단실 벽에 있어 건물 왼쪽(-x)이 매장이다. 다른 문은 건물 앞면이라 뒤쪽(-z)이 매장이다.
-            public Vector3 InwardLocal =>
-                Door.name is "ArcadeDoor" or "BookshopDoor" ? Vector3.left : Vector3.back;
+            // 2층 서점 문은 공용 계단실 벽에 있어 건물 왼쪽(-x)이 매장이다. 다른 문은 건물 앞면이라 뒤쪽(-z)이 매장이다.
+            public Vector3 InwardLocal => Door.name == "BookshopDoor" ? Vector3.left : Vector3.back;
         }
 
         /// <summary>마을 매장 장면(2층 가게 포함). 매장이 늘어도 빠지지 않게 폴더에서 찾는다.</summary>

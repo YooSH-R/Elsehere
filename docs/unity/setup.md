@@ -147,6 +147,16 @@ CLI 검사는 Unity가 만든 프로젝트·참조를 그대로 읽고 `UnityCod
 
 `A305.EditorTools.Deployment.WebGlBuild.Build`는 활성화된 Scene List를 WebGL로 빌드하고 gzip 응답에 맞는 산출물과 `version.json`을 만듭니다. `WEBGL_BUILD_DIRECTORY`에 `Assets` 밖의 출력 폴더를 지정합니다. `CI_COMMIT_SHA`가 있으면 전체 커밋 SHA를 기록하고, 로컬 검증에서는 `local`을 기록합니다.
 
+### PC용·휴대폰용 텍스처 데이터
+
+휴대폰 GPU는 PC용 DXT 텍스처를 읽지 못합니다. PC용 데이터를 받은 휴대폰에서는 Unity가 불러올 때 텍스처를 CPU로 풀어서 느리고 메모리를 많이 씁니다. 그래서 `WebGlBuild.Build`는 두 번 빌드합니다.
+
+1. 휴대폰용: ASTC로 옆 임시 폴더(`<출력 폴더>-astc`)에 빌드하고, 결과를 Unity가 모르는 임시 폴더에 복사해 둡니다. Unity는 다른 자리에 다시 빌드할 때 앞선 빌드의 산출물을 지울 수 있기 때문입니다.
+2. PC용: 프로젝트 텍스처 설정(DXT) 그대로 출력 폴더에 빌드합니다.
+3. 복사해 둔 휴대폰용 데이터 파일만 출력 폴더의 `Build`에 넣고, `index.html`의 `A305_MOBILE_TEXTURE_DATA` 자리에 그 파일 이름을 적습니다. 임시 폴더는 모두 지웁니다.
+
+엔진 코드(wasm·framework)는 두 빌드가 같아야 하며, 다르면 빌드를 멈춥니다. 로더(loader.js)는 텍스처와 무관하고 빌드마다 wasm 크기 힌트만 달라질 수 있어 PC용을 씁니다. 페이지(`WebGLTemplates/A305Responsive`)는 WebGL 2가 DXT(`WEBGL_compressed_texture_s3tc`)를 못 읽고 ASTC(`WEBGL_compressed_texture_astc`)를 읽는 기기에서만 휴대폰용 데이터를 받습니다. 그 밖의 브라우저와, 휴대폰용 데이터가 없는 Editor 빌드는 PC용 데이터를 받습니다. 두 번 빌드하므로 빌드 시간과 산출물 크기가 늘어납니다.
+
 배포 빌드는 내용 해시를 파일명으로 사용해 이전 릴리스의 JavaScript·WebAssembly·데이터가 섞이지 않게 합니다. 웹 컨테이너는 시작 페이지와 일반 정적 파일에 `Cache-Control: no-cache`를 적용해 브라우저가 현재 파일을 재검증하도록 합니다. 압축 산출물은 내용이 바뀌면 URL도 바뀝니다.
 
 자동화의 기본 실행 환경은 [Windows 노트북의 Unity 전용 Runner](windows-runner.md)입니다. EC2의 Editor·라이선스·자원 조건은 [EC2 빌드 검토](server-build.md)에 남깁니다. 빌드 스크립트, Runner 연결, 실제 CI 빌드와 서버 배포 성공은 각각 확인합니다.

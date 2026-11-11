@@ -287,13 +287,22 @@ namespace A305.Mission
 
         public void Refresh(FirstDayMissionState state, bool busy, bool talking)
         {
-            situation.text = state.Situation;
             FirstDayMissionStep current = state.Steps.FirstOrDefault(step =>
                 step.Status == "CURRENT"
             );
             direction.text = state.CanRest
                 ? "가까운 의자에 앉아 잠깐 쉬어 가세요."
                 : state.Direction;
+            situation.text = state.Situation;
+            string situationCopy = NormalizeCardCopy(state.Situation);
+            situation.gameObject.SetActive(
+                situationCopy.Length > 0
+                    && !string.Equals(
+                        situationCopy,
+                        NormalizeCardCopy(direction.text),
+                        StringComparison.OrdinalIgnoreCase
+                    )
+            );
             // NPC가 할 일을 먼저 말하지 않으므로, 요청 안내 아래 이번 단계 목표를 보여 주어 무엇을 요청할지 알게 한다.
             IReadOnlyList<FirstDayMissionGoal> currentGoals =
                 state.CanRest || current == null ? null : current.Goals;
@@ -543,6 +552,9 @@ namespace A305.Mission
             shownClockMinute = minute;
             clock.text = GameClockText.Format(minute);
         }
+
+        private static string NormalizeCardCopy(string text) =>
+            new string((text ?? "").Where(char.IsLetterOrDigit).ToArray());
 
         private static string CompactTitle(string title) =>
             title switch

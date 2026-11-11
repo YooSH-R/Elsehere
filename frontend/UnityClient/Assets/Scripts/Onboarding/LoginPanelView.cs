@@ -11,10 +11,10 @@ namespace A305.Onboarding
     /// </summary>
     public class LoginPanelView : MonoBehaviour
     {
-        // 로그인 전이라 약관 목록(AUTH-03)을 받지 않으므로, 서버가 지금 버전 문서로 보내 주는 버전 없는 주소를 쓴다.
-        // 문서 버전이 바뀌어도 이 주소는 고치지 않는다.
-        private const string TermsUrl = "/terms";
-        private const string PrivacyUrl = "/privacy";
+        // 로그인 전이라 약관 목록(AUTH-03)을 받지 않으므로, 서버(ConsentCatalog)가 지금 받는 버전 주소를 직접 쓴다.
+        // 웹 Nginx는 /문서/버전 주소만 백엔드로 넘기므로 버전 없는 주소는 열리지 않는다. 문서 버전을 올리면 여기도 바꾼다.
+        private const string TermsUrl = "/terms/2026-10";
+        private const string PrivacyUrl = "/privacy/2026-11-09";
 
         [SerializeField]
         private Button googleButton;

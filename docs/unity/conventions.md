@@ -372,6 +372,9 @@ namespace A305.Npc
 - 가져온 원본은 수정하지 않습니다. 머티리얼이나 프리팹을 바꿔야 하면 기능 폴더에 복사하거나 Prefab Variant를 만듭니다.
 - 머티리얼이 분홍색으로 보이면 URP가 아닌 셰이더를 사용하는 에셋입니다. **Window → Rendering → Render Pipeline Converter**의 Material Upgrade로 변환하고, 가져오기와 변환을 같은 MR에 담습니다.
 - 대용량 파일을 위한 Git LFS는 아직 구성하지 않았습니다. 수십 MB 이상인 파일은 추가하기 전에 팀과 저장 방식을 정합니다. Web 빌드 크기에 영향을 주므로 텍스처의 Max Size와 압축 설정도 확인합니다.
+- Web 빌드는 모든 장면의 에셋을 처음에 한꺼번에 받으므로, 화면에 크게 보이지 않는 텍스처는 WebGL 칸에서만 Max Size를 낮춥니다(Editor 화질은 그대로). 휴대폰은 받는 시간과 메모리가 이 크기에 비례합니다.
+  - Tripo NPC(`Art/Characters/Tripo`)와 인형뽑기 소품(`ThirdParty/FabNorthBlock/ClawMachine`)의 2048 텍스처는 WebGL만 1024로 둡니다. 휴대폰 화면 비교에서 대화 거리(2.4m)는 2048과 거의 같았고, 얼굴 바로 앞(1.2m)에서만 입 가장자리·옷감이 조금 흐려졌습니다.
+  - 새 캐릭터·소품 텍스처도 가까이 크게 보이지 않으면 WebGL 1024 이하로 둡니다.
 
 ## Git 작업과 충돌 대응
 

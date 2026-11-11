@@ -81,11 +81,7 @@ namespace A305.Learning
             Canvas canvas = GetComponentInParent<Canvas>(true);
             rootCanvas = canvas != null ? canvas.rootCanvas : null;
             hintText.text = ControlsGuideText.ReopenHint;
-            closeButton.onClick.AddListener(() =>
-            {
-                ControlsGuide.Close();
-                Show();
-            });
+            closeButton.onClick.AddListener(CloseCard);
             openButton.onClick.AddListener(() =>
             {
                 ControlsGuide.Reopen();
@@ -101,9 +97,22 @@ namespace A305.Learning
                 bodyText.text = ControlsGuideText.Body(PlayerTouchControls.ShouldShowControls());
             card.SetActive(shouldShow);
             if (shouldShow)
+            {
                 UiLayer.Open(this);
+                UiEscape.Opened(this, CloseCard, () => card.activeInHierarchy);
+            }
             else
+            {
                 UiLayer.Close(this);
+                UiEscape.Closed(this);
+            }
+        }
+
+        // 닫기(X)와 ESC. 닫았다는 것을 기억해 다음에도 열지 않고, 메뉴의 [조작법]으로 다시 연다.
+        private void CloseCard()
+        {
+            ControlsGuide.Close();
+            Show();
         }
     }
 }

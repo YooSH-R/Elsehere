@@ -1,4 +1,5 @@
 using A305.Api;
+using A305.Player;
 using A305.World;
 using UnityEngine;
 using UnityEngine.UI;
@@ -31,6 +32,7 @@ namespace A305.Learning
         private CanvasGroup cardGroup;
         private bool collapsing;
         private float collapseElapsed;
+        private UiEscapeWindow escape;
 
         public bool IsShowing => invitation != null && invitation.IsOpen;
         public bool IsEntryVisible => entryButton != null && entryButton.gameObject.activeSelf;
@@ -44,6 +46,7 @@ namespace A305.Learning
             cardGroup = card.GetComponent<CanvasGroup>();
             openButton.onClick.AddListener(OpenSurvey);
             closeButton.onClick.AddListener(Collapse);
+            escape = new UiEscapeWindow(() => IsShowing, Collapse);
             if (entryButton != null)
                 entryButton.onClick.AddListener(Show);
             card.gameObject.SetActive(false);
@@ -103,6 +106,7 @@ namespace A305.Learning
         private void Update()
         {
             RefreshEntry();
+            escape.Watch();
             // 폭이 좁아져도 카드와 X가 화면 바깥으로 나가지 않는다. 글자는 줄이고 압축하지 않는다.
             var screen = (RectTransform)transform;
             card.SetSizeWithCurrentAnchors(

@@ -1,4 +1,5 @@
 using A305.Api;
+using A305.Player;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -32,11 +33,13 @@ namespace A305.Npc
         public void Show()
         {
             dialog.SetActive(true);
+            UiEscape.Opened(this, Hide, () => dialog.activeInHierarchy);
         }
 
         public void Hide()
         {
             dialog.SetActive(false);
+            UiEscape.Closed(this);
         }
 
         // 이 컴포넌트는 늘 켜져 있는 제안 화면 뿌리에 있고 창(dialog)만 켜고 끈다. 창에 두면 처음 켤 때 Awake가 돌아 닫힌다.

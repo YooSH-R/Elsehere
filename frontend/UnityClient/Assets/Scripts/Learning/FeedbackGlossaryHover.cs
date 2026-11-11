@@ -110,6 +110,13 @@ namespace A305.Learning
             if (tooltip == null)
                 CreateTooltip(canvasRect);
             pinned = pinned || pin;
+            // 클릭해 고정한 풀이 카드는 ESC로 피드백보다 먼저 닫는다.
+            if (pin)
+                UiEscape.Opened(
+                    this,
+                    Hide,
+                    () => pinned && tooltip != null && tooltip.gameObject.activeInHierarchy
+                );
             closeButton.gameObject.SetActive(pinned);
             CanvasGroup group = tooltip.GetComponent<CanvasGroup>();
             group.blocksRaycasts = group.interactable = pinned;
@@ -236,6 +243,7 @@ namespace A305.Learning
         private void Hide()
         {
             pinned = false;
+            UiEscape.Closed(this);
             if (tooltip != null)
                 tooltip.gameObject.SetActive(false);
         }

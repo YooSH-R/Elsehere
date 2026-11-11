@@ -11,6 +11,10 @@ alerting:
         - targets: ["alertmanager:9093"]
 
 scrape_configs:
+  - job_name: gitlab-runners
+    scrape_timeout: 12s
+    file_sd_configs:
+      - files: ["/etc/prometheus/targets/runners.json"]
   - job_name: elsehere-api
     metrics_path: /actuator/prometheus
     basic_auth:

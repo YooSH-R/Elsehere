@@ -134,6 +134,31 @@ namespace A305.Learning.Tests
             Assert.That(Shown("Neighbors/Pager"), Is.True);
         }
 
+        // ESC는 정보 카드면 목록으로 돌아가고, 목록이면 창을 닫는다.
+        [Test]
+        public async Task Escape_GoesBackFromTheCardThenClosesTheWindow()
+        {
+            A305.Player.UiEscape.Clear();
+            api.Neighbors.Add(Max());
+            await ShowLoaded();
+            Find("Neighbors/Rows/Row0").GetComponent<Button>().onClick.Invoke();
+
+            WatchEscape();
+            A305.Player.UiEscape.CloseTop();
+            Assert.That(Shown("Neighbors/Card"), Is.False, "정보 카드에서 목록으로");
+            Assert.That(Shown("Neighbors/Rows"), Is.True);
+
+            WatchEscape();
+            A305.Player.UiEscape.CloseTop();
+            Assert.That(Shown("Neighbors"), Is.False, "목록에서 창 닫기");
+            A305.Player.UiEscape.Clear();
+        }
+
+        private void WatchEscape() =>
+            typeof(NeighborsView)
+                .GetMethod("Update", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(view, null);
+
         // 08시(시계를 처음 상태로 돌린 시각)에 오락실에서 일하는 Max는 지도 오락실 칸에 찍을 수 있다.
         [Test]
         public async Task MapButton_TracksTheNeighbor_ClosesTheWindow_AndOpensTheMap()

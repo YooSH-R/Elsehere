@@ -1,0 +1,15 @@
+{
+  "a305-linux-ci": "EC2",
+  "a305-linux-light-ci": "EC2",
+  "a305-laptop-linux-ci": "팀원 CI",
+  "a305-unity-windows": "팀원 Unity",
+  "a305-unity-eunji": "팀원 Unity",
+  "a305-unity-junghoon": "팀원 Unity",
+  "a305-unity-임다빈": "팀원 Unity",
+  "a305-unity-sunjong": "팀원 Unity",
+  "a305-YSH-linux-ci": "팀원 CI",
+  "a305-junghoon-linux-ci": "팀원 CI",
+  "a305-unity-YSH": "팀원 Unity",
+  "a305-unity-sjh": "팀원 Unity",
+  "a305-unity-박민혁": "팀원 Unity"
+}

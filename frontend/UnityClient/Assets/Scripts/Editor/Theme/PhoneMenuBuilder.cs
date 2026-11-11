@@ -21,6 +21,7 @@ namespace A305.EditorTools.Theme
     {
         private const string MenuPath = "Tools/A305/UI/Apply Phone Menu";
         private const string JourneyTextMenuPath = "Tools/A305/UI/Apply Phone Quest Text Fit";
+        private const string BalanceMenuPath = "Tools/A305/UI/Apply Phone Balance Widget";
         private const string HudPrefabPath = "Assets/Prefabs/Learning/LearningHud.prefab";
         private const string ArtFolder = "Assets/Art/UI/Phone";
         private const string DisplayFontPath = "Assets/Art/UI/Fonts/Jua-Regular SDF.asset";
@@ -41,6 +42,8 @@ namespace A305.EditorTools.Theme
         private const float ArtHeight = 980;
         private const float ArtLeft = 90;
         private const float ArtTop = 60;
+        private static readonly Rect BalanceCard = new Rect(286, 90, 106, 77);
+        private static readonly Rect BalanceSurface = new Rect(293, 99, 79, 57);
 
         private static readonly Color Ink = new Color32(47, 37, 27, 255);
         private static readonly Color Muted = new Color32(125, 110, 91, 255);
@@ -174,6 +177,20 @@ namespace A305.EditorTools.Theme
                     FitDirection(
                         root.transform.Find("Panel/Menu/Journey/Direction").GetComponent<TMP_Text>()
                     )
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        [MenuItem(BalanceMenuPath)]
+        public static void ApplyBalanceToPrefab()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                HudPrefabPath,
+                root =>
+                {
+                    var phone = (RectTransform)root.transform.Find("Panel/Menu");
+                    Balance(phone.GetComponent<PhoneMenuView>(), phone);
+                }
             );
             AssetDatabase.SaveAssets();
         }
@@ -350,23 +367,100 @@ namespace A305.EditorTools.Theme
                 230,
                 19
             );
-            // 숫자 칸은 시안의 padding-top 3px만큼 내려 둔다.
-            TMP_Text amount = Text(
-                "Amount",
-                phone,
-                DisplayFontPath,
-                28,
-                Ink,
-                "20",
-                341.5f,
-                105.4f,
-                60,
-                28
-            );
             BuilderTools.SetReference(view, "statusTime", status);
             BuilderTools.SetReference(view, "clock", clock);
             BuilderTools.SetReference(view, "date", date);
+            Balance(view, phone);
+        }
+
+        private static void Balance(PhoneMenuView view, RectTransform phone)
+        {
+            Transform oldAmount = phone.Find("Amount");
+            if (oldAmount != null)
+                Object.DestroyImmediate(oldAmount.gameObject);
+
+            Image surface = Picture(
+                "BalanceSurface",
+                phone,
+                BalanceSurfaceArt(),
+                BalanceSurface.x,
+                BalanceSurface.y,
+                BalanceSurface.width,
+                BalanceSurface.height
+            );
+            surface.transform.SetSiblingIndex(phone.Find("Art").GetSiblingIndex() + 1);
+
+            RectTransform row = Rect(
+                "Balance",
+                phone,
+                BalanceCard.x,
+                BalanceCard.y,
+                BalanceCard.width,
+                BalanceCard.height
+            );
+            var layout = BuilderTools.GetOrAddComponent<HorizontalLayoutGroup>(row.gameObject);
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.spacing = 5 * Px;
+            layout.childControlWidth = layout.childControlHeight = true;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+            var coinArt = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Hud/Coin.png");
+            Image coin = Picture("Coin", row, coinArt, 0, 0, 40, 40);
+            coin.preserveAspect = true;
+            var iconSize = BuilderTools.GetOrAddComponent<LayoutElement>(coin.gameObject);
+            iconSize.preferredWidth = iconSize.preferredHeight = 40 * Px;
+            TMP_Text amount = Text("Amount", row, DisplayFontPath, 28, Ink, "20", 0, 0, 0, 34);
+            amount.alignment = TextAlignmentOptions.Midline;
             BuilderTools.SetReference(view, "budget", amount);
+        }
+
+        private static Sprite BalanceSurfaceArt()
+        {
+            const string name = "PhoneBalanceSurface";
+            string path = $"{ArtFolder}/{name}.png";
+            if (File.Exists(path))
+                return ImportBalanceSurface(name, path);
+
+            // 폰 그림의 위젯 테두리와 그림자는 두고, 안쪽의 기존 동전과 글자만 배경색으로 덮는다.
+            var source = new Texture2D(2, 2);
+            source.LoadImage(File.ReadAllBytes($"{ArtFolder}/PhoneBase.png"));
+            float scale = source.width / ArtWidth;
+            int width = Mathf.RoundToInt(BalanceSurface.width * scale);
+            int height = Mathf.RoundToInt(BalanceSurface.height * scale);
+            int left = Mathf.RoundToInt((ArtLeft + BalanceSurface.x) * scale);
+            int bottom = source.height - Mathf.RoundToInt((ArtTop + BalanceSurface.yMax) * scale);
+            var surface = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            var pixels = new Color[width * height];
+            for (int y = 0; y < height; y++)
+            {
+                Color start = source.GetPixel(left, bottom + y);
+                Color end = source.GetPixel(left + width - 1, bottom + y);
+                for (int x = 0; x < width; x++)
+                {
+                    Color fill = Color.Lerp(start, end, (float)x / (width - 1));
+                    int edge = Mathf.Min(Mathf.Min(x, width - 1 - x), Mathf.Min(y, height - 1 - y));
+                    fill.a = Mathf.Clamp01(edge / (4 * scale));
+                    pixels[y * width + x] = fill;
+                }
+            }
+            surface.SetPixels(pixels);
+            surface.Apply();
+            File.WriteAllBytes(path, surface.EncodeToPNG());
+            Object.DestroyImmediate(surface);
+            Object.DestroyImmediate(source);
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            return ImportBalanceSurface(name, path);
+        }
+
+        private static Sprite ImportBalanceSurface(string name, string path)
+        {
+            UiImagePadding.Pad(path);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            if (importer.textureCompression != TextureImporterCompression.Compressed)
+            {
+                importer.textureCompression = TextureImporterCompression.Compressed;
+                importer.SaveAndReimport();
+            }
+            return Art(name);
         }
 
         // 퀘스트 위젯 카드: 시안에서 잘라 낸 카드 그림(화면 폭, 폰 기준 y 150~450) 위에 단계 칩 글자·할 일·진행 칸

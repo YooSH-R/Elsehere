@@ -6,7 +6,6 @@ using A305.Player;
 using A305.Voice;
 using A305.World;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace A305.Dialogue
 {
@@ -336,7 +335,10 @@ namespace A305.Dialogue
             return new FeedbackRegenerator(conversationApi).RegenerateAsync(failed);
         }
 
-        // 기능 명세 F-23의 [대화 종료 (Esc)]. 피드백을 기다리는 중에 다시 눌러도 End가 한 번만 처리한다.
+        // 기능 명세 F-23의 [대화 종료 (Esc)]. 대화 중 연 단어 카드·음성 동의 창은 ESC 목록(UiEscape)에서 대화보다 위라 먼저 닫힌다.
+        // 피드백을 기다리는 중에 다시 눌러도 End가 한 번만 처리한다.
+        private UiEscapeWindow escape;
+
         private void Update()
         {
             ShowVoiceInput();
@@ -346,14 +348,8 @@ namespace A305.Dialogue
                 return;
             }
 
-            if (
-                session.IsActive
-                && Keyboard.current != null
-                && Keyboard.current.escapeKey.wasPressedThisFrame
-            )
-            {
-                End();
-            }
+            escape ??= new UiEscapeWindow(() => session.IsActive, End);
+            escape.Watch();
         }
 
         private void Awake()

@@ -1,3 +1,4 @@
+using A305.Player;
 using A305.Theme;
 using UnityEngine;
 using UnityEngine.UI;
@@ -58,9 +59,15 @@ namespace A305.Learning
             openMenuButton.gameObject.SetActive(isOpen);
             // 펼친 동안에는 퀘스트 카드·미니맵 등 다른 캔버스와 먼저 연 창보다 위에 그린다.
             if (isOpen)
+            {
                 UiLayer.Open(canvas, this);
+                UiEscape.Opened(this, menu.Close, () => menu.IsOpen);
+            }
             else
+            {
                 UiLayer.Close(canvas, this);
+                UiEscape.Closed(this);
+            }
         }
     }
 }

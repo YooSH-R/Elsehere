@@ -282,18 +282,15 @@ namespace A305.ObjectHover
             }
         }
 
+        // 클릭으로 고정한 사물 카드는 ESC 목록(UiEscape)에 올려, 나중에 연 다른 창보다 먼저 닫히지 않게 한다.
+        private UiEscapeWindow pinnedEscape;
+
         private void Update()
         {
             Vector2 pointer = pointAction.action.ReadValue<Vector2>();
             DetectClick(pointer);
-            if (
-                state.IsPinned
-                && Keyboard.current != null
-                && Keyboard.current.escapeKey.wasPressedThisFrame
-            )
-            {
-                Unpin();
-            }
+            pinnedEscape ??= new UiEscapeWindow(() => state.IsPinned, Unpin);
+            pinnedEscape.Watch();
 
             Refresh(pointer, Time.deltaTime);
         }

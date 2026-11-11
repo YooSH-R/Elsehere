@@ -57,6 +57,38 @@ namespace A305.EditorTools.Learning
             AssetDatabase.SaveAssets();
         }
 
+        [MenuItem("Tools/A305/Learning/Align Conversation Note Unread Count")]
+        public static void AlignUnreadCountToPrefab()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                HudPrefabPath,
+                root =>
+                    AlignUnreadCount(
+                        root.transform.Find("History/UnreadCount")?.GetComponent<TMP_Text>()
+                    )
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        internal static void AlignUnreadCount(TMP_Text unread)
+        {
+            if (unread == null)
+                return;
+
+            // 장소 탭 아래에 별도 줄을 두고 첫 대화 카드와도 여백을 확보한다.
+            F.Style(unread, F.DisplayFontPath, 17, F.Muted);
+            F.TopLeft(
+                unread.rectTransform,
+                TabsLeft,
+                TabsTop + 40 + 16,
+                TabsInset * 2 + TabWidth * TabNames.Length,
+                24
+            );
+            unread.alignment = TextAlignmentOptions.MidlineRight;
+            unread.textWrappingMode = TextWrappingModes.NoWrap;
+            unread.margin = Vector4.zero;
+        }
+
         /// <param name="hud">[대화 노트] 창(History)과 <see cref="ConversationHistoryView"/>가 있는 HUD</param>
         public static void Apply(Transform hud)
         {
@@ -69,6 +101,7 @@ namespace A305.EditorTools.Learning
             Shade(hud, panel, view);
             Header(panel, view);
             Tabs(panel, view);
+            AlignUnreadCount(panel.Find("UnreadCount")?.GetComponent<TMP_Text>());
             Pager(panel, view);
             Rows(panel, view);
             Messages(panel, view);

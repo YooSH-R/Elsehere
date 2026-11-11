@@ -737,11 +737,20 @@ namespace A305.Dialogue
             }
         }
 
-        // 펼치기와 입력을 분리한다. 이미 받은 문장을 다시 펼칠 때는 서버를 호출하지 않는다.
         private void PressHint()
         {
             if (content == null)
             {
+                return;
+            }
+
+            // 튜토리얼은 코치 마크에서 밝힌 버튼으로 현재 연습 대사를 바로 채운다.
+            if (content.IsGuided)
+            {
+                if (string.IsNullOrEmpty(content.HintText))
+                    HintRequested?.Invoke();
+                if (!string.IsNullOrEmpty(content?.HintText))
+                    inputField.text = content.HintText;
                 return;
             }
 

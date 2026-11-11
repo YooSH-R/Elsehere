@@ -127,6 +127,16 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 
 ## NPC 얼굴과 음성 재생
 
+### 저장된 NPC 공연
+
+`RecordedNpcPerformance`가 붙은 NPC는 `PerformanceRequest`에 일치하는 명시적 공연 요청을 로컬에서 처리합니다. `랩 해줘`, `다시 보여줘`, `Can you rap?`, `One more time, please!`가 이에 해당합니다. 일반 문장과 공연 거절 문장은 기존 대화로 보냅니다. 음성 입력은 기존 전사·확인 단계를 거쳐 같은 입력 경로로 들어옵니다.
+
+`RecordedPerformanceDefinition`은 WAV·대사·BPM·전용 Animator 상태를 참조합니다. `DialogueController`는 서버 발화 전 공연 요청을 확인하고 저장 음성을 재생하며, `ShowRecordedReply`로 화면에 대사만 추가합니다. 이 공연은 서버 턴·사용량·학습 평가 기록을 생성하지 않으며, 일반 AI 대화와 음성 전사의 서버 연결은 그대로 유지합니다. 서버가 응답 중이거나 튜토리얼·복습 대화인 동안은 공연으로 끼어들지 않습니다.
+
+재요청과 [다시 듣기]는 횟수 제한 없이 처음부터 재생합니다. `CharacterSpeechPlayer`의 AudioSource 샘플 시각으로 입모양을 구동하고, 같은 시각을 `RecordedNpcPerformance.SampleMotion`에 전달해 전용 동작을 맞춥니다. 일시정지 중에도 두 동작의 시각은 같으며, 종료·다른 대사·화자 변경 시 공연 동기화를 해제하고 기존 Animator 속도로 복원합니다. 원본 애니메이션의 본 곡선과 소품 결합은 변경하지 않습니다.
+
+존박 연결과 확인 순서는 [말하기 중 NPC 감정 표정 검수](../../../../../docs/unity/npc-speaking-emotions.md)의 존박 항목을 따릅니다.
+
 공통 감정을 적용한 12종 NPC 외형은 실제 대화 WAV의 구절별 감정 시간표로 새 음성 대사를 재생합니다. AI 워커가 기존 대사 요청에서 감정을 함께 생성하며 연결 방식은 [NPC 대화 감정 표정](../../../../../docs/unity/npc-dialogue-emotions.md)을 따릅니다. 시간표가 없으면 `ConfigureMood` 또는 Inspector의 기본 기분·강도를 사용합니다(기본값 인자한 미소). 지원 외형과 검수 씬은 [말하기 중 NPC 감정 표정 검수](../../../../../docs/unity/npc-speaking-emotions.md)를 참고합니다.
 
 대화 시작 시 `LookTarget`의 부모 `DialogueSpeaker`가 선택된 NPC의 얼굴·재생기를 준비합니다. `NpcIdentity`가 화자 컴포넌트를 자동으로 제공하므로 NPC별 Builder 연결을 반복하지 않습니다. 얼굴 채널이 부족하면 `LipSyncNotice`에 이유를 남기고 기존 음성 재생을 유지합니다. 지원되는 모델은 같은 WAV의 음소 시간표와 AudioSource 샘플 위치를 사용하며, 화자 변경·종료·늦은 음성 응답 취소는 기존 수명 처리를 따릅니다. 얼굴 메시 제작은 별도이며 감정 선택은 AI 워커가 담당합니다.

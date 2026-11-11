@@ -181,12 +181,37 @@ namespace A305.Dialogue
         public bool CanTalk => canTalk;
 
         public bool CanReplaySpeech =>
-            LastNpcTurn?.Speech?.IsReady == true || LastNpcTurn?.Speech?.CanRegenerate == true;
+            LastNpcLine?.Speech != null
+            || LastNpcTurn?.Speech?.IsReady == true
+            || LastNpcTurn?.Speech?.CanRegenerate == true;
 
         public bool SpeaksNpcLines => true;
 
         public bool IsNpcSpeechReady =>
-            streamedReply?.HasSpeech == true || LastNpcTurn?.Speech?.IsReady == true;
+            LastNpcLine?.Speech != null
+            || streamedReply?.HasSpeech == true
+            || LastNpcTurn?.Speech?.IsReady == true;
+
+        // 저장 공연은 로컬 화면에만 남긴다. 서버 턴·사용량·학습 평가를 만들어 내지 않는다.
+        public bool ShowRecordedReply(string text, DialogueLine reply)
+        {
+            if (!CanSend || IsReview || reply?.Speech == null)
+                return false;
+            lines.Add(DialogueLine.FromUser(text));
+            lines.Add(reply);
+            LastNpcLine = reply;
+            LastNpcTurn = null;
+            LastNpcGlossary = null;
+            LastTurnSpokenInChunks = false;
+            LastTurnSpeechIncomplete = false;
+            HintText = null;
+            UserTranslation = null;
+            StatusMessage = null;
+            RecoveryGuide = null;
+            lastTranscript = null;
+            Changed?.Invoke();
+            return true;
+        }
 
         public async Task StartAsync()
         {

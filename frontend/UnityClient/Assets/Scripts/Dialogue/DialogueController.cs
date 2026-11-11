@@ -584,6 +584,8 @@ namespace A305.Dialogue
         private void Send(string text)
         {
             TextPronunciation.Stop();
+            if (TryPlayPerformance(text))
+                return;
             if (serverConversation != null)
             {
                 _ = serverConversation.SendAsync(text);
@@ -607,6 +609,38 @@ namespace A305.Dialogue
                 panel.SetInputText(text);
                 panel.Refresh();
             }
+        }
+
+        private RecordedNpcPerformance Performance =>
+            partnerLookTarget != null
+                ? partnerLookTarget.GetComponentInParent<RecordedNpcPerformance>()
+                : null;
+
+        private bool TryPlayPerformance(string text)
+        {
+            var performance = Performance;
+            if (isEnding || performance == null || !performance.Accepts(text))
+                return false;
+            if (
+                serverConversation != null
+                && (!serverConversation.CanSend || serverConversation.IsReview)
+            )
+                return false;
+            if (conversation != null && (!conversation.CanSend || conversation.IsGuided))
+                return false;
+            if (serverConversation == null && conversation == null)
+                return false;
+            speechRecovery?.Cancel();
+            if (!performance.Play(serverLink))
+                return false;
+            var line = performance.Definition.CreateLine();
+            if (serverConversation != null)
+                serverConversation.ShowRecordedReply(text, line);
+            else
+                conversation.ShowRecordedReply(text, line);
+            panel.Refresh();
+            NpcResponded?.Invoke();
+            return true;
         }
 
         public void SetReviewReference(string text) => panel.SetReviewReference(text);
@@ -728,6 +762,13 @@ namespace A305.Dialogue
         private void ReplaySpeech()
         {
             TextPronunciation.Stop();
+            var recorded = serverConversation?.LastNpcLine ?? conversation?.LastNpcLine;
+            if (!isEnding && serverConversation?.IsBusy != true && recorded?.Speech != null)
+            {
+                speechRecovery?.Cancel();
+                PlayScriptedSpeech(recorded);
+                return;
+            }
             if (
                 serverConversation == null
                 || !serverConversation.CanReplaySpeech
@@ -919,7 +960,10 @@ namespace A305.Dialogue
 
             if (line?.Speech != null)
             {
-                serverLink.PlayRecordedSpeech(line.Speech);
+                if (Performance != null && Performance.Owns(line))
+                    Performance.Play(serverLink);
+                else
+                    serverLink.PlayRecordedSpeech(line.Speech);
             }
             else
             {

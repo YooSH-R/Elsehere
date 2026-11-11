@@ -166,6 +166,55 @@ namespace A305.World.Tests
             );
         }
 
+        // 매장 장면은 홈·카페·호텔·경찰서 장면처럼 그 매장 공간만 원점에 두고 문을 여닫지 않는다.
+        // 2층 가게는 그 층 바닥이 높이 0이고, 마을에 속한 계단실은 두지 않는다. 1층 매장과 2층 서점으로 확인한다.
+        [TestCase("PostOfficeInterior", "PostOffice")]
+        [TestCase("LittleArcadeUpperInterior", "LittleArcade")]
+        public void ShopScene_KeepsOnlyItsRoomAtTheOriginLikeOtherPlaceScenes(
+            string sceneName,
+            string building
+        )
+        {
+            Scene shop = Open(sceneName);
+            Transform root = BuilderTools
+                .FindAllInScene<Transform>(shop)
+                .Single(part => part.name == building && part.Find("Interior") != null);
+            Vector3 arrival = BuilderTools
+                .FindAllInScene<SpaceDoorway>(shop)
+                .Single(door => door.DoorwayId == "TownDoor")
+                .ArrivalPoint.position;
+
+            Assert.That(new Vector2(root.position.x, root.position.z), Is.EqualTo(Vector2.zero));
+            Assert.That(root.rotation, Is.EqualTo(Quaternion.identity));
+            Assert.That(arrival.y, Is.EqualTo(0).Within(.15f), "매장 바닥이 높이 0에 온다.");
+            Assert.That(
+                BuilderTools.FindAllInScene<ShopSwingDoor>(shop).Where(door => door.enabled),
+                Is.Empty,
+                "문에 닿으면 장면을 옮기므로 문을 여닫지 않는다."
+            );
+            Assert.That(
+                BuilderTools
+                    .FindAllInScene<Transform>(shop)
+                    .Select(part => part.name)
+                    .Intersect(new[] { "Stairs", "UpperLanding", "ExteriorStairs" }),
+                Is.Empty,
+                "계단실·바깥 계단은 마을 공간이다."
+            );
+        }
+
+        // 마을의 매장 문도 장면을 옮기는 문이라 다가가도 열리지 않는다(카페·호텔·경찰서 문과 같다).
+        [Test]
+        public void TownShopDoors_StayShut()
+        {
+            string[] swinging = BuilderTools
+                .FindAllInScene<ShopSwingDoor>(town)
+                .Where(door => door.enabled || door.GetComponent<BoxCollider>().enabled)
+                .Select(door => door.name)
+                .ToArray();
+
+            Assert.That(swinging, Is.Empty);
+        }
+
         // 오락실 문은 건물 앞면(오락실 쪽)에 있어 인도에서 바로 드나든다. 공용 계단실은 2층 서점으로만 이어진다.
         [Test]
         public void ArcadeDoor_OpensOntoTheSidewalkInFrontOfTheArcade()

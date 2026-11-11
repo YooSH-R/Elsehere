@@ -17,11 +17,12 @@ using Object = UnityEngine.Object;
 namespace A305.EditorTools.World
 {
     /// <summary>
-    /// 마을 매장 실내를 카페·경찰서처럼 따로 장소 장면으로 만든다. 매장 문에 닿으면 마을을 내리고 그 매장 장면만 남는다.
-    /// 매장 장면에는 건물 프리팹을 마을과 같은 자리에 두어 직원 자리·여가 방문 지점 좌표를 그대로 쓰고,
+    /// 마을 매장 실내를 홈·카페·호텔·경찰서처럼 따로 장소 장면으로 만든다. 매장 문에 닿으면 마을을 내리고 그 매장 장면만 남는다.
+    /// 매장 장면에는 경찰서 장면처럼 건물 프리팹을 원점에 두고(2층 가게는 그 층 바닥이 높이 0), 그 매장 공간만 남긴다.
     /// 플레이어·실내 카메라·HUD·영업시간·마을로 나가는 문과 그 매장 직원을 둔다.
     /// 마을에는 매장 안 구조(바닥·천장·2층 바닥)와 직원을 남기지 않고, 매장 문마다 매장 장면으로 가는 출입구를 둔다.
-    /// 오락실 공용 계단실과 생활용품점 바깥 계단은 2층 가게 문으로 가는 마을 통로라 남긴다.
+    /// 오락실 공용 계단실과 생활용품점 바깥 계단은 2층 가게 문으로 가는 마을 통로라 마을에만 남긴다.
+    /// 매장 문은 마을과 매장 장면 모두에서 여닫지 않는다. 문에 닿으면 장면을 옮긴다.
     /// 이미 만든 장면은 디자인을 두고 연결만 다시 맞춘다.
     /// </summary>
     public static class TownShopSceneBuilder
@@ -35,20 +36,24 @@ namespace A305.EditorTools.World
         // 건물 바닥 기준 높이. 2층 바닥(4m) 바로 아래라 1층 조명(2.2m)·진열대보다 높고 2층 집기는 모두 이 위에 있다.
         private const float UpperFloorBottom = 3.5f;
 
+        // 2층 바닥 높이. 2층 가게 장면은 건물을 이만큼 내려 그 층 바닥을 높이 0에 둔다.
+        private const float UpperFloorHeight = 4f;
+
         // 매장 안에서 마을로 나가는 문으로 들어오면 문 안쪽 2m에서 매장 안을 보고 선다.
         private static readonly Vector3 InsideArrival = new Vector3(0, 0, 2f);
 
-        // 건물의 바닥·천장·계단. 매장 장면에서는 층과 상관없이 두고, 마을에서는 지운다.
+        // 건물의 바닥·천장. 층마다 다른 가게면 그 층의 바닥·천장이 되므로 매장 장면에서는 층과 상관없이 두고, 마을에서는 지운다.
         private static readonly string[] StructureNames =
         {
             "Floor",
             "FloorSurface",
             "UpperFloor",
             "FullUpperFloor",
-            "UpperLanding",
             "Ceiling",
-            "Stairs",
         };
+
+        // 층마다 다른 가게인 건물에서 2층 가게 문으로 오르는 계단. 마을 통로라 매장 장면에는 두지 않는다.
+        private static readonly string[] TownPassageNames = { "Stairs", "UpperLanding" };
 
         // 오락실 공용 계단실. 인도에서 걸어 들어가 2층 서점 문으로 가므로 마을에 남긴다.
         private static readonly string[] StairHallNames =
@@ -118,6 +123,8 @@ namespace A305.EditorTools.World
                 BuildShopScene(town, shop, life);
                 ConnectTownDoor(town, shop);
             }
+            foreach (string building in shops.Select(shop => shop.Building).Distinct())
+                KeepDoorsShut(Buildings(town).Single(item => item.name == building));
             ForgetMovedWorkers(town);
             CommuteThroughShopDoors(town, life);
             BuildingStaffBuilder.RefreshTutorialPassersby(town);
@@ -187,11 +194,12 @@ namespace A305.EditorTools.World
             {
                 Transform townBuilding = Buildings(town).Single(item => item.name == shop.Building);
                 SceneGroups groups = BuilderTools.EnsureGroups(scene);
-                Transform building = PlaceBuilding(scene, groups, townBuilding);
+                Transform building = PlaceBuilding(scene, groups, townBuilding, shop.Upper);
                 KeepShopFloor(building, shop.Upper);
+                KeepDoorsShut(building);
                 SpaceDoorway exit = ConnectShopDoor(building, shop);
                 EnsureLight(groups);
-                MoveWorkers(town, groups, shop, life);
+                MoveWorkers(town, groups, shop, life, townBuilding, building);
                 SpaceSceneSetup.Apply(scene);
                 FirstDayShopBuilder.UseInteriorCamera(scene);
                 Transform player = BuilderTools.FindSingleInScene<PlayerMover>(scene).transform;
@@ -214,11 +222,13 @@ namespace A305.EditorTools.World
             }
         }
 
-        // 실내 씬에는 건물 프리팹 하나만 있었다. Environment 아래로 옮기고 마을의 그 건물과 같은 자리에 둔다.
+        // 실내 씬에는 건물 프리팹 하나만 있었다. Environment 아래로 옮기고 경찰서 장면처럼 원점에 둔다.
+        // 2층 가게는 그 층 바닥이 높이 0에 오도록 내린다. 이미 놓인 직원·플레이어도 건물과 함께 옮긴다.
         private static Transform PlaceBuilding(
             Scene scene,
             SceneGroups groups,
-            Transform townBuilding
+            Transform townBuilding,
+            bool upper
         )
         {
             Transform building = BuilderTools
@@ -232,12 +242,31 @@ namespace A305.EditorTools.World
                 );
             if (building.parent != groups.Environment)
                 building.SetParent(groups.Environment, false);
-            building.SetPositionAndRotation(townBuilding.position, townBuilding.rotation);
+            Matrix4x4 before = building.localToWorldMatrix;
+            building.SetPositionAndRotation(
+                Vector3.down * (upper ? UpperFloorHeight : 0),
+                Quaternion.identity
+            );
             building.localScale = townBuilding.lossyScale;
+            foreach (Transform character in groups.Characters.Cast<Transform>())
+                MoveWithBuilding(character, before, building);
             return building;
         }
 
-        // 층마다 다른 가게면 그 층 집기만 남긴다. 바닥·천장·계단 같은 구조는 두 층 모두 둔다.
+        // 건물 기준 자리를 그대로 두고 건물을 따라 옮긴다(옛 건물 자리 before → 지금 건물).
+        private static void MoveWithBuilding(Transform item, Matrix4x4 before, Transform building)
+        {
+            Vector3 local = before.inverse.MultiplyPoint3x4(item.position);
+            Quaternion localRotation = Quaternion.Inverse(before.rotation) * item.rotation;
+            item.SetPositionAndRotation(
+                building.TransformPoint(local),
+                building.rotation * localRotation
+            );
+            PrefabUtility.RecordPrefabInstancePropertyModifications(item);
+        }
+
+        // 층마다 다른 가게면 그 층 집기만 남긴다. 바닥·천장 같은 구조는 그 층의 바닥·천장이 되므로 두 층 모두 두고,
+        // 2층 가게로 오르는 계단(공용 계단실·바깥 계단)은 마을 통로라 두지 않는다.
         // 집기는 가장 낮은 곳의 높이로 층을 정하고, 그림이 없는 조명은 자리로 정한다.
         private static void KeepShopFloor(Transform building, bool upper)
         {
@@ -246,8 +275,16 @@ namespace A305.EditorTools.World
                 .Any(door => IsUpperFloor(building, door.transform.position));
             if (!hasUpperShop)
                 return;
+            Transform exteriorStairs = building.Find("TenantEntrances/ExteriorStairs");
+            if (exteriorStairs != null)
+                Object.DestroyImmediate(exteriorStairs.gameObject);
             foreach (Transform part in building.Find("Interior").Cast<Transform>().ToArray())
             {
+                if (TownPassageNames.Contains(part.name))
+                {
+                    Object.DestroyImmediate(part.gameObject);
+                    continue;
+                }
                 if (StructureNames.Contains(part.name))
                     continue;
                 Renderer[] renderers = part.GetComponentsInChildren<Renderer>(true);
@@ -260,7 +297,7 @@ namespace A305.EditorTools.World
             }
         }
 
-        // 매장 안 문턱에 마을로 나가는 출입구를 둔다. 건물의 여닫이 문은 그대로 보이게 하고 출입구 프리팹의 문 그림은 끈다.
+        // 매장 안 문턱에 마을로 나가는 출입구를 둔다. 건물의 닫힌 문을 그대로 보이게 하고 출입구 프리팹의 문 그림은 끈다.
         private static SpaceDoorway ConnectShopDoor(Transform building, Shop shop)
         {
             Transform door = FindDoor(building, shop.Door.name);
@@ -296,8 +333,15 @@ namespace A305.EditorTools.World
             RenderSettings.ambientLight = new Color(.65f, .65f, .6f);
         }
 
-        // 그 매장(1층)에서 일하는 직원을 마을에서 매장 장면으로 옮긴다. 마을과 같은 자리에 두므로 위치는 그대로다.
-        private static void MoveWorkers(Scene town, SceneGroups groups, Shop shop, NpcLifeData life)
+        // 그 매장(1층)에서 일하는 직원이 마을에 남아 있으면 매장 장면으로 옮긴다. 건물 기준 자리는 마을에서와 같다.
+        private static void MoveWorkers(
+            Scene town,
+            SceneGroups groups,
+            Shop shop,
+            NpcLifeData life,
+            Transform townBuilding,
+            Transform building
+        )
         {
             if (shop.Upper)
                 return;
@@ -311,6 +355,21 @@ namespace A305.EditorTools.World
                 worker.transform.SetParent(null, true);
                 SceneManager.MoveGameObjectToScene(worker.gameObject, groups.Scene);
                 worker.transform.SetParent(groups.Characters, true);
+                MoveWithBuilding(worker.transform, townBuilding.localToWorldMatrix, building);
+            }
+        }
+
+        // 장면을 옮기는 매장 문은 홈·카페·호텔·경찰서 문처럼 여닫지 않는다. 닫힌 문짝과 그 충돌은 그대로 두고,
+        // 다가오는 사람을 감지해 여는 동작과 감지 영역만 끈다.
+        private static void KeepDoorsShut(Transform building)
+        {
+            foreach (ShopSwingDoor door in building.GetComponentsInChildren<ShopSwingDoor>(true))
+            {
+                door.enabled = false;
+                var sensor = door.GetComponent<BoxCollider>();
+                sensor.enabled = false;
+                PrefabUtility.RecordPrefabInstancePropertyModifications(door);
+                PrefabUtility.RecordPrefabInstancePropertyModifications(sensor);
             }
         }
 

@@ -5,9 +5,9 @@ using A305.Player;
 using A305.Theme;
 using A305.Tutorial;
 using A305.Voice;
+using A305.World;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace A305.Onboarding
 {
@@ -23,6 +23,9 @@ namespace A305.Onboarding
         private const string WaitingMessage = "잠시만 기다려 주세요...";
         private const string GradingMessage = "채점하고 있어요. 잠시만 기다려 주세요...";
         private const string TranscribingMessage = "말한 내용을 받아 적고 있어요...";
+
+        // 웹 로딩 화면과 같은 문구
+        private const string EnteringSpaceMessage = "마을을 불러오는 중이에요.";
 
         [SerializeField]
         private ApiSettings apiSettings;
@@ -79,6 +82,7 @@ namespace A305.Onboarding
 
         private IOnboardingApi api;
         private OnboardingFlow flow;
+        private bool isEnteringSpace;
 
         private void Awake()
         {
@@ -255,6 +259,19 @@ namespace A305.Onboarding
             Render();
         }
 
+        // 장소 씬은 휴대폰에서 몇 초씩 걸린다. 한 번에 바꾸면 다 불러올 때까지 입구 화면이 멈춘 채 보이므로,
+        // 장소 이동처럼 화면을 덮고 문구·진행 막대를 보이며 겹쳐 불러온다. 서버 응답 뒤 다시 그려도 한 번만 들어간다.
+        private void EnterSpace(string sceneName)
+        {
+            if (isEnteringSpace)
+            {
+                return;
+            }
+
+            isEnteringSpace = true;
+            SpaceTravelCurtain.Travel(sceneName, EnteringSpaceMessage);
+        }
+
         // 재접속할 장소가 없거나, 서버가 알려 준 씬이 이 빌드의 Scene List에 없으면 기본 마을로 간다.
         private string WorldSceneName()
         {
@@ -275,12 +292,12 @@ namespace A305.Onboarding
             switch (flow.Screen)
             {
                 case EntryScreen.Tutorial:
-                    SceneManager.LoadScene(settings.TutorialSceneName);
+                    EnterSpace(settings.TutorialSceneName);
                     return;
                 case EntryScreen.World:
                     // 서버 단계가 튜토리얼 이후면 장소에서 튜토리얼 안내를 다시 띄우지 않는다.
                     TutorialState.MarkFinishedOnServer();
-                    SceneManager.LoadScene(WorldSceneName());
+                    EnterSpace(WorldSceneName());
                     return;
                 case EntryScreen.Login:
                     ShowOnly(loginPanel.gameObject);

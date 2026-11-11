@@ -20,6 +20,7 @@ namespace A305.Dialogue
         public const float MaxLinesHeight = 600;
         public const float NameHeight = 48;
         public const float TranslationHeight = 160;
+        public const float MaxTranslationHeight = 320;
         private const float TranslationSideBySideWidth = 1100;
 
         // 둥근 이름표가 대사 글자 줄보다 앞으로 나오는 폭. 같은 자리에서 시작하면 둥근 끝 때문에 이름표가 안쪽으로 들어가 보인다.
@@ -50,7 +51,8 @@ namespace A305.Dialogue
             float linesHeight,
             float nameWidth,
             bool hasEarlierLines = false,
-            bool hasTranslation = false
+            bool hasTranslation = false,
+            float translationHeight = TranslationHeight
         )
         {
             float width = Mathf.Min(ColumnWidth, canvasSize.x - 2 * SideMargin);
@@ -73,8 +75,16 @@ namespace A305.Dialogue
             layout.Status = new Rect(left, layout.Input.yMax + 12, width, StatusHeight);
             bool stackedTranslation = hasTranslation && width < TranslationSideBySideWidth;
             float reservedHeight = layout.Status.yMax + 10 + Gap + NameHeight + FadeHeight;
+            // 영어 표현 카드는 문장이 다 보이게 키우되, 상한과 화면 높이 안에서만 키우고 넘치는 문장은 카드 안에서 스크롤한다.
+            float cardRoom = canvasSize.y - reservedHeight;
             if (stackedTranslation)
-                reservedHeight += TranslationHeight + Gap;
+                cardRoom -= Gap + MinLinesHeight;
+            float cardHeight = Mathf.Min(
+                Mathf.Clamp(translationHeight, TranslationHeight, MaxTranslationHeight),
+                Mathf.Max(TranslationHeight, cardRoom)
+            );
+            if (stackedTranslation)
+                reservedHeight += cardHeight + Gap;
             float maxLines = Mathf.Min(MaxLinesHeight, Mathf.Max(0, canvasSize.y - reservedHeight));
             layout.Lines = new Rect(
                 left,
@@ -90,10 +100,10 @@ namespace A305.Dialogue
                 bool sideBySide = width >= TranslationSideBySideWidth;
                 if (sideBySide)
                 {
-                    bodyTop = Mathf.Max(bodyTop, layout.Lines.yMin + TranslationHeight);
+                    bodyTop = Mathf.Max(bodyTop, layout.Lines.yMin + cardHeight);
                     layout.Translation = Rect.MinMaxRect(
                         layout.Lines.xMax + 2 * Gap,
-                        bodyTop - TranslationHeight,
+                        bodyTop - cardHeight,
                         right,
                         bodyTop
                     );
@@ -106,7 +116,7 @@ namespace A305.Dialogue
                 }
                 else
                 {
-                    layout.Translation = new Rect(left, bodyTop + Gap, width, TranslationHeight);
+                    layout.Translation = new Rect(left, bodyTop + Gap, width, cardHeight);
                     bodyTop = layout.Translation.yMax;
                 }
             }
@@ -124,6 +134,12 @@ namespace A305.Dialogue
         public static float LinesWidth(float columnWidth, bool hasTranslation) =>
             hasTranslation && columnWidth >= TranslationSideBySideWidth
                 ? columnWidth * .54f
+                : columnWidth;
+
+        /// <summary>영어 표현 카드의 폭. 넓은 화면에서는 대사 칸 오른쪽 나머지, 좁은 화면에서는 열 전체다.</summary>
+        public static float TranslationWidth(float columnWidth) =>
+            columnWidth >= TranslationSideBySideWidth
+                ? columnWidth - LinesWidth(columnWidth, true) - 2 * Gap
                 : columnWidth;
     }
 }

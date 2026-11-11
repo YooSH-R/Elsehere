@@ -1243,7 +1243,8 @@ namespace A305.Dialogue
                 linesHeight,
                 nameWidth,
                 hasEarlierLines,
-                hasTranslation
+                hasTranslation,
+                TranslationCardHeight(DialogueCinemaLayout.TranslationWidth(column))
             );
             frame.anchorMin = Vector2.zero;
             frame.anchorMax = new Vector2(1, 0);
@@ -1354,6 +1355,19 @@ namespace A305.Dialogue
                             .y + 12;
                 LayoutRebuilder.ForceRebuildLayoutImmediate(helpContent);
             }
+        }
+
+        // 카드의 머리줄·여백을 뺀 글자 칸 폭으로 영어 표현을 재서, 문장을 다 담는 카드 높이를 돌려준다.
+        private float TranslationCardHeight(float cardWidth)
+        {
+            if (translationCard == null || string.IsNullOrEmpty(translationText.text))
+                return DialogueCinemaLayout.TranslationHeight;
+            var viewport = (RectTransform)translationText.rectTransform.parent;
+            Vector2 chrome = translationCard.rect.size - viewport.rect.size;
+            return chrome.y
+                + translationText
+                    .GetPreferredValues(translationText.text, cardWidth - chrome.x, 0)
+                    .y;
         }
 
         // 최근 네 대사와 그 뜻이 보이는 높이를 준다. 긴 내용·작은 화면과 그 이전 대사는 스크롤한다.

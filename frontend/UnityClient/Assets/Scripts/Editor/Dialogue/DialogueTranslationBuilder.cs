@@ -93,6 +93,8 @@ namespace A305.EditorTools.Dialogue
             scroll.horizontal = false;
             scroll.movementType = ScrollRect.MovementType.Clamped;
             scroll.scrollSensitivity = 32;
+            scroll.verticalScrollbar = FindOrCreateScrollbar(card);
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
 
             Transform listen = card.Find("ListenButton");
             if (listen == null)
@@ -134,6 +136,45 @@ namespace A305.EditorTools.Dialogue
             ((TMP_Text)input.placeholder).text = "한국어·영어로 말하거나 입력해 보세요…";
             card.gameObject.SetActive(false);
             divider.gameObject.SetActive(false);
+        }
+
+        // 표현이 카드 상한보다 길 때만 보이는 오른쪽 가는 스크롤 막대. 끌거나 휠로 아래에 더 읽을 줄이 있다는 것을 알린다.
+        // 머리줄 아래부터 글자 칸 아래까지, 글자(오른쪽 24 안쪽)와 겹치지 않게 카드 오른쪽 끝에 둔다.
+        private static Scrollbar FindOrCreateScrollbar(RectTransform card)
+        {
+            RectTransform bar = FindRect(card, "Scrollbar");
+            bar.anchorMin = new Vector2(1, 0);
+            bar.anchorMax = Vector2.one;
+            bar.pivot = new Vector2(1, .5f);
+            bar.offsetMin = new Vector2(-14, 20);
+            bar.offsetMax = new Vector2(-6, -72);
+            Image track = BuilderTools.GetOrAddComponent<Image>(bar.gameObject);
+            RoundBar(track, new Color(0, 0, 0, .08f));
+
+            RectTransform handle = FindRect(bar, "Handle");
+            handle.anchorMin = Vector2.zero;
+            handle.anchorMax = Vector2.one;
+            handle.offsetMin = handle.offsetMax = Vector2.zero;
+            Image handleImage = BuilderTools.GetOrAddComponent<Image>(handle.gameObject);
+            // 밝은 카드 위에서도 아래에 더 읽을 줄이 있다는 걸 바로 알아보게 진하게 칠한다.
+            RoundBar(handleImage, new Color(0, 0, 0, .45f));
+
+            Scrollbar scrollbar = BuilderTools.GetOrAddComponent<Scrollbar>(bar.gameObject);
+            scrollbar.handleRect = handle;
+            scrollbar.targetGraphic = handleImage;
+            scrollbar.direction = Scrollbar.Direction.BottomToTop;
+            // 키보드 이동으로 막대가 골라지면 입력칸의 글자 입력을 가로챈다.
+            scrollbar.navigation = new Navigation { mode = Navigation.Mode.None };
+            return scrollbar;
+        }
+
+        // 기본 둥근 판 그림의 모서리(10)를 막대 폭(8)의 절반으로 줄여 양 끝을 둥글게 한다.
+        private static void RoundBar(Image image, Color color)
+        {
+            image.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+            image.type = Image.Type.Sliced;
+            image.pixelsPerUnitMultiplier = 10f / 4f;
+            image.color = color;
         }
 
         private static RectTransform FindRect(Transform parent, string name)

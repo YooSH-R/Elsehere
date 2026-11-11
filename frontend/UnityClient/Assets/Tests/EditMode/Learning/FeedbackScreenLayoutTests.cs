@@ -48,10 +48,13 @@ namespace A305.Learning.Tests
             Show();
             var expandButton = Field<Button>("expandButton");
             var closeButton = Field<Button>("topCloseButton");
-            Rect expand = Box((RectTransform)expandButton.transform);
-            Rect close = Box((RectTransform)closeButton.transform);
+            var expandRect = (RectTransform)expandButton.transform;
+            var closeRect = (RectTransform)closeButton.transform;
+            Rect expand = Box(expandRect);
+            Rect close = Box(closeRect);
 
-            Assert.That(expand.size, Is.EqualTo(close.size));
+            // 창 좌표로 왕복 변환하면 같은 크기여도 창의 배율에 따라 반올림 오차가 생긴다.
+            Assert.That(expandRect.rect.size, Is.EqualTo(closeRect.rect.size));
             Assert.That(expand.center.y, Is.EqualTo(close.center.y).Within(.01f));
             Assert.That(close.xMin - expand.xMax, Is.EqualTo(14 * Px).Within(.01f));
             Assert.That(
@@ -73,6 +76,20 @@ namespace A305.Learning.Tests
             Show();
 
             Assert.That(Panel().Find("ReviewSaveButton"), Is.Null);
+        }
+
+        [Test]
+        public void SummaryBody_IsReadableAtTheDefaultWindowSize()
+        {
+            Show();
+            TMP_Text summary = Field<RectTransform>("summaryCard")
+                .Find("Text")
+                .GetComponent<TMP_Text>();
+
+            Assert.That(
+                summary.fontSize * view.PanelRect.localScale.x,
+                Is.GreaterThanOrEqualTo(22)
+            );
         }
 
         [Test]

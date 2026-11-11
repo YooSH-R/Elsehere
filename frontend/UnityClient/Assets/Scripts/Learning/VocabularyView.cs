@@ -207,6 +207,7 @@ namespace A305.Learning
             book.ResetFilters();
             selectedIndex = 0;
             panel.SetActive(true);
+            CenterWindow.Shared.Place(PanelRect);
             UiLayer.Open(this);
             ShowStatus("");
             Refresh();
@@ -340,7 +341,7 @@ namespace A305.Learning
             FitLines(contextMeaningText, 21, 14, 50);
         }
 
-        // 마을 HUD(퀘스트 카드·미니맵)를 함께 볼 수 있게 그 오른쪽 빈 곳 가운데에 둔다.
+        // 창을 연 채 화면 크기를 바꿔도 화면 가운데에 맞춘다.
         private void LateUpdate()
         {
             if (panel.activeSelf)

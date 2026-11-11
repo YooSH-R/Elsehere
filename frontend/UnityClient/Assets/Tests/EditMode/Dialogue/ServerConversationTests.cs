@@ -939,6 +939,71 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task Start_StreamedGreeting_ShowsGrowingNpcLineBeforeTheConversationIsSaved()
+        {
+            api.StartStreamSteps.Add(stream => stream.OnDelta("Hi!"));
+            api.StartStreamSteps.Add(stream => stream.OnDelta(" What can"));
+            api.PendingStart = new TaskCompletionSource<ConversationStart>();
+
+            Task starting = conversation.StartAsync();
+
+            // 첫 인사 글자가 오기 시작하면 로딩을 걷고 온 만큼 보여 준다. 대화를 저장할 때까지 보내기는 막는다.
+            Assert.That(conversation.Waiting, Is.EqualTo(DialogueWait.None));
+            Assert.That(conversation.IsBusy, Is.True);
+            Assert.That(conversation.Lines, Has.Count.EqualTo(1));
+            Assert.That(conversation.Lines[0].IsNpc, Is.True);
+            Assert.That(conversation.Lines[0].English, Is.EqualTo("Hi! What can"));
+
+            api.PendingStart.SetResult(api.StartResponse);
+            await starting;
+
+            Assert.That(conversation.Lines, Has.Count.EqualTo(1));
+            Assert.That(conversation.Lines[0].English, Is.EqualTo(Opening));
+            Assert.That(conversation.LastNpcLine, Is.SameAs(conversation.Lines[0]));
+            Assert.That(conversation.LastNpcTurn.TurnId, Is.EqualTo(OpeningTurnId));
+        }
+
+        [Test]
+        public async Task Start_StreamedSpeechChunks_ArePassedOnAndTheWholeSpeechIsNotPlayedAgain()
+        {
+            var chunks = new List<NpcSpeechChunkData>();
+            conversation.NpcSpeechChunk += chunks.Add;
+            api.StartStreamSteps.Add(stream => stream.OnDelta("Hi!"));
+            api.StartStreamSteps.Add(stream => stream.OnSpeechChunk(0, "Hi!", Wav));
+
+            await conversation.StartAsync();
+
+            Assert.That(chunks, Has.Count.EqualTo(1));
+            Assert.That(chunks[0].Seq, Is.EqualTo(0));
+            Assert.That(chunks[0].Wav, Is.EqualTo(Wav));
+            Assert.That(conversation.LastTurnSpokenInChunks, Is.True);
+        }
+
+        [Test]
+        public async Task Start_AfterEndingAnOtherNpcsConversation_StreamsTheNewGreetingToo()
+        {
+            api.StartErrors.Enqueue(
+                new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중인 대화가 있습니다.")
+            );
+            api.Active = new ActiveConversation
+            {
+                ConversationId = 41,
+                Status = "ACTIVE",
+                Npc = new NpcSummary { NpcCode = "TOWN_PASSERBY", Name = "Ben" },
+                Turns = new List<ActiveTurn>(),
+            };
+            var chunks = new List<NpcSpeechChunkData>();
+            conversation.NpcSpeechChunk += chunks.Add;
+            api.StartStreamSteps.Add(stream => stream.OnSpeechChunk(0, "Hi!", Wav));
+
+            await conversation.StartAsync();
+
+            Assert.That(api.Calls, Is.EqualTo(new[] { "Start", "GetActive", "End", "Start" }));
+            Assert.That(chunks, Has.Count.EqualTo(1));
+            Assert.That(conversation.LastTurnSpokenInChunks, Is.True);
+        }
+
+        [Test]
         public async Task Send_WhileWaiting_WaitsForTheNpcReply()
         {
             await conversation.StartAsync();
@@ -2846,7 +2911,8 @@ namespace A305.Dialogue.Tests
                 string initiatedBy,
                 bool npcOffDuty,
                 NpcTravelContext npcTravelContext = null,
-                string placeCode = null
+                string placeCode = null,
+                ITurnStream stream = null
             )
             {
                 Calls.Add("Start");
@@ -2865,8 +2931,20 @@ namespace A305.Dialogue.Tests
                     return Task.FromException<ConversationStart>(StartErrors.Dequeue());
                 }
 
+                if (stream != null)
+                {
+                    foreach (Action<ITurnStream> step in StartStreamSteps)
+                    {
+                        step(stream);
+                    }
+                }
+
                 return PendingStart?.Task ?? Task.FromResult(StartResponse);
             }
+
+            /// <summary>대화 시작이 스트림으로 차례로 넘길 첫 인사 글자·조각 음성. 스트림 없이 시작하면 넘기지 않는다.</summary>
+            public List<Action<ITurnStream>> StartStreamSteps { get; } =
+                new List<Action<ITurnStream>>();
 
             /// <summary>발화 전송이 스트림으로 차례로 넘길 대사 글자·조각 음성.</summary>
             public List<Action<ITurnStream>> StreamSteps { get; } = new List<Action<ITurnStream>>();

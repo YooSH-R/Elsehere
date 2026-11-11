@@ -60,6 +60,9 @@ namespace A305.Api
             this.streamTransport = streamTransport;
         }
 
+        /// <summary>이벤트 스트림(SSE)을 받을 전송이 있는지. 없으면 <see cref="PostStreamAsync"/>를 쓸 수 없다.</summary>
+        public bool CanStream => streamTransport != null;
+
         /// <summary>
         /// JSON 본문을 POST하고 서버가 보내는 이벤트 스트림(SSE)을 받는 대로 <paramref name="onEvent"/>(이벤트 이름, data)에 넘긴다.
         /// 스트림을 시작하기 전의 오류는 다른 요청처럼 <see cref="ApiException"/>으로 던진다.

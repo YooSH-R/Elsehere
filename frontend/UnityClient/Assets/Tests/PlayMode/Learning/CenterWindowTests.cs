@@ -167,7 +167,7 @@ namespace A305.Learning.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator VocabularyAndHistory_PauseTheClockWhileOpen()
+        public IEnumerator VocabularyAndHistory_OpenCenteredAndPauseTheClock()
         {
             yield return LoadTown();
             foreach (string app in new[] { "VocabularyButton", "HistoryButton" })
@@ -182,6 +182,13 @@ namespace A305.Learning.PlayModeTests
                     app == "VocabularyButton"
                         ? Single<VocabularyView>().PanelRect
                         : Single<LearningHudView>().HistoryView.PanelRect;
+                var canvas = (RectTransform)window.parent;
+                Vector2 center = canvas.InverseTransformPoint(
+                    window.TransformPoint(window.rect.center)
+                );
+                Assert.That(Vector2.Distance(center, canvas.rect.center), Is.LessThan(.5f), app);
+                Assert.That(window.localScale.x, Is.GreaterThan(1f), app);
+
                 window
                     .GetComponentsInChildren<Button>(true)
                     .First(button => button.name == "CloseButton")

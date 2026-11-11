@@ -74,6 +74,10 @@ class ConversationControllerTest {
       OffsetDateTime.parse("2026-11-05T14:05:30+09:00");
   private static final String TURN =
       "{\"requestId\": \"" + REQUEST_ID + "\", \"inputType\": \"TEXT\", \"text\": \"A latte\"}";
+  private static final String START =
+      "{\"requestId\": \""
+          + REQUEST_ID
+          + "\", \"npcCode\": \"CAFE_STAFF\", \"initiatedBy\": \"USER\"}";
   private static final NpcSummaryResponse NPC =
       new NpcSummaryResponse("CAFE_STAFF", "Mia", "카페 직원");
 
@@ -442,6 +446,86 @@ class ConversationControllerTest {
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.error.code").value("CONVERSATION_ALREADY_ACTIVE"))
         .andExpect(jsonPath("$.error.details.activeConversationId").value(3));
+  }
+
+  @Test
+  @DisplayName(
+      "POST /api/v1/conversations에 Accept: text/event-stream이면 첫 인사 글자·조각 음성을 보내고 마지막에 REST와 같은 본문을 conversation으로 보낸다")
+  void start_streamAccept_sendsDeltaAudioThenConversation() throws Exception {
+    given(conversationService.start(eq(1L), any(), any()))
+        .willAnswer(
+            invocation -> {
+              TurnEvents events = invocation.getArgument(2);
+              events.delta("Hi");
+              events.audio(0, "Hi!", new byte[] {82, 73, 70, 70});
+              return startedConversation();
+            });
+
+    String body =
+        mockMvc
+            .perform(
+                request(post("/api/v1/conversations"), START)
+                    .header("Accept", "text/event-stream, application/json"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM))
+            .andExpect(header().string("X-Accel-Buffering", "no"))
+            .andReturn()
+            .getResponse()
+            .getContentAsString(StandardCharsets.UTF_8);
+
+    assertThat(body)
+        .startsWith(
+            "event: delta\ndata: {\"text\":\"Hi\"}\n\n"
+                + "event: audio\ndata: {\"seq\":0,\"text\":\"Hi!\",\"wav\":\"UklGRg==\"}\n\n"
+                + "event: conversation\ndata: {\"conversationId\":5,");
+    assertThat(body).contains("\"text\":\"Hi!\"").endsWith("}\n\n");
+  }
+
+  @Test
+  @DisplayName("대화 시작 스트림이어도 첫 인사를 보내기 전에 난 오류는 지금과 같은 HTTP 상태와 오류 본문으로 응답한다")
+  void start_streamAccept_errorBeforeEvents_respondsHttpError() throws Exception {
+    given(conversationService.start(eq(1L), any(), any()))
+        .willThrow(
+            new BusinessException(
+                ErrorCode.CONVERSATION_ALREADY_ACTIVE, Map.of("activeConversationId", 3L)));
+
+    mockMvc
+        .perform(
+            request(post("/api/v1/conversations"), START)
+                .header("Accept", "text/event-stream, application/json"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.error.code").value("CONVERSATION_ALREADY_ACTIVE"))
+        .andExpect(jsonPath("$.error.details.activeConversationId").value(3));
+  }
+
+  @Test
+  @DisplayName("첫 인사를 보내기 시작한 뒤 난 오류는 HTTP 상태와 공통 오류 본문을 error 이벤트로 보내고 스트림을 끝낸다")
+  void start_streamAccept_errorAfterEvents_sendsErrorEvent() throws Exception {
+    given(conversationService.start(eq(1L), any(), any()))
+        .willAnswer(
+            invocation -> {
+              TurnEvents events = invocation.getArgument(2);
+              events.delta("Hi");
+              throw new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE);
+            });
+
+    String body =
+        mockMvc
+            .perform(
+                request(post("/api/v1/conversations"), START)
+                    .header("Accept", "text/event-stream, application/json"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString(StandardCharsets.UTF_8);
+
+    assertThat(body)
+        .isEqualTo(
+            "event: delta\ndata: {\"text\":\"Hi\"}\n\n"
+                + "event: error\ndata: {\"status\":503,\"error\":{\"code\":\"AI_TEMPORARILY_UNAVAILABLE\","
+                + "\"message\":\""
+                + ErrorCode.AI_TEMPORARILY_UNAVAILABLE.getMessage()
+                + "\"}}\n\n");
   }
 
   @Test

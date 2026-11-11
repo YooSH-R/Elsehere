@@ -29,7 +29,7 @@ namespace A305.EditorTools.Mission
         private const string GoalHintMenuPath = "Tools/A305/Mission/Apply Quest Goal Hints";
         private const string FollowUpMenuPath = "Tools/A305/Mission/Apply Follow-up Card";
         private const string QuestIconMenuPath = "Tools/A305/Mission/Apply Quest Icon";
-        private const string QuestIconArtPath = "Assets/Art/UI/Quest/QuestHeaderIcon.png";
+        private const string QuestPillMenuPath = "Tools/A305/Mission/Apply Quest Pill";
         private const string CoinFloatMaterialPath = "Assets/Art/UI/Hud/Jua Coin Float.mat";
         private const string WhitePanelPath = "Assets/Art/UI/Mission/GlassPanel.png";
         private const string ClosePath = "Assets/Art/UI/Feedback/FeedbackClose.png";
@@ -97,7 +97,7 @@ namespace A305.EditorTools.Mission
             AssetDatabase.SaveAssets();
         }
 
-        /// <summary>HUD를 다시 만들지 않고 하는 퀘스트가 없을 때 카드 대신 두는 퀘스트 아이콘만 만든다.</summary>
+        /// <summary>HUD를 다시 만들지 않고 왼쪽 위 책 [퀘스트] 버튼만 만든다.</summary>
         [MenuItem(QuestIconMenuPath)]
         public static void ApplyQuestIconToPrefab()
         {
@@ -108,6 +108,31 @@ namespace A305.EditorTools.Mission
                         root.GetComponent<FirstDayMissionView>(),
                         root.transform.Find("Content")
                     )
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// HUD를 다시 만들지 않고 왼쪽 위 책 [퀘스트] 버튼과 그 옆 알약, 펼친 카드의 자리·접기 버튼·연습 칩·저절로 접기 막대만 만든다(시안 1-B).
+        /// </summary>
+        [MenuItem(QuestPillMenuPath)]
+        public static void ApplyQuestPillToPrefab()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                PrefabPath,
+                root =>
+                {
+                    var view = root.GetComponent<FirstDayMissionView>();
+                    Transform content = root.transform.Find("Content");
+                    QuestIcon(view, content);
+                    QuestPill(view, content);
+                    var card = (RectTransform)content.Find("CurrentGoal");
+                    PlaceCard(card);
+                    CardFold(view, card);
+                    var followUp = root.GetComponent<FollowUpCardView>();
+                    BuilderTools.SetReference(followUp, "questIcon", content.Find("QuestIcon"));
+                    BuilderTools.SetReference(followUp, "questPill", content.Find("QuestPill"));
+                }
             );
             AssetDatabase.SaveAssets();
         }
@@ -156,6 +181,8 @@ namespace A305.EditorTools.Mission
             QuestCard(view, (RectTransform)content.Find("CurrentGoal"));
             StatusChips(view, content);
             QuestIcon(view, content);
+            QuestPill(view, content);
+            CardFold(view, (RectTransform)content.Find("CurrentGoal"));
             // 수첩은 카드 자리에 펼친다. 펼친 동안 카드는 숨는다.
             var journal = (RectTransform)content.Find("Journal");
             journal.anchoredPosition = new Vector2(28 * Px, -28 * Px);
@@ -216,6 +243,7 @@ namespace A305.EditorTools.Mission
             BuilderTools.SetReference(cardView, "card", card);
             BuilderTools.SetReference(cardView, "questCard", questCard);
             BuilderTools.SetReference(cardView, "questIcon", content.Find("QuestIcon"));
+            BuilderTools.SetReference(cardView, "questPill", content.Find("QuestPill"));
             BuilderTools.SetReference(cardView, "rows", rows);
             BuilderTools.SetReference(cardView, "waitingMark", Sprite("CheckEmpty"));
             BuilderTools.SetReference(cardView, "readyMark", Sprite("CheckDone"));
@@ -301,9 +329,7 @@ namespace A305.EditorTools.Mission
         // 시안 .quest: 왼쪽·위 28, 폭 410, 안쪽 여백 위 21·옆 23·아래 23(테두리 1 포함), 모서리 32
         private static void QuestCard(FirstDayMissionView view, RectTransform card)
         {
-            card.anchorMin = card.anchorMax = card.pivot = new Vector2(0, 1);
-            card.anchoredPosition = new Vector2(28 * Px, -28 * Px);
-            card.sizeDelta = new Vector2(410 * Px, card.sizeDelta.y);
+            PlaceCard(card);
             Theme(card, UiThemeRole.Panel);
             var column = card.GetComponent<VerticalLayoutGroup>();
             column.padding = new RectOffset(Round(23), Round(23), Round(21), Round(23));
@@ -368,9 +394,10 @@ namespace A305.EditorTools.Mission
             marks.sizeDelta = new Vector2(0, 8 * Px);
             var bar = BuilderTools.GetOrAddComponent<HorizontalLayoutGroup>(marks.gameObject);
             bar.spacing = (6 - 2 * ArtPad) * Px;
-            bar.padding = new RectOffset(-Round(ArtPad), 0, 0, 0);
+            bar.padding = new RectOffset(-Round(ArtPad), -Round(ArtPad), 0, 0);
             bar.childAlignment = TextAnchor.MiddleLeft;
-            bar.childControlWidth = bar.childControlHeight = false;
+            bar.childControlWidth = true;
+            bar.childControlHeight = false;
             bar.childForceExpandWidth = bar.childForceExpandHeight = false;
             for (int i = 0; i < 7; i++)
             {
@@ -381,6 +408,7 @@ namespace A305.EditorTools.Mission
                     i == 0 ? Sprite("QuestStepCurrent") : Sprite("QuestStepUpcoming")
                 );
             }
+            ProgressMarkWidths(marks);
 
             // 목표 줄(위 14, 줄 높이 24, 줄 사이 9): 동그라미 체크(24) + 이름(Pretendard 17, 체크와 10 간격)
             RectTransform goals = Rect("Goals", card);
@@ -453,47 +481,195 @@ namespace A305.EditorTools.Mission
             Style(goal.Find("Text/Hint").GetComponent<TMP_Text>(), BodyFontPath, 16, Muted);
         }
 
-        // 하는 퀘스트가 없을 때(시작 전, 끝낸 뒤) 카드 대신 두는 퀘스트 아이콘: 카드 자리(왼쪽·위 28)에 시계·코인 칩과 같은 유리 알약(높이 64),
-        // 안에 퀘스트 목록 머리줄의 지도 앱 아이콘(44)과 '퀘스트'(Jua 21). 누르면 퀘스트 목록을 연다. 처음에는 숨겨 두고 카드가 정한다.
+        // 펼친 퀘스트 카드: 책 [퀘스트] 버튼 오른쪽 12(왼쪽 28 + 64 + 12, 위 28), 폭 410. 서버 상태를 받기 전에는 '카드를 눌러 확인하세요.'를 보인다.
+        private static void PlaceCard(RectTransform card)
+        {
+            card.anchorMin = card.anchorMax = card.pivot = new Vector2(0, 1);
+            card.anchoredPosition = new Vector2(28 + 64 + 12, -28) * Px;
+            card.sizeDelta = new Vector2(410 * Px, card.sizeDelta.y);
+            card.gameObject.SetActive(true);
+        }
+
+        // 왼쪽 위 모서리(28)의 책 [퀘스트] 버튼: 오른쪽 위 HUD(휴대폰 버튼·시계·코인 칩)와 같은 64 자리에 책(높이 64)을 두고, 배경에 묻히지 않게
+        // 흰 테두리(2.5)와 넓고 밝은 흰 빛 번짐(지름 150)을 함께 렌더링했다(그림은 자리 사방으로 43 넓다).
+        // 옆에 알약·카드가 뜨면 그 창에 빛이 비치지 않게 작고 옅은 빛(지름 104) 그림으로 바꾼다(FirstDayMissionView). 하는 퀘스트가 있든 없든 늘 보이고, 누르면 퀘스트 창을 연다.
         private static void QuestIcon(FirstDayMissionView view, Transform content)
         {
+            const float Glow = 43;
             Transform old = content.Find("QuestIcon");
+            int index = old != null ? old.GetSiblingIndex() : content.childCount;
             if (old != null)
                 Object.DestroyImmediate(old.gameObject);
-            RectTransform chip = Chip(content, "QuestIcon");
-            Object.DestroyImmediate(chip.GetComponent<LayoutElement>());
-            RectTransform row = Row(chip, "Row", 10);
-            Fill(row);
-            row.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(
-                Round(10),
-                Round(22),
+            RectTransform button = Rect("QuestIcon", content);
+            button.SetSiblingIndex(index);
+            button.anchorMin = button.anchorMax = button.pivot = new Vector2(0, 1);
+            button.anchoredPosition = new Vector2(28, -28) * Px;
+            button.sizeDelta = new Vector2(64, 64) * Px;
+            button.gameObject.AddComponent<Image>().color = Color.clear;
+            RectTransform art = Rect("Art", button);
+            art.anchorMin = Vector2.zero;
+            art.anchorMax = Vector2.one;
+            art.offsetMin = -Vector2.one * Glow * Px;
+            art.offsetMax = Vector2.one * Glow * Px;
+            Picture(art.gameObject, Sprite("QuestBookButton"));
+            var click = button.gameObject.AddComponent<Button>();
+            click.targetGraphic = art.GetComponent<Image>();
+            QuestBoardBuilder.Listen(click, view.OpenQuestBoard);
+            BuilderTools.SetReference(view, "questIcon", click);
+            BuilderTools.SetReference(view, "questButtonArt", art.GetComponent<Image>());
+            BuilderTools.SetReference(view, "questButtonGlow", Sprite("QuestBookButton"));
+            BuilderTools.SetReference(view, "questButtonSoftGlow", Sprite("QuestBookButtonSoft"));
+            button.gameObject.SetActive(true);
+        }
+
+        // 하는 퀘스트를 접어 둔 한 줄 알약: 책 버튼 오른쪽 12(왼쪽 28 + 64 + 12, 위 28)에 시계·코인 칩과 같은 유리 알약(높이 64, 안쪽 왼 24·오른 18, 칸 사이 12).
+        // 이름(이야기·장소 연습, Jua 22) · 진행 칸(16×7, 사이 4) · ⌄(20). 폭은 글자에 맞춰 늘어난다.
+        // 누르면 카드를 펼친다. 그림은 시안 HTML을 렌더링한 것이다. 처음에는 숨겨 두고 FirstDayMissionView가 정한다.
+        // 퀘스트 목록·팡파레보다 아래에 그리도록 책 버튼 바로 뒤에 둔다.
+        private static void QuestPill(FirstDayMissionView view, Transform content)
+        {
+            Transform old = content.Find("QuestPill");
+            if (old != null)
+                Object.DestroyImmediate(old.gameObject);
+            RectTransform pill = Chip(content, "QuestPill");
+            Object.DestroyImmediate(pill.GetComponent<LayoutElement>());
+            pill.SetSiblingIndex(content.Find("QuestIcon").GetSiblingIndex() + 1);
+            pill.anchorMin = pill.anchorMax = pill.pivot = new Vector2(0, 1);
+            pill.anchoredPosition = new Vector2(28 + 64 + 12, -28) * Px;
+            pill.sizeDelta = new Vector2(0, 64 * Px);
+            BuilderTools
+                .GetOrAddComponent<LayoutElement>(pill.Find("Glass").gameObject)
+                .ignoreLayout = true;
+            var row = pill.gameObject.AddComponent<HorizontalLayoutGroup>();
+            row.padding = new RectOffset(Round(24), Round(18), 0, 0);
+            row.spacing = 12 * Px;
+            row.childAlignment = TextAnchor.MiddleLeft;
+            row.childControlWidth = row.childControlHeight = true;
+            row.childForceExpandWidth = row.childForceExpandHeight = false;
+            pill.gameObject.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter
+                .FitMode
+                .PreferredSize;
+
+            TMP_Text title = Text(pill, "Title", DisplayFontPath, 22, Ink, "이야기");
+            title.alignment = TextAlignmentOptions.MidlineLeft;
+            title.margin = new Vector4(0, 2 * Px, 0, 0);
+
+            RectTransform marks = Rect("Marks", pill);
+            var bar = marks.gameObject.AddComponent<HorizontalLayoutGroup>();
+            bar.spacing = 4 * Px;
+            bar.childAlignment = TextAnchor.MiddleLeft;
+            bar.childControlWidth = bar.childControlHeight = true;
+            bar.childForceExpandWidth = bar.childForceExpandHeight = false;
+            RectTransform mark = Box(marks, "Mark", 16, 7);
+            Picture(mark.gameObject, Sprite("QuestPillMarkOff"));
+
+            RectTransform chevron = Box(pill, "Chevron", 20, 20);
+            Picture(chevron.gameObject, Sprite("QuestPillChevron"));
+
+            Image glass = pill.Find("Glass").GetComponent<Image>();
+            glass.raycastTarget = true;
+            var button = pill.gameObject.AddComponent<Button>();
+            button.targetGraphic = glass;
+            QuestBoardBuilder.Listen(button, view.ExpandQuestCard);
+
+            BuilderTools.SetReference(view, "questPill", button);
+            BuilderTools.SetReference(view, "pillTitle", title);
+            BuilderTools.SetReference(view, "pillMarks", marks);
+            BuilderTools.SetReference(view, "pillMarkStory", Sprite("QuestPillMarkStory"));
+            BuilderTools.SetReference(view, "pillMarkPractice", Sprite("QuestPillMarkPractice"));
+            BuilderTools.SetReference(view, "pillMarkOff", Sprite("QuestPillMarkOff"));
+            pill.gameObject.SetActive(false);
+        }
+
+        // 펼친 카드의 부품(시안 1-B):
+        // 오른쪽·위 16의 접기 버튼(.fold 44, 그림자 여백 왼·위·오른 8, 아래 10). 장소가 버튼 밑으로 가지 않게 머리줄 오른쪽을 비운다.
+        // 단계 칩 자리에 대신 보이는 파란 '장소 연습' 칩(Jua 20, 양옆 16 = 104×40). 단계 칩 그림을 같은 모양 그대로 파랗게 칠했다.
+        // 퀘스트를 시작해 잠깐 펼친 동안 카드 아래 6에 보이는 저절로 접기 막대(카드 폭 × 6).
+        private static void CardFold(FirstDayMissionView view, RectTransform card)
+        {
+            foreach (string old in new[] { "FoldButton", "AutoFold" })
+            {
+                Transform part = card.Find(old);
+                if (part != null)
+                    Object.DestroyImmediate(part.gameObject);
+            }
+            Transform header = card.Find("Header");
+            Transform oldChip = header.Find("PracticeChip");
+            if (oldChip != null)
+                Object.DestroyImmediate(oldChip.gameObject);
+
+            RectTransform fold = Rect("FoldButton", card);
+            BuilderTools.GetOrAddComponent<LayoutElement>(fold.gameObject).ignoreLayout = true;
+            fold.anchorMin = fold.anchorMax = fold.pivot = Vector2.one;
+            fold.anchoredPosition = new Vector2(-16, -16) * Px;
+            fold.sizeDelta = new Vector2(44, 44) * Px;
+            var hit = fold.gameObject.AddComponent<Image>();
+            hit.color = Color.clear;
+            RectTransform art = Rect("Art", fold);
+            art.anchorMin = Vector2.zero;
+            art.anchorMax = Vector2.one;
+            art.offsetMin = new Vector2(-8, -10) * Px;
+            art.offsetMax = new Vector2(8, 8) * Px;
+            Picture(art.gameObject, Sprite("QuestFoldButton"));
+            var foldButton = fold.gameObject.AddComponent<Button>();
+            foldButton.targetGraphic = art.GetComponent<Image>();
+            QuestBoardBuilder.Listen(foldButton, view.FoldQuestCard);
+            header.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(
+                0,
+                Round(16 + 44 - 23 + 8),
                 0,
                 0
             );
-            // 머리줄 아이콘 그림(60에 그림자 자리 왼쪽·오른쪽 14, 위 8, 아래 22)을 44로 줄인다.
-            const float IconSize = 44;
-            const float IconScale = IconSize / 60f;
-            RectTransform icon = Box(row, "Icon", IconSize, IconSize);
-            RectTransform art = Rect("Art", icon);
-            art.anchorMin = art.anchorMax = art.pivot = new Vector2(0, 1);
-            art.anchoredPosition = new Vector2(-14, 8) * IconScale * Px;
-            art.sizeDelta = new Vector2(60 + 28, 60 + 30) * IconScale * Px;
-            Picture(art.gameObject, AssetDatabase.LoadAssetAtPath<Sprite>(QuestIconArtPath));
-            TMP_Text label = Text(row, "Label", DisplayFontPath, 21, Ink, "퀘스트");
-            label.margin = new Vector4(0, 2 * Px, 0, 0);
-            label.alignment = TextAlignmentOptions.MidlineLeft;
 
-            chip.anchorMin = chip.anchorMax = chip.pivot = new Vector2(0, 1);
-            chip.anchoredPosition = new Vector2(28, -28) * Px;
-            float width = 10 + IconSize + 10 + label.GetPreferredValues("퀘스트").x / Px + 22;
-            chip.sizeDelta = new Vector2(width, 64) * Px;
-            Image glass = chip.Find("Glass").GetComponent<Image>();
-            glass.raycastTarget = true;
-            var button = chip.gameObject.AddComponent<Button>();
-            button.targetGraphic = glass;
-            QuestBoardBuilder.Listen(button, view.OpenQuestBoard);
-            BuilderTools.SetReference(view, "questIcon", button);
+            RectTransform chip = Box(header, "PracticeChip", 104, 40);
+            chip.SetSiblingIndex(header.Find("StepChip").GetSiblingIndex() + 1);
+            Art(chip, "QuestChipPractice", 104 + 2 * ArtPad, 40 + 2 * ArtPad, ArtPad, ArtPad);
+            TMP_Text label = Text(chip, "Label", DisplayFontPath, 20, Color.white, "장소 연습");
+            Fill(label.rectTransform);
+            label.alignment = TextAlignmentOptions.Center;
+            label.margin = new Vector4(0, 1 * Px, 0, 0);
             chip.gameObject.SetActive(false);
+
+            RectTransform timer = Rect("AutoFold", card);
+            BuilderTools.GetOrAddComponent<LayoutElement>(timer.gameObject).ignoreLayout = true;
+            timer.anchorMin = Vector2.zero;
+            timer.anchorMax = Vector2.right;
+            timer.pivot = new Vector2(.5f, 1);
+            timer.anchoredPosition = new Vector2(0, -6 * Px);
+            timer.sizeDelta = new Vector2(0, 6 * Px);
+            Picture(timer.gameObject, Sprite("QuestFoldTimerTrack"));
+            RectTransform fill = Rect("Fill", timer);
+            Fill(fill);
+            Picture(fill.gameObject, Sprite("QuestFoldTimer"));
+            var fillImage = fill.GetComponent<Image>();
+            fillImage.type = UnityEngine.UI.Image.Type.Filled;
+            fillImage.fillMethod = UnityEngine.UI.Image.FillMethod.Horizontal;
+            fillImage.fillOrigin = (int)UnityEngine.UI.Image.OriginHorizontal.Left;
+            timer.gameObject.SetActive(false);
+
+            ProgressMarkWidths((RectTransform)card.Find("Progress/Marks"));
+
+            BuilderTools.SetReference(view, "foldButton", foldButton);
+            BuilderTools.SetReference(view, "practiceChip", chip.gameObject);
+            BuilderTools.SetReference(view, "practiceDoneMark", Sprite("QuestStepPractice"));
+            BuilderTools.SetReference(view, "autoFoldBar", timer.GetComponent<Image>());
+            BuilderTools.SetReference(view, "autoFoldFill", fillImage);
+        }
+
+        // 진행 칸은 시안 폭(46.86, 빛 번짐 자리 포함)으로 두고, 카드에 다 들어가지 않으면 빛 번짐 자리 + 4까지 고르게 줄인다.
+        // 양 끝 칸의 빛 번짐 자리는 카드 안쪽 여백에 걸치게 해 칸 줄이 카드 안쪽 폭과 같게 한다.
+        // 연습 카드는 FirstDayMissionView가 칸을 늘려 카드 폭을 채운다.
+        private static void ProgressMarkWidths(RectTransform marks)
+        {
+            var bar = marks.GetComponent<HorizontalLayoutGroup>();
+            bar.childControlWidth = true;
+            bar.padding = new RectOffset(-Round(ArtPad), -Round(ArtPad), 0, 0);
+            foreach (Transform mark in marks)
+            {
+                var size = BuilderTools.GetOrAddComponent<LayoutElement>(mark.gameObject);
+                size.minWidth = (2 * ArtPad + 4) * Px;
+                size.preferredWidth = (46.86f + 2 * ArtPad) * Px;
+            }
         }
 
         // 목표 줄 견본: 동그라미 체크(24) + 이름(Pretendard 17)과 그 아래 말해야 할 정보(Pretendard 14, 옅은 글자). 정보가 길면 줄을 바꾼다.

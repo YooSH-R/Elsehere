@@ -65,7 +65,7 @@ MonoBehaviour:
     buttonLabel: 
   - step: 9
     title: "\uC624\uB298\uC758 \uBAA9\uD45C"
-    task: "\uC67C\uCABD \uC704 {\uD018\uC2A4\uD2B8 \uCE74\uB4DC}\uB97C \uB20C\uB7EC
+    task: "\uC67C\uCABD \uC704 {\uD018\uC2A4\uD2B8}\uB97C \uB20C\uB7EC
       \uC624\uB298\uC758 \uBAA9\uD45C \uBCF4\uAE30"
     touchTask: 
     buttonLabel: 

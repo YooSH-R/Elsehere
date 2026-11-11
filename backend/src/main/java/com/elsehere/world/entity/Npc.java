@@ -46,6 +46,15 @@ public class Npc extends BaseEntity {
   @Column(nullable = false, length = 30)
   private String roleLabel;
 
+  // 일하는 곳(카페, 우체국). 코드 이름이 아니라 실제 근무지다. 단어장에서 대화 표현의 장소로 보여 준다.
+  @Column(length = 30)
+  private String placeName;
+
+  // 일하는 곳의 묶음. 단어장에서 대화 표현을 나누는 기준이다.
+  @Enumerated(EnumType.STRING)
+  @Column(length = 20)
+  private PlaceGroup placeGroup;
+
   // NpcPersona를 JSON 문자열로 jsonb 컬럼에 저장한다. 쓰기 때 jsonb로 변환하지 않으면 PostgreSQL이 타입 오류를 낸다.
   @Column(nullable = false, columnDefinition = "jsonb")
   @ColumnTransformer(write = "?::jsonb")

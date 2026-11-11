@@ -67,7 +67,9 @@ namespace A305.Learning
             if (label == null)
                 return;
             label.text = count.ToString();
-            label.transform.parent.gameObject.SetActive(count > 0);
+            Transform badge = label.transform.parent;
+            badge.SetAsLastSibling();
+            badge.gameObject.SetActive(count > 0);
         }
 
         [SerializeField]
@@ -103,8 +105,7 @@ namespace A305.Learning
                 return;
             }
             vocabularyButtonLabel.text = "단어장";
-            vocabularyCountText.text = count.ToString();
-            vocabularyCountText.transform.parent.gameObject.SetActive(count > 0);
+            SetCount(vocabularyCountText, count);
         }
 
         /// <summary>

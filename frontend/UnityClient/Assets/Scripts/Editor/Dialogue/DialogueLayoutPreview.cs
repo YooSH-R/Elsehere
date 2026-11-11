@@ -20,6 +20,59 @@ namespace A305.EditorTools.Dialogue
     /// <summary>실제 NPC와 고정 대본으로 대화 구도·도움말 배치를 확인한다. Play·모델 호출 없음.</summary>
     public static class DialogueLayoutPreview
     {
+        public static void CaptureSuggestions()
+        {
+            DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
+            var content = new WordPreviewContent
+            {
+                PreviewLines = new[]
+                {
+                    DialogueLine.FromUser("I'd like an iced latte, please."),
+                    DialogueLine.FromNpc("Sure! For here or to go?", "드시고 가세요, 포장하세요?"),
+                    DialogueLine.FromUser("For here, please."),
+                    DialogueLine.FromNpc(
+                        "Of course. Would you like anything else?",
+                        "더 필요한 건 있으세요?"
+                    ),
+                },
+            };
+            view.Show(content);
+            string output = OutputFolder();
+            SelectTheme(UiThemeId.Jelly);
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "suggestions-hidden.png"),
+                1920,
+                1080
+            );
+            Invoke(view, "PressHint");
+            RenderThemes(camera, view, eye, face, output, "suggestions-visible");
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "suggestions-short.png"),
+                844,
+                390
+            );
+            view.SetReviewReference(
+                "분실한 파란 가방을 카페 직원에게 물어보고, 가방의 특징을 설명해 보세요.\n\n이번에 써 볼 표현\nHas anyone turned in a blue bag?\n파란 가방 맡겨진 거 있나요?"
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "suggestions-review.png"),
+                1920,
+                1080
+            );
+        }
+
         public static void CaptureFourLines()
         {
             DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
@@ -452,14 +505,20 @@ namespace A305.EditorTools.Dialogue
             public bool IsGuided => false;
             public bool IsGuidedCompleted => false;
             public string SuggestedEnglish => null;
-            public string SuggestedKorean => null;
+            public string SuggestedKorean => "매장에서 먹을게요.";
             public string ExampleSentence => null;
             public bool IsBusy => false;
             public string StatusMessage => null;
             public DialogueWait Waiting { get; set; }
             public string RecoveryGuide => null;
             public bool CanRetry => false;
-            public IReadOnlyList<string> SuggestWords => new[] { "for here", "to go", "please" };
+            public IReadOnlyList<string> SuggestWords =>
+                new[]
+                {
+                    "for here — 매장에서 먹을게요",
+                    "to go — 포장해 주세요",
+                    "oat milk — 귀리 우유",
+                };
             public bool IsSuggestingWords => false;
             public bool CanSend => true;
             public bool HasMeaning => true;

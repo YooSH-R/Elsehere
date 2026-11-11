@@ -46,7 +46,7 @@ class SpeechServiceStorageLimitTest {
     given(aiGateway.synthesize(any(), anyString(), anyString(), anyDouble())).willReturn(WAV);
 
     SpeechResponse response =
-        speechService.regenerateSpeech(userId, turn.getId(), UUID.randomUUID());
+        speechService.regenerateSpeech(userId, turn.getId(), UUID.randomUUID(), 1.1);
 
     assertThat(response.status()).isEqualTo(SpeechStatus.FAILED);
     assertThatThrownBy(() -> speechService.npcSpeech(userId, turn.getId()))

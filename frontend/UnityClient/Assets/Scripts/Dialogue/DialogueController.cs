@@ -84,6 +84,7 @@ namespace A305.Dialogue
             if (
                 serverConversation == null
                 || serverConversation.IsReview
+                || serverConversation.IsPractice
                 || feedbackDelivery == null
                 || !feedbackDelivery.TryDefer()
             )
@@ -100,6 +101,10 @@ namespace A305.Dialogue
         public bool IsTalking => session.IsActive;
         public long? ActiveReviewConversationId =>
             serverConversation?.IsReview == true ? serverConversation.ConversationId : null;
+
+        /// <summary>지금 하는 장소 연습 대화의 서버 대화 ID. 장소 연습 중이 아니거나 아직 열리지 않았으면 null이다.</summary>
+        public long? ActivePracticeConversationId =>
+            serverConversation?.IsPractice == true ? serverConversation.ConversationId : null;
 
         /// <summary>이 머리 위치를 가진 NPC가 현재 대화 상대인지.</summary>
         public bool IsTalkingTo(Transform lookTarget) =>
@@ -181,6 +186,10 @@ namespace A305.Dialogue
         /// <param name="npcOffDuty">
         /// 교대 밖이라 일하지 않는 직원과의 대화인지. 서버 대화 시작(CONV-01)에 보내 응대 대신 일상 상황으로 대화하게 한다.
         /// </param>
+        /// <param name="practiceScenarioId">
+        /// 장소 연습으로 여는 대화면 그 상황 ID. 복습처럼 이야기와 따로 하므로 대화 시작·끝(<see cref="Started"/>·<see cref="Ended"/>)을 알리지 않는다.
+        /// </param>
+        /// <param name="practiceStart">장소 연습 대화를 여는 요청(PRC-02). 요청 ID를 받는다.</param>
         /// <returns>대화를 시작했으면 true. 이미 대화 중이면 false.</returns>
         public bool TryStart(
             string npcCode,
@@ -190,11 +199,17 @@ namespace A305.Dialogue
             bool npcOffDuty = false,
             long? reviewCardId = null,
             Func<string, Task<ConversationStart>> reviewStart = null,
-            NpcTravelContext npcTravelContext = null
+            NpcTravelContext npcTravelContext = null,
+            string practiceScenarioId = null,
+            Func<string, Task<ConversationStart>> practiceStart = null
         )
         {
+            bool isSeparatePractice = reviewCardId != null || practiceScenarioId != null;
             if (
                 (reviewCardId != null && (conversationApi == null || reviewStart == null))
+                || (
+                    practiceScenarioId != null && (conversationApi == null || practiceStart == null)
+                )
                 || lookTarget == null
                 || !session.TryStart(npcCode)
             )
@@ -219,7 +234,7 @@ namespace A305.Dialogue
             cameraRig.EnterDialogueView(lookTarget);
             player.SetMovementLocked(true);
 
-            bool isGuided = reviewCardId == null && hasScript && script.GuidedTurns.Count > 0;
+            bool isGuided = !isSeparatePractice && hasScript && script.GuidedTurns.Count > 0;
             if (conversationApi != null && !isGuided)
             {
                 StartServerConversation(
@@ -229,7 +244,9 @@ namespace A305.Dialogue
                     npcOffDuty,
                     reviewCardId,
                     reviewStart,
-                    npcTravelContext
+                    npcTravelContext,
+                    practiceScenarioId,
+                    practiceStart
                 );
             }
             else
@@ -249,7 +266,7 @@ namespace A305.Dialogue
                 KeepMicrophoneOpen();
             }
 
-            if (reviewCardId == null)
+            if (!isSeparatePractice)
                 Started?.Invoke(npcCode);
             return true;
         }
@@ -466,7 +483,9 @@ namespace A305.Dialogue
             bool npcOffDuty,
             long? reviewCardId = null,
             Func<string, Task<ConversationStart>> reviewStart = null,
-            NpcTravelContext npcTravelContext = null
+            NpcTravelContext npcTravelContext = null,
+            string practiceScenarioId = null,
+            Func<string, Task<ConversationStart>> practiceStart = null
         )
         {
             serverConversation = new ServerConversation(
@@ -478,7 +497,9 @@ namespace A305.Dialogue
                 npcOffDuty: npcOffDuty,
                 npcTravelContext: npcTravelContext,
                 reviewCardId: reviewCardId,
-                reviewStart: reviewStart
+                reviewStart: reviewStart,
+                practiceScenarioId: practiceScenarioId,
+                practiceStart: practiceStart
             );
             speechRecovery = new NpcSpeechRecovery(serverConversation, PlayRecoveredSpeechAsync);
             serverConversation.Changed += panel.Refresh;
@@ -528,7 +549,7 @@ namespace A305.Dialogue
         private void Finish(DialogueRecord record)
         {
             string endedNpcCode = Close();
-            if (record.ReviewCardId == null)
+            if (record.ReviewCardId == null && record.PracticeScenarioId == null)
                 Ended?.Invoke(endedNpcCode);
             ConversationEnded?.Invoke(record);
         }
@@ -621,6 +642,13 @@ namespace A305.Dialogue
             int count,
             string scenario = null
         ) => panel.SetReviewReference(items, count, scenario);
+
+        /// <summary>장소 연습 대화 위 참고 카드. 상황 설명 아래 목표를 보이고 해낸 목표에 표시한다.</summary>
+        public void SetPracticeReference(
+            IReadOnlyList<ReviewReferenceItem> goals,
+            int completedCount,
+            string briefing
+        ) => panel.SetReviewReference(goals, completedCount, briefing, "이번 연습", "해냈어요");
 
         private void ForwardPoliceDispatch(long turnId, string placeCode)
         {

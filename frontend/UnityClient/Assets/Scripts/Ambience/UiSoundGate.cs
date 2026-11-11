@@ -30,9 +30,11 @@ namespace A305.Ambience
 
     public static class EntryMusicPlan
     {
+        public static bool IsEntryScene(string scene) =>
+            string.Equals(scene, "EntryScene", StringComparison.Ordinal);
+
+        // 로딩 페이지(WebGLTemplates/A305Responsive/index.html)도 같은 음량 0.18로 튼다.
         public static float Volume(string scene, bool userGesture, bool enabled) =>
-            string.Equals(scene, "EntryScene", StringComparison.Ordinal) && userGesture && enabled
-                ? .18f
-                : 0f;
+            IsEntryScene(scene) && userGesture && enabled ? .18f : 0f;
     }
 }

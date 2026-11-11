@@ -170,6 +170,25 @@ namespace A305.Mission.Tests
         }
 
         [Test]
+        public void CardHidesRepeatedSituationAndShowsNewDetailsOnRefresh()
+        {
+            FirstDayMissionState state = Journey(current: 0);
+            state.Direction = "마을로 나가 식당 종업원 Rosa에게 이야기해 보세요.";
+            state.Situation = "마을로 나가 식당 종업원 Rosa에게 이야기 해 보세요";
+            Refresh(state);
+
+            Assert.That(Field<TMP_Text>("direction").text, Is.EqualTo(state.Direction));
+            TMP_Text situation = Field<TMP_Text>("situation");
+            Assert.That(situation.gameObject.activeSelf, Is.False);
+
+            state.Situation = "아침 식사는 음식과 음료를 모두 주문해야 해요.";
+            view.Refresh(state, false, false);
+
+            Assert.That(situation.gameObject.activeSelf, Is.True);
+            Assert.That(situation.text, Is.EqualTo(state.Situation));
+        }
+
+        [Test]
         public void CardWhenRestingShowsTheCurrentAction()
         {
             FirstDayMissionState state = Journey(current: 1);

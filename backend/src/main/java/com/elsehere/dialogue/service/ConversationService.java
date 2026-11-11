@@ -129,7 +129,8 @@ public class ConversationService {
         userId, request.requestId(), () -> startOnce(userId, request, null, null));
   }
 
-  public ConversationStartResponse startReview(Long userId, Long cardId, UUID requestId) {
+  public ConversationStartResponse startReview(
+      Long userId, Long cardId, UUID requestId, double speechSpeed) {
     return requestLocks.execute(
         userId,
         requestId,
@@ -144,14 +145,15 @@ public class ConversationService {
           return startOnce(
               userId,
               new StartConversationRequest(
-                  requestId, review.npc().npcCode(), InitiatedBy.USER, offDuty),
+                  requestId, review.npc().npcCode(), InitiatedBy.USER, offDuty, null, speechSpeed),
               review,
               null);
         });
   }
 
   /** 장소 연습(PRC-02). 고른 상황의 가게 직원과 학습자가 말을 거는 대화를 시작한다. 없는 상황이면 NOT_FOUND다. */
-  public ConversationStartResponse startPractice(Long userId, String scenarioId, UUID requestId) {
+  public ConversationStartResponse startPractice(
+      Long userId, String scenarioId, UUID requestId, double speechSpeed) {
     PracticeScenario practice = placePractice.scenario(scenarioId);
     return requestLocks.execute(
         userId,
@@ -160,7 +162,12 @@ public class ConversationService {
             startOnce(
                 userId,
                 new StartConversationRequest(
-                    requestId, practice.place().npcCode(), InitiatedBy.USER),
+                    requestId,
+                    practice.place().npcCode(),
+                    InitiatedBy.USER,
+                    false,
+                    null,
+                    speechSpeed),
                 null,
                 practice));
   }
@@ -190,6 +197,7 @@ public class ConversationService {
                     userId,
                     request.npcCode(),
                     request.npcOffDuty(),
+                    request.speechSpeed(),
                     review,
                     practice,
                     travelSituation));
@@ -446,6 +454,7 @@ public class ConversationService {
       Long userId,
       String npcCode,
       boolean npcOffDuty,
+      double speechSpeed,
       ReviewCardResponse review,
       PracticeScenario practice,
       String travelSituation) {
@@ -465,7 +474,7 @@ public class ConversationService {
     boolean storyDialogue = review == null && practice == null;
     return new StartContext(
         npc,
-        dialogueContexts.learner(user),
+        dialogueContexts.learner(user, speechSpeed),
         selectedLevel(user),
         storyDialogue ? memoryService.memoryFor(userId, npc.npcId()) : null,
         storyDialogue ? missionDialogueService.context(userId, npcCode) : Optional.empty(),

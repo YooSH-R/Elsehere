@@ -166,7 +166,7 @@ class ConversationControllerTest {
             OffsetDateTime.parse("2026-10-21T14:05:00+09:00"),
             4,
             FeedbackStatus.DONE);
-    given(conversationHistoryService.list(1L, "CAFE_STAFF", "60", 10))
+    given(conversationHistoryService.list(1L, "CAFE_STAFF", null, "60", 10, false))
         .willReturn(new ConversationListResponse(List.of(item), "58"));
 
     mockMvc
@@ -182,13 +182,14 @@ class ConversationControllerTest {
         .andExpect(jsonPath("$.items[0].startedAt").value("2026-10-21T14:00:00+09:00"))
         .andExpect(jsonPath("$.items[0].userTurnCount").value(4))
         .andExpect(jsonPath("$.items[0].feedbackStatus").value("DONE"))
+        .andExpect(jsonPath("$.items[0].practiceCount").value(0))
         .andExpect(jsonPath("$.nextCursor").value("58"));
   }
 
   @Test
   @DisplayName("GET /api/v1/conversations에 조건이 없으면 전체 NPC의 첫 페이지를 20개씩 요청한다")
   void list_withoutParams_usesDefaults() throws Exception {
-    given(conversationHistoryService.list(1L, null, null, 20))
+    given(conversationHistoryService.list(1L, null, null, null, 20, false))
         .willReturn(new ConversationListResponse(List.of(), null));
 
     mockMvc
@@ -199,9 +200,9 @@ class ConversationControllerTest {
   }
 
   @Test
-  @DisplayName("피드백 목록 요청은 완료된 피드백 필터와 기존 조회 조건을 함께 전달한다")
+  @DisplayName("대화 노트 요청은 완료된 피드백 필터·장소와 기존 조회 조건을 함께 전달한다")
   void list_feedbackOnly_passesCompletedFeedbackFilter() throws Exception {
-    given(conversationHistoryService.list(1L, "CAFE_STAFF", "60", 10, true))
+    given(conversationHistoryService.list(1L, "CAFE_STAFF", "CAFE", "60", 10, true))
         .willReturn(new ConversationListResponse(List.of(), "58"));
 
     mockMvc
@@ -211,6 +212,7 @@ class ConversationControllerTest {
                 .param("cursor", "60")
                 .param("size", "10")
                 .param("feedbackOnly", "true")
+                .param("sceneCode", "CAFE")
                 .with(authentication(loggedIn(1L))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.items").isEmpty())

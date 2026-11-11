@@ -42,16 +42,6 @@ namespace A305.Learning
         private Button vocabularyButton;
 
         [SerializeField]
-        [Tooltip("왼쪽 아래 [복습장에 추가]. 담으면 같은 자리에서 [복습장에 추가됨]이 된다.")]
-        private Button reviewButton;
-
-        [SerializeField]
-        private Sprite reviewSaveSprite;
-
-        [SerializeField]
-        private Sprite reviewSavedSprite;
-
-        [SerializeField]
         private Button closeButton;
 
         [SerializeField]
@@ -199,7 +189,6 @@ namespace A305.Learning
         private bool isMeaningLoading;
         private bool isExpanded;
         private bool isSaveAvailable = true;
-        private bool isReviewSaved;
         private Func<GlossaryWord, Task<bool>> wordSaver;
 
         // 고정된 본문 영역 안에서 모든 내용이 세로로 흐른다. 탭을 바꿀 때마다 줄·카드를 새로 만든다.
@@ -225,9 +214,6 @@ namespace A305.Learning
 
         /// <summary>[다시 만들기]를 누르면 알린다.</summary>
         public event Action RegenerateRequested;
-
-        /// <summary>[복습장에 추가]를 누르면 알린다.</summary>
-        public event Action ReviewSaveRequested;
 
         public bool IsVisible => panel.activeSelf;
 
@@ -257,20 +243,6 @@ namespace A305.Learning
         public void SetSaveAvailable(bool available)
         {
             isSaveAvailable = available;
-        }
-
-        /// <summary>[복습장에 추가]를 보여 줄지. 서버가 만든 피드백만 복습장에 담는다.</summary>
-        public void SetReviewAvailable(bool available)
-        {
-            if (reviewButton != null)
-                reviewButton.gameObject.SetActive(available);
-        }
-
-        /// <summary>복습장에 담았으면 같은 자리의 버튼을 초록 [복습장에 추가됨]으로 바꾸고 다시 누르지 않게 한다.</summary>
-        public void ShowReviewSaved()
-        {
-            isReviewSaved = true;
-            ApplyReviewLook();
         }
 
         /// <summary>단어장에 넣은 표현·문장의 [담기]를 [담음]으로 바꾸고 다시 누르지 않게 한다.</summary>
@@ -375,8 +347,6 @@ namespace A305.Learning
             isTranscriptShown = false;
             selectedTranscriptReview = null;
             savedExpressions.Clear();
-            isReviewSaved = false;
-            ApplyReviewLook();
             panel.SetActive(true);
             UiLayer.Open(this);
             SelectSection(FeedbackSection.Summary);
@@ -411,8 +381,6 @@ namespace A305.Learning
             ConfigureScroll();
             detailButton.onClick.AddListener(ToggleDetail);
             vocabularyButton.onClick.AddListener(() => VocabularyRequested?.Invoke());
-            if (reviewButton != null)
-                reviewButton.onClick.AddListener(() => ReviewSaveRequested?.Invoke());
             closeButton.onClick.AddListener(() => CloseRequested?.Invoke());
             topCloseButton.onClick.AddListener(() => CloseRequested?.Invoke());
             expandButton.onClick.AddListener(ToggleExpanded);
@@ -778,20 +746,6 @@ namespace A305.Learning
             float middle = -rect.anchoredPosition.y + rect.sizeDelta.y / 2;
             FeedbackCardsLayout.PlacePick(pick, pickedSprite, right, middle);
             pick.interactable = false;
-        }
-
-        // [복습장에 추가] 그림과 폭을 담은 상태에 맞춘다. 왼쪽 아래 자리는 그대로다.
-        private void ApplyReviewLook()
-        {
-            if (reviewButton == null)
-                return;
-            Sprite sprite = isReviewSaved ? reviewSavedSprite : reviewSaveSprite;
-            Image art = reviewButton.transform.Find("Art").GetComponent<Image>();
-            art.sprite = sprite;
-            FeedbackCardsLayout.Art(art);
-            var rect = (RectTransform)reviewButton.transform;
-            rect.sizeDelta = new Vector2(FeedbackCardsLayout.ArtWidth(sprite), rect.sizeDelta.y);
-            reviewButton.interactable = !isReviewSaved;
         }
 
         private void ClearBuiltItems()

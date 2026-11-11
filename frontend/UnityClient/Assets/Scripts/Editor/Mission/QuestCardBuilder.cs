@@ -573,10 +573,10 @@ namespace A305.EditorTools.Mission
 
         private static void ClockLabel(FirstDayMissionView view, RectTransform chip)
         {
-            // 기존 최소 폭은 유지하고, 필요하면 글자와 여백만큼 Status의 왼쪽으로 넓힌다.
+            // 글자 양옆에 24px를 남기고, 긴 날짜는 코인 칩을 밀지 않도록 왼쪽으로 넓힌다.
             chip.GetComponent<LayoutElement>().preferredWidth = -1;
             var layout = BuilderTools.GetOrAddComponent<HorizontalLayoutGroup>(chip.gameObject);
-            layout.padding = new RectOffset(Round(6), Round(6), 0, 0);
+            layout.padding = new RectOffset(Round(24), Round(24), 0, 0);
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childControlWidth = layout.childControlHeight = true;
             layout.childForceExpandWidth = layout.childForceExpandHeight = true;

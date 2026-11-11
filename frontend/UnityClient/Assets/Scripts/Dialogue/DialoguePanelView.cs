@@ -1189,14 +1189,22 @@ namespace A305.Dialogue
         private TMP_Text vehicleStatusText;
 
         [SerializeField]
+        private RectTransform taxiArrivalStatus;
+
+        [SerializeField]
         [Tooltip("NPC 이름 뒤의 코랄 이름표. 이름 길이에 맞춰 폭을 정한다.")]
         private RectTransform nameChip;
 
         /// <summary>택시에 탄 동안의 대화인지. 택시 안내는 택시에서만 보인다.</summary>
         public void SetVehicleLayout(bool enabled)
         {
-            if (!enabled && vehicleStatusText != null)
-                vehicleStatusText.transform.parent.gameObject.SetActive(false);
+            if (!enabled)
+            {
+                if (vehicleStatusText != null)
+                    vehicleStatusText.transform.parent.gameObject.SetActive(false);
+                if (taxiArrivalStatus != null)
+                    taxiArrivalStatus.gameObject.SetActive(false);
+            }
             UpdateLayout();
         }
 
@@ -1208,6 +1216,16 @@ namespace A305.Dialogue
             vehicleStatusText.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(message));
         }
 
+        public void ShowTaxiArrival()
+        {
+            SetVehicleStatus(null);
+            if (taxiArrivalStatus == null)
+                return;
+            PlaceTaxiArrivalStatus(((RectTransform)taxiArrivalStatus.parent).rect.size);
+            taxiArrivalStatus.SetAsLastSibling();
+            taxiArrivalStatus.gameObject.SetActive(true);
+        }
+
         /// <summary>
         /// 대화창을 화면 아래 전체 폭에 깔고, 가운데 열에 입력 줄·상태 줄·대사·이름 줄을 쌓는다.
         /// 단어·문장 도움 카드는 오른쪽 위에 둔다.
@@ -1216,6 +1234,7 @@ namespace A305.Dialogue
         {
             var frame = (RectTransform)panel.transform;
             lastCanvasSize = ((RectTransform)frame.parent).rect.size;
+            PlaceTaxiArrivalStatus(lastCanvasSize);
             float column = Mathf.Min(
                 DialogueCinemaLayout.ColumnWidth,
                 lastCanvasSize.x - 2 * DialogueCinemaLayout.SideMargin
@@ -1401,6 +1420,18 @@ namespace A305.Dialogue
             status.anchorMin = status.anchorMax = new Vector2(.5f, 0);
             status.pivot = new Vector2(.5f, 0);
             status.anchoredPosition = new Vector2(0, layout.Name.yMax + VehicleStatusGap);
+        }
+
+        private void PlaceTaxiArrivalStatus(Vector2 canvasSize)
+        {
+            if (taxiArrivalStatus == null)
+                return;
+            bool portrait = canvasSize.x < canvasSize.y;
+            taxiArrivalStatus.anchoredPosition = new Vector2(
+                0,
+                -canvasSize.y * (portrait ? .12f : .075f)
+            );
+            taxiArrivalStatus.sizeDelta = new Vector2(Mathf.Clamp(canvasSize.x - 32, 0, 370), 62);
         }
 
         private bool NeedsVoiceConsent => content.UsesVoice && !content.CanTalk;

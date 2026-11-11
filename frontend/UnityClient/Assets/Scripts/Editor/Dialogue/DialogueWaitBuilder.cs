@@ -3,6 +3,7 @@ using A305.Dialogue;
 using A305.EditorTools.Common;
 using A305.EditorTools.Theme;
 using A305.EditorTools.UI;
+using A305.Theme;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -34,6 +35,17 @@ namespace A305.EditorTools.Dialogue
                 root => SetUp(root, root.GetComponent<DialoguePanelView>())
             );
             UiThemeBuilder.ApplyDialogueWaitingTheme();
+            AssetDatabase.SaveAssets();
+        }
+
+        [MenuItem("Tools/A305/Dialogue/Apply Taxi Arrival Status")]
+        public static void ApplyTaxiArrival()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                PanelPrefabPath,
+                root =>
+                    SetUpTaxiArrival(root, root.GetComponent<DialoguePanelView>(), LoadingRing())
+            );
             AssetDatabase.SaveAssets();
         }
 
@@ -124,6 +136,51 @@ namespace A305.EditorTools.Dialogue
                 wait.Find("Row/Label").GetComponent<TMP_Text>()
             );
             BuilderTools.SetReference(view, "feedbackWait", window.gameObject);
+            SetUpTaxiArrival(root, view, ring);
+        }
+
+        private static void SetUpTaxiArrival(GameObject root, DialoguePanelView view, Sprite ring)
+        {
+            RectTransform arrival = Child(
+                root.transform,
+                "TaxiArrivalStatus",
+                out bool isNewArrival
+            );
+            if (isNewArrival)
+            {
+                arrival.anchorMin = arrival.anchorMax = arrival.pivot = new Vector2(.5f, 1);
+                arrival.sizeDelta = new Vector2(370, 62);
+                arrival.gameObject.AddComponent<Image>().raycastTarget = false;
+                var row = arrival.gameObject.AddComponent<HorizontalLayoutGroup>();
+                row.padding = new RectOffset(24, 24, 0, 0);
+                row.spacing = 12;
+                row.childAlignment = TextAnchor.MiddleCenter;
+                row.childControlWidth = row.childControlHeight = true;
+                row.childForceExpandWidth = row.childForceExpandHeight = false;
+                Spinner(arrival, ring, 22);
+                TMP_Text label = UiBuilderTools.FindOrCreateText(
+                    arrival,
+                    "Label",
+                    UiBuilderTools.BoldFont(),
+                    24,
+                    Color.black,
+                    "도착했어요 · 하차 준비 중"
+                );
+                label.textWrappingMode = TextWrappingModes.NoWrap;
+                label.alignment = TextAlignmentOptions.Center;
+                label.raycastTarget = false;
+                var catalog = AssetDatabase.LoadAssetAtPath<UiThemeCatalog>(
+                    "Assets/Data/Theme/UiThemeCatalog.asset"
+                );
+                BuilderTools
+                    .GetOrAddComponent<ThemedElement>(arrival.gameObject)
+                    .Use(catalog, UiThemeRole.Chip);
+                BuilderTools
+                    .GetOrAddComponent<ThemedElement>(label.gameObject)
+                    .Use(catalog, UiThemeRole.Title);
+                arrival.gameObject.SetActive(false);
+            }
+            BuilderTools.SetReference(view, "taxiArrivalStatus", arrival);
         }
 
         private static void Spinner(Transform parent, Sprite ring, float size)

@@ -194,7 +194,6 @@ namespace A305.Mission
         // 지금까지 보인 코인. 처음 받은 코인은 바뀐 것으로 알리지 않는다.
         private int? shownBalance;
         private Coroutine coinChange;
-        private bool showingCoinChange;
         private Vector2 coinFloatHome;
         private bool available;
         private string mapSceneCode;
@@ -314,8 +313,7 @@ namespace A305.Mission
             latestPurchase = state.LastPurchase;
             if (!rewardExpected)
                 ShowCoins(state.Balance, state.LastPurchase);
-            // 대화 중에는 시계·코인 칩을 숨기지만, 코인이 바뀐 동안에는 코인 칩을 잠깐 보인다.
-            statusBar.SetActive(!talking || showingCoinChange);
+            statusBar.SetActive(!talking);
             UpdateLeftHudVisibility();
             string chip = StepChip(state.Steps);
             stepChip.text = chip ?? "";
@@ -488,7 +486,6 @@ namespace A305.Mission
         // 코인이 바뀌면 칩 옆에 바뀐 만큼을, 칩 아래에 산 것·보상을 띄우고 숫자를 세며 바꾼다(시안 f1·f3).
         private void ShowCoinChange(CoinChange change, int from, int to)
         {
-            showingCoinChange = true;
             coinFloat.text = change.Float;
             coinFloat.color = change.IsGain ? CoinGainColor : CoinLossColor;
             coinFloat.alpha = 1f;
@@ -538,9 +535,7 @@ namespace A305.Mission
             amount.anchoredPosition = coinFloatHome;
             coinFloat.gameObject.SetActive(false);
             coinReceipt.transform.parent.gameObject.SetActive(false);
-            showingCoinChange = false;
             coinChange = null;
-            statusBar.SetActive(!talking);
         }
 
         // 게임 시계는 분이 바뀔 때만 다시 쓴다.

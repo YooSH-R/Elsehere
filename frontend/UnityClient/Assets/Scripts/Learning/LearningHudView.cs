@@ -48,6 +48,7 @@ namespace A305.Learning
         [SerializeField]
         [Tooltip("오른쪽 위 휴대폰 버튼 줄. 대화 중에는 숨긴다.")]
         private GameObject phoneButtonBar;
+        private SurveyPromptView surveyPrompt;
 
         [SerializeField]
         private TMP_Text feedbackCountText;
@@ -119,8 +120,13 @@ namespace A305.Learning
                 reviewButton.interactable = isAvailable;
         }
 
-        /// <summary>시안처럼 대화 중에는 오른쪽 위 휴대폰 버튼을 숨긴다.</summary>
-        public void SetTalking(bool talking) => phoneButtonBar.SetActive(!talking);
+        /// <summary>대화 중에는 휴대폰과 설문 아이콘을 숨긴다.</summary>
+        public void SetTalking(bool talking)
+        {
+            phoneButtonBar.SetActive(!talking);
+            surveyPrompt ??= GetComponentInChildren<SurveyPromptView>(true);
+            surveyPrompt?.SetTalking(talking);
+        }
 
         public void ShowMessage(string message)
         {

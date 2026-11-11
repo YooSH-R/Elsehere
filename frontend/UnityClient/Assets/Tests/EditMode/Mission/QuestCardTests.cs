@@ -276,21 +276,29 @@ namespace A305.Mission.Tests
             Assert.That(coin.preferredWidth, Is.EqualTo(coin.preferredHeight).Within(.01f));
         }
 
-        // 시안(g4)처럼 대화 중에는 오른쪽 위 시계·코인 칩과 미니맵을 숨긴다.
         [Test]
-        public void WhileTalking_HidesTheClockCoinsAndMiniMap()
+        public void WhileTalking_HidesTheClockAndCoinsEvenWhenTheBalanceChanges()
         {
             instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
             view = instance.GetComponent<FirstDayMissionView>();
             view.SetAvailable(true);
             view.BindMap("TOWN", instance.transform);
 
-            view.Refresh(Journey(current: 5), false, talking: true);
-
-            Assert.That(instance.transform.Find("Content/Status").gameObject.activeSelf, Is.False);
+            FirstDayMissionState state = Journey(current: 5);
+            state.Balance = 96;
+            view.Refresh(state, false, talking: true);
+            GameObject status = Field<GameObject>("statusBar");
+            Assert.That(status.activeSelf, Is.False);
             Assert.That(Field<GameObject>("miniMapPanel").activeSelf, Is.False);
-            view.Refresh(Journey(current: 5), false, talking: false);
-            Assert.That(instance.transform.Find("Content/Status").gameObject.activeSelf, Is.True);
+
+            state.Balance = 88;
+            state.LastPurchase = "우산";
+            view.Refresh(state, false, talking: true);
+            Assert.That(status.activeSelf, Is.False);
+
+            view.Refresh(state, false, talking: false);
+            Assert.That(status.activeSelf, Is.True);
+            Assert.That(Field<TMP_Text>("coins").text, Is.EqualTo("88"));
             Assert.That(Field<GameObject>("miniMapPanel").activeSelf, Is.True);
         }
 
@@ -304,9 +312,9 @@ namespace A305.Mission.Tests
             Assert.That(Field<TMP_Text>("coins").text, Is.EqualTo("20"));
         }
 
-        // 물건을 사면 코인 칩 옆에 줄어든 만큼과 산 것을 보인다. 대화 중에는 숨어 있던 코인 칩도 잠깐 보인다.
+        // 물건을 사면 코인 칩 옆에 줄어든 만큼과 산 것을 보인다.
         [Test]
-        public void CoinChange_ShowsTheAmountAndWhatWasBought_EvenWhileTalking()
+        public void CoinChange_ShowsTheAmountAndWhatWasBoughtDuringExploration()
         {
             FirstDayMissionState before = Journey(current: 5);
             before.Balance = 96;
@@ -315,7 +323,7 @@ namespace A305.Mission.Tests
             after.Balance = 88;
             after.LastPurchase = "우산";
 
-            view.Refresh(after, false, talking: true);
+            view.Refresh(after, false, talking: false);
 
             TMP_Text amount = Field<TMP_Text>("coinFloat");
             TMP_Text receipt = Field<TMP_Text>("coinReceipt");
@@ -323,11 +331,7 @@ namespace A305.Mission.Tests
             Assert.That(amount.text, Is.EqualTo("−8"));
             Assert.That(receipt.gameObject.activeInHierarchy, Is.True);
             Assert.That(receipt.text, Does.Contain("우산"));
-            Assert.That(
-                Field<GameObject>("statusBar").activeSelf,
-                Is.True,
-                "대화 중에도 잠깐 보인다"
-            );
+            Assert.That(Field<GameObject>("statusBar").activeSelf, Is.True);
         }
 
         [Test]

@@ -40,7 +40,7 @@
 
 ## 의자·벤치·소파 앉기
 
-카페 양쪽 테이블 의자 6개와 왼쪽 부스 소파 2개, 마을 벤치 4개, 호텔 대기 소파 2개에 같은 조작으로 앉습니다. 앉을 자리마다 `RestSeat`가 하나씩 있고, 벤치·소파는 앉을 위치를 왼쪽·오른쪽 중에서 고르게 가구 폭 방향으로 두 자리를 둡니다. 카페는 의자 6자리와 소파 4자리 모두 주문 후 5초 착석을 같은 퀘스트 휴식으로 인정합니다. 쉬는 NPC도 같은 자리에 앉으므로(`INpcSeat`, [Npc 모듈](../Npc/README.md#생활)) 한 자리에는 한 명만 앉습니다.
+장소 씬에서 호버 단어가 의자(`chair`)·벤치(`bench`)·소파(`sofa`)·스툴(`stool`)·이발 의자(`barber chair`)인 가구에는 모두 같은 조작으로 앉습니다. 침대와 계단은 앉는 가구로 보지 않습니다. 앉을 자리마다 `RestSeat`가 하나씩 있고, 벤치·소파는 가구 폭 방향으로 여러 자리를 둡니다. 카페는 의자 6자리와 소파 4자리 모두 주문 후 5초 착석을 같은 퀘스트 휴식으로 인정합니다. 식당(`MapleDinerInterior`) 부스·스툴은 주문 대기를 세는 `DinerMealRest`가 따로 앉힙니다. 쉬는 NPC도 같은 자리에 앉으므로(`INpcSeat`, [Npc 모듈](../Npc/README.md#생활)) 한 자리에는 한 명만 앉습니다.
 
 | 상황 | 동작 |
 | --- | --- |
@@ -48,19 +48,31 @@
 | NPC가 앉은 자리 | 그 자리는 빼고 남은 자리 중 가장 가까운 자리에 띄웁니다. NPC는 플레이어가 앉은 자리에 앉지 않습니다. |
 | 앉음 | 3초 쉰 뒤 앉기 전에 서 있던 곳으로 일어섭니다. 카메라는 플레이어가 다가온 쪽에서 앉은 캐릭터를 봅니다. 자세와 카메라는 [Player 모듈](../Player/README.md)의 `PlayerSeatPose`가 맡습니다. |
 | 카페 | 첫날 미션이 상태를 읽기 전과 서버 요청 중에는 앉기를 막습니다. 쉬고 일어서면 `canRest`일 때만 서버에 휴식을 보냅니다. |
-| 마을·호텔 | 미션 상태와 상관없이 앉고, 미션 휴식으로 세지 않습니다(`FirstDayMissionState.ManagesSeatsIn`). 서버도 마지막 장소가 카페일 때만 휴식을 받습니다. |
+| 카페 밖 장소 | 집·마을·호텔·마을 매장·경찰서에서는 미션 상태와 상관없이 앉고, 미션 휴식으로 세지 않습니다(`FirstDayMissionState.ManagesSeatsIn`). 서버도 마지막 장소가 카페일 때만 휴식을 받습니다. |
 
-`RestSeat`의 `cushionTopMeters`·`frontEdgeMeters`는 자리 원점(바닥, +z가 앉아서 보는 방향)에서 잰 쿠션 윗면 높이와 앞 모서리까지의 거리입니다. 기본값은 카페 의자이고, 벤치·소파는 Builder가 모델에 맞춰 넣습니다.
+`RestSeat`의 `cushionTopMeters`·`frontEdgeMeters`는 자리 원점(바닥, +z가 앉아서 보는 방향)에서 잰 쿠션 윗면 높이와 앞 모서리까지의 거리입니다. 기본값은 카페 의자이고, 다른 가구는 Builder가 모델에 맞춰 넣습니다. 아래 값은 크기 1로 놓은 가구 기준이며, 크기를 바꿔 놓은 가구는 그 배율만큼 줄이거나 늘립니다.
 
-| 가구 | 모델 | 쿠션 윗면 | 앞 모서리 | 자리 |
+| 가구 | 모델(메시) | 쿠션 윗면 | 앞 모서리 | 자리 |
 | --- | --- | --- | --- | --- |
-| 카페 의자 | `CafeChair` | 0.33m | 0.30m | 의자마다 1개 |
+| 카페 의자 | TinyTreats `chair.fbx`(`CafeChair`) | 0.33m | 0.30m | 의자마다 1개 |
 | 카페 부스 소파 | `BoothSet/Bench` | 0.57m | 0.44m | 폭 2.6m를 반씩, x = ±0.65m |
 | 메인스트리트 벤치 | `ParkBench_HoneyWood`(`MainstreetArtKit.Bench`) | 0.325m | 0.205m | 폭 1.6m를 반씩, x = ±0.4m |
 | 공원 벤치 | TinyTreats `bench.fbx`를 0.8배 | 0.40m | 0.527m | 폭 1.6m를 반씩, x = ±0.4m |
 | 세이지 소파 | `Home_SageSofa_Sage`(`HomeInteriorKit.Sofa`) | 0.705m | 0.485m | 쿠션 두 개의 가운데, x = ±0.57m |
+| 노스블록 의자 | `Chair_17`(등받이 없는 높은 의자) | 0.90m | 0.28m | 1개, 마주한 면 쪽 |
+| 노스블록 안락의자 | `Armchair_02` | 0.62m | 0.45m | 1개 |
+| 노스블록 소파 | `Couch_08` | 0.54m | 0.40m | 쿠션 세 개마다, x = -0.65·0·0.65m |
+| 나무 스툴 | KayKit `chair_stool_wood` | 0.35m | 0.25m | 1개, 마주한 면 쪽 |
+| 나무 의자 | KayKit `chair_B_wood` | 0.34m | 0.26m | 1개 |
+| 쿠션 의자 | KayKit `chair_A` | 0.36m | 0.26m | 1개 |
+| 쿠션 안락의자 | KayKit `armchair_pillows` | 0.34m | 0.55m | 1개 |
+| 미용실 드라이어 의자 | `HoodDryerChair_SalonMint` | 0.52m | 0.33m | 1개 |
+| 미용실 세발 의자 | `WashChair_Leather` | 0.52m | 0.33m | 1개 |
+| 이발 의자 | `MainStreetBarber`의 `BarberChair` 좌판 | 0.64m | 0.31m | 1개, 거울(-x) 쪽 |
 
-**Tools → A305 → Cafe → Connect Chair Sitting**(`CafeSeatBuilder`)은 `CafeScene`·`CafeInteriorSandbox`의 양쪽 테이블 의자에 `CafeSeat1~6`을 맞추고, 부스 소파마다 자식 `RestSeat1`, `RestSeat2`를 연결합니다. **Tools → A305 → Mission → Connect Bench And Sofa Sitting**(`BenchSofaSeatBuilder`)은 `TownScene`·`HotelScene`에서 위 벤치·소파 모델을 그리는 활성 가구마다 자식 `RestSeat1`, `RestSeat2`를 두고 플레이어·대화·상호작용 화면과 앉는 면 값을 연결합니다. 두 Builder 모두 가구 배치와 디자인은 바꾸지 않습니다. 다른 벤치·소파 모델을 앉을 수 있게 하려면 `BenchSofaSeatBuilder`의 모델 목록에 메시 경로, 잰 값, 자리 위치를 추가합니다.
+등받이 없는 의자·스툴은 0.6m 안에 있는 가장 가까운 탁자·카운터·오락기·인형 뽑기 기계 쪽을 가구의 네 방향 중 하나로 봅니다. 마주할 것이 없으면 가구가 놓인 앞(+z)을 봅니다(`RestSeatLayout`).
+
+**Tools → A305 → Cafe → Connect Chair Sitting**(`CafeSeatBuilder`)은 `CafeScene`·`CafeInteriorSandbox`의 양쪽 테이블 의자에 `CafeSeat1~6`을 맞추고, 부스 소파마다 자식 `RestSeat1`, `RestSeat2`를 연결합니다. **Tools → A305 → Mission → Connect Seat Sitting**(`RestSeatBuilder`)은 Scene List의 나머지 장소 씬에서 앉을 가구마다 자식 `RestSeat1`부터 자리를 두고 플레이어·대화·상호작용 화면과 앉는 면 값을 연결합니다. 카페와 식당 씬은 위 방식이 따로 맡아 건너뜁니다. 자리 원점은 가구가 그린 모양의 가장 낮은 곳(바닥)에 두므로, 이발 의자처럼 가구 원점이 좌판 높이에 있어도 같습니다. 두 Builder 모두 가구 배치와 디자인은 바꾸지 않으며, 다시 실행해도 같은 자리를 같은 값으로 맞춥니다. 위 표에 없는 모델을 그리는 의자·벤치·소파·스툴이 씬에 있으면 `RestSeatBuilder`가 가구 이름과 함께 실패하므로, 모델 목록(`SeatModels`)에 메시 경로·잰 값·자리 위치를 추가하고 다시 실행합니다.
 
 ## 튜토리얼용 기본 미션
 

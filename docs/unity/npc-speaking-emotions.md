@@ -37,10 +37,30 @@
 | 할아버지 | `Review/LittleMung_Grandfather.prefab` |
 | 호텔리어 여성 | `Review/LittleMung_HotelStaff_Female.prefab` |
 | 경찰 남성·여성 | `Review/LittleMung_Police_Male.prefab`, `Review/LittleMung_Police_Female.prefab` |
+| 존박 전용 공연 캐릭터 | `LittleMung_JohnPark_Male.prefab` |
 
 11종 외형의 추가 감정 메시는 `Assets/Art/Npc/Emotions/<캐릭터 이름>/`에 있습니다. 카페 여성 서비스 프리팹은 승인된 `CafeFemaleEmotion` 메시를 공유합니다. 눈색·피부색과 기존 발음 채널을 유지하고, 호텔리어 남성의 구형 닫힌 눈을 Base 눈꺼풀로 교체합니다.
 
 카페 남성은 Leo, 호텔리어 여성은 Clara, 할아버지는 Arthur, 경찰 남성은 기존 경찰 역할의 외형 연결을 사용합니다. 경찰 여성은 역할 배정 없이 검수 프리팹으로 준비되어 있습니다. 감정 Builder는 역할이나 Production 씬 배치를 바꾸지 않습니다.
+
+## 존박 공연 캐릭터
+
+게임에 표시되는 이름은 **Jone**이며 `CafeFemaleEmotions.asset`의 16종 감정과 같은 발음 채널을 사용합니다. 기존 에셋 참조와 연결을 유지하기 위해 내부 코드는 `TOWN_JOHN_PARK`, 파일명은 `LittleMung_JohnPark_Male`로 유지합니다. `NpcIdentity`·`DialogueSpeaker`를 연결하며 백엔드 시드와 로컬 검수 대본의 이름은 Jone, 역할은 뮤지션입니다. 기본 음성 `am_michael`은 서비스의 합성 목소리이며 실제 가수의 음성을 복제하지 않습니다. 서버 시드와 클라이언트 변경의 배포는 별도입니다.
+
+`JohnParkDialogueBuilder.PlaceInRestaurant`는 Town의 식당 실내 상주 목록에 같은 프리팹을 연결합니다. 위치는 식당 좌표 `(0, 0, -5.2)`의 뒷주방 앞 중앙 통로입니다. 실내 입장 때 나타나고 퇴장 때 숨겨지며 별도 출퇴근 일과나 보행을 추가하지 않습니다. 첨부 화면을 기준으로 추정한 위치이므로 최종 구도는 실제 실내에서 확인합니다.
+
+페르소나는 차분하고 예의 바른 음악가 손님으로 설정합니다. 짧고 쉬운 영어, 담백한 농담, 요청받았을 때만 리듬을 넣은 주문 예시를 사용하고 직원 업무는 Rosa에게 안내합니다. 이는 게임용 각색입니다. [본인 인터뷰](https://www.segye.com/newsView/20140919000136)의 말수가 적고 혼자 있는 것을 즐긴다는 설명과 [SBS 방송 발언](https://ent.sbs.co.kr/amp/article.do?article_id=E10004429011)의 과장된 애교를 어려워한다는 설명을 참고합니다. 과거 발언을 현재 성격 전체로 단정하지 않습니다. MBTI는 이차 자료에 INFP로 소개되지만 직접 발표 출처를 확인하지 못해 확정 정보로 사용하지 않습니다.
+
+- 표정 형태: `Assets/Scenes/Sandbox/NpcJohnParkEmotionSandbox.unity`에서 16종 버튼과 정면·사선, 음성 재생을 확인합니다.
+- 실제 대화 흐름: `Assets/Scenes/Sandbox/NpcJohnParkDialogueSandbox.unity`를 Play하고 존박을 클릭한 뒤 대화를 수락합니다. 첫 대사는 분노, `sad`를 입력하면 슬픔, `surprised`를 입력하면 놀람을 확인합니다. 대화 종료 시 음성과 입모양도 해제합니다.
+- 검수 씬은 `DialogueServerLink.useServer=false`, API 설정·음성 녹음기 미연결로 저장 WAV만 재생합니다. 기존 카페 검수 음성을 재사용하므로 카페 관련 대사를 말하며, 이 대본은 서비스용 인격이나 새 LLM 응답이 아닙니다. 음성과 발음 시간표를 유지한 채 검수 감정 정보만 추가합니다.
+- 운영 씬에 놓을 때는 위의 동일한 프리팹을 배치하고 **Tools → A305 → Npc → John Park → Connect Selected Performer To Dialogue**로 그 씬의 공용 플레이어·대화 화면·대화 제안 화면에 연결한 뒤 씬을 저장합니다. 임의 위치에 자동 배치하거나 운영 씬 전체를 다시 만들지 않습니다.
+
+존박의 `Passerby` 연결은 제자리 공연용이며, 이동·공용 손짓을 별도로 적용하지 않습니다. 몸과 왼팔은 전용 Generic 리듬 Animator를 쓰고 오른손·앰프는 잡기 자세를 유지합니다. 발음과 감정은 얼굴 Blend Shape로 재생하므로 몸의 Humanoid 여부와 독립적입니다.
+
+`JohnParkEmotionBuilder`가 FBX 좌표와 공통 감정 저작 좌표를 변환하고, 기존 `ServiceNpcEmotions/author_emotions.py`를 재사용합니다. 다른 Tripo 얼굴은 정점 위치가 다르므로 감정 프로필을 공유하는 것과 얼굴 변형 데이터를 맞추는 작업은 구분합니다. `protect_john_park_emotion_boundaries.py`는 얼굴 피부·눈썹 연결성분만 움직이고 모자·머리카락·소품을 보존합니다. 공통 Builder와 동일하게 눈 넓힘은 별도 눈꺼풀에만 적용하여 입 접합 피부가 벌어지지 않게 합니다. 기존 입모양·중립 정점·UV·본·가중치는 보존합니다.
+
+`JohnParkDialogueBuilder.BuildAndValidate`는 저작 결과 적용, 두 검수 씬 연결, 정면·사선 렌더와 음성/감정/잡기 검증을 실행합니다. 기존 감정 메시를 다시 적용하므로 수동 편집분이 있으면 먼저 보관합니다. `JohnParkDialogueTests`는 서버를 호출하지 않고 실제 `DialogueController → DialogueSpeaker → DialogueServerLink → CharacterSpeechPlayer` 경로의 시작·재생·종료와 감정/발음 동시 적용을 확인합니다.
 
 ## 실제 대화의 기분 설정
 
@@ -119,3 +139,24 @@ Editor를 닫고 `NPC_EMOTION_REVIEW_OUTPUT`에 저장소 밖 출력 폴더를 �
 기본 출력은 30fps이며 두 예문 각각 `Before`(기존 고정 미소·깜박임)와 `After`(감정 구간 포함) 프레임을 만듭니다. 양쪽은 같은 복사본 메시와 같은 발음 시간표를 사용합니다. 음성 시작 앞에 0.3초 여백이 있으므로 WAV를 합칠 때도 0.3초 지연을 적용합니다. `Samples.csv`에는 음성 시각별 실제 채널 가중치가 기록됩니다. 렌더는 씬·프리팹을 저장하지 않습니다.
 
 12종 캐릭터 비교는 `NPC_EMOTION_BATCH_OUTPUT`을 지정하고 `NpcEmotionBuilder.Render`를 실행합니다. 기본값은 각 캐릭터의 16가지 표정 정면·양사선이며 `NPC_EMOTION_BATCH_SPEECH=1`이면 같은 예문의 30fps 발화 프레임도 만듭니다. `NPC_EMOTION_PHASE`는 출력 하위 폴더 이름, `NPC_EMOTION_CHARACTER`는 캐릭터 필터입니다. 프레임의 음성 앞 여백은 동일하게 0.3초입니다.
+
+### 존박 저장 주문 랩
+
+`Assets/Prefabs/Npc/LittleMung_JohnPark_Male.prefab`은 `RecordedNpcPerformance`로 1.5배 남성 음성(`am_onyx`)과 121BPM 리듬을 재생합니다. 설정은 `Assets/Data/Npc/JohnPark/OrderRap.asset`, 음성·발음·감정 시간표는 `Assets/Audio/Characters/JohnParkDialogue/OrderRap.bytes`에 있습니다. 실제 인물의 녹음이나 복제 음성은 사용하지 않습니다.
+
+- 음성은 선정한 1.5배 PCM을 그대로 보존합니다. 발화 중에는 양쪽 입꼬리가 같은 강도로 움직이는 `warm_smile`을 적용합니다. 한쪽 입꼬리를 드는 `playful`은 이 랩에서 사용하지 않습니다. 발음은 동일한 무반주 트랙을 로컬 PocketSphinx로 정렬하고, 그 시간표를 드럼을 포함한 음성의 PCM 해시에 묶습니다. 구절 전체를 같은 입모양으로 처리하지 않습니다.
+- Generic 리듬의 왼팔 강세 두 번을 한 마디의 2·4박에 맞춥니다. 오른손·앰프의 기존 본 곡선과 강체 결합은 유지합니다. 공연 종료 뒤에는 기존 대기 리듬 속도로 돌아갑니다.
+- `NpcJohnParkDialogueSandbox.unity`를 열고 Play → 존박 클릭 → `Can you rap?` 또는 `랩 해줘`를 입력합니다. `다시 보여줘`, `Do it again!`, `One more time, please!`와 [다시 듣기]로 반복할 수 있습니다. 이 씬은 서버가 꺼진 로컬 검수용입니다.
+- Town의 식당 존박도 같은 프리팹 연결을 상속합니다. 일반 AI 대화·음성 입력 전사는 기존 서버 설정이 필요하지만, 저장 공연 재생에는 LLM/TTS 재호출이 없습니다. 저장 공연은 서버의 학습 턴으로 기록하지 않습니다.
+- 연결 재구성은 `Tools → A305 → Npc → John Park → Connect Recorded Order Rap`으로 실행합니다. 기존 얼굴·본·머티리얼은 바꾸지 않습니다. `JohnParkRapValidation.Capture`는 실제 재생 컴포넌트의 시각 변환으로 전신·얼굴 프레임과 잡기 오차를 검사합니다. 로컬 영상은 `artifacts/JohnParkRhythm/OrderRap/Unity1.5/`에 보관합니다.
+
+### Jone 전용 재생 버튼 제안
+
+현재 구현은 명시적 재생 요청을 로컬에서 인식해 즉시 랩을 재생하고, 공용 [다시 듣기]는 마지막 대사를 재생합니다. 다음 UI는 시안이며 아직 운영 대화창의 동작으로 적용하지 않았습니다.
+
+- Jone과 대화하는 동안 이름 옆에 [랩 다시 듣기]를 표시합니다. 다른 NPC에게는 표시하지 않습니다. 일반 대사의 [다시 듣기]와 구분합니다.
+- 랩 재생 중에는 [랩 멈추기]로 바꾸고, 종료하면 다시 재생할 수 있습니다. 대화를 종료하거나 NPC를 바꾸면 재생도 끝냅니다.
+- 명확한 재생 요청은 로컬에서 처리해 고정 안내 문장과 버튼을 보여줍니다. 안내에도 발화 연출이 필요하면 안내 음성·발음·감정 시간표를 한 번 제작해 저장합니다.
+- 모호한 문장까지 구분할 때만 기존 의도 분류를 이용하는 방안을 검토합니다. 재생 의도로 판정되면 NPC 대사 생성과 TTS 합성을 건너뜁니다. 유료 모델을 이용한 의도 분류 자체에는 입력·출력 비용이 발생하며, 음성 요청의 STT 비용은 별도입니다.
+
+`JonePerformanceUiPreview.Capture`는 기존 대화창과 Jone 프리팹으로 버튼의 대기·재생 상태 시안을 메모리에서 렌더합니다. 운영 씬과 UI 프리팹은 저장하지 않습니다.

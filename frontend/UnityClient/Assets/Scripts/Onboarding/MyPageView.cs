@@ -154,7 +154,25 @@ namespace A305.Onboarding
             npcSpeechSpeedSlider.onValueChanged.AddListener(ChangeNpcSpeechSpeed);
             overlay.SetActive(false);
             UiLayer.Close(this);
+            // ESC는 로그아웃·탈퇴 확인이면 프로필로 돌아가고, 프로필이면 창을 닫는다. 요청 중에는 닫기 버튼처럼 닫지 않는다.
+            escape = new UiEscapeWindow(
+                () => overlay.activeSelf,
+                () =>
+                {
+                    if (logoutDialog.activeSelf || withdrawDialog.activeSelf)
+                    {
+                        if (!flow.IsBusy && !logout.IsBusy)
+                            ShowProfile();
+                    }
+                    else
+                    {
+                        Close();
+                    }
+                }
+            );
         }
+
+        private UiEscapeWindow escape;
 
         private void Start()
         {
@@ -166,6 +184,7 @@ namespace A305.Onboarding
         {
             openButton.interactable =
                 overlay.activeSelf || player == null || !player.IsMovementLocked;
+            escape?.Watch();
         }
 
         // 버튼 이벤트에서 부르므로 async void로 두고, 서버 오류가 아닌 예외는 로그로 남긴다.

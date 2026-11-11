@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using A305.Player;
 using A305.Theme;
 using TMPro;
 using UnityEngine;
@@ -1119,10 +1120,18 @@ namespace A305.Dialogue
             Refresh();
         }
 
+        // 대화 중 연 단어 카드는 ESC 목록에서 대화보다 위라, ESC가 대화보다 카드를 먼저 닫는다.
+        private UiEscapeWindow wordCardEscape;
+
         private void LateUpdate()
         {
             if (content == null)
                 return;
+            wordCardEscape ??= new UiEscapeWindow(
+                () => wordCard.gameObject.activeInHierarchy,
+                CloseWordCard
+            );
+            wordCardEscape.Watch();
             // 변화량과 경고 문구는 몇 초 뒤 새 상태가 없어도 사라져야 하므로 매 프레임 다시 고른다.
             UpdateStanding();
             UpdateEndButtonHighlight();

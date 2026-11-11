@@ -27,9 +27,8 @@ import com.elsehere.followup.dto.FollowUpResponse;
 import com.elsehere.followup.service.FollowUpService;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.mission.entity.PracticeScenario;
-import com.elsehere.mission.service.MissionDialogueService;
 import com.elsehere.mission.service.PlacePracticeService;
-import com.elsehere.mission.service.QuestTalk;
+import com.elsehere.mission.service.QuestTalkService;
 import com.elsehere.onboarding.entity.UserLanguageProfile;
 import com.elsehere.onboarding.entity.UserLanguageProfileId;
 import com.elsehere.onboarding.repository.UserLanguageProfileRepository;
@@ -116,7 +115,7 @@ public class ConversationService {
   private final FollowUpService followUpService;
   private final TransactionTemplate transactionTemplate;
   private final Clock clock;
-  private final MissionDialogueService missionDialogueService;
+  private final QuestTalkService questTalks;
   private final GuestConversationLimit guestConversationLimit;
   private final DialogueRequestLocks requestLocks;
   private final ReviewCardService reviewCardService;
@@ -231,7 +230,7 @@ public class ConversationService {
             .orElseGet(
                 () ->
                     context.review() == null
-                            && context.mission().isEmpty()
+                            && context.quest().isEmpty()
                             && !request.npcOffDuty()
                             && request.initiatedBy() == InitiatedBy.NPC
                             && npc.approachLine() != null
@@ -280,21 +279,7 @@ public class ConversationService {
               if (request.npcOffDuty()) {
                 conversation.markNpcOffDuty();
               }
-              context
-                  .mission()
-                  .ifPresent(
-                      value -> {
-                        // 판정할 목표가 있는 대화(그 단계의 대상 NPC)만 퀘스트 단계와 목표를 기록한다.
-                        if (value.detail() instanceof QuestTalk.Goals goals) {
-                          if (value.townStory()) {
-                            conversation.attachTownStoryStage(goals.stage());
-                            conversation.recordTownStoryGoals(goals.remainingGoals());
-                          } else {
-                            conversation.attachFirstDayStage(goals.stage());
-                            conversation.recordFirstDayGoals(goals.remainingGoals());
-                          }
-                        }
-                      });
+              context.quest().ifPresent(quest -> quest.recordStage(conversation));
               Turn openingTurn =
                   turnRepository.save(
                       Turn.npc(
@@ -482,10 +467,9 @@ public class ConversationService {
         dialogueContexts.learner(user, speechSpeed),
         selectedLevel(user),
         storyDialogue ? memoryService.memoryFor(userId, npc.npcId()) : null,
-        storyDialogue ? missionDialogueService.context(userId, npcCode) : Optional.empty(),
+        questTalks.forStart(userId, npcCode, review != null, practice),
         storyDialogue ? followUpService.readyFor(userId, npc.npcId()) : Optional.empty(),
-        review,
-        practice == null ? null : placePractice.context(practice, List.of()));
+        review);
   }
 
   // 진행 중인 대화가 없고 게스트 대화 횟수가 남아 있어야 시작할 수 있다. AI 호출 전과 저장 직전에 확인한다.
@@ -539,12 +523,9 @@ public class ConversationService {
       return reviewDialogue.instruction(context.review())
           + " Open with one brief welcome and let the learner make their request.";
     }
-    if (context.practice() != null) {
-      return context.practice().instruction() + MISSION_GREETING;
-    }
     return context
-        .mission()
-        .map(value -> value.detail().instruction() + MISSION_GREETING)
+        .quest()
+        .map(quest -> quest.talk().instruction() + MISSION_GREETING)
         .orElse(npcOffDuty ? OFF_DUTY_GREETING_INSTRUCTION : GREETING_INSTRUCTION);
   }
 
@@ -552,17 +533,16 @@ public class ConversationService {
    * @param learner 대답 상대인 학습자. NPC가 캐릭터에 맞는 호칭을 쓰게 한다
    * @param memory 이 NPC와의 기억. 처음 만나면 null
    * @param followUp 이 NPC가 지금 건넬 수 있는 것
-   * @param practice 장소 연습 상황의 목표와 직원 지시. 장소 연습이 아니면 null
+   * @param quest 퀘스트 대화 목표와 그 목표를 낸 쪽. 장소 연습은 고른 상황의 목표다. 복습이거나 진행 중인 퀘스트가 없으면 빈 값
    */
   private record StartContext(
       NpcContext npc,
       WorkerLearner learner,
       int level,
       WorkerMemory memory,
-      Optional<MissionDialogueService.Context> mission,
+      Optional<QuestTalkService.SelectedQuest> quest,
       Optional<FollowUpService.ReadyFollowUp> followUp,
-      ReviewCardResponse review,
-      QuestTalk practice) {}
+      ReviewCardResponse review) {}
 
   private record Opening(String text, String npcAudioKey, String speechPhrases) {}
 

@@ -23,6 +23,44 @@ namespace A305.Learning.Tests
         [TearDown]
         public void ForgetLearnedWords() => ObjectWordCards.ShareLearnedWords(new string[0]);
 
+        [Test]
+        public async Task UnlearnedCount_ExcludesMemorizedWordsRegardlessOfListFilter()
+        {
+            api.Pages[null] = Page(
+                null,
+                Item(31, "sofa", "소파"),
+                Item(32, "table", "탁자", memorized: true)
+            );
+            await book.LoadAsync();
+            book.ShowsLearned = true;
+
+            Assert.That(book.UnlearnedCount, Is.EqualTo(1));
+            Assert.That(book.Entries.Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task UnlearnedCount_MemorizingLastWordClearsCountAndUnmarkingRestoresIt()
+        {
+            VocabularyEntry entry = await LoadOne(Item(31, "sofa", "소파"));
+
+            await book.ToggleLearnedAsync(entry);
+            Assert.That(book.UnlearnedCount, Is.Zero);
+
+            await book.ToggleLearnedAsync(entry);
+            Assert.That(book.UnlearnedCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task UnlearnedCount_FailedMemorizationKeepsCount()
+        {
+            VocabularyEntry entry = await LoadOne(Item(31, "sofa", "소파"));
+            api.Failure = NetworkError();
+
+            await book.ToggleLearnedAsync(entry);
+
+            Assert.That(book.UnlearnedCount, Is.EqualTo(1));
+        }
+
         // 외운 단어는 사물 카드도 호버로 띄우지 않으므로, 단어장을 받거나 외웠어요를 바꾸거나 지우면 사물 카드에 알린다.
         [Test]
         public async Task LoadAsync_TellsObjectCardsWhichWordsAreLearned()
@@ -527,6 +565,197 @@ namespace A305.Learning.Tests
             Assert.That(book.Entries[0].SourceLabel, Is.EqualTo("Ben이 한 말"));
             Assert.That(book.Entries[1].SourceLabel, Is.EqualTo("Mia가 한 말"));
             Assert.That(book.Entries[2].SourceLabel, Is.Null);
+        }
+
+        // 대화 표현은 NPC 대사·피드백에서, 사물 단어는 사물 카드에서 저장한 것이다.
+        [Test]
+        public async Task ShownEntries_TabsSplitConversationExpressionsFromObjectWords()
+        {
+            api.Pages[null] = Page(
+                null,
+                Saved(40, "For here or to go?", "NPC_LINE", "FOOD", "카페"),
+                Saved(31, "sofa", "OBJECT"),
+                Saved(41, "Do you take cards?", "FEEDBACK", "SHOPPING", "드럭스토어")
+            );
+            await book.LoadAsync();
+
+            book.ShownTab = VocabularyTab.Conversation;
+            Assert.That(
+                book.ShownEntries.Select(entry => entry.English),
+                Is.EqualTo(new[] { "For here or to go?", "Do you take cards?" })
+            );
+            book.ShownTab = VocabularyTab.Objects;
+            Assert.That(
+                book.ShownEntries.Select(entry => entry.English),
+                Is.EqualTo(new[] { "sofa" })
+            );
+        }
+
+        // 고르기 전에는 대화 표현 탭으로 열고, 대화 표현이 없고 사물 단어만 있으면 사물 단어 탭으로 연다.
+        // 단어장을 받기 전에 열어도 받은 뒤 이 기준을 다시 따른다.
+        [Test]
+        public async Task ShownTab_BeforeChoosing_OpensTabThatHasWords()
+        {
+            Assert.That(book.ShownTab, Is.EqualTo(VocabularyTab.Conversation));
+
+            api.Pages[null] = Page(null, Saved(31, "sofa", "OBJECT"));
+            await book.LoadAsync();
+            Assert.That(book.ShownTab, Is.EqualTo(VocabularyTab.Objects));
+
+            api.Pages[null] = Page(
+                null,
+                Saved(31, "sofa", "OBJECT"),
+                Saved(40, "latte", "NPC_LINE", "FOOD", "카페")
+            );
+            await book.LoadAsync();
+            Assert.That(book.ShownTab, Is.EqualTo(VocabularyTab.Conversation));
+        }
+
+        [Test]
+        public async Task ResetFilters_ForgetsChosenTabAndPlaceGroup()
+        {
+            api.Pages[null] = Page(
+                null,
+                Saved(40, "latte", "NPC_LINE", "FOOD", "카페"),
+                Saved(31, "sofa", "OBJECT")
+            );
+            await book.LoadAsync();
+            book.ShownPlaceGroup = VocabularyPlaceGroup.Food;
+            book.ShownTab = VocabularyTab.Objects;
+
+            book.ResetFilters();
+
+            Assert.That(book.ShownTab, Is.EqualTo(VocabularyTab.Conversation));
+            Assert.That(book.ShownPlaceGroup, Is.Null);
+        }
+
+        [Test]
+        public async Task ShownEntries_PlaceGroup_ShowsOnlyConversationExpressionsOfThatGroup()
+        {
+            api.Pages[null] = Page(
+                null,
+                Saved(40, "For here or to go?", "NPC_LINE", "FOOD", "카페"),
+                Saved(41, "Do you take cards?", "FEEDBACK", "SHOPPING", "드럭스토어"),
+                Saved(42, "a loaf of bread", "NPC_LINE", "FOOD", "빵집")
+            );
+            await book.LoadAsync();
+
+            book.ShownPlaceGroup = VocabularyPlaceGroup.Food;
+
+            Assert.That(
+                book.ShownEntries.Select(entry => entry.English),
+                Is.EqualTo(new[] { "For here or to go?", "a loaf of bread" })
+            );
+        }
+
+        // 탭·묶음 개수는 목록에 보이는 표현 수라, 외운 표현은 [외운 표현도 보기]를 켰을 때만 센다.
+        [Test]
+        public async Task CountIn_CountsWordsShownInThatTabOrGroup()
+        {
+            api.Pages[null] = Page(
+                null,
+                Saved(40, "latte", "NPC_LINE", "FOOD", "카페"),
+                Saved(41, "refill", "FEEDBACK", "FOOD", "식당", memorized: true),
+                Saved(42, "stamp", "NPC_LINE", "SERVICES", "우체국"),
+                Saved(31, "sofa", "OBJECT")
+            );
+            await book.LoadAsync();
+
+            Assert.That(book.CountIn(VocabularyTab.Conversation), Is.EqualTo(2));
+            Assert.That(book.CountIn(VocabularyTab.Objects), Is.EqualTo(1));
+            Assert.That(book.CountIn(VocabularyPlaceGroup.Food), Is.EqualTo(1));
+            Assert.That(book.CountIn(VocabularyPlaceGroup.Safety), Is.Zero);
+
+            book.ShowsLearned = true;
+            Assert.That(book.CountIn(VocabularyTab.Conversation), Is.EqualTo(3));
+            Assert.That(book.CountIn(VocabularyPlaceGroup.Food), Is.EqualTo(2));
+        }
+
+        // 고른 묶음의 표현을 모두 외우거나 지워 칩이 사라지면 전체로 돌아가 빈 목록을 남기지 않는다.
+        [Test]
+        public async Task ShownPlaceGroup_WithNoWordsLeft_FallsBackToAll()
+        {
+            api.Pages[null] = Page(
+                null,
+                Saved(40, "latte", "NPC_LINE", "FOOD", "카페"),
+                Saved(42, "stamp", "NPC_LINE", "SERVICES", "우체국")
+            );
+            await book.LoadAsync();
+            book.ShownPlaceGroup = VocabularyPlaceGroup.Services;
+
+            await book.ToggleLearnedAsync(book.ShownEntries[0]);
+
+            Assert.That(book.ShownPlaceGroup, Is.Null);
+            Assert.That(
+                book.ShownEntries.Select(entry => entry.English),
+                Is.EqualTo(new[] { "latte" })
+            );
+        }
+
+        // 다른 탭에만 단어가 있으면 '저장한 단어가 없어요'나 '모두 외웠어요'가 아니라 이 탭이 비었다고 알린다.
+        [Test]
+        public async Task ListState_TabWithoutWords_IsTabEmpty()
+        {
+            api.Pages[null] = Page(null, Saved(31, "sofa", "OBJECT"));
+            await book.LoadAsync();
+
+            book.ShownTab = VocabularyTab.Conversation;
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.TabEmpty));
+        }
+
+        [Test]
+        public async Task ListState_TabWithOnlyLearnedWords_IsAllLearned()
+        {
+            api.Pages[null] = Page(
+                null,
+                Saved(31, "sofa", "OBJECT"),
+                Saved(40, "latte", "NPC_LINE", "FOOD", "카페", memorized: true)
+            );
+            await book.LoadAsync();
+
+            book.ShownTab = VocabularyTab.Conversation;
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.AllLearned));
+        }
+
+        // 대화에서 저장한 표현은 NPC가 일하는 곳을 함께 알린다. 근무 시간 밖에 만난 NPC는 일하는 곳 없이 일상 묶음이다.
+        [Test]
+        public async Task LoadAsync_ConversationExpression_KnowsWhereTheNpcWorks()
+        {
+            VocabItem atCafe = Saved(40, "latte", "NPC_LINE", "FOOD", "카페");
+            atCafe.Source.NpcName = "Mia";
+            VocabItem offDuty = Saved(41, "weekend", "NPC_LINE", "DAILY");
+            offDuty.Source.NpcName = "Zoe";
+            api.Pages[null] = Page(null, atCafe, offDuty);
+
+            await book.LoadAsync();
+
+            Assert.That(book.Entries[0].PlaceName, Is.EqualTo("카페"));
+            Assert.That(book.Entries[0].PlaceGroup, Is.EqualTo(VocabularyPlaceGroup.Food));
+            Assert.That(book.Entries[0].SourceLabel, Is.EqualTo("카페 · Mia가 한 말"));
+            Assert.That(book.Entries[1].PlaceName, Is.Null);
+            Assert.That(book.Entries[1].PlaceGroup, Is.EqualTo(VocabularyPlaceGroup.Daily));
+            Assert.That(book.Entries[1].SourceLabel, Is.EqualTo("Zoe가 한 말"));
+        }
+
+        private static VocabItem Saved(
+            long userVocabId,
+            string text,
+            string sourceType,
+            string placeGroup = null,
+            string placeName = null,
+            bool memorized = false
+        )
+        {
+            VocabItem item = Item(userVocabId, text, "", memorized: memorized);
+            item.Source = new VocabSource
+            {
+                SourceType = sourceType,
+                PlaceGroup = placeGroup,
+                PlaceName = placeName,
+            };
+            return item;
         }
 
         private async Task<VocabularyEntry> LoadOne(VocabItem item)

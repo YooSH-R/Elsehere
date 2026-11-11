@@ -9,6 +9,7 @@ import com.elsehere.dialogue.dto.ConversationListResponse;
 import com.elsehere.dialogue.dto.ConversationStartResponse;
 import com.elsehere.dialogue.dto.EndConversationRequest;
 import com.elsehere.dialogue.dto.EndConversationResponse;
+import com.elsehere.dialogue.dto.NpcSpeechSpeed;
 import com.elsehere.dialogue.dto.StartConversationRequest;
 import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.dialogue.dto.TurnResponse;
@@ -17,8 +18,11 @@ import com.elsehere.dialogue.service.ConversationService;
 import com.elsehere.dialogue.service.TurnService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -36,7 +40,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * NPC 자유 대화: 시작(CONV-01), 발화(CONV-03), 종료(CONV-08), 지난 대화 목록(CONV-09), 상세(CONV-10), 진행 중인
- * 대화(CONV-11).
+ * 대화(CONV-11). 상황 복습과 장소 연습(PRC-02)의 대화 시작도 받는다.
  */
 @Slf4j
 @RestController
@@ -48,7 +52,14 @@ public class ConversationController {
   private final ConversationHistoryService conversationHistoryService;
   private final JsonMapper jsonMapper;
 
-  public record StartReviewRequest(@NotNull UUID requestId) {}
+  public record StartReviewRequest(
+      @NotNull UUID requestId,
+      @DecimalMin(NpcSpeechSpeed.MIN) @DecimalMax(NpcSpeechSpeed.MAX) Double speechSpeed) {
+
+    public StartReviewRequest {
+      speechSpeed = NpcSpeechSpeed.orDefault(speechSpeed);
+    }
+  }
 
   @PostMapping("/api/v1/review-cards/{cardId}/conversations")
   @ResponseStatus(HttpStatus.CREATED)
@@ -56,7 +67,28 @@ public class ConversationController {
       @AuthenticationPrincipal LoginUser loginUser,
       @PathVariable Long cardId,
       @Valid @RequestBody StartReviewRequest request) {
-    return conversationService.startReview(loginUser.userId(), cardId, request.requestId());
+    return conversationService.startReview(
+        loginUser.userId(), cardId, request.requestId(), request.speechSpeed());
+  }
+
+  public record StartPracticeRequest(
+      @NotNull UUID requestId,
+      @DecimalMin(NpcSpeechSpeed.MIN) @DecimalMax(NpcSpeechSpeed.MAX) Double speechSpeed) {
+
+    public StartPracticeRequest {
+      speechSpeed = NpcSpeechSpeed.orDefault(speechSpeed);
+    }
+  }
+
+  /** 장소 연습 시작(PRC-02). 고른 상황의 가게 직원과 대화를 시작한다. */
+  @PostMapping("/api/v1/practice-scenarios/{scenarioId}/conversations")
+  @ResponseStatus(HttpStatus.CREATED)
+  public ConversationStartResponse startPractice(
+      @AuthenticationPrincipal LoginUser loginUser,
+      @PathVariable String scenarioId,
+      @Valid @RequestBody StartPracticeRequest request) {
+    return conversationService.startPractice(
+        loginUser.userId(), scenarioId, request.requestId(), request.speechSpeed());
   }
 
   @PostMapping("/api/v1/conversations")
@@ -65,6 +97,23 @@ public class ConversationController {
       @AuthenticationPrincipal LoginUser loginUser,
       @Valid @RequestBody StartConversationRequest request) {
     return conversationService.start(loginUser.userId(), request);
+  }
+
+  /**
+   * 대화 시작(CONV-01)을 스트리밍으로 받는다. Accept에 text/event-stream이 있으면 이 메서드가 받는다. AI가 만드는 첫 인사의 글자와 문장 조각
+   * 음성을 만들어지는 대로 보내고, 대화를 저장하면 REST 응답과 같은 본문을 마지막에 보낸다.
+   */
+  @PostMapping(path = "/api/v1/conversations", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  public void startStream(
+      @AuthenticationPrincipal LoginUser loginUser,
+      @Valid @RequestBody StartConversationRequest request,
+      HttpServletResponse response) {
+    TurnEventStream stream = TurnEventStream.forOpening(response, jsonMapper);
+    ConversationStartResponse started =
+        streamed(stream, () -> conversationService.start(loginUser.userId(), request, stream));
+    if (started != null) {
+      stream.conversation(started);
+    }
   }
 
   @PostMapping("/api/v1/conversations/{conversationId}/turns")
@@ -90,9 +139,19 @@ public class ConversationController {
       @Valid @RequestBody TurnRequest request,
       HttpServletResponse response) {
     TurnEventStream stream = new TurnEventStream(response, jsonMapper);
-    TurnResponse turn;
+    TurnResponse turn =
+        streamed(
+            stream, () -> turnService.send(loginUser.userId(), conversationId, request, stream));
+    if (turn != null) {
+      stream.turn(turn);
+    }
+  }
+
+  // 대사를 보내기 전에 난 오류는 던져 공통 오류 처리기가 지금처럼 HTTP 오류로 응답하게 한다. 보내기 시작한 뒤에는 상태를 바꿀 수 없어 error
+  // 이벤트로 알리고 null을 돌려준다.
+  private <T> T streamed(TurnEventStream stream, Supplier<T> call) {
     try {
-      turn = turnService.send(loginUser.userId(), conversationId, request, stream);
+      return call.get();
     } catch (BusinessException exception) {
       if (!stream.isStarted()) {
         throw exception;
@@ -101,7 +160,7 @@ public class ConversationController {
           exception.getErrorCode().getStatus().value(),
           ErrorResponse.of(
               exception.getErrorCode(), exception.getMessage(), exception.getDetails()));
-      return;
+      return null;
     } catch (RuntimeException exception) {
       if (!stream.isStarted()) {
         throw exception;
@@ -110,9 +169,8 @@ public class ConversationController {
       stream.error(
           ErrorCode.INTERNAL_ERROR.getStatus().value(),
           ErrorResponse.of(ErrorCode.INTERNAL_ERROR, null));
-      return;
+      return null;
     }
-    stream.turn(turn);
   }
 
   @PostMapping("/api/v1/conversations/{conversationId}/end")
@@ -129,11 +187,10 @@ public class ConversationController {
       @RequestParam(required = false) String npcCode,
       @RequestParam(required = false) String cursor,
       @RequestParam(defaultValue = "20") int size,
-      @RequestParam(defaultValue = "false") boolean feedbackOnly) {
-    if (feedbackOnly) {
-      return conversationHistoryService.list(loginUser.userId(), npcCode, cursor, size, true);
-    }
-    return conversationHistoryService.list(loginUser.userId(), npcCode, cursor, size);
+      @RequestParam(defaultValue = "false") boolean feedbackOnly,
+      @RequestParam(required = false) String sceneCode) {
+    return conversationHistoryService.list(
+        loginUser.userId(), npcCode, sceneCode, cursor, size, feedbackOnly);
   }
 
   @GetMapping("/api/v1/conversations/active")

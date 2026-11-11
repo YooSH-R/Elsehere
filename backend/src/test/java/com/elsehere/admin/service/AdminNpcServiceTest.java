@@ -65,7 +65,7 @@ class AdminNpcServiceTest {
             tuple("TAXI_DRIVER", "Joe", "택시 기사", "마을"),
             tuple("POLICE_OFFICER", "Dan", "경찰관", "마을"),
             tuple("POST_OFFICE_STAFF", "Linda", "우체국 직원", "마을"),
-            tuple("DINER_STAFF", "Rosa", "식당 종업원", "마을"),
+            tuple("DINER_STAFF", "Rosa", "햄버거 가게 직원", "마을"),
             tuple("BANK_STAFF", "Henry", "은행원", "마을"),
             tuple("LAUNDROMAT_STAFF", "Gus", "빨래방 주인", "마을"),
             tuple("FLOWER_SHOP_STAFF", "Lily", "꽃집 주인", "마을"),
@@ -89,11 +89,12 @@ class AdminNpcServiceTest {
             tuple("POLICE_SERGEANT", "Victor", "경사", "마을"),
             tuple("POLICE_PATROL_OFFICER", "Kevin", "베이커리 직원", "마을"),
             tuple("POLICE_ROOKIE", "Taylor", "신입 경찰관", "마을"),
-            tuple("FIRE_CAPTAIN", "Ray", "식당 직원", "마을"),
+            tuple("FIRE_CAPTAIN", "Ray", "햄버거 가게 직원", "마을"),
             tuple("FIRE_FIGHTER", "Rachel", "빨래방 직원", "마을"),
             tuple("FIRE_ROOKIE", "Andre", "이발소 직원", "마을"),
             tuple("TOWN_GRANDFATHER", "Arthur", "행인", "마을"),
-            tuple("TOWN_GRANDMOTHER", "Margaret", "행인", "마을"));
+            tuple("TOWN_GRANDMOTHER", "Margaret", "행인", "마을"),
+            tuple("TOWN_JOHN_PARK", "John", "뮤지션", "마을"));
   }
 
   @Test

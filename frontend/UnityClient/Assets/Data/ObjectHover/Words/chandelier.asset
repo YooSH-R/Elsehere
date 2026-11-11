@@ -16,7 +16,7 @@ MonoBehaviour:
     key: chandelier
     languageCode: en-US
     text: chandelier
-    meaningKo: "\uC0F9\uB4E4\uB9AC\uC5D0"
+    meaningKo: "\uCC9C\uC7A5\uC5D0 \uB2E4\uB294 \uD654\uB824\uD55C \uC870\uBA85(\uC0F9\uB4E4\uB9AC\uC5D0)"
     example: There is a chandelier in the lobby.
     exampleKo: "\uB85C\uBE44\uC5D0 \uC0F9\uB4E4\uB9AC\uC5D0\uAC00 \uC788\uC5B4\uC694."
     pronunciationAudioKey: 

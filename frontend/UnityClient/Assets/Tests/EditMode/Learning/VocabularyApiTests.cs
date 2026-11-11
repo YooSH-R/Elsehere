@@ -11,7 +11,8 @@ namespace A305.Learning.Tests
             + "\"vocab\":{\"vocabId\":77,\"type\":\"WORD\",\"text\":\"latte\",\"meaningKo\":\"라떼\"},"
             + "\"context\":{\"text\":\"Would you like an iced latte?\",\"meaningKo\":\"아이스 라떼 드릴까요?\"},"
             + "\"memo\":\"주문할 때 쓰기\",\"memorized\":true,\"savedAt\":\"2026-10-21T14:06:00+09:00\","
-            + "\"source\":{\"sourceType\":\"NPC_LINE\",\"npcName\":\"Mia\",\"conversationId\":58}}],"
+            + "\"source\":{\"sourceType\":\"NPC_LINE\",\"npcName\":\"Mia\",\"conversationId\":58,"
+            + "\"placeName\":\"카페\",\"placeGroup\":\"FOOD\"}}],"
             + "\"nextCursor\":\"21\"}";
 
         private const string ItemJson =
@@ -51,6 +52,8 @@ namespace A305.Learning.Tests
             Assert.That(item.Memo, Is.EqualTo("주문할 때 쓰기"));
             Assert.That(item.Memorized, Is.True);
             Assert.That(item.Source.NpcName, Is.EqualTo("Mia"));
+            Assert.That(item.Source.PlaceName, Is.EqualTo("카페"));
+            Assert.That(item.Source.PlaceGroup, Is.EqualTo("FOOD"));
         }
 
         [Test]

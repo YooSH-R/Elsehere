@@ -12,6 +12,7 @@ import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.dialogue.service.DialogueServiceTest;
 import com.elsehere.feedback.entity.ConversationFeedback;
 import com.elsehere.feedback.entity.FeedbackStatus;
+import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.review.repository.ReviewCardRepository;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
@@ -85,10 +86,11 @@ class ReviewCardServiceTest {
 
   @Test
   void capturedBagScenarioKeepsItsFactsAfterTheOriginalStageChanges() {
-    source.attachFirstDayStage(com.elsehere.mission.entity.FirstDayStage.FIND_BAG.ordinal());
+    source.attachFirstDayStage(FirstDayStage.FIND_BAG.ordinal());
+    source.recordFirstDayGoals(FirstDayStage.FIND_BAG.intentIds());
     var saved = reviewCardService.create(userId, source.getId());
     assertThat(saved.scenario().title()).isEqualTo("분실 가방 찾기");
-    source.attachFirstDayStage(com.elsehere.mission.entity.FirstDayStage.CAFE_BREAK.ordinal());
+    source.attachFirstDayStage(FirstDayStage.CAFE_BREAK.ordinal());
     entityManager.flush();
     entityManager.clear();
     var loaded = reviewCardService.detail(userId, saved.id());

@@ -53,7 +53,8 @@ final class PoliceDesk {
       new WorkerState(
           "police_desk",
           "You are at the front desk of the town police station. People come to tell you about"
-              + " trouble in town.",
+              + " trouble in town. Maple Burger is the burger shop labelled Maple Diner in"
+              + " the destination list.",
           List.of(
               new WorkerState.Intent(
                   REPORT,
@@ -98,7 +99,9 @@ final class PoliceDesk {
     if (MAIN_STREET.equals(place)) {
       return Optional.of(Dispatch.PATROL);
     }
-    return Optional.ofNullable(PLACES.get(place)).map(code -> new Dispatch(code, (String) place));
+    String code = "Maple Burger".equals(place) ? "DINER" : PLACES.get(place);
+    return Optional.ofNullable(code)
+        .map(destinationCode -> new Dispatch(destinationCode, (String) place));
   }
 
   /** 이번 대답에서 경찰관이 할 일 */

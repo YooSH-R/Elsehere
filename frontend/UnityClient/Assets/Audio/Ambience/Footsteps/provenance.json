@@ -1,0 +1,17 @@
+{
+  "author": "kyles",
+  "source_page": "https://freesound.org/people/kyles/sounds/637555/",
+  "license": "CC0 1.0",
+  "source_type": "public high-quality MP3 preview; not original FLAC",
+  "processing": "Derived from the user-approved natural-low v6 preview: removed the first 85 ms heel strike, smoothed contact, and soft-limited the remaining sole texture. Raised all six clips by the same 12 dB without changing pitch, timing, or relative levels.",
+  "selection_evidence": "User-collected sounds/footstep file is byte-identical to the natural-low v6 listening sample; the continuous sample is not shipped.",
+  "selected_sample_sha256": "A72A1A70E8F24894525F09C90C2284C3D65A8B3E7A5779CEF8A4677C061E3D16",
+  "files": [
+    "Step01.wav",
+    "Step02.wav",
+    "Step03.wav",
+    "Step04.wav",
+    "Step05.wav",
+    "Step06.wav"
+  ]
+}

@@ -11,6 +11,7 @@ import java.time.OffsetDateTime;
  *
  * @param userTurnCount 사용자가 보낸 발화 수
  * @param feedbackStatus 짧은 피드백 상태. 피드백을 만들기 전(진행 중인 대화 등)이면 null
+ * @param practiceCount 이 대화로 다시 연습한 횟수. 연습하지 않았으면 0
  */
 public record ConversationSummaryResponse(
     Long conversationId,
@@ -22,7 +23,8 @@ public record ConversationSummaryResponse(
     OffsetDateTime endedAt,
     int userTurnCount,
     FeedbackStatus feedbackStatus,
-    boolean feedbackUnread) {
+    boolean feedbackUnread,
+    int practiceCount) {
 
   public ConversationSummaryResponse(
       Long conversationId,
@@ -44,6 +46,7 @@ public record ConversationSummaryResponse(
         endedAt,
         userTurnCount,
         feedbackStatus,
-        false);
+        false,
+        0);
   }
 }

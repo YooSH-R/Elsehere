@@ -20,17 +20,17 @@ MonoBehaviour:
   - npcCode: CAFE_STAFF
     greeting: "Hi there! Welcome to the corner caf\xE9. Would you like to order?"
   - npcCode: HOTEL_STAFF
-    greeting: Good afternoon! Welcome to Maple House. Are you checking in?
+    greeting: Hi! Welcome to Maple House. Are you checking in?
   - npcCode: SHOP_STAFF
     greeting: Hi! Welcome to the drugstore. Can I help you find something?
   - npcCode: POLICE_OFFICER
     greeting: Hello, this is the Maple Town police. How can I help you?
   - npcCode: POST_OFFICE_STAFF
-    greeting: Good morning. Are you sending something today?
+    greeting: Hello. Welcome to the post office. Are you sending something today?
   - npcCode: DINER_STAFF
-    greeting: Hi, hon! Welcome to Maple Diner. Table for one?
+    greeting: Hi, hon! Welcome to Maple Burger. What can I get you?
   - npcCode: BANK_STAFF
-    greeting: Good afternoon. Welcome to Town Bank. How may I help you?
+    greeting: Hello. Welcome to Town Bank. How may I help you?
   - npcCode: LAUNDROMAT_STAFF
     greeting: Hey there! Need a hand with the machines?
   - npcCode: FLOWER_SHOP_STAFF
@@ -38,7 +38,7 @@ MonoBehaviour:
   - npcCode: BARBER_STAFF
     greeting: Hey! Come on in. Just a trim today?
   - npcCode: BAKERY_STAFF
-    greeting: Good morning, dear! The bread just came out of the oven.
+    greeting: Hello, dear! Welcome to Maple Bakery. What can I get you?
   - npcCode: ARCADE_STAFF
     greeting: Yo! Welcome to Little Arcade. Want to try the claw machine?
   - npcCode: HOME_STORE_STAFF
@@ -48,40 +48,40 @@ MonoBehaviour:
   - npcCode: CAFE_SERVER
     greeting: Hey there! Grab any table you like. I'll bring you a menu.
   - npcCode: HOTEL_RECEPTIONIST
-    greeting: Good evening! Welcome to Maple House. Checking in?
+    greeting: Hello! Welcome to Maple House. Checking in?
   - npcCode: HOTEL_CONCIERGE
     greeting: Oh, hello... Welcome to Bloom Flowers. Looking for anything special?
   - npcCode: HOTEL_BELLHOP
     greeting: Hi! Can I help you with your bags?
   - npcCode: HOTEL_NIGHT_MANAGER
-    greeting: Good evening. Is everything all right with your stay?
+    greeting: Hello. Is everything all right with your stay?
   - npcCode: SHOP_PHARMACIST
     greeting: Hello. Do you need any medicine today?
   - npcCode: SHOP_NIGHT_CLERK
-    greeting: Evening. We're open all night if you need anything.
+    greeting: Hi. Welcome to the drugstore. We're open all night.
   - npcCode: POLICE_SERGEANT
-    greeting: Good evening. This is the night desk. What can I do for you?
+    greeting: Hello. This is the police station's night desk. How can I help?
   - npcCode: POLICE_PATROL_OFFICER
-    greeting: Good morning! The bread just came out of the oven.
+    greeting: Hi! Welcome to Maple Bakery. Looking for some bread?
   - npcCode: POLICE_ROOKIE
-    greeting: Good morning, dear! The bread just came out of the oven.
+    greeting: Hi, I'm Officer Taylor. Is there anything you'd like to report?
   - npcCode: TOWN_RETIREE
-    greeting: Good morning. Are you sending something today?
+    greeting: Hello. Welcome to the post office. Are you sending something today?
   - npcCode: TOWN_STUDENT
     greeting: Yo! Welcome to Little Arcade. Want to try the claw machine?
   - npcCode: TOWN_EVENING_WALKER
-    greeting: Good afternoon. Welcome to Town Bank. How may I help you?
+    greeting: Hello. Welcome to Town Bank. How may I help you?
   - npcCode: TOWN_SHOPPER
-    greeting: Good afternoon. Welcome to Town Bank. How may I help you?
+    greeting: Hello. Welcome to Town Bank. How may I help you?
   - npcCode: TOWN_HANDYMAN
     greeting: Welcome to Home and Living. Feel free to look around.
   - npcCode: FIRE_CAPTAIN
-    greeting: Hi, hon! Welcome to Maple Diner. Table for one?
+    greeting: Hi, hon! Welcome to Maple Burger. What can I get you?
   - npcCode: FIRE_FIGHTER
     greeting: Hey there! Need a hand with the machines?
   - npcCode: FIRE_ROOKIE
     greeting: Hey! Come on in. Just a trim today?
   - npcCode: TOWN_GRANDFATHER
-    greeting: Good morning. Nice weather for a walk.
+    greeting: Hello. It's nice to be out for a walk.
   - npcCode: TOWN_GRANDMOTHER
-    greeting: Oh, good morning! We take our walk every morning. Isn't it lovely?
+    greeting: Oh, hello! We take this walk every day. Isn't it lovely?

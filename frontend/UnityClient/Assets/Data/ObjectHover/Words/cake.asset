@@ -16,7 +16,7 @@ MonoBehaviour:
     key: cake
     languageCode: en-US
     text: cake
-    meaningKo: "\uCF00\uC774\uD06C"
+    meaningKo: "\uD06C\uB9BC\uC744 \uC5B9\uC740 \uB2EC\uCF64\uD55C \uBE75(\uCF00\uC774\uD06C)"
     example: May I have a slice of cake?
     exampleKo: "\uCF00\uC774\uD06C \uD55C \uC870\uAC01 \uC8FC\uC2DC\uACA0\uC5B4\uC694?"
     pronunciationAudioKey: 

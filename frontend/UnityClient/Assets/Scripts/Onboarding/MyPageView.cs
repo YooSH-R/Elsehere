@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using A305.Api;
+using A305.Dialogue;
 using A305.Player;
 using A305.Theme;
 using A305.Voice;
@@ -13,7 +14,7 @@ namespace A305.Onboarding
 {
     /// <summary>
     /// 공간 화면의 마이페이지. 오른쪽 위 [내 정보]로 열어 내 정보를 보고 닉네임을 바꾸거나 로그아웃한다.
-    /// 시점 회전 감도도 여기서 조절한다(<see cref="LookSensitivity"/>, 이 기기에만 저장).
+    /// 시점 회전 감도와 NPC 말 빠르기도 여기서 조절한다(<see cref="LookSensitivity"/>, <see cref="NpcSpeechSpeed"/>, 이 기기에만 저장).
     /// 로그아웃은 확인 창을 거쳐 서버 세션을 끝낸 뒤(AUTH-05) 입구 씬의 로그인 화면으로 돌아간다.
     /// 단어장 HUD 프리팹에 붙어 있어 장소 씬마다 따로 배치하지 않는다.
     /// </summary>
@@ -73,6 +74,16 @@ namespace A305.Onboarding
         private TMP_Text lookSensitivityText;
 
         [SerializeField]
+        [Tooltip("NPC 대화 음성 빠르기 배율. 이 기기에만 저장하고 다음 NPC 대사부터 쓴다.")]
+        private Slider npcSpeechSpeedSlider;
+
+        [SerializeField]
+        [Tooltip(
+            "슬라이더 옆에 지금 말 빠르기 배율을 보여 준다. 슬라이더를 움직이는 동안에도 바뀐다."
+        )]
+        private TMP_Text npcSpeechSpeedText;
+
+        [SerializeField]
         private Button logoutButton;
 
         [SerializeField]
@@ -112,6 +123,7 @@ namespace A305.Onboarding
 
         private void Awake()
         {
+            WindowFrame.Attach((RectTransform)profilePanel.transform);
             if (apiSettings == null)
             {
                 Debug.LogError("MyPageView의 apiSettings가 연결되지 않았습니다.", this);
@@ -137,9 +149,30 @@ namespace A305.Onboarding
             lookSensitivitySlider.minValue = LookSensitivity.Min;
             lookSensitivitySlider.maxValue = LookSensitivity.Max;
             lookSensitivitySlider.onValueChanged.AddListener(ChangeLookSensitivity);
+            npcSpeechSpeedSlider.minValue = NpcSpeechSpeed.Min;
+            npcSpeechSpeedSlider.maxValue = NpcSpeechSpeed.Max;
+            npcSpeechSpeedSlider.onValueChanged.AddListener(ChangeNpcSpeechSpeed);
             overlay.SetActive(false);
             UiLayer.Close(this);
+            // ESC는 로그아웃·탈퇴 확인이면 프로필로 돌아가고, 프로필이면 창을 닫는다. 요청 중에는 닫기 버튼처럼 닫지 않는다.
+            escape = new UiEscapeWindow(
+                () => overlay.activeSelf,
+                () =>
+                {
+                    if (logoutDialog.activeSelf || withdrawDialog.activeSelf)
+                    {
+                        if (!flow.IsBusy && !logout.IsBusy)
+                            ShowProfile();
+                    }
+                    else
+                    {
+                        Close();
+                    }
+                }
+            );
         }
+
+        private UiEscapeWindow escape;
 
         private void Start()
         {
@@ -151,6 +184,7 @@ namespace A305.Onboarding
         {
             openButton.interactable =
                 overlay.activeSelf || player == null || !player.IsMovementLocked;
+            escape?.Watch();
         }
 
         // 버튼 이벤트에서 부르므로 async void로 두고, 서버 오류가 아닌 예외는 로그로 남긴다.
@@ -167,6 +201,8 @@ namespace A305.Onboarding
             nicknameInput.text = "";
             lookSensitivitySlider.SetValueWithoutNotify(LookSensitivity.Current);
             RenderLookSensitivity(LookSensitivity.Current);
+            npcSpeechSpeedSlider.SetValueWithoutNotify(NpcSpeechSpeed.Current);
+            RenderNpcSpeechSpeed(NpcSpeechSpeed.Current);
             ShowProfile();
             await RunAsync(flow.LoadAsync(), LoadingMessage);
             ApplyVoiceConsent();
@@ -229,6 +265,18 @@ namespace A305.Onboarding
         private void RenderLookSensitivity(float value)
         {
             lookSensitivityText.text = $"{value:0.0}배";
+        }
+
+        // 서버가 음성을 만들 때 쓰므로 바로 저장해 다음 대화 요청부터 실린다.
+        private void ChangeNpcSpeechSpeed(float value)
+        {
+            NpcSpeechSpeed.Current = value;
+            RenderNpcSpeechSpeed(NpcSpeechSpeed.Current);
+        }
+
+        private void RenderNpcSpeechSpeed(float value)
+        {
+            npcSpeechSpeedText.text = $"{value:0.0}배";
         }
 
         private void AskLogout()
@@ -353,7 +401,7 @@ namespace A305.Onboarding
         private void Render()
         {
             bool canEdit = flow.User != null && !flow.IsBusy;
-            profileText.text = flow.User != null ? MyPageText.Profile(flow.User) : "";
+            profileText.text = flow.User != null ? MyPageText.ProfileForDisplay(flow.User) : "";
             statusText.text = flow.Message ?? "";
             // 게스트는 닉네임을 바꾸지 못해 칸과 버튼을 막고, 이유는 아래 안내 줄에 보인다.
             bool canChangeNickname = canEdit && flow.CanChangeNickname;
@@ -379,7 +427,8 @@ namespace A305.Onboarding
                         ConsentType = consent.ConsentType,
                         Title = consent.Title,
                         Url = consent.Url,
-                    }
+                    },
+                    showRequirement: false
                 );
                 row.Toggle.SetIsOnWithoutNotify(consent.Agreed);
                 row.Toggle.interactable = canEdit;

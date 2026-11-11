@@ -1,0 +1,26 @@
+[
+  {
+    "emotion": "Angry",
+    "text": "Oh, that order is wrong. I'm sorry about that. Let me make a fresh coffee for you.",
+    "voice": "Microsoft Zira Desktop",
+    "source": "frontend\\UnityClient\\Assets\\Audio\\Characters\\CafeEmotion\\FrownConcernCalm.wav",
+    "duration": 7.185,
+    "pcmSha256": "cb4b8466a783b35652e21353ca2e3ada97e793d4347d8340c0ec9a6036753210"
+  },
+  {
+    "emotion": "Sad",
+    "text": "Oh, that order is wrong. I'm sorry about that. Let me make a fresh coffee for you.",
+    "voice": "Microsoft Zira Desktop",
+    "source": "frontend\\UnityClient\\Assets\\Audio\\Characters\\CafeEmotion\\FrownConcernCalm.wav",
+    "duration": 7.185,
+    "pcmSha256": "cb4b8466a783b35652e21353ca2e3ada97e793d4347d8340c0ec9a6036753210"
+  },
+  {
+    "emotion": "Surprised",
+    "text": "Wait, you put salt in the coffee? That's a new recipe. You really made my day!",
+    "voice": "Microsoft Zira Desktop",
+    "source": "frontend\\UnityClient\\Assets\\Audio\\Characters\\CafeEmotion\\CuriousPlayfulLaugh.wav",
+    "duration": 6.87,
+    "pcmSha256": "2d66024c7b9bd70000956bfb0e0ff88b0dd038003a3182f50dbeed92feac6095"
+  }
+]

@@ -122,10 +122,13 @@ class FirstDayTurnTest {
             mock(ReviewDialogue.class),
             mock(NpcAffinityService.class),
             transactions,
-            new com.elsehere.mission.service.MissionDialogueService(
-                firstDay, mock(com.elsehere.mission.service.TownStoryService.class)),
+            new com.elsehere.mission.service.QuestTalkService(
+                firstDay,
+                mock(com.elsehere.mission.service.TownStoryService.class),
+                mock(com.elsehere.mission.service.PlacePracticeService.class)),
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
-            new DialogueRequestLocks());
+            new DialogueRequestLocks(),
+            new EarlyReplies(true));
   }
 
   @Test

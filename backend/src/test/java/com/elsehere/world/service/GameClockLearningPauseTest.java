@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.user.repository.UserRepository;
 import com.elsehere.world.entity.UserGameClock;
+import com.elsehere.world.repository.UserDailyActivityRepository;
 import com.elsehere.world.repository.UserGameClockRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -20,11 +21,16 @@ class GameClockLearningPauseTest {
   private static final Instant START = Instant.parse("2026-11-04T00:00:00Z");
   private final UserGameClock gameClock = BeanUtils.instantiateClass(UserGameClock.class);
   private final UserGameClockRepository repository = mock(UserGameClockRepository.class);
+  private final UserDailyActivityRepository visits = mock(UserDailyActivityRepository.class);
   private final ConversationRepository conversations = mock(ConversationRepository.class);
   private final UserRepository users = mock(UserRepository.class);
   private final GameClockService service =
       new GameClockService(
-          repository, conversations, users, Clock.fixed(START.plusSeconds(30), ZoneOffset.UTC));
+          repository,
+          visits,
+          conversations,
+          users,
+          Clock.fixed(START.plusSeconds(30), ZoneOffset.UTC));
 
   @BeforeEach
   void startClock() {
@@ -49,7 +55,11 @@ class GameClockLearningPauseTest {
 
     var later =
         new GameClockService(
-            repository, conversations, users, Clock.fixed(START.plusSeconds(60), ZoneOffset.UTC));
+            repository,
+            visits,
+            conversations,
+            users,
+            Clock.fixed(START.plusSeconds(60), ZoneOffset.UTC));
     var response = later.beat(8L, false, false, 30L);
 
     assertThat(response.paused()).isFalse();

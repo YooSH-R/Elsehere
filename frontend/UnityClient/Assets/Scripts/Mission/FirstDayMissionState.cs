@@ -53,15 +53,18 @@ namespace A305.Mission
             Started && !Completed ? Steps.Find(step => step.Status == "CURRENT")?.NpcCode : null;
 
         /// <summary>
-        /// 카페 의자에 앉을 수 있는지. 호텔로 돌아가기 전까지 원하는 만큼 앉도록 미션 단계와 상관없이 카페에서 대화·요청 중이 아니면 앉는다.
+        /// 카페 의자·소파에 앉을 수 있는지. 호텔로 돌아가기 전까지 원하는 만큼 앉도록 미션 단계와 상관없이 카페에서 대화·요청 중이 아니면 앉는다.
         /// </summary>
         public bool CanSitInCafe(string sceneCode, bool busy, bool talking) =>
             ManagesSeatsIn(sceneCode) && !busy && !talking;
 
         /// <summary>
-        /// 미션이 이 장소의 자리를 요청 중에 막고 휴식을 세는지. 휴식은 카페 의자에서만 세므로 마을 벤치·호텔 소파는 미션과 상관없이 앉는다.
+        /// 미션이 이 장소의 자리를 요청 중에 막고 휴식을 세는지. 휴식은 카페 좌석에서만 세므로 마을 벤치·호텔 소파는 미션과 상관없이 앉는다.
         /// </summary>
         public static bool ManagesSeatsIn(string sceneCode) => sceneCode == "CAFE";
+
+        public static bool CanShowMiniMapIn(string sceneCode, bool insideShop) =>
+            sceneCode == "TOWN" && !insideShop;
 
         /// <summary>이번 휴식이 미션의 '카페에서 잠깐 쉬기'로 인정되는지. 주문을 마친 뒤 처음 쉬는 한 번뿐이다.</summary>
         public bool CountsAsCafeRest => Started && !Completed && Stage == 1 && CanRest;
@@ -75,9 +78,11 @@ namespace A305.Mission
         /// 이 장소에서 플레이어가 우산을 펴 쓰는지. 우산은 드럭스토어 단계를 마치면 생기고, 비 오는 마을에서만 편다.
         /// 예보 이름을 보내기 전의 서버는 Raining으로 비를 판단한다.
         /// </summary>
-        public bool OpensUmbrellaIn(string sceneCode) =>
+        /// <param name="insideShop">마을 매장 실내 장면인지. 서버 장소는 마을이지만 실내다.</param>
+        public bool OpensUmbrellaIn(string sceneCode, bool insideShop = false) =>
             HasUmbrella
             && sceneCode == "TOWN"
+            && !insideShop
             && (
                 Raining || string.Equals(Weather, "RAIN", System.StringComparison.OrdinalIgnoreCase)
             );

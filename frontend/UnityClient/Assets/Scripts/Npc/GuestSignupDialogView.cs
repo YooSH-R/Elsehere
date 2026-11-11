@@ -1,14 +1,15 @@
 using A305.Api;
+using A305.Player;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace A305.Npc
 {
     /// <summary>
-    /// 대화를 다 쓴 게스트가 [가입하고 계속 대화하기]를 누르거나 마지막 대화의 피드백을 닫으면(<see cref="GuestSignupPrompt"/>)
-    /// 뜨는 가입 안내 창. [Google로 가입하기]는 Google 로그인(AUTH-01)으로
-    /// 페이지를 옮기고, 가입하면 게스트 때 기록이 그대로 이어진다(AUTH-04). 창이 열릴 때 설문을 권한다(<see cref="SurveyPrompt"/>).
-    /// 설문 카드는 이 창과 따로 화면 위에 내려온다.
+    /// 게스트가 첫 호텔 퀘스트를 끝낸 팡파레의 [다음]을 누르면(<see cref="GuestSignupPrompt"/>) 뜨는 가입 안내 창.
+    /// 서버에서 게스트 대화 횟수 제한을 켠 경우에는 대화를 다 쓴 게스트가 [가입하고 계속 대화하기]를 누르거나 마지막 대화의 피드백을 닫을 때도 뜬다.
+    /// [Google로 가입하기]는 Google 로그인(AUTH-01)으로
+    /// 페이지를 옮기고, 가입하면 게스트 때 기록이 그대로 이어진다(AUTH-04). 설문 안내 시점과는 독립적이다.
     /// </summary>
     public class GuestSignupDialogView : MonoBehaviour
     {
@@ -32,12 +33,13 @@ namespace A305.Npc
         public void Show()
         {
             dialog.SetActive(true);
-            SurveyPrompt.Request();
+            UiEscape.Opened(this, Hide, () => dialog.activeInHierarchy);
         }
 
         public void Hide()
         {
             dialog.SetActive(false);
+            UiEscape.Closed(this);
         }
 
         // 이 컴포넌트는 늘 켜져 있는 제안 화면 뿌리에 있고 창(dialog)만 켜고 끈다. 창에 두면 처음 켤 때 Awake가 돌아 닫힌다.

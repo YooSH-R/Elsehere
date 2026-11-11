@@ -89,20 +89,7 @@ namespace A305.EditorTools.World
                 new Vector3(.45f, .08f, .38f),
                 trim
             );
-            Piece(
-                cabin,
-                "RearSeat",
-                new Vector3(0, .65f, -.97f),
-                new Vector3(1.42f, .16f, .56f),
-                upholstery
-            );
-            Piece(
-                cabin,
-                "RearBack",
-                new Vector3(0, .95f, -1.24f),
-                new Vector3(1.42f, .60f, .12f),
-                upholstery
-            );
+            ConfigureRearSeats(cabin);
             Piece(
                 cabin,
                 "Dashboard",
@@ -153,6 +140,26 @@ namespace A305.EditorTools.World
             ConfigureStatus(panel);
         }
 
+        internal static void ConfigureRearSeats(Transform cabin)
+        {
+            Material upholstery = MainstreetArtKit.Color("TaxiUpholstery", "#B9A17C");
+            // 차체가 위로 갈수록 좁아지고 뒷유리가 앞으로 기울어져 있어 등받이를 더 좁고 앞에 둔다.
+            Piece(
+                cabin,
+                "RearSeat",
+                new Vector3(0, .65f, -.77f),
+                new Vector3(1.28f, .16f, .50f),
+                upholstery
+            );
+            Piece(
+                cabin,
+                "RearBack",
+                new Vector3(0, .94f, -.95f),
+                new Vector3(1.18f, .52f, .12f),
+                upholstery
+            );
+        }
+
         /// <summary>
         /// 마을 장소 목록(기존 공간 4곳과 거리 매장)을 정차·하차 지점과 함께 채운다. 택시와 순찰차가 같은 목록을 쓴다.
         /// 순찰차는 경찰서 자신으로 출동하지 않으므로 includePoliceStation을 끈다.
@@ -163,9 +170,10 @@ namespace A305.EditorTools.World
             bool includePoliceStation
         )
         {
-            // 경찰서처럼 거리 매장이면서 따로 장면이 있는 곳은 거리 매장의 정차 지점 하나만 쓴다.
+            // 거리 매장(경찰서 포함)과 북쪽 상가처럼 마을 건물 안의 장소는 거리 매장의 정차 지점만 쓰고 문마다 목적지를 만들지 않는다.
             SpaceDoorway[] doors = BuilderTools
                 .FindAllInScene<SpaceDoorway>(scene)
+                .Where(door => !PlaceScenes.IsTownShop(door.DestinationScene))
                 .Where(door =>
                     TownStorefrontBuilder.Storefronts.All(storefront =>
                         storefront.PlaceCode != PlaceScenes.CodeOf(door.DestinationScene)

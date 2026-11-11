@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using A305.Player;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -30,9 +31,17 @@ namespace A305.World
 
         private static SpaceTravelCurtain instance;
 
+        // 웹 로딩 화면(WebGLTemplates/A305Responsive)과 같은 글자색·막대 색
+        private static readonly Color LoadingTextColor = new Color(1f, 1f, 1f, 0.85f);
+        private static readonly Color ProgressTrackColor = new Color(1f, 1f, 1f, 0.25f);
+        private static readonly Color ProgressFillColor = new Color32(255, 194, 61, 255);
+
         private Canvas canvas;
         private CanvasGroup cover;
         private Camera backdrop;
+        private GameObject loadingStatus;
+        private TMP_Text loadingText;
+        private RectTransform progressFill;
         private ThreadPriority usualLoadingPriority;
 
         /// <summary>화면을 덮은 정도. 0이면 다 보이고 1이면 다 가려진다.</summary>
@@ -52,40 +61,42 @@ namespace A305.World
         /// <summary>화면을 덮으며 다음 씬을 불러오고, 새 공간에 도착하면 화면을 걷는다.</summary>
         public static void Travel(string destinationScene)
         {
+            Travel(destinationScene, null);
+        }
+
+        /// <param name="loadingMessage">
+        /// 덮는 동안 왼쪽 아래에 진행 막대와 함께 보일 문구. 입구 화면에서 장소로 들어갈 때처럼 휴대폰에서 몇 초씩 걸리는 이동에만 쓴다.
+        /// 문을 지날 때는 덮는 시간이 짧아 글자가 깜빡이기만 하므로 null로 두고 검은 화면만 보인다.
+        /// </param>
+        public static void Travel(string destinationScene, string loadingMessage)
+        {
             SpaceTravelCurtain curtain = GetOrCreate();
             curtain.StopAllCoroutines();
+            curtain.ShowLoading(loadingMessage);
             curtain.StartCoroutine(curtain.TravelTo(destinationScene));
         }
 
-        internal static void CrossShopDoor(
+        /// <summary>
+        /// 씬을 바꾸지 않고 플레이어를 같은 씬의 다른 자리로 옮긴다(복습을 마치고 원래 자리로 돌아올 때).
+        /// 다른 공간으로 갈 때와 같은 시간으로 화면을 덮고, 덮인 동안 옮긴 뒤 걷는다. 옮기는 동안 플레이어는 움직이지 못한다.
+        /// </summary>
+        internal static void MoveWithinScene(
             PlayerMover player,
             Pose destination,
-            ShopInterior interior,
-            bool entering,
-            float? arrivalViewYaw,
-            System.Action finishTravel
+            float arrivalViewYaw,
+            Action finishTravel
         )
         {
             SpaceTravelCurtain curtain = GetOrCreate();
-            curtain.StartCoroutine(
-                curtain.CrossThreshold(
-                    player,
-                    destination,
-                    interior,
-                    entering,
-                    arrivalViewYaw,
-                    finishTravel
-                )
-            );
+            curtain.ShowLoading(null);
+            curtain.StartCoroutine(curtain.Move(player, destination, arrivalViewYaw, finishTravel));
         }
 
-        private IEnumerator CrossThreshold(
+        private IEnumerator Move(
             PlayerMover player,
             Pose destination,
-            ShopInterior interior,
-            bool entering,
-            float? arrivalViewYaw,
-            System.Action finishTravel
+            float arrivalViewYaw,
+            Action finishTravel
         )
         {
             player.SetMovementLocked(true);
@@ -102,19 +113,15 @@ namespace A305.World
             try
             {
                 yield return FadeTo(1f, CloseSeconds);
-                if (interior != null && entering)
-                    yield return interior.SetOccupied(true);
                 if (player != null)
                 {
                     player.Teleport(destination.position, destination.rotation);
                     PlayerCameraRig camera = player.CameraRig;
                     if (camera != null)
                     {
-                        camera.SnapView(arrivalViewYaw ?? camera.ViewYawDegrees);
+                        camera.SnapView(arrivalViewYaw);
                     }
                 }
-                if (interior != null && !entering)
-                    yield return interior.SetOccupied(false);
                 yield return null;
                 yield return FadeTo(0f, OpenSeconds, Finish);
             }
@@ -136,6 +143,7 @@ namespace A305.World
             }
 
             instance.StopAllCoroutines();
+            instance.ShowLoading(null);
             instance.StartCoroutine(instance.Cover(moveWhileCovered));
         }
 
@@ -174,7 +182,13 @@ namespace A305.World
             }
             SceneManager.sceneLoaded += MakeActive;
             loading.allowSceneActivation = true;
-            yield return loading;
+            while (!loading.isDone)
+            {
+                // 씬을 읽는 동안은 0.9까지 오르고, 마지막 깨우기는 한 프레임에 끝난다.
+                ShowProgress(loading.progress / 0.9f);
+                yield return null;
+            }
+            ShowProgress(1f);
             foreach (Scene scene in leavingScenes)
             {
                 if (scene.IsValid() && scene.isLoaded)
@@ -195,6 +209,20 @@ namespace A305.World
                 yield return null;
             }
             yield return FadeTo(0f, OpenSeconds);
+            ShowLoading(null);
+        }
+
+        private void ShowLoading(string message)
+        {
+            bool shown = !string.IsNullOrEmpty(message);
+            loadingStatus.SetActive(shown);
+            loadingText.text = shown ? message : "";
+            ShowProgress(0f);
+        }
+
+        private void ShowProgress(float progress)
+        {
+            progressFill.anchorMax = new Vector2(Mathf.Clamp01(progress), 1f);
         }
 
         private static List<Scene> LoadedScenes()
@@ -288,7 +316,64 @@ namespace A305.World
             image.color = Color.black;
             image.raycastTarget = false;
 
+            // 다른 화면 UI와 같은 기준 해상도로 맞춰 휴대폰에서도 글자가 작아지지 않게 한다.
+            var scaler = root.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 0.5f;
+            curtain.CreateLoadingStatus(root.transform);
+
             return curtain;
+        }
+
+        // 왼쪽 아래 문구와 그 아래 진행 막대. 오래 걸리는 이동에만 켠다.
+        private void CreateLoadingStatus(Transform parent)
+        {
+            loadingStatus = new GameObject("LoadingStatus", typeof(RectTransform));
+            var status = (RectTransform)loadingStatus.transform;
+            status.SetParent(parent, false);
+            status.anchorMin = Vector2.zero;
+            status.anchorMax = Vector2.zero;
+            status.pivot = Vector2.zero;
+            status.anchoredPosition = new Vector2(64f, 64f);
+            status.sizeDelta = new Vector2(640f, 72f);
+
+            var label = new GameObject("Message", typeof(RectTransform), typeof(TextMeshProUGUI));
+            var labelRect = (RectTransform)label.transform;
+            labelRect.SetParent(status, false);
+            labelRect.anchorMin = new Vector2(0f, 1f);
+            labelRect.anchorMax = Vector2.one;
+            labelRect.pivot = new Vector2(0f, 1f);
+            labelRect.sizeDelta = new Vector2(0f, 44f);
+            loadingText = label.GetComponent<TextMeshProUGUI>();
+            loadingText.fontSize = 32f;
+            loadingText.color = LoadingTextColor;
+            loadingText.alignment = TextAlignmentOptions.BottomLeft;
+            loadingText.raycastTarget = false;
+
+            RectTransform track = CreateBar("Progress", status, ProgressTrackColor);
+            track.anchorMin = Vector2.zero;
+            track.anchorMax = new Vector2(1f, 0f);
+            track.pivot = Vector2.zero;
+            track.sizeDelta = new Vector2(0f, 10f);
+
+            progressFill = CreateBar("Fill", track, ProgressFillColor);
+            progressFill.anchorMin = Vector2.zero;
+            progressFill.pivot = Vector2.zero;
+            progressFill.sizeDelta = Vector2.zero;
+
+            loadingStatus.SetActive(false);
+        }
+
+        private static RectTransform CreateBar(string name, Transform parent, Color color)
+        {
+            var bar = new GameObject(name, typeof(RectTransform), typeof(Image));
+            var rect = (RectTransform)bar.transform;
+            rect.SetParent(parent, false);
+            var image = bar.GetComponent<Image>();
+            image.color = color;
+            image.raycastTarget = false;
+            return rect;
         }
     }
 }

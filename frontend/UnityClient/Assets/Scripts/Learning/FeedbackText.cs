@@ -123,12 +123,12 @@ namespace A305.Learning
             {
                 UtteranceReview review = feedback.Reviews[i];
                 text.AppendLine($"{i + 1:00} 내가 말한 문장 · <b>{review.Utterance}</b>");
-                if (review.Reference == null)
+                if (!review.HasAlternative)
                 {
                     text.AppendLine(
-                        string.IsNullOrEmpty(review.Comment)
+                        string.IsNullOrEmpty(review.Explanation)
                             ? "참고 표현 없음 · 지금 문장 그대로도 자연스럽게 전달돼요."
-                            : review.Comment
+                            : review.Explanation
                     );
                 }
                 else

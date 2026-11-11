@@ -16,7 +16,7 @@ MonoBehaviour:
     key: mattress
     languageCode: en-US
     text: mattress
-    meaningKo: "\uB9E4\uD2B8\uB9AC\uC2A4"
+    meaningKo: "\uCE68\uB300\uC5D0 \uAE4C\uB294 \uD479\uC2E0\uD55C \uC694(\uB9E4\uD2B8\uB9AC\uC2A4)"
     example: This mattress is comfortable.
     exampleKo: "\uC774 \uB9E4\uD2B8\uB9AC\uC2A4\uB294 \uD3B8\uC548\uD574\uC694."
     pronunciationAudioKey: 

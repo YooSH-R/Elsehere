@@ -211,7 +211,7 @@ namespace A305.EditorTools.World
                 Cream,
                 "ceiling"
             );
-            Stairs(interior, name == "MapleBakery");
+            Stairs(interior, name);
             for (int floor = 0; floor < 2; floor++)
             {
                 float y = floor * 4;
@@ -258,6 +258,154 @@ namespace A305.EditorTools.World
                 HomeGoods(interior);
             NorthBlockTenantLayout.Apply(root, name);
             return root;
+        }
+
+        // 이어 붙이는 판은 모서리를 1mm만 둥글게 해 이음매에 홈이 보이지 않게 한다.
+        private const float FlushEdge = .001f;
+
+        /// <summary>
+        /// 오락실 매장 장면(1층 오락실·2층 서점)을 계단실 자리(x 0~3.8)까지 넓혀 건물 폭 전체를 한 매장으로 쓴다.
+        /// 계단실 칸막이·서점 문 위 벽·계단실 안내를 없애고, 층 사이 판(2층 바닥이자 1층 천장)과 그 층 뒷벽 마감을 건물 폭 한 장으로 바꾸며,
+        /// 오른쪽 벽 마감과 조명을 매장 쪽(<see cref="InteriorFinish"/>)과 같게 둔다.
+        /// 1층은 앞벽을 오락실 문 자리만 비우고 이음 없이 다시 세워 거리 쪽 계단실 입구를 막는다.
+        /// 2층 서점 문은 마을에서처럼 서점 오른쪽 벽 앞쪽에 두어 같은 방향(서쪽)으로 들어온다.
+        /// 마을 건물에는 계단실이 그대로 남으므로 매장 장면에만 쓴다. 다시 실행해도 같은 모습이 된다.
+        /// </summary>
+        internal static void WidenIntoStairHall(Transform building, bool upper)
+        {
+            Transform layout = building.Find("TenantEntrances");
+            foreach (Transform part in layout.Cast<Transform>().ToArray())
+                if (
+                    part.name
+                    is "StairHallWall"
+                        or "DoorHeader"
+                        or "TenantDoorSign"
+                        or "TenantDoorSignBoard"
+                )
+                    Object.DestroyImmediate(part.gameObject);
+            Transform interior = building.Find("Interior");
+            Transform upperFloor = interior.Find("UpperFloor");
+            if (upperFloor != null)
+                Object.DestroyImmediate(upperFloor.gameObject);
+            float y = upper ? 4 : 0;
+            float height = upper ? 3 : 4;
+            Transform finish = interior.Find("InteriorFinish" + (upper ? 1 : 0));
+            foreach (Transform part in finish.Cast<Transform>().ToArray())
+                if ((part.name is "InteriorWall" or "Skirting") && part.localPosition.z < -7)
+                    Object.DestroyImmediate(part.gameObject);
+            Transform old = building.Find("StairHallAnnex");
+            if (old != null)
+                Object.DestroyImmediate(old.gameObject);
+            Transform annex = Group("StairHallAnnex", building, Vector3.zero);
+
+            Solid(
+                "StoreySlab",
+                annex,
+                new Vector3(-.05f, 3.9f, -4),
+                new Vector3(7.9f, .2f, 8),
+                Wood,
+                "floor",
+                radius: FlushEdge
+            );
+            Material plaster = Color("NorthBlockPlaster", "#ECE3CE");
+            Solid(
+                "InteriorWall",
+                annex,
+                new Vector3(3.785f, y + height / 2, -4),
+                new Vector3(.025f, height, 7.6f),
+                plaster,
+                "wall",
+                false
+            );
+            Solid(
+                "InteriorWall",
+                annex,
+                new Vector3(0, y + height / 2, -7.785f),
+                new Vector3(7.6f, height, .025f),
+                plaster,
+                "wall",
+                false,
+                FlushEdge
+            );
+            Solid(
+                "Skirting",
+                annex,
+                new Vector3(3.75f, y + .28f, -4),
+                new Vector3(.08f, .55f, 7.6f),
+                Green,
+                "wall",
+                false
+            );
+            Solid(
+                "Skirting",
+                annex,
+                new Vector3(0, y + .28f, -7.75f),
+                new Vector3(7.6f, .55f, .08f),
+                Green,
+                "wall",
+                false,
+                FlushEdge
+            );
+            var lamp = new GameObject("InteriorLight").AddComponent<Light>();
+            lamp.transform.SetParent(annex, false);
+            lamp.transform.localPosition = new Vector3(1.9f, y + 2.2f, -4);
+            lamp.type = LightType.Point;
+            lamp.range = 8;
+            lamp.intensity = .7f;
+            lamp.color = new UnityEngine.Color(1, .88f, .69f);
+            lamp.shadows = LightShadows.None;
+
+            if (upper)
+            {
+                // 문짝은 덧댄 문틀·손잡이와 함께 옮긴다. 마을에서와 같은 방향으로 오른쪽 벽 안쪽 면에 붙이고,
+                // 앞벽(z -0.2)에 닿지 않게 조금 뒤로 둔다.
+                layout
+                    .Find("BookshopDoor")
+                    .SetLocalPositionAndRotation(
+                        new Vector3(3.75f, 4, -1.95f),
+                        Quaternion.Euler(0, -90, 0)
+                    );
+                return;
+            }
+            Transform ground = building
+                .Cast<Transform>()
+                .Single(floor => floor.name.Contains("Floor8m") && floor.localPosition.y < 1);
+            Material wall = ground.Find("Walls").GetComponent<Renderer>().sharedMaterial;
+            Transform shell = ground.Find("HollowWalls");
+            foreach (Transform part in shell.Cast<Transform>().ToArray())
+                if (part.name is "FrontWall" or "DoorHeader")
+                    Object.DestroyImmediate(part.gameObject);
+            Transform door = layout.Find("ArcadeDoor");
+            float doorWidth = door.Find("Hinge/DoorLeaf").GetComponent<BoxCollider>().size.x;
+            float left = door.localPosition.x - .05f;
+            float right = door.localPosition.x + doorWidth + .05f;
+            Solid(
+                "FrontWall",
+                annex,
+                new Vector3((left - 4) / 2, 2, -.1f),
+                new Vector3(left + 4, 4, .2f),
+                wall,
+                "wall",
+                radius: FlushEdge
+            );
+            Solid(
+                "DoorHeader",
+                annex,
+                new Vector3((left + right) / 2, 3.3f, -.1f),
+                new Vector3(right - left, 1.4f, .2f),
+                wall,
+                "wall",
+                radius: FlushEdge
+            );
+            Solid(
+                "FrontWall",
+                annex,
+                new Vector3((right + 4) / 2, 2, -.1f),
+                new Vector3(4 - right, 4, .2f),
+                wall,
+                "wall",
+                radius: FlushEdge
+            );
         }
 
         private static void InteriorFinish(Transform parent, float y, bool ground)
@@ -408,8 +556,17 @@ namespace A305.EditorTools.World
                 );
         }
 
-        private static void Stairs(Transform parent, bool isBakery)
+        /// <summary>
+        /// 앞에서 뒤로 오른 뒤 계단참에서 돌아 앞쪽 2층 계단참으로 오르는 실내 계단.
+        /// 빵집은 왼쪽으로 돌고, 오락실 공용 계단실은 오른쪽으로 돌아 마지막 단 바로 왼쪽에 2층 서점 문이 온다.
+        /// </summary>
+        private static void Stairs(Transform parent, string building)
         {
+            bool isBakery = building == "MapleBakery";
+            bool turnsRight = TurnsRight(building);
+            float firstX = FirstFlightX(building);
+            float returnX = 4 - firstX;
+            float firstWallSideX = turnsRight ? 3.73f : .12f;
             Transform stairs = Group("Stairs", parent, Vector3.zero);
             NorthBlockAssets.Bind(stairs.gameObject, "stairs");
             const int steps = 15;
@@ -421,7 +578,7 @@ namespace A305.EditorTools.World
                 Solid(
                     "Step",
                     stairs,
-                    new Vector3(1.05f, rise / 2, z),
+                    new Vector3(firstX, rise / 2, z),
                     new Vector3(1.8f, rise, run / steps),
                     Wood,
                     "stairs"
@@ -430,7 +587,7 @@ namespace A305.EditorTools.World
                 Solid(
                     "Step",
                     stairs,
-                    new Vector3(2.95f, 2 + rise / 2, returnZ),
+                    new Vector3(returnX, 2 + rise / 2, returnZ),
                     new Vector3(1.8f, rise, run / steps),
                     Wood,
                     "stairs"
@@ -444,22 +601,60 @@ namespace A305.EditorTools.World
                 Wood,
                 "floor"
             );
-            Rail(stairs, new Vector3(.12f, .95f, -1.6f), new Vector3(.12f, 2.95f, -5.6f));
+            Rail(
+                stairs,
+                new Vector3(firstWallSideX, .95f, -1.6f),
+                new Vector3(firstWallSideX, 2.95f, -5.6f)
+            );
             Rail(stairs, new Vector3(2, .95f, -1.6f), new Vector3(2, 2.95f, -5.6f));
             Rail(stairs, new Vector3(2, 2.95f, -5.6f), new Vector3(2, 4.95f, -1.6f));
-            // Guard the upper-floor opening; leave both stair mouths and the turning landing clear.
-            Solid(
-                "UpperRailing",
-                stairs,
-                new Vector3(.12f, 4.5f, -4.65f),
-                new Vector3(.08f, 1, 6.1f),
-                Green,
-                "railing"
-            );
+            if (turnsRight)
+                // 공용 계단실 벽이 2층 매장 쪽을 막는다. 첫 계단 위로 열린 2층 계단참 가장자리만 난간으로 막는다.
+                Rail(stairs, new Vector3(2, 4.95f, -1.6f), new Vector3(3.73f, 4.95f, -1.6f));
+            else
+                // Guard the upper-floor opening; leave both stair mouths and the turning landing clear.
+                Solid(
+                    "UpperRailing",
+                    stairs,
+                    new Vector3(.12f, 4.5f, -4.65f),
+                    new Vector3(.08f, 1, 6.1f),
+                    Green,
+                    "railing"
+                );
             if (isBakery)
                 BakeryStairDetails(parent, stairs);
-            else
-                Text("StairDirection", "UPSTAIRS", parent, new Vector3(1.05f, 2.5f, -1.3f), .16f);
+        }
+
+        private static bool TurnsRight(string building) => building == "LittleArcade";
+
+        // 입구에서 안쪽(-z)을 보면 +x가 왼쪽이다. 오른쪽으로 돌면 첫 계단이 왼쪽 절반, 돌아오는 계단이 오른쪽 절반이다.
+        private static float FirstFlightX(string building) => TurnsRight(building) ? 2.95f : 1.05f;
+
+        /// <summary>
+        /// 이미 만든 오락실 프리팹의 공용 계단실을 다시 만든다. 계단을 오른쪽으로 도는 방향으로 바꾸고,
+        /// 계단실 벽의 오락실 문을 건물 앞면으로 옮기며 계단실 안내를 맞춘다. 건물 간판·집기 등 나머지 배치는 그대로 둔다.
+        /// </summary>
+        [MenuItem("Tools/A305/World/Rebuild Little Arcade Stair Hall")]
+        public static void RebuildArcadeStairHall()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            string path = NorthBlockAssets.Folder + "/LittleArcade.prefab";
+            BuilderTools.UpdatePrefabIfExists(
+                path,
+                root =>
+                {
+                    // 계단 묶음은 단·난간뿐이라 새로 만든다.
+                    Transform interior = root.transform.Find("Interior");
+                    Object.DestroyImmediate(interior.Find("Stairs").gameObject);
+                    Stairs(interior, root.name);
+                    NorthBlockTenantLayout.MoveArcadeDoorToFront(root.transform);
+                    NorthBlockTenantLayout.ArcadeStairHallSigns(root.transform);
+                    // 새 계단·벽·문에도 호버 영역을 프리팹 안에 붙여, 씬마다 따로 붙지 않게 한다.
+                    ObjectWordRegistration.ApplyToPrefab(root, path);
+                }
+            );
+            AssetDatabase.SaveAssets();
         }
 
         private static void Rail(Transform parent, Vector3 from, Vector3 to)
@@ -494,10 +689,11 @@ namespace A305.EditorTools.World
             Vector3 size,
             Material material,
             string word,
-            bool collision = true
+            bool collision = true,
+            float radius = .015f
         )
         {
-            Transform part = Block(name, parent, position, size, material, .015f);
+            Transform part = Block(name, parent, position, size, material, radius);
             if (collision)
                 part.gameObject.AddComponent<BoxCollider>().size = size;
             NorthBlockAssets.Bind(part.gameObject, word);

@@ -66,7 +66,7 @@ namespace A305.EditorTools.Mission
             }
             view.SetAvailable(true);
             view.BindMap(
-                A305.World.PlaceScenes.CodeOf(sceneName),
+                A305.World.PlaceScenes.ServerCodeOf(sceneName),
                 BuilderTools.FindSingleInScene<PlayerMover>(scene).transform
             );
             view.Refresh(state, false, false);
@@ -80,6 +80,7 @@ namespace A305.EditorTools.Mission
                 .gameObject;
             drawer.SetActive(false);
             Render(camera, view, Path.Combine(output, "quest-npc.png"), 1920, 1080);
+            Render(camera, view, Path.Combine(output, "quest-card-mobile.png"), 1080, 1920);
             drawer.SetActive(true);
             banner.SetActive(false);
             Render(camera, view, Path.Combine(output, "quest-journal.png"), 1920, 1080);

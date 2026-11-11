@@ -43,11 +43,16 @@ namespace A305.EditorTools.ObjectHover
                 BuilderTools.UpdatePrefabIfExists(path, root => Apply(root));
             }
             AssetDatabase.SaveAssets();
-            foreach (string sceneName in ObjectWordAuthoring.SceneNames)
+            foreach (string path in ObjectWordAuthoring.WordScenePaths())
             {
-                string path = "Assets/Scenes/Production/" + sceneName + ".unity";
                 Scene scene = EditorSceneManager.OpenScene(path);
-                RegisterScene(scene, report);
+                // 매장 실내 씬의 사물은 위에서 연결한 건물 프리팹 인스턴스이므로 고치지 않고 누락만 검사한다.
+                if (ObjectWordAuthoring.IsTownInterior(path))
+                {
+                    ReportScene(scene, ObjectWordAuthoring.WordRoot(scene, path).transform, report);
+                    continue;
+                }
+                RegisterScene(scene, path, report);
                 BuilderTools.SaveScene(scene, path);
             }
             File.WriteAllText(
@@ -71,7 +76,7 @@ namespace A305.EditorTools.ObjectHover
             PrepareSource();
             var report = new StringBuilder();
             Scene scene = SceneManager.GetActiveScene();
-            RegisterScene(scene, report);
+            RegisterScene(scene, scene.path, report);
             EditorSceneManager.MarkSceneDirty(scene);
             Debug.Log(report.ToString());
         }
@@ -85,7 +90,7 @@ namespace A305.EditorTools.ObjectHover
                 return;
             if (catalog == null)
                 PrepareSource();
-            RegisterScene(scene, new StringBuilder());
+            RegisterScene(scene, scene.path, new StringBuilder());
         }
 
         public static void PrepareSource()
@@ -270,12 +275,9 @@ namespace A305.EditorTools.ObjectHover
             return null;
         }
 
-        private static void RegisterScene(Scene scene, StringBuilder report)
+        private static void RegisterScene(Scene scene, string path, StringBuilder report)
         {
-            Transform environment = scene
-                .GetRootGameObjects()
-                .Single(root => root.name == "Environment")
-                .transform;
+            Transform environment = ObjectWordAuthoring.WordRoot(scene, path).transform;
             Apply(environment.gameObject);
             // 이전 외형 교체에서 남은 빈 호버 루트는 실제 프리팹의 공용 연결로 대체한다.
             foreach (
@@ -298,6 +300,11 @@ namespace A305.EditorTools.ObjectHover
                 )
             )
                 BuilderTools.SetReference(hover, "wordSource", source);
+            ReportScene(scene, environment, report);
+        }
+
+        private static void ReportScene(Scene scene, Transform environment, StringBuilder report)
+        {
             HoverableObject[] targets = environment.GetComponentsInChildren<HoverableObject>();
             report.AppendLine(
                 scene.name

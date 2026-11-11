@@ -36,11 +36,15 @@
       ],
       "verdicts": {
         "t02": [
-          "appropriate",
           "improvement_suggested"
         ],
         "t04": [
           "appropriate"
+        ]
+      },
+      "required_suggestion_kinds": {
+        "t02": [
+          "context_fit"
         ]
       },
       "forbid_suggestion_kinds": [
@@ -53,19 +57,28 @@
     "input_file": "samples/robustness/korean_only.json",
     "expect": {
       "statuses": [
-        "completed",
-        "insufficient_evidence"
+        "completed"
       ],
       "verdicts": {
         "t02": [
-          "not_assessable"
+          "improvement_suggested"
         ],
         "t04": [
-          "not_assessable"
+          "improvement_suggested"
         ]
       },
-      "max_suggestions": 0,
-      "max_vocab": 0
+      "required_suggestion_kinds": {
+        "t02": [
+          "context_fit"
+        ],
+        "t04": [
+          "context_fit"
+        ]
+      },
+      "forbid_suggestion_kinds": [
+        "grammar_error",
+        "vocabulary_error"
+      ]
     }
   },
   {

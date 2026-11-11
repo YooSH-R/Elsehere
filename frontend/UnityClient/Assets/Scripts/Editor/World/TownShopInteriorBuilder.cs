@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using A305.EditorTools.Common;
 using A305.EditorTools.ObjectHover;
+using A305.ObjectHover;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -20,6 +21,7 @@ namespace A305.EditorTools.World
     public static class TownShopInteriorBuilder
     {
         internal const string Folder = "Assets/Prefabs/World/TownInteriors";
+        private const string LaundromatRoom = "LaundromatInterior";
         private const string CaptureFolder = "../../../artifacts/unity/town-interiors";
 
         /// <summary>
@@ -83,6 +85,87 @@ namespace A305.EditorTools.World
             }
         }
 
+        /// <summary>
+        /// 계단실 칸막이 없이 건물 폭 전체를 쓰도록 바꾼 오락실·서점 배치를 반영한다.
+        /// 두 공간 프리팹만 코드대로 다시 저장하고, 소품 프리팹은 없을 때만 만들며 다른 매장은 그대로 둔다.
+        /// 이어서 Build Town Shop Scenes로 매장 장면을 다시 맞춘다.
+        /// </summary>
+        [MenuItem("Tools/A305/World/Rebuild Arcade And Bookshop Interiors")]
+        public static void RebuildArcadeShops()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            string sharedMeshes = MainstreetArtKit.ArtFolder + "/Meshes";
+            var existingMeshes = new HashSet<string>(
+                AssetDatabase.FindAssets("t:Mesh", new[] { sharedMeshes })
+            );
+            foreach (
+                TownShopInteriorLayouts.Space space in TownShopInteriorLayouts.Spaces.Where(
+                    candidate => candidate.Name is "ArcadeInterior" or "BookshopInterior"
+                )
+            )
+            {
+                var root = new GameObject(space.Name);
+                space.Furnish(root.transform);
+                GameObject prefab = BuilderTools.SavePrefab(
+                    root,
+                    Folder + "/" + space.Name + ".prefab"
+                );
+                BuilderTools.UpdatePrefabIfExists(
+                    space.BuildingPrefab,
+                    building => Install(building, space, prefab)
+                );
+            }
+            foreach (
+                string guid in AssetDatabase
+                    .FindAssets("t:Mesh", new[] { sharedMeshes })
+                    .Where(guid => !existingMeshes.Contains(guid))
+            )
+                AssetDatabase.DeleteAsset(AssetDatabase.GUIDToAssetPath(guid));
+            AssetDatabase.SaveAssets();
+        }
+
+        [MenuItem("Tools/A305/World/Update Laundromat Props")]
+        public static void UpdateLaundromatProps()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+
+            TownShopInteriorLayouts.Space space = TownShopInteriorLayouts.Spaces.Single(candidate =>
+                candidate.Name == LaundromatRoom
+            );
+            string roomPath = $"{Folder}/{LaundromatRoom}.prefab";
+            if (
+                !BuilderTools.UpdatePrefabIfExists(
+                    roomPath,
+                    room => RemovePlant(room.transform.Find("WasherRow/SnakePlant"))
+                )
+            )
+                throw new InvalidOperationException($"빨래방 실내 프리팹이 없습니다: {roomPath}");
+
+            GameObject roomPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(roomPath);
+            if (
+                !BuilderTools.UpdatePrefabIfExists(
+                    space.BuildingPrefab,
+                    building =>
+                    {
+                        RemovePlant(building.transform.Find("Interior/Plant"));
+                        Install(building, space, roomPrefab);
+                    }
+                )
+            )
+                throw new InvalidOperationException(
+                    $"빨래방 건물 프리팹이 없습니다: {space.BuildingPrefab}"
+                );
+            AssetDatabase.SaveAssets();
+        }
+
+        private static void RemovePlant(Transform plant)
+        {
+            if (plant != null)
+                Object.DestroyImmediate(plant.gameObject);
+        }
+
         // 건물 Interior 아래 그 층 높이에 공간 프리팹을 한 번만 둔다.
         private static void Install(
             GameObject building,
@@ -95,7 +178,8 @@ namespace A305.EditorTools.World
                 throw new InvalidOperationException(
                     "매장 건물에 Interior가 없습니다: " + building.name
                 );
-            if (interior.Find(space.Name) == null)
+            Transform room = interior.Find(space.Name);
+            if (room == null)
             {
                 GameObject placed = BuilderTools.InstantiatePrefab(
                     prefab,
@@ -104,10 +188,101 @@ namespace A305.EditorTools.World
                     Quaternion.identity
                 );
                 placed.name = space.Name;
+                room = placed.transform;
             }
+            if (space.Name == LaundromatRoom)
+                RegisterLaundromatWords(room);
             // 단어를 정하지 않은 소품은 기존 매장 소품처럼 건물 단어(shop)를 따른다.
             // 그 호버 영역을 건물 프리팹에 만들어 두지 않으면 마을 씬을 저장할 때마다 씬 쪽 덮어쓰기로 쌓인다.
             ObjectWordRegistration.ApplyToPrefab(building, space.BuildingPrefab);
+        }
+
+        private static readonly (
+            string objectName,
+            string file,
+            string text,
+            string meaning,
+            string example,
+            string exampleKo
+        )[] LaundromatWords =
+        {
+            (
+                "LaundryBasket",
+                "laundry_basket",
+                "laundry basket",
+                "빨래 바구니",
+                "Put your clean clothes in the laundry basket.",
+                "깨끗한 옷을 빨래 바구니에 넣으세요."
+            ),
+            (
+                "DetergentBottles",
+                "laundry_detergent",
+                "laundry detergent",
+                "세탁 세제",
+                "Add a little laundry detergent before you start the washer.",
+                "세탁기를 돌리기 전에 세탁 세제를 조금 넣으세요."
+            ),
+            (
+                "TowelStack",
+                "folded_towels",
+                "folded towels",
+                "접어 놓은 수건",
+                "The folded towels are on the shelf.",
+                "접어 놓은 수건은 선반에 있어요."
+            ),
+            (
+                "LaundryCart",
+                "laundry_cart",
+                "laundry cart",
+                "빨래 수레",
+                "Use the laundry cart to take your clothes to the dryer.",
+                "빨래 수레를 써서 옷을 건조기로 옮기세요."
+            ),
+            (
+                "DetergentVending",
+                "detergent_vending_machine",
+                "detergent vending machine",
+                "세제 자판기",
+                "You can buy detergent from the detergent vending machine.",
+                "세제 자판기에서 세제를 살 수 있어요."
+            ),
+            (
+                "ClothesRack",
+                "clothes_rack",
+                "clothes rack",
+                "옷걸이 행거",
+                "Hang your shirt on the clothes rack.",
+                "셔츠를 행거에 걸어 두세요."
+            ),
+            (
+                "ChangeMachine",
+                "change_machine",
+                "change machine",
+                "동전 교환기",
+                "The change machine gives you quarters for the washers.",
+                "동전 교환기에서 세탁기에 쓸 25센트 동전을 받을 수 있어요."
+            ),
+        };
+
+        private static void RegisterLaundromatWords(Transform room)
+        {
+            // 수건·세제·동전 교환기는 다른 매장에서도 쓰므로 빨래방 인스턴스에만 연결한다.
+            var props = room.GetComponentsInChildren<Transform>(true).ToLookup(prop => prop.name);
+            foreach (var word in LaundromatWords)
+            {
+                ObjectWordDefinition definition = ObjectWordAuthoring.FindOrCreateWord(
+                    word.file,
+                    word.text,
+                    word.meaning,
+                    word.example,
+                    word.exampleKo
+                );
+                foreach (Transform prop in props[word.objectName])
+                {
+                    var hover = BuilderTools.GetOrAddComponent<HoverableObject>(prop.gameObject);
+                    BuilderTools.SetReference(hover, "word", definition);
+                }
+            }
         }
 
         // 거리 매장은 문 안쪽에서 뒷벽을 본다. 북쪽 상가는 계단을 비켜 매장 쪽으로 들어선 자리에서 본다.

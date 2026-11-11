@@ -9,9 +9,13 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from .npc_profile_models import NpcProfile
 from .speech_emotion import Mood
 
-# 대화 난이도 1~3 (백엔드 levelApplied). 1: 천천히 쉬운 단어·짧은 문장, 2: 자연스러운 일상 영어, 3: 원래 말투 그대로.
-# NPC 대답의 문장 수·길이·어휘, 힌트·추천 단어 수준이 바뀐다 (판정은 영향 없음). 규칙은 prompts.LEVEL_RULES
+# 대화 난이도 1~3 (백엔드 levelApplied). 1: 쉬운 단어·짧은 문장, 2: 중급(B1-B2, 더 촘촘하게), 3: 원래 말투 그대로.
+# NPC 대답의 문장 수·길이·어휘, 힌트·추천 단어 수준이 바뀐다 (판정·말 속도는 영향 없음). 규칙은 prompts.LEVEL_RULES
 Level = Literal[1, 2, 3]
+
+# NPC 대화 음성 빠르기(Kokoro speed). 학습자가 설정창 슬라이더로 고른 값을 백엔드가 learner에 담는다 (S15P31A305-778)
+SpeechSpeed = Annotated[float, Field(ge=0.8, le=1.5, allow_inf_nan=False)]
+DEFAULT_SPEECH_SPEED = 1.1
 
 
 def not_blank(v: str) -> str:
@@ -27,7 +31,7 @@ class Npc(BaseModel):
     facts: str = ""
     scene: str = ""
     tts_voice: str = "af_heart"
-    tts_speed: float = Field(default=1.0, ge=0.5, le=2.0)  # 호환용 필드. NPC 대화 음성은 1.1배로 고정한다
+    tts_speed: float = Field(default=1.0, ge=0.5, le=2.0)  # 호환용 필드. NPC 대화 음성은 요청의 speech_speed
     # 공통 인격 스키마의 인격(백엔드 인격 설정의 npcProfile 그대로). 있으면 NPC 대답을 공통 규칙 + 인격으로 만든다 (app.npc_prompt)
     profile: NpcProfile | None = None
 
@@ -35,7 +39,7 @@ class Npc(BaseModel):
 class Line(BaseModel):
     who: Literal["npc", "me"]
     text: str = Field(max_length=1000)
-    english: str | None = None  # 학습자 줄: 번역 (대화 종료 API에서 씀)
+    english: str | None = None  # 학습자 줄: 생성된 영어 번역·교정문 (원문은 text, 대화 종료 API에서 씀)
     rude: bool = False  # 학습자 줄: 무례 판정 결과
     events: list[str] = []  # 학습자 줄: 의도 판정(/v1/judge)이 고른 대화 사건. 대화 중 기분과 이미 센 사건을 거르는 데 쓴다
 
@@ -72,6 +76,8 @@ class State(BaseModel):
     desc: str
     intents: list[Intent] = Field(min_length=1)
     accumulate_history: bool = False  # 복합 미션 목표는 같은 대화의 학습자 발언에 나눠 말한 사실을 합쳐 판정한다.
+    # 0보다 크면 판정에 최근 대화 몇 줄(무례로 센 줄 제외)을 함께 보여 준다. '거기'처럼 앞에서 말한 것을 가리키는 말을 알아듣게 한다 (택시 목적지)
+    recent_lines: int = Field(default=0, ge=0, le=12)
     slots: Slots = Slots()
     current: dict = {}  # 지금 값 (예: {"order": "a latte"})
     more_intents: list[Intent] = []  # 같은 줄에서 이어서 할 수 있는 다음 단계 의도 (예: 포장 고르기 중의 '결제').
@@ -111,10 +117,11 @@ class Relationship(BaseModel):
 
 
 class Learner(BaseModel):
-    """대답 상대인 학습자. 캐릭터 기본형(F·M)과 닉네임이며, NPC가 부르는 호칭을 정할 때만 쓴다."""
+    """대답 상대인 학습자. 캐릭터 기본형(F·M)과 닉네임은 NPC가 부르는 호칭을 정할 때만 쓰고, 말 빠르기는 대답 음성에 쓴다."""
 
     nickname: str | None = Field(default=None, max_length=32)
     avatar_type: Literal["F", "M"] | None = None
+    speech_speed: SpeechSpeed = DEFAULT_SPEECH_SPEED  # 학습자가 고른 NPC 음성 빠르기
 
 
 class ReplyRequest(BaseModel):
@@ -132,6 +139,10 @@ class ReplyRequest(BaseModel):
     suggest_words: bool = False  # true면 대답이 끝난 뒤 추천 단어를 만들어 스트림의 words 이벤트로 (음성 합성과 동시에)
     goal: str = Field(default="", max_length=300)  # 추천 단어용: 지금 상태에서 학습자가 할 일
     learner: Learner | None = None  # 있으면 캐릭터에 맞는 호칭만, 없으면 성별을 짐작한 호칭(Mr.·Ms.·sir·ma'am)을 쓰지 않는다
+
+    @property
+    def speech_speed(self) -> float:
+        return self.learner.speech_speed if self.learner else DEFAULT_SPEECH_SPEED
 
 
 class SpeechPhrase(BaseModel):
@@ -227,6 +238,31 @@ class FollowUpRequest(BaseModel):
     def learner_spoke(cls, v: list[Line]) -> list[Line]:
         if not any(line.who == "me" for line in v):
             raise ValueError("학습자가 말하지 않은 대화에는 건넬 것이 없습니다")
+        return v
+
+
+# ---------- 레벨 테스트 ----------
+class LevelTestSpeakingItem(BaseModel):
+    """레벨 테스트 말하기 문항 하나와 학습자의 답."""
+
+    item_code: str = Field(min_length=1, max_length=64, pattern=r"\S")
+    situation: str = Field(min_length=1, max_length=500)  # 학습자에게 보여 준 상황 (한국어)
+    cues: list[str] = Field(default=[], max_length=10)  # 답에 넣어야 할 내용 (한국어)
+    criteria: str = Field(min_length=1, max_length=1000)  # 통과 기준 (영어)
+    answer: str = Field(default="", max_length=1000)  # 학습자가 말한(음성 인식) 또는 쓴 답. 비었거나 한국어일 수 있다
+
+
+class LevelTestSpeakingRequest(BaseModel):
+    """레벨 테스트 말하기 문항 판정 (app.prompts.LEVEL_TEST_SPEAKING_SYSTEM). 백엔드가 테스트를 끝낼 때 한 번 부른다."""
+
+    items: list[LevelTestSpeakingItem] = Field(min_length=1, max_length=5)
+
+    @field_validator("items")
+    @classmethod
+    def distinct_item_codes(cls, v: list[LevelTestSpeakingItem]) -> list[LevelTestSpeakingItem]:
+        codes = [item.item_code for item in v]
+        if len(set(codes)) != len(codes):
+            raise ValueError("같은 문항 코드가 두 번 있습니다")
         return v
 
 

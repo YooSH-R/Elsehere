@@ -19,6 +19,10 @@ namespace A305.Learning
         private readonly List<VocabularyEntry> entries = new List<VocabularyEntry>();
         private readonly IVocabularyApi api;
 
+        // 사용자가 고른 탭과 장소 묶음. 고르기 전이면 null이다.
+        private VocabularyTab? chosenTab;
+        private VocabularyPlaceGroup? chosenPlaceGroup;
+
         // 서버 목록을 한 번이라도 받았는지와 지금 받는 중인지. 받기 전의 빈 목록은 '단어 없음'이 아니다.
         private bool isLoaded;
         private bool isLoading;
@@ -31,6 +35,9 @@ namespace A305.Learning
         /// <summary>외운 단어까지 모두 담은 단어장. 외웠어요는 기록을 지우지 않는다.</summary>
         public IReadOnlyList<VocabularyEntry> Entries => entries;
 
+        /// <summary>알림 배지는 목록 필터와 관계없이 아직 외우지 않은 표현만 센다.</summary>
+        public int UnlearnedCount => entries.Count(entry => !entry.IsLearned);
+
         /// <summary>[외운 표현도 보기]를 켰는지. 끄면 외운 단어를 목록에서 정리한다(기능 명세 F-35).</summary>
         public bool ShowsLearned { get; set; }
 
@@ -39,14 +46,67 @@ namespace A305.Learning
         {
             get
             {
-                IEnumerable<VocabularyEntry> shown = ShowsLearned
-                    ? entries
-                    : entries.Where(entry => !entry.IsLearned);
+                VocabularyTab tab = ShownTab;
+                IEnumerable<VocabularyEntry> shown = Listed.Where(entry => TabOf(entry) == tab);
+                if (
+                    tab == VocabularyTab.Conversation
+                    && ShownPlaceGroup is VocabularyPlaceGroup group
+                )
+                    shown = shown.Where(entry => entry.PlaceGroup == group);
                 if (SortsAlphabetically)
                     shown = shown.OrderBy(entry => entry.English, StringComparer.OrdinalIgnoreCase);
                 return shown.ToList();
             }
         }
+
+        /// <summary>
+        /// 지금 보이는 탭. 고르기 전에는 대화 표현이 있으면 대화 표현 탭, 사물 단어만 있으면 사물 단어 탭이다.
+        /// 단어장을 받기 전에 열어도 받은 뒤 이 기준을 다시 따른다. 외운 단어도 세어 그 탭에서 '모두 외웠어요'를 알린다.
+        /// </summary>
+        public VocabularyTab ShownTab
+        {
+            get =>
+                chosenTab
+                ?? (
+                    entries.Count == 0 || entries.Any(entry => entry.IsFromConversation)
+                        ? VocabularyTab.Conversation
+                        : VocabularyTab.Objects
+                );
+            set => chosenTab = value;
+        }
+
+        /// <summary>
+        /// 대화 표현 탭에서 고른 장소 묶음. null이면 전체다. 고른 묶음에 보일 표현이 없어지면(모두 외움·지움) 전체로 돌아간다.
+        /// </summary>
+        public VocabularyPlaceGroup? ShownPlaceGroup
+        {
+            get =>
+                chosenPlaceGroup is VocabularyPlaceGroup group && CountIn(group) > 0
+                    ? chosenPlaceGroup
+                    : null;
+            set => chosenPlaceGroup = value;
+        }
+
+        /// <summary>고른 탭과 장소 묶음을 잊는다. 단어장을 열 때마다 부른다.</summary>
+        public void ResetFilters()
+        {
+            chosenTab = null;
+            chosenPlaceGroup = null;
+        }
+
+        /// <summary>그 탭에 보일 단어 수. 외운 단어는 [외운 표현도 보기]를 켰을 때만 센다.</summary>
+        public int CountIn(VocabularyTab tab) => Listed.Count(entry => TabOf(entry) == tab);
+
+        /// <summary>대화 표현 탭에서 그 묶음에 보일 표현 수.</summary>
+        public int CountIn(VocabularyPlaceGroup group) =>
+            Listed.Count(entry => entry.IsFromConversation && entry.PlaceGroup == group);
+
+        // [외운 표현도 보기]를 적용한, 탭으로 나누기 전의 목록
+        private IEnumerable<VocabularyEntry> Listed =>
+            ShowsLearned ? entries : entries.Where(entry => !entry.IsLearned);
+
+        private static VocabularyTab TabOf(VocabularyEntry entry) =>
+            entry.IsFromConversation ? VocabularyTab.Conversation : VocabularyTab.Objects;
 
         /// <summary>목록을 알파벳순으로 볼지. 같은 글자로 시작하는 단어가 한 묶음이 된다.</summary>
         public bool SortsAlphabetically { get; set; }
@@ -81,9 +141,15 @@ namespace A305.Learning
                     return VocabularyListState.Entries;
                 }
 
-                if (entries.Count > 0)
+                VocabularyTab tab = ShownTab;
+                if (entries.Any(entry => TabOf(entry) == tab))
                 {
                     return VocabularyListState.AllLearned;
+                }
+
+                if (entries.Count > 0)
+                {
+                    return VocabularyListState.TabEmpty;
                 }
 
                 if (isLoading)
@@ -189,6 +255,7 @@ namespace A305.Learning
                 entries.Insert(0, new VocabularyEntry(saved));
             }
 
+            A305.World.UiSoundEvents.Play(A305.World.UiSound.Saved);
             return VocabularySaveResult.Saved;
         }
 

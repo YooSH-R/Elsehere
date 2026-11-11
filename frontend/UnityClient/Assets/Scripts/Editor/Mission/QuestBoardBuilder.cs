@@ -12,10 +12,11 @@ using Ui = A305.EditorTools.Learning.FeedbackScreenBuilder;
 namespace A305.EditorTools.Mission
 {
     /// <summary>
-    /// 퀘스트 목록(시안 f2)과 도장 지도(시안 q2)를 첫날 미션 프리팹의 Content/QuestBoard로 만든다. 자리는 시안 px × 1.2 캔버스 단위이고,
-    /// 그림은 시안을 2.4배로 렌더링한 Art/UI/Quest 조각이다. 판은 다른 시트처럼 테마 유리(Panel)다.
+    /// 퀘스트 목록(시안 mock.html #story)과 도장 지도(시안 q2)를 첫날 미션 프리팹의 Content/QuestBoard로 만든다. 자리는 시안 px × 1.2 캔버스 단위이고,
+    /// 그림은 시안을 2.4배로 렌더링한 Art/UI/Quest 조각이다. 판은 시안의 흰 유리 판(.panel) 그림이다.
     /// 왼쪽 위 퀘스트 카드를 누르면 수첩 대신 목록을 열고, 목록의 카드를 누르면 그 퀘스트의 도장 지도로 가도록 버튼을 연결한다.
     /// 연계 퀘스트의 잠금을 푸는 연출(띠·자물쇠·흰 막 조각·빛 테두리·[퀘스트 시작])도 목록 위에 만든다.
+    /// 머리줄 제목 옆 [이야기 | 장소 연습] 탭과 장소 연습 쪽은 PracticeBoardBuilder가 만든다. 두 탭은 같은 판(시안 #story·#place)을 쓴다.
     /// </summary>
     public static class QuestBoardBuilder
     {
@@ -26,26 +27,49 @@ namespace A305.EditorTools.Mission
         private const string ClosePath = "Assets/Art/UI/Feedback/FeedbackClose.png";
         private const float Px = Ui.Px;
 
-        // 시트 모서리(시안 48)
-        private const float SheetCorner = 48;
-
         // 렌더링한 그림은 2.4배라 캔버스 1단위 = 그림 2px
         private const float ArtPixels = 2.4f;
 
-        // 목록(시안 f2) 판 1240×500 안: 카드 378×322(가로 394 간격, 한 쪽 한 줄 세 장). 도장 지도(시안 q2) 판은 1240×770이고
-        // 들르는 곳 칸은 282.5×96(간격 12)이다.
+        // [이야기]·[장소 연습] 탭의 판은 시안 .panel(1520×800, 모서리 46)이다. 판 그림은 그림자 여백(왼 80, 위 50, 오른 80, 아래 110)까지 그렸다.
+        // 도장 지도(시안 q2) 판은 1240×770이다.
+        internal const float TabSheetWidth = 1520;
+        internal const float TabSheetHeight = 800;
+        private static readonly (float left, float top, float right, float bottom) PanelPad = (
+            80,
+            50,
+            80,
+            110
+        );
+
+        // 카드(시안 c4 .cards.small .card 400×420, 모서리 34): 한 쪽에 세 장씩, 판 폭에 사이 60씩 고르게 벌린 자리(왼쪽 100.5·560·1019.5, 위 229)에 둔다.
+        // 카드 그림은 그림자 여백(왼 30, 위 20, 오른 30, 아래 40)까지 그렸다. 들르는 곳 칸은 282.5×96(간격 12)이다.
         private const int CardsPerPage = 3;
-        private const float CardWidth = 378;
-        private const float CardHeight = 322;
+        private const float CardWidth = 400;
+        private const float CardHeight = 420;
+        private const float CardTop = 229;
+        private static readonly float[] CardLefts = { 100.5f, 560, 1019.5f };
+        private static readonly (float left, float top, float right, float bottom) CardPad = (
+            30,
+            20,
+            30,
+            40
+        );
 
-        // 쪽이 여럿이면 판을 570으로 늘리고 카드 아래 22에 쪽 넘기기를 둔다.
-        private const float PagerTop = 111 + CardHeight + 22;
+        // 아이콘 타일(시안 c4 68) 그림은 퀘스트 완료 팡파레와 같은 비율의 여백(52 타일의 14·8·14·22)을 둔다.
+        private const float IconPadScale = 68f / 52f;
 
+        // '완료' 도장·자물쇠 그림은 104 크기로 그렸고, 줄인 카드에서는 88로 줄여 쓴다.
+        private const float BadgeScale = 88f / 104f;
+
+        // 쪽이 여럿이면 카드 아래 22에 쪽 넘기기를 둔다.
+        private const float PagerTop = CardTop + CardHeight + 22;
+
+        // 시안의 반투명 잉크(.58)를 흰 카드에 얹은 색. 선형 색 공간의 UI는 반투명 글자가 더 옅어 보여 불투명으로 쓴다.
         private static readonly Color Ink = new Color32(47, 37, 27, 255);
-        private static readonly Color Muted = new Color32(125, 110, 91, 255);
-        private static readonly Color ArrowInk = new Color32(179, 165, 143, 255);
+        private static readonly Color Muted = new Color32(134, 127, 119, 255);
+        private static readonly Color PagerInk = new Color32(125, 110, 91, 255);
 
-        private static readonly string[] Icons = { "Home", "Chat", "Star", "Book", "Map" };
+        private static readonly string[] Icons = { "Hotel", "Diner", "Post" };
 
         private static readonly (string Place, string Art)[] Stamps =
         {
@@ -53,7 +77,7 @@ namespace A305.EditorTools.Mission
             ("카페", "Cafe"),
             ("드럭스토어", "Drugstore"),
             ("거리", "Street"),
-            ("식당", "Diner"),
+            ("햄버거 가게", "Diner"),
             ("빨래방", "Laundry"),
             ("은행", "Bank"),
             ("이발소", "Barber"),
@@ -85,21 +109,41 @@ namespace A305.EditorTools.Mission
             var view = board.gameObject.AddComponent<QuestBoardView>();
             var fields = new SerializedObject(view);
 
-            // 바깥은 조금 어둡게 칠하고 누르면 닫는다.
+            // 바깥을 누르면 닫는다. 시안처럼 바깥을 어둡게 칠하지 않는다.
             RectTransform shade = Ui.Rect("Shade", board);
             Ui.Fill(shade);
-            shade.gameObject.AddComponent<Image>().color = new Color(.07f, .11f, .17f, .35f);
+            shade.gameObject.AddComponent<Image>().color = Color.clear;
             Listen(Plain(shade.gameObject.AddComponent<Button>()), view.Close);
 
             RectTransform sheet = Ui.Rect("Sheet", board);
             sheet.anchorMin = sheet.anchorMax = sheet.pivot = new Vector2(.5f, .5f);
             sheet.anchoredPosition = Vector2.zero;
-            sheet.sizeDelta = new Vector2(1240, 500) * Px;
-            Glass(sheet, SheetCorner);
+            sheet.sizeDelta = new Vector2(TabSheetWidth, TabSheetHeight) * Px;
+            // 판 안을 누르면 닫지 않도록 보이지 않는 바탕으로 막고, 시안 판 그림은 그림자 여백까지 넓혀 깐다.
+            sheet.gameObject.AddComponent<Image>().color = Color.clear;
+            RectTransform panel = Ui.Rect("Panel", sheet);
+            Ui.Spread(panel, PanelPad.left, PanelPad.top, PanelPad.right, PanelPad.bottom);
+            Image panelFace = panel.gameObject.AddComponent<Image>();
+            // 그림 2.4배: 모서리 46 + 그림자 여백
+            Ui.Sliced(
+                panelFace,
+                Art(
+                    "QuestPanel",
+                    new Vector4(
+                        PanelPad.left + 46,
+                        PanelPad.bottom + 46,
+                        PanelPad.right + 46,
+                        PanelPad.top + 46
+                    ) * ArtPixels
+                )
+            );
+            panelFace.raycastTarget = false;
             Set(fields, "sheet", sheet);
 
+            BuildChooser(view, fields, Page("Choose", sheet));
             BuildList(view, fields, Page("List", sheet));
             BuildMap(view, fields, Page("Map", sheet));
+            PracticeBoardBuilder.Build(view, fields, sheet);
             fields.ApplyModifiedPropertiesWithoutUndo();
             board.gameObject.SetActive(false);
 
@@ -112,30 +156,110 @@ namespace A305.EditorTools.Mission
             BuilderTools.SetReference(mission, "questBoard", view);
         }
 
-        // 목록(f2): 머리줄 아이콘·'퀘스트'·닫기, 카드 한 줄 세 장, 쪽이 여럿이면 아래 가운데 쪽 넘기기
+        // 고르기(시안 2-B ① c2): 머리줄 퀘스트 책 아이콘·'퀘스트'·닫기, 가운데에 큰 그림 두 개(600×280, 왼쪽 100·820, 위 225)와
+        // 그 아래 이름(Jua 60, 위 515), 사이에 세로 줄(2×460, 왼쪽 759·위 170). 그림은 시안을 그림자·빛 번짐(사방 40)까지 렌더링했다.
+        // 그림과 이름을 덮는 칸(718×350)을 누르면 그 쪽을 연다.
+        private static void BuildChooser(
+            QuestBoardView view,
+            SerializedObject fields,
+            RectTransform page
+        )
+        {
+            PracticeBoardBuilder.Header(view, page, PracticeBoardBuilder.QuestPage.Choose);
+            Picture(page, "Divider", 759, 170, 2, 460, (0, 0, 0, 0), Art("QuestPickDivider"));
+            Option(
+                page,
+                "StoryOption",
+                41,
+                100,
+                "이야기",
+                Art("QuestPickStory", default, true),
+                view.ShowStory
+            );
+            Option(
+                page,
+                "PlaceOption",
+                761,
+                820,
+                "장소 연습",
+                Art("QuestPickPlace", default, true),
+                view.ShowPractice
+            );
+            Set(fields, "choosePage", page.gameObject);
+        }
+
+        // 고르기 칸 하나: 누르는 자리(왼쪽 left, 위 225, 718×350), 그림(왼쪽 stageLeft, 600×280), 그 아래 이름
+        private static void Option(
+            RectTransform page,
+            string name,
+            float left,
+            float stageLeft,
+            string label,
+            Sprite art,
+            UnityAction choose
+        )
+        {
+            RectTransform option = Ui.Rect(name, page);
+            Ui.TopLeft(option, left, 225, 718, 350);
+            option.gameObject.AddComponent<Image>().color = Color.clear;
+            Image picture = Picture(
+                option,
+                "Art",
+                stageLeft - left,
+                0,
+                600,
+                280,
+                (40, 40, 40, 40),
+                art
+            );
+            // TMP의 Jua는 칸 가운데에 두면 브라우저보다 낮게 그려져, 캡처로 잰 만큼(Jua 46에서 시안 3.5px) 글자 크기에 맞춰 올린다.
+            TMP_Text text = Text(
+                option,
+                "Label",
+                stageLeft - left,
+                515 - 225 - 3.5f * 60 / 46,
+                600,
+                60,
+                Ui.DisplayFontPath,
+                60,
+                Ink
+            );
+            text.text = label;
+            text.alignment = TextAlignmentOptions.Midline;
+            var button = option.gameObject.AddComponent<Button>();
+            button.targetGraphic = picture;
+            ColorBlock colors = ColorBlock.defaultColorBlock;
+            colors.highlightedColor = new Color(.98f, .98f, .98f);
+            colors.pressedColor = new Color(.9f, .9f, .9f);
+            button.colors = colors;
+            Listen(button, choose);
+        }
+
+        // 목록(시안 c4): 머리줄 ‹·이야기 아이콘·'이야기'·'퀘스트'·닫기, 카드 한 줄 세 장, 쪽이 여럿이면 아래 가운데 쪽 넘기기
         private static void BuildList(
             QuestBoardView view,
             SerializedObject fields,
             RectTransform list
         )
         {
-            Picture(list, "HeaderIcon", 37, 23, 60, 60, (14, 8, 14, 22), Art("QuestHeaderIcon"));
-            TMP_Text title = Text(list, "Title", 113, 33.5f, 400, 39, Ui.DisplayFontPath, 36, Ink);
-            title.text = "퀘스트";
-            title.margin = new Vector4(0, 3 * Px, 0, 0);
-            Listen(Close(list), view.Close);
+            PracticeBoardBuilder.Header(view, list, PracticeBoardBuilder.QuestPage.Story);
 
-            // 들르는 곳 알약과 사이 화살표 견본. 알약 그림은 사방 4의 여백이 있어 그만큼 안쪽 여백과 간격을 고친다.
+            // 들르는 곳 알약(시안 c4 .rp 높이 34, 양옆 13, Jua 17)과 사이 화살표(본문 16) 견본.
             // 알약 폭은 QuestBoardView가 글자 폭에 맞춰 정하고, 글자는 알약 가운데에 둔다.
             RectTransform chip = Ui.Rect("RouteChip", list);
             Image chipFace = chip.gameObject.AddComponent<Image>();
-            Ui.Sliced(chipFace, Art("QuestRoute", Vector4.one * Mathf.Floor(19 * ArtPixels)));
+            Ui.Sliced(chipFace, Art("QuestRoutePill", new Vector4(17, 0, 17, 0) * ArtPixels));
             chipFace.raycastTarget = false;
-            TMP_Text chipLabel = Text(chip, "Label", 0, 0, 60, 20, Ui.DisplayFontPath, 15, Ink);
+            TMP_Text chipLabel = Text(chip, "Label", 0, 0, 60, 34, Ui.DisplayFontPath, 17, Ink);
             Ui.Fill(chipLabel.rectTransform);
             chipLabel.alignment = TextAlignmentOptions.Midline;
+            // TMP의 Jua는 칸 가운데에 두면 브라우저보다 낮게 그려져, 캡처로 잰 만큼(Jua 19에서 시안 2.5px) 글자 크기에 맞춰 올린다.
+            chipLabel.rectTransform.offsetMin = chipLabel.rectTransform.offsetMax = new Vector2(
+                0,
+                2.5f * 17 / 19 * Px
+            );
             chip.gameObject.SetActive(false);
-            TMP_Text arrow = Text(list, "RouteArrow", 0, 0, 10, 30, Ui.BodyFontPath, 13, ArrowInk);
+            TMP_Text arrow = Text(list, "RouteArrow", 0, 0, 10, 34, Ui.BodyFontPath, 16, Ink);
             arrow.text = "›";
             arrow.alignment = TextAlignmentOptions.Midline;
             arrow.gameObject.SetActive(false);
@@ -150,7 +274,7 @@ namespace A305.EditorTools.Mission
 
             // 쪽 넘기기: [앞] 12 [1 / 2] 12 [뒤], 판 가운데
             const float pagerWidth = 163.44f;
-            float left = 620 - pagerWidth / 2;
+            float left = (TabSheetWidth - pagerWidth) / 2;
             Listen(
                 ArtButton(
                     list,
@@ -173,7 +297,7 @@ namespace A305.EditorTools.Mission
                 50,
                 Ui.DisplayFontPath,
                 19,
-                Muted
+                PagerInk
             );
             pageText.alignment = TextAlignmentOptions.Midline;
             pageText.margin = new Vector4(0, 2 * Px, 0, 0);
@@ -195,23 +319,37 @@ namespace A305.EditorTools.Mission
             Set(fields, "pageText", pageText);
 
             Set(fields, "listPage", list.gameObject);
-            Set(fields, "cardSprite", Art("QuestCard"));
-            Set(fields, "currentCardSprite", Art("QuestCardOn"));
-            Set(fields, "nowChip", Art("QuestChipNow"));
-            Set(fields, "newChip", Art("QuestChipNew"));
+            Set(fields, "cardSprite", Art("QuestCardLarge", CardBorder));
+            Set(fields, "currentCardSprite", Art("QuestCardLargeOn", CardBorder));
+            Set(fields, "nowChip", Art("QuestChipNowLarge"));
+            Set(fields, "newChip", Art("QuestChipNewLarge"));
             Set(fields, "routeSprite", chipFace.sprite);
             Set(
                 fields,
                 "visitedRouteSprite",
-                Art("QuestRouteDone", Vector4.one * Mathf.Floor(19 * ArtPixels))
+                Art("QuestRoutePillDone", new Vector4(17, 0, 17, 0) * ArtPixels)
             );
             SerializedProperty icons = fields.FindProperty("icons");
             icons.arraySize = Icons.Length;
             for (int i = 0; i < Icons.Length; i++)
-                icons.GetArrayElementAtIndex(i).objectReferenceValue = Art("QuestIcon" + Icons[i]);
+                icons.GetArrayElementAtIndex(i).objectReferenceValue = Art(
+                    "QuestCardIcon" + Icons[i]
+                );
         }
 
-        // 카드(시안 .qc): 아이콘(52)·상태 칩·제목(Jua 23)·설명(15), 아래에 들르는 곳·보상 줄. 끝낸 퀘스트는 오른쪽 위 '완료' 도장
+        // 카드 그림의 늘리는 자리(그림 px): 모서리 34 + 그림자 여백
+        private static Vector4 CardBorder =>
+            new Vector4(
+                CardPad.left + 34,
+                CardPad.bottom + 34,
+                CardPad.right + 34,
+                CardPad.top + 34
+            ) * ArtPixels;
+
+        // 카드(시안 c4 .cards.small .card): 아이콘(68)·상태 칩(오른쪽 26, 위 34, 높이 38)·제목(Jua 28)·설명(17, 줄 높이 1.55)과
+        // 아래 70에 들르는 곳 알약 줄, 아래 28에 보상 줄. 끝낸 퀘스트는 오른쪽 위 '완료' 도장(88), 잠긴 퀘스트는 카드째 .55로 흐리게 하고
+        // 가운데(세로 52%)에 자물쇠를 둔다. 자리는 테두리 1.5 카드 기준이며, 지금 하는 퀘스트의 카드는 테두리가 두꺼워
+        // QuestBoardView가 안의 내용(Content)을 들인다. 아래 줄들은 카드 아래를 기준으로 둔다.
         private static void BuildCard(
             QuestBoardView view,
             SerializedProperty slot,
@@ -221,7 +359,7 @@ namespace A305.EditorTools.Mission
         {
             RectTransform card = Ui.Rect("Card" + index, list);
             card.name = "Card";
-            Ui.TopLeft(card, 37 + index * 394, 111, CardWidth, CardHeight);
+            Ui.TopLeft(card, CardLefts[index], CardTop, CardWidth, CardHeight);
             Image area = card.gameObject.AddComponent<Image>();
             area.color = Color.clear;
             var group = card.gameObject.AddComponent<CanvasGroup>();
@@ -232,83 +370,105 @@ namespace A305.EditorTools.Mission
                 0,
                 CardWidth,
                 CardHeight,
-                (24, 16, 24, 40),
-                Art("QuestCard")
+                CardPad,
+                null
             );
+            Ui.Sliced(background, Art("QuestCardLarge", CardBorder));
             Button button = card.gameObject.AddComponent<Button>();
             button.targetGraphic = background;
+            // 잠긴 카드는 카드째 흐리게 하므로 누를 수 없을 때 색을 더 바꾸지 않는다.
+            ColorBlock colors = ColorBlock.defaultColorBlock;
+            colors.highlightedColor = new Color(.98f, .98f, .98f);
+            colors.pressedColor = new Color(.92f, .92f, .92f);
+            colors.selectedColor = Color.white;
+            colors.disabledColor = Color.white;
+            button.colors = colors;
             UnityEventTools.AddIntPersistentListener(button.onClick, view.ShowCard, index);
             EditorAndRuntime(button.onClick);
 
+            RectTransform content = Ui.Rect("Content", card);
+            Ui.Fill(content);
             Image icon = Picture(
-                card,
+                content,
                 "Icon",
-                21,
-                21,
-                52,
-                52,
-                (14, 8, 14, 22),
-                Art("QuestIconHome")
+                31,
+                31,
+                68,
+                68,
+                (14 * IconPadScale, 8 * IconPadScale, 14 * IconPadScale, 22 * IconPadScale),
+                Art("QuestCardIconHotel")
             );
-            RectTransform chip = Ui.Rect("Chip", card);
-            chip.anchorMin = chip.anchorMax = new Vector2(0, 1);
-            chip.pivot = Vector2.one;
-            chip.anchoredPosition = new Vector2(CardWidth - 21 + 10, -(31 - 6)) * Px;
-            Image chipImage = Ui.Picture(chip.gameObject, Art("QuestChipNow"));
-            chip.sizeDelta = chipImage.sprite.rect.size / 2;
+            RectTransform chip = Ui.Rect("Chip", content);
+            chip.anchorMin = chip.anchorMax = chip.pivot = Vector2.one;
+            chip.anchoredPosition = new Vector2(-27.5f, -35.5f) * Px;
+            Image chipImage = Ui.Picture(chip.gameObject, Art("QuestChipNowLarge"));
+            chip.sizeDelta = chipImage.sprite.rect.size / 2 * (38f / 44f);
+            // '완료' 도장(88, -14도 기울임)은 기울인 모양까지 104 크기로 그렸다.
             Image done = Picture(
-                card,
+                content,
                 "DoneStamp",
-                331 - 37.58f,
-                45 - 37.58f,
-                75.16f,
-                75.16f,
-                (12, 12, 12, 12),
-                Art("QuestDoneStamp")
+                286.5f,
+                17.5f,
+                88,
+                88,
+                (12 * BadgeScale, 12 * BadgeScale, 12 * BadgeScale, 12 * BadgeScale),
+                Art("QuestDoneStampLarge")
             );
 
-            TMP_Text title = Text(card, "Title", 21, 85, 336, 28, Ui.DisplayFontPath, 23, Ink);
+            // TMP의 Jua는 칸 가운데에 두면 브라우저보다 낮게 그려져, 캡처로 잰 만큼(Jua 33에서 시안 3.5px) 글자 크기에 맞춰 올린다.
+            TMP_Text title = Text(
+                content,
+                "Title",
+                31,
+                125 - 3.5f * 28 / 33,
+                338,
+                35,
+                Ui.DisplayFontPath,
+                28,
+                Ink
+            );
             title.overflowMode = TextOverflowModes.Ellipsis;
             TMP_Text description = Text(
-                card,
+                content,
                 "Description",
-                21,
-                119.44f,
-                336,
-                44,
+                31,
+                DescriptionTop,
+                338,
+                53,
                 Ui.BodyFontPath,
-                15,
+                17,
                 Muted
             );
             description.textWrappingMode = TextWrappingModes.Normal;
             description.alignment = TextAlignmentOptions.TopLeft;
-            description.lineSpacing = 6;
+            description.lineSpacing = DescriptionLineSpacing;
 
-            // 들르는 곳 알약과 화살표는 QuestBoardView가 보상 줄 위에서부터 놓는다(알약 그림 여백 4만큼 넓은 칸).
-            RectTransform route = Ui.Rect("Route", card);
-            Ui.TopLeft(route, 21 - 4, 239 - 4, 336 + 8, 38);
+            // 들르는 곳 알약과 화살표는 QuestBoardView가 줄 수만큼 위로 쌓는다(카드 아래 71에서 끝남).
+            RectTransform route = Ui.Rect("Route", content);
+            route.anchorMin = route.anchorMax = route.pivot = Vector2.zero;
+            route.anchoredPosition = new Vector2(31, 71) * Px;
+            route.sizeDelta = new Vector2(342, 34) * Px;
 
-            RectTransform meta = Ui.Rect("MetaRow", card);
-            Ui.TopLeft(meta, 21, 281, 336, 22);
-            Picture(meta, "Coin", 0, 0, 22, 22, (6, 4, 6, 8), Art("QuestCoin"));
-            TMP_Text metaText = Text(meta, "Meta", 30, 0, 306, 22, Ui.BodyFontPath, 14, Muted);
+            // 보상 줄: 코인(26)과 사이 8, 글자(본문 16). 카드 아래 29에 둔다.
+            RectTransform meta = Ui.Rect("MetaRow", content);
+            meta.anchorMin = meta.anchorMax = meta.pivot = Vector2.zero;
+            meta.anchoredPosition = new Vector2(31, 29) * Px;
+            meta.sizeDelta = new Vector2(342, 26) * Px;
+            Picture(meta, "Coin", 0, 0, 26, 26, (0, 0, 0, 0), Art("QuestCoinLarge"));
+            TMP_Text metaText = Text(meta, "Meta", 34, 0, 308, 26, Ui.BodyFontPath, 16, Muted);
 
-            // 잠긴 퀘스트: 카드 모양(모서리 26)의 옅은 흰 막과 가운데 자물쇠(64)
-            RectTransform locked = Ui.Rect("Locked", card);
+            // 잠긴 퀘스트: 카드 가운데(세로 52%)의 자물쇠(시안 .lock 88). 카드째 흐리게 하는 것은 QuestBoardView가 한다.
+            RectTransform locked = Ui.Rect("Locked", content);
             Ui.Fill(locked);
-            Image veil = locked.gameObject.AddComponent<Image>();
-            Ui.Sliced(veil, Art("QuestMapMask", Vector4.one * Mathf.Ceil(26 * ArtPixels)));
-            veil.color = new Color(1, 1, 1, .35f);
-            veil.raycastTarget = false;
             Picture(
                 locked,
                 "Lock",
-                (CardWidth - 64) / 2,
-                (CardHeight - 64) / 2,
-                64,
-                64,
-                (16, 10, 16, 26),
-                Art("QuestLock")
+                (CardWidth - 88) / 2,
+                CardHeight * .52f - 88 / 2f,
+                88,
+                88,
+                LockBadgePad,
+                Art("QuestLockBadge")
             );
             locked.gameObject.SetActive(false);
 
@@ -316,25 +476,42 @@ namespace A305.EditorTools.Mission
             Set(slot, "Button", button);
             Set(slot, "Group", group);
             Set(slot, "Background", background);
+            Set(slot, "Content", content);
             Set(slot, "Icon", icon);
             Set(slot, "Chip", chipImage);
             Set(slot, "DoneStamp", done.gameObject);
             Set(slot, "Title", title);
             Set(slot, "Description", description);
             Set(slot, "Route", route);
-            Set(slot, "MetaRow", meta);
             Set(slot, "Meta", metaText);
             Set(slot, "Locked", locked.gameObject);
             card.gameObject.SetActive(false);
         }
 
-        // 연계 퀘스트 잠금 해제(시안 f2): 판 위로 내려오는 띠와, 열리는 카드에 겹쳐 두는 빛 테두리·흰 막·자물쇠·조각·반짝이·[퀘스트 시작].
-        // 자리는 카드 왼쪽 위 기준 시안 px이다. 돌고 커지는 부품은 가운데를 축으로 둔다.
+        // 설명(본문 17, 줄 높이 1.55 = 26.35)의 첫 줄 자리와 줄 사이. TMP 기본 줄 높이(글자 크기의 1.2배)에 시안 줄 높이까지의 차이를 더하고,
+        // 첫 줄은 시안 줄의 위 여백만큼 내린다(본문 18·줄 높이 1.6을 캡처로 맞춘 값을 같은 방식으로 옮겼다).
+        private const float DescriptionTop = 172.2f;
+        private const float DescriptionLineSpacing = 35;
+
+        // 줄인 카드의 자물쇠(88) 그림자 여백. 그림은 104 크기(그림자 여백 20·12·20·28)로 그렸다.
+        private static readonly (float left, float top, float right, float bottom) LockBadgePad = (
+            20 * BadgeScale,
+            12 * BadgeScale,
+            20 * BadgeScale,
+            28 * BadgeScale
+        );
+
+        // 연계 퀘스트 잠금 해제: 머리줄로 내려오는 띠와, 열리는 카드에 겹쳐 두는 빛 테두리·흰 막(잠긴 카드의 흐림)·자물쇠·조각·반짝이·[퀘스트 시작].
+        // 자리는 카드 왼쪽 위 기준 시안 px이다. 조각·반짝이는 첫 연출(시안 f2 카드 378×322)의 자리를 자물쇠 둘레로 넓혀 둔다.
+        // 돌고 커지는 부품은 가운데를 축으로 둔다.
         private static QuestUnlockEffect BuildUnlock(QuestBoardView view, RectTransform list)
         {
             RectTransform toast = Ui.Rect("UnlockToast", list);
             toast.anchorMin = toast.anchorMax = toast.pivot = new Vector2(.5f, 1);
-            toast.anchoredPosition = new Vector2(0, 108) * Px;
+            // 판이 화면 높이에 가까워 위에 띠를 둘 자리가 없으므로, 머리줄 가운데 빈 곳('퀘스트' 끝 416과 닫기 1403 사이)에
+            // 머리 아이콘(위 35, 높이 76)과 세로 가운데로 둔다.
+            toast.anchoredPosition =
+                new Vector2((416 + 1403) / 2f - TabSheetWidth / 2, -(35 + 76 / 2f - 72 / 2f)) * Px;
             toast.sizeDelta = new Vector2(409.62f, 72) * Px;
             RectTransform toastArt = Ui.Rect("Art", toast);
             Ui.Spread(toastArt, 24, 12, 24, 54);
@@ -356,32 +533,33 @@ namespace A305.EditorTools.Mission
                 CardWidth + 120,
                 CardHeight + 120,
                 (0, 0, 0, 0),
-                Art("QuestCardGlow")
+                Art("QuestCardGlowLarge")
             );
             var glowGroup = glow.gameObject.AddComponent<CanvasGroup>();
             glowGroup.blocksRaycasts = false;
             RectTransform veil = Ui.Rect("Veil", unlock);
             Ui.Fill(veil);
             Image veilFace = veil.gameObject.AddComponent<Image>();
-            Ui.Sliced(veilFace, Art("QuestMapMask", Vector4.one * Mathf.Ceil(26 * ArtPixels)));
-            veilFace.color = new Color(1, 1, 1, .35f);
+            // 잠긴 카드는 카드째 .55로 흐리므로, 같은 모습이 되게 흰 막을 .45로 덮는다.
+            Ui.Sliced(veilFace, Art("QuestCardVeil", Vector4.one * Mathf.Ceil(34 * ArtPixels)));
+            veilFace.color = new Color(1, 1, 1, .45f);
             veilFace.raycastTarget = false;
-            Vector2 lockCentre = new Vector2(CardWidth, CardHeight) / 2;
+            Vector2 lockCentre = new Vector2(CardWidth / 2, CardHeight * .52f);
             RectTransform closedLock = Centred(
                 unlock,
                 "ClosedLock",
                 lockCentre,
-                new Vector2(64, 64),
-                (16, 10, 16, 26),
-                Art("QuestLock")
+                new Vector2(88, 88),
+                LockBadgePad,
+                Art("QuestLockBadge")
             );
             RectTransform openLock = Centred(
                 unlock,
                 "OpenLock",
                 lockCentre,
-                new Vector2(64, 64),
-                (16, 10, 16, 26),
-                Art("QuestLockOpen")
+                new Vector2(88, 88),
+                LockBadgePad,
+                Art("QuestLockBadgeOpen")
             );
             openLock.gameObject.SetActive(false);
 
@@ -402,8 +580,8 @@ namespace A305.EditorTools.Mission
                 RectTransform shard = Centred(
                     unlock,
                     "Shard",
-                    new Vector2(spot.x, spot.y),
-                    new Vector2(spot.w * 26 / 22, spot.h * 20 / 16),
+                    AroundLock(spot.x, spot.y, lockCentre),
+                    new Vector2(spot.w * 26 / 22, spot.h * 20 / 16) * SpreadScale,
                     (0, 0, 0, 0),
                     Art("QuestShard")
                 );
@@ -426,11 +604,11 @@ namespace A305.EditorTools.Mission
             for (int i = 0; i < sparkSpots.Length; i++)
             {
                 var spot = sparkSpots[i];
-                float scale = spot.size / 26;
+                float scale = spot.size / 26 * SpreadScale;
                 RectTransform spark = Centred(
                     unlock,
                     "Spark",
-                    new Vector2(spot.x + 21.22f * scale / 2, spot.y + 26 * scale / 2),
+                    AroundLock(spot.x + 21.22f * scale / 2, spot.y + 26 * scale / 2, lockCentre),
                     new Vector2(41.22f, 46) * scale,
                     (0, 0, 0, 0),
                     Art("QuestSpark")
@@ -439,16 +617,17 @@ namespace A305.EditorTools.Mission
                 sparks.GetArrayElementAtIndex(i).objectReferenceValue = spark;
             }
 
-            // [퀘스트 시작]: 보상 줄 오른쪽에 0.9배로 둔다.
+            // [퀘스트 시작](시안 .go 모양, 높이 56): 보상 줄(아래 29, 높이 26) 오른쪽 끝(카드 오른쪽 27.5)에 세로 가운데를 맞춘다.
+            const float startWidth = 142.06f;
             Button start = ArtButton(
                 unlock,
                 "CardStart",
-                244.06f,
-                255.5f,
-                112.94f,
-                45,
-                (22 * .9f, 12 * .9f, 22 * .9f, 40 * .9f),
-                Art("QuestStartButton")
+                CardWidth - 27.5f - startWidth,
+                CardHeight - 29 - 13 - 28,
+                startWidth,
+                56,
+                (22, 12, 22, 40),
+                Art("QuestCardStart")
             );
             CentrePivot((RectTransform)start.transform);
             Listen(start, view.RequestStart);
@@ -463,6 +642,12 @@ namespace A305.EditorTools.Mission
             unlock.gameObject.SetActive(false);
             return effect;
         }
+
+        // 첫 연출의 조각·반짝이 자리(시안 f2 카드, 자물쇠 가운데 189·161)를 지금 카드의 자물쇠 둘레로 옮겨 넓힌다.
+        private const float SpreadScale = CardWidth / 378f;
+
+        private static Vector2 AroundLock(float x, float y, Vector2 lockCentre) =>
+            lockCentre + new Vector2(x - 189, y - 161) * SpreadScale;
 
         // 가운데(시안 px, 부모 왼쪽 위 기준)를 축으로 둔 그림. 그림은 pad만큼 바깥으로 넓다.
         internal static RectTransform Centred(
@@ -738,11 +923,12 @@ namespace A305.EditorTools.Mission
             role.ApplyCurrent();
         }
 
-        private static Button Close(RectTransform page) =>
+        // 머리줄 오른쪽 닫기. 1240 판에서는 x 1153이다.
+        internal static Button Close(RectTransform page, float x = 1153) =>
             ArtButton(
                 page,
                 "Close",
-                1153,
+                x,
                 27,
                 52,
                 52,

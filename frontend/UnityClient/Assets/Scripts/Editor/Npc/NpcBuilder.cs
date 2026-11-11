@@ -46,7 +46,7 @@ namespace A305.EditorTools.Npc
         private const float BodyHeightMeters = 1.8f;
         private const float BodyRadiusMeters = 0.3f;
 
-        // 서버 연동 전 확인용 인사말. 서버 NPC·시나리오 데이터가 준비되면 서버 값을 쓴다.
+        // 대화 제안은 서버에서 첫 대사를 만들기 전에 뜨므로, 고정 문구에는 시각을 넣지 않는다.
         private const string RetiredShopGreeting =
             "Hi! Welcome to the convenience store. Can I help you find something?";
 
@@ -55,48 +55,48 @@ namespace A305.EditorTools.Npc
             (TutorialScriptKey, "Excuse me! Could you help me? I'm looking for the cafe."),
             (TownPasserbyCode, "Hi there! Nice weather today, isn't it?"),
             (CafeStaffCode, "Hi there! Welcome to the corner café. Would you like to order?"),
-            ("HOTEL_STAFF", "Good afternoon! Welcome to Maple House. Are you checking in?"),
+            ("HOTEL_STAFF", "Hi! Welcome to Maple House. Are you checking in?"),
             ("SHOP_STAFF", "Hi! Welcome to the drugstore. Can I help you find something?"),
             ("POLICE_OFFICER", "Hello, this is the Maple Town police. How can I help you?"),
-            ("POST_OFFICE_STAFF", "Good morning. Are you sending something today?"),
-            ("DINER_STAFF", "Hi, hon! Welcome to Maple Diner. Table for one?"),
-            ("BANK_STAFF", "Good afternoon. Welcome to Town Bank. How may I help you?"),
+            (
+                "POST_OFFICE_STAFF",
+                "Hello. Welcome to the post office. Are you sending something today?"
+            ),
+            ("DINER_STAFF", "Hi, hon! Welcome to Maple Burger. What can I get you?"),
+            ("BANK_STAFF", "Hello. Welcome to Town Bank. How may I help you?"),
             ("LAUNDROMAT_STAFF", "Hey there! Need a hand with the machines?"),
             (
                 "FLOWER_SHOP_STAFF",
                 "Oh, hello... Welcome to Bloom Flowers. Looking for anything special?"
             ),
             ("BARBER_STAFF", "Hey! Come on in. Just a trim today?"),
-            ("BAKERY_STAFF", "Good morning, dear! The bread just came out of the oven."),
+            ("BAKERY_STAFF", "Hello, dear! Welcome to Maple Bakery. What can I get you?"),
             ("ARCADE_STAFF", "Yo! Welcome to Little Arcade. Want to try the claw machine?"),
             ("HOME_STORE_STAFF", "Welcome to Home and Living. Feel free to look around."),
             ("CAFE_BARISTA", "Hi! I'm on the espresso machine today. What can I make for you?"),
             ("CAFE_SERVER", "Hey there! Grab any table you like. I'll bring you a menu."),
-            ("HOTEL_RECEPTIONIST", "Good evening! Welcome to Maple House. Checking in?"),
+            ("HOTEL_RECEPTIONIST", "Hello! Welcome to Maple House. Checking in?"),
             (
                 "HOTEL_CONCIERGE",
                 "Oh, hello... Welcome to Bloom Flowers. Looking for anything special?"
             ),
             ("HOTEL_BELLHOP", "Hi! Can I help you with your bags?"),
-            ("HOTEL_NIGHT_MANAGER", "Good evening. Is everything all right with your stay?"),
+            ("HOTEL_NIGHT_MANAGER", "Hello. Is everything all right with your stay?"),
             ("SHOP_PHARMACIST", "Hello. Do you need any medicine today?"),
-            ("SHOP_NIGHT_CLERK", "Evening. We're open all night if you need anything."),
-            ("POLICE_SERGEANT", "Good evening. This is the night desk. What can I do for you?"),
-            ("POLICE_PATROL_OFFICER", "Good morning! The bread just came out of the oven."),
-            ("POLICE_ROOKIE", "Hi there. Did something happen around here?"),
-            ("TOWN_RETIREE", "Good morning. Are you sending something today?"),
+            ("SHOP_NIGHT_CLERK", "Hi. Welcome to the drugstore. We're open all night."),
+            ("POLICE_SERGEANT", "Hello. This is the police station's night desk. How can I help?"),
+            ("POLICE_PATROL_OFFICER", "Hi! Welcome to Maple Bakery. Looking for some bread?"),
+            ("POLICE_ROOKIE", "Hi, I'm Officer Taylor. Is there anything you'd like to report?"),
+            ("TOWN_RETIREE", "Hello. Welcome to the post office. Are you sending something today?"),
             ("TOWN_STUDENT", "Yo! Welcome to Little Arcade. Want to try the claw machine?"),
-            ("TOWN_EVENING_WALKER", "Good afternoon. Welcome to Town Bank. How may I help you?"),
-            ("TOWN_SHOPPER", "Good afternoon. Welcome to Town Bank. How may I help you?"),
+            ("TOWN_EVENING_WALKER", "Hello. Welcome to Town Bank. How may I help you?"),
+            ("TOWN_SHOPPER", "Hello. Welcome to Town Bank. How may I help you?"),
             ("TOWN_HANDYMAN", "Welcome to Home and Living. Feel free to look around."),
-            ("FIRE_CAPTAIN", "Hi, hon! Welcome to Maple Diner. Table for one?"),
+            ("FIRE_CAPTAIN", "Hi, hon! Welcome to Maple Burger. What can I get you?"),
             ("FIRE_FIGHTER", "Hey there! Need a hand with the machines?"),
             ("FIRE_ROOKIE", "Hey! Come on in. Just a trim today?"),
-            ("TOWN_GRANDFATHER", "Good morning. Nice weather for a walk."),
-            (
-                "TOWN_GRANDMOTHER",
-                "Oh, good morning! We take our walk every morning. Isn't it lovely?"
-            ),
+            ("TOWN_GRANDFATHER", "Hello. It's nice to be out for a walk."),
+            ("TOWN_GRANDMOTHER", "Oh, hello! We take this walk every day. Isn't it lovely?"),
         };
 
         [MenuItem(MenuPath)]
@@ -270,7 +270,8 @@ namespace A305.EditorTools.Npc
                 BuilderTools.SetReference(passerby, "dialogue", dialogue);
                 BuilderTools.SetReference(passerby, "offerView", offer);
                 // 튜토리얼 설정은 튜토리얼에서 길을 묻는 Ben에게만 있다.
-                BuilderTools.RequireReferences(passerby, "tutorialSettings");
+                // 식당 존박은 전용 리듬 동작을 쓰려고 공용 애니메이션 연결을 비워 둔다.
+                BuilderTools.RequireReferences(passerby, "tutorialSettings", "animationDriver");
             }
         }
 
@@ -559,10 +560,18 @@ namespace A305.EditorTools.Npc
             AssetDatabase.CreateAsset(settings, path);
         }
 
-        /// <summary>
-        /// 확인용 인사말 에셋이 없으면 만들고, 있으면 아직 없는 NPC 키의 인사말만 덧붙인다. 이미 있는 인사말은 바꾸지 않는다.
-        /// </summary>
-        internal static void PrepareMockLines()
+        [MenuItem("Tools/A305/Npc/Refresh Default Offer Greetings")]
+        public static void RefreshDefaultOfferGreetings()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+
+            PrepareMockLines(refreshExisting: true);
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>기본 인사말이 없는 NPC를 채운다. 기존 문구 전체를 갱신하는 메뉴에서만 refreshExisting을 쓴다.</summary>
+        internal static void PrepareMockLines(bool refreshExisting = false)
         {
             var lines = AssetDatabase.LoadAssetAtPath<MockNpcLineSource>(MockLinesPath);
             if (lines == null)
@@ -578,9 +587,10 @@ namespace A305.EditorTools.Npc
             {
                 if (lines.TryGetGreeting(npcCode, out string current))
                 {
-                    // 상점을 편의점에서 드럭스토어로 바꿨다. 예전 기본 인사 그대로인 것만 새 인사로 고친다.
+                    // 일반 Builder 실행에서는 직업이 바뀐 직원과 예전 편의점 인사만 갱신한다.
                     if (
-                        BuildingStaffBuilder.IsReassigned(npcCode)
+                        refreshExisting
+                        || BuildingStaffBuilder.IsReassigned(npcCode)
                         || (current == RetiredShopGreeting && npcCode == "SHOP_STAFF")
                     )
                         SetGreeting(entries, npcCode, greeting);

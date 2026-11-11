@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  * AI 워커를 부르는 유일한 입구. 호출마다 AI 호출 기록(ai_requests)을 남긴다. 계약: docs/api/ai-worker.md
  *
  * <p>워커 오류로 끝난 호출은 FAILED로 남기고 오류를 그대로 던진다. 응답은 왔지만 쓸 수 없는 결과(NPC 대답 오류, 빈 힌트·추천 단어)도 FAILED로 남기고
- * 오류로 던지므로, 돌려받은 결과는 그대로 쓰면 된다. 모델을 부르지 않는 관계 갱신과 음성 파일 받기는 기록하지 않는다.
+ * 오류로 던지므로, 돌려받은 결과는 그대로 쓰면 된다. 모델을 부르지 않는 관계 갱신과 음성 파일 받기, 부른 쪽이 버린 NPC 대답은 기록하지 않는다.
  *
  * <p>워커 클라이언트({@link AiWorkerClient})와 기록기({@link AiRequestRecorder})는 이 패키지 안에서만 쓸 수 있어, 다른 패키지는 이
  * 클래스로만 워커를 부른다.
@@ -24,6 +24,19 @@ public class AiGateway {
 
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
+
+  public PerformanceIntentResult performanceIntent(WorkerTrace trace, String text) {
+    PerformanceIntentResult result =
+        send(trace, AiRequestKind.JUDGE, () -> aiWorkerClient.performanceIntent(trace, text));
+    boolean usable =
+        result != null
+            && ("REPLAY_RAP".equals(result.intent()) || "CONVERSATION".equals(result.intent()));
+    record(trace, AiRequestKind.JUDGE, result == null ? List.of() : result.usage(), usable);
+    if (!usable) {
+      throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID);
+    }
+    return result;
+  }
 
   /** 의도·번역 판정. */
   public JudgeResult judge(
@@ -66,7 +79,10 @@ public class AiGateway {
         trace, npc, memory, history, text, instruction, level, learner, NpcReplyListener.NONE);
   }
 
-  /** NPC 대답. 글자·문장 조각 음성을 받는 대로 {@code listener}에 넘긴다. 실패 처리는 조각을 받지 않을 때와 같다. */
+  /**
+   * NPC 대답. 글자·문장 조각 음성을 받는 대로 {@code listener}에 넘긴다. 실패 처리는 조각을 받지 않을 때와 같다. 부른 쪽이 버린 대답({@link
+   * NpcReplyListener#discarded()})은 기록하지 않고 결과나 오류를 그대로 돌려준다.
+   */
   public NpcReply reply(
       WorkerTrace trace,
       WorkerNpc npc,
@@ -77,18 +93,12 @@ public class AiGateway {
       int level,
       WorkerLearner learner,
       NpcReplyListener listener) {
-    NpcReply reply =
-        send(
-            trace,
-            AiRequestKind.NPC,
-            () ->
-                aiWorkerClient.reply(
-                    trace, npc, memory, history, text, instruction, level, learner, listener));
-    record(trace, AiRequestKind.NPC, reply.usage(), reply.succeeded());
-    if (!reply.succeeded()) {
-      throw new BusinessException(AiWorkerClient.toErrorCode(reply.errorCode()));
-    }
-    return reply;
+    return npcReply(
+        trace,
+        listener,
+        () ->
+            aiWorkerClient.reply(
+                trace, npc, memory, history, text, instruction, level, learner, listener));
   }
 
   /** 서버가 확정한 무례·칭찬·사과 반응을 같은 대사 생성 요청에 전달한다. */
@@ -103,22 +113,37 @@ public class AiGateway {
       WorkerLearner learner,
       NpcReplyListener listener,
       String reaction) {
-    NpcReply reply =
-        send(
-            trace,
-            AiRequestKind.NPC,
-            () ->
-                aiWorkerClient.replyReacting(
-                    trace,
-                    npc,
-                    memory,
-                    history,
-                    text,
-                    instruction,
-                    level,
-                    learner,
-                    listener,
-                    reaction));
+    return npcReply(
+        trace,
+        listener,
+        () ->
+            aiWorkerClient.replyReacting(
+                trace,
+                npc,
+                memory,
+                history,
+                text,
+                instruction,
+                level,
+                learner,
+                listener,
+                reaction));
+  }
+
+  // 판정 뒤에 버린 대답은 같은 요청 ID로 다시 부른 대답의 기록을 덮지 않도록 남기지 않는다.
+  private NpcReply npcReply(WorkerTrace trace, NpcReplyListener listener, Supplier<NpcReply> call) {
+    NpcReply reply;
+    try {
+      reply = call.get();
+    } catch (RuntimeException exception) {
+      if (!listener.discarded()) {
+        aiRequestRecorder.record(trace, AiRequestKind.NPC, List.of(), AiRequestStatus.FAILED);
+      }
+      throw exception;
+    }
+    if (listener.discarded()) {
+      return reply;
+    }
     record(trace, AiRequestKind.NPC, reply.usage(), reply.succeeded());
     if (!reply.succeeded()) {
       throw new BusinessException(AiWorkerClient.toErrorCode(reply.errorCode()));
@@ -135,13 +160,19 @@ public class AiGateway {
    * 녹음 전사.
    *
    * @param npcLine 인식 문맥으로 쓸 직전 NPC 대사. 없으면 null
+   * @param sceneWords 철자를 알려 줄 장면 단어(사람 이름, 메뉴·상품 이름)
    */
-  public SttResult transcribe(WorkerTrace trace, byte[] audio, String contentType, String npcLine) {
+  public SttResult transcribe(
+      WorkerTrace trace,
+      byte[] audio,
+      String contentType,
+      String npcLine,
+      List<String> sceneWords) {
     SttResult result =
         send(
             trace,
             AiRequestKind.STT,
-            () -> aiWorkerClient.transcribe(trace, audio, contentType, npcLine));
+            () -> aiWorkerClient.transcribe(trace, audio, contentType, npcLine, sceneWords));
     record(trace, AiRequestKind.STT, result.usage(), true);
     return result;
   }
@@ -280,6 +311,22 @@ public class AiGateway {
     WorkerFeedback result =
         send(trace, AiRequestKind.FEEDBACK, () -> aiWorkerClient.feedback(trace, input));
     record(trace, AiRequestKind.FEEDBACK, result.usage(), result.completed());
+    return result;
+  }
+
+  /**
+   * 레벨 테스트 말하기 답을 문항별 통과 기준으로 판정한다(ONB-05). 학습자의 영어를 평가하는 호출이라 피드백(FEEDBACK) 종류로 남긴다. 보낸 문항마다 결과가
+   * 오지 않으면 쓸 수 없는 결과로 보고 AI_RESPONSE_INVALID로 던진다.
+   */
+  public LevelTestSpeakingResult judgeLevelTestSpeaking(
+      WorkerTrace trace, List<WorkerLevelTestSpeakingItem> items) {
+    LevelTestSpeakingResult result =
+        send(
+            trace,
+            AiRequestKind.FEEDBACK,
+            () -> aiWorkerClient.judgeLevelTestSpeaking(trace, items));
+    boolean usable = result.results() != null && result.results().size() == items.size();
+    requireUsable(trace, AiRequestKind.FEEDBACK, result.usage(), usable);
     return result;
   }
 

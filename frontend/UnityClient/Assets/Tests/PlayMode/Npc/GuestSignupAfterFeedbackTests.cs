@@ -12,8 +12,8 @@ using UnityEngine.UI;
 namespace A305.Npc.PlayModeTests
 {
     /// <summary>
-    /// 대화를 다 쓴 게스트가 방금 끝낸 대화의 피드백을 닫으면 가입 안내 창과 설문 카드가 뜬다(S15P31A305-605).
-    /// 다시 말을 걸지 않고 나가는 게스트도 가입 안내와 설문을 보게 한다. 남은 대화가 있으면 띄우지 않는다.
+    /// 대화를 다 쓴 게스트에게 가입을 권하되, 튜토리얼 피드백에서는 설문을 권하지 않는다.
+    /// 설문 안내 기회는 다음 일반 대화 피드백을 닫을 때까지 남겨 둔다.
     /// </summary>
     /// <remarks>
     /// 서버 없이 피드백까지 가는 대화는 튜토리얼의 Ben 길 안내뿐이라 그 대화로 확인한다.
@@ -23,6 +23,25 @@ namespace A305.Npc.PlayModeTests
     {
         private const float WaitTimeoutSeconds = 15f;
         private const int MaxGuidedTurns = 20;
+        private bool hadSurveyInvitation;
+        private int savedSurveyInvitation;
+
+        [SetUp]
+        public void StartWithNoSurveyInvitation()
+        {
+            hadSurveyInvitation = PlayerPrefs.HasKey(A305.Api.SurveyPrompt.InvitationKey);
+            savedSurveyInvitation = PlayerPrefs.GetInt(A305.Api.SurveyPrompt.InvitationKey);
+            PlayerPrefs.DeleteKey(A305.Api.SurveyPrompt.InvitationKey);
+        }
+
+        [TearDown]
+        public void RestoreSurveyInvitation()
+        {
+            if (hadSurveyInvitation)
+                PlayerPrefs.SetInt(A305.Api.SurveyPrompt.InvitationKey, savedSurveyInvitation);
+            else
+                PlayerPrefs.DeleteKey(A305.Api.SurveyPrompt.InvitationKey);
+        }
 
         [SetUp]
         [TearDown]
@@ -34,7 +53,7 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator GuestOutOfConversations_ClosingThatFeedback_OpensSignupAndSurvey()
+        public IEnumerator GuestOutOfConversations_TutorialFeedbackOpensSignupWithoutSurvey()
         {
             yield return FinishConversationWithBen();
             Single<DialogueController>().Allowance.Apply(GuestStatus(remaining: 0));
@@ -44,9 +63,14 @@ namespace A305.Npc.PlayModeTests
             Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.True);
             Assert.That(
                 Single<SurveyPromptView>().IsShowing,
-                Is.True,
-                "설문 카드도 함께 내려옵니다."
+                Is.False,
+                "튜토리얼 피드백은 설문 안내 횟수에 포함하지 않습니다."
             );
+            Assert.That(PlayerPrefs.HasKey(A305.Api.SurveyPrompt.InvitationKey), Is.False);
+            Assert.That(A305.Api.SurveyPrompt.RequestAfterFeedback(true), Is.True);
+            yield return null;
+            Assert.That(Single<SurveyPromptView>().IsShowing, Is.True);
+            Assert.That(A305.Api.SurveyPrompt.RequestAfterFeedback(true), Is.False);
         }
 
         [UnityTest]

@@ -8,6 +8,7 @@ PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동
 
 | 파일 | 역할 |
 | --- | --- |
+| `BrowserGraphicsQuality` | PC 브라우저에서 Web 빌드가 준비한 `PC` 품질을 적용합니다. 모바일 UA이거나 주 입력 장치가 손가락인 브라우저는 Web 기본 품질을 사용합니다. [브라우저 그래픽 품질](../../../../../docs/unity/setup.md#브라우저-그래픽-품질)을 따릅니다. |
 | `PlayerMotor` | 이동 입력과 카메라 방향으로 이번 프레임의 속도를 계산합니다. 달리기, 점프, 중력, 이동 잠금을 포함하며 Unity 객체 없이 테스트합니다. |
 | `CameraOrbit` | 3인칭·1인칭·대화 시점 상태와 회전·줌 범위를 관리하고 카메라 위치를 계산합니다. |
 | `DialogueFraming` | 대화 시점 카메라를 플레이어 눈이 아니라 NPC 얼굴 앞 정해진 거리·높이(`PlayerCameraSettings`의 대화 시점 항목)에 둡니다. 플레이어가 얼마나 떨어져 섰든 NPC마다 얼굴이 같은 크기로 보이고, 플레이어 위치는 카메라를 얼굴의 어느 쪽에 둘지만 정합니다. 화면 비율에 맞춰 얼굴을 정한 화면 자리(기본 가로 중앙·위쪽, 거리 2.4m)에 놓고 수평선은 유지해, NPC를 크게 비추면서 머리 위 여백을 남깁니다. 얼굴의 화면 높이는 아래에서 66%이며, 전신의 아래쪽은 대화 UI와 겹칠 수 있습니다. |
@@ -18,16 +19,21 @@ PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동
 | `CameraCollisionDistance` | 가로등·사람 같은 가는 장애물에 줌이 흔들리지 않도록 구분하고, 벽에서 벗어나면 카메라 거리를 서서히 복구합니다. |
 | `MoveReferenceYaw` | 순간이동·대화 종료로 카메라가 플레이어 뒤로 다시 맞춰져도 누른 방향대로 곧게 움직이도록 이동 시작 방향을 유지합니다. 사용자가 직접 시점을 돌리면 기준을 갱신합니다. |
 | `TouchDragInput` | 손가락별 드래그 소유권, 조이스틱 방향과 한 번만 적용할 카메라 이동량을 관리합니다. |
-| `PlayerTouchControls`, `TouchDragArea`, `TouchJumpButton` | 왼쪽 조이스틱과 오른쪽 드래그 영역의 터치 입력, 조이스틱을 끝까지 민 달리기, 조이스틱 옆 [점프]와 오른쪽 가장자리 [1인칭]·[3인칭] 버튼 누름을 전달합니다. |
+| `TouchPinchInput` | 시점 영역에 댄 두 손가락 사이가 벌어지고 좁아진 양을 모읍니다. 처음 닿은 두 손가락만 세고, 한 손가락을 떼면 끝납니다. |
+| `PlayerTouchControls`, `TouchDragArea`, `TouchJumpButton` | 왼쪽 조이스틱과 오른쪽 드래그 영역의 터치 입력, 오른쪽 영역의 두 손가락 벌리기·오므리기(가까이·멀리), 조이스틱을 끝까지 민 달리기, 조이스틱 반대쪽(오른쪽 아래) [점프]와 조이스틱 바로 위 [1인칭]·[3인칭] 버튼 누름을 전달합니다. [점프]의 화면 자리도 알려 조작법 카드가 비켜 가게 합니다. |
 | `TouchControlsAvailability` | 조이스틱과 드래그 영역을 보일 기기인지 정합니다. Unity 객체 없이 테스트합니다. |
 | `BrowserPointer`, `Plugins/WebGL/BrowserPointer.jslib` | Web 빌드에서 브라우저의 주 입력 장치가 손가락인지(CSS `pointer: coarse`)와 화면 배율(`devicePixelRatio`)을 읽습니다. |
+| `InteractionCursor`, `IClickPointerTarget` | Web 빌드에서 활성 버튼과 링크, 클릭 가능한 NPC·사물 위에 브라우저의 손 모양 커서를 씁니다. UI는 EventSystem의 최상단 결과로, 월드 대상은 사물 카드와 NPC의 클릭 판정으로 확인합니다. |
+| `WindowFrame`, `WindowResizeGrip` | PC에서 큰 창(단어장·피드백·지난 대화·복습장·이웃·내 정보·퀘스트 수첩)의 위쪽 띠(창 위 80단위, 제목 줄)를 끌어 옮기고, 오른쪽 아래 점 손잡이를 끌어 창 전체 배율을 70~130%로 바꿉니다. 옮기거나 키운 창은 화면 밖으로 나가지 않고, 손대지 않은 창은 원래 자리 그대로입니다. 창을 다시 열면 원래 자리·크기로 돌아갑니다. 휴대폰·태블릿(`PlayerTouchControls`가 조이스틱을 보이는 기기)에서는 옮기거나 바꾸지 않고 손잡이도 숨깁니다. 가운데 창은 `CenterWindow`가 정한 자리를 `SetBase`로 받아 그 위에 더하고, 넓힌 피드백 창은 잠시 꺼 둡니다. 각 화면이 `Awake`에서 `WindowFrame.Attach`로 붙입니다. |
 | `LookSensitivity` | 사용자가 마이페이지에서 고른 시점 회전 감도 배율(0.5~2배). `PlayerCameraRig`가 마우스·터치 회전에 곱하며, 이 기기에 `PlayerPrefs`로 저장합니다. |
 | `PointerDeltaScale` | 브라우저가 화면 배율을 곱해 넘기는 마우스 이동량을 배율로 나눠, 화면 배율과 관계없이 같은 회전 감도를 냅니다. 에디터에서는 배율을 1로 봅니다. |
-| `PlayerTouchSettings` | 조이스틱 중앙 무시 영역, 달리기로 바뀌는 밀기 정도(가장자리까지의 0.9), 터치 회전 감도를 설정합니다. |
+| `UiEscape`, `UiEscapeWindow` | ESC로 닫는 창들의 목록. 창이 열리면 올리고 닫히면 내리며, ESC를 한 번 누르면 **가장 나중에 연 창 하나만** 닫습니다(대화 중 단어 카드 → 대화, 정보 카드 → 이웃 목록 → 이웃 창 순). ESC는 여기서만 받고, 창은 직접 키를 읽지 않습니다. 여는 길이 여러 개인 창은 `UiEscapeWindow`로 보이는지를 매 프레임 지켜보고, 한 단계만 뒤로 가 그대로 보이면 다시 올라갑니다. 새 창을 만들면 닫기 버튼과 같은 일을 이 목록에 연결합니다. |
+| `PlayerTouchSettings` | 조이스틱 중앙 무시 영역, 달리기로 바뀌는 밀기 정도(가장자리까지의 0.9), 터치 회전 감도, 두 손가락이 휠 한 칸만큼 가까이 보는 벌림 정도(터치 캔버스 60단위)를 설정합니다. |
 | `PlayerMovementSettings`, `PlayerCameraSettings` | 속도·점프 높이·카메라 거리·회전 감도 등 수치를 담는 데이터 에셋입니다. 대화 시점의 얼굴까지 거리·얼굴보다 높은 정도·얼굴의 화면 자리와, 기다리는 구도의 뒤로 물러난 거리·오른쪽으로 비킨 거리·높이도 `PlayerCameraSettings`에서 조절합니다. |
 | `PlayerSeatPose` | 의자·벤치·소파에 앉은 동안 이동을 잠그고 Humanoid 골격을 앉는 면 높이에 맞춰 구부립니다. 다리가 짧은 리틀멍은 자리 앞쪽에 앉혀 허벅지를 쿠션 위에 눕히고 무릎 아래를 앞 모서리 밖으로 내려뜨립니다. 일어서면 앉기 전에 서 있던 곳으로 돌아갑니다. 서 있던 곳은 캡슐이 들어가 있던 빈 자리라 탁자·팔걸이·벽에 끼지 않습니다. |
 | `UmbrellaHold`, `HeldUmbrella` | 플레이어 루트에 붙어 우산을 펴 듭니다. 지금 외형의 오른팔 뼈대와 머리 크기(머리뼈 아래 정점)를 읽고, 몸 옆·앞에서 팔꿈치를 굽혀 손바닥으로 손잡이를 쥡니다(`TwoBonePose`). 기둥은 손잡이부터 귀 바깥까지 부드러운 곡선으로 이어지고, 그 위는 수직으로 섭니다. 캐노피는 머리 위에서 수평을 유지합니다. 펴고 접는 일은 [Mission 모듈](../Mission/README.md)이 정합니다. 우산 모델(`Prefabs/Player/HeldUmbrella.prefab`, 살 8개 돔 `Art/Player/HeldUmbrellaCanopy.asset`)과 마을 플레이어 연결은 **Tools → A305 → Player → Add Umbrella Hold**(`PlayerUmbrellaBuilder`)가 만들며, 우산 모델은 없을 때만 만듭니다. |
 | `SeatedLegs` | Humanoid 다리 뼈를 찾아 앉는 면 높이에 맞춰 구부리는 계산입니다. `PlayerSeatPose`와 쉬는 NPC([Npc 모듈](../Npc/README.md#생활)의 `NpcRoutine`)가 함께 씁니다. |
+| `SeatedArms` | 착석 중 양손을 허벅지 앞에 놓고 팔꿈치를 몸 바깥으로 굽힙니다. 실제 팔 길이를 유지하고 손바닥은 허벅지를 향합니다. `PlayerSeatPose`와 `NpcRoutine`이 다리 자세 뒤에 적용하며, 일어서면 앉기 전 팔 회전을 복원합니다. 우산을 든 오른손은 착석 자세 뒤에 `UmbrellaHold`가 다시 잡습니다. **Tools → A305 → Player → Capture Seated Pose**로 두 플레이어 체형의 정면·옆면·사선 검수 이미지를 로컬 `artifacts/seated-pose/`에 저장합니다. |
 | `StandingPoseCorrections` | 리틀 멍 외형의 서 있는 자세 보정(`LittleMungGroundContact`·`LittleMungTerrainContact`·`LittleMungStairLocomotion`·`LittleMungArmClearance`)을 앉아 있는 동안 끄고, 일어서면 켜져 있던 것만 다시 켭니다. `PlayerSeatPose`와 `NpcRoutine`이 함께 씁니다. |
 | `LittleMungArmClearance` | 손·전완의 중심을 머리·몸통 밖으로 옮깁니다. 머리·몸통은 감싸는 상자만 쓰므로 처음에 여러 방향(구 위 300개와 x·y·z 축)으로 가장 바깥에 있는 정점만 골라 두고(`OutermostPoints`) 매 프레임 그 정점만 계산합니다. 머리털·얼굴까지 2만 개가 넘던 머리 정점을 모두 계산하지 않아도 상자의 각 면은 크기의 약 1% 안에서 같습니다. 선택적 `refineSurfaceContact`는 기존 검사에 실패한 NPC 검수 사본에서만 켜며 플레이어는 기존 설정을 유지합니다. 이 추가 보정은 소매의 실제 스킨 정점으로 확인하고 상완·전완을 작은 각도로 조정합니다. 최대 12회로 제한하며 더 나은 자세를 찾지 못하면 중단합니다. 본 위치와 손목 로컬 회전은 바꾸지 않습니다. 전체 옷의 삼각형 충돌을 푸는 기능은 아니므로 캐릭터별 동작·외관 검수가 필요합니다. |
 | `SeatView` | 앉은 캐릭터를 플레이어가 다가온 쪽에서 보도록 카메라 수평 방향을 정합니다. 자리 바로 위에서 앉아 다가온 방향을 알 수 없으면 자리 앞쪽에서 봅니다. Unity 객체 없이 테스트합니다. |
@@ -51,13 +57,16 @@ PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동
 | 마우스 왼쪽 버튼을 누른 채 이동 | 카메라 회전. 스크롤 목록·미니맵처럼 끌기를 받는 UI 위에서 누르면 그 UI가 끌기를 쓰고 카메라는 돌지 않습니다(`UiDragTarget`). 거의 움직이지 않고 뗀 왼쪽 클릭은 사물 카드 고정에 씁니다. Web 빌드는 게임 화면에서 브라우저의 오른쪽 클릭 메뉴를 띄우지 않습니다(`WebGLTemplates/A305Responsive`). |
 | 마우스 휠 | 3인칭 거리 조절. 대화 피드백·단어장·입력칸처럼 스크롤을 받는 UI 위에서는 UI만 스크롤하며, 목록 끝에 닿아도 카메라는 확대·축소하지 않습니다(`UiScrollTarget`). |
 | V | 1인칭·3인칭 전환 |
+| Esc | 가장 나중에 연 창 하나를 닫습니다(`UiEscape`). 열린 창이 없으면 대화 중에는 대화를 끝냅니다. 브라우저 전체 화면에서는 첫 Esc를 브라우저가 전체 화면 끄기에 씁니다. |
 | T | `DialogueTarget`을 바라보는 대화 시점과 이동 잠금 전환 |
 
 3인칭은 수평보다 15° 올려다보는 데서 70° 내려다보는 데까지, 1인칭은 위아래 70°까지 돌립니다. 3인칭에서 올려다볼 때 카메라가 바닥에 닿으면 벽과 같은 방식으로 캐릭터 쪽으로 당겨집니다. 장소마다 있는 카메라 설정(`PlayerCameraSettings`)의 올려다보는 각도는 **Tools → A305 → Player → Apply Camera Look-Up Limit**으로 함께 맞춥니다.
 
 ### 모바일 터치 조작
 
-휴대폰·태블릿 브라우저에서는 화면 왼쪽 아래 조이스틱을 밀어 이동하고, 화면 오른쪽 빈 영역을 드래그해 카메라를 돌립니다. 두 손가락으로 이동과 회전을 동시에 조작할 수 있습니다. 손을 떼거나 앱을 전환하면 입력이 초기화됩니다. 대화 중에는 기존 이동·회전 잠금이 적용됩니다. V 키 대신 화면 오른쪽 가장자리(미니맵과 조작법 카드 사이)의 둥근 버튼으로 1인칭·3인칭을 바꿉니다. 버튼 글자는 누르면 바뀔 시점(3인칭일 때 [1인칭], 1인칭일 때 [3인칭])이고, 이동이 잠긴 동안 누른 것은 버리며 의자·차·대화·기다리는 구도에서는 버튼을 숨깁니다. 조이스틱을 가장자리 가까이(0.9)까지 밀면 달리고 그보다 덜 밀면 걸으며, 달리는 동안 손잡이가 파랑에서 주황으로 바뀝니다. 조이스틱 오른쪽 아래의 작은 [점프] 버튼은 손가락을 대는 순간 뛰고(`TouchJumpButton`), 조이스틱을 잡은 채 다른 손가락으로 눌러도 됩니다. 이동이 잠긴 동안 누른 점프는 버립니다.
+휴대폰·태블릿 브라우저에서는 화면 왼쪽 아래 조이스틱을 밀어 이동하고, 화면 오른쪽 빈 영역을 드래그해 카메라를 돌립니다. 그 영역에 두 손가락을 대고 벌리면 가까이, 오므리면 멀리 봅니다(PC 휠과 같은 3인칭 거리 범위, 1인칭·대화 시점에서는 바뀌지 않음). 두 번째 손가락이 닿으면 시점 돌리기를 멈추고, 손가락을 모두 뗀 뒤 다시 끌면 돌립니다. 두 손가락으로 이동과 회전을 동시에 조작할 수 있습니다. 손을 떼거나 앱을 전환하면 입력이 초기화됩니다. 대화 중에는 기존 이동·회전 잠금이 적용됩니다. V 키 대신 조이스틱 오른쪽 옆의 작은 둥근 버튼으로 1인칭·3인칭을 바꿉니다. 조이스틱보다 높이 올리지 않아, 목표가 많아 길어진 왼쪽 위 퀘스트 카드에 가리지 않습니다. 버튼 글자는 누르면 바뀔 시점(3인칭일 때 [1인칭], 1인칭일 때 [3인칭])이고, 이동이 잠긴 동안 누른 것은 버리며 의자·차·대화·기다리는 구도에서는 버튼을 숨깁니다. 조이스틱을 가장자리 가까이(0.9)까지 밀면 달리고 그보다 덜 밀면 걸으며, 달리는 동안 손잡이가 하늘색에서 코랄로 바뀝니다. 조이스틱 반대쪽(오른쪽 아래)의 [점프] 버튼은 손가락을 대는 순간 뛰고(`TouchJumpButton`), 왼손으로 조이스틱을 잡은 채 오른손으로 누릅니다. 이동이 잠긴 동안 누른 점프는 버립니다. 오른쪽 아래 조작법 카드는 열린 동안 [점프] 왼쪽 옆으로 비켜 버튼을 가리지 않습니다(`PlayerTouchControls.TryGetJumpButtonLeftPixels`). 위로 올리면 휴대폰 가로 화면에서 오른쪽 가운데 미니맵을 가리기 때문입니다.
+
+조작도 다른 화면과 같은 글래스 팝 디자인입니다(`UiThemeBuilder.ApplyTouchControlsTheme`). 조이스틱 바탕과 [1인칭]은 HUD 시계·코인과 같은 유리 칩, 손잡이는 하늘색 입체 버튼, [점프]는 노란 입체 버튼이고 글자는 Jua입니다. 자리는 왼쪽 위 퀘스트 카드, 휴대폰에서 오른쪽 가운데로 오는 미니맵, 오른쪽 위 시계·코인을 가리지 않게 잡았습니다(**Tools → A305 → Player → Build Touch Controls**).
 
 조이스틱과 드래그 영역을 보이는 기준은 다음과 같습니다.
 
@@ -103,7 +112,7 @@ Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어
 | `PlayerMover.IsMoving` | 이번 프레임에 수평으로 움직였는지. 이동 중에 사물 툴팁을 숨길 때 씁니다. |
 | `PlayerMover.IsRunning` | 달리기 키를 누른 채 움직였는지. 튜토리얼 걷기 단계가 씁니다. |
 | `PlayerMover.JumpedThisFrame` | 이번 프레임에 땅을 박차고 뛰어올랐는지(공중에서 누른 점프는 아님). 튜토리얼 걷기 단계가 씁니다. |
-| `PlayerCameraRig.ZoomedByUserThisFrame`, `ToggledViewThisFrame` | 이번 프레임에 휠로 확대·축소했는지, 1인칭·3인칭을 바꿨는지. 튜토리얼 둘러보기 단계가 씁니다. |
+| `PlayerCameraRig.ZoomedByUserThisFrame`, `ToggledViewThisFrame` | 이번 프레임에 휠이나 두 손가락으로 확대·축소했는지, 1인칭·3인칭을 바꿨는지. 튜토리얼 둘러보기 단계가 씁니다. |
 | `PlayerMover.SetMovementLocked(bool)` | 대화처럼 움직이면 안 되는 동안 이동과 점프를 막습니다. 중력은 계속 적용합니다. |
 | `PlayerMover.FaceToward(Vector3)` | 제자리에서 주어진 지점을 수평으로 바라보게 몸을 돌립니다. 대화를 마친 뒤 대화하던 NPC 쪽을 보게 할 때 씁니다. |
 | `PlayerCameraRig.EnterDialogueView(Transform)` | 대상(보통 NPC 머리 위치) 앞 정해진 거리·높이에서 대상을 비추는 대화 시점으로 바꿉니다. 회전·줌·시점 전환 입력을 받지 않습니다. |
@@ -122,4 +131,4 @@ Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어
 
 ## 테스트
 
-`Assets/Tests/EditMode/Player/`의 `A305.Player.Tests` 어셈블리가 `PlayerMotor`와 `CameraOrbit`의 이동·시점 규칙, `TouchDragInput`의 터치 드래그 처리, `TouchControlsAvailability`의 터치 조작 표시 기준, `SeatView`의 앉은 뒤 카메라 방향, `DialogueFraming`의 대화 시점 카메라 위치와 얼굴의 화면 자리, `MeetingFraming`의 어깨 너머 기다리는 구도, 프로젝트 입력 액션의 시점 회전 버튼(`PlayerInputActionsTests`), 팔 보정이 쓰는 바깥 끝 정점 고르기와 그 상자의 정확도(`OutermostPointsTests`), 모든 장소 카메라 설정의 3인칭 올려다보기 각도(`CameraLookUpLimitTests`)를 검증합니다. PlayMode `TouchControlsTests`는 터치로 올려다보기와 [1인칭]·[3인칭] 버튼을 확인합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다. 입력 연결과 카메라 연출은 Sandbox 씬의 Play로 확인합니다. `BrowserPointer.jslib`은 Editor에서 실행되지 않으므로 Web 빌드를 PC·모바일 브라우저에서 열어 조이스틱 표시 여부를 확인합니다.
+`Assets/Tests/EditMode/Player/`의 `A305.Player.Tests` 어셈블리가 `PlayerMotor`와 `CameraOrbit`의 이동·시점 규칙, `TouchDragInput`의 터치 드래그 처리, `TouchControlsAvailability`의 터치 조작 표시 기준, `SeatView`의 앉은 뒤 카메라 방향, `DialogueFraming`의 대화 시점 카메라 위치와 얼굴의 화면 자리, `MeetingFraming`의 어깨 너머 기다리는 구도, 프로젝트 입력 액션의 시점 회전 버튼(`PlayerInputActionsTests`), 팔 보정이 쓰는 바깥 끝 정점 고르기와 그 상자의 정확도(`OutermostPointsTests`), 모든 장소 카메라 설정의 3인칭 올려다보기 각도(`CameraLookUpLimitTests`)를 검증합니다. PlayMode `TouchControlsTests`는 터치로 올려다보기와 [1인칭]·[3인칭] 버튼, 조작법 카드가 [점프] 왼쪽 옆에 뜨는지를 확인합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다. 입력 연결과 카메라 연출은 Sandbox 씬의 Play로 확인합니다. `BrowserPointer.jslib`은 Editor에서 실행되지 않으므로 Web 빌드를 PC·모바일 브라우저에서 열어 조이스틱 표시 여부를 확인합니다.

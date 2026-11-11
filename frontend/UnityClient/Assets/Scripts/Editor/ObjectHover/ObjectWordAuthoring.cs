@@ -33,6 +33,29 @@ namespace A305.EditorTools.ObjectHover
         private static string RepositoryPath =>
             Path.GetFullPath(Path.Combine(Application.dataPath, "../../.."));
 
+        /// <summary>
+        /// 사물 단어를 등록·내보내는 씬. 장소 씬과 마을 매장 실내 씬이며, 실내 씬은 매장이 늘어도 빠지지 않게 폴더에서 찾는다.
+        /// </summary>
+        public static string[] WordScenePaths() =>
+            SceneNames.Select(PlaceScenePath).Concat(TownInteriorScenePaths()).ToArray();
+
+        /// <summary>씬에서 사물을 담은 루트(Environment). 마을 매장 실내 씬도 장소 씬처럼 건물을 Environment 아래에 둔다.</summary>
+        internal static GameObject WordRoot(Scene scene, string path) =>
+            scene.GetRootGameObjects().Single(root => root.name == "Environment");
+
+        private static string PlaceScenePath(string name) =>
+            "Assets/Scenes/Production/" + name + ".unity";
+
+        // 마을 매장 실내 씬. 서버는 매장을 마을의 일부로 보므로 사물 카드는 마을(TOWN) 단어로 받는다.
+        private static string[] TownInteriorScenePaths() =>
+            A305.EditorTools.World.TownShopSceneBuilder.ScenePaths();
+
+        internal static bool IsTownInterior(string path) =>
+            path.StartsWith(
+                A305.EditorTools.World.TownShopSceneBuilder.Folder + "/",
+                StringComparison.Ordinal
+            );
+
         public static void EnsureIdentity(ObjectWordDefinition definition)
         {
             string guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(definition));
@@ -229,7 +252,7 @@ namespace A305.EditorTools.ObjectHover
                     + " 완료: 공용 단어 "
                     + definitions.Length
                     + "개, 배포용 씬 "
-                    + SceneNames.Length
+                    + WordScenePaths().Length
                     + "개"
             );
         }
@@ -262,32 +285,33 @@ namespace A305.EditorTools.ObjectHover
             var scenes = new List<SceneWords>();
             foreach (string name in SceneNames)
             {
-                string path = "Assets/Scenes/Production/" + name + ".unity";
-                Scene scene = EditorSceneManager.OpenPreviewScene(path);
+                string sceneCode = A305.World.PlaceScenes.CodeOf(name);
+                // 마을은 실행 중 마을 씬에 덧붙여 불러오는 매장 실내 씬의 사물까지 한 장소로 묶는다.
+                string[] paths =
+                    sceneCode == "TOWN"
+                        ? new[] { PlaceScenePath(name) }.Concat(TownInteriorScenePaths()).ToArray()
+                        : new[] { PlaceScenePath(name) };
+                var opened = new List<Scene>();
                 try
                 {
-                    GameObject environment = scene
-                        .GetRootGameObjects()
-                        .Single(root => root.name == "Environment");
-                    HoverableObject[] targets =
-                        environment.GetComponentsInChildren<HoverableObject>();
-                    foreach (
-                        MeshRenderer renderer in environment.GetComponentsInChildren<MeshRenderer>()
-                    )
-                        if (
-                            renderer.enabled
-                            && renderer.GetComponent<TMPro.TMP_Text>() == null
-                            && renderer.GetComponentInParent<HoverableObject>() == null
-                        )
-                            throw new InvalidOperationException(
-                                name + ": 단어 연결이 없는 사물 " + renderer.name
-                            );
+                    var targets = new List<HoverableObject>();
+                    foreach (string path in paths)
+                    {
+                        Scene scene = EditorSceneManager.OpenPreviewScene(path);
+                        opened.Add(scene);
+                        targets.AddRange(
+                            BoundTargets(
+                                WordRoot(scene, path),
+                                Path.GetFileNameWithoutExtension(path)
+                            )
+                        );
+                    }
                     scenes.Add(
                         new SceneWords
                         {
-                            sceneCode = A305.World.PlaceScenes.CodeOf(name),
+                            sceneCode = sceneCode,
                             unityKey = name,
-                            objectCount = targets.Length,
+                            objectCount = targets.Count,
                             detailCount = targets.Sum(target =>
                                 target.Parts == null ? 0 : target.Parts.Parts.Count
                             ),
@@ -297,10 +321,26 @@ namespace A305.EditorTools.ObjectHover
                 }
                 finally
                 {
-                    EditorSceneManager.ClosePreviewScene(scene);
+                    foreach (Scene scene in opened)
+                        EditorSceneManager.ClosePreviewScene(scene);
                 }
             }
             return new BindingsDocument { scenes = scenes.ToArray(), prefabs = prefabs.ToArray() };
+        }
+
+        // 보이는 사물에 단어 연결이 빠졌으면 멈추고, 연결된 사물을 돌려준다.
+        private static HoverableObject[] BoundTargets(GameObject root, string location)
+        {
+            foreach (MeshRenderer renderer in root.GetComponentsInChildren<MeshRenderer>())
+                if (
+                    renderer.enabled
+                    && renderer.GetComponent<TMPro.TMP_Text>() == null
+                    && renderer.GetComponentInParent<HoverableObject>() == null
+                )
+                    throw new InvalidOperationException(
+                        location + ": 단어 연결이 없는 사물 " + renderer.name
+                    );
+            return root.GetComponentsInChildren<HoverableObject>();
         }
 
         private static string[] WordKeys(

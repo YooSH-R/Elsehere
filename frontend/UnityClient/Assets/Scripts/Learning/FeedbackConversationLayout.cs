@@ -12,6 +12,7 @@ namespace A305.Learning
     internal static class FeedbackConversationLayout
     {
         private const float FontSize = 25;
+        private const string NoCorrectionReason = "별도의 교정 없이도 자연스럽게 전달됐어요.";
         private static readonly Color Ink = new Color32(47, 37, 27, 255);
         private static readonly Color Coral = new Color32(242, 99, 63, 255);
         private static readonly Color Muted = new Color32(117, 98, 80, 255);
@@ -337,8 +338,33 @@ namespace A305.Learning
             float cardWidth = width - Margin * 2;
             float columnWidth = (cardWidth - Gap) / 2;
             float y = 108;
-            string better = review.Reference?.English ?? review.Utterance;
-            if (columnWidth >= 300)
+            // 문장 교정 카드와 같은 이름표를 쓴다. 한국어로 한 말은 "내가 한 말 · 한국어"와 "영어로는"이다.
+            CorrectionCard card = CorrectionCard.From(review);
+            string saidLabel = card.SaidLabel;
+            if (card.Kind == CorrectionKind.WellSaid)
+                saidLabel = "잘 표현했어요";
+            string betterLabel = card.BetterLabel;
+            string better = card.Better;
+            if (better == null)
+            {
+                y =
+                    DetailTile(
+                        root,
+                        fontSource,
+                        displayFont,
+                        tileSprite,
+                        Color.white,
+                        saidLabel,
+                        review.Utterance,
+                        Margin,
+                        y,
+                        cardWidth,
+                        CardHeight(root, fontSource, review.Utterance, cardWidth, displayFont, 32),
+                        displayFont,
+                        32
+                    ) + Gap;
+            }
+            else if (columnWidth >= 300)
             {
                 float pairHeight = Mathf.Max(
                     CardHeight(root, fontSource, review.Utterance, columnWidth, displayFont, 32),
@@ -350,7 +376,7 @@ namespace A305.Learning
                     displayFont,
                     tileSprite,
                     Color.white,
-                    "내가 한 말",
+                    saidLabel,
                     review.Utterance,
                     Margin,
                     y,
@@ -366,7 +392,7 @@ namespace A305.Learning
                         displayFont,
                         tileSprite,
                         Color.white,
-                        "이렇게 말해요",
+                        betterLabel,
                         better,
                         Margin + columnWidth + Gap,
                         y,
@@ -385,7 +411,7 @@ namespace A305.Learning
                         displayFont,
                         tileSprite,
                         Color.white,
-                        "내가 한 말",
+                        saidLabel,
                         review.Utterance,
                         Margin,
                         y,
@@ -401,7 +427,7 @@ namespace A305.Learning
                         displayFont,
                         tileSprite,
                         Color.white,
-                        "이렇게 말해요",
+                        betterLabel,
                         better,
                         Margin,
                         y,
@@ -411,25 +437,22 @@ namespace A305.Learning
                         32
                     ) + Gap;
             }
-            string reason = review.Reference?.Reason;
-            if (string.IsNullOrWhiteSpace(reason))
-                reason = string.IsNullOrWhiteSpace(review.Comment)
-                    ? "별도의 교정 없이도 자연스럽게 전달됐어요."
-                    : review.Comment;
-            y =
-                DetailTile(
-                    root,
-                    fontSource,
-                    displayFont,
-                    tileSprite,
-                    new Color(1f, 1f, 1f, .86f),
-                    "이 표현을 쓰는 이유",
-                    reason,
-                    Margin,
-                    y,
-                    cardWidth,
-                    CardHeight(root, fontSource, reason, cardWidth)
-                ) + Gap;
+            (string reasonLabel, string reason) = ReasonOf(card);
+            if (reason != null)
+                y =
+                    DetailTile(
+                        root,
+                        fontSource,
+                        displayFont,
+                        tileSprite,
+                        new Color(1f, 1f, 1f, .86f),
+                        reasonLabel,
+                        reason,
+                        Margin,
+                        y,
+                        cardWidth,
+                        CardHeight(root, fontSource, reason, cardWidth)
+                    ) + Gap;
             if (review.Idiom != null)
             {
                 string english = review.Idiom.English ?? "";
@@ -502,6 +525,17 @@ namespace A305.Learning
                 y += height + Gap;
             }
             return y + 16;
+        }
+
+        // 이유 칸의 제목과 글. 한국어로 한 말에는 "자연스럽게 전달됐다"는 칭찬을 붙이지 않고, 이유가 없으면 칸을 두지 않는다.
+        private static (string Label, string Text) ReasonOf(CorrectionCard card)
+        {
+            bool hasReason = !string.IsNullOrWhiteSpace(card.Reason);
+            if (card.Better != null)
+                return ("이 표현을 쓰는 이유", hasReason ? card.Reason : NoCorrectionReason);
+            if (card.Kind == CorrectionKind.Korean)
+                return ("설명", hasReason ? card.Reason : null);
+            return ("자연스러웠던 점", hasReason ? card.Reason : NoCorrectionReason);
         }
 
         private static float TextHeight(

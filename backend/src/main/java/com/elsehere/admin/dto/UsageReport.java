@@ -37,6 +37,7 @@ public record UsageReport(
    * @param missionsCompleted 기간 안에 완료한 오늘의 미션
    * @param wordsSaved 기간 안에 단어장에 저장한 단어
    * @param playSeconds 활동 사용자의 누적 플레이 시간(초) 합. 기간과 관계없이 지금까지 쌓인 값이다
+   * @param activeSeconds 기간 안에 장소 화면에 머문 시간(초) 합(user_daily_activities). 대화·학습 창을 보는 시간도 들어간다
    */
   public record Summary(
       long activeUsers,
@@ -51,7 +52,8 @@ public record UsageReport(
       long conversingUsers,
       long missionsCompleted,
       long wordsSaved,
-      long playSeconds) {
+      long playSeconds,
+      long activeSeconds) {
 
     /** 활동 사용자 가운데 다시 온 사용자 비율(0~1) */
     public double returningRate() {
@@ -66,6 +68,11 @@ public record UsageReport(
     /** 활동 사용자 1인당 누적 플레이 시간(분) */
     public double averagePlayMinutes() {
       return ratio(playSeconds, activeUsers) / 60;
+    }
+
+    /** 활동한 하루(사용자 한 명의 한 날)마다 장소 화면에 머문 시간(분) */
+    public double averageDailyActiveMinutes() {
+      return ratio(activeSeconds, activeUserDays) / 60;
     }
 
     /** 시작한 대화 가운데 끝낸 대화 비율(0~1) */
@@ -94,6 +101,7 @@ public record UsageReport(
    * @param conversations 그날 시작한 NPC 대화
    * @param missionsCompleted 그날 완료한 오늘의 미션
    * @param wordsSaved 그날 단어장에 저장한 단어
+   * @param activeSeconds 그날 사용자들이 장소 화면에 머문 시간(초) 합
    */
   public record Day(
       String day,
@@ -104,7 +112,8 @@ public record UsageReport(
       long conversions,
       long conversations,
       long missionsCompleted,
-      long wordsSaved) {}
+      long wordsSaved,
+      long activeSeconds) {}
 
   /**
    * 기준 하나로 묶은 횟수. 많은 것부터 보여 준다.

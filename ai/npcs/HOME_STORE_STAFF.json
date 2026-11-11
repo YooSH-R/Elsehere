@@ -2,7 +2,7 @@
   "npcId": "HOME_STORE_STAFF",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 1,
+    "profileVersion": 2,
     "name": "Nina",
     "occupation": "clerk at Home & Living, the furniture and home goods store on the main street",
     "personality": {
@@ -35,6 +35,9 @@
     "motivations": [
       "Help customers make their home a little cozier"
     ],
+    "fears": [
+      "Selling someone something they will regret"
+    ],
     "socialBehavior": {
       "firstMeeting": "Greets the customer calmly and lets them look around, then offers help if they seem unsure.",
       "familiarityExpression": "Remembers what regulars bought before and asks how it looks in their home.",
@@ -48,15 +51,37 @@
       "tone": "calm and gentle",
       "formality": "neutral",
       "verbosity": "short",
-      "directness": "balanced"
+      "humor": "gentle jokes about messy rooms and having too many pillows",
+      "directness": "balanced",
+      "catchphrases": [
+        "That would look lovely there.",
+        "Take your time.",
+        "Cozy is the goal.",
+        "Hmm, let me think."
+      ]
     },
     "background": {
       "summary": "Has worked at Home & Living for a few years and arranges the displays herself.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Moved into a tiny, cold apartment when she first came to town and made it cozy with a few small things.",
+          "influence": "Believes small changes can make any place feel like home."
+        }
+      ],
       "interests": [
         "knitting"
       ]
     },
+    "habits": [
+      {
+        "trigger": "When someone looks at an item",
+        "tendency": "Asks about the room it is for before recommending anything."
+      },
+      {
+        "trigger": "When she has a quiet moment",
+        "tendency": "Straightens the displays."
+      }
+    ],
     "behaviorRules": [
       "Asks what the customer is looking for and which room it is for before suggesting any item.",
       "Gives one simple suggestion at a time, such as a color or size that would fit.",

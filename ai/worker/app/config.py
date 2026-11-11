@@ -113,11 +113,18 @@ class Settings:
     call_timeout_s: float = 8.0  # 모델 호출 하나의 상한. 넘으면 끊고 재시도·대체 모델
     hedge_after_s: float = 3.0  # 한 번에 받는 호출이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀 (0이면 끔).
     # 2026-10-22 gms-luna: 혼잡한 때 8초 멈춘 호출이 다시 보내면 1~2초, 평소 p99 2.5~3.9초
+    judge_hedge_after_s: float = 2.0  # 판정(의도·번역)만 이만큼에 같은 요청을 하나 더 (0이면 끔). NPC 대답이 판정을 기다리기 때문.
+    # 2026-11-10 dev 턴 51건: 판정 중앙 1.5초·p90 2.8초, GMS 혼잡 때 3.7~5초로 튀어 첫 음성이 5.5~7.8초
     stream_hedge_after_s: float = 2.5  # NPC 대답 스트림의 첫 글자가 이만큼 안 오면 같은 요청 스트림을 하나 더 (0이면 끔).
     # gms-luna 첫 글자 40번 p50 0.98s·최대 1.66s, 가끔 11s+ 멈춤. 다시 보낸 쪽이 ~1s라 첫 글자 상한(5s) 안에 든다
     feedback_timeout_s: float = 60.0  # 대화 종료 피드백 호출 하나의 상한 (길게 생성해서 따로, 같은 요청 더 보내기 없음)
     words_budget_s: float = 3.0  # NPC 대답 스트림 안 추천 단어(words)의 상한. 넘으면 words: null(timeout)로 넘기고 done을 보낸다
     judge_budget_s: float = 5.0  # 판정 요청의 의도·무례·번역 각각의 상한 (재시도·대체 모델 포함). 웹 프로토타입 실측 1.2~2.9초
+    judge_gpu_model: str = ""  # GPU 서버 의도 판정 모델(gpu_llm 공급자). 있으면 먼저 부르고 실패하면 구성의 intent 모델. 비면 끔
+    # GPU 서버 의도 판정 한 번의 상한. 넘으면 바로 구성의 intent 모델로 (JUDGE_BUDGET_S 안에서 그 판정까지 끝나야 한다)
+    judge_gpu_timeout_s: float = 2.0
+    judge_breaker_failures: int = 3  # GPU 서버 의도 판정이 이만큼 연속 실패하면 잠시 건너뜀 (0이면 끔)
+    judge_breaker_skip_s: float = 60.0  # 건너뛰는 시간. 지나면 다시 시도
     guard_budget_s: float = 5.0  # /v1/guard 무례 판정 하나의 상한 (로컬 판정기 + LLM 재시도·대체 모델 포함)
     guard_gpu_model: str = ""  # GPU 서버 판정 모델(gpu_llm 공급자). 있으면 먼저 부르고 실패하면 구성의 guard 모델. 비면 끔
     # GPU 서버 판정 한 번의 상한. 평소 0.3초(10개 동시 약 1초)지만 vLLM이 처음 보는 동시 요청 수에서는 한 번 2.4~2.7초가 걸린다.
@@ -174,7 +181,8 @@ class Settings:
             others.append(stt_fallback["provider"])
         others += [step["provider"] for step in stt_chain if step["provider"] != main]
         guard_gpu_model = e.get("GUARD_GPU_MODEL", "")
-        if guard_gpu_model:  # 주소·키가 없으면 아래 missing에 걸린다
+        judge_gpu_model = e.get("JUDGE_GPU_MODEL", "")
+        if guard_gpu_model or judge_gpu_model:  # 무례·의도 판정이 같은 GPU 서버 vLLM을 쓴다. 주소·키가 없으면 아래 missing에 걸린다
             others.append("gpu_llm")
         providers = {name: {"base_url": provider_base_url(name, e), "api_key": provider_key(name, e)} for name in dict.fromkeys(others)}
         missing = [PROFILES["providers"][n]["base_url_env"] for n, v in providers.items() if not v["base_url"]]
@@ -212,10 +220,15 @@ class Settings:
             stt_breaker_skip_s=float(e.get("STT_BREAKER_SKIP_S", cls.stt_breaker_skip_s)),
             call_timeout_s=float(e.get("CALL_TIMEOUT_S", cls.call_timeout_s)),
             hedge_after_s=float(e.get("HEDGE_AFTER_S", cls.hedge_after_s)),
+            judge_hedge_after_s=float(e.get("JUDGE_HEDGE_AFTER_S", cls.judge_hedge_after_s)),
             stream_hedge_after_s=float(e.get("STREAM_HEDGE_AFTER_S", cls.stream_hedge_after_s)),
             feedback_timeout_s=float(e.get("FEEDBACK_TIMEOUT_S", cls.feedback_timeout_s)),
             words_budget_s=float(e.get("WORDS_BUDGET_S", cls.words_budget_s)),
             judge_budget_s=float(e.get("JUDGE_BUDGET_S", cls.judge_budget_s)),
+            judge_gpu_model=judge_gpu_model,
+            judge_gpu_timeout_s=float(e.get("JUDGE_GPU_TIMEOUT_S", cls.judge_gpu_timeout_s)),
+            judge_breaker_failures=int(e.get("JUDGE_BREAKER_FAILURES", cls.judge_breaker_failures)),
+            judge_breaker_skip_s=float(e.get("JUDGE_BREAKER_SKIP_S", cls.judge_breaker_skip_s)),
             guard_budget_s=float(e.get("GUARD_BUDGET_S", cls.guard_budget_s)),
             guard_gpu_model=guard_gpu_model,
             guard_gpu_timeout_s=float(e.get("GUARD_GPU_TIMEOUT_S", cls.guard_gpu_timeout_s)),

@@ -14,6 +14,12 @@ namespace A305.Dialogue
         /// <summary>맡은 교대 밖이라 일하지 않는 직원과의 대화면 true. 서버가 응대 대신 쉬는 중의 일상 상황으로 대화한다.</summary>
         public bool NpcOffDuty { get; set; }
         public NpcTravelContext NpcTravelContext { get; set; }
+
+        /// <summary>사용자가 고른 NPC 말 빠르기 배율(<see cref="NpcSpeechSpeed"/>). 첫인사 음성에 쓴다.</summary>
+        public double SpeechSpeed { get; set; }
+
+        /// <summary>대화가 열린 장소 코드. 서버가 NPC에게 지금 있는 곳으로 알린다.</summary>
+        public string PlaceCode { get; set; }
     }
 
     /// <summary>대화 시작 시의 실제 이동 상태. 서버는 이 값으로 만든 사실을 대화 동안 보존한다.</summary>
@@ -31,6 +37,7 @@ namespace A305.Dialogue
     public sealed class ConversationStart
     {
         public long? ReviewCardId { get; set; }
+        public string PracticeScenarioId { get; set; }
         public long ConversationId { get; set; }
         public NpcSummary Npc { get; set; }
         public NpcTurnData OpeningTurn { get; set; }
@@ -79,6 +86,9 @@ namespace A305.Dialogue
 
         public string Text { get; set; }
         public string SttRawText { get; set; }
+
+        /// <summary>사용자가 고른 NPC 말 빠르기 배율(<see cref="NpcSpeechSpeed"/>). 이번 대답 음성에 쓴다.</summary>
+        public double SpeechSpeed { get; set; }
     }
 
     public sealed class TurnResult
@@ -89,6 +99,16 @@ namespace A305.Dialogue
 
         /// <summary>이 턴에서 경찰관이 신고를 받아 순찰차가 출동하면 출동할 곳. 출동하지 않으면 null이다.</summary>
         public PoliceDispatchData PoliceDispatch { get; set; }
+
+        /// <summary>이 턴에서 택시 기사가 알아들은 목적지. 목적지를 말하지 않았으면 null이다.</summary>
+        public TaxiDestinationData TaxiDestination { get; set; }
+    }
+
+    /// <summary>택시 기사가 대화 문맥으로 알아들은 목적지. 택시는 이 장소로 가서 내려 준다.</summary>
+    public sealed class TaxiDestinationData
+    {
+        /// <summary>갈 마을 장소 코드(CAFE, BAKERY, PARK 등).</summary>
+        public string PlaceCode { get; set; }
     }
 
     /// <summary>경찰서 창구에서 받은 신고. 신고를 받은 경찰관이 대화를 마치고 직접 순찰차로 간다.</summary>
@@ -230,6 +250,13 @@ namespace A305.Dialogue
         public string RequestId { get; set; }
     }
 
+    /// <summary>NPC 음성 다시 만들기(CONV-07) 요청. 지금 고른 말 빠르기로 다시 만든다.</summary>
+    public sealed class SpeechRegenerateBody
+    {
+        public string RequestId { get; set; }
+        public double SpeechSpeed { get; set; }
+    }
+
     /// <summary>상세 평가(화면 17).</summary>
     public sealed class DetailedFeedback
     {
@@ -311,6 +338,7 @@ namespace A305.Dialogue
 
         /// <summary>NPC 대사에 대답할 만한 영어 문장</summary>
         public string HintText { get; set; }
+        public string HintMeaningKo { get; set; }
     }
 
     /// <summary>추천 단어(CONV-12).</summary>

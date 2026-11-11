@@ -1,6 +1,7 @@
 using System.Collections;
 using A305.Player;
 using A305.Tutorial;
+using A305.World;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -37,11 +38,58 @@ namespace A305.Wayfinding.PlayModeTests
             GuideRoutePreference.ShowsRoute = savedShowsRoute;
         }
 
+        // 마을 매장은 따로 장면이라 실내에는 바깥 길 안내가 없다. 실내에서 바뀐 목적지는 마을로 나오면 안내한다.
+        // 사용자가 길을 꺼 두면 다시 켜지 않는 것은 GuideVisibilityTests에서 본다.
+        [UnityTest]
+        public IEnumerator ShopScene_HasNoOutdoorGuide_AndTheTownGuidesToTheDestinationSetInside()
+        {
+            yield return LoadTown();
+            GuideDestination.Shared.Show("HOTEL");
+            yield return new WaitForSeconds(LaidSeconds);
+            Assert.That(Route().enabled, Is.True);
+
+            yield return SceneManager.LoadSceneAsync("MapleDinerInterior", LoadSceneMode.Single);
+            yield return null;
+            Assert.That(Guide(), Is.Null, "실내 장면에서는 바깥 길을 보이지 않습니다.");
+
+            GuideDestination.Shared.Show("CAFE");
+            yield return null;
+
+            yield return LoadTown();
+            yield return new WaitForSeconds(LaidSeconds);
+            Assert.That(
+                Route().enabled,
+                Is.True,
+                "밖으로 나오면 현재 목적지까지의 길을 표시합니다."
+            );
+            Assert.That(Glow().activeSelf, Is.True);
+            Assert.That(
+                Flat(Glow().transform.position, Entrance("CAFE").position),
+                Is.LessThan(.01f)
+            );
+        }
+
         // 마을을 불러오는 데 대부분의 시간이 들어, 목적지를 바꿔 가며 한 번 불러온 마을에서 이어서 본다.
         [UnityTest]
         public IEnumerator Destination_LaysTheRoute_MovesWithANewOne_AndClears()
         {
             yield return LoadTown();
+
+            foreach (
+                string shop in new[]
+                {
+                    "DINER",
+                    "LAUNDROMAT",
+                    "BANK",
+                    "BARBER",
+                    "FLOWER_SHOP",
+                    "BAKERY",
+                    "HOME_STORE",
+                    "ARCADE",
+                    "POST_OFFICE",
+                }
+            )
+                Assert.That(Entrance(shop), Is.Not.Null, shop + " 출입문을 찾지 못했습니다.");
 
             GuideDestination.Shared.Show("HOTEL");
             yield return new WaitForSeconds(LaidSeconds);
@@ -77,6 +125,24 @@ namespace A305.Wayfinding.PlayModeTests
                 Is.LessThan(.5f),
                 "새 목적지로 길이 옮겨 가지 않습니다."
             );
+
+            foreach (string shop in new[] { "DINER", "LAUNDROMAT" })
+            {
+                GuideDestination.Shared.Show(shop);
+                yield return new WaitForSeconds(LaidSeconds);
+                Assert.That(Glow().activeSelf, Is.True, shop);
+                Assert.That(route.enabled, Is.True, shop);
+                Assert.That(
+                    Flat(Glow().transform.position, Entrance(shop).position),
+                    Is.LessThan(.01f),
+                    shop
+                );
+                Assert.That(
+                    Flat(route.GetPosition(route.positionCount - 1), Entrance(shop).position),
+                    Is.LessThan(.5f),
+                    shop
+                );
+            }
 
             GuideRoutePreference.ShowsRoute = false;
             yield return null;

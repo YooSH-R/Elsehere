@@ -89,11 +89,11 @@ namespace A305.Mission.Tests
 
             Assert.That(
                 FollowUpCardText.Row(breakfast, Received).Detail,
-                Is.EqualTo("Rosa · 식당")
+                Is.EqualTo("Rosa · 햄버거 가게")
             );
             Assert.That(
                 FollowUpCardText.Row(breakfast, Received + 90d).Detail,
-                Is.EqualTo("식당 Rosa에게 받으러 가세요")
+                Is.EqualTo("햄버거 가게 Rosa에게 받으러 가세요")
             );
         }
 

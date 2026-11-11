@@ -54,6 +54,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -73,6 +74,10 @@ class ConversationControllerTest {
       OffsetDateTime.parse("2026-11-05T14:05:30+09:00");
   private static final String TURN =
       "{\"requestId\": \"" + REQUEST_ID + "\", \"inputType\": \"TEXT\", \"text\": \"A latte\"}";
+  private static final String START =
+      "{\"requestId\": \""
+          + REQUEST_ID
+          + "\", \"npcCode\": \"CAFE_STAFF\", \"initiatedBy\": \"USER\"}";
   private static final NpcSummaryResponse NPC =
       new NpcSummaryResponse("CAFE_STAFF", "Mia", "카페 직원");
 
@@ -86,7 +91,7 @@ class ConversationControllerTest {
 
   @Test
   void startReviewUsesAuthenticatedOwnerAndReturnsMode() throws Exception {
-    given(conversationService.startReview(1L, 42L, REQUEST_ID))
+    given(conversationService.startReview(1L, 42L, REQUEST_ID, 1.1))
         .willReturn(
             new ConversationStartResponse(
                 77L, ConversationStatus.ACTIVE, 1, NPC, List.of(), null, null, null, 42L));
@@ -103,6 +108,55 @@ class ConversationControllerTest {
   }
 
   @Test
+  @DisplayName("복습 대화 시작에 실은 NPC 말 빠르기를 서비스에 넘긴다")
+  void startReview_withSpeechSpeed_passesSpeechSpeed() throws Exception {
+    mockMvc.perform(
+        request(
+            post("/api/v1/review-cards/42/conversations"),
+            "{\"requestId\": \"" + REQUEST_ID + "\", \"speechSpeed\": 1.3}"));
+
+    then(conversationService).should().startReview(1L, 42L, REQUEST_ID, 1.3);
+  }
+
+  @Test
+  void startPracticeUsesAuthenticatedOwnerAndReturnsScenario() throws Exception {
+    given(conversationService.startPractice(1L, "DINER_TABLE", REQUEST_ID, 1.1))
+        .willReturn(
+            new ConversationStartResponse(
+                77L,
+                ConversationStatus.ACTIVE,
+                1,
+                NPC,
+                List.of(),
+                null,
+                null,
+                null,
+                null,
+                "DINER_TABLE"));
+    mockMvc
+        .perform(
+            post("/api/v1/practice-scenarios/DINER_TABLE/conversations")
+                .with(authentication(loggedIn(1L)))
+                .header("X-Requested-With", "XMLHttpRequest")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"requestId\":\"" + REQUEST_ID + "\"}"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.conversationId").value(77))
+        .andExpect(jsonPath("$.practiceScenarioId").value("DINER_TABLE"));
+  }
+
+  @Test
+  @DisplayName("장소 연습 대화 시작에 실은 NPC 말 빠르기를 서비스에 넘긴다")
+  void startPractice_withSpeechSpeed_passesSpeechSpeed() throws Exception {
+    mockMvc.perform(
+        request(
+            post("/api/v1/practice-scenarios/DINER_TABLE/conversations"),
+            "{\"requestId\": \"" + REQUEST_ID + "\", \"speechSpeed\": 1.4}"));
+
+    then(conversationService).should().startPractice(1L, "DINER_TABLE", REQUEST_ID, 1.4);
+  }
+
+  @Test
   @DisplayName("GET /api/v1/conversations는 NPC·커서·크기를 넘겨 지난 대화 목록 한 페이지를 돌려준다")
   void list_respondsPage() throws Exception {
     ConversationSummaryResponse item =
@@ -116,7 +170,7 @@ class ConversationControllerTest {
             OffsetDateTime.parse("2026-10-21T14:05:00+09:00"),
             4,
             FeedbackStatus.DONE);
-    given(conversationHistoryService.list(1L, "CAFE_STAFF", "60", 10))
+    given(conversationHistoryService.list(1L, "CAFE_STAFF", null, "60", 10, false))
         .willReturn(new ConversationListResponse(List.of(item), "58"));
 
     mockMvc
@@ -132,13 +186,14 @@ class ConversationControllerTest {
         .andExpect(jsonPath("$.items[0].startedAt").value("2026-10-21T14:00:00+09:00"))
         .andExpect(jsonPath("$.items[0].userTurnCount").value(4))
         .andExpect(jsonPath("$.items[0].feedbackStatus").value("DONE"))
+        .andExpect(jsonPath("$.items[0].practiceCount").value(0))
         .andExpect(jsonPath("$.nextCursor").value("58"));
   }
 
   @Test
   @DisplayName("GET /api/v1/conversations에 조건이 없으면 전체 NPC의 첫 페이지를 20개씩 요청한다")
   void list_withoutParams_usesDefaults() throws Exception {
-    given(conversationHistoryService.list(1L, null, null, 20))
+    given(conversationHistoryService.list(1L, null, null, null, 20, false))
         .willReturn(new ConversationListResponse(List.of(), null));
 
     mockMvc
@@ -149,9 +204,9 @@ class ConversationControllerTest {
   }
 
   @Test
-  @DisplayName("피드백 목록 요청은 완료된 피드백 필터와 기존 조회 조건을 함께 전달한다")
+  @DisplayName("대화 노트 요청은 완료된 피드백 필터·장소와 기존 조회 조건을 함께 전달한다")
   void list_feedbackOnly_passesCompletedFeedbackFilter() throws Exception {
-    given(conversationHistoryService.list(1L, "CAFE_STAFF", "60", 10, true))
+    given(conversationHistoryService.list(1L, "CAFE_STAFF", "CAFE", "60", 10, true))
         .willReturn(new ConversationListResponse(List.of(), "58"));
 
     mockMvc
@@ -161,6 +216,7 @@ class ConversationControllerTest {
                 .param("cursor", "60")
                 .param("size", "10")
                 .param("feedbackOnly", "true")
+                .param("sceneCode", "CAFE")
                 .with(authentication(loggedIn(1L))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.items").isEmpty())
@@ -273,6 +329,105 @@ class ConversationControllerTest {
   }
 
   @Test
+  @DisplayName("대화 시작에 설정창에서 고른 NPC 말 빠르기를 실어 보내면 서비스에 그대로 넘긴다")
+  void start_withSpeechSpeed_passesSpeechSpeed() throws Exception {
+    given(conversationService.start(eq(1L), any())).willReturn(startedConversation());
+
+    mockMvc
+        .perform(
+            request(
+                post("/api/v1/conversations"),
+                "{\"requestId\": \""
+                    + REQUEST_ID
+                    + "\", \"npcCode\": \"CAFE_STAFF\","
+                    + " \"initiatedBy\": \"USER\", \"speechSpeed\": 1.4}"))
+        .andExpect(status().isCreated());
+
+    ArgumentCaptor<StartConversationRequest> request =
+        ArgumentCaptor.forClass(StartConversationRequest.class);
+    then(conversationService).should().start(eq(1L), request.capture());
+    assertThat(request.getValue().speechSpeed()).isEqualTo(1.4);
+  }
+
+  @Test
+  @DisplayName("NPC 말 빠르기를 보내지 않는 예전 클라이언트는 기본 1.1배로 넘긴다")
+  void start_withoutSpeechSpeed_passesDefaultSpeechSpeed() throws Exception {
+    given(conversationService.start(eq(1L), any())).willReturn(startedConversation());
+
+    mockMvc
+        .perform(
+            request(
+                post("/api/v1/conversations"),
+                "{\"requestId\": \""
+                    + REQUEST_ID
+                    + "\", \"npcCode\": \"CAFE_STAFF\", \"initiatedBy\": \"USER\"}"))
+        .andExpect(status().isCreated());
+
+    ArgumentCaptor<StartConversationRequest> request =
+        ArgumentCaptor.forClass(StartConversationRequest.class);
+    then(conversationService).should().start(eq(1L), request.capture());
+    assertThat(request.getValue().speechSpeed()).isEqualTo(1.1);
+  }
+
+  @ParameterizedTest
+  @ValueSource(doubles = {0.7, 1.6})
+  @DisplayName("NPC 말 빠르기가 0.8~1.5배 밖이면 대화 시작·발화 전송·복습·장소 연습 시작 모두 400 VALIDATION_FAILED다")
+  void speechSpeedOutsideSettingRange_isRejected(double speechSpeed) throws Exception {
+    mockMvc
+        .perform(
+            request(
+                post("/api/v1/conversations"),
+                "{\"requestId\": \""
+                    + REQUEST_ID
+                    + "\", \"npcCode\": \"CAFE_STAFF\", \"initiatedBy\": \"USER\","
+                    + " \"speechSpeed\": "
+                    + speechSpeed
+                    + "}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+    mockMvc
+        .perform(
+            request(
+                post("/api/v1/conversations/5/turns"),
+                "{\"requestId\": \""
+                    + REQUEST_ID
+                    + "\", \"inputType\": \"TEXT\", \"text\": \"Hi\", \"speechSpeed\": "
+                    + speechSpeed
+                    + "}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+    mockMvc
+        .perform(
+            request(
+                post("/api/v1/review-cards/42/conversations"),
+                "{\"requestId\": \"" + REQUEST_ID + "\", \"speechSpeed\": " + speechSpeed + "}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+    mockMvc
+        .perform(
+            request(
+                post("/api/v1/practice-scenarios/DINER_TABLE/conversations"),
+                "{\"requestId\": \"" + REQUEST_ID + "\", \"speechSpeed\": " + speechSpeed + "}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+  }
+
+  @Test
+  @DisplayName("발화 전송에 실은 NPC 말 빠르기를 서비스에 넘긴다")
+  void sendTurn_withSpeechSpeed_passesSpeechSpeed() throws Exception {
+    mockMvc.perform(
+        request(
+            post("/api/v1/conversations/5/turns"),
+            "{\"requestId\": \""
+                + REQUEST_ID
+                + "\", \"inputType\": \"TEXT\", \"text\": \"Hi\", \"speechSpeed\": 0.9}"));
+
+    ArgumentCaptor<TurnRequest> request = ArgumentCaptor.forClass(TurnRequest.class);
+    then(turnService).should().send(eq(1L), eq(5L), request.capture());
+    assertThat(request.getValue().speechSpeed()).isEqualTo(0.9);
+  }
+
+  @Test
   @DisplayName("진행 중인 대화가 있으면 409 CONVERSATION_ALREADY_ACTIVE와 진행 중인 대화 ID를 돌려준다")
   void start_whileActive_respondsConflict() throws Exception {
     given(conversationService.start(eq(1L), any()))
@@ -291,6 +446,86 @@ class ConversationControllerTest {
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.error.code").value("CONVERSATION_ALREADY_ACTIVE"))
         .andExpect(jsonPath("$.error.details.activeConversationId").value(3));
+  }
+
+  @Test
+  @DisplayName(
+      "POST /api/v1/conversations에 Accept: text/event-stream이면 첫 인사 글자·조각 음성을 보내고 마지막에 REST와 같은 본문을 conversation으로 보낸다")
+  void start_streamAccept_sendsDeltaAudioThenConversation() throws Exception {
+    given(conversationService.start(eq(1L), any(), any()))
+        .willAnswer(
+            invocation -> {
+              TurnEvents events = invocation.getArgument(2);
+              events.delta("Hi");
+              events.audio(0, "Hi!", new byte[] {82, 73, 70, 70});
+              return startedConversation();
+            });
+
+    String body =
+        mockMvc
+            .perform(
+                request(post("/api/v1/conversations"), START)
+                    .header("Accept", "text/event-stream, application/json"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM))
+            .andExpect(header().string("X-Accel-Buffering", "no"))
+            .andReturn()
+            .getResponse()
+            .getContentAsString(StandardCharsets.UTF_8);
+
+    assertThat(body)
+        .startsWith(
+            "event: delta\ndata: {\"text\":\"Hi\"}\n\n"
+                + "event: audio\ndata: {\"seq\":0,\"text\":\"Hi!\",\"wav\":\"UklGRg==\"}\n\n"
+                + "event: conversation\ndata: {\"conversationId\":5,");
+    assertThat(body).contains("\"text\":\"Hi!\"").endsWith("}\n\n");
+  }
+
+  @Test
+  @DisplayName("대화 시작 스트림이어도 첫 인사를 보내기 전에 난 오류는 지금과 같은 HTTP 상태와 오류 본문으로 응답한다")
+  void start_streamAccept_errorBeforeEvents_respondsHttpError() throws Exception {
+    given(conversationService.start(eq(1L), any(), any()))
+        .willThrow(
+            new BusinessException(
+                ErrorCode.CONVERSATION_ALREADY_ACTIVE, Map.of("activeConversationId", 3L)));
+
+    mockMvc
+        .perform(
+            request(post("/api/v1/conversations"), START)
+                .header("Accept", "text/event-stream, application/json"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.error.code").value("CONVERSATION_ALREADY_ACTIVE"))
+        .andExpect(jsonPath("$.error.details.activeConversationId").value(3));
+  }
+
+  @Test
+  @DisplayName("첫 인사를 보내기 시작한 뒤 난 오류는 HTTP 상태와 공통 오류 본문을 error 이벤트로 보내고 스트림을 끝낸다")
+  void start_streamAccept_errorAfterEvents_sendsErrorEvent() throws Exception {
+    given(conversationService.start(eq(1L), any(), any()))
+        .willAnswer(
+            invocation -> {
+              TurnEvents events = invocation.getArgument(2);
+              events.delta("Hi");
+              throw new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE);
+            });
+
+    String body =
+        mockMvc
+            .perform(
+                request(post("/api/v1/conversations"), START)
+                    .header("Accept", "text/event-stream, application/json"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString(StandardCharsets.UTF_8);
+
+    assertThat(body)
+        .isEqualTo(
+            "event: delta\ndata: {\"text\":\"Hi\"}\n\n"
+                + "event: error\ndata: {\"status\":503,\"error\":{\"code\":\"AI_TEMPORARILY_UNAVAILABLE\","
+                + "\"message\":\""
+                + ErrorCode.AI_TEMPORARILY_UNAVAILABLE.getMessage()
+                + "\"}}\n\n");
   }
 
   @Test

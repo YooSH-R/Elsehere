@@ -325,33 +325,33 @@ namespace A305.Dialogue
             {
                 npcCode = "DINER_STAFF",
                 npcName = "Rosa",
-                roleLabel = "식당 종업원",
+                roleLabel = "햄버거 가게 직원",
                 opening = new LineEntry(
-                    "Hi, honey! Welcome to Maple Diner. What can I get you?",
-                    "어서 와요! 메이플 식당이에요. 뭘 드릴까요?"
+                    "Hi, honey! Welcome to Maple Burger. What can I get you?",
+                    "어서 와요! 메이플 버거예요. 뭘 드릴까요?"
                 ),
                 keywordReplies = new List<KeywordReplyEntry>
                 {
                     new KeywordReplyEntry(
-                        new[] { "pancake" },
+                        new[] { "classic" },
                         new LineEntry(
-                            "Pancakes, great choice! That's seven dollars.",
-                            "팬케이크, 좋은 선택이에요! 7달러예요."
+                            "The Classic has beef, lettuce, tomato, onion, pickles and ketchup. Would you like to leave anything out?",
+                            "클래식 버거에는 소고기 패티, 양상추, 토마토, 양파, 피클과 케첩이 들어가요. 빼고 싶은 재료가 있나요?"
                         )
                     ),
                     new KeywordReplyEntry(
-                        new[] { "coffee" },
+                        new[] { "cola" },
                         new LineEntry(
-                            "Coffee is two dollars, and refills are free.",
-                            "커피는 2달러고 리필은 무료예요."
+                            "Would you like cola and fries with your burger?",
+                            "버거와 함께 콜라와 감자튀김도 드릴까요?"
                         )
                     ),
                 },
                 defaultReply = new LineEntry(
-                    "We have pancakes, burgers, apple pie and coffee.",
-                    "팬케이크, 버거, 애플파이, 커피가 있어요."
+                    "We have Classic, Cheese, Crispy Chicken and Veggie burgers. You can add cheese or leave out onions.",
+                    "클래식, 치즈, 크리스피 치킨, 베지 버거가 있어요. 치즈를 추가하거나 양파를 뺄 수 있어요."
                 ),
-                exampleSentence = "Can I have pancakes and coffee, please?",
+                exampleSentence = "Can I have a Classic with no onions, please?",
             },
             new Entry
             {
@@ -1069,33 +1069,33 @@ namespace A305.Dialogue
             {
                 npcCode = "FIRE_CAPTAIN",
                 npcName = "Ray",
-                roleLabel = "식당 직원",
+                roleLabel = "햄버거 가게 직원",
                 opening = new LineEntry(
-                    "Hi, honey! Welcome to Maple Diner. What can I get you?",
-                    "어서 와요! 메이플 식당이에요. 뭘 드릴까요?"
+                    "Hi, honey! Welcome to Maple Burger. What can I get you?",
+                    "어서 와요! 메이플 버거예요. 뭘 드릴까요?"
                 ),
                 keywordReplies = new List<KeywordReplyEntry>
                 {
                     new KeywordReplyEntry(
-                        new[] { "pancake" },
+                        new[] { "classic" },
                         new LineEntry(
-                            "Pancakes, great choice! That's seven dollars.",
-                            "팬케이크, 좋은 선택이에요! 7달러예요."
+                            "The Classic has beef, lettuce, tomato, onion, pickles and ketchup. Would you like to leave anything out?",
+                            "클래식 버거에는 소고기 패티, 양상추, 토마토, 양파, 피클과 케첩이 들어가요. 빼고 싶은 재료가 있나요?"
                         )
                     ),
                     new KeywordReplyEntry(
-                        new[] { "coffee" },
+                        new[] { "cola" },
                         new LineEntry(
-                            "Coffee is two dollars, and refills are free.",
-                            "커피는 2달러고 리필은 무료예요."
+                            "Would you like cola and fries with your burger?",
+                            "버거와 함께 콜라와 감자튀김도 드릴까요?"
                         )
                     ),
                 },
                 defaultReply = new LineEntry(
-                    "We have pancakes, burgers, apple pie and coffee.",
-                    "팬케이크, 버거, 애플파이, 커피가 있어요."
+                    "We have Classic, Cheese, Crispy Chicken and Veggie burgers. You can add cheese or leave out onions.",
+                    "클래식, 치즈, 크리스피 치킨, 베지 버거가 있어요. 치즈를 추가하거나 양파를 뺄 수 있어요."
                 ),
-                exampleSentence = "Can I have pancakes and coffee, please?",
+                exampleSentence = "Can I have a Classic with no onions, please?",
             },
             new Entry
             {
@@ -1212,6 +1212,21 @@ namespace A305.Dialogue
                     "참 좋네요! 좋은 하루 보내요."
                 ),
                 exampleSentence = "Good morning! Do you walk here every day?",
+            },
+            new Entry
+            {
+                npcCode = "TOWN_JOHN_PARK",
+                npcName = "John",
+                roleLabel = "뮤지션",
+                opening = new LineEntry(
+                    "Hi, I'm John. Want to hear my order rap?",
+                    "안녕, John이야. 주문 랩 들어볼래?"
+                ),
+                defaultReply = new LineEntry(
+                    "I like music and a good burger. What about you?",
+                    "난 음악과 맛있는 버거를 좋아해. 너는 어때?"
+                ),
+                exampleSentence = "Can you play that rap again?",
             },
         };
 

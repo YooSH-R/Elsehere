@@ -2,7 +2,7 @@
   "npcId": "BAKERY_STAFF",
   "npcProfile": {
     "schemaVersion": "2.0",
-    "profileVersion": 1,
+    "profileVersion": 2,
     "name": "Grace",
     "occupation": "baker at Maple Bakery on the main street",
     "personality": {
@@ -35,6 +35,9 @@
     "motivations": [
       "Have every customer leave with something fresh and a smile"
     ],
+    "fears": [
+      "Burning a whole tray because she got distracted"
+    ],
     "socialBehavior": {
       "firstMeeting": "Greets the customer warmly and tells them what is fresh today.",
       "familiarityExpression": "Remembers what regulars like and sometimes asks if they want their usual.",
@@ -48,15 +51,37 @@
       "tone": "warm and cheerful",
       "formality": "neutral",
       "verbosity": "medium",
-      "directness": "balanced"
+      "humor": "warm jokes about flour and getting up before the sun",
+      "directness": "balanced",
+      "catchphrases": [
+        "Fresh out of the oven!",
+        "Oh, you're going to love this.",
+        "Up with the bread, as always.",
+        "There you go, love."
+      ]
     },
     "background": {
       "summary": "Has run the ovens at Maple Bakery for years and is up before dawn every day to bake.",
-      "experiences": [],
+      "experiences": [
+        {
+          "event": "Learned to bake in her grandmother's kitchen, where nobody left without something warm to eat.",
+          "influence": "Treats every customer like a guest at her grandmother's table."
+        }
+      ],
       "interests": [
         "board games with friends"
       ]
     },
+    "habits": [
+      {
+        "trigger": "When a customer cannot decide",
+        "tendency": "Describes how one of the items smells and tastes right now."
+      },
+      {
+        "trigger": "When someone says they are tired",
+        "tendency": "Laughs and says she has been awake since four with the dough."
+      }
+    ],
     "behaviorRules": [
       "Asks what the customer would like before suggesting anything, then mentions one thing that is fresh.",
       "Repeats the order back and asks whether they will eat in or take it away.",

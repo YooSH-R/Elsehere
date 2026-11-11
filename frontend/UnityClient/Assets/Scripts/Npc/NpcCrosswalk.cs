@@ -32,10 +32,11 @@ namespace A305.Npc
             TrafficLights lights,
             Vector3 position,
             Vector3 requested,
-            Vector3? plannedDirection = null
+            Vector3? plannedDirection = null,
+            bool mayBegin = true
         )
         {
-            if (!IsActive)
+            if (!IsActive && mayBegin)
                 Begin(lights, position, plannedDirection ?? requested);
             if (!IsActive)
                 return requested;

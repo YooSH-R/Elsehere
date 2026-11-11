@@ -37,6 +37,7 @@ namespace A305.EditorTools.Theme
         private const string HudPath = "Assets/Prefabs/Learning/LearningHud.prefab";
         private const string OfferPath = "Assets/Prefabs/Npc/PasserbyOffer.prefab";
         private const string EntryPath = "Assets/Prefabs/Onboarding/EntryScreens.prefab";
+        private const string TouchControlsPath = "Assets/Prefabs/Player/TouchControls.prefab";
         private const string HomeScenePath = "Assets/Scenes/Production/HomeScene.unity";
         private const string FontFolder = "Assets/Art/UI/Fonts";
         private const string HudMenuPath = "Panel/Menu";
@@ -88,6 +89,7 @@ namespace A305.EditorTools.Theme
             Style("Assets/Prefabs/ObjectHover/WordTooltip.prefab", StyleTooltip);
             Style(OfferPath, StyleOffer);
             Style(EntryPath, StyleEntry);
+            Style(TouchControlsPath, StyleTouchControls);
         }
 
         /// <summary>
@@ -117,7 +119,34 @@ namespace A305.EditorTools.Theme
             Debug.Log("HUD에 로그인 끊김 안내 창을 덧붙였습니다.");
         }
 
-        /// <summary>대화 제안·로그인과 가입·피드백 목록·내 정보 창의 바탕과 버튼을 다른 화면과 같은 테마 규칙으로 맞춘다.</summary>
+        /// <summary>
+        /// HUD 내 정보 창에 NPC 말 빠르기 줄만 덧붙이고 칠한다(S15P31A305-778). HUD 전체 Builder를 다시 돌리면 다른 Builder가
+        /// 마무리한 HUD 디자인까지 바뀌므로 이 줄만 다룬다.
+        /// </summary>
+        [MenuItem("Tools/A305/UI/Add NPC Speech Speed Setting")]
+        public static void ApplyNpcSpeechSpeed()
+        {
+            BuilderTools.ThrowIfPlaying();
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            BuilderTools.UpdatePrefabIfExists(
+                HudPath,
+                root =>
+                {
+                    LearningBuilder.AddNpcSpeechSpeed(root);
+                    StyleMyPage(root.transform);
+                    foreach (
+                        ThemedElement element in root
+                            .transform.Find("MyPage/Window/NpcSpeechSpeed")
+                            .GetComponentsInChildren<ThemedElement>(true)
+                    )
+                        element.ApplyCurrent();
+                }
+            );
+            AssetDatabase.SaveAssets();
+            Debug.Log("내 정보 창에 NPC 말 빠르기 줄을 덧붙였습니다.");
+        }
+
+        /// <summary>대화 제안·로그인과 가입·대화 노트·내 정보 창의 바탕과 버튼을 다른 화면과 같은 테마 규칙으로 맞춘다.</summary>
         [MenuItem("Tools/A305/UI/Apply Unified Dialogs")]
         public static void ApplyUnifiedDialogs()
         {
@@ -127,7 +156,7 @@ namespace A305.EditorTools.Theme
             Style(OfferPath, StyleOffer);
             Style(EntryPath, StyleEntry);
             AssetDatabase.SaveAssets();
-            Debug.Log("대화 제안·로그인·피드백 목록·내 정보 창을 테마 규칙으로 맞췄습니다.");
+            Debug.Log("대화 제안·로그인·대화 노트·내 정보 창을 테마 규칙으로 맞췄습니다.");
         }
 
         [MenuItem("Tools/A305/UI/Apply Approved HUD Buttons")]
@@ -136,6 +165,26 @@ namespace A305.EditorTools.Theme
             catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
             Style(HudPath, StyleHud);
             Style("Assets/Prefabs/Mission/FirstDayMission.prefab", StyleFirstDay);
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// 휴대폰 [복습장] 옆에 [이웃] 버튼을 두고 [이웃] 창(S15P31A305-537)을 만든다.
+        /// HUD 전체를 다시 칠하면(Apply HUD Menu) 나중에 바꾼 디자인이 되돌아가므로 이 부분만 만든다.
+        /// </summary>
+        [MenuItem("Tools/A305/UI/Add Neighbors App")]
+        public static void ApplyNeighborsApp()
+        {
+            BuilderTools.ThrowIfPlaying();
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(
+                HudPath,
+                root =>
+                {
+                    NeighborsListBuilder.Add(root);
+                    StyleNeighbors(root);
+                }
+            );
             AssetDatabase.SaveAssets();
         }
 
@@ -158,6 +207,30 @@ namespace A305.EditorTools.Theme
         {
             catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
             Style(OfferPath, StyleGuestSignupDialog);
+        }
+
+        /// <summary>휴대폰 조이스틱·[점프]·[1인칭] 버튼만 테마로 칠한다(TouchControlsBuilder가 자리를 잡은 뒤 부른다).</summary>
+        public static void ApplyTouchControlsTheme()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(TouchControlsPath, StyleTouchControls);
+        }
+
+        /// <summary>
+        /// 장면 위에 바로 놓이는 휴대폰 조작도 다른 화면과 같은 글래스 팝으로 칠한다. 조이스틱 바탕과 [1인칭]은 HUD 시계·코인과 같은
+        /// 유리 칩, 손잡이와 [점프]는 입체 버튼이다(손잡이 하늘, 점프 노랑). 달리는 동안 손잡이는 코랄로 바뀐다(PlayerTouchControls).
+        /// </summary>
+        private static void StyleTouchControls(Transform root)
+        {
+            Role(root, "Stick", UiThemeRole.Chip);
+            // 유리 칩 그림(72px, 모서리 34px)은 작은 칩에 맞춘 모서리라, 지름 160의 조이스틱에서는 둥근 네모가 된다.
+            // 모서리를 키워 원으로 그린다(그림자 여백도 같은 비율로 SurfaceBleed가 맞춘다).
+            root.Find("Stick").GetComponent<Image>().pixelsPerUnitMultiplier = .42f;
+            Role(root, "Stick/Handle", UiThemeRole.PillButton, UiTone.Accent);
+            Role(root, "JumpButton", UiThemeRole.PillButton, UiTone.Primary);
+            Role(root, "ViewToggle", UiThemeRole.Chip);
+            Role(root, "ViewToggle/ToFirstPerson", UiThemeRole.Title);
+            Role(root, "ViewToggle/ToThirdPerson", UiThemeRole.Title);
         }
 
         /// <summary>대화 제안 화면의 NPC 머리 위 이름표만 테마로 칠한다. 제안 화면의 다른 요소는 건드리지 않는다.</summary>
@@ -264,8 +337,8 @@ namespace A305.EditorTools.Theme
         }
 
         /// <summary>
-        /// 오른쪽 위에는 휴대폰 버튼만 두고, 누르면 삼성폰 모양 메뉴(단어장·피드백 목록·마을 지도·집으로·내 정보 앱)를 펼친다.
-        /// 폰 화면은 <see cref="PhoneMenuBuilder"/>가 만든다. 알림은 알림이 있을 때만 보이는 작은 카드에 담는다.
+        /// 오른쪽 위에는 휴대폰 버튼만 두고, 누르면 삼성폰 모양 메뉴(단어장·대화 노트·마을 지도·집으로·내 정보 앱)를 펼친다.
+        /// 폰 화면은 <see cref="PhoneMenuBuilder"/>가 만든다. 알림은 알림이 있을 때만 화면 위 가운데에 보이는 카드에 담고, 자리는 <see cref="HudNoticeBuilder"/>가 맞춘다.
         /// </summary>
         private static void StyleHud(Transform root)
         {
@@ -292,21 +365,18 @@ namespace A305.EditorTools.Theme
             StyleControlsGuide(root);
             StyleSessionExpired(root);
             StyleSurveyPrompt(root);
+            StyleNeighbors(root);
 
-            RectTransform card = FindOrCreateRect(panel, "MessageCard");
+            RectTransform card = HudNoticeBuilder.Place(root);
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = false;
             var cardLayout = BuilderTools.GetOrAddComponent<VerticalLayoutGroup>(card.gameObject);
             cardLayout.padding = new RectOffset(36, 36, 28, 28);
             cardLayout.childControlWidth = cardLayout.childControlHeight = true;
             cardLayout.childForceExpandHeight = false;
             Role(card, UiThemeRole.Card);
-            card.SetAsLastSibling();
-            Transform message = panel.Find("Message");
-            if (message == null)
-                message = card.Find("Message");
+            Transform message = card.Find("Message");
             if (message != null)
             {
-                message.SetParent(card, false);
                 message.gameObject.SetActive(true);
                 Role(message, UiThemeRole.Body);
             }
@@ -325,13 +395,35 @@ namespace A305.EditorTools.Theme
 
         // 메뉴(≡) 버튼. 평소 버튼은 기본 색, 펼친 동안 같은 자리에 보이는 버튼은 강조 색이다.
 
-        /// <summary>피드백 목록 창은 테마 유리 판 위에 확정 시안대로 다시 놓는다(FeedbackListBuilder).</summary>
+        /// <summary>대화 노트 창은 테마 유리 판 위에 확정 시안대로 다시 놓는다(FeedbackListBuilder).</summary>
         private static void StyleHistory(Transform root)
         {
             if (root.Find("History") == null)
                 return;
             Role(root, "History", UiThemeRole.Panel);
             A305.EditorTools.Learning.FeedbackListBuilder.Apply(root);
+        }
+
+        /// <summary>[이웃] 창은 [대화 노트]와 같은 테마 유리 판 위에 같은 자리로 놓는다(NeighborsListBuilder).</summary>
+        private static void StyleNeighbors(Transform root)
+        {
+            if (root.Find("Neighbors") == null)
+                return;
+            Role(root, "Neighbors", UiThemeRole.Panel);
+            NeighborsListBuilder.Apply(root);
+            ActionPill(root, "Neighbors/RetryButton", UiIcon.Retry, UiTone.Neutral, 200);
+            ActionPill(root, "Neighbors/Card/BackButton", UiIcon.None, UiTone.Neutral, 200);
+            // 카드에서 할 수 있는 주된 동작이라 노란 강조 버튼으로 둔다.
+            ActionPill(root, "Neighbors/Card/MapButton", UiIcon.Map, UiTone.Primary, 240);
+        }
+
+        /// <summary>[이웃] 창만 다시 놓고 칠한다(정보 카드의 [지도에서 보기] 포함). HUD의 다른 요소는 건드리지 않는다.</summary>
+        public static void ApplyNeighborsTheme()
+        {
+            BuilderTools.ThrowIfPlaying();
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(HudPath, StyleNeighbors);
+            AssetDatabase.SaveAssets();
         }
 
         /// <summary>오른쪽 아래 조작법 카드. 알림 카드처럼 작은 카드 바탕에 제목·조작·안내를 두고, 닫기는 오른쪽 위 X다.</summary>
@@ -436,6 +528,11 @@ namespace A305.EditorTools.Theme
             Role(root, "MyPage/Window/LookSensitivity/Row/Slow", UiThemeRole.Caption);
             Role(root, "MyPage/Window/LookSensitivity/Row/Fast", UiThemeRole.Caption);
             Role(root, "MyPage/Window/LookSensitivity/Row/Value", UiThemeRole.Accent);
+            Role(root, "MyPage/Window/NpcSpeechSpeed/Title", UiThemeRole.Title);
+            Role(root, "MyPage/Window/NpcSpeechSpeed/Help", UiThemeRole.Muted);
+            Role(root, "MyPage/Window/NpcSpeechSpeed/Row/Slow", UiThemeRole.Caption);
+            Role(root, "MyPage/Window/NpcSpeechSpeed/Row/Fast", UiThemeRole.Caption);
+            Role(root, "MyPage/Window/NpcSpeechSpeed/Row/Value", UiThemeRole.Accent);
             ActionPill(
                 root,
                 "MyPage/Window/NicknameRow/NicknameButton",
@@ -511,6 +608,7 @@ namespace A305.EditorTools.Theme
                 180
             );
             Roomy(root, "MyPage/WithdrawDialog");
+            A305.EditorTools.Onboarding.MyPageLayoutBuilder.Apply(root.gameObject);
         }
 
         /// <summary>약관·선택 동의 한 줄: 동그란 체크, 본문 글자, 작은 [보기] 알약 버튼.</summary>
@@ -733,7 +831,13 @@ namespace A305.EditorTools.Theme
             talkSize.minWidth = talkSize.preferredWidth = 332;
             talk.sizeDelta = new Vector2(332, talk.sizeDelta.y);
 
-            RectTransform key = FindOrCreateRect(talk, "KeyHint");
+            RectTransform key = StyleInteractionKeyHint(talk);
+            BuilderTools.SetReference(view, "talkKeyHint", key);
+        }
+
+        internal static RectTransform StyleInteractionKeyHint(Transform button)
+        {
+            RectTransform key = FindOrCreateRect(button, "KeyHint");
             key.SetAsFirstSibling();
             key.sizeDelta = new Vector2(32, 32);
             BuilderTools.GetOrAddComponent<LayoutElement>(key.gameObject).ignoreLayout = true;
@@ -752,7 +856,7 @@ namespace A305.EditorTools.Theme
             keyFace.type = Image.Type.Sliced;
             keyFace.color = new Color32(190, 90, 70, 255);
             keyFace.raycastTarget = false;
-            BuilderTools.SetReference(view, "talkKeyHint", key);
+            return key;
         }
 
         // 안내는 바닥 무늬와 테마에 관계없이 읽혀야 하므로 불투명 바탕과 고정 대비를 쓴다.
@@ -789,7 +893,7 @@ namespace A305.EditorTools.Theme
         }
 
         /// <summary>
-        /// 로그인·캐릭터·가입·언어·난이도·레벨 테스트·연결 안내 창을 기본 테마의 창과 알약 버튼으로 칠한다.
+        /// 로그인·캐릭터·가입·언어·난이도·연결 안내 창을 기본 테마의 창과 알약 버튼으로 칠한다.
         /// 고르는 캐릭터 버튼과 카드는 카드 모양으로 두고, 실행 중 고른 것만 강조색 쪽으로 칠한다.
         /// </summary>
         private static void StyleEntry(Transform root)
@@ -802,7 +906,6 @@ namespace A305.EditorTools.Theme
                     "SignupPanel",
                     "LanguagePanel",
                     "LevelSettingPanel",
-                    "LevelTestPanel",
                     "ConnectionPanel",
                 }
             )
@@ -861,10 +964,7 @@ namespace A305.EditorTools.Theme
             }
             ActionPill(root, "LevelSettingPanel/ConfirmButton", UiIcon.Check, UiTone.Primary, 280);
 
-            Role(root, "LevelTestPanel/Body", UiThemeRole.Body);
-            Role(root, "LevelTestPanel/SkipNote", UiThemeRole.Muted);
-            ActionPill(root, "LevelTestPanel/StartButton", UiIcon.Play, UiTone.Primary, 400);
-            ActionPill(root, "LevelTestPanel/SkipButton", UiIcon.Skip, UiTone.Neutral, 400);
+            // 화면 04 레벨 테스트 창은 시안 그림과 글자로만 만든다(LevelTestScreenBuilder).
 
             Role(root, "ConnectionPanel/Body", UiThemeRole.Body);
             ActionPill(root, "ConnectionPanel/RetryButton", UiIcon.Retry, UiTone.Primary, 220);
@@ -1084,16 +1184,10 @@ namespace A305.EditorTools.Theme
                 36
             );
             QuietButton(root, "Panel/Sections/SummaryButton", "요약", selectedTint: true);
-            QuietButton(root, "Panel/Sections/CorrectionsButton", "문장", selectedTint: true);
-            QuietButton(root, "Panel/Sections/ConversationButton", "회화", selectedTint: true);
-            QuietButton(root, "Panel/Sections/ExpressionsButton", "표현", selectedTint: true);
+            QuietButton(root, "Panel/Sections/CorrectionsButton", "문장 교정", selectedTint: true);
+            QuietButton(root, "Panel/Sections/ConversationButton", "전체 대화", selectedTint: true);
             CompactArrow(root, "Panel/Navigation/PreviousButton", UiIcon.Previous);
             CompactArrow(root, "Panel/Navigation/NextButton", UiIcon.Next);
-            string savePath =
-                root.Find("Panel/PageCard/BodyTile/SaveButton") != null
-                    ? "Panel/PageCard/BodyTile/SaveButton"
-                    : "Panel/Buttons/SaveButton";
-            QuietButton(root, savePath, "담기");
             QuietButton(root, "Panel/Buttons/DetailButton", "자세히");
             QuietButton(root, "Panel/Buttons/RegenerateButton", "다시 만들기");
             QuietButton(root, "Panel/Buttons/TranscriptButton", "대화 기록");

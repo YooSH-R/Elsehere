@@ -6,7 +6,6 @@ using A305.Player;
 using A305.Voice;
 using A305.World;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace A305.Dialogue
 {
@@ -34,6 +33,7 @@ namespace A305.Dialogue
 
         private readonly DialogueSession session = new DialogueSession();
         private DialogueServerLink serverLink;
+        private bool emphasizePerformance;
         private IConversationApi conversationApi;
         private IAiStatusApi aiStatusApi;
         private IFollowUpApi followUpApi;
@@ -62,6 +62,9 @@ namespace A305.Dialogue
         /// <summary>경찰관이 신고를 받아 순찰차를 출동시킨 턴. NPC 코드와 출동할 장소 코드(null이면 본길 순찰)를 넘긴다.</summary>
         public event Action<string, long, string> PoliceDispatchRequested;
 
+        /// <summary>택시 기사가 목적지를 알아들은 턴. NPC 코드와 갈 장소 코드를 넘긴다.</summary>
+        public event Action<string, string> TaxiDestinationChosen;
+
         /// <summary>
         /// 대화가 끝나면 대화 기록을 알린다. 시점과 이동을 되돌린 뒤 가장 마지막에 알리므로,
         /// 받는 쪽이 피드백 화면을 열며 이동을 다시 잠가도 풀리지 않는다.
@@ -81,6 +84,7 @@ namespace A305.Dialogue
             if (
                 serverConversation == null
                 || serverConversation.IsReview
+                || serverConversation.IsPractice
                 || feedbackDelivery == null
                 || !feedbackDelivery.TryDefer()
             )
@@ -97,6 +101,10 @@ namespace A305.Dialogue
         public bool IsTalking => session.IsActive;
         public long? ActiveReviewConversationId =>
             serverConversation?.IsReview == true ? serverConversation.ConversationId : null;
+
+        /// <summary>지금 하는 장소 연습 대화의 서버 대화 ID. 장소 연습 중이 아니거나 아직 열리지 않았으면 null이다.</summary>
+        public long? ActivePracticeConversationId =>
+            serverConversation?.IsPractice == true ? serverConversation.ConversationId : null;
 
         /// <summary>이 머리 위치를 가진 NPC가 현재 대화 상대인지.</summary>
         public bool IsTalkingTo(Transform lookTarget) =>
@@ -178,6 +186,13 @@ namespace A305.Dialogue
         /// <param name="npcOffDuty">
         /// 교대 밖이라 일하지 않는 직원과의 대화인지. 서버 대화 시작(CONV-01)에 보내 응대 대신 일상 상황으로 대화하게 한다.
         /// </param>
+        /// <param name="practiceScenarioId">
+        /// 장소 연습으로 여는 대화면 그 상황 ID. 복습처럼 이야기와 따로 하므로 대화 시작·끝(<see cref="Started"/>·<see cref="Ended"/>)을 알리지 않는다.
+        /// </param>
+        /// <param name="practiceStart">장소 연습 대화를 여는 요청(PRC-02). 요청 ID를 받는다.</param>
+        /// <param name="placeCode">
+        /// 대화가 열린 장소 코드(CONV-01). 비우면 플레이어가 있는 곳으로 정한다. 택시처럼 플레이어 위치와 다른 곳이면 넘긴다.
+        /// </param>
         /// <returns>대화를 시작했으면 true. 이미 대화 중이면 false.</returns>
         public bool TryStart(
             string npcCode,
@@ -187,11 +202,18 @@ namespace A305.Dialogue
             bool npcOffDuty = false,
             long? reviewCardId = null,
             Func<string, Task<ConversationStart>> reviewStart = null,
-            NpcTravelContext npcTravelContext = null
+            NpcTravelContext npcTravelContext = null,
+            string practiceScenarioId = null,
+            Func<string, Task<ConversationStart>> practiceStart = null,
+            string placeCode = null
         )
         {
+            bool isSeparatePractice = reviewCardId != null || practiceScenarioId != null;
             if (
                 (reviewCardId != null && (conversationApi == null || reviewStart == null))
+                || (
+                    practiceScenarioId != null && (conversationApi == null || practiceStart == null)
+                )
                 || lookTarget == null
                 || !session.TryStart(npcCode)
             )
@@ -216,7 +238,7 @@ namespace A305.Dialogue
             cameraRig.EnterDialogueView(lookTarget);
             player.SetMovementLocked(true);
 
-            bool isGuided = reviewCardId == null && hasScript && script.GuidedTurns.Count > 0;
+            bool isGuided = !isSeparatePractice && hasScript && script.GuidedTurns.Count > 0;
             if (conversationApi != null && !isGuided)
             {
                 StartServerConversation(
@@ -226,7 +248,10 @@ namespace A305.Dialogue
                     npcOffDuty,
                     reviewCardId,
                     reviewStart,
-                    npcTravelContext
+                    npcTravelContext,
+                    practiceScenarioId,
+                    practiceStart,
+                    placeCode ?? PlayerPlaceCode()
                 );
             }
             else
@@ -246,7 +271,7 @@ namespace A305.Dialogue
                 KeepMicrophoneOpen();
             }
 
-            if (reviewCardId == null)
+            if (!isSeparatePractice)
                 Started?.Invoke(npcCode);
             return true;
         }
@@ -311,24 +336,22 @@ namespace A305.Dialogue
             return new FeedbackRegenerator(conversationApi).RegenerateAsync(failed);
         }
 
-        // 기능 명세 F-23의 [대화 종료 (Esc)]. 피드백을 기다리는 중에 다시 눌러도 End가 한 번만 처리한다.
+        // 기능 명세 F-23의 [대화 종료 (Esc)]. 대화 중 연 단어 카드·음성 동의 창은 ESC 목록(UiEscape)에서 대화보다 위라 먼저 닫힌다.
+        // 피드백을 기다리는 중에 다시 눌러도 End가 한 번만 처리한다.
+        private UiEscapeWindow escape;
+
         private void Update()
         {
             ShowVoiceInput();
+            RefreshPerformanceButton();
             if (serverConversation != null && serverConversation.Tick(DateTimeOffset.UtcNow))
             {
                 End();
                 return;
             }
 
-            if (
-                session.IsActive
-                && Keyboard.current != null
-                && Keyboard.current.escapeKey.wasPressedThisFrame
-            )
-            {
-                End();
-            }
+            escape ??= new UiEscapeWindow(() => session.IsActive, End);
+            escape.Watch();
         }
 
         private void Awake()
@@ -367,6 +390,7 @@ namespace A305.Dialogue
             panel.TalkStartRequested += StartRecording;
             panel.TalkStopRequested += StopRecording;
             panel.ReplayRequested += ReplaySpeech;
+            panel.PerformanceRequested += TogglePerformance;
             panel.UserTranslationListenRequested += ReadUserTranslation;
             panel.MeaningRequested += RequestMeaning;
             panel.HintRequested += RequestHint;
@@ -407,6 +431,7 @@ namespace A305.Dialogue
                 panel.TalkStartRequested -= StartRecording;
                 panel.TalkStopRequested -= StopRecording;
                 panel.ReplayRequested -= ReplaySpeech;
+                panel.PerformanceRequested -= TogglePerformance;
                 panel.UserTranslationListenRequested -= ReadUserTranslation;
                 panel.MeaningRequested -= RequestMeaning;
                 panel.HintRequested -= RequestHint;
@@ -456,6 +481,10 @@ namespace A305.Dialogue
             Application.OpenURL(VoiceConsent.DocumentUrl);
         }
 
+        // 말을 거는 플레이어가 NPC 바로 옆에 있으므로 플레이어가 있는 곳이 NPC가 지금 있는 곳이다.
+        // 마을 매장도 따로 장면이라 플레이어가 있는 장면으로 그 매장 코드를 안다.
+        private string PlayerPlaceCode() => PlaceScenes.CodeOf(player.gameObject.scene.name);
+
         private void StartServerConversation(
             string npcCode,
             string npcName,
@@ -463,7 +492,10 @@ namespace A305.Dialogue
             bool npcOffDuty,
             long? reviewCardId = null,
             Func<string, Task<ConversationStart>> reviewStart = null,
-            NpcTravelContext npcTravelContext = null
+            NpcTravelContext npcTravelContext = null,
+            string practiceScenarioId = null,
+            Func<string, Task<ConversationStart>> practiceStart = null,
+            string placeCode = null
         )
         {
             serverConversation = new ServerConversation(
@@ -474,8 +506,11 @@ namespace A305.Dialogue
                 initiatedBy,
                 npcOffDuty: npcOffDuty,
                 npcTravelContext: npcTravelContext,
+                placeCode: placeCode,
                 reviewCardId: reviewCardId,
-                reviewStart: reviewStart
+                reviewStart: reviewStart,
+                practiceScenarioId: practiceScenarioId,
+                practiceStart: practiceStart
             );
             speechRecovery = new NpcSpeechRecovery(serverConversation, PlayRecoveredSpeechAsync);
             serverConversation.Changed += panel.Refresh;
@@ -483,6 +518,7 @@ namespace A305.Dialogue
             serverConversation.NpcSpeechChunk += PlayNpcSpeechChunk;
             serverConversation.UserTurnAccepted += ForwardAcceptedTurn;
             serverConversation.PoliceDispatchRequested += ForwardPoliceDispatch;
+            serverConversation.TaxiDestinationChosen += ForwardTaxiDestination;
             panel.Show(serverConversation);
             pendingServerStart = StartServerConversationAsync(
                 serverConversation,
@@ -524,7 +560,7 @@ namespace A305.Dialogue
         private void Finish(DialogueRecord record)
         {
             string endedNpcCode = Close();
-            if (record.ReviewCardId == null)
+            if (record.ReviewCardId == null && record.PracticeScenarioId == null)
                 Ended?.Invoke(endedNpcCode);
             ConversationEnded?.Invoke(record);
         }
@@ -532,6 +568,7 @@ namespace A305.Dialogue
         // 대화를 닫고 시점·이동을 되돌린다. 끝낸 NPC 코드를 돌려준다.
         private string Close()
         {
+            emphasizePerformance = false;
             panel.SetReviewReference(null);
             speechRecovery?.Dispose();
             speechRecovery = null;
@@ -544,6 +581,7 @@ namespace A305.Dialogue
                 serverConversation.NpcSpeechChunk -= PlayNpcSpeechChunk;
                 serverConversation.UserTurnAccepted -= ForwardAcceptedTurn;
                 serverConversation.PoliceDispatchRequested -= ForwardPoliceDispatch;
+                serverConversation.TaxiDestinationChosen -= ForwardTaxiDestination;
             }
 
             conversation = null;
@@ -584,6 +622,9 @@ namespace A305.Dialogue
         private void Send(string text)
         {
             TextPronunciation.Stop();
+            if (TryHandlePerformanceRequest(text))
+                return;
+            emphasizePerformance = false;
             if (serverConversation != null)
             {
                 _ = serverConversation.SendAsync(text);
@@ -609,6 +650,136 @@ namespace A305.Dialogue
             }
         }
 
+        private RecordedNpcPerformance Performance =>
+            partnerLookTarget != null
+                ? partnerLookTarget.GetComponentInParent<RecordedNpcPerformance>()
+                : null;
+
+        private bool IsPerformanceConversation =>
+            (serverConversation?.NpcCode ?? conversation?.NpcCode) == "TOWN_JOHN_PARK"
+            && !(serverConversation?.IsReview ?? conversation?.IsGuided ?? false);
+
+        private bool TryHandlePerformanceRequest(string text)
+        {
+            if (!IsPerformanceConversation)
+                return false;
+            bool direct = PerformanceRequest.Matches(text);
+            if (!direct && !PerformanceRequest.NeedsIntent(text))
+                return false;
+            if (isEnding || !(serverConversation?.CanSend ?? conversation?.CanSend ?? false))
+                return true;
+            // 저장 자료가 없거나 손상돼도 유료 대사 생성으로 우회하지 않는다.
+            if (!CanUsePerformance)
+                ShowPerformanceUnavailable();
+            else if (direct)
+            {
+                if (!ShowPerformanceGuide(text))
+                    ShowPerformanceUnavailable();
+            }
+            else if (serverConversation != null)
+                _ = ClassifyPerformanceRequest(text);
+            else
+                ShowPerformanceUnavailable("랩을 다시 들으려면 [랩 다시 듣기]를 눌러 주세요.");
+            return true;
+        }
+
+        private void ShowPerformanceUnavailable(
+            string message =
+                "저장된 안내를 불러오지 못했어요. 랩 버튼을 이용하거나 대화를 다시 열어 주세요."
+        )
+        {
+            if (serverConversation != null)
+                serverConversation.ShowMessage(message);
+            else
+                conversation?.ShowMessage(message);
+            panel.Refresh();
+        }
+
+        private bool CanUsePerformance =>
+            !isEnding
+            && IsPerformanceConversation
+            && Performance != null
+            && Performance.IsReady
+            && (
+                serverConversation != null
+                    ? serverConversation.CanSend && !serverConversation.IsReview
+                    : conversation != null && conversation.CanSend && !conversation.IsGuided
+            );
+
+        private async Task ClassifyPerformanceRequest(string text)
+        {
+            var current = serverConversation;
+            var performer = Performance;
+            string intent = await current.ClassifyPerformanceAsync(text);
+            if (serverConversation != current || Performance != performer || !CanUsePerformance)
+                return;
+            if (intent == "REPLAY_RAP")
+            {
+                if (!ShowPerformanceGuide(text))
+                    ShowPerformanceUnavailable();
+            }
+            else if (intent == "CONVERSATION")
+                await current.SendAsync(text);
+            else
+            {
+                emphasizePerformance = true;
+                RefreshPerformanceButton();
+            }
+        }
+
+        private bool ShowPerformanceGuide(string text)
+        {
+            speechRecovery?.Cancel();
+            if (!Performance.PlayGuide(serverLink))
+                return false;
+            ShowRecordedLine(text, Performance.Definition.CreateGuideLine());
+            emphasizePerformance = true;
+            RefreshPerformanceButton();
+            return true;
+        }
+
+        private void ShowRecordedLine(string text, DialogueLine line)
+        {
+            if (serverConversation != null)
+                serverConversation.ShowRecordedReply(text, line);
+            else
+                conversation.ShowRecordedReply(text, line);
+            panel.Refresh();
+            NpcResponded?.Invoke();
+        }
+
+        private void TogglePerformance()
+        {
+            if (!CanUsePerformance)
+                return;
+            TextPronunciation.Stop();
+            speechRecovery?.Cancel();
+            emphasizePerformance = false;
+            if (Performance.IsPerforming)
+                Performance.Stop(serverLink);
+            else if (Performance.Play(serverLink))
+                ShowRecordedLine(null, Performance.Definition.CreateLine());
+            RefreshPerformanceButton();
+        }
+
+        private void RefreshPerformanceButton()
+        {
+            if (panel == null)
+                return;
+            var performer = Performance;
+            bool visible =
+                session.IsActive
+                && performer != null
+                && performer.IsReady
+                && !(serverConversation?.IsReview ?? conversation?.IsGuided ?? false);
+            panel.SetPerformanceState(
+                visible,
+                CanUsePerformance,
+                performer != null && performer.IsPerforming,
+                emphasizePerformance
+            );
+        }
+
         public void SetReviewReference(string text) => panel.SetReviewReference(text);
 
         public void SetReviewReference(
@@ -617,9 +788,21 @@ namespace A305.Dialogue
             string scenario = null
         ) => panel.SetReviewReference(items, count, scenario);
 
+        /// <summary>장소 연습 대화 위 참고 카드. 상황 설명 아래 목표를 보이고 해낸 목표에 표시한다.</summary>
+        public void SetPracticeReference(
+            IReadOnlyList<ReviewReferenceItem> goals,
+            int completedCount,
+            string briefing
+        ) => panel.SetReviewReference(goals, completedCount, briefing, "이번 연습", "해냈어요");
+
         private void ForwardPoliceDispatch(long turnId, string placeCode)
         {
             PoliceDispatchRequested?.Invoke(serverConversation.NpcCode, turnId, placeCode);
+        }
+
+        private void ForwardTaxiDestination(string placeCode)
+        {
+            TaxiDestinationChosen?.Invoke(serverConversation.NpcCode, placeCode);
         }
 
         private void ForwardAcceptedTurn(string text)
@@ -728,6 +911,13 @@ namespace A305.Dialogue
         private void ReplaySpeech()
         {
             TextPronunciation.Stop();
+            var recorded = serverConversation?.LastNpcLine ?? conversation?.LastNpcLine;
+            if (!isEnding && serverConversation?.IsBusy != true && recorded?.Speech != null)
+            {
+                speechRecovery?.Cancel();
+                PlayScriptedSpeech(recorded);
+                return;
+            }
             if (
                 serverConversation == null
                 || !serverConversation.CanReplaySpeech
@@ -919,7 +1109,10 @@ namespace A305.Dialogue
 
             if (line?.Speech != null)
             {
-                serverLink.PlayRecordedSpeech(line.Speech);
+                if (Performance != null && Performance.Owns(line))
+                    Performance.Play(serverLink);
+                else
+                    serverLink.PlayRecordedSpeech(line.Speech);
             }
             else
             {

@@ -20,10 +20,10 @@ from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import feedback_bridge, guard, npc_persona, services, stt
+from . import feedback_bridge, guard, npc_persona, performance_intent, services, stt
 from .config import Settings
 from .guard_local import LocalGuard
-from .llm import LLM, ModelOutputError, ProviderError, Usage
+from .llm import LLM, REQUEST_NOTES, ModelOutputError, ProviderError, Usage
 from .npc import reply_events
 from .npc_profile_models import NpcProfile
 from .npc_respond import ContractError, load_payload, parse_request, readable_request_id, respond
@@ -32,6 +32,7 @@ from .schemas import (
     GuardRequest,
     HintRequest,
     JudgeRequest,
+    LevelTestSpeakingRequest,
     MeaningRequest,
     MemoryRequest,
     PersonaDeriveRequest,
@@ -133,6 +134,8 @@ def create_app(
         """내부 토큰 확인 + 추적 id(X-Request-Id·X-User-Id·X-Conv-Id)를 로그에 남긴다 (Spring 턴 기록과 잇는 열쇠)."""
         rid = request.headers.get("X-Request-Id") or secrets.token_hex(8)
         t = time.perf_counter()
+        notes: dict = {}
+        REQUEST_NOTES.set(notes)  # 모델 호출이 여기에 재요청 기록을 남긴다 (hedged·hedge_won)
         if request.url.path not in PUBLIC and not secrets.compare_digest(
             request.headers.get("X-Internal-Token", ""), request.app.state.settings.token
         ):
@@ -152,6 +155,7 @@ def create_app(
                     "path": request.url.path,
                     "status": resp.status_code,
                     "latency_s": round(time.perf_counter() - t, 3),
+                    **notes,
                 },
                 ensure_ascii=False,
             )
@@ -206,6 +210,10 @@ def create_app(
     @app.post("/v1/guard")
     async def guard_line(req: GuardRequest, request: Request):
         return await guard.guard(request.app.state.llm, req, request.app.state.guard_local)
+
+    @app.post("/v1/performance/intent")
+    async def classify_performance(req: performance_intent.PerformanceIntentRequest, request: Request):
+        return await performance_intent.classify(request.app.state.llm, req)
 
     @app.post("/v1/npc/reply")
     async def npc_reply(req: ReplyRequest, request: Request):
@@ -321,6 +329,11 @@ def create_app(
     @app.post("/v1/meaning")
     async def meaning(req: MeaningRequest, request: Request):
         return await services.meaning(request.app.state.llm, req)
+
+    @app.post("/v1/level-test/speaking")
+    async def level_test_speaking(req: LevelTestSpeakingRequest, request: Request):
+        """레벨 테스트 말하기 문항마다 통과 여부와 한국어 피드백. 백엔드가 테스트를 끝낼 때 한 번 부른다 (워커는 저장하지 않음)."""
+        return await services.level_test_speaking(request.app.state.llm, req)
 
     @app.post("/v1/suggest")
     async def suggest(req: SuggestRequest, request: Request):

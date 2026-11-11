@@ -15,73 +15,73 @@ MonoBehaviour:
   LifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
   LifeAnimator: {fileID: 9100000, guid: 0a9e0e7b8fba0fb44bb8eda55e41c374, type: 2}
   Venues:
+  - Code: CAFE
+    Scene: CafeScene
+    Entrance: {x: -5.9500003, y: 0.1, z: -11}
+    Inside: {x: 0, y: 0, z: -4}
+    WalkTo: {x: 0, y: 0, z: 0}
+    IsOutdoor: 0
+    Capacity: 2
   - Code: BAKERY
     Scene: MapleBakeryInterior
-    Entrance: {x: -6, y: 0.1, z: 21}
-    Inside: {x: -8.4, y: 0.1, z: 21}
+    Entrance: {x: -5.91, y: 0.1, z: 21}
+    Inside: {x: 0, y: 0, z: -2.0025005}
     WalkTo: {x: 0, y: 0, z: 0}
     IsOutdoor: 0
     Capacity: 2
   - Code: ARCADE
     Scene: LittleArcadeInterior
-    Entrance: {x: 6, y: 0.1, z: 30}
-    Inside: {x: 8.4, y: 0.1, z: 30}
+    Entrance: {x: 5.9100003, y: 0.1, z: 29.05}
+    Inside: {x: -0.95000017, y: 0, z: -2.0500004}
     WalkTo: {x: 0, y: 0, z: 0}
     IsOutdoor: 0
     Capacity: 2
   - Code: HOME_STORE
     Scene: HomeLivingInterior
-    Entrance: {x: -6, y: 0.1, z: 39}
-    Inside: {x: -8.4, y: 0.1, z: 39}
+    Entrance: {x: -5.9100003, y: 0.1, z: 36.300003}
+    Inside: {x: 2.7000008, y: 0, z: -2.0500004}
     WalkTo: {x: 0, y: 0, z: 0}
     IsOutdoor: 0
     Capacity: 2
   - Code: POST_OFFICE
     Scene: PostOfficeInterior
-    Entrance: {x: -6, y: 0.1, z: 30}
-    Inside: {x: -8.4, y: 0.1, z: 30}
+    Entrance: {x: -5.91, y: 0.1, z: 30}
+    Inside: {x: 0, y: 0, z: -2.0500004}
     WalkTo: {x: 0, y: 0, z: 0}
     IsOutdoor: 0
     Capacity: 2
   - Code: DINER
     Scene: MapleDinerInterior
-    Entrance: {x: 6, y: 0.1, z: 39}
-    Inside: {x: 8.4, y: 0.1, z: 39}
+    Entrance: {x: 5.91, y: 0.1, z: 39}
+    Inside: {x: 0, y: 0, z: -2.0500004}
     WalkTo: {x: 0, y: 0, z: 0}
     IsOutdoor: 0
     Capacity: 2
   - Code: BANK
     Scene: TownBankInterior
-    Entrance: {x: -6, y: 0.1, z: 48}
-    Inside: {x: -8.4, y: 0.1, z: 48}
+    Entrance: {x: -5.91, y: 0.1, z: 48}
+    Inside: {x: 0, y: 0, z: -2.0500004}
     WalkTo: {x: 0, y: 0, z: 0}
     IsOutdoor: 0
     Capacity: 2
   - Code: LAUNDROMAT
     Scene: SudsLaundromatInterior
-    Entrance: {x: 6, y: 0.1, z: 48}
-    Inside: {x: 8.4, y: 0.1, z: 48}
+    Entrance: {x: 5.91, y: 0.1, z: 48}
+    Inside: {x: 0, y: 0, z: -2.0500004}
     WalkTo: {x: 0, y: 0, z: 0}
     IsOutdoor: 0
     Capacity: 2
   - Code: FLOWER_SHOP
     Scene: BloomFlowersInterior
-    Entrance: {x: -6, y: 0.1, z: 57}
-    Inside: {x: -8.4, y: 0.1, z: 57}
+    Entrance: {x: -5.91, y: 0.1, z: 57}
+    Inside: {x: 0, y: 0, z: -2.0500004}
     WalkTo: {x: 0, y: 0, z: 0}
     IsOutdoor: 0
     Capacity: 2
   - Code: BARBER
     Scene: MainStreetBarberInterior
-    Entrance: {x: 6, y: 0.1, z: 57}
-    Inside: {x: 8.4, y: 0.1, z: 57}
-    WalkTo: {x: 0, y: 0, z: 0}
-    IsOutdoor: 0
-    Capacity: 2
-  - Code: CAFE
-    Scene: CafeScene
-    Entrance: {x: -5.9500003, y: 0.1, z: -11}
-    Inside: {x: 0, y: 0, z: -4}
+    Entrance: {x: 5.91, y: 0.1, z: 57}
+    Inside: {x: 0, y: 0, z: -2.0500004}
     WalkTo: {x: 0, y: 0, z: 0}
     IsOutdoor: 0
     Capacity: 2

@@ -27,19 +27,26 @@ public interface ConversationFeedbackRepository extends JpaRepository<Conversati
   @Query(
       "select c from Conversation c join ConversationFeedback f on f.conversationId = c.id"
           + " where c.userId = :userId and f.status = com.elsehere.feedback.entity.FeedbackStatus.DONE"
-          + " and (:npcId is null or c.npcId = :npcId) order by c.startedAt desc, c.id desc")
+          + " and (:npcId is null or c.npcId = :npcId)"
+          + " and (:sceneCode is null or c.npcId in (select n.id from Npc n where n.scene.code = :sceneCode))"
+          + " order by c.startedAt desc, c.id desc")
   List<Conversation> findCompletedFirstPage(
-      @Param("userId") Long userId, @Param("npcId") Long npcId, Limit limit);
+      @Param("userId") Long userId,
+      @Param("npcId") Long npcId,
+      @Param("sceneCode") String sceneCode,
+      Limit limit);
 
   @Query(
       "select c from Conversation c join ConversationFeedback f on f.conversationId = c.id"
           + " where c.userId = :userId and f.status = com.elsehere.feedback.entity.FeedbackStatus.DONE"
           + " and (:npcId is null or c.npcId = :npcId)"
+          + " and (:sceneCode is null or c.npcId in (select n.id from Npc n where n.scene.code = :sceneCode))"
           + " and (c.startedAt < :startedAt or (c.startedAt = :startedAt and c.id < :id))"
           + " order by c.startedAt desc, c.id desc")
   List<Conversation> findCompletedPageAfter(
       @Param("userId") Long userId,
       @Param("npcId") Long npcId,
+      @Param("sceneCode") String sceneCode,
       @Param("startedAt") Instant startedAt,
       @Param("id") Long id,
       Limit limit);

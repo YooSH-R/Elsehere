@@ -33,23 +33,23 @@ public enum FirstDayStage {
       "CAFE_STAFF",
       "CLEAR",
       "호텔에서 안내받은 카페에 도착했어요. 음료를 마시며 체크인 시간을 기다려요.",
-      "직원에게 주문하고, 대화를 마친 뒤 의자에 앉아 쉬어 가세요.",
-      "Ask what they would like without listing or recommending drinks; after they order, ask one follow-up about size, temperature or milk. Every drink costs 4 coins. The learner may choose any drink. They need to dine in, then explicitly rest after ending the conversation. Do not mention a lost bag yet.",
+      "주문하고 대화를 마친 뒤, 카페 빈자리에 5초 앉아 쉬세요.",
+      "Ask what they would like without listing or recommending drinks. Once they order, ask about a specific drink option only if none was given, or ask for here or to go if the option is clear but their choice of where to drink is missing. Every drink costs 4 coins. The learner may choose any drink. They need to dine in, then rest after ending the conversation. Do not mention a lost bag yet.",
       goal(
           "order_drink",
           "음료 주문(음료 이름)",
           "Order a specific drink by name, such as a latte or orange juice; any drink is valid. Asking for just 'a drink' or 'something' does not count.",
-          "마실 음료 이름 (예: latte, orange juice)"),
+          "마실 음료 이름"),
       goal(
           "set_options",
           "크기·온도 등 옵션 고르기",
           "Choose a specific size, temperature, milk or another drink option. Saying only that they have no preference does not count.",
-          "크기나 온도 하나 (예: large, iced)"),
+          "크기·온도·우유 등 옵션 하나 고르기"),
       goal(
           "dine_in",
           "매장 이용 말하기",
           "Say the learner will have the drink here, not take away.",
-          "여기서 마시겠다고 말하기 (for here)")),
+          "여기서 마시겠다고 말하기")),
   MISSING_BAG(
       "작은 가방이 없어요",
       "HOTEL",
@@ -75,7 +75,7 @@ public enum FirstDayStage {
       "CLOUDY",
       "카페 직원에게 분실물을 물어보세요. 작은 파란색 가방에는 빨간 열쇠고리가 달려 있어요.",
       "카페 직원에게 가방을 찾아 달라고 하세요. 가방 안에는 여권 지갑과 책이 있어요.",
-      "You found a small blue shoulder bag with a red keyring. It contains a passport wallet and a book. Do not mention or offer the found bag before the learner asks about a lost bag. Ask for appearance and contents, one question at a time. Return it only after the learner describes matching appearance and contents and claims ownership. Do not invent other contents.",
+      "You found a small blue shoulder bag with a red keyring. It contains a passport wallet and a book. Do not mention or offer the found bag before the learner asks about a lost bag. After they ask, check only the missing required detail about appearance, contents or ownership, one question at a time. Return it only after the learner has provided the required details and claims ownership. Do not invent other contents.",
       goal(
           "ask_lost_bag",
           "분실물 문의",
@@ -84,13 +84,13 @@ public enum FirstDayStage {
       goal(
           "describe_bag",
           "색·모양 설명",
-          "Describe this bag matching blue color AND shoulder bag type or red keyring. Wrong attributes do not count.",
-          "파란색 숄더백, 빨간 열쇠고리"),
+          "Describe the bag as blue AND give at least one of these details: shoulder bag type or red keyring. Wrong attributes do not count.",
+          "파란색이라고 말하고, 숄더백이나 빨간 열쇠고리 중 하나 설명하기"),
       goal(
           "describe_contents",
           "내용물 설명",
           "Identify the passport or passport wallet AND book inside the bag. Wrong contents do not count.",
-          "여권 지갑과 책"),
+          "여권(또는 여권 지갑)과 책 말하기"),
       goal(
           "confirm_ownership",
           "본인 물건 확인",
@@ -121,14 +121,14 @@ public enum FirstDayStage {
       "RAIN",
       "우산을 파는 드럭스토어예요. 우산은 8코인이에요.",
       "점원에게 우산을 사세요.",
-      "Sell one umbrella for exactly 8 quest coins when the learner asks for one. Do not offer an umbrella or say its price before the learner asks. Ask how they want to pay (cash/card both accepted) only after the learner decides to buy. Purchase completes only when price, purchase intent and payment choice are all covered. Never change the price or charge twice.",
+      "Sell one umbrella for exactly 8 quest coins when the learner asks for one. Do not offer an umbrella or say its price before the learner asks. Ask how they want to pay only after the learner decides to buy, and only if they have not already chosen a payment method. Cash and card are both accepted. Purchase completes only when price, purchase intent and payment choice are all covered. Never change the price or charge twice.",
       goal("ask_price", "가격 묻기", "Ask or confirm the umbrella price.", "우산 가격"),
       goal("buy_umbrella", "구매 의사 말하기", "Explicitly decide to buy an umbrella.", "우산을 사겠다고 말하기"),
       goal(
           "choose_payment",
           "결제 방법 말하기",
           "Choose cash, card or another payment method offered by the clerk.",
-          "현금 또는 카드")),
+          "현금·카드 등 직원이 안내한 결제 방법 고르기")),
   CHECK_IN(
       "이제 체크인해요",
       "HOTEL",
@@ -146,7 +146,7 @@ public enum FirstDayStage {
       goal(
           "show_reservation",
           "예약 정보 확인",
-          "Identify or confirm their reservation, name or booking.",
+          "Identify or confirm their reservation by giving the name it is under.",
           "예약자 이름: {name}"),
       goal(
           "collect_suitcase",

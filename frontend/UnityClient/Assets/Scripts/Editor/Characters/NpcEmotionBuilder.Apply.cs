@@ -222,7 +222,7 @@ namespace A305.EditorTools.Characters
         private static Mesh SaveMesh(Mesh mesh, string path) =>
             CharacterFaceReviewBuilder.SaveMesh(mesh, path);
 
-        private static void ApplyShapes(
+        internal static void ApplyShapes(
             Mesh mesh,
             Shape[] shapes,
             bool removeOldEyes = false,
@@ -363,7 +363,7 @@ namespace A305.EditorTools.Characters
             join.boneWeights = weights;
         }
 
-        private static CharacterSpeechPlayer ConfigurePlayer(CharacterFaceController face)
+        internal static CharacterSpeechPlayer ConfigurePlayer(CharacterFaceController face)
         {
             var player = face.GetComponent<CharacterSpeechPlayer>();
             if (player == null)

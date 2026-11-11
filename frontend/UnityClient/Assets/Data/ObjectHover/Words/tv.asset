@@ -16,7 +16,7 @@ MonoBehaviour:
     key: tv
     languageCode: en-US
     text: TV
-    meaningKo: "\uD154\uB808\uBE44\uC804"
+    meaningKo: "\uBC29\uC1A1\uC744 \uBCF4\uB294 \uD654\uBA74 \uAE30\uAE30(\uD154\uB808\uBE44\uC804)"
     example: Let's watch TV together.
     exampleKo: "\uAC19\uC774 TV \uBCF4\uC790."
     pronunciationAudioKey: 

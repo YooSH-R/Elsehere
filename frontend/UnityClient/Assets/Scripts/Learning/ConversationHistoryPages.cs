@@ -1,6 +1,6 @@
 namespace A305.Learning
 {
-    /// <summary>[피드백 목록]의 쪽 나누기. 한 쪽에 대화 4개를 보이고, 받은 대화의 마지막 쪽에서는 서버에 더 있을 때만 다음으로 넘긴다.</summary>
+    /// <summary>[대화 노트]의 쪽 나누기. 한 쪽에 대화 4개를 보이고, 받은 대화의 마지막 쪽에서는 서버에 더 있을 때만 다음으로 넘긴다.</summary>
     public static class ConversationHistoryPages
     {
         public const int PageSize = 4;

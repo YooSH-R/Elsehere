@@ -63,6 +63,17 @@ namespace A305.Theme
             ApplyCurrent();
         }
 
+        public void SetIcon(UiIcon value)
+        {
+            if (icon == value)
+                return;
+            icon = value;
+            LayoutElement iconLayout = Child<LayoutElement>(transform, "Icon");
+            if (iconLayout != null)
+                iconLayout.ignoreLayout = value == UiIcon.None;
+            ApplyCurrent();
+        }
+
         public void ApplyCurrent()
         {
             if (catalog == null)
@@ -102,6 +113,14 @@ namespace A305.Theme
                             : theme.CardTint,
                         theme.GlassMaterial,
                         theme.CardBleed
+                    );
+                    break;
+                case UiThemeRole.SliderFill:
+                    Paint(
+                        GetComponent<Image>(),
+                        theme.ButtonSprite,
+                        theme.ToneColor(UiTone.Secondary),
+                        theme.PopMaterial
                     );
                     break;
                 case UiThemeRole.Control:

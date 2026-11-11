@@ -2,7 +2,8 @@
 <html lang="ko">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <!-- 게임 화면은 손가락 제스처를 게임이 받아 페이지를 다시 줄일 수 없으므로, 입력칸 포커스 등으로 페이지가 확대되지 않게 막는다. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
     <title>Elsehere</title>
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="style.css">
@@ -10,14 +11,29 @@
   <body>
     <section id="analytics-consent" class="analytics-consent" aria-labelledby="analytics-consent-title" hidden>
       <h2 id="analytics-consent-title">서비스 이용 통계 수집</h2>
-      <p>서비스 개선을 위해 방문 화면, 게임 로딩 결과, 기기·브라우저, 대략적인 위치와 유입 경로를 Google 애널리틱스로 수집합니다. 동의하지 않아도 서비스를 이용할 수 있습니다.</p>
-      <p><a href="/privacy/2026-11" target="_blank" rel="noopener noreferrer">개인정보 처리방침 보기</a></p>
+      <p>서비스 개선을 위해 방문 화면, 게임 로딩 결과, 기기·브라우저, 대략적인 위치와 유입 경로를 Google 애널리틱스로 수집하고 있습니다. 원하지 않으면 [수집 거부]를 눌러 주세요. 거부해도 서비스를 이용할 수 있습니다.</p>
+      <p><a href="/privacy/2026-11-09" target="_blank" rel="noopener noreferrer">개인정보 처리방침 보기</a></p>
       <div class="analytics-consent-actions">
-        <button id="analytics-reject" type="button">동의하지 않음</button>
-        <button id="analytics-accept" type="button">동의</button>
+        <button id="analytics-reject" type="button">수집 거부</button>
+        <button id="analytics-accept" type="button">수집 허용</button>
       </div>
     </section>
     <button id="analytics-settings" class="analytics-settings" type="button" hidden>통계 수집 설정</button>
+    <section id="orientation-hint" class="orientation-hint" role="dialog" aria-modal="true" aria-labelledby="orientation-hint-title">
+      <div class="orientation-hint-card">
+        <svg class="orientation-hint-phone" viewBox="0 0 96 96" aria-hidden="true">
+          <path class="orientation-hint-arrow" d="M70 22a34 34 0 0 1 8 30" />
+          <path class="orientation-hint-arrow" d="M72 46l6 8 6-8" />
+          <g class="orientation-hint-device">
+            <rect x="32" y="18" width="32" height="60" rx="7" />
+            <line x1="43" y1="70" x2="53" y2="70" />
+          </g>
+        </svg>
+        <h2 id="orientation-hint-title">가로 화면을 권장해요</h2>
+        <p>휴대폰을 가로로 돌리면 마을이 더 넓게 보여요.</p>
+        <button id="orientation-hint-continue" type="button">세로로 계속하기</button>
+      </div>
+    </section>
     <main id="unity-viewport">
       <div id="unity-frame">
         <canvas id="unity-canvas" width="{{{ WIDTH }}}" height="{{{ HEIGHT }}}" tabindex="-1" aria-label="Elsehere"></canvas>
@@ -35,6 +51,29 @@
         <div id="unity-warning" role="alert" hidden></div>
       </div>
     </main>
+    <script id="orientation-hint-script">
+      // 세로 안내는 style.css가 휴대폰·태블릿을 세로로 들었을 때만 보인다. [세로로 계속하기]를 누르면 이번 방문(탭) 동안 다시 띄우지 않는다.
+      (() => {
+        const dismissedKey = "elsehere.orientationHint.dismissed";
+        const root = document.documentElement;
+        try {
+          if (window.sessionStorage.getItem(dismissedKey)) {
+            root.classList.add("orientation-hint-dismissed");
+          }
+        } catch (error) {
+          // 브라우저 저장소를 쓸 수 없으면 다음에 열 때 다시 보인다.
+        }
+
+        document.getElementById("orientation-hint-continue").addEventListener("click", () => {
+          root.classList.add("orientation-hint-dismissed");
+          try {
+            window.sessionStorage.setItem(dismissedKey, "1");
+          } catch (error) {
+            // 저장하지 못해도 이번 화면에서는 닫는다.
+          }
+        });
+      })();
+    </script>
     <script id="analytics-script">
       (() => {
         const measurementId = "G-209TJ3SH81";
@@ -46,13 +85,13 @@
         const consentKey = "elsehere.analytics.consent";
         const consentPanel = document.getElementById("analytics-consent");
         const settingsButton = document.getElementById("analytics-settings");
+        // Analytics runs by default; visitors can refuse it, and a saved refusal ("denied") stays in effect.
         let consent = null;
         let analyticsStarted = false;
-        let pendingLoad = null;
         try {
           consent = window.localStorage.getItem(consentKey);
         } catch (error) {
-          // If browser storage is unavailable, ask again on the next visit.
+          // If browser storage is unavailable, measure by default and show the notice again on the next visit.
         }
 
         function startAnalytics() {
@@ -122,10 +161,8 @@
           } else {
             return;
           }
-          if (consent === "granted" && analyticsStarted) {
+          if (consent !== "denied" && analyticsStarted) {
             window.gtag("event", event.name, event.parameters);
-          } else if (consent !== "denied") {
-            pendingLoad = event;
           }
         };
 
@@ -136,10 +173,6 @@
           consent = "granted";
           consentPanel.hidden = true;
           startAnalytics();
-          if (pendingLoad) {
-            window.gtag("event", pendingLoad.name, pendingLoad.parameters);
-            pendingLoad = null;
-          }
         });
         document.getElementById("analytics-reject").addEventListener("click", () => {
           window["ga-disable-" + measurementId] = true;
@@ -148,7 +181,6 @@
           }
           const saved = saveConsent("denied");
           consent = "denied";
-          pendingLoad = null;
           clearAnalyticsCookies();
           consentPanel.hidden = true;
           if (analyticsStarted && saved) {
@@ -158,7 +190,7 @@
         settingsButton.addEventListener("click", () => {
           consentPanel.hidden = false;
         });
-        if (consent === "granted") {
+        if (consent !== "denied") {
           startAnalytics();
         }
       })();
@@ -202,6 +234,119 @@
         window.addEventListener("error", keepFromUnityLoader);
         window.addEventListener("unhandledrejection", keepFromUnityLoader);
       })();
+    </script>
+    <script id="entry-music">
+      // 게임 파일을 받는 로딩 화면에서부터 접속 음악을 튼다. 브라우저가 자동재생을 막으면 첫 클릭·키·터치 뒤에 들린다.
+      // Unity가 켜지면 InterfaceAudioPlayer가 이 음악을 이어받아(LoadingPageMusic.jslib) 입구 화면에서도 끊지 않고 틀고,
+      // 게임 공간에 들어가면 줄여서 끈다. 음량 0.18은 Unity의 EntryMusicPlan과 같다.
+      // Unity 로더는 처리하지 않은 Promise 거부를 로딩 실패로 알리므로, 여기의 Promise는 모두 거부를 직접 처리한다.
+      (() => {
+        if (!window.AudioContext) {
+          return;
+        }
+        // 스피커를 끈 선택은 Unity가 Set으로 알려 줄 때 남긴다. 저장소를 읽지 못하면 켠 것으로 본다.
+        const soundKey = "elsehere.audio.background.enabled";
+        let soundEnabled = true;
+        try {
+          soundEnabled = localStorage.getItem(soundKey) !== "0";
+        } catch {
+          // 저장소를 쓸 수 없으면 기본값(켬)으로 튼다.
+        }
+
+        // iPhone Safari는 audio 요소의 음량을 바꿀 수 없어, 받은 음원을 Web Audio로 반복해 틀고 음량은 gain으로 정한다.
+        const context = new AudioContext();
+        const gain = context.createGain();
+        gain.gain.value = soundEnabled ? 0.18 : 0;
+        gain.connect(context.destination);
+        let shouldPlay = soundEnabled;
+        let failed = false;
+        let buffer = null;
+        let source = null;
+
+        function startLoop() {
+          if (!shouldPlay || source !== null || buffer === null) {
+            return;
+          }
+          source = context.createBufferSource();
+          source.buffer = buffer;
+          source.loop = true;
+          source.connect(gain);
+          source.start();
+        }
+
+        function stopLoop() {
+          if (source === null) {
+            return;
+          }
+          source.stop();
+          source.disconnect();
+          source = null;
+        }
+
+        fetch("entry-town-ensemble.mp3")
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("HTTP " + response.status);
+            }
+            return response.arrayBuffer();
+          })
+          .then((data) => context.decodeAudioData(data))
+          .then((decoded) => {
+            buffer = decoded;
+            startLoop();
+          })
+          .catch((error) => {
+            // 음악 없이도 게임은 열린다. Unity는 음악이 없는 페이지 대신 자기 음악을 쓴다.
+            failed = true;
+            console.warn("접속 음악을 불러오지 못했습니다.", error);
+          });
+
+        // 자동재생이 막히면 소리가 멈춘 채로 시작한다. 클릭·키·터치 때마다 다시 켠다(iPhone은 전화·알림 뒤에도 멈춘다).
+        function resumeOnGesture() {
+          if (context.state !== "running") {
+            context.resume().catch((error) => console.warn("접속 음악을 켜지 못했습니다.", error));
+          }
+        }
+        for (const type of ["pointerdown", "pointerup", "touchend", "keydown", "click"]) {
+          window.addEventListener(type, resumeOnGesture, { capture: true, passive: true });
+        }
+
+        window.elsehereEntryMusic = {
+          // 음원을 받지 못했으면 -1을 돌려준다. Unity는 이때 자기 음악을 쓴다.
+          volume: () => (failed ? -1 : gain.gain.value),
+          set(volume, playing, enabled) {
+            gain.gain.value = volume;
+            shouldPlay = playing;
+            if (playing) {
+              startLoop();
+            } else {
+              stopLoop();
+            }
+            if (enabled !== soundEnabled) {
+              soundEnabled = enabled;
+              try {
+                localStorage.setItem(soundKey, enabled ? "1" : "0");
+              } catch {
+                // 저장하지 못하면 다음 로딩 화면은 이 선택을 모른 채 기본값으로 튼다.
+              }
+            }
+          },
+        };
+      })();
+    </script>
+    <script id="texture-data">
+      // 휴대폰 GPU는 PC용 DXT 텍스처를 읽지 못해, Unity가 불러올 때 CPU로 풀어 느리고 메모리를 많이 쓴다.
+      // WebGL 빌드(WebGlBuild)가 휴대폰용 ASTC 데이터를 함께 넣고 그 이름을 적는다. DXT를 못 읽고 ASTC를 읽는 기기만 그 데이터를 받는다.
+      // 로컬 빌드처럼 휴대폰용 데이터가 없으면(이름 자리 그대로) PC용을 쓴다.
+      window.chooseTextureData = (desktopFile, mobileFile) => {
+        if (!mobileFile.includes(".data")) return desktopFile;
+        const gl = document.createElement("canvas").getContext("webgl2");
+        if (!gl) return desktopFile;
+        const readsDxt = !!gl.getExtension("WEBGL_compressed_texture_s3tc");
+        const readsAstc = !!gl.getExtension("WEBGL_compressed_texture_astc");
+        gl.getExtension("WEBGL_lose_context")?.loseContext();
+        return !readsDxt && readsAstc ? mobileFile : desktopFile;
+      };
     </script>
     <script>
       const canvas = document.querySelector("#unity-canvas");
@@ -396,7 +541,12 @@
       const buildUrl = "Build";
       const config = {
         arguments: [],
-        dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+        // 텍스처 데이터를 고르는 스크립트가 없으면 PC용을 쓴다.
+        dataUrl:
+          buildUrl +
+          "/" +
+          (window.chooseTextureData?.("{{{ DATA_FILENAME }}}", "A305_MOBILE_TEXTURE_DATA") ??
+            "{{{ DATA_FILENAME }}}"),
         frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
 #if USE_THREADS
         workerUrl: buildUrl + "/{{{ WORKER_FILENAME }}}",

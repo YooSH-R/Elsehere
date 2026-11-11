@@ -17,6 +17,7 @@ import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.feedback.entity.ConversationFeedback;
+import com.elsehere.feedback.entity.TurnFeedback;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.vocab.dto.VocabItemResponse;
@@ -28,6 +29,7 @@ import com.elsehere.vocab.entity.VocabularyType;
 import com.elsehere.vocab.repository.UserVocabRepository;
 import com.elsehere.vocab.repository.VocabularyRepository;
 import com.elsehere.world.dto.WordCardResponse;
+import com.elsehere.world.entity.PlaceGroup;
 import com.elsehere.world.service.PronunciationAudioStore;
 import com.elsehere.world.service.SceneService;
 import jakarta.persistence.EntityManager;
@@ -105,14 +107,15 @@ class VocabServiceTest {
     assertThat(item.vocab().vocabId()).isNotNull();
     assertThat(item.vocab().type()).isEqualTo(VocabularyType.WORD);
     assertThat(item.vocab().text()).isEqualTo("sofa");
-    assertThat(item.vocab().meaningKo()).isEqualTo("소파");
+    assertThat(item.vocab().meaningKo()).isEqualTo("여럿이 앉는 푹신한 의자(소파)");
     assertThat(item.context())
         .isEqualTo(new VocabItemResponse.Context("He is sitting on the sofa.", "그는 소파에 앉아 있어요."));
     assertThat(item.memo()).isNull();
     assertThat(item.memorized()).isFalse();
     assertThat(item.savedAt()).isEqualTo(OffsetDateTime.parse("2026-10-27T10:00:00+09:00"));
     assertThat(item.source())
-        .isEqualTo(new VocabItemResponse.Source(UserVocabSourceType.OBJECT, null, null));
+        .isEqualTo(
+            new VocabItemResponse.Source(UserVocabSourceType.OBJECT, null, null, null, null));
     assertThat(savedOnObjectCard(userId, "sofa")).isTrue();
   }
 
@@ -376,7 +379,7 @@ class VocabServiceTest {
     assertThat(item.source())
         .isEqualTo(
             new VocabItemResponse.Source(
-                UserVocabSourceType.NPC_LINE, "Mia", conversation.getId()));
+                UserVocabSourceType.NPC_LINE, "Mia", conversation.getId(), "카페", PlaceGroup.FOOD));
     assertThat(userVocabRepository.findById(item.userVocabId()).orElseThrow().getSourceTurnId())
         .isEqualTo(line.getId());
     assertThat(vocabularySource("latte")).isEqualTo(VocabularySource.NPC);
@@ -398,7 +401,7 @@ class VocabServiceTest {
     VocabSaveResponse response = vocabService.saveNpcLineWord(userId, line.getId(), "Sofa");
 
     assertThat(response.item().vocab().text()).isEqualTo("sofa");
-    assertThat(response.item().vocab().meaningKo()).isEqualTo("소파");
+    assertThat(response.item().vocab().meaningKo()).isEqualTo("여럿이 앉는 푹신한 의자(소파)");
     assertThat(response.item().context().text()).isEqualTo("Please have a seat on the sofa.");
     assertThat(vocabularyRepository.count()).isEqualTo(vocabularyCount);
   }
@@ -521,7 +524,45 @@ class VocabServiceTest {
         .extracting(VocabItemResponse::source)
         .isEqualTo(
             new VocabItemResponse.Source(
-                UserVocabSourceType.NPC_LINE, "Mia", conversation.getId()));
+                UserVocabSourceType.NPC_LINE, "Mia", conversation.getId(), "카페", PlaceGroup.FOOD));
+  }
+
+  @Test
+  @DisplayName("단어장 목록에서 대화로 저장한 단어는 코드 이름이 아니라 NPC가 실제로 일하는 곳과 그 장소 묶음을 보여 준다")
+  void getVocab_showsWorkplaceOfConversationNpc() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Conversation conversation = conversation(entityManager, userId, "FIRE_CAPTAIN");
+    Turn line = viewedNpcLine(conversation, "Would you like an iced latte?", "아이스 라떼 드릴까요?", LATTE);
+    vocabService.saveNpcLineWord(userId, line.getId(), "latte");
+    entityManager.clear();
+
+    VocabListResponse response = vocabService.getVocab(userId, false, null, 20);
+
+    assertThat(response.items())
+        .singleElement()
+        .extracting(item -> item.source().placeName(), item -> item.source().placeGroup())
+        .containsExactly("햄버거 가게", PlaceGroup.FOOD);
+  }
+
+  @Test
+  @DisplayName("근무 시간 밖에 만난 NPC와의 대화에서 저장한 단어는 일하는 곳 없이 일상 묶음으로 보여 준다")
+  void getVocab_offDutyConversation_isDaily() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Conversation conversation = conversation(entityManager, userId, "CAFE_BARISTA");
+    conversation.markNpcOffDuty();
+    Turn line = viewedNpcLine(conversation, "Would you like an iced latte?", "아이스 라떼 드릴까요?", LATTE);
+    vocabService.saveNpcLineWord(userId, line.getId(), "latte");
+    entityManager.clear();
+
+    VocabListResponse response = vocabService.getVocab(userId, false, null, 20);
+
+    assertThat(response.items())
+        .singleElement()
+        .extracting(
+            item -> item.source().npcName(),
+            item -> item.source().placeName(),
+            item -> item.source().placeGroup())
+        .containsExactly("Zoe", null, PlaceGroup.DAILY);
   }
 
   @Test
@@ -543,7 +584,7 @@ class VocabServiceTest {
     assertThat(item.source())
         .isEqualTo(
             new VocabItemResponse.Source(
-                UserVocabSourceType.FEEDBACK, "Mia", conversation.getId()));
+                UserVocabSourceType.FEEDBACK, "Mia", conversation.getId(), "카페", PlaceGroup.FOOD));
     assertThat(userVocabRepository.findById(item.userVocabId()).orElseThrow().getSourceTurnId())
         .isNull();
     assertThat(vocabularySource("latte")).isEqualTo(VocabularySource.FEEDBACK);
@@ -620,6 +661,64 @@ class VocabServiceTest {
     assertThat(vocabularyType("hang on to")).isEqualTo(VocabularyType.IDIOM);
     assertThat(sentence.created()).isTrue();
     assertThat(vocabularyType("I'll be right back.")).isEqualTo(VocabularyType.SENTENCE);
+  }
+
+  @Test
+  @DisplayName("문장 교정의 고친 문장(한국어 발화의 영어 문장 포함)도 저장하고, 뜻은 그 문장을 고친 이유로 두며 예문은 비운다")
+  void saveFeedbackWord_savesCorrectedSentence() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Conversation conversation = conversation(entityManager, userId, "CAFE_STAFF");
+    completeFeedback(conversation, "[]");
+    correctedTurn(
+        conversation, 1, "I think lost my bag", "I think I lost my bag.", "lost 앞에도 주어 I를 넣어요.");
+    correctedTurn(
+        conversation, 3, "가방 안에 여권이 있어요", "My passport is in the bag.", "한국어로 말한 문장을 영어로 바꿨어요.");
+
+    VocabSaveResponse corrected =
+        vocabService.saveFeedbackWord(userId, conversation.getId(), "i think i lost my bag.");
+    VocabSaveResponse fromKorean =
+        vocabService.saveFeedbackWord(userId, conversation.getId(), "My passport is in the bag.");
+
+    assertThat(corrected.created()).isTrue();
+    assertThat(corrected.item().vocab().text()).isEqualTo("I think I lost my bag.");
+    assertThat(corrected.item().vocab().type()).isEqualTo(VocabularyType.SENTENCE);
+    assertThat(corrected.item().vocab().meaningKo()).isEqualTo("lost 앞에도 주어 I를 넣어요.");
+    assertThat(corrected.item().context()).isNull();
+    assertThat(corrected.item().source())
+        .isEqualTo(
+            new VocabItemResponse.Source(
+                UserVocabSourceType.FEEDBACK, "Mia", conversation.getId(), "카페", PlaceGroup.FOOD));
+    assertThat(fromKorean.created()).isTrue();
+    assertThat(fromKorean.item().vocab().meaningKo()).isEqualTo("한국어로 말한 문장을 영어로 바꿨어요.");
+  }
+
+  @Test
+  @DisplayName("다른 대화의 문장 교정은 이 대화에서 저장하지 못하고 VOCAB_SOURCE_MISMATCH로 거절한다")
+  void saveFeedbackWord_otherConversationsCorrection_throwsMismatch() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Conversation conversation = conversation(entityManager, userId, "CAFE_STAFF");
+    completeFeedback(conversation, "[]");
+    Conversation other = conversation(entityManager, userId, "CAFE_STAFF");
+    completeFeedback(other, "[]");
+    correctedTurn(other, 1, "I think lost my bag", "I think I lost my bag.", "주어 I를 넣어요.");
+
+    assertThatThrownBy(
+            () ->
+                vocabService.saveFeedbackWord(
+                    userId, conversation.getId(), "I think I lost my bag."))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.VOCAB_SOURCE_MISMATCH));
+    assertThat(userVocabRepository.count()).isZero();
+  }
+
+  /** 문장 교정(FB-03)이 붙은 사용자 발화. 상세 평가는 피드백 저장(FeedbackService)이 발화마다 남기는 형식이다. */
+  private void correctedTurn(
+      Conversation conversation, int seq, String userText, String betterText, String reason) {
+    Turn turn = textTurn(entityManager, conversation, seq, userText);
+    entityManager.persist(TurnFeedback.of(turn.getId(), betterText, reason, null, null));
+    entityManager.flush();
   }
 
   private VocabularyType vocabularyType(String text) {

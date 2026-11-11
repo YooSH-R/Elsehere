@@ -7,6 +7,27 @@ namespace A305.Dialogue.Tests
     public class ConversationApiTests
     {
         [Test]
+        public async Task PerformanceIntent_SendsOnlyTextToDedicatedEndpoint()
+        {
+            var transport = new RecordingTransport { ReplyBody = "{\"intent\":\"REPLAY_RAP\"}" };
+            var api = new ConversationApi(
+                new ApiClient("", transport),
+                new ApiClient("", transport)
+            );
+            var result = await api.ClassifyPerformanceAsync(58, "intent-1", "An encore?");
+            Assert.That(result.Intent, Is.EqualTo("REPLAY_RAP"));
+            Assert.That(transport.Request.Method, Is.EqualTo("POST"));
+            Assert.That(
+                transport.Request.Url,
+                Is.EqualTo("/api/v1/conversations/58/performance-intent")
+            );
+            Assert.That(
+                transport.Request.JsonBody,
+                Is.EqualTo("{\"requestId\":\"intent-1\",\"text\":\"An encore?\"}")
+            );
+        }
+
+        [Test]
         public async Task StartAsync_SendsActualJourneyFacts()
         {
             var transport = new RecordingTransport();
@@ -56,6 +77,61 @@ namespace A305.Dialogue.Tests
             Assert.That(transport.Request.Url, Is.EqualTo("/api/v1/conversations"));
             Assert.That(transport.Request.JsonBody, Does.Contain("\"npcCode\":\"CAFE_STAFF\""));
             Assert.That(transport.Request.JsonBody, Does.Contain(expected));
+        }
+
+        [Test]
+        public async Task StartAsync_SendsTheChosenNpcSpeechSpeed()
+        {
+            using var speed = new ChosenSpeechSpeed(1.3f);
+            var transport = new RecordingTransport();
+
+            await CreateApi(transport).StartAsync("request-1", "CAFE_STAFF", "USER", false);
+
+            Assert.That(transport.Request.JsonBody, Does.Contain("\"speechSpeed\":1.3"));
+        }
+
+        [Test]
+        public async Task SendTurnAsync_SendsTheChosenNpcSpeechSpeed()
+        {
+            using var speed = new ChosenSpeechSpeed(0.9f);
+            var transport = new RecordingTransport();
+
+            await CreateApi(transport).SendTurnAsync(58, "request-2", "TEXT", "Hi", null, null);
+
+            Assert.That(transport.Request.JsonBody, Does.Contain("\"speechSpeed\":0.9"));
+        }
+
+        [Test]
+        public async Task RegenerateSpeechAsync_SendsTheChosenNpcSpeechSpeed()
+        {
+            using var speed = new ChosenSpeechSpeed(1.5f);
+            var transport = new RecordingTransport();
+
+            await CreateApi(transport).RegenerateSpeechAsync(12, "request-3");
+
+            Assert.That(transport.Request.Url, Is.EqualTo("/api/v1/turns/12/speech"));
+            Assert.That(transport.Request.JsonBody, Does.Contain("\"speechSpeed\":1.5"));
+        }
+
+        private static ConversationApi CreateApi(RecordingTransport transport)
+        {
+            return new ConversationApi(new ApiClient("", transport), new ApiClient("", transport));
+        }
+
+        // 설정창에서 고른 값을 테스트 동안만 바꾸고 끝나면 되돌린다.
+        private sealed class ChosenSpeechSpeed : System.IDisposable
+        {
+            private readonly float saved = NpcSpeechSpeed.Current;
+
+            public ChosenSpeechSpeed(float value)
+            {
+                NpcSpeechSpeed.Current = value;
+            }
+
+            public void Dispose()
+            {
+                NpcSpeechSpeed.Current = saved;
+            }
         }
 
         private sealed class RecordingTransport : IApiTransport

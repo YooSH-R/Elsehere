@@ -163,6 +163,11 @@ namespace A305.EditorTools.Npc
             foreach (var look in NpcCast.Members.Select(member => member.Look).Distinct())
             {
                 var prefab = BuilderTools.LoadRequiredAsset<GameObject>(look.PrefabPath, MenuPath);
+                if (look.UsesRecordedPerformance)
+                {
+                    ValidateRecordedPerformer(prefab, look);
+                    continue;
+                }
                 if (look.PrefabPath.StartsWith("Assets/Prefabs/Npc/Review/"))
                 {
                     var rig = Tripo.TripoMasterRig.Inspect(
@@ -211,6 +216,15 @@ namespace A305.EditorTools.Npc
                             "외형 표에 없는 NPC입니다: " + npc.Code
                         );
                     var position = npc.transform.position;
+                    if (member.Look.UsesRecordedPerformance)
+                    {
+                        ValidateRecordedPerformer(npc.gameObject, member.Look);
+                        if (!connected.Add(npc.Code))
+                            throw new InvalidOperationException(
+                                "중복 배치된 공연 NPC입니다: " + npc.Code
+                            );
+                        continue;
+                    }
                     var rotation = npc.transform.rotation;
                     var routine = npc.GetComponent<NpcRoutine>();
                     string routineBefore =
@@ -240,6 +254,28 @@ namespace A305.EditorTools.Npc
                 throw new InvalidOperationException("씬에 없는 NPC: " + string.Join(", ", missing));
             RefreshCommuterVisuals();
             AssetDatabase.SaveAssets();
+        }
+
+        private static void ValidateRecordedPerformer(GameObject root, NpcLook look)
+        {
+            var performer = root.GetComponent<RecordedNpcPerformance>();
+            var animator = root.GetComponentInChildren<Animator>(true);
+            if (
+                performer == null
+                || !performer.IsReady
+                || animator == null
+                || animator.avatar == null
+                || !animator.avatar.isValid
+                || animator.avatar.isHuman
+                || root.GetComponent<NpcTownWalker>() != null
+                || A305.Characters.CharacterFaceController.MissingChannels(
+                    root.transform,
+                    true
+                ).Length != 0
+            )
+                throw new InvalidOperationException(
+                    "전용 골격·저장 공연·공통 얼굴 연결을 확인하세요: " + look.Name
+                );
         }
 
         // 출퇴근 프리팹도 같은 검수 외형을 참조한다. 출현·경로 설정과 프리팹 GUID는 유지한다.
@@ -296,7 +332,7 @@ namespace A305.EditorTools.Npc
             }
 
             Directory.CreateDirectory(folder);
-            foreach (NpcLook look in NpcLooks.All)
+            foreach (NpcLook look in NpcLooks.All.Where(look => !look.UsesRecordedPerformance))
             {
                 NpcCastMember[] members = NpcCast
                     .Members.Where(member => member.Look == look)

@@ -29,6 +29,7 @@ namespace A305.Dialogue
         private const string RudeReason = "RUDE";
         private const string TimeLimitReason = "TIME_LIMIT";
         private const string FeedbackDone = "DONE";
+        private const string EndFeedbackGuide = "[대화 종료]를 누르면 피드백을 볼 수 있어요.";
 
         private const string RetryGuide = "[다시 시도]를 누르거나 [대화 종료]로 나갈 수 있어요.";
         private const string QuotaGuide = "[대화 종료]를 누르면 마을 탐험으로 돌아가요.";
@@ -37,12 +38,21 @@ namespace A305.Dialogue
 
         private readonly IConversationApi api;
         private readonly Func<string, Task<ConversationStart>> reviewStart;
+        private readonly Func<string, Task<ConversationStart>> practiceStart;
         public long? ReviewCardId { get; private set; }
         public ReviewPracticeResult ReviewResult { get; private set; }
         public bool IsReview => ReviewCardId != null;
+
+        /// <summary>장소 연습(PRC-02)으로 연 대화의 상황 ID. 장소 연습이 아니면 null이다.</summary>
+        public string PracticeScenarioId { get; }
+        public bool IsPractice => PracticeScenarioId != null;
+
+        // 복습·장소 연습처럼 이야기와 따로 하는 연습 대화. 퀘스트·택시 같은 마을 동작, 준비물, 추천 단어, 일반 피드백을 쓰지 않는다.
+        private bool IsSeparatePractice => IsReview || IsPractice;
         private readonly ConversationInitiator initiatedBy;
         private readonly bool npcOffDuty;
         private readonly NpcTravelContext npcTravelContext;
+        private readonly string placeCode;
         private readonly FollowUpStore followUps;
 
         // 음성 처리 동의. 서버가 동의가 없다고 거절하면 끈다.
@@ -77,6 +87,7 @@ namespace A305.Dialogue
         /// <param name="initiatedBy">누가 먼저 말을 걸었는지. 서버의 대화 시작(CONV-01) initiatedBy로 보낸다.</param>
         /// <param name="followUps">NPC가 준비해 건네기로 한 것을 기억할 곳. 비우면 게임 전체가 함께 쓰는 곳(<see cref="FollowUpStore.Shared"/>)이다.</param>
         /// <param name="npcOffDuty">교대 밖이라 일하지 않는 직원과의 대화인지. 서버의 대화 시작(CONV-01) npcOffDuty로 보낸다.</param>
+        /// <param name="practiceStart">장소 연습 대화를 여는 요청(PRC-02). 요청 ID를 받는다.</param>
         public ServerConversation(
             string npcCode,
             string npcName,
@@ -87,7 +98,10 @@ namespace A305.Dialogue
             bool npcOffDuty = false,
             long? reviewCardId = null,
             Func<string, Task<ConversationStart>> reviewStart = null,
-            NpcTravelContext npcTravelContext = null
+            NpcTravelContext npcTravelContext = null,
+            string practiceScenarioId = null,
+            Func<string, Task<ConversationStart>> practiceStart = null,
+            string placeCode = null
         )
         {
             NpcCode = npcCode;
@@ -95,10 +109,13 @@ namespace A305.Dialogue
             this.api = api;
             ReviewCardId = reviewCardId;
             this.reviewStart = reviewStart;
+            PracticeScenarioId = practiceScenarioId;
+            this.practiceStart = practiceStart;
             this.canTalk = canTalk;
             this.initiatedBy = initiatedBy;
             this.npcOffDuty = npcOffDuty;
             this.npcTravelContext = npcTravelContext?.Copy();
+            this.placeCode = placeCode;
             this.followUps = followUps ?? FollowUpStore.Shared;
         }
 
@@ -111,6 +128,9 @@ namespace A305.Dialogue
         /// 경찰관이 직접 가려고 그 턴에 대화를 마쳐도 알린다.
         /// </summary>
         public event Action<long, string> PoliceDispatchRequested;
+
+        /// <summary>택시 기사가 목적지를 알아들은 턴. 갈 장소 코드를 넘긴다.</summary>
+        public event Action<string> TaxiDestinationChosen;
 
         /// <summary>NPC가 새로 말했다. 음성 재생에 쓴다.</summary>
         public event Action<NpcTurnData> NpcSpoke;
@@ -162,6 +182,11 @@ namespace A305.Dialogue
         /// <summary>NPC가 대화를 끝냈는지(무례 누적, 사용량 소진 등).</summary>
         public bool IsEnded { get; private set; }
 
+        internal bool ShowsEndFeedbackNotice =>
+            IsEnded
+            && !endRequested
+            && StatusMessage?.EndsWith(EndFeedbackGuide, StringComparison.Ordinal) == true;
+
         public bool CanSend => ConversationId != null && !IsBusy && !IsEnded && !deadlineExpired;
 
         public bool IsClosing { get; private set; }
@@ -176,17 +201,87 @@ namespace A305.Dialogue
         public IReadOnlyList<GlossaryData> LastNpcGlossary { get; private set; }
         public bool HasHint => true;
         public string HintText { get; private set; }
+        public string HintMeaningKo { get; private set; }
         public bool UsesVoice => true;
         public ConversationStanding Standing { get; } = new ConversationStanding();
         public bool CanTalk => canTalk;
 
         public bool CanReplaySpeech =>
-            LastNpcTurn?.Speech?.IsReady == true || LastNpcTurn?.Speech?.CanRegenerate == true;
+            LastNpcLine?.Speech != null
+            || LastNpcTurn?.Speech?.IsReady == true
+            || LastNpcTurn?.Speech?.CanRegenerate == true;
 
         public bool SpeaksNpcLines => true;
 
         public bool IsNpcSpeechReady =>
-            streamedReply?.HasSpeech == true || LastNpcTurn?.Speech?.IsReady == true;
+            LastNpcLine?.Speech != null
+            || streamedReply?.HasSpeech == true
+            || LastNpcTurn?.Speech?.IsReady == true;
+
+        // 저장 공연은 로컬 화면에만 남긴다. 서버 턴·사용량·학습 평가를 만들어 내지 않는다.
+        public bool ShowRecordedReply(string text, DialogueLine reply)
+        {
+            if (!CanSend || IsReview || reply?.Speech == null)
+                return false;
+            if (!string.IsNullOrWhiteSpace(text))
+                lines.Add(DialogueLine.FromUser(text));
+            lines.Add(reply);
+            LastNpcLine = reply;
+            LastNpcTurn = null;
+            LastNpcGlossary = null;
+            LastTurnSpokenInChunks = false;
+            LastTurnSpeechIncomplete = false;
+            HintText = null;
+            UserTranslation = null;
+            StatusMessage = null;
+            RecoveryGuide = null;
+            lastTranscript = null;
+            pendingRetry = null;
+            failedText = null;
+            failedRequestId = null;
+            textToRestore = null;
+            Changed?.Invoke();
+            return true;
+        }
+
+        public async Task<string> ClassifyPerformanceAsync(string text)
+        {
+            if (!CanSend || endRequested || IsReview || NpcCode != "TOWN_JOHN_PARK")
+                return null;
+            string intent = null;
+            await RunAsync(
+                "요청을 확인하고 있어요...",
+                async () =>
+                {
+                    if (!(api is IPerformanceIntentApi classifier) || text.Length > 500)
+                        throw new ApiException(
+                            "PERFORMANCE_INTENT_UNAVAILABLE",
+                            0,
+                            "요청을 확인하지 못했어요."
+                        );
+                    var result = await classifier.ClassifyPerformanceAsync(
+                        ConversationId.Value,
+                        NewRequestId(),
+                        text
+                    );
+                    if (result?.Intent != "REPLAY_RAP" && result?.Intent != "CONVERSATION")
+                        throw new ApiException(
+                            "AI_RESPONSE_INVALID",
+                            502,
+                            "요청을 확인하지 못했어요."
+                        );
+                    intent = result.Intent;
+                }
+            );
+            if (endRequested || IsEnded)
+                return null;
+            if (intent == null)
+            {
+                RecoveryGuide = "[랩 다시 듣기]를 누르면 바로 들을 수 있어요.";
+                Changed?.Invoke();
+            }
+            return intent;
+        }
 
         public async Task StartAsync()
         {
@@ -206,17 +301,7 @@ namespace A305.Dialogue
                 {
                     try
                     {
-                        await BeginAsync(
-                            IsReview
-                                ? await reviewStart(startRequestId)
-                                : await api.StartAsync(
-                                    startRequestId,
-                                    NpcCode,
-                                    InitiatedByCode,
-                                    npcOffDuty,
-                                    npcTravelContext
-                                )
-                        );
+                        await BeginStreamingAsync(startRequestId);
                     }
                     catch (ApiException exception) when (exception.Code == AlreadyActiveCode)
                     {
@@ -226,7 +311,7 @@ namespace A305.Dialogue
                 StartAsync,
                 DialogueWait.Opening
             );
-            if (!endRequested && !IsReview)
+            if (!endRequested && !IsSeparatePractice)
             {
                 _ = SuggestWordsAsync();
             }
@@ -294,13 +379,20 @@ namespace A305.Dialogue
                     IsEnded =
                         result.Conversation != null && result.Conversation.Status != ActiveStatus;
                     responseEndReason = result.Conversation?.EndReason;
-                    if (!IsReview && !IsEnded && result.UserTurn != null && !result.UserTurn.Rude)
+                    if (
+                        !IsSeparatePractice
+                        && !IsEnded
+                        && result.UserTurn != null
+                        && !result.UserTurn.Rude
+                    )
                         UserTurnAccepted?.Invoke(sent);
-                    if (!IsReview && result.PoliceDispatch != null)
+                    if (!IsSeparatePractice && result.PoliceDispatch != null)
                         PoliceDispatchRequested?.Invoke(
                             result.UserTurn.TurnId,
                             result.PoliceDispatch.PlaceCode
                         );
+                    if (!IsSeparatePractice && result.TaxiDestination != null)
+                        TaxiDestinationChosen?.Invoke(result.TaxiDestination.PlaceCode);
                 },
                 () => SendAsync(utterance),
                 DialogueWait.NpcReply
@@ -317,13 +409,12 @@ namespace A305.Dialogue
                     "TURN_LIMIT" => "대화가 30턴에 도달하여 ",
                     _ => "",
                 };
-                StatusMessage =
-                    $"{reason}{NpcName}이(가) 대화를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요.";
+                StatusMessage = $"{reason}{NpcName}이(가) 대화를 마쳤어요. {EndFeedbackGuide}";
                 RecoveryGuide = isQuotaExhausted ? QuotaEndedGuide : null;
                 Changed?.Invoke();
             }
 
-            if (!IsReview)
+            if (!IsSeparatePractice)
                 _ = SuggestWordsAsync();
         }
 
@@ -508,6 +599,7 @@ namespace A305.Dialogue
                 {
                     HintData hint = await api.GetHintAsync(turn.TurnId, NewRequestId());
                     HintText = hint.HintText;
+                    HintMeaningKo = hint.HintMeaningKo;
                 }
             );
         }
@@ -532,7 +624,7 @@ namespace A305.Dialogue
             {
                 EndResult end = await api.EndAsync(conversationId, NewRequestId(), false);
                 ReviewResult = end?.ReviewResult;
-                if (IsReview)
+                if (IsSeparatePractice)
                     return null;
                 // 상세 평가를 기다리기 전에 남겨, 피드백 창이 뜰 때 왼쪽 카드에도 기다리는 것이 보이게 한다.
                 if (end?.FollowUp != null)
@@ -645,11 +737,18 @@ namespace A305.Dialogue
                 feedback,
                 ReviewCardId,
                 ReviewResult,
-                isFeedbackDeferred
+                isFeedbackDeferred,
+                PracticeScenarioId
             );
         }
 
-        private async Task BeginAsync(ConversationStart start)
+        /// <param name="spokenInChunks">첫 인사를 조각 음성으로 들려줬는지. 그러면 전체 음성을 다시 자동 재생하지 않는다.</param>
+        /// <param name="missingSpeech">음성이 빠진 조각이 있었는지</param>
+        private async Task BeginAsync(
+            ConversationStart start,
+            bool spokenInChunks,
+            bool missingSpeech
+        )
         {
             // 준비 중 창을 닫았어도 시작 요청은 서버에서 완료될 수 있다. 그 대화를 남기면 서버 시계가 계속 멈춘다.
             if (endRequested)
@@ -668,12 +767,12 @@ namespace A305.Dialogue
             ApplyState(start.Conversation);
             // NPC가 준비해 둔 것을 첫 대사로 건넸으면 기다리는 목록에서 지운다. NPC가 불러 시작했든 먼저 말을 걸었든 같다.
             // NPC마다 하나만 기다리므로 ID가 기억하던 줄과 달라도 이 NPC의 줄을 지운다.
-            if (!IsReview && start.DeliveredFollowUpId is long delivered)
+            if (!IsSeparatePractice && start.DeliveredFollowUpId is long delivered)
             {
                 followUps.Remove(delivered, NpcCode);
             }
 
-            AddNpcTurn(start.OpeningTurn);
+            AddNpcTurn(start.OpeningTurn, spokenInChunks, missingSpeech);
         }
 
         // 새로고침 등으로 끝내지 못한 대화가 남아 있다. 같은 NPC와의 대화면 이어서 해 새 대화를 만들지 않고(게스트 대화 횟수를 다시 쓰지 않음),
@@ -681,6 +780,13 @@ namespace A305.Dialogue
         private async Task ResumeOrRestartAsync()
         {
             ActiveConversation stale = await api.GetActiveAsync();
+            // 장소 연습도 남은 대화를 끝내거나 이어받지 않는다. 진행 중인 대화 조회(CONV-11)는 연습 상황을 알리지 않는다.
+            if (stale != null && IsPractice)
+                throw new ApiException(
+                    AlreadyActiveCode,
+                    409,
+                    "진행 중인 대화를 먼저 마친 뒤 연습해 주세요."
+                );
             // 복습과 본편은 서로의 진행 중 대화를 끝내거나 이어받지 않는다.
             if (
                 stale != null
@@ -714,18 +820,47 @@ namespace A305.Dialogue
 
             if (!endRequested)
             {
-                await BeginAsync(
-                    IsReview
-                        ? await reviewStart(startRequestId)
-                        : await api.StartAsync(
-                            NewRequestId(),
-                            NpcCode,
-                            InitiatedByCode,
-                            npcOffDuty,
-                            npcTravelContext
-                        )
-                );
+                // 복습·장소 연습은 처음 요청 ID로 다시 열고, 일반 대화는 남은 대화를 끝냈으니 새 요청으로 연다.
+                await BeginStreamingAsync(IsSeparatePractice ? startRequestId : NewRequestId());
             }
+        }
+
+        // 첫 인사를 스트리밍으로 받아 글자가 오기 시작하면 로딩을 걷고 온 만큼 보여 주며 조각 음성을 넘긴다. 시작한 대화를 받으면 그 줄을
+        // 지우고 저장된 첫 턴으로 다시 그린다. 복습·장소 연습은 스트림 없이 한 번에 받는다.
+        private async Task BeginStreamingAsync(string requestId)
+        {
+            var opening = new StreamedReply(this, null, ++replyCount);
+            streamedReply = opening;
+            ConversationStart start;
+            try
+            {
+                start = await RequestStartAsync(requestId, opening);
+            }
+            finally
+            {
+                opening.RemoveLines();
+                streamedReply = null;
+            }
+
+            await BeginAsync(start, opening.HasSpeech, opening.HasMissingSpeech);
+        }
+
+        // 복습·장소 연습은 각자의 시작 경로로, 그 밖의 대화는 일반 대화 시작(CONV-01)으로 연다.
+        private Task<ConversationStart> RequestStartAsync(string requestId, ITurnStream opening)
+        {
+            if (IsReview)
+                return reviewStart(requestId);
+            if (IsPractice)
+                return practiceStart(requestId);
+            return api.StartAsync(
+                requestId,
+                NpcCode,
+                InitiatedByCode,
+                npcOffDuty,
+                npcTravelContext,
+                placeCode,
+                opening
+            );
         }
 
         // 지난 대사를 다시 보이고 마지막 NPC 대사는 처음 시작할 때처럼 들려준다.
@@ -809,6 +944,7 @@ namespace A305.Dialogue
             // 단어 풀이와 힌트는 지난 대사의 것이므로 새 대사에서는 다시 받는다.
             LastNpcGlossary = turn.Glossary;
             HintText = null;
+            HintMeaningKo = null;
             NpcSpoke?.Invoke(turn);
         }
 
@@ -890,8 +1026,8 @@ namespace A305.Dialogue
         }
 
         /// <summary>
-        /// 스트리밍으로 받는 NPC 대답(CONV-03). 대사 글자가 오기 시작하면 로딩을 걷고 보낸 문장과 온 만큼의 대사를 보여 주며,
-        /// 조각 음성은 받는 대로 넘긴다. 저장된 턴을 받으면 이 줄들을 지우고 저장된 턴으로 다시 그린다.
+        /// 스트리밍으로 받는 NPC 대답(CONV-03)과 첫 인사(CONV-01). 대사 글자가 오기 시작하면 로딩을 걷고 보낸 문장과 온 만큼의 대사를
+        /// 보여 주며, 조각 음성은 받는 대로 넘긴다. 저장된 턴·시작한 대화를 받으면 이 줄들을 지우고 저장된 턴으로 다시 그린다.
         /// </summary>
         private sealed class StreamedReply : ITurnStream
         {
@@ -899,9 +1035,11 @@ namespace A305.Dialogue
             private readonly string utterance;
             private readonly int reply;
             private readonly System.Text.StringBuilder text = new System.Text.StringBuilder();
+            private bool started;
             private DialogueLine userLine;
             private DialogueLine npcLine;
 
+            /// <param name="utterance">대답할 사용자 발화. 첫 인사는 보낸 문장이 없어 null이다.</param>
             public StreamedReply(ServerConversation owner, string utterance, int reply)
             {
                 this.owner = owner;
@@ -921,11 +1059,15 @@ namespace A305.Dialogue
                 }
 
                 text.Append(delta);
-                if (userLine == null)
+                if (!started)
                 {
-                    userLine = DialogueLine.FromUser(utterance);
-                    owner.lines.Add(userLine);
+                    started = true;
                     owner.Waiting = DialogueWait.None;
+                    if (utterance != null)
+                    {
+                        userLine = DialogueLine.FromUser(utterance);
+                        owner.lines.Add(userLine);
+                    }
                 }
 
                 DialogueLine growing = DialogueLine.FromNpc(text.ToString(), null);

@@ -1354,6 +1354,10 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1032780997793360660, guid: d145c8ef465d5334a969468b518d5262, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1304667285042358064, guid: d145c8ef465d5334a969468b518d5262, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -1375,6 +1379,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1988563080228942790, guid: d145c8ef465d5334a969468b518d5262, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2411608057308648031, guid: d145c8ef465d5334a969468b518d5262, type: 3}
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
@@ -1411,6 +1419,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4065943162242342443, guid: d145c8ef465d5334a969468b518d5262, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4245988084977042551, guid: d145c8ef465d5334a969468b518d5262, type: 3}
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
@@ -1466,6 +1478,10 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6186999107854419618, guid: d145c8ef465d5334a969468b518d5262, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6574432762038410644, guid: d145c8ef465d5334a969468b518d5262, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -1474,7 +1490,19 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6904112639143565898, guid: d145c8ef465d5334a969468b518d5262, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6924693362647405127, guid: d145c8ef465d5334a969468b518d5262, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7010264708660513099, guid: d145c8ef465d5334a969468b518d5262, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7115625499350440523, guid: d145c8ef465d5334a969468b518d5262, type: 3}
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
@@ -1520,6 +1548,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7654169287779597213, guid: d145c8ef465d5334a969468b518d5262, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7701173584697690290, guid: d145c8ef465d5334a969468b518d5262, type: 3}
+      propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7977098047581327636, guid: d145c8ef465d5334a969468b518d5262, type: 3}
@@ -1574,7 +1606,11 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 5308778964100608867, guid: d145c8ef465d5334a969468b518d5262, type: 3}
+    - {fileID: 3451441228131181475, guid: d145c8ef465d5334a969468b518d5262, type: 3}
+    - {fileID: 7517104502020571421, guid: d145c8ef465d5334a969468b518d5262, type: 3}
+    - {fileID: 1691269496886986681, guid: d145c8ef465d5334a969468b518d5262, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 9146057866667211772, guid: d145c8ef465d5334a969468b518d5262, type: 3}
@@ -2400,9 +2436,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 914457974}
-    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 914457975}
   m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
 --- !u!4 &914457969 stripped
 Transform:
@@ -2460,7 +2493,7 @@ MonoBehaviour:
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   - code: DINER
-    displayName: "\uBA54\uC774\uD50C \uC2DD\uB2F9"
+    displayName: "\uBA54\uC774\uD50C \uBC84\uAC70"
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   - code: BANK
@@ -2536,19 +2569,6 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 1.7500001, z: -3.9}
     m_Extent: {x: 3.8, y: 1.6500001, z: 3.7999997}
---- !u!114 &914457975
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 914457970}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bf96d54cb71f3d94abb41a1750c9647e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcWorkPresence
-  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
 --- !u!1 &919839601
 GameObject:
   m_ObjectHideFlags: 0
@@ -2735,9 +2755,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1002803876}
-    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1313057559}
   m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
 --- !u!4 &1002803871 stripped
 Transform:
@@ -2795,7 +2812,7 @@ MonoBehaviour:
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   - code: DINER
-    displayName: "\uBA54\uC774\uD50C \uC2DD\uB2F9"
+    displayName: "\uBA54\uC774\uD50C \uBC84\uAC70"
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   - code: BANK
@@ -3848,19 +3865,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a276b20eab9ec944d86878924d711728, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.Npc::A305.Npc.Passerby
---- !u!114 &1313057559
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1002803872}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bf96d54cb71f3d94abb41a1750c9647e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcWorkPresence
-  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
 --- !u!1 &1332068916
 GameObject:
   m_ObjectHideFlags: 0
@@ -4165,9 +4169,6 @@ PrefabInstance:
       addedObject: {fileID: 1373305933}
     - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1373305934}
-    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 1373305935}
   m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
 --- !u!4 &1373305928 stripped
@@ -4237,19 +4238,6 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 1.7500001, z: -3.9}
     m_Extent: {x: 3.8, y: 1.6500001, z: 3.7999997}
---- !u!114 &1373305934
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1373305929}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bf96d54cb71f3d94abb41a1750c9647e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcWorkPresence
-  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
 --- !u!114 &1373305935
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4285,7 +4273,7 @@ MonoBehaviour:
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   - code: DINER
-    displayName: "\uBA54\uC774\uD50C \uC2DD\uB2F9"
+    displayName: "\uBA54\uC774\uD50C \uBC84\uAC70"
     stop: {x: 0, y: 0, z: 0}
     alighting: {x: 0, y: 0, z: 0}
   - code: BANK
@@ -5919,15 +5907,12 @@ MonoBehaviour:
   - Worker: {fileID: 1002803872}
     TownPrefab: {fileID: 0}
     WorkplaceDoor: {x: 0, y: 0, z: 0}
-    InteriorScene: 
   - Worker: {fileID: 914457970}
     TownPrefab: {fileID: 0}
     WorkplaceDoor: {x: 0, y: 0, z: 0}
-    InteriorScene: 
   - Worker: {fileID: 1373305929}
     TownPrefab: {fileID: 0}
     WorkplaceDoor: {x: 0, y: 0, z: 0}
-    InteriorScene: 
   dormDoor: {x: -18, y: 0.1, z: 21}
   park: {x: 11, y: 0.1, z: 21}
   townCharacters: {fileID: 130808094}

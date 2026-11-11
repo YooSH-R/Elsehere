@@ -12,6 +12,12 @@ namespace A305.Player
         [SerializeField]
         private RectTransform stick;
 
+        /// <summary>왼쪽 아래 이동 조이스틱. 다른 화면이 왼쪽 아래를 비울 때 그 자리를 잰다.</summary>
+        public RectTransform Stick => stick;
+
+        /// <summary>이 기기에서 터치 조작을 보이고 있는지</summary>
+        public bool IsShown => surfaceCanvas != null && surfaceCanvas.enabled;
+
         [SerializeField]
         private PlayerTouchSettings settings;
 
@@ -25,20 +31,45 @@ namespace A305.Player
         [SerializeField]
         private GameObject toThirdPersonLabel;
 
-        // 달리는 동안 조이스틱 손잡이를 주황으로 바꿔, 끝까지 밀었다는 것을 보인다.
+        // 달리는 동안 조이스틱 손잡이(하늘 입체 버튼)를 글래스 팝 보조색 코랄로 바꿔, 끝까지 밀었다는 것을 보인다.
         [SerializeField]
         private Image stickHandle;
 
-        private static readonly Color RunningHandleColor = new Color(1f, 0.55f, 0.2f, 0.9f);
+        private static readonly Color RunningHandleColor = new Color32(255, 119, 89, 255);
 
+        // 조이스틱 반대쪽(오른쪽 아래) [점프]. 같은 쪽에 뜨는 카드가 버튼을 가리지 않게 화면 자리를 알린다.
+        [SerializeField]
+        private RectTransform jumpButton;
+
+        private readonly Vector3[] jumpCorners = new Vector3[4];
         private Vector2 previousSize;
         private bool viewTogglePressed;
         private bool jumpPressed;
         private Color walkingHandleColor;
 
+        /// <summary>
+        /// [점프]의 왼쪽 끝 화면 위치(픽셀, 왼쪽에서). 터치 조작을 보이지 않으면 false다. 오른쪽 아래에 뜨는 조작법 카드가 이 왼쪽에 놓인다.
+        /// </summary>
+        public bool TryGetJumpButtonLeftPixels(out float left)
+        {
+            left = 0f;
+            if (jumpButton == null || !surfaceCanvas.enabled)
+            {
+                return false;
+            }
+
+            // 화면을 덮는 캔버스에서는 월드 좌표가 곧 화면 픽셀이다.
+            jumpButton.GetWorldCorners(jumpCorners);
+            left = jumpCorners[0].x;
+            return true;
+        }
+
         public TouchDragInput Movement { get; } = new TouchDragInput();
 
         public TouchDragInput Look { get; } = new TouchDragInput();
+
+        /// <summary>시점 영역에 댄 두 손가락. 벌리면 가까이, 오므리면 멀리 본다.</summary>
+        public TouchPinchInput Pinch { get; } = new TouchPinchInput();
 
         public bool IsInputLocked { get; private set; }
 
@@ -64,6 +95,17 @@ namespace A305.Player
             return surfaceCanvas.enabled && !IsInputLocked
                 ? delta * settings.LookSensitivity
                 : Vector2.zero;
+        }
+
+        /// <summary>
+        /// 두 손가락을 벌리고 오므린 양을 마우스 휠 칸 수로 바꾼다. 벌리면 +(가까이)다. 한 번 읽으면 비우며, 이동이 잠긴 동안 한 것은 버린다.
+        /// </summary>
+        public float ConsumeZoomSteps()
+        {
+            float spread = Pinch.ConsumeSpread();
+            return surfaceCanvas.enabled && !IsInputLocked
+                ? spread / settings.PinchUnitsPerZoomStep
+                : 0f;
         }
 
         public Vector2 Move =>
@@ -146,6 +188,7 @@ namespace A305.Player
         {
             Movement.Reset();
             Look.Reset();
+            Pinch.Reset();
             viewTogglePressed = false;
             jumpPressed = false;
         }

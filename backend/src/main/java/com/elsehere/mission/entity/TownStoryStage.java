@@ -53,7 +53,7 @@ public enum TownStoryStage {
       case LAUNDRY ->
           "This is a self-service laundromat. The traveler spilled a drink and wants to know how to operate the machines and what they cost. Gus explains the machines, not a drop-off service. Explain only when asked and use only the prices and times in the Situation.";
       case BANK ->
-          "The traveler needs cash for the laundry. Explain where the ATM is and how to withdraw without asking for a PIN or password.";
+          "The traveler needs cash for the laundry. Give ATM directions when they seek the ATM, and explain withdrawals when asked. If they ask how to withdraw but give no amount, ask how much. Never ask for a PIN or password or require a physical withdrawal.";
       case WASH ->
           "This is a self-service laundromat. The traveler has returned after asking the bank about cash and will operate the machines themselves. Do not take the learner's clothes or offer a drop-off laundry service. Help them start a washer or choose wash, dry or both when asked. Use only the machine prices and times in the Situation; do not claim a payment occurred.";
       case HAIRCUT ->
@@ -77,7 +77,7 @@ public enum TownStoryStage {
 
   public String title() {
     return switch (this) {
-      case DINER -> "식당에서 아침 식사";
+      case DINER -> "햄버거 가게에서 아침 식사";
       case LAUNDRY -> "빨래방에서 세탁 문의";
       case BANK -> "은행에서 현금 인출 문의";
       case WASH -> "셀프빨래방에서 세탁기 사용하기";
@@ -94,9 +94,9 @@ public enum TownStoryStage {
 
   public String situation() {
     return switch (this) {
-      case DINER -> "아침을 먹다가 옷에 음료를 쏟았어요. 식당 직원 Rosa에게 세탁할 곳을 물어봐요.";
+      case DINER -> "아침을 먹다가 옷에 음료를 쏟았어요. 햄버거 가게 직원 Rosa에게 세탁할 곳을 물어봐요.";
       case LAUNDRY -> "셀프빨래방에 왔어요. Gus에게 세탁기 사용 방법과 요금을 물어봐요.";
-      case BANK -> "세탁할 현금을 준비하려고 은행에 왔어요. Henry에게 ATM과 인출 방법을 물어봐요.";
+      case BANK -> "Henry에게 ATM 위치와 현금 인출 방법을 묻고, 얼마를 뽑을지 말해요.";
       case WASH -> "빨래방에 돌아왔어요. 직접 세탁할 수 있도록 Gus에게 세탁기 사용 방법을 확인해요.";
       case HAIRCUT -> "세탁을 기다리는 동안 이발소에 들렀어요. Tony에게 원하는 머리를 설명해요.";
       case FLOWERS -> "마음에 드는 머리를 해 준 Tony에게 고마운 마음을 전할 꽃을 Lily와 골라요.";
@@ -105,7 +105,7 @@ public enum TownStoryStage {
       case THANK_LAUNDRY -> "빨래방에 돌아왔어요. 빨래 꺼내는 방법을 확인하고 기계 사용을 도와준 Gus에게 감사를 전해요.";
       case HOME_STORE -> "여행을 기억할 선물로 램프를 구경해요. Nina에게 배송에 관해 물어봐요.";
       case ARCADE -> "우체국에 가는 길에 오락실에 들렀어요. Max에게 게임 방법을 물어봐요.";
-      case POST_OFFICE -> "마을에서의 하루를 마무리하며 Linda에게 소포 보내는 방법을 물어봐요.";
+      case POST_OFFICE -> "Linda에게 소포를 보낼 곳을 말하고 배송비를 물어봐요.";
     };
   }
 
@@ -124,11 +124,11 @@ public enum TownStoryStage {
       case "ask_wrapping" -> "꽃 포장 요청";
       case "offer_flower" -> "꽃을 선물한다고 말하기";
       case "thank_barber" -> "Tony에게 감사하기(무엇이 고마운지)";
-      case "choose_snack" -> "간식 고르기(무엇을 몇 개, 누구에게)";
-      case "collect_laundry" -> "빨래 꺼내는 방법 확인";
+      case "choose_snack" -> "간식 고르기";
+      case "collect_laundry" -> "빨래 꺼내기 확인";
       case "thank_laundromat" -> "Gus에게 감사하기(무엇이 고마운지)";
       case "ask_lamp" -> "램프 묻기(누구에게 줄 선물인지)";
-      case "ask_shipping" -> "배송 가능 여부 묻기";
+      case "ask_shipping" -> "포장 또는 배송 가능 여부 묻기";
       case "ask_game" -> "게임 방법 묻기";
       case "ask_parcel" -> "소포 보내기(어디로)";
       case "ask_price" -> "소포 가격 묻기";
@@ -139,28 +139,27 @@ public enum TownStoryStage {
   /** 이 목표를 이루려면 말해야 할 정보. 퀘스트 카드 목표 아래에 보인다. */
   public static String goalHint(String id) {
     return switch (id) {
-      case "order_breakfast" -> "음식과 음료를 함께 (예: pancakes and orange juice)";
-      case "explain_spill" -> "무엇을 어디에 쏟았는지 설명하기 (예: coffee on my shirt)";
+      case "order_breakfast" -> "음식과 음료를 함께";
+      case "explain_spill" -> "무엇을 어디에 쏟았는지 설명하기";
       case "ask_laundry" -> "옷을 어떻게 빨 수 있는지 묻기";
       case "ask_cost" -> "세탁 가격";
       case "ask_atm" -> "ATM이 어디 있는지 묻기";
-      case "ask_withdrawal" -> "현금 뽑는 방법과 금액 (예: 20 dollars)";
-      case "request_wash" -> "직접 세탁기를 쓰겠다고 말하거나 시작 방법 묻기 (예: How do I start this washer?)";
+      case "ask_withdrawal" -> "현금 뽑는 방법과 금액";
+      case "request_wash" -> "직접 세탁기를 쓰겠다고 말하거나 시작 방법 묻기";
       case "ask_haircut" -> "머리를 자르고 싶다고 말하기";
-      case "describe_style" -> "길이와 부위 (예: a little shorter on the sides)";
+      case "describe_style" -> "길이와 부위";
       case "choose_flower" -> "꽃을 선물하려는 마음과 받을 사람 또는 이유를 자유롭게 말해요.";
       case "ask_wrapping" -> "꽃을 포장해 달라고 하기";
       case "offer_flower" -> "꽃을 선물로 드린다고 말하기";
-      case "thank_barber" -> "무엇이 고마운지 말하기 (예: thanks for the haircut)";
-      case "choose_snack" -> "간식과 개수, 받을 사람 (예: two cookies for Gus)";
-      case "collect_laundry" -> "빨래를 꺼내도 되는지, 어떻게 꺼내는지 묻기 (예: Can I take my clothes out now?)";
-      case "thank_laundromat" ->
-          "기계 사용을 도와준 것에 감사하기 (예: Thanks for showing me how to use the washer.)";
-      case "ask_lamp" -> "램프와 선물 받을 사람 (예: for my family back home)";
+      case "thank_barber" -> "무엇이 고마운지 말하기";
+      case "choose_snack" -> "간식 이름과 함께 개수나 받을 사람 중 하나 말하기";
+      case "collect_laundry" -> "빨래를 꺼내도 되는지 또는 어떻게 꺼내는지 묻거나 직접 꺼낸다고 말하기";
+      case "thank_laundromat" -> "기계 사용을 도와준 것에 감사하기";
+      case "ask_lamp" -> "램프와 선물 받을 사람";
       case "ask_shipping" -> "램프를 포장하거나 보낼 수 있는지 묻기";
-      case "ask_game" -> "인형뽑기 하는 방법";
-      case "ask_parcel" -> "소포를 보낼 곳 (예: to Seoul, Korea)";
-      case "ask_price" -> "소포 값";
+      case "ask_game" -> "인형뽑기 하는 방법 묻기 (완료 시 2코인 차감)";
+      case "ask_parcel" -> "소포를 보낼 곳";
+      case "ask_price" -> "배송 가격 묻기 또는 확인하기 (완료 시 5코인 차감)";
       default -> throw new IllegalArgumentException("Unknown town story goal: " + id);
     };
   }
@@ -173,7 +172,8 @@ public enum TownStoryStage {
           "The learner explains what they spilled AND where on their clothes it went, such as coffee on their shirt. Saying only that there was an accident does not count.";
       case "ask_laundry" -> "The learner asks how to wash their stained clothes at the laundromat.";
       case "ask_cost" -> "The learner asks or confirms the price of the wash.";
-      case "ask_atm" -> "The learner asks where the ATM is.";
+      case "ask_atm" ->
+          "The learner asks where the ATM is or clearly seeks its location, such as 'I'm looking for an ATM.' Accept imperfect wording like 'I'm finding an ATM' when it clearly requests help finding one. Merely mentioning an ATM or reporting that they already found it does not count.";
       case "ask_withdrawal" ->
           "The learner asks how to withdraw cash AND says how much they want to take out.";
       case "request_wash" ->

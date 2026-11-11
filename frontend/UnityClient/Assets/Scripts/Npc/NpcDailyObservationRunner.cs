@@ -409,7 +409,9 @@ namespace A305.Npc
                     .GetFields(PrivateInstance)
                     .Select(field => $"{field.Name}={field.GetValue(crossing)}")
             );
-            return $"{now:F1} signals={signals} {walker.GetComponent<NpcIdentity>().Code} {walker.SchedulePhase} pos={position:F3} destination={walker.Destination:F3} path={route.status}:{string.Join(";", route.corners.Select(point => point.ToString("F2")))} crossing={crossing?.IsActive} crossingState=[{crossingState}] motion=[age={Time.frameCount - body.LastWalkFrame} requested={body.LastWalkInput:F4} detour={body.LastWalkDetour:F4} final={body.LastWalkDirection:F4} step={body.LastWalkStep:F5} moved={body.LastWalkMoved:F5}] passing={passing?.GetComponent<NpcIdentity>().Code} others=[{others}] solids=[{solids}]";
+            string passingNpcCode =
+                passing != null ? passing.GetComponent<NpcIdentity>().Code : null;
+            return $"{now:F1} signals={signals} {walker.GetComponent<NpcIdentity>().Code} {walker.SchedulePhase} pos={position:F3} destination={walker.Destination:F3} path={route.status}:{string.Join(";", route.corners.Select(point => point.ToString("F2")))} crossing={crossing?.IsActive} crossingState=[{crossingState}] motion=[age={Time.frameCount - body.LastWalkFrame} requested={body.LastWalkInput:F4} detour={body.LastWalkDetour:F4} final={body.LastWalkDirection:F4} step={body.LastWalkStep:F5} moved={body.LastWalkMoved:F5}] passing={passingNpcCode} others=[{others}] solids=[{solids}]";
         }
 
         private static void DisconnectApis(Scene scene, LoadSceneMode mode)

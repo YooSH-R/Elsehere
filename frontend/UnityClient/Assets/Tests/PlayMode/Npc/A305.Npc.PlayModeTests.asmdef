@@ -5,6 +5,7 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "A305.Npc",
+        "A305.Api",
         "A305.Dialogue",
         "A305.Learning",
         "A305.Player",
@@ -13,6 +14,7 @@
         "A305.Tutorial",
         "A305.Mission",
         "A305.Onboarding",
+        "A305.Theme",
         "UnityEngine.UI",
         "Unity.TextMeshPro",
         "Unity.InputSystem"

@@ -25,7 +25,8 @@ namespace A305.Dialogue
         public static ReviewReferenceText Format(
             IReadOnlyList<ReviewReferenceItem> items,
             int verifiedCount,
-            string scenario = null
+            string scenario = null,
+            string countLabel = "말해봤어요"
         )
         {
             items = items ?? Array.Empty<ReviewReferenceItem>();
@@ -37,7 +38,9 @@ namespace A305.Dialogue
                 .Append(Math.Min(items.Count, Math.Max(0, verifiedCount)))
                 .Append(" / ")
                 .Append(items.Count)
-                .Append("</b>  말해봤어요</color>");
+                .Append("</b>  ")
+                .Append(countLabel)
+                .Append("</color>");
             foreach (ReviewReferenceItem item in items)
             {
                 text.Append("\n\n<indent=38><b>");

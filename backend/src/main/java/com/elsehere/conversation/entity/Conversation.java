@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -81,7 +82,19 @@ public class Conversation extends BaseEntity {
   private Instant endedAt;
 
   private Integer firstDayStage;
+
+  // 같은 단계에 다시 말을 걸어도 이전 대화에서 끝낸 목표를 다시 요구하지 않는다.
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(columnDefinition = "jsonb")
+  private List<String> firstDayGoalIds;
+
   private Integer townStoryStage;
+
+  // 같은 식당 단계 안에서도 주문과 식사 후 사건은 별개 대화다. null은 이 정보를 저장하기 전의 기록이다.
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(columnDefinition = "jsonb")
+  private List<String> townStoryGoalIds;
+
   private Long reviewCardId;
 
   @Column(columnDefinition = "jsonb")
@@ -102,6 +115,38 @@ public class Conversation extends BaseEntity {
     this.reviewCardId = cardId;
   }
 
+  // 장소 연습(PRC-02)으로 시작한 대화의 상황 ID(mission의 PracticeScenario 이름). 장소 연습이 아니면 null이다.
+  @Column(length = 40)
+  private String practiceScenario;
+
+  // 이 장소 연습 대화에서 이룬 목표 ID. 다시 하면 새 대화라 빈 목록부터 시작한다.
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(columnDefinition = "jsonb")
+  private List<String> practiceCompletedGoals;
+
+  // 이 대화에서 상황의 목표를 모두 이룬 시각. 끝내지 못한 연습과 장소 연습이 아닌 대화는 null이다.
+  private Instant practiceDoneAt;
+
+  public boolean isPractice() {
+    return practiceScenario != null;
+  }
+
+  public void attachPracticeScenario(String scenarioId) {
+    this.practiceScenario = scenarioId;
+    this.practiceCompletedGoals = List.of();
+  }
+
+  public void recordPracticeGoals(List<String> goalIds) {
+    practiceCompletedGoals = List.copyOf(goalIds);
+  }
+
+  /** 상황의 목표를 모두 이뤘다. 처음 이룬 시각만 남긴다. */
+  public void finishPractice(Instant now) {
+    if (practiceDoneAt == null) {
+      practiceDoneAt = now;
+    }
+  }
+
   // 대화를 시작한 요청 ID(CONV-01). 같은 ID로 다시 보내면 대화를 새로 만들지 않는다. 이 칸을 넣기 전의 대화는 null이다.
   @Column(unique = true)
   private UUID requestId;
@@ -114,6 +159,7 @@ public class Conversation extends BaseEntity {
   @Column(nullable = false)
   private boolean npcOffDuty;
 
+  // 대화를 시작할 때 Unity가 알린 NPC의 이동 사실과 지금 있는 곳(CONV-01 npcTravelContext·placeCode). 대화 동안 워커에 덧붙인다.
   @Column(length = 1600)
   private String npcTravelSituation;
 
@@ -127,8 +173,20 @@ public class Conversation extends BaseEntity {
     this.firstDayStage = stage;
   }
 
+  public void recordFirstDayGoals(List<String> goalIds) {
+    if (firstDayGoalIds == null) {
+      firstDayGoalIds = List.copyOf(goalIds);
+    }
+  }
+
   public void attachTownStoryStage(Integer stage) {
     this.townStoryStage = stage;
+  }
+
+  public void recordTownStoryGoals(List<String> goalIds) {
+    if (townStoryGoalIds == null) {
+      townStoryGoalIds = List.copyOf(goalIds);
+    }
   }
 
   public void attachStartRequest(UUID requestId) {

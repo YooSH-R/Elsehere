@@ -29,6 +29,7 @@ namespace A305.EditorTools.Npc
             new Vector3(0, 1.75f, -3.9f),
             new Vector3(7.6f, 3.3f, 7.6f)
         );
+        internal static readonly Vector3 BurgerCounterStand = new Vector3(.4f, .44f, -7.15f);
 
         private static readonly Staff[] Staffs =
         {
@@ -38,7 +39,7 @@ namespace A305.EditorTools.Npc
                 "PostOffice",
                 new Vector3(-1.5f, 0, -4.5f)
             ),
-            new Staff("DINER_STAFF", "DinerStaff", "MapleDiner", new Vector3(.4f, 0, -6.4f)),
+            new Staff("DINER_STAFF", "DinerStaff", "MapleDiner", BurgerCounterStand),
             new Staff("BANK_STAFF", "BankStaff", "TownBank", new Vector3(2.5f, 0, -4.6f)),
             new Staff(
                 "LAUNDROMAT_STAFF",
@@ -101,13 +102,7 @@ namespace A305.EditorTools.Npc
                 new Vector3(-.3f, 0, -6.6f),
                 true
             ),
-            new Staff(
-                "FIRE_CAPTAIN",
-                "DinerNightStaff",
-                "MapleDiner",
-                new Vector3(.4f, 0, -6.4f),
-                true
-            ),
+            new Staff("FIRE_CAPTAIN", "DinerNightStaff", "MapleDiner", BurgerCounterStand, true),
             new Staff(
                 "FIRE_FIGHTER",
                 "LaundromatNightStaff",
@@ -160,14 +155,15 @@ namespace A305.EditorTools.Npc
         {
             BuilderTools.ThrowIfPlaying();
             NpcCastMember member = NpcCast.Find("POLICE_PATROL_OFFICER");
-            Scene town = EditorSceneManager.OpenScene(TownScenePath);
+            string shopPath = ShopScenePath(Staffs.Single(staff => staff.Code == member.Code));
+            Scene shop = EditorSceneManager.OpenScene(shopPath);
             NpcIdentity worker = BuilderTools
-                .FindAllInScene<NpcIdentity>(town)
+                .FindAllInScene<NpcIdentity>(shop)
                 .Single(npc => npc.Code == member.Code);
             NpcVisualBuilder.Connect(worker, member.Look.PrefabPath, true);
             NpcCastDresser.Dress(worker.gameObject, member);
-            RefreshTutorialPassersby(town);
-            BuilderTools.SaveScene(town, TownScenePath);
+            RefreshTutorialPassersby(shop);
+            BuilderTools.SaveScene(shop, shopPath);
             // 재배치한 Kevin는 제복 대신 현재 외형 표의 사복을 출퇴근 프리팹에도 반영한다.
             string path = "Assets/Prefabs/Npc/Commuters/POLICE_PATROL_OFFICER.prefab";
             GameObject prefab = PrefabUtility.LoadPrefabContents(path);
@@ -204,7 +200,8 @@ namespace A305.EditorTools.Npc
             }
         }
 
-        private static void RefreshTutorialPassersby(Scene scene)
+        /// <summary>장면의 튜토리얼 진행이 그 장면에 놓인 행인을 모두 알게 한다. 장면 저장은 부르는 쪽이 한다.</summary>
+        internal static void RefreshTutorialPassersby(Scene scene)
         {
             TutorialDirector tutorial = BuilderTools.FindSingleInScene<TutorialDirector>(scene);
             if (tutorial == null)
@@ -233,32 +230,42 @@ namespace A305.EditorTools.Npc
             Debug.Log("마을 건물 9곳에 직원 NPC를 두고 건물 안에서만 지내게 했습니다.");
         }
 
-        /// <summary>직원을 건물 안에 두고 외형·색·대화를 잇는다. 생활(구역)은 <see cref="Build"/>가 이어서 맞춘다.</summary>
+        /// <summary>
+        /// 직원을 자기 건물의 1층 매장 장면 안에 두고 외형·색·대화를 잇는다. 매장 직원은 근무 중에 매장 장면에만 있고 마을에는 출퇴근하는 모습만 나온다.
+        /// 생활(구역)은 <see cref="Build"/>가 이어서 맞춘다.
+        /// </summary>
         public static void PlaceStaff()
         {
             BuilderTools.ThrowIfPlaying();
             NpcBuilder.PrepareMockLines();
             Scene town = EditorSceneManager.OpenScene(TownScenePath, OpenSceneMode.Single);
             RestorePoliceRookie(town);
-            foreach (Staff staff in Staffs.Where(item => item.SourceScene != null))
-                TransferFromScene(town, staff);
-            foreach (Staff staff in Staffs)
-            {
-                Place(town, staff);
-            }
-            NpcBuilder.ConnectToScene(
-                BuilderTools.EnsureGroups(town),
-                BuilderTools.FindSingleInScene<PlayerMover>(town),
-                BuilderTools.FindSingleInScene<DialogueController>(town)
-            );
-            RefreshTutorialPassersby(town);
             BuilderTools.SaveScene(town, TownScenePath);
+            foreach (IGrouping<string, Staff> building in Staffs.GroupBy(staff => staff.Building))
+            {
+                string path = ShopScenePath(building.First());
+                Scene shop = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+                foreach (Staff staff in building.Where(item => item.SourceScene != null))
+                    TransferFromScene(shop, staff);
+                foreach (Staff staff in building)
+                    Place(shop, staff);
+                NpcBuilder.ConnectToScene(
+                    BuilderTools.EnsureGroups(shop),
+                    BuilderTools.FindSingleInScene<PlayerMover>(shop),
+                    BuilderTools.FindSingleInScene<DialogueController>(shop)
+                );
+                RefreshTutorialPassersby(shop);
+                BuilderTools.SaveScene(shop, path);
+            }
             AssetDatabase.SaveAssets();
         }
 
-        private static void TransferFromScene(Scene town, Staff staff)
+        private static string ShopScenePath(Staff staff) =>
+            TownShopSceneBuilder.GroundFloorScenePath(staff.Building);
+
+        private static void TransferFromScene(Scene shop, Staff staff)
         {
-            if (BuilderTools.FindAllInScene<NpcIdentity>(town).Any(npc => npc.Code == staff.Code))
+            if (BuilderTools.FindAllInScene<NpcIdentity>(shop).Any(npc => npc.Code == staff.Code))
                 return;
             Scene source = EditorSceneManager.OpenScene(
                 "Assets/Scenes/Production/" + staff.SourceScene + ".unity",
@@ -268,8 +275,8 @@ namespace A305.EditorTools.Npc
                 .FindAllInScene<NpcIdentity>(source)
                 .Single(candidate => candidate.Code == staff.Code);
             npc.transform.SetParent(null, true);
-            SceneManager.MoveGameObjectToScene(npc.gameObject, town);
-            npc.transform.SetParent(BuilderTools.EnsureGroups(town).Characters, true);
+            SceneManager.MoveGameObjectToScene(npc.gameObject, shop);
+            npc.transform.SetParent(BuilderTools.EnsureGroups(shop).Characters, true);
             // 외부 장면으로 옮긴 NPC에 대한 생활 관리 참조도 함께 제거한다.
             NpcPopulation population = BuilderTools.FindSingleInScene<NpcPopulation>(source);
             if (population != null)
@@ -391,12 +398,14 @@ namespace A305.EditorTools.Npc
         public static void LimitStaffToBuildings()
         {
             BuilderTools.ThrowIfPlaying();
-            Scene town = EditorSceneManager.OpenScene(TownScenePath, OpenSceneMode.Single);
-            foreach (Staff staff in Staffs)
+            foreach (IGrouping<string, Staff> building in Staffs.GroupBy(staff => staff.Building))
             {
-                LimitToGroundFloor(town, staff.Code, staff.Building);
+                string path = ShopScenePath(building.First());
+                Scene shop = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+                foreach (Staff staff in building)
+                    LimitToGroundFloor(shop, staff.Code, staff.Building);
+                BuilderTools.SaveScene(shop, path);
             }
-            BuilderTools.SaveScene(town, TownScenePath);
             AssetDatabase.SaveAssets();
         }
 

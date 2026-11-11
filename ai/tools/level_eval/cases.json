@@ -1,0 +1,24 @@
+{
+  "version": "0.1",
+  "note": "난이도별 NPC 대답 비교용 일상 장면. talk: 평범한 대화 한 턴. broken: 학습자 말이 너무 끊겨 뜻이 애매한 턴 (중급은 짐작하지 말고 되물어야 한다). npc는 npc_help_eval.PERSONAS의 키.",
+  "cases": [
+    {"id": "cafe-order", "kind": "talk", "npc": "CAFE_STAFF", "history": [], "text": "Hi, can I get a coffee?"},
+    {"id": "cafe-recommend", "kind": "talk", "npc": "CAFE_STAFF", "history": [], "text": "What do you recommend?"},
+    {"id": "cafe-wifi", "kind": "talk", "npc": "CAFE_STAFF", "history": [], "text": "Do you have Wi-Fi here?"},
+    {"id": "diner-hungry", "kind": "talk", "npc": "DINER_STAFF", "history": [], "text": "I'm really hungry. What's good here?"},
+    {"id": "diner-pie", "kind": "talk", "npc": "DINER_STAFF", "history": [], "text": "Is the apple pie good?"},
+    {"id": "bank-withdraw", "kind": "talk", "npc": "BANK_STAFF", "history": [], "text": "I want to take out some money."},
+    {"id": "bank-account", "kind": "talk", "npc": "BANK_STAFF", "history": [], "text": "How do I open an account?"},
+    {"id": "taxi-bank", "kind": "talk", "npc": "TAXI_DRIVER", "history": [], "text": "Hi! Can you take me to the bank?"},
+    {"id": "taxi-chat", "kind": "talk", "npc": "TAXI_DRIVER", "history": [], "text": "How long have you been driving a taxi?"},
+    {"id": "barber-cut", "kind": "talk", "npc": "BARBER_STAFF", "history": [], "text": "I need a haircut."},
+    {"id": "student-post-office", "kind": "talk", "npc": "TOWN_STUDENT", "history": [], "text": "Excuse me, where is the post office?"},
+    {"id": "student-school", "kind": "talk", "npc": "TOWN_STUDENT", "history": [], "text": "Do you go to school around here?"},
+    {"id": "hotel-reservation", "kind": "talk", "npc": "HOTEL_STAFF", "history": [], "text": "Hi, I have a reservation."},
+    {"id": "hotel-breakfast", "kind": "talk", "npc": "HOTEL_STAFF", "history": [], "text": "Where can I get breakfast?"},
+    {"id": "shop-umbrella", "kind": "talk", "npc": "SHOP_STAFF", "history": [], "text": "It's raining. Do you sell umbrellas?"},
+    {"id": "broken-cafe", "kind": "broken", "npc": "CAFE_STAFF", "history": [], "text": "coffee... uh... big... milk no"},
+    {"id": "broken-taxi", "kind": "broken", "npc": "TAXI_DRIVER", "history": [], "text": "go... money place... fast"},
+    {"id": "broken-bank", "kind": "broken", "npc": "BANK_STAFF", "history": [], "text": "card... lost... yesterday... my"}
+  ]
+}

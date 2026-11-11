@@ -9,10 +9,11 @@ using F = A305.EditorTools.Learning.FeedbackScreenBuilder;
 namespace A305.EditorTools.Onboarding
 {
     /// <summary>
-    /// 로그인 뒤 진입 화면(e2 게스트 캐릭터 고르기, e3 가입 정보 입력, e4 레벨 테스트, e5 접속 실패)을 확정 시안대로 만든다.
-    /// 시안 e2~e4는 창을 왼쪽에 두지만 로그인 뒤에는 창 하나만 뜨므로 e5처럼 화면 가운데에 둔다. 크기·자리는 시안 px에 1.2를 곱한 캔버스 단위다.
+    /// 로그인 뒤 진입 화면(e2 게스트 캐릭터 고르기, e3 가입 정보 입력, e5 접속 실패)을 확정 시안대로 만들고, 화면 04 레벨 테스트 창은
+    /// <see cref="LevelTestScreenBuilder"/>에 맡긴다. 시안 e2·e3은 창을 왼쪽에 두지만 로그인 뒤에는 창 하나만 뜨므로 e5처럼 화면 가운데에 둔다.
+    /// 크기·자리는 시안 px에 1.2를 곱한 캔버스 단위다.
     /// 공용 배경은 흐린 마을과 가운데가 옅은 그림자를 렌더링한 그림이고, 창은 시안의 불투명한 유리(.glass.solid) 그림이다.
-    /// 시안의 얇은 유리는 뒤를 흐리게 해 밝아 보이는데 Unity에는 그 흐림이 없어, 네 창 모두 접속 실패 창의 불투명한 유리를 쓴다. 버튼·캐릭터 카드·레벨 테스트 칸·아이콘은
+    /// 시안의 얇은 유리는 뒤를 흐리게 해 밝아 보이는데 Unity에는 그 흐림이 없어, 모든 창이 접속 실패 창의 불투명한 유리를 쓴다. 버튼·캐릭터 카드·아이콘은
     /// 시안을 렌더링한 그림(Art/UI/Entry)이고, 제목·안내·동의 문구처럼 바뀌거나 서버가 주는 글자는 글자로 둔다.
     /// </summary>
     public static class EntryScreensBuilder
@@ -40,6 +41,16 @@ namespace A305.EditorTools.Onboarding
             .45f
         );
 
+        [MenuItem("Tools/A305/Onboarding/Apply Waiting Backdrop")]
+        public static void ApplyWaitingBackdrop()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                PrefabPath,
+                root => Background(root.transform.Find("Background"))
+            );
+            AssetDatabase.SaveAssets();
+        }
+
         [MenuItem(MenuPath)]
         public static void ApplyToPrefab()
         {
@@ -56,18 +67,48 @@ namespace A305.EditorTools.Onboarding
             Signup((RectTransform)root.Find("SignupPanel"));
             if (root.Find("GuestReturnPanel") != null)
                 GuestReturn((RectTransform)root.Find("GuestReturnPanel"));
-            LevelTest((RectTransform)root.Find("LevelTestPanel"));
+            LevelTestScreenBuilder.Apply((RectTransform)root.Find("LevelTestPanel"));
             Connection((RectTransform)root.Find("ConnectionPanel"));
+            GuestLevelTestLoginBuilder.Apply(root.gameObject);
         }
 
-        // 화면을 덮도록 비율을 지켜 늘린 흐린 마을 그림. 로그인 화면은 그 위에 자기 배경을 깐다.
+        // 접속 확인 중에는 로그인과 같은 마을 배경·크림색 그라데이션을 쓰고, 가운데 창이 뜨면 시안(e2~e5)의 흐린 마을로 바꾼다.
         private static void Background(Transform background)
         {
             RectTransform town = F.Rect("Town", background);
             town.SetAsFirstSibling();
             F.Fill(town);
-            F.Picture(town.gameObject, Sprite("EntryBackdrop"));
-            var cover = BuilderTools.GetOrAddComponent<AspectRatioFitter>(town.gameObject);
+            F.Picture(
+                town.gameObject,
+                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Login/LoginTown.png")
+            );
+            CoverScreen(town);
+            RectTransform shade = F.Rect("Shade", background);
+            F.Fill(shade);
+            F.Picture(
+                shade.gameObject,
+                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Login/LoginShade.png")
+            );
+            RectTransform windowTown = F.Rect("WindowTown", background);
+            windowTown.SetSiblingIndex(shade.GetSiblingIndex() + 1);
+            F.Fill(windowTown);
+            F.Picture(windowTown.gameObject, Sprite("EntryBackdrop"));
+            CoverScreen(windowTown);
+            windowTown.gameObject.SetActive(false);
+
+            var backdrop = BuilderTools.GetOrAddComponent<EntryBackdropView>(background.gameObject);
+            BuilderTools.SetReference(backdrop, "loginTown", town.gameObject);
+            BuilderTools.SetReference(backdrop, "creamShade", shade.gameObject);
+            BuilderTools.SetReference(backdrop, "windowTown", windowTown.gameObject);
+            var screen = background.parent.GetComponent<OnboardingScreen>();
+            if (screen != null)
+                BuilderTools.SetReference(screen, "backdrop", backdrop);
+        }
+
+        // 화면을 덮도록 16:9 비율을 지켜 늘린다.
+        private static void CoverScreen(RectTransform picture)
+        {
+            var cover = BuilderTools.GetOrAddComponent<AspectRatioFitter>(picture.gameObject);
             cover.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
             cover.aspectRatio = 16f / 9f;
         }
@@ -141,34 +182,6 @@ namespace A305.EditorTools.Onboarding
             Cards(panel.Find("AvatarRow"), "SignupCard", 296, 269, 174, 285);
             ArtButton(panel.Find("BackButton"), "EntryBack", Inset, 500, 126.92f, 60);
             ArtButton(panel.Find("SubmitButton"), "EntrySignupShort", 191.92f, 500, 415.08f, 60);
-        }
-
-        // e4: 제목·안내, 준비 중인 레벨 테스트 칸, 흐린 [레벨 테스트 진행하기], [건너뛰기]
-        private static void LevelTest(RectTransform panel)
-        {
-            Sheet(panel, 620, 519);
-            Title(panel.Find("Title"), 51, 514);
-            TMP_Text body = Sub(panel.Find("Body"), 107, 514, 57);
-            body.text =
-                "간단한 문제로 대화 난이도를 정하는 기능이에요.\n지금은 준비 중이라 초급으로 시작해요.";
-            RectTransform tile = F.Rect("LevelTile", panel);
-            tile.SetSiblingIndex(body.transform.GetSiblingIndex() + 1);
-            F.TopLeft(tile, Inset - 16, 188 - 12, 546, 162);
-            F.Picture(tile.gameObject, Sprite("EntryLevelTile"));
-            Button start = ArtButton(
-                panel.Find("StartButton"),
-                "EntryLevelOff",
-                Inset,
-                334,
-                514,
-                60
-            );
-            // 그림이 이미 흐린 준비 중 버튼이라, 누를 수 없을 때 더 흐리게 하지 않는다.
-            ColorBlock colors = start.colors;
-            colors.disabledColor = Color.white;
-            start.colors = colors;
-            ArtButton(panel.Find("SkipButton"), "EntrySkip", Inset, 408, 514, 60);
-            panel.Find("SkipNote").gameObject.SetActive(false);
         }
 
         // e5: 와이파이 아이콘, 가운데 맞춘 제목·안내, [다시 시도]
@@ -466,7 +479,7 @@ namespace A305.EditorTools.Onboarding
         }
 
         // 렌더링한 그림을 크기를 줄이지 않고 가져온다. 늘려 쓰는 칸 그림은 둥근 모서리 자리(border, 그림 px)를 둔다.
-        private static Sprite Sprite(string name, Vector4 border = default)
+        internal static Sprite Sprite(string name, Vector4 border = default)
         {
             string path = $"{ArtFolder}/{name}.png";
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);

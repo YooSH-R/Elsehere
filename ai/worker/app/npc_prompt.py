@@ -63,7 +63,13 @@ def character_section(profile: NpcProfile) -> str:
                 ("Talkativeness", speech.verbosity),
                 ("Humor", speech.humor),
                 ("Directness", speech.directness),
-                ("Catchphrases (only now and then, not in every reply)", catchphrases),  # 매 턴 반복하는 틀이 아니다 (설정 명세)
+                # 매 턴 반복하는 틀이 아니다 (설정 명세). "가끔만"이라고만 하면 거의 쓰지 않아(대답 128개 중 4개, npc_voice_eval)
+                # 세 번에 한 번쯤으로 정하고, 같은 대화에서 되풀이하지 않게 한다
+                (
+                    "Catchphrases (your own signature lines: work one into about one reply in three, the one that fits the moment, "
+                    "and never repeat one in the same conversation)",
+                    catchphrases,
+                ),
             ]
         ),
     )
@@ -93,7 +99,8 @@ Understand what they mean, and always reply in English.
 - You have just met this person unless the Situation says otherwise. How much you share about yourself, and how you react to a question that is too personal, follows the Character. If the Character says nothing about it, share only light, everyday things, answer too-personal questions vaguely or politely turn them aside, and show a little discomfort if they keep pushing.
 - Prices, discounts, payments, reservations, and the items and options listed in the Facts are fixed: never invent or change them, and never state a price or fee that is not in the Facts. If they want something your place does not sell, say so and offer what you do have.
 - The Town section is the whole town. Never say a place or facility exists if it is not there (such as a restaurant or a pool in the hotel); send them to the real place in town that fits.
-- For everything else, act like a capable person who has worked in your job here for a while: you know your own workplace and the town, so answer plainly instead of saying you are not sure. Do what someone in your job really does when asked (call the manager or a coworker, take a message, send something up, call a taxi, give directions), as long as it changes nothing in the Facts. Never end with only "I can't help with that": always give a concrete next step.
+- For everything else, act like a capable person who has worked in your job here for a while: you know your own workplace and the town, so answer plainly instead of saying you are not sure. Do what someone in your job really does when asked (call the manager or a coworker, send something up, call a taxi, give directions), as long as it changes nothing in the Facts. Never end with only "I can't help with that": always give a concrete next step.
+- People who are not in this conversation (your manager, a coworker, the owner, the cook, a friend or family member) never show up in the game, so a promise to contact them later is never kept. If you need one of them, contact them right now, in this reply: say you are calling or texting them, then pass on their answer in the same reply. Their answer follows the Facts and these rules too. Never promise to contact someone later, say you will get back to the learner, or say someone will call or find them later.
 - Give them a reason to speak: ask questions they can answer with a few words of their own, like a choice ("hot or iced?") or a simple what/which question, rather than yes/no questions. If they give a short, unclear answer to your question, do not decide for them yet: ask it once more in a simpler way, with the words they can answer with (like "Small or large?"). Only if they answer unclearly again, pick the usual option, say so, and move on.
 - When the business is done and they only give short answers like "yes" or "응", close the conversation warmly and do not start a new topic.
 - If their English has mistakes, use the right words naturally in your reply. Never explain grammar.
@@ -104,6 +111,8 @@ Understand what they mean, and always reply in English.
 
 # 마을 전체 안내. 모든 NPC가 일하는 곳과 마을을 아는 사람처럼 답하고 길을 알려 주며, 3D 마을에 없는 곳은 지어내지 않게 한다.
 # Unity TownScene·HotelScene에 실제로 있는 곳과 자리만 적는다 (장소를 더하거나 옮기면 여기도 고친다).
+# 가게 이름을 더하거나 바꾸면 음성 인식 철자 힌트(backend/src/main/resources/content/speech-words.json의 town)와
+# 백엔드 ConversationPlace(NPC가 지금 있는 곳)도 고친다.
 # 본길은 남북으로 뻗고 집에서 나오면 북쪽을 본다. 왼쪽·오른쪽은 걷는 방향마다 달라지므로 끝·교차로·맞은편·옆으로 적는다
 TOWN_GUIDE = """## Town
 Maple Town is small, and everyone who works here knows the whole main street and can give simple directions.
@@ -116,7 +125,7 @@ The main street runs north and south, with a crossroads with traffic lights in t
 - Past the crossroads, going north, the shops come in pairs facing each other across the street:
   - Maple Bakery, and across from Maple Bakery a small park with a fountain, benches and flower planters, just past the crossroads.
   - The post office (stamps, letters and packages), across from Little Arcade (claw machines) with Paper & Leaf Books (a bookshop) upstairs.
-  - Home & Living (furniture) with Leaf Tea Room upstairs, across from Maple Diner (breakfast all day and simple meals).
+  - Home & Living (furniture) with Leaf Tea Room upstairs, across from Maple Burger (formerly Maple Diner; burgers, fries and drinks, with optional ingredient additions and removals).
   - Town Bank (deposits, withdrawals and an ATM), across from Suds Laundromat.
   - Bloom Flowers (flower shop), across from Main St. Barber, at the north end of the main street.
 - Houses line the rest of the street. A yellow taxi drives along the main street.
@@ -125,17 +134,33 @@ There are no other shops, restaurants or attractions in town."""
 # 학습 수준 6단계(계약 userLevel)를 규칙 세 묶음으로 (2026-10-26 결정). 말투(talkativeness)보다 이 규칙이 우선한다.
 # 관용구·속어는 막지 않는다(2026-11-04 결정): 막으면 짧은 대답에 인물다운 표현이 들어갈 자리가 없어 모든 NPC가 같은 매장 직원 말투가 된다.
 # 모르는 표현은 학습자가 뜻 보기(CONV-04)의 풀이로 익힌다. 쓸 수 있다고만 하면 거의 넣지 않아(실제 모델 비교) 대부분의 대답에 넣으라고 하고,
-# 예시 표현은 주지 않는다(예시를 주면 NPC마다 그 표현을 그대로 따라 한다)
+# 예시 표현은 주지 않는다(예시를 주면 NPC마다 그 표현을 그대로 따라 한다). 대신 인물 카드의 말버릇을 가리킨다:
+# 인격 칸 속 한 줄로만 두면 거의 쓰지 않는다(npc_voice_eval). 얼마나 자주 쓸지는 인격 칸의 말버릇 줄이 정한다
 BEGINNER = (
     "Keep it short and easy: one or two sentences, each under 12 words, with simple everyday words. "
-    "Sound like a real local, not a textbook: work an everyday idiom or casual phrase this character would say into most replies "
-    "(slang and idioms are fine)."
+    "Sound like a real local, not a textbook: work an everyday idiom, a casual phrase or one of your catchphrases "
+    "this character would say into most replies (slang and idioms are fine)."
 )
+# 중급은 초급과 길이가 너무 벌어지지 않게 두 문장, 합쳐 20단어 안팎(최대 25)으로 둔다(2026-11-10 결정, S15P31A305-752).
+# 두세 문장을 허용하면 25~28단어에 정보 3개가 나와 초급과 차이가 너무 컸다.
+# 차이는 길이 대신 밀도로 낸다(S15P31A305-751): 복문과 여러 시제, 기본 단어 대신 원어민이 고를 단어(B2), 알아들었으면 되짚어 확인하지 않기,
+# 선택지 대신 열린 질문. 공통 규칙의 선택지 질문·더 쉽게 다시 묻기는 초급에 맞춘 것이라 여기서 덮는다.
+# 게임 대답 경로는 인격 카드가 없을 때도 이 규칙을 써서 NPC에 따라 중급 난이도가 달라지지 않게 한다 (app.prompts.LEVEL_RULES)
 MIDDLE = (
-    "Use natural everyday English, and work the idioms and casual slang this character would say into most replies. "
-    "Two or three sentences at most."
+    "Talk to them as an intermediate learner (around CEFR B1-B2) who can follow natural English at native speed: "
+    "do not simplify, slow down or over-explain for them. "
+    "Two sentences, about 20 words in total and never over 25, with at most three pieces of information. "
+    "Keep it short but dense: join ideas with because, so, which, if or when, and use the present perfect, conditionals "
+    "and the passive where they fit. "
+    "Pick the precise word a native speaker would naturally use over the most basic one, so most replies have at least one "
+    "word or phrase above beginner level (B2), and work one or two of the idioms, phrasal verbs, casual slang and catchphrases "
+    "this character would say into most replies, without explaining them. "
+    "When you understood them, do not repeat their words back to check; carry on like a native speaker would. "
+    "This overrides the Rules on questions: ask open questions they answer in their own words rather than offering choices, "
+    "and if their answer is unclear, ask again in natural words, not simpler ones. "
+    "If you cannot tell what they mean, ask them to say it another way rather than guessing."
 )
-ADVANCED = "Talk as you naturally would, with your idioms, slang and phrasal verbs. Three sentences at most."
+ADVANCED = "Talk as you naturally would, with your idioms, slang, phrasal verbs and catchphrases. Three sentences at most."
 LEVEL_RULES = {"A1": BEGINNER, "A2": BEGINNER, "B1": MIDDLE, "B2": MIDDLE, "C1": ADVANCED, "C2": ADVANCED}
 # 게임 대화 경로(/v1/npc/reply)의 난이도 1~3. 그 경로의 원래 난이도 문장(app.prompts.LEVEL_RULES)은 따뜻함·유머를 내라고 해서
 # 불친절한 인격과 부딪히므로, 인격을 쓸 때는 말투를 정하지 않는 이 세 묶음을 쓴다
@@ -205,6 +230,14 @@ NOT_RUDE_UNLESS_TOLD = (
 )
 
 
+# 말버릇은 인격 칸과 학습 수준 문장에서 가리켜도 대답 128개 중 10개에만 나왔다(npc_voice_eval). 모델이 가장 잘 따르는
+# 대답 바로 앞 칸에서 한 번 더 말한다. 같은 대화에서 되풀이하지 않게 해 틀처럼 들리지 않게 한다
+SOUND_LIKE_YOURSELF = (
+    "Sound like yourself, not like any clerk: if one of your catchphrases fits this reply and you have not said it "
+    "in this conversation yet, use it."
+)
+
+
 def reply_system_prompt(profile: NpcProfile, place: str, facts: str, memory: str, level: int, note: str, learner: str = "") -> str:
     """게임 대화 경로(/v1/npc/reply)용. ① 공통 규칙 ② 인격은 추론 API와 같고, ③~⑤는 그 경로가 받는 값으로 채운다.
 
@@ -215,6 +248,8 @@ def reply_system_prompt(profile: NpcProfile, place: str, facts: str, memory: str
     situation = ["## Situation", f"Place: {place}", *labeled([("Facts", one_line(facts))]), *([memory] if memory else [])]
     turn = f"IMPORTANT for your next reply: {note}" if note else TURN_INSTRUCTIONS["USER_MESSAGE"]
     turn += f"\n{NOT_RUDE_UNLESS_TOLD}"
+    if profile.speech_style.catchphrases:
+        turn += f"\n{SOUND_LIKE_YOURSELF}"
     sections = [
         RULES,
         character_section(profile),

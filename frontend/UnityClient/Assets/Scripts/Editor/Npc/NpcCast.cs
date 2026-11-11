@@ -207,6 +207,7 @@ namespace A305.EditorTools.Npc
                 clothes: Palette.Leaf,
                 eyes: Palette.HazelEyes
             ),
+            Member("TOWN_JOHN_PARK", NpcLooks.John),
         };
 
         public static NpcCastMember Find(string code)

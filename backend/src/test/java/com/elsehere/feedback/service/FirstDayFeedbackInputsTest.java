@@ -7,18 +7,59 @@ import static org.mockito.Mockito.when;
 import com.elsehere.ai.client.FeedbackInput;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.InitiatedBy;
+import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.world.entity.Npc;
 import com.elsehere.world.entity.Scene;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class FirstDayFeedbackInputsTest {
+  @Test
+  void legacyConversationDoesNotGuessWhichGoalsWereStillPending() {
+    Conversation conversation = Conversation.start(8L, 1L, InitiatedBy.USER, 1, Instant.EPOCH);
+    conversation.attachFirstDayStage(FirstDayStage.CAFE_BREAK.ordinal());
+    Scene scene = mock(Scene.class);
+    when(scene.getCode()).thenReturn("CAFE");
+    Npc npc = mock(Npc.class);
+    when(npc.getScene()).thenReturn(scene);
+    when(npc.getCode()).thenReturn("CAFE_STAFF");
+
+    var input = FeedbackInputs.from(conversation, npc, List.of(), UUID.randomUUID());
+
+    assertThat(input.context().sceneDescription())
+        .contains("실제 발화만 평가")
+        .doesNotContain("음료 주문", "크기·온도", "매장 이용 말하기");
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void cafeReopenedConversationOnlyEvaluatesItsRemainingGoals(boolean orderFinished) {
+    Conversation conversation = Conversation.start(8L, 1L, InitiatedBy.USER, 1, Instant.EPOCH);
+    conversation.attachFirstDayStage(FirstDayStage.CAFE_BREAK.ordinal());
+    conversation.recordFirstDayGoals(orderFinished ? List.of() : List.of("dine_in"));
+    Scene scene = mock(Scene.class);
+    when(scene.getCode()).thenReturn("CAFE");
+    when(scene.getName()).thenReturn("카페");
+    Npc npc = mock(Npc.class);
+    when(npc.getScene()).thenReturn(scene);
+    when(npc.getCode()).thenReturn("CAFE_STAFF");
+
+    var input = FeedbackInputs.from(conversation, npc, List.of(), UUID.randomUUID());
+
+    assertThat(input.context().sceneDescription()).doesNotContain("음료 주문", "크기·온도");
+    assertThat(input.context().sceneDescription())
+        .contains(orderFinished ? "할 일: 없음" : "매장 이용 말하기");
+  }
+
   @Test
   void feedbackUsesConversationStageEvenAfterMissionHasAdvanced() {
     Conversation conversation = Conversation.start(8L, 1L, InitiatedBy.USER, 1, Instant.EPOCH);
     conversation.attachFirstDayStage(3);
+    conversation.recordFirstDayGoals(FirstDayStage.FIND_BAG.intentIds());
     Scene scene = mock(Scene.class);
     when(scene.getCode()).thenReturn("CAFE");
     when(scene.getName()).thenReturn("카페");
@@ -52,6 +93,7 @@ class FirstDayFeedbackInputsTest {
   private static FeedbackInput inputFor(int stage, int level) {
     Conversation conversation = Conversation.start(8L, 1L, InitiatedBy.USER, level, Instant.EPOCH);
     conversation.attachFirstDayStage(stage);
+    conversation.recordFirstDayGoals(FirstDayStage.values()[stage].intentIds());
     Scene scene = mock(Scene.class);
     when(scene.getCode()).thenReturn("HOTEL");
     when(scene.getName()).thenReturn("호텔");

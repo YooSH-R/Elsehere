@@ -60,6 +60,9 @@ namespace A305.Api
             this.streamTransport = streamTransport;
         }
 
+        /// <summary>이벤트 스트림(SSE)을 받을 전송이 있는지. 없으면 <see cref="PostStreamAsync"/>를 쓸 수 없다.</summary>
+        public bool CanStream => streamTransport != null;
+
         /// <summary>
         /// JSON 본문을 POST하고 서버가 보내는 이벤트 스트림(SSE)을 받는 대로 <paramref name="onEvent"/>(이벤트 이름, data)에 넘긴다.
         /// 스트림을 시작하기 전의 오류는 다른 요청처럼 <see cref="ApiException"/>으로 던진다.
@@ -113,6 +116,12 @@ namespace A305.Api
         {
             string responseBody = await SendAsync("PUT", path, body);
             return ApiJson.Deserialize<T>(responseBody);
+        }
+
+        /// <summary>응답 본문이 없는 PUT 요청(예: 204 No Content).</summary>
+        public async Task PutAsync(string path, object body)
+        {
+            await SendAsync("PUT", path, body);
         }
 
         public async Task<T> PatchAsync<T>(string path, object body)

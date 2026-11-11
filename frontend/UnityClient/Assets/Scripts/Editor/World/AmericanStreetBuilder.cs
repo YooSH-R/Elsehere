@@ -33,6 +33,25 @@ namespace A305.EditorTools.World
         // 카페 앞 횡단보도는 z=-12.5~-9.5다.
         private const float CrossRoadZ = 10f;
         private const float CrossRoadEndX = 20f;
+        private const float PedXingPoleZ = -.05f;
+
+        [MenuItem("Tools/A305/World/Fit Pedestrian Crossing Sign")]
+        public static void FitPedestrianCrossingSign()
+        {
+            BuilderTools.ThrowIfPlaying();
+            BuilderTools.UpdatePrefabIfExists(
+                PrefabFolder + "/PedXingSign.prefab",
+                root =>
+                {
+                    // 저장된 프리팹은 재질별로 합친 메시 이름을 사용한다.
+                    Transform pole = root.transform.Find("SignPole") ?? root.transform.Find("Pole");
+                    Vector3 position = pole.localPosition;
+                    position.z = PedXingPoleZ;
+                    pole.localPosition = position;
+                }
+            );
+            AssetDatabase.SaveAssets();
+        }
 
         [MenuItem(MenuPath)]
         public static void Apply()
@@ -720,7 +739,15 @@ namespace A305.EditorTools.World
         {
             var root = new GameObject("PedXingSign");
             Transform t = root.transform;
-            Post("Pole", t, new Vector3(0, 1.15f, 0), .05f, 2.3f, Color("SignPole", "#9AA3A8"));
+            // 봉의 앞쪽 면도 표지판 뒷면보다 뒤에 두어 글자 사이로 튀어나오지 않게 한다.
+            Post(
+                "Pole",
+                t,
+                new Vector3(0, 1.15f, PedXingPoleZ),
+                .05f,
+                2.3f,
+                Color("SignPole", "#9AA3A8")
+            );
             Transform board = Block(
                 "Board",
                 t,
@@ -798,7 +825,7 @@ namespace A305.EditorTools.World
                 );
                 face.localRotation = Quaternion.Euler(side * 12f, 0, 0);
             }
-            Hover(root, Word("chalkboard"));
+            Hover(root, Word("sidewalk_sign"));
             return (
                 root,
                 top =>

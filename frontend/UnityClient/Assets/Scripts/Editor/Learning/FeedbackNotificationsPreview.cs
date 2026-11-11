@@ -20,6 +20,12 @@ namespace A305.EditorTools.Learning
     /// <summary>실제 프리팹을 고정 데이터로 렌더링한다. 네트워크·모델 호출·씬 저장은 하지 않는다.</summary>
     public static class FeedbackNotificationsPreview
     {
+        public static void CaptureAlignedHistory()
+        {
+            FeedbackListBuilder.AlignUnreadCountToPrefab();
+            Capture();
+        }
+
         public static void Capture()
         {
             Unity.CodeEditor.CodeEditor.CurrentEditor.SyncAll();
@@ -81,9 +87,20 @@ namespace A305.EditorTools.Learning
             var history = new ConversationHistory(new SampleHistory());
             history.LoadAsync().GetAwaiter().GetResult();
             hud.HistoryView.Show(history);
-            hud.SetFeedbackCount(2);
-            Render(camera, output, "history-1600x900.png", 1600, 900, hud, null);
-            Render(camera, output, "history-1280x720.png", 1280, 720, hud, null);
+            hud.SetFeedbackCount(4);
+            UiThemeId originalTheme = UiThemeSelection.Shared.Current;
+            foreach (
+                UiThemeId theme in new[] { UiThemeId.Jelly, UiThemeId.Sticker, UiThemeId.Cloud }
+            )
+            {
+                UiThemeSelection.Shared.Select(theme);
+                foreach (ThemedElement element in BuilderTools.FindAllInScene<ThemedElement>(scene))
+                    element.ApplyCurrent();
+                Render(camera, output, $"history-{theme}-1600x900.png", 1600, 900, hud, null);
+                Render(camera, output, $"history-{theme}-1280x720.png", 1280, 720, hud, null);
+                Render(camera, output, $"history-{theme}-844x390.png", 844, 390, hud, null);
+            }
+            UiThemeSelection.Shared.Select(originalTheme);
         }
 
         private static void Render(
@@ -122,6 +139,27 @@ namespace A305.EditorTools.Learning
                             "Unread count overlaps at " + width + "x" + height
                         );
                 }
+                Transform history = hud.transform.Find("History");
+                Transform unread = history.Find("UnreadCount");
+                if (unread.gameObject.activeInHierarchy)
+                {
+                    Bounds countBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(
+                        history,
+                        unread
+                    );
+                    var countRect = new Rect(countBounds.min, countBounds.size);
+                    foreach (string section in new[] { "Tabs", "Rows" })
+                    {
+                        Bounds bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(
+                            history,
+                            history.Find(section)
+                        );
+                        if (countRect.Overlaps(new Rect(bounds.min, bounds.size)))
+                            throw new InvalidOperationException(
+                                "Unread count overlaps " + section + " at " + width + "x" + height
+                            );
+                    }
+                }
                 camera.Render();
                 RenderTexture.active = target;
                 pixels.ReadPixels(new Rect(0, 0, width, height), 0, 0);
@@ -139,7 +177,7 @@ namespace A305.EditorTools.Learning
 
         private sealed class SampleHistory : IConversationHistoryApi
         {
-            public Task<ConversationPage> GetPageAsync(string cursor) =>
+            public Task<ConversationPage> GetPageAsync(string cursor, string sceneCode) =>
                 Task.FromResult(
                     new ConversationPage
                     {

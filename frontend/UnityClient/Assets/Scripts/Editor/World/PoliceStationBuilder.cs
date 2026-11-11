@@ -254,17 +254,18 @@ namespace A305.EditorTools.World
         {
             OpenCarWindows(car.transform);
             AddSteering(scene, car.transform);
-            Transform group =
-                car.transform.Find(DriversGroup)
-                ?? Group(DriversGroup, car.transform, Vector3.zero);
+            Transform group = car.transform.Find(DriversGroup);
+            if (group == null)
+                group = Group(DriversGroup, car.transform, Vector3.zero);
             foreach (Transform seat in group.Cast<Transform>().ToArray())
                 if (!Officers.Any(officer => officer.Code == seat.name))
                     Object.DestroyImmediate(seat.gameObject);
             var seats = new List<(string Code, GameObject Seat)>();
             foreach (var officer in Officers)
             {
-                Transform seat =
-                    group.Find(officer.Code) ?? SeatOfficer(car.transform, group, officer.Code);
+                Transform seat = group.Find(officer.Code);
+                if (seat == null)
+                    seat = SeatOfficer(car.transform, group, officer.Code);
                 seat.gameObject.SetActive(false);
                 seats.Add((officer.Code, seat.gameObject));
             }

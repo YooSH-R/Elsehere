@@ -68,6 +68,10 @@ class SpeechServiceTest {
 
   @Autowired private NpcAudioStore npcAudioStore;
 
+  // 워커에 보낸 장면 단어
+  @SuppressWarnings("unchecked")
+  private final ArgumentCaptor<List<String>> sceneWords = ArgumentCaptor.forClass(List.class);
+
   private Long userId;
   private Conversation conversation;
   private Turn npcTurn;
@@ -84,7 +88,7 @@ class SpeechServiceTest {
   @Test
   @DisplayName("진행 중인 대화의 녹음을 전사해 문장과 길이를 돌려주고, 워커 요청에 요청 ID와 대화를 붙인다")
   void transcribe_turn_returnsText() {
-    given(aiGateway.transcribe(any(), eq(RECORDING), eq("audio/webm;codecs=opus"), any()))
+    given(aiGateway.transcribe(any(), eq(RECORDING), eq("audio/webm;codecs=opus"), any(), any()))
         .willReturn(new SttResult("I want a latte", 1.25, List.of()));
     UUID requestId = UUID.randomUUID();
 
@@ -103,6 +107,7 @@ class SpeechServiceTest {
             eq(new WorkerTrace(requestId, userId, conversation.getId())),
             eq(RECORDING),
             eq("audio/webm;codecs=opus"),
+            any(),
             any());
   }
 
@@ -112,7 +117,7 @@ class SpeechServiceTest {
     textTurn(entityManager, conversation, 2, "Do you like running?");
     npcTurn(entityManager, conversation, 3, "I'm just taking a walk, not running.");
     entityManager.flush();
-    given(aiGateway.transcribe(any(), any(), anyString(), any()))
+    given(aiGateway.transcribe(any(), any(), anyString(), any(), any()))
         .willReturn(new SttResult("Your walking is weird.", 1.0, List.of()));
 
     speechService.transcribe(
@@ -124,13 +129,71 @@ class SpeechServiceTest {
 
     then(aiGateway)
         .should()
-        .transcribe(any(), any(), anyString(), eq("I'm just taking a walk, not running."));
+        .transcribe(any(), any(), anyString(), eq("I'm just taking a walk, not running."), any());
+  }
+
+  @Test
+  @DisplayName("대화 녹음은 학습자 닉네임, NPC 이름, 같은 장소 NPC 이름, 마을 단어, 그 장소의 단어를 장면 단어로 워커에 보낸다")
+  void transcribe_turn_sendsNamesTownAndPlaceWords() {
+    given(aiGateway.transcribe(any(), any(), anyString(), any(), any()))
+        .willReturn(new SttResult("Iced Americano, please.", 1.0, List.of()));
+
+    transcribeTurn(recording("audio/wav", RECORDING));
+
+    then(aiGateway).should().transcribe(any(), any(), anyString(), any(), sceneWords.capture());
+    assertThat(sceneWords.getValue())
+        .startsWith("Sun", "Mia", "Zoe", "Leo", "Maple Town")
+        .contains("Maple Bakery", "Americano", "Iced Americano", "latte")
+        .endsWith("for here", "to go")
+        .doesNotHaveDuplicates();
+  }
+
+  @Test
+  @DisplayName("게스트 닉네임(guest-000123)은 사람 이름이 아니라 장면 단어로 보내지 않는다")
+  void transcribe_guest_doesNotSendGuestNickname() {
+    Long guestId =
+        UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1", "guest-000123");
+    optionalConsentService.change(guestId, ConsentType.VOICE, true);
+    Conversation guestConversation = conversation(entityManager, guestId, "CAFE_STAFF");
+    entityManager.flush();
+    given(aiGateway.transcribe(any(), any(), anyString(), any(), any()))
+        .willReturn(new SttResult("Hi", 1.0, List.of()));
+
+    speechService.transcribe(
+        guestId,
+        UUID.randomUUID(),
+        TranscriptionPurpose.TURN,
+        guestConversation.getId(),
+        recording("audio/wav", RECORDING));
+
+    then(aiGateway).should().transcribe(any(), any(), anyString(), any(), sceneWords.capture());
+    assertThat(sceneWords.getValue()).startsWith("Mia").doesNotContain("guest-000123");
+  }
+
+  @Test
+  @DisplayName("튜토리얼 녹음은 대화 NPC가 없으니 학습자 닉네임과 마을 단어만 장면 단어로 보낸다")
+  void transcribe_tutorial_sendsNicknameAndTownWords() {
+    given(aiGateway.transcribe(any(), any(), anyString(), any(), any()))
+        .willReturn(new SttResult("My name is Sun.", 1.0, List.of()));
+
+    speechService.transcribe(
+        userId,
+        UUID.randomUUID(),
+        TranscriptionPurpose.TUTORIAL,
+        null,
+        recording("audio/wav", RECORDING));
+
+    then(aiGateway).should().transcribe(any(), any(), anyString(), any(), sceneWords.capture());
+    assertThat(sceneWords.getValue())
+        .startsWith("Sun", "Maple Town")
+        .contains("Maple Bakery")
+        .doesNotContain("Mia", "Americano");
   }
 
   @Test
   @DisplayName("튜토리얼 녹음은 대화 없이 전사하고 워커 요청에 대화 ID와 NPC 대사를 붙이지 않는다")
   void transcribe_tutorial_doesNotNeedConversation() {
-    given(aiGateway.transcribe(any(), any(), anyString(), any()))
+    given(aiGateway.transcribe(any(), any(), anyString(), any(), any()))
         .willReturn(new SttResult("Hello", null, List.of()));
 
     TranscriptionResponse response =
@@ -143,7 +206,7 @@ class SpeechServiceTest {
 
     assertThat(response).isEqualTo(new TranscriptionResponse("Hello", 0));
     ArgumentCaptor<WorkerTrace> trace = ArgumentCaptor.forClass(WorkerTrace.class);
-    then(aiGateway).should().transcribe(trace.capture(), any(), anyString(), isNull());
+    then(aiGateway).should().transcribe(trace.capture(), any(), anyString(), isNull(), any());
     assertThat(trace.getValue().conversationId()).isNull();
   }
 
@@ -154,7 +217,7 @@ class SpeechServiceTest {
 
     assertErrorCode(
         () -> transcribeTurn(recording("audio/wav", RECORDING)), ErrorCode.VOICE_CONSENT_REQUIRED);
-    then(aiGateway).should(never()).transcribe(any(), any(), anyString(), any());
+    then(aiGateway).should(never()).transcribe(any(), any(), anyString(), any(), any());
   }
 
   @Test
@@ -170,7 +233,7 @@ class SpeechServiceTest {
         ErrorCode.AUDIO_FORMAT_UNSUPPORTED);
     assertErrorCode(
         () -> transcribeTurn(recording(null, RECORDING)), ErrorCode.AUDIO_FORMAT_UNSUPPORTED);
-    then(aiGateway).should(never()).transcribe(any(), any(), anyString(), any());
+    then(aiGateway).should(never()).transcribe(any(), any(), anyString(), any(), any());
   }
 
   @Test
@@ -193,7 +256,7 @@ class SpeechServiceTest {
   @Test
   @DisplayName("말소리를 알아듣지 못하면(빈 전사) STT_NO_SPEECH다")
   void transcribe_blankText_throwsNoSpeech() {
-    given(aiGateway.transcribe(any(), any(), anyString(), any()))
+    given(aiGateway.transcribe(any(), any(), anyString(), any(), any()))
         .willReturn(new SttResult("  ", 0.5, List.of()));
 
     assertErrorCode(
@@ -204,7 +267,7 @@ class SpeechServiceTest {
   @DisplayName("녹음 음성 학습 활용에 동의한 사용자는 전사한 녹음과 인식 결과를 학습용으로 저장한다")
   void transcribe_voiceTrainingAgreed_savesRecording() {
     optionalConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
-    given(aiGateway.transcribe(any(), any(), anyString(), any()))
+    given(aiGateway.transcribe(any(), any(), anyString(), any(), any()))
         .willReturn(new SttResult("I want a latte", 1.25, List.of()));
     UUID requestId = UUID.randomUUID();
 
@@ -226,10 +289,30 @@ class SpeechServiceTest {
   }
 
   @Test
+  @DisplayName("레벨 테스트 말하기 녹음은 대화 없이 전사하고, 학습 활용에 동의했어도 학습용으로 저장하지 않는다")
+  void transcribe_levelTest_doesNotNeedConversationOrSaveForTraining() {
+    optionalConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
+    given(aiGateway.transcribe(any(), any(), anyString(), any(), any()))
+        .willReturn(new SttResult("I left my bag here", 1.5, List.of()));
+
+    TranscriptionResponse response =
+        speechService.transcribe(
+            userId,
+            UUID.randomUUID(),
+            TranscriptionPurpose.LEVEL_TEST,
+            null,
+            recording("audio/wav", RECORDING));
+
+    assertThat(response).isEqualTo(new TranscriptionResponse("I left my bag here", 1500));
+    then(aiGateway).should().transcribe(any(), any(), anyString(), isNull(), any());
+    assertThat(trainingRecordingRepository.findByUserId(userId)).isEmpty();
+  }
+
+  @Test
   @DisplayName("녹음 음성 학습 활용에 동의하지 않았으면 녹음을 저장하지 않는다")
   void transcribe_voiceTrainingNotAgreed_doesNotSave() {
     optionalConsentService.change(userId, ConsentType.TRAINING_TEXT, true);
-    given(aiGateway.transcribe(any(), any(), anyString(), any()))
+    given(aiGateway.transcribe(any(), any(), anyString(), any(), any()))
         .willReturn(new SttResult("I want a latte", 1.25, List.of()));
 
     transcribeTurn(recording("audio/wav", RECORDING));
@@ -241,7 +324,7 @@ class SpeechServiceTest {
   @DisplayName("동의했어도 말소리를 알아듣지 못한 녹음은 저장하지 않는다")
   void transcribe_noSpeech_doesNotSave() {
     optionalConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
-    given(aiGateway.transcribe(any(), any(), anyString(), any()))
+    given(aiGateway.transcribe(any(), any(), anyString(), any(), any()))
         .willReturn(new SttResult("  ", 0.5, List.of()));
 
     assertErrorCode(
@@ -252,7 +335,7 @@ class SpeechServiceTest {
   @Test
   @DisplayName("음성 인식을 부르다 워커에 닿지 못하면 오류를 그대로 알린다")
   void transcribe_workerCallFails_throws() {
-    given(aiGateway.transcribe(any(), eq(RECORDING), eq("audio/webm;codecs=opus"), any()))
+    given(aiGateway.transcribe(any(), eq(RECORDING), eq("audio/webm;codecs=opus"), any(), any()))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
     UUID requestId = UUID.randomUUID();
 
@@ -274,18 +357,20 @@ class SpeechServiceTest {
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
     UUID requestId = UUID.randomUUID();
 
-    assertThatThrownBy(() -> speechService.regenerateSpeech(userId, npcTurn.getId(), requestId))
+    assertThatThrownBy(
+            () -> speechService.regenerateSpeech(userId, npcTurn.getId(), requestId, 1.1))
         .isInstanceOf(BusinessException.class);
   }
 
   @Test
-  @DisplayName("음성이 없는 NPC 턴은 1.1배 속도로 다시 합성해 저장하고, 이후 다시 듣기로 받을 수 있다")
+  @DisplayName("음성이 없는 NPC 턴은 받은 말 빠르기로 다시 합성해 저장하고, 이후 다시 듣기로 받을 수 있다")
   void regenerateSpeech_withoutAudio_synthesizesAndSaves() {
     given(aiGateway.synthesize(any(), eq(npcTurn.getText()), eq("af_heart"), eq(1.1)))
         .willReturn(WAV);
     UUID requestId = UUID.randomUUID();
 
-    SpeechResponse response = speechService.regenerateSpeech(userId, npcTurn.getId(), requestId);
+    SpeechResponse response =
+        speechService.regenerateSpeech(userId, npcTurn.getId(), requestId, 1.1);
 
     assertThat(response.status()).isEqualTo(SpeechStatus.READY);
     assertThat(response.url()).isEqualTo("/api/v1/turns/" + npcTurn.getId() + "/speech");
@@ -297,6 +382,22 @@ class SpeechServiceTest {
             eq(npcTurn.getText()),
             eq("af_heart"),
             eq(1.1));
+  }
+
+  @Test
+  @DisplayName("NPC 턴은 난이도와 상관없이 학습자가 고른 말 빠르기로 다시 합성한다")
+  void regenerateSpeech_usesChosenSpeechSpeedRegardlessOfLevel() {
+    Conversation intermediate = conversation(entityManager, userId, "CAFE_STAFF", 2);
+    Turn intermediateTurn = npcTurn(entityManager, intermediate, 1, "We ran out of oat milk.");
+    entityManager.flush();
+    given(aiGateway.synthesize(any(), eq(intermediateTurn.getText()), eq("af_heart"), anyDouble()))
+        .willReturn(WAV);
+
+    speechService.regenerateSpeech(userId, intermediateTurn.getId(), UUID.randomUUID(), 1.4);
+
+    then(aiGateway)
+        .should()
+        .synthesize(any(), eq(intermediateTurn.getText()), eq("af_heart"), eq(1.4));
   }
 
   @Test
@@ -318,7 +419,7 @@ class SpeechServiceTest {
                 any(), eq("Hi! What can I get for you?"), eq("af_heart"), eq(1.1), eq(phrases)))
         .willReturn(WAV);
 
-    assertThat(speechService.regenerateSpeech(userId, turnId, UUID.randomUUID()).status())
+    assertThat(speechService.regenerateSpeech(userId, turnId, UUID.randomUUID(), 1.1).status())
         .isEqualTo(SpeechStatus.READY);
     assertThat(speechService.npcSpeech(userId, turnId)).isEqualTo(WAV);
     then(aiGateway).should(never()).synthesize(any(), anyString(), anyString(), anyDouble());
@@ -328,10 +429,10 @@ class SpeechServiceTest {
   @DisplayName("이미 음성이 있는 NPC 턴은 다시 합성하지 않는다")
   void regenerateSpeech_withAudio_doesNotSynthesize() {
     given(aiGateway.synthesize(any(), anyString(), anyString(), anyDouble())).willReturn(WAV);
-    speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID());
+    speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID(), 1.1);
 
     SpeechResponse again =
-        speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID());
+        speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID(), 1.1);
 
     assertThat(again.status()).isEqualTo(SpeechStatus.READY);
     then(aiGateway).should().synthesize(any(), anyString(), anyString(), anyDouble());
@@ -344,7 +445,7 @@ class SpeechServiceTest {
     entityManager.flush();
 
     SpeechResponse response =
-        speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID());
+        speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID(), 1.1);
 
     assertThat(response.status()).isEqualTo(SpeechStatus.EXPIRED);
     assertThat(response.url()).isNull();
@@ -360,7 +461,7 @@ class SpeechServiceTest {
     entityManager.flush();
 
     SpeechResponse response =
-        speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID());
+        speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID(), 1.1);
 
     assertThat(response.status()).isEqualTo(SpeechStatus.EXPIRED);
     assertThat(response.url()).isNull();
@@ -396,7 +497,7 @@ class SpeechServiceTest {
     assertErrorCode(
         () -> speechService.npcSpeech(otherUserId, npcTurn.getId()), ErrorCode.NOT_FOUND);
     assertErrorCode(
-        () -> speechService.regenerateSpeech(otherUserId, npcTurn.getId(), UUID.randomUUID()),
+        () -> speechService.regenerateSpeech(otherUserId, npcTurn.getId(), UUID.randomUUID(), 1.1),
         ErrorCode.NOT_FOUND);
   }
 

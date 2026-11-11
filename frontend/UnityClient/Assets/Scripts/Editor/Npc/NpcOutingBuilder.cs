@@ -19,40 +19,20 @@ namespace A305.EditorTools.Npc
                 return;
             var town = EditorSceneManager.OpenScene("Assets/Scenes/Production/TownScene.unity");
             var venues = new List<NpcOutingVenue>();
-            Transform buildings = town.GetRootGameObjects()
-                .Single(root => root.name == "Environment")
-                .transform.Find("TownMainstreet/BackgroundBuildings");
-            foreach (Transform building in buildings)
+            // 들어갈 수 있는 시설(마을 매장·카페·드럭스토어)은 마을 문 앞(씬 전환 도착 지점)에서 들어간다.
+            // 한 건물의 2층 가게는 1층 매장과 코드를 함께 쓰므로 그 코드의 장면인 1층 매장 문만 목적지로 둔다.
+            foreach (SpaceDoorway door in BuilderTools.FindAllInScene<SpaceDoorway>(town))
             {
-                string sceneName = building.name + "Interior";
-                if (
-                    AssetDatabase.LoadAssetAtPath<SceneAsset>(
-                        "Assets/Scenes/ShopInteriors/" + sceneName + ".unity"
-                    ) == null
-                )
+                string code = PlaceScenes.CodeOf(door.DestinationScene);
+                bool facility =
+                    PlaceScenes.IsTownShop(door.DestinationScene) || code is "CAFE" or "SHOP";
+                if (!facility || PlaceScenes.SceneOf(code) != door.DestinationScene)
                     continue;
-                var place = ShopInteriorScenes.PlaceOf(building.name);
-                venues.Add(
-                    new NpcOutingVenue
-                    {
-                        Code = place.Code,
-                        Scene = sceneName,
-                        Entrance = building.TransformPoint(new Vector3(0, 0, 1)),
-                        Inside = building.TransformPoint(new Vector3(0, 0, -1.4f)),
-                        Capacity = 2,
-                    }
-                );
-            }
-            var outside = BuilderTools.FindAllInScene<SpaceDoorway>(town).ToArray();
-            foreach (string code in new[] { "CAFE", "SHOP" })
-            {
-                string sceneName = code == "CAFE" ? "CafeScene" : "ShopScene";
-                SpaceDoorway door = outside.Single(item => item.DestinationScene == sceneName);
                 venues.Add(
                     new NpcOutingVenue
                     {
                         Code = code,
-                        Scene = sceneName,
+                        Scene = door.DestinationScene,
                         Entrance = door.ArrivalPoint.position,
                         Capacity = 2,
                     }
@@ -73,11 +53,15 @@ namespace A305.EditorTools.Npc
                     }
                 );
             RuntimeAnimatorController animator = null;
-            foreach (string code in new[] { "CAFE", "SHOP" })
+            // 시설 안에서는 마을 문 안쪽 도착 지점에서 나타나고 그곳으로 걸어 나간다.
+            foreach (NpcOutingVenue venue in venues.Where(item => !item.IsOutdoor))
             {
-                var venue = venues.Single(item => item.Code == code);
                 var scene = EditorSceneManager.OpenScene(
-                    "Assets/Scenes/Production/" + venue.Scene + ".unity"
+                    EditorBuildSettings
+                        .scenes.Single(entry =>
+                            System.IO.Path.GetFileNameWithoutExtension(entry.path) == venue.Scene
+                        )
+                        .path
                 );
                 var exit = BuilderTools
                     .FindAllInScene<SpaceDoorway>(scene)

@@ -47,10 +47,10 @@ com.elsehere
 | `conversation` | conversations, turns, training_recordings (AI 개선에 동의한 사용자의 녹음). 대화 기록: 엔티티·리포지토리, NPC 음성·학습용 녹음 저장 |
 | `dialogue` | 없음 (대화 흐름: 대화 시작·발화·종료, 음성 인식·NPC 음성, 뜻 보기·힌트, 지난 대화 목록 API. 피드백·기억·미션·동의를 엮는다) |
 | `feedback` | conversation_feedback, turn_feedback (대화 종료 피드백과 문장별 상세 평가, 모범 음성). `conversation_feedback.reviews` JSON은 응답 DTO와 다른 저장 전용 타입(`entity.FeedbackReviews`)으로 읽고 쓴다. 이미 저장된 피드백을 읽어야 하므로 칸 이름을 바꾸지 않고, 응답 모양을 바꿀 때는 응답으로 옮겨 담는 부분만 고친다 |
-| `memory` | user_npc_relations (NPC 기억 카드와 관계) |
-| `review` | review_cards (종료한 대화의 상황 요약·피드백 표현과 복습 기록). 저장·목록·상세·삭제와 표현 사용 근거·결과 조회는 [복습장 API](../docs/api/review-workbook.md)를 따르며 AI를 호출하지 않는다. 종료 결과는 conversations.review_result에 한 번 저장한다 |
+| `memory` | user_npc_relations (NPC 기억 카드와 관계). 휴대폰 [이웃]의 마을 NPC 목록 API(WORLD-08, `NeighborService`)도 이 관계를 읽으므로 여기에 둔다. 끝까지 마친 대화(USER_ENDED·NPC_ENDED·TURN_LIMIT, 사용자 발화 있음)나 튜토리얼 길 안내가 있는 NPC만 이웃으로 열고 이름·인격 카드의 직업·관심사·관계를 담으며, 나머지 NPC는 역할·장소만 담는다. `memory`가 `world`를 읽으므로 `world`에 두면 서로 import하는 순환이 생긴다 |
+| `review` | review_cards (종료한 대화의 상황 요약·피드백 표현과 복습 기록). 저장·목록·상세·삭제와 표현 사용 근거·결과 조회는 [복습장 API](../docs/api/review-workbook.md)를 따르며 AI를 호출하지 않는다. 종료 결과는 conversations.review_result에 한 번 저장한다. 표현 근거는 You're/You are·That's/That is 같은 축약 차이를 정규화하며 부정·인용문은 계속 제외한다 |
 | `followup` | npc_follow_ups (NPC가 대화에서 곧 건네기로 한 것: 대화 종료 때 판정·저장, 기다리는 목록 CONV-13, 대화 시작 첫마디로 건넴) |
-| `world` | scenes, npcs, scene_words, user_word_prefs, user_game_clocks (사용자별 게임 시간) |
+| `world` | scenes, npcs, scene_words, user_word_prefs, user_game_clocks (사용자별 게임 시간), user_daily_activities (날짜별 접속·머문 시간) |
 | `vocab` | vocabularies, user_vocab |
 | `mission` | missions, user_missions, first_day_missions, town_stories |
 | `onboarding` | user_language_profiles (학습 언어·대화 난이도 설정), level_tests, level_test_answers (레벨 테스트와 문항 응답) |
@@ -75,6 +75,7 @@ com.elsehere
 - 로컬 실행(`bootRun`)은 PostgreSQL이 필요합니다. 접속 정보는 환경변수 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`로 지정하며, 없으면 `jdbc:postgresql://localhost:5432/elsehere`, 사용자 `elsehere`를 씁니다. 스키마는 앱이 시작할 때 Flyway가 만들고 바꾸며, `JPA_DDL_AUTO`(기본값 `validate`)는 엔티티와 스키마가 맞는지 검사합니다.
 - 로컬에서는 환경변수 대신 `backend/.env`나 저장소 루트 `.env`에 `GOOGLE_CLIENT_ID=값`처럼 한 줄에 하나씩 적어도 됩니다. 값에 따옴표나 `export`를 붙이지 않으며, 같은 이름의 환경변수가 있으면 환경변수가 우선합니다. `.env`는 커밋하지 않습니다. 서버 컨테이너에는 `.env`가 없으므로 값은 Compose의 `environment`로 넘깁니다.
 - NPC 대화·피드백·기억 카드는 AI 워커([계약](../docs/api/ai-worker.md))를 부릅니다. 워커 주소는 `AI_WORKER_BASE_URL`(기본 `http://localhost:8020`), 내부 토큰은 `AI_WORKER_TOKEN`으로 지정하며 워커의 `AI_WORKER_TOKEN`과 같은 값이어야 합니다. 토큰은 비밀값이므로 저장소에 넣지 않습니다.
+- 판정 결과가 대답 지시문에 들어가지 않는 대화(이 NPC에게 판정할 미션 목표가 없고 경찰 창구·택시가 아닌 대화, 미션 중 다른 NPC와의 대화 포함)의 스트리밍 발화(CONV-03)는 판정을 기다리지 않고 NPC 대답을 먼저 시작합니다(`EarlyReplies`). 판정이 대답 요청을 바꾸면 먼저 시작한 대답을 버리고 다시 부르므로 버린 만큼 AI 사용량이 늘어납니다. `NPC_EARLY_REPLY=false`(기본 `true`)로 끕니다. 서버에서 끄려면 Compose `environment`에 이 값을 넘겨야 합니다.
 - NPC 턴 음성(WAV)은 `NPC_AUDIO_DIR`(기본 `./data/npc-audio`) 폴더에 저장합니다. 컨테이너로 실행하면 재시작 뒤에도 남도록 컨테이너 밖 볼륨으로 연결합니다.
 - IDE에서 프로젝트를 열 때는 `backend/` 폴더를 Gradle 프로젝트로 엽니다.
 
@@ -111,7 +112,8 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 - 사물 단어·한국어 뜻·영문 예문·예문 해석·발음 파일 키의 편집 원본은 [Unity 공용 단어 에셋](../frontend/UnityClient/Assets/Data/ObjectHover/Words/)입니다. Unity의 **Tools → A305 → ObjectHover → Export Backend Data**로 [단어 JSON](src/main/resources/content/object-words.json), [씬·프리팹 연결 JSON](src/main/resources/content/object-word-bindings.json), SQL의 `GENERATED OBJECT WORDS` 구간을 생성합니다. 발음 파일 키가 빈 항목은 DB에 NULL로 적재합니다.
 - Editor가 프로젝트를 닫은 상태에서는 저장소 루트의 `./infra/scripts/sync-object-words.ps1`로 내보내고 `-Check`로 에셋과 생성 파일의 일치를 검사합니다. 프로젝트 버전의 Unity Editor가 필요하며 다른 설치 위치는 `-UnityPath` 또는 `UNITY_EDITOR_PATH`로 지정합니다. 생성 JSON·SQL 구간은 직접 편집하지 않습니다.
 - `WorldSeedLoader`가 애플리케이션이 시작될 때(로컬·개발·운영 모두) 이 SQL을 실행합니다. 고유 키(`code`, `(language_code, text)`)가 같은 행이 있으면 시드 값으로 갱신하므로 여러 번 실행해도 행이 늘지 않습니다. DB에서 직접 고친 값은 다음 시작 때 시드 값으로 돌아가므로, 사물 어휘는 Unity 에셋에서, 그 밖의 기본 데이터는 SQL 파일에서 고칩니다. 예외로 NPC 페르소나(`npcs.persona`)는 NPC를 처음 넣을 때만 시드 값을 쓰고, 이후에는 [운영자 어드민](../docs/admin.md)에서 고친 값을 유지합니다. 언어 코드나 영어 표현을 바꾸면 현재 DB에서는 새 어휘 행이 생기며 기존 행은 삭제하지 않습니다. 기존 사용자 학습 기록을 새 표현으로 옮겨야 한다면 별도 DB 마이그레이션이 필요합니다.
-- NPC 인격 카드(`npcs.profile`)의 원본은 AI 쪽 `ai/npcs/<npcId>.json`이고, AI 도구(`ai/tools/npc_configs.py`)가 [NPC 설정 JSON](src/main/resources/content/npc-configurations.json)으로 내보냅니다. `WorldSeedLoader`가 SQL을 실행한 뒤 이 파일의 `npcProfile`을 카드가 없는 NPC에만 넣고, 이미 카드가 있는 NPC는 바꾸지 않습니다(페르소나처럼 처음만 씀). 카드는 AI 워커 요청의 `npc.profile`에 칸 이름(camelCase) 그대로 실리며, 카드가 없는 NPC는 페르소나의 역할 한 줄로 대답합니다. 카드가 있는 NPC의 `name`은 카드의 이름과 같게 둡니다.
+- NPC 인격 카드(`npcs.profile`)의 원본은 AI 쪽 `ai/npcs/<npcId>.json`이고, AI 도구(`ai/tools/npc_configs.py`)가 [NPC 설정 JSON](src/main/resources/content/npc-configurations.json)으로 내보냅니다. `WorldSeedLoader`가 SQL을 실행한 뒤 이 파일의 `npcProfile`을 카드가 없는 NPC에 넣고, 파일 카드의 `profileVersion`이 DB 카드보다 높은 NPC는 새 카드로 바꿉니다. 버전이 같거나 높으면 DB 카드를 그대로 둡니다. 어드민은 카드를 고치지 않으므로, 카드를 고칠 때는 AI 쪽 카드 파일에서 `profileVersion`을 올리고 다시 내보냅니다. 카드는 AI 워커 요청의 `npc.profile`에 칸 이름(camelCase) 그대로 실리며, 카드가 없는 NPC는 페르소나의 역할 한 줄로 대답합니다. 카드가 있는 NPC의 `name`은 카드의 이름과 같게 둡니다.
+- 음성 인식(CONV-02)에 철자 힌트로 보내는 단어는 [`content/speech-words.json`](src/main/resources/content/speech-words.json)에 둡니다. `town`은 늘 보내는 마을·가게 이름이고, `places`는 장소별 NPC 코드와 메뉴·상품 이름입니다. 같은 장소의 NPC 이름도 함께 보냅니다. 마을에 가게를 더하거나 이름을 바꾸면 `town`도 고칩니다. 시드에 없는 NPC 코드를 쓰거나 닉네임·NPC 이름·같은 장소 NPC 이름·장소 단어·마을 단어를 더한 수가 워커 상한 40개를 넘으면 `SpeechWordsTest`가 실패합니다.
 - `code`, `unity_key`는 Unity 씬·빌더에 쓴 값과 같아야 합니다. 행을 추가하거나 고치면 `WorldSeedLoaderTest`의 기대값도 함께 고칩니다.
 - 공용 목록의 어휘 전체를 `vocabularies`에 적재합니다. SQL을 실행한 뒤 `WorldSeedLoader`가 단어 JSON의 공용 키를 `vocabularies.word_key`에 넣고, 연결 JSON의 씬별 공용 키 목록으로 `scene_words`(장소별 단어)를 맞춥니다. 연결 JSON에서 빠진 단어는 그 장소의 `scene_words`에서 지웁니다. WORLD-02 단어 카드, WORLD-03 숨김, VOCAB-02 사물 저장은 모두 이 공용 키(`wordKey`)를 씁니다. 사용자별 저장·숨김 상태(`user_vocab`, `user_word_prefs`)는 공용 에셋에 넣지 않습니다.
 - 사물 단어 발음 음성(WORLD-04)은 음성 볼륨의 하위 폴더(`elsehere.pronunciation.dir`, 기본 `${NPC_AUDIO_DIR}/pronunciation`)에 `{공용 키}.wav`로 둡니다. 관리자가 발음 생성 API(`POST /api/v1/admin/pronunciations`)로 발음 파일이 없는 단어만 AI 워커 TTS로 만듭니다([운영자 어드민](../docs/admin.md)). 시드 SQL이 발음 키를 Unity 에셋 값(대부분 비어 있음)으로 되돌리므로, `WorldSeedLoader`가 서버를 시작할 때마다 Unity 에셋에 발음 키가 없는 단어 중 이 폴더에 파일이 있는 단어에 파일 이름을 `pronunciation_audio_key`로 다시 넣습니다. 볼륨은 환경마다 따로라 개발·운영에서 각각 한 번 만듭니다.
@@ -147,7 +149,7 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 
 | 환경변수 | 기본값 | 설명 |
 | --- | --- | --- |
-| `GUEST_CONVERSATION_LIMIT` | `3` | 게스트 계정 하나가 할 수 있는 NPC 대화 수(CONV-01). 한 번이라도 말을 주고받은 대화만 셉니다. 다 쓰면 `AI_QUOTA_EXHAUSTED`이며 다시 채워지지 않습니다. 가입 사용자는 대화 횟수 제한이 없고, 대화 하나는 사용자 발화 30턴까지입니다(CONV-03). |
+| `GUEST_CONVERSATION_LIMIT` | `0` | 게스트 계정 하나가 할 수 있는 NPC 대화 수(CONV-01). `0`이면 가입 사용자처럼 제한이 없습니다(기본). AI 사용량을 줄여야 하면 1 이상으로 켭니다. 한 번이라도 말을 주고받은 대화만 셉니다. 다 쓰면 `AI_QUOTA_EXHAUSTED`이며 다시 채워지지 않습니다. 가입 사용자는 대화 횟수 제한이 없고, 대화 하나는 사용자 발화 30턴까지입니다(CONV-03). |
 
 - 게스트 세션에서 Google로 가입하면 새 사용자를 만들지 않고 그 게스트 행을 회원으로 바꿉니다(`SignupService`, AUTH-02·04). 같은 `user_id`라 게스트 때 기록이 모두 이어지고, `provider`가 `GOOGLE`이 되므로 게스트 대화 횟수 제한과 아래 정리에서 빠집니다. Google 로그인 성공 처리 전에 Spring Security가 세션의 로그인 정보를 바꾸므로, 게스트였다는 사실은 `LoginSessionService.loginGuest`가 세션에 따로 남긴 값으로 읽습니다. 이미 가입한 Google 계정이면 그 계정으로 로그인하고 합치지 않습니다(`?existingAccount=true`).
 - 게스트는 세션이 끝나면 다시 들어올 수 없는 일회용 계정입니다. `GuestContentCleanup`이 매시 30분에 마지막 활동 뒤 24시간(`elsehere.guest.content-retention`)이 지난 게스트의 **내용만** 지웁니다. 지우는 것은 발화 원문(`turns`)과 그 NPC 음성 파일(NPC 공용 말걸기 음성 제외), 대화 피드백, 문장 피드백(`turn_feedback`)과 그 모범 음성 파일, 기억 카드·관계, 저장 단어·숨김, 레벨 테스트, 학습용 녹음입니다. 사용자·대화·AI 호출 기록·미션 진행·언어 프로필·게임 시계 행은 남겨, 남은 행이 가리키는 곳이 사라지지 않고 게스트 수·대화 수·사용량을 집계할 수 있게 합니다. 집계는 [어드민 이용 현황](../docs/admin.md#이용-현황)에서 봅니다.

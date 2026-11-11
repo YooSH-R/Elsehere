@@ -121,49 +121,48 @@ public class TownStoryService {
     return "The traveler wants to order breakfast with a drink. Any breakfast with a drink costs 7 coins. Let the learner choose. Do not invent an order, hand over food, or introduce a spill before the meal has been received.";
   }
 
-  public Optional<FirstDayMissionService.Context> context(Long userId, String npcCode) {
+  public Optional<QuestTalk> context(Long userId, String npcCode) {
     return stories
         .findById(userId)
         .filter(story -> !story.isCompleted() && !story.isPaused())
-        .map(
-            story -> {
-              TownStoryStage current = story.current();
-              if (!current.npcCode().equals(npcCode)) {
-                String owner = npcs.findByCode(current.npcCode()).map(Npc::getName).orElse(null);
-                return new FirstDayMissionService.Context(
-                    story.getStage(),
-                    null,
-                    FirstDayMissionService.sendToOwner(shop(current.npcCode()), owner)
-                        + " Stay in your own role and help the visitor if asked.",
-                    List.of());
-              }
-              List<String> remaining = new ArrayList<>();
-              for (int index = 0; index < current.goalIds().size(); index++) {
-                if (!story.hasGoal(index)) {
-                  remaining.add(current.goalIds().get(index));
-                }
-              }
-              List<String> allowed = availableGoals(story);
-              remaining.retainAll(allowed);
-              WorkerState state =
-                  new WorkerState(
-                      "town_story_" + story.getStage(),
-                      instruction(story)
-                          + " Combine explicit facts across learner turns; the current utterance must contribute. Never credit NPC lines, quoted examples, negatives or hypotheticals.",
-                      allowed.stream()
-                          .map(id -> new WorkerState.Intent(id, TownStoryStage.goalDescription(id)))
-                          .toList(),
-                      true);
-              return new FirstDayMissionService.Context(
-                  story.getStage(),
-                  state,
-                  instruction(story)
-                      + " Objectives pending before this turn: "
-                      + String.join(",", remaining)
-                      + "."
-                      + FirstDayMissionService.LEARNER_LEADS,
-                  remaining);
-            });
+        .map(story -> talk(story, npcCode));
+  }
+
+  // 지금 단계의 가게 직원이면 판정할 목표를 주고, 다른 NPC에게는 그 가게로 가라는 안내만 준다.
+  private QuestTalk talk(TownStory story, String npcCode) {
+    TownStoryStage current = story.current();
+    if (!current.npcCode().equals(npcCode)) {
+      String owner = npcs.findByCode(current.npcCode()).map(Npc::getName).orElse(null);
+      return new QuestTalk.Guide(
+          story.getStage(),
+          QuestPrompts.sendToOwner(shop(current.npcCode()), owner)
+              + " Stay in your own role and help the visitor if asked.");
+    }
+    List<String> remaining = new ArrayList<>();
+    for (int index = 0; index < current.goalIds().size(); index++) {
+      if (!story.hasGoal(index)) {
+        remaining.add(current.goalIds().get(index));
+      }
+    }
+    List<String> allowed = availableGoals(story);
+    remaining.retainAll(allowed);
+    WorkerState state =
+        new WorkerState(
+            "town_story_" + story.getStage(),
+            instruction(story) + QuestPrompts.QUEST_EVIDENCE,
+            allowed.stream()
+                .map(id -> new WorkerState.Intent(id, TownStoryStage.goalDescription(id)))
+                .toList(),
+            true);
+    return new QuestTalk.Goals(
+        story.getStage(),
+        state,
+        instruction(story)
+            + " Objectives pending before this turn: "
+            + String.join(",", remaining)
+            + "."
+            + QuestPrompts.LEARNER_LEADS,
+        remaining);
   }
 
   /**
@@ -219,8 +218,8 @@ public class TownStoryService {
                             ? story.hasDinerMeal()
                                 ? "음식을 받았는데 옷에 음료를 쏟았어요. Rosa에게 무슨 일이 있었는지 말해봐요."
                                 : story.hasGoal(0)
-                                    ? "주문했어요. 식당 안의 빈자리에 앉아 잠깐 기다려요."
-                                    : "식당에 왔어요. Rosa에게 원하는 아침과 음료를 주문해요."
+                                    ? "주문했어요. 햄버거 가게 안의 빈자리에 앉아 잠깐 기다려요."
+                                    : "햄버거 가게에 왔어요. Rosa에게 원하는 아침과 음료를 주문해요."
                             : story.current().situation();
     return new FirstDayMissionResponse(
         started,
@@ -240,7 +239,7 @@ public class TownStoryService {
             : completed
                 ? "마을의 이웃들과 자유롭게 대화해 보세요."
                 : !"TOWN".equals(scene)
-                    ? "마을로 나가 다음 목표를 확인하세요."
+                    ? "마을로 나가 " + talkTo(story.current().npcCode())
                     : talkTo(story.current().npcCode()),
         steps);
   }
@@ -255,7 +254,7 @@ public class TownStoryService {
   // 마을 이야기 직원이 있는 가게. NPC 대답은 영어라 영어 이름을 쓴다.
   private static String shop(String npcCode) {
     return switch (npcCode) {
-      case "DINER_STAFF" -> "the diner";
+      case "DINER_STAFF" -> "the burger shop";
       case "LAUNDROMAT_STAFF" -> "the laundromat";
       case "BANK_STAFF" -> "the bank";
       case "BARBER_STAFF" -> "the barbershop";

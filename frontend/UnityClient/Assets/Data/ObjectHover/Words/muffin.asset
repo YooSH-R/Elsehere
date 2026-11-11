@@ -16,7 +16,7 @@ MonoBehaviour:
     key: muffin
     languageCode: en-US
     text: muffin
-    meaningKo: "\uBA38\uD540"
+    meaningKo: "\uCEF5 \uBAA8\uC591\uC758 \uC791\uACE0 \uB2EC\uCF64\uD55C \uBE75(\uBA38\uD540)"
     example: I'd like a muffin, please.
     exampleKo: "\uBA38\uD540 \uD558\uB098 \uC8FC\uC138\uC694."
     pronunciationAudioKey: 

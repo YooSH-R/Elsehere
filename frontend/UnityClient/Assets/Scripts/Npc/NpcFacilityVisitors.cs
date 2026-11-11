@@ -79,12 +79,11 @@ namespace A305.Npc
                         entry.NpcId,
                         entry.Workplace,
                         now,
-                        NpcOutings.UntilHome(plan, now),
+                        NpcOutings.UntilOutingEnds(plan, now),
                         catalog.Venues,
-                        venue => OpeningHours.IsOpenNow(venue.Code)
+                        venue => OpeningHours.IsOpenNow(venue.Code) && NpcOutings.Suits(plan, venue)
                     );
-                    if (trip != null)
-                        trip.Arrived = true;
+                    trip?.Arrive(now);
                 }
             foreach (NpcOuting trip in NpcOutings.Shared.Trips.ToArray())
             {

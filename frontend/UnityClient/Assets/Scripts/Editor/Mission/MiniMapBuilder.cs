@@ -123,7 +123,7 @@ namespace A305.EditorTools.Mission
             // 목적지 테두리가 긴 이름을 가리지 않게 하고 내 위치 화살표는 맨 앞에 둔다.
             labels.SetSiblingIndex(map.Find("Player").GetSiblingIndex());
 
-            BuildingLabel(labels, "POLICE", "경찰서", new Rect(164, 106, 152, 150));
+            BuildingLabel(labels, "POLICE", "경찰서", TownMapArt.PoliceTile);
             BuildingLabel(labels, "HOME", "집", TownMapArt.Tile("HOME").Value);
             BuildingLabel(labels, "CAFE", "카페", TownMapArt.Tile("CAFE").Value);
             BuildingLabel(labels, "SHOP", "드럭스토어", TownMapArt.Tile("SHOP").Value);
@@ -135,7 +135,7 @@ namespace A305.EditorTools.Mission
                 string name = shop.Key switch
                 {
                     "HOME_STORE_STAFF" => "생활용품",
-                    "DINER_STAFF" => "식당",
+                    "DINER_STAFF" => "햄버거 가게",
                     _ => shop.Value.Name,
                 };
                 BuildingLabel(labels, shop.Key, name, shop.Value.Tile);
@@ -178,17 +178,26 @@ namespace A305.EditorTools.Mission
             );
             label.fontStyle = FontStyles.Bold;
             label.alignment = TextAlignmentOptions.Center;
-            label.enableAutoSizing = false;
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 26;
+            label.fontSizeMax = BuildingLabelFontSize;
             label.textWrappingMode = TextWrappingModes.NoWrap;
             label.ForceMeshUpdate(ignoreActiveState: true);
+            float preferredWidth = label.GetPreferredValues(name).x;
+            float maxWidth = tile.width + 28;
+            float padding =
+                preferredWidth + BuildingLabelHorizontalPadding * 2 > maxWidth
+                    ? 8
+                    : BuildingLabelHorizontalPadding;
+            // 이웃 건물까지 이름표가 뻗지 않도록 긴 이름만 여백과 글자 크기를 줄인다.
             plate.sizeDelta = new Vector2(
-                label.GetPreferredValues(name).x + BuildingLabelHorizontalPadding * 2,
+                Mathf.Min(preferredWidth + padding * 2, maxWidth),
                 BuildingLabelHeight
             );
             label.margin = new Vector4(
-                BuildingLabelHorizontalPadding,
+                padding,
                 BuildingLabelVerticalPadding,
-                BuildingLabelHorizontalPadding,
+                padding,
                 BuildingLabelVerticalPadding
             );
             RectTransform textRect = label.rectTransform;
@@ -231,7 +240,126 @@ namespace A305.EditorTools.Mission
             BuilderTools.SetReference(view, "map", map);
             BuilderTools.SetReference(view, "player", player);
             BuilderTools.SetReference(view, "destination", destination);
+            BuilderTools.SetReference(view, "neighbor", NeighborPin(map));
             return view;
+        }
+
+        /// <summary>이미 만든 미니맵과 큰 지도에 [이웃] 핀만 더한다. 지도 전체를 다시 만들지 않는다.</summary>
+        [MenuItem("Tools/A305/Mission/Apply Neighbor Pin")]
+        public static void ApplyNeighborPin()
+        {
+            BuilderTools.ThrowIfPlaying();
+            BuilderTools.UpdatePrefabIfExists(
+                PrefabPath,
+                root =>
+                {
+                    foreach (
+                        TownMiniMapView view in root.GetComponentsInChildren<TownMiniMapView>(true)
+                    )
+                    {
+                        var map = (RectTransform)
+                            new SerializedObject(view).FindProperty("map").objectReferenceValue;
+                        BuilderTools.SetReference(view, "neighbor", NeighborPin(map));
+                    }
+                }
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// [이웃]에서 찾는 NPC 핀. 흰 테두리의 코랄 원(머리 위 '찾는 이웃' 표시와 같은 색)에 이름 첫 글자를 쓰고, 아래에 이름표를 단다.
+        /// 건물 이름표 위, 내 위치 화살표 아래에 그린다. 찾는 NPC가 없으면 지도 화면이 숨긴다.
+        /// </summary>
+        private static RectTransform NeighborPin(RectTransform map)
+        {
+            Transform previous = map.Find("Neighbor");
+            if (previous != null)
+                Object.DestroyImmediate(previous.gameObject);
+
+            Sprite circle = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+            RectTransform pin = Rect("Neighbor", map);
+            pin.anchorMin = pin.anchorMax = new Vector2(0, 1);
+            pin.pivot = new Vector2(.5f, .5f);
+            pin.sizeDelta = new Vector2(104, 104);
+            pin.SetSiblingIndex(map.Find("Player").GetSiblingIndex());
+            Tint(Picture(pin.gameObject, circle), Color.white);
+
+            RectTransform dot = Rect("Dot", pin);
+            dot.anchorMin = dot.anchorMax = dot.pivot = new Vector2(.5f, .5f);
+            dot.sizeDelta = new Vector2(84, 84);
+            Tint(Picture(dot.gameObject, circle), NeighborColor);
+
+            TMP_Text letter = UiBuilderTools.FindOrCreateText(
+                pin,
+                "Letter",
+                UiBuilderTools.BoldFont(),
+                52,
+                Color.white,
+                "?"
+            );
+            letter.alignment = TextAlignmentOptions.Center;
+            letter.enableAutoSizing = false;
+            letter.raycastTarget = false;
+            Stretch(letter.rectTransform);
+
+            // 이름표는 원 아래 가운데에 매달고 글자 길이에 맞춰 폭을 정한다.
+            var plate = new GameObject(
+                "Name",
+                typeof(RectTransform),
+                typeof(Image),
+                typeof(HorizontalLayoutGroup),
+                typeof(ContentSizeFitter)
+            ).GetComponent<RectTransform>();
+            plate.SetParent(pin, false);
+            plate.anchorMin = plate.anchorMax = new Vector2(.5f, 0);
+            plate.pivot = new Vector2(.5f, 1);
+            plate.anchoredPosition = new Vector2(0, -6);
+            var background = plate.GetComponent<Image>();
+            background.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>(
+                "UI/Skin/UISprite.psd"
+            );
+            background.type = Image.Type.Sliced;
+            background.pixelsPerUnitMultiplier = .5f;
+            background.color = NeighborColor;
+            background.raycastTarget = false;
+            var row = plate.GetComponent<HorizontalLayoutGroup>();
+            row.padding = new RectOffset(16, 16, 2, 4);
+            row.childAlignment = TextAnchor.MiddleCenter;
+            row.childControlWidth = row.childControlHeight = true;
+            row.childForceExpandWidth = row.childForceExpandHeight = false;
+            var fitter = plate.GetComponent<ContentSizeFitter>();
+            fitter.horizontalFit = fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            TMP_Text name = UiBuilderTools.FindOrCreateText(
+                plate,
+                "Label",
+                UiBuilderTools.BoldFont(),
+                32,
+                Color.white,
+                "Name"
+            );
+            name.alignment = TextAlignmentOptions.Center;
+            name.enableAutoSizing = false;
+            name.textWrappingMode = TextWrappingModes.NoWrap;
+            name.raycastTarget = false;
+
+            pin.gameObject.SetActive(false);
+            return pin;
+        }
+
+        // [이웃] 핀 색: 이름표 위 '찾는 이웃' 표시와 같은 글래스 팝 보조색 코랄
+        private static readonly Color NeighborColor = new Color32(255, 119, 89, 255);
+
+        private static Image Tint(Image image, Color color)
+        {
+            image.color = color;
+            return image;
+        }
+
+        private static void Stretch(RectTransform rect)
+        {
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
         }
 
         private static RectTransform Mark(Transform map, string name, Sprite sprite, Vector2 size)
@@ -244,13 +372,14 @@ namespace A305.EditorTools.Mission
             return mark;
         }
 
-        private static void Picture(GameObject target, Sprite sprite)
+        private static Image Picture(GameObject target, Sprite sprite)
         {
             var image = BuilderTools.GetOrAddComponent<Image>(target);
             image.sprite = sprite;
             image.type = Image.Type.Simple;
             image.color = Color.white;
             image.raycastTarget = false;
+            return image;
         }
 
         private static RectTransform Rect(string name, Transform parent)

@@ -67,7 +67,7 @@ namespace A305.ObjectHover.PlayModeTests
 
             Assert.That(tooltip.IsVisible, Is.True);
             Assert.That(tooltip.WordText, Is.EqualTo("TV"));
-            Assert.That(tooltip.MeaningText, Is.EqualTo("텔레비전"));
+            Assert.That(tooltip.MeaningText, Is.EqualTo("방송을 보는 화면 기기(텔레비전)"));
             Assert.That(tooltip.IsExampleVisible, Is.True);
             Assert.That(
                 tooltip.ExampleText,
@@ -122,7 +122,7 @@ namespace A305.ObjectHover.PlayModeTests
             hover.Refresh(ScreenCenter(), LongerThanShowDelaySeconds);
 
             Assert.That(tooltip.IsVisible, Is.True);
-            Assert.That(tooltip.MeaningText, Is.EqualTo("에어컨"));
+            Assert.That(tooltip.MeaningText, Is.EqualTo("실내를 시원하게 하는 냉방기(에어컨)"));
             Assert.That(tooltip.IsExampleVisible, Is.False);
         }
 
@@ -320,8 +320,11 @@ namespace A305.ObjectHover.PlayModeTests
         {
             HoverableObject tv = FindHoverable("tv");
             yield return StandPlayerNear(tv);
-            // 화면 위쪽의 튜토리얼 가이드가 카드를 다른 자리로 밀지 않게 숨긴다.
+            // TV 위쪽이 비어 있을 때 포인터를 따라가는 동작을 검증한다.
             TutorialGuidePanel().gameObject.SetActive(false);
+            GameObject questCard = GameObject.Find("FirstDayMission/Content/CurrentGoal");
+            if (questCard != null)
+                questCard.SetActive(false);
             // TV가 화면 절반보다 작게 보이도록 2.5m 앞에서 보고, 캐릭터는 카메라 뒤에 세워 화면에서 뺀다.
             Camera camera = Camera.main;
             Vector3 center = VisibleBounds(tv).center;

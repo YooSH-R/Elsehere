@@ -59,16 +59,18 @@ public class WorldSeedLoader implements ApplicationRunner {
   }
 
   /**
-   * AI 쪽이 내보낸 NPC 설정의 인격 카드를 카드가 없는 NPC에만 넣는다. 페르소나처럼 처음만 쓰므로, 이미 있는 NPC의 카드를 바꾸려면 이 파일이 아니라 DB에서
-   * 고친다.
+   * AI 쪽이 내보낸 NPC 설정의 인격 카드를 카드가 없는 NPC에 넣고, 카드 내용을 고쳐 profileVersion을 올린 NPC는 새 카드로 바꾼다. 어드민은 카드를
+   * 고치지 않으므로 원본은 AI 쪽 카드 파일이다. DB 카드의 버전이 같거나 높으면 그대로 둔다.
    */
   private static void loadProfiles(JdbcTemplate jdbcTemplate) {
     JsonMapper jsonMapper = new JsonMapper();
     for (NpcConfiguration configuration : read(NPC_CONFIGURATIONS, NpcConfiguration[].class)) {
       jdbcTemplate.update(
-          "update npcs set profile = ?::jsonb where code = ? and profile is null",
+          "update npcs set profile = ?::jsonb where code = ?"
+              + " and (profile is null or coalesce((profile->>'profileVersion')::int, 0) < ?)",
           jsonMapper.writeValueAsString(configuration.npcProfile()),
-          configuration.npcId());
+          configuration.npcId(),
+          configuration.npcProfile().get("profileVersion").asInt());
     }
   }
 

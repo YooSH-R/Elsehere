@@ -172,6 +172,10 @@ class DeploymentServer:
                 images=images,
                 compose_file=str(compose_file),
             )
+            if manifest.get("verify_database_backup"):
+                record["verified_database_backup"] = (
+                    self.runtime.verify_database_backup(manifest["pipeline_id"])
+                )
             return self.activate_release(previous, record, services)
         finally:
             if self.environment != "prod":
@@ -313,6 +317,10 @@ class DeploymentServer:
         if stored.get("environment", "dev") != self.environment:
             raise ValueError("Deployment record belongs to another environment.")
         record["environment"] = self.environment
+        if self.environment == "prod":
+            record["database_backup_configured"] = bool(
+                self.config.get("database_backup")
+            )
         actual = self.runtime.snapshot()["images"]
         for name, image in record["images"].items():
             if any(actual[name][key] != image[key] for key in ["reference", "id"]):
@@ -372,6 +380,11 @@ class DeploymentServer:
             raise ValueError("Monitoring compatibility requirement changed.")
         if not isinstance(manifest.get("configuration_changed"), bool):
             raise TypeError("Invalid configuration change flag.")
+        verify_database_backup = manifest.get("verify_database_backup", False)
+        if not isinstance(verify_database_backup, bool) or (
+            verify_database_backup and self.environment != "prod"
+        ):
+            raise ValueError("Invalid production backup verification flag.")
         images = manifest.get("images", {})
         if set(images) != {"backend", "ai", "web"}:
             raise ValueError("Exactly three application images are required.")
@@ -455,6 +468,16 @@ class ComposeRuntime:
             containers[image_name] = container["container_id"]
         containers["database"] = self.inspect("database")["container_id"]
         return {"images": images, "containers": containers}
+
+    def verify_database_backup(self, pipeline_id):
+        from production_database_backup import verify_backup
+
+        return verify_backup(
+            self.config,
+            self.docker,
+            self.inspect("database"),
+            pipeline_id,
+        )
 
     def validate(self, compose_file, images_file, previous_compose_file):
         candidate = json.loads(

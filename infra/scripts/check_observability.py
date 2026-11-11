@@ -127,6 +127,7 @@ def check_prometheus(container):
                     .replace("$__rate_interval", "1m")
                     .replace("$__range", "1h")
                     .replace("$environment", ".*")
+                    .replace("$host", ".*")
                 )
                 docker(
                     "exec",
@@ -167,6 +168,13 @@ def check_grafana(client, base_url="http://grafana:3000"):
     )
     assert availability.returncode == 0
     assert len(json.loads(availability.stdout)["dashboard"]["panels"]) == 3
+    runners = http(
+        client,
+        base_url + "/api/dashboards/uid/a305-runners",
+        [f"Authorization: Basic {credentials}"],
+    )
+    assert runners.returncode == 0
+    assert len(json.loads(runners.stdout)["dashboard"]["panels"]) == 7
     print(
         "Grafana: provisioned datasource/dashboard and authenticated access passed.",
         flush=True,

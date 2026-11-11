@@ -315,6 +315,63 @@ namespace A305.Dialogue.Tests
             Assert.That(store.IsEmpty, Is.True);
         }
 
+        [Test]
+        public async Task SeatedWait_ReplacesMinuteCountdownAndRemovesOnlyTheServedNpc()
+        {
+            store.Receive(Item(7, "CAFE_STAFF", "Mia", "CAFE", "아이스 라테", 60));
+            store.Receive(Item(8, "LAUNDROMAT_STAFF", "Gus", "TOWN", "빨래", 180));
+            store.SetSeatedWaitRemaining("CAFE_STAFF", 5);
+            Assert.That(
+                store.Items.Single(item => item.FollowUpId == 7).RemainingSeconds(now),
+                Is.EqualTo(5)
+            );
+            now += 4;
+            store.SetSeatedWaitRemaining("CAFE_STAFF", 1);
+            Assert.That(
+                store.Items.Single(item => item.FollowUpId == 7).RemainingSeconds(now),
+                Is.EqualTo(1)
+            );
+            var api = new FakeFollowUpApi();
+            now += 1;
+            await store.CompleteSeatedWaitAsync(api, "CAFE_STAFF");
+            Assert.That(store.Items.Select(item => item.FollowUpId), Is.EqualTo(new long[] { 8 }));
+            Assert.That(api.Dismissed, Is.EqualTo(new long[] { 7 }));
+            await store.CompleteSeatedWaitAsync(api, "CAFE_STAFF");
+            Assert.That(api.Dismissed, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task CompletedSeatedWait_StaleServerListCannotBringTheCardBack()
+        {
+            FollowUpData latte = Item(7, "CAFE_STAFF", "Mia", "CAFE", "아이스 라테", 60);
+            store.Receive(latte);
+            await store.CompleteSeatedWaitAsync(new FakeFollowUpApi(), "CAFE_STAFF");
+            store.Restore(new[] { latte });
+            Assert.That(store.IsEmpty, Is.True);
+            store.Receive(latte);
+            Assert.That(store.IsEmpty, Is.True);
+            store.Receive(Item(9, "CAFE_STAFF", "Mia", "CAFE", "새 주문", 60));
+            Assert.That(store.Items.Single().FollowUpId, Is.EqualTo(9));
+        }
+
+        [Test]
+        public async Task CompletedSeatedWait_FailedSaveStaysHiddenAndRetriesOnRefresh()
+        {
+            FollowUpData latte = Item(7, "CAFE_STAFF", "Mia", "CAFE", "아이스 라테", 60);
+            store.Receive(latte);
+            var api = new FakeFollowUpApi
+            {
+                DismissError = new ApiException("NETWORK_ERROR", 0, "오프라인"),
+            };
+            await store.CompleteSeatedWaitAsync(api, "CAFE_STAFF");
+            Assert.That(store.IsEmpty, Is.True);
+            api.DismissError = null;
+            api.Response.Items = new List<FollowUpData> { latte };
+            await store.RefreshAsync(api);
+            Assert.That(store.IsEmpty, Is.True);
+            Assert.That(api.Dismissed, Is.EqualTo(new long[] { 7 }));
+        }
+
         private static FollowUpData Item(
             long id,
             string npcCode,
@@ -348,7 +405,16 @@ namespace A305.Dialogue.Tests
                     : Task.FromResult(Response);
             }
 
-            public Task DismissAsync(long followUpId) => Task.CompletedTask;
+            public ApiException DismissError { get; set; }
+            public List<long> Dismissed { get; } = new List<long>();
+
+            public Task DismissAsync(long followUpId)
+            {
+                if (DismissError != null)
+                    return Task.FromException(DismissError);
+                Dismissed.Add(followUpId);
+                return Task.CompletedTask;
+            }
         }
     }
 }

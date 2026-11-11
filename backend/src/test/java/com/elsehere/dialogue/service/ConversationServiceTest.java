@@ -373,6 +373,87 @@ class ConversationServiceTest {
   }
 
   @Test
+  void dinerConversationsKeepTheirOwnGoalsAfterTheStoryAdvances() {
+    TownStory story = townStoryRepository.saveAndFlush(TownStory.start(userId));
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("How can I help you?", null));
+
+    var order =
+        conversationService.start(
+            userId,
+            new StartConversationRequest(UUID.randomUUID(), "DINER_STAFF", InitiatedBy.USER));
+    conversationRepository
+        .findById(order.conversationId())
+        .orElseThrow()
+        .endByUser(clock.instant());
+    story.accept(0, "DINER_STAFF", List.of("order_breakfast"));
+    story.receiveDinerMeal();
+
+    var spill =
+        conversationService.start(
+            userId,
+            new StartConversationRequest(UUID.randomUUID(), "DINER_STAFF", InitiatedBy.USER));
+    story.accept(0, "DINER_STAFF", List.of("explain_spill"));
+    entityManager.flush();
+    entityManager.clear();
+
+    assertThat(townStoryRepository.findById(userId).orElseThrow().getStage()).isEqualTo(1);
+    assertThat(
+            conversationRepository
+                .findById(order.conversationId())
+                .orElseThrow()
+                .getTownStoryGoalIds())
+        .containsExactly("order_breakfast");
+    assertThat(
+            conversationRepository
+                .findById(spill.conversationId())
+                .orElseThrow()
+                .getTownStoryGoalIds())
+        .containsExactly("explain_spill");
+  }
+
+  @Test
+  void firstDayReopenedConversationsKeepPendingGoalsAfterRest() {
+    FirstDayMission mission = FirstDayMission.start(userId);
+    mission.accept(0, "HOTEL_STAFF", FirstDayStage.EARLY_ARRIVAL.intentIds());
+    mission.accept(1, "CAFE_STAFF", List.of("order_drink"));
+    mission = firstDayMissionRepository.saveAndFlush(mission);
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("How can I help you?", null));
+
+    var pending =
+        conversationService.start(
+            userId,
+            new StartConversationRequest(UUID.randomUUID(), "CAFE_STAFF", InitiatedBy.USER));
+    conversationRepository
+        .findById(pending.conversationId())
+        .orElseThrow()
+        .endByUser(clock.instant());
+    mission.accept(1, "CAFE_STAFF", List.of("set_options", "dine_in"));
+    var waiting =
+        conversationService.start(
+            userId,
+            new StartConversationRequest(UUID.randomUUID(), "CAFE_STAFF", InitiatedBy.USER));
+    mission.restAtCafe();
+    entityManager.flush();
+    entityManager.clear();
+
+    assertThat(firstDayMissionRepository.findById(userId).orElseThrow().getStage()).isEqualTo(2);
+    assertThat(
+            conversationRepository
+                .findById(pending.conversationId())
+                .orElseThrow()
+                .getFirstDayGoalIds())
+        .containsExactly("set_options", "dine_in");
+    assertThat(
+            conversationRepository
+                .findById(waiting.conversationId())
+                .orElseThrow()
+                .getFirstDayGoalIds())
+        .isEmpty();
+  }
+
+  @Test
   @DisplayName("말걸기 대사가 있는 행인이 먼저 말을 걸었으면 그 대사로 시작하고 AI를 부르지 않는다")
   void start_passerbyApproach_usesApproachLineWithoutAi() {
     ConversationStartResponse response =
@@ -796,7 +877,25 @@ class ConversationServiceTest {
     then(aiGateway)
         .should()
         .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), learner.capture());
-    assertThat(learner.getValue()).isEqualTo(new WorkerLearner("Sun", "F"));
+    assertThat(learner.getValue()).isEqualTo(new WorkerLearner("Sun", "F", 1.1));
+  }
+
+  @Test
+  @DisplayName("AI 첫인사는 학습자가 설정창에서 고른 NPC 말 빠르기로 말한다")
+  void start_aiGreeting_sendsTheChosenSpeechSpeed() {
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Hi!", null));
+
+    conversationService.start(
+        userId,
+        new StartConversationRequest(
+            UUID.randomUUID(), "CAFE_STAFF", InitiatedBy.NPC, false, null, 0.9));
+
+    ArgumentCaptor<WorkerLearner> learner = ArgumentCaptor.forClass(WorkerLearner.class);
+    then(aiGateway)
+        .should()
+        .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), learner.capture());
+    assertThat(learner.getValue().speechSpeed()).isEqualTo(0.9);
   }
 
   @Test

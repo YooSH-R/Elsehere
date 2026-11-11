@@ -11,6 +11,7 @@ import java.util.List;
  * @param openingTurn NPC의 첫 대사
  * @param conversation 발화 전송(CONV-03) 응답과 같은 형식의 대화 상태. 대화 화면이 처음부터 무례 횟수와 호감도를 보여 준다
  * @param deliveredFollowUpId 첫마디로 건넨 것(CONV-08 followUp)의 ID. 건넨 것이 없으면 null
+ * @param practiceScenarioId 장소 연습(PRC-02)으로 시작한 대화의 상황 ID. 장소 연습이 아니면 null
  */
 public record ConversationStartResponse(
     Long conversationId,
@@ -21,7 +22,8 @@ public record ConversationStartResponse(
     NpcTurnResponse openingTurn,
     ConversationStateResponse conversation,
     Long deliveredFollowUpId,
-    Long reviewCardId) {
+    Long reviewCardId,
+    String practiceScenarioId) {
   public ConversationStartResponse(
       Long conversationId,
       ConversationStatus status,
@@ -40,6 +42,30 @@ public record ConversationStartResponse(
         openingTurn,
         conversation,
         deliveredFollowUpId,
+        null,
+        null);
+  }
+
+  public ConversationStartResponse(
+      Long conversationId,
+      ConversationStatus status,
+      int levelApplied,
+      NpcSummaryResponse npc,
+      List<Object> runningMissions,
+      NpcTurnResponse openingTurn,
+      ConversationStateResponse conversation,
+      Long deliveredFollowUpId,
+      Long reviewCardId) {
+    this(
+        conversationId,
+        status,
+        levelApplied,
+        npc,
+        runningMissions,
+        openingTurn,
+        conversation,
+        deliveredFollowUpId,
+        reviewCardId,
         null);
   }
 }

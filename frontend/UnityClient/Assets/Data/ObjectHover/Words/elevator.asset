@@ -16,7 +16,7 @@ MonoBehaviour:
     key: elevator
     languageCode: en-US
     text: elevator
-    meaningKo: "\uC5D8\uB9AC\uBCA0\uC774\uD130"
+    meaningKo: "\uCE35\uC744 \uC624\uB974\uB0B4\uB9AC\uB294 \uC2B9\uAC15\uAE30(\uC5D8\uB9AC\uBCA0\uC774\uD130)"
     example: Take the elevator to the second floor.
     exampleKo: "\uC5D8\uB9AC\uBCA0\uC774\uD130\uB97C \uD0C0\uACE0 2\uCE35\uC73C\uB85C
       \uAC00\uC138\uC694."

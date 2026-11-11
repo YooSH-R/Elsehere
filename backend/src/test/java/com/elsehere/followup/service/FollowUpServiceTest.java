@@ -201,6 +201,16 @@ class FollowUpServiceTest {
   }
 
   @Test
+  @DisplayName("요청하면 바로 태워 주는 택시 기사와의 대화는 워커에 묻지 않고 기다리는 것도 만들지 않는다")
+  void afterConversation_taxiRide_owesNothing() {
+    owes(new WorkerFollowUp("a ride to the hotel", "호텔까지 태워 주기", "QUICK"));
+
+    assertThat(judge(endedConversation("TAXI_DRIVER", "Take me to the hotel, please."))).isEmpty();
+    assertThat(followUpService.waiting(userId)).isEmpty();
+    then(aiGateway).should(never()).followUp(any(), any(), any());
+  }
+
+  @Test
   @DisplayName("실제로 신고를 접수하지 않은 경찰 대화는 출동 결과를 만들지 않는다")
   void afterConversation_policeTalkWithoutDispatch_doesNotJudgeAnOutcome() {
     assertThat(judge(endedConversation("POLICE_OFFICER", "Hello, officer."))).isEmpty();

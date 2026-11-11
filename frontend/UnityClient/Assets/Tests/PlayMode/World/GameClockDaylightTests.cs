@@ -10,6 +10,7 @@ namespace A305.World.PlayModeTests
 {
     public class GameClockDaylightTests
     {
+        private const string TestRunnerScenePrefix = "InitTestScene";
         private static int opened;
         private GameObject daylightObject;
         private GameObject clockObject;
@@ -22,6 +23,7 @@ namespace A305.World.PlayModeTests
         }
 
         // 앞선 테스트가 불러 둔 장소 씬의 게임 시계가 시각을 흘리지 않게 빈 씬만 남긴다.
+        // 테스트 러너가 처음 만든 씬(InitTestScene)은 러너가 들어 있어 내리면 테스트가 멈추므로 남긴다.
         [UnitySetUp]
         public IEnumerator SetUp()
         {
@@ -30,7 +32,13 @@ namespace A305.World.PlayModeTests
             for (int index = SceneManager.sceneCount - 1; index >= 0; index--)
             {
                 Scene other = SceneManager.GetSceneAt(index);
-                if (other != scene)
+                if (
+                    other != scene
+                    && !other.name.StartsWith(
+                        TestRunnerScenePrefix,
+                        System.StringComparison.Ordinal
+                    )
+                )
                     yield return SceneManager.UnloadSceneAsync(other);
             }
         }

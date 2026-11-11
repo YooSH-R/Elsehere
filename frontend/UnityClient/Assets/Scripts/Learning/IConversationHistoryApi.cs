@@ -9,7 +9,8 @@ namespace A305.Learning
     public interface IConversationHistoryApi
     {
         /// <param name="cursor">이전 페이지의 <see cref="ConversationPage.NextCursor"/>. 첫 페이지는 null.</param>
-        Task<ConversationPage> GetPageAsync(string cursor);
+        /// <param name="sceneCode">이 장소(CAFE, HOTEL, TOWN 등)의 대화만 받는다. null이면 모든 장소.</param>
+        Task<ConversationPage> GetPageAsync(string cursor, string sceneCode);
 
         Task<PastFeedback> GetFeedbackAsync(long conversationId);
 

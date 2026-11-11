@@ -5,6 +5,7 @@ using A305.Dialogue;
 using A305.Npc;
 using A305.Player;
 using A305.Weather;
+using A305.World;
 using UnityEngine;
 
 namespace A305.Mission
@@ -35,6 +36,9 @@ namespace A305.Mission
         private FirstDayMissionState state;
         private bool busy;
         private bool refreshPending;
+        private bool cafeRestPending;
+        private bool dinerMealPending;
+        private IFollowUpApi followUpApi;
         private RestSeat[] cafeSeats;
         private DinerMealRest dinerRest;
         private QuestNpcWaitSpot[] waitSpots;
@@ -70,14 +74,16 @@ namespace A305.Mission
             waitSpots = FindObjectsByType<QuestNpcWaitSpot>(FindObjectsSortMode.None);
             view.BindMap(sceneCode, player.transform);
             umbrella = player.GetComponent<UmbrellaHold>();
+            followUpApi = new FollowUpApi(apiSettings.CreateClient());
             // 기다리는 카드의 X로 닫은 것을 서버에 알린다.
             var followUps = view.GetComponent<FollowUpCardView>();
             if (followUps != null)
-                followUps.Bind(new FollowUpApi(apiSettings.CreateClient()));
+                followUps.Bind(followUpApi);
             view.StartRequested += StartMission;
             view.RestRequested += Rest;
             view.RetryRequested += RequestRefresh;
             view.QuestBoardRequested += LoadQuestBoard;
+            view.PracticeBoardRequested += LoadPracticeBoard;
             dialogue.NpcResponded += RequestRefresh;
             dialogue.Ended += OnEnded;
             dialogue.Started += OnStarted;
@@ -85,9 +91,27 @@ namespace A305.Mission
 
         private void Start() => RequestRefresh();
 
-        private void Update() => dinerRest?.Tick(Time.unscaledDeltaTime, state, busy);
+        private void Update()
+        {
+            dinerRest?.Tick(Time.unscaledDeltaTime, state, busy);
+            if (state?.CountsAsCafeRest != true)
+                return;
+            foreach (RestSeat seat in cafeSeats)
+                if (seat != null && seat.IsPlayerSeated)
+                    FollowUpStore.Shared.SetSeatedWaitRemaining(
+                        "CAFE_STAFF",
+                        seat.RemainingSeconds
+                    );
+        }
 
-        private void ReceiveDinerMeal() => _ = ExecuteAsync(api.ReceiveDinerMealAsync);
+        private void ReceiveDinerMeal()
+        {
+            _ = FollowUpStore.Shared.CompleteSeatedWaitAsync(followUpApi, "DINER_STAFF");
+            if (busy)
+                dinerMealPending = true;
+            else
+                _ = ExecuteAsync(api.ReceiveDinerMealAsync);
+        }
 
         private void OnDestroy()
         {
@@ -106,6 +130,7 @@ namespace A305.Mission
                 view.RestRequested -= Rest;
                 view.RetryRequested -= RequestRefresh;
                 view.QuestBoardRequested -= LoadQuestBoard;
+                view.PracticeBoardRequested -= LoadPracticeBoard;
             }
             if (dialogue != null)
             {
@@ -130,11 +155,17 @@ namespace A305.Mission
 
         private void Rest()
         {
-            if (state != null && state.CountsAsCafeRest && !busy)
+            if (state?.CountsAsCafeRest != true)
+                return;
+            _ = FollowUpStore.Shared.CompleteSeatedWaitAsync(followUpApi, "CAFE_STAFF");
+            if (busy)
+                cafeRestPending = true;
+            else
                 _ = ExecuteAsync(api.RestAsync);
         }
 
-        private void RequestRefresh()
+        /// <summary>서버에서 지금 퀘스트 진행을 다시 읽는다. 튜토리얼 저장처럼 이 화면 밖에서 퀘스트가 시작됐을 때도 부른다.</summary>
+        public void RequestRefresh()
         {
             if (busy)
             {
@@ -174,6 +205,34 @@ namespace A305.Mission
                 {
                     Debug.LogException(exception, this);
                     view.ShowMessage("퀘스트 목록을 불러오지 못했어요. 다시 열어 주세요.");
+                }
+            }
+        }
+
+        private void LoadPracticeBoard() => _ = LoadPracticeBoardAsync();
+
+        // 장소 연습 목록(PRC-01)은 탭을 열 때마다 다시 읽어 방금 끝낸 상황도 보인다.
+        private async Task LoadPracticeBoardAsync()
+        {
+            if (api == null)
+                return;
+            try
+            {
+                PracticeBoardState board = await api.GetPracticeBoardAsync();
+                if (this != null)
+                    view.ShowPracticeBoard(board);
+            }
+            catch (ApiException exception)
+            {
+                if (this != null)
+                    view.ShowMessage(exception.Message);
+            }
+            catch (Exception exception)
+            {
+                if (this != null)
+                {
+                    Debug.LogException(exception, this);
+                    view.ShowMessage("장소 연습 목록을 불러오지 못했어요. 다시 열어 주세요.");
                 }
             }
         }
@@ -236,7 +295,12 @@ namespace A305.Mission
                 if (weather != null)
                     weather.Show(state.Weather, state.FallbackWeather);
                 if (umbrella != null)
-                    umbrella.SetOpen(state.OpensUmbrellaIn(sceneCode));
+                    umbrella.SetOpen(
+                        state.OpensUmbrellaIn(
+                            sceneCode,
+                            PlaceScenes.IsTownShop(gameObject.scene.name)
+                        )
+                    );
             }
             catch (ApiException exception)
             {
@@ -258,8 +322,19 @@ namespace A305.Mission
                 {
                     Render();
                     // 퀘스트를 시작하거나 진행이 바뀌면 열려 있는 목록도 새로 받는다.
+                    // 진행은 방금 읽었으므로 목록만 받는다. 진행을 다시 읽으면 실패할 때마다 끝없이 되풀이한다.
                     if (view.IsQuestBoardOpen)
-                        LoadQuestBoard();
+                        _ = LoadQuestBoardAsync();
+                    if (dinerMealPending)
+                    {
+                        dinerMealPending = false;
+                        ReceiveDinerMeal();
+                    }
+                    if (cafeRestPending)
+                    {
+                        cafeRestPending = false;
+                        Rest();
+                    }
                     if (refreshPending)
                     {
                         refreshPending = false;
@@ -287,7 +362,7 @@ namespace A305.Mission
             foreach (RestSeat seat in cafeSeats)
             {
                 if (seat != null)
-                    seat.SetAvailable(canSit);
+                    seat.SetAvailable(canSit, state?.CountsAsCafeRest == true);
             }
         }
     }

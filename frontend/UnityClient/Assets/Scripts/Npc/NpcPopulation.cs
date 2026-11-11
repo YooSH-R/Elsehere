@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using A305.Dialogue;
 using A305.Player;
 using A305.World;
@@ -14,6 +15,9 @@ namespace A305.Npc
     public sealed class NpcPopulation : MonoBehaviour
     {
         private const float DoorArrivalMeters = .4f;
+
+        // 장면을 열 때 일터 문에 닿았어야 할 출근 직원을 이만큼 앞에서 걸어 들어오게 한다.
+        private const float ArrivingSpawnMeters = 3f;
 
         [SerializeField]
         private TextAsset lifeData;
@@ -38,6 +42,9 @@ namespace A305.Npc
         private NpcOutingCatalog outings;
         private TrafficLights lights;
 
+        // 이 장면에서 마을로 나가는 문. 일터 장면의 직원은 이 문으로 드나든다. 마을 장면에는 없다.
+        private SpaceDoorway townDoor;
+
         [Serializable]
         public sealed class Resident
         {
@@ -47,7 +54,6 @@ namespace A305.Npc
             [NonSerialized]
             internal GameObject TownBody;
             public Vector3 WorkplaceDoor;
-            public string InteriorScene;
 
             [NonSerialized]
             internal NpcLifeEntry Life;
@@ -90,6 +96,10 @@ namespace A305.Npc
 
             [NonSerialized]
             internal int ObservedRecoveryCount;
+
+            // 거리에서 지내던 모습이 방금 사라진 자리. 거리 모습이 이 자리에서 이어서 나선다.
+            [NonSerialized]
+            internal Vector3? HandOff;
         }
 
         /// <summary>같은 코드의 거리 모습을 고르지 않고 근무지의 직원을 찾는다.</summary>
@@ -109,6 +119,11 @@ namespace A305.Npc
         private void Start()
         {
             lights = FindFirstObjectByType<TrafficLights>();
+            townDoor = FindObjectsByType<SpaceDoorway>(FindObjectsSortMode.None)
+                .FirstOrDefault(door =>
+                    door.gameObject.scene == gameObject.scene
+                    && door.DestinationScene == PlaceScenes.SceneOf("TOWN")
+                );
             outings = Resources.Load<NpcOutingCatalog>("NpcOutings");
             NpcOutings.Shared.Synchronize(GameClock.Shared);
             NpcFacilityVisitors.Ensure(outings);
@@ -189,7 +204,9 @@ namespace A305.Npc
                     if (continuous && resident.TownBody.activeSelf && !plan.IsInTown)
                     {
                         resident.EntryDoor =
-                            plan.Phase == NpcDayPhase.Working ? resident.WorkplaceDoor : dormDoor;
+                            plan.Phase == NpcDayPhase.Working
+                                ? WorkplaceDoorOf(resident)
+                                : dormDoor;
                         entering =
                             Vector3
                                 .ProjectOnPlane(
@@ -218,18 +235,34 @@ namespace A305.Npc
                     if (workerBody != null)
                         workerBody.TravelContext = travel.Copy();
                 }
-                if (resident.Worker != null && !IsTalking(resident.Worker))
+                if (
+                    resident.Worker != null
+                    && !IsTalking(resident.Worker)
+                    && WorksBehindTownDoor(resident)
+                )
+                    UpdateWorkplaceWorker(resident, plan, minutes, continuous);
+                else if (resident.Worker != null && !IsTalking(resident.Worker))
                 {
-                    bool roomLoaded =
-                        string.IsNullOrEmpty(resident.InteriorScene)
-                        || SceneManager.GetSceneByName(resident.InteriorScene).isLoaded;
+                    bool wasOut = resident.Worker.activeSelf;
+                    // 행인이 돌아오는 길에 대화 중이면 그 대화가 끝날 때까지 제자리에 다시 두지 않는다.
+                    bool talkingOnTheWay =
+                        LivesOnTheStreet(resident)
+                        && resident.TownBody != null
+                        && IsTalking(resident.TownBody);
                     // 순찰차를 몰고 나간 경찰관은 돌아와 주차할 때까지 창구에 두지 않는다(PoliceCar).
                     resident.Worker.SetActive(
-                        plan.Phase == NpcDayPhase.Working
+                        NpcWorkArrivals.IsAtWork(resident.Life, plan, minutes)
                             && !entering
-                            && roomLoaded
+                            && !talkingOnTheWay
                             && !PoliceCar.IsOutOnPatrol(resident.Life.NpcId)
                     );
+                    if (
+                        continuous
+                        && wasOut
+                        && !resident.Worker.activeSelf
+                        && LivesOnTheStreet(resident)
+                    )
+                        resident.HandOff = resident.Worker.transform.position;
                 }
                 if (resident.TownBody == null || IsTalking(resident.TownBody))
                     continue;
@@ -255,14 +288,20 @@ namespace A305.Npc
                     continue;
                 if (player == null || offerView == null)
                     continue;
+                // 제자리의 행인이 아직 대화 중이면 거리 모습을 따로 내보내지 않는다.
+                if (LivesOnTheStreet(resident) && resident.Worker.activeSelf)
+                    continue;
                 NpcDayPlan plan = resident.Plan;
+                if (EnteredWorkplaceEarly(resident, plan, minutes))
+                    continue;
                 if (UpdateOuting(resident, plan, minutes))
                     continue;
                 if (resident.EnteringDoor)
                 {
                     var enteringWalker = resident.TownBody.GetComponent<NpcTownWalker>();
                     enteringWalker.Destination = resident.EntryDoor;
-                    enteringWalker.HasScheduleDeadline = true;
+                    // 거리에서 지내는 행인은 정해진 시각에 맞출 문이 없어 서두르지 않는다.
+                    enteringWalker.HasScheduleDeadline = !LivesOnTheStreet(resident);
                     enteringWalker.SchedulePhase = plan.Phase;
                     enteringWalker.IsStaff = NpcDuty.IsStaff(resident.Life.Role);
                     enteringWalker.ScheduleDoor = resident.EntryDoor;
@@ -278,10 +317,11 @@ namespace A305.Npc
                         && (
                             plan.Phase == NpcDayPhase.LeavingWork
                             || plan.Phase == NpcDayPhase.GoingHome
+                            || plan.IsErrand
                         )
                     )
                         endpoints = (resident.TownBody.transform.position, endpoints.To);
-                    resident.Route = RouteBetween(endpoints.From, endpoints.To);
+                    resident.Route = NpcWalkRoute.Between(endpoints.From, endpoints.To);
                     resident.RouteMeters = resident.Route != null ? RouteLength(resident.Route) : 0;
                     string phase = plan.IsShortBreak
                         ? "BREAK"
@@ -323,7 +363,7 @@ namespace A305.Npc
                     continue;
                 }
                 float progress = (float)plan.Progress;
-                if (plan.Phase == NpcDayPhase.GoingToWork && !plan.IsShortBreak)
+                if (plan.Phase == NpcDayPhase.GoingToWork && !plan.IsShortBreak && !plan.IsErrand)
                     progress = NpcJourneyTime.WalkingProgress(
                         plan.Progress,
                         resident.CommuteMinutes,
@@ -336,24 +376,38 @@ namespace A305.Npc
                 Vector3 target = PositionOnRoute(resident.Route, progress);
                 if (appeared)
                 {
+                    // 장면을 열 때 이미 일터 문에 닿았어야 할 출근 직원은 문 앞에서 나타나 걸어 들어가게 한다.
+                    // 문 위에 바로 세우면 그 자리에서 들어가 버려 출근하는 모습을 볼 수 없다.
+                    Vector3 spawn =
+                        plan.Phase == NpcDayPhase.GoingToWork
+                        && !plan.IsShortBreak
+                        && !plan.IsErrand
+                        && resident.RouteMeters > ArrivingSpawnMeters
+                            ? PositionOnRoute(
+                                resident.Route,
+                                Mathf.Min(progress, 1 - ArrivingSpawnMeters / resident.RouteMeters)
+                            )
+                            : target;
                     if (
                         !NpcWalkingSpace.TryFindArrival(
                             resident.TownBody.GetComponent<Passerby>(),
-                            target,
+                            resident.HandOff ?? spawn,
                             out Vector3 arrival
                         )
                     )
                         continue;
                     resident.TownBody.transform.position = arrival;
                 }
+                resident.HandOff = null;
                 var walker = resident.TownBody.GetComponent<NpcTownWalker>();
                 walker.Destination = target;
                 walker.SchedulePhase = plan.Phase;
                 walker.HasScheduleDeadline =
-                    plan.Phase == NpcDayPhase.GoingToWork || plan.Phase == NpcDayPhase.GoingHome;
+                    (plan.Phase == NpcDayPhase.GoingToWork || plan.Phase == NpcDayPhase.GoingHome)
+                    && !plan.IsErrand;
                 walker.ScheduleDoor = null;
                 if (plan.Phase == NpcDayPhase.GoingToWork)
-                    walker.ScheduleDoor = resident.WorkplaceDoor;
+                    walker.ScheduleDoor = WorkplaceDoorOf(resident);
                 else if (plan.Phase == NpcDayPhase.GoingHome)
                     walker.ScheduleDoor = dormDoor;
                 walker.IsStaff = NpcDuty.IsStaff(resident.Life.Role);
@@ -402,14 +456,15 @@ namespace A305.Npc
             Vector3 leisure = park + new Vector3(slot % 5 - 2, 0, slot / 5 - 2);
             if (resident.LeisureVenue != null)
                 leisure = resident.LeisureVenue.Entrance;
+            Vector3 workplace = WorkplaceDoorOf(resident);
             if (plan.IsShortBreak)
-                leisure = resident.WorkplaceDoor + new Vector3(0, 0, 2);
+                leisure = workplace + new Vector3(0, 0, 2);
             switch (plan.Phase)
             {
                 case NpcDayPhase.GoingToWork:
-                    return (plan.IsShortBreak ? leisure : dormDoor, resident.WorkplaceDoor);
+                    return (plan.IsShortBreak || plan.IsErrand ? leisure : dormDoor, workplace);
                 case NpcDayPhase.LeavingWork:
-                    return (resident.WorkplaceDoor, leisure);
+                    return (workplace, leisure);
                 case NpcDayPhase.GoingHome:
                     return (leisure, dormDoor);
                 default:
@@ -424,24 +479,31 @@ namespace A305.Npc
         }
 
         // 실제 문에 도착하기 전에는 시설 안으로 옮기지 않는다. 정원은 이곳으로 걷는 사람까지 포함한다.
+        // 들어간 가게에서 걸어 나오기 전에는 다음 가게를 고르지 않는다.
         private bool UpdateOuting(Resident resident, NpcDayPlan plan, double now)
         {
             if (outings == null)
                 return false;
             string code = resident.Life.NpcId;
             NpcOuting trip = NpcOutings.Shared.Find(code);
-            if (NpcOutings.CanGoOut(plan) && code != NpcDuty.MissionNpcCode)
+            bool inside = trip != null && trip.Arrived;
+            if (NpcOutings.CanGoOut(plan) && code != NpcDuty.MissionNpcCode && !inside)
             {
+                double until = NpcOutings.UntilOutingEnds(plan, now);
                 trip = NpcOutings.Shared.Reserve(
                     code,
                     resident.Life.Workplace,
                     now,
-                    NpcOutings.UntilHome(plan, now),
+                    until,
                     outings.Venues,
                     venue =>
                         OpeningHours.IsOpenNow(venue.Code)
-                        && CanVisit(resident, venue, NpcOutings.UntilHome(plan, now) - now)
-                        && (!venue.IsOutdoor || RouteBetween(venue.Entrance, venue.WalkTo) != null)
+                        && NpcOutings.Suits(plan, venue)
+                        && CanVisit(resident, venue, until - now)
+                        && (
+                            !venue.IsOutdoor
+                            || NpcWalkRoute.Between(venue.Entrance, venue.WalkTo) != null
+                        )
                 );
                 if (resident.LeisureVenue != trip?.Venue)
                     resident.LastPhase = null;
@@ -471,8 +533,8 @@ namespace A305.Npc
                 resident.TownBody.transform.position = trip.Venue.Entrance;
                 capsule.enabled = true;
                 resident.TownBody.SetActive(true);
+                NpcOutings.Shared.Finish(code);
                 trip.Arrived = false;
-                NpcOutings.Shared.Release(code);
             }
             if (
                 visiting
@@ -486,7 +548,7 @@ namespace A305.Npc
                     .magnitude <= DoorArrivalMeters
             )
             {
-                trip.Arrived = true;
+                trip.Arrive(now);
                 resident.TownBody.SetActive(false);
                 return true;
             }
@@ -503,6 +565,123 @@ namespace A305.Npc
             return 60;
         }
 
+        // 행인처럼 마을 거리에서 지내는 NPC는 정해진 문이 없다. 거리에서 마지막으로 있던 자리에서 나서고 그 자리로 돌아온다.
+        // 출근은 신호 대기 여유까지 넣어 일찍 나서므로 근무 시작 전에 일터 문에 닿는다. 문 앞에 서서 기다리지 않고 들어가고,
+        // 일터 장면이 근무 시작 전에도 안에 두도록 들어간 근무를 기록한다(NpcWorkArrivals).
+        private static bool EnteredWorkplaceEarly(Resident resident, NpcDayPlan plan, double now)
+        {
+            if (
+                plan.Phase != NpcDayPhase.GoingToWork
+                || plan.IsErrand
+                || LivesOnTheStreet(resident)
+            )
+                return false;
+            double? shiftStart = NpcDayPlan.NextWorkStart(resident.Life, now);
+            if (!shiftStart.HasValue)
+                return false;
+            string code = resident.Life.NpcId;
+            if (!NpcWorkArrivals.HasArrived(code, shiftStart.Value))
+            {
+                bool atDoor =
+                    resident.TownBody.activeSelf
+                    && Vector3
+                        .ProjectOnPlane(
+                            resident.WorkplaceDoor - resident.TownBody.transform.position,
+                            Vector3.up
+                        )
+                        .magnitude <= DoorArrivalMeters;
+                if (!atDoor)
+                    return false;
+                NpcWorkArrivals.MarkArrived(code, shiftStart.Value);
+                var travel = resident.TownBody.GetComponent<Passerby>().TravelContext;
+                if (travel?.Phase == "GOING_TO_WORK")
+                {
+                    travel.Phase = "AT_WORK";
+                    NpcJourneyLog.Record(code, travel);
+                }
+            }
+            resident.TownBody.SetActive(false);
+            resident.LastPhase = null;
+            return true;
+        }
+
+        // 일터 장면(마을 매장·카페·호텔·드럭스토어·경찰서)의 직원. 마을로 나가는 문으로 드나든다.
+        private bool WorksBehindTownDoor(Resident resident) =>
+            townDoor != null && resident.TownBody == null;
+
+        // 플레이어가 일터 장면에 있는 동안 근무하러 오는 직원은 마을 문으로 들어온 것처럼 문 안쪽 도착 지점에 나타나고,
+        // 근무가 끝난 직원은 문 쪽으로 걸어 나간 뒤 사라진다(NpcWorkplaceDoor). 순찰차를 몰고 나간 경찰관은 돌아와 주차할 때까지 두지 않는다.
+        private void UpdateWorkplaceWorker(
+            Resident resident,
+            NpcDayPlan plan,
+            double now,
+            bool continuous
+        )
+        {
+            GameObject worker = resident.Worker;
+            var routine = worker.GetComponent<NpcRoutine>();
+            bool inside =
+                NpcWorkArrivals.ShouldBeInside(resident.Life, plan, now)
+                && !PoliceCar.IsOutOnPatrol(resident.Life.NpcId);
+            NpcWorkplaceStep step = NpcWorkplaceDoor.Decide(
+                inside,
+                worker.activeSelf,
+                continuous,
+                plan.Phase,
+                routine != null && routine.HasLeftThroughDoor
+            );
+            switch (step)
+            {
+                case NpcWorkplaceStep.EnterThroughDoor:
+                    Transform entry = townDoor.ArrivalPoint;
+                    worker.transform.SetPositionAndRotation(entry.position, entry.rotation);
+                    ShowAtWork(resident, plan, now, routine);
+                    break;
+                case NpcWorkplaceStep.ShowAtPost:
+                    ShowAtWork(resident, plan, now, routine);
+                    break;
+                case NpcWorkplaceStep.Stay:
+                    routine?.StayAtWork();
+                    break;
+                case NpcWorkplaceStep.WalkOut when routine != null:
+                    // 문 안쪽 0.6m까지 걸어가 사라진다. 마을에서는 같은 시각부터 이 문 앞에서 퇴근 길을 걷는다.
+                    routine.LeaveThrough(
+                        townDoor.transform.position + townDoor.transform.forward * .6f
+                    );
+                    break;
+                default:
+                    routine?.StayAtWork();
+                    worker.SetActive(false);
+                    break;
+            }
+        }
+
+        // 근무 전에 들어왔으면 그 근무를 위해 들어왔다고 남긴다. 마을로 나가도 이 직원이 출근길에 다시 나오지 않는다.
+        private static void ShowAtWork(
+            Resident resident,
+            NpcDayPlan plan,
+            double now,
+            NpcRoutine routine
+        )
+        {
+            if (plan.Phase != NpcDayPhase.Working)
+            {
+                double? shiftStart = NpcDayPlan.NextWorkStart(resident.Life, now);
+                if (shiftStart.HasValue)
+                    NpcWorkArrivals.MarkArrived(resident.Life.NpcId, shiftStart.Value);
+            }
+            routine?.StayAtWork();
+            resident.Worker.SetActive(true);
+        }
+
+        private static bool LivesOnTheStreet(Resident resident) =>
+            resident.Worker != null && resident.Life.Workplace == "TOWN";
+
+        private static Vector3 WorkplaceDoorOf(Resident resident) =>
+            LivesOnTheStreet(resident)
+                ? resident.Worker.transform.position
+                : resident.WorkplaceDoor;
+
         private static float ArrivalMarginMeters =>
             NpcWalkingSpace.ArrivalSearchRadiusMeters + DoorArrivalMeters;
 
@@ -510,7 +689,7 @@ namespace A305.Npc
         {
             Vector3 from = resident.TownBody.activeSelf
                 ? resident.TownBody.transform.position
-                : resident.WorkplaceDoor;
+                : WorkplaceDoorOf(resident);
             var journey = MeasureJourney(from, venue.Entrance);
             return NpcJourneyTime.CanVisit(
                 journey.Meters,
@@ -522,7 +701,7 @@ namespace A305.Npc
 
         private (float Meters, float WaitSeconds) MeasureJourney(Vector3 from, Vector3 to)
         {
-            Vector3[] route = RouteBetween(from, to);
+            Vector3[] route = NpcWalkRoute.Between(from, to);
             if (route == null)
                 return (float.PositiveInfinity, 0);
             float wait = 0;
@@ -568,23 +747,6 @@ namespace A305.Npc
             return npc.activeInHierarchy
                 && npc.TryGetComponent(out Passerby body)
                 && (body.Phase == PasserbyPhase.Talking || body.Phase == PasserbyPhase.Offering);
-        }
-
-        private static Vector3[] RouteBetween(Vector3 from, Vector3 to)
-        {
-            int walkableAreas = NpcTownWalker.WalkingAreas;
-            if (
-                !NavMesh.SamplePosition(from, out NavMeshHit start, 2, walkableAreas)
-                || !NavMesh.SamplePosition(to, out NavMeshHit end, 2, walkableAreas)
-            )
-                return null;
-            var path = new NavMeshPath();
-            if (
-                !NavMesh.CalculatePath(start.position, end.position, walkableAreas, path)
-                || path.status != NavMeshPathStatus.PathComplete
-            )
-                return null;
-            return path.corners.Length > 0 ? path.corners : new[] { start.position };
         }
 
         internal static Vector3 PositionOnRoute(IReadOnlyList<Vector3> route, float progress)

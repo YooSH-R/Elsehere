@@ -232,7 +232,7 @@ namespace A305.Dialogue
                 {
                     try
                     {
-                        await BeginAsync(await RequestStartAsync(startRequestId));
+                        await BeginStreamingAsync(startRequestId);
                     }
                     catch (ApiException exception) when (exception.Code == AlreadyActiveCode)
                     {
@@ -673,7 +673,13 @@ namespace A305.Dialogue
             );
         }
 
-        private async Task BeginAsync(ConversationStart start)
+        /// <param name="spokenInChunks">첫 인사를 조각 음성으로 들려줬는지. 그러면 전체 음성을 다시 자동 재생하지 않는다.</param>
+        /// <param name="missingSpeech">음성이 빠진 조각이 있었는지</param>
+        private async Task BeginAsync(
+            ConversationStart start,
+            bool spokenInChunks,
+            bool missingSpeech
+        )
         {
             // 준비 중 창을 닫았어도 시작 요청은 서버에서 완료될 수 있다. 그 대화를 남기면 서버 시계가 계속 멈춘다.
             if (endRequested)
@@ -697,7 +703,7 @@ namespace A305.Dialogue
                 followUps.Remove(delivered, NpcCode);
             }
 
-            AddNpcTurn(start.OpeningTurn);
+            AddNpcTurn(start.OpeningTurn, spokenInChunks, missingSpeech);
         }
 
         // 새로고침 등으로 끝내지 못한 대화가 남아 있다. 같은 NPC와의 대화면 이어서 해 새 대화를 만들지 않고(게스트 대화 횟수를 다시 쓰지 않음),
@@ -746,14 +752,32 @@ namespace A305.Dialogue
             if (!endRequested)
             {
                 // 복습·장소 연습은 처음 요청 ID로 다시 열고, 일반 대화는 남은 대화를 끝냈으니 새 요청으로 연다.
-                await BeginAsync(
-                    await RequestStartAsync(IsSeparatePractice ? startRequestId : NewRequestId())
-                );
+                await BeginStreamingAsync(IsSeparatePractice ? startRequestId : NewRequestId());
             }
         }
 
+        // 첫 인사를 스트리밍으로 받아 글자가 오기 시작하면 로딩을 걷고 온 만큼 보여 주며 조각 음성을 넘긴다. 시작한 대화를 받으면 그 줄을
+        // 지우고 저장된 첫 턴으로 다시 그린다. 복습·장소 연습은 스트림 없이 한 번에 받는다.
+        private async Task BeginStreamingAsync(string requestId)
+        {
+            var opening = new StreamedReply(this, null, ++replyCount);
+            streamedReply = opening;
+            ConversationStart start;
+            try
+            {
+                start = await RequestStartAsync(requestId, opening);
+            }
+            finally
+            {
+                opening.RemoveLines();
+                streamedReply = null;
+            }
+
+            await BeginAsync(start, opening.HasSpeech, opening.HasMissingSpeech);
+        }
+
         // 복습·장소 연습은 각자의 시작 경로로, 그 밖의 대화는 일반 대화 시작(CONV-01)으로 연다.
-        private Task<ConversationStart> RequestStartAsync(string requestId)
+        private Task<ConversationStart> RequestStartAsync(string requestId, ITurnStream opening)
         {
             if (IsReview)
                 return reviewStart(requestId);
@@ -765,7 +789,8 @@ namespace A305.Dialogue
                 InitiatedByCode,
                 npcOffDuty,
                 npcTravelContext,
-                placeCode
+                placeCode,
+                opening
             );
         }
 
@@ -932,8 +957,8 @@ namespace A305.Dialogue
         }
 
         /// <summary>
-        /// 스트리밍으로 받는 NPC 대답(CONV-03). 대사 글자가 오기 시작하면 로딩을 걷고 보낸 문장과 온 만큼의 대사를 보여 주며,
-        /// 조각 음성은 받는 대로 넘긴다. 저장된 턴을 받으면 이 줄들을 지우고 저장된 턴으로 다시 그린다.
+        /// 스트리밍으로 받는 NPC 대답(CONV-03)과 첫 인사(CONV-01). 대사 글자가 오기 시작하면 로딩을 걷고 보낸 문장과 온 만큼의 대사를
+        /// 보여 주며, 조각 음성은 받는 대로 넘긴다. 저장된 턴·시작한 대화를 받으면 이 줄들을 지우고 저장된 턴으로 다시 그린다.
         /// </summary>
         private sealed class StreamedReply : ITurnStream
         {
@@ -941,9 +966,11 @@ namespace A305.Dialogue
             private readonly string utterance;
             private readonly int reply;
             private readonly System.Text.StringBuilder text = new System.Text.StringBuilder();
+            private bool started;
             private DialogueLine userLine;
             private DialogueLine npcLine;
 
+            /// <param name="utterance">대답할 사용자 발화. 첫 인사는 보낸 문장이 없어 null이다.</param>
             public StreamedReply(ServerConversation owner, string utterance, int reply)
             {
                 this.owner = owner;
@@ -963,11 +990,15 @@ namespace A305.Dialogue
                 }
 
                 text.Append(delta);
-                if (userLine == null)
+                if (!started)
                 {
-                    userLine = DialogueLine.FromUser(utterance);
-                    owner.lines.Add(userLine);
+                    started = true;
                     owner.Waiting = DialogueWait.None;
+                    if (utterance != null)
+                    {
+                        userLine = DialogueLine.FromUser(utterance);
+                        owner.lines.Add(userLine);
+                    }
                 }
 
                 DialogueLine growing = DialogueLine.FromNpc(text.ToString(), null);

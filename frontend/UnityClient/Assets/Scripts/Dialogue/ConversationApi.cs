@@ -25,22 +25,49 @@ namespace A305.Dialogue
             string initiatedBy,
             bool npcOffDuty,
             NpcTravelContext npcTravelContext = null,
-            string placeCode = null
+            string placeCode = null,
+            ITurnStream stream = null
         )
         {
-            return client.PostAsync<ConversationStart>(
-                "/api/v1/conversations",
-                new StartConversationBody
-                {
-                    RequestId = requestId,
-                    NpcCode = npcCode,
-                    InitiatedBy = initiatedBy,
-                    NpcOffDuty = npcOffDuty,
-                    NpcTravelContext = npcTravelContext,
-                    SpeechSpeed = NpcSpeechSpeed.ForRequest,
-                    PlaceCode = placeCode,
-                }
-            );
+            const string path = "/api/v1/conversations";
+            var body = new StartConversationBody
+            {
+                RequestId = requestId,
+                NpcCode = npcCode,
+                InitiatedBy = initiatedBy,
+                NpcOffDuty = npcOffDuty,
+                NpcTravelContext = npcTravelContext,
+                SpeechSpeed = NpcSpeechSpeed.ForRequest,
+                PlaceCode = placeCode,
+            };
+            return stream == null
+                ? client.PostAsync<ConversationStart>(path, body)
+                : StartStreamingAsync(path, body, stream);
+        }
+
+        // CONV-01 스트리밍. 서버는 연결이 끊겨도 첫 인사를 끝까지 받아 대화를 저장하므로, 시작한 대화를 받지 못하고 끝나면 같은 요청 ID로 다시 묻는다.
+        private async Task<ConversationStart> StartStreamingAsync(
+            string path,
+            StartConversationBody body,
+            ITurnStream stream
+        )
+        {
+            var events = new TurnEventReader(stream);
+            try
+            {
+                await client.PostStreamAsync(path, body, events.Read);
+            }
+            catch (ApiException exception) when (exception.Code == ApiErrorCodes.NetworkError)
+            {
+                return await client.PostAsync<ConversationStart>(path, body);
+            }
+
+            if (events.Error != null)
+            {
+                throw events.Error;
+            }
+
+            return events.Conversation ?? await client.PostAsync<ConversationStart>(path, body);
         }
 
         public Task<TurnResult> SendTurnAsync(

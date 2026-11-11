@@ -64,6 +64,9 @@ namespace A305.Ambience
         public static float Volume(float normal, bool talking) =>
             Math.Max(0, Math.Min(1, normal)) * (talking ? .15f : 1f);
 
+        public static float EffectVolume(AmbienceEffect effect, float normal, bool talking) =>
+            Volume(normal, talking && effect != AmbienceEffect.TaxiDoorClose);
+
         public static bool IsStreet(AmbienceBed bed) =>
             bed == AmbienceBed.Street || bed == AmbienceBed.Rain;
     }

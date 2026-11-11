@@ -18,6 +18,7 @@ namespace A305.Ambience
         private readonly AudioSource[] loops = new AudioSource[2];
         private readonly List<CarSound> cars = new List<CarSound>();
         private AudioSource effects;
+        private AudioSource taxiDoor;
         private DialogueController dialogue;
         private PlayerMover player;
         private TaxiRide taxi;
@@ -59,6 +60,7 @@ namespace A305.Ambience
             loops[1] = Source("Place B", transform, false);
             loops[0].loop = loops[1].loop = true;
             effects = Source("Events", transform, false);
+            taxiDoor = Source("Taxi door", transform, false);
             SceneManager.sceneLoaded += SceneLoaded;
             RefreshReferences();
         }
@@ -147,6 +149,7 @@ namespace A305.Ambience
             }
             effects.volume = gain;
             effects.mute = muted;
+            taxiDoor.mute = muted;
             foreach (CarSound car in cars)
             {
                 if (car.Source != null)
@@ -182,8 +185,9 @@ namespace A305.Ambience
             AudioClip clip = catalog.Effect(effect);
             if (clip == null)
                 return;
-            effects.volume = AmbiencePlan.Volume(NormalVolume, Talking);
-            effects.PlayOneShot(clip);
+            AudioSource source = effect == AmbienceEffect.TaxiDoorClose ? taxiDoor : effects;
+            source.volume = AmbiencePlan.EffectVolume(effect, NormalVolume, Talking);
+            source.PlayOneShot(clip);
         }
 
         private void OnDestroy()

@@ -33,6 +33,19 @@ namespace A305.Ambience.Tests
         }
 
         [Test]
+        public void BoardingAndAlightingUseTheSameTaxiDoorVolume()
+        {
+            Assert.That(
+                AmbiencePlan.EffectVolume(AmbienceEffect.TaxiDoorClose, .6f, true),
+                Is.EqualTo(AmbiencePlan.EffectVolume(AmbienceEffect.TaxiDoorClose, .6f, false))
+            );
+            Assert.That(
+                AmbiencePlan.EffectVolume(AmbienceEffect.DoorClose, .6f, true),
+                Is.EqualTo(.09f).Within(.001f)
+            );
+        }
+
+        [Test]
         public void OnePassingCarDoesNotRepeatUntilItLeavesAndReturns()
         {
             var gate = new VehicleSoundGate();

@@ -167,11 +167,9 @@ namespace A305.Learning
         private const float GapBelowPageTitle = 14 * Px;
         private const float SubtitleGap = 16 * Px;
 
-        // 판 안은 시안 판(1240×770)을 1.2배로 배치하고, 화면에는 시안 크기로 줄여 보인다. 폭은 시안보다 좁은 1080으로,
-        // 마을 HUD를 함께 볼 수 있게 머리줄의 부제(○○와 나눈 대화)와 오른쪽 탭·버튼 사이가 남는 만큼만 줄였다.
+        // 판의 배율을 높여 요약·교정·대화 본문을 단어장과 비슷한 크기로 읽을 수 있게 한다.
         private const float FrameWidth = 1080 * Px;
         private const float FrameHeight = 770 * Px;
-        private const float FrameScale = 1 / Px;
         private static readonly Color TabInk = new Color32(47, 37, 27, 255);
         private static readonly Color TabMuted = new Color32(125, 110, 91, 255);
 
@@ -479,25 +477,15 @@ namespace A305.Learning
             );
         }
 
-        // 화면 크기가 바뀌거나 마을 HUD가 나타나고 사라져 빈 곳이 바뀌면 판을 다시 맞춘다.
+        // 화면 크기가 바뀌면 판을 다시 맞춘다.
         private void LateUpdate()
         {
             if (feedback != null && FreeArea() != lastFreeArea)
                 UpdateLayout();
         }
 
-        private Rect FreeArea()
-        {
-            var canvas = (RectTransform)panel.transform.parent;
-            if (!isExpanded)
-                return CenterWindow.Shared.FreeArea(canvas);
-            return new Rect(
-                24,
-                24,
-                Mathf.Max(1, canvas.rect.width - 48),
-                Mathf.Max(1, canvas.rect.height - 48)
-            );
-        }
+        private Rect FreeArea() =>
+            CenterWindow.Shared.FreeArea((RectTransform)panel.transform.parent);
 
         /// <summary>현재 탭·선택 문장·스크롤 위치를 유지한 채 창을 넓히거나 원래 크기로 되돌린다.</summary>
         public void ToggleExpanded()
@@ -521,31 +509,25 @@ namespace A305.Learning
             icon.sprite = isExpanded ? collapseSprite : expandSprite;
         }
 
-        // 마을 HUD(퀘스트 카드·미니맵)를 함께 볼 수 있게 그 오른쪽 빈 곳 가운데에 둔다.
-        // 빈 곳이 좁거나 낮으면 판을 줄이고 긴 본문은 안에서 스크롤한다.
+        // 창을 화면 가운데에 두고, 화면이 좁거나 낮으면 판을 줄여 긴 본문을 스크롤한다.
         private void FitFrameToCanvas()
         {
             var frame = (RectTransform)panel.transform;
             lastFreeArea = FreeArea();
-            frame.sizeDelta = new Vector2(
-                isExpanded
-                    ? lastFreeArea.width / FrameScale
-                    : Mathf.Min(FrameWidth, lastFreeArea.width / FrameScale),
-                isExpanded
-                    ? lastFreeArea.height / FrameScale
-                    : Mathf.Min(FrameHeight, lastFreeArea.height / FrameScale)
-            );
+            frame.sizeDelta = isExpanded
+                ? lastFreeArea.size
+                : Vector2.Min(new Vector2(FrameWidth, FrameHeight), lastFreeArea.size);
             // 넓힌 창은 화면을 거의 채우므로 옮기거나 크기를 바꾸지 않는다. 접으면 원래 자리·크기로 돌아온다.
             WindowFrame windowFrame = frame.GetComponent<WindowFrame>();
             if (windowFrame != null)
                 windowFrame.enabled = !isExpanded;
             if (isExpanded)
             {
-                frame.localScale = Vector3.one * FrameScale;
+                frame.localScale = Vector3.one;
                 frame.anchoredPosition = Vector2.zero;
             }
             else
-                CenterWindow.Shared.Place(frame, FrameScale);
+                CenterWindow.Shared.Place(frame, scale: 1f);
         }
 
         public void UpdateLayout()

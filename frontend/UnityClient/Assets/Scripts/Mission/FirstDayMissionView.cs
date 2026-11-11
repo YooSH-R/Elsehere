@@ -985,7 +985,6 @@ namespace A305.Mission
             JourneyStatus.Shared.MapRequested -= OpenLargeMap;
             CenterWindow.Shared.Changed -= FollowCenterWindow;
             PracticeVisit.Shared.Changed -= OnPracticeChanged;
-            CenterWindow.Shared.SetLeftHud(0f);
             journalButton.onClick.RemoveListener(ToggleJournal);
             if (questBoard != null)
             {
@@ -1065,7 +1064,6 @@ namespace A305.Mission
             // 시계 칩 폭·알약 글자는 바뀌므로 매 프레임 왼쪽 위 카드·알약이 칩과 겹치지 않게 맞춘다.
             if (TryGetComponent(out Canvas own))
                 FitLeftCards((RectTransform)own.transform);
-            CenterWindow.Shared.SetLeftHud(LeftHudScreenWidth());
             foreach (UiEscapeWindow window in escapeWindows)
                 window.Watch();
         }
@@ -1154,32 +1152,7 @@ namespace A305.Mission
             return area.rect.height - reserved;
         }
 
-        // 단어장·피드백 같은 가운데 창이 그 오른쪽에 놓이도록, 보이는 퀘스트 카드·기다리는 카드·미니맵이 화면 왼쪽에서 차지하는 폭(화면 픽셀).
-        // 가운데 창은 왼쪽 HUD의 오른쪽에 놓이므로, 기다리는 카드 높이만큼 왼쪽 열이 길어져도 겹치지 않는다.
-        private float LeftHudScreenWidth() =>
-            Mathf.Max(
-                RightEdgeOf(Banner.gameObject),
-                RightEdgeOf(questPill != null ? questPill.gameObject : null),
-                RightEdgeOf(questIcon.gameObject),
-                // 터치 기기에서 오른쪽 위로 옮긴 미니맵은 왼쪽 폭에 넣지 않는다.
-                miniMapOnRight == true
-                    ? 0f
-                    : RightEdgeOf(miniMapPanel),
-                RightEdgeOf(followUpCard != null ? followUpCard.Card : null)
-            );
-
-        private float RightEdgeOf(GameObject hud)
-        {
-            if (hud == null || !hud.activeInHierarchy)
-                return 0f;
-            var rect = (RectTransform)hud.transform;
-            rect.GetWorldCorners(hudCorners);
-            return RectTransformUtility
-                .WorldToScreenPoint(CenterWindow.CameraOf(rect), hudCorners[2])
-                .x;
-        }
-
-        // 가운데 창이 열리면 펼친 수첩·큰 지도를 닫아 창끼리 겹치지 않게 한다. 퀘스트 카드·미니맵은 창과 함께 보인다.
+        // 가운데 학습 창을 열면 펼친 수첩과 큰 지도를 닫는다.
         private void FollowCenterWindow()
         {
             if (!CenterWindow.Shared.IsOpen)

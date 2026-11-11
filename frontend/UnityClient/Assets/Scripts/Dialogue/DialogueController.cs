@@ -589,17 +589,8 @@ namespace A305.Dialogue
         private void Send(string text)
         {
             TextPronunciation.Stop();
-            if (TryPlayPerformance(text))
+            if (TryHandlePerformanceRequest(text))
                 return;
-            if (
-                CanUsePerformance
-                && PerformanceRequest.NeedsIntent(text)
-                && serverConversation != null
-            )
-            {
-                _ = ClassifyPerformanceRequest(text);
-                return;
-            }
             emphasizePerformance = false;
             if (serverConversation != null)
             {
@@ -631,16 +622,49 @@ namespace A305.Dialogue
                 ? partnerLookTarget.GetComponentInParent<RecordedNpcPerformance>()
                 : null;
 
-        private bool TryPlayPerformance(string text)
+        private bool IsPerformanceConversation =>
+            (serverConversation?.NpcCode ?? conversation?.NpcCode) == "TOWN_JOHN_PARK"
+            && !(serverConversation?.IsReview ?? conversation?.IsGuided ?? false);
+
+        private bool TryHandlePerformanceRequest(string text)
         {
-            var performance = Performance;
-            if (!CanUsePerformance || !performance.Accepts(text))
+            if (!IsPerformanceConversation)
                 return false;
-            return ShowPerformanceGuide(text);
+            bool direct = PerformanceRequest.Matches(text);
+            if (!direct && !PerformanceRequest.NeedsIntent(text))
+                return false;
+            if (isEnding || !(serverConversation?.CanSend ?? conversation?.CanSend ?? false))
+                return true;
+            // 저장 자료가 없거나 손상돼도 유료 대사 생성으로 우회하지 않는다.
+            if (!CanUsePerformance)
+                ShowPerformanceUnavailable();
+            else if (direct)
+            {
+                if (!ShowPerformanceGuide(text))
+                    ShowPerformanceUnavailable();
+            }
+            else if (serverConversation != null)
+                _ = ClassifyPerformanceRequest(text);
+            else
+                ShowPerformanceUnavailable("랩을 다시 들으려면 [랩 다시 듣기]를 눌러 주세요.");
+            return true;
+        }
+
+        private void ShowPerformanceUnavailable(
+            string message =
+                "저장된 안내를 불러오지 못했어요. 랩 버튼을 이용하거나 대화를 다시 열어 주세요."
+        )
+        {
+            if (serverConversation != null)
+                serverConversation.ShowMessage(message);
+            else
+                conversation?.ShowMessage(message);
+            panel.Refresh();
         }
 
         private bool CanUsePerformance =>
             !isEnding
+            && IsPerformanceConversation
             && Performance != null
             && Performance.IsReady
             && (
@@ -657,7 +681,10 @@ namespace A305.Dialogue
             if (serverConversation != current || Performance != performer || !CanUsePerformance)
                 return;
             if (intent == "REPLAY_RAP")
-                ShowPerformanceGuide(text);
+            {
+                if (!ShowPerformanceGuide(text))
+                    ShowPerformanceUnavailable();
+            }
             else if (intent == "CONVERSATION")
                 await current.SendAsync(text);
             else

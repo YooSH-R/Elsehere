@@ -249,6 +249,36 @@ namespace A305.Characters.PlayModeTests
                     button.onClick.Invoke();
                     Assert.That(performer.IsPerforming, Is.False);
                 }
+                var savedDefinition = performer.Definition;
+                var missingGuide = Object.Instantiate(savedDefinition);
+                var definitionField = typeof(RecordedNpcPerformance).GetField(
+                    "definition",
+                    BindingFlags.NonPublic | BindingFlags.Instance
+                );
+                try
+                {
+                    missingGuide.GuideVoice = null;
+                    definitionField.SetValue(performer, missingGuide);
+                    var local = (DialogueConversation)state.GetValue(dialogue);
+                    var previousLine = local.LastNpcLine;
+                    int previousCount = local.Lines.Count;
+                    foreach (string request in new[] { "랩 해줘", "An encore of that beat?" })
+                    {
+                        send.Invoke(dialogue, new object[] { request });
+                        Assert.That(
+                            local.LastNpcLine,
+                            Is.SameAs(previousLine),
+                            "안내가 없으면 일반 응답으로 대체하면 안 됩니다."
+                        );
+                        Assert.That(local.Lines.Count, Is.EqualTo(previousCount));
+                        Assert.That(local.StatusMessage, Does.Contain("저장된 안내"));
+                    }
+                }
+                finally
+                {
+                    definitionField.SetValue(performer, savedDefinition);
+                    Object.Destroy(missingGuide);
+                }
                 send.Invoke(dialogue, new object[] { "How are you?" });
                 Assert.That(
                     ((DialogueConversation)state.GetValue(dialogue)).LastNpcLine.English,

@@ -45,9 +45,6 @@ namespace A305.Dialogue
             link?.StopSpeech();
         }
 
-        public bool Accepts(string text) =>
-            definition != null && definition.Voice != null && PerformanceRequest.Matches(text);
-
         public bool Owns(DialogueLine line) =>
             definition != null && line?.Speech != null && line.English == definition.English;
 

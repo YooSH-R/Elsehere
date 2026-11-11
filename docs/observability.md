@@ -195,12 +195,27 @@ ssh -i "<PEM 경로>" -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -
 - Alertmanager: `http://127.0.0.1:19093`, 발동 알림·묶음·일시 중지 상태 확인
 - 대시보드: A305 폴더의 `ELSEHERE API`, 환경·조회 기간 선택
 - HTTPS 대시보드: A305 폴더의 `ELSEHERE HTTPS`, 공개 응답·인증서 잔여 일수·발동 규칙 수 확인
+- 러너 대시보드: A305 폴더의 `ELSEHERE CI Runners`, 팀원 CI·팀원 Unity·EC2별 작업과 연결 상태 확인
 
 터널 명령이 실행 중인 창을 유지합니다. 로컬 포트를 이미 사용 중이면 `-L`의 첫 번째 포트와 브라우저 주소를 함께 바꿉니다. 서버 포트를 인터넷에 공개하지 않습니다.
 
 대시보드는 수집 상태, 선택 기간 요청 수, 초당 요청량, 4xx·5xx 비율과 p95를 표시합니다. 요청이 없거나 수집 시간이 짧으면 지연·비율이 비어 있을 수 있습니다. 요청 수·비율·지연은 같은 백엔드 요청 집합으로 계산하며 컨트롤러에 도달하기 전 거절된 요청도 포함합니다. 관리 포트의 수집 요청은 API 요청 통계에 포함되지 않는지 검증합니다.
 
 관리 포트가 외부에서 접근되지 않는지 확인하고 정상 요청·인증 실패 요청의 지표 증가, 환경 필터·기간 변경과 재기동 후 대시보드 유지를 검증합니다. 수집 실패를 해소하기 전 알림 임계값을 확정하지 않습니다.
+
+### GitLab 러너 모니터링
+
+러너 모니터링은 `compose.runners.yaml`을 추가한 별도 수집기로 GitLab 프로젝트의 러너와 진행 중인 작업을 읽습니다. `runner-hosts.json`에서 러너 이름을 `팀원 CI`, `팀원 Unity`, `EC2`로 분류하며, 등록되지 않은 이름은 `미분류`로 표시됩니다. 이름을 바꾸거나 러너를 추가하면 이 파일도 갱신합니다. 이전 이름은 기존 설치와의 호환을 위해 유지합니다. 분류는 표시용이며 러너의 시작·중지나 작업 할당에 영향을 주지 않습니다.
+
+GitLab 프로젝트의 러너와 작업을 읽을 수 있는 최소 권한 토큰을 별도 `gitlab-monitoring-token` 비밀 파일에 준비합니다. 다른 모니터링 비밀과 같은 그룹·파일 권한을 적용하며 실제 토큰은 저장소, 로그 또는 채팅에 남기지 않습니다. 기존 앱과 모니터링 서비스를 재생성하지 않도록 수집기만 시작합니다.
+
+```bash
+cd ~/apps/a305/monitoring/config
+sudo docker compose -p a305-monitoring --env-file monitoring.env -f compose.yaml -f compose.runners.yaml config --quiet
+sudo docker compose -p a305-monitoring --env-file monitoring.env -f compose.yaml -f compose.runners.yaml up -d --no-deps gitlab-runners
+```
+
+Prometheus는 `targets/runners.json`의 수집기를 조회합니다. Prometheus 설정을 새로 설치했다면 설정 검증 후 Prometheus를 reload하고, Grafana에서 수집 상태와 각 분류를 확인합니다. 수집기를 사용하지 않는 환경에서는 해당 대상을 비워 불필요한 수집 실패를 막습니다. 분류 파일을 바꾸면 수집기를 재시작해야 반영됩니다. Grafana 대시보드는 파일로 관리하므로 UI에서 수정한 내용도 저장소 원본에 반영해야 합니다.
 
 ## 장애 감지와 발송 승인
 

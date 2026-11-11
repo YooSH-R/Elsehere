@@ -46,6 +46,16 @@ body {
   background: {{{ BACKGROUND_COLOR }}};
 }
 
+/* 입력 플러그인(WebGLInput)이 게임 화면 위에 띄우는 입력칸. 휴대폰에서는 body에 바로 붙이고 글자 크기를 5vh로 정해 가로 휴대폰에서는
+   16px보다 작아지는데, 아이폰 사파리는 16px보다 작은 입력칸에 포커스가 가면 페이지를 확대한다. PC에서는 게임 화면(#unity-frame) 안에 붙인다.
+   플러그인이 직접 넣는 크기보다 앞서도록 !important로 둔다. */
+body > input,
+body > textarea,
+#unity-frame input,
+#unity-frame textarea {
+  font-size: max(16px, 5vh) !important;
+}
+
 #unity-loading {
   /* 게임 파일을 받는 동안 캔버스를 덮고 소개 장면을 보여 준다. 첫 장면을 받기 전에는 UI 테마의 어두운 배경색이 보인다. */
   position: absolute;

@@ -13,7 +13,7 @@ using UnityEngine.UI;
 namespace A305.World.Tests
 {
     /// <summary>
-    /// 장소마다 HUD 버튼(단어장·피드백 목록·내 정보·홈)은 오른쪽 위 메뉴(≡) 목록 안에 있고, 집에서만 [테마]가 켜져 테마 고르기를 연다.
+    /// 장소마다 HUD 버튼(단어장·대화 노트·내 정보·홈)은 오른쪽 위 메뉴(≡) 목록 안에 있고, 집에서만 [테마]가 켜져 테마 고르기를 연다.
     /// </summary>
     public sealed class HudMenuConnectionTests
     {
@@ -56,16 +56,16 @@ namespace A305.World.Tests
             );
         }
 
-        // 이 창은 지난 대화를 고르고 그때 받은 피드백을 다시 여는 곳이라 메뉴와 창 제목을 [피드백 목록]으로 부른다.
+        // 이 창은 지난 대화의 피드백을 다시 열고 같은 상황을 다시 연습하는 곳이라(피드백 목록과 복습장을 합침) 앱과 창 제목을 [대화 노트]로 부른다.
         [TestCase("Panel/Menu/HistoryButton/Label")]
         [TestCase("History/Title")]
-        public void HudNamesThePastFeedbackWindowFeedbackList(string path)
+        public void HudNamesThePastConversationWindowConversationNote(string path)
         {
             var hud = AssetDatabase.LoadAssetAtPath<GameObject>(HudPrefabPath);
 
             var label = hud.transform.Find(path).GetComponent<TMP_Text>();
 
-            Assert.That(label.text, Is.EqualTo("피드백 목록"));
+            Assert.That(label.text, Is.EqualTo("대화 노트"));
         }
 
         [Test]
@@ -128,7 +128,7 @@ namespace A305.World.Tests
             );
         }
 
-        // 메뉴를 펼치면 바깥 영역이 카드를 덮어 카드를 눌러도 메뉴가 접히고, 피드백 목록·내 정보 창은 카드 위에 보인다.
+        // 메뉴를 펼치면 바깥 영역이 카드를 덮어 카드를 눌러도 메뉴가 접히고, 대화 노트·내 정보 창은 카드 위에 보인다.
         [Test]
         public void ControlsGuideSitsBehindTheMenuBackdropAndWindows()
         {

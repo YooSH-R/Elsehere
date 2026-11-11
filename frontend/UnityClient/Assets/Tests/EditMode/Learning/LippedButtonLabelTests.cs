@@ -41,10 +41,12 @@ namespace A305.Learning.Tests
             AssertLowered(Find("Panel/Navigation/PageNumber"), 2f * Px);
         }
 
+        // 대화 노트 줄의 [피드백 보기]는 피드백 화면 탭과 같은 흰 알약(두께 3), [다시 연습]은 코랄 알약(두께 5)이다.
         [Test]
-        public void FeedbackListViewButton_LabelSitsHalfTheLipLower()
+        public void ConversationNoteButtons_LabelsSitHalfTheLipLower()
         {
-            AssertLowered(HudText("History/Rows/Row0/OpenButton/Label"), 2.5f * Px);
+            AssertLowered(HudText("History/Rows/Row0/OpenButton/Label"), 1.5f * Px);
+            AssertLowered(HudText("History/Rows/Row0/PracticeButton/Label"), 2.5f * Px);
         }
 
         [Test]

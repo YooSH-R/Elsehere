@@ -22,6 +22,7 @@ PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동
 | `PlayerTouchControls`, `TouchDragArea`, `TouchJumpButton` | 왼쪽 조이스틱과 오른쪽 드래그 영역의 터치 입력, 조이스틱을 끝까지 민 달리기, 조이스틱 반대쪽(오른쪽 아래) [점프]와 조이스틱 바로 위 [1인칭]·[3인칭] 버튼 누름을 전달합니다. [점프]의 화면 자리도 알려 조작법 카드가 비켜 가게 합니다. |
 | `TouchControlsAvailability` | 조이스틱과 드래그 영역을 보일 기기인지 정합니다. Unity 객체 없이 테스트합니다. |
 | `BrowserPointer`, `Plugins/WebGL/BrowserPointer.jslib` | Web 빌드에서 브라우저의 주 입력 장치가 손가락인지(CSS `pointer: coarse`)와 화면 배율(`devicePixelRatio`)을 읽습니다. |
+| `InteractionCursor`, `IClickPointerTarget` | Web 빌드에서 활성 버튼과 링크, 클릭 가능한 NPC·사물 위에 브라우저의 손 모양 커서를 씁니다. UI는 EventSystem의 최상단 결과로, 월드 대상은 사물 카드와 NPC의 클릭 판정으로 확인합니다. |
 | `LookSensitivity` | 사용자가 마이페이지에서 고른 시점 회전 감도 배율(0.5~2배). `PlayerCameraRig`가 마우스·터치 회전에 곱하며, 이 기기에 `PlayerPrefs`로 저장합니다. |
 | `PointerDeltaScale` | 브라우저가 화면 배율을 곱해 넘기는 마우스 이동량을 배율로 나눠, 화면 배율과 관계없이 같은 회전 감도를 냅니다. 에디터에서는 배율을 1로 봅니다. |
 | `PlayerTouchSettings` | 조이스틱 중앙 무시 영역, 달리기로 바뀌는 밀기 정도(가장자리까지의 0.9), 터치 회전 감도를 설정합니다. |

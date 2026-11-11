@@ -12,8 +12,8 @@ using UnityEngine.UI;
 namespace A305.Learning.Tests
 {
     /// <summary>
-    /// 피드백 목록은 확정 시안(m3를 다듬은 것)이다. 머리줄에는 아이콘·제목·닫기만 두고, 대화마다 흰 유리 칸에 색 아이콘·"NPC · 장소"·시간과
-    /// [보기]를 둔다. 한 쪽에 4개이고 아래 가운데에서 쪽을 넘긴다.
+    /// 대화 노트는 확정 시안(N2, 배포된 피드백 목록 창 기준)이다. 머리줄에는 아이콘·제목·장소 탭(전체·카페·호텔·마을)·닫기를 두고,
+    /// 대화마다 흰 유리 칸에 색 아이콘·"NPC · 장소"·시간과 [피드백 보기]·[다시 연습]을 둔다. 한 쪽에 4개이고 아래 가운데에서 쪽을 넘긴다.
     /// </summary>
     public class FeedbackListScreenTests
     {
@@ -22,12 +22,13 @@ namespace A305.Learning.Tests
 
         private GameObject instance;
         private ConversationHistoryView view;
+        private ConversationHistory history;
 
         [TearDown]
         public void DestroyHud() => UnityEngine.Object.DestroyImmediate(instance);
 
         [Test]
-        public void Header_HasOnlyTheIconTitleAndClose()
+        public void Header_HasTheIconTitlePlaceTabsAndClose()
         {
             Show(Names, hasMore: false);
             Transform panel = Panel();
@@ -36,12 +37,34 @@ namespace A305.Learning.Tests
                 panel.Find("AppIcon").GetComponent<Image>().sprite.name,
                 Is.EqualTo("FeedbackIcon")
             );
+            Assert.That(panel.Find("Title").GetComponent<TMP_Text>().text, Is.EqualTo("대화 노트"));
             Assert.That(
-                panel.Find("Title").GetComponent<TMP_Text>().text,
-                Is.EqualTo("피드백 목록")
+                Tabs().Select(tab => Text(tab, "Label")),
+                Is.EqualTo(new[] { "전체", "카페", "호텔", "마을" })
             );
             Assert.That(panel.Find("Hint"), Is.Null, "제목 옆 설명은 두지 않습니다.");
             Assert.That(panel.Find("CloseButton").gameObject.activeSelf, Is.True);
+        }
+
+        // 장소 탭을 누르면 그 장소의 대화를 요청하고, 받은 뒤에는 고른 탭만 켜진 모양이다.
+        [Test]
+        public void PlaceTab_AsksForThatPlaceAndShowsWhichIsChosen()
+        {
+            Show(Names, hasMore: false);
+            string asked = "none";
+            view.FilterRequested += scene => asked = scene;
+
+            Tabs()[1].GetComponent<Button>().onClick.Invoke();
+            history.LoadAsync("CAFE").GetAwaiter().GetResult();
+            view.Refresh();
+
+            Assert.That(asked, Is.EqualTo("CAFE"));
+            Assert.That(
+                Tabs().Select(tab => tab.Find("On").gameObject.activeSelf),
+                Is.EqualTo(new[] { false, true, false, false })
+            );
+            Assert.That(Tabs()[1].GetComponent<Button>().interactable, Is.False);
+            Assert.That(Tabs()[0].GetComponent<Button>().interactable, Is.True);
         }
 
         [Test]
@@ -72,18 +95,22 @@ namespace A305.Learning.Tests
         }
 
         [Test]
-        public void RowButton_SaysViewAndOpensThatConversation()
+        public void RowButtons_OpenTheFeedbackOrPracticeThatConversationAgain()
         {
             Show(Names, hasMore: false);
             ConversationSummary opened = null;
+            ConversationSummary practiced = null;
             view.OpenRequested += conversation => opened = conversation;
+            view.PracticeRequested += conversation => practiced = conversation;
 
             Transform row = ShownRows()[1];
-            Button open = row.Find("OpenButton").GetComponent<Button>();
-            open.onClick.Invoke();
+            row.Find("OpenButton").GetComponent<Button>().onClick.Invoke();
+            row.Find("PracticeButton").GetComponent<Button>().onClick.Invoke();
 
-            Assert.That(Text(row, "OpenButton/Label"), Is.EqualTo("보기"));
+            Assert.That(Text(row, "OpenButton/Label"), Is.EqualTo("피드백 보기"));
+            Assert.That(Text(row, "PracticeButton/Label"), Is.EqualTo("다시 연습"));
             Assert.That(opened.Npc.Name, Is.EqualTo("Mia"));
+            Assert.That(practiced, Is.SameAs(opened));
         }
 
         [Test]
@@ -155,12 +182,14 @@ namespace A305.Learning.Tests
                 AssetDatabase.LoadAssetAtPath<GameObject>(HudPrefabPath)
             );
             view = instance.GetComponentInChildren<ConversationHistoryView>(true);
-            var history = new ConversationHistory(new FakeHistoryApi(names, hasMore));
+            history = new ConversationHistory(new FakeHistoryApi(names, hasMore));
             history.LoadAsync().GetAwaiter().GetResult();
             view.Show(history);
         }
 
         private Transform Panel() => instance.transform.Find("History");
+
+        private List<Transform> Tabs() => Panel().Find("Tabs").Cast<Transform>().ToList();
 
         private List<Transform> ShownRows() =>
             Panel().Find("Rows").Cast<Transform>().Where(row => row.gameObject.activeSelf).ToList();
@@ -179,7 +208,7 @@ namespace A305.Learning.Tests
                 this.hasMore = hasMore;
             }
 
-            public Task<ConversationPage> GetPageAsync(string cursor) =>
+            public Task<ConversationPage> GetPageAsync(string cursor, string sceneCode) =>
                 Task.FromResult(
                     new ConversationPage
                     {

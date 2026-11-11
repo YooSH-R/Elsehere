@@ -28,7 +28,7 @@ namespace A305.Learning.Tests
         {
             transport.ReplyBody = PageJson;
 
-            ConversationPage page = await api.GetPageAsync(null);
+            ConversationPage page = await api.GetPageAsync(null, null);
 
             Assert.That(transport.Request.Method, Is.EqualTo("GET"));
             Assert.That(
@@ -52,12 +52,32 @@ namespace A305.Learning.Tests
         {
             transport.ReplyBody = PageJson;
 
-            await api.GetPageAsync("58");
+            await api.GetPageAsync("58", null);
 
             Assert.That(
                 transport.Request.Url,
                 Is.EqualTo("/api/v1/conversations?size=20&feedbackOnly=true&cursor=58")
             );
+        }
+
+        // 대화 노트의 장소 탭은 그 장소의 대화만 받고, 줄마다 그 대화로 연습한 횟수를 보인다.
+        [Test]
+        public async Task GetPageAsync_ForAPlace_SendsTheSceneAndReadsPracticeCount()
+        {
+            transport.ReplyBody = PageJson.Replace(
+                "\"feedbackStatus\":\"DONE\"",
+                "\"feedbackStatus\":\"DONE\",\"practiceCount\":2"
+            );
+
+            ConversationPage page = await api.GetPageAsync("58", "CAFE");
+
+            Assert.That(
+                transport.Request.Url,
+                Is.EqualTo(
+                    "/api/v1/conversations?size=20&feedbackOnly=true&sceneCode=CAFE&cursor=58"
+                )
+            );
+            Assert.That(page.Items[0].PracticeCount, Is.EqualTo(2));
         }
 
         [Test]

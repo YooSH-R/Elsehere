@@ -134,7 +134,6 @@
                 "cash_register",
                 "ceiling",
                 "chair",
-                "chalkboard",
                 "clock",
                 "cloud",
                 "coffee_machine",
@@ -231,6 +230,7 @@
                 "word_a469e283225b24f48b585f804e782bec",
                 "word_af4d769b378ec384a8ef3edbaf346e9d",
                 "word_b1de7b60fd9e56c4282fa85b4a09e4b2",
+                "word_b455dfb83439d7546bf34d8766404f6f",
                 "word_b4a755c63d1d408438a71815ba75d475",
                 "word_be12390675add1b488faf55f8e9aeb96",
                 "word_cfe407d309ec44540a66769b307075c8",
@@ -1159,7 +1159,7 @@
             "guid": "0f79d4fb5c1a1614aa90f0a8888d43e2",
             "path": "Assets/Prefabs/World/MainstreetArt/CoffeeSandwichBoard.prefab",
             "wordKeys": [
-                "chalkboard"
+                "word_b455dfb83439d7546bf34d8766404f6f"
             ]
         },
         {

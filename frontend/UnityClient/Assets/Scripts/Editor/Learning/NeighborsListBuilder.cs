@@ -11,7 +11,7 @@ using F = A305.EditorTools.Learning.FeedbackScreenBuilder;
 namespace A305.EditorTools.Learning
 {
     /// <summary>
-    /// HUD의 [이웃] 창(마을 NPC 목록)을 [피드백 목록](<see cref="FeedbackListBuilder"/>)과 같은 판·자리로 배치한다. 크기·자리는 시안 px에 1.2를 곱한 캔버스 단위다.
+    /// HUD의 [이웃] 창(마을 NPC 목록)을 [대화 노트](<see cref="FeedbackListBuilder"/>)과 같은 판·자리로 배치한다. 크기·자리는 시안 px에 1.2를 곱한 캔버스 단위다.
     /// 머리줄에 [이웃] 아이콘·제목·열린 수·닫기, 그 아래 NPC 4줄(흰 유리 칸에 색 아이콘·이름과 작은 역할·"장소 · 대화 N번 · 아는 정도 N"·오른쪽 호감도),
     /// 아래 가운데에 쪽 넘김을 둔다. 열린 이웃을 누르면 줄 자리에 정보 카드가 뜬다. 받지 못했을 때의 [다시 시도]는 줄 자리 가운데 안내 아래에 둔다.
     /// 여는 버튼은 휴대폰의 [복습장] 버튼 오른쪽 빈칸에 둔 작은 아이콘 버튼이다.
@@ -26,7 +26,7 @@ namespace A305.EditorTools.Learning
 
         private static readonly Vector2 SheetSize = new Vector2(1080, 620);
 
-        // [피드백 목록]과 같은 줄 자리
+        // [대화 노트]와 같은 줄 자리
         private const float RowsTop = 126;
         private const float RowHeight = 84;
         private const float RowStep = 98;
@@ -160,7 +160,7 @@ namespace A305.EditorTools.Learning
             panel.sizeDelta = SheetSize * F.Px;
         }
 
-        // [피드백 목록]과 같은 그림자로 뒤 장면을 덮는다. 창 바로 앞 형제라 조작법 카드도 그 아래에 놓인다.
+        // [대화 노트]와 같은 그림자로 뒤 장면을 덮는다. 창 바로 앞 형제라 조작법 카드도 그 아래에 놓인다.
         private static void Shade(Transform hud, RectTransform panel, NeighborsView view)
         {
             RectTransform shade = F.Rect("NeighborsShade", hud);
@@ -175,7 +175,7 @@ namespace A305.EditorTools.Learning
             BuilderTools.SetReference(view, "shade", shade.gameObject);
         }
 
-        // 머리줄(높이 104): [이웃] 아이콘(60), 제목(Jua 36), 열린 수(Jua 22), 오른쪽 닫기(52). [피드백 목록]과 같은 자리다.
+        // 머리줄(높이 104): [이웃] 아이콘(60), 제목(Jua 36), 열린 수(Jua 22), 오른쪽 닫기(52). [대화 노트]와 같은 자리다.
         private static void Header(RectTransform panel, NeighborsView view)
         {
             // 앱 아이콘 그림은 아이콘(240px) 둘레에 사방 24px 그림자 자리가 있어, 60으로 줄이면 사방 6이다.

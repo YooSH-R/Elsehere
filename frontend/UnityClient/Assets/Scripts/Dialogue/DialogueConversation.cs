@@ -108,9 +108,20 @@ namespace A305.Dialogue
         public bool UsesVoice => IsGuided && hasRecorder;
         public ConversationStanding Standing => tutorialStanding;
         public bool CanTalk => UsesVoice;
-        public bool CanReplaySpeech => false;
-        public bool SpeaksNpcLines => false;
-        public bool IsNpcSpeechReady => false;
+        public bool CanReplaySpeech => LastNpcLine?.Speech != null;
+        public bool SpeaksNpcLines => LastNpcLine?.Speech != null;
+        public bool IsNpcSpeechReady => LastNpcLine?.Speech != null;
+
+        public bool ShowRecordedReply(string text, DialogueLine reply)
+        {
+            if (IsGuided || !CanSend || reply?.Speech == null)
+                return false;
+            statusMessage = null;
+            if (!string.IsNullOrWhiteSpace(text))
+                lines.Add(DialogueLine.FromUser(text));
+            AddNpcLine(reply);
+            return true;
+        }
 
         public void ShowMessage(string message)
         {

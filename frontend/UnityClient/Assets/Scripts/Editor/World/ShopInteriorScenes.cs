@@ -143,7 +143,9 @@ namespace A305.EditorTools.World
             var staff = scene
                 .GetRootGameObjects()
                 .SelectMany(root => root.GetComponentsInChildren<NpcIdentity>(true))
-                .Where(npc => life.FindNpc(npc.Code)?.Role == "STAFF")
+                .Where(npc =>
+                    life.FindNpc(npc.Code)?.Role == "STAFF" || npc.Code == "TOWN_JOHN_PARK"
+                )
                 .ToArray();
             foreach (Transform building in buildings)
             {

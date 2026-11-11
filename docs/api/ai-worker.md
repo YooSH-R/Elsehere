@@ -519,11 +519,23 @@ NPC 음성 재합성에는 선택 필드 `phrases`로 원래 `done.speech_phrase
 
 ## 3. 사용량 (`usage`)
 
+### 저장 공연 의도 분류
+
+`POST /v1/performance/intent`는 `{"text":"I'd love an encore of that burger beat."}`를 받아
+`{"intent":"REPLAY_RAP","usage":[...]}` 또는 `CONVERSATION`을 반환합니다. 입력은 공백이 아닌
+500자 이하이며 다른 워커 API와 같은 내부 토큰이 필요합니다. 사용자 문장 하나를 짧은 JSON으로
+분류하고 NPC 답변·번역·TTS는 생성하지 않습니다. `usage.step`은 `performance_intent`입니다.
+불명확한 모델 응답은 502 오류로 처리하며 새 대사로 대체하지 않습니다.
+
+명확한 요청은 Unity가 이 API도 호출하지 않고 저장 안내를 재생합니다. 모호한 요청만 이 경로를
+사용하므로 분류 호출의 토큰 비용은 발생할 수 있습니다. 재생 버튼·저장 안내·뜻 보기는 로컬 에셋을
+사용합니다. 음성 입력의 STT는 별도이며 일반 대화의 시작·종료·후속 답변 비용도 이 분류와 별개입니다.
+
 모델 호출 한 번마다 항목 하나가 생깁니다.
 
 | 칸 | 뜻 |
 |---|---|
-| `step` | `intent`·`guard`·`translate`·`npc`·`hint`·`suggest`·`meaning`·`level_test_speaking`·`feedback`·`memory`·`narrate`·`stt` |
+| `step` | `intent`·`performance_intent`·`guard`·`translate`·`npc`·`hint`·`suggest`·`meaning`·`level_test_speaking`·`feedback`·`memory`·`narrate`·`stt` |
 | `model` | **실제로 쓴** 모델 (대체 모델이면 그 이름) |
 | `fallback` | 요청한 모델이 아닌 대체 모델을 썼는지 |
 | `hedged` | (있을 때만 `true`) 답이 늦어 같은 요청을 하나 더 보냈음(NPC 대답은 첫 글자 기준). 토큰은 먼저 온 답의 것만 기록되고, 늦은 쪽 사용량은 알 수 없음 (크레딧이 조금 더 나갔을 수 있음) |

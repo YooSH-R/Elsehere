@@ -1,0 +1,150 @@
+#if UNITY_EDITOR
+using System.Collections;
+using System.Linq;
+using A305.Dialogue;
+using A305.Npc;
+using NUnit.Framework;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
+using Object = UnityEngine.Object;
+
+namespace A305.Characters.PlayModeTests
+{
+    public sealed class JohnParkDialogueTests
+    {
+        [UnityTest]
+        public IEnumerator SandboxStartsRecordedDialogueAndReleasesSpeechOnExit()
+        {
+            const string path = "Assets/Scenes/Sandbox/NpcJohnParkDialogueSandbox.unity";
+            yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
+                path,
+                new LoadSceneParameters(LoadSceneMode.Additive)
+            );
+            var scene = SceneManager.GetSceneByPath(path);
+            try
+            {
+                var roots = scene.GetRootGameObjects();
+                var dialogue = roots
+                    .SelectMany(r => r.GetComponentsInChildren<DialogueController>())
+                    .SingleOrDefault();
+                Assert.That(
+                    dialogue,
+                    Is.Not.Null,
+                    "기존 NPC 대화 화면과 제어기가 연결돼야 합니다."
+                );
+                var link = roots
+                    .SelectMany(r => r.GetComponentsInChildren<DialogueServerLink>(true))
+                    .Single();
+                Assert.That(link.IsAvailable, Is.False, "검수 씬은 서버를 호출하지 않습니다.");
+                var npc = roots.SelectMany(r => r.GetComponentsInChildren<NpcIdentity>()).Single();
+                Assert.That(npc.Code, Is.EqualTo("TOWN_JOHN_PARK"));
+                var passerby = npc.GetComponent<Passerby>();
+                Assert.That(passerby, Is.Not.Null);
+                Assert.That(passerby.CanTalkByClick(8), Is.True);
+                Assert.That(dialogue.TryStart(npc.Code, npc.LookTarget), Is.True);
+                yield return null;
+                var speech = npc.GetComponent<DialogueSpeaker>().Player;
+                Assert.That(dialogue.IsTalking, Is.True);
+                Assert.That(link.HasSpeech, Is.True);
+                Assert.That(speech.IsPlaying, Is.True);
+                Assert.That(link.LipSyncNotice, Is.Null.Or.Empty);
+                Assert.That(link.EmotionNotice, Is.Null.Or.Empty);
+                dialogue.End();
+                Assert.That(dialogue.IsTalking, Is.False);
+                Assert.That(speech.IsPlaying || speech.IsPaused, Is.False);
+                Assert.That(MaxWeight(npc.gameObject, "viseme_AA"), Is.Zero);
+            }
+            finally
+            {
+                foreach (var root in scene.GetRootGameObjects())
+                    Object.Destroy(root);
+                SceneManager.UnloadSceneAsync(scene);
+            }
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator RecordedDialogueDrivesMasterEmotionsAndSpeechWithoutChangingGrip()
+        {
+            var root = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/Prefabs/Npc/LittleMung_JohnPark_Male.prefab"
+                )
+            );
+            var linkObject = new GameObject("JohnParkDialogueTest");
+            try
+            {
+                Assert.That(
+                    CharacterFaceController.MissingEmotionChannels(root.transform),
+                    Is.Empty,
+                    "존박도 기존 NPC의 공통 감정 채널을 모두 지원해야 합니다."
+                );
+                Assert.That(root.GetComponent<NpcIdentity>().Code, Is.EqualTo("TOWN_JOHN_PARK"));
+                var speaker = root.GetComponent<DialogueSpeaker>();
+                Assert.That(speaker, Is.Not.Null);
+                var player = speaker.Player;
+                Assert.That(player.IsConfigured, Is.True);
+                root.GetComponent<AudioSource>().mute = true;
+                var link = linkObject.AddComponent<DialogueServerLink>();
+                link.SetSpeaker(player);
+                var bones = root.GetComponentsInChildren<Transform>();
+                var hand = bones.Single(bone => bone.name == "Right_Hand");
+                var chest = bones.Single(bone => bone.name == "Chest");
+                yield return null;
+                var gripPosition = chest.InverseTransformPoint(hand.position);
+                var gripRotation = Quaternion.Inverse(chest.rotation) * hand.rotation;
+                foreach (string emotion in new[] { "angry", "sad", "surprised" })
+                {
+                    byte[] wav = NpcMoodSpeechTests.EmotionalVoice(firstEmotion: emotion);
+                    Assert.That(link.PlayRecordedSpeech(wav), Is.True);
+                    yield return null;
+                    player.Pause();
+                    // .65초는 무음이므로 감정의 쉬는 입이 허용된다. 실제 모음 구간에서 발음을 검사한다.
+                    player.Seek(.73f);
+                    Assert.That(link.LipSyncNotice, Is.Null.Or.Empty);
+                    Assert.That(link.EmotionNotice, Is.Null.Or.Empty);
+                    string channel =
+                        emotion == "angry" ? "browDownLeft"
+                        : emotion == "sad" ? "browInnerUpLeft"
+                        : "browOuterUpLeft";
+                    Assert.That(MaxWeight(root, channel), Is.GreaterThan(40), emotion);
+                    var mouth = DialogueSpeechWav.Read(wav).Timeline.SampleArticulation(.73f);
+                    Assert.That(
+                        MaxWeight(root, "viseme_I"),
+                        Is.EqualTo(mouth.Weight(CharacterFacePose.WideI) * 100).Within(.02),
+                        "감정이 대사의 모음 발음을 덮어쓰면 안 됩니다."
+                    );
+                    Assert.That(
+                        Vector3.Distance(gripPosition, chest.InverseTransformPoint(hand.position)),
+                        Is.LessThan(.0005f)
+                    );
+                    Assert.That(
+                        Quaternion.Angle(
+                            gripRotation,
+                            Quaternion.Inverse(chest.rotation) * hand.rotation
+                        ),
+                        Is.LessThan(.1f)
+                    );
+                }
+                link.SetSpeaker(null);
+                Assert.That(player.IsPlaying || player.IsPaused, Is.False);
+                Assert.That(MaxWeight(root, "viseme_AA"), Is.Zero);
+                Assert.That(MaxWeight(root, "browDownLeft"), Is.Zero);
+            }
+            finally
+            {
+                Object.Destroy(root);
+                Object.Destroy(linkObject);
+            }
+        }
+
+        private static float MaxWeight(GameObject root, string channel) =>
+            root.GetComponentsInChildren<SkinnedMeshRenderer>()
+                .Where(skin => skin.sharedMesh.GetBlendShapeIndex(channel) >= 0)
+                .Max(skin => skin.GetBlendShapeWeight(skin.sharedMesh.GetBlendShapeIndex(channel)));
+    }
+}
+#endif

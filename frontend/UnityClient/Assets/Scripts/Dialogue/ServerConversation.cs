@@ -207,12 +207,81 @@ namespace A305.Dialogue
         public bool CanTalk => canTalk;
 
         public bool CanReplaySpeech =>
-            LastNpcTurn?.Speech?.IsReady == true || LastNpcTurn?.Speech?.CanRegenerate == true;
+            LastNpcLine?.Speech != null
+            || LastNpcTurn?.Speech?.IsReady == true
+            || LastNpcTurn?.Speech?.CanRegenerate == true;
 
         public bool SpeaksNpcLines => true;
 
         public bool IsNpcSpeechReady =>
-            streamedReply?.HasSpeech == true || LastNpcTurn?.Speech?.IsReady == true;
+            LastNpcLine?.Speech != null
+            || streamedReply?.HasSpeech == true
+            || LastNpcTurn?.Speech?.IsReady == true;
+
+        // 저장 공연은 로컬 화면에만 남긴다. 서버 턴·사용량·학습 평가를 만들어 내지 않는다.
+        public bool ShowRecordedReply(string text, DialogueLine reply)
+        {
+            if (!CanSend || IsReview || reply?.Speech == null)
+                return false;
+            if (!string.IsNullOrWhiteSpace(text))
+                lines.Add(DialogueLine.FromUser(text));
+            lines.Add(reply);
+            LastNpcLine = reply;
+            LastNpcTurn = null;
+            LastNpcGlossary = null;
+            LastTurnSpokenInChunks = false;
+            LastTurnSpeechIncomplete = false;
+            HintText = null;
+            UserTranslation = null;
+            StatusMessage = null;
+            RecoveryGuide = null;
+            lastTranscript = null;
+            pendingRetry = null;
+            failedText = null;
+            failedRequestId = null;
+            textToRestore = null;
+            Changed?.Invoke();
+            return true;
+        }
+
+        public async Task<string> ClassifyPerformanceAsync(string text)
+        {
+            if (!CanSend || endRequested || IsReview || NpcCode != "TOWN_JOHN_PARK")
+                return null;
+            string intent = null;
+            await RunAsync(
+                "요청을 확인하고 있어요...",
+                async () =>
+                {
+                    if (!(api is IPerformanceIntentApi classifier) || text.Length > 500)
+                        throw new ApiException(
+                            "PERFORMANCE_INTENT_UNAVAILABLE",
+                            0,
+                            "요청을 확인하지 못했어요."
+                        );
+                    var result = await classifier.ClassifyPerformanceAsync(
+                        ConversationId.Value,
+                        NewRequestId(),
+                        text
+                    );
+                    if (result?.Intent != "REPLAY_RAP" && result?.Intent != "CONVERSATION")
+                        throw new ApiException(
+                            "AI_RESPONSE_INVALID",
+                            502,
+                            "요청을 확인하지 못했어요."
+                        );
+                    intent = result.Intent;
+                }
+            );
+            if (endRequested || IsEnded)
+                return null;
+            if (intent == null)
+            {
+                RecoveryGuide = "[랩 다시 듣기]를 누르면 바로 들을 수 있어요.";
+                Changed?.Invoke();
+            }
+            return intent;
+        }
 
         public async Task StartAsync()
         {

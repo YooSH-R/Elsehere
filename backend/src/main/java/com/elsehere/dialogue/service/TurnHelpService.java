@@ -13,15 +13,12 @@ import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.dialogue.dto.HintResponse;
 import com.elsehere.dialogue.dto.MeaningResponse;
 import com.elsehere.dialogue.dto.SuggestWordsResponse;
-import com.elsehere.mission.entity.PracticeScenario;
-import com.elsehere.mission.service.FirstDayMissionService;
-import com.elsehere.mission.service.MissionDialogueService;
+import com.elsehere.mission.service.QuestTalk;
+import com.elsehere.mission.service.QuestTalkService;
 import com.elsehere.review.service.ReviewCardService;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -44,7 +41,7 @@ public class TurnHelpService {
   private final ConversationLookup conversationLookup;
   private final ReviewCardService reviewCardService;
   private final DialogueContexts dialogueContexts;
-  private final MissionDialogueService missionDialogueService;
+  private final QuestTalkService questTalks;
   private final ConversationResponses conversationResponses;
   private final AiGateway aiGateway;
   private final TransactionTemplate transactionTemplate;
@@ -154,35 +151,22 @@ public class TurnHelpService {
               .map(com.elsehere.review.dto.ReviewTarget::expression)
               .collect(java.util.stream.Collectors.joining("; "));
     }
-    if (conversation.isPractice()) {
-      // 장소 연습은 이야기 퀘스트 대신 고른 상황에서 아직 이루지 않은 첫 목표다.
-      return PracticeScenario.find(conversation.getPracticeScenario())
-          .flatMap(
-              scenario ->
-                  scenario.remainingGoals(conversation.getPracticeCompletedGoals()).stream()
-                      .findFirst())
-          .map(PracticeScenario.Goal::description)
-          .orElse("");
-    }
+    // 근무 밖의 대화에는 지금 퀘스트를 섞지 않는다. 장소 연습은 근무 중인 직원과만 한다.
     if (conversation.isNpcOffDuty()) {
       return "";
     }
-    Optional<MissionDialogueService.Context> active =
-        missionDialogueService.context(userId, npcCode);
-    if (active.isEmpty()) {
-      return "";
-    }
-    MissionDialogueService.Context mission = active.get();
-    Integer conversationStage =
-        mission.townStory() ? conversation.getTownStoryStage() : conversation.getFirstDayStage();
-    FirstDayMissionService.Context detail = mission.detail();
-    if (!Objects.equals(conversationStage, detail.stage()) || !detail.hasGoals()) {
-      return "";
-    }
-    return detail.state().intents().stream()
-        .filter(intent -> detail.remainingGoals().contains(intent.id()))
-        .map(intent -> intent.desc())
-        .findFirst()
+    // 장소 연습은 고른 상황, 그 밖에는 이 대화를 시작한 퀘스트 단계에서 아직 이루지 않은 첫 목표다.
+    return questTalks
+        .forTurn(userId, npcCode, conversation)
+        .filter(quest -> quest.startedAtThisStage(conversation))
+        .flatMap(quest -> quest.talk().goals())
+        .filter(QuestTalk::hasGoals)
+        .flatMap(
+            goals ->
+                goals.state().intents().stream()
+                    .filter(intent -> goals.remainingGoals().contains(intent.id()))
+                    .map(intent -> intent.desc())
+                    .findFirst())
         .orElse("");
   }
 

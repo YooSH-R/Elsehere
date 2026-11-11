@@ -1,7 +1,7 @@
 package com.elsehere.dialogue.service;
 
 import com.elsehere.ai.client.JudgeResult;
-import com.elsehere.mission.service.FirstDayMissionService;
+import com.elsehere.mission.service.QuestTalk;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,10 +29,9 @@ final class WrapUp {
   private WrapUp() {}
 
   /**
-   * @param goals 이 턴에 판정한 목표(이야기 퀘스트나 장소 연습). 목표가 없는 대화는 빈 값
+   * @param quest 이 턴의 퀘스트나 장소 연습의 대화 목표. 없는 대화는 빈 값
    */
-  static boolean ends(
-      boolean rude, Optional<FirstDayMissionService.Context> goals, JudgeResult judge) {
+  static boolean ends(boolean rude, Optional<QuestTalk> quest, JudgeResult judge) {
     if (rude) {
       return false;
     }
@@ -40,8 +39,8 @@ final class WrapUp {
     if (events.contains(LEAVE)) {
       return true;
     }
-    return goals
-        .filter(FirstDayMissionService.Context::hasGoals)
+    return quest
+        .filter(QuestTalk::hasGoals)
         .map(detail -> detail.completesWith(judge.intent()))
         .orElse(events.contains(TASK_DONE));
   }

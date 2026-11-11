@@ -1,4 +1,5 @@
 using System;
+using A305.Player;
 using A305.Theme;
 using A305.World;
 using TMPro;
@@ -199,6 +200,7 @@ namespace A305.Learning
 
         private void Awake()
         {
+            WindowFrame.Attach(PanelRect);
             previousButton.onClick.AddListener(ShowPreviousPage);
             nextButton.onClick.AddListener(ShowNextPage);
             closeButton.onClick.AddListener(() => CloseRequested?.Invoke());

@@ -1,4 +1,5 @@
 using System;
+using A305.Player;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -28,5 +29,10 @@ namespace A305.Onboarding
         }
 
         public void Show(bool visible) => gameObject.SetActive(visible);
+
+        private void OnEnable() =>
+            UiEscape.Opened(this, () => CloseRequested?.Invoke(), () => isActiveAndEnabled);
+
+        private void OnDisable() => UiEscape.Closed(this);
     }
 }

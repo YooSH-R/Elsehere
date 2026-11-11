@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.Dialogue;
+using A305.Player;
 using A305.Theme;
 using A305.World;
 using TMPro;
@@ -378,6 +379,7 @@ namespace A305.Learning
 
         private void Awake()
         {
+            WindowFrame.Attach((RectTransform)panel.transform);
             ConfigureScroll();
             detailButton.onClick.AddListener(ToggleDetail);
             vocabularyButton.onClick.AddListener(() => VocabularyRequested?.Invoke());
@@ -533,6 +535,10 @@ namespace A305.Learning
                     ? lastFreeArea.height / FrameScale
                     : Mathf.Min(FrameHeight, lastFreeArea.height / FrameScale)
             );
+            // 넓힌 창은 화면을 거의 채우므로 옮기거나 크기를 바꾸지 않는다. 접으면 원래 자리·크기로 돌아온다.
+            WindowFrame windowFrame = frame.GetComponent<WindowFrame>();
+            if (windowFrame != null)
+                windowFrame.enabled = !isExpanded;
             if (isExpanded)
             {
                 frame.localScale = Vector3.one * FrameScale;

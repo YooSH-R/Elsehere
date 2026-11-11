@@ -83,6 +83,9 @@ namespace A305.Learning
 
         private ConversationHistoryView historyView => hudView.HistoryView;
 
+        // ESC로 닫는 가운데 창. 닫기 버튼과 같은 일을 한다.
+        private UiEscapeWindow[] escapeWindows;
+
         private void Awake()
         {
             if (
@@ -146,6 +149,13 @@ namespace A305.Learning
             InitializeReview();
             InitializeReviewProgress();
             InitializePractice();
+            escapeWindows = new[]
+            {
+                new UiEscapeWindow(() => feedbackView.IsVisible, CloseFeedback),
+                new UiEscapeWindow(() => vocabularyView.IsVisible, CloseVocabulary),
+                new UiEscapeWindow(() => historyView.IsVisible, CloseHistory),
+                new UiEscapeWindow(() => ReviewView != null && ReviewView.IsVisible, CloseReview),
+            };
         }
 
         private void Start()
@@ -171,6 +181,8 @@ namespace A305.Learning
             hudView.SetHomeAvailable(gameObject.scene.name != "HomeScene" && !IsHomeBlocked);
             CenterWindow.Shared.SetOpen(IsShowingScreen);
             GameClock.Shared.IsLearningWindowOpen = IsShowingScreen;
+            foreach (UiEscapeWindow window in escapeWindows)
+                window.Watch();
         }
 
         private bool IsHomeBlocked =>

@@ -25,9 +25,8 @@ import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.dialogue.dto.TurnResponse;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
-import com.elsehere.mission.service.FirstDayMissionService;
-import com.elsehere.mission.service.MissionDialogueService;
-import com.elsehere.mission.service.PlacePracticeService;
+import com.elsehere.mission.service.QuestTalk;
+import com.elsehere.mission.service.QuestTalkService;
 import com.elsehere.review.dto.ReviewCardResponse;
 import com.elsehere.review.service.ReviewCardService;
 import java.time.Clock;
@@ -95,10 +94,9 @@ public class TurnService {
   private final ReviewDialogue reviewDialogue;
   private final NpcAffinityService npcAffinityService;
   private final TransactionTemplate transactionTemplate;
-  private final MissionDialogueService missionDialogueService;
+  private final QuestTalkService questTalks;
   private final Clock clock;
   private final DialogueRequestLocks requestLocks;
-  private final PlacePracticeService placePractice;
   private final EarlyReplies earlyReplies;
 
   public TurnResponse send(Long userId, Long conversationId, TurnRequest request) {
@@ -155,17 +153,11 @@ public class TurnService {
     }
     TurnContext context = selection.context();
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, conversationId);
-    Optional<MissionDialogueService.Context> mission =
-        context.review() == null && context.practice() == null
-            ? missionDialogueService.context(userId, context.npc().summary().npcCode())
-            : Optional.empty();
-    // 이 턴에 판정할 목표. 장소 연습은 이야기 퀘스트 대신 고른 상황의 남은 목표를 판정한다.
-    Optional<FirstDayMissionService.Context> goals =
-        context.practice() != null
-            ? Optional.of(context.practice())
-            : mission.map(MissionDialogueService.Context::detail);
+    // 이 턴의 퀘스트 대화 목표. 복습은 없고, 장소 연습은 고른 상황, 그 밖에는 진행 중인 퀘스트의 목표다.
+    Optional<QuestTalk> quest = context.quest().map(QuestTalkService.SelectedQuest::talk);
 
-    Optional<WorkerState> missionState = goals.map(FirstDayMissionService.Context::state);
+    Optional<WorkerState> missionState =
+        quest.flatMap(QuestTalk::goals).map(QuestTalk.Goals::state);
     // 경찰관은 미션 목표를 맡지 않은 동안 창구에서 신고를 받는다.
     boolean policeDesk =
         context.review() == null
@@ -179,7 +171,7 @@ public class TurnService {
             && missionState.isEmpty()
             && TaxiRide.serves(context.npc().summary().npcCode());
 
-    TurnScope scope = new TurnScope(context, goals, policeDesk, taxiRide, selection.finalTurn());
+    TurnScope scope = new TurnScope(context, quest, policeDesk, taxiRide, selection.finalTurn());
     CompletableFuture<GuardResult> guarding = guardAsync(trace, context, request.text());
     EarlyReply early = startEarlyReply(trace, scope, request.text(), events);
     JudgeResult judge;
@@ -290,13 +282,16 @@ public class TurnService {
                 conversation.getEndReason());
           }
           if (!rude) {
-            mission.ifPresent(
-                value ->
-                    missionDialogueService.accept(
-                        userId, context.npc().summary().npcCode(), value, judge.intent()));
-            if (context.practice() != null) {
-              placePractice.accept(conversation, judge.intent());
-            }
+            context
+                .quest()
+                .ifPresent(
+                    value ->
+                        questTalks.accept(
+                            userId,
+                            context.npc().summary().npcCode(),
+                            conversation,
+                            value,
+                            judge.intent()));
           }
           dispatch.ifPresent(value -> userTurn.recordPoliceDispatch(value.placeCode()));
           destination.ifPresent(value -> userTurn.recordTaxiDestination(value.placeCode()));
@@ -315,11 +310,11 @@ public class TurnService {
     // 출동하는 경찰관은 직접 순찰차로 가야 하므로 이 턴에 대화를 마친다.
     // 택시는 대화가 끝나면 승객이 내리므로 작별·용건 끝냄으로 마치지 않고, 도착하면 Unity가 대화를 마친다.
     boolean wrapUp =
-        dispatch.isPresent() || (!scope.taxiRide() && WrapUp.ends(rude, scope.goals(), judge));
+        dispatch.isPresent() || (!scope.taxiRide() && WrapUp.ends(rude, scope.quest(), judge));
     String instruction =
         rude
             ? (leaving ? RUDE_LEAVE : RUDE_WARNING)
-            : scope.goals().map(detail -> detail.replyInstruction(judge.intent())).orElse("");
+            : scope.quest().map(detail -> detail.replyInstruction(judge.intent())).orElse("");
     if (context.review() != null) {
       instruction = join(reviewDialogue.instruction(context.review()), instruction);
     }
@@ -501,9 +496,10 @@ public class TurnService {
     if (finalTurn && !conversation.claimFinalTurn(requestId)) {
       return new TurnContextSelection(null, true, false);
     }
+    NpcContext npc = dialogueContexts.npcOf(conversation);
     return new TurnContextSelection(
         new TurnContext(
-            dialogueContexts.npcOf(conversation),
+            npc,
             dialogueContexts.learner(userId, speechSpeed),
             dialogueContexts.history(conversationId),
             conversation.getLevelApplied(),
@@ -515,7 +511,7 @@ public class TurnService {
             conversation.isReview()
                 ? reviewCardService.detail(userId, conversation.getReviewCardId())
                 : null,
-            placePractice.context(conversation).orElse(null)),
+            questTalks.forTurn(userId, npc.summary().npcCode(), conversation)),
         false,
         finalTurn);
   }
@@ -538,7 +534,7 @@ public class TurnService {
    * @param learner 대답 상대인 학습자. NPC가 캐릭터에 맞는 호칭을 쓰게 한다
    * @param memory 이 NPC와의 이전 대화 기억. 처음 만나면 null
    * @param rudeCount 이 턴 전까지 무례로 센 말 수
-   * @param practice 장소 연습 대화에서 이 턴 전까지 남은 목표와 직원 지시. 장소 연습이 아니면 null
+   * @param quest 이 턴의 퀘스트 대화 목표와 그 목표를 낸 쪽. 장소 연습은 이 턴 전까지 남은 목표다. 복습이거나 진행 중인 퀘스트가 없으면 빈 값
    */
   private record TurnContext(
       NpcContext npc,
@@ -549,27 +545,27 @@ public class TurnService {
       int rudeCount,
       boolean npcOffDuty,
       ReviewCardResponse review,
-      FirstDayMissionService.Context practice) {}
+      Optional<QuestTalkService.SelectedQuest> quest) {}
 
   private record TurnContextSelection(TurnContext context, boolean rejected, boolean finalTurn) {}
 
   /**
    * 이번 턴에서 판정 전에 정해진 것.
    *
-   * @param goals 이 턴의 미션(이야기 퀘스트·첫날 미션)이나 장소 연습 맥락. 미션 중 다른 NPC와의 대화·미션을 마친 뒤에도 안내 지시가 있다. 없으면 빈 값
+   * @param quest 이 턴의 퀘스트(이야기 퀘스트·첫날 미션)나 장소 연습의 대화 목표. 미션 중 다른 NPC와의 대화·미션을 마친 뒤에도 안내가 있다. 없으면 빈 값
    * @param finalTurn 대화의 마지막 턴이라 대답에서 마무리해야 하는지
    */
   private record TurnScope(
       TurnContext context,
-      Optional<FirstDayMissionService.Context> goals,
+      Optional<QuestTalk> quest,
       boolean policeDesk,
       boolean taxiRide,
       boolean finalTurn) {
 
-    // 판정한 의도·목적지가 대답 지시문에 들어가는 대화인지. 미션 맥락은 이 NPC에게 판정할 상태가 있을 때(미션 대상 NPC)만 판정한 목표를
-    // 지시문에 넣고, 미션 중 다른 NPC와의 대화나 미션을 마친 뒤에는 정해진 안내만 넣는다.
+    // 판정한 의도·목적지가 대답 지시문에 들어가는 대화인지. 퀘스트는 판정할 목표가 있는 대화(미션 대상 NPC·장소 연습)만 판정한 목표를
+    // 지시문에 넣고, 안내만 하는 대화(미션 중 다른 NPC, 미션을 마친 뒤)는 정해진 안내만 넣는다.
     boolean judgeShapesInstruction() {
-      return goals.map(FirstDayMissionService.Context::state).isPresent() || policeDesk || taxiRide;
+      return quest.flatMap(QuestTalk::goals).isPresent() || policeDesk || taxiRide;
     }
   }
 

@@ -105,6 +105,9 @@ namespace A305.Learning
         private PlayerMover player;
         private Dictionary<string, NpcLifeEntry> lives;
 
+        // ESC는 정보 카드면 목록으로 돌아가고, 목록이면 창을 닫는다.
+        private UiEscapeWindow escape;
+
         /// <summary>목록을 보인다. 서버 요청 없이 <paramref name="shownBook"/>의 지금 상태를 그린다.</summary>
         public void Show(NeighborsBook shownBook)
         {
@@ -116,6 +119,7 @@ namespace A305.Learning
 
         private void Awake()
         {
+            WindowFrame.Attach((RectTransform)panel.transform);
             previousButton.onClick.AddListener(() => Change(() => book.PreviousPage()));
             nextButton.onClick.AddListener(() => Change(() => book.NextPage()));
             backButton.onClick.AddListener(() => Change(() => book.Back()));
@@ -125,6 +129,16 @@ namespace A305.Learning
                 rows[slot].Button.onClick.AddListener(() => Change(() => SelectSlot(shownSlot)));
             }
             closeButton.onClick.AddListener(Close);
+            escape = new UiEscapeWindow(
+                () => panel.activeSelf,
+                () =>
+                {
+                    if (book != null && book.Selected != null)
+                        Change(() => book.Back());
+                    else
+                        Close();
+                }
+            );
             retryButton.onClick.AddListener(() => _ = LoadAsync());
             mapButton.onClick.AddListener(ShowOnMap);
             lives =
@@ -153,6 +167,7 @@ namespace A305.Learning
         {
             openButton.interactable =
                 panel.activeSelf || player == null || !player.IsMovementLocked;
+            escape.Watch();
         }
 
         private void Open()

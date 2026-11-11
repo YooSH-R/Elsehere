@@ -26,6 +26,7 @@ import com.elsehere.vocab.dto.VocabSaveResponse;
 import com.elsehere.vocab.entity.UserVocabSourceType;
 import com.elsehere.vocab.entity.VocabularyType;
 import com.elsehere.vocab.service.VocabService;
+import com.elsehere.world.entity.PlaceGroup;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -52,7 +53,7 @@ class VocabControllerTest {
           "앉을 때 쓰기",
           false,
           OffsetDateTime.parse("2026-10-27T10:00:00+09:00"),
-          new VocabItemResponse.Source(UserVocabSourceType.OBJECT, null, null));
+          new VocabItemResponse.Source(UserVocabSourceType.OBJECT, null, null, null, null));
 
   private static final VocabItemResponse LATTE =
       new VocabItemResponse(
@@ -62,7 +63,8 @@ class VocabControllerTest {
           null,
           false,
           OffsetDateTime.parse("2026-10-27T10:00:00+09:00"),
-          new VocabItemResponse.Source(UserVocabSourceType.NPC_LINE, "Mia", 58L));
+          new VocabItemResponse.Source(
+              UserVocabSourceType.NPC_LINE, "Mia", 58L, "카페", PlaceGroup.FOOD));
 
   private static final VocabItemResponse FEEDBACK_LATTE =
       new VocabItemResponse(
@@ -72,7 +74,8 @@ class VocabControllerTest {
           null,
           false,
           OffsetDateTime.parse("2026-10-27T10:00:00+09:00"),
-          new VocabItemResponse.Source(UserVocabSourceType.FEEDBACK, "Mia", 58L));
+          new VocabItemResponse.Source(
+              UserVocabSourceType.FEEDBACK, "Mia", 58L, "카페", PlaceGroup.FOOD));
 
   @Autowired private MockMvc mockMvc;
 
@@ -101,6 +104,8 @@ class VocabControllerTest {
         .andExpect(jsonPath("$.items[0].source.sourceType").value("OBJECT"))
         .andExpect(jsonPath("$.items[0].source.npcName").value(nullValue()))
         .andExpect(jsonPath("$.items[0].source.conversationId").value(nullValue()))
+        .andExpect(jsonPath("$.items[0].source.placeName").value(nullValue()))
+        .andExpect(jsonPath("$.items[0].source.placeGroup").value(nullValue()))
         .andExpect(jsonPath("$.nextCursor").value(nullValue()));
   }
 
@@ -180,7 +185,9 @@ class VocabControllerTest {
         .andExpect(jsonPath("$.context.text").value("Would you like an iced latte?"))
         .andExpect(jsonPath("$.source.sourceType").value("NPC_LINE"))
         .andExpect(jsonPath("$.source.npcName").value("Mia"))
-        .andExpect(jsonPath("$.source.conversationId").value(58));
+        .andExpect(jsonPath("$.source.conversationId").value(58))
+        .andExpect(jsonPath("$.source.placeName").value("카페"))
+        .andExpect(jsonPath("$.source.placeGroup").value("FOOD"));
   }
 
   @Test

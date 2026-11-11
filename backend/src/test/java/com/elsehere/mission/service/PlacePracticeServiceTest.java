@@ -15,6 +15,7 @@ import com.elsehere.common.seed.WorldSeedLoader;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.mission.dto.PracticePlaceListResponse;
 import com.elsehere.mission.dto.PracticeProgressResponse;
+import com.elsehere.mission.entity.PracticeScenario;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.world.service.PronunciationAudioStore;
@@ -155,6 +156,18 @@ class PlacePracticeServiceTest {
     assertThat(progress.goals()).allSatisfy(goal -> assertThat(goal.completed()).isTrue());
     assertThat(progress.done()).isTrue();
     assertThat(conversation.getPracticeDoneAt()).isEqualTo(TestClockConfig.NOW);
+  }
+
+  @Test
+  @DisplayName("상황의 목표를 모두 이룬 연습 대화는 판정할 목표 없이 새 요청을 꺼내지 말고 마무리하라는 지시만 준다")
+  void context_afterEveryGoal_onlyGuidesToClose() {
+    PracticeScenario scenario = practice.scenario("HOTEL_CHANGE_ROOM");
+    List<String> everyGoal = scenario.goals().stream().map(PracticeScenario.Goal::id).toList();
+
+    QuestTalk context = practice.context(scenario, everyGoal);
+
+    assertThat(context).isInstanceOf(QuestTalk.Guide.class);
+    assertThat(context.instruction()).contains("already done everything", "close politely");
   }
 
   @Test

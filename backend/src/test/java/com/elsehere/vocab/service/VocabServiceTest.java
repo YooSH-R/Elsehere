@@ -29,6 +29,7 @@ import com.elsehere.vocab.entity.VocabularyType;
 import com.elsehere.vocab.repository.UserVocabRepository;
 import com.elsehere.vocab.repository.VocabularyRepository;
 import com.elsehere.world.dto.WordCardResponse;
+import com.elsehere.world.entity.PlaceGroup;
 import com.elsehere.world.service.PronunciationAudioStore;
 import com.elsehere.world.service.SceneService;
 import jakarta.persistence.EntityManager;
@@ -113,7 +114,8 @@ class VocabServiceTest {
     assertThat(item.memorized()).isFalse();
     assertThat(item.savedAt()).isEqualTo(OffsetDateTime.parse("2026-10-27T10:00:00+09:00"));
     assertThat(item.source())
-        .isEqualTo(new VocabItemResponse.Source(UserVocabSourceType.OBJECT, null, null));
+        .isEqualTo(
+            new VocabItemResponse.Source(UserVocabSourceType.OBJECT, null, null, null, null));
     assertThat(savedOnObjectCard(userId, "sofa")).isTrue();
   }
 
@@ -377,7 +379,7 @@ class VocabServiceTest {
     assertThat(item.source())
         .isEqualTo(
             new VocabItemResponse.Source(
-                UserVocabSourceType.NPC_LINE, "Mia", conversation.getId()));
+                UserVocabSourceType.NPC_LINE, "Mia", conversation.getId(), "카페", PlaceGroup.FOOD));
     assertThat(userVocabRepository.findById(item.userVocabId()).orElseThrow().getSourceTurnId())
         .isEqualTo(line.getId());
     assertThat(vocabularySource("latte")).isEqualTo(VocabularySource.NPC);
@@ -522,7 +524,45 @@ class VocabServiceTest {
         .extracting(VocabItemResponse::source)
         .isEqualTo(
             new VocabItemResponse.Source(
-                UserVocabSourceType.NPC_LINE, "Mia", conversation.getId()));
+                UserVocabSourceType.NPC_LINE, "Mia", conversation.getId(), "카페", PlaceGroup.FOOD));
+  }
+
+  @Test
+  @DisplayName("단어장 목록에서 대화로 저장한 단어는 코드 이름이 아니라 NPC가 실제로 일하는 곳과 그 장소 묶음을 보여 준다")
+  void getVocab_showsWorkplaceOfConversationNpc() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Conversation conversation = conversation(entityManager, userId, "FIRE_CAPTAIN");
+    Turn line = viewedNpcLine(conversation, "Would you like an iced latte?", "아이스 라떼 드릴까요?", LATTE);
+    vocabService.saveNpcLineWord(userId, line.getId(), "latte");
+    entityManager.clear();
+
+    VocabListResponse response = vocabService.getVocab(userId, false, null, 20);
+
+    assertThat(response.items())
+        .singleElement()
+        .extracting(item -> item.source().placeName(), item -> item.source().placeGroup())
+        .containsExactly("식당", PlaceGroup.FOOD);
+  }
+
+  @Test
+  @DisplayName("근무 시간 밖에 만난 NPC와의 대화에서 저장한 단어는 일하는 곳 없이 일상 묶음으로 보여 준다")
+  void getVocab_offDutyConversation_isDaily() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Conversation conversation = conversation(entityManager, userId, "CAFE_BARISTA");
+    conversation.markNpcOffDuty();
+    Turn line = viewedNpcLine(conversation, "Would you like an iced latte?", "아이스 라떼 드릴까요?", LATTE);
+    vocabService.saveNpcLineWord(userId, line.getId(), "latte");
+    entityManager.clear();
+
+    VocabListResponse response = vocabService.getVocab(userId, false, null, 20);
+
+    assertThat(response.items())
+        .singleElement()
+        .extracting(
+            item -> item.source().npcName(),
+            item -> item.source().placeName(),
+            item -> item.source().placeGroup())
+        .containsExactly("Zoe", null, PlaceGroup.DAILY);
   }
 
   @Test
@@ -544,7 +584,7 @@ class VocabServiceTest {
     assertThat(item.source())
         .isEqualTo(
             new VocabItemResponse.Source(
-                UserVocabSourceType.FEEDBACK, "Mia", conversation.getId()));
+                UserVocabSourceType.FEEDBACK, "Mia", conversation.getId(), "카페", PlaceGroup.FOOD));
     assertThat(userVocabRepository.findById(item.userVocabId()).orElseThrow().getSourceTurnId())
         .isNull();
     assertThat(vocabularySource("latte")).isEqualTo(VocabularySource.FEEDBACK);
@@ -647,7 +687,7 @@ class VocabServiceTest {
     assertThat(corrected.item().source())
         .isEqualTo(
             new VocabItemResponse.Source(
-                UserVocabSourceType.FEEDBACK, "Mia", conversation.getId()));
+                UserVocabSourceType.FEEDBACK, "Mia", conversation.getId(), "카페", PlaceGroup.FOOD));
     assertThat(fromKorean.created()).isTrue();
     assertThat(fromKorean.item().vocab().meaningKo()).isEqualTo("한국어로 말한 문장을 영어로 바꿨어요.");
   }

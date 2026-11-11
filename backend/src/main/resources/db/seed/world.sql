@@ -311,6 +311,53 @@ SET scene_id = EXCLUDED.scene_id,
     approach_line = EXCLUDED.approach_line,
     updated_at = now();
 
+-- NPC가 일하는 곳과 단어장 장소 묶음(FOOD·SHOPPING·SERVICES·SAFETY·DAILY). 코드 이름이 아니라 인격 카드의 실제 근무지 기준이다
+-- (FIRE_CAPTAIN은 식당 야간 직원). 단어장은 이 값으로 대화 표현을 나누고, 근무 시간 밖에 만난 대화는 DAILY로 둔다.
+UPDATE npcs
+SET place_name = seed.place_name,
+    place_group = seed.place_group,
+    updated_at = now()
+FROM (
+  VALUES
+    ('TOWN_PASSERBY', '거리', 'DAILY'),
+    ('TOWN_GRANDFATHER', '거리', 'DAILY'),
+    ('TOWN_GRANDMOTHER', '거리', 'DAILY'),
+    ('CAFE_STAFF', '카페', 'FOOD'),
+    ('CAFE_BARISTA', '카페', 'FOOD'),
+    ('CAFE_SERVER', '카페', 'FOOD'),
+    ('DINER_STAFF', '식당', 'FOOD'),
+    ('FIRE_CAPTAIN', '식당', 'FOOD'),
+    ('BAKERY_STAFF', '빵집', 'FOOD'),
+    ('POLICE_PATROL_OFFICER', '빵집', 'FOOD'),
+    ('SHOP_STAFF', '드럭스토어', 'SHOPPING'),
+    ('SHOP_PHARMACIST', '드럭스토어', 'SHOPPING'),
+    ('SHOP_NIGHT_CLERK', '드럭스토어', 'SHOPPING'),
+    ('FLOWER_SHOP_STAFF', '꽃집', 'SHOPPING'),
+    ('HOTEL_CONCIERGE', '꽃집', 'SHOPPING'),
+    ('HOME_STORE_STAFF', '생활용품점', 'SHOPPING'),
+    ('TOWN_HANDYMAN', '생활용품점', 'SHOPPING'),
+    ('ARCADE_STAFF', '오락실', 'SHOPPING'),
+    ('TOWN_STUDENT', '오락실', 'SHOPPING'),
+    ('BANK_STAFF', '은행', 'SERVICES'),
+    ('TOWN_EVENING_WALKER', '은행', 'SERVICES'),
+    ('TOWN_SHOPPER', '은행', 'SERVICES'),
+    ('POST_OFFICE_STAFF', '우체국', 'SERVICES'),
+    ('TOWN_RETIREE', '우체국', 'SERVICES'),
+    ('LAUNDROMAT_STAFF', '빨래방', 'SERVICES'),
+    ('FIRE_FIGHTER', '빨래방', 'SERVICES'),
+    ('BARBER_STAFF', '이발소', 'SERVICES'),
+    ('FIRE_ROOKIE', '이발소', 'SERVICES'),
+    ('HOTEL_STAFF', '호텔', 'SERVICES'),
+    ('HOTEL_RECEPTIONIST', '호텔', 'SERVICES'),
+    ('HOTEL_NIGHT_MANAGER', '호텔', 'SERVICES'),
+    ('HOTEL_BELLHOP', '호텔', 'SERVICES'),
+    ('TAXI_DRIVER', '택시', 'SERVICES'),
+    ('POLICE_OFFICER', '경찰서', 'SAFETY'),
+    ('POLICE_SERGEANT', '경찰서', 'SAFETY'),
+    ('POLICE_ROOKIE', '경찰서', 'SAFETY')
+) AS seed (code, place_name, place_group)
+WHERE npcs.code = seed.code;
+
 -- 일일 미션. 카페와 호텔에 하나씩 둔다. code는 Unity 미션 콘텐츠와 같은 키다. 튜토리얼 미션은 Unity 대본 콘텐츠라 넣지 않는다.
 -- intent_rule은 임시값이다. AI 의도 판정에 쓰는 실제 기준은 대화 담당이 채운다.
 INSERT INTO missions (npc_id, code, title, description, keywords, intent_rule)

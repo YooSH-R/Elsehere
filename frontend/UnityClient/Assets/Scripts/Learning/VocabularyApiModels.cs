@@ -65,5 +65,11 @@ namespace A305.Learning
 
         /// <summary>대화에서 저장한 단어의 NPC 이름. 사물에서 저장했으면 null.</summary>
         public string NpcName { get; set; }
+
+        /// <summary>출처 대화 NPC가 일하는 곳(카페, 우체국). 사물에서 저장했거나 근무 시간 밖 대화면 null.</summary>
+        public string PlaceName { get; set; }
+
+        /// <summary>FOOD, SHOPPING, SERVICES, SAFETY, DAILY. 사물에서 저장했으면 null.</summary>
+        public string PlaceGroup { get; set; }
     }
 }

@@ -137,7 +137,14 @@ namespace A305.Npc.PlayModeTests
             );
 
             NpcTracking.Shared.Track(PasserbyCode, PasserbyName, null);
-            yield return null;
+            // 이름표는 LateUpdate에서 그린다. 테스트 코루틴이 그보다 먼저 재개돼도
+            // 이전 프레임의 목록을 검사하지 않도록, 실제 표시를 제한 시간 안에 기다린다.
+            float deadline = Time.realtimeSinceStartup + 2f;
+            while (
+                ShownTags().All(shown => shown.Name != PasserbyName)
+                && Time.realtimeSinceStartup < deadline
+            )
+                yield return null;
 
             TagView far = ShownTags().SingleOrDefault(shown => shown.Name == PasserbyName);
             Assert.That(far, Is.Not.Null, "찾는 이웃은 멀리서도 이름표가 보입니다.");

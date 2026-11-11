@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using A305.Dialogue;
+using A305.Learning;
 using A305.Player;
 using A305.Tutorial;
 using A305.World;
@@ -22,16 +23,7 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_ResidencePavingSupportsFeetAtTheVisibleSurface()
         {
             SetClock(195);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             var paving = GameObject.Find("ResidencePaving").GetComponent<Renderer>();
             var failures = new List<string>();
             // 보이는 포장만 있고 충돌면이 없으면 NPC는 아래의 부지 바닥을 딛거나 떨어진다.
@@ -67,16 +59,7 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_ResidenceDoorWalksToTheRoadAndBackWithoutSinking()
         {
             SetClock(21 * 60);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
             Object
                 .FindFirstObjectByType<PlayerMover>()
@@ -184,16 +167,7 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_ScheduledSpawnKeepsTheVisualAboveTheGround()
         {
             SetClock(195);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             Object
                 .FindFirstObjectByType<PlayerMover>()
                 .Teleport(new Vector3(0, 100, 0), Quaternion.identity);
@@ -261,16 +235,7 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_WorkerKnowsTheRealCommuteAndKeepsItAfterArrival()
         {
             SetClock(17 * 60 + 59);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             var walker = Object
                 .FindObjectsByType<NpcTownWalker>(
                     FindObjectsInactive.Include,
@@ -310,16 +275,7 @@ namespace A305.Npc.PlayModeTests
                 PlaceWalker(walker, door, Vector3.forward);
                 yield return null;
                 yield return null;
-                SceneManager.sceneLoaded += DisableWalkingTestApis;
-                try
-                {
-                    yield return SceneManager.LoadSceneAsync("HotelScene");
-                    yield return null;
-                }
-                finally
-                {
-                    SceneManager.sceneLoaded -= DisableWalkingTestApis;
-                }
+                yield return LoadWithoutApis("HotelScene");
                 var worker = Object
                     .FindFirstObjectByType<NpcPopulation>()
                     .FindWorker("HOTEL_NIGHT_MANAGER")
@@ -335,47 +291,42 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator Town_StaffPassTheBankStairSupport() => CheckObservedStall(false);
+        public IEnumerator Town_StaffPassTheBankStairSupportWithTheirVisualsAligned() =>
+            CheckObservedStall(WalkingScenario.BankStairSupport);
 
         [UnityTest]
         public IEnumerator Town_CommuterLeavesTheCrosswalkAtTheSidewalkCorner() =>
-            CheckObservedStall(false, corner: true);
+            CheckObservedStall(WalkingScenario.SidewalkCorner);
 
         [UnityTest]
         public IEnumerator Town_ObservedJunctionCrowdReachesItsDestinations() =>
-            CheckObservedStall(true);
+            CheckObservedStall(WalkingScenario.JunctionCrowd);
 
         [UnityTest]
         public IEnumerator Town_DiagonalCrossingEndsOnAnActualSidewalk() =>
-            CheckObservedStall(false, diagonal: true);
-
-        [UnityTest]
-        public IEnumerator Town_CommuterVisualFollowsTheWalkingBody() =>
-            CheckObservedStall(false, visual: true);
+            CheckObservedStall(WalkingScenario.DiagonalCrossing);
 
         [UnityTest]
         public IEnumerator Town_StuckRecoveryFindsFreeGroundBesideAnOccupiedGoal() =>
-            CheckObservedStall(false, recover: true);
+            CheckObservedStall(WalkingScenario.OccupiedDestination);
 
-        private static IEnumerator CheckObservedStall(
-            bool crowd,
-            bool corner = false,
-            bool diagonal = false,
-            bool visual = false,
-            bool recover = false
-        )
+        private enum WalkingScenario
         {
+            BankStairSupport,
+            SidewalkCorner,
+            JunctionCrowd,
+            DiagonalCrossing,
+            OccupiedDestination,
+        }
+
+        private static IEnumerator CheckObservedStall(WalkingScenario scenario)
+        {
+            bool crowd = scenario == WalkingScenario.JunctionCrowd;
+            bool corner = scenario == WalkingScenario.SidewalkCorner;
+            bool diagonal = scenario == WalkingScenario.DiagonalCrossing;
+            bool checkVisuals = scenario == WalkingScenario.BankStairSupport;
             SetClock(21 * 60);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
             Object
                 .FindFirstObjectByType<PlayerMover>()
@@ -456,7 +407,7 @@ namespace A305.Npc.PlayModeTests
                     PlaceWalker(walkers[i], starts[i], ends[i] - starts[i]);
                     walkers[i].Destination = ends[i];
                 }
-                if (recover)
+                if (scenario == WalkingScenario.OccupiedDestination)
                 {
                     recoveryBlocker = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     recoveryBlocker.transform.position = ends[0] + Vector3.up;
@@ -501,7 +452,9 @@ namespace A305.Npc.PlayModeTests
                             new object[] { new Vector3(-.42f, 0, .91f) * 4, 1.6f, false, null }
                         );
                 }
-                for (int frame = 0; frame < (crowd || corner || diagonal ? 1800 : 600); frame++)
+                int frameLimit = crowd || corner || diagonal ? 1800 : 600;
+                int arrivedCount = 0;
+                for (int frame = 0; frame < frameLimit; frame++)
                 {
                     if (corner && frame == 180)
                         typeof(TrafficLights)
@@ -512,7 +465,7 @@ namespace A305.Npc.PlayModeTests
                             .SetValue(lights, 0f);
                     yield return null;
 #if UNITY_EDITOR
-                    if (visual && walkers[0].gameObject.activeSelf)
+                    if (checkVisuals && walkers[0].gameObject.activeSelf)
                         review.RecordScenario(
                             "bank-obstacle",
                             walkers[0].transform,
@@ -520,7 +473,7 @@ namespace A305.Npc.PlayModeTests
                             GameClock.Shared.Minutes
                         );
 #endif
-                    if (visual && frame % 30 == 0)
+                    if (checkVisuals && frame % 30 == 0)
                     {
                         var model = walkers[0]
                             .GetComponentsInChildren<SkinnedMeshRenderer>()
@@ -553,7 +506,12 @@ namespace A305.Npc.PlayModeTests
                             && HorizontalDistance(walker.transform.position, walker.Destination)
                                 < .4f
                         )
+                        {
                             walker.gameObject.SetActive(false);
+                            arrivedCount++;
+                        }
+                    if (arrivedCount == walkers.Length)
+                        break;
                 }
                 var failures = new List<string>();
                 foreach (var walker in walkers)
@@ -590,16 +548,7 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_CommutersPassOnANarrowSidewalk()
         {
             SetClock(21 * 60);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
             Object
                 .FindFirstObjectByType<PlayerMover>()
@@ -677,16 +626,7 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_WorkScheduleEnablesRefusalOnlyAfterTheShiftStarts()
         {
             SetClock(17 * 60 + 59);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             var walker = Object
                 .FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None)
                 .Single(item => item.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER");
@@ -725,16 +665,7 @@ namespace A305.Npc.PlayModeTests
         )
         {
             SetClock(21 * 60);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
             var player = Object.FindFirstObjectByType<PlayerMover>();
             player.Teleport(new Vector3(497, .1f, 505), Quaternion.identity);
@@ -923,16 +854,7 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_RestingTimeDoesNotHideACommuterBeforeReachingTheDoor()
         {
             SetClock(20 * 60 + 29);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             var walker = Object
                 .FindObjectsByType<NpcTownWalker>(
                     FindObjectsInactive.Include,
@@ -981,16 +903,7 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_CommuterReachingTheWorkplaceDoorBeforeTheShiftGoesInside()
         {
             SetClock(9 * 60 + 40);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             var walker = Object
                 .FindObjectsByType<NpcTownWalker>(
                     FindObjectsInactive.Include,
@@ -1270,16 +1183,7 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_CommutersPassWhenThereIsSpaceAndWaitWhenBlocked()
         {
             SetClock(21 * 60);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             foreach (
                 var population in Object.FindObjectsByType<NpcPopulation>(FindObjectsSortMode.None)
             )
@@ -1509,16 +1413,7 @@ namespace A305.Npc.PlayModeTests
         private static IEnumerator LoadTownWithStoppedSignals()
         {
             SetClock(21 * 60);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
             Object
                 .FindFirstObjectByType<PlayerMover>()
@@ -1564,16 +1459,7 @@ namespace A305.Npc.PlayModeTests
             // 서쪽 교차로 모퉁이(-2.9, 14.6)는 본길 횡단보도와 가로길 횡단보도가 만난다. 본길을 건너려는 사람이 모퉁이까지
             // 남쪽으로 한 걸음 가야 할 때, 그 짧은 걸음 방향으로 가로길 횡단으로 잘못 보고 가로길 신호를 기다리며 멈췄다.
             SetClock(21 * 60);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             foreach (
                 var population in Object.FindObjectsByType<NpcPopulation>(FindObjectsSortMode.None)
             )
@@ -1621,16 +1507,7 @@ namespace A305.Npc.PlayModeTests
             // 길 지도는 카페에서 서쪽 가게로 가는 인도의 가로등(-3.45, 15)을 이미 비켜 가는데,
             // 장애물 우회가 같은 가로등을 길 지도보다 넓게 막혔다고 보고 돌아갈 길을 찾지 못해 그 자리에 섰다.
             SetClock(21 * 60);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             foreach (
                 var population in Object.FindObjectsByType<NpcPopulation>(FindObjectsSortMode.None)
             )
@@ -1667,16 +1544,7 @@ namespace A305.Npc.PlayModeTests
         private static IEnumerator CheckNewObstacle(bool carves, float height)
         {
             SetClock(21 * 60);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             foreach (
                 var population in Object.FindObjectsByType<NpcPopulation>(FindObjectsSortMode.None)
             )
@@ -1842,16 +1710,7 @@ namespace A305.Npc.PlayModeTests
         )
         {
             SetClock(21 * 60);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             foreach (
                 var population in Object.FindObjectsByType<NpcPopulation>(FindObjectsSortMode.None)
             )
@@ -1973,16 +1832,7 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_TwoCommutersPassBesideTheSharedSignalPole()
         {
             SetClock(21 * 60);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
             Object
                 .FindFirstObjectByType<A305.Player.PlayerMover>()
@@ -2046,16 +1896,7 @@ namespace A305.Npc.PlayModeTests
         )
         {
             SetClock(21 * 60);
-            SceneManager.sceneLoaded += DisableWalkingTestApis;
-            try
-            {
-                yield return SceneManager.LoadSceneAsync("TownScene");
-                yield return null;
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= DisableWalkingTestApis;
-            }
+            yield return LoadWithoutApis("TownScene");
             foreach (
                 var population in Object.FindObjectsByType<NpcPopulation>(FindObjectsSortMode.None)
             )
@@ -2314,6 +2155,13 @@ namespace A305.Npc.PlayModeTests
                 var clock in Object.FindObjectsByType<GameClockDriver>(FindObjectsSortMode.None)
             )
                 clock.enabled = false;
+            // 보행 테스트를 실행할 때 HUD가 피드백·단어장을 갱신하지 않게 한다.
+            foreach (
+                var learning in Object.FindObjectsByType<LearningController>(
+                    FindObjectsSortMode.None
+                )
+            )
+                learning.enabled = false;
             const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
             typeof(DialogueController)
                 .GetField("conversationApi", flags)
@@ -2509,11 +2357,10 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator Town_EveryScheduledCommuterHasAReachableRouteAcrossTheDay()
+        public IEnumerator Town_CommuterVisibilityMatchesTheScheduleAcrossTheDay()
         {
             SetClock(0);
-            yield return SceneManager.LoadSceneAsync("TownScene");
-            yield return null;
+            yield return LoadWithoutApis("TownScene");
             Object
                 .FindFirstObjectByType<A305.Player.PlayerMover>()
                 .Teleport(new Vector3(0, 100, 0), Quaternion.identity);
@@ -2524,6 +2371,7 @@ namespace A305.Npc.PlayModeTests
                 FindObjectsInactive.Include,
                 FindObjectsSortMode.None
             );
+            var population = Object.FindFirstObjectByType<NpcPopulation>();
             Assert.That(walkers, Has.Length.EqualTo(data.Npcs.Count - 1));
             for (int minutes = 0; minutes < 1440; minutes += 30)
             {
@@ -2547,9 +2395,7 @@ namespace A305.Npc.PlayModeTests
                                     data.FindNpc(code),
                                     minutes,
                                     false,
-                                    Object
-                                        .FindFirstObjectByType<NpcPopulation>()
-                                        .CommuteMinutesFor(code)
+                                    population.CommuteMinutesFor(code)
                                 )
                                 .IsInTown && !isInside
                         ),

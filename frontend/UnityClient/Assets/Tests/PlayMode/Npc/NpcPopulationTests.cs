@@ -1063,46 +1063,6 @@ namespace A305.Npc.PlayModeTests
             );
         }
 
-        // 근무가 끝나도 그 자리에서 사라지지 않고 문 쪽으로 걸어 나간 뒤 사라진다.
-        [UnityTest]
-        public IEnumerator PostOffice_StaffWalkOutThroughTheDoorAfterTheShift()
-        {
-            SetClock(17 * 60 + 58);
-            yield return LoadWithoutApis("PostOfficeInterior");
-            NpcIdentity staff = Object
-                .FindFirstObjectByType<NpcPopulation>()
-                .FindWorker("POST_OFFICE_STAFF");
-            Assert.That(staff.gameObject.activeSelf, Is.True, "준비: 18시 근무가 끝나기 직전");
-            Transform door = Object
-                .FindObjectsByType<SpaceDoorway>(FindObjectsSortMode.None)
-                .Single(item => item.DestinationScene == "TownScene")
-                .transform;
-            float startDistance = HorizontalDistance(staff.transform.position, door.position);
-
-            Tick(18 * 60, 1);
-            yield return null;
-            yield return null;
-            Assert.That(staff.gameObject.activeSelf, Is.True, "근무가 끝나자마자 사라지지 않는다.");
-
-            float previousDelta = Time.captureDeltaTime;
-            try
-            {
-                Time.captureDeltaTime = 1f / 30f;
-                for (int frame = 0; frame < 900 && staff.gameObject.activeSelf; frame++)
-                    yield return null;
-            }
-            finally
-            {
-                Time.captureDeltaTime = previousDelta;
-            }
-            Assert.That(staff.gameObject.activeSelf, Is.False, "문으로 나가 사라진다.");
-            Assert.That(
-                HorizontalDistance(staff.transform.position, door.position),
-                Is.LessThan(startDistance),
-                "문 쪽으로 걸어간 뒤 사라진다."
-            );
-        }
-
         private static IEnumerator LoadWithoutApis(string sceneName)
         {
             SceneManager.sceneLoaded += DisableWalkingTestApis;

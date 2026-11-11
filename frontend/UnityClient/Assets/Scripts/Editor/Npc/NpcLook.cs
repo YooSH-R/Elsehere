@@ -14,10 +14,12 @@ namespace A305.EditorTools.Npc
             string bodyTexturePath,
             string onlyForCodePrefix = null,
             string baseMaterialPath = null,
-            float initialScale = 1f
+            float initialScale = 1f,
+            bool usesRecordedPerformance = false
         )
         {
             Name = name;
+            UsesRecordedPerformance = usesRecordedPerformance;
             PrefabPath = prefabPath;
             BodyTexturePath = bodyTexturePath;
             OnlyForCodePrefix = onlyForCodePrefix;
@@ -26,6 +28,7 @@ namespace A305.EditorTools.Npc
         }
 
         public string Name { get; }
+        public bool UsesRecordedPerformance { get; }
         public string PrefabPath { get; }
 
         /// <summary>새로 배치할 때의 배율. 기존 씬 인스턴스에서 조절한 크기는 덮어쓰지 않는다.</summary>

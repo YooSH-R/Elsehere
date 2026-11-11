@@ -47,6 +47,11 @@
 
 게임에 표시되는 이름은 **John**이며 `CafeFemaleEmotions.asset`의 16종 감정과 같은 발음 채널을 사용합니다. 기존 에셋 참조와 연결을 유지하기 위해 내부 코드는 `TOWN_JOHN_PARK`, 파일명은 `LittleMung_JohnPark_Male`로 유지합니다. `NpcIdentity`·`DialogueSpeaker`를 연결하며 백엔드 시드와 로컬 검수 대본의 이름은 John, 역할은 뮤지션입니다. 기본 음성 `am_michael`은 서비스의 합성 목소리이며 실제 가수의 음성을 복제하지 않습니다. 서버 시드와 클라이언트 변경의 배포는 별도입니다.
 
+공용 외형 표 `NpcCast`에도 `NpcLooks.John`으로 같은 프리팹을 등록합니다. 이 외형의
+`UsesRecordedPerformance`는 공용 외형 갱신에서 Humanoid 재연결·보행 복사본·배색 변경을 적용하지 않고
+전용 Generic Avatar·공통 얼굴·저장 공연 연결을 확인하게 합니다. John은 출퇴근 보행 대상이 아닙니다.
+Production의 공용 오프라인 대본에도 John과 뮤지션 역할을 등록하여 기본 `Neighbor` 대본으로 빠지지 않게 합니다.
+
 `JohnParkDialogueBuilder.PlaceInRestaurant`는 Town의 식당 실내 상주 목록에 같은 프리팹을 연결합니다. 위치는 식당 좌표 `(0, 0, -5.2)`의 뒷주방 앞 중앙 통로입니다. 실내 입장 때 나타나고 퇴장 때 숨겨지며 별도 출퇴근 일과나 보행을 추가하지 않습니다. 첨부 화면을 기준으로 추정한 위치이므로 최종 구도는 실제 실내에서 확인합니다.
 
 페르소나는 차분하고 예의 바른 음악가 손님으로 설정합니다. 짧고 쉬운 영어, 담백한 농담, 요청받았을 때만 리듬을 넣은 주문 예시를 사용하고 직원 업무는 Rosa에게 안내합니다. 이는 게임용 각색입니다. [본인 인터뷰](https://www.segye.com/newsView/20140919000136)의 말수가 적고 혼자 있는 것을 즐긴다는 설명과 [SBS 방송 발언](https://ent.sbs.co.kr/amp/article.do?article_id=E10004429011)의 과장된 애교를 어려워한다는 설명을 참고합니다. 과거 발언을 현재 성격 전체로 단정하지 않습니다. MBTI는 이차 자료에 INFP로 소개되지만 직접 발표 출처를 확인하지 못해 확정 정보로 사용하지 않습니다.

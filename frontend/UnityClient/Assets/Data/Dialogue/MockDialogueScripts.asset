@@ -1135,6 +1135,21 @@ MonoBehaviour:
       korean: "\uCC38 \uC88B\uB124\uC694! \uC88B\uC740 \uD558\uB8E8 \uBCF4\uB0B4\uC694."
       voice: {fileID: 0}
     exampleSentence: Good morning! Do you walk here every day?
+  - npcCode: TOWN_JOHN_PARK
+    npcName: John
+    roleLabel: "\uBBA4\uC9C0\uC158"
+    opening:
+      english: Hi, I'm John. Want to hear my order rap?
+      korean: "\uC548\uB155, John\uC774\uC57C. \uC8FC\uBB38 \uB7A9 \uB4E4\uC5B4\uBCFC\uB798?"
+      voice: {fileID: 0}
+    guidedTurns: []
+    keywordReplies: []
+    defaultReply:
+      english: I like music and a good burger. What about you?
+      korean: "\uB09C \uC74C\uC545\uACFC \uB9DB\uC788\uB294 \uBC84\uAC70\uB97C \uC88B\uC544\uD574.
+        \uB108\uB294 \uC5B4\uB54C?"
+      voice: {fileID: 0}
+    exampleSentence: Can you play that rap again?
   fallback:
     npcCode: 
     npcName: Neighbor

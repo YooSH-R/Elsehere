@@ -66,6 +66,8 @@ namespace A305.EditorTools.Npc
         /// </summary>
         public static void Dress(GameObject npc, NpcCastMember member)
         {
+            if (member.Look.UsesRecordedPerformance)
+                return;
             Material baseMaterial =
                 member.Look.BaseMaterialPath != null
                     ? BuilderTools.LoadRequiredAsset<Material>(

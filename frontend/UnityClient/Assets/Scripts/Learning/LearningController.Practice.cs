@@ -47,7 +47,7 @@ namespace A305.Learning
             if (!RememberReviewOrigin())
                 return;
             pendingPractice = plan;
-            if (!TravelForVisit(plan.SceneCode))
+            if (!TravelForVisit(plan.SceneCode, plan.NpcCode))
                 pendingPractice = null;
         }
 

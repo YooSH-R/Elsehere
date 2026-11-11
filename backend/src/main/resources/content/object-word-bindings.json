@@ -119,8 +119,8 @@
         {
             "sceneCode": "TOWN",
             "unityKey": "TownScene",
-            "objectCount": 3688,
-            "detailCount": 152,
+            "objectCount": 3789,
+            "detailCount": 83,
             "wordKeys": [
                 "awning",
                 "bed",
@@ -179,7 +179,6 @@
                 "porch",
                 "price_card",
                 "railing",
-                "reception_desk",
                 "refrigerator",
                 "road",
                 "roof",

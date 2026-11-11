@@ -103,88 +103,10 @@ namespace A305.World
             return true;
         }
 
-        /// <summary>
-        /// 마을 매장 문을 지난다. 들어갈 때는 매장이 영업시간이 아니면 거절하고, 나올 때는 막지 않는다.
-        /// </summary>
-        internal static void CrossShopDoor(
-            PlayerMover player,
-            Vector3 destination,
-            ShopInterior interior,
-            bool entering,
-            Quaternion? arrivalRotation = null,
-            float? arrivalViewYaw = null
-        )
-        {
-            if (
-                interior != null
-                && entering
-                && !Application.CanStreamedLevelBeLoaded(interior.SceneName)
-            )
-            {
-                Debug.LogError($"실내 씬을 불러올 수 없습니다: {interior.SceneName}", interior);
-                return;
-            }
-            if (
-                player.IsMovementLocked
-                || RefuseIfLocked()
-                || (
-                    entering
-                    && interior != null
-                    && RefuseIfClosed(interior.PlaceCode, interior.PlaceName)
-                )
-                || SpaceTravelCurtain.IsCoveringScreen
-                || !state.TryBegin()
-            )
-            {
-                return;
-            }
-
-            SpaceTravelCurtain.CrossShopDoor(
-                player,
-                new Pose(destination, arrivalRotation ?? player.transform.rotation),
-                interior,
-                entering,
-                arrivalViewYaw,
-                () => state.CompleteArrival()
-            );
-        }
-
-        /// <summary>
-        /// 영업이 끝난 마을 매장에서 문 밖으로 내보낸다. 튜토리얼 잠금과 상관없이 옮긴다.
-        /// </summary>
-        /// <returns>내보내기 시작했으면 true. 대화 중처럼 플레이어가 움직일 수 없거나 이미 이동 중이면 false.</returns>
-        internal static bool TryLeaveClosedShop(
-            PlayerMover player,
-            Pose outside,
-            ShopInterior interior,
-            float arrivalViewYaw
-        )
-        {
-            if (
-                player.IsMovementLocked
-                || SpaceTravelCurtain.IsCoveringScreen
-                || !state.TryBegin(evenIfLocked: true)
-            )
-            {
-                return false;
-            }
-
-            SpaceTravelCurtain.CrossShopDoor(
-                player,
-                outside,
-                interior,
-                false,
-                arrivalViewYaw,
-                () => state.CompleteArrival()
-            );
-            return true;
-        }
-
-        /// <summary>복습 전에 저장한 같은 공간의 자리와 실내를 복원한다. 새로운 물건 구매나 미션 진행은 하지 않는다.</summary>
+        /// <summary>복습 전에 저장한 같은 공간의 자리로 되돌린다. 새로운 물건 구매나 미션 진행은 하지 않는다.</summary>
         public static bool TryRestoreReviewPosition(
             PlayerMover player,
             Pose destination,
-            ShopInterior savedInterior,
             float viewYaw
         )
         {
@@ -195,13 +117,9 @@ namespace A305.World
                 || !state.TryBegin()
             )
                 return false;
-            ShopInterior changedInterior =
-                savedInterior != null ? savedInterior : ShopInterior.Occupied;
-            SpaceTravelCurtain.CrossShopDoor(
+            SpaceTravelCurtain.MoveWithinScene(
                 player,
                 destination,
-                changedInterior,
-                savedInterior != null,
                 viewYaw,
                 () => state.CompleteArrival()
             );

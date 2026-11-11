@@ -31,11 +31,10 @@ namespace A305.EditorTools.Npc
                     ) == null
                 )
                     continue;
-                var place = ShopInteriorScenes.PlaceOf(building.name);
                 venues.Add(
                     new NpcOutingVenue
                     {
-                        Code = place.Code,
+                        Code = PlaceScenes.CodeOf(sceneName),
                         Scene = sceneName,
                         Entrance = building.TransformPoint(new Vector3(0, 0, 1)),
                         Inside = building.TransformPoint(new Vector3(0, 0, -1.4f)),

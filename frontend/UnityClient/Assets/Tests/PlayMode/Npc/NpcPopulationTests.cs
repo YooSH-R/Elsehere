@@ -1048,62 +1048,33 @@ namespace A305.Npc.PlayModeTests
             SetClock(8 * 60);
         }
 
+        // 매장 직원은 근무 중에만 매장 장면 안에 있다. 복습하러 찾아가면 퇴근한 뒤에도 그 방문 동안만 매장에 나온다.
         [UnityTest]
         public IEnumerator ReviewVisit_OffDutyStaffAppearOnlyForTheVisit()
         {
             SetClock(21 * 60);
-            yield return SceneManager.LoadSceneAsync("TownScene");
+            yield return SceneManager.LoadSceneAsync("BloomFlowersInterior");
             yield return null;
-            foreach (string code in new[] { "FLOWER_SHOP_STAFF", "BARBER_STAFF" })
+            NpcIdentity staff = Object
+                .FindFirstObjectByType<NpcPopulation>()
+                .FindWorker("FLOWER_SHOP_STAFF");
+            Assert.That(staff, Is.Not.Null, "꽃집 직원은 꽃집 장면에 있습니다.");
+            Assert.That(staff.gameObject.activeSelf, Is.False, "퇴근 시각에는 매장에 없습니다.");
+            using (var visit = new NpcReviewPresence("FLOWER_SHOP_STAFF"))
             {
-                var staff = Object
-                    .FindObjectsByType<NpcWorkPresence>(
-                        FindObjectsInactive.Include,
-                        FindObjectsSortMode.None
-                    )
-                    .Single(item => item.GetComponent<NpcIdentity>().Code == code);
-                Assert.That(staff.gameObject.activeSelf, Is.False, code);
-                Assert.That(
-                    Object.FindFirstObjectByType<NpcPopulation>().FindWorker(code),
-                    Is.EqualTo(staff.GetComponent<NpcIdentity>()),
-                    "거리의 같은 이름 대신 매장에 연결된 직원을 찾아야 합니다."
-                );
-                var room = Object
-                    .FindObjectsByType<ShopInterior>(FindObjectsSortMode.None)
-                    .Single(item => item.ContainsStaff(staff.transform));
-                using (var visit = new NpcReviewPresence(code))
-                {
-                    Assert.That(
-                        staff.ShouldBeAtWork,
-                        Is.True,
-                        "복습 요청이 실내 입장에도 적용되어야 합니다."
-                    );
-                    var door = room.GetComponentsInChildren<ShopDoorway>()
-                        .First(item => item.Room == room);
-                    Assert.That(
-                        door.TryEnter(Object.FindFirstObjectByType<PlayerMover>()),
-                        Is.True
-                    );
-                    float deadline = Time.realtimeSinceStartup + 10;
-                    while (
-                        (SpaceTravel.IsTraveling || SpaceTravelCurtain.IsCoveringScreen)
-                        && Time.realtimeSinceStartup < deadline
-                    )
-                        yield return null;
-                    yield return null;
-                    Assert.That(room.IsLoaded, Is.True);
-                    Assert.That(staff.gameObject.activeInHierarchy, Is.True, code);
-                    Assert.That(NpcDuty.MissionNpcCode, Is.Null);
-                    Assert.That(GameClock.Shared.Minutes, Is.EqualTo(21 * 60));
-                }
                 yield return null;
                 yield return null;
-                Assert.That(
-                    staff.gameObject.activeSelf,
-                    Is.False,
-                    "복습 요청을 해제하면 퇴근 상태로 돌아갑니다."
-                );
+                Assert.That(staff.gameObject.activeInHierarchy, Is.True);
+                Assert.That(NpcDuty.MissionNpcCode, Is.Null);
+                Assert.That(GameClock.Shared.Minutes, Is.EqualTo(21 * 60));
             }
+            yield return null;
+            yield return null;
+            Assert.That(
+                staff.gameObject.activeSelf,
+                Is.False,
+                "복습 요청을 해제하면 퇴근 상태로 돌아갑니다."
+            );
         }
 
         [UnityTest]

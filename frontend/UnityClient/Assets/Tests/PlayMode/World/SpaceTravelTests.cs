@@ -41,51 +41,6 @@ namespace A305.World.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator ReviewReturn_RestoresTheSavedShopInteriorAndCanLeaveItForTheStreet()
-        {
-            yield return LoadSpace("TownScene");
-            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
-            ShopInterior room = Object
-                .FindObjectsByType<ShopInterior>(FindObjectsSortMode.None)
-                .First(item => item.SceneName == "SudsLaundromatInterior");
-            var outside = new Pose(player.transform.position, player.transform.rotation);
-            ShopDoorway door = Object
-                .FindObjectsByType<ShopDoorway>(FindObjectsSortMode.None)
-                .First(item => item.Room == room);
-            Assert.That(door.TryEnter(player), Is.True);
-            yield return WaitForReviewRestore();
-            var inside = new Pose(player.transform.position, player.transform.rotation);
-            Assert.That(SpaceTravel.TryRestoreReviewPosition(player, outside, null, 10), Is.True);
-            yield return WaitForReviewRestore();
-            Assert.That(SpaceTravel.TryRestoreReviewPosition(player, inside, room, 90), Is.True);
-            yield return WaitForReviewRestore();
-            Assert.That(ShopInterior.Occupied, Is.SameAs(room));
-            Assert.That(room.IsLoaded, Is.True);
-            Assert.That(player.transform.position.x, Is.EqualTo(inside.position.x).Within(.05f));
-            Assert.That(player.transform.position.z, Is.EqualTo(inside.position.z).Within(.05f));
-
-            Assert.That(SpaceTravel.TryRestoreReviewPosition(player, outside, null, 10), Is.True);
-            yield return WaitForReviewRestore();
-            Assert.That(ShopInterior.Occupied, Is.Null);
-            Assert.That(room.IsLoaded, Is.False);
-            Assert.That(player.IsMovementLocked, Is.False);
-            Assert.That(player.transform.position.x, Is.EqualTo(outside.position.x).Within(.05f));
-            Assert.That(player.transform.position.z, Is.EqualTo(outside.position.z).Within(.05f));
-        }
-
-        private static IEnumerator WaitForReviewRestore()
-        {
-            float deadline = Time.realtimeSinceStartup + 20;
-            while (
-                (SpaceTravel.IsTraveling || SpaceTravelCurtain.IsCoveringScreen)
-                && Time.realtimeSinceStartup < deadline
-            )
-                yield return null;
-            Assert.That(SpaceTravel.IsTraveling, Is.False);
-            Assert.That(SpaceTravelCurtain.IsCoveringScreen, Is.False);
-        }
-
-        [UnityTest]
         public IEnumerator ReviewReturn_RestoresSavedStandingAndViewAndUnlocksMovement()
         {
             yield return LoadSpace("HomeScene");
@@ -95,12 +50,9 @@ namespace A305.World.PlayModeTests
             float viewYaw = 73;
             player.Teleport(saved.position + Vector3.right, Quaternion.Euler(0, 170, 0));
 
+            Assert.That(SpaceTravel.TryRestoreReviewPosition(player, saved, viewYaw), Is.True);
             Assert.That(
-                SpaceTravel.TryRestoreReviewPosition(player, saved, null, viewYaw),
-                Is.True
-            );
-            Assert.That(
-                SpaceTravel.TryRestoreReviewPosition(player, saved, null, viewYaw),
+                SpaceTravel.TryRestoreReviewPosition(player, saved, viewYaw),
                 Is.False,
                 "복귀 중에는 같은 복귀를 중복 시작하지 않습니다."
             );
@@ -278,109 +230,46 @@ namespace A305.World.PlayModeTests
             Assert.That(ShowEveryWeatherLook(), Is.EqualTo(opened));
         }
 
+        // 마을 매장도 카페처럼 따로 장면이다. 문에 닿으면 마을을 내리고 매장 장면 하나만 남긴다.
+        // 마을 NPC가 함께 내려가므로 매장 안에서 바깥 NPC의 이름표가 보이지 않는다.
         [UnityTest]
-        public IEnumerator PostOffice_StreamsOnlyDuringTheVisitAfterSkippingTownTutorial()
+        public IEnumerator PostOfficeDoor_SwapsTheTownForThePostOfficeAndBack()
         {
             TutorialState.Clear();
             yield return LoadSpace("TownScene");
             TutorialState.GetOrCreate("TOWN_PASSERBY").Skip();
             yield return null;
             yield return null;
-            Assert.That(
-                GameObject.Find("PoBoxWall"),
-                Is.Null,
-                "거리에서 우체국 실내를 로드하지 않아야 합니다."
-            );
-            Transform door = GameObject.Find("PostOfficeDoor").transform;
-            ShopInterior room = door.GetComponentInParent<ShopInterior>();
-            Assert.That(room, Is.Not.Null, "우체국 문이 실내 씬과 연결되어야 합니다.");
-            Assert.That(room.SceneName, Is.EqualTo("PostOfficeInterior"));
-            var player = FindPlayer();
-            Vector3 center = door.TransformPoint(door.GetComponent<BoxCollider>().center);
-            center.y = door.position.y + .02f;
-            player.Teleport(center + 2f * door.forward, Quaternion.LookRotation(-door.forward));
-            foreach (int side in new[] { -1, 1 })
-            {
-                yield return WalkForward(
-                    player,
-                    side * door.forward,
-                    () => SpaceTravel.IsTraveling
-                );
-                Assert.That(
-                    SpaceTravel.IsTraveling,
-                    Is.True,
-                    $"우체국 문 앞에서 전환되지 않았습니다. 거리={Vector3.Dot(player.transform.position - center, door.forward)}, 장소 잠금={SpaceTravel.IsLocked}, 이동 잠금={player.IsMovementLocked}"
-                );
-                yield return WaitUntilCurtainOpens();
-                Assert.That(
-                    Vector3.Dot(player.transform.position - center, door.forward) * side,
-                    Is.GreaterThan(.4f)
-                );
-                bool inside = side < 0;
-                Assert.That(
-                    SceneManager.GetSceneByName("PostOfficeInterior").isLoaded,
-                    Is.EqualTo(inside),
-                    $"loaded={string.Join(", ", LoadedSceneNames())}, side={side}, traveling={SpaceTravel.IsTraveling}"
-                );
-                Assert.That(GameObject.Find("PoBoxWall") != null, Is.EqualTo(inside));
-                if (inside)
-                {
-                    var lamp = SceneManager
-                        .GetSceneByName("PostOfficeInterior")
-                        .GetRootGameObjects()
-                        .SelectMany(root => root.GetComponentsInChildren<Light>())
-                        .Single(light => light.name == "InteriorLight");
-                    var weather = Object.FindFirstObjectByType<WeatherPresenter>();
-                    weather.ShowTime(12 * 60);
-                    float noonIntensity = lamp.intensity;
-                    weather.ShowTime(0);
-                    Assert.That(
-                        lamp.intensity,
-                        Is.GreaterThan(noonIntensity),
-                        "방문 중인 매장 조명도 마을의 밤 설정을 따라야 합니다."
-                    );
-                }
-            }
-        }
 
-        private static IEnumerator WalkForward(
-            PlayerMover player,
-            Vector3 direction,
-            System.Func<bool> arrived
-        )
-        {
-            var previousBackground = InputSystem.settings.backgroundBehavior;
-            var previousFocus = InputSystem.settings.editorInputBehaviorInPlayMode;
-            float previousStep = Time.captureDeltaTime;
-            Keyboard keyboard = null;
-            try
-            {
-                Time.captureDeltaTime = 1f / 60f;
-                InputSystem.settings.backgroundBehavior = InputSettings
-                    .BackgroundBehavior
-                    .IgnoreFocus;
-                InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings
-                    .EditorInputBehaviorInPlayMode
-                    .AllDeviceInputAlwaysGoesToGameView;
-                keyboard = InputSystem.AddDevice<Keyboard>();
-                yield return null;
-                yield return null;
-                player.CameraRig.SnapView(Quaternion.LookRotation(direction).eulerAngles.y);
-                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
-                for (int frame = 0; frame < 100 && !arrived(); frame++)
-                {
-                    yield return null;
-                }
-                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
-                yield return null;
-            }
-            finally
-            {
-                InputSystem.RemoveDevice(keyboard);
-                Time.captureDeltaTime = previousStep;
-                InputSystem.settings.backgroundBehavior = previousBackground;
-                InputSystem.settings.editorInputBehaviorInPlayMode = previousFocus;
-            }
+            Transform townDoor = FindDoorway("PostOfficeDoor").transform;
+            FindPlayer()
+                .Teleport(
+                    townDoor.position + townDoor.forward * 0.4f,
+                    Quaternion.LookRotation(-townDoor.forward)
+                );
+            Object.FindFirstObjectByType<PlayerCameraRig>().SnapBehindTarget();
+            yield return WaitForArrival("PostOfficeInterior");
+            yield return WaitUntilCurtainOpens();
+
+            Assert.That(
+                LoadedSceneNames(),
+                Is.EqualTo(new[] { "PostOfficeInterior" }),
+                "매장에 들어가면 마을 장면을 내립니다."
+            );
+            AssertPlayerArrivedAt("TownDoor");
+
+            Transform shopDoor = FindDoorway("TownDoor").transform;
+            FindPlayer()
+                .Teleport(
+                    shopDoor.position + shopDoor.forward * 0.4f,
+                    Quaternion.LookRotation(-shopDoor.forward)
+                );
+            Object.FindFirstObjectByType<PlayerCameraRig>().SnapBehindTarget();
+            yield return WaitForArrival("TownScene");
+            yield return WaitUntilCurtainOpens();
+
+            Assert.That(LoadedSceneNames(), Is.EqualTo(new[] { "TownScene" }));
+            AssertPlayerArrivedAt("PostOfficeDoor");
         }
 
         [UnityTest]

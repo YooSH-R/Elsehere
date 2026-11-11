@@ -350,9 +350,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 29229181}
-    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 29229182}
   m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
 --- !u!4 &29229178 stripped
 Transform:
@@ -395,19 +392,6 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
---- !u!114 &29229182
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 29229180}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bf96d54cb71f3d94abb41a1750c9647e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcWorkPresence
-  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
 --- !u!1 &59917500
 GameObject:
   m_ObjectHideFlags: 0
@@ -681,9 +665,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 234268817}
-    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 234268818}
   m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
 --- !u!4 &234268815 stripped
 Transform:
@@ -715,19 +696,6 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
---- !u!114 &234268818
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 234268816}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bf96d54cb71f3d94abb41a1750c9647e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcWorkPresence
-  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
 --- !u!114 &234268819 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
@@ -962,9 +930,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 293619858}
-    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 293619859}
   m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
 --- !u!4 &293619856 stripped
 Transform:
@@ -996,19 +961,6 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
---- !u!114 &293619859
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 293619857}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bf96d54cb71f3d94abb41a1750c9647e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcWorkPresence
-  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
 --- !u!114 &293619860 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
@@ -1353,9 +1305,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 492660264}
-    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 492660265}
   m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
 --- !u!4 &492660262 stripped
 Transform:
@@ -1387,19 +1336,6 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
---- !u!114 &492660265
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 492660263}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bf96d54cb71f3d94abb41a1750c9647e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcWorkPresence
-  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
 --- !u!114 &492660266 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
@@ -4571,19 +4507,15 @@ MonoBehaviour:
   - Worker: {fileID: 29229180}
     TownPrefab: {fileID: 0}
     WorkplaceDoor: {x: 0, y: 0, z: 0}
-    InteriorScene: 
   - Worker: {fileID: 234268816}
     TownPrefab: {fileID: 0}
     WorkplaceDoor: {x: 0, y: 0, z: 0}
-    InteriorScene: 
   - Worker: {fileID: 293619857}
     TownPrefab: {fileID: 0}
     WorkplaceDoor: {x: 0, y: 0, z: 0}
-    InteriorScene: 
   - Worker: {fileID: 492660263}
     TownPrefab: {fileID: 0}
     WorkplaceDoor: {x: 0, y: 0, z: 0}
-    InteriorScene: 
   dormDoor: {x: -18, y: 0.1, z: 21}
   park: {x: 11, y: 0.1, z: 21}
   townCharacters: {fileID: 1725526042}

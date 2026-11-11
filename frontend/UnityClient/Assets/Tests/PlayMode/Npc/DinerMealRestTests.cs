@@ -25,7 +25,8 @@ namespace A305.Npc.PlayModeTests
             SceneManager.sceneLoaded += DisableNetworkAndClock;
             try
             {
-                yield return SceneManager.LoadSceneAsync("TownScene");
+                // 식당은 마을 매장 실내 장면이다.
+                yield return SceneManager.LoadSceneAsync("MapleDinerInterior");
                 yield return null;
                 foreach (
                     NpcPopulation population in Object.FindObjectsByType<NpcPopulation>(
@@ -33,22 +34,12 @@ namespace A305.Npc.PlayModeTests
                     )
                 )
                     population.enabled = false;
-                var shop = Object
-                    .FindObjectsByType<ShopInterior>(
-                        FindObjectsInactive.Include,
-                        FindObjectsSortMode.None
-                    )
-                    .Single(item => item.PlaceCode == "DINER");
-                yield return (IEnumerator)
-                    typeof(ShopInterior)
-                        .GetMethod("SetOccupied", Fields)
-                        .Invoke(shop, new object[] { true });
                 var player = Object.FindFirstObjectByType<PlayerMover>();
                 var dialogue = Object.FindFirstObjectByType<DialogueController>();
                 var offer = Object.FindFirstObjectByType<PasserbyOfferView>();
                 var pose = player.GetComponent<PlayerSeatPose>();
                 Transform booth = SceneManager
-                    .GetSceneByName(shop.SceneName)
+                    .GetSceneByName("MapleDinerInterior")
                     .GetRootGameObjects()
                     .SelectMany(root => root.GetComponentsInChildren<Transform>())
                     .First(item => item.name == "BoothSeat");
@@ -67,7 +58,11 @@ namespace A305.Npc.PlayModeTests
                 {
                     rest.Tick(100, state, false);
                     Assert.That(received, Is.Zero, "서서 기다린 시간은 세지 않습니다.");
-                    Assert.That(offer.IsTalkPromptShownBy(rest), Is.True);
+                    Assert.That(
+                        offer.IsTalkPromptShownBy(rest),
+                        Is.True,
+                        $"이동 잠금={player.IsMovementLocked}, 제안 창={offer.IsShowing}, 다른 안내={offer.IsTalkPromptShowing}, 장면={player.gameObject.scene.name}"
+                    );
                     offer.ShownButtonRect.GetComponent<Button>().onClick.Invoke();
                     Assert.That(
                         pose.IsSeated,
@@ -105,19 +100,9 @@ namespace A305.Npc.PlayModeTests
                     Assert.That(player.CameraRig.IsInSeatView, Is.False);
                     rest.Tick(100, state, false);
                     Assert.That(received, Is.Zero, "일어선 동안 준비 시간은 멈춥니다.");
-                    var umbrella = player.GetComponent<UmbrellaHold>();
-                    umbrella.SetOpen(true);
+                    // 식당은 실내 장면이라 우산을 펴지 않는다. 다시 앉아 남은 준비 시간을 채운다.
                     offer.ShownButtonRect.GetComponent<Button>().onClick.Invoke();
                     yield return null;
-                    Assert.That(
-                        Vector3.Distance(
-                            umbrella.Hand.position,
-                            umbrella.Umbrella.transform.position
-                        ),
-                        Is.LessThan(.1f),
-                        "앉아도 들고 있는 우산은 손에 붙어 있어야 합니다."
-                    );
-                    umbrella.SetOpen(false);
                     rest.Tick(6, state, false);
                     Assert.That(received, Is.EqualTo(1));
                     Assert.That(pose.IsSeated, Is.False);
@@ -125,10 +110,6 @@ namespace A305.Npc.PlayModeTests
                     rest.Tick(100, state, false);
                     Assert.That(received, Is.EqualTo(1));
                 }
-                yield return (IEnumerator)
-                    typeof(ShopInterior)
-                        .GetMethod("SetOccupied", Fields)
-                        .Invoke(shop, new object[] { false });
             }
             finally
             {

@@ -50,7 +50,6 @@ namespace A305.Npc
             [NonSerialized]
             internal GameObject TownBody;
             public Vector3 WorkplaceDoor;
-            public string InteriorScene;
 
             [NonSerialized]
             internal NpcLifeEntry Life;
@@ -229,9 +228,6 @@ namespace A305.Npc
                 }
                 if (resident.Worker != null && !IsTalking(resident.Worker))
                 {
-                    bool roomLoaded =
-                        string.IsNullOrEmpty(resident.InteriorScene)
-                        || SceneManager.GetSceneByName(resident.InteriorScene).isLoaded;
                     bool wasOut = resident.Worker.activeSelf;
                     // 행인이 돌아오는 길에 대화 중이면 그 대화가 끝날 때까지 제자리에 다시 두지 않는다.
                     bool talkingOnTheWay =
@@ -243,7 +239,6 @@ namespace A305.Npc
                         NpcWorkArrivals.IsAtWork(resident.Life, plan, minutes)
                             && !entering
                             && !talkingOnTheWay
-                            && roomLoaded
                             && !PoliceCar.IsOutOnPatrol(resident.Life.NpcId)
                     );
                     if (

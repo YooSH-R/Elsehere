@@ -1,0 +1,183 @@
+using System.Linq;
+using A305.EditorTools.Common;
+using A305.Npc;
+using NUnit.Framework;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+namespace A305.World.Tests
+{
+    /// <summary>
+    /// 마을 매장 실내는 카페·경찰서처럼 따로 장면이다. 마을의 매장 문에 닿으면 마을을 내리고 그 매장 장면으로 옮기며,
+    /// 마을에는 매장 안 구조와 직원이 남지 않는다. 대표로 우체국과 오락실 2층 서점 장면을 연다.
+    /// </summary>
+    public sealed class TownShopScenesTests
+    {
+        private const string TownPath = "Assets/Scenes/Production/TownScene.unity";
+        private const string ShopFolder = "Assets/Scenes/ShopInteriors/";
+
+        private static readonly string[] ShopScenes =
+        {
+            "PostOfficeInterior",
+            "MapleDinerInterior",
+            "TownBankInterior",
+            "SudsLaundromatInterior",
+            "BloomFlowersInterior",
+            "MainStreetBarberInterior",
+            "MapleBakeryInterior",
+            "LittleArcadeInterior",
+            "LittleArcadeUpperInterior",
+            "HomeLivingInterior",
+            "HomeLivingUpperInterior",
+        };
+
+        private Scene town;
+
+        [OneTimeSetUp]
+        public void OpenTown()
+        {
+            town = EditorSceneManager.OpenScene(TownPath);
+        }
+
+        [OneTimeTearDown]
+        public void CloseScenes()
+        {
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        }
+
+        // 매장 문 이름은 매장 장면 이름의 Interior를 Door로 바꾼 것이다(예: PostOfficeDoor).
+        [Test]
+        public void EveryTownShopDoor_LeadsToItsShopSceneTownDoor()
+        {
+            foreach (string shop in ShopScenes)
+            {
+                SpaceDoorway[] doors = BuilderTools
+                    .FindAllInScene<SpaceDoorway>(town)
+                    .Where(door => door.DestinationScene == shop)
+                    .ToArray();
+                Assert.That(doors, Has.Length.EqualTo(1), shop);
+                Assert.That(doors[0].DoorwayId, Is.EqualTo(shop.Replace("Interior", "Door")));
+                Assert.That(doors[0].DestinationDoorwayId, Is.EqualTo("TownDoor"), shop);
+            }
+        }
+
+        // 손님이 걷는 마을에는 매장 안 바닥·천장·2층 바닥이 없다. 오락실 공용 계단실과 생활용품점 바깥 계단은 마을 통로로 남는다.
+        [Test]
+        public void TownShopBuildings_KeepNoShopInteriors()
+        {
+            string[] shopParts = BuilderTools
+                .FindAllInScene<Transform>(town)
+                .Where(part =>
+                    part.name is "FloorSurface" or "UpperFloor" or "FullUpperFloor"
+                    && part.parent != null
+                    && part.parent.name is "Interior" or "TenantEntrances"
+                )
+                .Select(part => part.parent.parent.name + "/" + part.name)
+                .ToArray();
+
+            Assert.That(shopParts, Is.Empty);
+            Assert.That(
+                BuildingParts("PostOffice", "Interior"),
+                Is.Empty,
+                "거리 매장 건물에는 실내가 남지 않습니다."
+            );
+            Assert.That(
+                BuildingParts("LittleArcade", "Interior"),
+                Is.SupersetOf(new[] { "Stairs", "UpperLanding" }),
+                "공용 계단실로 2층 서점 문까지 올라갑니다."
+            );
+            Assert.That(
+                BuildingParts("HomeLiving", "TenantEntrances"),
+                Does.Contain("ExteriorStairs"),
+                "바깥 계단으로 2층 찻집 문까지 올라갑니다."
+            );
+        }
+
+        // 매장 직원은 근무 중에 매장 장면 안에만 있고, 마을에는 출퇴근하는 모습만 나온다.
+        [Test]
+        public void Town_HasNoShopStaffAtWork()
+        {
+            NpcLifeData life = NpcLifeData.Parse(
+                AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Data/Npc/NpcLife.json").text
+            );
+            string[] staff = BuilderTools
+                .FindAllInScene<NpcIdentity>(town)
+                .Where(npc => npc.GetComponent<NpcTownWalker>() == null)
+                .Where(npc =>
+                    ShopScenes.Contains(PlaceScenes.SceneOf(life.FindNpc(npc.Code)?.Workplace))
+                )
+                .Select(npc => npc.Code)
+                .ToArray();
+
+            Assert.That(staff, Is.Empty);
+        }
+
+        [Test]
+        public void PostOfficeScene_HasItsPlayerStaffAndDoorBackToTown()
+        {
+            Scene shop = Open("PostOfficeInterior");
+
+            SpaceDoorway exit = BuilderTools
+                .FindAllInScene<SpaceDoorway>(shop)
+                .Single(door => door.DoorwayId == "TownDoor");
+            Assert.That(exit.DestinationScene, Is.EqualTo("TownScene"));
+            Assert.That(exit.DestinationDoorwayId, Is.EqualTo("PostOfficeDoor"));
+            Assert.That(BuilderTools.FindSingleInScene<SpaceArrival>(shop), Is.Not.Null);
+            Assert.That(
+                BuilderTools.FindAllInScene<A305.Player.PlayerMover>(shop),
+                Has.Length.EqualTo(1)
+            );
+            Assert.That(
+                BuilderTools.FindSingleInScene<OpeningHoursController>(shop),
+                Is.Not.Null,
+                "영업이 끝나면 마을로 내보냅니다."
+            );
+            NpcPopulation population = BuilderTools.FindSingleInScene<NpcPopulation>(shop);
+            Assert.That(population, Is.Not.Null, "직원은 일과에 맞춰 매장 안에 나타납니다.");
+            Assert.That(population.FindWorker("POST_OFFICE_STAFF"), Is.Not.Null);
+            Assert.That(
+                BuilderTools.FindAllInScene<Transform>(shop).Any(part => part.name == "PoBoxWall"),
+                Is.True,
+                "우체국 집기가 있어야 합니다."
+            );
+        }
+
+        // 2층 가게 장면에는 그 층 집기만 있고, 1층 직원은 없다.
+        [Test]
+        public void UpperFloorShopScene_HasOnlyItsFloorFurnishingsAndNoStaff()
+        {
+            Scene shop = Open("LittleArcadeUpperInterior");
+            string[] names = BuilderTools
+                .FindAllInScene<Transform>(shop)
+                .Select(part => part.name)
+                .ToArray();
+
+            Assert.That(names, Does.Contain("BookshopInterior"));
+            Assert.That(names, Does.Not.Contain("ArcadeInterior"));
+            Assert.That(BuilderTools.FindAllInScene<NpcIdentity>(shop), Is.Empty);
+            Assert.That(
+                BuilderTools
+                    .FindAllInScene<SpaceDoorway>(shop)
+                    .Single(door => door.DoorwayId == "TownDoor")
+                    .DestinationDoorwayId,
+                Is.EqualTo("LittleArcadeUpperDoor")
+            );
+        }
+
+        private string[] BuildingParts(string building, string group)
+        {
+            Transform found = town.GetRootGameObjects()
+                .Single(root => root.name == "Environment")
+                .transform.Find("TownMainstreet/BackgroundBuildings/" + building)
+                .Find(group);
+            return found == null
+                ? new string[0]
+                : found.Cast<Transform>().Select(part => part.name).ToArray();
+        }
+
+        private static Scene Open(string shop) =>
+            EditorSceneManager.OpenScene(ShopFolder + shop + ".unity", OpenSceneMode.Additive);
+    }
+}

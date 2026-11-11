@@ -40,14 +40,8 @@ namespace A305.Mission
         public void Tick(float seconds, FirstDayMissionState state, bool busy)
         {
             bool waiting = state?.IsTownStory == true && state.CanRest && state.Stage == 0;
-            var shop = ShopInterior.Occupied;
-            if (
-                !waiting
-                || shop == null
-                || shop.PlaceCode != "DINER"
-                || !shop.IsLoaded
-                || pose == null
-            )
+            Scene here = player.gameObject.scene;
+            if (!waiting || PlaceScenes.CodeOf(here.name) != "DINER" || pose == null)
             {
                 Stand();
                 offer.HideTalkPrompt(this);
@@ -55,7 +49,7 @@ namespace A305.Mission
                     timer.Reset();
                 return;
             }
-            EnsureSeats(SceneManager.GetSceneByName(shop.SceneName));
+            EnsureSeats(here);
             if (seatedHere && !pose.IsSeated)
             {
                 if (player.CameraRig != null)

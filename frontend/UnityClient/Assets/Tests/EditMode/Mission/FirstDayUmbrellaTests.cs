@@ -24,6 +24,15 @@ namespace A305.Mission.Tests
             Assert.That(state.OpensUmbrellaIn("TOWN"), Is.False);
         }
 
+        // 마을 매장 실내 장면은 서버 장소가 마을(TOWN)이지만 실내다.
+        [Test]
+        public void KeepsUmbrellaAway_InsideATownShop()
+        {
+            FirstDayMissionState state = Rainy(stage: BuyUmbrellaStage + 1);
+
+            Assert.That(state.OpensUmbrellaIn("TOWN", insideShop: true), Is.False);
+        }
+
         [TestCase("SHOP")]
         [TestCase("HOTEL")]
         public void KeepsUmbrellaAway_Indoors(string sceneCode)

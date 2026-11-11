@@ -106,7 +106,7 @@ namespace A305.World
         }
 
         /// <summary>마을 매장 실내 씬(2층 가게 포함)인지</summary>
-        private static bool IsTownShop(string unitySceneName) =>
+        public static bool IsTownShop(string unitySceneName) =>
             unitySceneName != null
             && (
                 UpperFloorShopCodesByScene.ContainsKey(unitySceneName)

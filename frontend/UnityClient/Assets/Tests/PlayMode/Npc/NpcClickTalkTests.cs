@@ -66,10 +66,6 @@ namespace A305.Npc.PlayModeTests
                 )
             )
                 door.enabled = false;
-            foreach (
-                ShopDoorway door in Object.FindObjectsByType<ShopDoorway>(FindObjectsSortMode.None)
-            )
-                door.enabled = false;
         }
 
         private static void ResetCrossSceneRecords()

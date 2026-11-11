@@ -9,7 +9,7 @@ namespace A305.World
     /// <summary>
     /// 장소 씬마다 하나 있어 영업시간을 게임에 알리고(<see cref="OpeningHours"/>), 닫힌 장소의 문 앞 거절 안내를 띄운다.
     /// 플레이어가 머무는 장소의 영업이 끝나면 게임 시간으로 남은 시간을 세어 보이고(<see cref="ClosingCountdown"/>), 다 지나면 마을로 내보낸다.
-    /// 공간 씬은 그 씬의 마을 출입구로, 마을 매장은 그 매장 문 밖으로 내보낸다. 튜토리얼 잠금과 상관없이 내보내지만,
+    /// 장소 씬(마을 매장 포함)은 그 씬의 마을 출입구로 내보낸다. 튜토리얼 잠금과 상관없이 내보내지만,
     /// 대화 중처럼 플레이어가 움직일 수 없는 동안에는 기다린다.
     /// </summary>
     public sealed class OpeningHoursController : MonoBehaviour
@@ -67,12 +67,8 @@ namespace A305.World
             {
                 if (building == null)
                     continue;
-                ShopInterior shop = building.GetComponentInChildren<ShopInterior>(true);
                 SpaceDoorway door = building.GetComponentInChildren<SpaceDoorway>(true);
-                string code =
-                    shop != null ? shop.PlaceCode
-                    : door != null ? PlaceScenes.CodeOf(door.DestinationScene)
-                    : null;
+                string code = door != null ? PlaceScenes.CodeOf(door.DestinationScene) : null;
                 if (code != null)
                     buildings[building] = code;
             }
@@ -103,9 +99,7 @@ namespace A305.World
                 return;
             }
 
-            ShopInterior shop = ShopInterior.Occupied;
-            string placeCode =
-                shop != null ? shop.PlaceCode : PlaceScenes.CodeOf(gameObject.scene.name);
+            string placeCode = PlaceScenes.CodeOf(gameObject.scene.name);
             if (placeCode != watchedPlaceCode)
             {
                 countdown.Reset();
@@ -120,19 +114,14 @@ namespace A305.World
             }
 
             ShowCountdown(OpeningHoursText.ClosingNotice(countdown.MinutesLeft));
-            if (countdown.Phase == ClosingPhase.TimeToLeave && TryLeave(shop))
+            if (countdown.Phase == ClosingPhase.TimeToLeave && TryLeave())
             {
                 HideCountdown();
             }
         }
 
-        private bool TryLeave(ShopInterior shop)
+        private bool TryLeave()
         {
-            if (shop != null)
-            {
-                return shop.TryLeave(player);
-            }
-
             if (exitToTown == null || player.IsMovementLocked)
             {
                 return false;

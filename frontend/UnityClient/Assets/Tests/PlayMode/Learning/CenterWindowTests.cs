@@ -15,7 +15,7 @@ using UnityEngine.UI;
 namespace A305.Learning.PlayModeTests
 {
     /// <summary>
-    /// 단어장·피드백 목록을 열고 닫을 때 학습 창 상태와 게임 시계 정지가 함께 바뀌는지 확인한다.
+    /// 단어장·대화 노트를 열고 닫을 때 학습 창 상태와 게임 시계 정지가 함께 바뀌는지 확인한다.
     /// </summary>
     public class CenterWindowTests
     {

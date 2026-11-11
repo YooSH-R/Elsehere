@@ -59,6 +59,8 @@ namespace A305.Npc
             Passerby target = PlayerTouchControls.ShouldShowControls()
                 ? null
                 : FindTalkableAt(pointerScreenPosition);
+            if (target != null)
+                InteractionCursor.MarkWorldTarget();
             if (target == HighlightedNpc)
             {
                 return;

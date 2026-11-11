@@ -12,7 +12,7 @@ namespace A305.Learning
     /// </summary>
     public sealed class NeighborsBook
     {
-        /// <summary>[피드백 목록]과 같은 판에 같은 줄 수만큼 보인다.</summary>
+        /// <summary>[대화 노트]와 같은 판에 같은 줄 수만큼 보인다.</summary>
         public const int PageSize = ConversationHistoryPages.PageSize;
 
         private readonly INeighborsApi api;

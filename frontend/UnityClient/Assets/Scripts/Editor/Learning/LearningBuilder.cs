@@ -56,7 +56,7 @@ namespace A305.EditorTools.Learning
         // 화면 위 가장자리에서 카드까지의 여백
         private const float SurveyPromptTopMargin = 24f;
 
-        private const string FeedbackListTitle = "피드백 목록";
+        private const string FeedbackListTitle = "대화 노트";
 
         private const float ControlsGuideWidth = 460f;
 
@@ -92,7 +92,7 @@ namespace A305.EditorTools.Learning
             PrepareHud();
         }
 
-        /// <summary>오른쪽 위 메뉴(≡)와 메뉴 버튼, 피드백 목록·내 정보 창이 있는 HUD 프리팹의 기능 구성을 맞춘다.</summary>
+        /// <summary>오른쪽 위 메뉴(≡)와 메뉴 버튼, 대화 노트·내 정보 창이 있는 HUD 프리팹의 기능 구성을 맞춘다.</summary>
         public static void PrepareHud() =>
             BuilderTools.UpdateOrCreatePrefab(HudPrefabPath, "LearningHud", SetUpHud);
 
@@ -529,7 +529,7 @@ namespace A305.EditorTools.Learning
 
         /// <summary>
         /// 오른쪽 아래 조작법 카드와 메뉴의 [조작법]. 없는 요소만 만들고 디자인은 유지한다.
-        /// 카드는 HUD 맨 뒤에 두어, 메뉴를 펼친 동안에는 바깥 영역이 덮고 피드백 목록·내 정보 창은 카드 위에 보이게 한다.
+        /// 카드는 HUD 맨 뒤에 두어, 메뉴를 펼친 동안에는 바깥 영역이 덮고 대화 노트·내 정보 창은 카드 위에 보이게 한다.
         /// </summary>
         private static void SetUpControlsGuide(
             GameObject root,
@@ -705,7 +705,7 @@ namespace A305.EditorTools.Learning
         }
 
         /// <summary>
-        /// 메뉴의 [피드백 목록]과 지난 대화를 고르는 피드백 목록 창. 창 안은 확정 시안대로 FeedbackListBuilder가 배치한다.
+        /// 메뉴의 [대화 노트]와 지난 대화를 고르는 대화 노트 창. 창 안은 확정 시안대로 FeedbackListBuilder가 배치한다.
         /// 창은 피드백 화면(정렬 130)보다 아래인 HUD 캔버스에 있어, 목록에서 연 피드백이 창 위에 보인다.
         /// </summary>
         private static void SetUpHistory(

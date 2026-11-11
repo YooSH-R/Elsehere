@@ -71,7 +71,7 @@ namespace A305.EditorTools.Theme
         private static readonly string[] AppLabels =
         {
             "단어장",
-            "피드백 목록",
+            "대화 노트",
             "마을 지도",
             "집으로",
             "내 정보",
@@ -273,7 +273,6 @@ namespace A305.EditorTools.Theme
                 Transform child = phone.GetChild(i);
                 if (
                     System.Array.IndexOf(AppNames, child.name) < 0
-                    && child.name != "ReviewButton"
                     && child.name != "NeighborsButton"
                 )
                     Object.DestroyImmediate(child.gameObject);

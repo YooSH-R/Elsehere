@@ -7,6 +7,8 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "A305.Mission",
+        "A305.EditorTools",
+        "A305.ObjectHover",
         "A305.Npc",
         "A305.Theme",
         "A305.Wayfinding",

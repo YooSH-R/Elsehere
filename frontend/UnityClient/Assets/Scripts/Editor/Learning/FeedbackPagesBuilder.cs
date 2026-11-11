@@ -44,15 +44,9 @@ namespace A305.EditorTools.Learning
             tabLayout.spacing = 16;
             tabLayout.childForceExpandWidth = false;
             tabLayout.childAlignment = TextAnchor.MiddleLeft;
-            var buttons = new Button[4];
-            string[] labels = { "요약", "문장", "전체 대화", "표현" };
-            string[] names =
-            {
-                "SummaryButton",
-                "CorrectionsButton",
-                "ConversationButton",
-                "ExpressionsButton",
-            };
+            var buttons = new Button[3];
+            string[] labels = { "요약", "문장 교정", "전체 대화" };
+            string[] names = { "SummaryButton", "CorrectionsButton", "ConversationButton" };
             for (int i = 0; i < buttons.Length; i++)
             {
                 buttons[i] = UiBuilderTools.FindOrCreateButton(

@@ -145,6 +145,89 @@ namespace A305.Dialogue.Tests
             Assert.That(review.ToRecord(null).UserUtterances, Has.Count.EqualTo(1));
         }
 
+        [Test]
+        public async Task PracticeStart_UsesTheScenarioEndpointAndLeavesStoryActionsAlone()
+        {
+            var ids = new List<string>();
+            var practice = new ServerConversation(
+                CafeStaffCode,
+                "Mia",
+                api,
+                false,
+                practiceScenarioId: "CAFE_RECOMMEND",
+                practiceStart: requestId =>
+                {
+                    ids.Add(requestId);
+                    return Task.FromResult(api.StartResponse);
+                }
+            );
+            int notified = 0;
+            practice.UserTurnAccepted += _ => notified++;
+            practice.TaxiDestinationChosen += _ => notified++;
+            api.TurnResponse = Reply("Something not too sweet?", "Try our cold brew.", "ACTIVE");
+            api.TurnResponse.TaxiDestination = new TaxiDestinationData { PlaceCode = "HOTEL" };
+
+            await practice.StartAsync();
+            await practice.SendAsync("Something not too sweet?");
+
+            Assert.That(practice.IsPractice, Is.True);
+            Assert.That(ids, Has.Count.EqualTo(1));
+            Assert.That(ids[0], Is.Not.Empty);
+            Assert.That(api.Starts, Is.Empty, "장소 연습은 일반 대화 시작을 부르지 않습니다.");
+            Assert.That(api.Calls, Does.Not.Contain("GetSuggestWords"));
+            Assert.That(notified, Is.Zero, "이야기 퀘스트·택시 같은 마을 동작을 알리지 않습니다.");
+            Assert.That(practice.ConversationId, Is.EqualTo(ConversationId));
+        }
+
+        [Test]
+        public async Task PracticeStart_DoesNotTakeOverAnUnfinishedConversation()
+        {
+            api.Active = new ActiveConversation
+            {
+                ConversationId = 99,
+                Npc = new NpcSummary { NpcCode = CafeStaffCode },
+            };
+            var practice = new ServerConversation(
+                CafeStaffCode,
+                "Mia",
+                api,
+                false,
+                practiceScenarioId: "CAFE_RECOMMEND",
+                practiceStart: _ =>
+                    Task.FromException<ConversationStart>(
+                        new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중")
+                    )
+            );
+
+            await practice.StartAsync();
+
+            Assert.That(api.Ends, Is.Empty);
+            Assert.That(practice.ConversationId, Is.Null);
+            Assert.That(practice.StatusMessage, Does.Contain("진행 중인 대화"));
+        }
+
+        [Test]
+        public async Task PracticeEnd_SkipsOrdinaryFeedbackAndRecordsTheScenario()
+        {
+            var practice = new ServerConversation(
+                CafeStaffCode,
+                "Mia",
+                api,
+                false,
+                practiceScenarioId: "CAFE_RECOMMEND",
+                practiceStart: _ => Task.FromResult(api.StartResponse)
+            );
+            await practice.StartAsync();
+
+            ServerFeedback feedback = await practice.EndAsync();
+            DialogueRecord record = practice.ToRecord(feedback);
+
+            Assert.That(feedback, Is.Null);
+            Assert.That(api.DetailedRequestedFor, Is.Empty);
+            Assert.That(record.PracticeScenarioId, Is.EqualTo("CAFE_RECOMMEND"));
+            Assert.That(record.ReviewCardId, Is.Null);
+        }
+
         [TestCase(true)]
         [TestCase(false)]
         public async Task EndWhileFindingAnActiveConversation_ClosesItWithoutResumingOrRestarting(
@@ -2337,6 +2420,22 @@ namespace A305.Dialogue.Tests
 
             await conversation.RequestHintAsync();
 
+            Assert.That(api.HintRequestedFor, Is.EqualTo(new[] { OpeningTurnId }));
+        }
+
+        [Test]
+        public async Task RequestHint_KeepsTheMeaningFromTheSameResponseWithoutAnotherRequest()
+        {
+            await conversation.StartAsync();
+            api.Hint = new HintData
+            {
+                TurnId = OpeningTurnId,
+                HintText = "For here, please.",
+                HintMeaningKo = "매장에서 먹을게요.",
+            };
+            await conversation.RequestHintAsync();
+            await conversation.RequestHintAsync();
+            Assert.That(conversation.HintMeaningKo, Is.EqualTo("매장에서 먹을게요."));
             Assert.That(api.HintRequestedFor, Is.EqualTo(new[] { OpeningTurnId }));
         }
 

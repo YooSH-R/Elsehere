@@ -106,7 +106,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `AUDIO_TOO_LARGE` | 413 | 녹음 크기 초과(3MB) |
 | `AUDIO_FORMAT_UNSUPPORTED` | 415 | 지원하지 않는 녹음 형식 |
 | `STT_NO_SPEECH` | 422 | 무음 또는 인식 실패 |
-| `VOCAB_SOURCE_MISMATCH` | 422 | 저장하려는 단어가 출처(사물 카드, 대사 단어 풀이, 피드백 단어장 후보)에 없음 |
+| `VOCAB_SOURCE_MISMATCH` | 422 | 저장하려는 단어가 출처(사물 카드, 대사 단어 풀이, 피드백 단어장 후보·상황 표현·고친 문장)에 없음 |
 | `AI_QUOTA_EXHAUSTED` | 429 | 사용자 AI 한도 소진, 게스트 대화 횟수 소진 |
 | `AI_RATE_LIMITED` | 429 | 요청 속도 제한 |
 | `AI_RESPONSE_INVALID` | 502 | 제한 횟수만큼 재시도해도 AI 응답 형식 오류 |
@@ -207,7 +207,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | | 상세: 단어 뜻·저장한 문장과 문장 뜻·저장 출처·메모 | VOCAB-01 항목 |
 | | [메모], [외웠어요] | VOCAB-03 |
 | | [단어장에서 삭제] | VOCAB-04 |
-| | 오른쪽 위 메뉴의 [피드백 목록] 창: 목록, 대화마다 [보기]로 저장된 피드백과 대화 기록 | CONV-09, FB-01, CONV-10 |
+| | 휴대폰 메뉴의 [대화 노트] 창: 장소 탭과 목록, 대화마다 [피드백 보기]로 저장된 피드백과 대화 기록, [다시 연습]으로 상황 복습 | CONV-09, FB-01, CONV-10, 상황 복습장 |
 | 19 AI 한도·오류 상태 | AI 사용량 소진 안내와 계속 쓸 수 있는 기능 | AI-01, 1.5 오류 응답 |
 | | 응답 실패 [다시 시도] | 같은 `requestId`로 실패한 요청 다시 전송 |
 | | 마이크 사용 불가 [텍스트로 입력] | 없음(클라이언트) |
@@ -363,7 +363,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 약관 버전과 문서 주소는 서버 설정값입니다.
 - `VOICE`(음성 처리)는 선택 동의입니다. 동의하지 않으면 음성 입력을 쓸 수 없고 글자로 대화하며, 게스트는 시작할 때 고릅니다. 녹음은 인식에만 쓰고 저장하지 않습니다(`TRAINING_VOICE` 동의 제외). 가입 뒤에는 USER-03으로 켜고 끕니다.
 - `TRAINING_TEXT`(대화 기록)·`TRAINING_VOICE`(녹음 음성)는 AI 개선(학습·평가)에 쓰는 선택 동의입니다. 가입 뒤에도 USER-03으로 켜고 끕니다. 동의 범위와 문구는 [AI 개선 데이터 활용 기준](../ai-training-data.md)을 따릅니다.
-- 문서 주소(`url`)는 같은 출처의 웹 페이지이며 로그인하지 않아도 열립니다. 백엔드가 `templates/legal`의 문서를 그려 주고, 웹 Nginx가 이 경로를 백엔드로 넘깁니다. 지금 버전이 아닌 주소는 `404 NOT_FOUND`입니다. 버전 없는 주소(`/terms`, `/privacy`, `/voice`, `/ai-training`)는 그 문서의 지금 버전 주소로 보냅니다(`302`). 로그인 화면과 웹 템플릿의 통계 동의 창은 이 주소를 써서 문서 버전이 바뀌어도 고치지 않습니다. 문구를 바꾸면 버전을 올리고 문서 주소도 함께 바꿉니다. 문서마다 버전이 다를 수 있어(개인정보 처리방침만 2026-11-09), 문서끼리의 링크는 각 문서의 지금 주소를 씁니다. 버전 확인은 가입할 때만 하며, 이미 가입한 사용자에게 다시 동의를 받지는 않습니다.
+- 문서 주소(`url`)는 같은 출처의 웹 페이지이며 로그인하지 않아도 열립니다. 백엔드가 `templates/legal`의 문서를 그려 주고, 웹 Nginx가 이 경로를 백엔드로 넘깁니다. 지금 버전이 아닌 주소는 `404 NOT_FOUND`입니다. 버전 없는 주소(`/terms`, `/privacy`, `/voice`, `/ai-training`)는 백엔드가 그 문서의 지금 버전 주소로 보내지만(`302`), 웹 Nginx는 버전이 붙은 경로만 백엔드로 넘기므로 배포한 웹에서는 열리지 않습니다. 그래서 로그인 화면과 웹 템플릿의 통계 동의 창은 지금 버전 주소를 직접 씁니다. 문구를 바꾸면 버전을 올리고 문서 주소와 이 두 링크도 함께 바꿉니다. Unity EditMode 시험(`LoginScreenPrefabTests`, `WebGlBuildTests`)이 두 링크가 `ConsentCatalog`의 지금 주소와 같은지 확인합니다. 문서마다 버전이 다를 수 있어(개인정보 처리방침만 2026-11-09), 문서끼리의 링크는 각 문서의 지금 주소를 씁니다. 버전 확인은 가입할 때만 하며, 이미 가입한 사용자에게 다시 동의를 받지는 않습니다.
 
 #### AUTH-04 `POST /api/v1/auth/signup`
 
@@ -915,13 +915,14 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ```json
 // 요청
-{ "requestId": "6f1c2a7e-4b8d-4b7a-9a52-1f0f3d2c9e11" }
+{ "requestId": "6f1c2a7e-4b8d-4b7a-9a52-1f0f3d2c9e11", "speechSpeed": 1.1 }
 
 // 응답 201: CONV-01과 같은 형식에 practiceScenarioId가 더해집니다.
 { "conversationId": 91, "status": "ACTIVE", "npc": { "npcCode": "DINER_STAFF", "name": "Rosa", "roleLabel": "식당 종업원" }, "openingTurn": { "...": "..." }, "practiceScenarioId": "DINER_TABLE", "...": "..." }
 ```
 
 - 그 상황 가게의 직원과 학습자가 말을 거는 대화(`initiatedBy: USER`, 근무 중)를 시작합니다. 없는 `scenarioId`면 `404 NOT_FOUND`입니다.
+- `speechSpeed`(선택, 0.8~1.5)는 사용자가 고른 NPC 말 빠르기로 CONV-01과 같은 규칙입니다(없으면 `1.1`, 범위 밖은 `VALIDATION_FAILED`).
 - 오류와 같은 `requestId` 재전송 처리는 CONV-01과 같습니다(`CONVERSATION_ALREADY_ACTIVE`, `SCENE_CLOSED`, 게스트 대화 횟수 등). 같은 `requestId`를 다른 상황이나 일반·복습 대화 시작에 쓰면 `409 REQUEST_ID_CONFLICT`입니다.
 - 직원의 첫 대사는 상황에 맞게 인사하고 요청을 기다립니다. 학습자가 할 일을 직원이 먼저 꺼내지 않습니다.
 - 장소 연습 대화에는 지금 하는 이야기 퀘스트, 이 NPC와의 기억 카드, 건넬 것(`followUp`)을 섞지 않고, 대화 결과를 이야기 퀘스트·호감도·기억에 반영하지 않습니다. 대화 종료(CONV-08)는 일반 대화처럼 피드백을 만들고, 피드백은 상황의 목표를 기준으로 평가합니다. `followUp`은 항상 `null`입니다.
@@ -951,7 +952,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ```json
 // 요청
-{ "requestId": "6f1c2a7e-4b8d-4b7a-9a52-1f0f3d2c9e11", "npcCode": "CAFE_STAFF", "initiatedBy": "USER", "npcOffDuty": false }
+{ "requestId": "6f1c2a7e-4b8d-4b7a-9a52-1f0f3d2c9e11", "npcCode": "CAFE_STAFF", "initiatedBy": "USER", "npcOffDuty": false, "speechSpeed": 1.1 }
 
 // 응답 201
 {
@@ -982,6 +983,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   - 첫 대사는 저장된 말걸기 대사가 아니라 AI가 만든 일상 인사이며, 무엇을 도와줄지 묻지 않습니다. 대화 종료 피드백은 일상 대화로 평가합니다.
   - 사적인 화제를 얼마나 여는지는 근무 중과 같이 인격 카드와 이 NPC와의 알아봄·호감(워커 관계 규칙)을 따릅니다. 근무가 아니라고 처음 만난 학습자에게 사적인 이야기를 더 하지 않습니다.
   - 첫날 미션 단계의 NPC는 근무 시간이 아니어도 미션 지시대로 인사합니다. 미션 NPC가 퇴근한 뒤의 미션 처리는 아직 정하지 않았습니다([NPC 생활·관계 설계](../npc-life-design.md) 11절 "교대와 첫날 미션").
+- `speechSpeed`(선택, 0.8~1.5)는 사용자가 마이페이지 [NPC 말 빠르기] 슬라이더로 고른 NPC 음성 빠르기 배율입니다. 첫인사 음성을 이 빠르기로 만들며 대화 난이도와는 상관없습니다. 없거나 `null`이면 `1.1`이고, 범위를 벗어나면 `400 VALIDATION_FAILED`입니다. 값은 기기(브라우저)에 저장하고 서버에는 저장하지 않으므로 CONV-03·CONV-07·복습 대화 시작·장소 연습 시작(PRC-02)에도 매번 보냅니다.
 - `npcTravelContext`(선택)는 Unity가 관찰한 이동 사실입니다. `phase`는 `GOING_TO_WORK`·`AT_WORK`·`GOING_HOME`·`LEISURE`·`BREAK`·`RESTING`·`WALKING` 중 하나이며, `routeMeters`(0~2000m), `walkedMeters`(0~10000m), `departureLeadMinutes`(0~1440게임분), `lateMinutes`(0~1440게임분)를 보냅니다. 자유 문장 대신 제한된 상태와 수치를 받고, 이 사실로 만든 상황을 대화에 저장해 이후 대사·힌트·재접속에도 사용합니다. 근무 시각이나 관계 수치를 바꾸는 요청은 아닙니다. 이전 클라이언트와 기존 대화에는 이 값이 없어도 됩니다. 복습 대화에는 현재의 이동 상황을 덧붙이지 않습니다.
 - 직원처럼 `approachLine`이 없는 NPC는 `initiatedBy`와 관계없이 AI가 첫 인사를 만들고 음성을 합성합니다. 이 NPC와 끝낸 대화가 있으면 기억 카드를 함께 넘겨 다시 만난 인사를 합니다. 미리 작성한 인사로 바꿀지는 `[미정]`입니다(6절).
 - 첫 대사의 추천 단어는 응답을 기다리게 하지 않도록 따로 만들므로 `suggestWords`는 `null`입니다. 클라이언트가 대사를 보여 준 뒤 CONV-12로 받습니다.
@@ -1032,7 +1034,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   "requestId": "0d4f6a0b-2a7c-4e3f-8d0e-5b9a1c2d3e4f",
   "inputType": "VOICE",
   "text": "Medium size, please",
-  "sttRawText": "Medium size, please"
+  "sttRawText": "Medium size, please",
+  "speechSpeed": 1.1
 }
 
 // 응답 200
@@ -1061,6 +1064,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```
 
 - `text`는 사용자가 보낸 최종 문장입니다. `inputType`이 `VOICE`면 STT 결과를 그대로 `text`와 `sttRawText`로 보내고, 마이크를 쓸 수 없어 텍스트로 입력하면 `TEXT`로 보냅니다.
+- `speechSpeed`(선택, 0.8~1.5)는 이번 NPC 대답 음성의 빠르기입니다. 규칙은 CONV-01과 같습니다(없으면 `1.1`, 범위 밖은 `VALIDATION_FAILED`).
 - 영어, 한국어, 한영 혼용, 미완성 발화를 모두 받습니다. 최대 길이는 서버 설정값이며 넘으면 `VALIDATION_FAILED`입니다.
 - 추천 단어는 NPC 응답을 기다리게 하지 않도록 따로 만듭니다. 응답의 `suggestWords`는 `null`이고, 클라이언트가 대사를 보여 준 뒤 CONV-12로 받아 대사 아래에 보여줍니다. 대화가 끝난 턴에는 요청하지 않습니다.
 - 같은 `requestId`로 다시 보내면 턴을 새로 만들지 않고 이전 응답을 그대로 돌려줍니다(`turns.request_id`). 화면 19의 [다시 시도]가 이 규칙을 씁니다.
@@ -1069,7 +1073,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 대화 시작·발화 전송은 같은 사용자·`requestId`의 처리 중 재요청도 순서대로 처리하여, 먼저 저장된 결과를 재사용하고 AI를 중복 호출하지 않습니다. 잠금은 현재 단일 백엔드 프로세스 안에서 관리하며 완료·실패 뒤 해제합니다. 실패한 요청은 같은 ID로 다시 시도할 수 있습니다. 워커에 보낼 앞선 대화는 DB에서 최근 40줄만 조회합니다.
 - TTS가 실패해도 응답은 성공으로 돌려주고 `speech.status`를 `FAILED`로 표시합니다. 클라이언트는 자막을 보여주고 CONV-07로 다시 시도합니다.
 - AI가 미션 완료나 대화 종료를 제안하면 서버가 검증해 확정합니다(`ai_candidates`). 확정된 결과만 `missionUpdates`와 `conversation.status`에 반영합니다. 한 턴에서 여러 미션이 함께 완료될 수 있습니다.
-- 서버는 한 턴에서 무례 판정과 의도·번역 판정을 같은 문장으로 동시에 요청하고 둘 다 기다린 뒤 NPC 대답을 만듭니다.
+- 서버는 한 턴에서 무례 판정과 의도·번역 판정을 같은 문장으로 동시에 요청하고 둘 다 기다린 뒤 NPC 대답을 만듭니다. 스트리밍 요청에서 판정 결과가 대답 지시문에 들어가지 않는 대화는 대답을 먼저 시작합니다(아래 **스트리밍**).
 
 **경찰 신고** — 경찰서 창구의 경찰관(`POLICE_OFFICER`·`POLICE_SERGEANT`·`POLICE_PATROL_OFFICER`·`POLICE_ROOKIE`)에게 한 말은 의도 판정이 정해진 단어가 아니라 문맥으로 출동할 일(도난·분실·사고·싸움·수상한 사람 등)인지와 장소를 고릅니다. 출동할 일과 장소가 나오면(본길이나 장소를 모르면 본길 순찰) `policeDispatch`에 `{ "placeCode": "BAKERY" }`처럼 출동할 곳을 담고, 경찰관이 직접 순찰차로 간다고 말하며 그 턴에 대화를 마칩니다(`ENDED_BY_NPC`). `placeCode`는 마을 장소 코드(`HOME`·`HOTEL`·`CAFE`·`SHOP`·`POST_OFFICE`·`DINER`·`BANK`·`LAUNDROMAT`·`FLOWER_SHOP`·`BARBER`·`BAKERY`·`PARK`·`ARCADE`·`HOME_STORE`·`ICE_CREAM_PLAZA`)이고, `null`이면 본길 순찰입니다. 신고만 하고 장소를 말하지 않았으면 출동하지 않고 경찰관이 장소를 묻습니다. 비번(`npcOffDuty`) 경찰관과의 대화, 출동하지 않는 턴, 무례로 센 턴에서는 `policeDispatch`가 `null`입니다. 접수 여부와 장소는 사용자 턴에 저장하므로 같은 `requestId`로 다시 보내도 동일한 출동 정보를 돌려줍니다. 클라이언트는 `userTurn.turnId`로 중복 접수를 막고 추가 신고를 순서대로 보관합니다. 경찰관은 앞선 출동이 끝난 뒤 차례로 출동하므로 정확한 출발 시각은 약속하지 않습니다. 판정 상태는 백엔드 `PoliceDesk`, 평가는 `ai/tools/police_report_eval.py`입니다.
 
@@ -1087,6 +1091,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 의도·무례 판정까지 난 오류(`CONVERSATION_NOT_ACTIVE`, 행동 묘사만 있는 말의 `VALIDATION_FAILED`, `REQUEST_ID_CONFLICT`, 판정 AI 오류 등)는 스트림을 시작하기 전이라 지금과 같은 HTTP 상태와 JSON 오류 본문입니다. 그래서 Accept에 `application/json`도 함께 넣습니다.
 - 같은 `requestId`로 다시 보내 저장된 결과를 돌려줄 때는 `turn` 하나만 옵니다.
 - 사용자가 화면을 닫거나 연결이 끊겨도 서버는 대답을 끝까지 받아 턴을 저장합니다. 클라이언트는 `turn`이나 `error` 없이 스트림이 끝나면 같은 `requestId`로 다시 보내 저장된 결과를 받습니다(JSON이든 스트림이든 같습니다).
+- **대답 먼저 시작**: 판정 결과가 대답 지시문에 들어가지 않는 대화(이 NPC에게 판정할 미션·장소 연습 목표가 없고 경찰 창구·택시가 아닌 대화. 미션 중 미션과 상관없는 NPC와의 자유 대화와 미션을 마친 뒤의 대화도 포함)는 무례·대화 사건이 없다고 보고 NPC 대답을 판정과 동시에 시작합니다. 받은 조각은 판정이 끝날 때까지 보내지 않습니다. 판정 뒤에 정한 대답 요청(행동 묘사를 지운 말, 지시문, 무례·칭찬·사과 반응)이 같으면 그 대답을 보내고, 다르면 먼저 시작한 대답을 버리고 다시 부릅니다. 클라이언트가 받는 이벤트와 순서는 같고 버린 대답의 조각은 오지 않습니다. 버린 만큼 AI 사용량이 늘어 `NPC_EARLY_REPLY=false`로 끌 수 있습니다([백엔드 README](../../backend/README.md#준비)). JSON 응답은 판정을 기다립니다.
 - 조각 음성을 재생한 턴은 `turn`을 받은 뒤 턴 전체 음성을 다시 자동 재생하지 않습니다. [다시 듣기]는 `npcTurn.speech`의 턴 전체 음성(CONV-06)을 씁니다.
 - 대화 시작(CONV-01)은 아직 JSON 응답만 있습니다.
 
@@ -1195,7 +1200,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 화면 15의 [뜻 보기]입니다. NPC 턴에만 요청할 수 있습니다. 사용자 턴과 다른 사용자의 턴은 `404 NOT_FOUND`입니다.
 - 한 번 만든 뜻은 저장하고(`turns.meaning_ko`, `turns.glossary`) 다시 요청하면 AI를 호출하지 않습니다. `turns.glossary`는 응답의 `glossary`와 같은 `[{ text, meaningKo }]` JSON입니다.
-- 뜻과 단어 풀이는 AI 워커 `/v1/meaning`이 만들며, 대화 난이도(`levelApplied`)를 함께 보냅니다. `glossary`는 대사에 그대로 있는 내용어(명사·본동사·형용사·부사)와 숙어·구동사·관용 표현·정해진 문장 틀(`Would you like` 등)을 나온 순서대로 최대 15개까지 담고, 이름·숫자와 혼자 있는 기능어는 뺍니다. 숙어 안의 내용어도 따로 담아(`grab a seat`, `grab`, `seat`) 서로 겹칠 수 있습니다. 한글 표기만 되는 외래어의 뜻은 무엇인지 풀어 쓰고 표기는 괄호에 둡니다(`front desk` → `호텔 접수·안내 창구(프런트)`). 그런 말이 없으면 빈 배열입니다.
+- 뜻과 단어 풀이는 AI 워커 `/v1/meaning`이 만들며, 대화 난이도(`levelApplied`)를 함께 보냅니다. `glossary`는 대사에 그대로 있는 내용어(명사·본동사·형용사·부사)와 숙어·구동사·관용 표현·정해진 문장 틀(`Would you like` 등)을 나온 순서대로 최대 25개까지 담고, 이름·숫자와 혼자 있는 기능어는 뺍니다. `just`, `still`처럼 쉬운 말도 빼지 않으며, 숙어 안의 내용어도 따로 담아(`grab a seat`, `grab`, `seat`) 서로 겹칠 수 있습니다. 한글 표기만 되는 외래어의 뜻은 무엇인지 풀어 쓰고 표기는 괄호에 둡니다(`front desk` → `호텔 접수·안내 창구(프런트)`). 그런 말이 없으면 빈 배열입니다.
 - AI 호출이 실패하면 1.5의 AI 오류 코드를 돌려주고 아무것도 저장하지 않습니다. 다시 요청하면 새로 만듭니다.
 
 #### CONV-05 `POST /api/v1/turns/{turnId}/hint`
@@ -1205,11 +1210,11 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 { "requestId": "..." }
 
 // 응답 200
-{ "turnId": 105, "hintText": "For here, please." }
+{ "turnId": 105, "hintText": "For here, please.", "hintMeaningKo": "매장에서 먹을게요." }
 ```
 
 - 화면 15의 [힌트]를 누르면 추천 문장을 입력창에 넣어 줍니다. 사용자가 확인하고 고쳐서 보냅니다. 사용자가 답해야 하는 NPC 턴에 요청합니다. 사용자 턴과 다른 사용자의 턴은 `404 NOT_FOUND`입니다.
-- 만든 문장은 저장해 다시 쓰고(`turns.hint_text`), 처음 열면 `hint_opened_at`을 기록합니다. 다시 요청해도 처음 연 시각은 바꾸지 않습니다.
+- 만든 문장과 뜻은 저장해 다시 쓰고(`turns.hint_text`, `hint_meaning_ko`), 처음 열면 `hint_opened_at`을 기록합니다. 다시 요청해도 처음 연 시각은 바꾸지 않습니다. 뜻은 워커가 같은 힌트 응답에 포함한 한국어를 사용하며 추가 모델 호출을 하지 않습니다. 기존에 영어만 저장한 힌트의 `hintMeaningKo`는 null일 수 있으며, 이를 채우려고 모델을 다시 호출하지 않습니다.
 - `hintText`는 AI 워커 `/v1/hint`가 주는 추천 문장 중 첫 문장(가장 쉬운 문장)입니다. 그 NPC 턴까지의 대화와 대화 난이도로 만듭니다. 장면별 목표는 아직 없어 워커에 목표를 비워 보냅니다.
 - AI 호출이 실패하면 1.5의 AI 오류 코드를 돌려주고, 추천 문장이 하나도 오지 않으면 `502 AI_RESPONSE_INVALID`입니다. 두 경우 모두 저장하지 않습니다.
 - 자유 대화의 힌트는 추천 단어·추천 문장 2단계입니다. 요구사항명세서의 3단계 힌트(키워드 → 문장 시작 → 예문)와 다릅니다(5.2).
@@ -1234,7 +1239,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 #### CONV-06·07 NPC 음성
 
 - CONV-06 `GET /api/v1/turns/{turnId}/speech`는 만들어 둔 음성 파일을 돌려줍니다. [다시 듣기]는 이 API를 쓰며 TTS를 새로 만들지 않습니다. 키나 파일이 없거나 보관 기간이 만료됐으면 `404 NOT_FOUND`입니다.
-- CONV-07 `POST /api/v1/turns/{turnId}/speech`는 TTS가 실패했을 때 `{ "requestId": "..." }`로 다시 만듭니다. 이미 유효한 음성이 있으면 새로 만들지 않고 CONV-06 주소를 돌려줍니다. 정기 정리 전이라도 만료됐거나 저장했던 파일이 없으면 `EXPIRED`로 응답하고 합성하지 않습니다. 다시 만든 음성을 보관 상한 때문에 저장하지 못하면 오류 대신 `speech.status: FAILED`로 응답합니다.
+- CONV-07 `POST /api/v1/turns/{turnId}/speech`는 TTS가 실패했을 때 `{ "requestId": "...", "speechSpeed": 1.1 }`로 다시 만듭니다. `speechSpeed`는 CONV-01과 같은 규칙이며, 대화 때의 빠르기가 아니라 지금 고른 빠르기로 만듭니다. 이미 유효한 음성이 있으면 새로 만들지 않고 CONV-06 주소를 돌려줍니다. 정기 정리 전이라도 만료됐거나 저장했던 파일이 없으면 `EXPIRED`로 응답하고 합성하지 않습니다. 다시 만든 음성을 보관 상한 때문에 저장하지 못하면 오류 대신 `speech.status: FAILED`로 응답합니다.
 - NPC 음성 파일 키는 `turns.npc_audio_key`에 저장합니다. 앱 Compose는 환경별 영구 볼륨을 백엔드의 `/app/data/npc-audio`에 연결하며, 저장 위치와 배포 시 보존 기준은 [NPC 음성 저장 운영 문서](../npc-audio-storage.md)를 따릅니다.
 - 보관 정책: 음성 생성 시각(`turns.npc_audio_created_at`)부터 최대 30일, 개발·운영 각각의 NPC 턴 음성 합계 5,000,000,000바이트까지 둡니다(서버 설정값, 매일 정리에서 맞추므로 정리 사이에는 넘을 수 있음). 기존 음성의 보관 시작 시각은 턴 생성 시각으로 초기화하며 재배포·파일 이전·DB 복원으로 기한을 다시 시작하지 않습니다. 정리 순서와 공용 음성·하위 폴더 제외, 백업·복원 기준은 [NPC 음성 저장 운영](../npc-audio-storage.md#보관삭제-정책)을 따릅니다.
 - `speech.status`는 `READY`(음성 있음), `FAILED`(처음 합성에 실패했거나 저장하지 못함, CONV-07로 다시 시도), `EXPIRED`(보관 정책으로 재생 차단, `turns.npc_audio_deleted_at`)입니다. 파일 삭제 실패로 재시도 중인 경우도 `EXPIRED`이며 CONV-07을 불러도 다시 만들지 않습니다. 클라이언트는 [다시 듣기]를 숨기고 자막을 유지합니다.
@@ -1306,7 +1311,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 화면 16의 짧은 피드백을 그립니다. "Mia · 카페 · 발화 4번"은 `npc`, `sceneCode`, `userTurnCount`, "미션 완료"는 `completedMissions`, 개선 표현 상자는 `suggestion`입니다.
 - `summary`는 `conversation_feedback.summary`, `reviews`·`suggestion`·`situationExpressions`·`vocabCandidates`는 `conversation_feedback.reviews` JSON(`{ good, improve, suggestion, situationExpressions, vocabCandidates }`)에 저장합니다. 저장 형식은 응답과 따로 관리하므로 응답 필드 이름을 바꿔도 이미 저장된 피드백을 그대로 읽습니다.
 - `situationExpressions`는 이 장면에서 자주 쓰는 관용·추천 표현 0~3개입니다(표현, 뜻, 쓰는 때, 학습 예문과 번역). 사용자 발화 평가와 별개로 화면 16·17의 회화 칸에 보여 줍니다. 이 필드를 넣기 전에 만든 피드백과 `DONE`이 아닌 피드백은 빈 배열입니다. 예문은 학습용이며 사용자가 한 말이 아닙니다.
-- `vocabCandidates`는 단어장에 저장할 수 있는 단어(표현, 뜻, 학습 예문과 번역)입니다. 피드백의 단어장 후보(`vocab_candidates`)를 단어·숙어·문장 종류와 상관없이 담습니다. `situationExpressions`의 숙어·문장도 VOCAB-02 `FEEDBACK`으로 저장할 수 있습니다. 화면 16·17의 [단어장에 저장]은 이 목록의 `expression`을 VOCAB-02 `FEEDBACK`으로 보냅니다. 이 필드를 넣기 전에 만든 피드백과 `DONE`이 아닌 피드백은 빈 배열입니다.
+- `vocabCandidates`는 단어장에 저장할 수 있는 단어(표현, 뜻, 학습 예문과 번역)입니다. 피드백의 단어장 후보(`vocab_candidates`)를 단어·숙어·문장 종류와 상관없이 담습니다. `situationExpressions`의 숙어·문장과 문장별 평가(`detailedFeedback`)의 고친 문장 `betterText`도 VOCAB-02 `FEEDBACK`으로 저장할 수 있습니다. 화면 16·17의 [담기]는 이 목록의 `expression`이나 고친 문장을 VOCAB-02 `FEEDBACK`으로 보냅니다. 이 필드를 넣기 전에 만든 피드백과 `DONE`이 아닌 피드백은 빈 배열입니다.
 - 피드백은 대화를 시작할 때 예약한 토큰으로 만듭니다(1.4). 토큰이 떨어져 NPC가 대화를 끝낸 경우에도 피드백을 받습니다.
 - [대화 종료 (Esc)]와 오류 화면의 [대화 종료]에서 호출합니다. 어떤 오류 상태에서도 종료할 수 있습니다.
 - NPC가 대화를 끝낸 경우(`ENDED_BY_NPC`)에도 피드백을 받으려면 호출합니다. 이때 상태는 바꾸지 않고 피드백만 만듭니다.
@@ -1325,7 +1330,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### CONV-09·10 지난 대화
 
-- CONV-09 `GET /api/v1/conversations?npcCode=&cursor=&size=&feedbackOnly=`는 오른쪽 위 메뉴의 [피드백 목록] 창 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus }`를 돌려줍니다.
+- CONV-09 `GET /api/v1/conversations?npcCode=&sceneCode=&cursor=&size=&feedbackOnly=`는 휴대폰 메뉴의 [대화 노트] 창 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus, feedbackUnread, practiceCount }`를 돌려줍니다.
 
 ```json
 {
@@ -1339,7 +1344,9 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
       "startedAt": "2026-10-21T14:00:00+09:00",
       "endedAt": "2026-10-21T14:05:00+09:00",
       "userTurnCount": 4,
-      "feedbackStatus": "DONE"
+      "feedbackStatus": "DONE",
+      "feedbackUnread": false,
+      "practiceCount": 2
     }
   ],
   "nextCursor": null
@@ -1348,8 +1355,9 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 목록 규칙은 VOCAB-01과 같습니다. `size` 기본값은 20이고 1~50만 받습니다. `nextCursor`는 이전 페이지 마지막 항목의 `conversationId`이며, 숫자가 아니거나 내 대화가 아닌 커서와 범위를 벗어난 `size`는 `400 VALIDATION_FAILED`입니다. 시작 시각이 같으면 나중에 만든 대화가 먼저입니다.
 - `npcCode`를 주면 그 NPC와 나눈 대화만 돌려줍니다. 없는 NPC 코드면 빈 목록입니다.
-- `feedbackOnly=true`는 완성된(`DONE`) 피드백이 있는 대화만 페이지 크기·커서 적용 전에 조회합니다. Unity 피드백 목록은 이 옵션을 사용하며 생성 전·건너뜀·실패 항목을 보이지 않습니다. 생략하면 기존 전체 대화 기록을 조회합니다. `feedbackUnread`는 완료됐으나 아직 열지 않은 피드백인지 나타냅니다.
-- 진행 중(`ACTIVE`)이거나 시간이 지나 닫힌 대화도 상태 그대로 담습니다. `userTurnCount`는 사용자가 보낸 발화 수, `feedbackStatus`는 짧은 피드백 상태(`DONE`·`FAILED`·`SKIPPED`)이며 피드백을 만들기 전이면 `null`입니다. `npc`는 CONV-10의 NPC 이름표와 같은 형식입니다.
+- `sceneCode`(`CAFE`·`HOTEL`·`TOWN` 등)를 주면 그 장소의 NPC와 나눈 대화만 돌려줍니다. 대화 노트의 장소 탭(전체·카페·호텔·마을)이 씁니다. 없는 장소 코드면 빈 목록이고, 비어 있거나 30자를 넘으면 `400 VALIDATION_FAILED`입니다.
+- `feedbackOnly=true`는 완성된(`DONE`) 피드백이 있는 대화만 페이지 크기·커서 적용 전에 조회합니다. Unity 대화 노트는 이 옵션을 사용하며 생성 전·건너뜀·실패 항목을 보이지 않습니다. 생략하면 기존 전체 대화 기록을 조회합니다. `feedbackUnread`는 완료됐으나 아직 열지 않은 피드백인지 나타냅니다.
+- 진행 중(`ACTIVE`)이거나 시간이 지나 닫힌 대화도 상태 그대로 담습니다. `userTurnCount`는 사용자가 보낸 발화 수, `feedbackStatus`는 짧은 피드백 상태(`DONE`·`FAILED`·`SKIPPED`)이며 피드백을 만들기 전이면 `null`입니다. `npc`는 CONV-10의 NPC 이름표와 같은 형식입니다. `practiceCount`는 이 대화로 [다시 연습]한 횟수(같은 대화로 만든 복습 카드의 `practiceCount`)이며, 연습하지 않았으면 0입니다.
 - 저장된 결과만 조회하므로 AI 사용량이 소진돼도 이용할 수 있습니다. 항목을 누르면 CONV-10으로 대화 기록을 엽니다.
 - CONV-10은 대화 정보와 모든 턴(`seq` 순서)의 텍스트, 저장된 뜻·추천 단어·추천 문장을 돌려줍니다. NPC 턴에는 저장된 `glossary: [{ text, meaningKo }]`도 함께 담고, 아직 없거나 사용자 턴이면 빈 배열입니다. 화면 15의 텍스트 대화 기록과 화면 16의 [대화 기록 보기]가 이 형식을 씁니다. 저장된 결과만 조회하므로 AI 사용량이 소진돼도 이용할 수 있습니다. 전체 대화 화면에서 빠진 뜻을 처음 읽을 때만 CONV-04로 생성·저장하며, 다시 열기·단어 호버·터치는 저장된 뜻과 풀이를 사용합니다.
 
@@ -1520,14 +1528,16 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 | --- | --- | --- | --- |
 | `OBJECT` | 사물 카드의 단어 | `vocabularies.meaning_ko` (시드) | 사물 카드 예문 `example` · `example_ko` (없으면 `null`) |
 | `NPC_LINE` | 그 턴의 CONV-04 단어 풀이(`glossary`)에 있는 단어·숙어 | `glossary[].meaningKo` | NPC 대사 전문 · CONV-04 대사 뜻 |
-| `FEEDBACK` | 그 대화 피드백의 단어장 후보 중 CONV-08·FB-01 `feedback.vocabCandidates`에 있는 것 | 후보의 `meaningKo` | 후보의 `exampleEn` · `exampleKo` |
+| `FEEDBACK` | 그 대화 피드백의 단어장 후보(CONV-08·FB-01 `feedback.vocabCandidates`)와 "이 상황에서 자주 써요" 표현(`feedback.situationExpressions`)에 있는 것 | 후보·표현의 `meaningKo` | 후보·표현의 `exampleEn` · `exampleKo` |
+| `FEEDBACK` (문장 교정) | 그 대화 문장별 평가(FB-03 `detailedFeedback`)의 고친 문장 `betterText`. 한국어로 말한 발화의 영어 문장도 포함 | 그 평가의 `reason` | 없음(`null`) |
 
 - 표에 없는 단어·숙어, 아직 뜻 보기(CONV-04)를 하지 않은 대사의 단어는 저장하지 않고 `422 VOCAB_SOURCE_MISMATCH`를 돌려줍니다. 클라이언트는 표의 단어에만 저장 버튼을 보여줍니다.
 - 새로 저장하면 `201`, 이미 저장한 단어면 처음 저장한 항목(문장 포함)을 그대로 `200`으로 돌려줍니다. 응답 형식은 VOCAB-01의 항목에 `created` 필드를 더한 것입니다.
 - 사전에 없는 단어는 `vocabularies`에 새로 만듭니다. 한 단어면 `type: WORD`, 두 단어 이상인 숙어면 `type: IDIOM`, 문장 부호로 끝나는 여러 단어 표현이면 `type: SENTENCE`입니다(`source`는 `NPC` 또는 `FEEDBACK`). 이미 있는 단어는 기존 뜻을 그대로 씁니다. 대소문자만 다른 단어(문장 첫머리의 `Latte` 등)는 같은 단어로 봅니다.
 - `NPC_LINE`은 `source_turn_id`에 `turnId`를, `source_conversation_id`에 그 턴의 대화를 기록합니다. `FEEDBACK`은 `source_conversation_id`에 요청의 `conversationId`를 기록합니다.
 - 이 규칙은 대화 쪽이 CONV-04의 단어 풀이와 피드백의 단어장 후보를 저장해 두는 것을 전제로 합니다.
-- 피드백을 만들지 못한 대화와 `vocabCandidates`를 넣기 전에 만든 피드백의 단어는 확인할 후보가 없어 `422 VOCAB_SOURCE_MISMATCH`입니다.
+- 피드백을 만들지 못한 대화와 `vocabCandidates`를 넣기 전에 만든 피드백의 단어는 확인할 후보가 없어 `422 VOCAB_SOURCE_MISMATCH`입니다. 다른 대화의 고친 문장도 같은 오류입니다.
+- 같은 말이 단어장 후보·상황 표현과 고친 문장에 모두 있으면 뜻과 예문이 있는 후보·표현으로 저장합니다.
 - `OBJECT`의 `wordKey`는 WORLD-02 단어 카드의 `wordKey`입니다.
 - `sourceType`이 없거나, `OBJECT`인데 `wordKey`가 비어 있거나, `NPC_LINE`인데 `turnId`·`text`가, `FEEDBACK`인데 `conversationId`·`text`가 비어 있으면 `400 VALIDATION_FAILED`입니다. 없는 단어 키면 `404 NOT_FOUND`입니다.
 - `NPC_LINE`의 턴이 없거나, 다른 사용자의 턴이거나, NPC가 아닌 사용자 턴이면 CONV-04와 같이 `404 NOT_FOUND`입니다. `FEEDBACK`의 대화가 없거나 다른 사용자의 대화여도 `404 NOT_FOUND`입니다.

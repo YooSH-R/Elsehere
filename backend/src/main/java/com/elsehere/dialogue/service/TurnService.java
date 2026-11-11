@@ -13,6 +13,7 @@ import com.elsehere.ai.client.WorkerState;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.common.logging.LogContext;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
@@ -38,13 +39,13 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 발화 전송(CONV-03). 의도·번역 판정(/v1/judge)과 무례 판정(/v1/guard)을 함께 부른 뒤 → NPC 대답(/v1/npc/reply) → 턴 전체 음성
- * 저장 순서로 처리한다.
+ * 저장 순서로 처리한다. 스트리밍 요청에서 판정 결과가 대답 지시문에 들어가지 않는 대화는 판정과 동시에 대답을 먼저 시작하고, 판정 뒤에 정한 대답 요청이 같으면 그 대답을
+ * 쓴다({@link EarlyReply}).
  *
  * <p>첫날 연계 미션을 시작한 사용자는 현재 단계의 의도를 판정한다. 성공한 대답과 턴을 저장할 때만 미션을 진행한다. 무례한 말은 미션에 반영하지 않고 횟수를 세며 그
  * NPC의 호감도를 깎고, 한도에 닿으면 NPC가 대화를 끝낸다(docs/api/rudeness-handling.md). 무례가 아닌 말은 의도 판정이 고른 대화
@@ -98,6 +99,7 @@ public class TurnService {
   private final Clock clock;
   private final DialogueRequestLocks requestLocks;
   private final PlacePracticeService placePractice;
+  private final EarlyReplies earlyReplies;
 
   public TurnResponse send(Long userId, Long conversationId, TurnRequest request) {
     return send(userId, conversationId, request, null);
@@ -146,7 +148,8 @@ public class TurnService {
 
     TurnContextSelection selection =
         transactionTemplate.execute(
-            status -> turnContext(userId, conversationId, request.requestId()));
+            status ->
+                turnContext(userId, conversationId, request.requestId(), request.speechSpeed()));
     if (selection.rejected()) {
       throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
     }
@@ -176,57 +179,43 @@ public class TurnService {
             && missionState.isEmpty()
             && TaxiRide.serves(context.npc().summary().npcCode());
 
+    TurnScope scope = new TurnScope(context, goals, policeDesk, taxiRide, selection.finalTurn());
     CompletableFuture<GuardResult> guarding = guardAsync(trace, context, request.text());
-    JudgeResult judge =
-        aiGateway.judge(
-            trace,
-            context.npc().workerNpc(),
-            context.review() != null
-                ? reviewDialogue.state(context.review())
-                : missionState.orElse(
-                    policeDesk ? PoliceDesk.STATE : taxiRide ? TaxiRide.STATE : FREE_TALK),
-            context.history(),
-            request.text());
-    if (judge.dropped()) {
-      // 행동 묘사만 있는 말은 턴으로 세지 않는다. 응답 형식은 [미정]이라 안내 문구를 오류 정보로 돌려준다.
-      throw new BusinessException(
-          ErrorCode.VALIDATION_FAILED,
-          judge.notice() == null ? null : Map.of("notice", judge.notice()));
+    EarlyReply early = startEarlyReply(trace, scope, request.text(), events);
+    JudgeResult judge;
+    GuardResult guard;
+    TurnDecision decision;
+    try {
+      judge =
+          aiGateway.judge(
+              trace,
+              context.npc().workerNpc(),
+              context.review() != null
+                  ? reviewDialogue.state(context.review())
+                  : missionState.orElse(
+                      policeDesk ? PoliceDesk.STATE : taxiRide ? TaxiRide.STATE : FREE_TALK),
+              context.history(),
+              request.text());
+      if (judge.dropped()) {
+        // 행동 묘사만 있는 말은 턴으로 세지 않는다. 응답 형식은 [미정]이라 안내 문구를 오류 정보로 돌려준다.
+        throw new BusinessException(
+            ErrorCode.VALIDATION_FAILED,
+            judge.notice() == null ? null : Map.of("notice", judge.notice()));
+      }
+      guard = guarding.join();
+      decision = decide(scope, judge, Boolean.TRUE.equals(guard.abusive()));
+    } catch (RuntimeException exception) {
+      if (early != null) {
+        early.discard();
+      }
+      throw exception;
     }
 
-    GuardResult guard = guarding.join();
-    boolean rude = Boolean.TRUE.equals(guard.abusive());
-    boolean leaving = rude && context.rudeCount() + 1 >= Conversation.RUDE_LIMIT;
-    Optional<PoliceDesk.Dispatch> dispatch =
-        policeDesk && !rude ? PoliceDesk.dispatch(judge) : Optional.empty();
-    Optional<TaxiRide.Destination> destination =
-        taxiRide && !rude ? TaxiRide.destination(judge) : Optional.empty();
-    // 출동하는 경찰관은 직접 순찰차로 가야 하므로 이 턴에 대화를 마친다.
-    // 택시는 대화가 끝나면 승객이 내리므로 작별·용건 끝냄으로 마치지 않고, 도착하면 Unity가 대화를 마친다.
-    boolean wrapUp = dispatch.isPresent() || (!taxiRide && WrapUp.ends(rude, goals, judge));
-    String instruction =
-        rude
-            ? (leaving ? RUDE_LEAVE : RUDE_WARNING)
-            : goals.map(detail -> detail.replyInstruction(judge.intent())).orElse("");
-    if (context.review() != null) {
-      instruction = join(reviewDialogue.instruction(context.review()), instruction);
-    }
-    if (policeDesk && !rude) {
-      instruction = join(instruction, PoliceDesk.instruction(judge, dispatch));
-    }
-    if (taxiRide && !rude) {
-      instruction = join(instruction, TaxiRide.instruction(judge, destination));
-    }
-    if (wrapUp) {
-      instruction = WrapUp.instruction(instruction);
-    }
-    if (selection.finalTurn()) {
-      instruction =
-          instruction.isBlank() ? TURN_LIMIT_WRAP_UP : instruction + " " + TURN_LIMIT_WRAP_UP;
-    }
-
-    String reaction = DialogueReaction.select(rude, context.rudeCount(), judge.events());
-    NpcReply reply = reply(trace, context, judge.text(), instruction, events, reaction);
+    boolean rude = decision.rude();
+    boolean wrapUp = decision.wrapUp();
+    Optional<PoliceDesk.Dispatch> dispatch = decision.dispatch();
+    Optional<TaxiRide.Destination> destination = decision.destination();
+    NpcReply reply = reply(trace, context, decision.reply(), events, early);
     String npcAudioKey = npcAudioReceiver.save(trace, reply.audioFullId());
 
     return transactionTemplate.execute(
@@ -315,38 +304,112 @@ public class TurnService {
         });
   }
 
+  // 판정 결과로 무례 처리·출동·목적지·마무리와 이번 NPC 대답 요청을 정한다.
+  private TurnDecision decide(TurnScope scope, JudgeResult judge, boolean rude) {
+    TurnContext context = scope.context();
+    boolean leaving = rude && context.rudeCount() + 1 >= Conversation.RUDE_LIMIT;
+    Optional<PoliceDesk.Dispatch> dispatch =
+        scope.policeDesk() && !rude ? PoliceDesk.dispatch(judge) : Optional.empty();
+    Optional<TaxiRide.Destination> destination =
+        scope.taxiRide() && !rude ? TaxiRide.destination(judge) : Optional.empty();
+    // 출동하는 경찰관은 직접 순찰차로 가야 하므로 이 턴에 대화를 마친다.
+    // 택시는 대화가 끝나면 승객이 내리므로 작별·용건 끝냄으로 마치지 않고, 도착하면 Unity가 대화를 마친다.
+    boolean wrapUp =
+        dispatch.isPresent() || (!scope.taxiRide() && WrapUp.ends(rude, scope.goals(), judge));
+    String instruction =
+        rude
+            ? (leaving ? RUDE_LEAVE : RUDE_WARNING)
+            : scope.goals().map(detail -> detail.replyInstruction(judge.intent())).orElse("");
+    if (context.review() != null) {
+      instruction = join(reviewDialogue.instruction(context.review()), instruction);
+    }
+    if (scope.policeDesk() && !rude) {
+      instruction = join(instruction, PoliceDesk.instruction(judge, dispatch));
+    }
+    if (scope.taxiRide() && !rude) {
+      instruction = join(instruction, TaxiRide.instruction(judge, destination));
+    }
+    if (wrapUp) {
+      instruction = WrapUp.instruction(instruction);
+    }
+    if (scope.finalTurn()) {
+      instruction =
+          instruction.isBlank() ? TURN_LIMIT_WRAP_UP : instruction + " " + TURN_LIMIT_WRAP_UP;
+    }
+    String reaction = DialogueReaction.select(rude, context.rudeCount(), judge.events());
+    return new TurnDecision(
+        rude, dispatch, destination, wrapUp, new ReplyRequest(judge.text(), instruction, reaction));
+  }
+
   private static String join(String first, String second) {
     return first.isEmpty() ? second : first + " " + second;
   }
 
+  /**
+   * 판정 결과가 대답 지시문에 들어가지 않는 대화는 무례·대화 사건이 없다고 보고 판정과 동시에 대답을 시작한다. 미션 중 다른 NPC와의 자유 대화도 여기에 든다. 판정
+   * 결과가 지시문에 들어가는 대화(미션 대상 NPC·장소 연습의 목표, 경찰 창구, 택시)와 조각 없이 한 번에 받는 요청은 판정을 기다린다.
+   */
+  private EarlyReply startEarlyReply(
+      WorkerTrace trace, TurnScope scope, String text, TurnEvents events) {
+    if (events == null || !earlyReplies.enabled() || scope.judgeShapesInstruction()) {
+      return null;
+    }
+    ReplyRequest assumed = decide(scope, withoutEvents(text), false).reply();
+    return earlyReplies.start(
+        assumed, listener -> reply(trace, scope.context(), assumed, listener));
+  }
+
+  // 무례·대화 사건이 없다고 본 판정. 먼저 시작할 대답 요청도 판정 뒤와 같은 규칙(decide)으로 만든다.
+  private static JudgeResult withoutEvents(String text) {
+    return new JudgeResult(text, false, null, null, List.of(), null, List.of(), null);
+  }
+
+  // 먼저 시작한 대답이 판정 뒤에 정한 요청과 같으면 그 대답을 쓰고, 다르면 버리고 다시 부른다.
   private NpcReply reply(
       WorkerTrace trace,
       TurnContext context,
-      String text,
-      String instruction,
+      ReplyRequest request,
       TurnEvents events,
-      String reaction) {
-    if (reaction != null) {
+      EarlyReply early) {
+    NpcReplyListener listener = events == null ? NpcReplyListener.NONE : relayTo(trace, events);
+    if (early == null) {
+      return reply(trace, context, request, listener);
+    }
+    if (early.request().equals(request)) {
+      log.info("npc_early_reply result={}", "kept");
+      return early.keep(listener);
+    }
+    early.discard();
+    log.info(
+        "npc_early_reply result={} changed={}",
+        "discarded",
+        String.join(",", early.request().changedFrom(request)));
+    return reply(trace, context, request, listener);
+  }
+
+  private NpcReply reply(
+      WorkerTrace trace, TurnContext context, ReplyRequest request, NpcReplyListener listener) {
+    if (request.reaction() != null) {
       return aiGateway.replyReacting(
           trace,
           context.npc().workerNpc(),
           context.memory(),
           context.history(),
-          text,
-          instruction,
+          request.text(),
+          request.instruction(),
           context.level(),
           context.learner(),
-          events == null ? NpcReplyListener.NONE : relayTo(trace, events),
-          reaction);
+          listener,
+          request.reaction());
     }
-    if (events == null) {
+    if (listener == NpcReplyListener.NONE) {
       return aiGateway.reply(
           trace,
           context.npc().workerNpc(),
           context.memory(),
           context.history(),
-          text,
-          instruction,
+          request.text(),
+          request.instruction(),
           context.level(),
           context.learner());
     }
@@ -355,11 +418,11 @@ public class TurnService {
         context.npc().workerNpc(),
         context.memory(),
         context.history(),
-        text,
-        instruction,
+        request.text(),
+        request.instruction(),
         context.level(),
         context.learner(),
-        relayTo(trace, events));
+        listener);
   }
 
   // 조각 음성은 워커 메모리에서 바로 받아 넘긴다(같은 서버라 조각마다 수 ms). 받지 못한 조각은 자막만 보여 주도록 음성 없이 넘긴다.
@@ -392,22 +455,16 @@ public class TurnService {
   // 의도 판정과 같은 문장으로 동시에 부른다. 워커에 닿지 못해도 턴을 막지 않고 판정하지 못한 것으로 둔다.
   private CompletableFuture<GuardResult> guardAsync(
       WorkerTrace trace, TurnContext context, String text) {
-    Map<String, String> logContext = MDC.getCopyOfContextMap();
     return CompletableFuture.supplyAsync(
         () -> {
-          if (logContext != null) {
-            MDC.setContextMap(logContext);
-          }
           try {
             return aiGateway.guard(trace, context.npc().workerNpc(), context.history(), text);
           } catch (BusinessException exception) {
             return new GuardResult(
                 new GuardResult.Guard(null, GUARD_WORKER_UNAVAILABLE), List.of());
-          } finally {
-            MDC.clear();
           }
         },
-        GUARD_EXECUTOR);
+        LogContext.propagating(GUARD_EXECUTOR));
   }
 
   private Optional<TurnResponse> replay(Long userId, Long conversationId, TurnRequest request) {
@@ -429,7 +486,7 @@ public class TurnService {
   }
 
   private TurnContextSelection turnContext(
-      Long userId, Long conversationId, java.util.UUID requestId) {
+      Long userId, Long conversationId, java.util.UUID requestId, double speechSpeed) {
     Conversation conversation =
         conversationLookup.ownedConversationForUpdate(userId, conversationId);
     if (!conversation.isActive()) {
@@ -447,7 +504,7 @@ public class TurnService {
     return new TurnContextSelection(
         new TurnContext(
             dialogueContexts.npcOf(conversation),
-            dialogueContexts.learner(userId),
+            dialogueContexts.learner(userId, speechSpeed),
             dialogueContexts.history(conversationId),
             conversation.getLevelApplied(),
             conversation.isReview() || conversation.isPractice()
@@ -495,4 +552,32 @@ public class TurnService {
       FirstDayMissionService.Context practice) {}
 
   private record TurnContextSelection(TurnContext context, boolean rejected, boolean finalTurn) {}
+
+  /**
+   * 이번 턴에서 판정 전에 정해진 것.
+   *
+   * @param goals 이 턴의 미션(이야기 퀘스트·첫날 미션)이나 장소 연습 맥락. 미션 중 다른 NPC와의 대화·미션을 마친 뒤에도 안내 지시가 있다. 없으면 빈 값
+   * @param finalTurn 대화의 마지막 턴이라 대답에서 마무리해야 하는지
+   */
+  private record TurnScope(
+      TurnContext context,
+      Optional<FirstDayMissionService.Context> goals,
+      boolean policeDesk,
+      boolean taxiRide,
+      boolean finalTurn) {
+
+    // 판정한 의도·목적지가 대답 지시문에 들어가는 대화인지. 미션 맥락은 이 NPC에게 판정할 상태가 있을 때(미션 대상 NPC)만 판정한 목표를
+    // 지시문에 넣고, 미션 중 다른 NPC와의 대화나 미션을 마친 뒤에는 정해진 안내만 넣는다.
+    boolean judgeShapesInstruction() {
+      return goals.map(FirstDayMissionService.Context::state).isPresent() || policeDesk || taxiRide;
+    }
+  }
+
+  /** 판정 결과로 정한 이번 턴의 처리. */
+  private record TurnDecision(
+      boolean rude,
+      Optional<PoliceDesk.Dispatch> dispatch,
+      Optional<TaxiRide.Destination> destination,
+      boolean wrapUp,
+      ReplyRequest reply) {}
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using A305.World;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,35 +9,37 @@ using UnityEngine.UI;
 namespace A305.Mission
 {
     /// <summary>
-    /// 퀘스트 목록(시안 f2)과 도장 지도(시안 q2). 왼쪽 위 퀘스트 카드로 열고, 목록의 카드를 누르면 그 퀘스트의 도장 지도로 간다.
-    /// 목록은 서버가 준 퀘스트를 한 줄에 세 장씩 카드로 보이고(지금 하는 퀘스트는 코랄 테두리, 잠긴 퀘스트는 흐리게), 쪽이 여럿이면 아래에서 넘긴다.
+    /// 퀘스트 목록(시안 mock.html #story)과 도장 지도(시안 q2). 왼쪽 위 퀘스트 카드로 열고, 목록의 카드를 누르면 그 퀘스트의 도장 지도로 간다.
+    /// 목록은 서버가 준 퀘스트를 한 줄에 세 장씩 카드로 보이고(지금 하는 퀘스트는 코랄 테두리, 잠긴 퀘스트는 카드째 흐리게 하고 자물쇠),
+    /// 쪽이 여럿이면 아래에서 넘긴다.
     /// 퀘스트를 끝내고 [다음]을 누르면 다음 퀘스트 카드의 잠금을 푸는 연출을 한다.
     /// 도장 지도는 가 본 곳의 잉크 도장,
     /// 지금 갈 곳의 번호 핀, 지나온 길을 마을 지도 위에 얹는다. 자리는 시안 px × 1.2이고 버튼 연결은 QuestBoardBuilder가 넣는다.
+    /// 머리줄의 [이야기 | 장소 연습] 탭으로 이야기 퀘스트 목록과 장소 연습 쪽(<see cref="PracticeBoardView"/>)을 오간다.
+    /// 장소 연습에서 상황의 [연습하기]를 누르면 창을 닫고 그 가게 직원에게 연습하러 가자고 알린다(<see cref="PracticeVisit"/>).
     /// </summary>
     public sealed class QuestBoardView : MonoBehaviour
     {
         private const float Px = 1.2f;
 
-        // 들르는 곳 알약: 글자 양옆 11, 알약 그림의 여백 4, 알약 높이 30, 줄 사이 6. 알약과 화살표(폭 4.38, 칸 10) 사이 6
-        private const float RouteTextPadding = 11;
-        private const float RouteArtPadding = 4;
-        private const float RouteHeight = 30;
-        private const float RouteGap = 6;
-        private const float ArrowWidth = 4.38f;
+        // 들르는 곳 알약(시안 #story .pill): 글자 양옆 16, 알약 높이 40, 알약·화살표와 줄 사이 8. 화살표(›)는 폭 5.38을 칸 10 가운데에 둔다.
+        // 알약 줄은 폭 396 안에서 넘치면 다음 줄로 넘기고, 카드 아래 83에서 끝나 줄 수만큼 위로 쌓인다.
+        private const float RouteTextPadding = 16;
+        private const float RouteArtPadding = 0;
+        private const float RouteHeight = 40;
+        private const float RouteGap = 8;
+        private const float ArrowWidth = 5.38f;
         private const float ArrowBox = 10;
+        private const float RouteWidth = 396;
 
-        // 카드 안(시안 f2, 높이 322): 들르는 곳 줄은 보상 줄 위 12에서 끝나 아래에서 위로 쌓인다.
-        // 잠금을 막 푼 카드는 보상 줄 오른쪽에 [퀘스트 시작]이 들어가 보상 줄 높이가 50이 되므로 둘 다 위로 올라간다.
-        private const float RouteWidth = 336;
-        private const float RouteBottom = 269;
-        private const float MetaTop = 281;
-        private const float UnlockedRouteBottom = 241;
-        private const float UnlockedMetaTop = 267;
+        // 지금 하는 퀘스트의 카드는 테두리가 3(다른 카드 1.5)이라 안의 내용을 1.5 들인다. 잠긴 퀘스트는 카드째 흐리게 한다.
+        private const float CurrentBorderInset = 1.5f;
+        private const float LockedAlpha = .55f;
 
-        // 판 높이: 목록 한 쪽(시안 f2)은 500, 쪽 넘기기가 있으면 570, 도장 지도(시안 q2)는 770
-        private const float ListHeight = 500;
-        private const float PagedListHeight = 570;
+        // 판 크기: [이야기]·[장소 연습] 탭(시안 #story·#place .panel)은 같은 1520×800, 도장 지도(시안 q2)는 1240×770이다.
+        private const float TabWidth = 1520;
+        private const float TabHeight = 800;
+        private const float MapWidth = 1240;
         private const float MapHeight = 770;
 
         // 도장 지도: 지도 그림(2000×800)을 시안 1168×467에 담는다. 도장은 건물이 보이게 24 위로 찍는다.
@@ -54,6 +57,10 @@ namespace A305.Mission
 
         [SerializeField]
         private GameObject mapPage;
+
+        [SerializeField]
+        [Tooltip("[장소 연습] 탭의 쪽")]
+        private PracticeBoardView practicePage;
 
         [SerializeField]
         private Button startButton;
@@ -155,9 +162,6 @@ namespace A305.Mission
         private QuestBoardState board;
         private int page;
         private int shownQuest = -1;
-
-        // 잠금을 막 푼 퀘스트. 목록을 닫으면 -1이다.
-        private int unlockedQuest = -1;
         private readonly List<GameObject> made = new List<GameObject>();
 
         /// <summary>목록을 열 때마다 서버에 퀘스트 목록을 묻는다.</summary>
@@ -167,6 +171,9 @@ namespace A305.Mission
         public event Action StartRequested;
 
         public event Action<bool> OpenChanged;
+
+        /// <summary>장소 연습 탭을 열 때마다 서버에 장소 목록을 묻는다.</summary>
+        public event Action PracticeRequested;
 
         public bool IsOpen => gameObject.activeSelf;
 
@@ -180,7 +187,6 @@ namespace A305.Mission
 
         public void Close()
         {
-            unlockedQuest = -1;
             unlock.Hide();
             gameObject.SetActive(false);
             OpenChanged?.Invoke(false);
@@ -199,8 +205,42 @@ namespace A305.Mission
         {
             listPage.SetActive(true);
             mapPage.SetActive(false);
+            practicePage.gameObject.SetActive(false);
             shownQuest = -1;
             FitSheet();
+        }
+
+        /// <summary>[이야기] 탭. 장소 연습을 보는 사이 바뀌었을 수 있어 퀘스트 목록을 다시 묻는다.</summary>
+        public void ShowStoryTab()
+        {
+            ShowList();
+            Requested?.Invoke();
+        }
+
+        /// <summary>[장소 연습] 탭. 열 때마다 끝낸 기록을 새로 받는다.</summary>
+        public void ShowPracticeTab()
+        {
+            listPage.SetActive(false);
+            mapPage.SetActive(false);
+            practicePage.gameObject.SetActive(true);
+            shownQuest = -1;
+            FitSheet();
+            PracticeRequested?.Invoke();
+        }
+
+        /// <summary>서버에서 받은 장소 연습 목록을 보인다.</summary>
+        public void ShowPracticePlaces(PracticeBoardState state) => practicePage.Show(state);
+
+        /// <summary>
+        /// 오른쪽 slot번째 상황의 [연습하기]·[다시 하기]. 창을 닫고 그 가게 직원에게 연습하러 가자고 알린다.
+        /// </summary>
+        public void StartPractice(int slot)
+        {
+            PracticeVisitPlan plan = practicePage.PlanFor(slot);
+            if (plan == null)
+                return;
+            Close();
+            PracticeVisit.Shared.Request(plan);
         }
 
         /// <summary>목록에서 index번째 퀘스트 카드의 잠금을 푼다(시안 f2). 그 카드가 있는 쪽을 보인다.</summary>
@@ -209,7 +249,6 @@ namespace A305.Mission
             if (board == null || index < 0 || index >= board.Quests.Count)
                 return;
             ShowList();
-            unlockedQuest = index;
             page = index / cards.Length;
             FillCards();
             unlock.Play(cards[index % cards.Length].Root.anchoredPosition);
@@ -245,6 +284,7 @@ namespace A305.Mission
                 return;
             shownQuest = index;
             listPage.SetActive(false);
+            practicePage.gameObject.SetActive(false);
             mapPage.SetActive(true);
             FitSheet();
             ClearMade();
@@ -289,18 +329,22 @@ namespace A305.Mission
 
         public void RequestStart() => StartRequested?.Invoke();
 
-        // 판 높이를 보이는 쪽에 맞춘다. 목록은 쪽이 하나면 쪽 넘기기를 숨긴다.
+        // 판 크기를 보이는 쪽에 맞춘다(두 탭은 같은 크기). 목록은 쪽이 하나면 쪽 넘기기를 숨긴다.
         private void FitSheet()
         {
             bool paged = PageCount > 1;
             foreach (Selectable pager in new Selectable[] { previousButton, nextButton })
                 pager.gameObject.SetActive(paged);
             pageText.gameObject.SetActive(paged);
-            float height =
-                mapPage.activeSelf ? MapHeight
-                : paged ? PagedListHeight
-                : ListHeight;
-            sheet.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height * Px);
+            bool map = mapPage.activeSelf;
+            sheet.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Horizontal,
+                (map ? MapWidth : TabWidth) * Px
+            );
+            sheet.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Vertical,
+                (map ? MapHeight : TabHeight) * Px
+            );
         }
 
         private void FillCards()
@@ -323,15 +367,19 @@ namespace A305.Mission
 
         private void FillCard(QuestCardSlot card, QuestEntry quest, int index)
         {
-            card.Background.sprite =
-                quest.Status == QuestEntry.InProgress ? currentCardSprite : cardSprite;
+            bool current = quest.Status == QuestEntry.InProgress;
+            card.Background.sprite = current ? currentCardSprite : cardSprite;
+            float inset = current ? CurrentBorderInset * Px : 0;
+            card.Content.offsetMin = new Vector2(inset, inset);
+            card.Content.offsetMax = new Vector2(-inset, -inset);
             card.Icon.sprite = IconOf(index);
             card.Title.text = quest.Title;
             card.Description.text = quest.Description;
             card.Meta.text = QuestBoardText.Meta(quest);
-            // 잠긴 퀘스트는 카드를 옅은 흰 막으로 살짝 덮고 가운데에 자물쇠를 둔다.
+            // 잠긴 퀘스트는 카드째 흐리게 하고 가운데에 자물쇠를 둔다.
             bool locked = quest.Status == QuestEntry.Locked;
             card.Button.interactable = !locked;
+            card.Group.alpha = locked ? LockedAlpha : 1;
             card.Locked.SetActive(locked);
 
             Sprite chip = quest.Status switch
@@ -347,23 +395,12 @@ namespace A305.Mission
                 card.Chip.rectTransform.sizeDelta = chip.rect.size / 2;
             }
             card.DoneStamp.SetActive(quest.Status == QuestEntry.Done);
-
-            bool unlocked = index == unlockedQuest;
-            float metaTop = unlocked ? UnlockedMetaTop : MetaTop;
-            card.MetaRow.anchoredPosition = new Vector2(
-                card.MetaRow.anchoredPosition.x,
-                -metaTop * Px
-            );
-            FillRoute(
-                card.Route,
-                QuestBoardText.Route(quest),
-                unlocked ? UnlockedRouteBottom : RouteBottom
-            );
+            FillRoute(card.Route, QuestBoardText.Route(quest));
         }
 
-        // 들르는 곳 알약을 '›'로 이어 왼쪽부터 놓고, 카드 폭을 넘으면 다음 줄로 넘긴다(시안 f2). 줄은 아래 끝(bottom)에서 위로 쌓인다.
-        // 자리는 보이는 알약 기준(시안 px)으로 세고, 알약 그림은 사방 4 여백만큼 크다.
-        private void FillRoute(RectTransform row, List<RoutePlace> route, float bottom)
+        // 들르는 곳 알약을 '›'로 이어 왼쪽부터 놓고, 줄 폭을 넘으면 다음 줄로 넘긴다(시안 #story). 줄 칸은 아래 끝에 붙어 있어
+        // 줄 수만큼 높이를 늘리면 위로 쌓인다. 자리는 보이는 알약 기준(시안 px)으로 센다.
+        private void FillRoute(RectTransform row, List<RoutePlace> route)
         {
             foreach (Transform old in row.Cast<Transform>().ToArray())
                 DestroyNow(old.gameObject);
@@ -392,12 +429,7 @@ namespace A305.Mission
                     label.GetPreferredValues(route[i].Place).x / Px + RouteTextPadding * 2;
                 PlaceInRoute(chip, ref x, ref line, width, width + RouteArtPadding * 2);
             }
-            // 줄 묶음의 위 끝: 아래 끝에서 줄 수만큼 올라간 곳. 알약 그림 여백만큼 더 위가 줄 칸의 왼쪽 위다.
             float height = RouteHeight * (line + 1) + RouteGap * line;
-            row.anchoredPosition = new Vector2(
-                row.anchoredPosition.x,
-                -(bottom - height - RouteArtPadding) * Px
-            );
             row.SetSizeWithCurrentAnchors(
                 RectTransform.Axis.Vertical,
                 (height + RouteArtPadding * 2) * Px
@@ -429,8 +461,9 @@ namespace A305.Mission
             x += width + RouteGap;
         }
 
-        private static readonly Color RouteInk = new Color32(95, 82, 66, 255);
-        private static readonly Color VisitedInk = new Color32(210, 79, 47, 255);
+        // 알약 글자: 가 본 곳은 코랄(시안 .pill), 아직이면 잉크(시안 .card.mid .pill)
+        private static readonly Color RouteInk = new Color32(47, 37, 27, 255);
+        private static readonly Color VisitedInk = new Color32(214, 93, 64, 255);
 
         private void FillStops(QuestEntry quest)
         {
@@ -537,16 +570,18 @@ namespace A305.Mission
         public Button Button;
         public CanvasGroup Group;
         public Image Background;
+
+        /// <summary>카드 안의 내용. 지금 하는 퀘스트의 두꺼운 테두리만큼 들인다.</summary>
+        public RectTransform Content;
         public Image Icon;
         public Image Chip;
         public GameObject DoneStamp;
         public TMP_Text Title;
         public TMP_Text Description;
         public RectTransform Route;
-        public RectTransform MetaRow;
         public TMP_Text Meta;
 
-        /// <summary>잠긴 퀘스트에만 켜는 흰 막과 자물쇠</summary>
+        /// <summary>잠긴 퀘스트에만 켜는 자물쇠</summary>
         public GameObject Locked;
     }
 

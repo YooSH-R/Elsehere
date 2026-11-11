@@ -23,4 +23,12 @@ public interface NpcReplyListener {
 
   /** 문장 조각 음성. seq 순서대로 온다. */
   void onChunk(NpcReplyChunk chunk);
+
+  /**
+   * 부른 쪽이 이 대답을 버렸는지. 판정을 기다리지 않고 먼저 시작했다가 판정 뒤에 버린 대답이면 true다. {@link AiGateway}는 버린 대답을 기록하지 않아
+   * 같은 요청 ID로 다시 부른 대답의 기록을 덮지 않는다.
+   */
+  default boolean discarded() {
+    return false;
+  }
 }

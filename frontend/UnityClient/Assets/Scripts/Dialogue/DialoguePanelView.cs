@@ -11,7 +11,7 @@ namespace A305.Dialogue
     /// <summary>
     /// 대화 중에 보이는 화면. 이번 대화의 대사, 상태 문구, 추천 단어 카드, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[대화 종료],
     /// 서버 AI 대화와 튜토리얼 길 안내의 [말하기], 서버 AI 대화의 [다시 듣기]·[힌트]·[다시 시도]가 있다.
-    /// [힌트]로 받은 추천 문장은 따로 카드에 보이지 않고 입력창에 바로 넣는다.
+    /// 추천 문장은 별도 카드에서 [힌트]로 펼치고 가린다. 펼친 문장을 직접 누르면 영어만 입력창에 넣는다.
     /// 음성 처리에 동의하지 않았으면 [말하기]를 회색으로 두고, 누르면 그 자리에서 동의할 수 있는 창을 연다.
     /// [뜻 보기]를 펼친 동안 대사의 풀이 단어를 누르면 그 단어 근처에 뜻과 [단어장에 저장]이 있는 호버 카드를 띄운다.
     /// NPC 대사를 음성으로 들려주는 대화는 [자막]으로 대사를 단어마다 회색 막대로 가려 듣고 이해하게 한다. 처음에는 자막이 꺼져 있다.
@@ -26,6 +26,9 @@ namespace A305.Dialogue
 
         private const string EnableSubtitlesCaption = "자막 켜기";
         private const string DisableSubtitlesCaption = "자막 끄기";
+        private const float EndHighlightPulseSeconds = .7f;
+        private const int EndHighlightPulseCount = 2;
+        private static readonly Color EndHighlightColor = new Color(1f, .8f, .32f, .55f);
 
         [SerializeField]
         private GameObject panel;
@@ -39,6 +42,9 @@ namespace A305.Dialogue
 
         [SerializeField]
         private Button endButton;
+
+        private Outline endButtonHighlight;
+        private float endButtonHighlightStartedAt;
 
         [SerializeField]
         private TMP_Text linesText;
@@ -65,12 +71,21 @@ namespace A305.Dialogue
         private RectTransform helpPanel;
 
         [SerializeField]
+        private DialogueSuggestionsView suggestions;
+
+        private bool hintVisible;
+        private DialogueLine hintLine;
+
+        [SerializeField]
         private Button reviewFoldButton;
 
         [SerializeField]
         private ReviewReferenceBadges reviewBadges;
         private string reviewReference;
         private string reviewScenario;
+
+        // 참고 카드 제목. 비우면 복습 제목(이번 복습·이번에 써 볼 표현)을 쓴다.
+        private string reviewHeading;
         private string originalHelpTitle;
         private TMP_Text reviewHelpTitle;
         private bool reviewFolded;
@@ -84,7 +99,10 @@ namespace A305.Dialogue
             if (reviewBadges != null)
                 reviewBadges.Clear();
             if (text == null)
+            {
                 reviewScenario = null;
+                reviewHeading = null;
+            }
             if (text == null || reviewReference == null)
                 reviewFolded = false;
             var layout = suggestText.transform.parent.GetComponent<VerticalLayoutGroup>();
@@ -170,14 +188,18 @@ namespace A305.Dialogue
         public void SetReviewReference(
             IReadOnlyList<ReviewReferenceItem> items,
             int verifiedCount,
-            string scenario = null
+            string scenario = null,
+            string heading = null,
+            string countLabel = "말해봤어요"
         )
         {
             reviewScenario = scenario;
+            reviewHeading = heading;
             ReviewReferenceText formatted = ReviewReferenceText.Format(
                 items,
                 verifiedCount,
-                scenario
+                scenario,
+                countLabel
             );
             SetReviewReference(formatted.Text);
             if (reviewBadges != null)
@@ -277,8 +299,6 @@ namespace A305.Dialogue
         private NpcLineCovers npcLineCovers;
 
         // 입력창에 넣은 추천 문장. 같은 문장을 다시 그릴 때마다 넣으면 사용자가 고친 문장을 덮는다.
-        private string filledHint;
-        private string draftWhenHintRequested;
         private bool awaitingHint;
 
         // 음성 처리에 동의하지 않아 쓸 수 없는 [말하기]의 투명도. 누를 수는 있어 동의 창을 연다.
@@ -348,7 +368,10 @@ namespace A305.Dialogue
         }
 
         /// <summary>왼쪽 도움 칸의 추천 단어 카드. 튜토리얼 코치 마크가 밝힌다.</summary>
-        public RectTransform SuggestedWordsRect => (RectTransform)suggestText.transform.parent;
+        public RectTransform SuggestedWordsRect =>
+            suggestions != null && reviewReference == null
+                ? suggestions.WordsRect
+                : (RectTransform)suggestText.transform.parent;
 
         /// <summary>NPC 이름과 표시 중인 호감도·무례 경고를 함께 밝힌다.</summary>
         public IReadOnlyList<RectTransform> RelationshipParts =>
@@ -407,15 +430,16 @@ namespace A305.Dialogue
 
         public void Show(IDialogueContent shownContent)
         {
+            SetEndButtonHighlight(false);
             content = shownContent;
             isMeaningVisible = false;
             // 저장한 단어 표시는 이번 대화 안에서만 기억한다.
             glossaryCard = new GlossaryWordCard { IsSaveAvailable = IsWordSaveAvailable };
             standingDisplay = new ConversationStandingDisplay();
             inputField.text = "";
-            filledHint = null;
             awaitingHint = false;
-            draftWhenHintRequested = null;
+            hintVisible = false;
+            hintLine = shownContent.LastNpcLine;
             ShowVoiceInput(isRecording: false, isHearingVoice: false);
             panel.SetActive(true);
             helpPanel.gameObject.SetActive(true);
@@ -424,9 +448,12 @@ namespace A305.Dialogue
 
         public void Hide()
         {
+            SetEndButtonHighlight(false);
             content = null;
             panel.SetActive(false);
             helpPanel.gameObject.SetActive(false);
+            if (suggestions != null)
+                suggestions.gameObject.SetActive(false);
             voiceConsentDialog.Hide();
             ShowWait(DialogueWait.None);
         }
@@ -451,10 +478,11 @@ namespace A305.Dialogue
             }
 
             feedbackWait.SetActive(wait == DialogueWait.Feedback);
-            // 복습 대화는 피드백 없이 연습 결과만 받으므로 나중에 확인할 것이 없다.
+            // 복습·장소 연습 대화는 피드백 없이 연습 결과만 받으므로 나중에 확인할 것이 없다.
             if (feedbackLaterButton != null)
                 feedbackLaterButton.gameObject.SetActive(
                     !(content is ServerConversation { IsReview: true })
+                        && !(content is ServerConversation { IsPractice: true })
                 );
         }
 
@@ -504,17 +532,15 @@ namespace A305.Dialogue
                 }
             }
 
-            // 요청 뒤 직접 작성한 문장은 덮어쓰지 않는다. 튜토리얼은 명시적으로 누른 힌트만 채운다.
-            if (content.HintText != filledHint)
+            // 새 NPC 대사에서는 다시 가리고, 늦게 도착한 힌트가 작성 중인 말을 바꾸지 않게 한다.
+            if (!ReferenceEquals(hintLine, content.LastNpcLine))
             {
-                filledHint = content.HintText;
-                bool unchangedRequest = awaitingHint && inputField.text == draftWhenHintRequested;
-                bool emptyServerDraft = !content.IsGuided && string.IsNullOrEmpty(inputField.text);
-                if (!string.IsNullOrEmpty(filledHint) && (unchangedRequest || emptyServerDraft))
-                    inputField.text = filledHint;
+                hintLine = content.LastNpcLine;
+                hintVisible = false;
                 awaitingHint = false;
-                draftWhenHintRequested = null;
             }
+            if (!string.IsNullOrEmpty(content.HintText))
+                awaitingHint = false;
 
             // 밑줄은 뜻을 펼친 동안만 보이므로, 뜻을 접으면(보내기 포함) 단어 카드도 닫는다.
             if (!isMeaningVisible)
@@ -543,19 +569,41 @@ namespace A305.Dialogue
                 content.IsSuggestingWords
             );
             bool reviewing = reviewReference != null;
+            if (suggestions != null)
+            {
+                suggestions.gameObject.SetActive(!reviewing);
+                helpPanel.gameObject.SetActive(reviewing);
+                suggestions.Show(
+                    suggestText.text,
+                    content.HasHint,
+                    hintVisible,
+                    content.HintText,
+                    awaitingHint && string.IsNullOrEmpty(content.HintText),
+                    content is ServerConversation hintServer
+                        ? hintServer.HintMeaningKo
+                        : content.SuggestedKorean
+                );
+            }
             if (reviewing)
                 suggestText.text = reviewReference;
             suggestText.gameObject.SetActive(!reviewing || !reviewFolded);
             if (reviewHelpTitle != null)
-                reviewHelpTitle.text = reviewing
-                    ? (reviewScenario == null ? "이번에 써 볼 표현" : "이번 복습")
-                    : originalHelpTitle;
+                reviewHelpTitle.text =
+                    !reviewing ? originalHelpTitle
+                    : reviewHeading != null ? reviewHeading
+                    : reviewScenario == null ? "이번에 써 볼 표현"
+                    : "이번 복습";
             if (reviewFoldButton != null)
                 reviewFoldButton.gameObject.SetActive(reviewing);
 
             sendButton.interactable = content.CanSend;
             // 정해진 대사를 따라가는 대화(튜토리얼 길 안내)는 대사를 다 마칠 때까지 끝낼 수 없다.
             endButton.interactable = !content.IsGuided || content.IsGuidedCompleted;
+            SetEndButtonHighlight(
+                statusText.gameObject.activeSelf
+                    && endButton.IsInteractable()
+                    && content is ServerConversation { ShowsEndFeedbackNotice: true }
+            );
             // 시작에 실패했거나 끝난 대화에 입력할 수 있으면 [보내기]가 아무 일도 하지 않는 것처럼 보이므로 함께 막는다.
             inputField.interactable = content.CanSend;
             // 정해진 대사를 따라가는 대화는 이번에 말하거나 입력할 대사를 빈 입력칸에 회색 안내로 미리 보인다.
@@ -644,6 +692,15 @@ namespace A305.Dialogue
                         UserTranslationListenRequested?.Invoke(content.UserTranslation);
                 });
             hintButton.onClick.AddListener(PressHint);
+            if (suggestions != null)
+            {
+                suggestions.HideRequested += PressHint;
+                suggestions.SentenceSelected += () =>
+                {
+                    if (hintVisible && !string.IsNullOrEmpty(content?.HintText))
+                        inputField.text = content.HintText;
+                };
+            }
             retryButton.onClick.AddListener(RequestRetry);
             subtitleButton.onClick.AddListener(ToggleSubtitles);
             talkButton.onClick.AddListener(PressTalk);
@@ -693,7 +750,6 @@ namespace A305.Dialogue
             }
         }
 
-        // 이번 대사의 추천 문장을 이미 받았으면 서버에 다시 묻지 않고 입력창에 다시 넣는다.
         private void PressHint()
         {
             if (content == null)
@@ -701,16 +757,23 @@ namespace A305.Dialogue
                 return;
             }
 
-            if (string.IsNullOrEmpty(content.HintText))
+            // 튜토리얼은 코치 마크에서 밝힌 버튼으로 현재 연습 대사를 바로 채운다.
+            if (content.IsGuided)
+            {
+                if (string.IsNullOrEmpty(content.HintText))
+                    HintRequested?.Invoke();
+                if (!string.IsNullOrEmpty(content?.HintText))
+                    inputField.text = content.HintText;
+                return;
+            }
+
+            hintVisible = !hintVisible;
+            if (hintVisible && string.IsNullOrEmpty(content.HintText) && !awaitingHint)
             {
                 awaitingHint = true;
-                draftWhenHintRequested = inputField.text;
                 HintRequested?.Invoke();
             }
-            else
-            {
-                inputField.text = content.HintText;
-            }
+            Refresh();
         }
 
         // 들은 문장이나 입력한 문장이 있으면 [보내기]를 강조해 다음에 누를 곳을 알린다.
@@ -771,7 +834,6 @@ namespace A305.Dialogue
 
             string text = inputField.text;
             awaitingHint = false;
-            draftWhenHintRequested = null;
             inputField.text = "";
             isMeaningVisible = false;
             SendRequested?.Invoke(text);
@@ -1063,8 +1125,50 @@ namespace A305.Dialogue
                 return;
             // 변화량과 경고 문구는 몇 초 뒤 새 상태가 없어도 사라져야 하므로 매 프레임 다시 고른다.
             UpdateStanding();
+            UpdateEndButtonHighlight();
             if (((RectTransform)panel.transform.parent).rect.size != lastCanvasSize)
                 UpdateLayout();
+        }
+
+        private void SetEndButtonHighlight(bool visible)
+        {
+            if (endButtonHighlight == null)
+            {
+                if (!visible || endButton.targetGraphic == null)
+                    return;
+
+                endButtonHighlight = endButton.targetGraphic.gameObject.AddComponent<Outline>();
+                endButtonHighlight.effectDistance = new Vector2(2f, -2f);
+                endButtonHighlight.useGraphicAlpha = false;
+                endButtonHighlight.enabled = false;
+            }
+
+            if (endButtonHighlight.enabled == visible)
+                return;
+
+            if (visible)
+            {
+                endButtonHighlightStartedAt = Time.unscaledTime;
+                endButtonHighlight.effectColor = EndHighlightColor;
+            }
+            endButtonHighlight.enabled = visible;
+        }
+
+        private void UpdateEndButtonHighlight()
+        {
+            if (endButtonHighlight == null || !endButtonHighlight.enabled)
+                return;
+
+            // 두 번만 반짝이고, 누르기 전까지는 눈에 띄는 테두리를 유지한다.
+            float elapsed = Time.unscaledTime - endButtonHighlightStartedAt;
+            float pulse = 0f;
+            if (elapsed < EndHighlightPulseSeconds * EndHighlightPulseCount)
+                pulse = .5f - .5f * Mathf.Cos(2f * Mathf.PI * elapsed / EndHighlightPulseSeconds);
+
+            Color color = EndHighlightColor;
+            color.a = Mathf.Lerp(color.a, .95f, pulse);
+            if (endButtonHighlight.effectColor != color)
+                endButtonHighlight.effectColor = color;
         }
 
         // 서버 대화의 호감도·무례 경고 칸. 대본 대화이거나 서버가 보내지 않으면 숨긴다. 색은 테마의 NPC 이름 색을 따른다.
@@ -1195,6 +1299,16 @@ namespace A305.Dialogue
             helpPanel.anchoredPosition = new Vector2(-HelpMargin, -HelpTop);
             float helpRoom =
                 lastCanvasSize.y - HelpTop - layout.Name.yMax - 2 * DialogueCinemaLayout.Gap;
+            if (suggestions != null && reviewReference == null)
+            {
+                suggestions.SetBounds(
+                    new Vector2(-HelpMargin, -HelpTop),
+                    Mathf.Min(HelpWidth, lastCanvasSize.x - 2 * HelpMargin),
+                    Mathf.Clamp(helpRoom, 0, 440)
+                );
+                PlaceVehicleStatus(layout);
+                return;
+            }
             // 단어·문장 카드가 남는 높이보다 길면 아래가 잘려 보이지 않게 묶음째 줄여 넣는다(DialogueHelpFit).
             float room = Mathf.Clamp(helpRoom, 160, 600);
             var helpContent = (RectTransform)helpPanel.Find("Viewport/Content");

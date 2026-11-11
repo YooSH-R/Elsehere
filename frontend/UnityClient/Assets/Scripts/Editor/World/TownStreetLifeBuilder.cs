@@ -75,6 +75,10 @@ namespace A305.EditorTools.World
         private const float LaneOffset = 1.5f;
         private const float RoadHeight = .02f;
 
+        // 승용차(파란 차)는 택시와 같은 속도로 달린다. 2.5m/s는 걷는 사람과 비슷해 너무 느렸다.
+        private const float SedanSpeedMetersPerSecond = 6f;
+        private const string SedanSpeedMenuPath = "Tools/A305/World/Apply Sedan Speed";
+
         // 교차로 정지선(북쪽 방향 z=5.65, 남쪽 방향 z=14.35) 바로 앞에 차 가운데가 오는 자리
         private const float NorthboundStopZ = 3.2f;
         private const float SouthboundStopZ = 16.8f;
@@ -149,9 +153,43 @@ namespace A305.EditorTools.World
                 lights,
                 player
             );
-            Drive("Sedan", parent, route, route.SouthboundDistance(2.3f), lights, player);
+            GameObject sedan = Drive(
+                "Sedan",
+                parent,
+                route,
+                route.SouthboundDistance(2.3f),
+                lights,
+                player
+            );
+            SetSedanSpeed(sedan.GetComponent<LoopingCar>());
             SeatTaxiDriver(scene, taxi, player);
             TaxiCabinBuilder.Configure(scene, taxi.GetComponent<TaxiRide>());
+        }
+
+        /// <summary>이미 배치된 승용차의 속도만 맞춘다. 다른 거리 배치는 그대로 둔다.</summary>
+        [MenuItem(SedanSpeedMenuPath)]
+        public static void ApplySedanSpeed()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            Scene scene = EditorSceneManager.OpenScene(ScenePath);
+            LoopingCar sedan = Array.Find(
+                BuilderTools.FindAllInScene<LoopingCar>(scene),
+                car => car.name == "Sedan"
+            );
+            if (sedan == null)
+                throw new InvalidOperationException(
+                    "마을 씬에 승용차가 없습니다. 먼저 Tools/A305/World/Apply Town Street Life를 실행합니다."
+                );
+            SetSedanSpeed(sedan);
+            BuilderTools.SaveScene(scene, ScenePath);
+        }
+
+        private static void SetSedanSpeed(LoopingCar sedan)
+        {
+            var fields = new SerializedObject(sedan);
+            fields.FindProperty("speedMetersPerSecond").floatValue = SedanSpeedMetersPerSecond;
+            fields.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static GameObject Drive(

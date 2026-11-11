@@ -119,7 +119,34 @@ namespace A305.EditorTools.Theme
             Debug.Log("HUD에 로그인 끊김 안내 창을 덧붙였습니다.");
         }
 
-        /// <summary>대화 제안·로그인과 가입·피드백 목록·내 정보 창의 바탕과 버튼을 다른 화면과 같은 테마 규칙으로 맞춘다.</summary>
+        /// <summary>
+        /// HUD 내 정보 창에 NPC 말 빠르기 줄만 덧붙이고 칠한다(S15P31A305-778). HUD 전체 Builder를 다시 돌리면 다른 Builder가
+        /// 마무리한 HUD 디자인까지 바뀌므로 이 줄만 다룬다.
+        /// </summary>
+        [MenuItem("Tools/A305/UI/Add NPC Speech Speed Setting")]
+        public static void ApplyNpcSpeechSpeed()
+        {
+            BuilderTools.ThrowIfPlaying();
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            BuilderTools.UpdatePrefabIfExists(
+                HudPath,
+                root =>
+                {
+                    LearningBuilder.AddNpcSpeechSpeed(root);
+                    StyleMyPage(root.transform);
+                    foreach (
+                        ThemedElement element in root
+                            .transform.Find("MyPage/Window/NpcSpeechSpeed")
+                            .GetComponentsInChildren<ThemedElement>(true)
+                    )
+                        element.ApplyCurrent();
+                }
+            );
+            AssetDatabase.SaveAssets();
+            Debug.Log("내 정보 창에 NPC 말 빠르기 줄을 덧붙였습니다.");
+        }
+
+        /// <summary>대화 제안·로그인과 가입·대화 노트·내 정보 창의 바탕과 버튼을 다른 화면과 같은 테마 규칙으로 맞춘다.</summary>
         [MenuItem("Tools/A305/UI/Apply Unified Dialogs")]
         public static void ApplyUnifiedDialogs()
         {
@@ -129,7 +156,7 @@ namespace A305.EditorTools.Theme
             Style(OfferPath, StyleOffer);
             Style(EntryPath, StyleEntry);
             AssetDatabase.SaveAssets();
-            Debug.Log("대화 제안·로그인·피드백 목록·내 정보 창을 테마 규칙으로 맞췄습니다.");
+            Debug.Log("대화 제안·로그인·대화 노트·내 정보 창을 테마 규칙으로 맞췄습니다.");
         }
 
         [MenuItem("Tools/A305/UI/Apply Approved HUD Buttons")]
@@ -310,7 +337,7 @@ namespace A305.EditorTools.Theme
         }
 
         /// <summary>
-        /// 오른쪽 위에는 휴대폰 버튼만 두고, 누르면 삼성폰 모양 메뉴(단어장·피드백 목록·마을 지도·집으로·내 정보 앱)를 펼친다.
+        /// 오른쪽 위에는 휴대폰 버튼만 두고, 누르면 삼성폰 모양 메뉴(단어장·대화 노트·마을 지도·집으로·내 정보 앱)를 펼친다.
         /// 폰 화면은 <see cref="PhoneMenuBuilder"/>가 만든다. 알림은 알림이 있을 때만 보이는 작은 카드에 담는다.
         /// </summary>
         private static void StyleHud(Transform root)
@@ -372,7 +399,7 @@ namespace A305.EditorTools.Theme
 
         // 메뉴(≡) 버튼. 평소 버튼은 기본 색, 펼친 동안 같은 자리에 보이는 버튼은 강조 색이다.
 
-        /// <summary>피드백 목록 창은 테마 유리 판 위에 확정 시안대로 다시 놓는다(FeedbackListBuilder).</summary>
+        /// <summary>대화 노트 창은 테마 유리 판 위에 확정 시안대로 다시 놓는다(FeedbackListBuilder).</summary>
         private static void StyleHistory(Transform root)
         {
             if (root.Find("History") == null)
@@ -381,7 +408,7 @@ namespace A305.EditorTools.Theme
             A305.EditorTools.Learning.FeedbackListBuilder.Apply(root);
         }
 
-        /// <summary>[이웃] 창은 [피드백 목록]과 같은 테마 유리 판 위에 같은 자리로 놓는다(NeighborsListBuilder).</summary>
+        /// <summary>[이웃] 창은 [대화 노트]와 같은 테마 유리 판 위에 같은 자리로 놓는다(NeighborsListBuilder).</summary>
         private static void StyleNeighbors(Transform root)
         {
             if (root.Find("Neighbors") == null)
@@ -505,6 +532,11 @@ namespace A305.EditorTools.Theme
             Role(root, "MyPage/Window/LookSensitivity/Row/Slow", UiThemeRole.Caption);
             Role(root, "MyPage/Window/LookSensitivity/Row/Fast", UiThemeRole.Caption);
             Role(root, "MyPage/Window/LookSensitivity/Row/Value", UiThemeRole.Accent);
+            Role(root, "MyPage/Window/NpcSpeechSpeed/Title", UiThemeRole.Title);
+            Role(root, "MyPage/Window/NpcSpeechSpeed/Help", UiThemeRole.Muted);
+            Role(root, "MyPage/Window/NpcSpeechSpeed/Row/Slow", UiThemeRole.Caption);
+            Role(root, "MyPage/Window/NpcSpeechSpeed/Row/Fast", UiThemeRole.Caption);
+            Role(root, "MyPage/Window/NpcSpeechSpeed/Row/Value", UiThemeRole.Accent);
             ActionPill(
                 root,
                 "MyPage/Window/NicknameRow/NicknameButton",
@@ -1155,16 +1187,10 @@ namespace A305.EditorTools.Theme
                 36
             );
             QuietButton(root, "Panel/Sections/SummaryButton", "요약", selectedTint: true);
-            QuietButton(root, "Panel/Sections/CorrectionsButton", "문장", selectedTint: true);
-            QuietButton(root, "Panel/Sections/ConversationButton", "회화", selectedTint: true);
-            QuietButton(root, "Panel/Sections/ExpressionsButton", "표현", selectedTint: true);
+            QuietButton(root, "Panel/Sections/CorrectionsButton", "문장 교정", selectedTint: true);
+            QuietButton(root, "Panel/Sections/ConversationButton", "전체 대화", selectedTint: true);
             CompactArrow(root, "Panel/Navigation/PreviousButton", UiIcon.Previous);
             CompactArrow(root, "Panel/Navigation/NextButton", UiIcon.Next);
-            string savePath =
-                root.Find("Panel/PageCard/BodyTile/SaveButton") != null
-                    ? "Panel/PageCard/BodyTile/SaveButton"
-                    : "Panel/Buttons/SaveButton";
-            QuietButton(root, savePath, "담기");
             QuietButton(root, "Panel/Buttons/DetailButton", "자세히");
             QuietButton(root, "Panel/Buttons/RegenerateButton", "다시 만들기");
             QuietButton(root, "Panel/Buttons/TranscriptButton", "대화 기록");

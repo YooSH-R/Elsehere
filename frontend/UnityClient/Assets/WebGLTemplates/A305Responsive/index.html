@@ -11,7 +11,7 @@
     <section id="analytics-consent" class="analytics-consent" aria-labelledby="analytics-consent-title" hidden>
       <h2 id="analytics-consent-title">서비스 이용 통계 수집</h2>
       <p>서비스 개선을 위해 방문 화면, 게임 로딩 결과, 기기·브라우저, 대략적인 위치와 유입 경로를 Google 애널리틱스로 수집하고 있습니다. 원하지 않으면 [수집 거부]를 눌러 주세요. 거부해도 서비스를 이용할 수 있습니다.</p>
-      <p><a href="/privacy" target="_blank" rel="noopener noreferrer">개인정보 처리방침 보기</a></p>
+      <p><a href="/privacy/2026-11-09" target="_blank" rel="noopener noreferrer">개인정보 처리방침 보기</a></p>
       <div class="analytics-consent-actions">
         <button id="analytics-reject" type="button">수집 거부</button>
         <button id="analytics-accept" type="button">수집 허용</button>
@@ -194,6 +194,105 @@
 
         window.addEventListener("error", keepFromUnityLoader);
         window.addEventListener("unhandledrejection", keepFromUnityLoader);
+      })();
+    </script>
+    <script id="entry-music">
+      // 게임 파일을 받는 로딩 화면에서부터 접속 음악을 튼다. 브라우저가 자동재생을 막으면 첫 클릭·키·터치 뒤에 들린다.
+      // Unity가 켜지면 InterfaceAudioPlayer가 이 음악을 이어받아(LoadingPageMusic.jslib) 입구 화면에서도 끊지 않고 틀고,
+      // 게임 공간에 들어가면 줄여서 끈다. 음량 0.18은 Unity의 EntryMusicPlan과 같다.
+      // Unity 로더는 처리하지 않은 Promise 거부를 로딩 실패로 알리므로, 여기의 Promise는 모두 거부를 직접 처리한다.
+      (() => {
+        if (!window.AudioContext) {
+          return;
+        }
+        // 스피커를 끈 선택은 Unity가 Set으로 알려 줄 때 남긴다. 저장소를 읽지 못하면 켠 것으로 본다.
+        const soundKey = "elsehere.audio.background.enabled";
+        let soundEnabled = true;
+        try {
+          soundEnabled = localStorage.getItem(soundKey) !== "0";
+        } catch {
+          // 저장소를 쓸 수 없으면 기본값(켬)으로 튼다.
+        }
+
+        // iPhone Safari는 audio 요소의 음량을 바꿀 수 없어, 받은 음원을 Web Audio로 반복해 틀고 음량은 gain으로 정한다.
+        const context = new AudioContext();
+        const gain = context.createGain();
+        gain.gain.value = soundEnabled ? 0.18 : 0;
+        gain.connect(context.destination);
+        let shouldPlay = soundEnabled;
+        let failed = false;
+        let buffer = null;
+        let source = null;
+
+        function startLoop() {
+          if (!shouldPlay || source !== null || buffer === null) {
+            return;
+          }
+          source = context.createBufferSource();
+          source.buffer = buffer;
+          source.loop = true;
+          source.connect(gain);
+          source.start();
+        }
+
+        function stopLoop() {
+          if (source === null) {
+            return;
+          }
+          source.stop();
+          source.disconnect();
+          source = null;
+        }
+
+        fetch("entry-town-ensemble.mp3")
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("HTTP " + response.status);
+            }
+            return response.arrayBuffer();
+          })
+          .then((data) => context.decodeAudioData(data))
+          .then((decoded) => {
+            buffer = decoded;
+            startLoop();
+          })
+          .catch((error) => {
+            // 음악 없이도 게임은 열린다. Unity는 음악이 없는 페이지 대신 자기 음악을 쓴다.
+            failed = true;
+            console.warn("접속 음악을 불러오지 못했습니다.", error);
+          });
+
+        // 자동재생이 막히면 소리가 멈춘 채로 시작한다. 클릭·키·터치 때마다 다시 켠다(iPhone은 전화·알림 뒤에도 멈춘다).
+        function resumeOnGesture() {
+          if (context.state !== "running") {
+            context.resume().catch((error) => console.warn("접속 음악을 켜지 못했습니다.", error));
+          }
+        }
+        for (const type of ["pointerdown", "pointerup", "touchend", "keydown", "click"]) {
+          window.addEventListener(type, resumeOnGesture, { capture: true, passive: true });
+        }
+
+        window.elsehereEntryMusic = {
+          // 음원을 받지 못했으면 -1을 돌려준다. Unity는 이때 자기 음악을 쓴다.
+          volume: () => (failed ? -1 : gain.gain.value),
+          set(volume, playing, enabled) {
+            gain.gain.value = volume;
+            shouldPlay = playing;
+            if (playing) {
+              startLoop();
+            } else {
+              stopLoop();
+            }
+            if (enabled !== soundEnabled) {
+              soundEnabled = enabled;
+              try {
+                localStorage.setItem(soundKey, enabled ? "1" : "0");
+              } catch {
+                // 저장하지 못하면 다음 로딩 화면은 이 선택을 모른 채 기본값으로 튼다.
+              }
+            }
+          },
+        };
       })();
     </script>
     <script>

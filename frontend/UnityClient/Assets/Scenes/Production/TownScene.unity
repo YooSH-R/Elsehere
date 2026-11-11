@@ -5967,7 +5967,7 @@ MonoBehaviour:
   southZ: -6
   northZ: 66
   laneOffset: 1.5
-  speedMetersPerSecond: 2.5
+  speedMetersPerSecond: 6
   startDistance: 140.41238
   parkedTruckBypassOffset: 0
   lights: {fileID: 2085266616}

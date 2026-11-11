@@ -56,7 +56,7 @@ namespace A305.EditorTools.Learning
         // 화면 위 가장자리에서 카드까지의 여백
         private const float SurveyPromptTopMargin = 24f;
 
-        private const string FeedbackListTitle = "피드백 목록";
+        private const string FeedbackListTitle = "대화 노트";
 
         private const float ControlsGuideWidth = 460f;
 
@@ -92,13 +92,22 @@ namespace A305.EditorTools.Learning
             PrepareHud();
         }
 
-        /// <summary>오른쪽 위 메뉴(≡)와 메뉴 버튼, 피드백 목록·내 정보 창이 있는 HUD 프리팹의 기능 구성을 맞춘다.</summary>
+        /// <summary>오른쪽 위 메뉴(≡)와 메뉴 버튼, 대화 노트·내 정보 창이 있는 HUD 프리팹의 기능 구성을 맞춘다.</summary>
         public static void PrepareHud() =>
             BuilderTools.UpdateOrCreatePrefab(HudPrefabPath, "LearningHud", SetUpHud);
 
         /// <summary>HUD 프리팹 루트에 로그인 끊김 안내 창만 덧붙인다. HUD의 다른 구성은 건드리지 않는다.</summary>
         public static void AddSessionExpired(GameObject hud) =>
             SetUpSessionExpired(hud, UiBuilderTools.BoldFont(), UiBuilderTools.RegularFont());
+
+        /// <summary>HUD 내 정보 창에 NPC 말 빠르기 줄만 덧붙인다. HUD의 다른 구성은 건드리지 않는다.</summary>
+        public static void AddNpcSpeechSpeed(GameObject hud) =>
+            SetUpNpcSpeechSpeed(
+                hud.GetComponent<MyPageView>(),
+                (RectTransform)hud.transform.Find("MyPage/Window"),
+                UiBuilderTools.BoldFont(),
+                UiBuilderTools.RegularFont()
+            );
 
         /// <summary>씬에 피드백·단어장 화면과 학습 처리가 없으면 붙이고 플레이어·대화 처리와 연결한다.</summary>
         public static LearningController ConnectToScene(
@@ -246,16 +255,7 @@ namespace A305.EditorTools.Learning
                 Color.white
             );
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
-            Transform savedButton = panel.Find("PageCard/Content/BodyTile/SaveButton");
-            if (savedButton == null)
-                savedButton = panel.Find("PageCard/BodyTile/SaveButton");
-            Button saveButton = UiBuilderTools.FindOrCreateButton(
-                savedButton != null ? savedButton.parent : buttons,
-                "SaveButton",
-                "표현 저장",
-                bold,
-                180f
-            );
+            // 표현·문장마다 [담기]가 있으므로(FeedbackScreenBuilder) 아래 줄의 [표현 저장]은 두지 않는다.
             Button detailButton = UiBuilderTools.FindOrCreateButton(
                 buttons,
                 "DetailButton",
@@ -278,7 +278,7 @@ namespace A305.EditorTools.Learning
                 180f
             );
 
-            // 피드백을 받지 못했을 때만 [표현 저장]·[상세 보기] 대신 보인다. 새로 붙이면 [단어장 보기] 앞에 둔다.
+            // 피드백을 받지 못했을 때만 보인다. 새로 붙이면 [단어장 보기] 앞에 둔다.
             bool isRegenerateNew = buttons.Find("RegenerateButton") == null;
             Button regenerateButton = UiBuilderTools.FindOrCreateButton(
                 buttons,
@@ -307,7 +307,6 @@ namespace A305.EditorTools.Learning
             BuilderTools.SetReference(view, "titleText", title);
             BuilderTools.SetReference(view, "summaryText", summary);
             BuilderTools.SetReference(view, "bodyText", body);
-            BuilderTools.SetReference(view, "saveButton", saveButton);
             BuilderTools.SetReference(view, "detailButton", detailButton);
             BuilderTools.SetReference(
                 view,
@@ -530,7 +529,7 @@ namespace A305.EditorTools.Learning
 
         /// <summary>
         /// 오른쪽 아래 조작법 카드와 메뉴의 [조작법]. 없는 요소만 만들고 디자인은 유지한다.
-        /// 카드는 HUD 맨 뒤에 두어, 메뉴를 펼친 동안에는 바깥 영역이 덮고 피드백 목록·내 정보 창은 카드 위에 보이게 한다.
+        /// 카드는 HUD 맨 뒤에 두어, 메뉴를 펼친 동안에는 바깥 영역이 덮고 대화 노트·내 정보 창은 카드 위에 보이게 한다.
         /// </summary>
         private static void SetUpControlsGuide(
             GameObject root,
@@ -706,7 +705,7 @@ namespace A305.EditorTools.Learning
         }
 
         /// <summary>
-        /// 메뉴의 [피드백 목록]과 지난 대화를 고르는 피드백 목록 창. 창 안은 확정 시안대로 FeedbackListBuilder가 배치한다.
+        /// 메뉴의 [대화 노트]와 지난 대화를 고르는 대화 노트 창. 창 안은 확정 시안대로 FeedbackListBuilder가 배치한다.
         /// 창은 피드백 화면(정렬 130)보다 아래인 HUD 캔버스에 있어, 목록에서 연 피드백이 창 위에 보인다.
         /// </summary>
         private static void SetUpHistory(
@@ -836,7 +835,24 @@ namespace A305.EditorTools.Learning
                 "consentTemplate",
                 OnboardingBuilder.SetUpConsentRow(consents, "ConsentRowTemplate", regular)
             );
-            SetUpLookSensitivity(view, profile, bold, regular);
+            RectTransform lookSensitivity = SetUpSliderSetting(
+                view,
+                profile,
+                new SliderSetting(
+                    "LookSensitivity",
+                    "시점 감도",
+                    "마우스·화면을 끌어 시점을 돌리는 빠르기예요.\n이 기기에만 저장돼요.",
+                    LookSensitivity.Min,
+                    LookSensitivity.Max,
+                    LookSensitivity.Default,
+                    "lookSensitivitySlider",
+                    "lookSensitivityText"
+                ),
+                bold,
+                regular
+            );
+            lookSensitivity.SetSiblingIndex(profile.Find("Status").GetSiblingIndex() + 1);
+            SetUpNpcSpeechSpeed(view, profile, bold, regular);
             RectTransform profileButtons = UiBuilderTools.FindOrCreateButtonRow(profile, "Buttons");
             // 이미 만든 화면에 새로 붙는 줄은 맨 아래에 생기므로 버튼 줄 위로 옮긴다.
             // 이미 버튼 줄 위에 있는 줄까지 옮기면 제목·목록·버튼 순서가 뒤집히므로 아래에 있는 줄만 옮긴다.
@@ -998,24 +1014,85 @@ namespace A305.EditorTools.Learning
                 row.SetSiblingIndex(anchor.GetSiblingIndex());
         }
 
-        // 닉네임 안내 아래, 버튼 줄 위에 "시점 감도" 제목·설명과 [느리게] 슬라이더 [빠르게] 현재값 줄을 둔다.
-        // 이미 만든 창에 추가할 때도 같은 자리에 넣는다. 글자 색은 UiThemeBuilder가 테마에 맞춘다.
-        private static void SetUpLookSensitivity(
+        // 시점 감도 줄 바로 아래에 둔다. 서버 음성 합성에 쓰는 값이라 범위·기본값은 NpcSpeechSpeed를 따른다.
+        private static void SetUpNpcSpeechSpeed(
             MyPageView view,
             RectTransform profile,
             TMP_FontAsset bold,
             TMP_FontAsset regular
         )
         {
-            RectTransform group = UiBuilderTools.FindOrCreateColumn(profile, "LookSensitivity");
-            UiBuilderTools.FindOrCreateText(group, "Title", bold, 26f, Color.white, "시점 감도");
+            RectTransform group = SetUpSliderSetting(
+                view,
+                profile,
+                new SliderSetting(
+                    "NpcSpeechSpeed",
+                    "NPC 말 빠르기",
+                    "NPC가 영어로 말하는 빠르기예요.\n다음 대사부터 바뀌고 이 기기에만 저장돼요.",
+                    NpcSpeechSpeed.Min,
+                    NpcSpeechSpeed.Max,
+                    NpcSpeechSpeed.Default,
+                    "npcSpeechSpeedSlider",
+                    "npcSpeechSpeedText"
+                ),
+                bold,
+                regular
+            );
+            group.SetSiblingIndex(profile.Find("LookSensitivity").GetSiblingIndex() + 1);
+        }
+
+        private readonly struct SliderSetting
+        {
+            public readonly string GroupName;
+            public readonly string Title;
+            public readonly string Help;
+            public readonly float Min;
+            public readonly float Max;
+            public readonly float Default;
+            public readonly string SliderField;
+            public readonly string ValueField;
+
+            public SliderSetting(
+                string groupName,
+                string title,
+                string help,
+                float min,
+                float max,
+                float defaultValue,
+                string sliderField,
+                string valueField
+            )
+            {
+                GroupName = groupName;
+                Title = title;
+                Help = help;
+                Min = min;
+                Max = max;
+                Default = defaultValue;
+                SliderField = sliderField;
+                ValueField = valueField;
+            }
+        }
+
+        // 닉네임 안내 아래, 버튼 줄 위에 제목·설명과 [느리게] 슬라이더 [빠르게] 현재값 줄을 둔다.
+        // 자리는 부르는 쪽이 정한다. 글자 색은 UiThemeBuilder가 테마에 맞춘다.
+        private static RectTransform SetUpSliderSetting(
+            MyPageView view,
+            RectTransform profile,
+            SliderSetting setting,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            RectTransform group = UiBuilderTools.FindOrCreateColumn(profile, setting.GroupName);
+            UiBuilderTools.FindOrCreateText(group, "Title", bold, 26f, Color.white, setting.Title);
             UiBuilderTools.FindOrCreateText(
                 group,
                 "Help",
                 regular,
                 20f,
                 SubTextColor,
-                "마우스·화면을 끌어 시점을 돌리는 빠르기예요.\n이 기기에만 저장돼요."
+                setting.Help
             );
             RectTransform row = UiBuilderTools.FindOrCreateButtonRow(group, "Row");
             row.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
@@ -1026,9 +1103,9 @@ namespace A305.EditorTools.Learning
             Slider slider = UiBuilderTools.FindOrCreateSlider(
                 row,
                 "Slider",
-                LookSensitivity.Min,
-                LookSensitivity.Max,
-                LookSensitivity.Default
+                setting.Min,
+                setting.Max,
+                setting.Default
             );
             FixWidth(
                 UiBuilderTools.FindOrCreateText(row, "Fast", regular, 20f, SubTextColor, "빠르게"),
@@ -1040,15 +1117,14 @@ namespace A305.EditorTools.Learning
                 bold,
                 30f,
                 Color.white,
-                "1.0배"
+                $"{setting.Default:0.0}배"
             );
             value.alignment = TextAlignmentOptions.Right;
             FixWidth(value, 96f);
 
-            Transform status = profile.Find("Status");
-            group.SetSiblingIndex(status.GetSiblingIndex() + 1);
-            BuilderTools.SetReference(view, "lookSensitivitySlider", slider);
-            BuilderTools.SetReference(view, "lookSensitivityText", value);
+            BuilderTools.SetReference(view, setting.SliderField, slider);
+            BuilderTools.SetReference(view, setting.ValueField, value);
+            return group;
         }
 
         private static void FixWidth(TMP_Text text, float width)

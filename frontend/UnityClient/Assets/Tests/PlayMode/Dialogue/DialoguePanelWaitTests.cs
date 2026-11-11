@@ -93,6 +93,36 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(Field<GameObject>("feedbackWait").activeInHierarchy, Is.False);
         }
 
+        [UnityTest]
+        public IEnumerator EndNotice_HighlightsOnlyTheEndButtonUntilFeedbackStarts()
+        {
+            var conversation = new ServerConversation("CAFE_STAFF", "Mia", null, canTalk: true);
+            yield return Show(conversation);
+            Graphic button = view.EndButtonRect.GetComponent<Button>().targetGraphic;
+            Assert.That(button.GetComponent<Outline>(), Is.Null);
+
+            // 서버 호출 없이 종료된 턴과 실제 안내 문구를 화면에 넘긴다.
+            typeof(ServerConversation)
+                .GetProperty(nameof(ServerConversation.IsEnded))
+                .SetValue(conversation, true);
+            conversation.ShowMessage(
+                "Mia이(가) 대화를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요."
+            );
+            view.Refresh();
+
+            var highlight = button.GetComponent<Outline>();
+            Assert.That(highlight, Is.Not.Null, "종료 안내가 보이면 버튼을 강조합니다.");
+            Assert.That(highlight.enabled, Is.True);
+            Assert.That(view.EndButtonRect.GetComponent<Button>().IsInteractable(), Is.True);
+
+            typeof(ServerConversation)
+                .GetProperty(nameof(ServerConversation.Waiting))
+                .SetValue(conversation, DialogueWait.Feedback);
+            view.Refresh();
+            Assert.That(highlight.enabled, Is.False);
+            Assert.That(Field<GameObject>("feedbackWait").activeInHierarchy, Is.True);
+        }
+
         // 멈춘 화면처럼 보이지 않게 로딩 고리가 계속 돈다.
         [UnityTest]
         public IEnumerator LoadingRing_KeepsTurning()

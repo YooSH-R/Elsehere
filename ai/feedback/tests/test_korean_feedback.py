@@ -36,6 +36,16 @@ def test_korean_turn_is_explicitly_requested_as_an_english_expression():
     assert "한국어로 의도를 전달한 발화에는 영어 표현" in messages[0]["content"]
 
 
+def test_verdict_rules_give_every_clear_korean_turn_an_english_expression_instead_of_not_assessable():
+    request, _ = korean_case()
+    system = build_messages(request)[0]["content"]
+    rules = system.split("## 발화별 판정")[1].split("\n## ")[0]
+    # 한국어만 쓴 발화도 뜻이 분명하면 영어 표현을 받고, 뜻이 불분명할 때만 되묻는다.
+    assert "한국어만의 발화는 not_assessable" not in rules
+    assert "한국어만 있어도 의도가 분명하면 improvement_suggested" in rules
+    assert "의도가 불분명할 때만 needs_clarification" in rules
+
+
 def test_korean_turn_keeps_original_and_returns_english_context_expression():
     request, body = korean_case()
     response = run(request, body)

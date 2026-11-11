@@ -79,19 +79,21 @@ public class TurnHelpService {
   public HintResponse hint(Long userId, Long turnId, UUID requestId) {
     HintTarget target = transactionTemplate.execute(status -> hintTarget(userId, turnId));
     if (target.hintText() != null) {
-      return new HintResponse(turnId, target.hintText());
+      return new HintResponse(turnId, target.hintText(), target.hintMeaningKo());
     }
 
     WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
-    String hintText =
-        aiGateway
-            .hint(trace, target.npc(), target.history(), target.goal(), target.level())
-            .firstSentence();
+    var result =
+        aiGateway.hint(trace, target.npc(), target.history(), target.goal(), target.level());
+    String hintText = result.firstSentence();
+    String meaningKo = result.firstMeaningKo();
     Instant openedAt = clock.instant();
     transactionTemplate.executeWithoutResult(
         status ->
-            turnRepository.findById(turnId).ifPresent(turn -> turn.openHint(hintText, openedAt)));
-    return new HintResponse(turnId, hintText);
+            turnRepository
+                .findById(turnId)
+                .ifPresent(turn -> turn.openHint(hintText, meaningKo, openedAt)));
+    return new HintResponse(turnId, hintText, meaningKo);
   }
 
   /** 추천 단어는 대답 응답(CONV-01·03)을 기다리게 하지 않도록 NPC 대사를 받은 뒤 따로 만든다. */
@@ -132,6 +134,7 @@ public class TurnHelpService {
     NpcContext npc = dialogueContexts.npcOf(conversation);
     return new HintTarget(
         turn.getHintText(),
+        turn.getHintMeaningKo(),
         turn.getSuggestWords(),
         conversation.getId(),
         conversation.getLevelApplied(),
@@ -200,6 +203,7 @@ public class TurnHelpService {
    */
   private record HintTarget(
       String hintText,
+      String hintMeaningKo,
       String suggestWords,
       Long conversationId,
       int level,

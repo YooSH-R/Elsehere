@@ -11,7 +11,10 @@ using UnityEngine.UI;
 
 namespace A305.EditorTools.Learning
 {
-    /// <summary>기존 피드백의 창·글꼴·유리 카드를 그대로 쓰는 복습장.</summary>
+    /// <summary>
+    /// 기존 피드백의 창·글꼴·유리 카드를 그대로 쓰는 [연습 돌아보기] 창. 대화 노트의 [다시 연습]을 마치면 결과를 보이고,
+    /// [다시 연습]으로 같은 상황을 한 번 더 연습한다. 예전 복습장 목록(장소 탭·카드 줄·휴대폰 [복습장] 앱)은 대화 노트로 합쳐 만들지 않는다.
+    /// </summary>
     public static class ReviewWorkbookBuilder
     {
         public const string PrefabPath = "Assets/Prefabs/Learning/ReviewWorkbook.prefab";
@@ -115,11 +118,6 @@ namespace A305.EditorTools.Learning
             ApplyResultCards();
             BuilderTools.UpdateOrCreatePrefab(HudPath, "LearningHud", AttachToHud);
             BuilderTools.UpdateOrCreatePrefab(
-                "Assets/Prefabs/Learning/FeedbackScreen.prefab",
-                "FeedbackScreen",
-                AttachSaveButton
-            );
-            BuilderTools.UpdateOrCreatePrefab(
                 "Assets/Prefabs/Dialogue/DialoguePanel.prefab",
                 "DialoguePanel",
                 AttachReferenceFold
@@ -141,34 +139,18 @@ namespace A305.EditorTools.Learning
                     .GetArrayElementAtIndex(0)
                     .objectReferenceValue;
             Button close = Read<Button>(fields, "topCloseButton");
-            Button[] tabs = Enumerable
-                .Range(0, 4)
-                .Select(i =>
-                    (Button)
-                        fields
-                            .FindProperty("sectionButtons")
-                            .GetArrayElementAtIndex(i)
-                            .objectReferenceValue
-                )
-                .ToArray();
             Object.DestroyImmediate(feedback);
             foreach (Transform child in panel.transform.Cast<Transform>().ToArray())
             {
-                bool keep = new[]
-                {
-                    "Title",
-                    "Summary",
-                    "AppIcon",
-                    "TopCloseButton",
-                    "Sections",
-                    "PageCard",
-                }.Contains(child.name);
+                bool keep = new[] { "Title", "AppIcon", "TopCloseButton", "PageCard" }.Contains(
+                    child.name
+                );
                 if (keep)
                     child.gameObject.SetActive(true);
                 else
                     Object.DestroyImmediate(child.gameObject);
             }
-            heading.text = "복습장";
+            heading.text = "연습 돌아보기";
             Image appIcon = panel.transform.Find("AppIcon").GetComponent<Image>();
             appIcon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(
                 "Assets/Art/UI/Feedback/HistoryAvatarCoral.png"
@@ -185,76 +167,27 @@ namespace A305.EditorTools.Learning
             CenterBookIcon(root);
             bookIcon.rectTransform.sizeDelta = new Vector2(60, 60);
             heading.rectTransform.sizeDelta = new Vector2(220, heading.rectTransform.sizeDelta.y);
-            var subtitle = panel.transform.Find("Summary").GetComponent<TMP_Text>();
-            subtitle.text = "장소별로 다시 말해 봐요";
-            subtitle.rectTransform.anchoredPosition = new Vector2(
-                heading.rectTransform.anchoredPosition.x + 180,
-                subtitle.rectTransform.anchoredPosition.y
-            );
-            subtitle.gameObject.SetActive(false); // 좁은 창에서도 제목과 필터가 겹치지 않는다.
-            string[] labels = { "전체", "카페", "호텔", "마을" };
-            for (int i = 0; i < tabs.Length; i++)
-            {
-                tabs[i].GetComponentInChildren<TMP_Text>(true).text = labels[i];
-                var size = tabs[i].GetComponent<LayoutElement>();
-                size.preferredWidth = 92;
-                size.minWidth = 92;
-            }
             ScrollRect scroll = panel.transform.Find("PageCard").GetComponent<ScrollRect>();
             foreach (Transform child in scroll.content)
                 child.gameObject.SetActive(false);
-            var row = Rect("ReviewRowTemplate", scroll.content)
-                .gameObject.AddComponent<ReviewWorkbookRow>();
-            Image background = row.gameObject.AddComponent<Image>();
-            row.gameObject.AddComponent<Button>().targetGraphic = background;
-            background.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(
-                "Assets/Art/UI/Feedback/FeedbackTile.png"
-            );
-            background.type = Image.Type.Sliced;
-            background.pixelsPerUnitMultiplier = 2.3f;
-            var rowFields = new SerializedObject(row);
-            Set(rowFields, "title", Text(row.transform, heading, "Title", 29));
-            Set(rowFields, "situation", Text(row.transform, font, "Situation", 23));
-            Set(rowFields, "expressions", Text(row.transform, heading, "Expressions", 26));
-            var progress = Text(row.transform, font, "Progress", 18);
-            progress.alignment = TextAlignmentOptions.MidlineRight;
-            progress.color = new Color32(125, 110, 91, 255);
-            Set(rowFields, "progress", progress);
-            Set(
-                rowFields,
-                "practice",
-                Action(row.transform, buttonTemplate, "PracticeButton", "연습하기", UiTone.Primary)
-            );
-            var remove = Object.Instantiate(close, row.transform);
-            remove.name = "RemoveButton";
-            remove.transform.Find("Icon").GetComponent<Image>().sprite =
-                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Theme/Icons/Delete.png");
-            Set(rowFields, "remove", remove);
-            rowFields.ApplyModifiedPropertiesWithoutUndo();
-            row.gameObject.SetActive(false);
             var status = Text(scroll.content, font, "ReviewStatus", 24);
             var more = Action(
                 scroll.content,
                 buttonTemplate,
                 "MoreButton",
-                "더 보기",
+                "다시 연습",
                 UiTone.Neutral
             );
             var view = root.AddComponent<ReviewWorkbookView>();
             var viewFields = new SerializedObject(view);
             Set(viewFields, "panel", panel);
             Set(viewFields, "scroll", scroll);
-            Set(viewFields, "rowTemplate", row);
             Set(viewFields, "status", status);
             Set(viewFields, "more", more);
             Set(viewFields, "close", close);
-            var filters = viewFields.FindProperty("filters");
-            filters.arraySize = tabs.Length;
-            for (int i = 0; i < tabs.Length; i++)
-                filters.GetArrayElementAtIndex(i).objectReferenceValue = tabs[i];
             viewFields.ApplyModifiedPropertiesWithoutUndo();
             foreach (Transform child in scroll.content.Cast<Transform>().ToArray())
-                if (child != row.transform && child != status.transform && child != more.transform)
+                if (child != status.transform && child != more.transform)
                     Object.DestroyImmediate(child.gameObject);
             panel.SetActive(false);
         }
@@ -278,18 +211,7 @@ namespace A305.EditorTools.Learning
             screenRect.offsetMin = screenRect.offsetMax = Vector2.zero;
             // 원본은 독립 창으로도 검수한다. HUD 안에서는 바깥 캔버스의 배율을 따른다.
             Object.DestroyImmediate(screen.GetComponent<CanvasScaler>());
-            Transform phone = hud.transform.Find("Panel/Menu");
-            Button template = phone.Find("HistoryButton").GetComponent<Button>();
-            Button entry = Action(phone, template, "ReviewButton", "복습장", UiTone.Primary);
-            ReviewWorkbookRow.Pin(
-                (RectTransform)entry.transform,
-                98 * 1.2f,
-                655 * 1.2f,
-                234 * 1.2f,
-                54 * 1.2f
-            );
             var fields = new SerializedObject(hud.GetComponent<LearningHudView>());
-            Set(fields, "reviewButton", entry);
             Set(fields, "reviewView", screen.GetComponent<ReviewWorkbookView>());
             fields.ApplyModifiedPropertiesWithoutUndo();
             PhoneLearningMenuBuilder.Apply(hud);
@@ -337,28 +259,26 @@ namespace A305.EditorTools.Learning
             buttonObject.SetActive(false);
         }
 
-        private static void AttachSaveButton(GameObject feedbackRoot)
+        /// <summary>
+        /// 이미 만든 창에서 예전 복습장 목록 부품(부제·장소 탭·카드 줄 틀)을 지우고 [연습 돌아보기] 창만 남긴다.
+        /// 새로 만들 때(<see cref="Build"/>)는 처음부터 만들지 않는다.
+        /// </summary>
+        public static void KeepOnlyPracticeResult(GameObject root)
         {
-            var view = feedbackRoot.GetComponent<FeedbackView>();
-            var fields = new SerializedObject(view);
-            var panel = Read<GameObject>(fields, "panel").transform;
-            Transform old = panel.Find("ReviewSaveButton");
-            if (old != null)
-                Object.DestroyImmediate(old.gameObject);
-            var button = Action(
-                panel,
-                Read<Button>(fields, "vocabularyButton"),
-                "ReviewSaveButton",
-                "복습장에 담기",
-                UiTone.Neutral
-            );
-            var rect = (RectTransform)button.transform;
-            rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
-            rect.anchoredPosition = new Vector2(44, 34);
-            rect.sizeDelta = new Vector2(240, 60);
-            Set(fields, "reviewButton", button);
-            fields.ApplyModifiedPropertiesWithoutUndo();
-            button.gameObject.SetActive(false);
+            Transform panel = root.transform.Find("Panel");
+            foreach (string old in new[] { "Summary", "Sections" })
+            {
+                Transform part = panel.Find(old);
+                if (part != null)
+                    Object.DestroyImmediate(part.gameObject);
+            }
+            ScrollRect scroll = panel.Find("PageCard").GetComponent<ScrollRect>();
+            Transform row = scroll.content.Find("ReviewRowTemplate");
+            if (row != null)
+                Object.DestroyImmediate(row.gameObject);
+            panel.Find("Title").GetComponent<TMP_Text>().text = "연습 돌아보기";
+            scroll.content.Find("MoreButton").GetComponentInChildren<TMP_Text>(true).text =
+                "다시 연습";
         }
 
         private static Button Action(

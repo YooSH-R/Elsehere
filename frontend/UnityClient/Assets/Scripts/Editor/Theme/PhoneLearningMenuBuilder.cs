@@ -10,7 +10,10 @@ using UnityEngine.UI;
 
 namespace A305.EditorTools.Theme
 {
-    /// <summary>기존 휴대폰 기능 연결을 보존하고 학습 앱 여섯 개와 작은 보조 버튼 둘로 정리한다.</summary>
+    /// <summary>
+    /// 기존 휴대폰 기능 연결을 보존하고 학습 앱 다섯 개(단어장·대화 노트·마을 지도·내 정보·이웃)와 작은 보조 버튼 둘로 정리한다.
+    /// 피드백 목록과 복습장은 [대화 노트] 하나로 합쳐(확정 시안 N1) 예전 [복습장] 앱은 지운다.
+    /// </summary>
     public static class PhoneLearningMenuBuilder
     {
         private const string Folder = "Assets/Art/UI/Phone";
@@ -18,32 +21,16 @@ namespace A305.EditorTools.Theme
         private const float Px = 1.2f;
         private static readonly Color Ink = new Color32(47, 37, 27, 255);
         private static readonly Color Ivory = new Color32(255, 255, 247, 255);
-        private static readonly string[] Names =
+
+        // 앱 버튼 이름, 앱 이름, 아이콘 그림 번호(PhoneLearningApp{번호}.png), 아이콘 바탕색. 세 칸씩 왼쪽부터 채운다.
+        // 그림 번호는 예전 여섯 앱 때 정한 파일 이름을 그대로 쓴다(2번은 지운 복습장 그림).
+        private static readonly (string Name, string Label, int Art, Color32 Tone)[] Apps =
         {
-            "VocabularyButton",
-            "HistoryButton",
-            "ReviewButton",
-            "MapButton",
-            "MyPageButton",
-            "NeighborsButton",
-        };
-        private static readonly string[] Labels =
-        {
-            "단어장",
-            "피드백 목록",
-            "복습장",
-            "마을 지도",
-            "내 정보",
-            "이웃",
-        };
-        private static readonly Color32[] Tones =
-        {
-            new Color32(66, 184, 111, 255),
-            new Color32(245, 118, 85, 255),
-            new Color32(239, 179, 53, 255),
-            new Color32(61, 157, 219, 255),
-            new Color32(157, 121, 222, 255),
-            new Color32(222, 119, 156, 255),
+            ("VocabularyButton", "단어장", 0, new Color32(66, 184, 111, 255)),
+            ("HistoryButton", "대화 노트", 1, new Color32(245, 118, 85, 255)),
+            ("MapButton", "마을 지도", 3, new Color32(61, 157, 219, 255)),
+            ("MyPageButton", "내 정보", 4, new Color32(157, 121, 222, 255)),
+            ("NeighborsButton", "이웃", 5, new Color32(222, 119, 156, 255)),
         };
 
         [MenuItem("Tools/A305/UI/Apply Phone Learning Icons")]
@@ -58,29 +45,31 @@ namespace A305.EditorTools.Theme
         {
             Transform phone = hud.transform.Find("Panel/Menu");
             // 최초 HUD 생성 때는 아직 복습장·이웃이 없다. 각 기능 Builder가 연결을 마친 뒤 다시 호출한다.
-            if (phone == null || Names.Any(name => phone.Find(name) == null))
+            if (phone == null || Apps.Any(app => phone.Find(app.Name) == null))
                 return;
+            Transform review = phone.Find("ReviewButton");
+            if (review != null)
+                Object.DestroyImmediate(review.gameObject);
             WriteArtIfMissing();
             RectTransform backdrop = Rect(phone, "LearningAppBackdrop", 14, 325, 402, 380);
             Picture(backdrop, "PhoneLearningBackdrop");
             backdrop.SetAsLastSibling();
-            for (int i = 0; i < Names.Length; i++)
+            for (int i = 0; i < Apps.Length; i++)
             {
-                Transform app = phone.Find(Names[i]);
+                Transform app = phone.Find(Apps[i].Name);
                 ResetLook(app);
                 Place((RectTransform)app, 38 + i % 3 * 122, 338 + i / 3 * 148, 110, 128);
                 Image hit = app.GetComponent<Image>();
                 hit.sprite = null;
                 hit.color = Color.clear;
                 app.GetComponent<Button>().targetGraphic = hit;
-                Picture(Rect(app, "Icon", -7, -12, 124, 124), "PhoneLearningApp" + i);
-                Label(app, Labels[i], 0, 110, 110, 24, 18);
+                Picture(Rect(app, "Icon", -7, -12, 124, 124), "PhoneLearningApp" + Apps[i].Art);
+                Label(app, Apps[i].Label, 0, 110, 110, 24, 18);
+                app.Find("CountBadge")?.SetAsLastSibling();
                 app.SetAsLastSibling();
             }
             Utility(phone.Find("HomeButton"), "집으로", "PhoneUtilityHome", 48);
             Utility(phone.Find("ControlsButton"), "조작법", "PhoneUtilityControls", 228);
-            // 기존 배지의 위치·숫자·숨김 동작은 그대로 두고 그림보다 위에 그린다.
-            phone.Find("VocabularyButton/CountBadge")?.SetAsLastSibling();
         }
 
         private static void Utility(Transform button, string caption, string icon, float left)
@@ -197,14 +186,14 @@ namespace A305.EditorTools.Theme
         {
             if (!File.Exists(Folder + "/PhoneLearningBackdrop.png"))
                 WriteBackdrop();
-            for (int i = 0; i < Names.Length; i++)
+            foreach (var app in Apps)
             {
-                string name = "PhoneLearningApp" + i;
+                string name = "PhoneLearningApp" + app.Art;
                 if (File.Exists($"{Folder}/{name}.png"))
                     continue;
                 var art = new UiArtCanvas(256, 256);
                 art.SoftShadow(24, 24, 232, 232, 62, 18, new Color(.3f, .2f, .1f, .14f));
-                Color bottom = Tones[i];
+                Color bottom = app.Tone;
                 for (int y = 24; y < 232; y++)
                     art.Custom(
                         new Rect(24, y, 208, 1),
@@ -212,7 +201,7 @@ namespace A305.EditorTools.Theme
                         InsidePlate
                     );
                 art.Custom(new Rect(24, 228, 208, 4), new Color(1, 1, 1, .28f), InsidePlate);
-                Glyph(art, i);
+                Glyph(art, app.Art);
                 Save(name, art.ToTexture());
             }
             if (!File.Exists(Folder + "/PhoneUtilityHome.png"))
@@ -272,31 +261,6 @@ namespace A305.EditorTools.Theme
                 );
                 foreach (float x in new[] { 110f, 128f, 146f })
                     art.Circle(x, 139, 5, gold);
-            }
-            else if (index == 2)
-            {
-                art.RoundRect(74, 104, 127, 173, 10, Ivory);
-                art.RoundRect(129, 104, 182, 173, 10, Ivory);
-                art.Polygon(
-                    Ivory,
-                    new Vector2(75, 112),
-                    new Vector2(128, 94),
-                    new Vector2(181, 112)
-                );
-                art.Line(
-                    3,
-                    new Color(.89f, .84f, .68f),
-                    new Vector2(128, 107),
-                    new Vector2(128, 169)
-                );
-                art.Arc(175, 98, 17, 30, 325, 6, Ivory);
-                art.Line(
-                    6,
-                    Ivory,
-                    new Vector2(190, 117),
-                    new Vector2(191, 104),
-                    new Vector2(178, 105)
-                );
             }
             else if (index == 3)
             {

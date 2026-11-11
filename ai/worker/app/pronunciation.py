@@ -46,6 +46,10 @@ LEXICON = {
     "tryna": "tɹˈaɪnə",
     "hon": "hˈʌn",
     "comin": "kˈʌmɪn",
+    # 맞장구 (espeak는 글자로 읽음: 엠엠에이치엠). ɨ는 한국어 '으'에 가까워 '음흠'으로 들림. ʌ·ə는 '엄험'
+    "mm-hm": "ɨmhˈɨm",
+    "mm-hmm": "ɨmhˈɨm",
+    "mhm": "ɨmhˈɨm",
 }
 # 긴 항목부터 (café au lait가 café보다 먼저). 앞뒤가 글자가 아닐 때만 (honest의 hon은 아님)
 LEXICON_WORD = re.compile(

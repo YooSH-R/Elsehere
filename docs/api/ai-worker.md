@@ -482,7 +482,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 NPC 음성 재합성에는 선택 필드 `phrases`로 원래 `done.speech_phrases`를 보냅니다. 최대 40개이며 각 항목은 `text`·`emotion`·`intensity`입니다. 구절을 이은 글자가 전체 `text`와 일치해야 하고, 감정 종류와 0~1 강도를 검증한 뒤 합성합니다(공백 차이는 허용). 기존 구절 음성 캐시를 재사용하고 실제 PCM 길이로 `e305` 시간표를 다시 붙입니다. 감정을 다시 판단하는 LLM 호출은 없습니다. 필드가 없거나 빈 배열이면 기존 한 문장 합성을 유지합니다.
 
-합성 전에 읽을 글로 다듬습니다(`app/speech_text.py`). Kokoro가 `$13`을 "dollar thirteen", `10:00`을 "ten zero zero"로 읽고 별표·한글을 소리 내 읽기 때문입니다. 가격은 `13 dollars`·`8 dollars and 50 cents`로, 시각은 `10 o'clock`·`6 30`·`9 oh 5`(`a.m.`·`p.m.`가 붙으면 `11 a.m.`)로 바꾸고, `*`와 한글은 읽지 않습니다. 다듬은 뒤 읽을 것이 없으면 0.2초 무음 WAV를 돌려줍니다. 이어서 발음 사전(`app/pronunciation.py`)을 거칩니다. 사전 단어(croissant·barista, kimchi·soju 같은 한국 음식, Busan·Itaewon 같은 지명, hon·tryna 같은 구어)는 적어 둔 미국식 음소로, 나머지는 기존 음소화 그대로 Kokoro에 음소로 넘깁니다.
+합성 전에 읽을 글로 다듬습니다(`app/speech_text.py`). Kokoro가 `$13`을 "dollar thirteen", `10:00`을 "ten zero zero"로 읽고 별표·한글을 소리 내 읽기 때문입니다. 가격은 `13 dollars`·`8 dollars and 50 cents`로, 시각은 `10 o'clock`·`6 30`·`9 oh 5`(`a.m.`·`p.m.`가 붙으면 `11 a.m.`)로 바꾸고, `*`와 한글은 읽지 않습니다. 다듬은 뒤 읽을 것이 없으면 0.2초 무음 WAV를 돌려줍니다. 이어서 발음 사전(`app/pronunciation.py`)을 거칩니다. 사전 단어(croissant·barista, kimchi·soju 같은 한국 음식, Busan·Itaewon 같은 지명, hon·tryna 같은 구어, Mm-hm·Mhm 같은 맞장구)는 적어 둔 미국식 음소로, 나머지는 기존 음소화 그대로 Kokoro에 음소로 넘깁니다.
 
 ### 2.9 `POST /v1/npc/persona/generate` — NPC 인격 카드 초안 (어드민 랜덤 생성)
 

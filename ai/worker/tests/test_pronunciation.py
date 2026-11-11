@@ -32,6 +32,13 @@ def test_lexicon_entry_can_span_several_words():
     assert to_phonemes("I'll have a café au lait.", FakePhonemizer()) == "I'LL HAVE A kæfˌeɪ oʊ lˈeɪ."
 
 
+def test_mm_hm_is_hummed_instead_of_spelled_out():
+    # espeak는 Mm-hm·Mhm·Mm-hmm을 글자로 읽는다 (ˌɛmˈɛmˌeɪtʃˈɛm, 엠엠에이치엠)
+    assert to_phonemes("Mm-hm. Anything else?", FakePhonemizer()) == "ɨmhˈɨm. ANYTHING ELSE?"
+    assert to_phonemes("Mhm, sure.", FakePhonemizer()) == "ɨmhˈɨm, SURE."
+    assert to_phonemes("Mm-hmm.", FakePhonemizer()) == "ɨmhˈɨm."
+
+
 def test_text_without_lexicon_words_is_phonemized_as_a_whole():
     phonemize = FakePhonemizer()
 

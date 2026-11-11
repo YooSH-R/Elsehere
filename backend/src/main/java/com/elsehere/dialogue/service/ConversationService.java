@@ -123,6 +123,7 @@ public class ConversationService {
   private final ReviewDialogue reviewDialogue;
   private final ReviewPracticeResults reviewPracticeResults;
   private final PlacePracticeService placePractice;
+  private final MeaningPreparation meaningPreparation;
 
   public ConversationStartResponse start(Long userId, StartConversationRequest request) {
     return start(userId, request, null);
@@ -324,6 +325,9 @@ public class ConversationService {
           started.response().conversationId(),
           npc.summary().npcCode(),
           request.initiatedBy());
+      // 첫 대사를 저장한 트랜잭션이 끝난 뒤 [뜻 보기]를 미리 만든다.
+      meaningPreparation.prepare(
+          userId, started.response().openingTurn().turnId(), request.requestId());
     }
     return started.response();
   }

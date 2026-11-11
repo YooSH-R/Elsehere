@@ -16,6 +16,7 @@ import ch.qos.logback.classic.Level;
 import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
+import com.elsehere.ai.client.MeaningResult;
 import com.elsehere.ai.client.NpcReply;
 import com.elsehere.ai.client.NpcReplyListener;
 import com.elsehere.ai.client.WorkerLearner;
@@ -62,12 +63,19 @@ class TurnServiceTest {
 
   private static final String OPENING = "Hi there! Nice weather today, isn't it?";
   private static final byte[] WAV = {82, 73, 70, 70};
+  private static final MeaningResult MEANING =
+      new MeaningResult(
+          "좋아요! 매장에서 드실 건가요, 가져가실 건가요?",
+          List.of(new MeaningResult.Glossary("to go", "포장")),
+          List.of(usage("translate")));
 
   @Autowired private TurnService turnService;
 
   @Autowired private ConversationService conversationService;
 
   @Autowired private SpeechService speechService;
+
+  @Autowired private TurnHelpService turnHelpService;
 
   @Autowired private AiGateway aiGateway;
 
@@ -1014,6 +1022,63 @@ class TurnServiceTest {
     turnService.send(userId, conversationId, request);
 
     assertThat(affinity()).isEqualTo(-6);
+  }
+
+  @Test
+  @DisplayName("NPC 대답을 저장하면 같은 요청 ID로 뜻 보기를 미리 만들어 두어, [뜻 보기]는 AI를 다시 부르지 않는다")
+  void send_preparesMeaningOfNpcReply() {
+    judges("Hello", "Hello", null);
+    repliesTo("Hello", reply("Great! For here or to go?", null));
+    given(aiGateway.meaning(any(), any(), eq("Great! For here or to go?"), anyInt()))
+        .willReturn(MEANING);
+
+    TurnResponse response = send("Hello");
+    entityManager.flush();
+    entityManager.clear();
+
+    Turn saved = turnRepository.findById(response.npcTurn().turnId()).orElseThrow();
+    assertThat(saved.getMeaningKo()).isEqualTo(MEANING.meaningKo());
+    then(aiGateway)
+        .should()
+        .meaning(
+            eq(new WorkerTrace(lastRequestId, userId, conversationId)),
+            any(),
+            eq("Great! For here or to go?"),
+            anyInt());
+    turnHelpService.meaning(userId, response.npcTurn().turnId(), UUID.randomUUID());
+    then(aiGateway).should().meaning(any(), any(), eq("Great! For here or to go?"), anyInt());
+  }
+
+  @Test
+  @DisplayName("대화를 시작하면 첫 대사의 뜻 보기를 미리 만들어 둔다")
+  void start_preparesMeaningOfOpeningLine() {
+    given(aiGateway.meaning(any(), any(), anyString(), anyInt())).willReturn(MEANING);
+    Long otherUserId =
+        UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-2", "Other");
+
+    ConversationStartResponse started = startPasserby(otherUserId);
+    entityManager.flush();
+    entityManager.clear();
+
+    Turn opening = turnRepository.findById(started.openingTurn().turnId()).orElseThrow();
+    assertThat(opening.getMeaningKo()).isEqualTo(MEANING.meaningKo());
+  }
+
+  @Test
+  @DisplayName("뜻 보기를 미리 만들지 못해도 대답은 그대로 돌려주고, 뜻은 [뜻 보기]를 누를 때 만든다")
+  void send_meaningPreparationFails_stillReturnsReply() {
+    judges("Hello", "Hello", null);
+    repliesTo("Hello", reply("Great! For here or to go?", null));
+    given(aiGateway.meaning(any(), any(), anyString(), anyInt()))
+        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
+
+    TurnResponse response = send("Hello");
+    entityManager.flush();
+    entityManager.clear();
+
+    assertThat(response.npcTurn().text()).isEqualTo("Great! For here or to go?");
+    assertThat(turnRepository.findById(response.npcTurn().turnId()).orElseThrow().getMeaningKo())
+        .isNull();
   }
 
   private TurnResponse send(String text) {

@@ -26,6 +26,9 @@ namespace A305.Dialogue
 
         private const string EnableSubtitlesCaption = "자막 켜기";
         private const string DisableSubtitlesCaption = "자막 끄기";
+        private const float EndHighlightPulseSeconds = .7f;
+        private const int EndHighlightPulseCount = 2;
+        private static readonly Color EndHighlightColor = new Color(1f, .8f, .32f, .55f);
 
         [SerializeField]
         private GameObject panel;
@@ -39,6 +42,9 @@ namespace A305.Dialogue
 
         [SerializeField]
         private Button endButton;
+
+        private Outline endButtonHighlight;
+        private float endButtonHighlightStartedAt;
 
         [SerializeField]
         private TMP_Text linesText;
@@ -424,6 +430,7 @@ namespace A305.Dialogue
 
         public void Show(IDialogueContent shownContent)
         {
+            SetEndButtonHighlight(false);
             content = shownContent;
             isMeaningVisible = false;
             // 저장한 단어 표시는 이번 대화 안에서만 기억한다.
@@ -441,6 +448,7 @@ namespace A305.Dialogue
 
         public void Hide()
         {
+            SetEndButtonHighlight(false);
             content = null;
             panel.SetActive(false);
             helpPanel.gameObject.SetActive(false);
@@ -591,6 +599,11 @@ namespace A305.Dialogue
             sendButton.interactable = content.CanSend;
             // 정해진 대사를 따라가는 대화(튜토리얼 길 안내)는 대사를 다 마칠 때까지 끝낼 수 없다.
             endButton.interactable = !content.IsGuided || content.IsGuidedCompleted;
+            SetEndButtonHighlight(
+                statusText.gameObject.activeSelf
+                    && endButton.IsInteractable()
+                    && content is ServerConversation { ShowsEndFeedbackNotice: true }
+            );
             // 시작에 실패했거나 끝난 대화에 입력할 수 있으면 [보내기]가 아무 일도 하지 않는 것처럼 보이므로 함께 막는다.
             inputField.interactable = content.CanSend;
             // 정해진 대사를 따라가는 대화는 이번에 말하거나 입력할 대사를 빈 입력칸에 회색 안내로 미리 보인다.
@@ -1112,8 +1125,50 @@ namespace A305.Dialogue
                 return;
             // 변화량과 경고 문구는 몇 초 뒤 새 상태가 없어도 사라져야 하므로 매 프레임 다시 고른다.
             UpdateStanding();
+            UpdateEndButtonHighlight();
             if (((RectTransform)panel.transform.parent).rect.size != lastCanvasSize)
                 UpdateLayout();
+        }
+
+        private void SetEndButtonHighlight(bool visible)
+        {
+            if (endButtonHighlight == null)
+            {
+                if (!visible || endButton.targetGraphic == null)
+                    return;
+
+                endButtonHighlight = endButton.targetGraphic.gameObject.AddComponent<Outline>();
+                endButtonHighlight.effectDistance = new Vector2(2f, -2f);
+                endButtonHighlight.useGraphicAlpha = false;
+                endButtonHighlight.enabled = false;
+            }
+
+            if (endButtonHighlight.enabled == visible)
+                return;
+
+            if (visible)
+            {
+                endButtonHighlightStartedAt = Time.unscaledTime;
+                endButtonHighlight.effectColor = EndHighlightColor;
+            }
+            endButtonHighlight.enabled = visible;
+        }
+
+        private void UpdateEndButtonHighlight()
+        {
+            if (endButtonHighlight == null || !endButtonHighlight.enabled)
+                return;
+
+            // 두 번만 반짝이고, 누르기 전까지는 눈에 띄는 테두리를 유지한다.
+            float elapsed = Time.unscaledTime - endButtonHighlightStartedAt;
+            float pulse = 0f;
+            if (elapsed < EndHighlightPulseSeconds * EndHighlightPulseCount)
+                pulse = .5f - .5f * Mathf.Cos(2f * Mathf.PI * elapsed / EndHighlightPulseSeconds);
+
+            Color color = EndHighlightColor;
+            color.a = Mathf.Lerp(color.a, .95f, pulse);
+            if (endButtonHighlight.effectColor != color)
+                endButtonHighlight.effectColor = color;
         }
 
         // 서버 대화의 호감도·무례 경고 칸. 대본 대화이거나 서버가 보내지 않으면 숨긴다. 색은 테마의 NPC 이름 색을 따른다.

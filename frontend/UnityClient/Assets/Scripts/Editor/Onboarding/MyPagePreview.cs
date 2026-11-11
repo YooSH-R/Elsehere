@@ -90,6 +90,7 @@ namespace A305.EditorTools.Onboarding
             template.gameObject.SetActive(false);
             SetSlider(overlay, "Window/LookSensitivity", "1.0배", 1f);
             SetSlider(overlay, "Window/NpcSpeechSpeed", "1.1배", 1.1f);
+            ShowLevels(overlay.Find("Window/ConversationLevel/Choices"), selected: 2);
             Canvas canvas = root.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceCamera;
             canvas.worldCamera = camera;
@@ -112,6 +113,21 @@ namespace A305.EditorTools.Onboarding
             Transform group = overlay.Find(path);
             group.Find("Row/Slider").GetComponent<Slider>().SetValueWithoutNotify(value);
             group.Find("Row/Value").GetComponent<TMPro.TMP_Text>().text = label;
+        }
+
+        // 화면(MyPageView)이 서버가 준 단계마다 버튼을 복제하는 것처럼 초급·중급·고급을 만들고, 고급은 잠근다.
+        private static void ShowLevels(Transform choices, int selected)
+        {
+            Button template = choices.Find("LevelButtonTemplate").GetComponent<Button>();
+            template.gameObject.SetActive(false);
+            string[] names = { "초급", "중급", "고급" };
+            for (int index = 0; index < names.Length; index++)
+            {
+                Button button = TemplateClones.Add(template, choices);
+                button.GetComponentInChildren<TMPro.TMP_Text>(true).text = names[index];
+                button.interactable = index < 2;
+                button.GetComponent<ThemedElement>().SetSelected(index + 1 == selected);
+            }
         }
 
         private static void Render(

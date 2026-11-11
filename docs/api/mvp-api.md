@@ -589,7 +589,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 1(초급)·2(중급)만 허용합니다. 다른 값은 `VALIDATION_FAILED`입니다.
 - 고른 난이도는 이후 시작하는 대화의 `levelApplied`가 되어 NPC 대답·힌트·뜻 보기·피드백 난이도로 쓰입니다.
 - 처음 설정하면 `onboardingStep`이 `TUTORIAL`로 넘어가고 응답에 `onboardingStep`을 담습니다. 응답은 `{ "languageCode": "en-US", "selectedLevel": 1, "onboardingStep": "TUTORIAL" }`입니다.
-- 튜토리얼 단계 이후에 다시 설정하면 난이도만 바꾸고 `onboardingStep`은 그대로 둡니다. 고른 적 없는 언어면 `404 NOT_FOUND`입니다.
+- 튜토리얼 단계 이후에 다시 설정하면 난이도만 바꾸고 `onboardingStep`은 그대로 둡니다. 플레이 중에는 마이페이지 [대화 난이도]에서 이 API로 바꾸며, 진행 중인 대화는 시작할 때의 난이도를 그대로 쓰고 다음 대화부터 바뀝니다. 고른 적 없는 언어면 `404 NOT_FOUND`입니다.
 
 ### 4.3 튜토리얼
 

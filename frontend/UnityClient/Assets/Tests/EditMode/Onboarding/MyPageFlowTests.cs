@@ -248,6 +248,85 @@ namespace A305.Onboarding.Tests
             Assert.That(flow.Message, Is.EqualTo("게스트는 닉네임을 바꿀 수 없어요."));
         }
 
+        // 플레이 중에도 대화 난이도를 바꿀 수 있게 지금 단계와 고를 수 있는 단계를 보인다(S15P31A305-799).
+        [Test]
+        public async Task Load_ShowsConversationLevelsAndCurrentLevel()
+        {
+            await flow.LoadAsync();
+
+            Assert.That(
+                flow.Levels.Select(level => level.Name),
+                Is.EqualTo(new[] { "초급", "중급", "고급" })
+            );
+            Assert.That(flow.SelectedLevel, Is.EqualTo(1));
+            Assert.That(api.ProfileRequests, Is.EqualTo(new[] { "en-US" }));
+        }
+
+        [Test]
+        public async Task ChangeLevel_ToAnotherLevel_SavesAndTellsItAppliesFromNextConversation()
+        {
+            await flow.LoadAsync();
+
+            bool changed = await flow.ChangeLevelAsync(2);
+
+            Assert.That(changed, Is.True);
+            Assert.That(api.LevelChanges, Is.EqualTo(new[] { "en-US:2" }));
+            Assert.That(flow.SelectedLevel, Is.EqualTo(2));
+            Assert.That(flow.Message, Is.EqualTo("중급으로 바꿨어요. 다음 대화부터 적용돼요."));
+        }
+
+        [Test]
+        public async Task ChangeLevel_SameAsCurrent_DoesNotSend()
+        {
+            await flow.LoadAsync();
+
+            bool changed = await flow.ChangeLevelAsync(1);
+
+            Assert.That(changed, Is.False);
+            Assert.That(api.LevelChanges, Is.Empty);
+            Assert.That(flow.Message, Is.EqualTo("지금 쓰는 난이도예요."));
+        }
+
+        // 고급은 "추후 제공"으로 잠겨 있어 눌러도 보내지 않는다.
+        [Test]
+        public async Task ChangeLevel_NotYetAvailable_DoesNotSend()
+        {
+            await flow.LoadAsync();
+
+            bool changed = await flow.ChangeLevelAsync(3);
+
+            Assert.That(changed, Is.False);
+            Assert.That(api.LevelChanges, Is.Empty);
+            Assert.That(flow.SelectedLevel, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task ChangeLevel_WhenServerRejects_KeepsPreviousLevelAndTellsWhy()
+        {
+            await flow.LoadAsync();
+            api.LevelChangeError = Failure("서버에 연결하지 못했어요.");
+
+            bool changed = await flow.ChangeLevelAsync(2);
+
+            Assert.That(changed, Is.False);
+            Assert.That(flow.SelectedLevel, Is.EqualTo(1));
+            Assert.That(flow.IsBusy, Is.False);
+            Assert.That(flow.Message, Is.EqualTo("서버에 연결하지 못했어요."));
+        }
+
+        [Test]
+        public async Task ChangeLevel_BeforeProfileLoaded_DoesNotSend()
+        {
+            api.BootstrapError = Failure("서버에 연결하지 못했어요.");
+            await flow.LoadAsync();
+
+            bool changed = await flow.ChangeLevelAsync(2);
+
+            Assert.That(changed, Is.False);
+            Assert.That(flow.Levels, Is.Empty);
+            Assert.That(api.LevelChanges, Is.Empty);
+        }
+
         private static ApiException Failure(string message)
         {
             return new ApiException(ApiErrorCodes.NetworkError, 0, message);
@@ -331,6 +410,58 @@ namespace A305.Onboarding.Tests
                 }
 
                 return Task.FromResult(Consent(consentType, "음성 처리 동의", agreed));
+            }
+
+            public List<string> ProfileRequests { get; } = new List<string>();
+
+            public ApiException LevelChangeError { get; set; }
+
+            public List<string> LevelChanges { get; } = new List<string>();
+
+            public Task<LanguageProfileResponse> GetLanguageProfileAsync(string languageCode)
+            {
+                ProfileRequests.Add(languageCode);
+                return Task.FromResult(
+                    new LanguageProfileResponse
+                    {
+                        LanguageCode = languageCode,
+                        SelectedLevel = 1,
+                        Levels = new List<ConversationLevel>
+                        {
+                            Level(1, "초급", true),
+                            Level(2, "중급", true),
+                            Level(3, "고급", false),
+                        },
+                    }
+                );
+            }
+
+            public Task<LevelSelectionResponse> SelectLevelAsync(string languageCode, int level)
+            {
+                LevelChanges.Add($"{languageCode}:{level}");
+                if (LevelChangeError != null)
+                {
+                    throw LevelChangeError;
+                }
+
+                return Task.FromResult(
+                    new LevelSelectionResponse
+                    {
+                        LanguageCode = languageCode,
+                        SelectedLevel = level,
+                        OnboardingStep = OnboardingStep.Done,
+                    }
+                );
+            }
+
+            private static ConversationLevel Level(int level, string name, bool available)
+            {
+                return new ConversationLevel
+                {
+                    Level = level,
+                    Name = name,
+                    Available = available,
+                };
             }
 
             private static ConsentStatus Consent(string consentType, string title, bool agreed)

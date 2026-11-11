@@ -9,28 +9,32 @@ using UnityEngine.UI;
 namespace A305.Mission
 {
     /// <summary>
-    /// 퀘스트 목록(시안 mock.html #story)과 도장 지도(시안 q2). 왼쪽 위 퀘스트 카드로 열고, 목록의 카드를 누르면 그 퀘스트의 도장 지도로 간다.
+    /// 퀘스트 창. 왼쪽 위 퀘스트 카드로 열면 먼저 같은 크기의 창 가운데에 이야기·장소 연습을 큰 그림으로 고르게 하고(시안 2-B ①),
+    /// 고른 쪽을 열면 머리줄 왼쪽 ‹ 로 고르기 화면에 돌아간다(시안 2-B ②).
+    /// 이야기는 퀘스트 목록(시안 c4)과 도장 지도(시안 q2)다. 목록의 카드를 누르면 그 퀘스트의 도장 지도로 간다.
     /// 목록은 서버가 준 퀘스트를 한 줄에 세 장씩 카드로 보이고(지금 하는 퀘스트는 코랄 테두리, 잠긴 퀘스트는 카드째 흐리게 하고 자물쇠),
     /// 쪽이 여럿이면 아래에서 넘긴다.
     /// 퀘스트를 끝내고 [다음]을 누르면 다음 퀘스트 카드의 잠금을 푸는 연출을 한다.
     /// 도장 지도는 가 본 곳의 잉크 도장,
     /// 지금 갈 곳의 번호 핀, 지나온 길을 마을 지도 위에 얹는다. 자리는 시안 px × 1.2이고 버튼 연결은 QuestBoardBuilder가 넣는다.
-    /// 머리줄의 [이야기 | 장소 연습] 탭으로 이야기 퀘스트 목록과 장소 연습 쪽(<see cref="PracticeBoardView"/>)을 오간다.
-    /// 장소 연습에서 상황의 [연습하기]를 누르면 창을 닫고 그 가게 직원에게 연습하러 가자고 알린다(<see cref="PracticeVisit"/>).
+    /// 장소 연습 쪽(<see cref="PracticeBoardView"/>)에서 상황의 [연습하기]를 누르면 창을 닫고 그 가게 직원에게 연습하러 가자고 알린다(<see cref="PracticeVisit"/>).
     /// </summary>
     public sealed class QuestBoardView : MonoBehaviour
     {
         private const float Px = 1.2f;
 
-        // 들르는 곳 알약(시안 #story .pill): 글자 양옆 16, 알약 높이 40, 알약·화살표와 줄 사이 8. 화살표(›)는 폭 5.38을 칸 10 가운데에 둔다.
-        // 알약 줄은 폭 396 안에서 넘치면 다음 줄로 넘기고, 카드 아래 83에서 끝나 줄 수만큼 위로 쌓인다.
-        private const float RouteTextPadding = 16;
+        // 들르는 곳 알약(시안 c4 .rp): 글자 양옆 13, 알약 높이 34, 알약·화살표와 줄 사이 6. 화살표(›)는 폭 5.38을 칸 10 가운데에 둔다.
+        // 알약 줄은 폭 342 안에서 넘치면 다음 줄로 넘기고, 카드 아래 71에서 끝나 줄 수만큼 위로 쌓인다.
+        private const float RouteTextPadding = 13;
         private const float RouteArtPadding = 0;
-        private const float RouteHeight = 40;
-        private const float RouteGap = 8;
+        private const float RouteHeight = 34;
+        private const float RouteGap = 6;
         private const float ArrowWidth = 5.38f;
         private const float ArrowBox = 10;
-        private const float RouteWidth = 396;
+        private const float RouteWidth = 342;
+
+        // 상태 칩(진행 중·새로 열림) 그림은 높이 44로 그렸고, 줄인 카드(시안 c4)에서는 높이 38로 줄여 쓴다.
+        private const float ChipScale = 38f / 44f;
 
         // 지금 하는 퀘스트의 카드는 테두리가 3(다른 카드 1.5)이라 안의 내용을 1.5 들인다. 잠긴 퀘스트는 카드째 흐리게 한다.
         private const float CurrentBorderInset = 1.5f;
@@ -51,6 +55,10 @@ namespace A305.Mission
         [SerializeField]
         [Tooltip("목록과 도장 지도를 담는 판. 보이는 쪽에 따라 높이를 바꾼다.")]
         private RectTransform sheet;
+
+        [SerializeField]
+        [Tooltip("이야기·장소 연습을 큰 그림으로 고르는 첫 쪽")]
+        private GameObject choosePage;
 
         [SerializeField]
         private GameObject listPage;
@@ -177,12 +185,30 @@ namespace A305.Mission
 
         public bool IsOpen => gameObject.activeSelf;
 
+        /// <summary>창을 열면 이야기·장소 연습 고르기부터 보인다. 이야기 목록은 미리 서버에 묻는다.</summary>
         public void Open()
         {
             gameObject.SetActive(true);
-            ShowList();
+            ShowChooser();
             OpenChanged?.Invoke(true);
             Requested?.Invoke();
+        }
+
+        /// <summary>이야기·장소 연습을 큰 그림으로 고르는 쪽(시안 2-B ①). 두 쪽 머리줄의 ‹ 도 여기로 돌아온다.</summary>
+        public void ShowChooser()
+        {
+            ShowOnly(choosePage);
+            shownQuest = -1;
+            FitSheet();
+        }
+
+        // 쪽 하나만 켠다.
+        private void ShowOnly(GameObject page)
+        {
+            choosePage.SetActive(page == choosePage);
+            listPage.SetActive(page == listPage);
+            mapPage.SetActive(page == mapPage);
+            practicePage.gameObject.SetActive(page == practicePage.gameObject);
         }
 
         public void Close()
@@ -203,26 +229,22 @@ namespace A305.Mission
 
         public void ShowList()
         {
-            listPage.SetActive(true);
-            mapPage.SetActive(false);
-            practicePage.gameObject.SetActive(false);
+            ShowOnly(listPage);
             shownQuest = -1;
             FitSheet();
         }
 
-        /// <summary>[이야기] 탭. 장소 연습을 보는 사이 바뀌었을 수 있어 퀘스트 목록을 다시 묻는다.</summary>
-        public void ShowStoryTab()
+        /// <summary>고르기 화면의 [이야기]. 장소 연습을 보는 사이 바뀌었을 수 있어 퀘스트 목록을 다시 묻는다.</summary>
+        public void ShowStory()
         {
             ShowList();
             Requested?.Invoke();
         }
 
-        /// <summary>[장소 연습] 탭. 열 때마다 끝낸 기록을 새로 받는다.</summary>
-        public void ShowPracticeTab()
+        /// <summary>고르기 화면의 [장소 연습]. 열 때마다 끝낸 기록을 새로 받는다.</summary>
+        public void ShowPractice()
         {
-            listPage.SetActive(false);
-            mapPage.SetActive(false);
-            practicePage.gameObject.SetActive(true);
+            ShowOnly(practicePage.gameObject);
             shownQuest = -1;
             FitSheet();
             PracticeRequested?.Invoke();
@@ -283,9 +305,7 @@ namespace A305.Mission
             if (quest.Status == QuestEntry.Locked)
                 return;
             shownQuest = index;
-            listPage.SetActive(false);
-            practicePage.gameObject.SetActive(false);
-            mapPage.SetActive(true);
+            ShowOnly(mapPage);
             FitSheet();
             ClearMade();
 
@@ -392,7 +412,7 @@ namespace A305.Mission
             if (chip != null)
             {
                 card.Chip.sprite = chip;
-                card.Chip.rectTransform.sizeDelta = chip.rect.size / 2;
+                card.Chip.rectTransform.sizeDelta = chip.rect.size / 2 * ChipScale;
             }
             card.DoneStamp.SetActive(quest.Status == QuestEntry.Done);
             FillRoute(card.Route, QuestBoardText.Route(quest));

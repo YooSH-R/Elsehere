@@ -346,8 +346,8 @@ public class TurnService {
   }
 
   /**
-   * 판정 결과가 대답 지시문에 들어가지 않는 대화는 무례·대화 사건이 없다고 보고 판정과 동시에 대답을 시작한다. 판정 결과가 지시문에 들어가는 대화(미션·장소 연습 목표,
-   * 경찰 창구, 택시)와 조각 없이 한 번에 받는 요청은 판정을 기다린다.
+   * 판정 결과가 대답 지시문에 들어가지 않는 대화는 무례·대화 사건이 없다고 보고 판정과 동시에 대답을 시작한다. 미션 중 다른 NPC와의 자유 대화도 여기에 든다. 판정
+   * 결과가 지시문에 들어가는 대화(미션 대상 NPC·장소 연습의 목표, 경찰 창구, 택시)와 조각 없이 한 번에 받는 요청은 판정을 기다린다.
    */
   private EarlyReply startEarlyReply(
       WorkerTrace trace, TurnScope scope, String text, TurnEvents events) {
@@ -556,7 +556,7 @@ public class TurnService {
   /**
    * 이번 턴에서 판정 전에 정해진 것.
    *
-   * @param goals 이 턴에 판정할 목표(이야기 퀘스트나 장소 연습). 없으면 빈 값
+   * @param goals 이 턴의 미션(이야기 퀘스트·첫날 미션)이나 장소 연습 맥락. 미션 중 다른 NPC와의 대화·미션을 마친 뒤에도 안내 지시가 있다. 없으면 빈 값
    * @param finalTurn 대화의 마지막 턴이라 대답에서 마무리해야 하는지
    */
   private record TurnScope(
@@ -566,9 +566,10 @@ public class TurnService {
       boolean taxiRide,
       boolean finalTurn) {
 
-    // 판정한 의도·목적지가 대답 지시문에 들어가는 대화인지
+    // 판정한 의도·목적지가 대답 지시문에 들어가는 대화인지. 미션 맥락은 이 NPC에게 판정할 상태가 있을 때(미션 대상 NPC)만 판정한 목표를
+    // 지시문에 넣고, 미션 중 다른 NPC와의 대화나 미션을 마친 뒤에는 정해진 안내만 넣는다.
     boolean judgeShapesInstruction() {
-      return goals.isPresent() || policeDesk || taxiRide;
+      return goals.map(FirstDayMissionService.Context::state).isPresent() || policeDesk || taxiRide;
     }
   }
 

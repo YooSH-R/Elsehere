@@ -26,6 +26,8 @@ import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.dialogue.dto.StartConversationRequest;
 import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.dialogue.dto.TurnResponse;
+import com.elsehere.mission.entity.FirstDayMission;
+import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
@@ -58,6 +60,8 @@ class TurnServiceStreamingTest {
   @Autowired private AiGateway aiGateway;
 
   @Autowired private TurnRepository turnRepository;
+
+  @Autowired private FirstDayMissionRepository firstDayMissionRepository;
 
   @Autowired private EntityManager entityManager;
 
@@ -317,6 +321,58 @@ class TurnServiceStreamingTest {
         });
 
     turnService.send(riderId, taxiConversationId, request(UUID.randomUUID()), events);
+
+    assertThat(startedBeforeJudged).isFalse();
+    assertThat(received).startsWith("judged", "replied");
+  }
+
+  @Test
+  @DisplayName("미션 중이어도 미션과 상관없는 NPC와의 자유 대화는 판정 결과가 지시문에 들어가지 않으므로 판정이 끝나기 전에 대답을 시작한다")
+  void send_freeTalkWithAnotherNpcDuringMission_startsTheReplyBeforeJudging() {
+    // 첫날 미션의 첫 단계는 호텔 직원과의 대화다. 지금 말하는 상대는 길의 행인이다.
+    firstDayMissionRepository.saveAndFlush(FirstDayMission.start(userId));
+    CountDownLatch replyStarted = new CountDownLatch(1);
+    AtomicBoolean startedBeforeJudged = new AtomicBoolean();
+    judgesAfter(replyStarted, EARLY_WAIT_MS, startedBeforeJudged, plainJudge(SAID));
+    repliesWith(
+        listener -> {
+          replyStarted.countDown();
+          listener.onDelta("Hello!");
+        });
+
+    TurnResponse response =
+        turnService.send(userId, conversationId, request(UUID.randomUUID()), events);
+
+    assertThat(startedBeforeJudged).isTrue();
+    assertThat(received).containsExactly("judged", "delta:Hello!");
+    assertThat(response.npcTurn().text()).isEqualTo("Hello! Nice day.");
+  }
+
+  @Test
+  @DisplayName("미션 대상 NPC와의 대화는 판정이 알아본 목표가 지시문에 들어가므로 판정이 끝난 뒤에 대답을 시작한다")
+  void send_missionNpc_startsTheReplyAfterJudging() {
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Welcome to the hotel!", null));
+    // 한 사용자는 대화 하나만 진행하므로 첫날 미션을 막 시작한 다른 사용자로 본다.
+    Long guestId =
+        UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-3", "Guest");
+    firstDayMissionRepository.saveAndFlush(FirstDayMission.start(guestId));
+    Long hotelConversationId =
+        conversationService
+            .start(
+                guestId,
+                new StartConversationRequest(UUID.randomUUID(), "HOTEL_STAFF", InitiatedBy.USER))
+            .conversationId();
+    CountDownLatch replyStarted = new CountDownLatch(1);
+    AtomicBoolean startedBeforeJudged = new AtomicBoolean();
+    judgesAfter(replyStarted, LATE_WAIT_MS, startedBeforeJudged, plainJudge(SAID));
+    repliesWith(
+        listener -> {
+          replyStarted.countDown();
+          received.add("replied");
+        });
+
+    turnService.send(guestId, hotelConversationId, request(UUID.randomUUID()), events);
 
     assertThat(startedBeforeJudged).isFalse();
     assertThat(received).startsWith("judged", "replied");

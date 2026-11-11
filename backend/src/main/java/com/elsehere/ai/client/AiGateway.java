@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  * AI 워커를 부르는 유일한 입구. 호출마다 AI 호출 기록(ai_requests)을 남긴다. 계약: docs/api/ai-worker.md
  *
  * <p>워커 오류로 끝난 호출은 FAILED로 남기고 오류를 그대로 던진다. 응답은 왔지만 쓸 수 없는 결과(NPC 대답 오류, 빈 힌트·추천 단어)도 FAILED로 남기고
- * 오류로 던지므로, 돌려받은 결과는 그대로 쓰면 된다. 모델을 부르지 않는 관계 갱신과 음성 파일 받기는 기록하지 않는다.
+ * 오류로 던지므로, 돌려받은 결과는 그대로 쓰면 된다. 모델을 부르지 않는 관계 갱신과 음성 파일 받기, 부른 쪽이 버린 NPC 대답은 기록하지 않는다.
  *
  * <p>워커 클라이언트({@link AiWorkerClient})와 기록기({@link AiRequestRecorder})는 이 패키지 안에서만 쓸 수 있어, 다른 패키지는 이
  * 클래스로만 워커를 부른다.
@@ -66,7 +66,10 @@ public class AiGateway {
         trace, npc, memory, history, text, instruction, level, learner, NpcReplyListener.NONE);
   }
 
-  /** NPC 대답. 글자·문장 조각 음성을 받는 대로 {@code listener}에 넘긴다. 실패 처리는 조각을 받지 않을 때와 같다. */
+  /**
+   * NPC 대답. 글자·문장 조각 음성을 받는 대로 {@code listener}에 넘긴다. 실패 처리는 조각을 받지 않을 때와 같다. 부른 쪽이 버린 대답({@link
+   * NpcReplyListener#discarded()})은 기록하지 않고 결과나 오류를 그대로 돌려준다.
+   */
   public NpcReply reply(
       WorkerTrace trace,
       WorkerNpc npc,
@@ -77,18 +80,12 @@ public class AiGateway {
       int level,
       WorkerLearner learner,
       NpcReplyListener listener) {
-    NpcReply reply =
-        send(
-            trace,
-            AiRequestKind.NPC,
-            () ->
-                aiWorkerClient.reply(
-                    trace, npc, memory, history, text, instruction, level, learner, listener));
-    record(trace, AiRequestKind.NPC, reply.usage(), reply.succeeded());
-    if (!reply.succeeded()) {
-      throw new BusinessException(AiWorkerClient.toErrorCode(reply.errorCode()));
-    }
-    return reply;
+    return npcReply(
+        trace,
+        listener,
+        () ->
+            aiWorkerClient.reply(
+                trace, npc, memory, history, text, instruction, level, learner, listener));
   }
 
   /** 서버가 확정한 무례·칭찬·사과 반응을 같은 대사 생성 요청에 전달한다. */
@@ -103,22 +100,37 @@ public class AiGateway {
       WorkerLearner learner,
       NpcReplyListener listener,
       String reaction) {
-    NpcReply reply =
-        send(
-            trace,
-            AiRequestKind.NPC,
-            () ->
-                aiWorkerClient.replyReacting(
-                    trace,
-                    npc,
-                    memory,
-                    history,
-                    text,
-                    instruction,
-                    level,
-                    learner,
-                    listener,
-                    reaction));
+    return npcReply(
+        trace,
+        listener,
+        () ->
+            aiWorkerClient.replyReacting(
+                trace,
+                npc,
+                memory,
+                history,
+                text,
+                instruction,
+                level,
+                learner,
+                listener,
+                reaction));
+  }
+
+  // 판정 뒤에 버린 대답은 같은 요청 ID로 다시 부른 대답의 기록을 덮지 않도록 남기지 않는다.
+  private NpcReply npcReply(WorkerTrace trace, NpcReplyListener listener, Supplier<NpcReply> call) {
+    NpcReply reply;
+    try {
+      reply = call.get();
+    } catch (RuntimeException exception) {
+      if (!listener.discarded()) {
+        aiRequestRecorder.record(trace, AiRequestKind.NPC, List.of(), AiRequestStatus.FAILED);
+      }
+      throw exception;
+    }
+    if (listener.discarded()) {
+      return reply;
+    }
     record(trace, AiRequestKind.NPC, reply.usage(), reply.succeeded());
     if (!reply.succeeded()) {
       throw new BusinessException(AiWorkerClient.toErrorCode(reply.errorCode()));

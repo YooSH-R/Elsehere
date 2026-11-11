@@ -112,7 +112,8 @@ class TaxiRideTurnTest {
             new MissionDialogueService(mock(FirstDayMissionService.class), noStory),
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
             new DialogueRequestLocks(),
-            mock(com.elsehere.mission.service.PlacePracticeService.class));
+            mock(com.elsehere.mission.service.PlacePracticeService.class),
+            new EarlyReplies(true));
   }
 
   @Test

@@ -338,7 +338,7 @@ namespace A305.EditorTools.Theme
 
         /// <summary>
         /// 오른쪽 위에는 휴대폰 버튼만 두고, 누르면 삼성폰 모양 메뉴(단어장·대화 노트·마을 지도·집으로·내 정보 앱)를 펼친다.
-        /// 폰 화면은 <see cref="PhoneMenuBuilder"/>가 만든다. 알림은 알림이 있을 때만 보이는 작은 카드에 담는다.
+        /// 폰 화면은 <see cref="PhoneMenuBuilder"/>가 만든다. 알림은 알림이 있을 때만 화면 위 가운데에 보이는 카드에 담고, 자리는 <see cref="HudNoticeBuilder"/>가 맞춘다.
         /// </summary>
         private static void StyleHud(Transform root)
         {
@@ -367,20 +367,16 @@ namespace A305.EditorTools.Theme
             StyleSurveyPrompt(root);
             StyleNeighbors(root);
 
-            RectTransform card = FindOrCreateRect(panel, "MessageCard");
+            RectTransform card = HudNoticeBuilder.Place(root);
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = false;
             var cardLayout = BuilderTools.GetOrAddComponent<VerticalLayoutGroup>(card.gameObject);
             cardLayout.padding = new RectOffset(36, 36, 28, 28);
             cardLayout.childControlWidth = cardLayout.childControlHeight = true;
             cardLayout.childForceExpandHeight = false;
             Role(card, UiThemeRole.Card);
-            card.SetAsLastSibling();
-            Transform message = panel.Find("Message");
-            if (message == null)
-                message = card.Find("Message");
+            Transform message = card.Find("Message");
             if (message != null)
             {
-                message.SetParent(card, false);
                 message.gameObject.SetActive(true);
                 Role(message, UiThemeRole.Body);
             }

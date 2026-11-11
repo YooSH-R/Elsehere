@@ -667,10 +667,10 @@ namespace A305.EditorTools.Learning
             return button;
         }
 
-        // 알림 글자는 테마 Builder가 알림 카드(MessageCard) 안으로 옮긴다. 다시 실행해도 하나만 두고 남은 사본은 지운다.
+        // 알림 글자는 테마 Builder가 화면 위 가운데의 알림 카드(Notice/MessageCard) 안으로 옮긴다. 다시 실행해도 하나만 두고 남은 사본은 지운다.
         private static TMP_Text FindOrCreateMessage(RectTransform panel, TMP_FontAsset regular)
         {
-            Transform card = panel.Find("MessageCard");
+            Transform card = panel.parent.Find("Notice/MessageCard");
             TMP_Text kept = null;
             foreach (Transform parent in new[] { panel, card })
             {

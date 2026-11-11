@@ -701,7 +701,7 @@ namespace A305.EditorTools.Mission
             hint.gameObject.SetActive(false);
         }
 
-        // 오른쪽·위 28, 칸 사이 12. 휴대폰 버튼(64) 왼쪽에 시계 칩과 코인 칩을 둔다.
+        // 오른쪽·위 28, 칸 사이 12. 시계는 최소 216×64, 코인은 174×64다.
         private static void StatusChips(FirstDayMissionView view, Transform content)
         {
             Transform old = content.Find("Status");
@@ -749,10 +749,12 @@ namespace A305.EditorTools.Mission
 
         private static void ClockLabel(FirstDayMissionView view, RectTransform chip)
         {
-            // 기존 최소 폭은 유지하고, 필요하면 글자와 여백만큼 Status의 왼쪽으로 넓힌다.
-            chip.GetComponent<LayoutElement>().preferredWidth = -1;
+            // 여백이 있는 기본 폭은 시각이 바뀌어도 유지하고, 긴 날짜는 왼쪽으로 넓힌다.
+            var size = chip.GetComponent<LayoutElement>();
+            size.minWidth = 216 * Px;
+            size.preferredWidth = -1;
             var layout = BuilderTools.GetOrAddComponent<HorizontalLayoutGroup>(chip.gameObject);
-            layout.padding = new RectOffset(Round(6), Round(6), 0, 0);
+            layout.padding = new RectOffset(Round(24), Round(24), 0, 0);
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childControlWidth = layout.childControlHeight = true;
             layout.childForceExpandWidth = layout.childForceExpandHeight = true;

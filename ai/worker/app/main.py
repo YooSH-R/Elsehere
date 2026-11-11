@@ -20,7 +20,7 @@ from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import feedback_bridge, guard, npc_persona, services, stt
+from . import feedback_bridge, guard, npc_persona, performance_intent, services, stt
 from .config import Settings
 from .guard_local import LocalGuard
 from .llm import LLM, REQUEST_NOTES, ModelOutputError, ProviderError, Usage
@@ -210,6 +210,10 @@ def create_app(
     @app.post("/v1/guard")
     async def guard_line(req: GuardRequest, request: Request):
         return await guard.guard(request.app.state.llm, req, request.app.state.guard_local)
+
+    @app.post("/v1/performance/intent")
+    async def classify_performance(req: performance_intent.PerformanceIntentRequest, request: Request):
+        return await performance_intent.classify(request.app.state.llm, req)
 
     @app.post("/v1/npc/reply")
     async def npc_reply(req: ReplyRequest, request: Request):

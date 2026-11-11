@@ -260,20 +260,33 @@ namespace A305.Mission.Tests
             Assert.That(Field<TMP_Text>("place").text, Is.EqualTo(expected));
         }
 
-        // 시안의 시계 칩과 코인 칩은 같은 크기(174×64)다.
+        // 높이는 같은 64px를 유지하고, 시계만 글자 양옆의 24px 여백에 맞춰 넓어진다.
         [Test]
-        public void StatusChips_ShareTheMockupSize()
+        public void StatusChips_KeepTheirHeightAndLeaveRoomAroundTheClock()
         {
             Refresh(Journey(current: 5));
             var clock = (RectTransform)instance.transform.Find("Content/Status/Clock");
             var coins = (RectTransform)instance.transform.Find("Content/Status/Coins");
-            Canvas.ForceUpdateCanvases();
-            UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)clock.parent);
+            TMP_Text label = clock.Find("Label").GetComponent<TMP_Text>();
+            SettleClockLayout(label, (RectTransform)clock.parent);
 
-            Assert.That(clock.rect.size.x, Is.EqualTo(174 * 1.2f).Within(.5f));
+            Assert.That(
+                clock.rect.size.x,
+                Is.GreaterThanOrEqualTo(label.preferredWidth + 48 * 1.2f - .5f)
+            );
             Assert.That(clock.rect.size.y, Is.EqualTo(64 * 1.2f).Within(.5f));
-            Assert.That(coins.rect.size.x, Is.EqualTo(clock.rect.size.x).Within(.5f));
+            Assert.That(coins.rect.size.x, Is.EqualTo(174 * 1.2f).Within(.5f));
             Assert.That(coins.rect.size.y, Is.EqualTo(clock.rect.size.y).Within(.5f));
+            Assert.That(label.fontSize, Is.EqualTo(21 * 1.2f).Within(.01f));
+            Assert.That(label.alignment, Is.EqualTo(TextAlignmentOptions.Center));
+            Assert.That(
+                clock.TransformPoint(clock.rect.center).y,
+                Is.EqualTo(coins.TransformPoint(coins.rect.center).y).Within(.1f)
+            );
+            Assert.That(
+                clock.TransformPoint(clock.rect.xMax, 0, 0).x,
+                Is.LessThan(coins.TransformPoint(coins.rect.xMin, 0, 0).x)
+            );
         }
 
         // 나란히 놓인 시계 글자와 코인 숫자는 같은 크기로 읽힌다(코인 숫자만 크게 튀지 않는다).
@@ -420,8 +433,7 @@ namespace A305.Mission.Tests
 
                 (float Colon, float Width, bool TextFits, float CoinRight) MeasureClock()
                 {
-                    LayoutRebuilder.ForceRebuildLayoutImmediate(status);
-                    label.ForceMeshUpdate();
+                    SettleClockLayout(label, status);
                     int colon = label.GetParsedText().IndexOf(':');
                     float colonX = label.textInfo.characterInfo[colon].origin;
                     return (
@@ -436,6 +448,18 @@ namespace A305.Mission.Tests
             {
                 sharedProperty.SetValue(null, previousClock);
             }
+        }
+
+        private static void SettleClockLayout(TMP_Text label, RectTransform status)
+        {
+            // TMP 글자 폭과 부모 레이아웃이 서로 갱신된 뒤 최종 위치를 측정한다.
+            for (int i = 0; i < 3; i++)
+            {
+                label.ForceMeshUpdate();
+                Canvas.ForceUpdateCanvases();
+                LayoutRebuilder.ForceRebuildLayoutImmediate(status);
+            }
+            label.ForceMeshUpdate();
         }
 
         // 폰 메뉴의 코인 위젯이 같은 잔액을 보이도록 함께 알린다. 퀘스트 진행은 왼쪽 위 알약만 보인다.

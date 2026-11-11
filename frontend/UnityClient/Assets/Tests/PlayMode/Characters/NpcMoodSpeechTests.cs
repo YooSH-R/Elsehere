@@ -16,7 +16,7 @@ namespace A305.Characters.PlayModeTests
 {
     public sealed class NpcMoodSpeechTests
     {
-        private static byte[] EmotionalVoice(
+        internal static byte[] EmotionalVoice(
             float frownIntensity = 1,
             string firstEmotion = "frown"
         )

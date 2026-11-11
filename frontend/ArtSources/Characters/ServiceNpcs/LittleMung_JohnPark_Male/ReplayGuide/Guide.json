@@ -1,0 +1,152 @@
+{
+  "english": "Tap 'Replay rap' and I'll play it again!",
+  "korean": "‘랩 다시 듣기’를 누르면 다시 들려줄게요.",
+  "voice": "am_onyx",
+  "speed": 1.1,
+  "duration": 3.05,
+  "emotion": "warm_smile",
+  "pcmSha256": "e0d4b0b7996db25b9b249620711f2cfbd8136da62ac84c059bdf8d4f791c9f84",
+  "timeline": {
+    "version": 2,
+    "provider": "kokoro-en-US",
+    "duration": 3.05,
+    "pcmSha256": "e0d4b0b7996db25b9b249620711f2cfbd8136da62ac84c059bdf8d4f791c9f84",
+    "phonemes": [
+      {
+        "phoneme": "_",
+        "start": 0.0,
+        "end": 0.21
+      },
+      {
+        "phoneme": "t",
+        "start": 0.21,
+        "end": 0.28
+      },
+      {
+        "phoneme": "ae",
+        "start": 0.28,
+        "end": 0.39
+      },
+      {
+        "phoneme": "p",
+        "start": 0.39,
+        "end": 0.49
+      },
+      {
+        "phoneme": "r",
+        "start": 0.49,
+        "end": 0.54
+      },
+      {
+        "phoneme": "iy",
+        "start": 0.54,
+        "end": 0.61
+      },
+      {
+        "phoneme": "p",
+        "start": 0.61,
+        "end": 0.67
+      },
+      {
+        "phoneme": "l",
+        "start": 0.67,
+        "end": 0.75
+      },
+      {
+        "phoneme": "ey",
+        "start": 0.75,
+        "end": 0.82
+      },
+      {
+        "phoneme": "r",
+        "start": 0.82,
+        "end": 0.96
+      },
+      {
+        "phoneme": "ae",
+        "start": 0.96,
+        "end": 1.13
+      },
+      {
+        "phoneme": "p",
+        "start": 1.13,
+        "end": 1.26
+      },
+      {
+        "phoneme": "ae",
+        "start": 1.26,
+        "end": 1.29
+      },
+      {
+        "phoneme": "n",
+        "start": 1.29,
+        "end": 1.33
+      },
+      {
+        "phoneme": "d",
+        "start": 1.33,
+        "end": 1.37
+      },
+      {
+        "phoneme": "ay",
+        "start": 1.37,
+        "end": 1.43
+      },
+      {
+        "phoneme": "l",
+        "start": 1.43,
+        "end": 1.55
+      },
+      {
+        "phoneme": "p",
+        "start": 1.55,
+        "end": 1.65
+      },
+      {
+        "phoneme": "l",
+        "start": 1.65,
+        "end": 1.72
+      },
+      {
+        "phoneme": "ey",
+        "start": 1.72,
+        "end": 1.81
+      },
+      {
+        "phoneme": "ih",
+        "start": 1.81,
+        "end": 1.86
+      },
+      {
+        "phoneme": "dx",
+        "start": 1.86,
+        "end": 1.89
+      },
+      {
+        "phoneme": "ah",
+        "start": 1.89,
+        "end": 1.93
+      },
+      {
+        "phoneme": "g",
+        "start": 1.93,
+        "end": 2.04
+      },
+      {
+        "phoneme": "eh",
+        "start": 2.04,
+        "end": 2.15
+      },
+      {
+        "phoneme": "n",
+        "start": 2.15,
+        "end": 2.3
+      },
+      {
+        "phoneme": "_",
+        "start": 2.3,
+        "end": 3.04
+      }
+    ]
+  }
+}

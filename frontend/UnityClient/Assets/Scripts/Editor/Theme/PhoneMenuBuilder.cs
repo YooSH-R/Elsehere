@@ -43,7 +43,7 @@ namespace A305.EditorTools.Theme
         private const float ArtLeft = 90;
         private const float ArtTop = 60;
         private static readonly Rect BalanceCard = new Rect(286, 90, 106, 77);
-        private static readonly Rect BalanceSurface = new Rect(293, 99, 79, 57);
+        private static readonly Rect BalanceSurface = new Rect(293, 99, 79, 65);
 
         private static readonly Color Ink = new Color32(47, 37, 27, 255);
         private static readonly Color Muted = new Color32(125, 110, 91, 255);
@@ -150,6 +150,7 @@ namespace A305.EditorTools.Theme
                 camera.Render();
                 Canvas.ForceUpdateCanvases();
                 menu.GetComponent<PhoneMenuView>().SendMessage("OnEnable");
+                menu.Find("Balance/Amount").GetComponent<TMP_Text>().text = "76";
                 Canvas.ForceUpdateCanvases();
                 camera.Render();
                 RenderTexture.active = target;
@@ -159,6 +160,26 @@ namespace A305.EditorTools.Theme
                     Path.Combine(output, $"phone-{size.x}x{size.y}.png"),
                     pixels.EncodeToPNG()
                 );
+                var corners = new Vector3[4];
+                ((RectTransform)menu.Find("Balance")).GetWorldCorners(corners);
+                Vector3 bottom = camera.WorldToScreenPoint(corners[0]);
+                Vector3 top = camera.WorldToScreenPoint(corners[2]);
+                var widget = new Texture2D(
+                    Mathf.CeilToInt(top.x - bottom.x) + 20,
+                    Mathf.CeilToInt(top.y - bottom.y) + 20,
+                    TextureFormat.RGB24,
+                    false
+                );
+                widget.ReadPixels(
+                    new Rect(bottom.x - 10, bottom.y - 10, widget.width, widget.height),
+                    0,
+                    0
+                );
+                File.WriteAllBytes(
+                    Path.Combine(output, $"coin-{size.x}x{size.y}.png"),
+                    widget.EncodeToPNG()
+                );
+                Object.DestroyImmediate(widget);
                 RenderTexture.active = null;
                 camera.targetTexture = null;
                 target.Release();
@@ -181,6 +202,7 @@ namespace A305.EditorTools.Theme
         [MenuItem(BalanceMenuPath)]
         public static void ApplyBalanceToPrefab()
         {
+            BalanceSurfaceArt(regenerate: true);
             BuilderTools.UpdatePrefabIfExists(
                 HudPrefabPath,
                 root =>
@@ -409,11 +431,11 @@ namespace A305.EditorTools.Theme
             BuilderTools.SetReference(view, "budget", amount);
         }
 
-        private static Sprite BalanceSurfaceArt()
+        private static Sprite BalanceSurfaceArt(bool regenerate = false)
         {
             const string name = "PhoneBalanceSurface";
             string path = $"{ArtFolder}/{name}.png";
-            if (File.Exists(path))
+            if (File.Exists(path) && !regenerate)
                 return ImportBalanceSurface(name, path);
 
             // 폰 그림의 위젯 테두리와 그림자는 두고, 안쪽의 기존 동전과 글자만 배경색으로 덮는다.
@@ -428,13 +450,22 @@ namespace A305.EditorTools.Theme
             var pixels = new Color[width * height];
             for (int y = 0; y < height; y++)
             {
-                Color start = source.GetPixel(left, bottom + y);
+                // 글자 아래까지 덮되 둥근 카드 모서리 밖의 배경색이 안쪽으로 번지지 않게 한다.
+                float phoneY = BalanceSurface.yMax - y / scale;
+                int sampleLeft = phoneY > 140 ? left + Mathf.RoundToInt(23 * scale) : left;
+                Color start = source.GetPixel(sampleLeft, bottom + y);
                 Color end = source.GetPixel(left + width - 1, bottom + y);
                 for (int x = 0; x < width; x++)
                 {
                     Color fill = Color.Lerp(start, end, (float)x / (width - 1));
                     int edge = Mathf.Min(Mathf.Min(x, width - 1 - x), Mathf.Min(y, height - 1 - y));
-                    fill.a = Mathf.Clamp01(edge / (4 * scale));
+                    fill.a = Mathf.Clamp01(edge / scale);
+                    Vector2 point = new Vector2(BalanceSurface.x + x / scale, phoneY);
+                    Vector2 nearest = new Vector2(
+                        Mathf.Clamp(point.x, BalanceCard.xMin + 25, BalanceCard.xMax - 25),
+                        Mathf.Clamp(point.y, BalanceCard.yMin + 25, BalanceCard.yMax - 25)
+                    );
+                    fill.a *= Mathf.Clamp01(24 - Vector2.Distance(point, nearest));
                     pixels[y * width + x] = fill;
                 }
             }

@@ -3,6 +3,19 @@ namespace A305.Onboarding
     /// <summary>마이페이지에 보여 줄 내 정보 문구.</summary>
     public static class MyPageText
     {
+        /// <summary>항목명은 옅게, 값은 같은 시작점에 맞춰 내 정보 화면에 표시한다.</summary>
+        public static string ProfileForDisplay(OnboardingUser user)
+        {
+            return DisplayField("닉네임", user.Nickname)
+                + "\n"
+                + DisplayField("캐릭터", Character(user.AvatarType))
+                + "\n"
+                + DisplayField("학습 언어", Language(user.CurrentLanguage));
+        }
+
+        private static string DisplayField(string label, string value) =>
+            $"<alpha=#BB><size=20>{label}</size><alpha=#FF><pos=164><b>{value}</b>";
+
         /// <summary>닉네임·캐릭터·배우는 언어를 줄마다 보여 준다.</summary>
         public static string Profile(OnboardingUser user)
         {

@@ -16,6 +16,7 @@ import com.elsehere.feedback.repository.ConversationFeedbackRepository;
 import com.elsehere.feedback.repository.TurnFeedbackRepository;
 import com.elsehere.user.entity.User;
 import com.elsehere.vocab.dto.VocabItemResponse;
+import com.elsehere.vocab.dto.VocabItemResponse.SourceNpc;
 import com.elsehere.vocab.dto.VocabListResponse;
 import com.elsehere.vocab.dto.VocabSaveResponse;
 import com.elsehere.vocab.entity.UserVocab;
@@ -24,6 +25,7 @@ import com.elsehere.vocab.entity.VocabularySource;
 import com.elsehere.vocab.repository.UserVocabRepository;
 import com.elsehere.vocab.repository.VocabularyRepository;
 import com.elsehere.world.entity.Npc;
+import com.elsehere.world.entity.PlaceGroup;
 import com.elsehere.world.repository.NpcRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -275,21 +277,21 @@ public class VocabService {
     return toItems(List.of(userVocab)).getFirst();
   }
 
-  /** 대화에서 저장한 단어는 출처 대화의 NPC 이름을 함께 보여 준다. 한 페이지의 NPC는 한 번에 읽는다. */
+  /** 대화에서 저장한 단어는 출처 대화의 NPC 이름과 일하는 곳을 함께 보여 준다. 한 페이지의 대화와 NPC는 한 번에 읽는다. */
   private List<VocabItemResponse> toItems(List<UserVocab> entries) {
-    Map<Long, String> npcNames = npcNamesByConversation(entries);
+    Map<Long, SourceNpc> npcs = sourceNpcsByConversation(entries);
     return entries.stream()
         .map(
             entry -> {
               // 사물에서 저장한 단어는 출처 대화가 없다. 빈 Map.of()는 null 키 조회도 막으므로 먼저 거른다.
               Long conversationId = entry.getSourceConversationId();
-              String npcName = conversationId == null ? null : npcNames.get(conversationId);
-              return VocabItemResponse.from(entry, npcName, DISPLAY_ZONE);
+              SourceNpc npc = conversationId == null ? SourceNpc.NONE : npcs.get(conversationId);
+              return VocabItemResponse.from(entry, npc, DISPLAY_ZONE);
             })
         .toList();
   }
 
-  private Map<Long, String> npcNamesByConversation(List<UserVocab> entries) {
+  private Map<Long, SourceNpc> sourceNpcsByConversation(List<UserVocab> entries) {
     Set<Long> conversationIds =
         entries.stream()
             .map(UserVocab::getSourceConversationId)
@@ -298,13 +300,25 @@ public class VocabService {
     if (conversationIds.isEmpty()) {
       return Map.of();
     }
-    Map<Long, Long> npcIds =
-        conversationRepository.findAllById(conversationIds).stream()
-            .collect(Collectors.toMap(Conversation::getId, Conversation::getNpcId));
-    Map<Long, String> names =
-        npcRepository.findAllById(Set.copyOf(npcIds.values())).stream()
-            .collect(Collectors.toMap(Npc::getId, Npc::getName));
-    return npcIds.entrySet().stream()
-        .collect(Collectors.toMap(Map.Entry::getKey, entry -> names.get(entry.getValue())));
+    List<Conversation> conversations = conversationRepository.findAllById(conversationIds);
+    Map<Long, Npc> npcsById =
+        npcRepository
+            .findAllById(
+                conversations.stream().map(Conversation::getNpcId).collect(Collectors.toSet()))
+            .stream()
+            .collect(Collectors.toMap(Npc::getId, npc -> npc));
+    return conversations.stream()
+        .collect(
+            Collectors.toMap(
+                Conversation::getId,
+                conversation -> sourceNpc(conversation, npcsById.get(conversation.getNpcId()))));
+  }
+
+  /** 근무 시간 밖에 만난 NPC와 나눈 말은 일하는 곳의 표현이 아니라 일상 대화라 일하는 곳을 붙이지 않는다. */
+  private static SourceNpc sourceNpc(Conversation conversation, Npc npc) {
+    if (conversation.isNpcOffDuty()) {
+      return new SourceNpc(npc.getName(), null, PlaceGroup.DAILY);
+    }
+    return new SourceNpc(npc.getName(), npc.getPlaceName(), npc.getPlaceGroup());
   }
 }

@@ -138,7 +138,8 @@ class SceneServiceTest {
             new NpcResponse("FIRE_FIGHTER", "Rachel", NpcType.STAFF, "빨래방 직원", false, null),
             new NpcResponse("FIRE_ROOKIE", "Andre", NpcType.STAFF, "이발소 직원", false, null),
             new NpcResponse("TOWN_GRANDFATHER", "Arthur", NpcType.PASSERBY, "행인", false, null),
-            new NpcResponse("TOWN_GRANDMOTHER", "Margaret", NpcType.PASSERBY, "행인", false, null));
+            new NpcResponse("TOWN_GRANDMOTHER", "Margaret", NpcType.PASSERBY, "행인", false, null),
+            new NpcResponse("TOWN_JOHN_PARK", "John", NpcType.PASSERBY, "뮤지션", false, null));
   }
 
   @Test

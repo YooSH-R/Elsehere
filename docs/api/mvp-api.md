@@ -1237,6 +1237,19 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - AI 호출이 실패하면 1.5의 AI 오류 코드를 돌려주고, 단어가 하나도 오지 않으면 `502 AI_RESPONSE_INVALID`입니다. 두 경우 모두 저장하지 않습니다.
 - 추천 단어는 자유 대화 힌트의 첫 단계(CONV-05)라 AI 호출 기록(`ai_requests.kind`)은 `HINT`로 남깁니다. 사용량 항목의 단계 이름(`suggest`)으로 힌트 문장과 구분합니다.
 
+#### 저장 공연 `POST /api/v1/conversations/{conversationId}/performance-intent`
+
+- John(`TOWN_JOHN_PARK`)과 진행 중인 본인 소유의 자유 대화에만 사용합니다. 다른 소유자는 404,
+  끝난 대화는 `CONVERSATION_NOT_ACTIVE`, 복습은 `REVIEW_IN_PROGRESS`, 다른 NPC는 `VALIDATION_FAILED`입니다.
+- 요청: `{"requestId":"UUID","text":"I'd love an encore of that burger beat."}`. 공백이 아닌 500자 이하입니다.
+- 응답: `{"intent":"REPLAY_RAP"}` 또는 `{"intent":"CONVERSATION"}`. 사용자 턴·NPC 대사·TTS·번역을 만들지 않습니다.
+- 모호한 재생 요청만 분류합니다. 명확한 요청·안내·랩 버튼·뜻 보기는 Unity에 포함된 저장 에셋을 사용합니다.
+  `REPLAY_RAP`이면 저장 안내를 재생하고 버튼을 강조하며, `CONVERSATION`만 기존 발화 API로 전달합니다.
+- 분류 사용량은 `ai_requests.kind=JUDGE`, 워커 `usage.step=performance_intent`로 기록합니다.
+  이 요청은 자동 재시도하거나 결과를 캐시하지 않습니다. 수동 재요청은 다시 모델 비용이 발생할 수 있습니다.
+  UI는 분류 중 중복 전송과 종료 후 늦은 결과를 차단하고, 오류일 때 새 대사를 생성하는 대신 버튼을 안내합니다.
+- 음성 입력의 STT와 일반 대화의 시작·종료·평가는 기존 경로를 유지합니다.
+
 #### CONV-06·07 NPC 음성
 
 - CONV-06 `GET /api/v1/turns/{turnId}/speech`는 만들어 둔 음성 파일을 돌려줍니다. [다시 듣기]는 이 API를 쓰며 TTS를 새로 만들지 않습니다. 키나 파일이 없거나 보관 기간이 만료됐으면 `404 NOT_FOUND`입니다.
@@ -1493,7 +1506,13 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
       "memo": "주문할 때 쓰기",
       "memorized": false,
       "savedAt": "2026-10-21T14:06:00+09:00",
-      "source": { "sourceType": "NPC_LINE", "npcName": "Mia", "conversationId": 58 }
+      "source": {
+        "sourceType": "NPC_LINE",
+        "npcName": "Mia",
+        "conversationId": 58,
+        "placeName": "카페",
+        "placeGroup": "FOOD"
+      }
     }
   ],
   "nextCursor": null
@@ -1506,6 +1525,8 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 - 화면 18의 유형 필터(단어·숙어·문장)는 MVP에서 보여주지 않습니다. `vocab.type`(`vocabularies.type`)은 한 단어면 `WORD`, 숙어면 `IDIOM`입니다.
 - `vocab.meaningKo`는 단어·숙어의 뜻(`vocabularies.meaning_ko`), `context`는 저장할 때의 문장과 문장 뜻(`user_vocab.context_text`, `context_meaning_ko`)입니다. 같은 단어라도 사용자마다 저장한 문장이 다르므로 `user_vocab`에 둡니다.
 - 상세의 "Mia와의 대화" 같은 출처 표시는 `source`로 그립니다. 출처 대화는 `user_vocab.source_conversation_id`, 출처 NPC는 그 대화의 NPC입니다. 사물에서 저장한 단어는 `npcName`, `conversationId`가 `null`입니다.
+- `placeName`·`placeGroup`은 출처 대화 NPC가 일하는 곳과 그 장소 묶음(`npcs.place_name`·`place_group`)입니다. 코드 이름이 아니라 실제 근무지 기준입니다(식당 야간 직원 `FIRE_CAPTAIN`은 `식당`·`FOOD`). 묶음은 `FOOD`(카페·식당·빵집), `SHOPPING`(드럭스토어·꽃집·생활용품점·오락실), `SERVICES`(은행·우체국·빨래방·이발소·호텔·택시), `SAFETY`(경찰서), `DAILY`(거리에서 만난 사람)입니다. 근무 시간 밖에 만난 NPC와의 대화(`conversations.npc_off_duty`)는 일하는 곳의 표현이 아니므로 `placeName`이 `null`, `placeGroup`이 `DAILY`입니다. 사물에서 저장한 단어는 둘 다 `null`입니다.
+- 단어장 화면은 목록을 끝까지 받아 [대화 표현 | 사물 단어] 탭(`sourceType`이 `NPC_LINE`·`FEEDBACK`이면 대화 표현)과 대화 표현의 장소 묶음 칩, 탭·칩별 개수를 클라이언트에서 나눕니다. 서버 필터는 두지 않습니다.
 - `memo`(`user_vocab.memo`)는 사용자가 남긴 메모입니다. 뜻은 수정하지 않습니다.
 
 #### VOCAB-02 `POST /api/v1/vocab`

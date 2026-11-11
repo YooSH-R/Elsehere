@@ -276,6 +276,46 @@ namespace A305.Dialogue
         private Button replayButton;
 
         [SerializeField]
+        private Button performanceButton;
+        private bool performanceVisible;
+        private bool performanceEnabled;
+        private bool performancePlaying;
+        private bool performanceEmphasized;
+
+        public event Action PerformanceRequested;
+
+        public void SetPerformanceState(
+            bool visible,
+            bool interactable,
+            bool playing,
+            bool emphasized
+        )
+        {
+            if (performanceButton == null)
+                return;
+            if (
+                performanceVisible == visible
+                && performanceEnabled == interactable
+                && performancePlaying == playing
+                && performanceEmphasized == emphasized
+            )
+                return;
+            performanceVisible = visible;
+            performanceEnabled = interactable;
+            performancePlaying = playing;
+            performanceEmphasized = emphasized;
+            performanceButton.gameObject.SetActive(visible);
+            performanceButton.interactable = interactable;
+            performanceButton.GetComponentInChildren<TMP_Text>().text = playing
+                ? "랩 멈추기"
+                : "랩 다시 듣기";
+            var outline = performanceButton.GetComponent<Outline>();
+            if (outline != null)
+                outline.enabled = emphasized;
+            Refresh();
+        }
+
+        [SerializeField]
         private Button hintButton;
 
         [SerializeField]
@@ -449,6 +489,7 @@ namespace A305.Dialogue
 
         public void Hide()
         {
+            SetPerformanceState(false, false, false, false);
             SetEndButtonHighlight(false);
             content = null;
             panel.SetActive(false);
@@ -686,6 +727,8 @@ namespace A305.Dialogue
             // 대사 칸을 스크롤하면 카드가 고른 단어를 따라간다.
             historyScroll.onValueChanged.AddListener(_ => PlaceWordCard());
             replayButton.onClick.AddListener(() => ReplayRequested?.Invoke());
+            if (performanceButton != null)
+                performanceButton.onClick.AddListener(() => PerformanceRequested?.Invoke());
             if (translationListenButton != null)
                 translationListenButton.onClick.AddListener(() =>
                 {
@@ -1284,16 +1327,30 @@ namespace A305.Dialogue
                 Place(nameChip, layout.Name);
             Place(npcNameText.rectTransform, layout.Name);
             float toolsLeft = PlaceTools(layout.Tools);
+            float standingLeft = layout.Name.xMax + DialogueCinemaLayout.Gap;
+            if (performanceButton != null && performanceVisible)
+            {
+                const float width = 205;
+                bool fits = toolsLeft - standingLeft >= width + DialogueCinemaLayout.Gap;
+                Place(
+                    (RectTransform)performanceButton.transform,
+                    new Rect(
+                        fits ? standingLeft : layout.Name.xMin,
+                        fits ? layout.Name.yMin : layout.Name.yMax + DialogueCinemaLayout.Gap,
+                        width,
+                        DialogueCinemaLayout.NameHeight
+                    )
+                );
+                if (fits)
+                    standingLeft += width + DialogueCinemaLayout.Gap;
+            }
             // 호감도·무례 경고는 이름표 바로 오른쪽에 두고, 도구 버튼 앞에서 말줄임으로 자른다.
             Place(
                 standingText.rectTransform,
                 Rect.MinMaxRect(
-                    layout.Name.xMax + DialogueCinemaLayout.Gap,
+                    standingLeft,
                     layout.Name.yMin,
-                    Mathf.Max(
-                        layout.Name.xMax + DialogueCinemaLayout.Gap,
-                        toolsLeft - DialogueCinemaLayout.Gap
-                    ),
+                    Mathf.Max(standingLeft, toolsLeft - DialogueCinemaLayout.Gap),
                     layout.Name.yMax
                 )
             );

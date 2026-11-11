@@ -160,6 +160,44 @@ namespace A305.Dialogue.Tests
             Assert.That(result.NpcTurn.TurnId, Is.EqualTo(12));
         }
 
+        // 스트림을 받을 전송이 없는 클라이언트(ApiClient의 streamTransport가 null)는 스트림을 넘겨도 JSON 한 번으로 받는다.
+        [Test]
+        public async Task SendTurn_ClientWithoutStreamTransport_SendsOnePlainRequest()
+        {
+            rest.Body = "{\"npcTurn\":{\"turnId\":12,\"text\":\"Sure!\"}}";
+            var plain = new ApiClient("", rest);
+
+            TurnResult result = await new ConversationApi(plain, plain).SendTurnAsync(
+                58,
+                "r-1",
+                "TEXT",
+                "A latte",
+                null,
+                received
+            );
+
+            Assert.That(rest.Calls, Is.EqualTo(1));
+            Assert.That(result.NpcTurn.TurnId, Is.EqualTo(12));
+        }
+
+        [Test]
+        public async Task Start_ClientWithoutStreamTransport_SendsOnePlainRequest()
+        {
+            rest.Body = "{\"conversationId\":58,\"openingTurn\":{\"turnId\":101,\"text\":\"Hi!\"}}";
+            var plain = new ApiClient("", rest);
+
+            ConversationStart started = await new ConversationApi(plain, plain).StartAsync(
+                "r-1",
+                "CAFE_STAFF",
+                "USER",
+                false,
+                stream: received
+            );
+
+            Assert.That(rest.Calls, Is.EqualTo(1));
+            Assert.That(started.ConversationId, Is.EqualTo(58));
+        }
+
         // CONV-01 스트리밍. 첫 인사도 같은 이벤트로 오고 마지막에 시작한 대화(conversation)가 온다.
         private const string ConversationEvent =
             "event: conversation\ndata: {\"conversationId\":58,"

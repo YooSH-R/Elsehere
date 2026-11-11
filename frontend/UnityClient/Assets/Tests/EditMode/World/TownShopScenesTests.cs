@@ -51,10 +51,10 @@ namespace A305.World.Tests
         [Test]
         public void EveryTownShopDoor_LeadsToItsShopSceneTownDoor()
         {
+            SpaceDoorway[] townDoors = BuilderTools.FindAllInScene<SpaceDoorway>(town);
             foreach (string shop in ShopScenes)
             {
-                SpaceDoorway[] doors = BuilderTools
-                    .FindAllInScene<SpaceDoorway>(town)
+                SpaceDoorway[] doors = townDoors
                     .Where(door => door.DestinationScene == shop)
                     .ToArray();
                 Assert.That(doors, Has.Length.EqualTo(1), shop);

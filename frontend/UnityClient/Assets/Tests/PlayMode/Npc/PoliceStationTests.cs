@@ -62,7 +62,7 @@ namespace A305.Npc.PlayModeTests
             TalkToOfficerAndReport("DINER");
 
             Assert.That(PoliceDispatchOrder.IsPending, Is.False, "대화 중에는 접수만 합니다.");
-            Assert.That(VehicleStatus(), Does.Contain("신고 접수").And.Contain("메이플 식당"));
+            Assert.That(VehicleStatus(), Does.Contain("신고 접수").And.Contain("메이플 버거"));
 
             yield return EndTalk();
             Assert.That(PoliceDispatchOrder.IsPending, Is.True, "대화를 마치면 신고를 남깁니다.");

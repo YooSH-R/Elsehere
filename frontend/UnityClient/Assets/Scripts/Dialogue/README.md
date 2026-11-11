@@ -111,7 +111,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 | `TOWN_PASSERBY` | Ben | 키워드 응답. `weather`, `cafe`, `thank` |
 | `TAXI_DRIVER` | Joe | 어디로 가는지 묻고 키워드 응답. `hotel`, `thank` |
 | `POLICE_OFFICER` | Dan | 무슨 일이 있었는지 묻고 키워드 응답. `stolen`·`lost`·`accident`, `thank` |
-| 거리 매장 직원 9명([Npc 모듈](../Npc/README.md#거리-매장-직원)) | Linda·Rosa·Henry·Gus·Lily·Tony·Grace·Max·Nina | 가게 인사 뒤 키워드 응답 두 개(예: 우체국 `stamp`·`package`, 식당 `pancake`·`coffee`). 가격은 서버 상황 문장과 같습니다. |
+| 거리 매장 직원 9명([Npc 모듈](../Npc/README.md#거리-매장-직원)) | Linda·Rosa·Henry·Gus·Lily·Tony·Grace·Max·Nina | 가게 인사 뒤 키워드 응답 두 개(예: 우체국 `stamp`·`package`, 버거 가게 `classic`·`cola`). 가격은 서버 상황 문장과 같습니다. |
 
 - 키워드는 대소문자를 구분하지 않고 단어 일부여도 맞습니다(`desserts`도 `dessert`에 맞음). 규칙은 위에서부터 확인해 처음 맞는 규칙으로 답합니다.
 - 필드 초기값은 에셋을 처음 만들 때 들어가는 예시이며, 이후 수정은 에셋에서 합니다. 이름·대사는 서버 데이터라 서버 연동 후에는 서버 값을 씁니다.

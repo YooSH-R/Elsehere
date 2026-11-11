@@ -125,7 +125,7 @@ The main street runs north and south, with a crossroads with traffic lights in t
 - Past the crossroads, going north, the shops come in pairs facing each other across the street:
   - Maple Bakery, and across from Maple Bakery a small park with a fountain, benches and flower planters, just past the crossroads.
   - The post office (stamps, letters and packages), across from Little Arcade (claw machines) with Paper & Leaf Books (a bookshop) upstairs.
-  - Home & Living (furniture) with Leaf Tea Room upstairs, across from Maple Diner (breakfast all day and simple meals).
+  - Home & Living (furniture) with Leaf Tea Room upstairs, across from Maple Burger (formerly Maple Diner; burgers, fries and drinks, with optional ingredient additions and removals).
   - Town Bank (deposits, withdrawals and an ATM), across from Suds Laundromat.
   - Bloom Flowers (flower shop), across from Main St. Barber, at the north end of the main street.
 - Houses line the rest of the street. A yellow taxi drives along the main street.

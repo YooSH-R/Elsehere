@@ -12,6 +12,13 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class PoliceDeskTest {
 
+  @Test
+  void dispatch_recognizesTheBurgerShopName() {
+    var dispatch = PoliceDesk.dispatch(judged("report_incident", "Maple Burger"));
+    assertThat(dispatch)
+        .hasValueSatisfying(value -> assertThat(value.placeCode()).isEqualTo("DINER"));
+  }
+
   @ParameterizedTest
   @ValueSource(strings = {"POLICE_OFFICER", "POLICE_SERGEANT", "POLICE_ROOKIE"})
   @DisplayName("경찰서 창구의 경찰관 세 명 모두 신고를 받는다")

@@ -15,7 +15,6 @@ namespace A305.World.PlayModeTests
     /// </summary>
     public class OpeningHoursTests
     {
-        private const float TimeoutSeconds = 5f;
         private const float SceneArrivalTimeoutSeconds = 30f;
 
         // 문 감지 영역에 닿고 거절 안내가 뜨기까지 넉넉히 기다리는 물리 갱신 수
@@ -115,18 +114,24 @@ namespace A305.World.PlayModeTests
             Assert.That(Single<HudNoticeView>().IsShowing, Is.False);
         }
 
+        // 마을 매장도 카페처럼 따로 장면이다. 닫힌 매장 문에 닿으면 들어가지 않고 마을에 남는다.
         [UnityTest]
-        public IEnumerator WalkingIntoTheClosedPostOffice_IsRefusedAndKeepsItsInteriorUnloaded()
+        public IEnumerator WalkingIntoTheClosedPostOffice_IsRefusedAndKeepsThePlayerInTown()
         {
             TestGameClock.Set(8 * 60);
             yield return LoadSpace("TownScene");
-            Transform door = GameObject.Find("PostOfficeDoor").transform;
-            ShopInterior room = door.GetComponentInParent<ShopInterior>();
+            Transform door = FindDoorway("PostOfficeDoor").transform;
+            PlayerMover player = Single<PlayerMover>();
 
-            yield return StepIntoThreshold(door, Outward(door));
+            player.Teleport(
+                door.position + door.forward * 0.4f,
+                Quaternion.LookRotation(-door.forward)
+            );
+            yield return WaitForFixedUpdates(DoorTouchFixedUpdates);
 
             Assert.That(SpaceTravel.IsTraveling, Is.False);
-            Assert.That(room.IsLoaded, Is.False);
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("TownScene"));
+            Assert.That(SceneManager.GetSceneByName("PostOfficeInterior").isLoaded, Is.False);
             HudNoticeView notice = Single<HudNoticeView>();
             Assert.That(notice.IsShowing, Is.True);
             Assert.That(
@@ -136,52 +141,25 @@ namespace A305.World.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator StayingInThePostOfficeAtClosingTime_MovesThePlayerOutOfItsDoor()
+        public IEnumerator StayingInThePostOfficeAtClosingTime_MovesThePlayerOutOfItsTownDoor()
         {
             TestGameClock.Set(16 * 60 + 50);
-            yield return LoadSpace("TownScene");
-            Transform door = GameObject.Find("PostOfficeDoor").transform;
-            ShopInterior room = door.GetComponentInParent<ShopInterior>();
-            Vector3 outward = Outward(door);
-            yield return StepIntoThreshold(door, outward);
-            yield return WaitUntilTravelEnds();
-            Assert.That(room.IsLoaded, Is.True, "영업 중에는 매장에 들어갑니다.");
+            yield return LoadSpace("PostOfficeInterior");
             HudNoticeView notice = Single<HudNoticeView>();
+            Assert.That(notice.IsShowing, Is.False, "영업 중에는 안내가 없습니다.");
 
             TestGameClock.Set(17 * 60);
             yield return null;
             Assert.That(notice.Message, Is.EqualTo("영업이 끝났어요. 30분 후 마을로 이동합니다"));
 
             TestGameClock.Set(17 * 60 + 30);
-            yield return WaitUntilTravelStarts();
-            yield return WaitUntilTravelEnds();
+            yield return WaitForArrival("TownScene");
 
-            Assert.That(room.IsLoaded, Is.False);
-            Vector3 fromThreshold = Single<PlayerMover>().transform.position - Threshold(door);
-            Assert.That(Vector3.Dot(fromThreshold, outward), Is.GreaterThan(0.4f));
-            Assert.That(notice.IsShowing, Is.False);
+            Transform townDoor = FindDoorway("PostOfficeDoor").ArrivalPoint;
+            Vector3 offset = Single<PlayerMover>().transform.position - townDoor.position;
+            Assert.That(new Vector2(offset.x, offset.z).magnitude, Is.LessThan(0.05f));
+            Assert.That(Single<HudNoticeView>().IsShowing, Is.False);
         }
-
-        // 매장 문은 문턱 앞뒤로 감지 영역이 있다. 문턱 바깥쪽 감지 영역 안에 세우면 문에 닿는다.
-        // 앞선 이동의 화면 덮개가 걷히는 중에는 매장 문이 반응하지 않으므로 다 걷힌 뒤에 세운다.
-        private static IEnumerator StepIntoThreshold(Transform door, Vector3 outward)
-        {
-            yield return WaitUntilTravelEnds();
-            Vector3 position = Threshold(door) + outward * 0.45f;
-            position.y = door.position.y;
-            Single<PlayerMover>().Teleport(position, Quaternion.LookRotation(-outward));
-            yield return WaitForFixedUpdates(DoorTouchFixedUpdates);
-        }
-
-        private static Vector3 Threshold(Transform door)
-        {
-            Vector3 center = door.TransformPoint(door.GetComponent<BoxCollider>().center);
-            center.y = door.position.y;
-            return center;
-        }
-
-        // 우체국 문은 문의 앞쪽(+z)이 거리다.
-        private static Vector3 Outward(Transform door) => door.forward;
 
         private static IEnumerator LoadSpace(string sceneName)
         {
@@ -220,40 +198,6 @@ namespace A305.World.PlayModeTests
                 yield return null;
             }
             yield return null;
-        }
-
-        private static IEnumerator WaitUntilTravelStarts()
-        {
-            float deadline = Time.realtimeSinceStartup + TimeoutSeconds;
-            while (!SpaceTravel.IsTraveling)
-            {
-                Assert.That(
-                    Time.realtimeSinceStartup,
-                    Is.LessThan(deadline),
-                    "영업이 끝난 매장에서 나가지 않았습니다."
-                );
-                yield return null;
-            }
-        }
-
-        private static IEnumerator WaitUntilTravelEnds()
-        {
-            float deadline = Time.realtimeSinceStartup + TimeoutSeconds;
-            while (SpaceTravel.IsTraveling || CurtainOpacity() > 0f)
-            {
-                Assert.That(
-                    Time.realtimeSinceStartup,
-                    Is.LessThan(deadline),
-                    "이동이 끝나지 않았습니다."
-                );
-                yield return null;
-            }
-        }
-
-        private static float CurtainOpacity()
-        {
-            var curtain = Object.FindFirstObjectByType<SpaceTravelCurtain>();
-            return curtain != null ? curtain.Opacity : 0f;
         }
 
         private static SpaceDoorway FindDoorway(string doorwayId)

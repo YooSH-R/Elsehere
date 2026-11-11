@@ -149,12 +149,19 @@ namespace A305.Npc
         private Vector3 standingPosition;
         private Vector3 standingVisualPosition;
 
+        // 근무를 마치고 나갈 문(요청한 자리)과 실제로 걸어갈 보행 바닥 위의 가장 가까운 자리. 걸어 나가지 않으면 null
+        private Vector3? leavingDoor;
+        private Vector3 leavingTo;
+
         private enum Progress
         {
             Walking,
             Arrived,
             Stuck,
         }
+
+        /// <summary>문 쪽으로 걸어 나가다 문에 닿았거나 더 갈 수 없는지(<see cref="LeaveThrough"/>)</summary>
+        internal bool HasLeftThroughDoor { get; private set; }
 
         /// <summary>하려고 고른 행동. 걸어가는 중이거나 이용 중이다. 할 일이 없으면 null</summary>
         public NpcActionRule Doing => life?.Doing;
@@ -330,8 +337,39 @@ namespace A305.Npc
             }
         }
 
+        /// <summary>근무를 마치고 하던 일을 그만둔 뒤 <paramref name="door"/> 쪽으로 걸어 나간다. 이미 그 문으로 나가는 중이면 그대로 둔다.</summary>
+        internal void LeaveThrough(Vector3 door)
+        {
+            if (leavingDoor == door)
+                return;
+            Interrupt();
+            leavingDoor = door;
+            // 문턱 바로 안쪽은 문틀·벽에 가까워 보행 바닥 밖일 수 있다. 문에서 가장 가까운 보행 바닥까지 걷는다.
+            leavingTo = NavMesh.SamplePosition(
+                door,
+                out NavMeshHit floor,
+                1.5f,
+                NpcTownWalker.WalkingAreas
+            )
+                ? floor.position
+                : door;
+            HasLeftThroughDoor = false;
+        }
+
+        /// <summary>문으로 걸어 나가던 일을 멈추고 일터에서 지낸다.</summary>
+        internal void StayAtWork()
+        {
+            leavingDoor = null;
+            HasLeftThroughDoor = false;
+        }
+
         private void Decide(Vector3 playerPosition)
         {
+            if (leavingDoor.HasValue)
+            {
+                WalkOut(leavingTo);
+                return;
+            }
             double now = GameClock.Shared.Minutes;
             life.Advance(now);
             if (StaysAtReception)
@@ -698,6 +736,16 @@ namespace A305.Npc
                 && (
                     !unreachableUntil.TryGetValue(objectKey, out float until) || Time.time >= until
                 );
+        }
+
+        // 문 쪽으로 걷는다. 닿거나 더 갈 수 없으면 나간 것으로 본다(멈춰 서 있지 않게).
+        private void WalkOut(Vector3 door)
+        {
+            Vector3 toDoor = Flat(door - transform.position);
+            Quaternion facing =
+                toDoor.sqrMagnitude > .0001f ? Quaternion.LookRotation(toDoor) : transform.rotation;
+            if (GoTo(door, facing) != Progress.Walking)
+                HasLeftThroughDoor = true;
         }
 
         // 걸어서 destination에 닿으면 그 방향으로 선다.

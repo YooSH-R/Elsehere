@@ -5,6 +5,7 @@ using A305.Dialogue;
 using A305.Npc;
 using A305.Player;
 using A305.Weather;
+using A305.World;
 using UnityEngine;
 
 namespace A305.Mission
@@ -294,7 +295,12 @@ namespace A305.Mission
                 if (weather != null)
                     weather.Show(state.Weather, state.FallbackWeather);
                 if (umbrella != null)
-                    umbrella.SetOpen(state.OpensUmbrellaIn(sceneCode));
+                    umbrella.SetOpen(
+                        state.OpensUmbrellaIn(
+                            sceneCode,
+                            PlaceScenes.IsTownShop(gameObject.scene.name)
+                        )
+                    );
             }
             catch (ApiException exception)
             {

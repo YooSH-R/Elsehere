@@ -78,9 +78,11 @@ namespace A305.Mission
         /// 이 장소에서 플레이어가 우산을 펴 쓰는지. 우산은 드럭스토어 단계를 마치면 생기고, 비 오는 마을에서만 편다.
         /// 예보 이름을 보내기 전의 서버는 Raining으로 비를 판단한다.
         /// </summary>
-        public bool OpensUmbrellaIn(string sceneCode) =>
+        /// <param name="insideShop">마을 매장 실내 장면인지. 서버 장소는 마을이지만 실내다.</param>
+        public bool OpensUmbrellaIn(string sceneCode, bool insideShop = false) =>
             HasUmbrella
             && sceneCode == "TOWN"
+            && !insideShop
             && (
                 Raining || string.Equals(Weather, "RAIN", System.StringComparison.OrdinalIgnoreCase)
             );

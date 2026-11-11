@@ -2436,9 +2436,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 914457974}
-    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 914457975}
   m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
 --- !u!4 &914457969 stripped
 Transform:
@@ -2572,19 +2569,6 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 1.7500001, z: -3.9}
     m_Extent: {x: 3.8, y: 1.6500001, z: 3.7999997}
---- !u!114 &914457975
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 914457970}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bf96d54cb71f3d94abb41a1750c9647e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcWorkPresence
-  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
 --- !u!1 &919839601
 GameObject:
   m_ObjectHideFlags: 0
@@ -2771,9 +2755,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1002803876}
-    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1313057559}
   m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
 --- !u!4 &1002803871 stripped
 Transform:
@@ -3884,19 +3865,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a276b20eab9ec944d86878924d711728, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.Npc::A305.Npc.Passerby
---- !u!114 &1313057559
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1002803872}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bf96d54cb71f3d94abb41a1750c9647e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcWorkPresence
-  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
 --- !u!1 &1332068916
 GameObject:
   m_ObjectHideFlags: 0
@@ -4201,9 +4169,6 @@ PrefabInstance:
       addedObject: {fileID: 1373305933}
     - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1373305934}
-    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 1373305935}
   m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
 --- !u!4 &1373305928 stripped
@@ -4273,19 +4238,6 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 1.7500001, z: -3.9}
     m_Extent: {x: 3.8, y: 1.6500001, z: 3.7999997}
---- !u!114 &1373305934
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1373305929}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bf96d54cb71f3d94abb41a1750c9647e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcWorkPresence
-  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
 --- !u!114 &1373305935
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5955,15 +5907,12 @@ MonoBehaviour:
   - Worker: {fileID: 1002803872}
     TownPrefab: {fileID: 0}
     WorkplaceDoor: {x: 0, y: 0, z: 0}
-    InteriorScene: 
   - Worker: {fileID: 914457970}
     TownPrefab: {fileID: 0}
     WorkplaceDoor: {x: 0, y: 0, z: 0}
-    InteriorScene: 
   - Worker: {fileID: 1373305929}
     TownPrefab: {fileID: 0}
     WorkplaceDoor: {x: 0, y: 0, z: 0}
-    InteriorScene: 
   dormDoor: {x: -18, y: 0.1, z: 21}
   park: {x: 11, y: 0.1, z: 21}
   townCharacters: {fileID: 130808094}

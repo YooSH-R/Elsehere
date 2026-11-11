@@ -74,9 +74,6 @@ namespace A305.EditorTools.Weather
 
         private const string BackgroundBuildingsPath = "TownMainstreet/BackgroundBuildings";
 
-        // 배경 건물 가운데 매장 실내가 있는 건물이 입점한 상점이다. 주택·빈 건물에는 실내가 없다.
-        private const string ShopInteriorName = "Interior";
-
         // 마을에서 밤에 더 밝히는 상점 벽등·실내등. 순찰차 경광등처럼 따로 켜고 끄는 빛은 넣지 않는다.
         private static readonly string[] TownLampNames = { "FixtureLight", "InteriorLight" };
 
@@ -147,7 +144,7 @@ namespace A305.EditorTools.Weather
             SetList(weather, "litBuildings", OpenBuildings(scene));
         }
 
-        /// <summary>입점한 상점·숙소 건물. 이용 건물과, 배경 건물 가운데 켜져 있고 매장 실내가 있는 건물이다.</summary>
+        /// <summary>입점한 상점·숙소 건물. 이용 건물과, 배경 건물 가운데 켜져 있고 매장 장면으로 들어가는 문이 있는 건물이다.</summary>
         public static IEnumerable<Transform> OpenBuildings(Scene scene)
         {
             Transform environment = scene
@@ -167,7 +164,10 @@ namespace A305.EditorTools.Weather
                 yield break;
             foreach (Transform building in background)
             {
-                if (building.gameObject.activeSelf && building.Find(ShopInteriorName) != null)
+                if (
+                    building.gameObject.activeSelf
+                    && building.GetComponentInChildren<SpaceDoorway>(true) != null
+                )
                     yield return building;
             }
         }

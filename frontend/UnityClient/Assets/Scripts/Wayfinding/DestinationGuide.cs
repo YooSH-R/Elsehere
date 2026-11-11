@@ -10,7 +10,7 @@ namespace A305.Wayfinding
 {
     /// <summary>
     /// 목적지(<see cref="GuideDestination"/>) 건물의 출입문 앞을 빛내고, 플레이어 발밑에서 그 출입문까지 도로 위에 빛나는 길을 깐다.
-    /// 출입문은 별도 씬으로 이어지는 <see cref="SpaceDoorway"/> 또는 마을 매장으로 들어가는 <see cref="ShopDoorway"/>의 문 앞이다.
+    /// 출입문은 목적지 장소 씬(마을 매장 포함)으로 이어지는 <see cref="SpaceDoorway"/>의 문 앞이다.
     /// 길은 걸을 바닥(NavMesh)에서 차도에 큰 비용을 매겨 찾으므로, 차도를 건너야 하면 횡단보도로 돌아간다(<see cref="GuideWalkAreas"/>).
     /// 무엇을 보일지는 <see cref="GuideVisibility"/>가, 언제 길을 다시 찾고 얼마나 깔지는 <see cref="GuideRouteClock"/>이 정한다.
     /// </summary>
@@ -70,33 +70,26 @@ namespace A305.Wayfinding
         private Camera view;
 
         /// <summary>
-        /// 이 씬에서 목적지로 들어가는 문 앞. 별도 씬과 마을 매장 출입문을 모두 찾으며, 연결된 문이 없으면 null이다.
+        /// 이 씬에서 목적지로 들어가는 문 앞(목적지 장소 씬으로 이어지는 출입구의 도착 지점). 한 건물의 2층 가게와 코드를 함께 쓰는
+        /// 매장은 그 코드의 씬인 1층 매장 문으로 안내한다. 연결된 문이 없으면 null이다.
         /// </summary>
         public static Transform FindEntrance(Scene scene, string placeCode)
         {
             if (string.IsNullOrEmpty(placeCode))
                 return null;
             string placeScene = PlaceScenes.SceneOf(placeCode);
-            Transform shopEntrance = null;
+            if (placeScene == null)
+                return null;
             foreach (GameObject root in scene.GetRootGameObjects())
             {
                 foreach (SpaceDoorway doorway in root.GetComponentsInChildren<SpaceDoorway>())
                 {
-                    if (placeScene != null && doorway.DestinationScene == placeScene)
+                    if (doorway.DestinationScene == placeScene)
                         return doorway.ArrivalPoint;
-                }
-                foreach (ShopDoorway doorway in root.GetComponentsInChildren<ShopDoorway>())
-                {
-                    if (doorway.Room == null || doorway.Room.PlaceCode != placeCode)
-                        continue;
-                    Transform approach = doorway.ApproachPoint;
-                    // 한 건물의 2층 매장과 장소 코드를 공유해도 퀘스트 직원이 있는 아래층 문으로 안내한다.
-                    if (shopEntrance == null || approach.position.y < shopEntrance.position.y)
-                        shopEntrance = approach;
                 }
             }
 
-            return shopEntrance;
+            return null;
         }
 
         private void Awake()
@@ -135,12 +128,6 @@ namespace A305.Wayfinding
         // 플레이어가 이번 프레임에 움직인 뒤 길을 잇는다.
         private void LateUpdate()
         {
-            // 매장 실내는 마을에 겹쳐 불러와 활성 씬이 바뀌지 않으므로 입장 상태를 직접 확인한다.
-            GuideDestination.Shared.EnterPlace(
-                ShopInterior.Occupied != null
-                    ? ShopInterior.Occupied.PlaceCode
-                    : PlaceScenes.CodeOf(gameObject.scene.name)
-            );
             string destination = GuideDestination.Shared.PlaceCode;
             if (destination != placeCode)
             {
@@ -152,12 +139,11 @@ namespace A305.Wayfinding
             bool hasEntrance = entrance != null;
             if (hasEntrance && FlatDistance(feet, entrance.position) <= settings.ArrivedMeters)
                 GuideDestination.Shared.Arrive();
+            // 마을 매장 실내는 따로 장면이라 실내에서는 이 길 안내가 없다.
             GuideVisibility visibility = GuideVisibility.Decide(
                 hasEntrance,
                 GuideDestination.Shared.Arrived,
-                ShopInterior.Occupied != null
-                    || SpaceTravel.IsTraveling
-                    || (dialogue != null && dialogue.IsTalking),
+                SpaceTravel.IsTraveling || (dialogue != null && dialogue.IsTalking),
                 GuideRoutePreference.ShowsRoute
             );
             ShowEntrance(visibility.ShowsEntrance, feet);

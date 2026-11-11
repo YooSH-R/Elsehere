@@ -170,9 +170,10 @@ namespace A305.EditorTools.World
             bool includePoliceStation
         )
         {
-            // 경찰서처럼 거리 매장이면서 따로 장면이 있는 곳은 거리 매장의 정차 지점 하나만 쓴다.
+            // 거리 매장(경찰서 포함)과 북쪽 상가처럼 마을 건물 안의 장소는 거리 매장의 정차 지점만 쓰고 문마다 목적지를 만들지 않는다.
             SpaceDoorway[] doors = BuilderTools
                 .FindAllInScene<SpaceDoorway>(scene)
+                .Where(door => !PlaceScenes.IsTownShop(door.DestinationScene))
                 .Where(door =>
                     TownStorefrontBuilder.Storefronts.All(storefront =>
                         storefront.PlaceCode != PlaceScenes.CodeOf(door.DestinationScene)

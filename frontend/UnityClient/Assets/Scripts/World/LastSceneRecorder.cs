@@ -23,7 +23,7 @@ namespace A305.World
         public async Task<LastSceneRecordStatus> RecordAsync(string unitySceneName)
         {
             LastError = null;
-            string sceneCode = PlaceScenes.CodeOf(unitySceneName);
+            string sceneCode = PlaceScenes.ServerCodeOf(unitySceneName);
             if (sceneCode == null)
             {
                 return LastSceneRecordStatus.NotAPlace;

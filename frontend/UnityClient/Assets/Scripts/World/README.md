@@ -1,6 +1,6 @@
 # World 모듈
 
-공간 사이 이동을 담당합니다. 튜토리얼을 시작하는 내 방(`HomeScene`)에서 마을(`TownScene`)로 나가고, 마을에서 카페(`CafeScene`)·숙소(`HotelScene`)·상점(`ShopScene`)에 드나듭니다. 공간마다 씬을 하나씩 두고, 출입구에 닿으면 연결된 씬을 불러와 그 씬의 출입구 앞에 플레이어를 세웁니다. 장소마다 영업시간이 있어 영업시간이 아닌 장소에는 들어가지 못하고, 머무는 장소의 영업이 끝나면 잠시 뒤 마을로 옮깁니다([영업시간](#영업시간)).
+공간 사이 이동을 담당합니다. 튜토리얼을 시작하는 내 방(`HomeScene`)에서 마을(`TownScene`)로 나가고, 마을에서 카페(`CafeScene`)·숙소(`HotelScene`)·상점(`ShopScene`)·경찰서와 마을 매장(우체국·식당 등 `Scenes/ShopInteriors/`)에 드나듭니다. 실내 공간마다 씬을 하나씩 두고 플레이어가 있는 씬 하나만 켜 두며, 출입구에 닿으면 연결된 씬을 불러와 그 씬의 출입구 앞에 플레이어를 세웁니다. 장소마다 영업시간이 있어 영업시간이 아닌 장소에는 들어가지 못하고, 머무는 장소의 영업이 끝나면 잠시 뒤 마을로 옮깁니다([영업시간](#영업시간)).
 
 이 서비스의 공간 구성을 다루는 게임 전용 기능입니다. 플레이어 이동·카메라는 재사용 모듈인 `A305.Player`의 공개 API로 요청합니다.
 
@@ -9,8 +9,8 @@
 | 파일 | 역할 |
 | --- | --- |
 | `SpaceTravelState` | 이동 요청을 한 번에 하나만 받고, 다음 공간에서 나타날 출입구와 카메라 각도를 한 번만 넘겨줍니다. 잠그면 풀 때까지 이동 요청을 거절하고, 잠금은 도착·취소 뒤에도 남습니다. 영업이 끝난 장소에서 내보낼 때만 잠금과 상관없이 시작합니다(`evenIfLocked`). Unity 객체 없이 테스트합니다. |
-| `SpaceTravel` | 씬을 불러와 공간을 옮깁니다. 씬이 바뀌어도 도착할 출입구와 카메라 각도가 남도록 정적으로 둡니다. 진행 흐름이 `SetLocked(true)`로 잠그면 문·[홈] 이동을 거절하고 `Refused`로 알립니다. 지금은 [Tutorial 모듈](../Tutorial/README.md)이 튜토리얼 단계마다 잠그고 풉니다. 잠기지 않았어도 가려는 장소(씬의 장소나 들어가는 마을 매장)가 영업시간이 아니면 거절하고 안내 문구와 함께 `ClosedPlaceRefused`로 알립니다. 나오는 이동은 막지 않습니다. 영업이 끝난 장소에서 내보내는 `TryLeaveClosedPlace`(공간 씬)와 매장 문 밖 이동은 튜토리얼 잠금과 상관없이 옮깁니다. |
-| `SpaceTravelCurtain` | 공간을 옮기는 동안 화면을 검게 덮습니다(0.2초에 걸쳐 덮고 0.3초에 걸쳐 걷음). 덮는 동안 다음 씬을 미리 불러오고, 화면이 다 덮인 뒤에 씬을 바꿔 씬이 바뀌는 순간의 끊김을 가립니다. 덮여 있는 동안에는 `Application.backgroundLoadingPriority`를 `High`로 올려 불러오기에 프레임 시간을 더 쓰고, 도착하면 되돌립니다. 이전 공간을 끈 뒤 새 공간이 깨어나기까지는 공간의 카메라가 없으므로, 덮여 있는 동안 검은 화면만 그리는 카메라를 켭니다(Editor의 "No cameras rendering" 방지). 입구 화면에서 장소로 들어갈 때처럼 오래 걸리는 이동은 `Travel(씬, 문구)`로 부르면 덮는 동안 왼쪽 아래에 문구와 노란 진행 막대(웹 로딩 화면과 같은 색)를 보입니다. 문을 지날 때는 문구 없이 검은 화면만 보입니다. 씬이 바뀌어도 남도록 처음 이동할 때 만들어 둡니다. 마을 매장도 같은 시간으로 덮은 동안 해당 실내를 로드하거나 해제합니다. |
+| `SpaceTravel` | 씬을 불러와 공간을 옮깁니다. 씬이 바뀌어도 도착할 출입구와 카메라 각도가 남도록 정적으로 둡니다. 진행 흐름이 `SetLocked(true)`로 잠그면 문·[홈] 이동을 거절하고 `Refused`로 알립니다. 지금은 [Tutorial 모듈](../Tutorial/README.md)이 튜토리얼 단계마다 잠그고 풉니다. 잠기지 않았어도 가려는 장소 씬(마을 매장 포함)이 영업시간이 아니면 거절하고 안내 문구와 함께 `ClosedPlaceRefused`로 알립니다. 나오는 이동은 막지 않습니다. 영업이 끝난 장소에서 내보내는 `TryLeaveClosedPlace`는 튜토리얼 잠금과 상관없이 옮깁니다. 복습을 마치고 같은 씬의 원래 자리로 돌아갈 때는 `TryRestoreReviewPosition`이 씬을 바꾸지 않고 화면을 덮은 채 옮깁니다. |
+| `SpaceTravelCurtain` | 공간을 옮기는 동안 화면을 검게 덮습니다(0.2초에 걸쳐 덮고 0.3초에 걸쳐 걷음). 덮는 동안 다음 씬을 미리 불러오고, 화면이 다 덮인 뒤에 씬을 바꿔 씬이 바뀌는 순간의 끊김을 가립니다. 덮여 있는 동안에는 `Application.backgroundLoadingPriority`를 `High`로 올려 불러오기에 프레임 시간을 더 쓰고, 도착하면 되돌립니다. 이전 공간을 끈 뒤 새 공간이 깨어나기까지는 공간의 카메라가 없으므로, 덮여 있는 동안 검은 화면만 그리는 카메라를 켭니다(Editor의 "No cameras rendering" 방지). 입구 화면에서 장소로 들어갈 때처럼 오래 걸리는 이동은 `Travel(씬, 문구)`로 부르면 덮는 동안 왼쪽 아래에 문구와 노란 진행 막대(웹 로딩 화면과 같은 색)를 보입니다. 문을 지날 때는 문구 없이 검은 화면만 보입니다. 씬이 바뀌어도 남도록 처음 이동할 때 만들어 둡니다. 마을 매장도 다른 장소처럼 이 방식으로 씬을 바꿉니다. |
 
 씬은 통째로 바꾸지 않고 새 씬을 겹쳐 불러온 뒤(`LoadSceneMode.Additive`) 이전 씬만 내립니다. 통째로 바꾸면 Unity가 이전 씬 에셋 정리와 GC를 매번 함께 돌려 마을처럼 큰 씬은 1초 넘게 더 걸리기 때문입니다. 겹쳐 불러오면서도 통째로 바꿀 때와 같게 동작하도록 다음을 지킵니다.
 
@@ -29,7 +29,7 @@
 | `DrivePath` | 주차 칸과 본길 사이처럼 `CarLoopRoute` 밖을 잇는 3차 베지어 곡선 길. 길 위 거리로 위치·방향을 구합니다. Unity 객체 없이 테스트합니다. |
 | `PoliceCar` | 경찰서 옆 주차 칸의 순찰차. 진입로는 `DrivePath`로 직접 움직이고 본길은 `LoopingCar`로 신호를 지키며 달립니다. 주차 칸·진입로에서는 `LoopingCar.IsHeld`로 붙잡아 두어 본길 차들이 계속 피하게 하고, 진입로에서는 사람만 피합니다(차끼리 서로 기다리다 멈추지 않도록). 진입로는 트럭 옆 한 대씩 구간에 이어지므로, 다른 차가 그 구간에 있으면 주차 칸에서 기다렸다 나가고 진입로를 지나는 동안에는 구간을 차지합니다. 경광등은 출동해서 돌아오기 전까지 빨강·파랑을 번갈아 켭니다. 경찰서는 다른 장면이라, 마을이 열릴 때 경찰서 창구가 남긴 신고(`PoliceDispatchOrder`)를 가져가 출동합니다. |
 | `PoliceDispatchOrder` | 경찰서 창구가 받은 신고의 대기열과 현재 출동. 사용자 턴 ID로 중복을 막고, 경찰관 코드와 장소 코드를 보관합니다. 앞선 순찰이 끝나면 다음 신고로 출동하며, 장면을 떠나도 현재 신고와 대기열을 유지합니다. 다시 마을을 열면 완료하지 않은 출동을 재개하고, 주차 칸에 돌아온 신고만 완료합니다. 게임을 새로 시작하면 비웁니다. Unity 객체 없이 테스트합니다. |
-| `PlaceScenes` | 서버 장소 코드와 Unity 씬 이름(`HOME`↔`HomeScene`, `TOWN`↔`TownScene`, `CAFE`↔`CafeScene`, `HOTEL`↔`HotelScene`, `SHOP`↔`ShopScene`), 영업시간 안내에 쓰는 한국어 이름(집·마을·카페·호텔·드럭스토어). 재접속 위치 저장과 [길 안내](../Wayfinding/README.md)가 함께 씁니다. 새 장소 씬을 추가하면 이 표와 서버 시드(`scenes`)에 함께 추가합니다. Unity 객체 없이 테스트합니다. |
+| `PlaceScenes` | 장소 코드와 Unity 씬 이름. 서버 장소(`HOME`↔`HomeScene`, `TOWN`↔`TownScene`, `CAFE`↔`CafeScene`, `HOTEL`↔`HotelScene`, `SHOP`↔`ShopScene`, `POLICE_STATION`↔`PoliceStationScene`)와 마을 매장 실내 씬(`POST_OFFICE`↔`PostOfficeInterior` 등 9곳)을 함께 두고, 영업시간 안내에 쓰는 한국어 이름(집·마을·카페·…·우체국·메이플 식당 등)을 둡니다. 같은 건물 2층 가게(서점·찻집 씬)는 그 건물 1층 매장의 코드를 쓰고, 그 코드의 씬은 1층 매장입니다. 서버는 마을 매장을 마을의 일부로 보므로 재접속 위치 저장은 `ServerCodeOf`로 매장 실내 씬을 `TOWN`으로 바꿔 보냅니다. 영업시간·[길 안내](../Wayfinding/README.md)는 매장 코드를 씁니다. 새 장소 씬을 추가하면 이 표에 더하고, 서버 장소면 서버 시드(`scenes`)에도 더합니다. Unity 객체 없이 테스트합니다. |
 | `PlaceHours`, `OpeningHours` | 장소별 영업시간 파일(`Data/World/PlaceHours.json`)을 읽고, 장소가 하루 중 그 시각에 열려 있는지 판정합니다. `OpeningHours`는 게임 전체가 같은 영업시간을 보도록 정적으로 두고 지금 게임 시각(`GameClock.Shared`)으로 묻습니다. `PlaceHours`는 Unity 객체 없이 테스트합니다. |
 | `ClosingCountdown`, `ClosingPhase` | 머무는 장소의 영업이 끝난 뒤 마을로 옮기기까지 남은 게임 시간(30분, `GraceMinutes`)을 셉니다. 다시 열거나 다른 장소로 옮기면 멈춥니다. Unity 객체 없이 테스트합니다. |
 | `OpeningHoursText` | 거절 안내("카페는 지금 영업시간이 아니에요 · 07:00–21:00")와 남은 시간 안내("영업이 끝났어요. 30분 후 마을로 이동합니다")를 씁니다. 장소 이름 받침에 맞춰 은/는을 붙입니다. Unity 객체 없이 테스트합니다. |
@@ -67,6 +67,10 @@
 | `ShopScene` | `TownDoor` | `TownScene`의 `ShopDoor` |
 | `TownScene` | `PoliceStationDoor` | `PoliceStationScene`의 `TownDoor` |
 | `PoliceStationScene` | `TownDoor` | `TownScene`의 `PoliceStationDoor` |
+| `TownScene` | `<매장>Door` (예: `PostOfficeDoor`, `LittleArcadeUpperDoor`) | `Scenes/ShopInteriors/<매장>Interior`의 `TownDoor` |
+| `<매장>Interior` | `TownDoor` | `TownScene`의 `<매장>Door` |
+
+마을 매장 장면은 `Scenes/ShopInteriors/`에 있습니다. 마을의 매장 문 이름은 매장 장면 이름의 `Interior`를 `Door`로 바꾼 것입니다([거리 매장](#거리-매장)).
 
 상점 연결과 연계 미션은 **Tools → A305 → Mission → Build First Day Journey**로 준비합니다. 카페 옆 빈 건물 앞의 DRUGSTORE 간판에서 들어갑니다. 다른 기존 건물과 씬 아트는 유지합니다.
 
@@ -96,7 +100,7 @@
 
 ## 거리 매장
 
-`TownStorefrontBuilder`는 기존 배경 건물 7곳(북쪽 거리 6곳과 남서쪽 끝 경찰서)을 간판과 실내가 있는 매장으로 구성합니다. 마을에서 원래 문을 밟으면 화면을 덮고 해당 건물의 실내 씬을 추가 로드합니다. 퇴장하면 실내 씬을 해제합니다. 결제 기능은 포함하지 않습니다. 매장 직원 NPC는 `BuildingStaffBuilder`가 따로 둡니다([Npc 모듈](../Npc/README.md#거리-매장-직원)). 경찰서는 카페·호텔처럼 따로 장면(`PoliceStationScene`)이라 실내 씬을 추가 로드하지 않고 장면을 옮깁니다([경찰서와 순찰차](#경찰서와-순찰차)).
+`TownStorefrontBuilder`는 기존 배경 건물 7곳(북쪽 거리 6곳과 남서쪽 끝 경찰서)을 간판과 실내가 있는 매장으로 구성합니다. 매장 실내는 카페·호텔처럼 따로 장면(`Scenes/ShopInteriors/<건물>Interior`)이라, 마을에서 매장 문에 닿으면 화면을 덮고 마을을 내린 뒤 그 매장 장면의 문 안쪽에 섭니다. 매장 안 문에 닿으면 마을의 그 매장 문 앞 1m에 나옵니다([매장 장면](#매장-장면)). 결제 기능은 포함하지 않습니다. 매장 직원 NPC는 `BuildingStaffBuilder`가 매장 장면에 둡니다([Npc 모듈](../Npc/README.md#거리-매장-직원)). 경찰서도 따로 장면(`PoliceStationScene`)입니다([경찰서와 순찰차](#경찰서와-순찰차)).
 
 | 프리팹 | 간판 | 건물 앞 위치(x, z) |
 | --- | --- | --- |
@@ -153,29 +157,37 @@
 - 호버 단어는 뜻이 맞는 기존 단어를 다시 씁니다(시계·그림·깔개·단지·레인지·냉장고·싱크대 등). 맞는 단어가 없는 소품(주크박스·오븐 등)은 건물 단어가 뜹니다. 빨래방에서는 바구니·세제·접어 놓은 수건·빨래 수레·세제 자판기·행거·동전 교환기에 각 단어를 연결합니다. **Tools → A305 → World → Update Laundromat Props**로 빨래방의 단어 연결과 실내 식물 제거를 기존 배치에 적용합니다. 호버 영역은 매장 건물 프리팹에 둡니다.
 - **Tools → A305 → World → Build Town Shop Interiors**는 없는 프리팹만 만들고 아직 끼우지 않은 건물에 끼웁니다. **Rebuild Town Shop Interiors (Overwrite)**는 코드로 바꾼 배치를 반영하려고 공간·소품 프리팹을 같은 GUID로 덮어씁니다. 프리팹에서 손으로 고친 내용은 사라집니다. **Capture Town Shop Interiors**는 공간마다 문 안쪽 시점과 천장을 걷은 내려다보기, 비교용 카페·호텔 실내와 모음 두 장을 `artifacts/unity/town-interiors/`에 저장합니다.
 - 큰 가구를 바꾼 뒤에는 **Npc → Build Building Staff**로 매장 직원이 다닐 바닥을 다시 굽고, **ObjectHover → Export Backend Data**로 장소 단어(`backend/src/main/resources/content/object-word-bindings.json`)를 다시 내보냅니다.
-- 공간 묶음과 다른 실내 집기는 건물별 실내 씬(`Scenes/ShopInteriors/<건물>Interior.unity`)에서 불러옵니다. 저장된 마을 씬의 건물 인스턴스에서는 집기를 제거하고 바닥·천장·계단과 경찰 신고 창구를 유지합니다. 편집 원본인 공간 프리팹·매장 건물 프리팹은 유지합니다. 건물 프리팹에 집기를 추가하거나 교체한 뒤에는 **Tools → A305 → World → Remove Town Interior Furnishings**로 마을 씬에 남은 집기를 다시 정리합니다.
+- 공간 묶음과 다른 실내 집기는 건물별 매장 장면([매장 장면](#매장-장면))에만 있습니다. 편집 원본은 공간 프리팹·매장 건물 프리팹이고, 매장 장면은 그 건물 프리팹 인스턴스를 씁니다.
+
+### 매장 장면
+
+**Tools → A305 → World → Build Town Shop Scenes**(`TownShopSceneBuilder`)가 마을 매장 실내를 홈·카페·호텔·경찰서처럼 따로 장소 장면으로 만듭니다. 매장 문마다 장면 하나이고, 2층 문은 2층 가게 장면(`<건물>UpperInterior`)입니다.
+
+- 매장 장면(`Scenes/ShopInteriors/<건물>Interior`)에는 경찰서 장면처럼 건물 프리팹을 원점에 두고 그 매장 공간만 남깁니다. 2층 가게는 그 층 바닥이 높이 0에 오도록 건물을 4m 내립니다. 직원 자리·여가 방문 지점은 장면을 만들 때 건물 기준으로 다시 맞춥니다. 플레이어·실내 카메라(`FirstDayShopBuilder.UseInteriorCamera`)·HUD·영업시간·창빛(`ShopSun`)과 실내 낮밤(`InteriorDaylight`)은 **Set Up Open Scene**과 같은 연결로 붙입니다.
+- 문 안쪽에 마을로 나가는 출입구(`TownDoorway`, 이름 `TownDoor`)를 두고, 마을에서 들어오면 문 안쪽 2m에서 매장 안을 보고 섭니다. 마을의 매장 문 바깥에는 매장 장면으로 가는 출입구(`<매장>Doorway`, 이름 `<매장>Door`)를 두고, 매장에서 나오면 문 앞 1m에서 문을 등지고 섭니다. 매장 문은 홈·카페·호텔·경찰서 문처럼 마을과 매장 장면 모두에서 여닫지 않습니다(여닫이 동작 `ShopSwingDoor`와 감지 영역을 끔). 건물의 닫힌 문을 그대로 보이고 출입구 프리팹의 문 그림은 끕니다.
+- 1층과 2층이 다른 가게인 건물(`LittleArcade`·`HomeLiving`)은 층마다 장면을 나누고 그 층 집기만 남깁니다(집기의 가장 낮은 곳이 건물 바닥에서 3.5m 이상이면 2층). 바닥·천장은 그 층의 바닥·천장이 되므로 두 층 장면에 모두 두고, 2층 가게로 오르는 공용 계단실·바깥 계단은 마을 통로라 매장 장면에 두지 않습니다. 매장 안 계단으로 오르는 복층(`MapleBakery`)은 한 장면입니다.
+- 마을에서는 계단실 칸막이로 나뉜 오락실 건물(`LittleArcade`)의 1층 오락실·2층 서점 장면은 칸막이 없이 건물 폭 전체(8m×8m)를 씁니다(`NorthBlockInteriorBuilder.WidenIntoStairHall`). 층 사이 판(2층 바닥이자 1층 천장)과 뒷벽 마감은 건물 폭 한 장으로 바꿔 이음선이 없고, 오른쪽 벽 마감과 조명을 매장 쪽과 같게 둡니다. 1층은 앞벽을 오락실 문 자리만 비우고 다시 세워 거리 쪽 계단실 입구를 막고, 2층 서점 문은 마을에서처럼 서점 오른쪽 벽 앞쪽에 두어 같은 방향으로 들어옵니다. 넓어진 자리의 집기는 공간 배치(`TownShopInteriorLayouts`의 오락실·서점)에 있고, **Rebuild Arcade And Bookshop Interiors**로 두 공간 프리팹만 코드대로 다시 저장한 뒤 **Build Town Shop Scenes**를 실행합니다.
+- 매장 직원은 그 건물 1층 매장 장면에 있고(마을에서 옮김), 일과에 맞춰 마을 문으로 드나듭니다. 플레이어가 매장 안에 있을 때 근무 10분 전이 되면 문 안쪽 도착 지점에 나타나 일하러 걸어가고, 근무가 끝나면 문으로 걸어 나갑니다([Npc 모듈](../Npc/README.md#출퇴근과-숙소)). 출근·여가 방문 NPC는 마을에서 실제 매장 문 앞(그 문의 도착 지점)까지 걸어가 들어갑니다. 2층 가게에는 직원이 없습니다. 장면마다 직원의 바닥을 굽고(`Data/Npc/WalkAreas/<장면>WalkArea`) 1층 안에서만 지내게 합니다.
+- 마을에는 매장 안 바닥·천장·2층 바닥과 직원이 남지 않습니다. 따로 장면인 경찰서의 마을 쪽 실내도 지웁니다. 오락실 공용 계단실(2층 서점 문으로 가는 통로)과 생활용품점 바깥 계단은 마을에 남깁니다. 마을 보행 바닥(`TownSceneWalkArea`)도 다시 굽습니다.
+- 이미 만든 매장 장면은 디자인을 두고 연결만 다시 맞춥니다. 건물 프리팹에 집기를 더하거나 바꾸면 매장 장면에 반영되고, 마을에는 들어가지 않습니다.
 
 ## 확인 방법
 
 ### 북쪽 상가
 
-북쪽 상가 3곳도 건물별 실내 씬을 사용합니다. 인도에서 Little Arcade의 열린 공용 계단실로 걸어 들어가 각 층의 기존 매장 문을 이용합니다. 계단과 바닥은 마을 씬에 남습니다.
+북쪽 상가 3곳도 매장 장면을 사용합니다. Little Arcade의 1층 오락실은 `1F LITTLE ARCADE` 간판 아래 앞면 문으로 인도에서 바로 들어갑니다. 2층 서점은 건물 앞에서 볼 때 왼쪽 입구의 열린 공용 계단실로 걸어 들어가 오른쪽으로 돌아 오르는 계단 끝 서점 문을 이용합니다. 공용 계단실의 계단과 바닥은 마을 씬에 남습니다.
 
 | 기존 건물 앞 좌표 | 프리팹 | 층별 용도 | 출입 방식 |
 | --- | --- | --- | --- |
 | `(-7, 0.1, 21)` | `NorthBlock/MapleBakery` | 1층 베이커리, 2층 좌석 | 매장 안 복층 계단 |
-| `(7, 0.1, 30)` | `NorthBlock/LittleArcade` | 1층 오락실, 2층 Paper & Leaf 서점 | 공용 계단실에서 각 층의 매장 문으로 진입 |
+| `(7, 0.1, 30)` | `NorthBlock/LittleArcade` | 1층 오락실, 2층 Paper & Leaf 서점 | 1층 앞면 출입구, 공용 계단실로 2층 진입 |
 | `(-7, 0.1, 39)` | `NorthBlock/HomeLiving` | 1층 생활용품점, 2층 Leaf Tea Room | 1층 독립 출입구, 전면 외부 계단으로 2층 진입 |
+
+**Tools → A305 → World → Build North Block Interior Sandbox**로 `Scenes/Sandbox/NorthBlockInteriorSandbox.unity`를 준비합니다. 기존 프리팹 디자인을 유지하며 없는 프리팹만 만듭니다. **Set Up North Block Tenant Entrances**는 초안의 단일 매장 구조에 층별 출입 구조가 없을 때 한 번 적용합니다. 외부 계단이 이미 있는 건물에는 계단 앞 `TEA ROOM 2F >` 안내판(`TenantEntrances/StairSign`)이 없을 때 기둥과 판을 만들고, 기존 안내판은 글자 영역만 판 안쪽으로 맞춥니다. **Fit Tea Room Stair Sign**으로 이 안내판만 갱신할 수도 있습니다. **Rebuild Little Arcade Stair Hall**은 기존 오락실 프리팹의 공용 계단실(계단·난간·칸막이·서점 문과 문 간판)과 앞면 오락실 문만 다시 만들고 간판·집기는 그대로 둡니다. 바꾼 뒤 **Build Town Shop Scenes**로 마을과 매장 장면의 문 연결을 다시 맞춥니다. **Fit Arcade Stair Hall Signs**는 계단실 안내만 맞춥니다. 계단실 입구 위에는 초록 판에 붙인 `2F BOOKSHOP` 안내판을, 계단을 다 올라와 마주 보는 앞벽에는 초록 판의 `2F PAPER & LEAF` 간판을 두고, 첫 계단 앞 `UPSTAIRS` 글자는 지웁니다. 안내 글자는 판 안쪽에 여백을 두고 한 줄로 맞추며, 글씨가 판 밖으로 나가지 않도록 크기를 자동 조정합니다. **Apply North Block Interiors**로 검토한 프리팹을 TownScene에 배치합니다. 기존 배경 인스턴스는 비활성 상태로 보존합니다. **Capture North Block Interiors**는 검토용 이미지를 `artifacts/unity/north-block/`에 저장합니다.
 
 **Tools → A305 → World → Fit Tea Room Chairs**는 `HomeLiving` 2층의 의자 8개를 테이블에 맞춥니다. 의자는 원본의 60% 크기(높이 54cm)로 두고, 테이블 양옆 중심에서 1.15m 떨어뜨려 가장자리 사이에 약 15cm 여유를 둡니다. 테이블과 찻잔 배치는 유지하며, 공유 의자 프리팹과 다른 매장의 의자는 바꾸지 않습니다.
 
-`ShopInteriorScenes`는 Play 및 빌드 시 건물별 실내 씬에서 외관·공용 구조물을 제외하고 출입구를 연결합니다. 마을 씬에 새로 추가된 집기도 이 단계에서 제외하지만, 저장된 씬 자체를 정리하려면 **Remove Town Interior Furnishings**를 실행합니다. `ShopDoorway`는 캐릭터 머리가 닫힌 문에 닿기 전에 몸통을 감지해 입·퇴장을 시작하고, 그 문이 여는 실내(`Room`)와 길 안내가 끝나는 문 밖 지점(`ApproachPoint`)을 제공합니다. 매장 직원은 방문 중에만 활동하며, 원본 프리팹에서 실내 배치를 편집할 수 있습니다. 새 매장은 **Tools → A305 → World → Register Shop Interior Scenes**로 빌드 목록에 등록한 뒤 마을 집기를 정리합니다.
-
-1층과 2층이 다른 가게인 건물(2층 높이에 따로 문이 있는 `LittleArcade`·`HomeLiving`)은 층마다 실내 씬을 나눕니다. 1층 문은 `<건물>Interior`, 2층 문은 `<건물>UpperInterior`를 열고, 각 씬에는 그 층 집기만 남깁니다(집기의 가장 낮은 곳이 건물 바닥에서 3.5m 이상이면 2층). 직원은 모두 1층에 있어 2층 가게를 방문할 때는 켜지지 않으므로, 바로 아래층 직원이 2층 손님에게 말을 걸지 않습니다. 매장 안 계단으로 오르는 복층(`MapleBakery`)은 한 씬입니다. 2층 문이 있는 건물을 새로 만들면 Register Shop Interior Scenes가 `UpperInterior` 씬도 만들어 등록합니다.
-
-**Tools → A305 → World → Build North Block Interior Sandbox**로 `Scenes/Sandbox/NorthBlockInteriorSandbox.unity`를 준비합니다. 기존 프리팹 디자인을 유지하며 없는 프리팹만 만듭니다. **Set Up North Block Tenant Entrances**는 초안의 단일 매장 구조에 층별 출입 구조가 없을 때 한 번 적용합니다. 외부 계단이 이미 있는 건물에는 계단 앞 `TEA ROOM 2F >` 안내판(`TenantEntrances/StairSign`)이 없을 때 기둥과 판을 만들고, 기존 안내판은 글자 영역만 판 안쪽으로 맞춥니다. **Fit Tea Room Stair Sign**으로 이 안내판만 갱신할 수도 있습니다. 안내 글자는 판 안쪽에 여백을 두고 한 줄로 맞추며, 글씨가 판 밖으로 나가지 않도록 크기를 자동 조정합니다. **Apply North Block Interiors**로 검토한 프리팹을 TownScene에 배치합니다. 기존 배경 인스턴스는 비활성 상태로 보존합니다. **Capture North Block Interiors**는 검토용 이미지를 `artifacts/unity/north-block/`에 저장합니다.
-
-`SpaceTravelTests`는 이동 키로 원래 매장 문 12개를 양방향 통과하며 건물의 실내 씬 로드·해제를 확인합니다. `UpperFloorShopTests`는 2층 문(찻집·서점)이 2층 실내만 불러오고 1층 직원을 켜지 않는지, 층별 씬에 그 층 공간 묶음만 있는지 확인합니다. Unity에서 `TownScene`을 직접 Play할 때는 Ben 튜토리얼을 완료하거나 건너뛴 뒤 시험합니다. 서버 없이 Play하면 1일차 오전 8시에서 시작하므로, 9시 전에는 우체국·은행처럼 늦게 여는 매장 문이 열리지 않습니다([영업시간](#영업시간)).
+`SpaceTravelTests`는 우체국 문을 걸어 들어가고 나오며 마을과 우체국 장면이 바뀌어 한 장면만 남는지 확인합니다. `TownShopScenesTests`(EditMode)는 마을의 매장 문 11개가 각 매장 장면의 `TownDoor`로 이어지는지, 마을에 매장 안 구조와 직원이 남지 않았는지, 대표 매장 장면(우체국·오락실 2층 서점)의 플레이어·직원·나가는 문과 층별 집기를 확인합니다. Unity에서 `TownScene`을 직접 Play할 때는 Ben 튜토리얼을 완료하거나 건너뛴 뒤 시험합니다. 서버 없이 Play하면 1일차 오전 8시에서 시작하므로, 9시 전에는 우체국·은행처럼 늦게 여는 매장 문이 열리지 않습니다([영업시간](#영업시간)).
 
 `Assets/Scenes/Production/HomeScene.unity`를 열고 Play합니다. 방 남쪽 문으로 나가면 마을 남동쪽 집 앞에 서고, 큰길 서쪽의 `CAFE`와 동쪽의 `HOTEL` 건물 문으로 들어갈 수 있습니다. 실내 남쪽 문으로 나오면 그 건물 앞으로 돌아갑니다. 조작 방법은 [Player 모듈](../Player/README.md)을 따릅니다.
 
@@ -223,10 +235,10 @@
 
 장소마다 게임 시각 기준 영업시간이 있습니다. `Data/World/PlaceHours.json`은 `ai/tools/npc_life_export.py`가 NPC 생활 규칙에서 만들며, 장소 코드마다 늘 여는지(`alwaysOpen`)와 여는 시각·닫는 시각(`"HH:MM"`)을 둡니다. 여는 시각부터 열고 닫는 시각부터 닫습니다. 닫는 시각이 여는 시각보다 이르면 자정을 넘겨 다음 날 닫습니다. 파일에 없는 장소(플레이어의 집 `HOME`)는 늘 열려 있고, 마을(`TOWN`)·호텔·드럭스토어는 늘 엽니다.
 
-- **들어가기 거절**: 영업시간이 아닌 장소의 문에 닿으면 들어가지 않고 화면 위 가운데에 "카페는 지금 영업시간이 아니에요 · 07:00–21:00"을 3초 띄웁니다. 카페·호텔·드럭스토어·경찰서 문(`SpaceDoorway`)은 이동할 씬의 장소 코드(`PlaceScenes`)로, 마을 매장 문(`ShopDoorway`)은 들어갈 때 그 건물 `ShopInterior`의 장소 코드로 판정합니다. 나오는 문은 막지 않습니다. 튜토리얼이 이동을 잠근 동안에는 튜토리얼의 잠금 안내가 먼저 나옵니다.
-- **영업 마감**: 머무는 장소가 닫히면 그때부터 게임 시간으로 30분(`ClosingCountdown.GraceMinutes`)을 세며 "영업이 끝났어요. N분 후 마을로 이동합니다"를 띄웁니다. 게임 시계를 따르므로 대화·튜토리얼로 시계가 멈춘 동안에는 줄지 않습니다. 그 사이 다시 열거나 장소를 나오면 안내를 끕니다. 남은 시간이 다 지나면 공간 씬은 그 씬의 마을 출입구(`exitToTown`)로 마을의 그 장소 문 앞에, 마을 매장은 플레이어와 가장 가까운 매장 문 밖에 세웁니다. 튜토리얼 잠금과 상관없이 옮기지만, 대화 중처럼 플레이어가 움직일 수 없는 동안에는 기다렸다가 옮깁니다.
-- **마을 매장의 장소 코드**: Play·빌드 때 `ShopInteriorScenes`가 `ShopInterior`를 붙이면서 장소 코드와 안내 이름을 넣습니다. 거리 매장은 `TownStorefrontBuilder.Storefronts`의 `PlaceCode`·`KoreanName`(택시 목적지와 같은 코드)을, 북쪽 상가는 1층 매장(`BAKERY` 베이커리, `ARCADE` 오락실, `HOME_STORE` 생활용품점)을 씁니다. 같은 건물 2층의 서점·찻집은 그 건물의 영업시간을 따릅니다. 새 매장 건물을 더하면 이 코드도 함께 더합니다.
-- **연결**: 장소 씬 5곳에는 **Tools → A305 → World → Connect Opening Hours**(`OpeningHoursBuilder`)가 `Systems/OpeningHours`와 `UI/HudNotice`를 하나씩 두고 플레이어·영업시간 파일·마을 출입구를 연결합니다. 이 메뉴는 영업시간 연결만 바꾸도록 사물 단어 등록 없이 씬을 저장합니다. 새로 꾸미는 씬은 **Set Up Open Scene**이 함께 붙입니다.
+- **들어가기 거절**: 영업시간이 아닌 장소의 문에 닿으면 들어가지 않고 화면 위 가운데에 "카페는 지금 영업시간이 아니에요 · 07:00–21:00"을 3초 띄웁니다. 문(`SpaceDoorway`)은 이동할 씬의 장소 코드(`PlaceScenes`, 마을 매장은 매장 코드)로 판정합니다. 나오는 문은 막지 않습니다. 튜토리얼이 이동을 잠근 동안에는 튜토리얼의 잠금 안내가 먼저 나옵니다.
+- **영업 마감**: 머무는 장소가 닫히면 그때부터 게임 시간으로 30분(`ClosingCountdown.GraceMinutes`)을 세며 "영업이 끝났어요. N분 후 마을로 이동합니다"를 띄웁니다. 게임 시계를 따르므로 대화·튜토리얼로 시계가 멈춘 동안에는 줄지 않습니다. 그 사이 다시 열거나 장소를 나오면 안내를 끕니다. 남은 시간이 다 지나면 그 씬의 마을 출입구(`exitToTown`)로 마을의 그 장소 문 앞에 세웁니다. 마을 매장 장면도 같습니다. 튜토리얼 잠금과 상관없이 옮기지만, 대화 중처럼 플레이어가 움직일 수 없는 동안에는 기다렸다가 옮깁니다.
+- **마을 매장의 장소 코드**: `PlaceScenes`가 매장 장면마다 장소 코드와 안내 이름을 둡니다. 거리 매장은 `TownStorefrontBuilder.Storefronts`의 `PlaceCode`·`KoreanName`(택시 목적지와 같은 코드)과 같고, 북쪽 상가는 1층 매장(`BAKERY` 베이커리, `ARCADE` 오락실, `HOME_STORE` 생활용품점)을 씁니다. 같은 건물 2층의 서점·찻집은 그 건물의 영업시간을 따릅니다. 새 매장 건물을 더하면 이 표에도 더합니다.
+- **연결**: 장소 씬과 마을 매장 장면에는 **Tools → A305 → World → Connect Opening Hours**(`OpeningHoursBuilder`)가 `Systems/OpeningHours`와 `UI/HudNotice`를 하나씩 두고 플레이어·영업시간 파일·마을 출입구를 연결합니다. 이 메뉴는 영업시간 연결만 바꾸도록 사물 단어 등록 없이 씬을 저장합니다. 새로 꾸미는 씬은 **Set Up Open Scene**이 함께 붙입니다.
 
 ## 테스트
 
@@ -234,8 +246,8 @@
 
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
-| `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 택시 목적지·경찰 신고 대기열과 순찰차 출동 단계, 차가 도는 길·신호·택시 세우기, 공간 이동과 기능 연결 도구, 재접속 위치 저장, 사물 이동 Collider, 거리 매장 직원과 색 바꾸기, 영업시간·마감 남은 시간과 장소 씬 연결 |
-| `A305.World.PlayModeTests` | `Assets/Tests/PlayMode/World/` | 대표 공간 전환의 도착·화면 덮기·중첩 로드, 실내 씬의 방문 중 로드·퇴장 후 해제, 닫힌 장소 출입 막기와 마감 뒤 마을로 옮기기 |
+| `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 택시 목적지·경찰 신고 대기열과 순찰차 출동 단계, 차가 도는 길·신호·택시 세우기, 공간 이동과 기능 연결 도구, 재접속 위치 저장, 사물 이동 Collider, 거리 매장 직원과 색 바꾸기, 영업시간·마감 남은 시간과 장소 씬 연결, 마을 매장 장면의 문 연결·마을 실내 정리(`TownShopScenesTests`) |
+| `A305.World.PlayModeTests` | `Assets/Tests/PlayMode/World/` | 대표 공간 전환의 도착·화면 덮기·중첩 로드, 마을↔우체국 장면 교체(한 장면만 남음), 닫힌 장소(카페·우체국) 출입 막기와 마감 뒤 마을로 옮기기 |
 
 `A305.World.PlayModeTests`는 `TestGameClock`으로 게임 시각을 고정합니다. 운영 데이터의 가게는 모두 24시간 영업하므로 `OpeningHoursTests`는 카페·우체국의 테스트용 시간표를 넣어 출입 거절·조명 전환·마감 퇴장을 검증하고, 종료 시 24시간 영업 기본값으로 복원합니다. `SpaceTravelTests`는 오후 1시로 고정합니다.
 
@@ -251,4 +263,4 @@
 
 새로고침으로 대화 화면이 닫히면 첫 WORLD-07 신호의 `interactionPaused: false`, `activeSeconds: 0`으로 시계를 재개합니다. 서버에 남은 `ACTIVE` 대화는 같은 NPC와 이어하기 위한 기록으로 보존하며 시간 정지 근거로 쓰지 않습니다. 진행 초를 보내지 않는 이전 클라이언트는 기존 서버 대화 기준을 유지합니다.
 
-`SpaceTravel.TryRestoreReviewPosition`은 복습 이전에 저장한 같은 공간의 자리·실내·시점을 기존 이동 커튼으로 복원합니다. 현재 매장 밖으로 돌아가면 그 실내를 내리고, 원래 매장으로 돌아가면 필요한 실내만 다시 불러옵니다. 이동 상태와 커튼·이동 잠금은 일반 문 전환과 같이 해제하며 중복 복귀를 받지 않습니다. 다른 공간 씬으로의 복귀는 먼저 기존 `TryTravel`로 옮긴 뒤 이 경로를 사용합니다.
+`SpaceTravel.TryRestoreReviewPosition`은 복습 이전에 저장한 같은 공간의 자리·시점을 기존 이동 커튼으로 복원합니다. 이동 상태와 커튼·이동 잠금은 일반 문 전환과 같이 해제하며 중복 복귀를 받지 않습니다. 다른 공간 씬(마을 매장 포함)으로의 복귀는 먼저 기존 `TryTravel`로 옮긴 뒤 이 경로를 사용합니다.

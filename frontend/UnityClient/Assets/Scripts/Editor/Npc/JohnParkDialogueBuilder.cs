@@ -36,14 +36,32 @@ namespace A305.EditorTools.Npc
             JohnParkEmotionValidation.ValidateAndCapture();
         }
 
+        /// <summary>식당 매장 장면. 마을 매장은 따로 장면이라 존박은 식당 장면 안에 산다.</summary>
+        public const string RestaurantScenePath =
+            "Assets/Scenes/ShopInteriors/MapleDinerInterior.unity";
+
+        /// <summary>
+        /// 존박을 식당 장면의 식당 건물 기준 (0, 0, -5.2)에 두고 그 장면의 플레이어·대화창에 잇는다.
+        /// 예전처럼 마을 장면에 두었던 존박이 남아 있으면 지운다.
+        /// </summary>
         public static void PlaceInRestaurant()
         {
             BuilderTools.ThrowIfPlaying();
-            const string path = "Assets/Scenes/Production/TownScene.unity";
-            var scene = EditorSceneManager.OpenScene(path);
+            const string townPath = "Assets/Scenes/Production/TownScene.unity";
+            var town = EditorSceneManager.OpenScene(townPath);
+            NpcIdentity inTown = BuilderTools
+                .FindAllInScene<NpcIdentity>(town)
+                .SingleOrDefault(item => item.Code == JohnParkEmotionBuilder.NpcCode);
+            if (inTown != null)
+            {
+                Object.DestroyImmediate(inTown.gameObject);
+                EditorSceneManager.SaveScene(town, townPath);
+            }
+
+            var scene = EditorSceneManager.OpenScene(RestaurantScenePath);
             var shop = BuilderTools
                 .FindAllInScene<Transform>(scene)
-                .Single(item => item.name == "MapleDiner");
+                .Single(item => item.name == "MapleDiner" && item.Find("Interior") != null);
             var identity = BuilderTools
                 .FindAllInScene<NpcIdentity>(scene)
                 .SingleOrDefault(item => item.Code == JohnParkEmotionBuilder.NpcCode);
@@ -69,15 +87,17 @@ namespace A305.EditorTools.Npc
             identity.gameObject.SetActive(true);
             PrefabUtility.RecordPrefabInstancePropertyModifications(identity.transform);
             AssetDatabase.SaveAssets();
-            EditorSceneManager.SaveScene(scene, path);
-            // 빌드용 변환은 메모리에서만 검사하고 저장된 편집 씬은 유지한다.
-            new A305.EditorTools.World.ShopInteriorScenes().OnProcessScene(scene, null);
-            var room = BuilderTools
-                .FindAllInScene<ShopInterior>(scene)
-                .Single(item => item.SceneName == "MapleDinerInterior");
-            if (!room.ContainsStaff(identity.transform) || identity.gameObject.activeSelf)
-                throw new InvalidOperationException("존박 식당 입퇴장 연결이 누락됐습니다.");
-            Debug.Log("존박 식당 상주 배치 완료: 실내 기준 (0, 0, -5.2)");
+            BuilderTools.SaveScene(scene, RestaurantScenePath);
+            if (!IsInsideRestaurant(shop, identity.transform))
+                throw new InvalidOperationException("존박이 식당 실내에 없습니다.");
+            Debug.Log("존박 식당 상주 배치 완료: 식당 장면 건물 기준 (0, 0, -5.2)");
+        }
+
+        /// <summary>식당 건물 1층 실내(건물 기준 x ±4, z 0~-8) 안에 있는지.</summary>
+        internal static bool IsInsideRestaurant(Transform shop, Transform npc)
+        {
+            Vector3 local = shop.InverseTransformPoint(npc.position);
+            return Mathf.Abs(local.x) < 4 && local.z < 0 && local.z > -8 && local.y < 3.5f;
         }
 
         [MenuItem("Tools/A305/Npc/John Park/Build Offline Dialogue Review")]

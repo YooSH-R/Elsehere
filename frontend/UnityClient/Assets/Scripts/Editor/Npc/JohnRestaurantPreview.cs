@@ -16,38 +16,32 @@ using Object = UnityEngine.Object;
 
 namespace A305.EditorTools.Npc
 {
-    /// <summary>저장된 Town 배치와 실내를 메모리에서 합쳐 촬영한다. 씬·에셋 저장과 서버 호출은 없다.</summary>
+    /// <summary>저장된 식당 장면의 존박을 촬영한다. 씬·에셋 저장과 서버 호출은 없다.</summary>
     public static class JohnRestaurantPreview
     {
         public static void Capture()
         {
             string output = Path.GetFullPath("../../artifacts/JohnParkRhythm/Restaurant");
             Directory.CreateDirectory(Path.Combine(output, "Frames"));
-            var town = EditorSceneManager.OpenScene("Assets/Scenes/Production/TownScene.unity");
+            // 식당은 따로 장면이라 존박·건물·대화창·카메라가 모두 식당 장면에 있다.
+            var restaurant = EditorSceneManager.OpenScene(
+                JohnParkDialogueBuilder.RestaurantScenePath
+            );
             var actor = BuilderTools
-                .FindAllInScene<NpcIdentity>(town)
+                .FindAllInScene<NpcIdentity>(restaurant)
                 .Single(n => n.Code == JohnParkEmotionBuilder.NpcCode);
             var building = BuilderTools
-                .FindAllInScene<Transform>(town)
-                .Single(t => t.name == "MapleDiner");
-            new A305.EditorTools.World.ShopInteriorScenes().OnProcessScene(town, null);
-            var room = EditorSceneManager.OpenScene(
-                "Assets/Scenes/ShopInteriors/MapleDinerInterior.unity",
-                OpenSceneMode.Additive
-            );
-            new A305.EditorTools.World.ShopInteriorScenes().OnProcessScene(room, null);
-            var furnishings = room.GetRootGameObjects().Single().transform;
-            furnishings.SetPositionAndRotation(building.position, building.rotation);
-            furnishings.localScale = building.lossyScale;
+                .FindAllInScene<Transform>(restaurant)
+                .Single(t => t.name == "MapleDiner" && t.Find("Interior") != null);
             actor.gameObject.SetActive(true);
-            var view = BuilderTools.FindSingleInScene<DialoguePanelView>(town);
-            foreach (Canvas canvas in BuilderTools.FindAllInScene<Canvas>(town))
+            var view = BuilderTools.FindSingleInScene<DialoguePanelView>(restaurant);
+            foreach (Canvas canvas in BuilderTools.FindAllInScene<Canvas>(restaurant))
                 canvas.gameObject.SetActive(canvas.gameObject == view.gameObject);
-            foreach (var player in BuilderTools.FindAllInScene<PlayerMover>(town))
+            foreach (var player in BuilderTools.FindAllInScene<PlayerMover>(restaurant))
             foreach (var renderer in player.GetComponentsInChildren<Renderer>(true))
                 renderer.enabled = false;
             var camera = BuilderTools
-                .FindAllInScene<Camera>(town)
+                .FindAllInScene<Camera>(restaurant)
                 .First(c => c.CompareTag("MainCamera"));
             camera.enabled = true;
             camera.GetUniversalAdditionalCameraData().renderPostProcessing = false;

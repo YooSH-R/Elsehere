@@ -84,15 +84,15 @@ namespace A305.Learning
             if (!RememberReviewOrigin())
                 return;
             pendingReview = card;
-            if (!TravelForVisit(card.SceneCode))
+            if (!TravelForVisit(card.SceneCode, card.Npc?.NpcCode))
                 pendingReview = null;
         }
 
         // 복습·장소 연습 방문: 열린 창을 닫고 NPC가 있는 장면으로 간다. 이미 그 장면이면 바로 도착 처리를 한다.
         // 갈 수 없으면 기억한 출발점을 지우고 false를 돌려준다.
-        private bool TravelForVisit(string sceneCode)
+        private bool TravelForVisit(string sceneCode, string npcCode)
         {
-            string scene = PlaceScenes.SceneOf(sceneCode) ?? "TownScene";
+            string scene = VisitScene(sceneCode, npcCode);
             if (feedbackView.IsVisible)
                 CloseFeedback();
             if (historyView.IsVisible)
@@ -196,22 +196,6 @@ namespace A305.Learning
             reviewPresence = new NpcReviewPresence(npc.Code);
             try
             {
-                ShopInterior room = FindObjectsByType<ShopInterior>(FindObjectsSortMode.None)
-                    .FirstOrDefault(item => item.ContainsStaff(npc.transform));
-                if (room != null && !room.IsLoaded)
-                {
-                    ShopDoorway door = room.GetComponentsInChildren<ShopDoorway>()
-                        .FirstOrDefault(item => item.Room == room);
-                    if (door == null || !door.TryEnter(player))
-                    {
-                        hudView.ShowMessage(
-                            "지금은 매장에 들어갈 수 없어요. 영업시간을 확인해 주세요."
-                        );
-                        yield break;
-                    }
-                    while (SpaceTravel.IsTraveling || SpaceTravelCurtain.IsCoveringScreen)
-                        yield return null;
-                }
                 float activationDeadline = Time.realtimeSinceStartup + 2;
                 do
                 {
@@ -262,6 +246,14 @@ namespace A305.Learning
                     );
                 }
             }
+        }
+
+        // 서버는 마을 매장 직원을 마을(TOWN)에 둔다. 매장은 따로 장면이므로 그 직원이 일하는 매장 장면으로 간다.
+        private static string VisitScene(string sceneCode, string npcCode)
+        {
+            string scene = PlaceScenes.SceneOf(sceneCode) ?? "TownScene";
+            string workplace = NpcWorkplaces.SceneOf(npcCode);
+            return scene == "TownScene" && PlaceScenes.IsTownShop(workplace) ? workplace : scene;
         }
 
         private static NpcIdentity FindReviewNpc(string npcCode)

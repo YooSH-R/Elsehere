@@ -1,6 +1,4 @@
 using System.Collections;
-using System.Linq;
-using System.Reflection;
 using A305.Player;
 using A305.Tutorial;
 using A305.World;
@@ -40,70 +38,36 @@ namespace A305.Wayfinding.PlayModeTests
             GuideRoutePreference.ShowsRoute = savedShowsRoute;
         }
 
-        [UnityTearDown]
-        public IEnumerator LeaveShop()
-        {
-            if (ShopInterior.Occupied != null)
-                yield return SetOccupied(ShopInterior.Occupied, false);
-        }
-
+        // 마을 매장은 따로 장면이라 실내에는 바깥 길 안내가 없다. 실내에서 바뀐 목적지는 마을로 나오면 안내한다.
+        // 사용자가 길을 꺼 두면 다시 켜지 않는 것은 GuideVisibilityTests에서 본다.
         [UnityTest]
-        public IEnumerator OccupiedShop_HidesOutdoorGuide_AndRestoresPendingDestinationOnExit()
+        public IEnumerator ShopScene_HasNoOutdoorGuide_AndTheTownGuidesToTheDestinationSetInside()
         {
             yield return LoadTown();
             GuideDestination.Shared.Show("HOTEL");
             yield return new WaitForSeconds(LaidSeconds);
             Assert.That(Route().enabled, Is.True);
 
-            ShopInterior diner = Object
-                .FindObjectsByType<ShopInterior>(FindObjectsSortMode.None)
-                .Single(room => room.PlaceCode == "DINER");
-            yield return SetOccupied(diner, true);
+            yield return SceneManager.LoadSceneAsync("MapleDinerInterior", LoadSceneMode.Single);
             yield return null;
-            Assert.That(
-                Route().enabled,
-                Is.False,
-                "목적지가 다른 건물이어도 실내에서는 길을 숨깁니다."
-            );
-            Assert.That(Glow().activeSelf, Is.False);
+            Assert.That(Guide(), Is.Null, "실내 장면에서는 바깥 길을 보이지 않습니다.");
 
             GuideDestination.Shared.Show("CAFE");
-            yield return new WaitForSeconds(LaidSeconds);
-            Assert.That(
-                Route().enabled,
-                Is.False,
-                "실내에서 퀘스트 목적지가 바뀌어도 길을 숨깁니다."
-            );
+            yield return null;
 
-            yield return SetOccupied(diner, false);
+            yield return LoadTown();
             yield return new WaitForSeconds(LaidSeconds);
             Assert.That(
                 Route().enabled,
                 Is.True,
-                "밖으로 나오면 현재 목적지까지의 길을 다시 표시합니다."
+                "밖으로 나오면 현재 목적지까지의 길을 표시합니다."
             );
             Assert.That(Glow().activeSelf, Is.True);
             Assert.That(
                 Flat(Glow().transform.position, Entrance("CAFE").position),
                 Is.LessThan(.01f)
             );
-
-            GuideRoutePreference.ShowsRoute = false;
-            yield return SetOccupied(diner, true);
-            yield return SetOccupied(diner, false);
-            yield return new WaitForSeconds(LaidSeconds);
-            Assert.That(
-                Route().enabled,
-                Is.False,
-                "사용자가 꺼 둔 안내선을 입퇴장으로 다시 켜지 않습니다."
-            );
         }
-
-        private static IEnumerator SetOccupied(ShopInterior room, bool occupied) =>
-            (IEnumerator)
-                typeof(ShopInterior)
-                    .GetMethod("SetOccupied", BindingFlags.Instance | BindingFlags.NonPublic)
-                    .Invoke(room, new object[] { occupied });
 
         // 마을을 불러오는 데 대부분의 시간이 들어, 목적지를 바꿔 가며 한 번 불러온 마을에서 이어서 본다.
         [UnityTest]

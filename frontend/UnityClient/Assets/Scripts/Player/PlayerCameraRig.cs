@@ -71,7 +71,7 @@ namespace A305.Player
         /// <summary>이번 프레임에 사용자가 마우스·터치로 카메라를 직접 돌렸는지. 이동 방향 기준을 새로 잡을 때 쓴다.</summary>
         public bool TurnedByUserThisFrame { get; private set; }
 
-        /// <summary>이번 프레임에 사용자가 휠로 가까이·멀리 보기를 했는지</summary>
+        /// <summary>이번 프레임에 사용자가 휠이나 두 손가락으로 가까이·멀리 보기를 했는지</summary>
         public bool ZoomedByUserThisFrame { get; private set; }
 
         /// <summary>이번 프레임에 사용자가 1인칭·3인칭을 바꿨는지</summary>
@@ -266,16 +266,24 @@ namespace A305.Player
             // 휠 한 번의 값은 브라우저·장치마다 크기가 달라 방향만 사용한다.
             float scroll = zoomAction.action.ReadValue<float>();
             // 스크롤 UI 위에서는 휠을 UI만 사용한다. 목록의 끝에 닿아도 카메라로 넘기지 않는다.
-            ZoomedByUserThisFrame =
+            bool zoomedByWheel =
                 scroll != 0f
                 && (
                     Mouse.current == null
                     || !UiScrollTarget.IsAt(Mouse.current.position.ReadValue())
                 );
-            if (ZoomedByUserThisFrame)
+            if (zoomedByWheel)
             {
                 orbit.Zoom(Mathf.Sign(scroll));
             }
+
+            // 휴대폰에는 휠 대신 시점 영역의 두 손가락 벌리기·오므리기가 있다. 벌린 만큼 휠 칸 수로 바꿔 같은 거리 범위를 쓴다.
+            float pinchSteps = touchControls != null ? touchControls.ConsumeZoomSteps() : 0f;
+            if (pinchSteps != 0f)
+            {
+                orbit.Zoom(pinchSteps);
+            }
+            ZoomedByUserThisFrame = zoomedByWheel || pinchSteps != 0f;
 
             // 휴대폰에는 V 키 대신 [1인칭]·[3인칭] 버튼이 있다.
             ToggledViewThisFrame =
@@ -304,6 +312,7 @@ namespace A305.Player
             if (touchControls != null)
             {
                 touchControls.ConsumeLookDelta();
+                touchControls.ConsumeZoomSteps();
                 touchControls.ConsumeViewToggle();
             }
 

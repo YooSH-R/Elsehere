@@ -38,13 +38,29 @@ namespace A305.Player
             }
 
             if (
-                RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                !RectTransformUtility.ScreenPointToLocalPointInRectangle(
                     (RectTransform)transform,
                     eventData.position,
                     eventData.pressEventCamera,
                     out Vector2 position
-                ) && DragInput.Begin(eventData.pointerId, controlsLook ? position : Vector2.zero)
+                )
             )
+            {
+                return;
+            }
+
+            if (controlsLook)
+            {
+                controls.Pinch.Press(eventData.pointerId, position);
+                // 두 번째 손가락이 닿으면 확대·축소만 하고, 손가락을 모두 뗄 때까지 시점을 돌리지 않는다.
+                if (controls.Pinch.IsPinching)
+                {
+                    controls.Look.Reset();
+                    return;
+                }
+            }
+
+            if (DragInput.Begin(eventData.pointerId, controlsLook ? position : Vector2.zero))
             {
                 DragInput.Drag(eventData.pointerId, position);
                 RefreshHandle();
@@ -63,6 +79,10 @@ namespace A305.Player
                 )
             )
             {
+                if (controlsLook)
+                {
+                    controls.Pinch.Move(eventData.pointerId, position);
+                }
                 DragInput.Drag(eventData.pointerId, position);
                 RefreshHandle();
             }
@@ -70,6 +90,10 @@ namespace A305.Player
 
         public void OnPointerUp(PointerEventData eventData)
         {
+            if (controlsLook)
+            {
+                controls.Pinch.Release(eventData.pointerId);
+            }
             DragInput.End(eventData.pointerId);
             RefreshHandle();
         }

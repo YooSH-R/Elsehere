@@ -248,7 +248,14 @@ namespace A305.Npc
             HidePrompt();
             if (!IsHailAllowed || !TaxiFare.CanHail(transform.position, player.transform.position))
                 return;
-            if (!dialogue.TryStart(driver.Code, driver.LookTarget, ConversationInitiator.User))
+            if (
+                !dialogue.TryStart(
+                    driver.Code,
+                    driver.LookTarget,
+                    ConversationInitiator.User,
+                    placeCode: "TAXI"
+                )
+            )
                 return;
             passenger = true;
             arriving = false;

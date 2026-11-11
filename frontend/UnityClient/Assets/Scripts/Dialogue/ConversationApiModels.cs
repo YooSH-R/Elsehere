@@ -17,6 +17,9 @@ namespace A305.Dialogue
 
         /// <summary>사용자가 고른 NPC 말 빠르기 배율(<see cref="NpcSpeechSpeed"/>). 첫인사 음성에 쓴다.</summary>
         public double SpeechSpeed { get; set; }
+
+        /// <summary>대화가 열린 장소 코드. 서버가 NPC에게 지금 있는 곳으로 알린다.</summary>
+        public string PlaceCode { get; set; }
     }
 
     /// <summary>대화 시작 시의 실제 이동 상태. 서버는 이 값으로 만든 사실을 대화 동안 보존한다.</summary>

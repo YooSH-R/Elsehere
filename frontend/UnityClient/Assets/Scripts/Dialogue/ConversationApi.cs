@@ -24,7 +24,8 @@ namespace A305.Dialogue
             string npcCode,
             string initiatedBy,
             bool npcOffDuty,
-            NpcTravelContext npcTravelContext = null
+            NpcTravelContext npcTravelContext = null,
+            string placeCode = null
         )
         {
             return client.PostAsync<ConversationStart>(
@@ -37,6 +38,7 @@ namespace A305.Dialogue
                     NpcOffDuty = npcOffDuty,
                     NpcTravelContext = npcTravelContext,
                     SpeechSpeed = NpcSpeechSpeed.ForRequest,
+                    PlaceCode = placeCode,
                 }
             );
         }

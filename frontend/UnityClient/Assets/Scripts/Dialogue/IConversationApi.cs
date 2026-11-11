@@ -9,12 +9,14 @@ namespace A305.Dialogue
     {
         /// <summary>CONV-01 대화 시작.</summary>
         /// <param name="npcOffDuty">맡은 교대 밖이라 일하지 않는 직원과의 대화인지. 서버가 응대 대신 일상 상황으로 대화한다.</param>
+        /// <param name="placeCode">대화가 열린 장소 코드(플레이어가 있는 곳). 서버가 NPC에게 지금 있는 곳으로 알린다.</param>
         Task<ConversationStart> StartAsync(
             string requestId,
             string npcCode,
             string initiatedBy,
             bool npcOffDuty,
-            NpcTravelContext npcTravelContext = null
+            NpcTravelContext npcTravelContext = null,
+            string placeCode = null
         );
 
         /// <summary>CONV-03 발화 전송.</summary>

@@ -83,7 +83,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 
 | API | 설명 |
 | --- | --- |
-| `DialogueController.TryStart(string npcCode, Transform lookTarget, ConversationInitiator initiatedBy = Npc)` | 대화를 시작합니다. 이미 대화 중이면 false를 돌려줍니다. 플레이어가 [말 걸기]나 NPC 클릭·탭으로 먼저 건 대화는 `ConversationInitiator.User`로 넘기고, 서버 대화 시작(CONV-01)에 `initiatedBy: USER`로 보냅니다. NPC가 제안한 대화는 기본값(`NPC`)입니다. |
+| `DialogueController.TryStart(string npcCode, Transform lookTarget, ConversationInitiator initiatedBy = Npc)` | 대화를 시작합니다. 이미 대화 중이면 false를 돌려줍니다. 플레이어가 [말 걸기]나 NPC 클릭·탭으로 먼저 건 대화는 `ConversationInitiator.User`로 넘기고, 서버 대화 시작(CONV-01)에 `initiatedBy: USER`로 보냅니다. NPC가 제안한 대화는 기본값(`NPC`)입니다. 서버 대화 시작에는 대화가 열린 장소 코드(`placeCode`)도 보냅니다. 따로 넘기지 않으면 플레이어가 있는 곳(`ShopInterior.Occupied`의 매장, 아니면 플레이어가 있는 씬의 `PlaceScenes` 코드)이고, 택시는 `TAXI`를 넘깁니다. |
 | `DialogueController.TryStart(..., practiceScenarioId, practiceStart)` | 장소 연습 대화를 시작합니다. `practiceStart`가 장소 연습 시작(PRC-02)으로 대화를 열고, 복습 대화처럼 `Started`·`Ended`와 마을 동작(택시·신고·행동 판정), 준비물, 추천 단어, 종료 피드백, [나중에 확인]을 쓰지 않습니다. 남은 진행 중 대화는 끝내거나 이어받지 않습니다. 종료 기록의 `DialogueRecord.PracticeScenarioId`로 구분합니다. |
 | `DialogueController.ActivePracticeConversationId`, `SetPracticeReference(goals, completedCount, briefing)` | 지금 장소 연습 대화의 서버 ID와, 복습 참고 카드와 같은 자리에 '이번 연습' 설명·목표·해낸 수를 보이는 카드 |
 | `DialogueController.End()` | 대화를 끝내고 플레이어를 대화하던 NPC 쪽으로 돌린 뒤 시점과 이동을 되돌립니다. [대화 종료] 버튼과 Esc도 이 동작을 합니다. |

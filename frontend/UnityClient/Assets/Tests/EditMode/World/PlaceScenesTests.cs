@@ -50,5 +50,20 @@ namespace A305.World.Tests
         {
             Assert.That(PlaceScenes.NameOf(placeCode), Is.Null);
         }
+
+        // 매장 실내는 마을 씬에 겹쳐 불러오고 플레이어는 마을 씬에 남는다. 들어가 있는 매장이 있으면 그 매장이 지금 있는 곳이다.
+        [TestCase("TownScene", "LAUNDROMAT", "LAUNDROMAT")]
+        [TestCase("TownScene", null, "TOWN")]
+        [TestCase("TownScene", "", "TOWN")]
+        [TestCase("CafeScene", null, "CAFE")]
+        [TestCase("EntryScene", null, null)]
+        public void CodeOf_WithOccupiedShop_ReturnsWhereThePlayerStands(
+            string unitySceneName,
+            string occupiedShopCode,
+            string expected
+        )
+        {
+            Assert.That(PlaceScenes.CodeOf(unitySceneName, occupiedShopCode), Is.EqualTo(expected));
+        }
     }
 }

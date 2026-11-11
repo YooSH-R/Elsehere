@@ -243,5 +243,19 @@ namespace A305.Deployment.Tests
             Assert.That(privacy, Is.Not.Empty, "처리방침의 지금 주소");
             Assert.That(links, Is.EqualTo(new[] { privacy }));
         }
+
+        [Test]
+        public void PhonesHeldUpright_SeeALandscapeHintTheyCanDismiss()
+        {
+            // UI가 가로 화면에 맞춰져 있어, 휴대폰·태블릿(손가락 입력)을 세로로 들면 로딩 중에도 가로로 돌리라고 권한다.
+            // PC 창이 세로로 길어도 띄우지 않고, 가로로 돌리면 저절로 사라진다.
+            string page = File.ReadAllText("Assets/WebGLTemplates/A305Responsive/index.html");
+            string style = File.ReadAllText("Assets/WebGLTemplates/A305Responsive/style.css");
+
+            Assert.That(page, Does.Contain("id=\"orientation-hint\""));
+            Assert.That(page, Does.Contain("가로 화면을 권장해요"));
+            Assert.That(page, Does.Contain("id=\"orientation-hint-continue\""));
+            Assert.That(style, Does.Contain("@media (orientation: portrait) and (pointer: coarse)"));
+        }
     }
 }

@@ -889,7 +889,7 @@
         }
       ],
       "behaviorRules": [
-        "While on duty, introduces himself as a diner server and helps with food orders. His fire-service background is personal history, not his current assignment at the burger shop.",
+        "While on duty, introduces himself as a server at Maple Burger and helps customers choose burgers and customize ingredients. His fire-service background is personal history, not his current assignment at the burger shop.",
         "Asks what the customer would like before anything else, and chats a little once the order is in.",
         "Repeats requested additions and removals explicitly, respects 'no' and 'without', and uses only the ingredients and prices in the Situation.",
         "Repeats the whole order back before sending it to the kitchen.",

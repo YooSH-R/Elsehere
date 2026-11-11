@@ -136,6 +136,116 @@ namespace A305.Npc.PlayModeTests
             }
         }
 
+        [UnityTest]
+        public IEnumerator BurgerBoothAndCounterSeatWorkWithoutAnActiveQuest()
+        {
+            SceneManager.sceneLoaded += DisableNetworkAndClock;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return null;
+                foreach (
+                    NpcPopulation population in Object.FindObjectsByType<NpcPopulation>(
+                        FindObjectsSortMode.None
+                    )
+                )
+                    population.enabled = false;
+                var shop = Object
+                    .FindObjectsByType<ShopInterior>(
+                        FindObjectsInactive.Include,
+                        FindObjectsSortMode.None
+                    )
+                    .Single(item => item.PlaceCode == "DINER");
+                yield return (IEnumerator)
+                    typeof(ShopInterior)
+                        .GetMethod("SetOccupied", Fields)
+                        .Invoke(shop, new object[] { true });
+                var player = Object.FindFirstObjectByType<PlayerMover>();
+                var dialogue = Object.FindFirstObjectByType<DialogueController>();
+                var offer = Object.FindFirstObjectByType<PasserbyOfferView>();
+                var pose = player.GetComponent<PlayerSeatPose>();
+                Transform[] furniture = SceneManager
+                    .GetSceneByName(shop.SceneName)
+                    .GetRootGameObjects()
+                    .SelectMany(root => root.GetComponentsInChildren<Transform>())
+                    .ToArray();
+                int received = 0;
+                using (var rest = new DinerMealRest(player, dialogue, offer, () => received++))
+                {
+                    foreach (string seatName in new[] { "BoothSeat", "Stool" })
+                    {
+                        Transform seat = furniture.First(item => item.name == seatName);
+                        Vector3 standing = seat.position + Vector3.right * .6f;
+                        standing.y = shop.transform.position.y;
+                        player.Teleport(standing, Quaternion.identity);
+                        player.SetMovementLocked(false);
+                        typeof(PasserbyOfferView)
+                            .GetMethod("CloseTalkPrompt", Fields)
+                            .Invoke(offer, null);
+                        rest.Tick(0, null, false);
+                        Assert.That(
+                            offer.IsTalkPromptShownBy(rest),
+                            Is.True,
+                            $"{seatName}: 퀘스트를 시작하지 않아도 앉기를 안내합니다."
+                        );
+                        offer.ShownButtonRect.GetComponent<Button>().onClick.Invoke();
+                        yield return null;
+                        Assert.That(pose.IsSeated, Is.True, seatName);
+                        Assert.That(player.IsMovementLocked, Is.True);
+                        Assert.That(player.CameraRig.IsInSeatView, Is.True);
+                        rest.Tick(100, null, false);
+                        Assert.That(
+                            pose.IsSeated,
+                            Is.True,
+                            "자유 착석은 주문 대기로 처리하지 않습니다."
+                        );
+                        Assert.That(received, Is.Zero);
+                        offer.ShownButtonRect.GetComponent<Button>().onClick.Invoke();
+                        Assert.That(pose.IsSeated, Is.False);
+                        Assert.That(player.IsMovementLocked, Is.False);
+                        Assert.That(player.CameraRig.IsInSeatView, Is.False);
+                        Assert.That(
+                            Vector3.Distance(player.transform.position, standing),
+                            Is.LessThan(.02f)
+                        );
+                    }
+                    rest.Tick(
+                        0,
+                        new FirstDayMissionState
+                        {
+                            Started = true,
+                            IsTownStory = true,
+                            Stage = 4,
+                        },
+                        false
+                    );
+                    Assert.That(
+                        offer.IsTalkPromptShownBy(rest),
+                        Is.True,
+                        "다른 퀘스트 단계에서도 앉을 수 있습니다."
+                    );
+                    offer.ShownButtonRect.GetComponent<Button>().onClick.Invoke();
+                    Assert.That(pose.IsSeated, Is.True);
+                }
+                Assert.That(
+                    pose.IsSeated,
+                    Is.False,
+                    "장면 정리 시에는 착석과 이동 잠금을 해제합니다."
+                );
+                Assert.That(player.IsMovementLocked, Is.False);
+                Assert.That(offer.IsTalkPromptShowing, Is.False);
+                Assert.That(received, Is.Zero);
+                yield return (IEnumerator)
+                    typeof(ShopInterior)
+                        .GetMethod("SetOccupied", Fields)
+                        .Invoke(shop, new object[] { false });
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableNetworkAndClock;
+            }
+        }
+
         private static void DisableNetworkAndClock(Scene scene, LoadSceneMode mode)
         {
             foreach (

@@ -13,6 +13,17 @@ namespace A305.Dialogue
         [TextArea]
         public string Korean;
 
+        public TextAsset GuideVoice;
+
+        [TextArea]
+        public string GuideEnglish;
+
+        [TextArea]
+        public string GuideKorean;
+
+        public DialogueLine CreateGuideLine() =>
+            DialogueLine.FromNpc(GuideEnglish, GuideKorean, speech: GuideVoice.bytes);
+
         [Min(1)]
         public float BeatsPerMinute = 110;
 

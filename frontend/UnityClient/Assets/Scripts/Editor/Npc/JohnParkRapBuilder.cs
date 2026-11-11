@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using A305.Characters;
 using A305.Dialogue;
@@ -15,6 +16,15 @@ namespace A305.EditorTools.Npc
     {
         public const string DefinitionPath = "Assets/Data/Npc/JohnPark/OrderRap.asset";
         public const string VoicePath = "Assets/Audio/Characters/JohnParkDialogue/OrderRap.bytes";
+        public const string GuideVoicePath =
+            "Assets/Audio/Characters/JohnParkDialogue/ReplayGuide.bytes";
+
+        [Serializable]
+        private sealed class GuideText
+        {
+            public string english;
+            public string korean;
+        }
 
         [MenuItem("Tools/A305/Npc/John Park/Connect Recorded Order Rap")]
         public static void Build()
@@ -36,6 +46,25 @@ namespace A305.EditorTools.Npc
                 AssetDatabase.CreateAsset(definition, DefinitionPath);
             }
             definition.Voice = voice;
+            var guide = AssetDatabase.LoadAssetAtPath<TextAsset>(GuideVoicePath);
+            var guideDecoded = guide != null ? DialogueSpeechWav.Read(guide.bytes) : null;
+            if (guideDecoded?.Timeline == null || guideDecoded.Emotions == null)
+                throw new InvalidOperationException("안내 음성의 발음·감정 시간표가 필요합니다.");
+            definition.GuideVoice = guide;
+            var guideText = JsonUtility.FromJson<GuideText>(
+                File.ReadAllText(
+                    "../ArtSources/Characters/ServiceNpcs/LittleMung_JohnPark_Male/ReplayGuide/Guide.json"
+                )
+            );
+            if (
+                string.IsNullOrWhiteSpace(guideText.english)
+                || string.IsNullOrWhiteSpace(guideText.korean)
+            )
+                throw new InvalidOperationException(
+                    "안내 음성과 함께 저장된 원문·번역이 필요합니다."
+                );
+            definition.GuideEnglish = guideText.english;
+            definition.GuideKorean = guideText.korean;
             definition.English =
                 "Cheeseburger, fries, lemonade on ice!\nAdd an apple pie, yeah, that sounds nice!\nMake that two, one for me, one for you.\nThat's my order, now tell me yours!";
             definition.Korean =

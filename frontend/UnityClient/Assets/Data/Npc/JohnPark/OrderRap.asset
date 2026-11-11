@@ -27,6 +27,10 @@ MonoBehaviour:
     \uADF8\uB798 \uB531 \uC88B\uC544!\n\uB450 \uAC1C\uB85C \uD574\uC918, \uD558\uB098\uB294
     \uB0B4 \uAC83, \uD558\uB098\uB294 \uB124 \uAC83.\n\uB0B4 \uC8FC\uBB38\uC740 \uC774\uAC70\uC57C,
     \uB124 \uAC83\uB3C4 \uB9D0\uD574\uC918!"
+  GuideVoice: {fileID: 4900000, guid: bb8269e93d9f2584c9516d0986540ed3, type: 3}
+  GuideEnglish: Tap 'Replay rap' and I'll play it again!
+  GuideKorean: "\u2018\uB7A9 \uB2E4\uC2DC \uB4E3\uAE30\u2019\uB97C \uB204\uB974\uBA74
+    \uB2E4\uC2DC \uB4E4\uB824\uC904\uAC8C\uC694."
   BeatsPerMinute: 121
   BeatsPerAnimationLoop: 4
   AnimationState: Rhythm

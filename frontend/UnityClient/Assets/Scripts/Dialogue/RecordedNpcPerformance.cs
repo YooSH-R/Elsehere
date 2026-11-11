@@ -23,6 +23,27 @@ namespace A305.Dialogue
         private bool driving;
         public RecordedPerformanceDefinition Definition => definition;
         public bool IsPerforming => driving;
+        public bool IsReady =>
+            definition != null
+            && definition.Voice != null
+            && definition.GuideVoice != null
+            && speech != null
+            && source != null
+            && animator != null;
+
+        public bool PlayGuide(DialogueServerLink link)
+        {
+            if (!IsReady || link == null)
+                return false;
+            StopMotion();
+            return link.PlayRecordedSpeech(definition.GuideVoice.bytes);
+        }
+
+        public void Stop(DialogueServerLink link)
+        {
+            StopMotion();
+            link?.StopSpeech();
+        }
 
         public bool Accepts(string text) =>
             definition != null && definition.Voice != null && PerformanceRequest.Matches(text);

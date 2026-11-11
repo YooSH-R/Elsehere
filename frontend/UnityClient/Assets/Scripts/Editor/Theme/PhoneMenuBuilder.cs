@@ -273,7 +273,6 @@ namespace A305.EditorTools.Theme
                 Transform child = phone.GetChild(i);
                 if (
                     System.Array.IndexOf(AppNames, child.name) < 0
-                    && child.name != "ReviewButton"
                     && child.name != "NeighborsButton"
                 )
                     Object.DestroyImmediate(child.gameObject);

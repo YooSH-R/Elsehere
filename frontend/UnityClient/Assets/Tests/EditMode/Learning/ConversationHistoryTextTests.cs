@@ -103,6 +103,19 @@ namespace A305.Learning.Tests
             );
         }
 
+        // [다시 연습]으로 연습한 대화는 시간 옆에 연습 횟수를 붙인다.
+        [Test]
+        public void Subtitle_AfterPractice_AddsHowManyTimes()
+        {
+            ConversationSummary conversation = Conversation("CAFE", "ENDED_BY_USER", "DONE");
+            conversation.PracticeCount = 2;
+
+            Assert.That(
+                ConversationHistoryText.Subtitle(conversation, Now),
+                Is.EqualTo("오늘 오후 2:00 · 2회 연습")
+            );
+        }
+
         [TestCase("ENDED_BY_USER", "FAILED", "피드백을 만들지 못함")]
         [TestCase("ENDED_BY_USER", "SKIPPED", "피드백 건너뜀")]
         [TestCase("ACTIVE", null, "대화 중")]

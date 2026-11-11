@@ -29,7 +29,7 @@ namespace A305.Learning
                 40,
                 english.GetPreferredValues(english.text, width - 130, 0).y
             );
-            ReviewWorkbookRow.Pin(english.rectTransform, 34, 26, width - 130, englishHeight);
+            Pin(english.rectTransform, 34, 26, width - 130, englishHeight);
             var description = Text(
                 card,
                 template,
@@ -42,13 +42,7 @@ namespace A305.Learning
                 34,
                 description.GetPreferredValues(description.text, width - 68, 0).y
             );
-            ReviewWorkbookRow.Pin(
-                description.rectTransform,
-                34,
-                44 + englishHeight,
-                width - 68,
-                descriptionHeight
-            );
+            Pin(description.rectTransform, 34, 44 + englishHeight, width - 68, descriptionHeight);
             var badge = new GameObject(
                 "UsageMark",
                 typeof(RectTransform),
@@ -58,7 +52,7 @@ namespace A305.Learning
             badge.sprite = mark;
             badge.preserveAspect = true;
             badge.raycastTarget = false;
-            ReviewWorkbookRow.Pin(badge.rectTransform, width - 76, 24, 42, 42);
+            Pin(badge.rectTransform, width - 76, 24, 42, 42);
             card.sizeDelta = new Vector2(width, 74 + englishHeight + descriptionHeight);
             return card;
         }
@@ -74,7 +68,7 @@ namespace A305.Learning
         {
             TMP_Text text = Object.Instantiate(template, parent);
             text.gameObject.SetActive(true);
-            text.text = ReviewWorkbookRow.Escape(value);
+            text.text = Escape(value);
             text.fontSize = fontSize;
             text.enableAutoSizing = false;
             text.textWrappingMode = TextWrappingModes.Normal;
@@ -84,6 +78,19 @@ namespace A305.Learning
                 text.GetComponent<ThemedElement>() ?? text.gameObject.AddComponent<ThemedElement>();
             paint.Use(theme, role);
             return text;
+        }
+
+        /// <summary>꺾쇠를 비슷한 모양으로 바꿔 서식 태그로 읽히지 않게 한다.</summary>
+        internal static string Escape(string value) =>
+            (value ?? "").Replace("<", "‹").Replace(">", "›");
+
+        /// <summary>왼쪽 위 기준으로 자리와 크기를 정한다.</summary>
+        internal static void Pin(RectTransform rect, float x, float y, float width, float height)
+        {
+            rect.anchorMin = rect.anchorMax = new Vector2(0, 1);
+            rect.pivot = new Vector2(0, 1);
+            rect.anchoredPosition = new Vector2(x, -y);
+            rect.sizeDelta = new Vector2(width, height);
         }
     }
 }

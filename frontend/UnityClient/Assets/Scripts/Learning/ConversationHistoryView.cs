@@ -8,8 +8,9 @@ using UnityEngine.UI;
 namespace A305.Learning
 {
     /// <summary>
-    /// [피드백 목록] 창. 지난 대화를 한 쪽에 4개씩 보이고, 대화마다 [보기]로 그때 받은 피드백을 다시 연다.
-    /// 받은 대화의 마지막 쪽에서 다음 쪽으로 넘기면 다음 페이지를 요청한다. 서버 요청은 <see cref="LearningController"/>가 맡고 이 화면은 결과만 그린다.
+    /// [대화 노트] 창. 지난 대화를 한 쪽에 4개씩 보이고, 대화마다 [피드백 보기]로 그때 받은 피드백을 다시 열거나 [다시 연습]으로 같은 상황을 연습한다.
+    /// 머리줄의 장소 탭으로 그 장소의 대화만 본다. 받은 대화의 마지막 쪽에서 다음 쪽으로 넘기면 다음 페이지를 요청한다.
+    /// 서버 요청은 <see cref="LearningController"/>가 맡고 이 화면은 결과만 그린다.
     /// </summary>
     public class ConversationHistoryView : MonoBehaviour
     {
@@ -22,6 +23,10 @@ namespace A305.Learning
 
         [SerializeField]
         private ConversationHistoryRow[] rows;
+
+        [SerializeField]
+        [Tooltip("장소 탭(전체·카페·호텔·마을). 고른 탭은 On 그림이 켜진다.")]
+        private Button[] tabs;
 
         [SerializeField]
         [Tooltip("NPC 색 아이콘 그림. NPC 이름으로 하나를 고른다.")]
@@ -63,10 +68,19 @@ namespace A305.Learning
         // 다음 페이지를 요청했을 때 받은 뒤 보일 쪽. 요청하지 않았으면 -1.
         private int pageAfterMore = -1;
 
+        // 장소 탭의 서버 장소 코드. [전체]는 null이다.
+        private static readonly string[] TabScenes = { null, "CAFE", "HOTEL", "TOWN" };
+
         public event Action CloseRequested;
 
-        /// <summary>[보기]로 고른 대화를 알린다.</summary>
+        /// <summary>[피드백 보기]로 고른 대화를 알린다.</summary>
         public event Action<ConversationSummary> OpenRequested;
+
+        /// <summary>[다시 연습]으로 고른 대화를 알린다.</summary>
+        public event Action<ConversationSummary> PracticeRequested;
+
+        /// <summary>장소 탭에서 고른 장소 코드. [전체]는 null.</summary>
+        public event Action<string> FilterRequested;
 
         /// <summary>받은 대화의 마지막 쪽에서 다음으로 넘겨 다음 페이지가 필요하다.</summary>
         public event Action MoreRequested;
@@ -84,6 +98,12 @@ namespace A305.Learning
             shade.SetActive(true);
             panel.SetActive(true);
             UiLayer.Open(this);
+            for (int i = 0; i < tabs.Length; i++)
+            {
+                string scene = TabScenes[i];
+                tabs[i].onClick.RemoveAllListeners();
+                tabs[i].onClick.AddListener(() => FilterRequested?.Invoke(scene));
+            }
             ShowStatus("");
             Refresh();
         }
@@ -138,8 +158,21 @@ namespace A305.Learning
                     ConversationHistoryText.AvatarColor(conversation, avatarSprites.Length)
                 ];
                 rows[slot]
-                    .Show(conversation, avatar, now, () => OpenRequested?.Invoke(conversation));
+                    .Show(
+                        conversation,
+                        avatar,
+                        now,
+                        () => OpenRequested?.Invoke(conversation),
+                        () => PracticeRequested?.Invoke(conversation)
+                    );
                 rows[slot].SetInteractable(!isBusy);
+            }
+
+            for (int i = 0; i < tabs.Length; i++)
+            {
+                bool chosen = history.SceneCode == TabScenes[i];
+                tabs[i].transform.Find("On").gameObject.SetActive(chosen);
+                tabs[i].interactable = !isBusy && !chosen;
             }
 
             emptyText.text = count == 0 && !isBusy ? ConversationHistoryText.EmptyMessage : "";

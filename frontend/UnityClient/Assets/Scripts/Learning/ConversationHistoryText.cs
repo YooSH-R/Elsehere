@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace A305.Learning
 {
-    /// <summary>[피드백 목록] 한 줄의 글자. "NPC · 장소" 제목, 언제 나눈 대화인지, 피드백이 없으면 그 상태, 색 아이콘의 글자와 색을 정한다.</summary>
+    /// <summary>[대화 노트] 한 줄의 글자. "NPC · 장소" 제목, 언제 나눈 대화인지, 피드백이 없으면 그 상태, 색 아이콘의 글자와 색을 정한다.</summary>
     public static class ConversationHistoryText
     {
         public const string EmptyMessage = "아직 완성된 피드백이 없어요. NPC와 대화를 나눠 보세요.";
@@ -46,10 +46,12 @@ namespace A305.Learning
                 : $"{started.Year}년 {started.Month}월 {started.Day}일";
         }
 
-        /// <summary>시간 줄. 피드백이 없는 대화만 그 상태를 빨간 글자로 붙인다.</summary>
+        /// <summary>시간 줄. [다시 연습]한 대화는 연습 횟수를, 피드백이 없는 대화는 그 상태를 빨간 글자로 붙인다.</summary>
         public static string Subtitle(ConversationSummary conversation, DateTimeOffset now)
         {
             string when = When(conversation.StartedAt, now);
+            if (conversation.PracticeCount > 0)
+                when += $" · {conversation.PracticeCount}회 연습";
             string note = Note(conversation);
             return note == null ? when : $"{when} · <color={NoteColor}>{note}</color>";
         }

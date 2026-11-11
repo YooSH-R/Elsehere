@@ -139,7 +139,7 @@ namespace A305.EditorTools.Learning
 
         private sealed class SampleHistory : IConversationHistoryApi
         {
-            public Task<ConversationPage> GetPageAsync(string cursor) =>
+            public Task<ConversationPage> GetPageAsync(string cursor, string sceneCode) =>
                 Task.FromResult(
                     new ConversationPage
                     {

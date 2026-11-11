@@ -202,6 +202,57 @@ namespace A305.World.Tests
             );
         }
 
+        // 오락실 1층·2층 서점은 계단실 칸막이 없이 건물 폭(8m) 전체를 쓴다. 계단실 자리(x 0~3.8)도 그 층 바닥이 있고
+        // 칸막이에 붙어 있던 소품은 오른쪽 벽으로 옮긴다. 2층 서점 문은 매장 앞벽에 있다.
+        [TestCase("LittleArcadeInterior")]
+        [TestCase("LittleArcadeUpperInterior")]
+        public void ArcadeShopScene_UsesTheWholeFloorWithoutTheStairHallWall(string sceneName)
+        {
+            Scene shop = Open(sceneName);
+            Transform[] parts = BuilderTools.FindAllInScene<Transform>(shop);
+
+            Assert.That(
+                parts
+                    .Select(part => part.name)
+                    .Intersect(new[] { "StairHallWall", "TenantDoorSign" }),
+                Is.Empty,
+                "계단실 칸막이와 계단실 안내는 마을 것이다."
+            );
+            Assert.That(
+                BuilderTools
+                    .FindAllInScene<Renderer>(shop)
+                    .Any(floor => floor.bounds.Contains(new Vector3(2, -.05f, -4))),
+                Is.True,
+                "예전 계단실 자리에도 그 층 바닥이 있다."
+            );
+            Assert.That(
+                parts
+                    .Where(part => part.name is "ChangeMachine" or "WallShelfLongDecorated")
+                    .Where(part => part.gameObject.activeInHierarchy)
+                    .Select(part => part.position.x)
+                    .Where(x => x > -.5f && x < .5f),
+                Is.Empty,
+                "칸막이 자리(x=0)에 걸린 소품이 없다."
+            );
+        }
+
+        [Test]
+        public void BookshopScene_DoorIsOnTheFrontWall()
+        {
+            Scene shop = Open("LittleArcadeUpperInterior");
+            SpaceDoorway exit = BuilderTools
+                .FindAllInScene<SpaceDoorway>(shop)
+                .Single(door => door.DoorwayId == "TownDoor");
+
+            Assert.That(exit.transform.position.x, Is.GreaterThan(.5f));
+            Assert.That(exit.transform.position.z, Is.GreaterThan(-.6f), "앞벽(z≈-0.2) 문턱");
+            Assert.That(
+                exit.ArrivalPoint.position.z,
+                Is.LessThan(exit.transform.position.z - 1.5f),
+                "들어오면 앞벽에서 안쪽으로 2m 들어와 선다."
+            );
+        }
+
         // 마을의 매장 문도 장면을 옮기는 문이라 다가가도 열리지 않는다(카페·호텔·경찰서 문과 같다).
         [Test]
         public void TownShopDoors_StayShut()

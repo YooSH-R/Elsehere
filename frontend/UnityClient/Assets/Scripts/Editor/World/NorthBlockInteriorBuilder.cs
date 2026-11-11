@@ -260,6 +260,108 @@ namespace A305.EditorTools.World
             return root;
         }
 
+        /// <summary>
+        /// 오락실 매장 장면(1층 오락실·2층 서점)을 계단실 자리(x 0~3.8)까지 넓혀 건물 폭 전체를 한 매장으로 쓴다.
+        /// 계단실 칸막이·서점 문 위 벽·계단실 안내를 없애고, 계단실 위를 덮는 바닥판(1층에서는 천장), 오른쪽 벽·뒷벽 마감과 조명을
+        /// 매장 쪽(<see cref="InteriorFinish"/>)과 같게 둔다. 1층은 거리 쪽 계단실 입구를 앞벽으로 막고, 2층은 서점 문을 앞벽 오른쪽으로 옮긴다.
+        /// 마을 건물에는 계단실이 그대로 남으므로 매장 장면에만 쓴다. 다시 실행해도 같은 모습이 된다.
+        /// </summary>
+        internal static void WidenIntoStairHall(Transform building, bool upper)
+        {
+            Transform layout = building.Find("TenantEntrances");
+            foreach (Transform part in layout.Cast<Transform>().ToArray())
+                if (
+                    part.name
+                    is "StairHallWall"
+                        or "DoorHeader"
+                        or "TenantDoorSign"
+                        or "TenantDoorSignBoard"
+                )
+                    Object.DestroyImmediate(part.gameObject);
+            Transform old = building.Find("StairHallAnnex");
+            if (old != null)
+                Object.DestroyImmediate(old.gameObject);
+            Transform annex = Group("StairHallAnnex", building, Vector3.zero);
+
+            // 매장 쪽 2층 바닥(UpperFloor, x -4~0.1)에 이어 계단실 위를 덮는다.
+            Solid(
+                "StairHallSlab",
+                annex,
+                new Vector3(1.95f, 3.9f, -4),
+                new Vector3(3.7f, .2f, 7.6f),
+                Wood,
+                "floor"
+            );
+            float y = upper ? 4 : 0;
+            float height = upper ? 3 : 4;
+            Material plaster = Color("NorthBlockPlaster", "#ECE3CE");
+            Solid(
+                "InteriorWall",
+                annex,
+                new Vector3(3.785f, y + height / 2, -4),
+                new Vector3(.025f, height, 7.6f),
+                plaster,
+                "wall",
+                false
+            );
+            Solid(
+                "InteriorWall",
+                annex,
+                new Vector3(1.95f, y + height / 2, -7.785f),
+                new Vector3(3.7f, height, .025f),
+                plaster,
+                "wall",
+                false
+            );
+            Solid(
+                "Skirting",
+                annex,
+                new Vector3(3.75f, y + .28f, -4),
+                new Vector3(.08f, .55f, 7.6f),
+                Green,
+                "wall",
+                false
+            );
+            Solid(
+                "Skirting",
+                annex,
+                new Vector3(1.95f, y + .28f, -7.75f),
+                new Vector3(3.7f, .55f, .08f),
+                Green,
+                "wall",
+                false
+            );
+            var lamp = new GameObject("InteriorLight").AddComponent<Light>();
+            lamp.transform.SetParent(annex, false);
+            lamp.transform.localPosition = new Vector3(1.9f, y + 2.2f, -4);
+            lamp.type = LightType.Point;
+            lamp.range = 8;
+            lamp.intensity = .7f;
+            lamp.color = new UnityEngine.Color(1, .88f, .69f);
+            lamp.shadows = LightShadows.None;
+
+            if (upper)
+            {
+                // 문짝은 덧댄 문틀·손잡이와 함께 옮긴다. 앞벽 안쪽 면(z -0.2)에 붙여 매장 안에서 보이게 한다.
+                layout
+                    .Find("BookshopDoor")
+                    .SetLocalPositionAndRotation(new Vector3(1.15f, 4, -.25f), Quaternion.identity);
+                return;
+            }
+            Transform frontWall = building
+                .Cast<Transform>()
+                .Single(floor => floor.name.Contains("Floor8m") && floor.localPosition.y < 1)
+                .Find("HollowWalls/FrontWall");
+            Solid(
+                "StairEntranceInfill",
+                annex,
+                new Vector3(2, 1.3f, -.1f),
+                new Vector3(2.4f, 2.6f, .2f),
+                frontWall.GetComponent<Renderer>().sharedMaterial,
+                "wall"
+            );
+        }
+
         private static void InteriorFinish(Transform parent, float y, bool ground)
         {
             float height = ground ? 4 : 3;

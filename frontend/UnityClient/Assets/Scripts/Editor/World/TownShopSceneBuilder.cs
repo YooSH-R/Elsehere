@@ -87,9 +87,14 @@ namespace A305.EditorTools.World
 
             /// <summary>마을에서 이 매장으로 들어가는 출입구 이름. 매장 장면 이름의 Interior를 Door로 바꾼다.</summary>
             public string TownDoorId => Scene.Replace("Interior", "Door");
+        }
 
-            // 2층 서점 문은 공용 계단실 벽에 있어 건물 왼쪽(-x)이 매장이다. 다른 문은 건물 앞면이라 뒤쪽(-z)이 매장이다.
-            public Vector3 InwardLocal => Door.name == "BookshopDoor" ? Vector3.left : Vector3.back;
+        // 문짝이 건물 옆으로 돌아 있으면(-90°, 마을 계단실 벽의 서점 문) 건물 왼쪽(-x)이 매장이다.
+        // 앞면 문은 뒤쪽(-z)이 매장이다. 매장 장면에서 앞벽으로 옮긴 서점 문도 같다.
+        private static Vector3 InwardOf(Transform building, Transform door)
+        {
+            float yaw = (Quaternion.Inverse(building.rotation) * door.rotation).eulerAngles.y;
+            return Mathf.Abs(Mathf.DeltaAngle(yaw, -90)) < 1 ? Vector3.left : Vector3.back;
         }
 
         /// <summary>마을 매장 장면(2층 가게 포함). 매장이 늘어도 빠지지 않게 폴더에서 찾는다.</summary>
@@ -196,6 +201,12 @@ namespace A305.EditorTools.World
                 SceneGroups groups = BuilderTools.EnsureGroups(scene);
                 Transform building = PlaceBuilding(scene, groups, townBuilding, shop.Upper);
                 KeepShopFloor(building, shop.Upper);
+                // 계단실 칸막이로 나뉜 오락실 건물은 매장 장면에서 칸막이 없이 건물 폭 전체를 쓴다.
+                if (
+                    building.Find("TenantEntrances/StairHallWall") != null
+                    || building.Find("StairHallAnnex") != null
+                )
+                    NorthBlockInteriorBuilder.WidenIntoStairHall(building, shop.Upper);
                 KeepDoorsShut(building);
                 SpaceDoorway exit = ConnectShopDoor(building, shop);
                 EnsureLight(groups);
@@ -305,7 +316,7 @@ namespace A305.EditorTools.World
                 building,
                 door,
                 "TownDoorway",
-                shop.InwardLocal,
+                InwardOf(building, door),
                 ShopDoorId,
                 "TownScene",
                 shop.TownDoorId
@@ -383,7 +394,7 @@ namespace A305.EditorTools.World
                 building,
                 shop.Door,
                 shop.TownDoorId + "way",
-                -shop.InwardLocal,
+                -InwardOf(building, shop.Door),
                 shop.TownDoorId,
                 shop.Scene,
                 ShopDoorId

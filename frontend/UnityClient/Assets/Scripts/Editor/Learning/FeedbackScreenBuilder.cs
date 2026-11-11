@@ -11,11 +11,11 @@ using UnityEngine.UI;
 namespace A305.EditorTools.Learning
 {
     /// <summary>
-    /// 대화 피드백 화면을 확정 시안(F1 요약·F2 문장 교정)대로 배치한다. 크기·자리는 시안 px에 1.2를 곱한 캔버스 단위다.
+    /// 대화 피드백 화면을 확정 시안(F1 요약·F2 문장 교정, N3)대로 배치한다. 크기·자리는 시안 px에 1.2를 곱한 캔버스 단위다.
     /// 판은 테마 유리 그대로 뒤가 비치고, 머리줄에 앱 아이콘·제목·부제와 오른쪽 탭 셋(요약·문장 교정·전체 대화)·확대·닫기를,
-    /// 아래 왼쪽에 [복습장에 추가], 오른쪽에 [단어장]·[닫기]를 둔다. 요약 탭은 요약 카드(잘했어요·더 해 봐요)와 옅은 제목 아래
+    /// 아래 오른쪽에 [단어장]·[닫기]를 둔다. 대화는 대화 노트에 저절로 남아 따로 담는 버튼은 없다. 요약 탭은 요약 카드(잘했어요·더 해 봐요)와 옅은 제목 아래
     /// "이 상황에서 자주 써요" 표현 줄, 문장 교정 탭은 발화마다 카드를 FeedbackView가 쌓는다.
-    /// 아이콘·탭·칸·칩·버튼처럼 그림인 부분은 시안 HTML을 렌더링한 그림(Art/UI/Feedback)이다. 새 그림 조각(칸·칩·[담기]·[복습장에 추가]·[단어장])은
+    /// 아이콘·탭·칸·칩·버튼처럼 그림인 부분은 시안 HTML을 렌더링한 그림(Art/UI/Feedback)이다. 새 그림 조각(칸·칩·[담기]·[단어장])은
     /// 요소 둘레에 시안 px 32씩 투명 여백을 두고 2.4배로 렌더링했고, 확대·접기 아이콘은 여백 없이 렌더링했다.
     /// 닫기 X와 [닫기]는 다른 창과 같은 공용 모양(S15P31A305-525)이다. 다른 Builder가 만든 요소의 연결은 그대로 두고 모양과 자리만 바꾼다.
     /// </summary>
@@ -105,7 +105,6 @@ namespace A305.EditorTools.Learning
             }
             Card(view, panel);
             Footer(panel);
-            ReviewSaveButton(root);
             view.ConfigureScroll();
         }
 
@@ -464,36 +463,6 @@ namespace A305.EditorTools.Learning
             UiCloseButton.Text(done, "닫기", 20 * Px);
             done.gameObject.SetActive(true);
             done.SetAsLastSibling();
-        }
-
-        /// <summary>
-        /// 왼쪽 아래 [복습장에 추가](시안 .save: 높이 62, 왼쪽 37·아래 31). 담으면 FeedbackView가 같은 자리에서 초록 [복습장에 추가됨] 그림으로 바꾼다.
-        /// 복습장에 담는 동작(복습장 Builder가 처음 붙였다)은 그대로 FeedbackView.ReviewSaveRequested로 알린다.
-        /// </summary>
-        internal static void ReviewSaveButton(Transform root)
-        {
-            var view = root.GetComponentInChildren<FeedbackView>(true);
-            var panel = root.Find("Panel");
-            Transform old = panel.Find("ReviewSaveButton");
-            if (old != null)
-                Object.DestroyImmediate(old.gameObject);
-            var button = new GameObject(
-                "ReviewSaveButton",
-                typeof(RectTransform),
-                typeof(Image),
-                typeof(Button)
-            );
-            button.transform.SetParent(panel, false);
-            var rect = (RectTransform)button.transform;
-            rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
-            rect.anchoredPosition = new Vector2(37, 31) * Px;
-            Sprite save = Sprite("FeedbackReviewSave");
-            rect.sizeDelta = new Vector2(save.rect.width / ArtScale - ArtPad * 2 * Px, 62 * Px);
-            Piece(button.transform, "FeedbackReviewSave");
-            BuilderTools.SetReference(view, "reviewButton", button.GetComponent<Button>());
-            BuilderTools.SetReference(view, "reviewSaveSprite", save);
-            BuilderTools.SetReference(view, "reviewSavedSprite", Sprite("FeedbackReviewSaved"));
-            button.SetActive(false);
         }
 
         // [담기](시안 .pick: 높이 44). 자리와 [담음] 그림은 FeedbackView가 정한다.

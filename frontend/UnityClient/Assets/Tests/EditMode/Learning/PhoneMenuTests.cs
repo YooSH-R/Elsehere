@@ -10,7 +10,7 @@ namespace A305.Learning.Tests
 {
     /// <summary>
     /// 오른쪽 위 휴대폰 메뉴. 잠금 화면처럼 큰 게임 시계와 날짜, 여행 예산, 오늘의 여정을 보이고,
-    /// 단어장·피드백 목록·마을 지도·집으로·내 정보 앱을 둔다. 앱은 모두 메뉴 안에 있어 누르면 메뉴가 접힌다.
+    /// 단어장·대화 노트·마을 지도·내 정보·이웃 앱과 작은 집으로·조작법 버튼을 둔다. 앱은 모두 메뉴 안에 있어 누르면 메뉴가 접힌다.
     /// </summary>
     public sealed class PhoneMenuTests
     {
@@ -139,6 +139,36 @@ namespace A305.Learning.Tests
             phone.OpenTownMap();
 
             Assert.That(requested, Is.True);
+        }
+
+        // 피드백 목록과 복습장을 [대화 노트] 하나로 합쳐 학습 앱은 다섯 개이고, 세 칸씩 왼쪽부터 채운다.
+        [Test]
+        public void LearningApps_AreFiveWithTheConversationNoteAndNoReviewBook()
+        {
+            Transform menu = phone.transform;
+            string[] names =
+            {
+                "VocabularyButton",
+                "HistoryButton",
+                "MapButton",
+                "MyPageButton",
+                "NeighborsButton",
+            };
+
+            Assert.That(menu.Find("ReviewButton"), Is.Null);
+            for (int i = 0; i < names.Length; i++)
+            {
+                var app = (RectTransform)menu.Find(names[i]);
+                Assert.That(
+                    app.anchoredPosition,
+                    Is.EqualTo(new Vector2(38 + i % 3 * 122, -(338 + i / 3 * 148)) * 1.2f),
+                    names[i]
+                );
+            }
+            Assert.That(
+                menu.Find("HistoryButton/Label").GetComponent<TMP_Text>().text,
+                Is.EqualTo("대화 노트")
+            );
         }
 
         // 앱은 모두 메뉴(폰) 안에 있어야 눌렀을 때 메뉴가 접힌다.

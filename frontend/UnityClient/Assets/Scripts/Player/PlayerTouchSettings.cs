@@ -18,7 +18,16 @@ namespace A305.Player
         [Tooltip("조이스틱을 이만큼(가장자리까지의 비율) 넘게 밀면 달린다. 그보다 덜 밀면 걷는다.")]
         private float runThreshold = 0.9f;
 
+        [SerializeField]
+        [Min(1f)]
+        [Tooltip(
+            "시점 영역의 두 손가락 사이가 이만큼(터치 캔버스 단위) 벌어지면 마우스 휠 한 칸만큼 가까이 본다."
+        )]
+        private float pinchUnitsPerZoomStep = 60f;
+
         public float StickDeadZone => stickDeadZone;
+
+        public float PinchUnitsPerZoomStep => pinchUnitsPerZoomStep;
 
         public float RunThreshold => runThreshold;
 

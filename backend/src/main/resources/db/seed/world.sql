@@ -154,6 +154,7 @@ VALUES
   ('en-US', 'WORD', 'laundry detergent', '세탁 세제', 'Add a little laundry detergent before you start the washer.', '세탁기를 돌리기 전에 세탁 세제를 조금 넣으세요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'folded towels', '접어 놓은 수건', 'The folded towels are on the shelf.', '접어 놓은 수건은 선반에 있어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'laundry cart', '빨래 수레', 'Use the laundry cart to take your clothes to the dryer.', '빨래 수레를 써서 옷을 건조기로 옮기세요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'sidewalk sign', '입간판', 'A sidewalk sign advertises fresh coffee.', '입간판이 갓 내린 커피를 홍보해요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'cat', '고양이', 'The cat is sleeping in the sun.', '고양이가 햇볕 아래에서 자고 있어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'police car', '경찰차', 'A police car is parked next to the station.', '경찰서 옆에 경찰차가 서 있어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'fox', '여우', 'The fox is curled up asleep.', '여우가 몸을 웅크리고 자고 있어요.', 'MASTER', NULL),

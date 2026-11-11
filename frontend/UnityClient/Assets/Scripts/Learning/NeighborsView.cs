@@ -14,7 +14,7 @@ using UnityEngine.UI;
 namespace A305.Learning
 {
     /// <summary>
-    /// 휴대폰 [복습장] 옆 [이웃] 버튼으로 여는 마을 NPC 목록(WORLD-08). 열 때마다 서버 목록을 다시 읽어 [피드백 목록]처럼 한 쪽에 4명씩 보인다.
+    /// 휴대폰 [이웃] 앱으로 여는 마을 NPC 목록(WORLD-08). 열 때마다 서버 목록을 다시 읽어 [대화 노트]처럼 한 쪽에 4명씩 보인다.
     /// 끝까지 대화한 NPC(열린 이웃)는 이름·관계를, 잠긴 NPC는 역할·장소만 보이고, 열린 이웃을 누르면 정보 카드(지금 위치 포함)를 보인다.
     /// 열려 있는 동안 이동을 잠그고, 대화처럼 다른 화면이 이동을 잠근 동안에는 열지 않는다. 단어장 HUD 프리팹에 붙어 있다.
     /// </summary>
@@ -50,7 +50,7 @@ namespace A305.Learning
         private NeighborRow[] rows;
 
         [SerializeField]
-        [Tooltip("NPC 색 아이콘 그림. [피드백 목록]과 같은 그림을 같은 순서로 둔다.")]
+        [Tooltip("NPC 색 아이콘 그림. [대화 노트]와 같은 그림을 같은 순서로 둔다.")]
         private Sprite[] avatarSprites;
 
         [SerializeField]

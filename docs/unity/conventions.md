@@ -365,6 +365,11 @@ namespace A305.Npc
 - 글꼴 원본과 라이선스는 `Assets/ThirdParty/Pretendard/`에 있습니다. 글꼴 에셋과 TMP 기본 글꼴 설정은 **Tools → A305 → UI → Set Up Fonts**(`Scripts/Editor/UI/UiFontBuilder.cs`)로 만들고 바꿉니다.
 - 글꼴 에셋은 쓰는 글자만 채우는 동적 글꼴입니다. Editor에서 글자가 화면에 나올 때마다 채운 내용은 사람마다 달라 커밋 충돌을 만들므로, `DynamicFontSaveGuard`가 저장에서 뺍니다. 빌드에서도 비운 채로 시작해 실행 중에 채웁니다.
 
+### UI 그림 크기
+
+- UI 그림(`Assets/Art/UI`)은 가로·세로를 4의 배수로 둡니다. Web 빌드의 텍스처 압축(DXT)은 4픽셀 블록 단위라, 4의 배수가 아닌 그림은 압축 설정이 켜져 있어도 원본(픽셀당 4바이트)으로 들어갑니다. 휴대폰의 첫 로딩과 메모리가 이 크기에 비례합니다.
+- 새 그림을 넣은 뒤 **Tools → A305 → UI → Pad UI Images To Multiple Of 4**(`Scripts/Editor/UI/UiImagePadding.cs`)를 실행합니다. 맞지 않는 그림의 오른쪽·위를 투명하게 1~3픽셀 덧대고, 9-slice 테두리는 덧댄 만큼 오른쪽·위를 늘려 늘어나는 모양을 그대로 둡니다. EditMode `UiImageSizeTests`가 확인합니다.
+
 ### 외부 에셋
 
 - Asset Store, Kenney 등에서 가져온 에셋은 `Assets/ThirdParty/<에셋 이름>/`에 둡니다. 가져올 때 Import 창에서 필요한 파일만 선택하고 데모 씬과 샘플은 제외합니다.
@@ -372,6 +377,9 @@ namespace A305.Npc
 - 가져온 원본은 수정하지 않습니다. 머티리얼이나 프리팹을 바꿔야 하면 기능 폴더에 복사하거나 Prefab Variant를 만듭니다.
 - 머티리얼이 분홍색으로 보이면 URP가 아닌 셰이더를 사용하는 에셋입니다. **Window → Rendering → Render Pipeline Converter**의 Material Upgrade로 변환하고, 가져오기와 변환을 같은 MR에 담습니다.
 - 대용량 파일을 위한 Git LFS는 아직 구성하지 않았습니다. 수십 MB 이상인 파일은 추가하기 전에 팀과 저장 방식을 정합니다. Web 빌드 크기에 영향을 주므로 텍스처의 Max Size와 압축 설정도 확인합니다.
+- Web 빌드는 모든 장면의 에셋을 처음에 한꺼번에 받으므로, 화면에 크게 보이지 않는 텍스처는 WebGL 칸에서만 Max Size를 낮춥니다(Editor 화질은 그대로). 휴대폰은 받는 시간과 메모리가 이 크기에 비례합니다.
+  - Tripo NPC(`Art/Characters/Tripo`)와 인형뽑기 소품(`ThirdParty/FabNorthBlock/ClawMachine`)의 2048 텍스처는 WebGL만 1024로 둡니다. 휴대폰 화면 비교에서 대화 거리(2.4m)는 2048과 거의 같았고, 얼굴 바로 앞(1.2m)에서만 입 가장자리·옷감이 조금 흐려졌습니다.
+  - 새 캐릭터·소품 텍스처도 가까이 크게 보이지 않으면 WebGL 1024 이하로 둡니다.
 
 ## Git 작업과 충돌 대응
 

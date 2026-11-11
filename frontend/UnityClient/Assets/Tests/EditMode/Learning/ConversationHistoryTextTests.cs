@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace A305.Learning.Tests
 {
     /// <summary>
-    /// 피드백 목록의 한 줄은 "NPC · 장소" 제목과 그 아래 언제 나눈 대화인지(오늘·어제·날짜)를 보인다.
+    /// 대화 노트의 한 줄은 "NPC · 장소" 제목과 그 아래 언제 나눈 대화인지(오늘·어제·날짜)를 보인다.
     /// 피드백이 없는 대화만 시간 뒤에 그 상태를 붙인다.
     /// </summary>
     public class ConversationHistoryTextTests
@@ -100,6 +100,19 @@ namespace A305.Learning.Tests
             Assert.That(
                 ConversationHistoryText.Subtitle(conversation, Now),
                 Is.EqualTo("오늘 오후 2:00")
+            );
+        }
+
+        // [다시 연습]으로 연습한 대화는 시간 옆에 연습 횟수를 붙인다.
+        [Test]
+        public void Subtitle_AfterPractice_AddsHowManyTimes()
+        {
+            ConversationSummary conversation = Conversation("CAFE", "ENDED_BY_USER", "DONE");
+            conversation.PracticeCount = 2;
+
+            Assert.That(
+                ConversationHistoryText.Subtitle(conversation, Now),
+                Is.EqualTo("오늘 오후 2:00 · 2회 연습")
             );
         }
 

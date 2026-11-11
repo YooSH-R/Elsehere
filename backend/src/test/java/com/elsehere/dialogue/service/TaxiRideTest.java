@@ -70,6 +70,36 @@ class TaxiRideTest {
   }
 
   @Test
+  @DisplayName("택시가 가지 않는 곳으로 가자고 하면 기사가 승낙하지 않고, 못 간다고 말한 뒤 가장 가까운 하차 장소를 권한다")
+  void instruction_refusesAPlaceTheTaxiDoesNotGoTo() {
+    JudgeResult judge = judged(List.of("go_to"), "none");
+
+    String instruction = TaxiRide.instruction(judge, TaxiRide.destination(judge));
+
+    assertThat(instruction)
+        .contains("say plainly that your taxi does not go there")
+        .contains("the park with the fountain")
+        .contains("Maple Bakery")
+        .contains("Little Arcade")
+        .contains("the ice cream truck")
+        .contains("Do not agree to go there");
+  }
+
+  @Test
+  @DisplayName("갈 곳을 권할 때는 택시가 가는 곳 안에서만 고르게 한다")
+  void instruction_recommendsOnlyPlacesTheTaxiGoesTo() {
+    JudgeResult judge = judged(List.of("chat"), "none");
+
+    String instruction = TaxiRide.instruction(judge, TaxiRide.destination(judge));
+
+    assertThat(instruction)
+        .contains("suggest or recommend places, choose only from")
+        .contains("Suds Laundromat")
+        .contains("their home")
+        .contains("Your taxi does not go to the park with the fountain");
+  }
+
+  @Test
   @DisplayName("목적지가 아닌 말에는 출발하지 않고, 기사가 부탁받지 않은 곳으로 간다고 말하지 않게 한다")
   void destination_notForOtherTalk() {
     JudgeResult judge = judged(List.of("chat"), "Corner Cafe");

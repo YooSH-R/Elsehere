@@ -85,6 +85,28 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator TaxiArrivalStaysAboveFeedbackAndHidesAfterAlighting()
+        {
+            yield return Show(new Content(DialogueWait.Feedback, null));
+            GameObject feedback = Field<GameObject>("feedbackWait");
+            view.ShowTaxiArrival();
+            var arrival = feedback.transform.parent.Find("TaxiArrivalStatus") as RectTransform;
+
+            Assert.That(arrival, Is.Not.Null);
+            Assert.That(arrival.gameObject.activeInHierarchy, Is.True);
+            Assert.That(
+                arrival.GetSiblingIndex(),
+                Is.GreaterThan(feedback.transform.GetSiblingIndex())
+            );
+            Assert.That(arrival.anchorMax.y, Is.EqualTo(1));
+            Assert.That(arrival.GetComponent<Image>().raycastTarget, Is.False);
+
+            view.SetVehicleLayout(false);
+            Assert.That(arrival.gameObject.activeSelf, Is.False);
+            Assert.That(feedback.activeInHierarchy, Is.True);
+        }
+
+        [UnityTest]
         public IEnumerator NotWaiting_HidesBothLoadingViews()
         {
             yield return Show(new Content(DialogueWait.None, null));

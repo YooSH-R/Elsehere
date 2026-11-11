@@ -2,6 +2,7 @@ using System.Collections;
 using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
@@ -197,6 +198,57 @@ namespace A305.Player.PlayModeTests
                 "카드는 [점프]와 같은 아래 줄에 둡니다."
             );
         }
+
+        // 시점 영역에 두 손가락을 대고 벌리면 가까이, 오므리면 멀리 본다(마우스 휠과 같은 거리 범위).
+        // 두 손가락이 닿아 있는 동안에는 시점을 돌리지 않는다.
+        [UnityTest]
+        public IEnumerator TwoFingersInTheLookArea_ZoomWithoutTurningTheView()
+        {
+            var camera = Object.FindFirstObjectByType<PlayerCameraRig>();
+            var look = controls.transform.Find("LookArea").GetComponent<TouchDragArea>();
+            Vector2 center = ScreenRect((RectTransform)look.transform).center;
+            yield return new WaitForSeconds(0.5f);
+            float startDistance = camera.CharacterDistanceMeters;
+            float startYaw = camera.ViewYawDegrees;
+
+            Press(look, 1, center + Vector2.left * 20f);
+            Press(look, 2, center + Vector2.right * 20f);
+            Drag(look, 1, center + Vector2.left * 160f);
+            Drag(look, 2, center + Vector2.right * 160f);
+            yield return new WaitForSeconds(1f);
+            float zoomedIn = camera.CharacterDistanceMeters;
+
+            Assert.That(zoomedIn, Is.LessThan(startDistance - 0.5f), "벌리면 가까이 봅니다.");
+            Assert.That(
+                Mathf.DeltaAngle(startYaw, camera.ViewYawDegrees),
+                Is.EqualTo(0f).Within(.01f),
+                "두 손가락이 닿은 동안 시점을 돌리지 않습니다."
+            );
+
+            Drag(look, 1, center + Vector2.left * 10f);
+            Drag(look, 2, center + Vector2.right * 10f);
+            yield return new WaitForSeconds(1f);
+            Release(look, 1);
+            Release(look, 2);
+
+            Assert.That(
+                camera.CharacterDistanceMeters,
+                Is.GreaterThan(zoomedIn + 0.3f),
+                "오므리면 멀리 봅니다."
+            );
+        }
+
+        private static void Press(TouchDragArea area, int pointerId, Vector2 screen) =>
+            area.OnPointerDown(Pointer(pointerId, screen));
+
+        private static void Drag(TouchDragArea area, int pointerId, Vector2 screen) =>
+            area.OnDrag(Pointer(pointerId, screen));
+
+        private static void Release(TouchDragArea area, int pointerId, Vector2 screen = default) =>
+            area.OnPointerUp(Pointer(pointerId, screen));
+
+        private static PointerEventData Pointer(int pointerId, Vector2 screen) =>
+            new PointerEventData(EventSystem.current) { pointerId = pointerId, position = screen };
 
         private static Rect ScreenRect(RectTransform rect)
         {

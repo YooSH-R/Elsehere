@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using A305.Dialogue;
+using A305.Player;
 using A305.Theme;
 using TMPro;
 using UnityEngine;
@@ -15,7 +16,8 @@ namespace A305.Learning
         : MonoBehaviour,
             IPointerMoveHandler,
             IPointerExitHandler,
-            IPointerClickHandler
+            IPointerClickHandler,
+            IClickPointerTarget
     {
         private IReadOnlyList<GlossaryWord> glossary;
         private RectTransform template;
@@ -46,6 +48,12 @@ namespace A305.Learning
             saveWord = saver;
             text = GetComponent<TMP_Text>();
         }
+
+        public bool CanClickAt(Vector2 position, Camera camera) =>
+            text != null
+            && glossary != null
+            && template != null
+            && TMP_TextUtilities.FindIntersectingLink(text, position, camera) >= 0;
 
         public void OnPointerMove(PointerEventData eventData) => ShowWord(eventData, false);
 

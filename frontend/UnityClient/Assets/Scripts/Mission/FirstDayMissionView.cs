@@ -545,7 +545,7 @@ namespace A305.Mission
             if (minute == shownClockMinute)
                 return;
             shownClockMinute = minute;
-            clock.text = GameClockText.Format(minute);
+            clock.text = GameClockText.FormatHud(minute);
         }
 
         private static string NormalizeCardCopy(string text) =>

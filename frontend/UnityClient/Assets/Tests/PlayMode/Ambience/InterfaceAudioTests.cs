@@ -11,6 +11,75 @@ namespace A305.Ambience.PlayModeTests
     public sealed class InterfaceAudioTests
     {
         [UnityTest]
+        public IEnumerator NavigationAndPrimaryConfirmationRequestDifferentClickSounds()
+        {
+            var root = new GameObject(
+                "NextButton",
+                typeof(RectTransform),
+                typeof(Image),
+                typeof(Button),
+                typeof(UiClickSound)
+            );
+            UiSound? heard = null;
+            void Hear(UiSound sound) => heard = sound;
+            UiSoundEvents.Requested += Hear;
+            try
+            {
+                yield return null;
+                var sound = root.GetComponent<UiClickSound>();
+                sound.OnSubmit(new BaseEventData(null));
+                Assert.That(heard, Is.EqualTo(UiSound.Click));
+                root.name = "StartButton";
+                sound.OnSubmit(new BaseEventData(null));
+                Assert.That(heard, Is.EqualTo(UiSound.PrimaryClick));
+            }
+            finally
+            {
+                UiSoundEvents.Requested -= Hear;
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator ClickingAButtonThatClosesItsPanelStillEmitsOneClick()
+        {
+            var panel = new GameObject("Panel", typeof(RectTransform));
+            var root = new GameObject(
+                "CloseButton",
+                typeof(RectTransform),
+                typeof(Image),
+                typeof(Button)
+            );
+            root.transform.SetParent(panel.transform, false);
+            root.AddComponent<UiClickSound>();
+            var button = root.GetComponent<Button>();
+            button.navigation = new Navigation { mode = Navigation.Mode.None };
+            button.onClick.AddListener(() => panel.SetActive(false));
+            int clicks = 0;
+            void Hear(UiSound sound)
+            {
+                if (sound == UiSound.Click)
+                    clicks++;
+            }
+            UiSoundEvents.Requested += Hear;
+            try
+            {
+                yield return null;
+                var pointer = new PointerEventData(null);
+                ExecuteEvents.Execute(root, pointer, ExecuteEvents.pointerDownHandler);
+                ExecuteEvents.Execute(root, pointer, ExecuteEvents.pointerUpHandler);
+                ExecuteEvents.Execute(root, pointer, ExecuteEvents.pointerClickHandler);
+                Assert.That(panel.activeSelf, Is.False);
+                Assert.That(clicks, Is.EqualTo(1));
+            }
+            finally
+            {
+                UiSoundEvents.Requested -= Hear;
+                Object.DestroyImmediate(panel);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator OnlyEnabledNonRecordingControlsEmitClickSounds()
         {
             var root = new GameObject(

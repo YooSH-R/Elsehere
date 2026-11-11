@@ -1,3 +1,4 @@
+using A305.Player;
 using A305.World;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -7,6 +8,7 @@ using UnityEngine.UI;
 namespace A305.Ambience
 {
     /// <summary>접속 BGM과 UI 효과음만 재생한다. 음성·STT·서버에는 관여하지 않는다.</summary>
+    [DefaultExecutionOrder(-50)]
     public sealed class InterfaceAudioPlayer : MonoBehaviour
     {
         private static InterfaceAudioPlayer instance;
@@ -95,14 +97,14 @@ namespace A305.Ambience
             if (catalog == null)
                 return;
             // 브라우저가 허용하는 첫 클릭·키·터치 이후에만 Unity 음악을 시작한다.
-            if (
+            bool userInput =
                 (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
                 || (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame)
                 || (
                     Touchscreen.current != null
                     && Touchscreen.current.primaryTouch.press.wasPressedThisFrame
-                )
-            )
+                );
+            if (userInput)
                 entryMusic.AllowSound();
             bool enabled = BackgroundSoundPreference.Enabled;
             effects.mute = !enabled;
@@ -115,6 +117,11 @@ namespace A305.Ambience
             {
                 scanAt = Time.unscaledTime + .35f;
                 UpdateEars();
+                AttachClickSounds();
+            }
+            else if (userInput)
+            {
+                // 다음 정기 검색 전에 새 화면의 버튼을 눌러도 소리를 연결한다.
                 AttachClickSounds();
             }
         }
@@ -162,6 +169,14 @@ namespace A305.Ambience
             )
                 if (UiClickSound.Clicks(control) && !control.TryGetComponent<UiClickSound>(out _))
                     control.gameObject.AddComponent<UiClickSound>();
+            foreach (
+                TouchJumpButton jump in FindObjectsByType<TouchJumpButton>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+            )
+                if (!jump.TryGetComponent<UiClickSound>(out _))
+                    jump.gameObject.AddComponent<UiClickSound>();
         }
 
         private void PlayCue(UiSound sound)
@@ -178,11 +193,7 @@ namespace A305.Ambience
                 )
             )
                 return;
-            float level =
-                sound == UiSound.Click ? .28f
-                : sound == UiSound.Menu ? .25f
-                : .36f;
-            effects.PlayOneShot(clip, level);
+            effects.PlayOneShot(clip, UiSoundGate.Level(sound));
         }
     }
 }

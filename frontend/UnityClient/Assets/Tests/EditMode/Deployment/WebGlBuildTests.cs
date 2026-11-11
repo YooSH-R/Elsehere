@@ -255,7 +255,10 @@ namespace A305.Deployment.Tests
             Assert.That(page, Does.Contain("id=\"orientation-hint\""));
             Assert.That(page, Does.Contain("가로 화면을 권장해요"));
             Assert.That(page, Does.Contain("id=\"orientation-hint-continue\""));
-            Assert.That(style, Does.Contain("@media (orientation: portrait) and (pointer: coarse)"));
+            Assert.That(
+                style,
+                Does.Contain("@media (orientation: portrait) and (pointer: coarse)")
+            );
         }
     }
 }

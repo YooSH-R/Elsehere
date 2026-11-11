@@ -4,7 +4,7 @@ package com.elsehere.mission.entity;
 public enum PracticePlace {
   HOTEL("호텔", "HOTEL_STAFF"),
   CAFE("카페", "CAFE_STAFF"),
-  DINER("식당", "DINER_STAFF"),
+  DINER("햄버거 가게", "DINER_STAFF"),
   LAUNDRY("빨래방", "LAUNDROMAT_STAFF"),
   BANK("은행", "BANK_STAFF"),
   BARBER("이발소", "BARBER_STAFF"),

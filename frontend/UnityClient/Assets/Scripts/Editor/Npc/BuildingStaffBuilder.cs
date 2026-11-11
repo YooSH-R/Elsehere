@@ -29,6 +29,7 @@ namespace A305.EditorTools.Npc
             new Vector3(0, 1.75f, -3.9f),
             new Vector3(7.6f, 3.3f, 7.6f)
         );
+        internal static readonly Vector3 BurgerCounterStand = new Vector3(.4f, .44f, -7.15f);
 
         private static readonly Staff[] Staffs =
         {
@@ -38,7 +39,7 @@ namespace A305.EditorTools.Npc
                 "PostOffice",
                 new Vector3(-1.5f, 0, -4.5f)
             ),
-            new Staff("DINER_STAFF", "DinerStaff", "MapleDiner", new Vector3(.4f, 0, -6.4f)),
+            new Staff("DINER_STAFF", "DinerStaff", "MapleDiner", BurgerCounterStand),
             new Staff("BANK_STAFF", "BankStaff", "TownBank", new Vector3(2.5f, 0, -4.6f)),
             new Staff(
                 "LAUNDROMAT_STAFF",
@@ -101,13 +102,7 @@ namespace A305.EditorTools.Npc
                 new Vector3(-.3f, 0, -6.6f),
                 true
             ),
-            new Staff(
-                "FIRE_CAPTAIN",
-                "DinerNightStaff",
-                "MapleDiner",
-                new Vector3(.4f, 0, -6.4f),
-                true
-            ),
+            new Staff("FIRE_CAPTAIN", "DinerNightStaff", "MapleDiner", BurgerCounterStand, true),
             new Staff(
                 "FIRE_FIGHTER",
                 "LaundromatNightStaff",

@@ -35,7 +35,7 @@ namespace A305.Learning
                     "FLOWER_SHOP_STAFF" => "꽃집",
                     "LAUNDROMAT_STAFF" => "빨래방",
                     "BARBER_STAFF" => "이발소",
-                    "DINER_STAFF" => "식당",
+                    "DINER_STAFF" => "햄버거 가게",
                     "BANK_STAFF" => "은행",
                     "BAKERY_STAFF" => "빵집",
                     "POST_OFFICE_STAFF" => "우체국",

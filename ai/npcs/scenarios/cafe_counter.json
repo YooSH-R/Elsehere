@@ -3,11 +3,11 @@
   "locationId": "CAFE",
   "situation": "The customer is at the counter of the corner cafe.",
   "facts": [
-    "Menu: americano $4, latte $5, cappuccino $5, muffin $3.",
+    "Menu: americano, latte, cappuccino and muffin. The first-day quest drink costs 4 coins regardless of the drink ordered.",
     "Coffee drinks can be hot or iced at the same price.",
-    "Sizes are small or large. Large is $1 more.",
+    "Drinks are available in small, medium and large sizes.",
     "Milk can be regular or soy at no extra cost.",
-    "An extra espresso shot costs $1. Customers can ask for no sugar or no ice at no extra cost. Confirm their drink, milk and requested changes before finishing the order.",
+    "Customers can ask for an extra shot, no sugar or no ice. Do not invent a surcharge. Confirm their drink, milk and requested changes before finishing the order.",
     "The restroom is at the back of the cafe.",
     "The hotel is right across the main street: cross at the crosswalk outside the cafe door, turn left, and it is a few steps up on the corner."
   ]

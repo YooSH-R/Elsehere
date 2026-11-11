@@ -71,7 +71,7 @@ namespace A305.World.Tests
         [TestCase("SHOP", "드럭스토어")]
         [TestCase("POLICE_STATION", "경찰서")]
         [TestCase("POST_OFFICE", "우체국")]
-        [TestCase("DINER", "메이플 식당")]
+        [TestCase("DINER", "햄버거 가게")]
         [TestCase("BANK", "타운 은행")]
         [TestCase("LAUNDROMAT", "빨래방")]
         [TestCase("FLOWER_SHOP", "꽃집")]

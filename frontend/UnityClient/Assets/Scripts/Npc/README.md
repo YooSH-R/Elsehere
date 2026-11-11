@@ -282,7 +282,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 | 건물 | NPC 키 | 이름 | 외형(색만 바꿈) |
 | --- | --- | --- | --- |
 | 우체국 `PostOffice` | `POST_OFFICE_STAFF` | Linda | 중년 여성, 자주색 옷·갈색 눈 |
-| 식당 `MapleDiner` | `DINER_STAFF` | Rosa | 중년 여성, 빨간 옷·초록 눈 |
+| 햄버거 가게 `MapleDiner` | `DINER_STAFF` | Rosa | 중년 여성, 빨간 옷·초록 눈 |
 | 은행 `TownBank` | `BANK_STAFF` | Henry | 비즈니스맨, 은색 머리·청회색 정장·회색 눈 |
 | 빨래방 `SudsLaundromat` | `LAUNDROMAT_STAFF` | Gus | 중년 남성, 겨자색 셔츠·갈색 눈 |
 | 꽃집 `BloomFlowers` | `FLOWER_SHOP_STAFF` | Lily | 할머니, 연보라 머리·초록 옷·청록 눈 |

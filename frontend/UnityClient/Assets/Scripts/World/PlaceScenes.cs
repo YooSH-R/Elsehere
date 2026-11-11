@@ -59,7 +59,7 @@ namespace A305.World
             { "SHOP", "드럭스토어" },
             { "POLICE_STATION", "경찰서" },
             { "POST_OFFICE", "우체국" },
-            { "DINER", "메이플 식당" },
+            { "DINER", "햄버거 가게" },
             { "BANK", "타운 은행" },
             { "LAUNDROMAT", "빨래방" },
             { "FLOWER_SHOP", "꽃집" },

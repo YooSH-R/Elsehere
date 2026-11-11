@@ -1024,7 +1024,7 @@ namespace A305.EditorTools.World
                 parent,
                 position,
                 yaw,
-                null,
+                "napkin",
                 root =>
                 {
                     Block(

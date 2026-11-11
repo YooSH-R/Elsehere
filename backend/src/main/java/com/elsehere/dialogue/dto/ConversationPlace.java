@@ -22,7 +22,7 @@ public final class ConversationPlace {
           Map.entry("POLICE_STATION", "inside the police station"),
           Map.entry("POST_OFFICE", "inside the post office"),
           Map.entry("BANK", "inside Town Bank"),
-          Map.entry("DINER", "inside Maple Diner"),
+          Map.entry("DINER", "inside Maple Burger"),
           Map.entry("BAKERY", "inside Maple Bakery"),
           Map.entry("LAUNDROMAT", "inside Suds Laundromat"),
           Map.entry("FLOWER_SHOP", "inside Bloom Flowers (the flower shop)"),

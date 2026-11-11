@@ -541,7 +541,7 @@ class VocabServiceTest {
     assertThat(response.items())
         .singleElement()
         .extracting(item -> item.source().placeName(), item -> item.source().placeGroup())
-        .containsExactly("식당", PlaceGroup.FOOD);
+        .containsExactly("햄버거 가게", PlaceGroup.FOOD);
   }
 
   @Test

@@ -137,6 +137,46 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator BurgerShopStaff_StayAtTheirPostDuringWork()
+        {
+            yield return BurgerStaffStaysAtPost("DINER_STAFF", 9 * 60);
+        }
+
+        [UnityTest]
+        public IEnumerator BurgerShopNightStaff_StayAtTheirPostDuringWork()
+        {
+            yield return BurgerStaffStaysAtPost("FIRE_CAPTAIN", 21 * 60);
+        }
+
+        private static IEnumerator BurgerStaffStaysAtPost(string npcCode, int minuteOfDay)
+        {
+            yield return LoadAt(PlaceScenes.SceneOf("DINER"), minuteOfDay, paused: true);
+
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+            player.Teleport(new Vector3(0, .12f, -2f), Quaternion.identity);
+            NpcRoutine staff = Routine(npcCode);
+            KeepOnlyNpc(staff);
+            Vector3 startingPosition = staff.transform.position;
+            GameObject counter = GameObject.Find("OrderCounter");
+            Assert.That(counter, Is.Not.Null, "햄버거 가게 실내에 주문 카운터가 있어야 합니다.");
+            Vector3 counterOffset = counter.transform.InverseTransformPoint(startingPosition);
+            Assert.That(Mathf.Abs(counterOffset.x), Is.LessThan(.3f));
+            Assert.That(counterOffset.z, Is.InRange(-1.3f, -.5f));
+            Assert.That(
+                counterOffset.y,
+                Is.GreaterThan(.3f),
+                "직원은 카운터 뒤 발판에 서야 합니다."
+            );
+            yield return new WaitForSeconds(30);
+
+            Assert.That(
+                HorizontalDistance(staff.transform.position, startingPosition),
+                Is.LessThan(.2f),
+                "근무 중인 버거 가게 직원은 손님이 없어도 카운터 자리를 지켜야 합니다."
+            );
+        }
+
+        [UnityTest]
         public IEnumerator HotelJake_StaysAtTheCenterOfTheReceptionDesk()
         {
             yield return LoadAt("HotelScene", 12 * 60, paused: true);

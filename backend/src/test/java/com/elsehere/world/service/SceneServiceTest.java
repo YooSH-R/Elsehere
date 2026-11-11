@@ -116,7 +116,7 @@ class SceneServiceTest {
             new NpcResponse("TAXI_DRIVER", "Joe", NpcType.STAFF, "택시 기사", false, null),
             new NpcResponse("POLICE_OFFICER", "Dan", NpcType.STAFF, "경찰관", false, null),
             new NpcResponse("POST_OFFICE_STAFF", "Linda", NpcType.STAFF, "우체국 직원", false, null),
-            new NpcResponse("DINER_STAFF", "Rosa", NpcType.STAFF, "식당 종업원", false, null),
+            new NpcResponse("DINER_STAFF", "Rosa", NpcType.STAFF, "햄버거 가게 직원", false, null),
             new NpcResponse("BANK_STAFF", "Henry", NpcType.STAFF, "은행원", false, null),
             new NpcResponse("LAUNDROMAT_STAFF", "Gus", NpcType.STAFF, "빨래방 주인", false, null),
             new NpcResponse("FLOWER_SHOP_STAFF", "Lily", NpcType.STAFF, "꽃집 주인", false, null),
@@ -134,7 +134,7 @@ class SceneServiceTest {
             new NpcResponse(
                 "POLICE_PATROL_OFFICER", "Kevin", NpcType.STAFF, "베이커리 직원", false, null),
             new NpcResponse("POLICE_ROOKIE", "Taylor", NpcType.STAFF, "신입 경찰관", false, null),
-            new NpcResponse("FIRE_CAPTAIN", "Ray", NpcType.STAFF, "식당 직원", false, null),
+            new NpcResponse("FIRE_CAPTAIN", "Ray", NpcType.STAFF, "햄버거 가게 직원", false, null),
             new NpcResponse("FIRE_FIGHTER", "Rachel", NpcType.STAFF, "빨래방 직원", false, null),
             new NpcResponse("FIRE_ROOKIE", "Andre", NpcType.STAFF, "이발소 직원", false, null),
             new NpcResponse("TOWN_GRANDFATHER", "Arthur", NpcType.PASSERBY, "행인", false, null),

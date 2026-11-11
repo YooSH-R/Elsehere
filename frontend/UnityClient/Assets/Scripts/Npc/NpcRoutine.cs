@@ -177,7 +177,19 @@ namespace A305.Npc
         public bool IsOffDuty =>
             isVisitor || (life != null && NpcDuty.IsOffDuty(npcCode, role, life.Activity));
 
-        private bool StaysAtReception => !isVisitor && npcCode == "HOTEL_STAFF" && !IsOffDuty;
+        private bool StaysAtServicePost
+        {
+            get
+            {
+                if (isVisitor || IsOffDuty)
+                    return false;
+                if (npcCode == "HOTEL_STAFF")
+                    return true;
+
+                return PlaceScenes.CodeOf(gameObject.scene.name) == "DINER"
+                    && (npcCode == "DINER_STAFF" || npcCode == "FIRE_CAPTAIN");
+            }
+        }
 
         /// <summary>다른 시설에서는 손님으로 생활한다. 기존 직원 전용 행동·카운터 응대는 맡지 않는다.</summary>
         public void ConfigureVisit(
@@ -372,7 +384,7 @@ namespace A305.Npc
             }
             double now = GameClock.Shared.Minutes;
             life.Advance(now);
-            if (StaysAtReception)
+            if (StaysAtServicePost)
             {
                 if (ServesCounter(playerPosition))
                 {
@@ -380,7 +392,7 @@ namespace A305.Npc
                 }
                 else
                 {
-                    WorkAtReception(now);
+                    WorkAtServicePost(now);
                 }
                 return;
             }
@@ -410,12 +422,13 @@ namespace A305.Npc
             LookAround();
         }
 
-        // Jake는 호텔 프런트 데스크를 맡으므로 근무 중에는 다른 사물을 찾아다니지 않는다.
-        private void WorkAtReception(double now)
+        // 호텔 프런트 직원과 버거 가게 직원은 근무 중 자신의 응대 자리를 지킨다.
+        private void WorkAtServicePost(double now)
         {
             if (life.Doing == null)
             {
-                life.ChooseNext(key => key == "reception_desk" && IsPlaced(key));
+                string counterKey = npcCode == "HOTEL_STAFF" ? "reception_desk" : "counter";
+                life.ChooseNext(key => key == counterKey && IsPlaced(key));
             }
 
             Pose post = body.HomePose;
@@ -565,7 +578,7 @@ namespace A305.Npc
                         new CounterPost(
                             other.npcCode,
                             !other.IsOffDuty,
-                            other.Doing != null && !other.StaysAtReception,
+                            other.Doing != null && !other.StaysAtServicePost,
                             other.MetersFromCounter()
                         )
                     );
@@ -604,7 +617,7 @@ namespace A305.Npc
         // 누가 응대하든 손님 바로 앞에 선다. 거리가 같으면 NPC 키 순서다.
         private Pose ServicePose()
         {
-            if (StaysAtReception)
+            if (StaysAtServicePost)
             {
                 return body.HomePose;
             }
@@ -937,7 +950,7 @@ namespace A305.Npc
                 if (other == this || other.gameObject.scene != gameObject.scene)
                     continue;
                 if (
-                    other.StaysAtReception
+                    other.StaysAtServicePost
                     && Flat(other.body.HomePose.position - point).sqrMagnitude < spacingSquared
                 )
                     return true;

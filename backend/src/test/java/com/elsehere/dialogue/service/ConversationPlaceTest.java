@@ -18,6 +18,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 class ConversationPlaceTest {
 
   @Test
+  void burgerShopConversationUsesItsCurrentName() {
+    assertThat(ConversationPlace.describe("DINER"))
+        .hasValueSatisfying(fact -> assertThat(fact).contains("inside Maple Burger"));
+  }
+
+  @Test
   @DisplayName("다른 매장에 들어간 NPC에게 지금 있는 곳을 마을 안내와 같은 이름으로 알리고 자기 일터인 척하지 않게 한다")
   void visitedShop_tellsWhereTheNpcIsNow() {
     assertThat(ConversationPlace.describe("LAUNDROMAT"))

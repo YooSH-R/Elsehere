@@ -165,8 +165,8 @@ namespace A305.EditorTools.World
             FromRestaurant("CuttingBoard", "cuttingboard", Vector3.one * .35f, null, false),
             FromRestaurant("DinerPlate", "plate", Vector3.one * .3f, "plate", false),
             FromRestaurant("Burger", "food_burger", Vector3.one * .28f, "plate", false),
-            FromRestaurant("Ketchup", "ketchup", Vector3.one * .3f, null, false),
-            FromRestaurant("Mustard", "mustard", Vector3.one * .3f, null, false),
+            FromRestaurant("Ketchup", "ketchup", Vector3.one * .3f, "ketchup", false),
+            FromRestaurant("Mustard", "mustard", Vector3.one * .3f, "mustard", false),
             FromRestaurant("TableMenu", "menu", Vector3.one * .35f, "menu", false),
         };
 

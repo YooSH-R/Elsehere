@@ -19,6 +19,7 @@ namespace A305.EditorTools.World
         internal static void Prepare()
         {
             BuilderTools.EnsureFolder(Folder);
+            AddBurgerTableWords();
             AddWord(
                 "claw_machine",
                 "claw machine",
@@ -267,6 +268,25 @@ namespace A305.EditorTools.World
                     AssetDatabase.LoadAssetAtPath<Texture2D>(Sources + "/" + texture)
                 );
             return result;
+        }
+
+        internal static void AddBurgerTableWords()
+        {
+            AddWord(
+                "ketchup",
+                "ketchup",
+                "케첩",
+                "Could I have some ketchup?",
+                "케첩을 좀 주시겠어요?"
+            );
+            AddWord(
+                "mustard",
+                "mustard",
+                "머스터드",
+                "Could I have some mustard?",
+                "머스터드를 좀 주시겠어요?"
+            );
+            AddWord("napkin", "napkin", "냅킨", "Could I have a napkin?", "냅킨 하나 주시겠어요?");
         }
 
         internal static void Bind(GameObject target, string key)

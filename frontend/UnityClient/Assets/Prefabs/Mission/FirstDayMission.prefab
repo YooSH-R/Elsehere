@@ -13333,7 +13333,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uC2DD\uB2F9"
+  m_text: "\uD584\uBC84\uAC70 \uAC00\uAC8C"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d5110a0b9e1d8124691abb8ff4732959, type: 2}
   m_sharedMaterial: {fileID: -4925863810201361916, guid: d5110a0b9e1d8124691abb8ff4732959, type: 2}
@@ -22893,7 +22893,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uC2DD\uB2F9"
+  m_text: "\uD584\uBC84\uAC70 \uAC00\uAC8C"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d5110a0b9e1d8124691abb8ff4732959, type: 2}
   m_sharedMaterial: {fileID: -4925863810201361916, guid: d5110a0b9e1d8124691abb8ff4732959, type: 2}
@@ -40310,7 +40310,7 @@ MonoBehaviour:
     Sprite: {fileID: 21300000, guid: 70fa44d0664e41d4585a254baa660805, type: 3}
   - Place: "\uAC70\uB9AC"
     Sprite: {fileID: 21300000, guid: e2ce54205b6fc894a99f58c822ba626a, type: 3}
-  - Place: "\uC2DD\uB2F9"
+  - Place: "\uD584\uBC84\uAC70 \uAC00\uAC8C"
     Sprite: {fileID: 21300000, guid: 6be33838863401b42892cb082c1ee0b7, type: 3}
   - Place: "\uBE68\uB798\uBC29"
     Sprite: {fileID: 21300000, guid: c689ffa891052fe4db7eea2707b44151, type: 3}
@@ -46741,7 +46741,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uC2DD\uB2F9"
+  m_text: "\uD584\uBC84\uAC70 \uAC00\uAC8C"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d5110a0b9e1d8124691abb8ff4732959, type: 2}
   m_sharedMaterial: {fileID: -4925863810201361916, guid: d5110a0b9e1d8124691abb8ff4732959, type: 2}

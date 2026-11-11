@@ -30,7 +30,7 @@ namespace A305.Mission.Tests
                 .ToArray();
 
             Assert.That(labels.Length, Is.GreaterThanOrEqualTo(2));
-            Assert.That(labels.Select(label => label.text), Is.All.EqualTo("식당"));
+            Assert.That(labels.Select(label => label.text), Is.All.EqualTo("햄버거 가게"));
         }
 
         [TearDown]
@@ -227,7 +227,7 @@ namespace A305.Mission.Tests
 
             var route = new[]
             {
-                ("DINER_STAFF", "식당", 11, 39),
+                ("DINER_STAFF", "햄버거 가게", 11, 39),
                 ("LAUNDROMAT_STAFF", "빨래방", 11, 48),
                 ("BANK_STAFF", "은행", -11, 48),
                 ("LAUNDROMAT_STAFF", "빨래방", 11, 48),

@@ -77,7 +77,7 @@ namespace A305.EditorTools.Mission
             ("카페", "Cafe"),
             ("드럭스토어", "Drugstore"),
             ("거리", "Street"),
-            ("식당", "Diner"),
+            ("햄버거 가게", "Diner"),
             ("빨래방", "Laundry"),
             ("은행", "Bank"),
             ("이발소", "Barber"),

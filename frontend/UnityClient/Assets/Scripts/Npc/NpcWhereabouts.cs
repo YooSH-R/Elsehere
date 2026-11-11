@@ -24,7 +24,7 @@ namespace A305.Npc
             { "BANK", "은행" },
             { "BARBER", "이발소" },
             { "CAFE", "모퉁이 카페" },
-            { "DINER", "식당" },
+            { "DINER", "햄버거 가게" },
             { "FLOWER_SHOP", "꽃집" },
             { "HOME_STORE", "생활용품점" },
             { "HOTEL", "호텔" },

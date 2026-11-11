@@ -187,7 +187,7 @@ class TownStoryServiceTest {
   void nameTheDinerStaff() {
     Npc rosa = mock(Npc.class);
     when(rosa.getName()).thenReturn("Rosa");
-    when(rosa.getRoleLabel()).thenReturn("식당 종업원");
+    when(rosa.getRoleLabel()).thenReturn("햄버거 가게 직원");
     when(npcs.findByCode("DINER_STAFF")).thenReturn(Optional.of(rosa));
   }
 
@@ -199,7 +199,7 @@ class TownStoryServiceTest {
     QuestTalk bakery = service.context(8L, "BAKERY_STAFF").orElseThrow();
 
     assertThat(bakery.instruction())
-        .contains("the diner", "talk to Rosa", "instead of saying you do not know");
+        .contains("the burger shop", "talk to Rosa", "instead of saying you do not know");
   }
 
   // 퀘스트 카드가 지금 만날 직원의 이름을 보인다. 마을 밖에 있으면 마을로 나가 만날 사람을 알린다.
@@ -212,9 +212,9 @@ class TownStoryServiceTest {
     when(inHotel.getScene()).thenReturn("HOTEL");
 
     when(firstDay.findById(8L)).thenReturn(Optional.of(inTown));
-    assertThat(service.status(8L).direction()).isEqualTo("식당 종업원 Rosa에게 이야기해 보세요.");
+    assertThat(service.status(8L).direction()).isEqualTo("햄버거 가게 직원 Rosa에게 이야기해 보세요.");
     when(firstDay.findById(8L)).thenReturn(Optional.of(inHotel));
-    assertThat(service.status(8L).situation()).isEqualTo("마을로 나가 식당 종업원 Rosa에게 이야기해 보세요.");
+    assertThat(service.status(8L).situation()).isEqualTo("마을로 나가 햄버거 가게 직원 Rosa에게 이야기해 보세요.");
   }
 
   @Test
@@ -408,7 +408,7 @@ class TownStoryServiceTest {
     TownStory story = TownStory.start(8L);
     when(stories.findById(8L)).thenReturn(Optional.of(story));
     String[] expectedPlaces = {
-      "식당", "빨래방", "은행", "빨래방", "이발소", "꽃집", "이발소", "빵집", "빨래방", "생활용품점", "오락실", "우체국"
+      "햄버거 가게", "빨래방", "은행", "빨래방", "이발소", "꽃집", "이발소", "빵집", "빨래방", "생활용품점", "오락실", "우체국"
     };
     for (String place : expectedPlaces) {
       if (story.isPaused()) {

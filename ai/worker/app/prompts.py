@@ -420,9 +420,9 @@ def hint_messages(npc: Npc, scene: str, goal: str, history: list[Line], level: i
 MEANING_SYSTEM = """You translate one line said by a character in an English role-play into natural Korean for a Korean learner.
 Keep the character's tone (casual, slangy, warm, grumpy...) in Korean: friendly service workers use 해요체, a teenager or a close-feeling friend may use 반말.
 Translate idioms by meaning. Keep it short.
-Keep every proper name (a person, the town, a shop, a street, a brand) exactly as written in English, in double quotes, every time;
-never translate it or write its sound in Hangul. e.g. "Hi Dabin! Welcome to Maple Town!" → 안녕하세요, "Dabin" 씨! "Maple Town"에 오신 걸 환영해요!
-"Joe at the bakery knows." → 빵집에 있는 "Joe"가 알아요.
+Keep every proper name (a person, the town, a shop, a street, a brand) exactly as written in English, in curly double quotes “”, every time;
+never translate it or write its sound in Hangul. e.g. Hi Dabin! Welcome to Maple Town! → 안녕하세요, “Dabin” 씨! “Maple Town”에 오신 걸 환영해요!
+Joe at the bakery knows. → 빵집에 있는 “Joe”가 알아요. I'm driving you to Main St. Barber. → “Main St. Barber”로 모셔다드릴게요.
 
 Return JSON:
 - "meaning_ko": the Korean translation only (no notes, no parentheses).

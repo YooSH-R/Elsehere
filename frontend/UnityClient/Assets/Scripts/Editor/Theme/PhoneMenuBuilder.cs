@@ -418,7 +418,7 @@ namespace A305.EditorTools.Theme
             const string name = "PhoneBalanceSurface";
             string path = $"{ArtFolder}/{name}.png";
             if (File.Exists(path))
-                return Art(name);
+                return ImportBalanceSurface(name, path);
 
             // 폰 그림의 위젯 테두리와 그림자는 두고, 안쪽의 기존 동전과 글자만 배경색으로 덮는다.
             var source = new Texture2D(2, 2);
@@ -448,8 +448,18 @@ namespace A305.EditorTools.Theme
             Object.DestroyImmediate(surface);
             Object.DestroyImmediate(source);
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            return ImportBalanceSurface(name, path);
+        }
+
+        private static Sprite ImportBalanceSurface(string name, string path)
+        {
+            UiImagePadding.Pad(path);
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);
-            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            if (importer.textureCompression != TextureImporterCompression.Compressed)
+            {
+                importer.textureCompression = TextureImporterCompression.Compressed;
+                importer.SaveAndReimport();
+            }
             return Art(name);
         }
 

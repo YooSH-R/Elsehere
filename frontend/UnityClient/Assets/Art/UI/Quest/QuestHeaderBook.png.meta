@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 67ba8ff62786b8e4dac84c008365a46a
+guid: 6d038b339ca2b4a44b85bd8c86d7be07
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -3081040769430720147
-    second: PhoneStepCurrent_0
+      213: 3555162613589726245
+    second: QuestHeaderBook_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -72,7 +72,7 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 4096
+    maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
     textureCompression: 1
@@ -96,30 +96,17 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: WebGL
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: PhoneStepCurrent_0
+      name: QuestHeaderBook_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 154
-        height: 77
+        width: 260
+        height: 260
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +115,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: d61f5978eb1fd35d0800000000000000
-      internalID: -3081040769430720147
+      spriteID: 524d3cd9f89765130800000000000000
+      internalID: 3555162613589726245
       vertices: []
       indices: 
       edges: []

@@ -66,14 +66,14 @@ namespace A305.EditorTools.Mission
         }
 
         /// <summary>
-        /// 쪽의 머리줄(시안 .head). 고르기 화면은 지도 아이콘·'퀘스트'·둥근 닫기이고,
+        /// 쪽의 머리줄(시안 .head). 고르기 화면은 퀘스트 책 아이콘(왼쪽 위 [퀘스트] 버튼과 같은 책)·'퀘스트'·둥근 닫기이고,
         /// 이야기·장소 연습 쪽은 고르기 화면으로 돌아가는 둥근 ‹ · 쪽 아이콘 · 쪽 이름 · '퀘스트' · 둥근 닫기다(시안 2-B ②).
         /// </summary>
         internal static void Header(QuestBoardView view, RectTransform page, QuestPage kind)
         {
             float iconLeft = 41;
             string name = "퀘스트";
-            string icon = "QuestHeaderTile";
+            string icon = "QuestHeaderBook";
             if (kind != QuestPage.Choose)
             {
                 Quest.Listen(

@@ -133,15 +133,14 @@ namespace A305.Tutorial.PlayModeTests
                 Click(guideView, "ConfirmSkipButton");
                 yield return WaitUntil(() => transport.TutorialFinished);
                 float deadline = Time.realtimeSinceStartup + 3f;
-                while (IsQuestIcon(mission) && Time.realtimeSinceStartup < deadline)
+                while (!ShowsTheQuest(mission) && Time.realtimeSinceStartup < deadline)
                     yield return null;
 
                 Assert.That(
-                    IsQuestIcon(mission),
-                    Is.False,
-                    "건너뛰기를 저장한 뒤에도 작은 퀘스트 알약만 보입니다."
+                    ShowsTheQuest(mission),
+                    Is.True,
+                    "건너뛰기를 저장한 뒤에도 책 버튼만 있고 퀘스트 알약·카드가 보이지 않습니다."
                 );
-                Assert.That(mission.QuestCardRect.gameObject.activeInHierarchy, Is.True);
             }
             finally
             {
@@ -149,8 +148,10 @@ namespace A305.Tutorial.PlayModeTests
             }
         }
 
-        private static bool IsQuestIcon(FirstDayMissionView mission) =>
-            mission.QuestCardRect.name == "QuestIcon";
+        // 책 버튼 옆에 하는 퀘스트의 알약이나 펼친 카드가 보이는지
+        private static bool ShowsTheQuest(FirstDayMissionView mission) =>
+            mission.transform.Find("Content/QuestPill").gameObject.activeInHierarchy
+            || mission.transform.Find("Content/CurrentGoal").gameObject.activeInHierarchy;
 
         private sealed class QuestStartingTutorialTransport : IApiTransport
         {
@@ -940,9 +941,9 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator TodayGoal_HighlightsTheQuestCard_AndPressingItFinishesTheTutorial()
+        public IEnumerator TodayGoal_HighlightsTheQuestButton_AndPressingItFinishesTheTutorial()
         {
-            // 예전 지도 버튼은 없다. 왼쪽 위 퀘스트 카드를 밝히고, 카드를 눌러 수첩을 열면 튜토리얼을 마친다.
+            // 왼쪽 위 책 [퀘스트] 버튼을 밝히고, 버튼을 눌러 퀘스트 창을 열면 튜토리얼을 마친다.
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
             TutorialProgress progress = TutorialState.GetOrCreate(BenCode);
@@ -953,11 +954,11 @@ namespace A305.Tutorial.PlayModeTests
             yield return null;
             Assert.That(progress.Step, Is.EqualTo(TutorialStep.TodayGoal), "준비: 오늘의 목표");
 
-            var card = (RectTransform)
-                Single<FirstDayMissionView>().transform.Find("Content/CurrentGoal");
-            Assert.That(Single<CoachMarkView>().SpotlightTargets, Is.EqualTo(new[] { card }));
+            var button = (RectTransform)
+                Single<FirstDayMissionView>().transform.Find("Content/QuestIcon");
+            Assert.That(Single<CoachMarkView>().SpotlightTargets, Is.EqualTo(new[] { button }));
 
-            card.GetComponent<Button>().onClick.Invoke();
+            button.GetComponent<Button>().onClick.Invoke();
             yield return null;
 
             Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed));

@@ -1,3 +1,4 @@
+using System.Linq;
 using A305.Player;
 using A305.World;
 using NUnit.Framework;
@@ -9,7 +10,7 @@ using UnityEngine.UI;
 namespace A305.Learning.Tests
 {
     /// <summary>
-    /// 오른쪽 위 휴대폰 메뉴. 잠금 화면처럼 큰 게임 시계와 날짜, 여행 예산, 오늘의 여정을 보이고,
+    /// 오른쪽 위 휴대폰 메뉴. 잠금 화면처럼 큰 게임 시계와 날짜, 코인을 보이고(퀘스트 진행은 왼쪽 위 알약이 보인다),
     /// 단어장·대화 노트·마을 지도·내 정보·이웃 앱과 작은 집으로·조작법 버튼을 둔다. 앱은 모두 메뉴 안에 있어 누르면 메뉴가 접힌다.
     /// </summary>
     public sealed class PhoneMenuTests
@@ -62,72 +63,23 @@ namespace A305.Learning.Tests
         }
 
         [Test]
-        public void Refresh_ShowsTheSharedJourneyAndBudget()
+        public void Refresh_ShowsTheSharedBudget()
         {
-            var marks = new[] { JourneyMark.Current, JourneyMark.Upcoming };
-            JourneyStatus.Shared.Show("1 / 2", "호텔 직원에게 요청하세요.", marks, 20);
+            JourneyStatus.Shared.ShowBalance(20);
 
             phone.Refresh();
 
-            Assert.That(Field<GameObject>("journeyCard").activeSelf, Is.True);
-            Assert.That(Field<TMP_Text>("journeyChip").text, Is.EqualTo("1 / 2"));
-            Assert.That(
-                Field<TMP_Text>("journeyDirection").text,
-                Is.EqualTo("호텔 직원에게 요청하세요.")
-            );
             Assert.That(Field<TMP_Text>("budget").text, Is.EqualTo("20"));
-            int shown = 0;
-            foreach (Transform mark in Field<RectTransform>("journeyProgress"))
-            {
-                if (!mark.gameObject.activeSelf)
-                    continue;
-                string state = marks[shown] == JourneyMark.Current ? "currentMark" : "upcomingMark";
-                Assert.That(mark.GetComponent<Image>().sprite, Is.SameAs(Field<Sprite>(state)));
-                shown++;
-            }
-            Assert.That(shown, Is.EqualTo(2));
         }
 
-        // 단계가 시안(7칸)보다 많아도(마을 이야기 12단계) 진행 칸을 줄여 카드 안에 넣는다.
+        // 퀘스트 진행은 왼쪽 위 알약·카드가 보이므로 휴대폰에는 같은 내용의 '오늘의 여정' 위젯을 두지 않는다.
         [Test]
-        public void ManySteps_StayInsideTheJourneyCard()
+        public void LockScreen_HasNoQuestWidget()
         {
-            var marks = new JourneyMark[12];
-            JourneyStatus.Shared.Show(
-                "12 / 12",
-                "마을의 이웃들과 자유롭게 대화해 보세요.",
-                marks,
-                76
+            Assert.That(
+                phone.GetComponentsInChildren<Transform>(true).Any(part => part.name == "Journey"),
+                Is.False
             );
-
-            phone.Refresh();
-
-            var progress = Field<RectTransform>("journeyProgress");
-            // 닫혀 있는 폰을 열어 배치를 계산한다.
-            for (Transform part = progress; part != null; part = part.parent)
-                part.gameObject.SetActive(true);
-            LayoutRebuilder.ForceRebuildLayoutImmediate(progress);
-            int shown = 0;
-            foreach (RectTransform mark in progress)
-            {
-                if (!mark.gameObject.activeSelf)
-                    continue;
-                shown++;
-                Assert.That(
-                    mark.anchoredPosition.x + mark.rect.width * (1 - mark.pivot.x),
-                    Is.LessThanOrEqualTo(progress.rect.width + .05f),
-                    $"{shown}번째 칸"
-                );
-            }
-            Assert.That(shown, Is.EqualTo(12));
-        }
-
-        [Test]
-        public void WithoutAJourney_HidesTheJourneyWidget()
-        {
-            phone.Refresh();
-
-            Assert.That(Field<GameObject>("journeyCard").activeSelf, Is.False);
         }
 
         [Test]

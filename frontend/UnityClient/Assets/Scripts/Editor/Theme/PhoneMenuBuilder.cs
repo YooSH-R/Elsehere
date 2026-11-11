@@ -20,7 +20,7 @@ namespace A305.EditorTools.Theme
     public static class PhoneMenuBuilder
     {
         private const string MenuPath = "Tools/A305/UI/Apply Phone Menu";
-        private const string JourneyTextMenuPath = "Tools/A305/UI/Apply Phone Quest Text Fit";
+        private const string RemoveJourneyMenuPath = "Tools/A305/UI/Remove Phone Quest Widget";
         private const string HudPrefabPath = "Assets/Prefabs/Learning/LearningHud.prefab";
         private const string ArtFolder = "Assets/Art/UI/Phone";
         private const string DisplayFontPath = "Assets/Art/UI/Fonts/Jua-Regular SDF.asset";
@@ -164,16 +164,13 @@ namespace A305.EditorTools.Theme
             }
         }
 
-        /// <summary>폰을 다시 만들지 않고 퀘스트 위젯 안내 글자만 한 줄에 맞게 바꾼다.</summary>
-        [MenuItem(JourneyTextMenuPath)]
-        public static void ApplyJourneyTextFitToPrefab()
+        /// <summary>폰을 다시 만들지 않고 잠금 화면의 '오늘의 여정' 위젯만 지운다. 퀘스트 진행은 왼쪽 위 퀘스트 알약·카드가 보인다.</summary>
+        [MenuItem(RemoveJourneyMenuPath)]
+        public static void RemoveJourneyFromPrefab()
         {
             BuilderTools.UpdatePrefabIfExists(
                 HudPrefabPath,
-                root =>
-                    FitDirection(
-                        root.transform.Find("Panel/Menu/Journey/Direction").GetComponent<TMP_Text>()
-                    )
+                root => RemoveJourney((RectTransform)root.transform.Find("Panel/Menu"))
             );
             AssetDatabase.SaveAssets();
         }
@@ -184,10 +181,9 @@ namespace A305.EditorTools.Theme
             Clear(phone);
             Body(phone);
             PhoneMenuView view = BuilderTools.GetOrAddComponent<PhoneMenuView>(phone.gameObject);
-            // 그리는 순서: 폰 그림 → 여정 카드 그림 → 글자 → 앱 → 배지 → 내비게이션 키
+            // 그리는 순서: 폰 그림 → 글자 → 앱 → 배지 → 내비게이션 키
             Picture("Art", phone, Art("PhoneBase"), -ArtLeft, -ArtTop, ArtWidth, ArtHeight)
                 .transform.SetAsFirstSibling();
-            Journey(view, phone);
             LockScreen(view, phone);
             Apps(view, phone);
             NavigationKeys(phone);
@@ -369,80 +365,12 @@ namespace A305.EditorTools.Theme
             BuilderTools.SetReference(view, "budget", amount);
         }
 
-        // 퀘스트 위젯 카드: 시안에서 잘라 낸 카드 그림(화면 폭, 폰 기준 y 150~450) 위에 단계 칩 글자·할 일·진행 칸
-        private static void Journey(PhoneMenuView view, RectTransform phone)
+        // 잠금 화면에 퀘스트 위젯을 두지 않는다. 퀘스트 진행은 왼쪽 위 퀘스트 알약·카드가 보이므로, 예전에 만든 '오늘의 여정' 카드가 있으면 지운다.
+        private static void RemoveJourney(RectTransform phone)
         {
-            const float CardLeft = 12;
-            const float CardTop = 150;
-            RectTransform card = Picture(
-                "Journey",
-                phone,
-                Art("PhoneJourney"),
-                CardLeft,
-                CardTop,
-                406,
-                300
-            ).rectTransform;
-            TMP_Text chip = Text(
-                "ChipText",
-                card,
-                DisplayFontPath,
-                14,
-                Color.white,
-                "1 / 7",
-                313.7f - CardLeft,
-                208.4f - CardTop,
-                57.3f,
-                26
-            );
-            chip.alignment = TextAlignmentOptions.Center;
-            TMP_Text direction = Text(
-                "Direction",
-                card,
-                DisplayFontPath,
-                23,
-                Ink,
-                "",
-                59 - CardLeft,
-                243.4f - CardTop,
-                312,
-                27.6f
-            );
-            FitDirection(direction);
-            // 진행 칸 그림은 빛 번짐 자리(사방 12px)를 품고 있어, 칸 사이 6px에서 그만큼 겹쳐 놓는다.
-            RectTransform steps = Rect(
-                "Steps",
-                card,
-                59 - 12 - CardLeft,
-                285 - 12 - CardTop,
-                312 + 24,
-                32
-            );
-            var row = BuilderTools.GetOrAddComponent<HorizontalLayoutGroup>(steps.gameObject);
-            row.spacing = (6 - 24) * Px;
-            row.childAlignment = TextAnchor.UpperLeft;
-            row.childControlWidth = row.childControlHeight = true;
-            row.childForceExpandWidth = row.childForceExpandHeight = false;
-            Image mark = Picture("Mark", steps, Art("PhoneStepUpcoming"), 0, 0, 64, 32);
-            var size = BuilderTools.GetOrAddComponent<LayoutElement>(mark.gameObject);
-            size.preferredWidth = size.minWidth = (39.43f + 24) * Px;
-            size.preferredHeight = size.minHeight = 32 * Px;
-            BuilderTools.SetReference(view, "journeyCard", card.gameObject);
-            BuilderTools.SetReference(view, "journeyChip", chip);
-            BuilderTools.SetReference(view, "journeyDirection", direction);
-            BuilderTools.SetReference(view, "journeyProgress", steps);
-            BuilderTools.SetReference(view, "upcomingMark", Art("PhoneStepUpcoming"));
-            BuilderTools.SetReference(view, "currentMark", Art("PhoneStepCurrent"));
-            BuilderTools.SetReference(view, "doneMark", Art("PhoneStepDone"));
-        }
-
-        // 다 끝낸 뒤의 안내처럼 길면 글자를 줄여(23 → 17) 한 줄에 넣는다. 그래도 넘치면 끝을 줄임표로 줄인다.
-        private static void FitDirection(TMP_Text direction)
-        {
-            direction.enableAutoSizing = true;
-            direction.fontSizeMin = 17 * Px;
-            direction.fontSizeMax = 23 * Px;
-            direction.overflowMode = TextOverflowModes.Ellipsis;
+            Transform journey = phone.Find("Journey");
+            if (journey != null)
+                Object.DestroyImmediate(journey.gameObject);
         }
 
         // 기존 다섯 앱의 아이콘은 폰 그림에 있다. 조작법은 별도 그림으로 같은 앱 칸에 덧붙인다.

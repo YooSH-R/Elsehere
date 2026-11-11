@@ -434,33 +434,27 @@ namespace A305.Mission.Tests
             }
         }
 
-        // 폰 메뉴의 오늘의 여정 위젯이 같은 내용을 보이도록 여정을 함께 알린다.
+        // 폰 메뉴의 코인 위젯이 같은 잔액을 보이도록 함께 알린다. 퀘스트 진행은 왼쪽 위 알약만 보인다.
         [Test]
-        public void Refresh_SharesTheJourneyWithThePhone()
+        public void Refresh_SharesTheBalanceWithThePhone()
         {
             FirstDayMissionState state = Journey(current: 5);
             state.Balance = 20;
             Refresh(state);
 
-            JourneyStatus shared = JourneyStatus.Shared;
-            Assert.That(shared.HasJourney, Is.True);
-            Assert.That(shared.StepChip, Is.EqualTo("6 / 7"));
-            Assert.That(shared.Direction, Is.EqualTo("드럭스토어 점원에게 요청하세요."));
-            Assert.That(shared.Balance, Is.EqualTo(20));
-            Assert.That(shared.Marks.Count, Is.EqualTo(7));
-            Assert.That(shared.Marks[4], Is.EqualTo(JourneyMark.Done));
-            Assert.That(shared.Marks[5], Is.EqualTo(JourneyMark.Current));
-            Assert.That(shared.Marks[6], Is.EqualTo(JourneyMark.Upcoming));
+            Assert.That(JourneyStatus.Shared.Balance, Is.EqualTo(20));
         }
 
         [Test]
-        public void Unavailable_ForgetsTheSharedJourney()
+        public void Unavailable_ForgetsTheSharedBalance()
         {
-            Refresh(Journey(current: 5));
+            FirstDayMissionState state = Journey(current: 5);
+            state.Balance = 20;
+            Refresh(state);
 
             view.SetAvailable(false);
 
-            Assert.That(JourneyStatus.Shared.HasJourney, Is.False);
+            Assert.That(JourneyStatus.Shared.Balance, Is.Zero);
         }
 
         // 길 안내는 미션을 모른 채 공용 목적지만 보므로, 지금 단계의 장소를 알린다.
@@ -500,25 +494,33 @@ namespace A305.Mission.Tests
             Assert.That(GuideDestination.Shared.PlaceCode, Is.Null);
         }
 
-        // 왼쪽 위 지도 버튼을 없애고 카드 자체를 눌러 수첩을 연다. 카드는 화면 왼쪽 위 모서리에 붙는다.
+        // 왼쪽 위 모서리(28)에는 책 [퀘스트] 버튼(오른쪽 위 HUD와 같은 64)을 두고, 알약과 펼친 카드는 그 오른쪽 12에 붙인다.
+        // 카드 본문을 누르면 퀘스트 창이 열린다.
         [Test]
-        public void QuestCard_OpensTheJournalAndSitsInTheTopLeftCorner()
+        public void PillAndCard_SitRightOfTheQuestButtonInTheTopLeft()
         {
             Refresh(Journey(current: 5));
+            view.UpdateLayout();
 
+            var button = (RectTransform)Field<Button>("questIcon").transform;
+            var pill = (RectTransform)Field<Button>("questPill").transform;
             Transform card = instance.transform.Find("Content/CurrentGoal");
             Assert.That(Field<Button>("journalButton").transform, Is.SameAs(card));
-            Assert.That(instance.transform.Find("Content/MapButton"), Is.Null);
-            view.UpdateLayout();
-            // 시안: 왼쪽·위 28px(캔버스 1.2배)
-            Vector2 corner = ((RectTransform)card).anchoredPosition;
-            Assert.That(corner.x, Is.EqualTo(33.6f).Within(.01f));
-            Assert.That(corner.y, Is.EqualTo(-33.6f).Within(.01f));
+            Assert.That(button.anchoredPosition, Is.EqualTo(new Vector2(28, -28) * 1.2f));
+            Assert.That(button.rect.size, Is.EqualTo(new Vector2(64, 64) * 1.2f));
+            Vector2 beside = new Vector2(28 + 64 + 12, -28) * 1.2f;
+            Assert.That(Vector2.Distance(pill.anchoredPosition, beside), Is.LessThan(.01f), "알약");
+            Assert.That(
+                Vector2.Distance(((RectTransform)card).anchoredPosition, beside),
+                Is.LessThan(.01f),
+                "펼친 카드"
+            );
         }
 
-        // 진행 중인 퀘스트가 없으면(시작 전, 끝낸 뒤) 카드를 접고 왼쪽 위에 작은 퀘스트 아이콘만 둔다. 아이콘을 누르면 퀘스트 목록이 열린다.
+        // 책 [퀘스트] 버튼은 하는 퀘스트가 있든 없든 늘 왼쪽 위에 있고, 누르면 퀘스트 창이 열린다. 튜토리얼 안내도 이 버튼을 가리킨다.
+        // 하는 퀘스트가 없으면(시작 전, 끝낸 뒤) 버튼만 있다.
         [Test]
-        public void NoQuestInProgress_ShowsOnlyTheQuestIcon()
+        public void QuestButton_IsAlwaysThere_AndOpensTheQuestWindow()
         {
             FirstDayMissionState notStarted = Journey(current: 0);
             notStarted.Started = false;
@@ -526,12 +528,9 @@ namespace A305.Mission.Tests
             Transform card = instance.transform.Find("Content/CurrentGoal");
             Button icon = Field<Button>("questIcon");
             Assert.That(card.gameObject.activeSelf, Is.False, "시작 전");
+            Assert.That(Field<Button>("questPill").gameObject.activeSelf, Is.False, "시작 전");
             Assert.That(icon.gameObject.activeSelf, Is.True, "시작 전");
-            Assert.That(
-                view.QuestCardRect,
-                Is.SameAs(icon.transform),
-                "튜토리얼 안내도 아이콘을 가리킵니다."
-            );
+            Assert.That(view.QuestButtonRect, Is.SameAs(icon.transform));
             icon.onClick.Invoke();
             Assert.That(
                 Field<QuestBoardView>("questBoard").IsOpen,
@@ -548,8 +547,12 @@ namespace A305.Mission.Tests
 
             view.Refresh(Journey(current: 2), false, false);
             Assert.That(card.gameObject.activeSelf, Is.True, "진행 중");
-            Assert.That(icon.gameObject.activeSelf, Is.False, "진행 중");
-            Assert.That(view.QuestCardRect, Is.SameAs(card));
+            Assert.That(icon.gameObject.activeSelf, Is.True, "진행 중에도 버튼");
+            Assert.That(view.QuestButtonRect, Is.SameAs(icon.transform));
+
+            PracticeVisit.Shared.Begin(DinerTable());
+            view.Refresh(Journey(current: 2), false, false);
+            Assert.That(icon.gameObject.activeSelf, Is.True, "장소 연습 중에도 버튼");
         }
 
         // 서버 상태를 받기 전에도 예전 지도 버튼이 아니라 카드 자체를 누르라고 알린다.
@@ -598,7 +601,7 @@ namespace A305.Mission.Tests
             Assert.That(HintOf(goals.GetChild(1)).gameObject.activeSelf, Is.False);
         }
 
-        // 하던 이야기는 평소 한 줄 알약(아이콘 · 이야기 · 단계 · 진행 칸 · ⌄)으로 접어 둔다(시안 1-B ①).
+        // 하던 이야기는 평소 책 버튼 옆 한 줄 알약('이야기' · 진행 칸 · ⌄)으로 접어 둔다. 알약에는 아이콘·단계 글자를 두지 않는다.
         [Test]
         public void StoryInProgress_ShowsOnlyAOneLinePill()
         {
@@ -607,15 +610,16 @@ namespace A305.Mission.Tests
             Button pill = Field<Button>("questPill");
             Assert.That(pill.gameObject.activeSelf, Is.True);
             Assert.That(Card.gameObject.activeSelf, Is.False);
-            Assert.That(Field<Button>("questIcon").gameObject.activeSelf, Is.False);
-            Assert.That(
-                view.QuestCardRect,
-                Is.SameAs(pill.transform),
-                "튜토리얼도 알약을 가리킵니다."
-            );
             Assert.That(Field<TMP_Text>("pillTitle").text, Is.EqualTo("이야기"));
-            Assert.That(Field<TMP_Text>("pillDetail").text, Is.EqualTo("3 / 7"));
-            Assert.That(Field<Image>("pillIcon").sprite, Is.SameAs(Field<Sprite>("storyPillIcon")));
+            Assert.That(
+                pill.GetComponentsInChildren<TMP_Text>().Select(text => text.text),
+                Is.EqualTo(new[] { "이야기" }),
+                "알약 글자는 이름 하나"
+            );
+            Assert.That(
+                pill.GetComponentsInChildren<Image>().Count(image => image.name == "Icon"),
+                Is.Zero
+            );
             Assert.That(
                 PillMarks(),
                 Is.EqualTo(new[] { "story", "story", "story", "off", "off", "off", "off" }),
@@ -633,7 +637,6 @@ namespace A305.Mission.Tests
             Button fold = Field<Button>("foldButton");
             Assert.That(Card.gameObject.activeSelf, Is.True);
             Assert.That(Field<Button>("questPill").gameObject.activeSelf, Is.False);
-            Assert.That(view.QuestCardRect, Is.SameAs(Card));
             Assert.That(fold.transform.IsChildOf(Card), Is.True, "펼친 카드에 늘 접기 버튼");
             Assert.That(fold.gameObject.activeSelf, Is.True);
             Assert.That(
@@ -673,11 +676,6 @@ namespace A305.Mission.Tests
             Refresh(Journey(current: 2));
 
             Assert.That(Field<TMP_Text>("pillTitle").text, Is.EqualTo("장소 연습"));
-            Assert.That(Field<TMP_Text>("pillDetail").text, Is.EqualTo("식당 · 자리 잡기"));
-            Assert.That(
-                Field<Image>("pillIcon").sprite,
-                Is.SameAs(Field<Sprite>("practicePillIcon"))
-            );
             Assert.That(PillMarks(), Is.EqualTo(new[] { "off", "off" }), "목표마다 한 칸");
 
             PracticeVisit.Shared.ReportProgress(new[] { true, false });
@@ -687,7 +685,7 @@ namespace A305.Mission.Tests
             PracticeVisit.Shared.End();
             view.Refresh(Journey(current: 2), false, false);
             Assert.That(Field<TMP_Text>("pillTitle").text, Is.EqualTo("이야기"));
-            Assert.That(Field<TMP_Text>("pillDetail").text, Is.EqualTo("3 / 7"));
+            Assert.That(PillMarks(), Has.Length.EqualTo(7));
         }
 
         // 펼친 연습 카드: 파란 '장소 연습' 칩, 장소 · 상황, 상황 설명, 목표마다 한 칸인 진행 막대와 목표 줄(해낸 목표는 체크)

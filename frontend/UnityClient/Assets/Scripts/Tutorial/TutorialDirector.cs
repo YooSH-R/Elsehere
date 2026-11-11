@@ -671,7 +671,7 @@ namespace A305.Tutorial
                     return new[] { learning.VocabularyPanelRect };
                 case TutorialCoachTarget.QuestCard:
                     return firstDayMission != null
-                        ? new[] { firstDayMission.QuestCardRect }
+                        ? new[] { firstDayMission.QuestButtonRect }
                         : new RectTransform[0];
                 default:
                     return new RectTransform[0];

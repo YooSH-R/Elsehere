@@ -15,9 +15,10 @@ using UnityEngine.UI;
 namespace A305.Mission
 {
     /// <summary>
-    /// 왼쪽 위에 지금 하는 퀘스트를 한 줄 알약(아이콘·이름·단계·진행 칸)으로 접어 두고, 알약을 누르면 퀘스트 카드(단계 칩·장소·할 일·상황·진행 막대·목표 체크리스트)를
-    /// 펼친다(시안 1-B). 펼친 카드는 접기 버튼으로 다시 접고, 카드를 누르면 퀘스트 창을 연다. 퀘스트를 시작할 때만 카드를 5초 펼쳤다가 저절로 접는다.
-    /// 한 번에 하나만 보인다: 장소 연습 방문 중이면 그 연습, 아니면 하던 이야기, 둘 다 없으면(시작 전, 끝낸 뒤) 작은 퀘스트 아이콘만 둔다.
+    /// 왼쪽 위 모서리에는 책 [퀘스트] 버튼을 늘 두고(누르면 퀘스트 창), 그 오른쪽에 지금 하는 퀘스트를 한 줄 알약(이름·진행 칸)으로 접어 둔다.
+    /// 알약을 누르면 그 자리에 퀘스트 카드(단계 칩·장소·할 일·상황·진행 막대·목표 체크리스트)를 펼친다(시안 1-B). 펼친 카드는 접기 버튼으로 다시 접고,
+    /// 카드를 누르면 퀘스트 창을 연다. 퀘스트를 시작할 때만 카드를 5초 펼쳤다가 저절로 접는다.
+    /// 알약·카드는 하나만 보인다: 장소 연습 방문 중이면 그 연습, 아니면 하던 이야기, 둘 다 없으면(시작 전, 끝낸 뒤) 책 버튼만 있다.
     /// 수첩을 펼친 동안에는 같은 내용의 카드를 숨긴다.
     /// 퀘스트를 끝내면 '퀘스트 완료!' 팡파레를 띄우고 보상 코인을 그와 함께 더한다. 오른쪽 위에는 게임 시계와 코인을 보인다.
     /// </summary>
@@ -159,9 +160,7 @@ namespace A305.Mission
         private FollowUpCardView followUpCard;
 
         [SerializeField]
-        [Tooltip(
-            "하는 퀘스트가 없을 때 카드 대신 왼쪽 위에 두는 퀘스트 아이콘. 누르면 퀘스트 목록을 연다."
-        )]
+        [Tooltip("왼쪽 위 모서리에 늘 두는 책 [퀘스트] 버튼. 누르면 퀘스트 창을 연다.")]
         private Button questIcon;
 
         [SerializeField]
@@ -174,14 +173,8 @@ namespace A305.Mission
         private Button questPill;
 
         [SerializeField]
-        private Image pillIcon;
-
-        [SerializeField]
+        [Tooltip("이야기·장소 연습")]
         private TMP_Text pillTitle;
-
-        [SerializeField]
-        [Tooltip("이야기는 단계(3 / 7), 장소 연습은 장소 · 상황")]
-        private TMP_Text pillDetail;
 
         [SerializeField]
         [Tooltip("알약의 진행 칸. 첫 칸을 본떠 단계·목표 수만큼 만든다.")]
@@ -201,12 +194,6 @@ namespace A305.Mission
         [SerializeField]
         [Tooltip("펼친 연습 카드에서 단계 칩 자리에 대신 보이는 파란 '장소 연습' 칩")]
         private GameObject practiceChip;
-
-        [SerializeField]
-        private Sprite storyPillIcon;
-
-        [SerializeField]
-        private Sprite practicePillIcon;
 
         [SerializeField]
         private Sprite pillMarkStory;
@@ -237,8 +224,9 @@ namespace A305.Mission
         // 터치 기기의 미니맵 윗변: 시계·코인 칩(위 28, 높이 64) 아래 코인 바뀜 알약(사이 10, 높이 46)에서 14 아래(시안 px)
         private const float TouchMiniMapTop = 28 + 64 + 10 + 46 + 14;
 
-        // 시안: 퀘스트 카드는 왼쪽·위 28px, 폭 410px(캔버스는 1.2배)
+        // 시안: 책 [퀘스트] 버튼은 왼쪽·위 28px, 오른쪽 위 HUD와 같은 64px. 알약·카드는 그 오른쪽 12px에 두고 카드 폭은 410px(캔버스는 1.2배)
         private const float Margin = 28 * 1.2f;
+        private const float CardLeft = (28 + 64 + 12) * 1.2f;
         private const float CardWidth = 410 * 1.2f;
         private const float DrawerWidth = 480;
 
@@ -266,9 +254,6 @@ namespace A305.Mission
 
         // 하던 이야기가 없는지(시작 전, 끝낸 뒤)
         private bool idle;
-
-        // 알약 이름 옆 장소 · 상황이 길면 이 폭(시안 px)에서 줄임표로 자른다.
-        private const float PillDetailMaxWidth = 220;
 
         // 카드를 펼쳤는지. 알약을 누르면 펼치고, 퀘스트를 시작하면 잠깐 펼친다.
         private readonly QuestCardFold fold = new QuestCardFold();
@@ -314,21 +299,8 @@ namespace A305.Mission
 
         public bool IsQuestCompleteOpen => questComplete != null && questComplete.IsOpen;
 
-        /// <summary>
-        /// 왼쪽 위에 보이는 퀘스트 알약·펼친 카드(하는 퀘스트가 없으면 퀘스트 아이콘). 튜토리얼 코치 마크가 오늘의 목표를 볼 때 밝힌다.
-        /// 알약을 누르면 카드가 펼쳐지고, 카드·아이콘을 누르면 퀘스트 목록이 열린다.
-        /// </summary>
-        public RectTransform QuestCardRect
-        {
-            get
-            {
-                if (questPill != null && questPill.gameObject.activeSelf)
-                    return (RectTransform)questPill.transform;
-                return idle && !Banner.gameObject.activeSelf
-                    ? (RectTransform)questIcon.transform
-                    : Banner;
-            }
-        }
+        /// <summary>왼쪽 위 책 [퀘스트] 버튼. 누르면 퀘스트 창이 열리며, 튜토리얼 코치 마크가 오늘의 목표를 볼 때 밝힌다.</summary>
+        public RectTransform QuestButtonRect => (RectTransform)questIcon.transform;
 
         public void SetAvailable(bool available)
         {
@@ -383,13 +355,8 @@ namespace A305.Mission
             ShowQuestHud();
             UpdateLeftHudVisibility();
             ShowClock();
-            // 폰 메뉴의 오늘의 여정 위젯이 같은 내용을 보인다.
-            JourneyStatus.Shared.Show(
-                StepChip(state.Steps),
-                StoryDirection(state),
-                state.Steps.Select(step => Mark(step.Status)).ToArray(),
-                state.Balance
-            );
+            // 폰 메뉴의 코인 위젯이 같은 잔액을 보인다.
+            JourneyStatus.Shared.ShowBalance(state.Balance);
             // 길 안내가 지금 단계의 장소를 가리킨다. 시작 전과 모두 끝낸 뒤에는 목적지가 없어 안내하지 않는다.
             GuideDestination.Shared.Show(state.Destination);
             journalGoal.text = state.CanRest
@@ -508,9 +475,7 @@ namespace A305.Mission
             // NPC가 할 일을 먼저 말하지 않으므로, 요청 안내 아래 이번 단계 목표를 보여 주어 무엇을 요청할지 알게 한다.
             ShowGoals(state.CanRest || current == null ? null : current.Goals);
             ShowPill(
-                storyPillIcon,
                 "이야기",
-                chip ?? "",
                 state.Steps.Select(step => step.Status == "UPCOMING" ? pillMarkOff : pillMarkStory)
             );
         }
@@ -542,27 +507,17 @@ namespace A305.Mission
                     .ToList()
             );
             ShowPill(
-                practicePillIcon,
                 "장소 연습",
-                PracticeName(plan),
                 plan.Goals.Select((goal, i) => Done(i) ? pillMarkPractice : pillMarkOff)
             );
         }
 
-        // 알약: 아이콘·이름·단계(또는 장소 · 상황)·진행 칸. 진행 칸이 모자라면 첫 칸을 본떠 더 만든다.
-        private void ShowPill(Sprite icon, string title, string detail, IEnumerable<Sprite> marks)
+        // 알약: 이름(이야기·장소 연습)·진행 칸. 진행 칸이 모자라면 첫 칸을 본떠 더 만든다.
+        private void ShowPill(string title, IEnumerable<Sprite> marks)
         {
             if (questPill == null)
                 return;
-            pillIcon.sprite = icon;
             pillTitle.text = title;
-            pillDetail.text = detail;
-            var detailSize = pillDetail.GetComponent<LayoutElement>();
-            if (detailSize != null)
-                detailSize.preferredWidth = Mathf.Min(
-                    pillDetail.GetPreferredValues(detail).x,
-                    PillDetailMaxWidth * 1.2f
-                );
             Sprite[] sprites = marks.ToArray();
             GameObject template = pillMarks.GetChild(0).gameObject;
             while (pillMarks.childCount < sprites.Length)
@@ -576,8 +531,8 @@ namespace A305.Mission
             }
         }
 
-        // 한 번에 하나만 보인다: 하는 퀘스트(연습·이야기)가 있으면 접힌 알약이나 펼친 카드, 없으면 퀘스트 아이콘.
-        // 수첩을 펼친 동안에는 모두 숨긴다. 서버 상태를 받기 전에는 처음 모양 그대로 둔다.
+        // 책 버튼은 늘 두고, 하는 퀘스트(연습·이야기)가 있으면 그 옆에 접힌 알약이나 펼친 카드 하나를 둔다.
+        // 수첩을 펼친 동안에는 모두 숨긴다. 서버 상태를 받기 전에는 처음 모양(책 버튼만) 그대로 둔다.
         private void ShowQuestHud()
         {
             bool practicing = PracticeVisit.Shared.Current != null;
@@ -588,7 +543,7 @@ namespace A305.Mission
             Banner.gameObject.SetActive(open && active && fold.Expanded);
             if (questPill != null)
                 questPill.gameObject.SetActive(open && active && !fold.Expanded);
-            questIcon.gameObject.SetActive(open && !active);
+            questIcon.gameObject.SetActive(open);
             ShowAutoFold();
         }
 
@@ -705,11 +660,6 @@ namespace A305.Mission
             : status == "CURRENT" ? currentMark
             : upcomingMark;
 
-        private static JourneyMark Mark(string status) =>
-            status == "DONE" ? JourneyMark.Done
-            : status == "CURRENT" ? JourneyMark.Current
-            : JourneyMark.Upcoming;
-
         private void ShowCoins(int balance, string purchase)
         {
             CoinChange? change = CoinChange.Between(shownBalance, balance, purchase);
@@ -822,7 +772,7 @@ namespace A305.Mission
                     -HudTopBarLayout.StatusRight(A305.Api.SurveyPrompt.EntryVisible),
                     -HudTopBarLayout.Margin
                 );
-            Banner.anchoredPosition = new Vector2(Margin, -Margin);
+            Banner.anchoredPosition = new Vector2(CardLeft, -Margin);
             FitLeftCards(screen);
             var drawer = (RectTransform)journal.transform;
             drawer.SetSizeWithCurrentAnchors(
@@ -853,15 +803,15 @@ namespace A305.Mission
             pill.localScale = new Vector3(scale, scale, 1);
         }
 
-        // 왼쪽 위 카드·알약이 쓸 수 있는 폭(캔버스 단위). 오른쪽 위 시계·코인 칩이 보이면 그 왼쪽에서 왼쪽 열 사이(12)만큼 띄운다.
+        // 책 버튼 오른쪽의 카드·알약이 쓸 수 있는 폭(캔버스 단위). 오른쪽 위 시계·코인 칩이 보이면 그 왼쪽에서 사이(12)만큼 띄운다.
         private float LeftCardRoom(RectTransform screen)
         {
-            float room = screen.rect.width - Margin * 2;
+            float room = screen.rect.width - CardLeft - Margin;
             if (statusBar == null || !statusBar.activeSelf)
                 return room;
             var status = (RectTransform)statusBar.transform;
             float statusLeft = screen.rect.width + status.anchoredPosition.x - status.rect.width;
-            return Mathf.Min(room, statusLeft - Margin - LeftColumnGap);
+            return Mathf.Min(room, statusLeft - LeftColumnGap - CardLeft);
         }
 
         /// <summary>왼쪽 위 퀘스트 카드: 퀘스트 목록을 연다. 연결은 QuestBoardBuilder가 버튼에 넣는다.</summary>

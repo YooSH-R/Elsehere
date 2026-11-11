@@ -6,7 +6,8 @@ import pytest
 from test_speech_timing import phone, wav_file
 
 from app import tts
-from app.speech_timing import read_timing
+from app.pronunciation import LEXICON
+from app.speech_timing import phoneme_sequence, read_timing
 
 
 @pytest.mark.parametrize("timed", [True, False])
@@ -108,3 +109,45 @@ def test_cpu_aligner_runtime_failure_preserves_valid_times_from_the_same_synthes
     timing = read_timing(voice)
     assert timing is not None
     assert timing["phonemes"] == [dict(phoneme="h", start=0.1, end=0.2), dict(phoneme="eh", start=0.2, end=0.5)]
+
+
+def test_gpu_voice_with_curly_quotes_keeps_lip_sync(monkeypatch):
+    # espeak는 “ ”를 문장부호로 남기고 Kokoro 어휘에도 있어 음소열까지 온다 (11/11 dev 로그: Unsupported Kokoro phoneme '“').
+    from test_tts_gpu import GpuServer, kokoro_with_gpu, wav_answer
+
+    server = GpuServer(wav_answer())
+    service, engine = kokoro_with_gpu(server)
+    engine.tokenizer.phonemize = lambda text, lang: "ɪt “mˈeɪpəl.”"
+    aligned = []
+
+    def align(wav, cues):
+        aligned.append(cues)
+        return tts.attach_timing(wav, [phone("f", 0.1, 0.4)])
+
+    monkeypatch.setattr(tts, "align_timing", align)
+    wav, _, _ = service.synth("It “Maple.”", "af_heart", 1)
+    assert read_timing(wav) is not None
+    assert [cue["phoneme"] for cue in aligned[0]] == ["ih", "t", "_", "_", "m", "ey", "p", "ax", "l", "_", "_"]
+
+
+def test_cpu_voice_with_curly_quotes_keeps_model_phoneme_timing(monkeypatch):
+    engine = SimpleNamespace(
+        has_timings=True,
+        tokenizer=SimpleNamespace(phonemize=lambda text, lang: "“hɛlp”"),
+        create_timed=lambda *a, **k: (
+            [0] * 24000,
+            24000,
+            [phone("“", 0.0, 0.1), phone("h", 0.1, 0.2), phone("ɛ", 0.2, 0.5), phone("”", 0.5, 0.6)],
+        ),
+    )
+    service = tts.Kokoro(engine, "fake")
+    monkeypatch.setattr(tts, "to_wav", lambda audio, rate: wav_file())
+    monkeypatch.setattr(tts, "align_timing", lambda wav, cues: tts.attach_timing(wav, [phone("h", 0.1, 0.2)]))
+    voice, _, _ = service.synth("“Help”", "af_heart", 1)
+    assert read_timing(voice) is not None
+
+
+@pytest.mark.parametrize("word", sorted(LEXICON))
+def test_every_dictionary_pronunciation_has_mouth_shapes(word):
+    # 사전 음소는 espeak를 거치지 않고 GPU에 그대로 가므로 입모양 표에 없는 기호가 있으면 그 대사의 시간표가 통째로 빠진다.
+    assert phoneme_sequence(LEXICON[word])

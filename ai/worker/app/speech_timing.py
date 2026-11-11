@@ -31,6 +31,8 @@ IPA = dict(zip("pbmfvtdsznklgwjh", "p b m f v t d s z n k l g w y h".split(), st
     "ɜ": "er",
     "ɚ": "er",
     "ɝ": "er",
+    # The pronunciation dictionary's Mm-hm (ɨmhˈɨm): a spread, nearly closed vowel.
+    "ɨ": "ih",
     "ɹ": "r",
     "r": "r",
     "ɾ": "dx",
@@ -51,6 +53,8 @@ PAIRS = {"aɪ": "ay", "aʊ": "aw", "eɪ": "ey", "ɔɪ": "oy", "oʊ": "ow", "əʊ
 # Length, nasal and palatal marks extend the phoneme before them; stress marks lead into the next one.
 MODIFIERS = "ː̃ʲ"
 MARKS = "ˈˌ" + MODIFIERS
+# Punctuation in Kokoro's vocabulary reaches the phoneme string as a rest; espeak keeps curly double quotes too.
+PAUSES = ';:,.!?—…"“”()'
 
 
 def phoneme_sequence(spoken: str) -> list[dict]:
@@ -64,7 +68,7 @@ def phoneme_sequence(spoken: str) -> list[dict]:
             phone = PAIRS[pair]
             index += 2
         else:
-            phone = "_" if symbol.isspace() or symbol in ';:,.!?—…"()' else IPA.get(symbol)
+            phone = "_" if symbol.isspace() or symbol in PAUSES else IPA.get(symbol)
             index += 1
         if phone is None:
             raise ValueError("Unsupported Kokoro phoneme: " + ascii(symbol))
@@ -122,7 +126,7 @@ def attach_timing(wav: bytes, spoken) -> bytes:
                     raise ValueError("Invalid diphthong timing")
                 previous = end
                 index += 1
-        if symbol.isspace() or symbol in ';:,.!?—…"()':
+        if symbol.isspace() or symbol in PAUSES:
             phone = "_"
         else:
             phone = PAIRS.get(symbol, IPA.get(symbol))

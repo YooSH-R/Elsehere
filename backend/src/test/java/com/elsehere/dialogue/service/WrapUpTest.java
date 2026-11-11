@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.WorkerState;
-import com.elsehere.mission.service.FirstDayMissionService;
+import com.elsehere.mission.service.QuestTalk;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -22,7 +22,7 @@ class WrapUpTest {
               new WorkerState.Intent("order_drink", "Order a drink."),
               new WorkerState.Intent("set_options", "Answer about options."),
               new WorkerState.Intent("dine_in", "Say they will have it here.")));
-  private static final Optional<FirstDayMissionService.Context> FREE_TALK = Optional.empty();
+  private static final Optional<QuestTalk> FREE_TALK = Optional.empty();
 
   @Test
   @DisplayName("미션 대화는 이 턴으로 그 NPC에게 남은 목표가 모두 끝나면 마무리한다")
@@ -56,9 +56,8 @@ class WrapUpTest {
   @Test
   @DisplayName("미션 맥락이 있어도 이 NPC에게 남은 목표가 없으면(길 안내만 하는 NPC 등) 그 밖의 대화처럼 정한다")
   void ends_missionWithoutGoalsForThisNpc_likeFreeTalk() {
-    Optional<FirstDayMissionService.Context> directionsOnly =
-        Optional.of(
-            new FirstDayMissionService.Context(1, null, "Help with directions.", List.of()));
+    Optional<QuestTalk> directionsOnly =
+        Optional.of(new QuestTalk.Guide(1, "Help with directions."));
 
     assertThat(WrapUp.ends(false, directionsOnly, judged(List.of(), "TASK_DONE"))).isTrue();
     assertThat(WrapUp.ends(false, directionsOnly, judged(List.of(), "GREETING"))).isFalse();
@@ -105,9 +104,8 @@ class WrapUpTest {
     assertThat(WrapUp.instruction("")).isEqualTo(WrapUp.INSTRUCTION);
   }
 
-  private static Optional<FirstDayMissionService.Context> mission(String... remaining) {
-    return Optional.of(
-        new FirstDayMissionService.Context(1, CAFE_BREAK, "Offer drinks.", List.of(remaining)));
+  private static Optional<QuestTalk> mission(String... remaining) {
+    return Optional.of(new QuestTalk.Goals(1, CAFE_BREAK, "Offer drinks.", List.of(remaining)));
   }
 
   private static JudgeResult judged(List<String> intents, String... events) {

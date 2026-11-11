@@ -27,9 +27,9 @@ import com.elsehere.followup.dto.FollowUpResponse;
 import com.elsehere.followup.service.FollowUpService;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.mission.entity.PracticeScenario;
-import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.mission.service.MissionDialogueService;
 import com.elsehere.mission.service.PlacePracticeService;
+import com.elsehere.mission.service.QuestTalk;
 import com.elsehere.onboarding.entity.UserLanguageProfile;
 import com.elsehere.onboarding.entity.UserLanguageProfileId;
 import com.elsehere.onboarding.repository.UserLanguageProfileRepository;
@@ -284,13 +284,14 @@ public class ConversationService {
                   .mission()
                   .ifPresent(
                       value -> {
-                        if (value.detail().state() != null) {
+                        // 판정할 목표가 있는 대화(그 단계의 대상 NPC)만 퀘스트 단계와 목표를 기록한다.
+                        if (value.detail() instanceof QuestTalk.Goals goals) {
                           if (value.townStory()) {
-                            conversation.attachTownStoryStage(value.detail().stage());
-                            conversation.recordTownStoryGoals(value.detail().remainingGoals());
+                            conversation.attachTownStoryStage(goals.stage());
+                            conversation.recordTownStoryGoals(goals.remainingGoals());
                           } else {
-                            conversation.attachFirstDayStage(value.detail().stage());
-                            conversation.recordFirstDayGoals(value.detail().remainingGoals());
+                            conversation.attachFirstDayStage(goals.stage());
+                            conversation.recordFirstDayGoals(goals.remainingGoals());
                           }
                         }
                       });
@@ -561,7 +562,7 @@ public class ConversationService {
       Optional<MissionDialogueService.Context> mission,
       Optional<FollowUpService.ReadyFollowUp> followUp,
       ReviewCardResponse review,
-      FirstDayMissionService.Context practice) {}
+      QuestTalk practice) {}
 
   private record Opening(String text, String npcAudioKey, String speechPhrases) {}
 

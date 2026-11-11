@@ -1,3 +1,4 @@
+using A305.Api;
 using NUnit.Framework;
 using TMPro;
 using UnityEditor;
@@ -6,7 +7,7 @@ using UnityEngine.UI;
 
 namespace A305.Learning.Tests
 {
-    /// <summary>시안(g4)처럼 대화 중에는 오른쪽 위 휴대폰 버튼을 숨기고, 대화가 끝나면 다시 보인다.</summary>
+    /// <summary>오른쪽 위 휴대폰 표시와 학습 앱 배지를 확인한다.</summary>
     public sealed class HudTalkingTests
     {
         private const string HudPrefabPath = "Assets/Prefabs/Learning/LearningHud.prefab";
@@ -70,17 +71,31 @@ namespace A305.Learning.Tests
         }
 
         [Test]
-        public void WhileTalking_HidesThePhoneButton()
+        public void WhileTalking_ShowsTheSpeakerAndRestoresTheOtherIconsWhenFinished()
         {
             instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(HudPrefabPath));
             var hud = instance.GetComponent<LearningHudView>();
             GameObject bar = instance.transform.Find("Panel/MenuBar").gameObject;
+            GameObject speaker = instance.transform.Find("BackgroundSoundButton").gameObject;
+            var survey = instance.GetComponentInChildren<SurveyPromptView>(true);
 
-            hud.SetTalking(true);
-            Assert.That(bar.activeSelf, Is.False);
+            SurveyPrompt.RevealEntry();
+            try
+            {
+                hud.SetTalking(true);
+                Assert.That(bar.activeSelf, Is.False);
+                Assert.That(survey.IsEntryVisible, Is.False);
+                Assert.That(speaker.activeSelf, Is.True);
 
-            hud.SetTalking(false);
-            Assert.That(bar.activeSelf, Is.True);
+                hud.SetTalking(false);
+                Assert.That(bar.activeSelf, Is.True);
+                Assert.That(survey.IsEntryVisible, Is.True);
+                Assert.That(speaker.activeSelf, Is.True);
+            }
+            finally
+            {
+                SurveyPrompt.RestoreEntry();
+            }
         }
     }
 }

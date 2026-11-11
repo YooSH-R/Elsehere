@@ -9,7 +9,6 @@ using A305.Wayfinding;
 using A305.World;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace A305.Mission
@@ -237,7 +236,6 @@ namespace A305.Mission
         // 지금까지 보인 코인. 처음 받은 코인은 바뀐 것으로 알리지 않는다.
         private int? shownBalance;
         private Coroutine coinChange;
-        private bool showingCoinChange;
         private Vector2 coinFloatHome;
         private bool available;
         private string mapSceneCode;
@@ -349,8 +347,7 @@ namespace A305.Mission
             latestPurchase = state.LastPurchase;
             if (!rewardExpected)
                 ShowCoins(state.Balance, state.LastPurchase);
-            // 대화 중에는 시계·코인 칩을 숨기지만, 코인이 바뀐 동안에는 코인 칩을 잠깐 보인다.
-            statusBar.SetActive(!talking || showingCoinChange);
+            statusBar.SetActive(!talking);
             FillQuestCard();
             ShowQuestHud();
             UpdateLeftHudVisibility();
@@ -676,7 +673,6 @@ namespace A305.Mission
         // 코인이 바뀌면 칩 옆에 바뀐 만큼을, 칩 아래에 산 것·보상을 띄우고 숫자를 세며 바꾼다(시안 f1·f3).
         private void ShowCoinChange(CoinChange change, int from, int to)
         {
-            showingCoinChange = true;
             coinFloat.text = change.Float;
             coinFloat.color = change.IsGain ? CoinGainColor : CoinLossColor;
             coinFloat.alpha = 1f;
@@ -726,9 +722,7 @@ namespace A305.Mission
             amount.anchoredPosition = coinFloatHome;
             coinFloat.gameObject.SetActive(false);
             coinReceipt.transform.parent.gameObject.SetActive(false);
-            showingCoinChange = false;
             coinChange = null;
-            statusBar.SetActive(!talking);
         }
 
         // 게임 시계는 분이 바뀔 때만 다시 쓴다.
@@ -928,6 +922,7 @@ namespace A305.Mission
 
         private void Awake()
         {
+            WindowFrame.Attach((RectTransform)journal.transform);
             journal.SetActive(false);
             if (questBoard == null)
                 journalButton.onClick.AddListener(ToggleJournal);
@@ -952,7 +947,19 @@ namespace A305.Mission
             JourneyStatus.Shared.MapRequested += OpenLargeMap;
             CenterWindow.Shared.Changed += FollowCenterWindow;
             PracticeVisit.Shared.Changed += OnPracticeChanged;
+            // ESC로 닫는 창. 지도와 보드는 수첩 위에 열리므로 나중에 연 쪽부터 닫힌다.
+            escapeWindows = new[]
+            {
+                new UiEscapeWindow(() => journal.activeSelf, CloseJournal),
+                new UiEscapeWindow(
+                    () => mapOverlay != null && mapOverlay.activeSelf,
+                    CloseLargeMap
+                ),
+                new UiEscapeWindow(() => IsQuestBoardOpen, () => questBoard.Close()),
+            };
         }
+
+        private UiEscapeWindow[] escapeWindows = new UiEscapeWindow[0];
 
         private void OnDestroy()
         {
@@ -1040,12 +1047,8 @@ namespace A305.Mission
             if (TryGetComponent(out Canvas own))
                 FitLeftCards((RectTransform)own.transform);
             CenterWindow.Shared.SetLeftHud(LeftHudScreenWidth());
-            bool escape =
-                Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
-            if (mapOverlay != null && mapOverlay.activeSelf && escape)
-                CloseLargeMap();
-            else if (IsQuestBoardOpen && escape)
-                questBoard.Close();
+            foreach (UiEscapeWindow window in escapeWindows)
+                window.Watch();
         }
 
         private void UpdateSortingOrder()

@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 장소 연습. 가게 직원과 고른 상황 하나만 연습하며, 이야기 퀘스트와 따로 처음부터 모두 열려 있고 몇 번이든 다시 할 수 있다. 코인·도장 없이 끝낸 기록만 남긴다.
  *
  * <p>목표 진행은 연습 대화(conversations.practice_*)에 저장한다. 다시 하면 새 대화라 목표를 처음부터 판정하고, 목록의 완료는 목표를 모두 이룬 대화가
- * 하나라도 있는지로 본다. 목표 판정과 직원 지시는 이야기 퀘스트와 같은 {@link FirstDayMissionService.Context}로 만든다.
+ * 하나라도 있는지로 본다. 목표 판정과 직원 지시는 퀘스트와 같은 대화 목표({@link QuestTalk})로 만든다.
  */
 @Service
 @RequiredArgsConstructor
@@ -103,7 +103,7 @@ public class PlacePracticeService {
   }
 
   /** 장소 연습 대화에서 판정할 목표와 직원 지시. 장소 연습이 아닌 대화는 빈 값이다. */
-  public Optional<FirstDayMissionService.Context> context(Conversation conversation) {
+  public Optional<QuestTalk> context(Conversation conversation) {
     if (!conversation.isPractice()) {
       return Optional.empty();
     }
@@ -118,32 +118,30 @@ public class PlacePracticeService {
    *
    * @param completedGoalIds 이 대화에서 이미 이룬 목표. 시작할 때는 빈 목록이다
    */
-  public FirstDayMissionService.Context context(
-      PracticeScenario scenario, List<String> completedGoalIds) {
+  public QuestTalk context(PracticeScenario scenario, List<String> completedGoalIds) {
     String situation = SITUATION + scenario.instruction();
     List<PracticeScenario.Goal> remaining = scenario.remainingGoals(completedGoalIds);
     // 목표를 모두 이루면 대화도 끝나므로 보통 오지 않는다. 판정할 목표가 없어 워커에 빈 의도 목록을 보내지 않는다.
     if (remaining.isEmpty()) {
-      return new FirstDayMissionService.Context(
-          scenario.number(), null, situation + ALL_DONE, List.of());
+      return new QuestTalk.Guide(scenario.number(), situation + ALL_DONE);
     }
     List<String> remainingIds = remaining.stream().map(PracticeScenario.Goal::id).toList();
     WorkerState state =
         new WorkerState(
             "practice_" + scenario.name(),
-            scenario.instruction() + FirstDayMissionService.QUEST_EVIDENCE,
+            scenario.instruction() + QuestPrompts.QUEST_EVIDENCE,
             remaining.stream()
                 .map(goal -> new WorkerState.Intent(goal.id(), goal.description()))
                 .toList(),
             true);
-    return new FirstDayMissionService.Context(
+    return new QuestTalk.Goals(
         scenario.number(),
         state,
         situation
             + " Objectives pending before this turn: "
             + String.join(",", remainingIds)
             + "."
-            + FirstDayMissionService.LEARNER_LEADS,
+            + QuestPrompts.LEARNER_LEADS,
         remainingIds);
   }
 

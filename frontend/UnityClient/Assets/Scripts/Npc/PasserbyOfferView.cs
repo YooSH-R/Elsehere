@@ -406,27 +406,38 @@ namespace A305.Npc
                 acceptLabel.OnPreRenderText -= PositionAcceptKeyHint;
         }
 
+        // ESC는 사건 알림이면 닫고, 제안이면 [거절]과 같다. ESC 목록(UiEscape)에 올려 나중에 연 창보다 먼저 닫히지 않게 한다.
+        private UiEscapeWindow offerEscape;
+
         private void Update()
         {
             if (IsEventShowing && Time.unscaledTime >= eventHideAt)
                 Hide(owner);
+            offerEscape ??= new UiEscapeWindow(
+                () =>
+                    owner != null
+                    && panel.activeInHierarchy
+                    && (
+                        IsEventShowing
+                        || (
+                            declineButton.gameObject.activeInHierarchy && declineButton.interactable
+                        )
+                    ),
+                () =>
+                {
+                    if (IsEventShowing)
+                        Hide(owner);
+                    else
+                        onDecline?.Invoke();
+                }
+            );
+            offerEscape.Watch();
             Keyboard keyboard = Keyboard.current;
             if (keyboard == null)
                 return;
             if (owner != null && panel.activeInHierarchy)
             {
-                if (IsEventShowing && keyboard.escapeKey.wasPressedThisFrame)
-                {
-                    Hide(owner);
-                    return;
-                }
-                if (
-                    keyboard.escapeKey.wasPressedThisFrame
-                    && declineButton.gameObject.activeInHierarchy
-                    && declineButton.interactable
-                )
-                    onDecline?.Invoke();
-                else if (keyboard.eKey.wasPressedThisFrame && acceptButton.interactable)
+                if (keyboard.eKey.wasPressedThisFrame && acceptButton.interactable)
                     onAccept?.Invoke();
                 return;
             }

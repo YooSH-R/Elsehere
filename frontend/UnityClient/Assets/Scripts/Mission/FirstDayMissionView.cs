@@ -9,7 +9,6 @@ using A305.Wayfinding;
 using A305.World;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace A305.Mission
@@ -729,7 +728,19 @@ namespace A305.Mission
             // 폰 메뉴의 [마을 지도] 앱도 같은 큰 지도를 연다.
             JourneyStatus.Shared.MapRequested += OpenLargeMap;
             CenterWindow.Shared.Changed += FollowCenterWindow;
+            // ESC로 닫는 창. 지도와 보드는 수첩 위에 열리므로 나중에 연 쪽부터 닫힌다.
+            escapeWindows = new[]
+            {
+                new UiEscapeWindow(() => journal.activeSelf, CloseJournal),
+                new UiEscapeWindow(
+                    () => mapOverlay != null && mapOverlay.activeSelf,
+                    CloseLargeMap
+                ),
+                new UiEscapeWindow(() => IsQuestBoardOpen, () => questBoard.Close()),
+            };
         }
+
+        private UiEscapeWindow[] escapeWindows = new UiEscapeWindow[0];
 
         private void OnDestroy()
         {
@@ -813,12 +824,8 @@ namespace A305.Mission
                 1f - Mathf.Exp(-18f * Time.unscaledDeltaTime)
             );
             CenterWindow.Shared.SetLeftHud(LeftHudScreenWidth());
-            bool escape =
-                Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
-            if (mapOverlay != null && mapOverlay.activeSelf && escape)
-                CloseLargeMap();
-            else if (IsQuestBoardOpen && escape)
-                questBoard.Close();
+            foreach (UiEscapeWindow window in escapeWindows)
+                window.Watch();
         }
 
         private void UpdateSortingOrder()

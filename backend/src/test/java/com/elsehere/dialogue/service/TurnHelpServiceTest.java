@@ -244,7 +244,8 @@ class TurnHelpServiceTest {
 
     HintResponse response = turnHelpService.hint(userId, npcTurn.getId(), requestId);
 
-    assertThat(response).isEqualTo(new HintResponse(npcTurn.getId(), "For here, please."));
+    assertThat(response)
+        .isEqualTo(new HintResponse(npcTurn.getId(), "For here, please.", "여기서 먹을게요."));
     ArgumentCaptor<List<WorkerLine>> history = ArgumentCaptor.forClass(List.class);
     then(aiGateway)
         .should()
@@ -274,6 +275,21 @@ class TurnHelpServiceTest {
 
     assertThat(again.hintText()).isEqualTo("For here, please.");
     assertThat(savedNpcTurn().getHintOpenedAt()).isEqualTo(firstOpenedAt);
+    then(aiGateway).should(times(1)).hint(any(), any(), anyList(), anyString(), anyInt());
+  }
+
+  @Test
+  @DisplayName("힌트의 영어와 한국어 뜻을 함께 저장하고 다시 열 때 모델을 추가 호출하지 않는다")
+  void hint_preservesKoreanMeaningAcrossRepeatedReads() {
+    given(aiGateway.hint(any(), any(), anyList(), anyString(), anyInt())).willReturn(HINT);
+    HintResponse first = turnHelpService.hint(userId, npcTurn.getId(), UUID.randomUUID());
+    Long turnId = npcTurn.getId();
+    entityManager.flush();
+    entityManager.clear();
+    HintResponse cached = turnHelpService.hint(userId, turnId, UUID.randomUUID());
+    assertThat(first.hintMeaningKo()).isEqualTo("여기서 먹을게요.");
+    assertThat(cached.hintText()).isEqualTo(first.hintText());
+    assertThat(cached.hintMeaningKo()).isEqualTo(first.hintMeaningKo());
     then(aiGateway).should(times(1)).hint(any(), any(), anyList(), anyString(), anyInt());
   }
 

@@ -58,8 +58,8 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(bar, Is.Not.Null, "대사 칸에 세로 스크롤바가 있습니다.");
             Assert.That(bar.gameObject.activeInHierarchy, Is.True, "지난 대사가 있으면 보입니다.");
             Assert.That(
-                bar.handleRect.anchorMax.y,
-                Is.LessThan(.5f),
+                bar.handleRect.anchorMin.y,
+                Is.LessThan(.01f),
                 "최근 대사를 보는 중이라 손잡이가 아래에 있습니다."
             );
         }

@@ -13,7 +13,7 @@ using UnityEngine.UI;
 namespace A305.World.Tests
 {
     /// <summary>
-    /// 장소마다 HUD 버튼(단어장·피드백 목록·내 정보·홈)은 오른쪽 위 메뉴(≡) 목록 안에 있고, 집에서만 [테마]가 켜져 테마 고르기를 연다.
+    /// 장소마다 HUD 버튼(단어장·대화 노트·내 정보·홈)은 오른쪽 위 메뉴(≡) 목록 안에 있고, 집에서만 [테마]가 켜져 테마 고르기를 연다.
     /// </summary>
     public sealed class HudMenuConnectionTests
     {
@@ -128,7 +128,7 @@ namespace A305.World.Tests
             );
         }
 
-        // 메뉴를 펼치면 바깥 영역이 카드를 덮어 카드를 눌러도 메뉴가 접히고, 피드백 목록·내 정보 창은 카드 위에 보인다.
+        // 메뉴를 펼치면 바깥 영역이 카드를 덮어 카드를 눌러도 메뉴가 접히고, 대화 노트·내 정보 창은 카드 위에 보인다.
         [Test]
         public void ControlsGuideSitsBehindTheMenuBackdropAndWindows()
         {

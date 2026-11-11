@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace A305.Learning.Tests
 {
     /// <summary>
-    /// 피드백 목록의 한 줄은 "NPC · 장소" 제목과 그 아래 언제 나눈 대화인지(오늘·어제·날짜)를 보인다.
+    /// 대화 노트의 한 줄은 "NPC · 장소" 제목과 그 아래 언제 나눈 대화인지(오늘·어제·날짜)를 보인다.
     /// 피드백이 없는 대화만 시간 뒤에 그 상태를 붙인다.
     /// </summary>
     public class ConversationHistoryTextTests

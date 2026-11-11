@@ -57,7 +57,7 @@ namespace A305.EditorTools.Learning
             AssetDatabase.SaveAssets();
         }
 
-        /// <param name="hud">[피드백 목록] 창(History)과 <see cref="ConversationHistoryView"/>가 있는 HUD</param>
+        /// <param name="hud">[대화 노트] 창(History)과 <see cref="ConversationHistoryView"/>가 있는 HUD</param>
         public static void Apply(Transform hud)
         {
             var view = hud.GetComponent<ConversationHistoryView>();

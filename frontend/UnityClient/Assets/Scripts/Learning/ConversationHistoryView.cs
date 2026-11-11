@@ -88,7 +88,7 @@ namespace A305.Learning
 
         public bool IsVisible => panel.activeSelf;
 
-        /// <summary>목록 판. 마을 HUD를 피해 빈 곳 가운데에 놓인다.</summary>
+        /// <summary>화면 가운데에 놓는 목록 판.</summary>
         public RectTransform PanelRect => (RectTransform)panel.transform;
 
         public void Show(ConversationHistory shownHistory)
@@ -98,6 +98,7 @@ namespace A305.Learning
             pageAfterMore = -1;
             shade.SetActive(true);
             panel.SetActive(true);
+            CenterWindow.Shared.Place(PanelRect);
             UiLayer.Open(this);
             for (int i = 0; i < tabs.Length; i++)
             {
@@ -207,7 +208,7 @@ namespace A305.Learning
             Hide();
         }
 
-        // 마을 HUD(퀘스트 카드·미니맵)를 함께 볼 수 있게 그 오른쪽 빈 곳 가운데에 둔다.
+        // 창을 연 채 화면 크기를 바꿔도 화면 가운데에 맞춘다.
         private void LateUpdate()
         {
             if (panel.activeSelf)

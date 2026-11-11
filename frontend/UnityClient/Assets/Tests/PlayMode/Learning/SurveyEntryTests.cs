@@ -56,6 +56,31 @@ namespace A305.Learning.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator OpeningThePhone_DrawsItOverTheSurveyEntry()
+        {
+            Object.DestroyImmediate(root);
+            var hud = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Learning/LearningHud.prefab"
+            );
+            root = Object.Instantiate(hud);
+            SurveyPrompt.RevealEntry();
+            yield return null;
+
+            var menu = root.GetComponent<HudMenuView>();
+            menu.MenuButtonRect.GetComponent<Button>().onClick.Invoke();
+
+            Transform entry = root.transform.Find("SurveyPrompt/EntryButton");
+            Canvas entryCanvas = entry.GetComponentInParent<Canvas>();
+            Assert.That(entry.gameObject.activeInHierarchy, Is.True);
+            Assert.That(menu.IsOpen, Is.True);
+            Assert.That(entryCanvas.overrideSorting, Is.True);
+            Assert.That(
+                entryCanvas.sortingOrder,
+                Is.LessThan(root.GetComponent<Canvas>().sortingOrder)
+            );
+        }
+
+        [UnityTest]
         public IEnumerator AutomaticCollapsePreservesTheEntryAcrossSceneHudReplacement()
         {
             yield return null;

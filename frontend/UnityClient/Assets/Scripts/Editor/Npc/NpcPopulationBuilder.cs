@@ -192,7 +192,7 @@ namespace A305.EditorTools.Npc
             fields.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        // 출퇴근하는 모습이 들어가고 나오는 일터 문 앞. 마을 매장은 건물 앞면 가운데 1m 앞 인도다.
+        // 출퇴근하는 모습이 들어가고 나오는 일터 문 앞(마을 문의 도착 지점). 마을 매장도 그 매장 문 앞이다.
         private static Vector3 WorkplaceDoor(Scene town, NpcLifeEntry npc, GameObject worker)
         {
             string place = npc.Workplace;
@@ -209,15 +209,11 @@ namespace A305.EditorTools.Npc
             }
             if (place == "TOWN")
                 return worker.transform.position;
-            string name = place switch
-            {
-                "BAKERY" => "MapleBakery",
-                "ARCADE" => "LittleArcade",
-                "HOME_STORE" => "HomeLiving",
-                _ => TownStorefrontBuilder.Storefronts.Single(shop => shop.PlaceCode == place).Name,
-            };
-            Transform building = BuildingStaffBuilder.Building(town, name);
-            return building.TransformPoint(new Vector3(0, 0, 1));
+            string shopScene = PlaceScenes.SceneOf(place);
+            return BuilderTools
+                .FindAllInScene<SpaceDoorway>(town)
+                .Single(door => door.DestinationScene == shopScene)
+                .ArrivalPoint.position;
         }
 
         private static void PlaceDorm(Transform environment)

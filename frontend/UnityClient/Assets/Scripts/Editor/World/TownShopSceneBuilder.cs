@@ -122,6 +122,7 @@ namespace A305.EditorTools.World
                 ConnectTownDoor(town, shop);
             }
             ForgetMovedWorkers(town);
+            CommuteThroughShopDoors(town, life);
             BuildingStaffBuilder.RefreshTutorialPassersby(town);
             RemoveTownInteriors(town);
             DaylightBuilder.ConnectTown(
@@ -347,6 +348,33 @@ namespace A305.EditorTools.World
                     .FindPropertyRelative("Worker");
                 if (worker.objectReferenceValue == null)
                     worker.objectReferenceValue = null;
+            }
+            fields.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // 매장 직원은 출퇴근할 때 실제 매장 문 앞(씬 전환 도착 지점)에서 들어가고 나온다.
+        private static void CommuteThroughShopDoors(Scene town, NpcLifeData life)
+        {
+            SpaceDoorway[] doors = BuilderTools.FindAllInScene<SpaceDoorway>(town);
+            var fields = new SerializedObject(BuilderTools.FindSingleInScene<NpcPopulation>(town));
+            SerializedProperty residents = fields.FindProperty("residents");
+            for (int index = 0; index < residents.arraySize; index++)
+            {
+                SerializedProperty resident = residents.GetArrayElementAtIndex(index);
+                var commuter = (GameObject)
+                    resident.FindPropertyRelative("TownPrefab").objectReferenceValue;
+                if (commuter == null)
+                    continue;
+                string workplace = PlaceScenes.SceneOf(
+                    life.FindNpc(commuter.GetComponent<NpcIdentity>().Code)?.Workplace
+                );
+                SpaceDoorway door = doors.FirstOrDefault(item =>
+                    PlaceScenes.IsTownShop(item.DestinationScene)
+                    && item.DestinationScene == workplace
+                );
+                if (door != null)
+                    resident.FindPropertyRelative("WorkplaceDoor").vector3Value =
+                        door.ArrivalPoint.position;
             }
             fields.ApplyModifiedPropertiesWithoutUndo();
         }

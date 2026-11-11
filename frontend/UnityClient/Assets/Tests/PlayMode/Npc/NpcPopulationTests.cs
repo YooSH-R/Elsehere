@@ -1032,6 +1032,111 @@ namespace A305.Npc.PlayModeTests
             Assert.That(server.gameObject.activeSelf, Is.True);
         }
 
+        // 플레이어가 매장 안에 있을 때 직원은 근무 10분 전에 마을 문으로 들어온 것처럼 문 안쪽 도착 지점에 나타난다.
+        [UnityTest]
+        public IEnumerator PostOffice_StaffWalkInThroughTheTownDoorBeforeTheShift()
+        {
+            SetClock(5 * 60 + 46);
+            yield return LoadWithoutApis("PostOfficeInterior");
+            NpcIdentity staff = Object
+                .FindFirstObjectByType<NpcPopulation>()
+                .FindWorker("POST_OFFICE_STAFF");
+            Assert.That(staff.gameObject.activeSelf, Is.False, "준비: 6시 근무 14분 전");
+
+            Tick(5 * 60 + 50, 1);
+            yield return null;
+            yield return null;
+
+            Transform entry = Object
+                .FindObjectsByType<SpaceDoorway>(FindObjectsSortMode.None)
+                .Single(door => door.DestinationScene == "TownScene")
+                .ArrivalPoint;
+            Assert.That(staff.gameObject.activeSelf, Is.True);
+            Assert.That(
+                HorizontalDistance(staff.transform.position, entry.position),
+                Is.LessThan(1f)
+            );
+            Assert.That(
+                NpcWorkArrivals.HasArrived("POST_OFFICE_STAFF", 6 * 60),
+                Is.True,
+                "마을로 나가도 이미 들어온 직원은 길에 다시 나오지 않는다."
+            );
+        }
+
+        // 근무가 끝나도 그 자리에서 사라지지 않고 문 쪽으로 걸어 나간 뒤 사라진다.
+        [UnityTest]
+        public IEnumerator PostOffice_StaffWalkOutThroughTheDoorAfterTheShift()
+        {
+            SetClock(17 * 60 + 58);
+            yield return LoadWithoutApis("PostOfficeInterior");
+            NpcIdentity staff = Object
+                .FindFirstObjectByType<NpcPopulation>()
+                .FindWorker("POST_OFFICE_STAFF");
+            Assert.That(staff.gameObject.activeSelf, Is.True, "준비: 18시 근무가 끝나기 직전");
+            Transform door = Object
+                .FindObjectsByType<SpaceDoorway>(FindObjectsSortMode.None)
+                .Single(item => item.DestinationScene == "TownScene")
+                .transform;
+            float startDistance = HorizontalDistance(staff.transform.position, door.position);
+
+            Tick(18 * 60, 1);
+            yield return null;
+            yield return null;
+            Assert.That(staff.gameObject.activeSelf, Is.True, "근무가 끝나자마자 사라지지 않는다.");
+
+            float previousDelta = Time.captureDeltaTime;
+            try
+            {
+                Time.captureDeltaTime = 1f / 30f;
+                for (int frame = 0; frame < 900 && staff.gameObject.activeSelf; frame++)
+                    yield return null;
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDelta;
+            }
+            Assert.That(staff.gameObject.activeSelf, Is.False, "문으로 나가 사라진다.");
+            Assert.That(
+                HorizontalDistance(staff.transform.position, door.position),
+                Is.LessThan(startDistance),
+                "문 쪽으로 걸어간 뒤 사라진다."
+            );
+        }
+
+        private static IEnumerator LoadWithoutApis(string sceneName)
+        {
+            SceneManager.sceneLoaded += DisableWalkingTestApis;
+            try
+            {
+                yield return SceneManager.LoadSceneAsync(sceneName);
+                yield return null;
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= DisableWalkingTestApis;
+            }
+        }
+
+        // 시계를 이어서 흐른 시각으로 옮긴다. 신호 간격이 지나야 새 시각을 받으므로 부를 때마다 더 늦은 신호 시각을 보낸다.
+        private static void Tick(int minutes, int beat)
+        {
+            GameClock
+                .Shared.TickAsync(
+                    new FixedClock
+                    {
+                        Time = new GameClockTime
+                        {
+                            Day = 1,
+                            MinuteOfDay = minutes,
+                            Paused = true,
+                        },
+                    },
+                    UnityEngine.Time.realtimeSinceStartupAsDouble + 1e6 * beat
+                )
+                .GetAwaiter()
+                .GetResult();
+        }
+
         [SetUp]
         public void SetUp()
         {
@@ -1045,6 +1150,14 @@ namespace A305.Npc.PlayModeTests
         {
             TutorialState.Clear();
             NpcDuty.MissionNpcCode = null;
+            // 다음 시험이 시계를 바꾸고 새 장면을 불러오는 동안 남은 장면(호텔 등)의 직원이 그 시각으로 드나들며
+            // 출근 기록을 남기지 않게 한다.
+            foreach (
+                NpcPopulation population in Object.FindObjectsByType<NpcPopulation>(
+                    FindObjectsSortMode.None
+                )
+            )
+                population.enabled = false;
             SetClock(8 * 60);
         }
 

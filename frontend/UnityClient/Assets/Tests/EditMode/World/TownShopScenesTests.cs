@@ -166,6 +166,52 @@ namespace A305.World.Tests
             );
         }
 
+        // 출근·여가 방문 NPC는 마을에서 실제 매장 문 앞(씬 전환 도착 지점)까지 걸어가 들어가고,
+        // 매장 장면에서는 마을 문 안쪽 도착 지점에서 나타나 그곳으로 나간다. 문이 공용 계단실에 있는 오락실로 확인한다.
+        [Test]
+        public void ShopVisitsAndCommutesGoThroughTheShopDoor()
+        {
+            SpaceDoorway townDoor = BuilderTools
+                .FindAllInScene<SpaceDoorway>(town)
+                .Single(door => door.DestinationScene == "LittleArcadeInterior");
+            NpcOutingVenue arcade = AssetDatabase
+                .LoadAssetAtPath<NpcOutingCatalog>("Assets/Resources/NpcOutings.asset")
+                .Venues.Single(venue => venue.Code == "ARCADE");
+            Assert.That(
+                Vector3.Distance(arcade.Entrance, townDoor.ArrivalPoint.position),
+                Is.LessThan(.05f),
+                "여가 방문객은 오락실 문 앞에서 들어간다."
+            );
+            Assert.That(
+                Vector3.Distance(CommuteDoor(town, "ARCADE_STAFF"), townDoor.ArrivalPoint.position),
+                Is.LessThan(.05f),
+                "출근하는 직원도 오락실 문 앞에서 들어간다."
+            );
+
+            Scene shop = Open("LittleArcadeInterior");
+            Vector3 inside = BuilderTools
+                .FindAllInScene<SpaceDoorway>(shop)
+                .Single(door => door.DoorwayId == "TownDoor")
+                .ArrivalPoint.position;
+            Assert.That(Vector3.Distance(arcade.Inside, inside), Is.LessThan(.05f));
+        }
+
+        private static Vector3 CommuteDoor(Scene scene, string npcCode)
+        {
+            SerializedProperty residents = new SerializedObject(
+                BuilderTools.FindSingleInScene<NpcPopulation>(scene)
+            ).FindProperty("residents");
+            for (int index = 0; index < residents.arraySize; index++)
+            {
+                SerializedProperty resident = residents.GetArrayElementAtIndex(index);
+                var prefab = (GameObject)
+                    resident.FindPropertyRelative("TownPrefab").objectReferenceValue;
+                if (prefab != null && prefab.GetComponent<NpcIdentity>().Code == npcCode)
+                    return resident.FindPropertyRelative("WorkplaceDoor").vector3Value;
+            }
+            throw new AssertionException(npcCode + "의 출퇴근 연결이 없습니다.");
+        }
+
         private string[] BuildingParts(string building, string group)
         {
             Transform found = town.GetRootGameObjects()

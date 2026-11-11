@@ -38,6 +38,23 @@ namespace A305.Npc
             return shiftStart.HasValue && HasArrived(npc.NpcId, shiftStart.Value);
         }
 
+        /// <summary>일터 장면에 플레이어가 있을 때 직원이 근무 전에 문으로 들어오는 때(근무 시작까지 남은 게임 분)</summary>
+        public const double EarlyArrivalMinutes = 10;
+
+        /// <summary>
+        /// 일터 장면 안에 있어야 하는지. 근무 중이거나 이미 들어왔거나, 근무 10분 전부터는 문으로 들어온다.
+        /// 짧은 휴식은 일터 앞에서 쉬다가 근무가 다시 시작할 때 들어온다.
+        /// </summary>
+        public static bool ShouldBeInside(NpcLifeEntry npc, NpcDayPlan plan, double minutes)
+        {
+            if (IsAtWork(npc, plan, minutes))
+                return true;
+            if (plan.Phase != NpcDayPhase.GoingToWork || plan.IsShortBreak || plan.IsErrand)
+                return false;
+            double? shiftStart = NpcDayPlan.NextWorkStart(npc, minutes);
+            return shiftStart.HasValue && shiftStart.Value - minutes <= EarlyArrivalMinutes;
+        }
+
         private static void Synchronize()
         {
             if (observedClock == GameClock.Shared)

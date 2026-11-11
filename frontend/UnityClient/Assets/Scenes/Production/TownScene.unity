@@ -10411,16 +10411,16 @@ MonoBehaviour:
   residents:
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 8576930962420144730, guid: eaf81ed8c85fc3b41a39b31c6065ffa6, type: 3}
-    WorkplaceDoor: {x: 6, y: 0.1, z: 30}
+    WorkplaceDoor: {x: 7.8999996, y: 0.1, z: 31.07}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 5280084960164970840, guid: e4cb6c8a44c645b42b6d5c85b01b09df, type: 3}
-    WorkplaceDoor: {x: -6, y: 0.1, z: 21}
+    WorkplaceDoor: {x: -5.91, y: 0.1, z: 21}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 1319181608983540072, guid: 8d51aaad0a7678d4ea5f95b77ed43391, type: 3}
-    WorkplaceDoor: {x: -6, y: 0.1, z: 48}
+    WorkplaceDoor: {x: -5.91, y: 0.1, z: 48}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 1460508241262161788, guid: 1222d76b7713c524fbc27512ace54e58, type: 3}
-    WorkplaceDoor: {x: 6, y: 0.1, z: 57}
+    WorkplaceDoor: {x: 5.91, y: 0.1, z: 57}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 4264040823083712367, guid: 53e6742d8b1fa8e4f868d30af04c95ab, type: 3}
     WorkplaceDoor: {x: -5.9500003, y: 0.1, z: -11}
@@ -10432,28 +10432,28 @@ MonoBehaviour:
     WorkplaceDoor: {x: -5.9500003, y: 0.1, z: -11}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 8217304720189692471, guid: 7a46d61566e1b6a4da985c7ef073c483, type: 3}
-    WorkplaceDoor: {x: 6, y: 0.1, z: 39}
+    WorkplaceDoor: {x: 5.91, y: 0.1, z: 39}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 2436965154253631029, guid: c6eb4cdb7438e5341ba3b9b214b14913, type: 3}
-    WorkplaceDoor: {x: 6, y: 0.1, z: 39}
+    WorkplaceDoor: {x: 5.91, y: 0.1, z: 39}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 5801863881156856712, guid: 040d0d44c0ec96e4eb6ff8d5d8703f0a, type: 3}
-    WorkplaceDoor: {x: 6, y: 0.1, z: 48}
+    WorkplaceDoor: {x: 5.91, y: 0.1, z: 48}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 3912906751004360516, guid: 17d9a13c252b6f245aac82eb3a51bb79, type: 3}
-    WorkplaceDoor: {x: 6, y: 0.1, z: 57}
+    WorkplaceDoor: {x: 5.91, y: 0.1, z: 57}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 1044195788135224397, guid: 5de75fc4390537b4f925394912723c56, type: 3}
-    WorkplaceDoor: {x: -6, y: 0.1, z: 57}
+    WorkplaceDoor: {x: -5.91, y: 0.1, z: 57}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 428580798053154157, guid: 5c59ed740485d3b4aa9944f3efd74e8f, type: 3}
-    WorkplaceDoor: {x: -6, y: 0.1, z: 39}
+    WorkplaceDoor: {x: -5.9100003, y: 0.1, z: 36.300003}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 6872769922888930456, guid: 19664740779396a46bf61452d9ac90bf, type: 3}
     WorkplaceDoor: {x: 5.9500003, y: 0.1, z: -5.0000005}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 2963122288457708993, guid: 938e463def8723b41a5e1b999879c4d2, type: 3}
-    WorkplaceDoor: {x: -6, y: 0.1, z: 57}
+    WorkplaceDoor: {x: -5.91, y: 0.1, z: 57}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 4072082973064928275, guid: e704ed748c7a9224094065f86fbdae38, type: 3}
     WorkplaceDoor: {x: 5.9500003, y: 0.1, z: -5.0000005}
@@ -10465,13 +10465,13 @@ MonoBehaviour:
     WorkplaceDoor: {x: 5.9500003, y: 0.1, z: -5.0000005}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 5050868172629555750, guid: 6b96af67f928d0a47979fd6000cc04b0, type: 3}
-    WorkplaceDoor: {x: 6, y: 0.1, z: 48}
+    WorkplaceDoor: {x: 5.91, y: 0.1, z: 48}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 8028408354879105492, guid: aa1fac8ff9c5344478ffa9fa679bf10c, type: 3}
     WorkplaceDoor: {x: -6, y: 0.1, z: -20}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 3227541724215943488, guid: 01eb79cd9c703ba479ece3e182989fd7, type: 3}
-    WorkplaceDoor: {x: -6, y: 0.1, z: 21}
+    WorkplaceDoor: {x: -5.91, y: 0.1, z: 21}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 7678684862207516068, guid: 79b5124a51d8bf341ae6386d11261a90, type: 3}
     WorkplaceDoor: {x: -6, y: 0.1, z: -20}
@@ -10480,7 +10480,7 @@ MonoBehaviour:
     WorkplaceDoor: {x: -6, y: 0.1, z: -20}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 6896645615262631399, guid: a94f4d765a83ac945ab8469ab86dff02, type: 3}
-    WorkplaceDoor: {x: -6, y: 0.1, z: 30}
+    WorkplaceDoor: {x: -5.91, y: 0.1, z: 30}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 7358555286106741504, guid: 8b7b9c6a4b1b12847a1194d73bf62762, type: 3}
     WorkplaceDoor: {x: -5.929999, y: 0.099999905, z: -0.99999964}
@@ -10492,7 +10492,7 @@ MonoBehaviour:
     WorkplaceDoor: {x: -5.929999, y: 0.099999905, z: -0.99999964}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 6279788864319505419, guid: b4d556a45b7a8e245ab95582a76d7a53, type: 3}
-    WorkplaceDoor: {x: -6, y: 0.1, z: 48}
+    WorkplaceDoor: {x: -5.91, y: 0.1, z: 48}
   - Worker: {fileID: 212753950}
     TownPrefab: {fileID: 3685920245885430171, guid: fd872e6f21893684baf8b866ec8ba9e0, type: 3}
     WorkplaceDoor: {x: 5, y: 0.15, z: 27}
@@ -10501,19 +10501,19 @@ MonoBehaviour:
     WorkplaceDoor: {x: 5.8, y: 0.15, z: 27}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 6472499149120176818, guid: ee5461a54c957084fadd537ecc5a4a6c, type: 3}
-    WorkplaceDoor: {x: -6, y: 0.1, z: 39}
+    WorkplaceDoor: {x: -5.9100003, y: 0.1, z: 36.300003}
   - Worker: {fileID: 286481413}
     TownPrefab: {fileID: 8172341789324579226, guid: 963f240b5151a4044a29849c6b6b2005, type: 3}
     WorkplaceDoor: {x: 4.949999, y: 0.120000005, z: -14}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 3000402687859073877, guid: 3b8bab926491c1c4aa3bc1960bebc234, type: 3}
-    WorkplaceDoor: {x: -6, y: 0.1, z: 30}
+    WorkplaceDoor: {x: -5.91, y: 0.1, z: 30}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 3498078292270470460, guid: d0e8bc87218240a42a7452497a5f1086, type: 3}
-    WorkplaceDoor: {x: -6, y: 0.1, z: 48}
+    WorkplaceDoor: {x: -5.91, y: 0.1, z: 48}
   - Worker: {fileID: 0}
     TownPrefab: {fileID: 2739412081065353341, guid: f38e12a9185ca12409b82ea1c04f6104, type: 3}
-    WorkplaceDoor: {x: 6, y: 0.1, z: 30}
+    WorkplaceDoor: {x: 7.8999996, y: 0.1, z: 31.07}
   dormDoor: {x: -20, y: 0.1, z: 16.5}
   park: {x: 11, y: 0.1, z: 21}
   townCharacters: {fileID: 1794650409}

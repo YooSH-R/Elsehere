@@ -15,7 +15,9 @@ import com.elsehere.feedback.repository.ConversationFeedbackRepository;
 import com.elsehere.review.entity.ReviewCard;
 import com.elsehere.review.repository.ReviewCardRepository;
 import com.elsehere.world.entity.Npc;
+import com.elsehere.world.entity.PlaceGroup;
 import com.elsehere.world.repository.NpcRepository;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,15 +57,28 @@ public class ConversationHistoryService {
     return list(userId, npcCode, null, cursor, size, false);
   }
 
+  public ConversationListResponse list(
+      Long userId,
+      String npcCode,
+      String sceneCode,
+      String cursor,
+      int size,
+      boolean feedbackOnly) {
+    return list(userId, npcCode, sceneCode, null, cursor, size, feedbackOnly);
+  }
+
   /**
    * 대화 노트는 완료된 피드백이 있는 대화만 조회하고, 일반 대화 기록은 기존 조건을 유지한다.
    *
    * @param sceneCode 이 장소의 NPC와 나눈 대화만 본다. null이면 모든 장소다. 없는 코드면 빈 목록이다.
+   * @param placeGroupName 대화 노트 장소 탭의 묶음(PlaceGroup 이름). NPC의 실제 근무지로 거르고, 근무 시간 밖에 만난 대화는 일상이다.
+   *     null이면 모든 묶음이다.
    */
   public ConversationListResponse list(
       Long userId,
       String npcCode,
       String sceneCode,
+      String placeGroupName,
       String cursor,
       int size,
       boolean feedbackOnly) {
@@ -73,6 +88,7 @@ public class ConversationHistoryService {
             && (sceneCode.isBlank() || sceneCode.length() > MAX_SCENE_CODE_LENGTH))) {
       throw new BusinessException(ErrorCode.VALIDATION_FAILED);
     }
+    PlaceGroup placeGroup = placeGroupName == null ? null : parsePlaceGroup(placeGroupName);
     Long npcId = null;
     if (npcCode != null) {
       Optional<Npc> npc = npcRepository.findByCode(npcCode);
@@ -86,31 +102,51 @@ public class ConversationHistoryService {
     Limit limit = Limit.of(size + 1);
     List<Conversation> fetched =
         cursor == null
-            ? firstPage(userId, npcId, sceneCode, limit, feedbackOnly)
-            : pageAfterCursor(userId, npcId, sceneCode, cursor, limit, feedbackOnly);
+            ? firstPage(userId, npcId, sceneCode, placeGroup, limit, feedbackOnly)
+            : pageAfterCursor(userId, npcId, sceneCode, placeGroup, cursor, limit, feedbackOnly);
     boolean hasNext = fetched.size() > size;
     List<Conversation> page = hasNext ? fetched.subList(0, size) : fetched;
     String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
     return new ConversationListResponse(summaries(userId, page), nextCursor);
   }
 
+  /** 대문자 이름이 정확히 같은 묶음만 받는다. 없는 묶음은 잘못된 요청이다. */
+  private static PlaceGroup parsePlaceGroup(String name) {
+    return Arrays.stream(PlaceGroup.values())
+        .filter(group -> group.name().equals(name))
+        .findFirst()
+        .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED));
+  }
+
   private List<Conversation> firstPage(
-      Long userId, Long npcId, String sceneCode, Limit limit, boolean feedbackOnly) {
+      Long userId,
+      Long npcId,
+      String sceneCode,
+      PlaceGroup placeGroup,
+      Limit limit,
+      boolean feedbackOnly) {
     if (feedbackOnly) {
-      return conversationFeedbackRepository.findCompletedFirstPage(userId, npcId, sceneCode, limit);
+      return conversationFeedbackRepository.findCompletedFirstPage(
+          userId, npcId, sceneCode, placeGroup, limit);
     }
-    return conversationRepository.findHistoryFirstPage(userId, npcId, sceneCode, limit);
+    return conversationRepository.findHistoryFirstPage(userId, npcId, sceneCode, placeGroup, limit);
   }
 
   private List<Conversation> pageAfterCursor(
-      Long userId, Long npcId, String sceneCode, String cursor, Limit limit, boolean feedbackOnly) {
+      Long userId,
+      Long npcId,
+      String sceneCode,
+      PlaceGroup placeGroup,
+      String cursor,
+      Limit limit,
+      boolean feedbackOnly) {
     Conversation last = findCursorConversation(userId, cursor);
     if (feedbackOnly) {
       return conversationFeedbackRepository.findCompletedPageAfter(
-          userId, npcId, sceneCode, last.getStartedAt(), last.getId(), limit);
+          userId, npcId, sceneCode, placeGroup, last.getStartedAt(), last.getId(), limit);
     }
     return conversationRepository.findHistoryPageAfter(
-        userId, npcId, sceneCode, last.getStartedAt(), last.getId(), limit);
+        userId, npcId, sceneCode, placeGroup, last.getStartedAt(), last.getId(), limit);
   }
 
   /** 숫자가 아니거나, 없거나, 다른 사용자의 대화를 가리키는 커서는 잘못된 요청이다. */
@@ -145,15 +181,25 @@ public class ConversationHistoryService {
     Map<Long, NpcContext> npcs = new HashMap<>();
     Function<Long, NpcContext> npcOf =
         npcId -> npcs.computeIfAbsent(npcId, dialogueContexts::npcById);
+    Map<Long, Npc> workplaces =
+        npcRepository
+            .findAllById(page.stream().map(Conversation::getNpcId).distinct().toList())
+            .stream()
+            .collect(Collectors.toMap(Npc::getId, Function.identity()));
     return page.stream()
         .map(
             conversation -> {
               NpcContext npc = npcOf.apply(conversation.getNpcId());
               ConversationFeedback feedback = feedbacks.get(conversation.getId());
+              // 단어장(VOCAB-01)과 같이 근무 시간 밖에 만난 대화는 일하는 곳 없이 일상으로 묶는다.
+              Npc workplace = workplaces.get(conversation.getNpcId());
+              boolean offDuty = conversation.isNpcOffDuty();
               return new ConversationSummaryResponse(
                   conversation.getId(),
                   npc.summary(),
                   npc.sceneCode(),
+                  offDuty ? null : workplace.getPlaceName(),
+                  offDuty ? PlaceGroup.DAILY : workplace.getPlaceGroup(),
                   conversation.getStatus(),
                   conversation.getEndReason(),
                   ConversationResponses.toOffset(conversation.getStartedAt()),

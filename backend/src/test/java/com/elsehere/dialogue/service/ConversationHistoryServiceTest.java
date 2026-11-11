@@ -20,6 +20,7 @@ import com.elsehere.feedback.entity.FeedbackStatus;
 import com.elsehere.review.entity.ReviewCard;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
+import com.elsehere.world.entity.PlaceGroup;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -299,6 +300,79 @@ class ConversationHistoryServiceTest {
   void list_blankScene_isRejected(String sceneCode) {
     assertValidationFailed(
         () -> conversationHistoryService.list(userId, null, sceneCode, null, 20, true));
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  @DisplayName("장소 묶음을 주면 NPC의 실제 근무지가 그 묶음인 대화만 돌려주고, 근무 시간 밖에 만난 대화는 뺀다")
+  void list_byPlaceGroup_returnsConversationsAtThatWorkplaceGroup(boolean feedbackOnly) {
+    Conversation cafe = start(userId, "CAFE_STAFF", MORNING);
+    completeFeedback(cafe);
+    // 소방대장 Ray는 마을 NPC지만 식당에서 일한다.
+    Conversation diner = start(userId, "FIRE_CAPTAIN", MORNING.plusSeconds(60));
+    completeFeedback(diner);
+    completeFeedback(start(userId, "HOTEL_STAFF", MORNING.plusSeconds(120)));
+    Conversation offDuty = start(userId, "CAFE_BARISTA", MORNING.plusSeconds(180));
+    offDuty.markNpcOffDuty();
+    completeFeedback(offDuty);
+    entityManager.flush();
+
+    ConversationListResponse response =
+        conversationHistoryService.list(userId, null, null, "FOOD", null, 20, feedbackOnly);
+
+    assertThat(response.items())
+        .extracting(ConversationSummaryResponse::conversationId)
+        .containsExactly(diner.getId(), cafe.getId());
+  }
+
+  @Test
+  @DisplayName("일상 묶음에는 거리에서 만난 NPC와 근무 시간 밖에 만난 NPC와의 대화가 함께 들어간다")
+  void list_dailyPlaceGroup_includesOffDutyConversations() {
+    Conversation street = start(userId, "TOWN_PASSERBY", MORNING);
+    completeFeedback(street);
+    Conversation offDuty = start(userId, "CAFE_BARISTA", MORNING.plusSeconds(60));
+    offDuty.markNpcOffDuty();
+    completeFeedback(offDuty);
+    completeFeedback(start(userId, "CAFE_STAFF", MORNING.plusSeconds(120)));
+    entityManager.flush();
+
+    ConversationListResponse response =
+        conversationHistoryService.list(userId, null, null, "DAILY", null, 20, true);
+
+    assertThat(response.items())
+        .extracting(ConversationSummaryResponse::conversationId)
+        .containsExactly(offDuty.getId(), street.getId());
+  }
+
+  @Test
+  @DisplayName("대화마다 NPC가 일하는 곳과 장소 묶음을 주고, 근무 시간 밖 대화는 장소 없이 일상이다")
+  void list_returnsWorkplaceAndPlaceGroup() {
+    Conversation diner = start(userId, "FIRE_CAPTAIN", MORNING);
+    completeFeedback(diner);
+    Conversation offDuty = start(userId, "CAFE_BARISTA", MORNING.plusSeconds(60));
+    offDuty.markNpcOffDuty();
+    completeFeedback(offDuty);
+    entityManager.flush();
+
+    ConversationListResponse response =
+        conversationHistoryService.list(userId, null, null, null, null, 20, true);
+
+    assertThat(response.items())
+        .extracting(
+            ConversationSummaryResponse::conversationId,
+            ConversationSummaryResponse::placeName,
+            ConversationSummaryResponse::placeGroup)
+        .containsExactly(
+            tuple(offDuty.getId(), null, PlaceGroup.DAILY),
+            tuple(diner.getId(), "식당", PlaceGroup.FOOD));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", " ", "PARK", "food"})
+  @DisplayName("없는 장소 묶음은 VALIDATION_FAILED로 거절한다")
+  void list_unknownPlaceGroup_isRejected(String placeGroup) {
+    assertValidationFailed(
+        () -> conversationHistoryService.list(userId, null, null, placeGroup, null, 20, true));
   }
 
   private void completeFeedback(Conversation conversation) {

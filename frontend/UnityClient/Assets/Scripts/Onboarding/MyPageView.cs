@@ -401,7 +401,7 @@ namespace A305.Onboarding
         private void Render()
         {
             bool canEdit = flow.User != null && !flow.IsBusy;
-            profileText.text = flow.User != null ? MyPageText.Profile(flow.User) : "";
+            profileText.text = flow.User != null ? MyPageText.ProfileForDisplay(flow.User) : "";
             statusText.text = flow.Message ?? "";
             // 게스트는 닉네임을 바꾸지 못해 칸과 버튼을 막고, 이유는 아래 안내 줄에 보인다.
             bool canChangeNickname = canEdit && flow.CanChangeNickname;
@@ -427,7 +427,8 @@ namespace A305.Onboarding
                         ConsentType = consent.ConsentType,
                         Title = consent.Title,
                         Url = consent.Url,
-                    }
+                    },
+                    showRequirement: false
                 );
                 row.Toggle.SetIsOnWithoutNotify(consent.Agreed);
                 row.Toggle.interactable = canEdit;

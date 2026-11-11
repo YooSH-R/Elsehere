@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using A305.EditorTools.Common;
+using A305.EditorTools.Theme;
 using A305.Onboarding;
 using A305.Player;
 using A305.Theme;
@@ -18,6 +19,14 @@ namespace A305.EditorTools.Onboarding
     /// </summary>
     public static class MyPagePreview
     {
+        public static void CaptureUpdated()
+        {
+            MyPageLayoutBuilder.ApplyToPrefab();
+            PhoneMenuBuilder.ApplyBalanceToPrefab();
+            Capture();
+            PhoneMenuBuilder.CaptureControlsPreview();
+        }
+
         [MenuItem("Tools/A305/Onboarding/Capture My Page")]
         public static void Capture()
         {
@@ -25,21 +34,62 @@ namespace A305.EditorTools.Onboarding
                 Environment.GetEnvironmentVariable("MY_PAGE_PREVIEW_OUTPUT")
                 ?? Path.GetFullPath("../../artifacts/my-page-captures");
             Directory.CreateDirectory(output);
-            var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/HomeScene.unity");
+            var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/CafeScene.unity");
             Camera camera = BuilderTools
                 .FindSingleInScene<PlayerCameraRig>(scene)
                 .GetComponent<Camera>();
             camera.GetUniversalAdditionalCameraData().renderPostProcessing = false;
+            var player = BuilderTools.FindSingleInScene<PlayerMover>(scene);
+            Quaternion rotation = Quaternion.Euler(12, player.transform.eulerAngles.y, 0);
+            camera.transform.SetPositionAndRotation(
+                player.transform.position + Vector3.up * 1.5f + rotation * new Vector3(0, 0, -4),
+                rotation
+            );
             foreach (Canvas other in BuilderTools.FindAllInScene<Canvas>(scene))
                 other.gameObject.SetActive(false);
             var view = BuilderTools.FindSingleInScene<MyPageView>(scene);
             GameObject root = view.gameObject;
             root.SetActive(true);
+            foreach (Transform child in root.transform)
+                child.gameObject.SetActive(child.name == "MyPage");
             Transform overlay = root.transform.Find("MyPage");
             overlay.gameObject.SetActive(true);
             overlay.Find("Window").gameObject.SetActive(true);
+            overlay.Find("LogoutDialog").gameObject.SetActive(false);
+            overlay.Find("WithdrawDialog").gameObject.SetActive(false);
+            overlay.Find("Window/Profile").GetComponent<TMPro.TMP_Text>().text =
+                MyPageText.ProfileForDisplay(
+                    new OnboardingUser
+                    {
+                        Nickname = "tumblur",
+                        AvatarType = AvatarType.F,
+                        CurrentLanguage = "en-US",
+                    }
+                );
+            overlay.Find("Window/Status").GetComponent<TMPro.TMP_Text>().text = "";
+            Transform consents = overlay.Find("Window/Consents");
+            ConsentRowView template = consents
+                .Find("ConsentRowTemplate")
+                .GetComponent<ConsentRowView>();
+            foreach (
+                string title in new[]
+                {
+                    "음성 처리 동의",
+                    "AI 개선에 내 대화 기록 활용",
+                    "AI 개선에 내 녹음 음성 활용",
+                }
+            )
+            {
+                ConsentRowView row = UnityEngine.Object.Instantiate(template, consents, false);
+                row.gameObject.SetActive(true);
+                row.Show(
+                    new ConsentTerm { Title = title, Url = "about:blank" },
+                    showRequirement: false
+                );
+            }
+            template.gameObject.SetActive(false);
             SetSlider(overlay, "Window/LookSensitivity", "1.0배", 1f);
-            SetSlider(overlay, "Window/NpcSpeechSpeed", "1.3배", 1.3f);
+            SetSlider(overlay, "Window/NpcSpeechSpeed", "1.1배", 1.1f);
             Canvas canvas = root.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceCamera;
             canvas.worldCamera = camera;
@@ -78,6 +128,10 @@ namespace A305.EditorTools.Onboarding
             Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)overlay);
             Canvas.ForceUpdateCanvases();
+            foreach (
+                PillContentLayout button in overlay.GetComponentsInChildren<PillContentLayout>()
+            )
+                button.Arrange();
             camera.Render();
             RenderTexture.active = target;
             var image = new Texture2D(width, height, TextureFormat.RGB24, false);

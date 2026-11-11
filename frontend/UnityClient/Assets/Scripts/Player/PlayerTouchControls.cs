@@ -68,6 +68,9 @@ namespace A305.Player
 
         public TouchDragInput Look { get; } = new TouchDragInput();
 
+        /// <summary>시점 영역에 댄 두 손가락. 벌리면 가까이, 오므리면 멀리 본다.</summary>
+        public TouchPinchInput Pinch { get; } = new TouchPinchInput();
+
         public bool IsInputLocked { get; private set; }
 
         public void SetInputLocked(bool isLocked)
@@ -92,6 +95,17 @@ namespace A305.Player
             return surfaceCanvas.enabled && !IsInputLocked
                 ? delta * settings.LookSensitivity
                 : Vector2.zero;
+        }
+
+        /// <summary>
+        /// 두 손가락을 벌리고 오므린 양을 마우스 휠 칸 수로 바꾼다. 벌리면 +(가까이)다. 한 번 읽으면 비우며, 이동이 잠긴 동안 한 것은 버린다.
+        /// </summary>
+        public float ConsumeZoomSteps()
+        {
+            float spread = Pinch.ConsumeSpread();
+            return surfaceCanvas.enabled && !IsInputLocked
+                ? spread / settings.PinchUnitsPerZoomStep
+                : 0f;
         }
 
         public Vector2 Move =>
@@ -174,6 +188,7 @@ namespace A305.Player
         {
             Movement.Reset();
             Look.Reset();
+            Pinch.Reset();
             viewTogglePressed = false;
             jumpPressed = false;
         }

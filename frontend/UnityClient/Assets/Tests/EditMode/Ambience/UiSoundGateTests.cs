@@ -6,6 +6,14 @@ namespace A305.Ambience.Tests
     public sealed class UiSoundGateTests
     {
         [Test]
+        public void OrdinaryClicksAreSoftAndImportantActionsKeepTheirLevel()
+        {
+            Assert.That(UiSoundGate.Level(UiSound.Click), Is.LessThan(.15f));
+            Assert.That(UiSoundGate.Level(UiSound.PrimaryClick), Is.EqualTo(.28f));
+            Assert.That(UiSoundGate.Level(UiSound.Menu), Is.EqualTo(.25f));
+        }
+
+        [Test]
         public void MutingDoesNotConsumeTheNextAudibleClick()
         {
             var gate = new UiSoundGate();

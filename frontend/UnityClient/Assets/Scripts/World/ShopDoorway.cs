@@ -40,7 +40,7 @@ namespace A305.World
             }
         }
 
-        /// <summary>복습장처럼 목적지를 골라 방문할 때도 일반 출입문 전환을 사용한다.</summary>
+        /// <summary>대화 노트의 [다시 연습]처럼 목적지를 골라 방문할 때도 일반 출입문 전환을 사용한다.</summary>
         public bool TryEnter(PlayerMover player)
         {
             if (!isActiveAndEnabled)

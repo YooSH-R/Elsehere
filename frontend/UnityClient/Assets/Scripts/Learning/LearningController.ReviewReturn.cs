@@ -138,7 +138,7 @@ namespace A305.Learning
         {
             if (returningRecord != null)
                 ShowReturnedReviewResult(returningReview, returningRecord);
-            hudView.ShowMessage("원래 자리로 돌아가지 못했어요. 복습장을 닫으면 다시 시도해요.");
+            hudView.ShowMessage("원래 자리로 돌아가지 못했어요. 이 창을 닫으면 다시 시도해요.");
         }
 
         private void ShowReturnedReviewResult(ReviewCard card, DialogueRecord record)

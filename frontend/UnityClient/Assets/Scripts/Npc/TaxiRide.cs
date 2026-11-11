@@ -115,7 +115,7 @@ namespace A305.Npc
                 if (destination != null && car.HasPulledOver && !arriving)
                 {
                     arriving = true;
-                    panel.SetVehicleStatus("도착했어요 · 하차 준비 중");
+                    panel.ShowTaxiArrival();
                     dialogue.End();
                 }
                 return;

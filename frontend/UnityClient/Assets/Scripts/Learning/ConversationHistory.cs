@@ -8,7 +8,7 @@ using A305.Dialogue;
 namespace A305.Learning
 {
     /// <summary>
-    /// [피드백 목록] 창의 목록과 열기. 지난 대화를 한 페이지씩 읽고(CONV-09), 고른 대화의 저장된 피드백(FB-01)과 대화 기록(CONV-10)을
+    /// [대화 노트] 창의 목록과 열기. 지난 대화를 한 페이지씩 읽고(CONV-09), 고른 대화의 저장된 피드백(FB-01)과 대화 기록(CONV-10)을
     /// 대화 직후와 같은 피드백 화면에 보일 형식으로 바꾼다. 실패하면 <see cref="Message"/>에 이유를 남긴다.
     /// </summary>
     public sealed class ConversationHistory
@@ -32,11 +32,17 @@ namespace A305.Learning
 
         public bool IsBusy { get; private set; }
 
+        /// <summary>장소 탭에서 고른 장소. null이면 모든 장소.</summary>
+        public string SceneCode { get; private set; }
+
         /// <summary>마지막 요청이 실패한 이유. 없으면 null.</summary>
         public string Message { get; private set; }
 
-        /// <summary>첫 페이지를 다시 읽는다. 창을 열 때마다 불러 방금 끝낸 대화도 보인다. 실패하면 이전 목록을 그대로 둔다.</summary>
-        public async Task<bool> LoadAsync()
+        /// <summary>
+        /// 첫 페이지를 다시 읽는다. 창을 열 때마다 불러 방금 끝낸 대화도 보인다. 실패하면 이전 목록과 장소를 그대로 둔다.
+        /// </summary>
+        /// <param name="sceneCode">장소 탭에서 고른 장소. null이면 모든 장소.</param>
+        public async Task<bool> LoadAsync(string sceneCode = null)
         {
             if (IsBusy)
             {
@@ -45,9 +51,10 @@ namespace A305.Learning
 
             return await RunAsync(async () =>
             {
-                ConversationPage page = await api.GetPageAsync(null);
+                ConversationPage page = await api.GetPageAsync(null, sceneCode);
                 items.Clear();
                 Append(page);
+                SceneCode = sceneCode;
             });
         }
 
@@ -59,7 +66,9 @@ namespace A305.Learning
                 return false;
             }
 
-            return await RunAsync(async () => Append(await api.GetPageAsync(nextCursor)));
+            return await RunAsync(async () =>
+                Append(await api.GetPageAsync(nextCursor, SceneCode))
+            );
         }
 
         /// <returns>피드백 화면에 보일 지난 대화. 불러오지 못하면 null.</returns>

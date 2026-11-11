@@ -34,6 +34,9 @@ namespace A305.Learning
         public string FeedbackStatus { get; set; }
 
         public bool FeedbackUnread { get; set; }
+
+        /// <summary>이 대화로 [다시 연습]한 횟수. 연습하지 않았으면 0.</summary>
+        public int PracticeCount { get; set; }
     }
 
     /// <summary>FB-01 저장된 피드백. 짧은 피드백 형식은 대화 종료(CONV-08)와 같다.</summary>

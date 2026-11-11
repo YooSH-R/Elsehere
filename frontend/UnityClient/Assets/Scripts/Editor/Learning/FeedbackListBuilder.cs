@@ -10,15 +10,27 @@ using F = A305.EditorTools.Learning.FeedbackScreenBuilder;
 namespace A305.EditorTools.Learning
 {
     /// <summary>
-    /// HUD의 [피드백 목록] 창을 확정 시안(m3를 다듬은 것)대로 배치한다. 크기·자리는 시안 px에 1.2를 곱한 캔버스 단위다.
-    /// 판(1080×620)은 테마 유리 그대로 두고, 머리줄에 앱 아이콘·제목·닫기만, 그 아래 대화 4줄(흰 유리 칸에 색 아이콘·"NPC · 장소"·시간·[보기]),
-    /// 아래 가운데에 쪽 넘김을 둔다. 그림은 대화 피드백 화면과 같은 렌더링 그림(Art/UI/Feedback)을 쓴다.
+    /// HUD의 [대화 노트] 창(피드백 목록과 복습장을 합친 창)을 확정 시안(N2, 배포된 피드백 목록 창 기준)대로 배치한다.
+    /// 크기·자리는 시안 px에 1.2를 곱한 캔버스 단위다. 판(1080×620)은 테마 유리 그대로 두고, 머리줄에 앱 아이콘·제목·장소 탭(전체·카페·호텔·마을)·닫기,
+    /// 그 아래 대화 4줄(흰 유리 칸에 색 아이콘·"NPC · 장소"·시간·[피드백 보기]·[다시 연습]), 아래 가운데에 쪽 넘김을 둔다.
+    /// 그림은 대화 피드백 화면과 같은 렌더링 그림(Art/UI/Feedback)을 쓴다.
     /// </summary>
     public static class FeedbackListBuilder
     {
         private const string MenuPath = "Tools/A305/Learning/Apply Feedback List";
         private const string HudPrefabPath = "Assets/Prefabs/Learning/LearningHud.prefab";
-        private const string Title = "피드백 목록";
+        private const string Title = "대화 노트";
+        private static readonly string[] TabNames = { "전체", "카페", "호텔", "마을" };
+
+        // 장소 탭(시안 .tabs): 옅은 알약(294×40, 안쪽 3)에 탭 넷(72×34)을 붙이고, 고른 탭만 흰 알약(On)이 보인다.
+        private const float TabsLeft = 706;
+        private const float TabsTop = 16;
+        private const float TabWidth = 72;
+        private const float TabHeight = 34;
+        private const float TabsInset = 3;
+
+        // 피드백 화면의 고른 탭 그림은 높이 42 탭용이라 34 탭에서는 그림자 자리와 둥근 끝을 같은 비율로 줄인다.
+        private const float TabShrink = TabHeight / 42;
 
         private static readonly Vector2 SheetSize = new Vector2(1080, 620);
 
@@ -45,7 +57,7 @@ namespace A305.EditorTools.Learning
             AssetDatabase.SaveAssets();
         }
 
-        /// <param name="hud">[피드백 목록] 창(History)과 <see cref="ConversationHistoryView"/>가 있는 HUD</param>
+        /// <param name="hud">[대화 노트] 창(History)과 <see cref="ConversationHistoryView"/>가 있는 HUD</param>
         public static void Apply(Transform hud)
         {
             var view = hud.GetComponent<ConversationHistoryView>();
@@ -56,6 +68,7 @@ namespace A305.EditorTools.Learning
             Sheet(panel);
             Shade(hud, panel, view);
             Header(panel, view);
+            Tabs(panel, view);
             Pager(panel, view);
             Rows(panel, view);
             Messages(panel, view);
@@ -123,6 +136,44 @@ namespace A305.EditorTools.Learning
             BuilderTools.SetReference(view, "closeButton", close.GetComponent<Button>());
         }
 
+        // 머리줄 오른쪽 장소 탭. 누르면 ConversationHistoryView가 장소를 알리고, 고른 탭의 On 그림을 켠다.
+        private static void Tabs(RectTransform panel, ConversationHistoryView view)
+        {
+            RectTransform track = F.Rect("Tabs", panel);
+            F.TopLeft(track, TabsLeft, TabsTop, TabsInset * 2 + TabWidth * TabNames.Length, 40);
+            Image trackImage = F.Picture(track.gameObject, null);
+            F.Sliced(trackImage, F.Sprite("FeedbackTabs", new Vector4(72, 72, 72, 72)));
+            // 그림 높이 144(반지름 72)를 탭 묶음 높이 40에 맞춰 둥근 끝이 반원이 되게 한다.
+            trackImage.pixelsPerUnitMultiplier = 144 / (40 * F.Px);
+
+            var tabs = new Object[TabNames.Length];
+            for (int i = 0; i < TabNames.Length; i++)
+            {
+                RectTransform tab = F.Rect("Tab" + i, track);
+                F.TopLeft(tab, TabsInset + TabWidth * i, TabsInset, TabWidth, TabHeight);
+                Image hit = BuilderTools.GetOrAddComponent<Image>(tab.gameObject);
+                hit.sprite = null;
+                hit.color = Color.clear;
+                var button = BuilderTools.GetOrAddComponent<Button>(tab.gameObject);
+                button.targetGraphic = hit;
+                button.transition = Selectable.Transition.None;
+
+                RectTransform on = F.Rect("On", tab);
+                F.Spread(on, 14 * TabShrink, 10 * TabShrink, 14 * TabShrink, 18 * TabShrink);
+                Image onImage = F.Picture(on.gameObject, null);
+                F.Sliced(onImage, F.Sprite("FeedbackTabOn", new Vector4(84, 94, 84, 74)));
+                onImage.pixelsPerUnitMultiplier = F.ArtScale / TabShrink;
+                on.gameObject.SetActive(i == 0);
+
+                TMP_Text label = Label(tab, "Label", F.DisplayFontPath, 17, F.Muted);
+                label.text = TabNames[i];
+                label.textWrappingMode = TextWrappingModes.NoWrap;
+                F.Lowered(label, 2);
+                tabs[i] = button;
+            }
+            SetList(view, "tabs", tabs);
+        }
+
         // 아래 가운데 쪽 넘김: [<](50) 쪽 번호(Jua 19) [>](50)
         private static void Pager(RectTransform panel, ConversationHistoryView view)
         {
@@ -166,7 +217,7 @@ namespace A305.EditorTools.Learning
             SetList(view, "avatarSprites", avatars);
         }
 
-        // 한 줄(1006×84): 흰 유리 칸, 색 아이콘(52)과 이름 첫 글자, "NPC · 장소"(Jua 24), 시간(16), 오른쪽 [보기]
+        // 한 줄(1006×84): 흰 유리 칸, 색 아이콘(52)과 이름 첫 글자, "NPC · 장소"(Jua 24), 시간(16), 오른쪽 [피드백 보기]·[다시 연습]
         private static ConversationHistoryRow Row(RectTransform rows, int slot)
         {
             RectTransform row = F.Rect("Row" + slot, rows);
@@ -199,23 +250,69 @@ namespace A305.EditorTools.Learning
             subtitle.textWrappingMode = TextWrappingModes.NoWrap;
             F.TopLeft(subtitle.rectTransform, 87, 49.69f, 821.72f, 19);
 
-            Transform open = row.Find("OpenButton");
-            if (open == null)
-                open = NewButton(row, "OpenButton");
-            F.Clear(open, keepLabel: true);
-            F.TopLeft((RectTransform)open, 924.72f, 22, 58.28f, 40);
-            F.ArtFace(open, "HistoryOpen", 22, 12, 102.28f, 92);
-            TMP_Text openLabel = Label(open, "Label", F.DisplayFontPath, 16, Color.white);
-            openLabel.text = "보기";
-            openLabel.textWrappingMode = TextWrappingModes.NoWrap;
-            F.Lowered(openLabel, 5);
+            // [피드백 보기]: 흰 알약(피드백 화면의 고른 탭과 같은 그림), [다시 연습]: 코랄 알약. 둘 다 높이 40이고 사이는 12다.
+            Transform open = PillButton(
+                row,
+                "OpenButton",
+                "피드백 보기",
+                765,
+                112,
+                "FeedbackTabOn",
+                new Vector4(84, 94, 84, 74),
+                new Vector4(14, 10, 14, 18),
+                F.Ink,
+                3
+            );
+            Transform practice = PillButton(
+                row,
+                "PracticeButton",
+                "다시 연습",
+                889,
+                94,
+                "HistoryOpen",
+                new Vector4(101, 0, 101, 0),
+                new Vector4(22, 12, 22, 40),
+                Color.white,
+                5
+            );
 
             BuilderTools.SetReference(component, "avatar", avatarImage);
             BuilderTools.SetReference(component, "letter", letter);
             BuilderTools.SetReference(component, "title", title);
             BuilderTools.SetReference(component, "subtitle", subtitle);
             BuilderTools.SetReference(component, "openButton", open.GetComponent<Button>());
+            BuilderTools.SetReference(component, "practiceButton", practice.GetComponent<Button>());
             return component;
+        }
+
+        // 줄 오른쪽 알약 버튼. 버튼 칸(폭×40)은 시안 크기이고, 늘려 쓰는 그림(border: 둥근 끝 자리, 그림 px)은
+        // 그림자 자리(pad: 왼·위·오른·아래, 시안 px)만큼 넓혀 깐다.
+        private static Transform PillButton(
+            Transform row,
+            string name,
+            string caption,
+            float left,
+            float width,
+            string art,
+            Vector4 border,
+            Vector4 pad,
+            Color labelColor,
+            float lip
+        )
+        {
+            Transform button = row.Find(name);
+            if (button == null)
+                button = NewButton(row, name);
+            F.Clear(button, keepLabel: true);
+            F.TopLeft((RectTransform)button, left, 22, width, 40);
+            F.ArtFace(button, art, pad.x, pad.y, width + pad.x + pad.z, 40 + pad.y + pad.w);
+            // ArtFace는 그림을 늘리지 않는 설정으로 가져오므로, 둥근 끝 자리를 다시 정해 폭만 늘린다.
+            F.Sliced(button.Find("Art").GetComponent<Image>(), F.Sprite(art, border));
+            TMP_Text label = Label(button, "Label", F.DisplayFontPath, 16, labelColor);
+            label.text = caption;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            F.Lowered(label, lip);
+            return button;
         }
 
         // 대화가 없을 때 줄 자리 가운데의 안내, 마지막 줄과 쪽 넘김 사이의 불러오는 중·실패 안내

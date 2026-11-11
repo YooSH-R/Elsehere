@@ -364,10 +364,72 @@ namespace A305.Mission.Tests
         {
             Refresh(Journey(current: 5));
 
+            TMP_Text clock = Field<TMP_Text>("clock");
+            clock.ForceMeshUpdate();
             Assert.That(
-                Field<TMP_Text>("clock").text,
+                clock.GetParsedText(),
                 Is.EqualTo(GameClockText.Format(GameClock.Shared.Minutes))
             );
+        }
+
+        [Test]
+        public void Clock_KeepsTheTimeAlignedAndFitsLongDays()
+        {
+            var sharedProperty = typeof(GameClock).GetProperty(nameof(GameClock.Shared));
+            GameClock previousClock = GameClock.Shared;
+            var gameClock = new GameClock();
+            sharedProperty.SetValue(null, gameClock);
+            try
+            {
+                FirstDayMissionState state = Journey(current: 5);
+                Refresh(state);
+                TMP_Text label = Field<TMP_Text>("clock");
+                var chip = (RectTransform)label.transform.parent;
+                var status = (RectTransform)chip.parent;
+                RectTransform coins = Field<RectTransform>("coinChip");
+
+                var morning = MeasureClock();
+                var twoDigitHour = AtMinute(11 * 60 + 11);
+                var afternoon = AtMinute(13 * 60 + 59);
+                var tenDays = AtMinute(9 * 1440 + 12 * 60);
+                var longDay = AtMinute(999999 * 1440 + 12 * 60);
+
+                Assert.That(twoDigitHour.Colon, Is.EqualTo(morning.Colon).Within(.1f));
+                Assert.That(afternoon.Colon, Is.EqualTo(morning.Colon).Within(.1f));
+                Assert.That(twoDigitHour.Width, Is.EqualTo(morning.Width).Within(.1f));
+                Assert.That(tenDays.TextFits, Is.True);
+                Assert.That(longDay.TextFits, Is.True);
+                Assert.That(label.GetParsedText(), Is.EqualTo("1000000일차 · 오후 12:00"));
+                Assert.That(longDay.Width, Is.GreaterThan(tenDays.Width));
+                Assert.That(longDay.CoinRight, Is.EqualTo(morning.CoinRight).Within(.1f));
+
+                (float Colon, float Width, bool TextFits, float CoinRight) AtMinute(int minutes)
+                {
+                    gameClock.Flow(
+                        (minutes + .1 - gameClock.Minutes) / GameClock.GameMinutesPerRealSecond
+                    );
+                    view.Refresh(state, false, false);
+                    return MeasureClock();
+                }
+
+                (float Colon, float Width, bool TextFits, float CoinRight) MeasureClock()
+                {
+                    LayoutRebuilder.ForceRebuildLayoutImmediate(status);
+                    label.ForceMeshUpdate();
+                    int colon = label.GetParsedText().IndexOf(':');
+                    float colonX = label.textInfo.characterInfo[colon].origin;
+                    return (
+                        label.rectTransform.TransformPoint(colonX, 0, 0).x,
+                        chip.rect.width,
+                        label.preferredWidth <= label.rectTransform.rect.width + .1f,
+                        coins.TransformPoint(coins.rect.xMax, 0, 0).x
+                    );
+                }
+            }
+            finally
+            {
+                sharedProperty.SetValue(null, previousClock);
+            }
         }
 
         // 폰 메뉴의 오늘의 여정 위젯이 같은 내용을 보이도록 여정을 함께 알린다.

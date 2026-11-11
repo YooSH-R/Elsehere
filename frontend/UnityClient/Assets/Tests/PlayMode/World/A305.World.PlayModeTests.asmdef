@@ -8,7 +8,8 @@
         "A305.World",
         "A305.Player",
         "A305.Weather",
-        "A305.Tutorial"
+        "A305.Tutorial",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

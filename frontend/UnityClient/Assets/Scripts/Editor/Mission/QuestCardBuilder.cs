@@ -2,6 +2,7 @@ using A305.EditorTools.Common;
 using A305.EditorTools.UI;
 using A305.Mission;
 using A305.Theme;
+using A305.World;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -13,7 +14,7 @@ namespace A305.EditorTools.Mission
     /// 마을 HUD를 확정 시안 g1과 똑같이 만든다. 크기·여백·글꼴은 시안 HTML의 값(px)에 1.2를 곱한 캔버스 단위이고,
     /// 단계 칩·진행 칸·목표 체크·코인처럼 그림인 부분은 시안 HTML을 그대로 렌더링한 그림(Art/UI/Hud)을 쓴다.
     /// 왼쪽 위 퀘스트 카드에 단계 칩·장소·할 일·상황·진행 칸·목표 줄을 두고, 카드를 누르면 여행 수첩이 열린다(예전 지도 버튼은 지운다).
-    /// 오른쪽 위 휴대폰 버튼 왼쪽에는 같은 크기의 게임 시계 칩과 코인 칩을 둔다. 유리는 뒤 화면을 흐리게 비추는 테마 유리를 쓴다.
+    /// 오른쪽 위 휴대폰 버튼 왼쪽에는 긴 날짜에 맞춰 넓어지는 시계 칩과 코인 칩을 둔다. 유리는 뒤 화면을 흐리게 비추는 테마 유리를 쓴다.
     /// 퀘스트 카드 바로 아래에는 NPC가 준비해 건네기로 한 것을 기다리는 카드를 같은 유리·폭으로 둔다.
     /// </summary>
     public static class QuestCardBuilder
@@ -24,6 +25,7 @@ namespace A305.EditorTools.Mission
         private const string PlaceholderMenuPath =
             "Tools/A305/Mission/Apply Quest Card Placeholder";
         private const string CoinChangeMenuPath = "Tools/A305/Mission/Apply Coin Change Labels";
+        private const string ClockLayoutMenuPath = "Tools/A305/Mission/Apply Game Clock Layout";
         private const string GoalHintMenuPath = "Tools/A305/Mission/Apply Quest Goal Hints";
         private const string FollowUpMenuPath = "Tools/A305/Mission/Apply Follow-up Card";
         private const string QuestIconMenuPath = "Tools/A305/Mission/Apply Quest Icon";
@@ -62,6 +64,20 @@ namespace A305.EditorTools.Mission
             BuilderTools.UpdatePrefabIfExists(
                 PrefabPath,
                 root => ReadableQuestCard((RectTransform)root.transform.Find("Content/CurrentGoal"))
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        [MenuItem(ClockLayoutMenuPath)]
+        public static void ApplyClockLayoutToPrefab()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                PrefabPath,
+                root =>
+                    ClockLabel(
+                        root.GetComponent<FirstDayMissionView>(),
+                        (RectTransform)root.transform.Find("Content/Status/Clock")
+                    )
             );
             AssetDatabase.SaveAssets();
         }
@@ -509,7 +525,7 @@ namespace A305.EditorTools.Mission
             hint.gameObject.SetActive(false);
         }
 
-        // 시안 .tr: 오른쪽·위 28, 칸 사이 12. 휴대폰 버튼(64) 왼쪽에 시계 칩과 코인 칩(둘 다 174×64)
+        // 오른쪽·위 28, 칸 사이 12. 휴대폰 버튼(64) 왼쪽에 시계 칩과 코인 칩을 둔다.
         private static void StatusChips(FirstDayMissionView view, Transform content)
         {
             Transform old = content.Find("Status");
@@ -523,19 +539,7 @@ namespace A305.EditorTools.Mission
             BuilderTools.GetOrAddComponent<ContentSizeFitter>(status.gameObject).horizontalFit =
                 ContentSizeFitter.FitMode.PreferredSize;
 
-            // 시계: Jua 21(위 2). 옆 코인 숫자와 같은 크기다.
-            RectTransform clockChip = Chip(status, "Clock");
-            TMP_Text clock = Text(
-                clockChip,
-                "Label",
-                DisplayFontPath,
-                21,
-                Ink,
-                "1일차 · 오전 8:00"
-            );
-            Fill(clock.rectTransform);
-            clock.alignment = TextAlignmentOptions.Center;
-            clock.margin = new Vector4(0, 2 * Px, 0, 0);
+            ClockLabel(view, Chip(status, "Clock"));
 
             // 코인: 코인 그림(30)은 숫자 크기에 맞추고, 숫자는 옆 시계와 같은 Jua 21(위 2), 단위 Jua 18(위 2), 칸 사이 10. 칩 가운데에 모은다.
             RectTransform coinChip = Chip(status, "Coins");
@@ -562,10 +566,36 @@ namespace A305.EditorTools.Mission
             TMP_Text unit = Text(row, "Unit", DisplayFontPath, 18, Muted, "코인");
             unit.margin = new Vector4(0, 2 * Px, 0, 0);
             unit.alignment = TextAlignmentOptions.MidlineLeft;
-            BuilderTools.SetReference(view, "clock", clock);
             BuilderTools.SetReference(view, "coins", amount);
             BuilderTools.SetReference(view, "statusBar", status.gameObject);
             CoinChangeLabels(view, coinChip);
+        }
+
+        private static void ClockLabel(FirstDayMissionView view, RectTransform chip)
+        {
+            // 기존 최소 폭은 유지하고, 필요하면 글자와 여백만큼 Status의 왼쪽으로 넓힌다.
+            chip.GetComponent<LayoutElement>().preferredWidth = -1;
+            var layout = BuilderTools.GetOrAddComponent<HorizontalLayoutGroup>(chip.gameObject);
+            layout.padding = new RectOffset(Round(6), Round(6), 0, 0);
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = layout.childControlHeight = true;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = true;
+            BuilderTools
+                .GetOrAddComponent<LayoutElement>(chip.Find("Glass").gameObject)
+                .ignoreLayout = true;
+
+            TMP_Text clock = Text(
+                chip,
+                "Label",
+                DisplayFontPath,
+                21,
+                Ink,
+                GameClockText.FormatHud(480)
+            );
+            clock.alignment = TextAlignmentOptions.Center;
+            clock.margin = new Vector4(0, 2 * Px, 0, 0);
+            clock.richText = true;
+            BuilderTools.SetReference(view, "clock", clock);
         }
 
         // 코인이 바뀌면 칩 아래 흰 알약에 산 것·보상 안내를, 알약 왼쪽에 떠오르는 +10·−8(Jua 40, 흰 테두리)을 보인다(시안 f1·f3, 높이 46).

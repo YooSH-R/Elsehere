@@ -40,6 +40,8 @@
     {"id": "airport", "history": [["npc", "Hi there! Where to?"]], "text": "Can you take me to the airport?", "destination": "none"},
     {"id": "not-sure-two", "history": [["npc", "Hi there! Where to?"]], "text": "The hotel or the cafe, I'm not sure.", "destination": "none"},
     {"id": "greeting", "history": [["npc", "Hi there! Where to?"]], "text": "Hello! Nice day today.", "destination": "none"},
-    {"id": "post-office-open", "history": [["npc", "Hi there! Where to?"]], "text": "Is the post office open now?", "destination": "none"}
+    {"id": "post-office-open", "history": [["npc", "Hi there! Where to?"]], "text": "Is the post office open now?", "destination": "none"},
+    {"id": "park-recommended-there", "history": [["npc", "Hello again, where are you headed tonight?"], ["me", "Any place do you recommend?"], ["npc", "The park's a good spot for some fresh air. Where would you like to go?"]], "text": "Okay then go there", "destination": "none"},
+    {"id": "okay-nearby-drop-off", "history": [["npc", "Hello again, where are you headed tonight?"], ["me", "Take me to the park, please."], ["npc", "My taxi doesn't go to the park, but I can drop you at the post office nearby. How does that sound?"]], "text": "Okay", "destination": "the post office"}
   ]
 }

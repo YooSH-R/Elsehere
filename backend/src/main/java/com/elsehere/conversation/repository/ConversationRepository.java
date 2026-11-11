@@ -3,7 +3,6 @@ package com.elsehere.conversation.repository;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.ConversationEndReason;
 import com.elsehere.conversation.entity.ConversationStatus;
-import com.elsehere.world.entity.PlaceGroup;
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.Collection;
@@ -71,14 +70,14 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
           + " and (:npcId is null or c.npcId = :npcId)"
           + " and (:sceneCode is null or c.npcId in (select n.id from Npc n where n.scene.code = :sceneCode))"
           + " and (:placeGroup is null"
-          + " or (c.npcOffDuty = true and :placeGroup = com.elsehere.world.entity.PlaceGroup.DAILY)"
-          + " or (c.npcOffDuty = false and c.npcId in (select n.id from Npc n where n.placeGroup = :placeGroup)))"
+          + " or (c.npcOffDuty = true and :placeGroup = 'DAILY')"
+          + " or (c.npcOffDuty = false and c.npcId in (select n.id from Npc n where cast(n.placeGroup as String) = :placeGroup)))"
           + " order by c.startedAt desc, c.id desc")
   List<Conversation> findHistoryFirstPage(
       @Param("userId") Long userId,
       @Param("npcId") Long npcId,
       @Param("sceneCode") String sceneCode,
-      @Param("placeGroup") PlaceGroup placeGroup,
+      @Param("placeGroup") String placeGroup,
       Limit limit);
 
   /** 커서 대화({@code startedAt}, {@code id}) 다음부터의 지난 대화 한 페이지. 정렬은 첫 페이지와 같다. */
@@ -88,15 +87,15 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
           + " and (:npcId is null or c.npcId = :npcId)"
           + " and (:sceneCode is null or c.npcId in (select n.id from Npc n where n.scene.code = :sceneCode))"
           + " and (:placeGroup is null"
-          + " or (c.npcOffDuty = true and :placeGroup = com.elsehere.world.entity.PlaceGroup.DAILY)"
-          + " or (c.npcOffDuty = false and c.npcId in (select n.id from Npc n where n.placeGroup = :placeGroup)))"
+          + " or (c.npcOffDuty = true and :placeGroup = 'DAILY')"
+          + " or (c.npcOffDuty = false and c.npcId in (select n.id from Npc n where cast(n.placeGroup as String) = :placeGroup)))"
           + " and (c.startedAt < :startedAt or (c.startedAt = :startedAt and c.id < :id))"
           + " order by c.startedAt desc, c.id desc")
   List<Conversation> findHistoryPageAfter(
       @Param("userId") Long userId,
       @Param("npcId") Long npcId,
       @Param("sceneCode") String sceneCode,
-      @Param("placeGroup") PlaceGroup placeGroup,
+      @Param("placeGroup") String placeGroup,
       @Param("startedAt") Instant startedAt,
       @Param("id") Long id,
       Limit limit);

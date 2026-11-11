@@ -88,7 +88,7 @@ public class ConversationHistoryService {
             && (sceneCode.isBlank() || sceneCode.length() > MAX_SCENE_CODE_LENGTH))) {
       throw new BusinessException(ErrorCode.VALIDATION_FAILED);
     }
-    PlaceGroup placeGroup = placeGroupName == null ? null : parsePlaceGroup(placeGroupName);
+    String placeGroup = placeGroupName == null ? null : parsePlaceGroup(placeGroupName).name();
     Long npcId = null;
     if (npcCode != null) {
       Optional<Npc> npc = npcRepository.findByCode(npcCode);
@@ -122,7 +122,7 @@ public class ConversationHistoryService {
       Long userId,
       Long npcId,
       String sceneCode,
-      PlaceGroup placeGroup,
+      String placeGroup,
       Limit limit,
       boolean feedbackOnly) {
     if (feedbackOnly) {
@@ -136,7 +136,7 @@ public class ConversationHistoryService {
       Long userId,
       Long npcId,
       String sceneCode,
-      PlaceGroup placeGroup,
+      String placeGroup,
       String cursor,
       Limit limit,
       boolean feedbackOnly) {

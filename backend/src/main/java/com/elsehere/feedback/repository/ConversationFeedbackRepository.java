@@ -2,7 +2,6 @@ package com.elsehere.feedback.repository;
 
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.feedback.entity.ConversationFeedback;
-import com.elsehere.world.entity.PlaceGroup;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.data.domain.Limit;
@@ -31,14 +30,14 @@ public interface ConversationFeedbackRepository extends JpaRepository<Conversati
           + " and (:npcId is null or c.npcId = :npcId)"
           + " and (:sceneCode is null or c.npcId in (select n.id from Npc n where n.scene.code = :sceneCode))"
           + " and (:placeGroup is null"
-          + " or (c.npcOffDuty = true and :placeGroup = com.elsehere.world.entity.PlaceGroup.DAILY)"
-          + " or (c.npcOffDuty = false and c.npcId in (select n.id from Npc n where n.placeGroup = :placeGroup)))"
+          + " or (c.npcOffDuty = true and :placeGroup = 'DAILY')"
+          + " or (c.npcOffDuty = false and c.npcId in (select n.id from Npc n where cast(n.placeGroup as String) = :placeGroup)))"
           + " order by c.startedAt desc, c.id desc")
   List<Conversation> findCompletedFirstPage(
       @Param("userId") Long userId,
       @Param("npcId") Long npcId,
       @Param("sceneCode") String sceneCode,
-      @Param("placeGroup") PlaceGroup placeGroup,
+      @Param("placeGroup") String placeGroup,
       Limit limit);
 
   @Query(
@@ -47,15 +46,15 @@ public interface ConversationFeedbackRepository extends JpaRepository<Conversati
           + " and (:npcId is null or c.npcId = :npcId)"
           + " and (:sceneCode is null or c.npcId in (select n.id from Npc n where n.scene.code = :sceneCode))"
           + " and (:placeGroup is null"
-          + " or (c.npcOffDuty = true and :placeGroup = com.elsehere.world.entity.PlaceGroup.DAILY)"
-          + " or (c.npcOffDuty = false and c.npcId in (select n.id from Npc n where n.placeGroup = :placeGroup)))"
+          + " or (c.npcOffDuty = true and :placeGroup = 'DAILY')"
+          + " or (c.npcOffDuty = false and c.npcId in (select n.id from Npc n where cast(n.placeGroup as String) = :placeGroup)))"
           + " and (c.startedAt < :startedAt or (c.startedAt = :startedAt and c.id < :id))"
           + " order by c.startedAt desc, c.id desc")
   List<Conversation> findCompletedPageAfter(
       @Param("userId") Long userId,
       @Param("npcId") Long npcId,
       @Param("sceneCode") String sceneCode,
-      @Param("placeGroup") PlaceGroup placeGroup,
+      @Param("placeGroup") String placeGroup,
       @Param("startedAt") Instant startedAt,
       @Param("id") Long id,
       Limit limit);

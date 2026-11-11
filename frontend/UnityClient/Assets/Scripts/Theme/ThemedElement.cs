@@ -115,6 +115,14 @@ namespace A305.Theme
                         theme.CardBleed
                     );
                     break;
+                case UiThemeRole.SliderFill:
+                    Paint(
+                        GetComponent<Image>(),
+                        theme.ButtonSprite,
+                        theme.ToneColor(UiTone.Secondary),
+                        theme.PopMaterial
+                    );
+                    break;
                 case UiThemeRole.Control:
                     // 고른 조작은 다음에 누를 곳이라 강조색으로 칠한다(예: 보낼 문장이 있는 [보내기]).
                     Paint(

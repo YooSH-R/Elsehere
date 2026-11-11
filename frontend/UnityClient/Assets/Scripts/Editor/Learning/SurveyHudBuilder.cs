@@ -21,6 +21,7 @@ namespace A305.EditorTools.Learning
     {
         private const string HudPath = "Assets/Prefabs/Learning/LearningHud.prefab";
         private const string ArtPath = "Assets/Art/UI/Hud/";
+        private const int EntrySortingOrder = 109;
         private static readonly Color Ink = new Color32(62, 46, 32, 255);
 
         [MenuItem("Tools/A305/Learning/Apply Survey HUD Entry")]
@@ -41,6 +42,31 @@ namespace A305.EditorTools.Learning
             );
             BuilderTools.UpdatePrefabIfExists(HudPath, root => Apply(root, icon, button, panel));
             AssetDatabase.SaveAssets();
+        }
+
+        [MenuItem("Tools/A305/Learning/Apply Survey Entry Layer")]
+        public static void ApplyEntryLayerToPrefab()
+        {
+            BuilderTools.ThrowIfPlaying();
+            BuilderTools.UpdatePrefabIfExists(
+                HudPath,
+                root =>
+                    PlaceEntryOnHudLayer(root.transform.Find("SurveyPrompt/EntryButton").gameObject)
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        // 접힌 버튼은 HUD에 남기고, 설문 안내 카드만 상위 레이어를 사용한다.
+        private static void PlaceEntryOnHudLayer(GameObject entry)
+        {
+            // 활성 상태에서 캔버스를 연결해야 Unity가 부모 캔버스와 그리기 순서를 구분한다.
+            bool wasActive = entry.activeSelf;
+            entry.SetActive(true);
+            Canvas canvas = BuilderTools.GetOrAddComponent<Canvas>(entry);
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = EntrySortingOrder;
+            BuilderTools.GetOrAddComponent<GraphicRaycaster>(entry);
+            entry.SetActive(wasActive);
         }
 
         private static void Apply(GameObject root, Sprite icon, Sprite action, Sprite panelSprite)
@@ -197,6 +223,7 @@ namespace A305.EditorTools.Learning
                     Vector2.one * .5f;
             picture.rectTransform.anchoredPosition = Vector2.zero;
             OpticalIconPlacement.Apply(picture, HudTopBarLayout.Size);
+            PlaceEntryOnHudLayer(entry);
             entry.SetActive(false);
             BuilderTools.SetReference(layer.GetComponent<SurveyPromptView>(), "entryButton", click);
             card.gameObject.SetActive(false);

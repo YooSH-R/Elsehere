@@ -207,7 +207,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | | 상세: 단어 뜻·저장한 문장과 문장 뜻·저장 출처·메모 | VOCAB-01 항목 |
 | | [메모], [외웠어요] | VOCAB-03 |
 | | [단어장에서 삭제] | VOCAB-04 |
-| | 오른쪽 위 메뉴의 [피드백 목록] 창: 목록, 대화마다 [보기]로 저장된 피드백과 대화 기록 | CONV-09, FB-01, CONV-10 |
+| | 휴대폰 메뉴의 [대화 노트] 창: 장소 탭과 목록, 대화마다 [피드백 보기]로 저장된 피드백과 대화 기록, [다시 연습]으로 상황 복습 | CONV-09, FB-01, CONV-10, 상황 복습장 |
 | 19 AI 한도·오류 상태 | AI 사용량 소진 안내와 계속 쓸 수 있는 기능 | AI-01, 1.5 오류 응답 |
 | | 응답 실패 [다시 시도] | 같은 `requestId`로 실패한 요청 다시 전송 |
 | | 마이크 사용 불가 [텍스트로 입력] | 없음(클라이언트) |
@@ -870,7 +870,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### 장소 연습 (PRC-01~03)
 
-퀘스트 창의 [장소 연습] 탭입니다. 가게 12곳마다 직원과 연습할 상황이 세 가지(모두 36개) 있고, 상황마다 학습자가 먼저 말해야 하는 목표가 두 개 있습니다. 이야기 퀘스트와 별도로 처음부터 모두 열려 있고 몇 번이든 다시 할 수 있습니다. 코인·도장은 없으며, 상황의 목표를 모두 이룬 적이 있는지만 기록합니다. 상황·목표·직원 지시 콘텐츠는 백엔드 `PracticeScenario`에 있습니다.
+퀘스트 창의 [장소 연습]입니다. 가게 12곳마다 직원과 연습할 상황이 세 가지(모두 36개) 있고, 상황마다 학습자가 먼저 말해야 하는 목표가 두 개 있습니다. 이야기 퀘스트와 별도로 처음부터 모두 열려 있고 몇 번이든 다시 할 수 있습니다. 코인·도장은 없으며, 상황의 목표를 모두 이룬 적이 있는지만 기록합니다. 상황·목표·직원 지시 콘텐츠는 백엔드 `PracticeScenario`에 있습니다.
 
 ##### PRC-01 `GET /api/v1/practice-places`
 
@@ -952,7 +952,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ```json
 // 요청
-{ "requestId": "6f1c2a7e-4b8d-4b7a-9a52-1f0f3d2c9e11", "npcCode": "CAFE_STAFF", "initiatedBy": "USER", "npcOffDuty": false, "speechSpeed": 1.1 }
+{ "requestId": "6f1c2a7e-4b8d-4b7a-9a52-1f0f3d2c9e11", "npcCode": "CAFE_STAFF", "initiatedBy": "USER", "npcOffDuty": false, "speechSpeed": 1.1, "placeCode": "CAFE" }
 
 // 응답 201
 {
@@ -985,6 +985,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   - 첫날 미션 단계의 NPC는 근무 시간이 아니어도 미션 지시대로 인사합니다. 미션 NPC가 퇴근한 뒤의 미션 처리는 아직 정하지 않았습니다([NPC 생활·관계 설계](../npc-life-design.md) 11절 "교대와 첫날 미션").
 - `speechSpeed`(선택, 0.8~1.5)는 사용자가 마이페이지 [NPC 말 빠르기] 슬라이더로 고른 NPC 음성 빠르기 배율입니다. 첫인사 음성을 이 빠르기로 만들며 대화 난이도와는 상관없습니다. 없거나 `null`이면 `1.1`이고, 범위를 벗어나면 `400 VALIDATION_FAILED`입니다. 값은 기기(브라우저)에 저장하고 서버에는 저장하지 않으므로 CONV-03·CONV-07·복습 대화 시작·장소 연습 시작(PRC-02)에도 매번 보냅니다.
 - `npcTravelContext`(선택)는 Unity가 관찰한 이동 사실입니다. `phase`는 `GOING_TO_WORK`·`AT_WORK`·`GOING_HOME`·`LEISURE`·`BREAK`·`RESTING`·`WALKING` 중 하나이며, `routeMeters`(0~2000m), `walkedMeters`(0~10000m), `departureLeadMinutes`(0~1440게임분), `lateMinutes`(0~1440게임분)를 보냅니다. 자유 문장 대신 제한된 상태와 수치를 받고, 이 사실로 만든 상황을 대화에 저장해 이후 대사·힌트·재접속에도 사용합니다. 근무 시각이나 관계 수치를 바꾸는 요청은 아닙니다. 이전 클라이언트와 기존 대화에는 이 값이 없어도 됩니다. 복습 대화에는 현재의 이동 상황을 덧붙이지 않습니다.
+- `placeCode`(선택)는 대화가 열린 장소 코드입니다. 말을 거는 플레이어가 NPC 바로 옆에 있으므로 Unity는 플레이어가 있는 곳을 보냅니다. 거리 매장 실내에 들어가 있으면 그 매장(`DINER`·`LAUNDROMAT` 등), 아니면 지금 씬의 장소(`TOWN`·`CAFE`·`SHOP`·`HOTEL`·`POLICE_STATION`·`HOME`)이고, 택시 안 대화는 `TAXI`입니다. 대문자 장소 코드만 받으며(형식이 다르면 `VALIDATION_FAILED`), 서버가 "지금 있는 곳은 Suds Laundromat 안이고, 자기 일터가 아니면 들른 것"이라는 사실로 바꿔 이동 사실과 함께 대화에 저장합니다. 일과에 따라 다른 매장에 들른 NPC가 아직 길이나 일터에 있는 것처럼 말하지 않게 하려는 값입니다. 장소 이름은 백엔드 `ConversationPlace`에 있고 워커의 마을 안내(`TOWN_GUIDE`)와 같게 둡니다. 없거나 서버가 모르는 코드면 위치 사실을 넣지 않습니다. 복습 대화에는 덧붙이지 않습니다.
 - 직원처럼 `approachLine`이 없는 NPC는 `initiatedBy`와 관계없이 AI가 첫 인사를 만들고 음성을 합성합니다. 이 NPC와 끝낸 대화가 있으면 기억 카드를 함께 넘겨 다시 만난 인사를 합니다. 미리 작성한 인사로 바꿀지는 `[미정]`입니다(6절).
 - 첫 대사의 추천 단어는 응답을 기다리게 하지 않도록 따로 만들므로 `suggestWords`는 `null`입니다. 클라이언트가 대사를 보여 준 뒤 CONV-12로 받습니다.
 - 첫 인사를 만들지 못하면 대화를 만들지 않고 AI 오류 코드(`AI_TEMPORARILY_UNAVAILABLE` 등)를 돌려줍니다.
@@ -999,6 +1000,21 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 첫 인사를 만드는 사이 같은 사용자의 다른 시작 요청이 먼저 저장됐으면, 저장 직전에 다시 확인해 `CONVERSATION_ALREADY_ACTIVE`(게스트가 그 요청으로 횟수를 다 썼으면 `AI_QUOTA_EXHAUSTED`)로 거절합니다. 진행 중인 대화는 하나만 남습니다.
 - 같은 `requestId`로 다시 보내면(응답 시간 초과 뒤 재시도 등) 대화를 새로 만들지 않고 그 요청으로 시작한 대화의 응답(첫 대사 포함)을 돌려줍니다(`conversations.request_id`). 이때는 `CONVERSATION_ALREADY_ACTIVE`나 게스트 횟수로 거절하지 않고 횟수도 다시 세지 않습니다. 처음 요청이 첫 인사를 기다리는 사이 재요청이 먼저 저장했어도 같습니다. 다른 사용자가 쓴 `requestId`면 `409 REQUEST_ID_CONFLICT`입니다.
 - AI를 쓸 수 없는 상태에서는 행인 말걸기를 발생시키지 않습니다. `[제안]` 클라이언트가 BOOT-01·AI-01의 상태로 판단하고, 최종 확인은 이 API에서 합니다.
+
+**스트리밍** — 요청 헤더에 `Accept: text/event-stream, application/json`을 붙이면 AI가 만드는 첫 인사의 글자와 문장 조각 음성을 만들어지는 대로 SSE(`text/event-stream`)로 받습니다. 첫 인사도 대화의 첫 턴이라 이벤트 형식은 CONV-03 **스트리밍**과 같고, 마지막 이벤트만 `conversation`입니다. 요청 본문, 첫 인사 → 대화 저장 순서, 같은 `requestId` 처리는 위와 같습니다. Accept에 `text/event-stream`이 없으면 지금처럼 JSON 한 번(201)으로 응답합니다. 첫 인사 전체와 음성을 다 기다리는 것보다 첫 글자가 먼저 보입니다.
+
+| 이벤트 | data | 뜻 |
+| --- | --- | --- |
+| `delta` | `{ "text": "Hi!" }` | 첫 인사 글자 조각. CONV-03과 같습니다. |
+| `audio` | `{ "seq": 0, "text": "Hi!", "wav": "<base64>" }` | 문장 조각 음성. CONV-03과 같습니다. |
+| `conversation` | 위 응답 201과 같은 본문 | 마지막 이벤트. 저장된 대화와 첫 턴(`openingTurn`), [다시 듣기] 주소(`openingTurn.speech`), 대화 상태. |
+| `error` | `{ "status": 503, "error": { "code", "message", "details" } }` | 첫 인사를 보내기 시작한 뒤 난 오류. CONV-03과 같습니다. 대화는 저장하지 않으며 같은 `requestId`로 다시 보낼 수 있습니다. |
+
+- 응답 상태는 첫 이벤트를 보낼 때의 200입니다. 첫 인사를 만들기 전에 난 오류(`CONVERSATION_ALREADY_ACTIVE`, `SCENE_CLOSED`, `AI_QUOTA_EXHAUSTED` 등)는 스트림을 시작하기 전이라 지금과 같은 HTTP 상태와 JSON 오류 본문입니다.
+- 말걸기 대사로 시작하거나(`approachLine`) 같은 `requestId`로 다시 보내 저장된 대화를 돌려줄 때는 AI를 부르지 않으므로 `conversation` 하나만 옵니다.
+- 사용자가 화면을 닫거나 연결이 끊겨도 서버는 첫 인사를 끝까지 받아 대화를 저장합니다. 클라이언트는 `conversation`이나 `error` 없이 스트림이 끝나면 같은 `requestId`로 다시 보내 저장된 대화를 받습니다.
+- 조각 음성을 재생한 첫 인사는 `conversation`을 받은 뒤 전체 음성을 다시 자동 재생하지 않습니다. [다시 듣기]는 `openingTurn.speech`의 전체 음성(CONV-06)을 씁니다.
+- 복습 대화 시작과 장소 연습 시작(PRC-02)은 아직 JSON 응답만 있습니다.
 
 #### CONV-02 `POST /api/v1/speech/transcriptions`
 
@@ -1073,11 +1089,11 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 대화 시작·발화 전송은 같은 사용자·`requestId`의 처리 중 재요청도 순서대로 처리하여, 먼저 저장된 결과를 재사용하고 AI를 중복 호출하지 않습니다. 잠금은 현재 단일 백엔드 프로세스 안에서 관리하며 완료·실패 뒤 해제합니다. 실패한 요청은 같은 ID로 다시 시도할 수 있습니다. 워커에 보낼 앞선 대화는 DB에서 최근 40줄만 조회합니다.
 - TTS가 실패해도 응답은 성공으로 돌려주고 `speech.status`를 `FAILED`로 표시합니다. 클라이언트는 자막을 보여주고 CONV-07로 다시 시도합니다.
 - AI가 미션 완료나 대화 종료를 제안하면 서버가 검증해 확정합니다(`ai_candidates`). 확정된 결과만 `missionUpdates`와 `conversation.status`에 반영합니다. 한 턴에서 여러 미션이 함께 완료될 수 있습니다.
-- 서버는 한 턴에서 무례 판정과 의도·번역 판정을 같은 문장으로 동시에 요청하고 둘 다 기다린 뒤 NPC 대답을 만듭니다.
+- 서버는 한 턴에서 무례 판정과 의도·번역 판정을 같은 문장으로 동시에 요청하고 둘 다 기다린 뒤 NPC 대답을 만듭니다. 스트리밍 요청에서 판정 결과가 대답 지시문에 들어가지 않는 대화는 대답을 먼저 시작합니다(아래 **스트리밍**).
 
 **경찰 신고** — 경찰서 창구의 경찰관(`POLICE_OFFICER`·`POLICE_SERGEANT`·`POLICE_PATROL_OFFICER`·`POLICE_ROOKIE`)에게 한 말은 의도 판정이 정해진 단어가 아니라 문맥으로 출동할 일(도난·분실·사고·싸움·수상한 사람 등)인지와 장소를 고릅니다. 출동할 일과 장소가 나오면(본길이나 장소를 모르면 본길 순찰) `policeDispatch`에 `{ "placeCode": "BAKERY" }`처럼 출동할 곳을 담고, 경찰관이 직접 순찰차로 간다고 말하며 그 턴에 대화를 마칩니다(`ENDED_BY_NPC`). `placeCode`는 마을 장소 코드(`HOME`·`HOTEL`·`CAFE`·`SHOP`·`POST_OFFICE`·`DINER`·`BANK`·`LAUNDROMAT`·`FLOWER_SHOP`·`BARBER`·`BAKERY`·`PARK`·`ARCADE`·`HOME_STORE`·`ICE_CREAM_PLAZA`)이고, `null`이면 본길 순찰입니다. 신고만 하고 장소를 말하지 않았으면 출동하지 않고 경찰관이 장소를 묻습니다. 비번(`npcOffDuty`) 경찰관과의 대화, 출동하지 않는 턴, 무례로 센 턴에서는 `policeDispatch`가 `null`입니다. 접수 여부와 장소는 사용자 턴에 저장하므로 같은 `requestId`로 다시 보내도 동일한 출동 정보를 돌려줍니다. 클라이언트는 `userTurn.turnId`로 중복 접수를 막고 추가 신고를 순서대로 보관합니다. 경찰관은 앞선 출동이 끝난 뒤 차례로 출동하므로 정확한 출발 시각은 약속하지 않습니다. 판정 상태는 백엔드 `PoliceDesk`, 평가는 `ai/tools/police_report_eval.py`입니다.
 
-**택시 목적지** — 택시 기사(`TAXI_DRIVER`)에게 한 말은 의도 판정이 정해진 단어가 아니라 최근 대화 6줄까지 보고 목적지를 고릅니다. "거기 가 주세요"처럼 앞에서 말한 장소를 가리키거나 "The first one."처럼 기사가 말한 곳에 답해도 알아듣습니다. 택시가 가는 곳으로 가자고 하면 `taxiDestination`에 `{ "placeCode": "DINER" }`처럼 갈 곳을 담고, 기사가 지금 그곳으로 간다고 말합니다. `placeCode`는 택시 목적지 코드(`HOME`·`HOTEL`·`CAFE`·`SHOP`·`POST_OFFICE`·`DINER`·`BANK`·`LAUNDROMAT`·`FLOWER_SHOP`·`BARBER`·`POLICE_STATION`)입니다. 가는 도중에 다른 곳을 말하면 새 목적지를 보냅니다. 택시가 가지 않는 곳(북쪽 빵집·오락실 등, 마을 밖)이거나 어느 곳인지 모르면 출발하지 않고 기사가 갈 수 있는 곳을 알려 주며 묻습니다. 택시에서는 대화가 끝나면 승객이 내리므로 작별·용건 끝냄(`LEAVE`·`TASK_DONE`)으로 대화를 마치지 않고, 도착하면 클라이언트가 대화를 끝냅니다. 쉬는 중(`npcOffDuty`)인 기사와의 대화, 목적지를 말하지 않은 턴, 무례로 센 턴에서는 `taxiDestination`이 `null`입니다. 목적지는 사용자 턴에 저장하므로 같은 `requestId`로 다시 보내도 같은 값을 돌려줍니다. 판정 상태는 백엔드 `TaxiRide`, 평가는 `ai/tools/taxi_destination_eval.py`입니다.
+**택시 목적지** — 택시 기사(`TAXI_DRIVER`)에게 한 말은 의도 판정이 정해진 단어가 아니라 최근 대화 6줄까지 보고 목적지를 고릅니다. "거기 가 주세요"처럼 앞에서 말한 장소를 가리키거나 "The first one."처럼 기사가 말한 곳에 답해도 알아듣습니다. 택시가 가는 곳으로 가자고 하면 `taxiDestination`에 `{ "placeCode": "DINER" }`처럼 갈 곳을 담고, 기사가 지금 그곳으로 간다고 말합니다. `placeCode`는 택시 목적지 코드(`HOME`·`HOTEL`·`CAFE`·`SHOP`·`POST_OFFICE`·`DINER`·`BANK`·`LAUNDROMAT`·`FLOWER_SHOP`·`BARBER`·`POLICE_STATION`)입니다. 가는 도중에 다른 곳을 말하면 새 목적지를 보냅니다. 택시가 가지 않는 곳(북쪽 빵집·공원·오락실 등, 마을 밖)이면 출발하지 않고 기사가 그곳은 가지 않는다고 말한 뒤 가까운 하차 장소(공원·빵집·오락실은 우체국 등)를 권하고, 어느 곳인지 모르면 갈 수 있는 곳을 알려 주며 묻습니다. 기사가 갈 곳을 권할 때도 택시가 가는 곳 안에서만 고릅니다. 택시에서는 대화가 끝나면 승객이 내리므로 작별·용건 끝냄(`LEAVE`·`TASK_DONE`)으로 대화를 마치지 않고, 도착하면 클라이언트가 대화를 끝냅니다. 쉬는 중(`npcOffDuty`)인 기사와의 대화, 목적지를 말하지 않은 턴, 무례로 센 턴에서는 `taxiDestination`이 `null`입니다. 목적지는 사용자 턴에 저장하므로 같은 `requestId`로 다시 보내도 같은 값을 돌려줍니다. 판정 상태는 백엔드 `TaxiRide`, 평가는 `ai/tools/taxi_destination_eval.py`입니다.
 
 **스트리밍** — 요청 헤더에 `Accept: text/event-stream, application/json`을 붙이면 NPC 대사 글자와 문장 조각 음성을 만들어지는 대로 SSE(`text/event-stream`)로 받습니다. 요청 본문, 판정 → 대답 순서, 턴 저장, 같은 `requestId` 처리는 위와 같습니다. Accept에 `text/event-stream`이 없으면 지금처럼 JSON 한 번으로 응답합니다. 전송→첫 글자·첫 음성이 대답 전체를 기다리는 것보다 짧습니다.
 
@@ -1091,8 +1107,9 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 의도·무례 판정까지 난 오류(`CONVERSATION_NOT_ACTIVE`, 행동 묘사만 있는 말의 `VALIDATION_FAILED`, `REQUEST_ID_CONFLICT`, 판정 AI 오류 등)는 스트림을 시작하기 전이라 지금과 같은 HTTP 상태와 JSON 오류 본문입니다. 그래서 Accept에 `application/json`도 함께 넣습니다.
 - 같은 `requestId`로 다시 보내 저장된 결과를 돌려줄 때는 `turn` 하나만 옵니다.
 - 사용자가 화면을 닫거나 연결이 끊겨도 서버는 대답을 끝까지 받아 턴을 저장합니다. 클라이언트는 `turn`이나 `error` 없이 스트림이 끝나면 같은 `requestId`로 다시 보내 저장된 결과를 받습니다(JSON이든 스트림이든 같습니다).
+- **대답 먼저 시작**: 판정 결과가 대답 지시문에 들어가지 않는 대화(이 NPC에게 판정할 미션·장소 연습 목표가 없고 경찰 창구·택시가 아닌 대화. 미션 중 미션과 상관없는 NPC와의 자유 대화와 미션을 마친 뒤의 대화도 포함)는 무례·대화 사건이 없다고 보고 NPC 대답을 판정과 동시에 시작합니다. 받은 조각은 판정이 끝날 때까지 보내지 않습니다. 판정 뒤에 정한 대답 요청(행동 묘사를 지운 말, 지시문, 무례·칭찬·사과 반응)이 같으면 그 대답을 보내고, 다르면 먼저 시작한 대답을 버리고 다시 부릅니다. 클라이언트가 받는 이벤트와 순서는 같고 버린 대답의 조각은 오지 않습니다. 버린 만큼 AI 사용량이 늘어 `NPC_EARLY_REPLY=false`로 끌 수 있습니다([백엔드 README](../../backend/README.md#준비)). JSON 응답은 판정을 기다립니다.
 - 조각 음성을 재생한 턴은 `turn`을 받은 뒤 턴 전체 음성을 다시 자동 재생하지 않습니다. [다시 듣기]는 `npcTurn.speech`의 턴 전체 음성(CONV-06)을 씁니다.
-- 대화 시작(CONV-01)은 아직 JSON 응답만 있습니다.
+- 대화 시작(CONV-01)의 첫 인사도 같은 방식으로 받을 수 있습니다(CONV-01 **스트리밍**).
 
 **학습자 영어 표현** — `userTurn.translation`은 학습자 말의 영어 번역 또는 문법 교정문 `{ "english": "Medium size, please." }`입니다. 한국어·한영 혼용은 영어로 번역하고, 잘못된 영어 문법은 원래 의미를 보존해 최소한으로 교정합니다. 생성된 표현이 있으면 무례 판정과 관계없이 기존 "영어로는 이렇게 말해요" 카드에 담습니다. 정상 구어체·짧은 답·대소문자/구두점만 다른 경우에는 `null`입니다. `userTurn.text`와 전사 원문은 교정문으로 대체하지 않으며 퀘스트·피드백은 계속 원문을 사용합니다. API 필드와 Unity 표시 경로는 유지합니다.
 
@@ -1235,6 +1252,19 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - AI 호출이 실패하면 1.5의 AI 오류 코드를 돌려주고, 단어가 하나도 오지 않으면 `502 AI_RESPONSE_INVALID`입니다. 두 경우 모두 저장하지 않습니다.
 - 추천 단어는 자유 대화 힌트의 첫 단계(CONV-05)라 AI 호출 기록(`ai_requests.kind`)은 `HINT`로 남깁니다. 사용량 항목의 단계 이름(`suggest`)으로 힌트 문장과 구분합니다.
 
+#### 저장 공연 `POST /api/v1/conversations/{conversationId}/performance-intent`
+
+- John(`TOWN_JOHN_PARK`)과 진행 중인 본인 소유의 자유 대화에만 사용합니다. 다른 소유자는 404,
+  끝난 대화는 `CONVERSATION_NOT_ACTIVE`, 복습은 `REVIEW_IN_PROGRESS`, 다른 NPC는 `VALIDATION_FAILED`입니다.
+- 요청: `{"requestId":"UUID","text":"I'd love an encore of that burger beat."}`. 공백이 아닌 500자 이하입니다.
+- 응답: `{"intent":"REPLAY_RAP"}` 또는 `{"intent":"CONVERSATION"}`. 사용자 턴·NPC 대사·TTS·번역을 만들지 않습니다.
+- 모호한 재생 요청만 분류합니다. 명확한 요청·안내·랩 버튼·뜻 보기는 Unity에 포함된 저장 에셋을 사용합니다.
+  `REPLAY_RAP`이면 저장 안내를 재생하고 버튼을 강조하며, `CONVERSATION`만 기존 발화 API로 전달합니다.
+- 분류 사용량은 `ai_requests.kind=JUDGE`, 워커 `usage.step=performance_intent`로 기록합니다.
+  이 요청은 자동 재시도하거나 결과를 캐시하지 않습니다. 수동 재요청은 다시 모델 비용이 발생할 수 있습니다.
+  UI는 분류 중 중복 전송과 종료 후 늦은 결과를 차단하고, 오류일 때 새 대사를 생성하는 대신 버튼을 안내합니다.
+- 음성 입력의 STT와 일반 대화의 시작·종료·평가는 기존 경로를 유지합니다.
+
 #### CONV-06·07 NPC 음성
 
 - CONV-06 `GET /api/v1/turns/{turnId}/speech`는 만들어 둔 음성 파일을 돌려줍니다. [다시 듣기]는 이 API를 쓰며 TTS를 새로 만들지 않습니다. 키나 파일이 없거나 보관 기간이 만료됐으면 `404 NOT_FOUND`입니다.
@@ -1329,7 +1359,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### CONV-09·10 지난 대화
 
-- CONV-09 `GET /api/v1/conversations?npcCode=&cursor=&size=&feedbackOnly=`는 오른쪽 위 메뉴의 [피드백 목록] 창 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus }`를 돌려줍니다.
+- CONV-09 `GET /api/v1/conversations?npcCode=&sceneCode=&cursor=&size=&feedbackOnly=`는 휴대폰 메뉴의 [대화 노트] 창 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus, feedbackUnread, practiceCount }`를 돌려줍니다.
 
 ```json
 {
@@ -1343,7 +1373,9 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
       "startedAt": "2026-10-21T14:00:00+09:00",
       "endedAt": "2026-10-21T14:05:00+09:00",
       "userTurnCount": 4,
-      "feedbackStatus": "DONE"
+      "feedbackStatus": "DONE",
+      "feedbackUnread": false,
+      "practiceCount": 2
     }
   ],
   "nextCursor": null
@@ -1352,8 +1384,9 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 목록 규칙은 VOCAB-01과 같습니다. `size` 기본값은 20이고 1~50만 받습니다. `nextCursor`는 이전 페이지 마지막 항목의 `conversationId`이며, 숫자가 아니거나 내 대화가 아닌 커서와 범위를 벗어난 `size`는 `400 VALIDATION_FAILED`입니다. 시작 시각이 같으면 나중에 만든 대화가 먼저입니다.
 - `npcCode`를 주면 그 NPC와 나눈 대화만 돌려줍니다. 없는 NPC 코드면 빈 목록입니다.
-- `feedbackOnly=true`는 완성된(`DONE`) 피드백이 있는 대화만 페이지 크기·커서 적용 전에 조회합니다. Unity 피드백 목록은 이 옵션을 사용하며 생성 전·건너뜀·실패 항목을 보이지 않습니다. 생략하면 기존 전체 대화 기록을 조회합니다. `feedbackUnread`는 완료됐으나 아직 열지 않은 피드백인지 나타냅니다.
-- 진행 중(`ACTIVE`)이거나 시간이 지나 닫힌 대화도 상태 그대로 담습니다. `userTurnCount`는 사용자가 보낸 발화 수, `feedbackStatus`는 짧은 피드백 상태(`DONE`·`FAILED`·`SKIPPED`)이며 피드백을 만들기 전이면 `null`입니다. `npc`는 CONV-10의 NPC 이름표와 같은 형식입니다.
+- `sceneCode`(`CAFE`·`HOTEL`·`TOWN` 등)를 주면 그 장소의 NPC와 나눈 대화만 돌려줍니다. 대화 노트의 장소 탭(전체·카페·호텔·마을)이 씁니다. 없는 장소 코드면 빈 목록이고, 비어 있거나 30자를 넘으면 `400 VALIDATION_FAILED`입니다.
+- `feedbackOnly=true`는 완성된(`DONE`) 피드백이 있는 대화만 페이지 크기·커서 적용 전에 조회합니다. Unity 대화 노트는 이 옵션을 사용하며 생성 전·건너뜀·실패 항목을 보이지 않습니다. 생략하면 기존 전체 대화 기록을 조회합니다. `feedbackUnread`는 완료됐으나 아직 열지 않은 피드백인지 나타냅니다.
+- 진행 중(`ACTIVE`)이거나 시간이 지나 닫힌 대화도 상태 그대로 담습니다. `userTurnCount`는 사용자가 보낸 발화 수, `feedbackStatus`는 짧은 피드백 상태(`DONE`·`FAILED`·`SKIPPED`)이며 피드백을 만들기 전이면 `null`입니다. `npc`는 CONV-10의 NPC 이름표와 같은 형식입니다. `practiceCount`는 이 대화로 [다시 연습]한 횟수(같은 대화로 만든 복습 카드의 `practiceCount`)이며, 연습하지 않았으면 0입니다.
 - 저장된 결과만 조회하므로 AI 사용량이 소진돼도 이용할 수 있습니다. 항목을 누르면 CONV-10으로 대화 기록을 엽니다.
 - CONV-10은 대화 정보와 모든 턴(`seq` 순서)의 텍스트, 저장된 뜻·추천 단어·추천 문장을 돌려줍니다. NPC 턴에는 저장된 `glossary: [{ text, meaningKo }]`도 함께 담고, 아직 없거나 사용자 턴이면 빈 배열입니다. 화면 15의 텍스트 대화 기록과 화면 16의 [대화 기록 보기]가 이 형식을 씁니다. 저장된 결과만 조회하므로 AI 사용량이 소진돼도 이용할 수 있습니다. 전체 대화 화면에서 빠진 뜻을 처음 읽을 때만 CONV-04로 생성·저장하며, 다시 열기·단어 호버·터치는 저장된 뜻과 풀이를 사용합니다.
 
@@ -1488,7 +1521,13 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
       "memo": "주문할 때 쓰기",
       "memorized": false,
       "savedAt": "2026-10-21T14:06:00+09:00",
-      "source": { "sourceType": "NPC_LINE", "npcName": "Mia", "conversationId": 58 }
+      "source": {
+        "sourceType": "NPC_LINE",
+        "npcName": "Mia",
+        "conversationId": 58,
+        "placeName": "카페",
+        "placeGroup": "FOOD"
+      }
     }
   ],
   "nextCursor": null
@@ -1501,6 +1540,8 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 - 화면 18의 유형 필터(단어·숙어·문장)는 MVP에서 보여주지 않습니다. `vocab.type`(`vocabularies.type`)은 한 단어면 `WORD`, 숙어면 `IDIOM`입니다.
 - `vocab.meaningKo`는 단어·숙어의 뜻(`vocabularies.meaning_ko`), `context`는 저장할 때의 문장과 문장 뜻(`user_vocab.context_text`, `context_meaning_ko`)입니다. 같은 단어라도 사용자마다 저장한 문장이 다르므로 `user_vocab`에 둡니다.
 - 상세의 "Mia와의 대화" 같은 출처 표시는 `source`로 그립니다. 출처 대화는 `user_vocab.source_conversation_id`, 출처 NPC는 그 대화의 NPC입니다. 사물에서 저장한 단어는 `npcName`, `conversationId`가 `null`입니다.
+- `placeName`·`placeGroup`은 출처 대화 NPC가 일하는 곳과 그 장소 묶음(`npcs.place_name`·`place_group`)입니다. 코드 이름이 아니라 실제 근무지 기준입니다(식당 야간 직원 `FIRE_CAPTAIN`은 `식당`·`FOOD`). 묶음은 `FOOD`(카페·식당·빵집), `SHOPPING`(드럭스토어·꽃집·생활용품점·오락실), `SERVICES`(은행·우체국·빨래방·이발소·호텔·택시), `SAFETY`(경찰서), `DAILY`(거리에서 만난 사람)입니다. 근무 시간 밖에 만난 NPC와의 대화(`conversations.npc_off_duty`)는 일하는 곳의 표현이 아니므로 `placeName`이 `null`, `placeGroup`이 `DAILY`입니다. 사물에서 저장한 단어는 둘 다 `null`입니다.
+- 단어장 화면은 목록을 끝까지 받아 [대화 표현 | 사물 단어] 탭(`sourceType`이 `NPC_LINE`·`FEEDBACK`이면 대화 표현)과 대화 표현의 장소 묶음 칩, 탭·칩별 개수를 클라이언트에서 나눕니다. 서버 필터는 두지 않습니다.
 - `memo`(`user_vocab.memo`)는 사용자가 남긴 메모입니다. 뜻은 수정하지 않습니다.
 
 #### VOCAB-02 `POST /api/v1/vocab`

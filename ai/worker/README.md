@@ -104,7 +104,7 @@ GPU 서버에는 발음 사전을 적용한 음소를 한 번 보내고, 반환�
 - 추천 단어의 공개 응답은 기존 `words: string[]`을 유지하며, 신규 생성 항목은 `under the name of — ~ 이름으로`처럼 뜻을 함께 표시합니다. 모델의 내부 출력은 영어·뜻·어휘/개인정보 구분을 갖고, 이름·날짜·가격 같은 고정 답변은 제외합니다. 뜻은 같은 호출에서 생성하며 별도 번역 호출을 추가하지 않습니다. 추천 문장을 잘라 만든 단어보다 다음 답변을 스스로 구성하는 어휘를 우선합니다. 이전 캐시·고정 응답의 영어 문자열도 계속 읽습니다.
 - 오류는 `{"error": {"code", "message"}}`: `invalid_request` 400, `unauthorized` 401, `not_found` 404, `method_not_allowed` 405, `provider_limit` 429, `internal_error` 500, `invalid_output` 502(모델 출력 형식 오류), `provider_unavailable` 503, `tts_unavailable` 503.
   판정·대화 종료는 일부가 실패해도 200으로 이어 갑니다 (의도 → `unclear`, 무례 → `abusive: null` 미판정, 기억 카드 → `null` + `errors`).
-- 추적: `X-Request-Id`(없으면 만들어 응답 헤더로 돌려줌), `X-User-Id`, `X-Conv-Id`를 요청마다 로그 한 줄(JSON)로 남깁니다. 성공한 `/health`는 생략하며 실패와 다른 요청은 기록합니다. 대화 원문은 로그에 남기지 않습니다. 배포 이미지는 Uvicorn 접근 로그를 끄고 이 요약을 사용하며, HTTPX의 정상 호출 로그는 생략합니다.
+- 추적: `X-Request-Id`(없으면 만들어 응답 헤더로 돌려줌), `X-User-Id`, `X-Conv-Id`를 요청마다 로그 한 줄(JSON)로 남깁니다. 성공한 `/health`는 생략하며 실패와 다른 요청은 기록합니다. 답이 늦어 같은 요청을 하나 더 보낸 호출이 있으면 그 줄에 `hedged`(더 보낸 호출의 역할, 예: `["intent"]`)와 `hedge_won`(그중 나중 요청의 답을 쓴 호출)을 덧붙입니다. 시간 상한에 걸려 `usage`가 빈 요청에서도 남습니다. NPC 대답 스트림(SSE)은 로그 줄이 스트림 시작 때 찍혀 포함되지 않습니다. 대화 원문은 로그에 남기지 않습니다. 배포 이미지는 Uvicorn 접근 로그를 끄고 이 요약을 사용하며, HTTPX의 정상 호출 로그는 생략합니다.
 - Spring은 `/v1/npc/reply`에 `stream_chunks: false`를 보내 `delta`·`audio` 전송과 조각 음성 보관을 생략합니다. `done`의 전체 음성·사용량은 그대로 받습니다. 옵션을 생략하면 기존 스트리밍 동작을 유지합니다.
 - 워커 음성 보관소는 조회·저장 시 만료 항목을 제거하며, 요청이 없어도 최대 30초 간격으로 정리합니다. 연결이 끝나면 대기 중인 합성 작업을 취소합니다. 이미 실행 중인 GPU 요청·CPU 추론은 강제로 중단할 수 없지만, 이후 대체 합성은 시작하지 않습니다.
 
@@ -312,7 +312,7 @@ ai/worker/.venv/Scripts/python ai/tools/synthesize_script_lines.py --models <모
 - `tests/test_turn.py`: 한 턴 구조 — 조각을 이어 붙인 턴 전체 음성, 조각 실패·음성 없음이면 `null`, 스트림 안의 추천 단어(`words`)와 그 실패
 - `tests/test_audio_store.py`: 음성 보관소의 전체 크기 상한
 - `tests/test_speech_text.py`: 음성으로 읽을 글 다듬기(`app/speech_text.py`) — 가격(`$13` → 13 dollars, 센트·단수·쉼표), 시각(`10:00` → 10 o'clock, `9:05` → 9 oh 5, a.m.·p.m.), 별표, 한글은 자막으로만(남은 문장 부호 정리), 평범한 영어는 그대로, 읽을 게 없으면 빈 글. Kokoro가 다듬은 글을 음소로 엔진에 넘기고, 읽을 게 없으면 엔진 없이 같은 형식의 짧은 무음
-- `tests/test_pronunciation.py`: 발음 사전(`app/pronunciation.py`) — 사전 단어는 적어 둔 음소, 나머지는 음소화, 대소문자 무관·단어 경계(honest의 hon은 아님), 여러 단어 항목(café au lait), 사전 단어가 없으면 글 전체를 한 번에 음소화, 사전 음소가 Kokoro 어휘 기호만 쓰는지
+- `tests/test_pronunciation.py`: 발음 사전(`app/pronunciation.py`) — 사전 단어는 적어 둔 음소, 나머지는 음소화, 대소문자 무관·단어 경계(honest의 hon은 아님), 여러 단어 항목(café au lait), 맞장구 Mm-hm·Mhm·Mm-hmm을 글자로 읽지 않음, 사전 단어가 없으면 글 전체를 한 번에 음소화, 사전 음소가 Kokoro 어휘 기호만 쓰는지
 - `tests/test_gpu_stt_speech_gate.py`: GPU 서버 STT의 말소리 거르기(`ai/gpu_stt/speech_gate.py`) — 무음·잡음·웅웅거림은 말소리 아님, 짧은 단어(`Yes.`, `Latte.`, Kokoro 합성 `tests/fixtures/`)는 앞뒤 무음·잡음이 있어도 말소리. faster-whisper가 있는 환경(GPU 서버)에서만 돌고 CI에서는 건너뜀
 - `tests/test_tts_gpu.py`: GPU 서버 음성 합성 — 다듬고 음소로 바꾼 글·목소리·속도·토큰을 보내고 받은 WAV를 씀, 오류·시간 초과·WAV가 아닌 답이면 한 번만 부르고 CPU로, 연속 실패 시 잠시 건너뛰기·성공하면 초기화, 같은 문장·읽을 것이 없는 글은 GPU를 부르지 않음, 환경 변수(토큰 필수)
 - `tests/test_tts_roundtrip.py`: 음성 합성 왕복 평가(`ai/tools/tts_roundtrip.py`)의 채점 — 곡선 따옴표는 곧은 것으로 바꿔 정규화, 대소문자·문장 부호 무시, 붙여 쓰기·띄어 쓰기 차이, 이어서 틀린 단어를 한 덩어리로, 태그별 WER(단어 수 가중), 평가 문장 파일(id 중복·NPC·태그)
@@ -344,11 +344,11 @@ ai/worker/.venv/Scripts/python ai/tools/synthesize_script_lines.py --models <모
 
 Spring이 이미 판정한 무례 횟수와 사건은 선택적 `reaction`으로 같은 요청에 전달합니다. 허용 값은 `rude_warning`, `rude_repeated`, `rude_final`, `compliment`, `apology_after_rude`이며 생략 시 기존 감정 선택을 유지합니다. 두 번째 무례부터 강한 분노로 적용하고, 확정된 반응과 다른 모델 표시는 워커에서 정규화합니다. 같은 최종 표정으로 합쳐지는 표시 때문에 TTS를 추가 분할하지 않습니다. 별도 LLM 호출이나 출력 토큰 상한 증가는 없습니다. 입력 프롬프트에 짧은 반응 지시문은 추가되므로 실제 서버 지연은 별도 측정 대상입니다.
 
-읽을 글 정리와 발음 사전을 먼저 적용하고, 그 음소열을 `create_timed(..., is_phonemes=True)`에 한 번만 넘깁니다. 시간표도 같은 합성의 발음 순서를 최종 PCM에 정렬해 만들며, 재생용 음성과 함께 캐시합니다. 시간표 미지원 모델은 동일한 발음 사전으로 음성만 생성합니다. `tests/test_pronunciation_timing.py`에서 두 경로와 캐시 재사용을 검사합니다.
+읽을 글 정리와 발음 사전을 먼저 적용하고, 그 음소열을 `create_timed(..., is_phonemes=True)`에 한 번만 넘깁니다. 시간표도 같은 합성의 발음 순서를 최종 PCM에 정렬해 만들며, 재생용 음성과 함께 캐시합니다. 시간표 미지원 모델은 동일한 발음 사전으로 음성만 생성합니다. `tests/test_pronunciation_timing.py`에서 두 경로와 캐시 재사용, 굽은 큰따옴표가 든 대사의 시간표, 발음 사전 음소가 모두 입모양으로 바뀌는지를 검사합니다.
 
 `kokoro-onnx==0.6.1`의 `create_timed()`로 음성과 발음 순서를 얻고, `pocketsphinx==5.0.4`의 로컬 음향 모델로 해당 발음 순서를 최종 PCM에 정렬합니다. TTS 내부 duration은 실제 발음 경계와 어긋날 수 있어 음향 정렬 결과를 우선합니다. 정렬기 실행 오류(`RuntimeError`)일 때만 같은 합성의 검증된 모델 시간으로 대체하며, 이 경우 음향 정렬보다 경계 정확도가 낮을 수 있습니다. 발음 불일치(`ValueError`)는 이 대체 대상이 아닙니다. 별도의 음성 재생성, 외부 분석 API, 문장별 입모양 수작업은 필요하지 않습니다. `KOKORO_MODEL`은 **duration 출력이 포함된** [공식 model-files-v1.1 배포](https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.1)의 `kokoro-v1.0.int8.onnx`, `KOKORO_VOICES`는 해당 배포의 `voices-v1.0.bin`을 가리켜야 합니다. 파일명이 같은 이전 모델에는 duration 출력이 없을 수 있습니다. 시작 로그에 `model has no duration output` 경고가 있으면 정확한 립싱크를 사용할 수 없습니다. 모델은 배포 시 준비하며 요청 중에 다운로드하지 않습니다.
 
-`app/speech_timing.py`는 영어 IPA를 Unity 공통 음소 이름으로 변환합니다. `/aɪ/` 등 이중모음은 하나의 구간으로 묶어 Unity에서 입이 연속 변형되게 합니다. 음소기가 내는 `ɡ`(U+0261)는 `g`로 읽고, 길이(`ː`)·비음(`◌̃`)·구개음화(`ʲ`) 표시는 앞 음소 구간에 붙입니다. `app/speech_alignment.py`가 같은 최종 PCM을 두 번 분석해 단어·음소 경계를 구합니다. 단어 사이 공백을 무음으로 강제하지 않고 음향 모델이 찾은 무음만 사용합니다. 발음 순서가 누락·변경되거나 시간 범위가 잘못되면 해당 시간표를 폐기하고 음성만 반환하며 경고를 기록합니다. 원래 음성의 속도·샘플은 변경하지 않습니다. 정렬은 음향 모델의 추정이므로 모든 경계의 정확성을 보장하지 않으며 빠른 연결 발음은 실제 음성과 대조해야 합니다. 기존 얼굴의 한계 때문에 일부 자음은 가까운 입모양을 사용하며, 실제 혀·치아 전체의 조음 모델은 아닙니다.
+`app/speech_timing.py`는 영어 IPA를 Unity 공통 음소 이름으로 변환합니다. `/aɪ/` 등 이중모음은 하나의 구간으로 묶어 Unity에서 입이 연속 변형되게 합니다. 음소기가 내는 `ɡ`(U+0261)는 `g`로, 발음 사전의 맞장구 음소 `ɨ`(Mm-hm)는 `ih`로 읽습니다. Kokoro 어휘에 있어 음소열까지 오는 문장부호(`, . ! ? ; : — … " ( )`와 굽은 큰따옴표 `“ ”`)는 쉼으로 읽고, 굽은 작은따옴표 `‘ ’`처럼 어휘에 없는 기호는 음소화 단계에서 빠집니다. 길이(`ː`)·비음(`◌̃`)·구개음화(`ʲ`) 표시는 앞 음소 구간에 붙입니다. `app/speech_alignment.py`가 같은 최종 PCM을 두 번 분석해 단어·음소 경계를 구합니다. 단어 사이 공백을 무음으로 강제하지 않고 음향 모델이 찾은 무음만 사용합니다. 발음 순서가 누락·변경되거나 시간 범위가 잘못되면 해당 시간표를 폐기하고 음성만 반환하며 경고를 기록합니다. 원래 음성의 속도·샘플은 변경하지 않습니다. 정렬은 음향 모델의 추정이므로 모든 경계의 정확성을 보장하지 않으며 빠른 연결 발음은 실제 음성과 대조해야 합니다. 기존 얼굴의 한계 때문에 일부 자음은 가까운 입모양을 사용하며, 실제 혀·치아 전체의 조음 모델은 아닙니다.
 
 시간표는 WAV의 선택적 `a305` RIFF chunk에 UTF-8 JSON으로 저장합니다. PCM 자체는 바꾸지 않으며, `version: 2`, `provider: "kokoro-en-US"`, 전체 `duration`(초), PCM 바이트의 `pcmSha256`, `phonemes` 배열(`start`, `end`, `phoneme`)을 담습니다. 대사 원문은 넣지 않습니다. Spring은 WAV 바이트 전체를 저장·반환하므로 기존 `/v1/tts`, `/v1/audio/{id}`, `/api/v1/turns/{id}/speech` 경로와 인증을 그대로 사용합니다. Unity는 같은 파일에서 PCM과 시간표를 읽고 해시·길이를 검사합니다.
 

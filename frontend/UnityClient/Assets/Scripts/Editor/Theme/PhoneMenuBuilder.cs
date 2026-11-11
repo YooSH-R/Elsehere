@@ -20,7 +20,8 @@ namespace A305.EditorTools.Theme
     public static class PhoneMenuBuilder
     {
         private const string MenuPath = "Tools/A305/UI/Apply Phone Menu";
-        private const string JourneyTextMenuPath = "Tools/A305/UI/Apply Phone Quest Text Fit";
+        private const string RemoveJourneyMenuPath = "Tools/A305/UI/Remove Phone Quest Widget";
+        private const string BalanceMenuPath = "Tools/A305/UI/Apply Phone Balance Widget";
         private const string HudPrefabPath = "Assets/Prefabs/Learning/LearningHud.prefab";
         private const string ArtFolder = "Assets/Art/UI/Phone";
         private const string DisplayFontPath = "Assets/Art/UI/Fonts/Jua-Regular SDF.asset";
@@ -41,6 +42,8 @@ namespace A305.EditorTools.Theme
         private const float ArtHeight = 980;
         private const float ArtLeft = 90;
         private const float ArtTop = 60;
+        private static readonly Rect BalanceCard = new Rect(286, 90, 106, 77);
+        private static readonly Rect BalanceSurface = new Rect(293, 99, 79, 65);
 
         private static readonly Color Ink = new Color32(47, 37, 27, 255);
         private static readonly Color Muted = new Color32(125, 110, 91, 255);
@@ -71,7 +74,7 @@ namespace A305.EditorTools.Theme
         private static readonly string[] AppLabels =
         {
             "단어장",
-            "피드백 목록",
+            "대화 노트",
             "마을 지도",
             "집으로",
             "내 정보",
@@ -147,6 +150,7 @@ namespace A305.EditorTools.Theme
                 camera.Render();
                 Canvas.ForceUpdateCanvases();
                 menu.GetComponent<PhoneMenuView>().SendMessage("OnEnable");
+                menu.Find("Balance/Amount").GetComponent<TMP_Text>().text = "76";
                 Canvas.ForceUpdateCanvases();
                 camera.Render();
                 RenderTexture.active = target;
@@ -156,6 +160,26 @@ namespace A305.EditorTools.Theme
                     Path.Combine(output, $"phone-{size.x}x{size.y}.png"),
                     pixels.EncodeToPNG()
                 );
+                var corners = new Vector3[4];
+                ((RectTransform)menu.Find("Balance")).GetWorldCorners(corners);
+                Vector3 bottom = camera.WorldToScreenPoint(corners[0]);
+                Vector3 top = camera.WorldToScreenPoint(corners[2]);
+                var widget = new Texture2D(
+                    Mathf.CeilToInt(top.x - bottom.x) + 20,
+                    Mathf.CeilToInt(top.y - bottom.y) + 20,
+                    TextureFormat.RGB24,
+                    false
+                );
+                widget.ReadPixels(
+                    new Rect(bottom.x - 10, bottom.y - 10, widget.width, widget.height),
+                    0,
+                    0
+                );
+                File.WriteAllBytes(
+                    Path.Combine(output, $"coin-{size.x}x{size.y}.png"),
+                    widget.EncodeToPNG()
+                );
+                Object.DestroyImmediate(widget);
                 RenderTexture.active = null;
                 camera.targetTexture = null;
                 target.Release();
@@ -164,16 +188,28 @@ namespace A305.EditorTools.Theme
             }
         }
 
-        /// <summary>폰을 다시 만들지 않고 퀘스트 위젯 안내 글자만 한 줄에 맞게 바꾼다.</summary>
-        [MenuItem(JourneyTextMenuPath)]
-        public static void ApplyJourneyTextFitToPrefab()
+        /// <summary>폰을 다시 만들지 않고 잠금 화면의 '오늘의 여정' 위젯만 지운다. 퀘스트 진행은 왼쪽 위 퀘스트 알약·카드가 보인다.</summary>
+        [MenuItem(RemoveJourneyMenuPath)]
+        public static void RemoveJourneyFromPrefab()
         {
             BuilderTools.UpdatePrefabIfExists(
                 HudPrefabPath,
+                root => RemoveJourney((RectTransform)root.transform.Find("Panel/Menu"))
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        [MenuItem(BalanceMenuPath)]
+        public static void ApplyBalanceToPrefab()
+        {
+            BalanceSurfaceArt(regenerate: true);
+            BuilderTools.UpdatePrefabIfExists(
+                HudPrefabPath,
                 root =>
-                    FitDirection(
-                        root.transform.Find("Panel/Menu/Journey/Direction").GetComponent<TMP_Text>()
-                    )
+                {
+                    var phone = (RectTransform)root.transform.Find("Panel/Menu");
+                    Balance(phone.GetComponent<PhoneMenuView>(), phone);
+                }
             );
             AssetDatabase.SaveAssets();
         }
@@ -184,10 +220,9 @@ namespace A305.EditorTools.Theme
             Clear(phone);
             Body(phone);
             PhoneMenuView view = BuilderTools.GetOrAddComponent<PhoneMenuView>(phone.gameObject);
-            // 그리는 순서: 폰 그림 → 여정 카드 그림 → 글자 → 앱 → 배지 → 내비게이션 키
+            // 그리는 순서: 폰 그림 → 글자 → 앱 → 배지 → 내비게이션 키
             Picture("Art", phone, Art("PhoneBase"), -ArtLeft, -ArtTop, ArtWidth, ArtHeight)
                 .transform.SetAsFirstSibling();
-            Journey(view, phone);
             LockScreen(view, phone);
             Apps(view, phone);
             NavigationKeys(phone);
@@ -273,7 +308,6 @@ namespace A305.EditorTools.Theme
                 Transform child = phone.GetChild(i);
                 if (
                     System.Array.IndexOf(AppNames, child.name) < 0
-                    && child.name != "ReviewButton"
                     && child.name != "NeighborsButton"
                 )
                     Object.DestroyImmediate(child.gameObject);
@@ -351,99 +385,117 @@ namespace A305.EditorTools.Theme
                 230,
                 19
             );
-            // 숫자 칸은 시안의 padding-top 3px만큼 내려 둔다.
-            TMP_Text amount = Text(
-                "Amount",
-                phone,
-                DisplayFontPath,
-                28,
-                Ink,
-                "20",
-                341.5f,
-                105.4f,
-                60,
-                28
-            );
             BuilderTools.SetReference(view, "statusTime", status);
             BuilderTools.SetReference(view, "clock", clock);
             BuilderTools.SetReference(view, "date", date);
+            Balance(view, phone);
+        }
+
+        private static void Balance(PhoneMenuView view, RectTransform phone)
+        {
+            Transform oldAmount = phone.Find("Amount");
+            if (oldAmount != null)
+                Object.DestroyImmediate(oldAmount.gameObject);
+
+            Image surface = Picture(
+                "BalanceSurface",
+                phone,
+                BalanceSurfaceArt(),
+                BalanceSurface.x,
+                BalanceSurface.y,
+                BalanceSurface.width,
+                BalanceSurface.height
+            );
+            surface.transform.SetSiblingIndex(phone.Find("Art").GetSiblingIndex() + 1);
+
+            RectTransform row = Rect(
+                "Balance",
+                phone,
+                BalanceCard.x,
+                BalanceCard.y,
+                BalanceCard.width,
+                BalanceCard.height
+            );
+            var layout = BuilderTools.GetOrAddComponent<HorizontalLayoutGroup>(row.gameObject);
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.spacing = 5 * Px;
+            layout.childControlWidth = layout.childControlHeight = true;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+            var coinArt = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/Hud/Coin.png");
+            Image coin = Picture("Coin", row, coinArt, 0, 0, 40, 40);
+            coin.preserveAspect = true;
+            var iconSize = BuilderTools.GetOrAddComponent<LayoutElement>(coin.gameObject);
+            iconSize.preferredWidth = iconSize.preferredHeight = 40 * Px;
+            TMP_Text amount = Text("Amount", row, DisplayFontPath, 28, Ink, "20", 0, 0, 0, 34);
+            amount.alignment = TextAlignmentOptions.Midline;
             BuilderTools.SetReference(view, "budget", amount);
         }
 
-        // 퀘스트 위젯 카드: 시안에서 잘라 낸 카드 그림(화면 폭, 폰 기준 y 150~450) 위에 단계 칩 글자·할 일·진행 칸
-        private static void Journey(PhoneMenuView view, RectTransform phone)
+        private static Sprite BalanceSurfaceArt(bool regenerate = false)
         {
-            const float CardLeft = 12;
-            const float CardTop = 150;
-            RectTransform card = Picture(
-                "Journey",
-                phone,
-                Art("PhoneJourney"),
-                CardLeft,
-                CardTop,
-                406,
-                300
-            ).rectTransform;
-            TMP_Text chip = Text(
-                "ChipText",
-                card,
-                DisplayFontPath,
-                14,
-                Color.white,
-                "1 / 7",
-                313.7f - CardLeft,
-                208.4f - CardTop,
-                57.3f,
-                26
-            );
-            chip.alignment = TextAlignmentOptions.Center;
-            TMP_Text direction = Text(
-                "Direction",
-                card,
-                DisplayFontPath,
-                23,
-                Ink,
-                "",
-                59 - CardLeft,
-                243.4f - CardTop,
-                312,
-                27.6f
-            );
-            FitDirection(direction);
-            // 진행 칸 그림은 빛 번짐 자리(사방 12px)를 품고 있어, 칸 사이 6px에서 그만큼 겹쳐 놓는다.
-            RectTransform steps = Rect(
-                "Steps",
-                card,
-                59 - 12 - CardLeft,
-                285 - 12 - CardTop,
-                312 + 24,
-                32
-            );
-            var row = BuilderTools.GetOrAddComponent<HorizontalLayoutGroup>(steps.gameObject);
-            row.spacing = (6 - 24) * Px;
-            row.childAlignment = TextAnchor.UpperLeft;
-            row.childControlWidth = row.childControlHeight = true;
-            row.childForceExpandWidth = row.childForceExpandHeight = false;
-            Image mark = Picture("Mark", steps, Art("PhoneStepUpcoming"), 0, 0, 64, 32);
-            var size = BuilderTools.GetOrAddComponent<LayoutElement>(mark.gameObject);
-            size.preferredWidth = size.minWidth = (39.43f + 24) * Px;
-            size.preferredHeight = size.minHeight = 32 * Px;
-            BuilderTools.SetReference(view, "journeyCard", card.gameObject);
-            BuilderTools.SetReference(view, "journeyChip", chip);
-            BuilderTools.SetReference(view, "journeyDirection", direction);
-            BuilderTools.SetReference(view, "journeyProgress", steps);
-            BuilderTools.SetReference(view, "upcomingMark", Art("PhoneStepUpcoming"));
-            BuilderTools.SetReference(view, "currentMark", Art("PhoneStepCurrent"));
-            BuilderTools.SetReference(view, "doneMark", Art("PhoneStepDone"));
+            const string name = "PhoneBalanceSurface";
+            string path = $"{ArtFolder}/{name}.png";
+            if (File.Exists(path) && !regenerate)
+                return ImportBalanceSurface(name, path);
+
+            // 폰 그림의 위젯 테두리와 그림자는 두고, 안쪽의 기존 동전과 글자만 배경색으로 덮는다.
+            var source = new Texture2D(2, 2);
+            source.LoadImage(File.ReadAllBytes($"{ArtFolder}/PhoneBase.png"));
+            float scale = source.width / ArtWidth;
+            int width = Mathf.RoundToInt(BalanceSurface.width * scale);
+            int height = Mathf.RoundToInt(BalanceSurface.height * scale);
+            int left = Mathf.RoundToInt((ArtLeft + BalanceSurface.x) * scale);
+            int bottom = source.height - Mathf.RoundToInt((ArtTop + BalanceSurface.yMax) * scale);
+            var surface = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            var pixels = new Color[width * height];
+            for (int y = 0; y < height; y++)
+            {
+                // 글자 아래까지 덮되 둥근 카드 모서리 밖의 배경색이 안쪽으로 번지지 않게 한다.
+                float phoneY = BalanceSurface.yMax - y / scale;
+                int sampleLeft = phoneY > 140 ? left + Mathf.RoundToInt(23 * scale) : left;
+                Color start = source.GetPixel(sampleLeft, bottom + y);
+                Color end = source.GetPixel(left + width - 1, bottom + y);
+                for (int x = 0; x < width; x++)
+                {
+                    Color fill = Color.Lerp(start, end, (float)x / (width - 1));
+                    int edge = Mathf.Min(Mathf.Min(x, width - 1 - x), Mathf.Min(y, height - 1 - y));
+                    fill.a = Mathf.Clamp01(edge / scale);
+                    Vector2 point = new Vector2(BalanceSurface.x + x / scale, phoneY);
+                    Vector2 nearest = new Vector2(
+                        Mathf.Clamp(point.x, BalanceCard.xMin + 25, BalanceCard.xMax - 25),
+                        Mathf.Clamp(point.y, BalanceCard.yMin + 25, BalanceCard.yMax - 25)
+                    );
+                    fill.a *= Mathf.Clamp01(24 - Vector2.Distance(point, nearest));
+                    pixels[y * width + x] = fill;
+                }
+            }
+            surface.SetPixels(pixels);
+            surface.Apply();
+            File.WriteAllBytes(path, surface.EncodeToPNG());
+            Object.DestroyImmediate(surface);
+            Object.DestroyImmediate(source);
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            return ImportBalanceSurface(name, path);
         }
 
-        // 다 끝낸 뒤의 안내처럼 길면 글자를 줄여(23 → 17) 한 줄에 넣는다. 그래도 넘치면 끝을 줄임표로 줄인다.
-        private static void FitDirection(TMP_Text direction)
+        private static Sprite ImportBalanceSurface(string name, string path)
         {
-            direction.enableAutoSizing = true;
-            direction.fontSizeMin = 17 * Px;
-            direction.fontSizeMax = 23 * Px;
-            direction.overflowMode = TextOverflowModes.Ellipsis;
+            UiImagePadding.Pad(path);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            if (importer.textureCompression != TextureImporterCompression.Compressed)
+            {
+                importer.textureCompression = TextureImporterCompression.Compressed;
+                importer.SaveAndReimport();
+            }
+            return Art(name);
+        }
+
+        // 잠금 화면에 퀘스트 위젯을 두지 않는다. 퀘스트 진행은 왼쪽 위 퀘스트 알약·카드가 보이므로, 예전에 만든 '오늘의 여정' 카드가 있으면 지운다.
+        private static void RemoveJourney(RectTransform phone)
+        {
+            Transform journey = phone.Find("Journey");
+            if (journey != null)
+                Object.DestroyImmediate(journey.gameObject);
         }
 
         // 기존 다섯 앱의 아이콘은 폰 그림에 있다. 조작법은 별도 그림으로 같은 앱 칸에 덧붙인다.

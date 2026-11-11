@@ -22,7 +22,7 @@ namespace A305.Tutorial
         /// <summary>오른쪽 위 메뉴(≡)를 펼쳤는지</summary>
         public bool IsMenuOpen { get; set; }
 
-        /// <summary>피드백·단어장·피드백 목록 화면 중 하나가 열려 있는지</summary>
+        /// <summary>피드백·단어장·대화 노트 화면 중 하나가 열려 있는지</summary>
         public bool IsLearningScreenShowing { get; set; }
 
         /// <summary>단어장 화면이 열려 있는지</summary>

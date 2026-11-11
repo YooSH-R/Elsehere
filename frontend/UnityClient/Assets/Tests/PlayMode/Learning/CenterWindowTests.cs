@@ -15,7 +15,7 @@ using UnityEngine.UI;
 namespace A305.Learning.PlayModeTests
 {
     /// <summary>
-    /// 단어장·피드백 목록을 열고 닫을 때 학습 창 상태와 게임 시계 정지가 함께 바뀌는지 확인한다.
+    /// 단어장·대화 노트를 열고 닫을 때 학습 창 상태와 게임 시계 정지가 함께 바뀌는지 확인한다.
     /// </summary>
     public class CenterWindowTests
     {
@@ -167,7 +167,7 @@ namespace A305.Learning.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator VocabularyAndHistory_PauseTheClockWhileOpen()
+        public IEnumerator VocabularyAndHistory_OpenCenteredAndPauseTheClock()
         {
             yield return LoadTown();
             foreach (string app in new[] { "VocabularyButton", "HistoryButton" })
@@ -182,6 +182,13 @@ namespace A305.Learning.PlayModeTests
                     app == "VocabularyButton"
                         ? Single<VocabularyView>().PanelRect
                         : Single<LearningHudView>().HistoryView.PanelRect;
+                var canvas = (RectTransform)window.parent;
+                Vector2 center = canvas.InverseTransformPoint(
+                    window.TransformPoint(window.rect.center)
+                );
+                Assert.That(Vector2.Distance(center, canvas.rect.center), Is.LessThan(.5f), app);
+                Assert.That(window.localScale.x, Is.GreaterThan(1f), app);
+
                 window
                     .GetComponentsInChildren<Button>(true)
                     .First(button => button.name == "CloseButton")

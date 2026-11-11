@@ -91,14 +91,9 @@ namespace A305.ObjectHover
                 distance,
                 out _
             );
-            // 걷는 중이어도 고정할 수 있게 이동 여부는 보지 않는다. 숨긴 단어도 클릭하면 카드를 보인다.
-            ObjectWord word = default;
-            bool canPin =
-                target != null
-                && !player.IsMovementLocked
-                && distance <= settings.MaxDistanceMeters
-                && TryGetWord(target, definition, out word);
-            if (!canPin)
+            if (IsUiAt(pointerScreenPosition))
+                return;
+            if (!TryGetClickableWord(target, definition, distance, out ObjectWord word))
             {
                 Unpin();
                 return;
@@ -114,14 +109,6 @@ namespace A305.ObjectHover
         /// <summary>포인터 위치로 툴팁을 갱신한다. 매 프레임 Update에서 호출하며, 실제 마우스 없이 확인할 때 직접 호출할 수 있다.</summary>
         public void Refresh(Vector2 pointerScreenPosition, float deltaTimeSeconds)
         {
-            if (state.IsPinned)
-            {
-                KeepOrClosePinnedCard();
-                // 고정한 뒤 열린 창(수첩·가이드 등)에 가려지지 않게 자리를 다시 정한다.
-                tooltip.UpdatePlacement();
-                return;
-            }
-
             HoverableObject target = FindPointedObject(
                 pointerScreenPosition,
                 out Vector3 pointedPosition
@@ -133,6 +120,20 @@ namespace A305.ObjectHover
                 distance,
                 out int partIndex
             );
+            bool overUi = IsUiAt(pointerScreenPosition);
+            ObjectWord word = default;
+            bool canClick = !overUi && TryGetClickableWord(target, definition, distance, out word);
+            if (canClick)
+                InteractionCursor.MarkWorldTarget();
+
+            if (state.IsPinned)
+            {
+                KeepOrClosePinnedCard();
+                // 고정한 뒤 열린 창(수첩·가이드 등)에 가려지지 않게 자리를 다시 정한다.
+                tooltip.UpdatePlacement();
+                return;
+            }
+
             if (target != previousTarget || partIndex != previousPart)
             {
                 state.Update(null, false, 0f);
@@ -140,18 +141,16 @@ namespace A305.ObjectHover
                 previousPart = partIndex;
             }
             string wordKey = WordKeyOf(target, definition);
-            ObjectWord word = default;
             bool canShow =
-                target != null
+                canClick
                 && ObjectHoverRules.CanHover(
-                    IsUiAt(pointerScreenPosition),
+                    overUi,
                     player.IsMoving,
                     player.IsMovementLocked,
                     distance <= settings.MaxDistanceMeters,
                     PlayerTouchControls.ShouldShowControls()
                 )
-                && (cards == null || cards.CanHover(wordKey))
-                && TryGetWord(target, definition, out word);
+                && (cards == null || cards.CanHover(wordKey));
 
             state.Update(wordKey, canShow, deltaTimeSeconds);
 
@@ -283,18 +282,15 @@ namespace A305.ObjectHover
             }
         }
 
+        // 클릭으로 고정한 사물 카드는 ESC 목록(UiEscape)에 올려, 나중에 연 다른 창보다 먼저 닫히지 않게 한다.
+        private UiEscapeWindow pinnedEscape;
+
         private void Update()
         {
             Vector2 pointer = pointAction.action.ReadValue<Vector2>();
             DetectClick(pointer);
-            if (
-                state.IsPinned
-                && Keyboard.current != null
-                && Keyboard.current.escapeKey.wasPressedThisFrame
-            )
-            {
-                Unpin();
-            }
+            pinnedEscape ??= new UiEscapeWindow(() => state.IsPinned, Unpin);
+            pinnedEscape.Watch();
 
             Refresh(pointer, Time.deltaTime);
         }
@@ -578,6 +574,21 @@ namespace A305.ObjectHover
                 player.transform,
                 out pointedPosition
             );
+        }
+
+        // 걷는 동안이나 호버에서 숨긴 단어도 클릭하면 카드를 열 수 있다.
+        private bool TryGetClickableWord(
+            HoverableObject target,
+            ObjectWordDefinition definition,
+            float distance,
+            out ObjectWord word
+        )
+        {
+            word = default;
+            return target != null
+                && !player.IsMovementLocked
+                && distance <= settings.MaxDistanceMeters
+                && TryGetWord(target, definition, out word);
         }
 
         private bool TryGetWord(

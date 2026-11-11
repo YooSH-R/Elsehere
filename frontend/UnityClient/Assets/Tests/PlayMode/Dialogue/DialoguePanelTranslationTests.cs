@@ -5,6 +5,7 @@ using NUnit.Framework;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
 
@@ -34,6 +35,8 @@ namespace A305.Dialogue.PlayModeTests
         {
             instance.SetActive(false);
             Object.Destroy(instance);
+            if (eventSystem != null)
+                Object.Destroy(eventSystem);
         }
 
         [UnityTest]
@@ -123,6 +126,90 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(cardArea.Overlaps(historyArea), Is.False);
             Assert.That(cardArea.xMin, Is.GreaterThanOrEqualTo(panel.rect.xMin));
             Assert.That(cardArea.xMax, Is.LessThanOrEqualTo(panel.rect.xMax));
+        }
+
+        [UnityTest]
+        [TestCase(1920, 1080, ExpectedResult = null)]
+        [TestCase(900, 1400, ExpectedResult = null)]
+        public IEnumerator LongExpression_GrowsTheCardSoNoLineIsCut(float width, float height)
+        {
+            instance.GetComponent<RectTransform>().sizeDelta = new Vector2(width, height);
+            view.Show(
+                new Content
+                {
+                    UserTranslation =
+                        "You have no conscience, do you? I should've just left you to die. "
+                        + "What were you even thinking back there?",
+                }
+            );
+            yield return null;
+            Transform card = instance.transform.Find("Panel/UserTranslation");
+            var viewport = (RectTransform)card.Find("Viewport");
+            var expression = viewport.Find("Expression").GetComponent<TMP_Text>();
+            float needed = expression.GetPreferredValues(expression.text, viewport.rect.width, 0).y;
+            Assert.That(viewport.rect.height, Is.GreaterThanOrEqualTo(needed - .5f));
+            var panel = (RectTransform)card.parent;
+            Rect cardArea = InPanel((RectTransform)card, panel);
+            Rect nameArea = InPanel((RectTransform)panel.Find("Title"), panel);
+            Assert.That(cardArea.Overlaps(nameArea), Is.False);
+        }
+
+        // 카드 상한보다 긴 표현은 막대로 더 있다는 걸 알리고, 글자를 끌어 마지막 줄까지 읽는다.
+        [UnityTest]
+        public IEnumerator VeryLongExpression_ShowsAScrollbarAndDragsToTheLastLine()
+        {
+            view.Show(new Content { UserTranslation = VeryLongExpression });
+            yield return null;
+            yield return null;
+            var scroll = instance
+                .transform.Find("Panel/UserTranslation")
+                .GetComponent<ScrollRect>();
+            Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
+            Assert.That(scroll.verticalScrollbar, Is.Not.Null);
+            Assert.That(scroll.verticalScrollbar.gameObject.activeInHierarchy, Is.True);
+            Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(1).Within(.01f));
+
+            GameObject text = scroll.content.gameObject;
+            var drag = new PointerEventData(EventSystem.current ?? NewEventSystem())
+            {
+                button = PointerEventData.InputButton.Left,
+                position = new Vector2(1300, 120),
+            };
+            ExecuteEvents.ExecuteHierarchy(text, drag, ExecuteEvents.initializePotentialDrag);
+            ExecuteEvents.ExecuteHierarchy(text, drag, ExecuteEvents.beginDragHandler);
+            drag.position += new Vector2(0, 2000);
+            ExecuteEvents.ExecuteHierarchy(text, drag, ExecuteEvents.dragHandler);
+            ExecuteEvents.ExecuteHierarchy(text, drag, ExecuteEvents.endDragHandler);
+            yield return null;
+            Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(0).Within(.01f));
+        }
+
+        [UnityTest]
+        public IEnumerator ExpressionThatFits_HidesTheScrollbar()
+        {
+            view.Show(new Content { UserTranslation = "Where is the cafe?" });
+            yield return null;
+            yield return null;
+            var scroll = instance
+                .transform.Find("Panel/UserTranslation")
+                .GetComponent<ScrollRect>();
+            Assert.That(scroll.verticalScrollbar, Is.Not.Null);
+            Assert.That(scroll.verticalScrollbar.gameObject.activeInHierarchy, Is.False);
+        }
+
+        private const string VeryLongExpression =
+            "You have no conscience, do you? I should've just left you to die. "
+            + "What were you even thinking back there? I waited for you at the bus stop "
+            + "for almost an hour in the rain, and you didn't even call me once. "
+            + "Next time, please tell me before you change your plans, because I really "
+            + "worried about you and I almost called the police.";
+
+        private GameObject eventSystem;
+
+        private EventSystem NewEventSystem()
+        {
+            eventSystem = new GameObject("EventSystem", typeof(EventSystem));
+            return eventSystem.GetComponent<EventSystem>();
         }
 
         private static Rect InPanel(RectTransform rect, RectTransform panel)

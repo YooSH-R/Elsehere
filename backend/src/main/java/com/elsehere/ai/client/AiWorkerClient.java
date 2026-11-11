@@ -594,6 +594,16 @@ class AiWorkerClient {
     return new BusinessException(toErrorCode(code));
   }
 
+  public PerformanceIntentResult performanceIntent(WorkerTrace trace, String text) {
+    HttpRequest request =
+        jsonRequest(
+            "/v1/performance/intent", trace, JUDGE_TIMEOUT, new PerformanceIntentBody(text));
+    return readJson(
+        send(request, HttpResponse.BodyHandlers.ofString()), PerformanceIntentResult.class);
+  }
+
+  record PerformanceIntentBody(String text) {}
+
   record JudgeBody(WorkerNpc npc, WorkerState state, List<WorkerLine> history, String text) {}
 
   record GuardBody(WorkerNpc npc, List<WorkerLine> history, String text) {}

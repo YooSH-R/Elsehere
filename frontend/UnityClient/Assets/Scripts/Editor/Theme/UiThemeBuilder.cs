@@ -146,7 +146,7 @@ namespace A305.EditorTools.Theme
             Debug.Log("내 정보 창에 NPC 말 빠르기 줄을 덧붙였습니다.");
         }
 
-        /// <summary>대화 제안·로그인과 가입·피드백 목록·내 정보 창의 바탕과 버튼을 다른 화면과 같은 테마 규칙으로 맞춘다.</summary>
+        /// <summary>대화 제안·로그인과 가입·대화 노트·내 정보 창의 바탕과 버튼을 다른 화면과 같은 테마 규칙으로 맞춘다.</summary>
         [MenuItem("Tools/A305/UI/Apply Unified Dialogs")]
         public static void ApplyUnifiedDialogs()
         {
@@ -156,7 +156,7 @@ namespace A305.EditorTools.Theme
             Style(OfferPath, StyleOffer);
             Style(EntryPath, StyleEntry);
             AssetDatabase.SaveAssets();
-            Debug.Log("대화 제안·로그인·피드백 목록·내 정보 창을 테마 규칙으로 맞췄습니다.");
+            Debug.Log("대화 제안·로그인·대화 노트·내 정보 창을 테마 규칙으로 맞췄습니다.");
         }
 
         [MenuItem("Tools/A305/UI/Apply Approved HUD Buttons")]
@@ -337,8 +337,8 @@ namespace A305.EditorTools.Theme
         }
 
         /// <summary>
-        /// 오른쪽 위에는 휴대폰 버튼만 두고, 누르면 삼성폰 모양 메뉴(단어장·피드백 목록·마을 지도·집으로·내 정보 앱)를 펼친다.
-        /// 폰 화면은 <see cref="PhoneMenuBuilder"/>가 만든다. 알림은 알림이 있을 때만 보이는 작은 카드에 담는다.
+        /// 오른쪽 위에는 휴대폰 버튼만 두고, 누르면 삼성폰 모양 메뉴(단어장·대화 노트·마을 지도·집으로·내 정보 앱)를 펼친다.
+        /// 폰 화면은 <see cref="PhoneMenuBuilder"/>가 만든다. 알림은 알림이 있을 때만 화면 위 가운데에 보이는 카드에 담고, 자리는 <see cref="HudNoticeBuilder"/>가 맞춘다.
         /// </summary>
         private static void StyleHud(Transform root)
         {
@@ -367,20 +367,16 @@ namespace A305.EditorTools.Theme
             StyleSurveyPrompt(root);
             StyleNeighbors(root);
 
-            RectTransform card = FindOrCreateRect(panel, "MessageCard");
+            RectTransform card = HudNoticeBuilder.Place(root);
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = false;
             var cardLayout = BuilderTools.GetOrAddComponent<VerticalLayoutGroup>(card.gameObject);
             cardLayout.padding = new RectOffset(36, 36, 28, 28);
             cardLayout.childControlWidth = cardLayout.childControlHeight = true;
             cardLayout.childForceExpandHeight = false;
             Role(card, UiThemeRole.Card);
-            card.SetAsLastSibling();
-            Transform message = panel.Find("Message");
-            if (message == null)
-                message = card.Find("Message");
+            Transform message = card.Find("Message");
             if (message != null)
             {
-                message.SetParent(card, false);
                 message.gameObject.SetActive(true);
                 Role(message, UiThemeRole.Body);
             }
@@ -399,7 +395,7 @@ namespace A305.EditorTools.Theme
 
         // 메뉴(≡) 버튼. 평소 버튼은 기본 색, 펼친 동안 같은 자리에 보이는 버튼은 강조 색이다.
 
-        /// <summary>피드백 목록 창은 테마 유리 판 위에 확정 시안대로 다시 놓는다(FeedbackListBuilder).</summary>
+        /// <summary>대화 노트 창은 테마 유리 판 위에 확정 시안대로 다시 놓는다(FeedbackListBuilder).</summary>
         private static void StyleHistory(Transform root)
         {
             if (root.Find("History") == null)
@@ -408,7 +404,7 @@ namespace A305.EditorTools.Theme
             A305.EditorTools.Learning.FeedbackListBuilder.Apply(root);
         }
 
-        /// <summary>[이웃] 창은 [피드백 목록]과 같은 테마 유리 판 위에 같은 자리로 놓는다(NeighborsListBuilder).</summary>
+        /// <summary>[이웃] 창은 [대화 노트]와 같은 테마 유리 판 위에 같은 자리로 놓는다(NeighborsListBuilder).</summary>
         private static void StyleNeighbors(Transform root)
         {
             if (root.Find("Neighbors") == null)
@@ -612,6 +608,7 @@ namespace A305.EditorTools.Theme
                 180
             );
             Roomy(root, "MyPage/WithdrawDialog");
+            A305.EditorTools.Onboarding.MyPageLayoutBuilder.Apply(root.gameObject);
         }
 
         /// <summary>약관·선택 동의 한 줄: 동그란 체크, 본문 글자, 작은 [보기] 알약 버튼.</summary>

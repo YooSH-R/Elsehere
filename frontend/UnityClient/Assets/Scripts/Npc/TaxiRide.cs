@@ -115,7 +115,7 @@ namespace A305.Npc
                 if (destination != null && car.HasPulledOver && !arriving)
                 {
                     arriving = true;
-                    panel.SetVehicleStatus("도착했어요 · 하차 준비 중");
+                    panel.ShowTaxiArrival();
                     dialogue.End();
                 }
                 return;
@@ -248,7 +248,14 @@ namespace A305.Npc
             HidePrompt();
             if (!IsHailAllowed || !TaxiFare.CanHail(transform.position, player.transform.position))
                 return;
-            if (!dialogue.TryStart(driver.Code, driver.LookTarget, ConversationInitiator.User))
+            if (
+                !dialogue.TryStart(
+                    driver.Code,
+                    driver.LookTarget,
+                    ConversationInitiator.User,
+                    placeCode: "TAXI"
+                )
+            )
                 return;
             passenger = true;
             arriving = false;

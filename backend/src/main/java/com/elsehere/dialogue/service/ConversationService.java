@@ -2,6 +2,7 @@ package com.elsehere.dialogue.service;
 
 import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.NpcReplyListener;
 import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerTrace;
@@ -27,9 +28,8 @@ import com.elsehere.followup.dto.FollowUpResponse;
 import com.elsehere.followup.service.FollowUpService;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.mission.entity.PracticeScenario;
-import com.elsehere.mission.service.FirstDayMissionService;
-import com.elsehere.mission.service.MissionDialogueService;
 import com.elsehere.mission.service.PlacePracticeService;
+import com.elsehere.mission.service.QuestTalkService;
 import com.elsehere.onboarding.entity.UserLanguageProfile;
 import com.elsehere.onboarding.entity.UserLanguageProfileId;
 import com.elsehere.onboarding.repository.UserLanguageProfileRepository;
@@ -116,7 +116,7 @@ public class ConversationService {
   private final FollowUpService followUpService;
   private final TransactionTemplate transactionTemplate;
   private final Clock clock;
-  private final MissionDialogueService missionDialogueService;
+  private final QuestTalkService questTalks;
   private final GuestConversationLimit guestConversationLimit;
   private final DialogueRequestLocks requestLocks;
   private final ReviewCardService reviewCardService;
@@ -125,8 +125,20 @@ public class ConversationService {
   private final PlacePracticeService placePractice;
 
   public ConversationStartResponse start(Long userId, StartConversationRequest request) {
+    return start(userId, request, null);
+  }
+
+  /**
+   * 대화 시작을 스트리밍으로 받는다. AI가 만드는 첫 인사의 글자 조각과 문장 조각 음성을 만들어지는 대로 {@code events}에 넘기고, 처리 순서·저장·결과는
+   * {@link #start(Long, StartConversationRequest)}와 같다. 말걸기 대사로 시작하거나 같은 요청 ID로 이미 시작한 대화를 돌려줄 때는
+   * AI를 부르지 않으므로 조각을 넘기지 않는다.
+   *
+   * @param events null이면 첫 인사를 끝까지 모아 한 번에 응답한다
+   */
+  public ConversationStartResponse start(
+      Long userId, StartConversationRequest request, TurnEvents events) {
     return requestLocks.execute(
-        userId, request.requestId(), () -> startOnce(userId, request, null, null));
+        userId, request.requestId(), () -> startOnce(userId, request, null, null, events));
   }
 
   public ConversationStartResponse startReview(
@@ -145,8 +157,15 @@ public class ConversationService {
           return startOnce(
               userId,
               new StartConversationRequest(
-                  requestId, review.npc().npcCode(), InitiatedBy.USER, offDuty, null, speechSpeed),
+                  requestId,
+                  review.npc().npcCode(),
+                  InitiatedBy.USER,
+                  offDuty,
+                  null,
+                  speechSpeed,
+                  null),
               review,
+              null,
               null);
         });
   }
@@ -169,14 +188,16 @@ public class ConversationService {
                     null,
                     speechSpeed),
                 null,
-                practice));
+                practice,
+                null));
   }
 
   private ConversationStartResponse startOnce(
       Long userId,
       StartConversationRequest request,
       ReviewCardResponse review,
-      PracticeScenario practice) {
+      PracticeScenario practice,
+      TurnEvents events) {
     Long reviewCardId = review == null ? null : review.id();
     String practiceScenarioId = practice == null ? null : practice.name();
     // 응답을 받지 못해 같은 요청을 다시 보내면 새로 만들지 않고 처음 시작한 대화를 돌려준다(CONV-03과 같은 방식).
@@ -186,10 +207,8 @@ public class ConversationService {
     if (replayed.isPresent()) {
       return replayed.get();
     }
-    String travelSituation =
-        review == null && request.npcTravelContext() != null
-            ? request.npcTravelContext().describe()
-            : null;
+    // 복습 대화에는 지금의 이동·위치를 덧붙이지 않는다.
+    String travelSituation = review == null ? request.npcSituation() : null;
     StartContext context =
         transactionTemplate.execute(
             status ->
@@ -206,6 +225,7 @@ public class ConversationService {
     // 이 NPC가 건넬 것이 준비됐으면 건네는 말로 시작한다. 말걸기 대사가 있는 NPC가 먼저 말을 걸었으면 그 대사로 시작한다.
     // 직원처럼 말걸기 대사가 없거나 근무 시간이 아니면 AI로 첫 인사를 만든다.
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, null);
+    NpcReplyListener listener = NpcReplyRelay.to(aiGateway, trace, events);
     Opening opening =
         context
             .followUp()
@@ -214,12 +234,14 @@ public class ConversationService {
                     PoliceOfficers.includes(npc.summary().npcCode())
                         ? greetingOpening(
                             trace,
+                            listener,
                             npc,
                             context,
                             POLICE_CALL_TEXT,
                             POLICE_CALL_INSTRUCTION.formatted(ready.item()))
                         : greetingOpening(
                             trace,
+                            listener,
                             npc,
                             context,
                             HANDOVER_TEXT,
@@ -227,13 +249,14 @@ public class ConversationService {
             .orElseGet(
                 () ->
                     context.review() == null
-                            && context.mission().isEmpty()
+                            && context.quest().isEmpty()
                             && !request.npcOffDuty()
                             && request.initiatedBy() == InitiatedBy.NPC
                             && npc.approachLine() != null
                         ? approachOpening(npc)
                         : greetingOpening(
                             trace,
+                            listener,
                             npc,
                             context,
                             GREETING_TEXT,
@@ -276,20 +299,7 @@ public class ConversationService {
               if (request.npcOffDuty()) {
                 conversation.markNpcOffDuty();
               }
-              context
-                  .mission()
-                  .ifPresent(
-                      value -> {
-                        if (value.detail().state() != null) {
-                          if (value.townStory()) {
-                            conversation.attachTownStoryStage(value.detail().stage());
-                            conversation.recordTownStoryGoals(value.detail().remainingGoals());
-                          } else {
-                            conversation.attachFirstDayStage(value.detail().stage());
-                            conversation.recordFirstDayGoals(value.detail().remainingGoals());
-                          }
-                        }
-                      });
+              context.quest().ifPresent(quest -> quest.recordStage(conversation));
               Turn openingTurn =
                   turnRepository.save(
                       Turn.npc(
@@ -477,10 +487,9 @@ public class ConversationService {
         dialogueContexts.learner(user, speechSpeed),
         selectedLevel(user),
         storyDialogue ? memoryService.memoryFor(userId, npc.npcId()) : null,
-        storyDialogue ? missionDialogueService.context(userId, npcCode) : Optional.empty(),
+        questTalks.forStart(userId, npcCode, review != null, practice),
         storyDialogue ? followUpService.readyFor(userId, npc.npcId()) : Optional.empty(),
-        review,
-        practice == null ? null : placePractice.context(practice, List.of()));
+        review);
   }
 
   // 진행 중인 대화가 없고 게스트 대화 횟수가 남아 있어야 시작할 수 있다. AI 호출 전과 저장 직전에 확인한다.
@@ -509,18 +518,35 @@ public class ConversationService {
     return new Opening(npc.approachLine(), npc.approachAudioKey(), null);
   }
 
+  // 스트리밍 요청이면 첫 인사의 글자 조각과 문장 조각 음성을 받는 대로 listener로 넘긴다. 전체 음성은 다시 듣기용으로 저장한다.
   private Opening greetingOpening(
-      WorkerTrace trace, NpcContext npc, StartContext context, String text, String instruction) {
+      WorkerTrace trace,
+      NpcReplyListener listener,
+      NpcContext npc,
+      StartContext context,
+      String text,
+      String instruction) {
     NpcReply reply =
-        aiGateway.reply(
-            trace,
-            npc.workerNpc(),
-            context.memory(),
-            List.of(),
-            text,
-            instruction,
-            context.level(),
-            context.learner());
+        listener == NpcReplyListener.NONE
+            ? aiGateway.reply(
+                trace,
+                npc.workerNpc(),
+                context.memory(),
+                List.of(),
+                text,
+                instruction,
+                context.level(),
+                context.learner())
+            : aiGateway.reply(
+                trace,
+                npc.workerNpc(),
+                context.memory(),
+                List.of(),
+                text,
+                instruction,
+                context.level(),
+                context.learner(),
+                listener);
     return new Opening(
         reply.text(),
         npcAudioReceiver.save(trace, reply.audioFullId()),
@@ -534,12 +560,9 @@ public class ConversationService {
       return reviewDialogue.instruction(context.review())
           + " Open with one brief welcome and let the learner make their request.";
     }
-    if (context.practice() != null) {
-      return context.practice().instruction() + MISSION_GREETING;
-    }
     return context
-        .mission()
-        .map(value -> value.detail().instruction() + MISSION_GREETING)
+        .quest()
+        .map(quest -> quest.talk().instruction() + MISSION_GREETING)
         .orElse(npcOffDuty ? OFF_DUTY_GREETING_INSTRUCTION : GREETING_INSTRUCTION);
   }
 
@@ -547,17 +570,16 @@ public class ConversationService {
    * @param learner 대답 상대인 학습자. NPC가 캐릭터에 맞는 호칭을 쓰게 한다
    * @param memory 이 NPC와의 기억. 처음 만나면 null
    * @param followUp 이 NPC가 지금 건넬 수 있는 것
-   * @param practice 장소 연습 상황의 목표와 직원 지시. 장소 연습이 아니면 null
+   * @param quest 퀘스트 대화 목표와 그 목표를 낸 쪽. 장소 연습은 고른 상황의 목표다. 복습이거나 진행 중인 퀘스트가 없으면 빈 값
    */
   private record StartContext(
       NpcContext npc,
       WorkerLearner learner,
       int level,
       WorkerMemory memory,
-      Optional<MissionDialogueService.Context> mission,
+      Optional<QuestTalkService.SelectedQuest> quest,
       Optional<FollowUpService.ReadyFollowUp> followUp,
-      ReviewCardResponse review,
-      FirstDayMissionService.Context practice) {}
+      ReviewCardResponse review) {}
 
   private record Opening(String text, String npcAudioKey, String speechPhrases) {}
 

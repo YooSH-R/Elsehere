@@ -10,8 +10,8 @@ using UnityEngine.UI;
 namespace A305.Learning.Tests
 {
     /// <summary>
-    /// 대화 피드백 화면은 확정 시안(F1 요약·F2 문장 교정)이다. 탭은 요약·문장 교정·전체 대화 셋이고, 확대 버튼은 머리줄의 X 왼쪽,
-    /// [복습장에 추가]는 왼쪽 아래에 둔다. 요약 탭은 요약 카드(잘했어요·더 해 봐요) 아래에 "이 상황에서 자주 써요" 표현 줄을,
+    /// 대화 피드백 화면은 확정 시안(F1 요약·F2 문장 교정, N3)이다. 탭은 요약·문장 교정·전체 대화 셋이고, 확대 버튼은 머리줄의 X 왼쪽에 둔다.
+    /// 대화는 대화 노트에 저절로 남아 따로 담는 [복습장에 추가] 버튼은 없다. 요약 탭은 요약 카드(잘했어요·더 해 봐요) 아래에 "이 상황에서 자주 써요" 표현 줄을,
     /// 문장 교정 탭은 발화마다 카드를 쌓는다. 크기·자리는 시안 px에 1.2를 곱한 판 안의 단위다.
     /// </summary>
     public class FeedbackScreenLayoutTests
@@ -48,10 +48,13 @@ namespace A305.Learning.Tests
             Show();
             var expandButton = Field<Button>("expandButton");
             var closeButton = Field<Button>("topCloseButton");
-            Rect expand = Box((RectTransform)expandButton.transform);
-            Rect close = Box((RectTransform)closeButton.transform);
+            var expandRect = (RectTransform)expandButton.transform;
+            var closeRect = (RectTransform)closeButton.transform;
+            Rect expand = Box(expandRect);
+            Rect close = Box(closeRect);
 
-            Assert.That(expand.size, Is.EqualTo(close.size));
+            // 창 좌표로 왕복 변환하면 같은 크기여도 창의 배율에 따라 반올림 오차가 생긴다.
+            Assert.That(expandRect.rect.size, Is.EqualTo(closeRect.rect.size));
             Assert.That(expand.center.y, Is.EqualTo(close.center.y).Within(.01f));
             Assert.That(close.xMin - expand.xMax, Is.EqualTo(14 * Px).Within(.01f));
             Assert.That(
@@ -66,33 +69,27 @@ namespace A305.Learning.Tests
             Assert.That(IconOf(expandButton), Is.EqualTo("FeedbackCollapseIcon"));
         }
 
-        // [복습장에 추가]는 왼쪽 아래 한 줄 버튼이고, 담으면 같은 자리에서 초록 [복습장에 추가됨]이 된다.
+        // 끝난 대화는 대화 노트에 저절로 남으므로 피드백 창에서 따로 담는 [복습장에 추가] 버튼을 두지 않는다.
         [Test]
-        public void ReviewButton_SitsBottomLeftAndTurnsIntoAddedOnceSaved()
+        public void Footer_HasNoReviewBookButton()
         {
             Show();
-            var review = Field<Button>("reviewButton");
-            Rect panel = ((RectTransform)Panel()).rect;
-            Rect button = Box((RectTransform)review.transform);
 
-            Assert.That(ArtOf(review), Is.EqualTo("FeedbackReviewSave"));
-            Assert.That(button.xMin - panel.xMin, Is.EqualTo(37 * Px).Within(.01f));
-            Assert.That(button.yMin - panel.yMin, Is.EqualTo(31 * Px).Within(.01f));
+            Assert.That(Panel().Find("ReviewSaveButton"), Is.Null);
+        }
 
-            view.ShowReviewSaved();
-
-            Assert.That(ArtOf(review), Is.EqualTo("FeedbackReviewSaved"));
-            Assert.That(review.interactable, Is.False);
-            Assert.That(Box((RectTransform)review.transform).xMin, Is.EqualTo(button.xMin));
-
+        [Test]
+        public void SummaryBody_IsReadableAtTheDefaultWindowSize()
+        {
             Show();
+            TMP_Text summary = Field<RectTransform>("summaryCard")
+                .Find("Text")
+                .GetComponent<TMP_Text>();
 
             Assert.That(
-                ArtOf(review),
-                Is.EqualTo("FeedbackReviewSave"),
-                "새 피드백은 다시 담을 수 있다."
+                summary.fontSize * view.PanelRect.localScale.x,
+                Is.GreaterThanOrEqualTo(22)
             );
-            Assert.That(review.interactable, Is.True);
         }
 
         [Test]
@@ -312,7 +309,6 @@ namespace A305.Learning.Tests
                 view = instance.GetComponentInChildren<FeedbackView>(true);
             }
             view.SetSaveAvailable(true);
-            view.SetReviewAvailable(true);
             view.Show(
                 ConversationFeedback.FromServer(
                     "Mia",

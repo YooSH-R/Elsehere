@@ -6,6 +6,7 @@ using A305.Player;
 using A305.Tutorial;
 using A305.Weather;
 using NUnit.Framework;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
@@ -114,6 +115,38 @@ namespace A305.World.PlayModeTests
                 yield return null;
             }
             Assert.That(nextLoad.isDone, Is.True, "A later scene load must not remain blocked.");
+        }
+
+        // 입구 화면에서 장소로 들어갈 때는 휴대폰에서 몇 초씩 걸려, 멈춘 화면 대신 문구와 진행 막대를 보인다.
+        [UnityTest]
+        public IEnumerator TravelWithALoadingMessage_ShowsItWhileCoveredAndLeavesOnlyTheNewSpace()
+        {
+            yield return LoadSpace("HomeScene");
+
+            SpaceTravelCurtain.Travel("TownScene", "마을을 불러오는 중이에요.");
+            yield return WaitUntilCovered();
+
+            Assert.That(CurtainMessage(), Is.EqualTo("마을을 불러오는 중이에요."));
+            Assert.That(CurtainProgressShown(), Is.True, "진행 막대");
+            yield return WaitUntilUncovered();
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("TownScene"));
+            Assert.That(LoadedSceneNames(), Is.EqualTo(new[] { "TownScene" }));
+        }
+
+        // 문을 지날 때는 덮는 시간이 짧아 글자가 깜빡이기만 하므로 문구를 띄우지 않는다.
+        [UnityTest]
+        public IEnumerator TravelThroughADoor_CoversWithoutALoadingMessage()
+        {
+            yield return LoadSpace("TownScene");
+            SpaceTravelCurtain.Travel("HomeScene", "마을을 불러오는 중이에요.");
+            yield return WaitUntilUncovered();
+
+            Assert.That(SpaceTravel.TryTravel("TownScene", "HomeDoor"), Is.True);
+            yield return WaitUntilCovered();
+
+            Assert.That(CurtainMessage(), Is.Null);
+            Assert.That(CurtainProgressShown(), Is.False, "진행 막대");
+            yield return WaitForArrival("TownScene");
         }
 
         [UnityTest]
@@ -359,6 +392,52 @@ namespace A305.World.PlayModeTests
 
             // 도착한 뒤 한 프레임 동안 이동·카메라 갱신이 위치를 흐트러뜨리지 않는지 함께 본다.
             yield return null;
+        }
+
+        private static IEnumerator WaitUntilCovered()
+        {
+            float deadline = Time.realtimeSinceStartup + ArrivalTimeoutSeconds;
+            while (!SpaceTravelCurtain.IsCoveringScreen || Curtain().Opacity < 1f)
+            {
+                if (Time.realtimeSinceStartup > deadline)
+                {
+                    Assert.Fail("화면을 덮지 못했습니다.");
+                }
+
+                yield return null;
+            }
+        }
+
+        private static IEnumerator WaitUntilUncovered()
+        {
+            float deadline = Time.realtimeSinceStartup + ArrivalTimeoutSeconds;
+            while (SpaceTravelCurtain.IsCoveringScreen)
+            {
+                if (Time.realtimeSinceStartup > deadline)
+                {
+                    Assert.Fail("화면을 다시 보이지 못했습니다.");
+                }
+
+                yield return null;
+            }
+        }
+
+        private static SpaceTravelCurtain Curtain() =>
+            Object.FindAnyObjectByType<SpaceTravelCurtain>(FindObjectsInactive.Include);
+
+        // 덮개에 보이는 글자. 없으면 null이다.
+        private static string CurtainMessage()
+        {
+            TMP_Text message = Curtain()
+                .GetComponentsInChildren<TMP_Text>(true)
+                .FirstOrDefault(text => text.isActiveAndEnabled);
+            return message != null ? message.text : null;
+        }
+
+        private static bool CurtainProgressShown()
+        {
+            Transform progress = Curtain().transform.Find("LoadingStatus/Progress");
+            return progress != null && progress.gameObject.activeInHierarchy;
         }
 
         private static string[] LoadedSceneNames()

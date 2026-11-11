@@ -1,4 +1,5 @@
 using System;
+using A305.Player;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -44,11 +45,13 @@ namespace A305.Dialogue
             agreeButton.interactable = true;
             ShowStatus(null);
             dialog.SetActive(true);
+            UiEscape.Opened(this, Hide, () => dialog.activeInHierarchy);
         }
 
         public void Hide()
         {
             dialog.SetActive(false);
+            UiEscape.Closed(this);
         }
 
         /// <summary>동의를 저장하는 동안 [동의하고 켜기]를 막는다.</summary>

@@ -16,16 +16,20 @@ namespace A305.Learning
             this.client = client;
         }
 
-        public Task<ConversationPage> GetPageAsync(string cursor)
+        public Task<ConversationPage> GetPageAsync(string cursor, string sceneCode)
         {
-            if (cursor == null)
+            string path = ListPath;
+            if (sceneCode != null)
             {
-                return client.GetAsync<ConversationPage>(ListPath);
+                path += "&sceneCode=" + Uri.EscapeDataString(sceneCode);
             }
 
-            return client.GetAsync<ConversationPage>(
-                ListPath + "&cursor=" + Uri.EscapeDataString(cursor)
-            );
+            if (cursor != null)
+            {
+                path += "&cursor=" + Uri.EscapeDataString(cursor);
+            }
+
+            return client.GetAsync<ConversationPage>(path);
         }
 
         public Task<PastFeedback> GetFeedbackAsync(long conversationId)

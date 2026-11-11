@@ -171,17 +171,6 @@ namespace A305.EditorTools.World
             }
             Kit("PictureSmallA", booths, new Vector3(SideWall, 1.85f, -2.8f), -90);
             FramedPrint(booths, new Vector3(SideWall, 1.9f, -5.6f), -90, "Botanical");
-            WallBoard(
-                "PieBoard",
-                booths,
-                new Vector3(SideWall, 2.6f, -4.2f),
-                -90,
-                "PIE OF THE DAY",
-                "APPLE · CHERRY",
-                1.6f,
-                .6f,
-                "#A8402F"
-            );
 
             Transform entrance = Zone("Entrance", space);
             Jukebox(entrance, new Vector3(2.6f, 0, -.48f), 180);

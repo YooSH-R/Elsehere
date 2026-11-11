@@ -51,7 +51,7 @@ class DinerMealTest {
     when(firstDay.getScene()).thenReturn("TOWN");
     when(firstDays.findById(8L)).thenReturn(Optional.of(firstDay));
     var opening = service.context(8L, "DINER_STAFF").orElseThrow();
-    assertThat(opening.state().intents())
+    assertThat(opening.goals().orElseThrow().state().intents())
         .extracting(intent -> intent.id())
         .containsExactly("order_breakfast");
     assertThatThrownBy(() -> service.receiveDinerMeal(8L)).isInstanceOf(BusinessException.class);
@@ -63,7 +63,15 @@ class DinerMealTest {
     assertThat(story.getStage()).isZero();
     assertThat(story.hasGoal(1)).isFalse();
     assertThat(service.status(8L).canRest()).isTrue();
-    assertThat(service.context(8L, "DINER_STAFF").orElseThrow().state().intents()).isEmpty();
+    assertThat(
+            service
+                .context(8L, "DINER_STAFF")
+                .orElseThrow()
+                .goals()
+                .orElseThrow()
+                .state()
+                .intents())
+        .isEmpty();
     int balance = Coins.balance(firstDay, story);
     service.receiveDinerMeal(8L);
     service.receiveDinerMeal(8L);
@@ -71,7 +79,14 @@ class DinerMealTest {
     assertThat(service.status(8L).steps().getFirst().goals()).hasSize(2);
     assertThat(service.status(8L).steps().getFirst().goals().get(1).completed()).isFalse();
     assertThat(Coins.balance(firstDay, story)).isEqualTo(balance);
-    assertThat(service.context(8L, "DINER_STAFF").orElseThrow().state().intents())
+    assertThat(
+            service
+                .context(8L, "DINER_STAFF")
+                .orElseThrow()
+                .goals()
+                .orElseThrow()
+                .state()
+                .intents())
         .extracting(intent -> intent.id())
         .containsExactly("explain_spill");
     service.accept(

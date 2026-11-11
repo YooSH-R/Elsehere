@@ -14,7 +14,7 @@ using UnityEngine.UI;
 namespace A305.Learning.Tests
 {
     /// <summary>
-    /// 휴대폰 [복습장] 옆 [이웃] 버튼으로 여는 창. 열린 이웃은 이름·역할, 장소·대화 수·아는 정도, 호감도를 한 줄에 보이고,
+    /// 휴대폰 [이웃] 앱으로 여는 창. 열린 이웃은 이름·역할, 장소·대화 수·아는 정도, 호감도를 한 줄에 보이고,
     /// 잠긴 NPC는 역할과 장소만 보인다. 열린 이웃을 누르면 정보 카드(지금 위치 포함)를 보인다.
     /// </summary>
     public class NeighborsViewTests
@@ -133,6 +133,31 @@ namespace A305.Learning.Tests
             Assert.That(Shown("Neighbors/Rows"), Is.True);
             Assert.That(Shown("Neighbors/Pager"), Is.True);
         }
+
+        // ESC는 정보 카드면 목록으로 돌아가고, 목록이면 창을 닫는다.
+        [Test]
+        public async Task Escape_GoesBackFromTheCardThenClosesTheWindow()
+        {
+            A305.Player.UiEscape.Clear();
+            api.Neighbors.Add(Max());
+            await ShowLoaded();
+            Find("Neighbors/Rows/Row0").GetComponent<Button>().onClick.Invoke();
+
+            WatchEscape();
+            A305.Player.UiEscape.CloseTop();
+            Assert.That(Shown("Neighbors/Card"), Is.False, "정보 카드에서 목록으로");
+            Assert.That(Shown("Neighbors/Rows"), Is.True);
+
+            WatchEscape();
+            A305.Player.UiEscape.CloseTop();
+            Assert.That(Shown("Neighbors"), Is.False, "목록에서 창 닫기");
+            A305.Player.UiEscape.Clear();
+        }
+
+        private void WatchEscape() =>
+            typeof(NeighborsView)
+                .GetMethod("Update", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(view, null);
 
         // 08시(시계를 처음 상태로 돌린 시각)에 오락실에서 일하는 Max는 지도 오락실 칸에 찍을 수 있다.
         [Test]
@@ -254,38 +279,29 @@ namespace A305.Learning.Tests
             Assert.That(Shown("NeighborsShade"), Is.False);
         }
 
-        // [조작법] 앱과 [복습장] 버튼은 그대로 두고, [복습장] 오른쪽 빈칸에 아이콘과 글자로 된 작은 [이웃] 버튼을 둔다.
         [Test]
-        public void PhoneButton_SitsRightOfTheReviewButton_AndOpensNeighbors()
+        public void PhoneNeighborsApp_ShowsItsIconAndOpensTheList()
         {
-            const float Px = 1.2f;
-            const float PhoneWidth = 430;
-            Transform phone = Find("Panel/Menu");
-            var review = (RectTransform)phone.Find("ReviewButton");
-            var neighbors = (RectTransform)phone.Find("NeighborsButton");
+            const string appPath = "Panel/Menu/NeighborsButton";
+            var button = Find(appPath).GetComponent<Button>();
+            Assert.That(Text(appPath + "/Label"), Is.EqualTo(NeighborsText.AppLabel));
+            Assert.That(Find(appPath + "/Icon").GetComponent<Image>().sprite, Is.Not.Null);
+            Assert.That(Shown("Neighbors"), Is.False);
 
-            Assert.That(neighbors, Is.Not.Null);
-            Assert.That(phone.Find("ControlsButton"), Is.Not.Null);
-            Assert.That(review.sizeDelta, Is.EqualTo(new Vector2(234, 54) * Px));
-            Assert.That(
-                neighbors.anchoredPosition.y,
-                Is.EqualTo(review.anchoredPosition.y).Within(.01f)
-            );
-            Assert.That(neighbors.sizeDelta.y, Is.EqualTo(review.sizeDelta.y).Within(.01f));
-            Assert.That(
-                neighbors.anchoredPosition.x,
-                Is.GreaterThanOrEqualTo(review.anchoredPosition.x + review.sizeDelta.x)
-            );
-            Assert.That(
-                neighbors.anchoredPosition.x + neighbors.sizeDelta.x,
-                Is.LessThanOrEqualTo(PhoneWidth * Px)
-            );
-            Assert.That(
-                neighbors.Find("Label").GetComponent<TMP_Text>().text,
-                Is.EqualTo(NeighborsText.AppLabel)
-            );
-            Assert.That(neighbors.Find("Icon").GetComponent<Image>().sprite, Is.Not.Null);
-            Assert.That(Reference<Button>(view, "openButton").transform, Is.SameAs(neighbors));
+            var previousFactory = ApiSettings.EditorClientFactory;
+            try
+            {
+                ApiSettings.EditorClientFactory = _ => new ApiClient(
+                    "",
+                    new EmptyNeighborsTransport()
+                );
+                button.onClick.Invoke();
+                Assert.That(Shown("Neighbors"), Is.True);
+            }
+            finally
+            {
+                ApiSettings.EditorClientFactory = previousFactory;
+            }
         }
 
         // 서버 시각을 받기 전처럼 1일차 08시로 돌린다.
@@ -312,9 +328,11 @@ namespace A305.Learning.Tests
 
         private string Text(string path) => Find(path).GetComponent<TMP_Text>().text;
 
-        private static T Reference<T>(Object owner, string field)
-            where T : Object =>
-            (T)new SerializedObject(owner).FindProperty(field).objectReferenceValue;
+        private sealed class EmptyNeighborsTransport : IApiTransport
+        {
+            public Task<ApiTransportResponse> SendAsync(ApiTransportRequest request) =>
+                Task.FromResult(ApiTransportResponse.Received(200, "{\"npcs\":[]}"));
+        }
 
         private sealed class FakeNeighborsApi : INeighborsApi
         {

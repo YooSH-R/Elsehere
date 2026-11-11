@@ -159,6 +159,7 @@ public class Conversation extends BaseEntity {
   @Column(nullable = false)
   private boolean npcOffDuty;
 
+  // 대화를 시작할 때 Unity가 알린 NPC의 이동 사실과 지금 있는 곳(CONV-01 npcTravelContext·placeCode). 대화 동안 워커에 덧붙인다.
   @Column(length = 1600)
   private String npcTravelSituation;
 

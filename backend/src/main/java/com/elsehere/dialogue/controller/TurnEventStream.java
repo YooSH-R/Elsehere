@@ -1,6 +1,7 @@
 package com.elsehere.dialogue.controller;
 
 import com.elsehere.common.error.ErrorResponse;
+import com.elsehere.dialogue.dto.ConversationStartResponse;
 import com.elsehere.dialogue.dto.TurnResponse;
 import com.elsehere.dialogue.service.TurnEvents;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,16 +16,19 @@ import org.springframework.http.MediaType;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * 발화 전송(CONV-03)의 스트리밍 응답. 이벤트 형식은 docs/api/mvp-api.md CONV-03 "스트리밍"을 따른다.
+ * 발화 전송(CONV-03)과 대화 시작(CONV-01)의 스트리밍 응답. 대화 시작의 첫 인사도 대화의 첫 턴이라 같은 이벤트로 보낸다. 이벤트 형식은
+ * docs/api/mvp-api.md CONV-01·CONV-03 "스트리밍"을 따른다.
  *
  * <p>첫 이벤트를 쓸 때 200과 SSE 헤더를 보낸다. 그 전에 난 오류는 공통 오류 처리기가 지금처럼 HTTP 오류로 응답한다. 클라이언트가 연결을 끊어도 쓰기 실패를
- * 무시해 턴 처리를 끝까지 마치게 한다. 저장된 턴은 같은 요청 ID로 다시 보내면 받는다.
+ * 무시해 턴 처리를 끝까지 마치게 한다. 저장된 턴·대화는 같은 요청 ID로 다시 보내면 받는다.
  */
 @Slf4j
 final class TurnEventStream implements TurnEvents {
 
   private final HttpServletResponse response;
   private final JsonMapper jsonMapper;
+  // 대화 시작 스트림인지. 끝날 때 남기는 시간 로그 이름만 다르다.
+  private final boolean opening;
   private final long createdAt = System.nanoTime();
   private OutputStream output;
   private boolean clientGone;
@@ -33,9 +37,20 @@ final class TurnEventStream implements TurnEvents {
   private int chunks;
   private int silentChunks;
 
+  /** 발화 전송(CONV-03) 스트림. */
   TurnEventStream(HttpServletResponse response, JsonMapper jsonMapper) {
+    this(response, jsonMapper, false);
+  }
+
+  private TurnEventStream(HttpServletResponse response, JsonMapper jsonMapper, boolean opening) {
     this.response = response;
     this.jsonMapper = jsonMapper;
+    this.opening = opening;
+  }
+
+  /** 대화 시작(CONV-01) 스트림. */
+  static TurnEventStream forOpening(HttpServletResponse response, JsonMapper jsonMapper) {
+    return new TurnEventStream(response, jsonMapper, true);
   }
 
   /** 첫 이벤트를 보냈는지. 보낸 뒤의 오류는 HTTP 상태로 알릴 수 없어 {@link #error}로 보낸다. */
@@ -68,6 +83,12 @@ final class TurnEventStream implements TurnEvents {
   void turn(TurnResponse turn) {
     send("turn", turn);
     logTiming("turn");
+  }
+
+  /** 시작한 대화. REST 응답과 같은 본문이며 마지막 이벤트다. */
+  void conversation(ConversationStartResponse started) {
+    send("conversation", started);
+    logTiming("conversation");
   }
 
   /**
@@ -105,6 +126,19 @@ final class TurnEventStream implements TurnEvents {
 
   // 스트리밍으로 첫 글자·첫 음성이 얼마나 빨라졌는지 보도록 남긴다. 대사는 남기지 않는다.
   private void logTiming(String result) {
+    if (opening) {
+      log.info(
+          "conversation_start_timing result={} first_delta_ms={} first_audio_ms={} total_ms={}"
+              + " chunks={} silent_chunks={} client_gone={}",
+          result,
+          sinceCreated(firstDeltaAt),
+          sinceCreated(firstAudioAt),
+          sinceCreated(System.nanoTime()),
+          chunks,
+          silentChunks,
+          clientGone);
+      return;
+    }
     log.info(
         "turn_stream_timing result={} first_delta_ms={} first_audio_ms={} total_ms={} chunks={}"
             + " silent_chunks={} client_gone={}",

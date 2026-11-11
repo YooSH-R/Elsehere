@@ -42,7 +42,9 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 | DEBUG | `npc_reply_timing` | `first_token_s`, `llm_s`, `worker_total_s`, `audio_full_s`, `wait_ms` | NPC 대답(첫 인사·발화) 스트림이 끝날 때(개발 서버에서만 보임) |
 | DEBUG | `npc_audio_saved` | `bytes`, `download_ms`, `save_ms` | NPC 대답 음성을 워커에서 받아 저장했을 때(개발 서버에서만 보임) |
 | INFO | `turn_stream_timing` | `result`(`turn` 또는 오류 코드), `first_delta_ms`, `first_audio_ms`, `total_ms`, `chunks`, `silent_chunks`, `client_gone` | 발화 전송을 스트리밍(CONV-03)으로 보낸 요청이 끝날 때. 시간은 요청을 받은 때부터이며 대사는 남기지 않음 |
-| INFO | `turn_stream_client_gone` | `event` | 스트리밍 중 사용자 연결이 끊김. 턴은 끝까지 처리해 저장 |
+| INFO | `conversation_start_timing` | `result`(`conversation` 또는 오류 코드), `first_delta_ms`, `first_audio_ms`, `total_ms`, `chunks`, `silent_chunks`, `client_gone` | 대화 시작을 스트리밍(CONV-01)으로 보낸 요청이 끝날 때. 키와 뜻은 `turn_stream_timing`과 같음. 말걸기 대사로 시작했거나 같은 요청 ID로 다시 보낸 요청은 첫 인사를 만들지 않아 `first_delta_ms`가 비어 있음 |
+| INFO | `turn_stream_client_gone` | `event` | 스트리밍(CONV-01·03) 중 사용자 연결이 끊김. 첫 인사·턴은 끝까지 처리해 저장 |
+| INFO | `npc_early_reply` | `result`(`kept` 또는 `discarded`), (버렸으면) `changed`(`text`·`instruction`·`reaction` 중 판정 뒤 달라진 칸) | 판정을 기다리지 않고 먼저 시작한 NPC 대답(CONV-03 스트리밍, 판정 결과가 지시문에 들어가지 않는 대화)을 판정 뒤에 쓰거나 버렸을 때. 버린 대답은 AI 호출 기록(`ai_requests`)에 남지 않으므로 버린 수와 그만큼의 사용량은 이 로그로 셈 |
 
 대화 시작·NPC 대답이 오래 걸리면 같은 `request_id`의 `http_request`(요청 전체), `npc_reply_timing`, `npc_audio_saved`를 함께 봅니다.
 
@@ -61,7 +63,7 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 | WARN | `npc_reply_stream_cut` | 없음 | NPC 대답 스트림이 끝 이벤트 없이 끊김 |
 | WARN | `npc_audio_download_failed` | `code` | NPC 대답 음성을 워커에서 받지 못함. 자막만 보임 |
 | WARN | `npc_chunk_audio_download_failed` | `code` | 스트리밍 중 문장 조각 음성을 워커에서 받지 못함. 그 조각은 자막만 보임 |
-| ERROR | `turn_stream_failed` | `type`, (예외) | 스트리밍으로 대사를 보내기 시작한 뒤 예상하지 못한 예외. `error` 이벤트(`INTERNAL_ERROR`)로 알림 |
+| ERROR | `turn_stream_failed` | `type`, (예외) | 스트리밍(CONV-01·03)으로 대사를 보내기 시작한 뒤 예상하지 못한 예외. `error` 이벤트(`INTERNAL_ERROR`)로 알림 |
 | WARN | `npc_audio_too_large` | `bytes` | NPC 음성이 보관 상한보다 커서 저장하지 않음 |
 | WARN | `npc_audio_save_failed` | (예외) | NPC 음성 파일을 저장하지 못함 |
 | WARN | `npc_audio_delete_failed` | `code` | 보관 기간이 지난 음성 파일을 지우지 못함. 다음 정리에서 다시 지움 |
@@ -194,12 +196,27 @@ ssh -i "<PEM 경로>" -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -
 - Alertmanager: `http://127.0.0.1:19093`, 발동 알림·묶음·일시 중지 상태 확인
 - 대시보드: A305 폴더의 `ELSEHERE API`, 환경·조회 기간 선택
 - HTTPS 대시보드: A305 폴더의 `ELSEHERE HTTPS`, 공개 응답·인증서 잔여 일수·발동 규칙 수 확인
+- 러너 대시보드: A305 폴더의 `ELSEHERE CI Runners`, 팀원 CI·팀원 Unity·EC2별 작업과 연결 상태 확인
 
 터널 명령이 실행 중인 창을 유지합니다. 로컬 포트를 이미 사용 중이면 `-L`의 첫 번째 포트와 브라우저 주소를 함께 바꿉니다. 서버 포트를 인터넷에 공개하지 않습니다.
 
 대시보드는 수집 상태, 선택 기간 요청 수, 초당 요청량, 4xx·5xx 비율과 p95를 표시합니다. 요청이 없거나 수집 시간이 짧으면 지연·비율이 비어 있을 수 있습니다. 요청 수·비율·지연은 같은 백엔드 요청 집합으로 계산하며 컨트롤러에 도달하기 전 거절된 요청도 포함합니다. 관리 포트의 수집 요청은 API 요청 통계에 포함되지 않는지 검증합니다.
 
 관리 포트가 외부에서 접근되지 않는지 확인하고 정상 요청·인증 실패 요청의 지표 증가, 환경 필터·기간 변경과 재기동 후 대시보드 유지를 검증합니다. 수집 실패를 해소하기 전 알림 임계값을 확정하지 않습니다.
+
+### GitLab 러너 모니터링
+
+러너 모니터링은 `compose.runners.yaml`을 추가한 별도 수집기로 GitLab 프로젝트의 러너와 진행 중인 작업을 읽습니다. `runner-hosts.json`에서 러너 이름을 `팀원 CI`, `팀원 Unity`, `EC2`로 분류하며, 등록되지 않은 이름은 `미분류`로 표시됩니다. 이름을 바꾸거나 러너를 추가하면 이 파일도 갱신합니다. 이전 이름은 기존 설치와의 호환을 위해 유지합니다. 분류는 표시용이며 러너의 시작·중지나 작업 할당에 영향을 주지 않습니다.
+
+GitLab 프로젝트의 러너와 작업을 읽을 수 있는 최소 권한 토큰을 별도 `gitlab-monitoring-token` 비밀 파일에 준비합니다. 다른 모니터링 비밀과 같은 그룹·파일 권한을 적용하며 실제 토큰은 저장소, 로그 또는 채팅에 남기지 않습니다. 기존 앱과 모니터링 서비스를 재생성하지 않도록 수집기만 시작합니다.
+
+```bash
+cd ~/apps/a305/monitoring/config
+sudo docker compose -p a305-monitoring --env-file monitoring.env -f compose.yaml -f compose.runners.yaml config --quiet
+sudo docker compose -p a305-monitoring --env-file monitoring.env -f compose.yaml -f compose.runners.yaml up -d --no-deps gitlab-runners
+```
+
+Prometheus는 `targets/runners.json`의 수집기를 조회합니다. Prometheus 설정을 새로 설치했다면 설정 검증 후 Prometheus를 reload하고, Grafana에서 수집 상태와 각 분류를 확인합니다. 수집기를 사용하지 않는 환경에서는 해당 대상을 비워 불필요한 수집 실패를 막습니다. 분류 파일을 바꾸면 수집기를 재시작해야 반영됩니다. Grafana 대시보드는 파일로 관리하므로 UI에서 수정한 내용도 저장소 원본에 반영해야 합니다.
 
 ## 장애 감지와 발송 승인
 

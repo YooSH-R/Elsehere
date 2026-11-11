@@ -200,7 +200,10 @@ async def meaning(llm: LLM, req: MeaningRequest) -> dict:
         text, ko = str(it.get("text") or "").strip(), str(it.get("meaning_ko") or "").strip()
         if text and ko and text.casefold() in line and text.casefold() not in {g["text"].casefold() for g in glossary}:
             glossary.append({"text": text, "meaning_ko": ko})
-    return {"meaning_ko": meaning_ko.strip(), "glossary": glossary[:25], "usage": usage.items}
+    # 이름은 굽은 따옴표로 받는다(JSON 안의 곧은 따옴표는 모델이 이스케이프하지 않으면 문자열이 닫혀 뜻이 이름 앞에서 잘린다).
+    # 화면은 곧은 따옴표로 보여 준다
+    meaning_ko = meaning_ko.strip().replace("“", '"').replace("”", '"')
+    return {"meaning_ko": meaning_ko, "glossary": glossary[:25], "usage": usage.items}
 
 
 async def suggest(llm: LLM, req: SuggestRequest) -> dict:

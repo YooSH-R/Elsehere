@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using A305.Player;
 using A305.Theme;
 using TMPro;
 using UnityEngine;
@@ -275,6 +276,46 @@ namespace A305.Dialogue
         private Button replayButton;
 
         [SerializeField]
+        private Button performanceButton;
+        private bool performanceVisible;
+        private bool performanceEnabled;
+        private bool performancePlaying;
+        private bool performanceEmphasized;
+
+        public event Action PerformanceRequested;
+
+        public void SetPerformanceState(
+            bool visible,
+            bool interactable,
+            bool playing,
+            bool emphasized
+        )
+        {
+            if (performanceButton == null)
+                return;
+            if (
+                performanceVisible == visible
+                && performanceEnabled == interactable
+                && performancePlaying == playing
+                && performanceEmphasized == emphasized
+            )
+                return;
+            performanceVisible = visible;
+            performanceEnabled = interactable;
+            performancePlaying = playing;
+            performanceEmphasized = emphasized;
+            performanceButton.gameObject.SetActive(visible);
+            performanceButton.interactable = interactable;
+            performanceButton.GetComponentInChildren<TMP_Text>().text = playing
+                ? "랩 멈추기"
+                : "랩 다시 듣기";
+            var outline = performanceButton.GetComponent<Outline>();
+            if (outline != null)
+                outline.enabled = emphasized;
+            Refresh();
+        }
+
+        [SerializeField]
         private Button hintButton;
 
         [SerializeField]
@@ -448,6 +489,7 @@ namespace A305.Dialogue
 
         public void Hide()
         {
+            SetPerformanceState(false, false, false, false);
             SetEndButtonHighlight(false);
             content = null;
             panel.SetActive(false);
@@ -685,6 +727,8 @@ namespace A305.Dialogue
             // 대사 칸을 스크롤하면 카드가 고른 단어를 따라간다.
             historyScroll.onValueChanged.AddListener(_ => PlaceWordCard());
             replayButton.onClick.AddListener(() => ReplayRequested?.Invoke());
+            if (performanceButton != null)
+                performanceButton.onClick.AddListener(() => PerformanceRequested?.Invoke());
             if (translationListenButton != null)
                 translationListenButton.onClick.AddListener(() =>
                 {
@@ -750,11 +794,20 @@ namespace A305.Dialogue
             }
         }
 
-        // 펼치기와 입력을 분리한다. 이미 받은 문장을 다시 펼칠 때는 서버를 호출하지 않는다.
         private void PressHint()
         {
             if (content == null)
             {
+                return;
+            }
+
+            // 튜토리얼은 코치 마크에서 밝힌 버튼으로 현재 연습 대사를 바로 채운다.
+            if (content.IsGuided)
+            {
+                if (string.IsNullOrEmpty(content.HintText))
+                    HintRequested?.Invoke();
+                if (!string.IsNullOrEmpty(content?.HintText))
+                    inputField.text = content.HintText;
                 return;
             }
 
@@ -1110,10 +1163,18 @@ namespace A305.Dialogue
             Refresh();
         }
 
+        // 대화 중 연 단어 카드는 ESC 목록에서 대화보다 위라, ESC가 대화보다 카드를 먼저 닫는다.
+        private UiEscapeWindow wordCardEscape;
+
         private void LateUpdate()
         {
             if (content == null)
                 return;
+            wordCardEscape ??= new UiEscapeWindow(
+                () => wordCard.gameObject.activeInHierarchy,
+                CloseWordCard
+            );
+            wordCardEscape.Watch();
             // 변화량과 경고 문구는 몇 초 뒤 새 상태가 없어도 사라져야 하므로 매 프레임 다시 고른다.
             UpdateStanding();
             UpdateEndButtonHighlight();
@@ -1189,14 +1250,22 @@ namespace A305.Dialogue
         private TMP_Text vehicleStatusText;
 
         [SerializeField]
+        private RectTransform taxiArrivalStatus;
+
+        [SerializeField]
         [Tooltip("NPC 이름 뒤의 코랄 이름표. 이름 길이에 맞춰 폭을 정한다.")]
         private RectTransform nameChip;
 
         /// <summary>택시에 탄 동안의 대화인지. 택시 안내는 택시에서만 보인다.</summary>
         public void SetVehicleLayout(bool enabled)
         {
-            if (!enabled && vehicleStatusText != null)
-                vehicleStatusText.transform.parent.gameObject.SetActive(false);
+            if (!enabled)
+            {
+                if (vehicleStatusText != null)
+                    vehicleStatusText.transform.parent.gameObject.SetActive(false);
+                if (taxiArrivalStatus != null)
+                    taxiArrivalStatus.gameObject.SetActive(false);
+            }
             UpdateLayout();
         }
 
@@ -1208,6 +1277,16 @@ namespace A305.Dialogue
             vehicleStatusText.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(message));
         }
 
+        public void ShowTaxiArrival()
+        {
+            SetVehicleStatus(null);
+            if (taxiArrivalStatus == null)
+                return;
+            PlaceTaxiArrivalStatus(((RectTransform)taxiArrivalStatus.parent).rect.size);
+            taxiArrivalStatus.SetAsLastSibling();
+            taxiArrivalStatus.gameObject.SetActive(true);
+        }
+
         /// <summary>
         /// 대화창을 화면 아래 전체 폭에 깔고, 가운데 열에 입력 줄·상태 줄·대사·이름 줄을 쌓는다.
         /// 단어·문장 도움 카드는 오른쪽 위에 둔다.
@@ -1216,6 +1295,7 @@ namespace A305.Dialogue
         {
             var frame = (RectTransform)panel.transform;
             lastCanvasSize = ((RectTransform)frame.parent).rect.size;
+            PlaceTaxiArrivalStatus(lastCanvasSize);
             float column = Mathf.Min(
                 DialogueCinemaLayout.ColumnWidth,
                 lastCanvasSize.x - 2 * DialogueCinemaLayout.SideMargin
@@ -1234,7 +1314,8 @@ namespace A305.Dialogue
                 linesHeight,
                 nameWidth,
                 hasEarlierLines,
-                hasTranslation
+                hasTranslation,
+                TranslationCardHeight(DialogueCinemaLayout.TranslationWidth(column))
             );
             frame.anchorMin = Vector2.zero;
             frame.anchorMax = new Vector2(1, 0);
@@ -1246,16 +1327,30 @@ namespace A305.Dialogue
                 Place(nameChip, layout.Name);
             Place(npcNameText.rectTransform, layout.Name);
             float toolsLeft = PlaceTools(layout.Tools);
+            float standingLeft = layout.Name.xMax + DialogueCinemaLayout.Gap;
+            if (performanceButton != null && performanceVisible)
+            {
+                const float width = 205;
+                bool fits = toolsLeft - standingLeft >= width + DialogueCinemaLayout.Gap;
+                Place(
+                    (RectTransform)performanceButton.transform,
+                    new Rect(
+                        fits ? standingLeft : layout.Name.xMin,
+                        fits ? layout.Name.yMin : layout.Name.yMax + DialogueCinemaLayout.Gap,
+                        width,
+                        DialogueCinemaLayout.NameHeight
+                    )
+                );
+                if (fits)
+                    standingLeft += width + DialogueCinemaLayout.Gap;
+            }
             // 호감도·무례 경고는 이름표 바로 오른쪽에 두고, 도구 버튼 앞에서 말줄임으로 자른다.
             Place(
                 standingText.rectTransform,
                 Rect.MinMaxRect(
-                    layout.Name.xMax + DialogueCinemaLayout.Gap,
+                    standingLeft,
                     layout.Name.yMin,
-                    Mathf.Max(
-                        layout.Name.xMax + DialogueCinemaLayout.Gap,
-                        toolsLeft - DialogueCinemaLayout.Gap
-                    ),
+                    Mathf.Max(standingLeft, toolsLeft - DialogueCinemaLayout.Gap),
                     layout.Name.yMax
                 )
             );
@@ -1347,6 +1442,19 @@ namespace A305.Dialogue
             }
         }
 
+        // 카드의 머리줄·여백을 뺀 글자 칸 폭으로 영어 표현을 재서, 문장을 다 담는 카드 높이를 돌려준다.
+        private float TranslationCardHeight(float cardWidth)
+        {
+            if (translationCard == null || string.IsNullOrEmpty(translationText.text))
+                return DialogueCinemaLayout.TranslationHeight;
+            var viewport = (RectTransform)translationText.rectTransform.parent;
+            Vector2 chrome = translationCard.rect.size - viewport.rect.size;
+            return chrome.y
+                + translationText
+                    .GetPreferredValues(translationText.text, cardWidth - chrome.x, 0)
+                    .y;
+        }
+
         // 최근 네 대사와 그 뜻이 보이는 높이를 준다. 긴 내용·작은 화면과 그 이전 대사는 스크롤한다.
         private float VisibleLinesHeight(float width, out bool hasEarlierLines)
         {
@@ -1401,6 +1509,18 @@ namespace A305.Dialogue
             status.anchorMin = status.anchorMax = new Vector2(.5f, 0);
             status.pivot = new Vector2(.5f, 0);
             status.anchoredPosition = new Vector2(0, layout.Name.yMax + VehicleStatusGap);
+        }
+
+        private void PlaceTaxiArrivalStatus(Vector2 canvasSize)
+        {
+            if (taxiArrivalStatus == null)
+                return;
+            bool portrait = canvasSize.x < canvasSize.y;
+            taxiArrivalStatus.anchoredPosition = new Vector2(
+                0,
+                -canvasSize.y * (portrait ? .12f : .075f)
+            );
+            taxiArrivalStatus.sizeDelta = new Vector2(Mathf.Clamp(canvasSize.x - 32, 0, 370), 62);
         }
 
         private bool NeedsVoiceConsent => content.UsesVoice && !content.CanTalk;

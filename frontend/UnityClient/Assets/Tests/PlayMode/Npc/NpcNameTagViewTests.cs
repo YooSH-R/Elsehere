@@ -95,30 +95,6 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator NearbyPasserby_ShowsNameOnly()
-        {
-            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
-            yield return null;
-            NpcIdentity passerby = HoldStill(PasserbyCode);
-            yield return StandFacing(passerby, 3f);
-
-            TagView tag = ShownTags().SingleOrDefault(shown => shown.Name == PasserbyName);
-            Assert.That(tag, Is.Not.Null, "가까운 행인의 이름표가 보이지 않습니다.");
-            Assert.That(tag.Role, Is.Null, "행인에게는 역할 칩을 달지 않습니다.");
-        }
-
-        [UnityTest]
-        public IEnumerator FarNpc_HasNoTag()
-        {
-            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
-            yield return null;
-            NpcIdentity passerby = HoldStill(PasserbyCode);
-            yield return StandFacing(passerby, NpcNameTags.ShowRadiusMeters + 6f);
-
-            Assert.That(ShownTags().Select(shown => shown.Name), Does.Not.Contain(PasserbyName));
-        }
-
-        [UnityTest]
         public IEnumerator PlayerWhoCannotMove_SeesNoTags()
         {
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
@@ -137,11 +113,11 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator TrackedNeighbor_ShowsAMarkFromFarAway_AndArrivingStopsTracking()
         {
+            NpcTracking.Shared.Clear();
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
             NpcIdentity passerby = HoldStill(PasserbyCode);
             PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
-            NpcTracking.Shared.Track(PasserbyCode, PasserbyName, null);
             yield return StandFacing(passerby, NpcNameTags.ShowRadiusMeters + 12f);
 
             Assert.That(
@@ -154,6 +130,22 @@ namespace A305.Npc.PlayModeTests
                 Is.Positive,
                 "준비: 찾는 이웃은 카메라 앞에 있습니다."
             );
+            Assert.That(
+                ShownTags().Select(shown => shown.Name),
+                Does.Not.Contain(PasserbyName),
+                "추적하지 않는 먼 행인의 이름표는 보이지 않습니다."
+            );
+
+            NpcTracking.Shared.Track(PasserbyCode, PasserbyName, null);
+            // 이름표는 LateUpdate에서 그린다. 테스트 코루틴이 그보다 먼저 재개돼도
+            // 이전 프레임의 목록을 검사하지 않도록, 실제 표시를 제한 시간 안에 기다린다.
+            float deadline = Time.realtimeSinceStartup + 2f;
+            while (
+                ShownTags().All(shown => shown.Name != PasserbyName)
+                && Time.realtimeSinceStartup < deadline
+            )
+                yield return null;
+
             TagView far = ShownTags().SingleOrDefault(shown => shown.Name == PasserbyName);
             Assert.That(far, Is.Not.Null, "찾는 이웃은 멀리서도 이름표가 보입니다.");
             Assert.That(far.Tracked, Is.True, "찾는 이웃 표시가 달립니다.");
@@ -172,6 +164,7 @@ namespace A305.Npc.PlayModeTests
             TagView near = ShownTags().SingleOrDefault(shown => shown.Name == PasserbyName);
             Assert.That(near, Is.Not.Null);
             Assert.That(near.Tracked, Is.False);
+            Assert.That(near.Role, Is.Null, "행인에게는 역할 칩을 달지 않습니다.");
         }
 
         // 다가와 말을 걸거나 일하러 걸어가지 않게 세워 둔다. 이름표는 NPC 키(NpcIdentity)로 그대로 찾는다.

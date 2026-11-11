@@ -111,5 +111,18 @@ namespace A305.World.Tests
         {
             Assert.That(PlaceScenes.ServerCodeOf(unitySceneName), Is.Null);
         }
+
+        // 대화를 시작할 때 보내는, 플레이어가 지금 있는 장소. 마을 매장도 따로 장면이라 장면 이름으로 그 매장 코드를 안다.
+        [TestCase("SudsLaundromatInterior", "LAUNDROMAT")]
+        [TestCase("TownScene", "TOWN")]
+        [TestCase("CafeScene", "CAFE")]
+        [TestCase("EntryScene", null)]
+        public void CodeOf_SceneThePlayerStandsIn_ReturnsThatPlace(
+            string unitySceneName,
+            string expected
+        )
+        {
+            Assert.That(PlaceScenes.CodeOf(unitySceneName), Is.EqualTo(expected));
+        }
     }
 }

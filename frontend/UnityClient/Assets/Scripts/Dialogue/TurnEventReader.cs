@@ -5,7 +5,8 @@ using UnityEngine;
 namespace A305.Dialogue
 {
     /// <summary>
-    /// 발화 전송 스트림(CONV-03 스트리밍)의 이벤트를 읽는다. 대사 글자와 조각 음성은 받는 대로 넘기고, 저장된 턴이나 오류는 끝난 뒤 꺼내 쓴다.
+    /// 발화 전송(CONV-03)·대화 시작(CONV-01) 스트림의 이벤트를 읽는다. 대사 글자와 조각 음성은 받는 대로 넘기고, 저장된 턴·시작한 대화나
+    /// 오류는 끝난 뒤 꺼내 쓴다. 대화 시작의 첫 인사도 대화의 첫 턴이라 같은 이벤트로 온다.
     /// </summary>
     internal sealed class TurnEventReader
     {
@@ -18,6 +19,9 @@ namespace A305.Dialogue
 
         /// <summary>저장된 턴(<c>turn</c>). 받지 못했으면 null이다.</summary>
         public TurnResult Turn { get; private set; }
+
+        /// <summary>시작한 대화(<c>conversation</c>). 받지 못했으면 null이다.</summary>
+        public ConversationStart Conversation { get; private set; }
 
         /// <summary>대사를 보내기 시작한 뒤 서버가 알린 오류(<c>error</c>). 없으면 null이다.</summary>
         public ApiException Error { get; private set; }
@@ -38,6 +42,9 @@ namespace A305.Dialogue
                     break;
                 case "turn":
                     Turn = ApiJson.Deserialize<TurnResult>(data);
+                    break;
+                case "conversation":
+                    Conversation = ApiJson.Deserialize<ConversationStart>(data);
                     break;
                 case "error":
                     ErrorEvent error = ApiJson.Deserialize<ErrorEvent>(data);

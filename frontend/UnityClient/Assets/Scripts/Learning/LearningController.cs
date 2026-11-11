@@ -12,8 +12,8 @@ namespace A305.Learning
     /// <summary>
     /// 대화가 끝나면 피드백을 보이고, 단어장 화면을 서버 단어장(VOCAB-01·02·03·04)과 잇는다. Editor에서 서버 단어장을 읽지 못하면
     /// 확인용 단어장(<see cref="LocalVocabularyApi"/>)으로 바꿔 같은 Play 동안 사물 카드에서 저장한 단어를 보인다.
-    /// [피드백 목록] 창은 지난 대화 목록(CONV-09)에서 고른 대화의 저장된 피드백을 같은 피드백 화면으로 다시 열고, 닫으면 목록으로 돌아온다.
-    /// 피드백·단어장·피드백 목록 화면이 열려 있는 동안만 이동을 잠그며, 대화 중에는 대화가 정한 잠금을 건드리지 않는다.
+    /// [대화 노트] 창은 지난 대화 목록(CONV-09)에서 고른 대화의 저장된 피드백을 같은 피드백 화면으로 다시 열고, 닫으면 목록으로 돌아온다.
+    /// 피드백·단어장·대화 노트 화면이 열려 있는 동안만 이동을 잠그며, 대화 중에는 대화가 정한 잠금을 건드리지 않는다.
     /// 대화 중 누른 풀이 단어는 NPC_LINE 출처로, 서버 피드백의 [담기]는 FEEDBACK 출처로 저장한다.
     /// 대화를 다 쓴 게스트가 방금 끝낸 대화의 피드백을 닫으면 가입을 권한다(<see cref="GuestSignupPrompt"/>, 가입 안내 창이 설문도 권한다).
     /// </summary>
@@ -60,7 +60,7 @@ namespace A305.Learning
 
         private DialogueRecord feedbackRecord;
 
-        // [피드백 목록]에서 다시 연 대화. 대화 직후의 피드백(feedbackRecord)과 함께 열리지 않는다.
+        // [대화 노트]에서 다시 연 대화. 대화 직후의 피드백(feedbackRecord)과 함께 열리지 않는다.
         private PastConversation pastConversation;
 
         // 지금 피드백 화면에 보이는 서버 피드백. [다시 만들기]로 새로 받으면 바뀐다.
@@ -82,6 +82,9 @@ namespace A305.Learning
         public RectTransform VocabularyPanelRect => vocabularyView.PanelRect;
 
         private ConversationHistoryView historyView => hudView.HistoryView;
+
+        // ESC로 닫는 가운데 창. 닫기 버튼과 같은 일을 한다.
+        private UiEscapeWindow[] escapeWindows;
 
         private void Awake()
         {
@@ -142,9 +145,17 @@ namespace A305.Learning
             historyView.CloseRequested += CloseHistory;
             historyView.OpenRequested += OpenPastFeedback;
             historyView.MoreRequested += LoadMoreHistory;
+            historyView.FilterRequested += FilterHistory;
             InitializeReview();
             InitializeReviewProgress();
             InitializePractice();
+            escapeWindows = new[]
+            {
+                new UiEscapeWindow(() => feedbackView.IsVisible, CloseFeedback),
+                new UiEscapeWindow(() => vocabularyView.IsVisible, CloseVocabulary),
+                new UiEscapeWindow(() => historyView.IsVisible, CloseHistory),
+                new UiEscapeWindow(() => ReviewView != null && ReviewView.IsVisible, CloseReview),
+            };
         }
 
         private void Start()
@@ -170,6 +181,8 @@ namespace A305.Learning
             hudView.SetHomeAvailable(gameObject.scene.name != "HomeScene" && !IsHomeBlocked);
             CenterWindow.Shared.SetOpen(IsShowingScreen);
             GameClock.Shared.IsLearningWindowOpen = IsShowingScreen;
+            foreach (UiEscapeWindow window in escapeWindows)
+                window.Watch();
         }
 
         private bool IsHomeBlocked =>
@@ -264,11 +277,6 @@ namespace A305.Learning
         {
             feedbackView.SetSaveAvailable(
                 vocabulary != null && shownServerFeedback?.ConversationId != null
-            );
-            feedbackView.SetReviewAvailable(
-                reviewBook != null
-                    && shownServerFeedback?.ConversationId != null
-                    && shownServerFeedback.Summary?.Status == "DONE"
             );
             feedbackView.Show(feedback, lines);
             MarkShownFeedbackRead();
@@ -455,7 +463,7 @@ namespace A305.Learning
 
         private void CloseFeedback()
         {
-            // [피드백 목록]에서 연 피드백은 대화 결과(미션·튜토리얼)를 다시 알리지 않고 목록으로 돌아간다.
+            // [대화 노트]에서 연 피드백은 대화 결과(미션·튜토리얼)를 다시 알리지 않고 목록으로 돌아간다.
             if (pastConversation != null)
             {
                 pastConversation = null;
@@ -490,18 +498,24 @@ namespace A305.Learning
         {
             if (history == null)
             {
-                hudView.ShowMessage("피드백 목록 서버가 연결되지 않았어요.");
+                hudView.ShowMessage("대화 노트 서버가 연결되지 않았어요.");
                 return;
             }
 
             historyView.Show(history);
             UpdateMovementLock();
-            _ = LoadHistoryAsync(history.LoadAsync(), "피드백 목록을 불러오는 중이에요…");
+            _ = LoadHistoryAsync(history.LoadAsync(), "대화 노트를 불러오는 중이에요…");
         }
 
         private void LoadMoreHistory()
         {
-            _ = LoadHistoryAsync(history.LoadMoreAsync(), "피드백 목록을 더 불러오는 중이에요…");
+            _ = LoadHistoryAsync(history.LoadMoreAsync(), "대화 노트를 더 불러오는 중이에요…");
+        }
+
+        // 장소 탭. 고른 장소의 첫 페이지부터 다시 읽는다.
+        private void FilterHistory(string sceneCode)
+        {
+            _ = LoadHistoryAsync(history.LoadAsync(sceneCode), "대화 노트를 불러오는 중이에요…");
         }
 
         // 창을 열 때마다 처음부터 다시 읽어 방금 끝낸 대화도 보인다. 실패하면 이전 목록과 이유를 보인다.
@@ -530,7 +544,7 @@ namespace A305.Learning
             _ = OpenPastFeedbackAsync(conversation);
         }
 
-        // 저장된 피드백과 대화 기록을 받아 대화 직후와 같은 피드백 화면으로 연다. 피드백 목록 창은 그 아래에 그대로 둔다.
+        // 저장된 피드백과 대화 기록을 받아 대화 직후와 같은 피드백 화면으로 연다. 대화 노트 창은 그 아래에 그대로 둔다.
         private async Task OpenPastFeedbackAsync(ConversationSummary conversation)
         {
             historyView.ShowStatus("피드백을 불러오는 중이에요…");

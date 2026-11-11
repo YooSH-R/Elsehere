@@ -42,6 +42,17 @@ namespace A305.EditorTools.World
             AssetDatabase.SaveAssets();
         }
 
+        [MenuItem("Tools/A305/World/Fit Tea Room Chairs")]
+        public static void FitTeaRoomChairs()
+        {
+            BuilderTools.ThrowIfPlaying();
+            BuilderTools.UpdatePrefabIfExists(
+                NorthBlockAssets.Folder + "/HomeLiving.prefab",
+                root => FitTeaRoomChairs(root.transform.Find("Interior"))
+            );
+            AssetDatabase.SaveAssets();
+        }
+
         /// <summary>
         /// 오락실 공용 계단실 안내. 계단실 입구 위에는 2층 서점만 알리는 판을, 계단을 다 올라와 마주 보는 앞벽에는
         /// 2층 서점 간판을 둔다. 첫 계단 앞의 UPSTAIRS 글자는 두지 않는다. 다시 실행해도 같은 모습이 된다.
@@ -54,6 +65,27 @@ namespace A305.EditorTools.World
             Transform layout = root.Find("TenantEntrances");
             StairHallDirectory(layout);
             BookshopWallSign(layout);
+        }
+
+        private static void FitTeaRoomChairs(Transform interior)
+        {
+            Transform[] furniture = interior.Cast<Transform>().ToArray();
+            Transform[] tables = furniture
+                .Where(item => item.name == "Table" && Mathf.Approximately(item.localPosition.y, 4))
+                .ToArray();
+            foreach (Transform chair in furniture)
+            {
+                if (chair.name != "Chair" || !Mathf.Approximately(chair.localPosition.y, 4))
+                    continue;
+                Transform table = tables
+                    .OrderBy(item => (item.localPosition - chair.localPosition).sqrMagnitude)
+                    .First();
+                float side = chair.localPosition.x < table.localPosition.x ? -1 : 1;
+                // 90cm 바 스툴을 낮추되 비율과 바닥 접점을 유지하고, 테이블 옆에 여유를 둔다.
+                chair.localScale = Vector3.one * .6f;
+                chair.localPosition = table.localPosition + Vector3.right * (side * 1.15f);
+                PrefabUtility.RecordPrefabInstancePropertyModifications(chair);
+            }
         }
 
         internal static void Apply(GameObject root, string name)
@@ -348,6 +380,7 @@ namespace A305.EditorTools.World
                     Quaternion.identity
                 );
             }
+            FitTeaRoomChairs(interior);
             NorthBlockAssets.Place("Plant", interior, new Vector3(-3.2f, 4, -1));
             EnsureWalkSurface(stairs);
         }

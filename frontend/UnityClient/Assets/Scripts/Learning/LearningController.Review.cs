@@ -17,7 +17,6 @@ namespace A305.Learning
         private ReviewApi reviewApi;
         private static ReviewCard pendingReview;
         private ReviewCard practicingReview;
-        private ReviewCard requestedReviewResult;
         private NpcReviewPresence reviewPresence;
         private ReviewWorkbookView ReviewView => hudView.ReviewView;
 
@@ -27,14 +26,9 @@ namespace A305.Learning
                 return;
             reviewApi = new ReviewApi(apiSettings.CreateClient());
             reviewBook = new ReviewBook(reviewApi);
-            hudView.ReviewRequested += OpenReview;
-            feedbackView.ReviewSaveRequested += SaveReview;
+            historyView.PracticeRequested += PracticeConversation;
             ReviewView.CloseRequested += CloseReview;
-            ReviewView.FilterRequested += FilterReview;
-            ReviewView.MoreRequested += MoreReview;
-            ReviewView.DeleteRequested += DeleteReview;
             ReviewView.PracticeRequested += PracticeReview;
-            ReviewView.ResultRequested += OpenReviewResult;
         }
 
         private void DisposeReview()
@@ -42,83 +36,44 @@ namespace A305.Learning
             ReleaseReviewPresence();
             if (hudView == null)
                 return;
-            hudView.ReviewRequested -= OpenReview;
-            if (feedbackView != null)
-                feedbackView.ReviewSaveRequested -= SaveReview;
+            if (historyView != null)
+                historyView.PracticeRequested -= PracticeConversation;
             if (ReviewView != null)
             {
                 ReviewView.CloseRequested -= CloseReview;
-                ReviewView.FilterRequested -= FilterReview;
-                ReviewView.MoreRequested -= MoreReview;
-                ReviewView.DeleteRequested -= DeleteReview;
                 ReviewView.PracticeRequested -= PracticeReview;
-                ReviewView.ResultRequested -= OpenReviewResult;
             }
-        }
-
-        private void OpenReview()
-        {
-            requestedReviewResult = null;
-            if (reviewBook == null || dialogue.IsTalking)
-                return;
-            ReviewView.Show(reviewBook);
-            UpdateMovementLock();
-            _ = LoadReviewAsync(null);
         }
 
         private void CloseReview()
         {
-            requestedReviewResult = null;
             ReviewView.Hide();
             UpdateMovementLock();
             ResumeReviewReturn();
         }
 
-        private void FilterReview(string scene)
-        {
-            requestedReviewResult = null;
-            _ = LoadReviewAsync(scene);
-        }
+        // [연습 돌아보기]의 [다시 연습]. 장소 이동과 대화 시작은 같은 작업에서 연결한다.
+        private void PracticeReview(ReviewCard card) => StartReviewVisit(card);
 
-        private async Task LoadReviewAsync(string scene)
-        {
-            Task<bool> request = reviewBook.LoadAsync(scene);
-            ReviewView.Refresh();
-            await request;
-            if (this != null && ReviewView.IsVisible)
-                ReviewView.Refresh();
-        }
+        private void PracticeConversation(ConversationSummary conversation) =>
+            _ = PracticeConversationAsync(conversation);
 
-        private void MoreReview() => _ = MoreReviewAsync();
-
-        private async Task MoreReviewAsync()
+        // 대화 노트의 [다시 연습]. 그 대화의 복습 카드를 찾거나 만든 뒤 그 카드로 NPC를 찾아가 연습을 시작한다.
+        // 연습할 표현이 모자라는 등 서버가 거절하면 목록 아래에 이유를 보인다.
+        private async Task PracticeConversationAsync(ConversationSummary conversation)
         {
-            Task<bool> request = reviewBook.LoadMoreAsync();
-            ReviewView.Refresh();
-            await request;
-            if (this != null && ReviewView.IsVisible)
-                ReviewView.Refresh();
-        }
-
-        private void DeleteReview(ReviewCard card)
-        {
-            requestedReviewResult = null;
-            _ = DeleteReviewAsync(card);
-        }
-
-        private async Task DeleteReviewAsync(ReviewCard card)
-        {
-            Task<bool> request = reviewBook.DeleteAsync(card.Id);
-            ReviewView.Refresh();
-            await request;
-            if (this != null && ReviewView.IsVisible)
-                ReviewView.Refresh();
-        }
-
-        private void PracticeReview(ReviewCard card)
-        {
-            requestedReviewResult = null;
-            // 장소 이동과 대화 시작은 같은 작업에서 연결한다.
+            if (reviewBook.IsBusy)
+                return;
+            historyView.ShowStatus("연습을 준비하는 중이에요…");
+            ReviewCard card = await reviewBook.SaveAsync(conversation.ConversationId);
+            if (this == null || !historyView.IsVisible)
+                return;
+            if (card == null)
+            {
+                historyView.ShowStatus(reviewBook.Message);
+                return;
+            }
+            historyView.ShowStatus("");
             StartReviewVisit(card);
         }
 
@@ -156,65 +111,6 @@ namespace A305.Learning
             reviewReturn.Clear();
             hudView.ShowMessage("지금은 그 장소로 이동할 수 없어요.");
             return false;
-        }
-
-        private void SaveReview() => _ = SaveReviewAsync();
-
-        private void OpenReviewResult(ReviewCard card) => _ = OpenReviewResultAsync(card);
-
-        private async Task OpenReviewResultAsync(ReviewCard card)
-        {
-            if (requestedReviewResult != null || reviewBook.IsBusy)
-                return;
-            requestedReviewResult = card;
-            hudView.ShowMessage("지난 연습을 불러오는 중이에요.");
-            try
-            {
-                ReviewPracticeResult result = await reviewApi.GetResultAsync(card.Id);
-                if (this == null || requestedReviewResult != card || !ReviewView.IsVisible)
-                    return;
-                card.PracticeCount = result.PracticeCount;
-                ReviewView.ShowResult(
-                    card,
-                    new DialogueRecord(
-                        card.Npc.NpcCode,
-                        card.Npc.Name,
-                        Array.Empty<DialogueLine>(),
-                        result.Utterances.Select(item => item.Text).ToArray(),
-                        false,
-                        reviewCardId: card.Id,
-                        reviewResult: result
-                    )
-                );
-            }
-            catch (ApiException exception)
-            {
-                if (this != null && requestedReviewResult == card)
-                    hudView.ShowMessage(exception.Message);
-            }
-            finally
-            {
-                if (this != null && requestedReviewResult == card)
-                    requestedReviewResult = null;
-            }
-        }
-
-        private async Task SaveReviewAsync()
-        {
-            long? conversationId = shownServerFeedback?.ConversationId;
-            if (conversationId == null || reviewBook.IsBusy)
-                return;
-            ReviewCard saved = await reviewBook.SaveAsync(conversationId.Value);
-            if (this == null)
-                return;
-            // 담은 뒤에는 같은 자리의 버튼이 [복습장에 추가됨]으로 바뀐다. 다른 피드백으로 바뀌었으면 그대로 둔다.
-            if (saved != null && shownServerFeedback?.ConversationId == conversationId)
-                feedbackView.ShowReviewSaved();
-            hudView.ShowMessage(
-                saved != null
-                    ? "복습장에 담았어요. 메뉴에서 다시 연습할 수 있어요."
-                    : reviewBook.Message
-            );
         }
 
         // 장면에 들어오거나 같은 장면에서 방문을 시작하면, 돌아가는 중이면 복귀를 잇고 아니면 기다리는 복습·장소 연습 방문을 이어 간다.

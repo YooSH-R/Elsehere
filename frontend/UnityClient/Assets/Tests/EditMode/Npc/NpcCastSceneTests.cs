@@ -14,10 +14,49 @@ namespace A305.Npc.Tests
     public class NpcCastSceneTests
     {
         [Test]
+        public void RecordedPerformerKeepsItsDedicatedRigGripAndMaterials()
+        {
+            var member = NpcCast.Find("TOWN_JOHN_PARK");
+            Assert.That(member.Look.UsesRecordedPerformance, Is.True);
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(member.Look.PrefabPath);
+            var copy = Object.Instantiate(prefab);
+            try
+            {
+                var animator = copy.GetComponentInChildren<Animator>();
+                var controller = animator.runtimeAnimatorController;
+                var skins = copy.GetComponentsInChildren<SkinnedMeshRenderer>();
+                var materials = skins.SelectMany(skin => skin.sharedMaterials).ToArray();
+                var body = skins.OrderByDescending(skin => skin.sharedMesh.vertexCount).First();
+                int hand = System.Array.FindIndex(body.bones, bone => bone.name == "Right_Hand");
+                Assert.That(hand, Is.GreaterThanOrEqualTo(0));
+                Assert.That(
+                    body.sharedMesh.boneWeights.Count(weight =>
+                        weight.boneIndex0 == hand && weight.weight0 > .99999f
+                    ),
+                    Is.GreaterThan(1000),
+                    "오른손과 앰프를 고정하는 결합을 유지합니다."
+                );
+                NpcCastDresser.Dress(copy, member);
+                Assert.That(animator.runtimeAnimatorController, Is.SameAs(controller));
+                Assert.That(animator.avatar.isValid && !animator.avatar.isHuman, Is.True);
+                Assert.That(skins.SelectMany(skin => skin.sharedMaterials), Is.EqualTo(materials));
+                Assert.That(copy.GetComponent<NpcTownWalker>(), Is.Null);
+            }
+            finally
+            {
+                Object.DestroyImmediate(copy);
+            }
+        }
+
+        [Test]
         public void CommutersUseTheirCastVisualAndKeepOneDialogueFace()
         {
             var failures = new List<string>();
-            foreach (var member in NpcCast.Members.Where(member => member.Code != "TAXI_DRIVER"))
+            foreach (
+                var member in NpcCast.Members.Where(member =>
+                    member.Code != "TAXI_DRIVER" && !member.Look.UsesRecordedPerformance
+                )
+            )
             {
                 string path = "Assets/Prefabs/Npc/Commuters/" + member.Code + ".prefab";
                 var root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -71,6 +110,8 @@ namespace A305.Npc.Tests
                 while (visual.parent != null && visual.parent != npc.transform)
                     visual = visual.parent;
                 string actual = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(visual);
+                if (member.Look.UsesRecordedPerformance)
+                    actual = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(npc.gameObject);
                 if (actual != member.Look.PrefabPath)
                     failures.Add($"{npc.Code}: {actual} → {member.Look.PrefabPath}");
                 if (CharacterFaceController.MissingChannels(faces[0].transform, true).Length != 0)
@@ -83,6 +124,21 @@ namespace A305.Npc.Tests
                 // 운전석의 Joe는 Animator를 끈 채 고정 자세로 앉는다.
                 if (npc.Code == "TAXI_DRIVER")
                     Assert.That(animators[0].enabled, Is.False);
+                else if (member.Look.UsesRecordedPerformance)
+                {
+                    var performer = npc.GetComponent<RecordedNpcPerformance>();
+                    Assert.That(performer, Is.Not.Null, npc.Code);
+                    Assert.That(performer.IsReady, Is.True, npc.Code);
+                    Assert.That(npc.GetComponent<NpcTownWalker>(), Is.Null, npc.Code);
+                    Assert.That(animators[0].avatar.isHuman, Is.False, npc.Code);
+                    Assert.That(
+                        new SerializedObject(performer)
+                            .FindProperty("animator")
+                            .objectReferenceValue,
+                        Is.EqualTo(animators[0]),
+                        npc.Code
+                    );
+                }
                 else if (
                     driver == null
                     || new SerializedObject(driver).FindProperty("animator").objectReferenceValue

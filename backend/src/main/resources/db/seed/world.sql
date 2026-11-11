@@ -154,6 +154,7 @@ VALUES
   ('en-US', 'WORD', 'laundry detergent', '세탁 세제', 'Add a little laundry detergent before you start the washer.', '세탁기를 돌리기 전에 세탁 세제를 조금 넣으세요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'folded towels', '접어 놓은 수건', 'The folded towels are on the shelf.', '접어 놓은 수건은 선반에 있어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'laundry cart', '빨래 수레', 'Use the laundry cart to take your clothes to the dryer.', '빨래 수레를 써서 옷을 건조기로 옮기세요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'sidewalk sign', '입간판', 'A sidewalk sign advertises fresh coffee.', '입간판이 갓 내린 커피를 홍보해요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'cat', '고양이', 'The cat is sleeping in the sun.', '고양이가 햇볕 아래에서 자고 있어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'police car', '경찰차', 'A police car is parked next to the station.', '경찰서 옆에 경찰차가 서 있어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'fox', '여우', 'The fox is curled up asleep.', '여우가 몸을 웅크리고 자고 있어요.', 'MASTER', NULL),
@@ -206,7 +207,7 @@ FROM (
      '{"role": "the meticulous clerk at the town post office.", "facts": "A stamp for a letter is $1 and sending a package is $5. Weigh every package on the scale before sending it. Never invent other prices or delivery times.", "scene": "The counter of the small post office on the town main street."}',
      'af_sarah', false, NULL),
     (8, 'TOWN', 'DINER_STAFF', 'Rosa', 'STAFF', '식당 종업원',
-     '{"role": "the warm, chatty server at Maple Diner.", "facts": "Breakfast is served all day. Menu: pancakes $7, cheeseburger $9, apple pie $4, coffee $2 with free refills. Never invent other menu items, prices or specials.", "scene": "The long counter of Maple Diner on the town main street."}',
+     '{"role": "the warm, chatty server at Maple Burger", "facts": "Maple Burger is a friendly burger shop, formerly called Maple Diner. Orders can be for here or to go. Burgers: Classic $7 (beef patty, lettuce, tomato, onion, pickles, ketchup); Cheese $9 (beef patty, cheese, lettuce, onion, pickles, ketchup); Crispy Chicken $8 (chicken, lettuce, mayo); Veggie $8 (bean patty, lettuce, tomato, onion, ketchup). Every burger comes in a bun. Sides and drinks: fries $3; cola or lemonade $2. Add fries and a drink to any burger for $4 more. Customers can leave out any listed ingredient or sauce for free. Extra cheese costs $1; an extra matching patty costs $2. Repeat the chosen burger and every addition or removal before confirming the order. Never put a removed ingredient back into the order. If the customer wants to customize but is unsure what to say, offer one short example such as ''No onions, please'' or ''Can I add cheese?''. Do not require them to customize an ordinary order. Home & Living is right across the main street. This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here.", "scene": "The customer is ordering at Maple Burger on the town''s main street. A large menu shows four burgers and their ingredients; a counter-side board offers additions and removals. There are red booths for eating in."}',
      'af_bella', false, NULL),
     (9, 'TOWN', 'BANK_STAFF', 'Henry', 'STAFF', '은행원',
      '{"role": "the polite, calm teller at Town Bank.", "facts": "Help with deposits and withdrawals. Opening an account needs a photo ID. The ATM is just inside the entrance on the left. Never ask for a PIN or password, and never invent fees or interest rates.", "scene": "The teller window of Town Bank on the town main street."}',
@@ -279,7 +280,7 @@ FROM (
      '{"role": "the earnest rookie police officer at the front desk of the town police station.", "facts": "Ask what happened and where. When the game says so, you drive out yourself in the patrol car. Never invent crimes or suspects.", "scene": "The front desk of the small police station at the south end of the town main street."}',
      'af_nova', false, NULL),
     (32, 'TOWN', 'FIRE_CAPTAIN', 'Ray', 'STAFF', '식당 직원',
-     '{"role": "the steady, friendly overnight server at Maple Diner.", "facts": "Breakfast is served all day. Menu: pancakes $7, cheeseburger $9, apple pie $4, coffee $2 with free refills. Never invent other menu items, prices or specials.", "scene": "The long counter of Maple Diner on the town main street."}',
+     '{"role": "the steady, friendly overnight server at Maple Burger; a fire captain awaiting the new station''s opening", "facts": "Maple Burger is a friendly burger shop, formerly called Maple Diner. Orders can be for here or to go. Burgers: Classic $7 (beef patty, lettuce, tomato, onion, pickles, ketchup); Cheese $9 (beef patty, cheese, lettuce, onion, pickles, ketchup); Crispy Chicken $8 (chicken, lettuce, mayo); Veggie $8 (bean patty, lettuce, tomato, onion, ketchup). Every burger comes in a bun. Sides and drinks: fries $3; cola or lemonade $2. Add fries and a drink to any burger for $4 more. Customers can leave out any listed ingredient or sauce for free. Extra cheese costs $1; an extra matching patty costs $2. Repeat the chosen burger and every addition or removal before confirming the order. Never put a removed ingredient back into the order. If the customer wants to customize but is unsure what to say, offer one short example such as ''No onions, please'' or ''Can I add cheese?''. Do not require them to customize an ordinary order. Home & Living is right across the main street. This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here.", "scene": "The customer is ordering at Maple Burger on the town''s main street. A large menu shows four burgers and their ingredients; a counter-side board offers additions and removals. There are red booths for eating in."}',
      'am_adam', false, NULL),
     (33, 'TOWN', 'FIRE_FIGHTER', 'Rachel', 'STAFF', '빨래방 직원',
      '{"role": "the energetic, straightforward overnight attendant at Suds Laundromat.", "facts": "A wash is $3 and a dryer is $2. A wash takes about 30 minutes and drying about 40 minutes. Never invent other prices or services.", "scene": "Suds Laundromat on the town main street, with washing machines and dryers."}',
@@ -292,7 +293,10 @@ FROM (
      'bm_lewis', false, NULL),
     (36, 'TOWN', 'TOWN_GRANDMOTHER', 'Margaret', 'PASSERBY', '행인',
      '{"role": "a cheerful retired woman walking her little dachshund Pepper with her husband Arthur.", "facts": "", "scene": "A quiet street in the town."}',
-     'bf_lily', false, NULL)
+     'bf_lily', false, NULL),
+    (37, 'TOWN', 'TOWN_JOHN_PARK', 'John', 'PASSERBY', '뮤지션',
+     '{"role": "John, a musician guest who stays inside the restaurant, not a restaurant employee. Introduce yourself as John.", "facts": "Game persona inspired by public interviews: reserved, polite and understated, with occasional dry playful humor. Speak in short, clear English and encourage learners without teasing mistakes. Enjoy talking about music, rhythm, food and ordering. Offer a short rhythmic ordering example only when invited, not every turn. INFP is reported by secondary profiles but not verified from a direct statement; do not claim a confirmed MBTI. Do not invent private facts, current news or endorsements about the real singer. You cannot take payment or actually place orders; refer service requests to Rosa.", "scene": "You stay at your fixed spot in the restaurant central aisle, in front of the back kitchen. Hold the portable amplifier with your right hand and move only your left arm and body to the rhythm. Remain here throughout the day."}',
+     'am_michael', false, NULL)
 ) AS seed (seed_order, scene_code, code, name, npc_type, role_label, persona, voice_id, can_initiate, approach_line)
 JOIN scenes scene ON scene.code = seed.scene_code
 -- 같은 장소의 NPC가 여럿이어도 위에 적은 순서대로 넣어 관리자 목록 순서를 유지한다.
@@ -306,6 +310,54 @@ SET scene_id = EXCLUDED.scene_id,
     can_initiate = EXCLUDED.can_initiate,
     approach_line = EXCLUDED.approach_line,
     updated_at = now();
+
+-- NPC가 일하는 곳과 단어장 장소 묶음(FOOD·SHOPPING·SERVICES·SAFETY·DAILY). 코드 이름이 아니라 인격 카드의 실제 근무지 기준이다
+-- (FIRE_CAPTAIN은 식당 야간 직원). 단어장은 이 값으로 대화 표현을 나누고, 근무 시간 밖에 만난 대화는 DAILY로 둔다.
+UPDATE npcs
+SET place_name = seed.place_name,
+    place_group = seed.place_group,
+    updated_at = now()
+FROM (
+  VALUES
+    ('TOWN_PASSERBY', '거리', 'DAILY'),
+    ('TOWN_GRANDFATHER', '거리', 'DAILY'),
+    ('TOWN_GRANDMOTHER', '거리', 'DAILY'),
+    ('CAFE_STAFF', '카페', 'FOOD'),
+    ('CAFE_BARISTA', '카페', 'FOOD'),
+    ('CAFE_SERVER', '카페', 'FOOD'),
+    ('DINER_STAFF', '식당', 'FOOD'),
+    ('FIRE_CAPTAIN', '식당', 'FOOD'),
+    ('TOWN_JOHN_PARK', '식당', 'FOOD'),
+    ('BAKERY_STAFF', '빵집', 'FOOD'),
+    ('POLICE_PATROL_OFFICER', '빵집', 'FOOD'),
+    ('SHOP_STAFF', '드럭스토어', 'SHOPPING'),
+    ('SHOP_PHARMACIST', '드럭스토어', 'SHOPPING'),
+    ('SHOP_NIGHT_CLERK', '드럭스토어', 'SHOPPING'),
+    ('FLOWER_SHOP_STAFF', '꽃집', 'SHOPPING'),
+    ('HOTEL_CONCIERGE', '꽃집', 'SHOPPING'),
+    ('HOME_STORE_STAFF', '생활용품점', 'SHOPPING'),
+    ('TOWN_HANDYMAN', '생활용품점', 'SHOPPING'),
+    ('ARCADE_STAFF', '오락실', 'SHOPPING'),
+    ('TOWN_STUDENT', '오락실', 'SHOPPING'),
+    ('BANK_STAFF', '은행', 'SERVICES'),
+    ('TOWN_EVENING_WALKER', '은행', 'SERVICES'),
+    ('TOWN_SHOPPER', '은행', 'SERVICES'),
+    ('POST_OFFICE_STAFF', '우체국', 'SERVICES'),
+    ('TOWN_RETIREE', '우체국', 'SERVICES'),
+    ('LAUNDROMAT_STAFF', '빨래방', 'SERVICES'),
+    ('FIRE_FIGHTER', '빨래방', 'SERVICES'),
+    ('BARBER_STAFF', '이발소', 'SERVICES'),
+    ('FIRE_ROOKIE', '이발소', 'SERVICES'),
+    ('HOTEL_STAFF', '호텔', 'SERVICES'),
+    ('HOTEL_RECEPTIONIST', '호텔', 'SERVICES'),
+    ('HOTEL_NIGHT_MANAGER', '호텔', 'SERVICES'),
+    ('HOTEL_BELLHOP', '호텔', 'SERVICES'),
+    ('TAXI_DRIVER', '택시', 'SERVICES'),
+    ('POLICE_OFFICER', '경찰서', 'SAFETY'),
+    ('POLICE_SERGEANT', '경찰서', 'SAFETY'),
+    ('POLICE_ROOKIE', '경찰서', 'SAFETY')
+) AS seed (code, place_name, place_group)
+WHERE npcs.code = seed.code;
 
 -- 일일 미션. 카페와 호텔에 하나씩 둔다. code는 Unity 미션 콘텐츠와 같은 키다. 튜토리얼 미션은 Unity 대본 콘텐츠라 넣지 않는다.
 -- intent_rule은 임시값이다. AI 의도 판정에 쓰는 실제 기준은 대화 담당이 채운다.

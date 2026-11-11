@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using A305.EditorTools.Common;
+using A305.EditorTools.Deployment;
 using A305.Weather;
 using A305.World;
 using UnityEditor;
@@ -128,6 +129,7 @@ namespace A305.EditorTools.Weather
         /// </summary>
         public static void ConnectTown(WeatherPresenter weather, Scene scene)
         {
+            WebShadowSettingsBuilder.ConnectShadowQuality(scene);
             BuilderTools.SetReference(weather, "daylight", Settings());
             Light[] lights = BuilderTools
                 .FindAllInScene<Light>(scene)
@@ -172,6 +174,7 @@ namespace A305.EditorTools.Weather
 
         private static InteriorDaylight ConnectInterior(SceneGroups groups)
         {
+            WebShadowSettingsBuilder.ConnectShadowQuality(groups.Scene);
             var interior = BuilderTools.FindSingleInScene<InteriorDaylight>(groups.Scene);
             if (interior == null)
                 interior = BuilderTools

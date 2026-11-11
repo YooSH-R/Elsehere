@@ -14,8 +14,11 @@ namespace A305.Ambience
         private AudioClip entryMusic;
         public AudioClip Music => entryMusic;
 
-        public AudioClip Cue(UiSound sound) =>
-            cues != null && (int)sound < cues.Length ? cues[(int)sound] : null;
+        public AudioClip Cue(UiSound sound)
+        {
+            int index = (int)(sound == UiSound.PrimaryClick ? UiSound.Click : sound);
+            return cues != null && index < cues.Length ? cues[index] : null;
+        }
 
         public void Configure(AudioClip[] effects, AudioClip music)
         {

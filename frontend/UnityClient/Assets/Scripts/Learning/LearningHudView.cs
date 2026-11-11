@@ -6,9 +6,9 @@ using UnityEngine.UI;
 namespace A305.Learning
 {
     /// <summary>
-    /// 오른쪽 위 메뉴(≡) 안의 [단어장]·[피드백 목록]·[홈] 버튼과 저장 알림. 알림은 잠깐 보였다 사라진다.
+    /// 휴대폰 메뉴 안의 [단어장]·[대화 노트]·[홈] 버튼과 알림 카드. 알림은 화면 위 가운데에 잠깐 보였다 사라진다.
     /// 메뉴를 펼치고 접는 일은 <see cref="HudMenuView"/>가 맡는다.
-    /// [피드백 목록] 창도 이 HUD에 있어 장소 씬마다 배치하지 않는다.
+    /// [대화 노트] 창과 [연습 돌아보기] 창도 이 HUD에 있어 장소 씬마다 배치하지 않는다.
     /// </summary>
     public class LearningHudView : MonoBehaviour
     {
@@ -21,11 +21,8 @@ namespace A305.Learning
         private ConversationHistoryView historyView;
 
         [SerializeField]
-        private Button reviewButton;
-
-        [SerializeField]
+        [Tooltip("[다시 연습]을 마친 뒤 결과를 보이는 [연습 돌아보기] 창")]
         private ReviewWorkbookView reviewView;
-        public event Action ReviewRequested;
         public ReviewWorkbookView ReviewView => reviewView;
 
         [SerializeField]
@@ -48,6 +45,7 @@ namespace A305.Learning
         [SerializeField]
         [Tooltip("오른쪽 위 휴대폰 버튼 줄. 대화 중에는 숨긴다.")]
         private GameObject phoneButtonBar;
+        private SurveyPromptView surveyPrompt;
 
         [SerializeField]
         private TMP_Text feedbackCountText;
@@ -109,18 +107,21 @@ namespace A305.Learning
         }
 
         /// <summary>
-        /// 대화 중에는 단어장과 피드백 목록을 열 수 없게 한다. 두 화면의 이동 잠금이 대화의 이동 잠금을 풀지 않게 하기 위함이다.
+        /// 대화 중에는 단어장과 대화 노트를 열 수 없게 한다. 두 화면의 이동 잠금이 대화의 이동 잠금을 풀지 않게 하기 위함이다.
         /// </summary>
         public void SetVocabularyAvailable(bool isAvailable)
         {
             vocabularyButton.interactable = isAvailable;
             historyButton.interactable = isAvailable;
-            if (reviewButton != null)
-                reviewButton.interactable = isAvailable;
         }
 
-        /// <summary>시안처럼 대화 중에는 오른쪽 위 휴대폰 버튼을 숨긴다.</summary>
-        public void SetTalking(bool talking) => phoneButtonBar.SetActive(!talking);
+        /// <summary>대화 중에는 휴대폰과 설문 아이콘을 숨긴다.</summary>
+        public void SetTalking(bool talking)
+        {
+            phoneButtonBar.SetActive(!talking);
+            surveyPrompt ??= GetComponentInChildren<SurveyPromptView>(true);
+            surveyPrompt?.SetTalking(talking);
+        }
 
         public void ShowMessage(string message)
         {
@@ -132,8 +133,6 @@ namespace A305.Learning
         private void Awake()
         {
             historyButton.onClick.AddListener(() => HistoryRequested?.Invoke());
-            if (reviewButton != null)
-                reviewButton.onClick.AddListener(() => ReviewRequested?.Invoke());
             vocabularyButton.onClick.AddListener(() => VocabularyRequested?.Invoke());
             homeButton.onClick.AddListener(() => HomeRequested?.Invoke());
             MessageBox.SetActive(false);

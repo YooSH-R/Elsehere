@@ -10,7 +10,7 @@ using UnityEngine.SceneManagement;
 
 namespace A305.Mission
 {
-    /// <summary>식당의 실제 부스에 앉아 있는 시간만 센다. 서버 수령 실패는 자동 반복하지 않고 다시 누를 수 있다.</summary>
+    /// <summary>햄버거 가게 좌석을 연결하고, 주문 대기 중일 때만 착석 시간을 센다.</summary>
     public sealed class DinerMealRest : IDisposable
     {
         private readonly PlayerMover player;
@@ -18,7 +18,7 @@ namespace A305.Mission
         private readonly PasserbyOfferView offer;
         private readonly Action receive;
         private readonly SeatedMealTimer timer = new SeatedMealTimer();
-        private readonly List<Transform> seats = new List<Transform>();
+        private readonly List<(Transform Marker, float CushionTop, float FrontEdge)> seats = new();
         private readonly PlayerSeatPose pose;
         private bool seatedHere;
         private int sceneHandle = int.MinValue;
@@ -40,13 +40,14 @@ namespace A305.Mission
         public void Tick(float seconds, FirstDayMissionState state, bool busy)
         {
             bool waiting = state?.IsTownStory == true && state.CanRest && state.Stage == 0;
+            if (!waiting)
+                timer.Reset();
+            // 식당은 따로 장면이라 플레이어가 그 장면에 있을 때만 좌석을 쓴다.
             Scene here = player.gameObject.scene;
-            if (!waiting || PlaceScenes.CodeOf(here.name) != "DINER" || pose == null)
+            if (PlaceScenes.CodeOf(here.name) != "DINER" || pose == null)
             {
                 Stand();
                 offer.HideTalkPrompt(this);
-                if (!waiting)
-                    timer.Reset();
                 return;
             }
             EnsureSeats(here);
@@ -58,6 +59,11 @@ namespace A305.Mission
             }
             if (seatedHere)
             {
+                if (!waiting)
+                {
+                    offer.ShowTalkPrompt(this, "일어서기", Stand, showTalkIcon: false);
+                    return;
+                }
                 if (timer.Tick(seconds, true))
                 {
                     Stand();
@@ -78,13 +84,13 @@ namespace A305.Mission
                 offer.HideTalkPrompt(this);
                 return;
             }
-            Transform nearest = seats
-                .Where(seat => seat != null)
-                .OrderBy(seat => Vector3.Distance(player.transform.position, seat.position))
+            var nearest = seats
+                .Where(seat => seat.Marker != null)
+                .OrderBy(seat => Vector3.Distance(player.transform.position, seat.Marker.position))
                 .FirstOrDefault();
             if (
-                nearest == null
-                || Vector3.Distance(player.transform.position, nearest.position) > 1.8f
+                nearest.Marker == null
+                || Vector3.Distance(player.transform.position, nearest.Marker.position) > 1.8f
             )
             {
                 offer.HideTalkPrompt(this);
@@ -102,9 +108,13 @@ namespace A305.Mission
                         receive();
                     else
                     {
-                        seatedHere = pose.Sit(nearest, .48f, .25f);
+                        seatedHere = pose.Sit(
+                            nearest.Marker,
+                            nearest.CushionTop,
+                            nearest.FrontEdge
+                        );
                         if (seatedHere && player.CameraRig != null)
-                            player.CameraRig.EnterSeatView(nearest.Find("MealView"));
+                            player.CameraRig.EnterSeatView(nearest.Marker.Find("MealView"));
                     }
                 },
                 showTalkIcon: false
@@ -122,24 +132,35 @@ namespace A305.Mission
                 .SelectMany(root => root.GetComponentsInChildren<Transform>(true))
                 .ToArray();
             Transform[] tables = objects.Where(item => item.name == "DinerTable").ToArray();
-            foreach (Transform booth in objects.Where(item => item.name == "BoothSeat"))
+            Transform counter = objects.FirstOrDefault(item => item.name == "DinerCounter");
+            foreach (
+                Transform chair in objects.Where(item =>
+                    item.name == "BoothSeat" || item.name == "Stool"
+                )
+            )
             {
-                Transform table = tables
-                    .OrderBy(item => Vector3.Distance(item.position, booth.position))
-                    .FirstOrDefault();
-                if (table == null)
+                bool isStool = chair.name == "Stool";
+                Transform surface = isStool
+                    ? counter
+                    : tables
+                        .OrderBy(item => Vector3.Distance(item.position, chair.position))
+                        .FirstOrDefault();
+                if (surface == null)
                     continue;
+                // TownStorefrontBuilder의 부스와 스툴은 높이와 앉는 면 깊이가 다르다.
+                float cushionTop = isStool ? .79f : .48f;
+                float frontEdge = isStool ? .21f : .25f;
                 Transform marker = new GameObject("DinerMealSeat").transform;
-                marker.SetParent(booth.parent, false);
-                marker.position = booth.position - Vector3.up * .24f;
-                Vector3 forward = table.position - booth.position;
+                marker.SetParent(chair.parent, false);
+                marker.position = chair.position - Vector3.up * (isStool ? .74f : .24f);
+                Vector3 forward = isStool ? -counter.right : surface.position - chair.position;
                 forward.y = 0;
                 marker.rotation = Quaternion.LookRotation(forward);
                 Transform eye = new GameObject("MealView").transform;
                 eye.SetParent(marker, false);
-                eye.localPosition = new Vector3(0, 1.15f, .12f);
+                eye.localPosition = new Vector3(0, cushionTop + .67f, .12f);
                 eye.localRotation = Quaternion.Euler(12, 0, 0);
-                seats.Add(marker);
+                seats.Add((marker, cushionTop, frontEdge));
             }
         }
 
@@ -156,9 +177,9 @@ namespace A305.Mission
 
         private void ClearSeats()
         {
-            foreach (Transform seat in seats)
-                if (seat != null)
-                    UnityEngine.Object.Destroy(seat.gameObject);
+            foreach (var seat in seats)
+                if (seat.Marker != null)
+                    UnityEngine.Object.Destroy(seat.Marker.gameObject);
             seats.Clear();
         }
 

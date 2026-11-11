@@ -139,6 +139,7 @@ namespace A305.Wayfinding
             bool hasEntrance = entrance != null;
             if (hasEntrance && FlatDistance(feet, entrance.position) <= settings.ArrivedMeters)
                 GuideDestination.Shared.Arrive();
+            // 마을 매장 실내는 따로 장면이라 실내에서는 이 길 안내가 없다.
             GuideVisibility visibility = GuideVisibility.Decide(
                 hasEntrance,
                 GuideDestination.Shared.Arrived,

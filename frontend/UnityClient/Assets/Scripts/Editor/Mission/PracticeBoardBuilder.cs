@@ -11,9 +11,9 @@ using Ui = A305.EditorTools.Learning.FeedbackScreenBuilder;
 namespace A305.EditorTools.Mission
 {
     /// <summary>
-    /// 퀘스트 창의 [이야기 | 장소 연습] 탭과 장소 연습 쪽(시안 mock.html #place)을 만든다. 자리는 시안 px × 1.2 캔버스 단위이고,
+    /// 퀘스트 창 쪽마다의 머리줄과 장소 연습 쪽(시안 mock.html #place)을 만든다. 자리는 시안 px × 1.2 캔버스 단위이고,
     /// 그림은 시안을 2.4배로 렌더링한 Art/UI/Quest/Practice* 조각이다. 글자(장소·상황·직원)는 Jua·Pretendard TMP로 쓴다.
-    /// 판(1520×800)과 머리줄(아이콘·'퀘스트'·탭·닫기)은 이야기 쪽과 같고, 자리는 시안 판 기준 그대로다.
+    /// 판(1520×800)은 이야기 쪽과 같고, 자리는 시안 판 기준 그대로다.
     /// </summary>
     internal static class PracticeBoardBuilder
     {
@@ -22,9 +22,8 @@ namespace A305.EditorTools.Mission
         // 시안 판 자리에서 내용을 옮기는 만큼(머리줄이 시안과 같아 0)
         private const float BodyLift = 0;
 
-        // 머리줄(시안 .head 높이 76): 아이콘 타일(76) 왼쪽 41·위 35, '퀘스트'(Jua 46) 왼쪽 139, 탭(.tabs 290×56) 289.31·45, 둥근 닫기(76) 1403
-        private const float TabsLeft = 289.31f;
-        private const float TabsTop = 45;
+        // 머리줄(시안 .head 높이 76, 칸 사이 22): 고르기 화면은 아이콘 타일(76) 왼쪽 41·위 35와 '퀘스트'(Jua 46) 왼쪽 139,
+        // 이야기·장소 연습 쪽(시안 c4)은 둥근 ‹(76) 41, 아이콘 타일 139, 제목 237과 그 뒤 14에 '퀘스트'(Jua 22, 위 64). 둥근 닫기(76)는 1403이다.
         private static readonly (float left, float top, float right, float bottom) HeadPad = (
             16,
             10,
@@ -57,27 +56,50 @@ namespace A305.EditorTools.Mission
             ("POST_OFFICE", "PostOffice"),
         };
 
-        /// <summary>
-        /// 두 탭 쪽의 머리줄(시안 .head): 아이콘 타일·'퀘스트'·[이야기 | 장소 연습] 탭·둥근 닫기. 탭은 쪽마다 지금 쪽이 켜진 그림을 두고
-        /// 두 칸을 누르는 자리로 덮는다.
-        /// </summary>
-        internal static void Header(QuestBoardView view, RectTransform page, bool storyShown)
+        /// <summary>퀘스트 창의 쪽</summary>
+        internal enum QuestPage
         {
-            Quest.Picture(
-                page,
-                "HeaderIcon",
-                41,
-                35,
-                76,
-                76,
-                HeadPad,
-                Quest.Art("QuestHeaderTile")
-            );
+            /// <summary>이야기·장소 연습 고르기(시안 2-B ①)</summary>
+            Choose,
+            Story,
+            Practice,
+        }
+
+        /// <summary>
+        /// 쪽의 머리줄(시안 .head). 고르기 화면은 퀘스트 책 아이콘(왼쪽 위 [퀘스트] 버튼과 같은 책)·'퀘스트'·둥근 닫기이고,
+        /// 이야기·장소 연습 쪽은 고르기 화면으로 돌아가는 둥근 ‹ · 쪽 아이콘 · 쪽 이름 · '퀘스트' · 둥근 닫기다(시안 2-B ②).
+        /// </summary>
+        internal static void Header(QuestBoardView view, RectTransform page, QuestPage kind)
+        {
+            float iconLeft = 41;
+            string name = "퀘스트";
+            string icon = "QuestHeaderBook";
+            if (kind != QuestPage.Choose)
+            {
+                Quest.Listen(
+                    Quest.ArtButton(
+                        page,
+                        "Back",
+                        41,
+                        35,
+                        76,
+                        76,
+                        HeadPad,
+                        Quest.Art("QuestBackRound")
+                    ),
+                    view.ShowChooser
+                );
+                iconLeft = 139;
+                name = kind == QuestPage.Story ? "이야기" : "장소 연습";
+                icon = kind == QuestPage.Story ? "QuestHeaderStory" : "QuestHeaderPractice";
+            }
+            Quest.Picture(page, "HeaderIcon", iconLeft, 35, 76, 76, HeadPad, Quest.Art(icon));
+            float titleLeft = iconLeft + 76 + 22;
             // TMP의 Jua는 칸 가운데에 두면 브라우저보다 낮게 그려져, 캡처로 잰 만큼(시안 px) 올린다.
             TMP_Text title = Quest.Text(
                 page,
                 "Title",
-                139,
+                titleLeft,
                 44 - 3.5f,
                 300,
                 58,
@@ -85,8 +107,23 @@ namespace A305.EditorTools.Mission
                 46,
                 Ink
             );
-            title.text = "퀘스트";
-            Tabs(view, page, storyShown);
+            title.text = name;
+            if (kind != QuestPage.Choose)
+            {
+                float crumbLeft = titleLeft + title.GetPreferredValues(name).x / Px + 14;
+                TMP_Text crumb = Quest.Text(
+                    page,
+                    "Crumb",
+                    crumbLeft,
+                    64 - 1.7f,
+                    120,
+                    28,
+                    Ui.DisplayFontPath,
+                    22,
+                    Muted
+                );
+                crumb.text = "퀘스트";
+            }
             Quest.Listen(
                 Quest.ArtButton(
                     page,
@@ -102,20 +139,6 @@ namespace A305.EditorTools.Mission
             );
         }
 
-        private static void Tabs(QuestBoardView view, RectTransform page, bool storyShown)
-        {
-            RectTransform tabs = Ui.Rect("Tabs", page);
-            Ui.TopLeft(tabs, TabsLeft, TabsTop, 290, 56);
-            RectTransform art = Ui.Rect("Art", tabs);
-            Ui.Spread(art, 10, 6, 10, 14);
-            Ui.Picture(
-                art.gameObject,
-                Quest.Art(storyShown ? "PracticeTabsStory" : "PracticeTabsPlace")
-            );
-            Quest.Listen(TabButton(tabs, "StoryTab", 5), view.ShowStoryTab);
-            Quest.Listen(TabButton(tabs, "PlaceTab", 145), view.ShowPracticeTab);
-        }
-
         /// <summary>장소 연습 쪽: 머리줄, 왼쪽 장소 목록과 스크롤 막대·아래 흐림, 오른쪽 판</summary>
         internal static void Build(
             QuestBoardView view,
@@ -128,7 +151,7 @@ namespace A305.EditorTools.Mission
             var practice = page.gameObject.AddComponent<PracticeBoardView>();
             var fields = new SerializedObject(practice);
 
-            Header(view, page, storyShown: false);
+            Header(view, page, QuestPage.Practice);
 
             BuildList(fields, page);
             BuildPane(view, fields, page);
@@ -504,16 +527,6 @@ namespace A305.EditorTools.Mission
             Set(slot, "DoneChip", done.gameObject);
             Set(slot, "Start", start);
             Set(slot, "Again", again);
-        }
-
-        private static Button TabButton(RectTransform tabs, string name, float x)
-        {
-            RectTransform rect = Ui.Rect(name, tabs);
-            Ui.TopLeft(rect, x, 5, 140, 46);
-            rect.gameObject.AddComponent<Image>().color = Color.clear;
-            var button = rect.gameObject.AddComponent<Button>();
-            button.transition = Selectable.Transition.None;
-            return button;
         }
 
         // EditMode 테스트와 Editor에서도 누르면 동작하도록 Editor·실행 모두에서 부른다.

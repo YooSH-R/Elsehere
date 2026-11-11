@@ -1,10 +1,10 @@
-대화 중 추천 영역은 고정 크기의 단어·추천 문장 카드입니다. 영어 아래에 한국어 뜻을 표시하고 긴 내용만 내부에서 스크롤합니다. [힌트]를 누르면 추천 문장이 보이고, 제목 오른쪽 눈 아이콘으로 다시 가립니다. 펼친 영어 문장을 누르면 입력칸에 넣으며 자동 전송하지 않습니다. 새 NPC 대사에서는 다시 가립니다. 힌트 뜻은 같은 요청에서 받은 `hintMeaningKo`를 사용하고 추가 모델 호출 없이 문장과 함께 재사용합니다. 이전 힌트에 뜻이 없으면 영어만 표시합니다. `DialogueSuggestionsBuilder.ApplyToPrefab`이 기존 대화창과 복습 참고창을 유지하며 카드·버튼 참조를 연결합니다.
+대화 중 추천 영역은 고정 크기의 단어·추천 문장 카드입니다. 영어 아래에 한국어 뜻을 표시하고 긴 내용만 내부에서 스크롤합니다. 일반 대화에서 [힌트]를 누르면 추천 문장이 보이고, 제목 오른쪽 눈 아이콘으로 다시 가립니다. 펼친 영어 문장을 누르면 입력칸에 넣으며 자동 전송하지 않습니다. 새 NPC 대사에서는 다시 가립니다. 힌트 뜻은 같은 요청에서 받은 `hintMeaningKo`를 사용하고 추가 모델 호출 없이 문장과 함께 재사용합니다. 이전 힌트에 뜻이 없으면 영어만 표시합니다. 튜토리얼의 정해진 대화에서는 [힌트]를 누르면 이번 연습 대사가 입력칸에 바로 들어갑니다. `DialogueSuggestionsBuilder.ApplyToPrefab`이 기존 대화창과 복습 참고창을 유지하며 카드·버튼 참조를 연결합니다.
 
 # Dialogue 모듈
 
 대화 준비·진행 중에는 게임 시간을 멈추고, 대화창을 닫으면 대화에 의한 정지를 해제합니다. 피드백·단어장·튜토리얼의 정지는 각 화면과 진행 흐름이 별도로 유지합니다. 준비 중 Esc로 닫은 뒤 시작 응답이 늦게 도착하면 그 서버 대화를 피드백 없이 종료하고, 정리 전의 시간 정지 응답을 버리도록 시계를 재동기화합니다. 취소한 대화를 다시 표시하거나 추천 단어를 요청하지 않습니다. 취소 직후 다시 말을 걸면 이전 준비 요청의 서버 정리가 끝난 뒤 새 대화를 요청해 두 대화의 정리가 섞이지 않게 합니다.
 
-한국어·한영 혼합 발화의 응답(CONV-03)에 `userTurn.translation.english`가 있으면 대화 옆의 작은 카드에 표시합니다. 제목은 “방금 한 말의 영어 표현이에요.”입니다. 원 발화를 유지하고 번역문을 다시 보내지 않으며, 다음 발화를 보내면 이전 표현을 비웁니다. 무례 판정과 관계없이 영어 번역이 있으면 표시하고, 번역이 없는 응답에서는 카드를 숨깁니다. 좁은 화면에서는 대사 위에 쌓고 긴 문장은 카드 안에서 스크롤합니다. [듣기]는 기기 영어 음성을 사용하며 추가 AI 요청을 만들지 않습니다. `DialogueTranslationBuilder`가 프리팹과 연결을 갱신합니다.
+한국어·한영 혼합 발화의 응답(CONV-03)에 `userTurn.translation.english`가 있으면 대화 옆의 작은 카드에 표시합니다. 제목은 “방금 한 말의 영어 표현이에요.”입니다. 원 발화를 유지하고 번역문을 다시 보내지 않으며, 다음 발화를 보내면 이전 표현을 비웁니다. 무례 판정과 관계없이 영어 번역이 있으면 표시하고, 번역이 없는 응답에서는 카드를 숨깁니다. 좁은 화면에서는 대사 위에 쌓습니다. 카드는 문장이 다 보이도록 높이를 키우고(최대 320, 화면 높이 안), 그보다 긴 문장만 카드 안에서 스크롤합니다. [듣기]는 기기 영어 음성을 사용하며 추가 AI 요청을 만들지 않습니다. `DialogueTranslationBuilder`가 프리팹과 연결을 갱신합니다.
 
 NPC 음성을 다시 합성하거나 내려받아 재생을 준비하는 동안에는 `DialogueWait.NpcSpeech`로 대사 칸을 로딩 상태로 유지합니다. 준비가 끝나면 자막 설정을 적용하므로 자막이 음성보다 먼저 노출되지 않습니다. 생성 실패·만료가 확정된 음성의 자막 대체와 다시 듣기 재시도는 유지합니다. 이전 대사의 늦은 음성 응답은 현재 대사의 표시를 바꾸지 않습니다.
 
@@ -33,7 +33,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 | `TextLinkClicks` | 대사 칸 글자의 `<link>`를 누르면 링크 ID를 알립니다. 링크가 아닌 곳은 무시합니다. |
 | `DialogueRecord` | 끝난 대화의 기록. 피드백·미션·튜토리얼이 대화 결과를 판단할 때 씁니다. |
 | `DialogueScriptSource`, `MockDialogueScriptSource` | NPC 키로 대본을 찾는 곳과 서버 연동 전 확인용 대본입니다. |
-| `ServerConversation`, `IConversationApi`, `ConversationApi` | 서버 AI 자유 대화 한 번. 대화 시작(CONV-01)·발화(CONV-03)·녹음 전사(CONV-02)·뜻 보기(CONV-04)·힌트(CONV-05)·종료(CONV-08)를 부릅니다. 끝내지 못한 대화가 남아 있으면 같은 NPC와의 대화는 이어서 하고(CONV-11의 턴으로 지난 대사를 다시 보임), 다른 NPC와의 대화는 피드백 없이 끝내고 새로 시작합니다. 종료 응답의 `followUp`은 `FollowUpStore`에 남기고, 시작 응답의 `deliveredFollowUpId`는 지웁니다. 발화는 스트리밍(CONV-03 `Accept: text/event-stream`)으로 받아, 대사 글자가 오기 시작하면 로딩을 걷고 보낸 문장과 온 만큼의 NPC 대사를 보이며 문장 조각 음성(`NpcSpeechChunk`)을 넘깁니다. 저장된 턴을 받으면 그 줄들을 저장된 턴으로 다시 그리고, 실패하면 지웁니다. 스트림이 저장된 턴 없이 끊기면 `ConversationApi`(`TurnEventReader`)가 같은 요청 ID로 JSON 요청을 한 번 더 보내 서버가 끝까지 저장한 턴을 받습니다. 가짜 API로 Unity 객체 없이 테스트합니다. |
+| `ServerConversation`, `IConversationApi`, `ConversationApi` | 서버 AI 자유 대화 한 번. 대화 시작(CONV-01)·발화(CONV-03)·녹음 전사(CONV-02)·뜻 보기(CONV-04)·힌트(CONV-05)·종료(CONV-08)를 부릅니다. 끝내지 못한 대화가 남아 있으면 같은 NPC와의 대화는 이어서 하고(CONV-11의 턴으로 지난 대사를 다시 보임), 다른 NPC와의 대화는 피드백 없이 끝내고 새로 시작합니다. 종료 응답의 `followUp`은 `FollowUpStore`에 남기고, 시작 응답의 `deliveredFollowUpId`는 지웁니다. 발화는 스트리밍(CONV-03 `Accept: text/event-stream`)으로 받아, 대사 글자가 오기 시작하면 로딩을 걷고 보낸 문장과 온 만큼의 NPC 대사를 보이며 문장 조각 음성(`NpcSpeechChunk`)을 넘깁니다. 저장된 턴을 받으면 그 줄들을 저장된 턴으로 다시 그리고, 실패하면 지웁니다. 스트림이 저장된 턴 없이 끊기면 `ConversationApi`(`TurnEventReader`)가 같은 요청 ID로 JSON 요청을 한 번 더 보내 서버가 끝까지 저장한 턴을 받습니다. 일반 대화 시작(CONV-01)도 같은 방식의 스트리밍으로 받아, 첫 인사 글자가 오기 시작하면 로딩을 걷고 온 만큼의 NPC 대사를 보이며 조각 음성을 넘기고, 시작한 대화(`conversation` 이벤트)를 받으면 저장된 첫 턴으로 다시 그립니다. 복습·장소 연습 시작은 JSON으로 받습니다. 가짜 API로 Unity 객체 없이 테스트합니다. |
 | `FollowUpStore`, `WaitingFollowUp`, `IFollowUpApi`, `FollowUpApi` | 대화를 마친 NPC가 준비해 곧 건네기로 한 것(아이스 라테·아침 식사·빨래 등, CONV-08 `followUp`)의 목록. 공간 씬이 바뀌어도 남도록 씬 밖(`FollowUpStore.Shared`)에 두고, 씬마다 `DialogueController`가 시작할 때 아직 건네지 않은 것 전부(CONV-13 `GET /api/v1/follow-ups`)로 다시 맞춥니다. 받지 못하면 기억하던 것을 둡니다. 서버처럼 NPC마다 하나만 기다리므로, 같은 NPC의 새 `followUp`(다른 ID)을 받으면 그 NPC의 줄을 바꿉니다. NPC가 첫 대사로 건네면(CONV-01 `deliveredFollowUpId`) 그 ID와 그 NPC의 줄을 지웁니다. 남은 시간은 서버가 센 `remainingSeconds`를 받은 때부터 이 기기의 실제 시간으로 줄이고, 기기 시계로 `readyAt`을 다시 세지 않습니다. 같은 것을 다시 받으면 바꾸고, 먼저 되는 것부터 늘어놓으며, 다 됐다는 알림은 한 번만 꺼내 줍니다(`TakeNewlyReady`). Play를 시작할 때마다 비웁니다. 가짜 API와 시계로 Unity 객체 없이 테스트합니다. |
 | `ConversationStanding` | 서버 대화의 NPC 호감도와 무례 경고 칸(3아웃) 값. CONV-01·03 응답의 `conversation`(`affinity`, `rudeCount`, `rudeLimit`)으로 바뀌며, 호감도가 바뀐 턴에는 변화량을 한 번 냅니다(무례로 센 턴은 예: -6과 "무례한 말 1/3 · 3번이면 대화가 끝나요" 문구, 칭찬·인사 같은 사건이 있는 턴은 예: 칭찬 +7). 이 칸을 보내지 않는 서버면 `IsKnown`이 false입니다. Unity 객체 없이 테스트합니다. |
 | `ConversationStandingDisplay` | 대화창 NPC 이름 옆 한 줄 "♥ 12   ○○○". 새 상태를 받은 뒤 4초 동안 변화량(깎이면 빨강, 오르면 초록)과 무례 경고 문구를 붙였다가 지웁니다. 글자는 서비스 글꼴(NanumSquareRound)에 있는 ♥·●·○를 씁니다. Unity 객체 없이 테스트합니다. |
@@ -83,7 +83,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 
 | API | 설명 |
 | --- | --- |
-| `DialogueController.TryStart(string npcCode, Transform lookTarget, ConversationInitiator initiatedBy = Npc)` | 대화를 시작합니다. 이미 대화 중이면 false를 돌려줍니다. 플레이어가 [말 걸기]나 NPC 클릭·탭으로 먼저 건 대화는 `ConversationInitiator.User`로 넘기고, 서버 대화 시작(CONV-01)에 `initiatedBy: USER`로 보냅니다. NPC가 제안한 대화는 기본값(`NPC`)입니다. |
+| `DialogueController.TryStart(string npcCode, Transform lookTarget, ConversationInitiator initiatedBy = Npc)` | 대화를 시작합니다. 이미 대화 중이면 false를 돌려줍니다. 플레이어가 [말 걸기]나 NPC 클릭·탭으로 먼저 건 대화는 `ConversationInitiator.User`로 넘기고, 서버 대화 시작(CONV-01)에 `initiatedBy: USER`로 보냅니다. NPC가 제안한 대화는 기본값(`NPC`)입니다. 서버 대화 시작에는 대화가 열린 장소 코드(`placeCode`)도 보냅니다. 따로 넘기지 않으면 플레이어가 있는 씬의 `PlaceScenes` 코드(마을 매장도 따로 장면이라 그 매장 코드)이고, 택시는 `TAXI`를 넘깁니다. |
 | `DialogueController.TryStart(..., practiceScenarioId, practiceStart)` | 장소 연습 대화를 시작합니다. `practiceStart`가 장소 연습 시작(PRC-02)으로 대화를 열고, 복습 대화처럼 `Started`·`Ended`와 마을 동작(택시·신고·행동 판정), 준비물, 추천 단어, 종료 피드백, [나중에 확인]을 쓰지 않습니다. 남은 진행 중 대화는 끝내거나 이어받지 않습니다. 종료 기록의 `DialogueRecord.PracticeScenarioId`로 구분합니다. |
 | `DialogueController.ActivePracticeConversationId`, `SetPracticeReference(goals, completedCount, briefing)` | 지금 장소 연습 대화의 서버 ID와, 복습 참고 카드와 같은 자리에 '이번 연습' 설명·목표·해낸 수를 보이는 카드 |
 | `DialogueController.End()` | 대화를 끝내고 플레이어를 대화하던 NPC 쪽으로 돌린 뒤 시점과 이동을 되돌립니다. [대화 종료] 버튼과 Esc도 이 동작을 합니다. |
@@ -111,7 +111,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 | `TOWN_PASSERBY` | Ben | 키워드 응답. `weather`, `cafe`, `thank` |
 | `TAXI_DRIVER` | Joe | 어디로 가는지 묻고 키워드 응답. `hotel`, `thank` |
 | `POLICE_OFFICER` | Dan | 무슨 일이 있었는지 묻고 키워드 응답. `stolen`·`lost`·`accident`, `thank` |
-| 거리 매장 직원 9명([Npc 모듈](../Npc/README.md#거리-매장-직원)) | Linda·Rosa·Henry·Gus·Lily·Tony·Grace·Max·Nina | 가게 인사 뒤 키워드 응답 두 개(예: 우체국 `stamp`·`package`, 식당 `pancake`·`coffee`). 가격은 서버 상황 문장과 같습니다. |
+| 거리 매장 직원 9명([Npc 모듈](../Npc/README.md#거리-매장-직원)) | Linda·Rosa·Henry·Gus·Lily·Tony·Grace·Max·Nina | 가게 인사 뒤 키워드 응답 두 개(예: 우체국 `stamp`·`package`, 버거 가게 `classic`·`cola`). 가격은 서버 상황 문장과 같습니다. |
 
 - 키워드는 대소문자를 구분하지 않고 단어 일부여도 맞습니다(`desserts`도 `dessert`에 맞음). 규칙은 위에서부터 확인해 처음 맞는 규칙으로 답합니다.
 - 필드 초기값은 에셋을 처음 만들 때 들어가는 예시이며, 이후 수정은 에셋에서 합니다. 이름·대사는 서버 데이터라 서버 연동 후에는 서버 값을 씁니다.
@@ -134,6 +134,16 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 
 ## NPC 얼굴과 음성 재생
 
+### 저장된 NPC 공연
+
+`RecordedNpcPerformance`가 붙은 NPC는 `PerformanceRequest`에 일치하는 명시적 공연 요청을 로컬에서 처리합니다. `랩 해줘`, `다시 보여줘`, `Can you rap?`, `One more time, please!`가 이에 해당합니다. 일반 문장과 공연 거절 문장은 기존 대화로 보냅니다. 음성 입력은 기존 전사·확인 단계를 거쳐 같은 입력 경로로 들어옵니다.
+
+`RecordedPerformanceDefinition`은 WAV·대사·BPM·전용 Animator 상태를 참조합니다. `DialogueController`는 서버 발화 전 공연 요청을 확인하고 저장 음성을 재생하며, `ShowRecordedReply`로 화면에 대사만 추가합니다. 이 공연은 서버 턴·사용량·학습 평가 기록을 생성하지 않으며, 일반 AI 대화와 음성 전사의 서버 연결은 그대로 유지합니다. 서버가 응답 중이거나 튜토리얼·복습 대화인 동안은 공연으로 끼어들지 않습니다.
+
+재요청과 [다시 듣기]는 횟수 제한 없이 처음부터 재생합니다. `CharacterSpeechPlayer`의 AudioSource 샘플 시각으로 입모양을 구동하고, 같은 시각을 `RecordedNpcPerformance.SampleMotion`에 전달해 전용 동작을 맞춥니다. 일시정지 중에도 두 동작의 시각은 같으며, 종료·다른 대사·화자 변경 시 공연 동기화를 해제하고 기존 Animator 속도로 복원합니다. 원본 애니메이션의 본 곡선과 소품 결합은 변경하지 않습니다.
+
+존박 연결과 확인 순서는 [말하기 중 NPC 감정 표정 검수](../../../../../docs/unity/npc-speaking-emotions.md)의 존박 항목을 따릅니다.
+
 공통 감정을 적용한 12종 NPC 외형은 실제 대화 WAV의 구절별 감정 시간표로 새 음성 대사를 재생합니다. AI 워커가 기존 대사 요청에서 감정을 함께 생성하며 연결 방식은 [NPC 대화 감정 표정](../../../../../docs/unity/npc-dialogue-emotions.md)을 따릅니다. 시간표가 없으면 `ConfigureMood` 또는 Inspector의 기본 기분·강도를 사용합니다(기본값 인자한 미소). 지원 외형과 검수 씬은 [말하기 중 NPC 감정 표정 검수](../../../../../docs/unity/npc-speaking-emotions.md)를 참고합니다.
 
 대화 시작 시 `LookTarget`의 부모 `DialogueSpeaker`가 선택된 NPC의 얼굴·재생기를 준비합니다. `NpcIdentity`가 화자 컴포넌트를 자동으로 제공하므로 NPC별 Builder 연결을 반복하지 않습니다. 얼굴 채널이 부족하면 `LipSyncNotice`에 이유를 남기고 기존 음성 재생을 유지합니다. 지원되는 모델은 같은 WAV의 음소 시간표와 AudioSource 샘플 위치를 사용하며, 화자 변경·종료·늦은 음성 응답 취소는 기존 수명 처리를 따릅니다. 얼굴 메시 제작은 별도이며 감정 선택은 AI 워커가 담당합니다.
@@ -146,7 +156,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 
 현재 음성의 404는 `ServerConversation`에 전달해 만료 상태로 바꾸고 다시 듣기를 숨긴다. 대화가 끝난 뒤 도착한 이전 음성의 404는 무시하므로 새 대화의 상태를 바꾸지 않는다.
 
-추천 문장을 기다리는 동안 작성 중인 입력은 보존합니다. 힌트를 펼치기만 해서는 입력을 바꾸지 않으며, 펼친 문장을 직접 눌러야 영어 문장을 입력칸에 넣습니다. 이미 받은 힌트는 추가 요청 없이 다시 펼치고 가립니다. 서버 전송 실패 문장 복원은 유지합니다.
+일반 대화에서 추천 문장을 기다리는 동안 작성 중인 입력은 보존합니다. 펼친 문장을 직접 누르면 영어 문장을 입력칸에 넣습니다. 이미 받은 힌트는 추가 요청 없이 다시 펼치고 가립니다. 서버 전송 실패 문장 복원은 유지합니다.
 
 착석으로 받는 카페·식당 주문은 미션 타이머가 `SetSeatedWaitRemaining`으로 남은 시간을 맞추며, 5초 완료 시 `CompleteSeatedWaitAsync`가 해당 NPC의 주문만 숨기고 CONV-14로 저장합니다. 완료 ID는 세션 동안 기억해 늦게 도착한 목록·종료 응답으로 카드가 되살아나지 않게 하고, 서버 저장 실패는 다음 `RefreshAsync`에서 재시도합니다. 다른 NPC의 대기와 새 주문 ID에는 적용하지 않습니다.
 

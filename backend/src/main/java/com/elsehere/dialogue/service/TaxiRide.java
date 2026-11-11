@@ -46,11 +46,20 @@ final class TaxiRide {
     PLACES.put("the police station", "POLICE_STATION");
   }
 
+  // 택시가 가지 않는 곳과 그 근처 하차 장소. 기사가 이런 곳을 권하거나 가자는 말에 승낙하지 않게, 대답 지시에 함께 준다.
+  // 장소 이름은 AI 워커 마을 안내(npc_prompt.TOWN_GUIDE)와 같다.
+  private static final String NOT_SERVED =
+      "Your taxi does not go to the park with the fountain or Maple Bakery (drop them at the post"
+          + " office instead), Little Arcade or Paper & Leaf Books (the post office), Home &"
+          + " Living or Leaf Tea Room (Maple Diner), the ice cream truck (the police station), or"
+          + " anywhere out of town.";
+
   static final WorkerState STATE =
       new WorkerState(
           "taxi_ride",
           "You drive the taxi and the learner is your passenger in the back seat. You drive only to"
-              + " places in this town.",
+              + " places in this town. Maple Burger is the burger shop labelled Maple Diner in"
+              + " the destination list.",
           List.of(
               new WorkerState.Intent(
                   GO_TO,
@@ -84,8 +93,9 @@ final class TaxiRide {
       return Optional.empty();
     }
     Object place = judge.intent().slots().get(DESTINATION);
-    return Optional.ofNullable(PLACES.get(place))
-        .map(code -> new Destination(code, (String) place));
+    String code = "Maple Burger".equals(place) ? "DINER" : PLACES.get(place);
+    return Optional.ofNullable(code)
+        .map(destinationCode -> new Destination(destinationCode, (String) place));
   }
 
   /** 이번 대답에서 기사가 할 일 */
@@ -97,15 +107,28 @@ final class TaxiRide {
           + " and do not say you have arrived.";
     }
     if (asksToGo(judge)) {
-      return "They want to go somewhere, but it is not a place you drive to, or you cannot tell"
-          + " which place they mean. Ask where they want to go, and if it helps, name a few places"
-          + " you can take them: "
-          + String.join(", ", PLACES.keySet().stream().map(TaxiRide::spoken).toList())
-          + ". Do not say you are driving there yet.";
+      return "They want to go somewhere, but your taxi does not go there, or you cannot tell which"
+          + " place they mean. "
+          + route()
+          + " If they mean a place your taxi does not go to, say plainly that your taxi does not go"
+          + " there and offer the drop-off nearby. Ask where they want to go if you cannot tell"
+          + " which place they mean, naming a few places from your list if it helps. Do not agree"
+          + " to go there, and do not say you"
+          + " are driving or tell them to buckle up yet.";
     }
     return "Do not say you are driving them to a place they did not ask for in this conversation."
         + " If they have not told you where to go yet, ask where they would like to go when it"
-        + " fits.";
+        + " fits. "
+        + route()
+        + " If you suggest or recommend places, choose only from the places you drive to.";
+  }
+
+  // 기사가 가는 곳과 가지 않는 곳
+  private static String route() {
+    return "You drive only to: "
+        + String.join(", ", PLACES.keySet().stream().map(TaxiRide::spoken).toList())
+        + ". "
+        + NOT_SERVED;
   }
 
   // 기사가 승객에게 말할 장소 이름. 판정용 이름표의 "the learner's home"은 승객에게 "their home"이다.

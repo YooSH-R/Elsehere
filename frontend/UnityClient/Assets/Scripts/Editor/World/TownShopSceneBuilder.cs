@@ -147,7 +147,7 @@ namespace A305.EditorTools.World
             {
                 NpcLifeBuilder.BuildScene(shop.Path);
                 Scene scene = EditorSceneManager.OpenScene(shop.Path, OpenSceneMode.Single);
-                foreach (NpcIdentity worker in BuilderTools.FindAllInScene<NpcIdentity>(scene))
+                foreach (NpcIdentity worker in Workers(scene, life))
                     BuildingStaffBuilder.LimitToGroundFloor(scene, worker.Code, shop.Building);
                 BuilderTools.SaveScene(scene, shop.Path);
             }
@@ -221,7 +221,7 @@ namespace A305.EditorTools.World
                 PrefabUtility.RecordPrefabInstancePropertyModifications(player);
                 // 식당 부스처럼 매장 안 자리에 앉는다. 마을 플레이어와 같게 둔다.
                 BuilderTools.GetOrAddComponent<PlayerSeatPose>(player.gameObject);
-                NpcIdentity[] workers = BuilderTools.FindAllInScene<NpcIdentity>(scene);
+                NpcIdentity[] workers = Workers(scene, life);
                 if (workers.Length > 0)
                     NpcPopulationBuilder.ConnectWorkers(scene, workers);
                 BuilderTools.SaveScene(scene, shop.Path);
@@ -369,6 +369,13 @@ namespace A305.EditorTools.World
                 MoveWithBuilding(worker.transform, townBuilding.localToWorldMatrix, building);
             }
         }
+
+        // 매장 장면의 직원. 생활 데이터가 있는 NPC만이며, 식당의 존박처럼 늘 그 자리에 있는 NPC는 뺀다.
+        private static NpcIdentity[] Workers(Scene scene, NpcLifeData life) =>
+            BuilderTools
+                .FindAllInScene<NpcIdentity>(scene)
+                .Where(npc => life.FindNpc(npc.Code) != null)
+                .ToArray();
 
         // 장면을 옮기는 매장 문은 홈·카페·호텔·경찰서 문처럼 여닫지 않는다. 닫힌 문짝과 그 충돌은 그대로 두고,
         // 다가오는 사람을 감지해 여는 동작과 감지 영역만 끈다.

@@ -33,6 +33,8 @@
 
 ## 횡단보도로 건너기
 
+마을 매장 실내는 따로 장면이고 길 안내는 마을 씬에만 있어, 매장 안에서는 안내선과 출입문 빛이 보이지 않습니다. 실내에서 다음 퀘스트로 넘어가면 밖으로 나왔을 때 아직 도착하지 않은 현재 목적지를 안내합니다. 사용자가 꺼 둔 길 안내 설정은 입퇴장으로 바뀌지 않습니다.
+
 마을의 걸을 바닥은 NPC와 같이 씁니다. **Tools → A305 → Wayfinding → Build**가 TownScene의 차도(`StreetBase/Road_*`, `CrossRoadWing`)에 `NavMeshModifier`(구역 `Road`)를, 횡단보도 줄무늬를 묶은 자리마다 `Environment/PedestrianCrossings`에 `NavMeshModifierVolume`(구역 `Crosswalk`)을 두고 바닥을 다시 굽습니다. 줄무늬 끝에서 연석까지 남은 차도(약 0.5m)도 함께 덮습니다. 두 구역의 프로젝트 비용은 보통 바닥과 같은 1입니다. NPC는 차도 구역을 경로에서 제외하고, 길 안내는 차도 1m를 인도 50m(`roadCrossingCost`)로 쳐서 차도를 건너야 하면 횡단보도로 돌아갑니다. 구역 상자 이름은 사물 단어 자동 연결(`Crosswalk`·`Zebra`로 시작하면 '횡단보도' 단어)에 걸리지 않게 짓습니다.
 
 차도나 횡단보도를 옮기거나 새로 그리면 Builder를 다시 실행합니다. 새 차도 바닥 이름이 위 이름과 다르면 Builder의 차도 이름 목록에 함께 추가합니다.

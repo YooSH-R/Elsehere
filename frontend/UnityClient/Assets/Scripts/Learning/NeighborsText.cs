@@ -100,7 +100,7 @@ namespace A305.Learning
             neighbor.Unlocked ? AvatarName(neighbor).Substring(0, 1).ToUpperInvariant() : "?";
 
         /// <summary>
-        /// 이름으로 고르는 아이콘 색 번호. [피드백 목록](<see cref="ConversationHistoryText.AvatarColor"/>)과 같은 계산이라
+        /// 이름으로 고르는 아이콘 색 번호. [대화 노트](<see cref="ConversationHistoryText.AvatarColor"/>)과 같은 계산이라
         /// 같은 NPC는 두 목록에서 같은 색이다.
         /// </summary>
         public static int AvatarColor(Neighbor neighbor, int colorCount)

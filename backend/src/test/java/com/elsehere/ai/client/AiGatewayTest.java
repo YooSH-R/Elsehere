@@ -47,6 +47,21 @@ class AiGatewayTest {
   private static final List<WorkerUsage> USAGE =
       List.of(new WorkerUsage("npc", "gpt-test", 100, 20, null, null, null));
 
+  // 판정을 기다리지 않고 먼저 시작했다가 판정 뒤에 버린 대답의 조각 받기
+  private static final NpcReplyListener DISCARDED =
+      new NpcReplyListener() {
+        @Override
+        public void onDelta(String text) {}
+
+        @Override
+        public void onChunk(NpcReplyChunk chunk) {}
+
+        @Override
+        public boolean discarded() {
+          return true;
+        }
+      };
+
   @MockitoBean private AiWorkerClient aiWorkerClient;
 
   @Autowired private AiGateway aiGateway;
@@ -197,6 +212,35 @@ class AiGatewayTest {
     AiRequest request = request(AiRequestKind.NPC);
     assertThat(request.getStatus()).isEqualTo(AiRequestStatus.FAILED);
     assertThat(request.getInputTokens()).isEqualTo(100);
+  }
+
+  @Test
+  @DisplayName("부른 쪽이 버린 NPC 대답은 끝까지 와도 같은 요청 ID로 다시 부른 대답의 기록을 덮지 않도록 남기지 않는다")
+  void reply_discardedByCaller_isNotRecorded() {
+    NpcReply reply = new NpcReply("Hello!", "audio-1", null, USAGE);
+    given(aiWorkerClient.reply(trace, null, null, List.of(), "hi", "", 1, null, DISCARDED))
+        .willReturn(reply);
+
+    assertThat(aiGateway.reply(trace, null, null, List.of(), "hi", "", 1, null, DISCARDED))
+        .isSameAs(reply);
+
+    assertThat(aiRequestRepository.findByRequestIdAndKind(trace.requestId(), AiRequestKind.NPC))
+        .isEmpty();
+  }
+
+  @Test
+  @DisplayName("부른 쪽이 버린 NPC 대답이 오류로 끝나도 기록하지 않고 오류만 그대로 던진다")
+  void reply_discardedByCallerThenFails_isNotRecorded() {
+    BusinessException failure = new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE);
+    given(aiWorkerClient.reply(trace, null, null, List.of(), "hi", "", 1, null, DISCARDED))
+        .willThrow(failure);
+
+    assertThatThrownBy(
+            () -> aiGateway.reply(trace, null, null, List.of(), "hi", "", 1, null, DISCARDED))
+        .isSameAs(failure);
+
+    assertThat(aiRequestRepository.findByRequestIdAndKind(trace.requestId(), AiRequestKind.NPC))
+        .isEmpty();
   }
 
   @Test

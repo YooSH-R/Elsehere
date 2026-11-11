@@ -2,6 +2,7 @@ package com.elsehere.review.repository;
 
 import com.elsehere.review.entity.ReviewCard;
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Limit;
@@ -14,6 +15,9 @@ public interface ReviewCardRepository extends JpaRepository<ReviewCard, Long> {
   Optional<ReviewCard> findByUserIdAndSourceConversationId(Long userId, Long sourceConversationId);
 
   Optional<ReviewCard> findByIdAndUserId(Long id, Long userId);
+
+  List<ReviewCard> findByUserIdAndSourceConversationIdIn(
+      Long userId, Collection<Long> sourceConversationIds);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select r from ReviewCard r where r.id = :id and r.userId = :userId")

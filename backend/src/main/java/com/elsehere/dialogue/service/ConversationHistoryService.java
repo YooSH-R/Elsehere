@@ -12,6 +12,8 @@ import com.elsehere.dialogue.dto.ConversationSummaryResponse;
 import com.elsehere.feedback.entity.ConversationFeedback;
 import com.elsehere.feedback.entity.FeedbackStatus;
 import com.elsehere.feedback.repository.ConversationFeedbackRepository;
+import com.elsehere.review.entity.ReviewCard;
+import com.elsehere.review.repository.ReviewCardRepository;
 import com.elsehere.world.entity.Npc;
 import com.elsehere.world.repository.NpcRepository;
 import java.util.HashMap;
@@ -36,11 +38,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class ConversationHistoryService {
 
   private static final int MAX_SIZE = 50;
+  private static final int MAX_SCENE_CODE_LENGTH = 30;
 
   private final ConversationRepository conversationRepository;
   private final TurnRepository turnRepository;
   private final ConversationFeedbackRepository conversationFeedbackRepository;
   private final NpcRepository npcRepository;
+  private final ReviewCardRepository reviewCardRepository;
   private final DialogueContexts dialogueContexts;
 
   /**
@@ -48,13 +52,25 @@ public class ConversationHistoryService {
    * @param cursor 이전 페이지의 nextCursor. 첫 페이지면 null
    */
   public ConversationListResponse list(Long userId, String npcCode, String cursor, int size) {
-    return list(userId, npcCode, cursor, size, false);
+    return list(userId, npcCode, null, cursor, size, false);
   }
 
-  /** 피드백 목록은 완료된 결과만 조회하고, 일반 대화 기록은 기존 조건을 유지한다. */
+  /**
+   * 대화 노트는 완료된 피드백이 있는 대화만 조회하고, 일반 대화 기록은 기존 조건을 유지한다.
+   *
+   * @param sceneCode 이 장소의 NPC와 나눈 대화만 본다. null이면 모든 장소다. 없는 코드면 빈 목록이다.
+   */
   public ConversationListResponse list(
-      Long userId, String npcCode, String cursor, int size, boolean feedbackOnly) {
-    if (size < 1 || size > MAX_SIZE) {
+      Long userId,
+      String npcCode,
+      String sceneCode,
+      String cursor,
+      int size,
+      boolean feedbackOnly) {
+    if (size < 1
+        || size > MAX_SIZE
+        || (sceneCode != null
+            && (sceneCode.isBlank() || sceneCode.length() > MAX_SCENE_CODE_LENGTH))) {
       throw new BusinessException(ErrorCode.VALIDATION_FAILED);
     }
     Long npcId = null;
@@ -70,30 +86,31 @@ public class ConversationHistoryService {
     Limit limit = Limit.of(size + 1);
     List<Conversation> fetched =
         cursor == null
-            ? firstPage(userId, npcId, limit, feedbackOnly)
-            : pageAfterCursor(userId, npcId, cursor, limit, feedbackOnly);
+            ? firstPage(userId, npcId, sceneCode, limit, feedbackOnly)
+            : pageAfterCursor(userId, npcId, sceneCode, cursor, limit, feedbackOnly);
     boolean hasNext = fetched.size() > size;
     List<Conversation> page = hasNext ? fetched.subList(0, size) : fetched;
     String nextCursor = hasNext ? String.valueOf(page.getLast().getId()) : null;
-    return new ConversationListResponse(summaries(page), nextCursor);
+    return new ConversationListResponse(summaries(userId, page), nextCursor);
   }
 
-  private List<Conversation> firstPage(Long userId, Long npcId, Limit limit, boolean feedbackOnly) {
+  private List<Conversation> firstPage(
+      Long userId, Long npcId, String sceneCode, Limit limit, boolean feedbackOnly) {
     if (feedbackOnly) {
-      return conversationFeedbackRepository.findCompletedFirstPage(userId, npcId, limit);
+      return conversationFeedbackRepository.findCompletedFirstPage(userId, npcId, sceneCode, limit);
     }
-    return conversationRepository.findHistoryFirstPage(userId, npcId, limit);
+    return conversationRepository.findHistoryFirstPage(userId, npcId, sceneCode, limit);
   }
 
   private List<Conversation> pageAfterCursor(
-      Long userId, Long npcId, String cursor, Limit limit, boolean feedbackOnly) {
+      Long userId, Long npcId, String sceneCode, String cursor, Limit limit, boolean feedbackOnly) {
     Conversation last = findCursorConversation(userId, cursor);
     if (feedbackOnly) {
       return conversationFeedbackRepository.findCompletedPageAfter(
-          userId, npcId, last.getStartedAt(), last.getId(), limit);
+          userId, npcId, sceneCode, last.getStartedAt(), last.getId(), limit);
     }
     return conversationRepository.findHistoryPageAfter(
-        userId, npcId, last.getStartedAt(), last.getId(), limit);
+        userId, npcId, sceneCode, last.getStartedAt(), last.getId(), limit);
   }
 
   /** 숫자가 아니거나, 없거나, 다른 사용자의 대화를 가리키는 커서는 잘못된 요청이다. */
@@ -109,8 +126,14 @@ public class ConversationHistoryService {
         .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED));
   }
 
-  private List<ConversationSummaryResponse> summaries(List<Conversation> page) {
+  private List<ConversationSummaryResponse> summaries(Long userId, List<Conversation> page) {
     List<Long> ids = page.stream().map(Conversation::getId).toList();
+    // 대화마다 [다시 연습]으로 만든 복습 카드는 하나뿐이다. 카드가 없으면 연습하지 않은 대화다.
+    Map<Long, Integer> practiceCounts =
+        reviewCardRepository.findByUserIdAndSourceConversationIdIn(userId, ids).stream()
+            .collect(
+                Collectors.toMap(
+                    ReviewCard::getSourceConversationId, ReviewCard::getPracticeCount));
     Map<Long, Long> userTurnCounts =
         turnRepository.countBySpeaker(ids, Speaker.USER).stream()
             .collect(Collectors.toMap(TurnCount::getConversationId, TurnCount::getTurnCount));
@@ -139,7 +162,8 @@ public class ConversationHistoryService {
                   feedback == null ? null : feedback.getStatus(),
                   feedback != null
                       && feedback.getStatus() == FeedbackStatus.DONE
-                      && feedback.getReadAt() == null);
+                      && feedback.getReadAt() == null,
+                  practiceCounts.getOrDefault(conversation.getId(), 0));
             })
         .toList();
   }

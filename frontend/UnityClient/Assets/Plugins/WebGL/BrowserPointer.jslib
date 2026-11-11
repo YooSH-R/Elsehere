@@ -7,4 +7,9 @@ mergeInto(LibraryManager.library, {
   A305Player_DevicePixelRatio: function () {
     return window.devicePixelRatio || 1;
   },
+  // 게임 캔버스에서만 브라우저 기본 손 모양을 쓰고, 대상을 벗어나면 스타일을 해제한다.
+  A305Player_SetClickCursor: function (clickable) {
+    const canvas = Module["canvas"];
+    if (canvas) canvas.style.cursor = clickable ? "pointer" : "";
+  },
 });

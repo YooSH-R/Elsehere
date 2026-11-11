@@ -7,7 +7,7 @@ using NUnit.Framework;
 namespace A305.Learning.Tests
 {
     /// <summary>
-    /// [이웃] 창: 마을 NPC를 서버가 준 순서(열린 이웃 먼저)대로 [피드백 목록]처럼 한 쪽에 4명씩 보이고, 열린 수·빈 목록·실패를 안내한다.
+    /// [이웃] 창: 마을 NPC를 서버가 준 순서(열린 이웃 먼저)대로 [대화 노트]처럼 한 쪽에 4명씩 보이고, 열린 수·빈 목록·실패를 안내한다.
     /// 열린 이웃을 누르면 그 NPC의 정보를 보인다.
     /// </summary>
     public class NeighborsBookTests

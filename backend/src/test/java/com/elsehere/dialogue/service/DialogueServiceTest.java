@@ -21,8 +21,8 @@ import com.elsehere.followup.service.FollowUpService;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.service.FirstDayMissionService;
-import com.elsehere.mission.service.MissionDialogueService;
 import com.elsehere.mission.service.PlacePracticeService;
+import com.elsehere.mission.service.QuestTalkService;
 import com.elsehere.mission.service.TownStoryService;
 import com.elsehere.review.service.ReviewCardService;
 import com.elsehere.user.service.GuestContentCleanup;
@@ -101,7 +101,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   NpcAffinityService.class,
   FirstDayMissionService.class,
   TownStoryService.class,
-  MissionDialogueService.class,
+  QuestTalkService.class,
   PlacePracticeService.class,
   GameClockService.class,
   GuestContentCleanup.class,

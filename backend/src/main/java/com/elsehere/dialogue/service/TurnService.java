@@ -25,9 +25,8 @@ import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.dialogue.dto.TurnResponse;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
-import com.elsehere.mission.service.MissionDialogueService;
-import com.elsehere.mission.service.PlacePracticeService;
 import com.elsehere.mission.service.QuestTalk;
+import com.elsehere.mission.service.QuestTalkService;
 import com.elsehere.review.dto.ReviewCardResponse;
 import com.elsehere.review.service.ReviewCardService;
 import java.time.Clock;
@@ -95,10 +94,9 @@ public class TurnService {
   private final ReviewDialogue reviewDialogue;
   private final NpcAffinityService npcAffinityService;
   private final TransactionTemplate transactionTemplate;
-  private final MissionDialogueService missionDialogueService;
+  private final QuestTalkService questTalks;
   private final Clock clock;
   private final DialogueRequestLocks requestLocks;
-  private final PlacePracticeService placePractice;
   private final EarlyReplies earlyReplies;
 
   public TurnResponse send(Long userId, Long conversationId, TurnRequest request) {
@@ -155,15 +153,8 @@ public class TurnService {
     }
     TurnContext context = selection.context();
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, conversationId);
-    Optional<MissionDialogueService.Context> mission =
-        context.review() == null && context.practice() == null
-            ? missionDialogueService.context(userId, context.npc().summary().npcCode())
-            : Optional.empty();
-    // 이 턴의 퀘스트 대화 목표. 장소 연습은 이야기 퀘스트 대신 고른 상황의 목표다.
-    Optional<QuestTalk> quest =
-        context.practice() != null
-            ? Optional.of(context.practice())
-            : mission.map(MissionDialogueService.Context::detail);
+    // 이 턴의 퀘스트 대화 목표. 복습은 없고, 장소 연습은 고른 상황, 그 밖에는 진행 중인 퀘스트의 목표다.
+    Optional<QuestTalk> quest = context.quest().map(QuestTalkService.SelectedQuest::talk);
 
     Optional<WorkerState> missionState =
         quest.flatMap(QuestTalk::goals).map(QuestTalk.Goals::state);
@@ -291,13 +282,16 @@ public class TurnService {
                 conversation.getEndReason());
           }
           if (!rude) {
-            mission.ifPresent(
-                value ->
-                    missionDialogueService.accept(
-                        userId, context.npc().summary().npcCode(), value, judge.intent()));
-            if (context.practice() != null) {
-              placePractice.accept(conversation, judge.intent());
-            }
+            context
+                .quest()
+                .ifPresent(
+                    value ->
+                        questTalks.accept(
+                            userId,
+                            context.npc().summary().npcCode(),
+                            conversation,
+                            value,
+                            judge.intent()));
           }
           dispatch.ifPresent(value -> userTurn.recordPoliceDispatch(value.placeCode()));
           destination.ifPresent(value -> userTurn.recordTaxiDestination(value.placeCode()));
@@ -502,9 +496,10 @@ public class TurnService {
     if (finalTurn && !conversation.claimFinalTurn(requestId)) {
       return new TurnContextSelection(null, true, false);
     }
+    NpcContext npc = dialogueContexts.npcOf(conversation);
     return new TurnContextSelection(
         new TurnContext(
-            dialogueContexts.npcOf(conversation),
+            npc,
             dialogueContexts.learner(userId, speechSpeed),
             dialogueContexts.history(conversationId),
             conversation.getLevelApplied(),
@@ -516,7 +511,7 @@ public class TurnService {
             conversation.isReview()
                 ? reviewCardService.detail(userId, conversation.getReviewCardId())
                 : null,
-            placePractice.context(conversation).orElse(null)),
+            questTalks.forTurn(userId, npc.summary().npcCode(), conversation)),
         false,
         finalTurn);
   }
@@ -539,7 +534,7 @@ public class TurnService {
    * @param learner 대답 상대인 학습자. NPC가 캐릭터에 맞는 호칭을 쓰게 한다
    * @param memory 이 NPC와의 이전 대화 기억. 처음 만나면 null
    * @param rudeCount 이 턴 전까지 무례로 센 말 수
-   * @param practice 장소 연습 대화에서 이 턴 전까지 남은 목표와 직원 지시. 장소 연습이 아니면 null
+   * @param quest 이 턴의 퀘스트 대화 목표와 그 목표를 낸 쪽. 장소 연습은 이 턴 전까지 남은 목표다. 복습이거나 진행 중인 퀘스트가 없으면 빈 값
    */
   private record TurnContext(
       NpcContext npc,
@@ -550,7 +545,7 @@ public class TurnService {
       int rudeCount,
       boolean npcOffDuty,
       ReviewCardResponse review,
-      QuestTalk practice) {}
+      Optional<QuestTalkService.SelectedQuest> quest) {}
 
   private record TurnContextSelection(TurnContext context, boolean rejected, boolean finalTurn) {}
 

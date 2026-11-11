@@ -37,7 +37,7 @@
 
 사용자는 2D 기본 음량 0.42, NPC는 3D 음량 0.065와 1~12m 거리 감쇠를 적용합니다. 대화 중에는 각각 15%로 낮춥니다. AudioListener의 전역 음량과 일시정지를 그대로 따릅니다. 이동·애니메이션·카메라 코드는 바꾸지 않습니다.
 
-**Tools → A305 → Audio → Build Footsteps** (`FootstepAudioBuilder.Build`)가 `Footsteps.asset`을 생성합니다. `Audio/Ambience/Footsteps`의 단발 WAV 6개(전체 약118KiB)를 모노·Vorbis·DecompressOnLoad로 가져옵니다. 첫 뒤꿈치 충격음을 덜어 내고 남은 밑창 소리를 부드럽게 가공했습니다. 연속 청음 샘플이나 비교 음원은 포함하지 않습니다. 출처는 해당 폴더의 `provenance.json`에 기록합니다. 기존 장소 카탈로그와 독립적으로 연결합니다.
+**Tools → A305 → Audio → Build Footsteps** (`FootstepAudioBuilder.Build`)가 `Footsteps.asset`을 생성합니다. `Audio/Ambience/Footsteps`의 단발 WAV 6개(전체 약118KiB)를 모노·Vorbis·DecompressOnLoad로 가져옵니다. 첫 뒤꿈치 충격음을 덜어 낸 부드러운 음원에 같은 레벨 보정을 적용해 보행이 배경음에 묻히지 않게 했습니다. 연속 청음 샘플이나 비교 음원은 포함하지 않습니다. 출처는 해당 폴더의 `provenance.json`에 기록합니다. 기존 장소 카탈로그와 독립적으로 연결합니다.
 
 보행 정책 테스트는 정상 걸음, 벽·공중·이동 잠금·순간이동·일시정지·긴 프레임 무음, 정지 시 잔여 거리 초기화를 확인합니다. 실제 캐릭터의 발 착지와 청감은 Unity/WebGL에서 별도 확인합니다.
 

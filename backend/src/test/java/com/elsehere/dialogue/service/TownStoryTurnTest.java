@@ -27,7 +27,7 @@ import com.elsehere.mission.entity.TownStory;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.repository.TownStoryRepository;
 import com.elsehere.mission.service.FirstDayMissionService;
-import com.elsehere.mission.service.MissionDialogueService;
+import com.elsehere.mission.service.QuestTalkService;
 import com.elsehere.mission.service.TownStoryService;
 import com.elsehere.world.repository.NpcRepository;
 import java.time.Clock;
@@ -55,7 +55,9 @@ class TownStoryTurnTest {
             mock(FirstDayMissionRepository.class),
             mock(NpcRepository.class),
             mock(com.elsehere.conversation.repository.ConversationRepository.class));
-    var missions = new MissionDialogueService(firstDay, town);
+    var missions =
+        new QuestTalkService(
+            firstDay, town, mock(com.elsehere.mission.service.PlacePracticeService.class));
     TurnRepository turns = mock(TurnRepository.class);
     when(turns.findByRequestId(any())).thenReturn(Optional.empty());
     when(turns.save(any())).thenAnswer(call -> call.getArgument(0));
@@ -116,7 +118,6 @@ class TownStoryTurnTest {
             missions,
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
             new DialogueRequestLocks(),
-            mock(com.elsehere.mission.service.PlacePracticeService.class),
             new EarlyReplies(true));
     TurnRequest request = new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null);
 

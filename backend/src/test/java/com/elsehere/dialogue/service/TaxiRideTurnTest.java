@@ -28,7 +28,7 @@ import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.repository.TownStoryRepository;
 import com.elsehere.mission.service.FirstDayMissionService;
-import com.elsehere.mission.service.MissionDialogueService;
+import com.elsehere.mission.service.QuestTalkService;
 import com.elsehere.mission.service.TownStoryService;
 import com.elsehere.world.repository.NpcRepository;
 import java.time.Clock;
@@ -109,10 +109,12 @@ class TaxiRideTurnTest {
             mock(ReviewDialogue.class),
             mock(NpcAffinityService.class),
             transactions,
-            new MissionDialogueService(mock(FirstDayMissionService.class), noStory),
+            new QuestTalkService(
+                mock(FirstDayMissionService.class),
+                noStory,
+                mock(com.elsehere.mission.service.PlacePracticeService.class)),
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
             new DialogueRequestLocks(),
-            mock(com.elsehere.mission.service.PlacePracticeService.class),
             new EarlyReplies(true));
   }
 

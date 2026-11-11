@@ -20,8 +20,8 @@ import com.elsehere.conversation.entity.InitiatedBy;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.conversation.service.ConversationLookup;
-import com.elsehere.mission.service.MissionDialogueService;
 import com.elsehere.mission.service.QuestTalk;
+import com.elsehere.mission.service.QuestTalkService;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -37,7 +37,7 @@ import tools.jackson.databind.json.JsonMapper;
 class TurnHelpMissionTest {
   private final ConversationLookup lookup = mock(ConversationLookup.class);
   private final DialogueContexts contexts = mock(DialogueContexts.class);
-  private final MissionDialogueService missions = mock(MissionDialogueService.class);
+  private final QuestTalkService missions = mock(QuestTalkService.class);
   private final AiGateway gateway = mock(AiGateway.class);
   private Conversation conversation;
   private final TurnHelpService service =
@@ -79,11 +79,11 @@ class TurnHelpMissionTest {
                     "report_left_bag", "Explain which bag is missing and where it was left."),
                 new WorkerState.Intent(
                     "return_later", "Say they will return after retrieving the bag.")));
-    when(missions.context(8L, "HOTEL_STAFF"))
+    when(missions.forTurn(8L, "HOTEL_STAFF", conversation))
         .thenReturn(
             Optional.of(
-                new MissionDialogueService.Context(
-                    false,
+                new QuestTalkService.SelectedQuest(
+                    QuestTalkService.Source.FIRST_DAY,
                     new QuestTalk.Goals(
                         2, state, "NPC-only instructions", List.of("report_left_bag")))));
     when(gateway.hint(any(), any(), anyList(), anyString(), anyInt()))

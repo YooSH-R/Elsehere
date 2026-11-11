@@ -14,8 +14,8 @@ import com.elsehere.dialogue.dto.HintResponse;
 import com.elsehere.dialogue.dto.MeaningResponse;
 import com.elsehere.dialogue.dto.SuggestWordsResponse;
 import com.elsehere.mission.entity.PracticeScenario;
-import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.mission.service.MissionDialogueService;
+import com.elsehere.mission.service.QuestTalk;
 import com.elsehere.review.service.ReviewCardService;
 import java.time.Clock;
 import java.time.Instant;
@@ -175,12 +175,13 @@ public class TurnHelpService {
     MissionDialogueService.Context mission = active.get();
     Integer conversationStage =
         mission.townStory() ? conversation.getTownStoryStage() : conversation.getFirstDayStage();
-    FirstDayMissionService.Context detail = mission.detail();
-    if (!Objects.equals(conversationStage, detail.stage()) || !detail.hasGoals()) {
+    if (!(mission.detail() instanceof QuestTalk.Goals goals)
+        || !Objects.equals(conversationStage, goals.stage())
+        || !goals.hasGoals()) {
       return "";
     }
-    return detail.state().intents().stream()
-        .filter(intent -> detail.remainingGoals().contains(intent.id()))
+    return goals.state().intents().stream()
+        .filter(intent -> goals.remainingGoals().contains(intent.id()))
         .map(intent -> intent.desc())
         .findFirst()
         .orElse("");

@@ -65,8 +65,8 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator ABankGuestUsesTheRoomAsACustomerAndWalksToTheExit()
         {
-            yield return LoadTown();
-            Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
+            // 은행은 마을 매장 실내 장면이다. 마을이 내려간 동안에도 들어와 있는 방문객이 은행 안에 있다.
+            yield return LoadScene("TownBankInterior");
             foreach (NpcOuting existing in NpcOutings.Shared.Trips.ToArray())
                 NpcOutings.Shared.Release(existing.Npc);
             var catalog = Resources.Load<NpcOutingCatalog>("NpcOutings");
@@ -80,20 +80,7 @@ namespace A305.Npc.PlayModeTests
                 _ => true
             );
             trip.Arrived = true;
-            var original = Object
-                .FindObjectsByType<NpcTownWalker>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None
-                )
-                .Single(item => item.GetComponent<NpcIdentity>().Code == trip.Npc);
-            original.gameObject.SetActive(false);
-            var room = Object
-                .FindObjectsByType<ShopInterior>(FindObjectsSortMode.None)
-                .Single(item => item.PlaceCode == "BANK");
-            yield return (IEnumerator)
-                typeof(ShopInterior)
-                    .GetMethod("SetOccupied", PrivateInstance)
-                    .Invoke(room, new object[] { true });
+            Transform room = GameObject.Find("TownBank").transform;
             yield return null;
             yield return null;
             var guest = Object
@@ -102,11 +89,6 @@ namespace A305.Npc.PlayModeTests
             Assert.That(guest, Is.Not.Null);
             Assert.That(guest.gameObject.scene.name, Is.EqualTo(bank.Scene));
             Assert.That(guest.IsOffDuty, Is.True);
-            Assert.That(
-                original.gameObject.activeSelf,
-                Is.False,
-                "마을과 시설에 동시에 나타나지 않습니다."
-            );
             Vector3 before = guest.transform.position;
             float previousDelta = Time.captureDeltaTime;
 #if UNITY_EDITOR
@@ -356,7 +338,9 @@ namespace A305.Npc.PlayModeTests
         private static float Flat(Vector3 offset) =>
             Vector3.ProjectOnPlane(offset, Vector3.up).magnitude;
 
-        private static IEnumerator LoadTown(int minute = 1125)
+        private static IEnumerator LoadTown(int minute = 1125) => LoadScene("TownScene", minute);
+
+        private static IEnumerator LoadScene(string sceneName, int minute = 1125)
         {
             TutorialState.Clear();
             TutorialState.MarkFinishedOnServer();
@@ -367,7 +351,7 @@ namespace A305.Npc.PlayModeTests
             SceneManager.sceneLoaded += DisconnectApis;
             try
             {
-                yield return SceneManager.LoadSceneAsync("TownScene");
+                yield return SceneManager.LoadSceneAsync(sceneName);
                 yield return null;
                 yield return null;
             }

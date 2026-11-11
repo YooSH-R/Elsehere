@@ -200,5 +200,47 @@ namespace A305.Npc.Tests
                 Is.EqualTo(NpcDayPhase.LeavingWork)
             );
         }
+
+        [TestCase(9 * 60 + 30, 10 * 60)]
+        [TestCase(12 * 60, 1440 + 10 * 60)]
+        [TestCase(1440 + 9 * 60, 1440 + 10 * 60)]
+        public void NextWorkStart_IsTheStartOfTheShiftAhead(int minutes, int expected)
+        {
+            Assert.That(NpcDayPlan.NextWorkStart(DayShift, minutes), Is.EqualTo((double)expected));
+        }
+
+        [Test]
+        public void NextWorkStart_CrossesMidnightForANightShift()
+        {
+            var npc = new NpcLifeEntry
+            {
+                Schedule = new List<NpcScheduleBlock>
+                {
+                    new NpcScheduleBlock
+                    {
+                        From = "22:00",
+                        To = "06:00",
+                        Activity = "WORK",
+                    },
+                    new NpcScheduleBlock
+                    {
+                        From = "06:00",
+                        To = "22:00",
+                        Activity = "OFF",
+                    },
+                },
+            };
+            Assert.That(NpcDayPlan.NextWorkStart(npc, 21 * 60 + 30), Is.EqualTo(22.0 * 60));
+            Assert.That(NpcDayPlan.NextWorkStart(npc, 23 * 60), Is.EqualTo(1440.0 + 22 * 60));
+        }
+
+        [Test]
+        public void NextWorkStart_IsNullForAPasserbyWithoutWork()
+        {
+            var npc = DayShift;
+            npc.Role = "PASSERBY";
+            npc.Schedule[1].Activity = "FREE";
+            Assert.That(NpcDayPlan.NextWorkStart(npc, 9 * 60), Is.Null);
+        }
     }
 }

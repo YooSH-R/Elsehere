@@ -356,20 +356,48 @@ namespace A305.EditorTools.World
             FramedPrint(back, new Vector3(-SideWall, 1.6f, -4.25f), 90, "Botanical");
         }
 
-        // 뒷벽과 칸막이 쪽 오락기와 의자, 앞쪽 경품 진열, 칸막이 동전 교환기, 가운데 깔개
+        // 매장 장면에서는 계단실 칸막이 없이 건물 폭 전체를 쓴다. 문은 앞면 가운데 왼쪽(x -1.85~-0.05)이다.
+        // 뒷벽과 오른쪽 벽을 따라 오락기와 의자, 앞 왼쪽 경품 진열, 오른쪽 벽 동전 교환기와 점수판, 앞 오른쪽 껌 기계, 가운데 깔개
         private static void Arcade(Transform space)
         {
             Transform games = Zone("Games", space);
-            ArcadeCabinet(games, new Vector3(-2.05f, 0, -7.4f), 0, "#2F5DA8");
-            ArcadeCabinet(games, new Vector3(-1.15f, 0, -7.4f), 0, "#C8463B");
-            ArcadeCabinet(games, new Vector3(-.42f, 0, -5.4f), -90, "#7FAD50");
-            Kit("WoodStool", games, new Vector3(-2.05f, 0, -6.75f));
-            Kit("WoodStool", games, new Vector3(-1.15f, 0, -6.75f));
-            Kit("WoodStool", games, new Vector3(-1.05f, 0, -5.4f));
+            var backRow = new[]
+            {
+                (-2.05f, "#2F5DA8"),
+                (-1.15f, "#C8463B"),
+                (1.15f, "#7FAD50"),
+                (2.05f, "#2F5DA8"),
+            };
+            foreach ((float x, string hex) in backRow)
+            {
+                ArcadeCabinet(games, new Vector3(x, 0, -7.4f), 0, hex);
+                Kit("WoodStool", games, new Vector3(x, 0, -6.75f));
+            }
+            var sideRow = new[] { (-4.2f, "#C8463B"), (-5.1f, "#7FAD50"), (-6.0f, "#2F5DA8") };
+            foreach ((float z, string hex) in sideRow)
+            {
+                ArcadeCabinet(games, new Vector3(3.38f, 0, z), -90, hex);
+                Kit("WoodStool", games, new Vector3(2.75f, 0, z));
+            }
             Kit("RugStripesBlue", games, new Vector3(-1.3f, 0, -3.8f), 90);
-            ChangeMachine(games, new Vector3(-.07f, 1.25f, -3.0f), -90);
-            TrashBin(games, new Vector3(-.35f, 0, -2.35f));
+            Kit("RugStripesBlue", games, new Vector3(1.3f, 0, -3.8f), 90);
+            ChangeMachine(games, new Vector3(SideWall, 1.25f, -2.9f), -90);
+            TrashBin(games, new Vector3(3.45f, 0, -2.25f));
             WallClock(games, new Vector3(-1.6f, 2.6f, BackWall), 0);
+            WallBoard(
+                "HighScoreBoard",
+                games,
+                new Vector3(SideWall, 2.65f, -5.1f),
+                -90,
+                "HIGH SCORES",
+                "ACE  9850\nMIA  8720\nLEO  7600",
+                1.6f,
+                .9f,
+                "#293E57"
+            );
+            GumballMachine(games, new Vector3(1.0f, 0, -.45f), 180);
+            GumballMachine(games, new Vector3(1.6f, 0, -.45f), 180);
+            Treat("HousePlants", "Monstera", games, new Vector3(3.3f, 0, -.6f));
             WallBoard(
                 "ArcadeBoard",
                 games,
@@ -415,14 +443,17 @@ namespace A305.EditorTools.World
             );
         }
 
-        // 오락실 2층 서점: 칸막이 쪽 책 선반, 앞 왼쪽 독서 자리, 탁자(기존) 위 책, 계산 자리, 뒷벽 책장과 안내판
+        // 오락실 2층 서점: 뒷벽 책장 셋과 안내판, 오른쪽 벽 책 선반, 앞 왼쪽 독서 자리, 탁자(기존)와 오른쪽 진열 탁자 위 책,
+        // 문 옆 계산대, 뒤 오른쪽 독서 의자
+        // 매장 장면에서는 계단실 칸막이 없이 건물 폭 전체를 쓴다. 문은 마을에서처럼 오른쪽 벽 앞쪽(z -1.95~-0.25)이다.
         private static void Bookshop(Transform space)
         {
             Transform shelves = Zone("Shelves", space);
-            Home("OakBookcase", shelves, new Vector3(-1.9f, 0, -7.45f), 0);
-            Kit("WallShelfLongDecorated", shelves, new Vector3(-.07f, 1.3f, -3.2f), -90);
-            Kit("WallShelfLongDecorated", shelves, new Vector3(-.07f, 1.3f, -5.6f), -90);
-            Kit("WallShelfShortDecorated", shelves, new Vector3(-.07f, 1.95f, -4.4f), -90);
+            foreach (float x in new[] { -1.9f, .3f, 1.7f })
+                Home("OakBookcase", shelves, new Vector3(x, 0, -7.45f), 0);
+            Kit("WallShelfLongDecorated", shelves, new Vector3(SideWall, 1.3f, -3.9f), -90);
+            Kit("WallShelfShortDecorated", shelves, new Vector3(SideWall, 1.95f, -5.0f), -90);
+            Kit("WallShelfLongDecorated", shelves, new Vector3(SideWall, 1.3f, -6.1f), -90);
             Kit("CactusMedium", shelves, new Vector3(-3.4f, 0, -4.6f));
             FramedPrint(shelves, new Vector3(-SideWall, 1.8f, -4.6f), 90, "Landscape");
             WallBoard(
@@ -447,8 +478,20 @@ namespace A305.EditorTools.World
             Transform table = Zone("DisplayTable", space);
             Kit("BookSet", table, new Vector3(-1.1f, .75f, -4.5f), 90);
             Kit("StandingPicture", table, new Vector3(-2.15f, .75f, -4.6f));
-            Kit("SmallCabinet", table, new Vector3(-.45f, 0, -2.45f), -90);
-            Treat("BakeryInterior", "CashRegister", table, new Vector3(-.45f, .7f, -2.5f), -90);
+            Kit("SquareTable", table, new Vector3(1.4f, 0, -4.4f));
+            Kit("BookSet", table, new Vector3(1.25f, .7f, -4.3f), 30);
+            Kit("StandingPicture", table, new Vector3(1.65f, .7f, -4.6f));
+
+            // 문 바로 뒤 오른쪽 벽 계산대, 앞벽 화분, 뒤 오른쪽 독서 의자
+            Transform counter = Zone("Counter", space);
+            Kit("SmallCabinet", counter, new Vector3(3.45f, 0, -2.8f), -90);
+            Treat("BakeryInterior", "CashRegister", counter, new Vector3(3.45f, .7f, -2.85f), -90);
+            Treat("HousePlants", "Monstera", counter, new Vector3(.9f, 0, -.55f));
+
+            Transform corner = Zone("ReadingCorner", space);
+            Kit("RugOvalYellow", corner, new Vector3(2.6f, 0, -6.4f));
+            Kit("Armchair", corner, new Vector3(3.0f, 0, -6.7f), -135);
+            Kit("StandingLamp", corner, new Vector3(3.45f, 0, -7.4f));
         }
 
         // 생활용품점: 뒷벽 장식장·선반, 침대·소파(기존) 위 베개, 오른쪽 벽 진열장, 앞 왼쪽 진열 탁자, 깔개·스탠드·그림

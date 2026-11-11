@@ -362,12 +362,13 @@ namespace A305.EditorTools.Mission
             BuilderTools.SetReference(controller, "view", view);
             BuilderTools.SetReference(controller, "dialogue", dialogue);
             BuilderTools.SetReference(controller, "player", player);
-            string sceneCode = A305.World.PlaceScenes.CodeOf(groups.Scene.name);
+            // 미션 서버는 마을 매장을 마을(TOWN)로 본다. 마을 날씨는 마을 장면에만 둔다.
+            string sceneCode = A305.World.PlaceScenes.ServerCodeOf(groups.Scene.name);
             BuilderTools.SetText(controller, "sceneCode", sceneCode);
             var legacy = BuilderTools.FindSingleInScene<MissionController>(groups.Scene);
             if (legacy != null)
                 BuilderTools.SetReference(legacy, "firstDayMission", controller);
-            if (sceneCode == "TOWN")
+            if (groups.Scene.name == "TownScene")
                 BuilderTools.SetReference(
                     controller,
                     "weather",

@@ -91,7 +91,7 @@ NPC 몸·이름표 클릭은 “이름에게 말을 걸까요?” 확인 창을 
 | `HOTEL_STAFF`(Jake)·`HOTEL_RECEPTIONIST`(Owen)·`HOTEL_NIGHT_MANAGER`(Clara)·`HOTEL_BELLHOP`(Diego) | 호텔 리셉션 데스크 뒤와 양옆 | `Data/Hotel/HotelStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
 | `SHOP_STAFF`(Alex)·`SHOP_PHARMACIST`(Hannah)·`SHOP_NIGHT_CLERK`(Samuel) | 드럭스토어 계산대 뒤 | `Data/Mission/ShopStaffSettings` | 4m | 5초 | 가능 | 제한 없음 |
 | `POLICE_OFFICER`(Dan)·`POLICE_SERGEANT`(Victor)·`POLICE_ROOKIE`(Taylor) | 경찰서 장면(`PoliceStationScene`) 창구 뒤, 경찰서 1층 안에서 생활 | `PoliceOfficerSettings` | 4m | 5초 | 가능 | 제한 없음 |
-| 거리 매장 직원([아래](#거리-매장-직원)) | 마을 매장 1층 안에서 생활 | `BuildingStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
+| 거리 매장 직원([아래](#거리-매장-직원)) | 매장 장면(1층) 안에서 생활 | `BuildingStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
 
 - 마을 행인 Ben은 튜토리얼에서 길을 묻는 사람과 같은 사람입니다. 튜토리얼 진행(`TutorialDirector`)이 단계마다 `Passerby.SetTutorialScript`를 불러, 튜토리얼 중에는 튜토리얼 대본·인사말(키 `TUTORIAL_PASSERBY`)과 튜토리얼 설정으로 집 앞에서 길을 묻고 생활하지 않게 합니다. 튜토리얼을 마치면 NPC 키로 평소 대화하고 평소 설정으로 생활합니다. 튜토리얼에서 길을 물은 것도 그날 먼저 말을 건 것으로 세므로, 튜토리얼을 마친 그 게임 날에는 다시 다가오지 않습니다.
 - 카페 직원은 새 컴포넌트 없이 행인 프리팹을 쓰고, 걷는 속도 0이라 플레이어에게 걸어가지 않습니다. 플레이어가 카운터 앞 2m 안에 오면 카운터 뒤 자리로 돌아가([생활](#생활)) 매대 끝을 포함해 응대 구역 안에서 대화를 제안합니다. 행인과 직원이 같은 제안 화면을 쓰므로 머리말은 대화 대본의 이름과 역할을 함께 보여 누가 말을 걸었는지 알립니다.
@@ -187,9 +187,9 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 가게 안에는 최대 45게임분(`NpcOutings.StayMinutes`, 실제 약 19초) 머뭅니다. 걸어 나온 뒤 여가가 남았으면 그날 아직 안 들른 다른 곳을 고르고, 갈 수 있는 곳을 다 들렀으면 방금 나온 곳만 빼고 다시 고릅니다. 들어갔다 나온 곳만 들른 곳으로 기록하며(`NpcOutings.Finish`), 가는 길에 그만둔 예약은 기록하지 않습니다. 가게에서 걸어 나오기 전에는 다음 목적지를 고르지 않습니다.
 
-실내 방문은 실제 출입문 앞에 도착한 뒤 시작합니다. 실내가 로드돼 있으면 `NpcFacilityVisitors`가 같은 외형·NPC ID의 방문객을 두고 `NpcRoutine`으로 손님용 사물을 이용하거나 둘러보게 합니다. 방문객은 직원 업무나 카운터 응대를 맡지 않습니다. 같은 NPC의 거리 모습은 숨기고, 방문이 끝나면 실내 문까지 걸어 나온 뒤 거리로 복귀합니다. 실내를 로드하지 않은 동안에는 방문 상태만 유지하며, 실내만 새로 불러오면 기존 출퇴근과 같이 게임 시각에 맞는 상태를 복원합니다. 방문 기록은 현재 플레이 동안 유지하며 서버에 별도로 저장하지 않습니다.
+실내 방문은 실제 출입문 앞(마을 문의 도착 지점)에 도착한 뒤 시작합니다. 시설 안에서는 마을 문 안쪽 도착 지점에서 나타나고, 방문이 끝나면 그 자리로 걸어가 사라집니다. 시설 장면(마을 매장·카페·드럭스토어)이 열려 있으면 `NpcFacilityVisitors`가 같은 외형·NPC ID의 방문객을 두고 `NpcRoutine`으로 손님용 사물을 이용하거나 둘러보게 합니다. 방문객은 직원 업무나 카운터 응대를 맡지 않습니다. 같은 NPC의 거리 모습은 숨기고, 방문이 끝나면 실내 문까지 걸어 나온 뒤 거리로 복귀합니다. 플레이어가 마을에 있는 동안에는 방문 상태만 유지하며, 시설 장면에 들어가 마을이 내려가면 기존 출퇴근과 같이 게임 시각에 맞는 상태를 복원합니다. 방문 기록은 현재 플레이 동안 유지하며 서버에 별도로 저장하지 않습니다.
 
-**Tools → A305 → Npc → Apply Leisure Outings**는 시설의 편집 원본과 기존 출퇴근 프리팹을 읽어 목적지 카탈로그를 갱신합니다. 시설 배치나 출입구를 바꾸면 다시 실행합니다. 실내 구성은 기존 `ShopInteriorScenes`의 장소 코드와 씬을 재사용합니다.
+**Tools → A305 → Npc → Apply Leisure Outings**는 시설의 편집 원본과 기존 출퇴근 프리팹을 읽어 목적지 카탈로그를 갱신합니다. 시설 배치나 출입구를 바꾸면 다시 실행합니다. 마을 매장의 장소 코드와 장면은 `PlaceScenes`를 씁니다.
 
 이동은 타운의 NavMesh 경로를 따릅니다. 다른 씬에 다녀와도 현재 게임 시각에 해당하는 경로 위치에서 이어집니다. 작은 경로 진행도 매 프레임 따라가며 보통 최대 1.6m/s로 걷습니다. 출근·귀가 또는 문 도착이 늦어 예정 위치보다 4m 이상 뒤처지면 서두르고, 1.5m 안으로 따라잡으면 평소로 돌아갑니다. 한산한 보도에서만 최대 2.6m/s로 달리며, 플레이어 2.5m·다른 NPC 2m 안, 출입문 근처, 횡단보도와 모서리·장애물 앞에서는 걷거나 기존 규칙대로 기다립니다. 튜토리얼·퀘스트로 기다리는 NPC는 서두르지 않습니다. 일터에서 말을 걸러 다가오는 속도가 0인 직원도 출퇴근은 할 수 있습니다.
 
@@ -205,6 +205,10 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 연속 플레이에서는 근무·휴식 시각이 되어도 거리 NPC가 일터 또는 숙소 문에 도착할 때까지 걷게 하고, 도착한 뒤 거리 모습을 끕니다. 일터 직원은 거리 모습이 도착하기 전에 중복으로 켜지지 않습니다. 씬을 처음 불러오거나 게임 시각을 크게 건너뛰면 해당 시각의 위치를 복원합니다. 매장 안 직원의 퇴근은 기존 근무 시각에 따른 출현 방식을 사용합니다.
 
+출근은 신호 대기 여유까지 넣어 일찍 나서므로 근무 시작 전에 일터 문에 닿습니다. 문 앞에서 근무 시각까지 서 있지 않고 바로 들어가며, `NpcWorkArrivals`가 그 직원이 어느 근무(`NpcDayPlan.NextWorkStart`)를 위해 들어왔는지 기록합니다. 일터 장면의 직원(`NpcPopulation`의 `Worker`)은 근무 중이거나 이 기록이 있으면 근무 시작 전에도 안에 있습니다. 기록은 장면을 옮겨도 남고 게임 시계가 바뀌면 비웁니다. 장면을 열 때 일과상 이미 문에 닿았어야 할 출근 직원은 문 위가 아니라 문 앞 3m에서 나타나 걸어 들어갑니다.
+
+일터 장면(마을 매장·카페·호텔·드럭스토어·경찰서)의 직원은 그 장면의 마을 문으로 드나듭니다(`NpcWorkplaceDoor`). 플레이어가 그 장면에 있는 동안 근무 10분 전(`NpcWorkArrivals.EarlyArrivalMinutes`)이 되거나 근무가 시작되면, 마을에서 문으로 들어온 것처럼 마을 문 안쪽 도착 지점(플레이어가 들어올 때 서는 자리)에 나타나 일하러 걸어가고, 이번 근무를 위해 들어왔다고 기록합니다. 그래서 플레이어가 곧바로 마을로 나가도 그 직원이 출근길에 다시 나오지 않습니다. 근무가 끝나면 하던 일을 멈추고 문 안쪽까지 걸어가 사라지며(`NpcRoutine.LeaveThrough`), 마을에서는 같은 시각부터 근무지 문 앞에서 퇴근 길을 걷습니다. 장면을 처음 열거나 시계를 크게 건너뛰면 걷지 않고 일과의 자리로 바로 옮깁니다. 짧은 휴식은 일터 앞에서 쉬다가 근무가 다시 시작할 때 들어옵니다. 대화 중인 직원은 대화를 마칠 때까지 나가지 않습니다.
+
 `NpcWalkingSpace`는 몸통 캡슐보다 넓은 리틀 멍의 머리를 고려해 NPC 간 보행 간격을 확보합니다. 같은 프레임에 떠나는 사람을 먼저 비활성화하고, 새 출근자는 예정 위치에서 가까운 NavMesh 빈자리를 찾습니다. 숙소 입구에 사람이 몰리면 직선으로 연결된 9m 범위까지 살피며, 빈자리가 없으면 겹쳐 등장시키지 않고 다음 프레임에 재시도합니다. 보행 중 상대의 여유 공간에 진입할 이동량을 제한하고, 막히면 정지 동작을 전달합니다.
 
 출퇴근 보행은 앞사람의 여유 공간 바깥으로 비켜갈 방향을 정하고, 상대를 지날 때까지 같은 쪽을 유지합니다. 우회할 방향의 NavMesh 연결을 확인하며, 목적지에서 자리를 지키는 상대나 막힌 통로에는 간격을 두고 기다립니다. 서로 자리를 바꾸며 이동 중인 두 NPC는 고정된 목적지 점유로 보지 않고 비켜 지나갑니다. 횡단 중에도 건널 방향을 유지하면서 옆으로 비켜갈 수 있고, 선택한 쪽 인도에 도착하면 횡단 상태를 해제합니다. 평소 교행에서는 밀어내거나 순간이동하지 않으며, 장시간 실제로 움직이지 못하는 경우에만 아래 복구 규칙을 사용합니다. 가까운 상대를 비켜가는 처리이며, 군중 전체의 우회 경로를 다시 계획하는 기능은 아닙니다.
@@ -213,7 +217,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 베이커리 뒤 `NpcResidence`는 남쪽 도로를 향한 막힌 주거 외관과 NPC 출입 위치만 있으며, 플레이어 출입구나 실내 씬은 없습니다. 앞마당 포장은 메시와 같은 높이의 충돌면을 갖고, 경계·도로 끝 생울타리·개발 예정 지역의 구름은 출입 통로를 막지 않게 배치합니다. **Tools → A305 → Npc → Apply Road Facing Housing**으로 숙소 배치·포장 충돌면·출입 위치와 타운 NavMesh만 갱신할 수 있습니다.
 
-**Tools → A305 → Npc → Build Population And Housing**으로 출퇴근 프리팹, 네 장소 씬의 출현 연결, 숙소와 타운 NavMesh를 생성합니다. 출퇴근 프리팹의 외형은 외형 표의 검수 프리팹을 참조하며 **Refresh Scene Visuals** 실행 시 근무지 외형과 함께 갱신됩니다. 대화 얼굴·손 보정과 배색도 같은 기준을 사용하고 기존 출퇴근 프리팹의 연결과 비활성 시작 상태는 유지합니다. 거리 실내 로드가 비번 직원을 다시 켜지 않도록 `NpcWorkPresence`가 출현을 확인합니다.
+**Tools → A305 → Npc → Build Population And Housing**으로 출퇴근 프리팹, 장소 씬과 마을 매장 장면의 직원 출현 연결(그 장면의 `NpcPopulation`), 숙소와 타운 NavMesh를 생성합니다. 출퇴근 프리팹의 외형은 외형 표의 검수 프리팹을 참조하며 **Refresh Scene Visuals** 실행 시 근무지 외형과 함께 갱신됩니다. 대화 얼굴·손 보정과 배색도 같은 기준을 사용하고 기존 출퇴근 프리팹의 연결과 비활성 시작 상태는 유지합니다. 일터 장면의 직원은 그 장면의 `NpcPopulation`이 일과(근무 중이거나 근무 전에 미리 들어옴)에 맞춰 켜고 끕니다.
 
 | 일터 | 직원(교대 순) | 자리 |
 | --- | --- | --- |
@@ -273,12 +277,12 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 ## 거리 매장 직원
 
-마을 본길의 빈 매장 9곳 1층에 직원을 둡니다. 모두 행인 프리팹을 쓰고 걷는 속도 0이라 플레이어에게 걸어가지 않습니다. 평소에는 근접 버튼이나 대화 제안을 띄우지 않고, 클릭·탭 후 확인 창에서 대화를 시작합니다. 튜토리얼·퀘스트와 후속 이벤트의 제안은 별도로 표시합니다. 이름·인격·목소리·상황은 서버 데이터(`ai/npcs/<NPC 키>.json`, `ai/npcs/scenarios/`)입니다.
+마을 본길의 매장 9곳 1층에 직원을 둡니다. 직원은 그 매장 장면(`Scenes/ShopInteriors/<건물>Interior`) 안에 있고 근무 중이거나 근무 전에 미리 들어온 동안만 켜지며, 마을에는 출퇴근·휴식·여가 모습만 나옵니다. 모두 행인 프리팹을 쓰고 걷는 속도 0이라 플레이어에게 걸어가지 않습니다. 평소에는 근접 버튼이나 대화 제안을 띄우지 않고, 클릭·탭 후 확인 창에서 대화를 시작합니다. 튜토리얼·퀘스트와 후속 이벤트의 제안은 별도로 표시합니다. 이름·인격·목소리·상황은 서버 데이터(`ai/npcs/<NPC 키>.json`, `ai/npcs/scenarios/`)입니다.
 
 | 건물 | NPC 키 | 이름 | 외형(색만 바꿈) |
 | --- | --- | --- | --- |
 | 우체국 `PostOffice` | `POST_OFFICE_STAFF` | Linda | 중년 여성, 자주색 옷·갈색 눈 |
-| 식당 `MapleDiner` | `DINER_STAFF` | Rosa | 중년 여성, 빨간 옷·초록 눈 |
+| 햄버거 가게 `MapleDiner` | `DINER_STAFF` | Rosa | 중년 여성, 빨간 옷·초록 눈 |
 | 은행 `TownBank` | `BANK_STAFF` | Henry | 비즈니스맨, 은색 머리·청회색 정장·회색 눈 |
 | 빨래방 `SudsLaundromat` | `LAUNDROMAT_STAFF` | Gus | 중년 남성, 겨자색 셔츠·갈색 눈 |
 | 꽃집 `BloomFlowers` | `FLOWER_SHOP_STAFF` | Lily | 할머니, 연보라 머리·초록 옷·청록 눈 |
@@ -332,7 +336,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 - 마을(`TownScene`) 집 앞에 행인 Ben을, 카페(`CafeScene`) 카운터 뒤에 카페 직원을 둡니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않습니다. 예전처럼 집 앞 튜토리얼 행인(`TUTORIAL_PASSERBY`)과 동서 길 행인이 따로 있으면, 집 앞 행인을 Ben으로 바꾸고 동서 길 행인은 지웁니다. Ben에게는 평소 설정과 튜토리얼 설정을 함께 연결하고, 외형을 아래처럼 연결합니다.
 - 서서 지내는 NPC의 외형: **Tools → A305 → Npc → Connect Character Visuals**(`Scripts/Editor/Npc/NpcVisualBuilder.cs`)가 NPC 키별 외형을 장면의 NPC 아래에 둡니다. `TownScene`의 Ben은 비즈니스맨 `Prefabs/Npc/Review/LittleMung_Business_Male.prefab`, `ShopScene`의 드럭스토어 직원 Alex(`SHOP_STAFF`)는 흑인 남성 `Prefabs/Npc/Review/LittleMung_BlackYoung_Male.prefab`입니다. 다른 행인·직원도 쓰는 공용 `Passerby.prefab`의 `Visual`은 바꾸지 않고 꺼 둡니다. 예전 외형(도형 `LittleMungV7NpcVisual`, Generic 뼈대 `BenVisual`)은 NPC 아래에서 지우고, 대기 자세의 발바닥을 바닥에 맞춘 뒤 `CharacterAnimationDriver`의 Animator, 캡슐 높이(외형의 키), 시선(`LookTarget`)을 눈 높이로 맞춥니다. 공용 손짓 동작은 이 체형에서 무릎을 굽히고 팔을 내민 자세가 되므로 Ben은 `Passerby.talkGesture`를 꺼, 말을 건네고 대화하는 동안 자기 Idle로 서게 합니다. Alex는 다른 직원과 같이 손짓합니다. 이미 연결한 외형은 다시 만들지 않습니다. **Npc → Build**(Ben), 드럭스토어 Builder와 **Mission → Adjust Shop Counter Sightline**(Alex)도 같은 연결을 실행합니다.
 
-**Tools → A305 → Npc → Build Building Staff**(`Scripts/Editor/Npc/BuildingStaffBuilder.cs`)는 [거리 매장 직원](#거리-매장-직원)을 `TownScene`의 각 건물 1층에 둡니다. 정한 자리가 카운터·가구와 겹치면 1층 안의 가장 가까운 빈자리로 옮기고(`NpcPlacement`), 문 쪽을 보게 세웁니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않습니다. 외형은 [외형 표](#외형-표)의 외형을 `NpcVisualBuilder`로 붙이고, 배색은 `NpcCastDresser`가 입힙니다(몸 텍스처는 1024로 줄임, 머티리얼 사본은 실행할 때마다 외형의 원래 머티리얼 설정에 맞춤). 확인용 인사말·설정(`Data/Npc/BuildingStaffSettings.asset`)도 연결합니다. 이어서 **Build Daily Life**를 실행해 생활을 붙이고, 직원마다 구역을 자기 건물 1층으로 정합니다. 생활 데이터에 직원이 없으면 내보내기(`npc_life_export.py`)를 먼저 하라고 알리고 멈춥니다.
+**Tools → A305 → Npc → Build Building Staff**(`Scripts/Editor/Npc/BuildingStaffBuilder.cs`)는 [거리 매장 직원](#거리-매장-직원)을 각 건물의 1층 매장 장면에 둡니다. 정한 자리가 카운터·가구와 겹치면 1층 안의 가장 가까운 빈자리로 옮기고(`NpcPlacement`), 문 쪽을 보게 세웁니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않습니다. 외형은 [외형 표](#외형-표)의 외형을 `NpcVisualBuilder`로 붙이고, 배색은 `NpcCastDresser`가 입힙니다(몸 텍스처는 1024로 줄임, 머티리얼 사본은 실행할 때마다 외형의 원래 머티리얼 설정에 맞춤). 확인용 인사말·설정(`Data/Npc/BuildingStaffSettings.asset`)도 연결합니다. 이어서 **Build Daily Life**를 실행해 생활을 붙이고, 직원마다 구역을 자기 건물 1층으로 정합니다. 생활 데이터에 직원이 없으면 내보내기(`npc_life_export.py`)를 먼저 하라고 알리고 멈춥니다.
 
 **Tools → A305 → Npc → Build Cast**(`Scripts/Editor/Npc/NpcCastBuilder.cs`)는 다른 Builder가 두지 않는 카페·호텔·드럭스토어 직원과 마을 행인을 [일터](#일터와-응대)에 두고, 경찰관은 `PoliceStationBuilder.PlaceOfficers`로 경찰서 장면의 창구 뒤에 둡니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않고, 정한 자리가 가구와 겹치면 가까운 빈자리로 옮깁니다. 다가감 설정은 같은 일터의 원래 NPC를 따르고, 외형·캡슐·시선은 각자 외형 표와 자기 메시를 사용합니다. 이어서 다섯 장면의 모든 NPC에 외형 표의 배색을 입히고 **Build Daily Life**를 실행한 뒤 경찰관이 경찰서 1층 안에서만 지내게 합니다. 확인용 인사말도 덧붙입니다.
 

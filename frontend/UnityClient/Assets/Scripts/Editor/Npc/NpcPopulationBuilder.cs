@@ -29,6 +29,11 @@ namespace A305.EditorTools.Npc
             "TownScene",
             "PoliceStationScene",
         };
+
+        // 마을 매장 장면. 매장 직원은 근무 중에 이 장면 안에 있고 마을에는 출퇴근하는 모습만 나온다.
+        private static string[] ShopScenePaths() =>
+            A305.EditorTools.World.TownShopSceneBuilder.ScenePaths();
+
         private static readonly Vector3 Dorm = new Vector3(-20, .1f, 16.5f);
         private static readonly Vector3 Park = new Vector3(11, .1f, 21);
 
@@ -42,9 +47,14 @@ namespace A305.EditorTools.Npc
             var asset = AssetDatabase.LoadAssetAtPath<TextAsset>(LifePath);
             var data = NpcLifeData.Parse(asset.text);
             var commuters = new Dictionary<string, string>();
-            foreach (string sceneName in Scenes)
+            foreach (
+                string scenePath in Scenes
+                    .Select(name => SceneFolder + name + ".unity")
+                    .Concat(ShopScenePaths())
+            )
             {
-                Scene scene = EditorSceneManager.OpenScene(SceneFolder + sceneName + ".unity");
+                Scene scene = EditorSceneManager.OpenScene(scenePath);
+                string sceneName = scene.name;
                 // 이 도구가 이전에 배치한 출퇴근 본보기는 런타임 생성으로 옮긴다.
                 foreach (var preview in BuilderTools.FindAllInScene<NpcTownWalker>(scene))
                     Object.DestroyImmediate(preview.gameObject);
@@ -58,8 +68,6 @@ namespace A305.EditorTools.Npc
                     .ToArray();
                 foreach (NpcIdentity npc in workers)
                 {
-                    var presence = BuilderTools.GetOrAddComponent<NpcWorkPresence>(npc.gameObject);
-                    BuilderTools.SetReference(presence, "lifeData", asset);
                     string path = Folder + "/" + npc.Code + ".prefab";
                     // 재실행해도 기존 외형은 그대로 두고 기능 연결만 맞춘다.
                     if (AssetDatabase.LoadAssetAtPath<GameObject>(path) == null)
@@ -69,7 +77,6 @@ namespace A305.EditorTools.Npc
                         copy.SetActive(false);
                         if (copy.TryGetComponent(out NpcRoutine routine))
                             Object.DestroyImmediate(routine);
-                        Object.DestroyImmediate(copy.GetComponent<NpcWorkPresence>());
                         if (copy.TryGetComponent(out PoliceReportDesk desk))
                             Object.DestroyImmediate(desk);
                         copy.AddComponent<NpcTownWalker>();
@@ -91,7 +98,8 @@ namespace A305.EditorTools.Npc
                     }
                     commuters[npc.Code] = path;
                 }
-                if (sceneName != "TownScene")
+                // 2층 가게처럼 직원이 없는 매장 장면에는 출퇴근 관리를 두지 않는다.
+                if (sceneName != "TownScene" && workers.Length > 0)
                     ConnectPopulation(
                         scene,
                         asset,
@@ -117,14 +125,12 @@ namespace A305.EditorTools.Npc
                 GameObject worker = townNpcs.TryGetValue(entry.NpcId, out NpcIdentity original)
                     ? original.gameObject
                     : null;
-                var location = Workplace(town, entry, worker);
                 residents.Add(
                     new NpcPopulation.Resident
                     {
                         Worker = worker,
                         TownPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(path),
-                        WorkplaceDoor = location.Door,
-                        InteriorScene = location.Interior,
+                        WorkplaceDoor = WorkplaceDoor(town, entry, worker),
                     }
                 );
             }
@@ -139,6 +145,18 @@ namespace A305.EditorTools.Npc
             NpcCastBuilder.RefreshCommuterVisuals();
             AssetDatabase.SaveAssets();
             Debug.Log("NPC 숙소·근무 중 출현·타운 출퇴근 연결을 완료했습니다.");
+        }
+
+        /// <summary>일터 장면의 직원을 그 장면의 출퇴근 관리에 이어 일과에 맞춰 켜고 끄게 한다.</summary>
+        internal static void ConnectWorkers(Scene scene, NpcIdentity[] workers)
+        {
+            ConnectPopulation(
+                scene,
+                AssetDatabase.LoadAssetAtPath<TextAsset>(LifePath),
+                workers
+                    .Select(npc => new NpcPopulation.Resident { Worker = npc.gameObject })
+                    .ToArray()
+            );
         }
 
         private static void ConnectPopulation(
@@ -170,17 +188,12 @@ namespace A305.EditorTools.Npc
                     i
                 ].TownPrefab;
                 row.FindPropertyRelative("WorkplaceDoor").vector3Value = residents[i].WorkplaceDoor;
-                row.FindPropertyRelative("InteriorScene").stringValue =
-                    residents[i].InteriorScene ?? "";
             }
             fields.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static (Vector3 Door, string Interior) Workplace(
-            Scene town,
-            NpcLifeEntry npc,
-            GameObject worker
-        )
+        // 출퇴근하는 모습이 들어가고 나오는 일터 문 앞(마을 문의 도착 지점). 마을 매장도 그 매장 문 앞이다.
+        private static Vector3 WorkplaceDoor(Scene town, NpcLifeEntry npc, GameObject worker)
         {
             string place = npc.Workplace;
             string doorId =
@@ -192,19 +205,15 @@ namespace A305.EditorTools.Npc
                 var door = BuilderTools
                     .FindAllInScene<SpaceDoorway>(town)
                     .Single(d => d.DoorwayId == doorId);
-                return (door.ArrivalPoint.position, null);
+                return door.ArrivalPoint.position;
             }
             if (place == "TOWN")
-                return (worker.transform.position, null);
-            string name = place switch
-            {
-                "BAKERY" => "MapleBakery",
-                "ARCADE" => "LittleArcade",
-                "HOME_STORE" => "HomeLiving",
-                _ => TownStorefrontBuilder.Storefronts.Single(shop => shop.PlaceCode == place).Name,
-            };
-            Transform building = BuildingStaffBuilder.Building(town, name);
-            return (building.TransformPoint(new Vector3(0, 0, 1)), name + "Interior");
+                return worker.transform.position;
+            string shopScene = PlaceScenes.SceneOf(place);
+            return BuilderTools
+                .FindAllInScene<SpaceDoorway>(town)
+                .Single(door => door.DestinationScene == shopScene)
+                .ArrivalPoint.position;
         }
 
         private static void PlaceDorm(Transform environment)

@@ -41,6 +41,25 @@ namespace A305.Npc
         public bool IsErrand { get; }
         public bool IsInTown => Phase != NpcDayPhase.Working && Phase != NpcDayPhase.Resting;
 
+        /// <summary>지금 또는 그 뒤에 시작하는 근무의 시작 게임 시각(1일차 0시부터 센 분). 근무가 없으면 null</summary>
+        // 장면마다 같은 근무를 같은 값으로 가리키도록 그날 0시에 근무 시작 분을 더해 정수 분으로 셈한다.
+        public static double? NextWorkStart(NpcLifeEntry npc, double minutes)
+        {
+            double today = Math.Floor(minutes / 1440) * 1440;
+            double? next = null;
+            foreach (NpcScheduleBlock block in npc.Schedule)
+            {
+                if (block.Activity != "WORK")
+                    continue;
+                double start = today + block.StartMinute;
+                if (start < minutes)
+                    start += 1440;
+                if (next == null || start < next)
+                    next = start;
+            }
+            return next;
+        }
+
         public static NpcDayPlan At(
             NpcLifeEntry npc,
             double minutes,

@@ -160,28 +160,6 @@ namespace A305.Weather
         [Tooltip("한밤중 실내 환경광 배율. 밤의 실내는 불을 켠 방이라 낮과 비슷하게 둔다")]
         private float nightInteriorAmbientScale = .9f;
 
-        [Header("마을 매장 실내")]
-        [SerializeField]
-        [Tooltip(
-            "마을에 겹쳐 불러온 매장 실내에 있는 동안의 하늘 환경광. 날씨와 상관없이 카페·호텔 실내 씬과 같은 밝은 실내 환경광을 쓰고, 밤에는 실내 환경광 배율만큼 줄인다"
-        )]
-        private Color shopInteriorAmbientSky = new Color(.8f, .85f, .88f);
-
-        [SerializeField]
-        [Tooltip("마을 매장 실내의 수평 환경광")]
-        private Color shopInteriorAmbientEquator = new Color(.77f, .75f, .69f);
-
-        [SerializeField]
-        [Tooltip("마을 매장 실내의 바닥 환경광")]
-        private Color shopInteriorAmbientGround = new Color(.48f, .45f, .39f);
-
-        [SerializeField]
-        [Range(0f, 1f)]
-        [Tooltip(
-            "마을 매장 실내에 있는 동안 마을 해 그림자 세기 상한. 지붕·벽 그림자가 방을 뒤덮지 않도록 실내 씬의 창빛(0.6)보다 옅게 둔다"
-        )]
-        private float shopInteriorSunShadowStrength = .35f;
-
         public float NightLampScale => nightLampScale;
         public float NightShopLampScale => nightShopLampScale;
         public float NightGlowScale => nightGlowScale;
@@ -197,10 +175,6 @@ namespace A305.Weather
         public Color NightRoomLightColor => nightRoomLightColor;
         public float NightFillScale => nightFillScale;
         public float NightInteriorAmbientScale => nightInteriorAmbientScale;
-        public Color ShopInteriorAmbientSky => shopInteriorAmbientSky;
-        public Color ShopInteriorAmbientEquator => shopInteriorAmbientEquator;
-        public Color ShopInteriorAmbientGround => shopInteriorAmbientGround;
-        public float ShopInteriorSunShadowStrength => shopInteriorSunShadowStrength;
 
         /// <summary>Builder와 테스트에서 새 설정을 만든다. 이미 있는 에셋의 값은 바꾸지 않는다.</summary>
         public static DaylightSettings Create(

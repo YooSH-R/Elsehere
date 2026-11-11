@@ -72,7 +72,6 @@ namespace A305.Weather
         private Renderer[] cloudRenderers;
         private Quaternion designedSunRotation;
         private NightLights nightLights;
-        private NightLights shopLights;
         private readonly Dictionary<Transform, NightLights> buildingLights =
             new Dictionary<Transform, NightLights>();
         private readonly Dictionary<Transform, bool> buildingOpen =
@@ -91,34 +90,6 @@ namespace A305.Weather
 
         private bool IsInLitBuilding(Transform item) =>
             litBuildings.Any(building => building != null && item.IsChildOf(building));
-
-        /// <summary>
-        /// 방문할 때 로드한 실내도 마을과 같은 시각을 따르게 하고, 나올 때 재질 사본을 정리한다.
-        /// 실내에 있는 동안은 날씨와 상관없이 실내 씬과 같은 실내 환경광(밤에도 불을 켠 방)이고 해 그림자도 옅으며,
-        /// 나오면 마을 환경광·그림자로 돌아간다.
-        /// </summary>
-        public void SetShopInterior(Transform interior)
-        {
-            shopLights?.Restore();
-            shopLights = null;
-            if (daylight == null)
-                return;
-
-            if (interior != null)
-            {
-                var renderers = interior.GetComponentsInChildren<Renderer>(true);
-                // 실내 씬과 달리 창으로 드는 빛·보조광이 없으므로 실내등을 매장 실내등 배율로 밝힌다.
-                shopLights = new NightLights(
-                    daylight,
-                    Enumerable.Empty<Light>(),
-                    renderers,
-                    renderers,
-                    shopLamps: interior.GetComponentsInChildren<Light>(true)
-                );
-            }
-            if (shownMinutes.HasValue)
-                WriteScene();
-        }
 
         // 시각을 받기 전에는 씬 디자인의 낮이다.
         private double? shownMinutes;
@@ -226,7 +197,6 @@ namespace A305.Weather
             nightLights?.Restore();
             foreach (NightLights lights in buildingLights.Values)
                 lights.Restore();
-            shopLights?.Restore();
             if (shownMinutes.HasValue)
                 UiBackdropLift.Show(0f);
         }
@@ -422,21 +392,6 @@ namespace A305.Weather
                         !buildingOpen.TryGetValue(entry.Key, out bool open) || open
                     );
                 UiBackdropLift.Show(night);
-                if (shopLights != null)
-                {
-                    shopLights.Apply(daylight, night);
-                    // 매장 안에서는 날씨와 상관없이 실내 씬과 같은 실내 환경광을 쓰고,
-                    // InteriorDaylight처럼 밤에만 조금 줄인다.
-                    float roomAmbient = Mathf.Lerp(1f, daylight.NightInteriorAmbientScale, night);
-                    look.ambientSky = daylight.ShopInteriorAmbientSky * roomAmbient;
-                    look.ambientEquator = daylight.ShopInteriorAmbientEquator * roomAmbient;
-                    look.ambientGround = daylight.ShopInteriorAmbientGround * roomAmbient;
-                    // 마을 해의 지붕·벽 그림자가 방을 뒤덮지 않도록 안에 있는 동안만 옅게 한다.
-                    look.sunShadowStrength = Mathf.Min(
-                        look.sunShadowStrength,
-                        daylight.ShopInteriorSunShadowStrength
-                    );
-                }
             }
             if (sky != null && sky.HasProperty(StarsId))
                 sky.SetFloat(StarsId, stars);

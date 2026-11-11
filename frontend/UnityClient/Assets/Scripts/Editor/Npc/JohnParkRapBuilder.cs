@@ -115,7 +115,7 @@ namespace A305.EditorTools.Npc
             try
             {
                 var scene = EditorSceneManager.OpenScene(
-                    "Assets/Scenes/Production/TownScene.unity"
+                    JohnParkDialogueBuilder.RestaurantScenePath
                 );
                 var npc = BuilderTools
                     .FindAllInScene<NpcIdentity>(scene)
@@ -129,12 +129,11 @@ namespace A305.EditorTools.Npc
                         )
                 )
                     throw new InvalidOperationException("식당 존박에 저장 공연 연결이 없습니다.");
-                new A305.EditorTools.World.ShopInteriorScenes().OnProcessScene(scene, null);
-                var room = BuilderTools
-                    .FindAllInScene<ShopInterior>(scene)
-                    .Single(item => item.SceneName == "MapleDinerInterior");
-                if (!room.ContainsStaff(npc.transform))
-                    throw new InvalidOperationException("존박이 식당 실내에 연결되지 않았습니다.");
+                var shop = BuilderTools
+                    .FindAllInScene<Transform>(scene)
+                    .Single(item => item.name == "MapleDiner" && item.Find("Interior") != null);
+                if (!JohnParkDialogueBuilder.IsInsideRestaurant(shop, npc.transform))
+                    throw new InvalidOperationException("존박이 식당 실내에 없습니다.");
                 Debug.Log("식당 존박의 프리팹 공연 상속·실내 연결 확인 완료");
             }
             finally

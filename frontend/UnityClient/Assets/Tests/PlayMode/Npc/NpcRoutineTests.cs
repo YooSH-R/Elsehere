@@ -150,26 +150,23 @@ namespace A305.Npc.PlayModeTests
 
         private static IEnumerator BurgerStaffStaysAtPost(string npcCode, int minuteOfDay)
         {
-            yield return LoadAt("TownScene", minuteOfDay, paused: true);
-            ShopInterior shop = Object
-                .FindObjectsByType<ShopInterior>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None
-                )
-                .Single(candidate => candidate.PlaceCode == "DINER");
-            yield return (IEnumerator)
-                typeof(ShopInterior)
-                    .GetMethod("SetOccupied", BindingFlags.Instance | BindingFlags.NonPublic)
-                    .Invoke(shop, new object[] { true });
+            yield return LoadAt(PlaceScenes.SceneOf("DINER"), minuteOfDay, paused: true);
 
             PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
-            player.Teleport(
-                shop.transform.TransformPoint(new Vector3(0, .12f, -1)),
-                Quaternion.identity
-            );
+            player.Teleport(new Vector3(0, .12f, -2f), Quaternion.identity);
             NpcRoutine staff = Routine(npcCode);
             KeepOnlyNpc(staff);
             Vector3 startingPosition = staff.transform.position;
+            GameObject counter = GameObject.Find("OrderCounter");
+            Assert.That(counter, Is.Not.Null, "햄버거 가게 실내에 주문 카운터가 있어야 합니다.");
+            Vector3 counterOffset = counter.transform.InverseTransformPoint(startingPosition);
+            Assert.That(Mathf.Abs(counterOffset.x), Is.LessThan(.3f));
+            Assert.That(counterOffset.z, Is.InRange(-1.3f, -.5f));
+            Assert.That(
+                counterOffset.y,
+                Is.GreaterThan(.3f),
+                "직원은 카운터 뒤 발판에 서야 합니다."
+            );
             yield return new WaitForSeconds(30);
 
             Assert.That(

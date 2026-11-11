@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Linq;
 using A305.Dialogue;
 using A305.World;
 using UnityEngine;
@@ -17,14 +16,12 @@ namespace A305.Learning
         // 복습·장소 연습 방문 전 자리를 기억한다. 앞 방문에서 아직 돌아오지 않았으면 새로 시작하지 않는다.
         private bool RememberReviewOrigin()
         {
-            ShopInterior occupied = ShopInterior.Occupied;
             var point = new ReviewReturnLocation(
                 gameObject.scene.name,
                 new Pose(player.transform.position, player.transform.rotation),
                 player.CameraRig != null
                     ? player.CameraRig.ViewYawDegrees
-                    : player.transform.eulerAngles.y,
-                occupied != null ? occupied.SceneName : null
+                    : player.transform.eulerAngles.y
             );
             if (reviewReturn.TryBegin(point))
                 return true;
@@ -83,23 +80,7 @@ namespace A305.Learning
                     // 새 장면의 LearningController.Start가 정적 복귀 정보를 이어받는다.
                     yield break;
                 }
-                ShopInterior savedRoom = string.IsNullOrEmpty(origin.InteriorSceneName)
-                    ? null
-                    : FindObjectsByType<ShopInterior>(FindObjectsSortMode.None)
-                        .FirstOrDefault(room => room.SceneName == origin.InteriorSceneName);
-                if (!string.IsNullOrEmpty(origin.InteriorSceneName) && savedRoom == null)
-                {
-                    ShowReviewReturnFailure();
-                    yield break;
-                }
-                if (
-                    !SpaceTravel.TryRestoreReviewPosition(
-                        player,
-                        origin.Pose,
-                        savedRoom,
-                        origin.ViewYaw
-                    )
-                )
+                if (!SpaceTravel.TryRestoreReviewPosition(player, origin.Pose, origin.ViewYaw))
                 {
                     ShowReviewReturnFailure();
                     yield break;

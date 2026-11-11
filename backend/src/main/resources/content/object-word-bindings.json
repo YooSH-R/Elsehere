@@ -119,8 +119,8 @@
         {
             "sceneCode": "TOWN",
             "unityKey": "TownScene",
-            "objectCount": 3702,
-            "detailCount": 152,
+            "objectCount": 3613,
+            "detailCount": 121,
             "wordKeys": [
                 "awning",
                 "bed",
@@ -178,7 +178,6 @@
                 "porch",
                 "price_card",
                 "railing",
-                "reception_desk",
                 "refrigerator",
                 "road",
                 "roof",
@@ -1468,6 +1467,7 @@
                 "chair",
                 "clock",
                 "cornice",
+                "counter",
                 "door",
                 "drawer",
                 "floor",
@@ -1977,6 +1977,8 @@
             "wordKeys": [
                 "cabinet",
                 "clock",
+                "flowerpot",
+                "plant",
                 "rug",
                 "shelf",
                 "sign",
@@ -2049,13 +2051,16 @@
                 "cabinet",
                 "cash_register",
                 "chair",
+                "counter",
                 "drawer",
+                "flowerpot",
                 "lamp",
                 "picture",
                 "plant",
                 "rug",
                 "shelf",
-                "sign"
+                "sign",
+                "table"
             ]
         },
         {
@@ -2368,6 +2373,13 @@
             "path": "Assets/Prefabs/World/TownInteriors/Props/HangingPlant.prefab",
             "wordKeys": [
                 "plant"
+            ]
+        },
+        {
+            "guid": "1c12969b874ee8843874c905bcbb6ebd",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/HighScoreBoard.prefab",
+            "wordKeys": [
+                "sign"
             ]
         },
         {

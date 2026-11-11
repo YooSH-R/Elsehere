@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using A305.EditorTools.Common;
 using A305.Npc;
 using A305.World;
@@ -33,6 +34,12 @@ namespace A305.EditorTools.Npc
         // 본길 양옆 건물 사이 1m 틈은 통행로가 아니다. 정식 인도·출입구는 별도로 유지한다.
         private const float MinimumBuildingPassageMeters = 2f;
 
+        // 매장 건물의 바닥 자리(건물 기준). 앞면 z=0, 뒷벽 z=-8, 폭 8m, 바닥 두께 0.2m
+        private static readonly Bounds ShopBuildingFootprint = new Bounds(
+            new Vector3(0, -.1f, -4),
+            new Vector3(8, .2f, 8)
+        );
+
         private static readonly string[] ScenePaths =
         {
             "Assets/Scenes/Production/CafeScene.unity",
@@ -53,7 +60,12 @@ namespace A305.EditorTools.Npc
             var lifeData = BuilderTools.LoadRequiredAsset<TextAsset>(LifeDataPath, MenuPath);
             NpcLifeData data = NpcLifeData.Parse(lifeData.text);
             RuntimeAnimatorController animator = NpcAnimationBuilder.PrepareController();
-            foreach (string scenePath in ScenePaths)
+            // 마을 매장 장면의 직원도 같은 생활을 쓴다.
+            foreach (
+                string scenePath in ScenePaths.Concat(
+                    A305.EditorTools.World.TownShopSceneBuilder.ScenePaths()
+                )
+            )
             {
                 BuildScene(scenePath, data, lifeData, animator);
             }
@@ -198,12 +210,16 @@ namespace A305.EditorTools.Npc
             if (buildings == null)
                 yield break;
 
+            // 매장 건물(매장 장면으로 들어가는 문이 있는 건물)은 8m 모듈이다. 실내 바닥은 매장 장면에만 있으므로
+            // 건물 기준 바닥 자리(앞면 z=0~뒷벽 z=-8, 폭 8m)를 발자국으로 쓴다.
             var footprints = new List<Bounds>();
             foreach (Transform building in buildings)
             {
-                Transform floor = building.Find("Interior/Floor");
-                if (floor != null && floor.TryGetComponent(out Collider collider))
-                    footprints.Add(collider.bounds);
+                if (
+                    building.gameObject.activeInHierarchy
+                    && building.GetComponentInChildren<SpaceDoorway>(true) != null
+                )
+                    footprints.Add(WorldBounds(building, ShopBuildingFootprint));
             }
             footprints.Sort((first, second) => first.min.z.CompareTo(second.min.z));
             for (int i = 0; i < footprints.Count; i++)
@@ -233,6 +249,21 @@ namespace A305.EditorTools.Npc
                     area = NavMesh.GetAreaFromName("Not Walkable"),
                 };
             }
+        }
+
+        // 건물은 90도 단위로 돌아 있어 모서리 8개를 감싼 축 정렬 상자가 건물 자리와 같다.
+        private static Bounds WorldBounds(Transform building, Bounds local)
+        {
+            var world = new Bounds(building.TransformPoint(local.center), Vector3.zero);
+            foreach (float x in new[] { -1f, 1f })
+            foreach (float y in new[] { -1f, 1f })
+            foreach (float z in new[] { -1f, 1f })
+                world.Encapsulate(
+                    building.TransformPoint(
+                        local.center + Vector3.Scale(local.extents, new Vector3(x, y, z))
+                    )
+                );
+            return world;
         }
 
         // 바닥 구역 표시(NavMeshModifier). 마을 차도처럼 붙은 사물과 그 아래 바닥을 다른 구역으로 굽는다.

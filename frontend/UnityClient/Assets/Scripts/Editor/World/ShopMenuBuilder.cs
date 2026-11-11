@@ -1,5 +1,6 @@
 using System.Linq;
 using A305.EditorTools.Common;
+using A305.EditorTools.Npc;
 using A305.EditorTools.ObjectHover;
 using A305.Npc;
 using TMPro;
@@ -104,9 +105,7 @@ namespace A305.EditorTools.World
             );
             UpdateBurgerDialogue();
             TownStorefrontBuilder.RenameDinerLabels();
-            MoveBurgerStaffToCounter();
-            AssetDatabase.SaveAssets();
-            ObjectWordAuthoring.Export();
+            ApplyBurgerSceneLayout();
         }
 
         private static void ArrangeBurgerShop(GameObject shop)
@@ -368,21 +367,19 @@ namespace A305.EditorTools.World
             Group("BurgerLayoutVersion", room, Vector3.zero);
         }
 
-        private static void MoveBurgerStaffToCounter()
+        [MenuItem("Tools/A305/World/Apply Burger Scene Layout")]
+        public static void ApplyBurgerSceneLayout()
         {
-            var scene = EditorSceneManager.OpenScene(TownProductionBuilder.ScenePath);
+            BuilderTools.ThrowIfPlaying();
+            var town = EditorSceneManager.OpenScene(TownProductionBuilder.ScenePath);
             Transform building = TownProductionBuilder
-                .Root(scene, "Environment")
+                .Root(town, "Environment")
                 .Find("TownMainstreet/BackgroundBuildings/MapleDiner");
             Transform interior = building.Find("Interior");
-            foreach (Transform item in interior.Cast<Transform>().ToArray())
+            if (interior != null)
             {
-                if (
-                    item.name == "BurgerMenus"
-                    || item.name == "OrderCounter"
-                    || item.name == "BurgerLayoutVersion"
-                    || item.name == "TakeawayCup"
-                )
+                // 새로 추가된 프리팹 자식도 마을에는 남기지 않는다.
+                foreach (Transform item in interior.Cast<Transform>().ToArray())
                     Object.DestroyImmediate(item.gameObject);
             }
             Transform gardens = building.parent.parent.Find("StreetGardens");
@@ -397,19 +394,29 @@ namespace A305.EditorTools.World
                     PrefabUtility.RecordPrefabInstancePropertyModifications(tree);
                 }
             }
-            foreach (
-                NpcIdentity npc in scene
-                    .GetRootGameObjects()
-                    .SelectMany(root => root.GetComponentsInChildren<NpcIdentity>(true))
-            )
+            NpcLifeBuilder.RebakeWalkArea(town);
+            EditorSceneManager.SaveScene(town);
+
+            var shop = EditorSceneManager.OpenScene(
+                TownShopSceneBuilder.GroundFloorScenePath("MapleDiner")
+            );
+            building = BuildingStaffBuilder.Building(shop, "MapleDiner");
+            foreach (string code in new[] { "DINER_STAFF", "FIRE_CAPTAIN" })
             {
-                if (npc.Code != "DINER_STAFF" && npc.Code != "FIRE_CAPTAIN")
-                    continue;
-                npc.transform.position = building.TransformPoint(new Vector3(.4f, .44f, -7.15f));
-                npc.transform.rotation = building.rotation;
+                NpcIdentity npc = BuilderTools
+                    .FindAllInScene<NpcIdentity>(shop)
+                    .Single(candidate => candidate.Code == code);
+                npc.transform.SetPositionAndRotation(
+                    building.TransformPoint(BuildingStaffBuilder.BurgerCounterStand),
+                    building.rotation
+                );
                 PrefabUtility.RecordPrefabInstancePropertyModifications(npc.transform);
+                BuildingStaffBuilder.LimitToGroundFloor(shop, code, building.name);
             }
-            EditorSceneManager.SaveScene(scene);
+            NpcLifeBuilder.RebakeWalkArea(shop);
+            EditorSceneManager.SaveScene(shop);
+            AssetDatabase.SaveAssets();
+            ObjectWordAuthoring.Export();
         }
 
         private static void UpdateBurgerDialogue()

@@ -42,14 +42,15 @@ namespace A305.Mission
             bool waiting = state?.IsTownStory == true && state.CanRest && state.Stage == 0;
             if (!waiting)
                 timer.Reset();
-            var shop = ShopInterior.Occupied;
-            if (shop == null || shop.PlaceCode != "DINER" || !shop.IsLoaded || pose == null)
+            // 식당은 따로 장면이라 플레이어가 그 장면에 있을 때만 좌석을 쓴다.
+            Scene here = player.gameObject.scene;
+            if (PlaceScenes.CodeOf(here.name) != "DINER" || pose == null)
             {
                 Stand();
                 offer.HideTalkPrompt(this);
                 return;
             }
-            EnsureSeats(SceneManager.GetSceneByName(shop.SceneName));
+            EnsureSeats(here);
             if (seatedHere && !pose.IsSeated)
             {
                 if (player.CameraRig != null)

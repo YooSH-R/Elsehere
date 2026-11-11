@@ -133,13 +133,7 @@ namespace A305.EditorTools.Learning
                 title.color,
                 "미확인 0"
             );
-            var rect = (RectTransform)unread.transform;
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1, 1);
-            rect.anchoredPosition = new Vector2(-110, -40);
-            rect.sizeDelta = new Vector2(190, 48);
-            unread.alignment = TextAlignmentOptions.Right;
-            unread.textWrappingMode = TextWrappingModes.NoWrap;
-            unread.raycastTarget = false;
+            FeedbackListBuilder.AlignUnreadCount(unread);
             BuilderTools.SetReference(
                 root.GetComponent<ConversationHistoryView>(),
                 "unreadCountText",

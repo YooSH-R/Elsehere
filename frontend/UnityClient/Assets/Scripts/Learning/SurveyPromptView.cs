@@ -31,12 +31,19 @@ namespace A305.Learning
         private Vector3 collapseStart;
         private CanvasGroup cardGroup;
         private bool collapsing;
+        private bool talking;
         private float collapseElapsed;
         private UiEscapeWindow escape;
 
         public bool IsShowing => invitation != null && invitation.IsOpen;
         public bool IsEntryVisible => entryButton != null && entryButton.gameObject.activeSelf;
         public float CardOffset => slide.Offset;
+
+        public void SetTalking(bool value)
+        {
+            talking = value;
+            RefreshEntry();
+        }
 
         private void Awake()
         {
@@ -94,7 +101,7 @@ namespace A305.Learning
         private void RefreshEntry()
         {
             if (entryButton != null)
-                entryButton.gameObject.SetActive(SurveyPrompt.EntryVisible);
+                entryButton.gameObject.SetActive(!talking && SurveyPrompt.EntryVisible);
         }
 
         private void OpenSurvey()

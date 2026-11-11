@@ -59,6 +59,7 @@ Web 실행은 `Application.targetFrameRate`의 기본값 `-1`을 유지해 브�
 - **Tools → A305 → Web → Build**는 이 템플릿을 적용하고 현재 Scene List의 활성 씬을 `Builds/Web`으로 빌드합니다. 먼저 Build Profiles에서 Web을 활성 플랫폼으로 전환합니다. 같은 프로젝트가 Editor에 열려 있지 않으면 아래 명령을 사용하며, 새 환경에서도 Web용 렌더링 설정이 포함되도록 `-buildTarget WebGL`을 명시합니다.
 - 템플릿을 수정한 뒤에는 다시 빌드합니다. `Builds/Web`의 HTML·CSS는 생성 결과이므로 직접 수정하지 않습니다.
 - 브라우저 확장 프로그램 스크립트(`chrome-extension://`, `moz-extension://`, `safari-web-extension://`)에서 난 오류는 Unity 로더에 넘기지 않습니다. MetaMask처럼 페이지에 스크립트를 넣는 확장 프로그램의 오류가 로딩 실패나 Unity 오류 창으로 뜨지 않게 하기 위해서이며, 오류는 브라우저 콘솔에 그대로 남습니다. 게임 빌드에서 났거나 어디서 났는지 알 수 없는 오류는 지금처럼 Unity 로더가 알립니다. 저장소 최상위에서 `node --test infra/tests/webgl_extension_errors.test.cjs`로 검증합니다.
+- UI가 가로 화면에 맞춰져 있어, 휴대폰·태블릿(주 입력이 손가락, CSS `pointer: coarse`)을 세로로 들면(`orientation: portrait`) 로딩 중에도 게임 위에 "가로 화면을 권장해요" 카드를 띄웁니다. 가로로 돌리면 저절로 사라지고, PC 창이 세로로 길어도 띄우지 않습니다. [세로로 계속하기]를 누르면 이번 방문(탭) 동안 다시 띄우지 않습니다(브라우저 세션 저장소 `elsehere.orientationHint.dismissed`). 카드가 뜬 동안에는 뒤를 덮어 게임을 누르지 않습니다.
 - 게임 화면은 손가락 제스처를 게임이 받으므로(`touch-action: none`) 페이지가 한 번 확대되면 다시 줄일 수 없습니다. 그래서 viewport에 `maximum-scale=1`을 둡니다. 휴대폰에서 입력 플러그인(WebGLInput)이 띄우는 입력칸은 글자 크기가 화면 높이의 5%라 가로 휴대폰에서 16px보다 작아지는데, 아이폰 사파리는 16px보다 작은 입력칸에 포커스가 가면 페이지를 확대합니다. 그래서 `style.css`에서 입력칸 글자를 최소 16px(`max(16px, 5vh)`)로 둡니다.
 - 모바일의 세로·가로 전환, 주소창 표시·숨김, 노치 영역, 로딩·오류 메시지와 게임 UI 가장자리의 잘림을 실제 기기에서 확인합니다. 모바일에서는 왼쪽 아래 조이스틱으로 이동하고 오른쪽 빈 영역을 드래그해 시점을 돌립니다. 두 손가락 동시 조작과 앱 전환·화면 회전 후 입력이 멈추는지도 확인합니다. PC의 키보드·마우스 조작은 그대로 사용할 수 있습니다.
 

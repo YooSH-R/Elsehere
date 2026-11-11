@@ -26,7 +26,7 @@ namespace A305.Learning
         private ConversationHistoryRow[] rows;
 
         [SerializeField]
-        [Tooltip("장소 탭(전체·카페·호텔·마을). 고른 탭은 On 그림이 켜진다.")]
+        [Tooltip("장소 탭(전체·음식·쇼핑·생활 서비스·안전·일상). 고른 탭은 On 그림이 켜진다.")]
         private Button[] tabs;
 
         [SerializeField]
@@ -69,8 +69,16 @@ namespace A305.Learning
         // 다음 페이지를 요청했을 때 받은 뒤 보일 쪽. 요청하지 않았으면 -1.
         private int pageAfterMore = -1;
 
-        // 장소 탭의 서버 장소 코드. [전체]는 null이다.
-        private static readonly string[] TabScenes = { null, "CAFE", "HOTEL", "TOWN" };
+        // 장소 탭 차례의 장소 묶음. [전체]는 null이다.
+        private static readonly PlaceGroup?[] TabGroups =
+        {
+            null,
+            PlaceGroup.Food,
+            PlaceGroup.Shopping,
+            PlaceGroup.Services,
+            PlaceGroup.Safety,
+            PlaceGroup.Daily,
+        };
 
         public event Action CloseRequested;
 
@@ -80,8 +88,8 @@ namespace A305.Learning
         /// <summary>[다시 연습]으로 고른 대화를 알린다.</summary>
         public event Action<ConversationSummary> PracticeRequested;
 
-        /// <summary>장소 탭에서 고른 장소 코드. [전체]는 null.</summary>
-        public event Action<string> FilterRequested;
+        /// <summary>장소 탭에서 고른 장소 묶음. [전체]는 null.</summary>
+        public event Action<PlaceGroup?> FilterRequested;
 
         /// <summary>받은 대화의 마지막 쪽에서 다음으로 넘겨 다음 페이지가 필요하다.</summary>
         public event Action MoreRequested;
@@ -102,9 +110,9 @@ namespace A305.Learning
             UiLayer.Open(this);
             for (int i = 0; i < tabs.Length; i++)
             {
-                string scene = TabScenes[i];
+                PlaceGroup? group = TabGroups[i];
                 tabs[i].onClick.RemoveAllListeners();
-                tabs[i].onClick.AddListener(() => FilterRequested?.Invoke(scene));
+                tabs[i].onClick.AddListener(() => FilterRequested?.Invoke(group));
             }
             ShowStatus("");
             Refresh();
@@ -172,7 +180,7 @@ namespace A305.Learning
 
             for (int i = 0; i < tabs.Length; i++)
             {
-                bool chosen = history.SceneCode == TabScenes[i];
+                bool chosen = history.PlaceGroup == TabGroups[i];
                 tabs[i].transform.Find("On").gameObject.SetActive(chosen);
                 tabs[i].interactable = !isBusy && !chosen;
             }

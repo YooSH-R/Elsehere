@@ -65,7 +65,7 @@ namespace A305.Learning
 
         [SerializeField]
         [Tooltip(
-            "대화 표현 탭의 장소 묶음 칩 줄. 칩 이름이 All 또는 VocabularyPlaceGroup 이름이고, 표현이 없는 묶음은 숨긴다"
+            "대화 표현 탭의 장소 묶음 칩 줄. 칩 이름이 All 또는 PlaceGroup 이름이고, 표현이 없는 묶음은 숨긴다"
         )]
         private RectTransform placeChips;
 
@@ -426,10 +426,10 @@ namespace A305.Learning
             );
             foreach (Transform chip in placeChips)
             {
-                VocabularyPlaceGroup? group =
+                PlaceGroup? group =
                     chip.name == "All"
-                        ? (VocabularyPlaceGroup?)null
-                        : (VocabularyPlaceGroup)Enum.Parse(typeof(VocabularyPlaceGroup), chip.name);
+                        ? (PlaceGroup?)null
+                        : (PlaceGroup)Enum.Parse(typeof(PlaceGroup), chip.name);
                 chip.GetComponent<Button>()
                     .onClick.AddListener(() => ChangeList(() => book.ShownPlaceGroup = group));
             }
@@ -446,16 +446,6 @@ namespace A305.Learning
             }
             Hide();
         }
-
-        private static readonly Dictionary<VocabularyPlaceGroup, string> PlaceGroupNames =
-            new Dictionary<VocabularyPlaceGroup, string>
-            {
-                { VocabularyPlaceGroup.Food, "음식" },
-                { VocabularyPlaceGroup.Shopping, "쇼핑" },
-                { VocabularyPlaceGroup.Services, "생활 서비스" },
-                { VocabularyPlaceGroup.Safety, "안전" },
-                { VocabularyPlaceGroup.Daily, "일상" },
-            };
 
         // 단어 자체가 없거나 아직 받지 못했으면 나눌 것이 없어 탭과 칩을 숨긴다.
         // 칩은 대화 표현 탭에만 두고, 표현이 없는 묶음은 숨겨 처음에는 다닌 곳의 칩만 보인다.
@@ -494,13 +484,12 @@ namespace A305.Learning
                     );
                     continue;
                 }
-                var group = (VocabularyPlaceGroup)
-                    Enum.Parse(typeof(VocabularyPlaceGroup), chip.name);
+                var group = (PlaceGroup)Enum.Parse(typeof(PlaceGroup), chip.name);
                 int count = book.CountIn(group);
                 chip.gameObject.SetActive(count > 0);
                 ShowTab(
                     chip.GetComponent<Button>(),
-                    $"{PlaceGroupNames[group]} {count}",
+                    $"{PlaceGroupText.Name(group)} {count}",
                     book.ShownPlaceGroup == group
                 );
             }

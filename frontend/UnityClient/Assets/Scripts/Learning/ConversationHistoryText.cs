@@ -24,11 +24,16 @@ namespace A305.Learning
             { "SHOP", "상점" },
         };
 
+        /// <summary>"NPC · 일하는 곳". 근무 시간 밖에 만나 일하는 곳이 없으면 대화한 장소 이름을 쓴다.</summary>
         public static string Title(ConversationSummary conversation)
         {
-            string place = PlaceNames.TryGetValue(conversation.SceneCode ?? "", out string known)
-                ? known
-                : conversation.SceneCode;
+            string place =
+                conversation.PlaceName
+                ?? (
+                    PlaceNames.TryGetValue(conversation.SceneCode ?? "", out string known)
+                        ? known
+                        : conversation.SceneCode
+                );
             return $"{Name(conversation)}<color={DotColor}> · </color>{place}";
         }
 

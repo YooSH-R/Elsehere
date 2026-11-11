@@ -101,6 +101,11 @@ namespace A305.EditorTools.Learning
                 Render(camera, output, $"history-{theme}-844x390.png", 844, 390, hud, null);
             }
             UiThemeSelection.Shared.Select(originalTheme);
+            hud.SetFeedbackCount(2);
+            history.LoadAsync(PlaceGroup.Food).GetAwaiter().GetResult();
+            hud.HistoryView.Refresh();
+            Render(camera, output, "history-food-1600x900.png", 1600, 900, hud, null);
+            Render(camera, output, "history-food-844x390.png", 844, 390, hud, null);
         }
 
         private static void Render(
@@ -177,16 +182,23 @@ namespace A305.EditorTools.Learning
 
         private sealed class SampleHistory : IConversationHistoryApi
         {
-            public Task<ConversationPage> GetPageAsync(string cursor, string sceneCode) =>
+            // 서버처럼 고른 장소 묶음의 대화만 돌려준다. 식당(Rosa)만 음식 묶음이다.
+            public Task<ConversationPage> GetPageAsync(string cursor, PlaceGroup? placeGroup) =>
                 Task.FromResult(
                     new ConversationPage
                     {
-                        Items = new List<ConversationSummary>
-                        {
-                            Item(51, "Jake", "CAFE", true),
-                            Item(50, "Sarah", "HOTEL", true),
-                            Item(49, "Tom", "TOWN", false),
-                        },
+                        Items =
+                            placeGroup == PlaceGroup.Food
+                                ? new List<ConversationSummary>
+                                {
+                                    Item(50, "Rosa", "TOWN", "식당", true),
+                                }
+                                : new List<ConversationSummary>
+                                {
+                                    Item(51, "Jake", "HOTEL", "호텔", true),
+                                    Item(50, "Rosa", "TOWN", "식당", true),
+                                    Item(49, "Zoe", "TOWN", null, false),
+                                },
                     }
                 );
 
@@ -194,6 +206,7 @@ namespace A305.EditorTools.Learning
                 long id,
                 string name,
                 string scene,
+                string workplace,
                 bool unread
             ) =>
                 new ConversationSummary
@@ -201,6 +214,7 @@ namespace A305.EditorTools.Learning
                     ConversationId = id,
                     Npc = new NpcSummary { Name = name },
                     SceneCode = scene,
+                    PlaceName = workplace,
                     Status = "ENDED_BY_USER",
                     StartedAt = DateTimeOffset.Now.AddMinutes(-id),
                     UserTurnCount = 3,

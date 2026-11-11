@@ -12,7 +12,7 @@ using UnityEngine.UI;
 namespace A305.Learning.Tests
 {
     /// <summary>
-    /// 대화 노트는 확정 시안(N2, 배포된 피드백 목록 창 기준)이다. 머리줄에는 아이콘·제목·장소 탭(전체·카페·호텔·마을)·닫기를 두고,
+    /// 대화 노트는 확정 시안(N2, 배포된 피드백 목록 창 기준)이다. 머리줄에는 아이콘·제목·장소 탭(전체와 장소 묶음 다섯)·닫기를 두고,
     /// 대화마다 흰 유리 칸에 색 아이콘·"NPC · 장소"·시간과 [피드백 보기]·[다시 연습]을 둔다. 한 쪽에 4개이고 아래 가운데에서 쪽을 넘긴다.
     /// </summary>
     public class FeedbackListScreenTests
@@ -40,30 +40,43 @@ namespace A305.Learning.Tests
             Assert.That(panel.Find("Title").GetComponent<TMP_Text>().text, Is.EqualTo("대화 노트"));
             Assert.That(
                 Tabs().Select(tab => Text(tab, "Label")),
-                Is.EqualTo(new[] { "전체", "카페", "호텔", "마을" })
+                Is.EqualTo(new[] { "전체", "음식", "쇼핑", "생활 서비스", "안전", "일상" })
             );
             Assert.That(panel.Find("Hint"), Is.Null, "제목 옆 설명은 두지 않습니다.");
             Assert.That(panel.Find("CloseButton").gameObject.activeSelf, Is.True);
         }
 
-        // 장소 탭을 누르면 그 장소의 대화를 요청하고, 받은 뒤에는 고른 탭만 켜진 모양이다.
+        // 장소 탭이 여섯으로 늘어 넓어져도 미확인 수와 겹치지 않는다.
         [Test]
-        public void PlaceTab_AsksForThatPlaceAndShowsWhichIsChosen()
+        public void UnreadCount_DoesNotOverlapThePlaceTabs()
         {
             Show(Names, hasMore: false);
-            string asked = "none";
-            view.FilterRequested += scene => asked = scene;
+            view.SetUnreadCount(2);
+            var unread = (RectTransform)Panel().Find("UnreadCount");
+            var tabs = (RectTransform)Panel().Find("Tabs");
 
-            Tabs()[1].GetComponent<Button>().onClick.Invoke();
-            history.LoadAsync("CAFE").GetAwaiter().GetResult();
+            Assert.That(unread.gameObject.activeSelf, Is.True);
+            Assert.That(WorldRect(unread).Overlaps(WorldRect(tabs)), Is.False);
+        }
+
+        // 장소 탭을 누르면 그 장소 묶음의 대화를 요청하고, 받은 뒤에는 고른 탭만 켜진 모양이다.
+        [Test]
+        public void PlaceTab_AsksForThatGroupAndShowsWhichIsChosen()
+        {
+            Show(Names, hasMore: false);
+            PlaceGroup? asked = PlaceGroup.Daily;
+            view.FilterRequested += group => asked = group;
+
+            Tabs()[3].GetComponent<Button>().onClick.Invoke();
+            history.LoadAsync(PlaceGroup.Services).GetAwaiter().GetResult();
             view.Refresh();
 
-            Assert.That(asked, Is.EqualTo("CAFE"));
+            Assert.That(asked, Is.EqualTo(PlaceGroup.Services));
             Assert.That(
                 Tabs().Select(tab => tab.Find("On").gameObject.activeSelf),
-                Is.EqualTo(new[] { false, true, false, false })
+                Is.EqualTo(new[] { false, false, false, true, false, false })
             );
-            Assert.That(Tabs()[1].GetComponent<Button>().interactable, Is.False);
+            Assert.That(Tabs()[3].GetComponent<Button>().interactable, Is.False);
             Assert.That(Tabs()[0].GetComponent<Button>().interactable, Is.True);
         }
 
@@ -189,6 +202,19 @@ namespace A305.Learning.Tests
 
         private Transform Panel() => instance.transform.Find("History");
 
+        private static Rect WorldRect(RectTransform rect)
+        {
+            Vector3[] corners = Corners(rect);
+            return Rect.MinMaxRect(corners[0].x, corners[0].y, corners[2].x, corners[2].y);
+        }
+
+        private static Vector3[] Corners(RectTransform rect)
+        {
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            return corners;
+        }
+
         private List<Transform> Tabs() => Panel().Find("Tabs").Cast<Transform>().ToList();
 
         private List<Transform> ShownRows() =>
@@ -208,7 +234,7 @@ namespace A305.Learning.Tests
                 this.hasMore = hasMore;
             }
 
-            public Task<ConversationPage> GetPageAsync(string cursor, string sceneCode) =>
+            public Task<ConversationPage> GetPageAsync(string cursor, PlaceGroup? placeGroup) =>
                 Task.FromResult(
                     new ConversationPage
                     {

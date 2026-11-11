@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using A305.Dialogue;
+using A305.Player;
 using A305.Theme;
 using A305.World;
 using TMPro;
@@ -55,6 +56,7 @@ namespace A305.Learning
 
         private void Awake()
         {
+            WindowFrame.Attach((RectTransform)panel.transform);
             close.onClick.AddListener(() => CloseRequested?.Invoke());
             more.onClick.AddListener(() =>
             {

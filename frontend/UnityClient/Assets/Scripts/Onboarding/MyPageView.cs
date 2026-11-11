@@ -123,6 +123,7 @@ namespace A305.Onboarding
 
         private void Awake()
         {
+            WindowFrame.Attach((RectTransform)profilePanel.transform);
             if (apiSettings == null)
             {
                 Debug.LogError("MyPageView의 apiSettings가 연결되지 않았습니다.", this);

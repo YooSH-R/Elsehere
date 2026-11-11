@@ -150,6 +150,56 @@ namespace A305.EditorTools.Dialogue
                 900,
                 1400
             );
+            // 길게 말한 표현은 카드가 문장에 맞춰 커져 두 번째 줄부터 잘리지 않는지 본다.
+            content.UserTranslation =
+                "You have no conscience, do you? I should've just left you to die. "
+                + "What were you even thinking back there?";
+            view.Refresh();
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "translation-long-wide.png"),
+                1920,
+                1080
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "translation-long-portrait.png"),
+                900,
+                1400
+            );
+            // 카드 상한보다 긴 표현은 오른쪽 막대가 보이고, 끝까지 내리면 마지막 줄이 보인다.
+            content.UserTranslation =
+                "You have no conscience, do you? I should've just left you to die. "
+                + "What were you even thinking back there? I waited for you at the bus stop "
+                + "for almost an hour in the rain, and you didn't even call me once. "
+                + "Next time, please tell me before you change your plans, because I really "
+                + "worried about you and I almost called the police.";
+            view.Refresh();
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "translation-overflow-top.png"),
+                1920,
+                1080
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "translation-overflow-end.png"),
+                1920,
+                1080,
+                showLatest: true
+            );
         }
 
         public static void Capture()
@@ -429,11 +479,12 @@ namespace A305.EditorTools.Dialogue
             // Editor에서는 ScrollRect가 늘 스크롤할 것이 있다고 보므로, Play처럼 내용이 넘칠 때만 막대를 보인다.
             foreach (ScrollRect scroll in view.GetComponentsInChildren<ScrollRect>())
             {
+                if (showLatest)
+                    scroll.verticalNormalizedPosition = 0;
+                // 옮긴 스크롤 위치에 막대 손잡이도 맞춘다.
                 typeof(ScrollRect)
                     .GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic)
                     .Invoke(scroll, null);
-                if (showLatest)
-                    scroll.verticalNormalizedPosition = 0;
                 if (scroll.verticalScrollbar != null)
                     scroll.verticalScrollbar.gameObject.SetActive(
                         scroll.content.rect.height > scroll.viewport.rect.height + 0.01f

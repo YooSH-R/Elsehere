@@ -50,7 +50,8 @@ PLACES = [
 ]
 STATE = {
     "id": "taxi_ride",
-    "desc": "You drive the taxi and the learner is your passenger in the back seat. You drive only to places in this town.",
+    "desc": "You drive the taxi and the learner is your passenger in the back seat. You drive only to places in this town. "
+    "Maple Burger is the burger shop labelled Maple Diner in the destination list.",
     "intents": [
         {
             "id": "go_to",

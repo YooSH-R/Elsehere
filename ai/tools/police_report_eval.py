@@ -55,7 +55,8 @@ PLACES = [
 ]
 STATE = {
     "id": "police_desk",
-    "desc": "You are at the front desk of the town police station. People come to tell you about trouble in town.",
+    "desc": "You are at the front desk of the town police station. People come to tell you about trouble in town. "
+    "Maple Burger is the burger shop labelled Maple Diner in the destination list.",
     "intents": [
         {
             "id": "report_incident",

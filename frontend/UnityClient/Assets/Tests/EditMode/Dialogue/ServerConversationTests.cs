@@ -754,6 +754,31 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task Start_SendsThePlaceWhereTheConversationHappens()
+        {
+            // 다른 매장에 들른 NPC가 아직 길이나 일터에 있는 줄 알지 않도록, 대화가 열린 장소를 서버에 알린다(CONV-01 placeCode).
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                ConversationInitiator.User,
+                npcOffDuty: true,
+                placeCode: "LAUNDROMAT"
+            );
+            api.StartErrors.Enqueue(
+                new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중인 대화가 있습니다.")
+            );
+            api.Active = new ActiveConversation { ConversationId = 41 };
+
+            await conversation.StartAsync();
+
+            Assert.That(api.Starts, Has.Count.EqualTo(2));
+            Assert.That(api.Starts[0].PlaceCode, Is.EqualTo("LAUNDROMAT"));
+            Assert.That(api.Starts[1].PlaceCode, Is.EqualTo("LAUNDROMAT"));
+        }
+
+        [Test]
         public async Task Start_WithStaffOffDuty_RequestsAnOffDutyConversationEvenAfterClosingAnOldOne()
         {
             // 교대 밖의 직원과 말하면 서버가 응대 대신 쉬는 중에 잡담하는 일상 상황으로 대화한다(CONV-01 npcOffDuty).
@@ -2577,7 +2602,8 @@ namespace A305.Dialogue.Tests
                 string npcCode,
                 string initiatedBy,
                 bool npcOffDuty,
-                NpcTravelContext npcTravelContext = null
+                NpcTravelContext npcTravelContext = null,
+                string placeCode = null
             )
             {
                 RequestId = requestId;
@@ -2585,6 +2611,7 @@ namespace A305.Dialogue.Tests
                 InitiatedBy = initiatedBy;
                 NpcOffDuty = npcOffDuty;
                 TravelContext = npcTravelContext;
+                PlaceCode = placeCode;
             }
 
             public string RequestId { get; }
@@ -2592,6 +2619,7 @@ namespace A305.Dialogue.Tests
             public string InitiatedBy { get; }
             public bool NpcOffDuty { get; }
             public NpcTravelContext TravelContext { get; }
+            public string PlaceCode { get; }
         }
 
         private sealed class TurnRequest
@@ -2704,12 +2732,20 @@ namespace A305.Dialogue.Tests
                 string npcCode,
                 string initiatedBy,
                 bool npcOffDuty,
-                NpcTravelContext npcTravelContext = null
+                NpcTravelContext npcTravelContext = null,
+                string placeCode = null
             )
             {
                 Calls.Add("Start");
                 Starts.Add(
-                    new StartRequest(requestId, npcCode, initiatedBy, npcOffDuty, npcTravelContext)
+                    new StartRequest(
+                        requestId,
+                        npcCode,
+                        initiatedBy,
+                        npcOffDuty,
+                        npcTravelContext,
+                        placeCode
+                    )
                 );
                 if (StartErrors.Count > 0)
                 {

@@ -145,7 +145,13 @@ public class ConversationService {
           return startOnce(
               userId,
               new StartConversationRequest(
-                  requestId, review.npc().npcCode(), InitiatedBy.USER, offDuty, null, speechSpeed),
+                  requestId,
+                  review.npc().npcCode(),
+                  InitiatedBy.USER,
+                  offDuty,
+                  null,
+                  speechSpeed,
+                  null),
               review,
               null);
         });
@@ -186,10 +192,8 @@ public class ConversationService {
     if (replayed.isPresent()) {
       return replayed.get();
     }
-    String travelSituation =
-        review == null && request.npcTravelContext() != null
-            ? request.npcTravelContext().describe()
-            : null;
+    // 복습 대화에는 지금의 이동·위치를 덧붙이지 않는다.
+    String travelSituation = review == null ? request.npcSituation() : null;
     StartContext context =
         transactionTemplate.execute(
             status ->

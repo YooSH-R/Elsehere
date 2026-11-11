@@ -71,10 +71,10 @@ Web 실행은 `Application.targetFrameRate`의 기본값 `-1`을 유지해 브�
 | 내부 렌더링 배율 | 0.8 | 0.8 |
 | 주 광원 그림자 맵 | 2048 | 1024 |
 | 그림자 거리와 분할(캐스케이드) | 30m, 2개 | 50m, 1개 |
-| 부드러운 그림자 | 켬, 낮은 필터 비용 | 끔 |
+| 부드러운 그림자 | 켬, Medium 필터(9개 샘플) | 끔 |
 | 렌더러 | Forward, SSAO·추가 광원 그림자 끔 | Forward, SSAO·추가 광원 그림자 끔 |
 
-Web 빌드 메뉴와 CI는 `WebGlBuild.BuildWithDesktopPipeline`을 통해 빌드 동안 `PC`에 브라우저용 에셋을 연결합니다. 모델 디테일 전환, 스키닝 가중치, 비등방 필터링, 섀도우 마스크에는 기존 웹 품질인 `Mobile`의 값을 사용합니다. 빌드가 끝나면 Editor의 설정을 복원합니다. 브라우저용 에셋은 가까운 곳의 그림자 해상도를 높이고 먼 곳의 그림자 렌더링 비용을 줄입니다. 품질 선택과 빌드 후 복원은 `A305.Player.Tests`와 `A305.Deployment.Tests`에서 검증합니다. 실제 WebGL 빌드는 PC 브라우저에서 콘솔의 `Browser graphics quality: PC`, 그림자 모양, 프레임 속도를 함께 확인합니다. FPS를 비교할 때는 활성 창에서 같은 장면과 캔버스 해상도를 사용합니다.
+Web 빌드 메뉴와 CI는 `WebGlBuild.BuildWithDesktopPipeline`을 통해 빌드 동안 `PC`에 브라우저용 에셋을 연결합니다. 모델 디테일 전환, 스키닝 가중치, 비등방 필터링, 섀도우 마스크에는 기존 웹 품질인 `Mobile`의 값을 사용합니다. 빌드가 끝나면 Editor의 설정을 복원합니다. 브라우저용 에셋은 가까운 곳의 그림자 해상도를 높이고 먼 곳의 그림자 렌더링 비용을 줄입니다. 품질 선택과 빌드 후 복원은 `A305.Player.Tests`와 `A305.Deployment.Tests`에서 검증합니다. 실제 WebGL 빌드는 PC 브라우저에서 콘솔의 `Browser graphics quality: PC`, 그림자 모양, 프레임 속도를 함께 확인합니다. FPS를 비교할 때는 활성 창에서 같은 장면과 캔버스 해상도를 사용합니다. **Tools → A305 → Deployment → Soften Desktop Shadow Edges**는 PC 브라우저 에셋의 필터를 Medium으로 맞추고, 빌드 씬의 그림자를 만드는 방향광에 URP 품질 연결을 추가합니다. 이 연결이 없으면 URP가 파이프라인 설정과 관계없이 Low 필터를 사용합니다. 낮·밤 Builder도 같은 연결을 유지합니다. 게임 시각에 따라 이동하는 햇빛은 유지하며, 필터로 그림자 경계의 계단과 이동 중의 거친 변화를 완화합니다.
 
 ### 웹 이용 통계
 

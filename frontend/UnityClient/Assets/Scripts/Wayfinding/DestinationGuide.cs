@@ -155,7 +155,9 @@ namespace A305.Wayfinding
             GuideVisibility visibility = GuideVisibility.Decide(
                 hasEntrance,
                 GuideDestination.Shared.Arrived,
-                SpaceTravel.IsTraveling || (dialogue != null && dialogue.IsTalking),
+                ShopInterior.Occupied != null
+                    || SpaceTravel.IsTraveling
+                    || (dialogue != null && dialogue.IsTalking),
                 GuideRoutePreference.ShowsRoute
             );
             ShowEntrance(visibility.ShowsEntrance, feet);

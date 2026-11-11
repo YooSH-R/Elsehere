@@ -58,7 +58,8 @@ final class TaxiRide {
       new WorkerState(
           "taxi_ride",
           "You drive the taxi and the learner is your passenger in the back seat. You drive only to"
-              + " places in this town.",
+              + " places in this town. Maple Burger is the burger shop labelled Maple Diner in"
+              + " the destination list.",
           List.of(
               new WorkerState.Intent(
                   GO_TO,
@@ -92,8 +93,9 @@ final class TaxiRide {
       return Optional.empty();
     }
     Object place = judge.intent().slots().get(DESTINATION);
-    return Optional.ofNullable(PLACES.get(place))
-        .map(code -> new Destination(code, (String) place));
+    String code = "Maple Burger".equals(place) ? "DINER" : PLACES.get(place);
+    return Optional.ofNullable(code)
+        .map(destinationCode -> new Destination(destinationCode, (String) place));
   }
 
   /** 이번 대답에서 기사가 할 일 */

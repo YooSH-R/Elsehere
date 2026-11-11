@@ -456,7 +456,7 @@ namespace A305.EditorTools.World
 
         // 오락실 2층 서점: 뒷벽 책장 셋과 안내판, 오른쪽 벽 책 선반, 앞 왼쪽 독서 자리, 탁자(기존)와 오른쪽 진열 탁자 위 책,
         // 문 옆 계산대, 뒤 오른쪽 독서 의자
-        // 매장 장면에서는 계단실 칸막이 없이 건물 폭 전체를 쓴다. 문은 앞벽 오른쪽(x 1.15~2.85)이다.
+        // 매장 장면에서는 계단실 칸막이 없이 건물 폭 전체를 쓴다. 문은 마을에서처럼 오른쪽 벽 앞쪽(z -1.95~-0.25)이다.
         private static void Bookshop(Transform space)
         {
             Transform shelves = Zone("Shelves", space);
@@ -493,11 +493,11 @@ namespace A305.EditorTools.World
             Kit("BookSet", table, new Vector3(1.25f, .7f, -4.3f), 30);
             Kit("StandingPicture", table, new Vector3(1.65f, .7f, -4.6f));
 
-            // 문 옆 오른쪽 벽 계산대와 뒤 오른쪽 독서 의자, 문 옆 화분
+            // 문 바로 뒤 오른쪽 벽 계산대, 앞벽 화분, 뒤 오른쪽 독서 의자
             Transform counter = Zone("Counter", space);
             Kit("SmallCabinet", counter, new Vector3(3.45f, 0, -2.8f), -90);
             Treat("BakeryInterior", "CashRegister", counter, new Vector3(3.45f, .7f, -2.85f), -90);
-            Treat("HousePlants", "Monstera", counter, new Vector3(3.4f, 0, -.6f));
+            Treat("HousePlants", "Monstera", counter, new Vector3(.9f, 0, -.55f));
 
             Transform corner = Zone("ReadingCorner", space);
             Kit("RugOvalYellow", corner, new Vector3(2.6f, 0, -6.4f));

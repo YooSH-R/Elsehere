@@ -221,6 +221,7 @@ namespace A305.World.Tests
             Assert.That(
                 BuilderTools
                     .FindAllInScene<Renderer>(shop)
+                    .Where(floor => floor.enabled && floor.gameObject.activeInHierarchy)
                     .Any(floor => floor.bounds.Contains(new Vector3(2, -.05f, -4))),
                 Is.True,
                 "예전 계단실 자리에도 그 층 바닥이 있다."
@@ -236,20 +237,53 @@ namespace A305.World.Tests
             );
         }
 
+        // 마을에서 서점 문은 서점 오른쪽 벽 앞쪽(계단참 쪽)에 있어 서쪽으로 들어간다. 매장 장면에서도 같은 자리·같은 방향이다.
         [Test]
-        public void BookshopScene_DoorIsOnTheFrontWall()
+        public void BookshopScene_DoorIsOnTheRightWallNearTheFrontLikeInTown()
         {
             Scene shop = Open("LittleArcadeUpperInterior");
             SpaceDoorway exit = BuilderTools
                 .FindAllInScene<SpaceDoorway>(shop)
                 .Single(door => door.DoorwayId == "TownDoor");
 
-            Assert.That(exit.transform.position.x, Is.GreaterThan(.5f));
-            Assert.That(exit.transform.position.z, Is.GreaterThan(-.6f), "앞벽(z≈-0.2) 문턱");
+            Assert.That(exit.transform.position.x, Is.GreaterThan(3.3f), "오른쪽 벽(x≈3.8) 문턱");
+            Assert.That(exit.transform.position.z, Is.InRange(-2.2f, -.2f), "앞벽 가까이");
             Assert.That(
-                exit.ArrivalPoint.position.z,
-                Is.LessThan(exit.transform.position.z - 1.5f),
-                "들어오면 앞벽에서 안쪽으로 2m 들어와 선다."
+                exit.ArrivalPoint.position.x,
+                Is.LessThan(exit.transform.position.x - 1.5f),
+                "들어오면 오른쪽 벽에서 안쪽(서쪽)으로 2m 들어와 선다."
+            );
+        }
+
+        // 넓힌 층 사이 판(2층 바닥이자 1층 천장)과 뒷벽 마감은 한 장이라 가운데 이음선이 없다.
+        [TestCase("LittleArcadeInterior", 3.9f)]
+        [TestCase("LittleArcadeUpperInterior", -.1f)]
+        public void ArcadeShopScene_FloorAndBackWallFinishAreOnePiece(
+            string sceneName,
+            float slabHeight
+        )
+        {
+            Scene shop = Open(sceneName);
+            Renderer[] visible = BuilderTools
+                .FindAllInScene<Renderer>(shop)
+                .Where(part => part.enabled && part.gameObject.activeInHierarchy)
+                .ToArray();
+
+            Assert.That(
+                visible.Any(slab =>
+                    slab.bounds.Contains(new Vector3(-2, slabHeight, -4))
+                    && slab.bounds.Contains(new Vector3(2, slabHeight, -4))
+                ),
+                Is.True,
+                "층 사이 판"
+            );
+            Assert.That(
+                visible.Any(wall =>
+                    wall.bounds.Contains(new Vector3(-2, 1.5f, -7.785f))
+                    && wall.bounds.Contains(new Vector3(2, 1.5f, -7.785f))
+                ),
+                Is.True,
+                "뒷벽 마감"
             );
         }
 

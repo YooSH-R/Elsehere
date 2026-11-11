@@ -22,7 +22,10 @@ public class LegalDocumentController {
 
   private final ConsentCatalog consentCatalog;
 
-  /** 버전 없는 주소는 지금 버전 문서로 보낸다. 게임 화면은 이 주소로 연결해, 문서 버전이 바뀌어도 게임을 고치지 않는다. */
+  /**
+   * 버전 없는 주소는 지금 버전 문서로 보낸다. 웹 Nginx는 버전이 붙은 경로(/terms/2026-10)만 백엔드로 넘기므로, 배포한 웹의 게임 화면은 이 주소 대신
+   * 지금 버전 주소를 직접 연다.
+   */
   @GetMapping("/{document:terms|privacy|voice|ai-training}")
   public String currentDocument(@PathVariable String document) {
     return "redirect:"

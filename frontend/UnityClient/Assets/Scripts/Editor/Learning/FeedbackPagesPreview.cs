@@ -243,6 +243,13 @@ namespace A305.EditorTools.Learning
                         1600,
                         1000
                     );
+                    Render(
+                        camera,
+                        view,
+                        Path.Combine(output, $"expressions-mobile-{theme}.png"),
+                        540,
+                        960
+                    );
                     view.SelectSection(FeedbackSection.Conversation);
                     view.SelectReview(0);
                     Render(
@@ -251,6 +258,29 @@ namespace A305.EditorTools.Learning
                         Path.Combine(output, $"ambiguous-{theme}.png"),
                         1600,
                         1000
+                    );
+                    Render(
+                        camera,
+                        view,
+                        Path.Combine(output, $"ambiguous-mobile-{theme}.png"),
+                        540,
+                        960
+                    );
+                    Render(
+                        camera,
+                        view,
+                        Path.Combine(output, $"ambiguous-examples-{theme}.png"),
+                        1600,
+                        1000,
+                        true
+                    );
+                    Render(
+                        camera,
+                        view,
+                        Path.Combine(output, $"ambiguous-examples-mobile-{theme}.png"),
+                        540,
+                        960,
+                        true
                     );
                 }
                 view.SelectReview(1);
@@ -474,7 +504,8 @@ namespace A305.EditorTools.Learning
             FeedbackView view,
             string output,
             int width,
-            int height
+            int height,
+            bool scrollToBottom = false
         )
         {
             var target = new RenderTexture(width, height, 24);
@@ -485,9 +516,20 @@ namespace A305.EditorTools.Learning
             Canvas.ForceUpdateCanvases();
             view.UpdateLayout();
             Canvas.ForceUpdateCanvases();
+            if (scrollToBottom)
+            {
+                view.GetComponentInChildren<UnityEngine.UI.ScrollRect>().verticalNormalizedPosition =
+                    0;
+                Canvas.ForceUpdateCanvases();
+            }
             foreach (TMPro.TMP_Text text in view.GetComponentsInChildren<TMPro.TMP_Text>())
             {
-                if (text.name != "Utterance" && text.transform.parent.name != "DetailCard")
+                if (
+                    text.name != "Utterance"
+                    && text.transform.parent.name != "DetailCard"
+                    && text.transform.parent.name != "ExpressionExample"
+                    && text.transform.parent.name != "CorrectionCard"
+                )
                     continue;
                 text.ForceMeshUpdate();
                 if (text.isTextOverflowing)

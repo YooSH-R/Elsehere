@@ -453,6 +453,87 @@ namespace A305.Learning
                         cardWidth,
                         CardHeight(root, fontSource, reason, cardWidth)
                     ) + Gap;
+            foreach (FeedbackExpressionExample example in card.Examples)
+            {
+                float room = cardWidth - 112;
+                float conditionHeight = TextHeight(
+                    root,
+                    fontSource,
+                    example.ConditionKo,
+                    room,
+                    displayFont,
+                    26
+                );
+                float englishHeight = TextHeight(
+                    root,
+                    fontSource,
+                    example.Expression,
+                    room,
+                    displayFont,
+                    32
+                );
+                float meaningHeight = TextHeight(
+                    root,
+                    fontSource,
+                    example.MeaningKo,
+                    room,
+                    null,
+                    FontSize
+                );
+                float englishY = 38 + conditionHeight + 20;
+                float meaningY = englishY + englishHeight + 16;
+                // FeedbackTile 아래의 투명 그림자 여백까지 확보해 뜻이 흰 카드 밖으로 내려가지 않게 한다.
+                float height = meaningY + meaningHeight + 78;
+                Image tile = Tile(
+                    root,
+                    "ExpressionExample",
+                    tileSprite,
+                    Color.white,
+                    Margin,
+                    y,
+                    cardWidth,
+                    height
+                );
+                Label(
+                    tile.rectTransform,
+                    fontSource,
+                    "Condition",
+                    example.ConditionKo,
+                    26,
+                    Coral,
+                    56,
+                    38,
+                    room,
+                    conditionHeight + 8,
+                    displayFont
+                );
+                Label(
+                    tile.rectTransform,
+                    fontSource,
+                    "Expression",
+                    example.Expression,
+                    32,
+                    Ink,
+                    56,
+                    englishY,
+                    room,
+                    englishHeight + 8,
+                    displayFont
+                );
+                Label(
+                    tile.rectTransform,
+                    fontSource,
+                    "Meaning",
+                    example.MeaningKo,
+                    FontSize,
+                    Muted,
+                    56,
+                    meaningY,
+                    room,
+                    meaningHeight + 8
+                );
+                y += height + Gap;
+            }
             if (review.Idiom != null)
             {
                 string english = review.Idiom.English ?? "";
@@ -530,15 +611,19 @@ namespace A305.Learning
         // 이유 칸의 제목과 글. 한국어로 한 말에는 "자연스럽게 전달됐다"는 칭찬을 붙이지 않고, 이유가 없으면 칸을 두지 않는다.
         private static (string Label, string Text) ReasonOf(CorrectionCard card)
         {
-            bool hasReason = !string.IsNullOrWhiteSpace(card.Reason);
+            string reason = card.AssessmentReason;
+            if (!string.IsNullOrWhiteSpace(card.BetterMeaning))
+                reason =
+                    card.BetterMeaning + (string.IsNullOrWhiteSpace(reason) ? "" : "\n\n" + reason);
+            bool hasReason = !string.IsNullOrWhiteSpace(reason);
             if (card.Better != null)
-                return ("이 표현을 쓰는 이유", hasReason ? card.Reason : NoCorrectionReason);
+                return ("이 표현을 쓰는 이유", hasReason ? reason : NoCorrectionReason);
             if (
                 card.Kind == CorrectionKind.Korean
                 || card.Kind == CorrectionKind.ExpressionPractice
             )
-                return ("설명", hasReason ? card.Reason : null);
-            return ("자연스러웠던 점", hasReason ? card.Reason : NoCorrectionReason);
+                return ("설명", hasReason ? reason : null);
+            return ("자연스러웠던 점", hasReason ? reason : NoCorrectionReason);
         }
 
         private static float TextHeight(

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using A305.Dialogue;
 
 namespace A305.Learning
 {
@@ -33,6 +34,33 @@ namespace A305.Learning
             Reason = review.Explanation;
             Kind = KindOf(review);
             Better = review.HasAlternative ? review.Reference.English : null;
+            AssessmentReason = review.AssessmentReason;
+            BetterMeaning = review.HasAlternative ? review.Reference.Korean : null;
+            var examples = new List<FeedbackExpressionExample>();
+            if (review.ExpressionExamples != null)
+            {
+                foreach (FeedbackExpressionExample example in review.ExpressionExamples)
+                {
+                    if (string.IsNullOrWhiteSpace(example?.Expression))
+                        continue;
+                    if (
+                        Better != null
+                        && UtteranceReview.SameSpokenText(Better, example.Expression)
+                    )
+                    {
+                        BetterMeaning = example.MeaningKo;
+                        continue;
+                    }
+                    if (
+                        examples.Exists(shown =>
+                            UtteranceReview.SameSpokenText(shown.Expression, example.Expression)
+                        )
+                    )
+                        continue;
+                    examples.Add(example);
+                }
+            }
+            Examples = examples;
         }
 
         private static CorrectionKind KindOf(UtteranceReview review)
@@ -97,6 +125,10 @@ namespace A305.Learning
 
         /// <summary>AI가 쓴 이유. 없으면 비어 있다.</summary>
         public string Reason { get; }
+
+        public string AssessmentReason { get; }
+        public string BetterMeaning { get; }
+        public IReadOnlyList<FeedbackExpressionExample> Examples { get; }
 
         /// <summary>[담기]로 단어장에 담을 영어 문장이 있는지</summary>
         public bool CanSave => Better != null;

@@ -658,15 +658,26 @@ namespace A305.Learning
                 Button pick = card.Find("SaveButton").GetComponent<Button>();
                 pick.gameObject.SetActive(isSaveAvailable);
                 string english = model.Better;
-                pick.onClick.AddListener(() => SaveRequested?.Invoke(english, ""));
+                var examplePicks = new List<(FeedbackExpressionExample Example, Button Pick)>();
                 float height = FeedbackCardsLayout.Correction(
                     card,
                     model,
                     width,
                     SaidChip(model.Kind),
                     model.Kind == CorrectionKind.Korean ? englishChipSprite : betterChipSprite,
-                    pickSprite
+                    pickSprite,
+                    examplePicks
                 );
+                pick.onClick.AddListener(() =>
+                    SaveRequested?.Invoke(english, model.BetterMeaning ?? "")
+                );
+                foreach (var (example, examplePick) in examplePicks)
+                {
+                    examplePick.onClick.AddListener(() =>
+                        SaveRequested?.Invoke(example.Expression, example.MeaningKo ?? "")
+                    );
+                    RegisterPick(example.Expression, examplePick);
+                }
                 PlaceAt(card, y);
                 if (pick.gameObject.activeSelf)
                     RegisterPick(english, pick);

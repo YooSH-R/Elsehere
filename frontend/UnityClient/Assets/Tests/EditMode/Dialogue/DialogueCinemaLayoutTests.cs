@@ -137,64 +137,112 @@ namespace A305.Dialogue.Tests
             Assert.That(layout.Name.yMin, Is.GreaterThanOrEqualTo(layout.Lines.yMax));
         }
 
-        // 한국어로 길게 말하면 영어 표현도 길어진다. 카드를 문장에 맞춰 키워 두 번째 줄부터 잘리지 않게 한다.
+        // 영어 표현 카드는 내용만큼만 차지하고, 대사 칸 위쪽에 맞춰 붙는다(S15P31A305-862).
         [Test]
-        [TestCase(1920, 1080)]
-        [TestCase(900, 1400)]
-        public void LongTranslation_GrowsTheCardAndKeepsTheNameAboveIt(float width, float height)
-        {
-            DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
-                new Vector2(width, height),
-                linesHeight: 100,
-                nameWidth: 120,
-                hasTranslation: true,
-                translationHeight: 260
-            );
-
-            Assert.That(layout.Translation.height, Is.EqualTo(260).Within(.01f));
-            Assert.That(layout.Name.yMin, Is.GreaterThan(layout.Translation.yMax));
-            Assert.That(layout.Height, Is.LessThanOrEqualTo(height + .1f));
-        }
-
-        [Test]
-        public void ShortTranslation_KeepsTheApprovedCardHeight()
+        public void ShortCard_ShrinksToItsContent_AtTheTopOfTheLines()
         {
             DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
                 Wide,
-                linesHeight: 100,
+                linesHeight: 300,
                 nameWidth: 120,
                 hasTranslation: true,
-                translationHeight: 90
+                translationHeight: 130
+            );
+
+            Assert.That(layout.Translation.height, Is.EqualTo(130).Within(.01f));
+            Assert.That(layout.Translation.yMax, Is.EqualTo(layout.Lines.yMax).Within(.01f));
+        }
+
+        // 카드가 길어지거나 다른 표현을 펼쳐도 대사 칸 높이까지만 커지고, 대화창은 그대로다. 넘치면 카드 안에서 스크롤한다.
+        [Test]
+        [TestCase(300f, 500f)]
+        [TestCase(300f, 2000f)]
+        [TestCase(600f, 900f)]
+        public void TallCard_StopsAtTheLinesHeight_WithoutGrowingTheDialogue(
+            float linesHeight,
+            float cardHeight
+        )
+        {
+            DialogueCinemaLayout without = DialogueCinemaLayout.Compute(
+                Wide,
+                linesHeight,
+                120,
+                hasTranslation: true,
+                translationHeight: 130
+            );
+            DialogueCinemaLayout tall = DialogueCinemaLayout.Compute(
+                Wide,
+                linesHeight,
+                120,
+                hasTranslation: true,
+                translationHeight: cardHeight
+            );
+
+            Assert.That(tall.Translation.height, Is.EqualTo(tall.Lines.height).Within(.01f));
+            Assert.That(tall.Translation.yMin, Is.EqualTo(tall.Lines.yMin).Within(.01f));
+            Assert.That(tall.Height, Is.EqualTo(without.Height).Within(.01f));
+            Assert.That(tall.Name.yMin, Is.EqualTo(without.Name.yMin).Within(.01f));
+        }
+
+        // 대사가 아주 짧으면 카드 칸을 기본 높이만큼 두어 제목 줄·한 줄 문장·[더 보기]가 보이게 한다.
+        // 칸 높이는 카드 내용과 상관없어, 짧은 카드든 긴 카드든 대화창 높이가 같다.
+        [Test]
+        public void CardOnVeryShortLines_GetsTheDefaultRoom_WhateverItsContent()
+        {
+            DialogueCinemaLayout tall = DialogueCinemaLayout.Compute(
+                Wide,
+                linesHeight: 40,
+                nameWidth: 120,
+                hasTranslation: true,
+                translationHeight: 300
+            );
+            DialogueCinemaLayout small = DialogueCinemaLayout.Compute(
+                Wide,
+                linesHeight: 40,
+                nameWidth: 120,
+                hasTranslation: true,
+                translationHeight: 130
             );
 
             Assert.That(
-                layout.Translation.height,
+                tall.Translation.height,
                 Is.EqualTo(DialogueCinemaLayout.TranslationHeight).Within(.01f)
             );
+            Assert.That(small.Translation.height, Is.EqualTo(130).Within(.01f));
+            Assert.That(small.Height, Is.EqualTo(tall.Height).Within(.01f));
+            Assert.That(tall.Name.yMin, Is.GreaterThan(tall.Translation.yMax));
         }
 
-        // 아주 긴 표현은 화면을 다 덮지 않게 상한까지만 키우고 나머지는 카드 안에서 스크롤한다.
+        // 좁은 화면에서는 카드가 대사 위의 정한 높이 칸에 쌓인다. 펼치거나 길어져도 칸보다 커지지 않아 대화창이 늘지 않는다.
         [Test]
-        [TestCase(1920, 1080)]
-        [TestCase(1920, 600)]
+        [TestCase(900, 1400)]
         [TestCase(900, 850)]
-        public void VeryLongTranslation_StopsAtALimitWithinTheCanvas(float width, float height)
+        public void StackedCard_StaysInAFixedRoom_WithinTheCanvas(float width, float height)
         {
-            DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
+            DialogueCinemaLayout tall = DialogueCinemaLayout.Compute(
                 new Vector2(width, height),
                 linesHeight: 100,
                 nameWidth: 120,
                 hasTranslation: true,
                 translationHeight: 2000
             );
+            DialogueCinemaLayout small = DialogueCinemaLayout.Compute(
+                new Vector2(width, height),
+                linesHeight: 100,
+                nameWidth: 120,
+                hasTranslation: true,
+                translationHeight: 130
+            );
 
             Assert.That(
-                layout.Translation.height,
-                Is.LessThanOrEqualTo(DialogueCinemaLayout.MaxTranslationHeight)
+                tall.Translation.height,
+                Is.EqualTo(DialogueCinemaLayout.TranslationHeight).Within(.01f)
             );
-            Assert.That(layout.Translation.height, Is.GreaterThan(0));
-            Assert.That(layout.Height, Is.LessThanOrEqualTo(height + .1f));
-            Assert.That(layout.Name.yMin, Is.GreaterThan(layout.Translation.yMax));
+            Assert.That(small.Translation.height, Is.EqualTo(130).Within(.01f));
+            Assert.That(small.Height, Is.EqualTo(tall.Height).Within(.01f));
+            Assert.That(tall.Translation.yMin, Is.GreaterThan(tall.Lines.yMax));
+            Assert.That(tall.Name.yMin, Is.GreaterThan(tall.Translation.yMax));
+            Assert.That(tall.Height, Is.LessThanOrEqualTo(height + .1f));
         }
 
         [Test]

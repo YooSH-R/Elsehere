@@ -125,7 +125,7 @@ namespace A305.Dialogue
         public string Text { get; set; }
         public UserTranslationData Translation { get; set; }
 
-        /// <summary>틀리진 않았지만 어색하거나 짧은 영어에 서버가 준 같은 뜻의 더 좋은 문장(최대 3개). 없으면 빈 목록이거나 null이다.</summary>
+        /// <summary>서버가 준 학습자가 한 말과 같은 뜻의 다른 표현(최대 3개). 고친 문장이 있어도 온다. 없으면 빈 목록이거나 null이다.</summary>
         public List<string> BetterExpressions { get; set; }
     }
 

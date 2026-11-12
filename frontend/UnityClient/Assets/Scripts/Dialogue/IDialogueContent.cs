@@ -14,8 +14,8 @@ namespace A305.Dialogue
         string UserTranslation { get; }
 
         /// <summary>
-        /// 틀리진 않았지만 어색하거나 짧은 학습자 영어에 쓸 같은 뜻의 더 좋은 문장(최대 3개). 영어 표현(<see cref="UserTranslation"/>)이
-        /// 없을 때만 카드에 '이럴 때 쓰면 좋아요!'로 보인다. 서버 대화만 주며, 없으면 null이다.
+        /// 학습자가 한 말과 같은 뜻의 다른 표현(최대 3개). 고친 문장·영어 번역(<see cref="UserTranslation"/>)이 있어도
+        /// 카드 아래 [다른 표현 N개 더 보기]에 접어 둔다. 서버 대화만 주며, 없으면 null이다.
         /// </summary>
         IReadOnlyList<string> UserBetterExpressions => null;
         IReadOnlyList<DialogueLine> Lines { get; }

@@ -109,6 +109,96 @@ namespace A305.Learning.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator ConditionalExamples_UseSentenceStyleAndSaveTheSelectedMeaning()
+        {
+            instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
+            view = instance.GetComponentInChildren<FeedbackView>(true);
+            var examples = new List<FeedbackExpressionExample>
+            {
+                new FeedbackExpressionExample
+                {
+                    ConditionKo = "호텔에서 우산을 빌리고 싶을 때",
+                    Expression = "Could I borrow an umbrella, please?",
+                    MeaningKo = "우산을 빌릴 수 있을까요?",
+                },
+                new FeedbackExpressionExample
+                {
+                    ConditionKo = "우산을 살 수 있는 곳을 물을 때",
+                    Expression = "Where can I buy an umbrella?",
+                    MeaningKo = "우산을 어디에서 살 수 있나요?",
+                },
+            };
+            var saved = new List<KeyValuePair<string, string>>();
+            view.SaveRequested += (english, meaning) =>
+                saved.Add(new KeyValuePair<string, string>(english, meaning));
+            view.Show(
+                ConversationFeedback.FromServer(
+                    "Jake",
+                    1,
+                    new ServerFeedback(
+                        new FeedbackData { Status = "DONE" },
+                        new List<DetailedFeedbackItem>
+                        {
+                            new DetailedFeedbackItem
+                            {
+                                UserText = "umbrella please",
+                                Verdict = "needs_clarification",
+                                Reason = "빌릴지 판매처를 물을지 분명하게 말해 보세요.",
+                                ExpressionExamples = examples,
+                            },
+                        },
+                        null
+                    )
+                ),
+                new[] { DialogueLine.FromUser("umbrella please") }
+            );
+            view.SelectSection(FeedbackSection.Corrections);
+            yield return null;
+            yield return null;
+
+            TMP_Text template = Field<RectTransform>("correctionCardTemplate")
+                .Find("Better")
+                .GetComponent<TMP_Text>();
+            foreach (FeedbackExpressionExample example in examples)
+            {
+                TMP_Text[] shown = instance.GetComponentsInChildren<TMP_Text>();
+                TMP_Text english = shown.SingleOrDefault(text => text.text == example.Expression);
+                Assert.That(english, Is.Not.Null, "영어 예문을 회색 설명 본문에 합치지 않습니다.");
+                Assert.That(english.font, Is.EqualTo(template.font));
+                Assert.That(english.fontSize, Is.EqualTo(template.fontSize).Within(.01f));
+                Assert.That(shown.Any(text => text.text == example.MeaningKo), Is.True);
+            }
+            Button[] picks = instance
+                .GetComponentsInChildren<Button>()
+                .Where(button => button.name == "SaveButton" && button.isActiveAndEnabled)
+                .OrderByDescending(button => button.transform.position.y)
+                .ToArray();
+            Assert.That(picks, Has.Length.EqualTo(2));
+            picks[0].onClick.Invoke();
+            Assert.That(saved, Has.Count.EqualTo(1));
+            Assert.That(saved[0].Key, Is.EqualTo(examples[0].Expression));
+            Assert.That(saved[0].Value, Is.EqualTo(examples[0].MeaningKo));
+
+            view.SelectSection(FeedbackSection.Conversation);
+            view.SelectReview(0);
+            yield return null;
+            yield return null;
+            foreach (FeedbackExpressionExample example in examples)
+            {
+                TMP_Text english = instance
+                    .GetComponentsInChildren<TMP_Text>()
+                    .SingleOrDefault(text => text.text == example.Expression);
+                Assert.That(
+                    english,
+                    Is.Not.Null,
+                    "전체 대화의 발화 피드백에서도 예문을 분리합니다."
+                );
+                Assert.That(english.font, Is.EqualTo(template.font));
+                Assert.That(english.fontSize, Is.GreaterThanOrEqualTo(template.fontSize - 1));
+            }
+        }
+
+        [UnityTest]
         public IEnumerator ManySituations_AllRemainInTheScrollableContent()
         {
             yield return Show(situationCount: 5, summary: Summary);

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using A305.Dialogue;
 using A305.EditorTools.Common;
 using A305.EditorTools.Theme;
@@ -205,7 +206,7 @@ namespace A305.EditorTools.Learning
                 view.ToggleExpanded();
             if (expressionGuidance)
             {
-                feedback = ExpressionGuidanceFeedback();
+                feedback = ExpressionGuidanceFeedback(0);
                 view.Show(feedback, new DialogueLine[0]);
                 foreach (
                     UiThemeId theme in new[] { UiThemeId.Jelly, UiThemeId.Sticker, UiThemeId.Cloud }
@@ -224,6 +225,13 @@ namespace A305.EditorTools.Learning
                         1600,
                         1000
                     );
+                    Render(
+                        camera,
+                        view,
+                        Path.Combine(output, $"expressions-mobile-{theme}.png"),
+                        540,
+                        960
+                    );
                     view.SelectSection(FeedbackSection.Conversation);
                     view.SelectReview(0);
                     Render(
@@ -233,7 +241,40 @@ namespace A305.EditorTools.Learning
                         1600,
                         1000
                     );
+                    Render(
+                        camera,
+                        view,
+                        Path.Combine(output, $"ambiguous-mobile-{theme}.png"),
+                        540,
+                        960
+                    );
+                    Render(
+                        camera,
+                        view,
+                        Path.Combine(output, $"ambiguous-examples-{theme}.png"),
+                        1600,
+                        1000,
+                        true
+                    );
+                    Render(
+                        camera,
+                        view,
+                        Path.Combine(output, $"ambiguous-examples-mobile-{theme}.png"),
+                        540,
+                        960,
+                        true
+                    );
                 }
+                view.Show(ExpressionGuidanceFeedback(), new DialogueLine[0]);
+                view.SelectSection(FeedbackSection.Corrections);
+                Render(
+                    camera,
+                    view,
+                    Path.Combine(output, "expressions-list-desktop.png"),
+                    1600,
+                    1000
+                );
+                view.SelectSection(FeedbackSection.Conversation);
                 view.SelectReview(1);
                 Render(camera, view, Path.Combine(output, "word-list-desktop.png"), 1600, 1000);
                 Render(camera, view, Path.Combine(output, "word-list-mobile.png"), 540, 960);
@@ -368,10 +409,10 @@ namespace A305.EditorTools.Learning
             );
         }
 
-        private static ConversationFeedback ExpressionGuidanceFeedback() =>
+        private static ConversationFeedback ExpressionGuidanceFeedback(int? reviewIndex = null) =>
             ConversationFeedback.FromServer(
                 "Mia",
-                2,
+                reviewIndex.HasValue ? 1 : 3,
                 new ServerFeedback(
                     new FeedbackData { Status = "DONE", Summary = "표현 연습용 가상 대화예요." },
                     new List<DetailedFeedbackItem>
@@ -445,7 +486,9 @@ namespace A305.EditorTools.Learning
                                 },
                             },
                         },
-                    },
+                    }
+                        .Where((_, index) => !reviewIndex.HasValue || index == reviewIndex.Value)
+                        .ToList(),
                     null
                 )
             );
@@ -620,7 +663,8 @@ namespace A305.EditorTools.Learning
             FeedbackView view,
             string output,
             int width,
-            int height
+            int height,
+            bool scrollToBottom = false
         )
         {
             var target = new RenderTexture(width, height, 24);
@@ -631,9 +675,20 @@ namespace A305.EditorTools.Learning
             Canvas.ForceUpdateCanvases();
             view.UpdateLayout();
             Canvas.ForceUpdateCanvases();
+            if (scrollToBottom)
+            {
+                view.GetComponentInChildren<UnityEngine.UI.ScrollRect>().verticalNormalizedPosition =
+                    0;
+                Canvas.ForceUpdateCanvases();
+            }
             foreach (TMPro.TMP_Text text in view.GetComponentsInChildren<TMPro.TMP_Text>())
             {
-                if (text.name != "Utterance" && text.transform.parent.name != "DetailCard")
+                if (
+                    text.name != "Utterance"
+                    && text.transform.parent.name != "DetailCard"
+                    && text.transform.parent.name != "ExpressionExample"
+                    && text.transform.parent.name != "CorrectionCard"
+                )
                     continue;
                 text.ForceMeshUpdate();
                 if (text.isTextOverflowing)

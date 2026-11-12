@@ -514,7 +514,7 @@ namespace A305.EditorTools.Npc
             float centerX = hips.x;
             float bottom = bounds.min.y + height * .155f;
             float waist = hips.y + height * .01f;
-            float top = bones[3].position.y + height * .025f;
+            float top = bones[3].position.y + height * .045f;
             float halfWidth = height * .092f;
             Vector3 neck =
                 Quaternion.Inverse(facing)

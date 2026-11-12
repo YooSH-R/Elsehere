@@ -424,9 +424,13 @@ namespace A305.Tutorial
         // 내용이 바뀔 때만 다시 그린다.
         private void RefreshCard()
         {
-            // 대화·제안·대화 노트·단어장이 할 일 카드를 가리는 동안에는 [건너뛰기]만 남긴 작은 카드를 맨 위에 둔다.
-            // 대화처럼 안내 카드가 없는 단계는 가장 가까운 앞 단계의 이름을 쓴다.
-            bool isCovered = dialogue.IsTalking || offerView.IsShowing || learning.IsShowingScreen;
+            // 대화·제안·대화 피드백·단어장·휴대폰이 할 일 카드를 가리는 동안에는 [건너뛰기]만 남긴 작은 카드를 맨 위에 두고,
+            // 할 일은 코치 마크 설명으로 알린다. 대화처럼 안내 카드가 없는 단계는 가장 가까운 앞 단계의 이름을 쓴다.
+            bool isCovered =
+                dialogue.IsTalking
+                || offerView.IsShowing
+                || learning.IsShowingScreen
+                || hudMenu.IsOpen;
             if (
                 isCovered
                 && progress.IsGuiding
@@ -571,7 +575,13 @@ namespace A305.Tutorial
                         caption,
                         next: TutorialCoachPlan.IsTour(target)
                             ? () => ContinueTour(target)
-                            : (System.Action)null
+                            : (System.Action)null,
+                        // 대사를 말하는 동안에는 오른쪽 [힌트]도 눌러야 하므로 둘레를 덮지 않고 테두리만 둔다.
+                        dimOutside: target != TutorialCoachTarget.GuidedLine,
+                        captionSide: CaptionSide(target),
+                        // 호감도와 할 대사 설명은 대사 칸 왼쪽 위에 두어 가운데 서 있는 Ben 얼굴을 가리지 않는다.
+                        captionAlignLeft: target == TutorialCoachTarget.DialogueRelationship
+                            || target == TutorialCoachTarget.GuidedLine
                     );
                     break;
             }
@@ -656,12 +666,14 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.DialogueRelationship:
                     return dialoguePanel.RelationshipParts;
                 case TutorialCoachTarget.GuidedLine:
-                    // 대사를 읽으며 말해야 하므로 대사 칸도 함께 밝혀, 둘레를 덮어도 대사가 그대로 보이게 한다.
+                    // 대사를 읽으며 말해야 하므로 대사 칸과 입력 줄을 한 테두리로 묶는다. 오른쪽 [힌트]는 담지 않는다.
                     var parts = new List<RectTransform>(dialoguePanel.DialogueLinesParts);
                     parts.AddRange(dialoguePanel.GuidedLineParts);
                     return parts;
                 case TutorialCoachTarget.SuggestedWords:
                     return new[] { dialoguePanel.SuggestedWordsRect };
+                case TutorialCoachTarget.SuggestedSentence:
+                    return new[] { dialoguePanel.SuggestedSentenceRect };
                 case TutorialCoachTarget.DialogueEnd:
                     return new[] { dialoguePanel.EndButtonRect };
                 // 탭을 누르면 바뀌는 결과 칸도 함께 밝혀 무엇이 달라지는지 보이게 한다.
@@ -700,6 +712,10 @@ namespace A305.Tutorial
                     return guide.DialogueToolsCaption;
                 case TutorialCoachTarget.SuggestedWords:
                     return guide.SuggestedWordsCaption;
+                case TutorialCoachTarget.SuggestedSentence:
+                    return guide.SuggestedSentenceCaption;
+                case TutorialCoachTarget.VocabularyButton:
+                    return guide.VocabularyButtonCaption;
                 case TutorialCoachTarget.GuidedLine:
                     string notice = dialogue.IsGuidedLineMissed
                         ? guide.GuidedLineMissCaption
@@ -715,6 +731,25 @@ namespace A305.Tutorial
                     return guide.FeedbackPagesCaption;
                 case TutorialCoachTarget.FeedbackClose:
                     return guide.FeedbackCloseCaption;
+                default:
+                    return null;
+            }
+        }
+
+        // 대화창의 이름 줄·도구 줄·대사 칸처럼 옆에 다른 버튼이 늘어선 곳은 설명을 위에 두고,
+        // 대화 피드백 창을 밝히는 티칭과 닫기 버튼은 설명을 창 아래쪽 넓은 자리에 두어 탭과 제목을 가리지 않는다.
+        private static CoachMarkLayout.BubbleSide? CaptionSide(TutorialCoachTarget target)
+        {
+            switch (target)
+            {
+                case TutorialCoachTarget.DialogueTools:
+                case TutorialCoachTarget.DialogueRelationship:
+                case TutorialCoachTarget.GuidedLine:
+                    return CoachMarkLayout.BubbleSide.Above;
+                case TutorialCoachTarget.FeedbackSections:
+                case TutorialCoachTarget.FeedbackPages:
+                case TutorialCoachTarget.FeedbackClose:
+                    return CoachMarkLayout.BubbleSide.Below;
                 default:
                     return null;
             }

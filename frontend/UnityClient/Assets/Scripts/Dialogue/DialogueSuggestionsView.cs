@@ -36,6 +36,9 @@ namespace A305.Dialogue
         public event Action SentenceSelected;
         public RectTransform WordsRect => wordsCard;
 
+        /// <summary>추천 문장 카드. [힌트]가 이 안에 있다.</summary>
+        public RectTransform HintRect => hintCard;
+
         private void Awake()
         {
             hideButton.onClick.AddListener(() => HideRequested?.Invoke());

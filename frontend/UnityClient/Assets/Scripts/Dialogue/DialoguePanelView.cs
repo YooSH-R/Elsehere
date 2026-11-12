@@ -366,7 +366,8 @@ namespace A305.Dialogue
             new[] { LinesRect, npcNameText.rectTransform };
 
         /// <summary>
-        /// 정해진 대사를 말하거나 입력하는 입력칸·[보내기]·[예시 문장]·[말하기]. 튜토리얼 코치 마크가 한 구멍으로 밝힌다.
+        /// 정해진 대사를 말하거나 입력하는 입력칸·[보내기]·[말하기]. 튜토리얼 코치 마크가 한 구멍으로 밝힌다.
+        /// [힌트]는 오른쪽 추천 문장 카드에 있어 함께 담으면 구멍이 화면 반을 덮으므로 넣지 않는다.
         /// </summary>
         public IReadOnlyList<RectTransform> GuidedLineParts
         {
@@ -376,7 +377,6 @@ namespace A305.Dialogue
                 {
                     (RectTransform)inputField.transform,
                     (RectTransform)sendButton.transform,
-                    (RectTransform)hintButton.transform,
                 };
                 if (talkButton.gameObject.activeSelf)
                 {
@@ -390,13 +390,13 @@ namespace A305.Dialogue
         /// <summary>주고받은 대사 칸. 튜토리얼 코치 마크가 대화 시작 티칭에서 밝힌다.</summary>
         public RectTransform LinesRect => (RectTransform)historyScroll.transform;
 
-        /// <summary>[뜻]·[힌트]·확인용 [예시 문장] 중 보이는 버튼.</summary>
+        /// <summary>대화창 도구 줄의 [자막 켜기]·[다시 듣기]·[뜻] 중 보이는 버튼.</summary>
         public IReadOnlyList<RectTransform> ToolParts
         {
             get
             {
                 var parts = new List<RectTransform>();
-                foreach (Button button in new[] { meaningButton, hintButton, exampleButton })
+                foreach (Button button in new[] { subtitleButton, replayButton, meaningButton })
                 {
                     if (button.gameObject.activeSelf)
                     {
@@ -413,6 +413,10 @@ namespace A305.Dialogue
             suggestions != null && reviewReference == null
                 ? suggestions.WordsRect
                 : (RectTransform)suggestText.transform.parent;
+
+        /// <summary>오른쪽 추천 문장 카드와 그 안의 [힌트]. 튜토리얼 코치 마크가 밝힌다.</summary>
+        public RectTransform SuggestedSentenceRect =>
+            suggestions != null ? suggestions.HintRect : (RectTransform)hintButton.transform;
 
         /// <summary>NPC 이름과 표시 중인 호감도·무례 경고를 함께 밝힌다.</summary>
         public IReadOnlyList<RectTransform> RelationshipParts =>

@@ -483,6 +483,45 @@ namespace A305.Tutorial.PlayModeTests
             Assert.That(coachMark.IsSpotlightShowing, Is.True, "단어장 창을 밝힙니다.");
             Assert.That(coachMark.CaptionText, Does.Contain("단어장"));
             Assert.That(coachMark.CaptionText, Does.Contain("밖으로"));
+            // 단어장 창은 위쪽 [건너뛰기] 카드 아래까지만 써서 창 제목 줄이 카드에 덮이지 않는다.
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            Assert.That(
+                ScreenRectOf(Single<TutorialGuideView>().PanelRect)
+                    .Overlaps(ScreenRectOf(Single<LearningController>().VocabularyPanelRect)),
+                Is.False,
+                "[건너뛰기] 카드가 단어장 창을 덮습니다."
+            );
+        }
+
+        [UnityTest]
+        public IEnumerator OpenVocabulary_WithThePhoneOpen_LeavesOnlyTheSkipCard_AndPointsAtTheApp()
+        {
+            // 휴대폰은 안내 카드보다 위에 그려져 카드를 가린다. 휴대폰을 연 동안에는 [건너뛰기]만 남긴 작은 카드를 두고,
+            // [단어장] 앱 옆 말풍선으로 할 일을 알린다.
+            yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
+            yield return null;
+            TutorialProgress progress = TutorialState.GetOrCreate(BenCode);
+            progress.Continue();
+            progress.Report(TutorialAction.Walk);
+            progress.Report(TutorialAction.Run);
+            progress.Report(TutorialAction.Jump);
+            progress.Continue();
+            progress.Report(TutorialAction.Rotate);
+            progress.Report(TutorialAction.Zoom);
+            progress.Report(TutorialAction.ToggleView);
+            progress.Continue();
+            progress.ReportWordSaved();
+            HudMenuView menu = Single<HudMenuView>();
+            menu.MenuButtonRect.GetComponent<Button>().onClick.Invoke();
+            yield return null;
+            yield return null;
+            Assert.That(menu.IsOpen, Is.True, "준비: 휴대폰");
+
+            Assert.That(Single<TutorialGuideView>().IsSkipOnly, Is.True);
+            CoachMarkView coachMark = Single<CoachMarkView>();
+            Assert.That(coachMark.IsSpotlightShowing, Is.True, "[단어장] 앱을 밝힙니다.");
+            Assert.That(coachMark.CaptionText, Does.Contain("단어장"));
         }
 
         [UnityTest]
@@ -612,6 +651,7 @@ namespace A305.Tutorial.PlayModeTests
                 new[] { panel.LinesRect, npcName },
                 panel.ToolParts.ToArray(),
                 new[] { panel.SuggestedWordsRect },
+                new[] { panel.SuggestedSentenceRect },
             };
             foreach (RectTransform[] targets in tour)
             {
@@ -641,18 +681,31 @@ namespace A305.Tutorial.PlayModeTests
                 Does.Contain(npcName),
                 "화자 이름도 밝힌 곳 안에 두어 Ben이 가려지지 않습니다."
             );
-            Assert.That(
-                coachMark.IsDimmingOutside,
-                Is.True,
-                "말풍선이 눈에 띄게 둘레를 어둡게 덮습니다."
-            );
+            // 오른쪽 추천 문장 카드의 [힌트]도 눌러야 하므로 둘레를 덮지 않고 대사 칸·입력 줄에 테두리만 둔다.
+            // [힌트]까지 한 구멍에 담으면 구멍이 화면 반을 덮어 [힌트]는 밝힌 곳에 넣지 않는다.
+            Assert.That(coachMark.IsDimmingOutside, Is.False);
             Assert.That(coachMark.IsNextShowing, Is.False);
             Assert.That(coachMark.CaptionText, Does.Contain("정해진 흐름"));
             Assert.That(coachMark.CaptionRect.Overlaps(coachMark.Hole), Is.False);
+            Assert.That(
+                coachMark.CaptionRect.yMin,
+                Is.GreaterThanOrEqualTo(coachMark.Hole.yMax),
+                "할 대사 설명은 대사 칸 위에 두어 대사와 Ben 이름을 가리지 않습니다."
+            );
+            Assert.That(
+                coachMark.CaptionRect.xMin,
+                Is.EqualTo(coachMark.Hole.xMin).Within(1f),
+                "할 대사 설명은 대사 칸 왼쪽 위에 두어 가운데 서 있는 Ben 얼굴을 가리지 않습니다."
+            );
             Button hint = panel
                 .GetComponentsInChildren<Button>(true)
                 .Single(button => button.name == "HintButton");
-            Assert.That(coachMark.SpotlightTargets, Does.Contain(hint.transform));
+            // Transform은 자식 목록으로 비교되므로 참조로 확인한다.
+            Assert.That(
+                coachMark.SpotlightTargets.Any(target => target == hint.transform),
+                Is.False,
+                "[힌트]는 앞선 추천 문장 티칭에서 설명하므로 할 대사 구멍에 넣지 않습니다."
+            );
 
             Assert.That(input.text, Is.Empty);
             ClickAtScreenCenter(hint);
@@ -665,6 +718,19 @@ namespace A305.Tutorial.PlayModeTests
             Assert.That(coachMark.CaptionText, Does.Contain("호감도"));
             Assert.That(coachMark.CaptionText, Does.Contain("무례"));
             Assert.That(coachMark.CaptionText, Does.Contain("저장"));
+            // 호감도 설명은 이름 줄 위에 두어 같은 줄의 [자막 켜기]·[다시 듣기]·[뜻]·[대화 종료]를 가리지 않는다.
+            Canvas.ForceUpdateCanvases();
+            Rect relationshipCaption = ScreenRectOf(
+                (RectTransform)coachMark.transform.Find("Caption")
+            );
+            foreach (RectTransform tool in panel.ToolParts.Append(panel.EndButtonRect))
+            {
+                Assert.That(
+                    relationshipCaption.Overlaps(ScreenRectOf(tool)),
+                    Is.False,
+                    $"호감도 설명이 {tool.name}을 가립니다."
+                );
+            }
             ClickNext(coachMark);
             yield return null;
             yield return null;
@@ -928,6 +994,13 @@ namespace A305.Tutorial.PlayModeTests
             Assert.That(coachMark.SpotlightTargets, Is.EqualTo(new[] { feedback.CloseButtonRect }));
             Assert.That(coachMark.IsNextShowing, Is.False, "닫는 버튼을 직접 누릅니다.");
             Assert.That(coachMark.CaptionRect.Overlaps(coachMark.Hole), Is.False);
+            Canvas.ForceUpdateCanvases();
+            Assert.That(
+                ScreenRectOf((RectTransform)coachMark.transform.Find("Caption"))
+                    .Overlaps(ScreenRectOf(feedback.SectionRowRect)),
+                Is.False,
+                "닫기 설명이 탭 줄을 가립니다."
+            );
 
             feedback.CloseButtonRect.GetComponent<Button>().onClick.Invoke();
             yield return null;
@@ -955,6 +1028,21 @@ namespace A305.Tutorial.PlayModeTests
             var button = (RectTransform)
                 Single<FirstDayMissionView>().transform.Find("Content/QuestIcon");
             Assert.That(Single<CoachMarkView>().SpotlightTargets, Is.EqualTo(new[] { button }));
+            // 위쪽 가운데 안내 카드가 왼쪽 위 퀘스트 카드나 오른쪽 위 시계·코인 칩을 가리지 않는다.
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            Rect card = ScreenRectOf(Single<TutorialGuideView>().PanelRect);
+            foreach (
+                RectTransform hud in Single<FirstDayMissionView>()
+                    .TopHudParts.Where(part => part.gameObject.activeInHierarchy)
+            )
+            {
+                Assert.That(
+                    card.Overlaps(ScreenRectOf(hud)),
+                    Is.False,
+                    $"안내 카드가 {hud.name}을 가립니다."
+                );
+            }
 
             button.GetComponent<Button>().onClick.Invoke();
             yield return null;

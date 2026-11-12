@@ -123,10 +123,12 @@ namespace A305.Tutorial
 
         /// <summary>
         /// 장소 소리를 대화 중처럼 낮춰 둘지. Ben 대화에서 낮춘 소리가 피드백·휴대폰·오늘의 목표 안내 도중에 다시 커지지 않게
-        /// 튜토리얼을 마치거나 건너뛸 때까지 낮춰 둔다.
+        /// 튜토리얼을 마칠 때까지 낮춰 둔다. 건너뛰었으면 남은 퀘스트 카드 안내 동안 평소대로 돌린다.
         /// </summary>
         public bool KeepsAmbienceQuiet =>
-            Step >= TutorialStep.BenDialogue && Step < TutorialStep.Completed;
+            Step >= TutorialStep.BenDialogue
+            && Step < TutorialStep.Completed
+            && Finish != TutorialFinish.Skipped;
 
         public void Continue()
         {
@@ -204,12 +206,15 @@ namespace A305.Tutorial
             }
         }
 
-        /// <summary>퀘스트 카드를 눌러 수첩을 열었음을 알린다. 오늘의 목표 단계에서 열면 튜토리얼을 마친다.</summary>
+        /// <summary>
+        /// 퀘스트 카드를 눌러 수첩을 열었음을 알린다. 오늘의 목표 단계에서 열면 튜토리얼을 마친다.
+        /// 건너뛰어 이 안내만 남았으면 건너뛰기로 끝낸 기록을 그대로 둔다.
+        /// </summary>
         public void ReportJournalOpened()
         {
             if (Step == TutorialStep.TodayGoal)
             {
-                Finish = TutorialFinish.Completed;
+                Finish ??= TutorialFinish.Completed;
                 Step = TutorialStep.Completed;
             }
         }
@@ -224,6 +229,24 @@ namespace A305.Tutorial
 
             Finish = TutorialFinish.Skipped;
             Step = TutorialStep.Completed;
+        }
+
+        /// <summary>안내 카드의 [건너뛰기]를 보일지. 첫 퀘스트를 알리는 오늘의 목표 안내는 건너뛸 수 없다.</summary>
+        public bool CanSkip => Step < TutorialStep.TodayGoal;
+
+        /// <summary>
+        /// 안내 카드의 [건너뛰기]. 첫 퀘스트는 꼭 해야 하므로 퀘스트 카드를 누르는 오늘의 목표 안내만 남기고 그 앞 안내를 건너뛴다.
+        /// 서버에는 바로 건너뛰기로 저장해 첫 퀘스트를 시작하게 한다. 같은 기기에서 이미 끝낸 새 계정처럼 안내 없이 끝낼 때는 <see cref="Skip"/>을 쓴다.
+        /// </summary>
+        public void SkipToTodayGoal()
+        {
+            if (!CanSkip)
+            {
+                return;
+            }
+
+            Finish = TutorialFinish.Skipped;
+            Step = TutorialStep.TodayGoal;
         }
 
         /// <summary>

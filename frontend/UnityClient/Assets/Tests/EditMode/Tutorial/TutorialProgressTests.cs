@@ -181,6 +181,61 @@ namespace A305.Tutorial.Tests
             Assert.That(progress.IsTravelAllowed, Is.True);
         }
 
+        // 첫 퀘스트는 꼭 해야 하므로 안내 카드의 [건너뛰기]도 퀘스트 카드를 누르는 오늘의 목표 안내는 남긴다.
+        // 서버에는 바로 건너뛰기로 저장해 첫 퀘스트를 시작하게 한다.
+        [TestCase(TutorialStep.Arrival)]
+        [TestCase(TutorialStep.LeaveLodging)]
+        [TestCase(TutorialStep.MeetBen)]
+        [TestCase(TutorialStep.BenDialogue)]
+        [TestCase(TutorialStep.BenFeedback)]
+        public void SkipToTodayGoal_LeavesTheQuestCardGuide(TutorialStep step)
+        {
+            MoveTo(step);
+            Assert.That(progress.CanSkip, Is.True);
+
+            progress.SkipToTodayGoal();
+
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.TodayGoal));
+            Assert.That(progress.Finish, Is.EqualTo(TutorialFinish.Skipped));
+            Assert.That(progress.NeedsFinishSave, Is.True);
+            Assert.That(progress.IsMissionAvailable, Is.True);
+        }
+
+        [Test]
+        public void SkipToTodayGoal_AtTodayGoal_CannotSkipTheQuestCardGuide()
+        {
+            MoveTo(TutorialStep.TodayGoal);
+
+            Assert.That(progress.CanSkip, Is.False);
+            progress.SkipToTodayGoal();
+
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.TodayGoal));
+            Assert.That(progress.Finish, Is.Null);
+        }
+
+        [Test]
+        public void ReportJournalOpened_AfterSkippingToTodayGoal_EndsAsSkippedWithoutSavingAgain()
+        {
+            progress.SkipToTodayGoal();
+            progress.MarkFinishSaved();
+
+            progress.ReportJournalOpened();
+
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed));
+            Assert.That(progress.Finish, Is.EqualTo(TutorialFinish.Skipped));
+            Assert.That(progress.NeedsFinishSave, Is.False);
+        }
+
+        [Test]
+        public void KeepsAmbienceQuiet_NotAfterSkippingToTodayGoal()
+        {
+            // 건너뛰었으면 남은 퀘스트 카드 안내 동안에는 장소 소리를 평소대로 돌린다.
+            MoveTo(TutorialStep.BenFeedback);
+            progress.SkipToTodayGoal();
+
+            Assert.That(progress.KeepsAmbienceQuiet, Is.False);
+        }
+
         // Ben 대화에서 낮춘 장소 소리가 피드백·휴대폰·오늘의 목표 안내 도중에 다시 커지지 않게 튜토리얼을 마칠 때까지 낮춰 둔다.
         [TestCase(TutorialStep.BenDialogue)]
         [TestCase(TutorialStep.BenFeedback)]

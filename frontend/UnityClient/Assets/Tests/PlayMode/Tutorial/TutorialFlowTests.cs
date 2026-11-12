@@ -118,7 +118,7 @@ namespace A305.Tutorial.PlayModeTests
         [UnityTest]
         public IEnumerator SkippingTutorial_ShowsTheFirstQuestCardOnceTheServerSavesIt()
         {
-            // 건너뛰면 오늘의 목표(퀘스트 카드) 안내를 보지 못한다. 서버가 건너뛰기 저장과 함께 첫 퀘스트를 시작하므로,
+            // 건너뛰어도 오늘의 목표(퀘스트 카드) 안내는 남는다. 서버가 건너뛰기 저장과 함께 첫 퀘스트를 시작하므로,
             // 장소를 옮기거나 대화하지 않아도 작은 퀘스트 알약 대신 할 일을 담은 퀘스트 카드가 바로 보여야 한다.
             var previousFactory = ApiSettings.EditorClientFactory;
             var transport = new QuestStartingTutorialTransport();
@@ -142,6 +142,15 @@ namespace A305.Tutorial.PlayModeTests
                     ShowsTheQuest(mission),
                     Is.True,
                     "건너뛰기를 저장한 뒤에도 책 버튼만 있고 퀘스트 알약·카드가 보이지 않습니다."
+                );
+                Assert.That(
+                    TutorialState.GetOrCreate(BenCode).Step,
+                    Is.EqualTo(TutorialStep.TodayGoal),
+                    "건너뛰어도 퀘스트 카드를 누르는 안내는 남습니다."
+                );
+                Assert.That(
+                    Single<CoachMarkView>().SpotlightTargets,
+                    Is.EqualTo(new[] { mission.QuestButtonRect })
                 );
             }
             finally
@@ -220,9 +229,10 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator Skipping_AsksFirst_AndOnlyConfirmingEndsTheTutorial()
+        public IEnumerator Skipping_AsksFirst_AndOnlyConfirmingLeavesJustTheQuestCardGuide()
         {
             // 잘못 눌러도 튜토리얼이 바로 끝나지 않도록 한 번 더 묻는다.
+            // 확인하면 퀘스트 카드를 누르는 오늘의 목표 안내만 남고, 그 안내는 건너뛸 수 없다.
             yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
             yield return null;
             TutorialGuideView guideView = Single<TutorialGuideView>();
@@ -243,14 +253,34 @@ namespace A305.Tutorial.PlayModeTests
             Click(guideView, "SkipButton");
             Click(guideView, "ConfirmSkipButton");
             yield return null;
+            yield return null;
+
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.TodayGoal));
+            Assert.That(
+                guideView.IsVisible,
+                Is.True,
+                "퀘스트 카드를 누르라는 안내 카드가 보입니다."
+            );
+            Button skip = guideView
+                .GetComponentsInChildren<Button>(true)
+                .Single(button => button.name == "SkipButton");
+            Assert.That(
+                skip.gameObject.activeInHierarchy,
+                Is.False,
+                "오늘의 목표 안내는 건너뛸 수 없습니다."
+            );
+
+            Single<FirstDayMissionView>().QuestButtonRect.GetComponent<Button>().onClick.Invoke();
+            yield return null;
 
             Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed));
         }
 
         [UnityTest]
-        public IEnumerator Tutorial_HoldsTheGameClock_UntilItIsSkipped()
+        public IEnumerator Tutorial_HoldsTheGameClock_UntilItEnds()
         {
-            // 튜토리얼은 정해진 대본으로 연습하는 시간이라 게임 시각이 흐르지 않는다. 마치거나 건너뛰면 그때부터 흐른다.
+            // 튜토리얼은 정해진 대본으로 연습하는 시간이라 게임 시각이 흐르지 않는다.
+            // 건너뛰어도 남는 퀘스트 카드 안내까지 마치면 그때부터 흐른다.
             yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
             yield return null;
             double before = GameClock.Shared.Minutes;
@@ -269,6 +299,9 @@ namespace A305.Tutorial.PlayModeTests
             TutorialGuideView guideView = Single<TutorialGuideView>();
             Click(guideView, "SkipButton");
             Click(guideView, "ConfirmSkipButton");
+            yield return null;
+            yield return null;
+            Single<FirstDayMissionView>().QuestButtonRect.GetComponent<Button>().onClick.Invoke();
             yield return null;
             yield return null;
 
@@ -892,7 +925,8 @@ namespace A305.Tutorial.PlayModeTests
 
             Assert.That(
                 TutorialState.GetOrCreate(BenCode).Step,
-                Is.EqualTo(TutorialStep.Completed)
+                Is.EqualTo(TutorialStep.TodayGoal),
+                "건너뛰어도 퀘스트 카드를 누르는 안내는 남습니다."
             );
             Assert.That(dialogue.IsTalking, Is.False, "건너뛰어도 길 안내 대화가 남아 있습니다.");
             Assert.That(

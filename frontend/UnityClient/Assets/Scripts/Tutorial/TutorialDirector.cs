@@ -321,9 +321,10 @@ namespace A305.Tutorial
         }
 
         // 길 안내 대화 중에 건너뛰면 마치지 못한 대화를 피드백 없이 닫는다. 정해진 대사를 마치기 전에는 [대화 종료]로 끝낼 수 없기 때문이다.
+        // 첫 퀘스트는 꼭 해야 하므로 건너뛰어도 퀘스트 카드를 누르는 오늘의 목표 안내는 남긴다.
         private void SkipTutorial()
         {
-            progress.Skip();
+            progress.SkipToTodayGoal();
             dialogue.Abandon();
         }
 
@@ -347,8 +348,12 @@ namespace A305.Tutorial
         private void ApplyStep()
         {
             appliedStep = progress.Step;
-            // Ben 대화·전체 완료 직후와, 저장하지 못한 채 다음 단계·장소에 들어온 순간에 보낸다.
-            if (appliedStep == TutorialStep.Completed || progress.NeedsBenDialogueSave)
+            // Ben 대화·건너뛰기·전체 완료 직후와, 저장하지 못한 채 다음 단계·장소에 들어온 순간에 보낸다.
+            if (
+                appliedStep == TutorialStep.Completed
+                || progress.NeedsFinishSave
+                || progress.NeedsBenDialogueSave
+            )
             {
                 SaveFinish();
             }
@@ -391,6 +396,7 @@ namespace A305.Tutorial
         private async Task SaveFinishAsync()
         {
             savingFinish = true;
+            bool savesFinish = progress.NeedsFinishSave;
             TutorialFinishSaveStatus status;
             try
             {
@@ -404,9 +410,9 @@ namespace A305.Tutorial
             if (status == TutorialFinishSaveStatus.Saved)
             {
                 GameClock.Shared.RequestSynchronization();
-                // 서버가 튜토리얼 완료·건너뛰기와 함께 첫 퀘스트를 시작하므로, 건너뛰어 퀘스트 카드 안내를 못 본 사용자도
-                // 장소를 옮기거나 대화하기 전에 작은 퀘스트 알약 대신 할 일이 담긴 카드를 보게 다시 읽는다.
-                if (progress.Step == TutorialStep.Completed)
+                // 서버가 튜토리얼 완료·건너뛰기와 함께 첫 퀘스트를 시작하므로, 끝낸 기록을 저장했으면 다시 읽는다.
+                // 건너뛰어 남은 퀘스트 카드 안내에서도 작은 퀘스트 알약 대신 할 일이 담긴 카드를 보게 한다.
+                if (savesFinish)
                     mission.RefreshStory();
             }
             if (
@@ -433,9 +439,10 @@ namespace A305.Tutorial
                 || offerView.IsShowing
                 || learning.IsShowingScreen
                 || hudMenu.IsOpen;
+            // 건너뛸 수 없는 오늘의 목표 안내는 가리는 화면이 닫힐 때까지 카드를 숨긴다.
             if (
                 isCovered
-                && progress.IsGuiding
+                && progress.CanSkip
                 && guide.TryGetNearestStepGuide(progress.Step, out TutorialStepGuide nearest)
             )
             {
@@ -498,7 +505,8 @@ namespace A305.Tutorial
                 progress.UsesTouch,
                 partDone,
                 guide.StepGuideNumber(progress.Step),
-                guide.StepGuideCount
+                guide.StepGuideCount,
+                progress.CanSkip
             );
             isCardShown = true;
             cardStep = progress.Step;

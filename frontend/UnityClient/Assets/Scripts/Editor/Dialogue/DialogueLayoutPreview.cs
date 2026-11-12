@@ -317,6 +317,7 @@ namespace A305.EditorTools.Dialogue
         {
             string output = OutputFolder();
             bool savedPreference = NpcSubtitlePreference.ShowsSubtitles;
+            UiThemeId savedTheme = UiThemeSelection.Shared.Current;
             try
             {
                 DialoguePanelView view = OpenCafe(
@@ -326,12 +327,27 @@ namespace A305.EditorTools.Dialogue
                 );
                 foreach (bool showsSubtitles in new[] { false, true })
                 {
-                    NpcSubtitlePreference.ShowsSubtitles = showsSubtitles;
+                    // 이전에 켜 둔 기록이 있어도 새 대화에서는 가려지는지 함께 확인한다.
+                    NpcSubtitlePreference.ShowsSubtitles = true;
                     var content = new WordPreviewContent();
                     view.Show(content);
+                    if (showsSubtitles)
+                    {
+                        NpcSubtitlePreference.ShowsSubtitles = true;
+                        view.Refresh();
+                    }
                     FillHelp(view);
                     string state = showsSubtitles ? "on" : "off";
                     RenderThemes(camera, view, eye, face, output, $"subtitles-{state}");
+                    Render(
+                        camera,
+                        view,
+                        eye,
+                        face,
+                        Path.Combine(output, $"subtitles-{state}-mobile.png"),
+                        844,
+                        390
+                    );
                     if (showsSubtitles)
                         continue;
                     content.Waiting = DialogueWait.NpcReply;
@@ -342,6 +358,7 @@ namespace A305.EditorTools.Dialogue
             finally
             {
                 NpcSubtitlePreference.ShowsSubtitles = savedPreference;
+                SelectTheme(savedTheme);
             }
         }
 

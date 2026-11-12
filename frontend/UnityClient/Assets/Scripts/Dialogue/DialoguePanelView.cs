@@ -478,6 +478,8 @@ namespace A305.Dialogue
         public void Show(IDialogueContent shownContent)
         {
             SetEndButtonHighlight(false);
+            // 자막을 켰던 기록이 있어도 새 대화는 먼저 듣도록 시작한다.
+            NpcSubtitlePreference.ShowsSubtitles = false;
             content = shownContent;
             isMeaningVisible = false;
             // 저장한 단어 표시는 이번 대화 안에서만 기억한다.

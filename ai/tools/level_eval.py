@@ -208,6 +208,7 @@ async def main():
         "--reply-gpu-model",
         help="대답만 GPU 서버 vLLM 모델로 만들기 (예: Qwen/Qwen3.8-27B, GUARD_GPU_BASE_URL·TOKEN 필요). 판정은 구성의 npc 모델 그대로",
     )
+    ap.add_argument("--reply-model", help="대답만 같은 공급자의 다른 모델로 만들기 (예: gpt-6-luna). 채점·판정은 구성의 npc 모델 그대로")
     ap.add_argument("--out")
     a = ap.parse_args()
     config.load_dotenv(Path(a.env))
@@ -231,12 +232,12 @@ async def main():
             for case in cases:
                 for level in levels:
                     for _ in range(a.runs):
-                        rows.append(await run_case(client, s, case, level, reply_client, a.reply_gpu_model))
+                        rows.append(await run_case(client, s, case, level, reply_client, a.reply_gpu_model or a.reply_model))
         finally:
             if reply_client:
                 await reply_client.aclose()
     print(
-        f"{a.profile} 대답 {a.reply_gpu_model or s.models['npc']}·판정 {s.models['npc']}, 줄 {len(cases)} × 난이도 {len(levels)} × {a.runs}회"
+        f"{a.profile} 대답 {a.reply_gpu_model or a.reply_model or s.models['npc']}·판정 {s.models['npc']}, 줄 {len(cases)} × 난이도 {len(levels)} × {a.runs}회"
     )
     report(rows, levels)
     if a.show:

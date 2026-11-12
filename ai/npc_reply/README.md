@@ -8,10 +8,10 @@
 
 | 단계 | 도구 | 하는 일 |
 |---|---|---|
-| 1 | `build_data.py` | NPC·난이도·학습자 목표를 섞은 대화를 만들고, NPC 턴마다 서비스와 같은 메시지와 SOL 대답(표정 표시 포함)을 남깁니다. 학습자 줄은 GPT-6 Luna가 학습자 흉내로 만듭니다. 형식 문제와 `npc_help_eval` 기준의 지어내기·길 틀림·연락 미룸은 `flags`에 남깁니다 |
-| 2 | `make_sets.py` | `flags`가 있는 대답을 빼고 대화 단위로 학습셋·개발셋을 나눕니다 |
+| 1 | `build_data.py` | NPC·난이도·학습자 목표를 섞은 대화(1~4턴, `--long`이면 4~6턴)를 만들고, NPC 턴마다 서비스와 같은 메시지와 SOL 대답(표정 표시 포함)을 남깁니다. 학습자 줄은 GPT-6 Luna가 학습자 흉내로 만듭니다. 형식 문제와 `npc_help_eval` 기준의 지어내기·길 틀림·연락 미룸, 앞에서 한 질문을 다시 물은 대답(`repeat`)은 `flags`에 남깁니다 |
+| 2 | `make_sets.py` | 생성 파일 여러 개를 합쳐 `flags`가 있는 대답을 빼고 대화 단위로 학습셋·개발셋을 나눕니다. `repeat`는 여기서도 다시 확인합니다 |
 | 3 | `train_lora.py` | GPU 서버(5번 GPU)에서 LoRA를 학습합니다. 손실은 대답 토큰에만 겁니다 |
-| 4 | `ai/tools/npc_help_eval.py`·`level_eval.py`·`npc_voice_eval.py` | `--reply-gpu-model`로 대답만 학습한 모델로 만들어 SOL과 비교합니다 |
+| 4 | `ai/tools/npc_help_eval.py`·`level_eval.py`·`npc_voice_eval.py` | `--reply-gpu-model`로 대답만 학습한 모델로 만들어 SOL(`--reply-model gpt-6-luna`면 Luna)과 비교합니다 |
 
 - 평가셋(`npc_help_eval`·`level_eval`·`npc_voice_eval`)의 학습자 문장과 같은 줄은 1단계에서 버립니다.
 - 백엔드 지시문(무례 경고·대화 마무리·마지막 턴)은 `build_data.py`에 복사해 두었습니다. 백엔드 문구가 바뀌면 같이 고칩니다.

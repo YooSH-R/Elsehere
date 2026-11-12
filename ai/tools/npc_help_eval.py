@@ -16,6 +16,7 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -26,11 +27,13 @@ import httpx
 from app import config
 from app import prompts as P
 from app.llm import model_body
+from app.npc_emotion import EMOTION_PROMPT
 from app.schemas import Learner, Line, Npc
 
 ROOT = Path(__file__).resolve().parents[2]
 CASES = Path(__file__).resolve().parent / "npc_help_eval/cases.json"
 PROFILES = ROOT / "ai/npcs"
+FACE_MARKER = re.compile(r"\[\[[^\]]*\]\]")
 
 # 백엔드가 게임 대답에 보내는 페르소나 (backend/src/main/resources/db/seed/world.sql)
 PERSONAS = {
@@ -184,16 +187,18 @@ async def run_case(
     reply_client·reply_model을 주면 대답만 그 공급자·모델로 만들고 채점은 그대로 구성의 npc 모델이 한다 (GPU 서버 모델 비교)."""
     npc = npc_of(case["npc"])
     msgs = P.npc_messages(npc, None, history_of(case), case["text"], STAGES[case["stage"]], LEVEL, None, LEARNER)
+    msgs[0] = {**msgs[0], "content": msgs[0]["content"] + "\n\n" + EMOTION_PROMPT}  # 게임 대답 스트림(app.npc)과 같게
     row = {"id": case["id"], "kind": case["kind"], "npc": case["npc"]}
     try:
         if reply is None:
             model = reply_model or s.models["npc"]
-            body = {"model": model, "temperature": 0.6, "max_tokens": P.LEVEL_MAX_TOKENS[LEVEL], "messages": msgs}
+            body = {"model": model, "temperature": 0.6, "max_tokens": P.LEVEL_MAX_TOKENS[LEVEL] + 64, "messages": msgs}
             t = time.perf_counter()
             r = await (reply_client or client).post("/chat/completions", json=model_body(body, s.model_params))
             r.raise_for_status()
             row["reply_s"] = round(time.perf_counter() - t, 2)
             reply = r.json()["choices"][0]["message"]["content"].strip().strip('"').split("\n")[0]
+            reply = " ".join(FACE_MARKER.sub(" ", reply).split())  # 게임이 읽고 자막으로 보여 주는 말만
         row["reply"] = reply
         body = {
             "model": s.models["npc"],
@@ -257,6 +262,7 @@ async def main():
         "--reply-gpu-model",
         help="대답만 GPU 서버 vLLM 모델로 만들기 (예: Qwen/Qwen3.8-27B, GUARD_GPU_BASE_URL·TOKEN 필요). 채점은 구성의 npc 모델 그대로",
     )
+    ap.add_argument("--reply-model", help="대답만 같은 공급자의 다른 모델로 만들기 (예: gpt-6-luna). 채점·판정은 구성의 npc 모델 그대로")
     ap.add_argument("--out")
     a = ap.parse_args()
     config.load_dotenv(Path(a.env))
@@ -282,11 +288,11 @@ async def main():
             reply_client = httpx.AsyncClient(base_url=gpu["base_url"], headers={"Authorization": f"Bearer {gpu['api_key']}"}, timeout=60)
         try:
             for case, reply in jobs:
-                rows.append(await run_case(client, s, case, reply, reply_client, a.reply_gpu_model))
+                rows.append(await run_case(client, s, case, reply, reply_client, a.reply_gpu_model or a.reply_model))
         finally:
             if reply_client:
                 await reply_client.aclose()
-    print(f"{a.profile} 대답 {a.reply_gpu_model or s.models['npc']}, 채점 {s.models['npc']}")
+    print(f"{a.profile} 대답 {a.reply_gpu_model or a.reply_model or s.models['npc']}, 채점 {s.models['npc']}")
     took = sorted(r["reply_s"] for r in rows if "reply_s" in r)
     if took:
         print(f"  대답 생성 시간(스트림 아님, 끝까지) 중앙 {took[len(took) // 2]:.2f}초, 최대 {took[-1]:.2f}초")

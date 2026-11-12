@@ -2,13 +2,14 @@
 
     ai/worker/.venv/Scripts/python ai/npc_reply/build_data.py --conversations 650 --out ~/npc_reply/raw.jsonl
     ai/worker/.venv/Scripts/python ai/npc_reply/build_data.py --conversations 5 --out ~/npc_reply/try.jsonl   # 작게 시험
+    ai/worker/.venv/Scripts/python ai/npc_reply/build_data.py --long --conversations 500 --out ~/npc_reply/raw_long.jsonl
 
-- 대화 하나 = NPC 한 명 × 난이도 × 학습자 목표 몇 개, 1~4턴. 학습자 줄은 구성의 hint 모델(GPT-6 Luna)이 학습자 흉내로 만들고
+- 대화 하나 = NPC 한 명 × 난이도 × 학습자 목표 몇 개, 1~4턴(--long이면 4~6턴, 대화 id는 L로 시작). 학습자 줄은 구성의 hint 모델(GPT-6 Luna)이 학습자 흉내로 만들고
   NPC 대답은 구성의 npc 모델(GPT-6.1 SOL)이 게임과 똑같은 메시지(app.npc의 run_llm: npc_messages + EMOTION_PROMPT + 반응 지시)로 만든다.
   NPC 턴 하나가 학습 예시 하나: messages(모델에 보낸 그대로)와 target(SOL 원문, 표정 표시 포함).
 - 평가셋(npc_help_eval·level_eval·npc_voice_eval)의 학습자 문장과 같은 줄은 버린다. 평가 문장은 학습 데이터에 들어가지 않는다.
 - 거르기: 표정 표시 형식·빈 대답·한글·길이 상한을 코드로 보고, npc_help_eval 채점 기준(지어내기·길 틀림·연락 미룸)으로 SOL이 채점해 걸린 대답은
-  flags에 남긴다(학습셋을 만들 때 뺀다). 다음 대화의 앞 대화에는 표시를 뺀 대사만 넣는다(서비스와 같음).
+  flags에 남긴다(학습셋을 만들 때 뺀다). 앞 대답에서 한 질문을 다시 물은 대답(npc_voice_eval.repeated_questions)도 repeat로 남긴다. 다음 대화의 앞 대화에는 표시를 뺀 대사만 넣는다(서비스와 같음).
 - 문장은 모두 모델이 지어낸 것이다. 팀원 기록·AI Hub 데이터는 쓰지 않는다. 공용 키라 동시 호출은 --concurrency(기본 3)까지.
 - 중간에 끊겨도 다시 실행하면 이미 쓴 대화 id는 건너뛴다.
 """
@@ -79,6 +80,8 @@ GOALS = [
     "ask for help with a small problem (lost something, need a phone charger, feel sick)",
     "ask about something you cannot find, using a Korean word for the thing",
     "answer their last question very briefly or vaguely",
+    "answer what they just asked, then ask a follow-up about what they told you",
+    "react to what they just said and share a little about yourself",
     "say thank you and goodbye",
 ]
 NAMES = ["Minji", "Jiho", "Seoyeon", "Dohyun", "Hayoon", "Junseo", "Yuna", "Taeyang", "Sora", "Hyunwoo", "Eunji", "Minho"]
@@ -123,19 +126,24 @@ def npcs() -> dict[str, Npc]:
     return found
 
 
-def plan(rng: random.Random, npc_ids: list[str], index: int) -> dict:
+def plan(rng: random.Random, npc_ids: list[str], index: int, long: bool = False) -> dict:
     """대화 하나의 설정. 시드로 정해지므로 같은 --seed면 같은 대화 목록이 나온다."""
     level = rng.choices([1, 2, 3], weights=[4, 4, 2])[0]
-    turns = rng.choices([1, 2, 3, 4], weights=[2, 3, 3, 2])[0]
-    # 작별은 마지막 턴에만, 짧게 대답하기는 첫 턴이 아닐 때만 (NPC가 물은 게 있어야 하므로)
-    goals = []
+    turns = rng.choices([4, 5, 6], weights=[3, 3, 2])[0] if long else rng.choices([1, 2, 3, 4], weights=[2, 3, 3, 2])[0]
+    # 작별은 마지막 턴에만, NPC 말을 받는 목표는 첫 턴이 아닐 때만 (NPC가 한 말이 있어야 하므로).
+    # 한 대화에서 같은 목표는 한 번만: 학습자가 같은 걸 다시 물으면 대답도 되풀이가 된다
+    goals, used = [], set()
     for turn in range(turns):
         choices = [
             g
             for g in GOALS
-            if not (g.startswith("say thank you") and turn < turns - 1) and not (g.startswith("answer their") and turn == 0)
+            if g not in used
+            and not (g.startswith("say thank you") and turn < turns - 1)
+            and not (g.startswith(("answer their", "answer what they", "react to")) and turn == 0)
         ]
-        goals.append(rng.choice(choices).format(place=rng.choice(PLACES), missing=rng.choice(MISSING)))
+        goal = rng.choice(choices)
+        used.add(goal)
+        goals.append(goal.format(place=rng.choice(PLACES), missing=rng.choice(MISSING)))
     kind = rng.choices(["free", "rude", "compliment", "wrap_up", "turn_limit"], weights=[70, 10, 6, 9, 5])[0]
     if kind == "compliment":
         goals[-1] = "give a warm, specific compliment about the character or their work"
@@ -148,7 +156,7 @@ def plan(rng: random.Random, npc_ids: list[str], index: int) -> dict:
         }
     learner = {"nickname": rng.choice(NAMES), "avatar_type": rng.choice("FM")} if rng.random() < 0.8 else None
     return {
-        "id": f"c{index:04d}", "npc": rng.choice(npc_ids), "level": level, "goals": goals, "kind": kind,
+        "id": f"{'L' if long else 'c'}{index:04d}", "npc": rng.choice(npc_ids), "level": level, "goals": goals, "kind": kind,
         "relationship": relationship, "learner": learner, "rude_line": rng.choice(RUDE_LINES),
     }  # fmt: skip
 
@@ -255,6 +263,9 @@ async def conversation(client, s, sem, conv: dict, npc: Npc, banned: set[str]) -
         body = {"model": s.models["npc"], "temperature": 0.6, "max_tokens": P.LEVEL_MAX_TOKENS[conv["level"]] + 64, "messages": msgs}
         target = (await chat(client, s, sem, body)).strip()
         flags = problems(target, conv["level"])
+        npc_lines = [h.text for h in history if h.who == "npc"] + [spoken(target)]
+        if len(npc_lines) - 1 in V.repeated_questions(npc_lines):
+            flags.append("repeat")
         if not flags:
             graded = await judge(client, s, sem, npc, history, text, instruction, spoken(target))
             flags = [k for k in ("fabricated", "wrong_way", "dangling_contact", "not_sure") if graded.get(k)]
@@ -273,6 +284,7 @@ async def main():
     ap.add_argument("--concurrency", type=int, default=3)
     ap.add_argument("--profile", default="gms-luna")
     ap.add_argument("--env", default=str(ROOT / ".env"))
+    ap.add_argument("--long", action="store_true", help="4~6턴 대화 (앞 턴을 기억하고 같은 질문을 되풀이하지 않는 예시를 늘린다)")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     config.load_dotenv(Path(a.env))
@@ -287,7 +299,7 @@ async def main():
         done = {json.loads(line)["conversation"] for line in out.read_text(encoding="utf-8").splitlines() if line.strip()}
     people = npcs()
     rng = random.Random(a.seed)
-    plans = [plan(rng, sorted(people), i) for i in range(a.conversations)]
+    plans = [plan(rng, sorted(people), i, a.long) for i in range(a.conversations)]
     todo = [c for c in plans if c["id"] not in done]
     banned = eval_lines()
     print(f"대화 {len(plans)}개 중 {len(todo)}개 생성, NPC {len(people)}명, 대답 {s.models['npc']}, 학습자 {s.models['hint']}", flush=True)

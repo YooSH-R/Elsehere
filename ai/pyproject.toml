@@ -19,6 +19,7 @@ known-first-party = ["app", "conftest", "feedback"]
 "**/tools/guard_eval.py" = ["E402"]
 "**/guard/train_lora.py" = ["E402"]
 "**/npc_reply/build_data.py" = ["E402"]
+"**/npc_reply/make_sets.py" = ["E402"]
 # Pins the shared GPU server to our GPU before onnxruntime is imported.
 "**/gpu_tts/server.py" = ["E402"]
 

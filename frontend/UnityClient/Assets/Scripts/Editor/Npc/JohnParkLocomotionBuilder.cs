@@ -151,9 +151,10 @@ namespace A305.EditorTools.Npc
             var swingPitch = running
                 ? PoseCurve(0, 18, .2f, 22, .6f, 5, .85f, -10, 1, -7)
                 : PoseCurve(0, 24, .3f, 8, .7f, -15, 1, -12);
+            // 발을 딛는 초반에 조금 더 앉고 중간 지지에서 펴며, 머리 높이의 최고점은 유지한다.
             var pelvisHeight = running
-                ? PoseCurve(0, -.03f, .25f, -.14f, .55f, -.08f, .87f, .02f, 1, -.03f)
-                : PoseCurve(0, -.055f, .2f, -.085f, .65f, -.025f, 1, -.055f);
+                ? PoseCurve(0, -.03f, .25f, -.18f, .55f, -.08f, .87f, .02f, 1, -.03f)
+                : PoseCurve(0, -.055f, .2f, -.13f, .65f, -.025f, 1, -.055f);
             for (int frame = 0; frame <= frames; frame++)
             {
                 rhythm.SampleAnimation(animator.gameObject, 0);

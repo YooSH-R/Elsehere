@@ -512,10 +512,10 @@ namespace A305.EditorTools.Npc
                 .ToArray();
             Vector3 hips = Quaternion.Inverse(facing) * bones[0].position;
             float centerX = hips.x;
-            float bottom = bounds.min.y + height * .17f;
+            float bottom = bounds.min.y + height * .155f;
             float waist = hips.y + height * .01f;
             float top = bones[3].position.y + height * .025f;
-            float halfWidth = height * .085f;
+            float halfWidth = height * .092f;
             Vector3 neck =
                 Quaternion.Inverse(facing)
                 * animator.GetBoneTransform(HumanBodyBones.Neck).position;

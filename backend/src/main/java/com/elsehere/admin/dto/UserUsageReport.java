@@ -4,9 +4,10 @@ package com.elsehere.admin.dto;
 public record UserUsageReport(Profile profile, UsageReport usage) {
 
   /**
-   * 사용자 개요. 이메일·닉네임은 담지 않는다. 시각은 한국 시각(yyyy-MM-dd HH:mm)이다.
+   * 사용자 개요. 닉네임은 담지 않는다. 시각은 한국 시각(yyyy-MM-dd HH:mm)이다.
    *
    * @param guest 지금 게스트 계정인지
+   * @param name 화면에 보여 줄 이름({@link AdminUserName}). 가입자는 이메일이다
    * @param withdrawn 탈퇴했는지
    * @param startedAt 계정을 만든 시각(게스트로 시작했으면 게스트 시작 시각)
    * @param convertedAt 게스트에서 Google 가입으로 바꾼 시각. 바꾸지 않았으면 null
@@ -19,6 +20,7 @@ public record UserUsageReport(Profile profile, UsageReport usage) {
   public record Profile(
       Long userId,
       boolean guest,
+      String name,
       boolean withdrawn,
       String startedAt,
       String convertedAt,

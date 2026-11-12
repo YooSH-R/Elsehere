@@ -1,7 +1,7 @@
 Project elsehere {
   database_type: 'PostgreSQL'
   Note: '''
-  ELSEHERE ERD v3.10 (MVP 기준) · PostgreSQL 16 + pgvector
+  ELSEHERE ERD v3.11 (MVP 기준) · PostgreSQL 16 + pgvector
   회의 보드 결정 + MVP 와이어프레임 피드백 기준. W3 사건 · 세계 사실 테이블은 제외
   API: docs/api/mvp-api.md
   모든 테이블은 created_at · updated_at을 가진다 (백엔드 BaseEntity가 기록). started_at · saved_at 같은 업무 시각은 별도 컬럼으로 유지
@@ -28,6 +28,7 @@ Table users [headercolor: #3D4A5C] {
   ui_theme varchar(20) [not null, default: 'JELLY', note: '화면 테마 · JELLY / STICKER / CLOUD · 집에서 고르며 계정에 저장해 기기와 관계없이 유지 (API USER-01)']
   role varchar(10) [not null, default: 'USER', note: 'USER / ADMIN · ADMIN만 운영자 어드민(/admin) 사용 · 가입은 항상 USER, 관리자는 다른 관리자가 어드민에서 지정·해제 (docs/admin.md) · 탈퇴하면 USER']
   last_scene_id bigint [note: '재접속 위치']
+  team_account boolean [not null, default: false, note: '팀 기기(elsehere_team 쿠키를 남긴 브라우저)에서 쓴 계정 · BOOT-01이 표시하고 되돌리지 않음 · 어드민 이용 현황에서 뺌 (docs/admin.md, v3.11)']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
 

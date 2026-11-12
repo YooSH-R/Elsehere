@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.SessionAttribute;
@@ -27,11 +28,15 @@ public class BootstrapController {
   private final BootstrapService bootstrapService;
   private final LoginSessionService loginSessionService;
 
+  /** 웹 템플릿이 {@code ?team=1}로 연 브라우저에 남기는 팀 기기 표시 쿠키 */
+  static final String TEAM_DEVICE_COOKIE = "elsehere_team";
+
   @GetMapping("/api/v1/bootstrap")
   public BootstrapResponse bootstrap(
       @AuthenticationPrincipal LoginUser loginUser,
       @SessionAttribute(name = PendingSignup.SESSION_ATTRIBUTE, required = false)
           PendingSignup pendingSignup,
+      @CookieValue(name = TEAM_DEVICE_COOKIE, required = false) String teamDevice,
       HttpServletRequest request,
       HttpServletResponse response) {
     if (loginUser == null) {
@@ -39,6 +44,11 @@ public class BootstrapController {
         return BootstrapResponse.signupRequired();
       }
       throw new BusinessException(ErrorCode.UNAUTHENTICATED);
+    }
+
+    // 게스트 시작·Google 로그인 뒤에도 Unity가 이 API를 부르므로, 팀 기기에서 쓴 계정은 여기서 표시하면 된다.
+    if ("1".equals(teamDevice)) {
+      bootstrapService.markTeamAccount(loginUser.userId());
     }
 
     return bootstrapService

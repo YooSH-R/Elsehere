@@ -66,9 +66,10 @@ public record OverallUsageReport(
   public record UserCount(String label, long users) {}
 
   /**
-   * 사용자 한 명의 기간 안 활동. 이메일·닉네임은 담지 않는다.
+   * 사용자 한 명의 기간 안 활동. 닉네임은 담지 않는다.
    *
    * @param guest 지금 게스트 계정인지
+   * @param name 화면에 보여 줄 이름({@link AdminUserName}). 가입자는 이메일이다
    * @param activeDays 활동한 한국 날짜 수
    * @param playSeconds 누적 플레이 시간(초). 기간과 관계없이 지금까지 쌓인 값이다
    * @param lastActiveAt 기간 안 마지막 활동 흔적의 한국 시각(yyyy-MM-dd HH:mm)
@@ -76,6 +77,7 @@ public record OverallUsageReport(
   public record UserActivity(
       Long userId,
       boolean guest,
+      String name,
       long activeDays,
       long conversations,
       long missionsCompleted,

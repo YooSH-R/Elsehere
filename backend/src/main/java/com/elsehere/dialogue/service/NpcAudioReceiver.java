@@ -18,6 +18,16 @@ class NpcAudioReceiver {
   private final AiGateway aiGateway;
   private final NpcAudioRetention npcAudioRetention;
 
+  /** 대체 인사는 기존 음성을 재사용하지 않고 확정된 문장으로 다시 합성한다. */
+  String synthesize(WorkerTrace trace, String text, String voice, double speed) {
+    try {
+      return npcAudioRetention.save(aiGateway.synthesize(trace, text, voice, speed));
+    } catch (BusinessException exception) {
+      log.warn("npc_greeting_audio_failed code={}", exception.getErrorCode());
+      return null;
+    }
+  }
+
   /** 저장한 음성 키. 음성이 없거나, 받지 못하거나, 저장하지 못하면 자막만 보여 주도록 null이다. */
   String save(WorkerTrace trace, String audioId) {
     if (audioId == null) {

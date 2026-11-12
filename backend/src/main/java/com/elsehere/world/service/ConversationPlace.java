@@ -1,4 +1,4 @@
-package com.elsehere.dialogue.dto;
+package com.elsehere.world.service;
 
 import java.util.Map;
 import java.util.Optional;

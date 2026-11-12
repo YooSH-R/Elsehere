@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using A305.Characters;
+using A305.Dialogue;
 using A305.EditorTools.Common;
 using UnityEditor;
 using UnityEditor.Animations;
@@ -19,6 +20,102 @@ namespace A305.EditorTools.Npc
         public const string SettingsPath = "Assets/Data/Npc/JohnPark/Locomotion.asset";
         public const string ScenePath = "Assets/Scenes/Sandbox/NpcJohnParkLocomotionSandbox.unity";
         private const int FramesPerSecond = 60;
+
+        [Serializable]
+        private sealed class RapAccents
+        {
+            public string voiceSha256;
+            public Accent[] accents;
+        }
+
+        [Serializable]
+        private sealed class Accent
+        {
+            public string word;
+            public float timeSeconds,
+                strength,
+                attackSeconds,
+                releaseSeconds;
+        }
+
+        [MenuItem("Tools/A305/Npc/John Park/Build Standing Rap Bounce")]
+        public static void BuildStandingRap()
+        {
+            BuilderTools.ThrowIfPlaying();
+            BuilderTools.EnsureFolder(Folder);
+            var definition = AssetDatabase.LoadAssetAtPath<RecordedPerformanceDefinition>(
+                JohnParkRapBuilder.DefinitionPath
+            );
+            if (definition == null || definition.Voice == null)
+                throw new InvalidOperationException("저장된 John 랩 음성 연결이 필요합니다.");
+            var accents = JsonUtility.FromJson<RapAccents>(
+                File.ReadAllText(JohnParkRhythmBuilder.ArtFolder + "/JohnRapAccents.json")
+            );
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+            {
+                string hash = BitConverter
+                    .ToString(sha.ComputeHash(definition.Voice.bytes))
+                    .Replace("-", "");
+                if (!string.Equals(hash, accents.voiceSha256, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException(
+                        "랩 음성이 바뀌었습니다. 발음 강세 시간표를 다시 맞춰야 합니다."
+                    );
+            }
+            float duration = DialogueSpeechWav.Read(definition.Voice.bytes).Timeline.Duration;
+            if (
+                accents.accents == null
+                || accents.accents.Length == 0
+                || accents.accents.Any(a =>
+                    a.timeSeconds < 0
+                    || a.timeSeconds >= duration
+                    || a.strength <= 0
+                    || a.strength > 1
+                    || a.attackSeconds <= 0
+                    || a.releaseSeconds <= 0
+                )
+            )
+                throw new InvalidOperationException("랩 강세 시간표가 유효하지 않습니다.");
+            var root = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(JohnParkRhythmBuilder.PrefabPath)
+            );
+            try
+            {
+                var animator = root.GetComponentInChildren<Animator>();
+                var rhythm = animator.runtimeAnimatorController.animationClips.Single();
+                var bones = FindLowerBodyBones(animator);
+                var paths = bones
+                    .Select(b => AnimationUtility.CalculateTransformPath(b, animator.transform))
+                    .ToArray();
+                definition.LowerBodyMotion = CreateClip(
+                    animator,
+                    rhythm,
+                    bones,
+                    paths,
+                    false,
+                    accents,
+                    duration
+                );
+                EditorUtility.SetDirty(definition);
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        private static Transform[] FindLowerBodyBones(Animator animator)
+        {
+            var names = new[] { "Hips" }.Concat(
+                new[] { "Left", "Right" }.SelectMany(side =>
+                    new[] { "UpperLeg", "LowerLeg", "Foot", "Toes", "ToesEnd" }.Select(part =>
+                        side + "_" + part
+                    )
+                )
+            );
+            var all = animator.GetComponentsInChildren<Transform>();
+            return names.Select(name => all.Single(b => b.name == name)).ToArray();
+        }
 
         [MenuItem("Tools/A305/Npc/John Park/Build Lower Body Locomotion")]
         public static void Build()
@@ -38,17 +135,7 @@ namespace A305.EditorTools.Npc
                 var animator = root.GetComponentInChildren<Animator>();
                 var rhythm = animator.runtimeAnimatorController.animationClips.Single();
                 rhythm.SampleAnimation(animator.gameObject, 0);
-                var names = new[] { "Hips" }
-                    .Concat(
-                        new[] { "Left", "Right" }.SelectMany(side =>
-                            new[] { "UpperLeg", "LowerLeg", "Foot", "Toes", "ToesEnd" }.Select(
-                                part => side + "_" + part
-                            )
-                        )
-                    )
-                    .ToArray();
-                var all = animator.GetComponentsInChildren<Transform>();
-                var bones = names.Select(name => all.Single(b => b.name == name)).ToArray();
+                var bones = FindLowerBodyBones(animator);
                 paths = bones
                     .Select(b => AnimationUtility.CalculateTransformPath(b, animator.transform))
                     .ToArray();
@@ -117,11 +204,16 @@ namespace A305.EditorTools.Npc
             AnimationClip rhythm,
             Transform[] bones,
             string[] paths,
-            bool running
+            bool running,
+            RapAccents rap = null,
+            float rapDuration = 0
         )
         {
-            float duration = running ? .66f : 1f;
-            int frames = Mathf.RoundToInt(duration * FramesPerSecond);
+            float duration =
+                rap != null ? rapDuration
+                : running ? .66f
+                : 1f;
+            int frames = Mathf.CeilToInt(duration * FramesPerSecond);
             duration = frames / (float)FramesPerSecond;
             var curves = new AnimationCurve[bones.Length, 7];
             for (int i = 0; i < bones.Length; i++)
@@ -158,12 +250,22 @@ namespace A305.EditorTools.Npc
                 rhythm.SampleAnimation(animator.gameObject, 0);
                 float cycle = frame / (float)frames;
                 Vector3 restHips = hips.position;
-                float pulse = groove.Evaluate(Mathf.Repeat(cycle * (running ? 1 : 2), 1));
-                hips.position -= Vector3.up * length * (.035f + .30f * pulse);
+                float pulse =
+                    rap != null
+                        ? RapPulse(rap, frame / (float)FramesPerSecond)
+                        : groove.Evaluate(Mathf.Repeat(cycle * (running ? 1 : 2), 1));
+                hips.position -=
+                    Vector3.up * length * (rap != null ? .43f * pulse : .035f + .30f * pulse);
                 var targets = new Vector3[2];
                 var rotations = new Quaternion[2];
                 for (int side = 0; side < legs.Length; side++)
                 {
+                    if (rap != null)
+                    {
+                        targets[side] = legs[side].RestAnkle;
+                        rotations[side] = Quaternion.identity;
+                        continue;
+                    }
                     float phase = Mathf.Repeat(cycle + side * .5f, 1);
                     float forwardOffset,
                         height,
@@ -229,7 +331,10 @@ namespace A305.EditorTools.Npc
             }
             var clip = new AnimationClip
             {
-                name = running ? "JohnLowerBodyRun" : "JohnLowerBodyWalk",
+                name =
+                    rap != null ? "JohnRapBounce"
+                    : running ? "JohnLowerBodyRun"
+                    : "JohnLowerBodyWalk",
                 frameRate = FramesPerSecond,
             };
             string[] properties =
@@ -265,7 +370,7 @@ namespace A305.EditorTools.Npc
             }
             clip.EnsureQuaternionContinuity();
             var clipSettings = AnimationUtility.GetAnimationClipSettings(clip);
-            clipSettings.loopTime = true;
+            clipSettings.loopTime = rap == null;
             AnimationUtility.SetAnimationClipSettings(clip, clipSettings);
             string path = Folder + "/" + clip.name + ".anim";
             var existing = AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
@@ -286,6 +391,25 @@ namespace A305.EditorTools.Npc
             for (int i = 0; i < keys.Length; i++)
                 keys[i] = new Keyframe(pairs[i * 2], pairs[i * 2 + 1], 0, 0);
             return new AnimationCurve(keys);
+        }
+
+        private static float RapPulse(RapAccents rap, float seconds)
+        {
+            float value = 0;
+            foreach (var accent in rap.accents)
+            {
+                float relative = seconds - accent.timeSeconds;
+                float pulse =
+                    relative < 0
+                        ? Mathf.SmoothStep(
+                            0,
+                            1,
+                            (relative + accent.attackSeconds) / accent.attackSeconds
+                        )
+                        : 1 - Mathf.SmoothStep(0, 1, (relative - .04f) / accent.releaseSeconds);
+                value = Mathf.Max(value, accent.strength * pulse);
+            }
+            return value;
         }
 
         private sealed class Leg

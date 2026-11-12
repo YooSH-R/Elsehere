@@ -17,6 +17,78 @@ namespace A305.Characters.PlayModeTests
     public sealed class JohnParkRapTests
     {
         [UnityTest]
+        public IEnumerator StandingRapBouncesFromAudioTimeAndRestartsWithoutMovingTheGrip()
+        {
+            var root = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/Prefabs/Npc/LittleMung_JohnPark_Male.prefab"
+                )
+            );
+            var panel = new GameObject("정지 랩 바운스 검사");
+            try
+            {
+                var performer = root.GetComponent<RecordedNpcPerformance>();
+                var speech = root.GetComponent<CharacterSpeechPlayer>();
+                var link = panel.AddComponent<DialogueServerLink>();
+                root.GetComponent<AudioSource>().mute = true;
+                link.SetSpeaker(speech);
+                yield return null;
+                Assert.That(performer.Play(link), Is.True);
+                speech.Pause();
+                var bones = root.GetComponentsInChildren<Transform>();
+                var hips = bones.Single(b => b.name == "Hips");
+                var chest = bones.Single(b => b.name == "Chest");
+                var hand = bones.Single(b => b.name == "Right_Hand");
+                var firstHips = hips.position;
+                var grip = chest.InverseTransformPoint(hand.position);
+                float minimum = hips.position.y,
+                    maximum = hips.position.y;
+                float duration = DialogueSpeechWav
+                    .Read(performer.Definition.Voice.bytes)
+                    .Timeline.Duration;
+                for (float seconds = 0; seconds < duration; seconds += 1f / 24)
+                {
+                    performer.SampleMotion(seconds);
+                    var pose = hips.position;
+                    performer.SampleMotion(seconds);
+                    Assert.That(
+                        Vector3.Distance(pose, hips.position),
+                        Is.LessThan(.0001f),
+                        "같은 음성 시각을 다시 평가해도 바운스가 누적되면 안 됩니다."
+                    );
+                    minimum = Mathf.Min(minimum, hips.position.y);
+                    maximum = Mathf.Max(maximum, hips.position.y);
+                    Assert.That(
+                        Vector3.Distance(grip, chest.InverseTransformPoint(hand.position)),
+                        Is.LessThan(.0005f)
+                    );
+                }
+                Assert.That(
+                    maximum - minimum,
+                    Is.GreaterThan(.065f),
+                    "서서 랩할 때도 몸 전체의 눌렀다 올라오는 동작이 보여야 합니다."
+                );
+                performer.Stop(link);
+                var stopped = hips.position;
+                performer.SampleMotion(duration / 2);
+                Assert.That(
+                    hips.position,
+                    Is.EqualTo(stopped),
+                    "중단 뒤 공연 시각을 적용하면 안 됩니다."
+                );
+                Assert.That(performer.Play(link), Is.True);
+                speech.Pause();
+                Assert.That(Vector3.Distance(firstHips, hips.position), Is.LessThan(.0001f));
+                performer.Stop(link);
+            }
+            finally
+            {
+                Object.Destroy(root);
+                Object.Destroy(panel);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator OpeningRapKeepsScrollableHistoryAndFeetOnFloor()
         {
             const string path = "Assets/Scenes/Sandbox/NpcJohnParkDialogueSandbox.unity";

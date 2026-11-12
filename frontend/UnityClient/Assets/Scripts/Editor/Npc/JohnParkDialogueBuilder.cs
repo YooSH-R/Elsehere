@@ -175,6 +175,44 @@ namespace A305.EditorTools.Npc
             EditorSceneManager.MarkSceneDirty(scene);
         }
 
+        [MenuItem("Tools/A305/Npc/John Park/Update Ground Contact")]
+        public static void UpdateGroundContact()
+        {
+            BuilderTools.ThrowIfPlaying();
+            var setup = EditorSceneManager.GetSceneManagerSetup();
+            try
+            {
+                foreach (
+                    string path in new[]
+                    {
+                        ScenePath,
+                        A305.EditorTools.World.TownProductionBuilder.ScenePath,
+                    }
+                )
+                {
+                    var scene = EditorSceneManager.OpenScene(path);
+                    var identity = BuilderTools
+                        .FindAllInScene<NpcIdentity>(scene)
+                        .Single(n => n.Code == JohnParkEmotionBuilder.NpcCode);
+                    var body = identity.GetComponent<CharacterController>();
+                    if (body == null)
+                        throw new InvalidOperationException(
+                            "John의 접지 캡슐이 연결되지 않았습니다: " + path
+                        );
+                    // 고정 공연자는 보행용 8cm 접촉 여유를 쓰지 않는다. 메시·잡기·동작은 보존한다.
+                    body.skinWidth = .005f;
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(body);
+                    EditorSceneManager.MarkSceneDirty(scene);
+                    EditorSceneManager.SaveScene(scene);
+                }
+            }
+            finally
+            {
+                if (setup.Any(item => item.isLoaded && item.isActive))
+                    EditorSceneManager.RestoreSceneManagerSetup(setup);
+            }
+        }
+
         private static void ConnectActor(
             NpcIdentity identity,
             PlayerMover player,
@@ -206,6 +244,7 @@ namespace A305.EditorTools.Npc
             body.center = new Vector3(0, .85f, 0);
             body.height = 1.7f;
             body.radius = .35f;
+            body.skinWidth = .005f;
             var passerby = BuilderTools.GetOrAddComponent<Passerby>(root);
             BuilderTools.SetReference(passerby, "settings", settings);
             BuilderTools.SetReference(

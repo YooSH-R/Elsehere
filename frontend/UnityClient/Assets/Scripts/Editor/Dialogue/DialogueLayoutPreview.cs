@@ -227,6 +227,15 @@ namespace A305.EditorTools.Dialogue
                 900,
                 1400
             );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "translation-mobile.png"),
+                844,
+                390
+            );
             // 길게 말한 표현은 카드가 문장에 맞춰 커져 두 번째 줄부터 잘리지 않는지 본다.
             content.UserTranslation =
                 "You have no conscience, do you? I should've just left you to die. "
@@ -496,7 +505,7 @@ namespace A305.EditorTools.Dialogue
         }
 
         /// <summary>
-        /// [자막]을 끄고 켠 NPC 대사를 세 테마로 찍는다. 끄면 NPC 대사가 단어마다 회색 막대로 가려지고 [자막 켜기]가 반투명, 켜면 대사와 강조색 [자막 끄기]가 보인다.
+        /// [자막]을 끄고 켠 NPC 대사를 세 테마로 찍는다. 끄면 NPC 대사가 단어마다 회색 막대로 가려지고, 켜면 대사가 보인다.
         /// 자막을 끈 채 대답을 기다리는 화면도 찍어, 로딩 카드 위로 지난 대사의 막대가 비치지 않는지 본다.
         /// 이 기기의 자막 설정은 찍은 뒤 되돌린다.
         /// </summary>

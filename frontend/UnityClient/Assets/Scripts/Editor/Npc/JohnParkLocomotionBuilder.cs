@@ -129,30 +129,51 @@ namespace A305.EditorTools.Npc
                 curves[i, channel] = new AnimationCurve();
             rhythm.SampleAnimation(animator.gameObject, 0);
             var hips = bones[0];
-            var legs = new[] { new Leg(bones, "Left"), new Leg(bones, "Right") };
+            var legs = new[]
+            {
+                new Leg(animator, bones, "Left"),
+                new Leg(animator, bones, "Right"),
+            };
             var forward = Vector3
                 .ProjectOnPlane(legs[0].Toe.position - legs[0].Foot.position, Vector3.up)
                 .normalized;
             float length = legs.Average(l => l.Length);
-            float stride = length * (running ? .9f : .6f);
+            float stride = length * (running ? .9f : .65f);
             float stance = running ? .44f : .62f;
-            float lift = length * (running ? .33f : .18f);
-            // 무릎을 뻣뻣하게 편 채 다리만 회전하면 발이 땅 아래로 들어간다.
-            // 골반 높이를 조금 낮춰 접지 발의 IK 도달 범위를 확보한다. 상반신 회전 곡선은 만들지 않는다.
-            float pelvisDrop = length * (running ? .14f : .10f);
+            float lift = length * (running ? .10f : .075f);
+            // 발 회수는 뒤쪽에서 시작한다. 발을 몸 앞에서 높이 들던 대칭 사인 궤적을 쓰지 않는다.
+            var clearance = running
+                ? PoseCurve(0, 0, .24f, 1, .58f, .65f, 1, 0)
+                : PoseCurve(0, 0, .4f, 1, .75f, .7f, 1, 0);
+            var plantedPitch = running
+                ? PoseCurve(0, -7, .2f, 0, .55f, 6, 1, 18)
+                : PoseCurve(0, -12, .2f, 0, .6f, 0, 1, 24);
+            var swingPitch = running
+                ? PoseCurve(0, 18, .2f, 22, .6f, 5, .85f, -10, 1, -7)
+                : PoseCurve(0, 24, .3f, 8, .7f, -15, 1, -12);
+            var pelvisHeight = running
+                ? PoseCurve(0, -.03f, .25f, -.14f, .55f, -.08f, .87f, .02f, 1, -.03f)
+                : PoseCurve(0, -.055f, .2f, -.085f, .65f, -.025f, 1, -.055f);
             for (int frame = 0; frame <= frames; frame++)
             {
                 rhythm.SampleAnimation(animator.gameObject, 0);
-                hips.position += Vector3.down * pelvisDrop;
+                float cycle = frame / (float)frames;
+                Vector3 restHips = hips.position;
+                hips.position +=
+                    Vector3.up * length * pelvisHeight.Evaluate(Mathf.Repeat(cycle * 2, 1));
+                var targets = new Vector3[2];
+                var rotations = new Quaternion[2];
                 for (int side = 0; side < legs.Length; side++)
                 {
-                    float phase = Mathf.Repeat(frame / (float)frames + side * .5f, 1);
+                    float phase = Mathf.Repeat(cycle + side * .5f, 1);
                     float forwardOffset,
-                        height;
+                        height,
+                        pitch;
                     if (phase < stance)
                     {
                         forwardOffset = Mathf.Lerp(stride * .5f, -stride * .5f, phase / stance);
                         height = 0;
+                        pitch = plantedPitch.Evaluate(phase / stance);
                     }
                     else
                     {
@@ -165,13 +186,27 @@ namespace A305.EditorTools.Npc
                             + (cube - 2 * square + swing) * tangent
                             + (-2 * cube + 3 * square) * stride * .5f
                             + (cube - square) * tangent;
-                        height = lift * Mathf.Pow(Mathf.Sin(Mathf.PI * swing), 2);
+                        height = lift * clearance.Evaluate(swing);
+                        pitch = swingPitch.Evaluate(swing);
                     }
-                    legs[side]
-                        .Place(
-                            legs[side].RestAnkle + forward * forwardOffset + Vector3.up * height,
-                            forward
-                        );
+                    rotations[side] = Quaternion.AngleAxis(
+                        pitch,
+                        Vector3.Cross(Vector3.up, forward)
+                    );
+                    targets[side] = legs[side]
+                        .ContactTarget(forward, forwardOffset, height, rotations[side]);
+                }
+                // 무릎을 끝까지 펴지 않고 실제 발바닥 접점까지 도달할 수 있는 골반 높이를 구한다.
+                float reachableHeight = hips.position.y;
+                for (int side = 0; side < legs.Length; side++)
+                    reachableHeight = Mathf.Min(
+                        reachableHeight,
+                        legs[side].MaximumHipHeight(hips, targets[side])
+                    );
+                hips.position = new Vector3(restHips.x, reachableHeight, restHips.z);
+                for (int side = 0; side < legs.Length; side++)
+                {
+                    legs[side].Place(targets[side], forward, rotations[side]);
                 }
                 for (int i = 0; i < bones.Length; i++)
                 {
@@ -235,6 +270,14 @@ namespace A305.EditorTools.Npc
             return clip;
         }
 
+        private static AnimationCurve PoseCurve(params float[] pairs)
+        {
+            var keys = new Keyframe[pairs.Length / 2];
+            for (int i = 0; i < keys.Length; i++)
+                keys[i] = new Keyframe(pairs[i * 2], pairs[i * 2 + 1], 0, 0);
+            return new AnimationCurve(keys);
+        }
+
         private sealed class Leg
         {
             public readonly Transform Upper,
@@ -243,11 +286,13 @@ namespace A305.EditorTools.Npc
                 Toe;
             public readonly Vector3 RestAnkle;
             private readonly Quaternion footRotation;
+            private readonly Vector3[] soleOffsets;
+            private readonly float groundHeight;
             private readonly float upperLength,
                 lowerLength;
             public float Length => upperLength + lowerLength;
 
-            public Leg(Transform[] bones, string side)
+            public Leg(Animator animator, Transform[] bones, string side)
             {
                 Upper = bones.Single(b => b.name == side + "_UpperLeg");
                 Lower = bones.Single(b => b.name == side + "_LowerLeg");
@@ -257,9 +302,60 @@ namespace A305.EditorTools.Npc
                 footRotation = Foot.rotation;
                 upperLength = Vector3.Distance(Upper.position, Lower.position);
                 lowerLength = Vector3.Distance(Lower.position, Foot.position);
+                var skin = animator
+                    .GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .Where(s => s.bones.Contains(Foot))
+                    .OrderByDescending(s => s.sharedMesh.vertexCount)
+                    .First();
+                var baked = new Mesh();
+                try
+                {
+                    skin.BakeMesh(baked, true);
+                    var vertices = baked.vertices;
+                    var weights = skin.sharedMesh.boneWeights;
+                    soleOffsets = Enumerable
+                        .Range(0, vertices.Length)
+                        .Where(i =>
+                            weights[i].weight0 > .9f && skin.bones[weights[i].boneIndex0] == Foot
+                        )
+                        .Select(i => skin.transform.TransformPoint(vertices[i]) - RestAnkle)
+                        .ToArray();
+                    groundHeight = RestAnkle.y + soleOffsets.Min(p => p.y);
+                }
+                finally
+                {
+                    Object.DestroyImmediate(baked);
+                }
             }
 
-            public void Place(Vector3 target, Vector3 forward)
+            public Vector3 ContactTarget(
+                Vector3 forward,
+                float distance,
+                float clearance,
+                Quaternion roll
+            )
+            {
+                // 뒤꿈치/발끝이 번갈아 지지점이 되어도 가장 낮은 신발 정점은 바닥 아래로 내려가지 않는다.
+                Vector3 contact = soleOffsets.OrderBy(p => (roll * p).y).First();
+                Vector3 pivotShift = roll * contact - contact;
+                Vector3 target =
+                    RestAnkle + forward * distance - Vector3.ProjectOnPlane(pivotShift, Vector3.up);
+                target.y = groundHeight + clearance - (roll * contact).y;
+                return target;
+            }
+
+            public float MaximumHipHeight(Transform hips, Vector3 target)
+            {
+                float horizontal = Vector3
+                    .ProjectOnPlane(target - Upper.position, Vector3.up)
+                    .sqrMagnitude;
+                float reach = Length * .985f;
+                return target.y
+                    + Mathf.Sqrt(Mathf.Max(0, reach * reach - horizontal))
+                    - (Upper.position.y - hips.position.y);
+            }
+
+            public void Place(Vector3 target, Vector3 forward, Quaternion roll)
             {
                 Vector3 delta = target - Upper.position;
                 float distance = Mathf.Clamp(
@@ -286,7 +382,7 @@ namespace A305.EditorTools.Npc
                         Foot.position - Lower.position,
                         target - Lower.position
                     ) * Lower.rotation;
-                Foot.rotation = footRotation;
+                Foot.rotation = roll * footRotation;
             }
         }
 

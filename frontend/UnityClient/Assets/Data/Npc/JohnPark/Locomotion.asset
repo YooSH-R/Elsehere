@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04d3653ba8d18d24198ffa17f9a223cc, type: 3}
+  m_Name: Locomotion
+  m_EditorClassIdentifier: A305.Characters::A305.Characters.JohnParkLocomotionSettings
+  walk: {fileID: 7400000, guid: 9934deeef24af964cb0bdcccec8b9cb0, type: 2}
+  run: {fileID: 7400000, guid: 11ab12672a33680419517d6759804fed, type: 2}
+  bonePaths:
+  - LittleMung_JohnPark_Male_MasterRig/Hips
+  - LittleMung_JohnPark_Male_MasterRig/Hips/Left_UpperLeg
+  - LittleMung_JohnPark_Male_MasterRig/Hips/Left_UpperLeg/Left_LowerLeg
+  - LittleMung_JohnPark_Male_MasterRig/Hips/Left_UpperLeg/Left_LowerLeg/Left_Foot
+  - LittleMung_JohnPark_Male_MasterRig/Hips/Left_UpperLeg/Left_LowerLeg/Left_Foot/Left_Toes
+  - LittleMung_JohnPark_Male_MasterRig/Hips/Left_UpperLeg/Left_LowerLeg/Left_Foot/Left_Toes/Left_ToesEnd
+  - LittleMung_JohnPark_Male_MasterRig/Hips/Right_UpperLeg
+  - LittleMung_JohnPark_Male_MasterRig/Hips/Right_UpperLeg/Right_LowerLeg
+  - LittleMung_JohnPark_Male_MasterRig/Hips/Right_UpperLeg/Right_LowerLeg/Right_Foot
+  - LittleMung_JohnPark_Male_MasterRig/Hips/Right_UpperLeg/Right_LowerLeg/Right_Foot/Right_Toes
+  - LittleMung_JohnPark_Male_MasterRig/Hips/Right_UpperLeg/Right_LowerLeg/Right_Foot/Right_Toes/Right_ToesEnd
+  walkSpeedMetersPerSecond: 1
+  runSpeedMetersPerSecond: 2
+  blendSeconds: 0.15

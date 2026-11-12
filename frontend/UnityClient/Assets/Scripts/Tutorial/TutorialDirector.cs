@@ -185,8 +185,7 @@ namespace A305.Tutorial
             }
 
             SpaceTravel.Refused -= ShowTravelLocked;
-            if (feedbackView != null)
-                feedbackView.TopObstruction = null;
+            CenterWindow.Shared.TopObstruction = null;
         }
 
         private void Update()
@@ -502,10 +501,10 @@ namespace A305.Tutorial
 
         private void RefreshCoachMark()
         {
-            // 설명 말풍선과 대화 노트 창이 위에 남겨 둔 [건너뛰기] 카드를 피한다.
+            // 설명 말풍선과 단어장·대화 피드백·대화 노트 창이 위에 남겨 둔 [건너뛰기] 카드를 피한다.
             RectTransform skipCard = guideView.IsSkipOnly ? guideView.PanelRect : null;
             coachMark.KeepClear = skipCard;
-            feedbackView.TopObstruction = skipCard;
+            CenterWindow.Shared.TopObstruction = skipCard;
             var screen = new TutorialScreen
             {
                 IsTalking = dialogue.IsTalking,

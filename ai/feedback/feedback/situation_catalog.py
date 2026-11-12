@@ -1,4 +1,4 @@
-"""장면별로 검토한 '이 상황에서 자주 써요' 후보. 모델이 매번 새로 지어내지 않고 이 후보에서 고르게 한다."""
+"""실제 장소와 학습자 발화에 맞는 참고 표현 한 개를 찾고, 추천 결과를 정리한다."""
 
 import json
 import re
@@ -6,8 +6,6 @@ from functools import lru_cache
 from pathlib import Path
 
 CATALOG_PATH = Path(__file__).resolve().parent.parent / "content" / "situation_expressions.ko.json"
-MAX_CANDIDATES = 8
-MIN_EXPRESSIONS = 2
 NPC_ONLY = {"you're all set", "you are all set", "what can i get you", "anything else", "how can i help you"}
 HANGUL = re.compile(r"[가-힣]")
 
@@ -17,40 +15,29 @@ def _items():
     return json.loads(CATALOG_PATH.read_text(encoding="utf-8"))["items"]
 
 
-def situation_candidates(request):
-    """장면(scene_id)의 후보 가운데 scene_description에 걸리는 말이 많은 것부터 최대 8개. 숙어(idiom)를 앞에 둔다."""
-    scene = request.context.scene_id
-    description = request.context.scene_description or ""
-    scored = []
-    for order, item in enumerate(_items()):
-        if scene not in item["scenes"]:
-            continue
-        if _norm(item["expression"]).replace("'", "") in {value.replace("'", "") for value in NPC_ONLY}:
-            continue
-        hits = sum(1 for word in item["keywords"] if word in description)
-        scored.append((-hits, item["kind"] != "idiom", order, item))
-    scored.sort(key=lambda entry: entry[:3])
-    return [
-        {key: item[key] for key in ("id", "kind", "expression", "meaning_ko", "usage_ko", "example_en", "example_ko")}
-        for *_, item in scored[:MAX_CANDIDATES]
-    ]
+def situation_candidate(scene, user_texts):
+    """장소가 같고 학습자가 관련 말을 실제로 했을 때만 고정 표현을 참고로 제공한다."""
+    spoken = [_norm(text) for text in user_texts]
+    place_items = [item for item in _items() if scene in item["scenes"]]
+    best = None
+    best_hits = 0
+    for item in keep_useful(place_items, user_texts):
+        hits = sum(any(_matches_keyword(keyword, text) for text in spoken) for keyword in item["keywords"])
+        if hits > best_hits:
+            best = item
+            best_hits = hits
+    if best is None:
+        return None
+    return {key: best[key] for key in ("expression", "meaning_ko", "usage_ko", "example_en", "example_ko")}
 
 
-def fill_up(kept, candidates, user_texts):
-    """거르고 남은 표현이 2개가 안 되면 검토된 장면 후보에서 사용자가 말하지 않은 것으로 2개까지 채운다.
-
-    모델이 고른 표현이 직원 전용이거나 이미 말한 것이어서 빠지면 복습할 표현이 모자라게 된다. 후보가 없는 장면은 그대로 둔다.
-    """
-    filled = list(kept)
-    chosen = {_norm(item["expression"]) for item in filled}
-    for candidate in keep_useful(candidates, user_texts):
-        if len(filled) >= MIN_EXPRESSIONS:
-            break
-        if _norm(candidate["expression"]) in chosen:
-            continue
-        filled.append({key: value for key, value in candidate.items() if key not in ("id", "kind")})
-        chosen.add(_norm(candidate["expression"]))
-    return filled
+def _matches_keyword(keyword, text):
+    keyword = _norm(keyword)
+    if len(keyword) < 2:
+        return False
+    if HANGUL.search(keyword):
+        return keyword in text
+    return f" {keyword} " in f" {text} "
 
 
 def _norm(text):

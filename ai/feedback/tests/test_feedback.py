@@ -11,7 +11,6 @@ from feedback.clients import CallableClient, FixtureClient, ModelNotConfigured, 
 from feedback.models import INPUT, OUTPUT, validate_pair
 from feedback.prompt import build_messages
 from feedback.service import generate_feedback
-from feedback.situation_catalog import situation_candidates
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -272,7 +271,7 @@ class FeedbackTests(unittest.TestCase):
         result = self.run_body(body, request)["result"]
         self.assertEqual(result["situation_expressions"], SITUATION[:2])
 
-    def test_reviewed_candidates_fill_in_when_filters_leave_too_few_expressions(self):
+    def test_one_matching_reviewed_candidate_can_replace_filtered_expressions(self):
         request, body = sample("free_order")
         request["context"].update(scene_id="CAFE", scene_description="카페 · 음료 주문")
         # 모델이 학습자가 이미 한 말과 직원 전용 대사만 골라 와 둘 다 걸러지는 경우
@@ -283,11 +282,20 @@ class FeedbackTests(unittest.TestCase):
 
         expressions = self.run_body(body, request)["result"]["situation_expressions"]
 
-        reviewed = {item["expression"] for item in situation_candidates(INPUT.validate_python(request))}
-        self.assertEqual(len(expressions), 2)
-        for item in expressions:
-            self.assertIn(item["expression"], reviewed)
-            self.assertEqual(set(item), set(SITUATION[0]))
+        self.assertEqual([item["expression"] for item in expressions], ["Can I get a small iced latte?"])
+        self.assertEqual(set(expressions[0]), set(SITUATION[0]))
+
+        request["context"]["scene_id"] = "BAKERY"
+        self.assertEqual(self.run_body(body, request)["result"]["situation_expressions"], [])
+
+    def test_explicitly_empty_recommendation_stays_empty_even_with_a_candidate(self):
+        request, body = sample("free_order")
+        request["context"]["scene_id"] = "CAFE"
+        body["result"]["situation_expressions"] = []
+
+        result = self.run_body(body, request)["result"]
+
+        self.assertEqual(result["situation_expressions"], [])
 
     def test_results_without_situation_expressions_stay_valid(self):
         request, body = sample()
@@ -303,10 +311,11 @@ class FeedbackTests(unittest.TestCase):
         extra = dict(SITUATION[0], expression="Do you have oat milk?")
         self.assert_invalid(lambda r: r.update(situation_expressions=copy.deepcopy(SITUATION) + [extra]))
 
-    def test_prompt_asks_for_situation_expressions_from_the_scene(self):
+    def test_prompt_uses_the_scene_as_context_for_situation_expressions(self):
         system = build_messages(sample()[0])[0]["content"]
         self.assertIn("situation_expressions", system)
         self.assertIn("scene_description", system)
+        self.assertIn("실제로 나눈 대화의 목적", system)
 
     def test_vocab_suggestion_and_review_must_exist(self):
         for key in ("review_id", "suggestion_id"):

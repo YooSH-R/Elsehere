@@ -10,6 +10,7 @@ import com.elsehere.conversation.entity.InitiatedBy;
 import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.world.entity.Npc;
 import com.elsehere.world.entity.Scene;
+import com.elsehere.world.service.ConversationPlace;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -90,6 +91,39 @@ class FirstDayFeedbackInputsTest {
     assertThat(input.context().sceneId()).isEqualTo("HOTEL");
     assertThat(FeedbackInputs.difficulty(1).vocabularyProfile()).contains("level-1", "CEFR A1-A2");
     assertThat(FeedbackInputs.difficulty(3).vocabularyProfile()).contains("CEFR B1-B2");
+  }
+
+  @Test
+  void feedbackUsesTheRecordedShopInsteadOfTheNpcWorkplace() {
+    Conversation conversation = Conversation.start(8L, 1L, InitiatedBy.USER, 1, Instant.EPOCH);
+    conversation.recordNpcTravelSituation(ConversationPlace.describe("BAKERY").orElseThrow());
+    Scene scene = mock(Scene.class);
+    when(scene.getCode()).thenReturn("TOWN");
+    Npc npc = mock(Npc.class);
+    when(npc.getScene()).thenReturn(scene);
+    when(npc.getPlaceName()).thenReturn("은행");
+
+    assertThat(
+            FeedbackInputs.from(conversation, npc, List.of(), UUID.randomUUID())
+                .context()
+                .sceneId())
+        .isEqualTo("BAKERY");
+  }
+
+  @Test
+  void legacyBakeryConversationUsesTheNpcWorkplaceWhenTheLocationWasNotRecorded() {
+    Conversation conversation = Conversation.start(8L, 1L, InitiatedBy.USER, 1, Instant.EPOCH);
+    Scene scene = mock(Scene.class);
+    when(scene.getCode()).thenReturn("TOWN");
+    Npc npc = mock(Npc.class);
+    when(npc.getScene()).thenReturn(scene);
+    when(npc.getPlaceName()).thenReturn("빵집");
+
+    assertThat(
+            FeedbackInputs.from(conversation, npc, List.of(), UUID.randomUUID())
+                .context()
+                .sceneId())
+        .isEqualTo("BAKERY");
   }
 
   private static FeedbackInput inputFor(int stage, int level) {

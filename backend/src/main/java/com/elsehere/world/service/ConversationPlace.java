@@ -1,4 +1,4 @@
-package com.elsehere.dialogue.dto;
+package com.elsehere.world.service;
 
 import java.util.Map;
 import java.util.Optional;
@@ -35,6 +35,24 @@ public final class ConversationPlace {
               "inside the Home & Living building (Home & Living, with Leaf Tea Room upstairs)"),
           Map.entry("TAXI", "inside the yellow taxi"));
 
+  private static final Map<String, String> WORKPLACE_CODES =
+      Map.ofEntries(
+          Map.entry("거리", "TOWN"),
+          Map.entry("카페", "CAFE"),
+          Map.entry("드럭스토어", "SHOP"),
+          Map.entry("호텔", "HOTEL"),
+          Map.entry("경찰서", "POLICE_STATION"),
+          Map.entry("우체국", "POST_OFFICE"),
+          Map.entry("은행", "BANK"),
+          Map.entry("햄버거 가게", "DINER"),
+          Map.entry("빵집", "BAKERY"),
+          Map.entry("빨래방", "LAUNDROMAT"),
+          Map.entry("꽃집", "FLOWER_SHOP"),
+          Map.entry("이발소", "BARBER"),
+          Map.entry("오락실", "ARCADE"),
+          Map.entry("생활용품점", "HOME_STORE"),
+          Map.entry("택시", "TAXI"));
+
   private ConversationPlace() {}
 
   /** 지금 있는 곳 사실. 장소가 없거나 모르는 코드면 지어내지 않도록 비운다. */
@@ -42,7 +60,27 @@ public final class ConversationPlace {
     return Optional.ofNullable(placeCode == null ? null : WHEREABOUTS.get(placeCode))
         .map(
             where ->
-                "Where you are right now: %s. You are here in person with the person talking to you, so talk about your surroundings and give directions from here. If this is not your workplace, you are only visiting: do not act as if you were at your workplace or still out on the street."
-                    .formatted(where));
+                locationSentence(where)
+                    + " You are here in person with the person talking to you, so talk about your surroundings and give directions from here. If this is not your workplace, you are only visiting: do not act as if you were at your workplace or still out on the street.");
+  }
+
+  /** 저장된 대화 시작 상황에서 당시의 장소를 복원한다. */
+  public static Optional<String> recordedCode(String situation) {
+    if (situation == null) {
+      return Optional.empty();
+    }
+    return WHEREABOUTS.entrySet().stream()
+        .filter(place -> situation.contains(locationSentence(place.getValue())))
+        .map(Map.Entry::getKey)
+        .findFirst();
+  }
+
+  /** 실제 장소 기록이 없는 이전 대화에서 사용하는 NPC 근무지 코드. */
+  public static Optional<String> workplaceCode(String placeName) {
+    return Optional.ofNullable(placeName).map(WORKPLACE_CODES::get);
+  }
+
+  private static String locationSentence(String where) {
+    return "Where you are right now: %s.".formatted(where);
   }
 }

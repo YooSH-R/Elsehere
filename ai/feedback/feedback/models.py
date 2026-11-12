@@ -144,7 +144,7 @@ class FeedbackData(core.Contract):
     turn_reviews: Annotated[list[TurnReview], Field(min_length=1)]
     summary_suggestion_id: core.Id | None
     vocab_candidates: list[VocabCandidate]
-    # 기존 결과와 호환되도록 없으면 빈 배열이다. 생성할 때는 gms.feedback_response_format이 2~3개를 요구한다.
+    # 기존 결과에 필드가 없어도 읽고, 생성 시에는 최대 3개를 받는다.
     situation_expressions: Annotated[list[SituationExpression], Field(max_length=3)] = Field(default_factory=list)
 
     @model_validator(mode="after")

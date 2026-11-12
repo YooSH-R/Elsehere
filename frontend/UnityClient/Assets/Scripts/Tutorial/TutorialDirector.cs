@@ -139,6 +139,18 @@ namespace A305.Tutorial
             }
 
             ben = FindBen();
+#if UNITY_EDITOR
+            // 숙소·Ben이 없는 장소를 Editor에서 바로 실행한 검수는 튜토리얼 진행으로 막지 않는다.
+            // 완료·건너뛰기로 기록하지 않으므로 계정이나 다음 튜토리얼 실행에는 영향을 주지 않는다.
+            if (ben == null && gameObject.scene.name != guide.HomeSceneName && progress.IsGuiding)
+            {
+                guideView.Hide();
+                coachMark.Hide();
+                progress = null;
+                enabled = false;
+                return;
+            }
+#endif
             benFace = ben != null ? ben.GetComponent<NpcIdentity>().LookTarget : null;
             exitDoor = FindExitDoor();
             taxis = FindInThisScene<TaxiRide>();

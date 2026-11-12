@@ -146,19 +146,21 @@ namespace A305.Tutorial.Tests
             }
         }
 
-        // 호감도 설명이 길면 말풍선이 대화창의 버튼과 추천 카드를 가린다.
+        // 호감도 설명은 제목 아래 좋은 말·무례한 말·저장을 문단으로 나누어 읽기 쉽게 한다.
         [Test]
-        public void RelationshipCaption_IsShortEnoughNotToCoverTheDialogue()
+        public void RelationshipCaption_SplitsGoodWordsRudenessAndSavingIntoParagraphs()
         {
             var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
 
-            Assert.That(guide.RelationshipCaption, Does.Contain("호감도"));
-            Assert.That(guide.RelationshipCaption, Does.Contain("무례"));
-            Assert.That(guide.RelationshipCaption, Does.Contain("저장"));
-            Assert.That(
-                TutorialGuideText.VisibleLength(guide.RelationshipCaption),
-                Is.LessThanOrEqualTo(90)
-            );
+            string[] paragraphs = guide.RelationshipCaption.Split("\n\n");
+
+            Assert.That(paragraphs.Length, Is.EqualTo(4));
+            // 서버가 호감도를 올리는 사건(인사·칭찬·사과·도움)을 예로 들어 어떤 말이 좋은 말인지 알린다.
+            Assert.That(paragraphs[1], Does.Contain("호감도"));
+            Assert.That(paragraphs[1], Does.Contain("인사"));
+            Assert.That(paragraphs[1], Does.Contain("칭찬"));
+            Assert.That(paragraphs[2], Does.Contain("무례"));
+            Assert.That(paragraphs[3], Does.Contain("저장"));
         }
 
         // 서비스의 [힌트]는 추천 문장을 펼치기만 하고 펼친 문장을 눌러야 입력칸에 들어간다.

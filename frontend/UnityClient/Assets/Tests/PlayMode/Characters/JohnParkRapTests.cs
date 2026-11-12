@@ -244,6 +244,85 @@ namespace A305.Characters.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator WindowReturnResumesRapMouthAndMotionWithoutChangingTheGrip()
+        {
+            var root = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/Prefabs/Npc/LittleMung_JohnPark_Male.prefab"
+                )
+            );
+            var linkObject = new GameObject("창 전환 저장 랩 검사");
+            try
+            {
+                var performer = root.GetComponent<RecordedNpcPerformance>();
+                var speech = root.GetComponent<CharacterSpeechPlayer>();
+                var animator = root.GetComponentInChildren<Animator>();
+                var link = linkObject.AddComponent<DialogueServerLink>();
+                root.GetComponent<AudioSource>().mute = true;
+                link.SetSpeaker(speech);
+                yield return null;
+                Assert.That(performer.Play(link), Is.True);
+                yield return new WaitForSecondsRealtime(.3f);
+                var bones = root.GetComponentsInChildren<Transform>();
+                var hand = bones.Single(b => b.name == "Right_Hand");
+                var chest = bones.Single(b => b.name == "Chest");
+                var grip = chest.InverseTransformPoint(hand.position);
+                var gripRotation = Quaternion.Inverse(chest.rotation) * hand.rotation;
+                root.SendMessage("OnApplicationFocus", false);
+                float pausedTime = speech.PlaybackTime;
+                yield return new WaitForSecondsRealtime(.2f);
+                Assert.That(performer.IsPerforming, Is.True);
+                Assert.That(speech.PlaybackTime, Is.EqualTo(pausedTime).Within(.002f));
+                root.SendMessage("OnApplicationFocus", true);
+                float mouthPeak = 0;
+                for (int sample = 0; sample < 8; sample++)
+                {
+                    yield return new WaitForSecondsRealtime(.1f);
+                    Assert.That(performer.IsPerforming, Is.True);
+                    float loopSeconds =
+                        60
+                        * performer.Definition.BeatsPerAnimationLoop
+                        / performer.Definition.BeatsPerMinute;
+                    Assert.That(
+                        animator.GetCurrentAnimatorStateInfo(0).normalizedTime,
+                        Is.EqualTo(speech.PlaybackTime / loopSeconds).Within(.02f)
+                    );
+                    Assert.That(
+                        Vector3.Distance(grip, chest.InverseTransformPoint(hand.position)),
+                        Is.LessThan(.0005f)
+                    );
+                    Assert.That(
+                        Quaternion.Angle(
+                            gripRotation,
+                            Quaternion.Inverse(chest.rotation) * hand.rotation
+                        ),
+                        Is.LessThan(.1f)
+                    );
+                    foreach (var skin in root.GetComponentsInChildren<SkinnedMeshRenderer>())
+                        for (int i = 0; i < skin.sharedMesh.blendShapeCount; i++)
+                            if (skin.sharedMesh.GetBlendShapeName(i).StartsWith("viseme_"))
+                                mouthPeak = Mathf.Max(mouthPeak, skin.GetBlendShapeWeight(i));
+                }
+                Assert.That(speech.PlaybackTime, Is.GreaterThan(pausedTime + .5f));
+                Assert.That(
+                    mouthPeak,
+                    Is.GreaterThan(20),
+                    "창 복귀 후 실제 입 메시가 움직여야 한다."
+                );
+                link.StopSpeech();
+                root.SendMessage("OnApplicationFocus", false);
+                root.SendMessage("OnApplicationFocus", true);
+                yield return null;
+                Assert.That(performer.IsPerforming, Is.False);
+            }
+            finally
+            {
+                Object.Destroy(root);
+                Object.Destroy(linkObject);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator AudioClockControlsMotionAndFinishedPerformanceCanRestart()
         {
             var root = Object.Instantiate(

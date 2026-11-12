@@ -104,6 +104,89 @@ namespace A305.Characters.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator WindowSwitchKeepsVoiceAndMouthOnTheSamePlaybackClock()
+        {
+            player.Play();
+            yield return new WaitForSecondsRealtime(.2f);
+            root.SendMessage("OnApplicationFocus", false, SendMessageOptions.DontRequireReceiver);
+            root.SendMessage("OnApplicationPause", true, SendMessageOptions.DontRequireReceiver);
+            float pausedTime = player.PlaybackTime;
+            Assert.That(player.IsPaused, Is.True);
+            yield return new WaitForSecondsRealtime(.2f);
+            Assert.That(player.PlaybackTime, Is.EqualTo(pausedTime).Within(.002f));
+            Assert.That(skin.GetBlendShapeWeight(0), Is.GreaterThan(95));
+
+            root.SendMessage("OnApplicationFocus", true, SendMessageOptions.DontRequireReceiver);
+            Assert.That(player.IsPaused, Is.True, "앱 일시정지가 해제되기 전에는 재개하지 않는다.");
+            root.SendMessage("OnApplicationPause", false, SendMessageOptions.DontRequireReceiver);
+            yield return new WaitForSecondsRealtime(.33f);
+            Assert.That(player.IsPlaying, Is.True);
+            Assert.That(player.PlaybackTime, Is.GreaterThan(pausedTime + .2f));
+            Assert.That(skin.GetBlendShapeWeight(1), Is.GreaterThan(95));
+        }
+
+        [UnityTest]
+        public IEnumerator DelayedBrowserAudioResumeDoesNotEndTheLipSync()
+        {
+            player.Play();
+            yield return new WaitForSecondsRealtime(.2f);
+            root.SendMessage("OnApplicationFocus", false, SendMessageOptions.DontRequireReceiver);
+            root.SendMessage("OnApplicationFocus", true, SendMessageOptions.DontRequireReceiver);
+            // Web Audio 컨텍스트가 Unity 프레임보다 늦게 복귀하는 상황을 재현한다.
+            var source = root.GetComponent<AudioSource>();
+            source.Pause();
+            yield return null;
+            yield return null;
+            Assert.That(
+                player.IsPlaying,
+                Is.True,
+                "오디오 복귀 대기를 발화 종료로 처리하면 안 된다."
+            );
+            source.UnPause();
+            yield return new WaitForSecondsRealtime(.33f);
+            Assert.That(source.isPlaying, Is.True);
+            Assert.That(skin.GetBlendShapeWeight(1), Is.GreaterThan(95));
+        }
+
+        [UnityTest]
+        public IEnumerator WindowReturnDoesNotOverrideManualPauseOrReviveStoppedSpeech()
+        {
+            player.Play();
+            yield return new WaitForSecondsRealtime(.2f);
+            player.Pause();
+            float pausedTime = player.PlaybackTime;
+            root.SendMessage("OnApplicationFocus", false);
+            root.SendMessage("OnApplicationFocus", true);
+            yield return new WaitForSecondsRealtime(.12f);
+            Assert.That(player.IsPaused, Is.True);
+            Assert.That(player.PlaybackTime, Is.EqualTo(pausedTime).Within(.002f));
+
+            root.SendMessage("OnApplicationFocus", false);
+            player.Resume();
+            Assert.That(player.IsPaused, Is.True, "수동 재개도 창이 복귀할 때까지 기다린다.");
+            player.Stop();
+            root.SendMessage("OnApplicationFocus", true);
+            yield return null;
+            Assert.That(player.IsPlaying, Is.False);
+            Assert.That(root.GetComponent<AudioSource>().isPlaying, Is.False);
+            Assert.That(skin.GetBlendShapeWeight(0), Is.Zero);
+        }
+
+        [UnityTest]
+        public IEnumerator SpeechStartedWhileWindowIsHiddenWaitsForReturn()
+        {
+            root.SendMessage("OnApplicationFocus", false);
+            player.Play();
+            yield return new WaitForSecondsRealtime(.12f);
+            Assert.That(player.IsPaused, Is.True);
+            Assert.That(player.PlaybackTime, Is.LessThan(.01f));
+            root.SendMessage("OnApplicationFocus", true);
+            yield return new WaitForSecondsRealtime(.2f);
+            Assert.That(player.IsPlaying, Is.True);
+            Assert.That(skin.GetBlendShapeWeight(0), Is.GreaterThan(95));
+        }
+
+        [UnityTest]
         public IEnumerator ReplayRestartsAndNaturalEndClearsTheMouth()
         {
             player.Play();

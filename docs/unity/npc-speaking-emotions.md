@@ -69,6 +69,13 @@ Production의 공용 오프라인 대본에도 John과 뮤지션 역할을 등�
 
 ### John의 저장 안내와 랩 버튼
 
+음성과 입모양은 `CharacterSpeechPlayer`가 읽는 `AudioSource.timeSamples`를 기준으로 갱신하고,
+랩의 몸동작도 같은 재생 시각을 사용합니다. 창의 포커스를 잃거나 앱이 일시정지되면 음성을
+함께 멈추고, 포커스와 앱 실행이 모두 복귀한 뒤 같은 위치에서 이어 재생합니다. 브라우저 오디오
+컨텍스트가 늦게 복귀하는 동안에는 발음 시간표와 공연 상태를 종료하지 않습니다. 수동 일시정지는
+창 복귀만으로 풀리지 않으며, 대화를 종료한 음성은 다시 재생하지 않습니다. 일반 대화의 다음
+음성 조각도 일시정지된 앞 조각을 기다립니다.
+
 `Assets/Data/Npc/JohnPark/OrderRap.asset`은 랩과 안내의 **영문·한국어 번역·음성 참조**를 함께
 보관합니다. `Assets/Audio/Characters/JohnParkDialogue/ReplayGuide.bytes`에는 로컬 `am_onyx`
 합성 안내, 음소 시간표, `warm_smile` 감정 시간표가 들어 있습니다. `OrderRap.bytes`는 기존 1.5배

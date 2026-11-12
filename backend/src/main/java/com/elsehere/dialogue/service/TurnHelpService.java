@@ -44,11 +44,20 @@ public class TurnHelpService {
   private final QuestTalkService questTalks;
   private final ConversationResponses conversationResponses;
   private final AiGateway aiGateway;
+  private final DialogueRequestLocks requestLocks;
   private final TransactionTemplate transactionTemplate;
   private final JsonMapper jsonMapper;
   private final Clock clock;
 
+  /**
+   * NPC 턴이 저장되면 대답 직후 {@link MeaningPreparation}이 미리 부르고, 학습자의 [뜻 보기]는 저장된 뜻을 받는다. 미리 만드는 중에 누르면 그
+   * 결과를 기다린다.
+   */
   public MeaningResponse meaning(Long userId, Long turnId, UUID requestId) {
+    return requestLocks.executeMeaning(turnId, () -> meaningOnce(userId, turnId, requestId));
+  }
+
+  private MeaningResponse meaningOnce(Long userId, Long turnId, UUID requestId) {
     NpcLine line = transactionTemplate.execute(status -> npcLine(userId, turnId));
     if (line.meaningKo() != null) {
       return new MeaningResponse(

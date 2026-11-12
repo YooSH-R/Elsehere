@@ -5,8 +5,8 @@ using UnityEngine;
 namespace A305.Mission
 {
     /// <summary>
-    /// 도장 지도에 얹을 것의 자리(<see cref="TownMapArt"/> 그림 좌표). 가 본 곳마다 도장을 한 번, 지금 갈 곳에 번호 핀을 두고,
-    /// 지나온 곳과 지금 갈 곳을 차례로 잇는다. 마을 가게는 담당 직원으로 칸을 찾고, 칸이 없는 거리(행인)는 지도에 두지 않는다.
+    /// 도장과 번호 핀의 자리(<see cref="TownMapArt"/> 그림 좌표)를 찾는다.
+    /// 마을 가게는 담당 직원으로 칸을 찾고, 칸이 없는 거리(행인)는 지도에 두지 않는다.
     /// </summary>
     public static class QuestStampMap
     {
@@ -24,18 +24,6 @@ namespace A305.Mission
             int index = quest.Stops.FindIndex(stop => stop.Current);
             Vector2? centre = index < 0 ? null : Centre(quest.Stops[index]);
             return centre.HasValue ? new QuestPin(index + 1, centre.Value) : null;
-        }
-
-        public static List<Vector2> Path(QuestEntry quest)
-        {
-            var points = new List<Vector2>();
-            foreach (QuestStop stop in quest.Stops.Where(stop => stop.Done || stop.Current))
-            {
-                Vector2? centre = Centre(stop);
-                if (centre.HasValue && (points.Count == 0 || points[^1] != centre.Value))
-                    points.Add(centre.Value);
-            }
-            return points;
         }
 
         private static Vector2? Centre(QuestStop stop) =>

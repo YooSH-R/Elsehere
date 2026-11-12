@@ -23,7 +23,12 @@ namespace A305.Ambience
 
         // Web 빌드에서 로딩 페이지가 틀던 접속 음악을 이어받았으면 그 음악만 쓰고 Unity 음악(music)은 틀지 않는다.
         private bool usesLoadingPageMusic;
-        private (float volume, bool playing, bool enabled) sentToLoadingPage = (-1, false, false);
+        private (float volume, bool playing, bool enabled, float level) sentToLoadingPage = (
+            -1,
+            false,
+            false,
+            -1
+        );
         private float scanAt;
         public AudioSource MusicSource => music;
         public AudioSource EffectsSource => effects;
@@ -107,12 +112,14 @@ namespace A305.Ambience
             if (userInput)
                 entryMusic.AllowSound();
             bool enabled = BackgroundSoundPreference.Enabled;
+            float level = BackgroundSoundPreference.Volume;
             effects.mute = !enabled;
+            effects.volume = level;
             entryMusic.Update(SceneManager.GetActiveScene().name, enabled, Time.unscaledDeltaTime);
             if (usesLoadingPageMusic)
-                ApplyToLoadingPageMusic(enabled);
+                ApplyToLoadingPageMusic(enabled, level);
             else
-                ApplyToMusicSource();
+                ApplyToMusicSource(level);
             if (Time.unscaledTime >= scanAt)
             {
                 scanAt = Time.unscaledTime + .35f;
@@ -126,23 +133,24 @@ namespace A305.Ambience
             }
         }
 
-        private void ApplyToMusicSource()
+        // 음악 자체의 크기(EntryMusicFader)에 스피커에서 고른 크기를 곱한다.
+        private void ApplyToMusicSource(float level)
         {
             if (entryMusic.Playing && !music.isPlaying && music.clip != null)
                 music.Play();
             else if (!entryMusic.Playing && music.isPlaying)
                 music.Stop();
-            music.volume = entryMusic.Volume;
+            music.volume = entryMusic.Volume * level;
         }
 
-        // 바뀐 값만 넘겨, 음악을 끈 게임 공간에서는 프레임마다 브라우저를 부르지 않는다.
-        private void ApplyToLoadingPageMusic(bool enabled)
+        // 바뀐 값만 넘겨, 음악을 끈 게임 공간에서는 프레임마다 브라우저를 부르지 않는다. 고른 크기는 페이지가 곱한다.
+        private void ApplyToLoadingPageMusic(bool enabled, float level)
         {
-            var state = (entryMusic.Volume, entryMusic.Playing, enabled);
+            var state = (entryMusic.Volume, entryMusic.Playing, enabled, level);
             if (state == sentToLoadingPage)
                 return;
             sentToLoadingPage = state;
-            LoadingPageMusic.Apply(entryMusic.Volume, entryMusic.Playing, enabled);
+            LoadingPageMusic.Apply(entryMusic.Volume, entryMusic.Playing, enabled, level);
         }
 
         // 소리를 들을 귀가 하나는 있게 한다. 카메라 귀가 있는 씬에서는 내 귀를 꺼 귀가 둘이 되지 않게 한다.

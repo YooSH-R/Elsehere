@@ -4,11 +4,11 @@ mergeInto(LibraryManager.library, {
     var music = window.elsehereEntryMusic;
     return music ? music.volume() : -1;
   },
-  // Unity(InterfaceAudioPlayer)가 정한 음량·재생 여부와 스피커 선택을 페이지 음악에 넘긴다.
-  A305_SetLoadingMusic: function (volume, playing, soundEnabled) {
+  // Unity(InterfaceAudioPlayer)가 정한 음악 음량·재생 여부와 스피커 선택(켬·끔, 고른 크기)을 페이지 음악에 넘긴다.
+  A305_SetLoadingMusic: function (volume, playing, soundEnabled, level) {
     var music = window.elsehereEntryMusic;
     if (music) {
-      music.set(volume, !!playing, !!soundEnabled);
+      music.set(volume, !!playing, !!soundEnabled, level);
     }
   },
 });

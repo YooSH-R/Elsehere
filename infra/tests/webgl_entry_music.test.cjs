@@ -13,15 +13,23 @@ const bridgePath = path.join(
   "../../frontend/UnityClient/Assets/Plugins/WebGL/LoadingPageMusic.jslib",
 );
 const soundKey = "elsehere.audio.background.enabled";
+const volumeKey = "elsehere.audio.background.volume";
 
 // Runs the loading page's entry music script in a fake browser and connects the Unity bridge to it.
-function loadPage({ savedSound = null, autoplay = true, musicFile = true, webAudio = true } = {}) {
+function loadPage({
+  savedSound = null,
+  savedVolume = null,
+  autoplay = true,
+  musicFile = true,
+  webAudio = true,
+} = {}) {
   const template = fs.readFileSync(path.join(templateDirectory, "index.html"), "utf8");
   const match = template.match(/<script id="entry-music">([\s\S]*?)<\/script>/);
   assert.ok(match, "The WebGL template must start the entry music on its loading page");
 
   const values = new Map();
   if (savedSound !== null) values.set(soundKey, savedSound);
+  if (savedVolume !== null) values.set(volumeKey, savedVolume);
   const listeners = {};
   const requested = [];
   const warnings = [];
@@ -155,6 +163,24 @@ test("turning the speaker off in the game keeps the next loading page silent", a
 
   assert.equal(next.audio().sources.length, 0);
   assert.equal(next.unity.A305_LoadingMusicVolume(), 0);
+});
+
+test("the speaker's volume scales the music, and the next loading page starts at that volume", async () => {
+  const page = loadPage();
+  await settle();
+
+  page.unity.A305_SetLoadingMusic(0.18, 1, 1, 0.5);
+
+  assert.ok(Math.abs(page.audio().gain.gain.value - 0.09) < 1e-6);
+  // Unity keeps fading from the music's own volume; the speaker volume is applied on top.
+  assert.ok(Math.abs(page.unity.A305_LoadingMusicVolume() - 0.18) < 1e-6);
+  assert.equal(page.values.get(volumeKey), "0.5");
+
+  const next = loadPage({ savedVolume: "0.5" });
+  await settle();
+
+  assert.ok(Math.abs(next.audio().gain.gain.value - 0.09) < 1e-6);
+  assert.ok(Math.abs(next.unity.A305_LoadingMusicVolume() - 0.18) < 1e-6);
 });
 
 test("without the music file or Web Audio the game still loads and Unity plays its own music", async () => {

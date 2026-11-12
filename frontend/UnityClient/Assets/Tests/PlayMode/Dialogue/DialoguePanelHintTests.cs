@@ -78,6 +78,29 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator PrefetchedHint_RevealsImmediatelyAndOnlySignalsOpening()
+        {
+            content.HintText = HintSentence;
+            view.Refresh();
+            yield return null;
+            int requests = 0;
+            int opened = 0;
+            view.HintRequested += () => requests++;
+            view.HintOpened += () => opened++;
+            Input.text = "My own answer";
+            ClickCenterOf(FindButton("HintButton"));
+            yield return null;
+            Assert.That(FindChild("HintSentence").gameObject.activeInHierarchy, Is.True);
+            Assert.That(
+                FindChild("HintSentence").GetComponent<TMP_Text>().text,
+                Does.Contain(HintSentence)
+            );
+            Assert.That(requests, Is.Zero);
+            Assert.That(opened, Is.EqualTo(1));
+            Assert.That(Input.text, Is.EqualTo("My own answer"));
+        }
+
+        [UnityTest]
         public IEnumerator HintText_AfterUserEditsTheInput_IsNotPutBackOnRefresh()
         {
             content.HintText = HintSentence;

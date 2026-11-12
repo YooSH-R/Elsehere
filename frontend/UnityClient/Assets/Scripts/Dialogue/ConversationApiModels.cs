@@ -341,12 +341,14 @@ namespace A305.Dialogue
         public string HintMeaningKo { get; set; }
     }
 
-    /// <summary>추천 단어(CONV-12).</summary>
+    /// <summary>함께 미리 받는 추천 단어·문장·뜻(CONV-12). 문장 준비가 실패하면 단어만 있을 수 있다.</summary>
     public sealed class SuggestWordsData
     {
         public long TurnId { get; set; }
 
         /// <summary>NPC 대사에 대답할 때 쓸 만한 단어·짧은 구</summary>
         public List<string> SuggestWords { get; set; }
+        public string HintText { get; set; }
+        public string HintMeaningKo { get; set; }
     }
 }

@@ -446,6 +446,7 @@ namespace A305.Dialogue
 
         /// <summary>추천 문장을 아직 받지 않았을 때 [힌트]를 누르면 알린다. 받은 뒤에는 묻지 않고 그 문장을 입력창에 다시 넣는다.</summary>
         public event Action HintRequested;
+        public event Action HintOpened;
 
         /// <summary>대사에서 고른 풀이 단어의 [단어장에 저장]을 누르면 그 단어를 알린다. 결과는 <see cref="ShowWordSaveResult"/>로 받는다.</summary>
         public event Action<GlossaryWord> WordSaveRequested;
@@ -812,6 +813,8 @@ namespace A305.Dialogue
             }
 
             hintVisible = !hintVisible;
+            if (hintVisible && !string.IsNullOrEmpty(content.HintText))
+                HintOpened?.Invoke();
             if (hintVisible && string.IsNullOrEmpty(content.HintText) && !awaitingHint)
             {
                 awaitingHint = true;

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using A305.Ambience;
 using A305.Api;
 using A305.Dialogue;
 using A305.Learning;
@@ -168,6 +169,7 @@ namespace A305.Tutorial
 
         private void OnDestroy()
         {
+            AmbienceQuiet.IsHeld = false;
             if (progress == null)
             {
                 return;
@@ -193,6 +195,8 @@ namespace A305.Tutorial
             progress.UsesTouch = PlayerTouchControls.ShouldShowControls();
             ReportActions();
             HoldPlayerForBen();
+            // Ben 대화에서 낮춘 장소 소리가 이어지는 안내 도중에 다시 커지지 않게 튜토리얼을 마칠 때까지 낮춰 둔다.
+            AmbienceQuiet.IsHeld = progress.KeepsAmbienceQuiet;
 
             // 첫날 미션 화면이 없으면 보여 줄 지도가 없으므로 오늘의 목표 안내를 바로 마친다.
             if (firstDayMission == null)

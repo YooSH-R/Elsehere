@@ -121,6 +121,13 @@ namespace A305.Tutorial
         /// </summary>
         public bool IsGuiding => Step != TutorialStep.Completed;
 
+        /// <summary>
+        /// 장소 소리를 대화 중처럼 낮춰 둘지. Ben 대화에서 낮춘 소리가 피드백·휴대폰·오늘의 목표 안내 도중에 다시 커지지 않게
+        /// 튜토리얼을 마치거나 건너뛸 때까지 낮춰 둔다.
+        /// </summary>
+        public bool KeepsAmbienceQuiet =>
+            Step >= TutorialStep.BenDialogue && Step < TutorialStep.Completed;
+
         public void Continue()
         {
             if (!CanContinue)

@@ -181,6 +181,36 @@ namespace A305.Tutorial.Tests
             Assert.That(progress.IsTravelAllowed, Is.True);
         }
 
+        // Ben 대화에서 낮춘 장소 소리가 피드백·휴대폰·오늘의 목표 안내 도중에 다시 커지지 않게 튜토리얼을 마칠 때까지 낮춰 둔다.
+        [TestCase(TutorialStep.BenDialogue)]
+        [TestCase(TutorialStep.BenFeedback)]
+        [TestCase(TutorialStep.TodayGoal)]
+        public void KeepsAmbienceQuiet_FromBenDialogueUntilTheTutorialEnds(TutorialStep step)
+        {
+            MoveTo(step);
+
+            Assert.That(progress.KeepsAmbienceQuiet, Is.True);
+        }
+
+        [TestCase(TutorialStep.Arrival)]
+        [TestCase(TutorialStep.LeaveLodging)]
+        [TestCase(TutorialStep.MeetBen)]
+        public void KeepsAmbienceQuiet_NotBeforeTalkingToBen(TutorialStep step)
+        {
+            MoveTo(step);
+
+            Assert.That(progress.KeepsAmbienceQuiet, Is.False);
+        }
+
+        [Test]
+        public void KeepsAmbienceQuiet_NotAfterTheTutorial()
+        {
+            MoveTo(TutorialStep.BenFeedback);
+            progress.Skip();
+
+            Assert.That(progress.KeepsAmbienceQuiet, Is.False);
+        }
+
         [TestCase(TutorialStep.MeetBen)]
         [TestCase(TutorialStep.BenDialogue)]
         [TestCase(TutorialStep.BenFeedback)]

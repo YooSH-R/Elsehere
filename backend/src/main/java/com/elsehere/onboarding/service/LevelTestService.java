@@ -50,8 +50,20 @@ public class LevelTestService {
     profile.recordLastTest(test.getId());
 
     List<LevelTestItemResponse> items =
-        levelTestCatalog.items().stream().map(LevelTestItemResponse::from).toList();
+        levelTestCatalog.items().stream().map(LevelTestService::itemResponse).toList();
     return new LevelTestStartResponse(test.getId(), test.getStatus(), items.size(), items);
+  }
+
+  // 문항 응답에는 정답·대사·판정 기준을 담지 않는다.
+  private static LevelTestItemResponse itemResponse(LevelTestItem item) {
+    return new LevelTestItemResponse(
+        item.itemCode(),
+        LevelTestItemResponse.Type.valueOf(item.type().name()),
+        item.instruction(),
+        item.question(),
+        item.choices(),
+        item.speaker(),
+        item.cues());
   }
 
   /** 듣기 문항은 고른 보기를 정답과 비교해 기록한다. 말하기 문항은 받아 적은 말만 저장하고, 통과 여부는 완료할 때 정한다. */

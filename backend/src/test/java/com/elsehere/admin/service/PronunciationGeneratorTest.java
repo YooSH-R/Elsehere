@@ -13,7 +13,7 @@ import static org.mockito.Mockito.times;
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.admin.dto.PronunciationProgress;
 import com.elsehere.admin.dto.PronunciationRun;
-import com.elsehere.ai.client.AiGateway;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.config.TestClockConfig;
 import com.elsehere.common.error.BusinessException;

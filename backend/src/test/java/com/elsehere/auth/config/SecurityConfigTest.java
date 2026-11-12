@@ -1,4 +1,4 @@
-package com.elsehere.common.config;
+package com.elsehere.auth.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -12,6 +12,7 @@ import com.elsehere.auth.service.PendingSignup;
 import com.elsehere.common.auth.CsrfHeaderFilter;
 import com.elsehere.common.auth.LoginUser;
 import com.elsehere.common.auth.LoginUserTestController;
+import com.elsehere.common.config.SecuredWebMvcTest;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.user.entity.AuthProvider;
 import java.net.URLDecoder;

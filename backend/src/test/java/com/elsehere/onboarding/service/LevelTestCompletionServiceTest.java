@@ -7,9 +7,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.LevelTestSpeakingResult;
 import com.elsehere.ai.client.WorkerLevelTestSpeakingItem;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.onboarding.dto.LevelTestResultResponse;
 import com.elsehere.onboarding.entity.LevelTestStatus;
 import java.util.List;

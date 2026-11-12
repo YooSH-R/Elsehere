@@ -1,9 +1,9 @@
 package com.elsehere.onboarding.service;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.LevelTestSpeakingResult;
 import com.elsehere.ai.client.WorkerLevelTestSpeakingItem;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.onboarding.dto.LevelTestResultResponse;
 import java.util.List;
 import java.util.Set;

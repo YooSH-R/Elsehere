@@ -1,10 +1,10 @@
 package com.elsehere.followup.service;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.WorkerFollowUp;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.ai.service.WorkerLines;
 import com.elsehere.ai.service.WorkerNpcs;
 import com.elsehere.common.config.ClockConfig;

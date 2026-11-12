@@ -1,4 +1,4 @@
-package com.elsehere.ai.client;
+package com.elsehere.ai.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -7,6 +7,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.PerformanceIntentResult;
+import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.client.WorkerUsage;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
 import com.elsehere.common.error.BusinessException;

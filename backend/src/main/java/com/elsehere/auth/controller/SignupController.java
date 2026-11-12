@@ -4,6 +4,8 @@ import com.elsehere.auth.dto.SignupFormResponse;
 import com.elsehere.auth.dto.SignupRequest;
 import com.elsehere.auth.dto.SignupResponse;
 import com.elsehere.auth.service.ConsentCatalog;
+import com.elsehere.auth.service.ConsentTerm;
+import com.elsehere.auth.service.ConvertingGuest;
 import com.elsehere.auth.service.PendingSignup;
 import com.elsehere.auth.service.SignupService;
 import com.elsehere.common.auth.LoginSessionService;
@@ -46,8 +48,18 @@ public class SignupController {
     requirePendingSignup(pendingSignup);
     return new SignupFormResponse(
         pendingSignup.email(),
-        consentCatalog.currentTerms(),
-        signupService.findConvertingGuest(pendingSignup).orElse(null));
+        consentCatalog.currentTerms().stream().map(SignupController::consent).toList(),
+        signupService.findConvertingGuest(pendingSignup).map(SignupController::guest).orElse(null));
+  }
+
+  // 응답(dto)이 서비스 타입을 모르도록 서비스 결과를 응답 칸으로 옮겨 담는다.
+  private static SignupFormResponse.Consent consent(ConsentTerm term) {
+    return new SignupFormResponse.Consent(
+        term.consentType(), term.version(), term.required(), term.title(), term.url());
+  }
+
+  private static SignupFormResponse.Guest guest(ConvertingGuest guest) {
+    return new SignupFormResponse.Guest(guest.avatarType(), guest.voiceConsent());
   }
 
   @PostMapping

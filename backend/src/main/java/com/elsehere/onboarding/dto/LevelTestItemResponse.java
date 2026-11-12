@@ -1,7 +1,5 @@
 package com.elsehere.onboarding.dto;
 
-import com.elsehere.onboarding.service.LevelTestItem;
-import com.elsehere.onboarding.service.LevelTestItemType;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
@@ -16,21 +14,18 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record LevelTestItemResponse(
     String itemCode,
-    LevelTestItemType type,
+    Type type,
     String instruction,
     String question,
     List<String> choices,
     String speaker,
     List<String> cues) {
 
-  public static LevelTestItemResponse from(LevelTestItem item) {
-    return new LevelTestItemResponse(
-        item.itemCode(),
-        item.type(),
-        item.instruction(),
-        item.question(),
-        item.choices(),
-        item.speaker(),
-        item.cues());
+  /** 레벨 테스트 문항 형식. */
+  public enum Type {
+    /** NPC 대사를 듣고 한국어 보기 4개 중 뜻을 고른다. */
+    LISTEN,
+    /** 상황 카드를 보고 한두 문장으로 말하거나 쓴다. */
+    SPEAK
   }
 }

@@ -2,8 +2,8 @@ package com.elsehere.admin.service;
 
 import com.elsehere.admin.dto.PronunciationProgress;
 import com.elsehere.admin.dto.PronunciationRun;
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.vocab.entity.Vocabulary;
 import com.elsehere.vocab.repository.VocabularyRepository;
 import com.elsehere.world.service.PronunciationAudioStore;

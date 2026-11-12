@@ -1,5 +1,7 @@
-package com.elsehere.ai.client;
+package com.elsehere.ai.service;
 
+import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.client.WorkerUsage;
 import com.elsehere.ai.entity.AiRequest;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;

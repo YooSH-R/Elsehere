@@ -11,8 +11,8 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.times;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.MeaningResult;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.dialogue.dto.MeaningResponse;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;

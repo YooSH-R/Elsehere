@@ -805,16 +805,7 @@ namespace A305.Dialogue
                 return;
             }
 
-            // 튜토리얼은 코치 마크에서 밝힌 버튼으로 현재 연습 대사를 바로 채운다.
-            if (content.IsGuided)
-            {
-                if (string.IsNullOrEmpty(content.HintText))
-                    HintRequested?.Invoke();
-                if (!string.IsNullOrEmpty(content?.HintText))
-                    inputField.text = content.HintText;
-                return;
-            }
-
+            // 튜토리얼도 서비스와 같이 추천 문장을 펼치기만 하고, 펼친 문장을 눌러야 입력칸에 넣는다.
             hintVisible = !hintVisible;
             if (hintVisible && string.IsNullOrEmpty(content.HintText) && !awaitingHint)
             {

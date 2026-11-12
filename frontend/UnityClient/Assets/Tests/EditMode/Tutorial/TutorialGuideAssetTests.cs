@@ -161,6 +161,19 @@ namespace A305.Tutorial.Tests
             );
         }
 
+        // 서비스의 [힌트]는 추천 문장을 펼치기만 하고 펼친 문장을 눌러야 입력칸에 들어간다.
+        // 튜토리얼이 [힌트]가 입력칸을 바로 채우는 기능처럼 알리지 않는다.
+        [Test]
+        public void HintCaptions_SayTheHintShowsASentenceToClick()
+        {
+            var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
+
+            Assert.That(guide.SuggestedSentenceCaption, Does.Contain("문장을 누르면"));
+            Assert.That(guide.SuggestedSentenceCaption, Does.Not.Contain("채워"));
+            Assert.That(guide.GuidedLineMissCaption, Does.Contain("{힌트}"));
+            Assert.That(guide.GuidedLineMissCaption, Does.Not.Contain("채워"));
+        }
+
         [Test]
         public void VocabularyButtonCaption_TellsToOpenTheVocabularyApp()
         {

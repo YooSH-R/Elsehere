@@ -361,7 +361,7 @@ namespace A305.Tutorial.PlayModeTests
             DialogueController dialogue = Single<DialogueController>();
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "HintButton");
+                FillWithHint(panel);
                 Click(panel, "SendButton");
                 yield return null;
             }
@@ -614,7 +614,7 @@ namespace A305.Tutorial.PlayModeTests
 
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "HintButton");
+                FillWithHint(panel);
                 Click(panel, "SendButton");
                 yield return null;
             }
@@ -707,8 +707,16 @@ namespace A305.Tutorial.PlayModeTests
                 "[힌트]는 앞선 추천 문장 티칭에서 설명하므로 할 대사 구멍에 넣지 않습니다."
             );
 
+            // 서비스와 같이 [힌트]는 추천 문장을 펼치기만 하고, 펼친 문장을 눌러야 입력칸에 들어간다.
             Assert.That(input.text, Is.Empty);
             ClickAtScreenCenter(hint);
+            yield return null;
+            Assert.That(input.text, Is.Empty, "[힌트]를 눌러도 입력칸을 바로 채우지 않습니다.");
+            ClickAtScreenCenter(
+                panel
+                    .GetComponentsInChildren<Button>(true)
+                    .Single(button => button.name == "UseHintButton")
+            );
             yield return null;
             Assert.That(input.text, Does.Contain("Nice to meet you"));
             Click(panel, "SendButton");
@@ -840,7 +848,7 @@ namespace A305.Tutorial.PlayModeTests
             yield return FinishTour(Single<CoachMarkView>());
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "HintButton");
+                FillWithHint(panel);
                 Click(panel, "SendButton");
                 yield return null;
             }
@@ -915,7 +923,7 @@ namespace A305.Tutorial.PlayModeTests
             DialogueController dialogue = Single<DialogueController>();
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "HintButton");
+                FillWithHint(panel);
                 Click(panel, "SendButton");
                 yield return null;
                 Assert.That(voice.HasSpeech, Is.True, "Ben의 대답을 들려줍니다.");
@@ -939,7 +947,7 @@ namespace A305.Tutorial.PlayModeTests
             DialogueController dialogue = Single<DialogueController>();
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "HintButton");
+                FillWithHint(panel);
                 Click(panel, "SendButton");
                 yield return null;
             }
@@ -1110,6 +1118,13 @@ namespace A305.Tutorial.PlayModeTests
                 $"{buttonName}이 보이지 않습니다."
             );
             button.onClick.Invoke();
+        }
+
+        // 서비스와 같이 [힌트]로 추천 문장을 펼치고, 펼친 문장을 눌러 입력칸에 넣는다.
+        private static void FillWithHint(DialoguePanelView panel)
+        {
+            Click(panel, "HintButton");
+            Click(panel, "UseHintButton");
         }
 
         // 코치 마크의 어두운 영역이 클릭을 가로채는지 확인하려면 실제 버튼 좌표를 눌러야 한다.

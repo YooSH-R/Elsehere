@@ -14,7 +14,7 @@ namespace A305.Dialogue
     {
         /// <summary>정해진 대사와 다른 문장을 보냈을 때 입력칸 위에 보이는 안내</summary>
         public const string GuidedLineMissNotice =
-            "튜토리얼은 정해진 흐름대로 진행돼요. 안내한 대사와 같게 입력하거나 [힌트]로 채워 보세요.";
+            "튜토리얼은 정해진 흐름대로 진행돼요. 안내한 대사와 같게 입력하거나 [힌트]로 펼친 문장을 눌러 넣어 보세요.";
 
         /// <summary>말로 한 대사가 정해진 대사와 다르거나 알아듣지 못했어도 정해진 대사로 이어 갔다는 안내</summary>
         public const string GuidedVoiceNotice =

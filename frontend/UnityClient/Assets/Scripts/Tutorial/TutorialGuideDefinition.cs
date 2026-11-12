@@ -120,7 +120,7 @@ namespace A305.Tutorial
         [SerializeField]
         [Tooltip("대화 시작 티칭의 넷째. 오른쪽 추천 문장 카드와 [힌트]를 밝히며 보인다.")]
         private string suggestedSentenceCaption =
-            "대답이 떠오르지 않으면 {추천 문장}의 {힌트}로 입력칸에 예시 답변을 채워요";
+            "대답이 떠오르지 않으면 {힌트}로 {추천 문장}을 펼쳐 봐요. 펼친 문장을 누르면 입력칸에 들어가요";
 
         [SerializeField]
         [Tooltip("휴대폰을 열어 안내 카드가 [건너뛰기]만 남긴 동안 [단어장] 앱 옆에 보이는 할 일")]
@@ -138,7 +138,7 @@ namespace A305.Tutorial
             "길 안내 대화에서 대사와 다른 문장을 보냈을 때의 설명. 아래에 입력할 대사와 뜻이 붙는다."
         )]
         private string guidedLineMissCaption =
-            "튜토리얼은 정해진 흐름대로 진행돼요. 이 대사와 같게 입력하거나 {힌트}로 채워요";
+            "튜토리얼은 정해진 흐름대로 진행돼요. 이 대사와 같게 입력하거나 {힌트}로 펼친 문장을 눌러 넣어요";
 
         [SerializeField]
         [Tooltip(

@@ -215,3 +215,5 @@ Editor를 닫고 `NPC_EMOTION_REVIEW_OUTPUT`에 저장소 밖 출력 폴더를 �
 저장 자료와 실제 재생 분기는 [John의 저장 안내와 랩 버튼](#john의-저장-안내와-랩-버튼)을 따릅니다.
 `JonePerformanceUiPreview.Capture`는 공용 대화창에 실제 연결된 버튼의 대기·강조·재생 상태를
 넓은 화면과 좁은 화면에서 렌더합니다. 운영 씬은 저장하지 않습니다.
+
+John의 걷기·달리기는 `JohnParkLocomotion`이 발걸음과 골반 바운스를 분리해서 합성합니다. 랩 중에는 저장 음성의 재생 시각, 랩이 없을 때는 반복되는 강약 패턴을 사용합니다. 강세 곡선과 기준 골반 위치는 `Locomotion.asset`에 저장하며 **Connect Moving Rap Groove**로 같은 음성 시간표에서 갱신합니다. **Build Standing Rap Bounce**는 제자리 클립도 함께 갱신합니다. 골반이 움직여도 발 목표와 발 구름을 유지하도록 양다리 IK를 적용하며, 오른손·앰프와 얼굴 제어는 그대로 둡니다. 실제 저장 음성을 넣은 보행 전후 검수는 `JohnParkMovingGrooveValidation.Capture`로 실행하고 `artifacts/JohnLocomotion/MovingGroove/`에서 확인합니다.

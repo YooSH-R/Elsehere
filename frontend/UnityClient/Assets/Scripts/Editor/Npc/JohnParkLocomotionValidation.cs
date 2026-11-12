@@ -39,6 +39,15 @@ namespace A305.EditorTools.Npc
         [MenuItem("Tools/A305/Npc/John Park/Validate Lower Body And Capture")]
         public static void Capture()
         {
+            var settings = AssetDatabase.LoadAssetAtPath<JohnParkLocomotionSettings>(
+                JohnParkLocomotionBuilder.SettingsPath
+            );
+            // 강약 리듬은 4초 보행 루프와 주기가 다르므로 음성 전체의 발 목표·잡기를 검수한다.
+            if (settings != null && settings.GrooveDuration > 0)
+            {
+                JohnParkMovingGrooveValidation.Capture();
+                return;
+            }
             string output = Path.GetFullPath("../../artifacts/JohnLocomotion/Visual");
             Directory.CreateDirectory(output);
             var scene = EditorSceneManager.OpenScene(JohnParkLocomotionBuilder.ScenePath);

@@ -800,7 +800,8 @@ namespace A305.Dialogue
                 visible,
                 CanUsePerformance,
                 performer != null && performer.IsPerforming,
-                emphasizePerformance
+                emphasizePerformance,
+                performer?.Definition?.English
             );
         }
 

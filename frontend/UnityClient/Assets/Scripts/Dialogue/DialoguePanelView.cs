@@ -281,6 +281,7 @@ namespace A305.Dialogue
         private bool performanceEnabled;
         private bool performancePlaying;
         private bool performanceEmphasized;
+        private string performanceLyrics;
 
         public event Action PerformanceRequested;
 
@@ -288,7 +289,8 @@ namespace A305.Dialogue
             bool visible,
             bool interactable,
             bool playing,
-            bool emphasized
+            bool emphasized,
+            string lyrics = null
         )
         {
             if (performanceButton == null)
@@ -298,12 +300,14 @@ namespace A305.Dialogue
                 && performanceEnabled == interactable
                 && performancePlaying == playing
                 && performanceEmphasized == emphasized
+                && (lyrics == null || performanceLyrics == lyrics)
             )
                 return;
             performanceVisible = visible;
             performanceEnabled = interactable;
             performancePlaying = playing;
             performanceEmphasized = emphasized;
+            performanceLyrics = visible ? lyrics ?? performanceLyrics : null;
             performanceButton.gameObject.SetActive(visible);
             performanceButton.interactable = interactable;
             performanceButton.GetComponentInChildren<TMP_Text>().text = playing
@@ -1305,6 +1309,24 @@ namespace A305.Dialogue
                 DialogueCinemaLayout.LinesWidth(column, hasTranslation),
                 out bool hasEarlierLines
             );
+            // 모든 가사는 기록에 남기고, 실제 글꼴·줄바꿈으로 잰 한 세트 높이 안에서만 스크롤한다.
+            if (performanceVisible && !string.IsNullOrEmpty(performanceLyrics))
+            {
+                string onePerformance = DialogueLinesText.Format(
+                    new[] { DialogueLine.FromNpc(performanceLyrics, null) },
+                    content.NpcName,
+                    false,
+                    null,
+                    sentenceIndent: SentenceIndent()
+                );
+                linesHeight = linesText
+                    .GetPreferredValues(
+                        onePerformance,
+                        DialogueCinemaLayout.LinesWidth(column, hasTranslation),
+                        0
+                    )
+                    .y;
+            }
             float nameWidth = Mathf.Max(
                 MinNameWidth,
                 npcNameText.GetPreferredValues(npcNameText.text).x + 2 * NamePadding

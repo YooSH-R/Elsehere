@@ -34,6 +34,7 @@ namespace A305.Learning
             bool loadingMeanings,
             Action retryMeanings,
             Func<GlossaryWord, Task<bool>> saveWord,
+            Func<RectTransform, CorrectionCard, float, RectTransform> correctionCard,
             out float height
         )
         {
@@ -56,7 +57,8 @@ namespace A305.Learning
                     buttonTemplate,
                     feedback,
                     selectedReview.Value,
-                    back
+                    back,
+                    correctionCard
                 );
             else
                 height = Conversation(
@@ -274,7 +276,8 @@ namespace A305.Learning
             Button buttonTemplate,
             ConversationFeedback feedback,
             int reviewIndex,
-            Action back
+            Action back,
+            Func<RectTransform, CorrectionCard, float, RectTransform> correctionCard
         )
         {
             float width = root.rect.width;
@@ -340,6 +343,12 @@ namespace A305.Learning
             float y = 108;
             // 문장 교정 카드와 같은 이름표를 쓴다. 한국어로 한 말은 "내가 한 말 · 한국어"와 "영어로는"이다.
             CorrectionCard card = CorrectionCard.From(review);
+            if (card.Examples.Count > 0)
+            {
+                RectTransform combined = correctionCard(root, card, cardWidth);
+                Pin(combined, Margin, y, cardWidth, combined.sizeDelta.y);
+                return y + combined.sizeDelta.y + 24;
+            }
             string saidLabel = card.SaidLabel;
             if (card.Kind == CorrectionKind.WellSaid)
                 saidLabel = "잘 표현했어요";
@@ -453,87 +462,6 @@ namespace A305.Learning
                         cardWidth,
                         CardHeight(root, fontSource, reason, cardWidth)
                     ) + Gap;
-            foreach (FeedbackExpressionExample example in card.Examples)
-            {
-                float room = cardWidth - 112;
-                float conditionHeight = TextHeight(
-                    root,
-                    fontSource,
-                    example.ConditionKo,
-                    room,
-                    displayFont,
-                    26
-                );
-                float englishHeight = TextHeight(
-                    root,
-                    fontSource,
-                    example.Expression,
-                    room,
-                    displayFont,
-                    32
-                );
-                float meaningHeight = TextHeight(
-                    root,
-                    fontSource,
-                    example.MeaningKo,
-                    room,
-                    null,
-                    FontSize
-                );
-                float englishY = 38 + conditionHeight + 20;
-                float meaningY = englishY + englishHeight + 16;
-                // FeedbackTile 아래의 투명 그림자 여백까지 확보해 뜻이 흰 카드 밖으로 내려가지 않게 한다.
-                float height = meaningY + meaningHeight + 78;
-                Image tile = Tile(
-                    root,
-                    "ExpressionExample",
-                    tileSprite,
-                    Color.white,
-                    Margin,
-                    y,
-                    cardWidth,
-                    height
-                );
-                Label(
-                    tile.rectTransform,
-                    fontSource,
-                    "Condition",
-                    example.ConditionKo,
-                    26,
-                    Coral,
-                    56,
-                    38,
-                    room,
-                    conditionHeight + 8,
-                    displayFont
-                );
-                Label(
-                    tile.rectTransform,
-                    fontSource,
-                    "Expression",
-                    example.Expression,
-                    32,
-                    Ink,
-                    56,
-                    englishY,
-                    room,
-                    englishHeight + 8,
-                    displayFont
-                );
-                Label(
-                    tile.rectTransform,
-                    fontSource,
-                    "Meaning",
-                    example.MeaningKo,
-                    FontSize,
-                    Muted,
-                    56,
-                    meaningY,
-                    room,
-                    meaningHeight + 8
-                );
-                y += height + Gap;
-            }
             if (review.Idiom != null)
             {
                 string english = review.Idiom.English ?? "";

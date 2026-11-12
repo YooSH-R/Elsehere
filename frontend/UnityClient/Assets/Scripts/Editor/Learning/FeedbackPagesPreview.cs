@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using A305.Dialogue;
 using A305.EditorTools.Common;
 using A305.EditorTools.Theme;
@@ -205,7 +206,7 @@ namespace A305.EditorTools.Learning
                 view.ToggleExpanded();
             if (expressionGuidance)
             {
-                feedback = ExpressionGuidanceFeedback();
+                feedback = ExpressionGuidanceFeedback(0);
                 view.Show(feedback, new DialogueLine[0]);
                 foreach (
                     UiThemeId theme in new[] { UiThemeId.Jelly, UiThemeId.Sticker, UiThemeId.Cloud }
@@ -264,6 +265,16 @@ namespace A305.EditorTools.Learning
                         true
                     );
                 }
+                view.Show(ExpressionGuidanceFeedback(), new DialogueLine[0]);
+                view.SelectSection(FeedbackSection.Corrections);
+                Render(
+                    camera,
+                    view,
+                    Path.Combine(output, "expressions-list-desktop.png"),
+                    1600,
+                    1000
+                );
+                view.SelectSection(FeedbackSection.Conversation);
                 view.SelectReview(1);
                 Render(camera, view, Path.Combine(output, "word-list-desktop.png"), 1600, 1000);
                 Render(camera, view, Path.Combine(output, "word-list-mobile.png"), 540, 960);
@@ -398,10 +409,10 @@ namespace A305.EditorTools.Learning
             );
         }
 
-        private static ConversationFeedback ExpressionGuidanceFeedback() =>
+        private static ConversationFeedback ExpressionGuidanceFeedback(int? reviewIndex = null) =>
             ConversationFeedback.FromServer(
                 "Mia",
-                2,
+                reviewIndex.HasValue ? 1 : 3,
                 new ServerFeedback(
                     new FeedbackData { Status = "DONE", Summary = "표현 연습용 가상 대화예요." },
                     new List<DetailedFeedbackItem>
@@ -475,7 +486,9 @@ namespace A305.EditorTools.Learning
                                 },
                             },
                         },
-                    },
+                    }
+                        .Where((_, index) => !reviewIndex.HasValue || index == reviewIndex.Value)
+                        .ToList(),
                     null
                 )
             );

@@ -610,6 +610,7 @@ namespace A305.Learning
                 isMeaningLoading,
                 () => _ = LoadTranscriptMeaningsAsync(true),
                 wordSaver,
+                BuildCorrectionCard,
                 out float cardsHeight
             );
             builtItems.Add(conversation);
@@ -667,39 +668,49 @@ namespace A305.Learning
             float y = 0;
             foreach (CorrectionCard model in CorrectionCard.From(feedback))
             {
-                RectTransform card = Instantiate(correctionCardTemplate, scroll.content);
-                card.name = "CorrectionCard";
-                card.gameObject.SetActive(true);
+                RectTransform card = BuildCorrectionCard(scroll.content, model, width);
                 builtItems.Add(card.gameObject);
-                Button pick = card.Find("SaveButton").GetComponent<Button>();
-                pick.gameObject.SetActive(isSaveAvailable);
-                string english = model.Better;
-                var examplePicks = new List<(FeedbackExpressionExample Example, Button Pick)>();
-                float height = FeedbackCardsLayout.Correction(
-                    card,
-                    model,
-                    width,
-                    SaidChip(model.Kind),
-                    model.Kind == CorrectionKind.Korean ? englishChipSprite : betterChipSprite,
-                    pickSprite,
-                    examplePicks
-                );
-                pick.onClick.AddListener(() =>
-                    SaveRequested?.Invoke(english, model.BetterMeaning ?? "")
-                );
-                foreach (var (example, examplePick) in examplePicks)
-                {
-                    examplePick.onClick.AddListener(() =>
-                        SaveRequested?.Invoke(example.Expression, example.MeaningKo ?? "")
-                    );
-                    RegisterPick(example.Expression, examplePick);
-                }
                 PlaceAt(card, y);
-                if (pick.gameObject.activeSelf)
-                    RegisterPick(english, pick);
-                y += height + GapBetweenCards;
+                y += card.sizeDelta.y + GapBetweenCards;
             }
             return Mathf.Max(0, y - GapBetweenCards);
+        }
+
+        private RectTransform BuildCorrectionCard(
+            RectTransform parent,
+            CorrectionCard model,
+            float width
+        )
+        {
+            RectTransform card = Instantiate(correctionCardTemplate, parent);
+            card.name = "CorrectionCard";
+            card.gameObject.SetActive(true);
+            Button pick = card.Find("SaveButton").GetComponent<Button>();
+            pick.gameObject.SetActive(isSaveAvailable);
+            string english = model.Better;
+            var examplePicks = new List<(FeedbackExpressionExample Example, Button Pick)>();
+            FeedbackCardsLayout.Correction(
+                card,
+                model,
+                width,
+                SaidChip(model.Kind),
+                model.Kind == CorrectionKind.Korean ? englishChipSprite : betterChipSprite,
+                pickSprite,
+                examplePicks
+            );
+            pick.onClick.AddListener(() =>
+                SaveRequested?.Invoke(english, model.BetterMeaning ?? "")
+            );
+            foreach (var (example, examplePick) in examplePicks)
+            {
+                examplePick.onClick.AddListener(() =>
+                    SaveRequested?.Invoke(example.Expression, example.MeaningKo ?? "")
+                );
+                RegisterPick(example.Expression, examplePick);
+            }
+            if (pick.gameObject.activeSelf)
+                RegisterPick(english, pick);
+            return card;
         }
 
         private Sprite SaidChip(CorrectionKind kind) =>

@@ -2,10 +2,8 @@ package com.elsehere.admin.controller;
 
 import com.elsehere.admin.dto.PronunciationStatusResponse;
 import com.elsehere.admin.service.AdminPronunciationService;
-import com.elsehere.common.auth.LoginUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -26,7 +24,7 @@ public class AdminPronunciationController {
   /** 발음 파일이 없는 사물 단어의 발음을 백그라운드에서 만든다. 진행 상황은 GET으로 본다. */
   @PostMapping("/api/v1/admin/pronunciations")
   @ResponseStatus(HttpStatus.ACCEPTED)
-  public PronunciationStatusResponse start(@AuthenticationPrincipal LoginUser loginUser) {
-    return adminPronunciationService.start(loginUser.userId());
+  public PronunciationStatusResponse start() {
+    return adminPronunciationService.start();
   }
 }

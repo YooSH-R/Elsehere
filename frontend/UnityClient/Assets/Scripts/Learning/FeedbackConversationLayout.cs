@@ -533,7 +533,10 @@ namespace A305.Learning
             bool hasReason = !string.IsNullOrWhiteSpace(card.Reason);
             if (card.Better != null)
                 return ("이 표현을 쓰는 이유", hasReason ? card.Reason : NoCorrectionReason);
-            if (card.Kind == CorrectionKind.Korean)
+            if (
+                card.Kind == CorrectionKind.Korean
+                || card.Kind == CorrectionKind.ExpressionPractice
+            )
                 return ("설명", hasReason ? card.Reason : null);
             return ("자연스러웠던 점", hasReason ? card.Reason : NoCorrectionReason);
         }

@@ -1,7 +1,7 @@
 package com.elsehere.dialogue.service;
 
 import com.elsehere.TestcontainersConfiguration;
-import com.elsehere.ai.client.AiGateway;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.ai.service.GuestConversationLimit;
 import com.elsehere.ai.service.WorkerLines;
 import com.elsehere.ai.service.WorkerNpcs;

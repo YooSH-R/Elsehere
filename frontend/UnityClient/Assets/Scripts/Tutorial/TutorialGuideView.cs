@@ -96,17 +96,20 @@ namespace A305.Tutorial
         /// <param name="isTouch">터치 조작판이 보이는 기기인지. 기기에 맞는 할 일 문구를 고른다.</param>
         /// <param name="partDone">" · "로 나뉜 할 일마다 해냈는지. 조작 단계가 아니면 비어 있다.</param>
         /// <param name="stepNumber">안내 카드 중 몇 번째 단계인지(1부터)</param>
+        /// <param name="canSkip">[건너뛰기]를 보일지. 건너뛸 수 없는 오늘의 목표 안내에서는 숨긴다.</param>
         public void Show(
             TutorialStepGuide guide,
             bool canContinue,
             bool isTouch,
             IReadOnlyList<bool> partDone,
             int stepNumber,
-            int stepCount
+            int stepCount,
+            bool canSkip
         )
         {
             titleText.text =
                 $"{TutorialGuideText.ProgressDots(stepNumber, stepCount)}   <b>{guide.Title}</b>";
+            skipButton.gameObject.SetActive(canSkip);
             bool hasButton = !string.IsNullOrEmpty(guide.ButtonLabel);
             string task = TutorialGuideText.TaskLine(guide.TaskFor(isTouch), partDone);
             taskText.text = canContinue && !hasButton ? DoneMark + task : task;
@@ -126,6 +129,7 @@ namespace A305.Tutorial
         {
             titleText.text =
                 $"{TutorialGuideText.ProgressDots(stepNumber, stepCount)}   <b>{guide.Title}</b>";
+            skipButton.gameObject.SetActive(true);
             continueButton.gameObject.SetActive(false);
             ClearNotice();
             SetSkipOnly(true);

@@ -278,6 +278,55 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(card.rect.size, Is.EqualTo(closedSize));
         }
 
+        // 한국어로 말하면 대사 칸이 좁아져 대사가 여러 줄로 늘어난다. 그래도 추천 문장 카드가 눌려 [힌트]가 카드 밖으로 나가지 않는다.
+        [UnityTest]
+        public IEnumerator LongConversationInKorean_KeepsTheHintButtonInsideItsCard()
+        {
+            string longLine = string.Join(
+                " ",
+                System.Linq.Enumerable.Repeat(VeryLongExpression, 2)
+            );
+            view.Show(
+                new Content
+                {
+                    UserTranslation =
+                        "I'm the police commissioner. I'm the one who can approve it.",
+                    Conversation = new[]
+                    {
+                        DialogueLine.FromUser(longLine),
+                        DialogueLine.FromNpc(longLine, null),
+                        DialogueLine.FromUser(longLine),
+                        DialogueLine.FromNpc(longLine, null),
+                    },
+                }
+            );
+            yield return null;
+            var root = (RectTransform)instance.transform;
+            Transform hintCard = instance.transform.Find("Suggestions/HintCard");
+            Rect cardArea = InPanel((RectTransform)hintCard, root);
+            Rect buttonArea = InPanel((RectTransform)hintCard.Find("HintCover/HintButton"), root);
+            Rect titleArea = InPanel((RectTransform)hintCard.Find("Title"), root);
+            Assert.That(buttonArea.yMin, Is.GreaterThanOrEqualTo(cardArea.yMin));
+            Assert.That(buttonArea.yMax, Is.LessThanOrEqualTo(titleArea.yMin));
+            Rect toolsArea = InPanel(
+                (RectTransform)instance.transform.Find("Panel/Conversation/ToolRow"),
+                root
+            );
+            Assert.That(cardArea.yMin, Is.GreaterThanOrEqualTo(toolsArea.yMax));
+
+            // [힌트]를 눌러 펼친 추천 문장과 그 뜻도 카드 안에서 잘리지 않는다.
+            hintCard.Find("HintCover/HintButton").GetComponent<Button>().onClick.Invoke();
+            yield return null;
+            var sentence = hintCard.Find("Viewport/HintSentence").GetComponent<TMP_Text>();
+            Assert.That(sentence.text, Does.Contain("Over there, please."));
+            Assert.That(sentence.text, Does.Contain("저쪽으로 부탁해요."));
+            var sentenceViewport = (RectTransform)sentence.rectTransform.parent;
+            Assert.That(
+                sentenceViewport.rect.height,
+                Is.GreaterThanOrEqualTo(sentence.preferredHeight - .5f)
+            );
+        }
+
         private const string VeryLongExpression =
             "You have no conscience, do you? I should've just left you to die. "
             + "What were you even thinking back there? I waited for you at the bus stop "
@@ -312,13 +361,14 @@ namespace A305.Dialogue.PlayModeTests
             public string UserTranslation { get; set; }
             public string UserLine { get; set; } = "카페 어디야?";
             public IReadOnlyList<string> UserBetterExpressions { get; set; }
+            public IReadOnlyList<DialogueLine> Conversation { get; set; }
             public IReadOnlyList<DialogueLine> Lines =>
-                new[] { DialogueLine.FromUser(UserLine), Npc };
+                Conversation ?? new[] { DialogueLine.FromUser(UserLine), Npc };
             public DialogueLine LastNpcLine => Npc;
             public bool IsGuided => false;
             public bool IsGuidedCompleted => false;
             public string SuggestedEnglish => null;
-            public string SuggestedKorean => null;
+            public string SuggestedKorean => "저쪽으로 부탁해요.";
             public string ExampleSentence => null;
             public bool IsBusy => false;
             public string StatusMessage => null;
@@ -331,7 +381,7 @@ namespace A305.Dialogue.PlayModeTests
             public bool HasMeaning => true;
             public IReadOnlyList<GlossaryData> LastNpcGlossary => null;
             public bool HasHint => true;
-            public string HintText => null;
+            public string HintText => "Over there, please.";
             public bool UsesVoice => true;
             public ConversationStanding Standing => null;
             public DialogueWait Waiting => DialogueWait.None;

@@ -18,13 +18,13 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.HintResult;
 import com.elsehere.ai.client.MeaningResult;
 import com.elsehere.ai.client.SuggestResult;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.GlossaryResponse;
@@ -173,6 +173,28 @@ class TurnHelpServiceTest {
             anyList(),
             anyString(),
             anyInt());
+  }
+
+  @Test
+  @DisplayName("추천 문장에 그대로 들어 있는 추천 단어는 잘라 온 말이라 빼고 보낸다 (S15P31A305-855)")
+  void suggestWords_dropsWordsTakenFromTheRecommendedSentence() {
+    given(aiGateway.suggest(any(), any(), anyList(), anyString(), anyInt()))
+        .willReturn(
+            new SuggestResult(
+                List.of("I’m sorry — 미안해요", "apologize — 사과하다", "speak — 말하다", "Speaking To"),
+                List.of(usage("suggest"))));
+    given(aiGateway.hint(any(), any(), anyList(), anyString(), anyInt()))
+        .willReturn(
+            new HintResult(
+                List.of(new HintResult.Phrase("I'm sorry for speaking to you.", "말을 걸어서 미안해요.")),
+                List.of(),
+                List.of(usage("hint"))));
+
+    SuggestWordsResponse response =
+        turnHelpService.suggestWords(userId, npcTurn.getId(), UUID.randomUUID());
+
+    assertThat(response.hintText()).isEqualTo("I'm sorry for speaking to you.");
+    assertThat(response.suggestWords()).containsExactly("apologize — 사과하다", "speak — 말하다");
   }
 
   @Test
@@ -365,7 +387,7 @@ class TurnHelpServiceTest {
     assertThat(response)
         .isEqualTo(
             new SuggestWordsResponse(
-                npcTurn.getId(), List.of("for here", "to go"), "For here, please.", "여기서 먹을게요."));
+                npcTurn.getId(), List.of("to go"), "For here, please.", "여기서 먹을게요."));
     ArgumentCaptor<List<WorkerLine>> history = ArgumentCaptor.forClass(List.class);
     then(aiGateway)
         .should()

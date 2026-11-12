@@ -150,6 +150,27 @@ def test_stt_chain_gpu_needs_address_and_token(env, missing, named):
     assert named in str(e.value)
 
 
+def test_stt_chain_backup_gpu_by_env(env):
+    # 주 GPU(노트북)가 꺼지면 예비 GPU(SSAFY GPU 서버)로. 같은 STT 서버 프로그램이라 토큰은 같고 터널 입구만 다르다
+    env.update(
+        {
+            "GMS_KEY": "g",
+            "GROQ_API_KEY": "q",
+            "STT_CHAIN": "gpu:turbo-lr1e4,gpu_backup:turbo-lr1e4,gms:whisper-1",
+            "STT_GPU_BASE_URL": "http://172.19.0.1:18431/v1",
+            "STT_GPU_BACKUP_BASE_URL": "http://172.19.0.1:18441/v1/",
+            "STT_GPU_TOKEN": "t",
+        }
+    )
+    s = Settings.from_env()
+    assert [step["provider"] for step in s.stt_chain] == ["gpu", "gpu_backup", "gms"]
+    assert s.providers["gpu_backup"] == {"base_url": "http://172.19.0.1:18441/v1", "api_key": "t"}
+    del env["STT_GPU_BACKUP_BASE_URL"]
+    with pytest.raises(RuntimeError) as e:
+        Settings.from_env()
+    assert "STT_GPU_BACKUP_BASE_URL" in str(e.value)
+
+
 @pytest.mark.parametrize("value", ["gpu", "nope:x,gms:whisper-1", "gms:whisper-1,", " , "])
 def test_stt_chain_bad_value(env, value):
     env.update({"GMS_KEY": "g", "GROQ_API_KEY": "q", "STT_CHAIN": value})

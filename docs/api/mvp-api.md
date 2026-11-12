@@ -84,16 +84,14 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | --- | --- | --- |
 | `VALIDATION_FAILED` | 400 | 필수값 누락, 길이·형식 오류 |
 | `UNAUTHENTICATED` | 401 | 로그인 필요. 로그인 세션은 서버 메모리에 있어 서버 재배포나 오래 쉬면 사라집니다. 장소 화면에서 이 응답을 받으면 클라이언트는 "접속이 끊겼어요" 안내를 띄우고 처음 화면(로그인)으로 돌려보냅니다. |
+| `ADMIN_LOGIN_FAILED` | 401 | 운영자 어드민 로그인(`POST /api/v1/admin/login`)의 아이디나 비밀번호가 틀림. 무엇이 틀렸는지는 알리지 않음. [운영자 어드민](../admin.md) 참고 |
 | `SIGNUP_REQUIRED` | 403 | 가입 정보 미제출 |
 | `CSRF_HEADER_REQUIRED` | 403 | 상태를 바꾸는 요청에 `X-Requested-With` 헤더 없음 |
-| `ADMIN_REQUIRED` | 403 | 관리자가 아닌 사용자가 운영자 어드민 화면·관리 API(`/admin`, `/api/v1/admin/**`) 호출. [운영자 어드민](../admin.md) 참고 |
 | `VOICE_CONSENT_REQUIRED` | 403 | 음성 처리(`VOICE`)에 동의하지 않은 사용자의 음성 인식(CONV-02). 글자로 입력하거나 오른쪽 위 메뉴(≡) › 내 정보 › 선택 동의에서 동의를 켭니다. |
 | `AI_RESTRICTED` | 403 | 운영·안전상 AI 제한 |
 | `NOT_FOUND` | 404 | 대상이 없거나 다른 사용자의 데이터 |
-| `ADMIN_CANDIDATE_NOT_FOUND` | 404 | 어드민에서 관리자로 추가한 이메일로 Google 가입한 사용자가 없음. [운영자 어드민](../admin.md) 참고 |
 | `ALREADY_SIGNED_UP` | 409 | 이미 가입한 사용자의 가입 정보 제출 |
 | `NICKNAME_TAKEN` | 409 | 다른 사용자가 쓰고 있는 닉네임 |
-| `ADMIN_SELF_REVOKE` | 409 | 어드민에서 자기 자신을 관리자에서 해제 |
 | `LEVEL_TEST_NOT_IN_PROGRESS` | 409 | 이미 끝난 레벨 테스트에 응답·완료·그만하기 |
 | `REQUEST_ID_CONFLICT` | 409 | 같은 `requestId`로 다른 내용 전송 |
 | `CONVERSATION_ALREADY_ACTIVE` | 409 | 진행 중인 다른 대화가 있음 |
@@ -109,6 +107,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `VOCAB_SOURCE_MISMATCH` | 422 | 저장하려는 단어가 출처(사물 카드, 대사 단어 풀이, 피드백 단어장 후보·상황 표현·고친 문장)에 없음 |
 | `AI_QUOTA_EXHAUSTED` | 429 | 사용자 AI 한도 소진, 게스트 대화 횟수 소진 |
 | `AI_RATE_LIMITED` | 429 | 요청 속도 제한 |
+| `ADMIN_LOGIN_LOCKED` | 429 | 운영자 어드민 아이디로 연속 5번 틀려 15분 동안 로그인을 막음. [운영자 어드민](../admin.md) 참고 |
 | `AI_RESPONSE_INVALID` | 502 | 제한 횟수만큼 재시도해도 AI 응답 형식 오류 |
 | `AI_TEMPORARILY_UNAVAILABLE` | 503 | 외부 AI 장애·시간 초과 |
 | `INTERNAL_ERROR` | 500 | 그 밖의 서버 오류 |
@@ -288,6 +287,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 #### BOOT-01 `GET /api/v1/bootstrap`
 
 접속 직후 한 번 호출해 첫 화면을 정합니다. 로그인하지 않았으면 `401 UNAUTHENTICATED`이며 화면 01을 보여줍니다.
+
+요청에 팀 기기 쿠키(`elsehere_team=1`, 웹 템플릿이 `?team=1`로 연 브라우저에 남김)가 있으면 로그인한 계정을 팀 계정(`users.team_account`)으로 표시합니다. 응답은 같고, 팀 계정은 어드민 이용 현황에서 빠집니다([운영자 어드민](../admin.md#이용-현황)).
 
 ```json
 {
@@ -633,7 +634,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```
 
 - 클라이언트가 고정 대본의 Ben 길 안내를 끝까지 마쳤을 때 호출합니다. 전체 튜토리얼 단계는 바꾸지 않습니다.
-- Ben(`TOWN_PASSERBY`)의 첫 방문 1회, 알아봄 +20, 도움 호감 +6, 마지막 대화 시각·게임 날짜와 인사·자기소개 및 카페 길 안내 기억을 저장합니다. 실제 대화·발화를 만들거나 AI를 호출하지 않습니다.
+- Ben(`TOWN_PASSERBY`)의 첫 방문 1회, 알아봄 +20, 도움 호감 +4, 마지막 대화 시각·게임 날짜와 인사·자기소개 및 카페 길 안내 기억을 저장합니다. 실제 대화·발화를 만들거나 AI를 호출하지 않습니다.
 - 이미 방문 기록이 있으면 중복 반영하지 않습니다. 네트워크 실패 시 재전송할 수 있습니다. 중간 종료와 대화 전 건너뛰기에는 호출하지 않습니다.
 - `LANG`·`LEVEL`이면 `409 TUTORIAL_NOT_IN_PROGRESS`입니다. 이미 `DONE`이면 관계를 올리지 않고 `{ "onboardingStep": "DONE" }`을 돌려줍니다.
 
@@ -1250,7 +1251,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 // 응답 200
 {
   "turnId": 105,
-  "suggestWords": ["for here", "to go", "please"],
+  "suggestWords": ["to go", "dine in"],
   "hintText": "For here, please.",
   "hintMeaningKo": "매장에서 먹을게요."
 }
@@ -1260,7 +1261,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 문장만 생성하지 못하면 단어는 반환하고 `hintText`·`hintMeaningKo`는 null입니다. 미리 저장하는 동안 `hint_opened_at`은 기록하지 않고 실제로 펼칠 때 CONV-05로 최초 열기 시각을 남깁니다. 단어·문장은 각각 기존 워커의 suggest·hint 생성 경로를 사용하며, AI 호출 기록이 충돌하지 않도록 서로 다른 요청 ID를 사용합니다.
 - 사용자가 답해야 하는 NPC 턴에 요청합니다. 사용자 턴과 다른 사용자의 턴은 `404 NOT_FOUND`입니다.
 - 만든 단어는 저장해 다시 쓰고(`turns.suggest_words`) 다시 요청하면 AI를 호출하지 않습니다. CONV-10 대화 상세에도 저장된 단어가 담깁니다.
-- 단어는 AI 워커 `/v1/suggest`가 그 NPC 턴까지의 대화·대화 난이도·이 대화에 적용되는 학습 목표로 3개까지 만듭니다.
+- 단어는 AI 워커 `/v1/suggest`가 그 NPC 턴까지의 대화·대화 난이도·이 대화에 적용되는 학습 목표로 3개까지 만듭니다. 주어로 시작하거나(`I'm sorry`) `.`·`?`·`!`로 끝나는 문장 같은 말은 워커가 버립니다.
+- 응답의 `suggestWords`에서는 같은 응답의 추천 문장(`hintText`)에 그대로 들어 있는 단어를 뺍니다(대소문자·문장 부호 무시). 문장을 잘라 온 말을 단어로 다시 보이지 않기 위해서이며, 저장한 단어(`turns.suggest_words`)는 그대로 둡니다.
 - AI 호출이 실패하면 1.5의 AI 오류 코드를 돌려주고, 단어가 하나도 오지 않으면 `502 AI_RESPONSE_INVALID`입니다. 두 경우 모두 저장하지 않습니다.
 - 추천 단어는 자유 대화 힌트의 첫 단계(CONV-05)라 AI 호출 기록(`ai_requests.kind`)은 `HINT`로 남깁니다. 사용량 항목의 단계 이름(`suggest`)으로 힌트 문장과 구분합니다.
 

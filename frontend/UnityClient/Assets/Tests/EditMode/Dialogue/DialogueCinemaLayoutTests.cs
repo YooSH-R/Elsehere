@@ -219,6 +219,46 @@ namespace A305.Dialogue.Tests
             }
         }
 
+        // 한국어로 말하면 대사 칸이 좁아져 줄 수가 늘어난다. 그래도 이름 줄이 오른쪽 위 단어·추천 문장 카드 자리까지 올라가지 않는다.
+        [Test]
+        [TestCase(false)]
+        [TestCase(true)]
+        public void LongLines_LeaveTheRoomAskedForAboveTheNameRow(bool translation)
+        {
+            DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
+                Wide,
+                linesHeight: 2000,
+                nameWidth: 120,
+                hasEarlierLines: true,
+                hasTranslation: translation,
+                translationHeight: 2000,
+                roomAboveName: 500
+            );
+
+            Assert.That(Wide.y - layout.Name.yMax, Is.GreaterThanOrEqualTo(500 - .01f));
+            Assert.That(
+                layout.Lines.height,
+                Is.GreaterThanOrEqualTo(DialogueCinemaLayout.MinBodyBelowReservedRoom)
+            );
+        }
+
+        // 낮은 화면에서는 위 자리를 다 비워 줄 수 없다. 대사를 읽을 높이는 남긴다.
+        [Test]
+        public void ShortScreen_KeepsReadableLinesBeforeTheRoomAbove()
+        {
+            DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
+                new Vector2(1920, 720),
+                linesHeight: 2000,
+                nameWidth: 120,
+                roomAboveName: 500
+            );
+
+            Assert.That(
+                layout.Lines.height,
+                Is.EqualTo(DialogueCinemaLayout.MinBodyBelowReservedRoom).Within(.01f)
+            );
+        }
+
         [Test]
         public void LongLines_GrowTheLinesUpToALimit()
         {

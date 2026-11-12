@@ -193,6 +193,30 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator PressingBen_ThenReleasingAfterCameraTurned_StillAsksToTalkToBen()
+        {
+            yield return LoadTownAfterTutorial();
+            Passerby ben = FindPasserby(BenCode);
+            KeepFromApproaching(ben);
+            yield return FaceFrom(ben, 6f);
+            var clickTalk = Single<NpcClickTalk>();
+            Vector2 pointer = AimAt(ben);
+
+            // 걸으면서 누르면 떼는 사이 카메라가 돌아 뗀 자리에서는 Ben이 비켜나 있다.
+            clickTalk.Press(pointer);
+            Camera.main.transform.Rotate(0f, 10f, 0f, Space.World);
+            Assert.That(
+                new NpcPointerRaycast().Find(Camera.main.ScreenPointToRay(pointer), 30f),
+                Is.Null,
+                "준비: 뗀 자리에는 NPC가 없어야 합니다."
+            );
+            clickTalk.Release(pointer);
+            yield return null;
+
+            Assert.That(Single<PasserbyOfferView>().IsShownBy(ben), Is.True);
+        }
+
+        [UnityTest]
         public IEnumerator ClickingOfferingBen_AcceptsTheOffer()
         {
             yield return LoadTownAfterTutorial();

@@ -11,7 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.elsehere.admin.dto.PersonaRequest;
 import com.elsehere.admin.dto.PersonaResponse;
-import com.elsehere.admin.service.AdminAccess;
+import com.elsehere.admin.service.AdminLogin;
 import com.elsehere.admin.service.AdminNpcService;
 import com.elsehere.common.auth.CsrfHeaderFilter;
 import com.elsehere.common.auth.LoginUser;
@@ -38,14 +38,11 @@ class AdminNpcControllerTest {
 
   @Autowired private MockMvc mockMvc;
 
-  @Autowired private AdminAccess adminAccess;
-
   @MockitoBean private AdminNpcService adminNpcService;
 
   @Test
   @DisplayName("관리자는 NPC 페르소나를 고치고 고친 값을 돌려받는다")
   void updatePersona_byAdmin_respondsUpdatedPersona() throws Exception {
-    given(adminAccess.isAdmin(1L)).willReturn(true);
     given(
             adminNpcService.updatePersona(
                 "CAFE_STAFF",
@@ -64,7 +61,7 @@ class AdminNpcControllerTest {
                 .header(CsrfHeaderFilter.HEADER_NAME, "ElsehereAdmin")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(PERSONA_BODY)
-                .with(authentication(loggedIn(1L))))
+                .with(authentication(adminLogin())))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.npcCode").value("CAFE_STAFF"))
         .andExpect(jsonPath("$.role").value("the barista at the corner cafe."))
@@ -87,33 +84,29 @@ class AdminNpcControllerTest {
   }
 
   @Test
-  @DisplayName("관리자가 아닌 사용자는 403 ADMIN_REQUIRED로 거절하고 고치지 않는다")
-  void updatePersona_byUser_respondsAdminRequired() throws Exception {
-    given(adminAccess.isAdmin(2L)).willReturn(false);
-
+  @DisplayName("게임 사용자로 로그인했어도 401 UNAUTHENTICATED로 거절하고 고치지 않는다")
+  void updatePersona_byGameUser_respondsUnauthenticated() throws Exception {
     mockMvc
         .perform(
             put(PERSONA_URL)
                 .header(CsrfHeaderFilter.HEADER_NAME, "ElsehereAdmin")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(PERSONA_BODY)
-                .with(authentication(loggedIn(2L))))
-        .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.error.code").value("ADMIN_REQUIRED"));
+                .with(authentication(gameLogin())))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
     then(adminNpcService).should(never()).updatePersona(any(), any());
   }
 
   @Test
   @DisplayName("요청 확인 헤더가 없으면 관리자여도 403 CSRF_HEADER_REQUIRED로 거절한다")
   void updatePersona_withoutCsrfHeader_respondsCsrfHeaderRequired() throws Exception {
-    given(adminAccess.isAdmin(1L)).willReturn(true);
-
     mockMvc
         .perform(
             put(PERSONA_URL)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(PERSONA_BODY)
-                .with(authentication(loggedIn(1L))))
+                .with(authentication(adminLogin())))
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.error.code").value("CSRF_HEADER_REQUIRED"));
     then(adminNpcService).should(never()).updatePersona(any(), any());
@@ -122,22 +115,24 @@ class AdminNpcControllerTest {
   @Test
   @DisplayName("역할(role)이 비어 있으면 400 VALIDATION_FAILED로 거절하고 고치지 않는다")
   void updatePersona_withBlankRole_respondsValidationFailed() throws Exception {
-    given(adminAccess.isAdmin(1L)).willReturn(true);
-
     mockMvc
         .perform(
             put(PERSONA_URL)
                 .header(CsrfHeaderFilter.HEADER_NAME, "ElsehereAdmin")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"role\": \" \", \"facts\": \"\", \"scene\": \"\"}")
-                .with(authentication(loggedIn(1L))))
+                .with(authentication(adminLogin())))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
     then(adminNpcService).should(never()).updatePersona(any(), any());
   }
 
-  private static Authentication loggedIn(Long userId) {
+  private static Authentication adminLogin() {
     return UsernamePasswordAuthenticationToken.authenticated(
-        new LoginUser(userId), null, List.of());
+        new AdminLogin("operator"), null, List.of());
+  }
+
+  private static Authentication gameLogin() {
+    return UsernamePasswordAuthenticationToken.authenticated(new LoginUser(2L), null, List.of());
   }
 }

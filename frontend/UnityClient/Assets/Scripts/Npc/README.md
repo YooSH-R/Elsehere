@@ -53,7 +53,7 @@ NPC 몸·이름표 클릭은 “이름에게 말을 걸까요?” 확인 창을 
 | `A305.Dialogue` | `DialogueController.TryStart`(먼저 말을 걸면 `ConversationInitiator.User`), `IsTalking`, `Ended`, 제안 머리말에 쓸 `FindNpcName`, 건넬 것이 다 됐는지 보는 `FollowUpStore.FindReady` |
 | `A305.Characters` | 모델 Animator에 이동 상태 전달. 연결하지 않아도 동작합니다. |
 | `A305.World` | 택시의 주행(`LoopingCar`)과 세우기 흐름(`TaxiFare`), 생활에 쓰는 게임 시각(`GameClock.Shared.Minutes`) |
-| `A305.ObjectHover` | 생활 행동의 사물을 사물 단어 키(`HoverableObject.UnityKey`)로 찾기. NPC 클릭은 사물 카드와 같은 클릭 판정(`PointerClick`)·UI 위 클릭 막기(`WorldClickBlocker`)를 쓰고, 사물 카드 영역(`ObjectHoverHitArea`)이 앞에 있으면 NPC를 고르지 않습니다. |
+| `A305.ObjectHover` | 생활 행동의 사물을 사물 단어 키(`HoverableObject.UnityKey`)로 찾기. NPC 클릭은 사물 카드와 같은 클릭 판정(`PointerClicks`·`PointerChanges`)·UI 위 클릭 막기(`WorldClickBlocker`)를 쓰고, 사물 카드 영역(`ObjectHoverHitArea`)이 앞에 있으면 NPC를 고르지 않습니다. |
 | Unity AI(NavMesh) | 생활 중 사물까지 걷는 경로. 바닥은 Builder가 굽습니다. |
 | uGUI, TextMeshPro | 제안 화면과 한국어 버튼 |
 | Input System | 대화 확인 창의 E·Esc 키, NPC 클릭·탭의 포인터 |
@@ -114,6 +114,7 @@ NPC 몸이나 머리 위 이름표를 클릭(휴대폰·태블릿은 탭)해 원
 | 대화를 다 쓴 게스트가 클릭·탭 | 대화 대신 가입 안내 창을 엽니다. |
 | 8m보다 멀거나, 다른 대화 중이거나, 창이 열려 이동이 잠겼거나, 진행 흐름이 막은 NPC(`IsApproachAllowed` false) | 반응하지 않고 테두리도 그리지 않습니다. |
 | 화면을 끌어 시점을 돌림, UI 위를 누름 | 사물 카드와 같은 기준으로 클릭으로 보지 않습니다. 화면을 덮는 터치 조작판 위의 탭은 받습니다. |
+| 걸으면서 클릭·탭(휴대폰은 엄지로 조이스틱을 잡은 채 다른 손가락으로 탭) | 손가락마다 따로 보아 조이스틱을 잡고 있어도 탭을 받습니다. 누르고 떼는 사이 플레이어·카메라·NPC가 움직여 뗀 자리에 NPC가 없으면, 누른 순간 가리킨 NPC가 아직 말을 걸 수 있을 때 그 NPC에게 말을 겁니다. 화면이 잠깐 멈춰 한 프레임 안에 누르고 뗀 클릭도 받습니다. |
 | NPC 앞을 벽이나 사물 카드가 뜨는 사물이 가림 | NPC를 고르지 않습니다. 사물이면 사물 카드가 뜹니다. 플레이어 몸과 문턱 같은 보이지 않는 감지 영역은 지나칩니다. |
 | 이름표 위에 커서를 올리거나 이름표를 누름 | 이름표 바탕 전체(이름·역할 칩 포함)가 클릭을 받습니다. 이름표가 사물 앞에 떠 있어도 사물 카드는 뜨지 않고 그 이름표의 NPC만 고릅니다. |
 | 나란히 선 NPC의 이름표가 겹친 곳을 누름 | 카메라에서 가까운 NPC 이름표가 위에 그려지고, 그 NPC에게 말을 겁니다. |
@@ -279,10 +280,10 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 마을 본길의 매장 9곳 1층에 직원을 둡니다. 직원은 그 매장 장면(`Scenes/ShopInteriors/<건물>Interior`) 안에 있고 근무 중이거나 근무 전에 미리 들어온 동안만 켜지며, 마을에는 출퇴근·휴식·여가 모습만 나옵니다. 모두 행인 프리팹을 쓰고 걷는 속도 0이라 플레이어에게 걸어가지 않습니다. 평소에는 근접 버튼이나 대화 제안을 띄우지 않고, 클릭·탭 후 확인 창에서 대화를 시작합니다. 튜토리얼·퀘스트와 후속 이벤트의 제안은 별도로 표시합니다. 이름·인격·목소리·상황은 서버 데이터(`ai/npcs/<NPC 키>.json`, `ai/npcs/scenarios/`)입니다.
 
-| 건물 | NPC 키 | 이름 | 외형(색만 바꿈) |
+| 건물 | NPC 키 | 이름 | 외형 |
 | --- | --- | --- | --- |
 | 우체국 `PostOffice` | `POST_OFFICE_STAFF` | Linda | 중년 여성, 자주색 옷·갈색 눈 |
-| 햄버거 가게 `MapleDiner` | `DINER_STAFF` | Rosa | 중년 여성, 빨간 옷·초록 눈 |
+| 햄버거 가게 `MapleDiner` | `DINER_STAFF` | Rosa | 중년 여성, 빨간 상의·야구 캡·어두운 앞치마·초록 눈 |
 | 은행 `TownBank` | `BANK_STAFF` | Henry | 비즈니스맨, 은색 머리·청회색 정장·회색 눈 |
 | 빨래방 `SudsLaundromat` | `LAUNDROMAT_STAFF` | Gus | 중년 남성, 겨자색 셔츠·갈색 눈 |
 | 꽃집 `BloomFlowers` | `FLOWER_SHOP_STAFF` | Lily | 할머니, 연보라 머리·초록 옷·청록 눈 |
@@ -293,6 +294,12 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 - 외형과 배색은 [외형 표](#외형-표)를 따릅니다. Gus와 Tony는 같은 외형에 눈동자 색이 같아, 서로 다른 사람으로 보이게 Tony의 머리를 검게 바꿨습니다.
 - 2층 가게(서점·찻집)에는 아직 직원이 없습니다.
+
+햄버거 가게의 Rosa와 야간 직원 Ray(`FIRE_CAPTAIN`)는 빨간 상의와 야구 캡, 어두운 앞치마를 함께 착용합니다. 캡은 머리를 감싸는 6개 패널과 앞쪽으로 나온 굽은 챙으로 구성하며, 몸통 밑단과 챙이 정점을 공유해 연결부가 벌어지지 않습니다. 앞치마 앞판은 높이별 몸통 곡면을 따라 덮고, 목끈과 허리끈은 옷의 바깥 둘레에 맞춥니다. 둘레를 측정할 때 팔·손은 제외하며 옷 주름에 끈이 파묻히지 않도록 바깥 윤곽을 사용합니다. 모자는 머리 본에, 앞치마는 몸통·허벅지 본에 연결하여 대기·대화·보행 동작을 따릅니다.
+
+캡 크기는 두 직원의 머리 위쪽 둘레를 기준으로 맞춥니다. 모자를 키워 머리카락을 모두 덮는 대신, 원본 외형을 유지한 채 두 직원만 사용하는 `*_BodyUnderCap.asset` 사본에서 모자 안쪽 머리카락을 눌러 맞춥니다. 뒷머리는 넓은 구간에 걸쳐 완만하게 연결하고, 본·UV·표정 블렌드셰이프는 원본에서 유지합니다.
+
+**Tools → A305 → Npc → Apply Burger Staff Uniforms**가 매장 씬과 두 직원의 출퇴근 프리팹에 적용하며, `Build Cast`로 외형을 다시 맞춰도 유지합니다. 전용 메시·재질은 `Art/Characters/BurgerStaffUniform/`에 두고 기존 디자인은 보존합니다. 머리 모양이나 몸 비율을 바꾼 경우에만 **Refit Burger Staff Uniform Meshes**로 두 직원의 전용 메시를 다시 맞춥니다.
 
 ## 외형 표
 

@@ -128,7 +128,7 @@ namespace A305.Learning
             bool small = model.Kind == CorrectionKind.WellSaid;
             float side = small ? 23 : 27;
             float top = small ? 15 : 21;
-            float right = small ? 23 : 151;
+            float right = model.CanSave ? 151 : 23;
             TMP_Text said = Text(card, "Said");
             TMP_Text better = Text(card, "Better");
             Style(said, model, better);
@@ -258,6 +258,10 @@ namespace A305.Learning
                     break;
                 case CorrectionKind.Korean:
                     said.color = KoreanInk;
+                    said.fontStyle = FontStyles.Normal;
+                    break;
+                case CorrectionKind.ExpressionPractice:
+                    said.color = Ink;
                     said.fontStyle = FontStyles.Normal;
                     break;
                 default:

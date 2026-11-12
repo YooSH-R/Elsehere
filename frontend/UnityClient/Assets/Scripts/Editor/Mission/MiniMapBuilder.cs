@@ -12,7 +12,7 @@ namespace A305.EditorTools.Mission
     /// 왼쪽 아래 미니맵을 확정 시안 g1(.mini)의 크기대로 만든다. 크기·여백은 시안 px에 1.2를 곱한 캔버스 단위다.
     /// 판은 큰 지도와 같은 맑은 하늘색 유리라 뒤 거리가 흐려지지 않고 비친다.
     /// 유리 판(340×236, 모서리 40) 안의 둥근 창(318×214, 모서리 31)에 마을 지도 그림을 깔고,
-    /// 그 위에 목적지 테두리와 내 위치 화살표를, 오른쪽 위에 펼치기 버튼 그림을 둔다. 범례 글자는 두지 않는다.
+    /// 그 위에 장소 이름표와 내 위치 화살표를, 오른쪽 위에 펼치기 버튼 그림을 둔다. 범례 글자는 두지 않는다.
     /// 판 전체가 버튼이라 어디를 눌러도 큰 지도를 연다. 끌면 지도를 둘러보고(<see cref="TownMiniMapView"/>) 큰 지도는 열지 않는다.
     /// </summary>
     public static class MiniMapBuilder
@@ -31,13 +31,11 @@ namespace A305.EditorTools.Mission
         private const float BuildingLabelFontSize = 32;
         private const float BuildingLabelHeight = 60;
         private const float BuildingLabelHorizontalPadding = 18;
+        private const float BuildingLabelCompactHorizontalPadding = 12;
         private const float BuildingLabelVerticalPadding = 6;
 
         // 유리 판 그림의 모서리(44)를 미니맵 모서리(시안 40 = 48)로 키운다.
         private const float PanelCornerScale = 44f / (40f * Px);
-
-        // 목적지 테두리 그림(2px = 1단위)의 둥근 모서리 자리: 여백 8 + 모서리 40 + 선 반 굵기
-        private const int FrameBorderPixels = 104;
 
         [MenuItem(MenuPath)]
         public static void ApplyToPrefab()
@@ -59,9 +57,11 @@ namespace A305.EditorTools.Mission
                     )
                     {
                         var fields = new SerializedObject(view);
-                        AddBuildingLabels(
-                            (RectTransform)fields.FindProperty("map").objectReferenceValue
-                        );
+                        var map = (RectTransform)fields.FindProperty("map").objectReferenceValue;
+                        Transform oldDestination = map.Find("Destination");
+                        if (oldDestination != null)
+                            Object.DestroyImmediate(oldDestination.gameObject);
+                        AddBuildingLabels(map);
                     }
                 }
             );
@@ -112,16 +112,13 @@ namespace A305.EditorTools.Mission
 
         private static void AddBuildingLabels(Transform map)
         {
-            Transform previous = map.Find("BuildingLabels");
-            if (previous != null)
-                Object.DestroyImmediate(previous.gameObject);
-
-            RectTransform labels = Rect("BuildingLabels", map);
+            RectTransform labels =
+                (RectTransform)map.Find("BuildingLabels") ?? Rect("BuildingLabels", map);
             labels.anchorMin = Vector2.zero;
             labels.anchorMax = Vector2.one;
             labels.offsetMin = labels.offsetMax = Vector2.zero;
-            // 목적지 테두리가 긴 이름을 가리지 않게 하고 내 위치 화살표는 맨 앞에 둔다.
-            labels.SetSiblingIndex(map.Find("Player").GetSiblingIndex());
+            // 내 위치와 이웃 핀을 이름표보다 앞에 둔다.
+            labels.SetAsFirstSibling();
 
             BuildingLabel(labels, "POLICE", "경찰서", TownMapArt.PoliceTile);
             BuildingLabel(labels, "HOME", "집", TownMapArt.Tile("HOME").Value);
@@ -144,14 +141,52 @@ namespace A305.EditorTools.Mission
 
         private static void BuildingLabel(Transform parent, string code, string name, Rect tile)
         {
-            // 숨겨진 큰 지도에서도 TMP가 초기화된 상태로 글자 폭을 계산한다.
-            RectTransform plate = Rect(code, null);
+            RectTransform plate =
+                (RectTransform)parent.Find(code) ?? CreateBuildingLabelPlate(parent, code);
             plate.anchorMin = plate.anchorMax = new Vector2(0, 1);
             // 건물 아래의 이름표 자리는 지도 좌표를 따라 함께 움직인다.
             plate.anchoredPosition = new Vector2(tile.center.x, -(tile.yMax - 15));
             // 긴 이름의 왼쪽 끝이 카페 이름표에 닿지 않도록 빈 공간 쪽으로 옮긴다.
             if (code == "SHOP")
                 plate.anchoredPosition += Vector2.right * 14;
+
+            TMP_Text label = UiBuilderTools.FindOrCreateText(
+                plate,
+                "Label",
+                UiBuilderTools.BoldFont(),
+                BuildingLabelFontSize,
+                new Color32(47, 67, 88, 255),
+                name
+            );
+            label.text = name;
+            label.fontStyle = FontStyles.Bold;
+            label.alignment = TextAlignmentOptions.Center;
+            label.enableAutoSizing = false;
+            label.fontSize = BuildingLabelFontSize;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.margin = Vector4.zero;
+            float preferredWidth = Mathf.Ceil(label.GetPreferredValues(name).x);
+            // 긴 이름은 글자 크기를 유지하고 좌우 여백만 좁힌다.
+            float padding =
+                preferredWidth + BuildingLabelHorizontalPadding * 2 > tile.width + 28
+                    ? BuildingLabelCompactHorizontalPadding
+                    : BuildingLabelHorizontalPadding;
+            plate.sizeDelta = new Vector2(preferredWidth + padding * 2, BuildingLabelHeight);
+            label.margin = new Vector4(
+                padding,
+                BuildingLabelVerticalPadding,
+                padding,
+                BuildingLabelVerticalPadding
+            );
+            RectTransform textRect = label.rectTransform;
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = textRect.offsetMax = Vector2.zero;
+        }
+
+        private static RectTransform CreateBuildingLabelPlate(Transform parent, string code)
+        {
+            RectTransform plate = Rect(code, parent);
             Image background = plate.gameObject.AddComponent<Image>();
             background.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(
                 "Assets/Art/UI/Mission/GlassPanel.png"
@@ -167,48 +202,11 @@ namespace A305.EditorTools.Mission
             var outline = plate.gameObject.AddComponent<Outline>();
             outline.effectColor = new Color32(170, 193, 215, 210);
             outline.effectDistance = new Vector2(1.2f, -1.2f);
-
-            TMP_Text label = UiBuilderTools.FindOrCreateText(
-                plate,
-                "Label",
-                UiBuilderTools.BoldFont(),
-                BuildingLabelFontSize,
-                new Color32(47, 67, 88, 255),
-                name
-            );
-            label.fontStyle = FontStyles.Bold;
-            label.alignment = TextAlignmentOptions.Center;
-            label.enableAutoSizing = true;
-            label.fontSizeMin = 26;
-            label.fontSizeMax = BuildingLabelFontSize;
-            label.textWrappingMode = TextWrappingModes.NoWrap;
-            label.ForceMeshUpdate(ignoreActiveState: true);
-            float preferredWidth = label.GetPreferredValues(name).x;
-            float maxWidth = tile.width + 28;
-            float padding =
-                preferredWidth + BuildingLabelHorizontalPadding * 2 > maxWidth
-                    ? 8
-                    : BuildingLabelHorizontalPadding;
-            // 이웃 건물까지 이름표가 뻗지 않도록 긴 이름만 여백과 글자 크기를 줄인다.
-            plate.sizeDelta = new Vector2(
-                Mathf.Min(preferredWidth + padding * 2, maxWidth),
-                BuildingLabelHeight
-            );
-            label.margin = new Vector4(
-                padding,
-                BuildingLabelVerticalPadding,
-                padding,
-                BuildingLabelVerticalPadding
-            );
-            RectTransform textRect = label.rectTransform;
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = textRect.offsetMax = Vector2.zero;
-            plate.SetParent(parent, false);
+            return plate;
         }
 
         /// <summary>
-        /// 창 안에 마을 지도 그림을 scale 비율로 깔고 목적지 테두리와 내 위치 화살표를 얹는다. 표시를 맡는 지도 화면은 host에 단다.
+        /// 창 안에 마을 지도 그림을 scale 비율로 깔고 장소 이름표와 내 위치 화살표를 얹는다. 표시를 맡는 지도 화면은 host에 단다.
         /// 미니맵과 큰 지도가 함께 쓴다.
         /// </summary>
         internal static TownMiniMapView MapLayers(
@@ -223,23 +221,12 @@ namespace A305.EditorTools.Mission
             map.localScale = new Vector3(scale, scale, 1);
             Picture(map.gameObject, Sprite("TownMap", mipmaps: true));
 
-            RectTransform destination = Mark(
-                map,
-                "Destination",
-                Sprite("MapDestination"),
-                new Vector2(190, 160)
-            );
-            var frame = destination.GetComponent<Image>();
-            frame.type = Image.Type.Sliced;
-            frame.pixelsPerUnitMultiplier = 2;
-            destination.gameObject.SetActive(false);
             RectTransform player = Mark(map, "Player", Sprite("MapPlayer"), new Vector2(100, 100));
             AddBuildingLabels(map);
 
             var view = host.AddComponent<TownMiniMapView>();
             BuilderTools.SetReference(view, "map", map);
             BuilderTools.SetReference(view, "player", player);
-            BuilderTools.SetReference(view, "destination", destination);
             BuilderTools.SetReference(view, "neighbor", NeighborPin(map));
             return view;
         }
@@ -401,8 +388,6 @@ namespace A305.EditorTools.Mission
             importer.mipmapEnabled = mipmaps;
             importer.wrapMode = TextureWrapMode.Clamp;
             importer.maxTextureSize = 2048;
-            if (name == "MapDestination")
-                importer.spriteBorder = Vector4.one * FrameBorderPixels;
             importer.SaveAndReimport();
             return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }

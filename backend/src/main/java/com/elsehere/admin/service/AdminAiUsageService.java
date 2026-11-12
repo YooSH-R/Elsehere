@@ -1,10 +1,12 @@
 package com.elsehere.admin.service;
 
+import com.elsehere.admin.dto.AdminUserName;
 import com.elsehere.admin.dto.AiUsageReport;
 import com.elsehere.admin.dto.AiUsageRow;
 import com.elsehere.admin.dto.AiUserUsage;
 import com.elsehere.ai.repository.AiRequestRepository;
 import com.elsehere.ai.repository.AiRequestRepository.AiUsageTotals;
+import com.elsehere.ai.repository.AiRequestRepository.AiUserTotals;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import java.time.Clock;
@@ -44,16 +46,20 @@ public class AdminAiUsageService {
         rows(aiRequestRepository.usageByModel(since), NO_MODEL_LABEL),
         rows(aiRequestRepository.usageByUserType(since), null),
         aiRequestRepository.usageByUser(since, TOP_USERS).stream()
-            .map(
-                user ->
-                    new AiUserUsage(
-                        user.getUserId(),
-                        "GUEST".equals(user.getProvider()),
-                        user.getCalls(),
-                        user.getFailed(),
-                        user.getInputTokens(),
-                        user.getOutputTokens()))
+            .map(AdminAiUsageService::userUsage)
             .toList());
+  }
+
+  private static AiUserUsage userUsage(AiUserTotals user) {
+    boolean guest = "GUEST".equals(user.getProvider());
+    return new AiUserUsage(
+        user.getUserId(),
+        guest,
+        AdminUserName.of(user.getUserId(), guest, user.getWithdrawn(), user.getEmail()),
+        user.getCalls(),
+        user.getFailed(),
+        user.getInputTokens(),
+        user.getOutputTokens());
   }
 
   private static List<AiUsageRow> rows(List<AiUsageTotals> totals, String labelWhenNull) {

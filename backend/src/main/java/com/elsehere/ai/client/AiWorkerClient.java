@@ -32,11 +32,12 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p>워커의 칸 이름은 snake_case라 전용 JSON 변환기를 쓴다. 워커 오류는 API 오류 코드로 바꿔 {@link BusinessException}으로 던진다.
  *
- * <p>호출 기록이 빠지지 않도록 패키지 밖에서는 쓸 수 없다. 다른 패키지는 {@link AiGateway}로 부른다.
+ * <p>호출 기록이 빠지지 않도록 AI 창구({@code ai.service.AiGateway})만 쓴다. 다른 곳에서 쓰면 PackageDependencyTest가 실패한다.
+ * 이 패키지는 워커 연결과 요청·응답 타입만 두고 DB를 다루지 않는다.
  */
 @Slf4j
 @Component
-class AiWorkerClient {
+public class AiWorkerClient {
 
   private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
   // 의도·무례 판정은 워커가 5초 안에 끝낸다(JUDGE_BUDGET_S·GUARD_BUDGET_S). NPC 대답은 응답 헤더까지의 상한이며, 스트림은 워커의 시간 상한을
@@ -532,8 +533,11 @@ class AiWorkerClient {
             .header("X-Internal-Token", token)
             .header(
                 "X-Request-Id",
-                httpRequestId != null ? httpRequestId : trace.requestId().toString())
-            .header("X-User-Id", String.valueOf(trace.userId()));
+                httpRequestId != null ? httpRequestId : trace.requestId().toString());
+    // 어드민이 실행한 호출(사물 단어 발음 만들기)은 사용자가 없다.
+    if (trace.userId() != null) {
+      builder.header("X-User-Id", String.valueOf(trace.userId()));
+    }
     if (trace.conversationId() != null) {
       builder.header("X-Conv-Id", String.valueOf(trace.conversationId()));
     }

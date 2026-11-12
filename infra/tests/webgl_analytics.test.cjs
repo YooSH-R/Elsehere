@@ -31,9 +31,17 @@ function createPage(hostname = "elsehere.kr", savedConsent = null, referrer = ""
   const values = new Map();
   if (savedConsent) values.set("elsehere.analytics.consent", savedConsent);
   const cookies = [];
+  const replacedUrls = [];
   let reloads = 0;
+  const search = options.search ?? "";
   const window = {
-    location: { hostname, origin: `https://${hostname}`, reload() { reloads++; } },
+    location: {
+      hostname,
+      origin: `https://${hostname}`,
+      href: `https://${hostname}/${search}`,
+      reload() { reloads++; },
+    },
+    history: { replaceState(state, title, url) { replacedUrls.push(url); } },
     localStorage: {
       getItem(key) {
         if (options.blockStorage) throw new Error("Storage unavailable");
@@ -54,13 +62,14 @@ function createPage(hostname = "elsehere.kr", savedConsent = null, referrer = ""
     createElement() { return {}; },
     head: { appendChild(script) { scripts.push(script); } },
     referrer,
+    get cookie() { return options.cookie ?? ""; },
     set cookie(value) { cookies.push(value); },
   };
   const script = options.emptyMeasurementId
     ? match[1].replace('const measurementId = "G-209TJ3SH81";', 'const measurementId = "";')
     : match[1];
   vm.runInNewContext(script, { window, document, URL, Date });
-  return { elements, scripts, window, values, cookies, getReloads: () => reloads };
+  return { elements, scripts, window, values, cookies, replacedUrls, getReloads: () => reloads };
 }
 
 async function runUnityLoader(page, result) {
@@ -234,6 +243,32 @@ test("an empty measurement ID leaves analytics and the consent prompt disabled",
   assert.equal(page.scripts.length, 0);
   assert.equal(page.elements.get("analytics-consent").hidden, true);
   assert.equal(page.elements.get("analytics-settings").hidden, true);
+});
+
+test("opening the page with ?team=1 marks this browser as a team device and skips analytics", () => {
+  const page = createPage("elsehere.kr", null, "", { search: "?team=1&from=qr" });
+
+  assert.ok(page.cookies.some(cookie => cookie.startsWith("elsehere_team=1;")));
+  assert.equal(page.scripts.length, 0);
+  assert.equal(page.elements.get("analytics-consent").hidden, true);
+  assert.equal(page.elements.get("analytics-settings").hidden, true);
+  assert.deepEqual(page.replacedUrls, ["/?from=qr"]);
+});
+
+test("a team device is not measured on later visits even with saved consent", () => {
+  const page = createPage("elsehere.kr", "granted", "", { cookie: "other=1; elsehere_team=1" });
+
+  assert.equal(page.scripts.length, 0);
+  assert.equal(page.window.dataLayer, undefined);
+  assert.deepEqual(page.replacedUrls, []);
+});
+
+test("opening the page with ?team=0 removes the team mark and measures again", () => {
+  const page = createPage("elsehere.kr", null, "", { cookie: "elsehere_team=1", search: "?team=0" });
+
+  assert.ok(page.cookies.some(cookie => cookie.startsWith("elsehere_team=;") && cookie.includes("max-age=0")));
+  assert.equal(page.scripts.length, 1);
+  assert.deepEqual(page.replacedUrls, ["/"]);
 });
 
 test("blocked storage keeps consent temporary and still disables measurement on rejection", () => {

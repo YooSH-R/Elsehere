@@ -26,7 +26,7 @@ final class FeedbackInputs {
 
   static final String SCHEMA_VERSION = "0.3.0";
   // 모델·프롬프트·검증 정책을 바꾸면 올린다. 같은 대화라도 버전이 다르면 다른 결과로 본다.
-  static final String ANALYSIS_CONFIG_VERSION = "elsehere-feedback-v5";
+  static final String ANALYSIS_CONFIG_VERSION = "elsehere-feedback-v6";
 
   // 학습자 수준 설명. 워커 힌트·추천 단어(ai/worker/app/prompts.py LEVEL_LEARNER)와 같은 말을 쓴다.
   private static final Map<Integer, String> LEVEL_LEARNER =

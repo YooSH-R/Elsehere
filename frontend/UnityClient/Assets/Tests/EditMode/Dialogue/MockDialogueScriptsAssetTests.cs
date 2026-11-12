@@ -15,23 +15,26 @@ namespace A305.Dialogue.Tests
         private const string ScriptsPath = "Assets/Data/Dialogue/MockDialogueScripts.asset";
 
         [Test]
-        public void TutorialBen_GreetsThenBuildsAffinityAndFinishesWithinThreeTurns()
+        public void TutorialBen_GreetsThenBuildsAffinityAndFinishesAfterTheDirections()
         {
+            // 첫 대사(인사)로 호감도를 설명하고, 둘째 대사(길 안내)에 Ben이 고맙다고 하며 대화를 마친다.
             var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
             scripts.TryGetScript("TUTORIAL_PASSERBY", out DialogueScript script);
             Assert.That(script.OpeningLine.English, Does.Contain("I'm Ben"));
-            Assert.That(script.GuidedTurns, Has.Count.EqualTo(3));
+            Assert.That(script.GuidedTurns, Has.Count.EqualTo(2));
+            Assert.That(script.GuidedTurns[1].SuggestedEnglish, Does.Contain("turn left"));
+            Assert.That(script.GuidedTurns[1].Reply.English, Does.Contain("Thank you"));
             var conversation = new DialogueConversation("TOWN_PASSERBY", script);
             Assert.That(conversation.Standing, Is.Not.Null);
             Assert.That(conversation.Standing.Affinity, Is.Zero);
             Assert.That(conversation.SuggestedEnglish, Does.Contain("Nice to meet you"));
-            for (int turn = 1; turn <= 3; turn++)
+            for (int turn = 1; turn <= 2; turn++)
             {
                 Assert.That(conversation.Send(conversation.SuggestedEnglish), Is.True);
                 Assert.That(conversation.Standing.Affinity, Is.EqualTo(turn * 2));
             }
             Assert.That(conversation.IsGuidedCompleted, Is.True);
-            Assert.That(conversation.ToRecord().UserUtterances, Has.Count.EqualTo(3));
+            Assert.That(conversation.ToRecord().UserUtterances, Has.Count.EqualTo(2));
             Assert.That(conversation.Send("One more thing"), Is.False);
         }
 
@@ -79,6 +82,43 @@ namespace A305.Dialogue.Tests
                 Assert.That(line.Speech, Is.Not.Null, $"음성이 없습니다: {line.English}");
                 DialogueSpeechWav wav = DialogueSpeechWav.Read(line.Speech);
                 Assert.That(wav.TimingError, Is.Null, $"입 모양 타이밍이 없습니다: {line.English}");
+            }
+        }
+
+        // 서버 대화가 아니라 서버가 음성에 붙이는 표정 시간표(e305)도 받지 않는다.
+        // 그래서 미리 합성한 음성마다 대사에 맞는 표정을 저장해 두고, 말하는 동안 그 표정을 짓는다.
+        [Test]
+        public void TutorialBen_EveryLineCarriesAStoredExpressionThatFitsIt()
+        {
+            var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
+            scripts.TryGetScript("TUTORIAL_PASSERBY", out DialogueScript script);
+            var expected = new (DialogueLine Line, CharacterEmotion Emotion)[]
+            {
+                // 길을 헤매다 처음 말을 걸며 궁금한 얼굴로 묻는다.
+                (script.OpeningLine, CharacterEmotion.Curious),
+                // 인사를 받고 반갑게 웃으며 카페 가는 길을 묻는다.
+                (script.GuidedTurns[0].Reply, CharacterEmotion.WarmSmile),
+                // 길을 알게 되어 안도하며 고마워한다.
+                (script.GuidedTurns[1].Reply, CharacterEmotion.Relieved),
+            };
+            var profile = ScriptableObject.CreateInstance<EmotionExpressionProfile>();
+            try
+            {
+                foreach ((DialogueLine line, CharacterEmotion emotion) in expected)
+                {
+                    DialogueSpeechWav wav = DialogueSpeechWav.Read(line.Speech);
+                    Assert.That(wav.EmotionError, Is.Null, line.English);
+                    Assert.That(wav.Emotions, Is.Not.Null, $"표정이 없습니다: {line.English}");
+                    Assert.That(
+                        wav.Emotions.Sample(wav.Emotions.Duration / 2f, profile),
+                        Is.EqualTo(profile.Sample(emotion)),
+                        $"{line.English}에는 {emotion} 표정을 짓습니다."
+                    );
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(profile);
             }
         }
 
@@ -131,7 +171,7 @@ namespace A305.Dialogue.Tests
 
             Assert.That(tutorial.NpcName, Is.EqualTo("Ben"));
             Assert.That(tutorial.NpcName, Is.EqualTo(town.NpcName));
-            Assert.That(tutorial.GuidedTurns, Has.Count.EqualTo(3), "대본 흐름은 그대로입니다.");
+            Assert.That(tutorial.GuidedTurns, Has.Count.EqualTo(2), "대본 흐름은 그대로입니다.");
         }
 
         [Test]

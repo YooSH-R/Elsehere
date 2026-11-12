@@ -10,17 +10,14 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
   VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "요청 값이 올바르지 않습니다."),
   UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."),
+  ADMIN_LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 맞지 않습니다."),
   SIGNUP_REQUIRED(HttpStatus.FORBIDDEN, "가입 정보를 먼저 입력해 주세요."),
   CSRF_HEADER_REQUIRED(HttpStatus.FORBIDDEN, "요청 확인 헤더가 없습니다."),
-  ADMIN_REQUIRED(HttpStatus.FORBIDDEN, "관리자만 사용할 수 있습니다."),
   VOICE_CONSENT_REQUIRED(
       HttpStatus.FORBIDDEN, "음성 처리에 동의해야 음성으로 말할 수 있어요. 마이페이지에서 켜거나 글자로 입력해 주세요."),
   NOT_FOUND(HttpStatus.NOT_FOUND, "대상을 찾을 수 없습니다."),
-  ADMIN_CANDIDATE_NOT_FOUND(
-      HttpStatus.NOT_FOUND, "이 이메일로 Google 가입한 사용자가 없습니다. 먼저 게임에 Google로 가입해야 합니다."),
   ALREADY_SIGNED_UP(HttpStatus.CONFLICT, "이미 가입한 계정입니다."),
   NICKNAME_TAKEN(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
-  ADMIN_SELF_REVOKE(HttpStatus.CONFLICT, "자기 자신은 관리자에서 해제할 수 없습니다."),
   LEVEL_TEST_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "이미 끝난 레벨 테스트입니다."),
   SCENE_CLOSED(HttpStatus.CONFLICT, "아직 열리지 않은 장소입니다."),
   TUTORIAL_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "튜토리얼 단계가 아닙니다."),
@@ -37,6 +34,7 @@ public enum ErrorCode {
   AI_QUOTA_EXHAUSTED(
       HttpStatus.TOO_MANY_REQUESTS, "AI 사용량을 모두 사용했습니다. 마을 탐험, 사물 카드, 단어장은 계속할 수 있습니다."),
   AI_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "요청이 많아 잠시 후 다시 시도해 주세요."),
+  ADMIN_LOGIN_LOCKED(HttpStatus.TOO_MANY_REQUESTS, "로그인에 여러 번 실패해 잠시 막았습니다. 15분 뒤 다시 로그인해 주세요."),
   AI_RESPONSE_INVALID(HttpStatus.BAD_GATEWAY, "AI 응답을 처리하지 못했습니다. 다시 시도해 주세요."),
   AI_TEMPORARILY_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "AI가 잠시 응답하지 않습니다. 다시 시도해 주세요."),
   INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");

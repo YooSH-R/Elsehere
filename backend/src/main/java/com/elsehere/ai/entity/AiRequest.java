@@ -43,7 +43,7 @@ public class AiRequest extends BaseEntity {
   @Column(nullable = false)
   private UUID requestId;
 
-  @Column(nullable = false)
+  // 어드민이 실행한 호출(사물 단어 발음 만들기)은 게임 사용자가 아니어서 null이다.
   private Long userId;
 
   private Long conversationId;

@@ -83,16 +83,16 @@
   <table th:replace="~{admin/usage-fragments :: userCounts(${report.progress.townStoryStages}, '단계', null)}"></table>
 
   <h2>사용자별</h2>
-  <form class="inline" method="get" th:action="@{/admin/usage/user}">
-    <input type="number" name="userId" min="1" required placeholder="사용자 ID" aria-label="사용자 ID">
+  <form class="inline" method="get" th:action="@{/admin/usage/find}">
+    <input type="text" name="user" required placeholder="이메일 또는 사용자 ID" aria-label="이메일 또는 사용자 ID">
     <input type="hidden" name="days" th:value="${usage.days}">
     <button type="submit">보기</button>
   </form>
-  <p class="hint">기간 안에 활동한 사용자를 마지막 활동이 늦은 순서로 100명까지 보여 줍니다.</p>
+  <p class="hint">기간 안에 활동한 사용자를 마지막 활동이 늦은 순서로 100명까지 보여 줍니다. 가입자는 이메일로, 게스트·탈퇴한 사용자는 사용자 ID로 보여 줍니다. 팀 기기에서 쓴 팀 계정은 이용 현황 전체에서 뺍니다.</p>
   <table>
     <thead>
     <tr>
-      <th>사용자 ID</th>
+      <th>사용자</th>
       <th>구분</th>
       <th>활동한 날</th>
       <th>대화</th>
@@ -103,7 +103,7 @@
     </thead>
     <tbody>
     <tr th:each="user : ${report.users}">
-      <td><a th:href="@{/admin/usage/user(userId=${user.userId}, days=${usage.days})}" th:text="${user.userId}">1</a></td>
+      <td><a th:href="@{/admin/usage/user(userId=${user.userId}, days=${usage.days})}" th:text="${user.name}">sun@example.com</a></td>
       <td th:text="${user.guest} ? '게스트' : '가입자'">가입자</td>
       <td th:text="${#numbers.formatInteger(user.activeDays, 1, 'COMMA')}">0</td>
       <td th:text="${#numbers.formatInteger(user.conversations, 1, 'COMMA')}">0</td>

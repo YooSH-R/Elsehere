@@ -114,7 +114,7 @@ class OnboardingServiceTest {
     assertThat(response.recommendedLevel()).isNull();
     assertThat(response.selectedLevel()).isNull();
     assertThat(response.levels())
-        .extracting(ConversationLevel::level, ConversationLevel::available)
+        .extracting(LanguageProfileResponse.Level::level, LanguageProfileResponse.Level::available)
         .containsExactly(tuple(1, true), tuple(2, true), tuple(3, false));
   }
 
@@ -127,7 +127,7 @@ class OnboardingServiceTest {
     LanguageProfileResponse response = onboardingService.getLanguageProfile(user.getId(), "en-US");
 
     assertThat(response.levels())
-        .extracting(ConversationLevel::name)
+        .extracting(LanguageProfileResponse.Level::name)
         .containsExactly("초급", "중급", "고급");
   }
 

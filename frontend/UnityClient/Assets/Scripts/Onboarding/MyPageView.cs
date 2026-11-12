@@ -15,6 +15,7 @@ namespace A305.Onboarding
     /// <summary>
     /// 공간 화면의 마이페이지. 오른쪽 위 [내 정보]로 열어 내 정보를 보고 닉네임을 바꾸거나 로그아웃한다.
     /// 시점 회전 감도와 NPC 말 빠르기도 여기서 조절한다(<see cref="LookSensitivity"/>, <see cref="NpcSpeechSpeed"/>, 이 기기에만 저장).
+    /// 대화 난이도(초급·중급)는 서버에 저장해 다음 대화부터 적용한다(ONB-09).
     /// 로그아웃은 확인 창을 거쳐 서버 세션을 끝낸 뒤(AUTH-05) 입구 씬의 로그인 화면으로 돌아간다.
     /// 단어장 HUD 프리팹에 붙어 있어 장소 씬마다 따로 배치하지 않는다.
     /// </summary>
@@ -23,6 +24,7 @@ namespace A305.Onboarding
         private const string LoadingMessage = "내 정보를 불러오는 중이에요…";
         private const string SavingMessage = "닉네임을 바꾸는 중이에요…";
         private const string SavingConsentMessage = "동의를 바꾸는 중이에요…";
+        private const string SavingLevelMessage = "난이도를 바꾸는 중이에요…";
         private const string LoggingOutMessage = "로그아웃하는 중이에요…";
         private const string WithdrawingMessage = "탈퇴하는 중이에요…";
         private const string UnexpectedMessage = "문제가 생겼어요. 다시 시도해 주세요.";
@@ -82,6 +84,14 @@ namespace A305.Onboarding
             "슬라이더 옆에 지금 말 빠르기 배율을 보여 준다. 슬라이더를 움직이는 동안에도 바뀐다."
         )]
         private TMP_Text npcSpeechSpeedText;
+
+        [SerializeField]
+        [Tooltip("대화 난이도 단계 버튼(초급·중급·고급)을 넣을 줄")]
+        private Transform levelButtonsParent;
+
+        [SerializeField]
+        [Tooltip("대화 난이도 단계 버튼 하나. 받은 단계 수만큼 복제한다.")]
+        private Button levelButtonTemplate;
 
         [SerializeField]
         private Button logoutButton;
@@ -146,6 +156,7 @@ namespace A305.Onboarding
             withdrawCancelButton.onClick.AddListener(ShowProfile);
             withdrawConfirmButton.onClick.AddListener(Withdraw);
             consentTemplate.gameObject.SetActive(false);
+            levelButtonTemplate.gameObject.SetActive(false);
             lookSensitivitySlider.minValue = LookSensitivity.Min;
             lookSensitivitySlider.maxValue = LookSensitivity.Max;
             lookSensitivitySlider.onValueChanged.AddListener(ChangeLookSensitivity);
@@ -244,6 +255,17 @@ namespace A305.Onboarding
 
             await RunAsync(flow.ChangeConsentAsync(consentType, agreed), SavingConsentMessage);
             ApplyVoiceConsent();
+        }
+
+        // 진행 중인 대화는 시작할 때의 난이도를 그대로 쓰고, 바꾼 난이도는 다음 대화부터 서버가 적용한다.
+        private async void ChangeLevel(int level)
+        {
+            if (flow.IsBusy)
+            {
+                return;
+            }
+
+            await RunAsync(flow.ChangeLevelAsync(level), SavingLevelMessage);
         }
 
         // 대화의 [말하기]가 바뀐 음성 처리 동의를 따르게 한다.
@@ -412,6 +434,22 @@ namespace A305.Onboarding
             withdrawButton.gameObject.SetActive(flow.CanWithdraw);
             withdrawButton.interactable = !flow.IsBusy;
             RenderConsents(canEdit);
+            RenderLevels(canEdit);
+        }
+
+        // 지금 난이도 버튼을 강조색으로 칠한다. 고를 수 없는 단계(고급)는 흐리게 막는다.
+        // 실패하면 흐름의 난이도가 바뀌지 않으므로 다시 그리면 원래 버튼으로 돌아간다.
+        private void RenderLevels(bool canEdit)
+        {
+            TemplateClones.Clear(levelButtonsParent, levelButtonTemplate);
+            foreach (ConversationLevel level in flow.Levels)
+            {
+                Button button = TemplateClones.Add(levelButtonTemplate, levelButtonsParent);
+                button.GetComponentInChildren<TMP_Text>(true).text = level.Name;
+                button.interactable = canEdit && level.Available;
+                button.GetComponent<ThemedElement>().SetSelected(level.Level == flow.SelectedLevel);
+                button.onClick.AddListener(() => ChangeLevel(level.Level));
+            }
         }
 
         // 실패하면 흐름의 동의가 바뀌지 않으므로 다시 그리면 토글이 원래 상태로 돌아간다.

@@ -74,6 +74,14 @@ namespace A305.EditorTools.Onboarding
             note.transform.SetSiblingIndex(window.Find("NpcSpeechSpeed").GetSiblingIndex() + 1);
             Size(note.transform, 0, 22, flexibleWidth: 1);
 
+            // 대화 난이도는 서버에 저장되므로 '이 기기에 저장' 안내 아래에 같은 설정 카드로 둔다(S15P31A305-799).
+            Transform level = window.Find("ConversationLevel");
+            if (level != null)
+            {
+                level.SetSiblingIndex(note.transform.GetSiblingIndex() + 1);
+                LevelSetting(level, catalog);
+            }
+
             Text(window.Find("ConsentsLabel"), catalog, UiThemeRole.Title, 22);
             Transform consents = window.Find("Consents");
             consents.GetComponent<VerticalLayoutGroup>().spacing = 8;
@@ -156,6 +164,35 @@ namespace A305.EditorTools.Onboarding
             track.anchoredPosition = Vector2.zero;
             track.sizeDelta = new Vector2(0, 16);
             track.GetComponent<Image>().color = new Color(.68f, .64f, .59f, .3f);
+        }
+
+        // 창이 16:9 화면 높이 안에 들도록 제목과 단계 버튼을 한 줄에 둔 카드다.
+        // 단계 버튼은 가입 화면 난이도 카드처럼 고른 단계만 강조색으로 칠하고(MyPageView가 SetSelected), 이름은 다른 버튼과 같은 Jua 일반 굵기로 쓴다.
+        private static void LevelSetting(Transform group, UiThemeCatalog catalog)
+        {
+            BuilderTools.GetOrAddComponent<Image>(group.gameObject).raycastTarget = false;
+            Theme(group, catalog, UiThemeRole.Card);
+            group.GetComponent<VerticalLayoutGroup>().padding = new RectOffset(22, 22, 14, 14);
+            Transform line = group.Find("Row");
+            line.GetComponent<HorizontalLayoutGroup>().spacing = 12;
+            Size(line, 0, 46, flexibleWidth: 1);
+            TMP_Text heading = Text(line.Find("Title"), catalog, UiThemeRole.Body, 23);
+            heading.text = "대화 난이도";
+            Size(heading.transform, 0, 46, flexibleWidth: 1);
+            Transform choices = line.Find("Choices");
+            var row = choices.GetComponent<HorizontalLayoutGroup>();
+            row.childAlignment = TextAnchor.MiddleRight;
+            row.spacing = 12;
+            Transform template = choices.Find("LevelButtonTemplate");
+            TMP_Text label = template.Find("Label").GetComponent<TMP_Text>();
+            label.font = catalog.Get(UiThemeId.Jelly).DisplayFont;
+            label.fontSharedMaterial = label.font.material;
+            label.fontStyle = FontStyles.Normal;
+            label.fontWeight = FontWeight.Regular;
+            label.fontSize = 22;
+            label.enableAutoSizing = false;
+            label.alignment = TextAlignmentOptions.Midline;
+            Size(template, 120, 46);
         }
 
         private static TMP_Text Text(

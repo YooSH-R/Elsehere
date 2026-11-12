@@ -18,6 +18,10 @@ namespace A305.EditorTools.Dialogue
         private const string VoiceFolder = "Assets/Audio/Dialogue/TutorialBen";
         private const string TutorialNpcCode = "TUTORIAL_PASSERBY";
 
+        // 대답마다 이을 음성. 둘째 대사(길 안내)에서 대화를 마치므로 마지막 고마움 인사에는 처음 셋째 대답으로 만든
+        // Reply3("Thank you so much. You're a lifesaver!")을 쓴다. Reply2("Got it. Is it far from here?")는 쓰지 않는다.
+        private static readonly string[] ReplyVoices = { "Reply1", "Reply3" };
+
         [MenuItem("Tools/A305/Dialogue/Apply Tutorial Ben Greeting")]
         public static void ApplyGreeting()
         {
@@ -50,11 +54,18 @@ namespace A305.EditorTools.Dialogue
             SerializedProperty entry = FindEntry(serialized.FindProperty("entries"));
             SetVoice(entry.FindPropertyRelative("opening"), "Opening");
             SerializedProperty turns = entry.FindPropertyRelative("guidedTurns");
+            if (turns.arraySize != ReplyVoices.Length)
+            {
+                throw new InvalidOperationException(
+                    $"튜토리얼 대본 대답 {turns.arraySize}개와 음성 {ReplyVoices.Length}개의 수가 다릅니다."
+                );
+            }
+
             for (int i = 0; i < turns.arraySize; i++)
             {
                 SetVoice(
                     turns.GetArrayElementAtIndex(i).FindPropertyRelative("reply"),
-                    $"Reply{i + 1}"
+                    ReplyVoices[i]
                 );
             }
 

@@ -15,23 +15,26 @@ namespace A305.Dialogue.Tests
         private const string ScriptsPath = "Assets/Data/Dialogue/MockDialogueScripts.asset";
 
         [Test]
-        public void TutorialBen_GreetsThenBuildsAffinityAndFinishesWithinThreeTurns()
+        public void TutorialBen_GreetsThenBuildsAffinityAndFinishesAfterTheDirections()
         {
+            // 첫 대사(인사)로 호감도를 설명하고, 둘째 대사(길 안내)에 Ben이 고맙다고 하며 대화를 마친다.
             var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
             scripts.TryGetScript("TUTORIAL_PASSERBY", out DialogueScript script);
             Assert.That(script.OpeningLine.English, Does.Contain("I'm Ben"));
-            Assert.That(script.GuidedTurns, Has.Count.EqualTo(3));
+            Assert.That(script.GuidedTurns, Has.Count.EqualTo(2));
+            Assert.That(script.GuidedTurns[1].SuggestedEnglish, Does.Contain("turn left"));
+            Assert.That(script.GuidedTurns[1].Reply.English, Does.Contain("Thank you"));
             var conversation = new DialogueConversation("TOWN_PASSERBY", script);
             Assert.That(conversation.Standing, Is.Not.Null);
             Assert.That(conversation.Standing.Affinity, Is.Zero);
             Assert.That(conversation.SuggestedEnglish, Does.Contain("Nice to meet you"));
-            for (int turn = 1; turn <= 3; turn++)
+            for (int turn = 1; turn <= 2; turn++)
             {
                 Assert.That(conversation.Send(conversation.SuggestedEnglish), Is.True);
                 Assert.That(conversation.Standing.Affinity, Is.EqualTo(turn * 2));
             }
             Assert.That(conversation.IsGuidedCompleted, Is.True);
-            Assert.That(conversation.ToRecord().UserUtterances, Has.Count.EqualTo(3));
+            Assert.That(conversation.ToRecord().UserUtterances, Has.Count.EqualTo(2));
             Assert.That(conversation.Send("One more thing"), Is.False);
         }
 
@@ -131,7 +134,7 @@ namespace A305.Dialogue.Tests
 
             Assert.That(tutorial.NpcName, Is.EqualTo("Ben"));
             Assert.That(tutorial.NpcName, Is.EqualTo(town.NpcName));
-            Assert.That(tutorial.GuidedTurns, Has.Count.EqualTo(3), "대본 흐름은 그대로입니다.");
+            Assert.That(tutorial.GuidedTurns, Has.Count.EqualTo(2), "대본 흐름은 그대로입니다.");
         }
 
         [Test]

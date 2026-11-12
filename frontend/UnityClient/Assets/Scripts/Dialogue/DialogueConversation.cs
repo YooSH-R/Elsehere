@@ -37,7 +37,7 @@ namespace A305.Dialogue
             this.script = script;
             this.hasRecorder = hasRecorder;
             playerName = PlayerNickname.Name;
-            if (IsGuided && script.NpcName == "Ben" && script.GuidedTurns.Count == 3)
+            if (IsGuided && script.NpcName == "Ben")
             {
                 tutorialStanding = new ConversationStanding();
                 UpdateTutorialStanding();
@@ -182,7 +182,7 @@ namespace A305.Dialogue
 
         private void UpdateTutorialStanding()
         {
-            // 길 안내 완료 API가 저장하는 기본 호감도 +6을 세 번의 긍정적인 응답으로 보여 준다.
+            // 길 안내 완료 API가 저장하는 기본 호감도 +4를 두 번의 긍정적인 응답(인사, 길 안내)으로 보여 준다.
             // 실제 저장은 TutorialFinishRecorder가 완료 API를 한 번씩 재시도하는 경로를 쓴다.
             tutorialStanding?.Apply(
                 new ConversationState

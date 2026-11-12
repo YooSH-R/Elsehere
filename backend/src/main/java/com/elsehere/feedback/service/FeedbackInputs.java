@@ -130,6 +130,8 @@ final class FeedbackInputs {
                 .map(
                     id ->
                         TownStoryStage.goalTitle(id)
+                            + ": "
+                            + TownStoryStage.goalHint(id)
                             + " ("
                             + TownStoryStage.goalDescription(id)
                             + ")")
@@ -147,7 +149,14 @@ final class FeedbackInputs {
             ? "없음"
             : stage.goals().stream()
                 .filter(goal -> goalIds.contains(goal.id()))
-                .map(goal -> goal.title() + " (" + goal.description() + ")")
+                .map(
+                    goal ->
+                        goal.title()
+                            + ": "
+                            + goal.hint().replace("{name}", "본인")
+                            + " ("
+                            + goal.description()
+                            + ")")
                 .collect(Collectors.joining(", "));
     return stage.title() + " · 이번 대화의 할 일: " + goals + ". 이 목록에 없는 다른 목표는 누락으로 평가하지 않습니다.";
   }

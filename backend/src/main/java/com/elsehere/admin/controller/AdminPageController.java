@@ -3,11 +3,8 @@ package com.elsehere.admin.controller;
 import com.elsehere.admin.service.AdminAiUsageService;
 import com.elsehere.admin.service.AdminNpcService;
 import com.elsehere.admin.service.AdminUsageService;
-import com.elsehere.admin.service.AdminUserService;
-import com.elsehere.common.auth.LoginUser;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,13 +33,18 @@ public class AdminPageController {
           "MEMORY", "기억 카드");
 
   private final AdminNpcService adminNpcService;
-  private final AdminUserService adminUserService;
   private final AdminAiUsageService adminAiUsageService;
   private final AdminUsageService adminUsageService;
 
   @GetMapping({"/admin", "/admin/"})
   public String home() {
     return "redirect:/admin/npcs";
+  }
+
+  /** 어드민 로그인 화면. 로그인하지 않고 어드민 화면을 열면 여기로 온다(AdminSecurityConfig). */
+  @GetMapping("/admin/login")
+  public String login() {
+    return "admin/login";
   }
 
   @GetMapping("/admin/npcs")
@@ -78,13 +80,5 @@ public class AdminPageController {
       @RequestParam long userId, @RequestParam(defaultValue = "7") int days, Model model) {
     model.addAttribute("report", adminUsageService.userReport(userId, days));
     return "admin/usage-user";
-  }
-
-  /** 관리자 목록. 자기 자신에게는 해제 버튼을 두지 않는다. */
-  @GetMapping("/admin/admins")
-  public String admins(@AuthenticationPrincipal LoginUser loginUser, Model model) {
-    model.addAttribute("admins", adminUserService.admins());
-    model.addAttribute("currentUserId", loginUser.userId());
-    return "admin/admins";
   }
 }

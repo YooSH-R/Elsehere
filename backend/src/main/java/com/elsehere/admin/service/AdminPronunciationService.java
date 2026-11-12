@@ -41,10 +41,10 @@ public class AdminPronunciationService {
   }
 
   /** 발음 파일이 없는 단어의 발음 만들기를 시작한다. 이미 만드는 중이면 새로 시작하지 않고 진행 상황만 돌려준다. */
-  public PronunciationStatusResponse start(Long adminUserId) {
+  public PronunciationStatusResponse start() {
     if (running.compareAndSet(false, true)) {
       try {
-        taskExecutor.execute(() -> generate(adminUserId));
+        taskExecutor.execute(this::generate);
       } catch (RuntimeException exception) {
         running.set(false);
         throw exception;
@@ -53,9 +53,9 @@ public class AdminPronunciationService {
     return status();
   }
 
-  private void generate(Long adminUserId) {
+  private void generate() {
     try {
-      lastRun = pronunciationGenerator.generateMissing(adminUserId);
+      lastRun = pronunciationGenerator.generateMissing();
     } catch (RuntimeException exception) {
       log.error("pronunciation_generation_stopped", exception);
     } finally {

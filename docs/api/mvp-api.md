@@ -84,16 +84,14 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | --- | --- | --- |
 | `VALIDATION_FAILED` | 400 | 필수값 누락, 길이·형식 오류 |
 | `UNAUTHENTICATED` | 401 | 로그인 필요. 로그인 세션은 서버 메모리에 있어 서버 재배포나 오래 쉬면 사라집니다. 장소 화면에서 이 응답을 받으면 클라이언트는 "접속이 끊겼어요" 안내를 띄우고 처음 화면(로그인)으로 돌려보냅니다. |
+| `ADMIN_LOGIN_FAILED` | 401 | 운영자 어드민 로그인(`POST /api/v1/admin/login`)의 아이디나 비밀번호가 틀림. 무엇이 틀렸는지는 알리지 않음. [운영자 어드민](../admin.md) 참고 |
 | `SIGNUP_REQUIRED` | 403 | 가입 정보 미제출 |
 | `CSRF_HEADER_REQUIRED` | 403 | 상태를 바꾸는 요청에 `X-Requested-With` 헤더 없음 |
-| `ADMIN_REQUIRED` | 403 | 관리자가 아닌 사용자가 운영자 어드민 화면·관리 API(`/admin`, `/api/v1/admin/**`) 호출. [운영자 어드민](../admin.md) 참고 |
 | `VOICE_CONSENT_REQUIRED` | 403 | 음성 처리(`VOICE`)에 동의하지 않은 사용자의 음성 인식(CONV-02). 글자로 입력하거나 오른쪽 위 메뉴(≡) › 내 정보 › 선택 동의에서 동의를 켭니다. |
 | `AI_RESTRICTED` | 403 | 운영·안전상 AI 제한 |
 | `NOT_FOUND` | 404 | 대상이 없거나 다른 사용자의 데이터 |
-| `ADMIN_CANDIDATE_NOT_FOUND` | 404 | 어드민에서 관리자로 추가한 이메일로 Google 가입한 사용자가 없음. [운영자 어드민](../admin.md) 참고 |
 | `ALREADY_SIGNED_UP` | 409 | 이미 가입한 사용자의 가입 정보 제출 |
 | `NICKNAME_TAKEN` | 409 | 다른 사용자가 쓰고 있는 닉네임 |
-| `ADMIN_SELF_REVOKE` | 409 | 어드민에서 자기 자신을 관리자에서 해제 |
 | `LEVEL_TEST_NOT_IN_PROGRESS` | 409 | 이미 끝난 레벨 테스트에 응답·완료·그만하기 |
 | `REQUEST_ID_CONFLICT` | 409 | 같은 `requestId`로 다른 내용 전송 |
 | `CONVERSATION_ALREADY_ACTIVE` | 409 | 진행 중인 다른 대화가 있음 |
@@ -109,6 +107,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `VOCAB_SOURCE_MISMATCH` | 422 | 저장하려는 단어가 출처(사물 카드, 대사 단어 풀이, 피드백 단어장 후보·상황 표현·고친 문장)에 없음 |
 | `AI_QUOTA_EXHAUSTED` | 429 | 사용자 AI 한도 소진, 게스트 대화 횟수 소진 |
 | `AI_RATE_LIMITED` | 429 | 요청 속도 제한 |
+| `ADMIN_LOGIN_LOCKED` | 429 | 운영자 어드민 아이디로 연속 5번 틀려 15분 동안 로그인을 막음. [운영자 어드민](../admin.md) 참고 |
 | `AI_RESPONSE_INVALID` | 502 | 제한 횟수만큼 재시도해도 AI 응답 형식 오류 |
 | `AI_TEMPORARILY_UNAVAILABLE` | 503 | 외부 AI 장애·시간 초과 |
 | `INTERNAL_ERROR` | 500 | 그 밖의 서버 오류 |

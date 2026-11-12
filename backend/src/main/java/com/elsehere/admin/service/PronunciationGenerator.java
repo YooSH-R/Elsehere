@@ -55,13 +55,13 @@ public class PronunciationGenerator {
   }
 
   /** 발음 파일이 없는 사물 단어의 발음을 만든다. 실패한 단어는 건너뛰고 나머지를 계속 만든다. */
-  public PronunciationRun generateMissing(Long adminUserId) {
+  public PronunciationRun generateMissing() {
     int created = 0;
     List<String> failedWordKeys = new ArrayList<>();
     for (ObjectWord word : objectWords()) {
       if (!pronunciationAudioStore.exists(word.audioKey())) {
         try {
-          synthesize(word, adminUserId);
+          synthesize(word);
           created++;
         } catch (RuntimeException exception) {
           // 워커 오류·시간 초과 등으로 한 단어가 실패해도 나머지 단어는 만든다. 다시 실행하면 실패한 단어만 다시 만든다.
@@ -77,8 +77,9 @@ public class PronunciationGenerator {
     return new PronunciationRun(created, failedWordKeys);
   }
 
-  private void synthesize(ObjectWord word, Long adminUserId) {
-    WorkerTrace trace = new WorkerTrace(UUID.randomUUID(), adminUserId, null);
+  // 어드민 계정은 게임 사용자(users)가 아니므로 AI 호출 기록을 사용자 없이 남긴다.
+  private void synthesize(ObjectWord word) {
+    WorkerTrace trace = new WorkerTrace(UUID.randomUUID(), null, null);
     byte[] wav = aiGateway.synthesize(trace, word.text(), voice, SPEED);
     pronunciationAudioStore.save(word.audioKey(), wav);
   }

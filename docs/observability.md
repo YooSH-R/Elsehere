@@ -75,8 +75,9 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 | WARN | `relationship_update_failed` | `code` | 관계를 갱신하지 못함. 이전 값을 그대로 둠 |
 | INFO | `guest_content_cleaned` | `guests` | 정기 게스트 내용 정리에서 내용을 지운 게스트 수 |
 | INFO | `social_login_failed` | `type` | 소셜 로그인 실패. `type`은 예외 종류 |
-| INFO | `admin_granted` | `user_id`, `by_user_id` | 관리자 지정. `by_user_id`는 지정한 관리자 |
-| INFO | `admin_revoked` | `user_id`, `by_user_id` | 관리자 해제. `by_user_id`는 해제한 관리자 |
+| INFO | `admin_login_succeeded` | 없음 | 어드민 계정으로 로그인함 |
+| INFO | `admin_login_failed` | `known_login_id` | 어드민 로그인 실패. `known_login_id`는 넣은 아이디가 어드민 아이디였는지(넣은 아이디·비밀번호는 남기지 않음) |
+| WARN | `admin_login_locked` | `minutes` | 어드민 아이디로 연속 5번 틀려 로그인을 막음 |
 | INFO | `pronunciation_generation_finished` | `created`, `failed` | 사물 단어 발음 만들기가 끝남 |
 | WARN | `pronunciation_word_failed` | `word_key`, (예외) | 사물 단어 하나의 발음을 만들지 못함. 나머지 단어는 계속 만듦 |
 | ERROR | `pronunciation_generation_stopped` | (예외) | 사물 단어 발음 만들기가 중간에 멈춤 |

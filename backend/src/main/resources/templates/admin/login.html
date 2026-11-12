@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('로그인')}"></head>
+<body>
+<main class="login">
+  <h1>Elsehere 어드민</h1>
+  <p class="hint">어드민 계정으로 로그인합니다. 게임의 Google 계정과는 따로입니다.</p>
+
+  <div class="panel">
+    <form id="login-form" th:data-url="@{/api/v1/admin/login}" th:data-next="@{/admin/}">
+      <label for="loginId">아이디</label>
+      <input type="text" id="loginId" name="loginId" maxlength="100" autocomplete="username" required autofocus>
+      <label for="password">비밀번호</label>
+      <input type="password" id="password" name="password" maxlength="200" autocomplete="current-password" required>
+      <div class="actions">
+        <button type="submit" class="primary" id="login">로그인</button>
+      </div>
+    </form>
+    <p id="status" class="status" role="status"></p>
+  </div>
+</main>
+<script>
+  const form = document.getElementById("login-form");
+  const loginButton = document.getElementById("login");
+  const status = document.getElementById("status");
+
+  function showStatus(message, kind) {
+    status.textContent = message;
+    status.className = "status " + kind;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    loginButton.disabled = true;
+    showStatus("로그인하는 중…", "");
+    try {
+      const response = await fetch(form.dataset.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Requested-With": "ElsehereAdmin" },
+        credentials: "same-origin",
+        body: JSON.stringify({ loginId: form.loginId.value, password: form.password.value })
+      });
+      if (response.ok) {
+        location.href = form.dataset.next;
+        return;
+      }
+      const body = await response.json().catch(() => null);
+      showStatus(body && body.error ? body.error.message : "로그인하지 못했습니다.", "error");
+      form.password.value = "";
+    } catch (error) {
+      showStatus("서버에 연결하지 못했습니다. 잠시 후 다시 로그인해 주세요.", "error");
+    } finally {
+      loginButton.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

@@ -533,8 +533,11 @@ public class AiWorkerClient {
             .header("X-Internal-Token", token)
             .header(
                 "X-Request-Id",
-                httpRequestId != null ? httpRequestId : trace.requestId().toString())
-            .header("X-User-Id", String.valueOf(trace.userId()));
+                httpRequestId != null ? httpRequestId : trace.requestId().toString());
+    // 어드민이 실행한 호출(사물 단어 발음 만들기)은 사용자가 없다.
+    if (trace.userId() != null) {
+      builder.header("X-User-Id", String.valueOf(trace.userId()));
+    }
     if (trace.conversationId() != null) {
       builder.header("X-Conv-Id", String.valueOf(trace.conversationId()));
     }

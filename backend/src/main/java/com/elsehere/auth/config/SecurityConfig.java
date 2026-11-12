@@ -1,23 +1,17 @@
 package com.elsehere.auth.config;
 
-import com.elsehere.admin.service.AdminAccess;
 import com.elsehere.auth.handler.LoginRequiredEntryPoint;
 import com.elsehere.auth.handler.SocialLoginFailureHandler;
 import com.elsehere.auth.handler.SocialLoginSuccessHandler;
 import com.elsehere.common.auth.CsrfHeaderFilter;
-import com.elsehere.common.auth.LoginUser;
-import com.elsehere.common.error.BusinessException;
-import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.logging.UserLoggingFilter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
@@ -29,7 +23,8 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 /**
  * 세션 기반 인증 설정. 로그인 상태는 서버 세션에 두고 클라이언트는 세션 쿠키만 보낸다.
  *
- * <p>보안 필터에서 생긴 오류도 {@link HandlerExceptionResolver}로 넘겨 컨트롤러 오류와 같은 공통 오류 응답을 쓴다.
+ * <p>보안 필터에서 생긴 오류도 {@link HandlerExceptionResolver}로 넘겨 컨트롤러 오류와 같은 공통 오류 응답을 쓴다. 운영자 어드민 주소는 어드민
+ * 보안 설정(AdminSecurityConfig)이 먼저 맡아 이 설정을 거치지 않는다.
  */
 @Configuration(proxyBeanMethods = false)
 public class SecurityConfig {
@@ -39,12 +34,6 @@ public class SecurityConfig {
 
   /** AUTH-02. 제공자 인증을 마치고 돌아오는 주소다(예: /api/v1/auth/callback/google). */
   private static final String SOCIAL_LOGIN_CALLBACK_PATH = "/api/v1/auth/callback/*";
-
-  /** 운영자 어드민 화면. 백엔드가 Thymeleaf로 그린다(docs/admin.md). */
-  private static final String ADMIN_PAGES = "/admin/**";
-
-  /** 운영자 관리 API. */
-  private static final String ADMIN_API = "/api/v1/admin/**";
 
   /** 가입 화면에서 여는 약관 문서(AUTH-03의 url). 백엔드가 그린다. */
   private static final String[] LEGAL_DOCUMENTS = {
@@ -58,8 +47,7 @@ public class SecurityConfig {
       @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver,
       SocialLoginSuccessHandler socialLoginSuccessHandler,
       SocialLoginFailureHandler socialLoginFailureHandler,
-      LoginRequiredEntryPoint loginRequiredEntryPoint,
-      AdminAccess adminAccess)
+      LoginRequiredEntryPoint loginRequiredEntryPoint)
       throws Exception {
     http.httpBasic(AbstractHttpConfigurer::disable)
         .formLogin(AbstractHttpConfigurer::disable)
@@ -101,11 +89,6 @@ public class SecurityConfig {
                     // 약관 문서는 가입하기 전에 읽는다.
                     .requestMatchers(HttpMethod.GET, LEGAL_DOCUMENTS)
                     .permitAll()
-                    // 운영자 어드민 화면과 관리 API는 관리자만 쓴다. 역할은 요청마다 DB에서 확인한다(AdminAccess).
-                    .requestMatchers(ADMIN_PAGES, ADMIN_API)
-                    .access(
-                        (authentication, request) ->
-                            new AuthorizationDecision(isAdmin(authentication.get(), adminAccess)))
                     .anyRequest()
                     .authenticated())
         // AUTH-05. 세션을 끝내고 204로 응답한다. 가입 대기 중에 다른 계정으로 바꾸려는 사용자도 쓸 수 있도록 로그인 여부를 묻지 않는다.
@@ -120,28 +103,8 @@ public class SecurityConfig {
                     .deleteCookies("JSESSIONID"))
         .exceptionHandling(
             exceptions ->
-                exceptions
-                    // 어드민 화면은 브라우저 주소창으로 여는 페이지라 로그인하지 않았으면 Google 로그인으로 보낸다.
-                    .defaultAuthenticationEntryPointFor(
-                        (request, response, exception) ->
-                            response.sendRedirect(SOCIAL_LOGIN_START_PATH + "/google"),
-                        PathPatternRequestMatcher.withDefaults().matcher(ADMIN_PAGES))
-                    .defaultAuthenticationEntryPointFor(
-                        loginRequiredEntryPoint, AnyRequestMatcher.INSTANCE)
-                    // 로그인했는데 권한이 없어 막히는 곳은 관리자 전용 경로뿐이다.
-                    .accessDeniedHandler(
-                        (request, response, exception) ->
-                            exceptionResolver.resolveException(
-                                request,
-                                response,
-                                null,
-                                new BusinessException(ErrorCode.ADMIN_REQUIRED))));
+                exceptions.defaultAuthenticationEntryPointFor(
+                    loginRequiredEntryPoint, AnyRequestMatcher.INSTANCE));
     return http.build();
-  }
-
-  private static boolean isAdmin(Authentication authentication, AdminAccess adminAccess) {
-    return authentication != null
-        && authentication.getPrincipal() instanceof LoginUser loginUser
-        && adminAccess.isAdmin(loginUser.userId());
   }
 }

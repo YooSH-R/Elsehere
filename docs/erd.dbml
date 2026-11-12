@@ -26,7 +26,7 @@ Table users [headercolor: #3D4A5C] {
   onboarding_step varchar(20) [not null, note: 'LANG→LEVEL→TUTORIAL→DONE · 튜토리얼 완료·건너뛰기 시 DONE (튜토리얼 기록은 이 값만 사용)']
   current_language varchar(10) [not null, note: 'en-US']
   ui_theme varchar(20) [not null, default: 'JELLY', note: '화면 테마 · JELLY / STICKER / CLOUD · 집에서 고르며 계정에 저장해 기기와 관계없이 유지 (API USER-01)']
-  role varchar(10) [not null, default: 'USER', note: 'USER / ADMIN · ADMIN만 운영자 어드민(/admin) 사용 · 가입은 항상 USER, 관리자는 다른 관리자가 어드민에서 지정·해제 (docs/admin.md) · 탈퇴하면 USER']
+  role varchar(10) [not null, default: 'USER', note: 'USER / ADMIN · 쓰지 않음: 운영자 어드민(/admin)은 Google 로그인과 따로인 어드민 계정으로 들어간다 (docs/admin.md) · 후속 작업에서 지울 칼럼']
   last_scene_id bigint [note: '재접속 위치']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
@@ -523,7 +523,7 @@ Table ai_candidates [headercolor: #5B4B9A] {
 Table ai_requests [headercolor: #8A5A44] {
   id bigint [pk, increment]
   request_id uuid [not null, note: '클라이언트 요청 ID · 재전송 시 이전 결과 반환, 한 번만 차감']
-  user_id bigint [not null]
+  user_id bigint [note: '어드민이 실행한 호출(사물 단어 발음 만들기)은 게임 사용자가 아니어서 null (V39)']
   conversation_id bigint
   kind varchar(20) [not null, note: 'AI 워커 기능 단위 · STT · GUARD · JUDGE · NPC · TTS · HINT · MEANING · FEEDBACK · MEMORY (새 호출 종류가 생기면 추가)']
   model varchar(50) [note: '호출한 모델']

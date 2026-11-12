@@ -1085,7 +1085,8 @@ namespace A305.Dialogue
                 ? DisableSubtitlesCaption
                 : EnableSubtitlesCaption;
             if (subtitleButton.TryGetComponent(out ThemedElement theme))
-                theme.SetSelected(showsSubtitles);
+                // 입체 버튼의 그림자 여백이 이 낮은 도구 버튼만 두꺼워 보이게 하므로 세로 여백을 줄인다.
+                theme.SetSelected(showsSubtitles, .35f);
         }
 
         private void ToggleSubtitles()

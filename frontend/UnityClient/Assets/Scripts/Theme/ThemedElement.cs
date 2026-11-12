@@ -45,6 +45,8 @@ namespace A305.Theme
         // 유리 버튼일 때 Builder가 정한 9칸 배율. 고른 표시로 알약을 그렸다가 돌아올 때 되살린다.
         private float ghostPixelsPerUnit;
 
+        private float selectedVerticalBleedScale = 1f;
+
         public UiThemeRole Role => role;
 
         public UiThemeCatalog Catalog => catalog;
@@ -56,10 +58,11 @@ namespace A305.Theme
             ApplyCurrent();
         }
 
-        /// <summary>고른 카드나 목록 줄을 지금 테마의 강조색 쪽으로 옅게 칠한다. 테마가 바뀌어도 고른 표시를 유지한다.</summary>
-        public void SetSelected(bool selected)
+        /// <summary>고른 카드·버튼을 테마의 강조색으로 칠한다. 필요하면 입체 버튼의 세로 그림자 여백을 조정한다.</summary>
+        public void SetSelected(bool selected, float verticalBleedScale = 1f)
         {
             selection = selected;
+            selectedVerticalBleedScale = verticalBleedScale;
             ApplyCurrent();
         }
 
@@ -307,12 +310,14 @@ namespace A305.Theme
                         ghostPixelsPerUnit,
                         PillFit(theme.PillSprite, image)
                     );
+                Vector2 selectedBleed = theme.PillBleed;
+                selectedBleed.y *= selectedVerticalBleedScale;
                 Paint(
                     image,
                     theme.PillSprite,
                     theme.ToneColor(UiTone.Primary),
                     theme.PopMaterial,
-                    theme.PillBleed
+                    selectedBleed
                 );
             }
             else

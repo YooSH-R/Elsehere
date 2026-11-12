@@ -21,6 +21,20 @@ namespace A305.Characters
             walkRotations;
         private float phase,
             blend;
+        private float silentGrooveTime;
+        private float? performanceTime;
+        private Transform hips;
+        private ContactLeg[] legs;
+
+        // 대화 모듈이 음성 시각만 전달한다. 캐릭터 모듈은 대화 시스템을 참조하지 않는다.
+        public void SetPerformanceTime(float? seconds)
+        {
+            if (seconds.HasValue && (!float.IsFinite(seconds.Value) || seconds.Value < 0))
+                throw new ArgumentOutOfRangeException(nameof(seconds));
+            if (!seconds.HasValue && performanceTime.HasValue)
+                silentGrooveTime = performanceTime.Value;
+            performanceTime = seconds;
+        }
 
         public JohnParkLocomotionSettings Settings => settings;
 
@@ -50,6 +64,8 @@ namespace A305.Characters
             walkPositions = new Vector3[bones.Length];
             baseRotations = new Quaternion[bones.Length];
             walkRotations = new Quaternion[bones.Length];
+            hips = Array.Find(bones, b => b.name == "Hips");
+            legs = new[] { new ContactLeg(bones, "Left"), new ContactLeg(bones, "Right") };
         }
 
         private void LateUpdate()
@@ -70,7 +86,8 @@ namespace A305.Characters
                 return;
             }
             phase = Mathf.Repeat(phase + Time.deltaTime * CyclesPerSecond(speed), 1);
-            ApplyPose(phase, speed, blend);
+            silentGrooveTime += Time.deltaTime;
+            ApplyPose(phase, speed, blend, silentGrooveTime);
         }
 
         // 검수 렌더도 실제 재생과 같은 하반신 합성기를 사용한다. 루트 이동은 이동 컴포넌트가 맡는다.
@@ -92,7 +109,8 @@ namespace A305.Characters
             ApplyPose(
                 Mathf.Repeat(seconds * CyclesPerSecond(speedMetersPerSecond), 1),
                 speedMetersPerSecond,
-                1
+                1,
+                seconds
             );
         }
 
@@ -115,7 +133,7 @@ namespace A305.Characters
                 * Mathf.Clamp(speed / reference, .4f, 1.5f);
         }
 
-        private void ApplyPose(float normalizedTime, float speed, float weight)
+        private void ApplyPose(float normalizedTime, float speed, float weight, float grooveSeconds)
         {
             for (int i = 0; i < bones.Length; i++)
             {
@@ -145,6 +163,116 @@ namespace A305.Characters
                     Quaternion.Slerp(walkRotations[i], bones[i].localRotation, run),
                     weight
                 );
+            }
+            ApplyGroove(grooveSeconds, weight);
+        }
+
+        private void ApplyGroove(float seconds, float weight)
+        {
+            if (
+                settings.Groove == null
+                || settings.Groove.length == 0
+                || settings.GrooveDuration <= 0
+            )
+                return;
+            float clock = performanceTime.HasValue
+                ? Mathf.Clamp(performanceTime.Value, 0, settings.GrooveDuration)
+                : Mathf.Repeat(seconds, settings.GrooveDuration);
+            float pulse = Mathf.Clamp01(settings.Groove.Evaluate(clock));
+            Vector3 up = animator.transform.up;
+            float minimum = float.NegativeInfinity,
+                maximum = float.PositiveInfinity;
+            foreach (var leg in legs)
+            {
+                leg.Capture();
+                minimum = Mathf.Max(minimum, leg.HipLimit(hips, up, true));
+                maximum = Mathf.Min(maximum, leg.HipLimit(hips, up, false));
+            }
+            // 기존 걸음의 발 궤적·발 구름을 보존하고 골반 높이만 강세로 대체한다.
+            Vector3 rest = hips.parent.TransformPoint(settings.GrooveRestHipPosition);
+            float length = (legs[0].Length + legs[1].Length) * .5f;
+            float desired = Vector3.Dot(rest, up) - length * (.035f + .43f * pulse);
+            if (minimum > maximum)
+                return;
+            float height = Vector3.Dot(hips.position, up);
+            hips.position +=
+                up * (Mathf.Lerp(height, Mathf.Clamp(desired, minimum, maximum), weight) - height);
+            foreach (var leg in legs)
+                leg.Solve();
+        }
+
+        private sealed class ContactLeg
+        {
+            private readonly Transform upper,
+                lower,
+                foot;
+            private Vector3 target,
+                bend;
+            private Quaternion rotation;
+            private float upperLength,
+                lowerLength;
+            public float Length => upperLength + lowerLength;
+
+            public ContactLeg(Transform[] transforms, string side)
+            {
+                upper = Array.Find(transforms, b => b.name == side + "_UpperLeg");
+                lower = Array.Find(transforms, b => b.name == side + "_LowerLeg");
+                foot = Array.Find(transforms, b => b.name == side + "_Foot");
+            }
+
+            public void Capture()
+            {
+                target = foot.position;
+                rotation = foot.rotation;
+                upperLength = Vector3.Distance(upper.position, lower.position);
+                lowerLength = Vector3.Distance(lower.position, foot.position);
+                bend = Vector3
+                    .ProjectOnPlane(
+                        lower.position - upper.position,
+                        (target - upper.position).normalized
+                    )
+                    .normalized;
+            }
+
+            public float HipLimit(Transform hips, Vector3 up, bool minimum)
+            {
+                float reachSquared = minimum
+                    ? upperLength * upperLength
+                        + lowerLength * lowerLength
+                        + 2 * upperLength * lowerLength * Mathf.Cos(120 * Mathf.Deg2Rad)
+                    : Length * Length * .985f * .985f;
+                float horizontal = Vector3.ProjectOnPlane(target - upper.position, up).sqrMagnitude;
+                return Vector3.Dot(target, up)
+                    + Mathf.Sqrt(Mathf.Max(0, reachSquared - horizontal))
+                    - Vector3.Dot(upper.position - hips.position, up);
+            }
+
+            public void Solve()
+            {
+                Vector3 delta = target - upper.position;
+                float distance = delta.magnitude;
+                if (distance < .00001f)
+                    return;
+                Vector3 direction = delta / distance;
+                float along =
+                    (upperLength * upperLength - lowerLength * lowerLength + distance * distance)
+                    / (2 * distance);
+                float height = Mathf.Sqrt(Mathf.Max(0, upperLength * upperLength - along * along));
+                Vector3 knee =
+                    upper.position
+                    + direction * along
+                    + Vector3.ProjectOnPlane(bend, direction).normalized * height;
+                upper.rotation =
+                    Quaternion.FromToRotation(
+                        lower.position - upper.position,
+                        knee - upper.position
+                    ) * upper.rotation;
+                lower.rotation =
+                    Quaternion.FromToRotation(
+                        foot.position - lower.position,
+                        target - lower.position
+                    ) * lower.rotation;
+                foot.rotation = rotation;
             }
         }
     }

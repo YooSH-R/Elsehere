@@ -12,6 +12,124 @@ namespace A305.Characters.PlayModeTests
     public sealed class JohnParkLocomotionTests
     {
         [UnityTest]
+        public IEnumerator MovingBounceFollowsSpeechTimeWithoutChangingFootTargets()
+        {
+            var root = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/Prefabs/Npc/LittleMung_JohnPark_Male.prefab"
+                )
+            );
+            var panel = new GameObject("보행 강세 검사");
+            try
+            {
+                var performer = root.GetComponent<RecordedNpcPerformance>();
+                var speech = root.GetComponent<CharacterSpeechPlayer>();
+                var motion = root.GetComponent<JohnParkLocomotion>();
+                var link = panel.AddComponent<DialogueServerLink>();
+                link.SetSpeaker(speech);
+                root.GetComponent<AudioSource>().mute = true;
+                yield return null;
+                motion.enabled = false;
+                Assert.That(performer.Play(link), Is.True);
+                speech.Pause();
+                var bones = root.GetComponentsInChildren<Transform>();
+                var hips = bones.Single(b => b.name == "Hips");
+                var feet = new[] { "Left_Foot", "Right_Foot" }
+                    .Select(name => bones.Single(b => b.name == name))
+                    .ToArray();
+                var chest = bones.Single(b => b.name == "Chest");
+                var hand = bones.Single(b => b.name == "Right_Hand");
+                foreach (float speed in new[] { 1f, 2f })
+                {
+                    performer.SampleMotion(1.95f);
+                    motion.SampleAt(.1f, speed);
+                    float relaxedHeight = hips.position.y;
+                    var targets = feet.Select(f => f.position).ToArray();
+                    var rotations = feet.Select(f => f.rotation).ToArray();
+                    var grip = chest.InverseTransformPoint(hand.position);
+                    performer.SampleMotion(1.32f);
+                    motion.SampleAt(.1f, speed);
+                    Assert.That(
+                        relaxedHeight - hips.position.y,
+                        Is.GreaterThan(.015f),
+                        "같은 발걸음에서도 실제 음성 강세에서 더 깊게 눌러야 한다."
+                    );
+                    for (int i = 0; i < feet.Length; i++)
+                    {
+                        Assert.That(
+                            Vector3.Distance(targets[i], feet[i].position),
+                            Is.LessThan(.001f)
+                        );
+                        Assert.That(
+                            Quaternion.Angle(rotations[i], feet[i].rotation),
+                            Is.LessThan(.1f)
+                        );
+                    }
+                    Assert.That(
+                        Vector3.Distance(grip, chest.InverseTransformPoint(hand.position)),
+                        Is.LessThan(.0005f)
+                    );
+                    var first = hips.position;
+                    performer.SampleMotion(1.32f);
+                    motion.SampleAt(.1f, speed);
+                    Assert.That(
+                        Vector3.Distance(first, hips.position),
+                        Is.LessThan(.0001f),
+                        "일시정지 중 같은 음성 시각을 다시 평가해도 누적 변형이 없어야 한다."
+                    );
+                }
+                performer.Stop(link);
+            }
+            finally
+            {
+                Object.Destroy(root);
+                Object.Destroy(panel);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator SilentMovementVariesAccentsAcrossStepCycles()
+        {
+            var root = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/Prefabs/Npc/LittleMung_JohnPark_Male.prefab"
+                )
+            );
+            try
+            {
+                yield return null;
+                var motion = root.GetComponent<JohnParkLocomotion>();
+                motion.enabled = false;
+                var animator = root.GetComponentInChildren<Animator>();
+                var rhythm = animator.runtimeAnimatorController.animationClips.Single();
+                var hips = root.GetComponentsInChildren<Transform>().Single(b => b.name == "Hips");
+                foreach (float speed in new[] { 1f, 2f })
+                {
+                    float cycle =
+                        speed == 1 ? motion.Settings.Walk.length : motion.Settings.Run.length;
+                    float minimum = float.PositiveInfinity,
+                        maximum = float.NegativeInfinity;
+                    for (int i = 0; i < 8; i++)
+                    {
+                        rhythm.SampleAnimation(animator.gameObject, 0);
+                        motion.SampleAt(.1f + i * cycle, speed);
+                        minimum = Mathf.Min(minimum, hips.position.y);
+                        maximum = Mathf.Max(maximum, hips.position.y);
+                    }
+                    Assert.That(
+                        maximum - minimum,
+                        Is.GreaterThan(.015f),
+                        "랩이 없어도 매 걸음 같은 시점에 같은 깊이로 반복하지 않아야 한다."
+                    );
+                }
+            }
+            finally
+            {
+                Object.Destroy(root);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator WalkingWhileRappingKeepsSpeechAndRhythmActive()
         {
             var root = Object.Instantiate(

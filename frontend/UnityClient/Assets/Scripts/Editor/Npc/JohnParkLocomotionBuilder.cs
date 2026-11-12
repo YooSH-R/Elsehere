@@ -39,7 +39,12 @@ namespace A305.EditorTools.Npc
         }
 
         [MenuItem("Tools/A305/Npc/John Park/Build Standing Rap Bounce")]
-        public static void BuildStandingRap()
+        public static void BuildStandingRap() => BuildRapGroove(true);
+
+        [MenuItem("Tools/A305/Npc/John Park/Connect Moving Rap Groove")]
+        public static void BuildMovingGroove() => BuildRapGroove(false);
+
+        private static void BuildRapGroove(bool rebuildStandingClip)
         {
             BuilderTools.ThrowIfPlaying();
             BuilderTools.EnsureFolder(Folder);
@@ -86,16 +91,34 @@ namespace A305.EditorTools.Npc
                 var paths = bones
                     .Select(b => AnimationUtility.CalculateTransformPath(b, animator.transform))
                     .ToArray();
-                definition.LowerBodyMotion = CreateClip(
-                    animator,
-                    rhythm,
-                    bones,
-                    paths,
-                    false,
-                    accents,
-                    duration
+                if (rebuildStandingClip)
+                {
+                    definition.LowerBodyMotion = CreateClip(
+                        animator,
+                        rhythm,
+                        bones,
+                        paths,
+                        false,
+                        accents,
+                        duration
+                    );
+                    EditorUtility.SetDirty(definition);
+                }
+                var movement = AssetDatabase.LoadAssetAtPath<JohnParkLocomotionSettings>(
+                    SettingsPath
                 );
-                EditorUtility.SetDirty(definition);
+                if (movement == null)
+                    throw new InvalidOperationException("John 하반신 이동 설정이 필요합니다.");
+                rhythm.SampleAnimation(animator.gameObject, 0);
+                var groove = new AnimationCurve();
+                int samples = Mathf.CeilToInt(duration * FramesPerSecond);
+                for (int sample = 0; sample <= samples; sample++)
+                {
+                    float time = Mathf.Min(sample / (float)FramesPerSecond, duration);
+                    groove.AddKey(time, RapPulse(accents, time));
+                }
+                movement.ConfigureGroove(groove, duration, bones[0].localPosition);
+                EditorUtility.SetDirty(movement);
                 AssetDatabase.SaveAssets();
             }
             finally

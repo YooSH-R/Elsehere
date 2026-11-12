@@ -23,6 +23,26 @@ namespace A305.Characters
         [SerializeField, Min(.01f)]
         private float blendSeconds = .15f;
 
+        [SerializeField]
+        private AnimationCurve groove;
+
+        [SerializeField]
+        private float grooveDuration;
+
+        [SerializeField]
+        private Vector3 grooveRestHipPosition;
+
+        public AnimationCurve Groove => groove;
+        public float GrooveDuration => grooveDuration;
+        public Vector3 GrooveRestHipPosition => grooveRestHipPosition;
+
+        public void ConfigureGroove(AnimationCurve accents, float duration, Vector3 restHipPosition)
+        {
+            groove = accents;
+            grooveDuration = duration;
+            grooveRestHipPosition = restHipPosition;
+        }
+
         public AnimationClip Walk => walk;
         public AnimationClip Run => run;
         public string[] BonePaths => bonePaths;

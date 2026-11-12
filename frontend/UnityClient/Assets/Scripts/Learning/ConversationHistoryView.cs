@@ -201,11 +201,32 @@ namespace A305.Learning
 
         private void Awake()
         {
-            WindowFrame.Attach(PanelRect);
+            // 한 쪽 줄 4개가 고정 높이라 원래 높이보다 줄이지 않는다.
+            WindowFrame.Attach(PanelRect, minimumWidth: .7f, minimumHeight: 1f);
+            PinForResizing(PanelRect);
             previousButton.onClick.AddListener(ShowPreviousPage);
             nextButton.onClick.AddListener(ShowNextPage);
             closeButton.onClick.AddListener(() => CloseRequested?.Invoke());
             Hide();
+        }
+
+        // 창 크기를 바꾸면 줄은 양옆으로 늘고, 탭·줄 오른쪽 버튼은 오른쪽에, 쪽 넘김·상태 줄은 아래에 붙는다.
+        private static void PinForResizing(RectTransform window)
+        {
+            WindowLayout.Pin(window, "Tabs", HorizontalPin.Right, VerticalPin.Top);
+            WindowLayout.Pin(window, "UnreadCount", HorizontalPin.Right, VerticalPin.Top);
+            WindowLayout.Pin(window, "Rows", HorizontalPin.Stretch, VerticalPin.Top);
+            WindowLayout.Pin(window, "Empty", HorizontalPin.Stretch, VerticalPin.Stretch);
+            WindowLayout.Pin(window, "Status", HorizontalPin.Stretch, VerticalPin.Bottom);
+            WindowLayout.Pin(window, "Pager", HorizontalPin.Center, VerticalPin.Bottom);
+            foreach (RectTransform row in window.Find("Rows"))
+            {
+                WindowLayout.Pin(row, HorizontalPin.Stretch, VerticalPin.Top);
+                WindowLayout.Pin(row, "Title", HorizontalPin.Stretch, VerticalPin.Top);
+                WindowLayout.Pin(row, "When", HorizontalPin.Stretch, VerticalPin.Top);
+                WindowLayout.Pin(row, "OpenButton", HorizontalPin.Right, VerticalPin.Top);
+                WindowLayout.Pin(row, "PracticeButton", HorizontalPin.Right, VerticalPin.Top);
+            }
         }
 
         // 창을 연 채 화면 크기를 바꿔도 화면 가운데에 맞춘다.

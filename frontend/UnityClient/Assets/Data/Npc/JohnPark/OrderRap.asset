@@ -34,3 +34,4 @@ MonoBehaviour:
   BeatsPerMinute: 121
   BeatsPerAnimationLoop: 4
   AnimationState: Rhythm
+  LowerBodyMotion: {fileID: 7400000, guid: 7cae325ee558e944283a7a8d47c531d2, type: 2}

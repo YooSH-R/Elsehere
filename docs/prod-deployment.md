@@ -47,7 +47,7 @@ Windows 빌드에서 운영 전달 작업으로 WebGL을 옮길 때도 [WebGL �
 
 `infra/compose/deploy.prod.env.example`의 필수 값을 준비합니다. DB 계정·비밀번호, AI 내부 토큰과 모니터링 비밀번호는 개발과 분리합니다. Google OAuth 클라이언트는 개발·운영이 공용으로 사용하되 각각의 환경 파일에 연결하고 두 환경의 콜백을 등록합니다. 클라이언트 Secret을 교체할 때는 양쪽 환경에 함께 반영합니다. 환경 파일은 `ubuntu` 소유·권한 `600`으로 유지하고, 모니터링의 `MONITORING_PASSWORD`·`OBSERVABILITY_WEB_LOG_CONFIG`도 서버 파일에 설정합니다. 실제 값은 소스·MR·Jira·CI 산출물에 넣지 않습니다.
 
-GPU 연결 주소는 운영 게이트웨이 `172.30.0.1`을 사용합니다. 같은 GPU 서비스를 호출하는 `STT_GPU_TOKEN`·`GUARD_GPU_TOKEN`·`TTS_GPU_TOKEN`은 개발과 같은 값을 서버에서 설정하며, 환경별 `AI_WORKER_TOKEN`과 구분합니다. 예제에는 토큰을 넣지 않습니다. GPU를 사용하지 않을 때는 `STT_CHAIN`·`STT_GPU_BASE_URL`·`GUARD_GPU_MODEL`·`GUARD_GPU_BASE_URL`·`TTS_GPU_BASE_URL`을 비워 기존 API·CPU 경로를 사용합니다. 고정 IP·터널·방화벽과 실제 GPU 경로 검증은 [GPU 워커 네트워크 운영](gpu-worker-network.md)을 따릅니다.
+GPU 연결 주소는 운영 게이트웨이 `172.30.0.1`을 사용합니다. 같은 GPU 서비스를 호출하는 `STT_GPU_TOKEN`·`GUARD_GPU_TOKEN`·`TTS_GPU_TOKEN`은 개발과 같은 값을 서버에서 설정하며, 환경별 `AI_WORKER_TOKEN`과 구분합니다. 예제에는 토큰을 넣지 않습니다. GPU를 사용하지 않을 때는 `STT_CHAIN`·`STT_GPU_BASE_URL`·`GUARD_GPU_MODEL`·`GUARD_GPU_BASE_URL`·`TTS_GPU_BASE_URL`을 비워 기존 API·CPU 경로를 사용합니다. 예비 GPU 항목(`STT_GPU_BACKUP_BASE_URL`·`TTS_GPU_BACKUP_BASE_URL`)은 개인정보 처리방침에 해당 GPU가 들어가기 전까지 비워 둡니다([예비 GPU 입구](gpu-worker-network.md#예비-gpu-입구)). 고정 IP·터널·방화벽과 실제 GPU 경로 검증은 [GPU 워커 네트워크 운영](gpu-worker-network.md)을 따릅니다.
 
 Google에는 `https://elsehere.kr/api/v1/auth/callback/google`을 승인된 리디렉션 URI로 등록합니다. `www.elsehere.kr`은 대표 도메인으로 리다이렉트하거나 별도 사용 시 해당 콜백도 등록합니다. [Nginx·HTTPS 운영 기준](server-operations.md#nginx-변경과-외부-접속-확인)의 기존 TLS 설정과 개발 경로를 보존합니다.
 

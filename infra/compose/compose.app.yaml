@@ -35,6 +35,8 @@ services:
       # Optional STT provider order (e.g. GPU server model first). Empty keeps the profile's STT and fallback.
       STT_CHAIN: ${STT_CHAIN:-}
       STT_GPU_BASE_URL: ${STT_GPU_BASE_URL:-}
+      # Optional backup GPU (provider gpu_backup in STT_CHAIN), used when the main GPU tunnel is down.
+      STT_GPU_BACKUP_BASE_URL: ${STT_GPU_BACKUP_BASE_URL:-}
       STT_GPU_TOKEN: ${STT_GPU_TOKEN:-}
       STT_FIRST_TIMEOUT_S: ${STT_FIRST_TIMEOUT_S:-8}
       TTS_CHUNK_BUDGET_S: ${TTS_CHUNK_BUDGET_S:-8}
@@ -47,6 +49,8 @@ services:
       JUDGE_GPU_MODEL: ${JUDGE_GPU_MODEL:-}
       # Optional speech synthesis on the GPU server first, then the local CPU Kokoro. Empty keeps CPU only.
       TTS_GPU_BASE_URL: ${TTS_GPU_BASE_URL:-}
+      # Optional backup GPU synthesis server tried after the main one, before CPU. Same token.
+      TTS_GPU_BACKUP_BASE_URL: ${TTS_GPU_BACKUP_BASE_URL:-}
       TTS_GPU_TOKEN: ${TTS_GPU_TOKEN:-}
       # TTS (Kokoro) synthesis threads; keep equal to the cpus limit below or synthesis slows down several times.
       KOKORO_THREADS: "2"

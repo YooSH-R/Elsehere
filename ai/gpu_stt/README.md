@@ -54,6 +54,7 @@ setsid nohup ~/stt/gpu_stt/supervise.sh > ~/stt/gpu_stt/supervise.log 2>&1 &
 
 - 감시 스크립트가 30초마다 STT 서버와 터널을 확인해 죽어 있으면 다시 띄우고, 30분마다 Jupyter API를 불러 JupyterHub 유휴 종료(24시간)를 막습니다.
 - 개발 터널은 기본으로 걸고 `~/stt/gpu_stt/dev_tunnel_disabled` 파일이 있으면 걸지 않습니다. 다른 GPU(팀 노트북 등)가 개발 입구를 맡을 때 이 파일을 만들고 이미 걸린 개발 터널(`pkill -u "$(id -un)" -f "ssh .*-R 172.19.0.1:18431:"`)을 끝냅니다. 같은 입구는 한 곳만 잡을 수 있습니다. 운영 터널은 `~/stt/gpu_stt/prod_tunnel_enabled` 파일이 있을 때만 겁니다. 배포 서버 담당자가 운영 입구 전달·방화벽·운영 워커 고정 주소를 준비한 뒤에 만듭니다([GPU 터널 네트워크](../../docs/gpu-worker-network.md)).
+- 주 GPU가 꺼졌을 때 워커가 다음으로 부르는 예비 입구 `172.19.0.1:18441`(운영 `172.30.0.1:18441`)은 `~/stt/gpu_stt/dev_backup_tunnel_enabled`(운영 `prod_backup_tunnel_enabled`) 파일이 있을 때만 겁니다. 예비를 맡는 GPU는 같은 환경의 주 터널을 끕니다([예비 GPU 입구](../../docs/gpu-worker-network.md#예비-gpu-입구)).
 - `server.py`를 바꾼 뒤에는 실행 중인 서버 프로세스(`pgrep -f gpu_stt/server.py`)를 끝내면 감시 스크립트가 30초 안에 새 코드로 다시 띄웁니다. 다시 뜨는 동안 워커는 다음 공급자로 넘깁니다.
 - JupyterHub 세션이 꺼지면 감시 스크립트와 서버도 같이 꺼집니다. Jupyter 서버가 다시 시작되면(자동 보안 업데이트 뒤 서비스 재시작 등) [`ai/gpu_autostart`](../gpu_autostart/README.md) 훅이 감시 스크립트를 자동으로 다시 띄웁니다. 서버 재부팅처럼 Jupyter 서버가 뜨지 않으면 JupyterHub에 로그인할 때 같은 훅이 띄웁니다.
 - SSAFY 서버를 쓸 수 없을 때는 [임대 GPU 서버](../gpu_rental/README.md)로 옮깁니다. 감시 스크립트는 `STT_RUNNER`로 서버 실행기를 바꿀 수 있습니다(기본 `~/stt/gpu5.sh`). 임대 서버에서는 `start.sh`가 `~/stt/run.sh`를 지정합니다.

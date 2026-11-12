@@ -121,9 +121,11 @@ namespace A305.EditorTools.Tutorial
                 string name in new[]
                 {
                     "dialogueToolsCaption",
+                    "suggestedSentenceCaption",
                     "guidedLineMissCaption",
                     "feedbackSectionsCaption",
                     "vocabularyCaption",
+                    "vocabularyButtonCaption",
                     "relationshipCaption",
                 }
             )
@@ -175,14 +177,15 @@ namespace A305.EditorTools.Tutorial
                     "dialogueToolsCaption",
                     "guidedLineCaption",
                     "suggestedWordsCaption",
+                    "suggestedSentenceCaption",
                     "guidedLineMissCaption",
                     "voiceLightCaption",
                     "dialogueEndCaption",
                     "feedbackSectionsCaption",
-                    "feedbackPagesCaption",
                     "feedbackCloseCaption",
                     "travelLockedMessage",
                     "vocabularyCaption",
+                    "vocabularyButtonCaption",
                 }
             )
             {

@@ -1,5 +1,15 @@
 package com.elsehere.admin.dto;
 
-/** 사용자 한 명의 AI 사용량. 개인정보 없이 사용자 ID와 게스트 여부만 보여 준다. */
+/**
+ * 사용자 한 명의 AI 사용량.
+ *
+ * @param name 화면에 보여 줄 이름({@link AdminUserName}). 가입자는 이메일이다
+ */
 public record AiUserUsage(
-    Long userId, boolean guest, long calls, long failed, long inputTokens, long outputTokens) {}
+    Long userId,
+    boolean guest,
+    String name,
+    long calls,
+    long failed,
+    long inputTokens,
+    long outputTokens) {}

@@ -147,6 +147,8 @@ class Settings:
     tts_chunk_budget_s: float = 2.5  # NPC 대답 한 조각의 합성이 이보다 늦으면 tts: false (턴 전체 음성에는 기다려 넣음)
     tts_full_budget_s: float = 6.0  # 마지막 음성 조각을 요청한 뒤 턴 전체 음성을 기다리는 상한
     tts_gpu_base_url: str = ""  # GPU 서버 합성 서버(ai/gpu_tts) 주소. 있으면 먼저 부르고 실패하면 CPU Kokoro. 비면 끔
+    # 주 GPU가 꺼졌을 때 부를 예비 GPU 합성 서버 주소 (예: 주 GPU는 노트북, 예비는 SSAFY GPU 서버). 토큰은 같다. 비면 끔
+    tts_gpu_backup_base_url: str = ""
     tts_gpu_token: str = ""
     # GPU 서버 합성 응답을 기다리는 상한. 대사 하나 0.4~0.6초지만 여러 사람이 동시에 말하면 줄이 서고(20명분 동시 60조각 최대 약 4~6초),
     # CPU 합성(dev 조각 하나 수 초~수십 초)으로 넘기는 편이 훨씬 늦어서 넉넉히 기다린다. 넘으면 CPU로
@@ -201,8 +203,9 @@ class Settings:
             if not 0.0 <= t_lo < t_hi <= 1.0:
                 raise RuntimeError(f"무례 판정 기준값은 0 ≤ T_LO < T_HI ≤ 1 이어야 합니다 (지금 {t_lo}, {t_hi})")
         tts_gpu_base_url = e.get("TTS_GPU_BASE_URL", "")
-        if tts_gpu_base_url and not e.get("TTS_GPU_TOKEN"):
-            raise RuntimeError("TTS_GPU_BASE_URL을 주면 GPU 서버 합성 토큰 TTS_GPU_TOKEN도 필요합니다")
+        tts_gpu_backup_base_url = e.get("TTS_GPU_BACKUP_BASE_URL", "")
+        if (tts_gpu_base_url or tts_gpu_backup_base_url) and not e.get("TTS_GPU_TOKEN"):
+            raise RuntimeError("TTS_GPU_BASE_URL·TTS_GPU_BACKUP_BASE_URL을 주면 GPU 서버 합성 토큰 TTS_GPU_TOKEN도 필요합니다")
         return cls(
             token=token,
             base_url=e.get("LLM_BASE_URL", PROFILES["providers"][main]["base_url"]).rstrip("/"),
@@ -245,6 +248,7 @@ class Settings:
             tts_chunk_budget_s=float(e.get("TTS_CHUNK_BUDGET_S", cls.tts_chunk_budget_s)),
             tts_full_budget_s=float(e.get("TTS_FULL_BUDGET_S", cls.tts_full_budget_s)),
             tts_gpu_base_url=tts_gpu_base_url,
+            tts_gpu_backup_base_url=tts_gpu_backup_base_url,
             tts_gpu_token=e.get("TTS_GPU_TOKEN", ""),
             tts_gpu_timeout_s=float(e.get("TTS_GPU_TIMEOUT_S", cls.tts_gpu_timeout_s)),
             tts_gpu_connect_timeout_s=float(e.get("TTS_GPU_CONNECT_TIMEOUT_S", cls.tts_gpu_connect_timeout_s)),

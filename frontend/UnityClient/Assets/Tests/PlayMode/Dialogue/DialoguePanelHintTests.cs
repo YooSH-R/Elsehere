@@ -141,6 +141,25 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator TutorialHint_LikeTheService_ShowsTheSentenceAndFillsOnlyWhenItIsClicked()
+        {
+            // 튜토리얼이 [힌트]를 누르면 바로 입력칸이 채워지는 기능처럼 가르치지 않도록 서비스와 같게 동작한다.
+            content.IsGuided = true;
+            view.Show(content);
+            view.HintRequested += () => content.HintText = HintSentence;
+            yield return null;
+
+            ClickCenterOf(FindButton("HintButton"));
+            yield return null;
+
+            Assert.That(Input.text, Is.Empty, "[힌트]는 추천 문장을 보여 주기만 합니다.");
+            Assert.That(FindChild("HintSentence").gameObject.activeInHierarchy, Is.True);
+            ClickCenterOf(FindButton("UseHintButton"));
+            yield return null;
+            Assert.That(Input.text, Is.EqualTo(HintSentence));
+        }
+
+        [UnityTest]
         public IEnumerator TutorialDraft_LateHintDoesNotReplaceTheSentenceBeingTyped()
         {
             content.IsGuided = true;

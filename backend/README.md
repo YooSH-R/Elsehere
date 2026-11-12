@@ -41,7 +41,7 @@ com.elsehere
 | 도메인 | 테이블 |
 | --- | --- |
 | `auth` | 없음 (로그인·가입·로그아웃 처리, 개발용 로그인, 세션 기반 보안 설정 `auth.config.SecurityConfig`) |
-| `bootstrap` | 없음 (여러 기능의 상태를 모아 접속 직후 첫 화면을 정하는 BOOT-01) |
+| `bootstrap` | 없음 (여러 기능의 상태를 모아 접속 직후 첫 화면을 정하는 BOOT-01. 팀 기기 쿠키 `elsehere_team=1`이 있으면 로그인한 계정을 팀 계정(`users.team_account`)으로 표시해 [어드민 이용 현황](../docs/admin.md#이용-현황)에서 뺀다) |
 | `ai` | ai_requests (AI 호출 기록). AI 워커 호출과 AI 이용 상태(AI-01). 다른 패키지는 워커를 AI 창구 `AiGateway`(`ai.service`)로만 부르며, 창구가 호출마다 기록기(`AiRequestRecorder`)로 성공·실패를 기록한다. `ai.client`는 워커 연결(`AiWorkerClient`)과 요청·응답 타입만 두고 DB를 다루지 않는다. 워커 클라이언트와 기록기를 창구 말고 쓰는 곳이 생기면 `PackageDependencyTest`가 실패한다. 사용량은 [어드민 AI 사용량](../docs/admin.md#ai-사용량)에서 본다 |
 | `user` | users, user_consents (가입 약관과 AI 개선 선택 동의) |
 | `conversation` | conversations, turns, training_recordings (AI 개선에 동의한 사용자의 녹음). 대화 기록: 엔티티·리포지토리, NPC 음성·학습용 녹음 저장 |

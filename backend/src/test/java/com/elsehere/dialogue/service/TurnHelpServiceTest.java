@@ -176,6 +176,28 @@ class TurnHelpServiceTest {
   }
 
   @Test
+  @DisplayName("추천 문장에 그대로 들어 있는 추천 단어는 잘라 온 말이라 빼고 보낸다 (S15P31A305-855)")
+  void suggestWords_dropsWordsTakenFromTheRecommendedSentence() {
+    given(aiGateway.suggest(any(), any(), anyList(), anyString(), anyInt()))
+        .willReturn(
+            new SuggestResult(
+                List.of("I’m sorry — 미안해요", "apologize — 사과하다", "speak — 말하다", "Speaking To"),
+                List.of(usage("suggest"))));
+    given(aiGateway.hint(any(), any(), anyList(), anyString(), anyInt()))
+        .willReturn(
+            new HintResult(
+                List.of(new HintResult.Phrase("I'm sorry for speaking to you.", "말을 걸어서 미안해요.")),
+                List.of(),
+                List.of(usage("hint"))));
+
+    SuggestWordsResponse response =
+        turnHelpService.suggestWords(userId, npcTurn.getId(), UUID.randomUUID());
+
+    assertThat(response.hintText()).isEqualTo("I'm sorry for speaking to you.");
+    assertThat(response.suggestWords()).containsExactly("apologize — 사과하다", "speak — 말하다");
+  }
+
+  @Test
   @DisplayName("힌트를 부르다 워커에 닿지 못하면 오류를 그대로 알린다")
   void hint_workerCallFails_throws() {
     given(aiGateway.hint(any(), any(), anyList(), anyString(), anyInt()))
@@ -365,7 +387,7 @@ class TurnHelpServiceTest {
     assertThat(response)
         .isEqualTo(
             new SuggestWordsResponse(
-                npcTurn.getId(), List.of("for here", "to go"), "For here, please.", "여기서 먹을게요."));
+                npcTurn.getId(), List.of("to go"), "For here, please.", "여기서 먹을게요."));
     ArgumentCaptor<List<WorkerLine>> history = ArgumentCaptor.forClass(List.class);
     then(aiGateway)
         .should()

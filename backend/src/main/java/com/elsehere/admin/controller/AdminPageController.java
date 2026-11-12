@@ -67,14 +67,24 @@ public class AdminPageController {
     return "admin/ai-usage";
   }
 
-  /** 이용 현황. DB에 남은 활동 흔적을 최근 며칠(1~90일, 기본 7일) 동안 묶고 활동한 사용자 목록을 보여 준다. 사용자는 ID만 보여 준다. */
+  /**
+   * 이용 현황. DB에 남은 활동 흔적을 최근 며칠(1~90일, 기본 7일) 동안 묶고 활동한 사용자 목록을 보여 준다. 가입자는 이메일로, 게스트·탈퇴한 사용자는 사용자
+   * ID로 부른다. 팀 계정은 빼고 센다.
+   */
   @GetMapping("/admin/usage")
   public String usage(@RequestParam(defaultValue = "7") int days, Model model) {
     model.addAttribute("report", adminUsageService.report(days));
     return "admin/usage";
   }
 
-  /** 사용자 한 명의 이용 현황. 전체 화면의 사용자 목록이나 사용자 ID 입력칸에서 들어온다. */
+  /** 사용자 찾기. 이메일이나 사용자 ID로 찾은 사용자의 사용자별 화면으로 보낸다. */
+  @GetMapping("/admin/usage/find")
+  public String findUser(@RequestParam String user, @RequestParam(defaultValue = "7") int days) {
+    long userId = adminUsageService.findUserId(user);
+    return "redirect:/admin/usage/user?userId=" + userId + "&days=" + days;
+  }
+
+  /** 사용자 한 명의 이용 현황. 전체 화면의 사용자 목록이나 사용자 찾기에서 들어온다. */
   @GetMapping("/admin/usage/user")
   public String userUsage(
       @RequestParam long userId, @RequestParam(defaultValue = "7") int days, Model model) {

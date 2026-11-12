@@ -526,6 +526,91 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task RecordedOpening_DoesNotShowLoadingGreetingOrResumedHistory()
+        {
+            var rap = DialogueLine.FromNpc("Saved rap", "저장된 랩", speech: new byte[] { 1 });
+            var john = new ServerConversation(
+                "TOWN_JOHN_PARK",
+                "John",
+                api,
+                false,
+                recordedOpening: rap
+            );
+            api.PendingStart = new TaskCompletionSource<ConversationStart>();
+            Task starting = john.StartAsync();
+            Assert.That(john.Lines, Is.EqualTo(new[] { rap }));
+            Assert.That(john.Waiting, Is.EqualTo(DialogueWait.None));
+            Assert.That(john.StatusMessage, Is.Null);
+            api.PendingStart.SetResult(api.StartResponse);
+            await starting;
+            Assert.That(john.Lines, Is.EqualTo(new[] { rap }));
+            Assert.That(john.LastNpcTurn, Is.Null);
+            Assert.That(api.Calls, Is.EqualTo(new[] { "Start" }));
+            for (int i = 0; i < 5; i++)
+                Assert.That(john.ShowRecordedReply(null, rap), Is.True);
+            Assert.That(john.Lines, Has.Count.EqualTo(6));
+            await john.SendAsync("How are you?");
+            Assert.That(api.Turns, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public void RecordedOpening_LocalReplayKeepsEveryPerformanceInHistory()
+        {
+            var rap = DialogueLine.FromNpc("Saved rap", "저장된 랩", speech: new byte[] { 1 });
+            var script = new DialogueScript(
+                "John",
+                DialogueLine.FromNpc("Old greeting", "인사"),
+                Array.Empty<GuidedTurn>(),
+                Array.Empty<KeywordReply>(),
+                rap,
+                null
+            );
+            var john = new DialogueConversation("TOWN_JOHN_PARK", script, recordedOpening: rap);
+            Assert.That(john.Lines, Is.EqualTo(new[] { rap }));
+            for (int i = 0; i < 5; i++)
+                john.ShowRecordedReply(null, rap);
+            Assert.That(john.Lines, Has.Count.EqualTo(6));
+        }
+
+        [Test]
+        public async Task RecordedOpening_ResumesOnlySessionWithoutOldLinesOrSpeech()
+        {
+            var rap = DialogueLine.FromNpc("Saved rap", "저장된 랩", speech: new byte[] { 1 });
+            var john = new ServerConversation(
+                "TOWN_JOHN_PARK",
+                "John",
+                api,
+                false,
+                recordedOpening: rap
+            );
+            api.StartErrors.Enqueue(
+                new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중")
+            );
+            api.Active = new ActiveConversation
+            {
+                ConversationId = 41,
+                Npc = new NpcSummary { NpcCode = "TOWN_JOHN_PARK", Name = "John" },
+                Turns = new List<ActiveTurn>
+                {
+                    new ActiveTurn
+                    {
+                        TurnId = 1,
+                        Speaker = "NPC",
+                        Text = "Old greeting",
+                    },
+                },
+            };
+            int spoke = 0;
+            john.NpcSpoke += _ => spoke++;
+            await john.StartAsync();
+            Assert.That(john.ConversationId, Is.EqualTo(41));
+            Assert.That(john.Lines, Is.EqualTo(new[] { rap }));
+            Assert.That(spoke, Is.Zero);
+            Assert.That(api.Ends, Is.Empty);
+            Assert.That(john.CanSend, Is.True);
+        }
+
+        [Test]
         public async Task PerformanceIntent_UsesOnlyClassifierAndSavedGuideNeedsNoMeaningRequest()
         {
             var john = new ServerConversation("TOWN_JOHN_PARK", "John", api, false);

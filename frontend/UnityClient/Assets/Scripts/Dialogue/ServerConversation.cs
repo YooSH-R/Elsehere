@@ -81,6 +81,7 @@ namespace A305.Dialogue
 
         // 대답을 보낸 횟수. 조각 음성이 어느 대답의 것인지 가린다.
         private int replyCount;
+        private readonly bool hasRecordedOpening;
 
         /// <param name="npcName">서버 응답을 받기 전에 보여 줄 이름</param>
         /// <param name="canTalk">음성 처리에 동의해 [말하기]를 쓸 수 있는지</param>
@@ -101,7 +102,8 @@ namespace A305.Dialogue
             NpcTravelContext npcTravelContext = null,
             string practiceScenarioId = null,
             Func<string, Task<ConversationStart>> practiceStart = null,
-            string placeCode = null
+            string placeCode = null,
+            DialogueLine recordedOpening = null
         )
         {
             NpcCode = npcCode;
@@ -117,6 +119,12 @@ namespace A305.Dialogue
             this.npcTravelContext = npcTravelContext?.Copy();
             this.placeCode = placeCode;
             this.followUps = followUps ?? FollowUpStore.Shared;
+            hasRecordedOpening = recordedOpening?.Speech != null && !IsSeparatePractice;
+            if (hasRecordedOpening)
+            {
+                lines.Add(recordedOpening);
+                LastNpcLine = recordedOpening;
+            }
         }
 
         /// <summary>화면을 다시 그려야 할 때 알린다.</summary>
@@ -296,7 +304,7 @@ namespace A305.Dialogue
             }
 
             await RunAsync(
-                "대화를 시작하고 있어요...",
+                hasRecordedOpening ? null : "대화를 시작하고 있어요...",
                 async () =>
                 {
                     try
@@ -309,9 +317,9 @@ namespace A305.Dialogue
                     }
                 },
                 StartAsync,
-                DialogueWait.Opening
+                hasRecordedOpening ? DialogueWait.None : DialogueWait.Opening
             );
-            if (!endRequested && !IsSeparatePractice)
+            if (!endRequested && !IsSeparatePractice && !hasRecordedOpening)
             {
                 _ = SuggestWordsAsync();
             }
@@ -772,7 +780,8 @@ namespace A305.Dialogue
                 followUps.Remove(delivered, NpcCode);
             }
 
-            AddNpcTurn(start.OpeningTurn, spokenInChunks, missingSpeech);
+            if (!hasRecordedOpening)
+                AddNpcTurn(start.OpeningTurn, spokenInChunks, missingSpeech);
         }
 
         // 새로고침 등으로 끝내지 못한 대화가 남아 있다. 같은 NPC와의 대화면 이어서 해 새 대화를 만들지 않고(게스트 대화 횟수를 다시 쓰지 않음),
@@ -829,6 +838,11 @@ namespace A305.Dialogue
         // 지우고 저장된 첫 턴으로 다시 그린다. 복습·장소 연습은 스트림 없이 한 번에 받는다.
         private async Task BeginStreamingAsync(string requestId)
         {
+            if (hasRecordedOpening)
+            {
+                await BeginAsync(await RequestStartAsync(requestId, null), false, false);
+                return;
+            }
             var opening = new StreamedReply(this, null, ++replyCount);
             streamedReply = opening;
             ConversationStart start;
@@ -872,6 +886,10 @@ namespace A305.Dialogue
             {
                 NpcName = active.Npc.Name;
             }
+
+            // 저장 공연은 다시 열 때마다 재생하고 지난 대사·음성은 화면에 불러오지 않는다.
+            if (hasRecordedOpening)
+                return;
 
             List<ActiveTurn> turns = active.Turns ?? new List<ActiveTurn>();
             int lastNpcIndex = turns.FindLastIndex(turn => turn.Speaker == NpcSpeaker);

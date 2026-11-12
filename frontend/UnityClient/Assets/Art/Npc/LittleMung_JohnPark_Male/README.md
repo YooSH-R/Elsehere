@@ -52,3 +52,13 @@
 `Validate Face And Capture`는 기본 얼굴 제작 단계의 12가지 확인 자세(중립 포함), 13채널, 얼굴 외 정점·가중치 보존과 오른손·앰프 형태를 확인합니다. 최종 프리팹은 추가 감정 변형까지 총 28채널을 사용하며, 공통 감정 16종은 `NpcJohnParkEmotionSandbox`, 대화 연결은 `NpcJohnParkDialogueSandbox`에서 확인합니다. 일반 대화의 검수용 음성은 기존 카페 여성 음성을 재사용하므로 실제 서비스의 남성 목소리와 구분합니다.
 
 저장 랩은 남성 `am_onyx` 1.5배 음성, 121BPM, 약 8.1초입니다. 좌우 입꼬리가 같은 `warm_smile`과 음소 시간표를 사용하고 왼팔·몸의 리듬을 같은 재생 시각에 맞춥니다. 명확한 요청에는 저장 안내를 재생하고 John 전용 [랩 다시 듣기] 버튼을 강조합니다. 버튼으로 랩 시작·중단·반복이 가능하며 공용 [다시 듣기]는 마지막 안내나 대사를 재생합니다. 안내 원문·번역·음성·발음·감정은 `OrderRap.asset`과 `ReplayGuide.bytes`에 연결되어 재생 때 AI를 호출하지 않습니다. 사용 방법은 [말하기 표정 문서](../../../../../../docs/unity/npc-speaking-emotions.md#john의-저장-안내와-랩-버튼)를 따릅니다.
+
+## 앰프를 든 하반신 걷기·달리기
+
+`Locomotion/JohnLowerBodyWalk.anim`, `JohnLowerBodyRun.anim`은 전용 Generic 골격용 제자리 반복 클립입니다. 골반 위치와 양다리 회전만 저작하며, 원본 FBX·메시·본 길이·가중치·상반신 회전·얼굴 변형은 유지합니다. 발은 지지 구간에 수평으로 두고 앞으로 굽히는 무릎 IK로 발 디딤과 스윙을 만듭니다.
+
+기존 John 프리팹에 연결한 `JohnParkLocomotion`은 공연의 오디오 기반 자세 평가 뒤 하반신만 합성합니다. 따라서 랩이 Animator 시간을 고정한 동안에도 다리가 움직이고, 오른손·앰프와 표정·립싱크는 기존 제어를 유지합니다. 정지하면 하반신 합성을 풀어 원래 리듬 자세로 돌아갑니다.
+
+이동 호출부는 기존 `CharacterAnimationDriver.SetLocomotion(speed, true, 0)`을 재사용합니다. 기본 예시는 정지 `0`, 걷기 `1`, 달리기 `2`이며 조절값·클립 참조는 `Assets/Data/Npc/JohnPark/Locomotion.asset`에 있습니다. 중간 속도는 두 클립을 섞고 전환 시 위상을 이어갑니다. 실제 경로 이동·회전·지형 접지는 이동 시스템에서 처리해야 합니다. 클립 자체에 루트 이동이나 새 출퇴근 일과는 없으며, 식당 배치는 계속 고정됩니다.
+
+**Tools → A305 → Npc → John Park → Build Lower Body Locomotion**은 전용 클립과 기존 프리팹 연결을 갱신합니다. 이 클립의 수작업 편집분은 갱신 전 보관합니다. 이미 있는 검수 씬의 배치와 속도 설정은 덮어쓰지 않습니다. `Assets/Scenes/Sandbox/NpcJohnParkLocomotionSandbox.unity`를 열고 Play하면 화면 왼쪽부터 달리기·걷기·정지를 비교합니다. **Validate Lower Body And Capture**는 실제 하반신 이동량·상반신 보존·발바닥 높이·반복 경계와 정면·사선 렌더를 검사합니다. 출력은 로컬 `artifacts/JohnLocomotion/Visual`에 저장합니다. 계단·경사·실제 보행 경로에서의 검증과는 구분합니다.

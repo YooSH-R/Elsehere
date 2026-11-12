@@ -8,7 +8,7 @@ using UnityEngine.UI;
 namespace A305.Onboarding.Tests
 {
     /// <summary>
-    /// 휴대폰 [내 정보]는 닉네임 변경까지만 두고, 시점 감도부터 로그아웃까지는 [설정] 창에 있다.
+    /// 휴대폰 [내 정보]는 닉네임 변경과 로그아웃·회원 탈퇴를 두고, 시점 감도부터 선택 동의까지는 [설정] 창에 있다.
     /// 설정 창의 효과음 [켜기]·[끄기]는 배경 소리 설정을 바꾼다.
     /// </summary>
     public class SettingsWindowTests
@@ -24,8 +24,14 @@ namespace A305.Onboarding.Tests
             "ConversationLevel",
             "ConsentsLabel",
             "Consents",
-            "Buttons/WithdrawButton",
-            "Buttons/LogoutButton",
+        };
+
+        private static readonly string[] AccountParts =
+        {
+            "Window/Buttons/WithdrawButton",
+            "Window/Buttons/LogoutButton",
+            "LogoutDialog",
+            "WithdrawDialog",
         };
 
         private GameObject hud;
@@ -51,22 +57,29 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
-        public void MyPage_KeepsOnlyTheProfileAndNicknameChange()
+        public void MyPage_KeepsTheProfileNicknameChangeAndAccountButtons()
         {
-            Transform window = hud.transform.Find("MyPage/Window");
+            Transform myPage = hud.transform.Find("MyPage");
+            Transform window = myPage.Find("Window");
 
             Assert.That(window.Find("Profile"), Is.Not.Null);
             Assert.That(window.Find("NicknameRow/NicknameButton"), Is.Not.Null);
+            foreach (string part in AccountParts)
+                Assert.That(myPage.Find(part), Is.Not.Null, part);
+            Assert.That(
+                window.Find("Buttons").GetSiblingIndex(),
+                Is.GreaterThan(window.Find("NicknameRow").GetSiblingIndex()),
+                "버튼 줄은 닉네임 변경 아래에 있습니다."
+            );
             foreach (string row in SettingRows)
                 Assert.That(window.Find(row), Is.Null, row);
-            Assert.That(hud.transform.Find("MyPage/LogoutDialog"), Is.Null);
-            Assert.That(hud.transform.Find("MyPage/WithdrawDialog"), Is.Null);
         }
 
         [Test]
-        public void Settings_HoldsEverythingFromLookSensitivityToLogout()
+        public void Settings_HoldsEverythingFromLookSensitivityToConsents()
         {
-            Transform window = hud.transform.Find("Settings/Window");
+            Transform settings = hud.transform.Find("Settings");
+            Transform window = settings.Find("Window");
 
             Assert.That(window, Is.Not.Null);
             Assert.That(window.Find("Profile"), Is.Null);
@@ -76,13 +89,11 @@ namespace A305.Onboarding.Tests
             {
                 Transform found = window.Find(row);
                 Assert.That(found, Is.Not.Null, row);
-                // 버튼 줄 안의 두 버튼은 같은 줄이라 줄 순서만 본다.
-                Transform line = found.parent == window ? found : found.parent;
-                Assert.That(line.GetSiblingIndex(), Is.GreaterThanOrEqualTo(previous), row);
-                previous = line.GetSiblingIndex();
+                Assert.That(found.GetSiblingIndex(), Is.GreaterThan(previous), row);
+                previous = found.GetSiblingIndex();
             }
-            Assert.That(hud.transform.Find("Settings/LogoutDialog"), Is.Not.Null);
-            Assert.That(hud.transform.Find("Settings/WithdrawDialog"), Is.Not.Null);
+            foreach (string part in AccountParts)
+                Assert.That(settings.Find(part), Is.Null, part);
         }
 
         [Test]

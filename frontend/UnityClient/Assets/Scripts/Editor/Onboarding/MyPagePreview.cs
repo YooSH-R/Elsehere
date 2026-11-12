@@ -56,6 +56,8 @@ namespace A305.EditorTools.Onboarding
             canvas.planeDistance = .5f;
 
             Transform profile = Show(root, "MyPage");
+            profile.Find("LogoutDialog").gameObject.SetActive(false);
+            profile.Find("WithdrawDialog").gameObject.SetActive(false);
             profile.Find("Window/Profile").GetComponent<TMPro.TMP_Text>().text =
                 MyPageText.ProfileForDisplay(
                     new OnboardingUser
@@ -69,8 +71,6 @@ namespace A305.EditorTools.Onboarding
             RenderAll(camera, root, profile, output, "my-page");
 
             Transform settings = Show(root, "Settings");
-            settings.Find("LogoutDialog").gameObject.SetActive(false);
-            settings.Find("WithdrawDialog").gameObject.SetActive(false);
             settings.Find("Window/Status").GetComponent<TMPro.TMP_Text>().text = "";
             Transform consents = settings.Find("Window/Consents");
             ConsentRowView template = consents

@@ -2,7 +2,7 @@
 
 접속 직후의 입구 화면(화면 01~05)입니다. 로그인, 가입 정보 입력, 배울 언어 선택, 레벨 테스트, NPC 대화 난이도 설정을 거쳐 튜토리얼(`HomeScene`)로 보내고, 초기 설정을 마친 사용자는 마지막 장소(없으면 마을 `TownScene`)로 보냅니다. 게스트도 캐릭터를 고른 뒤 레벨테스트 안내를 먼저 봅니다. [시작하기]는 테스트 API를 호출하지 않고 로그인 안내 모달을 띄웁니다. [Google로 로그인]은 현재 게스트 세션의 로그인 경로로 연결하고, [건너뛰기]·[게스트로 계속하기]는 테스트 건너뛰기 기록을 생성하지 않고 원래 목적지인 튜토리얼·마지막 장소로 이어집니다. 모달의 ×는 소개 화면으로 돌아갑니다. 게스트 세션이 남은 채 다시 접속한 게스트에게는 게임에 들어가기 전에 가입과 게스트로 계속하기를 고르게 하고, 게스트가 Google로 가입하면 게스트 때 기록을 그대로 이어 게임으로 돌아갑니다. 배포용 씬 `EntryScene`이 Scene List의 첫 씬입니다.
 
-공간 화면에서 내 정보를 보고 닉네임을 바꾸는 내 정보 창과, 시점 감도·NPC 말 빠르기·효과음·대화 난이도·선택 동의를 조절하고 로그아웃·회원 탈퇴하는 설정 창도 이 모듈이 맡습니다. 두 창은 휴대폰의 [내 정보]·[설정] 앱으로 따로 엽니다. 로그아웃하면 `EntryScene`의 로그인 화면으로 돌아옵니다. 창에 줄을 더하면 `MyPagePreview.Capture`(`Tools/A305/Onboarding/Capture My Page`)로 실제 HUD 프리팹의 내 정보 창과 설정 창을 서버 호출 없이 캡처해 겹침·잘림을 확인합니다. 내 정보 창과 설정 창의 구성과 휴대폰 [설정] 앱 연결만 다시 맞출 때는 `Tools/A305/Onboarding/Apply Settings Window`를 씁니다. 이미 만든 HUD에 NPC 말 빠르기 줄만 덧붙일 때는 `Tools/A305/UI/Add NPC Speech Speed Setting`, 대화 난이도 줄만 덧붙일 때는 `Tools/A305/UI/Add Conversation Level Setting`을 씁니다.
+공간 화면에서 내 정보를 보고 닉네임을 바꾸거나 로그아웃·회원 탈퇴하는 내 정보 창과, 시점 감도·NPC 말 빠르기·효과음·대화 난이도·선택 동의를 조절하는 설정 창도 이 모듈이 맡습니다. 두 창은 휴대폰의 [내 정보]·[설정] 앱으로 따로 엽니다. 로그아웃하면 `EntryScene`의 로그인 화면으로 돌아옵니다. 창에 줄을 더하면 `MyPagePreview.Capture`(`Tools/A305/Onboarding/Capture My Page`)로 실제 HUD 프리팹의 내 정보 창과 설정 창을 서버 호출 없이 캡처해 겹침·잘림을 확인합니다. 내 정보 창과 설정 창의 구성과 휴대폰 [설정] 앱 연결만 다시 맞출 때는 `Tools/A305/Onboarding/Apply Settings Window`를 씁니다. 이미 만든 HUD에 NPC 말 빠르기 줄만 덧붙일 때는 `Tools/A305/UI/Add NPC Speech Speed Setting`, 대화 난이도 줄만 덧붙일 때는 `Tools/A305/UI/Add Conversation Level Setting`을 씁니다.
 
 서버 연동이 있는 게임 전용 기능입니다. 진행 판단은 일반 C# 클래스에 두고, 패널은 입력 전달과 표시만 맡습니다.
 
@@ -22,8 +22,8 @@
 | `GuestPanelText` | 게스트 캐릭터 선택 화면의 닉네임·대화 횟수 안내. 0(기본, 제한 없음)이면 "게스트도 NPC와 마음껏 대화할 수 있어요", 1 이상이면 횟수, 읽기 전이거나 읽지 못하면 닉네임 안내만 보입니다. Unity 객체 없이 테스트합니다. |
 | `AvatarButtons` | 가입·게스트 화면의 [여성]·[남성] 중 고른 버튼을 강조색으로 칠하고 체크 배지(`Check`)를 켭니다. |
 | `LogoutFlow` | 로그아웃(AUTH-05). 이미 로그인이 풀렸어도 입구 화면으로 보냅니다. Unity 객체 없이 테스트합니다. |
-| `MyPageView` | 휴대폰의 [내 정보]와 내 정보 창(닉네임·캐릭터·학습 언어, 닉네임 변경). 단어장 HUD 프리팹(`Prefabs/Learning/LearningHud`)에 붙어 있어 장소 씬마다 배치하지 않습니다. |
-| `SettingsView` | 휴대폰의 [설정]과 설정 창. 시점 감도·NPC 말 빠르기·효과음 [켜기]·[끄기](`BackgroundSoundPreference`)는 이 기기에, 대화 난이도·선택 동의는 서버에 저장하며, 로그아웃·회원 탈퇴 확인 창을 가집니다. 같은 HUD 프리팹에 붙어 있습니다. |
+| `MyPageView` | 휴대폰의 [내 정보]와 내 정보 창(닉네임·캐릭터·학습 언어, 닉네임 변경, 로그아웃·회원 탈퇴와 확인 창). 단어장 HUD 프리팹(`Prefabs/Learning/LearningHud`)에 붙어 있어 장소 씬마다 배치하지 않습니다. |
+| `SettingsView` | 휴대폰의 [설정]과 설정 창. 시점 감도·NPC 말 빠르기·효과음 [켜기]·[끄기](`BackgroundSoundPreference`)는 이 기기에, 대화 난이도·선택 동의는 서버에 저장합니다. 같은 HUD 프리팹에 붙어 있습니다. |
 | `SessionExpiredView` | 장소 화면에서 서버가 로그인이 풀렸다고 알리면(`ApiSession.Expired`) 다른 모든 창(수첩 포함) 위에 "접속이 끊겼어요" 안내를 띄우고 이동을 막습니다. [처음 화면으로]는 `EntryScene`의 로그인 화면으로 돌아갑니다. HUD 프리팹의 `SessionExpired`(정렬 2000의 자체 캔버스)에 있어 장소 씬마다 배치하지 않습니다. |
 | `OnboardingScreen` | 패널 입력을 `OnboardingFlow`에 전달하고 결과 화면을 보여 줍니다. 튜토리얼·마을 단계가 되면 `SpaceTravelCurtain`으로 화면을 덮고 "마을을 불러오는 중이에요."와 진행 막대를 보이며 장소 씬을 겹쳐 불러옵니다(한 번만). 휴대폰에서는 장소 씬을 불러오는 데 몇 초씩 걸려, 한 번에 바꾸면 그동안 입구 화면이 멈춘 채 보이기 때문입니다. |
 | `LoginPanelView` | 화면 01 로그인 메인. 확정 시안(e1 다듬은 A안)대로 마을 배경 위 왼쪽을 크림색 그라데이션으로 덮고, 왼쪽 열에 '현지에서 살며 배우는 언어' 칩·ElseHere 로고(남색 Else, 코랄 Here)·소개 문장, 같은 폭의 [Google로 계속하기]·[게스트로 둘러보기], 밑줄 친 이용약관 · 개인정보 처리방침을 둡니다. 칩은 남색, [게스트로 둘러보기]는 코랄로 로고 색에 맞추고, 소개 문장과 약관 링크는 로고의 남색을 옅게 한 색입니다. 오래 머물며 여러 언어로 넓힐 서비스이므로 칩·소개 문장에 '첫날'이나 특정 언어 이름을 쓰지 않습니다. 칩·로고·버튼은 렌더링한 그림(`Art/UI/Login`)이고, 소개 문장과 약관 링크는 글자입니다. 마을 배경(`LoginTown`)은 **Tools → A305 → Onboarding → Capture Login Town**(`LoginTownCapture`)이 지금 마을(`TownScene`)에서 낮 11시로 찍습니다. 마을 모습이 바뀌면 다시 찍습니다. **Tools → A305 → Onboarding → Apply Login Screen**(`LoginScreenBuilder`)이 만들며, 테마 Builder(`UiThemeBuilder`)도 입구 화면을 칠한 뒤 이 Builder를 부릅니다. 개발용 로그인은 Editor·개발 빌드에서만 약관 링크 아래에 보입니다. |

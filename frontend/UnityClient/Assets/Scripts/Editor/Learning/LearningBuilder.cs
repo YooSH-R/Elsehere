@@ -129,46 +129,64 @@ namespace A305.EditorTools.Learning
         };
 
         /// <summary>
-        /// 내 정보 창을 내 정보(닉네임 변경까지)와 설정 창으로 나눈다(S15P31A305-861). 이미 마무리한 디자인을 지키려고
+        /// 내 정보 창을 내 정보(닉네임 변경, 로그아웃·회원 탈퇴)와 설정 창으로 나눈다(S15P31A305-861). 이미 마무리한 디자인을 지키려고
         /// 설정 창은 내 정보 창을 복제해 만들고, 두 창에서 서로의 줄만 지운 뒤 휴대폰 [설정] 버튼과 연결한다.
         /// 이미 나눈 HUD에서는 연결만 다시 맞춘다. HUD의 다른 구성은 건드리지 않는다.
         /// </summary>
         public static void SplitSettings(GameObject hud)
         {
             Transform myPage = hud.transform.Find("MyPage");
-            if (hud.transform.Find("Settings") == null)
+            Transform profile = myPage.Find("Window");
+            Transform settings = hud.transform.Find("Settings");
+            if (settings == null)
             {
-                GameObject settings = UnityEngine.Object.Instantiate(
-                    myPage.gameObject,
-                    hud.transform
-                );
+                settings = UnityEngine
+                    .Object.Instantiate(myPage.gameObject, hud.transform)
+                    .transform;
                 settings.name = "Settings";
-                settings.transform.SetSiblingIndex(myPage.GetSiblingIndex() + 1);
-                Transform window = settings.transform.Find("Window");
+                settings.SetSiblingIndex(myPage.GetSiblingIndex() + 1);
+                Transform window = settings.Find("Window");
                 DestroyChild(window, "Profile");
                 DestroyChild(window, "NicknameRow");
                 window.Find("Title").GetComponent<TMP_Text>().text = "설정";
                 window.Find("Status").GetComponent<TMP_Text>().text = "";
+                foreach (string row in SettingRows)
+                    DestroyChild(profile, row);
             }
-            Transform profile = myPage.Find("Window");
-            foreach (string row in SettingRows)
-                DestroyChild(profile, row);
-            DestroyChild(myPage, "LogoutDialog");
-            DestroyChild(myPage, "WithdrawDialog");
-            // 닫기를 창 오른쪽 위로 옮긴 뒤라면 버튼 줄에는 설정으로 옮긴 버튼만 남아 있다.
-            if (profile.Find("CloseButton") != null)
-                DestroyChild(profile, "Buttons");
-            else
-            {
-                DestroyChild(profile, "Buttons/WithdrawButton");
-                DestroyChild(profile, "Buttons/LogoutButton");
-            }
+            // 로그아웃·회원 탈퇴와 확인 창은 내 정보 창에 둔다. 설정 창에 있으면 내 정보 창으로 옮긴다.
+            Transform settingsWindow = settings.Find("Window");
+            // 내 정보 창에 버튼 줄이 없으면 디자인을 마친 줄을 통째로 옮긴다.
+            if (profile.Find("Buttons") == null)
+                MoveOrDestroy(settingsWindow, "Buttons", profile, null);
+            MoveOrDestroy(settingsWindow, "Buttons/WithdrawButton", profile, "Buttons");
+            MoveOrDestroy(settingsWindow, "Buttons/LogoutButton", profile, "Buttons");
+            MoveOrDestroy(settings, "LogoutDialog", myPage, null);
+            MoveOrDestroy(settings, "WithdrawDialog", myPage, null);
+            Transform emptyRow = settingsWindow.Find("Buttons");
+            if (emptyRow != null && emptyRow.childCount == 0)
+                UnityEngine.Object.DestroyImmediate(emptyRow.gameObject);
 
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
             var menu = (RectTransform)hud.transform.Find("Panel/Menu");
             SetUpMyPage(hud, menu, bold, regular);
             SetUpSettings(hud, menu, bold, regular);
+        }
+
+        // from 아래의 path를 to(rowName이 있으면 그 이름의 버튼 줄) 아래로 옮긴다. 받는 쪽에 이미 있으면 지운다.
+        private static void MoveOrDestroy(Transform from, string path, Transform to, string rowName)
+        {
+            Transform child = from.Find(path);
+            if (child == null)
+                return;
+            Transform parent =
+                rowName == null
+                    ? to
+                    : UiBuilderTools.FindOrCreateButtonRow((RectTransform)to, rowName);
+            if (parent.Find(child.name) != null)
+                UnityEngine.Object.DestroyImmediate(child.gameObject);
+            else
+                child.SetParent(parent, false);
         }
 
         private static void DestroyChild(Transform parent, string path)
@@ -811,7 +829,7 @@ namespace A305.EditorTools.Learning
         }
 
         /// <summary>
-        /// 휴대폰 [내 정보]와 내 정보 창(닉네임·캐릭터·학습 언어, 닉네임 변경). 없는 요소만 만들고 디자인은 유지한다.
+        /// 휴대폰 [내 정보]와 내 정보 창(닉네임·캐릭터·학습 언어, 닉네임 변경, 로그아웃·회원 탈퇴와 확인 창). 없는 요소만 만들고 디자인은 유지한다.
         /// </summary>
         private static void SetUpMyPage(
             GameObject root,
@@ -890,18 +908,91 @@ namespace A305.EditorTools.Learning
                     "한글 2~8자 또는 영문·숫자 2~16자로 정해 주세요."
                 )
             );
+            RectTransform profileButtons = UiBuilderTools.FindOrCreateButtonRow(profile, "Buttons");
+            BuilderTools.SetReference(
+                view,
+                "logoutButton",
+                UiBuilderTools.FindOrCreateButton(
+                    profileButtons,
+                    "LogoutButton",
+                    "로그아웃",
+                    bold,
+                    160f
+                )
+            );
             BuilderTools.SetReference(
                 view,
                 "closeButton",
                 FindCornerOrRowButton(profile, "CloseButton", "닫기", bold, 140f)
             );
+            // 되돌릴 수 없는 동작이라 [로그아웃]·[닫기]와 떨어진 맨 앞에 둔다.
+            Button withdrawButton = UiBuilderTools.FindOrCreateButton(
+                profileButtons,
+                "WithdrawButton",
+                "회원 탈퇴",
+                bold,
+                160f
+            );
+            withdrawButton.transform.SetAsFirstSibling();
+            BuilderTools.SetReference(view, "withdrawButton", withdrawButton);
             BuilderTools.SetReference(view, "profilePanel", profile.gameObject);
+
+            RectTransform logout = UiBuilderTools.FindOrCreateAnchoredPanel(
+                overlay,
+                "LogoutDialog",
+                new Vector2(0.5f, 0.5f),
+                520f,
+                Vector2.zero
+            );
+            UiBuilderTools.FindOrCreateText(
+                logout,
+                "Title",
+                bold,
+                30f,
+                Color.white,
+                "로그아웃할까요?"
+            );
+            UiBuilderTools.FindOrCreateText(
+                logout,
+                "Body",
+                regular,
+                22f,
+                Color.white,
+                "처음 화면으로 돌아가요. 게스트로 시작했다면 로그아웃한 뒤 같은 기록으로 다시 들어올 수 없어요."
+            );
+            BuilderTools.SetReference(
+                view,
+                "logoutStatusText",
+                UiBuilderTools.FindOrCreateText(logout, "Status", regular, 20f, SubTextColor)
+            );
+            RectTransform logoutButtons = UiBuilderTools.FindOrCreateButtonRow(logout, "Buttons");
+            BuilderTools.SetReference(
+                view,
+                "logoutCancelButton",
+                UiBuilderTools.FindOrCreateButton(logoutButtons, "CancelButton", "취소", bold, 140f)
+            );
+            BuilderTools.SetReference(
+                view,
+                "logoutConfirmButton",
+                UiBuilderTools.FindOrCreateButton(
+                    logoutButtons,
+                    "ConfirmButton",
+                    "로그아웃",
+                    bold,
+                    160f
+                )
+            );
+            BuilderTools.SetReference(view, "logoutDialog", logout.gameObject);
+            RectTransform withdraw = SetUpWithdrawDialog(view, overlay, bold, regular);
             BuilderTools.RequireReferences(view);
+
+            logout.gameObject.SetActive(false);
+            withdraw.gameObject.SetActive(false);
             overlay.gameObject.SetActive(false);
         }
 
         /// <summary>
-        /// 휴대폰 [설정]과 설정 창(시점 감도·NPC 말 빠르기·대화 난이도·효과음·선택 동의·회원 탈퇴·로그아웃과 확인 창).
+        /// 휴대폰 [설정]과 설정 창(시점 감도·NPC 말 빠르기·효과음·대화 난이도·선택 동의).
         /// 없는 요소만 만들고 디자인은 유지한다.
         /// </summary>
         private static void SetUpSettings(
@@ -965,7 +1056,7 @@ namespace A305.EditorTools.Learning
             SetUpConversationLevel(view, window, bold);
             SetUpSoundEffects(view, window);
             // 선택 동의(음성 처리·AI 개선)는 받은 목록대로 줄을 복제한다(USER-02·03). 게스트는 음성 처리만 받는다.
-            TMP_Text consentsLabel = UiBuilderTools.FindOrCreateText(
+            UiBuilderTools.FindOrCreateText(
                 window,
                 "ConsentsLabel",
                 bold,
@@ -980,84 +1071,13 @@ namespace A305.EditorTools.Learning
                 "consentTemplate",
                 OnboardingBuilder.SetUpConsentRow(consents, "ConsentRowTemplate", regular)
             );
-            RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(window, "Buttons");
-            // 이미 만든 화면에 새로 붙는 줄은 맨 아래에 생기므로 버튼 줄 위로 옮긴다.
-            // 이미 버튼 줄 위에 있는 줄까지 옮기면 제목·목록·버튼 순서가 뒤집히므로 아래에 있는 줄만 옮긴다.
-            MoveAboveIfBelow(consentsLabel.transform, buttons);
-            MoveAboveIfBelow(consents, buttons);
-            BuilderTools.SetReference(
-                view,
-                "logoutButton",
-                UiBuilderTools.FindOrCreateButton(buttons, "LogoutButton", "로그아웃", bold, 160f)
-            );
             BuilderTools.SetReference(
                 view,
                 "closeButton",
                 FindCornerOrRowButton(window, "CloseButton", "닫기", bold, 140f)
             );
-            // 되돌릴 수 없는 동작이라 [로그아웃]·[닫기]와 떨어진 맨 앞에 둔다.
-            Button withdrawButton = UiBuilderTools.FindOrCreateButton(
-                buttons,
-                "WithdrawButton",
-                "회원 탈퇴",
-                bold,
-                160f
-            );
-            withdrawButton.transform.SetAsFirstSibling();
-            BuilderTools.SetReference(view, "withdrawButton", withdrawButton);
             BuilderTools.SetReference(view, "settingsPanel", window.gameObject);
-
-            RectTransform logout = UiBuilderTools.FindOrCreateAnchoredPanel(
-                overlay,
-                "LogoutDialog",
-                new Vector2(0.5f, 0.5f),
-                520f,
-                Vector2.zero
-            );
-            UiBuilderTools.FindOrCreateText(
-                logout,
-                "Title",
-                bold,
-                30f,
-                Color.white,
-                "로그아웃할까요?"
-            );
-            UiBuilderTools.FindOrCreateText(
-                logout,
-                "Body",
-                regular,
-                22f,
-                Color.white,
-                "처음 화면으로 돌아가요. 게스트로 시작했다면 로그아웃한 뒤 같은 기록으로 다시 들어올 수 없어요."
-            );
-            BuilderTools.SetReference(
-                view,
-                "logoutStatusText",
-                UiBuilderTools.FindOrCreateText(logout, "Status", regular, 20f, SubTextColor)
-            );
-            RectTransform logoutButtons = UiBuilderTools.FindOrCreateButtonRow(logout, "Buttons");
-            BuilderTools.SetReference(
-                view,
-                "logoutCancelButton",
-                UiBuilderTools.FindOrCreateButton(logoutButtons, "CancelButton", "취소", bold, 140f)
-            );
-            BuilderTools.SetReference(
-                view,
-                "logoutConfirmButton",
-                UiBuilderTools.FindOrCreateButton(
-                    logoutButtons,
-                    "ConfirmButton",
-                    "로그아웃",
-                    bold,
-                    160f
-                )
-            );
-            BuilderTools.SetReference(view, "logoutDialog", logout.gameObject);
-            RectTransform withdraw = SetUpWithdrawDialog(view, overlay, bold, regular);
             BuilderTools.RequireReferences(view);
-
-            logout.gameObject.SetActive(false);
-            withdraw.gameObject.SetActive(false);
             overlay.gameObject.SetActive(false);
         }
 

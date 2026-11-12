@@ -79,19 +79,17 @@ namespace A305.World.Tests
             Assert.That(messages, Is.EqualTo(1));
         }
 
-        // 설정 창은 선택 동의 제목과 목록을 버튼 줄 위에 두며, HUD Builder를 다시 실행해도 이 순서를 지킨다.
+        // 설정 창은 선택 동의 제목 바로 아래에 목록을 두며, HUD Builder를 다시 실행해도 이 순서를 지킨다.
         [Test]
-        public void SettingsKeepConsentsAboveTheButtons()
+        public void SettingsKeepTheConsentListBelowItsLabel()
         {
             var hud = AssetDatabase.LoadAssetAtPath<GameObject>(HudPrefabPath);
             Transform window = hud.transform.Find("Settings/Window");
 
             int label = window.Find("ConsentsLabel").GetSiblingIndex();
             int consents = window.Find("Consents").GetSiblingIndex();
-            int buttons = window.Find("Buttons").GetSiblingIndex();
 
-            Assert.That(label, Is.LessThan(consents));
-            Assert.That(consents, Is.LessThan(buttons));
+            Assert.That(consents, Is.EqualTo(label + 1));
         }
 
         // 조작법 카드는 오른쪽 아래에 두고, X로 닫은 뒤에는 메뉴(≡)의 [조작법]으로 다시 연다.

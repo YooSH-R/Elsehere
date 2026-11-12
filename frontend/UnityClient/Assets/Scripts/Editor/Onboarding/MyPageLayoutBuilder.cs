@@ -45,8 +45,23 @@ namespace A305.EditorTools.Onboarding
             ((TMP_Text)input.placeholder).fontSize = 22;
             Button(nickname.Find("NicknameButton"), catalog, 128, 52, "변경");
             Status(window, catalog);
+            Transform buttons = window.Find("Buttons");
+            Size(buttons, 0, 52, flexibleWidth: 1);
+            buttons.GetComponent<HorizontalLayoutGroup>().spacing = 14;
+            Button(buttons.Find("WithdrawButton"), catalog, 154, 52, "회원 탈퇴");
+            Button(buttons.Find("LogoutButton"), catalog, 154, 52, "로그아웃");
 
-            // 시점 감도부터는 설정 창에 있다(S15P31A305-861).
+            foreach (string dialogName in new[] { "LogoutDialog", "WithdrawDialog" })
+            {
+                Transform dialogButtons = root.transform.Find($"MyPage/{dialogName}/Buttons");
+                if (dialogButtons == null)
+                    continue;
+                foreach (Transform button in dialogButtons)
+                    if (button.GetComponent<UnityEngine.UI.Button>() != null)
+                        Button(button, catalog, 154, 52, null);
+            }
+
+            // 시점 감도부터 선택 동의까지는 설정 창에 있다(S15P31A305-861).
             window = root.transform.Find("Settings/Window");
             if (window == null)
                 return;
@@ -103,22 +118,6 @@ namespace A305.EditorTools.Onboarding
             consent.textWrappingMode = TextWrappingModes.Normal;
             Size(consent.transform, 0, 48, flexibleWidth: 1);
             Button(row.Find("ViewButton"), catalog, 76, 40, "보기");
-
-            Transform buttons = window.Find("Buttons");
-            Size(buttons, 0, 52, flexibleWidth: 1);
-            buttons.GetComponent<HorizontalLayoutGroup>().spacing = 14;
-            Button(buttons.Find("WithdrawButton"), catalog, 154, 52, "회원 탈퇴");
-            Button(buttons.Find("LogoutButton"), catalog, 154, 52, "로그아웃");
-
-            foreach (string dialogName in new[] { "LogoutDialog", "WithdrawDialog" })
-            {
-                Transform dialogButtons = root.transform.Find($"Settings/{dialogName}/Buttons");
-                if (dialogButtons == null)
-                    continue;
-                foreach (Transform button in dialogButtons)
-                    if (button.GetComponent<UnityEngine.UI.Button>() != null)
-                        Button(button, catalog, 154, 52, null);
-            }
         }
 
         private static void Frame(Transform window, UiThemeCatalog catalog)

@@ -588,7 +588,7 @@ namespace A305.EditorTools.Theme
             );
             ActionPill(
                 root,
-                "Settings/Window/Buttons/LogoutButton",
+                "MyPage/Window/Buttons/LogoutButton",
                 UiIcon.Exit,
                 UiTone.Neutral,
                 210
@@ -601,49 +601,49 @@ namespace A305.EditorTools.Theme
                 var window = (RectTransform)root.Find(path);
                 window.sizeDelta = new Vector2(640, window.sizeDelta.y);
             }
-            Role(root, "Settings/LogoutDialog", UiThemeRole.Panel);
-            Role(root, "Settings/LogoutDialog/Title", UiThemeRole.Title);
-            Role(root, "Settings/LogoutDialog/Body", UiThemeRole.Body);
-            Role(root, "Settings/LogoutDialog/Status", UiThemeRole.Muted);
+            Role(root, "MyPage/LogoutDialog", UiThemeRole.Panel);
+            Role(root, "MyPage/LogoutDialog/Title", UiThemeRole.Title);
+            Role(root, "MyPage/LogoutDialog/Body", UiThemeRole.Body);
+            Role(root, "MyPage/LogoutDialog/Status", UiThemeRole.Muted);
             ActionPill(
                 root,
-                "Settings/LogoutDialog/Buttons/CancelButton",
+                "MyPage/LogoutDialog/Buttons/CancelButton",
                 UiIcon.None,
                 UiTone.Neutral,
                 180
             );
             ActionPill(
                 root,
-                "Settings/LogoutDialog/Buttons/ConfirmButton",
+                "MyPage/LogoutDialog/Buttons/ConfirmButton",
                 UiIcon.Exit,
                 UiTone.Primary,
                 180
             );
-            Roomy(root, "Settings/LogoutDialog");
+            Roomy(root, "MyPage/LogoutDialog");
             if (root.Find("Settings/Window/Consents") != null)
             {
                 Role(root, "Settings/Window/ConsentsLabel", UiThemeRole.Caption);
                 ConsentRow(root, "Settings/Window/Consents/ConsentRowTemplate");
             }
-            if (root.Find("Settings/WithdrawDialog") == null)
+            if (root.Find("MyPage/WithdrawDialog") == null)
                 return;
             ActionPill(
                 root,
-                "Settings/Window/Buttons/WithdrawButton",
+                "MyPage/Window/Buttons/WithdrawButton",
                 UiIcon.None,
                 UiTone.Neutral,
                 210
             );
-            Role(root, "Settings/WithdrawDialog", UiThemeRole.Panel);
-            Role(root, "Settings/WithdrawDialog/Title", UiThemeRole.Title);
-            Role(root, "Settings/WithdrawDialog/Body", UiThemeRole.Body);
+            Role(root, "MyPage/WithdrawDialog", UiThemeRole.Panel);
+            Role(root, "MyPage/WithdrawDialog/Title", UiThemeRole.Title);
+            Role(root, "MyPage/WithdrawDialog/Body", UiThemeRole.Body);
             // 지우는 내용을 알리는 긴 문장이라 창 안에서 줄을 바꾼다.
-            root.Find("Settings/WithdrawDialog/Body").GetComponent<TMP_Text>().textWrappingMode =
+            root.Find("MyPage/WithdrawDialog/Body").GetComponent<TMP_Text>().textWrappingMode =
                 TextWrappingModes.Normal;
-            Role(root, "Settings/WithdrawDialog/Status", UiThemeRole.Muted);
+            Role(root, "MyPage/WithdrawDialog/Status", UiThemeRole.Muted);
             ActionPill(
                 root,
-                "Settings/WithdrawDialog/Buttons/CancelButton",
+                "MyPage/WithdrawDialog/Buttons/CancelButton",
                 UiIcon.None,
                 UiTone.Neutral,
                 180
@@ -651,12 +651,12 @@ namespace A305.EditorTools.Theme
             // 되돌릴 수 없는 동작은 강조색 대신 코랄(Secondary)로 구분한다.
             ActionPill(
                 root,
-                "Settings/WithdrawDialog/Buttons/ConfirmButton",
+                "MyPage/WithdrawDialog/Buttons/ConfirmButton",
                 UiIcon.Delete,
                 UiTone.Secondary,
                 180
             );
-            Roomy(root, "Settings/WithdrawDialog");
+            Roomy(root, "MyPage/WithdrawDialog");
             A305.EditorTools.Onboarding.MyPageLayoutBuilder.Apply(root.gameObject);
         }
 

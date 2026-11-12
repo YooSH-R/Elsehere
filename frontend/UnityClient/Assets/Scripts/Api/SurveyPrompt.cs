@@ -11,7 +11,7 @@ namespace A305.Api
     {
         // 팀 사용자 설문(Google 설문지)의 응답 페이지. 설문을 바꾸면 이 값만 바꾼다.
         public const string Url =
-            "https://docs.google.com/forms/d/e/1FAIpQLSctxlb9ka3jrbFp24OjHd-HxR0U6Vh_s6sTdPR3kvRDyeDrVA/viewform";
+            "https://docs.google.com/forms/d/e/1FAIpQLSf_CIGUBIOuuadvDprLZVpgM9foxp3r1EaMqCQ-eS3Xul7plg/viewform";
 
         /// <summary>설문을 권할 때가 됐다. 설문 카드가 받는다.</summary>
         public static event Action Requested;

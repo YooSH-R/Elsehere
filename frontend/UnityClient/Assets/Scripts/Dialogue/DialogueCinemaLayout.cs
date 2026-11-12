@@ -23,6 +23,9 @@ namespace A305.Dialogue
         public const float MaxTranslationHeight = 320;
         private const float TranslationSideBySideWidth = 1100;
 
+        // 이름 줄 위 자리를 비워 주느라 대사와 영어 표현 카드를 줄일 때도 남기는 높이. 낮은 화면에서 대사가 사라지지 않게 한다.
+        public const float MinBodyBelowReservedRoom = 200;
+
         // 둥근 이름표가 대사 글자 줄보다 앞으로 나오는 폭. 같은 자리에서 시작하면 둥근 끝 때문에 이름표가 안쪽으로 들어가 보인다.
         public const float NameOutdent = 8;
 
@@ -46,13 +49,17 @@ namespace A305.Dialogue
         /// <param name="hasEarlierLines">
         /// 보이는 대사 위에 지난 대사가 있는지. 있으면 최소 높이를 두지 않고 대사 칸을 보이는 대사에 딱 맞춰, 지난 대사가 반쯤 비치지 않게 한다.
         /// </param>
+        /// <param name="roomAboveName">
+        /// 이름 줄 위로 비워 둘 높이(오른쪽 위 단어·추천 문장 카드 자리). 대사와 영어 표현 카드는 이 자리를 넘지 않는 높이까지만 키운다.
+        /// </param>
         public static DialogueCinemaLayout Compute(
             Vector2 canvasSize,
             float linesHeight,
             float nameWidth,
             bool hasEarlierLines = false,
             bool hasTranslation = false,
-            float translationHeight = TranslationHeight
+            float translationHeight = TranslationHeight,
+            float roomAboveName = 0
         )
         {
             float width = Mathf.Min(ColumnWidth, canvasSize.x - 2 * SideMargin);
@@ -74,9 +81,16 @@ namespace A305.Dialogue
             );
             layout.Status = new Rect(left, layout.Input.yMax + 12, width, StatusHeight);
             bool stackedTranslation = hasTranslation && width < TranslationSideBySideWidth;
-            float reservedHeight = layout.Status.yMax + 10 + Gap + NameHeight + FadeHeight;
-            // 영어 표현 카드는 문장이 다 보이게 키우되, 상한과 화면 높이 안에서만 키우고 넘치는 문장은 카드 안에서 스크롤한다.
-            float cardRoom = canvasSize.y - reservedHeight;
+            float belowAndName = layout.Status.yMax + 10 + Gap + NameHeight;
+            // 대사와 영어 표현 카드가 함께 쓸 수 있는 높이. 이름 줄 위 자리를 비워 주되, 낮은 화면에서도 읽을 높이는 남긴다.
+            float bodyRoom = canvasSize.y - belowAndName - FadeHeight;
+            if (roomAboveName > FadeHeight)
+                bodyRoom = Mathf.Min(
+                    bodyRoom,
+                    Mathf.Max(MinBodyBelowReservedRoom, canvasSize.y - belowAndName - roomAboveName)
+                );
+            // 영어 표현 카드는 문장이 다 보이게 키우되, 상한과 쓸 수 있는 높이 안에서만 키우고 넘치는 문장은 카드 안에서 스크롤한다.
+            float cardRoom = bodyRoom;
             if (stackedTranslation)
                 cardRoom -= Gap + MinLinesHeight;
             float cardHeight = Mathf.Min(
@@ -84,8 +98,8 @@ namespace A305.Dialogue
                 Mathf.Max(TranslationHeight, cardRoom)
             );
             if (stackedTranslation)
-                reservedHeight += cardHeight + Gap;
-            float maxLines = Mathf.Min(MaxLinesHeight, Mathf.Max(0, canvasSize.y - reservedHeight));
+                bodyRoom -= cardHeight + Gap;
+            float maxLines = Mathf.Min(MaxLinesHeight, Mathf.Max(0, bodyRoom));
             layout.Lines = new Rect(
                 left,
                 layout.Status.yMax + 10,

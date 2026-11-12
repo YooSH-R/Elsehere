@@ -159,7 +159,7 @@ namespace A305.Tutorial
             hud.VocabularyRequested += progress.ReportVocabularyOpened;
             if (firstDayMission != null)
             {
-                firstDayMission.JournalOpened += progress.ReportJournalOpened;
+                firstDayMission.JournalOpened += OpenJournal;
             }
 
             guideView.ContinueRequested += progress.Continue;
@@ -183,7 +183,7 @@ namespace A305.Tutorial
             hud.VocabularyRequested -= progress.ReportVocabularyOpened;
             if (firstDayMission != null)
             {
-                firstDayMission.JournalOpened -= progress.ReportJournalOpened;
+                firstDayMission.JournalOpened -= OpenJournal;
             }
 
             SpaceTravel.Refused -= ShowTravelLocked;
@@ -331,6 +331,17 @@ namespace A305.Tutorial
         private void CloseFeedback(string npcCode, bool isGuidedCompleted)
         {
             progress.CloseFeedback(npcCode);
+        }
+
+        // 오늘의 목표 안내에서 퀘스트 카드를 누르면 이 기기에 남겨, 같은 브라우저의 새 계정에는 이 안내를 다시 보이지 않는다.
+        private void OpenJournal()
+        {
+            if (progress.Step == TutorialStep.TodayGoal)
+            {
+                TutorialDeviceRecord.Shared.MarkQuestGuideSeen();
+            }
+
+            progress.ReportJournalOpened();
         }
 
         // 할 일이 적힌 안내 카드에 바로 알린다. 카드가 숨은 동안(대화·피드백 화면)에만 HUD 알림을 쓴다.

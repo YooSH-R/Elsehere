@@ -1065,10 +1065,24 @@ namespace A305.Tutorial.PlayModeTests
                 Single<FirstDayMissionView>().transform.Find("Content/QuestIcon");
             Assert.That(Single<CoachMarkView>().SpotlightTargets, Is.EqualTo(new[] { button }));
 
-            button.GetComponent<Button>().onClick.Invoke();
-            yield return null;
+            // 퀘스트 카드 안내를 확인했다고 이 기기에 남겨, 같은 브라우저의 새 계정에는 다시 보이지 않게 한다.
+            // Editor에서는 기기 기록을 끄므로 켠 기록으로 바꿔 끼우고, 끝나면 저장값과 원래 기록을 되돌린다.
+            TutorialDeviceRecord appRecord = TutorialDeviceRecord.Shared;
+            TutorialDeviceRecord.Shared = new TutorialDeviceRecord(true);
+            try
+            {
+                button.GetComponent<Button>().onClick.Invoke();
+                yield return null;
 
-            Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed));
+                Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed));
+                Assert.That(TutorialDeviceRecord.Shared.IsQuestGuideSeen, Is.True);
+            }
+            finally
+            {
+                PlayerPrefs.DeleteKey(TutorialDeviceRecord.PreferenceKey);
+                PlayerPrefs.DeleteKey(TutorialDeviceRecord.QuestGuidePreferenceKey);
+                TutorialDeviceRecord.Shared = appRecord;
+            }
         }
 
         // 대화 시작 티칭을 [다음]으로 끝까지 넘긴다.

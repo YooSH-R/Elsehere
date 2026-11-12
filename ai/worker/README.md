@@ -40,6 +40,7 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `STT_FIRST_TIMEOUT_S` | 8 | 뒤에 다른 공급자가 있을 때 첫 음성 인식 호출의 상한 (마지막 공급자와 공급자가 하나뿐일 때는 30초) |
 | `STT_CHAIN` | (없음) | 음성 인식 공급자 순서 `공급자:모델,공급자:모델` (예: `gpu:turbo-lr1e4,gms:whisper-1,groq:whisper-large-v3-turbo`). 앞 공급자가 한도·오류·응답 없음이면 다음으로 넘김. 정하면 구성의 음성 인식과 `STT_FALLBACK` 대신 이 순서를 씀 |
 | `STT_GPU_BASE_URL` / `STT_GPU_TOKEN` | (`STT_CHAIN`에 `gpu`가 있으면 필수) | SSAFY GPU 서버에서 도는 자체 학습 STT([`ai/gpu_stt`](../gpu_stt/README.md))의 주소와 토큰. 학원 방화벽 때문에 GPU 서버가 배포 서버로 거는 역방향 SSH 터널 입구(개발 예: `http://172.19.0.1:18431/v1`, 운영은 `172.30.0.1`)를 가리킴 |
+| `STT_GPU_BACKUP_BASE_URL` | (`STT_CHAIN`에 `gpu_backup`이 있으면 필수) | 주 GPU가 꺼졌을 때 부를 예비 GPU의 같은 STT 서버 주소(개발 예: `http://172.19.0.1:18441/v1`). 토큰은 `STT_GPU_TOKEN`. `STT_CHAIN`에서 `gpu` 다음에 둠([예비 GPU 입구](../../docs/gpu-worker-network.md#예비-gpu-입구)) |
 | `STT_NEXT_TIMEOUT_S` | 8 | 순서 중간 공급자(처음·마지막 아님)의 상한 |
 | `STT_BREAKER_FAILURES` / `STT_BREAKER_SKIP_S` | 3 / 60 | 같은 음성 인식 공급자가 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 다음 공급자로 바로 감. 마지막 공급자는 건너뛰지 않음. 횟수가 0이면 끔 |
 | `LLM_API_KEY`, `LLM_BASE_URL` | (구성 값) | 구성의 기본 공급자 키·주소를 덮어쓰기 |
@@ -63,6 +64,7 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `TTS_CHUNK_BUDGET_S` | 로컬 2.5, 앱 Compose 8 | NPC 대답 한 조각 합성이 이보다 늦으면 그 조각은 `tts: false`(바로 재생 없이 자막만). 전체 음성 상한 안에 끝나면 턴 음성에 포함 |
 | `TTS_FULL_BUDGET_S` | 6 | 마지막 음성 조각 요청 뒤 전체 음성을 기다리는 상한. 넘으면 완성된 대사를 음성 없이 먼저 반환하며 기존 [다시 듣기]로 음성을 만들 수 있음 |
 | `TTS_GPU_BASE_URL` / `TTS_GPU_TOKEN` | (없음, 꺼짐) | SSAFY GPU 서버 합성 서버([`ai/gpu_tts`](../gpu_tts/README.md))의 주소와 토큰. 주면 다듬고 음소로 바꾼 글을 먼저 GPU로 보내고, 실패·시간 초과면 CPU Kokoro로 만듦. STT처럼 GPU 서버가 거는 역방향 SSH 터널 입구(개발 예: `http://172.19.0.1:18433`, 운영은 `172.30.0.1`) |
+| `TTS_GPU_BACKUP_BASE_URL` | (없음, 꺼짐) | 주 GPU 다음, CPU 전에 부를 예비 GPU 합성 서버 주소(개발 예: `http://172.19.0.1:18443`). 토큰은 `TTS_GPU_TOKEN`. 연속 실패 건너뛰기는 GPU마다 따로 셈 |
 | `TTS_GPU_TIMEOUT_S` | 10 | GPU 서버 합성 응답을 기다리는 상한. 동시 사용자가 많으면 GPU 앞에 줄이 서므로 넉넉히 잡음. 넘으면 재시도 없이 CPU로 |
 | `TTS_GPU_CONNECT_TIMEOUT_S` | 1 | GPU 서버 연결 상한. 서버가 꺼졌거나 터널이 끊겼으면 바로 CPU로 |
 | `TTS_BREAKER_FAILURES` / `TTS_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 합성이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 CPU로 바로 감. 횟수가 0이면 끔 |

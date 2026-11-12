@@ -43,7 +43,7 @@ from .schemas import (
     TtsRequest,
 )
 from .speech_emotion import Mood, attach_emotion
-from .tts import AudioStore, GpuSynth, Kokoro, join_wavs
+from .tts import AudioStore, GpuSynthChain, Kokoro, join_wavs
 
 log = logging.getLogger("ai_worker")
 PUBLIC = {"/health"}  # Docker 상태 확인용. 나머지는 모두 내부 토큰 필요
@@ -77,7 +77,7 @@ def create_app(
         app.state.settings = s
         app.state.llm = LLM(s, transport)
         if tts is True:
-            gpu = GpuSynth.from_settings(s)
+            gpu = GpuSynthChain.from_settings(s)
             app.state.tts = await asyncio.to_thread(Kokoro.load, s.kokoro_model, s.kokoro_voices, s.kokoro_threads, gpu)
         else:
             app.state.tts = tts
@@ -108,6 +108,7 @@ def create_app(
                     "tts": bool(app.state.tts),
                     "tts_phoneme_timing": bool(getattr(app.state.tts, "phoneme_timing_ready", False)),
                     "tts_gpu": bool(s.tts_gpu_base_url),
+                    "tts_gpu_backup": bool(s.tts_gpu_backup_base_url),
                     "guard_local": gl and {"model": gl.name, "context": gl.context, "t_lo": s.guard_t_lo, "t_hi": s.guard_t_hi},
                 },
                 ensure_ascii=False,

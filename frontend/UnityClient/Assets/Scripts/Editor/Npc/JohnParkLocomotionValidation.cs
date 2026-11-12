@@ -26,6 +26,8 @@ namespace A305.EditorTools.Npc
             public float walkLegMotionDegrees,
                 runLegMotionDegrees;
             public float maximumKneeBendDegrees;
+            public float walkHipTravelMeters,
+                runHipTravelMeters;
         }
 
         public static void BuildAndCapture()
@@ -77,6 +79,12 @@ namespace A305.EditorTools.Npc
             {
                 var feet = actors.Select(m => CreateFootSamples(m, baked)).ToArray();
                 var firstKnees = new Quaternion[actors.Length];
+                var minimumHips = Enumerable
+                    .Repeat(float.PositiveInfinity, actors.Length)
+                    .ToArray();
+                var maximumHips = Enumerable
+                    .Repeat(float.NegativeInfinity, actors.Length)
+                    .ToArray();
                 for (int frame = 0; frame <= 96; frame++)
                 {
                     float seconds = frame / 24f;
@@ -96,6 +104,9 @@ namespace A305.EditorTools.Npc
                         var grip = chest.InverseTransformPoint(hand.position);
                         var gripRotation = Quaternion.Inverse(chest.rotation) * hand.rotation;
                         motion.SampleAt(seconds, actor);
+                        float hipHeight = transforms.Single(b => b.name == "Hips").position.y;
+                        minimumHips[actor] = Mathf.Min(minimumHips[actor], hipHeight);
+                        maximumHips[actor] = Mathf.Max(maximumHips[actor], hipHeight);
                         var knee = transforms.Single(b => b.name == "Left_LowerLeg");
                         foreach (string side in new[] { "Left", "Right" })
                         {
@@ -202,6 +213,8 @@ namespace A305.EditorTools.Npc
                     }
                     report.frames++;
                 }
+                report.walkHipTravelMeters = maximumHips[1] - minimumHips[1];
+                report.runHipTravelMeters = maximumHips[2] - minimumHips[2];
                 report.passed =
                     report.walkLegMotionDegrees > 10
                     && report.runLegMotionDegrees > 10

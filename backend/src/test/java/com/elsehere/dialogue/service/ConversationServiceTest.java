@@ -121,6 +121,24 @@ class ConversationServiceTest {
   }
 
   @Test
+  @DisplayName("John은 저장된 랩으로 시작하며 첫 인사와 음성을 AI로 생성하지 않는다")
+  void start_johnUsesRecordedRapWithoutAiGreeting() {
+    UUID requestId = UUID.randomUUID();
+    ConversationStartResponse response =
+        conversationService.start(
+            userId, new StartConversationRequest(requestId, "TOWN_JOHN_PARK", InitiatedBy.USER));
+    assertThat(response.openingTurn().text()).startsWith("Cheeseburger, fries, lemonade on ice!");
+    then(aiGateway).shouldHaveNoInteractions();
+    assertThat(
+            conversationService
+                .start(
+                    userId,
+                    new StartConversationRequest(requestId, "TOWN_JOHN_PARK", InitiatedBy.USER))
+                .conversationId())
+        .isEqualTo(response.conversationId());
+  }
+
+  @Test
   void start_savesGreetingEmotionsEvenWhenSynthesisTimedOut() {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(

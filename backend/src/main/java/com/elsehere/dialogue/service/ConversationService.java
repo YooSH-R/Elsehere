@@ -67,6 +67,12 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 @RequiredArgsConstructor
 public class ConversationService {
+  private static final String JOHN_ORDER_RAP =
+      """
+      Cheeseburger, fries, lemonade on ice!
+      Add an apple pie, yeah, that sounds nice!
+      Make that two, one for me, one for you.
+      That's my order, now tell me yours!""";
 
   // 직원의 첫 인사는 AI로 만든다(API 명세 [미정]). 학습자는 아직 말하지 않았으므로 다가온 상황만 알려 준다.
   private static final String GREETING_TEXT = "(The learner walks up to you.)";
@@ -227,40 +233,42 @@ public class ConversationService {
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, null);
     NpcReplyListener listener = NpcReplyRelay.to(aiGateway, trace, events);
     Opening opening =
-        context
-            .followUp()
-            .map(
-                ready ->
-                    PoliceOfficers.includes(npc.summary().npcCode())
-                        ? greetingOpening(
-                            trace,
-                            listener,
-                            npc,
-                            context,
-                            POLICE_CALL_TEXT,
-                            POLICE_CALL_INSTRUCTION.formatted(ready.item()))
-                        : greetingOpening(
-                            trace,
-                            listener,
-                            npc,
-                            context,
-                            HANDOVER_TEXT,
-                            HANDOVER_INSTRUCTION.formatted(ready.item())))
-            .orElseGet(
-                () ->
-                    context.review() == null
-                            && context.quest().isEmpty()
-                            && !request.npcOffDuty()
-                            && request.initiatedBy() == InitiatedBy.NPC
-                            && npc.approachLine() != null
-                        ? approachOpening(npc)
-                        : greetingOpening(
-                            trace,
-                            listener,
-                            npc,
-                            context,
-                            GREETING_TEXT,
-                            greetingInstruction(context, request.npcOffDuty())));
+        review == null && practice == null && "TOWN_JOHN_PARK".equals(npc.summary().npcCode())
+            ? new Opening(JOHN_ORDER_RAP, null, null)
+            : context
+                .followUp()
+                .map(
+                    ready ->
+                        PoliceOfficers.includes(npc.summary().npcCode())
+                            ? greetingOpening(
+                                trace,
+                                listener,
+                                npc,
+                                context,
+                                POLICE_CALL_TEXT,
+                                POLICE_CALL_INSTRUCTION.formatted(ready.item()))
+                            : greetingOpening(
+                                trace,
+                                listener,
+                                npc,
+                                context,
+                                HANDOVER_TEXT,
+                                HANDOVER_INSTRUCTION.formatted(ready.item())))
+                .orElseGet(
+                    () ->
+                        context.review() == null
+                                && context.quest().isEmpty()
+                                && !request.npcOffDuty()
+                                && request.initiatedBy() == InitiatedBy.NPC
+                                && npc.approachLine() != null
+                            ? approachOpening(npc)
+                            : greetingOpening(
+                                trace,
+                                listener,
+                                npc,
+                                context,
+                                GREETING_TEXT,
+                                greetingInstruction(context, request.npcOffDuty())));
 
     Started started =
         transactionTemplate.execute(

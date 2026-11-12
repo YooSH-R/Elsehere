@@ -47,7 +47,7 @@ class ConversationResponses {
         turn.getSeq(),
         Speaker.NPC,
         turn.getText(),
-        readWords(turn.getSuggestWords()),
+        shownWords(turn),
         SpeechResponse.of(turn.getId(), turn.getNpcAudioKey(), turn.getNpcAudioDeletedAt()));
   }
 
@@ -117,6 +117,11 @@ class ConversationResponses {
     return json == null ? null : jsonMapper.readValue(json, STRING_LIST);
   }
 
+  /** 저장해 둔 추천 단어 후보에서 CONV-12와 같은 규칙으로 화면에 보일 단어를 고른다. */
+  private List<String> shownWords(Turn turn) {
+    return SuggestedWords.pick(readWords(turn.getSuggestWords()), turn.getHintText());
+  }
+
   private TurnDetailResponse turnDetail(Turn turn) {
     boolean npcTurn = turn.getSpeaker() == Speaker.NPC;
     return new TurnDetailResponse(
@@ -126,7 +131,7 @@ class ConversationResponses {
         turn.getText(),
         turn.isRude(),
         translation(turn),
-        readWords(turn.getSuggestWords()),
+        shownWords(turn),
         turn.getMeaningKo(),
         turn.getHintText(),
         npcTurn

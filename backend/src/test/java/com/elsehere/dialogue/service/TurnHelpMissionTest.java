@@ -112,8 +112,9 @@ class TurnHelpMissionTest {
   @Test
   void suggestedWordsUseTheSamePendingMissionGoal() {
     assertThat(service.suggestWords(8L, 10L, UUID.randomUUID()).suggestWords())
-        .containsExactly(
-            "left at"); // 추천 문장(I left my small bag at the cafe.)에 든 small bag·the cafe는 뺀다
+        // 추천 문장(I left my small bag at the cafe.)에 든 small bag·the cafe를 빼면 1개만 남아, 짧은 구부터 하나 다시
+        // 넣는다
+        .containsExactly("small bag", "left at");
     ArgumentCaptor<String> goal = ArgumentCaptor.forClass(String.class);
     verify(gateway).suggest(any(), any(), anyList(), goal.capture(), anyInt());
     assertThat(goal.getValue())

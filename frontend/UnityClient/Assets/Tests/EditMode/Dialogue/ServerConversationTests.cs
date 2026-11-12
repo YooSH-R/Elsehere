@@ -526,6 +526,32 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task RecordedOpening_NetworkFailureStillAllowsReplayAndKeepsServerRetry()
+        {
+            var rap = DialogueLine.FromNpc("Saved rap", "저장된 랩", speech: new byte[] { 1 });
+            var john = new ServerConversation(
+                "TOWN_JOHN_PARK",
+                "John",
+                api,
+                false,
+                recordedOpening: rap
+            );
+            api.StartErrors.Enqueue(
+                new ApiException("NETWORK_ERROR", 0, "서버에 연결하지 못했어요.")
+            );
+            await john.StartAsync();
+            Assert.That(john.CanSend, Is.False, "실제 질문은 서버 대화 연결을 기다려야 합니다.");
+            Assert.That(john.CanRetry, Is.True);
+            Assert.That(
+                john.ShowRecordedReply(null, rap),
+                Is.True,
+                "저장 랩은 서버 없이 다시 들을 수 있어야 합니다."
+            );
+            Assert.That(john.CanRetry, Is.True, "저장 재생이 연결 재시도를 지우면 안 됩니다.");
+            Assert.That(api.Turns, Is.Empty);
+        }
+
+        [Test]
         public async Task RecordedOpening_DoesNotShowLoadingGreetingOrResumedHistory()
         {
             var rap = DialogueLine.FromNpc("Saved rap", "저장된 랩", speech: new byte[] { 1 });

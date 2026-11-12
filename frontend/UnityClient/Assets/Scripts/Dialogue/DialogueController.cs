@@ -720,7 +720,7 @@ namespace A305.Dialogue
             && Performance.IsReady
             && (
                 serverConversation != null
-                    ? serverConversation.CanSend && !serverConversation.IsReview
+                    ? serverConversation.CanPlayRecordedReply
                     : conversation != null && conversation.CanSend && !conversation.IsGuided
             );
 

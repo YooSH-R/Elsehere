@@ -196,6 +196,13 @@ namespace A305.Dialogue
             && StatusMessage?.EndsWith(EndFeedbackGuide, StringComparison.Ordinal) == true;
 
         public bool CanSend => ConversationId != null && !IsBusy && !IsEnded && !deadlineExpired;
+        public bool CanPlayRecordedReply =>
+            (ConversationId != null || hasRecordedOpening)
+            && !IsBusy
+            && !IsEnded
+            && !deadlineExpired
+            && !endRequested
+            && !IsReview;
 
         public bool IsClosing { get; private set; }
         public string CountdownMessage { get; private set; }
@@ -229,7 +236,7 @@ namespace A305.Dialogue
         // 저장 공연은 로컬 화면에만 남긴다. 서버 턴·사용량·학습 평가를 만들어 내지 않는다.
         public bool ShowRecordedReply(string text, DialogueLine reply)
         {
-            if (!CanSend || IsReview || reply?.Speech == null)
+            if (!CanPlayRecordedReply || reply?.Speech == null)
                 return false;
             if (!string.IsNullOrWhiteSpace(text))
                 lines.Add(DialogueLine.FromUser(text));
@@ -241,10 +248,13 @@ namespace A305.Dialogue
             LastTurnSpeechIncomplete = false;
             HintText = null;
             UserTranslation = null;
-            StatusMessage = null;
-            RecoveryGuide = null;
+            if (ConversationId != null)
+            {
+                StatusMessage = null;
+                RecoveryGuide = null;
+                pendingRetry = null;
+            }
             lastTranscript = null;
-            pendingRetry = null;
             failedText = null;
             failedRequestId = null;
             textToRestore = null;

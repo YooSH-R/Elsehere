@@ -230,6 +230,17 @@ async def meaning(llm: LLM, req: MeaningRequest) -> dict:
     return {"meaning_ko": meaning_ko, "glossary": glossary[:25], "usage": usage.items}
 
 
+# 주어로 시작하거나(I'm sorry) 문장 부호로 끝나는 말은 단어가 아니라 문장이라, 모델이 단어라고 해도 추천 단어에 넣지 않는다.
+SENTENCE_LIKE = re.compile(
+    r"^(?:i|i'm|i'd|i'll|i've|you|you're|you'll|we|we're|he|he's|she|she's|they|they're|it's|that's|there's)\b|[.?!]$",
+    re.IGNORECASE,
+)
+
+
+def sentence_like(text: str) -> bool:
+    return bool(SENTENCE_LIKE.search(text.replace("’", "'").strip()))
+
+
 async def suggest(llm: LLM, req: SuggestRequest) -> dict:
     """다음 답변을 만드는 어휘와 뜻. 기존 words 문자열 배열 계약을 유지한다."""
     usage = Usage()
@@ -243,7 +254,7 @@ async def suggest(llm: LLM, req: SuggestRequest) -> dict:
             if w.get("kind") != "vocabulary" or not isinstance(text, str) or not isinstance(meaning, str):
                 continue
             text, meaning = " ".join(text.split()), " ".join(meaning.split())
-            if not meaning or len(meaning) > 60:
+            if not meaning or len(meaning) > 60 or sentence_like(text):
                 continue
             label = f"{text} — {meaning}"
         else:  # 이전 고정 응답·캐시와의 호환. 신규 모델 출력은 위의 구조를 사용한다.

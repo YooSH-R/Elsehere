@@ -67,19 +67,6 @@ namespace A305.EditorTools.Learning
         public static void ApplyToPrefab()
         {
             BuilderTools.UpdatePrefabIfExists(PrefabPath, root => Apply(root.transform));
-            var guide = AssetDatabase.LoadAssetAtPath<A305.Tutorial.TutorialGuideDefinition>(
-                "Assets/Data/Tutorial/TutorialGuide.asset"
-            );
-            if (guide != null)
-            {
-                var fields = new SerializedObject(guide);
-                fields.FindProperty("feedbackSectionsCaption").stringValue =
-                    "Ben과 나눈 대화를 돌아보는 대화 노트예요. "
-                    + "탭을 눌러 {요약}·{문장 교정}·{전체 대화}를 봐요";
-                fields.FindProperty("feedbackPagesCaption").stringValue =
-                    "표현과 요약이 길면 이 영역을 위아래로 스크롤해 보세요";
-                fields.ApplyModifiedPropertiesWithoutUndo();
-            }
             AssetDatabase.SaveAssets();
         }
 

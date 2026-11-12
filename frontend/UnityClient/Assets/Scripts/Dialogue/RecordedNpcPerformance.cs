@@ -21,6 +21,7 @@ namespace A305.Dialogue
         private AudioClip playingClip;
         private float previousSpeed;
         private bool driving;
+        private JohnParkLocomotion locomotion;
         public RecordedPerformanceDefinition Definition => definition;
         public bool IsPerforming => driving;
         public bool IsReady =>
@@ -87,9 +88,17 @@ namespace A305.Dialogue
         {
             if (!driving)
                 return;
+            if (locomotion == null)
+                locomotion = GetComponent<JohnParkLocomotion>();
+            locomotion?.SetPerformanceTime(Mathf.Max(0, seconds));
             float loopSeconds = 60 * definition.BeatsPerAnimationLoop / definition.BeatsPerMinute;
             animator.Play(definition.AnimationState, 0, Mathf.Max(0, seconds) / loopSeconds);
             animator.Update(0);
+            if (definition.LowerBodyMotion != null)
+                definition.LowerBodyMotion.SampleAnimation(
+                    animator.gameObject,
+                    Mathf.Clamp(seconds, 0, definition.LowerBodyMotion.length)
+                );
         }
 
         private void StopMotion()
@@ -97,6 +106,7 @@ namespace A305.Dialogue
             if (!driving)
                 return;
             animator.speed = previousSpeed;
+            locomotion?.SetPerformanceTime(null);
             driving = false;
             playingClip = null;
         }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using A305.Ambience;
 using A305.Api;
 using A305.Dialogue;
 using A305.Learning;
@@ -170,7 +171,7 @@ namespace A305.Tutorial
             hud.VocabularyRequested += progress.ReportVocabularyOpened;
             if (firstDayMission != null)
             {
-                firstDayMission.JournalOpened += progress.ReportJournalOpened;
+                firstDayMission.JournalOpened += OpenJournal;
             }
 
             guideView.ContinueRequested += progress.Continue;
@@ -180,6 +181,7 @@ namespace A305.Tutorial
 
         private void OnDestroy()
         {
+            AmbienceQuiet.IsHeld = false;
             if (progress == null)
             {
                 return;
@@ -193,12 +195,11 @@ namespace A305.Tutorial
             hud.VocabularyRequested -= progress.ReportVocabularyOpened;
             if (firstDayMission != null)
             {
-                firstDayMission.JournalOpened -= progress.ReportJournalOpened;
+                firstDayMission.JournalOpened -= OpenJournal;
             }
 
             SpaceTravel.Refused -= ShowTravelLocked;
-            if (feedbackView != null)
-                feedbackView.TopObstruction = null;
+            CenterWindow.Shared.TopObstruction = null;
         }
 
         private void Update()
@@ -206,6 +207,8 @@ namespace A305.Tutorial
             progress.UsesTouch = PlayerTouchControls.ShouldShowControls();
             ReportActions();
             HoldPlayerForBen();
+            // Ben 대화에서 낮춘 장소 소리가 이어지는 안내 도중에 다시 커지지 않게 튜토리얼을 마칠 때까지 낮춰 둔다.
+            AmbienceQuiet.IsHeld = progress.KeepsAmbienceQuiet;
 
             // 첫날 미션 화면이 없으면 보여 줄 지도가 없으므로 오늘의 목표 안내를 바로 마친다.
             if (firstDayMission == null)
@@ -330,15 +333,27 @@ namespace A305.Tutorial
         }
 
         // 길 안내 대화 중에 건너뛰면 마치지 못한 대화를 피드백 없이 닫는다. 정해진 대사를 마치기 전에는 [대화 종료]로 끝낼 수 없기 때문이다.
+        // 첫 퀘스트는 꼭 해야 하므로 건너뛰어도 퀘스트 카드를 누르는 오늘의 목표 안내는 남긴다.
         private void SkipTutorial()
         {
-            progress.Skip();
+            progress.SkipToTodayGoal();
             dialogue.Abandon();
         }
 
         private void CloseFeedback(string npcCode, bool isGuidedCompleted)
         {
             progress.CloseFeedback(npcCode);
+        }
+
+        // 오늘의 목표 안내에서 퀘스트 카드를 누르면 이 기기에 남겨, 같은 브라우저의 새 계정에는 이 안내를 다시 보이지 않는다.
+        private void OpenJournal()
+        {
+            if (progress.Step == TutorialStep.TodayGoal)
+            {
+                TutorialDeviceRecord.Shared.MarkQuestGuideSeen();
+            }
+
+            progress.ReportJournalOpened();
         }
 
         // 할 일이 적힌 안내 카드에 바로 알린다. 카드가 숨은 동안(대화·피드백 화면)에만 HUD 알림을 쓴다.
@@ -356,8 +371,12 @@ namespace A305.Tutorial
         private void ApplyStep()
         {
             appliedStep = progress.Step;
-            // Ben 대화·전체 완료 직후와, 저장하지 못한 채 다음 단계·장소에 들어온 순간에 보낸다.
-            if (appliedStep == TutorialStep.Completed || progress.NeedsBenDialogueSave)
+            // Ben 대화·건너뛰기·전체 완료 직후와, 저장하지 못한 채 다음 단계·장소에 들어온 순간에 보낸다.
+            if (
+                appliedStep == TutorialStep.Completed
+                || progress.NeedsFinishSave
+                || progress.NeedsBenDialogueSave
+            )
             {
                 SaveFinish();
             }
@@ -400,6 +419,7 @@ namespace A305.Tutorial
         private async Task SaveFinishAsync()
         {
             savingFinish = true;
+            bool savesFinish = progress.NeedsFinishSave;
             TutorialFinishSaveStatus status;
             try
             {
@@ -413,9 +433,9 @@ namespace A305.Tutorial
             if (status == TutorialFinishSaveStatus.Saved)
             {
                 GameClock.Shared.RequestSynchronization();
-                // 서버가 튜토리얼 완료·건너뛰기와 함께 첫 퀘스트를 시작하므로, 건너뛰어 퀘스트 카드 안내를 못 본 사용자도
-                // 장소를 옮기거나 대화하기 전에 작은 퀘스트 알약 대신 할 일이 담긴 카드를 보게 다시 읽는다.
-                if (progress.Step == TutorialStep.Completed)
+                // 서버가 튜토리얼 완료·건너뛰기와 함께 첫 퀘스트를 시작하므로, 끝낸 기록을 저장했으면 다시 읽는다.
+                // 건너뛰어 남은 퀘스트 카드 안내에서도 작은 퀘스트 알약 대신 할 일이 담긴 카드를 보게 한다.
+                if (savesFinish)
                     mission.RefreshStory();
             }
             if (
@@ -435,12 +455,17 @@ namespace A305.Tutorial
         // 내용이 바뀔 때만 다시 그린다.
         private void RefreshCard()
         {
-            // 대화·제안·대화 노트·단어장이 할 일 카드를 가리는 동안에는 [건너뛰기]만 남긴 작은 카드를 맨 위에 둔다.
-            // 대화처럼 안내 카드가 없는 단계는 가장 가까운 앞 단계의 이름을 쓴다.
-            bool isCovered = dialogue.IsTalking || offerView.IsShowing || learning.IsShowingScreen;
+            // 대화·제안·대화 피드백·단어장·휴대폰이 할 일 카드를 가리는 동안에는 [건너뛰기]만 남긴 작은 카드를 맨 위에 두고,
+            // 할 일은 코치 마크 설명으로 알린다. 대화처럼 안내 카드가 없는 단계는 가장 가까운 앞 단계의 이름을 쓴다.
+            bool isCovered =
+                dialogue.IsTalking
+                || offerView.IsShowing
+                || learning.IsShowingScreen
+                || hudMenu.IsOpen;
+            // 건너뛸 수 없는 오늘의 목표 안내는 가리는 화면이 닫힐 때까지 카드를 숨긴다.
             if (
                 isCovered
-                && progress.IsGuiding
+                && progress.CanSkip
                 && guide.TryGetNearestStepGuide(progress.Step, out TutorialStepGuide nearest)
             )
             {
@@ -503,7 +528,8 @@ namespace A305.Tutorial
                 progress.UsesTouch,
                 partDone,
                 guide.StepGuideNumber(progress.Step),
-                guide.StepGuideCount
+                guide.StepGuideCount,
+                progress.CanSkip
             );
             isCardShown = true;
             cardStep = progress.Step;
@@ -514,10 +540,10 @@ namespace A305.Tutorial
 
         private void RefreshCoachMark()
         {
-            // 설명 말풍선과 대화 노트 창이 위에 남겨 둔 [건너뛰기] 카드를 피한다.
+            // 설명 말풍선과 단어장·대화 피드백·대화 노트 창이 위에 남겨 둔 [건너뛰기] 카드를 피한다.
             RectTransform skipCard = guideView.IsSkipOnly ? guideView.PanelRect : null;
             coachMark.KeepClear = skipCard;
-            feedbackView.TopObstruction = skipCard;
+            CenterWindow.Shared.TopObstruction = skipCard;
             var screen = new TutorialScreen
             {
                 IsTalking = dialogue.IsTalking,
@@ -582,7 +608,13 @@ namespace A305.Tutorial
                         caption,
                         next: TutorialCoachPlan.IsTour(target)
                             ? () => ContinueTour(target)
-                            : (System.Action)null
+                            : (System.Action)null,
+                        // 대사를 말하는 동안에는 오른쪽 [힌트]도 눌러야 하므로 둘레를 덮지 않고 테두리만 둔다.
+                        dimOutside: target != TutorialCoachTarget.GuidedLine,
+                        captionSide: CaptionSide(target),
+                        // 호감도와 할 대사 설명은 대사 칸 왼쪽 위에 두어 가운데 서 있는 Ben 얼굴을 가리지 않는다.
+                        captionAlignLeft: target == TutorialCoachTarget.DialogueRelationship
+                            || target == TutorialCoachTarget.GuidedLine
                     );
                     break;
             }
@@ -667,20 +699,19 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.DialogueRelationship:
                     return dialoguePanel.RelationshipParts;
                 case TutorialCoachTarget.GuidedLine:
-                    // 대사를 읽으며 말해야 하므로 대사 칸도 함께 밝혀, 둘레를 덮어도 대사가 그대로 보이게 한다.
+                    // 대사를 읽으며 말해야 하므로 대사 칸과 입력 줄을 한 테두리로 묶는다. 오른쪽 [힌트]는 담지 않는다.
                     var parts = new List<RectTransform>(dialoguePanel.DialogueLinesParts);
                     parts.AddRange(dialoguePanel.GuidedLineParts);
                     return parts;
                 case TutorialCoachTarget.SuggestedWords:
                     return new[] { dialoguePanel.SuggestedWordsRect };
+                case TutorialCoachTarget.SuggestedSentence:
+                    return new[] { dialoguePanel.SuggestedSentenceRect };
                 case TutorialCoachTarget.DialogueEnd:
                     return new[] { dialoguePanel.EndButtonRect };
                 // 탭을 누르면 바뀌는 결과 칸도 함께 밝혀 무엇이 달라지는지 보이게 한다.
-                // 스크롤 안내에서는 고정된 본문 영역을 밝힌다.
                 case TutorialCoachTarget.FeedbackSections:
                     return new[] { feedbackView.SectionRowRect, feedbackView.PageCardRect };
-                case TutorialCoachTarget.FeedbackPages:
-                    return new[] { feedbackView.ScrollAreaRect };
                 case TutorialCoachTarget.FeedbackClose:
                     return new[] { feedbackView.CloseButtonRect };
                 case TutorialCoachTarget.Vocabulary:
@@ -711,6 +742,10 @@ namespace A305.Tutorial
                     return guide.DialogueToolsCaption;
                 case TutorialCoachTarget.SuggestedWords:
                     return guide.SuggestedWordsCaption;
+                case TutorialCoachTarget.SuggestedSentence:
+                    return guide.SuggestedSentenceCaption;
+                case TutorialCoachTarget.VocabularyButton:
+                    return guide.VocabularyButtonCaption;
                 case TutorialCoachTarget.GuidedLine:
                     string notice = dialogue.IsGuidedLineMissed
                         ? guide.GuidedLineMissCaption
@@ -722,10 +757,28 @@ namespace A305.Tutorial
                     return guide.VocabularyCaption;
                 case TutorialCoachTarget.FeedbackSections:
                     return guide.FeedbackSectionsCaption;
-                case TutorialCoachTarget.FeedbackPages:
-                    return guide.FeedbackPagesCaption;
                 case TutorialCoachTarget.FeedbackClose:
                     return guide.FeedbackCloseCaption;
+                default:
+                    return null;
+            }
+        }
+
+        // 대화창의 이름 줄·도구 줄·대사 칸처럼 옆에 다른 버튼이 늘어선 곳은 설명을 위에 두고,
+        // 대화 피드백 창을 밝히는 탭 설명은 창 오른쪽 빈자리에(좁은 화면이면 창 아래에), 닫기 버튼 설명은 창 아래에 두어
+        // 탭과 제목을 가리지 않는다.
+        private static CoachMarkLayout.BubbleSide? CaptionSide(TutorialCoachTarget target)
+        {
+            switch (target)
+            {
+                case TutorialCoachTarget.DialogueTools:
+                case TutorialCoachTarget.DialogueRelationship:
+                case TutorialCoachTarget.GuidedLine:
+                    return CoachMarkLayout.BubbleSide.Above;
+                case TutorialCoachTarget.FeedbackSections:
+                    return CoachMarkLayout.BubbleSide.Right;
+                case TutorialCoachTarget.FeedbackClose:
+                    return CoachMarkLayout.BubbleSide.Below;
                 default:
                     return null;
             }

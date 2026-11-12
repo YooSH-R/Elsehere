@@ -11,7 +11,7 @@ import pytest
 
 from app import config
 from app.config import Settings
-from app.tts import GpuSynth, Kokoro
+from app.tts import GpuSynth, GpuSynthChain, Kokoro
 from conftest import TOKEN, tiny_wav
 
 GPU_URL = "http://172.19.0.1:18433"
@@ -213,6 +213,66 @@ def test_nothing_to_read_does_not_call_gpu():
     assert server.requests == []
 
 
+BACKUP_URL = "http://172.19.0.1:18443"
+
+
+def refused(request: httpx.Request) -> httpx.Response:
+    """노트북이 꺼져 터널 입구가 없을 때: 연결이 바로 거절된다."""
+    raise httpx.ConnectError("connection refused", request=request)
+
+
+def kokoro_with_backup(main: GpuServer, backup: GpuServer, **kw) -> tuple[Kokoro, RecordingEngine]:
+    """주 GPU(노트북) → 예비 GPU(SSAFY GPU 서버) → CPU."""
+    engine = RecordingEngine()
+    gpus = [
+        GpuSynth(url, "secret", transport=httpx.MockTransport(server.handler), **{"timeout_s": 2.0, **kw})
+        for url, server in ((GPU_URL, main), (BACKUP_URL, backup))
+    ]
+    return Kokoro(engine, "fake.onnx", GpuSynthChain(gpus)), engine
+
+
+def test_main_gpu_off_backup_gpu_synthesizes_and_cpu_is_not_used():
+    main, backup = GpuServer(refused), GpuServer(wav_answer(36000))
+    kokoro, engine = kokoro_with_backup(main, backup)
+
+    wav, seconds, _ = kokoro.synth("Hello there.", "af_heart", 1.0)
+
+    assert wav == tiny_wav(36000) and seconds == 1.5
+    assert engine.texts == []
+    assert len(main.requests) == 1 and backup.requests[0].url == f"{BACKUP_URL}/v1/synth"
+
+
+def test_main_gpu_answers_and_backup_is_not_called():
+    main, backup = GpuServer(wav_answer()), GpuServer(wav_answer())
+    kokoro, _ = kokoro_with_backup(main, backup)
+
+    kokoro.synth("Hello there.", "af_heart", 1.0)
+
+    assert len(main.requests) == 1 and backup.requests == []
+
+
+def test_skipped_main_gpu_goes_straight_to_backup_gpu():
+    # 주 GPU를 건너뛰는 동안 매 대사가 주 GPU 연결을 기다리지 않는다. 예비 GPU 실패 수는 따로 센다
+    clock = FakeClock()
+    main, backup = GpuServer(lambda request: httpx.Response(503)), GpuServer(wav_answer())
+    kokoro, engine = kokoro_with_backup(main, backup, breaker_failures=2, breaker_skip_s=60.0, clock=clock)
+
+    for i in range(4):
+        kokoro.synth(f"Line {i}.", "af_heart", 1.0)
+
+    assert len(main.requests) == 2 and len(backup.requests) == 4
+    assert engine.texts == []
+
+
+def test_both_gpus_fail_falls_back_to_cpu():
+    kokoro, engine = kokoro_with_backup(GpuServer(refused), GpuServer(lambda request: httpx.Response(503)))
+
+    with pytest.raises(RuntimeError, match="CPU 합성은 하지 않음"):
+        kokoro.synth("Hello there.", "af_heart", 1.0)
+
+    assert engine.texts == ["Hello there."]
+
+
 @pytest.fixture
 def env(monkeypatch):
     e = {"AI_WORKER_TOKEN": TOKEN, "GMS_KEY": "g", "GROQ_API_KEY": "q"}
@@ -223,7 +283,7 @@ def env(monkeypatch):
 
 def test_gpu_synth_is_off_by_default(env):
     s = Settings.from_env()
-    assert s.tts_gpu_base_url == "" and GpuSynth.from_settings(s) is None
+    assert s.tts_gpu_base_url == "" and GpuSynthChain.from_settings(s) is None
 
 
 def test_gpu_waits_by_default_long_enough_for_a_queue_of_concurrent_lines(env):
@@ -248,4 +308,15 @@ def test_gpu_synth_from_env(env):
     s = Settings.from_env()
     assert (s.tts_gpu_base_url, s.tts_gpu_token, s.tts_gpu_timeout_s, s.tts_gpu_connect_timeout_s) == (GPU_URL, "t", 1.5, 0.5)
     assert (s.tts_breaker_failures, s.tts_breaker_skip_s) == (0, 120.0)
-    assert GpuSynth.from_settings(s) is not None
+    assert GpuSynthChain.from_settings(s) is not None
+
+
+def test_backup_gpu_synth_from_env(env):
+    env["TTS_GPU_BACKUP_BASE_URL"] = BACKUP_URL
+    with pytest.raises(RuntimeError, match="TTS_GPU_TOKEN"):  # 같은 합성 서버 프로그램이라 토큰은 주 GPU와 같다
+        Settings.from_env()
+    env.update({"TTS_GPU_BASE_URL": GPU_URL, "TTS_GPU_TOKEN": "t"})
+    s = Settings.from_env()
+    assert s.tts_gpu_backup_base_url == BACKUP_URL
+    chain = GpuSynthChain.from_settings(s)
+    assert [gpu.url for gpu in chain.gpus] == [f"{GPU_URL}/v1/synth", f"{BACKUP_URL}/v1/synth"]  # 주 GPU 먼저

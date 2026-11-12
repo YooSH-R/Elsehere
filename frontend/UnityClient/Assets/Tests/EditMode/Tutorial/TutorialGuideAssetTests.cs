@@ -100,11 +100,15 @@ namespace A305.Tutorial.Tests
             Assert.That(guide.GuidedLineCaption, Does.Not.Contain("연습"));
             Assert.That(guide.GuidedLineMissCaption, Does.Contain("정해진 흐름"));
             Assert.That(guide.DialogueLinesCaption, Does.Contain("Ben"));
+            // 대화창 도구 줄([자막 켜기]·[다시 듣기]·[뜻])과 오른쪽 추천 문장 카드의 [힌트]는 따로 밝혀 설명한다.
+            Assert.That(guide.DialogueToolsCaption, Does.Contain("{자막 켜기}"));
+            Assert.That(guide.DialogueToolsCaption, Does.Contain("{다시 듣기}"));
             Assert.That(guide.DialogueToolsCaption, Does.Contain("{뜻}"));
-            Assert.That(guide.DialogueToolsCaption, Does.Contain("{힌트}"));
+            Assert.That(guide.DialogueToolsCaption, Does.Not.Contain("{힌트}"));
+            Assert.That(guide.SuggestedSentenceCaption, Does.Contain("{추천 문장}"));
+            Assert.That(guide.SuggestedSentenceCaption, Does.Contain("{힌트}"));
             Assert.That(guide.DialogueEndCaption, Does.Contain("{대화 종료}"));
             Assert.That(guide.FeedbackSectionsCaption, Does.Contain("{요약}"));
-            Assert.That(guide.FeedbackPagesCaption, Does.Contain("스크롤"));
             Assert.That(
                 guide.FeedbackCloseCaption,
                 Does.Contain("{X}"),
@@ -119,6 +123,64 @@ namespace A305.Tutorial.Tests
             );
             Assert.That(guide.SuggestedWordsCaption, Does.Contain("{단어}"));
             Assert.That(guide.SuggestedWordsCaption, Does.Contain("추천 단어"));
+        }
+
+        // 대화를 마치면 여는 창의 이름은 "대화 피드백"이다. "대화 노트"는 휴대폰에서 지난 대화를 모아 보는 앱이다.
+        [Test]
+        public void FeedbackCaptions_CallTheWindowConversationFeedback()
+        {
+            var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
+
+            Assert.That(guide.FeedbackSectionsCaption, Does.Contain("대화 피드백"));
+            foreach (
+                string caption in new[]
+                {
+                    guide.FeedbackSectionsCaption,
+                    guide.FeedbackCloseCaption,
+                }
+            )
+            {
+                Assert.That(caption, Does.Not.Contain("대화 노트"));
+            }
+        }
+
+        // 호감도 설명은 제목 아래 좋은 말·무례한 말·저장을 문단으로 나누어 읽기 쉽게 한다.
+        [Test]
+        public void RelationshipCaption_SplitsGoodWordsRudenessAndSavingIntoParagraphs()
+        {
+            var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
+
+            string[] paragraphs = guide.RelationshipCaption.Split("\n\n");
+
+            Assert.That(paragraphs.Length, Is.EqualTo(4));
+            // 서버가 호감도를 올리는 사건(인사·칭찬·사과·도움)을 예로 들어 어떤 말이 좋은 말인지 알린다.
+            Assert.That(paragraphs[1], Does.Contain("호감도"));
+            Assert.That(paragraphs[1], Does.Contain("인사"));
+            Assert.That(paragraphs[1], Does.Contain("칭찬"));
+            Assert.That(paragraphs[2], Does.Contain("무례"));
+            Assert.That(paragraphs[3], Does.Contain("저장"));
+        }
+
+        // 서비스의 [힌트]는 추천 문장을 펼치기만 하고 펼친 문장을 눌러야 입력칸에 들어간다.
+        // 튜토리얼이 [힌트]가 입력칸을 바로 채우는 기능처럼 알리지 않는다.
+        [Test]
+        public void HintCaptions_SayTheHintShowsASentenceToClick()
+        {
+            var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
+
+            Assert.That(guide.SuggestedSentenceCaption, Does.Contain("문장을 누르면"));
+            Assert.That(guide.SuggestedSentenceCaption, Does.Not.Contain("채워"));
+            Assert.That(guide.GuidedLineMissCaption, Does.Contain("{힌트}"));
+            Assert.That(guide.GuidedLineMissCaption, Does.Not.Contain("채워"));
+        }
+
+        [Test]
+        public void VocabularyButtonCaption_TellsToOpenTheVocabularyApp()
+        {
+            // 휴대폰을 열면 안내 카드가 [건너뛰기]만 남기고 줄어, [단어장] 앱 옆 말풍선으로 할 일을 알린다.
+            var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
+
+            Assert.That(guide.VocabularyButtonCaption, Does.Contain("{단어장}"));
         }
 
         // 피드백 탭은 요약·문장 교정·전체 대화 셋이다. 없어진 탭을 안내하지 않는다.

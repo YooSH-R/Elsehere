@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -142,12 +143,32 @@ public class TurnHelpService {
       UUID hintRequestId =
           UUID.nameUUIDFromBytes((requestId + ":hint").getBytes(StandardCharsets.UTF_8));
       HintResponse hint = prepareHint(userId, turnId, hintRequestId, target);
-      return new SuggestWordsResponse(turnId, words, hint.hintText(), hint.hintMeaningKo());
+      return new SuggestWordsResponse(
+          turnId, notInSentence(words, hint.hintText()), hint.hintText(), hint.hintMeaningKo());
     } catch (BusinessException exception) {
       // 문장 생성만 실패해도 이미 받은 단어와 대화는 계속 쓸 수 있다.
       log.warn("hint_prefetch_failed turn_id={} error_code={}", turnId, exception.getErrorCode());
       return new SuggestWordsResponse(turnId, words);
     }
+  }
+
+  /** 추천 문장에 그대로 들어 있는 단어는 문장을 잘라 온 말이라 빼고 보낸다. 단어 칸은 "영어 — 뜻"이라 영어만 비교하고, 대소문자·문장 부호는 가리지 않는다. */
+  static List<String> notInSentence(List<String> words, String sentence) {
+    if (words == null || sentence == null) {
+      return words;
+    }
+    String said = " " + spoken(sentence) + " ";
+    return words.stream()
+        .filter(word -> !said.contains(" " + spoken(word.split(" — ", 2)[0]) + " "))
+        .toList();
+  }
+
+  private static String spoken(String text) {
+    return text.toLowerCase(Locale.ROOT)
+        .replace('’', '\'')
+        .replaceAll("[^a-z0-9' ]", " ")
+        .trim()
+        .replaceAll("\\s+", " ");
   }
 
   private NpcLine npcLine(Long userId, Long turnId) {

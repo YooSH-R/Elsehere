@@ -81,6 +81,8 @@ public interface AiRequestRepository extends JpaRepository<AiRequest, Long> {
           """
           select r.user_id as "userId",
                  u.provider as "provider",
+                 u.provider_uid like 'withdrawn-%' as "withdrawn",
+                 u.email as "email",
                  count(*) as "calls",
                  count(*) filter (where r.status = 'FAILED') as "failed",
                  coalesce(sum(r.input_tokens), 0) as "inputTokens",
@@ -88,7 +90,7 @@ public interface AiRequestRepository extends JpaRepository<AiRequest, Long> {
           from ai_requests r
           join users u on u.id = r.user_id
           where r.created_at >= :since and r.status <> 'RESERVED'
-          group by r.user_id, u.provider
+          group by r.user_id, u.provider, u.provider_uid, u.email
           order by coalesce(sum(r.input_tokens), 0) + coalesce(sum(r.output_tokens), 0) desc,
                    r.user_id
           limit :limit
@@ -118,6 +120,12 @@ public interface AiRequestRepository extends JpaRepository<AiRequest, Long> {
     Long getUserId();
 
     String getProvider();
+
+    /** 탈퇴하면 provider_uid가 withdrawn-으로 시작한다(User.withdraw) */
+    boolean getWithdrawn();
+
+    /** 가입 이메일. 게스트와 탈퇴한 사용자는 null */
+    String getEmail();
 
     long getCalls();
 

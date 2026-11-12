@@ -170,7 +170,6 @@ namespace A305.Learning
         // 판의 배율을 높여 요약·교정·대화 본문을 단어장과 비슷한 크기로 읽을 수 있게 한다.
         private const float FrameWidth = 1080 * Px;
         private const float FrameHeight = 770 * Px;
-        private const float TopObstructionGap = 12f;
         private static readonly Color TabInk = new Color32(47, 37, 27, 255);
         private static readonly Color TabMuted = new Color32(125, 110, 91, 255);
 
@@ -225,9 +224,6 @@ namespace A305.Learning
 
         /// <summary>[요약]·[문장 교정]·[전체 대화] 탭 줄. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
         public RectTransform SectionRowRect => sectionRow;
-
-        /// <summary>피드백 본문의 스크롤 영역. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
-        public RectTransform ScrollAreaRect => PageCardRect;
 
         /// <summary>탭을 누르면 바뀌는 결과 칸. 튜토리얼 코치 마크가 피드백 티칭에서 탭과 함께 밝힌다.</summary>
         public RectTransform PageCardRect =>
@@ -483,10 +479,7 @@ namespace A305.Learning
             );
         }
 
-        /// <summary>대화 노트 위에 함께 표시되는 안내 카드의 영역이다.</summary>
-        public RectTransform TopObstruction { private get; set; }
-
-        // 화면 크기나 안내 카드가 차지하는 자리, 사용자가 바꾼 창 크기가 바뀌면 판을 다시 맞춘다.
+        // 화면 크기나 위에 함께 보이는 안내 카드(CenterWindow.TopObstruction)의 자리, 사용자가 바꾼 창 크기가 바뀌면 판을 다시 맞춘다.
         private void LateUpdate()
         {
             if (feedback != null && (resizedByUser || FreeArea() != lastFreeArea))
@@ -496,33 +489,8 @@ namespace A305.Learning
             }
         }
 
-        private Rect FreeArea()
-        {
-            var canvas = (RectTransform)panel.transform.parent;
-            Rect area = CenterWindow.Shared.FreeArea(canvas);
-            RectTransform obstruction = TopObstruction;
-            if (obstruction == null || !obstruction.gameObject.activeInHierarchy)
-                return area;
-
-            Vector2 obstructionBottom = RectTransformUtility.WorldToScreenPoint(
-                CenterWindow.CameraOf(obstruction),
-                obstruction.TransformPoint(obstruction.rect.min)
-            );
-            if (
-                !RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    canvas,
-                    obstructionBottom,
-                    CenterWindow.CameraOf(canvas),
-                    out Vector2 localBottom
-                )
-            )
-                return area;
-
-            // 가운데 위치를 지키면서 안내 카드 아래까지 창의 위아래 높이를 함께 줄인다.
-            float topLimit = localBottom.y - canvas.rect.yMin - TopObstructionGap;
-            float halfHeight = Mathf.Clamp(topLimit - area.center.y, .5f, area.height / 2f);
-            return new Rect(area.xMin, area.center.y - halfHeight, area.width, 2f * halfHeight);
-        }
+        private Rect FreeArea() =>
+            CenterWindow.Shared.FreeArea((RectTransform)panel.transform.parent);
 
         /// <summary>현재 탭·선택 문장·스크롤 위치를 유지한 채 창을 넓히거나 원래 크기로 되돌린다.</summary>
         public void ToggleExpanded()

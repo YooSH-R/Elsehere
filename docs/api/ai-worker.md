@@ -307,7 +307,7 @@ delta*  →  audio*  →  words?  →  done | error
 - 빈 대답이면 `"Sorry, could you say that again?"`로 대신합니다(`done`).
 - Spring이 연결을 끊으면 워커도 모델 호출을 멈춥니다.
 - 조각 하나의 합성이 `TTS_CHUNK_BUDGET_S`(기본 2.5초)를 넘으면 그 조각은 `tts: false`입니다. 이 상한은 조각을 바로 재생하는 화면용이며, 늦은 조각도 합성이 끝나면 턴 전체 음성에는 넣습니다. 그래서 늦은 조각이 있으면 `done`이 남은 합성 시간만큼 늦게 옵니다.
-- 워커에 `TTS_GPU_BASE_URL`을 주면 합성(조각·턴 전체·`/v1/tts`)을 SSAFY GPU 서버([`ai/gpu_tts`](../../ai/gpu_tts/README.md))에서 먼저 하고, 오류·시간 초과면 CPU Kokoro로 만듭니다. 연속으로 `TTS_BREAKER_FAILURES`(3)번 실패하면 `TTS_BREAKER_SKIP_S`(60초) 동안 GPU를 건너뜁니다. 응답 형식은 같습니다. GPU는 fp32 모델이라 CPU(int8)와 소리가 아주 조금 다를 수 있습니다.
+- 워커에 `TTS_GPU_BASE_URL`을 주면 합성(조각·턴 전체·`/v1/tts`)을 SSAFY GPU 서버([`ai/gpu_tts`](../../ai/gpu_tts/README.md))에서 먼저 하고, 오류·시간 초과면 CPU Kokoro로 만듭니다. `TTS_GPU_BACKUP_BASE_URL`도 주면 주 GPU가 실패할 때 예비 GPU를 부르고, 둘 다 실패해야 CPU로 갑니다. 연속으로 `TTS_BREAKER_FAILURES`(3)번 실패하면 `TTS_BREAKER_SKIP_S`(60초) 동안 그 GPU를 건너뜁니다(GPU마다 따로 셈). 응답 형식은 같습니다. GPU는 fp32 모델이라 CPU(int8)와 소리가 아주 조금 다를 수 있습니다.
 - `audio`·`delta`의 `text`는 대답 원문(자막)이고, 음성은 읽을 글로 다듬어 합성합니다(2.8절과 같음). 한글만 있는 조각처럼 읽을 것이 없으면 0.2초 무음입니다(`tts: true`).
 - 턴 전체 음성도 워커 메모리에 보관 시간(600초) 동안만 있으니, Spring은 `done`을 받은 뒤 바로 받아 저장합니다.
 
@@ -335,7 +335,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 - GPU 서버 자체 모델([`ai/gpu_stt`](../../ai/gpu_stt/README.md))은 말소리 감지(Silero VAD)로 말소리 구간이 없는 녹음(무음·잡음)을 받아 적지 않고 `text: ""`를 돌려줍니다. 이 모델(large-v3-turbo)은 무음에 프롬프트와 상관없는 문장(`I want... I want...`, `감사합니다`)도 지어내 메아리 거르기로는 다 막을 수 없기 때문입니다. GMS·Groq로 넘어간 요청에는 이 거르기가 없습니다.
 - GMS 구성(기본 `gms-luna`)은 Groq Whisper(`whisper-large-v3-turbo`)로 인식하고, Groq가 한도(429)·서버 오류·키 오류·응답 없음이면 GMS `whisper-1`로 한 번 더 인식합니다. 이때 `usage`의 `model`은 `whisper-1`, `fallback: true`입니다. 녹음 자체를 공급자가 받지 않은 경우(400·413·415·422)는 넘기지 않습니다. 대체 쪽도 실패하면 429/503이고, 메시지에 두 오류가 함께 적힙니다.
 - 대체가 있으면 Groq 호출은 `STT_FIRST_TIMEOUT_S`(8초) 안에 답이 없을 때 넘깁니다. 응답의 `latency_s`는 실패한 첫 호출까지 포함한 전체 시간입니다. GMS `whisper-1`은 Groq보다 느립니다(6.5초 음성 기준 약 1.9초, Groq 약 0.4초).
-- 워커 환경 변수 `STT_CHAIN`으로 공급자 순서를 정할 수 있습니다(예: SSAFY GPU 서버의 자체 학습 모델 `gpu:turbo-lr1e4` → GMS `whisper-1` → Groq). 앞 공급자가 한도·오류·응답 없음이면 다음으로 넘기고, 녹음 자체 오류는 넘기지 않습니다. `usage`의 `model`은 실제로 인식한 모델이고, 첫 공급자가 아니면 `fallback: true`입니다. 모두 실패하면 마지막 공급자의 오류 코드(429/503)이고 메시지에 공급자별 오류가 함께 적힙니다.
+- 워커 환경 변수 `STT_CHAIN`으로 공급자 순서를 정할 수 있습니다(예: SSAFY GPU 서버의 자체 학습 모델 `gpu:turbo-lr1e4` → GMS `whisper-1` → Groq). 주 GPU가 꺼졌을 때 부를 예비 GPU는 `gpu_backup`(주소 `STT_GPU_BACKUP_BASE_URL`)으로 `gpu` 다음에 둡니다. 앞 공급자가 한도·오류·응답 없음이면 다음으로 넘기고, 녹음 자체 오류는 넘기지 않습니다. `usage`의 `model`은 실제로 인식한 모델이고, 첫 공급자가 아니면 `fallback: true`입니다. 모두 실패하면 마지막 공급자의 오류 코드(429/503)이고 메시지에 공급자별 오류가 함께 적힙니다.
 - 같은 공급자가 연속으로 `STT_BREAKER_FAILURES`(3)번 실패하면 `STT_BREAKER_SKIP_S`(60초) 동안 건너뛰고 다음 공급자로 바로 보냅니다. 마지막 공급자는 건너뛰지 않습니다. 응답 형식은 같습니다.
 - 음성은 음성 인식 공급자(Groq, SSAFY GMS를 거친 OpenAI, `STT_CHAIN`에 `gpu`가 있으면 SSAFY GPU 서버)로 전송됩니다. 사용자 동의 화면에 이 점을 알려야 합니다.
 

@@ -104,9 +104,10 @@ class AdminAiUsageServiceTest {
   }
 
   @Test
-  @DisplayName("게스트와 가입자로 나눠 세고, 토큰을 많이 쓴 사용자부터 보여 준다")
+  @DisplayName("게스트와 가입자로 나눠 세고, 토큰을 많이 쓴 사용자부터 가입자는 이메일로, 게스트는 '게스트 #ID'로 보여 준다")
   void report_countsByUserTypeAndTopUsers() {
     Long member = user(AuthProvider.GOOGLE, "google-sub-1", "Sun");
+    jdbcTemplate.update("update users set email = 'sun@example.com' where id = ?", member);
     Long guest = user(AuthProvider.GUEST, "guest-uid-1", "guest-000001");
     call(member, "NPC", "OK", "gpt-4o-mini", 100, 20, null, NOW.minus(1, HOURS));
     call(guest, "NPC", "OK", "gpt-4o-mini", 300, 30, null, NOW.minus(1, HOURS));
@@ -120,8 +121,8 @@ class AdminAiUsageServiceTest {
             new AiUsageRow("MEMBER", 1, 1, 0, 100, 20, 0));
     assertThat(report.topUsers())
         .containsExactly(
-            new AiUserUsage(guest, true, 2, 1, 300, 30),
-            new AiUserUsage(member, false, 1, 0, 100, 20));
+            new AiUserUsage(guest, true, "게스트 #" + guest, 2, 1, 300, 30),
+            new AiUserUsage(member, false, "sun@example.com", 1, 0, 100, 20));
   }
 
   @ParameterizedTest

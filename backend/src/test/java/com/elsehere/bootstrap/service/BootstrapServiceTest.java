@@ -22,6 +22,7 @@ import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.AvatarType;
 import com.elsehere.user.entity.OnboardingStep;
 import com.elsehere.user.entity.UiTheme;
+import com.elsehere.user.entity.User;
 import com.elsehere.user.service.OptionalConsentService;
 import jakarta.persistence.EntityManager;
 import java.util.UUID;
@@ -70,6 +71,22 @@ class BootstrapServiceTest {
     assertThat(response.user().avatarType()).isEqualTo(AvatarType.F);
     assertThat(response.user().currentLanguage()).isEqualTo("en-US");
     assertThat(response.user().onboardingStep()).isEqualTo(OnboardingStep.DONE);
+  }
+
+  @Test
+  @DisplayName("팀 계정으로 표시하면 그 사용자만 팀 계정이 된다. 없는 사용자면 아무것도 하지 않는다")
+  void markTeamAccount_marksOnlyThatUser() {
+    Long teamUser =
+        UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1", "guest-000001");
+    Long otherUser = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+
+    bootstrapService.markTeamAccount(teamUser);
+    bootstrapService.markTeamAccount(-1L);
+    entityManager.flush();
+    entityManager.clear();
+
+    assertThat(entityManager.find(User.class, teamUser).isTeamAccount()).isTrue();
+    assertThat(entityManager.find(User.class, otherUser).isTeamAccount()).isFalse();
   }
 
   @Test

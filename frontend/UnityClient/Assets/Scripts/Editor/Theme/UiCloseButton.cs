@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using A305.EditorTools.Common;
+using A305.EditorTools.Mission;
 using A305.Theme;
 using TMPro;
 using UnityEditor;
@@ -93,6 +94,8 @@ namespace A305.EditorTools.Theme
                     }
                 );
             }
+            // 지도는 공용 X 모양을 쓰되, 길 안내 버튼과 제목 줄에 맞춘 자리를 유지한다.
+            FirstDayMissionBuilder.ApplyRouteToggle();
             BuilderTools.UpdatePrefabIfExists(
                 FeedbackPath,
                 root => Text(root.transform.Find("Panel/Buttons/CloseButton"), "닫기", 22f)

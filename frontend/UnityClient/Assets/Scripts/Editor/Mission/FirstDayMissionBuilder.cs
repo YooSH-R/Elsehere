@@ -88,17 +88,15 @@ namespace A305.EditorTools.Mission
             Debug.Log("Live mini map added to the first-day mission prefab.");
         }
 
-        /// <summary>이미 만든 큰 지도에 도로 위 길 안내 켜기·끄기 버튼만 다시 둔다. 지도와 미니맵은 그대로 둔다.</summary>
+        /// <summary>큰 지도의 길 안내 버튼과 닫기 버튼을 제목 높이에 맞춘다. 지도와 미니맵은 그대로 둔다.</summary>
+        [MenuItem("Tools/A305/Mission/Apply Map Header Controls")]
         public static void ApplyRouteToggle()
         {
             BuilderTools.ThrowIfPlaying();
             bool updated = BuilderTools.UpdatePrefabIfExists(
                 ViewPath,
                 root =>
-                    AddRouteToggle(
-                        (RectTransform)root.transform.Find("Content/MapOverlay/Panel"),
-                        RoundedSprite(GlassSpritePath, 0f)
-                    )
+                    AddRouteToggle((RectTransform)root.transform.Find("Content/MapOverlay/Panel"))
             );
             if (!updated)
                 throw new System.InvalidOperationException("첫날 미션 프리팹이 없습니다.");
@@ -167,7 +165,7 @@ namespace A305.EditorTools.Mission
                 window.gameObject,
                 LargeMapArtWidth * Ui.Px / TownMapArt.Size.x
             );
-            AddRouteToggle(large, glassSprite);
+            AddRouteToggle(large);
             overlay.gameObject.SetActive(false);
 
             // 왼쪽 아래 미니맵은 시안 지도 그림으로 따로 만든다.
@@ -233,32 +231,42 @@ namespace A305.EditorTools.Mission
             return glass;
         }
 
-        // 머리줄 오른쪽, 닫기 X 왼쪽에 흰 알약으로 도로 위 길 안내를 켜고 끄는 버튼을 둔다. 세로 가운데는 제목 줄(시안 위 55)에 맞춘다.
-        private static void AddRouteToggle(RectTransform panel, Sprite sprite)
+        // 두 버튼을 제목 줄에 맞추고, 닫기 버튼도 지도 내용과 같은 오른쪽 여백을 둔다.
+        private static void AddRouteToggle(RectTransform panel)
         {
-            Transform old = panel.Find("RouteToggle");
-            if (old != null)
-                Object.DestroyImmediate(old.gameObject);
-            RectTransform chip = Rect("RouteToggle", panel);
+            float headerCentreY = -55 * Ui.Px;
+            float rightInset = LargeMapInset * Ui.Px;
+            var close = (RectTransform)panel.Find("CloseButton");
+            close.anchoredPosition = new Vector2(
+                -rightInset,
+                headerCentreY + UiCloseButton.WindowSize / 2
+            );
+
+            var chip = panel.Find("RouteToggle") as RectTransform;
+            if (chip == null)
+                chip = Rect("RouteToggle", panel);
             chip.anchorMin = chip.anchorMax = Vector2.one;
             chip.pivot = new Vector2(1, .5f);
             chip.anchoredPosition = new Vector2(
-                -(UiCloseButton.Inset + UiCloseButton.WindowSize + 16),
-                -55 * Ui.Px
+                -(rightInset + UiCloseButton.WindowSize + 16),
+                headerCentreY
             );
-            chip.sizeDelta = new Vector2(200, 40);
-            Image face = chip.gameObject.AddComponent<Image>();
-            face.sprite = sprite;
+            chip.sizeDelta = new Vector2(200, UiCloseButton.WindowSize);
+            Image closeFace = close.GetComponent<Image>();
+            Image face = BuilderTools.GetOrAddComponent<Image>(chip.gameObject);
+            face.sprite = closeFace.sprite;
             face.type = Image.Type.Sliced;
+            // 같은 높이의 X 버튼과 원 그림·배율을 공유해 양 끝이 완전한 반원인 알약으로 그린다.
+            face.pixelsPerUnitMultiplier = closeFace.pixelsPerUnitMultiplier;
             face.color = new Color(1, 1, 1, .86f);
-            Button button = chip.gameObject.AddComponent<Button>();
+            Button button = BuilderTools.GetOrAddComponent<Button>(chip.gameObject);
             TMP_Text label = Text(chip, "Label", 19, GuideRouteToggle.Label(true));
             label.font = UiBuilderTools.BoldFont();
             label.color = MapInk;
             label.alignment = TextAlignmentOptions.Center;
             label.raycastTarget = false;
             Stretch((RectTransform)label.transform);
-            var toggle = chip.gameObject.AddComponent<GuideRouteToggle>();
+            var toggle = BuilderTools.GetOrAddComponent<GuideRouteToggle>(chip.gameObject);
             BuilderTools.SetReference(toggle, "button", button);
             BuilderTools.SetReference(toggle, "label", label);
         }

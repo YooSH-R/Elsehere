@@ -102,6 +102,7 @@ namespace A305.EditorTools.Npc
                     PrefabUtility.RecordPrefabInstancePropertyModifications(renderer);
                 }
             }
+            BurgerStaffUniformBuilder.Dress(npc, member.Code);
         }
 
         /// <summary>

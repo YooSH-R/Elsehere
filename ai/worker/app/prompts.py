@@ -97,8 +97,9 @@ Do not diagnose pronunciation or invent errors from uncertain speech recognition
 The correction contains only what the learner could say, with no explanation, labels, quotes or markdown.
 Also fill "better_expressions": for an English-only learner line that has no grammar error but sounds awkward or unnatural, or is too short for the situation (for example only "Latte." to order),
 return 3 natural sentences with the same meaning that the learner could say here instead, in their own voice, each at most 12 words.
-Keep their meaning, names, quantities and requests; never answer for the partner or add facts. A short answer that fully and naturally answers the partner (for example "For here, please.") is complete.
-Return [] when the line is already natural and complete, has a grammar error (use english_correction), or the learner used Korean.
+Keep their meaning, names, quantities and requests; never answer for the partner or add facts.
+Short answers and fragments such as "For here, please." also get them, as full sentences (for example "I'll have it here, please.").
+Return [] only when the line is already a natural, complete sentence, has a grammar error (use english_correction), or the learner used Korean.
 Classify intents, slots and events from the original learner line, never from the correction."""
 
 TRANSLATE_SYSTEM = """You help a Korean learner of English in a role-play.

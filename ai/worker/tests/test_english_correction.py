@@ -201,3 +201,6 @@ def test_intent_schema_and_prompt_ask_for_better_sentences_only_for_awkward_or_s
     system = seen["messages"][0]["content"]
     assert "no grammar error but sounds awkward or unnatural, or is too short" in system
     assert "return 3 natural sentences with the same meaning" in system
+    # 상대 대답에 맞는 짧은 답(For here, please.)에도 완전한 문장을 준다
+    assert 'Short answers and fragments such as "For here, please." also get them' in system
+    assert "A short answer that fully and naturally answers the partner" not in system

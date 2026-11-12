@@ -48,8 +48,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
  * 대화·피드백·기억 서비스를 실제 DB(PostgreSQL 컨테이너)와 함께 검증하는 테스트. AI 워커 호출({@link AiGateway})만 Mock으로 바꾼다. AI
  * 호출 기록은 AiGatewayTest가 확인한다.
  *
- * <p>NPC는 시드(WorldSeedLoader가 시작 때 넣음)를 쓴다. 비동기 실행 설정(@EnableAsync)을 불러오지 않으므로 기억 카드 갱신도 호출한 스레드에서
- * 바로 끝난다.
+ * <p>NPC는 시드(WorldSeedLoader가 시작 때 넣음)를 쓴다. 비동기 실행 설정(@EnableAsync)을 불러오지 않으므로 기억 카드 갱신과 뜻 보기 미리
+ * 만들기도 호출한 스레드에서 바로 끝난다.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -80,6 +80,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   SpeechService.class,
   SpeechWords.class,
   TurnHelpService.class,
+  MeaningPreparation.class,
   ConversationLookup.class,
   DialogueContexts.class,
   ConversationResponses.class,

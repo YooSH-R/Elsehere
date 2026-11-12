@@ -49,6 +49,7 @@ class TurnHelpMissionTest {
           missions,
           mock(ConversationResponses.class),
           gateway,
+          new DialogueRequestLocks(),
           new TransactionTemplate(mock(PlatformTransactionManager.class)),
           JsonMapper.builder().build(),
           Clock.systemUTC());

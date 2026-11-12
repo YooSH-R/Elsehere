@@ -23,6 +23,66 @@ namespace A305.EditorTools.World
         internal const string DataFolder = "Assets/Data/World/TownProduction";
         private const string ArtRoot = "TownMainstreet";
 
+        [MenuItem("Tools/A305/World/Ground Home Trees")]
+        public static void GroundHomeTrees()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            Scene scene = EditorSceneManager.OpenScene(ScenePath);
+            Transform street = Root(scene, "Environment").Find(ArtRoot);
+            Transform furnishing = street.Find("StreetFurnishing");
+            Transform flowers = street.Find("StreetLife/StreetFlowers");
+            float groundHeight = street
+                .Find("StreetBase/SiteGround")
+                .GetComponent<Renderer>()
+                .bounds.max.y;
+
+            // 집 남쪽 두 나무는 인도가 끝난 뒤의 잔디 위에 있다. 다른 인도 위 나무의 높이는 유지한다.
+            Transform[] beds = furnishing
+                .Cast<Transform>()
+                .Where(child =>
+                    child.name == "TreeBed" && Mathf.Abs(child.localPosition.z + 28f) < .01f
+                )
+                .ToArray();
+            if (beds.Length != 2)
+                throw new InvalidOperationException("집 남쪽 나무의 흙판 두 개를 찾지 못했습니다.");
+
+            foreach (Transform bed in beds)
+            {
+                Transform tree = furnishing
+                    .Cast<Transform>()
+                    .Single(child =>
+                        child.name == "GardenTreeV2"
+                        && Mathf.Abs(child.position.x - bed.position.x) < .01f
+                        && Mathf.Abs(child.position.z - bed.position.z) < .01f
+                    );
+                float adjustment = groundHeight - bed.GetComponent<Renderer>().bounds.min.y;
+                if (Mathf.Abs(adjustment) < .0001f)
+                    continue;
+
+                // 흙판 밑면을 땅에 붙이고, 나무와 꽃의 상대 높이를 함께 보존한다.
+                Transform[] planting = new[] { bed, tree }
+                    .Concat(
+                        flowers
+                            .Cast<Transform>()
+                            .Where(flower =>
+                                Mathf.Abs(flower.position.x - bed.position.x) < .6f
+                                && Mathf.Abs(flower.position.z - bed.position.z) < .6f
+                            )
+                    )
+                    .ToArray();
+                foreach (Transform item in planting)
+                {
+                    item.position += Vector3.up * adjustment;
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(item);
+                }
+            }
+            if (!EditorSceneManager.SaveScene(scene, ScenePath))
+                throw new InvalidOperationException(
+                    "나무 높이를 수정한 마을 씬을 저장하지 못했습니다."
+                );
+        }
+
         [MenuItem("Tools/A305/World/Repair Tutorial Passerby Placement")]
         public static void RepairTutorialPasserbyPlacement()
         {

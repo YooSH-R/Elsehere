@@ -850,25 +850,51 @@ namespace A305.Dialogue
             }
         }
 
-        // [다른 표현 N개 더 보기]·[접기]. 펼치면 펼친 것이 바로 보이게 '이렇게도 말할 수 있어요'까지 내려 보이고
-        // (고친 문장이 짧아 다 보이면 그대로 둔다), 접으면 맨 위로 돌아간다.
+        // [다른 표현 N개 더 보기]·[접기]. 펼치거나 접을 때마다 맨 위부터 보인다. 펼친 만큼 대화창이 커진다.
         private void ToggleOtherExpressions()
         {
             othersOpen = !othersOpen;
             translationBody.anchoredPosition = Vector2.zero;
             Refresh();
-            if (!othersOpen)
-                return;
-            LayoutRebuilder.ForceRebuildLayoutImmediate(translationBody);
+        }
+
+        // 카드가 대화창 최대 높이(maxHeight)에 걸려 내용이 남으면, 아래 경계가 다음 줄이나 문장 칸의 가운데를 지나도록 높이를 낮춘다.
+        // 다음 내용이 반쯤 보여 아래에 더 있다는 걸 알 수 있다. 맞출 곳이 없으면 그대로 둔다.
+        private float PeekingCardHeight(float maxHeight)
+        {
             var viewport = (RectTransform)translationBody.parent;
-            float room = translationBody.rect.height - viewport.rect.height;
-            float heading = -othersHeading.rectTransform.anchoredPosition.y;
-            heading -=
-                othersHeading.rectTransform.rect.height * (1 - othersHeading.rectTransform.pivot.y);
-            translationBody.anchoredPosition = new Vector2(
-                0,
-                Mathf.Clamp(heading, 0, Mathf.Max(0, room))
-            );
+            float chrome = translationCard.rect.height - viewport.rect.height;
+            float room = maxHeight - chrome;
+            float cut = 0;
+            foreach ((float top, float bottom) in BodyPieces())
+            {
+                float middle = (top + bottom) / 2;
+                if (middle > room)
+                    break;
+                cut = middle;
+            }
+            return cut > 0 ? chrome + cut : maxHeight;
+        }
+
+        // 카드 글자 칸에 쌓인 조각의 (위, 아래). 고친 문장은 줄마다, '이렇게도 말할 수 있어요'와 다른 표현은 칸마다 한 조각이다.
+        private IEnumerable<(float Top, float Bottom)> BodyPieces()
+        {
+            foreach (RectTransform piece in translationBody)
+            {
+                if (!piece.gameObject.activeSelf)
+                    continue;
+                float top = -piece.anchoredPosition.y - piece.rect.height * (1 - piece.pivot.y);
+                if (piece == translationText.rectTransform)
+                {
+                    translationText.ForceMeshUpdate();
+                    int lines = Mathf.Max(1, translationText.textInfo.lineCount);
+                    float line = piece.rect.height / lines;
+                    for (int index = 0; index < lines; index++)
+                        yield return (top + index * line, top + (index + 1) * line);
+                }
+                else
+                    yield return (top, top + piece.rect.height);
+            }
         }
 
         /// <summary>카드의 표현이 방금 영어로 한 말의 교정문인지. 마지막 내 말에 한글이 있으면 번역이다.</summary>
@@ -1501,14 +1527,25 @@ namespace A305.Dialogue
                 MinNameWidth,
                 npcNameText.GetPreferredValues(npcNameText.text).x + 2 * NamePadding
             );
+            float cardHeight = TranslationCardHeight(DialogueCinemaLayout.TranslationWidth(column));
             DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
                 lastCanvasSize,
                 linesHeight,
                 nameWidth,
                 hasEarlierLines,
                 hasTranslation,
-                TranslationCardHeight(DialogueCinemaLayout.TranslationWidth(column))
+                cardHeight
             );
+            // 카드가 대화창 최대 높이에 걸렸으면 다음 내용이 반쯤 보이는 높이로 다시 놓는다.
+            if (hasTranslation && layout.Translation.height < cardHeight - .5f)
+                layout = DialogueCinemaLayout.Compute(
+                    lastCanvasSize,
+                    linesHeight,
+                    nameWidth,
+                    hasEarlierLines,
+                    hasTranslation,
+                    PeekingCardHeight(layout.Translation.height)
+                );
             frame.anchorMin = Vector2.zero;
             frame.anchorMax = new Vector2(1, 0);
             frame.pivot = new Vector2(.5f, 0);

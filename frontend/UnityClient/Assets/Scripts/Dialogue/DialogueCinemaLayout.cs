@@ -20,12 +20,8 @@ namespace A305.Dialogue
         public const float MaxLinesHeight = 600;
         public const float NameHeight = 48;
 
-        /// <summary>
-        /// 영어 표현 카드 칸의 기본 높이. 대사 옆 카드 칸은 대사 칸과 이 높이 중 큰 쪽이고, 좁은 화면에서 대사 위에 쌓는 칸은 이 높이다.
-        /// 칸 높이는 카드 내용과 상관없이 정해져, 카드가 길어지거나 펼쳐져도 대화창은 그대로다.
-        /// 대화가 짧아도 다른 표현을 펼치면 '이렇게도 말할 수 있어요'와 두 줄짜리 문장 칸 하나가 통째로 보이는 높이다.
-        /// </summary>
-        public const float TranslationHeight = 256;
+        /// <summary>영어 표현 카드 내용의 높이를 모를 때 쓰는 기본 높이.</summary>
+        public const float TranslationHeight = 160;
         private const float TranslationSideBySideWidth = 1100;
 
         // 둥근 이름표가 대사 글자 줄보다 앞으로 나오는 폭. 같은 자리에서 시작하면 둥근 끝 때문에 이름표가 안쪽으로 들어가 보인다.
@@ -80,8 +76,15 @@ namespace A305.Dialogue
             layout.Status = new Rect(left, layout.Input.yMax + 12, width, StatusHeight);
             bool stackedTranslation = hasTranslation && width < TranslationSideBySideWidth;
             float reservedHeight = layout.Status.yMax + 10 + Gap + NameHeight + FadeHeight;
+            // 영어 표현 카드는 내용만큼 차지하고 대화창을 그만큼 키운다. 대화창의 최대 높이를 넘지 않고, 넘치는 내용은 카드 안에서 스크롤한다.
+            // 좁은 화면에서 대사 위에 쌓을 때는 대사 최소 높이를 남긴 화면 높이까지만 키운다.
+            float stackedCard = 0;
             if (stackedTranslation)
-                reservedHeight += TranslationHeight + Gap;
+            {
+                float room = canvasSize.y - reservedHeight - Gap - MinLinesHeight;
+                stackedCard = Mathf.Clamp(translationHeight, 0, Mathf.Min(MaxLinesHeight, room));
+                reservedHeight += stackedCard + Gap;
+            }
             float maxLines = Mathf.Min(MaxLinesHeight, Mathf.Max(0, canvasSize.y - reservedHeight));
             layout.Lines = new Rect(
                 left,
@@ -95,13 +98,12 @@ namespace A305.Dialogue
             if (hasTranslation)
             {
                 bool sideBySide = width >= TranslationSideBySideWidth;
-                // 카드는 내용만큼만 차지하고 칸보다 길면 안에서 스크롤한다. 칸 높이는 내용과 상관없이 정한다.
-                // 카드는 학습자의 최근 말이 있는 칸 아래쪽에 붙고, 칸의 남는 곳은 이름 줄 쪽에 둔다.
+                // 카드는 학습자의 최근 말이 있는 대사 칸 아래쪽에 붙는다.
                 if (sideBySide)
                 {
-                    float room = Mathf.Max(layout.Lines.height, TranslationHeight);
-                    float cardHeight = Mathf.Min(translationHeight, room);
-                    bodyTop = Mathf.Max(bodyTop, layout.Lines.yMin + room);
+                    // 대사 옆 카드는 대사 칸의 최대 높이까지 키운다. 대사보다 길면 대화창이 카드에 맞춰 커진다.
+                    float cardHeight = Mathf.Clamp(translationHeight, 0, maxLines);
+                    bodyTop = Mathf.Max(bodyTop, layout.Lines.yMin + cardHeight);
                     layout.Translation = new Rect(
                         layout.Lines.xMax + 2 * Gap,
                         layout.Lines.yMin,
@@ -117,9 +119,8 @@ namespace A305.Dialogue
                 }
                 else
                 {
-                    float cardHeight = Mathf.Min(translationHeight, TranslationHeight);
-                    layout.Translation = new Rect(left, bodyTop + Gap, width, cardHeight);
-                    bodyTop += Gap + TranslationHeight;
+                    layout.Translation = new Rect(left, bodyTop + Gap, width, stackedCard);
+                    bodyTop += Gap + stackedCard;
                 }
             }
             layout.Name = new Rect(left - NameOutdent, bodyTop + Gap, nameWidth, NameHeight);

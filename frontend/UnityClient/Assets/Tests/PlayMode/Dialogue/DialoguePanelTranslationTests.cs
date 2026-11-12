@@ -155,9 +155,9 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(cardArea.xMax, Is.LessThanOrEqualTo(panel.rect.xMax));
         }
 
-        // 카드는 내용이 짧으면 짧아지고, 길어져도 대화창을 늘리지 않는다. 넘치는 줄은 카드 안에서 스크롤한다.
+        // 카드는 내용이 짧으면 짧아지고, 길어지면 대화창이 카드에 맞춰 커진다. 대화창 최대 높이 안이면 문장이 다 보인다.
         [UnityTest]
-        public IEnumerator LongExpression_KeepsTheDialogueHeight_AndScrollsInsideTheCard()
+        public IEnumerator LongExpression_GrowsTheCardAndTheDialogue_WithoutScrolling()
         {
             var content = new Content { UserTranslation = "Where is the cafe?" };
             view.Show(content);
@@ -166,23 +166,29 @@ namespace A305.Dialogue.PlayModeTests
             Rect shortCard = InPanel((RectTransform)Card, panel);
             float nameBottom = InPanel((RectTransform)panel.Find("Title"), panel).yMin;
 
-            content.UserTranslation = VeryLongExpression;
+            content.UserTranslation = LongExpression;
             view.Refresh();
             yield return null;
             yield return null;
             Rect longCard = InPanel((RectTransform)Card, panel);
             Rect nameArea = InPanel((RectTransform)panel.Find("Title"), panel);
             Assert.That(longCard.height, Is.GreaterThan(shortCard.height));
-            Assert.That(nameArea.yMin, Is.EqualTo(nameBottom).Within(.5f));
+            Assert.That(nameArea.yMin, Is.GreaterThan(nameBottom));
             Assert.That(longCard.Overlaps(nameArea), Is.False);
             var scroll = Card.GetComponent<ScrollRect>();
-            Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
+            Assert.That(
+                scroll.content.rect.height,
+                Is.LessThanOrEqualTo(scroll.viewport.rect.height + .5f)
+            );
+            Assert.That(panel.rect.height, Is.LessThanOrEqualTo(1080 + .5f));
         }
 
-        // 카드 높이보다 긴 표현은 막대로 더 있다는 걸 알리고, 글자를 끌어 마지막 줄까지 읽는다.
+        // 대화창 최대 높이보다 긴 표현은 그 높이에서 멈추고, 마지막 줄을 반쯤 가려 아래에 더 있다는 걸 알린다.
+        // 굵은 막대가 보이고, 글자를 끌어 마지막 줄까지 읽는다.
         [UnityTest]
-        public IEnumerator VeryLongExpression_ShowsAScrollbarAndDragsToTheLastLine()
+        public IEnumerator VeryLongExpression_StopsAtTheDialogueMaximum_HalfShowingTheNextLine()
         {
+            instance.GetComponent<RectTransform>().sizeDelta = new Vector2(1920, 720);
             view.Show(new Content { UserTranslation = VeryLongExpression });
             yield return null;
             yield return null;
@@ -190,7 +196,15 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
             Assert.That(scroll.verticalScrollbar, Is.Not.Null);
             Assert.That(scroll.verticalScrollbar.gameObject.activeInHierarchy, Is.True);
+            Assert.That(
+                ((RectTransform)scroll.verticalScrollbar.transform).rect.width,
+                Is.GreaterThanOrEqualTo(10)
+            );
             Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(1).Within(.01f));
+            Expression.ForceMeshUpdate();
+            float line = Expression.preferredHeight / Expression.textInfo.lineCount;
+            float shownLines = scroll.viewport.rect.height / line;
+            Assert.That(shownLines - Mathf.Floor(shownLines), Is.InRange(.25f, .75f));
 
             GameObject text = scroll.content.gameObject;
             var drag = new PointerEventData(EventSystem.current ?? NewEventSystem())
@@ -218,11 +232,13 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(scroll.verticalScrollbar.gameObject.activeInHierarchy, Is.False);
         }
 
-        // 맞게 말해도 같은 뜻의 다른 표현을 접어 둔다. 펼치면 문장마다 번호 칸으로 나뉘고, 대화창은 늘지 않으며,
+        // 맞게 말해도 같은 뜻의 다른 표현을 접어 둔다. 펼치면 문장마다 번호 칸으로 나뉘고 대화창이 카드에 맞춰 커진다.
+        // 대화창 최대 높이에 닿으면 다음 문장 칸을 반쯤 가려 아래에 더 있다는 걸 알리고,
         // 아래 [접기]는 스크롤해도 카드 안에 그대로 보인다 (S15P31A305-862).
         [UnityTest]
         public IEnumerator OtherExpressions_StayFolded_AndOpenAsNumberedRowsWithAFixedToggle()
         {
+            instance.GetComponent<RectTransform>().sizeDelta = new Vector2(1920, 720);
             var content = new Content
             {
                 UserLine = "Can I get a latte?",
@@ -237,7 +253,6 @@ namespace A305.Dialogue.PlayModeTests
             yield return null;
             yield return null;
             var panel = (RectTransform)Card.parent;
-            float nameBottom = InPanel((RectTransform)panel.Find("Title"), panel).yMin;
             Assert.That(Card.gameObject.activeInHierarchy, Is.True);
             Assert.That(Heading.text, Is.EqualTo("잘 말했어요"));
             Assert.That(Expression.gameObject.activeSelf, Is.False);
@@ -270,18 +285,22 @@ namespace A305.Dialogue.PlayModeTests
             }
             Rect openCard = InPanel((RectTransform)Card, panel);
             Rect nameArea = InPanel((RectTransform)panel.Find("Title"), panel);
-            Assert.That(nameArea.yMin, Is.EqualTo(nameBottom).Within(.5f));
             Assert.That(openCard.Overlaps(nameArea), Is.False);
+            Assert.That(panel.rect.height, Is.LessThanOrEqualTo(720 + .5f));
 
             var scroll = Card.GetComponent<ScrollRect>();
             Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
+            Rect viewportArea = InPanel((RectTransform)Card.Find("Viewport"), panel);
+            Rect cut = rows.Select(row => InPanel((RectTransform)row, panel))
+                .First(row => row.yMin < viewportArea.yMin - .5f);
+            Assert.That((cut.yMax - viewportArea.yMin) / cut.height, Is.InRange(.25f, .75f));
+
             scroll.verticalNormalizedPosition = 0;
             yield return null;
             Rect toggle = InPanel((RectTransform)OthersButton.transform, panel);
             Assert.That(OthersButton.gameObject.activeInHierarchy, Is.True);
             Assert.That(toggle.yMin, Is.GreaterThanOrEqualTo(openCard.yMin - .5f));
             Assert.That(toggle.yMax, Is.LessThanOrEqualTo(openCard.yMax + .5f));
-            Rect viewportArea = InPanel((RectTransform)Card.Find("Viewport"), panel);
             Assert.That(toggle.Overlaps(viewportArea), Is.False);
 
             OthersButton.onClick.Invoke();
@@ -324,43 +343,9 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(OtherRows, Is.Empty);
         }
 
-        // 대화가 짧아 카드 칸이 낮아도, 긴 고친 문장 아래의 [더 보기]를 누르면 카드가 다른 표현 쪽으로 내려가
-        // '이렇게도 말할 수 있어요'와 첫 문장 칸이 글자 칸 안에 통째로 보인다. 펼친 것이 바로 보여야 [접기]가 어색하지 않다.
-        [UnityTest]
-        public IEnumerator OpeningBelowALongCorrection_ScrollsTheOtherExpressionsIntoView()
-        {
-            view.Show(
-                new Content
-                {
-                    UserLine =
-                        "yesterday i go to the bakery and buy two bread, but it was close so i come back home",
-                    UserTranslation =
-                        "Yesterday I went to the bakery and bought two loaves of bread, but it was closed, so I came back home.",
-                    UserBetterExpressions = new[]
-                    {
-                        "I tried to buy two loaves of bread at the bakery yesterday, but it was closed, so I went back home.",
-                        "Yesterday I went to get some bread at the bakery, but it was closed, so I just came home.",
-                    },
-                }
-            );
-            yield return null;
-            OthersButton.onClick.Invoke();
-            yield return null;
-            yield return null;
-
-            var panel = (RectTransform)Card.parent;
-            Rect viewport = InPanel((RectTransform)Card.Find("Viewport"), panel);
-            Rect heading = InPanel((RectTransform)Card.Find("Viewport/Body/OthersHeading"), panel);
-            Rect firstRow = InPanel((RectTransform)OtherRows[0], panel);
-            // 제목은 통째로, 첫 문장 칸은 위쪽부터 두 줄 넘게 보인다. 세 줄을 넘는 긴 문장의 나머지는 카드 안에서 스크롤한다.
-            Assert.That(heading.yMax, Is.LessThanOrEqualTo(viewport.yMax + .5f));
-            Assert.That(heading.yMin, Is.GreaterThanOrEqualTo(viewport.yMin - .5f));
-            Assert.That(firstRow.yMax, Is.LessThanOrEqualTo(viewport.yMax + .5f));
-            Assert.That(firstRow.yMax - viewport.yMin, Is.GreaterThanOrEqualTo(70));
-            var bar = Card.GetComponent<ScrollRect>().verticalScrollbar;
-            Assert.That(bar.gameObject.activeInHierarchy, Is.True);
-            Assert.That(((RectTransform)bar.transform).rect.width, Is.GreaterThanOrEqualTo(10));
-        }
+        private const string LongExpression =
+            "You have no conscience, do you? I should've just left you to die. "
+            + "What were you even thinking back there?";
 
         private const string VeryLongExpression =
             "You have no conscience, do you? I should've just left you to die. "

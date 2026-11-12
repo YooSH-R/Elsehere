@@ -333,6 +333,16 @@ namespace A305.EditorTools.Dialogue
                 900,
                 1400
             );
+            // 낮은 화면: 대화창 최대 높이에 걸려 다음 문장 칸이 반쯤 보인다.
+            Capture(
+                "others-long-open-short-screen.png",
+                longSaid,
+                longFixed,
+                longOthers,
+                true,
+                1920,
+                720
+            );
             Capture(
                 "others-long-open-end.png",
                 longSaid,

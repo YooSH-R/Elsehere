@@ -166,6 +166,34 @@ namespace A305.Npc
         /// <summary>처음 놓인 자리와 방향. 다가왔다가 돌아갈 곳이고, 직원은 근무 자리다.</summary>
         internal Pose HomePose => homePose;
 
+        public bool AllowsPracticePosition(Vector3 point) =>
+            routine == null || routine.AllowsConversationPosition(point);
+
+        /// <summary>복습·장소 연습의 카메라를 열기 전에 생활 동작과 착석을 끝내고 응대 자리로 정렬한다.</summary>
+        public Vector3 PrepareForPracticeConversation()
+        {
+            routine?.Interrupt();
+            CancelPlayerTalk();
+            if (offerView != null)
+            {
+                offerView.Hide(this);
+                offerView.HideTalkPrompt(this);
+            }
+            Pose post = routine != null ? routine.ConversationPost : homePose;
+            Vector3 customer =
+                routine != null
+                    ? routine.ConversationCustomerPosition
+                    : post.position + post.rotation * Vector3.forward * 1.8f;
+            post.rotation = Quaternion.LookRotation(customer - post.position);
+            bool wasEnabled = characterController.enabled;
+            characterController.enabled = false;
+            transform.SetPositionAndRotation(post.position, post.rotation);
+            characterController.enabled = wasEnabled;
+            ReportLocomotion(0f);
+            ShowAnimation(TalkAnimation);
+            return customer;
+        }
+
         /// <summary>꺼진 출퇴근 프리팹을 현재 타운의 대화·플레이어에 연결한 다음 켠다.</summary>
         public void ConnectToTown(
             PlayerMover townPlayer,

@@ -85,6 +85,43 @@ namespace A305.Dialogue.Tests
             }
         }
 
+        // 서버 대화가 아니라 서버가 음성에 붙이는 표정 시간표(e305)도 받지 않는다.
+        // 그래서 미리 합성한 음성마다 대사에 맞는 표정을 저장해 두고, 말하는 동안 그 표정을 짓는다.
+        [Test]
+        public void TutorialBen_EveryLineCarriesAStoredExpressionThatFitsIt()
+        {
+            var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
+            scripts.TryGetScript("TUTORIAL_PASSERBY", out DialogueScript script);
+            var expected = new (DialogueLine Line, CharacterEmotion Emotion)[]
+            {
+                // 길을 헤매다 처음 말을 걸며 궁금한 얼굴로 묻는다.
+                (script.OpeningLine, CharacterEmotion.Curious),
+                // 인사를 받고 반갑게 웃으며 카페 가는 길을 묻는다.
+                (script.GuidedTurns[0].Reply, CharacterEmotion.WarmSmile),
+                // 길을 알게 되어 안도하며 고마워한다.
+                (script.GuidedTurns[1].Reply, CharacterEmotion.Relieved),
+            };
+            var profile = ScriptableObject.CreateInstance<EmotionExpressionProfile>();
+            try
+            {
+                foreach ((DialogueLine line, CharacterEmotion emotion) in expected)
+                {
+                    DialogueSpeechWav wav = DialogueSpeechWav.Read(line.Speech);
+                    Assert.That(wav.EmotionError, Is.Null, line.English);
+                    Assert.That(wav.Emotions, Is.Not.Null, $"표정이 없습니다: {line.English}");
+                    Assert.That(
+                        wav.Emotions.Sample(wav.Emotions.Duration / 2f, profile),
+                        Is.EqualTo(profile.Sample(emotion)),
+                        $"{line.English}에는 {emotion} 표정을 짓습니다."
+                    );
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(profile);
+            }
+        }
+
         [Test]
         public void ShopStaff_WelcomesVisitorsToTheDrugstore()
         {

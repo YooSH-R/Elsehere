@@ -120,7 +120,7 @@ namespace A305.EditorTools.Theme
         }
 
         /// <summary>
-        /// HUD 내 정보 창에 NPC 말 빠르기 줄만 덧붙이고 칠한다(S15P31A305-778). HUD 전체 Builder를 다시 돌리면 다른 Builder가
+        /// HUD 설정 창에 NPC 말 빠르기 줄만 덧붙이고 칠한다(S15P31A305-778). HUD 전체 Builder를 다시 돌리면 다른 Builder가
         /// 마무리한 HUD 디자인까지 바뀌므로 이 줄만 다룬다.
         /// </summary>
         [MenuItem("Tools/A305/UI/Add NPC Speech Speed Setting")]
@@ -136,21 +136,21 @@ namespace A305.EditorTools.Theme
                     StyleMyPage(root.transform);
                     foreach (
                         ThemedElement element in root
-                            .transform.Find("MyPage/Window/NpcSpeechSpeed")
+                            .transform.Find("Settings/Window/NpcSpeechSpeed")
                             .GetComponentsInChildren<ThemedElement>(true)
                     )
                         element.ApplyCurrent();
                 }
             );
             AssetDatabase.SaveAssets();
-            Debug.Log("내 정보 창에 NPC 말 빠르기 줄을 덧붙였습니다.");
+            Debug.Log("설정 창에 NPC 말 빠르기 줄을 덧붙였습니다.");
         }
 
         private const string LevelButtonTemplatePath =
-            "MyPage/Window/ConversationLevel/Row/Choices/LevelButtonTemplate";
+            "Settings/Window/ConversationLevel/Row/Choices/LevelButtonTemplate";
 
         /// <summary>
-        /// HUD 내 정보 창에 대화 난이도 줄만 덧붙이고 칠한다(S15P31A305-799). HUD 전체 Builder를 다시 돌리면 다른 Builder가
+        /// HUD 설정 창에 대화 난이도 줄만 덧붙이고 칠한다(S15P31A305-799). HUD 전체 Builder를 다시 돌리면 다른 Builder가
         /// 마무리한 HUD 디자인까지 바뀌므로 이 줄을 만든 뒤 내 정보 배치(<c>MyPageLayoutBuilder</c>)만 다시 맞춘다.
         /// </summary>
         [MenuItem("Tools/A305/UI/Add Conversation Level Setting")]
@@ -167,14 +167,14 @@ namespace A305.EditorTools.Theme
                     A305.EditorTools.Onboarding.MyPageLayoutBuilder.Apply(root);
                     foreach (
                         ThemedElement element in root
-                            .transform.Find("MyPage/Window/ConversationLevel")
+                            .transform.Find("Settings/Window/ConversationLevel")
                             .GetComponentsInChildren<ThemedElement>(true)
                     )
                         element.ApplyCurrent();
                 }
             );
             AssetDatabase.SaveAssets();
-            Debug.Log("내 정보 창에 대화 난이도 줄을 덧붙였습니다.");
+            Debug.Log("설정 창에 대화 난이도 줄을 덧붙였습니다.");
         }
 
         /// <summary>대화 제안·로그인과 가입·대화 노트·내 정보 창의 바탕과 버튼을 다른 화면과 같은 테마 규칙으로 맞춘다.</summary>
@@ -547,28 +547,37 @@ namespace A305.EditorTools.Theme
         /// <summary>마이페이지 창과 로그아웃 확인 창을 칠한다. 닫기는 오른쪽 위 X, 확인 동작은 강조 알약 버튼이다.</summary>
         private static void StyleMyPage(Transform root)
         {
-            if (root.Find("MyPage") == null)
+            if (root.Find("MyPage") == null || root.Find("Settings") == null)
                 return;
             Role(root, "MyPage/Window", UiThemeRole.Panel);
             Role(root, "MyPage/Window/Title", UiThemeRole.Title);
+            Role(root, "Settings/Window", UiThemeRole.Panel);
+            Role(root, "Settings/Window/Title", UiThemeRole.Title);
+            Role(root, "Settings/Window/Status", UiThemeRole.Muted);
             Role(root, "MyPage/Window/Profile", UiThemeRole.Body);
             ThemedInput(root, "MyPage/Window/NicknameRow/NicknameInput");
             Role(root, "MyPage/Window/Status", UiThemeRole.Muted);
-            Role(root, "MyPage/Window/LookSensitivity/Title", UiThemeRole.Title);
-            Role(root, "MyPage/Window/LookSensitivity/Help", UiThemeRole.Muted);
-            Role(root, "MyPage/Window/LookSensitivity/Row/Slow", UiThemeRole.Caption);
-            Role(root, "MyPage/Window/LookSensitivity/Row/Fast", UiThemeRole.Caption);
-            Role(root, "MyPage/Window/LookSensitivity/Row/Value", UiThemeRole.Accent);
-            Role(root, "MyPage/Window/NpcSpeechSpeed/Title", UiThemeRole.Title);
-            Role(root, "MyPage/Window/NpcSpeechSpeed/Help", UiThemeRole.Muted);
-            Role(root, "MyPage/Window/NpcSpeechSpeed/Row/Slow", UiThemeRole.Caption);
-            Role(root, "MyPage/Window/NpcSpeechSpeed/Row/Fast", UiThemeRole.Caption);
-            Role(root, "MyPage/Window/NpcSpeechSpeed/Row/Value", UiThemeRole.Accent);
-            if (root.Find("MyPage/Window/ConversationLevel") != null)
+            Role(root, "Settings/Window/LookSensitivity/Title", UiThemeRole.Title);
+            Role(root, "Settings/Window/LookSensitivity/Help", UiThemeRole.Muted);
+            Role(root, "Settings/Window/LookSensitivity/Row/Slow", UiThemeRole.Caption);
+            Role(root, "Settings/Window/LookSensitivity/Row/Fast", UiThemeRole.Caption);
+            Role(root, "Settings/Window/LookSensitivity/Row/Value", UiThemeRole.Accent);
+            Role(root, "Settings/Window/NpcSpeechSpeed/Title", UiThemeRole.Title);
+            Role(root, "Settings/Window/NpcSpeechSpeed/Help", UiThemeRole.Muted);
+            Role(root, "Settings/Window/NpcSpeechSpeed/Row/Slow", UiThemeRole.Caption);
+            Role(root, "Settings/Window/NpcSpeechSpeed/Row/Fast", UiThemeRole.Caption);
+            Role(root, "Settings/Window/NpcSpeechSpeed/Row/Value", UiThemeRole.Accent);
+            if (root.Find("Settings/Window/ConversationLevel") != null)
             {
-                Role(root, "MyPage/Window/ConversationLevel/Row/Title", UiThemeRole.Title);
+                Role(root, "Settings/Window/ConversationLevel/Row/Title", UiThemeRole.Title);
                 // 가입 화면의 [여성]·[남성]처럼 고른 단계 버튼을 강조색 카드로 칠해 지금 난이도가 한눈에 보이게 한다.
                 QuietButton(root, LevelButtonTemplatePath, "초급");
+            }
+            if (root.Find("Settings/Window/SoundEffects") != null)
+            {
+                Role(root, "Settings/Window/SoundEffects/Row/Title", UiThemeRole.Title);
+                QuietButton(root, "Settings/Window/SoundEffects/Row/Choices/OnButton", "켜기");
+                QuietButton(root, "Settings/Window/SoundEffects/Row/Choices/OffButton", "끄기");
             }
             ActionPill(
                 root,
@@ -579,59 +588,62 @@ namespace A305.EditorTools.Theme
             );
             ActionPill(
                 root,
-                "MyPage/Window/Buttons/LogoutButton",
+                "Settings/Window/Buttons/LogoutButton",
                 UiIcon.Exit,
                 UiTone.Neutral,
                 210
             );
-            CornerClose(root, "MyPage/Window");
-            Roomy(root, "MyPage/Window");
-            // 여백을 넓힌 만큼 창을 넓혀 시점 감도 줄의 [빠르게]와 현재 배율이 겹치지 않게 한다.
-            var window = (RectTransform)root.Find("MyPage/Window");
-            window.sizeDelta = new Vector2(640, window.sizeDelta.y);
-            Role(root, "MyPage/LogoutDialog", UiThemeRole.Panel);
-            Role(root, "MyPage/LogoutDialog/Title", UiThemeRole.Title);
-            Role(root, "MyPage/LogoutDialog/Body", UiThemeRole.Body);
-            Role(root, "MyPage/LogoutDialog/Status", UiThemeRole.Muted);
+            foreach (string path in new[] { "MyPage/Window", "Settings/Window" })
+            {
+                CornerClose(root, path);
+                Roomy(root, path);
+                // 여백을 넓힌 만큼 창을 넓혀 시점 감도 줄의 [빠르게]와 현재 배율이 겹치지 않게 한다.
+                var window = (RectTransform)root.Find(path);
+                window.sizeDelta = new Vector2(640, window.sizeDelta.y);
+            }
+            Role(root, "Settings/LogoutDialog", UiThemeRole.Panel);
+            Role(root, "Settings/LogoutDialog/Title", UiThemeRole.Title);
+            Role(root, "Settings/LogoutDialog/Body", UiThemeRole.Body);
+            Role(root, "Settings/LogoutDialog/Status", UiThemeRole.Muted);
             ActionPill(
                 root,
-                "MyPage/LogoutDialog/Buttons/CancelButton",
+                "Settings/LogoutDialog/Buttons/CancelButton",
                 UiIcon.None,
                 UiTone.Neutral,
                 180
             );
             ActionPill(
                 root,
-                "MyPage/LogoutDialog/Buttons/ConfirmButton",
+                "Settings/LogoutDialog/Buttons/ConfirmButton",
                 UiIcon.Exit,
                 UiTone.Primary,
                 180
             );
-            Roomy(root, "MyPage/LogoutDialog");
-            if (root.Find("MyPage/Window/Consents") != null)
+            Roomy(root, "Settings/LogoutDialog");
+            if (root.Find("Settings/Window/Consents") != null)
             {
-                Role(root, "MyPage/Window/ConsentsLabel", UiThemeRole.Caption);
-                ConsentRow(root, "MyPage/Window/Consents/ConsentRowTemplate");
+                Role(root, "Settings/Window/ConsentsLabel", UiThemeRole.Caption);
+                ConsentRow(root, "Settings/Window/Consents/ConsentRowTemplate");
             }
-            if (root.Find("MyPage/WithdrawDialog") == null)
+            if (root.Find("Settings/WithdrawDialog") == null)
                 return;
             ActionPill(
                 root,
-                "MyPage/Window/Buttons/WithdrawButton",
+                "Settings/Window/Buttons/WithdrawButton",
                 UiIcon.None,
                 UiTone.Neutral,
                 210
             );
-            Role(root, "MyPage/WithdrawDialog", UiThemeRole.Panel);
-            Role(root, "MyPage/WithdrawDialog/Title", UiThemeRole.Title);
-            Role(root, "MyPage/WithdrawDialog/Body", UiThemeRole.Body);
+            Role(root, "Settings/WithdrawDialog", UiThemeRole.Panel);
+            Role(root, "Settings/WithdrawDialog/Title", UiThemeRole.Title);
+            Role(root, "Settings/WithdrawDialog/Body", UiThemeRole.Body);
             // 지우는 내용을 알리는 긴 문장이라 창 안에서 줄을 바꾼다.
-            root.Find("MyPage/WithdrawDialog/Body").GetComponent<TMP_Text>().textWrappingMode =
+            root.Find("Settings/WithdrawDialog/Body").GetComponent<TMP_Text>().textWrappingMode =
                 TextWrappingModes.Normal;
-            Role(root, "MyPage/WithdrawDialog/Status", UiThemeRole.Muted);
+            Role(root, "Settings/WithdrawDialog/Status", UiThemeRole.Muted);
             ActionPill(
                 root,
-                "MyPage/WithdrawDialog/Buttons/CancelButton",
+                "Settings/WithdrawDialog/Buttons/CancelButton",
                 UiIcon.None,
                 UiTone.Neutral,
                 180
@@ -639,12 +651,12 @@ namespace A305.EditorTools.Theme
             // 되돌릴 수 없는 동작은 강조색 대신 코랄(Secondary)로 구분한다.
             ActionPill(
                 root,
-                "MyPage/WithdrawDialog/Buttons/ConfirmButton",
+                "Settings/WithdrawDialog/Buttons/ConfirmButton",
                 UiIcon.Delete,
                 UiTone.Secondary,
                 180
             );
-            Roomy(root, "MyPage/WithdrawDialog");
+            Roomy(root, "Settings/WithdrawDialog");
             A305.EditorTools.Onboarding.MyPageLayoutBuilder.Apply(root.gameObject);
         }
 
@@ -701,7 +713,8 @@ namespace A305.EditorTools.Theme
             );
             Style(
                 HudPath,
-                root => ConsentCheck(root.Find("MyPage/Window/Consents/ConsentRowTemplate/Toggle"))
+                root =>
+                    ConsentCheck(root.Find("Settings/Window/Consents/ConsentRowTemplate/Toggle"))
             );
             AssetDatabase.SaveAssets();
         }

@@ -3,7 +3,7 @@ using UnityEngine;
 namespace A305.Ambience
 {
     /// <summary>
-    /// 오른쪽 위 스피커에서 고른 배경 소리(생활소음·환경 효과음·발자국·UI 효과음·접속 음악) 설정. 기기의 PlayerPrefs에 남는다.
+    /// 설정 창의 효과음 [켜기]·[끄기]로 고른 배경 소리(생활소음·환경 효과음·발자국·UI 효과음·접속 음악) 설정. 기기의 PlayerPrefs에 남는다.
     /// 켜고 끄기(<see cref="Enabled"/>)와 크기(<see cref="Volume"/>)를 따로 기억해, 껐다 켜면 고른 크기로 돌아온다. NPC 음성에는 쓰지 않는다.
     /// </summary>
     public static class BackgroundSoundPreference

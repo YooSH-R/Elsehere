@@ -9,7 +9,7 @@ using Object = UnityEngine.Object;
 
 namespace A305.EditorTools.Onboarding
 {
-    /// <summary>내 정보의 항목 정렬, 설정 카드, 일반 굵기 버튼을 한 화면 안에서 맞춘다.</summary>
+    /// <summary>내 정보 창과 설정 창의 항목 정렬, 설정 카드, 일반 굵기 버튼을 한 화면 안에서 맞춘다.</summary>
     public static class MyPageLayoutBuilder
     {
         private const string HudPath = "Assets/Prefabs/Learning/LearningHud.prefab";
@@ -29,12 +29,7 @@ namespace A305.EditorTools.Onboarding
                 return;
 
             var catalog = AssetDatabase.LoadAssetAtPath<UiThemeCatalog>(CatalogPath);
-            var rect = (RectTransform)window;
-            rect.sizeDelta = new Vector2(740, rect.sizeDelta.y);
-            var column = window.GetComponent<VerticalLayoutGroup>();
-            column.padding = new RectOffset(40, 40, 32, 32);
-            column.spacing = 14;
-            Text(window.Find("Title"), catalog, UiThemeRole.Title, 32);
+            Frame(window, catalog);
             TMP_Text profile = Text(window.Find("Profile"), catalog, UiThemeRole.Body, 22);
             profile.lineSpacing = 12;
             profile.richText = true;
@@ -49,10 +44,14 @@ namespace A305.EditorTools.Onboarding
             input.textComponent.fontSize = 22;
             ((TMP_Text)input.placeholder).fontSize = 22;
             Button(nickname.Find("NicknameButton"), catalog, 128, 52, "변경");
-            TMP_Text status = Text(window.Find("Status"), catalog, UiThemeRole.Muted, 16);
-            status.textWrappingMode = TextWrappingModes.Normal;
-            Size(status.transform, 0, 24, flexibleWidth: 1);
+            Status(window, catalog);
 
+            // 시점 감도부터는 설정 창에 있다(S15P31A305-861).
+            window = root.transform.Find("Settings/Window");
+            if (window == null)
+                return;
+            Frame(window, catalog);
+            Status(window, catalog);
             Setting(window.Find("LookSensitivity"), catalog, "시점 감도", "시점을 돌리는 속도");
             Setting(
                 window.Find("NpcSpeechSpeed"),
@@ -71,7 +70,16 @@ namespace A305.EditorTools.Onboarding
             );
             Text(note.transform, catalog, UiThemeRole.Muted, 16);
             note.text = "설정은 이 기기에 저장돼요.";
-            note.transform.SetSiblingIndex(window.Find("NpcSpeechSpeed").GetSiblingIndex() + 1);
+            // 효과음도 이 기기에 저장하므로 안내는 효과음 카드 아래에 둔다.
+            Transform sound = window.Find("SoundEffects");
+            if (sound != null)
+            {
+                sound.SetSiblingIndex(window.Find("NpcSpeechSpeed").GetSiblingIndex() + 1);
+                ChoiceSetting(sound, catalog, "효과음");
+            }
+            note.transform.SetSiblingIndex(
+                (sound != null ? sound : window.Find("NpcSpeechSpeed")).GetSiblingIndex() + 1
+            );
             Size(note.transform, 0, 22, flexibleWidth: 1);
 
             // 대화 난이도는 서버에 저장되므로 '이 기기에 저장' 안내 아래에 같은 설정 카드로 둔다(S15P31A305-799).
@@ -79,7 +87,7 @@ namespace A305.EditorTools.Onboarding
             if (level != null)
             {
                 level.SetSiblingIndex(note.transform.GetSiblingIndex() + 1);
-                LevelSetting(level, catalog);
+                ChoiceSetting(level, catalog, "대화 난이도");
             }
 
             Text(window.Find("ConsentsLabel"), catalog, UiThemeRole.Title, 22);
@@ -104,13 +112,30 @@ namespace A305.EditorTools.Onboarding
 
             foreach (string dialogName in new[] { "LogoutDialog", "WithdrawDialog" })
             {
-                Transform dialogButtons = root.transform.Find($"MyPage/{dialogName}/Buttons");
+                Transform dialogButtons = root.transform.Find($"Settings/{dialogName}/Buttons");
                 if (dialogButtons == null)
                     continue;
                 foreach (Transform button in dialogButtons)
                     if (button.GetComponent<UnityEngine.UI.Button>() != null)
                         Button(button, catalog, 154, 52, null);
             }
+        }
+
+        private static void Frame(Transform window, UiThemeCatalog catalog)
+        {
+            var rect = (RectTransform)window;
+            rect.sizeDelta = new Vector2(740, rect.sizeDelta.y);
+            var column = window.GetComponent<VerticalLayoutGroup>();
+            column.padding = new RectOffset(40, 40, 32, 32);
+            column.spacing = 14;
+            Text(window.Find("Title"), catalog, UiThemeRole.Title, 32);
+        }
+
+        private static void Status(Transform window, UiThemeCatalog catalog)
+        {
+            TMP_Text status = Text(window.Find("Status"), catalog, UiThemeRole.Muted, 16);
+            status.textWrappingMode = TextWrappingModes.Normal;
+            Size(status.transform, 0, 24, flexibleWidth: 1);
         }
 
         private static void Setting(
@@ -166,9 +191,9 @@ namespace A305.EditorTools.Onboarding
             track.GetComponent<Image>().color = new Color(.68f, .64f, .59f, .3f);
         }
 
-        // 창이 16:9 화면 높이 안에 들도록 제목과 단계 버튼을 한 줄에 둔 카드다.
-        // 단계 버튼은 가입 화면 난이도 카드처럼 고른 단계만 강조색으로 칠하고(MyPageView가 SetSelected), 이름은 다른 버튼과 같은 Jua 일반 굵기로 쓴다.
-        private static void LevelSetting(Transform group, UiThemeCatalog catalog)
+        // 창이 16:9 화면 높이 안에 들도록 제목과 고르는 버튼을 한 줄에 둔 카드다(대화 난이도, 효과음).
+        // 버튼은 가입 화면 난이도 카드처럼 고른 것만 강조색으로 칠하고(SettingsView가 SetSelected), 이름은 다른 버튼과 같은 Jua 일반 굵기로 쓴다.
+        private static void ChoiceSetting(Transform group, UiThemeCatalog catalog, string title)
         {
             BuilderTools.GetOrAddComponent<Image>(group.gameObject).raycastTarget = false;
             Theme(group, catalog, UiThemeRole.Card);
@@ -177,22 +202,24 @@ namespace A305.EditorTools.Onboarding
             line.GetComponent<HorizontalLayoutGroup>().spacing = 12;
             Size(line, 0, 46, flexibleWidth: 1);
             TMP_Text heading = Text(line.Find("Title"), catalog, UiThemeRole.Body, 23);
-            heading.text = "대화 난이도";
+            heading.text = title;
             Size(heading.transform, 0, 46, flexibleWidth: 1);
             Transform choices = line.Find("Choices");
             var row = choices.GetComponent<HorizontalLayoutGroup>();
             row.childAlignment = TextAnchor.MiddleRight;
             row.spacing = 12;
-            Transform template = choices.Find("LevelButtonTemplate");
-            TMP_Text label = template.Find("Label").GetComponent<TMP_Text>();
-            label.font = catalog.Get(UiThemeId.Jelly).DisplayFont;
-            label.fontSharedMaterial = label.font.material;
-            label.fontStyle = FontStyles.Normal;
-            label.fontWeight = FontWeight.Regular;
-            label.fontSize = 22;
-            label.enableAutoSizing = false;
-            label.alignment = TextAlignmentOptions.Midline;
-            Size(template, 120, 46);
+            foreach (Transform choice in choices)
+            {
+                TMP_Text label = choice.Find("Label").GetComponent<TMP_Text>();
+                label.font = catalog.Get(UiThemeId.Jelly).DisplayFont;
+                label.fontSharedMaterial = label.font.material;
+                label.fontStyle = FontStyles.Normal;
+                label.fontWeight = FontWeight.Regular;
+                label.fontSize = 22;
+                label.enableAutoSizing = false;
+                label.alignment = TextAlignmentOptions.Midline;
+                Size(choice, 120, 46);
+            }
         }
 
         private static TMP_Text Text(

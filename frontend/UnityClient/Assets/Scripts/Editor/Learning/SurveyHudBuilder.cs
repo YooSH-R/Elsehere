@@ -28,7 +28,6 @@ namespace A305.EditorTools.Learning
         public static void Build()
         {
             BuilderTools.ThrowIfPlaying();
-            BackgroundSoundBuilder.Build();
             Sprite icon = SaveArt("SurveyEntry", Clipboard(), Vector4.zero);
             Sprite panel = SaveArt(
                 "SurveyInvitationPanel",

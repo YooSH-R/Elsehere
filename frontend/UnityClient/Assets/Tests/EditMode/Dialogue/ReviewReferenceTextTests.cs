@@ -20,6 +20,106 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public void CorrectedSentences_ComeFirstUnderTheirOwnHeadingWithWhatTheLearnerSaid()
+        {
+            var formatted = ReviewReferenceText.Format(
+                new[]
+                {
+                    new ReviewReferenceItem(
+                        "Can I get that to go?",
+                        "포장해 주세요",
+                        true,
+                        "포장해 주세요"
+                    ),
+                    new ReviewReferenceItem(
+                        "I'd like a coffee, please.",
+                        "주문할 때는 I'd like가 자연스러워요.",
+                        false,
+                        "I want <b>coffee"
+                    ),
+                    new ReviewReferenceItem("Could I get less ice?", "얼음을 조금만요", false),
+                },
+                1
+            );
+
+            string text = formatted.Text;
+            Assert.That(text, Does.Contain("다시 말해 볼 문장"));
+            Assert.That(text, Does.Contain("이 상황에서 자주 써요"));
+            Assert.That(
+                text.IndexOf("다시 말해 볼 문장"),
+                Is.LessThan(text.IndexOf("Can I get that to go?"))
+            );
+            Assert.That(
+                text.IndexOf("이 상황에서 자주 써요"),
+                Is.GreaterThan(text.IndexOf("I'd like a coffee, please."))
+                    .And.LessThan(text.IndexOf("Could I get less ice?"))
+            );
+            // 한국어로 한 말은 틀린 말이 아니라 그대로, 고친 영어 문장은 줄을 그어 보인다. 고친 이유는 카드에 싣지 않는다.
+            Assert.That(text, Does.Contain("내가 한 말 · 포장해 주세요"));
+            Assert.That(text, Does.Contain("내가 한 말 · <s>I want ‹b›coffee</s>"));
+            Assert.That(text, Does.Not.Contain("I'd like가 자연스러워요"));
+            Assert.That(formatted.Markers.Count, Is.EqualTo(3));
+            Assert.That(
+                text.Substring(formatted.Markers[1].SourceIndex),
+                Does.StartWith("I'd like a coffee, please.")
+            );
+            Assert.That(
+                text.Substring(formatted.Markers[2].SourceIndex),
+                Does.StartWith("Could I get less ice?")
+            );
+        }
+
+        [Test]
+        public void ListFirst_PutsTheSentencesAboveTheSituationSoTheyShowWithoutScrolling()
+        {
+            var formatted = ReviewReferenceText.Format(
+                new[]
+                {
+                    new ReviewReferenceItem(
+                        "Can I get that to go?",
+                        "포장해 주세요",
+                        false,
+                        "포장해 주세요"
+                    ),
+                    new ReviewReferenceItem("Could I get less ice?", "얼음을 조금만요", true),
+                },
+                1,
+                "<b>음료 주문하기</b>\n카페 · 손님\n\n카페에서 음료를 주문해요.\n",
+                listFirst: true
+            );
+
+            string text = formatted.Text;
+            Assert.That(text, Does.StartWith("<color=#C9794A><b>1 / 2</b>"));
+            Assert.That(
+                text.IndexOf("Could I get less ice?"),
+                Is.LessThan(text.IndexOf("음료 주문하기"))
+            );
+            Assert.That(text, Does.EndWith("카페에서 음료를 주문해요."));
+            Assert.That(
+                text.Substring(formatted.Markers[0].SourceIndex),
+                Does.StartWith("Can I get that to go?")
+            );
+            Assert.That(
+                text.Substring(formatted.Markers[1].SourceIndex),
+                Does.StartWith("Could I get less ice?")
+            );
+        }
+
+        [Test]
+        public void WithoutCorrectedSentences_NoSectionHeadingsAreAdded()
+        {
+            string text = ReviewReferenceText
+                .Format(
+                    new[] { new ReviewReferenceItem("Could I get less ice?", "얼음", false) },
+                    0
+                )
+                .Text;
+
+            Assert.That(text, Does.Not.Contain("다시 말해 볼 문장"));
+            Assert.That(text, Does.Not.Contain("이 상황에서 자주 써요"));
+        }
+
+        [Test]
         public void PracticeGoals_CountWhatWasDoneWithTheirOwnWording()
         {
             var formatted = ReviewReferenceText.Format(

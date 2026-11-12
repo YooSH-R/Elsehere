@@ -12,6 +12,7 @@ class ReviewTargetsTest {
   void staffLinesDoNotBecomeLearnerTargetsButSharedFarewellsRemain() {
     var selected =
         ReviewTargets.select(
+            List.of(),
             List.of(
                 expression("You're all set.", "이제 다 됐어요."),
                 new SituationExpression(
@@ -35,6 +36,7 @@ class ReviewTargetsTest {
 
     var selected =
         ReviewTargets.select(
+            List.of(),
             List.of(
                 first, second, first, third, expression("Can I pay by card?", "카드로 결제해도 될까요?")));
 
@@ -48,9 +50,10 @@ class ReviewTargetsTest {
 
   @Test
   void missingOrInvalidExpressionsDoNotBecomeTargets() {
-    assertThat(ReviewTargets.select(null)).isEmpty();
+    assertThat(ReviewTargets.select(List.of(), null)).isEmpty();
     var selected =
         ReviewTargets.select(
+            List.of(),
             Arrays.asList(
                 null,
                 expression("", "뜻"),

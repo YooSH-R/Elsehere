@@ -4,7 +4,7 @@ import json
 import re
 
 from feedback.prompt import SYSTEM_PATH
-from feedback.situation_catalog import CATALOG_PATH, keep_useful, situation_candidates
+from feedback.situation_catalog import CATALOG_PATH, fill_up, keep_useful, situation_candidates
 
 SAMPLE_NAMES = re.compile(r"\b(Kim|Park|Lee|Choi)\b")
 
@@ -71,6 +71,27 @@ def test_candidates_never_cross_into_another_scene():
 
     assert candidates
     assert all("SHOP" in items[item["id"]]["scenes"] for item in candidates)
+
+
+def test_fill_up_adds_unspoken_reviewed_candidates_until_two():
+    kept = [{"expression": "It's pouring out there!", "meaning_ko": "밖에 비가 엄청 쏟아져요!"}]
+    candidates = [
+        {"id": "s1", "kind": "phrase", "expression": "I'll take it.", "meaning_ko": "이걸로 할게요."},
+        {"id": "s2", "kind": "idiom", "expression": "It's pouring out there!", "meaning_ko": "밖에 비가 엄청 쏟아져요!"},
+        {"id": "s3", "kind": "phrase", "expression": "Do you carry umbrellas?", "meaning_ko": "우산 있나요?"},
+        {"id": "s4", "kind": "phrase", "expression": "How much is it?", "meaning_ko": "얼마예요?"},
+    ]
+
+    filled = fill_up(kept, candidates, ["Okay, I'll take it, thanks."])
+
+    # 이미 말한 표현과 이미 고른 표현은 건너뛰고, 두 개가 되면 멈춘다. 후보의 id·kind는 결과에 넣지 않는다.
+    assert filled == [kept[0], {"expression": "Do you carry umbrellas?", "meaning_ko": "우산 있나요?"}]
+
+
+def test_fill_up_leaves_enough_expressions_alone():
+    kept = [{"expression": "a", "meaning_ko": "가"}, {"expression": "b", "meaning_ko": "나"}]
+
+    assert fill_up(kept, [{"id": "s1", "kind": "phrase", "expression": "c", "meaning_ko": "다"}], []) == kept
 
 
 def test_keep_useful_drops_spoken_and_mixed_language_items():

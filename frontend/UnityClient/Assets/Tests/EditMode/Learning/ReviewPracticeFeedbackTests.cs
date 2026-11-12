@@ -53,6 +53,62 @@ namespace A305.Learning.Tests
         }
 
         [Test]
+        public void CorrectedSentence_ShowsWhatWasSaidLastTimeAndThisTime()
+        {
+            var card = new ReviewCard
+            {
+                Targets = new List<ReviewTarget>
+                {
+                    new ReviewTarget
+                    {
+                        Expression = "I'd like a coffee, please.",
+                        MeaningKo = "주문할 때는 I'd like가 자연스러워요.",
+                        UsageKo = "주문할 때는 I'd like가 자연스러워요.",
+                        OriginalText = "I want coffee",
+                    },
+                    new ReviewTarget
+                    {
+                        Expression = "Can I get that to go?",
+                        MeaningKo = "포장해 주세요",
+                        UsageKo = "포장을 부탁할 때 써요.",
+                        OriginalText = "포장해 주세요",
+                    },
+                },
+            };
+            var result = new ReviewPracticeResult
+            {
+                Expressions = new List<ReviewExpressionEvidence>
+                {
+                    new ReviewExpressionEvidence
+                    {
+                        Expression = "I'd like a coffee, please.",
+                        Evidence = new List<ReviewUtterance>
+                        {
+                            new ReviewUtterance
+                            {
+                                TurnId = 3,
+                                Text = "Hi, I'd like a coffee please",
+                            },
+                        },
+                    },
+                    new ReviewExpressionEvidence { Expression = "Can I get that to go?" },
+                },
+            };
+
+            var expressions = ReviewPracticeFeedback.Expressions(card, result);
+
+            Assert.That(expressions[0].OriginalText, Is.EqualTo("I want coffee"));
+            Assert.That(expressions[0].SpokenText, Is.EqualTo("Hi, I'd like a coffee please"));
+            Assert.That(expressions[1].OriginalText, Is.EqualTo("포장해 주세요"));
+            Assert.That(expressions[1].SpokenText, Is.Null);
+            string text = ReviewPracticeFeedback.Format(card, result);
+            Assert.That(text, Does.Contain("지난번 · I want coffee"));
+            Assert.That(text, Does.Contain("이번 · Hi, I'd like a coffee please"));
+            Assert.That(text, Does.Contain("지난번 · 포장해 주세요"));
+            Assert.That(text, Does.Contain("이번 · 아직 말하지 않았어요"));
+        }
+
+        [Test]
         public void MissingResultDoesNotFabricateSuccess()
         {
             Assert.That(

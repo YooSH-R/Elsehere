@@ -164,6 +164,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
   "notice": null,
   "intent": {"id": "order_items", "ids": ["order_items"], "slots": {"items": [{"name": "latte", "iced": false, "qty": 1}], "choice": "none"}, "error": null},
   "translation": null,
+  "better_expressions": [],
   "events": [],
   "affinity_delta": 0,
   "usage": [{"step": "intent", "model": "...", "input_tokens": 512, "output_tokens": 20, "latency_s": 0.41, "fallback": false}]
@@ -179,6 +180,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `intent.slots` | 요청 `state.slots`에 있는 칸만. 상품은 `catalog` 안의 이름만, `iced`는 `iced_ok`에 있을 때만. 선택 칸(`option`)은 `labels` 중 하나, 말하지 않았으면 `"none"`. 경찰서 창구는 이 칸(`place`)으로 신고 장소를 고름(백엔드 `PoliceDesk`, 평가 `ai/tools/police_report_eval.py`) |
 | `intent.error` | 의도 판정 실패 시 메시지, 이때 `id`는 `unclear`. **상태·금액을 바꾸지 말고 다시 물을 것** |
 | `translation` | 영어 번역 또는 문법 교정문을 `{"english", "error"}`로 전달. 정상 영어·동일 문장·대소문자/구두점만 다른 경우는 `null`. 생성된 표현이 있으면 무례 판정과 관계없이 기존 카드에 표시(0.1절). 교정 실패가 대화를 막지 않음. 대화에 영어로 나온 이름(상대 NPC, 마을, 가게)은 그 철자로 쓰고, 영어 철자가 없는 이름(한글 닉네임 등)은 로마자로 바꾸지 않고 따옴표 안에 말한 그대로 둡니다(`My name is "김사피".`) |
+| `better_expressions` | 영어로만 말했고 문법 오류는 없지만 어색하거나 상황에 비해 너무 짧은 말(예: 주문에서 `Latte.`)에, 같은 뜻으로 대신 말할 더 자연스러운 문장 최대 3개. 의도 판정과 같은 호출에서 만들고 추가 호출은 없음. 고친 문장(`translation`)이 있거나 한글이 섞였으면, 이미 자연스럽고 완전한 말이면 `[]`. 학습자가 한 말·서로 겹치는 문장은 뺌. 의도 판정이 실패하거나 `dropped`면 `[]` |
 | `events` | 이 줄에서 학습자가 한 대화 사건. `GREETING`·`SMALL_TALK`·`PERSONAL_QUESTION`·`APOLOGY`·`COMPLIMENT`·`HELP`·`TASK_DONE`·`LEAVE` 중 0개 이상. 의도 판정과 같은 호출에서 고름. 의도 판정이 실패하면 `[]`, `dropped`면 `null`. **이 줄에 저장해 다음 요청의 `history[].events`로 보냄** |
 | `affinity_delta` | 이 줄의 사건으로 바로 올릴 호감(정수, 0 이상). 의도 판정이 실패하면 `0`, `dropped`면 `null`. 아래 설명 |
 

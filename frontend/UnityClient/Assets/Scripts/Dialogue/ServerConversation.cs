@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.Voice;
@@ -168,6 +169,18 @@ namespace A305.Dialogue
 
         public string UserTranslation { get; private set; }
 
+        public IReadOnlyList<string> UserBetterExpressions { get; private set; }
+
+        // 빈 문장은 빼고, 남은 문장이 없으면 카드를 띄우지 않게 null로 둔다.
+        private static IReadOnlyList<string> BetterSentences(List<string> sentences)
+        {
+            List<string> kept = sentences
+                ?.Where(sentence => !string.IsNullOrWhiteSpace(sentence))
+                .Select(sentence => sentence.Trim())
+                .ToList();
+            return kept == null || kept.Count == 0 ? null : kept;
+        }
+
         public bool IsGuided => false;
         public bool IsGuidedCompleted => false;
         public string SuggestedEnglish => null;
@@ -251,6 +264,7 @@ namespace A305.Dialogue
             LastTurnSpeechIncomplete = false;
             HintText = null;
             UserTranslation = null;
+            UserBetterExpressions = null;
             if (ConversationId != null)
             {
                 StatusMessage = null;
@@ -348,6 +362,7 @@ namespace A305.Dialogue
             }
 
             UserTranslation = null;
+            UserBetterExpressions = null;
             string requestId = utterance == failedText ? failedRequestId : NewRequestId();
             // 보낼 문장은 앞뒤 공백을 지우므로 전사 결과도 공백을 지우고 비교한다. 서버에는 전사 원문을 그대로 보낸다.
             bool isVoice = lastTranscript != null && utterance == lastTranscript.Trim();
@@ -395,6 +410,7 @@ namespace A305.Dialogue
                     UserTranslation = string.IsNullOrWhiteSpace(expression)
                         ? null
                         : expression.Trim();
+                    UserBetterExpressions = BetterSentences(result.UserTurn?.BetterExpressions);
                     ApplyState(result.Conversation);
                     AddNpcTurn(result.NpcTurn, reply.HasSpeech, reply.HasMissingSpeech);
                     IsEnded =

@@ -242,6 +242,8 @@ public class TurnService {
                       guard.abusive(),
                       guard.errorCode(),
                       conversationResponses.writeWords(judge.events())));
+          userTurn.recordBetterExpressions(
+              conversationResponses.writeBetterExpressions(judge.betterExpressions()));
           // 복습과 장소 연습은 연습이라 이 NPC와의 호감도에 반영하지 않는다.
           boolean affectsAffinity = !conversation.isReview() && !conversation.isPractice();
           if (rude) {

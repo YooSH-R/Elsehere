@@ -124,6 +124,9 @@ namespace A305.Dialogue
         public long TurnId { get; set; }
         public string Text { get; set; }
         public UserTranslationData Translation { get; set; }
+
+        /// <summary>틀리진 않았지만 어색하거나 짧은 영어에 서버가 준 같은 뜻의 더 좋은 문장(최대 3개). 없으면 빈 목록이거나 null이다.</summary>
+        public List<string> BetterExpressions { get; set; }
     }
 
     /// <summary>CONV-03에서 무례하지 않은 한국어·혼합 발화에만 보내는 학습자 말의 영어 표현.</summary>

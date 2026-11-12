@@ -114,6 +114,10 @@ namespace A305.Tutorial
         private RectTransform noteTail;
         private RectTransform noteTarget;
         private Image spotlightSurface;
+        private Color shadeColor;
+        private bool dimsOutside = true;
+        private CoachMarkLayout.BubbleSide? captionSide;
+        private bool captionAlignLeft;
         private Material spotlightMaterial;
 
         private void Awake()
@@ -169,7 +173,10 @@ namespace A305.Tutorial
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
             spotlightSurface.raycastTarget = false;
-            spotlightSurface.color = shades[0].GetComponent<Image>().color;
+            // 둘레를 덮지 않을 때는 면의 알파를 0으로 두고 테두리만 그린다. 알파가 0인 면도 건너뛰지 않고 그리게 한다.
+            spotlightSurface.canvasRenderer.cullTransparentMesh = false;
+            shadeColor = shades[0].GetComponent<Image>().color;
+            spotlightSurface.color = shadeColor;
             spotlightMaterial = new Material(Resources.Load<Shader>("TutorialSpotlight"));
             spotlightSurface.material = spotlightMaterial;
             // 클릭을 막는 네 판은 유지하되, 어둠과 테두리는 한 면에 그려 이음새가 생기지 않게 한다.
@@ -202,14 +209,31 @@ namespace A305.Tutorial
 
         /// <summary>대상 버튼들을 한 구멍으로 밝히고, 설명이 있으면 그 옆에 말풍선으로 보인다.</summary>
         /// <param name="next">있으면 말풍선에 [다음]을 두고 누르면 부른다. 티칭처럼 읽고 넘길 설명에 쓴다.</param>
+        /// <param name="dimOutside">
+        /// false면 둘레를 어둡게 덮지 않고 테두리만 둔다. 밝힌 곳 밖의 버튼([힌트] 등)도 함께 써야 하는 단계에 쓴다.
+        /// </param>
+        /// <param name="captionSide">옆에 다른 버튼이 늘어선 대상처럼 설명을 위·아래에 먼저 둘 때 쓴다.</param>
+        /// <param name="captionAlignLeft">위·아래 설명을 밝힌 곳 왼쪽 끝에 맞춘다. 가운데 서 있는 NPC 얼굴을 가리지 않을 때 쓴다.</param>
         public void ShowSpotlight(
             IReadOnlyList<RectTransform> spotlightTargets,
             string text,
-            Action next = null
+            Action next = null,
+            bool dimOutside = true,
+            CoachMarkLayout.BubbleSide? captionSide = null,
+            bool captionAlignLeft = false
         )
         {
             HideCompass();
             nextAction = next;
+            dimsOutside = dimOutside;
+            this.captionSide = captionSide;
+            this.captionAlignLeft = captionAlignLeft;
+            if (spotlightSurface != null)
+            {
+                spotlightSurface.color = dimOutside
+                    ? shadeColor
+                    : new Color(shadeColor.r, shadeColor.g, shadeColor.b, 0f);
+            }
             markerTarget = null;
             marker.gameObject.SetActive(false);
             targets.Clear();
@@ -288,7 +312,7 @@ namespace A305.Tutorial
         public RectTransform KeepClear { get; set; }
 
         /// <summary>밝힌 구멍 밖을 어둡게 덮어 누르지 못하게 하는지</summary>
-        public bool IsDimmingOutside => IsSpotlightShowing;
+        public bool IsDimmingOutside => IsSpotlightShowing && dimsOutside;
 
         /// <summary>지금 밝히는 버튼들. 밝히지 않으면 비어 있다.</summary>
         public IReadOnlyList<RectTransform> SpotlightTargets => targets;
@@ -609,19 +633,29 @@ namespace A305.Tutorial
                 noteTail.GetComponent<Image>().color = cardColor;
             }
 
-            // 넓은 스크롤 영역 옆에도 설명이 들어가도록 남은 폭에 맞춘다.
-            float sideRoom = Mathf.Max(
-                hole.xMin - BubbleGap - BubbleMargin,
-                canvasSize.x - BubbleMargin - hole.xMax - BubbleGap
-            );
-            float width =
-                sideRoom >= CaptionMinWidth
-                    ? Mathf.Min(captionMaxWidth, sideRoom)
-                    : captionMaxWidth;
-            if (!Mathf.Approximately(caption.sizeDelta.x, width))
+            // 위·아래를 고른 대상은 말풍선을 가장 넓게 펴 줄 수를 줄여 본다. 창 아래처럼 낮은 자리에도 들어가게 하기 위함이다.
+            // 그래도 들어가지 않으면, 넓은 스크롤 영역 옆에도 설명이 들어가도록 옆에 남은 폭에 맞춘다.
+            SetCaptionWidth(captionMaxWidth);
+            bool fitsStacked =
+                captionSide.HasValue
+                && CoachMarkLayout.FitsStacked(
+                    captionSide.Value,
+                    hole,
+                    caption.rect.size,
+                    canvasSize,
+                    BubbleMargin
+                );
+            if (!fitsStacked)
             {
-                caption.sizeDelta = new Vector2(width, caption.sizeDelta.y);
-                LayoutRebuilder.ForceRebuildLayoutImmediate(caption);
+                float sideRoom = Mathf.Max(
+                    hole.xMin - BubbleGap - BubbleMargin,
+                    canvasSize.x - BubbleMargin - hole.xMax - BubbleGap
+                );
+                SetCaptionWidth(
+                    sideRoom >= CaptionMinWidth
+                        ? Mathf.Min(captionMaxWidth, sideRoom)
+                        : captionMaxWidth
+                );
             }
             Rect keepClear =
                 KeepClear != null && KeepClear.gameObject.activeInHierarchy
@@ -633,12 +667,23 @@ namespace A305.Tutorial
                 canvasSize,
                 BubbleGap,
                 BubbleMargin,
-                keepClear
+                keepClear,
+                captionSide,
+                captionAlignLeft
             );
             caption.anchoredPosition = bubble.Rect.position;
             CaptionRect = bubble.Rect;
             captionTail.anchoredPosition = bubble.Tail - bubble.Rect.position;
             captionTail.localRotation = Quaternion.Euler(0f, 0f, 45f);
+        }
+
+        private void SetCaptionWidth(float width)
+        {
+            if (!Mathf.Approximately(caption.sizeDelta.x, width))
+            {
+                caption.sizeDelta = new Vector2(width, caption.sizeDelta.y);
+                LayoutRebuilder.ForceRebuildLayoutImmediate(caption);
+            }
         }
 
         private void PlaceMarker()
@@ -720,9 +765,10 @@ namespace A305.Tutorial
 
         private void SetSpotlightVisible(bool visible)
         {
+            // 둘레를 덮지 않는 밝히기에서는 클릭을 막는 판도 두지 않아 다른 버튼을 누를 수 있다.
             foreach (RectTransform shade in shades)
             {
-                shade.gameObject.SetActive(visible);
+                shade.gameObject.SetActive(visible && dimsOutside);
             }
 
             frame.gameObject.SetActive(visible);

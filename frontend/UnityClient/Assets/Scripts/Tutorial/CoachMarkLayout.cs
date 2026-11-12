@@ -85,16 +85,29 @@ namespace A305.Tutorial
         /// <param name="gap">대상과 말풍선 사이 거리(꼬리가 들어갈 자리)</param>
         /// <param name="margin">캔버스 가장자리에서 띄울 거리</param>
         /// <param name="keepClear">말풍선이 가리면 안 되는 곳(대화 위에 남긴 [건너뛰기] 카드). 넓이가 없으면 보지 않는다.</param>
+        /// <param name="preferredSide">
+        /// 옆에 다른 버튼이 늘어서 있어 옆자리가 그 버튼을 가리는 대상에 쓴다. 위·아래 중 그 자리가 캔버스 안에 들어가면 먼저 고른다.
+        /// </param>
         public static BubblePose Bubble(
             Rect hole,
             Vector2 size,
             Vector2 canvasSize,
             float gap,
             float margin,
-            Rect keepClear = default
+            Rect keepClear = default,
+            BubbleSide? preferredSide = null,
+            bool alignLeft = false
         )
         {
-            BubblePose preferred = PreferredBubble(hole, size, canvasSize, gap, margin);
+            BubblePose preferred = PreferredBubble(
+                hole,
+                size,
+                canvasSize,
+                gap,
+                margin,
+                preferredSide,
+                alignLeft
+            );
             if (
                 keepClear.width <= 0f
                 || keepClear.height <= 0f
@@ -206,13 +219,38 @@ namespace A305.Tutorial
             return preferred;
         }
 
+        /// <summary>
+        /// 말풍선이 밝힌 곳 위(<see cref="BubbleSide.Above"/>)나 아래(<see cref="BubbleSide.Below"/>)에 밝힌 곳을 덮지 않고 캔버스 여백 안에 들어가는지.
+        /// 간격이 모자라면 줄여서라도 붙여 두므로 간격은 보지 않는다. 옆자리는 늘 false다.
+        /// </summary>
+        public static bool FitsStacked(
+            BubbleSide side,
+            Rect hole,
+            Vector2 size,
+            Vector2 canvasSize,
+            float margin
+        )
+        {
+            switch (side)
+            {
+                case BubbleSide.Above:
+                    return hole.yMax + size.y <= canvasSize.y - margin;
+                case BubbleSide.Below:
+                    return hole.yMin - size.y >= margin;
+                default:
+                    return false;
+            }
+        }
+
         // 가리면 안 되는 곳을 보지 않을 때의 자리
         private static BubblePose PreferredBubble(
             Rect hole,
             Vector2 size,
             Vector2 canvasSize,
             float gap,
-            float margin
+            float margin,
+            BubbleSide? preferredSide,
+            bool alignLeft
         )
         {
             float sideY = Clamp(
@@ -220,11 +258,33 @@ namespace A305.Tutorial
                 margin,
                 canvasSize.y - margin - size.y
             );
+            // 위·아래 자리는 보통 밝힌 곳 가운데에 맞추고, 왼쪽 정렬이면 밝힌 곳 왼쪽 끝에 맞춘다.
             float stackX = Clamp(
-                hole.center.x - size.x / 2f,
+                alignLeft ? hole.xMin : hole.center.x - size.x / 2f,
                 margin,
                 canvasSize.x - margin - size.x
             );
+            // 대상이 고른 위·아래는 간격이 모자라면 화면 끝까지 붙여서라도 그 자리에 둔다. 밝힌 곳은 덮지 않는다.
+            if (
+                preferredSide == BubbleSide.Above
+                && FitsStacked(BubbleSide.Above, hole, size, canvasSize, margin)
+            )
+            {
+                float y = Mathf.Min(hole.yMax + gap, canvasSize.y - margin - size.y);
+                var rect = new Rect(stackX, y, size.x, size.y);
+                return new BubblePose(rect, BubbleSide.Above, StackTail(rect, rect.yMin, hole));
+            }
+
+            if (
+                preferredSide == BubbleSide.Below
+                && FitsStacked(BubbleSide.Below, hole, size, canvasSize, margin)
+            )
+            {
+                float y = Mathf.Max(hole.yMin - gap - size.y, margin);
+                var rect = new Rect(stackX, y, size.x, size.y);
+                return new BubblePose(rect, BubbleSide.Below, StackTail(rect, rect.yMax, hole));
+            }
+
             if (hole.xMax + gap + size.x <= canvasSize.x - margin)
             {
                 var rect = new Rect(hole.xMax + gap, sideY, size.x, size.y);

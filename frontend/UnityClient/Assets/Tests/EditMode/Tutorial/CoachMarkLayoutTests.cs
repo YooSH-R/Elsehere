@@ -124,6 +124,153 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
+        public void Bubble_AskedToSitAbove_SitsAboveEvenWithRoomOnTheRight()
+        {
+            // 대화창 이름 줄처럼 옆에 다른 버튼이 늘어선 대상은 옆 대신 위에 설명을 둔다.
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
+                new Rect(100f, 100f, 100f, 50f),
+                new Vector2(200f, 80f),
+                Canvas,
+                20f,
+                10f,
+                preferredSide: CoachMarkLayout.BubbleSide.Above
+            );
+
+            Assert.That(bubble.Side, Is.EqualTo(CoachMarkLayout.BubbleSide.Above));
+            Assert.That(bubble.Rect, Is.EqualTo(new Rect(50f, 170f, 200f, 80f)));
+        }
+
+        [Test]
+        public void Bubble_AskedToSitBelow_SitsUnderTheHole()
+        {
+            // 창 오른쪽 위 닫기 버튼처럼 왼쪽에 두면 탭 줄을 가리는 대상은 아래에 설명을 둔다.
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
+                new Rect(550f, 450f, 60f, 60f),
+                new Vector2(300f, 100f),
+                Canvas,
+                20f,
+                10f,
+                preferredSide: CoachMarkLayout.BubbleSide.Below
+            );
+
+            Assert.That(bubble.Side, Is.EqualTo(CoachMarkLayout.BubbleSide.Below));
+            Assert.That(bubble.Rect, Is.EqualTo(new Rect(430f, 330f, 300f, 100f)));
+        }
+
+        [Test]
+        public void Bubble_AskedToSitAbove_WithNoRoomAbove_UsesTheUsualSpot()
+        {
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
+                new Rect(100f, 500f, 100f, 50f),
+                new Vector2(200f, 80f),
+                Canvas,
+                20f,
+                10f,
+                preferredSide: CoachMarkLayout.BubbleSide.Above
+            );
+
+            Assert.That(bubble.Side, Is.EqualTo(CoachMarkLayout.BubbleSide.Right));
+        }
+
+        [Test]
+        public void Bubble_AskedToSitAboveOnTheLeft_LinesUpWithTheHolesLeftEdge()
+        {
+            // 대화창 할 대사 설명은 가운데 서 있는 Ben 얼굴을 가리지 않게 대사 칸 왼쪽 위에 둔다.
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
+                new Rect(100f, 100f, 500f, 50f),
+                new Vector2(200f, 80f),
+                Canvas,
+                20f,
+                10f,
+                preferredSide: CoachMarkLayout.BubbleSide.Above,
+                alignLeft: true
+            );
+
+            Assert.That(bubble.Side, Is.EqualTo(CoachMarkLayout.BubbleSide.Above));
+            Assert.That(bubble.Rect, Is.EqualTo(new Rect(100f, 170f, 200f, 80f)));
+        }
+
+        [Test]
+        public void Bubble_AskedToSitBelow_WithLessRoomThanTheGap_TucksUnderTheHoleAtTheEdge()
+        {
+            // 대화 피드백 탭 줄처럼 창 전체를 밝힐 때는 창 아래 여백이 간격만큼 남지 않아도 밝힌 곳을 덮지 않고 그 아래에 둔다.
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
+                new Rect(200f, 100f, 400f, 400f),
+                new Vector2(300f, 75f),
+                Canvas,
+                20f,
+                10f,
+                preferredSide: CoachMarkLayout.BubbleSide.Below
+            );
+
+            Assert.That(bubble.Side, Is.EqualTo(CoachMarkLayout.BubbleSide.Below));
+            Assert.That(bubble.Rect, Is.EqualTo(new Rect(250f, 10f, 300f, 75f)));
+        }
+
+        [Test]
+        public void Bubble_AskedToSitAbove_WithLessRoomThanTheGap_TucksOverTheHoleAtTheEdge()
+        {
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
+                new Rect(200f, 200f, 400f, 300f),
+                new Vector2(300f, 80f),
+                Canvas,
+                20f,
+                10f,
+                preferredSide: CoachMarkLayout.BubbleSide.Above
+            );
+
+            Assert.That(bubble.Side, Is.EqualTo(CoachMarkLayout.BubbleSide.Above));
+            Assert.That(bubble.Rect, Is.EqualTo(new Rect(250f, 510f, 300f, 80f)));
+        }
+
+        [Test]
+        public void FitsStacked_TellsWhetherTheBubbleFitsAboveOrBelowWithoutCoveringTheHole()
+        {
+            var hole = new Rect(200f, 100f, 400f, 400f);
+
+            Assert.That(
+                CoachMarkLayout.FitsStacked(
+                    CoachMarkLayout.BubbleSide.Below,
+                    hole,
+                    new Vector2(300f, 75f),
+                    Canvas,
+                    10f
+                ),
+                Is.True
+            );
+            Assert.That(
+                CoachMarkLayout.FitsStacked(
+                    CoachMarkLayout.BubbleSide.Below,
+                    hole,
+                    new Vector2(300f, 95f),
+                    Canvas,
+                    10f
+                ),
+                Is.False
+            );
+            Assert.That(
+                CoachMarkLayout.FitsStacked(
+                    CoachMarkLayout.BubbleSide.Above,
+                    hole,
+                    new Vector2(300f, 80f),
+                    Canvas,
+                    10f
+                ),
+                Is.True
+            );
+            Assert.That(
+                CoachMarkLayout.FitsStacked(
+                    CoachMarkLayout.BubbleSide.Above,
+                    hole,
+                    new Vector2(300f, 95f),
+                    Canvas,
+                    10f
+                ),
+                Is.False
+            );
+        }
+
+        [Test]
         public void Bubble_NearTheBottom_StaysInsideTheCanvas_AndKeepsTheTailOnItsEdge()
         {
             CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(

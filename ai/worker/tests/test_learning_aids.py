@@ -165,6 +165,23 @@ def test_suggest_pairs_useful_vocabulary_with_meanings_and_drops_personal_detail
     assert "not words mechanically extracted from a suggested sentence" in prompt
 
 
+def test_suggest_drops_sentences_even_when_the_model_marks_them_as_vocabulary(client, provider):
+    # "I'm sorry"처럼 주어로 시작하거나 문장 부호로 끝나는 말은 단어가 아니라 문장이다 (S15P31A305-855)
+    words = [
+        {"text": "I'm sorry", "meaning_ko": "미안해요", "kind": "vocabulary"},
+        {"text": "Sorry about that.", "meaning_ko": "그거 미안해요", "kind": "vocabulary"},
+        {"text": "Can I get a latte?", "meaning_ko": "라떼 주실래요?", "kind": "vocabulary"},
+        {"text": "You’re welcome", "meaning_ko": "천만에요", "kind": "vocabulary"},
+        {"text": "apologize", "meaning_ko": "사과하다", "kind": "vocabulary"},
+        {"text": "my bad", "meaning_ko": "내 실수", "kind": "vocabulary"},
+    ]
+    provider.answers["suggest"] = lambda body: ok(json.dumps({"words": words}, ensure_ascii=False))
+
+    response = client.post("/v1/suggest", json={"npc": NPC, "history": HISTORY})
+
+    assert response.json()["words"] == ["apologize — 사과하다", "my bad — 내 실수"]
+
+
 def test_suggest_does_not_show_a_structured_word_without_a_korean_meaning(client, provider):
     provider.answers["suggest"] = lambda b: ok(
         json.dumps(

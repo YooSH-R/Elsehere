@@ -518,6 +518,33 @@ namespace A305.Dialogue.Tests
             Assert.That(api.Turns, Has.Count.EqualTo(1), "교정 문장을 다시 전송하지 않습니다.");
         }
 
+        // 틀리진 않았지만 짧은 영어에 서버가 준 더 좋은 문장을 '이럴 때 쓰면 좋아요!' 카드에 넘기고, 다음 말을 보내면 지운다 (S15P31A305-847)
+        [Test]
+        public async Task AcceptedTurn_KeepsTheBetterSentences_UntilTheNextSend()
+        {
+            await conversation.StartAsync();
+            api.TurnResponse = Reply("Latte.", "Sure! Hot or iced?", "ACTIVE");
+            api.TurnResponse.UserTurn.BetterExpressions = new List<string>
+            {
+                "Can I get a latte, please?",
+                " ",
+                "I'd like a latte, please.",
+            };
+
+            await conversation.SendAsync("Latte.");
+
+            Assert.That(conversation.UserTranslation, Is.Null);
+            Assert.That(
+                conversation.UserBetterExpressions,
+                Is.EqualTo(new[] { "Can I get a latte, please?", "I'd like a latte, please." })
+            );
+
+            api.TurnResponse = Reply("Iced, please.", "Coming right up!", "ACTIVE");
+            await conversation.SendAsync("Iced, please.");
+
+            Assert.That(conversation.UserBetterExpressions, Is.Null);
+        }
+
         [SetUp]
         public void CreateConversation()
         {

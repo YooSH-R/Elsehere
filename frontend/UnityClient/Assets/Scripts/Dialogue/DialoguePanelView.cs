@@ -67,6 +67,56 @@ namespace A305.Dialogue
         private RectTransform translationDivider;
 
         [SerializeField]
+        [Tooltip(
+            "영어 표현 카드의 머리줄. 고친 영어 문장이면 '방금 한 말의 영어 표현이에요.', 더 좋은 문장이면 '이럴 때 쓰면 좋아요!'"
+        )]
+        private TMP_Text translationHeading;
+
+        [SerializeField]
+        [Tooltip("'이럴 때 쓰면 좋아요!'를 접었을 때의 안내")]
+        private TMP_Text betterGuideText;
+
+        [SerializeField]
+        [Tooltip(
+            "'이럴 때 쓰면 좋아요!'를 펼쳤을 때의 문장 목록. 카드 크기는 그대로이고 넘치면 카드 안에서 스크롤한다."
+        )]
+        private TMP_Text betterListText;
+
+        private const string BetterHeading = "이럴 때 쓰면 좋아요!";
+
+        // 목록 앞의 점은 강조색(테마의 accentInk)으로 칠하고, 문장은 점 뒤 24에서 시작한다.
+        private const string BetterBullet = "<color=#D24F2F>•</color>";
+        private const int BetterIndent = 24;
+
+        private ScrollRect translationScroll;
+        private TMP_Text translationButtonLabel;
+
+        // Awake 전에 내용을 받을 수 있어(Editor 미리보기·비활성 창) 처음 쓸 때 찾는다.
+        private ScrollRect TranslationScroll
+        {
+            get
+            {
+                if (translationScroll == null)
+                    translationScroll = translationCard.GetComponent<ScrollRect>();
+                return translationScroll;
+            }
+        }
+
+        private TMP_Text TranslationButtonLabel
+        {
+            get
+            {
+                if (translationButtonLabel == null)
+                    translationButtonLabel =
+                        translationListenButton.GetComponentInChildren<TMP_Text>(true);
+                return translationButtonLabel;
+            }
+        }
+
+        private IReadOnlyList<string> shownBetter;
+        private bool betterOpen;
+
+        [SerializeField]
         private TMP_Text suggestText;
 
         [SerializeField]
@@ -700,22 +750,72 @@ namespace A305.Dialogue
             Refresh();
         }
 
+        // 한국어·틀린 문장의 영어 표현이 없을 때만 틀리진 않았지만 어색하거나 짧은 영어의 더 좋은 문장을 보인다.
+        private IReadOnlyList<string> BetterExpressions =>
+            string.IsNullOrWhiteSpace(content?.UserTranslation)
+            && content?.UserBetterExpressions?.Count > 0
+                ? content.UserBetterExpressions
+                : null;
+
+        // 대화창 옆 영어 표현 카드를 띄울지. 영어 표현이나 더 좋은 문장 중 하나가 있으면 띄운다.
+        private bool HasExpressionCard =>
+            !string.IsNullOrWhiteSpace(content?.UserTranslation) || BetterExpressions != null;
+
+        /// <summary>
+        /// 영어 표현 카드. 고친 영어 문장이면 문장과 [듣기]를, 더 좋은 문장이면 시안 B대로 '이럴 때 쓰면 좋아요!'와 안내·[더보기]를 보이고,
+        /// 펼치면 같은 크기의 카드 안에 문장 목록과 [접기]를 보인다. 오른쪽 위의 한 버튼이 [듣기]·[더보기]·[접기]를 맡는다.
+        /// </summary>
         private void ShowTranslation()
         {
             if (translationCard == null)
                 return;
             string expression = content?.UserTranslation;
+            IReadOnlyList<string> better = BetterExpressions;
             if (shownTranslation != expression)
                 pronunciationNotice = null;
+            // 새 문장을 받으면 접은 안내부터 보인다.
+            if (!ReferenceEquals(shownBetter, better))
+                betterOpen = false;
             shownTranslation = expression;
-            bool shown = !string.IsNullOrWhiteSpace(expression);
+            shownBetter = better;
+            bool showsBetter = better != null;
+            bool shown = showsBetter || !string.IsNullOrWhiteSpace(expression);
             translationCard.gameObject.SetActive(shown);
-            translationText.text = shown ? expression : string.Empty;
-            if (shown && translationCard.Find("Heading") is RectTransform heading)
-                heading.GetComponent<TMP_Text>().text = IsCorrection()
-                    ? CorrectionHeading
-                    : TranslationHeading;
-            translationListenButton.interactable = shown && !content.IsBusy;
+            translationHeading.text =
+                showsBetter ? BetterHeading
+                : IsCorrection() ? CorrectionHeading
+                : TranslationHeading;
+            translationText.gameObject.SetActive(!showsBetter);
+            translationText.text = shown && !showsBetter ? expression : string.Empty;
+            betterGuideText.gameObject.SetActive(showsBetter && !betterOpen);
+            betterListText.gameObject.SetActive(showsBetter && betterOpen);
+            betterListText.text = showsBetter ? FormatBetterList(better) : string.Empty;
+            TranslationScroll.content =
+                !showsBetter ? translationText.rectTransform
+                : betterOpen ? betterListText.rectTransform
+                : betterGuideText.rectTransform;
+            TranslationButtonLabel.text =
+                !showsBetter ? "듣기"
+                : betterOpen ? "접기"
+                : "더보기";
+            translationListenButton.interactable = shown && (showsBetter || !content.IsBusy);
+        }
+
+        // 한 줄에 한 문장. 줄이 넘치면 점 뒤에 맞춰 잇고, 문장 안의 '<'는 꾸밈 태그로 읽지 않는다.
+        private static string FormatBetterList(IReadOnlyList<string> sentences) =>
+            string.Join(
+                "\n",
+                sentences.Select(sentence =>
+                    $"{BetterBullet}<indent={BetterIndent}><noparse>{sentence}</noparse></indent>"
+                )
+            );
+
+        // [더보기]·[접기]. 펼칠 때마다 목록의 첫 문장부터 보인다.
+        private void ToggleBetterList()
+        {
+            betterOpen = !betterOpen;
+            betterListText.rectTransform.anchoredPosition = Vector2.zero;
+            Refresh();
         }
 
         /// <summary>카드의 표현이 방금 영어로 한 말의 교정문인지. 마지막 내 말에 한글이 있으면 번역이다.</summary>
@@ -758,7 +858,11 @@ namespace A305.Dialogue
             if (translationListenButton != null)
                 translationListenButton.onClick.AddListener(() =>
                 {
-                    if (!string.IsNullOrWhiteSpace(content?.UserTranslation) && !content.IsBusy)
+                    if (BetterExpressions != null)
+                        ToggleBetterList();
+                    else if (
+                        !string.IsNullOrWhiteSpace(content?.UserTranslation) && !content.IsBusy
+                    )
                         UserTranslationListenRequested?.Invoke(content.UserTranslation);
                 });
             hintButton.onClick.AddListener(PressHint);
@@ -1114,7 +1218,7 @@ namespace A305.Dialogue
                 area.yMax,
                 npcNameText.rectTransform.anchoredPosition.y - WordCardMargin
             );
-            if (!string.IsNullOrWhiteSpace(content.UserTranslation))
+            if (HasExpressionCard)
             {
                 var history = (RectTransform)historyScroll.transform;
                 area.xMax = Mathf.Min(
@@ -1328,7 +1432,7 @@ namespace A305.Dialogue
                 DialogueCinemaLayout.ColumnWidth,
                 lastCanvasSize.x - 2 * DialogueCinemaLayout.SideMargin
             );
-            bool hasTranslation = !string.IsNullOrWhiteSpace(content?.UserTranslation);
+            bool hasTranslation = HasExpressionCard;
             float linesHeight = VisibleLinesHeight(
                 DialogueCinemaLayout.LinesWidth(column, hasTranslation),
                 out bool hasEarlierLines

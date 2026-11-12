@@ -559,7 +559,7 @@ class ConversationControllerTest {
                 1L, 5L, new TurnRequest(REQUEST_ID, InputType.VOICE, "A latte", "a latte")))
         .willReturn(
             new TurnResponse(
-                new UserTurnResponse(11L, 2, Speaker.USER, "A latte", false, null),
+                new UserTurnResponse(11L, 2, Speaker.USER, "A latte", false, null, List.of()),
                 npcTurn(12L, 3, "Sure!"),
                 new ConversationStateResponse(
                     ConversationStatus.ACTIVE,
@@ -807,7 +807,7 @@ class ConversationControllerTest {
 
   private static TurnResponse turnResponse() {
     return new TurnResponse(
-        new UserTurnResponse(11L, 2, Speaker.USER, "A latte", false, null),
+        new UserTurnResponse(11L, 2, Speaker.USER, "A latte", false, null, List.of()),
         npcTurn(12L, 3, "Sure!"),
         new ConversationStateResponse(
             ConversationStatus.ACTIVE, null, 0, 3, 0, TIME_LIMIT_AT, GRACE_UNTIL, false, 0),

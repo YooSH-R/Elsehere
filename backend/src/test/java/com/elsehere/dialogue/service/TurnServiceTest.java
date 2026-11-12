@@ -1092,6 +1092,40 @@ class TurnServiceTest {
         ownerId, new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC));
   }
 
+  @Test
+  @DisplayName(
+      "틀리진 않았지만 짧거나 어색한 영어에 판정이 준 더 좋은 문장을 사용자 턴에 남기고 응답으로 보낸다. 고친 문장·번역 카드는 없다 (S15P31A305-847)")
+  void send_keepsBetterExpressionsForAShortEnglishLine() {
+    List<String> better =
+        List.of("Can I get a latte, please?", "I'd like a latte, please.", "Could I have a latte?");
+    given(aiGateway.judge(any(), any(), any(), any(), eq("Latte.")))
+        .willReturn(
+            new JudgeResult(
+                "Latte.",
+                false,
+                null,
+                null,
+                List.of(usage("intent")),
+                null,
+                List.of(),
+                null,
+                better));
+    guards("Latte.", false, null);
+    given(aiGateway.reply(any(), any(), any(), any(), eq("Latte."), eq(""), anyInt(), any()))
+        .willReturn(reply("Sure! Hot or iced?", "audio-2"));
+    given(aiGateway.audio(any(), eq("audio-2"))).willReturn(WAV);
+    UUID requestId = UUID.randomUUID();
+
+    TurnResponse response =
+        turnService.send(
+            userId, conversationId, new TurnRequest(requestId, InputType.TEXT, "Latte.", null));
+
+    assertThat(response.userTurn().betterExpressions()).isEqualTo(better);
+    assertThat(response.userTurn().translation()).isNull();
+    assertThat(turnRepository.findByRequestId(requestId).orElseThrow().getBetterExpressions())
+        .isNotNull();
+  }
+
   private void judges(String text, String judgedText, String english) {
     given(aiGateway.judge(any(), any(), any(), any(), eq(text)))
         .willReturn(

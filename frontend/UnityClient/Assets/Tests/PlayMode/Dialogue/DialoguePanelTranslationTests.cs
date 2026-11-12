@@ -219,6 +219,65 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(scroll.verticalScrollbar.gameObject.activeInHierarchy, Is.False);
         }
 
+        // 시안 B: 틀리진 않았지만 어색하거나 짧은 영어는 안내와 [더보기]만 보이고, 누르면 같은 카드 안에 2~3문장 목록이 나온다.
+        // 카드는 커지지 않고 넘치는 문장은 카드 안에서 스크롤한다. 다시 누르면 [접기]에서 안내로 돌아간다 (S15P31A305-847)
+        [UnityTest]
+        public IEnumerator BetterSentences_OpenFromMoreInTheSameCardSize_AndScrollInside()
+        {
+            view.Show(
+                new Content
+                {
+                    UserBetterExpressions = new[]
+                    {
+                        "Can I get a latte, please?",
+                        "I'd like a latte, please.",
+                        "Could I have a latte?",
+                    },
+                }
+            );
+            yield return null;
+            yield return null;
+            var card = (RectTransform)instance.transform.Find("Panel/UserTranslation");
+            var scroll = card.GetComponent<ScrollRect>();
+            var button = card.Find("ListenButton").GetComponent<Button>();
+            TMP_Text Label() => button.GetComponentInChildren<TMP_Text>(true);
+            Assert.That(card.gameObject.activeInHierarchy, Is.True);
+            Assert.That(
+                card.Find("Heading").GetComponent<TMP_Text>().text,
+                Is.EqualTo("이럴 때 쓰면 좋아요!")
+            );
+            Assert.That(
+                card.Find("Viewport/Guide").GetComponent<TMP_Text>().text,
+                Is.EqualTo("방금 한 말도 잘 통해요.\n이렇게 말하면 더 자연스러워요.")
+            );
+            Assert.That(card.Find("Viewport/BetterList").gameObject.activeSelf, Is.False);
+            Assert.That(card.Find("Viewport/Expression").gameObject.activeSelf, Is.False);
+            Assert.That(Label().text, Is.EqualTo("더보기"));
+            Vector2 closedSize = card.rect.size;
+
+            button.onClick.Invoke();
+            yield return null;
+            yield return null;
+
+            var list = card.Find("Viewport/BetterList").GetComponent<TMP_Text>();
+            Assert.That(list.gameObject.activeSelf, Is.True);
+            Assert.That(card.Find("Viewport/Guide").gameObject.activeSelf, Is.False);
+            Assert.That(list.GetParsedText(), Does.Contain("Can I get a latte, please?"));
+            Assert.That(list.GetParsedText(), Does.Contain("Could I have a latte?"));
+            Assert.That(Label().text, Is.EqualTo("접기"));
+            Assert.That(card.rect.size, Is.EqualTo(closedSize));
+            Assert.That(scroll.content, Is.SameAs(list.rectTransform));
+            Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
+            Assert.That(scroll.verticalScrollbar.gameObject.activeInHierarchy, Is.True);
+
+            button.onClick.Invoke();
+            yield return null;
+
+            Assert.That(card.Find("Viewport/Guide").gameObject.activeSelf, Is.True);
+            Assert.That(Label().text, Is.EqualTo("더보기"));
+            Assert.That(card.rect.size, Is.EqualTo(closedSize));
+        }
+
         private const string VeryLongExpression =
             "You have no conscience, do you? I should've just left you to die. "
             + "What were you even thinking back there? I waited for you at the bus stop "
@@ -252,6 +311,7 @@ namespace A305.Dialogue.PlayModeTests
             public string NpcName => "Jake";
             public string UserTranslation { get; set; }
             public string UserLine { get; set; } = "카페 어디야?";
+            public IReadOnlyList<string> UserBetterExpressions { get; set; }
             public IReadOnlyList<DialogueLine> Lines =>
                 new[] { DialogueLine.FromUser(UserLine), Npc };
             public DialogueLine LastNpcLine => Npc;

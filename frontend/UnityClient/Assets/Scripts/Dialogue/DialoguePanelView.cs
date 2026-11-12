@@ -1084,6 +1084,8 @@ namespace A305.Dialogue
             subtitleButton.GetComponentInChildren<TMP_Text>(true).text = showsSubtitles
                 ? DisableSubtitlesCaption
                 : EnableSubtitlesCaption;
+            if (subtitleButton.TryGetComponent(out ThemedElement theme))
+                theme.SetSelected(showsSubtitles);
         }
 
         private void ToggleSubtitles()

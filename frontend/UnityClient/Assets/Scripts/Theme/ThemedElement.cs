@@ -290,7 +290,7 @@ namespace A305.Theme
         private static readonly Color GhostInputTint = new Color(1f, 1f, 1f, .8f);
 
         // 알약 위아래 모서리가 버튼 높이에서 차지하는 비율. 이름표·[말하기]처럼 가운데에 곧은 줄을 조금 남긴다.
-        private const float PillCornerShare = .85f;
+        private const float PillCornerShare = .96f;
 
         // 반투명한 흰 테두리 버튼. 다음에 누를 버튼으로 고르면 강조색 입체 버튼으로 바꿔 한눈에 보이게 한다.
         private void PaintGhostControl(UiThemeDefinition theme)

@@ -115,9 +115,9 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(NpcSubtitlePreference.ShowsSubtitles, Is.False);
         }
 
-        // 자막 표시 상태가 바뀌어도 버튼의 모양과 색은 자막 켜기와 같아야 한다.
+        // 자막을 켜면 채운 강조색으로 바뀌지만, 둥근 모서리가 버튼 높이에 맞아야 한다.
         [UnityTest]
-        public IEnumerator SubtitleButton_KeepsItsAppearanceWhenSubtitlesAreEnabled()
+        public IEnumerator SubtitleButton_KeepsRoundedCornersAndHighlightsWhenEnabled()
         {
             yield return Show(new SpokenContent(speaksNpcLines: true));
 
@@ -127,11 +127,22 @@ namespace A305.Dialogue.PlayModeTests
             Color originalColor = image.color;
             Material originalMaterial = image.material;
             float originalPixelsPerUnit = image.pixelsPerUnitMultiplier;
+            ClickCenterOf(subtitle);
+            yield return null;
+
+            float buttonHeight = image.rectTransform.rect.height;
+            float roundedCorners =
+                (image.sprite.border.y + image.sprite.border.w)
+                / (image.pixelsPerUnit * image.pixelsPerUnitMultiplier);
+            Assert.That(Caption(subtitle), Is.EqualTo("자막 끄기"));
+            Assert.That(roundedCorners, Is.InRange(buttonHeight * .9f, buttonHeight));
+            Assert.That(image.material, Is.Not.SameAs(originalMaterial));
+            Assert.That(image.color, Is.Not.EqualTo(originalColor));
 
             ClickCenterOf(subtitle);
             yield return null;
 
-            Assert.That(Caption(subtitle), Is.EqualTo("자막 끄기"));
+            Assert.That(Caption(subtitle), Is.EqualTo("자막 켜기"));
             Assert.That(image.sprite, Is.SameAs(originalSprite));
             Assert.That(image.color, Is.EqualTo(originalColor));
             Assert.That(image.material, Is.SameAs(originalMaterial));

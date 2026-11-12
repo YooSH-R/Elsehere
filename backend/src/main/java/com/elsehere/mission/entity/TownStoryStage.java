@@ -152,7 +152,7 @@ public enum TownStoryStage {
       case "ask_wrapping" -> "꽃을 포장해 달라고 하기";
       case "offer_flower" -> "꽃을 선물로 드린다고 말하기";
       case "thank_barber" -> "무엇이 고마운지 말하기";
-      case "choose_snack" -> "간식 이름과 함께 개수나 받을 사람 중 하나 말하기";
+      case "choose_snack" -> "어떤 간식을 몇 개 살지, 누구에게 줄지 말해 보세요.";
       case "collect_laundry" -> "빨래를 꺼내도 되는지 또는 어떻게 꺼내는지 묻거나 직접 꺼낸다고 말하기";
       case "thank_laundromat" -> "기계 사용을 도와준 것에 감사하기";
       case "ask_lamp" -> "램프와 선물 받을 사람";
@@ -188,7 +188,7 @@ public enum TownStoryStage {
       case "thank_barber" ->
           "The learner thanks the barber AND says what they are thankful for, such as the haircut.";
       case "choose_snack" ->
-          "The learner asks for a specific bakery item AND says how many or who it is for.";
+          "The learner asks for a specific bakery item and states both the quantity and the recipient.";
       case "collect_laundry" ->
           "The learner asks whether or how to remove their own clothes from the washer or dryer, checks whether the cycle is finished, or says they are taking their clothes out. Staff do not hold or collect the clothes for them. An unrelated question or a refusal does not count.";
       case "thank_laundromat" ->

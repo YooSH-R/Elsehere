@@ -1,6 +1,5 @@
 package com.elsehere.dialogue.service;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
@@ -10,6 +9,7 @@ import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerState;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.logging.LogContext;
@@ -97,6 +97,7 @@ public class TurnService {
   private final Clock clock;
   private final DialogueRequestLocks requestLocks;
   private final EarlyReplies earlyReplies;
+  private final MeaningPreparation meaningPreparation;
 
   public TurnResponse send(Long userId, Long conversationId, TurnRequest request) {
     return send(userId, conversationId, request, null);
@@ -124,13 +125,18 @@ public class TurnService {
    */
   public TurnResponse send(
       Long userId, Long conversationId, TurnRequest request, TurnEvents events) {
+    TurnResponse response;
     try {
-      return requestLocks.execute(
-          userId, request.requestId(), () -> sendOnce(userId, conversationId, request, events));
+      response =
+          requestLocks.execute(
+              userId, request.requestId(), () -> sendOnce(userId, conversationId, request, events));
     } catch (RuntimeException exception) {
       releaseFinalTurnClaim(userId, conversationId, request.requestId());
       throw exception;
     }
+    // 대답을 저장한 트랜잭션이 끝난 뒤 [뜻 보기]를 미리 만든다. 다시 보낸 요청이면 저장된 뜻이 있어 AI를 부르지 않는다.
+    meaningPreparation.prepare(userId, response.npcTurn().turnId(), request.requestId());
+    return response;
   }
 
   // events가 null이면 대답을 끝까지 모아 한 번에 응답한다.
@@ -236,6 +242,8 @@ public class TurnService {
                       guard.abusive(),
                       guard.errorCode(),
                       conversationResponses.writeWords(judge.events())));
+          userTurn.recordBetterExpressions(
+              conversationResponses.writeBetterExpressions(judge.betterExpressions()));
           // 복습과 장소 연습은 연습이라 이 NPC와의 호감도에 반영하지 않는다.
           boolean affectsAffinity = !conversation.isReview() && !conversation.isPractice();
           if (rude) {

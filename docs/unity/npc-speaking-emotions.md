@@ -45,14 +45,14 @@
 
 ## 존박 공연 캐릭터
 
-게임에 표시되는 이름은 **John**이며 `CafeFemaleEmotions.asset`의 16종 감정과 같은 발음 채널을 사용합니다. 기존 에셋 참조와 연결을 유지하기 위해 내부 코드는 `TOWN_JOHN_PARK`, 파일명은 `LittleMung_JohnPark_Male`로 유지합니다. `NpcIdentity`·`DialogueSpeaker`를 연결하며 백엔드 시드와 로컬 검수 대본의 이름은 John, 역할은 뮤지션입니다. 기본 음성 `am_michael`은 서비스의 합성 목소리이며 실제 가수의 음성을 복제하지 않습니다. 서버 시드와 클라이언트 변경의 배포는 별도입니다.
+게임에 표시되는 이름은 **John**이며 `CafeFemaleEmotions.asset`의 16종 감정과 같은 발음 채널을 사용합니다. 기존 에셋 참조와 연결을 유지하기 위해 내부 코드는 `TOWN_JOHN_PARK`, 파일명은 `LittleMung_JohnPark_Male`로 유지합니다. `NpcIdentity`·`DialogueSpeaker`를 연결하며 백엔드 시드와 로컬 검수 대본의 이름은 John, 역할은 뮤지션입니다. 일반 대화·저장 랩·안내 모두 저음 남성 합성 목소리 `am_onyx`를 사용하며 실제 가수의 음성을 복제하지 않습니다. 랩의 속도·박자·음성 가공은 일반 대화와 다릅니다. 서버 시드와 클라이언트 변경의 배포는 별도이며, 이미 생성된 음성은 바뀌지 않고 새 합성부터 적용됩니다.
 
 공용 외형 표 `NpcCast`에도 `NpcLooks.John`으로 같은 프리팹을 등록합니다. 이 외형의
 `UsesRecordedPerformance`는 공용 외형 갱신에서 Humanoid 재연결·보행 복사본·배색 변경을 적용하지 않고
 전용 Generic Avatar·공통 얼굴·저장 공연 연결을 확인하게 합니다. John은 출퇴근 보행 대상이 아닙니다.
 Production의 공용 오프라인 대본에도 John과 뮤지션 역할을 등록하여 기본 `Neighbor` 대본으로 빠지지 않게 합니다.
 
-`JohnParkDialogueBuilder.PlaceInRestaurant`는 Town의 식당 실내 상주 목록에 같은 프리팹을 연결합니다. 위치는 식당 좌표 `(0, 0, -5.2)`의 뒷주방 앞 중앙 통로입니다. 실내 입장 때 나타나고 퇴장 때 숨겨지며 별도 출퇴근 일과나 보행을 추가하지 않습니다. 첨부 화면을 기준으로 추정한 위치이므로 최종 구도는 실제 실내에서 확인합니다.
+`JohnParkDialogueBuilder.PlaceInRestaurant`는 독립 식당 씬 `Assets/Scenes/ShopInteriors/MapleDinerInterior.unity`에 같은 프리팹을 연결합니다. 기존 인스턴스의 위치·방향은 유지하고, 처음 만들 때만 식당 좌표 `(-1.06, 0, -5.2)`에 둡니다. 이후 Editor에서 조절한 배치는 연결 도구를 다시 실행해도 덮어쓰지 않습니다. 별도 출퇴근 일과나 보행을 추가하지 않습니다.
 
 페르소나는 차분하고 예의 바른 음악가 손님으로 설정합니다. 짧고 쉬운 영어, 담백한 농담, 요청받았을 때만 리듬을 넣은 주문 예시를 사용하고 직원 업무는 Rosa에게 안내합니다. 이는 게임용 각색입니다. [본인 인터뷰](https://www.segye.com/newsView/20140919000136)의 말수가 적고 혼자 있는 것을 즐긴다는 설명과 [SBS 방송 발언](https://ent.sbs.co.kr/amp/article.do?article_id=E10004429011)의 과장된 애교를 어려워한다는 설명을 참고합니다. 과거 발언을 현재 성격 전체로 단정하지 않습니다. MBTI는 이차 자료에 INFP로 소개되지만 직접 발표 출처를 확인하지 못해 확정 정보로 사용하지 않습니다.
 
@@ -69,16 +69,31 @@ Production의 공용 오프라인 대본에도 John과 뮤지션 역할을 등�
 
 ### John의 저장 안내와 랩 버튼
 
+음성과 입모양은 `CharacterSpeechPlayer`가 읽는 `AudioSource.timeSamples`를 기준으로 갱신하고,
+랩의 몸동작도 같은 재생 시각을 사용합니다. 창의 포커스를 잃거나 앱이 일시정지되면 음성을
+함께 멈추고, 포커스와 앱 실행이 모두 복귀한 뒤 같은 위치에서 이어 재생합니다. 브라우저 오디오
+컨텍스트가 늦게 복귀하는 동안에는 발음 시간표와 공연 상태를 종료하지 않습니다. 수동 일시정지는
+창 복귀만으로 풀리지 않으며, 대화를 종료한 음성은 다시 재생하지 않습니다. 일반 대화의 다음
+음성 조각도 일시정지된 앞 조각을 기다립니다.
+
 `Assets/Data/Npc/JohnPark/OrderRap.asset`은 랩과 안내의 **영문·한국어 번역·음성 참조**를 함께
 보관합니다. `Assets/Audio/Characters/JohnParkDialogue/ReplayGuide.bytes`에는 로컬 `am_onyx`
 합성 안내, 음소 시간표, `warm_smile` 감정 시간표가 들어 있습니다. `OrderRap.bytes`는 기존 1.5배
 랩입니다. Unity 빌드에 포함되는 데이터이며 매 재생 때 DB나 AI에서 다시 만드는 문장이 아닙니다.
+
+John과 자유 대화를 열면 인사·지난 대사·추천 단어를 기다리지 않고 저장된 1.5배 랩부터 재생합니다.
+서버 대화 연결은 뒤에서 진행하며, John의 첫 턴은 고정 랩 원문과 한국어 번역을 함께 기록합니다.
+AI 인사·TTS·뜻 미리 생성을 호출하지 않습니다.
+남아 있는 같은 대화의 연결을 이어받아도 이전 대사와 음성을 화면에 다시 불러오지 않습니다.
+랩이 끝나면 사용자 입력을 기다리고, 일반 질문을 보냈을 때 기존 AI 대화로 응답합니다.
 
 1. John과의 자유 대화에서 `랩 다시 들려줘` 또는 `Can you play that rap again?`를 보냅니다.
 2. 로컬에서 명확한 요청으로 인식하면 “Tap 'Replay rap' and I'll play it again!” 안내와 저장된
    표정·입모양을 재생하고 **랩 다시 듣기** 버튼을 강조합니다. 뜻 보기에는 저장된 한국어를 표시합니다.
 3. 버튼을 누르면 1.5배 랩 음성의 재생 시각으로 발음·미소·몸동작을 맞춥니다. 재생 중 버튼은
    **랩 멈추기**로 바뀌고, 끝나거나 중단한 뒤 다시 누르면 처음부터 재생합니다.
+   다시 듣기마다 가사를 기록에 남깁니다. 실제 글꼴·줄바꿈으로 잰 **랩 한 세트 높이**로 기존 `ScrollRect`를 제한하고 최근 가사로 스크롤하므로
+   대화창은 커지지 않으며 위로 스크롤하면 이전 가사를 다시 읽을 수 있습니다.
 4. `I'd love an encore of that burger beat.` 같은 간접 요청은 서버 의도 분류만 요청합니다.
    `REPLAY_RAP`이면 같은 저장 안내를 사용하고 `CONVERSATION`일 때만 기존 대화 요청을 보냅니다.
    분류 실패에는 대사·TTS를 자동 생성하지 않고 버튼을 직접 누르도록 안내합니다.
@@ -91,6 +106,17 @@ Production의 공용 오프라인 대본에도 John과 뮤지션 역할을 등�
 `RecordedPerformanceUiBuilder.Build`는 기존 대화창 디자인을 유지하며 버튼과 저장 안내를 연결합니다.
 로컬 검수 씬 `NpcJohnParkDialogueSandbox.unity`는 외부 호출 없이 명확한 요청·뜻 보기·버튼·중단을
 확인하는 용도입니다. 간접 요청 분류에는 새 Spring API와 AI 워커의 동시 배포가 필요합니다.
+
+John은 고정 공연용 Generic 리그이므로 보행 NPC와 달리 `CharacterController.skinWidth`를 0.005m로 둡니다.
+기본값 0.08m는 런타임 접촉에서 메시를 8cm 띄우므로 사용하지 않습니다.
+`JohnParkDialogueBuilder.UpdateGroundContact`는 독립 식당 씬과 대화 검수 씬의 John 캡슐에만 이 값을 적용합니다.
+
+Editor에서 식당 같은 장소 씬을 바로 Play하면 숙소·Ben이 없는 씬에 튜토리얼 대화 잠금을 적용하지 않습니다.
+튜토리얼 완료·건너뛰기 기록은 만들지 않으며, 숙소와 Ben이 있는 마을의 안내는 그대로 진행합니다.
+Game 탭에서 NPC 몸·이름표를 클릭하고 대화 시작을 확인합니다.
+`ApiSettings.asset`의 Editor 기본 주소는 `http://localhost:8080`입니다. 해당 백엔드를 실행하지 않았다면
+일반 AI 대화는 연결 오류를 표시합니다. John의 저장 랩은 즉시 재생되고 연결 실패 뒤에도 다시 듣기를 쓸 수 있으며,
+저장 랩 재생은 서버 연결의 [다시 시도]를 지우지 않습니다.
 
 ## 실제 대화의 기분 설정
 
@@ -178,12 +204,16 @@ Editor를 닫고 `NPC_EMOTION_REVIEW_OUTPUT`에 저장소 밖 출력 폴더를 �
 
 - 음성은 선정한 1.5배 PCM을 그대로 보존합니다. 발화 중에는 양쪽 입꼬리가 같은 강도로 움직이는 `warm_smile`을 적용합니다. 한쪽 입꼬리를 드는 `playful`은 이 랩에서 사용하지 않습니다. 발음은 동일한 무반주 트랙을 로컬 PocketSphinx로 정렬하고, 그 시간표를 드럼을 포함한 음성의 PCM 해시에 묶습니다. 구절 전체를 같은 입모양으로 처리하지 않습니다.
 - Generic 리듬의 왼팔 강세 두 번을 한 마디의 2·4박에 맞춥니다. 오른손·앰프의 기존 본 곡선과 강체 결합은 유지합니다. 공연 종료 뒤에는 기존 대기 리듬 속도로 돌아갑니다.
-- `NpcJohnParkDialogueSandbox.unity`를 열고 Play → 존박 클릭 → `Can you rap?` 또는 `랩 해줘`를 입력합니다. 저장 안내가 나오면 [랩 다시 듣기]를 눌러 시작합니다. 요청은 안내를, 전용 버튼은 랩을 재생합니다. 이 씬은 서버가 꺼진 로컬 검수용입니다.
-- Town의 식당 존박도 같은 프리팹 연결을 상속합니다. 일반 AI 대화·음성 입력 전사는 기존 서버 설정이 필요하지만, 저장 공연 재생에는 LLM/TTS 재호출이 없습니다. 저장 공연은 서버의 학습 턴으로 기록하지 않습니다.
-- 연결 재구성은 `Tools → A305 → Npc → John Park → Connect Recorded Order Rap`으로 실행합니다. 기존 얼굴·본·머티리얼은 바꾸지 않습니다. `JohnParkRapValidation.Capture`는 실제 재생 컴포넌트의 시각 변환으로 전신·얼굴 프레임과 잡기 오차를 검사합니다. 로컬 영상은 `artifacts/JohnParkRhythm/OrderRap/Unity1.5/`에 보관합니다.
+- `NpcJohnParkDialogueSandbox.unity`를 열고 Play → 존박 클릭으로 대화를 시작하면 저장 랩부터 재생합니다. 이후 `Can you rap?` 또는 `랩 해줘`를 입력하면 저장 안내가 나오고, [랩 다시 듣기]로 반복합니다. 이 씬은 서버가 꺼진 로컬 검수용입니다.
+- 독립 식당 씬의 John도 같은 프리팹 연결을 상속합니다. 일반 AI 대화·음성 입력 전사는 기존 서버 설정이 필요하지만, 저장 공연 재생에는 LLM/TTS 재호출이 없습니다. 다시 듣기는 서버의 학습 턴을 추가하지 않습니다.
+- 연결 재구성은 `Tools → A305 → Npc → John Park → Connect Recorded Order Rap`으로 실행합니다. 기존 얼굴·본·머티리얼은 바꾸지 않습니다. `JohnParkRapValidation.Capture`는 실제 재생 컴포넌트의 시각 변환으로 전신·얼굴·사선 프레임과 잡기·접지·바운스를 검사합니다. 로컬 결과는 `artifacts/JohnParkRhythm/OrderRap/StandingGroove/`에 보관합니다.
+
+제자리 랩의 하반신은 `OrderRap.asset.LowerBodyMotion`에 연결한 `JohnRapBounce.anim`을 음성의 초 단위 재생 시각으로 평가합니다. 강세는 `Assets/Art/Npc/LittleMung_JohnPark_Male/JohnRapAccents.json`에 저작하며 **Build Standing Rap Bounce**로 클립을 갱신합니다. 음성 중단·일시 정지·반복과 같은 시각을 사용하고, 일반 대화·저장 안내에는 적용하지 않습니다. 기존 음성과 발음 시간표는 재사용하며 추가 합성이나 추론을 호출하지 않습니다.
 
 ### John 전용 재생 버튼 검수
 
 저장 자료와 실제 재생 분기는 [John의 저장 안내와 랩 버튼](#john의-저장-안내와-랩-버튼)을 따릅니다.
 `JonePerformanceUiPreview.Capture`는 공용 대화창에 실제 연결된 버튼의 대기·강조·재생 상태를
 넓은 화면과 좁은 화면에서 렌더합니다. 운영 씬은 저장하지 않습니다.
+
+John의 걷기·달리기는 `JohnParkLocomotion`이 발걸음과 골반 바운스를 분리해서 합성합니다. 랩 중에는 저장 음성의 재생 시각, 랩이 없을 때는 반복되는 강약 패턴을 사용합니다. 강세 곡선과 기준 골반 위치는 `Locomotion.asset`에 저장하며 **Connect Moving Rap Groove**로 같은 음성 시간표에서 갱신합니다. **Build Standing Rap Bounce**는 제자리 클립도 함께 갱신합니다. 골반이 움직여도 발 목표와 발 구름을 유지하도록 양다리 IK를 적용하며, 오른손·앰프와 얼굴 제어는 그대로 둡니다. 실제 저장 음성을 넣은 보행 전후 검수는 `JohnParkMovingGrooveValidation.Capture`로 실행하고 `artifacts/JohnLocomotion/MovingGroove/`에서 확인합니다.

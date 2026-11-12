@@ -325,6 +325,16 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("어드민이 실행한 발음 만들기처럼 사용자가 없는 요청에는 사용자 ID 헤더를 붙이지 않는다")
+  void request_withoutUser_omitsUserHeader() {
+    respond("/v1/tts", 200, "audio/wav", "RIFF");
+
+    client.synthesize(new WorkerTrace(REQUEST_ID, null, null), "sofa", "af_heart", 1.0);
+
+    assertThat(received.get("/v1/tts").userId()).isNull();
+  }
+
+  @Test
   @DisplayName("스트림이 오류 이벤트로 끝나면 실패한 대답으로 오류 코드와 그때까지의 사용량을 돌려준다")
   void reply_errorEvent_returnsFailedReply() {
     respond(
@@ -383,6 +393,34 @@ class AiWorkerClientTest {
     assertThat(result.text()).isEqualTo("라떼 주세요");
     assertThat(result.dropped()).isFalse();
     assertThat(result.english()).isEqualTo("A latte, please.");
+  }
+
+  @Test
+  @DisplayName("판정이 준 더 좋은 문장(better_expressions)을 읽고, 주지 않으면 빈 목록이다")
+  void judge_readsBetterExpressions() {
+    respond(
+        "/v1/judge",
+        200,
+        "application/json",
+        """
+        {"text": "Latte.", "dropped": false, "translation": null,
+         "better_expressions": ["Can I get a latte, please?", "I'd like a latte, please."], "usage": []}
+        """);
+    JudgeResult withSentences =
+        client.judge(TRACE, NPC, new WorkerState("free_talk", "", List.of()), List.of(), "Latte.");
+    respond(
+        "/v1/judge",
+        200,
+        "application/json",
+        """
+        {"text": "Hi", "dropped": false, "usage": []}
+        """);
+    JudgeResult without =
+        client.judge(TRACE, NPC, new WorkerState("free_talk", "", List.of()), List.of(), "Hi");
+
+    assertThat(withSentences.betterExpressions())
+        .containsExactly("Can I get a latte, please?", "I'd like a latte, please.");
+    assertThat(without.betterExpressions()).isEmpty();
   }
 
   @Test

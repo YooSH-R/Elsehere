@@ -2,6 +2,7 @@
     "name": "A305.Onboarding",
     "rootNamespace": "A305.Onboarding",
     "references": [
+        "A305.Ambience",
         "A305.Api",
         "A305.Dialogue",
         "A305.Player",

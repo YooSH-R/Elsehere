@@ -14,7 +14,7 @@ namespace A305.Dialogue
     {
         /// <summary>정해진 대사와 다른 문장을 보냈을 때 입력칸 위에 보이는 안내</summary>
         public const string GuidedLineMissNotice =
-            "튜토리얼은 정해진 흐름대로 진행돼요. 안내한 대사와 같게 입력하거나 [힌트]로 채워 보세요.";
+            "튜토리얼은 정해진 흐름대로 진행돼요. 안내한 대사와 같게 입력하거나 [힌트]로 펼친 문장을 눌러 넣어 보세요.";
 
         /// <summary>말로 한 대사가 정해진 대사와 다르거나 알아듣지 못했어도 정해진 대사로 이어 갔다는 안내</summary>
         public const string GuidedVoiceNotice =
@@ -31,21 +31,29 @@ namespace A305.Dialogue
         private readonly ConversationStanding tutorialStanding;
 
         /// <param name="hasRecorder">녹음기가 연결되어 있는지. 정해진 대사를 따라가는 대화면 [말하기]를 둔다.</param>
-        public DialogueConversation(string npcCode, DialogueScript script, bool hasRecorder = false)
+        public DialogueConversation(
+            string npcCode,
+            DialogueScript script,
+            bool hasRecorder = false,
+            DialogueLine recordedOpening = null
+        )
         {
             NpcCode = npcCode;
             this.script = script;
             this.hasRecorder = hasRecorder;
             playerName = PlayerNickname.Name;
-            if (IsGuided && script.NpcName == "Ben" && script.GuidedTurns.Count == 3)
+            if (IsGuided && script.NpcName == "Ben")
             {
                 tutorialStanding = new ConversationStanding();
                 UpdateTutorialStanding();
             }
 
-            if (script.OpeningLine != null)
+            DialogueLine opening = IsGuided
+                ? script.OpeningLine
+                : recordedOpening ?? script.OpeningLine;
+            if (opening != null)
             {
-                AddNpcLine(script.OpeningLine);
+                AddNpcLine(opening);
             }
         }
 
@@ -182,7 +190,7 @@ namespace A305.Dialogue
 
         private void UpdateTutorialStanding()
         {
-            // 길 안내 완료 API가 저장하는 기본 호감도 +6을 세 번의 긍정적인 응답으로 보여 준다.
+            // 길 안내 완료 API가 저장하는 기본 호감도 +4를 두 번의 긍정적인 응답(인사, 길 안내)으로 보여 준다.
             // 실제 저장은 TutorialFinishRecorder가 완료 API를 한 번씩 재시도하는 경로를 쓴다.
             tutorialStanding?.Apply(
                 new ConversationState

@@ -73,6 +73,83 @@ namespace A305.EditorTools.Dialogue
             );
         }
 
+        /// <summary>[다시 연습] 대화 위 참고 카드. 고친 문장 구역과 상황 표현 구역, 말한 문장의 배지를 세 테마·낮은 화면으로 그린다.</summary>
+        public static void CaptureRetryReference()
+        {
+            DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
+            view.Show(
+                new WordPreviewContent
+                {
+                    PreviewLines = new[]
+                    {
+                        DialogueLine.FromNpc(
+                            "Hi there! What can I get for you?",
+                            "안녕하세요! 무엇을 드릴까요?"
+                        ),
+                        DialogueLine.FromUser("Can I get that to go?"),
+                        DialogueLine.FromNpc("Sure! Anything to drink?", "그럼요! 음료는요?"),
+                    },
+                }
+            );
+            view.SetReviewReference(
+                new[]
+                {
+                    new ReviewReferenceItem(
+                        "Can I get that to go?",
+                        "포장해 주세요",
+                        true,
+                        "포장해 주세요"
+                    ),
+                    new ReviewReferenceItem(
+                        "I'd like an iced coffee, please.",
+                        "주문할 때는 I'd like로 시작하면 더 부드러워요.",
+                        false,
+                        "I want drink iced coffee"
+                    ),
+                    new ReviewReferenceItem(
+                        "Could I get a little less ice?",
+                        "얼음 조금만 넣어 주실 수 있나요?",
+                        false
+                    ),
+                },
+                1,
+                "<b>음료 주문하기</b>\n카페 · 손님\n\n카페에서 음료를 주문하고 포장을 부탁해요.\n",
+                listFirst: true
+            );
+            string output = OutputFolder();
+            RenderThemes(camera, view, eye, face, output, "retry-reference");
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "retry-reference-short.png"),
+                844,
+                390
+            );
+            // 상황 설명은 문장 목록 아래에 있어 카드를 끝까지 내린 모습도 찍는다.
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "retry-reference-list.png"),
+                1920,
+                1080,
+                showLatest: true
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "retry-reference-short-list.png"),
+                844,
+                390,
+                showLatest: true
+            );
+        }
+
         public static void CaptureFourLines()
         {
             DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
@@ -150,6 +227,15 @@ namespace A305.EditorTools.Dialogue
                 900,
                 1400
             );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "translation-mobile.png"),
+                844,
+                390
+            );
             // 길게 말한 표현은 카드가 문장에 맞춰 커져 두 번째 줄부터 잘리지 않는지 본다.
             content.UserTranslation =
                 "You have no conscience, do you? I should've just left you to die. "
@@ -199,6 +285,238 @@ namespace A305.EditorTools.Dialogue
                 1920,
                 1080,
                 showLatest: true
+            );
+            // 영어로 틀리게 한 말에는 교정문이 오고, 카드 제목이 다시 말해 보도록 바뀐다.
+            content.PreviewLines = new[]
+            {
+                DialogueLine.FromNpc("For here or to go?", null),
+                DialogueLine.FromUser("I eat here. No onion please, I don't like."),
+                DialogueLine.FromNpc("Sure, no onions. Anything to drink?", null),
+            };
+            content.UserTranslation = "I'll eat here. No onions, please. I don't like them.";
+            view.Refresh();
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "correction-wide.png"),
+                1920,
+                1080
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "correction-portrait.png"),
+                900,
+                1400
+            );
+        }
+
+        /// <summary>
+        /// 한국어로 길게 주고받은 대화. 영어 표현 카드 때문에 대사 칸이 좁아져 줄이 늘어도 단어·추천 문장 카드가 눌리지 않는지 본다.
+        /// </summary>
+        public static void CaptureKoreanLongLines()
+        {
+            DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
+            view.Show(
+                new WordPreviewContent
+                {
+                    UserTranslation =
+                        "I'm the police commissioner. I'm the one who can approve it.",
+                    PreviewLines = new[]
+                    {
+                        DialogueLine.FromUser(
+                            "폐지하겠네 다른 경찰서에서 인력 충원하는 거로 하겠어 다들 제 식구 감싸기에 바빠서 자기 할 일을 못하는구만"
+                        ),
+                        DialogueLine.FromNpc(
+                            "Sir, closing this station needs official approval. I can record your complaint; what happened, and where?",
+                            null
+                        ),
+                        DialogueLine.FromUser("내가 치안총감일세 내가 곧 공식 승인자야"),
+                        DialogueLine.FromNpc(
+                            "Right, by the book. I need to verify your credentials first, sir.",
+                            "네, 규정대로 하겠습니다. 먼저 신원 확인을 해야 합니다, 선생님."
+                        ),
+                    },
+                }
+            );
+            Invoke(view, "ToggleMeaning");
+            SelectTheme(UiThemeId.Jelly);
+            string output = OutputFolder();
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "korean-long-lines.png"),
+                1920,
+                1080,
+                showLatest: true
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "korean-long-lines-short.png"),
+                1920,
+                720,
+                showLatest: true
+            );
+            // [힌트]를 눌러 펼친 추천 문장과 뜻이 눌린 카드 안에서도 읽히는지 본다.
+            Invoke(view, "PressHint");
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "korean-long-lines-hint.png"),
+                1920,
+                1080
+            );
+        }
+
+        // 영어 표현 카드(S15P31A305-862): 맞게 말함·틀리게 말함·한국어 섞음의 접힌 카드, 긴 발화의 펼친 카드와 끝까지 내린 카드,
+        // 세로 화면의 펼친 카드. 카드는 내용만큼만 차지하고 대화창을 늘리지 않으며, [더 보기]·[접기]는 늘 카드 아래에 보인다.
+        public static void CaptureOtherExpressions()
+        {
+            DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
+            SelectTheme(UiThemeId.Jelly);
+            string output = OutputFolder();
+            DialogueLine npc = DialogueLine.FromNpc("Hi there! What can I get for you?", null);
+            var content = new WordPreviewContent();
+            // 대화 중반: 앞선 대사가 쌓여 대사 칸이 높아진 장면
+            DialogueLine[] earlier =
+            {
+                DialogueLine.FromNpc("Good morning! Are you new around here?", null),
+                DialogueLine.FromUser("Yes, I moved here last week."),
+                npc,
+            };
+            void Capture(
+                string file,
+                string said,
+                string expression,
+                string[] others,
+                bool open,
+                int width = 1920,
+                int height = 1080,
+                bool showLatest = false,
+                bool midConversation = false,
+                bool scrollToEnd = false
+            )
+            {
+                content.PreviewLines = (midConversation ? earlier : new[] { npc })
+                    .Append(DialogueLine.FromUser(said))
+                    .ToArray();
+                content.UserTranslation = expression;
+                // 새 목록으로 넘겨 매번 접힌 카드에서 시작한다.
+                content.UserBetterExpressions = others?.ToArray();
+                view.Show(content);
+                if (open)
+                    Invoke(view, "ToggleOtherExpressions");
+                if (scrollToEnd)
+                {
+                    Canvas.ForceUpdateCanvases();
+                    view
+                        .transform.Find("Panel/UserTranslation")
+                        .GetComponent<ScrollRect>()
+                        .verticalNormalizedPosition = 0;
+                }
+                Render(
+                    camera,
+                    view,
+                    eye,
+                    face,
+                    Path.Combine(output, file),
+                    width,
+                    height,
+                    showLatest
+                );
+            }
+
+            Capture(
+                "others-wellsaid-closed.png",
+                "Can I get an iced americano, please?",
+                null,
+                new[] { "I'd like an iced americano, please.", "Can I have an iced americano?" },
+                false
+            );
+            Capture(
+                "others-correction-closed.png",
+                "i want to speak korea",
+                "I want to speak Korean.",
+                new[] { "I'd like to speak Korean." },
+                false
+            );
+            Capture(
+                "others-korean-closed.png",
+                "한국어로 대화하자. i want korea",
+                "Let's talk in Korean. I want to speak Korean.",
+                new[]
+                {
+                    "Can we talk in Korean? I'd like to speak Korean.",
+                    "Could we use Korean instead?",
+                },
+                false
+            );
+            string[] longOthers =
+            {
+                "I tried to buy two loaves of bread at the bakery yesterday, but it was closed, so I went back home.",
+                "Yesterday I went to get some bread at the bakery, but it was closed, so I just came home.",
+                "I wanted to pick up two loaves at the bakery yesterday, but it was already closed, so I headed home.",
+            };
+            const string longSaid =
+                "yesterday i go to the bakery and buy two bread, but it was close so i come back home";
+            const string longFixed =
+                "Yesterday I went to the bakery and bought two loaves of bread, but it was closed, so I came back home.";
+            Capture("others-long-closed.png", longSaid, longFixed, longOthers, false);
+            Capture("others-long-open.png", longSaid, longFixed, longOthers, true);
+            Capture(
+                "others-long-open-portrait.png",
+                longSaid,
+                longFixed,
+                longOthers,
+                true,
+                900,
+                1400
+            );
+            // 낮은 화면: 대화창 최대 높이에 걸려 다음 문장 칸이 반쯤 보인다.
+            Capture(
+                "others-long-open-short-screen.png",
+                longSaid,
+                longFixed,
+                longOthers,
+                true,
+                1920,
+                720
+            );
+            Capture(
+                "others-long-open-end.png",
+                longSaid,
+                longFixed,
+                longOthers,
+                true,
+                scrollToEnd: true
+            );
+            Capture(
+                "others-long-open-mid.png",
+                longSaid,
+                longFixed,
+                longOthers,
+                true,
+                midConversation: true
+            );
+            Capture(
+                "others-long-open-mid-end.png",
+                longSaid,
+                longFixed,
+                longOthers,
+                true,
+                midConversation: true,
+                scrollToEnd: true
             );
         }
 
@@ -282,7 +600,7 @@ namespace A305.EditorTools.Dialogue
         }
 
         /// <summary>
-        /// [자막]을 끄고 켠 NPC 대사를 세 테마로 찍는다. 끄면 NPC 대사가 단어마다 회색 막대로 가려지고 [자막 켜기]가 반투명, 켜면 대사와 강조색 [자막 끄기]가 보인다.
+        /// [자막]을 끄고 켠 NPC 대사를 세 테마로 찍는다. 끄면 NPC 대사가 단어마다 회색 막대로 가려지고, 켜면 대사가 보인다.
         /// 자막을 끈 채 대답을 기다리는 화면도 찍어, 로딩 카드 위로 지난 대사의 막대가 비치지 않는지 본다.
         /// 이 기기의 자막 설정은 찍은 뒤 되돌린다.
         /// </summary>
@@ -290,6 +608,7 @@ namespace A305.EditorTools.Dialogue
         {
             string output = OutputFolder();
             bool savedPreference = NpcSubtitlePreference.ShowsSubtitles;
+            UiThemeId savedTheme = UiThemeSelection.Shared.Current;
             try
             {
                 DialoguePanelView view = OpenCafe(
@@ -299,12 +618,27 @@ namespace A305.EditorTools.Dialogue
                 );
                 foreach (bool showsSubtitles in new[] { false, true })
                 {
-                    NpcSubtitlePreference.ShowsSubtitles = showsSubtitles;
+                    // 이전에 켜 둔 기록이 있어도 새 대화에서는 가려지는지 함께 확인한다.
+                    NpcSubtitlePreference.ShowsSubtitles = true;
                     var content = new WordPreviewContent();
                     view.Show(content);
+                    if (showsSubtitles)
+                    {
+                        NpcSubtitlePreference.ShowsSubtitles = true;
+                        view.Refresh();
+                    }
                     FillHelp(view);
                     string state = showsSubtitles ? "on" : "off";
                     RenderThemes(camera, view, eye, face, output, $"subtitles-{state}");
+                    Render(
+                        camera,
+                        view,
+                        eye,
+                        face,
+                        Path.Combine(output, $"subtitles-{state}-mobile.png"),
+                        844,
+                        390
+                    );
                     if (showsSubtitles)
                         continue;
                     content.Waiting = DialogueWait.NpcReply;
@@ -315,6 +649,7 @@ namespace A305.EditorTools.Dialogue
             finally
             {
                 NpcSubtitlePreference.ShowsSubtitles = savedPreference;
+                SelectTheme(savedTheme);
             }
         }
 
@@ -542,6 +877,7 @@ namespace A305.EditorTools.Dialogue
             };
 
             public string UserTranslation { get; set; }
+            public IReadOnlyList<string> UserBetterExpressions { get; set; }
             public IReadOnlyList<DialogueLine> PreviewLines { get; set; }
             public string NpcName => "Mia";
             public IReadOnlyList<DialogueLine> Lines =>

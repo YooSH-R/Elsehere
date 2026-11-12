@@ -47,7 +47,7 @@ class TownStoryServiceTest {
   }
 
   @Test
-  void bakeryCardMakesQuantityAndRecipientAlternatives() {
+  void bakeryCardAndIntentRequireItemQuantityAndRecipient() {
     TownStory story = TownStory.start(8L);
     while (story.current() != TownStoryStage.BAKERY) {
       story.accept(story.getStage(), story.current().npcCode(), story.current().goalIds());
@@ -55,10 +55,19 @@ class TownStoryServiceTest {
     story.resume();
     when(stories.findById(8L)).thenReturn(Optional.of(story));
 
-    var goal = service.status(8L).steps().getFirst().goals().getFirst();
+    var cardGoal = service.status(8L).steps().getFirst().goals().getFirst();
+    assertThat(cardGoal.title()).isEqualTo("간식 고르기");
+    assertThat(cardGoal.hint()).isEqualTo("어떤 간식을 몇 개 살지, 누구에게 줄지 말해 보세요.");
 
-    assertThat(goal.title()).isEqualTo("간식 고르기");
-    assertThat(goal.hint()).isEqualTo("간식 이름과 함께 개수나 받을 사람 중 하나 말하기");
+    var context = service.context(8L, "BAKERY_STAFF").orElseThrow();
+    assertThat(context.goals().orElseThrow().state().intents())
+        .singleElement()
+        .satisfies(
+            goal -> {
+              assertThat(goal.id()).isEqualTo("choose_snack");
+              assertThat(goal.desc())
+                  .contains("a specific bakery item", "both the quantity and the recipient");
+            });
   }
 
   @Test

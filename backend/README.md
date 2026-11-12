@@ -26,7 +26,7 @@ ELSEHERE 서비스 API 서버입니다. API는 [MVP API 명세](../docs/api/mvp-
 com.elsehere
 ├── common          여러 도메인이 함께 쓰는 코드
 │   ├── auth        로그인 사용자(LoginUser), 로그인 세션 저장, 요청 위조 방지 헤더 검사
-│   ├── config      보안·Clock(서비스 시간대 포함)·JPA Auditing 설정
+│   ├── config      Clock(서비스 시간대 포함)·JPA Auditing·비동기·정기 작업·관리 엔드포인트 보안 설정
 │   ├── entity      BaseEntity
 │   ├── logging     요청 ID와 민감 정보를 제외한 요청 요약
 │   ├── error       공통 오류 응답(ErrorCode, BusinessException)
@@ -40,9 +40,9 @@ com.elsehere
 
 | 도메인 | 테이블 |
 | --- | --- |
-| `auth` | 없음 (로그인·가입·로그아웃 처리, 개발용 로그인) |
-| `bootstrap` | 없음 (여러 기능의 상태를 모아 접속 직후 첫 화면을 정하는 BOOT-01) |
-| `ai` | ai_requests (AI 호출 기록). AI 워커 호출과 AI 이용 상태(AI-01). 다른 패키지는 워커를 `AiGateway`로만 부르며, 게이트웨이가 호출마다 성공·실패를 기록한다. 워커 클라이언트(`AiWorkerClient`)와 기록기(`AiRequestRecorder`)는 `ai.client` 안에서만 쓸 수 있다. 사용량은 [어드민 AI 사용량](../docs/admin.md#ai-사용량)에서 본다 |
+| `auth` | 없음 (로그인·가입·로그아웃 처리, 개발용 로그인, 세션 기반 보안 설정 `auth.config.SecurityConfig`) |
+| `bootstrap` | 없음 (여러 기능의 상태를 모아 접속 직후 첫 화면을 정하는 BOOT-01. 팀 기기 쿠키 `elsehere_team=1`이 있으면 로그인한 계정을 팀 계정(`users.team_account`)으로 표시해 [어드민 이용 현황](../docs/admin.md#이용-현황)에서 뺀다) |
+| `ai` | ai_requests (AI 호출 기록). AI 워커 호출과 AI 이용 상태(AI-01). 다른 패키지는 워커를 AI 창구 `AiGateway`(`ai.service`)로만 부르며, 창구가 호출마다 기록기(`AiRequestRecorder`)로 성공·실패를 기록한다. `ai.client`는 워커 연결(`AiWorkerClient`)과 요청·응답 타입만 두고 DB를 다루지 않는다. 워커 클라이언트와 기록기를 창구 말고 쓰는 곳이 생기면 `PackageDependencyTest`가 실패한다. 사용량은 [어드민 AI 사용량](../docs/admin.md#ai-사용량)에서 본다 |
 | `user` | users, user_consents (가입 약관과 AI 개선 선택 동의) |
 | `conversation` | conversations, turns, training_recordings (AI 개선에 동의한 사용자의 녹음). 대화 기록: 엔티티·리포지토리, NPC 음성·학습용 녹음 저장 |
 | `dialogue` | 없음 (대화 흐름: 대화 시작·발화·종료, 음성 인식·NPC 음성, 뜻 보기·힌트, 지난 대화 목록 API. 피드백·기억·미션·동의를 엮는다) |
@@ -63,6 +63,7 @@ com.elsehere
   - 사용자의 대화·턴을 읽을 때는 `ConversationLookup`(`conversation.service`)을 씁니다. 다른 사용자의 것은 `NOT_FOUND`입니다.
   - 턴을 AI 워커에 보낼 앞선 대화 줄로 바꿀 때는 `WorkerLines`(`ai.service`)를 씁니다.
   - 두 패키지가 순환에 끼면 `PackageDependencyTest`가 실패합니다.
+- 계층 패키지(`auth.service`·`common.config`처럼 도메인 아래 패키지) 사이에도 import 순환을 두지 않습니다. `common`이 도메인을 거꾸로 참조하면 `common`을 쓰는 모든 패키지가 순환에 묶이므로, 도메인 설정(보안 설정 등)은 그 도메인에 둡니다. 응답 DTO는 서비스 타입을 그대로 담지 않고 응답용 칸 타입을 두며, 서비스나 컨트롤러가 옮겨 담습니다(dto와 service가 서로 참조하지 않게). 순환이 생기면 `PackageDependencyTest`가 실패합니다.
 - 계층 패키지는 그 계층의 코드를 처음 작성할 때 만듭니다. 빈 패키지를 미리 만들지 않습니다.
 - 요청·응답 객체(DTO)는 `<도메인>/dto`에 둡니다. 컨트롤러 하나에서만 쓰는 작은 요청은 컨트롤러 안의 record로 둘 수 있습니다.
 - Spring Security가 호출하는 로그인 성공·실패 처리기와 인증 진입점은 `auth/handler`에 둡니다.
@@ -126,7 +127,7 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 - 가입자 세션은 요청이 24시간 없으면 끝나고(`server.servlet.session.timeout`), 쿠키도 24시간 유지해 브라우저를 닫았다 열어도 이어집니다. 게스트는 로그인할 때 세션을 2시간으로 줄입니다(`elsehere.guest.session-timeout`). 세션은 서버 메모리에 있어 백엔드를 다시 시작하면 모두 로그아웃되므로, 운영 배포는 사용자가 적은 시간에 합니다. 서버를 늘리거나 무중단 배포를 하게 되면 세션을 DB 등 외부 저장소로 옮깁니다.
 - 가입(AUTH-03·04)은 Google 로그인이 세션에 남긴 가입 대기 정보로 진행합니다. 받는 약관과 현재 버전은 `ConsentCatalog`에 있으며, 약관 문서를 바꾸면 이 클래스의 버전과 주소를 함께 바꿉니다.
 - POST·PUT·PATCH·DELETE 요청에는 `X-Requested-With` 헤더(값은 자유)를 붙여야 합니다. 없으면 `403 CSRF_HEADER_REQUIRED`입니다.
-- 운영자 어드민 화면(`/admin/**`)과 관리 API(`/api/v1/admin/**`)는 `users.role`이 `ADMIN`인 사용자만 씁니다. 보안 설정이 요청마다 `AdminAccess`로 DB의 역할을 확인하며, 관리자가 아니면 `403 ADMIN_REQUIRED`입니다. 로그인하지 않고 어드민 화면을 열면 Google 로그인으로 보냅니다. 관리자 지정 방법은 [운영자 어드민](../docs/admin.md)을 따릅니다.
+- 운영자 어드민 화면(`/admin/**`)과 관리 API(`/api/v1/admin/**`)는 Google 로그인과 따로인 어드민 계정으로만 씁니다(아래 [어드민 로그인](#어드민-로그인)). 어드민 보안 설정(`AdminSecurityConfig`)이 게임 보안 설정보다 먼저 이 주소를 맡습니다.
 - 오류 응답 형식과 코드는 [MVP API 명세](../docs/api/mvp-api.md)의 1.5절을 따릅니다.
 
 ### Google 로그인
@@ -165,6 +166,18 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 3. 이후 요청은 같은 세션 쿠키로 보냅니다.
 
 사용자가 실제로 있는지는 확인하지 않습니다.
+
+### 어드민 로그인
+
+운영자 어드민은 환경마다 하나인 어드민 계정으로 `/admin/login`에서 로그인합니다. 계정 규칙과 잠금은 [운영자 어드민](../docs/admin.md#접근-권한)을 따릅니다.
+
+| 환경변수 | 기본값 | 설명 |
+| --- | --- | --- |
+| `ADMIN_LOGIN_ID` | 없음 | 어드민 아이디 |
+| `ADMIN_PASSWORD` | 없음 | 어드민 비밀번호(12자 이상, UTF-8 72바이트 이하). 비어 있으면 어드민 로그인을 끕니다. 코드와 Git에 넣지 않습니다. |
+
+- 로컬에서 어드민을 쓰려면 `backend/.env`에 두 값을 적고 서버를 다시 시작합니다. 비밀번호가 규칙에 맞지 않으면 서버가 시작하지 않습니다.
+- 어드민 로그인은 게임 로그인과 같은 세션 쿠키를 쓰지만 세션의 다른 칸(`AdminLoginSession`)에 두어, 게임 로그인으로 어드민을 쓰거나 어드민 로그인으로 게임 API를 쓸 수 없습니다. 컨트롤러는 어드민을 `@AuthenticationPrincipal AdminLogin`으로 받습니다.
 
 ## 명령
 

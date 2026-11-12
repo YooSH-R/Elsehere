@@ -59,7 +59,8 @@
     dd { margin: 0; }
     label { display: block; margin: 16px 0 4px; font-weight: 600; }
     .field-hint { margin: 0 0 6px; color: var(--muted); font-size: 13px; font-weight: 400; }
-    textarea, input[type="email"], input[type="number"] {
+    main.login { max-width: 400px; padding-top: 80px; }
+    textarea, input[type="text"], input[type="password"], input[type="email"], input[type="number"] {
       width: 100%;
       padding: 8px 10px;
       border: 1px solid var(--line);
@@ -95,18 +96,19 @@
     <a th:href="@{/admin/npcs}">NPC 페르소나</a>
     <a th:href="@{/admin/usage}">이용 현황</a>
     <a th:href="@{/admin/ai-usage}">AI 사용량</a>
-    <a th:href="@{/admin/admins}">관리자</a>
   </nav>
   <a th:href="@{/}">게임으로</a>
-  <button type="button" id="logout">로그아웃</button>
+  <button type="button" id="logout" th:data-url="@{/api/v1/admin/logout}" th:data-next="@{/admin/login}">로그아웃</button>
   <script>
-    document.getElementById("logout").addEventListener("click", async () => {
-      await fetch("/api/v1/auth/logout", {
+    // 어드민 로그인만 끝낸다. 같은 브라우저의 게임 로그인은 그대로다.
+    const logoutButton = document.getElementById("logout");
+    logoutButton.addEventListener("click", async () => {
+      await fetch(logoutButton.dataset.url, {
         method: "POST",
         headers: { "X-Requested-With": "ElsehereAdmin" },
         credentials: "same-origin"
       });
-      location.href = "/";
+      location.href = logoutButton.dataset.next;
     });
   </script>
 </header>

@@ -47,7 +47,7 @@ class ConversationResponses {
         turn.getSeq(),
         Speaker.NPC,
         turn.getText(),
-        readWords(turn.getSuggestWords()),
+        shownWords(turn),
         SpeechResponse.of(turn.getId(), turn.getNpcAudioKey(), turn.getNpcAudioDeletedAt()));
   }
 
@@ -58,7 +58,8 @@ class ConversationResponses {
         Speaker.USER,
         turn.getText(),
         turn.isRude(),
-        translation(turn));
+        translation(turn),
+        turn.getBetterExpressions() == null ? List.of() : readWords(turn.getBetterExpressions()));
   }
 
   ConversationStateResponse state(Conversation conversation) {
@@ -107,8 +108,18 @@ class ConversationResponses {
     return phrases == null || phrases.isEmpty() ? null : jsonMapper.writeValueAsString(phrases);
   }
 
+  /** 다른 표현이 없으면 null로 남긴다. */
+  String writeBetterExpressions(List<String> sentences) {
+    return sentences.isEmpty() ? null : jsonMapper.writeValueAsString(sentences);
+  }
+
   List<String> readWords(String json) {
     return json == null ? null : jsonMapper.readValue(json, STRING_LIST);
+  }
+
+  /** 저장해 둔 추천 단어 후보에서 CONV-12와 같은 규칙으로 화면에 보일 단어를 고른다. */
+  private List<String> shownWords(Turn turn) {
+    return SuggestedWords.pick(readWords(turn.getSuggestWords()), turn.getHintText());
   }
 
   private TurnDetailResponse turnDetail(Turn turn) {
@@ -120,7 +131,7 @@ class ConversationResponses {
         turn.getText(),
         turn.isRude(),
         translation(turn),
-        readWords(turn.getSuggestWords()),
+        shownWords(turn),
         turn.getMeaningKo(),
         turn.getHintText(),
         npcTurn

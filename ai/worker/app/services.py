@@ -60,23 +60,44 @@ def clean_events(raw: dict) -> list[str]:
     return [event for event in dict.fromkeys(e for e in got if isinstance(e, str)) if event in P.LINE_EVENTS]
 
 
+def spoken_words(value: str) -> list[str]:
+    """대소문자·문장 부호를 빼고 비교할 낱말. 아포스트로피가 든 낱말(It's)은 한 낱말이다."""
+    return re.findall(r"\w+(?:'\w+)*", value.casefold().replace("’", "'"))
+
+
+def english_line(value) -> str | None:
+    """한글 없이 영어 글자가 있는 한 줄이면 앞뒤 공백을 뺀 것, 아니면 None."""
+    if not isinstance(value, str):
+        return None
+    value = value.strip()
+    return value if re.search(r"[A-Za-z]", value) and not P.HANGUL.search(value) else None
+
+
 def clean_english_correction(raw: dict, text: str) -> str | None:
     """영어 교정문만 표현 카드로 보낸다. 번역·표면 표기 차이는 여기서 만들지 않는다."""
-    correction = raw.get("english_correction")
-    if P.HANGUL.search(text) or not isinstance(correction, str):
+    if P.HANGUL.search(text):
         return None
-    correction = correction.strip()
-    if not re.search(r"[A-Za-z]", correction) or P.HANGUL.search(correction):
-        return None
+    correction = english_line(raw.get("english_correction"))
+    return correction if correction and spoken_words(correction) != spoken_words(text) else None
 
-    def words(value: str) -> list[str]:
-        return re.findall(r"\w+(?:'\w+)*", value.casefold().replace("’", "'"))
 
-    return correction if words(correction) != words(text) else None
+def clean_better_expressions(raw: dict, text: str, *shown: str | None) -> list[str]:
+    """표현 카드에 접어 두는 같은 뜻의 다른 표현(최대 3개). 고친 문장·한국어가 섞인 말에도 준다.
+    학습자가 한 말, 카드에 이미 보이는 고친 문장·영어 번역(shown), 서로 겹치는 문장은 뺀다."""
+    sentences = raw.get("better_expressions")
+    if not isinstance(sentences, list):
+        return []
+    seen = {tuple(spoken_words(line)) for line in (text, *shown) if line}
+    kept = []
+    for sentence in map(english_line, sentences):
+        if sentence and tuple(spoken_words(sentence)) not in seen:
+            seen.add(tuple(spoken_words(sentence)))
+            kept.append(sentence)
+    return kept[:3]
 
 
 async def judge(llm: LLM, req: JudgeRequest) -> dict:
-    """의도·줄 사건·영어 교정을 함께 판정하고, 한국어 번역은 동시에 받는다. 실패해도 턴은 이어 간다.
+    """의도·줄 사건·영어 교정·더 좋은 문장을 함께 판정하고, 한국어 번역은 동시에 받는다. 실패해도 턴은 이어 간다.
     무례 판정은 /v1/guard가 따로 한다. 생성된 영어 번역은 무례 판정과 관계없이 Spring이 표현 카드로 전달한다.
     affinity_delta는 줄 사건으로 바로 올릴 호감이다. 무례로 확정된 턴이면 Spring이 쓰지 않고 /v1/guard의 감점만 쓴다."""
     usage = Usage()
@@ -88,6 +109,7 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
             "notice": P.ACTION_ONLY_KO,
             "intent": None,
             "translation": None,
+            "better_expressions": [],
             "events": None,
             "affinity_delta": None,
             "usage": [],
@@ -100,7 +122,9 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
             P.intent_messages(req.npc, req.state, req.history, text), usage, P.intent_schema(req.state), hedge_after_s=hedge_after_s
         )
         raw = json.loads(out)
-        return clean_intent(raw, req.state), clean_events(raw), clean_english_correction(raw, text)
+        it = clean_intent(raw, req.state)  # JSON 객체가 아니면 여기서 ValueError: 의도 칸만 실패
+        correction = clean_english_correction(raw, text)
+        return it, clean_events(raw), correction, raw
 
     async def translate():
         out = await llm.chat(
@@ -114,12 +138,14 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
         jobs.append(within(translate(), budget))
     res = await asyncio.gather(*jobs, return_exceptions=True)
     failed = {"id": "unclear", "ids": ["unclear"], "slots": {}, "error": str(res[0])[:160]}
-    it, events, correction = res[0] if not isinstance(res[0], BaseException) else (failed, [], None)
+    it, events, correction, raw = res[0] if not isinstance(res[0], BaseException) else (failed, [], None, {})
     translation = {"english": correction, "error": None} if correction else None
     if len(res) == 2:
         english = "" if isinstance(res[1], BaseException) else res[1]
         english = "" if english == "-" else english
         translation = {"english": english or None, "error": str(res[1])[:160] if isinstance(res[1], BaseException) else None}
+    # 다른 표현은 카드에 보일 고친 문장·영어 번역이 정해진 뒤에 겹치는 것을 뺀다
+    better = clean_better_expressions(raw, text, translation and translation["english"])
     for r in res:  # 프로그램 오류(버그)는 숨기지 않는다
         if isinstance(r, BaseException) and not isinstance(r, (ProviderError, ValueError)):
             raise r
@@ -129,6 +155,7 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
         "notice": P.ACTION_PART_KO if had_action else None,
         "intent": it,
         "translation": translation,
+        "better_expressions": better,
         "events": events,
         "affinity_delta": line_affinity(req, events),
         "usage": usage.items,
@@ -206,12 +233,29 @@ async def meaning(llm: LLM, req: MeaningRequest) -> dict:
     return {"meaning_ko": meaning_ko, "glossary": glossary[:25], "usage": usage.items}
 
 
+# 주어로 시작하거나(I'm sorry) 문장 부호로 끝나는 말은 단어가 아니라 문장이라, 모델이 단어라고 해도 단어가 모자랄 때만 넣는다.
+SENTENCE_LIKE = re.compile(
+    r"^(?:i|i'm|i'd|i'll|i've|you|you're|you'll|we|we're|he|he's|she|she's|they|they're|it's|that's|there's)\b|[.?!]$",
+    re.IGNORECASE,
+)
+
+
+def sentence_like(text: str) -> bool:
+    return bool(SENTENCE_LIKE.search(text.replace("’", "'").strip()))
+
+
+# Spring이 추천 문장에서 잘라 온 말을 거르고도 3개를 보이도록 후보를 넉넉히 보낸다
+SUGGEST_CANDIDATES = 5
+# 추천 단어가 비거나 1개만 보이지 않게 지키는 수
+FEWEST_WORDS = 2
+
+
 async def suggest(llm: LLM, req: SuggestRequest) -> dict:
     """다음 답변을 만드는 어휘와 뜻. 기존 words 문자열 배열 계약을 유지한다."""
     usage = Usage()
     msgs = P.suggest_messages(req.npc, req.scene or req.npc.scene, req.goal, req.history, req.level)
     res = load_object(await llm.chat("suggest", "hint", msgs, usage, 0.3, 320, P.SUGGEST_SCHEMA), "추천 단어")
-    words = []
+    words, sentences = [], []
     seen = set()
     for w in res.get("words") if isinstance(res.get("words"), list) else []:
         if isinstance(w, dict):
@@ -227,10 +271,11 @@ async def suggest(llm: LLM, req: SuggestRequest) -> dict:
             label = text
         if text and len(text) <= 60 and text.casefold() not in seen:
             seen.add(text.casefold())
-            words.append(label)
+            (sentences if isinstance(w, dict) and sentence_like(text) else words).append(label)
+    words += sentences[: max(0, FEWEST_WORDS - len(words))]
     if not words:
         raise ModelOutputError("추천 단어 출력에 단어가 없음")
-    return {"words": words[:3], "usage": usage.items}
+    return {"words": words[:SUGGEST_CANDIDATES], "usage": usage.items}
 
 
 async def level_test_speaking(llm: LLM, req: LevelTestSpeakingRequest) -> dict:

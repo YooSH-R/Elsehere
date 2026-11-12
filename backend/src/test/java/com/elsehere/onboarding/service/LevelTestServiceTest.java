@@ -74,12 +74,12 @@ class LevelTestServiceTest {
     assertThat(response.items())
         .extracting(LevelTestItemResponse::itemCode, LevelTestItemResponse::type)
         .containsExactly(
-            tuple("EN_LT_L1", LevelTestItemType.LISTEN),
-            tuple("EN_LT_L2", LevelTestItemType.LISTEN),
-            tuple("EN_LT_L3", LevelTestItemType.LISTEN),
-            tuple("EN_LT_L4", LevelTestItemType.LISTEN),
-            tuple("EN_LT_S1", LevelTestItemType.SPEAK),
-            tuple("EN_LT_S2", LevelTestItemType.SPEAK));
+            tuple("EN_LT_L1", LevelTestItemResponse.Type.LISTEN),
+            tuple("EN_LT_L2", LevelTestItemResponse.Type.LISTEN),
+            tuple("EN_LT_L3", LevelTestItemResponse.Type.LISTEN),
+            tuple("EN_LT_L4", LevelTestItemResponse.Type.LISTEN),
+            tuple("EN_LT_S1", LevelTestItemResponse.Type.SPEAK),
+            tuple("EN_LT_S2", LevelTestItemResponse.Type.SPEAK));
     assertThat(findProfile(user).getLastTestId()).isEqualTo(response.testId());
   }
 

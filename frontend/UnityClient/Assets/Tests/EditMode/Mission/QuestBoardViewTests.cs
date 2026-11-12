@@ -65,6 +65,12 @@ namespace A305.Mission.Tests
                 Is.EqualTo(2)
             );
             Assert.That(Text(board, "PinNumber"), Is.EqualTo("3"));
+            RectTransform map = Field<RectTransform>(board, "map");
+            Assert.That(
+                map.GetComponentsInChildren<Image>().Select(image => image.name),
+                Does.Not.Contain("Dot"),
+                "장소 사이에 점선 경로를 그리지 않습니다."
+            );
         }
 
         [TestCase(false)]

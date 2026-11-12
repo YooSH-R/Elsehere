@@ -92,6 +92,14 @@ namespace A305.Player
             transform.SetPositionAndRotation(pose.position, pose.rotation);
         }
 
+        public Vector3 DialogueCameraPositionFrom(Transform lookTarget, Vector3 standingPoint) =>
+            DialogueFraming.CameraPosition(
+                lookTarget.position,
+                standingPoint,
+                cameraSettings.DialogueDistanceMeters,
+                cameraSettings.DialogueHeightOffsetMeters
+            );
+
         public void ExitDialogueView()
         {
             orbit.ExitDialogueView();
@@ -343,12 +351,7 @@ namespace A305.Player
                     Camera camera = GetComponent<Camera>();
                     Vector3 face = dialogueLookTarget.position;
                     return DialogueFraming.Pose(
-                        DialogueFraming.CameraPosition(
-                            face,
-                            eye,
-                            cameraSettings.DialogueDistanceMeters,
-                            cameraSettings.DialogueHeightOffsetMeters
-                        ),
+                        DialogueCameraPositionFrom(dialogueLookTarget, eye),
                         face,
                         camera.fieldOfView,
                         camera.aspect,

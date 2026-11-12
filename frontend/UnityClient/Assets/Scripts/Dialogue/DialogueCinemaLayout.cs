@@ -19,9 +19,13 @@ namespace A305.Dialogue
         public const float MinLinesHeight = 96;
         public const float MaxLinesHeight = 600;
         public const float NameHeight = 48;
+
+        /// <summary>영어 표현 카드 내용의 높이를 모를 때 쓰는 기본 높이.</summary>
         public const float TranslationHeight = 160;
-        public const float MaxTranslationHeight = 320;
         private const float TranslationSideBySideWidth = 1100;
+
+        // 이름 줄 위 자리를 비워 주느라 대사와 영어 표현 카드를 줄일 때도 남기는 높이. 낮은 화면에서 대사가 사라지지 않게 한다.
+        public const float MinBodyBelowReservedRoom = 200;
 
         // 둥근 이름표가 대사 글자 줄보다 앞으로 나오는 폭. 같은 자리에서 시작하면 둥근 끝 때문에 이름표가 안쪽으로 들어가 보인다.
         public const float NameOutdent = 8;
@@ -46,13 +50,17 @@ namespace A305.Dialogue
         /// <param name="hasEarlierLines">
         /// 보이는 대사 위에 지난 대사가 있는지. 있으면 최소 높이를 두지 않고 대사 칸을 보이는 대사에 딱 맞춰, 지난 대사가 반쯤 비치지 않게 한다.
         /// </param>
+        /// <param name="roomAboveName">
+        /// 이름 줄 위로 비워 둘 높이(오른쪽 위 단어·추천 문장 카드 자리). 대사와 영어 표현 카드는 이 자리를 넘지 않는 높이까지만 키운다.
+        /// </param>
         public static DialogueCinemaLayout Compute(
             Vector2 canvasSize,
             float linesHeight,
             float nameWidth,
             bool hasEarlierLines = false,
             bool hasTranslation = false,
-            float translationHeight = TranslationHeight
+            float translationHeight = TranslationHeight,
+            float roomAboveName = 0
         )
         {
             float width = Mathf.Min(ColumnWidth, canvasSize.x - 2 * SideMargin);
@@ -74,18 +82,24 @@ namespace A305.Dialogue
             );
             layout.Status = new Rect(left, layout.Input.yMax + 12, width, StatusHeight);
             bool stackedTranslation = hasTranslation && width < TranslationSideBySideWidth;
-            float reservedHeight = layout.Status.yMax + 10 + Gap + NameHeight + FadeHeight;
-            // 영어 표현 카드는 문장이 다 보이게 키우되, 상한과 화면 높이 안에서만 키우고 넘치는 문장은 카드 안에서 스크롤한다.
-            float cardRoom = canvasSize.y - reservedHeight;
+            float belowAndName = layout.Status.yMax + 10 + Gap + NameHeight;
+            // 대사와 영어 표현 카드가 함께 쓸 수 있는 높이. 이름 줄 위 자리를 비워 주되, 낮은 화면에서도 읽을 높이는 남긴다.
+            float bodyRoom = canvasSize.y - belowAndName - FadeHeight;
+            if (roomAboveName > FadeHeight)
+                bodyRoom = Mathf.Min(
+                    bodyRoom,
+                    Mathf.Max(MinBodyBelowReservedRoom, canvasSize.y - belowAndName - roomAboveName)
+                );
+            // 영어 표현 카드는 내용만큼 차지하고 대화창을 그만큼 키운다. 쓸 수 있는 높이를 넘지 않고, 넘치는 내용은 카드 안에서 스크롤한다.
+            // 좁은 화면에서 대사 위에 쌓을 때는 대사 최소 높이를 남긴 높이까지만 키운다.
+            float stackedCard = 0;
             if (stackedTranslation)
-                cardRoom -= Gap + MinLinesHeight;
-            float cardHeight = Mathf.Min(
-                Mathf.Clamp(translationHeight, TranslationHeight, MaxTranslationHeight),
-                Mathf.Max(TranslationHeight, cardRoom)
-            );
-            if (stackedTranslation)
-                reservedHeight += cardHeight + Gap;
-            float maxLines = Mathf.Min(MaxLinesHeight, Mathf.Max(0, canvasSize.y - reservedHeight));
+            {
+                float room = bodyRoom - Gap - MinLinesHeight;
+                stackedCard = Mathf.Clamp(translationHeight, 0, Mathf.Min(MaxLinesHeight, room));
+                bodyRoom -= stackedCard + Gap;
+            }
+            float maxLines = Mathf.Min(MaxLinesHeight, Mathf.Max(0, bodyRoom));
             layout.Lines = new Rect(
                 left,
                 layout.Status.yMax + 10,
@@ -98,14 +112,17 @@ namespace A305.Dialogue
             if (hasTranslation)
             {
                 bool sideBySide = width >= TranslationSideBySideWidth;
+                // 카드는 학습자의 최근 말이 있는 대사 칸 아래쪽에 붙는다.
                 if (sideBySide)
                 {
+                    // 대사 옆 카드는 대사 칸의 최대 높이까지 키운다. 대사보다 길면 대화창이 카드에 맞춰 커진다.
+                    float cardHeight = Mathf.Clamp(translationHeight, 0, maxLines);
                     bodyTop = Mathf.Max(bodyTop, layout.Lines.yMin + cardHeight);
-                    layout.Translation = Rect.MinMaxRect(
+                    layout.Translation = new Rect(
                         layout.Lines.xMax + 2 * Gap,
-                        bodyTop - cardHeight,
-                        right,
-                        bodyTop
+                        layout.Lines.yMin,
+                        right - layout.Lines.xMax - 2 * Gap,
+                        cardHeight
                     );
                     layout.TranslationDivider = new Rect(
                         layout.Lines.xMax + Gap,
@@ -116,8 +133,8 @@ namespace A305.Dialogue
                 }
                 else
                 {
-                    layout.Translation = new Rect(left, bodyTop + Gap, width, cardHeight);
-                    bodyTop = layout.Translation.yMax;
+                    layout.Translation = new Rect(left, bodyTop + Gap, width, stackedCard);
+                    bodyTop += Gap + stackedCard;
                 }
             }
             layout.Name = new Rect(left - NameOutdent, bodyTop + Gap, nameWidth, NameHeight);

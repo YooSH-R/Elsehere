@@ -45,6 +45,7 @@ def test_compact_provider_response_is_valid_and_restored_before_backend_receives
     raw["spoken_usage_selection"] = None
     result = raw["result"]
     review = result["turn_reviews"][0]
+    review["expression_examples"] = []
     for name in ("review_id", "original_text", "assisted"):
         del review[name]
     del review["suggestions"][0]["suggestion_id"]

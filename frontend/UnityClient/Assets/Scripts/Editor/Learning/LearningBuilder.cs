@@ -100,14 +100,101 @@ namespace A305.EditorTools.Learning
         public static void AddSessionExpired(GameObject hud) =>
             SetUpSessionExpired(hud, UiBuilderTools.BoldFont(), UiBuilderTools.RegularFont());
 
-        /// <summary>HUD 내 정보 창에 NPC 말 빠르기 줄만 덧붙인다. HUD의 다른 구성은 건드리지 않는다.</summary>
+        /// <summary>HUD 설정 창에 NPC 말 빠르기 줄만 덧붙인다. HUD의 다른 구성은 건드리지 않는다.</summary>
         public static void AddNpcSpeechSpeed(GameObject hud) =>
             SetUpNpcSpeechSpeed(
-                hud.GetComponent<MyPageView>(),
-                (RectTransform)hud.transform.Find("MyPage/Window"),
+                hud.GetComponent<SettingsView>(),
+                (RectTransform)hud.transform.Find("Settings/Window"),
                 UiBuilderTools.BoldFont(),
                 UiBuilderTools.RegularFont()
             );
+
+        /// <summary>HUD 설정 창에 대화 난이도 줄만 덧붙인다(S15P31A305-799). HUD의 다른 구성은 건드리지 않는다.</summary>
+        public static void AddConversationLevel(GameObject hud) =>
+            SetUpConversationLevel(
+                hud.GetComponent<SettingsView>(),
+                (RectTransform)hud.transform.Find("Settings/Window"),
+                UiBuilderTools.BoldFont()
+            );
+
+        // 내 정보 창에서 설정 창으로 옮긴 줄
+        private static readonly string[] SettingRows =
+        {
+            "LookSensitivity",
+            "NpcSpeechSpeed",
+            "DeviceNote",
+            "ConversationLevel",
+            "ConsentsLabel",
+            "Consents",
+        };
+
+        /// <summary>
+        /// 내 정보 창을 내 정보(닉네임 변경, 로그아웃·회원 탈퇴)와 설정 창으로 나눈다(S15P31A305-861). 이미 마무리한 디자인을 지키려고
+        /// 설정 창은 내 정보 창을 복제해 만들고, 두 창에서 서로의 줄만 지운 뒤 휴대폰 [설정] 버튼과 연결한다.
+        /// 이미 나눈 HUD에서는 연결만 다시 맞춘다. HUD의 다른 구성은 건드리지 않는다.
+        /// </summary>
+        public static void SplitSettings(GameObject hud)
+        {
+            Transform myPage = hud.transform.Find("MyPage");
+            Transform profile = myPage.Find("Window");
+            Transform settings = hud.transform.Find("Settings");
+            if (settings == null)
+            {
+                settings = UnityEngine
+                    .Object.Instantiate(myPage.gameObject, hud.transform)
+                    .transform;
+                settings.name = "Settings";
+                settings.SetSiblingIndex(myPage.GetSiblingIndex() + 1);
+                Transform window = settings.Find("Window");
+                DestroyChild(window, "Profile");
+                DestroyChild(window, "NicknameRow");
+                window.Find("Title").GetComponent<TMP_Text>().text = "설정";
+                window.Find("Status").GetComponent<TMP_Text>().text = "";
+                foreach (string row in SettingRows)
+                    DestroyChild(profile, row);
+            }
+            // 로그아웃·회원 탈퇴와 확인 창은 내 정보 창에 둔다. 설정 창에 있으면 내 정보 창으로 옮긴다.
+            Transform settingsWindow = settings.Find("Window");
+            // 내 정보 창에 버튼 줄이 없으면 디자인을 마친 줄을 통째로 옮긴다.
+            if (profile.Find("Buttons") == null)
+                MoveOrDestroy(settingsWindow, "Buttons", profile, null);
+            MoveOrDestroy(settingsWindow, "Buttons/WithdrawButton", profile, "Buttons");
+            MoveOrDestroy(settingsWindow, "Buttons/LogoutButton", profile, "Buttons");
+            MoveOrDestroy(settings, "LogoutDialog", myPage, null);
+            MoveOrDestroy(settings, "WithdrawDialog", myPage, null);
+            Transform emptyRow = settingsWindow.Find("Buttons");
+            if (emptyRow != null && emptyRow.childCount == 0)
+                UnityEngine.Object.DestroyImmediate(emptyRow.gameObject);
+
+            TMP_FontAsset bold = UiBuilderTools.BoldFont();
+            TMP_FontAsset regular = UiBuilderTools.RegularFont();
+            var menu = (RectTransform)hud.transform.Find("Panel/Menu");
+            SetUpMyPage(hud, menu, bold, regular);
+            SetUpSettings(hud, menu, bold, regular);
+        }
+
+        // from 아래의 path를 to(rowName이 있으면 그 이름의 버튼 줄) 아래로 옮긴다. 받는 쪽에 이미 있으면 지운다.
+        private static void MoveOrDestroy(Transform from, string path, Transform to, string rowName)
+        {
+            Transform child = from.Find(path);
+            if (child == null)
+                return;
+            Transform parent =
+                rowName == null
+                    ? to
+                    : UiBuilderTools.FindOrCreateButtonRow((RectTransform)to, rowName);
+            if (parent.Find(child.name) != null)
+                UnityEngine.Object.DestroyImmediate(child.gameObject);
+            else
+                child.SetParent(parent, false);
+        }
+
+        private static void DestroyChild(Transform parent, string path)
+        {
+            Transform child = parent.Find(path);
+            if (child != null)
+                UnityEngine.Object.DestroyImmediate(child.gameObject);
+        }
 
         /// <summary>씬에 피드백·단어장 화면과 학습 처리가 없으면 붙이고 플레이어·대화 처리와 연결한다.</summary>
         public static LearningController ConnectToScene(
@@ -375,6 +462,7 @@ namespace A305.EditorTools.Learning
             BuilderTools.RequireReferences(view);
 
             SetUpMyPage(root, menu, bold, regular);
+            SetUpSettings(root, menu, bold, regular);
             // 화면 디자인은 하나만 써서 메뉴에 [테마]를 두지 않는다.
             Transform themeButton = menu.Find("ThemeButton");
             if (themeButton != null)
@@ -384,6 +472,7 @@ namespace A305.EditorTools.Learning
                 "VocabularyButton",
                 "HistoryButton",
                 "MyPageButton",
+                "SettingsButton",
                 "ControlsButton",
                 "Divider",
                 "HomeButton"
@@ -740,7 +829,7 @@ namespace A305.EditorTools.Learning
         }
 
         /// <summary>
-        /// 오른쪽 위 버튼 줄 끝의 [내 정보]와 마이페이지 창(내 정보·닉네임 변경·로그아웃 확인). 없는 요소만 만들고 디자인은 유지한다.
+        /// 휴대폰 [내 정보]와 내 정보 창(닉네임·캐릭터·학습 언어, 닉네임 변경, 로그아웃·회원 탈퇴와 확인 창). 없는 요소만 만들고 디자인은 유지한다.
         /// </summary>
         private static void SetUpMyPage(
             GameObject root,
@@ -819,45 +908,7 @@ namespace A305.EditorTools.Learning
                     "한글 2~8자 또는 영문·숫자 2~16자로 정해 주세요."
                 )
             );
-            // 선택 동의(음성 처리·AI 개선)는 받은 목록대로 줄을 복제한다(USER-02·03). 게스트는 음성 처리만 받는다.
-            TMP_Text consentsLabel = UiBuilderTools.FindOrCreateText(
-                profile,
-                "ConsentsLabel",
-                bold,
-                22f,
-                Color.white,
-                "선택 동의"
-            );
-            RectTransform consents = UiBuilderTools.FindOrCreateColumn(profile, "Consents");
-            BuilderTools.SetReference(view, "consentsParent", consents);
-            BuilderTools.SetReference(
-                view,
-                "consentTemplate",
-                OnboardingBuilder.SetUpConsentRow(consents, "ConsentRowTemplate", regular)
-            );
-            RectTransform lookSensitivity = SetUpSliderSetting(
-                view,
-                profile,
-                new SliderSetting(
-                    "LookSensitivity",
-                    "시점 감도",
-                    "마우스·화면을 끌어 시점을 돌리는 빠르기예요.\n이 기기에만 저장돼요.",
-                    LookSensitivity.Min,
-                    LookSensitivity.Max,
-                    LookSensitivity.Default,
-                    "lookSensitivitySlider",
-                    "lookSensitivityText"
-                ),
-                bold,
-                regular
-            );
-            lookSensitivity.SetSiblingIndex(profile.Find("Status").GetSiblingIndex() + 1);
-            SetUpNpcSpeechSpeed(view, profile, bold, regular);
             RectTransform profileButtons = UiBuilderTools.FindOrCreateButtonRow(profile, "Buttons");
-            // 이미 만든 화면에 새로 붙는 줄은 맨 아래에 생기므로 버튼 줄 위로 옮긴다.
-            // 이미 버튼 줄 위에 있는 줄까지 옮기면 제목·목록·버튼 순서가 뒤집히므로 아래에 있는 줄만 옮긴다.
-            MoveAboveIfBelow(consentsLabel.transform, profileButtons);
-            MoveAboveIfBelow(consents, profileButtons);
             BuilderTools.SetReference(
                 view,
                 "logoutButton",
@@ -872,7 +923,7 @@ namespace A305.EditorTools.Learning
             BuilderTools.SetReference(
                 view,
                 "closeButton",
-                FindCornerOrRowButton(profile, profileButtons, "CloseButton", "닫기", bold, 140f)
+                FindCornerOrRowButton(profile, "CloseButton", "닫기", bold, 140f)
             );
             // 되돌릴 수 없는 동작이라 [로그아웃]·[닫기]와 떨어진 맨 앞에 둔다.
             Button withdrawButton = UiBuilderTools.FindOrCreateButton(
@@ -940,10 +991,142 @@ namespace A305.EditorTools.Learning
             overlay.gameObject.SetActive(false);
         }
 
+        /// <summary>
+        /// 휴대폰 [설정]과 설정 창(시점 감도·NPC 말 빠르기·효과음·대화 난이도·선택 동의).
+        /// 없는 요소만 만들고 디자인은 유지한다.
+        /// </summary>
+        private static void SetUpSettings(
+            GameObject root,
+            RectTransform menu,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            var view = BuilderTools.GetOrAddComponent<SettingsView>(root);
+            BuilderTools.SetReference(
+                view,
+                "apiSettings",
+                BuilderTools.LoadRequiredAsset<ApiSettings>(
+                    ApiSettingsPath,
+                    A305.EditorTools.Onboarding.OnboardingBuilder.MenuPath
+                )
+            );
+            BuilderTools.SetReference(
+                view,
+                "openButton",
+                UiBuilderTools.FindOrCreateButton(menu, "SettingsButton", "설정", bold, 160f)
+            );
+
+            RectTransform overlay = FindOrCreateOverlay(root.transform, "Settings");
+            BuilderTools.SetReference(view, "overlay", overlay.gameObject);
+            RectTransform window = UiBuilderTools.FindOrCreateAnchoredPanel(
+                overlay,
+                "Window",
+                new Vector2(0.5f, 0.5f),
+                600f,
+                Vector2.zero
+            );
+            UiBuilderTools.FindOrCreateText(window, "Title", bold, 32f, Color.white, "설정");
+            TMP_Text status = UiBuilderTools.FindOrCreateText(
+                window,
+                "Status",
+                regular,
+                20f,
+                SubTextColor
+            );
+            BuilderTools.SetReference(view, "statusText", status);
+            RectTransform lookSensitivity = SetUpSliderSetting(
+                view,
+                window,
+                new SliderSetting(
+                    "LookSensitivity",
+                    "시점 감도",
+                    "마우스·화면을 끌어 시점을 돌리는 빠르기예요.\n이 기기에만 저장돼요.",
+                    LookSensitivity.Min,
+                    LookSensitivity.Max,
+                    LookSensitivity.Default,
+                    "lookSensitivitySlider",
+                    "lookSensitivityText"
+                ),
+                bold,
+                regular
+            );
+            lookSensitivity.SetSiblingIndex(status.transform.GetSiblingIndex() + 1);
+            SetUpNpcSpeechSpeed(view, window, bold, regular);
+            SetUpConversationLevel(view, window, bold);
+            SetUpSoundEffects(view, window);
+            // 선택 동의(음성 처리·AI 개선)는 받은 목록대로 줄을 복제한다(USER-02·03). 게스트는 음성 처리만 받는다.
+            UiBuilderTools.FindOrCreateText(
+                window,
+                "ConsentsLabel",
+                bold,
+                22f,
+                Color.white,
+                "선택 동의"
+            );
+            RectTransform consents = UiBuilderTools.FindOrCreateColumn(window, "Consents");
+            BuilderTools.SetReference(view, "consentsParent", consents);
+            BuilderTools.SetReference(
+                view,
+                "consentTemplate",
+                OnboardingBuilder.SetUpConsentRow(consents, "ConsentRowTemplate", regular)
+            );
+            BuilderTools.SetReference(
+                view,
+                "closeButton",
+                FindCornerOrRowButton(window, "CloseButton", "닫기", bold, 140f)
+            );
+            BuilderTools.SetReference(view, "settingsPanel", window.gameObject);
+            BuilderTools.RequireReferences(view);
+            overlay.gameObject.SetActive(false);
+        }
+
+        // 이 기기에 저장하는 설정이라 NPC 말 빠르기 줄 아래에 둔다. 제목과 [켜기]·[끄기]를 한 줄에 둔 카드로, 대화 난이도 카드를 복제해
+        // 버튼 모양과 강조색을 그대로 쓰고, 지금 상태의 버튼은 SettingsView가 강조색으로 칠한다.
+        private static void SetUpSoundEffects(Component view, RectTransform window)
+        {
+            Transform level = window.Find("ConversationLevel");
+            Transform group = window.Find("SoundEffects");
+            if (group == null)
+            {
+                group = UnityEngine.Object.Instantiate(level.gameObject, window).transform;
+                group.name = "SoundEffects";
+                Transform template = group.Find("Row/Choices/LevelButtonTemplate");
+                foreach (
+                    (string name, string label) in new[]
+                    {
+                        ("OnButton", "켜기"),
+                        ("OffButton", "끄기"),
+                    }
+                )
+                {
+                    Transform button = UnityEngine
+                        .Object.Instantiate(template.gameObject, template.parent)
+                        .transform;
+                    button.name = name;
+                    button.gameObject.SetActive(true);
+                    button.Find("Label").GetComponent<TMP_Text>().text = label;
+                }
+                UnityEngine.Object.DestroyImmediate(template.gameObject);
+                group.Find("Row/Title").GetComponent<TMP_Text>().text = "효과음";
+            }
+            group.SetSiblingIndex(window.Find("NpcSpeechSpeed").GetSiblingIndex() + 1);
+            Transform choices = group.Find("Row/Choices");
+            BuilderTools.SetReference(
+                view,
+                "soundOnButton",
+                choices.Find("OnButton").GetComponent<Button>()
+            );
+            BuilderTools.SetReference(
+                view,
+                "soundOffButton",
+                choices.Find("OffButton").GetComponent<Button>()
+            );
+        }
+
         // 테마 Builder가 닫기를 창 오른쪽 위로 옮겼으면 그 버튼을 쓰고, 아니면 버튼 줄에서 찾거나 만든다.
         private static Button FindCornerOrRowButton(
-            Transform panel,
-            RectTransform row,
+            RectTransform panel,
             string buttonName,
             string label,
             TMP_FontAsset font,
@@ -953,12 +1136,18 @@ namespace A305.EditorTools.Learning
             Transform corner = panel.Find(buttonName);
             return corner != null
                 ? corner.GetComponent<Button>()
-                : UiBuilderTools.FindOrCreateButton(row, buttonName, label, font, preferredWidth);
+                : UiBuilderTools.FindOrCreateButton(
+                    UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons"),
+                    buttonName,
+                    label,
+                    font,
+                    preferredWidth
+                );
         }
 
         // [회원 탈퇴]의 확인 창(USER-05). 되돌릴 수 없으므로 지우는 내용을 알리고 한 번 더 묻는다.
         private static RectTransform SetUpWithdrawDialog(
-            MyPageView view,
+            Component view,
             RectTransform overlay,
             TMP_FontAsset bold,
             TMP_FontAsset regular
@@ -1016,7 +1205,7 @@ namespace A305.EditorTools.Learning
 
         // 시점 감도 줄 바로 아래에 둔다. 서버 음성 합성에 쓰는 값이라 범위·기본값은 NpcSpeechSpeed를 따른다.
         private static void SetUpNpcSpeechSpeed(
-            MyPageView view,
+            Component view,
             RectTransform profile,
             TMP_FontAsset bold,
             TMP_FontAsset regular
@@ -1039,6 +1228,33 @@ namespace A305.EditorTools.Learning
                 regular
             );
             group.SetSiblingIndex(profile.Find("LookSensitivity").GetSiblingIndex() + 1);
+        }
+
+        // NPC 말 빠르기 줄 아래에 제목과 단계 버튼을 한 줄로 둔다. 창이 16:9 화면 높이를 넘지 않게 설명 줄은 두지 않고,
+        // "다음 대화부터 적용돼요"는 바꿀 때 상태 문구로 알린다. 버튼은 서버가 준 단계 수만큼 화면이 복제한다.
+        // 카드 모양과 고른 단계의 강조색은 UiThemeBuilder·MyPageLayoutBuilder가 칠한다.
+        private static void SetUpConversationLevel(
+            Component view,
+            RectTransform profile,
+            TMP_FontAsset bold
+        )
+        {
+            RectTransform group = UiBuilderTools.FindOrCreateColumn(profile, "ConversationLevel");
+            RectTransform row = UiBuilderTools.FindOrCreateButtonRow(group, "Row");
+            row.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+            UiBuilderTools.FindOrCreateText(row, "Title", bold, 26f, Color.white, "대화 난이도");
+            RectTransform choices = UiBuilderTools.FindOrCreateButtonRow(row, "Choices");
+            choices.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+            Button template = UiBuilderTools.FindOrCreateButton(
+                choices,
+                "LevelButtonTemplate",
+                "초급",
+                bold,
+                156f
+            );
+            group.SetSiblingIndex(profile.Find("NpcSpeechSpeed").GetSiblingIndex() + 1);
+            BuilderTools.SetReference(view, "levelButtonsParent", choices);
+            BuilderTools.SetReference(view, "levelButtonTemplate", template);
         }
 
         private readonly struct SliderSetting
@@ -1077,7 +1293,7 @@ namespace A305.EditorTools.Learning
         // 닉네임 안내 아래, 버튼 줄 위에 제목·설명과 [느리게] 슬라이더 [빠르게] 현재값 줄을 둔다.
         // 자리는 부르는 쪽이 정한다. 글자 색은 UiThemeBuilder가 테마에 맞춘다.
         private static RectTransform SetUpSliderSetting(
-            MyPageView view,
+            Component view,
             RectTransform profile,
             SliderSetting setting,
             TMP_FontAsset bold,

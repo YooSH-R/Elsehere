@@ -41,14 +41,14 @@ namespace A305.Tutorial
         /// <summary>대화 화면 왼쪽의 추천 단어 카드</summary>
         SuggestedWords,
 
+        /// <summary>대화 화면 오른쪽의 추천 문장 카드와 [힌트]</summary>
+        SuggestedSentence,
+
         /// <summary>대화 화면의 [대화 종료]</summary>
         DialogueEnd,
 
         /// <summary>대화 노트(피드백)의 탭 줄. 피드백 티칭의 첫째</summary>
         FeedbackSections,
-
-        /// <summary>대화 노트 본문의 스크롤 영역</summary>
-        FeedbackPages,
 
         /// <summary>대화 노트를 닫는 오른쪽 위 X</summary>
         FeedbackClose,

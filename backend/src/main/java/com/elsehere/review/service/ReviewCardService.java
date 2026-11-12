@@ -5,11 +5,15 @@ import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.NpcSummaryResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.ConversationStatus;
+import com.elsehere.conversation.entity.Speaker;
+import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.ConversationRepository;
+import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.feedback.entity.FeedbackReviews;
 import com.elsehere.feedback.entity.FeedbackStatus;
 import com.elsehere.feedback.repository.ConversationFeedbackRepository;
+import com.elsehere.feedback.repository.TurnFeedbackRepository;
 import com.elsehere.review.dto.ReviewCardListResponse;
 import com.elsehere.review.dto.ReviewCardResponse;
 import com.elsehere.review.dto.ReviewScenario;
@@ -37,6 +41,8 @@ public class ReviewCardService {
   private final ConversationRepository conversationRepository;
   private final ConversationFeedbackRepository feedbackRepository;
   private final ReviewCardRepository reviewCardRepository;
+  private final TurnRepository turnRepository;
+  private final TurnFeedbackRepository turnFeedbackRepository;
   private final NpcRepository npcRepository;
   private final JsonMapper jsonMapper;
 
@@ -144,7 +150,8 @@ public class ReviewCardService {
       throw new BusinessException(ErrorCode.REVIEW_NOT_READY);
     }
     var savedReviews = jsonMapper.readValue(feedback.getReviews(), FeedbackReviews.class);
-    var targets = ReviewTargets.select(savedReviews.situationExpressions());
+    var targets =
+        ReviewTargets.select(corrections(conversationId), savedReviews.situationExpressions());
     if (targets.size() < 2) {
       throw new BusinessException(ErrorCode.REVIEW_NOT_READY);
     }
@@ -162,6 +169,22 @@ public class ReviewCardService {
         jsonMapper.writeValueAsString(
             ReviewScenarios.capture(conversation, npc.getCode(), summary)));
     return response(card, npc);
+  }
+
+  // 문장 교정(FB-03)이 고쳐 준 학습자 발화. 무례로 막힌 말은 다시 연습하지 않는다.
+  private List<ReviewTargets.Correction> corrections(Long conversationId) {
+    Map<Long, String> spoken =
+        turnRepository.findAllByConversationIdOrderBySeqAsc(conversationId).stream()
+            .filter(turn -> turn.getSpeaker() == Speaker.USER && !turn.isRude())
+            .collect(Collectors.toMap(Turn::getId, Turn::getText));
+    return turnFeedbackRepository.findAllByTurnIdInOrderByTurnIdAsc(spoken.keySet()).stream()
+        .map(
+            feedback ->
+                new ReviewTargets.Correction(
+                    spoken.get(feedback.getTurnId()),
+                    feedback.getBetterText(),
+                    feedback.getReason()))
+        .toList();
   }
 
   private ReviewCardResponse response(ReviewCard card, Npc npc) {

@@ -1,9 +1,9 @@
 package com.elsehere.feedback.service;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.FeedbackInput;
 import com.elsehere.ai.client.WorkerFeedback;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.NpcSummaryResponse;
@@ -15,6 +15,7 @@ import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.feedback.dto.ConversationFeedbackResponse;
 import com.elsehere.feedback.dto.DetailedFeedbackItemResponse;
 import com.elsehere.feedback.dto.DetailedFeedbackResponse;
+import com.elsehere.feedback.dto.ExpressionExampleResponse;
 import com.elsehere.feedback.dto.FeedbackResponse;
 import com.elsehere.feedback.dto.IdiomResponse;
 import com.elsehere.feedback.dto.ReviewsResponse;
@@ -41,6 +42,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -134,7 +136,7 @@ public class FeedbackService {
                   .map(this::toResponse)
                   .orElse(null),
               List.of(),
-              detailedItems(userTurns));
+              detailedItems(conversationId, userTurns));
         });
   }
 
@@ -144,7 +146,7 @@ public class FeedbackService {
         status -> {
           conversationLookup.ownedConversation(userId, conversationId);
           return new DetailedFeedbackResponse(
-              conversationId, detailedItems(userTurns(conversationId)));
+              conversationId, detailedItems(conversationId, userTurns(conversationId)));
         });
   }
 
@@ -242,23 +244,75 @@ public class FeedbackService {
     return new Snapshot(input, userTurnIds);
   }
 
-  private List<DetailedFeedbackItemResponse> detailedItems(List<Turn> userTurns) {
+  private List<DetailedFeedbackItemResponse> detailedItems(
+      Long conversationId, List<Turn> userTurns) {
+    Map<Long, JsonNode> assessments = savedAssessments(conversationId);
     Map<Long, Turn> turnsById =
         userTurns.stream().collect(Collectors.toMap(Turn::getId, Function.identity()));
     return turnFeedbackRepository.findAllByTurnIdInOrderByTurnIdAsc(turnsById.keySet()).stream()
         .map(
-            feedback ->
-                new DetailedFeedbackItemResponse(
-                    feedback.getId(),
-                    feedback.getTurnId(),
-                    turnsById.get(feedback.getTurnId()).getText(),
-                    feedback.getBetterText(),
-                    feedback.getReason(),
-                    feedback.getIdiom() == null
-                        ? null
-                        : new IdiomResponse(feedback.getIdiom(), feedback.getIdiomMeaningKo()),
-                    feedback.getModelAudioKey() != null))
+            feedback -> {
+              JsonNode assessment = assessments.get(feedback.getTurnId());
+              return new DetailedFeedbackItemResponse(
+                  feedback.getId(),
+                  feedback.getTurnId(),
+                  turnsById.get(feedback.getTurnId()).getText(),
+                  feedback.getBetterText(),
+                  feedback.getReason(),
+                  feedback.getIdiom() == null
+                      ? null
+                      : new IdiomResponse(feedback.getIdiom(), feedback.getIdiomMeaningKo()),
+                  feedback.getModelAudioKey() != null,
+                  assessment == null ? null : assessment.path("verdict").asText(null),
+                  assessment == null
+                      ? null
+                      : assessment.path("suggestions").path(0).path("kind").asText(null),
+                  expressionExamples(assessment));
+            })
         .toList();
+  }
+
+  // 원본 결과에 이미 있는 판정과 예문을 읽는다. DB 칼럼 추가나 피드백 재생성은 하지 않는다.
+  private Map<Long, JsonNode> savedAssessments(Long conversationId) {
+    String result =
+        conversationFeedbackRepository
+            .findById(conversationId)
+            .map(ConversationFeedback::getResult)
+            .orElse(null);
+    if (result == null || result.isBlank()) {
+      return Map.of();
+    }
+    try {
+      Map<Long, JsonNode> assessments = new java.util.HashMap<>();
+      for (JsonNode review : jsonMapper.readTree(result).path("turn_reviews")) {
+        String turnId = review.path("turn_id").asText("");
+        if (turnId.matches("[0-9]{1,18}")) {
+          assessments.put(Long.valueOf(turnId), review);
+        }
+      }
+      return assessments;
+    } catch (tools.jackson.core.JacksonException exception) {
+      log.warn("feedback_assessment_read_failed conversation_id={}", conversationId);
+      return Map.of();
+    }
+  }
+
+  private List<ExpressionExampleResponse> expressionExamples(JsonNode assessment) {
+    if (assessment == null) {
+      return List.of();
+    }
+    List<ExpressionExampleResponse> examples = new java.util.ArrayList<>();
+    for (JsonNode example : assessment.path("expression_examples")) {
+      String expression = example.path("expression").asText(null);
+      if (expression != null && !expression.isBlank() && examples.size() < 3) {
+        examples.add(
+            new ExpressionExampleResponse(
+                example.path("condition_ko").asText(null),
+                expression,
+                example.path("meaning_ko").asText(null)));
+      }
+    }
+    return examples;
   }
 
   private List<Turn> userTurns(Long conversationId) {

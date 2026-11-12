@@ -10,10 +10,18 @@ import org.springframework.stereotype.Component;
 @Component
 class DialogueRequestLocks {
 
-  private final ConcurrentHashMap<RequestKey, PendingRequest> pending = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Object, PendingRequest> pending = new ConcurrentHashMap<>();
 
   <T> T execute(Long userId, UUID requestId, Supplier<T> action) {
-    RequestKey key = new RequestKey(userId, requestId);
+    return execute(new RequestKey(userId, requestId), action);
+  }
+
+  /** 한 NPC 대사의 뜻 보기(CONV-04). 대답 직후 미리 만드는 요청과 학습자의 [뜻 보기]가 겹쳐도 AI를 한 번만 부른다. */
+  <T> T executeMeaning(Long turnId, Supplier<T> action) {
+    return execute(new MeaningKey(turnId), action);
+  }
+
+  private <T> T execute(Object key, Supplier<T> action) {
     PendingRequest request =
         pending.compute(
             key,
@@ -41,6 +49,8 @@ class DialogueRequestLocks {
   }
 
   private record RequestKey(Long userId, UUID requestId) {}
+
+  private record MeaningKey(Long turnId) {}
 
   private static final class PendingRequest {
     private final ReentrantLock lock = new ReentrantLock();

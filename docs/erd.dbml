@@ -1,7 +1,7 @@
 Project elsehere {
   database_type: 'PostgreSQL'
   Note: '''
-  ELSEHERE ERD v3.10 (MVP 기준) · PostgreSQL 16 + pgvector
+  ELSEHERE ERD v3.11 (MVP 기준) · PostgreSQL 16 + pgvector
   회의 보드 결정 + MVP 와이어프레임 피드백 기준. W3 사건 · 세계 사실 테이블은 제외
   API: docs/api/mvp-api.md
   모든 테이블은 created_at · updated_at을 가진다 (백엔드 BaseEntity가 기록). started_at · saved_at 같은 업무 시각은 별도 컬럼으로 유지
@@ -26,8 +26,9 @@ Table users [headercolor: #3D4A5C] {
   onboarding_step varchar(20) [not null, note: 'LANG→LEVEL→TUTORIAL→DONE · 튜토리얼 완료·건너뛰기 시 DONE (튜토리얼 기록은 이 값만 사용)']
   current_language varchar(10) [not null, note: 'en-US']
   ui_theme varchar(20) [not null, default: 'JELLY', note: '화면 테마 · JELLY / STICKER / CLOUD · 집에서 고르며 계정에 저장해 기기와 관계없이 유지 (API USER-01)']
-  role varchar(10) [not null, default: 'USER', note: 'USER / ADMIN · ADMIN만 운영자 어드민(/admin) 사용 · 가입은 항상 USER, 관리자는 다른 관리자가 어드민에서 지정·해제 (docs/admin.md) · 탈퇴하면 USER']
+  role varchar(10) [not null, default: 'USER', note: 'USER / ADMIN · 쓰지 않음: 운영자 어드민(/admin)은 Google 로그인과 따로인 어드민 계정으로 들어간다 (docs/admin.md) · 후속 작업에서 지울 칼럼']
   last_scene_id bigint [note: '재접속 위치']
+  team_account boolean [not null, default: false, note: '팀 기기(elsehere_team 쿠키를 남긴 브라우저)에서 쓴 계정 · BOOT-01이 표시하고 되돌리지 않음 · 어드민 이용 현황에서 뺌 (docs/admin.md, v3.11)']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
 
@@ -335,7 +336,7 @@ Table review_cards [headercolor: #2E6B4F] {
   scene_code varchar(30) [not null, note: '원본 대화의 장소 코드']
   situation_summary text [not null, note: '저장 당시 피드백의 상황 요약']
   scenario jsonb [note: '복습 한 상황의 키·제목·시작 상황·학습자 역할·전달 정보 스냅샷. 이전 카드는 원본 대화의 단계에서 복원']
-  targets jsonb [not null, note: '저장된 situationExpressions에서 가져온 서로 다른 표현 2~3개와 뜻·활용·예문']
+  targets jsonb [not null, note: '복습 목표 2~5개. 문장 교정이 고쳐 준 학습자 발화(고친 문장·원래 한 말·이유) 최대 3개와 저장된 situationExpressions의 표현(뜻·활용·예문) 최대 3개']
   practice_count int [not null, default: 0]
   last_practiced_at timestamptz
   used_expressions jsonb [not null, note: '최근 복습에서 확인한 표현 · 최초 저장은 빈 배열']
@@ -523,7 +524,7 @@ Table ai_candidates [headercolor: #5B4B9A] {
 Table ai_requests [headercolor: #8A5A44] {
   id bigint [pk, increment]
   request_id uuid [not null, note: '클라이언트 요청 ID · 재전송 시 이전 결과 반환, 한 번만 차감']
-  user_id bigint [not null]
+  user_id bigint [note: '어드민이 실행한 호출(사물 단어 발음 만들기)은 게임 사용자가 아니어서 null (V39)']
   conversation_id bigint
   kind varchar(20) [not null, note: 'AI 워커 기능 단위 · STT · GUARD · JUDGE · NPC · TTS · HINT · MEANING · FEEDBACK · MEMORY (새 호출 종류가 생기면 추가)']
   model varchar(50) [note: '호출한 모델']

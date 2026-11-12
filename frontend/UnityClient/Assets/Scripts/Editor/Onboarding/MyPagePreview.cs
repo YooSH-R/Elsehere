@@ -14,7 +14,7 @@ using UnityEngine.UI;
 namespace A305.EditorTools.Onboarding
 {
     /// <summary>
-    /// 실제 HUD 프리팹의 내 정보 창을 세 테마와 세로 화면으로 렌더링한다. 서버를 부르거나 씬을 저장하지 않는다.
+    /// 실제 HUD 프리팹의 내 정보 창과 설정 창을 세 테마와 세로 화면으로 렌더링한다. 서버를 부르거나 씬을 저장하지 않는다.
     /// 시점 감도·NPC 말 빠르기 줄처럼 창에 줄을 더했을 때 겹치거나 잘리지 않는지 확인하는 용도다.
     /// </summary>
     public static class MyPagePreview
@@ -50,14 +50,15 @@ namespace A305.EditorTools.Onboarding
             var view = BuilderTools.FindSingleInScene<MyPageView>(scene);
             GameObject root = view.gameObject;
             root.SetActive(true);
-            foreach (Transform child in root.transform)
-                child.gameObject.SetActive(child.name == "MyPage");
-            Transform overlay = root.transform.Find("MyPage");
-            overlay.gameObject.SetActive(true);
-            overlay.Find("Window").gameObject.SetActive(true);
-            overlay.Find("LogoutDialog").gameObject.SetActive(false);
-            overlay.Find("WithdrawDialog").gameObject.SetActive(false);
-            overlay.Find("Window/Profile").GetComponent<TMPro.TMP_Text>().text =
+            Canvas canvas = root.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.worldCamera = camera;
+            canvas.planeDistance = .5f;
+
+            Transform profile = Show(root, "MyPage");
+            profile.Find("LogoutDialog").gameObject.SetActive(false);
+            profile.Find("WithdrawDialog").gameObject.SetActive(false);
+            profile.Find("Window/Profile").GetComponent<TMPro.TMP_Text>().text =
                 MyPageText.ProfileForDisplay(
                     new OnboardingUser
                     {
@@ -66,8 +67,12 @@ namespace A305.EditorTools.Onboarding
                         CurrentLanguage = "en-US",
                     }
                 );
-            overlay.Find("Window/Status").GetComponent<TMPro.TMP_Text>().text = "";
-            Transform consents = overlay.Find("Window/Consents");
+            profile.Find("Window/Status").GetComponent<TMPro.TMP_Text>().text = "";
+            RenderAll(camera, root, profile, output, "my-page");
+
+            Transform settings = Show(root, "Settings");
+            settings.Find("Window/Status").GetComponent<TMPro.TMP_Text>().text = "";
+            Transform consents = settings.Find("Window/Consents");
             ConsentRowView template = consents
                 .Find("ConsentRowTemplate")
                 .GetComponent<ConsentRowView>();
@@ -88,12 +93,38 @@ namespace A305.EditorTools.Onboarding
                 );
             }
             template.gameObject.SetActive(false);
-            SetSlider(overlay, "Window/LookSensitivity", "1.0배", 1f);
-            SetSlider(overlay, "Window/NpcSpeechSpeed", "1.1배", 1.1f);
-            Canvas canvas = root.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceCamera;
-            canvas.worldCamera = camera;
-            canvas.planeDistance = .5f;
+            SetSlider(settings, "Window/LookSensitivity", "1.0배", 1f);
+            SetSlider(settings, "Window/NpcSpeechSpeed", "1.1배", 1.1f);
+            ShowLevels(settings.Find("Window/ConversationLevel/Row/Choices"), selected: 2);
+            // 효과음은 켜진 상태로 찍어 고른 버튼의 강조색을 본다.
+            Transform sound = settings.Find("Window/SoundEffects/Row/Choices");
+            sound.Find("OnButton").GetComponent<ThemedElement>().SetSelected(true);
+            sound.Find("OffButton").GetComponent<ThemedElement>().SetSelected(false);
+            RenderAll(camera, root, settings, output, "settings");
+            float windowHeight = ((RectTransform)settings.Find("Window")).rect.height;
+            Debug.Log(
+                $"내 정보·설정 창을 {output}에 저장했습니다. 설정 창 높이 {windowHeight:0}(캔버스 기준 1080)."
+            );
+        }
+
+        // HUD에서 이 창만 켠다.
+        private static Transform Show(GameObject root, string overlayName)
+        {
+            foreach (Transform child in root.transform)
+                child.gameObject.SetActive(child.name == overlayName);
+            Transform overlay = root.transform.Find(overlayName);
+            overlay.Find("Window").gameObject.SetActive(true);
+            return overlay;
+        }
+
+        private static void RenderAll(
+            Camera camera,
+            GameObject root,
+            Transform overlay,
+            string output,
+            string name
+        )
+        {
             foreach (
                 UiThemeId theme in new[] { UiThemeId.Jelly, UiThemeId.Sticker, UiThemeId.Cloud }
             )
@@ -101,10 +132,11 @@ namespace A305.EditorTools.Onboarding
                 UiThemeSelection.Shared.Select(theme);
                 foreach (ThemedElement element in root.GetComponentsInChildren<ThemedElement>(true))
                     element.ApplyCurrent();
-                Render(camera, overlay, 1600, 1000, Path.Combine(output, $"my-page-{theme}.png"));
+                Render(camera, overlay, 1600, 1000, Path.Combine(output, $"{name}-{theme}.png"));
             }
-            Render(camera, overlay, 540, 960, Path.Combine(output, "my-page-mobile.png"));
-            Debug.Log($"내 정보 창을 {output}에 저장했습니다.");
+            Render(camera, overlay, 540, 960, Path.Combine(output, $"{name}-mobile.png"));
+            // 16:9 PC 화면은 캔버스 기준 높이(1080)가 가장 빠듯하므로 창이 이 높이 안에 드는지 따로 본다.
+            Render(camera, overlay, 1920, 1080, Path.Combine(output, $"{name}-16x9.png"));
         }
 
         private static void SetSlider(Transform overlay, string path, string label, float value)
@@ -112,6 +144,21 @@ namespace A305.EditorTools.Onboarding
             Transform group = overlay.Find(path);
             group.Find("Row/Slider").GetComponent<Slider>().SetValueWithoutNotify(value);
             group.Find("Row/Value").GetComponent<TMPro.TMP_Text>().text = label;
+        }
+
+        // 화면(SettingsView)이 서버가 준 단계마다 버튼을 복제하는 것처럼 초급·중급·고급을 만들고, 고급은 잠근다.
+        private static void ShowLevels(Transform choices, int selected)
+        {
+            Button template = choices.Find("LevelButtonTemplate").GetComponent<Button>();
+            template.gameObject.SetActive(false);
+            string[] names = { "초급", "중급", "고급" };
+            for (int index = 0; index < names.Length; index++)
+            {
+                Button button = TemplateClones.Add(template, choices);
+                button.GetComponentInChildren<TMPro.TMP_Text>(true).text = names[index];
+                button.interactable = index < 2;
+                button.GetComponent<ThemedElement>().SetSelected(index + 1 == selected);
+            }
         }
 
         private static void Render(

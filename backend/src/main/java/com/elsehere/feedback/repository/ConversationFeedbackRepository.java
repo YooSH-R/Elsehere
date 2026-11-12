@@ -29,11 +29,15 @@ public interface ConversationFeedbackRepository extends JpaRepository<Conversati
           + " where c.userId = :userId and f.status = com.elsehere.feedback.entity.FeedbackStatus.DONE"
           + " and (:npcId is null or c.npcId = :npcId)"
           + " and (:sceneCode is null or c.npcId in (select n.id from Npc n where n.scene.code = :sceneCode))"
+          + " and (:placeGroup is null"
+          + " or (c.npcOffDuty = true and :placeGroup = 'DAILY')"
+          + " or (c.npcOffDuty = false and c.npcId in (select n.id from Npc n where cast(n.placeGroup as String) = :placeGroup)))"
           + " order by c.startedAt desc, c.id desc")
   List<Conversation> findCompletedFirstPage(
       @Param("userId") Long userId,
       @Param("npcId") Long npcId,
       @Param("sceneCode") String sceneCode,
+      @Param("placeGroup") String placeGroup,
       Limit limit);
 
   @Query(
@@ -41,12 +45,16 @@ public interface ConversationFeedbackRepository extends JpaRepository<Conversati
           + " where c.userId = :userId and f.status = com.elsehere.feedback.entity.FeedbackStatus.DONE"
           + " and (:npcId is null or c.npcId = :npcId)"
           + " and (:sceneCode is null or c.npcId in (select n.id from Npc n where n.scene.code = :sceneCode))"
+          + " and (:placeGroup is null"
+          + " or (c.npcOffDuty = true and :placeGroup = 'DAILY')"
+          + " or (c.npcOffDuty = false and c.npcId in (select n.id from Npc n where cast(n.placeGroup as String) = :placeGroup)))"
           + " and (c.startedAt < :startedAt or (c.startedAt = :startedAt and c.id < :id))"
           + " order by c.startedAt desc, c.id desc")
   List<Conversation> findCompletedPageAfter(
       @Param("userId") Long userId,
       @Param("npcId") Long npcId,
       @Param("sceneCode") String sceneCode,
+      @Param("placeGroup") String placeGroup,
       @Param("startedAt") Instant startedAt,
       @Param("id") Long id,
       Limit limit);

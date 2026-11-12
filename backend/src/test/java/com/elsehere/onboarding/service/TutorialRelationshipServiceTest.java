@@ -40,7 +40,7 @@ class TutorialRelationshipServiceTest {
             gameClockService,
             Clock.fixed(NOW, ZoneOffset.UTC),
             20,
-            6);
+            4);
     given(npcRepository.findByCode("TOWN_PASSERBY")).willReturn(Optional.of(ben));
     given(ben.getId()).willReturn(7L);
     given(gameClockService.currentDay(1L)).willReturn(1);
@@ -56,7 +56,7 @@ class TutorialRelationshipServiceTest {
     verify(relationRepository).save(saved.capture());
     UserNpcRelation relation = saved.getValue();
     assertThat(relation.getRecognition()).isEqualTo(20);
-    assertThat(relation.getAffinity()).isEqualTo(6);
+    assertThat(relation.getAffinity()).isEqualTo(4);
     assertThat(relation.getTalkCount()).isEqualTo(1);
     assertThat(relation.getLastTalkedAt()).isEqualTo(NOW);
     assertThat(relation.getLastTalkGameDay()).isEqualTo(1);
@@ -76,7 +76,7 @@ class TutorialRelationshipServiceTest {
     verify(relationRepository).save(relation);
     assertThat(relation.getTalkCount()).isEqualTo(1);
     assertThat(relation.getRecognition()).isEqualTo(20);
-    assertThat(relation.getAffinity()).isEqualTo(6);
+    assertThat(relation.getAffinity()).isEqualTo(4);
     assertThat(relation.recordVisit(100L, NOW, 1)).isTrue();
     assertThat(relation.getTalkCount()).isEqualTo(2);
   }

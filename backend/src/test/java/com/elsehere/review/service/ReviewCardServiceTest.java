@@ -1,26 +1,34 @@
 package com.elsehere.review.service;
 
 import static com.elsehere.conversation.DialogueTestData.conversation;
+import static com.elsehere.conversation.DialogueTestData.textTurn;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-import com.elsehere.ai.client.AiGateway;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
+import com.elsehere.conversation.entity.InputType;
+import com.elsehere.conversation.entity.Turn;
 import com.elsehere.dialogue.service.DialogueServiceTest;
 import com.elsehere.feedback.entity.ConversationFeedback;
 import com.elsehere.feedback.entity.FeedbackStatus;
+import com.elsehere.feedback.entity.TurnFeedback;
 import com.elsehere.mission.entity.FirstDayStage;
+import com.elsehere.review.dto.ReviewTarget;
 import com.elsehere.review.repository.ReviewCardRepository;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.service.UserContentEraser;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -187,6 +195,72 @@ class ReviewCardServiceTest {
     assertNotReady(source.getId());
   }
 
+  @Test
+  @DisplayName("상황 표현이 없어도 고친 문장이 둘이면 그 문장으로 복습 카드를 만든다")
+  void correctedSentencesBecomeTargetsWhenSituationExpressionsAreMissing() {
+    storeReviews("{}");
+    correct(textTurn(entityManager, source, 2, "I want coffee"), "I'd like a coffee, please.");
+    correct(textTurn(entityManager, source, 4, "포장해 주세요"), "Can I get that to go?");
+    entityManager.flush();
+
+    var saved = reviewCardService.create(userId, source.getId());
+
+    // 한국어로 한 말을 먼저 연습한다.
+    assertThat(saved.targets())
+        .extracting(ReviewTarget::expression, ReviewTarget::originalText, ReviewTarget::meaningKo)
+        .containsExactly(
+            tuple("Can I get that to go?", "포장해 주세요", "포장해 주세요"),
+            tuple("I'd like a coffee, please.", "I want coffee", "이유"));
+  }
+
+  @Test
+  @DisplayName("고친 문장 하나와 상황 표현 하나로도 복습을 시작할 수 있다")
+  void oneCorrectionAndOneExpressionAreEnough() {
+    storeReviews(
+        "{\"situationExpressions\":[{\"expression\":\"Could I get less ice?\","
+            + "\"meaningKo\":\"얼음을 조금만 넣어 주세요.\"}]}");
+    correct(textTurn(entityManager, source, 2, "I want coffee"), "I'd like a coffee, please.");
+    entityManager.flush();
+
+    assertThat(reviewCardService.create(userId, source.getId()).targets())
+        .extracting(ReviewTarget::expression)
+        .containsExactly("I'd like a coffee, please.", "Could I get less ice?");
+  }
+
+  @Test
+  @DisplayName("고칠 것이 없는 문장과 무례로 막힌 문장은 복습 목표로 삼지 않는다")
+  void unchangedOrBlockedSentencesAreNotTargets() {
+    storeReviews("{}");
+    correct(textTurn(entityManager, source, 2, "I'd like a coffee"), "I'd like a coffee.");
+    correct(textTurn(entityManager, source, 4, "Thank you"), null);
+    Turn rude =
+        Turn.user(source, 6, UUID.randomUUID(), InputType.TEXT, "꺼져", null, null, true, null, null);
+    entityManager.persist(rude);
+    correct(rude, "Please leave me alone.");
+    entityManager.flush();
+
+    assertNotReady(source.getId());
+  }
+
+  @Test
+  @DisplayName("고친 문장은 세 개까지, 상황 표현과 합쳐 다섯 개까지 담는다")
+  void targetsAreCapped() {
+    correct(textTurn(entityManager, source, 2, "one coffee"), "One coffee, please.");
+    correct(textTurn(entityManager, source, 4, "big size"), "A large one, please.");
+    correct(textTurn(entityManager, source, 6, "no sugar"), "No sugar, please.");
+    correct(textTurn(entityManager, source, 8, "card pay"), "Can I pay by card?");
+    entityManager.flush();
+
+    assertThat(reviewCardService.create(userId, source.getId()).targets())
+        .extracting(ReviewTarget::expression)
+        .containsExactly(
+            "One coffee, please.",
+            "A large one, please.",
+            "No sugar, please.",
+            "Can I get that to go?",
+            "Could I get less ice?");
+  }
+
   @ParameterizedTest
   @EnumSource(
       value = FeedbackStatus.class,
@@ -238,6 +312,16 @@ class ReviewCardServiceTest {
     entityManager.clear();
 
     assertThat(reviewCardRepository.findById(card.id())).isEmpty();
+  }
+
+  private void storeReviews(String reviews) {
+    entityManager
+        .find(ConversationFeedback.class, source.getId())
+        .complete("상황", reviews, "fixture", null);
+  }
+
+  private void correct(Turn turn, String betterText) {
+    entityManager.persist(TurnFeedback.of(turn.getId(), betterText, "이유", null, null));
   }
 
   private void assertNotReady(Long conversationId) {

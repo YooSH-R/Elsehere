@@ -18,13 +18,13 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.HintResult;
 import com.elsehere.ai.client.MeaningResult;
 import com.elsehere.ai.client.SuggestResult;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.GlossaryResponse;
@@ -33,6 +33,7 @@ import com.elsehere.conversation.entity.Turn;
 import com.elsehere.dialogue.dto.HintResponse;
 import com.elsehere.dialogue.dto.MeaningResponse;
 import com.elsehere.dialogue.dto.SuggestWordsResponse;
+import com.elsehere.dialogue.dto.TurnDetailResponse;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
@@ -67,6 +68,7 @@ class TurnHelpServiceTest {
       new SuggestResult(List.of("for here", "to go"), List.of(usage("suggest")));
 
   @Autowired private TurnHelpService turnHelpService;
+  @Autowired private ConversationService conversationService;
 
   @Autowired private AiGateway aiGateway;
 
@@ -176,6 +178,78 @@ class TurnHelpServiceTest {
   }
 
   @Test
+  @DisplayName("추천 문장에 그대로 들어 있는 추천 단어는 잘라 온 말이라 빼고 보낸다 (S15P31A305-855)")
+  void suggestWords_dropsWordsTakenFromTheRecommendedSentence() {
+    given(aiGateway.suggest(any(), any(), anyList(), anyString(), anyInt()))
+        .willReturn(
+            new SuggestResult(
+                List.of("I’m sorry — 미안해요", "apologize — 사과하다", "speak — 말하다", "Speaking To"),
+                List.of(usage("suggest"))));
+    given(aiGateway.hint(any(), any(), anyList(), anyString(), anyInt()))
+        .willReturn(
+            new HintResult(
+                List.of(new HintResult.Phrase("I'm sorry for speaking to you.", "말을 걸어서 미안해요.")),
+                List.of(),
+                List.of(usage("hint"))));
+
+    SuggestWordsResponse response =
+        turnHelpService.suggestWords(userId, npcTurn.getId(), UUID.randomUUID());
+
+    assertThat(response.hintText()).isEqualTo("I'm sorry for speaking to you.");
+    assertThat(response.suggestWords()).containsExactly("apologize — 사과하다", "speak — 말하다");
+  }
+
+  @Test
+  @DisplayName("추천 문장에 든 말이라도 한 단어(day)는 단어로 쓸 만해서 남기고, 잘라 온 구(have a good)만 뺀다 (S15P31A305-868)")
+  void suggestWords_keepsSingleWordsFromTheRecommendedSentence() {
+    assertThat(
+            suggestWordsWith(
+                "Have a good day.", "have a good — 좋은 ~ 보내세요", "day — 하루", "thanks — 고마워요"))
+        .containsExactly("day — 하루", "thanks — 고마워요");
+  }
+
+  @Test
+  @DisplayName("잘라 온 구를 빼서 2개보다 적게 남으면 짧은 구부터 다시 넣어 추천 단어가 1개만 보이지 않게 한다 (S15P31A305-868)")
+  void suggestWords_putsCutPhrasesBackWhenFewerThanTwoRemain() {
+    assertThat(
+            suggestWordsWith(
+                "Have a good day.", "have a good — 좋은 ~ 보내세요", "good day — 좋은 하루", "thanks — 고마워요"))
+        .containsExactly("good day — 좋은 하루", "thanks — 고마워요");
+  }
+
+  @Test
+  @DisplayName("워커가 보낸 후보에서 잘라 온 구를 건너뛰고 3개까지 보내고, 이어 하기(CONV-10)에도 같은 단어를 보낸다 (S15P31A305-868)")
+  void suggestWords_showsUpToThreeSkippingCutPhrases() {
+    List<String> shown =
+        suggestWordsWith(
+            "Have a good day.",
+            "have a good — 좋은 ~ 보내세요",
+            "day — 하루",
+            "thanks — 고마워요",
+            "see you — 또 봐요",
+            "bye — 잘 가요");
+
+    assertThat(shown).containsExactly("day — 하루", "thanks — 고마워요", "see you — 또 봐요");
+    assertThat(conversationService.detail(userId, conversation.getId()).turns())
+        .filteredOn(turn -> npcTurn.getId().equals(turn.turnId()))
+        .singleElement()
+        .extracting(TurnDetailResponse::suggestWords)
+        .isEqualTo(shown);
+  }
+
+  private List<String> suggestWordsWith(String hintText, String... words) {
+    given(aiGateway.suggest(any(), any(), anyList(), anyString(), anyInt()))
+        .willReturn(new SuggestResult(List.of(words), List.of(usage("suggest"))));
+    given(aiGateway.hint(any(), any(), anyList(), anyString(), anyInt()))
+        .willReturn(
+            new HintResult(
+                List.of(new HintResult.Phrase(hintText, "좋은 하루 보내세요.")),
+                List.of(),
+                List.of(usage("hint"))));
+    return turnHelpService.suggestWords(userId, npcTurn.getId(), UUID.randomUUID()).suggestWords();
+  }
+
+  @Test
   @DisplayName("힌트를 부르다 워커에 닿지 못하면 오류를 그대로 알린다")
   void hint_workerCallFails_throws() {
     given(aiGateway.hint(any(), any(), anyList(), anyString(), anyInt()))
@@ -265,6 +339,31 @@ class TurnHelpServiceTest {
   }
 
   @Test
+  @DisplayName("추천 단어와 문장·뜻을 함께 미리 저장하되 실제 열기 전에는 힌트 사용으로 기록하지 않는다")
+  void suggestWords_prefetchesHintWithoutOpeningAndReusesIt() {
+    given(aiGateway.suggest(any(), any(), anyList(), anyString(), anyInt())).willReturn(SUGGEST);
+    given(aiGateway.hint(any(), any(), anyList(), anyString(), anyInt())).willReturn(HINT);
+
+    SuggestWordsResponse response =
+        turnHelpService.suggestWords(userId, npcTurn.getId(), UUID.randomUUID());
+
+    assertThat(response.hintText()).isEqualTo("For here, please.");
+    assertThat(response.hintMeaningKo()).isEqualTo("여기서 먹을게요.");
+    assertThat(savedNpcTurn().getHintOpenedAt()).isNull();
+    assertThat(turnHelpService.suggestWords(userId, npcTurn.getId(), UUID.randomUUID()))
+        .isEqualTo(response);
+    turnHelpService.hint(userId, npcTurn.getId(), UUID.randomUUID());
+    assertThat(savedNpcTurn().getHintOpenedAt()).isNotNull();
+    then(aiGateway).should(times(1)).hint(any(), any(), anyList(), anyString(), anyInt());
+    then(aiGateway).should(times(1)).suggest(any(), any(), anyList(), anyString(), anyInt());
+    ArgumentCaptor<WorkerTrace> hintTrace = ArgumentCaptor.forClass(WorkerTrace.class);
+    ArgumentCaptor<WorkerTrace> wordTrace = ArgumentCaptor.forClass(WorkerTrace.class);
+    then(aiGateway).should().hint(hintTrace.capture(), any(), anyList(), anyString(), anyInt());
+    then(aiGateway).should().suggest(wordTrace.capture(), any(), anyList(), anyString(), anyInt());
+    assertThat(hintTrace.getValue().requestId()).isNotEqualTo(wordTrace.getValue().requestId());
+  }
+
+  @Test
   @DisplayName("한 번 만든 힌트는 다시 요청해도 워커를 부르지 않고, 처음 연 시각을 바꾸지 않는다")
   void hint_savedTurn_returnsSavedHintWithoutAi() {
     given(aiGateway.hint(any(), any(), anyList(), anyString(), anyInt())).willReturn(HINT);
@@ -331,13 +430,16 @@ class TurnHelpServiceTest {
     textTurn(entityManager, conversation, 4, "For here.");
     entityManager.flush();
     given(aiGateway.suggest(any(), any(), anyList(), eq(""), eq(1))).willReturn(SUGGEST);
+    given(aiGateway.hint(any(), any(), anyList(), eq(""), eq(1))).willReturn(HINT);
     UUID requestId = UUID.randomUUID();
 
     SuggestWordsResponse response =
         turnHelpService.suggestWords(userId, npcTurn.getId(), requestId);
 
     assertThat(response)
-        .isEqualTo(new SuggestWordsResponse(npcTurn.getId(), List.of("for here", "to go")));
+        .isEqualTo(
+            new SuggestWordsResponse(
+                npcTurn.getId(), List.of("for here", "to go"), "For here, please.", "여기서 먹을게요."));
     ArgumentCaptor<List<WorkerLine>> history = ArgumentCaptor.forClass(List.class);
     then(aiGateway)
         .should()

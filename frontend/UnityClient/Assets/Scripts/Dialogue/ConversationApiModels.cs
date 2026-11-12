@@ -124,6 +124,9 @@ namespace A305.Dialogue
         public long TurnId { get; set; }
         public string Text { get; set; }
         public UserTranslationData Translation { get; set; }
+
+        /// <summary>서버가 준 학습자가 한 말과 같은 뜻의 다른 표현(최대 3개). 고친 문장이 있어도 온다. 없으면 빈 목록이거나 null이다.</summary>
+        public List<string> BetterExpressions { get; set; }
     }
 
     /// <summary>CONV-03에서 무례하지 않은 한국어·혼합 발화에만 보내는 학습자 말의 영어 표현.</summary>
@@ -272,6 +275,17 @@ namespace A305.Dialogue
 
         public string Reason { get; set; }
         public IdiomData Idiom { get; set; }
+        public string Verdict { get; set; }
+        public string SuggestionKind { get; set; }
+        public List<FeedbackExpressionExample> ExpressionExamples { get; set; }
+    }
+
+    /// <summary>발화의 의도를 유지하며 연습할 상황별 문장. 모호한 요청은 조건을 함께 보여 준다.</summary>
+    public sealed class FeedbackExpressionExample
+    {
+        public string ConditionKo { get; set; }
+        public string Expression { get; set; }
+        public string MeaningKo { get; set; }
     }
 
     public sealed class IdiomData
@@ -341,12 +355,14 @@ namespace A305.Dialogue
         public string HintMeaningKo { get; set; }
     }
 
-    /// <summary>추천 단어(CONV-12).</summary>
+    /// <summary>함께 미리 받는 추천 단어·문장·뜻(CONV-12). 문장 준비가 실패하면 단어만 있을 수 있다.</summary>
     public sealed class SuggestWordsData
     {
         public long TurnId { get; set; }
 
         /// <summary>NPC 대사에 대답할 때 쓸 만한 단어·짧은 구</summary>
         public List<string> SuggestWords { get; set; }
+        public string HintText { get; set; }
+        public string HintMeaningKo { get; set; }
     }
 }

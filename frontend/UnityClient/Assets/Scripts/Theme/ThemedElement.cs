@@ -45,6 +45,8 @@ namespace A305.Theme
         // 유리 버튼일 때 Builder가 정한 9칸 배율. 고른 표시로 알약을 그렸다가 돌아올 때 되살린다.
         private float ghostPixelsPerUnit;
 
+        private float selectedVerticalBleedScale = 1f;
+
         public UiThemeRole Role => role;
 
         public UiThemeCatalog Catalog => catalog;
@@ -56,10 +58,11 @@ namespace A305.Theme
             ApplyCurrent();
         }
 
-        /// <summary>고른 카드나 목록 줄을 지금 테마의 강조색 쪽으로 옅게 칠한다. 테마가 바뀌어도 고른 표시를 유지한다.</summary>
-        public void SetSelected(bool selected)
+        /// <summary>고른 카드·버튼을 테마의 강조색으로 칠한다. 필요하면 입체 버튼의 세로 그림자 여백을 조정한다.</summary>
+        public void SetSelected(bool selected, float verticalBleedScale = 1f)
         {
             selection = selected;
+            selectedVerticalBleedScale = verticalBleedScale;
             ApplyCurrent();
         }
 
@@ -290,7 +293,7 @@ namespace A305.Theme
         private static readonly Color GhostInputTint = new Color(1f, 1f, 1f, .8f);
 
         // 알약 위아래 모서리가 버튼 높이에서 차지하는 비율. 이름표·[말하기]처럼 가운데에 곧은 줄을 조금 남긴다.
-        private const float PillCornerShare = .85f;
+        private const float PillCornerShare = .96f;
 
         // 반투명한 흰 테두리 버튼. 다음에 누를 버튼으로 고르면 강조색 입체 버튼으로 바꿔 한눈에 보이게 한다.
         private void PaintGhostControl(UiThemeDefinition theme)
@@ -307,12 +310,14 @@ namespace A305.Theme
                         ghostPixelsPerUnit,
                         PillFit(theme.PillSprite, image)
                     );
+                Vector2 selectedBleed = theme.PillBleed;
+                selectedBleed.y *= selectedVerticalBleedScale;
                 Paint(
                     image,
                     theme.PillSprite,
                     theme.ToneColor(UiTone.Primary),
                     theme.PopMaterial,
-                    theme.PillBleed
+                    selectedBleed
                 );
             }
             else

@@ -66,7 +66,11 @@
       "join_jump": 0.004180908203125,
       "constant_volume": true,
       "speech_source": "대화소리.wav 18s; replacing previous indoor foreground caller",
-      "speech_rms_db": -28.5
+      "speech_rms_db": -28.5,
+      "speech_replaced_seconds": [[22.3, 23.7, "대화소리.wav 67s"], [24.85, 25.4, "대화소리.wav 70s"]],
+      "speech_replaced_reason": "repeating female laugh",
+      "street_replaced_seconds": [[25.7, 26.45, "same street layer 33s"], [27.85, 28.1, "same street layer 35s"]],
+      "street_replaced_reason": "high squeal"
     },
     {
       "file": "loops\\03_cafe.wav",

@@ -9,11 +9,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.HintResult;
 import com.elsehere.ai.client.SuggestResult;
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerState;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.conversation.dto.NpcSummaryResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.InitiatedBy;
@@ -49,6 +49,7 @@ class TurnHelpMissionTest {
           missions,
           mock(ConversationResponses.class),
           gateway,
+          new DialogueRequestLocks(),
           new TransactionTemplate(mock(PlatformTransactionManager.class)),
           JsonMapper.builder().build(),
           Clock.systemUTC());
@@ -111,7 +112,9 @@ class TurnHelpMissionTest {
   @Test
   void suggestedWordsUseTheSamePendingMissionGoal() {
     assertThat(service.suggestWords(8L, 10L, UUID.randomUUID()).suggestWords())
-        .contains("small bag");
+        // 추천 문장(I left my small bag at the cafe.)에 든 small bag·the cafe를 빼면 1개만 남아, 짧은 구부터 하나 다시
+        // 넣는다
+        .containsExactly("small bag", "left at");
     ArgumentCaptor<String> goal = ArgumentCaptor.forClass(String.class);
     verify(gateway).suggest(any(), any(), anyList(), goal.capture(), anyInt());
     assertThat(goal.getValue())

@@ -5,8 +5,8 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
 import ch.qos.logback.classic.Level;
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.common.logging.LogCapture;
 import com.elsehere.conversation.service.NpcAudioRetention;
 import java.util.UUID;

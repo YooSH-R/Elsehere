@@ -16,12 +16,12 @@ namespace A305.Learning
             this.client = client;
         }
 
-        public Task<ConversationPage> GetPageAsync(string cursor, string sceneCode)
+        public Task<ConversationPage> GetPageAsync(string cursor, PlaceGroup? placeGroup)
         {
             string path = ListPath;
-            if (sceneCode != null)
+            if (placeGroup != null)
             {
-                path += "&sceneCode=" + Uri.EscapeDataString(sceneCode);
+                path += "&placeGroup=" + PlaceGroupText.ServerName(placeGroup.Value);
             }
 
             if (cursor != null)

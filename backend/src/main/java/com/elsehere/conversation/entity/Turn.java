@@ -66,6 +66,11 @@ public class Turn extends BaseEntity {
   @Column(columnDefinition = "text")
   private String translationEn;
 
+  // 표현 카드에 접어 둘 같은 뜻의 다른 표현(JSON 문자열 배열). 컬럼 이름은 처음 만들 때의 better_expressions를 그대로 쓴다. 없으면 null
+  @Column(columnDefinition = "jsonb")
+  @ColumnTransformer(write = "?::jsonb")
+  private String betterExpressions;
+
   private Boolean guardAbusive;
 
   @Column(length = 30)
@@ -164,6 +169,11 @@ public class Turn extends BaseEntity {
     policeDispatchPlaceCode = placeCode;
   }
 
+  /** 판정이 준 같은 뜻의 다른 표현(JSON 문자열 배열)을 남긴다. 없으면 null. */
+  public void recordBetterExpressions(String json) {
+    betterExpressions = json;
+  }
+
   /** 택시 기사가 목적지를 알아들은 사용자 턴. */
   public void recordTaxiDestination(String placeCode) {
     taxiDestinationCode = placeCode;
@@ -228,8 +238,15 @@ public class Turn extends BaseEntity {
   }
 
   public void openHint(String hintText, String hintMeaningKo, Instant openedAt) {
+    cacheHint(hintText, hintMeaningKo);
+    if (this.hintOpenedAt == null) {
+      this.hintOpenedAt = openedAt;
+    }
+  }
+
+  /** 미리 만든 문장을 저장하되 실제 열기 기록은 바꾸지 않는다. */
+  public void cacheHint(String hintText, String hintMeaningKo) {
     this.hintText = hintText;
     this.hintMeaningKo = hintMeaningKo;
-    this.hintOpenedAt = openedAt;
   }
 }

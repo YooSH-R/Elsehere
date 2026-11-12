@@ -35,7 +35,7 @@ public class TutorialRelationshipService {
       GameClockService gameClockService,
       Clock clock,
       @Value("${elsehere.relationship.tutorial-recognition:20}") int recognitionGain,
-      @Value("${elsehere.relationship.tutorial-affinity:6}") int affinityGain) {
+      @Value("${elsehere.relationship.tutorial-affinity:4}") int affinityGain) {
     this.npcRepository = npcRepository;
     this.relationRepository = relationRepository;
     this.gameClockService = gameClockService;

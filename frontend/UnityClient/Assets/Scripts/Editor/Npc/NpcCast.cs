@@ -120,7 +120,7 @@ namespace A305.EditorTools.Npc
                 "FIRE_CAPTAIN",
                 NpcLooks.MiddleAgeMale,
                 hair: Palette.BlackHair,
-                clothes: Palette.Burgundy,
+                clothes: Palette.Red,
                 eyes: Palette.BlueEyes
             ),
             Member(

@@ -136,9 +136,9 @@ namespace A305.Learning
                     text.AppendLine(
                         $"참고 표현 · <b>{review.Reference.English}</b>{Meaning(review.Reference.Korean)}"
                     );
-                    if (!string.IsNullOrEmpty(review.Reference.Reason))
+                    if (!string.IsNullOrEmpty(review.Explanation))
                     {
-                        text.AppendLine(review.Reference.Reason);
+                        text.AppendLine(review.Explanation);
                     }
                 }
 

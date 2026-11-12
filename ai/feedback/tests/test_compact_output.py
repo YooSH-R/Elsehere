@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from run_evaluation import validation_diagnostic
 
-from feedback.clients import FixtureClient
+from feedback.clients import CallableClient, FixtureClient
 from feedback.gms import feedback_response_format
 from feedback.models import LLM_OUTPUT, validate_pair
 from feedback.prompt import build_messages
@@ -96,6 +96,83 @@ def test_speaker_roles_filter_npc_targets_without_changing_the_public_contract()
     expressions = response["result"]["situation_expressions"]
     assert [item["expression"] for item in expressions] == ["Have a good one!"]
     assert "speaker_role" not in expressions[0]
+
+
+@pytest.mark.parametrize(
+    ("learner_line", "npc_reply", "expression", "meaning", "usage", "has_fixed_example"),
+    [
+        (
+            "Two croissants, one for me and one for a friend.",
+            "Of course. Here are your two croissants.",
+            "Could I get two croissants, please?",
+            "크루아상 두 개 주세요.",
+            "크루아상 두 개를 정중하게 주문할 때 써요.",
+            True,
+        ),
+        (
+            "I'm looking for the post office. Is it far?",
+            "It's a short walk from here.",
+            "How do I get to the post office?",
+            "우체국에 어떻게 가나요?",
+            "우체국에 가는 길을 물을 때 써요.",
+            False,
+        ),
+    ],
+    ids=["ordering", "asking-directions"],
+)
+def test_situation_examples_use_the_actual_dialogue_at_the_same_bakery(
+    learner_line, npc_reply, expression, meaning, usage, has_fixed_example
+):
+    payload, _ = sample("free_grammar")
+    payload["scope"]["npc_id"] = "BAKERY_STAFF"
+    payload["context"].update(scene_id="BAKERY", mode="quest", scene_description="빵집 · 간식 고르기")
+    for turn, line in zip(payload["turns"], ("Hi there. How can I help?", learner_line, npc_reply), strict=True):
+        turn["final_text"] = line
+    source = {"turn_id": "t02", "quote": learner_line}
+
+    def model_reply(messages):
+        prompt = json.loads(messages[-1]["content"])
+        candidate = prompt["situation_expression_candidate"]
+        assert (None if candidate is None else candidate["expression"]) == (expression if has_fixed_example else None)
+        assert "실제로 나눈 대화의 목적" in messages[0]["content"]
+        assert [turn["final_text"] for turn in prompt["turns"]] == [turn["final_text"] for turn in payload["turns"]]
+        return json.dumps(
+            {
+                "outcome": "usable",
+                "problem": None,
+                "format_version": "compact-v1",
+                "result": {
+                    "conversation_summary": {"text_ko": "빵집에서 직원과 대화했어요.", "evidence": [source]},
+                    "communication": {"judgement": "clear", "explanation_ko": "요청을 전달했어요.", "evidence": [source]},
+                    "review_tags": [],
+                    "turn_reviews": [
+                        {
+                            "turn_id": "t02",
+                            "verdict": "appropriate",
+                            "explanation_ko": "의도가 분명해요.",
+                            "suggestions": [],
+                        }
+                    ],
+                    "summary_suggestion_id": None,
+                    "vocab_candidates": [],
+                    "situation_expressions": [
+                        {
+                            "expression": expression,
+                            "meaning_ko": meaning,
+                            "usage_ko": usage,
+                            "example_en": expression,
+                            "example_ko": meaning,
+                            "speaker_role": "learner",
+                        }
+                    ],
+                },
+            }
+        )
+
+    response = generate_feedback(payload, CallableClient(model_reply), ai_allowed=True)
+
+    assert response["status"] == "completed"
+    assert [item["expression"] for item in response["result"]["situation_expressions"]] == [expression]
 
 
 def test_provider_schema_does_not_ask_model_to_repeat_server_owned_fields():

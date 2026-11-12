@@ -9,8 +9,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.PerformanceIntentResult;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.service.ConversationLookup;

@@ -52,6 +52,46 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator NewConversation_HidesSubtitlesEvenWhenPreviouslySavedOn()
+        {
+            NpcSubtitlePreference.ShowsSubtitles = true;
+            NpcSubtitlePreference.Reload();
+
+            yield return Show(new SpokenContent(speaksNpcLines: true));
+
+            Assert.That(VisibleNpcLetters(), Is.Zero);
+            Assert.That(ActiveCovers(), Has.Count.EqualTo(7));
+            Assert.That(Caption(FindButton("SubtitleButton")), Is.EqualTo("자막 켜기"));
+        }
+
+        [UnityTest]
+        public IEnumerator SubtitlesEnabledDuringConversation_StayOnUntilTheNextConversation()
+        {
+            var content = new SpokenContent(speaksNpcLines: true);
+            yield return Show(content);
+            Button subtitle = FindButton("SubtitleButton");
+            ClickCenterOf(subtitle);
+            yield return null;
+
+            content.Waiting = DialogueWait.NpcReply;
+            view.Refresh();
+            content.Waiting = DialogueWait.None;
+            view.Refresh();
+            yield return null;
+
+            Assert.That(VisibleNpcLetters(), Is.EqualTo(NpcSentence.Replace(" ", "").Length));
+            Assert.That(Caption(subtitle), Is.EqualTo("자막 끄기"));
+
+            view.Hide();
+            view.Show(new SpokenContent(speaksNpcLines: true));
+            yield return null;
+
+            Assert.That(VisibleNpcLetters(), Is.Zero);
+            Assert.That(ActiveCovers(), Has.Count.EqualTo(7));
+            Assert.That(Caption(subtitle), Is.EqualTo("자막 켜기"));
+        }
+
+        [UnityTest]
         public IEnumerator SubtitleButton_Clicked_TogglesCaptionAndRemembersPreference()
         {
             yield return Show(new SpokenContent(speaksNpcLines: true));
@@ -75,20 +115,38 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(NpcSubtitlePreference.ShowsSubtitles, Is.False);
         }
 
-        // 켜 둔 채 대화를 열면 레이아웃이 버튼 높이를 정하기 전에 [자막 끄기] 알약을 칠한다.
-        // 높이가 정해진 뒤에도 알약 위아래 모서리가 버튼 높이를 넘으면 가운데 줄이 테이프처럼 양옆으로 삐져나온다.
+        // 자막을 켜면 채운 강조색으로 바뀌지만, 둥근 모서리가 버튼 높이에 맞아야 한다.
         [UnityTest]
-        public IEnumerator SubtitlesOn_PillCornersFitInsideTheButtonHeight()
+        public IEnumerator SubtitleButton_KeepsRoundedCornersAndHighlightsWhenEnabled()
         {
-            NpcSubtitlePreference.ShowsSubtitles = true;
-
             yield return Show(new SpokenContent(speaksNpcLines: true));
 
-            var image = FindButton("SubtitleButton").GetComponent<Image>();
-            float corners =
+            Button subtitle = FindButton("SubtitleButton");
+            Image image = subtitle.GetComponent<Image>();
+            Sprite originalSprite = image.sprite;
+            Color originalColor = image.color;
+            Material originalMaterial = image.material;
+            float originalPixelsPerUnit = image.pixelsPerUnitMultiplier;
+            ClickCenterOf(subtitle);
+            yield return null;
+
+            float buttonHeight = image.rectTransform.rect.height;
+            float roundedCorners =
                 (image.sprite.border.y + image.sprite.border.w)
                 / (image.pixelsPerUnit * image.pixelsPerUnitMultiplier);
-            Assert.That(corners, Is.LessThan(image.rectTransform.rect.height));
+            Assert.That(Caption(subtitle), Is.EqualTo("자막 끄기"));
+            Assert.That(roundedCorners, Is.InRange(buttonHeight * .9f, buttonHeight));
+            Assert.That(image.material, Is.Not.SameAs(originalMaterial));
+            Assert.That(image.color, Is.Not.EqualTo(originalColor));
+
+            ClickCenterOf(subtitle);
+            yield return null;
+
+            Assert.That(Caption(subtitle), Is.EqualTo("자막 켜기"));
+            Assert.That(image.sprite, Is.SameAs(originalSprite));
+            Assert.That(image.color, Is.EqualTo(originalColor));
+            Assert.That(image.material, Is.SameAs(originalMaterial));
+            Assert.That(image.pixelsPerUnitMultiplier, Is.EqualTo(originalPixelsPerUnit));
         }
 
         // 음성 없이 글로만 진행하는 대본 대화는 가리면 대사를 알 방법이 없다.
@@ -111,6 +169,26 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(VisibleNpcLetters(), Is.EqualTo(NpcSentence.Replace(" ", "").Length));
             Assert.That(ActiveCovers(), Is.Empty);
             Assert.That(FindButton("SubtitleButton").gameObject.activeSelf, Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator SubtitlesOff_ReceivingFirstLine_HidesItUntilSpeechFails()
+        {
+            var content = new SpokenContent(speaksNpcLines: true, isNpcSpeechReady: false)
+            {
+                IsReceivingNpcReply = true,
+            };
+            yield return Show(content);
+
+            Assert.That(VisibleNpcLetters(), Is.Zero, "음성이 오기 전에 받은 첫 대사도 가립니다.");
+            Assert.That(ActiveCovers(), Is.Not.Empty);
+
+            content.IsReceivingNpcReply = false;
+            view.Refresh();
+            yield return null;
+
+            Assert.That(VisibleNpcLetters(), Is.EqualTo(NpcSentence.Replace(" ", "").Length));
+            Assert.That(ActiveCovers(), Is.Empty);
         }
 
         // 대답 로딩 카드가 대사 칸을 덮는 동안 지난 대사를 가린 막대가 로딩 위로 비치지 않고, 로딩이 끝나면 다시 덮는다.
@@ -275,6 +353,7 @@ namespace A305.Dialogue.PlayModeTests
             public DialogueWait Waiting { get; set; }
             public bool CanReplaySpeech => true;
             public bool SpeaksNpcLines { get; }
+            public bool IsReceivingNpcReply { get; set; }
             public bool IsNpcSpeechReady { get; }
         }
     }

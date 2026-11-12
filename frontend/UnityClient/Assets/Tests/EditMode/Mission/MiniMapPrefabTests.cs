@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using NUnit.Framework;
@@ -11,7 +12,7 @@ namespace A305.Mission.Tests
 {
     /// <summary>
     /// 왼쪽 아래 미니맵은 큰 지도와 같은 맑은 하늘색 유리 판 안의 둥근 창으로 시안 마을 지도 그림을 보이고,
-    /// 그 위에 내 위치 화살표와 목적지 건물 테두리를 얹는다. 범례 글자는 두지 않는다.
+    /// 그 위에 내 위치 화살표를 얹고 목적지 건물의 이름표를 강조한다. 범례 글자는 두지 않는다.
     /// </summary>
     public sealed class MiniMapPrefabTests
     {
@@ -31,6 +32,56 @@ namespace A305.Mission.Tests
 
             Assert.That(labels.Length, Is.GreaterThanOrEqualTo(2));
             Assert.That(labels.Select(label => label.text), Is.All.EqualTo("햄버거 가게"));
+        }
+
+        [TestCase("miniMap")]
+        [TestCase("largeMap")]
+        public void DinerBuildingLabelFitsInsideItsBackground(string mapField)
+        {
+            Create();
+            instance.transform.Find("Content/MapOverlay").gameObject.SetActive(true);
+            var mission = instance.GetComponent<FirstDayMissionView>();
+            var map = Field<RectTransform>(Field<TownMiniMapView>(mission, mapField), "map");
+            var plate = (RectTransform)map.Find("BuildingLabels/DINER_STAFF");
+            var label = plate.GetComponentInChildren<TMP_Text>(true);
+            label.ForceMeshUpdate(ignoreActiveState: true);
+            Bounds text = label.textBounds;
+            const float minimumPadding = 8;
+
+            Assert.That(label.textInfo.lineCount, Is.EqualTo(1));
+            Assert.That(text.size.x, Is.GreaterThan(0f));
+            Assert.That(text.min.x, Is.GreaterThanOrEqualTo(plate.rect.xMin + minimumPadding));
+            Assert.That(text.max.x, Is.LessThanOrEqualTo(plate.rect.xMax - minimumPadding));
+        }
+
+        [TestCase("miniMap")]
+        [TestCase("largeMap")]
+        public void DestinationNameplateHighlightsOnlyTheCurrentPlace(string mapField)
+        {
+            Create();
+            var mission = instance.GetComponent<FirstDayMissionView>();
+            var view = Field<TownMiniMapView>(mission, mapField);
+            var map = Field<RectTransform>(view, "map");
+            var diner = map.Find("BuildingLabels/DINER_STAFF").GetComponent<Image>();
+            var cafe = map.Find("BuildingLabels/CAFE").GetComponent<Image>();
+            Color dinerColor = diner.color;
+            Color cafeColor = cafe.color;
+
+            view.ShowDestination("DINER_STAFF");
+            Assert.That(diner.color, Is.Not.EqualTo(dinerColor));
+            Assert.That(cafe.color, Is.EqualTo(cafeColor));
+
+            view.ShowDestination("CAFE");
+            Assert.That(diner.color, Is.EqualTo(dinerColor));
+            Assert.That(cafe.color, Is.Not.EqualTo(cafeColor));
+
+            view.ShowDestination("TOWN");
+            Assert.That(cafe.color, Is.EqualTo(cafeColor));
+            Assert.That(
+                map.Find("Destination"),
+                Is.Null,
+                "건물 위에 별도 테두리를 그리지 않습니다."
+            );
         }
 
         [TearDown]
@@ -133,21 +184,6 @@ namespace A305.Mission.Tests
         }
 
         [Test]
-        public void Destination_IsFramedOnItsMockupTile()
-        {
-            TownMiniMapView map = Create();
-            RectTransform frame = Field<RectTransform>(map, "destination");
-
-            map.ShowDestination("SHOP");
-            Assert.That(frame.gameObject.activeSelf, Is.True);
-            Vector2 shop = frame.anchoredPosition;
-            map.ShowDestination("HOTEL");
-            Assert.That(frame.anchoredPosition, Is.Not.EqualTo(shop));
-            map.ShowDestination("TOWN");
-            Assert.That(frame.gameObject.activeSelf, Is.False);
-        }
-
-        [Test]
         public void DraggingTheMiniMap_MovesTheMapAndDoesNotOpenTheLargeMap()
         {
             TownMiniMapView map = Create();
@@ -212,15 +248,13 @@ namespace A305.Mission.Tests
             art.GetPixel(x, art.height - 1 - y);
 
         [Test]
-        public void TownStory_FramesOnlyTheCurrentShopAcrossAllMaps()
+        public void TownStory_HighlightsOnlyTheCurrentShopAcrossAllMaps()
         {
             TownMiniMapView miniMap = Create();
             var mission = instance.GetComponent<FirstDayMissionView>();
-            var frame = Field<RectTransform>(miniMap, "destination");
-            var largeFrame = Field<RectTransform>(
-                Field<TownMiniMapView>(mission, "largeMap"),
-                "destination"
-            );
+            var largeMap = Field<TownMiniMapView>(mission, "largeMap");
+            var miniMapColors = NameplateColors(miniMap);
+            var largeMapColors = NameplateColors(largeMap);
             var legend = Field<TMP_Text>(mission, "largeMapLegend");
             var maps = instance.GetComponentsInChildren<TownMapView>(true);
             Assert.That(maps, Has.Length.EqualTo(1), "수첩");
@@ -258,20 +292,17 @@ namespace A305.Mission.Tests
                 current.Status = "CURRENT";
                 mission.Refresh(state, false, false);
                 var store = new Vector3(x, 0, z);
-                Vector2 art = TownMapArt.ToArt(store);
-                Assert.That(frame.gameObject.activeSelf, Is.True, npc);
                 Assert.That(
-                    frame.rect.Contains(new Vector2(art.x, -art.y) - frame.anchoredPosition),
-                    Is.True,
-                    name
+                    HighlightedNameplates(miniMapColors),
+                    Is.EqualTo(new[] { npc }),
+                    "미니맵"
+                );
+                Assert.That(
+                    HighlightedNameplates(largeMapColors),
+                    Is.EqualTo(new[] { npc }),
+                    "큰 지도"
                 );
                 Assert.That(legend.text, Does.Contain(name));
-                Assert.That(largeFrame.gameObject.activeSelf, Is.True, npc);
-                Assert.That(
-                    largeFrame.anchoredPosition,
-                    Is.EqualTo(frame.anchoredPosition),
-                    "큰 지도도 같은 건물"
-                );
                 foreach (TownMapView map in maps)
                 {
                     RectTransform[] marks = ActiveMarks(map);
@@ -296,11 +327,21 @@ namespace A305.Mission.Tests
             }
             state.Completed = true;
             mission.Refresh(state, false, false);
-            Assert.That(frame.gameObject.activeSelf, Is.False);
-            Assert.That(largeFrame.gameObject.activeSelf, Is.False);
+            Assert.That(HighlightedNameplates(miniMapColors), Is.Empty, "미니맵");
+            Assert.That(HighlightedNameplates(largeMapColors), Is.Empty, "큰 지도");
             foreach (TownMapView map in maps)
                 Assert.That(ActiveMarks(map), Is.Empty);
         }
+
+        private static Dictionary<Image, Color> NameplateColors(TownMiniMapView map) =>
+            Field<RectTransform>(map, "map")
+                .Find("BuildingLabels")
+                .Cast<Transform>()
+                .Select(plate => plate.GetComponent<Image>())
+                .ToDictionary(plate => plate, plate => plate.color);
+
+        private static IEnumerable<string> HighlightedNameplates(Dictionary<Image, Color> colors) =>
+            colors.Where(plate => plate.Key.color != plate.Value).Select(plate => plate.Key.name);
 
         private static RectTransform[] ActiveMarks(TownMapView map) =>
             map

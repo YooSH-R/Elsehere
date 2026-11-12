@@ -107,21 +107,25 @@ def test_meaning_blank_line_is_invalid_request(client):
 # ---------------------------------------------------------------------
 # 추천 단어
 # ---------------------------------------------------------------------
-def test_suggest_gives_three_words_for_the_reply(client, provider):
+def test_suggest_gives_up_to_five_candidate_words_for_the_reply(client, provider):
+    # Spring이 추천 문장과 겹치는 말을 거르고도 3개를 채우도록 후보를 5개까지 보낸다 (S15P31A305-868)
     seen = {}
 
     def answer(b):
         seen["body"] = b
-        return ok(json.dumps({"words": ["for here", " to go ", "For here", 7, "please", "thanks"]}))
+        words = ["for here", " to go ", "For here", 7, "please", "thanks", "dine in", "takeout"]
+        return ok(json.dumps({"words": words}))
 
     provider.answers["suggest"] = answer
     r = client.post("/v1/suggest", json={"npc": NPC, "history": HISTORY, "goal": "choose for here or to go", "level": 1})
     assert r.status_code == 200
     body = r.json()
-    assert body["words"] == ["for here", "to go", "please"]  # 공백 정리·중복(대소문자 무시)·문자열 아닌 것 빼고 3개까지
+    # 공백 정리·중복(대소문자 무시)·문자열 아닌 것 빼고 5개까지
+    assert body["words"] == ["for here", "to go", "please", "thanks", "dine in"]
     assert [u["step"] for u in body["usage"]] == ["suggest"]
     msg = user_msg(seen["body"])
     assert "Great! For here or to go?" in msg and "choose for here or to go" in msg and "A1-A2" in msg
+    assert "Give 5 " in seen["body"]["messages"][0]["content"]
 
 
 def test_suggest_without_npc_line_still_works(client, provider):
@@ -163,6 +167,37 @@ def test_suggest_pairs_useful_vocabulary_with_meanings_and_drops_personal_detail
     prompt = seen["body"]["messages"][0]["content"]
     assert "Do not invent names, dates, room numbers or prices" in prompt
     assert "not words mechanically extracted from a suggested sentence" in prompt
+
+
+def test_suggest_drops_sentences_even_when_the_model_marks_them_as_vocabulary(client, provider):
+    # "I'm sorry"처럼 주어로 시작하거나 문장 부호로 끝나는 말은 단어가 아니라 문장이다 (S15P31A305-855)
+    words = [
+        {"text": "I'm sorry", "meaning_ko": "미안해요", "kind": "vocabulary"},
+        {"text": "Sorry about that.", "meaning_ko": "그거 미안해요", "kind": "vocabulary"},
+        {"text": "Can I get a latte?", "meaning_ko": "라떼 주실래요?", "kind": "vocabulary"},
+        {"text": "You’re welcome", "meaning_ko": "천만에요", "kind": "vocabulary"},
+        {"text": "apologize", "meaning_ko": "사과하다", "kind": "vocabulary"},
+        {"text": "my bad", "meaning_ko": "내 실수", "kind": "vocabulary"},
+    ]
+    provider.answers["suggest"] = lambda body: ok(json.dumps({"words": words}, ensure_ascii=False))
+
+    response = client.post("/v1/suggest", json={"npc": NPC, "history": HISTORY})
+
+    assert response.json()["words"] == ["apologize — 사과하다", "my bad — 내 실수"]
+
+
+def test_suggest_puts_sentences_back_when_fewer_than_two_words_remain(client, provider):
+    # 문장 같은 말을 빼서 단어가 2개보다 적게 남으면, 모자란 만큼 다시 넣어 추천 단어가 비거나 1개만 보이지 않게 한다 (S15P31A305-868)
+    words = [
+        {"text": "I'm sorry", "meaning_ko": "미안해요", "kind": "vocabulary"},
+        {"text": "Sorry about that.", "meaning_ko": "그거 미안해요", "kind": "vocabulary"},
+        {"text": "apologize", "meaning_ko": "사과하다", "kind": "vocabulary"},
+    ]
+    provider.answers["suggest"] = lambda body: ok(json.dumps({"words": words}, ensure_ascii=False))
+
+    response = client.post("/v1/suggest", json={"npc": NPC, "history": HISTORY})
+
+    assert response.json()["words"] == ["apologize — 사과하다", "I'm sorry — 미안해요"]
 
 
 def test_suggest_does_not_show_a_structured_word_without_a_korean_meaning(client, provider):
@@ -258,6 +293,21 @@ def test_hint_follows_level(client, provider, level, learner):
     provider.answers["hint"] = answer
     client.post("/v1/hint", json={"npc": NPC, "goal": "choose", "history": HISTORY, "level": level})
     assert learner in user_msg(seen["body"])
+
+
+def test_hint_prompt_leaves_out_names_and_other_personal_answers(client, provider):
+    # 추천 문장에 학습자 것이 아닌 예시 이름이 나오던 것을 막는다 ("I have a reservation under Kim.", S15P31A305-844)
+    seen = {}
+
+    def answer(b):
+        seen["body"] = b
+        return ok(json.dumps({"say_this": [{"en": "I have a reservation.", "ko": "예약했어요."}], "keywords": []}))
+
+    provider.answers["hint"] = answer
+    client.post("/v1/hint", json={"npc": NPC, "goal": "confirm the reservation name", "history": HISTORY})
+    system = seen["body"]["messages"][0]["content"]
+    assert "Never put a name (not even a sample name like Kim), date, room number, price" in system
+    assert "e.g. 'I have a reservation.'" in system
 
 
 @pytest.mark.parametrize("level", [0, 4, "hard"])

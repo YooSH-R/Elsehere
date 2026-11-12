@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -32,9 +33,22 @@ namespace A305.Dialogue
         [SerializeField]
         private Button useButton;
 
+        // 추천 단어 한 줄과 단어 사이 구분선의 본. 숨겨 두고 단어 수만큼 복제한다.
+        [SerializeField]
+        private TMP_Text wordTemplate;
+
+        [SerializeField]
+        private GameObject dividerTemplate;
+
+        private readonly List<TMP_Text> wordRows = new List<TMP_Text>();
+        private readonly List<GameObject> dividers = new List<GameObject>();
+
         public event Action HideRequested;
         public event Action SentenceSelected;
         public RectTransform WordsRect => wordsCard;
+
+        /// <summary>추천 문장 카드. [힌트]가 이 안에 있다.</summary>
+        public RectTransform HintRect => hintCard;
 
         private void Awake()
         {
@@ -43,7 +57,8 @@ namespace A305.Dialogue
         }
 
         public void Show(
-            string words,
+            IReadOnlyList<string> words,
+            bool isSuggestingWords,
             bool hasHint,
             bool visible,
             string sentence,
@@ -51,7 +66,7 @@ namespace A305.Dialogue
             string meaningKo = null
         )
         {
-            wordsText.text = words;
+            ShowWords(DialogueHelpText.WordEntries(words), isSuggestingWords);
             hintCard.gameObject.SetActive(hasHint);
             hintCover.SetActive(!visible);
             hintScroll.gameObject.SetActive(visible);
@@ -62,6 +77,32 @@ namespace A305.Dialogue
             if (hintScroll.verticalScrollbar != null)
                 hintScroll.verticalScrollbar.gameObject.SetActive(visible);
             useButton.interactable = visible && !pending && !string.IsNullOrWhiteSpace(sentence);
+        }
+
+        // 단어마다 줄을 따로 두고 단어 사이에만 얇은 구분선을 넣어, 빈 줄로 공간을 버리지 않는다.
+        // 단어가 없으면 고르는 중인지 아직 없는지 알리는 문구만 보인다.
+        private void ShowWords(string[] entries, bool isSuggesting)
+        {
+            wordsText.gameObject.SetActive(entries.Length == 0);
+            wordsText.text = entries.Length == 0 ? DialogueHelpText.Words(null, isSuggesting) : "";
+            Transform list = wordTemplate.transform.parent;
+            while (wordRows.Count < entries.Length)
+            {
+                GameObject divider = Instantiate(dividerTemplate, list);
+                divider.name = "Divider";
+                dividers.Add(divider);
+                TMP_Text row = Instantiate(wordTemplate, list);
+                row.name = "Word";
+                wordRows.Add(row);
+            }
+            for (int i = 0; i < wordRows.Count; i++)
+            {
+                bool shown = i < entries.Length;
+                wordRows[i].gameObject.SetActive(shown);
+                dividers[i].SetActive(shown && i > 0);
+                if (shown)
+                    wordRows[i].text = entries[i];
+            }
         }
 
         public void SetBounds(Vector2 offset, float width, float height)

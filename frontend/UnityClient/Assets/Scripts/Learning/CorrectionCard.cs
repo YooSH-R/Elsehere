@@ -14,6 +14,9 @@ namespace A305.Learning
 
         /// <summary>고칠 것이 없는 영어 문장이다.</summary>
         WellSaid,
+
+        /// <summary>문법 오류가 아닌 표현 확장이나, 의도 확인이 필요한 말이다.</summary>
+        ExpressionPractice,
     }
 
     /// <summary>
@@ -36,6 +39,14 @@ namespace A305.Learning
         {
             if (IsKorean(review.Utterance))
                 return CorrectionKind.Korean;
+            if (
+                review.Verdict == "needs_clarification"
+                || review.Verdict == "not_assessable"
+                || review.SuggestionKind == "natural_alternative"
+                || review.SuggestionKind == "idiomatic_expression"
+                || review.SuggestionKind == "context_fit"
+            )
+                return CorrectionKind.ExpressionPractice;
             return review.HasAlternative ? CorrectionKind.Corrected : CorrectionKind.WellSaid;
         }
 
@@ -60,6 +71,7 @@ namespace A305.Learning
             {
                 CorrectionKind.Corrected => "내가 한 말",
                 CorrectionKind.Korean => "내가 한 말 · 한국어",
+                CorrectionKind.ExpressionPractice => "내가 한 말",
                 _ => "잘했어요",
             };
 

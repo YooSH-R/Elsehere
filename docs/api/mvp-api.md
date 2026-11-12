@@ -84,16 +84,14 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | --- | --- | --- |
 | `VALIDATION_FAILED` | 400 | 필수값 누락, 길이·형식 오류 |
 | `UNAUTHENTICATED` | 401 | 로그인 필요. 로그인 세션은 서버 메모리에 있어 서버 재배포나 오래 쉬면 사라집니다. 장소 화면에서 이 응답을 받으면 클라이언트는 "접속이 끊겼어요" 안내를 띄우고 처음 화면(로그인)으로 돌려보냅니다. |
+| `ADMIN_LOGIN_FAILED` | 401 | 운영자 어드민 로그인(`POST /api/v1/admin/login`)의 아이디나 비밀번호가 틀림. 무엇이 틀렸는지는 알리지 않음. [운영자 어드민](../admin.md) 참고 |
 | `SIGNUP_REQUIRED` | 403 | 가입 정보 미제출 |
 | `CSRF_HEADER_REQUIRED` | 403 | 상태를 바꾸는 요청에 `X-Requested-With` 헤더 없음 |
-| `ADMIN_REQUIRED` | 403 | 관리자가 아닌 사용자가 운영자 어드민 화면·관리 API(`/admin`, `/api/v1/admin/**`) 호출. [운영자 어드민](../admin.md) 참고 |
-| `VOICE_CONSENT_REQUIRED` | 403 | 음성 처리(`VOICE`)에 동의하지 않은 사용자의 음성 인식(CONV-02). 글자로 입력하거나 오른쪽 위 메뉴(≡) › 내 정보 › 선택 동의에서 동의를 켭니다. |
+| `VOICE_CONSENT_REQUIRED` | 403 | 음성 처리(`VOICE`)에 동의하지 않은 사용자의 음성 인식(CONV-02). 글자로 입력하거나 휴대폰 › 설정 › 선택 동의에서 동의를 켭니다. |
 | `AI_RESTRICTED` | 403 | 운영·안전상 AI 제한 |
 | `NOT_FOUND` | 404 | 대상이 없거나 다른 사용자의 데이터 |
-| `ADMIN_CANDIDATE_NOT_FOUND` | 404 | 어드민에서 관리자로 추가한 이메일로 Google 가입한 사용자가 없음. [운영자 어드민](../admin.md) 참고 |
 | `ALREADY_SIGNED_UP` | 409 | 이미 가입한 사용자의 가입 정보 제출 |
 | `NICKNAME_TAKEN` | 409 | 다른 사용자가 쓰고 있는 닉네임 |
-| `ADMIN_SELF_REVOKE` | 409 | 어드민에서 자기 자신을 관리자에서 해제 |
 | `LEVEL_TEST_NOT_IN_PROGRESS` | 409 | 이미 끝난 레벨 테스트에 응답·완료·그만하기 |
 | `REQUEST_ID_CONFLICT` | 409 | 같은 `requestId`로 다른 내용 전송 |
 | `CONVERSATION_ALREADY_ACTIVE` | 409 | 진행 중인 다른 대화가 있음 |
@@ -109,6 +107,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `VOCAB_SOURCE_MISMATCH` | 422 | 저장하려는 단어가 출처(사물 카드, 대사 단어 풀이, 피드백 단어장 후보·상황 표현·고친 문장)에 없음 |
 | `AI_QUOTA_EXHAUSTED` | 429 | 사용자 AI 한도 소진, 게스트 대화 횟수 소진 |
 | `AI_RATE_LIMITED` | 429 | 요청 속도 제한 |
+| `ADMIN_LOGIN_LOCKED` | 429 | 운영자 어드민 아이디로 연속 5번 틀려 15분 동안 로그인을 막음. [운영자 어드민](../admin.md) 참고 |
 | `AI_RESPONSE_INVALID` | 502 | 제한 횟수만큼 재시도해도 AI 응답 형식 오류 |
 | `AI_TEMPORARILY_UNAVAILABLE` | 503 | 외부 AI 장애·시간 초과 |
 | `INTERNAL_ERROR` | 500 | 그 밖의 서버 오류 |
@@ -263,7 +262,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | CONV-09 | `GET /api/v1/conversations` | 지난 대화 목록 | - | 18 |
 | CONV-10 | `GET /api/v1/conversations/{conversationId}` | 대화 상세(턴 포함) | - | 16, 18 |
 | CONV-11 | `GET /api/v1/conversations/active` | 진행 중인 대화 조회 | - | 15 |
-| CONV-12 | `POST /api/v1/turns/{turnId}/suggest-words` | NPC 대사에 대답할 추천 단어 | LLM | 15 |
+| CONV-12 | `POST /api/v1/turns/{turnId}/suggest-words` | NPC 대사에 대답할 추천 단어·문장 미리 받기 | LLM | 15 |
 | CONV-13 | `GET /api/v1/follow-ups` | NPC가 곧 건네기로 했는데 아직 받지 않은 것 | - | 14 |
 | CONV-14 | `POST /api/v1/follow-ups/{followUpId}/dismiss` | 기다림 카드 닫기 | - | 14 |
 | FB-01 | `GET /api/v1/conversations/{conversationId}/feedback` | 짧은 피드백·상세 평가 조회 | - | 16, 17 |
@@ -288,6 +287,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 #### BOOT-01 `GET /api/v1/bootstrap`
 
 접속 직후 한 번 호출해 첫 화면을 정합니다. 로그인하지 않았으면 `401 UNAUTHENTICATED`이며 화면 01을 보여줍니다.
+
+요청에 팀 기기 쿠키(`elsehere_team=1`, 웹 템플릿이 `?team=1`로 연 브라우저에 남김)가 있으면 로그인한 계정을 팀 계정(`users.team_account`)으로 표시합니다. 응답은 같고, 팀 계정은 어드민 이용 현황에서 빠집니다([운영자 어드민](../admin.md#이용-현황)).
 
 ```json
 {
@@ -589,7 +590,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 1(초급)·2(중급)만 허용합니다. 다른 값은 `VALIDATION_FAILED`입니다.
 - 고른 난이도는 이후 시작하는 대화의 `levelApplied`가 되어 NPC 대답·힌트·뜻 보기·피드백 난이도로 쓰입니다.
 - 처음 설정하면 `onboardingStep`이 `TUTORIAL`로 넘어가고 응답에 `onboardingStep`을 담습니다. 응답은 `{ "languageCode": "en-US", "selectedLevel": 1, "onboardingStep": "TUTORIAL" }`입니다.
-- 튜토리얼 단계 이후에 다시 설정하면 난이도만 바꾸고 `onboardingStep`은 그대로 둡니다. 고른 적 없는 언어면 `404 NOT_FOUND`입니다.
+- 튜토리얼 단계 이후에 다시 설정하면 난이도만 바꾸고 `onboardingStep`은 그대로 둡니다. 플레이 중에는 마이페이지 [대화 난이도]에서 이 API로 바꾸며, 진행 중인 대화는 시작할 때의 난이도를 그대로 쓰고 다음 대화부터 바뀝니다. 고른 적 없는 언어면 `404 NOT_FOUND`입니다.
 
 ### 4.3 튜토리얼
 
@@ -633,7 +634,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```
 
 - 클라이언트가 고정 대본의 Ben 길 안내를 끝까지 마쳤을 때 호출합니다. 전체 튜토리얼 단계는 바꾸지 않습니다.
-- Ben(`TOWN_PASSERBY`)의 첫 방문 1회, 알아봄 +20, 도움 호감 +6, 마지막 대화 시각·게임 날짜와 인사·자기소개 및 카페 길 안내 기억을 저장합니다. 실제 대화·발화를 만들거나 AI를 호출하지 않습니다.
+- Ben(`TOWN_PASSERBY`)의 첫 방문 1회, 알아봄 +20, 도움 호감 +4, 마지막 대화 시각·게임 날짜와 인사·자기소개 및 카페 길 안내 기억을 저장합니다. 실제 대화·발화를 만들거나 AI를 호출하지 않습니다.
 - 이미 방문 기록이 있으면 중복 반영하지 않습니다. 네트워크 실패 시 재전송할 수 있습니다. 중간 종료와 대화 전 건너뛰기에는 호출하지 않습니다.
 - `LANG`·`LEVEL`이면 `409 TUTORIAL_NOT_IN_PROGRESS`입니다. 이미 `DONE`이면 관계를 올리지 않고 `{ "onboardingStep": "DONE" }`을 돌려줍니다.
 
@@ -924,7 +925,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 그 상황 가게의 직원과 학습자가 말을 거는 대화(`initiatedBy: USER`, 근무 중)를 시작합니다. 없는 `scenarioId`면 `404 NOT_FOUND`입니다.
 - `speechSpeed`(선택, 0.8~1.5)는 사용자가 고른 NPC 말 빠르기로 CONV-01과 같은 규칙입니다(없으면 `1.1`, 범위 밖은 `VALIDATION_FAILED`).
 - 오류와 같은 `requestId` 재전송 처리는 CONV-01과 같습니다(`CONVERSATION_ALREADY_ACTIVE`, `SCENE_CLOSED`, 게스트 대화 횟수 등). 같은 `requestId`를 다른 상황이나 일반·복습 대화 시작에 쓰면 `409 REQUEST_ID_CONFLICT`입니다.
-- 직원의 첫 대사는 상황에 맞게 인사하고 요청을 기다립니다. 학습자가 할 일을 직원이 먼저 꺼내지 않습니다.
+- 직원의 첫 대사는 상황에 맞게 인사하고 요청을 기다립니다. 학습자가 할 일을 직원이 먼저 꺼내지 않습니다. 한 목표에 답할 때도 물은 것만 답하고, 남은 목표의 답(예: 늦은 체크아웃을 물었을 때의 추가 요금)은 학습자가 물을 때까지 말하지 않습니다. 평가는 `ai/tools/practice_early_answer_eval.py`입니다.
 - 장소 연습 대화에는 지금 하는 이야기 퀘스트, 이 NPC와의 기억 카드, 건넬 것(`followUp`)을 섞지 않고, 대화 결과를 이야기 퀘스트·호감도·기억에 반영하지 않습니다. 대화 종료(CONV-08)는 일반 대화처럼 피드백을 만들고, 피드백은 상황의 목표를 기준으로 평가합니다. `followUp`은 항상 `null`입니다.
 - 발화(CONV-03)는 상황의 남은 목표로 의도를 판정합니다(판정 상태 `practice_<scenarioId>`, 같은 대화의 앞선 학습자 발화를 합쳐 판정). 인식한 목표는 그 대화에 기록하고(`conversations.practice_completed_goals`), 직원은 인식한 요청에 답한 뒤 남은 요청에 빠진 정보만 묻습니다. 목표를 모두 이룬 턴에 끝낸 시각을 남기고 직원이 마무리 대사로 대화를 끝냅니다(`ENDED_BY_NPC`, `NPC_ENDED`).
 - 힌트(CONV-05)는 상황에서 아직 이루지 않은 첫 목표를 기준으로 만듭니다.
@@ -988,6 +989,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - `placeCode`(선택)는 대화가 열린 장소 코드입니다. 말을 거는 플레이어가 NPC 바로 옆에 있으므로 Unity는 플레이어가 있는 곳을 보냅니다. 거리 매장 실내에 들어가 있으면 그 매장(`DINER`·`LAUNDROMAT` 등), 아니면 지금 씬의 장소(`TOWN`·`CAFE`·`SHOP`·`HOTEL`·`POLICE_STATION`·`HOME`)이고, 택시 안 대화는 `TAXI`입니다. 대문자 장소 코드만 받으며(형식이 다르면 `VALIDATION_FAILED`), 서버가 "지금 있는 곳은 Suds Laundromat 안이고, 자기 일터가 아니면 들른 것"이라는 사실로 바꿔 이동 사실과 함께 대화에 저장합니다. 일과에 따라 다른 매장에 들른 NPC가 아직 길이나 일터에 있는 것처럼 말하지 않게 하려는 값입니다. 장소 이름은 백엔드 `ConversationPlace`에 있고 워커의 마을 안내(`TOWN_GUIDE`)와 같게 둡니다. 없거나 서버가 모르는 코드면 위치 사실을 넣지 않습니다. 복습 대화에는 덧붙이지 않습니다.
 - 직원처럼 `approachLine`이 없는 NPC는 `initiatedBy`와 관계없이 AI가 첫 인사를 만들고 음성을 합성합니다. 이 NPC와 끝낸 대화가 있으면 기억 카드를 함께 넘겨 다시 만난 인사를 합니다. 미리 작성한 인사로 바꿀지는 `[미정]`입니다(6절).
 - 첫 대사의 추천 단어는 응답을 기다리게 하지 않도록 따로 만들므로 `suggestWords`는 `null`입니다. 클라이언트가 대사를 보여 준 뒤 CONV-12로 받습니다.
+- 마을 길(`placeCode: TOWN`)에서 플레이어가 먼저 시작하는 일반 대화는 NPC의 성격·친밀도·시각과 이동 상황을 첫 인사에 반영합니다. 한두 단어 인사, 지금 하는 일, 주변 관찰, 친밀도에 맞는 인사를 섞습니다. 같은 사용자와 NPC의 최근 일반 대화 첫 인사 4개를 비교합니다. 대소문자·띄어쓰기·구두점 차이만 있는 문장은 다른 짧은 인사와 그 음성으로 바꿉니다. 첫 인사를 확정한 뒤 `delta`로 글자 전체를 보내고 `conversation`의 저장 음성으로 재생합니다.
 - 첫 인사를 만들지 못하면 대화를 만들지 않고 AI 오류 코드(`AI_TEMPORARILY_UNAVAILABLE` 등)를 돌려줍니다.
 - `runningMissions`는 이 NPC가 대상인 진행 중인 미션이며 상단의 "미션 · …" 표시에 씁니다.
 - 장소 연습(PRC-02)으로 시작한 대화의 응답은 `practiceScenarioId`에 상황 ID를 담습니다. 이 API로 시작한 일반 대화와 복습 대화는 `null`입니다.
@@ -1062,7 +1064,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "speaker": "USER",
     "text": "Medium size, please",
     "rude": false,
-    "translation": null
+    "translation": null,
+    "betterExpressions": []
   },
   "npcTurn": {
     "turnId": 105,
@@ -1111,7 +1114,9 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 조각 음성을 재생한 턴은 `turn`을 받은 뒤 턴 전체 음성을 다시 자동 재생하지 않습니다. [다시 듣기]는 `npcTurn.speech`의 턴 전체 음성(CONV-06)을 씁니다.
 - 대화 시작(CONV-01)의 첫 인사도 같은 방식으로 받을 수 있습니다(CONV-01 **스트리밍**).
 
-**학습자 영어 표현** — `userTurn.translation`은 학습자 말의 영어 번역 또는 문법 교정문 `{ "english": "Medium size, please." }`입니다. 한국어·한영 혼용은 영어로 번역하고, 잘못된 영어 문법은 원래 의미를 보존해 최소한으로 교정합니다. 생성된 표현이 있으면 무례 판정과 관계없이 기존 "영어로는 이렇게 말해요" 카드에 담습니다. 정상 구어체·짧은 답·대소문자/구두점만 다른 경우에는 `null`입니다. `userTurn.text`와 전사 원문은 교정문으로 대체하지 않으며 퀘스트·피드백은 계속 원문을 사용합니다. API 필드와 Unity 표시 경로는 유지합니다.
+**학습자 영어 표현** — `userTurn.translation`은 학습자 말의 영어 번역 또는 문법 교정문 `{ "english": "Medium size, please." }`입니다. 한국어·한영 혼용은 영어로 번역하고, 잘못된 영어 문법은 원래 의미를 보존해 최소한으로 교정합니다. 생성된 표현이 있으면 무례 판정과 관계없이 대화창 옆 영어 표현 카드에 담습니다(교정문은 "이렇게 말하면 자연스러워요", 번역은 "영어로는 이렇게 말해요"). Unity는 학습자가 한 말과 달라진 낱말에 밑줄을 긋습니다. 정상 구어체·짧은 답·대소문자/구두점만 다른 경우에는 `null`입니다. `userTurn.text`와 전사 원문은 교정문으로 대체하지 않으며 퀘스트·피드백은 계속 원문을 사용합니다. API 필드와 Unity 표시 경로는 유지합니다.
+
+**다른 표현** — `userTurn.betterExpressions`는 학습자가 한 말과 같은 뜻을 다르게 말하는 자연스러운 문장 1~3개입니다(예: `["I'd like to speak Korean."]`). 더 나은 정답이 아니라 골라 쓸 수 있는 다른 표현이며, 맞게 말했을 때도, `translation`이 있을 때(틀린 문장·한국어 섞임)도 줍니다. 학습자가 한 말·`translation`과 같은 문장은 빼고, 의도 판정이 실패하면 빈 목록입니다. 이름은 처음 만들 때의 `betterExpressions`를 그대로 씁니다. `turns.better_expressions`에 남기며 퀘스트·피드백 판정에는 쓰지 않습니다. Unity는 대화창 옆 카드 아래에 [다른 표현 N개 더 보기]로 접어 두고, 펼치면 "이렇게도 말할 수 있어요" 아래에 번호 칸으로 보여 줍니다.
 
 **무례 판정** — 학습자 말이 무례한지(욕설·위협·모욕·조롱·하대) 턴마다 판정하고, 대화 하나 안에서 셉니다.
 
@@ -1216,6 +1221,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 화면 15의 [뜻 보기]입니다. NPC 턴에만 요청할 수 있습니다. 사용자 턴과 다른 사용자의 턴은 `404 NOT_FOUND`입니다.
 - 한 번 만든 뜻은 저장하고(`turns.meaning_ko`, `turns.glossary`) 다시 요청하면 AI를 호출하지 않습니다. `turns.glossary`는 응답의 `glossary`와 같은 `[{ text, meaningKo }]` JSON입니다.
+- 서버는 NPC 턴(CONV-01 첫 대사, CONV-03 대답)을 저장한 직후 이 뜻을 백그라운드로 미리 만들어 저장합니다. 대화 시작·발화 응답은 이를 기다리지 않으며, AI 호출 기록에는 그 대사를 만든 요청 ID로 남습니다. 그래서 학습자가 [뜻 보기]를 누르면 대부분 저장된 뜻을 바로 받습니다. 미리 만드는 중에 요청하면 AI를 다시 부르지 않고 그 결과를 기다리고, 미리 만들지 못했으면 이 요청이 새로 만듭니다. 학습자가 열지 않는 대사에도 뜻을 만들므로 NPC 턴마다 뜻 보기 비용이 듭니다.
 - 뜻과 단어 풀이는 AI 워커 `/v1/meaning`이 만들며, 대화 난이도(`levelApplied`)를 함께 보냅니다. `glossary`는 대사에 그대로 있는 내용어(명사·본동사·형용사·부사)와 숙어·구동사·관용 표현·정해진 문장 틀(`Would you like` 등)을 나온 순서대로 최대 25개까지 담고, 이름·숫자와 혼자 있는 기능어는 뺍니다. `just`, `still`처럼 쉬운 말도 빼지 않으며, 숙어 안의 내용어도 따로 담아(`grab a seat`, `grab`, `seat`) 서로 겹칠 수 있습니다. 한글 표기만 되는 외래어의 뜻은 무엇인지 풀어 쓰고 표기는 괄호에 둡니다(`front desk` → `호텔 접수·안내 창구(프런트)`). 그런 말이 없으면 빈 배열입니다.
 - AI 호출이 실패하면 1.5의 AI 오류 코드를 돌려주고 아무것도 저장하지 않습니다. 다시 요청하면 새로 만듭니다.
 
@@ -1229,9 +1235,9 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 { "turnId": 105, "hintText": "For here, please.", "hintMeaningKo": "매장에서 먹을게요." }
 ```
 
-- 화면 15의 [힌트]를 누르면 추천 문장을 입력창에 넣어 줍니다. 사용자가 확인하고 고쳐서 보냅니다. 사용자가 답해야 하는 NPC 턴에 요청합니다. 사용자 턴과 다른 사용자의 턴은 `404 NOT_FOUND`입니다.
+- 화면 15의 [힌트]는 미리 받은 추천 문장을 펼치거나 가립니다. 펼친 문장을 직접 눌렀을 때만 입력창에 넣습니다. CONV-05는 실제 열기 기록을 남기며, CONV-12에서 준비한 문장이 있으면 모델 호출 없이 저장된 결과를 반환합니다. 미리 받기에 실패한 경우에만 문장을 생성합니다. 사용자 턴과 다른 사용자의 턴은 `404 NOT_FOUND`입니다.
 - 만든 문장과 뜻은 저장해 다시 쓰고(`turns.hint_text`, `hint_meaning_ko`), 처음 열면 `hint_opened_at`을 기록합니다. 다시 요청해도 처음 연 시각은 바꾸지 않습니다. 뜻은 워커가 같은 힌트 응답에 포함한 한국어를 사용하며 추가 모델 호출을 하지 않습니다. 기존에 영어만 저장한 힌트의 `hintMeaningKo`는 null일 수 있으며, 이를 채우려고 모델을 다시 호출하지 않습니다.
-- `hintText`는 AI 워커 `/v1/hint`가 주는 추천 문장 중 첫 문장(가장 쉬운 문장)입니다. 그 NPC 턴까지의 대화와 대화 난이도로 만듭니다. 장면별 목표는 아직 없어 워커에 목표를 비워 보냅니다.
+- `hintText`는 AI 워커 `/v1/hint`가 주는 추천 문장 중 첫 문장(가장 쉬운 문장)입니다. 그 NPC 턴까지의 대화·대화 난이도·이 대화에 적용되는 학습 목표로 만듭니다.
 - AI 호출이 실패하면 1.5의 AI 오류 코드를 돌려주고, 추천 문장이 하나도 오지 않으면 `502 AI_RESPONSE_INVALID`입니다. 두 경우 모두 저장하지 않습니다.
 - 자유 대화의 힌트는 추천 단어·추천 문장 2단계입니다. 요구사항명세서의 3단계 힌트(키워드 → 문장 시작 → 예문)와 다릅니다(5.2).
 
@@ -1242,13 +1248,21 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 { "requestId": "..." }
 
 // 응답 200
-{ "turnId": 105, "suggestWords": ["for here", "to go", "please"] }
+{
+  "turnId": 105,
+  "suggestWords": ["to go", "dine in"],
+  "hintText": "For here, please.",
+  "hintMeaningKo": "매장에서 먹을게요."
+}
 ```
 
-- 화면 15의 대사 아래 추천 단어입니다. 클라이언트는 NPC 대사(CONV-01·03 응답)를 먼저 보여 준 뒤 이 API를 따로 불러 단어가 오면 채웁니다. 기다리는 동안 입력과 [보내기]를 막지 않고, 실패하면 단어 칸만 비워 둡니다.
+- NPC 대사(CONV-01·03 응답)를 먼저 보여 준 뒤 추천 단어·문장·한국어 뜻을 한 응답으로 받아 저장합니다. 문장은 기본적으로 가리고, [힌트]를 누르면 저장한 문장을 즉시 펼칩니다. 기다리는 동안 입력과 [보내기]를 막지 않습니다. 준비 중에 힌트를 눌러도 같은 요청을 기다리며 문장 생성을 중복 호출하지 않습니다.
+- 문장만 생성하지 못하면 단어는 반환하고 `hintText`·`hintMeaningKo`는 null입니다. 미리 저장하는 동안 `hint_opened_at`은 기록하지 않고 실제로 펼칠 때 CONV-05로 최초 열기 시각을 남깁니다. 단어·문장은 각각 기존 워커의 suggest·hint 생성 경로를 사용하며, AI 호출 기록이 충돌하지 않도록 서로 다른 요청 ID를 사용합니다.
 - 사용자가 답해야 하는 NPC 턴에 요청합니다. 사용자 턴과 다른 사용자의 턴은 `404 NOT_FOUND`입니다.
-- 만든 단어는 저장해 다시 쓰고(`turns.suggest_words`) 다시 요청하면 AI를 호출하지 않습니다. CONV-10 대화 상세에도 저장된 단어가 담깁니다.
-- 단어는 AI 워커 `/v1/suggest`가 그 NPC 턴까지의 대화와 대화 난이도로 3개까지 만듭니다. 장면별 목표는 아직 없어 워커에 목표를 비워 보냅니다.
+- 만든 단어는 저장해 다시 쓰고(`turns.suggest_words`) 다시 요청하면 AI를 호출하지 않습니다. CONV-10 대화 상세에도 아래 규칙으로 고른 단어가 담깁니다.
+- 단어 후보는 AI 워커 `/v1/suggest`가 그 NPC 턴까지의 대화·대화 난이도·이 대화에 적용되는 학습 목표로 5개까지 만듭니다. 주어로 시작하거나(`I'm sorry`) `.`·`?`·`!`로 끝나는 문장 같은 말은 워커가 빼되, 그러면 2개보다 적게 남을 때만 다시 넣습니다.
+- 응답의 `suggestWords`는 후보에서 3개까지 고릅니다. 같은 응답의 추천 문장(`hintText`)에 그대로 들어 있는 여러 단어 구(`have a good`)는 문장을 잘라 온 말이라 건너뜁니다(대소문자·문장 부호 무시). 한 단어(`bag`)는 추천 문장에 있어도 보냅니다.
+- 건너뛴 결과 2개보다 적게 남으면 건너뛴 구를 짧은 것부터 다시 넣어, 후보가 2개 이상이면 추천 단어가 비거나 1개만 보이지 않게 합니다. 고른 단어는 워커가 보낸 순서대로 보내고, 저장한 후보(`turns.suggest_words`)는 그대로 둡니다.
 - AI 호출이 실패하면 1.5의 AI 오류 코드를 돌려주고, 단어가 하나도 오지 않으면 `502 AI_RESPONSE_INVALID`입니다. 두 경우 모두 저장하지 않습니다.
 - 추천 단어는 자유 대화 힌트의 첫 단계(CONV-05)라 AI 호출 기록(`ai_requests.kind`)은 `HINT`로 남깁니다. 사용량 항목의 단계 이름(`suggest`)으로 힌트 문장과 구분합니다.
 
@@ -1359,7 +1373,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### CONV-09·10 지난 대화
 
-- CONV-09 `GET /api/v1/conversations?npcCode=&sceneCode=&cursor=&size=&feedbackOnly=`는 휴대폰 메뉴의 [대화 노트] 창 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus, feedbackUnread, practiceCount }`를 돌려줍니다.
+- CONV-09 `GET /api/v1/conversations?npcCode=&sceneCode=&placeGroup=&cursor=&size=&feedbackOnly=`는 휴대폰 메뉴의 [대화 노트] 창 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, placeName, placeGroup, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus, feedbackUnread, practiceCount }`를 돌려줍니다.
 
 ```json
 {
@@ -1368,6 +1382,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
       "conversationId": 58,
       "npc": { "npcCode": "CAFE_STAFF", "name": "Mia", "roleLabel": "카페 직원" },
       "sceneCode": "CAFE",
+      "placeName": "카페",
+      "placeGroup": "FOOD",
       "status": "ENDED_BY_USER",
       "endReason": "USER_ENDED",
       "startedAt": "2026-10-21T14:00:00+09:00",
@@ -1384,7 +1400,9 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 목록 규칙은 VOCAB-01과 같습니다. `size` 기본값은 20이고 1~50만 받습니다. `nextCursor`는 이전 페이지 마지막 항목의 `conversationId`이며, 숫자가 아니거나 내 대화가 아닌 커서와 범위를 벗어난 `size`는 `400 VALIDATION_FAILED`입니다. 시작 시각이 같으면 나중에 만든 대화가 먼저입니다.
 - `npcCode`를 주면 그 NPC와 나눈 대화만 돌려줍니다. 없는 NPC 코드면 빈 목록입니다.
-- `sceneCode`(`CAFE`·`HOTEL`·`TOWN` 등)를 주면 그 장소의 NPC와 나눈 대화만 돌려줍니다. 대화 노트의 장소 탭(전체·카페·호텔·마을)이 씁니다. 없는 장소 코드면 빈 목록이고, 비어 있거나 30자를 넘으면 `400 VALIDATION_FAILED`입니다.
+- `sceneCode`(`CAFE`·`HOTEL`·`TOWN` 등)를 주면 그 장소 씬의 NPC와 나눈 대화만 돌려줍니다. 없는 장소 코드면 빈 목록이고, 비어 있거나 30자를 넘으면 `400 VALIDATION_FAILED`입니다.
+- `placeGroup`(`FOOD`·`SHOPPING`·`SERVICES`·`SAFETY`·`DAILY`)을 주면 그 장소 묶음의 대화만 돌려줍니다. 대화 노트의 장소 탭(전체·음식·쇼핑·생활 서비스·안전·일상)이 씁니다. 묶음은 VOCAB-01과 같이 NPC의 실제 근무지(`npcs.place_group`)로 정하고, 근무 시간 밖에 만난 대화는 근무지와 관계없이 `DAILY`입니다. 대문자 이름이 정확히 같지 않으면 `400 VALIDATION_FAILED`입니다.
+- `placeName`은 NPC가 일하는 곳(카페·우체국), `placeGroup`은 그 대화의 장소 묶음입니다. 근무 시간 밖에 만난 대화는 `placeName`이 `null`, `placeGroup`이 `DAILY`입니다.
 - `feedbackOnly=true`는 완성된(`DONE`) 피드백이 있는 대화만 페이지 크기·커서 적용 전에 조회합니다. Unity 대화 노트는 이 옵션을 사용하며 생성 전·건너뜀·실패 항목을 보이지 않습니다. 생략하면 기존 전체 대화 기록을 조회합니다. `feedbackUnread`는 완료됐으나 아직 열지 않은 피드백인지 나타냅니다.
 - 진행 중(`ACTIVE`)이거나 시간이 지나 닫힌 대화도 상태 그대로 담습니다. `userTurnCount`는 사용자가 보낸 발화 수, `feedbackStatus`는 짧은 피드백 상태(`DONE`·`FAILED`·`SKIPPED`)이며 피드백을 만들기 전이면 `null`입니다. `npc`는 CONV-10의 NPC 이름표와 같은 형식입니다. `practiceCount`는 이 대화로 [다시 연습]한 횟수(같은 대화로 만든 복습 카드의 `practiceCount`)이며, 연습하지 않았으면 0입니다.
 - 저장된 결과만 조회하므로 AI 사용량이 소진돼도 이용할 수 있습니다. 항목을 누르면 CONV-10으로 대화 기록을 엽니다.
@@ -1540,7 +1558,7 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 - 화면 18의 유형 필터(단어·숙어·문장)는 MVP에서 보여주지 않습니다. `vocab.type`(`vocabularies.type`)은 한 단어면 `WORD`, 숙어면 `IDIOM`입니다.
 - `vocab.meaningKo`는 단어·숙어의 뜻(`vocabularies.meaning_ko`), `context`는 저장할 때의 문장과 문장 뜻(`user_vocab.context_text`, `context_meaning_ko`)입니다. 같은 단어라도 사용자마다 저장한 문장이 다르므로 `user_vocab`에 둡니다.
 - 상세의 "Mia와의 대화" 같은 출처 표시는 `source`로 그립니다. 출처 대화는 `user_vocab.source_conversation_id`, 출처 NPC는 그 대화의 NPC입니다. 사물에서 저장한 단어는 `npcName`, `conversationId`가 `null`입니다.
-- `placeName`·`placeGroup`은 출처 대화 NPC가 일하는 곳과 그 장소 묶음(`npcs.place_name`·`place_group`)입니다. 코드 이름이 아니라 실제 근무지 기준입니다(식당 야간 직원 `FIRE_CAPTAIN`은 `식당`·`FOOD`). 묶음은 `FOOD`(카페·식당·빵집), `SHOPPING`(드럭스토어·꽃집·생활용품점·오락실), `SERVICES`(은행·우체국·빨래방·이발소·호텔·택시), `SAFETY`(경찰서), `DAILY`(거리에서 만난 사람)입니다. 근무 시간 밖에 만난 NPC와의 대화(`conversations.npc_off_duty`)는 일하는 곳의 표현이 아니므로 `placeName`이 `null`, `placeGroup`이 `DAILY`입니다. 사물에서 저장한 단어는 둘 다 `null`입니다.
+- `placeName`·`placeGroup`은 출처 대화 NPC가 일하는 곳과 그 장소 묶음(`npcs.place_name`·`place_group`)입니다. 코드 이름이 아니라 실제 근무지 기준입니다(햄버거 가게 야간 직원 `FIRE_CAPTAIN`은 `햄버거 가게`·`FOOD`). 묶음은 `FOOD`(카페·햄버거 가게·빵집), `SHOPPING`(드럭스토어·꽃집·생활용품점·오락실), `SERVICES`(은행·우체국·빨래방·이발소·호텔·택시), `SAFETY`(경찰서), `DAILY`(거리에서 만난 사람)입니다. 근무 시간 밖에 만난 NPC와의 대화(`conversations.npc_off_duty`)는 일하는 곳의 표현이 아니므로 `placeName`이 `null`, `placeGroup`이 `DAILY`입니다. 사물에서 저장한 단어는 둘 다 `null`입니다.
 - 단어장 화면은 목록을 끝까지 받아 [대화 표현 | 사물 단어] 탭(`sourceType`이 `NPC_LINE`·`FEEDBACK`이면 대화 표현)과 대화 표현의 장소 묶음 칩, 탭·칩별 개수를 클라이언트에서 나눕니다. 서버 필터는 두지 않습니다.
 - `memo`(`user_vocab.memo`)는 사용자가 남긴 메모입니다. 뜻은 수정하지 않습니다.
 
@@ -1684,7 +1702,7 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 
 ### 4.12 마이페이지
 
-와이어프레임 밖에서 추가한 화면입니다. 공간 화면 오른쪽 위 메뉴(≡)의 [내 정보]로 열며, BOOT-01의 `user`로 닉네임·캐릭터·배우는 언어를 보여 주고 닉네임 변경(USER-04), 로그아웃(AUTH-05), 회원 탈퇴(USER-05)를 둡니다. 선택 동의(USER-02·03)는 받은 목록대로 켜고 끄는 항목으로 보여 주며, 바꾸지 못하면 원래 상태로 되돌리고 이유를 알립니다.
+와이어프레임 밖에서 추가한 화면입니다. 휴대폰의 [내 정보]로 여는 내 정보 창은 BOOT-01의 `user`로 닉네임·캐릭터·배우는 언어를 보여 주고 닉네임 변경(USER-04), 로그아웃(AUTH-05), 회원 탈퇴(USER-05)를 둡니다. 선택 동의는 휴대폰의 [설정]으로 여는 설정 창에 둡니다. 선택 동의(USER-02·03)는 받은 목록대로 켜고 끄는 항목으로 보여 주며, 바꾸지 못하면 원래 상태로 되돌리고 이유를 알립니다.
 
 #### USER-04 `PUT /api/v1/me/nickname`
 
@@ -1735,6 +1753,7 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 | NPC 음성 보관 | CONV-06, 07 | `turns.npc_audio_key`를 추가했습니다. 보관·삭제·용량 기준은 [NPC 음성 저장 운영](../npc-audio-storage.md#보관삭제-정책)을 따릅니다. |
 | 무례 판정 (v3.2) | CONV-03 | `turns.guard_abusive`(null이면 판정 실패), `turns.guard_error_code`, `conversations.rude_count`를 추가하고 `end_reason`에 `RUDE`를 더했습니다. |
 | 학습자 말 번역 (v3.2) | CONV-03 | `turns.translation_en`을 추가했습니다. 번역 카드와 다음 요청의 대화 기록, 피드백에 씁니다. |
+| 다른 표현 | CONV-03 | `turns.better_expressions`(JSON 문자열 배열)를 추가했습니다. 학습자가 한 말과 같은 뜻의 다른 표현(최대 3개)이며, 고친 문장·한국어가 섞인 말에도 줍니다. |
 | AI 호출 기록 단위 (v3.2) | 1.4, CONV-02·03 | `ai_requests.kind`를 기능 단위(`STT`, `GUARD`, `JUDGE`, `NPC`, `TTS`, `HINT`, `MEANING`, `FEEDBACK`)로 나눴습니다. 한 턴의 여러 AI 호출이 같은 `request_id`를 써도 겹치지 않습니다. |
 | STT 사용량 (v3.2) | 1.4, CONV-02 | `ai_requests.audio_ms`를 추가했습니다. 한도는 초당 토큰으로 환산해 차감합니다. |
 | NPC 역할 이름 (v3.2) | WORLD-02, CONV | `npcs.role_label`을 추가했습니다. `persona`는 AI 프롬프트용이라 화면 표시용 값을 따로 둡니다. |
@@ -1781,7 +1800,7 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 | 일일 미션 보상 | MIS-01 | 보상 여부 (날짜 기준은 MVP에서 `Asia/Seoul`로 확정) |
 | 맵 확장 시 사물 조회 | WORLD-02 | 주변 사물 `wordKey` 묶음 조회 `[제안]` / 서버 반경 조회 |
 | 사용량 소진 HTTP 상태 코드 | 1.5 | 429 `[제안]` / 403 |
-| 설정 화면 | USER-02·03 | AI 개선 동의 변경 화면의 위치. 마이페이지(4.12)에는 내 정보·닉네임 변경·로그아웃만 둡니다. |
+| 설정 화면 | USER-02·03 | AI 개선 동의 변경 화면의 위치. 휴대폰 [설정] 창에 시점 감도·NPC 말 빠르기·효과음·대화 난이도와 함께 둡니다. 마이페이지(4.12)의 내 정보 창에는 내 정보·닉네임 변경·로그아웃·회원 탈퇴를 둡니다. |
 
 ## 7. MVP에서 뺀 기능
 

@@ -3,11 +3,8 @@ package com.elsehere.admin.controller;
 import com.elsehere.admin.service.AdminAiUsageService;
 import com.elsehere.admin.service.AdminNpcService;
 import com.elsehere.admin.service.AdminUsageService;
-import com.elsehere.admin.service.AdminUserService;
-import com.elsehere.common.auth.LoginUser;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,13 +33,18 @@ public class AdminPageController {
           "MEMORY", "기억 카드");
 
   private final AdminNpcService adminNpcService;
-  private final AdminUserService adminUserService;
   private final AdminAiUsageService adminAiUsageService;
   private final AdminUsageService adminUsageService;
 
   @GetMapping({"/admin", "/admin/"})
   public String home() {
     return "redirect:/admin/npcs";
+  }
+
+  /** 어드민 로그인 화면. 로그인하지 않고 어드민 화면을 열면 여기로 온다(AdminSecurityConfig). */
+  @GetMapping("/admin/login")
+  public String login() {
+    return "admin/login";
   }
 
   @GetMapping("/admin/npcs")
@@ -65,26 +67,28 @@ public class AdminPageController {
     return "admin/ai-usage";
   }
 
-  /** 이용 현황. DB에 남은 활동 흔적을 최근 며칠(1~90일, 기본 7일) 동안 묶고 활동한 사용자 목록을 보여 준다. 사용자는 ID만 보여 준다. */
+  /**
+   * 이용 현황. DB에 남은 활동 흔적을 최근 며칠(1~90일, 기본 7일) 동안 묶고 활동한 사용자 목록을 보여 준다. 가입자는 이메일로, 게스트·탈퇴한 사용자는 사용자
+   * ID로 부른다. 팀 계정은 빼고 센다.
+   */
   @GetMapping("/admin/usage")
   public String usage(@RequestParam(defaultValue = "7") int days, Model model) {
     model.addAttribute("report", adminUsageService.report(days));
     return "admin/usage";
   }
 
-  /** 사용자 한 명의 이용 현황. 전체 화면의 사용자 목록이나 사용자 ID 입력칸에서 들어온다. */
+  /** 사용자 찾기. 이메일이나 사용자 ID로 찾은 사용자의 사용자별 화면으로 보낸다. */
+  @GetMapping("/admin/usage/find")
+  public String findUser(@RequestParam String user, @RequestParam(defaultValue = "7") int days) {
+    long userId = adminUsageService.findUserId(user);
+    return "redirect:/admin/usage/user?userId=" + userId + "&days=" + days;
+  }
+
+  /** 사용자 한 명의 이용 현황. 전체 화면의 사용자 목록이나 사용자 찾기에서 들어온다. */
   @GetMapping("/admin/usage/user")
   public String userUsage(
       @RequestParam long userId, @RequestParam(defaultValue = "7") int days, Model model) {
     model.addAttribute("report", adminUsageService.userReport(userId, days));
     return "admin/usage-user";
-  }
-
-  /** 관리자 목록. 자기 자신에게는 해제 버튼을 두지 않는다. */
-  @GetMapping("/admin/admins")
-  public String admins(@AuthenticationPrincipal LoginUser loginUser, Model model) {
-    model.addAttribute("admins", adminUserService.admins());
-    model.addAttribute("currentUserId", loginUser.userId());
-    return "admin/admins";
   }
 }

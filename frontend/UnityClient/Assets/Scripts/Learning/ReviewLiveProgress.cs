@@ -46,7 +46,8 @@ namespace A305.Learning
                         progress?.Expressions?.Any(expression =>
                             expression.Expression == target.Expression
                             && expression.Evidence?.Count > 0
-                        ) == true
+                        ) == true,
+                        target.OriginalText
                     ))
                     .ToArray();
 

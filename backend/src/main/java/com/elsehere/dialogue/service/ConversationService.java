@@ -1,11 +1,11 @@
 package com.elsehere.dialogue.service;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.NpcReply;
 import com.elsehere.ai.client.NpcReplyListener;
 import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.ai.service.GuestConversationLimit;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
@@ -49,6 +49,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -67,6 +68,18 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 @RequiredArgsConstructor
 public class ConversationService {
+  private static final String JOHN_ORDER_RAP =
+      """
+      Cheeseburger, fries, lemonade on ice!
+      Add an apple pie, yeah, that sounds nice!
+      Make that two, one for me, one for you.
+      That's my order, now tell me yours!""";
+  private static final String JOHN_ORDER_RAP_KOREAN =
+      """
+      치즈버거, 감자튀김, 얼음 넣은 레모네이드!
+      애플파이도 하나, 그래 딱 좋아!
+      두 개로 해줘, 하나는 내 것, 하나는 네 것.
+      내 주문은 이거야, 네 것도 말해줘!""";
 
   // 직원의 첫 인사는 AI로 만든다(API 명세 [미정]). 학습자는 아직 말하지 않았으므로 다가온 상황만 알려 준다.
   private static final String GREETING_TEXT = "(The learner walks up to you.)";
@@ -123,6 +136,7 @@ public class ConversationService {
   private final ReviewDialogue reviewDialogue;
   private final ReviewPracticeResults reviewPracticeResults;
   private final PlacePracticeService placePractice;
+  private final MeaningPreparation meaningPreparation;
 
   public ConversationStartResponse start(Long userId, StartConversationRequest request) {
     return start(userId, request, null);
@@ -211,56 +225,38 @@ public class ConversationService {
     String travelSituation = review == null ? request.npcSituation() : null;
     StartContext context =
         transactionTemplate.execute(
-            status ->
-                startContext(
-                    userId,
-                    request.npcCode(),
-                    request.npcOffDuty(),
-                    request.speechSpeed(),
-                    review,
-                    practice,
-                    travelSituation));
+            status -> startContext(userId, request, review, practice, travelSituation));
     NpcContext npc = context.npc();
 
     // 이 NPC가 건넬 것이 준비됐으면 건네는 말로 시작한다. 말걸기 대사가 있는 NPC가 먼저 말을 걸었으면 그 대사로 시작한다.
     // 직원처럼 말걸기 대사가 없거나 근무 시간이 아니면 AI로 첫 인사를 만든다.
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, null);
     NpcReplyListener listener = NpcReplyRelay.to(aiGateway, trace, events);
+    boolean recordedRap =
+        review == null && practice == null && "TOWN_JOHN_PARK".equals(npc.summary().npcCode());
     Opening opening =
-        context
-            .followUp()
-            .map(
-                ready ->
-                    PoliceOfficers.includes(npc.summary().npcCode())
-                        ? greetingOpening(
-                            trace,
-                            listener,
-                            npc,
-                            context,
-                            POLICE_CALL_TEXT,
-                            POLICE_CALL_INSTRUCTION.formatted(ready.item()))
-                        : greetingOpening(
-                            trace,
-                            listener,
-                            npc,
-                            context,
-                            HANDOVER_TEXT,
-                            HANDOVER_INSTRUCTION.formatted(ready.item())))
-            .orElseGet(
-                () ->
-                    context.review() == null
-                            && context.quest().isEmpty()
-                            && !request.npcOffDuty()
-                            && request.initiatedBy() == InitiatedBy.NPC
-                            && npc.approachLine() != null
-                        ? approachOpening(npc)
-                        : greetingOpening(
-                            trace,
-                            listener,
-                            npc,
-                            context,
-                            GREETING_TEXT,
-                            greetingInstruction(context, request.npcOffDuty())));
+        recordedRap
+            ? new Opening(JOHN_ORDER_RAP, null, null)
+            : context
+                .followUp()
+                .map(
+                    ready ->
+                        PoliceOfficers.includes(npc.summary().npcCode())
+                            ? greetingOpening(
+                                trace,
+                                listener,
+                                npc,
+                                context,
+                                POLICE_CALL_TEXT,
+                                POLICE_CALL_INSTRUCTION.formatted(ready.item()))
+                            : greetingOpening(
+                                trace,
+                                listener,
+                                npc,
+                                context,
+                                HANDOVER_TEXT,
+                                HANDOVER_INSTRUCTION.formatted(ready.item())))
+                .orElseGet(() -> ordinaryOpening(trace, listener, context, request));
 
     Started started =
         transactionTemplate.execute(
@@ -305,6 +301,10 @@ public class ConversationService {
                       Turn.npc(
                           conversation, 1, opening.text(), opening.npcAudioKey(), clock.instant()));
               openingTurn.attachSpeechPhrases(opening.speechPhrases());
+              if (recordedRap) {
+                // 저장 공연은 원문과 번역을 함께 기록해 뜻 미리 생성에서도 AI를 부르지 않는다.
+                openingTurn.attachMeaning(JOHN_ORDER_RAP_KOREAN, "[]");
+              }
               Long deliveredFollowUpId =
                   context
                       .followUp()
@@ -318,12 +318,18 @@ public class ConversationService {
                   startResponse(conversation, npc, openingTurn, deliveredFollowUpId), true);
             });
     if (started.created()) {
+      if (context.streetGreeting() != null && !recordedRap) {
+        listener.onDelta(opening.text());
+      }
       // 저장이 끝난 뒤 남긴다. 첫 대사는 대화 본문이라 남기지 않는다.
       log.info(
           "conversation_started conversation_id={} npc={} initiated_by={}",
           started.response().conversationId(),
           npc.summary().npcCode(),
           request.initiatedBy());
+      // 첫 대사를 저장한 트랜잭션이 끝난 뒤 [뜻 보기]를 미리 만든다.
+      meaningPreparation.prepare(
+          userId, started.response().openingTurn().turnId(), request.requestId());
     }
     return started.response();
   }
@@ -462,9 +468,7 @@ public class ConversationService {
 
   private StartContext startContext(
       Long userId,
-      String npcCode,
-      boolean npcOffDuty,
-      double speechSpeed,
+      StartConversationRequest request,
       ReviewCardResponse review,
       PracticeScenario practice,
       String travelSituation) {
@@ -475,21 +479,37 @@ public class ConversationService {
     ensureCanStart(user);
     NpcContext npc =
         dialogueContexts
-            .npcByCode(userId, npcCode, npcOffDuty)
+            .npcByCode(userId, request.npcCode(), request.npcOffDuty())
             .withTravelSituation(travelSituation);
     if (!npc.sceneOpen()) {
       throw new BusinessException(ErrorCode.SCENE_CLOSED);
     }
     // 복습과 장소 연습은 지금 퀘스트, 이 NPC와의 기억, 건넬 것을 섞지 않고 정한 상황만 연습한다.
     boolean storyDialogue = review == null && practice == null;
+    var quest = questTalks.forStart(userId, request.npcCode(), review != null, practice);
+    var followUp =
+        storyDialogue
+            ? followUpService.readyFor(userId, npc.npcId())
+            : Optional.<FollowUpService.ReadyFollowUp>empty();
+    StreetGreeting streetGreeting = null;
+    if (storyDialogue
+        && quest.isEmpty()
+        && followUp.isEmpty()
+        && StreetGreeting.appliesTo(request)) {
+      List<String> recent =
+          turnRepository.findRecentNpcOpenings(
+              userId, npc.npcId(), Limit.of(StreetGreeting.RECENT_LIMIT));
+      streetGreeting = StreetGreeting.choose(request, recent);
+    }
     return new StartContext(
         npc,
-        dialogueContexts.learner(user, speechSpeed),
+        dialogueContexts.learner(user, request.speechSpeed()),
         selectedLevel(user),
         storyDialogue ? memoryService.memoryFor(userId, npc.npcId()) : null,
-        questTalks.forStart(userId, npcCode, review != null, practice),
-        storyDialogue ? followUpService.readyFor(userId, npc.npcId()) : Optional.empty(),
-        review);
+        quest,
+        followUp,
+        review,
+        streetGreeting);
   }
 
   // 진행 중인 대화가 없고 게스트 대화 횟수가 남아 있어야 시작할 수 있다. AI 호출 전과 저장 직전에 확인한다.
@@ -516,6 +536,55 @@ public class ConversationService {
   // 행인 말걸기에 응답하면 이미 보여 준 말걸기 대사를 첫 턴으로 저장하고 AI를 부르지 않는다.
   private Opening approachOpening(NpcContext npc) {
     return new Opening(npc.approachLine(), npc.approachAudioKey(), null);
+  }
+
+  private Opening ordinaryOpening(
+      WorkerTrace trace,
+      NpcReplyListener listener,
+      StartContext context,
+      StartConversationRequest request) {
+    NpcContext npc = context.npc();
+    if (context.streetGreeting() != null) {
+      return streetOpening(trace, context);
+    }
+    if (context.review() == null
+        && context.quest().isEmpty()
+        && !request.npcOffDuty()
+        && request.initiatedBy() == InitiatedBy.NPC
+        && npc.approachLine() != null) {
+      return approachOpening(npc);
+    }
+    return greetingOpening(
+        trace,
+        listener,
+        npc,
+        context,
+        GREETING_TEXT,
+        greetingInstruction(context, request.npcOffDuty()));
+  }
+
+  private Opening streetOpening(WorkerTrace trace, StartContext context) {
+    // 중복을 판별하기 전에는 어떤 글자나 음성도 플레이어에게 보내지 않는다.
+    StreetGreeting greeting = context.streetGreeting();
+    NpcContext npc = context.npc();
+    NpcReply reply =
+        aiGateway.reply(
+            trace,
+            npc.workerNpc(),
+            context.memory(),
+            List.of(),
+            GREETING_TEXT,
+            greeting.instruction(),
+            context.level(),
+            context.learner());
+    if (greeting.accepts(reply.text())) {
+      return savedOpening(trace, reply);
+    }
+    String alternative = greeting.alternative();
+    String audioKey =
+        npcAudioReceiver.synthesize(
+            trace, alternative, npc.voiceId(), context.learner().speechSpeed());
+    return new Opening(alternative, audioKey, null);
   }
 
   // 스트리밍 요청이면 첫 인사의 글자 조각과 문장 조각 음성을 받는 대로 listener로 넘긴다. 전체 음성은 다시 듣기용으로 저장한다.
@@ -547,6 +616,10 @@ public class ConversationService {
                 context.level(),
                 context.learner(),
                 listener);
+    return savedOpening(trace, reply);
+  }
+
+  private Opening savedOpening(WorkerTrace trace, NpcReply reply) {
     return new Opening(
         reply.text(),
         npcAudioReceiver.save(trace, reply.audioFullId()),
@@ -579,7 +652,8 @@ public class ConversationService {
       WorkerMemory memory,
       Optional<QuestTalkService.SelectedQuest> quest,
       Optional<FollowUpService.ReadyFollowUp> followUp,
-      ReviewCardResponse review) {}
+      ReviewCardResponse review,
+      StreetGreeting streetGreeting) {}
 
   private record Opening(String text, String npcAudioKey, String speechPhrases) {}
 

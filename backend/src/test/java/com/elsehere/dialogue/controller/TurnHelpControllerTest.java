@@ -70,14 +70,18 @@ class TurnHelpControllerTest {
   @DisplayName("POST /api/v1/turns/{turnId}/suggest-words는 추천 단어를 돌려준다")
   void suggestWords_respondsWords() throws Exception {
     given(turnHelpService.suggestWords(1L, 12L, REQUEST_ID))
-        .willReturn(new SuggestWordsResponse(12L, List.of("for here", "to go")));
+        .willReturn(
+            new SuggestWordsResponse(
+                12L, List.of("for here", "to go"), "For here, please.", "매장에서 먹을게요."));
 
     mockMvc
         .perform(withRequestId(post("/api/v1/turns/12/suggest-words")))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.turnId").value(12))
         .andExpect(jsonPath("$.suggestWords[0]").value("for here"))
-        .andExpect(jsonPath("$.suggestWords[1]").value("to go"));
+        .andExpect(jsonPath("$.suggestWords[1]").value("to go"))
+        .andExpect(jsonPath("$.hintText").value("For here, please."))
+        .andExpect(jsonPath("$.hintMeaningKo").value("매장에서 먹을게요."));
   }
 
   @Test

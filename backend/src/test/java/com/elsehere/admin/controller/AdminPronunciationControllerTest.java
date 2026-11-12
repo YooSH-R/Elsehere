@@ -1,6 +1,5 @@
 package com.elsehere.admin.controller;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
@@ -12,7 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.elsehere.admin.dto.PronunciationRun;
 import com.elsehere.admin.dto.PronunciationStatusResponse;
-import com.elsehere.admin.service.AdminAccess;
+import com.elsehere.admin.service.AdminLogin;
 import com.elsehere.admin.service.AdminPronunciationService;
 import com.elsehere.common.auth.CsrfHeaderFilter;
 import com.elsehere.common.auth.LoginUser;
@@ -34,22 +33,19 @@ class AdminPronunciationControllerTest {
 
   @Autowired private MockMvc mockMvc;
 
-  @Autowired private AdminAccess adminAccess;
-
   @MockitoBean private AdminPronunciationService adminPronunciationService;
 
   @Test
   @DisplayName("관리자가 발음 만들기를 시작하면 202와 만드는 중인 진행 상황을 돌려받는다")
   void start_byAdmin_respondsAccepted() throws Exception {
-    given(adminAccess.isAdmin(1L)).willReturn(true);
-    given(adminPronunciationService.start(1L))
+    given(adminPronunciationService.start())
         .willReturn(new PronunciationStatusResponse(106, 1, 105, true, null));
 
     mockMvc
         .perform(
             post(URL)
                 .header(CsrfHeaderFilter.HEADER_NAME, "ElsehereAdmin")
-                .with(authentication(loggedIn(1L))))
+                .with(authentication(adminLogin())))
         .andExpect(status().isAccepted())
         .andExpect(jsonPath("$.total").value(106))
         .andExpect(jsonPath("$.ready").value(1))
@@ -58,29 +54,28 @@ class AdminPronunciationControllerTest {
   }
 
   @Test
-  @DisplayName("관리자가 아니면 403 ADMIN_REQUIRED로 거절하고 시작하지 않는다")
-  void start_byUser_respondsAdminRequired() throws Exception {
+  @DisplayName("게임 사용자로 로그인했어도 401 UNAUTHENTICATED로 거절하고 시작하지 않는다")
+  void start_byGameUser_respondsUnauthenticated() throws Exception {
     mockMvc
         .perform(
             post(URL)
                 .header(CsrfHeaderFilter.HEADER_NAME, "ElsehereAdmin")
-                .with(authentication(loggedIn(2L))))
-        .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.error.code").value("ADMIN_REQUIRED"));
-    then(adminPronunciationService).should(never()).start(any());
+                .with(authentication(gameLogin())))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
+    then(adminPronunciationService).should(never()).start();
   }
 
   @Test
   @DisplayName("관리자는 진행 상황과 마지막 결과(만든 수·실패한 단어)를 조회한다")
   void status_byAdmin_respondsProgressAndLastRun() throws Exception {
-    given(adminAccess.isAdmin(1L)).willReturn(true);
     given(adminPronunciationService.status())
         .willReturn(
             new PronunciationStatusResponse(
                 106, 105, 1, false, new PronunciationRun(104, List.of("sofa"))));
 
     mockMvc
-        .perform(get(URL).with(authentication(loggedIn(1L))))
+        .perform(get(URL).with(authentication(adminLogin())))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.missing").value(1))
         .andExpect(jsonPath("$.running").value(false))
@@ -88,8 +83,12 @@ class AdminPronunciationControllerTest {
         .andExpect(jsonPath("$.lastRun.failedWordKeys[0]").value("sofa"));
   }
 
-  private static Authentication loggedIn(Long userId) {
+  private static Authentication adminLogin() {
     return UsernamePasswordAuthenticationToken.authenticated(
-        new LoginUser(userId), null, List.of());
+        new AdminLogin("operator"), null, List.of());
+  }
+
+  private static Authentication gameLogin() {
+    return UsernamePasswordAuthenticationToken.authenticated(new LoginUser(2L), null, List.of());
   }
 }

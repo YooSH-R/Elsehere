@@ -146,12 +146,12 @@ class GmsTests(unittest.TestCase):
         evidence = schema["schema"]["$defs"]["Evidence"]
         self.assertEqual(set(evidence["properties"]), {"turn_id", "quote"})
 
-    def test_model_must_return_two_or_three_situation_expressions(self):
+    def test_model_can_return_zero_to_three_situation_expressions(self):
         schema = feedback_response_format([{"role": "user", "content": "{}"}])["json_schema"]["schema"]
         data = schema["$defs"]["FeedbackData"]
         self.assertIn("situation_expressions", data["required"])
         field = data["properties"]["situation_expressions"]
-        self.assertEqual((field["minItems"], field["maxItems"]), (2, 3))
+        self.assertEqual((field.get("minItems", 0), field["maxItems"]), (0, 3))
         item = schema["$defs"]["SituationExpression"]
         self.assertEqual(set(item["properties"]), {"expression", "meaning_ko", "usage_ko", "example_en", "example_ko", "speaker_role"})
         self.assertEqual(item["properties"]["speaker_role"]["enum"], ["learner", "npc", "both"])

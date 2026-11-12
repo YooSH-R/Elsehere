@@ -8,7 +8,7 @@ from .clients import ModelClient, ProviderCallError
 from .model_output import restore_model_output
 from .models import INPUT, LLM_OUTPUT, surface_only_change, usable_turns, validate_pair
 from .prompt import build_messages
-from .situation_catalog import keep_useful
+from .situation_catalog import keep_useful, situation_candidate
 from .spoken_usage import build_spoken_notes
 
 
@@ -122,7 +122,14 @@ def generate_feedback(payload, client: ModelClient, *, ai_allowed: bool):
             return _response(request, status="insufficient_evidence", problem=checked.problem.model_dump())
         result = checked.result.model_dump()
         user_texts = [turn.final_text for turn in request.turns if turn.speaker == "user" and turn.text_status == "final"]
-        result["situation_expressions"] = keep_useful(result["situation_expressions"], user_texts)
+        proposed = result["situation_expressions"]
+        useful = keep_useful(proposed, user_texts)
+        if proposed and not useful:
+            # 명시적으로 빈 추천은 그대로 둔다. 이미 한 말을 거르면서 전부 빠진 경우에만 보완한다.
+            candidate = situation_candidate(request.context.scene_id, user_texts)
+            if candidate is not None:
+                useful = [candidate]
+        result["situation_expressions"] = useful
         result["spoken_usage_notes"] = build_spoken_notes(request, checked.result, checked.spoken_usage_selection)
         return _response(request, status="completed", result=result)
     except (ValueError, TypeError, ValidationError):

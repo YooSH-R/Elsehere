@@ -278,6 +278,12 @@ namespace A305.Learning
             feedbackView.SetSaveAvailable(
                 vocabulary != null && shownServerFeedback?.ConversationId != null
             );
+            // 완성된 서버 피드백만 다시 연습할 수 있다. 대본·예시 피드백과 복습 대화에는 연습할 대화가 없다.
+            feedbackView.SetPracticeAvailable(
+                reviewBook != null
+                    && shownServerFeedback?.ConversationId != null
+                    && shownServerFeedback.Summary?.Status == "DONE"
+            );
             feedbackView.Show(feedback, lines);
             MarkShownFeedbackRead();
         }
@@ -513,9 +519,9 @@ namespace A305.Learning
         }
 
         // 장소 탭. 고른 장소의 첫 페이지부터 다시 읽는다.
-        private void FilterHistory(string sceneCode)
+        private void FilterHistory(PlaceGroup? placeGroup)
         {
-            _ = LoadHistoryAsync(history.LoadAsync(sceneCode), "대화 노트를 불러오는 중이에요…");
+            _ = LoadHistoryAsync(history.LoadAsync(placeGroup), "대화 노트를 불러오는 중이에요…");
         }
 
         // 창을 열 때마다 처음부터 다시 읽어 방금 끝낸 대화도 보인다. 실패하면 이전 목록과 이유를 보인다.

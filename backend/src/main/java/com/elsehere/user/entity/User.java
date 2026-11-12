@@ -87,6 +87,11 @@ public class User extends BaseEntity {
   @JoinColumn(name = "last_scene_id")
   private Scene lastScene;
 
+  // 팀 기기(elsehere_team 쿠키를 남긴 브라우저)에서 쓴 계정. 어드민 이용 현황에서 뺀다.
+  @ColumnDefault("false")
+  @Column(nullable = false)
+  private boolean teamAccount;
+
   /** 가입한 사용자. 초기 설정은 학습 언어 선택(LANG)부터 시작한다. */
   public static User signUp(
       AuthProvider provider,
@@ -170,6 +175,11 @@ public class User extends BaseEntity {
   /** 관리자로 지정한다. 게스트가 아닌지는 호출하는 쪽에서 확인한다. */
   public void grantAdmin() {
     this.role = UserRole.ADMIN;
+  }
+
+  /** 팀 기기에서 쓴 계정으로 표시한다. 한 번 표시하면 되돌리지 않는다. */
+  public void markTeamAccount() {
+    this.teamAccount = true;
   }
 
   /** 관리자에서 해제해 일반 사용자로 되돌린다. */

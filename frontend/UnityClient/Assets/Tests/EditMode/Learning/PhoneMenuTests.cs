@@ -93,9 +93,9 @@ namespace A305.Learning.Tests
             Assert.That(requested, Is.True);
         }
 
-        // 피드백 목록과 복습장을 [대화 노트] 하나로 합쳐 학습 앱은 다섯 개이고, 세 칸씩 왼쪽부터 채운다.
+        // 피드백 목록과 복습장을 [대화 노트] 하나로 합치고 [설정]을 더해 앱은 여섯 개이며, 세 칸씩 두 줄을 빈칸 없이 채운다.
         [Test]
-        public void LearningApps_AreFiveWithTheConversationNoteAndNoReviewBook()
+        public void Apps_AreSixWithTheConversationNoteAndSettingsAndNoReviewBook()
         {
             Transform menu = phone.transform;
             string[] names =
@@ -105,6 +105,7 @@ namespace A305.Learning.Tests
                 "MapButton",
                 "MyPageButton",
                 "NeighborsButton",
+                "SettingsButton",
             };
 
             Assert.That(menu.Find("ReviewButton"), Is.Null);
@@ -121,6 +122,11 @@ namespace A305.Learning.Tests
                 menu.Find("HistoryButton/Label").GetComponent<TMP_Text>().text,
                 Is.EqualTo("대화 노트")
             );
+            Assert.That(
+                menu.Find("SettingsButton/Label").GetComponent<TMP_Text>().text,
+                Is.EqualTo("설정")
+            );
+            Assert.That(menu.Find("SettingsButton/Icon").GetComponent<Image>().sprite, Is.Not.Null);
         }
 
         // 앱은 모두 메뉴(폰) 안에 있어야 눌렀을 때 메뉴가 접힌다.
@@ -129,6 +135,7 @@ namespace A305.Learning.Tests
         [TestCase("MapButton")]
         [TestCase("HomeButton")]
         [TestCase("MyPageButton")]
+        [TestCase("SettingsButton")]
         public void EveryApp_SitsInsideThePhone(string app)
         {
             Transform menu = phone.transform;

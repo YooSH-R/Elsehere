@@ -25,8 +25,8 @@ public interface NpcReplyListener {
   void onChunk(NpcReplyChunk chunk);
 
   /**
-   * 부른 쪽이 이 대답을 버렸는지. 판정을 기다리지 않고 먼저 시작했다가 판정 뒤에 버린 대답이면 true다. {@link AiGateway}는 버린 대답을 기록하지 않아
-   * 같은 요청 ID로 다시 부른 대답의 기록을 덮지 않는다.
+   * 부른 쪽이 이 대답을 버렸는지. 판정을 기다리지 않고 먼저 시작했다가 판정 뒤에 버린 대답이면 true다. AI 창구({@code AiGateway})는 버린 대답을
+   * 기록하지 않아 같은 요청 ID로 다시 부른 대답의 기록을 덮지 않는다.
    */
   default boolean discarded() {
     return false;

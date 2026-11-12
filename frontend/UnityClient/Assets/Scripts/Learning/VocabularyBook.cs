@@ -21,7 +21,7 @@ namespace A305.Learning
 
         // 사용자가 고른 탭과 장소 묶음. 고르기 전이면 null이다.
         private VocabularyTab? chosenTab;
-        private VocabularyPlaceGroup? chosenPlaceGroup;
+        private PlaceGroup? chosenPlaceGroup;
 
         // 서버 목록을 한 번이라도 받았는지와 지금 받는 중인지. 받기 전의 빈 목록은 '단어 없음'이 아니다.
         private bool isLoaded;
@@ -48,10 +48,7 @@ namespace A305.Learning
             {
                 VocabularyTab tab = ShownTab;
                 IEnumerable<VocabularyEntry> shown = Listed.Where(entry => TabOf(entry) == tab);
-                if (
-                    tab == VocabularyTab.Conversation
-                    && ShownPlaceGroup is VocabularyPlaceGroup group
-                )
+                if (tab == VocabularyTab.Conversation && ShownPlaceGroup is PlaceGroup group)
                     shown = shown.Where(entry => entry.PlaceGroup == group);
                 if (SortsAlphabetically)
                     shown = shown.OrderBy(entry => entry.English, StringComparer.OrdinalIgnoreCase);
@@ -78,10 +75,10 @@ namespace A305.Learning
         /// <summary>
         /// 대화 표현 탭에서 고른 장소 묶음. null이면 전체다. 고른 묶음에 보일 표현이 없어지면(모두 외움·지움) 전체로 돌아간다.
         /// </summary>
-        public VocabularyPlaceGroup? ShownPlaceGroup
+        public PlaceGroup? ShownPlaceGroup
         {
             get =>
-                chosenPlaceGroup is VocabularyPlaceGroup group && CountIn(group) > 0
+                chosenPlaceGroup is PlaceGroup group && CountIn(group) > 0
                     ? chosenPlaceGroup
                     : null;
             set => chosenPlaceGroup = value;
@@ -98,7 +95,7 @@ namespace A305.Learning
         public int CountIn(VocabularyTab tab) => Listed.Count(entry => TabOf(entry) == tab);
 
         /// <summary>대화 표현 탭에서 그 묶음에 보일 표현 수.</summary>
-        public int CountIn(VocabularyPlaceGroup group) =>
+        public int CountIn(PlaceGroup group) =>
             Listed.Count(entry => entry.IsFromConversation && entry.PlaceGroup == group);
 
         // [외운 표현도 보기]를 적용한, 탭으로 나누기 전의 목록

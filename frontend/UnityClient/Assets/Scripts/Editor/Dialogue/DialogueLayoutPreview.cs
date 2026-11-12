@@ -200,6 +200,33 @@ namespace A305.EditorTools.Dialogue
                 1080,
                 showLatest: true
             );
+            // 영어로 틀리게 한 말에는 교정문이 오고, 카드 제목이 다시 말해 보도록 바뀐다.
+            content.PreviewLines = new[]
+            {
+                DialogueLine.FromNpc("For here or to go?", null),
+                DialogueLine.FromUser("I eat here. No onion please, I don't like."),
+                DialogueLine.FromNpc("Sure, no onions. Anything to drink?", null),
+            };
+            content.UserTranslation = "I'll eat here. No onions, please. I don't like them.";
+            view.Refresh();
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "correction-wide.png"),
+                1920,
+                1080
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "correction-portrait.png"),
+                900,
+                1400
+            );
         }
 
         public static void Capture()

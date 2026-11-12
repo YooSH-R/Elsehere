@@ -50,7 +50,7 @@
   <table>
     <thead>
     <tr>
-      <th>사용자 ID</th>
+      <th>사용자</th>
       <th>구분</th>
       <th>호출</th>
       <th>실패</th>
@@ -60,7 +60,7 @@
     </thead>
     <tbody>
     <tr th:each="user : ${report.topUsers}">
-      <td th:text="${user.userId}">1</td>
+      <td th:text="${user.name}">sun@example.com</td>
       <td th:text="${user.guest} ? '게스트' : '가입자'">가입자</td>
       <td th:text="${#numbers.formatInteger(user.calls, 1, 'COMMA')}">0</td>
       <td th:text="${#numbers.formatInteger(user.failed, 1, 'COMMA')}">0</td>

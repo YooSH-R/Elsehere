@@ -26,6 +26,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.DisplayName;
@@ -298,9 +299,10 @@ class AdminUsageServiceTest {
   }
 
   @Test
-  @DisplayName("사용자 목록은 기간 안에 활동한 사용자를 마지막 활동(한국 시각)이 늦은 순서로 사용자 ID만 보여 준다")
+  @DisplayName("사용자 목록은 기간 안에 활동한 사용자를 마지막 활동(한국 시각)이 늦은 순서로 보여 주고, 가입자는 이메일로, 게스트는 '게스트 #ID'로 부른다")
   void report_listsActiveUsersByLastActivity() {
     Long member = user(AuthProvider.GOOGLE, "google-sub-1", "Sun");
+    email(member, "sun@example.com");
     conversation(member, "CAFE_STAFF", "ACTIVE", null, NOW.minus(2, DAYS));
     aiCall(member, "NPC", "OK", NOW.minus(3, HOURS));
     gameClock(member, 900, NOW.minus(5, HOURS));
@@ -313,8 +315,10 @@ class AdminUsageServiceTest {
 
     assertThat(report.users())
         .containsExactly(
-            new OverallUsageReport.UserActivity(guest, true, 1, 0, 1, 0, "2030-01-10 08:30"),
-            new OverallUsageReport.UserActivity(member, false, 2, 1, 0, 900, "2030-01-10 06:00"));
+            new OverallUsageReport.UserActivity(
+                guest, true, "게스트 #" + guest, 1, 0, 1, 0, "2030-01-10 08:30"),
+            new OverallUsageReport.UserActivity(
+                member, false, "sun@example.com", 2, 1, 0, 900, "2030-01-10 06:00"));
   }
 
   @Test
@@ -349,9 +353,11 @@ class AdminUsageServiceTest {
   }
 
   @Test
-  @DisplayName("사용자 개요는 구분·시작 시각·가입 전환 시각·진행 단계·누적 플레이 시간을 한국 시각으로 보여 준다")
+  @DisplayName(
+      "사용자 개요는 이름(가입자는 이메일, 탈퇴는 '탈퇴 #ID')·구분·시작 시각·가입 전환 시각·진행 단계·누적 플레이 시간을 한국 시각으로 보여 준다")
   void userReport_showsProfile() {
     Long converted = user(AuthProvider.GOOGLE, "google-sub-1", "Sun");
+    email(converted, "sun@example.com");
     createdAt(converted, NOW.minus(3, DAYS));
     consent(converted, "TERMS", NOW.minus(1, HOURS));
     firstDayStage(converted, 7);
@@ -366,6 +372,7 @@ class AdminUsageServiceTest {
             new UserUsageReport.Profile(
                 converted,
                 false,
+                "sun@example.com",
                 false,
                 "2030-01-07 09:00",
                 "2030-01-10 08:00",
@@ -379,6 +386,7 @@ class AdminUsageServiceTest {
             new UserUsageReport.Profile(
                 withdrawnGuest,
                 true,
+                "탈퇴 #" + withdrawnGuest,
                 true,
                 "2030-01-08 09:00",
                 null,
@@ -387,6 +395,91 @@ class AdminUsageServiceTest {
                 "시작 전",
                 0,
                 null));
+  }
+
+  @Test
+  @DisplayName("팀 기기에서 쓴 팀 계정은 전체 이용 현황의 모든 집계에서 뺀다")
+  void report_leavesOutTeamAccounts() {
+    Long member = user(AuthProvider.GOOGLE, "google-sub-1", "Sun");
+    Long team = user(AuthProvider.GUEST, "guest-uid-1", "guest-000001");
+    teamAccount(team);
+    for (Long userId : List.of(member, team)) {
+      createdAt(userId, NOW.minus(2, DAYS));
+      firstDayStage(userId, 0);
+      Long conversationId =
+          conversation(userId, "CAFE_STAFF", "ENDED_BY_NPC", "NPC_ENDED", NOW.minus(1, HOURS));
+      turn(conversationId, 1, "USER", "TEXT", NOW.minus(1, HOURS));
+      aiCall(userId, "HINT", "OK", NOW.minus(1, HOURS));
+      wordSave(userId, "OBJECT", NOW.minus(1, HOURS));
+      feedback(userId, "DONE", null, NOW.minus(1, HOURS));
+      visit(userId, NOW.minus(1, DAYS), 300);
+    }
+
+    OverallUsageReport report = adminUsageService.report(7);
+
+    UsageReport usage = report.usage();
+    assertThat(usage.summary())
+        .extracting(
+            UsageReport.Summary::activeUsers,
+            UsageReport.Summary::newUsers,
+            UsageReport.Summary::conversingUsers,
+            UsageReport.Summary::wordsSaved,
+            UsageReport.Summary::activeSeconds)
+        .containsExactly(1L, 1L, 1L, 1L, 300L);
+    assertThat(usage.byDay()).extracting(UsageReport.Day::activeUsers).containsOnly(1L);
+    for (List<UsageReport.Count> counts :
+        List.of(
+            usage.conversationEnds(),
+            usage.conversationsByNpc(),
+            usage.conversationActions(),
+            usage.wordSaves(),
+            usage.feedbacks())) {
+      assertThat(counts).isNotEmpty().extracting(UsageReport.Count::users).containsOnly(1L);
+    }
+    assertThat(report.progress().onboardingSteps())
+        .extracting(OverallUsageReport.UserCount::users)
+        .containsExactly(0L, 0L, 0L, 1L);
+    assertThat(report.progress().firstDayStages())
+        .first()
+        .isEqualTo(new OverallUsageReport.UserCount("시작 전", 0));
+    assertThat(report.progress().firstDayStages())
+        .contains(new OverallUsageReport.UserCount("1. 호텔에 도착했어요", 1));
+    assertThat(report.retention().startedUsers()).isEqualTo(1);
+    assertThat(report.users())
+        .extracting(OverallUsageReport.UserActivity::userId)
+        .containsExactly(member);
+  }
+
+  @Test
+  @DisplayName("팀 계정이어도 그 사용자를 골라 보면 그 사용자의 활동을 센다")
+  void userReport_countsTeamAccountWhenChosen() {
+    Long team = user(AuthProvider.GUEST, "guest-uid-1", "guest-000001");
+    teamAccount(team);
+    conversation(team, "CAFE_STAFF", "ACTIVE", null, NOW.minus(1, HOURS));
+    wordSave(team, "OBJECT", NOW.minus(1, HOURS));
+
+    UsageReport usage = adminUsageService.userReport(team, 7).usage();
+
+    assertThat(usage.summary())
+        .extracting(
+            UsageReport.Summary::activeUsers,
+            UsageReport.Summary::conversations,
+            UsageReport.Summary::wordsSaved)
+        .containsExactly(1L, 1L, 1L);
+  }
+
+  @Test
+  @DisplayName("사용자 찾기는 가입 이메일(앞뒤 공백·대소문자 무시)이나 사용자 ID로 찾고, 없는 이메일은 NOT_FOUND로 거절한다")
+  void findUserId_byEmailOrId() {
+    Long member = user(AuthProvider.GOOGLE, "google-sub-1", "Sun");
+    email(member, "Sun@Example.com");
+
+    assertThat(adminUsageService.findUserId(" sun@example.com ")).isEqualTo(member);
+    assertThat(adminUsageService.findUserId("57")).isEqualTo(57L);
+    assertThatThrownBy(() -> adminUsageService.findUserId("moon@example.com"))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
   }
 
   @Test
@@ -469,6 +562,14 @@ class AdminUsageServiceTest {
     Long userId = UserTestData.insertUser(entityManager, provider, providerUid, nickname);
     entityManager.flush();
     return userId;
+  }
+
+  private void email(Long userId, String email) {
+    jdbcTemplate.update("update users set email = ? where id = ?", email, userId);
+  }
+
+  private void teamAccount(Long userId) {
+    jdbcTemplate.update("update users set team_account = true where id = ?", userId);
   }
 
   private void createdAt(Long userId, Instant at) {

@@ -1,5 +1,6 @@
 package com.elsehere.admin.repository;
 
+import com.elsehere.admin.dto.AdminUserName;
 import com.elsehere.admin.dto.OverallUsageReport;
 import com.elsehere.admin.dto.UsageReport;
 import com.elsehere.common.config.ClockConfig;
@@ -20,7 +21,8 @@ import org.springframework.stereotype.Repository;
 
 /**
  * 어드민 이용 현황 집계. 로그인 기록 표는 없으므로 일별 접속 기록(user_daily_activities)과 DB에 남은 활동 흔적을 모아 센다. 모든 집계는 {@code
- * since} 뒤의 기록만 보고, {@code userId}가 있으면 그 사용자만 센다. 날짜는 한국 날짜로 묶는다.
+ * since} 뒤의 기록만 보고, {@code userId}가 있으면 그 사용자만 센다. 사용자를 고르지 않으면 팀 계정(users.team_account)은 뺀다. 날짜는
+ * 한국 날짜로 묶는다.
  */
 @Repository
 @RequiredArgsConstructor
@@ -72,19 +74,29 @@ public class AdminUsageRepository {
       )
       """;
 
+  /**
+   * 집계할 사용자 ID. 사용자를 고르면({@code userId}) 그 사용자만, 고르지 않으면 팀 기기에서 쓴 팀 계정을 뺀 모든 사용자다. 팀 계정도 골라 보면 센다.
+   */
+  private static final String COUNTED_USERS =
+      """
+      (select id from users
+       where case when cast(:userId as bigint) is null then not team_account
+                  else id = :userId end)""";
+
   /** 기간 안의 흔적만 period_facts로 남긴다. */
   private static final String PERIOD_FACTS =
       FACTS
           + """
       , period_facts as (
         select * from facts
-        where at >= :since and (cast(:userId as bigint) is null or user_id = :userId)
+        where at >= :since and user_id in %s
       )
-      """;
+      """
+              .formatted(COUNTED_USERS);
 
   /** 기간 안에 시작한 대화(conversations c)만 고르는 조건 */
   private static final String CONVERSATION_IN_PERIOD =
-      "c.started_at >= :since and (cast(:userId as bigint) is null or c.user_id = :userId)";
+      "c.started_at >= :since and c.user_id in " + COUNTED_USERS;
 
   private static final String KOREAN_DAY =
       "to_char(f.at at time zone '" + ClockConfig.SERVICE_ZONE_ID + "', 'YYYY-MM-DD')";
@@ -204,17 +216,18 @@ public class AdminUsageRepository {
         join conversations c on c.id = t.conversation_id
         where t.speaker = 'USER' and t.input_type is not null
           and t.created_at >= :since
-          and (cast(:userId as bigint) is null or c.user_id = :userId)
+          and c.user_id in %1$s
         group by t.input_type
         union all
         select r.kind, count(*), count(distinct r.user_id)
         from ai_requests r
         where r.kind in ('HINT', 'MEANING') and r.status <> 'RESERVED'
           and r.created_at >= :since
-          and (cast(:userId as bigint) is null or r.user_id = :userId)
+          and r.user_id in %1$s
         group by r.kind
         order by count desc, label
-        """;
+        """
+            .formatted(COUNTED_USERS);
     return counts(sql, since, userId);
   }
 
@@ -227,10 +240,11 @@ public class AdminUsageRepository {
                count(distinct v.user_id) as users
         from user_vocab v
         where v.saved_at >= :since
-          and (cast(:userId as bigint) is null or v.user_id = :userId)
+          and v.user_id in %s
         group by v.source_type
         order by count desc, label
-        """;
+        """
+            .formatted(COUNTED_USERS);
     return counts(sql, since, userId);
   }
 
@@ -248,20 +262,21 @@ public class AdminUsageRepository {
         from conversation_feedback f
         join conversations c on c.id = f.conversation_id
         where f.created_at >= :since
-          and (cast(:userId as bigint) is null or c.user_id = :userId)
+          and c.user_id in %s
         group by 1
         order by count desc, label
-        """;
+        """
+            .formatted(COUNTED_USERS);
     return counts(sql, since, userId);
   }
 
-  /** 기간 안에 계정을 만든 사용자의 초기 설정 단계(users.onboarding_step)별 사용자 수 */
+  /** 기간 안에 계정을 만든 사용자(팀 계정 빼고)의 초기 설정 단계(users.onboarding_step)별 사용자 수 */
   public Map<String, Long> newUsersByOnboardingStep(Instant since) {
     String sql =
         """
         select u.onboarding_step as label, count(*) as users
         from users u
-        where u.created_at >= :since
+        where u.created_at >= :since and not u.team_account
         group by u.onboarding_step
         """;
     Map<String, Long> usersByStep = new HashMap<>();
@@ -308,6 +323,8 @@ public class AdminUsageRepository {
             + """
             select f.user_id,
                    u.provider = 'GUEST' as guest,
+                   u.provider_uid like 'withdrawn-%%' as withdrawn,
+                   u.email,
                    count(distinct %s) as active_days,
                    count(*) filter (where f.kind = 'CONVERSATION') as conversations,
                    count(*) filter (where f.kind = 'MISSION') as missions_completed,
@@ -316,7 +333,7 @@ public class AdminUsageRepository {
             from period_facts f
             join users u on u.id = f.user_id
             left join user_game_clocks g on g.user_id = f.user_id
-            group by f.user_id, u.provider, g.play_seconds
+            group by f.user_id, u.provider, u.provider_uid, u.email, g.play_seconds
             order by max(f.at) desc, f.user_id
             limit :limit
             """
@@ -324,12 +341,24 @@ public class AdminUsageRepository {
     return jdbcTemplate.query(
         sql,
         params(since, null).addValue("limit", limit),
-        new DataClassRowMapper<>(OverallUsageReport.UserActivity.class));
+        (row, rowNum) -> {
+          long userId = row.getLong("user_id");
+          boolean guest = row.getBoolean("guest");
+          return new OverallUsageReport.UserActivity(
+              userId,
+              guest,
+              AdminUserName.of(userId, guest, row.getBoolean("withdrawn"), row.getString("email")),
+              row.getLong("active_days"),
+              row.getLong("conversations"),
+              row.getLong("missions_completed"),
+              row.getLong("play_seconds"),
+              row.getString("last_active_at"));
+        });
   }
 
   /**
-   * 기간 안에 계정을 만든 사용자의 재방문. 계정을 만든 한국 날짜를 0일째로 세고, 활동은 기간과 관계없이 모든 흔적으로 본다. {@code today}(오늘 한국 날짜)는
-   * 아직 끝나지 않아 확인할 날로 치지 않는다.
+   * 기간 안에 계정을 만든 사용자(팀 계정 빼고)의 재방문. 계정을 만든 한국 날짜를 0일째로 세고, 활동은 기간과 관계없이 모든 흔적으로 본다. {@code
+   * today}(오늘 한국 날짜)는 아직 끝나지 않아 확인할 날로 치지 않는다.
    */
   public OverallUsageReport.Retention retention(Instant since, LocalDate today) {
     String sql =
@@ -341,7 +370,7 @@ public class AdminUsageRepository {
             started as (
               select id as user_id, cast(created_at at time zone '%1$s' as date) as start_day
               from users
-              where created_at >= :since
+              where created_at >= :since and not team_account
             ),
             returns as (
               select s.start_day,
@@ -380,6 +409,7 @@ public class AdminUsageRepository {
             select u.id as user_id,
                    u.provider = 'GUEST' as guest,
                    u.provider_uid like 'withdrawn-%%' as withdrawn,
+                   u.email,
                    to_char(u.created_at at time zone '%1$s', 'YYYY-MM-DD HH24:MI') as started_at,
                    to_char(cv.converted_at at time zone '%1$s', 'YYYY-MM-DD HH24:MI')
                      as converted_at,
@@ -409,6 +439,7 @@ public class AdminUsageRepository {
    * 사용자 개요 한 줄. 시각은 한국 시각(yyyy-MM-dd HH:mm) 문자열이다.
    *
    * @param withdrawn 탈퇴하면 provider_uid가 withdrawn-으로 시작한다(User.withdraw)
+   * @param email 가입 이메일. 게스트와 탈퇴한 사용자는 null
    * @param firstDayStage 첫날 미션 단계. 시작하지 않았으면 null
    * @param townStoryStage 마을 여정 단계. 시작하지 않았으면 null
    */
@@ -416,6 +447,7 @@ public class AdminUsageRepository {
       Long userId,
       boolean guest,
       boolean withdrawn,
+      String email,
       String startedAt,
       String convertedAt,
       String onboardingStep,

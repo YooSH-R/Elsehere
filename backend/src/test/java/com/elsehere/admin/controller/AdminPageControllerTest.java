@@ -63,7 +63,9 @@ class AdminPageControllerTest {
                 List.of(new AiUsageRow("JUDGE", 2, 5, 1, 12345, 678, 0)),
                 List.of(new AiUsageRow("gpt-4o-mini", 2, 4, 0, 12345, 678, 0)),
                 List.of(new AiUsageRow("GUEST", 1, 3, 1, 10000, 500, 0)),
-                List.of(new AiUserUsage(7L, true, 3, 1, 10000, 500))));
+                List.of(
+                    new AiUserUsage(7L, true, "게스트 #7", 3, 1, 10000, 500),
+                    new AiUserUsage(8L, false, "sun@example.com", 1, 0, 2345, 178))));
 
     mockMvc
         .perform(get("/admin/ai-usage").param("days", "30").with(authentication(loggedIn(1L))))
@@ -74,7 +76,8 @@ class AdminPageControllerTest {
         .andExpect(content().string(containsString("2030-01-10")))
         .andExpect(content().string(containsString("의도 판정")))
         .andExpect(content().string(containsString("gpt-4o-mini")))
-        .andExpect(content().string(containsString("게스트")));
+        .andExpect(content().string(containsString("게스트 #7")))
+        .andExpect(content().string(containsString("sun@example.com")));
   }
 
   @Test
@@ -107,7 +110,7 @@ class AdminPageControllerTest {
                 new OverallUsageReport.Retention(0, 0, 0, 0, 0, 0),
                 List.of(
                     new OverallUsageReport.UserActivity(
-                        7L, true, 2, 3, 1, 1800, "2030-01-10 08:30"))));
+                        7L, false, "sun@example.com", 2, 3, 1, 1800, "2030-01-10 08:30"))));
 
     mockMvc
         .perform(get("/admin/usage").param("days", "30").with(authentication(loggedIn(1L))))
@@ -126,7 +129,25 @@ class AdminPageControllerTest {
         .andExpect(content().string(containsString("4. WASH")))
         .andExpect(
             content().string(containsString("href=\"/admin/usage/user?userId=7&amp;days=30\"")))
-        .andExpect(content().string(containsString("2030-01-10 08:30")));
+        .andExpect(content().string(containsString(">sun@example.com</a>")))
+        .andExpect(content().string(containsString("2030-01-10 08:30")))
+        .andExpect(content().string(containsString("action=\"/admin/usage/find\"")));
+  }
+
+  @Test
+  @DisplayName("사용자 찾기는 이메일이나 ID로 찾은 사용자의 사용자별 화면으로 보낸다")
+  void findUser_byAdmin_redirectsToUserUsage() throws Exception {
+    given(adminAccess.isAdmin(1L)).willReturn(true);
+    given(adminUsageService.findUserId("sun@example.com")).willReturn(7L);
+
+    mockMvc
+        .perform(
+            get("/admin/usage/find")
+                .param("user", "sun@example.com")
+                .param("days", "30")
+                .with(authentication(loggedIn(1L))))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/admin/usage/user?userId=7&days=30"));
   }
 
   @Test
@@ -177,7 +198,7 @@ class AdminPageControllerTest {
   }
 
   @Test
-  @DisplayName("사용자별 이용 현황 화면은 사용자 ID로 개요·활동과 기간 링크, 전체 화면으로 돌아가는 링크를 보여 준다")
+  @DisplayName("사용자별 이용 현황 화면은 사용자 이름(가입자는 이메일)으로 개요·활동과 기간 링크, 전체 화면으로 돌아가는 링크를 보여 준다")
   void userUsage_byAdmin_showsProfileAndActivity() throws Exception {
     given(adminAccess.isAdmin(1L)).willReturn(true);
     given(adminUsageService.userReport(7L, 30))
@@ -186,6 +207,7 @@ class AdminPageControllerTest {
                 new UserUsageReport.Profile(
                     7L,
                     false,
+                    "sun@example.com",
                     false,
                     "2030-01-07 09:00",
                     "2030-01-10 08:00",
@@ -203,7 +225,7 @@ class AdminPageControllerTest {
                 .param("days", "30")
                 .with(authentication(loggedIn(1L))))
         .andExpect(status().isOk())
-        .andExpect(content().string(containsString("사용자 7")))
+        .andExpect(content().string(containsString("<h1>sun@example.com</h1>")))
         .andExpect(content().string(containsString("2030-01-07 09:00")))
         .andExpect(content().string(containsString("2030-01-10 08:00")))
         .andExpect(content().string(containsString("모두 마침")))

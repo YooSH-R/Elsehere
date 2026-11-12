@@ -78,7 +78,24 @@
       (() => {
         const measurementId = "G-209TJ3SH81";
         const productionHosts = ["elsehere.kr", "www.elsehere.kr"];
-        if (!measurementId || !productionHosts.includes(window.location.hostname)) {
+        // Opening the page once with ?team=1 marks this browser as a team device (?team=0 clears it).
+        // Team devices are not measured, and the server marks accounts used on them (BOOT-01) so the
+        // admin usage report leaves them out.
+        const teamCookie = "elsehere_team";
+        const pageUrl = new URL(window.location.href);
+        const teamParam = pageUrl.searchParams.get("team");
+        if (teamParam === "1" || teamParam === "0") {
+          document.cookie =
+            teamParam === "1"
+              ? teamCookie + "=1; max-age=63072000; path=/; SameSite=Lax; Secure"
+              : teamCookie + "=; max-age=0; path=/; SameSite=Lax; Secure";
+          pageUrl.searchParams.delete("team");
+          window.history.replaceState(null, "", pageUrl.pathname + pageUrl.search + pageUrl.hash);
+        }
+        const teamDevice =
+          teamParam === "1" ||
+          (teamParam !== "0" && document.cookie.split("; ").includes(teamCookie + "=1"));
+        if (teamDevice || !measurementId || !productionHosts.includes(window.location.hostname)) {
           return;
         }
 

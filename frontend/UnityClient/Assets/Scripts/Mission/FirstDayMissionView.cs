@@ -784,14 +784,19 @@ namespace A305.Mission
             Banner.anchoredPosition = new Vector2(CardLeft, -Margin);
             FitLeftCards(screen);
             var drawer = (RectTransform)journal.transform;
-            drawer.SetSizeWithCurrentAnchors(
-                RectTransform.Axis.Horizontal,
-                Mathf.Min(DrawerWidth, screen.rect.width - Margin * 2)
-            );
-            drawer.SetSizeWithCurrentAnchors(
-                RectTransform.Axis.Vertical,
+            var drawerSize = new Vector2(
+                Mathf.Min(DrawerWidth, screen.rect.width - Margin * 2),
                 Mathf.Min(900, screen.rect.height - Margin * 2)
             );
+            // 사용자가 수첩 크기를 바꾼 동안에는 그 크기를 지키고, 아니면 이 크기를 따른다.
+            WindowFrame frame = drawer.GetComponent<WindowFrame>();
+            if (frame != null)
+                frame.SetBaseSize(drawerSize);
+            else
+            {
+                drawer.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, drawerSize.x);
+                drawer.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, drawerSize.y);
+            }
         }
 
         private void OnRectTransformDimensionsChange() => UpdateLayout();
@@ -941,7 +946,12 @@ namespace A305.Mission
 
         private void Awake()
         {
-            WindowFrame.Attach((RectTransform)journal.transform);
+            // 칸은 세로 배치(VerticalLayoutGroup)가 넓히고, 진행 목록(스크롤)이 남는 높이를 채운다.
+            WindowFrame.Attach(
+                (RectTransform)journal.transform,
+                minimumWidth: .75f,
+                minimumHeight: .6f
+            );
             journal.SetActive(false);
             if (questBoard == null)
                 journalButton.onClick.AddListener(ToggleJournal);

@@ -133,7 +133,12 @@ namespace A305.Onboarding
 
         private void Awake()
         {
-            WindowFrame.Attach((RectTransform)profilePanel.transform);
+            // 높이는 내용(ContentSizeFitter)에 맞추므로 가로만 바꾼다. 칸은 세로 배치(VerticalLayoutGroup)가 넓힌다.
+            WindowFrame.Attach(
+                (RectTransform)profilePanel.transform,
+                minimumWidth: .75f,
+                resizesHeight: false
+            );
             if (apiSettings == null)
             {
                 Debug.LogError("MyPageView의 apiSettings가 연결되지 않았습니다.", this);

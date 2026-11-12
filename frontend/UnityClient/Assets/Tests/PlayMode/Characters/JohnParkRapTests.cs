@@ -17,6 +17,120 @@ namespace A305.Characters.PlayModeTests
     public sealed class JohnParkRapTests
     {
         [UnityTest]
+        public IEnumerator OpeningRapKeepsScrollableHistoryAndFeetOnFloor()
+        {
+            const string path = "Assets/Scenes/Sandbox/NpcJohnParkDialogueSandbox.unity";
+            yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
+                path,
+                new LoadSceneParameters(LoadSceneMode.Additive)
+            );
+            var scene = SceneManager.GetSceneByPath(path);
+            try
+            {
+                var roots = scene.GetRootGameObjects();
+                var npc = roots.SelectMany(r => r.GetComponentsInChildren<NpcIdentity>()).Single();
+                var dialogue = roots
+                    .SelectMany(r => r.GetComponentsInChildren<DialogueController>())
+                    .Single();
+                var performer = npc.GetComponent<RecordedNpcPerformance>();
+                npc.GetComponent<AudioSource>().mute = true;
+                yield return new WaitForSeconds(.3f);
+                Assert.That(dialogue.TryStart(npc.Code, npc.LookTarget), Is.True);
+                yield return null;
+                Assert.That(performer.IsPerforming, Is.True, "인사 없이 랩부터 시작해야 합니다.");
+                var state = (DialogueConversation)
+                    typeof(DialogueController)
+                        .GetField("conversation", BindingFlags.NonPublic | BindingFlags.Instance)
+                        .GetValue(dialogue);
+                Assert.That(state.Lines, Has.Count.EqualTo(1));
+                Assert.That(state.LastNpcLine.English, Is.EqualTo(performer.Definition.English));
+                var view = roots
+                    .SelectMany(r => r.GetComponentsInChildren<DialoguePanelView>(true))
+                    .Single();
+                float openingHeight = view.LinesRect.rect.height;
+                var scroll = view.LinesRect.GetComponent<ScrollRect>();
+                var button = roots
+                    .SelectMany(r => r.GetComponentsInChildren<Button>(true))
+                    .Single(b => b.name == "PerformanceButton");
+                for (int i = 0; i < 4; i++)
+                {
+                    button.onClick.Invoke();
+                    button.onClick.Invoke();
+                    Assert.That(performer.IsPerforming, Is.True);
+                    Assert.That(state.Lines, Has.Count.EqualTo(i + 2));
+                    yield return null;
+                    Assert.That(
+                        view.LinesRect.rect.height,
+                        Is.EqualTo(openingHeight).Within(.1f),
+                        "가사가 쌓여도 기존 스크롤 창의 높이는 유지해야 합니다."
+                    );
+                    Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(0).Within(.01f));
+                }
+                Assert.That(
+                    scroll.content.rect.height,
+                    Is.GreaterThan(scroll.viewport.rect.height)
+                );
+                scroll.verticalNormalizedPosition = 1;
+                yield return null;
+                Assert.That(
+                    scroll.verticalNormalizedPosition,
+                    Is.EqualTo(1).Within(.01f),
+                    "기존 스크롤로 이전 가사를 볼 수 있어야 합니다."
+                );
+                var mesh = new Mesh();
+                try
+                {
+                    for (int i = 0; i < 12; i++)
+                    {
+                        yield return null;
+                        performer.SampleMotion(
+                            i
+                                * 60f
+                                * performer.Definition.BeatsPerAnimationLoop
+                                / (12 * performer.Definition.BeatsPerMinute)
+                        );
+                        float min = float.PositiveInfinity;
+                        foreach (var skin in npc.GetComponentsInChildren<SkinnedMeshRenderer>())
+                        {
+                            skin.BakeMesh(mesh);
+                            foreach (var vertex in mesh.vertices)
+                                min = Mathf.Min(min, skin.transform.TransformPoint(vertex).y);
+                        }
+                        float floor = Physics
+                            .RaycastAll(npc.transform.position + Vector3.up, Vector3.down, 3)
+                            .Where(h =>
+                                !h.collider.transform.IsChildOf(npc.transform) && h.normal.y > .9f
+                            )
+                            .Max(h => h.point.y);
+                        Assert.That(
+                            min - floor,
+                            Is.InRange(-.015f, .015f),
+                            $"신발 바닥={min:F4}, 지면={floor:F4}"
+                        );
+                    }
+                }
+                finally
+                {
+                    Object.Destroy(mesh);
+                }
+                dialogue.End();
+                Assert.That(dialogue.TryStart(npc.Code, npc.LookTarget), Is.True);
+                Assert.That(
+                    performer.IsPerforming,
+                    Is.True,
+                    "다시 대화해도 랩부터 재생해야 합니다."
+                );
+                dialogue.End();
+            }
+            finally
+            {
+                foreach (var root in scene.GetRootGameObjects())
+                    Object.Destroy(root);
+                SceneManager.UnloadSceneAsync(scene);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator SavedGuideDrivesFaceWithoutStartingRapMotion()
         {
             var root = Object.Instantiate(

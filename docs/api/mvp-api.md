@@ -1366,7 +1366,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### CONV-09·10 지난 대화
 
-- CONV-09 `GET /api/v1/conversations?npcCode=&sceneCode=&cursor=&size=&feedbackOnly=`는 휴대폰 메뉴의 [대화 노트] 창 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus, feedbackUnread, practiceCount }`를 돌려줍니다.
+- CONV-09 `GET /api/v1/conversations?npcCode=&sceneCode=&placeGroup=&cursor=&size=&feedbackOnly=`는 휴대폰 메뉴의 [대화 노트] 창 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, placeName, placeGroup, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus, feedbackUnread, practiceCount }`를 돌려줍니다.
 
 ```json
 {
@@ -1375,6 +1375,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
       "conversationId": 58,
       "npc": { "npcCode": "CAFE_STAFF", "name": "Mia", "roleLabel": "카페 직원" },
       "sceneCode": "CAFE",
+      "placeName": "카페",
+      "placeGroup": "FOOD",
       "status": "ENDED_BY_USER",
       "endReason": "USER_ENDED",
       "startedAt": "2026-10-21T14:00:00+09:00",
@@ -1391,7 +1393,9 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 목록 규칙은 VOCAB-01과 같습니다. `size` 기본값은 20이고 1~50만 받습니다. `nextCursor`는 이전 페이지 마지막 항목의 `conversationId`이며, 숫자가 아니거나 내 대화가 아닌 커서와 범위를 벗어난 `size`는 `400 VALIDATION_FAILED`입니다. 시작 시각이 같으면 나중에 만든 대화가 먼저입니다.
 - `npcCode`를 주면 그 NPC와 나눈 대화만 돌려줍니다. 없는 NPC 코드면 빈 목록입니다.
-- `sceneCode`(`CAFE`·`HOTEL`·`TOWN` 등)를 주면 그 장소의 NPC와 나눈 대화만 돌려줍니다. 대화 노트의 장소 탭(전체·카페·호텔·마을)이 씁니다. 없는 장소 코드면 빈 목록이고, 비어 있거나 30자를 넘으면 `400 VALIDATION_FAILED`입니다.
+- `sceneCode`(`CAFE`·`HOTEL`·`TOWN` 등)를 주면 그 장소 씬의 NPC와 나눈 대화만 돌려줍니다. 없는 장소 코드면 빈 목록이고, 비어 있거나 30자를 넘으면 `400 VALIDATION_FAILED`입니다.
+- `placeGroup`(`FOOD`·`SHOPPING`·`SERVICES`·`SAFETY`·`DAILY`)을 주면 그 장소 묶음의 대화만 돌려줍니다. 대화 노트의 장소 탭(전체·음식·쇼핑·생활 서비스·안전·일상)이 씁니다. 묶음은 VOCAB-01과 같이 NPC의 실제 근무지(`npcs.place_group`)로 정하고, 근무 시간 밖에 만난 대화는 근무지와 관계없이 `DAILY`입니다. 대문자 이름이 정확히 같지 않으면 `400 VALIDATION_FAILED`입니다.
+- `placeName`은 NPC가 일하는 곳(카페·우체국), `placeGroup`은 그 대화의 장소 묶음입니다. 근무 시간 밖에 만난 대화는 `placeName`이 `null`, `placeGroup`이 `DAILY`입니다.
 - `feedbackOnly=true`는 완성된(`DONE`) 피드백이 있는 대화만 페이지 크기·커서 적용 전에 조회합니다. Unity 대화 노트는 이 옵션을 사용하며 생성 전·건너뜀·실패 항목을 보이지 않습니다. 생략하면 기존 전체 대화 기록을 조회합니다. `feedbackUnread`는 완료됐으나 아직 열지 않은 피드백인지 나타냅니다.
 - 진행 중(`ACTIVE`)이거나 시간이 지나 닫힌 대화도 상태 그대로 담습니다. `userTurnCount`는 사용자가 보낸 발화 수, `feedbackStatus`는 짧은 피드백 상태(`DONE`·`FAILED`·`SKIPPED`)이며 피드백을 만들기 전이면 `null`입니다. `npc`는 CONV-10의 NPC 이름표와 같은 형식입니다. `practiceCount`는 이 대화로 [다시 연습]한 횟수(같은 대화로 만든 복습 카드의 `practiceCount`)이며, 연습하지 않았으면 0입니다.
 - 저장된 결과만 조회하므로 AI 사용량이 소진돼도 이용할 수 있습니다. 항목을 누르면 CONV-10으로 대화 기록을 엽니다.
@@ -1547,7 +1551,7 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 - 화면 18의 유형 필터(단어·숙어·문장)는 MVP에서 보여주지 않습니다. `vocab.type`(`vocabularies.type`)은 한 단어면 `WORD`, 숙어면 `IDIOM`입니다.
 - `vocab.meaningKo`는 단어·숙어의 뜻(`vocabularies.meaning_ko`), `context`는 저장할 때의 문장과 문장 뜻(`user_vocab.context_text`, `context_meaning_ko`)입니다. 같은 단어라도 사용자마다 저장한 문장이 다르므로 `user_vocab`에 둡니다.
 - 상세의 "Mia와의 대화" 같은 출처 표시는 `source`로 그립니다. 출처 대화는 `user_vocab.source_conversation_id`, 출처 NPC는 그 대화의 NPC입니다. 사물에서 저장한 단어는 `npcName`, `conversationId`가 `null`입니다.
-- `placeName`·`placeGroup`은 출처 대화 NPC가 일하는 곳과 그 장소 묶음(`npcs.place_name`·`place_group`)입니다. 코드 이름이 아니라 실제 근무지 기준입니다(식당 야간 직원 `FIRE_CAPTAIN`은 `식당`·`FOOD`). 묶음은 `FOOD`(카페·식당·빵집), `SHOPPING`(드럭스토어·꽃집·생활용품점·오락실), `SERVICES`(은행·우체국·빨래방·이발소·호텔·택시), `SAFETY`(경찰서), `DAILY`(거리에서 만난 사람)입니다. 근무 시간 밖에 만난 NPC와의 대화(`conversations.npc_off_duty`)는 일하는 곳의 표현이 아니므로 `placeName`이 `null`, `placeGroup`이 `DAILY`입니다. 사물에서 저장한 단어는 둘 다 `null`입니다.
+- `placeName`·`placeGroup`은 출처 대화 NPC가 일하는 곳과 그 장소 묶음(`npcs.place_name`·`place_group`)입니다. 코드 이름이 아니라 실제 근무지 기준입니다(햄버거 가게 야간 직원 `FIRE_CAPTAIN`은 `햄버거 가게`·`FOOD`). 묶음은 `FOOD`(카페·햄버거 가게·빵집), `SHOPPING`(드럭스토어·꽃집·생활용품점·오락실), `SERVICES`(은행·우체국·빨래방·이발소·호텔·택시), `SAFETY`(경찰서), `DAILY`(거리에서 만난 사람)입니다. 근무 시간 밖에 만난 NPC와의 대화(`conversations.npc_off_duty`)는 일하는 곳의 표현이 아니므로 `placeName`이 `null`, `placeGroup`이 `DAILY`입니다. 사물에서 저장한 단어는 둘 다 `null`입니다.
 - 단어장 화면은 목록을 끝까지 받아 [대화 표현 | 사물 단어] 탭(`sourceType`이 `NPC_LINE`·`FEEDBACK`이면 대화 표현)과 대화 표현의 장소 묶음 칩, 탭·칩별 개수를 클라이언트에서 나눕니다. 서버 필터는 두지 않습니다.
 - `memo`(`user_vocab.memo`)는 사용자가 남긴 메모입니다. 뜻은 수정하지 않습니다.
 

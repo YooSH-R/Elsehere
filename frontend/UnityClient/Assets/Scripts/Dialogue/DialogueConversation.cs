@@ -31,7 +31,12 @@ namespace A305.Dialogue
         private readonly ConversationStanding tutorialStanding;
 
         /// <param name="hasRecorder">녹음기가 연결되어 있는지. 정해진 대사를 따라가는 대화면 [말하기]를 둔다.</param>
-        public DialogueConversation(string npcCode, DialogueScript script, bool hasRecorder = false)
+        public DialogueConversation(
+            string npcCode,
+            DialogueScript script,
+            bool hasRecorder = false,
+            DialogueLine recordedOpening = null
+        )
         {
             NpcCode = npcCode;
             this.script = script;
@@ -43,9 +48,12 @@ namespace A305.Dialogue
                 UpdateTutorialStanding();
             }
 
-            if (script.OpeningLine != null)
+            DialogueLine opening = IsGuided
+                ? script.OpeningLine
+                : recordedOpening ?? script.OpeningLine;
+            if (opening != null)
             {
-                AddNpcLine(script.OpeningLine);
+                AddNpcLine(opening);
             }
         }
 

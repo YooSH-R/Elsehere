@@ -182,7 +182,6 @@ namespace A305.EditorTools.Tutorial
                     "voiceLightCaption",
                     "dialogueEndCaption",
                     "feedbackSectionsCaption",
-                    "feedbackPagesCaption",
                     "feedbackCloseCaption",
                     "travelLockedMessage",
                     "vocabularyCaption",

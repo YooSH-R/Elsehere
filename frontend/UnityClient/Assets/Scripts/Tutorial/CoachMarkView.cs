@@ -212,7 +212,7 @@ namespace A305.Tutorial
         /// <param name="dimOutside">
         /// false면 둘레를 어둡게 덮지 않고 테두리만 둔다. 밝힌 곳 밖의 버튼([힌트] 등)도 함께 써야 하는 단계에 쓴다.
         /// </param>
-        /// <param name="captionSide">옆에 다른 버튼이 늘어선 대상처럼 설명을 위·아래에 먼저 둘 때 쓴다.</param>
+        /// <param name="captionSide">옆에 다른 버튼이 늘어선 대상처럼 설명을 위·아래에, 넓은 창처럼 오른쪽에 먼저 둘 때 쓴다.</param>
         /// <param name="captionAlignLeft">위·아래 설명을 밝힌 곳 왼쪽 끝에 맞춘다. 가운데 서 있는 NPC 얼굴을 가리지 않을 때 쓴다.</param>
         public void ShowSpotlight(
             IReadOnlyList<RectTransform> spotlightTargets,
@@ -634,7 +634,7 @@ namespace A305.Tutorial
             }
 
             // 위·아래를 고른 대상은 말풍선을 가장 넓게 펴 줄 수를 줄여 본다. 창 아래처럼 낮은 자리에도 들어가게 하기 위함이다.
-            // 그래도 들어가지 않으면, 넓은 스크롤 영역 옆에도 설명이 들어가도록 옆에 남은 폭에 맞춘다.
+            // 그래도 들어가지 않거나 옆을 고른 대상이면, 넓은 창 옆에도 설명이 들어가도록 옆에 남은 폭에 맞춘다.
             SetCaptionWidth(captionMaxWidth);
             bool fitsStacked =
                 captionSide.HasValue
@@ -647,10 +647,12 @@ namespace A305.Tutorial
                 );
             if (!fitsStacked)
             {
-                float sideRoom = Mathf.Max(
-                    hole.xMin - BubbleGap - BubbleMargin,
-                    canvasSize.x - BubbleMargin - hole.xMax - BubbleGap
-                );
+                // 오른쪽을 고른 대상은 오른쪽에 남은 폭에 맞춘다. 모자라면 가장 넓게 펴 아래에 둔다.
+                float rightRoom = canvasSize.x - BubbleMargin - hole.xMax - BubbleGap;
+                float sideRoom =
+                    captionSide == CoachMarkLayout.BubbleSide.Right
+                        ? rightRoom
+                        : Mathf.Max(hole.xMin - BubbleGap - BubbleMargin, rightRoom);
                 SetCaptionWidth(
                     sideRoom >= CaptionMinWidth
                         ? Mathf.Min(captionMaxWidth, sideRoom)

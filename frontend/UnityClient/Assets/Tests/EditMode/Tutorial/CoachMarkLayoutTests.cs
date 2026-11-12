@@ -224,6 +224,40 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
+        public void Bubble_AskedToSitRight_SitsBesideTheMiddleOfTheHole()
+        {
+            // 대화 피드백 탭 설명은 창 아래 대신 창 오른쪽 빈자리에 둔다.
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
+                new Rect(100f, 100f, 500f, 400f),
+                new Vector2(150f, 120f),
+                Canvas,
+                20f,
+                10f,
+                preferredSide: CoachMarkLayout.BubbleSide.Right
+            );
+
+            Assert.That(bubble.Side, Is.EqualTo(CoachMarkLayout.BubbleSide.Right));
+            Assert.That(bubble.Rect, Is.EqualTo(new Rect(620f, 240f, 150f, 120f)));
+        }
+
+        [Test]
+        public void Bubble_AskedToSitRight_WithoutRoomOnTheRight_SitsBelowTheHole()
+        {
+            // 좁은 화면에서 창 오른쪽에 자리가 없으면 위(창 제목·[건너뛰기] 카드) 대신 창 아래에 둔다.
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
+                new Rect(100f, 200f, 600f, 250f),
+                new Vector2(150f, 120f),
+                Canvas,
+                20f,
+                10f,
+                preferredSide: CoachMarkLayout.BubbleSide.Right
+            );
+
+            Assert.That(bubble.Side, Is.EqualTo(CoachMarkLayout.BubbleSide.Below));
+            Assert.That(bubble.Rect, Is.EqualTo(new Rect(325f, 60f, 150f, 120f)));
+        }
+
+        [Test]
         public void FitsStacked_TellsWhetherTheBubbleFitsAboveOrBelowWithoutCoveringTheHole()
         {
             var hole = new Rect(200f, 100f, 400f, 400f);

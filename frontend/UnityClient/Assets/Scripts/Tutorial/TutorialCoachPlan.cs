@@ -62,11 +62,10 @@ namespace A305.Tutorial
             TutorialCoachTarget.SuggestedSentence,
         };
 
-        // 대화 노트(피드백)를 열면 이 순서로 하나씩 밝히고 [다음]으로 넘긴 뒤 닫는 버튼을 밝힌다.
+        // 대화 피드백을 열면 탭 줄을 밝혀 [다음]으로 넘긴 뒤 닫는 버튼을 밝힌다.
         private static readonly TutorialCoachTarget[] FeedbackTour =
         {
             TutorialCoachTarget.FeedbackSections,
-            TutorialCoachTarget.FeedbackPages,
         };
 
         /// <summary>대화 시작 티칭의 수</summary>

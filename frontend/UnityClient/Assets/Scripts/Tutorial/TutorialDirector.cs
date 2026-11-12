@@ -679,11 +679,8 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.DialogueEnd:
                     return new[] { dialoguePanel.EndButtonRect };
                 // 탭을 누르면 바뀌는 결과 칸도 함께 밝혀 무엇이 달라지는지 보이게 한다.
-                // 스크롤 안내에서는 고정된 본문 영역을 밝힌다.
                 case TutorialCoachTarget.FeedbackSections:
                     return new[] { feedbackView.SectionRowRect, feedbackView.PageCardRect };
-                case TutorialCoachTarget.FeedbackPages:
-                    return new[] { feedbackView.ScrollAreaRect };
                 case TutorialCoachTarget.FeedbackClose:
                     return new[] { feedbackView.CloseButtonRect };
                 case TutorialCoachTarget.Vocabulary:
@@ -729,8 +726,6 @@ namespace A305.Tutorial
                     return guide.VocabularyCaption;
                 case TutorialCoachTarget.FeedbackSections:
                     return guide.FeedbackSectionsCaption;
-                case TutorialCoachTarget.FeedbackPages:
-                    return guide.FeedbackPagesCaption;
                 case TutorialCoachTarget.FeedbackClose:
                     return guide.FeedbackCloseCaption;
                 default:
@@ -739,7 +734,8 @@ namespace A305.Tutorial
         }
 
         // 대화창의 이름 줄·도구 줄·대사 칸처럼 옆에 다른 버튼이 늘어선 곳은 설명을 위에 두고,
-        // 대화 피드백 창을 밝히는 티칭과 닫기 버튼은 설명을 창 아래쪽 넓은 자리에 두어 탭과 제목을 가리지 않는다.
+        // 대화 피드백 창을 밝히는 탭 설명은 창 오른쪽 빈자리에(좁은 화면이면 창 아래에), 닫기 버튼 설명은 창 아래에 두어
+        // 탭과 제목을 가리지 않는다.
         private static CoachMarkLayout.BubbleSide? CaptionSide(TutorialCoachTarget target)
         {
             switch (target)
@@ -749,7 +745,7 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.GuidedLine:
                     return CoachMarkLayout.BubbleSide.Above;
                 case TutorialCoachTarget.FeedbackSections:
-                case TutorialCoachTarget.FeedbackPages:
+                    return CoachMarkLayout.BubbleSide.Right;
                 case TutorialCoachTarget.FeedbackClose:
                     return CoachMarkLayout.BubbleSide.Below;
                 default:

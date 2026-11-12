@@ -50,9 +50,6 @@ namespace A305.Tutorial
         /// <summary>대화 노트(피드백)의 탭 줄. 피드백 티칭의 첫째</summary>
         FeedbackSections,
 
-        /// <summary>대화 노트 본문의 스크롤 영역</summary>
-        FeedbackPages,
-
         /// <summary>대화 노트를 닫는 오른쪽 위 X</summary>
         FeedbackClose,
 

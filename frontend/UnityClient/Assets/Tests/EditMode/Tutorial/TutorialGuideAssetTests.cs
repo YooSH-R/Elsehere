@@ -109,7 +109,6 @@ namespace A305.Tutorial.Tests
             Assert.That(guide.SuggestedSentenceCaption, Does.Contain("{힌트}"));
             Assert.That(guide.DialogueEndCaption, Does.Contain("{대화 종료}"));
             Assert.That(guide.FeedbackSectionsCaption, Does.Contain("{요약}"));
-            Assert.That(guide.FeedbackPagesCaption, Does.Contain("스크롤"));
             Assert.That(
                 guide.FeedbackCloseCaption,
                 Does.Contain("{X}"),
@@ -137,7 +136,6 @@ namespace A305.Tutorial.Tests
                 string caption in new[]
                 {
                     guide.FeedbackSectionsCaption,
-                    guide.FeedbackPagesCaption,
                     guide.FeedbackCloseCaption,
                 }
             )

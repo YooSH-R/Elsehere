@@ -160,11 +160,6 @@ namespace A305.Tutorial
             "Ben과 나눈 대화를 돌아보는 대화 피드백이에요. 탭을 눌러 {요약}·{문장 교정}·{전체 대화}를 봐요";
 
         [SerializeField]
-        [Tooltip("대화 피드백 티칭의 둘째. 본문 스크롤 영역을 밝히며 보인다.")]
-        private string feedbackPagesCaption =
-            "표현과 요약이 길면 이 영역을 위아래로 스크롤해 보세요";
-
-        [SerializeField]
         [Tooltip("대화 피드백 티칭 끝에 오른쪽 위 X를 밝히며 보이는 설명")]
         private string feedbackCloseCaption =
             "다 봤으면 오른쪽 위 {X}로 닫아요. 이어서 오늘의 목표를 알려 드려요";
@@ -200,7 +195,6 @@ namespace A305.Tutorial
         public string TalkOfferCaption => talkOfferCaption;
         public string GuidedLineCaption => guidedLineCaption;
         public string FeedbackSectionsCaption => feedbackSectionsCaption;
-        public string FeedbackPagesCaption => feedbackPagesCaption;
         public string FeedbackCloseCaption => feedbackCloseCaption;
         public string DialogueLinesCaption => dialogueLinesCaption;
         public string DialogueToolsCaption => dialogueToolsCaption;

@@ -222,9 +222,6 @@ namespace A305.Learning
         /// <summary>[요약]·[문장 교정]·[전체 대화] 탭 줄. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
         public RectTransform SectionRowRect => sectionRow;
 
-        /// <summary>피드백 본문의 스크롤 영역. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
-        public RectTransform ScrollAreaRect => PageCardRect;
-
         /// <summary>탭을 누르면 바뀌는 결과 칸. 튜토리얼 코치 마크가 피드백 티칭에서 탭과 함께 밝힌다.</summary>
         public RectTransform PageCardRect =>
             scroll != null

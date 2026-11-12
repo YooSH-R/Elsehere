@@ -87,6 +87,7 @@ namespace A305.Tutorial
         /// <param name="keepClear">말풍선이 가리면 안 되는 곳(대화 위에 남긴 [건너뛰기] 카드). 넓이가 없으면 보지 않는다.</param>
         /// <param name="preferredSide">
         /// 옆에 다른 버튼이 늘어서 있어 옆자리가 그 버튼을 가리는 대상에 쓴다. 위·아래 중 그 자리가 캔버스 안에 들어가면 먼저 고른다.
+        /// 오른쪽을 고르면 오른쪽에 들어가지 않을 때 왼쪽·위보다 아래를 먼저 고른다.
         /// </param>
         public static BubblePose Bubble(
             Rect hole,
@@ -289,6 +290,17 @@ namespace A305.Tutorial
             {
                 var rect = new Rect(hole.xMax + gap, sideY, size.x, size.y);
                 return new BubblePose(rect, BubbleSide.Right, SideTail(rect, rect.xMin, hole));
+            }
+
+            // 오른쪽을 고른 대상(넓은 창)은 좁은 화면에서 오른쪽 자리가 없으면 창 제목 쪽 위 대신 아래에 둔다.
+            if (
+                preferredSide == BubbleSide.Right
+                && FitsStacked(BubbleSide.Below, hole, size, canvasSize, margin)
+            )
+            {
+                float y = Mathf.Max(hole.yMin - gap - size.y, margin);
+                var rect = new Rect(stackX, y, size.x, size.y);
+                return new BubblePose(rect, BubbleSide.Below, StackTail(rect, rect.yMax, hole));
             }
 
             if (hole.xMin - gap - size.x >= margin)

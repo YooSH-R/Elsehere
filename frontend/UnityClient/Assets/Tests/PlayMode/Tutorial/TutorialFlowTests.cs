@@ -931,9 +931,9 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator BenFeedback_TeachesTheNoteStepByStep_ThenHighlightsTheCloseButton()
+        public IEnumerator BenFeedback_TeachesTheTabs_ThenHighlightsTheCloseButton()
         {
-            // 대화 노트를 탭 → 본문 스크롤 순서로 안내하고, 마지막에 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 넘어간다.
+            // 대화 피드백의 탭을 안내하고, 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 넘어간다.
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
             PasserbyOfferView offer = Single<PasserbyOfferView>();
@@ -976,28 +976,22 @@ namespace A305.Tutorial.PlayModeTests
                 Is.GreaterThanOrEqualTo(summary.GetPreferredValues("가").y),
                 "대화 요약이 들어갈 자리가 없습니다."
             );
-            RectTransform[][] tour =
-            {
-                new[] { feedback.SectionRowRect, feedback.PageCardRect },
-                new[] { feedback.ScrollAreaRect },
-            };
-            foreach (RectTransform[] targets in tour)
-            {
-                Assert.That(coachMark.SpotlightTargets, Is.EqualTo(targets));
-                Assert.That(coachMark.IsDimmingOutside, Is.True);
-                Assert.That(coachMark.IsNextShowing, Is.True);
-                // 설명하는 탭·스크롤 영역은 가리지 않는다.
-                Assert.That(
-                    ScreenRectOf((RectTransform)coachMark.transform.Find("Caption"))
-                        .Overlaps(ScreenRectOf(targets[0])),
-                    Is.False,
-                    $"설명이 설명하는 영역을 가립니다. caption={ScreenRectOf((RectTransform)coachMark.transform.Find("Caption"))}, target={ScreenRectOf(targets[0])}, hole={coachMark.Hole}"
-                );
-                AssertCaptionClearsTheSkipCard(coachMark);
-                ClickNext(coachMark);
-                yield return null;
-                yield return null;
-            }
+            // 탭 줄과 결과 칸을 밝혀 [다음]으로 넘긴 뒤 바로 닫는 버튼을 밝힌다. 스크롤 안내는 따로 하지 않는다.
+            RectTransform[] tabs = { feedback.SectionRowRect, feedback.PageCardRect };
+            Assert.That(coachMark.SpotlightTargets, Is.EqualTo(tabs));
+            Assert.That(coachMark.IsDimmingOutside, Is.True);
+            Assert.That(coachMark.IsNextShowing, Is.True);
+            // 설명하는 탭은 가리지 않는다.
+            Assert.That(
+                ScreenRectOf((RectTransform)coachMark.transform.Find("Caption"))
+                    .Overlaps(ScreenRectOf(feedback.SectionRowRect)),
+                Is.False,
+                $"설명이 탭 줄을 가립니다. caption={ScreenRectOf((RectTransform)coachMark.transform.Find("Caption"))}, hole={coachMark.Hole}"
+            );
+            AssertCaptionClearsTheSkipCard(coachMark);
+            ClickNext(coachMark);
+            yield return null;
+            yield return null;
 
             Assert.That(coachMark.SpotlightTargets, Is.EqualTo(new[] { feedback.CloseButtonRect }));
             Assert.That(coachMark.IsNextShowing, Is.False, "닫는 버튼을 직접 누릅니다.");

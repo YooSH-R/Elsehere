@@ -31,6 +31,9 @@ namespace A305.Dialogue
         public float BeatsPerAnimationLoop = 4;
         public string AnimationState = "Rhythm";
 
+        [Tooltip("저장 음성과 같은 초 단위 시간으로 평가하는 하반신 공연 클립")]
+        public AnimationClip LowerBodyMotion;
+
         public DialogueLine CreateLine() =>
             DialogueLine.FromNpc(English, Korean, speech: Voice.bytes);
     }

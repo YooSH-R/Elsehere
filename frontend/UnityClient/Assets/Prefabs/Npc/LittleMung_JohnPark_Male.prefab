@@ -1675,6 +1675,8 @@ GameObject:
   - component: {fileID: 3320448033124110615}
   - component: {fileID: 6577845536161866247}
   - component: {fileID: 6608549382069355923}
+  - component: {fileID: 1760771313265633058}
+  - component: {fileID: 1290193772511053340}
   m_Layer: 0
   m_Name: LittleMung_JohnPark_Male
   m_TagString: Untagged
@@ -1906,6 +1908,33 @@ MonoBehaviour:
   speech: {fileID: 6948815908086036470}
   source: {fileID: 7112368257774248345}
   animator: {fileID: 4761792680885002897}
+--- !u!114 &1760771313265633058
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6338287647796670563}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a054ece7e06fd5643a2986a078abca13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Characters::A305.Characters.CharacterAnimationDriver
+  animator: {fileID: 4761792680885002897}
+--- !u!114 &1290193772511053340
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6338287647796670563}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f48725106640c0e4188b59c245144e82, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Characters::A305.Characters.JohnParkLocomotion
+  animator: {fileID: 4761792680885002897}
+  settings: {fileID: 11400000, guid: 26c3a7f93d29e954cbb8c4e900c44c78, type: 2}
 --- !u!1 &6507883120039475709
 GameObject:
   m_ObjectHideFlags: 0

@@ -1446,6 +1446,10 @@ namespace A305.Dialogue
         private const float HelpMargin = 40;
         private const float HelpWidth = 390;
 
+        // 단어·추천 문장 카드에 남겨 둘 높이. 펼친 추천 문장 한 줄과 그 뜻이 잘리지 않고 다 보이는 높이다.
+        // 이보다 많이 눌리면 [힌트]가 추천 문장 카드 밖으로 나가고 단어가 한 줄만 보인다.
+        private const float MinSuggestionsHeight = 400;
+
         [SerializeField]
         private TMP_Text vehicleStatusText;
 
@@ -1528,13 +1532,19 @@ namespace A305.Dialogue
                 npcNameText.GetPreferredValues(npcNameText.text).x + 2 * NamePadding
             );
             float cardHeight = TranslationCardHeight(DialogueCinemaLayout.TranslationWidth(column));
+            // 오른쪽 위 단어·추천 문장 카드 자리. 대사와 영어 표현 카드는 이 자리를 넘지 않는 높이까지만 키운다.
+            float roomAboveName =
+                suggestions != null && reviewReference == null
+                    ? HelpTop + MinSuggestionsHeight + 2 * DialogueCinemaLayout.Gap
+                    : 0;
             DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
                 lastCanvasSize,
                 linesHeight,
                 nameWidth,
                 hasEarlierLines,
                 hasTranslation,
-                cardHeight
+                cardHeight,
+                roomAboveName
             );
             // 카드가 대화창 최대 높이에 걸렸으면 다음 내용이 반쯤 보이는 높이로 다시 놓는다.
             if (hasTranslation && layout.Translation.height < cardHeight - .5f)
@@ -1544,7 +1554,8 @@ namespace A305.Dialogue
                     nameWidth,
                     hasEarlierLines,
                     hasTranslation,
-                    PeekingCardHeight(layout.Translation.height)
+                    PeekingCardHeight(layout.Translation.height),
+                    roomAboveName
                 );
             frame.anchorMin = Vector2.zero;
             frame.anchorMax = new Vector2(1, 0);

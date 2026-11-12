@@ -76,7 +76,9 @@ class FirstDayFeedbackInputsTest {
   void sceneDescriptionListsTheStageGoals() {
     FeedbackInput input = inputFor(0, 1);
 
-    assertThat(input.context().sceneDescription()).contains("예약 확인", "캐리어 맡기기", "카페 위치 묻기");
+    assertThat(input.context().sceneDescription())
+        .contains("예약 확인", "예약자 이름", "캐리어 맡기기", "카페 위치 묻기")
+        .doesNotContain("{name}");
   }
 
   // "level-1" 같은 번호만으로는 모델이 수준에 맞는 길이를 정할 수 없어 수준 설명을 함께 보낸다.

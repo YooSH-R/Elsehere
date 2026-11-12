@@ -229,6 +229,70 @@ namespace A305.EditorTools.Dialogue
             );
         }
 
+        /// <summary>
+        /// 한국어로 길게 주고받은 대화. 영어 표현 카드 때문에 대사 칸이 좁아져 줄이 늘어도 단어·추천 문장 카드가 눌리지 않는지 본다.
+        /// </summary>
+        public static void CaptureKoreanLongLines()
+        {
+            DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
+            view.Show(
+                new WordPreviewContent
+                {
+                    UserTranslation =
+                        "I'm the police commissioner. I'm the one who can approve it.",
+                    PreviewLines = new[]
+                    {
+                        DialogueLine.FromUser(
+                            "폐지하겠네 다른 경찰서에서 인력 충원하는 거로 하겠어 다들 제 식구 감싸기에 바빠서 자기 할 일을 못하는구만"
+                        ),
+                        DialogueLine.FromNpc(
+                            "Sir, closing this station needs official approval. I can record your complaint; what happened, and where?",
+                            null
+                        ),
+                        DialogueLine.FromUser("내가 치안총감일세 내가 곧 공식 승인자야"),
+                        DialogueLine.FromNpc(
+                            "Right, by the book. I need to verify your credentials first, sir.",
+                            "네, 규정대로 하겠습니다. 먼저 신원 확인을 해야 합니다, 선생님."
+                        ),
+                    },
+                }
+            );
+            Invoke(view, "ToggleMeaning");
+            SelectTheme(UiThemeId.Jelly);
+            string output = OutputFolder();
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "korean-long-lines.png"),
+                1920,
+                1080,
+                showLatest: true
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "korean-long-lines-short.png"),
+                1920,
+                720,
+                showLatest: true
+            );
+            // [힌트]를 눌러 펼친 추천 문장과 뜻이 눌린 카드 안에서도 읽히는지 본다.
+            Invoke(view, "PressHint");
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "korean-long-lines-hint.png"),
+                1920,
+                1080
+            );
+        }
+
         // 영어 표현 카드(S15P31A305-862): 맞게 말함·틀리게 말함·한국어 섞음의 접힌 카드, 긴 발화의 펼친 카드와 끝까지 내린 카드,
         // 세로 화면의 펼친 카드. 카드는 내용만큼만 차지하고 대화창을 늘리지 않으며, [더 보기]·[접기]는 늘 카드 아래에 보인다.
         public static void CaptureOtherExpressions()

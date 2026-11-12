@@ -16,6 +16,93 @@ namespace A305.EditorTools.Mission
     /// <summary>저장해 둔 서버 응답으로 UI를 렌더링한다. Play나 API·모델 호출을 하지 않는다.</summary>
     public static class FirstDayMissionPreview
     {
+        [MenuItem("Tools/A305/Mission/Capture Quest Navigation")]
+        public static void CaptureQuestNavigation()
+        {
+            string output = Environment.GetEnvironmentVariable("QUEST_NAV_PREVIEW_OUTPUT");
+            if (string.IsNullOrWhiteSpace(output))
+                throw new InvalidOperationException(
+                    "QUEST_NAV_PREVIEW_OUTPUT에 출력 폴더를 지정하세요."
+                );
+            QuestBoardBuilder.AlignBackArrow();
+            var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/CafeScene.unity");
+            var view = BuilderTools.FindSingleInScene<FirstDayMissionView>(scene);
+            var board = view.GetComponentInChildren<QuestBoardView>(true);
+            var camera = BuilderTools
+                .FindSingleInScene<PlayerCameraRig>(scene)
+                .GetComponent<Camera>();
+            foreach (Canvas canvas in BuilderTools.FindAllInScene<Canvas>(scene))
+            {
+                bool visible = canvas.gameObject == view.gameObject;
+                canvas.gameObject.SetActive(visible);
+                if (!visible)
+                    continue;
+                canvas.renderMode = RenderMode.ScreenSpaceCamera;
+                canvas.worldCamera = camera;
+                canvas.planeDistance = .5f;
+            }
+            view.SetAvailable(true);
+            board.Open();
+            board.Show(
+                new QuestBoardState
+                {
+                    Quests =
+                    {
+                        new QuestEntry
+                        {
+                            Id = "CHECK_IN",
+                            Title = "낯선 마을의 첫날",
+                            Description = "호텔에 짐을 맡기고 마을을 둘러봐요.",
+                            Reward = 10,
+                            Status = QuestEntry.InProgress,
+                            Stops =
+                            {
+                                new QuestStop
+                                {
+                                    Place = "호텔",
+                                    Scene = "HOTEL",
+                                    NpcName = "Jake",
+                                    Current = true,
+                                },
+                                new QuestStop
+                                {
+                                    Place = "카페",
+                                    Scene = "CAFE",
+                                    NpcName = "Mia",
+                                },
+                            },
+                        },
+                    },
+                }
+            );
+            Directory.CreateDirectory(output);
+            board.ShowStory();
+            Render(camera, view, Path.Combine(output, "story-desktop.png"), 1600, 900);
+            Render(camera, view, Path.Combine(output, "story-mobile.png"), 844, 390);
+            board.ShowPractice();
+            board.ShowPracticePlaces(
+                new PracticeBoardState
+                {
+                    Places =
+                    {
+                        new PracticePlace
+                        {
+                            PlaceCode = "CAFE",
+                            Name = "카페",
+                            Summary = "음료 주문하기",
+                            NpcCode = "CAFE_STAFF",
+                            NpcName = "Mia",
+                            RoleLabel = "카페 직원",
+                            SceneCode = "CAFE",
+                            TotalCount = 1,
+                        },
+                    },
+                }
+            );
+            Render(camera, view, Path.Combine(output, "practice-desktop.png"), 1600, 900);
+            Render(camera, view, Path.Combine(output, "practice-mobile.png"), 844, 390);
+        }
+
         [MenuItem("Tools/A305/Mission/Capture First Day Preview")]
         public static void Capture()
         {

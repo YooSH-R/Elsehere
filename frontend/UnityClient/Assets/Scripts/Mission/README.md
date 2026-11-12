@@ -1,5 +1,7 @@
 # Mission 모듈
 
+이야기·장소 연습 머리줄의 이전 버튼 그림(`QuestBackRound.png`)은 **Tools → A305 → Mission → Align Quest Back Arrow**에서 생성합니다. 흰 원과 화살표는 같은 중심 좌표를 사용하며, 그림자 여백과 글꼴 기준선에 영향을 받지 않습니다. **Apply Quest Board**도 이 그림을 함께 갱신합니다. **Capture Quest Navigation**(`FirstDayMissionPreview`)은 `QUEST_NAV_PREVIEW_OUTPUT` 폴더에 두 머리줄의 PC·모바일 Unity 캡처를 저장하며 서버를 호출하지 않습니다.
+
 첫날의 작은 소동을 완료하면 수첩에서 [마을에서 보내는 하루](../../../../../docs/api/town-story.md)를 시작할 수 있습니다. 새 여정은 첫날과 별도로 진행을 저장하고, 세탁·이발·선물 등은 실제 결제나 아이템 전달 없이 대화로 연습합니다. 새 여정 시작 전에는 첫날의 소지품과 예산을 그대로 보여 줍니다.
 
 새 여정의 가게 9곳은 모두 마을 씬 안에 있습니다. `TownMapArt.Shops`는 담당 NPC를 가게 이름과 지도 그림의 건물 칸에 연결합니다. **Tools → A305 → Mission → Refresh Town Maps**는 이 칸과 마을 도로를 읽어 수첩·큰 지도를 함께 갱신합니다.

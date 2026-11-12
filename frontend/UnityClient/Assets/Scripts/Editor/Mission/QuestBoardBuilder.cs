@@ -1,4 +1,6 @@
+using System.IO;
 using A305.EditorTools.Common;
+using A305.EditorTools.Theme;
 using A305.Mission;
 using A305.Theme;
 using TMPro;
@@ -91,8 +93,51 @@ namespace A305.EditorTools.Mission
         [MenuItem(MenuPath)]
         public static void ApplyToPrefab()
         {
+            AlignBackArrow();
             BuilderTools.UpdatePrefabIfExists(PrefabPath, Apply);
             AssetDatabase.SaveAssets();
+        }
+
+        [MenuItem("Tools/A305/Mission/Align Quest Back Arrow")]
+        public static void AlignBackArrow()
+        {
+            // 머리줄 버튼은 76px이고 그림자 여백은 왼·오른쪽 16, 위 10, 아래 22px다.
+            // 글꼴의 기준선 대신 원과 화살표가 같은 도형 중심을 사용하게 한다.
+            const int size = 260;
+            const float radius = 38 * ArtPixels;
+            Vector2 center = new Vector2(54 * ArtPixels, size - 48 * ArtPixels);
+            var art = new UiArtCanvas(size, size);
+            art.SoftShadow(
+                center.x - radius,
+                center.y - radius - 9,
+                center.x + radius,
+                center.y + radius - 9,
+                radius,
+                22,
+                new Color32(82, 61, 37, 36)
+            );
+            art.Circle(center.x, center.y, radius, new Color32(235, 233, 230, 255));
+            art.Circle(center.x, center.y, radius - 1.2f, Color.white);
+            art.Polygon(
+                Ink,
+                center + new Vector2(10.5f, 16.5f),
+                center + new Vector2(2.1f, 16.5f),
+                center + new Vector2(-10.5f, 0),
+                center + new Vector2(2.1f, -16.5f),
+                center + new Vector2(10.5f, -16.5f),
+                center + new Vector2(-2.1f, 0)
+            );
+            Texture2D texture = art.ToTexture();
+            try
+            {
+                string path = ArtFolder + "/QuestBackRound.png";
+                File.WriteAllBytes(path, texture.EncodeToPNG());
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+            }
+            finally
+            {
+                Object.DestroyImmediate(texture);
+            }
         }
 
         public static void Apply(GameObject root)

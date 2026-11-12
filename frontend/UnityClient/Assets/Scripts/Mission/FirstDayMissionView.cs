@@ -312,22 +312,6 @@ namespace A305.Mission
         /// <summary>왼쪽 위 책 [퀘스트] 버튼. 누르면 퀘스트 창이 열리며, 튜토리얼 코치 마크가 오늘의 목표를 볼 때 밝힌다.</summary>
         public RectTransform QuestButtonRect => (RectTransform)questIcon.transform;
 
-        /// <summary>
-        /// 화면 위쪽 HUD: 왼쪽 위 책 버튼·퀘스트 카드·알약과 오른쪽 위 시계·코인 칩. 튜토리얼 안내 카드가 이들과 겹치지 않게 피한다.
-        /// </summary>
-        public IReadOnlyList<RectTransform> TopHudParts
-        {
-            get
-            {
-                var parts = new List<RectTransform> { QuestButtonRect, Banner };
-                if (questPill != null)
-                    parts.Add((RectTransform)questPill.transform);
-                if (statusBar != null)
-                    parts.Add((RectTransform)statusBar.transform);
-                return parts;
-            }
-        }
-
         public void SetAvailable(bool available)
         {
             this.available = available;

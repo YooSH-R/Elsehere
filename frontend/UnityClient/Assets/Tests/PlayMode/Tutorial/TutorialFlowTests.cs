@@ -1028,21 +1028,6 @@ namespace A305.Tutorial.PlayModeTests
             var button = (RectTransform)
                 Single<FirstDayMissionView>().transform.Find("Content/QuestIcon");
             Assert.That(Single<CoachMarkView>().SpotlightTargets, Is.EqualTo(new[] { button }));
-            // 위쪽 가운데 안내 카드가 왼쪽 위 퀘스트 카드나 오른쪽 위 시계·코인 칩을 가리지 않는다.
-            yield return null;
-            Canvas.ForceUpdateCanvases();
-            Rect card = ScreenRectOf(Single<TutorialGuideView>().PanelRect);
-            foreach (
-                RectTransform hud in Single<FirstDayMissionView>()
-                    .TopHudParts.Where(part => part.gameObject.activeInHierarchy)
-            )
-            {
-                Assert.That(
-                    card.Overlaps(ScreenRectOf(hud)),
-                    Is.False,
-                    $"안내 카드가 {hud.name}을 가립니다."
-                );
-            }
 
             button.GetComponent<Button>().onClick.Invoke();
             yield return null;

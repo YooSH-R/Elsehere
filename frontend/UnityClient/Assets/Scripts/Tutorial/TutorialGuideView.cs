@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using A305.World;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -68,11 +67,6 @@ namespace A305.Tutorial
         private const float ShakeSeconds = 0.4f;
         private const float ShakePixels = 10f;
         private const float ShakeSpeed = 60f;
-
-        // 위쪽 HUD와 겹쳐 내릴 때 HUD 아래로 띄울 거리(캔버스 단위)
-        private const float HudGap = 12f;
-        private static readonly Vector3[] Corners = new Vector3[4];
-        private readonly List<Rect> hudAreas = new List<Rect>();
 
         private float noticeHideTime;
         private float shakeEndTime;
@@ -167,40 +161,6 @@ namespace A305.Tutorial
             Hide();
         }
 
-        /// <summary>
-        /// 카드가 위쪽 HUD(<paramref name="keepClear"/>)와 겹치면 그 아래로 내릴 거리. 좌표는 캔버스 왼쪽 아래 기준이다.
-        /// </summary>
-        public static float DropBelow(Rect card, IReadOnlyList<Rect> keepClear, float gap)
-        {
-            float top = card.yMax;
-            // 한 HUD 아래로 내린 자리가 다른 HUD와 겹칠 수 있어, 겹치는 곳이 없을 때까지 내린다.
-            for (int pass = 0; pass < keepClear.Count; pass++)
-            {
-                bool moved = false;
-                var moving = new Rect(card.x, top - card.height, card.width, card.height);
-                foreach (Rect area in keepClear)
-                {
-                    if (area.width > 0f && area.height > 0f && moving.Overlaps(area))
-                    {
-                        top = Mathf.Min(top, area.yMin - gap);
-                        moved = true;
-                    }
-                }
-
-                if (!moved)
-                {
-                    break;
-                }
-            }
-
-            return card.yMax - top;
-        }
-
-        /// <summary>
-        /// 안내 카드가 가리면 안 되는 위쪽 HUD(오늘의 목표에서 보이는 퀘스트 카드·시계 칩). 보이는 것과 겹치면 카드를 그 아래로 내린다.
-        /// </summary>
-        public IReadOnlyList<RectTransform> KeepClearAbove { get; set; }
-
         private void Update()
         {
             if (IsNoticeShowing && Time.unscaledTime >= noticeHideTime)
@@ -214,46 +174,6 @@ namespace A305.Tutorial
                     ? Mathf.Sin(shakeLeft * ShakeSpeed) * ShakePixels * (shakeLeft / ShakeSeconds)
                     : 0f;
             PanelRect.anchoredPosition = panelHome + Vector2.right * offset;
-            float drop = HudDrop();
-            if (drop > 0f)
-            {
-                PanelRect.anchoredPosition += Vector2.down * drop;
-            }
-        }
-
-        // 겹침은 화면 좌표로 재고, 카드 캔버스 단위로 바꾼 내릴 거리를 돌려준다.
-        private float HudDrop()
-        {
-            if (KeepClearAbove == null || !panel.activeSelf)
-            {
-                return 0f;
-            }
-
-            hudAreas.Clear();
-            foreach (RectTransform part in KeepClearAbove)
-            {
-                if (part != null && part.gameObject.activeInHierarchy)
-                {
-                    hudAreas.Add(ScreenRectOf(part));
-                }
-            }
-
-            if (hudAreas.Count == 0)
-            {
-                return 0f;
-            }
-
-            float scale = Mathf.Max(PanelRect.lossyScale.y, 0.0001f);
-            return DropBelow(ScreenRectOf(PanelRect), hudAreas, HudGap * scale) / scale;
-        }
-
-        private static Rect ScreenRectOf(RectTransform rect)
-        {
-            rect.GetWorldCorners(Corners);
-            Camera camera = CenterWindow.CameraOf(rect);
-            Vector2 min = RectTransformUtility.WorldToScreenPoint(camera, Corners[0]);
-            Vector2 max = RectTransformUtility.WorldToScreenPoint(camera, Corners[2]);
-            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
 
         private void ClearNotice()

@@ -159,8 +159,6 @@ namespace A305.Tutorial
             if (firstDayMission != null)
             {
                 firstDayMission.JournalOpened += progress.ReportJournalOpened;
-                // 오늘의 목표에서 위쪽 HUD가 보이면 안내 카드가 퀘스트 카드·시계 칩을 가리지 않게 그 아래로 내린다.
-                guideView.KeepClearAbove = firstDayMission.TopHudParts;
             }
 
             guideView.ContinueRequested += progress.Continue;

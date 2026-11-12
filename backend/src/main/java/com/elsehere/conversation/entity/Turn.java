@@ -228,8 +228,15 @@ public class Turn extends BaseEntity {
   }
 
   public void openHint(String hintText, String hintMeaningKo, Instant openedAt) {
+    cacheHint(hintText, hintMeaningKo);
+    if (this.hintOpenedAt == null) {
+      this.hintOpenedAt = openedAt;
+    }
+  }
+
+  /** 미리 만든 문장을 저장하되 실제 열기 기록은 바꾸지 않는다. */
+  public void cacheHint(String hintText, String hintMeaningKo) {
     this.hintText = hintText;
     this.hintMeaningKo = hintMeaningKo;
-    this.hintOpenedAt = openedAt;
   }
 }

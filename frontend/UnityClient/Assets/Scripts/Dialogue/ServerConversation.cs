@@ -66,6 +66,9 @@ namespace A305.Dialogue
         // 대화 시작 요청 ID. [다시 시도]도 같은 ID로 보내 서버가 대화를 두 번 만들지 않게 한다(API 명세 1.3).
         private string startRequestId;
         private bool endRequested;
+        private Task suggestionsRequest = Task.CompletedTask;
+        private long? hintOpenedTurnId;
+        private long? hintOpeningTurnId;
         private string failedText;
         private string failedRequestId;
         private string textToRestore;
@@ -313,7 +316,7 @@ namespace A305.Dialogue
             );
             if (!endRequested && !IsSeparatePractice)
             {
-                _ = SuggestWordsAsync();
+                suggestionsRequest = SuggestWordsAsync();
             }
         }
 
@@ -415,7 +418,7 @@ namespace A305.Dialogue
             }
 
             if (!IsSeparatePractice)
-                _ = SuggestWordsAsync();
+                suggestionsRequest = SuggestWordsAsync();
         }
 
         /// <summary>
@@ -583,25 +586,65 @@ namespace A305.Dialogue
         }
 
         /// <summary>
-        /// 마지막 NPC 대사에 대답할 추천 문장을 받는다(CONV-05). 이미 받았거나 지금 대답할 수 없으면(대화 종료 등) 요청하지 않는다.
+        /// 준비 중인 추천 문장 응답을 재사용하고 실제 열기를 기록한다(CONV-05). 미리 받기에 실패했을 때만 다시 만든다.
         /// </summary>
-        public Task RequestHintAsync()
+        public async Task RequestHintAsync()
         {
             NpcTurnData turn = LastNpcTurn;
-            if (turn == null || !CanSend || HintText != null)
+            if (turn == null || !CanSend)
             {
-                return Task.CompletedTask;
+                return;
             }
 
-            return RunAsync(
+            // 단어와 함께 준비 중인 문장을 기다려 같은 턴에 생성을 중복 요청하지 않는다.
+            await suggestionsRequest;
+            if (LastNpcTurn != turn || !CanSend)
+                return;
+            if (!string.IsNullOrEmpty(HintText))
+            {
+                await RecordHintOpenedAsync();
+                return;
+            }
+            await RunAsync(
                 "추천 문장을 만들고 있어요...",
                 async () =>
                 {
                     HintData hint = await api.GetHintAsync(turn.TurnId, NewRequestId());
                     HintText = hint.HintText;
                     HintMeaningKo = hint.HintMeaningKo;
+                    hintOpenedTurnId = turn.TurnId;
                 }
             );
+        }
+
+        /// <summary>미리 받은 문장은 즉시 보여 주고, 실제 열기 기록만 따로 남긴다.</summary>
+        public async Task RecordHintOpenedAsync()
+        {
+            NpcTurnData turn = LastNpcTurn;
+            if (
+                turn == null
+                || !CanSend
+                || string.IsNullOrEmpty(HintText)
+                || hintOpenedTurnId == turn.TurnId
+                || hintOpeningTurnId == turn.TurnId
+            )
+                return;
+            hintOpeningTurnId = turn.TurnId;
+            try
+            {
+                await api.GetHintAsync(turn.TurnId, NewRequestId());
+                if (LastNpcTurn == turn)
+                    hintOpenedTurnId = turn.TurnId;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning($"힌트 열기 기록을 남기지 못했어요: {exception.Message}");
+            }
+            finally
+            {
+                if (hintOpeningTurnId == turn.TurnId)
+                    hintOpeningTurnId = null;
+            }
         }
 
         /// <summary>
@@ -945,6 +988,7 @@ namespace A305.Dialogue
             LastNpcGlossary = turn.Glossary;
             HintText = null;
             HintMeaningKo = null;
+            suggestionsRequest = Task.CompletedTask;
             NpcSpoke?.Invoke(turn);
         }
 
@@ -999,12 +1043,10 @@ namespace A305.Dialogue
             IsSuggestingWords = true;
             Changed?.Invoke();
             List<string> words = null;
+            SuggestWordsData result = null;
             try
             {
-                SuggestWordsData result = await api.GetSuggestWordsAsync(
-                    turn.TurnId,
-                    NewRequestId()
-                );
+                result = await api.GetSuggestWordsAsync(turn.TurnId, NewRequestId());
                 words = result?.SuggestWords;
             }
             catch (Exception exception)
@@ -1015,12 +1057,14 @@ namespace A305.Dialogue
 
             turn.SuggestWords = words;
             // 단어를 기다리는 사이 NPC가 새로 말했으면 지난 대사의 단어는 보여 주지 않는다.
-            if (LastNpcTurn != turn)
+            if (LastNpcTurn != turn || endRequested || IsEnded)
             {
                 return;
             }
 
             SuggestWords = words;
+            HintText = result?.HintText;
+            HintMeaningKo = result?.HintMeaningKo;
             IsSuggestingWords = false;
             Changed?.Invoke();
         }

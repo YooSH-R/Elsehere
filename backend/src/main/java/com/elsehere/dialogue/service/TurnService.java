@@ -97,6 +97,7 @@ public class TurnService {
   private final Clock clock;
   private final DialogueRequestLocks requestLocks;
   private final EarlyReplies earlyReplies;
+  private final MeaningPreparation meaningPreparation;
 
   public TurnResponse send(Long userId, Long conversationId, TurnRequest request) {
     return send(userId, conversationId, request, null);
@@ -124,13 +125,18 @@ public class TurnService {
    */
   public TurnResponse send(
       Long userId, Long conversationId, TurnRequest request, TurnEvents events) {
+    TurnResponse response;
     try {
-      return requestLocks.execute(
-          userId, request.requestId(), () -> sendOnce(userId, conversationId, request, events));
+      response =
+          requestLocks.execute(
+              userId, request.requestId(), () -> sendOnce(userId, conversationId, request, events));
     } catch (RuntimeException exception) {
       releaseFinalTurnClaim(userId, conversationId, request.requestId());
       throw exception;
     }
+    // 대답을 저장한 트랜잭션이 끝난 뒤 [뜻 보기]를 미리 만든다. 다시 보낸 요청이면 저장된 뜻이 있어 AI를 부르지 않는다.
+    meaningPreparation.prepare(userId, response.npcTurn().turnId(), request.requestId());
+    return response;
   }
 
   // events가 null이면 대답을 끝까지 모아 한 번에 응답한다.

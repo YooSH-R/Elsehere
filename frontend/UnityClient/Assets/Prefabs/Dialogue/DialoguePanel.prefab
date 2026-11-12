@@ -6120,7 +6120,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 1.4
 --- !u!114 &2471452163319889345
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6217,7 +6217,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: baf304c372c8ca2418d271d53f876de0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.Theme::A305.Theme.SurfaceBleed
-  margin: {x: 8, y: 10}
+  margin: {x: 5.714286, y: 7.142857}
 --- !u!114 &3061094238758394650
 MonoBehaviour:
   m_ObjectHideFlags: 0

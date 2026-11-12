@@ -118,11 +118,13 @@ namespace A305.EditorTools.Dialogue
             theme.FindProperty("role").enumValueIndex = (int)UiThemeRole.PillButton;
             theme.FindProperty("tone").enumValueIndex = (int)UiTone.Neutral;
             theme.ApplyModifiedPropertiesWithoutUndo();
-            listen.GetComponent<ThemedElement>().ApplyCurrent();
             var listenRect = (RectTransform)listen;
             listenRect.anchorMin = listenRect.anchorMax = listenRect.pivot = Vector2.one;
             listenRect.anchoredPosition = new Vector2(-20, -16);
             listenRect.sizeDelta = new Vector2(108, 42);
+            // 낮은 버튼의 양 끝이 둥글게 보이도록 알약 그림의 배율을 맞춘다.
+            listen.GetComponent<Image>().pixelsPerUnitMultiplier = 1.4f;
+            listen.GetComponent<ThemedElement>().ApplyCurrent();
             BuilderTools.GetOrAddComponent<LayoutElement>(listen.gameObject).ignoreLayout = true;
             listen.GetComponent<Button>().navigation = new Navigation
             {

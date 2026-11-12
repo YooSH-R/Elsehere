@@ -115,20 +115,27 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(NpcSubtitlePreference.ShowsSubtitles, Is.False);
         }
 
-        // 대화를 연 뒤 자막을 켜도 알약 위아래 모서리가 버튼 높이를 넘지 않아야 한다.
+        // 자막 표시 상태가 바뀌어도 버튼의 모양과 색은 자막 켜기와 같아야 한다.
         [UnityTest]
-        public IEnumerator SubtitlesOn_PillCornersFitInsideTheButtonHeight()
+        public IEnumerator SubtitleButton_KeepsItsAppearanceWhenSubtitlesAreEnabled()
         {
             yield return Show(new SpokenContent(speaksNpcLines: true));
 
-            ClickCenterOf(FindButton("SubtitleButton"));
+            Button subtitle = FindButton("SubtitleButton");
+            Image image = subtitle.GetComponent<Image>();
+            Sprite originalSprite = image.sprite;
+            Color originalColor = image.color;
+            Material originalMaterial = image.material;
+            float originalPixelsPerUnit = image.pixelsPerUnitMultiplier;
+
+            ClickCenterOf(subtitle);
             yield return null;
 
-            var image = FindButton("SubtitleButton").GetComponent<Image>();
-            float corners =
-                (image.sprite.border.y + image.sprite.border.w)
-                / (image.pixelsPerUnit * image.pixelsPerUnitMultiplier);
-            Assert.That(corners, Is.LessThan(image.rectTransform.rect.height));
+            Assert.That(Caption(subtitle), Is.EqualTo("자막 끄기"));
+            Assert.That(image.sprite, Is.SameAs(originalSprite));
+            Assert.That(image.color, Is.EqualTo(originalColor));
+            Assert.That(image.material, Is.SameAs(originalMaterial));
+            Assert.That(image.pixelsPerUnitMultiplier, Is.EqualTo(originalPixelsPerUnit));
         }
 
         // 음성 없이 글로만 진행하는 대본 대화는 가리면 대사를 알 방법이 없다.

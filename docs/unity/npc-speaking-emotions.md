@@ -45,7 +45,7 @@
 
 ## 존박 공연 캐릭터
 
-게임에 표시되는 이름은 **John**이며 `CafeFemaleEmotions.asset`의 16종 감정과 같은 발음 채널을 사용합니다. 기존 에셋 참조와 연결을 유지하기 위해 내부 코드는 `TOWN_JOHN_PARK`, 파일명은 `LittleMung_JohnPark_Male`로 유지합니다. `NpcIdentity`·`DialogueSpeaker`를 연결하며 백엔드 시드와 로컬 검수 대본의 이름은 John, 역할은 뮤지션입니다. 기본 음성 `am_michael`은 서비스의 합성 목소리이며 실제 가수의 음성을 복제하지 않습니다. 서버 시드와 클라이언트 변경의 배포는 별도입니다.
+게임에 표시되는 이름은 **John**이며 `CafeFemaleEmotions.asset`의 16종 감정과 같은 발음 채널을 사용합니다. 기존 에셋 참조와 연결을 유지하기 위해 내부 코드는 `TOWN_JOHN_PARK`, 파일명은 `LittleMung_JohnPark_Male`로 유지합니다. `NpcIdentity`·`DialogueSpeaker`를 연결하며 백엔드 시드와 로컬 검수 대본의 이름은 John, 역할은 뮤지션입니다. 일반 대화·저장 랩·안내 모두 저음 남성 합성 목소리 `am_onyx`를 사용하며 실제 가수의 음성을 복제하지 않습니다. 랩의 속도·박자·음성 가공은 일반 대화와 다릅니다. 서버 시드와 클라이언트 변경의 배포는 별도이며, 이미 생성된 음성은 바뀌지 않고 새 합성부터 적용됩니다.
 
 공용 외형 표 `NpcCast`에도 `NpcLooks.John`으로 같은 프리팹을 등록합니다. 이 외형의
 `UsesRecordedPerformance`는 공용 외형 갱신에서 Humanoid 재연결·보행 복사본·배색 변경을 적용하지 않고
@@ -68,6 +68,13 @@ Production의 공용 오프라인 대본에도 John과 뮤지션 역할을 등�
 `JohnParkDialogueBuilder.BuildAndValidate`는 저작 결과 적용, 두 검수 씬 연결, 정면·사선 렌더와 음성/감정/잡기 검증을 실행합니다. 기존 감정 메시를 다시 적용하므로 수동 편집분이 있으면 먼저 보관합니다. `JohnParkDialogueTests`는 서버를 호출하지 않고 실제 `DialogueController → DialogueSpeaker → DialogueServerLink → CharacterSpeechPlayer` 경로의 시작·재생·종료와 감정/발음 동시 적용을 확인합니다.
 
 ### John의 저장 안내와 랩 버튼
+
+음성과 입모양은 `CharacterSpeechPlayer`가 읽는 `AudioSource.timeSamples`를 기준으로 갱신하고,
+랩의 몸동작도 같은 재생 시각을 사용합니다. 창의 포커스를 잃거나 앱이 일시정지되면 음성을
+함께 멈추고, 포커스와 앱 실행이 모두 복귀한 뒤 같은 위치에서 이어 재생합니다. 브라우저 오디오
+컨텍스트가 늦게 복귀하는 동안에는 발음 시간표와 공연 상태를 종료하지 않습니다. 수동 일시정지는
+창 복귀만으로 풀리지 않으며, 대화를 종료한 음성은 다시 재생하지 않습니다. 일반 대화의 다음
+음성 조각도 일시정지된 앞 조각을 기다립니다.
 
 `Assets/Data/Npc/JohnPark/OrderRap.asset`은 랩과 안내의 **영문·한국어 번역·음성 참조**를 함께
 보관합니다. `Assets/Audio/Characters/JohnParkDialogue/ReplayGuide.bytes`에는 로컬 `am_onyx`

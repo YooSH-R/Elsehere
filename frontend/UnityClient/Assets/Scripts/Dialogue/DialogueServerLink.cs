@@ -289,7 +289,9 @@ namespace A305.Dialogue
         }
 
         private bool IsSpeaking =>
-            speaker != null ? speaker.IsPlaying : speechSource != null && speechSource.isPlaying;
+            speaker != null
+                ? speaker.IsPlaying || speaker.IsPaused
+                : speechSource != null && speechSource.isPlaying;
 
         /// <summary>지금 대사의 음성을 처음부터 다시 재생한다.</summary>
         public void ReplaySpeech()

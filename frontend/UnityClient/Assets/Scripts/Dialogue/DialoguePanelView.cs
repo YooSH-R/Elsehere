@@ -850,12 +850,25 @@ namespace A305.Dialogue
             }
         }
 
-        // [다른 표현 N개 더 보기]·[접기]. 펼치거나 접을 때마다 맨 위부터 보인다.
+        // [다른 표현 N개 더 보기]·[접기]. 펼치면 펼친 것이 바로 보이게 '이렇게도 말할 수 있어요'까지 내려 보이고
+        // (고친 문장이 짧아 다 보이면 그대로 둔다), 접으면 맨 위로 돌아간다.
         private void ToggleOtherExpressions()
         {
             othersOpen = !othersOpen;
             translationBody.anchoredPosition = Vector2.zero;
             Refresh();
+            if (!othersOpen)
+                return;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(translationBody);
+            var viewport = (RectTransform)translationBody.parent;
+            float room = translationBody.rect.height - viewport.rect.height;
+            float heading = -othersHeading.rectTransform.anchoredPosition.y;
+            heading -=
+                othersHeading.rectTransform.rect.height * (1 - othersHeading.rectTransform.pivot.y);
+            translationBody.anchoredPosition = new Vector2(
+                0,
+                Mathf.Clamp(heading, 0, Mathf.Max(0, room))
+            );
         }
 
         /// <summary>카드의 표현이 방금 영어로 한 말의 교정문인지. 마지막 내 말에 한글이 있으면 번역이다.</summary>

@@ -183,7 +183,7 @@ namespace A305.EditorTools.Dialogue
             divider.gameObject.SetActive(false);
         }
 
-        // 표현이 카드 상한보다 길 때만 보이는 오른쪽 가는 스크롤 막대. 끌거나 휠로 아래에 더 읽을 줄이 있다는 것을 알린다.
+        // 카드 내용이 카드 칸보다 길 때만 보이는 오른쪽 스크롤 막대. 밝은 카드 위에서도 아래에 더 있다는 것을 알아보게 굵고 진하게 칠한다.
         // 머리줄 아래부터 글자 칸 아래까지, 글자(오른쪽 24 안쪽)와 겹치지 않게 카드 오른쪽 끝에 둔다.
         private static Scrollbar FindOrCreateScrollbar(RectTransform card)
         {
@@ -191,10 +191,10 @@ namespace A305.EditorTools.Dialogue
             bar.anchorMin = new Vector2(1, 0);
             bar.anchorMax = Vector2.one;
             bar.pivot = new Vector2(1, .5f);
-            bar.offsetMin = new Vector2(-14, 20);
+            bar.offsetMin = new Vector2(-16, 20);
             bar.offsetMax = new Vector2(-6, -64);
             Image track = BuilderTools.GetOrAddComponent<Image>(bar.gameObject);
-            RoundBar(track, new Color(0, 0, 0, .08f));
+            RoundBar(track, new Color(0, 0, 0, .12f));
 
             RectTransform handle = FindRect(bar, "Handle");
             handle.anchorMin = Vector2.zero;
@@ -202,7 +202,7 @@ namespace A305.EditorTools.Dialogue
             handle.offsetMin = handle.offsetMax = Vector2.zero;
             Image handleImage = BuilderTools.GetOrAddComponent<Image>(handle.gameObject);
             // 밝은 카드 위에서도 아래에 더 읽을 줄이 있다는 걸 바로 알아보게 진하게 칠한다.
-            RoundBar(handleImage, new Color(0, 0, 0, .45f));
+            RoundBar(handleImage, new Color(0, 0, 0, .6f));
 
             Scrollbar scrollbar = BuilderTools.GetOrAddComponent<Scrollbar>(bar.gameObject);
             scrollbar.handleRect = handle;
@@ -213,12 +213,12 @@ namespace A305.EditorTools.Dialogue
             return scrollbar;
         }
 
-        // 기본 둥근 판 그림의 모서리(10)를 막대 폭(8)의 절반으로 줄여 양 끝을 둥글게 한다.
+        // 기본 둥근 판 그림의 모서리(10)를 막대 폭(10)의 절반으로 줄여 양 끝을 둥글게 한다.
         private static void RoundBar(Image image, Color color)
         {
             image.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
             image.type = Image.Type.Sliced;
-            image.pixelsPerUnitMultiplier = 10f / 4f;
+            image.pixelsPerUnitMultiplier = 10f / 5f;
             image.color = color;
         }
 

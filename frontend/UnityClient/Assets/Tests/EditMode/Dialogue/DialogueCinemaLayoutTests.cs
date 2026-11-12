@@ -137,9 +137,9 @@ namespace A305.Dialogue.Tests
             Assert.That(layout.Name.yMin, Is.GreaterThanOrEqualTo(layout.Lines.yMax));
         }
 
-        // 영어 표현 카드는 내용만큼만 차지하고, 대사 칸 위쪽에 맞춰 붙는다(S15P31A305-862).
+        // 영어 표현 카드는 내용만큼만 차지하고, 최근 대사가 있는 대사 칸 아래쪽에 맞춰 붙는다(S15P31A305-862).
         [Test]
-        public void ShortCard_ShrinksToItsContent_AtTheTopOfTheLines()
+        public void ShortCard_ShrinksToItsContent_AtTheBottomOfTheLines()
         {
             DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
                 Wide,
@@ -150,7 +150,7 @@ namespace A305.Dialogue.Tests
             );
 
             Assert.That(layout.Translation.height, Is.EqualTo(130).Within(.01f));
-            Assert.That(layout.Translation.yMax, Is.EqualTo(layout.Lines.yMax).Within(.01f));
+            Assert.That(layout.Translation.yMin, Is.EqualTo(layout.Lines.yMin).Within(.01f));
         }
 
         // 카드가 길어지거나 다른 표현을 펼쳐도 대사 칸 높이까지만 커지고, 대화창은 그대로다. 넘치면 카드 안에서 스크롤한다.
@@ -241,6 +241,8 @@ namespace A305.Dialogue.Tests
             Assert.That(small.Translation.height, Is.EqualTo(130).Within(.01f));
             Assert.That(small.Height, Is.EqualTo(tall.Height).Within(.01f));
             Assert.That(tall.Translation.yMin, Is.GreaterThan(tall.Lines.yMax));
+            // 짧은 카드도 대사 바로 위에 붙고, 칸의 남는 곳은 이름 줄 쪽에 둔다.
+            Assert.That(small.Translation.yMin, Is.EqualTo(tall.Translation.yMin).Within(.01f));
             Assert.That(tall.Name.yMin, Is.GreaterThan(tall.Translation.yMax));
             Assert.That(tall.Height, Is.LessThanOrEqualTo(height + .1f));
         }

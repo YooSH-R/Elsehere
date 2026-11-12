@@ -23,8 +23,9 @@ namespace A305.Dialogue
         /// <summary>
         /// 영어 표현 카드 칸의 기본 높이. 대사 옆 카드 칸은 대사 칸과 이 높이 중 큰 쪽이고, 좁은 화면에서 대사 위에 쌓는 칸은 이 높이다.
         /// 칸 높이는 카드 내용과 상관없이 정해져, 카드가 길어지거나 펼쳐져도 대화창은 그대로다.
+        /// 대화가 짧아도 다른 표현을 펼치면 '이렇게도 말할 수 있어요'와 두 줄짜리 문장 칸 하나가 통째로 보이는 높이다.
         /// </summary>
-        public const float TranslationHeight = 168;
+        public const float TranslationHeight = 256;
         private const float TranslationSideBySideWidth = 1100;
 
         // 둥근 이름표가 대사 글자 줄보다 앞으로 나오는 폭. 같은 자리에서 시작하면 둥근 끝 때문에 이름표가 안쪽으로 들어가 보인다.
@@ -95,16 +96,17 @@ namespace A305.Dialogue
             {
                 bool sideBySide = width >= TranslationSideBySideWidth;
                 // 카드는 내용만큼만 차지하고 칸보다 길면 안에서 스크롤한다. 칸 높이는 내용과 상관없이 정한다.
+                // 카드는 학습자의 최근 말이 있는 칸 아래쪽에 붙고, 칸의 남는 곳은 이름 줄 쪽에 둔다.
                 if (sideBySide)
                 {
                     float room = Mathf.Max(layout.Lines.height, TranslationHeight);
                     float cardHeight = Mathf.Min(translationHeight, room);
                     bodyTop = Mathf.Max(bodyTop, layout.Lines.yMin + room);
-                    layout.Translation = Rect.MinMaxRect(
+                    layout.Translation = new Rect(
                         layout.Lines.xMax + 2 * Gap,
-                        bodyTop - cardHeight,
-                        right,
-                        bodyTop
+                        layout.Lines.yMin,
+                        right - layout.Lines.xMax - 2 * Gap,
+                        cardHeight
                     );
                     layout.TranslationDivider = new Rect(
                         layout.Lines.xMax + Gap,
@@ -115,10 +117,9 @@ namespace A305.Dialogue
                 }
                 else
                 {
-                    float roomTop = bodyTop + Gap + TranslationHeight;
                     float cardHeight = Mathf.Min(translationHeight, TranslationHeight);
-                    layout.Translation = new Rect(left, roomTop - cardHeight, width, cardHeight);
-                    bodyTop = roomTop;
+                    layout.Translation = new Rect(left, bodyTop + Gap, width, cardHeight);
+                    bodyTop += Gap + TranslationHeight;
                 }
             }
             layout.Name = new Rect(left - NameOutdent, bodyTop + Gap, nameWidth, NameHeight);

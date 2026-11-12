@@ -97,6 +97,7 @@ namespace A305.EditorTools.Npc
                     light.transform.rotation = Quaternion.LookRotation(-front + Vector3.down * .6f);
                     Save(camera, Path.Combine(output, code + "-" + angle + ".png"), 900, 900);
                 }
+                CaptureApronViews(actor, camera, bounds, code + "-Rest");
                 using (var preview = new TripoMotionPreview(actor))
                 {
                     foreach (
@@ -127,11 +128,38 @@ namespace A305.EditorTools.Npc
                             900,
                             900
                         );
+                        CaptureApronViews(
+                            actor,
+                            camera,
+                            bounds,
+                            code + "-" + pose.Item1 + "-" + pose.Item2
+                        );
                     }
                 }
                 foreach (var snapshot in snapshots)
                     Object.DestroyImmediate(snapshot.mesh);
             }
+        }
+
+        private static void CaptureApronViews(
+            GameObject actor,
+            Camera camera,
+            Bounds bounds,
+            string name
+        )
+        {
+            float originalSize = camera.orthographicSize;
+            Vector3 target = bounds.center;
+            target.y = bounds.min.y + bounds.size.y * .32f;
+            camera.orthographicSize = bounds.size.y * .24f;
+            Vector3 front = BuilderTools.GetCharacterViewDirection(actor, 0);
+            foreach (int angle in new[] { 45, 90, 180 })
+            {
+                camera.transform.position = target + Quaternion.Euler(0, angle, 0) * front * 4;
+                camera.transform.LookAt(target);
+                Save(camera, Path.Combine(Output, name + "-Apron-" + angle + ".png"), 900, 900);
+            }
+            camera.orthographicSize = originalSize;
         }
 
         public static void CaptureRestaurant()

@@ -177,7 +177,7 @@ namespace A305.EditorTools.Npc
                 if (refit || AssetDatabase.LoadAssetAtPath<Mesh>(bodyPath) == null)
                     SaveMesh(FitHairUnderCap(body, points, facing, fit), bodyPath);
                 if (refit || AssetDatabase.LoadAssetAtPath<Mesh>(apronPath) == null)
-                    SaveMesh(CreateApron(animator, points, bounds, facing), apronPath);
+                    SaveMesh(CreateApron(animator, body, points, bounds, facing), apronPath);
             }
             finally
             {
@@ -480,33 +480,57 @@ namespace A305.EditorTools.Npc
 
         private static Mesh CreateApron(
             Animator animator,
-            Vector3[] body,
+            SkinnedMeshRenderer body,
+            Vector3[] fittedVertices,
             Bounds bounds,
             Quaternion facing
         )
         {
             float height = bounds.size.y;
             Transform[] bones = ApronBones.Select(animator.GetBoneTransform).ToArray();
+            var torsoBones = new HashSet<Transform>(bones)
+            {
+                animator.GetBoneTransform(HumanBodyBones.Neck),
+            };
+            Transform[] bodyBones = body.bones;
+            bool IsTorsoBone(int index) => torsoBones.Contains(bodyBones[index]);
+            BoneWeight[] bodyWeights = body.sharedMesh.boneWeights;
+            // 허리 옆에 내려온 손과 팔은 옷 둘레 측정에서 제외한다.
+            Vector3[] fittedBody = fittedVertices
+                .Where(
+                    (point, index) =>
+                    {
+                        BoneWeight weight = bodyWeights[index];
+                        float torsoWeight =
+                            (IsTorsoBone(weight.boneIndex0) ? weight.weight0 : 0)
+                            + (IsTorsoBone(weight.boneIndex1) ? weight.weight1 : 0)
+                            + (IsTorsoBone(weight.boneIndex2) ? weight.weight2 : 0)
+                            + (IsTorsoBone(weight.boneIndex3) ? weight.weight3 : 0);
+                        return torsoWeight > .5f;
+                    }
+                )
+                .ToArray();
             Vector3 hips = Quaternion.Inverse(facing) * bones[0].position;
             float centerX = hips.x;
             float bottom = bounds.min.y + height * .17f;
             float waist = hips.y + height * .01f;
             float top = bones[3].position.y + height * .025f;
-            float halfWidth = height * .105f;
-            float apronFront =
-                body.Where(point =>
-                        point.y >= bottom
-                        && point.y <= top
-                        && Mathf.Abs(point.x - centerX) <= halfWidth
-                    )
-                    .Max(point => point.z)
-                + height * .025f;
-            float SurfaceZ(float x)
-            {
-                // 옷의 단추·주름을 그대로 복제하지 않고, 매끈한 천 한 장으로 몸 앞을 덮는다.
-                float side = (x - centerX) / halfWidth;
-                return apronFront - side * side * height * .006f;
-            }
+            float halfWidth = height * .085f;
+            Vector3 neck =
+                Quaternion.Inverse(facing)
+                * animator.GetBoneTransform(HumanBodyBones.Neck).position;
+            neck.y += height * .006f;
+            var surface = new ApronFitSurface(
+                fittedBody,
+                height,
+                centerX,
+                halfWidth,
+                bottom,
+                neck.y
+            );
+            // 자유롭게 늘어지는 아랫단에는 보행 중 바지 주름을 덮을 여유를 둔다.
+            float SurfaceZ(float x, float y) =>
+                surface.Front(x, y) + height * .006f * Mathf.InverseLerp(waist, bottom, y);
             var apron = new SurfaceMesh(
                 2,
                 point => animator.transform.InverseTransformPoint(facing * point),
@@ -524,33 +548,57 @@ namespace A305.EditorTools.Npc
                             ? Mathf.Lerp(halfWidth, halfWidth * .57f, (y - waist) / (top - waist))
                             : halfWidth * Mathf.Lerp(.94f, 1f, Mathf.Clamp01(v * 16));
                     float x = centerX + (u * 2 - 1) * width;
-                    return new Vector3(x, y, SurfaceZ(x));
+                    return new Vector3(x, y, SurfaceZ(x, y));
                 }
             );
+            var belt = new ApronBandFit(
+                fittedBody,
+                new Vector3(centerX, waist, hips.z),
+                height * .13f,
+                height * .012f,
+                height * .004f
+            );
             apron.Grid(
-                40,
+                64,
+                2,
+                0,
+                (u, v) => belt.Point(u * Mathf.PI * 2) + Vector3.up * ((v - .5f) * height * .014f)
+            );
+            var collar = new ApronBandFit(
+                fittedBody,
+                neck,
+                height * .075f,
+                height * .008f,
+                height * .003f,
+                neck.z - height * .055f
+            );
+            const float collarEndAngle = Mathf.PI / 4;
+            Vector3 CollarPoint(float angle, float width)
+            {
+                return collar.Point(angle) + Vector3.up * ((width - .5f) * height * .012f);
+            }
+            apron.Grid(
+                48,
                 2,
                 0,
                 (u, v) =>
-                {
-                    float angle = u * Mathf.PI * 2;
-                    return new Vector3(
-                        centerX + Mathf.Sin(angle) * halfWidth * .75f,
-                        waist + (v - .5f) * height * .018f,
-                        hips.z + Mathf.Cos(angle) * height * .07f
-                    );
-                }
+                    CollarPoint(Mathf.Lerp(collarEndAngle, 2 * Mathf.PI - collarEndAngle, u), v)
             );
             foreach (float side in new[] { -1f, 1f })
                 apron.Grid(
-                    2,
-                    10,
+                    4,
+                    12,
                     0,
                     (u, v) =>
                     {
-                        float y = Mathf.Lerp(top - height * .03f, top + height * .024f, v);
-                        float x = centerX + side * halfWidth * .52f + (u - .5f) * height * .015f;
-                        return new Vector3(x, y, SurfaceZ(x));
+                        float x = centerX + side * halfWidth * .52f + (u - .5f) * height * .012f;
+                        float y = top - height * .012f;
+                        var start = new Vector3(x, y, SurfaceZ(x, y));
+                        Vector3 end = CollarPoint(side * collarEndAngle + (u - .5f) * .16f, .5f);
+                        Vector3 point = Vector3.Lerp(start, end, v);
+                        float outsideShirt = Mathf.Max(point.z, SurfaceZ(point.x, point.y));
+                        point.z = Mathf.Lerp(point.z, outsideShirt, Mathf.Sin(v * Mathf.PI));
+                        return point;
                     }
                 );
             float pocketY = waist - height * .017f;
@@ -562,7 +610,7 @@ namespace A305.EditorTools.Npc
                 {
                     float x = centerX + (u - .5f) * halfWidth;
                     float y = pocketY + v * height * .006f;
-                    return new Vector3(x, y, SurfaceZ(x) + height * .003f);
+                    return new Vector3(x, y, SurfaceZ(x, y) + height * .001f);
                 }
             );
             float badgeY = top - height * .025f;
@@ -574,7 +622,7 @@ namespace A305.EditorTools.Npc
                 {
                     float x = centerX + (u - .5f) * height * .054f;
                     float y = badgeY + v * height * .014f;
-                    return new Vector3(x, y, SurfaceZ(x) + height * .003f);
+                    return new Vector3(x, y, SurfaceZ(x, y) + height * .001f);
                 }
             );
             Mesh mesh = apron.Build("BurgerStaffApron");
@@ -624,6 +672,140 @@ namespace A305.EditorTools.Npc
                 })
                 .ToArray();
             return mesh;
+        }
+
+        private sealed class ApronFitSurface
+        {
+            private readonly float[] frontRows;
+            private readonly float centerX;
+            private readonly float bottom;
+            private readonly float top;
+            private readonly float curvature;
+
+            public ApronFitSurface(
+                Vector3[] body,
+                float height,
+                float centerX,
+                float halfWidth,
+                float bottom,
+                float top
+            )
+            {
+                this.centerX = centerX;
+                this.bottom = bottom;
+                this.top = top;
+                curvature = height * .02f / (halfWidth * halfWidth);
+                frontRows = new float[12];
+                for (int row = 0; row < frontRows.Length; row++)
+                {
+                    float y = Mathf.Lerp(bottom, top, (float)row / (frontRows.Length - 1));
+                    frontRows[row] =
+                        body.Where(point =>
+                                Mathf.Abs(point.y - y) < height * .012f
+                                && Mathf.Abs(point.x - centerX) <= halfWidth
+                            )
+                            .Max(point =>
+                                point.z + curvature * (point.x - centerX) * (point.x - centerX)
+                            )
+                        + height * .003f;
+                }
+                // 작은 주름과 옷자락의 움푹한 곳을 복제하지 않고, 천이 바깥쪽을 이어 덮게 한다.
+                for (int pass = 0; pass < 2; pass++)
+                {
+                    float[] previous = (float[])frontRows.Clone();
+                    for (int row = 1; row < frontRows.Length - 1; row++)
+                        frontRows[row] = Mathf.Max(
+                            previous[row],
+                            (previous[row - 1] + 2 * previous[row] + previous[row + 1]) * .25f
+                        );
+                }
+            }
+
+            public float Front(float x, float y)
+            {
+                float row = Mathf.InverseLerp(bottom, top, y) * (frontRows.Length - 1);
+                int lower = Mathf.Min(Mathf.FloorToInt(row), frontRows.Length - 2);
+                float center = Mathf.Lerp(frontRows[lower], frontRows[lower + 1], row - lower);
+                float side = x - centerX;
+                return center - curvature * side * side;
+            }
+        }
+
+        private sealed class ApronBandFit
+        {
+            private readonly List<Vector2> outline = new List<Vector2>();
+            private readonly Vector3 center;
+            private readonly float padding;
+
+            public ApronBandFit(
+                Vector3[] body,
+                Vector3 center,
+                float halfWidth,
+                float halfHeight,
+                float padding,
+                float minimumZ = float.NegativeInfinity
+            )
+            {
+                this.center = center;
+                this.padding = padding;
+                Vector2[] points = body.Where(point =>
+                        Mathf.Abs(point.y - center.y) < halfHeight
+                        && Mathf.Abs(point.x - center.x) < halfWidth
+                        && point.z > minimumZ
+                    )
+                    .Select(point => new Vector2(point.x, point.z))
+                    .Distinct()
+                    .OrderBy(point => point.x)
+                    .ThenBy(point => point.y)
+                    .ToArray();
+                if (points.Length < 3)
+                    throw new InvalidOperationException("앞치마 끈을 맞출 몸통 단면이 없습니다.");
+
+                // 몸통 단면의 바깥 둘레를 감싸 끈이 옷 주름 속으로 파묻히지 않게 한다.
+                foreach (Vector2 point in points)
+                    Append(point, 0);
+                int lowerCount = outline.Count;
+                for (int index = points.Length - 2; index >= 0; index--)
+                    Append(points[index], lowerCount - 1);
+                outline.RemoveAt(outline.Count - 1);
+            }
+
+            private static float Cross(Vector2 left, Vector2 right) =>
+                left.x * right.y - left.y * right.x;
+
+            private void Append(Vector2 point, int start)
+            {
+                while (
+                    outline.Count >= start + 2
+                    && Cross(
+                        outline[outline.Count - 1] - outline[outline.Count - 2],
+                        point - outline[outline.Count - 1]
+                    ) <= 0
+                )
+                    outline.RemoveAt(outline.Count - 1);
+                outline.Add(point);
+            }
+
+            public Vector3 Point(float angle)
+            {
+                var origin = new Vector2(center.x, center.z);
+                var direction = new Vector2(Mathf.Sin(angle), Mathf.Cos(angle));
+                for (int index = 0; index < outline.Count; index++)
+                {
+                    Vector2 start = outline[index] - origin;
+                    Vector2 edge = outline[(index + 1) % outline.Count] - outline[index];
+                    float denominator = Cross(direction, edge);
+                    if (Mathf.Abs(denominator) < .000001f)
+                        continue;
+                    float distance = Cross(start, edge) / denominator;
+                    float alongEdge = Cross(start, direction) / denominator;
+                    if (distance < 0 || alongEdge < 0 || alongEdge > 1)
+                        continue;
+                    Vector2 point = origin + direction * (distance + padding);
+                    return new Vector3(point.x, center.y, point.y);
+                }
+                throw new InvalidOperationException("앞치마 끈의 중심이 몸통 단면 밖에 있습니다.");
+            }
         }
 
         private sealed class SurfaceMesh

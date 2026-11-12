@@ -386,6 +386,34 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("판정이 준 더 좋은 문장(better_expressions)을 읽고, 주지 않으면 빈 목록이다")
+  void judge_readsBetterExpressions() {
+    respond(
+        "/v1/judge",
+        200,
+        "application/json",
+        """
+        {"text": "Latte.", "dropped": false, "translation": null,
+         "better_expressions": ["Can I get a latte, please?", "I'd like a latte, please."], "usage": []}
+        """);
+    JudgeResult withSentences =
+        client.judge(TRACE, NPC, new WorkerState("free_talk", "", List.of()), List.of(), "Latte.");
+    respond(
+        "/v1/judge",
+        200,
+        "application/json",
+        """
+        {"text": "Hi", "dropped": false, "usage": []}
+        """);
+    JudgeResult without =
+        client.judge(TRACE, NPC, new WorkerState("free_talk", "", List.of()), List.of(), "Hi");
+
+    assertThat(withSentences.betterExpressions())
+        .containsExactly("Can I get a latte, please?", "I'd like a latte, please.");
+    assertThat(without.betterExpressions()).isEmpty();
+  }
+
+  @Test
   @DisplayName("의도 판정이 줄 사건과 그 사건으로 바로 올릴 호감도(affinity_delta)를 주면 함께 읽고, 주지 않으면 null이다")
   void judge_readsEventsAndAffinityDelta() {
     respond(

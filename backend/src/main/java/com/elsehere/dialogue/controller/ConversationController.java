@@ -188,9 +188,10 @@ public class ConversationController {
       @RequestParam(required = false) String cursor,
       @RequestParam(defaultValue = "20") int size,
       @RequestParam(defaultValue = "false") boolean feedbackOnly,
-      @RequestParam(required = false) String sceneCode) {
+      @RequestParam(required = false) String sceneCode,
+      @RequestParam(required = false) String placeGroup) {
     return conversationHistoryService.list(
-        loginUser.userId(), npcCode, sceneCode, cursor, size, feedbackOnly);
+        loginUser.userId(), npcCode, sceneCode, placeGroup, cursor, size, feedbackOnly);
   }
 
   @GetMapping("/api/v1/conversations/active")

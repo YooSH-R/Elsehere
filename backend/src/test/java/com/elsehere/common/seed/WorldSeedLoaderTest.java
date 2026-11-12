@@ -447,6 +447,17 @@ class WorldSeedLoaderTest {
   }
 
   @Test
+  @DisplayName("John의 일반 대화도 저장 랩과 같은 저음 남성 목소리를 사용한다")
+  void load_johnUsesRecordedPerformanceVoice() {
+    worldSeedLoader.load();
+
+    assertThat(npcRepository.findByCode("TOWN_JOHN_PARK"))
+        .get()
+        .extracting(Npc::getVoiceId)
+        .isEqualTo("am_onyx");
+  }
+
+  @Test
   @DisplayName("DB 카드의 profileVersion이 설정 파일과 같거나 높으면 다시 실행해도 카드를 바꾸지 않는다")
   void load_keepsProfileOfSameVersion() throws IOException {
     worldSeedLoader.load();

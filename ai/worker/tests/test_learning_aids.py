@@ -260,6 +260,21 @@ def test_hint_follows_level(client, provider, level, learner):
     assert learner in user_msg(seen["body"])
 
 
+def test_hint_prompt_leaves_out_names_and_other_personal_answers(client, provider):
+    # 추천 문장에 학습자 것이 아닌 예시 이름이 나오던 것을 막는다 ("I have a reservation under Kim.", S15P31A305-844)
+    seen = {}
+
+    def answer(b):
+        seen["body"] = b
+        return ok(json.dumps({"say_this": [{"en": "I have a reservation.", "ko": "예약했어요."}], "keywords": []}))
+
+    provider.answers["hint"] = answer
+    client.post("/v1/hint", json={"npc": NPC, "goal": "confirm the reservation name", "history": HISTORY})
+    system = seen["body"]["messages"][0]["content"]
+    assert "Never put a name (not even a sample name like Kim), date, room number, price" in system
+    assert "e.g. 'I have a reservation.'" in system
+
+
 @pytest.mark.parametrize("level", [0, 4, "hard"])
 def test_unknown_level_is_invalid_request(client, level):
     r = client.post("/v1/npc/reply", json={"npc": NPC, "history": [], "text": "hi", "level": level})

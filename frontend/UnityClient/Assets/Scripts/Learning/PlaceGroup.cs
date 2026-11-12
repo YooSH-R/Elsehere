@@ -1,7 +1,10 @@
 namespace A305.Learning
 {
-    /// <summary>대화 표현을 나누는 장소 묶음. 서버(VOCAB-01 source.placeGroup)가 NPC가 일하는 곳으로 정한다.</summary>
-    public enum VocabularyPlaceGroup
+    /// <summary>
+    /// 단어장의 대화 표현과 대화 노트를 나누는 장소 묶음. 서버(VOCAB-01 source.placeGroup, CONV-09 placeGroup)가 NPC가 일하는 곳으로 정하고,
+    /// 근무 시간 밖에 만난 대화는 일상이다.
+    /// </summary>
+    public enum PlaceGroup
     {
         /// <summary>카페, 식당, 빵집</summary>
         Food,

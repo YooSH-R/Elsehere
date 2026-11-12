@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using A305.Dialogue;
+using A305.Learning;
 using A305.ObjectHover;
 using A305.Player;
 using A305.Tutorial;
@@ -408,6 +409,355 @@ namespace A305.Npc.PlayModeTests
             Assert.That(second.transform.position.x, Is.EqualTo(-3f).Within(.1f));
             Assert.That(first.transform.position.z, Is.EqualTo(frontLane).Within(.1f));
             Assert.That(second.transform.position.z, Is.EqualTo(backLane).Within(.1f));
+        }
+
+        [UnityTest]
+        public IEnumerator ReviewArrival_PreparesWorkingStaffBeforeStartingTheCamera()
+        {
+            yield return LoadAt("CafeScene", 9 * 60, paused: true);
+            NpcRoutine mia = Routine("CAFE_STAFF");
+            KeepOnlyNpc(mia);
+            yield return WaitUntil(() => mia.IsUsing);
+            yield return StartLocalReview(mia, "working");
+        }
+
+        [UnityTest]
+        public IEnumerator ReviewArrival_StandsUpBeforePositioningThePlayerAndCamera()
+        {
+            yield return LoadAt("CafeScene", 9 * 60, paused: true);
+            NpcRoutine mia = Routine("CAFE_STAFF");
+            KeepOnlyNpc(mia);
+            INpcSeat seat = Seats().First(candidate => !candidate.IsTaken);
+            typeof(NpcRoutine)
+                .GetMethod("SitOn", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(mia, new object[] { seat });
+            Assert.That(mia.IsSeated, Is.True);
+            yield return StartLocalReview(mia, "seated");
+            Assert.That(seat.IsTaken, Is.False, "복습을 시작하면 앉아 있던 자리도 반환합니다.");
+        }
+
+        [UnityTest]
+        public IEnumerator ReviewArrival_FlowerShopWorkerReturnsFromAnotherActivity()
+        {
+            yield return LoadAt("BloomFlowersInterior", 10 * 60, paused: true);
+            using var presence = new NpcReviewPresence("FLOWER_SHOP_STAFF");
+            yield return null;
+            var npc = Object
+                .FindObjectsByType<NpcIdentity>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+                .First(item =>
+                    item.Code == "FLOWER_SHOP_STAFF" && item.GetComponent<NpcTownWalker>() == null
+                );
+            yield return null;
+            var routine = npc.GetComponent<NpcRoutine>();
+            KeepOnlyNpc(routine);
+            var controller = npc.GetComponent<CharacterController>();
+            controller.enabled = false;
+            npc.transform.SetPositionAndRotation(
+                npc.transform.position + Vector3.right * 1.2f,
+                Quaternion.Euler(0, 70, 0)
+            );
+            controller.enabled = true;
+            yield return StartLocalReview(routine, "flower-shop");
+        }
+
+        [UnityTest]
+        public IEnumerator ReviewArrival_BakeryCameraKeepsClearOfDisplays()
+        {
+            yield return LoadAt("MapleBakeryInterior", 10 * 60, paused: true);
+            using var presence = new NpcReviewPresence("BAKERY_STAFF");
+            yield return null;
+            yield return null;
+            NpcRoutine routine = Routine("BAKERY_STAFF");
+            KeepOnlyNpc(routine);
+            yield return StartLocalReview(routine, "bakery-clearance");
+        }
+
+        private static readonly string[] ReviewBuildings =
+        {
+            "CafeScene/CAFE_STAFF",
+            "HotelScene/HOTEL_STAFF",
+            "ShopScene/SHOP_STAFF",
+            "PoliceStationScene/POLICE_OFFICER",
+            "PostOfficeInterior/POST_OFFICE_STAFF",
+            "MapleDinerInterior/DINER_STAFF",
+            "TownBankInterior/BANK_STAFF",
+            "SudsLaundromatInterior/LAUNDROMAT_STAFF",
+            "BloomFlowersInterior/FLOWER_SHOP_STAFF",
+            "MainStreetBarberInterior/BARBER_STAFF",
+            "MapleBakeryInterior/BAKERY_STAFF",
+            "LittleArcadeInterior/ARCADE_STAFF",
+            "HomeLivingInterior/HOME_STORE_STAFF",
+        };
+
+        [UnityTest]
+        public IEnumerator ReviewArrival_AllBuildingsHoldTheNpcInClearDialogueView(
+            [ValueSource(nameof(ReviewBuildings))] string building
+        )
+        {
+            string[] visit = building.Split('/');
+            yield return LoadAt(visit[0], 10 * 60, paused: true);
+            using var presence = new NpcReviewPresence(visit[1]);
+            yield return null;
+            yield return null;
+            NpcRoutine routine = Routine(visit[1]);
+            Assert.That(routine, Is.Not.Null, $"{building}: 복습 대상 직원이 있어야 합니다.");
+            KeepOnlyNpc(routine);
+            yield return StartLocalReview(routine, visit[1]);
+        }
+
+        private static IEnumerator StartLocalReview(NpcRoutine npcRoutine, string scenario)
+        {
+            var body = npcRoutine.GetComponent<Passerby>();
+            var post = (Pose)
+                typeof(Passerby)
+                    .GetField("homePose", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .GetValue(body);
+            var learning = Object.FindFirstObjectByType<LearningController>();
+            var dialogue = Object.FindFirstObjectByType<DialogueController>();
+            System.Func<NpcIdentity, bool> talk = npc =>
+            {
+                Assert.That(
+                    npcRoutine.IsUsing,
+                    Is.False,
+                    "카메라를 열기 전에 생활 동작을 멈춥니다."
+                );
+                Assert.That(
+                    npcRoutine.IsSeated,
+                    Is.False,
+                    "이동할 위치를 계산하기 전에 일어납니다."
+                );
+                Assert.That(
+                    HorizontalDistance(npc.transform.position, post.position),
+                    Is.LessThan(2f),
+                    "장식을 피하더라도 응대 자리 가까이에 머뭅니다."
+                );
+                return dialogue.TryStart(npc.Code, npc.LookTarget, ConversationInitiator.User);
+            };
+            try
+            {
+                yield return (IEnumerator)
+                    typeof(LearningController)
+                        .GetMethod("ArriveAndTalk", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .Invoke(
+                            learning,
+                            new object[] { body.GetComponent<NpcIdentity>().Code, "복습", talk }
+                        );
+                Vector3 position = npcRoutine.transform.position;
+                Assert.That(
+                    body.AllowsPracticePosition(position),
+                    Is.True,
+                    "NPC는 자신의 건물 구역에 머뭅니다."
+                );
+                Vector3 shift = position - post.position;
+                Assert.That(
+                    Physics
+                        .RaycastAll(
+                            post.position + Vector3.up * .7f,
+                            shift.normalized,
+                            shift.magnitude,
+                            ~0,
+                            QueryTriggerInteraction.Ignore
+                        )
+                        .Any(hit =>
+                            hit.collider.GetComponentInParent<CharacterController>() == null
+                        ),
+                    Is.False,
+                    "NPC를 벽 반대편으로 옮기지 않습니다."
+                );
+                for (int frame = 0; frame < 20; frame++)
+                    yield return null;
+                Assert.That(
+                    HorizontalDistance(npcRoutine.transform.position, position),
+                    Is.LessThan(.02f)
+                );
+                Assert.That(
+                    Object.FindFirstObjectByType<PlayerCameraRig>().ViewMode,
+                    Is.EqualTo(CameraViewMode.Dialogue)
+                );
+                var counter = (Bounds)
+                    typeof(NpcRoutine)
+                        .GetField("counterBounds", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .GetValue(npcRoutine);
+                Vector3 customer = Object.FindFirstObjectByType<PlayerMover>().transform.position;
+                Vector3 from = new Vector3(position.x, counter.center.y, position.z);
+                Vector3 to = new Vector3(customer.x, counter.center.y, customer.z);
+                int side =
+                    Mathf.Abs((post.position.x - counter.center.x) / counter.extents.x)
+                    > Mathf.Abs((post.position.z - counter.center.z) / counter.extents.z)
+                        ? 0
+                        : 2;
+                // 카페는 카운터 너머, 꽃집은 카운터 옆 실내 응대 자리다.
+                if (scenario == "working" || scenario == "seated")
+                    Assert.That(
+                        (from[side] - counter.center[side]) * (to[side] - counter.center[side]),
+                        Is.LessThan(0),
+                        "손님이 카운터 직원 쪽으로 들어가지 않아야 합니다."
+                    );
+                Assert.That(
+                    body.AllowsPracticePosition(customer),
+                    Is.True,
+                    "손님도 직원과 같은 층의 실내에 머뭅니다."
+                );
+                Assert.That(counter.Contains(to), Is.False, "손님을 카운터 안에 놓지 않습니다.");
+                var camera = Object.FindFirstObjectByType<PlayerCameraRig>();
+                Vector3 face = body.GetComponent<NpcIdentity>().LookTarget.position;
+                Vector3 toCamera = camera.transform.position - face;
+                var obstacles = Physics
+                    .RaycastAll(
+                        face,
+                        toCamera.normalized,
+                        toCamera.magnitude,
+                        ~0,
+                        QueryTriggerInteraction.Ignore
+                    )
+                    .Where(hit =>
+                        !hit.transform.IsChildOf(body.transform)
+                        && !hit.transform.IsChildOf(
+                            Object.FindFirstObjectByType<PlayerMover>().transform
+                        )
+                    )
+                    .Select(hit => $"{hit.transform.name}:{hit.distance:F2}")
+                    .ToArray();
+                Assert.That(
+                    obstacles,
+                    Is.Empty,
+                    $"{scenario}: npc={position}, face={face}, camera={camera.transform.position}, player={customer}, counter={counter}"
+                );
+                yield return CaptureReviewPose(scenario);
+                if (scenario == "bakery-clearance")
+                    Assert.That(
+                        Object
+                            .FindObjectsByType<Renderer>(FindObjectsSortMode.None)
+                            .Where(item =>
+                                item.gameObject.scene == body.gameObject.scene
+                                && item.enabled
+                                && item.sharedMaterial != null
+                                && item.sharedMaterial.renderQueue < 2500
+                                && item.GetComponentInParent<NpcIdentity>() == null
+                                && item.GetComponentInParent<PlayerMover>() == null
+                                && item.bounds.SqrDistance(camera.transform.position) < .45f * .45f
+                            )
+                            .Select(item =>
+                                $"{item.name}: {Mathf.Sqrt(item.bounds.SqrDistance(camera.transform.position)):F2}m"
+                            )
+                            .ToArray(),
+                        Is.Empty,
+                        "카메라가 진열대나 벽에 붙어 화면을 막지 않아야 합니다."
+                    );
+                var meshObstacles = Object
+                    .FindObjectsByType<Renderer>(FindObjectsSortMode.None)
+                    .Where(renderer =>
+                        renderer.gameObject.scene == body.gameObject.scene
+                        && renderer.enabled
+                        && renderer.GetComponentInParent<NpcIdentity>() == null
+                        && renderer.GetComponentInParent<PlayerMover>() == null
+                        && renderer.sharedMaterial != null
+                        && renderer.sharedMaterial.renderQueue < 2500
+                    )
+                    .Where(renderer =>
+                        renderer.bounds.IntersectRay(
+                            new Ray(face, toCamera.normalized),
+                            out float distance
+                        )
+                        && distance < toCamera.magnitude
+                    )
+                    .Select(renderer => renderer.name)
+                    .ToArray();
+                Assert.That(
+                    meshObstacles,
+                    Is.Empty,
+                    "콜라이더가 없는 장식도 얼굴을 가리지 않아야 합니다."
+                );
+                Vector3 mouth = face - Vector3.up * .28f;
+                Vector3 mouthToCamera = camera.transform.position - mouth;
+                Assert.That(
+                    Object
+                        .FindObjectsByType<Renderer>(FindObjectsSortMode.None)
+                        .Where(renderer =>
+                            renderer.gameObject.scene == body.gameObject.scene
+                            && renderer.enabled
+                            && renderer.GetComponentInParent<NpcIdentity>() == null
+                            && renderer.GetComponentInParent<PlayerMover>() == null
+                            && renderer.sharedMaterial != null
+                            && renderer.sharedMaterial.renderQueue < 2500
+                        )
+                        .Any(renderer =>
+                            renderer.bounds.IntersectRay(
+                                new Ray(mouth, mouthToCamera.normalized),
+                                out float distance
+                            )
+                            && distance < mouthToCamera.magnitude
+                        ),
+                    Is.False,
+                    "눈뿐 아니라 입까지 카운터와 장식에 가리지 않아야 합니다."
+                );
+            }
+            finally
+            {
+                if (dialogue.IsTalking)
+                    dialogue.End();
+            }
+        }
+
+        private static IEnumerator CaptureReviewPose(string scenario)
+        {
+            string output = System.Environment.GetEnvironmentVariable("REVIEW_POSE_CAPTURE_DIR");
+            if (string.IsNullOrWhiteSpace(output))
+                yield break;
+            Directory.CreateDirectory(output);
+            Object.FindFirstObjectByType<ControlsGuideView>()?.SetBlocked(true);
+            Object.FindFirstObjectByType<A305.Mission.FirstDayMissionView>()?.FoldQuestCard();
+            Object
+                .FindFirstObjectByType<DialogueController>()
+                .SetReviewReference(
+                    new[]
+                    {
+                        new ReviewReferenceItem("It's for a friend.", "친구에게 줄 거예요.", false),
+                    },
+                    0,
+                    "<b>상황 복습</b>\n\n이 장소에서 부탁할 일을 이야기해 보세요."
+                );
+            Camera camera = Object.FindFirstObjectByType<PlayerCameraRig>().GetComponent<Camera>();
+            Canvas[] canvases = Object
+                .FindObjectsByType<Canvas>(FindObjectsSortMode.None)
+                .Where(canvas =>
+                    canvas.isRootCanvas && canvas.renderMode == RenderMode.ScreenSpaceOverlay
+                )
+                .ToArray();
+            foreach (Canvas canvas in canvases)
+            {
+                canvas.renderMode = RenderMode.ScreenSpaceCamera;
+                canvas.worldCamera = camera;
+                canvas.planeDistance = .3f;
+            }
+            foreach (
+                Vector2Int size in new[] { new Vector2Int(1600, 900), new Vector2Int(844, 390) }
+            )
+            {
+                var target = new RenderTexture(size.x, size.y, 24);
+                var pixels = new Texture2D(size.x, size.y, TextureFormat.RGB24, false);
+                camera.targetTexture = target;
+                camera.aspect = (float)size.x / size.y;
+                yield return null;
+                yield return null;
+                RenderTexture previous = RenderTexture.active;
+                RenderTexture.active = target;
+                pixels.ReadPixels(new Rect(0, 0, size.x, size.y), 0, 0);
+                pixels.Apply();
+                RenderTexture.active = previous;
+                File.WriteAllBytes(
+                    Path.Combine(output, $"{scenario}-{size.x}x{size.y}.png"),
+                    pixels.EncodeToPNG()
+                );
+                camera.targetTexture = null;
+                Object.Destroy(pixels);
+                Object.Destroy(target);
+            }
+            foreach (Canvas canvas in canvases)
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         }
 
         [UnityTest]

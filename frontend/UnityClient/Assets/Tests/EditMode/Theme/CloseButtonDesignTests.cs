@@ -8,7 +8,8 @@ using UnityEngine.UI;
 namespace A305.Theme.Tests
 {
     /// <summary>
-    /// 창 오른쪽 위 닫기 X는 어느 화면이든 같은 흰 원 바탕에 같은 진회색 X를 쓴다. 창은 52, 작은 카드는 44이고 오른쪽 위 안쪽 20에 둔다.
+    /// 창 오른쪽 위 닫기 X는 어느 화면이든 같은 흰 원 바탕에 같은 진회색 X를 쓴다. 창은 52, 작은 카드는 44이다.
+    /// 기본 여백은 20이며, 큰 지도에서는 길 안내 버튼과 같은 머리줄에 둔다.
     /// 여러 Builder가 각자 X를 만들어 모양이 네 가지로 갈렸던 것을 막는다(S15P31A305-525).
     /// </summary>
     public class CloseButtonDesignTests
@@ -44,7 +45,10 @@ namespace A305.Theme.Tests
             Assert.That(button.sizeDelta, Is.EqualTo(new Vector2(size, size)), "크기");
             Assert.That(button.anchorMin, Is.EqualTo(Vector2.one), "오른쪽 위에 붙임");
             Assert.That(button.anchorMax, Is.EqualTo(Vector2.one), "오른쪽 위에 붙임");
-            Assert.That(button.anchoredPosition, Is.EqualTo(new Vector2(-20, -20)), "안쪽 20");
+            if (prefabPath == Mission && buttonPath == "Content/MapOverlay/Panel/CloseButton")
+                AssertMapHeaderAlignment(button);
+            else
+                Assert.That(button.anchoredPosition, Is.EqualTo(new Vector2(-20, -20)), "안쪽 20");
 
             var face = button.GetComponent<Image>();
             Assert.That(face.sprite.name, Is.EqualTo("CloseButtonFace"), "흰 원 바탕");
@@ -103,6 +107,23 @@ namespace A305.Theme.Tests
             Assert.That(label.gameObject.activeSelf, Is.True);
             Assert.That(label.text, Is.EqualTo("닫기"));
             Assert.That(label.color.maxColorComponent, Is.LessThan(.35f), "진회색 글자");
+        }
+
+        private static void AssertMapHeaderAlignment(RectTransform close)
+        {
+            var route = (RectTransform)close.parent.Find("RouteToggle");
+            Assert.That(route, Is.Not.Null);
+            Assert.That(route.anchorMin, Is.EqualTo(close.anchorMin));
+            Assert.That(route.anchorMax, Is.EqualTo(close.anchorMax));
+            Vector2 closeCentre = close.anchoredPosition + close.rect.center;
+            Vector2 routeCentre = route.anchoredPosition + route.rect.center;
+            Assert.That(routeCentre.y, Is.EqualTo(closeCentre.y).Within(.01f), "같은 머리줄");
+            Assert.That(route.rect.height, Is.EqualTo(close.rect.height), "같은 버튼 높이");
+            float routeRight = route.anchoredPosition.x + route.rect.xMax;
+            float closeLeft = close.anchoredPosition.x + close.rect.xMin;
+            Assert.That(routeRight, Is.LessThan(closeLeft), "길 안내는 X 왼쪽에 간격을 두고 배치");
+            Assert.That(close.anchoredPosition.x, Is.LessThan(-20f), "오른쪽 여백 확대");
+            Assert.That(close.anchoredPosition.y, Is.LessThan(-20f), "위쪽 여백 확대");
         }
 
         private static GameObject Load(string path)

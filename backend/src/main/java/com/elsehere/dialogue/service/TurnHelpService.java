@@ -5,6 +5,8 @@ import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.service.AiGateway;
+import com.elsehere.common.error.BusinessException;
+import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.GlossaryResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
@@ -16,11 +18,13 @@ import com.elsehere.dialogue.dto.SuggestWordsResponse;
 import com.elsehere.mission.service.QuestTalk;
 import com.elsehere.mission.service.QuestTalkService;
 import com.elsehere.review.service.ReviewCardService;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.core.type.TypeReference;
@@ -32,6 +36,7 @@ import tools.jackson.databind.json.JsonMapper;
  * <p>AI를 기다리는 동안 DB 트랜잭션을 잡지 않도록 조회 → AI 호출 → 저장을 나눈다.
  */
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class TurnHelpService {
 
@@ -84,6 +89,17 @@ public class TurnHelpService {
   /** 힌트는 워커가 주는 추천 문장 중 가장 쉬운 첫 문장을 쓴다. */
   public HintResponse hint(Long userId, Long turnId, UUID requestId) {
     HintTarget target = transactionTemplate.execute(status -> hintTarget(userId, turnId));
+    HintResponse hint = prepareHint(userId, turnId, requestId, target);
+    Instant openedAt = clock.instant();
+    transactionTemplate.executeWithoutResult(
+        status ->
+            turnRepository
+                .findById(turnId)
+                .ifPresent(turn -> turn.openHint(hint.hintText(), hint.hintMeaningKo(), openedAt)));
+    return hint;
+  }
+
+  private HintResponse prepareHint(Long userId, Long turnId, UUID requestId, HintTarget target) {
     if (target.hintText() != null) {
       return new HintResponse(turnId, target.hintText(), target.hintMeaningKo());
     }
@@ -91,35 +107,47 @@ public class TurnHelpService {
     WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
     var result =
         aiGateway.hint(trace, target.npc(), target.history(), target.goal(), target.level());
+    if (result == null || result.firstSentence() == null) {
+      throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID);
+    }
     String hintText = result.firstSentence();
     String meaningKo = result.firstMeaningKo();
-    Instant openedAt = clock.instant();
     transactionTemplate.executeWithoutResult(
         status ->
-            turnRepository
-                .findById(turnId)
-                .ifPresent(turn -> turn.openHint(hintText, meaningKo, openedAt)));
+            turnRepository.findById(turnId).ifPresent(turn -> turn.cacheHint(hintText, meaningKo)));
     return new HintResponse(turnId, hintText, meaningKo);
   }
 
   /** 추천 단어는 대답 응답(CONV-01·03)을 기다리게 하지 않도록 NPC 대사를 받은 뒤 따로 만든다. */
   public SuggestWordsResponse suggestWords(Long userId, Long turnId, UUID requestId) {
     HintTarget target = transactionTemplate.execute(status -> hintTarget(userId, turnId));
+    List<String> words;
     if (target.suggestWords() != null) {
-      return new SuggestWordsResponse(
-          turnId, conversationResponses.readWords(target.suggestWords()));
+      words = conversationResponses.readWords(target.suggestWords());
+    } else {
+      WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
+      words =
+          aiGateway
+              .suggest(trace, target.npc(), target.history(), target.goal(), target.level())
+              .words();
+      String wordsJson = conversationResponses.writeWords(words);
+      transactionTemplate.executeWithoutResult(
+          status ->
+              turnRepository
+                  .findById(turnId)
+                  .ifPresent(turn -> turn.attachSuggestWords(wordsJson)));
     }
-
-    WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
-    List<String> words =
-        aiGateway
-            .suggest(trace, target.npc(), target.history(), target.goal(), target.level())
-            .words();
-    String wordsJson = conversationResponses.writeWords(words);
-    transactionTemplate.executeWithoutResult(
-        status ->
-            turnRepository.findById(turnId).ifPresent(turn -> turn.attachSuggestWords(wordsJson)));
-    return new SuggestWordsResponse(turnId, words);
+    try {
+      // suggest와 hint는 같은 HINT 종류로 기록되므로 호출 기록의 고유 키를 분리한다.
+      UUID hintRequestId =
+          UUID.nameUUIDFromBytes((requestId + ":hint").getBytes(StandardCharsets.UTF_8));
+      HintResponse hint = prepareHint(userId, turnId, hintRequestId, target);
+      return new SuggestWordsResponse(turnId, words, hint.hintText(), hint.hintMeaningKo());
+    } catch (BusinessException exception) {
+      // 문장 생성만 실패해도 이미 받은 단어와 대화는 계속 쓸 수 있다.
+      log.warn("hint_prefetch_failed turn_id={} error_code={}", turnId, exception.getErrorCode());
+      return new SuggestWordsResponse(turnId, words);
+    }
   }
 
   private NpcLine npcLine(Long userId, Long turnId) {

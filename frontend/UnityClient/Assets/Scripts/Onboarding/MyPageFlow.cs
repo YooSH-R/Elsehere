@@ -7,8 +7,8 @@ using A305.Player;
 namespace A305.Onboarding
 {
     /// <summary>
-    /// 마이페이지의 내 정보, 닉네임 변경, 선택 동의. 열 때 BOOT-01로 내 정보를, USER-02로 바꿀 수 있는 선택 동의를 읽는다.
-    /// 닉네임은 가입과 같은 규칙으로 먼저 확인한 뒤 USER-04로, 동의는 USER-03으로 바꾼다. 결과와 실패 이유는 <see cref="Message"/>로 알린다.
+    /// 마이페이지의 내 정보, 닉네임 변경, 선택 동의, 대화 난이도. 열 때 BOOT-01로 내 정보를, USER-02로 바꿀 수 있는 선택 동의를,
+    /// ONB-08로 대화 난이도를 읽는다. 닉네임은 가입과 같은 규칙으로 먼저 확인한 뒤 USER-04로, 동의는 USER-03으로, 난이도는 ONB-09로 바꾼다. 결과와 실패 이유는 <see cref="Message"/>로 알린다.
     /// </summary>
     public sealed class MyPageFlow
     {
@@ -18,6 +18,7 @@ namespace A305.Onboarding
 
         private readonly IMyPageApi api;
         private List<ConsentStatus> consents = new List<ConsentStatus>();
+        private List<ConversationLevel> levels = new List<ConversationLevel>();
 
         public MyPageFlow(IMyPageApi api)
         {
@@ -48,6 +49,14 @@ namespace A305.Onboarding
                 PlayerNickname.Set(User.Nickname);
 
                 consents = await api.GetConsentsAsync();
+                if (!string.IsNullOrEmpty(User.CurrentLanguage))
+                {
+                    LanguageProfileResponse profile = await api.GetLanguageProfileAsync(
+                        User.CurrentLanguage
+                    );
+                    levels = profile.Levels ?? new List<ConversationLevel>();
+                    SelectedLevel = profile.SelectedLevel;
+                }
                 // 게스트 닉네임은 서버가 정하므로, 바꾸는 칸을 막은 이유를 열자마자 알린다.
                 if (User.Guest)
                 {
@@ -90,6 +99,45 @@ namespace A305.Onboarding
                 ConsentStatus saved = await api.ChangeConsentAsync(consentType, agreed);
                 consents[index] = saved;
                 Message = (saved.Agreed ? "켰어요: " : "껐어요: ") + saved.Title;
+                changed = true;
+            });
+            return changed;
+        }
+
+        /// <summary>배우는 언어의 대화 난이도 단계. 읽기 전이나 읽지 못했으면 비어 있다.</summary>
+        public IReadOnlyList<ConversationLevel> Levels => levels;
+
+        /// <summary>지금 쓰는 대화 난이도. 읽기 전이나 아직 고르지 않았으면 null.</summary>
+        public int? SelectedLevel { get; private set; }
+
+        /// <summary>
+        /// 대화 난이도를 바꾼다(ONB-09). 대화는 시작할 때 난이도를 정하므로 다음 대화부터 적용된다.
+        /// 아직 열리지 않은 단계는 보내지 않고, 서버가 거절하면 이전 난이도를 그대로 두고 이유를 알린다.
+        /// </summary>
+        /// <returns>바꿨으면 true</returns>
+        public async Task<bool> ChangeLevelAsync(int level)
+        {
+            ConversationLevel target = levels.Find(candidate => candidate.Level == level);
+            if (User == null || IsBusy || target == null || !target.Available)
+            {
+                return false;
+            }
+
+            if (level == SelectedLevel)
+            {
+                Message = "지금 쓰는 난이도예요.";
+                return false;
+            }
+
+            bool changed = false;
+            await RunAsync(async () =>
+            {
+                LevelSelectionResponse saved = await api.SelectLevelAsync(
+                    User.CurrentLanguage,
+                    level
+                );
+                SelectedLevel = saved.SelectedLevel;
+                Message = $"{target.Name}으로 바꿨어요. 다음 대화부터 적용돼요.";
                 changed = true;
             });
             return changed;

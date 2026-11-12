@@ -1,8 +1,24 @@
 """'이 상황에서 자주 써요' 후보 목록과 후처리. 모델 호출 없이 확인한다."""
 
 import json
+import re
 
+from feedback.prompt import SYSTEM_PATH
 from feedback.situation_catalog import CATALOG_PATH, keep_useful, situation_candidates
+
+SAMPLE_NAMES = re.compile(r"\b(Kim|Park|Lee|Choi)\b")
+
+
+def test_catalog_never_hands_the_learner_a_sample_name():
+    # "I have a reservation under Kim."처럼 학습자 것이 아닌 이름을 따라 말하게 하지 않는다 (S15P31A305-845)
+    items = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))["items"]
+    named = [item["id"] for item in items if SAMPLE_NAMES.search(item["expression"] + " " + item["example_en"])]
+    assert named == []
+
+
+def test_new_expressions_leave_out_names_and_other_personal_answers():
+    prompt = SYSTEM_PATH.read_text(encoding="utf-8")
+    assert "이름(예시 이름 포함)·날짜·방 번호 같은 개인 정보 답은 표현과 예문에 넣지 않는다" in prompt
 
 
 class _Context:

@@ -44,6 +44,7 @@ import com.elsehere.dialogue.service.TurnService;
 import com.elsehere.feedback.dto.FeedbackResponse;
 import com.elsehere.feedback.entity.FeedbackStatus;
 import com.elsehere.followup.dto.FollowUpResponse;
+import com.elsehere.world.entity.PlaceGroup;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -164,13 +165,17 @@ class ConversationControllerTest {
             58L,
             NPC,
             "CAFE",
+            "카페",
+            PlaceGroup.FOOD,
             ConversationStatus.ENDED_BY_USER,
             ConversationEndReason.USER_ENDED,
             OffsetDateTime.parse("2026-10-21T14:00:00+09:00"),
             OffsetDateTime.parse("2026-10-21T14:05:00+09:00"),
             4,
-            FeedbackStatus.DONE);
-    given(conversationHistoryService.list(1L, "CAFE_STAFF", null, "60", 10, false))
+            FeedbackStatus.DONE,
+            false,
+            0);
+    given(conversationHistoryService.list(1L, "CAFE_STAFF", null, null, "60", 10, false))
         .willReturn(new ConversationListResponse(List.of(item), "58"));
 
     mockMvc
@@ -183,6 +188,8 @@ class ConversationControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.items[0].conversationId").value(58))
         .andExpect(jsonPath("$.items[0].npc.npcCode").value("CAFE_STAFF"))
+        .andExpect(jsonPath("$.items[0].placeName").value("카페"))
+        .andExpect(jsonPath("$.items[0].placeGroup").value("FOOD"))
         .andExpect(jsonPath("$.items[0].startedAt").value("2026-10-21T14:00:00+09:00"))
         .andExpect(jsonPath("$.items[0].userTurnCount").value(4))
         .andExpect(jsonPath("$.items[0].feedbackStatus").value("DONE"))
@@ -193,7 +200,7 @@ class ConversationControllerTest {
   @Test
   @DisplayName("GET /api/v1/conversations에 조건이 없으면 전체 NPC의 첫 페이지를 20개씩 요청한다")
   void list_withoutParams_usesDefaults() throws Exception {
-    given(conversationHistoryService.list(1L, null, null, null, 20, false))
+    given(conversationHistoryService.list(1L, null, null, null, null, 20, false))
         .willReturn(new ConversationListResponse(List.of(), null));
 
     mockMvc
@@ -206,7 +213,7 @@ class ConversationControllerTest {
   @Test
   @DisplayName("대화 노트 요청은 완료된 피드백 필터·장소와 기존 조회 조건을 함께 전달한다")
   void list_feedbackOnly_passesCompletedFeedbackFilter() throws Exception {
-    given(conversationHistoryService.list(1L, "CAFE_STAFF", "CAFE", "60", 10, true))
+    given(conversationHistoryService.list(1L, "CAFE_STAFF", "CAFE", null, "60", 10, true))
         .willReturn(new ConversationListResponse(List.of(), "58"));
 
     mockMvc
@@ -221,6 +228,22 @@ class ConversationControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.items").isEmpty())
         .andExpect(jsonPath("$.nextCursor").value("58"));
+  }
+
+  @Test
+  @DisplayName("대화 노트의 장소 묶음 탭은 placeGroup으로 넘긴다")
+  void list_placeGroup_passesPlaceGroupFilter() throws Exception {
+    given(conversationHistoryService.list(1L, null, null, "SERVICES", null, 20, true))
+        .willReturn(new ConversationListResponse(List.of(), null));
+
+    mockMvc
+        .perform(
+            get("/api/v1/conversations")
+                .param("feedbackOnly", "true")
+                .param("placeGroup", "SERVICES")
+                .with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items").isEmpty());
   }
 
   @Test
@@ -536,7 +559,7 @@ class ConversationControllerTest {
                 1L, 5L, new TurnRequest(REQUEST_ID, InputType.VOICE, "A latte", "a latte")))
         .willReturn(
             new TurnResponse(
-                new UserTurnResponse(11L, 2, Speaker.USER, "A latte", false, null),
+                new UserTurnResponse(11L, 2, Speaker.USER, "A latte", false, null, List.of()),
                 npcTurn(12L, 3, "Sure!"),
                 new ConversationStateResponse(
                     ConversationStatus.ACTIVE,
@@ -784,7 +807,7 @@ class ConversationControllerTest {
 
   private static TurnResponse turnResponse() {
     return new TurnResponse(
-        new UserTurnResponse(11L, 2, Speaker.USER, "A latte", false, null),
+        new UserTurnResponse(11L, 2, Speaker.USER, "A latte", false, null, List.of()),
         npcTurn(12L, 3, "Sure!"),
         new ConversationStateResponse(
             ConversationStatus.ACTIVE, null, 0, 3, 0, TIME_LIMIT_AT, GRACE_UNTIL, false, 0),

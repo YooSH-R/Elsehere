@@ -76,6 +76,48 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator SavedRestaurant_EditorEntryCanClickJohnAndOpenRecordedRap()
+        {
+            NpcTestClock.SetDaytime();
+            yield return SceneManager.LoadSceneAsync("MapleDinerInterior", LoadSceneMode.Single);
+            yield return LetCameraSettle();
+            var john = FindPasserby("TOWN_JOHN_PARK");
+            var player = Single<PlayerMover>();
+            Assert.That(
+                john.CanTalkByClick(8),
+                Is.True,
+                $"John enabled={john.enabled}, approach={john.IsApproachAllowed}, playerLocked={player.IsMovementLocked}, distance={Vector3.Distance(john.transform.position, player.transform.position):F2}"
+            );
+            var click = Single<NpcClickTalk>();
+            Vector3 head = john.GetComponent<NpcIdentity>().LookTarget.position;
+            Vector2 pointer = Camera.main.WorldToScreenPoint(head);
+            click.RefreshHighlight(pointer);
+            Assert.That(
+                click.HighlightedNpc,
+                Is.SameAs(john),
+                "저장된 입장 시점에서 John의 머리 클릭을 받아야 합니다."
+            );
+            click.Click(pointer);
+            yield return null;
+            var offer = Single<PasserbyOfferView>();
+            Assert.That(offer.IsShownBy(john), Is.True);
+            offer
+                .GetComponentsInChildren<Button>()
+                .Single(button => button.name == "AcceptButton")
+                .onClick.Invoke();
+            yield return null;
+            Assert.That(Single<DialogueController>().IsTalking, Is.True);
+            var replay = Single<DialoguePanelView>()
+                .GetComponentsInChildren<Button>(true)
+                .Single(button => button.name == "PerformanceButton");
+            Assert.That(
+                replay.interactable,
+                Is.True,
+                "서버가 없어도 John의 저장 랩 다시 듣기는 사용할 수 있어야 합니다."
+            );
+        }
+
+        [UnityTest]
         public IEnumerator OrdinaryNpc_DoesNotInterruptWithAnUnsolicitedOffer()
         {
             yield return LoadTownAfterTutorial();

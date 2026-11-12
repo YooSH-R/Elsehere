@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.Voice;
@@ -66,6 +67,9 @@ namespace A305.Dialogue
         // 대화 시작 요청 ID. [다시 시도]도 같은 ID로 보내 서버가 대화를 두 번 만들지 않게 한다(API 명세 1.3).
         private string startRequestId;
         private bool endRequested;
+        private Task suggestionsRequest = Task.CompletedTask;
+        private long? hintOpenedTurnId;
+        private long? hintOpeningTurnId;
         private string failedText;
         private string failedRequestId;
         private string textToRestore;
@@ -81,6 +85,7 @@ namespace A305.Dialogue
 
         // 대답을 보낸 횟수. 조각 음성이 어느 대답의 것인지 가린다.
         private int replyCount;
+        private readonly bool hasRecordedOpening;
 
         /// <param name="npcName">서버 응답을 받기 전에 보여 줄 이름</param>
         /// <param name="canTalk">음성 처리에 동의해 [말하기]를 쓸 수 있는지</param>
@@ -101,7 +106,8 @@ namespace A305.Dialogue
             NpcTravelContext npcTravelContext = null,
             string practiceScenarioId = null,
             Func<string, Task<ConversationStart>> practiceStart = null,
-            string placeCode = null
+            string placeCode = null,
+            DialogueLine recordedOpening = null
         )
         {
             NpcCode = npcCode;
@@ -117,6 +123,12 @@ namespace A305.Dialogue
             this.npcTravelContext = npcTravelContext?.Copy();
             this.placeCode = placeCode;
             this.followUps = followUps ?? FollowUpStore.Shared;
+            hasRecordedOpening = recordedOpening?.Speech != null && !IsSeparatePractice;
+            if (hasRecordedOpening)
+            {
+                lines.Add(recordedOpening);
+                LastNpcLine = recordedOpening;
+            }
         }
 
         /// <summary>화면을 다시 그려야 할 때 알린다.</summary>
@@ -157,6 +169,18 @@ namespace A305.Dialogue
 
         public string UserTranslation { get; private set; }
 
+        public IReadOnlyList<string> UserBetterExpressions { get; private set; }
+
+        // 빈 문장은 빼고, 남은 문장이 없으면 카드를 띄우지 않게 null로 둔다.
+        private static IReadOnlyList<string> BetterSentences(List<string> sentences)
+        {
+            List<string> kept = sentences
+                ?.Where(sentence => !string.IsNullOrWhiteSpace(sentence))
+                .Select(sentence => sentence.Trim())
+                .ToList();
+            return kept == null || kept.Count == 0 ? null : kept;
+        }
+
         public bool IsGuided => false;
         public bool IsGuidedCompleted => false;
         public string SuggestedEnglish => null;
@@ -188,6 +212,13 @@ namespace A305.Dialogue
             && StatusMessage?.EndsWith(EndFeedbackGuide, StringComparison.Ordinal) == true;
 
         public bool CanSend => ConversationId != null && !IsBusy && !IsEnded && !deadlineExpired;
+        public bool CanPlayRecordedReply =>
+            (ConversationId != null || hasRecordedOpening)
+            && !IsBusy
+            && !IsEnded
+            && !deadlineExpired
+            && !endRequested
+            && !IsReview;
 
         public bool IsClosing { get; private set; }
         public string CountdownMessage { get; private set; }
@@ -221,7 +252,7 @@ namespace A305.Dialogue
         // 저장 공연은 로컬 화면에만 남긴다. 서버 턴·사용량·학습 평가를 만들어 내지 않는다.
         public bool ShowRecordedReply(string text, DialogueLine reply)
         {
-            if (!CanSend || IsReview || reply?.Speech == null)
+            if (!CanPlayRecordedReply || reply?.Speech == null)
                 return false;
             if (!string.IsNullOrWhiteSpace(text))
                 lines.Add(DialogueLine.FromUser(text));
@@ -233,10 +264,14 @@ namespace A305.Dialogue
             LastTurnSpeechIncomplete = false;
             HintText = null;
             UserTranslation = null;
-            StatusMessage = null;
-            RecoveryGuide = null;
+            UserBetterExpressions = null;
+            if (ConversationId != null)
+            {
+                StatusMessage = null;
+                RecoveryGuide = null;
+                pendingRetry = null;
+            }
             lastTranscript = null;
-            pendingRetry = null;
             failedText = null;
             failedRequestId = null;
             textToRestore = null;
@@ -296,7 +331,7 @@ namespace A305.Dialogue
             }
 
             await RunAsync(
-                "대화를 시작하고 있어요...",
+                hasRecordedOpening ? null : "대화를 시작하고 있어요...",
                 async () =>
                 {
                     try
@@ -309,11 +344,11 @@ namespace A305.Dialogue
                     }
                 },
                 StartAsync,
-                DialogueWait.Opening
+                hasRecordedOpening ? DialogueWait.None : DialogueWait.Opening
             );
-            if (!endRequested && !IsSeparatePractice)
+            if (!endRequested && !IsSeparatePractice && !hasRecordedOpening)
             {
-                _ = SuggestWordsAsync();
+                suggestionsRequest = SuggestWordsAsync();
             }
         }
 
@@ -327,6 +362,7 @@ namespace A305.Dialogue
             }
 
             UserTranslation = null;
+            UserBetterExpressions = null;
             string requestId = utterance == failedText ? failedRequestId : NewRequestId();
             // 보낼 문장은 앞뒤 공백을 지우므로 전사 결과도 공백을 지우고 비교한다. 서버에는 전사 원문을 그대로 보낸다.
             bool isVoice = lastTranscript != null && utterance == lastTranscript.Trim();
@@ -374,6 +410,7 @@ namespace A305.Dialogue
                     UserTranslation = string.IsNullOrWhiteSpace(expression)
                         ? null
                         : expression.Trim();
+                    UserBetterExpressions = BetterSentences(result.UserTurn?.BetterExpressions);
                     ApplyState(result.Conversation);
                     AddNpcTurn(result.NpcTurn, reply.HasSpeech, reply.HasMissingSpeech);
                     IsEnded =
@@ -415,7 +452,7 @@ namespace A305.Dialogue
             }
 
             if (!IsSeparatePractice)
-                _ = SuggestWordsAsync();
+                suggestionsRequest = SuggestWordsAsync();
         }
 
         /// <summary>
@@ -583,25 +620,65 @@ namespace A305.Dialogue
         }
 
         /// <summary>
-        /// 마지막 NPC 대사에 대답할 추천 문장을 받는다(CONV-05). 이미 받았거나 지금 대답할 수 없으면(대화 종료 등) 요청하지 않는다.
+        /// 준비 중인 추천 문장 응답을 재사용하고 실제 열기를 기록한다(CONV-05). 미리 받기에 실패했을 때만 다시 만든다.
         /// </summary>
-        public Task RequestHintAsync()
+        public async Task RequestHintAsync()
         {
             NpcTurnData turn = LastNpcTurn;
-            if (turn == null || !CanSend || HintText != null)
+            if (turn == null || !CanSend)
             {
-                return Task.CompletedTask;
+                return;
             }
 
-            return RunAsync(
+            // 단어와 함께 준비 중인 문장을 기다려 같은 턴에 생성을 중복 요청하지 않는다.
+            await suggestionsRequest;
+            if (LastNpcTurn != turn || !CanSend)
+                return;
+            if (!string.IsNullOrEmpty(HintText))
+            {
+                await RecordHintOpenedAsync();
+                return;
+            }
+            await RunAsync(
                 "추천 문장을 만들고 있어요...",
                 async () =>
                 {
                     HintData hint = await api.GetHintAsync(turn.TurnId, NewRequestId());
                     HintText = hint.HintText;
                     HintMeaningKo = hint.HintMeaningKo;
+                    hintOpenedTurnId = turn.TurnId;
                 }
             );
+        }
+
+        /// <summary>미리 받은 문장은 즉시 보여 주고, 실제 열기 기록만 따로 남긴다.</summary>
+        public async Task RecordHintOpenedAsync()
+        {
+            NpcTurnData turn = LastNpcTurn;
+            if (
+                turn == null
+                || !CanSend
+                || string.IsNullOrEmpty(HintText)
+                || hintOpenedTurnId == turn.TurnId
+                || hintOpeningTurnId == turn.TurnId
+            )
+                return;
+            hintOpeningTurnId = turn.TurnId;
+            try
+            {
+                await api.GetHintAsync(turn.TurnId, NewRequestId());
+                if (LastNpcTurn == turn)
+                    hintOpenedTurnId = turn.TurnId;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning($"힌트 열기 기록을 남기지 못했어요: {exception.Message}");
+            }
+            finally
+            {
+                if (hintOpeningTurnId == turn.TurnId)
+                    hintOpeningTurnId = null;
+            }
         }
 
         /// <summary>
@@ -772,7 +849,8 @@ namespace A305.Dialogue
                 followUps.Remove(delivered, NpcCode);
             }
 
-            AddNpcTurn(start.OpeningTurn, spokenInChunks, missingSpeech);
+            if (!hasRecordedOpening)
+                AddNpcTurn(start.OpeningTurn, spokenInChunks, missingSpeech);
         }
 
         // 새로고침 등으로 끝내지 못한 대화가 남아 있다. 같은 NPC와의 대화면 이어서 해 새 대화를 만들지 않고(게스트 대화 횟수를 다시 쓰지 않음),
@@ -829,6 +907,11 @@ namespace A305.Dialogue
         // 지우고 저장된 첫 턴으로 다시 그린다. 복습·장소 연습은 스트림 없이 한 번에 받는다.
         private async Task BeginStreamingAsync(string requestId)
         {
+            if (hasRecordedOpening)
+            {
+                await BeginAsync(await RequestStartAsync(requestId, null), false, false);
+                return;
+            }
             var opening = new StreamedReply(this, null, ++replyCount);
             streamedReply = opening;
             ConversationStart start;
@@ -872,6 +955,10 @@ namespace A305.Dialogue
             {
                 NpcName = active.Npc.Name;
             }
+
+            // 저장 공연은 다시 열 때마다 재생하고 지난 대사·음성은 화면에 불러오지 않는다.
+            if (hasRecordedOpening)
+                return;
 
             List<ActiveTurn> turns = active.Turns ?? new List<ActiveTurn>();
             int lastNpcIndex = turns.FindLastIndex(turn => turn.Speaker == NpcSpeaker);
@@ -945,6 +1032,7 @@ namespace A305.Dialogue
             LastNpcGlossary = turn.Glossary;
             HintText = null;
             HintMeaningKo = null;
+            suggestionsRequest = Task.CompletedTask;
             NpcSpoke?.Invoke(turn);
         }
 
@@ -999,12 +1087,10 @@ namespace A305.Dialogue
             IsSuggestingWords = true;
             Changed?.Invoke();
             List<string> words = null;
+            SuggestWordsData result = null;
             try
             {
-                SuggestWordsData result = await api.GetSuggestWordsAsync(
-                    turn.TurnId,
-                    NewRequestId()
-                );
+                result = await api.GetSuggestWordsAsync(turn.TurnId, NewRequestId());
                 words = result?.SuggestWords;
             }
             catch (Exception exception)
@@ -1015,12 +1101,14 @@ namespace A305.Dialogue
 
             turn.SuggestWords = words;
             // 단어를 기다리는 사이 NPC가 새로 말했으면 지난 대사의 단어는 보여 주지 않는다.
-            if (LastNpcTurn != turn)
+            if (LastNpcTurn != turn || endRequested || IsEnded)
             {
                 return;
             }
 
             SuggestWords = words;
+            HintText = result?.HintText;
+            HintMeaningKo = result?.HintMeaningKo;
             IsSuggestingWords = false;
             Changed?.Invoke();
         }

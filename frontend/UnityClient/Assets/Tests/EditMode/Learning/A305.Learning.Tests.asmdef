@@ -12,7 +12,9 @@
         "UnityEngine.UI",
         "A305.Player",
         "A305.World",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "A305.Ambience",
+        "A305.Theme"
     ],
     "includePlatforms": [
         "Editor"

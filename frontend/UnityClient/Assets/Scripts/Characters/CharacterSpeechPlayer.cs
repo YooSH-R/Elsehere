@@ -32,6 +32,9 @@ namespace A305.Characters
         private AudioClip activeAudio;
         private bool active;
         private bool paused;
+        private bool applicationFocused = true;
+        private bool applicationPaused;
+        private bool awaitingAudioResume;
         private bool streaming;
         private bool keepEmotionAfterSpeech;
         private float streamTimeOffset;
@@ -40,8 +43,9 @@ namespace A305.Characters
         private FaceEmotionSample initialEmotion;
         private FaceEmotionSample lastEmotion;
         private FaceEmotionSample heldEmotion;
-        public bool IsPlaying => active && !paused;
-        public bool IsPaused => active && paused;
+        private bool ApplicationSuspended => !applicationFocused || applicationPaused;
+        public bool IsPlaying => active && !IsPaused;
+        public bool IsPaused => active && (paused || ApplicationSuspended);
         public bool IsHoldingEmotion => !active && expressionReleaseAt >= 0;
         public CharacterSpeechClip Speech => speech;
         public CharacterFaceController Face => face;
@@ -194,6 +198,8 @@ namespace A305.Characters
             paused = false;
             ApplyAtAudioTime(0);
             speechSource.Play();
+            if (ApplicationSuspended)
+                speechSource.Pause();
         }
 
         public void Pause()
@@ -209,8 +215,43 @@ namespace A305.Characters
         {
             if (!active || !paused)
                 return;
-            speechSource.UnPause();
             paused = false;
+            if (!ApplicationSuspended)
+                speechSource.UnPause();
+        }
+
+        private void OnApplicationFocus(bool focused)
+        {
+            bool wasSuspended = ApplicationSuspended;
+            applicationFocused = focused;
+            SynchronizeApplicationPlayback(wasSuspended);
+        }
+
+        private void OnApplicationPause(bool pause)
+        {
+            bool wasSuspended = ApplicationSuspended;
+            applicationPaused = pause;
+            SynchronizeApplicationPlayback(wasSuspended);
+        }
+
+        private void SynchronizeApplicationPlayback(bool wasSuspended)
+        {
+            if (wasSuspended == ApplicationSuspended || !active || paused)
+                return;
+            ApplyAtAudioTime(PlaybackTime);
+            if (ApplicationSuspended)
+                speechSource.Pause();
+            else
+                ResumeAudio();
+        }
+
+        private void ResumeAudio()
+        {
+            // Web Audio 컨텍스트는 창 복귀 프레임보다 늦게 재개될 수 있다.
+            // 실제 음성이 재개되기 전의 isPlaying=false는 자연 종료가 아니다.
+            awaitingAudioResume = true;
+            speechSource.UnPause();
+            ApplyAtAudioTime(PlaybackTime);
         }
 
         public void Seek(float seconds)
@@ -233,6 +274,7 @@ namespace A305.Characters
             if (speechSource != null)
                 speechSource.Stop();
             active = paused = false;
+            awaitingAudioResume = false;
             activeAudio = null;
             timeline = null;
             emotionTrack = null;
@@ -307,10 +349,17 @@ namespace A305.Characters
                 }
                 return;
             }
-            if (paused)
+            if (IsPaused)
                 return;
+            if (speechSource.clip != activeAudio)
+            {
+                Stop();
+                return;
+            }
             if (!speechSource.isPlaying)
             {
+                if (awaitingAudioResume)
+                    return;
                 if (streaming || keepEmotionAfterSpeech)
                 {
                     ApplyAtAudioTime(Mathf.Max(0, activeAudio.length - .0001f));
@@ -323,6 +372,7 @@ namespace A305.Characters
                     Stop();
                 return;
             }
+            awaitingAudioResume = false;
             ApplyAtAudioTime(PlaybackTime);
         }
 

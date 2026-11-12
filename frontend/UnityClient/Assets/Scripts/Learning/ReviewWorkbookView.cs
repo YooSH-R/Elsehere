@@ -202,10 +202,16 @@ namespace A305.Learning
                 return;
             lastFreeArea = area;
             const float scale = 1 / 1.2f;
-            frame.sizeDelta = new Vector2(
+            var size = new Vector2(
                 Mathf.Min(1296, area.width / scale),
                 Mathf.Min(924, area.height / scale)
             );
+            // 사용자가 크기를 바꾼 동안에는 그 크기를 지키고, 아니면 이 크기를 따른다.
+            WindowFrame windowFrame = frame.GetComponent<WindowFrame>();
+            if (windowFrame != null)
+                windowFrame.SetBaseSize(size);
+            else
+                frame.sizeDelta = size;
             CenterWindow.Shared.Place(frame, scale);
             scroll.viewport.offsetMax = new Vector2(-43.2f, -125);
             scroll.viewport.offsetMin = new Vector2(43.2f, 32);

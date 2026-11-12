@@ -14,6 +14,12 @@ namespace A305.EditorTools.Dialogue
     {
         private const string PrefabPath = "Assets/Prefabs/Dialogue/DialoguePanel.prefab";
 
+        // Jua 글꼴의 줄 높이(글자 크기 대비 112.5/90). 시안의 줄 높이에 맞출 때 쓴다.
+        private const float JuaLineHeight = 1.25f;
+
+        // 테마의 흐린 글자색(mutedInk). 안내는 시안대로 둥근 제목 글꼴(Jua)에 이 색을 쓴다.
+        private static readonly Color MutedInk = new Color32(125, 110, 91, 255);
+
         [MenuItem("Tools/A305/Dialogue/Apply User Translation Card")]
         public static void Apply()
         {
@@ -43,7 +49,7 @@ namespace A305.EditorTools.Dialogue
                 name.font,
                 20,
                 Color.black,
-                "방금 한 말의 영어 표현이에요."
+                DialoguePanelView.TranslationHeading
             );
             heading.richText = false;
             heading.enableAutoSizing = true;
@@ -66,27 +72,30 @@ namespace A305.EditorTools.Dialogue
             viewport.offsetMax = new Vector2(-24, -72);
             BuilderTools.GetOrAddComponent<Image>(viewport.gameObject).color = Color.clear;
             BuilderTools.GetOrAddComponent<RectMask2D>(viewport.gameObject);
-            TMP_Text expression = UiBuilderTools.FindOrCreateText(
-                viewport,
-                "Expression",
-                name.font,
-                32,
-                Color.black
-            );
+            TMP_Text expression = ViewportText(viewport, "Expression", name.font, 32);
             BuilderTools
                 .GetOrAddComponent<ThemedElement>(expression.gameObject)
                 .Use(catalog, UiThemeRole.Title);
             expression.richText = false;
-            expression.fontStyle = FontStyles.Normal;
-            expression.textWrappingMode = TextWrappingModes.Normal;
-            expression.alignment = TextAlignmentOptions.TopLeft;
-            expression.rectTransform.anchorMin = new Vector2(0, 1);
-            expression.rectTransform.anchorMax = Vector2.one;
-            expression.rectTransform.pivot = new Vector2(.5f, 1);
-            expression.rectTransform.anchoredPosition = Vector2.zero;
-            expression.rectTransform.sizeDelta = Vector2.zero;
-            BuilderTools.GetOrAddComponent<ContentSizeFitter>(expression.gameObject).verticalFit =
-                ContentSizeFitter.FitMode.PreferredSize;
+
+            // 시안 B: 틀리진 않았지만 어색하거나 짧은 영어의 '이럴 때 쓰면 좋아요!'. 접으면 안내, [더보기]로 펼치면 문장 목록이
+            // 같은 글자 칸에 나온다. 안내는 Jua 22·줄 높이 30, 목록은 Jua 26·문장마다 38이다(시안 값).
+            TMP_Text guide = ViewportText(viewport, "Guide", name.font, 22);
+            guide.richText = false;
+            guide.color = MutedInk;
+            guide.lineSpacing = (30 - JuaLineHeight * 22) / (.01f * 22);
+            guide.text = "방금 한 말도 잘 통해요.\n이렇게 말하면 더 자연스러워요.";
+            guide.margin = new Vector4(0, 3, 0, 0);
+            guide.gameObject.SetActive(false);
+            TMP_Text list = ViewportText(viewport, "BetterList", name.font, 26);
+            BuilderTools
+                .GetOrAddComponent<ThemedElement>(list.gameObject)
+                .Use(catalog, UiThemeRole.Title);
+            list.richText = true;
+            // 문장 앞 점(•)은 Jua에 없어 보조 글꼴로 그리며, 그 글꼴의 줄 높이로 문장마다 38(시안)이 된다. 첫 줄은 시안 높이에 맞춰 3 올린다.
+            list.paragraphSpacing = 0;
+            list.margin = new Vector4(0, -3, 0, 0);
+            list.gameObject.SetActive(false);
             ScrollRect scroll = BuilderTools.GetOrAddComponent<ScrollRect>(card.gameObject);
             scroll.viewport = viewport;
             scroll.content = expression.rectTransform;
@@ -132,6 +141,9 @@ namespace A305.EditorTools.Dialogue
                 listen.GetComponent<Button>()
             );
             BuilderTools.SetReference(view, "translationDivider", divider);
+            BuilderTools.SetReference(view, "translationHeading", heading);
+            BuilderTools.SetReference(view, "betterGuideText", guide);
+            BuilderTools.SetReference(view, "betterListText", list);
             var input = panel.Find("Conversation/InputRow/Input").GetComponent<TMP_InputField>();
             ((TMP_Text)input.placeholder).text = "한국어·영어로 말하거나 입력해 보세요…";
             card.gameObject.SetActive(false);
@@ -175,6 +187,34 @@ namespace A305.EditorTools.Dialogue
             image.type = Image.Type.Sliced;
             image.pixelsPerUnitMultiplier = 10f / 4f;
             image.color = color;
+        }
+
+        // 카드 글자 칸(Viewport) 위에 붙어 글자만큼 늘어나는 글. 넘치면 카드의 스크롤이 이 글을 움직인다.
+        private static TMP_Text ViewportText(
+            RectTransform viewport,
+            string name,
+            TMP_FontAsset font,
+            float size
+        )
+        {
+            TMP_Text text = UiBuilderTools.FindOrCreateText(
+                viewport,
+                name,
+                font,
+                size,
+                Color.black
+            );
+            text.fontStyle = FontStyles.Normal;
+            text.textWrappingMode = TextWrappingModes.Normal;
+            text.alignment = TextAlignmentOptions.TopLeft;
+            text.rectTransform.anchorMin = new Vector2(0, 1);
+            text.rectTransform.anchorMax = Vector2.one;
+            text.rectTransform.pivot = new Vector2(.5f, 1);
+            text.rectTransform.anchoredPosition = Vector2.zero;
+            text.rectTransform.sizeDelta = Vector2.zero;
+            BuilderTools.GetOrAddComponent<ContentSizeFitter>(text.gameObject).verticalFit =
+                ContentSizeFitter.FitMode.PreferredSize;
+            return text;
         }
 
         private static RectTransform FindRect(Transform parent, string name)

@@ -8,6 +8,7 @@
         "UnityEditor.TestRunner",
         "A305.Mission",
         "A305.Npc",
+        "A305.Player",
         "A305.Theme",
         "A305.Wayfinding",
         "A305.World",

@@ -1102,6 +1102,28 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task Start_StreamedFirstLine_IsReceivingUntilSpeechFailureIsKnown()
+        {
+            IDialogueContent content = conversation;
+            api.StartStreamSteps.Add(stream => stream.OnDelta("Hi!"));
+            api.PendingStart = new TaskCompletionSource<ConversationStart>();
+            api.StartResponse.OpeningTurn.Speech = new SpeechData { Status = "FAILED" };
+
+            Task starting = conversation.StartAsync();
+            bool receivingFirstLine = content.IsReceivingNpcReply;
+            bool speechReadyBeforeCompletion = content.IsNpcSpeechReady;
+
+            api.PendingStart.SetResult(api.StartResponse);
+            await starting;
+
+            Assert.That(receivingFirstLine, Is.True);
+            Assert.That(speechReadyBeforeCompletion, Is.False);
+            Assert.That(content.IsReceivingNpcReply, Is.False);
+            Assert.That(content.IsNpcSpeechReady, Is.False);
+            Assert.That(content.LastNpcLine.English, Is.EqualTo(Opening));
+        }
+
+        [Test]
         public async Task Start_StreamedSpeechChunks_ArePassedOnAndTheWholeSpeechIsNotPlayedAgain()
         {
             var chunks = new List<NpcSpeechChunkData>();

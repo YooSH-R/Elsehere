@@ -83,8 +83,11 @@ namespace A305.Dialogue
         /// <summary>NPC 대사를 음성으로 들려주는지. 들려주는 대화만 [자막]으로 대사를 가려 듣고 이해하게 한다.</summary>
         bool SpeaksNpcLines { get; }
 
+        /// <summary>서버에서 NPC 대사의 글자와 음성을 아직 받고 있는지.</summary>
+        bool IsReceivingNpcReply => false;
+
         /// <summary>
-        /// 지금 NPC 대사의 음성을 재생할 수 있는지. 음성 생성 실패·만료면 false이고, 자막을 꺼 두었어도 대사를 글자로 보인다.
+        /// 지금 NPC 대사의 음성을 재생할 수 있는지. 수신이 끝난 뒤에도 실패·만료 등으로 false면 자막을 꺼 두었어도 글자로 보인다.
         /// </summary>
         bool IsNpcSpeechReady { get; }
     }

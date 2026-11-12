@@ -13,7 +13,7 @@ namespace A305.EditorTools.Npc
     public static class JohnParkRapValidation
     {
         private static string Output =>
-            Path.GetFullPath("../../artifacts/JohnParkRhythm/OrderRap/Unity1.5");
+            Path.GetFullPath("../../artifacts/JohnParkRhythm/OrderRap/StandingGroove");
 
         [Serializable]
         private sealed class Report
@@ -29,6 +29,9 @@ namespace A305.EditorTools.Npc
                 mouthPeak,
                 lipCornerWeightDifference;
             public string audio = "am_onyx · 1.5배 · 121 BPM · 저장 음성";
+            public float hipTravelMeters,
+                maximumKneeBendDegrees,
+                maximumSoleDriftMeters;
         }
 
         public static void Capture()
@@ -36,6 +39,7 @@ namespace A305.EditorTools.Npc
             Directory.CreateDirectory(Output);
             Directory.CreateDirectory(Path.Combine(Output, "Full"));
             Directory.CreateDirectory(Path.Combine(Output, "Face"));
+            Directory.CreateDirectory(Path.Combine(Output, "Side"));
             var setup = EditorSceneManager.GetSceneManagerSetup();
             try
             {
@@ -66,6 +70,9 @@ namespace A305.EditorTools.Npc
                 var hand = body.bones.Single(b => b.name == "Right_Hand");
                 var left = body.bones.Single(b => b.name == "Left_Hand");
                 var chest = body.bones.Single(b => b.name == "Chest");
+                var hips = body.bones.Single(b => b.name == "Hips");
+                float minimumHips = hips.position.y,
+                    maximumHips = hips.position.y;
                 int handIndex = Array.IndexOf(body.bones, hand);
                 var weights = body.sharedMesh.boneWeights;
                 int[] held = Enumerable
@@ -75,6 +82,14 @@ namespace A305.EditorTools.Npc
                 var mesh = new Mesh();
                 body.BakeMesh(mesh, true);
                 var original = mesh.vertices;
+                float ground = original.Min(v => body.transform.TransformPoint(v).y);
+                var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
+                floor.name = "임시 랩 접지 검수 바닥";
+                floor.transform.position = new Vector3(0, ground, 0);
+                floor.GetComponent<Renderer>().sharedMaterial =
+                    AssetDatabase.LoadAssetAtPath<Material>(
+                        JohnParkRhythmBuilder.ArtFolder + "/PreviewFloor.mat"
+                    );
                 var grip = held.Select(i =>
                         hand.InverseTransformPoint(body.transform.TransformPoint(original[i]))
                     )
@@ -104,6 +119,25 @@ namespace A305.EditorTools.Npc
                     );
                     body.BakeMesh(mesh, true);
                     var points = mesh.vertices;
+                    minimumHips = Mathf.Min(minimumHips, hips.position.y);
+                    maximumHips = Mathf.Max(maximumHips, hips.position.y);
+                    report.maximumSoleDriftMeters = Mathf.Max(
+                        report.maximumSoleDriftMeters,
+                        Mathf.Abs(points.Min(v => body.transform.TransformPoint(v).y) - ground)
+                    );
+                    foreach (string side in new[] { "Left", "Right" })
+                    {
+                        var upper = body.bones.Single(b => b.name == side + "_UpperLeg");
+                        var lower = body.bones.Single(b => b.name == side + "_LowerLeg");
+                        var foot = body.bones.Single(b => b.name == side + "_Foot");
+                        report.maximumKneeBendDegrees = Mathf.Max(
+                            report.maximumKneeBendDegrees,
+                            Vector3.Angle(
+                                lower.position - upper.position,
+                                foot.position - lower.position
+                            )
+                        );
+                    }
                     for (int i = 0; i < held.Length; i++)
                         report.gripErrorMeters = Mathf.Max(
                             report.gripErrorMeters,
@@ -165,9 +199,11 @@ namespace A305.EditorTools.Npc
                     trace.Append('\n');
                     Frame(camera, new Vector3(0, .88f, .02f), 1.02f, "Full", frame);
                     Frame(camera, new Vector3(0, 1.04f, .07f), .60f, "Face", frame);
+                    Frame(camera, new Vector3(0, .88f, .02f), 1.02f, "Side", frame);
                 }
                 Object.DestroyImmediate(mesh);
                 link.SetSpeaker(null);
+                report.hipTravelMeters = maximumHips - minimumHips;
                 if (
                     report.rigidGripVertices < 1000
                     || report.gripErrorMeters > .0005f
@@ -176,6 +212,9 @@ namespace A305.EditorTools.Npc
                     || report.leftHandTravelMeters < .03f
                     || report.mouthPeak < 20
                     || report.lipCornerWeightDifference > .01f
+                    || report.hipTravelMeters < .065f
+                    || report.maximumKneeBendDegrees > 125
+                    || report.maximumSoleDriftMeters > .015f
                 )
                     throw new InvalidDataException(
                         "랩 동작·오른손·입모양 검수 실패: " + JsonUtility.ToJson(report)
@@ -202,7 +241,8 @@ namespace A305.EditorTools.Npc
 
         private static void Frame(Camera camera, Vector3 focus, float size, string view, int frame)
         {
-            camera.transform.position = focus + Vector3.forward * 3;
+            camera.transform.position =
+                focus + Quaternion.Euler(0, view == "Side" ? -35 : 0, 0) * Vector3.forward * 3;
             camera.transform.LookAt(focus);
             camera.orthographicSize = size;
             JohnParkFaceValidation.Capture(

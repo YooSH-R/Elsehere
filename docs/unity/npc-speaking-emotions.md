@@ -204,9 +204,11 @@ Editor를 닫고 `NPC_EMOTION_REVIEW_OUTPUT`에 저장소 밖 출력 폴더를 �
 
 - 음성은 선정한 1.5배 PCM을 그대로 보존합니다. 발화 중에는 양쪽 입꼬리가 같은 강도로 움직이는 `warm_smile`을 적용합니다. 한쪽 입꼬리를 드는 `playful`은 이 랩에서 사용하지 않습니다. 발음은 동일한 무반주 트랙을 로컬 PocketSphinx로 정렬하고, 그 시간표를 드럼을 포함한 음성의 PCM 해시에 묶습니다. 구절 전체를 같은 입모양으로 처리하지 않습니다.
 - Generic 리듬의 왼팔 강세 두 번을 한 마디의 2·4박에 맞춥니다. 오른손·앰프의 기존 본 곡선과 강체 결합은 유지합니다. 공연 종료 뒤에는 기존 대기 리듬 속도로 돌아갑니다.
-- `NpcJohnParkDialogueSandbox.unity`를 열고 Play → 존박 클릭 → `Can you rap?` 또는 `랩 해줘`를 입력합니다. 저장 안내가 나오면 [랩 다시 듣기]를 눌러 시작합니다. 요청은 안내를, 전용 버튼은 랩을 재생합니다. 이 씬은 서버가 꺼진 로컬 검수용입니다.
+- `NpcJohnParkDialogueSandbox.unity`를 열고 Play → 존박 클릭으로 대화를 시작하면 저장 랩부터 재생합니다. 이후 `Can you rap?` 또는 `랩 해줘`를 입력하면 저장 안내가 나오고, [랩 다시 듣기]로 반복합니다. 이 씬은 서버가 꺼진 로컬 검수용입니다.
 - 독립 식당 씬의 John도 같은 프리팹 연결을 상속합니다. 일반 AI 대화·음성 입력 전사는 기존 서버 설정이 필요하지만, 저장 공연 재생에는 LLM/TTS 재호출이 없습니다. 다시 듣기는 서버의 학습 턴을 추가하지 않습니다.
-- 연결 재구성은 `Tools → A305 → Npc → John Park → Connect Recorded Order Rap`으로 실행합니다. 기존 얼굴·본·머티리얼은 바꾸지 않습니다. `JohnParkRapValidation.Capture`는 실제 재생 컴포넌트의 시각 변환으로 전신·얼굴 프레임과 잡기 오차를 검사합니다. 로컬 영상은 `artifacts/JohnParkRhythm/OrderRap/Unity1.5/`에 보관합니다.
+- 연결 재구성은 `Tools → A305 → Npc → John Park → Connect Recorded Order Rap`으로 실행합니다. 기존 얼굴·본·머티리얼은 바꾸지 않습니다. `JohnParkRapValidation.Capture`는 실제 재생 컴포넌트의 시각 변환으로 전신·얼굴·사선 프레임과 잡기·접지·바운스를 검사합니다. 로컬 결과는 `artifacts/JohnParkRhythm/OrderRap/StandingGroove/`에 보관합니다.
+
+제자리 랩의 하반신은 `OrderRap.asset.LowerBodyMotion`에 연결한 `JohnRapBounce.anim`을 음성의 초 단위 재생 시각으로 평가합니다. 강세는 `Assets/Art/Npc/LittleMung_JohnPark_Male/JohnRapAccents.json`에 저작하며 **Build Standing Rap Bounce**로 클립을 갱신합니다. 음성 중단·일시 정지·반복과 같은 시각을 사용하고, 일반 대화·저장 안내에는 적용하지 않습니다. 기존 음성과 발음 시간표는 재사용하며 추가 합성이나 추론을 호출하지 않습니다.
 
 ### John 전용 재생 버튼 검수
 

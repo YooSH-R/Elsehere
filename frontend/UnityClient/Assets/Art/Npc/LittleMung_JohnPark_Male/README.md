@@ -61,6 +61,14 @@
 
 이동 바운스는 골반을 빠르게 낮춰 잠깐 눌렀다가 천천히 펴는 리듬 동작입니다. 걷기는 매 디딤, 달리기는 두 디딤에 한 번 눌러 빠른 떨림을 피합니다. 실제 발바닥 접점을 유지하면서 본 길이로 계산한 무릎 굽힘 120도와 다리 도달 범위 안에서 골반 높이를 제한합니다. 상반신은 골반의 상하 이동을 따라가고, 별도의 상반신 회전이나 원본 리듬·음성 시간표 변경은 없습니다. 정지 자세에는 적용하지 않습니다.
 
+## 제자리 랩의 강세 바운스
+
+랩 공연 중에는 `OrderRap.asset`의 `LowerBodyMotion`이 `Locomotion/JohnRapBounce.anim`을 음성의 재생 시각으로 평가합니다. 두 발은 제자리에 두고 골반과 무릎을 굽히며, 오른손·앰프와 상반신 회전은 기존 공연을 유지합니다. 음성이 일시 정지되면 바운스 시각도 멈추고, 다시 듣기는 처음부터 시작합니다. 일반 대화나 저장 안내에는 공연 바운스를 적용하지 않습니다. 이동 중에는 `JohnParkLocomotion`의 걷기·달리기가 하반신을 맡습니다.
+
+`JohnRapAccents.json`은 기존 1.5배 음성의 발음 시간표에서 고른 강세 시각·깊이·내려가는 시간·올라오는 시간을 담습니다. 단순 등간격 반복이 아니라 `ice`, `nice`, `you`, `yours`에서 강하게 눌러 구절을 구분합니다. 음성이 바뀌면 SHA-256 일치 검사가 제작을 중단하므로 시간표를 새 음성에 맞춰 다시 저작해야 합니다. **Build Standing Rap Bounce** 메뉴는 이 시간표로 하반신 클립과 공연 설정 연결만 갱신합니다. 원본 모델과 음성을 재생성하지 않습니다.
+
+`JohnParkRapValidation.Capture`는 같은 재생 경로로 전신·얼굴·사선을 렌더하고 잡기·발바닥·무릎·골반 이동량을 검사합니다. 결과는 `artifacts/JohnParkRhythm/OrderRap/StandingGroove/`에 저장합니다.
+
 이동 호출부는 기존 `CharacterAnimationDriver.SetLocomotion(speed, true, 0)`을 재사용합니다. 기본 예시는 정지 `0`, 걷기 `1`, 달리기 `2`이며 조절값·클립 참조는 `Assets/Data/Npc/JohnPark/Locomotion.asset`에 있습니다. 중간 속도는 두 클립을 섞고 전환 시 위상을 이어갑니다. 실제 경로 이동·회전·지형 접지는 이동 시스템에서 처리해야 합니다. 클립 자체에 루트 이동이나 새 출퇴근 일과는 없으며, 식당 배치는 계속 고정됩니다.
 
 **Tools → A305 → Npc → John Park → Build Lower Body Locomotion**은 전용 클립과 기존 프리팹 연결을 갱신합니다. 이 클립의 수작업 편집분은 갱신 전 보관합니다. 이미 있는 검수 씬의 배치와 속도 설정은 덮어쓰지 않습니다. `Assets/Scenes/Sandbox/NpcJohnParkLocomotionSandbox.unity`를 열고 Play하면 화면 왼쪽부터 달리기·걷기·정지를 비교합니다. **Validate Lower Body And Capture**는 실제 하반신 이동량·상반신 보존·발바닥 높이·반복 경계·무릎 과굴곡과 정면·사선·측면 렌더를 검사합니다. 출력은 로컬 `artifacts/JohnLocomotion/Visual`에 저장합니다. 수치 검사는 외관의 자연스러움을 대신하지 않으므로 디딤·회수·상하 움직임을 영상에서도 확인합니다. 계단·경사·실제 보행 경로에서의 검증과는 구분합니다.

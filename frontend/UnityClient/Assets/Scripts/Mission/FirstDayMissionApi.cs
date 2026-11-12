@@ -23,6 +23,18 @@ namespace A305.Mission
         public Task<FirstDayMissionState> StartAsync() =>
             client.PostAsync<FirstDayMissionState>("/api/v1/missions/first-day/start", null);
 
+        public Task<FirstDayMissionState> StartShowcaseAsync() =>
+            client.PostAsync<FirstDayMissionState>("/api/v1/missions/showcase/start", null);
+
+        public Task<FirstDayMissionState> StopShowcaseAsync() =>
+            client.PostAsync<FirstDayMissionState>("/api/v1/missions/showcase/stop", null);
+
+        public Task<FirstDayMissionState> ConfirmShowcaseTaxiArrivalAsync(string destination) =>
+            client.PostAsync<FirstDayMissionState>(
+                "/api/v1/missions/showcase/taxi-arrival",
+                new ArrivalRequest { Destination = destination }
+            );
+
         public Task<FirstDayMissionState> RestAsync() =>
             client.PostAsync<FirstDayMissionState>("/api/v1/missions/first-day/rest", null);
 
@@ -71,6 +83,11 @@ namespace A305.Mission
         private sealed class VisitRequest
         {
             public string Scene { get; set; }
+        }
+
+        private sealed class ArrivalRequest
+        {
+            public string Destination { get; set; }
         }
     }
 }

@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class FirstDayMissionControllerTest {
   @Autowired private MockMvc mvc;
   @MockitoBean private FirstDayMissionService service;
+  @MockitoBean private com.elsehere.mission.service.ShowcaseQuestService showcase;
 
   @Test
   void unauthenticatedUserCannotReadMission() throws Exception {

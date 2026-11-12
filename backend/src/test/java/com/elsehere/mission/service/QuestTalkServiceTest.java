@@ -37,7 +37,9 @@ class QuestTalkServiceTest {
           mock(ConversationRepository.class),
           mock(NpcRepository.class),
           Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
-  private final QuestTalkService quests = new QuestTalkService(firstDay, town, practice);
+  private final QuestTalkService quests =
+      new QuestTalkService(
+          firstDay, town, practice, mock(com.elsehere.mission.service.ShowcaseQuestService.class));
 
   @Test
   @DisplayName("마을 이야기를 하는 중이면 첫날 미션보다 마을 이야기의 대화 목표를 고른다")
@@ -127,7 +129,12 @@ class QuestTalkServiceTest {
             mock(FirstDayMissionRepository.class),
             mock(NpcRepository.class),
             mock(ConversationRepository.class));
-    QuestTalkService withRealTown = new QuestTalkService(firstDay, realTown, practice);
+    QuestTalkService withRealTown =
+        new QuestTalkService(
+            firstDay,
+            realTown,
+            practice,
+            mock(com.elsehere.mission.service.ShowcaseQuestService.class));
     var selected = withRealTown.forStart(8L, "DINER_STAFF", false, null).orElseThrow();
 
     withRealTown.accept(

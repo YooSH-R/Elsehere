@@ -184,6 +184,10 @@ namespace A305.Mission
         public event Action PracticeRequested;
 
         public bool IsOpen => gameObject.activeSelf;
+        public string SelectedQuestId =>
+            board != null && shownQuest >= 0 && shownQuest < board.Quests.Count
+                ? board.Quests[shownQuest].Id
+                : null;
 
         /// <summary>창을 열면 이야기·장소 연습 고르기부터 보인다. 이야기 목록은 미리 서버에 묻는다.</summary>
         public void Open()
@@ -277,7 +281,15 @@ namespace A305.Mission
         }
 
         /// <summary>목록·팡파레가 함께 쓰는 퀘스트 아이콘. 퀘스트 차례대로 쓰고 모자라면 처음부터 다시 쓴다.</summary>
-        public Sprite IconOf(int index) => icons[index % icons.Length];
+        public Sprite IconOf(int index) =>
+            icons[
+                board != null
+                && index >= 0
+                && index < board.Quests.Count
+                && board.Quests[index].Id == FirstDayMissionState.ShowcaseQuestId
+                    ? 1 % icons.Length
+                    : index % icons.Length
+            ];
 
         /// <summary>지금 쪽의 slot번째 카드를 누르면 그 퀘스트의 도장 지도로 간다.</summary>
         public void ShowCard(int slot) => ShowMap(page * cards.Length + slot);

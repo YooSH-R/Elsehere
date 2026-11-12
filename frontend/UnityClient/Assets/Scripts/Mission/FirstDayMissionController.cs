@@ -43,6 +43,8 @@ namespace A305.Mission
         private DinerMealRest dinerRest;
         private QuestNpcWaitSpot[] waitSpots;
         private UmbrellaHold umbrella;
+        private TaxiRide taxi;
+        private string pendingTaxiArrival;
 
         // 끝낸 퀘스트의 팡파레. 대화가 끝나면 띄운다.
         private QuestBoardState finishedBoard;
@@ -74,6 +76,12 @@ namespace A305.Mission
             waitSpots = FindObjectsByType<QuestNpcWaitSpot>(FindObjectsSortMode.None);
             view.BindMap(sceneCode, player.transform);
             umbrella = player.GetComponent<UmbrellaHold>();
+            if (sceneCode == "TOWN" && !PlaceScenes.IsTownShop(gameObject.scene.name))
+            {
+                taxi = FindAnyObjectByType<TaxiRide>();
+                if (taxi != null)
+                    taxi.ArrivedAtDestination += OnTaxiArrived;
+            }
             followUpApi = new FollowUpApi(apiSettings.CreateClient());
             // 기다리는 카드의 X로 닫은 것을 서버에 알린다.
             var followUps = view.GetComponent<FollowUpCardView>();
@@ -115,6 +123,8 @@ namespace A305.Mission
 
         private void OnDestroy()
         {
+            if (taxi != null)
+                taxi.ArrivedAtDestination -= OnTaxiArrived;
             dinerRest?.Dispose();
             if (cafeSeats != null)
             {
@@ -148,10 +158,40 @@ namespace A305.Mission
             ShowFinishedQuest();
         }
 
-        private void StartMission() =>
-            _ = ExecuteAsync(() =>
-                api.StartCurrentAsync(sceneCode, state != null && state.IsTownStory)
-            );
+        private void StartMission() => _ = ExecuteAsync(StartSelectedMissionAsync);
+
+        private async Task<FirstDayMissionState> StartSelectedMissionAsync()
+        {
+            if (view.SelectedQuestId == FirstDayMissionState.ShowcaseQuestId)
+            {
+                await api.StartShowcaseAsync();
+                return await api.LoadCurrentAsync(sceneCode);
+            }
+            if (state?.IsShowcase == true)
+            {
+                await api.StopShowcaseAsync();
+                FirstDayMissionState original = await api.LoadCurrentAsync(sceneCode);
+                return await api.StartCurrentAsync(sceneCode, original.IsTownStory);
+            }
+            return await api.StartCurrentAsync(sceneCode, state != null && state.IsTownStory);
+        }
+
+        private void OnTaxiArrived(string destination)
+        {
+            if (state?.IsShowcase != true || state.Stage != 1 || destination != "DINER")
+                return;
+            pendingTaxiArrival = destination;
+            FlushTaxiArrival();
+        }
+
+        private void FlushTaxiArrival()
+        {
+            if (busy || pendingTaxiArrival == null)
+                return;
+            string destination = pendingTaxiArrival;
+            pendingTaxiArrival = null;
+            _ = ExecuteAsync(() => api.ConfirmShowcaseTaxiArrivalAsync(destination));
+        }
 
         private void Rest()
         {
@@ -321,6 +361,7 @@ namespace A305.Mission
                 if (this != null)
                 {
                     Render();
+                    FlushTaxiArrival();
                     // 퀘스트를 시작하거나 진행이 바뀌면 열려 있는 목록도 새로 받는다.
                     // 진행은 방금 읽었으므로 목록만 받는다. 진행을 다시 읽으면 실패할 때마다 끝없이 되풀이한다.
                     if (view.IsQuestBoardOpen)
@@ -346,6 +387,18 @@ namespace A305.Mission
 
         private void Render()
         {
+            if (taxi != null)
+            {
+                if (
+                    state?.IsShowcase == true
+                    && state.Started
+                    && !state.Completed
+                    && state.Stage == 1
+                )
+                    taxi.PrepareShowcasePickup();
+                else
+                    taxi.ReleaseShowcasePickup();
+            }
             if (state != null)
             {
                 view.Refresh(state, busy, dialogue.IsTalking);

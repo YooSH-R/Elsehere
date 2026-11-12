@@ -12,7 +12,9 @@ namespace A305.Mission
         /// <summary>지금 퀘스트(하는 중이 아니면 다음에 시작할 퀘스트)의 코드. 퀘스트 목록의 퀘스트 Id와 같다.</summary>
         public string Quest { get; set; }
         public bool IsTownStory { get; set; }
-        public bool ShouldOfferTownStory => Completed && !IsTownStory;
+        public const string ShowcaseQuestId = "SHOWCASE_RAINY_EVENING";
+        public bool IsShowcase => Quest == ShowcaseQuestId;
+        public bool ShouldOfferTownStory => Completed && !IsTownStory && !IsShowcase;
         public int Stage { get; set; }
         public bool Completed { get; set; }
         public string Scene { get; set; }
@@ -38,7 +40,11 @@ namespace A305.Mission
                 if (!Started || Completed)
                     return null;
                 FirstDayMissionStep current = Steps.Find(step => step.Status == "CURRENT");
-                if (IsTownStory && current?.Scene == "TOWN" && current.NpcCode != null)
+                if (
+                    (IsTownStory || IsShowcase)
+                    && current?.Scene == "TOWN"
+                    && current.NpcCode != null
+                )
                     return TownMapArt.Shops.ContainsKey(current.NpcCode) ? current.NpcCode : null;
                 return current?.Scene;
             }
@@ -67,7 +73,8 @@ namespace A305.Mission
             sceneCode == "TOWN" && !insideShop;
 
         /// <summary>이번 휴식이 미션의 '카페에서 잠깐 쉬기'로 인정되는지. 주문을 마친 뒤 처음 쉬는 한 번뿐이다.</summary>
-        public bool CountsAsCafeRest => Started && !Completed && Stage == 1 && CanRest;
+        public bool CountsAsCafeRest =>
+            !IsShowcase && Started && !Completed && Stage == 1 && CanRest;
 
         /// <summary>
         /// Weather를 보내기 전의 서버이거나 Unity에 없는 날씨일 때 대신 보여 줄 날씨. Raining으로 비와 맑음만 나눈다.
@@ -100,7 +107,9 @@ namespace A305.Mission
                 ? before.Quest
                 : null;
 
-        private bool HasUmbrella => Started && (Completed || Stage > BuyUmbrellaStage);
+        private bool HasUmbrella =>
+            Started
+            && (IsShowcase ? !Completed && Stage >= 1 : Completed || Stage > BuyUmbrellaStage);
     }
 
     public sealed class FirstDayMissionStep

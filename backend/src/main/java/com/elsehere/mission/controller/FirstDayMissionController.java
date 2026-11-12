@@ -3,6 +3,7 @@ package com.elsehere.mission.controller;
 import com.elsehere.common.auth.LoginUser;
 import com.elsehere.mission.dto.FirstDayMissionResponse;
 import com.elsehere.mission.service.FirstDayMissionService;
+import com.elsehere.mission.service.ShowcaseQuestService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -18,10 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class FirstDayMissionController {
   private final FirstDayMissionService service;
+  private final ShowcaseQuestService showcase;
 
   @GetMapping
   public FirstDayMissionResponse status(@AuthenticationPrincipal LoginUser user) {
-    return service.status(user.userId());
+    return showcase.activeStatus(user.userId()).orElseGet(() -> service.status(user.userId()));
   }
 
   @PostMapping("/start")
@@ -32,7 +34,9 @@ public class FirstDayMissionController {
   @PostMapping("/visit")
   public FirstDayMissionResponse visit(
       @AuthenticationPrincipal LoginUser user, @Valid @RequestBody VisitRequest request) {
-    return service.visit(user.userId(), request.scene());
+    return showcase
+        .visitIfActive(user.userId(), request.scene())
+        .orElseGet(() -> service.visit(user.userId(), request.scene()));
   }
 
   @PostMapping("/rest")

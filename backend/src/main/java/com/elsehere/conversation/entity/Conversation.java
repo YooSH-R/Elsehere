@@ -83,6 +83,23 @@ public class Conversation extends BaseEntity {
 
   private Integer firstDayStage;
 
+  // 시연의 시작 상황을 보존해, 퀘스트가 끝난 뒤에도 같은 주문만 다시 연습한다.
+  private Integer showcaseStage;
+
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(columnDefinition = "jsonb")
+  private List<String> showcaseGoalIds;
+
+  public void attachShowcaseStage(Integer stage) {
+    this.showcaseStage = stage;
+  }
+
+  public void recordShowcaseGoals(List<String> goals) {
+    if (showcaseGoalIds == null) {
+      showcaseGoalIds = List.copyOf(goals);
+    }
+  }
+
   // 같은 단계에 다시 말을 걸어도 이전 대화에서 끝낸 목표를 다시 요구하지 않는다.
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(columnDefinition = "jsonb")

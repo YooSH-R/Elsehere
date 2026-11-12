@@ -103,6 +103,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   FirstDayMissionService.class,
   TownStoryService.class,
   QuestTalkService.class,
+  com.elsehere.mission.service.ShowcaseQuestService.class,
+  com.elsehere.mission.service.ShowcaseSettings.class,
   PlacePracticeService.class,
   GameClockService.class,
   GuestContentCleanup.class,

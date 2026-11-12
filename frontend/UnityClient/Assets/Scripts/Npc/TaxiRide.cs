@@ -40,6 +40,7 @@ namespace A305.Npc
         private TaxiDestination destination;
         private bool passenger;
         private bool arriving;
+        private bool showcasePickupReserved;
         private CharacterController passengerCollider;
         private Vector3 pickupPosition;
         private float previousFieldOfView;
@@ -59,6 +60,40 @@ namespace A305.Npc
         public TaxiPhase Phase => fare.Phase;
         public bool IsPassenger => passenger;
         public string DestinationCode { get; private set; }
+        public event Action<string> ArrivedAtDestination;
+
+        /// <summary>시연 손님이 호텔에서 나올 때 기존 호텔 정차 지점에서 기다린다. 자동 탑승하지 않는다.</summary>
+        public void PrepareShowcasePickup()
+        {
+            if (
+                showcasePickupReserved
+                || passenger
+                || !IsHailAllowed
+                || car == null
+                || fare.Phase != TaxiPhase.Cruising
+            )
+                return;
+            TaxiDestination hotel = destinations.Find(candidate => candidate.Code == "HOTEL");
+            if (hotel == null || !fare.TryHail())
+                return;
+            Vector3 stop = hotel.Stop;
+            car.StopAt(
+                stop.x > 0
+                    ? car.Route.NorthboundDistance(stop.z)
+                    : car.Route.SouthboundDistance(stop.z)
+            );
+            fare.Arrive();
+            showcasePickupReserved = true;
+        }
+
+        public void ReleaseShowcasePickup()
+        {
+            if (!showcasePickupReserved)
+                return;
+            showcasePickupReserved = false;
+            fare.EndRide();
+            car.Release();
+        }
 
         private void Awake()
         {
@@ -122,7 +157,8 @@ namespace A305.Npc
             }
             Vector3 customer = player.transform.position;
             float distance = HorizontalDistance(customer);
-            fare.Tick(distance, dialogue.IsTalking);
+            if (!showcasePickupReserved)
+                fare.Tick(distance, dialogue.IsTalking);
             if (fare.Phase == TaxiPhase.Cruising)
             {
                 car.Release();
@@ -258,6 +294,7 @@ namespace A305.Npc
             )
                 return;
             passenger = true;
+            showcasePickupReserved = false;
             arriving = false;
             destination = null;
             DestinationCode = null;
@@ -313,6 +350,8 @@ namespace A305.Npc
         {
             if (!passenger)
                 return;
+            string arrivedCode =
+                arriving && destination != null && isActiveAndEnabled ? destination.Code : null;
             passenger = false;
             if (driverHead != null)
                 driverHead.localRotation = restingHeadRotation;
@@ -345,6 +384,8 @@ namespace A305.Npc
                 panel.SetVehicleLayout(false);
             destination = null;
             DestinationCode = null;
+            if (arrivedCode != null)
+                ArrivedAtDestination?.Invoke(arrivedCode);
         }
 
         private float HorizontalDistance(Vector3 customer)

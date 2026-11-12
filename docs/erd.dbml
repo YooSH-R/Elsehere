@@ -218,6 +218,8 @@ Table conversations [headercolor: #2E6B4F] {
   review_card_id bigint [note: '상황 복습 카드 ID. NULL이면 본편 대화, 값이 있으면 본편 진행과 분리된 REVIEW 대화']
   review_result jsonb [note: '복습 종료 시 1회 저장하는 표현별 실제 발화 근거·연습 결과. 일반 대화/종료 전에는 NULL. 내용 삭제 시 제거']
   first_day_stage int [note: '대화 시작 시 첫날 연계 미션 단계 0~6. 피드백 상황 복원용이며 자유 대화는 NULL']
+  showcase_stage int [note: '시연 대화를 시작한 단계 0~3. 일반·복습·장소 연습은 NULL']
+  showcase_goal_ids jsonb [note: '그 시연 대화의 남은 목표. 피드백·상황 복습용 스냅샷']
   first_day_goal_ids jsonb [note: '대화 시작 시 남은 첫날 퀘스트 목표 ID 배열. 빈 배열은 목표 없음, NULL은 저장 전 기존 기록. 피드백·복습에서 사용']
   town_story_stage int [note: '대화 시작 시 마을 여정 단계 0~11. 피드백 상황 복원용이며 해당 여정이 아니면 NULL']
   town_story_goal_ids jsonb [note: '대화 시작 시 수행 가능한 남은 마을 퀘스트 목표 ID 배열. 빈 배열은 목표 없음, NULL은 저장 전 기존 기록. 피드백·복습에서 사용']
@@ -482,6 +484,21 @@ Table user_missions [headercolor: #5B4B9A] {
   Note: '미션 진행. 수락 없이 그날 첫 미션 조회 때 RUN으로 자동 생성'
 }
 
+Table showcase_journeys [headercolor: #5B4B9A] {
+  user_id bigint [pk, not null]
+  stage int [not null, note: '호텔 0 · 택시 1 · 주문 2 · 호텔 복귀 3 · 완료 4']
+  objectives int [not null]
+  active boolean [not null]
+  umbrella_borrowed boolean [not null]
+  meal_paid boolean [not null]
+  taxi_requested boolean [not null]
+  scene varchar(20) [not null]
+  version bigint [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  Note: '기본 비활성 시연 설정에서만 사용. 기존 미션 진행·잔액과 분리'
+}
+
 Table first_day_missions [headercolor: #5B4B9A] {
   user_id bigint [pk, not null]
   stage int [not null, note: '0~6 현재 단계, 7 전체 완료']
@@ -601,6 +618,7 @@ TableGroup mission {
   user_missions
   first_day_missions
   town_stories
+  showcase_journeys
   ai_candidates
 }
 
@@ -626,6 +644,7 @@ Ref: user_missions.mission_id > missions.id
 
 // 논리 관계(회색): 칼럼으로만 잇고 DB 외래 키 제약은 없다. 사용자 내용 삭제는 UserContentEraser가 테이블마다 지운다
 Ref: first_day_missions.user_id > users.id [color: #9AA3AE]
+Ref: showcase_journeys.user_id > users.id [color: #9AA3AE]
 Ref: town_stories.user_id > users.id [color: #9AA3AE]
 Ref: user_language_profiles.last_test_id > level_tests.id [color: #9AA3AE]
 Ref: level_tests.user_id > users.id [color: #9AA3AE]

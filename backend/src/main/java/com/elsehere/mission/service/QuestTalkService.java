@@ -27,6 +27,7 @@ public class QuestTalkService {
   private final FirstDayMissionService firstDay;
   private final TownStoryService town;
   private final PlacePracticeService practice;
+  private final ShowcaseQuestService showcase;
 
   /**
    * 대화를 시작할 때의 대화 목표.
@@ -67,11 +68,16 @@ public class QuestTalkService {
       case PRACTICE -> practice.accept(conversation, intent);
       case TOWN_STORY -> town.accept(userId, quest.talk().stage(), npcCode, intent);
       case FIRST_DAY -> firstDay.accept(userId, quest.talk().stage(), npcCode, intent);
+      case SHOWCASE -> showcase.accept(userId, quest.talk().stage(), npcCode, intent);
     }
   }
 
   // 마을 이야기를 하는 중이면 그 목표, 아니면 첫날 미션의 목표. 두 퀘스트는 앞 퀘스트를 끝내야 다음이 열려 동시에 진행되지 않는다.
   private Optional<SelectedQuest> activeQuest(Long userId, String npcCode) {
+    Optional<QuestTalk> demo = showcase.context(userId, npcCode);
+    if (demo.isPresent()) {
+      return demo.map(talk -> new SelectedQuest(Source.SHOWCASE, talk));
+    }
     Optional<QuestTalk> activeTown = town.context(userId, npcCode);
     if (activeTown.isPresent()) {
       return activeTown.map(talk -> new SelectedQuest(Source.TOWN_STORY, talk));
@@ -83,6 +89,7 @@ public class QuestTalkService {
   public enum Source {
     FIRST_DAY,
     TOWN_STORY,
+    SHOWCASE,
     PRACTICE
   }
 
@@ -97,6 +104,10 @@ public class QuestTalkService {
         return;
       }
       switch (source) {
+        case SHOWCASE -> {
+          conversation.attachShowcaseStage(goals.stage());
+          conversation.recordShowcaseGoals(goals.remainingGoals());
+        }
         case TOWN_STORY -> {
           conversation.attachTownStoryStage(goals.stage());
           conversation.recordTownStoryGoals(goals.remainingGoals());
@@ -117,6 +128,7 @@ public class QuestTalkService {
         case PRACTICE -> true;
         case TOWN_STORY -> Objects.equals(conversation.getTownStoryStage(), talk.stage());
         case FIRST_DAY -> Objects.equals(conversation.getFirstDayStage(), talk.stage());
+        case SHOWCASE -> Objects.equals(conversation.getShowcaseStage(), talk.stage());
       };
     }
   }

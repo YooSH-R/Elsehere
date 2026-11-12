@@ -2,6 +2,7 @@ package com.elsehere.review.service;
 
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.mission.entity.FirstDayStage;
+import com.elsehere.mission.entity.ShowcaseStage;
 import com.elsehere.mission.entity.TownStoryStage;
 import com.elsehere.review.dto.ReviewScenario;
 import java.util.List;
@@ -10,6 +11,24 @@ final class ReviewScenarios {
   private ReviewScenarios() {}
 
   static ReviewScenario capture(Conversation source, String npcCode, String summary) {
+    Integer showcase = source == null ? null : source.getShowcaseStage();
+    if (showcase != null && showcase >= 0 && showcase < ShowcaseStage.values().length) {
+      ShowcaseStage stage = ShowcaseStage.values()[showcase];
+      List<String> pending = source.getShowcaseGoalIds();
+      if (stage.npcCode().equals(npcCode) && pending != null && !pending.isEmpty()) {
+        List<String> notes =
+            stage.goals().stream()
+                .filter(goal -> pending.contains(goal.id()))
+                .map(ShowcaseStage.Goal::hint)
+                .toList();
+        return new ReviewScenario(
+            "showcase_" + stage.name(),
+            stage == ShowcaseStage.ORDER ? "햄버거 주문 다시 연습" : stage.title(),
+            stage.situation() + " 이번 복습은 같은 상황을 처음부터 다시 연습합니다. 이전 방문의 감사 인사로 이어가지 않습니다.",
+            "손님",
+            notes);
+      }
+    }
     Integer firstDay = source == null ? null : source.getFirstDayStage();
     if (firstDay != null && firstDay >= 0 && firstDay < FirstDayStage.values().length) {
       var stage = FirstDayStage.values()[firstDay];

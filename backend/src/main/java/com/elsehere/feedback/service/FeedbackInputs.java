@@ -8,6 +8,7 @@ import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.mission.entity.PracticeScenario;
+import com.elsehere.mission.entity.ShowcaseStage;
 import com.elsehere.mission.entity.TownStoryStage;
 import com.elsehere.world.entity.Npc;
 import java.util.List;
@@ -62,7 +63,14 @@ final class FeedbackInputs {
             : null;
     Optional<PracticeScenario> practice = PracticeScenario.find(conversation.getPracticeScenario());
     String situation = null;
-    if (practice.isPresent()) {
+    Integer showcaseIndex = conversation.getShowcaseStage();
+    ShowcaseStage showcase =
+        showcaseIndex != null && showcaseIndex >= 0 && showcaseIndex < ShowcaseStage.values().length
+            ? ShowcaseStage.values()[showcaseIndex]
+            : null;
+    if (showcase != null && showcase.npcCode().equals(npc.getCode())) {
+      situation = "시연 " + showcase.title() + " · " + showcase.situation();
+    } else if (practice.isPresent()) {
       situation = practiceSituation(practice.get());
     } else if (townQuest != null && townQuest.npcCode().equals(npc.getCode())) {
       situation = townSituation(conversation, townQuest);

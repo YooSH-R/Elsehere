@@ -23,7 +23,9 @@ class QuestBoardServiceTest {
   private final FirstDayMissionRepository firstDay = mock(FirstDayMissionRepository.class);
   private final TownStoryRepository stories = mock(TownStoryRepository.class);
   private final NpcRepository npcs = mock(NpcRepository.class);
-  private final QuestBoardService service = new QuestBoardService(firstDay, stories, npcs);
+  private final QuestBoardService service =
+      new QuestBoardService(
+          firstDay, stories, npcs, mock(com.elsehere.mission.service.ShowcaseQuestService.class));
 
   @BeforeEach
   void knowTheNpcNames() {

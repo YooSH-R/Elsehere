@@ -306,6 +306,7 @@ namespace A305.Mission
         public bool IsJournalOpen => journal.activeSelf;
 
         public bool IsQuestBoardOpen => questBoard != null && questBoard.IsOpen;
+        public string SelectedQuestId => questBoard != null ? questBoard.SelectedQuestId : null;
 
         public bool IsQuestCompleteOpen => questComplete != null && questComplete.IsOpen;
 
@@ -399,6 +400,16 @@ namespace A305.Mission
                 );
             }
             journey.text = lines.ToString().TrimEnd();
+            if (state.IsShowcase)
+            {
+                belongings.text =
+                    (
+                        state.Completed ? "우산 · 호텔에 반납"
+                        : state.Stage >= 1 ? "우산 · 호텔에서 빌림"
+                        : "호텔에서 우산을 빌려요"
+                    ) + $"\n{state.Balance}코인";
+                return;
+            }
             int firstDayStage = state.IsTownStory ? 7 : state.Stage;
             string suitcase =
                 firstDayStage >= 7 ? "캐리어 · 찾음"

@@ -123,6 +123,8 @@ namespace A305.EditorTools.Mission
             var view = BuilderTools.FindSingleInScene<FirstDayMissionView>(scene);
             // 오른쪽 위 단어장 칸도 함께 그려 왼쪽 위 퀘스트 화면과 겹치는지 확인한다.
             var vocabulary = BuilderTools.FindSingleInScene<LearningHudView>(scene);
+            if (vocabulary != null && vocabulary.ControlsGuide != null)
+                vocabulary.ControlsGuide.SetBlocked(true);
             Canvas[] shown = BuilderTools
                 .FindAllInScene<Canvas>(scene)
                 .Where(canvas =>
@@ -166,12 +168,34 @@ namespace A305.EditorTools.Mission
                 .parent
                 .gameObject;
             drawer.SetActive(false);
+            view.ExpandQuestCard();
             Render(camera, view, Path.Combine(output, "quest-npc.png"), 1920, 1080);
             Render(camera, view, Path.Combine(output, "quest-card-mobile.png"), 1080, 1920);
+            Render(camera, view, Path.Combine(output, "quest-card-mobile-landscape.png"), 844, 390);
             drawer.SetActive(true);
             banner.SetActive(false);
             Render(camera, view, Path.Combine(output, "quest-journal.png"), 1920, 1080);
             Render(camera, view, Path.Combine(output, "quest-mobile.png"), 1080, 1920);
+            string boardInput = Environment.GetEnvironmentVariable("FIRST_DAY_PREVIEW_BOARD_JSON");
+            if (!string.IsNullOrWhiteSpace(boardInput))
+            {
+                var boardState = ApiJson.Deserialize<QuestBoardState>(File.ReadAllText(boardInput));
+                var board = view.GetComponentInChildren<QuestBoardView>(true);
+                board.Open();
+                board.Show(boardState);
+                board.ShowStory();
+                drawer.SetActive(false);
+                banner.SetActive(false);
+                Render(camera, view, Path.Combine(output, "showcase-list-desktop.png"), 1920, 1080);
+                Render(camera, view, Path.Combine(output, "showcase-list-mobile.png"), 844, 390);
+                board.ShowMap(
+                    boardState.Quests.FindIndex(quest =>
+                        quest.Id == FirstDayMissionState.ShowcaseQuestId
+                    )
+                );
+                Render(camera, view, Path.Combine(output, "showcase-map-desktop.png"), 1920, 1080);
+                Render(camera, view, Path.Combine(output, "showcase-map-mobile.png"), 844, 390);
+            }
         }
 
         private static void Render(

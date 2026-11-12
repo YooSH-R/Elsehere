@@ -28,6 +28,28 @@ namespace A305.Mission.Tests
         }
 
         [Test]
+        public void ShowcaseSelectionKeepsItsOwnQuestIdForTheStartAction()
+        {
+            FirstDayMissionView mission = Create();
+            QuestBoardView board = Field<QuestBoardView>(mission, "questBoard");
+            QuestBoardState state = Board();
+            state.Quests.Add(
+                new QuestEntry
+                {
+                    Id = FirstDayMissionState.ShowcaseQuestId,
+                    Title = "비 오는 저녁, 햄버거 한 끼",
+                    Description = "시연",
+                    Status = QuestEntry.Available,
+                }
+            );
+            board.Show(state);
+            board.ShowMap(state.Quests.Count - 1);
+            Assert.That(mission.SelectedQuestId, Is.EqualTo(FirstDayMissionState.ShowcaseQuestId));
+            board.ShowMap(0);
+            Assert.That(mission.SelectedQuestId, Is.EqualTo(state.Quests[0].Id));
+        }
+
+        [Test]
         public void QuestCard_OpensTheQuestListInsteadOfTheJournal()
         {
             FirstDayMissionView mission = Create();

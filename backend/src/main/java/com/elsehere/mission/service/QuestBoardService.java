@@ -26,12 +26,17 @@ public class QuestBoardService {
   private final FirstDayMissionRepository firstDay;
   private final TownStoryRepository stories;
   private final NpcRepository npcs;
+  private final ShowcaseQuestService showcase;
 
   public QuestBoardService(
-      FirstDayMissionRepository firstDay, TownStoryRepository stories, NpcRepository npcs) {
+      FirstDayMissionRepository firstDay,
+      TownStoryRepository stories,
+      NpcRepository npcs,
+      ShowcaseQuestService showcase) {
     this.firstDay = firstDay;
     this.stories = stories;
     this.npcs = npcs;
+    this.showcase = showcase;
   }
 
   public QuestBoardResponse board(Long userId) {
@@ -48,7 +53,13 @@ public class QuestBoardService {
               ? chapter(quest, firstDayDone, story, names)
               : firstDayQuest(quest, mission, names));
     }
-    return new QuestBoardResponse(Coins.balance(mission, story), quests);
+    showcase.card(userId, names).ifPresent(quests::add);
+    int balance =
+        showcase
+            .activeStatus(userId)
+            .map(com.elsehere.mission.dto.FirstDayMissionResponse::balance)
+            .orElseGet(() -> Coins.balance(mission, story));
+    return new QuestBoardResponse(balance, quests);
   }
 
   private static QuestBoardResponse.Quest firstDayQuest(

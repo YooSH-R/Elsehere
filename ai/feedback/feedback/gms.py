@@ -28,6 +28,7 @@ def feedback_response_format(messages):
     fields["review_tags"]["maxItems"] = 2
     fields["vocab_candidates"]["maxItems"] = 2
     definitions["TurnReview"]["properties"]["suggestions"]["maxItems"] = 1
+    definitions["TurnReview"]["required"].append("expression_examples")
     # 설명을 먼저 쓰면 설명과 다르게 고친 문장이 나온다(S15P31A305-780). 고친 문장을 먼저 정하고 그 교정을 설명하게 순서를 바꾼다.
     review = definitions["TurnReview"]["properties"]
     review["explanation_ko"] = review.pop("explanation_ko")

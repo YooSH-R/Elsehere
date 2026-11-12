@@ -710,9 +710,9 @@ namespace A305.Learning
         private Sprite SaidChip(CorrectionKind kind) =>
             kind switch
             {
-                CorrectionKind.Corrected => saidChipSprite,
                 CorrectionKind.Korean => saidKoreanChipSprite,
-                _ => goodChipSprite,
+                CorrectionKind.WellSaid => goodChipSprite,
+                _ => saidChipSprite,
             };
 
         // 받지 못한 피드백·다시 만드는 중·빈 탭: 장 제목(있으면) 아래 칸에 안내 글

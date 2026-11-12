@@ -1,5 +1,7 @@
 package com.elsehere.feedback.dto;
 
+import java.util.List;
+
 /**
  * 사용자 발화 하나의 상세 평가(화면 17).
  *
@@ -14,4 +16,29 @@ public record DetailedFeedbackItemResponse(
     String betterText,
     String reason,
     IdiomResponse idiom,
-    boolean hasModelSpeech) {}
+    boolean hasModelSpeech,
+    String verdict,
+    String suggestionKind,
+    List<ExpressionExampleResponse> expressionExamples) {
+
+  public DetailedFeedbackItemResponse(
+      Long turnFeedbackId,
+      Long turnId,
+      String userText,
+      String betterText,
+      String reason,
+      IdiomResponse idiom,
+      boolean hasModelSpeech) {
+    this(
+        turnFeedbackId,
+        turnId,
+        userText,
+        betterText,
+        reason,
+        idiom,
+        hasModelSpeech,
+        null,
+        null,
+        List.of());
+  }
+}

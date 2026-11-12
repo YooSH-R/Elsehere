@@ -83,7 +83,14 @@ namespace A305.EditorTools.Learning
 
         public static void CaptureExpanded() => Capture(naturalOnly: false, expanded: true);
 
-        private static void Capture(bool naturalOnly, bool expanded = false)
+        public static void CaptureExpressionGuidance() =>
+            Capture(naturalOnly: false, expressionGuidance: true);
+
+        private static void Capture(
+            bool naturalOnly,
+            bool expanded = false,
+            bool expressionGuidance = false
+        )
         {
             string output = System.Environment.GetEnvironmentVariable("FEEDBACK_PREVIEW_OUTPUT");
             if (string.IsNullOrWhiteSpace(output))
@@ -215,6 +222,44 @@ namespace A305.EditorTools.Learning
             );
             if (expanded)
                 view.ToggleExpanded();
+            if (expressionGuidance)
+            {
+                feedback = ExpressionGuidanceFeedback();
+                view.Show(feedback, new DialogueLine[0]);
+                foreach (
+                    UiThemeId theme in new[] { UiThemeId.Jelly, UiThemeId.Sticker, UiThemeId.Cloud }
+                )
+                {
+                    UiThemeSelection.Shared.Select(theme);
+                    foreach (
+                        ThemedElement element in BuilderTools.FindAllInScene<ThemedElement>(scene)
+                    )
+                        element.ApplyCurrent();
+                    view.SelectSection(FeedbackSection.Corrections);
+                    Render(
+                        camera,
+                        view,
+                        Path.Combine(output, $"expressions-{theme}.png"),
+                        1600,
+                        1000
+                    );
+                    view.SelectSection(FeedbackSection.Conversation);
+                    view.SelectReview(0);
+                    Render(
+                        camera,
+                        view,
+                        Path.Combine(output, $"ambiguous-{theme}.png"),
+                        1600,
+                        1000
+                    );
+                }
+                view.SelectReview(1);
+                Render(camera, view, Path.Combine(output, "word-list-desktop.png"), 1600, 1000);
+                Render(camera, view, Path.Combine(output, "word-list-mobile.png"), 540, 960);
+                view.SelectReview(2);
+                Render(camera, view, Path.Combine(output, "natural-short-mobile.png"), 540, 960);
+                return;
+            }
             if (naturalOnly)
             {
                 const string sentence = "I have a reservation under Kim.";
@@ -341,6 +386,88 @@ namespace A305.EditorTools.Learning
                 $"Content height: {scroll.content.rect.height}; viewport: {scroll.viewport.rect.height}; external model calls: 0"
             );
         }
+
+        private static ConversationFeedback ExpressionGuidanceFeedback() =>
+            ConversationFeedback.FromServer(
+                "Mia",
+                2,
+                new ServerFeedback(
+                    new FeedbackData { Status = "DONE", Summary = "표현 연습용 가상 대화예요." },
+                    new List<DetailedFeedbackItem>
+                    {
+                        new DetailedFeedbackItem
+                        {
+                            UserText = "umbrella please",
+                            Verdict = "needs_clarification",
+                            Reason = "우산을 빌리려는지 판매처를 묻는지 분명하게 말해 보세요.",
+                            ExpressionExamples = new List<FeedbackExpressionExample>
+                            {
+                                new FeedbackExpressionExample
+                                {
+                                    ConditionKo = "우산을 빌리고 싶을 때",
+                                    Expression = "Could I borrow an umbrella, please?",
+                                    MeaningKo = "우산을 빌릴 수 있을까요?",
+                                },
+                                new FeedbackExpressionExample
+                                {
+                                    ConditionKo = "우산 파는 곳을 물을 때",
+                                    Expression = "Where can I buy an umbrella?",
+                                    MeaningKo = "우산을 어디에서 살 수 있나요?",
+                                },
+                            },
+                        },
+                        new DetailedFeedbackItem
+                        {
+                            UserText = "Coffee. Large. Cold.",
+                            BetterText = "I'd like a large cold coffee, please.",
+                            Verdict = "improvement_suggested",
+                            SuggestionKind = "context_fit",
+                            Reason =
+                                "음료와 크기·온도는 전달했어요. 원하는 주문을 한 문장으로 연결해 봐요.",
+                            ExpressionExamples = new List<FeedbackExpressionExample>
+                            {
+                                new FeedbackExpressionExample
+                                {
+                                    ConditionKo = "원하는 음료를 주문할 때",
+                                    Expression = "I'd like a large cold coffee, please.",
+                                    MeaningKo = "차가운 커피 큰 것으로 주세요.",
+                                },
+                                new FeedbackExpressionExample
+                                {
+                                    ConditionKo = "같은 주문을 다른 말로 할 때",
+                                    Expression = "Could I have a large cold coffee?",
+                                    MeaningKo = "차가운 커피 큰 것으로 받을 수 있을까요?",
+                                },
+                            },
+                        },
+                        new DetailedFeedbackItem
+                        {
+                            UserText = "For here, please.",
+                            BetterText = "I'd like to eat here, please.",
+                            Verdict = "appropriate",
+                            SuggestionKind = "natural_alternative",
+                            Reason =
+                                "짧아도 자연스러운 답이에요. 문장으로 말하는 방법도 연습할 수 있어요.",
+                            ExpressionExamples = new List<FeedbackExpressionExample>
+                            {
+                                new FeedbackExpressionExample
+                                {
+                                    ConditionKo = "매장에서 먹겠다고 문장으로 말할 때",
+                                    Expression = "I'd like to eat here, please.",
+                                    MeaningKo = "여기서 먹고 갈게요.",
+                                },
+                                new FeedbackExpressionExample
+                                {
+                                    ConditionKo = "다른 말로 답할 때",
+                                    Expression = "I'll eat here, thanks.",
+                                    MeaningKo = "여기서 먹을게요, 고마워요.",
+                                },
+                            },
+                        },
+                    },
+                    null
+                )
+            );
 
         private static void Render(
             Camera camera,

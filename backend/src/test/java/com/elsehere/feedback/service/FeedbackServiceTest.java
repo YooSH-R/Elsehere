@@ -35,6 +35,7 @@ import com.elsehere.feedback.dto.SuggestionResponse;
 import com.elsehere.feedback.dto.VocabCandidateResponse;
 import com.elsehere.feedback.entity.ConversationFeedback;
 import com.elsehere.feedback.entity.FeedbackStatus;
+import com.elsehere.feedback.entity.TurnFeedback;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
@@ -98,6 +99,42 @@ class FeedbackServiceTest {
     npcTurn(entityManager, conversation, 5, "Here you go.");
     conversation.endByUser(Instant.parse("2026-10-27T01:05:00Z"));
     entityManager.flush();
+  }
+
+  @Test
+  @DisplayName("저장한 평가 원본의 판정과 조건별 예문을 재조회하며 AI를 다시 호출하지 않는다")
+  void detailed_preservesAssessmentAndConditionalExpressionExamples() {
+    Conversation hotel = conversation(entityManager, userId, "HOTEL_STAFF");
+    Turn request = textTurn(entityManager, hotel, 1, "umbrella please");
+    hotel.endByUser(Instant.parse("2026-10-27T02:00:00Z"));
+    ConversationFeedback stored = ConversationFeedback.of(hotel.getId());
+    stored.complete(
+        "우산 관련 요청",
+        STORED_REVIEWS,
+        "test",
+        """
+        {"turn_reviews":[{"turn_id":"%s","verdict":"needs_clarification",
+          "suggestions":[],"expression_examples":[
+          {"condition_ko":"빌릴 때","expression":"Could I borrow an umbrella?","meaning_ko":"우산을 빌릴 수 있나요?"},
+          {"condition_ko":"판매처를 물을 때","expression":"Where can I buy an umbrella?","meaning_ko":"우산을 어디서 살 수 있나요?"}]}]}
+        """
+            .formatted(request.getId()));
+    entityManager.persist(stored);
+    entityManager.persist(TurnFeedback.of(request.getId(), null, "요청 의도를 확인해요.", null, null));
+    entityManager.flush();
+    entityManager.clear();
+
+    String detail = jsonMapper.writeValueAsString(feedbackService.detailed(userId, hotel.getId()));
+    String full = jsonMapper.writeValueAsString(feedbackService.feedback(userId, hotel.getId()));
+
+    for (String response : List.of(detail, full)) {
+      assertThat(response)
+          .contains("\"verdict\":\"needs_clarification\"")
+          .contains("\"expressionExamples\"")
+          .contains("Could I borrow an umbrella?")
+          .contains("Where can I buy an umbrella?");
+    }
+    then(aiGateway).should(never()).feedback(any(), any());
   }
 
   @Test

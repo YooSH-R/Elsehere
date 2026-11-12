@@ -3,12 +3,13 @@ using A305.World;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace A305.Mission
 {
     /// <summary>
     /// 왼쪽 아래 미니맵. 둥근 창 안에서 마을 지도 그림을 움직여 내 위치가 가운데 오게 하고,
-    /// 그 위에 내 위치 화살표와 지금 가야 할 장소 테두리, [이웃]에서 찾는 NPC 핀(<see cref="NpcTracking"/>)을 얹는다.
+    /// 내 위치 화살표와 [이웃]에서 찾는 NPC 핀(<see cref="NpcTracking"/>)을 얹고, 목적지 이름표의 배경을 밝힌다.
     /// 좌표는 <see cref="TownMapArt"/>를 따른다.
     /// 큰 지도도 같은 화면을 쓴다. 창이 지도 그림 전체 크기라 그림은 움직이지 않고 표시만 따라간다.
     /// 끌면 지도가 커서를 따라 움직여 주변을 둘러볼 수 있고(<see cref="MiniMapPan"/>), 끌고 놓았을 때는 큰 지도를 열지 않는다.
@@ -21,8 +22,10 @@ namespace A305.Mission
     {
         private const string TownSceneCode = "TOWN";
 
-        // 목적지 테두리 그림은 장소 칸보다 사방 20단위 크다(테두리 12 + 그림 여백 8).
-        private const float FrameOutset = 20;
+        private const float DestinationPulsePeriod = 0.8f;
+        private const float DestinationPulseDuration = DestinationPulsePeriod * 2f;
+        private static readonly Color DestinationColor = new Color32(255, 226, 166, 255);
+        private static readonly Color DestinationGlowColor = new Color32(255, 251, 223, 255);
 
         [SerializeField]
         [Tooltip(
@@ -35,10 +38,6 @@ namespace A305.Mission
         private RectTransform player;
 
         [SerializeField]
-        [Tooltip("지도 그림 위의 목적지 테두리")]
-        private RectTransform destination;
-
-        [SerializeField]
         [Tooltip("[이웃]에서 찾는 NPC 핀. 자식 Letter(이름 첫 글자)와 Name/Label(이름)을 쓴다")]
         private RectTransform neighbor;
 
@@ -46,6 +45,11 @@ namespace A305.Mission
         private string sceneCode;
         private Transform follow;
         private string shownNeighborName;
+        private string shownDestination;
+        private Image destinationNameplate;
+        private Color normalNameplateColor;
+        private float destinationPulseStart;
+        private bool destinationPulseActive;
 
         /// <summary>마을에서는 플레이어 위치와 방향을 따라가고, 건물 안에서는 그 건물 출입문에 내 위치를 둔다.</summary>
         public void Bind(string currentSceneCode, Transform playerTransform)
@@ -55,15 +59,50 @@ namespace A305.Mission
             Redraw();
         }
 
-        /// <summary>목적지가 마을 거리이거나 없으면 테두리를 숨긴다.</summary>
+        /// <summary>현재 목적지 이름표만 강조한다. 목적지가 없으면 원래 색으로 되돌린다.</summary>
         public void ShowDestination(string destinationSceneCode)
         {
-            Rect? tile = TownMapArt.Tile(destinationSceneCode);
-            destination.gameObject.SetActive(tile.HasValue);
-            if (!tile.HasValue)
+            if (shownDestination == destinationSceneCode)
                 return;
-            destination.anchoredPosition = OnMap(tile.Value.center);
-            destination.sizeDelta = tile.Value.size + Vector2.one * FrameOutset * 2;
+
+            if (destinationNameplate != null)
+                destinationNameplate.color = normalNameplateColor;
+
+            shownDestination = destinationSceneCode;
+            destinationPulseActive = false;
+            destinationNameplate = TownMapArt.Tile(destinationSceneCode).HasValue
+                ? map.Find($"BuildingLabels/{destinationSceneCode}")?.GetComponent<Image>()
+                : null;
+            if (destinationNameplate != null)
+            {
+                normalNameplateColor = destinationNameplate.color;
+                StartDestinationPulse();
+            }
+        }
+
+        private void StartDestinationPulse()
+        {
+            destinationNameplate.color = DestinationColor;
+            destinationPulseStart = Time.unscaledTime;
+            destinationPulseActive = true;
+        }
+
+        private void UpdateDestinationHighlight(float elapsed)
+        {
+            if (elapsed >= DestinationPulseDuration)
+            {
+                destinationNameplate.color = DestinationColor;
+                destinationPulseActive = false;
+                return;
+            }
+
+            float brightness =
+                0.5f - 0.5f * Mathf.Cos(2f * Mathf.PI * elapsed / DestinationPulsePeriod);
+            destinationNameplate.color = Color.Lerp(
+                DestinationColor,
+                DestinationGlowColor,
+                brightness
+            );
         }
 
         public void Redraw()
@@ -154,6 +193,17 @@ namespace A305.Mission
 
         public void OnEndDrag(PointerEventData eventData) => pan.Release(Time.unscaledTime);
 
-        private void LateUpdate() => Redraw();
+        private void OnEnable()
+        {
+            if (destinationNameplate != null)
+                StartDestinationPulse();
+        }
+
+        private void LateUpdate()
+        {
+            Redraw();
+            if (destinationPulseActive)
+                UpdateDestinationHighlight(Time.unscaledTime - destinationPulseStart);
+        }
     }
 }

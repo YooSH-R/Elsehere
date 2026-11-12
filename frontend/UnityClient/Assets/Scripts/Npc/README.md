@@ -280,10 +280,10 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 마을 본길의 매장 9곳 1층에 직원을 둡니다. 직원은 그 매장 장면(`Scenes/ShopInteriors/<건물>Interior`) 안에 있고 근무 중이거나 근무 전에 미리 들어온 동안만 켜지며, 마을에는 출퇴근·휴식·여가 모습만 나옵니다. 모두 행인 프리팹을 쓰고 걷는 속도 0이라 플레이어에게 걸어가지 않습니다. 평소에는 근접 버튼이나 대화 제안을 띄우지 않고, 클릭·탭 후 확인 창에서 대화를 시작합니다. 튜토리얼·퀘스트와 후속 이벤트의 제안은 별도로 표시합니다. 이름·인격·목소리·상황은 서버 데이터(`ai/npcs/<NPC 키>.json`, `ai/npcs/scenarios/`)입니다.
 
-| 건물 | NPC 키 | 이름 | 외형(색만 바꿈) |
+| 건물 | NPC 키 | 이름 | 외형 |
 | --- | --- | --- | --- |
 | 우체국 `PostOffice` | `POST_OFFICE_STAFF` | Linda | 중년 여성, 자주색 옷·갈색 눈 |
-| 햄버거 가게 `MapleDiner` | `DINER_STAFF` | Rosa | 중년 여성, 빨간 옷·초록 눈 |
+| 햄버거 가게 `MapleDiner` | `DINER_STAFF` | Rosa | 중년 여성, 빨간 상의·야구 캡·어두운 앞치마·초록 눈 |
 | 은행 `TownBank` | `BANK_STAFF` | Henry | 비즈니스맨, 은색 머리·청회색 정장·회색 눈 |
 | 빨래방 `SudsLaundromat` | `LAUNDROMAT_STAFF` | Gus | 중년 남성, 겨자색 셔츠·갈색 눈 |
 | 꽃집 `BloomFlowers` | `FLOWER_SHOP_STAFF` | Lily | 할머니, 연보라 머리·초록 옷·청록 눈 |
@@ -294,6 +294,12 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 - 외형과 배색은 [외형 표](#외형-표)를 따릅니다. Gus와 Tony는 같은 외형에 눈동자 색이 같아, 서로 다른 사람으로 보이게 Tony의 머리를 검게 바꿨습니다.
 - 2층 가게(서점·찻집)에는 아직 직원이 없습니다.
+
+햄버거 가게의 Rosa와 야간 직원 Ray(`FIRE_CAPTAIN`)는 빨간 상의와 야구 캡, 어두운 앞치마를 함께 착용합니다. 캡은 머리를 감싸는 6개 패널과 앞쪽으로 나온 굽은 챙으로 구성하며, 몸통 밑단과 챙이 정점을 공유해 연결부가 벌어지지 않습니다. 앞치마 앞판은 높이별 몸통 곡면을 따라 덮고, 목끈과 허리끈은 옷의 바깥 둘레에 맞춥니다. 둘레를 측정할 때 팔·손은 제외하며 옷 주름에 끈이 파묻히지 않도록 바깥 윤곽을 사용합니다. 모자는 머리 본에, 앞치마는 몸통·허벅지 본에 연결하여 대기·대화·보행 동작을 따릅니다.
+
+캡 크기는 두 직원의 머리 위쪽 둘레를 기준으로 맞춥니다. 모자를 키워 머리카락을 모두 덮는 대신, 원본 외형을 유지한 채 두 직원만 사용하는 `*_BodyUnderCap.asset` 사본에서 모자 안쪽 머리카락을 눌러 맞춥니다. 뒷머리는 넓은 구간에 걸쳐 완만하게 연결하고, 본·UV·표정 블렌드셰이프는 원본에서 유지합니다.
+
+**Tools → A305 → Npc → Apply Burger Staff Uniforms**가 매장 씬과 두 직원의 출퇴근 프리팹에 적용하며, `Build Cast`로 외형을 다시 맞춰도 유지합니다. 전용 메시·재질은 `Art/Characters/BurgerStaffUniform/`에 두고 기존 디자인은 보존합니다. 머리 모양이나 몸 비율을 바꾼 경우에만 **Refit Burger Staff Uniform Meshes**로 두 직원의 전용 메시를 다시 맞춥니다.
 
 ## 외형 표
 

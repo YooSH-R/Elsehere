@@ -1,6 +1,7 @@
 package com.elsehere.common.config;
 
 import com.elsehere.admin.service.AdminAccess;
+import com.elsehere.auth.config.SecurityConfig;
 import com.elsehere.auth.handler.LoginRequiredEntryPoint;
 import com.elsehere.auth.handler.SocialLoginFailureHandler;
 import com.elsehere.auth.handler.SocialLoginSuccessHandler;

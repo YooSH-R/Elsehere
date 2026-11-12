@@ -1,9 +1,9 @@
 package com.elsehere.dialogue.service;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.NpcReplyChunk;
 import com.elsehere.ai.client.NpcReplyListener;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.common.error.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 

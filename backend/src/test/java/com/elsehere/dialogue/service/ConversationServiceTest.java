@@ -16,7 +16,6 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 
 import ch.qos.logback.classic.Level;
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.FollowUpResult;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
@@ -27,6 +26,7 @@ import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.ai.service.GuestConversationLimit;
 import com.elsehere.common.config.AdjustableClock;
 import com.elsehere.common.config.TestClockConfig;

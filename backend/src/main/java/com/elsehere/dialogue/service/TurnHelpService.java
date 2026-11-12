@@ -1,10 +1,10 @@
 package com.elsehere.dialogue.service;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.MeaningResult;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.conversation.dto.GlossaryResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;

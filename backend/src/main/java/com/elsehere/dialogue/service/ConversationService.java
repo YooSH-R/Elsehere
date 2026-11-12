@@ -1,11 +1,11 @@
 package com.elsehere.dialogue.service;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.NpcReply;
 import com.elsehere.ai.client.NpcReplyListener;
 import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.ai.service.GuestConversationLimit;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;

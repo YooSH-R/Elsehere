@@ -13,7 +13,6 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.FeedbackInput;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.HintResult;
@@ -21,6 +20,7 @@ import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.WorkerFeedback;
 import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerState;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;

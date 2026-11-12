@@ -12,9 +12,9 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.FollowUpResult;
 import com.elsehere.ai.client.WorkerFollowUp;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.common.config.AdjustableClock;
 import com.elsehere.common.config.TestClockConfig;
 import com.elsehere.common.error.BusinessException;

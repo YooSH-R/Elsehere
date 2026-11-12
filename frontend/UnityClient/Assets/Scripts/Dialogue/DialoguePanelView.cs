@@ -242,7 +242,8 @@ namespace A305.Dialogue
             int verifiedCount,
             string scenario = null,
             string heading = null,
-            string countLabel = "말해봤어요"
+            string countLabel = "말해봤어요",
+            bool listFirst = false
         )
         {
             reviewScenario = scenario;
@@ -251,7 +252,8 @@ namespace A305.Dialogue
                 items,
                 verifiedCount,
                 scenario,
-                countLabel
+                countLabel,
+                listFirst
             );
             SetReviewReference(formatted.Text);
             if (reviewBadges != null)

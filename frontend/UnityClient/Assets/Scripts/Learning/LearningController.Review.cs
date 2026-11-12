@@ -19,7 +19,16 @@ namespace A305.Learning
         private static ReviewCard pendingReview;
         private ReviewCard practicingReview;
         private NpcReviewPresence reviewPresence;
+        private bool arrivingForVisit;
         private ReviewWorkbookView ReviewView => hudView.ReviewView;
+
+        // 복습·장소 연습 방문이 이동·도착·대화 가운데 어디든 진행 중인지.
+        private bool IsVisiting =>
+            pendingReview != null
+            || pendingPractice != null
+            || arrivingForVisit
+            || practicingReview != null
+            || practicing != null;
 
         private void InitializeReview()
         {
@@ -28,6 +37,7 @@ namespace A305.Learning
             reviewApi = new ReviewApi(apiSettings.CreateClient());
             reviewBook = new ReviewBook(reviewApi);
             historyView.PracticeRequested += PracticeConversation;
+            feedbackView.PracticeRequested += PracticeShownFeedback;
             ReviewView.CloseRequested += CloseReview;
             ReviewView.PracticeRequested += PracticeReview;
         }
@@ -39,6 +49,8 @@ namespace A305.Learning
                 return;
             if (historyView != null)
                 historyView.PracticeRequested -= PracticeConversation;
+            if (feedbackView != null)
+                feedbackView.PracticeRequested -= PracticeShownFeedback;
             if (ReviewView != null)
             {
                 ReviewView.CloseRequested -= CloseReview;
@@ -71,17 +83,51 @@ namespace A305.Learning
                 return;
             if (card == null)
             {
+                // 목록 아래 한 줄은 지나치기 쉬워 알림 카드로도 이유를 보인다.
                 historyView.ShowStatus(reviewBook.Message);
+                hudView.ShowMessage(reviewBook.Message);
                 return;
             }
             historyView.ShowStatus("");
             StartReviewVisit(card);
         }
 
+        // 피드백 창의 [다시 연습]. 지금 보고 있는 피드백의 대화를 바로 다시 연습한다.
+        private void PracticeShownFeedback()
+        {
+            if (shownServerFeedback?.ConversationId is long conversationId)
+                _ = PracticeShownFeedbackAsync(conversationId);
+        }
+
+        private async Task PracticeShownFeedbackAsync(long conversationId)
+        {
+            if (reviewBook.IsBusy)
+                return;
+            hudView.ShowMessage("연습을 준비하는 중이에요…");
+            ReviewCard card = await reviewBook.SaveAsync(conversationId);
+            // 기다리는 사이 피드백을 닫았으면 뒤늦게 데려가지 않는다.
+            if (this == null || !feedbackView.IsVisible)
+                return;
+            if (card == null)
+            {
+                hudView.ShowMessage(reviewBook.Message);
+                return;
+            }
+            StartReviewVisit(card);
+        }
+
         private void StartReviewVisit(ReviewCard card)
         {
             if (dialogue.IsTalking || SpaceTravel.IsTraveling || reviewBook.IsBusy)
+            {
+                // 눌렀는데 아무 일도 없는 것처럼 보이지 않게 이유를 알린다.
+                hudView.ShowMessage(
+                    dialogue.IsTalking
+                        ? "진행 중인 대화를 마친 뒤 다시 연습해 주세요."
+                        : "이동을 마친 뒤 다시 눌러 주세요."
+                );
                 return;
+            }
             if (!RememberReviewOrigin())
                 return;
             pendingReview = card;
@@ -161,7 +207,8 @@ namespace A305.Learning
                 card.Targets.Select(target => new ReviewReferenceItem(
                         target.Expression,
                         target.MeaningKo,
-                        false
+                        false,
+                        target.OriginalText
                     ))
                     .ToArray(),
                 0,
@@ -179,12 +226,14 @@ namespace A305.Learning
         )
         {
             // 도착 처리와 NPC 배치가 끝나기 전에는 API를 호출하지 않는다.
+            arrivingForVisit = true;
             yield return null;
             while (SpaceTravel.IsTraveling || SpaceTravelCurtain.IsCoveringScreen)
                 yield return null;
             NpcIdentity npc = FindReviewNpc(npcCode);
             if (npc == null)
             {
+                arrivingForVisit = false;
                 BeginReviewReturn(
                     null,
                     null,
@@ -243,6 +292,7 @@ namespace A305.Learning
             }
             finally
             {
+                arrivingForVisit = false;
                 if (!started)
                 {
                     ReleaseReviewPresence();

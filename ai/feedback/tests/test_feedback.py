@@ -11,6 +11,7 @@ from feedback.clients import CallableClient, FixtureClient, ModelNotConfigured, 
 from feedback.models import INPUT, OUTPUT, validate_pair
 from feedback.prompt import build_messages
 from feedback.service import generate_feedback
+from feedback.situation_catalog import situation_candidates
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -270,6 +271,23 @@ class FeedbackTests(unittest.TestCase):
         body["result"]["situation_expressions"] = copy.deepcopy(SITUATION[:2])
         result = self.run_body(body, request)["result"]
         self.assertEqual(result["situation_expressions"], SITUATION[:2])
+
+    def test_reviewed_candidates_fill_in_when_filters_leave_too_few_expressions(self):
+        request, body = sample("free_order")
+        request["context"].update(scene_id="CAFE", scene_description="카페 · 음료 주문")
+        # 모델이 학습자가 이미 한 말과 직원 전용 대사만 골라 와 둘 다 걸러지는 경우
+        body["result"]["situation_expressions"] = [
+            dict(SITUATION[0], expression="A small one, please."),
+            dict(SITUATION[1], expression="What can I get you?"),
+        ]
+
+        expressions = self.run_body(body, request)["result"]["situation_expressions"]
+
+        reviewed = {item["expression"] for item in situation_candidates(INPUT.validate_python(request))}
+        self.assertEqual(len(expressions), 2)
+        for item in expressions:
+            self.assertIn(item["expression"], reviewed)
+            self.assertEqual(set(item), set(SITUATION[0]))
 
     def test_results_without_situation_expressions_stay_valid(self):
         request, body = sample()

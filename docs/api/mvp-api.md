@@ -1544,7 +1544,7 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 - 화면 18의 유형 필터(단어·숙어·문장)는 MVP에서 보여주지 않습니다. `vocab.type`(`vocabularies.type`)은 한 단어면 `WORD`, 숙어면 `IDIOM`입니다.
 - `vocab.meaningKo`는 단어·숙어의 뜻(`vocabularies.meaning_ko`), `context`는 저장할 때의 문장과 문장 뜻(`user_vocab.context_text`, `context_meaning_ko`)입니다. 같은 단어라도 사용자마다 저장한 문장이 다르므로 `user_vocab`에 둡니다.
 - 상세의 "Mia와의 대화" 같은 출처 표시는 `source`로 그립니다. 출처 대화는 `user_vocab.source_conversation_id`, 출처 NPC는 그 대화의 NPC입니다. 사물에서 저장한 단어는 `npcName`, `conversationId`가 `null`입니다.
-- `placeName`·`placeGroup`은 출처 대화 NPC가 일하는 곳과 그 장소 묶음(`npcs.place_name`·`place_group`)입니다. 코드 이름이 아니라 실제 근무지 기준입니다(식당 야간 직원 `FIRE_CAPTAIN`은 `식당`·`FOOD`). 묶음은 `FOOD`(카페·식당·빵집), `SHOPPING`(드럭스토어·꽃집·생활용품점·오락실), `SERVICES`(은행·우체국·빨래방·이발소·호텔·택시), `SAFETY`(경찰서), `DAILY`(거리에서 만난 사람)입니다. 근무 시간 밖에 만난 NPC와의 대화(`conversations.npc_off_duty`)는 일하는 곳의 표현이 아니므로 `placeName`이 `null`, `placeGroup`이 `DAILY`입니다. 사물에서 저장한 단어는 둘 다 `null`입니다.
+- `placeName`·`placeGroup`은 출처 대화 NPC가 일하는 곳과 그 장소 묶음(`npcs.place_name`·`place_group`)입니다. 코드 이름이 아니라 실제 근무지 기준입니다(햄버거 가게 야간 직원 `FIRE_CAPTAIN`은 `햄버거 가게`·`FOOD`). 묶음은 `FOOD`(카페·햄버거 가게·빵집), `SHOPPING`(드럭스토어·꽃집·생활용품점·오락실), `SERVICES`(은행·우체국·빨래방·이발소·호텔·택시), `SAFETY`(경찰서), `DAILY`(거리에서 만난 사람)입니다. 근무 시간 밖에 만난 NPC와의 대화(`conversations.npc_off_duty`)는 일하는 곳의 표현이 아니므로 `placeName`이 `null`, `placeGroup`이 `DAILY`입니다. 사물에서 저장한 단어는 둘 다 `null`입니다.
 - 단어장 화면은 목록을 끝까지 받아 [대화 표현 | 사물 단어] 탭(`sourceType`이 `NPC_LINE`·`FEEDBACK`이면 대화 표현)과 대화 표현의 장소 묶음 칩, 탭·칩별 개수를 클라이언트에서 나눕니다. 서버 필터는 두지 않습니다.
 - `memo`(`user_vocab.memo`)는 사용자가 남긴 메모입니다. 뜻은 수정하지 않습니다.
 

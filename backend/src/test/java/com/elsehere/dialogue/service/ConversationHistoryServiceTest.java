@@ -364,7 +364,7 @@ class ConversationHistoryServiceTest {
             ConversationSummaryResponse::placeGroup)
         .containsExactly(
             tuple(offDuty.getId(), null, PlaceGroup.DAILY),
-            tuple(diner.getId(), "식당", PlaceGroup.FOOD));
+            tuple(diner.getId(), "햄버거 가게", PlaceGroup.FOOD));
   }
 
   @ParameterizedTest

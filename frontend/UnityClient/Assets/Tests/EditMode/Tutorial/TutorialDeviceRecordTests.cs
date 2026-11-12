@@ -17,6 +17,7 @@ namespace A305.Tutorial.Tests
         {
             appRecord = TutorialDeviceRecord.Shared;
             PlayerPrefs.DeleteKey(TutorialDeviceRecord.PreferenceKey);
+            PlayerPrefs.DeleteKey(TutorialDeviceRecord.QuestGuidePreferenceKey);
             TutorialDeviceRecord.Shared = new TutorialDeviceRecord(true);
             TutorialState.Clear();
         }
@@ -25,6 +26,7 @@ namespace A305.Tutorial.Tests
         public void RestoreRecord()
         {
             PlayerPrefs.DeleteKey(TutorialDeviceRecord.PreferenceKey);
+            PlayerPrefs.DeleteKey(TutorialDeviceRecord.QuestGuidePreferenceKey);
             TutorialDeviceRecord.Shared = appRecord;
             TutorialState.Clear();
         }
@@ -49,10 +51,43 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
-        public void GetOrCreate_FinishedOnThisDevice_StartsSkippedAndSavesSkipToServer()
+        public void MarkQuestGuideSeen_IsReadBackOnThisDevice()
+        {
+            TutorialDeviceRecord.Shared.MarkQuestGuideSeen();
+
+            Assert.That(new TutorialDeviceRecord(true).IsQuestGuideSeen, Is.True);
+        }
+
+        [Test]
+        public void DisabledRecord_NeitherReadsNorWritesTheQuestGuide()
+        {
+            var disabled = new TutorialDeviceRecord(false);
+            disabled.MarkQuestGuideSeen();
+            Assert.That(PlayerPrefs.HasKey(TutorialDeviceRecord.QuestGuidePreferenceKey), Is.False);
+
+            PlayerPrefs.SetInt(TutorialDeviceRecord.QuestGuidePreferenceKey, 1);
+            Assert.That(disabled.IsQuestGuideSeen, Is.False);
+        }
+
+        [Test]
+        public void GetOrCreate_FinishedOnThisDevice_StillShowsTheQuestCardGuideAndSavesSkip()
         {
             // 같은 브라우저에서 튜토리얼을 한 사람이 게스트로 다시 들어온 경우다. 그 계정은 튜토리얼을 하지 않았으므로 건너뛰기로 저장한다.
+            // 첫 퀘스트는 꼭 해야 하므로, 이 브라우저에서 퀘스트 카드 안내를 확인한 적이 없으면 그 안내는 보인다.
             TutorialDeviceRecord.Shared.MarkFinished();
+
+            TutorialProgress progress = TutorialState.GetOrCreate(TutorialNpcCode);
+
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.TodayGoal));
+            Assert.That(progress.Finish, Is.EqualTo(TutorialFinish.Skipped));
+            Assert.That(progress.NeedsFinishSave, Is.True);
+        }
+
+        [Test]
+        public void GetOrCreate_QuestGuideSeenOnThisDevice_StartsFinishedWithoutAnyGuide()
+        {
+            TutorialDeviceRecord.Shared.MarkFinished();
+            TutorialDeviceRecord.Shared.MarkQuestGuideSeen();
 
             TutorialProgress progress = TutorialState.GetOrCreate(TutorialNpcCode);
 

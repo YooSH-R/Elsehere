@@ -127,6 +127,8 @@ namespace A305.Dialogue.Tests
             Assert.That(conversation.Lines.Count, Is.EqualTo(1));
             Assert.That(conversation.SuggestedEnglish, Is.EqualTo("Go straight ahead."));
             Assert.That(conversation.StatusMessage, Does.Contain("[힌트]"));
+            // [힌트]는 추천 문장을 펼치기만 하므로 입력칸을 채운다고 알리지 않는다.
+            Assert.That(conversation.StatusMessage, Does.Not.Contain("채워"));
             Assert.That(conversation.CanSend, Is.True);
         }
 

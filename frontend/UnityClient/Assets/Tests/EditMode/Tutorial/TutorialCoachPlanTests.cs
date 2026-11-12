@@ -104,13 +104,14 @@ namespace A305.Tutorial.Tests
         [Test]
         public void BenDialogue_StartsWithAStepByStepTour_ThenGuidesTheLine()
         {
-            // 대화를 시작하면 무엇부터 볼지 대사 → [뜻]·[예시 문장] → 추천 단어 순서로 하나씩 밝히고,
-            // [다음]으로 다 보면 말하거나 입력할 대사를 알린다.
+            // 대화를 시작하면 무엇부터 볼지 대사 → [자막 켜기]·[다시 듣기]·[뜻] → 추천 단어 → 추천 문장의 [힌트] 순서로
+            // 하나씩 밝히고, [다음]으로 다 보면 말하거나 입력할 대사를 알린다. [힌트]는 오른쪽 추천 문장 카드에 있어 따로 밝힌다.
             TutorialCoachTarget[] expected =
             {
                 TutorialCoachTarget.DialogueLines,
                 TutorialCoachTarget.DialogueTools,
                 TutorialCoachTarget.SuggestedWords,
+                TutorialCoachTarget.SuggestedSentence,
                 TutorialCoachTarget.GuidedLine,
             };
             for (int tourStep = 0; tourStep < expected.Length; tourStep++)
@@ -224,14 +225,13 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
-        public void BenFeedback_TeachesTheTabsThenThePages_ThenHighlightsTheCloseButton()
+        public void BenFeedback_TeachesTheTabs_ThenHighlightsTheCloseButton()
         {
-            // 피드백(대화 노트)도 볼 곳을 하나씩 밝혀 [다음]으로 넘기고, 마지막에 닫는 버튼을 밝힌다.
+            // 대화 피드백은 탭 줄과 결과 칸을 밝혀 [다음]으로 넘긴 뒤 닫는 버튼을 밝힌다. 스크롤 안내는 따로 하지 않는다.
             Assert.That(Choose(TutorialStep.BenFeedback), Is.EqualTo(TutorialCoachTarget.None));
             TutorialCoachTarget[] expected =
             {
                 TutorialCoachTarget.FeedbackSections,
-                TutorialCoachTarget.FeedbackPages,
                 TutorialCoachTarget.FeedbackClose,
             };
             for (int tourStep = 0; tourStep < expected.Length; tourStep++)
@@ -246,7 +246,7 @@ namespace A305.Tutorial.Tests
                 );
             }
 
-            Assert.That(TutorialCoachPlan.IsTour(TutorialCoachTarget.FeedbackPages), Is.True);
+            Assert.That(TutorialCoachPlan.IsTour(TutorialCoachTarget.FeedbackSections), Is.True);
             Assert.That(
                 TutorialCoachPlan.IsTour(TutorialCoachTarget.FeedbackClose),
                 Is.False,

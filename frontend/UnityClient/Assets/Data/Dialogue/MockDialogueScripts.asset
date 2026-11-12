@@ -37,21 +37,12 @@ MonoBehaviour:
       suggestedKorean: "\uC55E\uC73C\uB85C \uACE7\uC7A5 \uAC00\uC11C \uBAA8\uD241\uC774\uC5D0\uC11C
         \uC67C\uCABD\uC73C\uB85C \uB3C4\uC138\uC694."
       reply:
-        english: Got it. Is it far from here?
-        korean: "\uC54C\uACA0\uC5B4\uC694. \uC5EC\uAE30\uC11C \uBA3C\uAC00\uC694?"
-        voice: {fileID: 4900000, guid: d87e46ea997622041911f1f694256baf, type: 3}
-      suggestWords:
-      - "turn left \xB7 \uC67C\uCABD\uC73C\uB85C \uB3CC\uB2E4"
-      - "corner \xB7 \uBAA8\uD241\uC774"
-    - suggestedEnglish: No, it's just two minutes away.
-      suggestedKorean: "\uC544\uB2C8\uC694, 2\uBD84\uC774\uBA74 \uAC00\uC694."
-      reply:
         english: Thank you so much. You're a lifesaver!
         korean: "\uC815\uB9D0 \uACE0\uB9C8\uC6CC\uC694. \uB355\uBD84\uC5D0 \uC0B4\uC558\uC5B4\uC694!"
         voice: {fileID: 4900000, guid: 77a922892b0f4a34e8a67a9728c5c371, type: 3}
       suggestWords:
-      - "minute \xB7 \uBD84"
-      - "away \xB7 \uB5A8\uC5B4\uC838"
+      - "turn left \xB7 \uC67C\uCABD\uC73C\uB85C \uB3CC\uB2E4"
+      - "corner \xB7 \uBAA8\uD241\uC774"
     keywordReplies: []
     defaultReply:
       english: I see!

@@ -107,13 +107,24 @@ namespace A305.Tutorial
             "Ben이 먼저 말을 걸었어요. 주고받은 대화는 여기에 쌓여요";
 
         [SerializeField]
-        [Tooltip("대화 시작 티칭의 둘째. [뜻]·[힌트]를 밝히며 보인다.")]
+        [Tooltip(
+            "대화 시작 티칭의 둘째. 대화창 도구 줄의 [자막 켜기]·[다시 듣기]·[뜻]을 밝히며 보인다."
+        )]
         private string dialogueToolsCaption =
-            "Ben의 말이 어려우면 {뜻}으로 한국어 뜻을 봐요. 대답이 떠오르지 않으면 {힌트}로 입력칸에 예시 답변을 채워요";
+            "Ben의 말은 {자막 켜기}로 글자로 보고 {다시 듣기}로 다시 들어요. 어려우면 {뜻}으로 한국어 뜻을 봐요";
 
         [SerializeField]
         [Tooltip("대화 시작 티칭의 셋째. 왼쪽 [단어] 카드를 밝히며 보인다.")]
         private string suggestedWordsCaption = "{단어}에는 대답에 쓸 만한 추천 단어가 나와요";
+
+        [SerializeField]
+        [Tooltip("대화 시작 티칭의 넷째. 오른쪽 추천 문장 카드와 [힌트]를 밝히며 보인다.")]
+        private string suggestedSentenceCaption =
+            "대답이 떠오르지 않으면 {힌트}로 {추천 문장}을 펼쳐 봐요. 펼친 문장을 누르면 입력칸에 들어가요";
+
+        [SerializeField]
+        [Tooltip("휴대폰을 열어 안내 카드가 [건너뛰기]만 남긴 동안 [단어장] 앱 옆에 보이는 할 일")]
+        private string vocabularyButtonCaption = "{단어장}을 눌러 열어요";
 
         [SerializeField]
         [Tooltip(
@@ -127,7 +138,7 @@ namespace A305.Tutorial
             "길 안내 대화에서 대사와 다른 문장을 보냈을 때의 설명. 아래에 입력할 대사와 뜻이 붙는다."
         )]
         private string guidedLineMissCaption =
-            "튜토리얼은 정해진 흐름대로 진행돼요. 이 대사와 같게 입력하거나 {힌트}로 채워요";
+            "튜토리얼은 정해진 흐름대로 진행돼요. 이 대사와 같게 입력하거나 {힌트}로 펼친 문장을 눌러 넣어요";
 
         [SerializeField]
         [Tooltip(
@@ -144,17 +155,12 @@ namespace A305.Tutorial
             "길 안내를 마쳤어요! {대화 종료}를 누르면 Ben과 나눈 대화를 돌아보는 피드백을 볼 수 있어요";
 
         [SerializeField]
-        [Tooltip("대화 노트(피드백)를 열면 탭 줄을 밝히며 [다음]과 함께 보이는 첫 티칭")]
+        [Tooltip("대화 피드백 창을 열면 탭 줄을 밝히며 [다음]과 함께 보이는 첫 티칭")]
         private string feedbackSectionsCaption =
-            "Ben과 나눈 대화를 돌아보는 대화 노트예요. 탭을 눌러 {요약}·{문장 교정}·{전체 대화}를 봐요";
+            "Ben과 나눈 대화를 돌아보는 대화 피드백이에요. 탭을 눌러 {요약}·{문장 교정}·{전체 대화}를 봐요";
 
         [SerializeField]
-        [Tooltip("대화 노트 티칭의 둘째. 본문 스크롤 영역을 밝히며 보인다.")]
-        private string feedbackPagesCaption =
-            "표현과 요약이 길면 이 영역을 위아래로 스크롤해 보세요";
-
-        [SerializeField]
-        [Tooltip("대화 노트 티칭 끝에 오른쪽 위 X를 밝히며 보이는 설명")]
+        [Tooltip("대화 피드백 티칭 끝에 오른쪽 위 X를 밝히며 보이는 설명")]
         private string feedbackCloseCaption =
             "다 봤으면 오른쪽 위 {X}로 닫아요. 이어서 오늘의 목표를 알려 드려요";
 
@@ -166,9 +172,14 @@ namespace A305.Tutorial
             "단어장에는 사물 카드나 대화에서 저장한 단어·표현이 모여요. 뜻·예문을 다시 보고 {외웠어요}·메모로 정리해요\n다 봤으면 오른쪽 위 {X}로 닫고 밖으로 나가요";
 
         [SerializeField]
-        [Tooltip("NPC 이름을 밝히며 호감도와 무례 경고를 별도로 설명한다.")]
+        [Tooltip(
+            "NPC 이름을 밝히며 호감도와 무례 경고를 설명한다. 제목 아래 좋은 말·무례한 말·저장을 빈 줄로 나눈 문단으로 쓴다."
+        )]
         private string relationshipCaption =
-            "<b>Ben과 조금 친해졌어요!</b>\n인사를 나누니 이름 옆 하트의 호감도가 올랐어요. 인사·칭찬·도움처럼 긍정적인 대화로 관계를 쌓아 보세요.\n자유 대화에서 무례한 말을 하면 호감도가 내려가고 경고가 쌓여요. 경고 칸이 모두 차면 NPC가 대화를 끝내요.\n길 안내까지 마치면 Ben과의 호감도와 이 만남의 기억이 저장돼요.";
+            "<b>Ben과 조금 친해졌어요!</b>\n\n"
+            + "인사·칭찬·사과를 하거나 도움을 주면 이름 옆 하트(호감도)가 올라요.\n\n"
+            + "무례한 말을 하면 호감도가 내려가고 경고 칸이 하나씩 차요. 다 차면 대화가 끝나요.\n\n"
+            + "길 안내를 마치면 호감도와 이 만남이 저장돼요.";
 
         public string RelationshipCaption => relationshipCaption;
 
@@ -184,11 +195,12 @@ namespace A305.Tutorial
         public string TalkOfferCaption => talkOfferCaption;
         public string GuidedLineCaption => guidedLineCaption;
         public string FeedbackSectionsCaption => feedbackSectionsCaption;
-        public string FeedbackPagesCaption => feedbackPagesCaption;
         public string FeedbackCloseCaption => feedbackCloseCaption;
         public string DialogueLinesCaption => dialogueLinesCaption;
         public string DialogueToolsCaption => dialogueToolsCaption;
         public string SuggestedWordsCaption => suggestedWordsCaption;
+        public string SuggestedSentenceCaption => suggestedSentenceCaption;
+        public string VocabularyButtonCaption => vocabularyButtonCaption;
         public string GuidedLineMissCaption => guidedLineMissCaption;
         public string DialogueEndCaption => dialogueEndCaption;
         public string TravelLockedMessage => travelLockedMessage;

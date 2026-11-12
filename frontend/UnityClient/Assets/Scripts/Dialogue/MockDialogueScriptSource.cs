@@ -6,7 +6,7 @@ namespace A305.Dialogue
 {
     /// <summary>
     /// 서버·AI 연동 전에 쓰는 확인용 대화 대본. 튜토리얼 대본(키 TUTORIAL_PASSERBY)은 튜토리얼 동안 마을 행인 Ben이 말하는 정해진
-    /// 길 안내 3턴이고, 나머지 NPC는 키워드 응답을 쓴다.
+    /// 길 안내 2턴(인사, 길 안내)이고, 나머지 NPC는 키워드 응답을 쓴다.
     /// 목록에 없는 NPC는 <see cref="fallback"/> 대본으로 대화한다.
     /// 필드 초기값은 에셋을 처음 만들 때 들어가는 예시이며, 이후 수정은 에셋에서 한다.
     /// </summary>
@@ -43,19 +43,12 @@ namespace A305.Dialogue
                     new GuidedTurnEntry(
                         "Go straight ahead and turn left at the corner.",
                         "앞으로 곧장 가서 모퉁이에서 왼쪽으로 도세요.",
-                        new LineEntry("Got it. Is it far from here?", "알겠어요. 여기서 먼가요?"),
-                        "turn left · 왼쪽으로 돌다",
-                        "corner · 모퉁이"
-                    ),
-                    new GuidedTurnEntry(
-                        "No, it's just two minutes away.",
-                        "아니요, 2분이면 가요.",
                         new LineEntry(
                             "Thank you so much. You're a lifesaver!",
                             "정말 고마워요. 덕분에 살았어요!"
                         ),
-                        "minute · 분",
-                        "away · 떨어져"
+                        "turn left · 왼쪽으로 돌다",
+                        "corner · 모퉁이"
                     ),
                 },
                 defaultReply = new LineEntry("I see!", "그렇군요!"),

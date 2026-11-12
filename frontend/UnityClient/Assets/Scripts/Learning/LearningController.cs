@@ -278,6 +278,12 @@ namespace A305.Learning
             feedbackView.SetSaveAvailable(
                 vocabulary != null && shownServerFeedback?.ConversationId != null
             );
+            // 완성된 서버 피드백만 다시 연습할 수 있다. 대본·예시 피드백과 복습 대화에는 연습할 대화가 없다.
+            feedbackView.SetPracticeAvailable(
+                reviewBook != null
+                    && shownServerFeedback?.ConversationId != null
+                    && shownServerFeedback.Summary?.Status == "DONE"
+            );
             feedbackView.Show(feedback, lines);
             MarkShownFeedbackRead();
         }

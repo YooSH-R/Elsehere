@@ -6,6 +6,7 @@ namespace A305.Learning
 {
     public static class ReviewScenarioPresentation
     {
+        /// <summary>상황 이름·장소와 역할·설명·전달할 정보. 참고 카드에서 문장 목록 아래에 붙는다.</summary>
         public static string Briefing(ReviewCard card)
         {
             var text = new StringBuilder();
@@ -22,7 +23,6 @@ namespace A305.Learning
                 foreach (string note in notes.Where(note => !string.IsNullOrWhiteSpace(note)))
                     text.Append("• ").AppendLine(Escape(note));
             }
-            text.AppendLine().AppendLine("<b>이번에 써 볼 표현</b>");
             return text.ToString();
         }
 

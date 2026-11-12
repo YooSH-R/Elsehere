@@ -92,7 +92,92 @@ namespace A305.EditorTools.Learning
             }
             Card(view, panel);
             Footer(panel);
+            PracticeButton(view, panel);
             view.ConfigureScroll();
+        }
+
+        /// <summary>승인한 피드백 화면 배치는 그대로 두고 아래 줄에 [다시 연습]만 더한다.</summary>
+        [MenuItem("Tools/A305/Learning/Add Feedback Practice Button")]
+        public static void ApplyPracticeButton()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                PrefabPath,
+                root =>
+                    PracticeButton(
+                        root.GetComponentInChildren<FeedbackView>(true),
+                        (RectTransform)root.transform.Find("Panel")
+                    )
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        // 아래 줄 [단어장] 왼쪽의 코랄 [다시 연습](높이 58). 대화 노트 줄의 [다시 연습]과 같은 그림(높이 40)을 같은 비율로 키워 쓴다.
+        private static void PracticeButton(FeedbackView view, RectTransform panel)
+        {
+            const float width = 138;
+            const float height = 58;
+            const float grow = height / 40;
+            Transform buttons = panel.Find("Buttons");
+            Transform button = buttons.Find("PracticeButton");
+            if (button == null)
+            {
+                button = new GameObject(
+                    "PracticeButton",
+                    typeof(RectTransform),
+                    typeof(Image),
+                    typeof(Button)
+                ).transform;
+                button.SetParent(buttons, false);
+            }
+            Clear(button, keepLabel: true);
+            var size = BuilderTools.GetOrAddComponent<LayoutElement>(button.gameObject);
+            size.minWidth = size.preferredWidth = width * Px;
+            size.minHeight = size.preferredHeight = height * Px;
+            size.flexibleWidth = 0;
+            ((RectTransform)button).sizeDelta = new Vector2(width, height) * Px;
+            // 대화 노트 줄과 함께 쓰는 그림이라 가져오기 설정(9-slice 자리)은 바꾸지 않고 그대로 불러 쓴다.
+            var area = button.GetComponent<Image>();
+            area.sprite = null;
+            area.material = null;
+            area.color = Color.clear;
+            area.raycastTarget = true;
+            RectTransform art = Rect("Art", button);
+            art.SetAsFirstSibling();
+            art.anchorMin = art.anchorMax = art.pivot = new Vector2(0, 1);
+            art.anchoredPosition = new Vector2(-22, 12) * grow * Px;
+            art.sizeDelta = new Vector2(width + 44 * grow, height + 52 * grow) * Px;
+            BuilderTools.GetOrAddComponent<LayoutElement>(art.gameObject).ignoreLayout = true;
+            Image face = Picture(
+                art.gameObject,
+                AssetDatabase.LoadAssetAtPath<Sprite>($"{ArtFolder}/HistoryOpen.png")
+            );
+            face.type = Image.Type.Sliced;
+            face.pixelsPerUnitMultiplier = ArtScale / grow;
+            var press = button.GetComponent<Button>();
+            press.targetGraphic = face;
+            press.transition = Selectable.Transition.ColorTint;
+            ColorBlock colors = ColorBlock.defaultColorBlock;
+            colors.highlightedColor = new Color(.96f, .96f, .96f);
+            colors.pressedColor = new Color(.86f, .86f, .86f);
+            colors.selectedColor = Color.white;
+            press.colors = colors;
+            Transform existing = button.Find("Label");
+            TMP_Text label =
+                existing != null
+                    ? existing.GetComponent<TMP_Text>()
+                    : new GameObject(
+                        "Label",
+                        typeof(RectTransform),
+                        typeof(TextMeshProUGUI)
+                    ).GetComponent<TMP_Text>();
+            label.transform.SetParent(button, false);
+            Style(label, DisplayFontPath, 20, Color.white);
+            label.text = "다시 연습";
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.raycastTarget = false;
+            Lowered(label, 5 * grow);
+            button.SetSiblingIndex(buttons.Find("VocabularyButton").GetSiblingIndex());
+            BuilderTools.SetReference(view, "practiceButton", button.GetComponent<Button>());
         }
 
         // 머리줄: 앱 아이콘(58), 제목(Jua 36), 부제(17, 자리는 FeedbackView가 제목 뒤에 맞춘다),

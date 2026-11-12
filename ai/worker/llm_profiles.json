@@ -7,6 +7,8 @@
             "_note": "SSAFY GMS (OpenAI 호환 프록시). 크레딧 받으면 주소가 안내와 같은지 먼저 확인"},
     "gpu": {"base_url_env": "STT_GPU_BASE_URL", "key_env": ["STT_GPU_TOKEN"],
             "_note": "SSAFY GPU 서버의 자체 학습 STT (OpenAI 호환 /audio/transcriptions). 학원 방화벽 때문에 GPU 서버가 거는 역방향 SSH 터널 입구로 부른다. 주소가 배포마다 달라 base_url 대신 환경 변수에서 읽음. 음성 인식(STT_CHAIN)에만 씀"},
+    "gpu_backup": {"base_url_env": "STT_GPU_BACKUP_BASE_URL", "key_env": ["STT_GPU_TOKEN"],
+            "_note": "주 GPU(gpu)가 꺼졌을 때 부를 예비 GPU의 같은 STT 서버. 터널 입구(포트)만 다르고 토큰은 같다. STT_CHAIN에서 gpu 다음에 둔다"},
     "gpu_llm": {"base_url_env": "GUARD_GPU_BASE_URL", "key_env": ["GUARD_GPU_TOKEN"],
             "_note": "SSAFY GPU 서버의 vLLM (OpenAI 호환 /chat/completions). 자체 학습 무례 판정 모델(GUARD_GPU_MODEL)에만 쓴다. STT와 같은 역방향 SSH 터널, 다른 포트"}
   },

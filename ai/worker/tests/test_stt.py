@@ -278,9 +278,9 @@ GPU_CHAIN = [
 ]
 
 
-def chain_client(answers: dict, **kw) -> tuple[TestClient, list]:
+def chain_client(answers: dict, extra_providers: dict | None = None, **kw) -> tuple[TestClient, list]:
     """STT_CHAIN 구성: GPU 서버(gpu.test) → GMS(gms.test, 기본 공급자) → Groq(groq.test). answers[호스트] = 함수(request) → 응답.
-    반환: (클라이언트, 음성 인식 요청 [(호스트, read 시간 상한)])."""
+    extra_providers는 공급자를 더 둘 때 (예: 예비 GPU). 반환: (클라이언트, 음성 인식 요청 [(호스트, read 시간 상한)])."""
     seen = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -295,7 +295,11 @@ def chain_client(answers: dict, **kw) -> tuple[TestClient, list]:
         profile="gms-luna",
         models=models,
         role_provider=role_provider,
-        providers={"groq": {"base_url": "http://groq.test/v1", "api_key": "q"}, "gpu": {"base_url": "http://gpu.test/v1", "api_key": "t"}},
+        providers={
+            "groq": {"base_url": "http://groq.test/v1", "api_key": "q"},
+            "gpu": {"base_url": "http://gpu.test/v1", "api_key": "t"},
+            **(extra_providers or {}),
+        },
         **{"stt_chain": GPU_CHAIN, "stt_first_timeout_s": 3.0, "call_timeout_s": 1.0, "retry_pause_s": 0.0, **kw},
     )
     return TestClient(create_app(s, httpx.MockTransport(handler), False), headers={"X-Internal-Token": TOKEN}), seen
@@ -374,6 +378,43 @@ def test_stt_chain_success_resets_failure_count():
         for _ in range(4):
             c.post("/v1/stt", files=AUDIO)
     assert [h for h, _ in seen].count("gpu.test") == 4  # 실패 사이에 성공이 있으면 연속 실패가 아니다
+
+
+BACKUP_CHAIN = [{"provider": "gpu", "model": "turbo-lr1e4"}, {"provider": "gpu_backup", "model": "turbo-lr1e4"}, *GPU_CHAIN[1:]]
+
+
+def test_stt_chain_main_gpu_off_goes_to_backup_gpu_before_gms():
+    # 노트북이 꺼져 터널 입구가 없으면 연결이 바로 거절된다. 예비 GPU가 받으면 GMS·Groq는 부르지 않는다
+    def refused(request):
+        raise httpx.ConnectError("connection refused", request=request)
+
+    c, seen = chain_client(
+        {"gpu.test": refused, "backup.test": answer_ok, "gms.test": fail(500), "groq.test": fail(500)},
+        stt_chain=BACKUP_CHAIN,
+        extra_providers={"gpu_backup": {"base_url": "http://backup.test/v1", "api_key": "t"}},
+    )
+    with c:
+        r = c.post("/v1/stt", files=AUDIO)
+    assert r.status_code == 200 and [h for h, _ in seen] == ["gpu.test", "backup.test"]
+    assert seen[1][1] == 8.0  # 예비 GPU는 순서 중간이라 stt_next_timeout_s
+    (u,) = r.json()["usage"]
+    assert (u["model"], u["fallback"]) == ("turbo-lr1e4", True)
+
+
+def test_stt_chain_backup_gpu_is_still_tried_while_main_gpu_is_skipped():
+    # 주 GPU를 건너뛰는 동안에도 예비 GPU는 따로 센다 (한쪽 실패가 다른 쪽을 건너뛰게 하지 않음)
+    c, seen = chain_client(
+        {"gpu.test": fail(500), "backup.test": answer_ok, "gms.test": fail(500), "groq.test": fail(500)},
+        stt_chain=BACKUP_CHAIN,
+        extra_providers={"gpu_backup": {"base_url": "http://backup.test/v1", "api_key": "t"}},
+        stt_breaker_failures=2,
+    )
+    with c:
+        for _ in range(2):
+            c.post("/v1/stt", files=AUDIO)
+        seen.clear()
+        r = c.post("/v1/stt", files=AUDIO)
+    assert r.status_code == 200 and [h for h, _ in seen] == ["backup.test"]
 
 
 def test_stt_last_provider_is_never_skipped():

@@ -72,6 +72,28 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(cardArea.Overlaps(historyArea), Is.False);
         }
 
+        // 영어로 한 말에 온 표현은 교정문이므로, 고친 문장을 다시 말해 보도록 제목을 바꾼다.
+        [UnityTest]
+        public IEnumerator CorrectionOfEnglish_AsksToSayTheFixedSentenceAgain()
+        {
+            var content = new Content
+            {
+                UserLine = "I eat here. No onion please.",
+                UserTranslation = "I'll eat here. No onions, please.",
+            };
+            view.Show(content);
+            yield return null;
+            var heading = instance
+                .transform.Find("Panel/UserTranslation/Heading")
+                .GetComponent<TMP_Text>();
+            Assert.That(heading.text, Is.EqualTo("이렇게 고쳐 말해 보세요."));
+
+            content.UserLine = "여기서 먹을게요.";
+            content.UserTranslation = "I'll eat here.";
+            view.Refresh();
+            Assert.That(heading.text, Is.EqualTo("방금 한 말의 영어 표현이에요."));
+        }
+
         [UnityTest]
         public IEnumerator Listen_ReadsOnlyTheCurrentExpressionWithoutSendingIt()
         {
@@ -229,8 +251,9 @@ namespace A305.Dialogue.PlayModeTests
             );
             public string NpcName => "Jake";
             public string UserTranslation { get; set; }
+            public string UserLine { get; set; } = "카페 어디야?";
             public IReadOnlyList<DialogueLine> Lines =>
-                new[] { DialogueLine.FromUser("카페 어디야?"), Npc };
+                new[] { DialogueLine.FromUser(UserLine), Npc };
             public DialogueLine LastNpcLine => Npc;
             public bool IsGuided => false;
             public bool IsGuidedCompleted => false;

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using A305.Player;
 using A305.Theme;
+using A305.World;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -1378,7 +1379,14 @@ namespace A305.Dialogue
 
         // 단어·추천 문장 카드에 남겨 둘 높이. 펼친 추천 문장 한 줄과 그 뜻이 잘리지 않고 다 보이는 높이다.
         // 이보다 많이 눌리면 [힌트]가 추천 문장 카드 밖으로 나가고 단어가 한 줄만 보인다.
-        private const float MinSuggestionsHeight = 400;
+        private const float MinSuggestionsHeight = 494;
+
+        // 대사가 짧아 자리가 남을 때 두 카드가 커지는 상한
+        private const float MaxSuggestionsHeight = 534;
+
+        // 단어·추천 문장 카드 자리. 대화 중에는 오른쪽 위 휴대폰·시계·코인이 숨으므로 화면 위·오른쪽 여백부터 쓴다.
+        private const float SuggestionsTop = HudTopBarLayout.Margin;
+        private const float SuggestionsRight = HudTopBarLayout.Margin;
 
         [SerializeField]
         private TMP_Text vehicleStatusText;
@@ -1469,7 +1477,7 @@ namespace A305.Dialogue
                 hasTranslation,
                 TranslationCardHeight(DialogueCinemaLayout.TranslationWidth(column)),
                 suggestions != null && reviewReference == null
-                    ? HelpTop + MinSuggestionsHeight + 2 * DialogueCinemaLayout.Gap
+                    ? SuggestionsTop + MinSuggestionsHeight + 2 * DialogueCinemaLayout.Gap
                     : 0
             );
             frame.anchorMin = Vector2.zero;
@@ -1542,10 +1550,15 @@ namespace A305.Dialogue
                 lastCanvasSize.y - HelpTop - layout.Name.yMax - 2 * DialogueCinemaLayout.Gap;
             if (suggestions != null && reviewReference == null)
             {
+                float suggestionsRoom =
+                    lastCanvasSize.y
+                    - SuggestionsTop
+                    - layout.Name.yMax
+                    - 2 * DialogueCinemaLayout.Gap;
                 suggestions.SetBounds(
-                    new Vector2(-HelpMargin, -HelpTop),
-                    Mathf.Min(HelpWidth, lastCanvasSize.x - 2 * HelpMargin),
-                    Mathf.Clamp(helpRoom, 0, 440)
+                    new Vector2(-SuggestionsRight, -SuggestionsTop),
+                    Mathf.Min(HelpWidth, lastCanvasSize.x - 2 * SuggestionsRight),
+                    Mathf.Clamp(suggestionsRoom, 0, MaxSuggestionsHeight)
                 );
                 PlaceVehicleStatus(layout);
                 return;

@@ -59,6 +59,11 @@ namespace A305.EditorTools.Theme
         {
             ("Assets/Prefabs/Learning/LearningHud.prefab", "ControlsGuide/CloseButton", WindowSize),
             ("Assets/Prefabs/Learning/LearningHud.prefab", "MyPage/Window/CloseButton", WindowSize),
+            (
+                "Assets/Prefabs/Learning/LearningHud.prefab",
+                "Settings/Window/CloseButton",
+                WindowSize
+            ),
             ("Assets/Prefabs/Learning/LearningHud.prefab", "History/CloseButton", WindowSize),
             (FeedbackPath, "Panel/TopCloseButton", WindowSize),
             ("Assets/Prefabs/Learning/VocabularyScreen.prefab", "Panel/CloseButton", WindowSize),

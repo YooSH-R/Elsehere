@@ -13,7 +13,7 @@ namespace A305.Learning
 
         private void LateUpdate() => Place();
 
-        /// <summary>휴대폰 자리를 스피커 왼쪽에 둔다. 프레임을 돌리지 않는 Editor 캡처도 이 배치를 쓴다.</summary>
+        /// <summary>휴대폰 자리를 화면 오른쪽 위 여백에 둔다. 프레임을 돌리지 않는 Editor 캡처도 이 배치를 쓴다.</summary>
         public void Place()
         {
             if (phoneBar == null)

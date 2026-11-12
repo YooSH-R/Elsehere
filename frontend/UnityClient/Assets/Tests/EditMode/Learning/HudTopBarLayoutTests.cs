@@ -6,7 +6,7 @@ namespace A305.Learning.Tests
     public sealed class HudTopBarLayoutTests
     {
         [Test]
-        public void SurveyInsertsOneSlotWithoutMovingPhoneOrSpeaker()
+        public void SurveyInsertsOneSlotWithoutMovingThePhone()
         {
             float before = HudTopBarLayout.StatusRight(false);
             float after = HudTopBarLayout.StatusRight(true);
@@ -20,10 +20,8 @@ namespace A305.Learning.Tests
                 after - before,
                 Is.EqualTo(HudTopBarLayout.SurveyWidth + HudTopBarLayout.Gap).Within(.001f)
             );
-            Assert.That(
-                HudTopBarLayout.PhoneRight,
-                Is.GreaterThan(HudTopBarLayout.Margin + HudTopBarLayout.SpeakerWidth)
-            );
+            // 스피커는 설정 창으로 옮겨 휴대폰이 화면 오른쪽 여백에 바로 붙는다.
+            Assert.That(HudTopBarLayout.PhoneRight, Is.EqualTo(HudTopBarLayout.Margin));
         }
     }
 }

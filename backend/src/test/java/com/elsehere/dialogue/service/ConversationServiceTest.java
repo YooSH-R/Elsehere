@@ -128,6 +128,9 @@ class ConversationServiceTest {
         conversationService.start(
             userId, new StartConversationRequest(requestId, "TOWN_JOHN_PARK", InitiatedBy.USER));
     assertThat(response.openingTurn().text()).startsWith("Cheeseburger, fries, lemonade on ice!");
+    Turn recordedTurn = entityManager.find(Turn.class, response.openingTurn().turnId());
+    assertThat(recordedTurn.getMeaningKo()).startsWith("치즈버거, 감자튀김, 얼음 넣은 레모네이드!");
+    assertThat(recordedTurn.getGlossary()).isEqualTo("[]");
     then(aiGateway).shouldHaveNoInteractions();
     assertThat(
             conversationService

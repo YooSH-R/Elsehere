@@ -73,6 +73,12 @@ public class ConversationService {
       Add an apple pie, yeah, that sounds nice!
       Make that two, one for me, one for you.
       That's my order, now tell me yours!""";
+  private static final String JOHN_ORDER_RAP_KOREAN =
+      """
+      치즈버거, 감자튀김, 얼음 넣은 레모네이드!
+      애플파이도 하나, 그래 딱 좋아!
+      두 개로 해줘, 하나는 내 것, 하나는 네 것.
+      내 주문은 이거야, 네 것도 말해줘!""";
 
   // 직원의 첫 인사는 AI로 만든다(API 명세 [미정]). 학습자는 아직 말하지 않았으므로 다가온 상황만 알려 준다.
   private static final String GREETING_TEXT = "(The learner walks up to you.)";
@@ -233,8 +239,10 @@ public class ConversationService {
     // 직원처럼 말걸기 대사가 없거나 근무 시간이 아니면 AI로 첫 인사를 만든다.
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, null);
     NpcReplyListener listener = NpcReplyRelay.to(aiGateway, trace, events);
+    boolean recordedRap =
+        review == null && practice == null && "TOWN_JOHN_PARK".equals(npc.summary().npcCode());
     Opening opening =
-        review == null && practice == null && "TOWN_JOHN_PARK".equals(npc.summary().npcCode())
+        recordedRap
             ? new Opening(JOHN_ORDER_RAP, null, null)
             : context
                 .followUp()
@@ -314,6 +322,10 @@ public class ConversationService {
                       Turn.npc(
                           conversation, 1, opening.text(), opening.npcAudioKey(), clock.instant()));
               openingTurn.attachSpeechPhrases(opening.speechPhrases());
+              if (recordedRap) {
+                // 저장 공연은 원문과 번역을 함께 기록해 뜻 미리 생성에서도 AI를 부르지 않는다.
+                openingTurn.attachMeaning(JOHN_ORDER_RAP_KOREAN, "[]");
+              }
               Long deliveredFollowUpId =
                   context
                       .followUp()

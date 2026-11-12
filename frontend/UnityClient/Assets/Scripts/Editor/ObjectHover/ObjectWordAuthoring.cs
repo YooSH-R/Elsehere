@@ -39,28 +39,20 @@ namespace A305.EditorTools.ObjectHover
         public static string[] WordScenePaths() =>
             SceneNames.Select(PlaceScenePath).Concat(TownInteriorScenePaths()).ToArray();
 
-        /// <summary>
-        /// 씬에서 사물을 담은 루트. 장소 씬은 Environment이고, 매장 실내 씬은 마을 씬에 덧붙일 때 통째로 옮기는 첫 루트(ShopInterior)다.
-        /// </summary>
+        /// <summary>씬에서 사물을 담은 루트(Environment). 마을 매장 실내 씬도 장소 씬처럼 건물을 Environment 아래에 둔다.</summary>
         internal static GameObject WordRoot(Scene scene, string path) =>
-            IsTownInterior(path)
-                ? scene.GetRootGameObjects()[0]
-                : scene.GetRootGameObjects().Single(root => root.name == "Environment");
+            scene.GetRootGameObjects().Single(root => root.name == "Environment");
 
         private static string PlaceScenePath(string name) =>
             "Assets/Scenes/Production/" + name + ".unity";
 
-        // 마을 매장 실내 씬. 실행 중 마을 씬에 덧붙여 불러오므로(ShopInterior) 사물 카드는 마을(TOWN) 단어로 받는다.
+        // 마을 매장 실내 씬. 서버는 매장을 마을의 일부로 보므로 사물 카드는 마을(TOWN) 단어로 받는다.
         private static string[] TownInteriorScenePaths() =>
-            AssetDatabase
-                .FindAssets("t:Scene", new[] { A305.EditorTools.World.ShopInteriorScenes.Folder })
-                .Select(AssetDatabase.GUIDToAssetPath)
-                .OrderBy(path => path, StringComparer.Ordinal)
-                .ToArray();
+            A305.EditorTools.World.TownShopSceneBuilder.ScenePaths();
 
         internal static bool IsTownInterior(string path) =>
             path.StartsWith(
-                A305.EditorTools.World.ShopInteriorScenes.Folder + "/",
+                A305.EditorTools.World.TownShopSceneBuilder.Folder + "/",
                 StringComparison.Ordinal
             );
 

@@ -11,6 +11,12 @@ namespace A305.Mission.Tests
     public class TownMapArtTests
     {
         [Test]
+        public void PlaceName_UsesBurgerShopForDiner()
+        {
+            Assert.That(TownMapArt.PlaceName("DINER_STAFF"), Is.EqualTo("햄버거 가게"));
+        }
+
+        [Test]
         public void ToArt_LaysTheMainStreetAcrossWithNorthToTheRight()
         {
             Assert.That(

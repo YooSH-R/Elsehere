@@ -50,7 +50,7 @@ namespace A305.Learning
                 return;
             pendingPractice = plan;
             PracticeVisit.Shared.Begin(plan);
-            if (!TravelForVisit(plan.SceneCode))
+            if (!TravelForVisit(plan.SceneCode, plan.NpcCode))
             {
                 pendingPractice = null;
                 PracticeVisit.Shared.End();

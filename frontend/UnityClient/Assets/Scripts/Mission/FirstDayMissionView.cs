@@ -1038,7 +1038,7 @@ namespace A305.Mission
 
         private void Update()
         {
-            bool currentInside = ShopInterior.Occupied != null;
+            bool currentInside = PlaceScenes.IsTownShop(gameObject.scene.name);
             if (insideShop != currentInside)
             {
                 insideShop = currentInside;
@@ -1106,10 +1106,7 @@ namespace A305.Mission
                 miniMapPanel.SetActive(
                     available
                         && !talking
-                        && FirstDayMissionState.CanShowMiniMapIn(
-                            mapSceneCode,
-                            ShopInterior.Occupied != null
-                        )
+                        && FirstDayMissionState.CanShowMiniMapIn(mapSceneCode, insideShop)
                         && !isLeftCovered
                 );
             // 기다리는 카드는 퀘스트 카드처럼 대화 중에도 보인다.

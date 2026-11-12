@@ -238,17 +238,14 @@ namespace A305.EditorTools.World
                     {
                         if (label.transform.parent.name != "DINER_STAFF")
                             continue;
-                        label.text = "식당";
+                        label.text = "햄버거 가게";
                         var plate = (RectTransform)label.transform.parent;
-                        plate.sizeDelta = new Vector2(
-                            label.GetPreferredValues(label.text).x
-                                + label.margin.x
-                                + label.margin.z,
-                            plate.sizeDelta.y
-                        );
+                        if (plate.anchorMin != plate.anchorMax)
+                            plate.sizeDelta = Vector2.zero;
                     }
                 }
             );
+            A305.EditorTools.Mission.MiniMapBuilder.UpdateBuildingLabels();
             var scripts = AssetDatabase.LoadAssetAtPath<A305.Dialogue.MockDialogueScriptSource>(
                 "Assets/Data/Dialogue/MockDialogueScripts.asset"
             );

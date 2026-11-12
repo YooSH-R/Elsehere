@@ -119,8 +119,8 @@
         {
             "sceneCode": "TOWN",
             "unityKey": "TownScene",
-            "objectCount": 3691,
-            "detailCount": 152,
+            "objectCount": 3613,
+            "detailCount": 121,
             "wordKeys": [
                 "awning",
                 "bed",
@@ -178,7 +178,6 @@
                 "porch",
                 "price_card",
                 "railing",
-                "reception_desk",
                 "refrigerator",
                 "road",
                 "roof",
@@ -207,6 +206,7 @@
                 "word_0a8bd7882c5b7b04e84b90f02a9345c1",
                 "word_27d3dc992bf0dee46a465b3bb93c0a08",
                 "word_2a482726948f5bf41a0068cc69f541ca",
+                "word_2b9999d8d017255459f2137b005edde2",
                 "word_2ed81ce347fb9724d8df37ac679e41d9",
                 "word_369eb9ba5bdd95a4e82191d96b289f34",
                 "word_386c8564b884cfe47b66fdbc77ec87b9",
@@ -215,12 +215,14 @@
                 "word_44f9cc0d067b770438b25673c21c1358",
                 "word_47611d6211561694cb7aa0e9039a893a",
                 "word_49745493800188e47bee4b59a9a41f49",
+                "word_49eee5ac436a87e4b9a91a1c5352bf8a",
                 "word_50a95568007664e448ac53663da03962",
                 "word_510320b4ce2ab1646975c5e1c03333fb",
                 "word_513415d5ad951964c9ede7ba32b0596f",
                 "word_57394345ad5fd5c46a1e107b2d2a7656",
                 "word_57d53390c38c2204588cba13f10a5f9a",
                 "word_583992ed64934fe4ba5f273e34106ceb",
+                "word_5aa5c077f56247047be360a583703f0f",
                 "word_5ca110b3066a4e04f83c2f7776bb5070",
                 "word_5ef79e2727edae54ab972ddb33844750",
                 "word_6f2d682aa1edd004a86774dbc32603a3",
@@ -1465,6 +1467,7 @@
                 "chair",
                 "clock",
                 "cornice",
+                "counter",
                 "door",
                 "drawer",
                 "floor",
@@ -1974,6 +1977,8 @@
             "wordKeys": [
                 "cabinet",
                 "clock",
+                "flowerpot",
+                "plant",
                 "rug",
                 "shelf",
                 "sign",
@@ -2046,13 +2051,16 @@
                 "cabinet",
                 "cash_register",
                 "chair",
+                "counter",
                 "drawer",
+                "flowerpot",
                 "lamp",
                 "picture",
                 "plant",
                 "rug",
                 "shelf",
-                "sign"
+                "sign",
+                "table"
             ]
         },
         {
@@ -2103,6 +2111,7 @@
             "wordKeys": [
                 "bell",
                 "clock",
+                "floor",
                 "flowerpot",
                 "kitchen_counter",
                 "lamp",
@@ -2111,7 +2120,10 @@
                 "plant",
                 "plate",
                 "refrigerator",
-                "stove"
+                "stove",
+                "word_2b9999d8d017255459f2137b005edde2",
+                "word_49eee5ac436a87e4b9a91a1c5352bf8a",
+                "word_5aa5c077f56247047be360a583703f0f"
             ]
         },
         {
@@ -2364,6 +2376,13 @@
             ]
         },
         {
+            "guid": "1c12969b874ee8843874c905bcbb6ebd",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/HighScoreBoard.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
             "guid": "1588c86db56251849ab98f99c342351d",
             "path": "Assets/Prefabs/World/TownInteriors/Props/HomeGoodsBoard.prefab",
             "wordKeys": [
@@ -2403,6 +2422,13 @@
             "path": "Assets/Prefabs/World/TownInteriors/Props/JarTall.prefab",
             "wordKeys": [
                 "jar"
+            ]
+        },
+        {
+            "guid": "3161e492f1d68454eb4f11f27b5efcb3",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/Ketchup.prefab",
+            "wordKeys": [
+                "word_49eee5ac436a87e4b9a91a1c5352bf8a"
             ]
         },
         {
@@ -2452,6 +2478,20 @@
             "path": "Assets/Prefabs/World/TownInteriors/Props/MagazineRack.prefab",
             "wordKeys": [
                 "book"
+            ]
+        },
+        {
+            "guid": "d1df101b99035c0458ba02b68efee7c3",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/Mustard.prefab",
+            "wordKeys": [
+                "word_2b9999d8d017255459f2137b005edde2"
+            ]
+        },
+        {
+            "guid": "9b9012e37bac56645aa4527cb7ac38d4",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/NapkinDispenser.prefab",
+            "wordKeys": [
+                "word_5aa5c077f56247047be360a583703f0f"
             ]
         },
         {
@@ -3185,6 +3225,7 @@
             "path": "Assets/Prefabs/World/TownStorefronts/MapleDiner.prefab",
             "wordKeys": [
                 "bell",
+                "cash_register",
                 "ceiling",
                 "clock",
                 "cornice",
@@ -3209,7 +3250,10 @@
                 "takeaway_cup",
                 "wall",
                 "window",
-                "word_369eb9ba5bdd95a4e82191d96b289f34"
+                "word_2b9999d8d017255459f2137b005edde2",
+                "word_369eb9ba5bdd95a4e82191d96b289f34",
+                "word_49eee5ac436a87e4b9a91a1c5352bf8a",
+                "word_5aa5c077f56247047be360a583703f0f"
             ]
         },
         {

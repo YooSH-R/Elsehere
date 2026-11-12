@@ -198,7 +198,7 @@ namespace A305.Mission.Tests
             Assert.That(Label(rows[0], "countdown").gameObject.activeSelf, Is.False);
             Assert.That(Mark(rows[0]), Is.SameAs(Field<Sprite>(card, "readyMark")));
             Assert.That(Text(rows[1], "title"), Is.EqualTo("아침 식사"));
-            Assert.That(Text(rows[1], "detail"), Is.EqualTo("Rosa · 식당"));
+            Assert.That(Text(rows[1], "detail"), Is.EqualTo("Rosa · 햄버거 가게"));
             Assert.That(Label(rows[1], "countdown").gameObject.activeSelf, Is.True);
             Assert.That(Text(rows[1], "countdown"), Does.Match(@"^1:[23]\d$"));
             Assert.That(Mark(rows[1]), Is.SameAs(Field<Sprite>(card, "waitingMark")));

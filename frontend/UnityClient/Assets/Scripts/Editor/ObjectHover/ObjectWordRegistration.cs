@@ -46,7 +46,7 @@ namespace A305.EditorTools.ObjectHover
             foreach (string path in ObjectWordAuthoring.WordScenePaths())
             {
                 Scene scene = EditorSceneManager.OpenScene(path);
-                // 매장 실내 씬은 위에서 연결한 건물 프리팹 인스턴스만 담으므로 고치지 않고 누락만 검사한다.
+                // 매장 실내 씬의 사물은 위에서 연결한 건물 프리팹 인스턴스이므로 고치지 않고 누락만 검사한다.
                 if (ObjectWordAuthoring.IsTownInterior(path))
                 {
                     ReportScene(scene, ObjectWordAuthoring.WordRoot(scene, path).transform, report);

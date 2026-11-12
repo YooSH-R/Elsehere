@@ -218,8 +218,8 @@ public class TownStoryService {
                             ? story.hasDinerMeal()
                                 ? "음식을 받았는데 옷에 음료를 쏟았어요. Rosa에게 무슨 일이 있었는지 말해봐요."
                                 : story.hasGoal(0)
-                                    ? "주문했어요. 식당 안의 빈자리에 앉아 잠깐 기다려요."
-                                    : "식당에 왔어요. Rosa에게 원하는 아침과 음료를 주문해요."
+                                    ? "주문했어요. 햄버거 가게 안의 빈자리에 앉아 잠깐 기다려요."
+                                    : "햄버거 가게에 왔어요. Rosa에게 원하는 아침과 음료를 주문해요."
                             : story.current().situation();
     return new FirstDayMissionResponse(
         started,
@@ -254,7 +254,7 @@ public class TownStoryService {
   // 마을 이야기 직원이 있는 가게. NPC 대답은 영어라 영어 이름을 쓴다.
   private static String shop(String npcCode) {
     return switch (npcCode) {
-      case "DINER_STAFF" -> "the diner";
+      case "DINER_STAFF" -> "the burger shop";
       case "LAUNDROMAT_STAFF" -> "the laundromat";
       case "BANK_STAFF" -> "the bank";
       case "BARBER_STAFF" -> "the barbershop";

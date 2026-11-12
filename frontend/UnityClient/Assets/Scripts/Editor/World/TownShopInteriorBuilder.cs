@@ -85,6 +85,46 @@ namespace A305.EditorTools.World
             }
         }
 
+        /// <summary>
+        /// 계단실 칸막이 없이 건물 폭 전체를 쓰도록 바꾼 오락실·서점 배치를 반영한다.
+        /// 두 공간 프리팹만 코드대로 다시 저장하고, 소품 프리팹은 없을 때만 만들며 다른 매장은 그대로 둔다.
+        /// 이어서 Build Town Shop Scenes로 매장 장면을 다시 맞춘다.
+        /// </summary>
+        [MenuItem("Tools/A305/World/Rebuild Arcade And Bookshop Interiors")]
+        public static void RebuildArcadeShops()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            string sharedMeshes = MainstreetArtKit.ArtFolder + "/Meshes";
+            var existingMeshes = new HashSet<string>(
+                AssetDatabase.FindAssets("t:Mesh", new[] { sharedMeshes })
+            );
+            foreach (
+                TownShopInteriorLayouts.Space space in TownShopInteriorLayouts.Spaces.Where(
+                    candidate => candidate.Name is "ArcadeInterior" or "BookshopInterior"
+                )
+            )
+            {
+                var root = new GameObject(space.Name);
+                space.Furnish(root.transform);
+                GameObject prefab = BuilderTools.SavePrefab(
+                    root,
+                    Folder + "/" + space.Name + ".prefab"
+                );
+                BuilderTools.UpdatePrefabIfExists(
+                    space.BuildingPrefab,
+                    building => Install(building, space, prefab)
+                );
+            }
+            foreach (
+                string guid in AssetDatabase
+                    .FindAssets("t:Mesh", new[] { sharedMeshes })
+                    .Where(guid => !existingMeshes.Contains(guid))
+            )
+                AssetDatabase.DeleteAsset(AssetDatabase.GUIDToAssetPath(guid));
+            AssetDatabase.SaveAssets();
+        }
+
         [MenuItem("Tools/A305/World/Update Laundromat Props")]
         public static void UpdateLaundromatProps()
         {

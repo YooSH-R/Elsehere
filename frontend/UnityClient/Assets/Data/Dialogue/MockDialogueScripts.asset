@@ -303,10 +303,10 @@ MonoBehaviour:
     exampleSentence: I'd like to send this package.
   - npcCode: DINER_STAFF
     npcName: Rosa
-    roleLabel: "\uC2DD\uB2F9 \uC885\uC5C5\uC6D0"
+    roleLabel: "\uD584\uBC84\uAC70 \uAC00\uAC8C \uC9C1\uC6D0"
     opening:
       english: Hi, honey! Welcome to Maple Burger. What can I get you?
-      korean: "\uC5B4\uC11C \uC640\uC694! \uBA54\uC774\uD50C \uBC84\uAC70\uC774\uC5D0\uC694.
+      korean: "\uC5B4\uC11C \uC640\uC694! \uBA54\uC774\uD50C \uBC84\uAC70\uC608\uC694.
         \uBB58 \uB4DC\uB9B4\uAE4C\uC694?"
       voice: {fileID: 0}
     guidedTurns: []
@@ -314,15 +314,18 @@ MonoBehaviour:
     - keywords:
       - classic
       reply:
-        english: The Classic is seven dollars. Would you like to leave anything out?
-        korean: "\uD074\uB798\uC2DD \uBC84\uAC70\uB294 7\uB2EC\uB7EC\uC608\uC694.
-          \uBE7C\uACE0 \uC2F6\uC740 \uC7AC\uB8CC\uAC00 \uC788\uB098\uC694?"
+        english: The Classic has beef, lettuce, tomato, onion, pickles and ketchup.
+          Would you like to leave anything out?
+        korean: "\uD074\uB798\uC2DD \uBC84\uAC70\uC5D0\uB294 \uC18C\uACE0\uAE30 \uD328\uD2F0,
+          \uC591\uC0C1\uCD94, \uD1A0\uB9C8\uD1A0, \uC591\uD30C, \uD53C\uD074\uACFC
+          \uCF00\uCCA9\uC774 \uB4E4\uC5B4\uAC00\uC694. \uBE7C\uACE0 \uC2F6\uC740
+          \uC7AC\uB8CC\uAC00 \uC788\uB098\uC694?"
         voice: {fileID: 0}
     - keywords:
       - cola
       reply:
-        english: Cola is two dollars. Would you like fries as well?
-        korean: "\uCF5C\uB77C\uB294 2\uB2EC\uB7EC\uC608\uC694. \uAC10\uC790\uD280\uAE40\uB3C4
+        english: Would you like cola and fries with your burger?
+        korean: "\uBC84\uAC70\uC640 \uD568\uAED8 \uCF5C\uB77C\uC640 \uAC10\uC790\uD280\uAE40\uB3C4
           \uB4DC\uB9B4\uAE4C\uC694?"
         voice: {fileID: 0}
     defaultReply:
@@ -993,10 +996,10 @@ MonoBehaviour:
     exampleSentence: I'm looking for a lamp for my bedroom.
   - npcCode: FIRE_CAPTAIN
     npcName: Ray
-    roleLabel: "\uC2DD\uB2F9 \uC9C1\uC6D0"
+    roleLabel: "\uD584\uBC84\uAC70 \uAC00\uAC8C \uC9C1\uC6D0"
     opening:
       english: Hi, honey! Welcome to Maple Burger. What can I get you?
-      korean: "\uC5B4\uC11C \uC640\uC694! \uBA54\uC774\uD50C \uBC84\uAC70\uC774\uC5D0\uC694.
+      korean: "\uC5B4\uC11C \uC640\uC694! \uBA54\uC774\uD50C \uBC84\uAC70\uC608\uC694.
         \uBB58 \uB4DC\uB9B4\uAE4C\uC694?"
       voice: {fileID: 0}
     guidedTurns: []
@@ -1004,15 +1007,18 @@ MonoBehaviour:
     - keywords:
       - classic
       reply:
-        english: The Classic is seven dollars. Would you like to leave anything out?
-        korean: "\uD074\uB798\uC2DD \uBC84\uAC70\uB294 7\uB2EC\uB7EC\uC608\uC694.
-          \uBE7C\uACE0 \uC2F6\uC740 \uC7AC\uB8CC\uAC00 \uC788\uB098\uC694?"
+        english: The Classic has beef, lettuce, tomato, onion, pickles and ketchup.
+          Would you like to leave anything out?
+        korean: "\uD074\uB798\uC2DD \uBC84\uAC70\uC5D0\uB294 \uC18C\uACE0\uAE30 \uD328\uD2F0,
+          \uC591\uC0C1\uCD94, \uD1A0\uB9C8\uD1A0, \uC591\uD30C, \uD53C\uD074\uACFC
+          \uCF00\uCCA9\uC774 \uB4E4\uC5B4\uAC00\uC694. \uBE7C\uACE0 \uC2F6\uC740
+          \uC7AC\uB8CC\uAC00 \uC788\uB098\uC694?"
         voice: {fileID: 0}
     - keywords:
       - cola
       reply:
-        english: Cola is two dollars. Would you like fries as well?
-        korean: "\uCF5C\uB77C\uB294 2\uB2EC\uB7EC\uC608\uC694. \uAC10\uC790\uD280\uAE40\uB3C4
+        english: Would you like cola and fries with your burger?
+        korean: "\uBC84\uAC70\uC640 \uD568\uAED8 \uCF5C\uB77C\uC640 \uAC10\uC790\uD280\uAE40\uB3C4
           \uB4DC\uB9B4\uAE4C\uC694?"
         voice: {fileID: 0}
     defaultReply:

@@ -11,7 +11,7 @@
 | 드럭스토어 | Take me to the drugstore, please. | ShopScene |
 | 집 | I'd like to go home. | HomeScene |
 | 우체국 | Take me to the post office, please. | PostOfficeInterior |
-| 메이플 식당 | The diner, please. | MapleDinerInterior |
+| 햄버거 가게 | The burger shop, please. | MapleDinerInterior |
 | 타운 은행 | Could you take me to the bank? | TownBankInterior |
 | 빨래방 | Take me to the laundromat, please. | SudsLaundromatInterior |
 | 꽃집 | The flower shop, please. | BloomFlowersInterior |

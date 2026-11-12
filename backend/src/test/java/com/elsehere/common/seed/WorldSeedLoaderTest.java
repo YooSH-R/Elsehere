@@ -215,7 +215,7 @@ class WorldSeedLoaderTest {
             tuple("TOWN", "TAXI_DRIVER", "Joe", NpcType.STAFF, "택시 기사", false, null),
             tuple("TOWN", "POLICE_OFFICER", "Dan", NpcType.STAFF, "경찰관", false, null),
             tuple("TOWN", "POST_OFFICE_STAFF", "Linda", NpcType.STAFF, "우체국 직원", false, null),
-            tuple("TOWN", "DINER_STAFF", "Rosa", NpcType.STAFF, "식당 종업원", false, null),
+            tuple("TOWN", "DINER_STAFF", "Rosa", NpcType.STAFF, "햄버거 가게 직원", false, null),
             tuple("TOWN", "BANK_STAFF", "Henry", NpcType.STAFF, "은행원", false, null),
             tuple("TOWN", "LAUNDROMAT_STAFF", "Gus", NpcType.STAFF, "빨래방 주인", false, null),
             tuple("TOWN", "FLOWER_SHOP_STAFF", "Lily", NpcType.STAFF, "꽃집 주인", false, null),
@@ -239,7 +239,7 @@ class WorldSeedLoaderTest {
             tuple("TOWN", "POLICE_SERGEANT", "Victor", NpcType.STAFF, "경사", false, null),
             tuple("TOWN", "POLICE_PATROL_OFFICER", "Kevin", NpcType.STAFF, "베이커리 직원", false, null),
             tuple("TOWN", "POLICE_ROOKIE", "Taylor", NpcType.STAFF, "신입 경찰관", false, null),
-            tuple("TOWN", "FIRE_CAPTAIN", "Ray", NpcType.STAFF, "식당 직원", false, null),
+            tuple("TOWN", "FIRE_CAPTAIN", "Ray", NpcType.STAFF, "햄버거 가게 직원", false, null),
             tuple("TOWN", "FIRE_FIGHTER", "Rachel", NpcType.STAFF, "빨래방 직원", false, null),
             tuple("TOWN", "FIRE_ROOKIE", "Andre", NpcType.STAFF, "이발소 직원", false, null),
             tuple("TOWN", "TOWN_GRANDFATHER", "Arthur", NpcType.PASSERBY, "행인", false, null),
@@ -248,7 +248,7 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName("NPC마다 일하는 곳과 단어장 장소 묶음을 넣는다. 코드 이름이 아니라 실제 근무지 기준이다(FIRE_CAPTAIN은 식당)")
+  @DisplayName("NPC마다 일하는 곳과 단어장 장소 묶음을 넣는다. 코드 이름이 아니라 실제 근무지 기준이다(FIRE_CAPTAIN은 햄버거 가게)")
   void load_setsNpcWorkplaces() {
     worldSeedLoader.load();
 
@@ -261,9 +261,9 @@ class WorldSeedLoaderTest {
             tuple("CAFE_STAFF", "카페", PlaceGroup.FOOD),
             tuple("CAFE_BARISTA", "카페", PlaceGroup.FOOD),
             tuple("CAFE_SERVER", "카페", PlaceGroup.FOOD),
-            tuple("DINER_STAFF", "식당", PlaceGroup.FOOD),
-            tuple("TOWN_JOHN_PARK", "식당", PlaceGroup.FOOD),
-            tuple("FIRE_CAPTAIN", "식당", PlaceGroup.FOOD),
+            tuple("DINER_STAFF", "햄버거 가게", PlaceGroup.FOOD),
+            tuple("FIRE_CAPTAIN", "햄버거 가게", PlaceGroup.FOOD),
+            tuple("TOWN_JOHN_PARK", "햄버거 가게", PlaceGroup.FOOD),
             tuple("BAKERY_STAFF", "빵집", PlaceGroup.FOOD),
             tuple("POLICE_PATROL_OFFICER", "빵집", PlaceGroup.FOOD),
             tuple("SHOP_STAFF", "드럭스토어", PlaceGroup.SHOPPING),

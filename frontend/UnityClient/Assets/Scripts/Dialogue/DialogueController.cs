@@ -498,14 +498,8 @@ namespace A305.Dialogue
         }
 
         // 말을 거는 플레이어가 NPC 바로 옆에 있으므로 플레이어가 있는 곳이 NPC가 지금 있는 곳이다.
-        private string PlayerPlaceCode()
-        {
-            ShopInterior shop = ShopInterior.Occupied;
-            return PlaceScenes.CodeOf(
-                player.gameObject.scene.name,
-                shop != null ? shop.PlaceCode : null
-            );
-        }
+        // 마을 매장도 따로 장면이라 플레이어가 있는 장면으로 그 매장 코드를 안다.
+        private string PlayerPlaceCode() => PlaceScenes.CodeOf(player.gameObject.scene.name);
 
         private void StartServerConversation(
             string npcCode,

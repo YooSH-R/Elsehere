@@ -9,7 +9,7 @@ namespace A305.Learning.Tests
         [TestCase("FLOWER_SHOP_STAFF", "꽃집")]
         [TestCase("LAUNDROMAT_STAFF", "빨래방")]
         [TestCase("BARBER_STAFF", "이발소")]
-        [TestCase("DINER_STAFF", "식당")]
+        [TestCase("DINER_STAFF", "햄버거 가게")]
         [TestCase("BANK_STAFF", "은행")]
         [TestCase("BAKERY_STAFF", "빵집")]
         [TestCase("POST_OFFICE_STAFF", "우체국")]

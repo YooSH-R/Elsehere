@@ -76,36 +76,27 @@ namespace A305.World
             curtain.StartCoroutine(curtain.TravelTo(destinationScene));
         }
 
-        internal static void CrossShopDoor(
+        /// <summary>
+        /// 씬을 바꾸지 않고 플레이어를 같은 씬의 다른 자리로 옮긴다(복습을 마치고 원래 자리로 돌아올 때).
+        /// 다른 공간으로 갈 때와 같은 시간으로 화면을 덮고, 덮인 동안 옮긴 뒤 걷는다. 옮기는 동안 플레이어는 움직이지 못한다.
+        /// </summary>
+        internal static void MoveWithinScene(
             PlayerMover player,
             Pose destination,
-            ShopInterior interior,
-            bool entering,
-            float? arrivalViewYaw,
-            System.Action finishTravel
+            float arrivalViewYaw,
+            Action finishTravel
         )
         {
             SpaceTravelCurtain curtain = GetOrCreate();
             curtain.ShowLoading(null);
-            curtain.StartCoroutine(
-                curtain.CrossThreshold(
-                    player,
-                    destination,
-                    interior,
-                    entering,
-                    arrivalViewYaw,
-                    finishTravel
-                )
-            );
+            curtain.StartCoroutine(curtain.Move(player, destination, arrivalViewYaw, finishTravel));
         }
 
-        private IEnumerator CrossThreshold(
+        private IEnumerator Move(
             PlayerMover player,
             Pose destination,
-            ShopInterior interior,
-            bool entering,
-            float? arrivalViewYaw,
-            System.Action finishTravel
+            float arrivalViewYaw,
+            Action finishTravel
         )
         {
             player.SetMovementLocked(true);
@@ -122,19 +113,15 @@ namespace A305.World
             try
             {
                 yield return FadeTo(1f, CloseSeconds);
-                if (interior != null && entering)
-                    yield return interior.SetOccupied(true);
                 if (player != null)
                 {
                     player.Teleport(destination.position, destination.rotation);
                     PlayerCameraRig camera = player.CameraRig;
                     if (camera != null)
                     {
-                        camera.SnapView(arrivalViewYaw ?? camera.ViewYawDegrees);
+                        camera.SnapView(arrivalViewYaw);
                     }
                 }
-                if (interior != null && !entering)
-                    yield return interior.SetOccupied(false);
                 yield return null;
                 yield return FadeTo(0f, OpenSeconds, Finish);
             }

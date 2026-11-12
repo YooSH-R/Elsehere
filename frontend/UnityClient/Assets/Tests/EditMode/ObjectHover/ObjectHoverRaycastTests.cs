@@ -6,6 +6,58 @@ namespace A305.ObjectHover.Tests
 {
     public class ObjectHoverRaycastTests
     {
+        [TestCase("Ketchup", "ketchup")]
+        [TestCase("Mustard", "mustard")]
+        [TestCase("NapkinDispenser", "napkin")]
+        public void BurgerShopCondimentsAndNapkinsUseTheirOwnWords(string objectName, string word)
+        {
+            GameObject room = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/World/TownInteriors/MapleDinerInterior.prefab"
+            );
+            Transform[] objects = System.Array.FindAll(
+                room.GetComponentsInChildren<Transform>(true),
+                item => item.name == objectName
+            );
+            Assert.That(objects, Is.Not.Empty);
+            foreach (Transform item in objects)
+            {
+                var hover = item.GetComponentInParent<HoverableObject>(true);
+                Assert.That(hover, Is.Not.Null, objectName);
+                Assert.That(hover.Word, Is.Not.Null, objectName);
+                Assert.That(hover.Word.Details.Text, Is.EqualTo(word), objectName);
+                Assert.That(item.GetComponentsInChildren<ObjectHoverHitArea>(true), Is.Not.Empty);
+            }
+        }
+
+        [TestCase("Ketchup", "ketchup")]
+        [TestCase("Mustard", "mustard")]
+        [TestCase("NapkinDispenser", "napkin")]
+        public void BurgerTablePropRaycastFindsItsWord(string objectName, string word)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                $"Assets/Prefabs/World/TownInteriors/Props/{objectName}.prefab"
+            );
+            GameObject item = Object.Instantiate(
+                prefab,
+                new Vector3(5000, 0, 5000),
+                Quaternion.identity
+            );
+            try
+            {
+                Collider hitArea = item.GetComponentInChildren<ObjectHoverHitArea>()
+                    .GetComponent<Collider>();
+                Physics.SyncTransforms();
+                var ray = new Ray(hitArea.bounds.center + Vector3.up, Vector3.down);
+                HoverableObject hit = new ObjectHoverRaycast().Find(ray, 2, ~0, null, out _);
+                Assert.That(hit, Is.Not.Null, objectName);
+                Assert.That(hit.Word.Details.Text, Is.EqualTo(word));
+            }
+            finally
+            {
+                Object.DestroyImmediate(item);
+            }
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public void Find_CupInsideFurnitureMovementBounds_RespectsVisibleOcclusion(bool blocked)

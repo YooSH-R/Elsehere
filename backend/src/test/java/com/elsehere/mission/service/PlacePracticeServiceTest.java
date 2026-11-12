@@ -24,6 +24,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
@@ -168,6 +170,23 @@ class PlacePracticeServiceTest {
 
     assertThat(context).isInstanceOf(QuestTalk.Guide.class);
     assertThat(context.instruction()).contains("already done everything", "close politely");
+  }
+
+  // 학습자가 첫 목표만 말했는데 직원이 남은 목표의 답(예: 늦은 체크아웃의 추가 요금)까지 말하면 그 목표를 말할 이유가 사라진다.
+  // 지시문은 AI 워커가 받는 길이(3000자, ai/worker/app/schemas.py ReplyRequest) 안이어야 한다.
+  @ParameterizedTest
+  @EnumSource(PracticeScenario.class)
+  @DisplayName("첫 목표만 이룬 턴의 직원 지시는 남은 목표의 답을 학습자가 물을 때까지 미루게 한다")
+  void replyInstruction_afterFirstGoal_holdsAnswersToRemainingGoals(PracticeScenario scenario) {
+    QuestTalk context = practice.context(scenario, List.of());
+    String firstGoal = scenario.goals().get(0).id();
+
+    String reply = context.replyInstruction(recognized(firstGoal));
+
+    assertThat(reply)
+        .contains("Answer only what the learner said or asked in this turn")
+        .contains("until the learner asks");
+    assertThat(reply.length()).isLessThanOrEqualTo(3000);
   }
 
   @Test

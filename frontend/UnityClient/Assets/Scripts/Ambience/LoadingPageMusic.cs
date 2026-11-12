@@ -18,7 +18,8 @@ namespace A305.Ambience
         private static extern void A305_SetLoadingMusic(
             float volume,
             bool playing,
-            bool soundEnabled
+            bool soundEnabled,
+            float level
         );
 #endif
 
@@ -36,12 +37,13 @@ namespace A305.Ambience
         }
 
         /// <summary>
-        /// 음량과 재생 여부를 페이지 음악에 반영하고, 다음 로딩 화면도 스피커 선택을 따르도록 페이지에 남긴다.
+        /// 음악 음량과 재생 여부를 페이지 음악에 반영하고, 다음 로딩 화면도 스피커 선택(켬·끔, 고른 크기)을 따르도록 페이지에 남긴다.
+        /// 페이지는 음악 음량에 고른 크기(<paramref name="level"/>)를 곱해 낸다.
         /// </summary>
-        public static void Apply(float volume, bool playing, bool soundEnabled)
+        public static void Apply(float volume, bool playing, bool soundEnabled, float level)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            A305_SetLoadingMusic(volume, playing, soundEnabled);
+            A305_SetLoadingMusic(volume, playing, soundEnabled, level);
 #endif
         }
     }

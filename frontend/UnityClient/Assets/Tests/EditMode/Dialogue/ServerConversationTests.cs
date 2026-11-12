@@ -2628,6 +2628,75 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task Suggestions_PrefetchSentenceAndMeaningWithoutBlockingOrOpeningHint()
+        {
+            api.StartResponse.OpeningTurn.SuggestWords = null;
+            api.PendingWords = new TaskCompletionSource<SuggestWordsData>();
+            await conversation.StartAsync();
+            Assert.That(conversation.CanSend, Is.True);
+            Assert.That(conversation.IsBusy, Is.False);
+            Assert.That(api.HintRequestedFor, Is.Empty);
+            api.PendingWords.SetResult(
+                new SuggestWordsData
+                {
+                    TurnId = OpeningTurnId,
+                    SuggestWords = new List<string> { "for here", "to go" },
+                    HintText = "For here, please.",
+                    HintMeaningKo = "매장에서 먹을게요.",
+                }
+            );
+            await Task.Yield();
+            Assert.That(conversation.HintText, Is.EqualTo("For here, please."));
+            Assert.That(conversation.HintMeaningKo, Is.EqualTo("매장에서 먹을게요."));
+            Assert.That(api.HintRequestedFor, Is.Empty);
+        }
+
+        [Test]
+        public async Task Suggestions_LateResponseDoesNotReplaceTheNextTurnsHint()
+        {
+            api.StartResponse.OpeningTurn.SuggestWords = null;
+            api.PendingWords = new TaskCompletionSource<SuggestWordsData>();
+            await conversation.StartAsync();
+            await conversation.SendAsync(Order);
+            api.PendingWords.SetResult(
+                new SuggestWordsData
+                {
+                    TurnId = OpeningTurnId,
+                    SuggestWords = new List<string> { "old" },
+                    HintText = "An old suggestion.",
+                    HintMeaningKo = "이전 문장이에요.",
+                }
+            );
+            await Task.Yield();
+            Assert.That(conversation.HintText, Is.Null);
+        }
+
+        [Test]
+        public async Task HintOpenedWhileSuggestionsLoad_WaitsForTheSameResponseAndKeepsCachedText()
+        {
+            api.StartResponse.OpeningTurn.SuggestWords = null;
+            api.PendingWords = new TaskCompletionSource<SuggestWordsData>();
+            await conversation.StartAsync();
+            Task opened = conversation.RequestHintAsync();
+            Assert.That(conversation.IsBusy, Is.False);
+            Assert.That(api.HintRequestedFor, Is.Empty);
+            api.PendingWords.SetResult(
+                new SuggestWordsData
+                {
+                    TurnId = OpeningTurnId,
+                    SuggestWords = new List<string> { "for here" },
+                    HintText = "For here, please.",
+                    HintMeaningKo = "매장에서 먹을게요.",
+                }
+            );
+            await opened;
+            await conversation.RecordHintOpenedAsync();
+            Assert.That(conversation.HintText, Is.EqualTo("For here, please."));
+            Assert.That(conversation.HintMeaningKo, Is.EqualTo("매장에서 먹을게요."));
+            Assert.That(api.HintRequestedFor, Is.EqualTo(new[] { OpeningTurnId }));
+        }
+
+        [Test]
         public async Task Send_WithoutWords_RequestsWordsForTheNewNpcTurn()
         {
             await conversation.StartAsync();

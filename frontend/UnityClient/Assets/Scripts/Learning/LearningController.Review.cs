@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using A305.Api;
 using A305.Dialogue;
 using A305.Npc;
+using A305.Player;
 using A305.World;
 using UnityEngine;
 using UnityEngine.AI;
@@ -169,8 +170,8 @@ namespace A305.Learning
             return true;
         }
 
-        // 복습·장소 연습 방문의 도착. 도착 처리와 NPC 배치가 끝나면 NPC를 근무지에 붙잡아 두고, 매장 안이면 문으로 들어가
-        // NPC 앞 1.8 m에 세운 뒤 대화를 연다(talk). 대화를 열지 못하면 원래 자리로 돌려보낸다. activity는 안내 문구의 '복습'·'연습'이다.
+        // 복습·장소 연습 방문의 도착. NPC의 생활 동작을 끝내고 실내 응대 자리에 정렬한 뒤 일반 대화 시점을 연다(talk).
+        // 대화를 열지 못하면 원래 자리로 돌려보낸다. activity는 안내 문구의 '복습'·'연습'이다.
         private IEnumerator ArriveAndTalk(
             string npcCode,
             string activity,
@@ -217,11 +218,17 @@ namespace A305.Learning
                     );
                     yield break;
                 }
-                Vector3 standing = npc.transform.position + npc.transform.forward * 1.8f;
-                if (NavMesh.SamplePosition(standing, out NavMeshHit hit, 2, NavMesh.AllAreas))
-                    standing = hit.position;
+                // 앉기·작업으로 바뀐 위치와 방향을 기준으로 카메라를 열지 않는다.
+                var body = npc.GetComponent<Passerby>();
+                Vector3 standing =
+                    body != null
+                        ? body.PrepareForPracticeConversation()
+                        : npc.transform.position + npc.transform.forward * 1.8f;
+                standing = FindClearReviewPosition(npc, standing);
                 Vector3 toward = npc.transform.position - standing;
                 toward.y = 0;
+                if (toward.sqrMagnitude > .01f)
+                    npc.transform.rotation = Quaternion.LookRotation(-toward);
                 player.Teleport(
                     standing,
                     toward.sqrMagnitude > .01f
@@ -255,6 +262,168 @@ namespace A305.Learning
             string workplace = NpcWorkplaces.SceneOf(npcCode);
             return scene == "TownScene" && PlaceScenes.IsTownShop(workplace) ? workplace : scene;
         }
+
+        private Vector3 FindClearReviewPosition(NpcIdentity npc, Vector3 preferred)
+        {
+            var body = npc.GetComponent<Passerby>();
+            if (player.CameraRig == null || body == null)
+                return preferred;
+            // 꽃다발·포장지처럼 충돌체 없는 장식도 카메라 앞을 가릴 수 있다.
+            Bounds[] obstacles = FindObjectsByType<Renderer>(FindObjectsSortMode.None)
+                .Where(item =>
+                    item.gameObject.scene == npc.gameObject.scene
+                    && item.enabled
+                    && item.sharedMaterial != null
+                    && item.sharedMaterial.renderQueue < 2500
+                    && item.GetComponentInParent<NpcIdentity>() == null
+                    && item.GetComponentInParent<PlayerMover>() == null
+                )
+                .Select(item => item.bounds)
+                .ToArray();
+            Vector3 sideways = Vector3
+                .Cross(Vector3.up, preferred - npc.transform.position)
+                .normalized;
+            Vector3 best = preferred;
+            Vector3 origin = npc.transform.position;
+            Vector3 bestNpcPosition = origin;
+            int fewestObstacles = int.MaxValue;
+            // 카운터 옆 응대 자리에서는 집기와 계단 사이의 열린 방향도 찾는다.
+            var customerSides = new[] { preferred }.Concat(
+                Enumerable
+                    .Range(0, 8)
+                    .Select(index =>
+                        origin
+                        + Quaternion.Euler(0, index * 45, 0)
+                            * (preferred - origin).normalized
+                            * 1.8f
+                    )
+            );
+            foreach (Vector3 customerSide in customerSides)
+            {
+                foreach (float offset in new[] { 0f, .8f, -.8f, 1.6f, -1.6f })
+                {
+                    Vector3 npcPosition = origin + sideways * offset;
+                    if (offset != 0)
+                    {
+                        if (
+                            NavMesh.SamplePosition(
+                                npcPosition,
+                                out NavMeshHit npcHit,
+                                .6f,
+                                NavMesh.AllAreas
+                            )
+                        )
+                        {
+                            if (Mathf.Abs(npcHit.position.y - origin.y) >= .5f)
+                                continue;
+                            npcPosition = new Vector3(
+                                npcHit.position.x,
+                                origin.y,
+                                npcHit.position.z
+                            );
+                        }
+                        else if (!HasReviewFloor(npcPosition))
+                            continue;
+                    }
+                    Vector3 shift = npcPosition - origin;
+                    if (
+                        !body.AllowsPracticePosition(npcPosition)
+                        || !HasReviewFloor(npcPosition)
+                        || Physics
+                            .RaycastAll(
+                                origin + Vector3.up * .7f,
+                                shift.normalized,
+                                shift.magnitude,
+                                ~0,
+                                QueryTriggerInteraction.Ignore
+                            )
+                            .Any(hit =>
+                                hit.collider.GetComponentInParent<CharacterController>() == null
+                            )
+                    )
+                        continue;
+                    Vector3 candidate = customerSide + shift;
+                    if (
+                        NavMesh.SamplePosition(candidate, out NavMeshHit hit, .6f, NavMesh.AllAreas)
+                    )
+                    {
+                        if (Mathf.Abs(hit.position.y - preferred.y) >= .5f)
+                            continue;
+                        candidate = hit.position;
+                    }
+                    else if (offset != 0 && !HasReviewFloor(candidate))
+                        continue;
+                    if (
+                        !body.AllowsPracticePosition(
+                            new Vector3(candidate.x, origin.y, candidate.z)
+                        ) || !HasReviewFloor(candidate)
+                    )
+                        continue;
+                    Vector3 face = npc.LookTarget.position + shift;
+                    Vector3 camera =
+                        player.CameraRig.DialogueCameraPositionFrom(
+                            npc.LookTarget,
+                            candidate - shift
+                        ) + shift;
+                    Vector3 faceSide = Vector3.Cross(Vector3.up, camera - face).normalized * .18f;
+                    int blocked = 0;
+                    foreach (
+                        Vector3 point in new[]
+                        {
+                            face,
+                            face - Vector3.up * .28f,
+                            face + Vector3.up * .2f,
+                            face + faceSide,
+                            face - faceSide,
+                        }
+                    )
+                    {
+                        Vector3 toCamera = camera - point;
+                        var ray = new Ray(point, toCamera.normalized);
+                        blocked += obstacles.Count(bounds =>
+                            bounds.IntersectRay(ray, out float distance)
+                            && distance < toCamera.magnitude
+                        );
+                    }
+                    blocked *= 100;
+                    // 얼굴이 보여도 카메라가 자루·진열대에 붙으면 화면 가장자리가 큰 소품으로 막힌다.
+                    blocked +=
+                        obstacles.Count(bounds => bounds.SqrDistance(camera) < .45f * .45f) * 10;
+                    if (blocked >= fewestObstacles)
+                        continue;
+                    fewestObstacles = blocked;
+                    best = candidate;
+                    bestNpcPosition = npcPosition;
+                    if (blocked == 0)
+                        break;
+                }
+                if (fewestObstacles == 0)
+                    break;
+            }
+            var controller = npc.GetComponent<CharacterController>();
+            bool wasEnabled = controller != null && controller.enabled;
+            if (controller != null)
+                controller.enabled = false;
+            npc.transform.position = bestNpcPosition;
+            if (controller != null)
+                controller.enabled = wasEnabled;
+            return best;
+        }
+
+        private static bool HasReviewFloor(Vector3 point) =>
+            Physics
+                .RaycastAll(
+                    point + Vector3.up * .5f,
+                    Vector3.down,
+                    1f,
+                    ~0,
+                    QueryTriggerInteraction.Ignore
+                )
+                .Any(hit =>
+                    hit.collider.GetComponentInParent<CharacterController>() == null
+                    && hit.normal.y > .7f
+                    && Mathf.Abs(hit.point.y - point.y) < .5f
+                );
 
         private static NpcIdentity FindReviewNpc(string npcCode)
         {

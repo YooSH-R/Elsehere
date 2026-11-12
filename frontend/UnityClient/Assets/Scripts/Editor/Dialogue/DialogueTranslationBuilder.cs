@@ -43,7 +43,7 @@ namespace A305.EditorTools.Dialogue
                 name.font,
                 20,
                 Color.black,
-                "방금 한 말의 영어 표현이에요."
+                DialoguePanelView.TranslationHeading
             );
             heading.richText = false;
             heading.enableAutoSizing = true;

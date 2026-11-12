@@ -410,6 +410,7 @@ namespace A305.Dialogue
             panel.UserTranslationListenRequested += ReadUserTranslation;
             panel.MeaningRequested += RequestMeaning;
             panel.HintRequested += RequestHint;
+            panel.HintOpened += RecordHintOpened;
             panel.RetryRequested += Retry;
             panel.VoiceConsentDialog.AgreeRequested += AgreeVoiceConsent;
             panel.VoiceConsentDialog.DocumentRequested += OpenVoiceConsentDocument;
@@ -451,6 +452,7 @@ namespace A305.Dialogue
                 panel.UserTranslationListenRequested -= ReadUserTranslation;
                 panel.MeaningRequested -= RequestMeaning;
                 panel.HintRequested -= RequestHint;
+                panel.HintOpened -= RecordHintOpened;
                 panel.RetryRequested -= Retry;
                 panel.VoiceConsentDialog.AgreeRequested -= AgreeVoiceConsent;
                 panel.VoiceConsentDialog.DocumentRequested -= OpenVoiceConsentDocument;
@@ -916,6 +918,12 @@ namespace A305.Dialogue
                 conversation?.RequestHint();
                 panel.Refresh();
             }
+        }
+
+        private void RecordHintOpened()
+        {
+            if (serverConversation != null)
+                _ = serverConversation.RecordHintOpenedAsync();
         }
 
         private void Retry()

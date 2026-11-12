@@ -12,4 +12,9 @@ mergeInto(LibraryManager.library, {
     const canvas = Module["canvas"];
     if (canvas) canvas.style.cursor = clickable ? "pointer" : "";
   },
+  // 손 모양(pointer)과 창 크기 조절 모양(ew-resize 등)을 게임 캔버스에만 쓴다. 빈 문자열이면 기본 커서로 돌린다.
+  A305Player_SetCursor: function (cursor) {
+    const canvas = Module["canvas"];
+    if (canvas) canvas.style.cursor = UTF8ToString(cursor);
+  },
 });

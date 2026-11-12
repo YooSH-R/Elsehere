@@ -1,3 +1,4 @@
+using System.Linq;
 using A305.EditorTools.Common;
 using A305.EditorTools.Theme;
 using A305.Learning;
@@ -11,7 +12,7 @@ namespace A305.EditorTools.Learning
 {
     /// <summary>
     /// HUD의 [대화 노트] 창(피드백 목록과 복습장을 합친 창)을 확정 시안(N2, 배포된 피드백 목록 창 기준)대로 배치한다.
-    /// 크기·자리는 시안 px에 1.2를 곱한 캔버스 단위다. 판(1080×620)은 테마 유리 그대로 두고, 머리줄에 앱 아이콘·제목·장소 탭(전체·카페·호텔·마을)·닫기,
+    /// 크기·자리는 시안 px에 1.2를 곱한 캔버스 단위다. 판(1080×620)은 테마 유리 그대로 두고, 머리줄에 앱 아이콘·제목·장소 탭(전체·음식·쇼핑·생활 서비스·안전·일상)·닫기,
     /// 그 아래 대화 4줄(흰 유리 칸에 색 아이콘·"NPC · 장소"·시간·[피드백 보기]·[다시 연습]), 아래 가운데에 쪽 넘김을 둔다.
     /// 그림은 대화 피드백 화면과 같은 렌더링 그림(Art/UI/Feedback)을 쓴다.
     /// </summary>
@@ -20,14 +21,26 @@ namespace A305.EditorTools.Learning
         private const string MenuPath = "Tools/A305/Learning/Apply Feedback List";
         private const string HudPrefabPath = "Assets/Prefabs/Learning/LearningHud.prefab";
         private const string Title = "대화 노트";
-        private static readonly string[] TabNames = { "전체", "카페", "호텔", "마을" };
 
-        // 장소 탭(시안 .tabs): 옅은 알약(294×40, 안쪽 3)에 탭 넷(72×34)을 붙이고, 고른 탭만 흰 알약(On)이 보인다.
-        private const float TabsLeft = 706;
+        // 장소 탭은 ConversationHistoryView의 장소 묶음 차례와 같다. 두 글자 탭은 60, "생활 서비스"는 104로 둔다.
+        private static readonly string[] TabNames =
+        {
+            "전체",
+            PlaceGroupText.Name(PlaceGroup.Food),
+            PlaceGroupText.Name(PlaceGroup.Shopping),
+            PlaceGroupText.Name(PlaceGroup.Services),
+            PlaceGroupText.Name(PlaceGroup.Safety),
+            PlaceGroupText.Name(PlaceGroup.Daily),
+        };
+        private static readonly float[] TabWidths = { 60, 60, 60, 104, 60, 60 };
+
+        // 장소 탭(시안 .tabs): 옅은 알약(높이 40, 안쪽 3)에 탭(높이 34)을 붙이고, 고른 탭만 흰 알약(On)이 보인다.
+        // 오른쪽 끝은 닫기 앞(1000)에 맞춘다.
+        private const float TabsRight = 1000;
         private const float TabsTop = 16;
-        private const float TabWidth = 72;
         private const float TabHeight = 34;
         private const float TabsInset = 3;
+        private static readonly float TabsTrackWidth = TabsInset * 2 + TabWidths.Sum();
 
         // 피드백 화면의 고른 탭 그림은 높이 42 탭용이라 34 탭에서는 그림자 자리와 둥근 끝을 같은 비율로 줄인다.
         private const float TabShrink = TabHeight / 42;
@@ -70,18 +83,39 @@ namespace A305.EditorTools.Learning
             AssetDatabase.SaveAssets();
         }
 
+        /// <summary>
+        /// 이미 배치한 대화 노트 창에 장소 탭과 그 아래 미확인 수만 다시 적용한다(S15P31A305-823).
+        /// 전체 배치는 그림 칸을 새로 만들어 프리팹이 크게 바뀌므로 이 둘만 맞춘다.
+        /// </summary>
+        [MenuItem("Tools/A305/Learning/Apply Conversation Note Place Tabs")]
+        public static void ApplyPlaceTabs()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                HudPrefabPath,
+                root =>
+                {
+                    var view = root.GetComponent<ConversationHistoryView>();
+                    var panel = (RectTransform)root.transform.Find("History");
+                    Tabs(panel, view);
+                    AlignUnreadCount(panel.Find("UnreadCount")?.GetComponent<TMP_Text>());
+                    BuilderTools.RequireReferences(view);
+                }
+            );
+            AssetDatabase.SaveAssets();
+        }
+
         internal static void AlignUnreadCount(TMP_Text unread)
         {
             if (unread == null)
                 return;
 
-            // 장소 탭 아래에 별도 줄을 두고 첫 대화 카드와도 여백을 확보한다.
+            // 장소 탭 아래에 별도 줄을 두고 첫 대화 카드와도 여백을 확보한다. 폭과 오른쪽 끝은 장소 탭 묶음과 같다.
             F.Style(unread, F.DisplayFontPath, 17, F.Muted);
             F.TopLeft(
                 unread.rectTransform,
-                TabsLeft,
+                TabsRight - TabsTrackWidth,
                 TabsTop + 40 + 16,
-                TabsInset * 2 + TabWidth * TabNames.Length,
+                TabsTrackWidth,
                 24
             );
             unread.alignment = TextAlignmentOptions.MidlineRight;
@@ -173,17 +207,19 @@ namespace A305.EditorTools.Learning
         private static void Tabs(RectTransform panel, ConversationHistoryView view)
         {
             RectTransform track = F.Rect("Tabs", panel);
-            F.TopLeft(track, TabsLeft, TabsTop, TabsInset * 2 + TabWidth * TabNames.Length, 40);
+            F.TopLeft(track, TabsRight - TabsTrackWidth, TabsTop, TabsTrackWidth, 40);
             Image trackImage = F.Picture(track.gameObject, null);
             F.Sliced(trackImage, F.Sprite("FeedbackTabs", new Vector4(72, 72, 72, 72)));
             // 그림 높이 144(반지름 72)를 탭 묶음 높이 40에 맞춰 둥근 끝이 반원이 되게 한다.
             trackImage.pixelsPerUnitMultiplier = 144 / (40 * F.Px);
 
             var tabs = new Object[TabNames.Length];
+            float left = TabsInset;
             for (int i = 0; i < TabNames.Length; i++)
             {
                 RectTransform tab = F.Rect("Tab" + i, track);
-                F.TopLeft(tab, TabsInset + TabWidth * i, TabsInset, TabWidth, TabHeight);
+                F.TopLeft(tab, left, TabsInset, TabWidths[i], TabHeight);
+                left += TabWidths[i];
                 Image hit = BuilderTools.GetOrAddComponent<Image>(tab.gameObject);
                 hit.sprite = null;
                 hit.color = Color.clear;

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using A305.Player;
 using A305.Theme;
 using TMPro;
@@ -450,6 +451,7 @@ namespace A305.Dialogue
 
         /// <summary>추천 문장을 아직 받지 않았을 때 [힌트]를 누르면 알린다. 받은 뒤에는 묻지 않고 그 문장을 입력창에 다시 넣는다.</summary>
         public event Action HintRequested;
+        public event Action HintOpened;
 
         /// <summary>대사에서 고른 풀이 단어의 [단어장에 저장]을 누르면 그 단어를 알린다. 결과는 <see cref="ShowWordSaveResult"/>로 받는다.</summary>
         public event Action<GlossaryWord> WordSaveRequested;
@@ -682,6 +684,15 @@ namespace A305.Dialogue
         private string pronunciationNotice;
         private string shownTranslation;
 
+        /// <summary>한국어로 한 말의 영어 번역에 붙이는 카드 제목.</summary>
+        public const string TranslationHeading = "방금 한 말의 영어 표현이에요.";
+
+        /// <summary>영어로 한 말의 교정문에 붙이는 카드 제목. 고친 문장을 다시 말해 보도록 이끈다.</summary>
+        public const string CorrectionHeading = "이렇게 고쳐 말해 보세요.";
+
+        // AI 워커는 한글이 든 말을 교정하지 않고 번역만 하므로, 같은 기준으로 번역과 교정을 나눈다.
+        private static readonly Regex Hangul = new Regex("[가-힣ㄱ-ㅎㅏ-ㅣ]");
+
         public void ShowPronunciationFailure()
         {
             pronunciationNotice =
@@ -700,7 +711,18 @@ namespace A305.Dialogue
             bool shown = !string.IsNullOrWhiteSpace(expression);
             translationCard.gameObject.SetActive(shown);
             translationText.text = shown ? expression : string.Empty;
+            if (shown && translationCard.Find("Heading") is RectTransform heading)
+                heading.GetComponent<TMP_Text>().text = IsCorrection()
+                    ? CorrectionHeading
+                    : TranslationHeading;
             translationListenButton.interactable = shown && !content.IsBusy;
+        }
+
+        /// <summary>카드의 표현이 방금 영어로 한 말의 교정문인지. 마지막 내 말에 한글이 있으면 번역이다.</summary>
+        private bool IsCorrection()
+        {
+            DialogueLine said = content.Lines?.LastOrDefault(line => !line.IsNpc);
+            return said != null && !Hangul.IsMatch(said.English ?? string.Empty);
         }
 
         private void Awake()
@@ -816,6 +838,8 @@ namespace A305.Dialogue
             }
 
             hintVisible = !hintVisible;
+            if (hintVisible && !string.IsNullOrEmpty(content.HintText))
+                HintOpened?.Invoke();
             if (hintVisible && string.IsNullOrEmpty(content.HintText) && !awaitingHint)
             {
                 awaitingHint = true;

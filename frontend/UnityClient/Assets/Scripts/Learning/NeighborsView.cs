@@ -119,7 +119,10 @@ namespace A305.Learning
 
         private void Awake()
         {
-            WindowFrame.Attach((RectTransform)panel.transform);
+            // 한 쪽 줄 4개가 고정 높이라 원래 높이보다 줄이지 않는다.
+            var window = (RectTransform)panel.transform;
+            WindowFrame.Attach(window, minimumWidth: .7f, minimumHeight: 1f);
+            PinForResizing(window);
             previousButton.onClick.AddListener(() => Change(() => book.PreviousPage()));
             nextButton.onClick.AddListener(() => Change(() => book.NextPage()));
             backButton.onClick.AddListener(() => Change(() => book.Back()));
@@ -155,6 +158,29 @@ namespace A305.Learning
             }
 
             openButton.onClick.AddListener(Open);
+        }
+
+        // 창 크기를 바꾸면 목록 줄·정보 카드는 양옆으로 늘고, 호감도는 오른쪽에, 쪽 넘김·상태 줄은 아래에 붙는다.
+        private static void PinForResizing(RectTransform window)
+        {
+            WindowLayout.Pin(window, "Rows", HorizontalPin.Stretch, VerticalPin.Top);
+            WindowLayout.Pin(window, "Empty", HorizontalPin.Stretch, VerticalPin.Stretch);
+            WindowLayout.Pin(window, "Status", HorizontalPin.Stretch, VerticalPin.Bottom);
+            WindowLayout.Pin(window, "Pager", HorizontalPin.Center, VerticalPin.Bottom);
+            WindowLayout.Pin(window, "RetryButton", HorizontalPin.Center, VerticalPin.Center);
+            WindowLayout.Pin(window, "Card", HorizontalPin.Stretch, VerticalPin.Stretch);
+            WindowLayout.Pin(window, "Card/Name", HorizontalPin.Stretch, VerticalPin.Top);
+            WindowLayout.Pin(window, "Card/Facts", HorizontalPin.Stretch, VerticalPin.Top);
+            WindowLayout.Pin(window, "Card/MapButton", HorizontalPin.Center, VerticalPin.Bottom);
+            WindowLayout.Pin(window, "Card/BackButton", HorizontalPin.Center, VerticalPin.Bottom);
+            WindowLayout.Pin(window, "Card/MapHint", HorizontalPin.Left, VerticalPin.Bottom);
+            foreach (RectTransform row in window.Find("Rows"))
+            {
+                WindowLayout.Pin(row, HorizontalPin.Stretch, VerticalPin.Top);
+                WindowLayout.Pin(row, "Name", HorizontalPin.Stretch, VerticalPin.Top);
+                WindowLayout.Pin(row, "Detail", HorizontalPin.Stretch, VerticalPin.Top);
+                WindowLayout.Pin(row, "Affinity", HorizontalPin.Right, VerticalPin.Top);
+            }
         }
 
         private void Start()

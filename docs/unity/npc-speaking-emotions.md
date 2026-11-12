@@ -52,7 +52,7 @@
 전용 Generic Avatar·공통 얼굴·저장 공연 연결을 확인하게 합니다. John은 출퇴근 보행 대상이 아닙니다.
 Production의 공용 오프라인 대본에도 John과 뮤지션 역할을 등록하여 기본 `Neighbor` 대본으로 빠지지 않게 합니다.
 
-`JohnParkDialogueBuilder.PlaceInRestaurant`는 독립 식당 씬 `Assets/Scenes/ShopInteriors/MapleDinerInterior.unity`에 같은 프리팹을 연결합니다. 위치는 식당 좌표 `(-1.5, 0, -5.2)`로, 입구 화면 기준 오른쪽에서 Rosa의 응대 위치를 가리지 않게 둡니다. 별도 출퇴근 일과나 보행을 추가하지 않습니다.
+`JohnParkDialogueBuilder.PlaceInRestaurant`는 독립 식당 씬 `Assets/Scenes/ShopInteriors/MapleDinerInterior.unity`에 같은 프리팹을 연결합니다. 기존 인스턴스의 위치·방향은 유지하고, 처음 만들 때만 식당 좌표 `(-1.06, 0, -5.2)`에 둡니다. 이후 Editor에서 조절한 배치는 연결 도구를 다시 실행해도 덮어쓰지 않습니다. 별도 출퇴근 일과나 보행을 추가하지 않습니다.
 
 페르소나는 차분하고 예의 바른 음악가 손님으로 설정합니다. 짧고 쉬운 영어, 담백한 농담, 요청받았을 때만 리듬을 넣은 주문 예시를 사용하고 직원 업무는 Rosa에게 안내합니다. 이는 게임용 각색입니다. [본인 인터뷰](https://www.segye.com/newsView/20140919000136)의 말수가 적고 혼자 있는 것을 즐긴다는 설명과 [SBS 방송 발언](https://ent.sbs.co.kr/amp/article.do?article_id=E10004429011)의 과장된 애교를 어려워한다는 설명을 참고합니다. 과거 발언을 현재 성격 전체로 단정하지 않습니다. MBTI는 이차 자료에 INFP로 소개되지만 직접 발표 출처를 확인하지 못해 확정 정보로 사용하지 않습니다.
 
@@ -102,6 +102,13 @@ John과 자유 대화를 열면 인사·지난 대사·추천 단어를 기다�
 John은 고정 공연용 Generic 리그이므로 보행 NPC와 달리 `CharacterController.skinWidth`를 0.005m로 둡니다.
 기본값 0.08m는 런타임 접촉에서 메시를 8cm 띄우므로 사용하지 않습니다.
 `JohnParkDialogueBuilder.UpdateGroundContact`는 독립 식당 씬과 대화 검수 씬의 John 캡슐에만 이 값을 적용합니다.
+
+Editor에서 식당 같은 장소 씬을 바로 Play하면 숙소·Ben이 없는 씬에 튜토리얼 대화 잠금을 적용하지 않습니다.
+튜토리얼 완료·건너뛰기 기록은 만들지 않으며, 숙소와 Ben이 있는 마을의 안내는 그대로 진행합니다.
+Game 탭에서 NPC 몸·이름표를 클릭하고 대화 시작을 확인합니다.
+`ApiSettings.asset`의 Editor 기본 주소는 `http://localhost:8080`입니다. 해당 백엔드를 실행하지 않았다면
+일반 AI 대화는 연결 오류를 표시합니다. John의 저장 랩은 즉시 재생되고 연결 실패 뒤에도 다시 듣기를 쓸 수 있으며,
+저장 랩 재생은 서버 연결의 [다시 시도]를 지우지 않습니다.
 
 ## 실제 대화의 기분 설정
 

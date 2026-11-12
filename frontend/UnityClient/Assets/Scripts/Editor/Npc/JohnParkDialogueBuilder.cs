@@ -41,7 +41,7 @@ namespace A305.EditorTools.Npc
             "Assets/Scenes/ShopInteriors/MapleDinerInterior.unity";
 
         /// <summary>
-        /// 존박을 입구 화면 기준 오른쪽(-1.5, 0, -5.2)에 두고 그 장면의 플레이어·대화창에 잇는다.
+        /// 존박의 기존 배치를 유지하고 그 장면의 플레이어·대화창에 잇는다. 처음 만들 때만 오른쪽 기본 자리에 둔다.
         /// 예전처럼 마을 장면에 두었던 존박이 남아 있으면 지운다.
         /// </summary>
         public static void PlaceInRestaurant()
@@ -66,6 +66,7 @@ namespace A305.EditorTools.Npc
                 .FindAllInScene<NpcIdentity>(scene)
                 .SingleOrDefault(item => item.Code == JohnParkEmotionBuilder.NpcCode);
             if (identity == null)
+            {
                 identity = BuilderTools
                     .InstantiatePrefab(
                         AssetDatabase.LoadAssetAtPath<GameObject>(JohnParkRhythmBuilder.PrefabPath),
@@ -74,10 +75,11 @@ namespace A305.EditorTools.Npc
                         Quaternion.identity
                     )
                     .GetComponent<NpcIdentity>();
-            identity.transform.SetPositionAndRotation(
-                shop.transform.TransformPoint(new Vector3(-1.5f, 0, -5.2f)),
-                shop.transform.rotation
-            );
+                identity.transform.SetPositionAndRotation(
+                    shop.transform.TransformPoint(new Vector3(-1.06f, 0, -5.2f)),
+                    shop.transform.rotation
+                );
+            }
             ConnectActor(
                 identity,
                 BuilderTools.FindSingleInScene<PlayerMover>(scene),
@@ -90,7 +92,10 @@ namespace A305.EditorTools.Npc
             BuilderTools.SaveScene(scene, RestaurantScenePath);
             if (!IsInsideRestaurant(shop, identity.transform))
                 throw new InvalidOperationException("존박이 식당 실내에 없습니다.");
-            Debug.Log("존박 식당 상주 배치 완료: 입구 화면 오른쪽, 건물 기준 (-1.5, 0, -5.2)");
+            Debug.Log(
+                "존박 식당 상주 연결 완료, 기존 위치 유지: "
+                    + shop.InverseTransformPoint(identity.transform.position)
+            );
         }
 
         /// <summary>식당 건물 1층 실내(건물 기준 x ±4, z 0~-8) 안에 있는지.</summary>

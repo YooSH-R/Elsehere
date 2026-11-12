@@ -81,13 +81,14 @@ def clean_english_correction(raw: dict, text: str) -> str | None:
     return correction if correction and spoken_words(correction) != spoken_words(text) else None
 
 
-def clean_better_expressions(raw: dict, text: str, correction: str | None) -> list[str]:
-    """틀리진 않았지만 어색하거나 짧은 영어에 보여 줄 같은 뜻의 더 좋은 문장(최대 3개).
-    고친 문장이 있거나 한국어가 섞였으면 그 카드를 보이므로 만들지 않는다. 학습자가 한 말·서로 겹치는 문장은 뺀다."""
+def clean_better_expressions(raw: dict, text: str, *shown: str | None) -> list[str]:
+    """표현 카드에 접어 두는 같은 뜻의 다른 표현(최대 3개). 고친 문장·한국어가 섞인 말에도 준다.
+    학습자가 한 말, 카드에 이미 보이는 고친 문장·영어 번역(shown), 서로 겹치는 문장은 뺀다."""
     sentences = raw.get("better_expressions")
-    if correction or P.HANGUL.search(text) or not isinstance(sentences, list):
+    if not isinstance(sentences, list):
         return []
-    seen, kept = {tuple(spoken_words(text))}, []
+    seen = {tuple(spoken_words(line)) for line in (text, *shown) if line}
+    kept = []
     for sentence in map(english_line, sentences):
         if sentence and tuple(spoken_words(sentence)) not in seen:
             seen.add(tuple(spoken_words(sentence)))
@@ -123,7 +124,7 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
         raw = json.loads(out)
         it = clean_intent(raw, req.state)  # JSON 객체가 아니면 여기서 ValueError: 의도 칸만 실패
         correction = clean_english_correction(raw, text)
-        return it, clean_events(raw), correction, clean_better_expressions(raw, text, correction)
+        return it, clean_events(raw), correction, raw
 
     async def translate():
         out = await llm.chat(
@@ -137,12 +138,14 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
         jobs.append(within(translate(), budget))
     res = await asyncio.gather(*jobs, return_exceptions=True)
     failed = {"id": "unclear", "ids": ["unclear"], "slots": {}, "error": str(res[0])[:160]}
-    it, events, correction, better = res[0] if not isinstance(res[0], BaseException) else (failed, [], None, [])
+    it, events, correction, raw = res[0] if not isinstance(res[0], BaseException) else (failed, [], None, {})
     translation = {"english": correction, "error": None} if correction else None
     if len(res) == 2:
         english = "" if isinstance(res[1], BaseException) else res[1]
         english = "" if english == "-" else english
         translation = {"english": english or None, "error": str(res[1])[:160] if isinstance(res[1], BaseException) else None}
+    # 다른 표현은 카드에 보일 고친 문장·영어 번역이 정해진 뒤에 겹치는 것을 뺀다
+    better = clean_better_expressions(raw, text, translation and translation["english"])
     for r in res:  # 프로그램 오류(버그)는 숨기지 않는다
         if isinstance(r, BaseException) and not isinstance(r, (ProviderError, ValueError)):
             raise r

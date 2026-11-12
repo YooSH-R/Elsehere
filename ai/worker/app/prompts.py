@@ -384,7 +384,9 @@ Return JSON:
 - "say_this": 2 options, each 1 short sentence (max 12 words) in the learner's own voice (I/me), with "ko": its Korean meaning.
   Make the first very simple and the second a little more natural.
 - "keywords": 2-3 useful English words or phrases from your sentences, with "ko".
-Never write what the partner would say."""
+Never write what the partner would say.
+Never put a name (not even a sample name like Kim), date, room number, price or other personal answer in the sentences or keywords.
+When the goal asks for one (e.g. the name on a reservation), write the sentence without it, e.g. 'I have a reservation.' The learner adds their own."""
 _PAIR = {
     "type": "array",
     "items": {

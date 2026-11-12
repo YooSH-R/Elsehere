@@ -249,6 +249,102 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(FindChild("HelpPanel").gameObject.activeInHierarchy, Is.True);
         }
 
+        // 추천 단어는 빈 줄 대신 얇은 구분선으로 나눠, 빈 줄 높이만큼 공간을 버리지 않는다.
+        [UnityTest]
+        public IEnumerator SuggestedWords_AreSplitByThinDividers_InsteadOfBlankLines()
+        {
+            content.SuggestWords = new[]
+            {
+                "for here — 매장에서 먹을게요",
+                "to go — 포장해 주세요",
+                "the usual — 늘 먹던 걸로",
+            };
+            view.Refresh();
+            yield return null;
+
+            Transform card = FindChild("Suggestions/WordsCard");
+            Assert.That(card.Find("Title").GetComponent<TMP_Text>().text, Is.EqualTo("추천 단어"));
+            List<TMP_Text> rows = ActiveChildren<TMP_Text>(card, "Word");
+            Assert.That(rows.Count, Is.EqualTo(3));
+            Assert.That(rows[0].text, Does.Contain("for here").And.Contain("매장에서 먹을게요"));
+            Assert.That(rows[2].text, Does.Contain("the usual").And.Contain("늘 먹던 걸로"));
+            Assert.That(rows.TrueForAll(row => !row.text.Contains("\n\n")), Is.True);
+            Assert.That(FindChild("SuggestedWordsBody").gameObject.activeInHierarchy, Is.False);
+
+            List<RectTransform> dividers = ActiveChildren<RectTransform>(card, "Divider");
+            Assert.That(dividers.Count, Is.EqualTo(2), "구분선은 단어 사이에만 있어야 합니다.");
+            var list = (RectTransform)rows[0].transform.parent;
+            for (int i = 0; i < dividers.Count; i++)
+            {
+                Rect above = RectIn(list, rows[i].rectTransform);
+                Rect line = RectIn(list, dividers[i]);
+                Rect below = RectIn(list, rows[i + 1].rectTransform);
+                Assert.That(line.center.y, Is.LessThan(above.yMin).And.GreaterThan(below.yMax));
+                Assert.That(line.height, Is.LessThanOrEqualTo(2));
+                Assert.That(line.width, Is.EqualTo(list.rect.width).Within(1));
+                Assert.That(
+                    above.yMin - below.yMax,
+                    Is.LessThan(rows[i].fontSize * .8f),
+                    "단어 사이 간격이 빈 줄 한 줄보다 좁아야 합니다."
+                );
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator SuggestedWords_WhileLoading_ShowOnlyTheMessage_AndKeepNoStaleRows()
+        {
+            content.SuggestWords = new[]
+            {
+                "for here — 매장에서 먹을게요",
+                "to go — 포장해 주세요",
+            };
+            view.Refresh();
+            yield return null;
+
+            content.SuggestWords = null;
+            content.IsSuggestingWords = true;
+            view.Refresh();
+            yield return null;
+
+            Transform card = FindChild("Suggestions/WordsCard");
+            TMP_Text message = FindChild("SuggestedWordsBody").GetComponent<TMP_Text>();
+            Assert.That(message.gameObject.activeInHierarchy, Is.True);
+            Assert.That(message.text, Is.EqualTo("추천 단어를 고르고 있어요..."));
+            Assert.That(ActiveChildren<TMP_Text>(card, "Word"), Is.Empty);
+            Assert.That(ActiveChildren<RectTransform>(card, "Divider"), Is.Empty);
+
+            content.SuggestWords = new[] { "the usual — 늘 먹던 걸로" };
+            content.IsSuggestingWords = false;
+            view.Refresh();
+            yield return null;
+
+            Assert.That(message.gameObject.activeInHierarchy, Is.False);
+            Assert.That(ActiveChildren<TMP_Text>(card, "Word").Count, Is.EqualTo(1));
+            Assert.That(ActiveChildren<RectTransform>(card, "Divider"), Is.Empty);
+        }
+
+        private static List<T> ActiveChildren<T>(Transform root, string name)
+            where T : Component
+        {
+            var found = new List<T>();
+            foreach (T child in root.GetComponentsInChildren<T>(false))
+            {
+                if (child.name == name)
+                    found.Add(child);
+            }
+            return found;
+        }
+
+        // 대상 사각형을 기준 사각형 좌표로 옮긴다.
+        private static Rect RectIn(RectTransform space, RectTransform target)
+        {
+            var corners = new Vector3[4];
+            target.GetWorldCorners(corners);
+            Vector3 min = space.InverseTransformPoint(corners[0]);
+            Vector3 max = space.InverseTransformPoint(corners[2]);
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+        }
+
         private TMP_InputField Input => panelObject.GetComponentInChildren<TMP_InputField>(true);
 
         // 버튼 가운데를 실제 화면 좌표로 눌러, 다른 UI에 가려지지 않고 버튼이 클릭을 받는지 본다.
@@ -321,8 +417,8 @@ namespace A305.Dialogue.PlayModeTests
             public string StatusMessage => null;
             public string RecoveryGuide => null;
             public bool CanRetry => false;
-            public IReadOnlyList<string> SuggestWords => null;
-            public bool IsSuggestingWords => false;
+            public IReadOnlyList<string> SuggestWords { get; set; }
+            public bool IsSuggestingWords { get; set; }
             public bool CanSend => true;
             public bool CanTalk => true;
             public bool HasMeaning => true;

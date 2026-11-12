@@ -93,6 +93,17 @@
     {"id": "contact-student-part-time", "kind": "help", "npc": "TOWN_STUDENT", "stage": "free",
      "history": [], "text": "I'm looking for a part-time job. Can you ask your friends?"},
     {"id": "contact-shop-back-room", "kind": "help", "npc": "SHOP_STAFF", "stage": "free",
-     "history": [], "text": "Do you have a blue umbrella in the back? Can you check?"}
+     "history": [], "text": "Do you have a blue umbrella in the back? Can you check?"},
+
+    {"id": "bank-loan-ask", "kind": "help", "npc": "BANK_STAFF", "stage": "free",
+     "history": [], "text": "I want to borrow some money. Can I get a loan here?"},
+    {"id": "bank-loan-rate", "kind": "help", "npc": "BANK_STAFF", "stage": "free",
+     "history": [], "text": "What is the interest rate for a loan?"},
+    {"id": "bank-loan-now", "kind": "no_fabricate", "npc": "BANK_STAFF", "stage": "free",
+     "history": [], "text": "Please give me a 500 dollar loan right now."},
+    {"id": "bank-transfer", "kind": "help", "npc": "BANK_STAFF", "stage": "free",
+     "history": [], "text": "Can I send money to my friend's account?"},
+    {"id": "bank-small-bills", "kind": "help", "npc": "BANK_STAFF", "stage": "free",
+     "history": [], "text": "Can you break this 100 dollar bill?"}
   ]
 }

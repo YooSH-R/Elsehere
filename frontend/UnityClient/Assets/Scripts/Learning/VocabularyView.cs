@@ -348,6 +348,68 @@ namespace A305.Learning
                 CenterWindow.Shared.Place(PanelRect);
         }
 
+        // 창 크기를 바꾸면 목록·상세는 함께 늘고, 오른쪽 버튼은 오른쪽에, 쪽 넘김·상태 줄은 아래에 붙는다.
+        private static void PinForResizing(RectTransform window)
+        {
+            WindowLayout.Pin(window, "ShowLearnedButton", HorizontalPin.Right, VerticalPin.Top);
+            WindowLayout.Pin(window, "PlaceChips", HorizontalPin.Stretch, VerticalPin.Top);
+            WindowLayout.Pin(window, "ObjectsHint", HorizontalPin.Stretch, VerticalPin.Top);
+            WindowLayout.Pin(window, "Status", HorizontalPin.Stretch, VerticalPin.Bottom);
+            WindowLayout.Pin(window, "EmptyState", HorizontalPin.Center, VerticalPin.Center);
+            WindowLayout.Pin(window, "LoadState", HorizontalPin.Center, VerticalPin.Center);
+            WindowLayout.Pin(window, "Content", HorizontalPin.Stretch, VerticalPin.Stretch);
+            WindowLayout.Pin(
+                window,
+                "Content/DetailsCard",
+                HorizontalPin.Stretch,
+                VerticalPin.Stretch
+            );
+            WindowLayout.Pin(window, "Content/Details", HorizontalPin.Stretch, VerticalPin.Stretch);
+            WindowLayout.Pin(window, "Content/Entries", HorizontalPin.Left, VerticalPin.Stretch);
+            WindowLayout.Pin(
+                window,
+                "Content/EntriesScrollbar",
+                HorizontalPin.Left,
+                VerticalPin.Stretch
+            );
+            WindowLayout.Pin(
+                window,
+                "Content/PreviousButton",
+                HorizontalPin.Left,
+                VerticalPin.Bottom
+            );
+            WindowLayout.Pin(window, "Content/Page", HorizontalPin.Left, VerticalPin.Bottom);
+            WindowLayout.Pin(window, "Content/NextButton", HorizontalPin.Left, VerticalPin.Bottom);
+            WindowLayout.Pin(window, "Content/LearnedButton", HorizontalPin.Right, VerticalPin.Top);
+            WindowLayout.Pin(window, "Content/DeleteButton", HorizontalPin.Right, VerticalPin.Top);
+            foreach (
+                string part in new[] { "Word", "Meaning", "Context", "MemoTitle", "MemoInput" }
+            )
+                WindowLayout.Pin(
+                    window,
+                    "Content/Details/" + part,
+                    HorizontalPin.Stretch,
+                    VerticalPin.Top
+                );
+            WindowLayout.Pin(
+                window,
+                "Content/Details/MemoSaveButton",
+                HorizontalPin.Right,
+                VerticalPin.Top
+            );
+            foreach (RectTransform line in window.Find("Content/Details/Context"))
+                WindowLayout.Pin(line, HorizontalPin.Stretch, VerticalPin.Top);
+        }
+
+        // 상세 칸 너비가 바뀌면 글 높이도 바뀌므로 위에서부터 다시 쌓는다. 입력 중인 메모는 건드리지 않는다.
+        private void LayOutDetails()
+        {
+            if (book == null || shownEntries == null || shownEntries.Count == 0)
+                return;
+            PlaceMeaningUnderSentence();
+            StackDetails();
+        }
+
         // 상세는 단어 → 뜻 → 예시 문장 → 메모를 위에서부터 실제 글 높이만큼 쌓아, 문장을 담아도 서로 겹치지 않게 한다.
         // 예시 문장이 없는 단어(사물 카드에서 저장한 단어 등)는 그 자리를 비우지 않고 메모를 올린다.
         private void StackDetails()
@@ -390,7 +452,10 @@ namespace A305.Learning
 
         private void Awake()
         {
-            WindowFrame.Attach(PanelRect);
+            // A~Z 글자와 상세(단어·뜻·예시 문장·메모)가 고정 높이로 쌓여 있어 원래 높이보다 줄이지 않는다.
+            WindowFrame.Attach(PanelRect, minimumWidth: .75f, minimumHeight: 1f).SizeChanged +=
+                LayOutDetails;
+            PinForResizing(PanelRect);
             memoPartOffsets = memoParts
                 .Select(part => memoParts[0].anchoredPosition.y - part.anchoredPosition.y)
                 .ToArray();

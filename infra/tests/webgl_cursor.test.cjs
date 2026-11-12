@@ -21,3 +21,23 @@ test("clickable targets set the native hand on the game canvas and leaving resto
   setCursor(0);
   assert.equal(canvas.style.cursor, "");
 });
+
+test("window edges set a resize cursor on the game canvas and an empty name restores the default", () => {
+  const canvas = { style: { cursor: "" } };
+  const context = {
+    LibraryManager: { library: {} },
+    mergeInto: Object.assign,
+    Module: { canvas },
+    // Unity passes C# strings as pointers; the fake returns the text itself.
+    UTF8ToString: (text) => text,
+  };
+  vm.runInNewContext(fs.readFileSync(source, "utf8"), context);
+
+  const setCursor = context.LibraryManager.library.A305Player_SetCursor;
+  setCursor("nwse-resize");
+  assert.equal(canvas.style.cursor, "nwse-resize");
+  setCursor("pointer");
+  assert.equal(canvas.style.cursor, "pointer");
+  setCursor("");
+  assert.equal(canvas.style.cursor, "");
+});

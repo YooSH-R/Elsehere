@@ -153,6 +153,26 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(FindButton("SubtitleButton").gameObject.activeSelf, Is.True);
         }
 
+        [UnityTest]
+        public IEnumerator SubtitlesOff_ReceivingFirstLine_HidesItUntilSpeechFails()
+        {
+            var content = new SpokenContent(speaksNpcLines: true, isNpcSpeechReady: false)
+            {
+                IsReceivingNpcReply = true,
+            };
+            yield return Show(content);
+
+            Assert.That(VisibleNpcLetters(), Is.Zero, "음성이 오기 전에 받은 첫 대사도 가립니다.");
+            Assert.That(ActiveCovers(), Is.Not.Empty);
+
+            content.IsReceivingNpcReply = false;
+            view.Refresh();
+            yield return null;
+
+            Assert.That(VisibleNpcLetters(), Is.EqualTo(NpcSentence.Replace(" ", "").Length));
+            Assert.That(ActiveCovers(), Is.Empty);
+        }
+
         // 대답 로딩 카드가 대사 칸을 덮는 동안 지난 대사를 가린 막대가 로딩 위로 비치지 않고, 로딩이 끝나면 다시 덮는다.
         [UnityTest]
         public IEnumerator WaitingForReply_HidesWordCoversUntilTheReplyArrives()
@@ -315,6 +335,7 @@ namespace A305.Dialogue.PlayModeTests
             public DialogueWait Waiting { get; set; }
             public bool CanReplaySpeech => true;
             public bool SpeaksNpcLines { get; }
+            public bool IsReceivingNpcReply { get; set; }
             public bool IsNpcSpeechReady { get; }
         }
     }

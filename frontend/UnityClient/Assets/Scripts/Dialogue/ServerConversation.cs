@@ -244,6 +244,8 @@ namespace A305.Dialogue
 
         public bool SpeaksNpcLines => true;
 
+        public bool IsReceivingNpcReply => streamedReply != null;
+
         public bool IsNpcSpeechReady =>
             LastNpcLine?.Speech != null
             || streamedReply?.HasSpeech == true

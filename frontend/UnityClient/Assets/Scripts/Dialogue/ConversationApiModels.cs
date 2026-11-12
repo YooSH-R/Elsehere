@@ -275,6 +275,17 @@ namespace A305.Dialogue
 
         public string Reason { get; set; }
         public IdiomData Idiom { get; set; }
+        public string Verdict { get; set; }
+        public string SuggestionKind { get; set; }
+        public List<FeedbackExpressionExample> ExpressionExamples { get; set; }
+    }
+
+    /// <summary>발화의 의도를 유지하며 연습할 상황별 문장. 모호한 요청은 조건을 함께 보여 준다.</summary>
+    public sealed class FeedbackExpressionExample
+    {
+        public string ConditionKo { get; set; }
+        public string Expression { get; set; }
+        public string MeaningKo { get; set; }
     }
 
     public sealed class IdiomData

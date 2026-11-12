@@ -162,7 +162,15 @@ namespace A305.Learning
                 // 고칠 표현이 없는 발화도 AI가 평가한 이유를 준다. 그대로 두지 않으면 화면이 AI 평가와 다른 고정 문구를 보여 준다.
                 string comment = better == null ? item.Reason : null;
                 feedback.reviews.Add(
-                    new UtteranceReview(item.UserText, better, comment, IdiomOf(item))
+                    new UtteranceReview(
+                        item.UserText,
+                        better,
+                        comment,
+                        IdiomOf(item),
+                        item.Verdict,
+                        item.SuggestionKind,
+                        item.ExpressionExamples
+                    )
                 );
             }
 

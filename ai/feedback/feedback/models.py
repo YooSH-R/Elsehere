@@ -62,6 +62,12 @@ class Suggestion(core.Contract):
     explanation_ko: core.Text
 
 
+class ExpressionExample(core.Contract):
+    condition_ko: core.Text
+    expression: core.Text
+    meaning_ko: core.Text
+
+
 class TurnReview(core.Contract):
     review_id: core.Id
     turn_id: core.Id
@@ -70,9 +76,18 @@ class TurnReview(core.Contract):
     explanation_ko: core.Text
     assisted: bool
     suggestions: list[Suggestion]
+    expression_examples: Annotated[list[ExpressionExample], Field(max_length=3)] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def consistent(self):
+        if self.expression_examples:
+            if self.verdict == "not_assessable":
+                raise ValueError("평가할 언어가 없는 발화에 예문을 만들어 붙이지 않는다")
+            expressions = [item.expression.strip().rstrip(".!?").casefold() for item in self.expression_examples]
+            if len(expressions) < 2 or len(set(expressions)) != len(expressions):
+                raise ValueError("표현 예시는 서로 다른 2~3개 문장이어야 한다")
+            if any(contains_korean(item.expression) or not re.search(r"[A-Za-z]", item.expression) for item in self.expression_examples):
+                raise ValueError("표현 예시는 영어 문장과 별도의 한글 뜻으로 제공한다")
         if self.verdict in ("needs_clarification", "not_assessable") and self.suggestions:
             raise ValueError("의미 확인 필요/평가 불가 발화에 정답 표현을 단정하지 않는다")
         if self.verdict == "improvement_suggested" and not self.suggestions:

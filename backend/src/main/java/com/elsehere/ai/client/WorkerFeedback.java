@@ -51,7 +51,19 @@ public record WorkerFeedback(
       String originalText,
       String verdict,
       String explanationKo,
-      List<Suggestion> suggestions) {}
+      List<Suggestion> suggestions,
+      List<ExpressionExample> expressionExamples) {
+    public TurnReview(
+        String turnId,
+        String originalText,
+        String verdict,
+        String explanationKo,
+        List<Suggestion> suggestions) {
+      this(turnId, originalText, verdict, explanationKo, suggestions, List.of());
+    }
+  }
+
+  public record ExpressionExample(String conditionKo, String expression, String meaningKo) {}
 
   public record Suggestion(
       String suggestionId, String kind, String suggestedExpression, String explanationKo) {}

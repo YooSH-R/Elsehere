@@ -1,9 +1,9 @@
 package com.elsehere.feedback.service;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.FeedbackInput;
 import com.elsehere.ai.client.WorkerFeedback;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.NpcSummaryResponse;

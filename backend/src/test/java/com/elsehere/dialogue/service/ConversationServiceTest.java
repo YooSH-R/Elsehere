@@ -16,7 +16,6 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 
 import ch.qos.logback.classic.Level;
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.FollowUpResult;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
@@ -27,6 +26,7 @@ import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.ai.service.GuestConversationLimit;
 import com.elsehere.common.config.AdjustableClock;
 import com.elsehere.common.config.TestClockConfig;
@@ -118,6 +118,27 @@ class ConversationServiceTest {
   @AfterEach
   void resetClock() {
     clock.setInstant(TestClockConfig.NOW);
+  }
+
+  @Test
+  @DisplayName("John은 저장된 랩으로 시작하며 첫 인사와 음성을 AI로 생성하지 않는다")
+  void start_johnUsesRecordedRapWithoutAiGreeting() {
+    UUID requestId = UUID.randomUUID();
+    ConversationStartResponse response =
+        conversationService.start(
+            userId, new StartConversationRequest(requestId, "TOWN_JOHN_PARK", InitiatedBy.USER));
+    assertThat(response.openingTurn().text()).startsWith("Cheeseburger, fries, lemonade on ice!");
+    Turn recordedTurn = entityManager.find(Turn.class, response.openingTurn().turnId());
+    assertThat(recordedTurn.getMeaningKo()).startsWith("치즈버거, 감자튀김, 얼음 넣은 레모네이드!");
+    assertThat(recordedTurn.getGlossary()).isEqualTo("[]");
+    then(aiGateway).shouldHaveNoInteractions();
+    assertThat(
+            conversationService
+                .start(
+                    userId,
+                    new StartConversationRequest(requestId, "TOWN_JOHN_PARK", InitiatedBy.USER))
+                .conversationId())
+        .isEqualTo(response.conversationId());
   }
 
   @Test

@@ -12,6 +12,12 @@ namespace A305.Dialogue
 
         /// <summary>방금 전달한 학습자 말의 영어 표현. 없으면 카드를 숨긴다.</summary>
         string UserTranslation { get; }
+
+        /// <summary>
+        /// 틀리진 않았지만 어색하거나 짧은 학습자 영어에 쓸 같은 뜻의 더 좋은 문장(최대 3개). 영어 표현(<see cref="UserTranslation"/>)이
+        /// 없을 때만 카드에 '이럴 때 쓰면 좋아요!'로 보인다. 서버 대화만 주며, 없으면 null이다.
+        /// </summary>
+        IReadOnlyList<string> UserBetterExpressions => null;
         IReadOnlyList<DialogueLine> Lines { get; }
 
         /// <summary>가장 최근 NPC 대사. [뜻 보기]·[표현 저장]이 쓴다.</summary>

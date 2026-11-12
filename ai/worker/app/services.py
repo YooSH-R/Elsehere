@@ -60,23 +60,43 @@ def clean_events(raw: dict) -> list[str]:
     return [event for event in dict.fromkeys(e for e in got if isinstance(e, str)) if event in P.LINE_EVENTS]
 
 
+def spoken_words(value: str) -> list[str]:
+    """대소문자·문장 부호를 빼고 비교할 낱말. 아포스트로피가 든 낱말(It's)은 한 낱말이다."""
+    return re.findall(r"\w+(?:'\w+)*", value.casefold().replace("’", "'"))
+
+
+def english_line(value) -> str | None:
+    """한글 없이 영어 글자가 있는 한 줄이면 앞뒤 공백을 뺀 것, 아니면 None."""
+    if not isinstance(value, str):
+        return None
+    value = value.strip()
+    return value if re.search(r"[A-Za-z]", value) and not P.HANGUL.search(value) else None
+
+
 def clean_english_correction(raw: dict, text: str) -> str | None:
     """영어 교정문만 표현 카드로 보낸다. 번역·표면 표기 차이는 여기서 만들지 않는다."""
-    correction = raw.get("english_correction")
-    if P.HANGUL.search(text) or not isinstance(correction, str):
+    if P.HANGUL.search(text):
         return None
-    correction = correction.strip()
-    if not re.search(r"[A-Za-z]", correction) or P.HANGUL.search(correction):
-        return None
+    correction = english_line(raw.get("english_correction"))
+    return correction if correction and spoken_words(correction) != spoken_words(text) else None
 
-    def words(value: str) -> list[str]:
-        return re.findall(r"\w+(?:'\w+)*", value.casefold().replace("’", "'"))
 
-    return correction if words(correction) != words(text) else None
+def clean_better_expressions(raw: dict, text: str, correction: str | None) -> list[str]:
+    """틀리진 않았지만 어색하거나 짧은 영어에 보여 줄 같은 뜻의 더 좋은 문장(최대 3개).
+    고친 문장이 있거나 한국어가 섞였으면 그 카드를 보이므로 만들지 않는다. 학습자가 한 말·서로 겹치는 문장은 뺀다."""
+    sentences = raw.get("better_expressions")
+    if correction or P.HANGUL.search(text) or not isinstance(sentences, list):
+        return []
+    seen, kept = {tuple(spoken_words(text))}, []
+    for sentence in map(english_line, sentences):
+        if sentence and tuple(spoken_words(sentence)) not in seen:
+            seen.add(tuple(spoken_words(sentence)))
+            kept.append(sentence)
+    return kept[:3]
 
 
 async def judge(llm: LLM, req: JudgeRequest) -> dict:
-    """의도·줄 사건·영어 교정을 함께 판정하고, 한국어 번역은 동시에 받는다. 실패해도 턴은 이어 간다.
+    """의도·줄 사건·영어 교정·더 좋은 문장을 함께 판정하고, 한국어 번역은 동시에 받는다. 실패해도 턴은 이어 간다.
     무례 판정은 /v1/guard가 따로 한다. 생성된 영어 번역은 무례 판정과 관계없이 Spring이 표현 카드로 전달한다.
     affinity_delta는 줄 사건으로 바로 올릴 호감이다. 무례로 확정된 턴이면 Spring이 쓰지 않고 /v1/guard의 감점만 쓴다."""
     usage = Usage()
@@ -88,6 +108,7 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
             "notice": P.ACTION_ONLY_KO,
             "intent": None,
             "translation": None,
+            "better_expressions": [],
             "events": None,
             "affinity_delta": None,
             "usage": [],
@@ -100,7 +121,9 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
             P.intent_messages(req.npc, req.state, req.history, text), usage, P.intent_schema(req.state), hedge_after_s=hedge_after_s
         )
         raw = json.loads(out)
-        return clean_intent(raw, req.state), clean_events(raw), clean_english_correction(raw, text)
+        it = clean_intent(raw, req.state)  # JSON 객체가 아니면 여기서 ValueError: 의도 칸만 실패
+        correction = clean_english_correction(raw, text)
+        return it, clean_events(raw), correction, clean_better_expressions(raw, text, correction)
 
     async def translate():
         out = await llm.chat(
@@ -114,7 +137,7 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
         jobs.append(within(translate(), budget))
     res = await asyncio.gather(*jobs, return_exceptions=True)
     failed = {"id": "unclear", "ids": ["unclear"], "slots": {}, "error": str(res[0])[:160]}
-    it, events, correction = res[0] if not isinstance(res[0], BaseException) else (failed, [], None)
+    it, events, correction, better = res[0] if not isinstance(res[0], BaseException) else (failed, [], None, [])
     translation = {"english": correction, "error": None} if correction else None
     if len(res) == 2:
         english = "" if isinstance(res[1], BaseException) else res[1]
@@ -129,6 +152,7 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
         "notice": P.ACTION_PART_KO if had_action else None,
         "intent": it,
         "translation": translation,
+        "better_expressions": better,
         "events": events,
         "affinity_delta": line_affinity(req, events),
         "usage": usage.items,

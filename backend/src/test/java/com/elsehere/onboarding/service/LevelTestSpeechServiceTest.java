@@ -11,7 +11,7 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 
-import com.elsehere.ai.client.AiGateway;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.world.entity.Npc;

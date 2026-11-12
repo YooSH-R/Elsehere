@@ -32,17 +32,17 @@ namespace A305.Learning
 
         public bool IsBusy { get; private set; }
 
-        /// <summary>장소 탭에서 고른 장소. null이면 모든 장소.</summary>
-        public string SceneCode { get; private set; }
+        /// <summary>장소 탭에서 고른 장소 묶음. null이면 모든 묶음.</summary>
+        public PlaceGroup? PlaceGroup { get; private set; }
 
         /// <summary>마지막 요청이 실패한 이유. 없으면 null.</summary>
         public string Message { get; private set; }
 
         /// <summary>
-        /// 첫 페이지를 다시 읽는다. 창을 열 때마다 불러 방금 끝낸 대화도 보인다. 실패하면 이전 목록과 장소를 그대로 둔다.
+        /// 첫 페이지를 다시 읽는다. 창을 열 때마다 불러 방금 끝낸 대화도 보인다. 실패하면 이전 목록과 장소 묶음을 그대로 둔다.
         /// </summary>
-        /// <param name="sceneCode">장소 탭에서 고른 장소. null이면 모든 장소.</param>
-        public async Task<bool> LoadAsync(string sceneCode = null)
+        /// <param name="placeGroup">장소 탭에서 고른 장소 묶음. null이면 모든 묶음.</param>
+        public async Task<bool> LoadAsync(PlaceGroup? placeGroup = null)
         {
             if (IsBusy)
             {
@@ -51,10 +51,10 @@ namespace A305.Learning
 
             return await RunAsync(async () =>
             {
-                ConversationPage page = await api.GetPageAsync(null, sceneCode);
+                ConversationPage page = await api.GetPageAsync(null, placeGroup);
                 items.Clear();
                 Append(page);
-                SceneCode = sceneCode;
+                PlaceGroup = placeGroup;
             });
         }
 
@@ -67,7 +67,7 @@ namespace A305.Learning
             }
 
             return await RunAsync(async () =>
-                Append(await api.GetPageAsync(nextCursor, SceneCode))
+                Append(await api.GetPageAsync(nextCursor, PlaceGroup))
             );
         }
 

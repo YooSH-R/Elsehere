@@ -15,13 +15,13 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.MemoryCardResult;
 import com.elsehere.ai.client.RelationshipChange;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerRelationship;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;

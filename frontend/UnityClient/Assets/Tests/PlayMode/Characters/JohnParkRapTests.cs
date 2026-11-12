@@ -17,6 +17,120 @@ namespace A305.Characters.PlayModeTests
     public sealed class JohnParkRapTests
     {
         [UnityTest]
+        public IEnumerator OpeningRapKeepsScrollableHistoryAndFeetOnFloor()
+        {
+            const string path = "Assets/Scenes/Sandbox/NpcJohnParkDialogueSandbox.unity";
+            yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
+                path,
+                new LoadSceneParameters(LoadSceneMode.Additive)
+            );
+            var scene = SceneManager.GetSceneByPath(path);
+            try
+            {
+                var roots = scene.GetRootGameObjects();
+                var npc = roots.SelectMany(r => r.GetComponentsInChildren<NpcIdentity>()).Single();
+                var dialogue = roots
+                    .SelectMany(r => r.GetComponentsInChildren<DialogueController>())
+                    .Single();
+                var performer = npc.GetComponent<RecordedNpcPerformance>();
+                npc.GetComponent<AudioSource>().mute = true;
+                yield return new WaitForSeconds(.3f);
+                Assert.That(dialogue.TryStart(npc.Code, npc.LookTarget), Is.True);
+                yield return null;
+                Assert.That(performer.IsPerforming, Is.True, "인사 없이 랩부터 시작해야 합니다.");
+                var state = (DialogueConversation)
+                    typeof(DialogueController)
+                        .GetField("conversation", BindingFlags.NonPublic | BindingFlags.Instance)
+                        .GetValue(dialogue);
+                Assert.That(state.Lines, Has.Count.EqualTo(1));
+                Assert.That(state.LastNpcLine.English, Is.EqualTo(performer.Definition.English));
+                var view = roots
+                    .SelectMany(r => r.GetComponentsInChildren<DialoguePanelView>(true))
+                    .Single();
+                float openingHeight = view.LinesRect.rect.height;
+                var scroll = view.LinesRect.GetComponent<ScrollRect>();
+                var button = roots
+                    .SelectMany(r => r.GetComponentsInChildren<Button>(true))
+                    .Single(b => b.name == "PerformanceButton");
+                for (int i = 0; i < 4; i++)
+                {
+                    button.onClick.Invoke();
+                    button.onClick.Invoke();
+                    Assert.That(performer.IsPerforming, Is.True);
+                    Assert.That(state.Lines, Has.Count.EqualTo(i + 2));
+                    yield return null;
+                    Assert.That(
+                        view.LinesRect.rect.height,
+                        Is.EqualTo(openingHeight).Within(.1f),
+                        "가사가 쌓여도 기존 스크롤 창의 높이는 유지해야 합니다."
+                    );
+                    Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(0).Within(.01f));
+                }
+                Assert.That(
+                    scroll.content.rect.height,
+                    Is.GreaterThan(scroll.viewport.rect.height)
+                );
+                scroll.verticalNormalizedPosition = 1;
+                yield return null;
+                Assert.That(
+                    scroll.verticalNormalizedPosition,
+                    Is.EqualTo(1).Within(.01f),
+                    "기존 스크롤로 이전 가사를 볼 수 있어야 합니다."
+                );
+                var mesh = new Mesh();
+                try
+                {
+                    for (int i = 0; i < 12; i++)
+                    {
+                        yield return null;
+                        performer.SampleMotion(
+                            i
+                                * 60f
+                                * performer.Definition.BeatsPerAnimationLoop
+                                / (12 * performer.Definition.BeatsPerMinute)
+                        );
+                        float min = float.PositiveInfinity;
+                        foreach (var skin in npc.GetComponentsInChildren<SkinnedMeshRenderer>())
+                        {
+                            skin.BakeMesh(mesh);
+                            foreach (var vertex in mesh.vertices)
+                                min = Mathf.Min(min, skin.transform.TransformPoint(vertex).y);
+                        }
+                        float floor = Physics
+                            .RaycastAll(npc.transform.position + Vector3.up, Vector3.down, 3)
+                            .Where(h =>
+                                !h.collider.transform.IsChildOf(npc.transform) && h.normal.y > .9f
+                            )
+                            .Max(h => h.point.y);
+                        Assert.That(
+                            min - floor,
+                            Is.InRange(-.015f, .015f),
+                            $"신발 바닥={min:F4}, 지면={floor:F4}"
+                        );
+                    }
+                }
+                finally
+                {
+                    Object.Destroy(mesh);
+                }
+                dialogue.End();
+                Assert.That(dialogue.TryStart(npc.Code, npc.LookTarget), Is.True);
+                Assert.That(
+                    performer.IsPerforming,
+                    Is.True,
+                    "다시 대화해도 랩부터 재생해야 합니다."
+                );
+                dialogue.End();
+            }
+            finally
+            {
+                foreach (var root in scene.GetRootGameObjects())
+                    Object.Destroy(root);
+                SceneManager.UnloadSceneAsync(scene);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator SavedGuideDrivesFaceWithoutStartingRapMotion()
         {
             var root = Object.Instantiate(
@@ -121,6 +235,85 @@ namespace A305.Characters.PlayModeTests
                     "입을 고정해 비대칭을 숨기면 안 됩니다."
                 );
                 link.SetSpeaker(null);
+            }
+            finally
+            {
+                Object.Destroy(root);
+                Object.Destroy(linkObject);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator WindowReturnResumesRapMouthAndMotionWithoutChangingTheGrip()
+        {
+            var root = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/Prefabs/Npc/LittleMung_JohnPark_Male.prefab"
+                )
+            );
+            var linkObject = new GameObject("창 전환 저장 랩 검사");
+            try
+            {
+                var performer = root.GetComponent<RecordedNpcPerformance>();
+                var speech = root.GetComponent<CharacterSpeechPlayer>();
+                var animator = root.GetComponentInChildren<Animator>();
+                var link = linkObject.AddComponent<DialogueServerLink>();
+                root.GetComponent<AudioSource>().mute = true;
+                link.SetSpeaker(speech);
+                yield return null;
+                Assert.That(performer.Play(link), Is.True);
+                yield return new WaitForSecondsRealtime(.3f);
+                var bones = root.GetComponentsInChildren<Transform>();
+                var hand = bones.Single(b => b.name == "Right_Hand");
+                var chest = bones.Single(b => b.name == "Chest");
+                var grip = chest.InverseTransformPoint(hand.position);
+                var gripRotation = Quaternion.Inverse(chest.rotation) * hand.rotation;
+                root.SendMessage("OnApplicationFocus", false);
+                float pausedTime = speech.PlaybackTime;
+                yield return new WaitForSecondsRealtime(.2f);
+                Assert.That(performer.IsPerforming, Is.True);
+                Assert.That(speech.PlaybackTime, Is.EqualTo(pausedTime).Within(.002f));
+                root.SendMessage("OnApplicationFocus", true);
+                float mouthPeak = 0;
+                for (int sample = 0; sample < 8; sample++)
+                {
+                    yield return new WaitForSecondsRealtime(.1f);
+                    Assert.That(performer.IsPerforming, Is.True);
+                    float loopSeconds =
+                        60
+                        * performer.Definition.BeatsPerAnimationLoop
+                        / performer.Definition.BeatsPerMinute;
+                    Assert.That(
+                        animator.GetCurrentAnimatorStateInfo(0).normalizedTime,
+                        Is.EqualTo(speech.PlaybackTime / loopSeconds).Within(.02f)
+                    );
+                    Assert.That(
+                        Vector3.Distance(grip, chest.InverseTransformPoint(hand.position)),
+                        Is.LessThan(.0005f)
+                    );
+                    Assert.That(
+                        Quaternion.Angle(
+                            gripRotation,
+                            Quaternion.Inverse(chest.rotation) * hand.rotation
+                        ),
+                        Is.LessThan(.1f)
+                    );
+                    foreach (var skin in root.GetComponentsInChildren<SkinnedMeshRenderer>())
+                        for (int i = 0; i < skin.sharedMesh.blendShapeCount; i++)
+                            if (skin.sharedMesh.GetBlendShapeName(i).StartsWith("viseme_"))
+                                mouthPeak = Mathf.Max(mouthPeak, skin.GetBlendShapeWeight(i));
+                }
+                Assert.That(speech.PlaybackTime, Is.GreaterThan(pausedTime + .5f));
+                Assert.That(
+                    mouthPeak,
+                    Is.GreaterThan(20),
+                    "창 복귀 후 실제 입 메시가 움직여야 한다."
+                );
+                link.StopSpeech();
+                root.SendMessage("OnApplicationFocus", false);
+                root.SendMessage("OnApplicationFocus", true);
+                yield return null;
+                Assert.That(performer.IsPerforming, Is.False);
             }
             finally
             {

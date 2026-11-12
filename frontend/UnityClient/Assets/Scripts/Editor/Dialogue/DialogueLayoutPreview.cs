@@ -200,6 +200,79 @@ namespace A305.EditorTools.Dialogue
                 1080,
                 showLatest: true
             );
+            // 영어로 틀리게 한 말에는 교정문이 오고, 카드 제목이 다시 말해 보도록 바뀐다.
+            content.PreviewLines = new[]
+            {
+                DialogueLine.FromNpc("For here or to go?", null),
+                DialogueLine.FromUser("I eat here. No onion please, I don't like."),
+                DialogueLine.FromNpc("Sure, no onions. Anything to drink?", null),
+            };
+            content.UserTranslation = "I'll eat here. No onions, please. I don't like them.";
+            view.Refresh();
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "correction-wide.png"),
+                1920,
+                1080
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "correction-portrait.png"),
+                900,
+                1400
+            );
+        }
+
+        // '이럴 때 쓰면 좋아요!'(시안 B, S15P31A305-847): 접힘, [더보기]로 펼친 목록과 끝까지 내린 목록, 세로 화면의 펼친 목록.
+        // 펼쳐도 카드 크기는 접힌 때와 같아야 한다.
+        public static void CaptureBetterExpressions()
+        {
+            DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
+            var content = new WordPreviewContent
+            {
+                PreviewLines = new[]
+                {
+                    DialogueLine.FromNpc("Hi there! What can I get for you?", null),
+                    DialogueLine.FromUser("Latte."),
+                },
+                UserBetterExpressions = new[]
+                {
+                    "Can I get a latte, please?",
+                    "I'd like a latte, please.",
+                    "Could I have a latte?",
+                },
+            };
+            view.Show(content);
+            SelectTheme(UiThemeId.Jelly);
+            string output = OutputFolder();
+            Render(camera, view, eye, face, Path.Combine(output, "better-closed.png"), 1920, 1080);
+            Invoke(view, "ToggleBetterList");
+            Render(camera, view, eye, face, Path.Combine(output, "better-open.png"), 1920, 1080);
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "better-open-end.png"),
+                1920,
+                1080,
+                showLatest: true
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "better-open-portrait.png"),
+                900,
+                1400
+            );
         }
 
         public static void Capture()
@@ -290,6 +363,7 @@ namespace A305.EditorTools.Dialogue
         {
             string output = OutputFolder();
             bool savedPreference = NpcSubtitlePreference.ShowsSubtitles;
+            UiThemeId savedTheme = UiThemeSelection.Shared.Current;
             try
             {
                 DialoguePanelView view = OpenCafe(
@@ -299,12 +373,27 @@ namespace A305.EditorTools.Dialogue
                 );
                 foreach (bool showsSubtitles in new[] { false, true })
                 {
-                    NpcSubtitlePreference.ShowsSubtitles = showsSubtitles;
+                    // 이전에 켜 둔 기록이 있어도 새 대화에서는 가려지는지 함께 확인한다.
+                    NpcSubtitlePreference.ShowsSubtitles = true;
                     var content = new WordPreviewContent();
                     view.Show(content);
+                    if (showsSubtitles)
+                    {
+                        NpcSubtitlePreference.ShowsSubtitles = true;
+                        view.Refresh();
+                    }
                     FillHelp(view);
                     string state = showsSubtitles ? "on" : "off";
                     RenderThemes(camera, view, eye, face, output, $"subtitles-{state}");
+                    Render(
+                        camera,
+                        view,
+                        eye,
+                        face,
+                        Path.Combine(output, $"subtitles-{state}-mobile.png"),
+                        844,
+                        390
+                    );
                     if (showsSubtitles)
                         continue;
                     content.Waiting = DialogueWait.NpcReply;
@@ -315,6 +404,7 @@ namespace A305.EditorTools.Dialogue
             finally
             {
                 NpcSubtitlePreference.ShowsSubtitles = savedPreference;
+                SelectTheme(savedTheme);
             }
         }
 
@@ -542,6 +632,7 @@ namespace A305.EditorTools.Dialogue
             };
 
             public string UserTranslation { get; set; }
+            public IReadOnlyList<string> UserBetterExpressions { get; set; }
             public IReadOnlyList<DialogueLine> PreviewLines { get; set; }
             public string NpcName => "Mia";
             public IReadOnlyList<DialogueLine> Lines =>

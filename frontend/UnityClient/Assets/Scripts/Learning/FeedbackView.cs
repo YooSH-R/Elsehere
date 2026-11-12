@@ -178,6 +178,9 @@ namespace A305.Learning
         private FeedbackSection section;
         private bool isRegenerating;
         private Rect lastFreeArea;
+
+        // 사용자가 창 크기를 바꿔 카드 폭이 달라졌다. 끄는 동안 여러 번 바뀌어도 한 프레임에 한 번만 다시 배치한다.
+        private bool resizedByUser;
         private bool isTranscriptShown;
         private int? selectedTranscriptReview;
         private FeedbackTranscriptDocument transcriptDocument;
@@ -374,7 +377,9 @@ namespace A305.Learning
 
         private void Awake()
         {
-            WindowFrame.Attach((RectTransform)panel.transform);
+            // 제목·부제와 오른쪽 탭이 원래 너비에서 거의 붙어 있어 더 좁히지 않는다.
+            WindowFrame.Attach((RectTransform)panel.transform, minimumWidth: 1f).SizeChanged +=
+                () => resizedByUser = true;
             ConfigureScroll();
             detailButton.onClick.AddListener(ToggleDetail);
             vocabularyButton.onClick.AddListener(() => VocabularyRequested?.Invoke());
@@ -474,11 +479,14 @@ namespace A305.Learning
             );
         }
 
-        // 화면 크기나 위에 함께 보이는 안내 카드(CenterWindow.TopObstruction)의 자리가 바뀌면 판을 다시 맞춘다.
+        // 화면 크기나 위에 함께 보이는 안내 카드(CenterWindow.TopObstruction)의 자리, 사용자가 바꾼 창 크기가 바뀌면 판을 다시 맞춘다.
         private void LateUpdate()
         {
-            if (feedback != null && FreeArea() != lastFreeArea)
+            if (feedback != null && (resizedByUser || FreeArea() != lastFreeArea))
+            {
                 UpdateLayout();
+                resizedByUser = false;
+            }
         }
 
         private Rect FreeArea() =>
@@ -511,13 +519,18 @@ namespace A305.Learning
         {
             var frame = (RectTransform)panel.transform;
             lastFreeArea = FreeArea();
-            frame.sizeDelta = isExpanded
+            Vector2 size = isExpanded
                 ? lastFreeArea.size
                 : Vector2.Min(new Vector2(FrameWidth, FrameHeight), lastFreeArea.size);
             // 넓힌 창은 화면을 거의 채우므로 옮기거나 크기를 바꾸지 않는다. 접으면 원래 자리·크기로 돌아온다.
             WindowFrame windowFrame = frame.GetComponent<WindowFrame>();
             if (windowFrame != null)
                 windowFrame.enabled = !isExpanded;
+            if (isExpanded || windowFrame == null)
+                frame.sizeDelta = size;
+            else
+                // 사용자가 크기를 바꾼 동안에는 그 크기를 지키고, 아니면 이 크기를 따른다.
+                windowFrame.SetBaseSize(size);
             if (isExpanded)
             {
                 frame.localScale = Vector3.one;

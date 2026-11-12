@@ -9,6 +9,7 @@ import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.memory.service.NpcAffinityService;
 import java.time.Clock;
 import java.util.UUID;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import tools.jackson.databind.json.JsonMapper;
@@ -46,5 +47,27 @@ class ConversationResponsesCorrectionTest {
     assertThat(response.translation().english()).isEqualTo(corrected);
     assertThat(turn.getSttRawText()).isEqualTo(transcript);
     assertThat(turn.getInputType()).isEqualTo(inputType);
+    assertThat(response.betterExpressions()).isEmpty();
+  }
+
+  @Test
+  void betterExpressionsRideOnTheUserTurnWithoutATranslationCard() {
+    Turn turn =
+        Turn.user(
+            null, 2, UUID.randomUUID(), InputType.TEXT, "Latte.", null, null, false, null, null);
+    turn.recordBetterExpressions("[\"Can I get a latte, please?\", \"I'd like a latte, please.\"]");
+    var responses =
+        new ConversationResponses(
+            mock(TurnRepository.class),
+            mock(DialogueContexts.class),
+            mock(NpcAffinityService.class),
+            JsonMapper.builder().build(),
+            Clock.systemUTC());
+
+    var response = responses.userTurn(turn);
+
+    assertThat(response.translation()).isNull();
+    assertThat(response.betterExpressions())
+        .containsExactly("Can I get a latte, please?", "I'd like a latte, please.");
   }
 }

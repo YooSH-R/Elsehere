@@ -18,13 +18,13 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.HintResult;
 import com.elsehere.ai.client.MeaningResult;
 import com.elsehere.ai.client.SuggestResult;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.GlossaryResponse;
@@ -265,6 +265,31 @@ class TurnHelpServiceTest {
   }
 
   @Test
+  @DisplayName("추천 단어와 문장·뜻을 함께 미리 저장하되 실제 열기 전에는 힌트 사용으로 기록하지 않는다")
+  void suggestWords_prefetchesHintWithoutOpeningAndReusesIt() {
+    given(aiGateway.suggest(any(), any(), anyList(), anyString(), anyInt())).willReturn(SUGGEST);
+    given(aiGateway.hint(any(), any(), anyList(), anyString(), anyInt())).willReturn(HINT);
+
+    SuggestWordsResponse response =
+        turnHelpService.suggestWords(userId, npcTurn.getId(), UUID.randomUUID());
+
+    assertThat(response.hintText()).isEqualTo("For here, please.");
+    assertThat(response.hintMeaningKo()).isEqualTo("여기서 먹을게요.");
+    assertThat(savedNpcTurn().getHintOpenedAt()).isNull();
+    assertThat(turnHelpService.suggestWords(userId, npcTurn.getId(), UUID.randomUUID()))
+        .isEqualTo(response);
+    turnHelpService.hint(userId, npcTurn.getId(), UUID.randomUUID());
+    assertThat(savedNpcTurn().getHintOpenedAt()).isNotNull();
+    then(aiGateway).should(times(1)).hint(any(), any(), anyList(), anyString(), anyInt());
+    then(aiGateway).should(times(1)).suggest(any(), any(), anyList(), anyString(), anyInt());
+    ArgumentCaptor<WorkerTrace> hintTrace = ArgumentCaptor.forClass(WorkerTrace.class);
+    ArgumentCaptor<WorkerTrace> wordTrace = ArgumentCaptor.forClass(WorkerTrace.class);
+    then(aiGateway).should().hint(hintTrace.capture(), any(), anyList(), anyString(), anyInt());
+    then(aiGateway).should().suggest(wordTrace.capture(), any(), anyList(), anyString(), anyInt());
+    assertThat(hintTrace.getValue().requestId()).isNotEqualTo(wordTrace.getValue().requestId());
+  }
+
+  @Test
   @DisplayName("한 번 만든 힌트는 다시 요청해도 워커를 부르지 않고, 처음 연 시각을 바꾸지 않는다")
   void hint_savedTurn_returnsSavedHintWithoutAi() {
     given(aiGateway.hint(any(), any(), anyList(), anyString(), anyInt())).willReturn(HINT);
@@ -331,13 +356,16 @@ class TurnHelpServiceTest {
     textTurn(entityManager, conversation, 4, "For here.");
     entityManager.flush();
     given(aiGateway.suggest(any(), any(), anyList(), eq(""), eq(1))).willReturn(SUGGEST);
+    given(aiGateway.hint(any(), any(), anyList(), eq(""), eq(1))).willReturn(HINT);
     UUID requestId = UUID.randomUUID();
 
     SuggestWordsResponse response =
         turnHelpService.suggestWords(userId, npcTurn.getId(), requestId);
 
     assertThat(response)
-        .isEqualTo(new SuggestWordsResponse(npcTurn.getId(), List.of("for here", "to go")));
+        .isEqualTo(
+            new SuggestWordsResponse(
+                npcTurn.getId(), List.of("for here", "to go"), "For here, please.", "여기서 먹을게요."));
     ArgumentCaptor<List<WorkerLine>> history = ArgumentCaptor.forClass(List.class);
     then(aiGateway)
         .should()

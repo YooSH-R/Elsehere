@@ -10,8 +10,9 @@ namespace A305.Npc
     /// <summary>
     /// NPC 몸이나 머리 위 이름표를 클릭·탭해 말을 건다(기능 명세 F-22). 8m 안에서 대화 시작을 확인할 NPC만 받고(<see cref="Passerby.CanTalkByClick"/>),
     /// PC에서는 커서를 올린 그 NPC 몸에 테두리를 그린다. 휴대폰·태블릿은 커서가 없어 탭으로만 말을 건다.
-    /// 사물 카드와 같은 클릭 판정(<see cref="PointerClick"/>)을 써서 시점을 돌린 끌기와 UI 위 클릭은 빼고,
+    /// 사물 카드와 같은 클릭 판정(<see cref="PointerClicks"/>)을 써서 시점을 돌린 끌기와 UI 위 클릭은 빼고,
     /// 이름표(<see cref="NpcNameTagView"/>)를 눌렀으면 그 이름표의 NPC를, 아니면 맨 앞에 보이는 NPC 몸을 받는다(<see cref="NpcPointerRaycast"/>).
+    /// 휴대폰은 손가락마다 따로 보아 조이스틱을 잡은 채 탭해도 되고, 누르고 떼는 사이 NPC가 비켜나면 누른 순간 가리킨 NPC에게 말을 건다.
     /// 대화 제안 화면 프리팹에 붙어, NPC가 있는 장소마다 하나씩 놓인다.
     /// </summary>
     public sealed class NpcClickTalk : MonoBehaviour
@@ -29,8 +30,15 @@ namespace A305.Npc
         private readonly NpcPointerRaycast raycast = new NpcPointerRaycast();
         private RendererOutline outline;
 
-        // NPC 클릭을 판단하려고 누른 자리를 기억한다. 이름표가 아닌 UI 위에서 눌렀으면 비운다.
-        private Vector2? pressedAt;
+        // NPC 클릭을 판단하려고 포인터마다 누른 자리를 기억한다. 이름표가 아닌 UI 위에서 누른 것은 기억하지 않는다.
+        private PointerClicks clicks;
+        private readonly List<PointerChange> pointerChanges = new List<PointerChange>();
+
+        // 포인터마다 누른 순간 가리킨 NPC. 없으면 null
+        private readonly Dictionary<int, Passerby> pressedNpcs = new Dictionary<int, Passerby>();
+
+        private PointerClicks Clicks =>
+            clicks ??= new PointerClicks(position => IsCoveredByOtherUi(position, out _));
 
         // 포인터 아래 UI를 찾는 데 매 프레임 다시 쓴다. 이름표가 아닌 UI만 따로 모아 클릭을 막는지 본다.
         private PointerEventData uiPointer;
@@ -46,7 +54,47 @@ namespace A305.Npc
         /// </summary>
         public void Click(Vector2 pointerScreenPosition)
         {
+            Click(pointerScreenPosition, null);
+        }
+
+        /// <summary>
+        /// 포인터(마우스·펜 또는 손가락 하나)를 눌렀다. 누른 자리의 NPC를 기억해 둔다.
+        /// Update에서 장치 입력을 읽어 호출하며, 실제 마우스 없이 확인할 때 직접 호출할 수 있다.
+        /// </summary>
+        public void Press(Vector2 pointerScreenPosition, int pointerId = PointerChanges.CursorId)
+        {
+            if (Clicks.Press(pointerId, pointerScreenPosition))
+            {
+                pressedNpcs[pointerId] = FindPointedNpc(pointerScreenPosition);
+            }
+            else
+            {
+                pressedNpcs.Remove(pointerId);
+            }
+        }
+
+        /// <summary>
+        /// 포인터를 뗐다. 누른 자리에서 거의 움직이지 않았으면 클릭이다. 뗀 자리에 말을 걸 NPC가 없으면 누른 순간 가리킨 NPC에게 말을 건다.
+        /// Update에서 장치 입력을 읽어 호출하며, 실제 마우스 없이 확인할 때 직접 호출할 수 있다.
+        /// </summary>
+        public void Release(Vector2 pointerScreenPosition, int pointerId = PointerChanges.CursorId)
+        {
+            pressedNpcs.Remove(pointerId, out Passerby pressedNpc);
+            if (Clicks.Release(pointerId, pointerScreenPosition))
+            {
+                Click(pointerScreenPosition, pressedNpc);
+            }
+        }
+
+        // 걸으면서 누르면 떼는 사이 플레이어·카메라·NPC가 움직여 뗀 자리에서 NPC가 비켜날 수 있어, 누른 순간 가리킨 NPC도 받는다.
+        private void Click(Vector2 pointerScreenPosition, Passerby pressedNpc)
+        {
             Passerby target = FindTalkableAt(pointerScreenPosition);
+            if (target == null && pressedNpc != null && pressedNpc.CanTalkByClick(ReachMeters))
+            {
+                target = pressedNpc;
+            }
+
             if (target != null)
             {
                 target.TalkByClick(ReachMeters);
@@ -91,39 +139,31 @@ namespace A305.Npc
 
         private void OnDisable()
         {
-            pressedAt = null;
+            clicks?.Clear();
+            pressedNpcs.Clear();
             HighlightedNpc = null;
             outline?.Hide();
         }
 
         private void Update()
         {
-            Pointer device = Pointer.current;
-            if (device == null)
+            PointerChanges.Read(pointerChanges);
+            foreach (PointerChange change in pointerChanges)
             {
-                return;
-            }
-
-            Vector2 pointer = device.position.ReadValue();
-            DetectClick(device, pointer);
-            RefreshHighlight(pointer);
-        }
-
-        // 누른 자리에서 거의 움직이지 않고 떼면 클릭으로 본다. 시점을 돌린 끌기와 이름표가 아닌 UI를 누른 것은 빼고, 휴대폰 탭도 같게 처리한다.
-        private void DetectClick(Pointer device, Vector2 pointer)
-        {
-            if (device.press.wasPressedThisFrame)
-            {
-                pressedAt = IsCoveredByOtherUi(pointer, out _) ? null : pointer;
-            }
-            else if (device.press.wasReleasedThisFrame && pressedAt.HasValue)
-            {
-                bool isClick = PointerClick.IsClick(pressedAt.Value, pointer);
-                pressedAt = null;
-                if (isClick)
+                if (change.IsPress)
                 {
-                    Click(pointer);
+                    Press(change.Position, change.PointerId);
                 }
+                else
+                {
+                    Release(change.Position, change.PointerId);
+                }
+            }
+
+            Pointer device = Pointer.current;
+            if (device != null)
+            {
+                RefreshHighlight(device.position.ReadValue());
             }
         }
 

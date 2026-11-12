@@ -63,8 +63,9 @@ namespace A305.ObjectHover
         private string pinnedWordKey;
         private CardAnchor pinnedAnchor;
 
-        // 사물 클릭을 판단하려고 누른 자리를 기억한다. UI 위에서 눌렀으면 비운다.
-        private Vector2? pressedAt;
+        // 사물 클릭을 판단하려고 포인터마다 누른 자리를 기억한다. UI 위에서 누른 것은 기억하지 않는다.
+        private PointerClicks clicks;
+        private readonly List<PointerChange> pointerChanges = new List<PointerChange>();
 
         // 포인터 아래 UI를 찾는 데 매 프레임 다시 쓴다.
         private PointerEventData uiPointer;
@@ -280,6 +281,8 @@ namespace A305.ObjectHover
             {
                 tooltip.Hide();
             }
+
+            clicks?.Clear();
         }
 
         // 클릭으로 고정한 사물 카드는 ESC 목록(UiEscape)에 올려, 나중에 연 다른 창보다 먼저 닫히지 않게 한다.
@@ -287,35 +290,28 @@ namespace A305.ObjectHover
 
         private void Update()
         {
-            Vector2 pointer = pointAction.action.ReadValue<Vector2>();
-            DetectClick(pointer);
+            DetectClicks();
             pinnedEscape ??= new UiEscapeWindow(() => state.IsPinned, Unpin);
             pinnedEscape.Watch();
 
-            Refresh(pointer, Time.deltaTime);
+            Refresh(pointAction.action.ReadValue<Vector2>(), Time.deltaTime);
         }
 
         // 누른 자리에서 거의 움직이지 않고 떼면 사물 클릭으로 본다. 시점을 돌린 드래그와,
-        // 카드의 [닫기]·HUD처럼 UI를 누른 것은 빼고 휴대폰 탭도 같은 방식으로 처리한다.
-        private void DetectClick(Vector2 pointer)
+        // 카드의 [닫기]·HUD처럼 UI를 누른 것은 뺀다. 휴대폰은 손가락마다 따로 보아 조이스틱을 잡은 채 탭해도 된다(PointerChanges).
+        private void DetectClicks()
         {
-            Pointer device = Pointer.current;
-            if (device == null)
+            clicks ??= new PointerClicks(IsUiAt);
+            PointerChanges.Read(pointerChanges);
+            foreach (PointerChange change in pointerChanges)
             {
-                return;
-            }
-
-            if (device.press.wasPressedThisFrame)
-            {
-                pressedAt = IsUiAt(pointer) ? null : pointer;
-            }
-            else if (device.press.wasReleasedThisFrame && pressedAt.HasValue)
-            {
-                bool isClick = PointerClick.IsClick(pressedAt.Value, pointer);
-                pressedAt = null;
-                if (isClick)
+                if (change.IsPress)
                 {
-                    Click(pointer);
+                    clicks.Press(change.PointerId, change.Position);
+                }
+                else if (clicks.Release(change.PointerId, change.Position))
+                {
+                    Click(change.Position);
                 }
             }
         }

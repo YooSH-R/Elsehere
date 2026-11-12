@@ -620,7 +620,7 @@ namespace A305.Learning.Tests
                 Saved(31, "sofa", "OBJECT")
             );
             await book.LoadAsync();
-            book.ShownPlaceGroup = VocabularyPlaceGroup.Food;
+            book.ShownPlaceGroup = PlaceGroup.Food;
             book.ShownTab = VocabularyTab.Objects;
 
             book.ResetFilters();
@@ -640,7 +640,7 @@ namespace A305.Learning.Tests
             );
             await book.LoadAsync();
 
-            book.ShownPlaceGroup = VocabularyPlaceGroup.Food;
+            book.ShownPlaceGroup = PlaceGroup.Food;
 
             Assert.That(
                 book.ShownEntries.Select(entry => entry.English),
@@ -663,12 +663,12 @@ namespace A305.Learning.Tests
 
             Assert.That(book.CountIn(VocabularyTab.Conversation), Is.EqualTo(2));
             Assert.That(book.CountIn(VocabularyTab.Objects), Is.EqualTo(1));
-            Assert.That(book.CountIn(VocabularyPlaceGroup.Food), Is.EqualTo(1));
-            Assert.That(book.CountIn(VocabularyPlaceGroup.Safety), Is.Zero);
+            Assert.That(book.CountIn(PlaceGroup.Food), Is.EqualTo(1));
+            Assert.That(book.CountIn(PlaceGroup.Safety), Is.Zero);
 
             book.ShowsLearned = true;
             Assert.That(book.CountIn(VocabularyTab.Conversation), Is.EqualTo(3));
-            Assert.That(book.CountIn(VocabularyPlaceGroup.Food), Is.EqualTo(2));
+            Assert.That(book.CountIn(PlaceGroup.Food), Is.EqualTo(2));
         }
 
         // 고른 묶음의 표현을 모두 외우거나 지워 칩이 사라지면 전체로 돌아가 빈 목록을 남기지 않는다.
@@ -681,7 +681,7 @@ namespace A305.Learning.Tests
                 Saved(42, "stamp", "NPC_LINE", "SERVICES", "우체국")
             );
             await book.LoadAsync();
-            book.ShownPlaceGroup = VocabularyPlaceGroup.Services;
+            book.ShownPlaceGroup = PlaceGroup.Services;
 
             await book.ToggleLearnedAsync(book.ShownEntries[0]);
 
@@ -732,10 +732,10 @@ namespace A305.Learning.Tests
             await book.LoadAsync();
 
             Assert.That(book.Entries[0].PlaceName, Is.EqualTo("카페"));
-            Assert.That(book.Entries[0].PlaceGroup, Is.EqualTo(VocabularyPlaceGroup.Food));
+            Assert.That(book.Entries[0].PlaceGroup, Is.EqualTo(PlaceGroup.Food));
             Assert.That(book.Entries[0].SourceLabel, Is.EqualTo("카페 · Mia가 한 말"));
             Assert.That(book.Entries[1].PlaceName, Is.Null);
-            Assert.That(book.Entries[1].PlaceGroup, Is.EqualTo(VocabularyPlaceGroup.Daily));
+            Assert.That(book.Entries[1].PlaceGroup, Is.EqualTo(PlaceGroup.Daily));
             Assert.That(book.Entries[1].SourceLabel, Is.EqualTo("Zoe가 한 말"));
         }
 

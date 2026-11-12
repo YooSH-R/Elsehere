@@ -1,5 +1,31 @@
-package com.elsehere.ai.client;
+package com.elsehere.ai.service;
 
+import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.FeedbackInput;
+import com.elsehere.ai.client.FollowUpResult;
+import com.elsehere.ai.client.GuardResult;
+import com.elsehere.ai.client.HintResult;
+import com.elsehere.ai.client.JudgeResult;
+import com.elsehere.ai.client.LevelTestSpeakingResult;
+import com.elsehere.ai.client.MeaningResult;
+import com.elsehere.ai.client.MemoryCardResult;
+import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.NpcReplyListener;
+import com.elsehere.ai.client.PerformanceIntentResult;
+import com.elsehere.ai.client.RelationshipChange;
+import com.elsehere.ai.client.SttResult;
+import com.elsehere.ai.client.SuggestResult;
+import com.elsehere.ai.client.WorkerFeedback;
+import com.elsehere.ai.client.WorkerLearner;
+import com.elsehere.ai.client.WorkerLevelTestSpeakingItem;
+import com.elsehere.ai.client.WorkerLine;
+import com.elsehere.ai.client.WorkerMemory;
+import com.elsehere.ai.client.WorkerNpc;
+import com.elsehere.ai.client.WorkerRelationship;
+import com.elsehere.ai.client.WorkerSpeechPhrase;
+import com.elsehere.ai.client.WorkerState;
+import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.client.WorkerUsage;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
 import com.elsehere.common.error.BusinessException;
@@ -15,8 +41,8 @@ import org.springframework.stereotype.Component;
  * <p>워커 오류로 끝난 호출은 FAILED로 남기고 오류를 그대로 던진다. 응답은 왔지만 쓸 수 없는 결과(NPC 대답 오류, 빈 힌트·추천 단어)도 FAILED로 남기고
  * 오류로 던지므로, 돌려받은 결과는 그대로 쓰면 된다. 모델을 부르지 않는 관계 갱신과 음성 파일 받기, 부른 쪽이 버린 NPC 대답은 기록하지 않는다.
  *
- * <p>워커 클라이언트({@link AiWorkerClient})와 기록기({@link AiRequestRecorder})는 이 패키지 안에서만 쓸 수 있어, 다른 패키지는 이
- * 클래스로만 워커를 부른다.
+ * <p>워커 클라이언트({@link AiWorkerClient})와 기록기({@link AiRequestRecorder})는 이 클래스만 쓰고, 다른 패키지는 이 클래스로만
+ * 워커를 부른다. 다른 곳에서 쓰면 PackageDependencyTest가 실패한다.
  */
 @Component
 @RequiredArgsConstructor

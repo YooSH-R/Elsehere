@@ -71,12 +71,14 @@ namespace A305.World
         /// <summary>
         /// 창 판을 화면 가운데에 둔다. 여백 안에 들어가지 않으면 <paramref name="scale"/>보다 더 줄인다.
         /// 판에 <see cref="WindowFrame"/>이 있으면 이 자리·배율을 원래 자리로 넘겨, 사용자가 옮기고 바꾼 만큼을 그 위에 더한다.
+        /// 배율은 사용자가 바꾼 크기가 아니라 원래 크기로 정해, 창을 키워도 글자가 작아지지 않게 한다.
         /// </summary>
         public void Place(RectTransform panel, float scale = DefaultScale)
         {
             var canvasRect = (RectTransform)panel.parent;
             Rect area = FreeArea(canvasRect);
-            Vector2 size = panel.rect.size;
+            WindowFrame frame = panel.GetComponent<WindowFrame>();
+            Vector2 size = frame != null ? frame.BaseSize : panel.rect.size;
             float fit = scale;
             if (size.x > 0f && size.y > 0f && area.width > 0f && area.height > 0f)
             {
@@ -84,7 +86,6 @@ namespace A305.World
             }
 
             Vector2 position = area.center - canvasRect.rect.size * panel.anchorMin;
-            WindowFrame frame = panel.GetComponent<WindowFrame>();
             if (frame != null)
             {
                 frame.SetBase(position, fit);

@@ -784,14 +784,19 @@ namespace A305.Mission
             Banner.anchoredPosition = new Vector2(CardLeft, -Margin);
             FitLeftCards(screen);
             var drawer = (RectTransform)journal.transform;
-            drawer.SetSizeWithCurrentAnchors(
-                RectTransform.Axis.Horizontal,
-                Mathf.Min(DrawerWidth, screen.rect.width - Margin * 2)
-            );
-            drawer.SetSizeWithCurrentAnchors(
-                RectTransform.Axis.Vertical,
+            var drawerSize = new Vector2(
+                Mathf.Min(DrawerWidth, screen.rect.width - Margin * 2),
                 Mathf.Min(900, screen.rect.height - Margin * 2)
             );
+            // 사용자가 수첩 크기를 바꾼 동안에는 그 크기를 지키고, 아니면 이 크기를 따른다.
+            WindowFrame frame = drawer.GetComponent<WindowFrame>();
+            if (frame != null)
+                frame.SetBaseSize(drawerSize);
+            else
+            {
+                drawer.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, drawerSize.x);
+                drawer.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, drawerSize.y);
+            }
         }
 
         private void OnRectTransformDimensionsChange() => UpdateLayout();
@@ -941,7 +946,12 @@ namespace A305.Mission
 
         private void Awake()
         {
-            WindowFrame.Attach((RectTransform)journal.transform);
+            // 칸은 세로 배치(VerticalLayoutGroup)가 넓히고, 진행 목록(스크롤)이 남는 높이를 채운다.
+            WindowFrame.Attach(
+                (RectTransform)journal.transform,
+                minimumWidth: .75f,
+                minimumHeight: .6f
+            );
             journal.SetActive(false);
             if (questBoard == null)
                 journalButton.onClick.AddListener(ToggleJournal);
@@ -1086,12 +1096,15 @@ namespace A305.Mission
         }
 
         /// <summary>
-        /// 크게 본 지도 아래 범례. 파란 화살표는 내 위치, 빨간 점은 지금 갈 곳이다. 기본 글꼴에 있는 기호만 쓴다(➤는 없어 □로 보였다).
+        /// 큰 지도 범례. 파란 화살표는 내 위치, 금색 점은 지금 갈 곳이다. 기본 글꼴에 있는 기호만 쓴다(➤는 없어 □로 보였다).
         /// </summary>
         public static string MiniMapLegend(string destination)
         {
-            string place = TownMapArt.PlaceName(destination) ?? "자유 탐험";
-            return $"<color=#3C78D8>▲</color> 내 위치    <color=#E0524A>●</color> {place}";
+            const string position = "<color=#3C78D8>▲</color> 내 위치";
+            string place = TownMapArt.PlaceName(destination);
+            return place == null
+                ? $"{position}    자유 탐험"
+                : $"{position}    <color=#9C6B24>●</color> {place}";
         }
 
         // 왼쪽 아래 미니맵과 퀘스트 카드 아래 기다리는 카드를 보일지 정한다. 수첩·퀘스트 목록·큰 지도·퀘스트 완료 팡파레가 왼쪽을 덮는 동안에는 숨긴다.

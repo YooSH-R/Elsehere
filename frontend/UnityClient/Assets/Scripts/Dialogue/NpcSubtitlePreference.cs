@@ -3,8 +3,8 @@ using UnityEngine;
 namespace A305.Dialogue
 {
     /// <summary>
-    /// 사용자가 NPC 대사 자막을 켜 두었는지. 듣고 이해하는 연습이 목적이라 처음에는 꺼져 있다.
-    /// 화면 취향이라 서버가 아니라 이 기기(Web 빌드는 브라우저)에 저장한다.
+    /// 이번 대화에서 NPC 대사 자막을 켜 두었는지. 새 대화를 열 때는 항상 꺼짐으로 초기화한다.
+    /// 대화 중 선택은 서버가 아니라 이 기기(Web 빌드는 브라우저)에 저장한다.
     /// </summary>
     public static class NpcSubtitlePreference
     {

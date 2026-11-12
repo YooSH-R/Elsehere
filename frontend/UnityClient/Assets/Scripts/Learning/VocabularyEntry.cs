@@ -19,13 +19,9 @@ namespace A305.Learning
             string sourceType = item.Source?.SourceType;
             IsFromConversation = sourceType == NpcLineSource || sourceType == FeedbackSource;
             PlaceName = item.Source?.PlaceName;
-            PlaceGroup = Enum.TryParse(
-                item.Source?.PlaceGroup,
-                true,
-                out VocabularyPlaceGroup group
-            )
+            PlaceGroup = Enum.TryParse(item.Source?.PlaceGroup, true, out PlaceGroup group)
                 ? group
-                : (VocabularyPlaceGroup?)null;
+                : (PlaceGroup?)null;
             // NPC 대사에서 저장한 단어는 예시 문장이 그 NPC의 대사다. 이름 끝소리에 맞춰 이·가를 붙인다(Ben이, Mia가).
             // 일하는 곳을 알면 앞에 붙인다(카페 · Mia가 한 말).
             SourceLabel =
@@ -56,7 +52,7 @@ namespace A305.Learning
         public string PlaceName { get; }
 
         /// <summary>대화 표현의 장소 묶음. 사물에서 저장한 단어는 null.</summary>
-        public VocabularyPlaceGroup? PlaceGroup { get; }
+        public PlaceGroup? PlaceGroup { get; }
 
         /// <summary>사용자가 남긴 메모. 없으면 null.</summary>
         public string Memo { get; internal set; }

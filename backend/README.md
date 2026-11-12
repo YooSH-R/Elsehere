@@ -26,7 +26,7 @@ ELSEHERE 서비스 API 서버입니다. API는 [MVP API 명세](../docs/api/mvp-
 com.elsehere
 ├── common          여러 도메인이 함께 쓰는 코드
 │   ├── auth        로그인 사용자(LoginUser), 로그인 세션 저장, 요청 위조 방지 헤더 검사
-│   ├── config      보안·Clock(서비스 시간대 포함)·JPA Auditing 설정
+│   ├── config      Clock(서비스 시간대 포함)·JPA Auditing·비동기·정기 작업·관리 엔드포인트 보안 설정
 │   ├── entity      BaseEntity
 │   ├── logging     요청 ID와 민감 정보를 제외한 요청 요약
 │   ├── error       공통 오류 응답(ErrorCode, BusinessException)
@@ -40,9 +40,9 @@ com.elsehere
 
 | 도메인 | 테이블 |
 | --- | --- |
-| `auth` | 없음 (로그인·가입·로그아웃 처리, 개발용 로그인) |
+| `auth` | 없음 (로그인·가입·로그아웃 처리, 개발용 로그인, 세션 기반 보안 설정 `auth.config.SecurityConfig`) |
 | `bootstrap` | 없음 (여러 기능의 상태를 모아 접속 직후 첫 화면을 정하는 BOOT-01) |
-| `ai` | ai_requests (AI 호출 기록). AI 워커 호출과 AI 이용 상태(AI-01). 다른 패키지는 워커를 `AiGateway`로만 부르며, 게이트웨이가 호출마다 성공·실패를 기록한다. 워커 클라이언트(`AiWorkerClient`)와 기록기(`AiRequestRecorder`)는 `ai.client` 안에서만 쓸 수 있다. 사용량은 [어드민 AI 사용량](../docs/admin.md#ai-사용량)에서 본다 |
+| `ai` | ai_requests (AI 호출 기록). AI 워커 호출과 AI 이용 상태(AI-01). 다른 패키지는 워커를 AI 창구 `AiGateway`(`ai.service`)로만 부르며, 창구가 호출마다 기록기(`AiRequestRecorder`)로 성공·실패를 기록한다. `ai.client`는 워커 연결(`AiWorkerClient`)과 요청·응답 타입만 두고 DB를 다루지 않는다. 워커 클라이언트와 기록기를 창구 말고 쓰는 곳이 생기면 `PackageDependencyTest`가 실패한다. 사용량은 [어드민 AI 사용량](../docs/admin.md#ai-사용량)에서 본다 |
 | `user` | users, user_consents (가입 약관과 AI 개선 선택 동의) |
 | `conversation` | conversations, turns, training_recordings (AI 개선에 동의한 사용자의 녹음). 대화 기록: 엔티티·리포지토리, NPC 음성·학습용 녹음 저장 |
 | `dialogue` | 없음 (대화 흐름: 대화 시작·발화·종료, 음성 인식·NPC 음성, 뜻 보기·힌트, 지난 대화 목록 API. 피드백·기억·미션·동의를 엮는다) |
@@ -63,6 +63,7 @@ com.elsehere
   - 사용자의 대화·턴을 읽을 때는 `ConversationLookup`(`conversation.service`)을 씁니다. 다른 사용자의 것은 `NOT_FOUND`입니다.
   - 턴을 AI 워커에 보낼 앞선 대화 줄로 바꿀 때는 `WorkerLines`(`ai.service`)를 씁니다.
   - 두 패키지가 순환에 끼면 `PackageDependencyTest`가 실패합니다.
+- 계층 패키지(`auth.service`·`common.config`처럼 도메인 아래 패키지) 사이에도 import 순환을 두지 않습니다. `common`이 도메인을 거꾸로 참조하면 `common`을 쓰는 모든 패키지가 순환에 묶이므로, 도메인 설정(보안 설정 등)은 그 도메인에 둡니다. 응답 DTO는 서비스 타입을 그대로 담지 않고 응답용 칸 타입을 두며, 서비스나 컨트롤러가 옮겨 담습니다(dto와 service가 서로 참조하지 않게). 순환이 생기면 `PackageDependencyTest`가 실패합니다.
 - 계층 패키지는 그 계층의 코드를 처음 작성할 때 만듭니다. 빈 패키지를 미리 만들지 않습니다.
 - 요청·응답 객체(DTO)는 `<도메인>/dto`에 둡니다. 컨트롤러 하나에서만 쓰는 작은 요청은 컨트롤러 안의 record로 둘 수 있습니다.
 - Spring Security가 호출하는 로그인 성공·실패 처리기와 인증 진입점은 `auth/handler`에 둡니다.

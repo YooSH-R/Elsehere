@@ -239,6 +239,13 @@ namespace A305.Dialogue
             player.SetMovementLocked(true);
 
             bool isGuided = !isSeparatePractice && hasScript && script.GuidedTurns.Count > 0;
+            DialogueLine recordedOpening =
+                !isSeparatePractice
+                && !isGuided
+                && npcCode == "TOWN_JOHN_PARK"
+                && Performance?.IsReady == true
+                    ? Performance.Definition.CreateLine()
+                    : null;
             if (conversationApi != null && !isGuided)
             {
                 StartServerConversation(
@@ -251,7 +258,8 @@ namespace A305.Dialogue
                     npcTravelContext,
                     practiceScenarioId,
                     practiceStart,
-                    placeCode ?? PlayerPlaceCode()
+                    placeCode ?? PlayerPlaceCode(),
+                    recordedOpening
                 );
             }
             else
@@ -259,11 +267,19 @@ namespace A305.Dialogue
                 conversation = new DialogueConversation(
                     npcCode,
                     hasScript ? script : EmptyScript(npcCode),
-                    hasRecorder: HasRecorder
+                    hasRecorder: HasRecorder,
+                    recordedOpening: recordedOpening
                 );
                 panel.Show(conversation);
-                PlayScriptedSpeech(conversation.LastNpcLine);
+                if (recordedOpening == null)
+                    PlayScriptedSpeech(conversation.LastNpcLine);
             }
+
+            if (recordedOpening != null && !Performance.Play(serverLink))
+                ShowPerformanceUnavailable(
+                    "저장된 랩을 재생하지 못했어요. [랩 다시 듣기]를 눌러 주세요."
+                );
+            RefreshPerformanceButton();
 
             // 튜토리얼은 동의와 상관없이 녹음하고, 서버 대화는 음성 처리에 동의했을 때만 녹음한다.
             if (conversation != null || VoiceConsent.Shared.IsAgreed)
@@ -394,6 +410,7 @@ namespace A305.Dialogue
             panel.UserTranslationListenRequested += ReadUserTranslation;
             panel.MeaningRequested += RequestMeaning;
             panel.HintRequested += RequestHint;
+            panel.HintOpened += RecordHintOpened;
             panel.RetryRequested += Retry;
             panel.VoiceConsentDialog.AgreeRequested += AgreeVoiceConsent;
             panel.VoiceConsentDialog.DocumentRequested += OpenVoiceConsentDocument;
@@ -435,6 +452,7 @@ namespace A305.Dialogue
                 panel.UserTranslationListenRequested -= ReadUserTranslation;
                 panel.MeaningRequested -= RequestMeaning;
                 panel.HintRequested -= RequestHint;
+                panel.HintOpened -= RecordHintOpened;
                 panel.RetryRequested -= Retry;
                 panel.VoiceConsentDialog.AgreeRequested -= AgreeVoiceConsent;
                 panel.VoiceConsentDialog.DocumentRequested -= OpenVoiceConsentDocument;
@@ -495,7 +513,8 @@ namespace A305.Dialogue
             NpcTravelContext npcTravelContext = null,
             string practiceScenarioId = null,
             Func<string, Task<ConversationStart>> practiceStart = null,
-            string placeCode = null
+            string placeCode = null,
+            DialogueLine recordedOpening = null
         )
         {
             serverConversation = new ServerConversation(
@@ -510,7 +529,8 @@ namespace A305.Dialogue
                 reviewCardId: reviewCardId,
                 reviewStart: reviewStart,
                 practiceScenarioId: practiceScenarioId,
-                practiceStart: practiceStart
+                practiceStart: practiceStart,
+                recordedOpening: recordedOpening
             );
             speechRecovery = new NpcSpeechRecovery(serverConversation, PlayRecoveredSpeechAsync);
             serverConversation.Changed += panel.Refresh;
@@ -702,7 +722,7 @@ namespace A305.Dialogue
             && Performance.IsReady
             && (
                 serverConversation != null
-                    ? serverConversation.CanSend && !serverConversation.IsReview
+                    ? serverConversation.CanPlayRecordedReply
                     : conversation != null && conversation.CanSend && !conversation.IsGuided
             );
 
@@ -776,7 +796,8 @@ namespace A305.Dialogue
                 visible,
                 CanUsePerformance,
                 performer != null && performer.IsPerforming,
-                emphasizePerformance
+                emphasizePerformance,
+                performer?.Definition?.English
             );
         }
 
@@ -897,6 +918,12 @@ namespace A305.Dialogue
                 conversation?.RequestHint();
                 panel.Refresh();
             }
+        }
+
+        private void RecordHintOpened()
+        {
+            if (serverConversation != null)
+                _ = serverConversation.RecordHintOpenedAsync();
         }
 
         private void Retry()

@@ -1,4 +1,4 @@
-package com.elsehere.common.config;
+package com.elsehere.auth.config;
 
 import com.elsehere.admin.service.AdminAccess;
 import com.elsehere.auth.handler.LoginRequiredEntryPoint;

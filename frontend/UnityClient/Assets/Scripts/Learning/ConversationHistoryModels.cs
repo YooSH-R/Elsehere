@@ -23,6 +23,12 @@ namespace A305.Learning
         /// <summary>대화한 장소(HOME, TOWN, CAFE, HOTEL, SHOP)</summary>
         public string SceneCode { get; set; }
 
+        /// <summary>NPC가 일하는 곳(카페, 우체국). 근무 시간 밖에 만난 대화는 null.</summary>
+        public string PlaceName { get; set; }
+
+        /// <summary>장소 묶음의 서버 값(FOOD, SHOPPING, SERVICES, SAFETY, DAILY)</summary>
+        public string PlaceGroup { get; set; }
+
         /// <summary>ACTIVE, ENDED_BY_USER, ENDED_BY_NPC, EXPIRED</summary>
         public string Status { get; set; }
 

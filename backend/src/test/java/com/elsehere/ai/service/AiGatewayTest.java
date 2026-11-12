@@ -1,10 +1,25 @@
-package com.elsehere.ai.client;
+package com.elsehere.ai.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
 import com.elsehere.TestcontainersConfiguration;
+import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.GuardResult;
+import com.elsehere.ai.client.HintResult;
+import com.elsehere.ai.client.JudgeResult;
+import com.elsehere.ai.client.MeaningResult;
+import com.elsehere.ai.client.MemoryCardResult;
+import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.NpcReplyChunk;
+import com.elsehere.ai.client.NpcReplyListener;
+import com.elsehere.ai.client.RelationshipChange;
+import com.elsehere.ai.client.SttResult;
+import com.elsehere.ai.client.SuggestResult;
+import com.elsehere.ai.client.WorkerFeedback;
+import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.client.WorkerUsage;
 import com.elsehere.ai.entity.AiRequest;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;

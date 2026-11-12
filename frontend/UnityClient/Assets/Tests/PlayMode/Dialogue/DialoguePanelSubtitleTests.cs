@@ -52,6 +52,46 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator NewConversation_HidesSubtitlesEvenWhenPreviouslySavedOn()
+        {
+            NpcSubtitlePreference.ShowsSubtitles = true;
+            NpcSubtitlePreference.Reload();
+
+            yield return Show(new SpokenContent(speaksNpcLines: true));
+
+            Assert.That(VisibleNpcLetters(), Is.Zero);
+            Assert.That(ActiveCovers(), Has.Count.EqualTo(7));
+            Assert.That(Caption(FindButton("SubtitleButton")), Is.EqualTo("자막 켜기"));
+        }
+
+        [UnityTest]
+        public IEnumerator SubtitlesEnabledDuringConversation_StayOnUntilTheNextConversation()
+        {
+            var content = new SpokenContent(speaksNpcLines: true);
+            yield return Show(content);
+            Button subtitle = FindButton("SubtitleButton");
+            ClickCenterOf(subtitle);
+            yield return null;
+
+            content.Waiting = DialogueWait.NpcReply;
+            view.Refresh();
+            content.Waiting = DialogueWait.None;
+            view.Refresh();
+            yield return null;
+
+            Assert.That(VisibleNpcLetters(), Is.EqualTo(NpcSentence.Replace(" ", "").Length));
+            Assert.That(Caption(subtitle), Is.EqualTo("자막 끄기"));
+
+            view.Hide();
+            view.Show(new SpokenContent(speaksNpcLines: true));
+            yield return null;
+
+            Assert.That(VisibleNpcLetters(), Is.Zero);
+            Assert.That(ActiveCovers(), Has.Count.EqualTo(7));
+            Assert.That(Caption(subtitle), Is.EqualTo("자막 켜기"));
+        }
+
+        [UnityTest]
         public IEnumerator SubtitleButton_Clicked_TogglesCaptionAndRemembersPreference()
         {
             yield return Show(new SpokenContent(speaksNpcLines: true));
@@ -75,14 +115,14 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(NpcSubtitlePreference.ShowsSubtitles, Is.False);
         }
 
-        // 켜 둔 채 대화를 열면 레이아웃이 버튼 높이를 정하기 전에 [자막 끄기] 알약을 칠한다.
-        // 높이가 정해진 뒤에도 알약 위아래 모서리가 버튼 높이를 넘으면 가운데 줄이 테이프처럼 양옆으로 삐져나온다.
+        // 대화를 연 뒤 자막을 켜도 알약 위아래 모서리가 버튼 높이를 넘지 않아야 한다.
         [UnityTest]
         public IEnumerator SubtitlesOn_PillCornersFitInsideTheButtonHeight()
         {
-            NpcSubtitlePreference.ShowsSubtitles = true;
-
             yield return Show(new SpokenContent(speaksNpcLines: true));
+
+            ClickCenterOf(FindButton("SubtitleButton"));
+            yield return null;
 
             var image = FindButton("SubtitleButton").GetComponent<Image>();
             float corners =

@@ -664,7 +664,7 @@ namespace A305.EditorTools.Theme
             return choice;
         }
 
-        // 대화 표현 탭의 장소 묶음 칩. 칩 이름은 All 또는 VocabularyPlaceGroup 이름이고, 글자는 VocabularyView가 개수와 함께 쓴다.
+        // 대화 표현 탭의 장소 묶음 칩. 칩 이름은 All 또는 PlaceGroup 이름이고, 글자는 VocabularyView가 개수와 함께 쓴다.
         // 표현이 없는 칩은 숨기므로 가로 배치로 빈자리 없이 왼쪽부터 채운다.
         private static RectTransform PlaceChips(RectTransform panel)
         {
@@ -678,11 +678,11 @@ namespace A305.EditorTools.Theme
             (string name, float width)[] chips =
             {
                 ("All", 116),
-                (nameof(VocabularyPlaceGroup.Food), 116),
-                (nameof(VocabularyPlaceGroup.Shopping), 116),
-                (nameof(VocabularyPlaceGroup.Services), 176),
-                (nameof(VocabularyPlaceGroup.Safety), 116),
-                (nameof(VocabularyPlaceGroup.Daily), 116),
+                (nameof(PlaceGroup.Food), 116),
+                (nameof(PlaceGroup.Shopping), 116),
+                (nameof(PlaceGroup.Services), 176),
+                (nameof(PlaceGroup.Safety), 116),
+                (nameof(PlaceGroup.Daily), 116),
             };
             foreach ((string name, float width) in chips)
             {

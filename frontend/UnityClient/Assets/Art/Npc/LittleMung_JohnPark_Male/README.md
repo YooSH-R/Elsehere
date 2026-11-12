@@ -55,10 +55,10 @@
 
 ## 앰프를 든 하반신 걷기·달리기
 
-`Locomotion/JohnLowerBodyWalk.anim`, `JohnLowerBodyRun.anim`은 전용 Generic 골격용 제자리 반복 클립입니다. 골반 위치와 양다리 회전만 저작하며, 원본 FBX·메시·본 길이·가중치·상반신 회전·얼굴 변형은 유지합니다. 발은 지지 구간에 수평으로 두고 앞으로 굽히는 무릎 IK로 발 디딤과 스윙을 만듭니다.
+`Locomotion/JohnLowerBodyWalk.anim`, `JohnLowerBodyRun.anim`은 전용 Generic 골격용 제자리 반복 클립입니다. 골반 위치와 양다리 회전만 저작하며, 원본 FBX·메시·본 길이·가중치·상반신 회전·얼굴 변형은 유지합니다. 걷기는 뒤꿈치 착지·발바닥 지지·발끝 밀어내기를 연결하고 발을 낮게 회수합니다. 달리기는 뒤쪽 발을 먼저 접어 회수하고 착지·도약에 맞춰 골반 높이를 바꿉니다. 신발의 실제 지지 정점과 다리 길이를 사용해 발 회전 중 접지점과 무릎의 도달 범위를 맞춥니다.
 
 기존 John 프리팹에 연결한 `JohnParkLocomotion`은 공연의 오디오 기반 자세 평가 뒤 하반신만 합성합니다. 따라서 랩이 Animator 시간을 고정한 동안에도 다리가 움직이고, 오른손·앰프와 표정·립싱크는 기존 제어를 유지합니다. 정지하면 하반신 합성을 풀어 원래 리듬 자세로 돌아갑니다.
 
 이동 호출부는 기존 `CharacterAnimationDriver.SetLocomotion(speed, true, 0)`을 재사용합니다. 기본 예시는 정지 `0`, 걷기 `1`, 달리기 `2`이며 조절값·클립 참조는 `Assets/Data/Npc/JohnPark/Locomotion.asset`에 있습니다. 중간 속도는 두 클립을 섞고 전환 시 위상을 이어갑니다. 실제 경로 이동·회전·지형 접지는 이동 시스템에서 처리해야 합니다. 클립 자체에 루트 이동이나 새 출퇴근 일과는 없으며, 식당 배치는 계속 고정됩니다.
 
-**Tools → A305 → Npc → John Park → Build Lower Body Locomotion**은 전용 클립과 기존 프리팹 연결을 갱신합니다. 이 클립의 수작업 편집분은 갱신 전 보관합니다. 이미 있는 검수 씬의 배치와 속도 설정은 덮어쓰지 않습니다. `Assets/Scenes/Sandbox/NpcJohnParkLocomotionSandbox.unity`를 열고 Play하면 화면 왼쪽부터 달리기·걷기·정지를 비교합니다. **Validate Lower Body And Capture**는 실제 하반신 이동량·상반신 보존·발바닥 높이·반복 경계와 정면·사선 렌더를 검사합니다. 출력은 로컬 `artifacts/JohnLocomotion/Visual`에 저장합니다. 계단·경사·실제 보행 경로에서의 검증과는 구분합니다.
+**Tools → A305 → Npc → John Park → Build Lower Body Locomotion**은 전용 클립과 기존 프리팹 연결을 갱신합니다. 이 클립의 수작업 편집분은 갱신 전 보관합니다. 이미 있는 검수 씬의 배치와 속도 설정은 덮어쓰지 않습니다. `Assets/Scenes/Sandbox/NpcJohnParkLocomotionSandbox.unity`를 열고 Play하면 화면 왼쪽부터 달리기·걷기·정지를 비교합니다. **Validate Lower Body And Capture**는 실제 하반신 이동량·상반신 보존·발바닥 높이·반복 경계·무릎 과굴곡과 정면·사선·측면 렌더를 검사합니다. 출력은 로컬 `artifacts/JohnLocomotion/Visual`에 저장합니다. 수치 검사는 외관의 자연스러움을 대신하지 않으므로 디딤·회수·상하 움직임을 영상에서도 확인합니다. 계단·경사·실제 보행 경로에서의 검증과는 구분합니다.

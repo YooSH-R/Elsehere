@@ -25,6 +25,7 @@ namespace A305.EditorTools.Npc
             public bool passed;
             public float walkLegMotionDegrees,
                 runLegMotionDegrees;
+            public float maximumKneeBendDegrees;
         }
 
         public static void BuildAndCapture()
@@ -96,6 +97,19 @@ namespace A305.EditorTools.Npc
                         var gripRotation = Quaternion.Inverse(chest.rotation) * hand.rotation;
                         motion.SampleAt(seconds, actor);
                         var knee = transforms.Single(b => b.name == "Left_LowerLeg");
+                        foreach (string side in new[] { "Left", "Right" })
+                        {
+                            var upperLeg = transforms.Single(b => b.name == side + "_UpperLeg");
+                            var lowerLeg = transforms.Single(b => b.name == side + "_LowerLeg");
+                            var foot = transforms.Single(b => b.name == side + "_Foot");
+                            report.maximumKneeBendDegrees = Mathf.Max(
+                                report.maximumKneeBendDegrees,
+                                Vector3.Angle(
+                                    lowerLeg.position - upperLeg.position,
+                                    foot.position - lowerLeg.position
+                                )
+                            );
+                        }
                         if (frame == 0)
                             firstKnees[actor] = knee.localRotation;
                         float legMotion = Quaternion.Angle(firstKnees[actor], knee.localRotation);
@@ -161,16 +175,29 @@ namespace A305.EditorTools.Npc
                     {
                         foreach (var snapshot in snapshots)
                             snapshot.skin.BakeMesh(snapshot.mesh, true);
-                        foreach (string view in new[] { "Front", "Oblique" })
+                        foreach (string view in new[] { "Front", "Oblique", "Side" })
                         {
                             Directory.CreateDirectory(Path.Combine(output, view));
                             var target = new Vector3(0, .85f, 0);
                             camera.transform.position =
                                 target
-                                + Quaternion.Euler(0, view == "Front" ? 0 : -25, 0)
+                                + Quaternion.Euler(0, view == "Oblique" ? -25 : 0, 0)
                                     * new Vector3(0, .25f, 6);
                             camera.transform.LookAt(target);
-                            CaptureFrame(camera, Path.Combine(output, view, $"{frame:D4}.png"));
+                            var rotations = actors.Select(a => a.transform.rotation).ToArray();
+                            try
+                            {
+                                if (view == "Side")
+                                    foreach (var actor in actors)
+                                        actor.transform.rotation =
+                                            Quaternion.Euler(0, 90, 0) * actor.transform.rotation;
+                                CaptureFrame(camera, Path.Combine(output, view, $"{frame:D4}.png"));
+                            }
+                            finally
+                            {
+                                for (int i = 0; i < actors.Length; i++)
+                                    actors[i].transform.rotation = rotations[i];
+                            }
                         }
                     }
                     report.frames++;
@@ -178,6 +205,7 @@ namespace A305.EditorTools.Npc
                 report.passed =
                     report.walkLegMotionDegrees > 10
                     && report.runLegMotionDegrees > 10
+                    && report.maximumKneeBendDegrees < 125
                     && report.handPositionErrorMeters < .0005f
                     && report.handRotationErrorDegrees < .1f
                     && report.upperBodyRotationErrorDegrees < .1f

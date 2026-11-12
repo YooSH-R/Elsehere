@@ -7,7 +7,9 @@
         "A305.Api",
         "A305.ObjectHover",
         "A305.Player",
-        "A305.EditorTools"
+        "A305.EditorTools",
+        "Unity.InputSystem",
+        "Unity.InputSystem.TestFramework"
     ],
     "includePlatforms": [
         "Editor"

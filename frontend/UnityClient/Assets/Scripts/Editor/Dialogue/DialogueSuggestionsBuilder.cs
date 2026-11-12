@@ -15,6 +15,11 @@ namespace A305.EditorTools.Dialogue
     {
         private const string PrefabPath = "Assets/Prefabs/Dialogue/DialoguePanel.prefab";
         private const string HideIconPath = "Assets/Art/UI/Theme/Icons/HideHint.png";
+        private const string WordsTitle = "추천 단어";
+
+        // 추천 단어 사이 간격과 구분선 두께. 빈 줄 한 줄보다 좁게 둔다.
+        private const float WordSpacing = 6;
+        private const float DividerHeight = 2;
 
         [MenuItem("Tools/A305/Dialogue/Apply Fixed Suggestion Cards")]
         public static void ApplyToPrefab()
@@ -49,7 +54,11 @@ namespace A305.EditorTools.Dialogue
                     UiTone.Primary
                 );
                 ReadingText(
-                    existing.Find("WordsCard/Viewport/SuggestedWordsBody").GetComponent<TMP_Text>()
+                    WordRows(
+                            existing.GetComponent<DialogueSuggestionsView>(),
+                            existing.Find("WordsCard")
+                        )
+                        .GetComponent<TMP_Text>()
                 );
                 ReadingText(
                     existing.Find("HintCard/Viewport/HintSentence").GetComponent<TMP_Text>()
@@ -59,13 +68,14 @@ namespace A305.EditorTools.Dialogue
             RectTransform group = Rect(root.transform, "Suggestions");
             var cards = group.gameObject.AddComponent<DialogueSuggestionsView>();
             Transform source = root.transform.Find("HelpPanel/Viewport/Content/WordsCard");
-            RectTransform words = Card(group, "WordsCard", source, "단어");
+            RectTransform words = Card(group, "WordsCard", source, WordsTitle);
             RectTransform hint = Card(group, "HintCard", source, "추천 문장");
             Scrollbar scrollbar = root
                 .transform.Find("Panel/Conversation/History")
                 .GetComponent<ScrollRect>()
                 .verticalScrollbar;
             TMP_Text wordsText = ScrollText(words, "SuggestedWordsBody", scrollbar, out _);
+            WordRows(cards, words);
             TMP_Text sentence = ScrollText(
                 hint,
                 "HintSentence",
@@ -120,8 +130,62 @@ namespace A305.EditorTools.Dialogue
             BuilderTools.SetReference(cards, "useButton", useButton);
             BuilderTools.SetReference(view, "suggestions", cards);
             cards.SetBounds(new Vector2(-40, -128), 390, 440);
-            cards.Show("", true, false, null, false);
+            cards.Show(null, false, true, false, null, false);
             group.gameObject.SetActive(false);
+        }
+
+        // 추천 단어 칸을 단어마다 한 줄씩 쌓는 목록으로 바꾸고, 단어 줄과 구분선의 본을 둔다.
+        // 기존 글자 칸은 단어가 없을 때 안내 문구를 보이는 칸으로 목록 맨 위에 남긴다. 돌려주는 값이 그 칸이다.
+        private static Transform WordRows(DialogueSuggestionsView cards, Transform card)
+        {
+            card.Find("Title").GetComponent<TMP_Text>().text = WordsTitle;
+            Transform viewport = card.Find("Viewport");
+            Transform list = viewport.Find("WordList");
+            if (list == null)
+            {
+                RectTransform created = Rect(viewport, "WordList");
+                created.anchorMin = new Vector2(0, 1);
+                created.anchorMax = Vector2.one;
+                created.pivot = new Vector2(.5f, 1);
+                created.sizeDelta = created.anchoredPosition = Vector2.zero;
+                var rows = created.gameObject.AddComponent<VerticalLayoutGroup>();
+                rows.spacing = WordSpacing;
+                rows.childControlWidth = rows.childControlHeight = true;
+                rows.childForceExpandWidth = true;
+                rows.childForceExpandHeight = false;
+                created.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter
+                    .FitMode
+                    .PreferredSize;
+                Transform message = viewport.Find("SuggestedWordsBody");
+                message.SetParent(created, false);
+                // 목록이 높이를 정하므로 글자 칸이 스스로 높이를 맞추지 않게 한다.
+                var fitter = message.GetComponent<ContentSizeFitter>();
+                if (fitter != null)
+                    Object.DestroyImmediate(fitter);
+                viewport.GetComponent<ScrollRect>().content = created;
+                list = created;
+            }
+            Transform body = list.Find("SuggestedWordsBody");
+            Transform word = list.Find("WordTemplate");
+            if (word == null)
+            {
+                word = Object.Instantiate(body.gameObject, list).transform;
+                word.name = "WordTemplate";
+                word.gameObject.SetActive(false);
+            }
+            Transform divider = list.Find("DividerTemplate");
+            if (divider == null)
+            {
+                divider = Rect(list, "DividerTemplate");
+                var line = divider.gameObject.AddComponent<Image>();
+                line.color = new Color(0, 0, 0, .1f);
+                line.raycastTarget = false;
+                divider.gameObject.AddComponent<LayoutElement>().preferredHeight = DividerHeight;
+                divider.gameObject.SetActive(false);
+            }
+            BuilderTools.SetReference(cards, "wordTemplate", word.GetComponent<TMP_Text>());
+            BuilderTools.SetReference(cards, "dividerTemplate", divider.gameObject);
+            return body;
         }
 
         private static RectTransform Card(

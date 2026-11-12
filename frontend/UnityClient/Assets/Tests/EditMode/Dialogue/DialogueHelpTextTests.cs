@@ -27,6 +27,20 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public void WordEntries_FormatEachWordOnItsOwn_ForSeparateRows()
+        {
+            Assert.That(
+                DialogueHelpText.WordEntries(
+                    new[] { " ", "for here — 매장에서 먹을게요", null, "to go" }
+                ),
+                Is.EqualTo(
+                    new[] { "<b>for here</b>\n<size=80%>매장에서 먹을게요</size>", "<b>to go</b>" }
+                )
+            );
+            Assert.That(DialogueHelpText.WordEntries(null), Is.Empty);
+        }
+
+        [Test]
         public void HyphenatedWords_AreNotSplitAndBlankEntriesAreIgnored()
         {
             Assert.That(

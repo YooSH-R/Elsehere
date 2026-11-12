@@ -688,7 +688,8 @@ namespace A305.Dialogue
                 suggestions.gameObject.SetActive(!reviewing);
                 helpPanel.gameObject.SetActive(reviewing);
                 suggestions.Show(
-                    suggestText.text,
+                    content.SuggestWords,
+                    content.IsSuggestingWords,
                     content.HasHint,
                     hintVisible,
                     content.HintText,

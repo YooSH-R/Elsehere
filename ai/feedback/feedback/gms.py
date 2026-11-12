@@ -32,10 +32,8 @@ def feedback_response_format(messages):
     # 설명을 먼저 쓰면 설명과 다르게 고친 문장이 나온다(S15P31A305-780). 고친 문장을 먼저 정하고 그 교정을 설명하게 순서를 바꾼다.
     review = definitions["TurnReview"]["properties"]
     review["explanation_ko"] = review.pop("explanation_ko")
-    # 기존 결과 호환용 기본값이 있는 필드라 strict 생성에서는 필수로 바꾸고, 장면 표현을 2~3개 받는다.
+    # 기존 결과 호환용 기본값은 유지하고, 모델은 적합한 표현이 없으면 빈 배열을 명시한다.
     definitions["FeedbackData"]["required"].append("situation_expressions")
-    fields["situation_expressions"]["minItems"] = 2
-    fields["situation_expressions"]["maxItems"] = 3
     # 화자 분류는 생성 내부 메타데이터이며 공개 피드백 계약에는 넣지 않는다.
     situation = definitions["SituationExpression"]
     situation["properties"]["speaker_role"] = {"type": "string", "enum": ["learner", "npc", "both"]}

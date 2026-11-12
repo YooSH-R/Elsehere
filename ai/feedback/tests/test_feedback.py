@@ -285,10 +285,11 @@ class FeedbackTests(unittest.TestCase):
         extra = dict(SITUATION[0], expression="Do you have oat milk?")
         self.assert_invalid(lambda r: r.update(situation_expressions=copy.deepcopy(SITUATION) + [extra]))
 
-    def test_prompt_asks_for_situation_expressions_from_the_scene(self):
+    def test_prompt_uses_the_scene_as_context_for_situation_expressions(self):
         system = build_messages(sample()[0])[0]["content"]
         self.assertIn("situation_expressions", system)
         self.assertIn("scene_description", system)
+        self.assertIn("실제로 나눈 대화의 목적", system)
 
     def test_vocab_suggestion_and_review_must_exist(self):
         for key in ("review_id", "suggestion_id"):

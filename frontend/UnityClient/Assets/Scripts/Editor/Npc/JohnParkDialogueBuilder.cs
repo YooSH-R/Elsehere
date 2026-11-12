@@ -41,7 +41,7 @@ namespace A305.EditorTools.Npc
             "Assets/Scenes/ShopInteriors/MapleDinerInterior.unity";
 
         /// <summary>
-        /// 존박을 식당 장면의 식당 건물 기준 (0, 0, -5.2)에 두고 그 장면의 플레이어·대화창에 잇는다.
+        /// 존박을 입구 화면 기준 오른쪽(-1.5, 0, -5.2)에 두고 그 장면의 플레이어·대화창에 잇는다.
         /// 예전처럼 마을 장면에 두었던 존박이 남아 있으면 지운다.
         /// </summary>
         public static void PlaceInRestaurant()
@@ -75,7 +75,7 @@ namespace A305.EditorTools.Npc
                     )
                     .GetComponent<NpcIdentity>();
             identity.transform.SetPositionAndRotation(
-                shop.transform.TransformPoint(new Vector3(0, 0, -5.2f)),
+                shop.transform.TransformPoint(new Vector3(-1.5f, 0, -5.2f)),
                 shop.transform.rotation
             );
             ConnectActor(
@@ -90,7 +90,7 @@ namespace A305.EditorTools.Npc
             BuilderTools.SaveScene(scene, RestaurantScenePath);
             if (!IsInsideRestaurant(shop, identity.transform))
                 throw new InvalidOperationException("존박이 식당 실내에 없습니다.");
-            Debug.Log("존박 식당 상주 배치 완료: 식당 장면 건물 기준 (0, 0, -5.2)");
+            Debug.Log("존박 식당 상주 배치 완료: 입구 화면 오른쪽, 건물 기준 (-1.5, 0, -5.2)");
         }
 
         /// <summary>식당 건물 1층 실내(건물 기준 x ±4, z 0~-8) 안에 있는지.</summary>
@@ -202,13 +202,7 @@ namespace A305.EditorTools.Npc
             var setup = EditorSceneManager.GetSceneManagerSetup();
             try
             {
-                foreach (
-                    string path in new[]
-                    {
-                        ScenePath,
-                        A305.EditorTools.World.TownProductionBuilder.ScenePath,
-                    }
-                )
+                foreach (string path in new[] { ScenePath, RestaurantScenePath })
                 {
                     var scene = EditorSceneManager.OpenScene(path);
                     var identity = BuilderTools

@@ -35,7 +35,34 @@ namespace A305.EditorTools.Npc
                 .Single(t => t.name == "MapleDiner" && t.Find("Interior") != null);
             actor.gameObject.SetActive(true);
             Physics.SyncTransforms();
-            actor.GetComponent<CharacterController>().Move(Vector3.down * .4f);
+            var controller = actor.GetComponent<CharacterController>();
+            Vector3 placedPosition = actor.transform.position;
+            controller.Move(Vector3.down * .4f);
+            if (
+                Vector3
+                    .ProjectOnPlane(actor.transform.position - placedPosition, Vector3.up)
+                    .magnitude > .02f
+            )
+                throw new InvalidOperationException("John의 배치가 가구와 겹쳐 옆으로 밀렸습니다.");
+            Vector3 center = actor.transform.TransformPoint(controller.center);
+            float half = controller.height * .5f - controller.radius;
+            var blockers = Physics
+                .OverlapCapsule(
+                    center - Vector3.up * half,
+                    center + Vector3.up * half,
+                    controller.radius * .95f,
+                    ~0,
+                    QueryTriggerInteraction.Ignore
+                )
+                .Where(c =>
+                    !c.transform.IsChildOf(actor.transform)
+                    && c.bounds.max.y > actor.transform.position.y + .08f
+                )
+                .ToArray();
+            if (blockers.Length > 0)
+                throw new InvalidOperationException(
+                    "John의 자리와 겹치는 가구: " + string.Join(", ", blockers.Select(c => c.name))
+                );
             var view = BuilderTools.FindSingleInScene<DialoguePanelView>(restaurant);
             foreach (Canvas canvas in BuilderTools.FindAllInScene<Canvas>(restaurant))
                 canvas.gameObject.SetActive(canvas.gameObject == view.gameObject);
@@ -79,7 +106,7 @@ namespace A305.EditorTools.Npc
             Bake();
             view.gameObject.SetActive(false);
             camera.transform.position = building.TransformPoint(new Vector3(0, 2.25f, -.7f));
-            camera.transform.LookAt(actor.transform.position + Vector3.up * .9f);
+            camera.transform.LookAt(building.TransformPoint(new Vector3(0, 1f, -5.5f)));
             Save(camera, Path.Combine(output, "John_Restaurant.png"), 1280, 800);
             view.gameObject.SetActive(true);
             var performer = actor.GetComponent<RecordedNpcPerformance>();

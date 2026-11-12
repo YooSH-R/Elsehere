@@ -52,7 +52,7 @@
 전용 Generic Avatar·공통 얼굴·저장 공연 연결을 확인하게 합니다. John은 출퇴근 보행 대상이 아닙니다.
 Production의 공용 오프라인 대본에도 John과 뮤지션 역할을 등록하여 기본 `Neighbor` 대본으로 빠지지 않게 합니다.
 
-`JohnParkDialogueBuilder.PlaceInRestaurant`는 Town의 식당 실내 상주 목록에 같은 프리팹을 연결합니다. 위치는 식당 좌표 `(0, 0, -5.2)`의 뒷주방 앞 중앙 통로입니다. 실내 입장 때 나타나고 퇴장 때 숨겨지며 별도 출퇴근 일과나 보행을 추가하지 않습니다. 첨부 화면을 기준으로 추정한 위치이므로 최종 구도는 실제 실내에서 확인합니다.
+`JohnParkDialogueBuilder.PlaceInRestaurant`는 독립 식당 씬 `Assets/Scenes/ShopInteriors/MapleDinerInterior.unity`에 같은 프리팹을 연결합니다. 위치는 식당 좌표 `(-1.5, 0, -5.2)`로, 입구 화면 기준 오른쪽에서 Rosa의 응대 위치를 가리지 않게 둡니다. 별도 출퇴근 일과나 보행을 추가하지 않습니다.
 
 페르소나는 차분하고 예의 바른 음악가 손님으로 설정합니다. 짧고 쉬운 영어, 담백한 농담, 요청받았을 때만 리듬을 넣은 주문 예시를 사용하고 직원 업무는 Rosa에게 안내합니다. 이는 게임용 각색입니다. [본인 인터뷰](https://www.segye.com/newsView/20140919000136)의 말수가 적고 혼자 있는 것을 즐긴다는 설명과 [SBS 방송 발언](https://ent.sbs.co.kr/amp/article.do?article_id=E10004429011)의 과장된 애교를 어려워한다는 설명을 참고합니다. 과거 발언을 현재 성격 전체로 단정하지 않습니다. MBTI는 이차 자료에 INFP로 소개되지만 직접 발표 출처를 확인하지 못해 확정 정보로 사용하지 않습니다.
 
@@ -101,7 +101,7 @@ John과 자유 대화를 열면 인사·지난 대사·추천 단어를 기다�
 
 John은 고정 공연용 Generic 리그이므로 보행 NPC와 달리 `CharacterController.skinWidth`를 0.005m로 둡니다.
 기본값 0.08m는 런타임 접촉에서 메시를 8cm 띄우므로 사용하지 않습니다.
-`JohnParkDialogueBuilder.UpdateGroundContact`는 Town과 대화 검수 씬의 John 캡슐에만 이 값을 적용합니다.
+`JohnParkDialogueBuilder.UpdateGroundContact`는 독립 식당 씬과 대화 검수 씬의 John 캡슐에만 이 값을 적용합니다.
 
 ## 실제 대화의 기분 설정
 
@@ -190,7 +190,7 @@ Editor를 닫고 `NPC_EMOTION_REVIEW_OUTPUT`에 저장소 밖 출력 폴더를 �
 - 음성은 선정한 1.5배 PCM을 그대로 보존합니다. 발화 중에는 양쪽 입꼬리가 같은 강도로 움직이는 `warm_smile`을 적용합니다. 한쪽 입꼬리를 드는 `playful`은 이 랩에서 사용하지 않습니다. 발음은 동일한 무반주 트랙을 로컬 PocketSphinx로 정렬하고, 그 시간표를 드럼을 포함한 음성의 PCM 해시에 묶습니다. 구절 전체를 같은 입모양으로 처리하지 않습니다.
 - Generic 리듬의 왼팔 강세 두 번을 한 마디의 2·4박에 맞춥니다. 오른손·앰프의 기존 본 곡선과 강체 결합은 유지합니다. 공연 종료 뒤에는 기존 대기 리듬 속도로 돌아갑니다.
 - `NpcJohnParkDialogueSandbox.unity`를 열고 Play → 존박 클릭 → `Can you rap?` 또는 `랩 해줘`를 입력합니다. 저장 안내가 나오면 [랩 다시 듣기]를 눌러 시작합니다. 요청은 안내를, 전용 버튼은 랩을 재생합니다. 이 씬은 서버가 꺼진 로컬 검수용입니다.
-- Town의 식당 존박도 같은 프리팹 연결을 상속합니다. 일반 AI 대화·음성 입력 전사는 기존 서버 설정이 필요하지만, 저장 공연 재생에는 LLM/TTS 재호출이 없습니다. 저장 공연은 서버의 학습 턴으로 기록하지 않습니다.
+- 독립 식당 씬의 John도 같은 프리팹 연결을 상속합니다. 일반 AI 대화·음성 입력 전사는 기존 서버 설정이 필요하지만, 저장 공연 재생에는 LLM/TTS 재호출이 없습니다. 다시 듣기는 서버의 학습 턴을 추가하지 않습니다.
 - 연결 재구성은 `Tools → A305 → Npc → John Park → Connect Recorded Order Rap`으로 실행합니다. 기존 얼굴·본·머티리얼은 바꾸지 않습니다. `JohnParkRapValidation.Capture`는 실제 재생 컴포넌트의 시각 변환으로 전신·얼굴 프레임과 잡기 오차를 검사합니다. 로컬 영상은 `artifacts/JohnParkRhythm/OrderRap/Unity1.5/`에 보관합니다.
 
 ### John 전용 재생 버튼 검수

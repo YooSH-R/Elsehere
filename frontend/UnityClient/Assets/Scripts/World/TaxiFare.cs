@@ -26,11 +26,18 @@ namespace A305.World
         /// <summary>택시 중심에서 방향과 관계없이 탈 수 있는 수평 반경</summary>
         public const float BoardingRadiusMeters = 8f;
 
+        /// <summary>
+        /// 손님 발이 택시보다 이만큼 넘게 높으면(바깥 계단 위·2층) 탈 수 없다. 보도 턱이나 계단 한두 칸은 탈 수 있다.
+        /// </summary>
+        public const float MaxBoardingRiseMeters = 1f;
+
         public TaxiPhase Phase { get; private set; } = TaxiPhase.Cruising;
 
         public static bool CanHail(Vector3 taxiPosition, Vector3 customer)
         {
             Vector3 offset = customer - taxiPosition;
+            if (offset.y > MaxBoardingRiseMeters)
+                return false;
             offset.y = 0f;
             return offset.sqrMagnitude <= BoardingRadiusMeters * BoardingRadiusMeters;
         }

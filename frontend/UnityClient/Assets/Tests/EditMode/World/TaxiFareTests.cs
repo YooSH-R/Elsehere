@@ -100,6 +100,18 @@ namespace A305.World.Tests
             Assert.That(TaxiFare.CanHail(taxi, customer), Is.EqualTo(expected));
         }
 
+        [TestCase(0f, true)]
+        [TestCase(.4f, true)]
+        [TestCase(1f, true)]
+        [TestCase(1.01f, false)]
+        [TestCase(3f, false)]
+        public void CustomerAboveTheTaxi_CanHailOnlyUpToAStepOrTwo(float rise, bool expected)
+        {
+            Vector3 taxi = new Vector3(-3f, .2f, 12f);
+            Vector3 customer = taxi + new Vector3(4f, rise, 0f);
+            Assert.That(TaxiFare.CanHail(taxi, customer), Is.EqualTo(expected));
+        }
+
         [Test]
         public void NewFare_IsCruising()
         {

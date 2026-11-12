@@ -62,7 +62,8 @@ public class AdminUsageRepository {
         union all
         select user_id, started_at, 'CONVERSATION', 0 from conversations
         union all
-        select user_id, created_at, 'AI', 0 from ai_requests where status <> 'RESERVED'
+        select user_id, created_at, 'AI', 0 from ai_requests
+        where status <> 'RESERVED' and user_id is not null
         union all
         select user_id, saved_at, 'WORD', 0 from user_vocab
         union all

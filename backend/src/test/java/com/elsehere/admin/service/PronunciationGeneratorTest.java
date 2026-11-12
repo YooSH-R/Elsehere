@@ -55,7 +55,6 @@ class PronunciationGeneratorTest {
 
   private static final Path PRONUNCIATION_DIR = createDirectory();
   private static final byte[] WAV = {82, 73, 70, 70};
-  private static final Long ADMIN_ID = 1L;
 
   @DynamicPropertySource
   static void pronunciationDirectory(DynamicPropertyRegistry registry) {
@@ -87,7 +86,7 @@ class PronunciationGeneratorTest {
   void generateMissing_createsPronunciationForEachObjectWord() {
     given(aiGateway.synthesize(any(), anyString(), eq("af_heart"), eq(1.0))).willReturn(WAV);
 
-    PronunciationRun run = pronunciationGenerator.generateMissing(ADMIN_ID);
+    PronunciationRun run = pronunciationGenerator.generateMissing();
 
     assertThat(objectWordCount).isPositive();
     assertThat(run.created()).isEqualTo(objectWordCount);
@@ -106,7 +105,7 @@ class PronunciationGeneratorTest {
     pronunciationAudioStore.save("sofa.wav", WAV);
     given(aiGateway.synthesize(any(), anyString(), anyString(), eq(1.0))).willReturn(WAV);
 
-    PronunciationRun run = pronunciationGenerator.generateMissing(ADMIN_ID);
+    PronunciationRun run = pronunciationGenerator.generateMissing();
 
     assertThat(run.created()).isEqualTo(objectWordCount - 1);
     then(aiGateway).should(never()).synthesize(any(), eq("sofa"), anyString(), eq(1.0));
@@ -123,7 +122,7 @@ class PronunciationGeneratorTest {
     given(aiGateway.synthesize(any(), eq("sofa"), anyString(), eq(1.0)))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
 
-    PronunciationRun run = pronunciationGenerator.generateMissing(ADMIN_ID);
+    PronunciationRun run = pronunciationGenerator.generateMissing();
 
     assertThat(run.failedWordKeys()).containsExactly("sofa");
     assertThat(run.created()).isEqualTo(objectWordCount - 1);
@@ -135,16 +134,16 @@ class PronunciationGeneratorTest {
   }
 
   @Test
-  @DisplayName("합성할 때마다 실행한 관리자를 AI 호출의 사용자로 넘긴다. 대화와는 관계없다")
-  void generateMissing_tracesAdmin() {
+  @DisplayName("어드민 계정은 게임 사용자가 아니므로 합성 호출을 사용자·대화 없이 넘긴다")
+  void generateMissing_tracesWithoutUser() {
     given(aiGateway.synthesize(any(), anyString(), anyString(), eq(1.0))).willReturn(WAV);
 
-    PronunciationRun run = pronunciationGenerator.generateMissing(ADMIN_ID);
+    PronunciationRun run = pronunciationGenerator.generateMissing();
 
     then(aiGateway)
         .should(times(run.created()))
         .synthesize(
-            argThat(trace -> ADMIN_ID.equals(trace.userId()) && trace.conversationId() == null),
+            argThat(trace -> trace.userId() == null && trace.conversationId() == null),
             anyString(),
             anyString(),
             eq(1.0));

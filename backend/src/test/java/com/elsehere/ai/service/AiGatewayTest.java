@@ -329,6 +329,23 @@ class AiGatewayTest {
     assertThat(request(AiRequestKind.JUDGE).getStatus()).isEqualTo(AiRequestStatus.OK);
   }
 
+  @Test
+  @DisplayName("어드민이 실행한 발음 만들기처럼 사용자가 없는 호출도 사용자 없이 기록한다")
+  void callWithoutUser_isRecordedWithoutUser() {
+    WorkerTrace adminTrace = new WorkerTrace(UUID.randomUUID(), null, null);
+    given(aiWorkerClient.synthesize(adminTrace, "sofa", "af_heart", 1.0))
+        .willReturn(new byte[] {1});
+
+    aiGateway.synthesize(adminTrace, "sofa", "af_heart", 1.0);
+
+    AiRequest request =
+        aiRequestRepository
+            .findByRequestIdAndKind(adminTrace.requestId(), AiRequestKind.TTS)
+            .orElseThrow();
+    assertThat(request.getStatus()).isEqualTo(AiRequestStatus.OK);
+    assertThat(request.getUserId()).isNull();
+  }
+
   private static Arguments call(
       String name,
       AiRequestKind kind,

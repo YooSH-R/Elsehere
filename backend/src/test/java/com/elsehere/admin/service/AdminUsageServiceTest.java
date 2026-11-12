@@ -236,6 +236,19 @@ class AdminUsageServiceTest {
   }
 
   @Test
+  @DisplayName("어드민이 실행한 발음 만들기처럼 사용자가 없는 AI 호출은 활동 사용자나 진행 단계에 세지 않는다")
+  void report_ignoresAiCallsWithoutUser() {
+    aiCall(null, "TTS", "OK", NOW.minus(1, HOURS));
+
+    OverallUsageReport report = adminUsageService.report(7);
+
+    assertThat(report.usage().summary().activeUsers()).isZero();
+    assertThat(report.progress().firstDayStages())
+        .first()
+        .isEqualTo(new OverallUsageReport.UserCount("시작 전", 0));
+  }
+
+  @Test
   @DisplayName("대화 피드백을 결과별로 세고, 사용자가 건너뛴 피드백은 평가할 말이 없어 건너뛴 것과 나눈다")
   void report_countsFeedbacksByResult() {
     Long member = user(AuthProvider.GOOGLE, "google-sub-1", "Sun");

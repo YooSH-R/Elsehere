@@ -151,17 +151,15 @@ namespace A305.EditorTools.Npc
             var swingPitch = running
                 ? PoseCurve(0, 18, .2f, 22, .6f, 5, .85f, -10, 1, -7)
                 : PoseCurve(0, 24, .3f, 8, .7f, -15, 1, -12);
-            // 발을 딛는 초반에 조금 더 앉고 중간 지지에서 펴며, 머리 높이의 최고점은 유지한다.
-            var pelvisHeight = running
-                ? PoseCurve(0, -.03f, .25f, -.18f, .55f, -.08f, .87f, .02f, 1, -.03f)
-                : PoseCurve(0, -.055f, .2f, -.13f, .65f, -.025f, 1, -.055f);
+            // 빠르게 눌러 잠깐 머물고 천천히 올라온다. 달리기는 두 디딤마다 한 번 눌러 떨림을 피한다.
+            var groove = PoseCurve(0, 0, .22f, 1, .34f, 1, .88f, 0, 1, 0);
             for (int frame = 0; frame <= frames; frame++)
             {
                 rhythm.SampleAnimation(animator.gameObject, 0);
                 float cycle = frame / (float)frames;
                 Vector3 restHips = hips.position;
-                hips.position +=
-                    Vector3.up * length * pelvisHeight.Evaluate(Mathf.Repeat(cycle * 2, 1));
+                float pulse = groove.Evaluate(Mathf.Repeat(cycle * (running ? 1 : 2), 1));
+                hips.position -= Vector3.up * length * (.035f + .30f * pulse);
                 var targets = new Vector3[2];
                 var rotations = new Quaternion[2];
                 for (int side = 0; side < legs.Length; side++)
@@ -198,13 +196,24 @@ namespace A305.EditorTools.Npc
                         .ContactTarget(forward, forwardOffset, height, rotations[side]);
                 }
                 // 무릎을 끝까지 펴지 않고 실제 발바닥 접점까지 도달할 수 있는 골반 높이를 구한다.
-                float reachableHeight = hips.position.y;
+                float maximumHeight = float.PositiveInfinity;
+                float minimumHeight = float.NegativeInfinity;
                 for (int side = 0; side < legs.Length; side++)
-                    reachableHeight = Mathf.Min(
-                        reachableHeight,
+                {
+                    maximumHeight = Mathf.Min(
+                        maximumHeight,
                         legs[side].MaximumHipHeight(hips, targets[side])
                     );
-                hips.position = new Vector3(restHips.x, reachableHeight, restHips.z);
+                    minimumHeight = Mathf.Max(
+                        minimumHeight,
+                        legs[side].MinimumHipHeight(hips, targets[side])
+                    );
+                }
+                hips.position = new Vector3(
+                    restHips.x,
+                    Mathf.Clamp(hips.position.y, minimumHeight, maximumHeight),
+                    restHips.z
+                );
                 for (int side = 0; side < legs.Length; side++)
                 {
                     legs[side].Place(targets[side], forward, rotations[side]);
@@ -353,6 +362,22 @@ namespace A305.EditorTools.Npc
                 float reach = Length * .985f;
                 return target.y
                     + Mathf.Sqrt(Mathf.Max(0, reach * reach - horizontal))
+                    - (Upper.position.y - hips.position.y);
+            }
+
+            public float MinimumHipHeight(Transform hips, Vector3 target)
+            {
+                // 신발이 큰 짧은 다리에서 깊은 바운스가 무릎을 과하게 접지 않도록 실제 본 길이로 제한한다.
+                const float maximumBendDegrees = 120;
+                float minimumReachSquared =
+                    upperLength * upperLength
+                    + lowerLength * lowerLength
+                    + 2 * upperLength * lowerLength * Mathf.Cos(maximumBendDegrees * Mathf.Deg2Rad);
+                float horizontal = Vector3
+                    .ProjectOnPlane(target - Upper.position, Vector3.up)
+                    .sqrMagnitude;
+                return target.y
+                    + Mathf.Sqrt(Mathf.Max(0, minimumReachSquared - horizontal))
                     - (Upper.position.y - hips.position.y);
             }
 

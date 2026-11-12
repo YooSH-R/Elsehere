@@ -7,6 +7,7 @@ from pathlib import Path
 
 CATALOG_PATH = Path(__file__).resolve().parent.parent / "content" / "situation_expressions.ko.json"
 MAX_CANDIDATES = 8
+MIN_EXPRESSIONS = 2
 NPC_ONLY = {"you're all set", "you are all set", "what can i get you", "anything else", "how can i help you"}
 HANGUL = re.compile(r"[가-힣]")
 
@@ -33,6 +34,23 @@ def situation_candidates(request):
         {key: item[key] for key in ("id", "kind", "expression", "meaning_ko", "usage_ko", "example_en", "example_ko")}
         for *_, item in scored[:MAX_CANDIDATES]
     ]
+
+
+def fill_up(kept, candidates, user_texts):
+    """거르고 남은 표현이 2개가 안 되면 검토된 장면 후보에서 사용자가 말하지 않은 것으로 2개까지 채운다.
+
+    모델이 고른 표현이 직원 전용이거나 이미 말한 것이어서 빠지면 복습할 표현이 모자라게 된다. 후보가 없는 장면은 그대로 둔다.
+    """
+    filled = list(kept)
+    chosen = {_norm(item["expression"]) for item in filled}
+    for candidate in keep_useful(candidates, user_texts):
+        if len(filled) >= MIN_EXPRESSIONS:
+            break
+        if _norm(candidate["expression"]) in chosen:
+            continue
+        filled.append({key: value for key, value in candidate.items() if key not in ("id", "kind")})
+        chosen.add(_norm(candidate["expression"]))
+    return filled
 
 
 def _norm(text):

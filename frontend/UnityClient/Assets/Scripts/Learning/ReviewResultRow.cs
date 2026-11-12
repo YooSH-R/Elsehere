@@ -30,6 +30,30 @@ namespace A305.Learning
                 english.GetPreferredValues(english.text, width - 130, 0).y
             );
             Pin(english.rectTransform, 34, 26, width - 130, englishHeight);
+            // 고친 문장은 영어 문장 아래에 지난번에 한 말과 이번에 한 말을 나란히 둔다.
+            if (expression.OriginalText != null)
+            {
+                englishHeight += 12;
+                foreach (
+                    (string line, UiThemeRole role) in new[]
+                    {
+                        (ReviewPracticeFeedback.LastTime(expression), UiThemeRole.Muted),
+                        (
+                            ReviewPracticeFeedback.ThisTime(expression),
+                            expression.SpokenText != null ? UiThemeRole.Accent : UiThemeRole.Muted
+                        ),
+                    }
+                )
+                {
+                    TMP_Text said = Text(card, template, line, 25, role, theme);
+                    float saidHeight = Mathf.Max(
+                        34,
+                        said.GetPreferredValues(said.text, width - 68, 0).y
+                    );
+                    Pin(said.rectTransform, 34, 26 + englishHeight, width - 68, saidHeight);
+                    englishHeight += saidHeight + 4;
+                }
+            }
             var description = Text(
                 card,
                 template,

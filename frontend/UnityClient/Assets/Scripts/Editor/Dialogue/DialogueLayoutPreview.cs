@@ -73,6 +73,83 @@ namespace A305.EditorTools.Dialogue
             );
         }
 
+        /// <summary>[다시 연습] 대화 위 참고 카드. 고친 문장 구역과 상황 표현 구역, 말한 문장의 배지를 세 테마·낮은 화면으로 그린다.</summary>
+        public static void CaptureRetryReference()
+        {
+            DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
+            view.Show(
+                new WordPreviewContent
+                {
+                    PreviewLines = new[]
+                    {
+                        DialogueLine.FromNpc(
+                            "Hi there! What can I get for you?",
+                            "안녕하세요! 무엇을 드릴까요?"
+                        ),
+                        DialogueLine.FromUser("Can I get that to go?"),
+                        DialogueLine.FromNpc("Sure! Anything to drink?", "그럼요! 음료는요?"),
+                    },
+                }
+            );
+            view.SetReviewReference(
+                new[]
+                {
+                    new ReviewReferenceItem(
+                        "Can I get that to go?",
+                        "포장해 주세요",
+                        true,
+                        "포장해 주세요"
+                    ),
+                    new ReviewReferenceItem(
+                        "I'd like an iced coffee, please.",
+                        "주문할 때는 I'd like로 시작하면 더 부드러워요.",
+                        false,
+                        "I want drink iced coffee"
+                    ),
+                    new ReviewReferenceItem(
+                        "Could I get a little less ice?",
+                        "얼음 조금만 넣어 주실 수 있나요?",
+                        false
+                    ),
+                },
+                1,
+                "<b>음료 주문하기</b>\n카페 · 손님\n\n카페에서 음료를 주문하고 포장을 부탁해요.\n",
+                listFirst: true
+            );
+            string output = OutputFolder();
+            RenderThemes(camera, view, eye, face, output, "retry-reference");
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "retry-reference-short.png"),
+                844,
+                390
+            );
+            // 상황 설명은 문장 목록 아래에 있어 카드를 끝까지 내린 모습도 찍는다.
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "retry-reference-list.png"),
+                1920,
+                1080,
+                showLatest: true
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "retry-reference-short-list.png"),
+                844,
+                390,
+                showLatest: true
+            );
+        }
+
         public static void CaptureFourLines()
         {
             DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);

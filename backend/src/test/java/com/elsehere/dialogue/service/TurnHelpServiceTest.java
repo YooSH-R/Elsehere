@@ -33,6 +33,7 @@ import com.elsehere.conversation.entity.Turn;
 import com.elsehere.dialogue.dto.HintResponse;
 import com.elsehere.dialogue.dto.MeaningResponse;
 import com.elsehere.dialogue.dto.SuggestWordsResponse;
+import com.elsehere.dialogue.dto.TurnDetailResponse;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
@@ -67,6 +68,7 @@ class TurnHelpServiceTest {
       new SuggestResult(List.of("for here", "to go"), List.of(usage("suggest")));
 
   @Autowired private TurnHelpService turnHelpService;
+  @Autowired private ConversationService conversationService;
 
   @Autowired private AiGateway aiGateway;
 
@@ -195,6 +197,56 @@ class TurnHelpServiceTest {
 
     assertThat(response.hintText()).isEqualTo("I'm sorry for speaking to you.");
     assertThat(response.suggestWords()).containsExactly("apologize — 사과하다", "speak — 말하다");
+  }
+
+  @Test
+  @DisplayName("추천 문장에 든 말이라도 한 단어(day)는 단어로 쓸 만해서 남기고, 잘라 온 구(have a good)만 뺀다 (S15P31A305-868)")
+  void suggestWords_keepsSingleWordsFromTheRecommendedSentence() {
+    assertThat(
+            suggestWordsWith(
+                "Have a good day.", "have a good — 좋은 ~ 보내세요", "day — 하루", "thanks — 고마워요"))
+        .containsExactly("day — 하루", "thanks — 고마워요");
+  }
+
+  @Test
+  @DisplayName("잘라 온 구를 빼서 2개보다 적게 남으면 짧은 구부터 다시 넣어 추천 단어가 1개만 보이지 않게 한다 (S15P31A305-868)")
+  void suggestWords_putsCutPhrasesBackWhenFewerThanTwoRemain() {
+    assertThat(
+            suggestWordsWith(
+                "Have a good day.", "have a good — 좋은 ~ 보내세요", "good day — 좋은 하루", "thanks — 고마워요"))
+        .containsExactly("good day — 좋은 하루", "thanks — 고마워요");
+  }
+
+  @Test
+  @DisplayName("워커가 보낸 후보에서 잘라 온 구를 건너뛰고 3개까지 보내고, 이어 하기(CONV-10)에도 같은 단어를 보낸다 (S15P31A305-868)")
+  void suggestWords_showsUpToThreeSkippingCutPhrases() {
+    List<String> shown =
+        suggestWordsWith(
+            "Have a good day.",
+            "have a good — 좋은 ~ 보내세요",
+            "day — 하루",
+            "thanks — 고마워요",
+            "see you — 또 봐요",
+            "bye — 잘 가요");
+
+    assertThat(shown).containsExactly("day — 하루", "thanks — 고마워요", "see you — 또 봐요");
+    assertThat(conversationService.detail(userId, conversation.getId()).turns())
+        .filteredOn(turn -> npcTurn.getId().equals(turn.turnId()))
+        .singleElement()
+        .extracting(TurnDetailResponse::suggestWords)
+        .isEqualTo(shown);
+  }
+
+  private List<String> suggestWordsWith(String hintText, String... words) {
+    given(aiGateway.suggest(any(), any(), anyList(), anyString(), anyInt()))
+        .willReturn(new SuggestResult(List.of(words), List.of(usage("suggest"))));
+    given(aiGateway.hint(any(), any(), anyList(), anyString(), anyInt()))
+        .willReturn(
+            new HintResult(
+                List.of(new HintResult.Phrase(hintText, "좋은 하루 보내세요.")),
+                List.of(),
+                List.of(usage("hint"))));
+    return turnHelpService.suggestWords(userId, npcTurn.getId(), UUID.randomUUID()).suggestWords();
   }
 
   @Test
@@ -387,7 +439,7 @@ class TurnHelpServiceTest {
     assertThat(response)
         .isEqualTo(
             new SuggestWordsResponse(
-                npcTurn.getId(), List.of("to go"), "For here, please.", "여기서 먹을게요."));
+                npcTurn.getId(), List.of("for here", "to go"), "For here, please.", "여기서 먹을게요."));
     ArgumentCaptor<List<WorkerLine>> history = ArgumentCaptor.forClass(List.class);
     then(aiGateway)
         .should()

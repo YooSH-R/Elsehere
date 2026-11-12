@@ -20,6 +20,7 @@ import com.elsehere.ai.client.FollowUpResult;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.MemoryCardResult;
+import com.elsehere.ai.client.NpcReplyListener;
 import com.elsehere.ai.client.WorkerFeedback;
 import com.elsehere.ai.client.WorkerFollowUp;
 import com.elsehere.ai.client.WorkerLearner;
@@ -45,6 +46,7 @@ import com.elsehere.dialogue.dto.ConversationDetailResponse;
 import com.elsehere.dialogue.dto.ConversationStartResponse;
 import com.elsehere.dialogue.dto.EndConversationRequest;
 import com.elsehere.dialogue.dto.EndConversationResponse;
+import com.elsehere.dialogue.dto.NpcTravelContext;
 import com.elsehere.dialogue.dto.SpeechStatus;
 import com.elsehere.dialogue.dto.StartConversationRequest;
 import com.elsehere.dialogue.dto.TurnRequest;
@@ -323,6 +325,99 @@ class ConversationServiceTest {
         .contains("does not take orders or serve anyone");
     assertThat(instruction.getValue()).contains("off work").doesNotContain("how you can help");
     assertThat(response.openingTurn().text()).isEqualTo("Oh, hey there!");
+  }
+
+  @Test
+  void start_streetGreeting_replacesRecentOpeningBeforeSendingIt() {
+    String previousLine = "What's on your mind!";
+    Conversation previous =
+        Conversation.start(
+            userId, npcId(entityManager, "TOWN_PASSERBY"), InitiatedBy.USER, 1, clock.instant());
+    previous.endByUser(clock.instant());
+    conversationRepository.save(previous);
+    turnRepository.save(Turn.npc(previous, 1, previousLine, null, clock.instant()));
+    String repeatedLine = "What’s on your mind?";
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply(repeatedLine, null));
+    given(
+            aiGateway.reply(
+                any(), any(), any(), any(), anyString(), anyString(), anyInt(), any(), any()))
+        .willAnswer(
+            invocation -> {
+              invocation.<NpcReplyListener>getArgument(8).onDelta(repeatedLine);
+              return reply(repeatedLine, null);
+            });
+    given(aiGateway.synthesize(any(), anyString(), anyString(), any(Double.class))).willReturn(WAV);
+    StringBuilder sentText = new StringBuilder();
+
+    ConversationStartResponse response =
+        conversationService.start(
+            userId,
+            new StartConversationRequest(
+                new UUID(0, 1),
+                "TOWN_PASSERBY",
+                InitiatedBy.USER,
+                false,
+                new NpcTravelContext(NpcTravelContext.Phase.WALKING, 0, 0, 0, 0),
+                null,
+                "TOWN"),
+            new TurnEvents() {
+              @Override
+              public void delta(String text) {
+                sentText.append(text);
+              }
+
+              @Override
+              public void audio(int seq, String text, byte[] wav) {}
+            });
+
+    assertThat(response.openingTurn().text()).isNotEqualTo(repeatedLine);
+    assertThat(sentText.toString()).isEqualTo(response.openingTurn().text());
+    then(aiGateway)
+        .should()
+        .reply(
+            any(),
+            any(),
+            any(),
+            eq(List.of()),
+            anyString(),
+            argThat(instruction -> instruction.contains(previousLine)),
+            anyInt(),
+            any());
+    then(aiGateway)
+        .should()
+        .synthesize(any(), eq(response.openingTurn().text()), eq("am_fenrir"), any(Double.class));
+  }
+
+  @Test
+  void start_streetGreeting_canBeJustHi() {
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Hi.", null));
+
+    ConversationStartResponse response =
+        conversationService.start(
+            userId,
+            new StartConversationRequest(
+                new UUID(0, 0),
+                "TOWN_GRANDMOTHER",
+                InitiatedBy.USER,
+                false,
+                new NpcTravelContext(NpcTravelContext.Phase.WALKING, 0, 0, 0, 0),
+                null,
+                "TOWN"));
+
+    assertThat(response.openingTurn().text()).isEqualTo("Hi.");
+    then(aiGateway)
+        .should()
+        .reply(
+            any(),
+            argThat(npc -> npc.profile() != null && npc.scene().contains("out for a walk")),
+            any(),
+            eq(List.of()),
+            anyString(),
+            argThat(instruction -> instruction.contains("one or two words")),
+            anyInt(),
+            any());
   }
 
   @Test

@@ -233,7 +233,7 @@ async def meaning(llm: LLM, req: MeaningRequest) -> dict:
     return {"meaning_ko": meaning_ko, "glossary": glossary[:25], "usage": usage.items}
 
 
-# 주어로 시작하거나(I'm sorry) 문장 부호로 끝나는 말은 단어가 아니라 문장이라, 모델이 단어라고 해도 추천 단어에 넣지 않는다.
+# 주어로 시작하거나(I'm sorry) 문장 부호로 끝나는 말은 단어가 아니라 문장이라, 모델이 단어라고 해도 단어가 모자랄 때만 넣는다.
 SENTENCE_LIKE = re.compile(
     r"^(?:i|i'm|i'd|i'll|i've|you|you're|you'll|we|we're|he|he's|she|she's|they|they're|it's|that's|there's)\b|[.?!]$",
     re.IGNORECASE,
@@ -244,12 +244,18 @@ def sentence_like(text: str) -> bool:
     return bool(SENTENCE_LIKE.search(text.replace("’", "'").strip()))
 
 
+# Spring이 추천 문장에서 잘라 온 말을 거르고도 3개를 보이도록 후보를 넉넉히 보낸다
+SUGGEST_CANDIDATES = 5
+# 추천 단어가 비거나 1개만 보이지 않게 지키는 수
+FEWEST_WORDS = 2
+
+
 async def suggest(llm: LLM, req: SuggestRequest) -> dict:
     """다음 답변을 만드는 어휘와 뜻. 기존 words 문자열 배열 계약을 유지한다."""
     usage = Usage()
     msgs = P.suggest_messages(req.npc, req.scene or req.npc.scene, req.goal, req.history, req.level)
     res = load_object(await llm.chat("suggest", "hint", msgs, usage, 0.3, 320, P.SUGGEST_SCHEMA), "추천 단어")
-    words = []
+    words, sentences = [], []
     seen = set()
     for w in res.get("words") if isinstance(res.get("words"), list) else []:
         if isinstance(w, dict):
@@ -257,7 +263,7 @@ async def suggest(llm: LLM, req: SuggestRequest) -> dict:
             if w.get("kind") != "vocabulary" or not isinstance(text, str) or not isinstance(meaning, str):
                 continue
             text, meaning = " ".join(text.split()), " ".join(meaning.split())
-            if not meaning or len(meaning) > 60 or sentence_like(text):
+            if not meaning or len(meaning) > 60:
                 continue
             label = f"{text} — {meaning}"
         else:  # 이전 고정 응답·캐시와의 호환. 신규 모델 출력은 위의 구조를 사용한다.
@@ -265,10 +271,11 @@ async def suggest(llm: LLM, req: SuggestRequest) -> dict:
             label = text
         if text and len(text) <= 60 and text.casefold() not in seen:
             seen.add(text.casefold())
-            words.append(label)
+            (sentences if isinstance(w, dict) and sentence_like(text) else words).append(label)
+    words += sentences[: max(0, FEWEST_WORDS - len(words))]
     if not words:
         raise ModelOutputError("추천 단어 출력에 단어가 없음")
-    return {"words": words[:3], "usage": usage.items}
+    return {"words": words[:SUGGEST_CANDIDATES], "usage": usage.items}
 
 
 async def level_test_speaking(llm: LLM, req: LevelTestSpeakingRequest) -> dict:

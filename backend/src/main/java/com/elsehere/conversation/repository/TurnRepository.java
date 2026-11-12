@@ -25,6 +25,16 @@ public interface TurnRepository extends JpaRepository<Turn, Long> {
 
   List<Turn> findAllByConversationIdOrderBySeqAsc(Long conversationId);
 
+  /** 같은 사용자와 NPC가 나눈 최근 일반 대화의 첫 대사. 복습과 장소 연습은 제외한다. */
+  @Query(
+      "select t.text from Turn t join t.conversation c"
+          + " where c.userId = :userId and c.npcId = :npcId"
+          + " and c.reviewCardId is null and c.practiceScenario is null"
+          + " and t.seq = 1 and t.speaker = com.elsehere.conversation.entity.Speaker.NPC"
+          + " order by c.startedAt desc, c.id desc")
+  List<String> findRecentNpcOpenings(
+      @Param("userId") Long userId, @Param("npcId") Long npcId, Limit limit);
+
   List<Turn> findByConversationIdAndSeqLessThanEqualOrderBySeqDesc(
       Long conversationId, int seq, Limit limit);
 

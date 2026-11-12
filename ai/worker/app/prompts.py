@@ -480,7 +480,7 @@ def meaning_messages(npc: Npc, text: str, level: int = 2) -> list[dict]:
 
 
 SUGGEST_SYSTEM = """You suggest words for a Korean learner of English in a role-play. The learner is about to reply to the partner's latest line.
-Give up to 3 useful English words, short conversational chunks or idioms (prefer 1-4 words each), with a short Korean meaning in this context.
+Give 5 useful English words, short conversational chunks or idioms (prefer 1-4 words each), most useful first, with a short Korean meaning in this context.
 Help the learner compose their OWN next reply, not words mechanically extracted from a suggested sentence.
 Choose goal-relevant vocabulary and natural short chunks at their level, rather than generic please/yes/no or long sentence stems.
 Short answers such as 'for here' or 'to go', and concise phrases such as 'the usual', 'check in', 'sold out' or 'turn in' are welcome when the current situation calls for them. Do not force them into unrelated scenes.

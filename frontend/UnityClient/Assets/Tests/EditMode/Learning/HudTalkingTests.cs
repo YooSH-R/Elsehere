@@ -71,12 +71,14 @@ namespace A305.Learning.Tests
         }
 
         [Test]
-        public void WhileTalking_ShowsTheSpeakerAndRestoresTheOtherIconsWhenFinished()
+        public void WhileTalking_HidesThePhoneAndSurveyAndRestoresThemWhenFinished()
         {
             instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(HudPrefabPath));
             var hud = instance.GetComponent<LearningHudView>();
             GameObject bar = instance.transform.Find("Panel/MenuBar").gameObject;
-            GameObject speaker = instance.transform.Find("BackgroundSoundButton").gameObject;
+            // 스피커는 설정 창의 효과음으로 옮겨 HUD에 없다(S15P31A305-861).
+            Assert.That(instance.transform.Find("BackgroundSoundButton"), Is.Null);
+            Assert.That(instance.transform.Find("BackgroundSoundVolume"), Is.Null);
             var survey = instance.GetComponentInChildren<SurveyPromptView>(true);
 
             SurveyPrompt.RevealEntry();
@@ -85,12 +87,10 @@ namespace A305.Learning.Tests
                 hud.SetTalking(true);
                 Assert.That(bar.activeSelf, Is.False);
                 Assert.That(survey.IsEntryVisible, Is.False);
-                Assert.That(speaker.activeSelf, Is.True);
 
                 hud.SetTalking(false);
                 Assert.That(bar.activeSelf, Is.True);
                 Assert.That(survey.IsEntryVisible, Is.True);
-                Assert.That(speaker.activeSelf, Is.True);
             }
             finally
             {

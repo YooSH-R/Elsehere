@@ -27,7 +27,7 @@ namespace A305.Onboarding.Tests
         [TestCase("Assets/Prefabs/Onboarding/EntryScreens.prefab", "TermsPanel/AllAgreeRow")]
         [TestCase(
             "Assets/Prefabs/Learning/LearningHud.prefab",
-            "MyPage/Window/Consents/ConsentRowTemplate"
+            "Settings/Window/Consents/ConsentRowTemplate"
         )]
         public void ConsentCheck_IsTheMockupCircle(string prefabPath, string rowPath)
         {
@@ -47,7 +47,7 @@ namespace A305.Onboarding.Tests
         [TestCase("Assets/Prefabs/Onboarding/EntryScreens.prefab", "TermsPanel/AllAgreeRow")]
         [TestCase(
             "Assets/Prefabs/Learning/LearningHud.prefab",
-            "MyPage/Window/Consents/ConsentRowTemplate"
+            "Settings/Window/Consents/ConsentRowTemplate"
         )]
         public void ConsentCheck_StaysRoundInATallRow(string prefabPath, string rowPath)
         {

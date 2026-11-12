@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using A305.Player;
 using A305.Theme;
+using A305.World;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -249,7 +250,8 @@ namespace A305.Dialogue
             int verifiedCount,
             string scenario = null,
             string heading = null,
-            string countLabel = "말해봤어요"
+            string countLabel = "말해봤어요",
+            bool listFirst = false
         )
         {
             reviewScenario = scenario;
@@ -258,7 +260,8 @@ namespace A305.Dialogue
                 items,
                 verifiedCount,
                 scenario,
-                countLabel
+                countLabel,
+                listFirst
             );
             SetReviewReference(formatted.Text);
             if (reviewBadges != null)
@@ -1141,11 +1144,10 @@ namespace A305.Dialogue
             CoverHiddenWords();
         }
 
-        // 자막은 NPC 대사를 음성으로 들려주는 대화에서만 끌 수 있다. 음성이 없는 대본 대화나 음성 생성 실패·만료처럼
-        // 지금 대사를 들을 수 없으면 가렸을 때 대사를 알 방법이 없으므로 보인다(기능명세 F-25).
+        // 음성보다 글자가 먼저 올 수 있으므로 수신 중에도 자막을 가린다. 수신이 끝나도 들을 음성이 없으면 글자를 보인다(F-25).
         private bool HidesNpcLines =>
             content.SpeaksNpcLines
-            && content.IsNpcSpeechReady
+            && (content.IsReceivingNpcReply || content.IsNpcSpeechReady)
             && !NpcSubtitlePreference.ShowsSubtitles;
 
         private void ShowSubtitleButton()
@@ -1448,7 +1450,14 @@ namespace A305.Dialogue
 
         // 단어·추천 문장 카드에 남겨 둘 높이. 펼친 추천 문장 한 줄과 그 뜻이 잘리지 않고 다 보이는 높이다.
         // 이보다 많이 눌리면 [힌트]가 추천 문장 카드 밖으로 나가고 단어가 한 줄만 보인다.
-        private const float MinSuggestionsHeight = 400;
+        private const float MinSuggestionsHeight = 494;
+
+        // 대사가 짧아 자리가 남을 때 두 카드가 커지는 상한
+        private const float MaxSuggestionsHeight = 534;
+
+        // 단어·추천 문장 카드 자리. 대화 중에는 오른쪽 위 휴대폰·시계·코인이 숨으므로 화면 위·오른쪽 여백부터 쓴다.
+        private const float SuggestionsTop = HudTopBarLayout.Margin;
+        private const float SuggestionsRight = HudTopBarLayout.Margin;
 
         [SerializeField]
         private TMP_Text vehicleStatusText;
@@ -1535,7 +1544,7 @@ namespace A305.Dialogue
             // 오른쪽 위 단어·추천 문장 카드 자리. 대사와 영어 표현 카드는 이 자리를 넘지 않는 높이까지만 키운다.
             float roomAboveName =
                 suggestions != null && reviewReference == null
-                    ? HelpTop + MinSuggestionsHeight + 2 * DialogueCinemaLayout.Gap
+                    ? SuggestionsTop + MinSuggestionsHeight + 2 * DialogueCinemaLayout.Gap
                     : 0;
             DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
                 lastCanvasSize,
@@ -1627,10 +1636,15 @@ namespace A305.Dialogue
                 lastCanvasSize.y - HelpTop - layout.Name.yMax - 2 * DialogueCinemaLayout.Gap;
             if (suggestions != null && reviewReference == null)
             {
+                float suggestionsRoom =
+                    lastCanvasSize.y
+                    - SuggestionsTop
+                    - layout.Name.yMax
+                    - 2 * DialogueCinemaLayout.Gap;
                 suggestions.SetBounds(
-                    new Vector2(-HelpMargin, -HelpTop),
-                    Mathf.Min(HelpWidth, lastCanvasSize.x - 2 * HelpMargin),
-                    Mathf.Clamp(helpRoom, 0, 440)
+                    new Vector2(-SuggestionsRight, -SuggestionsTop),
+                    Mathf.Min(HelpWidth, lastCanvasSize.x - 2 * SuggestionsRight),
+                    Mathf.Clamp(suggestionsRoom, 0, MaxSuggestionsHeight)
                 );
                 PlaceVehicleStatus(layout);
                 return;

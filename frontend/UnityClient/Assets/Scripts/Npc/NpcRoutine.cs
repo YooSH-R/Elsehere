@@ -335,6 +335,53 @@ namespace A305.Npc
 
         internal bool HasServiceCounter => hasCounter;
 
+        internal Pose ConversationPost => hasCounter ? ServicePose() : body.HomePose;
+
+        internal bool AllowsConversationPosition(Vector3 point)
+        {
+            if (!stayInArea)
+                return true;
+            // 사물 중심을 검사하던 구역이므로 발밑 높이는 응대 자리와 비교한다.
+            return Mathf.Abs(point.y - ConversationPost.position.y) < .5f
+                && area.Contains(new Vector3(point.x, area.center.y, point.z));
+        }
+
+        internal Vector3 ConversationCustomerPosition
+        {
+            get
+            {
+                Pose post = ConversationPost;
+                if (!hasCounter)
+                    return post.position + post.rotation * Vector3.forward * 1.8f;
+                Vector3 nearest = counterBounds.ClosestPoint(
+                    new Vector3(post.position.x, counterBounds.center.y, post.position.z)
+                );
+                Vector3 towardCounter = Flat(nearest - post.position);
+                int axis =
+                    towardCounter.sqrMagnitude > .0001f
+                        ? (Mathf.Abs(towardCounter.x) > Mathf.Abs(towardCounter.z) ? 0 : 2)
+                        : (counterBounds.extents.x < counterBounds.extents.z ? 0 : 2);
+                Vector3 customer = CustomerAcrossCounter(post, axis);
+                if (!AllowsConversationPosition(customer))
+                    customer = post.position - (customer - post.position).normalized * 1.8f;
+                return customer;
+            }
+        }
+
+        private Vector3 CustomerAcrossCounter(Pose post, int axis)
+        {
+            float direction = Mathf.Sign(counterBounds.center[axis] - post.position[axis]);
+            float distance = Mathf.Max(
+                1.8f,
+                Mathf.Abs(counterBounds.center[axis] - post.position[axis])
+                    + counterBounds.extents[axis]
+                    + .8f
+            );
+            Vector3 customer = post.position;
+            customer[axis] += direction * distance;
+            return customer;
+        }
+
         /// <summary>다가오지 않는 동안(기다림·쉬기) <see cref="Passerby"/>가 매 프레임 부른다.</summary>
         internal void Live(Vector3 playerPosition)
         {

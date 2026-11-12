@@ -36,5 +36,8 @@ namespace A305.Learning
         public string UsageKo { get; set; }
         public string ExampleEn { get; set; }
         public string ExampleKo { get; set; }
+
+        /// <summary>고친 문장이면 학습자가 원래 한 말. 상황 표현은 null이다.</summary>
+        public string OriginalText { get; set; }
     }
 }

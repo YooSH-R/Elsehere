@@ -803,11 +803,12 @@ namespace A305.Dialogue
 
         public void SetReviewReference(string text) => panel.SetReviewReference(text);
 
+        /// <summary>복습 대화 위 참고 카드. 다시 말해 볼 문장을 먼저 보이고 상황 설명은 그 아래에 둔다.</summary>
         public void SetReviewReference(
             IReadOnlyList<ReviewReferenceItem> items,
             int count,
             string scenario = null
-        ) => panel.SetReviewReference(items, count, scenario);
+        ) => panel.SetReviewReference(items, count, scenario, listFirst: true);
 
         /// <summary>장소 연습 대화 위 참고 카드. 상황 설명 아래 목표를 보이고 해낸 목표에 표시한다.</summary>
         public void SetPracticeReference(

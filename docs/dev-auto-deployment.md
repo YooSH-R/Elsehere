@@ -56,7 +56,7 @@ GitLab의 `a305-dev-release` 자원 그룹은 `process_mode=newest_ready_first`�
 - 환경 파일: `/home/ubuntu/apps/a305/dev/deploy.env`.
 - 모니터링 추가 Compose: `/home/ubuntu/apps/a305/monitoring/config/compose.observability.yaml`.
 - 개발 워커 네트워크 추가 Compose: `/home/ubuntu/apps/a305/dev/config/compose.dev-worker-network.yaml`. 고정 IP·자동 할당 범위·브리지와 최초 전환은 [GPU 워커 네트워크 운영](gpu-worker-network.md)을 따릅니다. `fixed_worker_network` 검사를 활성화하고 재기동·복구에서도 같은 추가 설정을 사용합니다.
-- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MONITORING_PASSWORD`, `OBSERVABILITY_WEB_LOG_CONFIG`, DB·AI·공급자 비밀값은 서버 파일에 유지합니다. CI에 전달하지 않습니다.
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ADMIN_LOGIN_ID`, `ADMIN_PASSWORD`, `MONITORING_PASSWORD`, `OBSERVABILITY_WEB_LOG_CONFIG`, DB·AI·공급자 비밀값은 서버 파일에 유지합니다. CI에 전달하지 않습니다. 개발 어드민 비밀번호는 운영과 다르게 정하고 12자 이상·72바이트 이하로 설정합니다. 두 어드민 값이 비어 있으면 로그인만 비활성화됩니다.
 - 웹 로그 설정의 읽기 전용 마운트, 백엔드 내부 관리 주소와 비공개 포트를 유지합니다.
 - NPC 음성은 백엔드의 쓰기 가능한 `/app/data/npc-audio`에 저장하고 환경별 `npc-audio-data` 볼륨으로 유지합니다. 백엔드의 AI 내부 주소는 `AI_WORKER_BASE_URL=http://ai-worker:8020`으로 연결합니다.
 - 수신기는 NPC 음성 경로·마운트·개발 볼륨 이름과 실행 중인 백엔드의 실제 볼륨을 대조합니다. 누락·읽기 전용·다른 볼륨으로의 변경은 앱 교체 전에 거절하며, 저장 위치 이전은 [음성 저장 운영 기준](npc-audio-storage.md)에 따라 별도로 준비합니다.
@@ -69,6 +69,8 @@ GitLab의 `a305-dev-release` 자원 그룹은 `process_mode=newest_ready_first`�
 ### Google 로그인 설정 유지
 
 개발 Google 웹 클라이언트의 두 값은 `~/apps/a305/dev/deploy.env`에서 관리합니다. 앱 Compose는 두 값을 백엔드에 필수 환경변수로 전달합니다. 배포 수신기는 이 서버 환경 파일과 릴리스의 `images.env`를 함께 읽고, 성공 시 이미지 변수만 갱신해 Google 설정을 보존합니다. 실패 복구에서도 배포 전 환경 파일을 복원합니다.
+
+어드민 로그인 계정은 같은 서버 환경 파일의 `ADMIN_LOGIN_ID`·`ADMIN_PASSWORD`로 관리합니다. 비밀번호에 `$`가 있으면 Compose 치환을 피하도록 `$$`로 적어야 할 수 있으므로 적용 전에 `docker compose config`로 확인합니다. 값을 바꿀 때는 백엔드 컨테이너를 다시 만들어야 하며 모든 로그인 세션이 종료됩니다. 비밀번호나 해석된 환경변수 값은 출력·로그에 남기지 않습니다.
 
 수신기는 Google 값 누락·빈 값·`not-configured` 또는 기존 서버 설정과 다른 값이 해석되는 후보를 컨테이너 교체 전에 거절합니다. 클라이언트 값을 바꿀 때는 서버 `deploy.env`를 수정합니다. 후보와 이전 Compose 모두 같은 현재 환경 파일로 해석하므로 정상적인 값 교체는 가능합니다. 실제 값과 인증 JSON 파일은 소스·이미지·CI 변수·산출물에 넣지 않습니다.
 

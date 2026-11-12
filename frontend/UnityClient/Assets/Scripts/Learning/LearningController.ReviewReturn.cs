@@ -25,6 +25,19 @@ namespace A305.Learning
             );
             if (reviewReturn.TryBegin(point))
                 return true;
+            if (reviewReturn.IsReturning)
+            {
+                // 돌아가다 멈춘 복귀를 다시 시도한다. 돌아온 뒤에 누르면 연습을 시작할 수 있다.
+                ResumeReviewReturn();
+                hudView.ShowMessage("원래 자리로 돌아가는 중이에요. 잠시 뒤 다시 눌러 주세요.");
+                return false;
+            }
+            if (!IsVisiting)
+            {
+                // 도착을 기다리던 중 장면이 바뀌어 방문이 끊기면 출발점만 남아 다음 연습을 계속 막는다. 남은 출발점은 버린다.
+                reviewReturn.Clear();
+                return reviewReturn.TryBegin(point);
+            }
             hudView.ShowMessage("연습을 마친 원래 자리로 돌아온 뒤 다시 연습해 주세요.");
             return false;
         }

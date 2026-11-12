@@ -242,7 +242,8 @@ namespace A305.Dialogue
             int verifiedCount,
             string scenario = null,
             string heading = null,
-            string countLabel = "말해봤어요"
+            string countLabel = "말해봤어요",
+            bool listFirst = false
         )
         {
             reviewScenario = scenario;
@@ -251,7 +252,8 @@ namespace A305.Dialogue
                 items,
                 verifiedCount,
                 scenario,
-                countLabel
+                countLabel,
+                listFirst
             );
             SetReviewReference(formatted.Text);
             if (reviewBadges != null)
@@ -1070,11 +1072,10 @@ namespace A305.Dialogue
             CoverHiddenWords();
         }
 
-        // 자막은 NPC 대사를 음성으로 들려주는 대화에서만 끌 수 있다. 음성이 없는 대본 대화나 음성 생성 실패·만료처럼
-        // 지금 대사를 들을 수 없으면 가렸을 때 대사를 알 방법이 없으므로 보인다(기능명세 F-25).
+        // 음성보다 글자가 먼저 올 수 있으므로 수신 중에도 자막을 가린다. 수신이 끝나도 들을 음성이 없으면 글자를 보인다(F-25).
         private bool HidesNpcLines =>
             content.SpeaksNpcLines
-            && content.IsNpcSpeechReady
+            && (content.IsReceivingNpcReply || content.IsNpcSpeechReady)
             && !NpcSubtitlePreference.ShowsSubtitles;
 
         private void ShowSubtitleButton()

@@ -8,7 +8,7 @@ from .clients import ModelClient, ProviderCallError
 from .model_output import restore_model_output
 from .models import INPUT, LLM_OUTPUT, surface_only_change, usable_turns, validate_pair
 from .prompt import build_messages
-from .situation_catalog import keep_useful
+from .situation_catalog import fill_up, keep_useful, situation_candidates
 from .spoken_usage import build_spoken_notes
 
 
@@ -122,7 +122,9 @@ def generate_feedback(payload, client: ModelClient, *, ai_allowed: bool):
             return _response(request, status="insufficient_evidence", problem=checked.problem.model_dump())
         result = checked.result.model_dump()
         user_texts = [turn.final_text for turn in request.turns if turn.speaker == "user" and turn.text_status == "final"]
-        result["situation_expressions"] = keep_useful(result["situation_expressions"], user_texts)
+        result["situation_expressions"] = fill_up(
+            keep_useful(result["situation_expressions"], user_texts), situation_candidates(request), user_texts
+        )
         result["spoken_usage_notes"] = build_spoken_notes(request, checked.result, checked.spoken_usage_selection)
         return _response(request, status="completed", result=result)
     except (ValueError, TypeError, ValidationError):

@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using TMPro;
 using UnityEditor;
@@ -39,31 +40,43 @@ namespace A305.Dialogue.PlayModeTests
                 Object.Destroy(eventSystem);
         }
 
+        private Transform Card => instance.transform.Find("Panel/UserTranslation");
+        private TMP_Text Heading => Card.Find("Heading").GetComponent<TMP_Text>();
+        private TMP_Text Expression =>
+            Card.Find("Viewport/Body/Expression").GetComponent<TMP_Text>();
+        private Button ListenButton => Card.Find("ListenButton").GetComponent<Button>();
+        private Button OthersButton => Card.Find("OthersButton").GetComponent<Button>();
+        private string OthersLabel => OthersButton.GetComponentInChildren<TMP_Text>(true).text;
+
+        // 펼친 다른 표현 줄(번호 칸). 접혀 있으면 없다.
+        private Transform[] OtherRows =>
+            Card.Find("Viewport/Body")
+                .Cast<Transform>()
+                .Where(row => row.name.StartsWith("Other ") && row.gameObject.activeSelf)
+                .ToArray();
+
         [UnityTest]
-        public IEnumerator Translation_ShowsBesideTheConversation_WithTheApprovedCaptionAndSmallText()
+        public IEnumerator KoreanLine_ShowsItsEnglishBesideTheConversation_WithSmallerText()
         {
             view.Show(new Content { UserTranslation = "Where is the cafe?" });
             yield return null;
-            Transform card = instance.transform.Find("Panel/UserTranslation");
-            Assert.That(card.gameObject.activeInHierarchy, Is.True);
-            Assert.That(
-                card.Find("Heading").GetComponent<TMP_Text>().text,
-                Is.EqualTo("방금 한 말의 영어 표현이에요.")
-            );
-            var expression = card.Find("Viewport/Expression").GetComponent<TMP_Text>();
-            Assert.That(expression.text, Is.EqualTo("Where is the cafe?"));
+            Assert.That(Card.gameObject.activeInHierarchy, Is.True);
+            Assert.That(Heading.text, Is.EqualTo("영어로는 이렇게 말해요"));
+            Assert.That(Expression.GetParsedText(), Is.EqualTo("Where is the cafe?"));
             var lines = instance
                 .transform.Find("Panel/Conversation/History")
                 .GetComponentInChildren<TMP_Text>(true);
-            Assert.That(expression.fontSize, Is.LessThanOrEqualTo(lines.fontSize));
+            Assert.That(Expression.fontSize, Is.LessThanOrEqualTo(lines.fontSize));
             Assert.That(lines.text, Does.Contain("카페 어디야?"));
-            Assert.That(card.GetComponentsInChildren<Button>(true), Has.Length.EqualTo(1));
+            Assert.That(ListenButton.gameObject.activeSelf, Is.True);
             Assert.That(
-                card.Find("ListenButton").GetComponentInChildren<TMP_Text>(true).text,
+                ListenButton.GetComponentInChildren<TMP_Text>(true).text,
                 Is.EqualTo("듣기")
             );
-            var panel = (RectTransform)card.parent;
-            Rect cardArea = InPanel((RectTransform)card, panel);
+            // 다른 표현이 없으면 [더 보기]도 없다.
+            Assert.That(OthersButton.gameObject.activeSelf, Is.False);
+            var panel = (RectTransform)Card.parent;
+            Rect cardArea = InPanel((RectTransform)Card, panel);
             Rect historyArea = InPanel(
                 (RectTransform)instance.transform.Find("Panel/Conversation/History"),
                 panel
@@ -72,26 +85,28 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(cardArea.Overlaps(historyArea), Is.False);
         }
 
-        // 영어로 한 말에 온 표현은 교정문이므로, 고친 문장을 다시 말해 보도록 제목을 바꾼다.
+        // 영어로 틀리게 한 말에는 발화 전체를 고친 문장을 보이고, 학습자가 한 말과 달라진 곳에 밑줄을 긋는다.
+        // 지금 다시 말하라고 재촉하지 않는 제목을 쓴다 (S15P31A305-862).
         [UnityTest]
-        public IEnumerator CorrectionOfEnglish_AsksToSayTheFixedSentenceAgain()
+        public IEnumerator EnglishCorrection_ShowsTheWholeFixedSentence_WithTheChangedWordsMarked()
         {
             var content = new Content
             {
-                UserLine = "I eat here. No onion please.",
-                UserTranslation = "I'll eat here. No onions, please.",
+                UserLine = "i want to speak korea",
+                UserTranslation = "I want to speak Korean.",
             };
             view.Show(content);
             yield return null;
-            var heading = instance
-                .transform.Find("Panel/UserTranslation/Heading")
-                .GetComponent<TMP_Text>();
-            Assert.That(heading.text, Is.EqualTo("이렇게 고쳐 말해 보세요."));
+            Assert.That(Heading.text, Is.EqualTo("이렇게 말하면 자연스러워요"));
+            Assert.That(Expression.GetParsedText(), Is.EqualTo("I want to speak Korean."));
+            Assert.That(Expression.text, Does.Contain("<u><noparse>I</noparse></u>"));
+            Assert.That(Expression.text, Does.Contain("<u><noparse>Korean</noparse></u>"));
+            Assert.That(Expression.text, Does.Not.Contain("<u><noparse>want"));
 
             content.UserLine = "여기서 먹을게요.";
             content.UserTranslation = "I'll eat here.";
             view.Refresh();
-            Assert.That(heading.text, Is.EqualTo("방금 한 말의 영어 표현이에요."));
+            Assert.That(Heading.text, Is.EqualTo("영어로는 이렇게 말해요"));
         }
 
         [UnityTest]
@@ -103,10 +118,7 @@ namespace A305.Dialogue.PlayModeTests
             view.SendRequested += text => sends++;
             view.Show(new Content { UserTranslation = "Where is the cafe?" });
             yield return null;
-            instance
-                .transform.Find("Panel/UserTranslation/ListenButton")
-                .GetComponent<Button>()
-                .onClick.Invoke();
+            ListenButton.onClick.Invoke();
             Assert.That(spoken, Is.EqualTo("Where is the cafe?"));
             Assert.That(sends, Is.Zero);
         }
@@ -119,16 +131,10 @@ namespace A305.Dialogue.PlayModeTests
             yield return null;
             content.UserTranslation = null;
             view.Refresh();
-            Assert.That(
-                instance.transform.Find("Panel/UserTranslation").gameObject.activeSelf,
-                Is.False
-            );
+            Assert.That(Card.gameObject.activeSelf, Is.False);
             view.Show(new Content());
             yield return null;
-            Assert.That(
-                instance.transform.Find("Panel/UserTranslation").gameObject.activeSelf,
-                Is.False
-            );
+            Assert.That(Card.gameObject.activeSelf, Is.False);
         }
 
         [UnityTest]
@@ -137,9 +143,8 @@ namespace A305.Dialogue.PlayModeTests
             instance.GetComponent<RectTransform>().sizeDelta = new Vector2(900, 1400);
             view.Show(new Content { UserTranslation = "Where is the cafe?" });
             yield return null;
-            Transform card = instance.transform.Find("Panel/UserTranslation");
-            var panel = (RectTransform)card.parent;
-            Rect cardArea = InPanel((RectTransform)card, panel);
+            var panel = (RectTransform)Card.parent;
+            Rect cardArea = InPanel((RectTransform)Card, panel);
             Rect historyArea = InPanel(
                 (RectTransform)instance.transform.Find("Panel/Conversation/History"),
                 panel
@@ -150,46 +155,56 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(cardArea.xMax, Is.LessThanOrEqualTo(panel.rect.xMax));
         }
 
+        // 카드는 내용이 짧으면 짧아지고, 길어지면 대화창이 카드에 맞춰 커진다. 대화창 최대 높이 안이면 문장이 다 보인다.
         [UnityTest]
-        [TestCase(1920, 1080, ExpectedResult = null)]
-        [TestCase(900, 1400, ExpectedResult = null)]
-        public IEnumerator LongExpression_GrowsTheCardSoNoLineIsCut(float width, float height)
+        public IEnumerator LongExpression_GrowsTheCardAndTheDialogue_WithoutScrolling()
         {
-            instance.GetComponent<RectTransform>().sizeDelta = new Vector2(width, height);
-            view.Show(
-                new Content
-                {
-                    UserTranslation =
-                        "You have no conscience, do you? I should've just left you to die. "
-                        + "What were you even thinking back there?",
-                }
-            );
+            var content = new Content { UserTranslation = "Where is the cafe?" };
+            view.Show(content);
             yield return null;
-            Transform card = instance.transform.Find("Panel/UserTranslation");
-            var viewport = (RectTransform)card.Find("Viewport");
-            var expression = viewport.Find("Expression").GetComponent<TMP_Text>();
-            float needed = expression.GetPreferredValues(expression.text, viewport.rect.width, 0).y;
-            Assert.That(viewport.rect.height, Is.GreaterThanOrEqualTo(needed - .5f));
-            var panel = (RectTransform)card.parent;
-            Rect cardArea = InPanel((RectTransform)card, panel);
+            var panel = (RectTransform)Card.parent;
+            Rect shortCard = InPanel((RectTransform)Card, panel);
+            float nameBottom = InPanel((RectTransform)panel.Find("Title"), panel).yMin;
+
+            content.UserTranslation = LongExpression;
+            view.Refresh();
+            yield return null;
+            yield return null;
+            Rect longCard = InPanel((RectTransform)Card, panel);
             Rect nameArea = InPanel((RectTransform)panel.Find("Title"), panel);
-            Assert.That(cardArea.Overlaps(nameArea), Is.False);
+            Assert.That(longCard.height, Is.GreaterThan(shortCard.height));
+            Assert.That(nameArea.yMin, Is.GreaterThan(nameBottom));
+            Assert.That(longCard.Overlaps(nameArea), Is.False);
+            var scroll = Card.GetComponent<ScrollRect>();
+            Assert.That(
+                scroll.content.rect.height,
+                Is.LessThanOrEqualTo(scroll.viewport.rect.height + .5f)
+            );
+            Assert.That(panel.rect.height, Is.LessThanOrEqualTo(1080 + .5f));
         }
 
-        // 카드 상한보다 긴 표현은 막대로 더 있다는 걸 알리고, 글자를 끌어 마지막 줄까지 읽는다.
+        // 대화창 최대 높이보다 긴 표현은 그 높이에서 멈추고, 마지막 줄을 반쯤 가려 아래에 더 있다는 걸 알린다.
+        // 굵은 막대가 보이고, 글자를 끌어 마지막 줄까지 읽는다.
         [UnityTest]
-        public IEnumerator VeryLongExpression_ShowsAScrollbarAndDragsToTheLastLine()
+        public IEnumerator VeryLongExpression_StopsAtTheDialogueMaximum_HalfShowingTheNextLine()
         {
+            instance.GetComponent<RectTransform>().sizeDelta = new Vector2(1920, 720);
             view.Show(new Content { UserTranslation = VeryLongExpression });
             yield return null;
             yield return null;
-            var scroll = instance
-                .transform.Find("Panel/UserTranslation")
-                .GetComponent<ScrollRect>();
+            var scroll = Card.GetComponent<ScrollRect>();
             Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
             Assert.That(scroll.verticalScrollbar, Is.Not.Null);
             Assert.That(scroll.verticalScrollbar.gameObject.activeInHierarchy, Is.True);
+            Assert.That(
+                ((RectTransform)scroll.verticalScrollbar.transform).rect.width,
+                Is.GreaterThanOrEqualTo(10)
+            );
             Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(1).Within(.01f));
+            Expression.ForceMeshUpdate();
+            float line = Expression.preferredHeight / Expression.textInfo.lineCount;
+            float shownLines = scroll.viewport.rect.height / line;
+            Assert.That(shownLines - Mathf.Floor(shownLines), Is.InRange(.25f, .75f));
 
             GameObject text = scroll.content.gameObject;
             var drag = new PointerEventData(EventSystem.current ?? NewEventSystem())
@@ -212,71 +227,125 @@ namespace A305.Dialogue.PlayModeTests
             view.Show(new Content { UserTranslation = "Where is the cafe?" });
             yield return null;
             yield return null;
-            var scroll = instance
-                .transform.Find("Panel/UserTranslation")
-                .GetComponent<ScrollRect>();
+            var scroll = Card.GetComponent<ScrollRect>();
             Assert.That(scroll.verticalScrollbar, Is.Not.Null);
             Assert.That(scroll.verticalScrollbar.gameObject.activeInHierarchy, Is.False);
         }
 
-        // 시안 B: 틀리진 않았지만 어색하거나 짧은 영어는 안내와 [더보기]만 보이고, 누르면 같은 카드 안에 2~3문장 목록이 나온다.
-        // 카드는 커지지 않고 넘치는 문장은 카드 안에서 스크롤한다. 다시 누르면 [접기]에서 안내로 돌아간다 (S15P31A305-847)
+        // 맞게 말해도 같은 뜻의 다른 표현을 접어 둔다. 펼치면 문장마다 번호 칸으로 나뉘고 대화창이 카드에 맞춰 커진다.
+        // 대화창 최대 높이에 닿으면 다음 문장 칸을 반쯤 가려 아래에 더 있다는 걸 알리고,
+        // 아래 [접기]는 스크롤해도 카드 안에 그대로 보인다 (S15P31A305-862).
         [UnityTest]
-        public IEnumerator BetterSentences_OpenFromMoreInTheSameCardSize_AndScrollInside()
+        public IEnumerator OtherExpressions_StayFolded_AndOpenAsNumberedRowsWithAFixedToggle()
         {
-            view.Show(
-                new Content
+            instance.GetComponent<RectTransform>().sizeDelta = new Vector2(1920, 720);
+            var content = new Content
+            {
+                UserLine = "Can I get a latte?",
+                UserBetterExpressions = new[]
                 {
-                    UserBetterExpressions = new[]
-                    {
-                        "Can I get a latte, please?",
-                        "I'd like a latte, please.",
-                        "Could I have a latte?",
-                    },
-                }
-            );
+                    "I'd like a latte, please. I'm in a bit of a hurry, so a small one is fine.",
+                    "Could I have a latte? A small one is fine because I'm in a hurry.",
+                    "One latte, please. Make it small, I'm running a little late today.",
+                },
+            };
+            view.Show(content);
             yield return null;
             yield return null;
-            var card = (RectTransform)instance.transform.Find("Panel/UserTranslation");
-            var scroll = card.GetComponent<ScrollRect>();
-            var button = card.Find("ListenButton").GetComponent<Button>();
-            TMP_Text Label() => button.GetComponentInChildren<TMP_Text>(true);
-            Assert.That(card.gameObject.activeInHierarchy, Is.True);
-            Assert.That(
-                card.Find("Heading").GetComponent<TMP_Text>().text,
-                Is.EqualTo("이럴 때 쓰면 좋아요!")
-            );
-            Assert.That(
-                card.Find("Viewport/Guide").GetComponent<TMP_Text>().text,
-                Is.EqualTo("방금 한 말도 잘 통해요.\n이렇게 말하면 더 자연스러워요.")
-            );
-            Assert.That(card.Find("Viewport/BetterList").gameObject.activeSelf, Is.False);
-            Assert.That(card.Find("Viewport/Expression").gameObject.activeSelf, Is.False);
-            Assert.That(Label().text, Is.EqualTo("더보기"));
-            Vector2 closedSize = card.rect.size;
+            var panel = (RectTransform)Card.parent;
+            Assert.That(Card.gameObject.activeInHierarchy, Is.True);
+            Assert.That(Heading.text, Is.EqualTo("잘 말했어요"));
+            Assert.That(Expression.gameObject.activeSelf, Is.False);
+            Assert.That(ListenButton.gameObject.activeSelf, Is.False);
+            Assert.That(OthersButton.gameObject.activeSelf, Is.True);
+            Assert.That(OthersLabel, Is.EqualTo("다른 표현 3개 더 보기"));
+            Assert.That(OtherRows, Is.Empty);
 
-            button.onClick.Invoke();
+            OthersButton.onClick.Invoke();
             yield return null;
             yield return null;
 
-            var list = card.Find("Viewport/BetterList").GetComponent<TMP_Text>();
-            Assert.That(list.gameObject.activeSelf, Is.True);
-            Assert.That(card.Find("Viewport/Guide").gameObject.activeSelf, Is.False);
-            Assert.That(list.GetParsedText(), Does.Contain("Can I get a latte, please?"));
-            Assert.That(list.GetParsedText(), Does.Contain("Could I have a latte?"));
-            Assert.That(Label().text, Is.EqualTo("접기"));
-            Assert.That(card.rect.size, Is.EqualTo(closedSize));
-            Assert.That(scroll.content, Is.SameAs(list.rectTransform));
+            Assert.That(OthersLabel, Is.EqualTo("접기"));
+            Assert.That(
+                Card.Find("Viewport/Body/OthersHeading").GetComponent<TMP_Text>().text,
+                Is.EqualTo("이렇게도 말할 수 있어요")
+            );
+            Transform[] rows = OtherRows;
+            Assert.That(rows, Has.Length.EqualTo(3));
+            for (int index = 0; index < rows.Length; index++)
+            {
+                Assert.That(
+                    rows[index].Find("Number/Label").GetComponent<TMP_Text>().text,
+                    Is.EqualTo((index + 1).ToString())
+                );
+                Assert.That(
+                    rows[index].Find("Text").GetComponent<TMP_Text>().GetParsedText(),
+                    Is.EqualTo(content.UserBetterExpressions[index])
+                );
+            }
+            Rect openCard = InPanel((RectTransform)Card, panel);
+            Rect nameArea = InPanel((RectTransform)panel.Find("Title"), panel);
+            Assert.That(openCard.Overlaps(nameArea), Is.False);
+            Assert.That(panel.rect.height, Is.LessThanOrEqualTo(720 + .5f));
+
+            var scroll = Card.GetComponent<ScrollRect>();
             Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
-            Assert.That(scroll.verticalScrollbar.gameObject.activeInHierarchy, Is.True);
+            Rect viewportArea = InPanel((RectTransform)Card.Find("Viewport"), panel);
+            Rect cut = rows.Select(row => InPanel((RectTransform)row, panel))
+                .First(row => row.yMin < viewportArea.yMin - .5f);
+            Assert.That((cut.yMax - viewportArea.yMin) / cut.height, Is.InRange(.25f, .75f));
 
-            button.onClick.Invoke();
+            scroll.verticalNormalizedPosition = 0;
             yield return null;
+            Rect toggle = InPanel((RectTransform)OthersButton.transform, panel);
+            Assert.That(OthersButton.gameObject.activeInHierarchy, Is.True);
+            Assert.That(toggle.yMin, Is.GreaterThanOrEqualTo(openCard.yMin - .5f));
+            Assert.That(toggle.yMax, Is.LessThanOrEqualTo(openCard.yMax + .5f));
+            Assert.That(toggle.Overlaps(viewportArea), Is.False);
 
-            Assert.That(card.Find("Viewport/Guide").gameObject.activeSelf, Is.True);
-            Assert.That(Label().text, Is.EqualTo("더보기"));
-            Assert.That(card.rect.size, Is.EqualTo(closedSize));
+            OthersButton.onClick.Invoke();
+            yield return null;
+            Assert.That(OthersLabel, Is.EqualTo("다른 표현 3개 더 보기"));
+            Assert.That(OtherRows, Is.Empty);
         }
+
+        // 틀리게 말했을 때도 고친 문장 아래에 다른 표현을 접어 둔다. 다음 말을 하면 다시 접힌다.
+        [UnityTest]
+        public IEnumerator Correction_AlsoFoldsOtherExpressions_AndANewLineFoldsThemAgain()
+        {
+            var content = new Content
+            {
+                UserLine = "i want to speak korea",
+                UserTranslation = "I want to speak Korean.",
+                UserBetterExpressions = new[] { "I'd like to speak Korean." },
+            };
+            view.Show(content);
+            yield return null;
+            Assert.That(Heading.text, Is.EqualTo("이렇게 말하면 자연스러워요"));
+            Assert.That(Expression.gameObject.activeSelf, Is.True);
+            Assert.That(ListenButton.gameObject.activeSelf, Is.True);
+            Assert.That(OthersLabel, Is.EqualTo("다른 표현 1개 더 보기"));
+
+            OthersButton.onClick.Invoke();
+            yield return null;
+            Assert.That(OtherRows, Has.Length.EqualTo(1));
+
+            content.UserLine = "can we speak korean";
+            content.UserTranslation = "Can we speak Korean?";
+            content.UserBetterExpressions = new[]
+            {
+                "Could we talk in Korean?",
+                "Let's speak Korean.",
+            };
+            view.Refresh();
+            yield return null;
+            Assert.That(OthersLabel, Is.EqualTo("다른 표현 2개 더 보기"));
+            Assert.That(OtherRows, Is.Empty);
+        }
+
+        private const string LongExpression =
+            "You have no conscience, do you? I should've just left you to die. "
+            + "What were you even thinking back there?";
 
         // 한국어로 말하면 대사 칸이 좁아져 대사가 여러 줄로 늘어난다. 그래도 추천 문장 카드가 눌려 [힌트]가 카드 밖으로 나가지 않는다.
         [UnityTest]

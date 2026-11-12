@@ -108,7 +108,7 @@ class ConversationResponses {
     return phrases == null || phrases.isEmpty() ? null : jsonMapper.writeValueAsString(phrases);
   }
 
-  /** 더 좋은 문장이 없으면 null로 남긴다. */
+  /** 다른 표현이 없으면 null로 남긴다. */
   String writeBetterExpressions(List<String> sentences) {
     return sentences.isEmpty() ? null : jsonMapper.writeValueAsString(sentences);
   }

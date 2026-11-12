@@ -1114,9 +1114,9 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 조각 음성을 재생한 턴은 `turn`을 받은 뒤 턴 전체 음성을 다시 자동 재생하지 않습니다. [다시 듣기]는 `npcTurn.speech`의 턴 전체 음성(CONV-06)을 씁니다.
 - 대화 시작(CONV-01)의 첫 인사도 같은 방식으로 받을 수 있습니다(CONV-01 **스트리밍**).
 
-**학습자 영어 표현** — `userTurn.translation`은 학습자 말의 영어 번역 또는 문법 교정문 `{ "english": "Medium size, please." }`입니다. 한국어·한영 혼용은 영어로 번역하고, 잘못된 영어 문법은 원래 의미를 보존해 최소한으로 교정합니다. 생성된 표현이 있으면 무례 판정과 관계없이 기존 "영어로는 이렇게 말해요" 카드에 담습니다. 정상 구어체·짧은 답·대소문자/구두점만 다른 경우에는 `null`입니다. `userTurn.text`와 전사 원문은 교정문으로 대체하지 않으며 퀘스트·피드백은 계속 원문을 사용합니다. API 필드와 Unity 표시 경로는 유지합니다.
+**학습자 영어 표현** — `userTurn.translation`은 학습자 말의 영어 번역 또는 문법 교정문 `{ "english": "Medium size, please." }`입니다. 한국어·한영 혼용은 영어로 번역하고, 잘못된 영어 문법은 원래 의미를 보존해 최소한으로 교정합니다. 생성된 표현이 있으면 무례 판정과 관계없이 대화창 옆 영어 표현 카드에 담습니다(교정문은 "이렇게 말하면 자연스러워요", 번역은 "영어로는 이렇게 말해요"). Unity는 학습자가 한 말과 달라진 낱말에 밑줄을 긋습니다. 정상 구어체·짧은 답·대소문자/구두점만 다른 경우에는 `null`입니다. `userTurn.text`와 전사 원문은 교정문으로 대체하지 않으며 퀘스트·피드백은 계속 원문을 사용합니다. API 필드와 Unity 표시 경로는 유지합니다.
 
-**이럴 때 쓰면 좋아요** — `userTurn.betterExpressions`는 영어로만 말했고 틀리진 않았지만 어색하거나 너무 짧은 말(예: `Latte.`, `For here, please.`)에 같은 뜻으로 대신 말할 더 자연스러운 문장 최대 3개입니다(예: `["Can I get a latte, please?", "I'd like a latte, please."]`). 없으면 빈 목록이고, `translation`이 있으면(한국어·틀린 문장) 늘 빈 목록입니다. `turns.better_expressions`에 남기며 퀘스트·피드백 판정에는 쓰지 않습니다. Unity는 대화창 옆 카드에 "이럴 때 쓰면 좋아요!"와 [더보기]로 보여 줍니다.
+**다른 표현** — `userTurn.betterExpressions`는 학습자가 한 말과 같은 뜻을 다르게 말하는 자연스러운 문장 1~3개입니다(예: `["I'd like to speak Korean."]`). 더 나은 정답이 아니라 골라 쓸 수 있는 다른 표현이며, 맞게 말했을 때도, `translation`이 있을 때(틀린 문장·한국어 섞임)도 줍니다. 학습자가 한 말·`translation`과 같은 문장은 빼고, 의도 판정이 실패하면 빈 목록입니다. 이름은 처음 만들 때의 `betterExpressions`를 그대로 씁니다. `turns.better_expressions`에 남기며 퀘스트·피드백 판정에는 쓰지 않습니다. Unity는 대화창 옆 카드 아래에 [다른 표현 N개 더 보기]로 접어 두고, 펼치면 "이렇게도 말할 수 있어요" 아래에 번호 칸으로 보여 줍니다.
 
 **무례 판정** — 학습자 말이 무례한지(욕설·위협·모욕·조롱·하대) 턴마다 판정하고, 대화 하나 안에서 셉니다.
 
@@ -1753,7 +1753,7 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 | NPC 음성 보관 | CONV-06, 07 | `turns.npc_audio_key`를 추가했습니다. 보관·삭제·용량 기준은 [NPC 음성 저장 운영](../npc-audio-storage.md#보관삭제-정책)을 따릅니다. |
 | 무례 판정 (v3.2) | CONV-03 | `turns.guard_abusive`(null이면 판정 실패), `turns.guard_error_code`, `conversations.rude_count`를 추가하고 `end_reason`에 `RUDE`를 더했습니다. |
 | 학습자 말 번역 (v3.2) | CONV-03 | `turns.translation_en`을 추가했습니다. 번역 카드와 다음 요청의 대화 기록, 피드백에 씁니다. |
-| 더 좋은 문장 | CONV-03 | `turns.better_expressions`(JSON 문자열 배열)를 추가했습니다. 틀리진 않았지만 어색하거나 짧은 영어에 보여 줄 같은 뜻의 문장입니다. |
+| 다른 표현 | CONV-03 | `turns.better_expressions`(JSON 문자열 배열)를 추가했습니다. 학습자가 한 말과 같은 뜻의 다른 표현(최대 3개)이며, 고친 문장·한국어가 섞인 말에도 줍니다. |
 | AI 호출 기록 단위 (v3.2) | 1.4, CONV-02·03 | `ai_requests.kind`를 기능 단위(`STT`, `GUARD`, `JUDGE`, `NPC`, `TTS`, `HINT`, `MEANING`, `FEEDBACK`)로 나눴습니다. 한 턴의 여러 AI 호출이 같은 `request_id`를 써도 겹치지 않습니다. |
 | STT 사용량 (v3.2) | 1.4, CONV-02 | `ai_requests.audio_ms`를 추가했습니다. 한도는 초당 토큰으로 환산해 차감합니다. |
 | NPC 역할 이름 (v3.2) | WORLD-02, CONV | `npcs.role_label`을 추가했습니다. `persona`는 AI 프롬프트용이라 화면 표시용 값을 따로 둡니다. |

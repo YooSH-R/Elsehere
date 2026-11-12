@@ -13,7 +13,7 @@ import java.util.Map;
  * @param events 이 줄에서 학습자가 한 대화 사건(GREETING·APOLOGY 등). 의도 판정이 실패하면 빈 목록, 워커가 보내지 않으면 null
  * @param affinityDelta 이 줄의 사건으로 바로 올릴 호감도. 이번 대화에서 이미 센 사건은 빠진다. 무례로 센 턴에는 쓰지 않으며, 워커가 보내지 않으면(이
  *     칸을 모르는 이전 워커) null
- * @param betterExpressions 틀리진 않았지만 어색하거나 짧은 영어에 보여 줄 같은 뜻의 더 좋은 문장(최대 3개). 없으면 빈 목록
+ * @param betterExpressions 표현 카드에 접어 둘 같은 뜻의 다른 표현(최대 3개). 고친 문장·한국어가 섞인 말에도 준다. 없으면 빈 목록
  */
 public record JudgeResult(
     String text,

@@ -69,28 +69,46 @@ namespace A305.Dialogue
 
         [SerializeField]
         [Tooltip(
-            "영어 표현 카드의 머리줄. 고친 영어 문장이면 '방금 한 말의 영어 표현이에요.', 더 좋은 문장이면 '이럴 때 쓰면 좋아요!'"
+            "영어 표현 카드의 머리줄. 고친 영어 문장·한국어로 한 말의 영어·맞게 말함에 따라 제목이 바뀐다."
         )]
         private TMP_Text translationHeading;
 
         [SerializeField]
-        [Tooltip("'이럴 때 쓰면 좋아요!'를 접었을 때의 안내")]
-        private TMP_Text betterGuideText;
+        [Tooltip(
+            "카드 글자 칸(Viewport) 안에서 고친 문장과 펼친 다른 표현을 차례로 쌓는 칸. 넘치면 카드 안에서 스크롤한다."
+        )]
+        private RectTransform translationBody;
+
+        [SerializeField]
+        [Tooltip("다른 표현을 펼쳤을 때 목록 위의 '이렇게도 말할 수 있어요'")]
+        private TMP_Text othersHeading;
+
+        [SerializeField]
+        [Tooltip("다른 표현 한 줄(번호 칸)의 본. 문장 수만큼 복제해 쓰고 본은 숨겨 둔다.")]
+        private RectTransform otherRowTemplate;
 
         [SerializeField]
         [Tooltip(
-            "'이럴 때 쓰면 좋아요!'를 펼쳤을 때의 문장 목록. 카드 크기는 그대로이고 넘치면 카드 안에서 스크롤한다."
+            "카드 아래에 고정된 [다른 표현 N개 더 보기]·[접기]. 글자 칸 밖에 있어 스크롤해도 가려지지 않는다."
         )]
-        private TMP_Text betterListText;
+        private Button othersButton;
 
-        private const string BetterHeading = "이럴 때 쓰면 좋아요!";
+        [SerializeField]
+        [Tooltip("[더 보기] 위의 가는 구분선")]
+        private RectTransform othersDivider;
 
-        // 목록 앞의 점은 강조색(테마의 accentInk)으로 칠하고, 문장은 점 뒤 24에서 시작한다.
-        private const string BetterBullet = "<color=#D24F2F>•</color>";
-        private const int BetterIndent = 24;
+        /// <summary>다른 표현을 펼쳤을 때 목록 위 제목.</summary>
+        public const string OthersHeading = "이렇게도 말할 수 있어요";
 
+        /// <summary>고친 문장 없이 다른 표현만 있을 때(맞게 말했을 때)의 카드 제목.</summary>
+        public const string WellSaidHeading = "잘 말했어요";
+
+        // 카드 아래 [더 보기] 칸의 높이. 다른 표현이 없으면 이 칸을 두지 않고 글자 칸이 카드 아래까지 내려온다.
+        private const float OthersFooterHeight = 56;
+        private const float CardBottomPadding = 20;
+
+        private readonly List<RectTransform> otherRows = new List<RectTransform>();
         private ScrollRect translationScroll;
-        private TMP_Text translationButtonLabel;
 
         // Awake 전에 내용을 받을 수 있어(Editor 미리보기·비활성 창) 처음 쓸 때 찾는다.
         private ScrollRect TranslationScroll
@@ -103,19 +121,8 @@ namespace A305.Dialogue
             }
         }
 
-        private TMP_Text TranslationButtonLabel
-        {
-            get
-            {
-                if (translationButtonLabel == null)
-                    translationButtonLabel =
-                        translationListenButton.GetComponentInChildren<TMP_Text>(true);
-                return translationButtonLabel;
-            }
-        }
-
-        private IReadOnlyList<string> shownBetter;
-        private bool betterOpen;
+        private IReadOnlyList<string> shownOthers;
+        private bool othersOpen;
 
         [SerializeField]
         private TMP_Text suggestText;
@@ -744,11 +751,11 @@ namespace A305.Dialogue
         private string pronunciationNotice;
         private string shownTranslation;
 
-        /// <summary>한국어로 한 말의 영어 번역에 붙이는 카드 제목.</summary>
-        public const string TranslationHeading = "방금 한 말의 영어 표현이에요.";
+        /// <summary>한국어로(또는 섞어서) 한 말의 영어 번역에 붙이는 카드 제목.</summary>
+        public const string TranslationHeading = "영어로는 이렇게 말해요";
 
-        /// <summary>영어로 한 말의 교정문에 붙이는 카드 제목. 고친 문장을 다시 말해 보도록 이끈다.</summary>
-        public const string CorrectionHeading = "이렇게 고쳐 말해 보세요.";
+        /// <summary>영어로 한 말의 교정문에 붙이는 카드 제목. 지금 다시 말하라고 재촉하지 않고 알려 주기만 한다.</summary>
+        public const string CorrectionHeading = "이렇게 말하면 자연스러워요";
 
         // AI 워커는 한글이 든 말을 교정하지 않고 번역만 하므로, 같은 기준으로 번역과 교정을 나눈다.
         private static readonly Regex Hangul = new Regex("[가-힣ㄱ-ㅎㅏ-ㅣ]");
@@ -760,72 +767,138 @@ namespace A305.Dialogue
             Refresh();
         }
 
-        // 한국어·틀린 문장의 영어 표현이 없을 때만 틀리진 않았지만 어색하거나 짧은 영어의 더 좋은 문장을 보인다.
-        private IReadOnlyList<string> BetterExpressions =>
-            string.IsNullOrWhiteSpace(content?.UserTranslation)
-            && content?.UserBetterExpressions?.Count > 0
-                ? content.UserBetterExpressions
-                : null;
+        // 서버가 준 같은 뜻의 다른 표현(최대 3개). 고친 문장·영어 번역과 함께 와도 카드 아래에 접어 둔다.
+        private IReadOnlyList<string> OtherExpressions =>
+            content?.UserBetterExpressions?.Count > 0 ? content.UserBetterExpressions : null;
 
-        // 대화창 옆 영어 표현 카드를 띄울지. 영어 표현이나 더 좋은 문장 중 하나가 있으면 띄운다.
+        // 대화창 옆 영어 표현 카드를 띄울지. 고친 문장·영어 번역이나 다른 표현 중 하나가 있으면 띄운다.
         private bool HasExpressionCard =>
-            !string.IsNullOrWhiteSpace(content?.UserTranslation) || BetterExpressions != null;
+            !string.IsNullOrWhiteSpace(content?.UserTranslation) || OtherExpressions != null;
 
         /// <summary>
-        /// 영어 표현 카드. 고친 영어 문장이면 문장과 [듣기]를, 더 좋은 문장이면 시안 B대로 '이럴 때 쓰면 좋아요!'와 안내·[더보기]를 보이고,
-        /// 펼치면 같은 크기의 카드 안에 문장 목록과 [접기]를 보인다. 오른쪽 위의 한 버튼이 [듣기]·[더보기]·[접기]를 맡는다.
+        /// 영어 표현 카드(S15P31A305-862). 위에는 상황별 제목과, 고친 문장·영어 번역이 있으면 바뀐 곳을 표시한 전체 문장과 [듣기]를 둔다.
+        /// 다른 표현이 있으면 늘 접어 두고, 아래에 고정된 [다른 표현 N개 더 보기]로 펼치면 문장마다 번호 칸으로 나눠 보인다.
+        /// 카드는 내용만큼만 차지하고 대화창을 늘리지 않으며, 넘치는 내용은 글자 칸 안에서 스크롤한다.
         /// </summary>
         private void ShowTranslation()
         {
             if (translationCard == null)
                 return;
             string expression = content?.UserTranslation;
-            IReadOnlyList<string> better = BetterExpressions;
+            IReadOnlyList<string> others = OtherExpressions;
             if (shownTranslation != expression)
                 pronunciationNotice = null;
-            // 새 문장을 받으면 접은 안내부터 보인다.
-            if (!ReferenceEquals(shownBetter, better))
-                betterOpen = false;
+            // 다음 말을 하면 다른 표현은 다시 접고 맨 위부터 보인다.
+            if (shownTranslation != expression || !ReferenceEquals(shownOthers, others))
+            {
+                othersOpen = false;
+                translationBody.anchoredPosition = Vector2.zero;
+            }
             shownTranslation = expression;
-            shownBetter = better;
-            bool showsBetter = better != null;
-            bool shown = showsBetter || !string.IsNullOrWhiteSpace(expression);
-            translationCard.gameObject.SetActive(shown);
+            shownOthers = others;
+            bool hasExpression = !string.IsNullOrWhiteSpace(expression);
+            bool hasOthers = others != null;
+            translationCard.gameObject.SetActive(hasExpression || hasOthers);
+
+            string said = content?.Lines?.LastOrDefault(line => !line.IsNpc)?.English;
             translationHeading.text =
-                showsBetter ? BetterHeading
+                !hasExpression ? WellSaidHeading
                 : IsCorrection() ? CorrectionHeading
                 : TranslationHeading;
-            translationText.gameObject.SetActive(!showsBetter);
-            translationText.text = shown && !showsBetter ? expression : string.Empty;
-            betterGuideText.gameObject.SetActive(showsBetter && !betterOpen);
-            betterListText.gameObject.SetActive(showsBetter && betterOpen);
-            betterListText.text = showsBetter ? FormatBetterList(better) : string.Empty;
-            TranslationScroll.content =
-                !showsBetter ? translationText.rectTransform
-                : betterOpen ? betterListText.rectTransform
-                : betterGuideText.rectTransform;
-            TranslationButtonLabel.text =
-                !showsBetter ? "듣기"
-                : betterOpen ? "접기"
-                : "더보기";
-            translationListenButton.interactable = shown && (showsBetter || !content.IsBusy);
+            translationText.gameObject.SetActive(hasExpression);
+            translationText.text = hasExpression
+                ? ExpressionChanges.Mark(said, expression)
+                : string.Empty;
+            translationListenButton.gameObject.SetActive(hasExpression);
+            translationListenButton.interactable = hasExpression && !content.IsBusy;
+
+            othersButton.gameObject.SetActive(hasOthers);
+            othersDivider.gameObject.SetActive(hasOthers);
+            othersButton.GetComponentInChildren<TMP_Text>(true).text = othersOpen
+                ? "접기"
+                : $"다른 표현 {others?.Count ?? 0}개 더 보기";
+            // 글자 칸과 스크롤 막대는 [더 보기] 칸 위까지만 내려와 버튼과 겹치지 않는다.
+            float bottom = hasOthers ? OthersFooterHeight : CardBottomPadding;
+            var viewport = (RectTransform)translationBody.parent;
+            viewport.offsetMin = new Vector2(viewport.offsetMin.x, bottom);
+            if (TranslationScroll.verticalScrollbar != null)
+            {
+                var bar = (RectTransform)TranslationScroll.verticalScrollbar.transform;
+                bar.offsetMin = new Vector2(bar.offsetMin.x, bottom);
+            }
+            othersHeading.gameObject.SetActive(hasOthers && othersOpen);
+            ShowOtherRows(hasOthers && othersOpen ? others : Array.Empty<string>());
+            TranslationScroll.content = translationBody;
         }
 
-        // 한 줄에 한 문장. 줄이 넘치면 점 뒤에 맞춰 잇고, 문장 안의 '<'는 꾸밈 태그로 읽지 않는다.
-        private static string FormatBetterList(IReadOnlyList<string> sentences) =>
-            string.Join(
-                "\n",
-                sentences.Select(sentence =>
-                    $"{BetterBullet}<indent={BetterIndent}><noparse>{sentence}</noparse></indent>"
-                )
-            );
-
-        // [더보기]·[접기]. 펼칠 때마다 목록의 첫 문장부터 보인다.
-        private void ToggleBetterList()
+        // 펼친 다른 표현을 문장마다 번호 칸 한 줄로 보인다. 줄은 본을 복제해 두고 다시 쓴다.
+        private void ShowOtherRows(IReadOnlyList<string> sentences)
         {
-            betterOpen = !betterOpen;
-            betterListText.rectTransform.anchoredPosition = Vector2.zero;
+            while (otherRows.Count < sentences.Count)
+            {
+                RectTransform row = Instantiate(otherRowTemplate, translationBody);
+                row.name = $"Other {otherRows.Count + 1}";
+                otherRows.Add(row);
+            }
+            for (int index = 0; index < otherRows.Count; index++)
+            {
+                bool shown = index < sentences.Count;
+                otherRows[index].gameObject.SetActive(shown);
+                if (!shown)
+                    continue;
+                otherRows[index].Find("Number/Label").GetComponent<TMP_Text>().text = (
+                    index + 1
+                ).ToString();
+                otherRows[index].Find("Text").GetComponent<TMP_Text>().text =
+                    $"<noparse>{sentences[index]}</noparse>";
+            }
+        }
+
+        // [다른 표현 N개 더 보기]·[접기]. 펼치거나 접을 때마다 맨 위부터 보인다. 펼친 만큼 대화창이 커진다.
+        private void ToggleOtherExpressions()
+        {
+            othersOpen = !othersOpen;
+            translationBody.anchoredPosition = Vector2.zero;
             Refresh();
+        }
+
+        // 카드가 대화창 최대 높이(maxHeight)에 걸려 내용이 남으면, 아래 경계가 다음 줄이나 문장 칸의 가운데를 지나도록 높이를 낮춘다.
+        // 다음 내용이 반쯤 보여 아래에 더 있다는 걸 알 수 있다. 맞출 곳이 없으면 그대로 둔다.
+        private float PeekingCardHeight(float maxHeight)
+        {
+            var viewport = (RectTransform)translationBody.parent;
+            float chrome = translationCard.rect.height - viewport.rect.height;
+            float room = maxHeight - chrome;
+            float cut = 0;
+            foreach ((float top, float bottom) in BodyPieces())
+            {
+                float middle = (top + bottom) / 2;
+                if (middle > room)
+                    break;
+                cut = middle;
+            }
+            return cut > 0 ? chrome + cut : maxHeight;
+        }
+
+        // 카드 글자 칸에 쌓인 조각의 (위, 아래). 고친 문장은 줄마다, '이렇게도 말할 수 있어요'와 다른 표현은 칸마다 한 조각이다.
+        private IEnumerable<(float Top, float Bottom)> BodyPieces()
+        {
+            foreach (RectTransform piece in translationBody)
+            {
+                if (!piece.gameObject.activeSelf)
+                    continue;
+                float top = -piece.anchoredPosition.y - piece.rect.height * (1 - piece.pivot.y);
+                if (piece == translationText.rectTransform)
+                {
+                    translationText.ForceMeshUpdate();
+                    int lines = Mathf.Max(1, translationText.textInfo.lineCount);
+                    float line = piece.rect.height / lines;
+                    for (int index = 0; index < lines; index++)
+                        yield return (top + index * line, top + (index + 1) * line);
+                }
+                else
+                    yield return (top, top + piece.rect.height);
+            }
         }
 
         /// <summary>카드의 표현이 방금 영어로 한 말의 교정문인지. 마지막 내 말에 한글이 있으면 번역이다.</summary>
@@ -868,13 +941,11 @@ namespace A305.Dialogue
             if (translationListenButton != null)
                 translationListenButton.onClick.AddListener(() =>
                 {
-                    if (BetterExpressions != null)
-                        ToggleBetterList();
-                    else if (
-                        !string.IsNullOrWhiteSpace(content?.UserTranslation) && !content.IsBusy
-                    )
+                    if (!string.IsNullOrWhiteSpace(content?.UserTranslation) && !content.IsBusy)
                         UserTranslationListenRequested?.Invoke(content.UserTranslation);
                 });
+            if (othersButton != null)
+                othersButton.onClick.AddListener(ToggleOtherExpressions);
             hintButton.onClick.AddListener(PressHint);
             if (suggestions != null)
             {
@@ -1471,17 +1542,32 @@ namespace A305.Dialogue
                 MinNameWidth,
                 npcNameText.GetPreferredValues(npcNameText.text).x + 2 * NamePadding
             );
+            float cardHeight = TranslationCardHeight(DialogueCinemaLayout.TranslationWidth(column));
+            // 오른쪽 위 단어·추천 문장 카드 자리. 대사와 영어 표현 카드는 이 자리를 넘지 않는 높이까지만 키운다.
+            float roomAboveName =
+                suggestions != null && reviewReference == null
+                    ? SuggestionsTop + MinSuggestionsHeight + 2 * DialogueCinemaLayout.Gap
+                    : 0;
             DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
                 lastCanvasSize,
                 linesHeight,
                 nameWidth,
                 hasEarlierLines,
                 hasTranslation,
-                TranslationCardHeight(DialogueCinemaLayout.TranslationWidth(column)),
-                suggestions != null && reviewReference == null
-                    ? SuggestionsTop + MinSuggestionsHeight + 2 * DialogueCinemaLayout.Gap
-                    : 0
+                cardHeight,
+                roomAboveName
             );
+            // 카드가 대화창 최대 높이에 걸렸으면 다음 내용이 반쯤 보이는 높이로 다시 놓는다.
+            if (hasTranslation && layout.Translation.height < cardHeight - .5f)
+                layout = DialogueCinemaLayout.Compute(
+                    lastCanvasSize,
+                    linesHeight,
+                    nameWidth,
+                    hasEarlierLines,
+                    hasTranslation,
+                    PeekingCardHeight(layout.Translation.height),
+                    roomAboveName
+                );
             frame.anchorMin = Vector2.zero;
             frame.anchorMax = new Vector2(1, 0);
             frame.pivot = new Vector2(.5f, 0);
@@ -1613,16 +1699,17 @@ namespace A305.Dialogue
         }
 
         // 카드의 머리줄·여백을 뺀 글자 칸 폭으로 영어 표현을 재서, 문장을 다 담는 카드 높이를 돌려준다.
+        // 카드가 내용을 다 보이는 데 필요한 높이. 카드 폭을 먼저 맞춘 뒤 고친 문장·펼친 다른 표현의 줄바꿈으로 잰다.
+        // 대화창 배치가 이 높이를 대사 칸 높이 안으로 줄이고, 넘치는 내용은 카드 안에서 스크롤한다.
         private float TranslationCardHeight(float cardWidth)
         {
-            if (translationCard == null || string.IsNullOrEmpty(translationText.text))
+            if (translationCard == null || !translationCard.gameObject.activeSelf)
                 return DialogueCinemaLayout.TranslationHeight;
-            var viewport = (RectTransform)translationText.rectTransform.parent;
-            Vector2 chrome = translationCard.rect.size - viewport.rect.size;
-            return chrome.y
-                + translationText
-                    .GetPreferredValues(translationText.text, cardWidth - chrome.x, 0)
-                    .y;
+            translationCard.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, cardWidth);
+            var viewport = (RectTransform)translationBody.parent;
+            float chrome = translationCard.rect.height - viewport.rect.height;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(translationBody);
+            return chrome + LayoutUtility.GetPreferredHeight(translationBody);
         }
 
         // 최근 네 대사와 그 뜻이 보이는 높이를 준다. 긴 내용·작은 화면과 그 이전 대사는 스크롤한다.

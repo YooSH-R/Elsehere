@@ -518,7 +518,7 @@ namespace A305.Dialogue.Tests
             Assert.That(api.Turns, Has.Count.EqualTo(1), "교정 문장을 다시 전송하지 않습니다.");
         }
 
-        // 틀리진 않았지만 짧은 영어에 서버가 준 더 좋은 문장을 '이럴 때 쓰면 좋아요!' 카드에 넘기고, 다음 말을 보내면 지운다 (S15P31A305-847)
+        // 서버가 준 같은 뜻의 다른 표현을 영어 표현 카드에 넘기고, 다음 말을 보내면 지운다 (S15P31A305-847, S15P31A305-862)
         [Test]
         public async Task AcceptedTurn_KeepsTheBetterSentences_UntilTheNextSend()
         {

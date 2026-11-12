@@ -55,7 +55,7 @@ def test_gpu_intent_request_keeps_the_output_format_and_turns_thinking_off(provi
     assert seen["chat_template_kwargs"] == {"enable_thinking": False}
     assert seen["response_format"]["type"] == "json_schema"
     assert "events" in seen["response_format"]["json_schema"]["schema"]["required"]
-    assert seen["max_tokens"] == 200 and seen["temperature"] == 0.0
+    assert seen["max_tokens"] == 320 and seen["temperature"] == 0.0
 
 
 @pytest.mark.parametrize(

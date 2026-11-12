@@ -31,6 +31,7 @@ namespace A305.EditorTools.Theme
             ("MapButton", "마을 지도", 3, new Color32(61, 157, 219, 255)),
             ("MyPageButton", "내 정보", 4, new Color32(157, 121, 222, 255)),
             ("NeighborsButton", "이웃", 5, new Color32(222, 119, 156, 255)),
+            ("SettingsButton", "설정", 6, new Color32(118, 136, 164, 255)),
         };
 
         [MenuItem("Tools/A305/UI/Apply Phone Learning Icons")]
@@ -293,6 +294,26 @@ namespace A305.EditorTools.Theme
                     new Vector2(163, 149)
                 );
                 art.Circle(151, 157, 5, Ivory);
+            }
+            else if (index == 6)
+            {
+                // 톱니 여덟 개를 두른 톱니바퀴. 가운데 구멍은 다른 아이콘의 포인트와 같은 금색이다.
+                var center = new Vector2(128, 130);
+                for (int tooth = 0; tooth < 8; tooth++)
+                {
+                    float angle = tooth * Mathf.PI / 4;
+                    var outward = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                    var side = new Vector2(-outward.y, outward.x);
+                    art.Polygon(
+                        Ivory,
+                        center + outward * 26 + side * 11,
+                        center + outward * 47 + side * 8,
+                        center + outward * 47 - side * 8,
+                        center + outward * 26 - side * 11
+                    );
+                }
+                art.Circle(center.x, center.y, 34, Ivory);
+                art.Circle(center.x, center.y, 14, gold);
             }
             else
             {

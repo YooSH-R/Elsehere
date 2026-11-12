@@ -131,7 +131,8 @@ namespace A305.Ambience
             wasPassenger = passenger;
             if (next != bed)
                 ChangePlace(next);
-            float gain = AmbiencePlan.Volume(NormalVolume, Talking);
+            float gain =
+                AmbiencePlan.Volume(NormalVolume, Talking) * BackgroundSoundPreference.Volume;
             bool muted = !BackgroundSoundPreference.Enabled;
             for (int index = 0; index < loops.Length; index++)
             {
@@ -185,7 +186,9 @@ namespace A305.Ambience
             if (clip == null)
                 return;
             AudioSource source = effect == AmbienceEffect.TaxiDoorClose ? taxiDoor : effects;
-            source.volume = AmbiencePlan.EffectVolume(effect, NormalVolume, Talking);
+            source.volume =
+                AmbiencePlan.EffectVolume(effect, NormalVolume, Talking)
+                * BackgroundSoundPreference.Volume;
             source.PlayOneShot(clip);
         }
 

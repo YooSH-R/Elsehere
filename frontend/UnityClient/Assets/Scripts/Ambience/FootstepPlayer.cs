@@ -129,7 +129,8 @@ namespace A305.Ambience
                     body.isGrounded,
                     walking
                 );
-                Source.volume = (player != null ? .42f : .065f) * duck;
+                Source.volume =
+                    (player != null ? .42f : .065f) * duck * BackgroundSoundPreference.Volume;
                 Source.mute = !BackgroundSoundPreference.Enabled;
                 if (step)
                     Source.PlayOneShot(clips.Step(clipIndex++));

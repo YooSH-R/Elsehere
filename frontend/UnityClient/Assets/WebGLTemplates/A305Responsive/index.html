@@ -244,19 +244,27 @@
         if (!window.AudioContext) {
           return;
         }
-        // 스피커를 끈 선택은 Unity가 Set으로 알려 줄 때 남긴다. 저장소를 읽지 못하면 켠 것으로 본다.
+        // 스피커를 끈 선택과 고른 크기(0~1)는 Unity가 Set으로 알려 줄 때 남긴다. 저장소를 읽지 못하면 켜고 크기 1로 본다.
         const soundKey = "elsehere.audio.background.enabled";
+        const volumeKey = "elsehere.audio.background.volume";
         let soundEnabled = true;
+        let level = 1;
         try {
           soundEnabled = localStorage.getItem(soundKey) !== "0";
+          const saved = Number.parseFloat(localStorage.getItem(volumeKey));
+          if (Number.isFinite(saved)) {
+            level = Math.min(Math.max(saved, 0), 1);
+          }
         } catch {
-          // 저장소를 쓸 수 없으면 기본값(켬)으로 튼다.
+          // 저장소를 쓸 수 없으면 기본값(켬, 크기 1)으로 튼다.
         }
 
         // iPhone Safari는 audio 요소의 음량을 바꿀 수 없어, 받은 음원을 Web Audio로 반복해 틀고 음량은 gain으로 정한다.
+        // musicVolume은 Unity가 정하는 음악 자체의 크기이고, 실제로는 스피커에서 고른 크기(level)를 곱해 낸다.
         const context = new AudioContext();
         const gain = context.createGain();
-        gain.gain.value = soundEnabled ? 0.18 : 0;
+        let musicVolume = soundEnabled ? 0.18 : 0;
+        gain.gain.value = musicVolume * level;
         gain.connect(context.destination);
         let shouldPlay = soundEnabled;
         let failed = false;
@@ -313,9 +321,18 @@
 
         window.elsehereEntryMusic = {
           // 음원을 받지 못했으면 -1을 돌려준다. Unity는 이때 자기 음악을 쓴다.
-          volume: () => (failed ? -1 : gain.gain.value),
-          set(volume, playing, enabled) {
-            gain.gain.value = volume;
+          volume: () => (failed ? -1 : musicVolume),
+          set(volume, playing, enabled, chosenLevel) {
+            musicVolume = volume;
+            if (Number.isFinite(chosenLevel) && chosenLevel !== level) {
+              level = chosenLevel;
+              try {
+                localStorage.setItem(volumeKey, String(level));
+              } catch {
+                // 저장하지 못하면 다음 로딩 화면은 크기 1로 튼다.
+              }
+            }
+            gain.gain.value = musicVolume * level;
             shouldPlay = playing;
             if (playing) {
               startLoop();

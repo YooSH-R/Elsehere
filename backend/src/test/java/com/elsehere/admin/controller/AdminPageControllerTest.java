@@ -127,7 +127,6 @@ class AdminPageControllerTest {
   @Test
   @DisplayName("사용자 찾기는 이메일이나 ID로 찾은 사용자의 사용자별 화면으로 보낸다")
   void findUser_byAdmin_redirectsToUserUsage() throws Exception {
-    given(adminAccess.isAdmin(1L)).willReturn(true);
     given(adminUsageService.findUserId("sun@example.com")).willReturn(7L);
 
     mockMvc
@@ -135,7 +134,7 @@ class AdminPageControllerTest {
             get("/admin/usage/find")
                 .param("user", "sun@example.com")
                 .param("days", "30")
-                .with(authentication(loggedIn(1L))))
+                .with(authentication(adminLogin())))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl("/admin/usage/user?userId=7&days=30"));
   }

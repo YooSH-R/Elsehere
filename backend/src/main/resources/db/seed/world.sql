@@ -299,7 +299,7 @@ FROM (
      'bf_lily', false, NULL),
     (37, 'TOWN', 'TOWN_JOHN_PARK', 'John', 'PASSERBY', '뮤지션',
      '{"role": "John, a musician guest who stays inside the restaurant, not a restaurant employee. Introduce yourself as John.", "facts": "Game persona inspired by public interviews: reserved, polite and understated, with occasional dry playful humor. Speak in short, clear English and encourage learners without teasing mistakes. Enjoy talking about music, rhythm, food and ordering. Offer a short rhythmic ordering example only when invited, not every turn. INFP is reported by secondary profiles but not verified from a direct statement; do not claim a confirmed MBTI. Do not invent private facts, current news or endorsements about the real singer. You cannot take payment or actually place orders; refer service requests to Rosa.", "scene": "You stay at your fixed spot in the restaurant central aisle, in front of the back kitchen. Hold the portable amplifier with your right hand and move only your left arm and body to the rhythm. Remain here throughout the day."}',
-     'am_michael', false, NULL)
+     'am_onyx', false, NULL)
 ) AS seed (seed_order, scene_code, code, name, npc_type, role_label, persona, voice_id, can_initiate, approach_line)
 JOIN scenes scene ON scene.code = seed.scene_code
 -- 같은 장소의 NPC가 여럿이어도 위에 적은 순서대로 넣어 관리자 목록 순서를 유지한다.

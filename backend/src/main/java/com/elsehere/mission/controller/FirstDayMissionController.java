@@ -23,7 +23,7 @@ public class FirstDayMissionController {
 
   @GetMapping
   public FirstDayMissionResponse status(@AuthenticationPrincipal LoginUser user) {
-    return showcase.activeStatus(user.userId()).orElseGet(() -> service.status(user.userId()));
+    return showcase.shownStatus(user.userId()).orElseGet(() -> service.status(user.userId()));
   }
 
   @PostMapping("/start")
@@ -35,7 +35,7 @@ public class FirstDayMissionController {
   public FirstDayMissionResponse visit(
       @AuthenticationPrincipal LoginUser user, @Valid @RequestBody VisitRequest request) {
     return showcase
-        .visitIfActive(user.userId(), request.scene())
+        .visit(user.userId(), request.scene())
         .orElseGet(() -> service.visit(user.userId(), request.scene()));
   }
 

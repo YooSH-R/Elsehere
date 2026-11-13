@@ -37,9 +37,19 @@ class QuestTalkServiceTest {
           mock(ConversationRepository.class),
           mock(NpcRepository.class),
           Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
-  private final QuestTalkService quests =
-      new QuestTalkService(
-          firstDay, town, practice, mock(com.elsehere.mission.service.ShowcaseQuestService.class));
+  private final ShowcaseQuestService showcase = mock(ShowcaseQuestService.class);
+  private final QuestTalkService quests = new QuestTalkService(firstDay, town, practice, showcase);
+
+  @Test
+  @DisplayName("시연 서버에서 시연을 시작하기 전에는 진행 중이던 다른 퀘스트도 대화 목표를 내지 않는다")
+  void onTheShowcaseServer_otherQuestsGiveNoGoalsBeforeTheDemoStarts() {
+    when(showcase.enabled()).thenReturn(true);
+    when(showcase.context(8L, "HOTEL_STAFF")).thenReturn(Optional.empty());
+    when(town.context(8L, "HOTEL_STAFF")).thenReturn(Optional.of(TOWN_GOALS));
+    when(firstDay.context(8L, "HOTEL_STAFF")).thenReturn(Optional.of(FIRST_DAY_GUIDE));
+
+    assertThat(quests.forStart(8L, "HOTEL_STAFF", false, null)).isEmpty();
+  }
 
   @Test
   @DisplayName("마을 이야기를 하는 중이면 첫날 미션보다 마을 이야기의 대화 목표를 고른다")

@@ -70,6 +70,21 @@ class QuestBoardServiceTest {
         .containsExactly("DONE", "AVAILABLE", "LOCKED", "LOCKED");
   }
 
+  // 시연 서버에서는 진행 중이던 다른 퀘스트도 잠가, 시연 퀘스트만 눌러 시작할 수 있다.
+  @Test
+  void onTheShowcaseServer_aQuestAlreadyInProgressIsLockedToo() {
+    FirstDayMission mission = mock(FirstDayMission.class);
+    when(mission.getStage()).thenReturn(2);
+    when(firstDay.findById(8L)).thenReturn(Optional.of(mission));
+    when(stories.findById(8L)).thenReturn(Optional.empty());
+    when(showcase.card(org.mockito.ArgumentMatchers.eq(8L), org.mockito.ArgumentMatchers.any()))
+        .thenReturn(Optional.of(showcaseCard("AVAILABLE")));
+
+    assertThat(service.board(8L).quests())
+        .extracting(QuestBoardResponse.Quest::status)
+        .containsExactly("AVAILABLE", "LOCKED", "LOCKED", "LOCKED");
+  }
+
   private static QuestBoardResponse.Quest showcaseCard(String status) {
     return new QuestBoardResponse.Quest(
         "SHOWCASE_RAINY_EVENING", "비 오는 저녁, 햄버거 한 끼", "", 0, status, List.of());

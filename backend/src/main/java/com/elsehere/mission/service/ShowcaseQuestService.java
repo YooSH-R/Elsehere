@@ -120,21 +120,34 @@ public class ShowcaseQuestService {
         .orElseThrow(() -> new BusinessException(ErrorCode.MISSION_NOT_READY));
   }
 
-  public Optional<FirstDayMissionResponse> visitIfActive(Long userId, String scene) {
+  public boolean enabled() {
+    return settings.enabled();
+  }
+
+  /** 시연 서버에서는 시작 전에도 시연 퀘스트를 보여, 다른 퀘스트가 진행 중으로 보이지 않는다. 시연이 꺼져 있으면 비어 있다. */
+  @Transactional(readOnly = true)
+  public Optional<FirstDayMissionResponse> shownStatus(Long userId) {
+    if (!settings.enabled()) {
+      return Optional.empty();
+    }
+    return Optional.of(
+        response(journeys.findById(userId).orElseGet(() -> ShowcaseJourney.notStarted(userId))));
+  }
+
+  /** 장소에 들어왔다. 하는 중이면 장소를 남기고, 시작 전이어도 시연 퀘스트를 돌려준다. 시연이 꺼져 있으면 비어 있다. */
+  public Optional<FirstDayMissionResponse> visit(Long userId, String scene) {
     if (!settings.enabled()) {
       return Optional.empty();
     }
     if (!List.of("HOME", "TOWN", "HOTEL", "CAFE", "SHOP").contains(scene)) {
       throw new BusinessException(ErrorCode.VALIDATION_FAILED);
     }
-    return journeys
-        .findForUpdate(userId)
-        .filter(ShowcaseJourney::isActive)
-        .map(
-            journey -> {
-              journey.visit(scene);
-              return response(journey);
-            });
+    ShowcaseJourney journey =
+        journeys.findForUpdate(userId).orElseGet(() -> ShowcaseJourney.notStarted(userId));
+    if (journey.isActive()) {
+      journey.visit(scene);
+    }
+    return Optional.of(response(journey));
   }
 
   public FirstDayMissionResponse start(Long userId) {

@@ -4,5 +4,6 @@
   "mbti": "ISFJ-T",
   "role": "STAFF",
   "workplace": "HOME_STORE",
-  "shift": "DAY"
+  "shift": "DAY",
+  "resident": true
 }

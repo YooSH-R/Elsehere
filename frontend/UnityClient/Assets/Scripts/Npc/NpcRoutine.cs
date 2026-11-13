@@ -94,6 +94,12 @@ namespace A305.Npc
         [Tooltip("월드 좌표 구역. 건물 1층 실내처럼 NPC가 지낼 공간을 감싼다.")]
         private Bounds area;
 
+        [SerializeField]
+        [Tooltip(
+            "켜면 처음 놓인 자기 자리를 지키고 카운터를 맡지 않는다. 카운터를 24시간 상주 직원이 맡는 가게의 교대 직원에게 켠다(BuildingStaffBuilder)."
+        )]
+        private bool keepsOwnPost;
+
         private readonly Dictionary<string, List<HoverableObject>> placed =
             new Dictionary<string, List<HoverableObject>>();
         private readonly List<INpcSeat> seats = new List<INpcSeat>();
@@ -187,7 +193,7 @@ namespace A305.Npc
                     return true;
 
                 return PlaceScenes.CodeOf(gameObject.scene.name) == "DINER"
-                    && (npcCode == "DINER_STAFF" || npcCode == "FIRE_CAPTAIN");
+                    && npcCode == "DINER_STAFF";
             }
         }
 
@@ -278,7 +284,7 @@ namespace A305.Npc
             lookingAround = false;
             lookAroundTarget = null;
             CollectSceneObjects();
-            if (!isVisitor)
+            if (!isVisitor && !keepsOwnPost)
                 FindCounter();
         }
 
@@ -431,6 +437,14 @@ namespace A305.Npc
             }
             double now = GameClock.Shared.Minutes;
             life.Advance(now);
+            if (keepsOwnPost)
+            {
+                // 카운터는 상주 직원이 맡으므로 가게 안 자기 자리에 서 있고, 사물을 둘러보러 카운터 뒤로 가지 않는다.
+                Pose post = body.HomePose;
+                GoTo(post.position, post.rotation);
+                return;
+            }
+
             if (StaysAtServicePost)
             {
                 if (ServesCounter(playerPosition))

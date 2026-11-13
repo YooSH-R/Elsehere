@@ -146,19 +146,9 @@
       },
       "schedule": [
         {
-          "from": "06:00",
-          "to": "18:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "18:00",
-          "to": "18:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "18:30",
-          "to": "06:00",
-          "activity": "OFF"
         }
       ]
     },
@@ -176,19 +166,9 @@
       },
       "schedule": [
         {
-          "from": "06:00",
-          "to": "18:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "18:00",
-          "to": "18:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "18:30",
-          "to": "06:00",
-          "activity": "OFF"
         }
       ]
     },
@@ -206,19 +186,9 @@
       },
       "schedule": [
         {
-          "from": "06:00",
-          "to": "14:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "14:00",
-          "to": "14:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "14:30",
-          "to": "06:00",
-          "activity": "OFF"
         }
       ]
     },
@@ -236,19 +206,9 @@
       },
       "schedule": [
         {
-          "from": "06:00",
-          "to": "18:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "18:00",
-          "to": "18:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "18:30",
-          "to": "06:00",
-          "activity": "OFF"
         }
       ]
     },
@@ -346,19 +306,9 @@
       },
       "schedule": [
         {
-          "from": "06:00",
-          "to": "18:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "18:00",
-          "to": "18:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "18:30",
-          "to": "06:00",
-          "activity": "OFF"
         }
       ]
     },
@@ -466,19 +416,9 @@
       },
       "schedule": [
         {
-          "from": "06:00",
-          "to": "18:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "18:00",
-          "to": "18:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "18:30",
-          "to": "06:00",
-          "activity": "OFF"
         }
       ]
     },
@@ -496,19 +436,9 @@
       },
       "schedule": [
         {
-          "from": "06:00",
-          "to": "18:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "18:00",
-          "to": "18:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "18:30",
-          "to": "06:00",
-          "activity": "OFF"
         }
       ]
     },
@@ -666,19 +596,9 @@
       },
       "schedule": [
         {
-          "from": "06:00",
-          "to": "18:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "18:00",
-          "to": "18:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "18:30",
-          "to": "06:00",
-          "activity": "OFF"
         }
       ]
     },
@@ -816,19 +736,9 @@
       },
       "schedule": [
         {
-          "from": "06:00",
-          "to": "18:00",
+          "from": "00:00",
+          "to": "00:00",
           "activity": "WORK"
-        },
-        {
-          "from": "18:00",
-          "to": "18:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "18:30",
-          "to": "06:00",
-          "activity": "OFF"
         }
       ]
     },

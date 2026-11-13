@@ -4,5 +4,6 @@
   "mbti": "ESTP-A",
   "role": "STAFF",
   "workplace": "BARBER",
-  "shift": "DAY"
+  "shift": "DAY",
+  "resident": true
 }

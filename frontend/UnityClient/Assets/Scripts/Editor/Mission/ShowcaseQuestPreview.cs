@@ -52,8 +52,8 @@ namespace A305.EditorTools.Mission
             {
                 new FirstDayMissionGoal
                 {
-                    Title = "햄버거 고르기",
-                    Hint = "치즈버거 한 개를 주문해 보세요.",
+                    Title = "치즈버거 주문하기",
+                    Hint = "한 개를 주문해 보세요.",
                     Completed = true,
                 },
                 new FirstDayMissionGoal

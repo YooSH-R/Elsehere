@@ -41,9 +41,9 @@ public enum ShowcaseStage {
       List.of(
           new Goal(
               "order_burger",
-              "햄버거 고르기",
+              "치즈버거 주문하기",
               "Orders a burger, including a cheeseburger or another listed burger.",
-              "치즈버거 한 개를 주문해 보세요."),
+              "한 개를 주문해 보세요."),
           new Goal(
               "customize_burger",
               "재료 조건 말하기",

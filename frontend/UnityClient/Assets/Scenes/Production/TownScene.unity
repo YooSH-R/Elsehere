@@ -4906,6 +4906,7 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
+  keepsOwnPost: 0
 --- !u!114 &212753953 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
@@ -7345,6 +7346,7 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
+  keepsOwnPost: 0
 --- !u!1 &288506692
 GameObject:
   m_ObjectHideFlags: 0
@@ -46690,6 +46692,7 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
+  keepsOwnPost: 0
 --- !u!114 &1638731980 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
@@ -50134,8 +50137,8 @@ MonoBehaviour:
     alighting: {x: -3.6, y: 0.1, z: 31.5}
   - code: DINER
     displayName: "\uBA54\uC774\uD50C \uBC84\uAC70"
-    stop: {x: 1.5, y: 0, z: 39}
-    alighting: {x: 3.6, y: 0.1, z: 39}
+    stop: {x: 1.5, y: 0, z: 41.2}
+    alighting: {x: 3.6, y: 0.1, z: 41.2}
   - code: BANK
     displayName: "\uD0C0\uC6B4 \uC740\uD589"
     stop: {x: -1.5, y: 0, z: 48}

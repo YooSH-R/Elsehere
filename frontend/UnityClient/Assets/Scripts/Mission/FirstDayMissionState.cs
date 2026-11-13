@@ -14,6 +14,12 @@ namespace A305.Mission
         public bool IsTownStory { get; set; }
         public const string ShowcaseQuestId = "SHOWCASE_RAINY_EVENING";
         public bool IsShowcase => Quest == ShowcaseQuestId;
+
+        /// <summary>시연 퀘스트의 햄버거 가게 장소 코드</summary>
+        public const string ShowcaseRestaurant = "DINER";
+
+        /// <summary>시연 퀘스트를 시작해 끝낼 때까지 햄버거 가게에는 직원과 John만 두고 여가 손님은 들이지 않는다.</summary>
+        public bool ClosesShowcaseRestaurantToVisitors => IsShowcase && Started && !Completed;
         public bool ShouldOfferTownStory => Completed && !IsTownStory && !IsShowcase;
         public int Stage { get; set; }
         public bool Completed { get; set; }

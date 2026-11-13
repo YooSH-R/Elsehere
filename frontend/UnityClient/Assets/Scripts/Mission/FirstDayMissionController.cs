@@ -330,6 +330,10 @@ namespace A305.Mission
                     return;
                 string finished = response.QuestFinishedSince(state);
                 state = response;
+                NpcOutings.Shared.SetClosedToVisitors(
+                    FirstDayMissionState.ShowcaseRestaurant,
+                    state.ClosesShowcaseRestaurantToVisitors
+                );
                 dialogue.UsesShowcasePresentation = state.IsShowcase && state.Started;
                 if (
                     state.IsShowcase

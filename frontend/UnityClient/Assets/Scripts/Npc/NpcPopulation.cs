@@ -497,7 +497,7 @@ namespace A305.Npc
                     until,
                     outings.Venues,
                     venue =>
-                        OpeningHours.IsOpenNow(venue.Code)
+                        NpcOutings.Shared.Welcomes(venue.Code)
                         && NpcOutings.Suits(plan, venue)
                         && CanVisit(resident, venue, until - now)
                         && (
@@ -514,7 +514,7 @@ namespace A305.Npc
             bool visiting =
                 NpcOutings.CanGoOut(plan)
                 && now < trip.Until
-                && OpeningHours.IsOpenNow(trip.Venue.Code)
+                && NpcOutings.Shared.Welcomes(trip.Venue.Code)
                 && !trip.ReadyToLeave;
             if (!trip.Venue.IsOutdoor && trip.Arrived)
             {

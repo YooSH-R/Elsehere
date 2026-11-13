@@ -81,7 +81,8 @@ namespace A305.Npc
                         now,
                         NpcOutings.UntilOutingEnds(plan, now),
                         catalog.Venues,
-                        venue => OpeningHours.IsOpenNow(venue.Code) && NpcOutings.Suits(plan, venue)
+                        venue =>
+                            NpcOutings.Shared.Welcomes(venue.Code) && NpcOutings.Suits(plan, venue)
                     );
                     trip?.Arrive(now);
                 }
@@ -93,7 +94,7 @@ namespace A305.Npc
                 guests.TryGetValue(trip.Npc, out GameObject guest);
                 bool mustLeave =
                     now >= trip.Until
-                    || !OpeningHours.IsOpenNow(trip.Venue.Code)
+                    || !NpcOutings.Shared.Welcomes(trip.Venue.Code)
                     || trip.Npc == NpcDuty.MissionNpcCode;
                 if (!room.isLoaded)
                 {

@@ -86,6 +86,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | `WORDS_BUDGET_S` | 3초 | NPC 대답 스트림 안 추천 단어(`words`). 넘으면 `words: null`, `error: "timeout"`으로 넘기고 `done`을 보냄 |
 | `JUDGE_BUDGET_S` | 5초 | `/v1/judge`의 의도·번역 **각각**. 넘으면 그 칸만 `timeout` 오류 |
 | `JUDGE_GPU_TIMEOUT_S` | 2초 | GPU 서버 의도 판정 모델(`JUDGE_GPU_MODEL`) 호출 한 번. 평소 0.5초 안팎(동시 20건 p90 약 2.4초). 넘으면 재시도 없이 구성의 의도 모델로. `JUDGE_BUDGET_S` 안에서 셈 |
+| `NPC_GPU_FIRST_TOKEN_S` | 1.5초 | GPU 서버 NPC 대답 LoRA(`NPC_GPU_MODEL`)의 첫 글자. 실측(실제 대답 프롬프트) 동시 1개 0.35초·4개 최대 1.1초·8개 2.7초, 처음 보는 프롬프트(대화 시작·다른 NPC)는 캐시가 없어 0.8~1.0초. 넘으면 재시도 없이 구성의 npc 모델 스트림으로. 동시 상한은 `NPC_GPU_MAX_CONCURRENT`(4) |
 | `GUARD_BUDGET_S` | 5초 | `/v1/guard` 무례 판정 (로컬 판정기 + LLM). 넘으면 `abusive: null`, `error_code: timeout` |
 | `GUARD_GPU_TIMEOUT_S` | 3초 | GPU 서버 판정 모델(`GUARD_GPU_MODEL`) 호출 한 번. 평소 0.3초(10개 동시 약 1초)지만 vLLM이 처음 보는 동시 요청 수에서는 한 번 2.4~2.7초가 걸림. 넘으면 재시도 없이 구성의 판정 모델로. `GUARD_BUDGET_S` 안에서 셈 |
 | `TTS_GPU_TIMEOUT_S` | 10초 | GPU 서버 음성 합성(`TTS_GPU_BASE_URL`) 응답 한 번. 넘으면 재시도 없이 CPU Kokoro로. 여러 사람이 동시에 말하면 GPU 앞에 줄이 서는데(20명분 동시 60조각 최대 약 4~6초), CPU 합성이 훨씬 느려 넉넉히 기다림. NPC 대답 조각은 `TTS_CHUNK_BUDGET_S` 안에서 셈 |
@@ -164,6 +165,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
   "notice": null,
   "intent": {"id": "order_items", "ids": ["order_items"], "slots": {"items": [{"name": "latte", "iced": false, "qty": 1}], "choice": "none"}, "error": null},
   "translation": null,
+  "better_expressions": [],
   "events": [],
   "affinity_delta": 0,
   "usage": [{"step": "intent", "model": "...", "input_tokens": 512, "output_tokens": 20, "latency_s": 0.41, "fallback": false}]
@@ -179,6 +181,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `intent.slots` | 요청 `state.slots`에 있는 칸만. 상품은 `catalog` 안의 이름만, `iced`는 `iced_ok`에 있을 때만. 선택 칸(`option`)은 `labels` 중 하나, 말하지 않았으면 `"none"`. 경찰서 창구는 이 칸(`place`)으로 신고 장소를 고름(백엔드 `PoliceDesk`, 평가 `ai/tools/police_report_eval.py`) |
 | `intent.error` | 의도 판정 실패 시 메시지, 이때 `id`는 `unclear`. **상태·금액을 바꾸지 말고 다시 물을 것** |
 | `translation` | 영어 번역 또는 문법 교정문을 `{"english", "error"}`로 전달. 정상 영어·동일 문장·대소문자/구두점만 다른 경우는 `null`. 생성된 표현이 있으면 무례 판정과 관계없이 기존 카드에 표시(0.1절). 교정 실패가 대화를 막지 않음. 대화에 영어로 나온 이름(상대 NPC, 마을, 가게)은 그 철자로 쓰고, 영어 철자가 없는 이름(한글 닉네임 등)은 로마자로 바꾸지 않고 따옴표 안에 말한 그대로 둡니다(`My name is "김사피".`) |
+| `better_expressions` | 학습자가 한 말과 같은 뜻을 다르게 말하는 자연스러운 영어 문장 1~3개(발화 전체를 다시 쓴 문장). 더 나은 정답이 아니라 골라 쓸 수 있는 다른 표현이며, 자연스러운 것이 하나뿐이면 하나만 줌(억지로 채우지 않음). 맞게 말했을 때도, 고친 문장(`translation`)이 있거나 한글이 섞였을 때도 만듦. 의도 판정과 같은 호출에서 만들고 추가 호출은 없음(판정 출력 상한 320 토큰). 학습자가 한 말, `translation.english`, 서로 겹치는 문장은 뺌. 무슨 뜻인지 알 수 없거나 의도 판정이 실패하거나 `dropped`면 `[]` |
 | `events` | 이 줄에서 학습자가 한 대화 사건. `GREETING`·`SMALL_TALK`·`PERSONAL_QUESTION`·`APOLOGY`·`COMPLIMENT`·`HELP`·`TASK_DONE`·`LEAVE` 중 0개 이상. 의도 판정과 같은 호출에서 고름. 의도 판정이 실패하면 `[]`, `dropped`면 `null`. **이 줄에 저장해 다음 요청의 `history[].events`로 보냄** |
 | `affinity_delta` | 이 줄의 사건으로 바로 올릴 호감(정수, 0 이상). 의도 판정이 실패하면 `0`, `dropped`면 `null`. 아래 설명 |
 
@@ -305,7 +308,7 @@ delta*  →  audio*  →  words?  →  done | error
 - 빈 대답이면 `"Sorry, could you say that again?"`로 대신합니다(`done`).
 - Spring이 연결을 끊으면 워커도 모델 호출을 멈춥니다.
 - 조각 하나의 합성이 `TTS_CHUNK_BUDGET_S`(기본 2.5초)를 넘으면 그 조각은 `tts: false`입니다. 이 상한은 조각을 바로 재생하는 화면용이며, 늦은 조각도 합성이 끝나면 턴 전체 음성에는 넣습니다. 그래서 늦은 조각이 있으면 `done`이 남은 합성 시간만큼 늦게 옵니다.
-- 워커에 `TTS_GPU_BASE_URL`을 주면 합성(조각·턴 전체·`/v1/tts`)을 SSAFY GPU 서버([`ai/gpu_tts`](../../ai/gpu_tts/README.md))에서 먼저 하고, 오류·시간 초과면 CPU Kokoro로 만듭니다. 연속으로 `TTS_BREAKER_FAILURES`(3)번 실패하면 `TTS_BREAKER_SKIP_S`(60초) 동안 GPU를 건너뜁니다. 응답 형식은 같습니다. GPU는 fp32 모델이라 CPU(int8)와 소리가 아주 조금 다를 수 있습니다.
+- 워커에 `TTS_GPU_BASE_URL`을 주면 합성(조각·턴 전체·`/v1/tts`)을 SSAFY GPU 서버([`ai/gpu_tts`](../../ai/gpu_tts/README.md))에서 먼저 하고, 오류·시간 초과면 CPU Kokoro로 만듭니다. `TTS_GPU_BACKUP_BASE_URL`도 주면 주 GPU가 실패할 때 예비 GPU를 부르고, 둘 다 실패해야 CPU로 갑니다. 연속으로 `TTS_BREAKER_FAILURES`(3)번 실패하면 `TTS_BREAKER_SKIP_S`(60초) 동안 그 GPU를 건너뜁니다(GPU마다 따로 셈). 응답 형식은 같습니다. GPU는 fp32 모델이라 CPU(int8)와 소리가 아주 조금 다를 수 있습니다.
 - `audio`·`delta`의 `text`는 대답 원문(자막)이고, 음성은 읽을 글로 다듬어 합성합니다(2.8절과 같음). 한글만 있는 조각처럼 읽을 것이 없으면 0.2초 무음입니다(`tts: true`).
 - 턴 전체 음성도 워커 메모리에 보관 시간(600초) 동안만 있으니, Spring은 `done`을 받은 뒤 바로 받아 저장합니다.
 
@@ -333,7 +336,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 - GPU 서버 자체 모델([`ai/gpu_stt`](../../ai/gpu_stt/README.md))은 말소리 감지(Silero VAD)로 말소리 구간이 없는 녹음(무음·잡음)을 받아 적지 않고 `text: ""`를 돌려줍니다. 이 모델(large-v3-turbo)은 무음에 프롬프트와 상관없는 문장(`I want... I want...`, `감사합니다`)도 지어내 메아리 거르기로는 다 막을 수 없기 때문입니다. GMS·Groq로 넘어간 요청에는 이 거르기가 없습니다.
 - GMS 구성(기본 `gms-luna`)은 Groq Whisper(`whisper-large-v3-turbo`)로 인식하고, Groq가 한도(429)·서버 오류·키 오류·응답 없음이면 GMS `whisper-1`로 한 번 더 인식합니다. 이때 `usage`의 `model`은 `whisper-1`, `fallback: true`입니다. 녹음 자체를 공급자가 받지 않은 경우(400·413·415·422)는 넘기지 않습니다. 대체 쪽도 실패하면 429/503이고, 메시지에 두 오류가 함께 적힙니다.
 - 대체가 있으면 Groq 호출은 `STT_FIRST_TIMEOUT_S`(8초) 안에 답이 없을 때 넘깁니다. 응답의 `latency_s`는 실패한 첫 호출까지 포함한 전체 시간입니다. GMS `whisper-1`은 Groq보다 느립니다(6.5초 음성 기준 약 1.9초, Groq 약 0.4초).
-- 워커 환경 변수 `STT_CHAIN`으로 공급자 순서를 정할 수 있습니다(예: SSAFY GPU 서버의 자체 학습 모델 `gpu:turbo-lr1e4` → GMS `whisper-1` → Groq). 앞 공급자가 한도·오류·응답 없음이면 다음으로 넘기고, 녹음 자체 오류는 넘기지 않습니다. `usage`의 `model`은 실제로 인식한 모델이고, 첫 공급자가 아니면 `fallback: true`입니다. 모두 실패하면 마지막 공급자의 오류 코드(429/503)이고 메시지에 공급자별 오류가 함께 적힙니다.
+- 워커 환경 변수 `STT_CHAIN`으로 공급자 순서를 정할 수 있습니다(예: SSAFY GPU 서버의 자체 학습 모델 `gpu:turbo-lr1e4` → GMS `whisper-1` → Groq). 주 GPU가 꺼졌을 때 부를 예비 GPU는 `gpu_backup`(주소 `STT_GPU_BACKUP_BASE_URL`)으로 `gpu` 다음에 둡니다. 앞 공급자가 한도·오류·응답 없음이면 다음으로 넘기고, 녹음 자체 오류는 넘기지 않습니다. `usage`의 `model`은 실제로 인식한 모델이고, 첫 공급자가 아니면 `fallback: true`입니다. 모두 실패하면 마지막 공급자의 오류 코드(429/503)이고 메시지에 공급자별 오류가 함께 적힙니다.
 - 같은 공급자가 연속으로 `STT_BREAKER_FAILURES`(3)번 실패하면 `STT_BREAKER_SKIP_S`(60초) 동안 건너뛰고 다음 공급자로 바로 보냅니다. 마지막 공급자는 건너뛰지 않습니다. 응답 형식은 같습니다.
 - 음성은 음성 인식 공급자(Groq, SSAFY GMS를 거친 OpenAI, `STT_CHAIN`에 `gpu`가 있으면 SSAFY GPU 서버)로 전송됩니다. 사용자 동의 화면에 이 점을 알려야 합니다.
 
@@ -343,13 +346,14 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 ### 2.6.1 `POST /v1/suggest` — 추천 단어 (백엔드 `suggestWords`)
 
-학습자가 다음 대답에 쓸 만한 영어 단어·짧은 구를 3개까지 만듭니다. NPC 대답이 끝난 뒤(`done`의 `text`를 `history` 끝에 붙여) 부릅니다.
+학습자가 다음 대답에 쓸 만한 영어 단어·짧은 구의 후보를 5개까지 만듭니다. 화면에는 백엔드가 3개까지 골라 보냅니다. NPC 대답이 끝난 뒤(`done`의 `text`를 `history` 끝에 붙여) 부릅니다.
 
 요청: `npc`, `scene`(비면 `npc.scene`), `goal`(지금 상태에서 학습자가 할 일, 비면 자연스러운 대답, 최대 300자), `history`(마지막 NPC 줄이 대답할 대상, 최대 40줄), `level`(기본 `2`).
 
 응답: `{"words": ["for here", "to go", "please"], "usage": [...]}`
 
-- 단어 또는 1~3단어 구, 문자열 목록, 한국어 없음. 앞뒤 공백을 지우고 대소문자를 무시한 중복을 뺀 뒤 3개까지.
+- 단어 또는 짧은 구를 `영어 — 뜻` 문자열로 보냅니다(이전 캐시·고정 응답은 영어만). 앞뒤 공백을 지우고 대소문자를 무시한 중복을 뺀 뒤 5개까지.
+- 주어로 시작하거나(`I'm sorry`) `.`·`?`·`!`로 끝나는 문장 같은 말은 빼되, 그러면 2개보다 적게 남을 때만 모자란 만큼 뒤에 붙입니다.
 - 출력에 쓸 단어가 하나도 없으면 502 `invalid_output`. 공급자 실패는 429/503.
 - 백엔드는 CONV-12에서 NPC 대사를 받은 뒤 따로 부릅니다. 무례 퇴장이나 토큰 소진처럼 대화가 끝난 턴에는 클라이언트가 요청하지 않으므로 부르지 않습니다.
 

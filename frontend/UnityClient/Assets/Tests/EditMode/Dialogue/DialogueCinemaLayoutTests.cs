@@ -12,6 +12,23 @@ namespace A305.Dialogue.Tests
         private static readonly Vector2 Wide = new Vector2(1920, 1080);
 
         [Test]
+        public void TallExpression_KeepsTheFirstLineImmediatelyBelowTheName()
+        {
+            var layout = DialogueCinemaLayout.Compute(
+                Wide,
+                90,
+                120,
+                hasTranslation: true,
+                translationHeight: 400
+            );
+            Assert.That(
+                layout.Name.yMin - layout.Lines.yMax,
+                Is.EqualTo(DialogueCinemaLayout.Gap).Within(.01f)
+            );
+            Assert.That(layout.Lines.height, Is.EqualTo(400).Within(.01f));
+        }
+
+        [Test]
         public void WideScreen_CentersAColumnOfAtMostTheReadableWidth()
         {
             DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
@@ -137,64 +154,121 @@ namespace A305.Dialogue.Tests
             Assert.That(layout.Name.yMin, Is.GreaterThanOrEqualTo(layout.Lines.yMax));
         }
 
-        // 한국어로 길게 말하면 영어 표현도 길어진다. 카드를 문장에 맞춰 키워 두 번째 줄부터 잘리지 않게 한다.
+        // 영어 표현 카드는 내용만큼만 차지하고, 최근 대사가 있는 대사 칸 아래쪽에 맞춰 붙는다(S15P31A305-862).
         [Test]
-        [TestCase(1920, 1080)]
-        [TestCase(900, 1400)]
-        public void LongTranslation_GrowsTheCardAndKeepsTheNameAboveIt(float width, float height)
-        {
-            DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
-                new Vector2(width, height),
-                linesHeight: 100,
-                nameWidth: 120,
-                hasTranslation: true,
-                translationHeight: 260
-            );
-
-            Assert.That(layout.Translation.height, Is.EqualTo(260).Within(.01f));
-            Assert.That(layout.Name.yMin, Is.GreaterThan(layout.Translation.yMax));
-            Assert.That(layout.Height, Is.LessThanOrEqualTo(height + .1f));
-        }
-
-        [Test]
-        public void ShortTranslation_KeepsTheApprovedCardHeight()
+        public void ShortCard_ShrinksToItsContent_AtTheBottomOfTheLines()
         {
             DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
                 Wide,
-                linesHeight: 100,
+                linesHeight: 300,
                 nameWidth: 120,
                 hasTranslation: true,
-                translationHeight: 90
+                translationHeight: 130
+            );
+
+            Assert.That(layout.Translation.height, Is.EqualTo(130).Within(.01f));
+            Assert.That(layout.Translation.yMin, Is.EqualTo(layout.Lines.yMin).Within(.01f));
+        }
+
+        // 대사가 짧으면 빈 칸을 미리 두지 않고, 대화창이 대사에 맞는다.
+        [Test]
+        public void ShortCard_OnShortLines_LeavesNoEmptyRoomAboveTheLines()
+        {
+            DialogueCinemaLayout without = DialogueCinemaLayout.Compute(
+                Wide,
+                linesHeight: 140,
+                nameWidth: 120,
+                hasTranslation: true,
+                translationHeight: 100
             );
 
             Assert.That(
-                layout.Translation.height,
-                Is.EqualTo(DialogueCinemaLayout.TranslationHeight).Within(.01f)
+                without.Name.yMin,
+                Is.EqualTo(without.Lines.yMax + DialogueCinemaLayout.Gap).Within(.01f)
             );
         }
 
-        // 아주 긴 표현은 화면을 다 덮지 않게 상한까지만 키우고 나머지는 카드 안에서 스크롤한다.
+        // 카드가 대사보다 길거나 다른 표현을 펼치면 대화창이 카드에 맞춰 커진다. 카드는 이름 줄 아래에 다 보인다.
         [Test]
         [TestCase(1920, 1080)]
-        [TestCase(1920, 600)]
-        [TestCase(900, 850)]
-        public void VeryLongTranslation_StopsAtALimitWithinTheCanvas(float width, float height)
+        [TestCase(900, 1400)]
+        public void TallCard_GrowsTheDialogueToFitIt(float width, float height)
         {
             DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
                 new Vector2(width, height),
                 linesHeight: 100,
                 nameWidth: 120,
                 hasTranslation: true,
-                translationHeight: 2000
+                translationHeight: 300
             );
 
-            Assert.That(
-                layout.Translation.height,
-                Is.LessThanOrEqualTo(DialogueCinemaLayout.MaxTranslationHeight)
-            );
-            Assert.That(layout.Translation.height, Is.GreaterThan(0));
-            Assert.That(layout.Height, Is.LessThanOrEqualTo(height + .1f));
+            Assert.That(layout.Translation.height, Is.EqualTo(300).Within(.01f));
             Assert.That(layout.Name.yMin, Is.GreaterThan(layout.Translation.yMax));
+            Assert.That(layout.Height, Is.LessThanOrEqualTo(height + .1f));
+        }
+
+        // 대화창은 최대 높이(대사 칸의 최대 높이·화면 높이)를 넘지 않는다. 그보다 긴 카드는 그 높이에서 멈추고 안에서 스크롤한다.
+        [Test]
+        [TestCase(1920, 1080)]
+        [TestCase(1920, 720)]
+        public void VeryTallCard_StopsAtTheDialogueMaximum(float width, float height)
+        {
+            var canvas = new Vector2(width, height);
+            DialogueCinemaLayout longest = DialogueCinemaLayout.Compute(
+                canvas,
+                linesHeight: 5000,
+                nameWidth: 120,
+                hasEarlierLines: true,
+                hasTranslation: true,
+                translationHeight: 100
+            );
+            DialogueCinemaLayout tall = DialogueCinemaLayout.Compute(
+                canvas,
+                linesHeight: 100,
+                nameWidth: 120,
+                hasTranslation: true,
+                translationHeight: 5000
+            );
+
+            Assert.That(tall.Translation.height, Is.EqualTo(longest.Lines.height).Within(.01f));
+            Assert.That(tall.Height, Is.EqualTo(longest.Height).Within(.01f));
+            Assert.That(tall.Height, Is.LessThanOrEqualTo(height + .1f));
+            Assert.That(tall.Name.yMin, Is.GreaterThan(tall.Translation.yMax));
+        }
+
+        // 좁은 화면에서는 카드를 대사 위에 쌓고, 대사 최소 높이를 남긴 화면 높이까지만 키운다.
+        [Test]
+        [TestCase(900, 1400)]
+        [TestCase(900, 850)]
+        public void StackedCard_FitsItsContent_AndStopsWithinTheCanvas(float width, float height)
+        {
+            DialogueCinemaLayout small = DialogueCinemaLayout.Compute(
+                new Vector2(width, height),
+                linesHeight: 100,
+                nameWidth: 120,
+                hasTranslation: true,
+                translationHeight: 130
+            );
+            DialogueCinemaLayout tall = DialogueCinemaLayout.Compute(
+                new Vector2(width, height),
+                linesHeight: 100,
+                nameWidth: 120,
+                hasTranslation: true,
+                translationHeight: 5000
+            );
+
+            Assert.That(small.Translation.height, Is.EqualTo(130).Within(.01f));
+            Assert.That(
+                small.Lines.yMin,
+                Is.EqualTo(small.Translation.yMax + DialogueCinemaLayout.Gap).Within(.01f)
+            );
+            Assert.That(tall.Translation.height, Is.LessThan(5000));
+            Assert.That(
+                tall.Lines.height,
+                Is.GreaterThanOrEqualTo(DialogueCinemaLayout.MinLinesHeight - .01f)
+            );
+            Assert.That(tall.Name.yMin, Is.GreaterThan(tall.Translation.yMax));
+            Assert.That(tall.Height, Is.LessThanOrEqualTo(height + .1f));
         }
 
         [Test]
@@ -217,6 +291,46 @@ namespace A305.Dialogue.Tests
                     Is.EqualTo(layout.Translation.width).Within(.01f)
                 );
             }
+        }
+
+        // 한국어로 말하면 대사 칸이 좁아져 줄 수가 늘어난다. 그래도 이름 줄이 오른쪽 위 단어·추천 문장 카드 자리까지 올라가지 않는다.
+        [Test]
+        [TestCase(false)]
+        [TestCase(true)]
+        public void LongLines_LeaveTheRoomAskedForAboveTheNameRow(bool translation)
+        {
+            DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
+                Wide,
+                linesHeight: 2000,
+                nameWidth: 120,
+                hasEarlierLines: true,
+                hasTranslation: translation,
+                translationHeight: 2000,
+                roomAboveName: 500
+            );
+
+            Assert.That(Wide.y - layout.Name.yMax, Is.GreaterThanOrEqualTo(500 - .01f));
+            Assert.That(
+                layout.Lines.height,
+                Is.GreaterThanOrEqualTo(DialogueCinemaLayout.MinBodyBelowReservedRoom)
+            );
+        }
+
+        // 낮은 화면에서는 위 자리를 다 비워 줄 수 없다. 대사를 읽을 높이는 남긴다.
+        [Test]
+        public void ShortScreen_KeepsReadableLinesBeforeTheRoomAbove()
+        {
+            DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
+                new Vector2(1920, 720),
+                linesHeight: 2000,
+                nameWidth: 120,
+                roomAboveName: 500
+            );
+
+            Assert.That(
+                layout.Lines.height,
+                Is.EqualTo(DialogueCinemaLayout.MinBodyBelowReservedRoom).Within(.01f)
+            );
         }
 
         [Test]

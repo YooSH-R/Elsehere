@@ -232,6 +232,55 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca1d940ac9df35846adf596b1b7f637c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.World::A305.World.HudNoticeView
+--- !u!1 &89989657
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 89989658}
+  - component: {fileID: 89989659}
+  m_Layer: 0
+  m_Name: RestSeat1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &89989658
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 89989657}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 540538745}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &89989659
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 89989657}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da5854d325786e041b5d76fbefb5e653, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Mission::A305.Mission.RestSeat
+  player: {fileID: 855305409}
+  dialogue: {fileID: 654710025}
+  offerView: {fileID: 442440445}
+  cushionTopMeters: 0.34
+  frontEdgeMeters: 0.26
 --- !u!1 &139511200
 GameObject:
   m_ObjectHideFlags: 0
@@ -504,6 +553,104 @@ Transform:
   m_Children: []
   m_Father: {fileID: 455363498}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &292969987
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 292969988}
+  - component: {fileID: 292969989}
+  m_Layer: 0
+  m_Name: RestSeat1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &292969988
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 292969987}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 540538747}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &292969989
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 292969987}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da5854d325786e041b5d76fbefb5e653, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Mission::A305.Mission.RestSeat
+  player: {fileID: 855305409}
+  dialogue: {fileID: 654710025}
+  offerView: {fileID: 442440445}
+  cushionTopMeters: 0.34
+  frontEdgeMeters: 0.26
+--- !u!1 &374222069
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 374222070}
+  - component: {fileID: 374222071}
+  m_Layer: 0
+  m_Name: RestSeat1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &374222070
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 374222069}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1.3333334, y: 2, z: 1.3333334}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 540538749}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &374222071
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 374222069}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da5854d325786e041b5d76fbefb5e653, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Mission::A305.Mission.RestSeat
+  player: {fileID: 855305409}
+  dialogue: {fileID: 654710025}
+  offerView: {fileID: 442440445}
+  cushionTopMeters: 0.45
+  frontEdgeMeters: 0.21000001
 --- !u!1 &376266012
 GameObject:
   m_ObjectHideFlags: 0
@@ -839,6 +986,55 @@ Transform:
   m_Children: []
   m_Father: {fileID: 455363498}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &428265320
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 428265321}
+  - component: {fileID: 428265322}
+  m_Layer: 0
+  m_Name: RestSeat1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &428265321
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 428265320}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1.3333334, y: 2, z: 1.3333334}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 540538750}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &428265322
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 428265320}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da5854d325786e041b5d76fbefb5e653, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Mission::A305.Mission.RestSeat
+  player: {fileID: 855305409}
+  dialogue: {fileID: 654710025}
+  offerView: {fileID: 442440445}
+  cushionTopMeters: 0.45
+  frontEdgeMeters: 0.21000001
 --- !u!1001 &442440443
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1259,6 +1455,24 @@ PrefabInstance:
     - {fileID: 4042883095298684187, guid: 1d34e2fbb8b2ae7439f5ca5824bbcbc3, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 3980870352794234719, guid: 1d34e2fbb8b2ae7439f5ca5824bbcbc3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 428265321}
+    - targetCorrespondingSourceObject: {fileID: 2855007488487445734, guid: 1d34e2fbb8b2ae7439f5ca5824bbcbc3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 374222070}
+    - targetCorrespondingSourceObject: {fileID: 7333432692679166549, guid: 1d34e2fbb8b2ae7439f5ca5824bbcbc3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2062517340}
+    - targetCorrespondingSourceObject: {fileID: 6723488068413166237, guid: 1d34e2fbb8b2ae7439f5ca5824bbcbc3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 292969988}
+    - targetCorrespondingSourceObject: {fileID: 3697536872413243857, guid: 1d34e2fbb8b2ae7439f5ca5824bbcbc3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 787752547}
+    - targetCorrespondingSourceObject: {fileID: 3732560274229240424, guid: 1d34e2fbb8b2ae7439f5ca5824bbcbc3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 89989658}
     - targetCorrespondingSourceObject: {fileID: 1630848799587074081, guid: 1d34e2fbb8b2ae7439f5ca5824bbcbc3, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1992002003}
@@ -1309,6 +1523,36 @@ Transform:
 --- !u!108 &540538744 stripped
 Light:
   m_CorrespondingSourceObject: {fileID: 6109695028817808004, guid: 1d34e2fbb8b2ae7439f5ca5824bbcbc3, type: 3}
+  m_PrefabInstance: {fileID: 540538740}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &540538745 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3732560274229240424, guid: 1d34e2fbb8b2ae7439f5ca5824bbcbc3, type: 3}
+  m_PrefabInstance: {fileID: 540538740}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &540538746 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3697536872413243857, guid: 1d34e2fbb8b2ae7439f5ca5824bbcbc3, type: 3}
+  m_PrefabInstance: {fileID: 540538740}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &540538747 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6723488068413166237, guid: 1d34e2fbb8b2ae7439f5ca5824bbcbc3, type: 3}
+  m_PrefabInstance: {fileID: 540538740}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &540538748 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7333432692679166549, guid: 1d34e2fbb8b2ae7439f5ca5824bbcbc3, type: 3}
+  m_PrefabInstance: {fileID: 540538740}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &540538749 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2855007488487445734, guid: 1d34e2fbb8b2ae7439f5ca5824bbcbc3, type: 3}
+  m_PrefabInstance: {fileID: 540538740}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &540538750 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3980870352794234719, guid: 1d34e2fbb8b2ae7439f5ca5824bbcbc3, type: 3}
   m_PrefabInstance: {fileID: 540538740}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &654285023
@@ -1465,6 +1709,55 @@ MonoBehaviour:
   lamps:
   - {fileID: 540538744}
   - {fileID: 540538741}
+--- !u!1 &787752546
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 787752547}
+  - component: {fileID: 787752548}
+  m_Layer: 0
+  m_Name: RestSeat1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &787752547
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 787752546}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 540538746}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &787752548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 787752546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da5854d325786e041b5d76fbefb5e653, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Mission::A305.Mission.RestSeat
+  player: {fileID: 855305409}
+  dialogue: {fileID: 654710025}
+  offerView: {fileID: 442440445}
+  cushionTopMeters: 0.34
+  frontEdgeMeters: 0.26
 --- !u!1001 &850575946
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2203,15 +2496,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.9999986
+      value: -0.4000001
       objectReference: {fileID: 0}
     - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.05000002
+      value: 0.05
       objectReference: {fileID: 0}
     - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -4.4
+      value: -6.3000016
       objectReference: {fileID: 0}
     - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_LocalRotation.w
@@ -2223,7 +2516,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.00000025288108
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_LocalRotation.z
@@ -2332,6 +2625,7 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 1.7500001, z: -3.900001}
     m_Extent: {x: 3.800001, y: 1.6500001, z: 3.8000007}
+  keepsOwnPost: 1
 --- !u!1001 &1351662740
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2803,6 +3097,7 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 1.7500001, z: -3.900001}
     m_Extent: {x: 3.800001, y: 1.6500001, z: 3.8000007}
+  keepsOwnPost: 0
 --- !u!114 &1753462274 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
@@ -3389,6 +3684,55 @@ Transform:
   - {fileID: 38856440}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2062517339
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2062517340}
+  - component: {fileID: 2062517341}
+  m_Layer: 0
+  m_Name: RestSeat1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2062517340
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2062517339}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 540538748}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2062517341
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2062517339}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da5854d325786e041b5d76fbefb5e653, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Mission::A305.Mission.RestSeat
+  player: {fileID: 855305409}
+  dialogue: {fileID: 654710025}
+  offerView: {fileID: 442440445}
+  cushionTopMeters: 0.34
+  frontEdgeMeters: 0.26
 --- !u!1001 &2104167470
 PrefabInstance:
   m_ObjectHideFlags: 0

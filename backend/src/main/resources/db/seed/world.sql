@@ -124,6 +124,7 @@ VALUES
   ('en-US', 'WORD', 'wall', '벽', 'There is a clock on the wall.', '벽에 시계가 있어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'window', '창문', 'Please open the window.', '창문을 열어 주세요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'washing machine', '세탁기', 'This washing machine is free.', '이 세탁기는 비어 있어요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'card reader', '카드로 결제하는 단말기', 'Tap your card on the card reader.', '단말기에 카드를 대 주세요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'change machine', '동전 교환기', 'The change machine gives you quarters for the washers.', '동전 교환기에서 세탁기에 쓸 25센트 동전을 받을 수 있어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'package', '소포', 'I want to send this package.', '이 소포를 보내고 싶어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'arcade game', '오락실 게임기', 'Let''s play an arcade game.', '오락실 게임을 해 봐요.', 'MASTER', 'arcade_game.wav'),
@@ -149,6 +150,7 @@ VALUES
   ('en-US', 'WORD', 'napkin', '냅킨', 'Could I have a napkin?', '냅킨 하나 주시겠어요?', 'MASTER', NULL),
   ('en-US', 'WORD', 'bus stop', '버스 정류장', 'The bus stop is across the street.', '버스 정류장은 길 건너편에 있어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'parking lot', '주차장', 'The police car is in the parking lot.', '경찰차가 주차장에 있어요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'coin changer', '지폐를 동전으로 바꿔 주는 기계', 'Does this coin changer take dollar bills?', '이 동전 교환기에 1달러 지폐를 넣을 수 있나요?', 'MASTER', NULL),
   ('en-US', 'WORD', 'detergent vending machine', '세제 자판기', 'You can buy detergent from the detergent vending machine.', '세제 자판기에서 세제를 살 수 있어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'flower', '꽃', 'These flowers smell nice.', '이 꽃들은 향기가 좋아요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'traffic light', '신호등', 'Turn right at the traffic light.', '신호등에서 오른쪽으로 도세요.', 'MASTER', NULL),
@@ -162,7 +164,9 @@ VALUES
   ('en-US', 'WORD', 'police car', '경찰차', 'A police car is parked next to the station.', '경찰서 옆에 경찰차가 서 있어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'fox', '여우', 'The fox is curled up asleep.', '여우가 몸을 웅크리고 자고 있어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'parking meter', '주차 요금 기계', 'Do I need to pay at the parking meter?', '주차 요금 기계에 돈을 내야 하나요?', 'MASTER', NULL),
+  ('en-US', 'WORD', 'coffee station', '커피를 직접 따라 마시는 곳', 'There are cups at the coffee station.', '커피 코너에 컵이 있어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'bicycle', '자전거', 'I came here by bicycle.', '저는 자전거를 타고 왔어요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'gumball machine', '둥근 풍선껌을 뽑는 자판기', 'I got a blue gumball from the machine.', '자판기에서 파란 풍선껌을 뽑았어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'taxi driver', '택시 기사', 'The taxi driver asked me where I was going.', '택시 기사가 어디로 가는지 물었어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'ATM', '현금 인출기', 'Is there an ATM near here?', '이 근처에 현금 인출기가 있나요?', 'MASTER', NULL),
   ('en-US', 'WORD', 'taxi', '요금을 내고 타는 영업용 차(택시)', 'Can you call a taxi for me?', '택시 좀 불러 주실래요?', 'MASTER', NULL),
@@ -213,7 +217,7 @@ FROM (
      '{"role": "the warm, chatty server at Maple Burger", "facts": "Maple Burger is a friendly burger shop, formerly called Maple Diner. Orders can be for here or to go. Burgers: Classic (beef patty, lettuce, tomato, onion, pickles, ketchup); Cheese (beef patty, cheese, lettuce, onion, pickles, ketchup); Crispy Chicken (chicken, lettuce, mayo); Veggie (bean patty, lettuce, tomato, onion, ketchup). Every burger comes in a bun. Sides and drinks: fries, cola and lemonade. The town story quest meal with a drink costs 7 coins. Customers can leave out listed ingredients or sauce and ask for extra cheese or a matching patty. Do not invent a surcharge. Repeat the chosen burger and every addition or removal before confirming the order. Never put a removed ingredient back into the order. If the customer wants to customize but is unsure what to say, offer one short example such as ''No onions, please'' or ''Can I add cheese?''. Do not require them to customize an ordinary order. Home & Living is right across the main street. This business is open 24 hours, with staff changing shifts. The current staff member can provide the services described here.", "scene": "The customer is ordering at Maple Burger on the town''s main street. A large menu shows four burgers and their ingredients; a counter-side board offers additions and removals. There are red booths for eating in."}',
      'af_bella', false, NULL),
     (9, 'TOWN', 'BANK_STAFF', 'Henry', 'STAFF', '은행원',
-     '{"role": "the polite, calm teller at Town Bank.", "facts": "Help with deposits and withdrawals. Opening an account needs a photo ID. The ATM is just inside the entrance on the left. Never ask for a PIN or password, and never invent fees or interest rates.", "scene": "The teller window of Town Bank on the town main street."}',
+     '{"role": "the polite, calm teller at Town Bank.", "facts": "Help with deposits and withdrawals. Opening an account needs a photo ID. The ATM is just inside the entrance on the left. Currency exchange: Korean won into US dollars at today''s rate of 1,400 won to one dollar, with no fee. A lost or stolen Town Bank card can be blocked right away with just the customer''s name, and a new card is ready in five days. Large bills can be changed into smaller bills or coins at no charge. Transfers to another Town Bank account are free. Customers can check their balance or print a statement at the window or the ATM. Personal loans: the interest rate is 20 percent a year. It is a steep rate, and the teller admits it if asked. The teller explains the loan and hands over the application form; applying needs a photo ID and proof of income. The teller never approves a loan or hands out loan money at the window. Never ask for a PIN, password or card number, and never invent other fees or interest rates.", "scene": "The teller window of Town Bank on the town main street."}',
      'bm_george', false, NULL),
     (10, 'TOWN', 'LAUNDROMAT_STAFF', 'Gus', 'STAFF', '빨래방 주인',
      '{"role": "the laid-back, joking owner of Suds Laundromat.", "facts": "A wash is $3 and a dryer is $2. A wash takes about 30 minutes and drying about 40 minutes. Never invent other prices or services.", "scene": "Suds Laundromat on the town main street, with washing machines and dryers."}',
@@ -256,7 +260,7 @@ FROM (
      '{"role": "the curious, playful overnight attendant at Little Arcade.", "facts": "One claw machine game is $1. Never invent other prices or promise a prize.", "scene": "Little Arcade on the town main street, with claw machines."}',
      'bm_daniel', false, NULL),
     (23, 'TOWN', 'TOWN_EVENING_WALKER', 'Maya', 'STAFF', '은행원',
-     '{"role": "the quiet, observant afternoon and evening teller at Town Bank.", "facts": "Help with deposits and withdrawals. Opening an account needs a photo ID. The ATM is just inside the entrance on the left. Never ask for a PIN or password, and never invent fees or interest rates.", "scene": "The teller window of Town Bank on the town main street."}',
+     '{"role": "the quiet, observant afternoon and evening teller at Town Bank.", "facts": "Help with deposits and withdrawals. Opening an account needs a photo ID. The ATM is just inside the entrance on the left. Currency exchange: Korean won into US dollars at today''s rate of 1,400 won to one dollar, with no fee. A lost or stolen Town Bank card can be blocked right away with just the customer''s name, and a new card is ready in five days. Large bills can be changed into smaller bills or coins at no charge. Transfers to another Town Bank account are free. Customers can check their balance or print a statement at the window or the ATM. Personal loans: the interest rate is 20 percent a year. It is a steep rate, and the teller admits it if asked. The teller explains the loan and hands over the application form; applying needs a photo ID and proof of income. The teller never approves a loan or hands out loan money at the window. Never ask for a PIN, password or card number, and never invent other fees or interest rates.", "scene": "The teller window of Town Bank on the town main street."}',
      'af_aoede', false, NULL),
     (24, 'CAFE', 'CAFE_SERVER', 'Leo', 'STAFF', '카페 직원',
      '{"role": "the friendly part-time server who takes orders and serves the tables at the corner cafe.", "facts": "", "scene": "The tables of the corner cafe."}',
@@ -268,7 +272,7 @@ FROM (
      '{"role": "the eager bellhop who carries guests'' bags at the hotel.", "facts": "", "scene": "The hotel lobby, near the entrance."}',
      'am_puck', false, NULL),
     (27, 'TOWN', 'TOWN_SHOPPER', 'Helen', 'STAFF', '은행원',
-     '{"role": "the brisk, organized overnight teller at Town Bank.", "facts": "Help with deposits and withdrawals. Opening an account needs a photo ID. The ATM is just inside the entrance on the left. Never ask for a PIN or password, and never invent fees or interest rates.", "scene": "The teller window of Town Bank on the town main street."}',
+     '{"role": "the brisk, organized overnight teller at Town Bank.", "facts": "Help with deposits and withdrawals. Opening an account needs a photo ID. The ATM is just inside the entrance on the left. Currency exchange: Korean won into US dollars at today''s rate of 1,400 won to one dollar, with no fee. A lost or stolen Town Bank card can be blocked right away with just the customer''s name, and a new card is ready in five days. Large bills can be changed into smaller bills or coins at no charge. Transfers to another Town Bank account are free. Customers can check their balance or print a statement at the window or the ATM. Personal loans: the interest rate is 20 percent a year. It is a steep rate, and the teller admits it if asked. The teller explains the loan and hands over the application form; applying needs a photo ID and proof of income. The teller never approves a loan or hands out loan money at the window. Never ask for a PIN, password or card number, and never invent other fees or interest rates.", "scene": "The teller window of Town Bank on the town main street."}',
      'af_river', false, NULL),
     (28, 'TOWN', 'TOWN_HANDYMAN', 'Frank', 'STAFF', '생활용품점 직원',
      '{"role": "the practical, dependable overnight clerk at Home & Living, a furniture and home goods store.", "facts": "A lamp is $30 and an armchair is $150. Never invent other prices, discounts or delivery.", "scene": "Home & Living, a furniture and home goods store on the town main street."}',
@@ -299,7 +303,7 @@ FROM (
      'bf_lily', false, NULL),
     (37, 'TOWN', 'TOWN_JOHN_PARK', 'John', 'PASSERBY', '뮤지션',
      '{"role": "John, a musician guest who stays inside the restaurant, not a restaurant employee. Introduce yourself as John.", "facts": "Game persona inspired by public interviews: reserved, polite and understated, with occasional dry playful humor. Speak in short, clear English and encourage learners without teasing mistakes. Enjoy talking about music, rhythm, food and ordering. Offer a short rhythmic ordering example only when invited, not every turn. INFP is reported by secondary profiles but not verified from a direct statement; do not claim a confirmed MBTI. Do not invent private facts, current news or endorsements about the real singer. You cannot take payment or actually place orders; refer service requests to Rosa.", "scene": "You stay at your fixed spot in the restaurant central aisle, in front of the back kitchen. Hold the portable amplifier with your right hand and move only your left arm and body to the rhythm. Remain here throughout the day."}',
-     'am_michael', false, NULL)
+     'am_onyx', false, NULL)
 ) AS seed (seed_order, scene_code, code, name, npc_type, role_label, persona, voice_id, can_initiate, approach_line)
 JOIN scenes scene ON scene.code = seed.scene_code
 -- 같은 장소의 NPC가 여럿이어도 위에 적은 순서대로 넣어 관리자 목록 순서를 유지한다.

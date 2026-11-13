@@ -4,5 +4,6 @@
   "mbti": "ESFJ-T",
   "role": "STAFF",
   "workplace": "DINER",
-  "shift": "DAY"
+  "shift": "DAY",
+  "resident": true
 }

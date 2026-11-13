@@ -53,7 +53,7 @@ NPC 몸·이름표 클릭은 “이름에게 말을 걸까요?” 확인 창을 
 | `A305.Dialogue` | `DialogueController.TryStart`(먼저 말을 걸면 `ConversationInitiator.User`), `IsTalking`, `Ended`, 제안 머리말에 쓸 `FindNpcName`, 건넬 것이 다 됐는지 보는 `FollowUpStore.FindReady` |
 | `A305.Characters` | 모델 Animator에 이동 상태 전달. 연결하지 않아도 동작합니다. |
 | `A305.World` | 택시의 주행(`LoopingCar`)과 세우기 흐름(`TaxiFare`), 생활에 쓰는 게임 시각(`GameClock.Shared.Minutes`) |
-| `A305.ObjectHover` | 생활 행동의 사물을 사물 단어 키(`HoverableObject.UnityKey`)로 찾기. NPC 클릭은 사물 카드와 같은 클릭 판정(`PointerClick`)·UI 위 클릭 막기(`WorldClickBlocker`)를 쓰고, 사물 카드 영역(`ObjectHoverHitArea`)이 앞에 있으면 NPC를 고르지 않습니다. |
+| `A305.ObjectHover` | 생활 행동의 사물을 사물 단어 키(`HoverableObject.UnityKey`)로 찾기. NPC 클릭은 사물 카드와 같은 클릭 판정(`PointerClicks`·`PointerChanges`)·UI 위 클릭 막기(`WorldClickBlocker`)를 쓰고, 사물 카드 영역(`ObjectHoverHitArea`)이 앞에 있으면 NPC를 고르지 않습니다. |
 | Unity AI(NavMesh) | 생활 중 사물까지 걷는 경로. 바닥은 Builder가 굽습니다. |
 | uGUI, TextMeshPro | 제안 화면과 한국어 버튼 |
 | Input System | 대화 확인 창의 E·Esc 키, NPC 클릭·탭의 포인터 |
@@ -114,6 +114,7 @@ NPC 몸이나 머리 위 이름표를 클릭(휴대폰·태블릿은 탭)해 원
 | 대화를 다 쓴 게스트가 클릭·탭 | 대화 대신 가입 안내 창을 엽니다. |
 | 8m보다 멀거나, 다른 대화 중이거나, 창이 열려 이동이 잠겼거나, 진행 흐름이 막은 NPC(`IsApproachAllowed` false) | 반응하지 않고 테두리도 그리지 않습니다. |
 | 화면을 끌어 시점을 돌림, UI 위를 누름 | 사물 카드와 같은 기준으로 클릭으로 보지 않습니다. 화면을 덮는 터치 조작판 위의 탭은 받습니다. |
+| 걸으면서 클릭·탭(휴대폰은 엄지로 조이스틱을 잡은 채 다른 손가락으로 탭) | 손가락마다 따로 보아 조이스틱을 잡고 있어도 탭을 받습니다. 누르고 떼는 사이 플레이어·카메라·NPC가 움직여 뗀 자리에 NPC가 없으면, 누른 순간 가리킨 NPC가 아직 말을 걸 수 있을 때 그 NPC에게 말을 겁니다. 화면이 잠깐 멈춰 한 프레임 안에 누르고 뗀 클릭도 받습니다. |
 | NPC 앞을 벽이나 사물 카드가 뜨는 사물이 가림 | NPC를 고르지 않습니다. 사물이면 사물 카드가 뜹니다. 플레이어 몸과 문턱 같은 보이지 않는 감지 영역은 지나칩니다. |
 | 이름표 위에 커서를 올리거나 이름표를 누름 | 이름표 바탕 전체(이름·역할 칩 포함)가 클릭을 받습니다. 이름표가 사물 앞에 떠 있어도 사물 카드는 뜨지 않고 그 이름표의 NPC만 고릅니다. |
 | 나란히 선 NPC의 이름표가 겹친 곳을 누름 | 카메라에서 가까운 NPC 이름표가 위에 그려지고, 그 NPC에게 말을 겁니다. |
@@ -226,7 +227,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 | 드럭스토어 `ShopScene` | Alex(아침)·Hannah(오후~밤)·Samuel(밤~새벽) | 모두 계산대 뒤. Alex가 계산대에 가장 가깝다 |
 | 경찰서 `PoliceStationScene` | Dan(06~14)·Taylor(14~22)·Victor(22~06) | 모두 창구 뒤나 창구 끝. Dan이 창구에 가장 가깝다 |
 
-은행은 Henry 06~14, Maya 14~22, Helen 22~06의 3교대입니다. 나머지 거리 매장은 기존 직원 06~18과 야간 직원 18~06의 2교대입니다. 야간 직원은 우체국 Ruby, 식당 Ray, 베이커리 Kevin, 빨래방 Rachel, 꽃집 Walter, 이발소 Andre, 오락실 Ethan, 생활용품점 Frank입니다. 소방관 세 명은 소방서 개관 전 아르바이트라는 배경을 유지합니다. 총 인원과 ID는 바꾸지 않고, 실제 `WORK` 시간 기준으로 응대 공백이 없도록 인계 시간에 휴식을 둡니다.
+이야기 퀘스트가 찾아가라고 하는 기존 직원(Rosa·Gus·Henry·Tony·Lily·Grace·Nina·Max·Linda)은 24시간 상주하며 카운터를 맡습니다. 은행은 여기에 Maya 14~22, Helen 22~06이, 나머지 거리 매장은 야간 직원 18~06이 교대로 일합니다. 교대 직원은 카운터에서 1.5m 넘게 떨어진 매장 안 자기 자리를 지키고(`NpcRoutine`의 `keepsOwnPost`), 카운터 응대를 맡지 않아 상주 직원과 겹쳐 서지 않습니다. 야간 직원은 우체국 Ruby, 식당 Ray, 베이커리 Kevin, 빨래방 Rachel, 꽃집 Walter, 이발소 Andre, 오락실 Ethan, 생활용품점 Frank입니다. 소방관 세 명은 소방서 개관 전 아르바이트라는 배경을 유지합니다. 총 인원과 ID는 바꾸지 않고, 실제 `WORK` 시간 기준으로 응대 공백이 없도록 인계 시간에 휴식을 둡니다.
 
 원본 일정을 내보낸 뒤 **Tools → A305 → Npc → Apply 24 Hour Roster**로 기존 인물의 배치·업무 대본·출퇴근 프리팹을 갱신합니다. Kevin은 사복을 입고 빵집에서 일하며, 경찰 신고를 받지 않습니다.
 
@@ -279,10 +280,10 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 마을 본길의 매장 9곳 1층에 직원을 둡니다. 직원은 그 매장 장면(`Scenes/ShopInteriors/<건물>Interior`) 안에 있고 근무 중이거나 근무 전에 미리 들어온 동안만 켜지며, 마을에는 출퇴근·휴식·여가 모습만 나옵니다. 모두 행인 프리팹을 쓰고 걷는 속도 0이라 플레이어에게 걸어가지 않습니다. 평소에는 근접 버튼이나 대화 제안을 띄우지 않고, 클릭·탭 후 확인 창에서 대화를 시작합니다. 튜토리얼·퀘스트와 후속 이벤트의 제안은 별도로 표시합니다. 이름·인격·목소리·상황은 서버 데이터(`ai/npcs/<NPC 키>.json`, `ai/npcs/scenarios/`)입니다.
 
-| 건물 | NPC 키 | 이름 | 외형(색만 바꿈) |
+| 건물 | NPC 키 | 이름 | 외형 |
 | --- | --- | --- | --- |
 | 우체국 `PostOffice` | `POST_OFFICE_STAFF` | Linda | 중년 여성, 자주색 옷·갈색 눈 |
-| 햄버거 가게 `MapleDiner` | `DINER_STAFF` | Rosa | 중년 여성, 빨간 옷·초록 눈 |
+| 햄버거 가게 `MapleDiner` | `DINER_STAFF` | Rosa | 중년 여성, 빨간 상의·야구 캡·어두운 앞치마·초록 눈 |
 | 은행 `TownBank` | `BANK_STAFF` | Henry | 비즈니스맨, 은색 머리·청회색 정장·회색 눈 |
 | 빨래방 `SudsLaundromat` | `LAUNDROMAT_STAFF` | Gus | 중년 남성, 겨자색 셔츠·갈색 눈 |
 | 꽃집 `BloomFlowers` | `FLOWER_SHOP_STAFF` | Lily | 할머니, 연보라 머리·초록 옷·청록 눈 |
@@ -293,6 +294,12 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 - 외형과 배색은 [외형 표](#외형-표)를 따릅니다. Gus와 Tony는 같은 외형에 눈동자 색이 같아, 서로 다른 사람으로 보이게 Tony의 머리를 검게 바꿨습니다.
 - 2층 가게(서점·찻집)에는 아직 직원이 없습니다.
+
+햄버거 가게의 Rosa와 야간 직원 Ray(`FIRE_CAPTAIN`)는 빨간 상의와 야구 캡, 어두운 앞치마를 함께 착용합니다. 캡은 머리를 감싸는 6개 패널과 앞쪽으로 나온 굽은 챙으로 구성하며, 몸통 밑단과 챙이 정점을 공유해 연결부가 벌어지지 않습니다. 앞치마 앞판은 높이별 몸통 곡면을 따라 덮고, 목끈과 허리끈은 옷의 바깥 둘레에 맞춥니다. 둘레를 측정할 때 팔·손은 제외하며 옷 주름에 끈이 파묻히지 않도록 바깥 윤곽을 사용합니다. 모자는 머리 본에, 앞치마는 몸통·허벅지 본에 연결하여 대기·대화·보행 동작을 따릅니다.
+
+캡 크기는 두 직원의 머리 위쪽 둘레를 기준으로 맞춥니다. 모자를 키워 머리카락을 모두 덮는 대신, 원본 외형을 유지한 채 두 직원만 사용하는 `*_BodyUnderCap.asset` 사본에서 모자 안쪽 머리카락을 눌러 맞춥니다. 뒷머리는 넓은 구간에 걸쳐 완만하게 연결하고, 본·UV·표정 블렌드셰이프는 원본에서 유지합니다.
+
+**Tools → A305 → Npc → Apply Burger Staff Uniforms**가 매장 씬과 두 직원의 출퇴근 프리팹에 적용하며, `Build Cast`로 외형을 다시 맞춰도 유지합니다. 전용 메시·재질은 `Art/Characters/BurgerStaffUniform/`에 두고 기존 디자인은 보존합니다. 머리 모양이나 몸 비율을 바꾼 경우에만 **Refit Burger Staff Uniform Meshes**로 두 직원의 전용 메시를 다시 맞춥니다.
 
 ## 외형 표
 
@@ -336,7 +343,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 - 마을(`TownScene`) 집 앞에 행인 Ben을, 카페(`CafeScene`) 카운터 뒤에 카페 직원을 둡니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않습니다. 예전처럼 집 앞 튜토리얼 행인(`TUTORIAL_PASSERBY`)과 동서 길 행인이 따로 있으면, 집 앞 행인을 Ben으로 바꾸고 동서 길 행인은 지웁니다. Ben에게는 평소 설정과 튜토리얼 설정을 함께 연결하고, 외형을 아래처럼 연결합니다.
 - 서서 지내는 NPC의 외형: **Tools → A305 → Npc → Connect Character Visuals**(`Scripts/Editor/Npc/NpcVisualBuilder.cs`)가 NPC 키별 외형을 장면의 NPC 아래에 둡니다. `TownScene`의 Ben은 비즈니스맨 `Prefabs/Npc/Review/LittleMung_Business_Male.prefab`, `ShopScene`의 드럭스토어 직원 Alex(`SHOP_STAFF`)는 흑인 남성 `Prefabs/Npc/Review/LittleMung_BlackYoung_Male.prefab`입니다. 다른 행인·직원도 쓰는 공용 `Passerby.prefab`의 `Visual`은 바꾸지 않고 꺼 둡니다. 예전 외형(도형 `LittleMungV7NpcVisual`, Generic 뼈대 `BenVisual`)은 NPC 아래에서 지우고, 대기 자세의 발바닥을 바닥에 맞춘 뒤 `CharacterAnimationDriver`의 Animator, 캡슐 높이(외형의 키), 시선(`LookTarget`)을 눈 높이로 맞춥니다. 공용 손짓 동작은 이 체형에서 무릎을 굽히고 팔을 내민 자세가 되므로 Ben은 `Passerby.talkGesture`를 꺼, 말을 건네고 대화하는 동안 자기 Idle로 서게 합니다. Alex는 다른 직원과 같이 손짓합니다. 이미 연결한 외형은 다시 만들지 않습니다. **Npc → Build**(Ben), 드럭스토어 Builder와 **Mission → Adjust Shop Counter Sightline**(Alex)도 같은 연결을 실행합니다.
 
-**Tools → A305 → Npc → Build Building Staff**(`Scripts/Editor/Npc/BuildingStaffBuilder.cs`)는 [거리 매장 직원](#거리-매장-직원)을 각 건물의 1층 매장 장면에 둡니다. 정한 자리가 카운터·가구와 겹치면 1층 안의 가장 가까운 빈자리로 옮기고(`NpcPlacement`), 문 쪽을 보게 세웁니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않습니다. 외형은 [외형 표](#외형-표)의 외형을 `NpcVisualBuilder`로 붙이고, 배색은 `NpcCastDresser`가 입힙니다(몸 텍스처는 1024로 줄임, 머티리얼 사본은 실행할 때마다 외형의 원래 머티리얼 설정에 맞춤). 확인용 인사말·설정(`Data/Npc/BuildingStaffSettings.asset`)도 연결합니다. 이어서 **Build Daily Life**를 실행해 생활을 붙이고, 직원마다 구역을 자기 건물 1층으로 정합니다. 생활 데이터에 직원이 없으면 내보내기(`npc_life_export.py`)를 먼저 하라고 알리고 멈춥니다.
+**Tools → A305 → Npc → Build Building Staff**(`Scripts/Editor/Npc/BuildingStaffBuilder.cs`)는 [거리 매장 직원](#거리-매장-직원)을 각 건물의 1층 매장 장면에 둡니다. 정한 자리가 카운터·가구와 겹치면 1층 안의 가장 가까운 빈자리로 옮기고(`NpcPlacement`), 문 쪽을 보게 세웁니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않습니다. 다만 전직한 교대 직원은 마지막에 **Place Shift Staff At Own Posts**로 카운터에서 떨어진 자기 자리에 다시 세우고 그 자리를 지키게 합니다. 바닥을 다시 굽지 않으므로 교대 직원 자리만 바꿀 때는 이 메뉴만 실행합니다. 외형은 [외형 표](#외형-표)의 외형을 `NpcVisualBuilder`로 붙이고, 배색은 `NpcCastDresser`가 입힙니다(몸 텍스처는 1024로 줄임, 머티리얼 사본은 실행할 때마다 외형의 원래 머티리얼 설정에 맞춤). 확인용 인사말·설정(`Data/Npc/BuildingStaffSettings.asset`)도 연결합니다. 이어서 **Build Daily Life**를 실행해 생활을 붙이고, 직원마다 구역을 자기 건물 1층으로 정합니다. 생활 데이터에 직원이 없으면 내보내기(`npc_life_export.py`)를 먼저 하라고 알리고 멈춥니다.
 
 **Tools → A305 → Npc → Build Cast**(`Scripts/Editor/Npc/NpcCastBuilder.cs`)는 다른 Builder가 두지 않는 카페·호텔·드럭스토어 직원과 마을 행인을 [일터](#일터와-응대)에 두고, 경찰관은 `PoliceStationBuilder.PlaceOfficers`로 경찰서 장면의 창구 뒤에 둡니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않고, 정한 자리가 가구와 겹치면 가까운 빈자리로 옮깁니다. 다가감 설정은 같은 일터의 원래 NPC를 따르고, 외형·캡슐·시선은 각자 외형 표와 자기 메시를 사용합니다. 이어서 다섯 장면의 모든 NPC에 외형 표의 배색을 입히고 **Build Daily Life**를 실행한 뒤 경찰관이 경찰서 1층 안에서만 지내게 합니다. 확인용 인사말도 덧붙입니다.
 
@@ -348,7 +355,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
-| `A305.Npc.Tests` | `Assets/Tests/EditMode/Npc/` | 행인의 다가감·제안·부르기·[말 걸기]·클릭으로 말 걸기와 게스트 안내, 클릭한 NPC 고르기(`NpcPointerRaycastTests`)·테두리(`RendererOutlineTests`), 택시 버튼, 생활 일과·욕구·행동 고르기, 근무와 카운터 응대(`NpcDutyTests`), 외형 표(`NpcCastTests`), 동작 고르기, 카메라에서 먼 NPC의 팔 관통 보정 끄기, 앉아 있는 동안 다시 켜지 않기와 네 장면의 보정 쓰는 NPC가 모두 거리 끄기를 가졌는지(`NpcDetailDistanceTests`·`NpcDetailDistanceSceneTests`), [이웃] 정보 카드의 지금 위치 문구(근무·출퇴근·짧은 휴식·쉼, 행인·행인이 가게에 들르는 중·택시, 미션이 부른 NPC, 생활 데이터 없음, `NpcWhereaboutsTests`), 행인의 자유 시간 가게 들르기 시각(`NpcDayPlanTests`), 가게에 머무는 시간·그날 안 들른 곳 먼저·행인은 가게만(`NpcOutingsTests`), [이웃] [지도에서 보기]의 자리(마을의 몸 먼저·일터·짧은 휴식·미션이 부른 NPC·숙소·걸어 다니는 중·행인·택시, `NpcLocatorTests`)와 찾는 이웃(바꾸기·끝내기·3m 도착, `NpcTrackingTests`), 찾는 이웃 이름표는 멀리서도 보이되 움직이지 못할 때는 숨김(`NpcNameTagsTests`), 이름표 본보기의 숨긴 찾는 이웃 표시(`NpcNameTagPrefabTests`) |
+| `A305.Npc.Tests` | `Assets/Tests/EditMode/Npc/` | 행인의 다가감·제안·부르기·[말 걸기]·클릭으로 말 걸기와 게스트 안내, 클릭한 NPC 고르기(`NpcPointerRaycastTests`)·테두리(`RendererOutlineTests`), 택시 버튼, 생활 일과·욕구·행동 고르기, 근무와 카운터 응대(`NpcDutyTests`), 이야기 퀘스트 직원의 24시간 근무와 교대 직원이 카운터에서 떨어진 자기 자리에 서는지(`QuestStaffPostsTests`), 외형 표(`NpcCastTests`), 동작 고르기, 카메라에서 먼 NPC의 팔 관통 보정 끄기, 앉아 있는 동안 다시 켜지 않기와 네 장면의 보정 쓰는 NPC가 모두 거리 끄기를 가졌는지(`NpcDetailDistanceTests`·`NpcDetailDistanceSceneTests`), [이웃] 정보 카드의 지금 위치 문구(근무·출퇴근·짧은 휴식·쉼, 행인·행인이 가게에 들르는 중·택시, 미션이 부른 NPC, 생활 데이터 없음, `NpcWhereaboutsTests`), 행인의 자유 시간 가게 들르기 시각(`NpcDayPlanTests`), 가게에 머무는 시간·그날 안 들른 곳 먼저·행인은 가게만(`NpcOutingsTests`), [이웃] [지도에서 보기]의 자리(마을의 몸 먼저·일터·짧은 휴식·미션이 부른 NPC·숙소·걸어 다니는 중·행인·택시, `NpcLocatorTests`)와 찾는 이웃(바꾸기·끝내기·3m 도착, `NpcTrackingTests`), 찾는 이웃 이름표는 멀리서도 보이되 움직이지 못할 때는 숨김(`NpcNameTagsTests`), 이름표 본보기의 숨긴 찾는 이웃 표시(`NpcNameTagPrefabTests`) |
 | `A305.Npc.PlayModeTests` | `Assets/Tests/PlayMode/Npc/` | 실제 장면의 행인·튜토리얼 행인 대화 흐름, NPC 몸·이름표 클릭·탭으로 말 걸기와 커서 테두리, 일일 한도 소진, 택시 주행, 경찰 신고와 순찰차 출동, 직원의 생활·카운터 응대와 동작 재생, 여가 시설 방문(`NpcPopulationOutingsTests`: 행인이 사라진 자리에서 가게로 나섰다 그 자리로 돌아옴, 대화 중인 행인은 대화가 끝난 뒤에 바뀜, 직원이 45분 뒤 가게에서 나와 다른 곳으로 감). |
 
 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.

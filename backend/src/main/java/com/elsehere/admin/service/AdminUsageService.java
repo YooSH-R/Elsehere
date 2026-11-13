@@ -1,5 +1,6 @@
 package com.elsehere.admin.service;
 
+import com.elsehere.admin.dto.AdminUserName;
 import com.elsehere.admin.dto.OverallUsageReport;
 import com.elsehere.admin.dto.OverallUsageReport.UserCount;
 import com.elsehere.admin.dto.UsageReport;
@@ -11,7 +12,10 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.mission.entity.TownStoryStage;
+import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.OnboardingStep;
+import com.elsehere.user.entity.User;
+import com.elsehere.user.repository.UserRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -20,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +39,8 @@ public class AdminUsageService {
   private static final int USER_LIST_LIMIT = 100;
   private static final String NOT_STARTED_LABEL = "시작 전";
   private static final String FINISHED_LABEL = "모두 마침";
+  // long 범위를 넘지 않는 사용자 ID
+  private static final Pattern USER_ID = Pattern.compile("\\d{1,18}");
 
   private static final List<String> FIRST_DAY_STAGE_NAMES =
       Arrays.stream(FirstDayStage.values()).map(FirstDayStage::title).toList();
@@ -41,6 +48,7 @@ public class AdminUsageService {
       Arrays.stream(TownStoryStage.values()).map(TownStoryStage::name).toList();
 
   private final AdminUsageRepository adminUsageRepository;
+  private final UserRepository userRepository;
   private final Clock clock;
 
   /** 최근 {@code days}일(1~90) 동안 모든 사용자의 이용 현황 */
@@ -69,6 +77,21 @@ public class AdminUsageService {
     return new UserUsageReport(profile(profile), usage(days, since, userId));
   }
 
+  /**
+   * 가입 이메일(대소문자 무시)이나 사용자 ID로 사용자를 찾는다. 숫자만 있으면 사용자 ID로 보고, 그 사용자가 있는지는 사용자별 화면이 확인한다. 이메일은 Google
+   * 가입자에게만 있다.
+   */
+  public long findUserId(String user) {
+    String query = user.trim();
+    if (USER_ID.matcher(query).matches()) {
+      return Long.parseLong(query);
+    }
+    return userRepository
+        .findByProviderAndEmailIgnoreCase(AuthProvider.GOOGLE, query)
+        .map(User::getId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
   private Instant periodStart(int days) {
     if (days < 1 || days > MAX_DAYS) {
       throw new BusinessException(ErrorCode.VALIDATION_FAILED);
@@ -80,6 +103,7 @@ public class AdminUsageService {
     return new UserUsageReport.Profile(
         row.userId(),
         row.guest(),
+        AdminUserName.of(row.userId(), row.guest(), row.withdrawn(), row.email()),
         row.withdrawn(),
         row.startedAt(),
         row.convertedAt(),

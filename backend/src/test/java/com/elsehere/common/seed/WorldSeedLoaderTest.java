@@ -22,6 +22,7 @@ import com.elsehere.world.service.PronunciationAudioStore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.EntityManager;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -365,6 +366,62 @@ class WorldSeedLoaderTest {
   }
 
   @Test
+  @DisplayName("은행원 세 명은 입출금 말고도 환전·카드 분실·잔돈·송금·잔액 확인과 연 20% 대출 상담을 안다. 대출금은 내주지 않는다")
+  void load_givesBankTellersTheBankServices() {
+    worldSeedLoader.load();
+
+    List<String> facts = bankTellerFacts();
+
+    assertThat(facts).hasSize(3).containsOnly(facts.getFirst());
+    assertThat(facts.getFirst())
+        .contains(
+            "deposits and withdrawals",
+            "1,400 won to one dollar",
+            "blocked right away",
+            "new card is ready in five days",
+            "smaller bills or coins",
+            "Transfers to another Town Bank account are free",
+            "check their balance or print a statement",
+            "20 percent a year",
+            "photo ID and proof of income",
+            "never approves a loan or hands out loan money");
+  }
+
+  @Test
+  @DisplayName("V40 마이그레이션은 이미 있는 DB의 은행원 세 명 facts를 시드와 같게 바꾸고 role·scene은 그대로 둔다")
+  void bankTellerMigration_updatesExistingFactsOnly() throws IOException {
+    worldSeedLoader.load();
+    String seedFacts = bankTellerFacts().getFirst();
+    entityManager
+        .createNativeQuery(
+            "update npcs set persona = '{\"role\": \"edited role\", \"facts\": \"Help with deposits"
+                + " and withdrawals.\", \"scene\": \"edited scene\"}' where code in ('BANK_STAFF',"
+                + " 'TOWN_EVENING_WALKER', 'TOWN_SHOPPER')")
+        .executeUpdate();
+
+    entityManager
+        .createNativeQuery(
+            new ClassPathResource("db/migration/V40__expand_bank_teller_services.sql")
+                .getContentAsString(StandardCharsets.UTF_8))
+        .executeUpdate();
+    entityManager.clear();
+
+    assertThat(bankTellerFacts()).containsOnly(seedFacts);
+    assertThat(npcRepository.findByCode("TOWN_SHOPPER"))
+        .get()
+        .extracting(Npc::getPersona)
+        .asString()
+        .contains("edited role", "edited scene");
+  }
+
+  private List<String> bankTellerFacts() {
+    return List.of("BANK_STAFF", "TOWN_EVENING_WALKER", "TOWN_SHOPPER").stream()
+        .map(code -> npcRepository.findByCode(code).orElseThrow().getPersona())
+        .map(persona -> new JsonMapper().readTree(persona).get("facts").asString())
+        .toList();
+  }
+
+  @Test
   @DisplayName("시드의 NPC마다 npc-configurations.json의 인격 카드를 넣는다")
   void load_insertsProfilesFromNpcConfigurations() throws IOException {
     worldSeedLoader.load();
@@ -444,6 +501,17 @@ class WorldSeedLoaderTest {
                     .extracting(Npc::getVoiceId)
                     .as(npcCode)
                     .isEqualTo(voiceId));
+  }
+
+  @Test
+  @DisplayName("John의 일반 대화도 저장 랩과 같은 저음 남성 목소리를 사용한다")
+  void load_johnUsesRecordedPerformanceVoice() {
+    worldSeedLoader.load();
+
+    assertThat(npcRepository.findByCode("TOWN_JOHN_PARK"))
+        .get()
+        .extracting(Npc::getVoiceId)
+        .isEqualTo("am_onyx");
   }
 
   @Test

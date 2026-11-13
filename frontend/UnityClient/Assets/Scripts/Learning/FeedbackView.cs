@@ -46,6 +46,10 @@ namespace A305.Learning
         private Button closeButton;
 
         [SerializeField]
+        [Tooltip("아래 줄의 [다시 연습]. 다시 연습할 수 있는 피드백에서만 보인다")]
+        private Button practiceButton;
+
+        [SerializeField]
         private Button topCloseButton;
 
         [SerializeField]
@@ -170,7 +174,6 @@ namespace A305.Learning
         // 판의 배율을 높여 요약·교정·대화 본문을 단어장과 비슷한 크기로 읽을 수 있게 한다.
         private const float FrameWidth = 1080 * Px;
         private const float FrameHeight = 770 * Px;
-        private const float TopObstructionGap = 12f;
         private static readonly Color TabInk = new Color32(47, 37, 27, 255);
         private static readonly Color TabMuted = new Color32(125, 110, 91, 255);
 
@@ -179,6 +182,9 @@ namespace A305.Learning
         private FeedbackSection section;
         private bool isRegenerating;
         private Rect lastFreeArea;
+
+        // 사용자가 창 크기를 바꿔 카드 폭이 달라졌다. 끄는 동안 여러 번 바뀌어도 한 프레임에 한 번만 다시 배치한다.
+        private bool resizedByUser;
         private bool isTranscriptShown;
         private int? selectedTranscriptReview;
         private FeedbackTranscriptDocument transcriptDocument;
@@ -206,6 +212,9 @@ namespace A305.Learning
         /// <summary>[닫기]를 누르면 알린다.</summary>
         public event Action CloseRequested;
 
+        /// <summary>아래 줄의 [다시 연습]을 눌렀다.</summary>
+        public event Action PracticeRequested;
+
         /// <summary>[담기]로 그 영어 표현·문장과 한국어 뜻을 알린다. 고친 문장은 뜻이 없어 빈 문자열이다.</summary>
         public event Action<string, string> SaveRequested;
 
@@ -223,9 +232,6 @@ namespace A305.Learning
         /// <summary>[요약]·[문장 교정]·[전체 대화] 탭 줄. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
         public RectTransform SectionRowRect => sectionRow;
 
-        /// <summary>피드백 본문의 스크롤 영역. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
-        public RectTransform ScrollAreaRect => PageCardRect;
-
         /// <summary>탭을 누르면 바뀌는 결과 칸. 튜토리얼 코치 마크가 피드백 티칭에서 탭과 함께 밝힌다.</summary>
         public RectTransform PageCardRect =>
             scroll != null
@@ -238,6 +244,13 @@ namespace A305.Learning
         public void SetMeaningSource(TranscriptMeanings source) => meaningSource = source;
 
         public void SetWordSaver(Func<GlossaryWord, Task<bool>> saver) => wordSaver = saver;
+
+        /// <summary>아래 줄의 [다시 연습]을 보여 줄지. 완성된 서버 피드백이 아니면 끈다.</summary>
+        public void SetPracticeAvailable(bool available)
+        {
+            if (practiceButton != null)
+                practiceButton.gameObject.SetActive(available);
+        }
 
         /// <summary>[담기]를 보여 줄지. 저장할 곳이 없으면 끈다.</summary>
         public void SetSaveAvailable(bool available)
@@ -378,11 +391,15 @@ namespace A305.Learning
 
         private void Awake()
         {
-            WindowFrame.Attach((RectTransform)panel.transform);
+            // 제목·부제와 오른쪽 탭이 원래 너비에서 거의 붙어 있어 더 좁히지 않는다.
+            WindowFrame.Attach((RectTransform)panel.transform, minimumWidth: 1f).SizeChanged +=
+                () => resizedByUser = true;
             ConfigureScroll();
             detailButton.onClick.AddListener(ToggleDetail);
             vocabularyButton.onClick.AddListener(() => VocabularyRequested?.Invoke());
             closeButton.onClick.AddListener(() => CloseRequested?.Invoke());
+            if (practiceButton != null)
+                practiceButton.onClick.AddListener(() => PracticeRequested?.Invoke());
             topCloseButton.onClick.AddListener(() => CloseRequested?.Invoke());
             expandButton.onClick.AddListener(ToggleExpanded);
             regenerateButton.onClick.AddListener(() => RegenerateRequested?.Invoke());
@@ -478,43 +495,18 @@ namespace A305.Learning
             );
         }
 
-        /// <summary>대화 노트 위에 함께 표시되는 안내 카드의 영역이다.</summary>
-        public RectTransform TopObstruction { private get; set; }
-
-        // 화면 크기나 안내 카드가 차지하는 자리가 바뀌면 판을 다시 맞춘다.
+        // 화면 크기나 위에 함께 보이는 안내 카드(CenterWindow.TopObstruction)의 자리, 사용자가 바꾼 창 크기가 바뀌면 판을 다시 맞춘다.
         private void LateUpdate()
         {
-            if (feedback != null && FreeArea() != lastFreeArea)
+            if (feedback != null && (resizedByUser || FreeArea() != lastFreeArea))
+            {
                 UpdateLayout();
+                resizedByUser = false;
+            }
         }
 
-        private Rect FreeArea()
-        {
-            var canvas = (RectTransform)panel.transform.parent;
-            Rect area = CenterWindow.Shared.FreeArea(canvas);
-            RectTransform obstruction = TopObstruction;
-            if (obstruction == null || !obstruction.gameObject.activeInHierarchy)
-                return area;
-
-            Vector2 obstructionBottom = RectTransformUtility.WorldToScreenPoint(
-                CenterWindow.CameraOf(obstruction),
-                obstruction.TransformPoint(obstruction.rect.min)
-            );
-            if (
-                !RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    canvas,
-                    obstructionBottom,
-                    CenterWindow.CameraOf(canvas),
-                    out Vector2 localBottom
-                )
-            )
-                return area;
-
-            // 가운데 위치를 지키면서 안내 카드 아래까지 창의 위아래 높이를 함께 줄인다.
-            float topLimit = localBottom.y - canvas.rect.yMin - TopObstructionGap;
-            float halfHeight = Mathf.Clamp(topLimit - area.center.y, .5f, area.height / 2f);
-            return new Rect(area.xMin, area.center.y - halfHeight, area.width, 2f * halfHeight);
-        }
+        private Rect FreeArea() =>
+            CenterWindow.Shared.FreeArea((RectTransform)panel.transform.parent);
 
         /// <summary>현재 탭·선택 문장·스크롤 위치를 유지한 채 창을 넓히거나 원래 크기로 되돌린다.</summary>
         public void ToggleExpanded()
@@ -543,13 +535,18 @@ namespace A305.Learning
         {
             var frame = (RectTransform)panel.transform;
             lastFreeArea = FreeArea();
-            frame.sizeDelta = isExpanded
+            Vector2 size = isExpanded
                 ? lastFreeArea.size
                 : Vector2.Min(new Vector2(FrameWidth, FrameHeight), lastFreeArea.size);
             // 넓힌 창은 화면을 거의 채우므로 옮기거나 크기를 바꾸지 않는다. 접으면 원래 자리·크기로 돌아온다.
             WindowFrame windowFrame = frame.GetComponent<WindowFrame>();
             if (windowFrame != null)
                 windowFrame.enabled = !isExpanded;
+            if (isExpanded || windowFrame == null)
+                frame.sizeDelta = size;
+            else
+                // 사용자가 크기를 바꾼 동안에는 그 크기를 지키고, 아니면 이 크기를 따른다.
+                windowFrame.SetBaseSize(size);
             if (isExpanded)
             {
                 frame.localScale = Vector3.one;
@@ -613,6 +610,7 @@ namespace A305.Learning
                 isMeaningLoading,
                 () => _ = LoadTranscriptMeaningsAsync(true),
                 wordSaver,
+                BuildCorrectionCard,
                 out float cardsHeight
             );
             builtItems.Add(conversation);
@@ -670,36 +668,57 @@ namespace A305.Learning
             float y = 0;
             foreach (CorrectionCard model in CorrectionCard.From(feedback))
             {
-                RectTransform card = Instantiate(correctionCardTemplate, scroll.content);
-                card.name = "CorrectionCard";
-                card.gameObject.SetActive(true);
+                RectTransform card = BuildCorrectionCard(scroll.content, model, width);
                 builtItems.Add(card.gameObject);
-                Button pick = card.Find("SaveButton").GetComponent<Button>();
-                pick.gameObject.SetActive(isSaveAvailable);
-                string english = model.Better;
-                pick.onClick.AddListener(() => SaveRequested?.Invoke(english, ""));
-                float height = FeedbackCardsLayout.Correction(
-                    card,
-                    model,
-                    width,
-                    SaidChip(model.Kind),
-                    model.Kind == CorrectionKind.Korean ? englishChipSprite : betterChipSprite,
-                    pickSprite
-                );
                 PlaceAt(card, y);
-                if (pick.gameObject.activeSelf)
-                    RegisterPick(english, pick);
-                y += height + GapBetweenCards;
+                y += card.sizeDelta.y + GapBetweenCards;
             }
             return Mathf.Max(0, y - GapBetweenCards);
+        }
+
+        private RectTransform BuildCorrectionCard(
+            RectTransform parent,
+            CorrectionCard model,
+            float width
+        )
+        {
+            RectTransform card = Instantiate(correctionCardTemplate, parent);
+            card.name = "CorrectionCard";
+            card.gameObject.SetActive(true);
+            Button pick = card.Find("SaveButton").GetComponent<Button>();
+            pick.gameObject.SetActive(isSaveAvailable);
+            string english = model.Better;
+            var examplePicks = new List<(FeedbackExpressionExample Example, Button Pick)>();
+            FeedbackCardsLayout.Correction(
+                card,
+                model,
+                width,
+                SaidChip(model.Kind),
+                model.Kind == CorrectionKind.Korean ? englishChipSprite : betterChipSprite,
+                pickSprite,
+                examplePicks
+            );
+            pick.onClick.AddListener(() =>
+                SaveRequested?.Invoke(english, model.BetterMeaning ?? "")
+            );
+            foreach (var (example, examplePick) in examplePicks)
+            {
+                examplePick.onClick.AddListener(() =>
+                    SaveRequested?.Invoke(example.Expression, example.MeaningKo ?? "")
+                );
+                RegisterPick(example.Expression, examplePick);
+            }
+            if (pick.gameObject.activeSelf)
+                RegisterPick(english, pick);
+            return card;
         }
 
         private Sprite SaidChip(CorrectionKind kind) =>
             kind switch
             {
-                CorrectionKind.Corrected => saidChipSprite,
                 CorrectionKind.Korean => saidKoreanChipSprite,
-                _ => goodChipSprite,
+                CorrectionKind.WellSaid => goodChipSprite,
+                _ => saidChipSprite,
             };
 
         // 받지 못한 피드백·다시 만드는 중·빈 탭: 장 제목(있으면) 아래 칸에 안내 글

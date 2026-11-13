@@ -5,8 +5,8 @@
 <header th:replace="~{admin/layout :: header}"></header>
 <main th:with="profile=${report.profile}, usage=${report.usage}, summary=${report.usage.summary}">
   <p><a th:href="@{/admin/usage(days=${usage.days})}">← 이용 현황</a></p>
-  <h1 th:text="|사용자 ${profile.userId}|">사용자 1</h1>
-  <p class="hint">사용자 ID로만 보여 줍니다. 게스트의 대화 원문·단어장·피드백은 하루 뒤 지워져 활동이 적게 잡힐 수 있습니다.</p>
+  <h1 th:text="${profile.name}">sun@example.com</h1>
+  <p class="hint">가입자는 이메일로, 게스트·탈퇴한 사용자는 사용자 ID로 보여 줍니다. 게스트의 대화 원문·단어장·피드백은 하루 뒤 지워져 활동이 적게 잡힐 수 있습니다.</p>
 
   <dl class="panel">
     <dt>구분</dt>

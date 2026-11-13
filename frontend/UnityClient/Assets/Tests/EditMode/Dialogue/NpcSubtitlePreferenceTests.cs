@@ -5,37 +5,67 @@ namespace A305.Dialogue.Tests
 {
     public class NpcSubtitlePreferenceTests
     {
-        private bool saved;
+        private const string LegacyKey = "A305.Dialogue.ShowsNpcSubtitles";
+
+        private int? saved;
 
         [SetUp]
         public void RememberCurrent()
         {
-            saved = NpcSubtitlePreference.ShowsSubtitles;
+            string key = NpcSubtitlePreference.PreferenceKey;
+            saved = PlayerPrefs.HasKey(key) ? PlayerPrefs.GetInt(key) : null;
         }
 
         [TearDown]
         public void RestoreCurrent()
         {
-            NpcSubtitlePreference.ShowsSubtitles = saved;
+            string key = NpcSubtitlePreference.PreferenceKey;
+            if (saved.HasValue)
+                PlayerPrefs.SetInt(key, saved.Value);
+            else
+                PlayerPrefs.DeleteKey(key);
+            PlayerPrefs.Save();
+            NpcSubtitlePreference.Reload();
         }
 
-        // 서비스는 듣고 이해하는 연습이 목적이라 처음에는 자막을 끈 채 시작한다.
         [Test]
-        public void NothingSaved_HidesSubtitles()
+        public void NothingSaved_ShowsSubtitles()
         {
             PlayerPrefs.DeleteKey(NpcSubtitlePreference.PreferenceKey);
             NpcSubtitlePreference.Reload();
 
-            Assert.That(NpcSubtitlePreference.ShowsSubtitles, Is.False);
+            Assert.That(NpcSubtitlePreference.ShowsSubtitles, Is.True);
         }
 
         [Test]
-        public void TurnedOn_StaysOnAfterReload()
+        public void OldAutomaticOffValue_DoesNotTurnSubtitlesOff()
         {
-            NpcSubtitlePreference.ShowsSubtitles = true;
+            int? legacyValue = PlayerPrefs.HasKey(LegacyKey) ? PlayerPrefs.GetInt(LegacyKey) : null;
+            try
+            {
+                PlayerPrefs.DeleteKey(NpcSubtitlePreference.PreferenceKey);
+                PlayerPrefs.SetInt(LegacyKey, 0);
+                NpcSubtitlePreference.Reload();
+
+                Assert.That(NpcSubtitlePreference.ShowsSubtitles, Is.True);
+            }
+            finally
+            {
+                if (legacyValue.HasValue)
+                    PlayerPrefs.SetInt(LegacyKey, legacyValue.Value);
+                else
+                    PlayerPrefs.DeleteKey(LegacyKey);
+            }
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void Choice_StaysTheSameAfterReload(bool showsSubtitles)
+        {
+            NpcSubtitlePreference.ShowsSubtitles = showsSubtitles;
             NpcSubtitlePreference.Reload();
 
-            Assert.That(NpcSubtitlePreference.ShowsSubtitles, Is.True);
+            Assert.That(NpcSubtitlePreference.ShowsSubtitles, Is.EqualTo(showsSubtitles));
         }
     }
 }

@@ -202,6 +202,7 @@ class LLM:
         self.stt_skip_until: dict[str, float] = {}  # 음성 인식 공급자 → 이 시각(clock)까지 건너뜀
         self.gpu_failures: dict[str, int] = {}  # GPU 서버 판정("guard"·"judge") → 연속 실패 수
         self.gpu_skip_until: dict[str, float] = {}  # GPU 서버 판정 → 이 시각(clock)까지 건너뜀
+        self.npc_gpu_busy = 0  # 지금 GPU 서버로 가고 있는 NPC 대답 수
 
     async def aclose(self):
         for c in (self.client, *self.others.values()):
@@ -353,6 +354,96 @@ class LLM:
                 **({"hedged": True} if hedged else {}),
             )
 
+    async def npc_stream(self, messages: list[dict], usage: Usage, max_tokens: int):
+        """NPC 대답 글자 조각. GPU 서버 NPC 대답 모델(npc_gpu_model)이 있고, 연속 실패로 건너뛰는 중이 아니고, GPU로 가는 대답이
+        npc_gpu_max_concurrent개보다 적으면 GPU 스트림을 먼저 연다. 여는 데 실패하거나 첫 글자가 npc_gpu_first_token_s 안에 안 오면
+        구성의 npc 모델(stream)로 대답한다. 첫 글자를 보낸 뒤에는 바꾸지 않는다 (이미 보낸 글자를 바꿀 수 없으니)."""
+        s = self.s
+        opened = None
+        if s.npc_gpu_model and self.gpu_skip_until.get("npc", 0.0) <= self.clock() and self.npc_gpu_busy < s.npc_gpu_max_concurrent:
+            body = model_body(
+                {
+                    "model": s.npc_gpu_model,
+                    "temperature": 0.6,
+                    "max_tokens": max_tokens,
+                    "messages": messages,
+                    "stream": True,
+                    "stream_options": {"include_usage": True},
+                },
+                s.model_params,
+            )
+            t = time.perf_counter()
+            self.npc_gpu_busy += 1
+            try:
+                opened = await within(self._gpu_first_text(body), s.npc_gpu_first_token_s)
+            except ProviderError as e:
+                self.npc_gpu_busy -= 1
+                self._note_gpu_failure("npc", s.npc_breaker_failures, s.npc_breaker_skip_s)
+                log.warning(json.dumps({"event": "npc_fallback", "model": s.npc_gpu_model, "why": e.message}, ensure_ascii=False))
+            except BaseException:
+                self.npc_gpu_busy -= 1
+                raise
+        if opened is None:
+            async for piece in self.stream("npc", "npc", messages, usage, max_tokens=max_tokens):
+                yield piece
+            if s.npc_gpu_model:
+                usage.items[-1]["fallback"] = True  # GPU 대신 구성의 모델이 대답했다 (상한·건너뜀·실패)
+            return
+        self.gpu_failures["npc"] = 0
+        r, got, lines = opened
+        first, last_data = time.perf_counter() - t, None
+
+        async def datas():
+            for data in got:  # 첫 글자까지 이미 읽은 것
+                yield data
+            async for line in lines:
+                data = stream_data(line)
+                if data is not None:
+                    yield data
+
+        try:
+            async for data in datas():
+                if data.get("usage"):
+                    last_data = data
+                piece = stream_piece(data)
+                if piece:
+                    yield piece
+        except (httpx.TimeoutException, httpx.TransportError) as e:
+            raise ProviderError("provider_unavailable", f"대답 도중 끊김: {type(e).__name__}") from None
+        finally:
+            await r.aclose()
+            self.npc_gpu_busy -= 1
+            usage.add("npc", s.npc_gpu_model, s.npc_gpu_model, last_data, time.perf_counter() - t, first_token_s=round(first, 2))
+
+    async def _gpu_first_text(self, body: dict) -> tuple[httpx.Response, list[dict], AsyncIterator[str]]:
+        """GPU 서버(gpu_llm)에 스트림을 열고 첫 글자 조각이 올 때까지 읽는다 (재시도·대체 모델 없음). 글자 없이 끝나면 실패.
+        반환: (응답, 그때까지의 data, 남은 줄). 중간에 취소되면(상한 초과) 응답을 닫는다."""
+        client = self.others["gpu_llm"]
+        try:
+            r = await client.send(client.build_request("POST", "/chat/completions", json=body), stream=True)
+        except (httpx.TimeoutException, httpx.TransportError) as e:
+            raise ProviderError("provider_unavailable", f"{body['model']} 연결 오류: {type(e).__name__}") from None
+        try:
+            if r.status_code >= 400:
+                msg = (await r.aread())[:160].decode("utf-8", "replace")
+                raise ProviderError("provider_unavailable", f"{body['model']} {r.status_code}: {msg}")
+            lines, got = r.aiter_lines(), []
+            async for line in lines:
+                data = stream_data(line)
+                if data is None:
+                    continue
+                got.append(data)
+                if stream_piece(data):
+                    return r, got, lines
+        except (httpx.TimeoutException, httpx.TransportError) as e:
+            await r.aclose()
+            raise ProviderError("provider_unavailable", f"{body['model']} 첫 글자 전에 끊김: {type(e).__name__}") from None
+        except BaseException:
+            await r.aclose()
+            raise
+        await r.aclose()
+        raise ProviderError("provider_unavailable", f"{body['model']} 글자 없이 끝난 대답")
+
     async def _first_text(self, body: dict, role: str) -> tuple[httpx.Response, str, list[dict], AsyncIterator[str]]:
         """스트림을 열고 첫 글자 조각이 올 때까지 읽는다. 반환: (응답, 실제로 쓴 모델, 그때까지의 data, 남은 줄).
         중간에 취소되면(다른 쪽이 이김) 응답을 닫는다."""
@@ -426,15 +517,17 @@ class LLM:
     async def intent_chat(self, messages: list[dict], usage: Usage, schema: dict, hedge_after_s: float | None = None) -> str:
         """의도 판정 호출 (JSON 문자열). GPU 서버 의도 판정 모델(judge_gpu_model)이 있으면 먼저 부르고 실패하거나
         JSON이 아닌 답이면 구성의 intent 모델 (_gpu_first). 형식 강제는 둘 다 같은 schema로 한다.
-        hedge_after_s는 구성의 intent 모델 호출에만 쓴다 (GPU 호출은 짧은 상한 하나)."""
+        hedge_after_s는 구성의 intent 모델 호출에만 쓴다 (GPU 호출은 짧은 상한 하나).
+        출력 상한은 의도·고친 문장과 함께 모든 발화의 다른 표현(최대 3개, 발화 전체를 다시 쓴 문장)이 들어가도 잘리지 않게 둔다."""
         s = self.s
+        max_tokens = 320
         return await self._gpu_first(
             "judge",
             s.judge_gpu_model,
             s.judge_gpu_timeout_s,
             (s.judge_breaker_failures, s.judge_breaker_skip_s),
-            lambda: self._chat_once("gpu_llm", s.judge_gpu_model, "intent", messages, usage, 200, schema),
-            lambda: self.chat("intent", "intent", messages, usage, 0.0, 200, schema, hedge_after_s=hedge_after_s),
+            lambda: self._chat_once("gpu_llm", s.judge_gpu_model, "intent", messages, usage, max_tokens, schema),
+            lambda: self.chat("intent", "intent", messages, usage, 0.0, max_tokens, schema, hedge_after_s=hedge_after_s),
             usage,
             check=json.loads,
         )

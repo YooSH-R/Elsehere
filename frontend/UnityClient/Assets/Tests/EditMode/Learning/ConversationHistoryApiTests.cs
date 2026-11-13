@@ -9,7 +9,7 @@ namespace A305.Learning.Tests
         private const string PageJson =
             "{\"items\":[{\"conversationId\":58,"
             + "\"npc\":{\"npcCode\":\"CAFE_STAFF\",\"name\":\"Mia\",\"roleLabel\":\"카페 직원\"},"
-            + "\"sceneCode\":\"CAFE\",\"status\":\"ENDED_BY_USER\",\"endReason\":\"USER_ENDED\","
+            + "\"sceneCode\":\"TOWN\",\"placeName\":\"카페\",\"placeGroup\":\"FOOD\",\"status\":\"ENDED_BY_USER\",\"endReason\":\"USER_ENDED\","
             + "\"startedAt\":\"2026-10-21T14:00:00+09:00\",\"endedAt\":\"2026-10-21T14:05:00+09:00\","
             + "\"userTurnCount\":4,\"feedbackStatus\":\"DONE\"}],\"nextCursor\":\"58\"}";
 
@@ -39,7 +39,9 @@ namespace A305.Learning.Tests
             Assert.That(item.ConversationId, Is.EqualTo(58));
             Assert.That(item.Npc.Name, Is.EqualTo("Mia"));
             Assert.That(item.Npc.RoleLabel, Is.EqualTo("카페 직원"));
-            Assert.That(item.SceneCode, Is.EqualTo("CAFE"));
+            Assert.That(item.SceneCode, Is.EqualTo("TOWN"));
+            Assert.That(item.PlaceName, Is.EqualTo("카페"));
+            Assert.That(item.PlaceGroup, Is.EqualTo("FOOD"));
             Assert.That(item.Status, Is.EqualTo("ENDED_BY_USER"));
             Assert.That(item.StartedAt.Hour, Is.EqualTo(14));
             Assert.That(item.UserTurnCount, Is.EqualTo(4));
@@ -60,21 +62,21 @@ namespace A305.Learning.Tests
             );
         }
 
-        // 대화 노트의 장소 탭은 그 장소의 대화만 받고, 줄마다 그 대화로 연습한 횟수를 보인다.
+        // 대화 노트의 장소 탭은 그 장소 묶음의 대화만 받고, 줄마다 그 대화로 연습한 횟수를 보인다.
         [Test]
-        public async Task GetPageAsync_ForAPlace_SendsTheSceneAndReadsPracticeCount()
+        public async Task GetPageAsync_ForAPlaceGroup_SendsTheGroupAndReadsPracticeCount()
         {
             transport.ReplyBody = PageJson.Replace(
                 "\"feedbackStatus\":\"DONE\"",
                 "\"feedbackStatus\":\"DONE\",\"practiceCount\":2"
             );
 
-            ConversationPage page = await api.GetPageAsync("58", "CAFE");
+            ConversationPage page = await api.GetPageAsync("58", PlaceGroup.Services);
 
             Assert.That(
                 transport.Request.Url,
                 Is.EqualTo(
-                    "/api/v1/conversations?size=20&feedbackOnly=true&sceneCode=CAFE&cursor=58"
+                    "/api/v1/conversations?size=20&feedbackOnly=true&placeGroup=SERVICES&cursor=58"
                 )
             );
             Assert.That(page.Items[0].PracticeCount, Is.EqualTo(2));

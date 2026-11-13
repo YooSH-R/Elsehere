@@ -165,7 +165,8 @@
                     "suggested_expression": "I want to go to the station.",
                     "explanation_ko": "want 뒤에 동작을 말할 때는 to와 동사원형을 사용해요."
                   }
-                ]
+                ],
+                "expression_examples": []
               }
             ],
             "summary_suggestion_id": "suggestion_t02",
@@ -377,7 +378,8 @@
                     "suggested_expression": "I want to go to the station.",
                     "explanation_ko": "want 뒤에 동작을 말할 때는 to와 동사원형을 사용해요."
                   }
-                ]
+                ],
+                "expression_examples": []
               }
             ],
             "summary_suggestion_id": "suggestion_t02",

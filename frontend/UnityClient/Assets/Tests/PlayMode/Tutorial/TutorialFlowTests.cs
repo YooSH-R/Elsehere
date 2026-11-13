@@ -118,7 +118,7 @@ namespace A305.Tutorial.PlayModeTests
         [UnityTest]
         public IEnumerator SkippingTutorial_ShowsTheFirstQuestCardOnceTheServerSavesIt()
         {
-            // 건너뛰면 오늘의 목표(퀘스트 카드) 안내를 보지 못한다. 서버가 건너뛰기 저장과 함께 첫 퀘스트를 시작하므로,
+            // 건너뛰어도 오늘의 목표(퀘스트 카드) 안내는 남는다. 서버가 건너뛰기 저장과 함께 첫 퀘스트를 시작하므로,
             // 장소를 옮기거나 대화하지 않아도 작은 퀘스트 알약 대신 할 일을 담은 퀘스트 카드가 바로 보여야 한다.
             var previousFactory = ApiSettings.EditorClientFactory;
             var transport = new QuestStartingTutorialTransport();
@@ -142,6 +142,15 @@ namespace A305.Tutorial.PlayModeTests
                     ShowsTheQuest(mission),
                     Is.True,
                     "건너뛰기를 저장한 뒤에도 책 버튼만 있고 퀘스트 알약·카드가 보이지 않습니다."
+                );
+                Assert.That(
+                    TutorialState.GetOrCreate(BenCode).Step,
+                    Is.EqualTo(TutorialStep.TodayGoal),
+                    "건너뛰어도 퀘스트 카드를 누르는 안내는 남습니다."
+                );
+                Assert.That(
+                    Single<CoachMarkView>().SpotlightTargets,
+                    Is.EqualTo(new[] { mission.QuestButtonRect })
                 );
             }
             finally
@@ -220,9 +229,10 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator Skipping_AsksFirst_AndOnlyConfirmingEndsTheTutorial()
+        public IEnumerator Skipping_AsksFirst_AndOnlyConfirmingLeavesJustTheQuestCardGuide()
         {
             // 잘못 눌러도 튜토리얼이 바로 끝나지 않도록 한 번 더 묻는다.
+            // 확인하면 퀘스트 카드를 누르는 오늘의 목표 안내만 남고, 그 안내는 건너뛸 수 없다.
             yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
             yield return null;
             TutorialGuideView guideView = Single<TutorialGuideView>();
@@ -243,14 +253,34 @@ namespace A305.Tutorial.PlayModeTests
             Click(guideView, "SkipButton");
             Click(guideView, "ConfirmSkipButton");
             yield return null;
+            yield return null;
+
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.TodayGoal));
+            Assert.That(
+                guideView.IsVisible,
+                Is.True,
+                "퀘스트 카드를 누르라는 안내 카드가 보입니다."
+            );
+            Button skip = guideView
+                .GetComponentsInChildren<Button>(true)
+                .Single(button => button.name == "SkipButton");
+            Assert.That(
+                skip.gameObject.activeInHierarchy,
+                Is.False,
+                "오늘의 목표 안내는 건너뛸 수 없습니다."
+            );
+
+            Single<FirstDayMissionView>().QuestButtonRect.GetComponent<Button>().onClick.Invoke();
+            yield return null;
 
             Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed));
         }
 
         [UnityTest]
-        public IEnumerator Tutorial_HoldsTheGameClock_UntilItIsSkipped()
+        public IEnumerator Tutorial_HoldsTheGameClock_UntilItEnds()
         {
-            // 튜토리얼은 정해진 대본으로 연습하는 시간이라 게임 시각이 흐르지 않는다. 마치거나 건너뛰면 그때부터 흐른다.
+            // 튜토리얼은 정해진 대본으로 연습하는 시간이라 게임 시각이 흐르지 않는다.
+            // 건너뛰어도 남는 퀘스트 카드 안내까지 마치면 그때부터 흐른다.
             yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
             yield return null;
             double before = GameClock.Shared.Minutes;
@@ -269,6 +299,9 @@ namespace A305.Tutorial.PlayModeTests
             TutorialGuideView guideView = Single<TutorialGuideView>();
             Click(guideView, "SkipButton");
             Click(guideView, "ConfirmSkipButton");
+            yield return null;
+            yield return null;
+            Single<FirstDayMissionView>().QuestButtonRect.GetComponent<Button>().onClick.Invoke();
             yield return null;
             yield return null;
 
@@ -361,7 +394,7 @@ namespace A305.Tutorial.PlayModeTests
             DialogueController dialogue = Single<DialogueController>();
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "HintButton");
+                FillWithHint(panel);
                 Click(panel, "SendButton");
                 yield return null;
             }
@@ -483,6 +516,45 @@ namespace A305.Tutorial.PlayModeTests
             Assert.That(coachMark.IsSpotlightShowing, Is.True, "단어장 창을 밝힙니다.");
             Assert.That(coachMark.CaptionText, Does.Contain("단어장"));
             Assert.That(coachMark.CaptionText, Does.Contain("밖으로"));
+            // 단어장 창은 위쪽 [건너뛰기] 카드 아래까지만 써서 창 제목 줄이 카드에 덮이지 않는다.
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            Assert.That(
+                ScreenRectOf(Single<TutorialGuideView>().PanelRect)
+                    .Overlaps(ScreenRectOf(Single<LearningController>().VocabularyPanelRect)),
+                Is.False,
+                "[건너뛰기] 카드가 단어장 창을 덮습니다."
+            );
+        }
+
+        [UnityTest]
+        public IEnumerator OpenVocabulary_WithThePhoneOpen_LeavesOnlyTheSkipCard_AndPointsAtTheApp()
+        {
+            // 휴대폰은 안내 카드보다 위에 그려져 카드를 가린다. 휴대폰을 연 동안에는 [건너뛰기]만 남긴 작은 카드를 두고,
+            // [단어장] 앱 옆 말풍선으로 할 일을 알린다.
+            yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
+            yield return null;
+            TutorialProgress progress = TutorialState.GetOrCreate(BenCode);
+            progress.Continue();
+            progress.Report(TutorialAction.Walk);
+            progress.Report(TutorialAction.Run);
+            progress.Report(TutorialAction.Jump);
+            progress.Continue();
+            progress.Report(TutorialAction.Rotate);
+            progress.Report(TutorialAction.Zoom);
+            progress.Report(TutorialAction.ToggleView);
+            progress.Continue();
+            progress.ReportWordSaved();
+            HudMenuView menu = Single<HudMenuView>();
+            menu.MenuButtonRect.GetComponent<Button>().onClick.Invoke();
+            yield return null;
+            yield return null;
+            Assert.That(menu.IsOpen, Is.True, "준비: 휴대폰");
+
+            Assert.That(Single<TutorialGuideView>().IsSkipOnly, Is.True);
+            CoachMarkView coachMark = Single<CoachMarkView>();
+            Assert.That(coachMark.IsSpotlightShowing, Is.True, "[단어장] 앱을 밝힙니다.");
+            Assert.That(coachMark.CaptionText, Does.Contain("단어장"));
         }
 
         [UnityTest]
@@ -575,7 +647,7 @@ namespace A305.Tutorial.PlayModeTests
 
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "HintButton");
+                FillWithHint(panel);
                 Click(panel, "SendButton");
                 yield return null;
             }
@@ -612,6 +684,7 @@ namespace A305.Tutorial.PlayModeTests
                 new[] { panel.LinesRect, npcName },
                 panel.ToolParts.ToArray(),
                 new[] { panel.SuggestedWordsRect },
+                new[] { panel.SuggestedSentenceRect },
             };
             foreach (RectTransform[] targets in tour)
             {
@@ -641,21 +714,42 @@ namespace A305.Tutorial.PlayModeTests
                 Does.Contain(npcName),
                 "화자 이름도 밝힌 곳 안에 두어 Ben이 가려지지 않습니다."
             );
-            Assert.That(
-                coachMark.IsDimmingOutside,
-                Is.True,
-                "말풍선이 눈에 띄게 둘레를 어둡게 덮습니다."
-            );
+            // 오른쪽 추천 문장 카드의 [힌트]도 눌러야 하므로 둘레를 덮지 않고 대사 칸·입력 줄에 테두리만 둔다.
+            // [힌트]까지 한 구멍에 담으면 구멍이 화면 반을 덮어 [힌트]는 밝힌 곳에 넣지 않는다.
+            Assert.That(coachMark.IsDimmingOutside, Is.False);
             Assert.That(coachMark.IsNextShowing, Is.False);
             Assert.That(coachMark.CaptionText, Does.Contain("정해진 흐름"));
             Assert.That(coachMark.CaptionRect.Overlaps(coachMark.Hole), Is.False);
+            Assert.That(
+                coachMark.CaptionRect.yMin,
+                Is.GreaterThanOrEqualTo(coachMark.Hole.yMax),
+                "할 대사 설명은 대사 칸 위에 두어 대사와 Ben 이름을 가리지 않습니다."
+            );
+            Assert.That(
+                coachMark.CaptionRect.xMin,
+                Is.EqualTo(coachMark.Hole.xMin).Within(1f),
+                "할 대사 설명은 대사 칸 왼쪽 위에 두어 가운데 서 있는 Ben 얼굴을 가리지 않습니다."
+            );
             Button hint = panel
                 .GetComponentsInChildren<Button>(true)
                 .Single(button => button.name == "HintButton");
-            Assert.That(coachMark.SpotlightTargets, Does.Contain(hint.transform));
+            // Transform은 자식 목록으로 비교되므로 참조로 확인한다.
+            Assert.That(
+                coachMark.SpotlightTargets.Any(target => target == hint.transform),
+                Is.False,
+                "[힌트]는 앞선 추천 문장 티칭에서 설명하므로 할 대사 구멍에 넣지 않습니다."
+            );
 
+            // 서비스와 같이 [힌트]는 추천 문장을 펼치기만 하고, 펼친 문장을 눌러야 입력칸에 들어간다.
             Assert.That(input.text, Is.Empty);
             ClickAtScreenCenter(hint);
+            yield return null;
+            Assert.That(input.text, Is.Empty, "[힌트]를 눌러도 입력칸을 바로 채우지 않습니다.");
+            ClickAtScreenCenter(
+                panel
+                    .GetComponentsInChildren<Button>(true)
+                    .Single(button => button.name == "UseHintButton")
+            );
             yield return null;
             Assert.That(input.text, Does.Contain("Nice to meet you"));
             Click(panel, "SendButton");
@@ -665,6 +759,19 @@ namespace A305.Tutorial.PlayModeTests
             Assert.That(coachMark.CaptionText, Does.Contain("호감도"));
             Assert.That(coachMark.CaptionText, Does.Contain("무례"));
             Assert.That(coachMark.CaptionText, Does.Contain("저장"));
+            // 호감도 설명은 이름 줄 위에 두어 같은 줄의 [자막 켜기]·[다시 듣기]·[뜻]·[대화 종료]를 가리지 않는다.
+            Canvas.ForceUpdateCanvases();
+            Rect relationshipCaption = ScreenRectOf(
+                (RectTransform)coachMark.transform.Find("Caption")
+            );
+            foreach (RectTransform tool in panel.ToolParts.Append(panel.EndButtonRect))
+            {
+                Assert.That(
+                    relationshipCaption.Overlaps(ScreenRectOf(tool)),
+                    Is.False,
+                    $"호감도 설명이 {tool.name}을 가립니다."
+                );
+            }
             ClickNext(coachMark);
             yield return null;
             yield return null;
@@ -774,7 +881,7 @@ namespace A305.Tutorial.PlayModeTests
             yield return FinishTour(Single<CoachMarkView>());
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "HintButton");
+                FillWithHint(panel);
                 Click(panel, "SendButton");
                 yield return null;
             }
@@ -818,7 +925,8 @@ namespace A305.Tutorial.PlayModeTests
 
             Assert.That(
                 TutorialState.GetOrCreate(BenCode).Step,
-                Is.EqualTo(TutorialStep.Completed)
+                Is.EqualTo(TutorialStep.TodayGoal),
+                "건너뛰어도 퀘스트 카드를 누르는 안내는 남습니다."
             );
             Assert.That(dialogue.IsTalking, Is.False, "건너뛰어도 길 안내 대화가 남아 있습니다.");
             Assert.That(
@@ -849,7 +957,7 @@ namespace A305.Tutorial.PlayModeTests
             DialogueController dialogue = Single<DialogueController>();
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "HintButton");
+                FillWithHint(panel);
                 Click(panel, "SendButton");
                 yield return null;
                 Assert.That(voice.HasSpeech, Is.True, "Ben의 대답을 들려줍니다.");
@@ -857,9 +965,9 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator BenFeedback_TeachesTheNoteStepByStep_ThenHighlightsTheCloseButton()
+        public IEnumerator BenFeedback_TeachesTheTabs_ThenHighlightsTheCloseButton()
         {
-            // 대화 노트를 탭 → 본문 스크롤 순서로 안내하고, 마지막에 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 넘어간다.
+            // 대화 피드백의 탭을 안내하고, 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 넘어간다.
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
             PasserbyOfferView offer = Single<PasserbyOfferView>();
@@ -873,7 +981,7 @@ namespace A305.Tutorial.PlayModeTests
             DialogueController dialogue = Single<DialogueController>();
             while (!dialogue.IsGuidedCompleted)
             {
-                Click(panel, "HintButton");
+                FillWithHint(panel);
                 Click(panel, "SendButton");
                 yield return null;
             }
@@ -902,32 +1010,33 @@ namespace A305.Tutorial.PlayModeTests
                 Is.GreaterThanOrEqualTo(summary.GetPreferredValues("가").y),
                 "대화 요약이 들어갈 자리가 없습니다."
             );
-            RectTransform[][] tour =
-            {
-                new[] { feedback.SectionRowRect, feedback.PageCardRect },
-                new[] { feedback.ScrollAreaRect },
-            };
-            foreach (RectTransform[] targets in tour)
-            {
-                Assert.That(coachMark.SpotlightTargets, Is.EqualTo(targets));
-                Assert.That(coachMark.IsDimmingOutside, Is.True);
-                Assert.That(coachMark.IsNextShowing, Is.True);
-                // 설명하는 탭·스크롤 영역은 가리지 않는다.
-                Assert.That(
-                    ScreenRectOf((RectTransform)coachMark.transform.Find("Caption"))
-                        .Overlaps(ScreenRectOf(targets[0])),
-                    Is.False,
-                    $"설명이 설명하는 영역을 가립니다. caption={ScreenRectOf((RectTransform)coachMark.transform.Find("Caption"))}, target={ScreenRectOf(targets[0])}, hole={coachMark.Hole}"
-                );
-                AssertCaptionClearsTheSkipCard(coachMark);
-                ClickNext(coachMark);
-                yield return null;
-                yield return null;
-            }
+            // 탭 줄과 결과 칸을 밝혀 [다음]으로 넘긴 뒤 바로 닫는 버튼을 밝힌다. 스크롤 안내는 따로 하지 않는다.
+            RectTransform[] tabs = { feedback.SectionRowRect, feedback.PageCardRect };
+            Assert.That(coachMark.SpotlightTargets, Is.EqualTo(tabs));
+            Assert.That(coachMark.IsDimmingOutside, Is.True);
+            Assert.That(coachMark.IsNextShowing, Is.True);
+            // 설명하는 탭은 가리지 않는다.
+            Assert.That(
+                ScreenRectOf((RectTransform)coachMark.transform.Find("Caption"))
+                    .Overlaps(ScreenRectOf(feedback.SectionRowRect)),
+                Is.False,
+                $"설명이 탭 줄을 가립니다. caption={ScreenRectOf((RectTransform)coachMark.transform.Find("Caption"))}, hole={coachMark.Hole}"
+            );
+            AssertCaptionClearsTheSkipCard(coachMark);
+            ClickNext(coachMark);
+            yield return null;
+            yield return null;
 
             Assert.That(coachMark.SpotlightTargets, Is.EqualTo(new[] { feedback.CloseButtonRect }));
             Assert.That(coachMark.IsNextShowing, Is.False, "닫는 버튼을 직접 누릅니다.");
             Assert.That(coachMark.CaptionRect.Overlaps(coachMark.Hole), Is.False);
+            Canvas.ForceUpdateCanvases();
+            Assert.That(
+                ScreenRectOf((RectTransform)coachMark.transform.Find("Caption"))
+                    .Overlaps(ScreenRectOf(feedback.SectionRowRect)),
+                Is.False,
+                "닫기 설명이 탭 줄을 가립니다."
+            );
 
             feedback.CloseButtonRect.GetComponent<Button>().onClick.Invoke();
             yield return null;
@@ -956,10 +1065,24 @@ namespace A305.Tutorial.PlayModeTests
                 Single<FirstDayMissionView>().transform.Find("Content/QuestIcon");
             Assert.That(Single<CoachMarkView>().SpotlightTargets, Is.EqualTo(new[] { button }));
 
-            button.GetComponent<Button>().onClick.Invoke();
-            yield return null;
+            // 퀘스트 카드 안내를 확인했다고 이 기기에 남겨, 같은 브라우저의 새 계정에는 다시 보이지 않게 한다.
+            // Editor에서는 기기 기록을 끄므로 켠 기록으로 바꿔 끼우고, 끝나면 저장값과 원래 기록을 되돌린다.
+            TutorialDeviceRecord appRecord = TutorialDeviceRecord.Shared;
+            TutorialDeviceRecord.Shared = new TutorialDeviceRecord(true);
+            try
+            {
+                button.GetComponent<Button>().onClick.Invoke();
+                yield return null;
 
-            Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed));
+                Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed));
+                Assert.That(TutorialDeviceRecord.Shared.IsQuestGuideSeen, Is.True);
+            }
+            finally
+            {
+                PlayerPrefs.DeleteKey(TutorialDeviceRecord.PreferenceKey);
+                PlayerPrefs.DeleteKey(TutorialDeviceRecord.QuestGuidePreferenceKey);
+                TutorialDeviceRecord.Shared = appRecord;
+            }
         }
 
         // 대화 시작 티칭을 [다음]으로 끝까지 넘긴다.
@@ -1037,6 +1160,13 @@ namespace A305.Tutorial.PlayModeTests
                 $"{buttonName}이 보이지 않습니다."
             );
             button.onClick.Invoke();
+        }
+
+        // 서비스와 같이 [힌트]로 추천 문장을 펼치고, 펼친 문장을 눌러 입력칸에 넣는다.
+        private static void FillWithHint(DialoguePanelView panel)
+        {
+            Click(panel, "HintButton");
+            Click(panel, "UseHintButton");
         }
 
         // 코치 마크의 어두운 영역이 클릭을 가로채는지 확인하려면 실제 버튼 좌표를 눌러야 한다.

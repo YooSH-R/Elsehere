@@ -127,6 +127,10 @@ namespace A305.EditorTools.Theme
                 "Pop",
                 "A305/UI/Pop"
             );
+            var highlightedGhost = MaterialIfMissing("HighlightedGhost", "A305/UI/Pop");
+            highlightedGhost.EnableKeyword("_GHOST_OUTLINE");
+            EditorUtility.SetDirty(highlightedGhost);
+            fields.FindProperty("highlightedGhostMaterial").objectReferenceValue = highlightedGhost;
             fields.FindProperty("panelSprite").objectReferenceValue = SpriteIfMissing(
                 "Panel",
                 () => Glass(radius: 40, margin: 30, shadowOffset: 10, shadowBlur: 18, band: 34),

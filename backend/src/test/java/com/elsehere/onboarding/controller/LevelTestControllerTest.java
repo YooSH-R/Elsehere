@@ -18,7 +18,6 @@ import com.elsehere.onboarding.dto.LevelTestResultResponse;
 import com.elsehere.onboarding.dto.LevelTestStartResponse;
 import com.elsehere.onboarding.entity.LevelTestStatus;
 import com.elsehere.onboarding.service.LevelTestCompletionService;
-import com.elsehere.onboarding.service.LevelTestItemType;
 import com.elsehere.onboarding.service.LevelTestService;
 import com.elsehere.onboarding.service.LevelTestSpeechService;
 import java.util.List;
@@ -56,7 +55,7 @@ class LevelTestControllerTest {
                 List.of(
                     new LevelTestItemResponse(
                         "EN_LT_L2",
-                        LevelTestItemType.LISTEN,
+                        LevelTestItemResponse.Type.LISTEN,
                         "잘 듣고 무슨 뜻인지 고르세요.",
                         "무슨 뜻일까요?",
                         List.of("왼쪽 기계는 고장이다", "창가 기계는 고장이다", "세탁물을 4분의 1만 넣는다", "25분 뒤에 쓸 수 있다"),

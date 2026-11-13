@@ -50,6 +50,8 @@ namespace A305.Learning.Tests
             Assert.That(briefing, Does.Contain("분실 가방 찾기"));
             Assert.That(briefing, Does.Contain("파란색 숄더백").And.Contain("여권 지갑과 책"));
             Assert.That(ReviewScenarioPresentation.BuildingName(card), Is.EqualTo("카페"));
+            // 문장 목록이 상황 설명 위에 오므로 설명 끝에 목록 제목을 달지 않는다.
+            Assert.That(briefing, Does.Not.Contain("이번에 써 볼 표현"));
         }
 
         [Test]

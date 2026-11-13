@@ -14,7 +14,7 @@ def test_closing_reply_cancels_all_chunk_synthesis():
         synthesis = []
 
         class Llm:
-            async def stream(self, *args, **kwargs):
+            async def npc_stream(self, *args, **kwargs):
                 yield "Hello there. Another sentence. "
                 await asyncio.Event().wait()
 

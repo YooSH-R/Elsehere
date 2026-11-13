@@ -26,7 +26,7 @@ namespace A305.Learning
         private ConversationHistoryRow[] rows;
 
         [SerializeField]
-        [Tooltip("장소 탭(전체·카페·호텔·마을). 고른 탭은 On 그림이 켜진다.")]
+        [Tooltip("장소 탭(전체·음식·쇼핑·생활 서비스·안전·일상). 고른 탭은 On 그림이 켜진다.")]
         private Button[] tabs;
 
         [SerializeField]
@@ -69,8 +69,16 @@ namespace A305.Learning
         // 다음 페이지를 요청했을 때 받은 뒤 보일 쪽. 요청하지 않았으면 -1.
         private int pageAfterMore = -1;
 
-        // 장소 탭의 서버 장소 코드. [전체]는 null이다.
-        private static readonly string[] TabScenes = { null, "CAFE", "HOTEL", "TOWN" };
+        // 장소 탭 차례의 장소 묶음. [전체]는 null이다.
+        private static readonly PlaceGroup?[] TabGroups =
+        {
+            null,
+            PlaceGroup.Food,
+            PlaceGroup.Shopping,
+            PlaceGroup.Services,
+            PlaceGroup.Safety,
+            PlaceGroup.Daily,
+        };
 
         public event Action CloseRequested;
 
@@ -80,8 +88,8 @@ namespace A305.Learning
         /// <summary>[다시 연습]으로 고른 대화를 알린다.</summary>
         public event Action<ConversationSummary> PracticeRequested;
 
-        /// <summary>장소 탭에서 고른 장소 코드. [전체]는 null.</summary>
-        public event Action<string> FilterRequested;
+        /// <summary>장소 탭에서 고른 장소 묶음. [전체]는 null.</summary>
+        public event Action<PlaceGroup?> FilterRequested;
 
         /// <summary>받은 대화의 마지막 쪽에서 다음으로 넘겨 다음 페이지가 필요하다.</summary>
         public event Action MoreRequested;
@@ -102,9 +110,9 @@ namespace A305.Learning
             UiLayer.Open(this);
             for (int i = 0; i < tabs.Length; i++)
             {
-                string scene = TabScenes[i];
+                PlaceGroup? group = TabGroups[i];
                 tabs[i].onClick.RemoveAllListeners();
-                tabs[i].onClick.AddListener(() => FilterRequested?.Invoke(scene));
+                tabs[i].onClick.AddListener(() => FilterRequested?.Invoke(group));
             }
             ShowStatus("");
             Refresh();
@@ -172,7 +180,7 @@ namespace A305.Learning
 
             for (int i = 0; i < tabs.Length; i++)
             {
-                bool chosen = history.SceneCode == TabScenes[i];
+                bool chosen = history.PlaceGroup == TabGroups[i];
                 tabs[i].transform.Find("On").gameObject.SetActive(chosen);
                 tabs[i].interactable = !isBusy && !chosen;
             }
@@ -201,11 +209,32 @@ namespace A305.Learning
 
         private void Awake()
         {
-            WindowFrame.Attach(PanelRect);
+            // 한 쪽 줄 4개가 고정 높이라 원래 높이보다 줄이지 않는다.
+            WindowFrame.Attach(PanelRect, minimumWidth: .7f, minimumHeight: 1f);
+            PinForResizing(PanelRect);
             previousButton.onClick.AddListener(ShowPreviousPage);
             nextButton.onClick.AddListener(ShowNextPage);
             closeButton.onClick.AddListener(() => CloseRequested?.Invoke());
             Hide();
+        }
+
+        // 창 크기를 바꾸면 줄은 양옆으로 늘고, 탭·줄 오른쪽 버튼은 오른쪽에, 쪽 넘김·상태 줄은 아래에 붙는다.
+        private static void PinForResizing(RectTransform window)
+        {
+            WindowLayout.Pin(window, "Tabs", HorizontalPin.Right, VerticalPin.Top);
+            WindowLayout.Pin(window, "UnreadCount", HorizontalPin.Right, VerticalPin.Top);
+            WindowLayout.Pin(window, "Rows", HorizontalPin.Stretch, VerticalPin.Top);
+            WindowLayout.Pin(window, "Empty", HorizontalPin.Stretch, VerticalPin.Stretch);
+            WindowLayout.Pin(window, "Status", HorizontalPin.Stretch, VerticalPin.Bottom);
+            WindowLayout.Pin(window, "Pager", HorizontalPin.Center, VerticalPin.Bottom);
+            foreach (RectTransform row in window.Find("Rows"))
+            {
+                WindowLayout.Pin(row, HorizontalPin.Stretch, VerticalPin.Top);
+                WindowLayout.Pin(row, "Title", HorizontalPin.Stretch, VerticalPin.Top);
+                WindowLayout.Pin(row, "When", HorizontalPin.Stretch, VerticalPin.Top);
+                WindowLayout.Pin(row, "OpenButton", HorizontalPin.Right, VerticalPin.Top);
+                WindowLayout.Pin(row, "PracticeButton", HorizontalPin.Right, VerticalPin.Top);
+            }
         }
 
         // 창을 연 채 화면 크기를 바꿔도 화면 가운데에 맞춘다.

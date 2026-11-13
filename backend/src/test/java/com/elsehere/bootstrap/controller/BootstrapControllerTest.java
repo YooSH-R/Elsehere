@@ -1,6 +1,9 @@
 package com.elsehere.bootstrap.controller;
 
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.never;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -20,6 +23,7 @@ import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.AvatarType;
 import com.elsehere.user.entity.OnboardingStep;
 import com.elsehere.user.entity.UiTheme;
+import jakarta.servlet.http.Cookie;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -105,6 +109,51 @@ class BootstrapControllerTest {
         .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
 
     mockMvc.perform(get("/api/v1/test/me").session(session)).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  @DisplayName("팀 기기 표시 쿠키(elsehere_team=1)가 있으면 로그인한 사용자를 팀 계정으로 표시한다")
+  void teamDeviceCookie_marksSignedInUserAsTeamAccount() throws Exception {
+    given(bootstrapService.findSignedIn(1L)).willReturn(Optional.of(signedIn(1L)));
+
+    mockMvc
+        .perform(
+            get("/api/v1/bootstrap")
+                .with(authentication(loggedIn(1L)))
+                .cookie(new Cookie("elsehere_team", "1")))
+        .andExpect(status().isOk());
+
+    then(bootstrapService).should().markTeamAccount(1L);
+  }
+
+  @Test
+  @DisplayName("팀 기기 표시 쿠키가 없거나 값이 1이 아니거나 로그인하지 않았으면 팀 계정으로 표시하지 않는다")
+  void withoutTeamDeviceCookie_doesNotMarkTeamAccount() throws Exception {
+    given(bootstrapService.findSignedIn(1L)).willReturn(Optional.of(signedIn(1L)));
+
+    mockMvc
+        .perform(get("/api/v1/bootstrap").with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk());
+    mockMvc
+        .perform(
+            get("/api/v1/bootstrap")
+                .with(authentication(loggedIn(1L)))
+                .cookie(new Cookie("elsehere_team", "0")))
+        .andExpect(status().isOk());
+    mockMvc
+        .perform(get("/api/v1/bootstrap").cookie(new Cookie("elsehere_team", "1")))
+        .andExpect(status().isUnauthorized());
+
+    then(bootstrapService).should(never()).markTeamAccount(anyLong());
+  }
+
+  private static BootstrapResponse signedIn(Long userId) {
+    UserResponse user =
+        new UserResponse(
+            userId, "Sun", AvatarType.F, "en-US", OnboardingStep.DONE, UiTheme.JELLY, false, false);
+    AiStatusResponse aiStatus =
+        new AiStatusResponse(AiStatus.AI_AVAILABLE, new Capabilities(true, true, true), null);
+    return BootstrapResponse.signedIn(user, "TOWN", aiStatus);
   }
 
   private static Authentication loggedIn(Long userId) {

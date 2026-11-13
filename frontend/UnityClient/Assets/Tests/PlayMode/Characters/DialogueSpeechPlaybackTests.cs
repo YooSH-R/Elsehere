@@ -175,6 +175,24 @@ namespace A305.Characters.PlayModeTests
 
         // NPC 대답 스트리밍(CONV-03): 문장 조각 음성을 받는 대로 이어 재생한다.
         [UnityTest]
+        public IEnumerator WindowSwitchDoesNotSkipQueuedSpeechChunks()
+        {
+            link.QueueSpeechChunk(1, VoiceBytes("CoffeeChoiceSpeech"));
+            var first = voice.clip;
+            yield return new WaitForSecondsRealtime(.2f);
+            actor.SendMessage("OnApplicationFocus", false);
+            float pausedTime = player.PlaybackTime;
+            link.QueueSpeechChunk(1, VoiceBytes("CafeThanksSpeech"));
+            yield return null;
+            Assert.That(voice.clip, Is.SameAs(first), "창 전환 중 다음 문장으로 넘어가면 안 된다.");
+            Assert.That(player.PlaybackTime, Is.EqualTo(pausedTime).Within(.002f));
+            actor.SendMessage("OnApplicationFocus", true);
+            yield return new WaitForSecondsRealtime(.12f);
+            Assert.That(voice.clip, Is.SameAs(first));
+            Assert.That(player.PlaybackTime, Is.GreaterThan(pausedTime));
+        }
+
+        [UnityTest]
         public IEnumerator StreamedChunksPlayOneAfterAnotherOnTheActiveNpc()
         {
             link.QueueSpeechChunk(1, VoiceBytes("CoffeeChoiceSpeech"));

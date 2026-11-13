@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Text;
 using System.Text.RegularExpressions;
+using A305.Dialogue;
 
 namespace A305.Learning
 {
@@ -10,13 +13,19 @@ namespace A305.Learning
             string utterance,
             ReferenceExpression reference,
             string comment = null,
-            ReferenceExpression idiom = null
+            ReferenceExpression idiom = null,
+            string verdict = null,
+            string suggestionKind = null,
+            IReadOnlyList<FeedbackExpressionExample> expressionExamples = null
         )
         {
             Utterance = utterance;
             Reference = reference;
             Comment = comment;
             Idiom = idiom;
+            Verdict = verdict;
+            SuggestionKind = suggestionKind;
+            ExpressionExamples = expressionExamples;
         }
 
         public string Utterance { get; }
@@ -33,9 +42,76 @@ namespace A305.Learning
                 StringComparison.OrdinalIgnoreCase
             );
 
-        /// <summary>동일한 제안을 숨겨도 모델이 설명한 이유는 유지한다.</summary>
-        public string Explanation =>
+        /// <summary>화면에서 예문과 분리해 보여 줄 평가 설명.</summary>
+        public string AssessmentReason =>
             !string.IsNullOrWhiteSpace(Reference?.Reason) ? Reference.Reason : Comment;
+
+        internal static bool SameSpokenText(string left, string right) =>
+            string.Equals(SpokenText(left), SpokenText(right), StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>동일한 제안을 숨겨도 모델이 설명한 이유는 유지한다.</summary>
+        public string Explanation
+        {
+            get
+            {
+                string reason = !string.IsNullOrWhiteSpace(Reference?.Reason)
+                    ? Reference.Reason
+                    : Comment;
+                if (ExpressionExamples == null || ExpressionExamples.Count == 0)
+                    return reason;
+
+                var text = new StringBuilder(reason);
+                var shown = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (HasAlternative)
+                {
+                    shown.Add(SpokenText(Reference.English));
+                    // 대표 문장은 위에 한 번만 보이고, 이 문장의 뜻은 설명에서 보존한다.
+                    foreach (FeedbackExpressionExample example in ExpressionExamples)
+                    {
+                        if (
+                            example != null
+                            && string.Equals(
+                                SpokenText(example.Expression),
+                                SpokenText(Reference.English),
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                        )
+                        {
+                            if (text.Length > 0)
+                                text.AppendLine().AppendLine();
+                            text.AppendLine(example.ConditionKo).AppendLine(example.MeaningKo);
+                            break;
+                        }
+                    }
+                }
+                bool hasExamples = false;
+                foreach (FeedbackExpressionExample example in ExpressionExamples)
+                {
+                    if (
+                        string.IsNullOrWhiteSpace(example?.Expression)
+                        || !shown.Add(SpokenText(example.Expression))
+                    )
+                        continue;
+                    if (!hasExamples)
+                    {
+                        if (text.Length > 0)
+                            text.AppendLine().AppendLine();
+                        text.AppendLine("이럴 때 쓰면 좋아요!");
+                        hasExamples = true;
+                    }
+                    else
+                        text.AppendLine();
+                    text.AppendLine(example.ConditionKo);
+                    text.AppendLine(example.Expression);
+                    text.AppendLine(example.MeaningKo);
+                }
+                return text.ToString().TrimEnd();
+            }
+        }
+
+        public string Verdict { get; }
+        public string SuggestionKind { get; }
+        public IReadOnlyList<FeedbackExpressionExample> ExpressionExamples { get; }
 
         private static string SpokenText(string text) =>
             Regex

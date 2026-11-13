@@ -48,6 +48,13 @@ public sealed interface QuestTalk {
   record Goals(int stage, WorkerState state, String instruction, List<String> remainingGoals)
       implements QuestTalk {
 
+    /**
+     * 남은 목표는 학습자가 꺼낼 말이다. 목표의 판정 기준을 붙여 주면 NPC가 그것을 물어볼 정보로 여겨 다음 목표를 먼저 묻기 쉬워, 묻지 말라고 함께 적는다. 학습자가
+     * 꺼낸 요청을 마치는 데 꼭 필요한 정보(크기, 결제 방법, 잃어버린 물건의 생김새)만 물을 수 있다.
+     */
+    private static final String NO_LEADING =
+        "Do not ask about, hint at or offer a remaining objective. Ask about one only when you cannot finish the request the learner just made without that detail, such as a size, payment method or what a lost item looks like.";
+
     public Goals {
       Objects.requireNonNull(state, "판정할 목표가 있는 대화에는 판정 상태가 있어야 한다");
     }
@@ -70,8 +77,10 @@ public sealed interface QuestTalk {
               ? " No objectives remain for this stage. Acknowledge what was completed without asking another mission question or assuming later stages are complete."
               : " Remaining objectives after this turn: "
                   + String.join(",", pending)
-                  + ". Required details for those objectives:\n"
-                  + pendingDetails;
+                  + ". The learner must raise these in their own words; their criteria are listed only so you keep back those answers:\n"
+                  + pendingDetails
+                  + "\n"
+                  + NO_LEADING;
       return instruction
           + " This turn recognized: "
           + String.join(",", recognized)

@@ -8,13 +8,13 @@ using UnityEngine;
 namespace A305.Mission
 {
     /// <summary>
-    /// 의자·벤치·소파의 한 자리. 플레이어에게 가장 가까운 자리 앞에서 앉기 제안을 띄우고 잠깐 쉰 뒤 일으킨다.
+    /// 의자·벤치·소파·스툴의 한 자리. 플레이어에게 가장 가까운 자리 앞에서 앉기 제안을 띄우고, 앉으면 [일어서기]를 누를 때까지 앉아 있다.
+    /// 미션이 휴식을 세는 동안에는 같은 자리에서 앉은 시간을 세고, 다 채우면 휴식을 알리고 일으킨다.
     /// NPC도 쉬는 동안 앉으며(<see cref="INpcSeat"/>), NPC가 앉은 자리는 플레이어에게 권하지 않는다.
     /// </summary>
     public sealed class RestSeat : MonoBehaviour, INpcSeat
     {
         private const float InteractionDistanceMeters = 1.55f;
-        private const float RestSeconds = 3f;
 
         // 켜져 있는 모든 자리. 붙어 있는 자리 중 가장 가까운 자리 하나에만 제안을 띄울 때 비교한다.
         private static readonly List<RestSeat> EnabledSeats = new List<RestSeat>();
@@ -41,13 +41,16 @@ namespace A305.Mission
         [Tooltip("자리 원점에서 앉는 면 앞 모서리까지의 거리")]
         private float frontEdgeMeters = .30f;
 
-        private readonly RestSeatTimer timer = new RestSeatTimer(RestSeconds);
+        private readonly RestSeatTimer timer = new RestSeatTimer(SeatedMealTimer.RequiredSeconds);
         private PlayerSeatPose pose;
 
         // 카페에서는 첫날 미션이 요청 중에 막는다. 다른 장소의 자리는 미션과 상관없이 열려 있다.
         private bool available = true;
         private bool resting;
+
+        // 미션이 이 자리의 휴식을 세는지(카페 주문 뒤 기다리기)와, 앉은 뒤 실제로 세고 있는지
         private bool mealWait;
+        private bool countingRest;
         private UnityEngine.Object npcSitter;
 
         public event Action RestCompleted;
@@ -105,11 +108,7 @@ namespace A305.Mission
         {
             if (resting)
             {
-                if (!timer.Tick(Time.unscaledDeltaTime))
-                    return;
-                resting = false;
-                pose.Stand();
-                RestCompleted?.Invoke();
+                UpdateSeated();
                 return;
             }
 
@@ -161,7 +160,53 @@ namespace A305.Mission
             if (!pose.Sit(transform, cushionTopMeters, frontEdgeMeters))
                 return;
             resting = true;
-            timer.Begin(mealWait ? SeatedMealTimer.RequiredSeconds : RestSeconds);
+            countingRest = false;
+            FollowMissionRest();
+        }
+
+        private void UpdateSeated()
+        {
+            // 다른 곳에서 일으켰으면(장면 정리 등) 자리도 비운다.
+            if (!pose.IsSeated)
+            {
+                LeaveSeat();
+                return;
+            }
+            FollowMissionRest();
+            if (countingRest && timer.Tick(Time.unscaledDeltaTime))
+            {
+                Stand();
+                RestCompleted?.Invoke();
+                return;
+            }
+            offerView.ShowTalkPrompt(this, "일어서기", Stand, showTalkIcon: false);
+        }
+
+        // 앉아 있는 동안 미션이 휴식을 세기 시작하면 그때부터 세고, 그만 세면 멈춘다.
+        private void FollowMissionRest()
+        {
+            if (mealWait == countingRest)
+                return;
+            countingRest = mealWait;
+            if (countingRest)
+                timer.Begin();
+            else
+                timer.Cancel();
+        }
+
+        private void Stand()
+        {
+            if (resting)
+                pose.Stand();
+            LeaveSeat();
+        }
+
+        private void LeaveSeat()
+        {
+            resting = false;
+            countingRest = false;
+            timer.Cancel();
+            offerView.HideTalkPrompt(this);
         }
 
         private void OnDisable()
@@ -173,6 +218,7 @@ namespace A305.Mission
             if (resting && pose != null)
                 pose.Stand();
             resting = false;
+            countingRest = false;
         }
     }
 }

@@ -11,9 +11,16 @@ final class QuestPrompts {
           + " Check each objective independently. Combine explicit details from earlier learner turns in this conversation when the latest line contributes; they need not repeat them."
           + " Never credit NPC lines, quoted examples, negatives or hypotheticals. A bare mention does not count. If a required detail is still missing or ambiguous, leave only that objective pending.";
 
-  /** 퀘스트 목표는 학습자가 먼저 말해야 영어로 말할 거리가 생긴다. 요청을 꺼낸 뒤에는 그 요청에 빠진 정보만 확인한다. */
+  /**
+   * 퀘스트 목표는 학습자가 먼저 말해야 영어로 말할 거리가 생긴다. 요청을 꺼낸 뒤에는 그 요청에 빠진 정보만 확인한다.
+   *
+   * <p>한 목표에 답하면서 남은 목표의 답(예: 늦은 체크아웃을 물었는데 추가 요금까지)을 같이 말하면 학습자가 그 목표를 말할 이유가 사라지므로, 이번 턴에 물은 것만
+   * 답하게 한다. "요금도 알려 드릴까요?"처럼 남은 목표 쪽으로 이끄는 질문도 같은 이유로 하지 않는다.
+   */
   static final String LEARNER_LEADS =
       " Never be the first to bring up the learner's remaining tasks, the things they need or what happened to them; wait for the learner to raise them in their own words."
+          + " Answer only what the learner said or asked in this turn. Keep back any price, fee, time, how-to or other fact that a still-pending objective is for the learner to ask about, and do not do or offer what a pending objective is for the learner to request, until the learner asks."
+          + " Do not ask a question that leads the learner toward a remaining objective, such as whether they want to know a price or time or need another item or service; a general \"Anything else?\" is fine."
           + " After the learner raises a mission request, acknowledge what is clear and ask one short question about only the missing required detail in that request."
           + " Use details the learner already gave or clearly selected. If the request is complete, answer it without another question. Do not ask for known details, introduce an unrelated pending goal, or correct grammar in the reply."
           + " In ordinary small talk, react to their topic and share brief details fitting your personality and current situation. If they seem unsure what to say, offer a small observation or an easy question in your own voice without naming undisclosed mission tasks.";

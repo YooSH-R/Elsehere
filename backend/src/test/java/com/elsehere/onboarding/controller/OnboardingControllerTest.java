@@ -16,7 +16,6 @@ import com.elsehere.onboarding.dto.LanguageSelectionResponse;
 import com.elsehere.onboarding.dto.LevelSelectionResponse;
 import com.elsehere.onboarding.dto.LevelTestSummary;
 import com.elsehere.onboarding.entity.LevelTestStatus;
-import com.elsehere.onboarding.service.ConversationLevel;
 import com.elsehere.onboarding.service.LanguageCatalog;
 import com.elsehere.onboarding.service.OnboardingService;
 import com.elsehere.user.entity.OnboardingStep;
@@ -79,8 +78,8 @@ class OnboardingControllerTest {
                 null,
                 null,
                 List.of(
-                    new ConversationLevel(1, "초급", true, "천천히, 쉬운 단어와 짧은 문장으로 말해요."),
-                    new ConversationLevel(2, "중급", false, null))));
+                    new LanguageProfileResponse.Level(1, "초급", true, "천천히, 쉬운 단어와 짧은 문장으로 말해요."),
+                    new LanguageProfileResponse.Level(2, "중급", false, null))));
 
     mockMvc
         .perform(get("/api/v1/me/languages/en-US").with(authentication(loggedIn(1L))))
@@ -103,7 +102,7 @@ class OnboardingControllerTest {
                 null,
                 null,
                 new LevelTestSummary(10L, LevelTestStatus.SKIPPED),
-                List.of(new ConversationLevel(1, "초급", true, "천천히 말해요."))));
+                List.of(new LanguageProfileResponse.Level(1, "초급", true, "천천히 말해요."))));
 
     mockMvc
         .perform(get("/api/v1/me/languages/en-US").with(authentication(loggedIn(1L))))
@@ -123,7 +122,7 @@ class OnboardingControllerTest {
                 null,
                 null,
                 null,
-                List.of(new ConversationLevel(1, "초급", true, "천천히 말해요."))));
+                List.of(new LanguageProfileResponse.Level(1, "초급", true, "천천히 말해요."))));
 
     mockMvc
         .perform(get("/api/v1/me/languages/en-US").with(authentication(loggedIn(1L))))

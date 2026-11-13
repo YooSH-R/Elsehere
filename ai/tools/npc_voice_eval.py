@@ -8,6 +8,8 @@
 - 맞히기: 판정 모델은 동료들의 성격 특징(traits)과 어조(tone)만 보고, NPC 대사만 남긴 대화가 누구 것인지 고른다.
   두 칸은 이전 카드와 지금 카드가 같으므로, 맞히는 비율이 오르면 대답에 인물이 더 드러난 것이다.
 - 말버릇: 지금 카드의 말버릇이 대답에 나온 비율과, 한 대화에서 같은 말버릇을 두 번 쓴 대화 수. 매 턴 나오면 틀처럼 들린다.
+- 되풀이: 앞 대답에서 한 질문을 거의 그대로 다시 물은 대화 수. 앞 턴을 기억하지 못하는 모델에서 늘어난다.
+- 대답은 게임 대답 스트림과 같이 표정 지시문을 붙여 만들고, 표정 표시는 빼고 남긴다.
 공용 키라 한 줄씩 순서대로 보내고, 결과는 집계만 찍고 대화마다의 기록은 --out jsonl로.
 """
 
@@ -25,10 +27,12 @@ import httpx
 from app import config
 from app import prompts as P
 from app.llm import model_body
+from app.npc_emotion import EMOTION_PROMPT
 from app.schemas import Learner, Line, Npc
 
 ROOT = Path(__file__).resolve().parents[2]
 WORLD_SQL = ROOT / "backend/src/main/resources/db/seed/world.sql"
+FACE_MARKER = re.compile(r"\[\[[^\]]*\]\]")
 
 # 같은 곳에서 같은 상황으로 일하는 동료들. 장소·상황이 같아 대사만으로는 장소를 단서로 쓸 수 없다
 GROUPS = {
@@ -88,13 +92,16 @@ async def complete(client: httpx.AsyncClient, s: config.Settings, body: dict) ->
     return r.json()["choices"][0]["message"]["content"].strip()
 
 
-async def conversation(client, s, npc: Npc) -> list[str]:
+async def conversation(client, s, npc: Npc, model: str | None = None) -> list[str]:
+    """model을 주면 그 모델로 대답한다 (client는 그 모델의 공급자)."""
     history: list[Line] = []
     replies = []
     for text in LEARNER_LINES:
         msgs = P.npc_messages(npc, None, history, text, "", LEVEL, None, LEARNER)
-        reply = await complete(client, s, {"temperature": 0.6, "max_tokens": P.LEVEL_MAX_TOKENS[LEVEL], "messages": msgs})
-        reply = reply.strip('"').split("\n")[0]
+        msgs[0] = {**msgs[0], "content": msgs[0]["content"] + "\n\n" + EMOTION_PROMPT}  # 게임 대답 스트림(app.npc)과 같게
+        body = {"temperature": 0.6, "max_tokens": P.LEVEL_MAX_TOKENS[LEVEL] + 64, "messages": msgs}
+        reply = await complete(client, s, {**body, "model": model} if model else body)
+        reply = " ".join(FACE_MARKER.sub(" ", reply.strip('"').split("\n")[0]).split())  # 게임이 읽고 자막으로 보여 주는 말만
         replies.append(reply)
         history += [Line(who="me", text=text), Line(who="npc", text=reply)]
     return replies
@@ -131,15 +138,36 @@ def repeats_catchphrase(used_per_reply: list[list[str]]) -> bool:
     return False
 
 
+QUESTION_FILLER = {"you", "your", "the", "a", "to", "is", "are", "do", "what", "i", "it", "of", "in", "for", "and", "here", "so"}
+
+
+def question_words(question: str) -> set[str]:
+    return set(re.findall(r"[a-z']+", question.lower())) - QUESTION_FILLER
+
+
+def repeated_questions(replies: list[str]) -> list[int]:
+    """앞 대답에서 한 질문을 거의 그대로 다시 물은 대답의 번호. 질문(?로 끝나는 문장)끼리 핵심 단어가 절반 넘게 겹치면 되풀이로 본다."""
+    asked: list[set[str]] = []
+    found = []
+    for i, reply in enumerate(replies):
+        questions = [question_words(q) for q in re.split(r"(?<=[.!?])\s+", FACE_MARKER.sub(" ", reply)) if q.strip().endswith("?")]
+        if any(len(q & p) >= 0.5 * max(1, len(q | p)) for q in questions for p in asked):
+            found.append(i)
+        asked += questions
+    return found
+
+
 def report(rows: list[dict]):
     done = [r for r in rows if not r.get("error")]
     right = sum(r["guess"] == r["npc"] for r in done)
     replies = [reply for r in done for reply in r["replies"]]
     with_phrase = sum(bool(used) for r in done for used in r["catchphrases"])
     repeated = sum(repeats_catchphrase(r["catchphrases"]) for r in done)
+    asked_again = sum(bool(repeated_questions(r["replies"])) for r in done)
     print(f"대화 {len(rows)}개, 호출 실패 {len(rows) - len(done)}")
     print(f"  누가 말했는지 맞힘 {right}/{len(done)}")
     print(f"  말버릇이 나온 대답 {with_phrase}/{len(replies)}, 같은 말버릇을 다시 쓴 대화 {repeated}/{len(done)}")
+    print(f"  앞에서 한 질문을 다시 물은 대화 {asked_again}/{len(done)}")
     for group, members in GROUPS.items():
         marks = " ".join(f"{m}:{''.join('o' if r['guess'] == m else 'x' for r in done if r['npc'] == m)}" for m in members)
         print(f"  {group:<10} {marks}")
@@ -152,6 +180,11 @@ async def main():
     ap.add_argument("--judge-cards", default=str(ROOT / "ai/npcs"), help="판정 모델 설명과 말버릇 집계에 쓸 카드 폴더")
     ap.add_argument("--profile", default="gms-luna")
     ap.add_argument("--env", default=str(ROOT / ".env"))
+    ap.add_argument(
+        "--reply-gpu-model",
+        help="대답만 GPU 서버 vLLM 모델로 만들기 (예: Qwen/Qwen3.8-27B, GUARD_GPU_BASE_URL·TOKEN 필요). 맞히기 판정은 구성의 npc 모델 그대로",
+    )
+    ap.add_argument("--reply-model", help="대답만 같은 공급자의 다른 모델로 만들기 (예: gpt-6-luna). 채점·판정은 구성의 npc 모델 그대로")
     ap.add_argument("--out")
     a = ap.parse_args()
     config.load_dotenv(Path(a.env))
@@ -164,6 +197,10 @@ async def main():
     async with httpx.AsyncClient(
         base_url=s.base_url, headers={"Authorization": f"Bearer {s.api_key}", "User-Agent": "ai-worker/0.1"}, timeout=60
     ) as client:
+        reply_client = None
+        if a.reply_gpu_model:
+            gpu = s.providers["gpu_llm"]
+            reply_client = httpx.AsyncClient(base_url=gpu["base_url"], headers={"Authorization": f"Bearer {gpu['api_key']}"}, timeout=60)
         for group, members in GROUPS.items():
             coworkers = {m: described(card(judge_cards, m)) for m in members}
             for npc_id in members:
@@ -174,7 +211,7 @@ async def main():
                 for _ in range(a.runs):
                     row = {"group": group, "npc": npc_id}
                     try:
-                        row["replies"] = await conversation(client, s, npc)
+                        row["replies"] = await conversation(reply_client or client, s, npc, a.reply_gpu_model or a.reply_model)
                         row["catchphrases"] = [catchphrases_in(reply, phrases) for reply in row["replies"]]
                         judged = await guess(client, s, coworkers, row["replies"])
                         row["guess"], row["reason"] = judged["npc"], judged["reason"]
@@ -182,11 +219,13 @@ async def main():
                         row["error"] = f"{type(e).__name__}: {str(e)[:120]}"
                     rows.append(row)
                     print(".", end="", flush=True)
+        if reply_client:
+            await reply_client.aclose()
     print()
     if a.out:
         Path(a.out).parent.mkdir(parents=True, exist_ok=True)
         Path(a.out).write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
-    print(f"{a.profile} 대답 {s.models['npc']}, 카드 {cards}")
+    print(f"{a.profile} 대답 {a.reply_gpu_model or a.reply_model or s.models['npc']}, 카드 {cards}")
     report(rows)
 
 

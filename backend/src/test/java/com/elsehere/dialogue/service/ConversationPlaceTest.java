@@ -3,10 +3,10 @@ package com.elsehere.dialogue.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.elsehere.conversation.entity.InitiatedBy;
-import com.elsehere.dialogue.dto.ConversationPlace;
 import com.elsehere.dialogue.dto.NpcTravelContext;
 import com.elsehere.dialogue.dto.NpcTravelContext.Phase;
 import com.elsehere.dialogue.dto.StartConversationRequest;
+import com.elsehere.world.service.ConversationPlace;
 import jakarta.validation.Validation;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;

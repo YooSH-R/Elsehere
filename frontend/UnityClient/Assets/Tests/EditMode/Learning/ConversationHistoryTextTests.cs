@@ -31,6 +31,19 @@ namespace A305.Learning.Tests
             );
         }
 
+        // 줄 제목은 NPC가 일하는 곳(서버 placeName)을 쓴다. 근무 시간 밖에 만나 일하는 곳이 없으면 대화한 장소 씬 이름을 쓴다.
+        [Test]
+        public void Title_PrefersTheNpcWorkplace()
+        {
+            ConversationSummary conversation = Conversation("TOWN", "ENDED_BY_USER", "DONE");
+            conversation.PlaceName = "식당";
+
+            Assert.That(
+                ConversationHistoryText.Title(conversation),
+                Is.EqualTo("Mia<color=#A39580> · </color>식당")
+            );
+        }
+
         [TestCase("HOME", "집")]
         [TestCase("TOWN", "마을")]
         [TestCase("HOTEL", "호텔")]

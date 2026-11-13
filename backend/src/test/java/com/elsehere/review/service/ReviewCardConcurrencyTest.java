@@ -4,7 +4,7 @@ import static com.elsehere.conversation.DialogueTestData.conversation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-import com.elsehere.ai.client.AiGateway;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.dialogue.service.DialogueServiceTest;
 import com.elsehere.feedback.entity.ConversationFeedback;
 import com.elsehere.user.UserTestData;

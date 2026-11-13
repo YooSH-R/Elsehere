@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using A305.Dialogue;
 
 namespace A305.Learning
 {
@@ -14,6 +15,9 @@ namespace A305.Learning
 
         /// <summary>고칠 것이 없는 영어 문장이다.</summary>
         WellSaid,
+
+        /// <summary>문법 오류가 아닌 표현 확장이나, 의도 확인이 필요한 말이다.</summary>
+        ExpressionPractice,
     }
 
     /// <summary>
@@ -30,12 +34,47 @@ namespace A305.Learning
             Reason = review.Explanation;
             Kind = KindOf(review);
             Better = review.HasAlternative ? review.Reference.English : null;
+            AssessmentReason = review.AssessmentReason;
+            BetterMeaning = review.HasAlternative ? review.Reference.Korean : null;
+            var examples = new List<FeedbackExpressionExample>();
+            if (review.ExpressionExamples != null)
+            {
+                foreach (FeedbackExpressionExample example in review.ExpressionExamples)
+                {
+                    if (string.IsNullOrWhiteSpace(example?.Expression))
+                        continue;
+                    if (
+                        Better != null
+                        && UtteranceReview.SameSpokenText(Better, example.Expression)
+                    )
+                    {
+                        BetterMeaning = example.MeaningKo;
+                        continue;
+                    }
+                    if (
+                        examples.Exists(shown =>
+                            UtteranceReview.SameSpokenText(shown.Expression, example.Expression)
+                        )
+                    )
+                        continue;
+                    examples.Add(example);
+                }
+            }
+            Examples = examples;
         }
 
         private static CorrectionKind KindOf(UtteranceReview review)
         {
             if (IsKorean(review.Utterance))
                 return CorrectionKind.Korean;
+            if (
+                review.Verdict == "needs_clarification"
+                || review.Verdict == "not_assessable"
+                || review.SuggestionKind == "natural_alternative"
+                || review.SuggestionKind == "idiomatic_expression"
+                || review.SuggestionKind == "context_fit"
+            )
+                return CorrectionKind.ExpressionPractice;
             return review.HasAlternative ? CorrectionKind.Corrected : CorrectionKind.WellSaid;
         }
 
@@ -60,6 +99,7 @@ namespace A305.Learning
             {
                 CorrectionKind.Corrected => "내가 한 말",
                 CorrectionKind.Korean => "내가 한 말 · 한국어",
+                CorrectionKind.ExpressionPractice => "내가 한 말",
                 _ => "잘했어요",
             };
 
@@ -85,6 +125,10 @@ namespace A305.Learning
 
         /// <summary>AI가 쓴 이유. 없으면 비어 있다.</summary>
         public string Reason { get; }
+
+        public string AssessmentReason { get; }
+        public string BetterMeaning { get; }
+        public IReadOnlyList<FeedbackExpressionExample> Examples { get; }
 
         /// <summary>[담기]로 단어장에 담을 영어 문장이 있는지</summary>
         public bool CanSave => Better != null;

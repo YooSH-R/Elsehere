@@ -9,11 +9,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
 import com.elsehere.ai.client.WorkerNpc;
+import com.elsehere.ai.service.AiGateway;
 import com.elsehere.conversation.dto.NpcSummaryResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.InitiatedBy;
@@ -101,7 +101,8 @@ class TaxiRideTurnTest {
             turns,
             lookup,
             contexts,
-            mock(ConversationResponses.class),
+            // 대답 뒤 뜻 보기를 미리 만들 NPC 턴 ID가 응답에 있어야 한다.
+            mock(ConversationResponses.class, org.mockito.Answers.RETURNS_DEEP_STUBS),
             mock(NpcAudioReceiver.class),
             worker,
             mock(MemoryService.class),
@@ -115,7 +116,8 @@ class TaxiRideTurnTest {
                 mock(com.elsehere.mission.service.PlacePracticeService.class)),
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
             new DialogueRequestLocks(),
-            new EarlyReplies(true));
+            new EarlyReplies(true),
+            mock(MeaningPreparation.class));
   }
 
   @Test

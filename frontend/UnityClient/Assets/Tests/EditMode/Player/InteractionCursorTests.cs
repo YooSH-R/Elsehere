@@ -73,6 +73,29 @@ namespace A305.Player.Tests
             );
         }
 
+        // 창 변·모서리 위에서는 크기 조절 모양, 버튼 위에서는 손 모양, 그 밖에는 기본 커서다.
+        [Test]
+        public void UiCursor_ShowsResizeOnWindowEdgesAndHandOnButtons()
+        {
+            root.GetComponent<RectTransform>().sizeDelta = new Vector2(800, 600);
+            WindowFrame.Attach(root.GetComponent<RectTransform>());
+            Button button = AddControl<Button>();
+
+            Assert.That(
+                InteractionCursor.UiCursor(
+                    root.transform.Find("ResizeTopRight").gameObject,
+                    Vector2.zero,
+                    null
+                ),
+                Is.EqualTo("nesw-resize")
+            );
+            Assert.That(
+                InteractionCursor.UiCursor(button.gameObject, Vector2.zero, null),
+                Is.EqualTo("pointer")
+            );
+            Assert.That(InteractionCursor.UiCursor(root, Vector2.zero, null), Is.EqualTo(""));
+        }
+
         private T AddControl<T>()
             where T : Selectable
         {

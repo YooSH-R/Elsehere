@@ -1,0 +1,15 @@
+{
+  "voiceSha256": "A43D3B3505DF40300585A5C6647FE706ED434D88EED54FB517171F9D77B5B6AD",
+  "accents": [
+    { "word": "cheeseburger", "timeSeconds": 0.14, "strength": 0.70, "attackSeconds": 0.12, "releaseSeconds": 0.25 },
+    { "word": "fries", "timeSeconds": 0.62, "strength": 0.55, "attackSeconds": 0.16, "releaseSeconds": 0.30 },
+    { "word": "ice", "timeSeconds": 1.32, "strength": 1.00, "attackSeconds": 0.20, "releaseSeconds": 0.42 },
+    { "word": "pie", "timeSeconds": 2.46, "strength": 0.80, "attackSeconds": 0.18, "releaseSeconds": 0.36 },
+    { "word": "nice", "timeSeconds": 3.28, "strength": 1.00, "attackSeconds": 0.20, "releaseSeconds": 0.46 },
+    { "word": "two", "timeSeconds": 4.48, "strength": 0.90, "attackSeconds": 0.18, "releaseSeconds": 0.25 },
+    { "word": "me", "timeSeconds": 4.91, "strength": 0.48, "attackSeconds": 0.12, "releaseSeconds": 0.26 },
+    { "word": "you", "timeSeconds": 5.39, "strength": 1.00, "attackSeconds": 0.17, "releaseSeconds": 0.45 },
+    { "word": "order", "timeSeconds": 6.46, "strength": 0.70, "attackSeconds": 0.19, "releaseSeconds": 0.30 },
+    { "word": "yours", "timeSeconds": 7.23, "strength": 1.00, "attackSeconds": 0.22, "releaseSeconds": 0.55 }
+  ]
+}

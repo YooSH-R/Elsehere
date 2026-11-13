@@ -1,7 +1,6 @@
 package com.elsehere.admin.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
@@ -32,22 +31,22 @@ class AdminPronunciationServiceTest {
   @Test
   @DisplayName("만드는 중이 아니면 백그라운드로 발음 만들기를 시작하고, 만드는 중과 남은 단어 수를 보여 준다")
   void start_submitsGenerationAndShowsRunning() {
-    PronunciationStatusResponse status = adminPronunciationService.start(1L);
+    PronunciationStatusResponse status = adminPronunciationService.start();
 
     assertThat(submittedTasks).hasSize(1);
     assertThat(status.running()).isTrue();
     assertThat(status.total()).isEqualTo(106);
     assertThat(status.ready()).isEqualTo(1);
     assertThat(status.missing()).isEqualTo(105);
-    then(pronunciationGenerator).should(never()).generateMissing(any());
+    then(pronunciationGenerator).should(never()).generateMissing();
   }
 
   @Test
   @DisplayName("이미 만드는 중이면 새로 시작하지 않는다")
   void start_whileRunning_doesNotSubmitAgain() {
-    adminPronunciationService.start(1L);
+    adminPronunciationService.start();
 
-    PronunciationStatusResponse status = adminPronunciationService.start(1L);
+    PronunciationStatusResponse status = adminPronunciationService.start();
 
     assertThat(submittedTasks).hasSize(1);
     assertThat(status.running()).isTrue();
@@ -57,8 +56,8 @@ class AdminPronunciationServiceTest {
   @DisplayName("다 만들면 만드는 중이 아니고, 마지막 결과(만든 수·실패한 단어)를 보여 준다")
   void finishedGeneration_showsLastRun() {
     PronunciationRun run = new PronunciationRun(104, List.of("sofa"));
-    given(pronunciationGenerator.generateMissing(1L)).willReturn(run);
-    adminPronunciationService.start(1L);
+    given(pronunciationGenerator.generateMissing()).willReturn(run);
+    adminPronunciationService.start();
 
     submittedTasks.getFirst().run();
     PronunciationStatusResponse status = adminPronunciationService.status();
@@ -70,11 +69,11 @@ class AdminPronunciationServiceTest {
   @Test
   @DisplayName("만들다가 예상하지 못한 오류가 나도 다시 시작할 수 있다")
   void failedGeneration_canStartAgain() {
-    given(pronunciationGenerator.generateMissing(1L)).willThrow(new IllegalStateException("db"));
-    adminPronunciationService.start(1L);
+    given(pronunciationGenerator.generateMissing()).willThrow(new IllegalStateException("db"));
+    adminPronunciationService.start();
     submittedTasks.getFirst().run();
 
-    PronunciationStatusResponse status = adminPronunciationService.start(1L);
+    PronunciationStatusResponse status = adminPronunciationService.start();
 
     assertThat(submittedTasks).hasSize(2);
     assertThat(status.running()).isTrue();

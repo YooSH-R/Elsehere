@@ -244,6 +244,36 @@
       "title": "Evidence",
       "type": "object"
     },
+    "ExpressionExample": {
+      "additionalProperties": false,
+      "properties": {
+        "condition_ko": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Condition Ko",
+          "type": "string"
+        },
+        "expression": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Expression",
+          "type": "string"
+        },
+        "meaning_ko": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Meaning Ko",
+          "type": "string"
+        }
+      },
+      "required": [
+        "condition_ko",
+        "expression",
+        "meaning_ko"
+      ],
+      "title": "ExpressionExample",
+      "type": "object"
+    },
     "Failed": {
       "additionalProperties": false,
       "properties": {
@@ -866,6 +896,14 @@
             "$ref": "#/$defs/Suggestion"
           },
           "title": "Suggestions",
+          "type": "array"
+        },
+        "expression_examples": {
+          "items": {
+            "$ref": "#/$defs/ExpressionExample"
+          },
+          "maxItems": 3,
+          "title": "Expression Examples",
           "type": "array"
         }
       },

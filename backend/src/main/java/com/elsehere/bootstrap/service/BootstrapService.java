@@ -36,6 +36,12 @@ public class BootstrapService {
                     aiStatusService.statusOf(user)));
   }
 
+  /** 팀 기기에서 접속한 사용자를 팀 계정으로 표시한다. 사용자가 없으면 아무것도 하지 않는다. */
+  @Transactional
+  public void markTeamAccount(Long userId) {
+    userRepository.findById(userId).ifPresent(User::markTeamAccount);
+  }
+
   private static String lastSceneCode(User user) {
     Scene lastScene = user.getLastScene();
     return lastScene == null ? null : lastScene.getCode();

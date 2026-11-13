@@ -45,6 +45,8 @@ namespace A305.Theme
         // 유리 버튼일 때 Builder가 정한 9칸 배율. 고른 표시로 알약을 그렸다가 돌아올 때 되살린다.
         private float ghostPixelsPerUnit;
 
+        private bool keepGhostOutline;
+
         public UiThemeRole Role => role;
 
         public UiThemeCatalog Catalog => catalog;
@@ -56,10 +58,11 @@ namespace A305.Theme
             ApplyCurrent();
         }
 
-        /// <summary>고른 카드나 목록 줄을 지금 테마의 강조색 쪽으로 옅게 칠한다. 테마가 바뀌어도 고른 표시를 유지한다.</summary>
-        public void SetSelected(bool selected)
+        /// <summary>고른 카드·버튼을 강조색으로 칠한다. 반투명 버튼은 요청 시 기존 테두리 모양을 유지한다.</summary>
+        public void SetSelected(bool selected, bool keepGhostOutline = false)
         {
             selection = selected;
+            this.keepGhostOutline = keepGhostOutline;
             ApplyCurrent();
         }
 
@@ -290,15 +293,16 @@ namespace A305.Theme
         private static readonly Color GhostInputTint = new Color(1f, 1f, 1f, .8f);
 
         // 알약 위아래 모서리가 버튼 높이에서 차지하는 비율. 이름표·[말하기]처럼 가운데에 곧은 줄을 조금 남긴다.
-        private const float PillCornerShare = .85f;
+        private const float PillCornerShare = .96f;
 
-        // 반투명한 흰 테두리 버튼. 다음에 누를 버튼으로 고르면 강조색 입체 버튼으로 바꿔 한눈에 보이게 한다.
+        // 반투명한 흰 테두리 버튼. 현재 상태를 표시하는 버튼은 같은 테두리를 강조색으로 칠한다.
         private void PaintGhostControl(UiThemeDefinition theme)
         {
             Image image = GetComponent<Image>();
             if (image != null && image.sprite != theme.PillSprite)
                 ghostPixelsPerUnit = image.pixelsPerUnitMultiplier;
-            if (selection)
+            bool usesPopShape = selection && !keepGhostOutline;
+            if (usesPopShape)
             {
                 // 알약 그림은 유리 그림보다 모서리가 커서, 유리 버튼의 배율 그대로면 낮은 버튼의 높이를 넘는다.
                 // 그러면 Unity가 세로만 줄여 그려 그림자 여백과 어긋나고 가운데 줄이 테이프처럼 양옆으로 삐져나온다.
@@ -319,9 +323,14 @@ namespace A305.Theme
             {
                 if (image != null && ghostPixelsPerUnit > 0)
                     image.pixelsPerUnitMultiplier = ghostPixelsPerUnit;
-                Paint(image, theme.GhostSprite, Color.white, null, Vector2.zero);
+                Paint(
+                    image,
+                    theme.GhostSprite,
+                    selection ? theme.ToneColor(UiTone.Primary) : Color.white,
+                    selection ? theme.HighlightedGhostMaterial : null
+                );
             }
-            Color ink = selection ? theme.ToneInk(UiTone.Primary) : Color.white;
+            Color ink = usesPopShape ? theme.ToneInk(UiTone.Primary) : Color.white;
             Image ghostIcon = Child<Image>(transform, "Icon");
             Draw(ghostIcon, theme.Icons != null ? theme.Icons.Get(icon) : null);
             if (ghostIcon != null)
@@ -346,7 +355,7 @@ namespace A305.Theme
         // 알약 배율은 버튼 높이로 정하므로, 고른 유리 버튼은 레이아웃이 높이를 정하거나 바꾸면 다시 칠한다.
         private void OnRectTransformDimensionsChange()
         {
-            if (role == UiThemeRole.GhostControl && selection)
+            if (role == UiThemeRole.GhostControl && selection && !keepGhostOutline)
                 ApplyCurrent();
         }
 

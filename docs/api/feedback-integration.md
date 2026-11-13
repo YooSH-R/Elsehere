@@ -24,7 +24,8 @@ Spring에서 호출하는 `POST /v1/feedback`의 연결 기준이다. 사용자�
 | 도움 사용 | 실제 `assistance_events`와 해당 턴의 `assistance_ids`를 연결 |
 | 첫날 퀘스트 단계 대화 | 대화 시작 때 저장한 `first_day_goal_ids`만 이번 대화의 할 일로 보낸다. 다시 말을 걸어도 이전 대화에서 완료한 목표를 요구하지 않는다. 빈 목록은 목표 없음이며, 목표 기록이 없는 예전 대화는 실제 발화만 평가한다 |
 | 마을 퀘스트 대화 | 대화 시작 때 저장한 `town_story_goal_ids`만 이번 대화의 할 일로 보낸다. 식당 주문·식사 수령 대기·쏟은 일 설명을 구분하고, 목록 밖의 목표를 누락으로 평가하지 않는다. 목표 기록이 없는 예전 식당 대화는 실제 발화만 평가한다 |
-| 대화 난이도 | `settings_version`은 `level-N`, `vocabulary_profile`은 `level-N: 수준 설명`(워커 힌트와 같은 CEFR 설명)이다. 현재 `analysis_config_version`은 `elsehere-feedback-v5`이다 |
+| 대화 장소 | `scene_id`는 대화 시작에 기록한 장소 코드를 우선 사용한다. 예전 대화는 근무 중인 NPC의 근무지나 기존 씬 코드로 보완한다. 빵집(`BAKERY`), 은행(`BANK`), 우체국(`POST_OFFICE`) 등 마을의 매장을 따로 구분한다 |
+| 대화 난이도 | `settings_version`은 `level-N`, `vocabulary_profile`은 `level-N: 수준 설명`(워커 힌트와 같은 CEFR 설명)이다. 현재 `analysis_config_version`은 `elsehere-feedback-v7`이다 |
 
 null 판정은 무례가 아님을 뜻하지 않는다. 원래 null·실패 이유는 Spring 기록에 유지한다. 한글 입력도 원문 그대로 전달한다. 모듈은 blocked·미확정 사용자 줄을 평가·원문 인용·교정·회화 용법·단어장 후보에서 제외한다.
 
@@ -46,9 +47,10 @@ null 판정은 무례가 아님을 뜻하지 않는다. 원래 null·실패 이�
 
 - 짧은 피드백: conversation_summary는 실제 대화의 요청·답변·결정만 담는다. 남은 목표는 게임의 퀘스트 진행으로 표시한다. review_tags의 아쉬운 점은 상세 문장 교정과 같은 발화·이유를 워커가 연결하며, 교정이 없으면 장점만 남긴다. 대표 개선 표현은 summary_suggestion_id가 가리킨다.
 - 상세 피드백: 원래 순서의 turn_reviews. 문법·어휘 오류와 context_fit을 구별하고, 적절한 표현을 오류로 표시하지 않는다.
+- 발화별 표현 연습: `turn_reviews[].expression_examples`의 상황(`condition_ko`)·영어(`expression`)·뜻(`meaning_ko`) 2~3개를 같은 피드백 호출에서 받는다. 문법이 맞아도 표현이 부족한 말은 실용적인 문장으로 확장하고, 모호한 요청은 조건부 선택지로 안내한다. BE는 원본 `conversation_feedback.result`에서 판정·제안 종류·예문을 읽어 상세 항목의 `verdict`, `suggestionKind`, `expressionExamples`로 제공한다. 새 DB 컬럼이나 다시 보기 시 AI 호출은 없다. Unity는 자연스러운 대안·의도 확인을 문법 오류와 구분하고, 대표 문장과 겹치는 예문은 한 번만 보인다. 기존 결과에 필드가 없으면 예문은 빈 목록이며 완료된 피드백을 자동 재생성하지 않는다.
 - 단어장: vocab_candidates는 저장 후보다. 사용자 선택과 백엔드 저장 성공 전에는 저장 완료라고 표시하지 않는다. BE는 단어장이 단어·숙어·문장을 모두 저장하므로 후보를 종류와 상관없이 `conversation_feedback.reviews`에 함께 저장하고 FB-01·CONV-08 응답의 `feedback.vocabCandidates`로 내려 준다. 저장은 VOCAB-02 `FEEDBACK`이 이 목록과 `situationExpressions`(이 상황에서 자주 써요)로 단어·숙어·문장을 확인한다.
 - 회화 보충: `spoken_usage_notes`는 교정 아래의 선택적 설명 0~1개다. 현재 로컬 확장 필드이며 BE·Unity 적용 합의가 별도로 필요하다. 필드 누락은 빈 목록으로 처리할 수 있어야 하며, 설명이 없다고 실패로 처리하지 않는다.
-- 장면 표현: `situation_expressions`는 이 장면에서 자주 쓰는 관용·추천 표현 0~3개(표현·뜻·쓰는 때·학습 예문과 번역)다. 워커가 생성할 때는 2~3개를 요구하고, 필드가 없던 결과는 빈 목록으로 처리한다. BE는 `conversation_feedback.reviews`에 함께 저장하고 FB-01·CONV-08 응답의 `feedback.situationExpressions`로 내려 준다. Unity는 피드백 화면의 회화 칸에 "이 상황에서 자주 써요"로 보여 준다.
+- 상황 표현: `situation_expressions`는 실제 대화 목적에 맞는 추천 표현 0~3개(표현·뜻·쓰는 때·학습 예문과 번역)다. 워커는 장소와 학습자 발화에 맞는 고정 후보를 최대 한 개 참고하며, 목적이 분명하면 1~3개를 생성한다. 필드가 없던 결과는 빈 목록으로 처리한다. BE는 `conversation_feedback.reviews`에 함께 저장하고 FB-01·CONV-08 응답의 `feedback.situationExpressions`로 내려 준다. Unity는 피드백 화면의 회화 칸에 "이 상황에서 자주 써요"로 보여 준다.
 
 `review_id`, `suggestion_id`, `candidate_id`는 결과 내부 참조값이며 DB 식별자가 아니다. usage의 토큰 수는 크레딧이 아니다. 현재 워커의 공급자 재시도·대체 모델 정책이 적용될 수 있으므로 실제 모델·시도·사용량을 응답 기준으로 기록한다.
 

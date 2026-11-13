@@ -15,11 +15,11 @@ namespace A305.Player
 
         public static float DevicePixelRatio => A305Player_DevicePixelRatio();
 
-        public static void SetClickCursor(bool clickable) =>
-            A305Player_SetClickCursor(clickable ? 1 : 0);
+        /// <param name="cursor">CSS 커서 이름(pointer, ew-resize 등). 빈 문자열이면 기본 커서</param>
+        public static void SetCursor(string cursor) => A305Player_SetCursor(cursor);
 
         [DllImport("__Internal")]
-        private static extern void A305Player_SetClickCursor(int clickable);
+        private static extern void A305Player_SetCursor(string cursor);
 
         [DllImport("__Internal")]
         private static extern bool A305Player_IsPrimaryPointerCoarse();
@@ -32,7 +32,7 @@ namespace A305.Player
         // 에디터와 데스크톱 실행은 마우스 이동을 화면 배율로 키우지 않는다.
         public static float DevicePixelRatio => 1f;
 
-        public static void SetClickCursor(bool clickable) { }
+        public static void SetCursor(string cursor) { }
 #endif
     }
 }

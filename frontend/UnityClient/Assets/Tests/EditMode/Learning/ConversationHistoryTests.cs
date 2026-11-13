@@ -50,18 +50,21 @@ namespace A305.Learning.Tests
             Assert.That(history.HasMore, Is.False);
         }
 
-        // 장소 탭을 고르면 그 장소의 대화만 받고, 다음 쪽도 같은 장소에서 이어 받는다.
+        // 장소 탭을 고르면 그 장소 묶음의 대화만 받고, 다음 쪽도 같은 묶음에서 이어 받는다.
         [Test]
-        public async Task Load_ForAPlace_AsksOnlyThatPlaceAndKeepsItForTheNextPage()
+        public async Task Load_ForAPlaceGroup_AsksOnlyThatGroupAndKeepsItForTheNextPage()
         {
             api.Pages[""] = Page("59", Conversation(60));
             api.Pages["59"] = Page(null, Conversation(58));
 
-            await history.LoadAsync("CAFE");
+            await history.LoadAsync(PlaceGroup.Food);
             await history.LoadMoreAsync();
 
-            Assert.That(history.SceneCode, Is.EqualTo("CAFE"));
-            Assert.That(api.RequestedScenes, Is.EqualTo(new[] { "CAFE", "CAFE" }));
+            Assert.That(history.PlaceGroup, Is.EqualTo(PlaceGroup.Food));
+            Assert.That(
+                api.RequestedGroups,
+                Is.EqualTo(new PlaceGroup?[] { PlaceGroup.Food, PlaceGroup.Food })
+            );
         }
 
         [Test]
@@ -246,7 +249,7 @@ namespace A305.Learning.Tests
 
             public List<string> RequestedCursors { get; } = new List<string>();
 
-            public List<string> RequestedScenes { get; } = new List<string>();
+            public List<PlaceGroup?> RequestedGroups { get; } = new List<PlaceGroup?>();
 
             public PastFeedback Feedback { get; set; } = new PastFeedback();
 
@@ -256,10 +259,10 @@ namespace A305.Learning.Tests
 
             public List<long> OpenedConversationIds { get; } = new List<long>();
 
-            public async Task<ConversationPage> GetPageAsync(string cursor, string sceneCode)
+            public async Task<ConversationPage> GetPageAsync(string cursor, PlaceGroup? placeGroup)
             {
                 RequestedCursors.Add(cursor);
-                RequestedScenes.Add(sceneCode);
+                RequestedGroups.Add(placeGroup);
                 if (PageGate != null)
                 {
                     await PageGate.Task;

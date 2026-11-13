@@ -96,7 +96,8 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
         if note := reaction_instruction(req.reaction):
             msgs[0]["content"] += "\n" + note
         # 최대 네 개 표정 표시의 토큰을 따로 확보한다. 대사 길이 규칙은 기존 수준별 프롬프트를 유지한다.
-        gen = llm.stream("npc", "npc", msgs, usage, max_tokens=P.LEVEL_MAX_TOKENS[req.level] + 64)
+        # GPU 서버 NPC 대답 LoRA가 켜져 있고 여유가 있으면 그쪽을 먼저 쓴다 (llm.npc_stream)
+        gen = llm.npc_stream(msgs, usage, max_tokens=P.LEVEL_MAX_TOKENS[req.level] + 64)
         stopped, finished = False, False
 
         def consume(parts):

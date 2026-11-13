@@ -21,7 +21,7 @@ namespace A305.EditorTools.Npc
     {
         public static void Capture()
         {
-            string output = Path.GetFullPath("../../artifacts/JohnParkRhythm/Restaurant");
+            string output = Path.GetFullPath("../../artifacts/JohnRapOpening/Visual");
             Directory.CreateDirectory(Path.Combine(output, "Frames"));
             // 식당은 따로 장면이라 존박·건물·대화창·카메라가 모두 식당 장면에 있다.
             var restaurant = EditorSceneManager.OpenScene(
@@ -34,6 +34,35 @@ namespace A305.EditorTools.Npc
                 .FindAllInScene<Transform>(restaurant)
                 .Single(t => t.name == "MapleDiner" && t.Find("Interior") != null);
             actor.gameObject.SetActive(true);
+            Physics.SyncTransforms();
+            var controller = actor.GetComponent<CharacterController>();
+            Vector3 placedPosition = actor.transform.position;
+            controller.Move(Vector3.down * .4f);
+            if (
+                Vector3
+                    .ProjectOnPlane(actor.transform.position - placedPosition, Vector3.up)
+                    .magnitude > .02f
+            )
+                throw new InvalidOperationException("John의 배치가 가구와 겹쳐 옆으로 밀렸습니다.");
+            Vector3 center = actor.transform.TransformPoint(controller.center);
+            float half = controller.height * .5f - controller.radius;
+            var blockers = Physics
+                .OverlapCapsule(
+                    center - Vector3.up * half,
+                    center + Vector3.up * half,
+                    controller.radius * .95f,
+                    ~0,
+                    QueryTriggerInteraction.Ignore
+                )
+                .Where(c =>
+                    !c.transform.IsChildOf(actor.transform)
+                    && c.bounds.max.y > actor.transform.position.y + .08f
+                )
+                .ToArray();
+            if (blockers.Length > 0)
+                throw new InvalidOperationException(
+                    "John의 자리와 겹치는 가구: " + string.Join(", ", blockers.Select(c => c.name))
+                );
             var view = BuilderTools.FindSingleInScene<DialoguePanelView>(restaurant);
             foreach (Canvas canvas in BuilderTools.FindAllInScene<Canvas>(restaurant))
                 canvas.gameObject.SetActive(canvas.gameObject == view.gameObject);
@@ -77,7 +106,7 @@ namespace A305.EditorTools.Npc
             Bake();
             view.gameObject.SetActive(false);
             camera.transform.position = building.TransformPoint(new Vector3(0, 2.25f, -.7f));
-            camera.transform.LookAt(actor.transform.position + Vector3.up * .9f);
+            camera.transform.LookAt(building.TransformPoint(new Vector3(0, 1f, -5.5f)));
             Save(camera, Path.Combine(output, "John_Restaurant.png"), 1280, 800);
             view.gameObject.SetActive(true);
             var performer = actor.GetComponent<RecordedNpcPerformance>();
@@ -85,45 +114,31 @@ namespace A305.EditorTools.Npc
             var link = new GameObject("로컬 재생 검수").AddComponent<DialogueServerLink>();
             link.SetSpeaker(speech);
             actor.GetComponent<AudioSource>().mute = true;
-            var guide = performer.Definition.CreateGuideLine();
+            var rap = performer.Definition.CreateLine();
             var script = new DialogueScript(
                 "John",
-                guide,
+                null,
                 Array.Empty<GuidedTurn>(),
                 Array.Empty<KeywordReply>(),
-                guide,
-                "Can you play that rap again?",
+                rap,
+                null,
                 "뮤지션"
             );
-            var conversation = new DialogueConversation(JohnParkEmotionBuilder.NpcCode, script);
-            conversation.ShowRecordedReply("Can you play that rap again?", guide);
+            var conversation = new DialogueConversation(
+                JohnParkEmotionBuilder.NpcCode,
+                script,
+                recordedOpening: rap
+            );
             NpcSubtitlePreference.ShowsSubtitles = true;
             view.Show(conversation);
-            view.SetPerformanceState(true, true, false, true);
-            if (!performer.PlayGuide(link))
-                throw new InvalidOperationException("안내 재생 실패");
+            view.SetPerformanceState(true, true, true, false, performer.Definition.English);
+            if (!performer.Play(link))
+                throw new InvalidOperationException("저장 랩 재생 실패");
             speech.Pause();
             var head = actor.LookTarget.position;
             var eye = actor.transform.TransformPoint(new Vector3(0, 1.2f, 2.1f));
-            float guideLength = DialogueSpeechWav.Read(guide.Speech).Timeline.Duration;
-            bool rap = false;
-            for (int frame = 0; frame < 180; frame++)
+            void Render(string name, int width, int height)
             {
-                float seconds = frame / 15f;
-                if (!rap && seconds >= guideLength + .65f)
-                {
-                    rap = true;
-                    performer.Play(link);
-                    speech.Pause();
-                    conversation.ShowRecordedReply(null, performer.Definition.CreateLine());
-                    view.Refresh();
-                    view.SetPerformanceState(true, true, true, false);
-                }
-                float at = rap ? seconds - guideLength - .65f : Mathf.Min(seconds, guideLength);
-                if (rap)
-                    performer.SampleMotion(at);
-                speech.ApplyAtAudioTime(at);
-                Bake();
                 typeof(DialogueLayoutPreview)
                     .GetMethod("Render", BindingFlags.NonPublic | BindingFlags.Static)
                     .Invoke(
@@ -134,15 +149,28 @@ namespace A305.EditorTools.Npc
                             view,
                             eye,
                             head,
-                            Path.Combine(output, "Frames", $"frame_{frame:D4}.png"),
-                            960,
-                            600,
+                            Path.Combine(output, name),
+                            width,
+                            height,
+                            true,
                         }
                     );
             }
-            File.WriteAllBytes(Path.Combine(output, "Guide.wav"), guide.Speech);
-            File.WriteAllBytes(Path.Combine(output, "Rap.wav"), performer.Definition.Voice.bytes);
-            Debug.Log("식당 실제 배치·저장 안내·랩 대화 프레임 촬영 완료: " + output);
+            performer.SampleMotion(0);
+            speech.ApplyAtAudioTime(0);
+            Bake();
+            Render("John_FirstRap.png", 1280, 800);
+            for (int i = 0; i < 4; i++)
+                conversation.ShowRecordedReply(null, performer.Definition.CreateLine());
+            view.Refresh();
+            Render("John_RepeatedRap.png", 1280, 800);
+            Render("John_RepeatedRapNarrow.png", 540, 960);
+            view.gameObject.SetActive(false);
+            camera.transform.position = actor.transform.TransformPoint(new Vector3(0, .3f, 1.1f));
+            camera.transform.LookAt(actor.transform.position + Vector3.up * .1f);
+            camera.fieldOfView = 30;
+            Save(camera, Path.Combine(output, "John_Feet.png"), 640, 480);
+            Debug.Log("식당 자동 랩·반복 가사 스크롤·발 접지 화면 저장: " + output);
         }
 
         private static void Save(Camera camera, string path, int width, int height)

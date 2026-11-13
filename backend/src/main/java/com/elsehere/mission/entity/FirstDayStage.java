@@ -14,7 +14,7 @@ public enum FirstDayStage {
       "It is too early to check in: the room is not ready yet. Do not check the learner in, give a room number or room key, or ask for ID, a credit card or payment. If they ask to check in, tell them early check-in is not possible today. When the learner asks, you can confirm the reservation by name, store the large suitcase until the room is ready and give directions to Corner Cafe, where they can wait. Do not offer any of these before the learner asks. The learner keeps a small blue shoulder bag.",
       goal(
           "confirm_reservation",
-          "예약 확인(예약자 이름)",
+          "예약 확인",
           "Confirm an existing hotel reservation by giving the name it is under. Saying only that they have a reservation, without a name, does not count.",
           "예약자 이름: {name}"),
       goal(
@@ -37,12 +37,12 @@ public enum FirstDayStage {
       "Ask what they would like without listing or recommending drinks. Once they order, ask about a specific drink option only if none was given, or ask for here or to go if the option is clear but their choice of where to drink is missing. Every drink costs 4 coins. The learner may choose any drink. They need to dine in, then rest after ending the conversation. Do not mention a lost bag yet.",
       goal(
           "order_drink",
-          "음료 주문(음료 이름)",
+          "음료 주문",
           "Order a specific drink by name, such as a latte or orange juice; any drink is valid. Asking for just 'a drink' or 'something' does not count.",
           "마실 음료 이름"),
       goal(
           "set_options",
-          "크기·온도 등 옵션 고르기",
+          "음료 옵션 고르기",
           "Choose a specific size, temperature, milk or another drink option. Saying only that they have no preference does not count.",
           "크기·온도·우유 등 옵션 하나 고르기"),
       goal(
@@ -60,7 +60,7 @@ public enum FirstDayStage {
       "The large suitcase is safely stored at this hotel. The learner left their separate small shoulder bag at the cafe. They need to go back for it before checking in. Do not claim the hotel has the small bag. Do not bring up the missing bag before the learner explains it.",
       goal(
           "report_left_bag",
-          "분실 설명(어떤 가방을 어디에)",
+          "가방 분실 설명",
           "Explain that their bag is missing AND they think they left it at the cafe. Combine details from separate learner turns; 'my bag' or 'it' may refer to the bag already established in their conversation, without repeating its size or a fixed sentence. Losing something without a location anywhere in the learner's statements does not count.",
           "작은 가방이 없고, 카페에 두고 온 것 같다고 말하기"),
       goal(

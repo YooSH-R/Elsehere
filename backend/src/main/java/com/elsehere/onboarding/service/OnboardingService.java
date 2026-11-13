@@ -55,7 +55,12 @@ public class OnboardingService {
         profile.getRecommendedLevel(),
         selectedLevel,
         findLastLevelTest(profile),
-        levelCatalog.levels());
+        levelCatalog.levels().stream().map(OnboardingService::levelResponse).toList());
+  }
+
+  private static LanguageProfileResponse.Level levelResponse(ConversationLevel level) {
+    return new LanguageProfileResponse.Level(
+        level.level(), level.name(), level.available(), level.description());
   }
 
   private LevelTestSummary findLastLevelTest(UserLanguageProfile profile) {

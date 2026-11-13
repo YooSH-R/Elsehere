@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using A305.Api;
 using A305.Dialogue;
 using NUnit.Framework;
 
@@ -10,6 +11,73 @@ namespace A305.Learning.Tests
     /// </summary>
     public class CorrectionCardTests
     {
+        [Test]
+        public void AmbiguousRequest_ShowsConditionalExamplesInsteadOfPraise()
+        {
+            CorrectionCard card = FromJson(
+                "{\"userText\":\"umbrella please\",\"verdict\":\"needs_clarification\","
+                    + "\"reason\":\"우산을 빌리려는지 판매처를 묻는지 확인해요.\","
+                    + "\"expressionExamples\":["
+                    + "{\"conditionKo\":\"빌릴 때\",\"expression\":\"Could I borrow an umbrella?\",\"meaningKo\":\"우산을 빌릴 수 있나요?\"},"
+                    + "{\"conditionKo\":\"판매처를 물을 때\",\"expression\":\"Where can I buy an umbrella?\",\"meaningKo\":\"우산을 어디서 살 수 있나요?\"}]}"
+            );
+
+            Assert.That(card.SaidLabel, Is.EqualTo("내가 한 말"));
+            Assert.That(card.IsSaidStruck, Is.False);
+            Assert.That(card.Better, Is.Null);
+            Assert.That(card.Reason, Does.Contain("빌릴 때"));
+            Assert.That(card.Reason, Does.Contain("Could I borrow an umbrella?"));
+            Assert.That(card.Reason, Does.Contain("Where can I buy an umbrella?"));
+            Assert.That(card.CanSave, Is.False);
+        }
+
+        [Test]
+        public void NaturalShortAnswer_WithPracticeExamplesIsNotMarkedAsAnError()
+        {
+            CorrectionCard card = FromJson(
+                "{\"userText\":\"To go, please.\",\"verdict\":\"appropriate\","
+                    + "\"suggestionKind\":\"natural_alternative\",\"betterText\":\"I'll take it to go, please.\","
+                    + "\"reason\":\"짧아도 자연스러운 답변이에요.\",\"expressionExamples\":["
+                    + "{\"conditionKo\":\"문장으로 말할 때\",\"expression\":\"I'll take it to go, please.\",\"meaningKo\":\"포장해 갈게요.\"},"
+                    + "{\"conditionKo\":\"포장을 요청할 때\",\"expression\":\"Could I get that to go?\",\"meaningKo\":\"포장해 주실 수 있나요?\"}]}"
+            );
+
+            Assert.That(card.IsSaidStruck, Is.False);
+            Assert.That(card.BetterLabel, Is.EqualTo("이렇게 말해요"));
+            Assert.That(card.Reason, Does.Contain("짧아도 자연스러운"));
+            Assert.That(card.Reason, Does.Contain("Could I get that to go?"));
+            Assert.That(card.Reason, Does.Not.Contain("I'll take it to go, please."));
+        }
+
+        [Test]
+        public void UnassessableEnglish_IsNotAutomaticallyPraised()
+        {
+            CorrectionCard card = FromJson(
+                "{\"userText\":\"...\",\"verdict\":\"not_assessable\",\"reason\":\"확인할 말이 없어요.\"}"
+            );
+
+            Assert.That(card.SaidLabel, Is.EqualTo("내가 한 말"));
+            Assert.That(card.IsSaidStruck, Is.False);
+            Assert.That(card.CanSave, Is.False);
+        }
+
+        private static CorrectionCard FromJson(string json)
+        {
+            var feedback = ConversationFeedback.FromServer(
+                "Jake",
+                1,
+                new ServerFeedback(
+                    new FeedbackData { Status = "DONE" },
+                    new List<DetailedFeedbackItem>
+                    {
+                        ApiJson.Deserialize<DetailedFeedbackItem>(json),
+                    },
+                    null
+                )
+            );
+            return CorrectionCard.From(feedback)[0];
+        }
+
         [Test]
         public void CorrectedEnglish_StrikesWhatISaidAndOffersTheBetterSentence()
         {

@@ -28,7 +28,7 @@ namespace A305.Mission.Tests
             Assert.That(panel.color.a, Is.LessThan(0.7f));
         }
 
-        // 크게 본 지도에서 도로 위 길 안내를 켜고 끈다. 범례 반대편 아래에 같은 흰 알약으로 둔다.
+        // 크게 본 지도 머리줄에서 도로 위 길 안내를 켜고 끈다.
         [Test]
         public void LargeMap_HasTheRouteToggle()
         {

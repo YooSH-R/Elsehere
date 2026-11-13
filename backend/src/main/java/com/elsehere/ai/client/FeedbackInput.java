@@ -24,6 +24,7 @@ public record FeedbackInput(
   public record Scope(String userId, String npcId, String conversationId) {}
 
   /**
+   * @param sceneId 대화 장소 코드. 마을 매장은 실내 장소 코드로 구분한다.
    * @param mode tutorial, free_chat, ambient, quest
    * @param endReason user_end 또는 npc_end
    */

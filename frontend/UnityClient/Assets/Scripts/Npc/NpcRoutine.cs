@@ -94,6 +94,12 @@ namespace A305.Npc
         [Tooltip("월드 좌표 구역. 건물 1층 실내처럼 NPC가 지낼 공간을 감싼다.")]
         private Bounds area;
 
+        [SerializeField]
+        [Tooltip(
+            "켜면 처음 놓인 자기 자리를 지키고 카운터를 맡지 않는다. 카운터를 24시간 상주 직원이 맡는 가게의 교대 직원에게 켠다(BuildingStaffBuilder)."
+        )]
+        private bool keepsOwnPost;
+
         private readonly Dictionary<string, List<HoverableObject>> placed =
             new Dictionary<string, List<HoverableObject>>();
         private readonly List<INpcSeat> seats = new List<INpcSeat>();
@@ -187,7 +193,7 @@ namespace A305.Npc
                     return true;
 
                 return PlaceScenes.CodeOf(gameObject.scene.name) == "DINER"
-                    && (npcCode == "DINER_STAFF" || npcCode == "FIRE_CAPTAIN");
+                    && npcCode == "DINER_STAFF";
             }
         }
 
@@ -278,7 +284,7 @@ namespace A305.Npc
             lookingAround = false;
             lookAroundTarget = null;
             CollectSceneObjects();
-            if (!isVisitor)
+            if (!isVisitor && !keepsOwnPost)
                 FindCounter();
         }
 
@@ -335,6 +341,53 @@ namespace A305.Npc
 
         internal bool HasServiceCounter => hasCounter;
 
+        internal Pose ConversationPost => hasCounter ? ServicePose() : body.HomePose;
+
+        internal bool AllowsConversationPosition(Vector3 point)
+        {
+            if (!stayInArea)
+                return true;
+            // 사물 중심을 검사하던 구역이므로 발밑 높이는 응대 자리와 비교한다.
+            return Mathf.Abs(point.y - ConversationPost.position.y) < .5f
+                && area.Contains(new Vector3(point.x, area.center.y, point.z));
+        }
+
+        internal Vector3 ConversationCustomerPosition
+        {
+            get
+            {
+                Pose post = ConversationPost;
+                if (!hasCounter)
+                    return post.position + post.rotation * Vector3.forward * 1.8f;
+                Vector3 nearest = counterBounds.ClosestPoint(
+                    new Vector3(post.position.x, counterBounds.center.y, post.position.z)
+                );
+                Vector3 towardCounter = Flat(nearest - post.position);
+                int axis =
+                    towardCounter.sqrMagnitude > .0001f
+                        ? (Mathf.Abs(towardCounter.x) > Mathf.Abs(towardCounter.z) ? 0 : 2)
+                        : (counterBounds.extents.x < counterBounds.extents.z ? 0 : 2);
+                Vector3 customer = CustomerAcrossCounter(post, axis);
+                if (!AllowsConversationPosition(customer))
+                    customer = post.position - (customer - post.position).normalized * 1.8f;
+                return customer;
+            }
+        }
+
+        private Vector3 CustomerAcrossCounter(Pose post, int axis)
+        {
+            float direction = Mathf.Sign(counterBounds.center[axis] - post.position[axis]);
+            float distance = Mathf.Max(
+                1.8f,
+                Mathf.Abs(counterBounds.center[axis] - post.position[axis])
+                    + counterBounds.extents[axis]
+                    + .8f
+            );
+            Vector3 customer = post.position;
+            customer[axis] += direction * distance;
+            return customer;
+        }
+
         /// <summary>다가오지 않는 동안(기다림·쉬기) <see cref="Passerby"/>가 매 프레임 부른다.</summary>
         internal void Live(Vector3 playerPosition)
         {
@@ -384,6 +437,14 @@ namespace A305.Npc
             }
             double now = GameClock.Shared.Minutes;
             life.Advance(now);
+            if (keepsOwnPost)
+            {
+                // 카운터는 상주 직원이 맡으므로 가게 안 자기 자리에 서 있고, 사물을 둘러보러 카운터 뒤로 가지 않는다.
+                Pose post = body.HomePose;
+                GoTo(post.position, post.rotation);
+                return;
+            }
+
             if (StaysAtServicePost)
             {
                 if (ServesCounter(playerPosition))

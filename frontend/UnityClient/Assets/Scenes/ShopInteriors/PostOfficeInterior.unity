@@ -119,6 +119,55 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &85612689
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 85612690}
+  - component: {fileID: 85612691}
+  m_Layer: 0
+  m_Name: RestSeat1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &85612690
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 85612689}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1615895090}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &85612691
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 85612689}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da5854d325786e041b5d76fbefb5e653, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Mission::A305.Mission.RestSeat
+  player: {fileID: 1341410001}
+  dialogue: {fileID: 1936262522}
+  offerView: {fileID: 1021755339}
+  cushionTopMeters: 0.35
+  frontEdgeMeters: 0.25
 --- !u!1001 &125421571
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2386,6 +2435,7 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 1.7500001, z: -3.900001}
     m_Extent: {x: 3.800001, y: 1.6500001, z: 3.8000007}
+  keepsOwnPost: 0
 --- !u!114 &1379569334 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
@@ -2518,6 +2568,9 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 2947347440735022580, guid: 6a2d59dcabf9e964bb305a8c9d49eaa9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 85612690}
     - targetCorrespondingSourceObject: {fileID: 2807931666474440654, guid: 6a2d59dcabf9e964bb305a8c9d49eaa9, type: 3}
       insertIndex: -1
       addedObject: {fileID: 738274102}
@@ -2554,6 +2607,11 @@ Transform:
 --- !u!4 &1615895089 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2807931666474440654, guid: 6a2d59dcabf9e964bb305a8c9d49eaa9, type: 3}
+  m_PrefabInstance: {fileID: 1615895086}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1615895090 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2947347440735022580, guid: 6a2d59dcabf9e964bb305a8c9d49eaa9, type: 3}
   m_PrefabInstance: {fileID: 1615895086}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &1628661777
@@ -3347,15 +3405,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.2703888
+      value: 2.4500005
       objectReference: {fileID: 0}
     - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.05000002
+      value: 0.05
       objectReference: {fileID: 0}
     - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -3.9456728
+      value: -3.550001
       objectReference: {fileID: 0}
     - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_LocalRotation.w
@@ -3367,7 +3425,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.00000025288108
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_LocalRotation.z
@@ -3454,6 +3512,7 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 1.7500001, z: -3.900001}
     m_Extent: {x: 3.800001, y: 1.6500001, z: 3.8000007}
+  keepsOwnPost: 1
 --- !u!114 &2085085483 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}

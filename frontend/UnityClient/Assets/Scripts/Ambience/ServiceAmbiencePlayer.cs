@@ -28,7 +28,9 @@ namespace A305.Ambience
         private bool wasPassenger;
         private float refreshAt;
         private float bellAfter;
-        private bool Talking => dialogue != null && dialogue.IsTalking;
+
+        // 대화 중이거나, 튜토리얼처럼 대화 뒤에도 낮춰 두라고 하면 장소 소리를 대화 중 크기로 둔다.
+        private bool Quiet => (dialogue != null && dialogue.IsTalking) || AmbienceQuiet.IsHeld;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void StartServiceAudio()
@@ -131,7 +133,8 @@ namespace A305.Ambience
             wasPassenger = passenger;
             if (next != bed)
                 ChangePlace(next);
-            float gain = AmbiencePlan.Volume(NormalVolume, Talking);
+            float gain =
+                AmbiencePlan.Volume(NormalVolume, Quiet) * BackgroundSoundPreference.Volume;
             bool muted = !BackgroundSoundPreference.Enabled;
             for (int index = 0; index < loops.Length; index++)
             {
@@ -141,7 +144,7 @@ namespace A305.Ambience
                 source.volume = Mathf.MoveTowards(
                     source.volume,
                     target,
-                    Time.unscaledDeltaTime * (Talking ? 2.4f : .8f)
+                    Time.unscaledDeltaTime * (Quiet ? 2.4f : .8f)
                 );
                 if (target == 0 && source.volume == 0 && source.isPlaying)
                     source.Stop();
@@ -185,7 +188,9 @@ namespace A305.Ambience
             if (clip == null)
                 return;
             AudioSource source = effect == AmbienceEffect.TaxiDoorClose ? taxiDoor : effects;
-            source.volume = AmbiencePlan.EffectVolume(effect, NormalVolume, Talking);
+            source.volume =
+                AmbiencePlan.EffectVolume(effect, NormalVolume, Quiet)
+                * BackgroundSoundPreference.Volume;
             source.PlayOneShot(clip);
         }
 

@@ -21,6 +21,8 @@
 | `HoverTooltipState` | 가리킨 사물과 표시 가능 여부로 툴팁에 보여 줄 사물을 정하고, 클릭으로 고정한 카드를 유지합니다. Unity 객체 없이 테스트합니다. |
 | `ObjectHoverRules` | 호버 카드를 띄워도 되는 상황인지(터치 기기가 아님, 포인터가 UI 위가 아님, 멈춤, 이동 잠김 아님, 거리 안) 정합니다. Unity 객체 없이 테스트합니다. |
 | `PointerClick` | 누른 자리와 뗀 자리로 사물 클릭인지 정합니다. 8px보다 많이 끌면 시점 회전으로 봅니다. |
+| `PointerChanges` | 이번 프레임에 누르거나 뗀 포인터를 모읍니다. 휴대폰은 처음 닿은 손가락만이 아니라 손가락마다 따로 알려 주어 엄지로 조이스틱을 잡은 채 탭한 것도 받고, 화면이 잠깐 멈춰 한 프레임 안에 누르고 뗀 것은 누름 다음 뗌으로 알려 줍니다. 매 프레임 읽어야 합니다. 시험은 Input System 시험 장치(`InputTestFixture`)로 누르고 뗍니다. |
+| `PointerClicks` | 포인터(마우스·펜 또는 손가락 하나)마다 누른 자리를 따로 기억해 클릭·탭인지 정합니다. 클릭을 막는 UI 위에서 누른 것은 기억하지 않습니다. 사물 카드와 NPC 클릭·탭(`A305.Npc.NpcClickTalk`)이 같이 씁니다. Unity 객체 없이 테스트합니다. |
 | `ObjectWordTable` | 사물 키로 영어 표현을 찾습니다. |
 | `ObjectWordCatalog`, `ObjectWordDetails` | 공용 단어 키로 뜻·영문 예문·해석·발음 파일 키를 조회하고 누락·중복 키를 거부합니다. |
 | `ObjectWordDefinition` | Inspector에서 편집하는 공용 단어 원본입니다. 여러 프리팹이 같은 에셋을 참조합니다. |
@@ -48,7 +50,7 @@
 | --- | --- |
 | `A305.Player` | `PlayerMover.IsMoving`, `IsMovementLocked`, 플레이어 위치 |
 | `A305.Api` | 서버 단어 카드·저장·숨김 요청(`ApiClient`)과 서버 주소(`ApiSettings`) |
-| Unity Input System | `UI/Point` 포인터 위치, 클릭·탭(`Pointer.current.press`), 고정을 푸는 Esc |
+| Unity Input System | `UI/Point` 포인터 위치, 클릭·탭(`PointerChanges`가 가장 최근에 쓴 포인터 장치의 버튼이나 손가락마다 읽음), 고정을 푸는 Esc |
 | uGUI, TextMeshPro | 툴팁 화면과 한국어 글자. 글꼴은 [Unity 개발 규약의 UI 글자와 글꼴](../../../../../docs/unity/conventions.md#ui-글자와-글꼴)을 따릅니다. |
 
 ## 표시 규칙

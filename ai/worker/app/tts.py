@@ -98,19 +98,6 @@ class GpuSynth:
         self.failures = 0  # 연속 실패 수
         self.skip_until = 0.0  # 이 시각(clock)까지 GPU를 건너뜀
 
-    @classmethod
-    def from_settings(cls, s) -> "GpuSynth | None":
-        if not s.tts_gpu_base_url:
-            return None
-        return cls(
-            s.tts_gpu_base_url,
-            s.tts_gpu_token,
-            s.tts_gpu_timeout_s,
-            s.tts_breaker_failures,
-            s.tts_breaker_skip_s,
-            connect_timeout_s=s.tts_gpu_connect_timeout_s,
-        )
-
     def try_synth(self, phonemes: str, voice: str, speed: float) -> tuple[bytes, float] | None:
         """반환: (wav, 소리 길이 초). 건너뛰는 중이거나 실패하면 None."""
         if self.skip_until > self.clock():
@@ -128,26 +115,60 @@ class GpuSynth:
         return wav, seconds
 
     def _note_failure(self, error: Exception):
-        log.warning(json.dumps({"event": "tts_gpu_failed", "error": type(error).__name__}))
+        log.warning(json.dumps({"event": "tts_gpu_failed", "url": self.url, "error": type(error).__name__}))
         if self.breaker_failures <= 0:
             return
         self.failures += 1
         if self.failures >= self.breaker_failures:
             self.skip_until = self.clock() + self.breaker_skip_s
             self.failures = 0
-            log.warning(json.dumps({"event": "tts_gpu_skip", "skip_s": self.breaker_skip_s}))
+            log.warning(json.dumps({"event": "tts_gpu_skip", "url": self.url, "skip_s": self.breaker_skip_s}))
+
+
+class GpuSynthChain:
+    """GPU 합성 서버를 앞에서부터 부른다 (주 GPU → 예비 GPU). 모두 실패하면 None을 돌려줘 CPU 합성으로 넘긴다.
+    연속 실패 건너뛰기는 서버마다 따로 센다: 주 GPU(노트북)가 꺼져 건너뛰는 동안에도 예비 GPU는 계속 부른다."""
+
+    def __init__(self, gpus: list[GpuSynth]):
+        self.gpus = gpus
+
+    @classmethod
+    def from_settings(cls, s) -> "GpuSynthChain | None":
+        urls = [url for url in (s.tts_gpu_base_url, s.tts_gpu_backup_base_url) if url]
+        if not urls:
+            return None
+        return cls(
+            [
+                GpuSynth(
+                    url,
+                    s.tts_gpu_token,
+                    s.tts_gpu_timeout_s,
+                    s.tts_breaker_failures,
+                    s.tts_breaker_skip_s,
+                    connect_timeout_s=s.tts_gpu_connect_timeout_s,
+                )
+                for url in urls
+            ]
+        )
+
+    def try_synth(self, phonemes: str, voice: str, speed: float) -> tuple[bytes, float] | None:
+        for gpu in self.gpus:
+            made = gpu.try_synth(phonemes, voice, speed)
+            if made is not None:
+                return made
+        return None
 
 
 class Kokoro:
     """합성은 한 번에 하나 (CPU를 나눠 쓰면 둘 다 느려짐). 같은 문장(인사, 다시 듣기, 단어 발음)은 다시 만들지 않는다.
     읽는 글은 for_speech로 다듬은 것이다 (가격·시각을 말로, 별표·한글은 읽지 않음). 자막은 호출한 쪽의 원문 그대로.
     다듬은 글은 발음 사전(app.pronunciation)을 거쳐 음소로 넘긴다.
-    gpu가 있으면 그 음소를 GPU 서버에 먼저 보내고, 실패하면 CPU로 만든다 (GPU는 fp32 모델이라 CPU int8과 소리가 아주 조금 다르다)."""
+    gpu가 있으면 그 음소를 GPU 서버(주 GPU → 예비 GPU)에 먼저 보내고, 모두 실패하면 CPU로 만든다 (GPU는 fp32 모델이라 CPU int8과 소리가 아주 조금 다르다)."""
 
     CACHE_MAX = 300
     NOTHING_TO_READ_S = 0.2
 
-    def __init__(self, engine, name: str, gpu: GpuSynth | None = None):
+    def __init__(self, engine, name: str, gpu: GpuSynthChain | GpuSynth | None = None):
         self.engine = engine
         self.name = name
         self.phoneme_timing_ready = False
@@ -158,7 +179,7 @@ class Kokoro:
         self.cache: OrderedDict = OrderedDict()
 
     @classmethod
-    def load(cls, model_path: str, voices_path: str, threads: int = 0, gpu: GpuSynth | None = None) -> "Kokoro | None":
+    def load(cls, model_path: str, voices_path: str, threads: int = 0, gpu: GpuSynthChain | GpuSynth | None = None) -> "Kokoro | None":
         if not model_path or not Path(model_path).exists() or not Path(voices_path or "").exists():
             return None
         try:

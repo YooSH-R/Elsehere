@@ -309,6 +309,7 @@ namespace A305.EditorTools.Theme
                 if (
                     System.Array.IndexOf(AppNames, child.name) < 0
                     && child.name != "NeighborsButton"
+                    && child.name != "SettingsButton"
                 )
                     Object.DestroyImmediate(child.gameObject);
             }

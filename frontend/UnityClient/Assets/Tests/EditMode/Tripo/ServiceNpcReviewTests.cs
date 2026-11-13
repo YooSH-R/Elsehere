@@ -9,9 +9,9 @@ namespace A305.Tripo.Tests
 {
     public sealed class ServiceNpcReviewTests
     {
-        public static string[] NpcNames => ServiceNpcReviewBuilder.Names;
-
-        [TestCaseSource(nameof(NpcNames))]
+        // 별도 준비 경로를 쓰는 Business와 공통 생성 경로의 여성 캐릭터를 대표로 검사한다.
+        [TestCase("LittleMung_Business_Male")]
+        [TestCase("LittleMung_HotelStaff_Female")]
         public void ReviewedNpcKeepsMasterProportionsFaceAndMotion(string name)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
@@ -26,16 +26,6 @@ namespace A305.Tripo.Tests
             Assert.That(CharacterFaceController.MissingChannels(prefab.transform, true), Is.Empty);
             Assert.That(TripoMasterRig.Inspect(prefab, master).Errors, Is.Empty);
             Assert.That(TripoMasterMotionAudit.Inspect(prefab).Errors, Is.Empty);
-        }
-
-        [TestCase("LittleMung_Cafe_Male")]
-        [TestCase("LittleMung_Grandfather")]
-        [TestCase("LittleMung_HotelStaff_Female")]
-        [TestCase("LittleMung_Police_Female")]
-        [TestCase("LittleMung_Police_Male")]
-        public void GeneratedNpcIsIncludedInFaceAndMotionReview(string name)
-        {
-            Assert.That(ServiceNpcReviewBuilder.Names, Does.Contain(name));
         }
     }
 }

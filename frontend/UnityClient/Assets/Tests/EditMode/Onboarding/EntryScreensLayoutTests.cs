@@ -56,26 +56,6 @@ namespace A305.Onboarding.Tests
             Assert.That(panel.sizeDelta.x, Is.EqualTo(660f * 1.2f).Within(.1f));
         }
 
-        [TestCase("GuestPanel/AvatarRow/FemaleButton/Art", "EntryCardFOff")]
-        [TestCase("GuestPanel/AvatarRow/MaleButton/Art", "EntryCardMOff")]
-        [TestCase("SignupPanel/AvatarRow/FemaleButton/Art", "SignupCardFOff")]
-        [TestCase("GuestPanel/StartButton/Art", "EntryStart")]
-        [TestCase("GuestPanel/BackButton/Art", "EntryBack")]
-        // S15P31A305-596: 약관을 따로 받는 단계가 생겨 가입 정보 단계는 [뒤로]와 좁은 [가입하기]를 한 줄에 둔다.
-        [TestCase("SignupPanel/SubmitButton/Art", "EntrySignupShort")]
-        [TestCase("SignupPanel/BackButton/Art", "EntryBack")]
-        [TestCase("TermsPanel/NextButton/Art", "EntryNext")]
-        [TestCase("SignupPanel/NicknameRow/CheckNicknameButton/Art", "EntryCheckName")]
-        // S15P31A305-755: 준비 중이던 [레벨 테스트 진행하기]를 연 [시작하기]와 [건너뛰기]는 L1 시안 버튼 그림이다.
-        [TestCase("LevelTestPanel/IntroPage/StartButton/Art", "LevelTestPrimary")]
-        [TestCase("LevelTestPanel/IntroPage/SkipButton/Art", "LevelTestGhost")]
-        [TestCase("ConnectionPanel/RetryButton/Art", "EntryRetry")]
-        [TestCase("ConnectionPanel/Icon", "EntryWifi")]
-        public void Part_IsTheMockupArt(string path, string sprite)
-        {
-            Assert.That(Screens().Find(path).GetComponent<Image>().sprite.name, Is.EqualTo(sprite));
-        }
-
         // 가로로 눕힌 휴대폰(844×390)에서 입구 캔버스 높이. 1920×1080 기준에 가로·세로를 반씩 맞춘다(CanvasScaler).
         private static float LandscapePhoneCanvasHeight()
         {

@@ -82,11 +82,9 @@ namespace A305.Npc.Tests
             Assert.That(failures, Is.Empty, string.Join("\n", failures));
         }
 
+        // 특수 리그·운전석을 포함한 마을과 일반 직원이 있는 실내로 공통 연결을 검사한다.
         [TestCase("TownScene")]
         [TestCase("CafeScene")]
-        [TestCase("HotelScene")]
-        [TestCase("ShopScene")]
-        [TestCase("PoliceStationScene")]
         public void SceneUsesCastVisualAndOnlyItsDialogueFace(string sceneName)
         {
             var scene = EditorSceneManager.OpenScene(

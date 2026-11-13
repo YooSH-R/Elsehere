@@ -54,7 +54,7 @@ namespace A305.Learning.Tests
             Assert.That(briefing, Does.Not.Contain("이번에 써 볼 표현"));
         }
 
-        // [다시 연습] 상황은 대화 위 카드 대신 왼쪽 위 퀘스트 카드에 보인다. 전달할 정보는 목표 줄이 된다.
+        // [다시 연습] 상황은 대화 위 카드 대신 왼쪽 위 퀘스트 카드에 시연 카드처럼 목표 한 줄로 보이고, 전달할 정보는 그 아래 작은 글자다.
         [Test]
         public void RetryQuestCardShowsTheSituationAndDetailsAsGoals()
         {
@@ -74,7 +74,8 @@ namespace A305.Learning.Tests
             Assert.That(plan.Title, Is.EqualTo("분실 가방 찾기"));
             Assert.That(plan.Description, Is.EqualTo("카페에 두고 간 가방을 찾아요."));
             Assert.That(plan.Goals, Has.Length.EqualTo(1));
-            Assert.That(plan.Goals[0].Title, Is.EqualTo("파란색 숄더백"));
+            Assert.That(plan.Goals[0].Title, Is.EqualTo("카페에 두고 간 가방을 찾아요."));
+            Assert.That(plan.Goals[0].Hint, Is.EqualTo("파란색 숄더백"));
         }
 
         [Test]

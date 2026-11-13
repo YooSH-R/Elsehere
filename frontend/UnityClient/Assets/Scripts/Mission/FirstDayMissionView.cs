@@ -510,16 +510,23 @@ namespace A305.Mission
         private void FillPracticeCard(PracticeVisitPlan plan, IReadOnlyList<bool> done)
         {
             bool Done(int goal) => goal < done.Count && done[goal];
+            // [다시 연습]은 시연 카드처럼 칩·제목 한 줄과 목표 줄만 두고, 긴 설명은 목표 줄로 옮긴다.
+            bool review = plan.IsReview;
             direction.text = plan.Description;
-            direction.gameObject.SetActive(true);
+            direction.gameObject.SetActive(!review);
             situation.gameObject.SetActive(false);
-            stepChip.transform.parent.gameObject.SetActive(false);
+            stepChip.text = "다시 연습";
+            stepChip.transform.parent.gameObject.SetActive(review);
             if (practiceChip != null)
-                practiceChip.SetActive(!plan.IsReview);
-            place.text = PracticeName(plan);
+                practiceChip.SetActive(!review);
+            place.text = review ? plan.Title : PracticeName(plan);
             ShowProgress(
-                plan.Goals.Select((goal, i) => Done(i) ? practiceDoneMark : upcomingMark).ToArray(),
-                fill: true
+                review
+                    ? new[] { currentMark }
+                    : plan
+                        .Goals.Select((goal, i) => Done(i) ? practiceDoneMark : upcomingMark)
+                        .ToArray(),
+                fill: !review
             );
             ShowGoals(
                 plan.Goals.Select(

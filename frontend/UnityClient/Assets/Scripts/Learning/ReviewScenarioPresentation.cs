@@ -27,19 +27,30 @@ namespace A305.Learning
             return text.ToString();
         }
 
-        /// <summary>[다시 연습] 동안 왼쪽 위 퀘스트 카드에 보일 지난 상황. 장소 · 제목, 상황 설명, 전달할 정보(목표 줄)다.</summary>
-        public static PracticeVisitPlan QuestCard(ReviewCard card) =>
-            new PracticeVisitPlan
+        /// <summary>
+        /// [다시 연습] 동안 왼쪽 위 퀘스트 카드에 보일 지난 상황. 시연 카드처럼 제목 아래 목표 한 줄(상황)과
+        /// 그 아래 작은 글자로 전달할 정보를 둔다.
+        /// </summary>
+        public static PracticeVisitPlan QuestCard(ReviewCard card)
+        {
+            string situation = card?.Scenario?.Situation ?? card?.SituationSummary;
+            string notes = string.Join(
+                " · ",
+                (card?.Scenario?.LearnerNotes ?? new List<string>()).Where(note =>
+                    !string.IsNullOrWhiteSpace(note)
+                )
+            );
+            return new PracticeVisitPlan
             {
                 IsReview = true,
                 PlaceName = BuildingName(card),
                 Title = Title(card),
-                Description = card?.Scenario?.Situation ?? card?.SituationSummary,
-                Goals = (card?.Scenario?.LearnerNotes ?? new List<string>())
-                    .Where(note => !string.IsNullOrWhiteSpace(note))
-                    .Select(note => new PracticeVisitGoal(note, null))
-                    .ToArray(),
+                Description = situation,
+                Goals = string.IsNullOrWhiteSpace(situation)
+                    ? new PracticeVisitGoal[0]
+                    : new[] { new PracticeVisitGoal(situation, notes.Length > 0 ? notes : null) },
             };
+        }
 
         public static string BuildingName(ReviewCard card)
         {

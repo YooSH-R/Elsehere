@@ -43,10 +43,16 @@ namespace A305.Dialogue.PlayModeTests
         private Transform Card => instance.transform.Find("Panel/UserTranslation");
         private TMP_Text Heading => Card.Find("Heading").GetComponent<TMP_Text>();
         private TMP_Text Expression =>
-            Card.Find("Viewport/Body/Expression").GetComponent<TMP_Text>();
-        private Button ListenButton => Card.Find("ListenButton").GetComponent<Button>();
+            Card.Find("Viewport/Body/ExpressionRow/Expression").GetComponent<TMP_Text>();
+
+        // 고친 문장·영어 번역 옆 스피커. 머리줄 [듣기] 대신 문장마다 붙는다(S15P31A305-895).
+        private Button ExpressionSpeaker =>
+            Card.Find("Viewport/Body/ExpressionRow/SpeakButton").GetComponent<Button>();
         private Button OthersButton => Card.Find("OthersButton").GetComponent<Button>();
         private string OthersLabel => OthersButton.GetComponentInChildren<TMP_Text>(true).text;
+
+        // 다른 표현 버튼의 꺾쇠. 접혀 있으면 오른쪽(›), 펼치면 아래(⌄)를 가리킨다.
+        private float ChevronAngle => OthersButton.transform.Find("Chevron").localEulerAngles.z;
 
         // 펼친 다른 표현 줄(번호 칸). 접혀 있으면 없다.
         private Transform[] OtherRows =>
@@ -68,11 +74,8 @@ namespace A305.Dialogue.PlayModeTests
                 .GetComponentInChildren<TMP_Text>(true);
             Assert.That(Expression.fontSize, Is.LessThanOrEqualTo(lines.fontSize));
             Assert.That(lines.text, Does.Contain("카페 어디야?"));
-            Assert.That(ListenButton.gameObject.activeSelf, Is.True);
-            Assert.That(
-                ListenButton.GetComponentInChildren<TMP_Text>(true).text,
-                Is.EqualTo("듣기")
-            );
+            Assert.That(Card.Find("ListenButton"), Is.Null);
+            Assert.That(ExpressionSpeaker.gameObject.activeInHierarchy, Is.True);
             // 다른 표현이 없으면 [더 보기]도 없다.
             Assert.That(OthersButton.gameObject.activeSelf, Is.False);
             var panel = (RectTransform)Card.parent;
@@ -109,18 +112,103 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(Heading.text, Is.EqualTo("영어로는 이렇게 말해요"));
         }
 
+        // 카드의 영어 문장마다 옆 스피커로 그 문장만 기기 음성으로 듣는다. 보내지는 않는다(S15P31A305-895).
         [UnityTest]
-        public IEnumerator Listen_ReadsOnlyTheCurrentExpressionWithoutSendingIt()
+        public IEnumerator Speakers_ReadTheirOwnSentenceWithoutSendingIt()
         {
-            string spoken = null;
+            var spoken = new List<string>();
             int sends = 0;
-            view.UserTranslationListenRequested += text => spoken = text;
+            view.ExpressionListenRequested += spoken.Add;
             view.SendRequested += text => sends++;
-            view.Show(new Content { UserTranslation = "Where is the cafe?" });
+            view.Show(
+                new Content
+                {
+                    UserTranslation = "Where is the cafe?",
+                    UserBetterExpressions = new[]
+                    {
+                        "How do I get to the cafe?",
+                        "Could you tell me where the cafe is?",
+                    },
+                }
+            );
             yield return null;
-            ListenButton.onClick.Invoke();
-            Assert.That(spoken, Is.EqualTo("Where is the cafe?"));
+            ExpressionSpeaker.onClick.Invoke();
+            OthersButton.onClick.Invoke();
+            yield return null;
+            Transform[] rows = OtherRows;
+            Assert.That(rows.All(row => row.Find("SpeakButton").gameObject.activeSelf), Is.True);
+            rows[1].Find("SpeakButton").GetComponent<Button>().onClick.Invoke();
+
+            Assert.That(
+                spoken,
+                Is.EqualTo(new[] { "Where is the cafe?", "Could you tell me where the cafe is?" })
+            );
             Assert.That(sends, Is.Zero);
+        }
+
+        // '잘 말했어요'는 머리줄 높이만큼만 차지해 빈 공간이 없고, 대사 칸 위쪽에 붙는다.
+        // 펼쳐도 대화창과 카드 위쪽은 그대로이고 아래로만 늘어난다(S15P31A305-895).
+        [UnityTest]
+        public IEnumerator WellSaidCard_FitsItsHeader_AndOpensDownwardWithoutMovingTheDialogue()
+        {
+            view.Show(
+                new Content
+                {
+                    UserLine = "Sorry.",
+                    UserBetterExpressions = new[] { "I apologize.", "Sorry about that." },
+                }
+            );
+            yield return null;
+            yield return null;
+            var panel = (RectTransform)Card.parent;
+            Rect folded = InPanel((RectTransform)Card, panel);
+            Rect history = InPanel(
+                (RectTransform)instance.transform.Find("Panel/Conversation/History"),
+                panel
+            );
+            float nameBottom = InPanel((RectTransform)panel.Find("Title"), panel).yMin;
+            Assert.That(folded.height, Is.LessThanOrEqualTo(110));
+            Assert.That(folded.yMax, Is.EqualTo(history.yMax).Within(1));
+            Assert.That(ChevronAngle, Is.EqualTo(0).Within(.5f));
+
+            OthersButton.onClick.Invoke();
+            yield return null;
+            yield return null;
+            Rect open = InPanel((RectTransform)Card, panel);
+            Assert.That(open.yMax, Is.EqualTo(folded.yMax).Within(1));
+            Assert.That(open.yMin, Is.LessThan(folded.yMin - 40));
+            Assert.That(
+                InPanel((RectTransform)panel.Find("Title"), panel).yMin,
+                Is.EqualTo(nameBottom).Within(1)
+            );
+            Assert.That(ChevronAngle, Is.EqualTo(270).Within(.5f));
+            var scroll = Card.GetComponent<ScrollRect>();
+            Assert.That(
+                scroll.content.rect.height,
+                Is.LessThanOrEqualTo(scroll.viewport.rect.height + .5f)
+            );
+        }
+
+        // 무례한 말에는 같은 기분을 공손하게 말하는 다른 표현을 '무례하지 않게 말하면' 아래 보인다.
+        [UnityTest]
+        public IEnumerator RudeLine_ShowsPoliteWaysUnderTheirOwnHeading()
+        {
+            view.Show(
+                new Content
+                {
+                    UserLine = "뭘봐 못생긴게",
+                    UserTranslation = "What are you looking at, you ugly thing?",
+                    UserBetterExpressions = new[] { "Why are you staring at me?" },
+                    UserTurnRude = true,
+                }
+            );
+            yield return null;
+            OthersButton.onClick.Invoke();
+            yield return null;
+            Assert.That(
+                Card.Find("Viewport/Body/OthersHeading").GetComponent<TMP_Text>().text,
+                Is.EqualTo("무례하지 않게 말하면")
+            );
         }
 
         [UnityTest]
@@ -250,8 +338,7 @@ namespace A305.Dialogue.PlayModeTests
             var panel = (RectTransform)Card.parent;
             Assert.That(Card.gameObject.activeInHierarchy, Is.True);
             Assert.That(Heading.text, Is.EqualTo("잘 말했어요"));
-            Assert.That(Expression.gameObject.activeSelf, Is.False);
-            Assert.That(ListenButton.gameObject.activeSelf, Is.False);
+            Assert.That(Expression.transform.parent.gameObject.activeSelf, Is.False);
             Assert.That(OthersButton.gameObject.activeSelf, Is.True);
             Assert.That(OthersLabel, Is.EqualTo("다른 표현 3개"));
             Assert.That(OtherRows, Is.Empty);
@@ -313,8 +400,8 @@ namespace A305.Dialogue.PlayModeTests
             view.Show(content);
             yield return null;
             Assert.That(Heading.text, Is.EqualTo("이렇게 말하면 자연스러워요"));
-            Assert.That(Expression.gameObject.activeSelf, Is.True);
-            Assert.That(ListenButton.gameObject.activeSelf, Is.True);
+            Assert.That(Expression.transform.parent.gameObject.activeSelf, Is.True);
+            Assert.That(ExpressionSpeaker.gameObject.activeSelf, Is.True);
             Assert.That(OthersLabel, Is.EqualTo("다른 표현 1개"));
 
             OthersButton.onClick.Invoke();
@@ -475,6 +562,7 @@ namespace A305.Dialogue.PlayModeTests
             public string UserTranslation { get; set; }
             public string UserLine { get; set; } = "카페 어디야?";
             public IReadOnlyList<string> UserBetterExpressions { get; set; }
+            public bool UserTurnRude { get; set; }
             public IReadOnlyList<DialogueLine> Conversation { get; set; }
             public IReadOnlyList<DialogueLine> Lines =>
                 Conversation ?? new[] { DialogueLine.FromUser(UserLine), Npc };

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,20 +11,17 @@ namespace A305.Dialogue
         private Button expressionExpandButton;
         private GameObject expressionOverlay;
 
-        private void ApplyExpressionHeader(bool hasExpression, bool hasOthers)
+        // 머리줄 오른쪽에 확대 버튼과 [다른 표현 N개 ›]·[접기 ⌄]를 둔다. 듣기는 문장마다 옆 스피커로 한다.
+        private void ApplyExpressionHeader(bool hasOthers)
         {
             othersDivider.gameObject.SetActive(false);
             float right = 78;
             if (hasOthers)
             {
-                float width = othersOpen ? 86 : 150;
+                float width = othersOpen ? 110 : 172;
                 PlaceHeaderButton(othersButton, right, width);
+                PlaceChevron(othersButton);
                 right += width + 12;
-            }
-            if (hasExpression)
-            {
-                PlaceHeaderButton(translationListenButton, right, 72);
-                right += 84;
             }
             SetExpressionHeader(translationCard, right + 16);
             if (expressionExpandButton != null)
@@ -47,6 +45,21 @@ namespace A305.Dialogue
                 label.fontSize = 18;
                 label.enableAutoSizing = false;
             }
+        }
+
+        // 글자는 왼쪽에, 꺾쇠는 버튼 오른쪽 끝에 둬 글자와 겹치지 않게 한다.
+        private static void PlaceChevron(Button button)
+        {
+            var label = button.GetComponentInChildren<TMP_Text>(true).rectTransform;
+            label.anchorMin = Vector2.zero;
+            label.anchorMax = Vector2.one;
+            label.offsetMin = new Vector2(14, 0);
+            label.offsetMax = new Vector2(-34, 0);
+            var chevron = (RectTransform)button.transform.Find("Chevron");
+            chevron.anchorMin = chevron.anchorMax = new Vector2(1, .5f);
+            chevron.pivot = new Vector2(.5f, .5f);
+            chevron.anchoredPosition = new Vector2(-24, 0);
+            chevron.sizeDelta = new Vector2(16, 16);
         }
 
         private static void SetExpressionHeader(RectTransform card, float right)
@@ -114,12 +127,12 @@ namespace A305.Dialogue
             var heading = window.Find("Heading").GetComponent<TMP_Text>();
             heading.enableAutoSizing = false;
             heading.fontSize = 28;
-            var listen = window.Find("ListenButton").GetComponent<Button>();
-            listen.onClick = new Button.ButtonClickedEvent();
-            listen.onClick.AddListener(() =>
-                UserTranslationListenRequested?.Invoke(content.UserTranslation)
-            );
-            PlaceHeaderButton(listen, 78, 72);
+            // 복제한 버튼에는 화면이 코드로 단 연결이 따라오지 않으므로 스피커를 다시 잇는다.
+            var speak = window
+                .Find("Viewport/Body/ExpressionRow/SpeakButton")
+                .GetComponent<Button>();
+            speak.onClick = new Button.ButtonClickedEvent();
+            speak.onClick.AddListener(() => ListenTo(content?.UserTranslation));
             var close = window.Find("ExpandButton").GetComponent<Button>();
             close.onClick = new Button.ButtonClickedEvent();
             close.onClick.AddListener(CloseExpressionWindow);
@@ -142,15 +155,11 @@ namespace A305.Dialogue
                 if (child.name.StartsWith("Other "))
                     child.gameObject.SetActive(false);
             body.Find("OthersHeading").gameObject.SetActive(OtherExpressions != null);
-            if (OtherExpressions != null)
-                for (int i = 0; i < OtherExpressions.Count; i++)
-                {
-                    var row = Instantiate(otherRowTemplate, body);
-                    row.gameObject.SetActive(true);
-                    row.Find("Number/Label").GetComponent<TMP_Text>().text = (i + 1).ToString();
-                    row.Find("Text").GetComponent<TMP_Text>().text =
-                        $"<noparse>{OtherExpressions[i]}</noparse>";
-                }
+            ShowOtherRows(
+                body,
+                new List<RectTransform>(),
+                OtherExpressions ?? (IReadOnlyList<string>)System.Array.Empty<string>()
+            );
             var scroll = window.GetComponent<ScrollRect>();
             scroll.content = body;
             body.anchoredPosition = Vector2.zero;

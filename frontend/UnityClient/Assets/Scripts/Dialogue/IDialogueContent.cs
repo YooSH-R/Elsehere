@@ -18,6 +18,9 @@ namespace A305.Dialogue
         /// 카드 아래 [다른 표현 N개 더 보기]에 접어 둔다. 서버 대화만 주며, 없으면 null이다.
         /// </summary>
         IReadOnlyList<string> UserBetterExpressions => null;
+
+        /// <summary>방금 전달한 학습자 말을 서버가 무례로 셌는지. 그러면 다른 표현은 공손하게 바꾼 말이라 제목을 바꿔 보인다.</summary>
+        bool UserTurnRude => false;
         IReadOnlyList<DialogueLine> Lines { get; }
 
         /// <summary>가장 최근 NPC 대사. [뜻 보기]·[표현 저장]이 쓴다.</summary>

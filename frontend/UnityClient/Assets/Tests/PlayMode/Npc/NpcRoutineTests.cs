@@ -161,7 +161,8 @@ namespace A305.Npc.PlayModeTests
                 .Teleport(new Vector3(0, .12f, -2f), Quaternion.identity);
             NpcRoutine ray = Routine("FIRE_CAPTAIN");
             NpcRoutine rosa = Routine("DINER_STAFF");
-            Bounds counterBounds = SolidBounds(NearestPlaced("counter", rosa.transform));
+            // 주문대의 상판(Worktop)도 "counter"지만 단어 표시 영역만 있어, 충돌체가 있는 주문대 전체로 잰다.
+            Bounds counterBounds = SolidBounds(GameObject.Find("OrderCounter").transform);
             Vector3 startingPosition = ray.transform.position;
             yield return new WaitForSeconds(30);
 

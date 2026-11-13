@@ -2,6 +2,7 @@ package com.elsehere.dialogue.service;
 
 import com.elsehere.ai.client.WorkerState;
 import com.elsehere.review.dto.ReviewCardResponse;
+import com.elsehere.review.dto.ReviewTarget;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ class ReviewDialogue {
         List.of(new WorkerState.Intent("chat", "Respond within the saved situation.")));
   }
 
+  // 워커는 NPC 지시문을 3,000자까지 받는다. 해석·설명·예문은 화면에만 쓰므로 NPC에게는 연습할 영어 표현만 보낸다.
   String instruction(ReviewCardResponse card) {
     String data =
         jsonMapper.writeValueAsString(
@@ -29,7 +31,7 @@ class ReviewDialogue {
                 "situation",
                 card.scenario() == null ? card.situationSummary() : card.scenario(),
                 "expressions",
-                card.targets()));
+                card.targets().stream().map(ReviewTarget::expression).toList()));
     return "This is a practice role-play of a previous situation, starting over from the beginning. "
         + "Stay in your own NPC role and personality. Let the learner make the request and do the speaking; "
         + "ask at most one short in-role question. Never say the learner's target expressions for them. "

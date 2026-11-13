@@ -46,6 +46,27 @@ class TownStoryServiceTest {
         .doesNotContain("I'm looking for an ATM");
   }
 
+  // 남은 목표(돈 찾기)는 학습자가 꺼낼 말이라 묻거나 유도하지 않고, 꺼낸 요청을 마치는 데 필요한 정보만 묻는다 (S15P31A305-879)
+  @Test
+  void storyNpcDoesNotLeadTheLearnerToRemainingGoals() {
+    TownStory story = TownStory.start(8L);
+    story.accept(0, "DINER_STAFF", List.of("order_breakfast", "explain_spill"));
+    story.accept(1, "LAUNDROMAT_STAFF", List.of("ask_laundry", "ask_cost"));
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+
+    String reply =
+        service
+            .context(8L, "BANK_STAFF")
+            .orElseThrow()
+            .replyInstruction(new JudgeResult.Intent("ask_atm", List.of("ask_atm"), null));
+
+    assertThat(reply)
+        .contains("Do not ask a question that leads the learner toward a remaining objective")
+        .contains("Do not ask about, hint at or offer a remaining objective")
+        .contains("cannot finish the request the learner just made without that detail")
+        .doesNotContain("Required details for those objectives");
+  }
+
   @Test
   void bakeryCardAndIntentRequireItemQuantityAndRecipient() {
     TownStory story = TownStory.start(8L);

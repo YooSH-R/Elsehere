@@ -189,6 +189,24 @@ class PlacePracticeServiceTest {
     assertThat(reply.length()).isLessThanOrEqualTo(3000);
   }
 
+  // 남은 목표는 학습자가 직접 꺼낼 말이다. "요금도 알려 드릴까요?"처럼 묻거나 권하면 학습자가 말할 기회가 사라진다 (S15P31A305-879)
+  @ParameterizedTest
+  @EnumSource(PracticeScenario.class)
+  @DisplayName("직원 지시는 첫 인사부터 남은 목표를 묻거나 유도하지 않게 하고, 남은 목표를 물어볼 정보로 넘기지 않는다")
+  void instructions_doNotLeadTheLearnerToRemainingGoals(PracticeScenario scenario) {
+    QuestTalk context = practice.context(scenario, List.of());
+
+    String reply = context.replyInstruction(recognized(scenario.goals().get(0).id()));
+
+    assertThat(context.instruction())
+        .contains("Do not ask a question that leads the learner toward a remaining objective");
+    assertThat(reply)
+        .contains("Do not ask a question that leads the learner toward a remaining objective")
+        .contains("Do not ask about, hint at or offer a remaining objective")
+        .doesNotContain("Required details for those objectives");
+    assertThat(reply.length()).isLessThanOrEqualTo(3000);
+  }
+
   @Test
   @DisplayName("다른 사용자의 대화, 다른 상황의 대화, 없는 상황의 진행은 NOT_FOUND다")
   void progress_ofSomeoneElsesOrAnotherScenarioIsNotFound() {

@@ -317,6 +317,26 @@ class FirstDayMissionServiceTest {
         .doesNotContain("Ask about one of these objectives");
   }
 
+  // 남은 목표(짐 맡기기·카페 묻기)는 학습자가 꺼낼 말이라 직원이 묻거나 유도하지 않는다 (S15P31A305-879)
+  @Test
+  void firstDayNpcDoesNotLeadTheLearnerToRemainingGoals() {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.EARLY_ARRIVAL)));
+
+    String reply =
+        service
+            .context(8L, "HOTEL_STAFF")
+            .orElseThrow()
+            .replyInstruction(
+                new JudgeResult.Intent(
+                    "confirm_reservation", List.of("confirm_reservation"), null));
+
+    assertThat(reply)
+        .contains("Remaining objectives after this turn: store_suitcase,ask_cafe.")
+        .contains("Do not ask a question that leads the learner toward a remaining objective")
+        .contains("Do not ask about, hint at or offer a remaining objective")
+        .doesNotContain("Required details for those objectives");
+  }
+
   @Test
   void pendingQuestionExcludesStoredAndJustRecognizedGoals() {
     FirstDayMission mission = missionAt(FirstDayStage.EARLY_ARRIVAL);

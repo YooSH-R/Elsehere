@@ -493,6 +493,52 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(Card.gameObject.activeInHierarchy, Is.True);
         }
 
+        // 확대창은 내용 높이만큼만 차지해 문장 아래에 빈 공간이 남지 않는다. 화면 가운데에 둔다(S15P31A305-903).
+        // 확대창의 문장도 옆 스피커로 듣는다.
+        [UnityTest]
+        public IEnumerator ExpandedWindow_FitsItsContent_AndKeepsTheSpeakers()
+        {
+            var spoken = new List<string>();
+            view.ExpressionListenRequested += spoken.Add;
+            view.Show(
+                new Content
+                {
+                    UserLine = "i want coffee",
+                    UserTranslation = "I want coffee.",
+                    UserBetterExpressions = new[] { "I'd like a coffee, please." },
+                }
+            );
+            yield return null;
+            Card.Find("ExpandButton").GetComponent<Button>().onClick.Invoke();
+            yield return null;
+            var window = (RectTransform)
+                instance.transform.Find("ExpressionOverlay/ExpandedExpressionCard");
+            var scroll = window.GetComponent<ScrollRect>();
+            float content = scroll.content.rect.height;
+            float room = scroll.viewport.rect.height;
+            Assert.That(
+                content,
+                Is.LessThanOrEqualTo(room + .5f),
+                "짧은 내용인데 확대창 안에서 스크롤합니다."
+            );
+            Assert.That(room - content, Is.LessThan(24), "확대창 문장 아래에 빈 공간이 남습니다.");
+            Assert.That(window.anchoredPosition, Is.EqualTo(Vector2.zero));
+
+            window
+                .Find("Viewport/Body/ExpressionRow/SpeakButton")
+                .GetComponent<Button>()
+                .onClick.Invoke();
+            Transform row = window
+                .Find("Viewport/Body")
+                .Cast<Transform>()
+                .First(child => child.name.StartsWith("Other ") && child.gameObject.activeSelf);
+            row.Find("SpeakButton").GetComponent<Button>().onClick.Invoke();
+            Assert.That(
+                spoken,
+                Is.EqualTo(new[] { "I want coffee.", "I'd like a coffee, please." })
+            );
+        }
+
         [UnityTest]
         public IEnumerator OpenCard_KeepsHeaderControlsAndDialogueAtTheTop()
         {

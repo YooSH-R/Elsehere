@@ -116,10 +116,9 @@ namespace A305.Dialogue
             window.name = "ExpandedExpressionCard";
             window.anchorMin = window.anchorMax = window.pivot = new Vector2(.5f, .5f);
             window.anchoredPosition = Vector2.zero;
-            window.sizeDelta = new Vector2(
-                Mathf.Min(1050, canvas.rect.width - 96),
-                Mathf.Min(690, canvas.rect.height - 120)
-            );
+            // 화면보다 긴 내용을 위한 최대 높이로 연 뒤, 줄을 다 채우면 내용 높이만큼 줄인다.
+            float maxHeight = Mathf.Min(690, canvas.rect.height - 120);
+            window.sizeDelta = new Vector2(Mathf.Min(1050, canvas.rect.width - 96), maxHeight);
             window.Find("OthersButton").gameObject.SetActive(false);
             window.Find("OthersDivider").gameObject.SetActive(false);
             SetExpressionHeader(window, 170);
@@ -163,6 +162,12 @@ namespace A305.Dialogue
             scroll.content = body;
             body.anchoredPosition = Vector2.zero;
             LayoutRebuilder.ForceRebuildLayoutImmediate(body);
+            // 확대창은 내용 높이만큼만 차지해 문장 아래에 빈 공간을 남기지 않는다. 길면 최대 높이에서 멈추고 안에서 스크롤한다.
+            float chrome = window.rect.height - scroll.viewport.rect.height;
+            window.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Vertical,
+                Mathf.Min(maxHeight, chrome + LayoutUtility.GetPreferredHeight(body))
+            );
             scroll.verticalNormalizedPosition = 1;
         }
 

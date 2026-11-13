@@ -144,6 +144,9 @@ public class ShowcaseQuestService {
         journeys
             .findForUpdate(userId)
             .orElseGet(() -> journeys.save(ShowcaseJourney.start(userId)));
+    if (journey.isCompleted()) {
+      journey.restart();
+    }
     journey.resume();
     return response(journey);
   }
@@ -206,6 +209,7 @@ public class ShowcaseQuestService {
       return Optional.empty();
     }
     ShowcaseJourney journey = journeys.findById(userId).orElse(null);
+    boolean showProgress = journey != null && !journey.isCompleted();
     List<QuestBoardResponse.Stop> stops = new ArrayList<>();
     for (ShowcaseStage stage : ShowcaseStage.values()) {
       int index = stage.ordinal();
@@ -222,13 +226,13 @@ public class ShowcaseQuestService {
               stage.scene(),
               stage.npcCode(),
               stage.title(),
-              journey != null && index < journey.getStage(),
-              journey != null && journey.isActive() && index == journey.getStage()));
+              showProgress && index < journey.getStage(),
+              showProgress && journey.isActive() && index == journey.getStage()));
     }
     String status =
-        journey == null
+        journey == null || journey.isCompleted()
             ? "AVAILABLE"
-            : journey.isCompleted() ? "DONE" : journey.isActive() ? "IN_PROGRESS" : "AVAILABLE";
+            : journey.isActive() ? "IN_PROGRESS" : "AVAILABLE";
     return Optional.of(
         new QuestBoardResponse.Quest(
             ShowcaseStage.QUEST_ID,

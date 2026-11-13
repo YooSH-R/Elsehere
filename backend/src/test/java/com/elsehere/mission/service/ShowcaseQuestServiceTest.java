@@ -1,14 +1,26 @@
 package com.elsehere.mission.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.elsehere.ai.client.JudgeResult;
+import com.elsehere.common.error.BusinessException;
+import com.elsehere.conversation.entity.Conversation;
+import com.elsehere.conversation.entity.ConversationStatus;
 import com.elsehere.conversation.repository.ConversationRepository;
+import com.elsehere.mission.dto.FirstDayMissionResponse;
+import com.elsehere.mission.dto.QuestBoardResponse;
 import com.elsehere.mission.entity.ShowcaseJourney;
+import com.elsehere.mission.entity.ShowcaseStage;
+import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.repository.ShowcaseJourneyRepository;
+import com.elsehere.mission.repository.TownStoryRepository;
+import com.elsehere.user.entity.User;
 import com.elsehere.user.repository.UserRepository;
+import com.elsehere.world.repository.NpcRepository;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -54,5 +66,136 @@ class ShowcaseQuestServiceTest {
 
   private ShowcaseQuestService service(boolean enabled) {
     return new ShowcaseQuestService(new ShowcaseSettings(enabled), journeys, users, conversations);
+  }
+
+  @Test
+  void completingTheThanksKeepsCompletionAndShowcaseContextForTheNextTurn() {
+    ShowcaseJourney journey = readyToThankJake();
+    when(journeys.findForUpdate(8L)).thenReturn(Optional.of(journey));
+    when(journeys.findById(8L)).thenReturn(Optional.of(journey));
+    ShowcaseQuestService service = service(true);
+
+    service.accept(
+        8L, 3, "HOTEL_STAFF", new JudgeResult.Intent(null, ShowcaseStage.RETURN.goalIds(), null));
+
+    assertThat(service.status(8L).completed()).isTrue();
+    assertThat(service.activeStatus(8L))
+        .hasValueSatisfying(state -> assertThat(state.completed()).isTrue());
+    assertThat(service.context(8L, "HOTEL_STAFF").orElseThrow().instruction())
+        .contains("rainy-evening trip is complete", "without starting check-in");
+    service.accept(
+        8L, 3, "HOTEL_STAFF", new JudgeResult.Intent(null, ShowcaseStage.RETURN.goalIds(), null));
+    assertThat(journey.getStage()).isEqualTo(ShowcaseStage.values().length);
+    assertThat(journey.balance()).isEqualTo(93);
+  }
+
+  @Test
+  void completedCardIsAvailableWithoutPreviousStopsAndDoesNotResetTheJourney() {
+    ShowcaseJourney journey = completedJourney();
+    when(journeys.findById(8L)).thenReturn(Optional.of(journey));
+
+    QuestBoardResponse.Quest card = service(true).card(8L, Map.of()).orElseThrow();
+
+    assertThat(card.status()).isEqualTo("AVAILABLE");
+    assertThat(card.stops())
+        .hasSize(4)
+        .allSatisfy(
+            stop -> {
+              assertThat(stop.done()).isFalse();
+              assertThat(stop.current()).isFalse();
+            });
+    assertThat(journey.isCompleted()).isTrue();
+    assertThat(journey.isActive()).isTrue();
+    assertThat(journey.isMealPaid()).isTrue();
+    assertThat(journey.weather()).isEqualTo("CLEAR");
+    FirstDayMissionResponse state = service(true).activeStatus(8L).orElseThrow();
+    assertThat(state.started()).isTrue();
+    assertThat(state.completed()).isTrue();
+    assertThat(state.direction()).contains("대화 노트", "햄버거 주문", "다시 연습");
+  }
+
+  @Test
+  void startingACompletedJourneyResetsUmbrellaPaymentTaxiAndWeather() {
+    ShowcaseJourney journey = completedJourney();
+    when(journeys.findForUpdate(8L)).thenReturn(Optional.of(journey));
+    when(users.findForUpdate(8L)).thenReturn(Optional.of(mock(User.class)));
+
+    FirstDayMissionResponse state = service(true).start(8L);
+
+    assertThat(state.started()).isTrue();
+    assertThat(state.completed()).isFalse();
+    assertThat(state.stage()).isZero();
+    assertThat(state.scene()).isEqualTo("HOTEL");
+    assertThat(state.weather()).isEqualTo("RAIN");
+    assertThat(state.raining()).isTrue();
+    assertThat(state.balance()).isEqualTo(100);
+    assertThat(state.lastPurchase()).isNull();
+    assertThat(state.steps())
+        .extracting(FirstDayMissionResponse.Step::status)
+        .containsExactly("CURRENT", "PENDING", "PENDING", "PENDING");
+    assertThat(journey.isUmbrellaBorrowed()).isFalse();
+    assertThat(journey.isMealPaid()).isFalse();
+    assertThat(journey.isTaxiRequested()).isFalse();
+    assertThat(journey.getObjectives()).isZero();
+  }
+
+  @Test
+  void startDuringAnUnfinishedJourneyResumesWithoutLosingProgress() {
+    ShowcaseJourney journey = readyToThankJake();
+    journey.stop();
+    when(journeys.findForUpdate(8L)).thenReturn(Optional.of(journey));
+    when(users.findForUpdate(8L)).thenReturn(Optional.of(mock(User.class)));
+
+    FirstDayMissionResponse state = service(true).start(8L);
+
+    assertThat(state.started()).isTrue();
+    assertThat(state.stage()).isEqualTo(3);
+    assertThat(state.balance()).isEqualTo(93);
+    assertThat(state.weather()).isEqualTo("CLEAR");
+    assertThat(journey.isUmbrellaBorrowed()).isTrue();
+  }
+
+  @Test
+  void replayCannotResetACompletedJourneyWhileTheConversationIsStillActive() {
+    ShowcaseJourney journey = completedJourney();
+    when(users.findForUpdate(8L)).thenReturn(Optional.of(mock(User.class)));
+    when(conversations.findFirstByUserIdAndStatus(8L, ConversationStatus.ACTIVE))
+        .thenReturn(Optional.of(mock(Conversation.class)));
+
+    assertThatThrownBy(() -> service(true).start(8L)).isInstanceOf(BusinessException.class);
+    assertThat(journey.isCompleted()).isTrue();
+    assertThat(journey.isMealPaid()).isTrue();
+    verifyNoInteractions(journeys);
+  }
+
+  @Test
+  void completedShowcaseCanReplayButOtherUnstartedQuestsStayLocked() {
+    ShowcaseJourney journey = completedJourney();
+    when(journeys.findById(8L)).thenReturn(Optional.of(journey));
+    QuestBoardService board =
+        new QuestBoardService(
+            mock(FirstDayMissionRepository.class), mock(TownStoryRepository.class),
+            mock(NpcRepository.class), service(true));
+
+    assertThat(board.board(8L).quests())
+        .extracting(QuestBoardResponse.Quest::status)
+        .containsExactly("AVAILABLE", "LOCKED", "LOCKED", "LOCKED");
+    assertThat(journey.isCompleted()).isTrue();
+  }
+
+  private static ShowcaseJourney readyToThankJake() {
+    ShowcaseJourney journey = ShowcaseJourney.start(8L);
+    journey.accept(0, "HOTEL_STAFF", ShowcaseStage.HOTEL.goalIds());
+    journey.chooseTaxiDestination("TAXI_DRIVER", "DINER");
+    journey.arriveByTaxi("DINER");
+    journey.accept(2, "DINER_STAFF", ShowcaseStage.ORDER.goalIds());
+    journey.visit("HOTEL");
+    return journey;
+  }
+
+  private static ShowcaseJourney completedJourney() {
+    ShowcaseJourney journey = readyToThankJake();
+    journey.accept(3, "HOTEL_STAFF", ShowcaseStage.RETURN.goalIds());
+    return journey;
   }
 }

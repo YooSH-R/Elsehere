@@ -53,7 +53,7 @@ public class QuestBoardService {
               ? chapter(quest, firstDayDone, story, names)
               : firstDayQuest(quest, mission, names));
     }
-    // 시연 퀘스트는 이야기 목록 맨 앞에 두고, 끝내기 전에는 그것만 열어 둔다. 시작하지 않은 나머지는 잠갔다가 시연을 끝내면 원래 규칙으로 연다.
+    // 시연 카드는 완료 후에도 다시 시작할 수 있으므로, 시연 모드에서는 시작하지 않은 나머지 퀘스트를 계속 잠근다.
     showcase
         .card(userId, names)
         .ifPresent(

@@ -144,9 +144,49 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator BurgerShopNightStaff_StayAtTheirPostDuringWork()
+        public IEnumerator BurgerShopQuestStaff_KeepsTheCounterAtNight()
         {
-            yield return BurgerStaffStaysAtPost("FIRE_CAPTAIN", 21 * 60);
+            // 이야기 퀘스트의 Rosa는 24시간 상주해 밤에도 카운터 자리를 지킨다.
+            yield return BurgerStaffStaysAtPost("DINER_STAFF", 21 * 60);
+        }
+
+        [UnityTest]
+        public IEnumerator BurgerShopNightStaff_StaysAtOwnSpotAwayFromTheCounter()
+        {
+            // 밤 교대 Ray는 카운터를 Rosa에게 맡기고, 카운터에서 떨어진 가게 안 자기 자리를 지킨다. 둘이 같은 자리에 겹쳐 서지 않는다.
+            yield return LoadAt(PlaceScenes.SceneOf("DINER"), 21 * 60, paused: true);
+
+            Object
+                .FindFirstObjectByType<PlayerMover>()
+                .Teleport(new Vector3(0, .12f, -2f), Quaternion.identity);
+            NpcRoutine ray = Routine("FIRE_CAPTAIN");
+            NpcRoutine rosa = Routine("DINER_STAFF");
+            Bounds counterBounds = SolidBounds(NearestPlaced("counter", rosa.transform));
+            Vector3 startingPosition = ray.transform.position;
+            yield return new WaitForSeconds(30);
+
+            Assert.That(
+                HorizontalDistance(ray.transform.position, startingPosition),
+                Is.LessThan(.2f),
+                "밤 교대 직원은 자기 자리를 지켜야 합니다."
+            );
+            Vector3 nearestCounterPoint = counterBounds.ClosestPoint(
+                new Vector3(
+                    ray.transform.position.x,
+                    counterBounds.center.y,
+                    ray.transform.position.z
+                )
+            );
+            Assert.That(
+                HorizontalDistance(ray.transform.position, nearestCounterPoint),
+                Is.GreaterThan(1.5f),
+                "밤 교대 직원은 카운터로 가지 않아야 합니다."
+            );
+            Assert.That(
+                HorizontalDistance(ray.transform, rosa.transform),
+                Is.GreaterThan(1f),
+                "밤 교대 직원과 상주 직원이 겹쳐 서지 않아야 합니다."
+            );
         }
 
         private static IEnumerator BurgerStaffStaysAtPost(string npcCode, int minuteOfDay)

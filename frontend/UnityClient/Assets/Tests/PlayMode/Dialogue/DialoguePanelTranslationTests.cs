@@ -222,6 +222,9 @@ namespace A305.Dialogue.PlayModeTests
                     $"{name}의 알약 모서리가 버튼 높이보다 큽니다."
                 );
             }
+            // 글자 없는 확대 버튼은 옆으로 긴 타원이 아니라 정확한 원이다.
+            Rect expand = ((RectTransform)Card.Find("ExpandButton")).rect;
+            Assert.That(expand.width, Is.EqualTo(expand.height).Within(.5f));
         }
 
         // 무례한 말에는 같은 기분을 공손하게 말하는 다른 표현을 '무례하지 않게 말하면' 아래 보인다.

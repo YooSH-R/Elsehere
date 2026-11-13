@@ -172,7 +172,7 @@ namespace A305.EditorTools.Dialogue
             var expandRect = (RectTransform)expand;
             expandRect.anchorMin = expandRect.anchorMax = expandRect.pivot = Vector2.one;
             expandRect.anchoredPosition = new Vector2(-20, -18);
-            expandRect.sizeDelta = new Vector2(44, 42);
+            expandRect.sizeDelta = Vector2.one * HeaderButtonHeight;
             expand.GetComponent<ThemedElement>().SetIcon(UiIcon.None);
             FitPill(expand);
             RectTransform icon = FindRect(expand, "ExpandGlyph");

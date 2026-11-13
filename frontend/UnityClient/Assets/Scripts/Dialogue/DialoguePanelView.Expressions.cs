@@ -26,18 +26,22 @@ namespace A305.Dialogue
             SetExpressionHeader(translationCard, right + 16);
             if (expressionExpandButton != null)
             {
-                PlaceHeaderButton(expressionExpandButton, 20, 44);
+                // 글자 없는 확대 버튼은 폭과 높이를 같게 둬 타원이 아니라 원으로 그린다.
+                PlaceHeaderButton(expressionExpandButton, 20, HeaderButtonHeight);
                 expressionExpandButton.onClick.RemoveListener(OpenExpressionWindow);
                 expressionExpandButton.onClick.AddListener(OpenExpressionWindow);
             }
         }
+
+        // 머리줄 버튼 높이. Builder가 알약 그림 배율을 이 높이에 맞춘다(DialogueTranslationBuilder.FitPill).
+        private const float HeaderButtonHeight = 42;
 
         private static void PlaceHeaderButton(Button button, float right, float width)
         {
             var rect = (RectTransform)button.transform;
             rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one;
             rect.anchoredPosition = new Vector2(-right, -18);
-            rect.sizeDelta = new Vector2(width, 42);
+            rect.sizeDelta = new Vector2(width, HeaderButtonHeight);
             var label = button.GetComponentInChildren<TMP_Text>(true);
             if (label != null)
             {

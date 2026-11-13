@@ -155,6 +155,29 @@ namespace A305.Mission.Tests
             );
         }
 
+        [Test]
+        public void TheChooserShowsPlacePracticeOnTheLeftAndStoryOnTheRight()
+        {
+            FirstDayMissionView mission = Create();
+            QuestBoardView board = Field<QuestBoardView>(mission, "questBoard");
+
+            board.Open();
+
+            float place = ((RectTransform)ActiveButton(board, "PlaceOption").transform)
+                .anchoredPosition
+                .x;
+            float story = ((RectTransform)ActiveButton(board, "StoryOption").transform)
+                .anchoredPosition
+                .x;
+            Assert.That(place, Is.LessThan(story), "장소 연습이 왼쪽, 이야기가 오른쪽");
+            var placeRect = (RectTransform)ActiveButton(board, "PlaceOption").transform;
+            Assert.That(
+                place + placeRect.sizeDelta.x,
+                Is.LessThanOrEqualTo(story),
+                "누르는 칸이 겹치지 않는다"
+            );
+        }
+
         // 하나를 고르면 지금 화면을 그대로 열고, 머리줄 왼쪽 ‹ 로 고르기 화면에 돌아간다(시안 2-B ②).
         [Test]
         public void ChoosingOne_OpensItsPage_AndBackReturnsToTheChooser()

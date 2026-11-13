@@ -23,14 +23,31 @@ class QuestBoardServiceTest {
   private final FirstDayMissionRepository firstDay = mock(FirstDayMissionRepository.class);
   private final TownStoryRepository stories = mock(TownStoryRepository.class);
   private final NpcRepository npcs = mock(NpcRepository.class);
+  private final ShowcaseQuestService showcase = mock(ShowcaseQuestService.class);
   private final QuestBoardService service =
-      new QuestBoardService(
-          firstDay, stories, npcs, mock(com.elsehere.mission.service.ShowcaseQuestService.class));
+      new QuestBoardService(firstDay, stories, npcs, showcase);
 
   @BeforeEach
   void knowTheNpcNames() {
     List<Npc> named = List.of(npc("HOTEL_STAFF", "Jake"), npc("BARBER_STAFF", "Tony"));
     when(npcs.findAll()).thenReturn(named);
+  }
+
+  @Test
+  void theShowcaseQuestComesFirstInTheStoryList() {
+    when(firstDay.findById(8L)).thenReturn(Optional.empty());
+    when(stories.findById(8L)).thenReturn(Optional.empty());
+    var card =
+        new QuestBoardResponse.Quest(
+            "SHOWCASE_RAINY_EVENING", "비 오는 저녁, 햄버거 한 끼", "", 0, "AVAILABLE", List.of());
+    when(showcase.card(org.mockito.ArgumentMatchers.eq(8L), org.mockito.ArgumentMatchers.any()))
+        .thenReturn(Optional.of(card));
+
+    QuestBoardResponse board = service.board(8L);
+
+    assertThat(board.quests())
+        .extracting(QuestBoardResponse.Quest::id)
+        .startsWith("SHOWCASE_RAINY_EVENING", "CHECK_IN");
   }
 
   @Test

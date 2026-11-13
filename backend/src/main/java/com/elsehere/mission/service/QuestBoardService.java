@@ -53,7 +53,8 @@ public class QuestBoardService {
               ? chapter(quest, firstDayDone, story, names)
               : firstDayQuest(quest, mission, names));
     }
-    showcase.card(userId, names).ifPresent(quests::add);
+    // 시연 퀘스트는 이야기 목록 맨 앞에 둔다. 이야기 퀘스트의 연계 순서와는 상관없다.
+    showcase.card(userId, names).ifPresent(card -> quests.add(0, card));
     int balance =
         showcase
             .activeStatus(userId)

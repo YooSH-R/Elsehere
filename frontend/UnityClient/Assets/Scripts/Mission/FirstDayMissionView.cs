@@ -915,8 +915,10 @@ namespace A305.Mission
                 ShowCoins(latestBalance - finished.Reward, latestPurchase);
             finishedBoard = board;
             finishedQuestId = questId;
+            // 맨 앞의 시연 퀘스트는 이야기 퀘스트를 여는 연계가 아니다.
             bool opensNext =
-                index + 1 < board.Quests.Count
+                questId != FirstDayMissionState.ShowcaseQuestId
+                && index + 1 < board.Quests.Count
                 && board.Quests[index + 1].Status == QuestEntry.Available;
             unlockedQuest = opensNext ? index + 1 : -1;
             ShowLargeMap(false);

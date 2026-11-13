@@ -77,6 +77,10 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `JUDGE_GPU_MODEL` | (없음, 꺼짐) | GPU 서버 vLLM의 의도·사건 판정 모델 이름(예: 기본 모델 `Qwen/Qwen3.8-27B`). 주면 `/v1/judge`의 의도 판정을 이 모델로 먼저 한 번 부르고, 실패·시간 초과·JSON이 아닌 답이면 구성의 `intent` 모델로 넘김. 주소·키는 `GUARD_GPU_BASE_URL`·`GUARD_GPU_TOKEN`. 번역은 그대로 구성 모델 |
 | `JUDGE_GPU_TIMEOUT_S` | 2 | GPU 서버 의도 판정 한 번의 상한. 넘으면 재시도 없이 구성의 `intent` 모델로 |
 | `JUDGE_BREAKER_FAILURES` / `JUDGE_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 의도 판정이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 구성의 `intent` 모델로 바로 감. 횟수가 0이면 끔 |
+| `NPC_GPU_MODEL` | (없음, 꺼짐) | GPU 서버 vLLM의 NPC 대답 LoRA 이름(예: `npc-qwen3.8-27b-r16`, [`ai/npc_reply`](../npc_reply/README.md)). 주면 `/v1/npc/reply` 대답 스트림을 이 모델로 먼저 열고, 실패하거나 첫 글자가 늦으면 구성의 `npc` 모델로 넘김. 주소·키는 `GUARD_GPU_BASE_URL`·`GUARD_GPU_TOKEN` |
+| `NPC_GPU_FIRST_TOKEN_S` | 1 | GPU 서버 NPC 대답의 첫 글자 상한. 넘으면 재시도 없이 구성의 `npc` 모델로 |
+| `NPC_GPU_MAX_CONCURRENT` | 4 | 워커 하나가 동시에 GPU로 보내는 NPC 대답 수. 넘는 대답은 처음부터 구성의 `npc` 모델로 (동시 8개부터 GPU 첫 글자가 SOL보다 늦어짐) |
+| `NPC_BREAKER_FAILURES` / `NPC_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 NPC 대답이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 구성의 `npc` 모델로 바로 감. 횟수가 0이면 끔 |
 | `GUARD_CONFIRM` | true | GPU 서버 판정이 무례라고 하면 구성의 `guard` 모델에 한 번 더 묻고 둘 다 무례일 때만 무례. GPU 모델이 대상 없는 단어("감자", 이름, "엄마")도 무례로 봐서 둠. 확인 호출이 실패하면 GPU 판정 그대로. `false`면 끔 |
 
 ## GPU 음성과 발음 시간표

@@ -823,10 +823,10 @@ namespace A305.Dialogue
             translationSpeakButton.interactable = hasExpression && !content.IsBusy;
 
             othersButton.gameObject.SetActive(hasOthers);
-            // 다른 표현이 있다는 걸 알아보게 바탕을 옅은 강조색(고른 알약)으로 칠한다. 다른 알약보다 조금만 진하다.
+            // 다른 표현이 있다는 걸 알아보게 [자막 끄기]처럼 유리 버튼 테두리를 강조색으로 칠한다(모양은 그대로).
             if (!othersButtonTinted && othersButton.TryGetComponent(out ThemedElement othersTheme))
             {
-                othersTheme.SetSelected(true);
+                othersTheme.SetSelected(true, keepGhostOutline: true);
                 othersButtonTinted = true;
             }
             othersDivider.gameObject.SetActive(hasOthers);

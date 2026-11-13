@@ -146,16 +146,13 @@ namespace A305.EditorTools.Dialogue
             othersLine.raycastTarget = false;
             othersDivider.gameObject.SetActive(false);
             Button othersButton = OthersButton(card, catalog, name.font);
-            BuilderTools
-                .GetOrAddComponent<ThemedElement>(othersButton.gameObject)
-                .Use(catalog, UiThemeRole.PillButton);
-            FitPill(othersButton.transform);
+            GhostOnCard(othersButton.transform, catalog);
             othersButton
                 .GetComponentInChildren<TMP_Text>(true)
                 .GetComponent<ThemedElement>()
                 .Use(catalog, UiThemeRole.Title);
             // 접었다 펼 수 있는 버튼임을 꺾쇠로 보인다. 화면이 펼치면 아래로 돌린다.
-            // 꺾쇠는 번호 동그라미·밑줄과 같은 강조색이고, 바탕은 화면이 옅은 강조색(고른 알약)으로 칠한다.
+            // 꺾쇠는 번호 동그라미·밑줄과 같은 강조색이고, 테두리는 화면이 [자막 끄기]처럼 강조색(고른 유리 버튼)으로 칠한다.
             RectTransform chevron = FindRect(othersButton.transform, "Chevron");
             Image chevronImage = BuilderTools.GetOrAddComponent<Image>(chevron.gameObject);
             chevronImage.sprite = Glyph(ChevronIconPath, DrawChevron);
@@ -167,14 +164,14 @@ namespace A305.EditorTools.Dialogue
 
             Transform expand = card.Find("ExpandButton");
             if (expand == null)
-                expand = PillButton(panel, card, "ExpandButton");
+                expand = CopyToolButton(panel, card, "ExpandButton");
             expand.GetComponentInChildren<TMP_Text>(true).text = "";
             var expandRect = (RectTransform)expand;
             expandRect.anchorMin = expandRect.anchorMax = expandRect.pivot = Vector2.one;
             expandRect.anchoredPosition = new Vector2(-20, -18);
             expandRect.sizeDelta = Vector2.one * HeaderButtonHeight;
             expand.GetComponent<ThemedElement>().SetIcon(UiIcon.None);
-            FitPill(expand);
+            GhostOnCard(expand, catalog);
             RectTransform icon = FindRect(expand, "ExpandGlyph");
             icon.anchorMin = Vector2.zero;
             icon.anchorMax = Vector2.one;
@@ -374,18 +371,13 @@ namespace A305.EditorTools.Dialogue
             return button;
         }
 
-        // 도구 줄 [다시 듣기]의 알약 모양을 복제한 머리줄 버튼. 프리팹에 없을 때만 만든다.
-        private static Transform PillButton(Transform panel, RectTransform card, string name)
+        // 도구 줄 [다시 듣기]를 복제한 머리줄 버튼. 프리팹에 없을 때만 만든다.
+        private static Transform CopyToolButton(Transform panel, RectTransform card, string name)
         {
             Transform button = Object
                 .Instantiate(panel.Find("Conversation/ToolRow/ReplayButton").gameObject, card)
                 .transform;
             button.name = name;
-            var theme = new SerializedObject(button.GetComponent<ThemedElement>());
-            theme.FindProperty("role").enumValueIndex = (int)UiThemeRole.PillButton;
-            theme.FindProperty("tone").enumValueIndex = (int)UiTone.Neutral;
-            theme.ApplyModifiedPropertiesWithoutUndo();
-            FitPill(button);
             BuilderTools.GetOrAddComponent<LayoutElement>(button.gameObject).ignoreLayout = true;
             button.GetComponent<Button>().navigation = new Navigation
             {
@@ -394,11 +386,23 @@ namespace A305.EditorTools.Dialogue
             return button;
         }
 
+        // 도구 줄 [다시 듣기]·[뜻]과 같은 유리 알약(S15P31A305-895). 밝은 카드 위라 흰 테두리·글자 대신 테마 글자색으로 칠한다.
+        private static void GhostOnCard(Transform button, UiThemeCatalog catalog)
+        {
+            var theme = BuilderTools.GetOrAddComponent<ThemedElement>(button.gameObject);
+            var fields = new SerializedObject(theme);
+            fields.FindProperty("onLightSurface").boolValue = true;
+            fields.FindProperty("tone").enumValueIndex = (int)UiTone.Neutral;
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            theme.Use(catalog, UiThemeRole.GhostControl);
+            FitPill(button);
+        }
+
         // 머리줄 버튼 높이. 화면이 버튼을 놓을 때도 이 높이로 둔다(DialoguePanelView.PlaceHeaderButton).
         private const float HeaderButtonHeight = 42;
 
-        // 알약 그림의 위아래 모서리가 머리줄 버튼 높이 안에 들어가게 9칸 배율을 맞춘다. 배율이 작으면 모서리가 높이를 넘어
-        // Unity가 세로로 눌러 그리므로 [힌트]·[말하기] 같은 매끈한 알약이 아니라 조약돌처럼 찌그러져 보인다.
+        // 버튼 그림의 위아래 모서리가 머리줄 버튼 높이 안에 들어가게 9칸 배율을 맞춘다. 배율이 작으면 모서리가 높이를 넘어
+        // Unity가 세로로 눌러 그리므로 매끈한 알약이 아니라 조약돌처럼 찌그러져 보인다.
         // 배율에 따라 그림자 여백도 달라지므로 테마로 다시 칠한다.
         private static void FitPill(Transform button)
         {

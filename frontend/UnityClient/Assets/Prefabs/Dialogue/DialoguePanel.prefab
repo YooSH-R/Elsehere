@@ -258,7 +258,7 @@ MonoBehaviour:
   linesText: {fileID: 1213156378584578411}
   statusText: {fileID: 3952023333546158731}
   translationCard: {fileID: 9012749485855329959}
-  translationText: {fileID: 5880636317608715269}
+  translationText: {fileID: 6643856371130482176}
   translationSpeakButton: {fileID: 3024220532107041618}
   translationDivider: {fileID: 979921934535135741}
   translationHeading: {fileID: 6814695101030246318}
@@ -600,6 +600,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &2364607277600879568
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -778,6 +779,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!1 &221494154656534837
 GameObject:
   m_ObjectHideFlags: 0
@@ -1087,6 +1089,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &6172965870863237607
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1880,6 +1883,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!1 &1053755816879222648
 GameObject:
   m_ObjectHideFlags: 0
@@ -2013,6 +2017,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &6437819166335289459
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2261,6 +2266,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &6069058423834039730
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2453,6 +2459,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!1 &1193505595367494666
 GameObject:
   m_ObjectHideFlags: 0
@@ -2730,6 +2737,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &7941186757998067572
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2947,6 +2955,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &618251594603493481
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3386,6 +3395,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &9090903244769451919
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3600,6 +3610,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!1 &1853638029673413859
 GameObject:
   m_ObjectHideFlags: 0
@@ -3766,6 +3777,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &8540515063609621011
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4053,6 +4065,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &2709513225326326097
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4232,7 +4245,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.18431373, g: 0.14509805, b: 0.105882354, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -4503,6 +4516,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &2159476379931706989
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4714,6 +4728,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &8385300545488204660
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5004,6 +5019,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &6894321802138373560
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5278,6 +5294,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &6832212502788539533
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5966,6 +5983,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &5806950926156361473
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6138,6 +6156,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &25371261214636207
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6817,6 +6836,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!1 &3470412214278295033
 GameObject:
   m_ObjectHideFlags: 0
@@ -7666,6 +7686,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!1 &3902443163866515900
 GameObject:
   m_ObjectHideFlags: 0
@@ -7792,6 +7813,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &6948819224042503568
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8172,6 +8194,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &257503254289847773
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8356,6 +8379,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &9212616838303759814
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8412,6 +8436,186 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &4209249565150540633
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 263109621718096646}
+  - component: {fileID: 8930031607015191921}
+  - component: {fileID: 6643856371130482176}
+  - component: {fileID: 3371295859640142381}
+  - component: {fileID: 3723217631533546622}
+  m_Layer: 0
+  m_Name: Expression
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &263109621718096646
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4209249565150540633}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2462432634154534795}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &8930031607015191921
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4209249565150540633}
+  m_CullTransparentMesh: 1
+--- !u!114 &6643856371130482176
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4209249565150540633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_text: 
+  m_isRightToLeft: 0
+  m_fontAsset: {fileID: 11400000, guid: 609a8bc80477bce43a2bdf8c71a7b839, type: 2}
+  m_sharedMaterial: {fileID: -7486566921287125584, guid: 609a8bc80477bce43a2bdf8c71a7b839, type: 2}
+  m_fontSharedMaterials: []
+  m_fontMaterial: {fileID: 0}
+  m_fontMaterials: []
+  m_fontColor32:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontColor: {r: 0.18431373, g: 0.14509805, b: 0.105882354, a: 1}
+  m_enableVertexGradient: 0
+  m_colorMode: 3
+  m_fontColorGradient:
+    topLeft: {r: 1, g: 1, b: 1, a: 1}
+    topRight: {r: 1, g: 1, b: 1, a: 1}
+    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
+    bottomRight: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColorGradientPreset: {fileID: 0}
+  m_spriteAsset: {fileID: 0}
+  m_tintAllSprites: 0
+  m_StyleSheet: {fileID: 0}
+  m_TextStyleHashCode: 0
+  m_overrideHtmlColors: 0
+  m_faceColor:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontSize: 32
+  m_fontSizeBase: 32
+  m_fontWeight: 400
+  m_enableAutoSizing: 0
+  m_fontSizeMin: 0
+  m_fontSizeMax: 0
+  m_fontStyle: 0
+  m_HorizontalAlignment: 1
+  m_VerticalAlignment: 256
+  m_textAlignment: 65535
+  m_characterSpacing: 0
+  m_characterHorizontalScale: 1
+  m_wordSpacing: 0
+  m_lineSpacing: 0
+  m_lineSpacingMax: 0
+  m_paragraphSpacing: 0
+  m_charWidthMaxAdj: 0
+  m_TextWrappingMode: 1
+  m_wordWrappingRatios: 0.4
+  m_overflowMode: 0
+  m_linkedTextComponent: {fileID: 0}
+  parentLinkedComponent: {fileID: 0}
+  m_enableKerning: 0
+  m_ActiveFontFeatures: 00000000
+  m_enableExtraPadding: 0
+  checkPaddingRequired: 0
+  m_isRichText: 1
+  m_EmojiFallbackSupport: 1
+  m_parseCtrlCharacters: 1
+  m_isOrthographic: 0
+  m_isCullingEnabled: 0
+  m_horizontalMapping: 0
+  m_verticalMapping: 0
+  m_uvLineOffset: 0
+  m_geometrySortingOrder: 0
+  m_IsTextObjectScaleStatic: 0
+  m_VertexBufferAutoSizeReduction: 0
+  m_useMaxVisibleDescender: 1
+  m_pageToDisplay: 1
+  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_isUsingLegacyAnimationComponent: 0
+  m_isVolumetricText: 0
+  m_hasFontAssetChanged: 0
+  m_baseMaterial: {fileID: 0}
+  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &3371295859640142381
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4209249565150540633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9aa5625c3e679484e83cfac4201e78f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Theme::A305.Theme.ThemedElement
+  catalog: {fileID: 11400000, guid: c787b7ed57fef94438207b709fa09d5c, type: 2}
+  role: 7
+  tone: 0
+  icon: 0
+  fixedTheme: 0
+  previewTheme: 0
+  quiet: 0
+  selection: 0
+  onLightSurface: 0
+--- !u!114 &3723217631533546622
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4209249565150540633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 306cc8c2b49d7114eaa3623786fc2126, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.LayoutElement
+  m_IgnoreLayout: 0
+  m_MinWidth: -1
+  m_MinHeight: -1
+  m_PreferredWidth: -1
+  m_PreferredHeight: -1
+  m_FlexibleWidth: 1
+  m_FlexibleHeight: -1
+  m_LayoutPriority: 1
 --- !u!1 &4220770106430789244
 GameObject:
   m_ObjectHideFlags: 0
@@ -8558,6 +8762,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &9194838734579971041
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8763,6 +8968,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &4768706195470664420
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9096,6 +9302,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!1 &4417860241650399885
 GameObject:
   m_ObjectHideFlags: 0
@@ -9492,6 +9699,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!1 &4507085116382246786
 GameObject:
   m_ObjectHideFlags: 0
@@ -9810,6 +10018,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &2787519778342478789
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10270,6 +10479,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &7977602570246118694
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10518,6 +10728,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &7665530690999173935
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10785,6 +10996,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &3736628513532258477
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11101,6 +11313,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &2978452431632268031
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11284,6 +11497,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!1 &5378926015578211798
 GameObject:
   m_ObjectHideFlags: 0
@@ -11598,15 +11812,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 2100000, guid: 59294512211ab0f4b8001922740409fe, type: 2}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.18431373, g: 0.14509805, b: 0.105882354, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 94118d27ffd8ea14e88f38d592c274cb, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 9aaa06e0cb69e1648a98ac006c58c9aa, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -11615,7 +11829,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 2.1329365
+  m_PixelsPerUnitMultiplier: 1.4880953
 --- !u!114 &852906559707061984
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11673,13 +11887,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.Theme::A305.Theme.ThemedElement
   catalog: {fileID: 11400000, guid: c787b7ed57fef94438207b709fa09d5c, type: 2}
-  role: 4
+  role: 16
   tone: 0
   icon: 0
   fixedTheme: 0
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 1
 --- !u!114 &7009047118147660663
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11692,7 +11907,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: baf304c372c8ca2418d271d53f876de0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.Theme::A305.Theme.SurfaceBleed
-  margin: {x: 3.7506976, y: 4.688372}
+  margin: {x: 0, y: 0}
 --- !u!114 &1063364744737287731
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11871,6 +12086,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &9155870181050360692
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12055,6 +12271,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &8410995878037888367
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12471,6 +12688,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &5544965994277185486
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13015,6 +13233,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &3570167004219201262
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13194,6 +13413,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &5712895479162348608
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13506,6 +13726,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 263109621718096646}
   - {fileID: 2849525131675909208}
   - {fileID: 7495055090043053490}
   - {fileID: 8300446900909682694}
@@ -13787,6 +14008,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &3502489799560710088
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13998,6 +14220,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!1 &6263108072659138097
 GameObject:
   m_ObjectHideFlags: 0
@@ -14231,6 +14454,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!1 &6296514919782351787
 GameObject:
   m_ObjectHideFlags: 0
@@ -14745,6 +14969,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &2544997292562501975
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15229,6 +15454,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!1 &6675446363924276637
 GameObject:
   m_ObjectHideFlags: 0
@@ -16221,6 +16447,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &6269436772827494057
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16299,15 +16526,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 2100000, guid: 59294512211ab0f4b8001922740409fe, type: 2}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.18431373, g: 0.14509805, b: 0.105882354, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 94118d27ffd8ea14e88f38d592c274cb, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 9aaa06e0cb69e1648a98ac006c58c9aa, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -16316,7 +16543,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 2.1329365
+  m_PixelsPerUnitMultiplier: 1.4880953
 --- !u!114 &7266926110325300040
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16394,13 +16621,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.Theme::A305.Theme.ThemedElement
   catalog: {fileID: 11400000, guid: c787b7ed57fef94438207b709fa09d5c, type: 2}
-  role: 4
+  role: 16
   tone: 0
   icon: 0
   fixedTheme: 0
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 1
 --- !u!114 &7947324280744567879
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16413,7 +16641,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: baf304c372c8ca2418d271d53f876de0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.Theme::A305.Theme.SurfaceBleed
-  margin: {x: 3.7506976, y: 4.688372}
+  margin: {x: 0, y: 0}
 --- !u!114 &5566117460735277965
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16606,6 +16834,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &5834826590757581605
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17158,6 +17387,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &3500813622126464747
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17330,6 +17560,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &8528752851469152076
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17728,6 +17959,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!1 &7571840761672560927
 GameObject:
   m_ObjectHideFlags: 0
@@ -18248,6 +18480,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!1 &7992970455759790757
 GameObject:
   m_ObjectHideFlags: 0
@@ -18489,6 +18722,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &1250146256510663199
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18773,6 +19007,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &3098411433989633719
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19209,6 +19444,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &624965457962436702
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19475,6 +19711,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!1 &8559916644643148399
 GameObject:
   m_ObjectHideFlags: 0
@@ -19791,6 +20028,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!1 &8734531971324426743
 GameObject:
   m_ObjectHideFlags: 0
@@ -19949,6 +20187,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!1 &8764948637329744479
 GameObject:
   m_ObjectHideFlags: 0
@@ -20115,6 +20354,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &3943557743886236578
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -21039,6 +21279,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &8965690468830599212
 MonoBehaviour:
   m_ObjectHideFlags: 0

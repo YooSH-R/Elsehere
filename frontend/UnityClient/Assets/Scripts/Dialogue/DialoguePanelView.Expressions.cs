@@ -51,14 +51,9 @@ namespace A305.Dialogue
             }
         }
 
-        // 글자는 왼쪽에, 꺾쇠는 버튼 오른쪽 끝에 둬 글자와 겹치지 않게 한다.
+        // 꺾쇠는 버튼 오른쪽 끝에 둔다. 글자는 유리 버튼(PillContentLayout)이 양옆 여백을 두고 가운데에 놓는다.
         private static void PlaceChevron(Button button)
         {
-            var label = button.GetComponentInChildren<TMP_Text>(true).rectTransform;
-            label.anchorMin = Vector2.zero;
-            label.anchorMax = Vector2.one;
-            label.offsetMin = new Vector2(14, 0);
-            label.offsetMax = new Vector2(-34, 0);
             var chevron = (RectTransform)button.transform.Find("Chevron");
             chevron.anchorMin = chevron.anchorMax = new Vector2(1, .5f);
             chevron.pivot = new Vector2(.5f, .5f);

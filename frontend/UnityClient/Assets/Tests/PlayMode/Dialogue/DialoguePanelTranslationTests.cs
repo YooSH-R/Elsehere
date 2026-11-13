@@ -197,8 +197,8 @@ namespace A305.Dialogue.PlayModeTests
             );
         }
 
-        // 머리줄 버튼도 [힌트]·[말하기]처럼 매끈한 알약이다. 알약 그림의 위아래 모서리가 버튼 높이 안에 들어가야
-        // Unity가 세로로 눌러 그리지 않아 조약돌처럼 찌그러져 보이지 않는다.
+        // 머리줄 버튼은 도구 줄 [다시 듣기]·[뜻]과 같은 유리 알약이다. 밝은 카드 위라 테두리와 글자는 테마 글자색으로 칠한다.
+        // 알약 그림의 위아래 모서리가 버튼 높이 안에 들어가야 Unity가 세로로 눌러 그리지 않아 찌그러져 보이지 않는다.
         [UnityTest]
         public IEnumerator HeaderButtons_KeepTheSmoothPillShape()
         {
@@ -210,9 +210,19 @@ namespace A305.Dialogue.PlayModeTests
                 }
             );
             yield return null;
+            Sprite toolFace = instance
+                .GetComponentsInChildren<Button>(true)
+                .First(button => button.name == "ReplayButton")
+                .GetComponent<Image>()
+                .sprite;
             foreach (string name in new[] { "OthersButton", "ExpandButton" })
             {
                 var face = Card.Find(name).GetComponent<Image>();
+                Assert.That(
+                    face.sprite,
+                    Is.EqualTo(toolFace),
+                    $"{name}이 도구 줄 버튼과 모양이 다릅니다."
+                );
                 Vector4 border = face.sprite.border;
                 float corners =
                     (border.y + border.w) / (face.pixelsPerUnit * face.pixelsPerUnitMultiplier);

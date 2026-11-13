@@ -242,7 +242,7 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator Town_WorkerKnowsTheRealCommuteAndKeepsItAfterArrival()
+        public IEnumerator Town_WorkerKeepsCommuteDetailsAndRefusesTalkOnlyAfterShiftStarts()
         {
             SetClock(17 * 60 + 59);
             yield return LoadWithoutApis("TownScene");
@@ -257,6 +257,8 @@ namespace A305.Npc.PlayModeTests
             Assert.That(body.TravelContext.Phase, Is.EqualTo("GOING_TO_WORK"));
             Assert.That(body.TravelContext.RouteMeters, Is.GreaterThan(10));
             Assert.That(body.TravelContext.DepartureLeadMinutes, Is.GreaterThan(0));
+            Assert.That(walker.SchedulePhase, Is.EqualTo(NpcDayPhase.GoingToWork));
+            Assert.That(walker.DeclinesConversation, Is.False);
             float previousDelta = Time.captureDeltaTime;
             try
             {
@@ -267,21 +269,18 @@ namespace A305.Npc.PlayModeTests
                 Assert.That(body.TravelContext.WalkedMeters, Is.GreaterThan(.1));
                 double walked = body.TravelContext.WalkedMeters;
                 Vector3 door = walker.ScheduleDoor.Value;
-                GameClock
-                    .Shared.TickAsync(
-                        new FixedClock
-                        {
-                            Time = new GameClockTime
-                            {
-                                Day = 1,
-                                MinuteOfDay = 18 * 60,
-                                Paused = true,
-                            },
-                        },
-                        Time.realtimeSinceStartupAsDouble + 1e6
-                    )
-                    .GetAwaiter()
-                    .GetResult();
+                Tick(18 * 60, 1);
+                yield return null;
+                yield return null;
+                Assert.That(walker.gameObject.activeSelf, Is.True);
+                Assert.That(walker.SchedulePhase, Is.EqualTo(NpcDayPhase.Working));
+                Assert.That(walker.IsStaff, Is.True);
+                Assert.That(
+                    walker.DeclinesConversation,
+                    Is.True,
+                    "근무 시작 뒤 일터에 도착하지 못한 직원만 거절합니다."
+                );
+
                 PlaceWalker(walker, door, Vector3.forward);
                 yield return null;
                 yield return null;
@@ -631,43 +630,6 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator Town_ReturningToRestStillAllowsConversation() =>
             CheckHurryingNpc(click: true, schedule: NpcDayPhase.Resting);
-
-        [UnityTest]
-        public IEnumerator Town_WorkScheduleEnablesRefusalOnlyAfterTheShiftStarts()
-        {
-            SetClock(17 * 60 + 59);
-            yield return LoadWithoutApis("TownScene");
-            var walker = Object
-                .FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None)
-                .Single(item => item.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER");
-            PlaceWalker(walker, new Vector3(12, .1f, 22), Vector3.forward);
-            yield return null;
-            Assert.That(walker.SchedulePhase, Is.EqualTo(NpcDayPhase.GoingToWork));
-            Assert.That(walker.DeclinesConversation, Is.False);
-            var clock = new FixedClock
-            {
-                Time = new GameClockTime
-                {
-                    Day = 1,
-                    MinuteOfDay = 18 * 60,
-                    Paused = true,
-                },
-            };
-            GameClock
-                .Shared.TickAsync(clock, Time.realtimeSinceStartupAsDouble + 1e6)
-                .GetAwaiter()
-                .GetResult();
-            yield return null;
-            yield return null;
-            Assert.That(walker.gameObject.activeSelf, Is.True);
-            Assert.That(walker.SchedulePhase, Is.EqualTo(NpcDayPhase.Working));
-            Assert.That(walker.IsStaff, Is.True);
-            Assert.That(
-                walker.DeclinesConversation,
-                Is.True,
-                "근무 시작 뒤 일터에 도착하지 못한 직원만 거절합니다."
-            );
-        }
 
         private static IEnumerator CheckHurryingNpc(
             bool click,
@@ -1601,6 +1563,7 @@ namespace A305.Npc.PlayModeTests
                 }
                 Physics.SyncTransforms();
                 float widestDetour = 0;
+                const float arrivalDistance = .12f;
                 for (int frame = 0; frame < 480; frame++)
                 {
                     Vector3 before = walker.transform.position;
@@ -1621,6 +1584,8 @@ namespace A305.Npc.PlayModeTests
                             Is.False,
                             "장애물 내부를 통과하면 안 됩니다."
                         );
+                    if (HorizontalDistance(position, walker.Destination) < arrivalDistance)
+                        break;
                 }
                 if (height > .3f)
                     Assert.That(
@@ -1636,7 +1601,7 @@ namespace A305.Npc.PlayModeTests
                     );
                 Assert.That(
                     HorizontalDistance(walker.transform.position, walker.Destination),
-                    Is.LessThan(.12f)
+                    Is.LessThan(arrivalDistance)
                 );
 
                 if (height < .3f)
@@ -1667,11 +1632,17 @@ namespace A305.Npc.PlayModeTests
                 }
                 wall.transform.localScale = new Vector3(1, 2, 3);
                 Physics.SyncTransforms();
-                for (int frame = 0; frame < 480; frame++)
+                for (
+                    int frame = 0;
+                    frame < 480
+                        && HorizontalDistance(walker.transform.position, walker.Destination)
+                            >= arrivalDistance;
+                    frame++
+                )
                     yield return null;
                 Assert.That(
                     HorizontalDistance(walker.transform.position, walker.Destination),
-                    Is.LessThan(.12f),
+                    Is.LessThan(arrivalDistance),
                     "통로가 다시 열리면 멈춘 채 남지 않고 우회해 도착해야 합니다."
                 );
             }
@@ -2038,7 +2009,22 @@ namespace A305.Npc.PlayModeTests
                             "횡단 중에도 서로 겹치지 않고 지나가야 합니다."
                         );
                     if (!walker.IsCrossing)
+                    {
+                        // 되돌아오는 경우에는 전체 구간 동안 대기 상태를 유지하는지 본다.
+                        if (
+                            !returns
+                            && changed
+                            && HorizontalDistance(walker.transform.position, walker.Destination)
+                                < .12f
+                            && (
+                                other == null
+                                || HorizontalDistance(other.transform.position, other.Destination)
+                                    < .12f
+                            )
+                        )
+                            break;
                         continue;
+                    }
                     crossed = true;
                     Assert.That(walker.IsRunning, Is.False, "급해도 횡단보도에서는 걷습니다.");
                     Assert.That(

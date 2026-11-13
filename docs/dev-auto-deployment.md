@@ -31,7 +31,7 @@ JAR와 AI 산출물은 원래 소스 커밋 표시를 유지합니다. 부모에
 
 ### WebGL 빌드 전달과 정리
 
-WebGL 정적 파일은 같은 프로젝트의 Generic Package Registry를 통해 Windows 빌드 작업에서 Linux 전달 작업으로 옮깁니다. 개발의 `unity:webgl-build`와 운영·수동 검사의 `unity:editor-and-webgl`은 빌드 커밋을 확인한 뒤 `a305-webgl/<파이프라인 ID>-<작업 ID>/webgl.tar`를 게시하고, 작은 식별 파일 `dist/webgl-package.json`만 일반 산출물로 전달합니다. 패키지 게시·다운로드에는 각 작업의 `CI_JOB_TOKEN`을 사용합니다. 패키지 저장소를 활성화한 상태로 유지하며 외부 공개나 새 비밀값은 필요하지 않습니다.
+WebGL 정적 파일은 같은 프로젝트의 Generic Package Registry를 통해 Windows 빌드 작업에서 Linux 전달 작업으로 옮깁니다. 개발·운영·수동 검사의 `unity:webgl-build`는 빌드 커밋을 확인한 뒤 `a305-webgl/<파이프라인 ID>-<작업 ID>/webgl.tar`를 게시하고, 작은 식별 파일 `dist/webgl-package.json`만 일반 산출물로 전달합니다. 패키지 게시·다운로드에는 각 작업의 `CI_JOB_TOKEN`을 사용합니다. 패키지 저장소를 활성화한 상태로 유지하며 외부 공개나 새 비밀값은 필요하지 않습니다.
 
 `dev:deliver`와 `prod:deliver`는 웹 이미지가 필요한 경우에만 패키지를 내려받습니다. 커밋·파이프라인 ID·파일 크기·SHA256을 확인하고 경로 이탈을 차단해 `dist/webgl/`로 복원한 뒤, 기존 `version.json` 검증과 이미지 빌드를 수행합니다. 패키지 업로드·다운로드·무결성 검증 실패는 배포 실패로 처리합니다. 이미지와 서버 배포 번들의 전달은 기존 SSH 경로를 유지합니다.
 

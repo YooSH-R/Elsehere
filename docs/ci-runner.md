@@ -18,10 +18,10 @@ MR 파이프라인은 `.pre` 단계의 `ci:merge-conflicts`에서 실제 대상 
 | `unity:format` | 프론트, API 명세, Unity CI·검사 스크립트·규약 또는 공통 작성 지침 변경 | 고정된 .NET SDK와 CSharpier로 직접 작성한 C# 포맷 검사 |
 | `unity:browser-tests` | WebGL 플러그인·Web 템플릿·`infra/tests/webgl_*.test.cjs`·Unity CI 설정 변경, Unity 검사를 선택한 배포 자식 | Node 24에서 브라우저 연동 회귀 검사. Linux Runner를 사용하며 Windows Editor 검사와 별도로 실패를 막습니다. |
 | `unity:external-mr` | 다른 프로젝트에서 보낸 Unity 실행 관련 MR | 노트북에서 외부 코드를 실행하지 않고 필수 검사 실패로 병합 차단. 검토한 변경을 프로젝트 작업 브랜치로 옮겨 검사 |
-| `unity:editor-and-webgl` | 모든 운영 배포 자식 또는 보호된 ref의 웹 실행에서 `RUN_UNITY_BUILD=true` | Windows 전용 Runner의 EditMode·PlayMode 전체 테스트, 필요한 WebGL 빌드·임시 패키지 게시 |
-| `unity:webgl-build` | `web` 이미지가 필요한 보호된 dev 배포 자식 | 전체 Editor 테스트 없이 WebGL 빌드·임시 패키지 게시 |
+| `unity:editor-tests` | 모든 운영 배포 자식 또는 보호된 ref의 웹 실행에서 `RUN_UNITY_BUILD=true` | Windows 전용 Runner의 EditMode·PlayMode 전체 테스트 |
+| `unity:webgl-build` | `web` 이미지가 필요한 배포 자식 또는 같은 수동 실행 | WebGL 빌드·임시 패키지 게시. 운영·수동 실행에서는 전체 Editor 테스트가 통과한 뒤 시작 |
 | `dev:reuse-checks` | 같은 입력의 성공 MR 결과를 찾은 dev 배포 자식 | MR 출처·ZIP SHA256 확인, 필요한 JAR·AI 산출물과 검사 출처 복원 |
-| `unity:package-cleanup` | `unity:editor-and-webgl`과 같은 실행 조건, 전달 작업 이후 성공·실패에 관계없이 실행 | 해당 빌드 작업의 임시 WebGL 패키지만 정리 |
+| `unity:package-cleanup` | `unity:webgl-build`와 같은 실행 조건, 전달 작업 이후 성공·실패에 관계없이 실행 | 해당 빌드 작업의 임시 WebGL 패키지만 정리 |
 | `ai:check-and-test` | AI, API 명세 또는 공통 CI·작성 지침 변경 | Python 3.12·Ruff 검사, 피드백·워커 테스트, 구문 컴파일, JUnit·소스 아카이브·커밋 식별자 |
 | `ai:panel-tests` | AI 피드백, API 명세 또는 공통 CI·작성 지침 변경 | Node.js 22의 피드백 패널 테스트 |
 | `infra:compose-and-nginx` | 확인용 Compose가 존재하고 관련 설정·공통 CI 변경 | 개발·운영 Compose 해석, 호스트 프록시와 두 환경 응답 템플릿의 Nginx 문법 검사 |
@@ -79,7 +79,7 @@ MR의 Unity 작업은 공통 workflow나 다른 영역의 CI 파일 변경만으
 
 작업 선택을 검증할 때는 CI 설정이 있는 버전을 대상으로 별도 Draft MR을 만듭니다. 대상과의 차이가 위 표의 한 영역에만 남도록 변경한 뒤, 파이프라인의 작업 목록과 결과를 확인합니다. 다음 사례로 바꿀 때 이전 검증용 변경을 복원합니다. 검증용 변경은 실제 CI MR이나 `dev`에 병합하지 않으며, 파이프라인·커밋별 결과는 검증 MR과 Jira에 기록합니다. 열린 MR에 Push한 커밋에서 MR 파이프라인만 생성되는지도 확인합니다. `ci:yaml` 로그의 실행 원인·커밋·대상 브랜치·MR 비교 기준을 작업 목록과 함께 확인할 수 있습니다.
 
-Unity 관련 MR은 포맷 검사와 최종 커밋의 로컬 EditMode·PlayMode 전체 검사가 필요합니다. 작성자는 검사한 커밋 SHA·작업 트리 변경 여부·테스트 결과를 MR에 기록하고, 최종 변경 후 재검사합니다. 실패·미실행이면 해결 전 병합하지 않습니다. GitLab은 로컬 검사 결과를 자동으로 확인하지 않습니다. dev 병합 후에는 입력이 같은 MR 검사 결과를 재사용하고 나머지 연관 영역 검사·필요한 WebGL 빌드·배포를 수행합니다. 개발 배포는 Editor 전체 테스트를 실행하지 않습니다. 운영 배포와 보호된 후보의 수동 연결 시험에는 전체 검사를 수행하는 `unity:editor-and-webgl`을 사용합니다. 재사용 조건과 출처는 [MR 결과 재사용](dev-auto-deployment.md#mr-결과-재사용), 실행 조건은 [Windows Unity Runner](unity/windows-runner.md)를 따릅니다. Runner Online 상태만으로 테스트·빌드 성공으로 판단하지 않습니다. AI 단위 테스트는 모의 공급자로 실행하며 실제 모델 호출·GPU·음성 모델 기동은 검증 범위에 포함하지 않습니다.
+Unity 관련 MR은 포맷 검사와 최종 커밋의 로컬 EditMode·PlayMode 전체 검사가 필요합니다. 작성자는 검사한 커밋 SHA·작업 트리 변경 여부·테스트 결과를 MR에 기록하고, 최종 변경 후 재검사합니다. 실패·미실행이면 해결 전 병합하지 않습니다. GitLab은 로컬 검사 결과를 자동으로 확인하지 않습니다. dev 병합 후에는 입력이 같은 MR 검사 결과를 재사용하고 나머지 연관 영역 검사·필요한 WebGL 빌드·배포를 수행합니다. 개발 배포는 Editor 전체 테스트를 실행하지 않습니다. 운영 배포와 보호된 후보의 수동 연결 시험에는 전체 검사를 수행하는 `unity:editor-tests`을 사용합니다. 재사용 조건과 출처는 [MR 결과 재사용](dev-auto-deployment.md#mr-결과-재사용), 실행 조건은 [Windows Unity Runner](unity/windows-runner.md)를 따릅니다. Runner Online 상태만으로 테스트·빌드 성공으로 판단하지 않습니다. AI 단위 테스트는 모의 공급자로 실행하며 실제 모델 호출·GPU·음성 모델 기동은 검증 범위에 포함하지 않습니다.
 
 일반 MR 파이프라인은 검사를 수행하며 서버 앱을 교체하지 않습니다. dev 자동 배포의 보호 조건, 자식 파이프라인, 서버 설치와 연결 시험은 [dev 자동 배포 운영](dev-auto-deployment.md)을 따릅니다. 운영 통합 테스트는 별도 릴리스 검증으로 관리합니다. 마지막 성공 배포 이후 누적 변경 판정은 배포 구현의 책임이며 CI의 `rules:changes`만으로 해결했다고 간주하지 않습니다.
 
@@ -104,7 +104,7 @@ Unity 관련 MR은 포맷 검사와 최종 커밋의 로컬 EditMode·PlayMode �
 - 이름 바꾸기도 삭제와 추가로 나눠 비교하므로, 스크립트를 템플릿 폴더로 옮긴 변경은 전체를 실행합니다.
 - 일부 테스트만 실행해도 Unity는 프로젝트 전체를 컴파일합니다. Blender 입력은 전체 검사 또는 `A305.Tripo.*` 테스트를 선택했을 때 준비합니다.
 - asmdef 참조는 씬의 직렬화 연결을 모두 표현하지 못하므로 씬·프리팹 변경은 전체 검사와 직접 Play 검수로 확인합니다. 기준은 [변경 영역별 CI/CD 구성 기준](ci-cd.md#1-변경-영역별-기본-검증과-배포)을 따릅니다.
-- `unity:editor-and-webgl`과 `-ChangedSince` 없이 실행한 `run-unity-ci.ps1 -Action test`는 항상 전체를 실행합니다.
+- `unity:editor-tests`과 `-ChangedSince` 없이 실행한 `run-unity-ci.ps1 -Action test`는 항상 전체를 실행합니다.
 
 범위 판정 테스트 `infra/scripts/tests/test_unity_test_scope.py`는 Windows 전용이라 Linux CI에서는 건너뜁니다. 실행 명령은 [Windows Unity Runner](unity/windows-runner.md#실행-스크립트와-결과)를 따릅니다.
 

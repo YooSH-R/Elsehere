@@ -21,8 +21,13 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator OffDutyResidentsReserveDifferentFacilitiesAndStreetWalks()
         {
-            yield return LoadTown();
+            yield return LoadTown(6 * 60 + 45);
             var trips = NpcOutings.Shared.Trips.ToArray();
+            // 24시간 상주 직원 대신 밤 근무를 마친 교대 직원들의 여가를 확인한다.
+            Assert.That(
+                trips.Any(trip => trip.Npc == "BARBER_STAFF" || trip.Npc == "POST_OFFICE_STAFF"),
+                Is.False
+            );
             Assert.That(trips.Length, Is.GreaterThan(4));
             Assert.That(
                 trips.Select(trip => trip.Venue.Code).Distinct().Count(),

@@ -161,7 +161,21 @@ namespace A305.Npc.PlayModeTests
                 .Teleport(new Vector3(0, .12f, -2f), Quaternion.identity);
             NpcRoutine ray = Routine("FIRE_CAPTAIN");
             NpcRoutine rosa = Routine("DINER_STAFF");
-            Bounds counterBounds = SolidBounds(NearestPlaced("counter", rosa.transform));
+            // 호버용 단어 영역에는 충돌체가 없을 수 있으므로 실제 카운터의 보이는 영역으로 거리를 잰다.
+            Bounds[] counters = Object
+                .FindObjectsByType<HoverableObject>(FindObjectsSortMode.None)
+                .Where(item => item.UnityKey == "counter" || item.UnityKey == "reception_desk")
+                .Select(item => item.GetComponentsInChildren<Renderer>())
+                .Where(renderers => renderers.Length > 0)
+                .Select(renderers =>
+                {
+                    Bounds bounds = renderers[0].bounds;
+                    foreach (Renderer renderer in renderers)
+                        bounds.Encapsulate(renderer.bounds);
+                    return bounds;
+                })
+                .ToArray();
+            Assert.That(counters, Is.Not.Empty, "실제 카운터가 있어야 거리 검사가 유효하다.");
             Vector3 startingPosition = ray.transform.position;
             yield return new WaitForSeconds(30);
 
@@ -170,18 +184,21 @@ namespace A305.Npc.PlayModeTests
                 Is.LessThan(.2f),
                 "밤 교대 직원은 자기 자리를 지켜야 합니다."
             );
-            Vector3 nearestCounterPoint = counterBounds.ClosestPoint(
-                new Vector3(
-                    ray.transform.position.x,
-                    counterBounds.center.y,
-                    ray.transform.position.z
-                )
-            );
-            Assert.That(
-                HorizontalDistance(ray.transform.position, nearestCounterPoint),
-                Is.GreaterThan(1.5f),
-                "밤 교대 직원은 카운터로 가지 않아야 합니다."
-            );
+            foreach (Bounds counter in counters)
+            {
+                Vector3 nearestCounterPoint = counter.ClosestPoint(
+                    new Vector3(
+                        ray.transform.position.x,
+                        counter.center.y,
+                        ray.transform.position.z
+                    )
+                );
+                Assert.That(
+                    HorizontalDistance(ray.transform.position, nearestCounterPoint),
+                    Is.GreaterThan(1.5f),
+                    "밤 교대 직원은 카운터로 가지 않아야 합니다."
+                );
+            }
             Assert.That(
                 HorizontalDistance(ray.transform, rosa.transform),
                 Is.GreaterThan(1f),

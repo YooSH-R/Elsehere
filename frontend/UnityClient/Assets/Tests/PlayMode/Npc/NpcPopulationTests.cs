@@ -166,14 +166,14 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator Town_ScheduledSpawnKeepsTheVisualAboveTheGround()
         {
-            SetClock(195);
+            SetClock(17 * 60 + 45);
             yield return LoadWithoutApis("TownScene");
             Object
                 .FindFirstObjectByType<PlayerMover>()
                 .Teleport(new Vector3(0, 100, 0), Quaternion.identity);
             var walker = Object
                 .FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None)
-                .Single(item => item.GetComponent<NpcIdentity>().Code == "BARBER_STAFF");
+                .Single(item => item.GetComponent<NpcIdentity>().Code == "FIRE_ROOKIE");
             var skin = walker
                 .GetComponentsInChildren<SkinnedMeshRenderer>()
                 .OrderByDescending(item => item.sharedMesh.vertexCount)
@@ -945,34 +945,25 @@ namespace A305.Npc.PlayModeTests
             Assert.That(server.gameObject.activeSelf, Is.True);
         }
 
-        // 플레이어가 매장 안에 있을 때 직원은 근무 10분 전에 마을 문으로 들어온 것처럼 문 안쪽 도착 지점에 나타난다.
+        // 퀘스트 우체국 직원은 새벽에도 상주하며, 예전 출근 시각에 문 쪽으로 다시 생성되지 않는다.
         [UnityTest]
-        public IEnumerator PostOffice_StaffWalkInThroughTheTownDoorBeforeTheShift()
+        public IEnumerator PostOffice_QuestStaffStayInsideAcrossTheFormerShiftStart()
         {
             SetClock(5 * 60 + 46);
             yield return LoadWithoutApis("PostOfficeInterior");
             NpcIdentity staff = Object
                 .FindFirstObjectByType<NpcPopulation>()
                 .FindWorker("POST_OFFICE_STAFF");
-            Assert.That(staff.gameObject.activeSelf, Is.False, "준비: 6시 근무 14분 전");
-
+            Assert.That(staff.gameObject.activeInHierarchy, Is.True);
+            Vector3 post = staff.transform.position;
             Tick(5 * 60 + 50, 1);
             yield return null;
             yield return null;
-
-            Transform entry = Object
-                .FindObjectsByType<SpaceDoorway>(FindObjectsSortMode.None)
-                .Single(door => door.DestinationScene == "TownScene")
-                .ArrivalPoint;
-            Assert.That(staff.gameObject.activeSelf, Is.True);
+            Assert.That(staff.gameObject.activeInHierarchy, Is.True);
             Assert.That(
-                HorizontalDistance(staff.transform.position, entry.position),
-                Is.LessThan(1f)
-            );
-            Assert.That(
-                NpcWorkArrivals.HasArrived("POST_OFFICE_STAFF", 6 * 60),
-                Is.True,
-                "마을로 나가도 이미 들어온 직원은 길에 다시 나오지 않는다."
+                HorizontalDistance(staff.transform.position, post),
+                Is.LessThan(.5f),
+                "상주 직원을 출입문으로 다시 옮기지 않는다."
             );
         }
 
@@ -1034,25 +1025,25 @@ namespace A305.Npc.PlayModeTests
             SetClock(8 * 60);
         }
 
-        // 매장 직원은 근무 중에만 매장 장면 안에 있다. 복습하러 찾아가면 퇴근한 뒤에도 그 방문 동안만 매장에 나온다.
+        // 실제 교대 직원은 퇴근 후 복습 방문 동안만 나타나고, 상주 직원과 구분한다.
         [UnityTest]
         public IEnumerator ReviewVisit_OffDutyStaffAppearOnlyForTheVisit()
         {
-            SetClock(21 * 60);
+            SetClock(9 * 60);
             yield return SceneManager.LoadSceneAsync("BloomFlowersInterior");
             yield return null;
             NpcIdentity staff = Object
                 .FindFirstObjectByType<NpcPopulation>()
-                .FindWorker("FLOWER_SHOP_STAFF");
+                .FindWorker("HOTEL_CONCIERGE");
             Assert.That(staff, Is.Not.Null, "꽃집 직원은 꽃집 장면에 있습니다.");
             Assert.That(staff.gameObject.activeSelf, Is.False, "퇴근 시각에는 매장에 없습니다.");
-            using (var visit = new NpcReviewPresence("FLOWER_SHOP_STAFF"))
+            using (var visit = new NpcReviewPresence("HOTEL_CONCIERGE"))
             {
                 yield return null;
                 yield return null;
                 Assert.That(staff.gameObject.activeInHierarchy, Is.True);
                 Assert.That(NpcDuty.MissionNpcCode, Is.Null);
-                Assert.That(GameClock.Shared.Minutes, Is.EqualTo(21 * 60));
+                Assert.That(GameClock.Shared.Minutes, Is.EqualTo(9 * 60));
             }
             yield return null;
             yield return null;
@@ -1061,6 +1052,29 @@ namespace A305.Npc.PlayModeTests
                 Is.False,
                 "복습 요청을 해제하면 퇴근 상태로 돌아갑니다."
             );
+        }
+
+        [UnityTest]
+        public IEnumerator ReviewVisit_QuestStaffRemainAfterTheVisitEnds()
+        {
+            SetClock(21 * 60);
+            yield return LoadWithoutApis("BloomFlowersInterior");
+            NpcIdentity staff = Object
+                .FindFirstObjectByType<NpcPopulation>()
+                .FindWorker("FLOWER_SHOP_STAFF");
+            Assert.That(staff.gameObject.activeInHierarchy, Is.True);
+            using (var visit = new NpcReviewPresence("FLOWER_SHOP_STAFF"))
+            {
+                yield return null;
+                Assert.That(staff.gameObject.activeInHierarchy, Is.True);
+            }
+            yield return null;
+            Assert.That(
+                staff.gameObject.activeInHierarchy,
+                Is.True,
+                "복습이 끝나도 24시간 상주 직원을 숨기지 않는다."
+            );
+            Assert.That(NpcDuty.MissionNpcCode, Is.Null);
         }
 
         [UnityTest]

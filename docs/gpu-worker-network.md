@@ -83,6 +83,7 @@ install -m 600 infra/compose/compose.prod-worker-network.yaml \
 | `GUARD_GPU_MODEL` | `guard-qwen3.8-27b-r16` |
 | `GUARD_GPU_BASE_URL` | `http://172.30.0.1:18432/v1` |
 | `JUDGE_GPU_MODEL` | 비움. GPU 서버 의도 판정은 개발 서버에서 지연·대체 비율·사건 분포를 확인한 뒤 정함 |
+| `NPC_GPU_MODEL` | 비움. GPU 서버 NPC 대답 LoRA는 개발 서버에서 지연·대체 비율을 확인한 뒤 정함 |
 | `TTS_GPU_BASE_URL` | `http://172.30.0.1:18433` |
 | `STT_GPU_TOKEN`·`GUARD_GPU_TOKEN`·`TTS_GPU_TOKEN` | 같은 GPU 서비스의 개발 설정과 일치하는 값. 화면·저장소에 출력하지 않음 |
 

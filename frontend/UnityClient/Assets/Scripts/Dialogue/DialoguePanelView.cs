@@ -19,7 +19,7 @@ namespace A305.Dialogue
     /// [뜻 보기]를 펼친 동안 대사의 풀이 단어를 누르면 그 단어 근처에 뜻과 [단어장에 저장]이 있는 호버 카드를 띄운다.
     /// NPC 대사를 음성으로 들려주는 대화는 [자막]으로 대사를 단어마다 회색 막대로 가려 듣고 이해하게 한다. 처음에는 자막이 꺼져 있다.
     /// </summary>
-    public class DialoguePanelView : MonoBehaviour
+    public partial class DialoguePanelView : MonoBehaviour
     {
         private const string TalkCaption = "말하기";
         private const string StopTalkCaption = "종료";
@@ -88,9 +88,7 @@ namespace A305.Dialogue
         private RectTransform otherRowTemplate;
 
         [SerializeField]
-        [Tooltip(
-            "카드 아래에 고정된 [다른 표현 N개 더 보기]·[접기]. 글자 칸 밖에 있어 스크롤해도 가려지지 않는다."
-        )]
+        [Tooltip("카드 머리줄의 다른 표현 펼치기·접기. 스크롤과 분리한다.")]
         private Button othersButton;
 
         [SerializeField]
@@ -103,8 +101,6 @@ namespace A305.Dialogue
         /// <summary>고친 문장 없이 다른 표현만 있을 때(맞게 말했을 때)의 카드 제목.</summary>
         public const string WellSaidHeading = "잘 말했어요";
 
-        // 카드 아래 [더 보기] 칸의 높이. 다른 표현이 없으면 이 칸을 두지 않고 글자 칸이 카드 아래까지 내려온다.
-        private const float OthersFooterHeight = 56;
         private const float CardBottomPadding = 20;
 
         private readonly List<RectTransform> otherRows = new List<RectTransform>();
@@ -455,7 +451,7 @@ namespace A305.Dialogue
         /// <summary>주고받은 대사 칸. 튜토리얼 코치 마크가 대화 시작 티칭에서 밝힌다.</summary>
         public RectTransform LinesRect => (RectTransform)historyScroll.transform;
 
-        /// <summary>대화창 도구 줄의 [자막 켜기]·[다시 듣기]·[뜻] 중 보이는 버튼.</summary>
+        /// <summary>대화창 도구 줄의 [자막]·[다시 듣기]·[뜻] 중 보이는 버튼.</summary>
         public IReadOnlyList<RectTransform> ToolParts
         {
             get
@@ -542,8 +538,6 @@ namespace A305.Dialogue
         public void Show(IDialogueContent shownContent)
         {
             SetEndButtonHighlight(false);
-            // 자막을 켰던 기록이 있어도 새 대화는 먼저 듣도록 시작한다.
-            NpcSubtitlePreference.ShowsSubtitles = false;
             content = shownContent;
             isMeaningVisible = false;
             // 저장한 단어 표시는 이번 대화 안에서만 기억한다.
@@ -561,6 +555,7 @@ namespace A305.Dialogue
 
         public void Hide()
         {
+            CloseExpressionWindow();
             SetPerformanceState(false, false, false, false);
             SetEndButtonHighlight(false);
             content = null;
@@ -736,8 +731,15 @@ namespace A305.Dialogue
             talkButton.gameObject.SetActive(talk.IsVisible);
             talkButton.interactable = talk.Action != TalkButtonAction.None;
             TalkGroup.alpha = talk.LooksAvailable ? 1f : UnavailableTalkAlpha;
-            replayButton.gameObject.SetActive(content.CanReplaySpeech);
-            replayButton.interactable = content.LastNpcLine != null && !content.IsBusy;
+            bool preparingOpening =
+                content.SpeaksNpcLines
+                && (
+                    content.Waiting == DialogueWait.Opening
+                    || (content.LastNpcLine == null && !content.CanRetry)
+                );
+            replayButton.gameObject.SetActive(preparingOpening || content.CanReplaySpeech);
+            replayButton.interactable =
+                content.CanReplaySpeech && content.LastNpcLine != null && !content.IsBusy;
             hintButton.gameObject.SetActive(content.HasHint);
             hintButton.interactable = content.LastNpcLine != null && content.CanSend;
             retryButton.gameObject.SetActive(content.CanRetry);
@@ -745,7 +747,8 @@ namespace A305.Dialogue
             UpdateLayout();
             Canvas.ForceUpdateCanvases();
             // 대사가 쌓이면 가장 최근 대사와 뜻이 보이게 맨 아래로 내린다. 지난 대사는 위로 스크롤해 다시 본다.
-            historyScroll.verticalNormalizedPosition = 0;
+            historyScroll.verticalNormalizedPosition =
+                historyScroll.content.rect.height <= historyScroll.viewport.rect.height + 1 ? 1 : 0;
         }
 
         private string pronunciationNotice;
@@ -777,8 +780,8 @@ namespace A305.Dialogue
 
         /// <summary>
         /// 영어 표현 카드(S15P31A305-862). 위에는 상황별 제목과, 고친 문장·영어 번역이 있으면 바뀐 곳을 표시한 전체 문장과 [듣기]를 둔다.
-        /// 다른 표현이 있으면 늘 접어 두고, 아래에 고정된 [다른 표현 N개 더 보기]로 펼치면 문장마다 번호 칸으로 나눠 보인다.
-        /// 카드는 내용만큼만 차지하고 대화창을 늘리지 않으며, 넘치는 내용은 글자 칸 안에서 스크롤한다.
+        /// 다른 표현이 있으면 늘 접어 두고, 머리줄의 [다른 표현]으로 펼치면 문장마다 번호 칸으로 나눠 보인다.
+        /// 카드는 화면 안의 여유 공간까지 늘어나며, 넘치는 내용은 글자 칸 안에서 스크롤한다.
         /// </summary>
         private void ShowTranslation()
         {
@@ -791,6 +794,7 @@ namespace A305.Dialogue
             // 다음 말을 하면 다른 표현은 다시 접고 맨 위부터 보인다.
             if (shownTranslation != expression || !ReferenceEquals(shownOthers, others))
             {
+                CloseExpressionWindow();
                 othersOpen = false;
                 translationBody.anchoredPosition = Vector2.zero;
             }
@@ -816,16 +820,8 @@ namespace A305.Dialogue
             othersDivider.gameObject.SetActive(hasOthers);
             othersButton.GetComponentInChildren<TMP_Text>(true).text = othersOpen
                 ? "접기"
-                : $"다른 표현 {others?.Count ?? 0}개 더 보기";
-            // 글자 칸과 스크롤 막대는 [더 보기] 칸 위까지만 내려와 버튼과 겹치지 않는다.
-            float bottom = hasOthers ? OthersFooterHeight : CardBottomPadding;
-            var viewport = (RectTransform)translationBody.parent;
-            viewport.offsetMin = new Vector2(viewport.offsetMin.x, bottom);
-            if (TranslationScroll.verticalScrollbar != null)
-            {
-                var bar = (RectTransform)TranslationScroll.verticalScrollbar.transform;
-                bar.offsetMin = new Vector2(bar.offsetMin.x, bottom);
-            }
+                : $"다른 표현 {others?.Count ?? 0}개";
+            ApplyExpressionHeader(hasExpression, hasOthers);
             othersHeading.gameObject.SetActive(hasOthers && othersOpen);
             ShowOtherRows(hasOthers && othersOpen ? others : Array.Empty<string>());
             TranslationScroll.content = translationBody;
@@ -854,7 +850,7 @@ namespace A305.Dialogue
             }
         }
 
-        // [다른 표현 N개 더 보기]·[접기]. 펼치거나 접을 때마다 맨 위부터 보인다. 펼친 만큼 대화창이 커진다.
+        // 머리줄의 다른 표현·접기. 펼치거나 접을 때마다 맨 위부터 보인다.
         private void ToggleOtherExpressions()
         {
             othersOpen = !othersOpen;
@@ -862,46 +858,6 @@ namespace A305.Dialogue
             Refresh();
         }
 
-        // 카드가 대화창 최대 높이(maxHeight)에 걸려 내용이 남으면, 아래 경계가 다음 줄이나 문장 칸의 가운데를 지나도록 높이를 낮춘다.
-        // 다음 내용이 반쯤 보여 아래에 더 있다는 걸 알 수 있다. 맞출 곳이 없으면 그대로 둔다.
-        private float PeekingCardHeight(float maxHeight)
-        {
-            var viewport = (RectTransform)translationBody.parent;
-            float chrome = translationCard.rect.height - viewport.rect.height;
-            float room = maxHeight - chrome;
-            float cut = 0;
-            foreach ((float top, float bottom) in BodyPieces())
-            {
-                float middle = (top + bottom) / 2;
-                if (middle > room)
-                    break;
-                cut = middle;
-            }
-            return cut > 0 ? chrome + cut : maxHeight;
-        }
-
-        // 카드 글자 칸에 쌓인 조각의 (위, 아래). 고친 문장은 줄마다, '이렇게도 말할 수 있어요'와 다른 표현은 칸마다 한 조각이다.
-        private IEnumerable<(float Top, float Bottom)> BodyPieces()
-        {
-            foreach (RectTransform piece in translationBody)
-            {
-                if (!piece.gameObject.activeSelf)
-                    continue;
-                float top = -piece.anchoredPosition.y - piece.rect.height * (1 - piece.pivot.y);
-                if (piece == translationText.rectTransform)
-                {
-                    translationText.ForceMeshUpdate();
-                    int lines = Mathf.Max(1, translationText.textInfo.lineCount);
-                    float line = piece.rect.height / lines;
-                    for (int index = 0; index < lines; index++)
-                        yield return (top + index * line, top + (index + 1) * line);
-                }
-                else
-                    yield return (top, top + piece.rect.height);
-            }
-        }
-
-        /// <summary>카드의 표현이 방금 영어로 한 말의 교정문인지. 마지막 내 말에 한글이 있으면 번역이다.</summary>
         private bool IsCorrection()
         {
             DialogueLine said = content.Lines?.LastOrDefault(line => !line.IsNpc);
@@ -1159,8 +1115,7 @@ namespace A305.Dialogue
                 ? DisableSubtitlesCaption
                 : EnableSubtitlesCaption;
             if (subtitleButton.TryGetComponent(out ThemedElement theme))
-                // 입체 버튼의 그림자 여백이 이 낮은 도구 버튼만 두꺼워 보이게 하므로 세로 여백을 줄인다.
-                theme.SetSelected(showsSubtitles, .35f);
+                theme.SetSelected(showsSubtitles, keepGhostOutline: true);
         }
 
         private void ToggleSubtitles()
@@ -1559,17 +1514,6 @@ namespace A305.Dialogue
                 cardHeight,
                 roomAboveName
             );
-            // 카드가 대화창 최대 높이에 걸렸으면 다음 내용이 반쯤 보이는 높이로 다시 놓는다.
-            if (hasTranslation && layout.Translation.height < cardHeight - .5f)
-                layout = DialogueCinemaLayout.Compute(
-                    lastCanvasSize,
-                    linesHeight,
-                    nameWidth,
-                    hasEarlierLines,
-                    hasTranslation,
-                    PeekingCardHeight(layout.Translation.height),
-                    roomAboveName
-                );
             frame.anchorMin = Vector2.zero;
             frame.anchorMax = new Vector2(1, 0);
             frame.pivot = new Vector2(.5f, 0);
@@ -1622,7 +1566,11 @@ namespace A305.Dialogue
                 );
             }
             Canvas.ForceUpdateCanvases();
-            historyScroll.verticalNormalizedPosition = scroll;
+            AlignDialogueContent();
+            historyScroll.verticalNormalizedPosition =
+                historyScroll.content.rect.height <= historyScroll.viewport.rect.height + 1
+                    ? 1
+                    : scroll;
             CoverHiddenWords();
             PlaceWordCard();
             // 음성 동의처럼 긴 안내는 글자를 줄여 한 줄에 맞춘다.
@@ -1711,7 +1659,9 @@ namespace A305.Dialogue
             var viewport = (RectTransform)translationBody.parent;
             float chrome = translationCard.rect.height - viewport.rect.height;
             LayoutRebuilder.ForceRebuildLayoutImmediate(translationBody);
-            return chrome + LayoutUtility.GetPreferredHeight(translationBody);
+            return othersOpen
+                ? 490
+                : Mathf.Max(160, chrome + LayoutUtility.GetPreferredHeight(translationBody));
         }
 
         // 발화 수가 아니라 실제 글꼴·폭으로 줄바꿈된 다섯 줄을 상한으로 삼는다.
@@ -1744,22 +1694,48 @@ namespace A305.Dialogue
             return Mathf.Max(0, height);
         }
 
+        private const float ToolButtonPadding = 24f;
+
         // [다시 시도]·[대화 종료]를 이름 줄 오른쪽 끝에 두고, 나머지 도구는 그 왼쪽에 오른쪽 정렬로 붙인다.
         // 대화 종류에 따라 숨는 버튼이 있어 보이는 버튼의 폭으로 자리를 정하고, 도구가 시작하는 왼쪽 끝을 돌려준다.
         private float PlaceTools(Rect row)
         {
             var ends = (RectTransform)endButton.transform.parent;
+            var tools = (RectTransform)meaningButton.transform.parent;
+            FitToolButtonsToLabels(ends);
+            FitToolButtonsToLabels(tools);
             LayoutRebuilder.ForceRebuildLayoutImmediate(ends);
             float endsWidth = LayoutUtility.GetPreferredWidth(ends);
             Place(ends, Rect.MinMaxRect(row.xMax - endsWidth, row.yMin, row.xMax, row.yMax));
-            var tools = (RectTransform)meaningButton.transform.parent;
-            float toolsRight = row.xMax - endsWidth - DialogueCinemaLayout.Gap;
+            float toolsRight =
+                row.xMax - endsWidth - tools.GetComponent<HorizontalLayoutGroup>().spacing;
             Place(
                 tools,
                 Rect.MinMaxRect(row.xMin, row.yMin, Mathf.Max(row.xMin, toolsRight), row.yMax)
             );
             LayoutRebuilder.ForceRebuildLayoutImmediate(tools);
             return toolsRight - LayoutUtility.GetPreferredWidth(tools);
+        }
+
+        private void FitToolButtonsToLabels(RectTransform row)
+        {
+            foreach (Transform button in row)
+            {
+                if (
+                    !button.gameObject.activeSelf || !button.TryGetComponent(out LayoutElement size)
+                )
+                    continue;
+
+                TMP_Text label = button.Find("Label").GetComponent<TMP_Text>();
+                float labelWidth = label.GetPreferredValues(label.text).x;
+                // 두 문구 중 긴 쪽을 기준으로 잡아 자막을 켜고 끌 때 옆 버튼도 움직이지 않게 한다.
+                if (button == subtitleButton.transform)
+                    labelWidth = Mathf.Max(
+                        label.GetPreferredValues(EnableSubtitlesCaption).x,
+                        label.GetPreferredValues(DisableSubtitlesCaption).x
+                    );
+                size.minWidth = size.preferredWidth = labelWidth + 2 * ToolButtonPadding;
+            }
         }
 
         private static void Place(RectTransform rect, Rect area)

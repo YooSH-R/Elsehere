@@ -119,7 +119,7 @@
         {
             "sceneCode": "TOWN",
             "unityKey": "TownScene",
-            "objectCount": 3613,
+            "objectCount": 3618,
             "detailCount": 121,
             "wordKeys": [
                 "awning",
@@ -225,6 +225,7 @@
                 "word_5aa5c077f56247047be360a583703f0f",
                 "word_5ca110b3066a4e04f83c2f7776bb5070",
                 "word_5ef79e2727edae54ab972ddb33844750",
+                "word_63e4d2f608e230d4da895baa59336f47",
                 "word_6f2d682aa1edd004a86774dbc32603a3",
                 "word_6fcf1f9c3c1a4f54499c6072d2b9f385",
                 "word_856ac06ac71774f41bd23a7b97da2cc1",
@@ -237,6 +238,7 @@
                 "word_be12390675add1b488faf55f8e9aeb96",
                 "word_cfe407d309ec44540a66769b307075c8",
                 "word_e438a4ee4f2a3494eaadb31ccfda0859",
+                "word_ebe79357906436b43bd7f4930af8b584",
                 "word_efe358bf0753d334891d16f6961a2d08",
                 "word_f1493503fe49b48488b6a1674ff150cd",
                 "word_f7bedd45ef4077348a8fb4ff422f2399",
@@ -266,7 +268,9 @@
                 "trash_can",
                 "wall",
                 "window",
-                "word_a115a59d89b32af4bbbe5aa6c17f8273"
+                "word_048de87fda675024a9dd857d496c8ff4",
+                "word_a115a59d89b32af4bbbe5aa6c17f8273",
+                "word_dc8c065ff0dcb2e43b6ca55e68349494"
             ]
         },
         {
@@ -1009,7 +1013,7 @@
             "path": "Assets/Prefabs/World/Drugstore/CoffeeCounter.prefab",
             "wordKeys": [
                 "coffee_machine",
-                "counter"
+                "word_dc8c065ff0dcb2e43b6ca55e68349494"
             ]
         },
         {
@@ -1035,7 +1039,6 @@
             "wordKeys": [
                 "ceiling",
                 "coffee_machine",
-                "counter",
                 "crate",
                 "door",
                 "floor",
@@ -1049,7 +1052,9 @@
                 "trash_can",
                 "wall",
                 "window",
-                "word_a115a59d89b32af4bbbe5aa6c17f8273"
+                "word_048de87fda675024a9dd857d496c8ff4",
+                "word_a115a59d89b32af4bbbe5aa6c17f8273",
+                "word_dc8c065ff0dcb2e43b6ca55e68349494"
             ]
         },
         {
@@ -1078,13 +1083,6 @@
             "path": "Assets/Prefabs/World/Drugstore/PantryShelf.prefab",
             "wordKeys": [
                 "shelf"
-            ]
-        },
-        {
-            "guid": "684b748a245212e419c52d59ddc72923",
-            "path": "Assets/Prefabs/World/Drugstore/PharmacyCounter.prefab",
-            "wordKeys": [
-                "counter"
             ]
         },
         {
@@ -1490,7 +1488,9 @@
                 "word_0a8bd7882c5b7b04e84b90f02a9345c1",
                 "word_2ed81ce347fb9724d8df37ac679e41d9",
                 "word_369eb9ba5bdd95a4e82191d96b289f34",
-                "word_44f9cc0d067b770438b25673c21c1358"
+                "word_44f9cc0d067b770438b25673c21c1358",
+                "word_63e4d2f608e230d4da895baa59336f47",
+                "word_ebe79357906436b43bd7f4930af8b584"
             ]
         },
         {
@@ -1985,7 +1985,9 @@
                 "trash_can",
                 "word_0a8bd7882c5b7b04e84b90f02a9345c1",
                 "word_369eb9ba5bdd95a4e82191d96b289f34",
-                "word_44f9cc0d067b770438b25673c21c1358"
+                "word_44f9cc0d067b770438b25673c21c1358",
+                "word_63e4d2f608e230d4da895baa59336f47",
+                "word_ebe79357906436b43bd7f4930af8b584"
             ]
         },
         {
@@ -2102,7 +2104,8 @@
                 "note",
                 "shelf",
                 "sign",
-                "trash_can"
+                "trash_can",
+                "word_63e4d2f608e230d4da895baa59336f47"
             ]
         },
         {
@@ -2123,7 +2126,8 @@
                 "stove",
                 "word_2b9999d8d017255459f2137b005edde2",
                 "word_49eee5ac436a87e4b9a91a1c5352bf8a",
-                "word_5aa5c077f56247047be360a583703f0f"
+                "word_5aa5c077f56247047be360a583703f0f",
+                "word_ebe79357906436b43bd7f4930af8b584"
             ]
         },
         {
@@ -2306,6 +2310,13 @@
             ]
         },
         {
+            "guid": "d23d404cd7917ca449e85e5ace8d92dc",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/ChangeMachine.prefab",
+            "wordKeys": [
+                "word_63e4d2f608e230d4da895baa59336f47"
+            ]
+        },
+        {
             "guid": "54f43dd4a2ef48147af2d70ffbc7f372",
             "path": "Assets/Prefabs/World/TownInteriors/Props/CushionChair.prefab",
             "wordKeys": [
@@ -2366,6 +2377,13 @@
             "path": "Assets/Prefabs/World/TownInteriors/Props/FormDesk.prefab",
             "wordKeys": [
                 "table"
+            ]
+        },
+        {
+            "guid": "4bb31e14c399339419bf85fbd3a927a5",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/GumballMachine.prefab",
+            "wordKeys": [
+                "word_ebe79357906436b43bd7f4930af8b584"
             ]
         },
         {
@@ -3253,7 +3271,8 @@
                 "word_2b9999d8d017255459f2137b005edde2",
                 "word_369eb9ba5bdd95a4e82191d96b289f34",
                 "word_49eee5ac436a87e4b9a91a1c5352bf8a",
-                "word_5aa5c077f56247047be360a583703f0f"
+                "word_5aa5c077f56247047be360a583703f0f",
+                "word_ebe79357906436b43bd7f4930af8b584"
             ]
         },
         {
@@ -3340,6 +3359,7 @@
                 "word_0587befb29840ad49a62604219dc7715",
                 "word_386c8564b884cfe47b66fdbc77ec87b9",
                 "word_57d53390c38c2204588cba13f10a5f9a",
+                "word_63e4d2f608e230d4da895baa59336f47",
                 "word_6f2d682aa1edd004a86774dbc32603a3",
                 "word_a469e283225b24f48b585f804e782bec",
                 "word_af4d769b378ec384a8ef3edbaf346e9d",

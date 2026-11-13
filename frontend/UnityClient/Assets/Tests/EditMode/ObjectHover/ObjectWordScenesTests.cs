@@ -1,4 +1,7 @@
+using System.Linq;
 using NUnit.Framework;
+using UnityEditor.SceneManagement;
+using UnityEngine;
 
 namespace A305.ObjectHover.Tests
 {
@@ -41,6 +44,58 @@ namespace A305.ObjectHover.Tests
                 Is.True
             );
             Assert.That(sceneCode, Is.EqualTo("TOWN"));
+        }
+
+        [TestCase("ChangeMachine", "coin changer")]
+        [TestCase("GumballMachine", "gumball machine")]
+        public void ArcadeMachine_HoverAreasShowTheMachineWord(string objectName, string word)
+        {
+            var scene = EditorSceneManager.OpenPreviewScene(
+                "Assets/Scenes/ShopInteriors/LittleArcadeInterior.unity"
+            );
+            try
+            {
+                Transform[] machines = scene
+                    .GetRootGameObjects()
+                    .SelectMany(root => root.GetComponentsInChildren<Transform>())
+                    .Where(target => target.name == objectName)
+                    .ToArray();
+                Assert.That(machines, Is.Not.Empty, objectName);
+                foreach (Transform machine in machines)
+                {
+                    var hitAreas = machine.GetComponentsInChildren<ObjectHoverHitArea>();
+                    Assert.That(hitAreas, Is.Not.Empty, machine.name);
+                    foreach (ObjectHoverHitArea hitArea in hitAreas)
+                    {
+                        Assert.That(hitArea.Target?.Word?.Details.Text, Is.EqualTo(word));
+                    }
+                }
+            }
+            finally
+            {
+                EditorSceneManager.ClosePreviewScene(scene);
+            }
+        }
+
+        [Test]
+        public void DrugstoreCoffeeCounter_HoverShowsCoffeeStation()
+        {
+            var scene = EditorSceneManager.OpenPreviewScene(
+                "Assets/Scenes/Production/ShopScene.unity"
+            );
+            try
+            {
+                HoverableObject station = scene
+                    .GetRootGameObjects()
+                    .SelectMany(root => root.GetComponentsInChildren<HoverableObject>())
+                    .Single(target => target.name == "CoffeeCounter");
+
+                Assert.That(station.Word?.Details.Text, Is.EqualTo("coffee station"));
+            }
+            finally
+            {
+                EditorSceneManager.ClosePreviewScene(scene);
+            }
         }
 
         [Test]

@@ -20,7 +20,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | CONV-01 대화 시작 · 첫 인사 | `/v1/npc/reply` | 이 NPC가 곧 건네기로 한 것(2.7.3절)이 준비됐으면 건네는 지시로 AI가 만듦. 말걸기 대사가 있는 NPC가 먼저 말을 걸면 그 대사(AI 호출 없음). 그 밖에는 인사 지시(`instruction`)로 AI가 만듦. `relationship`도 실으면 알아보는 인사가 됨(2.3절) |
 | CONV-12 추천 단어 | `POST /v1/suggest` | `suggestWords` ← `words`. NPC 대답 응답(CONV-01·03)을 기다리게 하지 않도록 `/v1/npc/reply`는 `suggest_words: false`로 부르고, 대사를 받은 뒤 클라이언트가 CONV-12로 따로 요청함. 끝난 대화의 턴은 요청하지 않음 |
 | CONV-02 음성 인식 | `POST /v1/stt` | `sttRawText` ← `text`, `durationMs` ← `audio_s`×1000. `text: ""`이면 `STT_NO_SPEECH`. 413 `audio_too_large` → `AUDIO_TOO_LARGE`, 415 `audio_format_unsupported` → `AUDIO_FORMAT_UNSUPPORTED` |
-| CONV-03 발화 전송 | `POST /v1/judge`와 `POST /v1/guard`를 동시에 → (Spring 규칙) → `POST /v1/npc/reply` | 판정의 `intent.ids`를 Spring 규칙이 검증해 상태·미션을 확정(`ai_candidates`). 무례 판정은 `/v1/guard`(2.2.1절). 판정의 `events`는 그 학습자 턴에 저장해 이후 `history[].events`로 보냄. 무례가 아닌 턴이면 판정의 `affinity_delta`를 호감에 더함(2.2절). `npcTurn.text` ← `done.text` |
+| CONV-03 발화 전송 | `POST /v1/judge`·`POST /v1/guard`·`POST /v1/expressions`를 동시에 → (Spring 규칙) → `POST /v1/npc/reply` | 대답은 판정·무례 판정만 기다리고, 표현 카드(`/v1/expressions`, 2.2.2절)는 턴을 저장할 때 붙임. 판정의 `intent.ids`를 Spring 규칙이 검증해 상태·미션을 확정(`ai_candidates`). 무례 판정은 `/v1/guard`(2.2.1절). 판정의 `events`는 그 학습자 턴에 저장해 이후 `history[].events`로 보냄. 무례가 아닌 턴이면 판정의 `affinity_delta`를 호감에 더함(2.2절). `npcTurn.text` ← `done.text` |
 | CONV-03 `npcTurn.speech` | `done.audio_full_id` → `GET /v1/audio/{id}` | 턴 전체 음성 하나를 받아 저장(`npc_audio_key`). `null`이면 `speech.status: FAILED` |
 | CONV-03 스트리밍(`Accept: text/event-stream`) | `/v1/npc/reply`를 `stream_chunks: true`로 | `delta` → `delta` 그대로, `audio`의 `audio_id` → `GET /v1/audio/{id}`로 받은 조각 WAV를 base64로 실어 `audio`(`audio_id: null`이면 `wav: null`), `done` → 턴 저장 뒤 `turn`. 판정까지는 JSON 응답과 같음. 판정 결과가 지시문에 들어가지 않는 대화(이 NPC에게 판정할 미션 목표가 없고 경찰 창구·택시가 아님. 미션 중 다른 NPC와의 대화 포함)는 `/v1/judge`·`/v1/guard`와 동시에 `/v1/npc/reply`를 무례·사건 없음으로 먼저 부르고, 판정 뒤 요청이 달라지면 그 스트림을 다음 이벤트에서 끊고 다시 부름. 끊긴 호출은 기록하지 않음 |
 | CONV-04 뜻 보기 | `POST /v1/meaning` | `meaningKo` ← `meaning_ko`, `glossary[].meaningKo` ← `glossary[].meaning_ko` |
@@ -36,7 +36,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 ## 0.1 AI 쪽 규칙 (백엔드 명세에 없는 것)
 
 - **무례 판정**: `/v1/guard`의 `guard.abusive`가 `true`면 무례, `false`면 정상, **`null`이면 판정 못 함**(무례로 세지 않음, 2.2.1절). 무례를 몇 번에 어떻게 제재할지는 Spring 규칙이 정합니다. 누적·퇴장 규칙과 NPC 지시문은 [무례 처리 합의안](rudeness-handling.md)에 있습니다. NPC가 먼저 잘못한 장면의 맞대응(정당방위)은 MVP 장소에 그런 장면이 없어 MVP에서 제외합니다(합의안 4절).
-- **영어 표현 카드**: 학습자 말에 한글이 섞이면 `/v1/judge`가 영어 번역을, 영어에 명확한 문법 오류가 있으면 교정문을 `translation.english`로 줍니다. 화면에는 `english`가 있으면 무례 판정과 관계없이 보여 줍니다. `/v1/guard`의 결과는 NPC 반응과 무례 횟수 처리에 사용하며 번역 카드를 숨기지 않습니다.
+- **영어 표현 카드**: 학습자 말에 한글이 섞이면 `/v1/expressions`가 영어 번역을, 영어에 명확한 문법 오류가 있으면 교정문을 `translation.english`로 줍니다. 화면에는 `english`가 있으면 무례 판정과 관계없이 보여 줍니다. `/v1/guard`의 결과는 NPC 반응과 무례 횟수 처리에 사용하며 번역 카드를 숨기지 않습니다.
 - **행동 묘사**: `*...*`는 지우고 말만 판정합니다. 행동 묘사만 있으면 `dropped: true`이고 턴으로 세지 않습니다.
 - **난이도**: 1.1절 `level` 표. 판정에는 영향이 없습니다.
 - **한 턴 구조**: NPC 한 턴은 `turnId` 하나, 대답 한 줄(난이도에 따라 1~3문장)입니다. 문장으로 쪼개 저장하지 않습니다(뜻 보기·힌트·추천 단어가 턴 단위).
@@ -80,12 +80,13 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | 변수 | 기본 | 적용 |
 |---|---|---|
 | `CALL_TIMEOUT_S` | 8초 | 모델 호출 **한 번**. 넘으면 끊고 재시도·대체 모델 |
-| `JUDGE_HEDGE_AFTER_S` | 2초 | 판정(`/v1/judge`의 의도·번역)만 이 기준으로 같은 요청을 하나 더 보냄. NPC 대답이 판정 결과를 기다려 판정 지연이 그대로 첫 음성 지연이 되기 때문. 평소 판정은 1~2초라 늦은 턴에만 더 보냄 |
+| `JUDGE_HEDGE_AFTER_S` | 2초 | 판정(`/v1/judge`의 의도)만 이 기준으로 같은 요청을 하나 더 보냄. NPC 대답이 판정 결과를 기다려 판정 지연이 그대로 첫 음성 지연이 되기 때문. 평소 판정은 1~2초라 늦은 턴에만 더 보냄 |
 | `HEDGE_AFTER_S` | 3초 | 판정을 뺀 한 번에 받는 호출이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀 (NPC 스트림은 제외). 공급자가 혼잡할 때 응답 없이 멈춘 호출을 기다리지 않기 위함. 평소 응답(gms-luna 판정 p99 약 2.5~3.9초)보다 길게 잡아 평소에는 거의 더 보내지 않음 |
 | `STREAM_HEDGE_AFTER_S` | 2.5초 | NPC 대답 스트림의 **첫 글자**가 이만큼 안 오면 같은 요청 스트림을 하나 더 열어 먼저 글자를 낸 쪽을 씀(진 쪽은 닫음). GMS 스트리밍이 가끔 첫 글자를 10초 넘게 늦게 보내는 것 대비. 평소 첫 글자는 1.7초 안 |
 | `WORDS_BUDGET_S` | 3초 | NPC 대답 스트림 안 추천 단어(`words`). 넘으면 `words: null`, `error: "timeout"`으로 넘기고 `done`을 보냄 |
-| `JUDGE_BUDGET_S` | 5초 | `/v1/judge`의 의도·번역 **각각**. 넘으면 그 칸만 `timeout` 오류 |
+| `JUDGE_BUDGET_S` | 5초 | `/v1/judge`의 의도, `/v1/expressions`의 표현·번역 **각각**. 넘으면 그 칸만 `timeout` 오류(표현은 빈 카드) |
 | `JUDGE_GPU_TIMEOUT_S` | 2초 | GPU 서버 의도 판정 모델(`JUDGE_GPU_MODEL`) 호출 한 번. 평소 0.5초 안팎(동시 20건 p90 약 2.4초). 넘으면 재시도 없이 구성의 의도 모델로. `JUDGE_BUDGET_S` 안에서 셈 |
+| `NPC_GPU_FIRST_TOKEN_S` | 1.5초 | GPU 서버 NPC 대답 LoRA(`NPC_GPU_MODEL`)의 첫 글자. 실측(실제 대답 프롬프트) 동시 1개 0.35초·4개 최대 1.1초·8개 2.7초, 처음 보는 프롬프트(대화 시작·다른 NPC)는 캐시가 없어 0.8~1.0초. 넘으면 재시도 없이 구성의 npc 모델 스트림으로. 동시 상한은 `NPC_GPU_MAX_CONCURRENT`(4) |
 | `GUARD_BUDGET_S` | 5초 | `/v1/guard` 무례 판정 (로컬 판정기 + LLM). 넘으면 `abusive: null`, `error_code: timeout` |
 | `GUARD_GPU_TIMEOUT_S` | 3초 | GPU 서버 판정 모델(`GUARD_GPU_MODEL`) 호출 한 번. 평소 0.3초(10개 동시 약 1초)지만 vLLM이 처음 보는 동시 요청 수에서는 한 번 2.4~2.7초가 걸림. 넘으면 재시도 없이 구성의 판정 모델로. `GUARD_BUDGET_S` 안에서 셈 |
 | `TTS_GPU_TIMEOUT_S` | 10초 | GPU 서버 음성 합성(`TTS_GPU_BASE_URL`) 응답 한 번. 넘으면 재시도 없이 CPU Kokoro로. 여러 사람이 동시에 말하면 GPU 앞에 줄이 서는데(20명분 동시 60조각 최대 약 4~6초), CPU 합성이 훨씬 느려 넉넉히 기다림. NPC 대답 조각은 `TTS_CHUNK_BUDGET_S` 안에서 셈 |
@@ -145,9 +146,9 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 `profile`은 수집 기록의 `profile` 칸에 그대로 남깁니다. `guard_local`은 로컬 무례 판정기를 켰을 때만 `{"model": "v2-mix", "t_lo": 0.05, "t_hi": 0.95}`이고, 끄면(기본) `null`입니다.
 
-### 2.2 `POST /v1/judge` — 의도·번역·영어 교정
+### 2.2 `POST /v1/judge` — 의도·줄 사건
 
-학습자 한 줄의 의도·줄 사건과 영어 문법 교정을 같은 모델 호출에서 판정합니다. 한글이 섞이면 기존 번역 호출을 **동시에** 실행합니다. 영어 교정을 위한 추가 모델 호출은 없습니다. 무례 판정은 하지 않습니다. 같은 줄로 `/v1/guard`(2.2.1절)를 동시에 불러 주세요.
+학습자 한 줄의 의도·줄 사건을 판정합니다. 무례 판정과 표현 카드(번역·영어 교정·다른 표현)는 하지 않습니다. 같은 줄로 `/v1/guard`(2.2.1절)와 `/v1/expressions`(2.2.2절)를 동시에 불러 주세요. NPC 대답이 판정을 기다리므로 판정 출력을 짧게 두려고 표현 카드를 뗐습니다(판정 출력 토큰 중앙 11/13 47개).
 
 요청: `npc`, `scene`(비면 `npc.scene`), `state`(지금 상태: `id`, `desc`, `intents`, `slots`, `current`, `more_intents`, `accumulate_history`, `recent_lines`), `history`(최대 40줄), `text`(최대 500자, 공백만이면 400 `invalid_request`).
 
@@ -179,8 +180,8 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `intent.ids` | 말한 순서대로 최대 3개. Spring이 **하나씩 현재 상태에서 다시 검증**해 적용. `id`는 `ids[0]` |
 | `intent.slots` | 요청 `state.slots`에 있는 칸만. 상품은 `catalog` 안의 이름만, `iced`는 `iced_ok`에 있을 때만. 선택 칸(`option`)은 `labels` 중 하나, 말하지 않았으면 `"none"`. 경찰서 창구는 이 칸(`place`)으로 신고 장소를 고름(백엔드 `PoliceDesk`, 평가 `ai/tools/police_report_eval.py`) |
 | `intent.error` | 의도 판정 실패 시 메시지, 이때 `id`는 `unclear`. **상태·금액을 바꾸지 말고 다시 물을 것** |
-| `translation` | 영어 번역 또는 문법 교정문을 `{"english", "error"}`로 전달. 정상 영어·동일 문장·대소문자/구두점만 다른 경우는 `null`. 생성된 표현이 있으면 무례 판정과 관계없이 기존 카드에 표시(0.1절). 교정 실패가 대화를 막지 않음. 대화에 영어로 나온 이름(상대 NPC, 마을, 가게)은 그 철자로 쓰고, 영어 철자가 없는 이름(한글 닉네임 등)은 로마자로 바꾸지 않고 따옴표 안에 말한 그대로 둡니다(`My name is "김사피".`) |
-| `better_expressions` | 학습자가 한 말과 같은 뜻을 다르게 말하는 자연스러운 영어 문장 1~3개(발화 전체를 다시 쓴 문장). 더 나은 정답이 아니라 골라 쓸 수 있는 다른 표현이며, 자연스러운 것이 하나뿐이면 하나만 줌(억지로 채우지 않음). 맞게 말했을 때도, 고친 문장(`translation`)이 있거나 한글이 섞였을 때도 만듦. 의도 판정과 같은 호출에서 만들고 추가 호출은 없음(판정 출력 상한 320 토큰). 학습자가 한 말, `translation.english`, 서로 겹치는 문장은 뺌. 무슨 뜻인지 알 수 없거나 의도 판정이 실패하거나 `dropped`면 `[]` |
+| `translation` | 항상 `null`(이전 Spring과 맞추려고 남긴 칸). 번역·교정문은 `/v1/expressions`(2.2.2절)의 같은 칸. 아래는 그 칸의 규칙: 영어 번역 또는 문법 교정문을 `{"english", "error"}`로 전달. 정상 영어·동일 문장·대소문자/구두점만 다른 경우는 `null`. 생성된 표현이 있으면 무례 판정과 관계없이 기존 카드에 표시(0.1절). 교정 실패가 대화를 막지 않음. 대화에 영어로 나온 이름(상대 NPC, 마을, 가게)은 그 철자로 쓰고, 영어 철자가 없는 이름(한글 닉네임 등)은 로마자로 바꾸지 않고 따옴표 안에 말한 그대로 둡니다(`My name is "김사피".`) |
+| `better_expressions` | 항상 `[]`(이전 Spring과 맞추려고 남긴 칸). `/v1/expressions`(2.2.2절)의 같은 칸. 아래는 그 칸의 규칙: 학습자가 한 말과 같은 뜻을 다르게 말하는 자연스러운 영어 문장 1~3개(발화 전체를 다시 쓴 문장). 더 나은 정답이 아니라 골라 쓸 수 있는 다른 표현이며, 자연스러운 것이 하나뿐이면 하나만 줌(억지로 채우지 않음). 맞게 말했을 때도, 고친 문장(`translation`)이 있거나 한글이 섞였을 때도 만듦. 교정문과 같은 호출에서 만듦(출력 상한 320 토큰). 학습자가 한 말, `translation.english`, 서로 겹치는 문장은 뺌. 무슨 뜻인지 알 수 없거나 호출이 실패하면 `[]` |
 | `events` | 이 줄에서 학습자가 한 대화 사건. `GREETING`·`SMALL_TALK`·`PERSONAL_QUESTION`·`APOLOGY`·`COMPLIMENT`·`HELP`·`TASK_DONE`·`LEAVE` 중 0개 이상. 의도 판정과 같은 호출에서 고름. 의도 판정이 실패하면 `[]`, `dropped`면 `null`. **이 줄에 저장해 다음 요청의 `history[].events`로 보냄** |
 | `affinity_delta` | 이 줄의 사건으로 바로 올릴 호감(정수, 0 이상). 의도 판정이 실패하면 `0`, `dropped`면 `null`. 아래 설명 |
 
@@ -198,7 +199,15 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 **GPU 서버 의도 판정 모델을 켰을 때 (기본 꺼짐)**
 
-워커에 `JUDGE_GPU_MODEL`(예: `Qwen/Qwen3.8-27B`, 무례 판정과 같은 vLLM의 기본 모델)을 주면 의도·사건 판정 호출이 GPU 서버를 먼저 한 번 부릅니다. 주소와 키는 `GUARD_GPU_BASE_URL`·`GUARD_GPU_TOKEN`을 같이 씁니다. 오류·시간 초과(`JUDGE_GPU_TIMEOUT_S`, 2초)·JSON이 아닌 답이면 재시도 없이 구성의 의도 모델(기본 GPT-6 Luna, `JUDGE_HEDGE_AFTER_S` 적용)로 넘기고, 연속으로 `JUDGE_BREAKER_FAILURES`(3)번 실패하면 `JUDGE_BREAKER_SKIP_S`(60초) 동안 GPU를 건너뜁니다. 번역은 켜도 구성 모델 그대로입니다. 응답 형식은 같고, `usage`의 `intent` 단계 `model`에 실제로 판정한 모델이, 넘겼으면 `fallback: true`가 남습니다. 개발셋 평가에서 미션 의도는 Luna와 같은 수준이었지만 호감 사건 오탐이 조금 많고, 동시 20건에서는 Luna보다 느려 개발 서버에서 실제 턴 지연·대체 비율·사건 분포를 먼저 봅니다.
+워커에 `JUDGE_GPU_MODEL`(예: `Qwen/Qwen3.8-27B`, 무례 판정과 같은 vLLM의 기본 모델)을 주면 의도·사건 판정 호출이 GPU 서버를 먼저 한 번 부릅니다. 주소와 키는 `GUARD_GPU_BASE_URL`·`GUARD_GPU_TOKEN`을 같이 씁니다. 오류·시간 초과(`JUDGE_GPU_TIMEOUT_S`, 2초)·JSON이 아닌 답이면 재시도 없이 구성의 의도 모델(기본 GPT-6 Luna, `JUDGE_HEDGE_AFTER_S` 적용)로 넘기고, 연속으로 `JUDGE_BREAKER_FAILURES`(3)번 실패하면 `JUDGE_BREAKER_SKIP_S`(60초) 동안 GPU를 건너뜁니다. 표현 카드(`/v1/expressions`)는 켜도 구성 모델 그대로입니다. 응답 형식은 같고, `usage`의 `intent` 단계 `model`에 실제로 판정한 모델이, 넘겼으면 `fallback: true`가 남습니다. 개발셋 평가에서 미션 의도는 Luna와 같은 수준이었지만 호감 사건 오탐이 조금 많고, 동시 20건에서는 Luna보다 느려 개발 서버에서 실제 턴 지연·대체 비율·사건 분포를 먼저 봅니다.
+
+### 2.2.2 `POST /v1/expressions` — 표현 카드(번역·영어 교정·다른 표현)
+
+학습자 한 줄의 영어 번역(한글이 섞였을 때) 또는 영어 문법 교정문과, 같은 뜻의 다른 표현 1~3개를 만듭니다. 한 턴에서 `/v1/judge`·`/v1/guard`와 같은 `text`·`history`로 **동시에** 부르고, Spring은 NPC 대답을 기다리게 하지 않고 턴을 저장할 때 붙입니다(대답 생성이 더 오래 걸려 그사이 끝남). 교정문과 다른 표현은 구성의 `translate` 모델 한 번으로 만들고, 한글이 섞였으면 번역 호출을 그와 동시에 합니다.
+
+요청: `npc`, `scene`(비면 `npc.scene`), `history`(최대 40줄), `text`(최대 500자, 공백만이면 400 `invalid_request`) — `/v1/judge` 요청에서 `state`만 뺀 것.
+
+응답: `{"translation": {"english": "I want coffee.", "error": null} 또는 null, "better_expressions": ["I'd like a coffee."], "usage": [...]}`. 두 칸의 규칙은 2.2절 표의 `translation`·`better_expressions`와 같습니다. 행동 묘사만 있었으면 모델을 부르지 않고 `translation: null`, `better_expressions: []`. 호출이 실패해도 **HTTP 200**에 빈 카드를 줍니다(턴을 막지 않음). `usage` 단계는 `expressions`(교정문·다른 표현)와 `translate`(번역)입니다.
 
 ### 2.2.1 `POST /v1/guard` — 무례 판정만
 

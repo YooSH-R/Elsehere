@@ -732,7 +732,9 @@ namespace A305.Mission.Tests
             TMP_Text chip = Field<TMP_Text>("stepChip");
             Assert.That(chip.transform.parent.gameObject.activeSelf, Is.True);
             Assert.That(chip.text, Is.EqualTo("다시 연습"));
-            LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)chip.transform.parent.parent);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(
+                (RectTransform)chip.transform.parent.parent
+            );
             Assert.That(
                 ((RectTransform)chip.transform.parent).rect.width,
                 Is.GreaterThan(chip.preferredWidth),

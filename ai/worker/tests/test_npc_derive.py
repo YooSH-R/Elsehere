@@ -185,13 +185,25 @@ def test_resident_staff_stay_at_their_workplace_all_day_without_a_commute_or_bre
     assert values["schedule"] == [{"from": "00:00", "to": "00:00", "activity": "WORK", "scene": place, "canLeave": False}]
 
 
-def test_only_mia_jake_and_alex_are_permanent_residents():
+def test_mia_jake_alex_and_the_town_story_staff_are_permanent_residents():
+    """이야기 퀘스트가 찾아가라고 하는 거리 매장 직원 9명도 상주해, 퀘스트가 퇴근한 직원을 다시 불러내지 않는다(임시 배치)."""
     residents = {
         path.stem
         for path in npc_life_rules.LIFE_FOLDER.glob("*.json")
         if json.loads(path.read_text(encoding="utf-8")).get("resident", False)
     }
-    assert residents == {"CAFE_STAFF", "HOTEL_STAFF", "SHOP_STAFF"}
+    town_story_staff = {
+        "DINER_STAFF",
+        "LAUNDROMAT_STAFF",
+        "BANK_STAFF",
+        "BARBER_STAFF",
+        "FLOWER_SHOP_STAFF",
+        "BAKERY_STAFF",
+        "HOME_STORE_STAFF",
+        "ARCADE_STAFF",
+        "POST_OFFICE_STAFF",
+    }
+    assert residents == {"CAFE_STAFF", "HOTEL_STAFF", "SHOP_STAFF"} | town_story_staff
 
 
 def staff_day(start: str, end: str) -> list[dict]:
@@ -255,13 +267,13 @@ def test_a_passerby_is_free_while_out_in_town_and_takes_no_break():
 
 
 def test_a_storefront_clerk_keeps_its_home_place_while_working_its_storefront_hours():
-    """빵집 주간 직원은 마을(TOWN)에서 06~18시 일하고, 야간 직원에게 인계하며 30분 쉰 뒤 퇴근한다."""
-    schedule = life_values("BAKERY_STAFF")["schedule"]
+    """빵집 야간 직원은 마을(TOWN)에서 18~06시 일하고, 30분 쉰 뒤 퇴근한다. 주간 직원은 상주해 교대가 없다."""
+    schedule = life_values("POLICE_PATROL_OFFICER")["schedule"]
 
     assert [(block["from"], block["to"], block["activity"]) for block in schedule] == [
-        ("06:00", "18:00", "WORK"),
-        ("18:00", "18:30", "BREAK"),
-        ("18:30", "06:00", "OFF"),
+        ("18:00", "06:00", "WORK"),
+        ("06:00", "06:30", "BREAK"),
+        ("06:30", "18:00", "OFF"),
     ]
     assert {block.get("scene") for block in schedule} == {"TOWN", None}
 

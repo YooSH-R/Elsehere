@@ -132,6 +132,15 @@ class Settings:
     guard_gpu_timeout_s: float = 3.0
     guard_breaker_failures: int = 3  # GPU 서버 판정이 이만큼 연속 실패하면 잠시 건너뜀 (0이면 끔)
     guard_breaker_skip_s: float = 60.0  # 건너뛰는 시간. 지나면 다시 시도
+    # GPU 서버 NPC 대답 모델(gpu_llm 공급자, NPC 대답 LoRA). 있으면 스트림을 먼저 열고, 실패하거나 첫 글자가 늦거나
+    # GPU로 가는 대답이 상한만큼 있으면 구성의 npc 모델로 대답한다. 비면 끔
+    npc_gpu_model: str = ""
+    # GPU 첫 글자 상한. 넘으면 구성의 npc 모델로. 실측(2026-11-13, 실제 대답 프롬프트) 동시 1개 0.35초·4개 최대 1.1초·8개 2.7초.
+    # 대화를 시작하거나 NPC가 바뀌어 처음 보는 프롬프트는 캐시가 없어 터널 포함 0.8~1.0초라, 1초로 두면 그런 대답이 SOL로 넘어갔다
+    npc_gpu_first_token_s: float = 1.5
+    npc_gpu_max_concurrent: int = 4  # 워커 하나가 동시에 GPU로 보내는 대답 수. 넘는 대답은 처음부터 구성의 npc 모델로
+    npc_breaker_failures: int = 3  # GPU 서버 NPC 대답이 이만큼 연속 실패하면 잠시 건너뜀 (0이면 끔)
+    npc_breaker_skip_s: float = 60.0  # 건너뛰는 시간. 지나면 다시 시도
     # GPU 서버 판정이 무례라고 하면 구성의 guard 모델에 한 번 더 묻고 둘 다 무례일 때만 무례 (app/guard.py confirm_rude)
     guard_confirm: bool = True
     reply_first_budget_s: float = 5.0  # NPC 대답 첫 글자까지의 상한 (재시도·대체 모델 포함)
@@ -184,7 +193,9 @@ class Settings:
         others += [step["provider"] for step in stt_chain if step["provider"] != main]
         guard_gpu_model = e.get("GUARD_GPU_MODEL", "")
         judge_gpu_model = e.get("JUDGE_GPU_MODEL", "")
-        if guard_gpu_model or judge_gpu_model:  # 무례·의도 판정이 같은 GPU 서버 vLLM을 쓴다. 주소·키가 없으면 아래 missing에 걸린다
+        npc_gpu_model = e.get("NPC_GPU_MODEL", "")
+        # 무례·의도 판정과 NPC 대답이 같은 GPU 서버 vLLM을 쓴다. 주소·키가 없으면 아래 missing에 걸린다
+        if guard_gpu_model or judge_gpu_model or npc_gpu_model:
             others.append("gpu_llm")
         providers = {name: {"base_url": provider_base_url(name, e), "api_key": provider_key(name, e)} for name in dict.fromkeys(others)}
         missing = [PROFILES["providers"][n]["base_url_env"] for n, v in providers.items() if not v["base_url"]]
@@ -237,6 +248,11 @@ class Settings:
             guard_gpu_timeout_s=float(e.get("GUARD_GPU_TIMEOUT_S", cls.guard_gpu_timeout_s)),
             guard_breaker_failures=int(e.get("GUARD_BREAKER_FAILURES", cls.guard_breaker_failures)),
             guard_breaker_skip_s=float(e.get("GUARD_BREAKER_SKIP_S", cls.guard_breaker_skip_s)),
+            npc_gpu_model=npc_gpu_model,
+            npc_gpu_first_token_s=float(e.get("NPC_GPU_FIRST_TOKEN_S", cls.npc_gpu_first_token_s)),
+            npc_gpu_max_concurrent=int(e.get("NPC_GPU_MAX_CONCURRENT", cls.npc_gpu_max_concurrent)),
+            npc_breaker_failures=int(e.get("NPC_BREAKER_FAILURES", cls.npc_breaker_failures)),
+            npc_breaker_skip_s=float(e.get("NPC_BREAKER_SKIP_S", cls.npc_breaker_skip_s)),
             guard_confirm=e.get("GUARD_CONFIRM", "true").lower() == "true",
             audio_max_mb=float(e.get("AUDIO_MAX_MB", cls.audio_max_mb)),
             reply_first_budget_s=float(e.get("REPLY_FIRST_BUDGET_S", cls.reply_first_budget_s)),

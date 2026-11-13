@@ -40,10 +40,7 @@ namespace A305.Learning
         private async Task RefreshReviewProgressAsync(ReviewCard card, long conversationId)
         {
             liveReviewProgress.Begin(card, conversationId);
-            dialogue.SetReviewReference(
-                liveReviewProgress.Items,
-                liveReviewProgress.VerifiedCount
-            );
+            dialogue.SetReviewReference(liveReviewProgress.Items, liveReviewProgress.VerifiedCount);
             bool loaded = await liveReviewProgress.RefreshAsync();
             if (
                 this == null

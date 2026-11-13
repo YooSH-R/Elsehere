@@ -16,7 +16,7 @@
 
 ## guard·judge 분리 후 입력
 
-- `/v1/judge`는 의도·번역만 반환한다. 응답의 `guard`와 `translation.show`를 읽지 않는다.
+- `/v1/judge`는 의도만 반환한다. 응답의 `guard`·`translation`·`better_expressions`를 읽지 않는다. 영어 번역·교정문과 다른 표현은 판정과 동시에 부르는 `/v1/expressions`에서 받는다.
 - 무례 판정은 `/v1/guard`의 `guard.abusive`를 사용한다. Spring이 원래 null과 오류 이유를 보관한다.
 - 번역 표시 여부는 Spring이 `유효 영어 번역 있음 && abusive === false`로 계산한다.
 - 행동 묘사만 남아 dropped인 입력은 실제 사용자 발화로 평가하지 않는다.
@@ -36,7 +36,7 @@
 `POST /v1/feedback`의 입력·출력 계약은 **0.3.0 그대로**다. 전체 요청은 [입력 예시](../../ai/feedback/samples/inputs/free_grammar.json)를 참고한다.
 
 1. 원문·판정을 확정한 뒤 scope의 사용자·NPC·대화 ID, conversation_revision, 실제 도움 사용 이력을 전달한다.
-2. `final_text`에는 확정 사용자 원문을 넣는다. judge가 만든 영어 번역으로 바꾸지 않는다.
+2. `final_text`에는 확정 사용자 원문을 넣는다. `/v1/expressions`가 만든 영어 번역으로 바꾸지 않는다.
 3. true 판정 사용자 턴은 blocked로 넣는다. 요청 계약에 원문은 남지만 모듈이 모델 입력·평가·인용·교정·회화 설명·단어장 후보에서 제외한다.
 4. null은 final을 유지한다. final이 영어 평가 가능 또는 무례 아님 확정을 의미하지는 않는다. 한글이 든 입력도 보존하며, STT 제품 지원 범위를 이 계약에서 새로 정하지 않는다.
 5. 모든 사용자 턴이 blocked면 `insufficient_evidence / NO_USABLE_USER_TURNS`, 워커 `usage: []`이며 피드백 모델을 호출하지 않는다.

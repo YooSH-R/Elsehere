@@ -6,6 +6,7 @@ import static org.mockito.BDDMockito.given;
 
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.ExpressionsResult;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.HintResult;
 import com.elsehere.ai.client.JudgeResult;
@@ -101,6 +102,12 @@ class AiGatewayTest {
             (client, trace) -> client.guard(trace, null, List.of(), "hi"),
             (gateway, trace) -> gateway.guard(trace, null, List.of(), "hi"),
             new GuardResult(new GuardResult.Guard(false, null), USAGE)),
+        call(
+            "영어 표현",
+            AiRequestKind.EXPRESSIONS,
+            (client, trace) -> client.expressions(trace, null, List.of(), "hi"),
+            (gateway, trace) -> gateway.expressions(trace, null, List.of(), "hi"),
+            new ExpressionsResult(null, List.of(), USAGE)),
         call(
             "NPC 대답",
             AiRequestKind.NPC,

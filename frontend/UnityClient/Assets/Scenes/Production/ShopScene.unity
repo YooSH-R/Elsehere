@@ -2678,10 +2678,13 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1670352893386630562, guid: e062b17753f62de47a554ef328f0e634, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
+    - targetCorrespondingSourceObject: {fileID: 2291735308962396099, guid: e062b17753f62de47a554ef328f0e634, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 0}
     - targetCorrespondingSourceObject: {fileID: 663014566903501579, guid: e062b17753f62de47a554ef328f0e634, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 458309460896289968, guid: e062b17753f62de47a554ef328f0e634, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 8464599234139531002, guid: e062b17753f62de47a554ef328f0e634, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
     - targetCorrespondingSourceObject: {fileID: 5863910203048111125, guid: e062b17753f62de47a554ef328f0e634, type: 3}
@@ -3627,7 +3630,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "DRUGSTORE\nUMBRELLAS \xB7 8 COINS"
+  m_text: "DRUGSTORE\n<size=80%>UMBRELLAS \xB7 8 COINS</size>"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8ae84dc4ca3dc614c952423c298ea0ed, type: 2}
   m_sharedMaterial: {fileID: -3930909567171584976, guid: 8ae84dc4ca3dc614c952423c298ea0ed, type: 2}

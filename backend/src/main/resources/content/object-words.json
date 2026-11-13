@@ -919,6 +919,15 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_048de87fda675024a9dd857d496c8ff4",
+            "languageCode": "en-US",
+            "text": "card reader",
+            "meaningKo": "카드로 결제하는 단말기",
+            "example": "Tap your card on the card reader.",
+            "exampleKo": "단말기에 카드를 대 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_0587befb29840ad49a62604219dc7715",
             "languageCode": "en-US",
             "text": "change machine",
@@ -1144,6 +1153,15 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_63e4d2f608e230d4da895baa59336f47",
+            "languageCode": "en-US",
+            "text": "coin changer",
+            "meaningKo": "지폐를 동전으로 바꿔 주는 기계",
+            "example": "Does this coin changer take dollar bills?",
+            "exampleKo": "이 동전 교환기에 1달러 지폐를 넣을 수 있나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_6f2d682aa1edd004a86774dbc32603a3",
             "languageCode": "en-US",
             "text": "detergent vending machine",
@@ -1261,12 +1279,30 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_dc8c065ff0dcb2e43b6ca55e68349494",
+            "languageCode": "en-US",
+            "text": "coffee station",
+            "meaningKo": "커피를 직접 따라 마시는 곳",
+            "example": "There are cups at the coffee station.",
+            "exampleKo": "커피 코너에 컵이 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_e438a4ee4f2a3494eaadb31ccfda0859",
             "languageCode": "en-US",
             "text": "bicycle",
             "meaningKo": "자전거",
             "example": "I came here by bicycle.",
             "exampleKo": "저는 자전거를 타고 왔어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_ebe79357906436b43bd7f4930af8b584",
+            "languageCode": "en-US",
+            "text": "gumball machine",
+            "meaningKo": "둥근 풍선껌을 뽑는 자판기",
+            "example": "I got a blue gumball from the machine.",
+            "exampleKo": "자판기에서 파란 풍선껌을 뽑았어요.",
             "pronunciationAudioKey": ""
         },
         {

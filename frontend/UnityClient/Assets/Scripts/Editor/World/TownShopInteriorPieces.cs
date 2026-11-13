@@ -947,7 +947,7 @@ namespace A305.EditorTools.World
                 parent,
                 position,
                 yaw,
-                null,
+                "gumball_machine",
                 root =>
                 {
                     Material red = Paint("JukeboxRed", "#C8463B");
@@ -1906,7 +1906,7 @@ namespace A305.EditorTools.World
                 parent,
                 position,
                 yaw,
-                null,
+                "coin_changer",
                 root =>
                 {
                     Block(

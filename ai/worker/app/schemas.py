@@ -102,6 +102,17 @@ class JudgeRequest(BaseModel):
     check_text = field_validator("text")(not_blank)
 
 
+class ExpressionsRequest(BaseModel):
+    """표현 카드(/v1/expressions): 판정 요청에서 상태(state)만 뺀 것. 판정과 같은 문장으로 동시에 부른다."""
+
+    npc: Npc
+    scene: str = ""  # 비면 npc.scene
+    history: list[Line] = Field(default=[], max_length=40)
+    text: str = Field(max_length=500)
+
+    check_text = field_validator("text")(not_blank)
+
+
 class Memory(BaseModel):
     visits: int = 0
     last_order: str | None = None

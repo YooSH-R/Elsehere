@@ -20,6 +20,81 @@ namespace A305.EditorTools.Dialogue
     /// <summary>실제 NPC와 고정 대본으로 대화 구도·도움말 배치를 확인한다. Play·모델 호출 없음.</summary>
     public static class DialogueLayoutPreview
     {
+        /// <summary>서비스 카드와 실제 확대 동작을 카페 씬에서 캡처한다.</summary>
+        public static void CaptureExpressionCardDesign()
+        {
+            DialogueTranslationBuilder.Apply();
+            DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
+            var content = new WordPreviewContent
+            {
+                SimulateSpeech = true,
+                PreviewLines = new[]
+                {
+                    DialogueLine.FromNpc("Good morning! What can I get for you?", null),
+                    DialogueLine.FromUser("Can I get an iced americano, please?"),
+                    DialogueLine.FromNpc("Of course. Would you like anything else?", null),
+                },
+                UserBetterExpressions = new[]
+                {
+                    "I'd like an iced americano, please.",
+                    "Could I have an iced americano, please?",
+                    "An iced americano would be great, thanks.",
+                },
+            };
+            view.Show(content);
+            NpcSubtitlePreference.ShowsSubtitles = true;
+            view.Refresh();
+            Invoke(view, "ToggleOtherExpressions");
+            foreach (
+                UiThemeId theme in new[] { UiThemeId.Jelly, UiThemeId.Sticker, UiThemeId.Cloud }
+            )
+            {
+                SelectTheme(theme);
+                foreach (bool expanded in new[] { false, true })
+                    Render(
+                        camera,
+                        view,
+                        eye,
+                        face,
+                        Path.Combine(
+                            OutputFolder(),
+                            $"design-{theme}-{(expanded ? "expanded" : "inline")}.png"
+                        ),
+                        1920,
+                        1080,
+                        design: current => ExpressionCardDesign(current, expanded)
+                    );
+            }
+            SelectTheme(UiThemeId.Jelly);
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(OutputFolder(), "design-mobile-inline.png"),
+                900,
+                1400,
+                design: current => ExpressionCardDesign(current, false)
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(OutputFolder(), "design-mobile-expanded.png"),
+                900,
+                1400,
+                design: current => ExpressionCardDesign(current, true)
+            );
+        }
+
+        private static void ExpressionCardDesign(DialoguePanelView view, bool expanded)
+        {
+            Invoke(view, "CloseExpressionWindow");
+            if (expanded)
+                Invoke(view, "OpenExpressionWindow");
+        }
+
         public static void CaptureSuggestions()
         {
             DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
@@ -588,14 +663,17 @@ namespace A305.EditorTools.Dialogue
         }
 
         /// <summary>
-        /// [자막]을 끄고 켠 NPC 대사를 세 테마로 찍는다. 끄면 NPC 대사가 단어마다 회색 막대로 가려지고, 켜면 대사가 보인다.
-        /// 자막을 끈 채 대답을 기다리는 화면도 찍어, 로딩 카드 위로 지난 대사의 막대가 비치지 않는지 본다.
+        /// 자막을 켜고 껐을 때 테두리와 버튼 여백을 비교한다.
+        /// 첫 대사 준비 중 [다시 듣기]와 다음 대사를 기다릴 때의 단어 막대도 확인한다.
         /// 이 기기의 자막 설정은 찍은 뒤 되돌린다.
         /// </summary>
         public static void CaptureSubtitles()
         {
             string output = OutputFolder();
-            bool savedPreference = NpcSubtitlePreference.ShowsSubtitles;
+            string preferenceKey = NpcSubtitlePreference.PreferenceKey;
+            int? savedPreference = PlayerPrefs.HasKey(preferenceKey)
+                ? PlayerPrefs.GetInt(preferenceKey)
+                : null;
             UiThemeId savedTheme = UiThemeSelection.Shared.Current;
             try
             {
@@ -606,15 +684,9 @@ namespace A305.EditorTools.Dialogue
                 );
                 foreach (bool showsSubtitles in new[] { false, true })
                 {
-                    // 이전에 켜 둔 기록이 있어도 새 대화에서는 가려지는지 함께 확인한다.
-                    NpcSubtitlePreference.ShowsSubtitles = true;
+                    NpcSubtitlePreference.ShowsSubtitles = showsSubtitles;
                     var content = new WordPreviewContent();
                     view.Show(content);
-                    if (showsSubtitles)
-                    {
-                        NpcSubtitlePreference.ShowsSubtitles = true;
-                        view.Refresh();
-                    }
                     FillHelp(view);
                     string state = showsSubtitles ? "on" : "off";
                     RenderThemes(camera, view, eye, face, output, $"subtitles-{state}");
@@ -633,10 +705,34 @@ namespace A305.EditorTools.Dialogue
                     view.Refresh();
                     RenderThemes(camera, view, eye, face, output, "subtitles-off-waiting");
                 }
+                view.Show(new WordPreviewContent { Waiting = DialogueWait.Opening });
+                Render(
+                    camera,
+                    view,
+                    eye,
+                    face,
+                    Path.Combine(output, "subtitles-opening.png"),
+                    1920,
+                    1080
+                );
+                Render(
+                    camera,
+                    view,
+                    eye,
+                    face,
+                    Path.Combine(output, "subtitles-opening-mobile.png"),
+                    844,
+                    390
+                );
             }
             finally
             {
-                NpcSubtitlePreference.ShowsSubtitles = savedPreference;
+                if (savedPreference.HasValue)
+                    PlayerPrefs.SetInt(preferenceKey, savedPreference.Value);
+                else
+                    PlayerPrefs.DeleteKey(preferenceKey);
+                PlayerPrefs.Save();
+                NpcSubtitlePreference.Reload();
                 SelectTheme(savedTheme);
             }
         }
@@ -770,7 +866,8 @@ namespace A305.EditorTools.Dialogue
             string path,
             int width,
             int height,
-            bool showLatest = false
+            bool showLatest = false,
+            System.Action<DialoguePanelView> design = null
         )
         {
             var target = new RenderTexture(width, height, 24);
@@ -798,6 +895,8 @@ namespace A305.EditorTools.Dialogue
             Canvas.ForceUpdateCanvases();
             view.UpdateLayout();
             Canvas.ForceUpdateCanvases();
+            design?.Invoke(view);
+            Canvas.ForceUpdateCanvases();
             // 스크롤 막대 손잡이 크기는 Play 중 매 프레임(LateUpdate)에만 맞춰지므로 찍기 전에 한 번 맞춘다.
             // Editor에서는 ScrollRect가 늘 스크롤할 것이 있다고 보므로, Play처럼 내용이 넘칠 때만 막대를 보인다.
             foreach (ScrollRect scroll in view.GetComponentsInChildren<ScrollRect>())
@@ -813,6 +912,25 @@ namespace A305.EditorTools.Dialogue
                         scroll.content.rect.height > scroll.viewport.rect.height + 0.01f
                     );
             }
+            if (design != null)
+            {
+                ScrollRect history = Field<ScrollRect>(view, "historyScroll");
+                TMP_Text lines = Field<TMP_Text>(view, "linesText");
+                File.WriteAllText(
+                    Path.ChangeExtension(path, ".layout.txt"),
+                    string.Join(
+                        "\n",
+                        new[]
+                        {
+                            Describe((RectTransform)history.transform),
+                            Describe(history.viewport),
+                            Describe(history.content),
+                            Describe(lines.rectTransform),
+                            "text=" + lines.text,
+                        }
+                    )
+                );
+            }
             camera.Render();
             RenderTexture.active = target;
             pixels.ReadPixels(new Rect(0, 0, width, height), 0, 0);
@@ -826,6 +944,9 @@ namespace A305.EditorTools.Dialogue
             Object.DestroyImmediate(target);
             Object.DestroyImmediate(pixels);
         }
+
+        private static string Describe(RectTransform rect) =>
+            $"{rect.name} parent={rect.parent.name} rect={rect.rect} anchors={rect.anchorMin}/{rect.anchorMax} pivot={rect.pivot} anchored={rect.anchoredPosition} local={rect.localPosition} world={rect.position}";
 
         /// <summary>
         /// [뜻 보기]로 뜻과 풀이를 받아 둔 카페 서버 대화. 마지막 Mia 대사에 한 단어(latte), 숙어(to go)와 숙어 안의 단어(go) 풀이가 있다.
@@ -870,20 +991,21 @@ namespace A305.EditorTools.Dialogue
             public string PreviewNpcName { get; set; } = "Mia";
             public string NpcName => PreviewNpcName;
             public IReadOnlyList<DialogueLine> Lines =>
-                PreviewLines != null ? PreviewLines
+                Waiting == DialogueWait.Opening ? System.Array.Empty<DialogueLine>()
+                : PreviewLines != null ? PreviewLines
                 : UserTranslation == null ? lines
                 : new[]
                 {
                     DialogueLine.FromUser("카페 어디야?"),
                     DialogueLine.FromNpc("It is on your right.", null),
                 };
-            public DialogueLine LastNpcLine => Question;
+            public DialogueLine LastNpcLine => Waiting == DialogueWait.Opening ? null : Question;
             public bool IsGuided => false;
             public bool IsGuidedCompleted => false;
             public string SuggestedEnglish => null;
             public string SuggestedKorean => "매장에서 먹을게요.";
             public string ExampleSentence => null;
-            public bool IsBusy => false;
+            public bool IsBusy => Waiting == DialogueWait.Opening;
             public string StatusMessage => null;
             public DialogueWait Waiting { get; set; }
             public string RecoveryGuide => null;
@@ -916,9 +1038,10 @@ namespace A305.EditorTools.Dialogue
             public bool UsesVoice => true;
             public ConversationStanding Standing => null;
             public bool CanTalk => true;
-            public bool CanReplaySpeech => true;
-            public bool SpeaksNpcLines => PreviewLines == null;
-            public bool IsNpcSpeechReady => true;
+            public bool CanReplaySpeech => LastNpcLine != null;
+            public bool SimulateSpeech { get; set; }
+            public bool SpeaksNpcLines => PreviewLines == null || SimulateSpeech;
+            public bool IsNpcSpeechReady => LastNpcLine != null;
         }
     }
 }

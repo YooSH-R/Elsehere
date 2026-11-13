@@ -4,5 +4,6 @@
   "mbti": "ENFP-T",
   "role": "STAFF",
   "workplace": "ARCADE",
-  "shift": "DAY"
+  "shift": "DAY",
+  "resident": true
 }

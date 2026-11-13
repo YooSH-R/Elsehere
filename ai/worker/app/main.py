@@ -28,6 +28,7 @@ from .npc import reply_events
 from .npc_profile_models import NpcProfile
 from .npc_respond import ContractError, load_payload, parse_request, readable_request_id, respond
 from .schemas import (
+    ExpressionsRequest,
     FollowUpRequest,
     GuardRequest,
     HintRequest,
@@ -207,6 +208,10 @@ def create_app(
     @app.post("/v1/judge")
     async def judge(req: JudgeRequest, request: Request):
         return await services.judge(request.app.state.llm, req)
+
+    @app.post("/v1/expressions")
+    async def expressions(req: ExpressionsRequest, request: Request):
+        return await services.expressions(request.app.state.llm, req)
 
     @app.post("/v1/guard")
     async def guard_line(req: GuardRequest, request: Request):

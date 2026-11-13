@@ -4,6 +4,7 @@ import static com.elsehere.conversation.DialogueTestData.reply;
 import static com.elsehere.conversation.DialogueTestData.usage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -13,6 +14,7 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
 import ch.qos.logback.classic.Level;
+import com.elsehere.ai.client.ExpressionsResult;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.MeaningResult;
@@ -45,9 +47,12 @@ import com.elsehere.dialogue.dto.TurnResponse;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
@@ -383,9 +388,80 @@ class TurnServiceTest {
     WorkerTrace trace = new WorkerTrace(requestId, userId, conversationId);
     then(aiGateway).should().judge(eq(trace), any(), any(), any(), eq("네 맑아요"));
     then(aiGateway).should().guard(eq(trace), any(), any(), eq("네 맑아요"));
+    then(aiGateway).should().expressions(eq(trace), any(), any(), eq("네 맑아요"));
     then(aiGateway)
         .should()
         .reply(eq(trace), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt(), any());
+  }
+
+  @Test
+  @DisplayName("영어 표현을 부르다 워커에 닿지 못해도 턴은 저장하고 번역 카드와 다른 표현만 비운다")
+  void send_expressionsCallFails_savesTurnWithoutTranslation() {
+    judges("네 맑아요", "네 맑아요", null);
+    given(aiGateway.expressions(any(), any(), any(), eq("네 맑아요")))
+        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
+    repliesTo("네 맑아요", reply("Great!", null));
+
+    TurnResponse response = send("네 맑아요");
+
+    assertThat(response.npcTurn().text()).isEqualTo("Great!");
+    assertThat(response.userTurn().translation()).isNull();
+    assertThat(response.userTurn().betterExpressions()).isEmpty();
+    assertThat(turnRepository.findByRequestId(lastRequestId).orElseThrow().getTranslationEn())
+        .isNull();
+  }
+
+  @Test
+  @DisplayName("NPC 대답은 영어 표현을 기다리지 않고 시작하며, 영어 표현은 턴을 저장할 때 합친다")
+  void send_replyDoesNotWaitForExpressions() {
+    judges("네 맑아요", "네 맑아요", null);
+    CountDownLatch replyStarted = new CountDownLatch(1);
+    given(aiGateway.expressions(any(), any(), any(), eq("네 맑아요")))
+        .willAnswer(
+            invocation ->
+                replyStarted.await(5, TimeUnit.SECONDS)
+                    ? expressions("Yes, it's sunny.", List.of("Yes, it's a sunny day."))
+                    : expressions(null, List.of()));
+    given(aiGateway.reply(any(), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt(), any()))
+        .willAnswer(
+            invocation -> {
+              replyStarted.countDown();
+              return reply("Great!", null);
+            });
+
+    TurnResponse response = send("네 맑아요");
+
+    assertThat(response.userTurn().translation().english()).isEqualTo("Yes, it's sunny.");
+    assertThat(response.userTurn().betterExpressions()).containsExactly("Yes, it's a sunny day.");
+  }
+
+  @Test
+  @DisplayName("행동 묘사만 있어 버린 말은 영어 표현을 기다리지 않고 바로 거절한다")
+  void send_droppedText_doesNotWaitForExpressions() throws InterruptedException {
+    given(aiGateway.judge(any(), any(), any(), any(), eq("*waves*")))
+        .willReturn(new JudgeResult("", true, "말로 표현해 주세요.", null, List.of(usage("intent"))));
+    guards("*waves*", null, null);
+    CountDownLatch released = new CountDownLatch(1);
+    given(aiGateway.expressions(any(), any(), any(), eq("*waves*")))
+        .willAnswer(
+            invocation -> {
+              released.await(10, TimeUnit.SECONDS);
+              return expressions(null, List.of());
+            });
+
+    try {
+      assertTimeout(
+          Duration.ofSeconds(5),
+          () ->
+              assertThatThrownBy(() -> send("*waves*"))
+                  .isInstanceOfSatisfying(
+                      BusinessException.class,
+                      exception ->
+                          assertThat(exception.getErrorCode())
+                              .isEqualTo(ErrorCode.VALIDATION_FAILED)));
+    } finally {
+      released.countDown();
+    }
   }
 
   @Test
@@ -1094,23 +1170,12 @@ class TurnServiceTest {
 
   @Test
   @DisplayName(
-      "틀리진 않았지만 짧거나 어색한 영어에 판정이 준 더 좋은 문장을 사용자 턴에 남기고 응답으로 보낸다. 고친 문장·번역 카드는 없다 (S15P31A305-847)")
+      "틀리진 않았지만 짧거나 어색한 영어에 영어 표현이 준 더 좋은 문장을 사용자 턴에 남기고 응답으로 보낸다. 고친 문장·번역 카드는 없다 (S15P31A305-847)")
   void send_keepsBetterExpressionsForAShortEnglishLine() {
     List<String> better =
         List.of("Can I get a latte, please?", "I'd like a latte, please.", "Could I have a latte?");
-    given(aiGateway.judge(any(), any(), any(), any(), eq("Latte.")))
-        .willReturn(
-            new JudgeResult(
-                "Latte.",
-                false,
-                null,
-                null,
-                List.of(usage("intent")),
-                null,
-                List.of(),
-                null,
-                better));
-    guards("Latte.", false, null);
+    judges("Latte.", "Latte.", null);
+    expresses("Latte.", null, better);
     given(aiGateway.reply(any(), any(), any(), any(), eq("Latte."), eq(""), anyInt(), any()))
         .willReturn(reply("Sure! Hot or iced?", "audio-2"));
     given(aiGateway.audio(any(), eq("audio-2"))).willReturn(WAV);
@@ -1126,16 +1191,24 @@ class TurnServiceTest {
         .isNotNull();
   }
 
+  // 영어 번역·교정문은 판정이 아니라 영어 표현(/v1/expressions)이 준다.
   private void judges(String text, String judgedText, String english) {
     given(aiGateway.judge(any(), any(), any(), any(), eq(text)))
-        .willReturn(
-            new JudgeResult(
-                judgedText,
-                false,
-                null,
-                english == null ? null : new JudgeResult.Translation(english, null),
-                List.of(usage("intent"))));
+        .willReturn(new JudgeResult(judgedText, false, null, null, List.of(usage("intent"))));
     guards(text, false, null);
+    expresses(text, english, List.of());
+  }
+
+  private void expresses(String text, String english, List<String> betterExpressions) {
+    given(aiGateway.expressions(any(), any(), any(), eq(text)))
+        .willReturn(expressions(english, betterExpressions));
+  }
+
+  private static ExpressionsResult expressions(String english, List<String> betterExpressions) {
+    return new ExpressionsResult(
+        english == null ? null : new ExpressionsResult.Translation(english, null),
+        betterExpressions,
+        List.of(usage("expressions")));
   }
 
   // 칭찬 사건과 그 사건으로 바로 올릴 호감도를 주는 의도 판정. 무례 판정은 따로 정한다.

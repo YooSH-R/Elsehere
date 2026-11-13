@@ -10,5 +10,6 @@ public enum AiRequestKind {
   HINT,
   MEANING,
   FEEDBACK,
-  MEMORY
+  MEMORY,
+  EXPRESSIONS
 }

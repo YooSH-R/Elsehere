@@ -375,15 +375,15 @@ class AiWorkerClientTest {
   }
 
   @Test
-  @DisplayName("의도·번역 판정 결과에서 판정한 문장·버림 여부·영어 번역을 읽는다")
-  void judge_readsTextDroppedAndTranslation() {
+  @DisplayName("의도 판정 결과에서 판정한 문장·버림 여부·의도를 읽는다")
+  void judge_readsTextDroppedAndIntent() {
     respond(
         "/v1/judge",
         200,
         "application/json",
         """
         {"text": "라떼 주세요", "dropped": false, "notice": null,
-         "intent": {"id": "chat"}, "translation": {"english": "A latte, please.", "error": null},
+         "intent": {"id": "chat"}, "translation": null, "better_expressions": [],
          "usage": [{"step": "intent", "model": "m1"}]}
         """);
 
@@ -392,35 +392,55 @@ class AiWorkerClientTest {
 
     assertThat(result.text()).isEqualTo("라떼 주세요");
     assertThat(result.dropped()).isFalse();
-    assertThat(result.english()).isEqualTo("A latte, please.");
+    assertThat(result.intent().id()).isEqualTo("chat");
   }
 
   @Test
-  @DisplayName("판정이 준 더 좋은 문장(better_expressions)을 읽고, 주지 않으면 빈 목록이다")
-  void judge_readsBetterExpressions() {
+  @DisplayName("영어 표현은 판정과 같은 NPC·대화·문장을 상태 없이 보내고 번역·다른 표현·사용량을 읽는다")
+  void expressions_sendsLineWithoutStateAndReadsTranslationAndBetterExpressions() {
     respond(
-        "/v1/judge",
+        "/v1/expressions",
         200,
         "application/json",
         """
-        {"text": "Latte.", "dropped": false, "translation": null,
-         "better_expressions": ["Can I get a latte, please?", "I'd like a latte, please."], "usage": []}
+        {"translation": {"english": "Can I get a latte?", "error": null},
+         "better_expressions": ["Could I have a latte, please?", "I'd like a latte, please."],
+         "usage": [{"step": "expressions", "model": "m1", "input_tokens": 300, "output_tokens": 40}]}
         """);
-    JudgeResult withSentences =
-        client.judge(TRACE, NPC, new WorkerState("free_talk", "", List.of()), List.of(), "Latte.");
-    respond(
-        "/v1/judge",
-        200,
-        "application/json",
-        """
-        {"text": "Hi", "dropped": false, "usage": []}
-        """);
-    JudgeResult without =
-        client.judge(TRACE, NPC, new WorkerState("free_talk", "", List.of()), List.of(), "Hi");
 
-    assertThat(withSentences.betterExpressions())
-        .containsExactly("Can I get a latte, please?", "I'd like a latte, please.");
-    assertThat(without.betterExpressions()).isEmpty();
+    ExpressionsResult result =
+        client.expressions(
+            TRACE, NPC, List.of(new WorkerLine("me", "shut up", null, true)), "Latte give me");
+
+    assertThat(result.english()).isEqualTo("Can I get a latte?");
+    assertThat(result.betterExpressions())
+        .containsExactly("Could I have a latte, please?", "I'd like a latte, please.");
+    assertThat(result.usage()).extracting(WorkerUsage::step).containsExactly("expressions");
+    assertThat(received.get("/v1/expressions").body())
+        .contains("\"text\":\"Latte give me\"")
+        .contains("\"scene\":\"\"")
+        .contains("\"rude\":true")
+        .contains("\"npc\":{")
+        .doesNotContain("\"state\"");
+    assertThat(received.get("/v1/expressions").token()).isEqualTo(TOKEN);
+  }
+
+  @Test
+  @DisplayName("고칠 것이 없는 말이면 번역은 null, 다른 표현은 빈 목록으로 읽는다")
+  void expressions_nothingToShow_readsNullTranslationAndEmptyList() {
+    respond(
+        "/v1/expressions",
+        200,
+        "application/json",
+        """
+        {"translation": null, "usage": []}
+        """);
+
+    ExpressionsResult result = client.expressions(TRACE, NPC, List.of(), "Hello there.");
+
+    assertThat(result.translation()).isNull();
+    assertThat(result.english()).isNull();
+    assertThat(result.betterExpressions()).isEmpty();
   }
 
   @Test

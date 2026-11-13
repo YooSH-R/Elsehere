@@ -75,7 +75,7 @@ public class AiWorkerClient {
     this.token = token;
   }
 
-  /** 의도·번역 판정. 무례 판정(/v1/guard)은 따로 부른다. */
+  /** 의도 판정. 무례 판정(/v1/guard)과 영어 표현(/v1/expressions)은 따로 부른다. */
   public JudgeResult judge(
       WorkerTrace trace, WorkerNpc npc, WorkerState state, List<WorkerLine> history, String text) {
     HttpRequest request =
@@ -89,6 +89,18 @@ public class AiWorkerClient {
     HttpRequest request =
         jsonRequest("/v1/guard", trace, JUDGE_TIMEOUT, new GuardBody(npc, history, text));
     return readJson(send(request, HttpResponse.BodyHandlers.ofString()), GuardResult.class);
+  }
+
+  /**
+   * 학습자 말의 영어 번역·교정문과 다른 표현. 판정과 같은 NPC·대화·문장을 상태 없이 보낸다. 장면은 판정처럼 비워 두어 워커가 {@code npc.scene}을 쓰게
+   * 한다.
+   */
+  public ExpressionsResult expressions(
+      WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history, String text) {
+    HttpRequest request =
+        jsonRequest(
+            "/v1/expressions", trace, JUDGE_TIMEOUT, new ExpressionsBody(npc, "", history, text));
+    return readJson(send(request, HttpResponse.BodyHandlers.ofString()), ExpressionsResult.class);
   }
 
   /**
@@ -611,6 +623,8 @@ public class AiWorkerClient {
   record JudgeBody(WorkerNpc npc, WorkerState state, List<WorkerLine> history, String text) {}
 
   record GuardBody(WorkerNpc npc, List<WorkerLine> history, String text) {}
+
+  record ExpressionsBody(WorkerNpc npc, String scene, List<WorkerLine> history, String text) {}
 
   record ReplyBody(
       WorkerNpc npc,

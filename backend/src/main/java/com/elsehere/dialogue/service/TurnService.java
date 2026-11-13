@@ -1,5 +1,6 @@
 package com.elsehere.dialogue.service;
 
+import com.elsehere.ai.client.ExpressionsResult;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
@@ -41,8 +42,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * 발화 전송(CONV-03). 의도·번역 판정(/v1/judge)과 무례 판정(/v1/guard)을 함께 부른 뒤 → NPC 대답(/v1/npc/reply) → 턴 전체 음성
- * 저장 순서로 처리한다. 스트리밍 요청에서 판정 결과가 대답 지시문에 들어가지 않는 대화는 판정과 동시에 대답을 먼저 시작하고, 판정 뒤에 정한 대답 요청이 같으면 그 대답을
+ * 발화 전송(CONV-03). 의도 판정(/v1/judge)·무례 판정(/v1/guard)·영어 표현(/v1/expressions)을 함께 부른 뒤 → NPC
+ * 대답(/v1/npc/reply) → 턴 전체 음성 저장 순서로 처리한다. 영어 표현(번역·교정문과 다른 표현)은 대답에 쓰지 않으므로 대답을 기다리게 하지 않고 턴을 저장할
+ * 때만 합친다. 스트리밍 요청에서 판정 결과가 대답 지시문에 들어가지 않는 대화는 판정과 동시에 대답을 먼저 시작하고, 판정 뒤에 정한 대답 요청이 같으면 그 대답을
  * 쓴다({@link EarlyReply}).
  *
  * <p>첫날 연계 미션을 시작한 사용자는 현재 단계의 의도를 판정한다. 성공한 대답과 턴을 저장할 때만 미션을 진행한다. 무례한 말은 미션에 반영하지 않고 횟수를 세며 그
@@ -72,7 +74,12 @@ public class TurnService {
   // 워커에 닿지 못해 판정하지 못한 경우. 워커가 돌려주는 이유 코드(timeout 등)와 구분한다.
   static final String GUARD_WORKER_UNAVAILABLE = "worker_unavailable";
 
-  private static final Executor GUARD_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
+  // 의도 판정과 동시에 부르는 무례 판정·영어 표현
+  private static final Executor WORKER_CALL_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
+
+  // 영어 표현을 받지 못한 턴. 번역 카드와 다른 표현 없이 저장한다.
+  private static final ExpressionsResult NO_EXPRESSIONS =
+      new ExpressionsResult(null, List.of(), List.of());
 
   // 장면별 상태·의도 규칙을 정하기 전까지 쓰는 자유 대화 상태. 의도는 상태를 바꾸지 않는다.
   private static final WorkerState FREE_TALK =
@@ -178,6 +185,9 @@ public class TurnService {
 
     TurnScope scope = new TurnScope(context, quest, policeDesk, taxiRide, selection.finalTurn());
     CompletableFuture<GuardResult> guarding = guardAsync(trace, context, request.text());
+    // 판정이 버리거나 실패한 말이면 기다리지 않고 버린다. 이미 보낸 요청은 워커가 끝까지 처리하고 사용량은 그대로 남는다.
+    CompletableFuture<ExpressionsResult> expressing =
+        expressionsAsync(trace, context, request.text());
     EarlyReply early = startEarlyReply(trace, scope, request.text(), events);
     JudgeResult judge;
     GuardResult guard;
@@ -214,6 +224,7 @@ public class TurnService {
     Optional<TaxiRide.Destination> destination = decision.destination();
     NpcReply reply = reply(trace, context, decision.reply(), events, early);
     String npcAudioKey = npcAudioReceiver.save(trace, reply.audioFullId());
+    ExpressionsResult expressions = expressing.join();
 
     return transactionTemplate.execute(
         status -> {
@@ -238,12 +249,12 @@ public class TurnService {
                       request.inputType(),
                       judge.text(),
                       request.sttRawText(),
-                      judge.english(),
+                      expressions.english(),
                       guard.abusive(),
                       guard.errorCode(),
                       conversationResponses.writeWords(judge.events())));
           userTurn.recordBetterExpressions(
-              conversationResponses.writeBetterExpressions(judge.betterExpressions()));
+              conversationResponses.writeBetterExpressions(expressions.betterExpressions()));
           // 복습과 장소 연습은 연습이라 이 NPC와의 호감도에 반영하지 않는다.
           boolean affectsAffinity = !conversation.isReview() && !conversation.isPractice();
           if (rude) {
@@ -439,7 +450,23 @@ public class TurnService {
                 new GuardResult.Guard(null, GUARD_WORKER_UNAVAILABLE), List.of());
           }
         },
-        LogContext.propagating(GUARD_EXECUTOR));
+        LogContext.propagating(WORKER_CALL_EXECUTOR));
+  }
+
+  // 무례 판정처럼 의도 판정과 같은 문장으로 동시에 부른다. 워커에 닿지 못하거나 결과가 없어도 턴을 막지 않고 번역·다른 표현 없이 저장한다.
+  private CompletableFuture<ExpressionsResult> expressionsAsync(
+      WorkerTrace trace, TurnContext context, String text) {
+    return CompletableFuture.supplyAsync(
+        () -> {
+          try {
+            ExpressionsResult result =
+                aiGateway.expressions(trace, context.npc().workerNpc(), context.history(), text);
+            return result == null ? NO_EXPRESSIONS : result;
+          } catch (BusinessException exception) {
+            return NO_EXPRESSIONS;
+          }
+        },
+        LogContext.propagating(WORKER_CALL_EXECUTOR));
   }
 
   private Optional<TurnResponse> replay(Long userId, Long conversationId, TurnRequest request) {

@@ -25,6 +25,7 @@ import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.service.UserContentEraser;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,6 +73,50 @@ class ReviewCardServiceTest {
     feedback.complete("카페에서 음료를 주문하고 포장을 부탁했어요.", STORED_REVIEWS, "fixture", null);
     entityManager.persist(feedback);
     entityManager.flush();
+  }
+
+  @Test
+  void createAndExistingCardsKeepTheExactLiveRecommendationsForPractice() {
+    Turn shortAnswer = textTurn(entityManager, source, 1, "to go please");
+    shortAnswer.recordBetterExpressions(
+        """
+        ["I'd like to take it away, please.", "Could I have it to take away?"]
+        """);
+    entityManager.flush();
+
+    var saved = reviewCardService.create(userId, source.getId());
+    assertThat(saved.targets())
+        .extracting(ReviewTarget::expression)
+        .contains("I'd like to take it away, please.", "Could I have it to take away?");
+    assertThat(saved.targets())
+        .filteredOn(target -> target.expression().equals("I'd like to take it away, please."))
+        .allSatisfy(target -> assertThat(target.originalText()).isNull());
+    entityManager.flush();
+    entityManager.clear();
+    assertThat(reviewCardService.detail(userId, saved.id()).targets()).isEqualTo(saved.targets());
+  }
+
+  @Test
+  void liveRecommendationsFromTheLastReplyAreNotLostBehindTheOldFiveTargetLimit() {
+    var expected = new java.util.ArrayList<String>();
+    for (int i = 0; i < 4; i++) {
+      Turn turn = textTurn(entityManager, source, i + 1, "short request " + i);
+      List<String> recommendations =
+          List.of("Could I have item " + i + "?", "I'd like item " + i + ", please.");
+      turn.recordBetterExpressions(
+          tools.jackson.databind.json.JsonMapper.builder()
+              .build()
+              .writeValueAsString(recommendations));
+      expected.addAll(recommendations);
+    }
+    entityManager.flush();
+
+    var saved = reviewCardService.create(userId, source.getId());
+    assertThat(saved.targets())
+        .extracting(ReviewTarget::expression)
+        .containsAll(expected)
+        .doesNotHaveDuplicates()
+        .hasSizeGreaterThan(5);
   }
 
   @Test

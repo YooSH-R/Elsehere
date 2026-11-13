@@ -151,7 +151,10 @@ public class ReviewCardService {
     }
     var savedReviews = jsonMapper.readValue(feedback.getReviews(), FeedbackReviews.class);
     var targets =
-        ReviewTargets.select(corrections(conversationId), savedReviews.situationExpressions());
+        ReviewTargets.includeRecommendations(
+            ReviewTargets.select(corrections(conversationId), savedReviews.situationExpressions()),
+            turnRepository.findAllByConversationIdOrderBySeqAsc(conversationId),
+            jsonMapper);
     if (targets.size() < 2) {
       throw new BusinessException(ErrorCode.REVIEW_NOT_READY);
     }
@@ -189,8 +192,10 @@ public class ReviewCardService {
 
   private ReviewCardResponse response(ReviewCard card, Npc npc) {
     List<ReviewTarget> targets =
-        ReviewTargets.forPractice(
-            Arrays.asList(jsonMapper.readValue(card.getTargets(), ReviewTarget[].class)));
+        ReviewTargets.includeRecommendations(
+            Arrays.asList(jsonMapper.readValue(card.getTargets(), ReviewTarget[].class)),
+            turnRepository.findAllByConversationIdOrderBySeqAsc(card.getSourceConversationId()),
+            jsonMapper);
     List<String> used =
         Arrays.asList(jsonMapper.readValue(card.getUsedExpressions(), String[].class));
     return new ReviewCardResponse(

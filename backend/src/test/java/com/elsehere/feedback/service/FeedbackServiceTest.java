@@ -102,6 +102,72 @@ class FeedbackServiceTest {
   }
 
   @Test
+  @DisplayName("짧지만 적절한 발화의 실시간 추천을 저장된 피드백에서 그대로 다시 보여 준다")
+  void detailed_reusesLiveRecommendationsEvenWhenTheFeedbackModelReturnedNoExamples() {
+    Turn shortAnswer = textTurn(entityManager, conversation, 6, "to go please");
+    shortAnswer.recordBetterExpressions(
+        """
+        ["Could I get that to go?", "I'd like to take it away, please."]
+        """);
+    ConversationFeedback stored = ConversationFeedback.of(conversation.getId());
+    stored.complete(
+        "포장을 요청했어요.",
+        STORED_REVIEWS,
+        "fixture",
+        """
+        {"turn_reviews":[{"turn_id":"%s","verdict":"appropriate",
+          "suggestions":[],"expression_examples":[]}]}
+        """
+            .formatted(shortAnswer.getId()));
+    entityManager.persist(stored);
+    entityManager.persist(
+        TurnFeedback.of(shortAnswer.getId(), null, "포장 요청을 자연스럽게 전달했어요.", null, null));
+    entityManager.flush();
+    entityManager.clear();
+
+    for (var items :
+        List.of(
+            feedbackService.detailed(userId, conversation.getId()).items(),
+            feedbackService.feedback(userId, conversation.getId()).detailedFeedback())) {
+      var item = items.getFirst();
+      assertThat(item.userText()).isEqualTo("to go please");
+      assertThat(item.verdict()).isEqualTo("appropriate");
+      assertThat(item.betterText()).isNull();
+      assertThat(item.expressionExamples())
+          .extracting(example -> example.expression())
+          .containsExactly("Could I get that to go?", "I'd like to take it away, please.");
+    }
+    then(aiGateway).shouldHaveNoInteractions();
+  }
+
+  @Test
+  void detailed_keepsKnownMeaningWhenALiveRecommendationMatchesTheCorrection() {
+    voiceTurn.recordBetterExpressions("[\"I'd like a latte, please.\"]");
+    ConversationFeedback stored = ConversationFeedback.of(conversation.getId());
+    stored.complete(
+        "음료 주문",
+        STORED_REVIEWS,
+        "fixture",
+        """
+        {"turn_reviews":[{"turn_id":"%s","verdict":"improvement_suggested",
+          "suggestions":[{"kind":"grammar_error"}],"expression_examples":[
+          {"condition_ko":"음료를 주문할 때","expression":"I'd like a latte, please.","meaning_ko":"라떼 한 잔 주세요."}]}]}
+        """
+            .formatted(voiceTurn.getId()));
+    entityManager.persist(stored);
+    entityManager.persist(
+        TurnFeedback.of(
+            voiceTurn.getId(), "I'd like a latte, please.", "주문 표현을 연결해요.", null, null));
+    entityManager.flush();
+
+    var item = feedbackService.detailed(userId, conversation.getId()).items().getFirst();
+    assertThat(item.expressionExamples())
+        .singleElement()
+        .satisfies(example -> assertThat(example.meaningKo()).isEqualTo("라떼 한 잔 주세요."));
+    then(aiGateway).shouldHaveNoInteractions();
+  }
+
+  @Test
   @DisplayName("저장한 평가 원본의 판정과 조건별 예문을 재조회하며 AI를 다시 호출하지 않는다")
   void detailed_preservesAssessmentAndConditionalExpressionExamples() {
     Conversation hotel = conversation(entityManager, userId, "HOTEL_STAFF");

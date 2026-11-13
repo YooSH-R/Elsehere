@@ -1,12 +1,16 @@
 package com.elsehere.review.service;
 
+import com.elsehere.conversation.entity.Turn;
+import com.elsehere.conversation.service.TurnRecommendations;
 import com.elsehere.feedback.entity.FeedbackReviews;
+import com.elsehere.mission.entity.ShowcaseStage;
 import com.elsehere.review.dto.ReviewTarget;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
+import tools.jackson.databind.json.JsonMapper;
 
 /** 이미 저장된 피드백의 고친 문장과 표현을 복습 카드로 옮긴다. */
 final class ReviewTargets {
@@ -16,6 +20,8 @@ final class ReviewTargets {
   private static final int MAX_EXPRESSIONS = 3;
   private static final int MAX_TARGETS = 5;
   private static final Pattern HANGUL = Pattern.compile("[가-힣]");
+  private static final Pattern TAKEAWAY =
+      Pattern.compile("\\b(?:to go|takeaway|take away|take it away)\\b");
 
   /** 학습자가 한 말과 피드백이 고쳐 준 문장. */
   record Correction(String originalText, String betterText, String reason) {}
@@ -116,5 +122,52 @@ final class ReviewTargets {
     return targets.stream()
         .filter(target -> learnerCanSay(target.expression(), target.usageKo()))
         .toList();
+  }
+
+  /** 기본 목표의 개수 제한과 별개로, 대화 중 추천한 문장을 누락 없이 보존한다. */
+  static List<ReviewTarget> includeRecommendations(
+      List<ReviewTarget> targets, List<Turn> sourceTurns, JsonMapper mapper) {
+    var selected = new LinkedHashMap<String, ReviewTarget>();
+    for (ReviewTarget target : forPractice(targets)) {
+      selected.putIfAbsent(TurnRecommendations.key(target.expression()), target);
+    }
+    for (Turn turn : sourceTurns) {
+      for (String sentence : TurnRecommendations.sentences(turn, mapper)) {
+        if (learnerCanSay(sentence, null)) {
+          selected.putIfAbsent(
+              TurnRecommendations.key(sentence),
+              new ReviewTarget(sentence, null, "지난 대화에서 같은 뜻으로 추천받은 표현이에요.", null, null));
+        }
+      }
+    }
+    return prioritizeShowcaseTakeaway(selected, sourceTurns, mapper);
+  }
+
+  // 시연의 주문 복습에서는 포장 답변의 대안을 먼저 연습한다. 문장을 새로 만들거나 다른 목표를 지우지 않는다.
+  private static List<ReviewTarget> prioritizeShowcaseTakeaway(
+      LinkedHashMap<String, ReviewTarget> selected, List<Turn> sourceTurns, JsonMapper mapper) {
+    var ordered = new LinkedHashMap<String, ReviewTarget>();
+    for (Turn turn : sourceTurns) {
+      if (!Integer.valueOf(ShowcaseStage.ORDER.ordinal())
+          .equals(turn.getConversation().getShowcaseStage())) {
+        continue;
+      }
+      List<String> recommendations = TurnRecommendations.sentences(turn, mapper);
+      boolean takeaway =
+          TAKEAWAY.matcher(TurnRecommendations.key(turn.getText())).find()
+              || recommendations.stream()
+                  .anyMatch(sentence -> TAKEAWAY.matcher(TurnRecommendations.key(sentence)).find());
+      if (takeaway) {
+        for (String sentence : recommendations) {
+          String key = TurnRecommendations.key(sentence);
+          ReviewTarget target = selected.get(key);
+          if (target != null) {
+            ordered.putIfAbsent(key, target);
+          }
+        }
+      }
+    }
+    ordered.putAll(selected);
+    return List.copyOf(ordered.values());
   }
 }

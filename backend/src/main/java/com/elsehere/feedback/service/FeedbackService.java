@@ -12,6 +12,7 @@ import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.conversation.service.ConversationLookup;
+import com.elsehere.conversation.service.TurnRecommendations;
 import com.elsehere.feedback.dto.ConversationFeedbackResponse;
 import com.elsehere.feedback.dto.DetailedFeedbackItemResponse;
 import com.elsehere.feedback.dto.DetailedFeedbackResponse;
@@ -267,7 +268,7 @@ public class FeedbackService {
                   assessment == null
                       ? null
                       : assessment.path("suggestions").path(0).path("kind").asText(null),
-                  expressionExamples(assessment));
+                  expressionExamples(assessment, turnsById.get(feedback.getTurnId())));
             })
         .toList();
   }
@@ -297,22 +298,43 @@ public class FeedbackService {
     }
   }
 
-  private List<ExpressionExampleResponse> expressionExamples(JsonNode assessment) {
-    if (assessment == null) {
+  private List<ExpressionExampleResponse> expressionExamples(JsonNode assessment, Turn turn) {
+    if (turn.isRude()) {
       return List.of();
     }
-    List<ExpressionExampleResponse> examples = new java.util.ArrayList<>();
-    for (JsonNode example : assessment.path("expression_examples")) {
+    var generated = new java.util.LinkedHashMap<String, ExpressionExampleResponse>();
+    for (JsonNode example :
+        assessment == null ? List.<JsonNode>of() : assessment.path("expression_examples")) {
       String expression = example.path("expression").asText(null);
-      if (expression != null && !expression.isBlank() && examples.size() < 3) {
-        examples.add(
+      if (expression != null && !expression.isBlank()) {
+        generated.putIfAbsent(
+            TurnRecommendations.key(expression),
             new ExpressionExampleResponse(
                 example.path("condition_ko").asText(null),
                 expression,
                 example.path("meaning_ko").asText(null)));
       }
     }
-    return examples;
+    var examples = new java.util.LinkedHashMap<String, ExpressionExampleResponse>();
+    for (String sentence : TurnRecommendations.sentences(turn, jsonMapper)) {
+      String key = TurnRecommendations.key(sentence);
+      ExpressionExampleResponse known = generated.get(key);
+      // 저장된 추천을 우선한다. 한글 뜻을 생성하지 않았던 추천에는 뜻을 지어내지 않는다.
+      examples.put(
+          key,
+          new ExpressionExampleResponse(
+              known == null ? "대화 중 추천받은 같은 뜻의 표현" : known.conditionKo(),
+              sentence,
+              known == null ? null : known.meaningKo()));
+    }
+    generated.forEach(examples::putIfAbsent);
+    return examples.values().stream()
+        .filter(
+            example ->
+                !TurnRecommendations.key(example.expression())
+                    .equals(TurnRecommendations.key(turn.getText())))
+        .limit(3)
+        .toList();
   }
 
   private List<Turn> userTurns(Long conversationId) {

@@ -149,7 +149,7 @@ namespace A305.EditorTools.Dialogue
             BuilderTools
                 .GetOrAddComponent<ThemedElement>(othersButton.gameObject)
                 .Use(catalog, UiThemeRole.PillButton);
-            othersButton.GetComponent<Image>().pixelsPerUnitMultiplier = 1.4f;
+            FitPill(othersButton.transform);
             othersButton
                 .GetComponentInChildren<TMP_Text>(true)
                 .GetComponent<ThemedElement>()
@@ -174,6 +174,7 @@ namespace A305.EditorTools.Dialogue
             expandRect.anchoredPosition = new Vector2(-20, -18);
             expandRect.sizeDelta = new Vector2(44, 42);
             expand.GetComponent<ThemedElement>().SetIcon(UiIcon.None);
+            FitPill(expand);
             RectTransform icon = FindRect(expand, "ExpandGlyph");
             icon.anchorMin = Vector2.zero;
             icon.anchorMax = Vector2.one;
@@ -384,15 +385,32 @@ namespace A305.EditorTools.Dialogue
             theme.FindProperty("role").enumValueIndex = (int)UiThemeRole.PillButton;
             theme.FindProperty("tone").enumValueIndex = (int)UiTone.Neutral;
             theme.ApplyModifiedPropertiesWithoutUndo();
-            // 낮은 버튼의 양 끝이 둥글게 보이도록 알약 그림의 배율을 맞춘다.
-            button.GetComponent<Image>().pixelsPerUnitMultiplier = 1.4f;
-            button.GetComponent<ThemedElement>().ApplyCurrent();
+            FitPill(button);
             BuilderTools.GetOrAddComponent<LayoutElement>(button.gameObject).ignoreLayout = true;
             button.GetComponent<Button>().navigation = new Navigation
             {
                 mode = Navigation.Mode.None,
             };
             return button;
+        }
+
+        // 머리줄 버튼 높이. 화면이 버튼을 놓을 때도 이 높이로 둔다(DialoguePanelView.PlaceHeaderButton).
+        private const float HeaderButtonHeight = 42;
+
+        // 알약 그림의 위아래 모서리가 머리줄 버튼 높이 안에 들어가게 9칸 배율을 맞춘다. 배율이 작으면 모서리가 높이를 넘어
+        // Unity가 세로로 눌러 그리므로 [힌트]·[말하기] 같은 매끈한 알약이 아니라 조약돌처럼 찌그러져 보인다.
+        // 배율에 따라 그림자 여백도 달라지므로 테마로 다시 칠한다.
+        private static void FitPill(Transform button)
+        {
+            var face = button.GetComponent<Image>();
+            if (face.sprite == null)
+                return;
+            float corners = face.sprite.border.y + face.sprite.border.w;
+            face.pixelsPerUnitMultiplier = Mathf.Max(
+                1,
+                corners / (face.pixelsPerUnit * .96f * HeaderButtonHeight)
+            );
+            button.GetComponent<ThemedElement>().ApplyCurrent();
         }
 
         // 흰색으로 그린 작은 그림을 한 번 만들어 두고 쓴다. 색은 Image가 입힌다.

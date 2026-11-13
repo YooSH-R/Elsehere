@@ -197,6 +197,33 @@ namespace A305.Dialogue.PlayModeTests
             );
         }
 
+        // 머리줄 버튼도 [힌트]·[말하기]처럼 매끈한 알약이다. 알약 그림의 위아래 모서리가 버튼 높이 안에 들어가야
+        // Unity가 세로로 눌러 그리지 않아 조약돌처럼 찌그러져 보이지 않는다.
+        [UnityTest]
+        public IEnumerator HeaderButtons_KeepTheSmoothPillShape()
+        {
+            view.Show(
+                new Content
+                {
+                    UserTranslation = "Where is the cafe?",
+                    UserBetterExpressions = new[] { "How do I get to the cafe?" },
+                }
+            );
+            yield return null;
+            foreach (string name in new[] { "OthersButton", "ExpandButton" })
+            {
+                var face = Card.Find(name).GetComponent<Image>();
+                Vector4 border = face.sprite.border;
+                float corners =
+                    (border.y + border.w) / (face.pixelsPerUnit * face.pixelsPerUnitMultiplier);
+                Assert.That(
+                    corners,
+                    Is.LessThanOrEqualTo(face.rectTransform.rect.height + .5f),
+                    $"{name}의 알약 모서리가 버튼 높이보다 큽니다."
+                );
+            }
+        }
+
         // 무례한 말에는 같은 기분을 공손하게 말하는 다른 표현을 '무례하지 않게 말하면' 아래 보인다.
         [UnityTest]
         public IEnumerator RudeLine_ShowsPoliteWaysUnderTheirOwnHeading()

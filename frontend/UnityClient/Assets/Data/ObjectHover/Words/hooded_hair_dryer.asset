@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: hooded_hair_dryer
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_00c53ed10cac97f4892ca258b53a656a
+    languageCode: en-US
+    text: hooded hair dryer
+    meaningKo: "\uBA38\uB9AC \uC704\uC5D0 \uC50C\uC6CC \uC0AC\uC6A9\uD558\uB294 \uAC74\uC870\uAE30"
+    example: Please sit under the hooded hair dryer.
+    exampleKo: "\uBA38\uB9AC\uB97C \uC50C\uC6CC \uB9D0\uB9AC\uB294 \uAC74\uC870\uAE30
+      \uC544\uB798\uC5D0 \uC549\uC544 \uC8FC\uC138\uC694."
+    pronunciationAudioKey: 
+  assetGuid: 00c53ed10cac97f4892ca258b53a656a

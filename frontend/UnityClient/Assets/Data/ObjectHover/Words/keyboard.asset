@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: keyboard
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_38e2389164ad83f419c8b2fe8626d9dc
+    languageCode: en-US
+    text: keyboard
+    meaningKo: "\uCEF4\uD4E8\uD130\uC5D0 \uAE00\uC790\uB97C \uC785\uB825\uD558\uB294
+      \uC790\uD310(\uD0A4\uBCF4\uB4DC)"
+    example: This keyboard is easy to use.
+    exampleKo: "\uC774 \uD0A4\uBCF4\uB4DC\uB294 \uC4F0\uAE30 \uD3B8\uD574\uC694."
+    pronunciationAudioKey: 
+  assetGuid: 38e2389164ad83f419c8b2fe8626d9dc

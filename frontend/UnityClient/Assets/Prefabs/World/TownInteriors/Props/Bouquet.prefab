@@ -102,6 +102,7 @@ GameObject:
   - component: {fileID: 4799294511235453768}
   - component: {fileID: 2421354680589979062}
   - component: {fileID: 6728621752893400226}
+  - component: {fileID: 8957038619022192923}
   m_Layer: 0
   m_Name: WrapPaper
   m_TagString: Untagged
@@ -182,6 +183,21 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &8957038619022192923
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 419059449943290630}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: d94071086b8c0a545872f1424971b9e4, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &903178153171187234
 GameObject:
   m_ObjectHideFlags: 0
@@ -297,7 +313,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
-  word: {fileID: 11400000, guid: 6fcf1f9c3c1a4f54499c6072d2b9f385, type: 2}
+  word: {fileID: 11400000, guid: 0843de0e7984e4343855cd92711938f1, type: 2}
   parts: {fileID: 0}
   unityKey: 
 --- !u!1 &2775408470867458243
@@ -352,8 +368,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.030000001, y: 0.14, z: 0.14}
-  m_Center: {x: 0.02, y: 0.059999995, z: 0}
+  m_Size: {x: 0.030000001, y: 0.14, z: 0.13999999}
+  m_Center: {x: 0.02, y: 0.06, z: -0.000000007450581}
 --- !u!114 &6398949522664925893
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -509,6 +525,7 @@ GameObject:
   - component: {fileID: 5253890894061490039}
   - component: {fileID: 3039769069197677420}
   - component: {fileID: 8385080682796612095}
+  - component: {fileID: 747696571134185873}
   m_Layer: 0
   m_Name: RibbonRed
   m_TagString: Untagged
@@ -589,6 +606,21 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &747696571134185873
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5381153423888630036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: c5989f940603a984789c208e05083c5d, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &5393129197580181477
 GameObject:
   m_ObjectHideFlags: 0
@@ -824,7 +856,7 @@ BoxCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Size: {x: 0.42170683, y: 0.22702852, z: 0.16}
-  m_Center: {x: 0, y: 0.060000002, z: 0}
+  m_Center: {x: 0, y: 0.06, z: 0}
 --- !u!114 &1061781128596058636
 MonoBehaviour:
   m_ObjectHideFlags: 0

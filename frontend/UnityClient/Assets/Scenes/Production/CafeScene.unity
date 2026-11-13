@@ -1070,19 +1070,19 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 5987814358652625018, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 2276036891794590833, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 328144938768426618, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 5661503859860682415, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 1361910173045395486, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 4209560733872191275, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 6549117826076888647, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 3435521325890995461, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 1366965700376746991, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 308511297974858899, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: 73feee9c6d627034c8b4aeefc24a24e6, type: 3}
@@ -1487,6 +1487,7 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
+  keepsOwnPost: 0
 --- !u!1 &674625335
 GameObject:
   m_ObjectHideFlags: 0
@@ -3071,6 +3072,7 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
+  keepsOwnPost: 0
 --- !u!1 &1255791207
 GameObject:
   m_ObjectHideFlags: 0
@@ -4792,6 +4794,7 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
+  keepsOwnPost: 0
 --- !u!1001 &2097214834
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -144,6 +144,7 @@ GameObject:
   - component: {fileID: 7766851574511340502}
   - component: {fileID: 6108118382319785257}
   - component: {fileID: 3549036358391270728}
+  - component: {fileID: 3544079501368771258}
   m_Layer: 0
   m_Name: MedicineBox
   m_TagString: Untagged
@@ -246,6 +247,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &3544079501368771258
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 221990250944472345}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3feb8e1e3af14b941912724adfb4bafb, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &283972699818691716
 GameObject:
   m_ObjectHideFlags: 0
@@ -1023,6 +1039,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7143344059588261380}
+  - component: {fileID: 1387865107779402638}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -1047,6 +1064,21 @@ Transform:
   - {fileID: 6039664500924419784}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1387865107779402638
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1049990800492419006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &1059239841942696172
 GameObject:
   m_ObjectHideFlags: 0
@@ -1236,6 +1268,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2986489705734447568}
+  - component: {fileID: 938115763789471524}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -1260,6 +1293,21 @@ Transform:
   - {fileID: 5647806477683201062}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &938115763789471524
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1072525569611846299}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &1084199239536544951
 GameObject:
   m_ObjectHideFlags: 0
@@ -1269,6 +1317,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7413793882944371716}
+  - component: {fileID: 3578152271721342606}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -1293,6 +1342,21 @@ Transform:
   - {fileID: 5272363800641613724}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3578152271721342606
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084199239536544951}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &1144775814724918775
 GameObject:
   m_ObjectHideFlags: 0
@@ -1305,6 +1369,7 @@ GameObject:
   - component: {fileID: 8796765374273557904}
   - component: {fileID: 935553147552150669}
   - component: {fileID: 1624845683626487871}
+  - component: {fileID: 1623872889598892677}
   m_Layer: 0
   m_Name: MedicineBox
   m_TagString: Untagged
@@ -1407,6 +1472,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1623872889598892677
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1144775814724918775}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3feb8e1e3af14b941912724adfb4bafb, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &1224379463574404717
 GameObject:
   m_ObjectHideFlags: 0
@@ -1911,6 +1991,7 @@ GameObject:
   - component: {fileID: 6421265970614243430}
   - component: {fileID: 5066372493657346662}
   - component: {fileID: 1202678336601045541}
+  - component: {fileID: 7697105645790418511}
   m_Layer: 0
   m_Name: MedicineBox
   m_TagString: Untagged
@@ -2013,6 +2094,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &7697105645790418511
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1461501309472066391}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3feb8e1e3af14b941912724adfb4bafb, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &1514066070915843499
 GameObject:
   m_ObjectHideFlags: 0
@@ -2319,6 +2415,7 @@ GameObject:
   - component: {fileID: 8670855600007358204}
   - component: {fileID: 3453730684134466324}
   - component: {fileID: 1496482194138625281}
+  - component: {fileID: 5649288891824287364}
   m_Layer: 0
   m_Name: MedicineBox
   m_TagString: Untagged
@@ -2421,6 +2518,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &5649288891824287364
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1894593686887573773}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3feb8e1e3af14b941912724adfb4bafb, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &1919534511067317440
 GameObject:
   m_ObjectHideFlags: 0
@@ -2496,6 +2608,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4320461265594375347}
+  - component: {fileID: 6474774075013424379}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -2520,6 +2633,21 @@ Transform:
   - {fileID: 2077490792626199709}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6474774075013424379
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1943983874007949817}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &1989825604918266468
 GameObject:
   m_ObjectHideFlags: 0
@@ -2598,6 +2726,7 @@ GameObject:
   - component: {fileID: 907119570629979326}
   - component: {fileID: 8562404663339699550}
   - component: {fileID: 3109240689928724553}
+  - component: {fileID: 9093187897441675203}
   m_Layer: 0
   m_Name: MedicineBox
   m_TagString: Untagged
@@ -2700,6 +2829,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &9093187897441675203
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2016173620163247922}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3feb8e1e3af14b941912724adfb4bafb, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &2035911219212724108
 GameObject:
   m_ObjectHideFlags: 0
@@ -2712,6 +2856,7 @@ GameObject:
   - component: {fileID: 6509564811852158516}
   - component: {fileID: 6686782043099783627}
   - component: {fileID: 6243328349999875455}
+  - component: {fileID: 9102633781708579609}
   m_Layer: 0
   m_Name: MedicineBox
   m_TagString: Untagged
@@ -2814,6 +2959,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &9102633781708579609
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2035911219212724108}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3feb8e1e3af14b941912724adfb4bafb, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &2039726463702862443
 GameObject:
   m_ObjectHideFlags: 0
@@ -3165,6 +3325,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7239233003343544613}
+  - component: {fileID: 143637401824859713}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -3189,6 +3350,21 @@ Transform:
   - {fileID: 8450752140424082947}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &143637401824859713
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2083687742632325294}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &2213677798587352938
 GameObject:
   m_ObjectHideFlags: 0
@@ -3540,6 +3716,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3446329140484156700}
+  - component: {fileID: 6416687884115601396}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -3564,6 +3741,21 @@ Transform:
   - {fileID: 8015438869739184040}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6416687884115601396
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2472953836253608688}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &2702431644134711025
 GameObject:
   m_ObjectHideFlags: 0
@@ -3573,6 +3765,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7100114000207520372}
+  - component: {fileID: 894649251855483815}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -3597,6 +3790,21 @@ Transform:
   - {fileID: 4273264647277586518}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &894649251855483815
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2702431644134711025}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &2718268688908571613
 GameObject:
   m_ObjectHideFlags: 0
@@ -3900,6 +4108,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5763585387588777725}
+  - component: {fileID: 439886025491793437}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -3924,6 +4133,21 @@ Transform:
   - {fileID: 6596012191077859057}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &439886025491793437
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3041298702781605337}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &3048819557390739704
 GameObject:
   m_ObjectHideFlags: 0
@@ -4410,6 +4634,7 @@ GameObject:
   - component: {fileID: 9010720531803507952}
   - component: {fileID: 5750464505112715922}
   - component: {fileID: 4328904866522920192}
+  - component: {fileID: 2755295887858501168}
   m_Layer: 0
   m_Name: MedicineBox
   m_TagString: Untagged
@@ -4512,6 +4737,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2755295887858501168
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3414741928593165303}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3feb8e1e3af14b941912724adfb4bafb, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &3431749792654053839
 GameObject:
   m_ObjectHideFlags: 0
@@ -4521,6 +4761,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 210082252268822941}
+  - component: {fileID: 6705812794718862407}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -4545,6 +4786,21 @@ Transform:
   - {fileID: 7627486727691201108}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6705812794718862407
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3431749792654053839}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &3458733762082992532
 GameObject:
   m_ObjectHideFlags: 0
@@ -5388,6 +5644,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1845329143360538985}
+  - component: {fileID: 7630508468356697355}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -5412,6 +5669,21 @@ Transform:
   - {fileID: 4961113495883313564}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7630508468356697355
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3794544668026460807}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &3896034583042874575
 GameObject:
   m_ObjectHideFlags: 0
@@ -5490,6 +5762,7 @@ GameObject:
   - component: {fileID: 1790067919879563182}
   - component: {fileID: 6856914267745771153}
   - component: {fileID: 7401611277211655368}
+  - component: {fileID: 7202901236868245323}
   m_Layer: 0
   m_Name: MedicineBox
   m_TagString: Untagged
@@ -5592,6 +5865,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &7202901236868245323
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4074211060849687561}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3feb8e1e3af14b941912724adfb4bafb, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &4074779540474527528
 GameObject:
   m_ObjectHideFlags: 0
@@ -5601,6 +5889,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5682978929431260045}
+  - component: {fileID: 2756099312575327032}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -5625,6 +5914,21 @@ Transform:
   - {fileID: 2499766658282446236}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2756099312575327032
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4074779540474527528}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &4262221907343891219
 GameObject:
   m_ObjectHideFlags: 0
@@ -5634,6 +5938,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1394372601104588938}
+  - component: {fileID: 6554537278885710351}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -5658,6 +5963,21 @@ Transform:
   - {fileID: 2224791797614110280}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6554537278885710351
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4262221907343891219}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &4426868680999761761
 GameObject:
   m_ObjectHideFlags: 0
@@ -5847,6 +6167,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4888705103537435848}
+  - component: {fileID: 6091731952428573428}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -5871,6 +6192,21 @@ Transform:
   - {fileID: 5560908587013718513}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6091731952428573428
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4543887512817629683}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &4613748288315882746
 GameObject:
   m_ObjectHideFlags: 0
@@ -5997,6 +6333,7 @@ GameObject:
   - component: {fileID: 5537510686867671315}
   - component: {fileID: 7302141086418869295}
   - component: {fileID: 6340874683455101814}
+  - component: {fileID: 4737422079734579031}
   m_Layer: 0
   m_Name: MedicineBox
   m_TagString: Untagged
@@ -6099,6 +6436,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &4737422079734579031
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4630618542675232279}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3feb8e1e3af14b941912724adfb4bafb, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &4686269984166962790
 GameObject:
   m_ObjectHideFlags: 0
@@ -6174,6 +6526,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 637997503786520216}
+  - component: {fileID: 2194418091475917779}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -6198,6 +6551,21 @@ Transform:
   - {fileID: 2884834121207691748}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2194418091475917779
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4719213924346327258}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &4829924058020576464
 GameObject:
   m_ObjectHideFlags: 0
@@ -6869,6 +7237,7 @@ GameObject:
   - component: {fileID: 8079586487615887702}
   - component: {fileID: 1692076697965544025}
   - component: {fileID: 1863513647177466486}
+  - component: {fileID: 3448384504690393798}
   m_Layer: 0
   m_Name: MedicineBox
   m_TagString: Untagged
@@ -6971,6 +7340,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &3448384504690393798
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5332625319182993472}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3feb8e1e3af14b941912724adfb4bafb, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &5454404054258511218
 GameObject:
   m_ObjectHideFlags: 0
@@ -7094,6 +7478,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8512235075641972504}
+  - component: {fileID: 8782133347149359609}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -7118,6 +7503,21 @@ Transform:
   - {fileID: 1070020567203225708}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8782133347149359609
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5507922753640531772}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &5529281160225663562
 GameObject:
   m_ObjectHideFlags: 0
@@ -7754,6 +8154,7 @@ GameObject:
   - component: {fileID: 6978461402092778556}
   - component: {fileID: 8267377406259377847}
   - component: {fileID: 6748886284662693783}
+  - component: {fileID: 7055310825407570557}
   m_Layer: 0
   m_Name: MedicineBox
   m_TagString: Untagged
@@ -7856,6 +8257,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &7055310825407570557
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5883181218646264960}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3feb8e1e3af14b941912724adfb4bafb, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &6024067343538916594
 GameObject:
   m_ObjectHideFlags: 0
@@ -8225,6 +8641,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1534503165997336994}
+  - component: {fileID: 7937616117017441636}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -8249,6 +8666,21 @@ Transform:
   - {fileID: 9162702199856695474}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7937616117017441636
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6445443873195612482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &6593911448842043741
 GameObject:
   m_ObjectHideFlags: 0
@@ -8261,6 +8693,7 @@ GameObject:
   - component: {fileID: 2289616806100383382}
   - component: {fileID: 569087388098578054}
   - component: {fileID: 5068973064345228460}
+  - component: {fileID: 1798296209465953370}
   m_Layer: 0
   m_Name: MedicineBox
   m_TagString: Untagged
@@ -8363,6 +8796,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1798296209465953370
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6593911448842043741}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3feb8e1e3af14b941912724adfb4bafb, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &6667583930723886050
 GameObject:
   m_ObjectHideFlags: 0
@@ -8504,6 +8952,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 383249800792050521}
+  - component: {fileID: 8626752240383536821}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -8528,6 +8977,21 @@ Transform:
   - {fileID: 1219629691917992374}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8626752240383536821
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6745802128921963604}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &6783733909087413471
 GameObject:
   m_ObjectHideFlags: 0
@@ -8834,6 +9298,7 @@ GameObject:
   - component: {fileID: 7460011458567243004}
   - component: {fileID: 3320819976958504446}
   - component: {fileID: 212168344844439656}
+  - component: {fileID: 192989859470729149}
   m_Layer: 0
   m_Name: MedicineBox
   m_TagString: Untagged
@@ -8936,6 +9401,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &192989859470729149
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6859595475347678967}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3feb8e1e3af14b941912724adfb4bafb, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &6980954866975833559
 GameObject:
   m_ObjectHideFlags: 0
@@ -8945,6 +9425,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 619302920639304743}
+  - component: {fileID: 41411360236708296}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -8969,6 +9450,21 @@ Transform:
   - {fileID: 1537101897234659367}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &41411360236708296
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6980954866975833559}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &7007522788053704900
 GameObject:
   m_ObjectHideFlags: 0
@@ -10046,6 +10542,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1629155308213401217}
+  - component: {fileID: 108943359574566892}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -10070,6 +10567,21 @@ Transform:
   - {fileID: 6240978499941272450}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &108943359574566892
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8267505063360179174}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &8306754888052531529
 GameObject:
   m_ObjectHideFlags: 0
@@ -10259,6 +10771,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8342304574680909109}
+  - component: {fileID: 4829059447765397672}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -10283,6 +10796,21 @@ Transform:
   - {fileID: 7289581501437246120}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4829059447765397672
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8334879235494988301}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &8490212738075724126
 GameObject:
   m_ObjectHideFlags: 0
@@ -10292,6 +10820,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5945025215455822233}
+  - component: {fileID: 7374764608975043422}
   m_Layer: 0
   m_Name: PillBottle
   m_TagString: Untagged
@@ -10316,6 +10845,21 @@ Transform:
   - {fileID: 4305033255104374707}
   m_Father: {fileID: 5638778103497248511}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7374764608975043422
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8490212738075724126}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3c0259f43f2f8c54683415594d1e51c1, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &8617665068149071907
 GameObject:
   m_ObjectHideFlags: 0
@@ -10394,6 +10938,7 @@ GameObject:
   - component: {fileID: 256577940785425957}
   - component: {fileID: 5505058753003497462}
   - component: {fileID: 1589481033104650140}
+  - component: {fileID: 8440848064661596790}
   m_Layer: 0
   m_Name: MedicineBox
   m_TagString: Untagged
@@ -10496,6 +11041,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &8440848064661596790
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8761487359262087379}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 3feb8e1e3af14b941912724adfb4bafb, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &8850732862851256168
 GameObject:
   m_ObjectHideFlags: 0

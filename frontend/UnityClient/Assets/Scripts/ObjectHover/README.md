@@ -132,13 +132,17 @@ Inspector의 **백엔드 데이터 내보내기** 버튼 또는 **Tools → A305
 1. 기존 공용 에셋을 재사용합니다. 새 단어라면 **Assets → Create → A305 → Object Hover → Word**로 만들고 뜻·영문 예문·해석까지 입력합니다.
 2. 프리팹의 `HoverableObject.Word`에 에셋을 지정합니다. Builder 자동 연결이 필요하면 `Scripts/Editor/ObjectHover/ObjectWordBindings.json`에 프리팹 또는 의미 있는 사물 루트 이름과 내부 공용 키를 추가합니다.
 3. 세부 영역이 있는 가구는 **Assets → Create → A305 → Object Hover → Parts**로 `Data/ObjectHover/Parts/`에 에셋을 만들고, 부분별 단어와 가구 로컬 좌표의 영역을 입력해 `HoverableObject.Parts`에 연결합니다. 작은 부분을 앞에 두면 겹치는 큰 영역보다 우선합니다.
-4. `BuilderTools`로 프리팹과 씬을 저장하면 알려진 사물에 에셋과 호버 전용 Trigger를 연결합니다. 이미 지정한 Word와 Parts는 유지합니다. 세부 데이터가 있는 합쳐진 모델은 떨어진 모양마다 호버 Trigger를 나눕니다. 이동 충돌은 유지합니다.
+4. `BuilderTools`로 프리팹과 씬을 저장하면 알려진 사물에 에셋과 호버 전용 Trigger를 연결합니다. 일반 이름 연결은 이미 지정한 Word와 Parts를 유지합니다. 실내 상품·도구는 아래의 실내 소품 연결 규칙으로 의미를 맞춥니다. 세부 데이터가 있거나 메시 자체에 단어를 지정한 모델은 떨어진 모양마다 호버 Trigger를 나눕니다. 이동 충돌은 유지합니다.
 5. **Tools → A305 → ObjectHover → Register All Scene Words**로 장소 씬(`Scenes/Production/`의 집·카페·호텔·마을·상점·경찰서)과 마을 매장 실내 씬(`Scenes/ShopInteriors/`)의 누락 검사를 통과시킵니다. 실내 씬의 사물은 건물 프리팹 인스턴스이므로 씬을 고치지 않고 검사만 하며, 서버는 마을 매장을 마을의 일부로 보므로 실내 사물의 단어는 마을(`TOWN`) 단어로 내보내고 실행 중에도 마을 단어를 받습니다(`ObjectWordScenes`). 매장 실내 씬은 폴더에서 찾으므로 매장이 늘어도 목록을 고치지 않습니다. 보고서 경로는 `A305_WORD_REPORTS` 환경변수 또는 임시 폴더의 `A305ObjectWords/registration.txt`입니다.
 6. 전체 등록은 백엔드 파일도 내보냅니다. **Check Backend Export** 또는 `sync-object-words.ps1 -Check`를 통과시킵니다. 에셋·연결표·생성 데이터·프리팹·씬·새 `.meta`를 함께 반영합니다.
 
 공간 씬의 호버 처리와 툴팁은 [World 모듈의 공간 기능 연결](../World/README.md#새-공간-씬-만들기)이 붙이므로 씬마다 직접 배치하지 않습니다.
 
 ## Builder
+
+`IndoorObjectWordBuilder`는 실내 소품 이름과 확인된 모델을 기준으로 단어를 연결합니다. 매장 루트의 `store`나 선반의 단어가 상품에 그대로 표시되지 않도록 컵·식품·약병 등은 독립된 호버 대상으로 연결합니다. 재질별로 합쳐진 꽃·키보드·잡지도 자체 메시를 기준으로 구분하며, 한 메시 안의 서로 다른 물건은 `Parts/Indoor*.asset`의 세부 영역으로 구분합니다. 새 영역은 실제 모델에서 생성하고 이미 편집한 Parts는 보존합니다. 모델을 바꾸면 해당 영역도 함께 확인합니다.
+
+이 규칙은 전체 등록과 프리팹 저장 때 적용하므로 매장 재생성 후에도 유지됩니다. 새 단어의 기본 뜻·예문은 `IndoorObjectWordCatalog`에서 없을 때만 준비하며, 이후 문구 편집 원본은 다른 단어와 같은 `Words/` 에셋입니다. 내용물이 표시되지 않은 병은 `bottle`로 안내하고, 물건의 색만으로 샴푸나 특정 약품이라고 단정하지 않습니다.
 
 **Tools → A305 → ObjectHover → Set Up Detailed Words**는 현재 가구의 세부 단어와 Parts 에셋을 없을 때만 만들고 프리팹에 연결합니다. 침대·조리대·소파·책장·탁자·냉장고·커튼·카페 벤치·화분을 지원합니다. 이미 편집한 단어·영역·설정을 덮어쓰지 않으며, 마지막에 전체 씬 등록과 백엔드 내보내기를 실행합니다.
 

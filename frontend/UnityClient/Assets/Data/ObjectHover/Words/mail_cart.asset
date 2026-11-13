@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: mail_cart
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_f1a35b579e2ac6e458b29c156c688a4d
+    languageCode: en-US
+    text: mail cart
+    meaningKo: "\uC6B0\uD3B8\uBB3C\uC744 \uC62E\uAE30\uB294 \uC218\uB808"
+    example: Put the packages on the mail cart.
+    exampleKo: "\uC18C\uD3EC\uB97C \uC6B0\uD3B8 \uC218\uB808\uC5D0 \uC62C\uB824 \uC8FC\uC138\uC694."
+    pronunciationAudioKey: 
+  assetGuid: f1a35b579e2ac6e458b29c156c688a4d

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: hot_dog_roller
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_4cece1a51af197c4992c921a91f84919
+    languageCode: en-US
+    text: hot dog roller
+    meaningKo: "\uC18C\uC2DC\uC9C0\uB97C \uAD74\uB9AC\uBA70 \uB370\uC6B0\uB294 \uC870\uB9AC
+      \uAE30\uACC4"
+    example: The hot dogs are on the hot dog roller.
+    exampleKo: "\uD56B\uB3C4\uADF8\uC6A9 \uC18C\uC2DC\uC9C0\uAC00 \uD68C\uC804 \uC870\uB9AC\uAE30
+      \uC704\uC5D0 \uC788\uC5B4\uC694."
+    pronunciationAudioKey: 
+  assetGuid: 4cece1a51af197c4992c921a91f84919

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: brochure_rack
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_c198f78cc742bb14b8d7282b458af524
+    languageCode: en-US
+    text: brochure rack
+    meaningKo: "\uC548\uB0B4 \uCC45\uC790\uB97C \uB193\uB294 \uC9C4\uC5F4\uB300"
+    example: The brochure rack is near the entrance.
+    exampleKo: "\uC548\uB0B4 \uCC45\uC790 \uC9C4\uC5F4\uB300\uB294 \uC785\uAD6C \uADFC\uCC98\uC5D0
+      \uC788\uC5B4\uC694."
+    pronunciationAudioKey: 
+  assetGuid: c198f78cc742bb14b8d7282b458af524

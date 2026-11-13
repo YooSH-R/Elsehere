@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: barber_pole
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_07942cce8d9cedc45bbbd961b4ca7250
+    languageCode: en-US
+    text: barber pole
+    meaningKo: "\uC774\uBC1C\uC18C\uB97C \uB098\uD0C0\uB0B4\uB294 \uC904\uBB34\uB2AC
+      \uAE30\uB465 \uAC04\uD310"
+    example: Look for the barber pole outside.
+    exampleKo: "\uBC16\uC5D0 \uC788\uB294 \uC774\uBC1C\uC18C \uC904\uBB34\uB2AC \uAC04\uD310\uC744
+      \uCC3E\uC544\uBCF4\uC138\uC694."
+    pronunciationAudioKey: 
+  assetGuid: 07942cce8d9cedc45bbbd961b4ca7250

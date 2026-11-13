@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: bouquet
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_0843de0e7984e4343855cd92711938f1
+    languageCode: en-US
+    text: bouquet
+    meaningKo: "\uAF43\uC744 \uBAA8\uC544 \uBB36\uC740 \uAF43\uB2E4\uBC1C"
+    example: I'd like a bouquet for my mom.
+    exampleKo: "\uC5C4\uB9C8\uAED8 \uB4DC\uB9B4 \uAF43\uB2E4\uBC1C\uC744 \uC0AC\uACE0
+      \uC2F6\uC5B4\uC694."
+    pronunciationAudioKey: 
+  assetGuid: 0843de0e7984e4343855cd92711938f1

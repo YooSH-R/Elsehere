@@ -119,8 +119,8 @@
         {
             "sceneCode": "TOWN",
             "unityKey": "TownScene",
-            "objectCount": 3618,
-            "detailCount": 121,
+            "objectCount": 3931,
+            "detailCount": 133,
             "wordKeys": [
                 "awning",
                 "bed",
@@ -139,7 +139,6 @@
                 "coffee_machine",
                 "cornice",
                 "counter",
-                "crate",
                 "croissant",
                 "crosswalk",
                 "cushion",
@@ -149,6 +148,7 @@
                 "drawer",
                 "duvet",
                 "entrance",
+                "faucet",
                 "fence",
                 "fire_hydrant",
                 "floor",
@@ -200,18 +200,37 @@
                 "vase",
                 "wall",
                 "window",
+                "word_00c53ed10cac97f4892ca258b53a656a",
                 "word_0161d483cee300c40b1861ae4d0e85a0",
+                "word_048de87fda675024a9dd857d496c8ff4",
                 "word_0587befb29840ad49a62604219dc7715",
                 "word_0744fa563d6a7994f9f3a91758a794f9",
+                "word_07942cce8d9cedc45bbbd961b4ca7250",
+                "word_0843de0e7984e4343855cd92711938f1",
+                "word_0a29609b3b7e1fd40a53ca476d8a6966",
                 "word_0a8bd7882c5b7b04e84b90f02a9345c1",
+                "word_0dd11afd2a47c6245b6d8eb5e1396f67",
+                "word_1374d18368b09b84886b1612d1c2f2e7",
+                "word_13f8944d566e92c478693e4990aa1516",
+                "word_176e8770ef9adc5489b55b2867b351a9",
+                "word_21ca4715c5c4b204e9118f326093659c",
+                "word_237fdb92b9222ee418207bca306a7454",
+                "word_24b2c6f48adfc0b478fa72b090877667",
                 "word_27d3dc992bf0dee46a465b3bb93c0a08",
+                "word_299d362b42c8dbd47b05d18fd2ea66e9",
                 "word_2a482726948f5bf41a0068cc69f541ca",
                 "word_2b9999d8d017255459f2137b005edde2",
                 "word_2ed81ce347fb9724d8df37ac679e41d9",
+                "word_33543d078983bee4787c92975243cb93",
                 "word_369eb9ba5bdd95a4e82191d96b289f34",
                 "word_386c8564b884cfe47b66fdbc77ec87b9",
+                "word_38e2389164ad83f419c8b2fe8626d9dc",
+                "word_3bb3223a770f4114588c99d670bcaf33",
+                "word_3c688ce27ad5de141be523400387ab07",
+                "word_3df813d12327eb844ae12b360ceee863",
                 "word_3f1b31e72fbacea48bed046e884e6255",
                 "word_3fc84a99d1f166d49a24ed5d59f38a89",
+                "word_41df6087b5cdcb144b73b12f94cb4343",
                 "word_44f9cc0d067b770438b25673c21c1358",
                 "word_47611d6211561694cb7aa0e9039a893a",
                 "word_49745493800188e47bee4b59a9a41f49",
@@ -219,6 +238,8 @@
                 "word_50a95568007664e448ac53663da03962",
                 "word_510320b4ce2ab1646975c5e1c03333fb",
                 "word_513415d5ad951964c9ede7ba32b0596f",
+                "word_5163fa48bf1c2c2409adcfddf33095fd",
+                "word_552f7f037bdc47a4abe1f0b39ac7dc1d",
                 "word_57394345ad5fd5c46a1e107b2d2a7656",
                 "word_57d53390c38c2204588cba13f10a5f9a",
                 "word_583992ed64934fe4ba5f273e34106ceb",
@@ -226,40 +247,73 @@
                 "word_5ca110b3066a4e04f83c2f7776bb5070",
                 "word_5ef79e2727edae54ab972ddb33844750",
                 "word_63e4d2f608e230d4da895baa59336f47",
+                "word_6b33e552c1fbec54c846130b96ae95b3",
+                "word_6e1717ab83f7ae14084d2077336f563f",
                 "word_6f2d682aa1edd004a86774dbc32603a3",
                 "word_6fcf1f9c3c1a4f54499c6072d2b9f385",
+                "word_730291e3d6b4f5f47a756b27ae7840f2",
+                "word_7de8e1740fc90ed4e9160663939779ef",
+                "word_833e3b054c9817b4fa6b01b2f88c06e5",
+                "word_84a5ac74de2c17a43baca693659180a4",
                 "word_856ac06ac71774f41bd23a7b97da2cc1",
+                "word_873d7d6807d8269438e6e5a2de259633",
+                "word_8d8bb12e67995f94b8af574d7ab4491e",
+                "word_8eac099b117a22847a5834ed558d4c19",
+                "word_906b428b3c0a4ab4c8822b83954dd9e8",
+                "word_9233893570eaa424a89483cb82309717",
+                "word_9b64cd558b6c25b42a70a6ed8e3c4005",
                 "word_a31ccaa6d412b78428976a47663eff21",
                 "word_a469e283225b24f48b585f804e782bec",
+                "word_a935a83c01df1a448a0b6bb8bcca9581",
+                "word_abbe5b4f879c13c43aae997a34402410",
+                "word_ae7b5008363d50745aa1c818547ac570",
                 "word_af4d769b378ec384a8ef3edbaf346e9d",
                 "word_b1de7b60fd9e56c4282fa85b4a09e4b2",
+                "word_b3ac4c82f652de646a5e26ef24bf337e",
                 "word_b455dfb83439d7546bf34d8766404f6f",
                 "word_b4a755c63d1d408438a71815ba75d475",
+                "word_b65574ec6b46d8c4f82294eef63dfb68",
+                "word_b890e56ae5b7b2c4d8cd370d3c08cedd",
+                "word_bcf51a025941df943b7e1d40506be643",
                 "word_be12390675add1b488faf55f8e9aeb96",
+                "word_c198f78cc742bb14b8d7282b458af524",
+                "word_c5989f940603a984789c208e05083c5d",
+                "word_c718bd56532264b48972fe8aaedfa09d",
                 "word_cfe407d309ec44540a66769b307075c8",
+                "word_d94071086b8c0a545872f1424971b9e4",
+                "word_de079e78ebe272842a92ac2314a3548f",
+                "word_e08a4cc7e6dabb548ae39c6113c974ee",
                 "word_e438a4ee4f2a3494eaadb31ccfda0859",
+                "word_e43aa05d3f6630240be25f57a3a8c6e0",
                 "word_ebe79357906436b43bd7f4930af8b584",
                 "word_efe358bf0753d334891d16f6961a2d08",
                 "word_f1493503fe49b48488b6a1674ff150cd",
+                "word_f1a35b579e2ac6e458b29c156c688a4d",
+                "word_f3cd6cc8d51298a468c324f38d317eab",
                 "word_f7bedd45ef4077348a8fb4ff422f2399",
+                "word_f7da3cd6ecdbab14e8a172a545bc61bc",
                 "word_f7e7d4080aa0f3240910c84584d2d799",
-                "word_fae84acd881cae244bb14dd79ae14bf5"
+                "word_fae84acd881cae244bb14dd79ae14bf5",
+                "word_fce9aafe86b550442bc40a2d09c3b75b"
             ]
         },
         {
             "sceneCode": "SHOP",
             "unityKey": "ShopScene",
-            "objectCount": 79,
+            "objectCount": 532,
             "detailCount": 0,
             "wordKeys": [
+                "cabinet",
                 "ceiling",
                 "coffee_machine",
                 "counter",
                 "crate",
+                "cup",
                 "door",
                 "floor",
                 "freezer",
                 "lamp",
+                "mug",
                 "plant",
                 "refrigerator",
                 "rug",
@@ -269,14 +323,38 @@
                 "wall",
                 "window",
                 "word_048de87fda675024a9dd857d496c8ff4",
+                "word_0521513012a098e4fa8b119aaf2bb29c",
+                "word_178949e5e42bef545b151088b798b039",
+                "word_1d323dfcc7bb3da48bf85613a7a2da71",
+                "word_1dafccb96a732a246b570b3823c944ee",
+                "word_27d3dc992bf0dee46a465b3bb93c0a08",
+                "word_3870a9071e9519c4da91ab433ef17534",
+                "word_3a3bc8f216be6174fabbcd6b9129c0c9",
+                "word_3c0259f43f2f8c54683415594d1e51c1",
+                "word_3feb8e1e3af14b941912724adfb4bafb",
+                "word_4a99d43b1e1f48a40a40950acc8d88dc",
+                "word_4aceb9a098a5be8459747e3c3b60c13e",
+                "word_4cece1a51af197c4992c921a91f84919",
+                "word_57a59d22fdaa64a49bbaa2c045897fbd",
+                "word_5f6208984d2beca41bcc5375e720b128",
+                "word_68c5e41e6b33b5048894b4f178caad6f",
+                "word_74c97f48c066a1f4e8387cdaebcd4f74",
+                "word_8121fa1f090622f428ec8ae558cd2df2",
+                "word_8ab3d49930abb6049ba633b4a7b6df9d",
                 "word_a115a59d89b32af4bbbe5aa6c17f8273",
-                "word_dc8c065ff0dcb2e43b6ca55e68349494"
+                "word_abbe5b4f879c13c43aae997a34402410",
+                "word_b49c4fbdec17d8f4593cbcb14841fde4",
+                "word_bf3706cb24f8af64e9b7c11f443f8bc0",
+                "word_cfa0b9fbd753a0545869552e50227e49",
+                "word_d29799f983750994a996b6408e07165a",
+                "word_dc8c065ff0dcb2e43b6ca55e68349494",
+                "word_fa36068283c56c24092c57fe3e81b8de"
             ]
         },
         {
             "sceneCode": "POLICE_STATION",
             "unityKey": "PoliceStationScene",
-            "objectCount": 85,
+            "objectCount": 86,
             "detailCount": 1,
             "wordKeys": [
                 "cabinet",
@@ -295,8 +373,11 @@
                 "sign",
                 "wall",
                 "window",
+                "word_3df813d12327eb844ae12b360ceee863",
                 "word_513415d5ad951964c9ede7ba32b0596f",
-                "word_57394345ad5fd5c46a1e107b2d2a7656"
+                "word_57394345ad5fd5c46a1e107b2d2a7656",
+                "word_6e1717ab83f7ae14084d2077336f563f",
+                "word_83e9ef9fb38b2804e844393a3d16d226"
             ]
         }
     ],
@@ -1012,7 +1093,12 @@
             "guid": "fa28e285858e1494f893c372f193563e",
             "path": "Assets/Prefabs/World/Drugstore/CoffeeCounter.prefab",
             "wordKeys": [
+                "cabinet",
                 "coffee_machine",
+                "cup",
+                "mug",
+                "word_4cece1a51af197c4992c921a91f84919",
+                "word_b49c4fbdec17d8f4593cbcb14841fde4",
                 "word_dc8c065ff0dcb2e43b6ca55e68349494"
             ]
         },
@@ -1037,13 +1123,16 @@
             "guid": "e062b17753f62de47a554ef328f0e634",
             "path": "Assets/Prefabs/World/Drugstore/DrugstoreInterior.prefab",
             "wordKeys": [
+                "cabinet",
                 "ceiling",
                 "coffee_machine",
                 "crate",
+                "cup",
                 "door",
                 "floor",
                 "freezer",
                 "lamp",
+                "mug",
                 "plant",
                 "refrigerator",
                 "rug",
@@ -1053,22 +1142,50 @@
                 "wall",
                 "window",
                 "word_048de87fda675024a9dd857d496c8ff4",
+                "word_0521513012a098e4fa8b119aaf2bb29c",
+                "word_178949e5e42bef545b151088b798b039",
+                "word_1d323dfcc7bb3da48bf85613a7a2da71",
+                "word_1dafccb96a732a246b570b3823c944ee",
+                "word_27d3dc992bf0dee46a465b3bb93c0a08",
+                "word_3870a9071e9519c4da91ab433ef17534",
+                "word_3a3bc8f216be6174fabbcd6b9129c0c9",
+                "word_3c0259f43f2f8c54683415594d1e51c1",
+                "word_3feb8e1e3af14b941912724adfb4bafb",
+                "word_4a99d43b1e1f48a40a40950acc8d88dc",
+                "word_4aceb9a098a5be8459747e3c3b60c13e",
+                "word_4cece1a51af197c4992c921a91f84919",
+                "word_57a59d22fdaa64a49bbaa2c045897fbd",
+                "word_5f6208984d2beca41bcc5375e720b128",
+                "word_68c5e41e6b33b5048894b4f178caad6f",
+                "word_74c97f48c066a1f4e8387cdaebcd4f74",
+                "word_8121fa1f090622f428ec8ae558cd2df2",
+                "word_8ab3d49930abb6049ba633b4a7b6df9d",
                 "word_a115a59d89b32af4bbbe5aa6c17f8273",
-                "word_dc8c065ff0dcb2e43b6ca55e68349494"
+                "word_abbe5b4f879c13c43aae997a34402410",
+                "word_b49c4fbdec17d8f4593cbcb14841fde4",
+                "word_bf3706cb24f8af64e9b7c11f443f8bc0",
+                "word_cfa0b9fbd753a0545869552e50227e49",
+                "word_d29799f983750994a996b6408e07165a",
+                "word_dc8c065ff0dcb2e43b6ca55e68349494",
+                "word_fa36068283c56c24092c57fe3e81b8de"
             ]
         },
         {
             "guid": "6d46bc8cde6f19a4a9b97a7d0c322555",
             "path": "Assets/Prefabs/World/Drugstore/HealthShelf.prefab",
             "wordKeys": [
-                "shelf"
+                "shelf",
+                "word_3c0259f43f2f8c54683415594d1e51c1",
+                "word_3feb8e1e3af14b941912724adfb4bafb"
             ]
         },
         {
             "guid": "2a2c4054c5a39d64282cac6bca9e9214",
             "path": "Assets/Prefabs/World/Drugstore/IceCreamFreezer.prefab",
             "wordKeys": [
-                "freezer"
+                "freezer",
+                "word_27d3dc992bf0dee46a465b3bb93c0a08",
+                "word_bf3706cb24f8af64e9b7c11f443f8bc0"
             ]
         },
         {
@@ -1082,14 +1199,26 @@
             "guid": "4ca5b6c0242cbd84ca372e16fd0f1446",
             "path": "Assets/Prefabs/World/Drugstore/PantryShelf.prefab",
             "wordKeys": [
-                "shelf"
+                "shelf",
+                "word_57a59d22fdaa64a49bbaa2c045897fbd",
+                "word_5f6208984d2beca41bcc5375e720b128",
+                "word_68c5e41e6b33b5048894b4f178caad6f",
+                "word_cfa0b9fbd753a0545869552e50227e49",
+                "word_d29799f983750994a996b6408e07165a"
             ]
         },
         {
             "guid": "5f714b2225b69ea4bb43fdad07851073",
             "path": "Assets/Prefabs/World/Drugstore/ProduceStand.prefab",
             "wordKeys": [
-                "crate"
+                "word_1d323dfcc7bb3da48bf85613a7a2da71",
+                "word_1dafccb96a732a246b570b3823c944ee",
+                "word_3870a9071e9519c4da91ab433ef17534",
+                "word_4aceb9a098a5be8459747e3c3b60c13e",
+                "word_74c97f48c066a1f4e8387cdaebcd4f74",
+                "word_8121fa1f090622f428ec8ae558cd2df2",
+                "word_abbe5b4f879c13c43aae997a34402410",
+                "word_fa36068283c56c24092c57fe3e81b8de"
             ]
         },
         {
@@ -1103,13 +1232,19 @@
             "guid": "bd9d69d9f9e54c7489e222852eba0415",
             "path": "Assets/Prefabs/World/Drugstore/SnackShelf.prefab",
             "wordKeys": [
-                "shelf"
+                "shelf",
+                "word_0521513012a098e4fa8b119aaf2bb29c",
+                "word_178949e5e42bef545b151088b798b039",
+                "word_3a3bc8f216be6174fabbcd6b9129c0c9",
+                "word_4a99d43b1e1f48a40a40950acc8d88dc",
+                "word_bf3706cb24f8af64e9b7c11f443f8bc0"
             ]
         },
         {
             "guid": "53f4b91e0df38cc4eb42e2cc948cb900",
             "path": "Assets/Prefabs/World/Drugstore/UmbrellaBin.prefab",
             "wordKeys": [
+                "word_8ab3d49930abb6049ba633b4a7b6df9d",
                 "word_a115a59d89b32af4bbbe5aa6c17f8273"
             ]
         },
@@ -1450,7 +1585,9 @@
                 "vase",
                 "wall",
                 "window",
-                "word_44f9cc0d067b770438b25673c21c1358"
+                "word_41df6087b5cdcb144b73b12f94cb4343",
+                "word_44f9cc0d067b770438b25673c21c1358",
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
             ]
         },
         {
@@ -1473,6 +1610,7 @@
                 "handle",
                 "lamp",
                 "picture",
+                "pillow",
                 "plant",
                 "railing",
                 "roof",
@@ -1488,6 +1626,7 @@
                 "word_0a8bd7882c5b7b04e84b90f02a9345c1",
                 "word_2ed81ce347fb9724d8df37ac679e41d9",
                 "word_369eb9ba5bdd95a4e82191d96b289f34",
+                "word_41df6087b5cdcb144b73b12f94cb4343",
                 "word_44f9cc0d067b770438b25673c21c1358",
                 "word_63e4d2f608e230d4da895baa59336f47",
                 "word_ebe79357906436b43bd7f4930af8b584"
@@ -1507,7 +1646,6 @@
                 "coffee_machine",
                 "cornice",
                 "counter",
-                "crate",
                 "croissant",
                 "display_case",
                 "donut",
@@ -1535,7 +1673,13 @@
                 "tray",
                 "wall",
                 "window",
-                "word_47611d6211561694cb7aa0e9039a893a"
+                "word_47611d6211561694cb7aa0e9039a893a",
+                "word_873d7d6807d8269438e6e5a2de259633",
+                "word_906b428b3c0a4ab4c8822b83954dd9e8",
+                "word_9b64cd558b6c25b42a70a6ed8e3c4005",
+                "word_abbe5b4f879c13c43aae997a34402410",
+                "word_ae7b5008363d50745aa1c818547ac570",
+                "word_bcf51a025941df943b7e1d40506be643"
             ]
         },
         {
@@ -1618,7 +1762,8 @@
             "guid": "86f89ac975dbe3643a7ba75868feb487",
             "path": "Assets/Prefabs/World/NorthBlock/Props/Nightstand.prefab",
             "wordKeys": [
-                "drawer"
+                "drawer",
+                "word_41df6087b5cdcb144b73b12f94cb4343"
             ]
         },
         {
@@ -1997,7 +2142,6 @@
                 "bread",
                 "cake",
                 "clock",
-                "crate",
                 "croissant",
                 "donut",
                 "lamp",
@@ -2007,7 +2151,13 @@
                 "shelf",
                 "sign",
                 "table",
-                "takeaway_cup"
+                "takeaway_cup",
+                "word_873d7d6807d8269438e6e5a2de259633",
+                "word_906b428b3c0a4ab4c8822b83954dd9e8",
+                "word_9b64cd558b6c25b42a70a6ed8e3c4005",
+                "word_abbe5b4f879c13c43aae997a34402410",
+                "word_ae7b5008363d50745aa1c818547ac570",
+                "word_bcf51a025941df943b7e1d40506be643"
             ]
         },
         {
@@ -2027,11 +2177,11 @@
             "guid": "9bbb57cd73c84644c9c19a90922423bc",
             "path": "Assets/Prefabs/World/TownInteriors/BarberShopInterior.prefab",
             "wordKeys": [
-                "book",
                 "cabinet",
                 "chair",
                 "clock",
                 "drawer",
+                "faucet",
                 "flowerpot",
                 "jar",
                 "lamp",
@@ -2041,7 +2191,23 @@
                 "shelf",
                 "sign",
                 "sink",
-                "trash_can"
+                "trash_can",
+                "word_00c53ed10cac97f4892ca258b53a656a",
+                "word_0dd11afd2a47c6245b6d8eb5e1396f67",
+                "word_3bb3223a770f4114588c99d670bcaf33",
+                "word_3c688ce27ad5de141be523400387ab07",
+                "word_5163fa48bf1c2c2409adcfddf33095fd",
+                "word_6b33e552c1fbec54c846130b96ae95b3",
+                "word_833e3b054c9817b4fa6b01b2f88c06e5",
+                "word_84a5ac74de2c17a43baca693659180a4",
+                "word_9233893570eaa424a89483cb82309717",
+                "word_af4d769b378ec384a8ef3edbaf346e9d",
+                "word_b3ac4c82f652de646a5e26ef24bf337e",
+                "word_b65574ec6b46d8c4f82294eef63dfb68",
+                "word_b890e56ae5b7b2c4d8cd370d3c08cedd",
+                "word_de079e78ebe272842a92ac2314a3548f",
+                "word_e43aa05d3f6630240be25f57a3a8c6e0",
+                "word_fce9aafe86b550442bc40a2d09c3b75b"
             ]
         },
         {
@@ -2058,11 +2224,13 @@
                 "flowerpot",
                 "lamp",
                 "picture",
+                "pillow",
                 "plant",
                 "rug",
                 "shelf",
                 "sign",
-                "table"
+                "table",
+                "word_41df6087b5cdcb144b73b12f94cb4343"
             ]
         },
         {
@@ -2070,12 +2238,18 @@
             "path": "Assets/Prefabs/World/TownInteriors/FlowerShopInterior.prefab",
             "wordKeys": [
                 "clock",
+                "flowerpot",
                 "plant",
                 "refrigerator",
                 "shelf",
                 "table",
                 "vase",
-                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
+                "word_0843de0e7984e4343855cd92711938f1",
+                "word_1374d18368b09b84886b1612d1c2f2e7",
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385",
+                "word_c5989f940603a984789c208e05083c5d",
+                "word_d94071086b8c0a545872f1424971b9e4",
+                "word_f3cd6cc8d51298a468c324f38d317eab"
             ]
         },
         {
@@ -2093,7 +2267,8 @@
                 "shelf",
                 "sign",
                 "table",
-                "vase"
+                "vase",
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
             ]
         },
         {
@@ -2105,7 +2280,10 @@
                 "shelf",
                 "sign",
                 "trash_can",
-                "word_63e4d2f608e230d4da895baa59336f47"
+                "word_3df813d12327eb844ae12b360ceee863",
+                "word_63e4d2f608e230d4da895baa59336f47",
+                "word_9233893570eaa424a89483cb82309717",
+                "word_a469e283225b24f48b585f804e782bec"
             ]
         },
         {
@@ -2124,9 +2302,17 @@
                 "plate",
                 "refrigerator",
                 "stove",
+                "word_0a29609b3b7e1fd40a53ca476d8a6966",
+                "word_24b2c6f48adfc0b478fa72b090877667",
+                "word_299d362b42c8dbd47b05d18fd2ea66e9",
                 "word_2b9999d8d017255459f2137b005edde2",
+                "word_33543d078983bee4787c92975243cb93",
                 "word_49eee5ac436a87e4b9a91a1c5352bf8a",
                 "word_5aa5c077f56247047be360a583703f0f",
+                "word_730291e3d6b4f5f47a756b27ae7840f2",
+                "word_7de8e1740fc90ed4e9160663939779ef",
+                "word_8d8bb12e67995f94b8af574d7ab4491e",
+                "word_e08a4cc7e6dabb548ae39c6113c974ee",
                 "word_ebe79357906436b43bd7f4930af8b584"
             ]
         },
@@ -2139,14 +2325,19 @@
                 "clock",
                 "note",
                 "picture",
-                "railing",
                 "rug",
                 "shelf",
                 "table",
                 "trash_can",
                 "word_0744fa563d6a7994f9f3a91758a794f9",
+                "word_13f8944d566e92c478693e4990aa1516",
+                "word_176e8770ef9adc5489b55b2867b351a9",
+                "word_237fdb92b9222ee418207bca306a7454",
                 "word_369eb9ba5bdd95a4e82191d96b289f34",
-                "word_583992ed64934fe4ba5f273e34106ceb"
+                "word_3df813d12327eb844ae12b360ceee863",
+                "word_583992ed64934fe4ba5f273e34106ceb",
+                "word_c718bd56532264b48972fe8aaedfa09d",
+                "word_f1a35b579e2ac6e458b29c156c688a4d"
             ]
         },
         {
@@ -2181,14 +2372,16 @@
             "guid": "2b0ca458cc2664f46acc69b8942da6f2",
             "path": "Assets/Prefabs/World/TownInteriors/Props/Armchair.prefab",
             "wordKeys": [
-                "chair"
+                "chair",
+                "pillow"
             ]
         },
         {
             "guid": "6f975200936cb5f47812048fa27519ba",
             "path": "Assets/Prefabs/World/TownInteriors/Props/BaguetteBasket.prefab",
             "wordKeys": [
-                "bread"
+                "word_906b428b3c0a4ab4c8822b83954dd9e8",
+                "word_ae7b5008363d50745aa1c818547ac570"
             ]
         },
         {
@@ -2198,6 +2391,13 @@
                 "bread",
                 "croissant",
                 "shelf"
+            ]
+        },
+        {
+            "guid": "136818ad3c47aa245ad895d0ebbef213",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/BakeryOven.prefab",
+            "wordKeys": [
+                "word_9b64cd558b6c25b42a70a6ed8e3c4005"
             ]
         },
         {
@@ -2218,14 +2418,27 @@
             "guid": "9d25cfa734cd23c41b4843721155c51e",
             "path": "Assets/Prefabs/World/TownInteriors/Props/BarberStation.prefab",
             "wordKeys": [
+                "cabinet",
                 "drawer"
+            ]
+        },
+        {
+            "guid": "b79e471bc85b71e4989ff9cd114c15d8",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/BarberTools.prefab",
+            "wordKeys": [
+                "word_3bb3223a770f4114588c99d670bcaf33",
+                "word_3c688ce27ad5de141be523400387ab07",
+                "word_5163fa48bf1c2c2409adcfddf33095fd",
+                "word_6b33e552c1fbec54c846130b96ae95b3",
+                "word_833e3b054c9817b4fa6b01b2f88c06e5"
             ]
         },
         {
             "guid": "c9d4cb84ef38b99488d83ade9f90574d",
             "path": "Assets/Prefabs/World/TownInteriors/Props/BarbicideJar.prefab",
             "wordKeys": [
-                "jar"
+                "jar",
+                "word_3c688ce27ad5de141be523400387ab07"
             ]
         },
         {
@@ -2260,7 +2473,9 @@
             "guid": "7d926aa046d456f42972e2317c31b669",
             "path": "Assets/Prefabs/World/TownInteriors/Props/Bouquet.prefab",
             "wordKeys": [
-                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
+                "word_0843de0e7984e4343855cd92711938f1",
+                "word_c5989f940603a984789c208e05083c5d",
+                "word_d94071086b8c0a545872f1424971b9e4"
             ]
         },
         {
@@ -2285,21 +2500,30 @@
             "guid": "235f986971ccc6b44b52ff80e6692ac1",
             "path": "Assets/Prefabs/World/TownInteriors/Props/BrochureRack.prefab",
             "wordKeys": [
-                "shelf"
+                "word_21ca4715c5c4b204e9118f326093659c",
+                "word_c198f78cc742bb14b8d7282b458af524"
+            ]
+        },
+        {
+            "guid": "b7839612ec95a4649b0728964d320ec0",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/Broom.prefab",
+            "wordKeys": [
+                "word_84a5ac74de2c17a43baca693659180a4"
             ]
         },
         {
             "guid": "d65e37fac1eda48448e382f44b2bb76c",
             "path": "Assets/Prefabs/World/TownInteriors/Props/BunCrate.prefab",
             "wordKeys": [
-                "crate"
+                "word_abbe5b4f879c13c43aae997a34402410",
+                "word_bcf51a025941df943b7e1d40506be643"
             ]
         },
         {
             "guid": "93e754b7179ef754883a193cfb2caf66",
             "path": "Assets/Prefabs/World/TownInteriors/Props/Burger.prefab",
             "wordKeys": [
-                "plate"
+                "word_24b2c6f48adfc0b478fa72b090877667"
             ]
         },
         {
@@ -2317,10 +2541,33 @@
             ]
         },
         {
+            "guid": "a5fe4acac11a6ca4caf7535a31c72db9",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/CoatRack.prefab",
+            "wordKeys": [
+                "word_de079e78ebe272842a92ac2314a3548f",
+                "word_e43aa05d3f6630240be25f57a3a8c6e0",
+                "word_fce9aafe86b550442bc40a2d09c3b75b"
+            ]
+        },
+        {
+            "guid": "59509989dbe5fee48b359fc79cb12f08",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/CookingPot.prefab",
+            "wordKeys": [
+                "word_7de8e1740fc90ed4e9160663939779ef"
+            ]
+        },
+        {
             "guid": "54f43dd4a2ef48147af2d70ffbc7f372",
             "path": "Assets/Prefabs/World/TownInteriors/Props/CushionChair.prefab",
             "wordKeys": [
                 "chair"
+            ]
+        },
+        {
+            "guid": "5d3b9fa3cec4e28488637a209270b9e5",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/CuttingBoard.prefab",
+            "wordKeys": [
+                "word_730291e3d6b4f5f47a756b27ae7840f2"
             ]
         },
         {
@@ -2338,6 +2585,21 @@
             ]
         },
         {
+            "guid": "8b9cb8581c8a5ec45abdd084ef1a796e",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/DeskMonitor.prefab",
+            "wordKeys": [
+                "word_38e2389164ad83f419c8b2fe8626d9dc",
+                "word_6e1717ab83f7ae14084d2077336f563f"
+            ]
+        },
+        {
+            "guid": "0dfb00dbe98164540bb1e79a001f40b8",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/DetergentBottles.prefab",
+            "wordKeys": [
+                "word_a469e283225b24f48b585f804e782bec"
+            ]
+        },
+        {
             "guid": "d8c453b9a40102d4db7a0050eae6a808",
             "path": "Assets/Prefabs/World/TownInteriors/Props/DinerPlate.prefab",
             "wordKeys": [
@@ -2345,38 +2607,59 @@
             ]
         },
         {
+            "guid": "fa237b9ea47ffbc4f9ed0cca6d397928",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/FlourSack.prefab",
+            "wordKeys": [
+                "word_873d7d6807d8269438e6e5a2de259633"
+            ]
+        },
+        {
             "guid": "4f7194c2a2f139041901128d149ec397",
             "path": "Assets/Prefabs/World/TownInteriors/Props/FlowerCooler.prefab",
             "wordKeys": [
-                "refrigerator"
+                "refrigerator",
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385",
+                "word_f3cd6cc8d51298a468c324f38d317eab"
             ]
         },
         {
             "guid": "e3a93c1658cca7749990448c8f644e9c",
             "path": "Assets/Prefabs/World/TownInteriors/Props/FlowerPailB07CC6.prefab",
             "wordKeys": [
-                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385",
+                "word_f3cd6cc8d51298a468c324f38d317eab"
             ]
         },
         {
             "guid": "88713e7cfd0892a418fad8afcd9ead35",
             "path": "Assets/Prefabs/World/TownInteriors/Props/FlowerPailE85D75.prefab",
             "wordKeys": [
-                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385",
+                "word_f3cd6cc8d51298a468c324f38d317eab"
             ]
         },
         {
             "guid": "705c2e58421aa0c40a28f7745581ae7d",
             "path": "Assets/Prefabs/World/TownInteriors/Props/FlowerPailF4C430.prefab",
             "wordKeys": [
-                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385",
+                "word_f3cd6cc8d51298a468c324f38d317eab"
             ]
         },
         {
             "guid": "b29b35f16204d174e84a86eb2e69c310",
             "path": "Assets/Prefabs/World/TownInteriors/Props/FormDesk.prefab",
             "wordKeys": [
-                "table"
+                "table",
+                "word_13f8944d566e92c478693e4990aa1516",
+                "word_c718bd56532264b48972fe8aaedfa09d"
+            ]
+        },
+        {
+            "guid": "4f14d7810d2680340bcccec04cb48cb3",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/FryingPan.prefab",
+            "wordKeys": [
+                "word_33543d078983bee4787c92975243cb93"
             ]
         },
         {
@@ -2390,6 +2673,7 @@
             "guid": "46b1e606410478347b6f648c33c22a55",
             "path": "Assets/Prefabs/World/TownInteriors/Props/HangingPlant.prefab",
             "wordKeys": [
+                "flowerpot",
                 "plant"
             ]
         },
@@ -2411,7 +2695,8 @@
             "guid": "4a2c2c68c99bb404a85c2958734c5890",
             "path": "Assets/Prefabs/World/TownInteriors/Props/HoodDryerChair.prefab",
             "wordKeys": [
-                "chair"
+                "chair",
+                "word_00c53ed10cac97f4892ca258b53a656a"
             ]
         },
         {
@@ -2440,6 +2725,13 @@
             "path": "Assets/Prefabs/World/TownInteriors/Props/JarTall.prefab",
             "wordKeys": [
                 "jar"
+            ]
+        },
+        {
+            "guid": "9e798807a54f3ad4eb57c1434d89a7d9",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/Jukebox.prefab",
+            "wordKeys": [
+                "word_8d8bb12e67995f94b8af574d7ab4491e"
             ]
         },
         {
@@ -2495,7 +2787,17 @@
             "guid": "cdbad05470071a24386c4f1c68c3541a",
             "path": "Assets/Prefabs/World/TownInteriors/Props/MagazineRack.prefab",
             "wordKeys": [
-                "book"
+                "word_b65574ec6b46d8c4f82294eef63dfb68",
+                "word_b890e56ae5b7b2c4d8cd370d3c08cedd"
+            ]
+        },
+        {
+            "guid": "f96b405040de1de45aafd7e933689d97",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/MailCart.prefab",
+            "wordKeys": [
+                "word_0744fa563d6a7994f9f3a91758a794f9",
+                "word_176e8770ef9adc5489b55b2867b351a9",
+                "word_f1a35b579e2ac6e458b29c156c688a4d"
             ]
         },
         {
@@ -2516,7 +2818,8 @@
             "guid": "76a53d1461faf3c488f5c5a91c670aee",
             "path": "Assets/Prefabs/World/TownInteriors/Props/NoticeBoard.prefab",
             "wordKeys": [
-                "note"
+                "note",
+                "word_3df813d12327eb844ae12b360ceee863"
             ]
         },
         {
@@ -2593,7 +2896,10 @@
             "guid": "ab41fe26ca1ccfa46b33f6df19592b60",
             "path": "Assets/Prefabs/World/TownInteriors/Props/PlantShelf.prefab",
             "wordKeys": [
-                "shelf"
+                "flowerpot",
+                "plant",
+                "shelf",
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
             ]
         },
         {
@@ -2607,7 +2913,14 @@
             "guid": "d23ec4b12c46c5d40843859f96df1bb8",
             "path": "Assets/Prefabs/World/TownInteriors/Props/QueueLine20.prefab",
             "wordKeys": [
-                "railing"
+                "word_237fdb92b9222ee418207bca306a7454"
+            ]
+        },
+        {
+            "guid": "69b8fc2dd9af557459a293be233678fd",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/RangeHood.prefab",
+            "wordKeys": [
+                "word_0a29609b3b7e1fd40a53ca476d8a6966"
             ]
         },
         {
@@ -2663,7 +2976,10 @@
             "guid": "7c628bd45482bff438c85a038396fb43",
             "path": "Assets/Prefabs/World/TownInteriors/Props/ShampooSink.prefab",
             "wordKeys": [
-                "sink"
+                "cabinet",
+                "faucet",
+                "sink",
+                "word_b3ac4c82f652de646a5e26ef24bf337e"
             ]
         },
         {
@@ -2684,7 +3000,9 @@
             "guid": "67f9598b2fdccb44eaf918bd4fdae572",
             "path": "Assets/Prefabs/World/TownInteriors/Props/SortingCubbies.prefab",
             "wordKeys": [
-                "shelf"
+                "shelf",
+                "word_0744fa563d6a7994f9f3a91758a794f9",
+                "word_176e8770ef9adc5489b55b2867b351a9"
             ]
         },
         {
@@ -2768,7 +3086,16 @@
             "guid": "fdf5063c7ec7eb644be9cb8e19dfd86f",
             "path": "Assets/Prefabs/World/TownInteriors/Props/ToolTrolley.prefab",
             "wordKeys": [
-                "drawer"
+                "drawer",
+                "word_0dd11afd2a47c6245b6d8eb5e1396f67",
+                "word_af4d769b378ec384a8ef3edbaf346e9d"
+            ]
+        },
+        {
+            "guid": "22afa9086479b2847ade9f3a364784d4",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/TowelStack.prefab",
+            "wordKeys": [
+                "word_9233893570eaa424a89483cb82309717"
             ]
         },
         {
@@ -2782,21 +3109,24 @@
             "guid": "779e1204e4492864d9639e717f19fea4",
             "path": "Assets/Prefabs/World/TownInteriors/Props/Vase2F7C86.prefab",
             "wordKeys": [
-                "vase"
+                "vase",
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
             ]
         },
         {
             "guid": "750b2113f92581a48ad85f3dd3cdd888",
             "path": "Assets/Prefabs/World/TownInteriors/Props/VaseE58B63.prefab",
             "wordKeys": [
-                "vase"
+                "vase",
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
             ]
         },
         {
             "guid": "4a37d0f9c96360e4cb8c82330b7870ec",
             "path": "Assets/Prefabs/World/TownInteriors/Props/VaseE85D75.prefab",
             "wordKeys": [
-                "vase"
+                "vase",
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
             ]
         },
         {
@@ -2835,6 +3165,20 @@
             ]
         },
         {
+            "guid": "018904d4aa90a7444a65d4e00cda5910",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/WaterCooler.prefab",
+            "wordKeys": [
+                "word_a935a83c01df1a448a0b6bb8bcca9581"
+            ]
+        },
+        {
+            "guid": "da3c7daa33951244f823173f7eda4c4a",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/WateringCan.prefab",
+            "wordKeys": [
+                "word_1374d18368b09b84886b1612d1c2f2e7"
+            ]
+        },
+        {
             "guid": "ac6301f1a81db574480457853cefaadc",
             "path": "Assets/Prefabs/World/TownInteriors/Props/WoodChair.prefab",
             "wordKeys": [
@@ -2845,7 +3189,7 @@
             "guid": "0ea463d1b4b2cd94a9994d285ea2dc63",
             "path": "Assets/Prefabs/World/TownInteriors/Props/WoodCrate.prefab",
             "wordKeys": [
-                "crate"
+                "word_abbe5b4f879c13c43aae997a34402410"
             ]
         },
         {
@@ -2853,6 +3197,14 @@
             "path": "Assets/Prefabs/World/TownInteriors/Props/WoodStool.prefab",
             "wordKeys": [
                 "word_369eb9ba5bdd95a4e82191d96b289f34"
+            ]
+        },
+        {
+            "guid": "0b13a4c994539434ab821c8af2a44eb8",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/WrappingRoll.prefab",
+            "wordKeys": [
+                "word_c5989f940603a984789c208e05083c5d",
+                "word_d94071086b8c0a545872f1424971b9e4"
             ]
         },
         {
@@ -2885,8 +3237,12 @@
                 "picture",
                 "plant",
                 "rug",
-                "shelf",
-                "sign"
+                "sign",
+                "word_21ca4715c5c4b204e9118f326093659c",
+                "word_38e2389164ad83f419c8b2fe8626d9dc",
+                "word_6e1717ab83f7ae14084d2077336f563f",
+                "word_a935a83c01df1a448a0b6bb8bcca9581",
+                "word_c198f78cc742bb14b8d7282b458af524"
             ]
         },
         {
@@ -3200,7 +3556,12 @@
                 "vase",
                 "wall",
                 "window",
-                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
+                "word_0843de0e7984e4343855cd92711938f1",
+                "word_1374d18368b09b84886b1612d1c2f2e7",
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385",
+                "word_c5989f940603a984789c208e05083c5d",
+                "word_d94071086b8c0a545872f1424971b9e4",
+                "word_f3cd6cc8d51298a468c324f38d317eab"
             ]
         },
         {
@@ -3216,6 +3577,7 @@
                 "cushion",
                 "door",
                 "drawer",
+                "faucet",
                 "floor",
                 "flowerpot",
                 "handle",
@@ -3235,7 +3597,24 @@
                 "trash_can",
                 "wall",
                 "window",
-                "word_f7e7d4080aa0f3240910c84584d2d799"
+                "word_00c53ed10cac97f4892ca258b53a656a",
+                "word_07942cce8d9cedc45bbbd961b4ca7250",
+                "word_0dd11afd2a47c6245b6d8eb5e1396f67",
+                "word_3bb3223a770f4114588c99d670bcaf33",
+                "word_3c688ce27ad5de141be523400387ab07",
+                "word_5163fa48bf1c2c2409adcfddf33095fd",
+                "word_6b33e552c1fbec54c846130b96ae95b3",
+                "word_833e3b054c9817b4fa6b01b2f88c06e5",
+                "word_84a5ac74de2c17a43baca693659180a4",
+                "word_9233893570eaa424a89483cb82309717",
+                "word_af4d769b378ec384a8ef3edbaf346e9d",
+                "word_b3ac4c82f652de646a5e26ef24bf337e",
+                "word_b65574ec6b46d8c4f82294eef63dfb68",
+                "word_b890e56ae5b7b2c4d8cd370d3c08cedd",
+                "word_de079e78ebe272842a92ac2314a3548f",
+                "word_e43aa05d3f6630240be25f57a3a8c6e0",
+                "word_f7e7d4080aa0f3240910c84584d2d799",
+                "word_fce9aafe86b550442bc40a2d09c3b75b"
             ]
         },
         {
@@ -3268,10 +3647,19 @@
                 "takeaway_cup",
                 "wall",
                 "window",
+                "word_048de87fda675024a9dd857d496c8ff4",
+                "word_0a29609b3b7e1fd40a53ca476d8a6966",
+                "word_24b2c6f48adfc0b478fa72b090877667",
+                "word_299d362b42c8dbd47b05d18fd2ea66e9",
                 "word_2b9999d8d017255459f2137b005edde2",
+                "word_33543d078983bee4787c92975243cb93",
                 "word_369eb9ba5bdd95a4e82191d96b289f34",
                 "word_49eee5ac436a87e4b9a91a1c5352bf8a",
                 "word_5aa5c077f56247047be360a583703f0f",
+                "word_730291e3d6b4f5f47a756b27ae7840f2",
+                "word_7de8e1740fc90ed4e9160663939779ef",
+                "word_8d8bb12e67995f94b8af574d7ab4491e",
+                "word_e08a4cc7e6dabb548ae39c6113c974ee",
                 "word_ebe79357906436b43bd7f4930af8b584"
             ]
         },
@@ -3295,8 +3683,11 @@
                 "sign",
                 "wall",
                 "window",
+                "word_3df813d12327eb844ae12b360ceee863",
                 "word_513415d5ad951964c9ede7ba32b0596f",
-                "word_57394345ad5fd5c46a1e107b2d2a7656"
+                "word_57394345ad5fd5c46a1e107b2d2a7656",
+                "word_6e1717ab83f7ae14084d2077336f563f",
+                "word_83e9ef9fb38b2804e844393a3d16d226"
             ]
         },
         {
@@ -3318,7 +3709,6 @@
                 "note",
                 "picture",
                 "plant",
-                "railing",
                 "roof",
                 "rug",
                 "shelf",
@@ -3329,9 +3719,16 @@
                 "wall",
                 "window",
                 "word_0744fa563d6a7994f9f3a91758a794f9",
+                "word_13f8944d566e92c478693e4990aa1516",
+                "word_176e8770ef9adc5489b55b2867b351a9",
+                "word_237fdb92b9222ee418207bca306a7454",
                 "word_369eb9ba5bdd95a4e82191d96b289f34",
+                "word_3df813d12327eb844ae12b360ceee863",
                 "word_3fc84a99d1f166d49a24ed5d59f38a89",
-                "word_583992ed64934fe4ba5f273e34106ceb"
+                "word_583992ed64934fe4ba5f273e34106ceb",
+                "word_c718bd56532264b48972fe8aaedfa09d",
+                "word_f1a35b579e2ac6e458b29c156c688a4d",
+                "word_f7da3cd6ecdbab14e8a172a545bc61bc"
             ]
         },
         {
@@ -3358,9 +3755,13 @@
                 "word_0161d483cee300c40b1861ae4d0e85a0",
                 "word_0587befb29840ad49a62604219dc7715",
                 "word_386c8564b884cfe47b66fdbc77ec87b9",
+                "word_3df813d12327eb844ae12b360ceee863",
+                "word_552f7f037bdc47a4abe1f0b39ac7dc1d",
                 "word_57d53390c38c2204588cba13f10a5f9a",
                 "word_63e4d2f608e230d4da895baa59336f47",
                 "word_6f2d682aa1edd004a86774dbc32603a3",
+                "word_8eac099b117a22847a5834ed558d4c19",
+                "word_9233893570eaa424a89483cb82309717",
                 "word_a469e283225b24f48b585f804e782bec",
                 "word_af4d769b378ec384a8ef3edbaf346e9d",
                 "word_b1de7b60fd9e56c4282fa85b4a09e4b2",
@@ -3384,14 +3785,18 @@
                 "lamp",
                 "picture",
                 "plant",
-                "railing",
                 "roof",
                 "rug",
-                "shelf",
                 "shop",
                 "sign",
                 "wall",
                 "window",
+                "word_21ca4715c5c4b204e9118f326093659c",
+                "word_237fdb92b9222ee418207bca306a7454",
+                "word_38e2389164ad83f419c8b2fe8626d9dc",
+                "word_6e1717ab83f7ae14084d2077336f563f",
+                "word_a935a83c01df1a448a0b6bb8bcca9581",
+                "word_c198f78cc742bb14b8d7282b458af524",
                 "word_f1493503fe49b48488b6a1674ff150cd"
             ]
         }

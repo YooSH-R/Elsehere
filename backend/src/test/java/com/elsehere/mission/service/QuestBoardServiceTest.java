@@ -23,14 +23,56 @@ class QuestBoardServiceTest {
   private final FirstDayMissionRepository firstDay = mock(FirstDayMissionRepository.class);
   private final TownStoryRepository stories = mock(TownStoryRepository.class);
   private final NpcRepository npcs = mock(NpcRepository.class);
+  private final ShowcaseQuestService showcase = mock(ShowcaseQuestService.class);
   private final QuestBoardService service =
-      new QuestBoardService(
-          firstDay, stories, npcs, mock(com.elsehere.mission.service.ShowcaseQuestService.class));
+      new QuestBoardService(firstDay, stories, npcs, showcase);
 
   @BeforeEach
   void knowTheNpcNames() {
     List<Npc> named = List.of(npc("HOTEL_STAFF", "Jake"), npc("BARBER_STAFF", "Tony"));
     when(npcs.findAll()).thenReturn(named);
+  }
+
+  @Test
+  void theShowcaseQuestComesFirstInTheStoryList() {
+    when(firstDay.findById(8L)).thenReturn(Optional.empty());
+    when(stories.findById(8L)).thenReturn(Optional.empty());
+    var card =
+        new QuestBoardResponse.Quest(
+            "SHOWCASE_RAINY_EVENING", "비 오는 저녁, 햄버거 한 끼", "", 0, "AVAILABLE", List.of());
+    when(showcase.card(org.mockito.ArgumentMatchers.eq(8L), org.mockito.ArgumentMatchers.any()))
+        .thenReturn(Optional.of(card));
+
+    QuestBoardResponse board = service.board(8L);
+
+    assertThat(board.quests())
+        .extracting(QuestBoardResponse.Quest::id)
+        .startsWith("SHOWCASE_RAINY_EVENING", "CHECK_IN");
+  }
+
+  // 시연 중에는 맨 앞의 시연 퀘스트만 열고, 시작하지 않은 나머지는 잠근다. 시연을 끝내면 원래 규칙으로 돌아간다.
+  @Test
+  void whileTheShowcaseIsNotDone_onlyItIsOpenAndTheRestAreLocked() {
+    when(firstDay.findById(8L)).thenReturn(Optional.empty());
+    when(stories.findById(8L)).thenReturn(Optional.empty());
+    when(showcase.card(org.mockito.ArgumentMatchers.eq(8L), org.mockito.ArgumentMatchers.any()))
+        .thenReturn(Optional.of(showcaseCard("AVAILABLE")));
+
+    assertThat(service.board(8L).quests())
+        .extracting(QuestBoardResponse.Quest::status)
+        .containsExactly("AVAILABLE", "LOCKED", "LOCKED", "LOCKED");
+
+    when(showcase.card(org.mockito.ArgumentMatchers.eq(8L), org.mockito.ArgumentMatchers.any()))
+        .thenReturn(Optional.of(showcaseCard("DONE")));
+
+    assertThat(service.board(8L).quests())
+        .extracting(QuestBoardResponse.Quest::status)
+        .containsExactly("DONE", "AVAILABLE", "LOCKED", "LOCKED");
+  }
+
+  private static QuestBoardResponse.Quest showcaseCard(String status) {
+    return new QuestBoardResponse.Quest(
+        "SHOWCASE_RAINY_EVENING", "비 오는 저녁, 햄버거 한 끼", "", 0, status, List.of());
   }
 
   @Test

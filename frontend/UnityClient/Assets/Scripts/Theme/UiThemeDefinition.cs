@@ -174,6 +174,9 @@ namespace A305.Theme
         private Sprite ghostSprite;
 
         [SerializeField]
+        private Material highlightedGhostMaterial;
+
+        [SerializeField]
         private UiIconSet icons;
 
         [SerializeField]
@@ -211,6 +214,7 @@ namespace A305.Theme
         public Sprite ScrimSprite => scrimSprite;
         public Color ScrimColor => scrimColor;
         public Sprite GhostSprite => ghostSprite;
+        public Material HighlightedGhostMaterial => highlightedGhostMaterial;
 
         public Color ToneColor(UiTone tone) => Pick(toneColors, tone, Color.white);
 

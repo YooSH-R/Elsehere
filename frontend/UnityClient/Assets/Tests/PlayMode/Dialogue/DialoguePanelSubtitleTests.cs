@@ -115,9 +115,9 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(NpcSubtitlePreference.ShowsSubtitles, Is.False);
         }
 
-        // 자막을 켜면 채운 강조색으로 바뀌지만, 둥근 모서리가 버튼 높이에 맞아야 한다.
+        // 강조 재질을 쓰더라도 둥근 테두리와 버튼의 크기는 그대로여야 한다.
         [UnityTest]
-        public IEnumerator SubtitleButton_KeepsRoundedCornersAndHighlightsWhenEnabled()
+        public IEnumerator SubtitleButton_ChangesColorAndMaterialWithoutChangingShape()
         {
             yield return Show(new SpokenContent(speaksNpcLines: true));
 
@@ -127,15 +127,14 @@ namespace A305.Dialogue.PlayModeTests
             Color originalColor = image.color;
             Material originalMaterial = image.material;
             float originalPixelsPerUnit = image.pixelsPerUnitMultiplier;
+            Rect originalRect = image.rectTransform.rect;
             ClickCenterOf(subtitle);
             yield return null;
 
-            float buttonHeight = image.rectTransform.rect.height;
-            float roundedCorners =
-                (image.sprite.border.y + image.sprite.border.w)
-                / (image.pixelsPerUnit * image.pixelsPerUnitMultiplier);
             Assert.That(Caption(subtitle), Is.EqualTo("자막 끄기"));
-            Assert.That(roundedCorners, Is.InRange(buttonHeight * .9f, buttonHeight));
+            Assert.That(image.sprite, Is.SameAs(originalSprite));
+            Assert.That(image.rectTransform.rect, Is.EqualTo(originalRect));
+            Assert.That(image.pixelsPerUnitMultiplier, Is.EqualTo(originalPixelsPerUnit));
             Assert.That(image.material, Is.Not.SameAs(originalMaterial));
             Assert.That(image.color, Is.Not.EqualTo(originalColor));
 
@@ -147,6 +146,64 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(image.color, Is.EqualTo(originalColor));
             Assert.That(image.material, Is.SameAs(originalMaterial));
             Assert.That(image.pixelsPerUnitMultiplier, Is.EqualTo(originalPixelsPerUnit));
+        }
+
+        [UnityTest]
+        public IEnumerator DialogueTools_UseMatchingPaddingAroundTheirLabels()
+        {
+            yield return Show(new SpokenContent(speaksNpcLines: true));
+
+            float? horizontalPadding = null;
+            foreach (
+                string name in new[]
+                {
+                    "SubtitleButton",
+                    "ReplayButton",
+                    "MeaningButton",
+                    "EndButton",
+                }
+            )
+            {
+                Button button = FindButton(name);
+                TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
+                label.ForceMeshUpdate();
+                float padding =
+                    ((RectTransform)button.transform).rect.width
+                    - label.GetPreferredValues(label.text).x;
+                horizontalPadding ??= padding;
+                Assert.That(padding, Is.EqualTo(horizontalPadding.Value).Within(1f), name);
+                Assert.That(label.textInfo.lineCount, Is.EqualTo(1), name);
+                Assert.That(label.isTextOverflowing, Is.False, name);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator ReplayButton_IsVisibleBeforeTheFirstLineAndActivatesInPlace()
+        {
+            var content = new SpokenContent(speaksNpcLines: true)
+            {
+                HasOpeningLine = false,
+                IsBusy = true,
+                Waiting = DialogueWait.Opening,
+            };
+            yield return Show(content);
+
+            Button replay = FindButton("ReplayButton");
+            var rect = (RectTransform)replay.transform;
+            Assert.That(replay.gameObject.activeInHierarchy, Is.True);
+            Assert.That(replay.IsInteractable(), Is.False);
+            float startX = rect.position.x;
+            float startWidth = rect.rect.width;
+
+            content.HasOpeningLine = true;
+            content.IsBusy = false;
+            content.Waiting = DialogueWait.None;
+            view.Refresh();
+            yield return null;
+
+            Assert.That(replay.IsInteractable(), Is.True);
+            Assert.That(rect.position.x, Is.EqualTo(startX).Within(.01f));
+            Assert.That(rect.rect.width, Is.EqualTo(startWidth).Within(.01f));
         }
 
         // 음성 없이 글로만 진행하는 대본 대화는 가리면 대사를 알 방법이 없다.
@@ -320,23 +377,26 @@ namespace A305.Dialogue.PlayModeTests
         private class SpokenContent : IDialogueContent
         {
             private static readonly DialogueLine Opening = DialogueLine.FromNpc(NpcSentence, null);
+            private readonly bool speechReady;
 
             public SpokenContent(bool speaksNpcLines, bool isNpcSpeechReady = true)
             {
                 SpeaksNpcLines = speaksNpcLines;
-                IsNpcSpeechReady = speaksNpcLines && isNpcSpeechReady;
+                speechReady = speaksNpcLines && isNpcSpeechReady;
             }
 
             public string UserTranslation { get; set; }
             public string NpcName => "Alex";
-            public IReadOnlyList<DialogueLine> Lines => new[] { Opening };
-            public DialogueLine LastNpcLine => Opening;
+            public bool HasOpeningLine { get; set; } = true;
+            public IReadOnlyList<DialogueLine> Lines =>
+                HasOpeningLine ? new[] { Opening } : System.Array.Empty<DialogueLine>();
+            public DialogueLine LastNpcLine => HasOpeningLine ? Opening : null;
             public bool IsGuided => false;
             public bool IsGuidedCompleted => false;
             public string SuggestedEnglish => null;
             public string SuggestedKorean => null;
             public string ExampleSentence => null;
-            public bool IsBusy => false;
+            public bool IsBusy { get; set; }
             public string StatusMessage => null;
             public string RecoveryGuide => null;
             public bool CanRetry => false;
@@ -351,10 +411,10 @@ namespace A305.Dialogue.PlayModeTests
             public bool UsesVoice => true;
             public ConversationStanding Standing => null;
             public DialogueWait Waiting { get; set; }
-            public bool CanReplaySpeech => true;
+            public bool CanReplaySpeech => HasOpeningLine;
             public bool SpeaksNpcLines { get; }
             public bool IsReceivingNpcReply { get; set; }
-            public bool IsNpcSpeechReady { get; }
+            public bool IsNpcSpeechReady => HasOpeningLine && speechReady;
         }
     }
 }

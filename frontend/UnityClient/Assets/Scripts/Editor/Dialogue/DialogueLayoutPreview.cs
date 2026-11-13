@@ -600,8 +600,8 @@ namespace A305.EditorTools.Dialogue
         }
 
         /// <summary>
-        /// [자막]을 끄고 켠 NPC 대사를 세 테마로 찍는다. 끄면 NPC 대사가 단어마다 회색 막대로 가려지고, 켜면 대사가 보인다.
-        /// 자막을 끈 채 대답을 기다리는 화면도 찍어, 로딩 카드 위로 지난 대사의 막대가 비치지 않는지 본다.
+        /// 자막을 켜고 껐을 때 테두리와 버튼 여백을 비교한다.
+        /// 첫 대사 준비 중 [다시 듣기]와 다음 대사를 기다릴 때의 단어 막대도 확인한다.
         /// 이 기기의 자막 설정은 찍은 뒤 되돌린다.
         /// </summary>
         public static void CaptureSubtitles()
@@ -645,6 +645,25 @@ namespace A305.EditorTools.Dialogue
                     view.Refresh();
                     RenderThemes(camera, view, eye, face, output, "subtitles-off-waiting");
                 }
+                view.Show(new WordPreviewContent { Waiting = DialogueWait.Opening });
+                Render(
+                    camera,
+                    view,
+                    eye,
+                    face,
+                    Path.Combine(output, "subtitles-opening.png"),
+                    1920,
+                    1080
+                );
+                Render(
+                    camera,
+                    view,
+                    eye,
+                    face,
+                    Path.Combine(output, "subtitles-opening-mobile.png"),
+                    844,
+                    390
+                );
             }
             finally
             {
@@ -881,20 +900,21 @@ namespace A305.EditorTools.Dialogue
             public IReadOnlyList<DialogueLine> PreviewLines { get; set; }
             public string NpcName => "Mia";
             public IReadOnlyList<DialogueLine> Lines =>
-                PreviewLines != null ? PreviewLines
+                Waiting == DialogueWait.Opening ? System.Array.Empty<DialogueLine>()
+                : PreviewLines != null ? PreviewLines
                 : UserTranslation == null ? lines
                 : new[]
                 {
                     DialogueLine.FromUser("카페 어디야?"),
                     DialogueLine.FromNpc("It is on your right.", null),
                 };
-            public DialogueLine LastNpcLine => Question;
+            public DialogueLine LastNpcLine => Waiting == DialogueWait.Opening ? null : Question;
             public bool IsGuided => false;
             public bool IsGuidedCompleted => false;
             public string SuggestedEnglish => null;
             public string SuggestedKorean => "매장에서 먹을게요.";
             public string ExampleSentence => null;
-            public bool IsBusy => false;
+            public bool IsBusy => Waiting == DialogueWait.Opening;
             public string StatusMessage => null;
             public DialogueWait Waiting { get; set; }
             public string RecoveryGuide => null;
@@ -927,9 +947,9 @@ namespace A305.EditorTools.Dialogue
             public bool UsesVoice => true;
             public ConversationStanding Standing => null;
             public bool CanTalk => true;
-            public bool CanReplaySpeech => true;
+            public bool CanReplaySpeech => LastNpcLine != null;
             public bool SpeaksNpcLines => PreviewLines == null;
-            public bool IsNpcSpeechReady => true;
+            public bool IsNpcSpeechReady => LastNpcLine != null;
         }
     }
 }

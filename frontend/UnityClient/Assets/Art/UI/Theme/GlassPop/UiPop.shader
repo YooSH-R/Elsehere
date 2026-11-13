@@ -61,6 +61,7 @@ Shader "A305/UI/Pop"
 
             #pragma multi_compile_local _ UNITY_UI_CLIP_RECT
             #pragma multi_compile_local _ UNITY_UI_ALPHACLIP
+            #pragma shader_feature_local_fragment _GHOST_OUTLINE
 
             struct appdata_t
             {
@@ -105,6 +106,10 @@ Shader "A305/UI/Pop"
             fixed4 frag(v2f IN) : SV_Target
             {
                 half4 art = tex2D(_MainTex, IN.texcoord);
+                #if defined(_GHOST_OUTLINE)
+                // 반투명 테두리 그림은 알파에 모양이 들어 있으므로 강조색만 입힌다.
+                half4 result = half4(IN.color.rgb * art.rgb, art.a * IN.color.a);
+                #else
                 half face = art.r;
                 half height = art.g;
                 half base = art.b;
@@ -121,6 +126,7 @@ Shader "A305/UI/Pop"
                 half next = face + alpha * (1 - face);
                 color = (saturate(faceColor) * face + color * alpha * (1 - face)) / max(next, 0.0001);
                 half4 result = half4(color, next * IN.color.a);
+                #endif
 
                 #ifdef UNITY_UI_CLIP_RECT
                 result.a *= UnityGet2DClipping(IN.worldPosition.xy, _ClipRect);

@@ -736,8 +736,15 @@ namespace A305.Dialogue
             talkButton.gameObject.SetActive(talk.IsVisible);
             talkButton.interactable = talk.Action != TalkButtonAction.None;
             TalkGroup.alpha = talk.LooksAvailable ? 1f : UnavailableTalkAlpha;
-            replayButton.gameObject.SetActive(content.CanReplaySpeech);
-            replayButton.interactable = content.LastNpcLine != null && !content.IsBusy;
+            bool preparingOpening =
+                content.SpeaksNpcLines
+                && (
+                    content.Waiting == DialogueWait.Opening
+                    || (content.LastNpcLine == null && !content.CanRetry)
+                );
+            replayButton.gameObject.SetActive(preparingOpening || content.CanReplaySpeech);
+            replayButton.interactable =
+                content.CanReplaySpeech && content.LastNpcLine != null && !content.IsBusy;
             hintButton.gameObject.SetActive(content.HasHint);
             hintButton.interactable = content.LastNpcLine != null && content.CanSend;
             retryButton.gameObject.SetActive(content.CanRetry);
@@ -1159,8 +1166,7 @@ namespace A305.Dialogue
                 ? DisableSubtitlesCaption
                 : EnableSubtitlesCaption;
             if (subtitleButton.TryGetComponent(out ThemedElement theme))
-                // 입체 버튼의 그림자 여백이 이 낮은 도구 버튼만 두꺼워 보이게 하므로 세로 여백을 줄인다.
-                theme.SetSelected(showsSubtitles, .35f);
+                theme.SetSelected(showsSubtitles, keepGhostOutline: true);
         }
 
         private void ToggleSubtitles()
@@ -1731,22 +1737,48 @@ namespace A305.Dialogue
             return linesText.GetPreferredValues(latest, width, 0).y;
         }
 
+        private const float ToolButtonPadding = 24f;
+
         // [다시 시도]·[대화 종료]를 이름 줄 오른쪽 끝에 두고, 나머지 도구는 그 왼쪽에 오른쪽 정렬로 붙인다.
         // 대화 종류에 따라 숨는 버튼이 있어 보이는 버튼의 폭으로 자리를 정하고, 도구가 시작하는 왼쪽 끝을 돌려준다.
         private float PlaceTools(Rect row)
         {
             var ends = (RectTransform)endButton.transform.parent;
+            var tools = (RectTransform)meaningButton.transform.parent;
+            FitToolButtonsToLabels(ends);
+            FitToolButtonsToLabels(tools);
             LayoutRebuilder.ForceRebuildLayoutImmediate(ends);
             float endsWidth = LayoutUtility.GetPreferredWidth(ends);
             Place(ends, Rect.MinMaxRect(row.xMax - endsWidth, row.yMin, row.xMax, row.yMax));
-            var tools = (RectTransform)meaningButton.transform.parent;
-            float toolsRight = row.xMax - endsWidth - DialogueCinemaLayout.Gap;
+            float toolsRight =
+                row.xMax - endsWidth - tools.GetComponent<HorizontalLayoutGroup>().spacing;
             Place(
                 tools,
                 Rect.MinMaxRect(row.xMin, row.yMin, Mathf.Max(row.xMin, toolsRight), row.yMax)
             );
             LayoutRebuilder.ForceRebuildLayoutImmediate(tools);
             return toolsRight - LayoutUtility.GetPreferredWidth(tools);
+        }
+
+        private void FitToolButtonsToLabels(RectTransform row)
+        {
+            foreach (Transform button in row)
+            {
+                if (
+                    !button.gameObject.activeSelf || !button.TryGetComponent(out LayoutElement size)
+                )
+                    continue;
+
+                TMP_Text label = button.Find("Label").GetComponent<TMP_Text>();
+                float labelWidth = label.GetPreferredValues(label.text).x;
+                // 두 문구 중 긴 쪽을 기준으로 잡아 자막을 켜고 끌 때 옆 버튼도 움직이지 않게 한다.
+                if (button == subtitleButton.transform)
+                    labelWidth = Mathf.Max(
+                        label.GetPreferredValues(EnableSubtitlesCaption).x,
+                        label.GetPreferredValues(DisableSubtitlesCaption).x
+                    );
+                size.minWidth = size.preferredWidth = labelWidth + 2 * ToolButtonPadding;
+            }
         }
 
         private static void Place(RectTransform rect, Rect area)

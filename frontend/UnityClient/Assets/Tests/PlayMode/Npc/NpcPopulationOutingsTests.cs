@@ -21,7 +21,8 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator OffDutyResidentsReserveDifferentFacilitiesAndStreetWalks()
         {
-            yield return LoadTown();
+            // 밤 근무를 마친 주민들이 함께 쉬는 아침 7시. 이야기 퀘스트 직원은 24시간 매장에 있어 외출하지 않는다.
+            yield return LoadTown(7 * 60);
             var trips = NpcOutings.Shared.Trips.ToArray();
             Assert.That(trips.Length, Is.GreaterThan(4));
             Assert.That(

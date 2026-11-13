@@ -4,5 +4,6 @@
   "mbti": "INTJ-A",
   "role": "STAFF",
   "workplace": "BANK",
-  "shift": "DAY"
+  "shift": "DAY",
+  "resident": true
 }

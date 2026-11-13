@@ -50,6 +50,7 @@ services:
       # Optional NPC reply LoRA on the same GPU server vLLM first (up to NPC_GPU_MAX_CONCURRENT at once), then the profile's npc model.
       NPC_GPU_MODEL: ${NPC_GPU_MODEL:-}
       NPC_GPU_MAX_CONCURRENT: ${NPC_GPU_MAX_CONCURRENT:-4}
+      NPC_GPU_FIRST_TOKEN_S: ${NPC_GPU_FIRST_TOKEN_S:-1.5}
       # Optional speech synthesis on the GPU server first, then the local CPU Kokoro. Empty keeps CPU only.
       TTS_GPU_BASE_URL: ${TTS_GPU_BASE_URL:-}
       # Optional backup GPU synthesis server tried after the main one, before CPU. Same token.

@@ -20,12 +20,13 @@ namespace A305.Dialogue.PlayModeTests
         private GameObject panelObject;
         private GameObject eventSystemObject;
         private DialoguePanelView view;
-        private bool savedPreference;
+        private int? savedPreference;
 
         [SetUp]
         public void StartWithSubtitlesOff()
         {
-            savedPreference = NpcSubtitlePreference.ShowsSubtitles;
+            string key = NpcSubtitlePreference.PreferenceKey;
+            savedPreference = PlayerPrefs.HasKey(key) ? PlayerPrefs.GetInt(key) : null;
             NpcSubtitlePreference.ShowsSubtitles = false;
         }
 
@@ -34,7 +35,13 @@ namespace A305.Dialogue.PlayModeTests
         {
             Object.Destroy(panelObject);
             Object.Destroy(eventSystemObject);
-            NpcSubtitlePreference.ShowsSubtitles = savedPreference;
+            string key = NpcSubtitlePreference.PreferenceKey;
+            if (savedPreference.HasValue)
+                PlayerPrefs.SetInt(key, savedPreference.Value);
+            else
+                PlayerPrefs.DeleteKey(key);
+            PlayerPrefs.Save();
+            NpcSubtitlePreference.Reload();
         }
 
         // 글자는 하나도 보이지 않고, 띄어쓰기로 나뉜 단어 7개 자리가 회색 막대로 덮인다.
@@ -52,20 +59,20 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator NewConversation_HidesSubtitlesEvenWhenPreviouslySavedOn()
+        public IEnumerator FirstConversation_ShowsSubtitlesByDefault()
         {
-            NpcSubtitlePreference.ShowsSubtitles = true;
+            PlayerPrefs.DeleteKey(NpcSubtitlePreference.PreferenceKey);
             NpcSubtitlePreference.Reload();
 
             yield return Show(new SpokenContent(speaksNpcLines: true));
 
-            Assert.That(VisibleNpcLetters(), Is.Zero);
-            Assert.That(ActiveCovers(), Has.Count.EqualTo(7));
-            Assert.That(Caption(FindButton("SubtitleButton")), Is.EqualTo("자막 켜기"));
+            Assert.That(VisibleNpcLetters(), Is.EqualTo(NpcSentence.Replace(" ", "").Length));
+            Assert.That(ActiveCovers(), Is.Empty);
+            Assert.That(Caption(FindButton("SubtitleButton")), Is.EqualTo("자막 끄기"));
         }
 
         [UnityTest]
-        public IEnumerator SubtitlesEnabledDuringConversation_StayOnUntilTheNextConversation()
+        public IEnumerator SubtitleChoice_CarriesOverToOtherNpcs()
         {
             var content = new SpokenContent(speaksNpcLines: true);
             yield return Show(content);
@@ -83,10 +90,19 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(Caption(subtitle), Is.EqualTo("자막 끄기"));
 
             view.Hide();
-            view.Show(new SpokenContent(speaksNpcLines: true));
+            view.Show(new SpokenContent(speaksNpcLines: true) { NpcName = "Mia" });
             yield return null;
 
-            Assert.That(VisibleNpcLetters(), Is.Zero);
+            Assert.That(VisibleNpcLetters("Mia"), Is.EqualTo(NpcSentence.Replace(" ", "").Length));
+            Assert.That(ActiveCovers(), Is.Empty);
+            Assert.That(Caption(subtitle), Is.EqualTo("자막 끄기"));
+
+            ClickCenterOf(subtitle);
+            view.Hide();
+            view.Show(new SpokenContent(speaksNpcLines: true) { NpcName = "Ben" });
+            yield return null;
+
+            Assert.That(VisibleNpcLetters("Ben"), Is.Zero);
             Assert.That(ActiveCovers(), Has.Count.EqualTo(7));
             Assert.That(Caption(subtitle), Is.EqualTo("자막 켜기"));
         }
@@ -294,13 +310,17 @@ namespace A305.Dialogue.PlayModeTests
 
         private TMP_Text LinesText() => FindChild("Lines").GetComponent<TMP_Text>();
 
-        // NPC 대사 글자 중 화면에 보이는(투명하지 않은) 글자 수. 이름(Alex) 뒤 대사만 센다.
-        private int VisibleNpcLetters()
+        // NPC 이름 뒤의 대사에서 화면에 보이는 글자만 센다.
+        private int VisibleNpcLetters(string npcName = "Alex")
         {
             TMP_Text lines = LinesText();
             lines.ForceMeshUpdate();
             TMP_TextInfo info = lines.textInfo;
-            int sentenceStart = lines.GetParsedText().IndexOf("Alex") + "Alex".Length;
+            int speakerStart = lines
+                .GetParsedText()
+                .IndexOf(npcName, System.StringComparison.Ordinal);
+            Assert.That(speakerStart, Is.GreaterThanOrEqualTo(0), npcName);
+            int sentenceStart = speakerStart + npcName.Length;
             int visible = 0;
             for (int i = sentenceStart; i < info.characterCount; i++)
             {
@@ -386,7 +406,7 @@ namespace A305.Dialogue.PlayModeTests
             }
 
             public string UserTranslation { get; set; }
-            public string NpcName => "Alex";
+            public string NpcName { get; set; } = "Alex";
             public bool HasOpeningLine { get; set; } = true;
             public IReadOnlyList<DialogueLine> Lines =>
                 HasOpeningLine ? new[] { Opening } : System.Array.Empty<DialogueLine>();

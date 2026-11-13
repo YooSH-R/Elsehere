@@ -26,7 +26,7 @@ namespace A305.EditorTools.World
             "TownMainstreet/BackgroundBuildings/VacantBuilding2F/ButterResidence2F/ButterGroundFloor8m";
         private const string KitPartFolder = "Assets/Prefabs/World/CafeBlenderKit/Parts/";
         private const string TownSignText = "DRUGSTORE";
-        private const string PriceSignText = "DRUGSTORE\nUMBRELLAS · 8 COINS";
+        internal const string PriceSignText = "DRUGSTORE\n<size=80%>UMBRELLAS · 8 COINS</size>";
         private const string CameraSettingsPath = "Assets/Data/Shop/ShopCameraSettings.asset";
 
         // 문 바로 앞에 서면 3인칭 카메라가 문에 막혀 캐릭터에 붙으므로 매장 안쪽에 내려 준다.

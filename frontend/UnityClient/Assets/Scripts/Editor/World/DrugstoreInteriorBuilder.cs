@@ -50,6 +50,8 @@ namespace A305.EditorTools.World
 
         // 매장 바닥(ShopFloor) 윗면과 계산대(ShopCounter) 상판 높이
         private const float CounterTop = .8f;
+        private const float CoffeeCounterHeight = 1.08f;
+        private const float CoffeeCountertopThickness = .08f;
 
         // 진열품이 게임 화면에서도 알아보이도록 실제보다 조금 크게 둔다.
         private const float GoodsScale = 1.4f;
@@ -171,6 +173,64 @@ namespace A305.EditorTools.World
             BlockCameraAtCeiling(interior);
             if (interior.transform.Find("DrugstoreEntrance") == null)
                 Piece("DrugstoreEntrance", BuildEntrance, interior.transform, Vector3.zero, 0);
+        }
+
+        [MenuItem("Tools/A305/World/Apply Drugstore Displays")]
+        public static void ApplyDisplays()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            BuilderTools.UpdatePrefabIfExists(
+                PrefabFolder + "/CoffeeCounter.prefab",
+                station =>
+                {
+                    FitCoffeeStation(station);
+                    ObjectWordRegistration.ApplyToPrefab(
+                        station,
+                        PrefabFolder + "/CoffeeCounter.prefab"
+                    );
+                }
+            );
+            float checkoutTop;
+            Scene scene = EditorSceneManager.OpenPreviewScene(ScenePath);
+            try
+            {
+                Transform environment = scene
+                    .GetRootGameObjects()
+                    .Single(root => root.name == "Environment")
+                    .transform;
+                checkoutTop =
+                    BoundsOf(environment.Find("TownShopInterior/ShopCounter").gameObject).max.y
+                    - environment.Find(InteriorName + "/Checkout").position.y;
+            }
+            finally
+            {
+                EditorSceneManager.ClosePreviewScene(scene);
+            }
+
+            string interiorPath = PrefabFolder + "/" + InteriorName + ".prefab";
+            BuilderTools.UpdatePrefabIfExists(
+                interiorPath,
+                interior =>
+                {
+                    Transform pharmacy = interior.transform.Find("PharmacyCounter");
+                    if (pharmacy != null)
+                        Object.DestroyImmediate(pharmacy.gameObject);
+
+                    Transform terminal = PlaceCardReader(
+                        interior.transform.Find("Checkout"),
+                        checkoutTop
+                    );
+                    ObjectWordRegistration.ApplyToPrefab(terminal.gameObject, interiorPath);
+                    foreach (
+                        Transform sign in interior
+                            .transform.Cast<Transform>()
+                            .Where(child => child.name == "AisleSign")
+                    )
+                        AddAisleSignBackLabel(sign);
+                }
+            );
+            AssetDatabase.SaveAssets();
         }
 
         // 천장이 카메라를 막지 않으면 내려다볼 때 카메라가 천장 위로 빠져, 해를 받은 천장 윗면이 화면을 하얗게 덮는다.
@@ -305,7 +365,6 @@ namespace A305.EditorTools.World
             AisleSign("SNACKS & CANDY", t, new Vector3(-2.9f, 3.05f, -4.15f));
             AisleSign("HEALTH & GROCERY", t, new Vector3(2.9f, 3.05f, -4.15f));
 
-            Piece("PharmacyCounter", BuildPharmacyCounter, t, new Vector3(-4.2f, 0, 5.1f), 0);
             Piece("CoffeeCounter", BuildCoffeeCounter, t, new Vector3(-5.5f, 0, 1.9f), -90);
             Piece("ProduceStand", BuildProduceStand, t, new Vector3(-4.15f, 0, -5.45f), 0);
 
@@ -564,6 +623,21 @@ namespace A305.EditorTools.World
             TownBlockoutGeometry
                 .Label("Label", value, sign, new Vector3(0, 0, -.035f), Vector3.zero, .17f)
                 .color = Color.white;
+            AddAisleSignBackLabel(sign);
+        }
+
+        private static void AddAisleSignBackLabel(Transform sign)
+        {
+            TMP_Text front = sign.Find("Label").GetComponent<TMP_Text>();
+            if (sign.Find("BackLabel") != null)
+                return;
+
+            TMP_Text back = Object.Instantiate(front, sign);
+            back.name = "BackLabel";
+            back.transform.SetLocalPositionAndRotation(
+                new Vector3(0, 0, .035f),
+                Quaternion.Euler(0, 180, 0)
+            );
         }
 
         // ---------- 조각 프리팹 ----------
@@ -753,81 +827,115 @@ namespace A305.EditorTools.World
             return .11f;
         }
 
-        // Rx 표시가 있는 약 코너 카운터와 카드 단말기
-        private static GameObject BuildPharmacyCounter()
-        {
-            var root = new GameObject("PharmacyCounter");
-            GameObject desk = Model(
-                Furniture + "kitchenCabinet.obj",
-                "Desk",
-                root.transform,
-                Vector3.zero,
-                0,
-                1.6f,
-                Fit.Length
-            );
-            float top = BoundsOf(desk).max.y;
-            CardTerminal(root.transform, new Vector3(.3f, top, 0));
-            TownBlockoutGeometry
-                .Label(
-                    "Rx",
-                    "Rx",
-                    root.transform,
-                    new Vector3(-.4f, top + .5f, 0),
-                    Vector3.zero,
-                    .5f
-                )
-                .color = Hex("#C8102E");
-            AddBlocker(root);
-            return root;
-        }
-
         // 서쪽 벽의 커피 머신 두 대, 컵, 핫도그 그릴
         private static GameObject BuildCoffeeCounter()
         {
             var root = new GameObject("CoffeeCounter");
-            float top = 0;
             foreach (float x in new[] { -.8f, .8f })
-                top = BoundsOf(
-                    Model(
-                        Furniture + "kitchenCabinet.obj",
-                        "Cabinet",
-                        root.transform,
-                        new Vector3(x, 0, 0),
-                        0,
-                        1.6f,
-                        Fit.Length
-                    )
-                ).max.y;
+                Model(
+                    Furniture + "kitchenCabinet.obj",
+                    "Cabinet",
+                    root.transform,
+                    new Vector3(x, 0, 0),
+                    0,
+                    1.6f,
+                    Fit.Length
+                );
             foreach (float x in new[] { -1.05f, -.45f })
                 Model(
                     Furniture + "kitchenCoffeeMachine.obj",
                     "CoffeeMachine",
                     root.transform,
-                    new Vector3(x, top, .1f),
+                    new Vector3(x, 0, .1f),
                     0,
                     .5f,
                     Fit.Height
                 );
             for (int i = 0; i < 6; i++)
-                Good(
-                    "cup",
-                    root.transform,
-                    new Vector3(.05f + (i / 2) * .14f, top, -.05f + (i % 2) * .14f),
-                    0
-                );
+                Good("cup", root.transform, Vector3.zero, 0);
             Prim(
                 PrimitiveType.Cube,
                 "HotDogRoller",
                 root.transform,
-                new Vector3(.95f, top + .06f, 0),
+                new Vector3(.95f, 0, 0),
                 new Vector3(.6f, .12f, .38f),
                 Paint("DrugstoreSteel", "#9AA3A8")
             );
             for (int i = 0; i < 4; i++)
-                Good("hotDog", root.transform, new Vector3(.75f + i * .13f, top + .12f, 0), 0);
+                Good("hotDog", root.transform, Vector3.zero, 0);
+            FitCoffeeStation(root);
             AddBlocker(root);
             return root;
+        }
+
+        private static void FitCoffeeStation(GameObject station)
+        {
+            Transform root = station.transform;
+            Transform[] props = root.Cast<Transform>().ToArray();
+            float cabinetHeight = CoffeeCounterHeight - CoffeeCountertopThickness;
+            foreach (Transform cabinet in props.Where(child => child.name == "Cabinet"))
+            {
+                Vector3 scale = cabinet.localScale;
+                scale.y *= cabinetHeight / BoundsOf(cabinet.gameObject).size.y;
+                cabinet.localScale = scale;
+                SetModelBottom(cabinet, 0f);
+            }
+
+            // 이어진 상판을 두어 수납장 사이 틈 위에도 컵과 기계를 올릴 수 있게 한다.
+            if (root.Find("CoffeeCountertop") == null)
+                Prim(
+                    PrimitiveType.Cube,
+                    "CoffeeCountertop",
+                    root,
+                    new Vector3(0, CoffeeCounterHeight - CoffeeCountertopThickness / 2f, 0),
+                    new Vector3(3.2f, CoffeeCountertopThickness, 1.6f),
+                    Paint("DrugstoreCoffeeCountertop", "#9C775D")
+                );
+
+            foreach (Transform machine in props.Where(child => child.name == "CoffeeMachine"))
+                SetModelBottom(machine, CoffeeCounterHeight);
+
+            int cupIndex = 0;
+            foreach (Transform cup in props.Where(child => child.name == "cup"))
+            {
+                SetModelBottom(
+                    cup,
+                    new Vector3(
+                        .06f + (cupIndex / 2) * .20f,
+                        CoffeeCounterHeight,
+                        -.13f + (cupIndex % 2) * .24f
+                    )
+                );
+                cupIndex++;
+            }
+
+            Transform roller = root.Find("HotDogRoller");
+            SetModelBottom(roller, CoffeeCounterHeight);
+            float rollerTop = BoundsOf(roller.gameObject).max.y - root.position.y;
+            int hotDogIndex = 0;
+            foreach (Transform hotDog in props.Where(child => child.name == "hotDog"))
+            {
+                hotDog.localRotation = Quaternion.Euler(0, 90, 0);
+                SetModelBottom(hotDog, new Vector3(.74f + hotDogIndex * .14f, rollerTop, 0));
+                hotDogIndex++;
+            }
+
+            NorthBlockAssets.Bind(station, "coffee_station");
+        }
+
+        private static void SetModelBottom(Transform model, float height)
+        {
+            float bottom = BoundsOf(model.gameObject).min.y - model.parent.position.y;
+            model.localPosition += Vector3.up * (height - bottom);
+        }
+
+        private static void SetModelBottom(Transform model, Vector3 bottomCenter)
+        {
+            Bounds bounds = BoundsOf(model.gameObject);
+            Vector3 bottom = model.parent.InverseTransformPoint(
+                new Vector3(bounds.center.x, bounds.min.y, bounds.center.z)
+            );
+            model.localPosition += bottomCenter - bottom;
         }
 
         // 입구 쪽 과일·채소 상자 두 단
@@ -1192,7 +1300,7 @@ namespace A305.EditorTools.World
             return shape.transform;
         }
 
-        // 계산대 위: 금전등록기, 빨간 과자 진열대, 화분
+        // 계산대 위: 금전등록기, 카드 결제기, 빨간 과자 진열대, 화분
         private static void Checkout(Transform root)
         {
             Transform checkout = BuilderTools.CreateEmpty(
@@ -1216,6 +1324,7 @@ namespace A305.EditorTools.World
                     .42f,
                     Fit.Height
                 );
+            PlaceCardReader(checkout, CounterTop);
             Transform rack = BuilderTools.CreateEmpty(
                 "CandyRack",
                 checkout,
@@ -1255,32 +1364,52 @@ namespace A305.EditorTools.World
                 );
         }
 
-        private static void CardTerminal(Transform parent, Vector3 spot)
+        private static Transform PlaceCardReader(Transform checkout, float counterTop)
         {
-            Transform terminal = BuilderTools.CreateEmpty(
-                "CardTerminal",
-                parent,
-                spot,
+            var position = new Vector3(.55f, counterTop, 2.15f);
+            Transform reader = checkout.Find("CardReader");
+            if (reader != null)
+            {
+                reader.localPosition = position;
+                return reader;
+            }
+
+            reader = BuilderTools.CreateEmpty(
+                "CardReader",
+                checkout,
+                position,
                 Quaternion.identity
             );
             Prim(
                 PrimitiveType.Cube,
                 "Body",
-                terminal,
-                new Vector3(0, .05f, 0),
-                new Vector3(.12f, .1f, .2f),
-                Paint("DrugstoreTerminal", "#2A2E33"),
-                Quaternion.Euler(-20, 0, 0)
+                reader,
+                new Vector3(0, .045f, 0),
+                new Vector3(.21f, .09f, .31f),
+                Paint("DrugstoreTerminal", "#2A2E33")
             );
             Prim(
                 PrimitiveType.Cube,
                 "Screen",
-                terminal,
-                new Vector3(0, .1f, .02f),
-                new Vector3(.09f, .01f, .07f),
-                Glow("DrugstoreScreen", "#7CC6F2"),
-                Quaternion.Euler(-20, 0, 0)
+                reader,
+                new Vector3(0, .09f, .065f),
+                new Vector3(.15f, .012f, .11f),
+                Glow("DrugstoreScreen", "#7CC6F2")
             );
+            Material keypad = Paint("DrugstoreSteel", "#9AA3A8");
+            for (int row = 0; row < 3; row++)
+            for (int column = 0; column < 3; column++)
+                Prim(
+                    PrimitiveType.Cube,
+                    "Key",
+                    reader,
+                    new Vector3((column - 1) * .048f, .09f, -.025f - row * .038f),
+                    new Vector3(.033f, .012f, .024f),
+                    keypad
+                );
+
+            NorthBlockAssets.Bind(reader.gameObject, "card_reader");
+            return reader;
         }
 
         // ---------- 도우미 ----------

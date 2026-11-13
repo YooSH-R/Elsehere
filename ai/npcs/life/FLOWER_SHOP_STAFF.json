@@ -4,5 +4,6 @@
   "mbti": "INFP-T",
   "role": "STAFF",
   "workplace": "FLOWER_SHOP",
-  "shift": "DAY"
+  "shift": "DAY",
+  "resident": true
 }

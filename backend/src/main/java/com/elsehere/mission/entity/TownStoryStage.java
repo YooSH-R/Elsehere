@@ -111,26 +111,26 @@ public enum TownStoryStage {
 
   public static String goalTitle(String id) {
     return switch (id) {
-      case "order_breakfast" -> "아침 주문(음식과 음료)";
-      case "explain_spill" -> "쏟은 일 설명(무엇을 어디에)";
+      case "order_breakfast" -> "아침 주문";
+      case "explain_spill" -> "옷에 쏟은 일 설명";
       case "ask_laundry" -> "세탁 방법 묻기";
       case "ask_cost" -> "세탁 가격 묻기";
       case "ask_atm" -> "ATM 위치 묻기";
-      case "ask_withdrawal" -> "현금 인출 묻기(얼마를)";
+      case "ask_withdrawal" -> "현금 인출 방법 묻기";
       case "request_wash" -> "세탁기 사용 방법 확인";
       case "ask_haircut" -> "이발 요청";
-      case "describe_style" -> "스타일 설명(길이와 어디를)";
+      case "describe_style" -> "원하는 머리 모양 설명";
       case "choose_flower" -> "선물할 꽃 고르기";
       case "ask_wrapping" -> "꽃 포장 요청";
       case "offer_flower" -> "꽃을 선물한다고 말하기";
-      case "thank_barber" -> "Tony에게 감사하기(무엇이 고마운지)";
+      case "thank_barber" -> "Tony에게 감사하기";
       case "choose_snack" -> "간식 고르기";
       case "collect_laundry" -> "빨래 꺼내기 확인";
-      case "thank_laundromat" -> "Gus에게 감사하기(무엇이 고마운지)";
-      case "ask_lamp" -> "램프 묻기(누구에게 줄 선물인지)";
+      case "thank_laundromat" -> "Gus에게 감사하기";
+      case "ask_lamp" -> "램프에 대해 묻기";
       case "ask_shipping" -> "포장 또는 배송 가능 여부 묻기";
       case "ask_game" -> "게임 방법 묻기";
-      case "ask_parcel" -> "소포 보내기(어디로)";
+      case "ask_parcel" -> "소포 보내기";
       case "ask_price" -> "소포 가격 묻기";
       default -> throw new IllegalArgumentException("Unknown town story goal: " + id);
     };
@@ -152,7 +152,7 @@ public enum TownStoryStage {
       case "ask_wrapping" -> "꽃을 포장해 달라고 하기";
       case "offer_flower" -> "꽃을 선물로 드린다고 말하기";
       case "thank_barber" -> "무엇이 고마운지 말하기";
-      case "choose_snack" -> "간식 이름과 함께 개수나 받을 사람 중 하나 말하기";
+      case "choose_snack" -> "어떤 간식을 몇 개 살지, 누구에게 줄지 말해 보세요.";
       case "collect_laundry" -> "빨래를 꺼내도 되는지 또는 어떻게 꺼내는지 묻거나 직접 꺼낸다고 말하기";
       case "thank_laundromat" -> "기계 사용을 도와준 것에 감사하기";
       case "ask_lamp" -> "램프와 선물 받을 사람";
@@ -188,7 +188,7 @@ public enum TownStoryStage {
       case "thank_barber" ->
           "The learner thanks the barber AND says what they are thankful for, such as the haircut.";
       case "choose_snack" ->
-          "The learner asks for a specific bakery item AND says how many or who it is for.";
+          "The learner asks for a specific bakery item and states both the quantity and the recipient.";
       case "collect_laundry" ->
           "The learner asks whether or how to remove their own clothes from the washer or dryer, checks whether the cycle is finished, or says they are taking their clothes out. Staff do not hold or collect the clothes for them. An unrelated question or a refusal does not count.";
       case "thank_laundromat" ->

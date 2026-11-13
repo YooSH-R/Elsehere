@@ -95,6 +95,14 @@ namespace A305.Npc.PlayModeTests
 
             DialoguePanelView panel = Single<DialoguePanelView>();
             DialogueController dialogue = Single<DialogueController>();
+            CoachMarkView coachMark = Single<CoachMarkView>();
+            // 실제 사용 흐름처럼 대화창 안내를 마친 뒤 추천 문장을 펼치고 선택한다.
+            for (int step = 0; step < TutorialCoachPlan.DialogueTourLength; step++)
+            {
+                Click(coachMark, "NextButton");
+                yield return null;
+                yield return null;
+            }
             for (int turn = 0; turn < MaxGuidedTurns && !dialogue.IsGuidedCompleted; turn++)
             {
                 Click(panel, "HintButton");

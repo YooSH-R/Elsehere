@@ -42,6 +42,13 @@ namespace A305.Learning
                 StringComparison.OrdinalIgnoreCase
             );
 
+        /// <summary>화면에서 예문과 분리해 보여 줄 평가 설명.</summary>
+        public string AssessmentReason =>
+            !string.IsNullOrWhiteSpace(Reference?.Reason) ? Reference.Reason : Comment;
+
+        internal static bool SameSpokenText(string left, string right) =>
+            string.Equals(SpokenText(left), SpokenText(right), StringComparison.OrdinalIgnoreCase);
+
         /// <summary>동일한 제안을 숨겨도 모델이 설명한 이유는 유지한다.</summary>
         public string Explanation
         {

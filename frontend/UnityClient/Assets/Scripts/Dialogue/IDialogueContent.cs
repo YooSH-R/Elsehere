@@ -14,8 +14,8 @@ namespace A305.Dialogue
         string UserTranslation { get; }
 
         /// <summary>
-        /// 틀리진 않았지만 어색하거나 짧은 학습자 영어에 쓸 같은 뜻의 더 좋은 문장(최대 3개). 영어 표현(<see cref="UserTranslation"/>)이
-        /// 없을 때만 카드에 '이럴 때 쓰면 좋아요!'로 보인다. 서버 대화만 주며, 없으면 null이다.
+        /// 학습자가 한 말과 같은 뜻의 다른 표현(최대 3개). 고친 문장·영어 번역(<see cref="UserTranslation"/>)이 있어도
+        /// 카드 아래 [다른 표현 N개 더 보기]에 접어 둔다. 서버 대화만 주며, 없으면 null이다.
         /// </summary>
         IReadOnlyList<string> UserBetterExpressions => null;
         IReadOnlyList<DialogueLine> Lines { get; }
@@ -83,8 +83,11 @@ namespace A305.Dialogue
         /// <summary>NPC 대사를 음성으로 들려주는지. 들려주는 대화만 [자막]으로 대사를 가려 듣고 이해하게 한다.</summary>
         bool SpeaksNpcLines { get; }
 
+        /// <summary>서버에서 NPC 대사의 글자와 음성을 아직 받고 있는지.</summary>
+        bool IsReceivingNpcReply => false;
+
         /// <summary>
-        /// 지금 NPC 대사의 음성을 재생할 수 있는지. 음성 생성 실패·만료면 false이고, 자막을 꺼 두었어도 대사를 글자로 보인다.
+        /// 지금 NPC 대사의 음성을 재생할 수 있는지. 수신이 끝난 뒤에도 실패·만료 등으로 false면 자막을 꺼 두었어도 글자로 보인다.
         /// </summary>
         bool IsNpcSpeechReady { get; }
     }

@@ -426,15 +426,17 @@ class LLM:
     async def intent_chat(self, messages: list[dict], usage: Usage, schema: dict, hedge_after_s: float | None = None) -> str:
         """의도 판정 호출 (JSON 문자열). GPU 서버 의도 판정 모델(judge_gpu_model)이 있으면 먼저 부르고 실패하거나
         JSON이 아닌 답이면 구성의 intent 모델 (_gpu_first). 형식 강제는 둘 다 같은 schema로 한다.
-        hedge_after_s는 구성의 intent 모델 호출에만 쓴다 (GPU 호출은 짧은 상한 하나)."""
+        hedge_after_s는 구성의 intent 모델 호출에만 쓴다 (GPU 호출은 짧은 상한 하나).
+        출력 상한은 의도·고친 문장과 함께 모든 발화의 다른 표현(최대 3개, 발화 전체를 다시 쓴 문장)이 들어가도 잘리지 않게 둔다."""
         s = self.s
+        max_tokens = 320
         return await self._gpu_first(
             "judge",
             s.judge_gpu_model,
             s.judge_gpu_timeout_s,
             (s.judge_breaker_failures, s.judge_breaker_skip_s),
-            lambda: self._chat_once("gpu_llm", s.judge_gpu_model, "intent", messages, usage, 200, schema),
-            lambda: self.chat("intent", "intent", messages, usage, 0.0, 200, schema, hedge_after_s=hedge_after_s),
+            lambda: self._chat_once("gpu_llm", s.judge_gpu_model, "intent", messages, usage, max_tokens, schema),
+            lambda: self.chat("intent", "intent", messages, usage, 0.0, max_tokens, schema, hedge_after_s=hedge_after_s),
             usage,
             check=json.loads,
         )

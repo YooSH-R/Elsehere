@@ -791,8 +791,6 @@ namespace A305.EditorTools.Mission
             Ui.TopLeft(map, 0, 0, 1168, 467);
             Ui.Picture(map.gameObject, Art("QuestMap", default, mipmaps: true));
 
-            RectTransform dot = Mark(map, "Dot", 9, 9, Art("QuestPathDot"));
-            dot.gameObject.SetActive(false);
             RectTransform stamp = Mark(map, "Stamp", 190, 190, Art("QuestStampHotel"));
             stamp.gameObject.SetActive(false);
             RectTransform pin = Mark(map, "Pin", 44, 44, null);
@@ -850,7 +848,6 @@ namespace A305.EditorTools.Mission
             Set(fields, "countText", countText);
             Set(fields, "map", map);
             Set(fields, "stampTemplate", stamp.GetComponent<Image>());
-            Set(fields, "dotTemplate", dot);
             Set(fields, "pin", pin);
             Set(fields, "pinNumber", pinNumber);
             Set(fields, "nowLabel", now);

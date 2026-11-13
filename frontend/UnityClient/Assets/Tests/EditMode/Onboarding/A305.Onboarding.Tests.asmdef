@@ -4,6 +4,7 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
+        "A305.Ambience",
         "A305.Api",
         "A305.Onboarding",
         "A305.Theme",

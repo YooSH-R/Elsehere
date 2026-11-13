@@ -7,10 +7,10 @@ namespace A305.World
         public const float Size = 76.8f;
         public const float Gap = 14.4f;
         public const float PhoneWidth = Size * 153f / 165f;
-        public const float SpeakerWidth = PhoneWidth;
-        public const float SpeakerHeight = SpeakerWidth * 70f / 101f;
         public const float SurveyWidth = Size * 71f / 106f;
-        public const float PhoneRight = Margin + SpeakerWidth + Gap;
+
+        // 휴대폰이 맨 오른쪽이고, 설문 아이콘과 시계·코인 칩이 그 왼쪽으로 이어진다.
+        public const float PhoneRight = Margin;
         public const float SurveyRight = PhoneRight + PhoneWidth + Gap;
 
         public static float StatusRight(bool surveyVisible) =>

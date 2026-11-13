@@ -1,6 +1,7 @@
 package com.elsehere.dialogue.dto;
 
 import com.elsehere.conversation.entity.InitiatedBy;
+import com.elsehere.world.service.ConversationPlace;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;

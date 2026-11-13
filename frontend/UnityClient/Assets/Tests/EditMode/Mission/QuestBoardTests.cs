@@ -1,13 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
-using UnityEngine;
 
 namespace A305.Mission.Tests
 {
     /// <summary>
     /// 퀘스트 목록 카드는 들르는 곳을 처음 들르는 순서대로 한 번씩 보이고(가 본 곳은 강조), 보상과 도장 수를 적는다.
-    /// 도장 지도는 가 본 곳마다 도장을 한 번 찍고, 지금 갈 곳에 번호 핀을 꽂고, 지나온 길을 잇는다. 그림이 없는 거리(행인)는 지도에 찍지 않는다.
+    /// 도장 지도는 가 본 곳마다 도장을 한 번 찍고, 지금 갈 곳에 번호 핀을 꽂는다. 그림이 없는 거리(행인)는 지도에 찍지 않는다.
     /// </summary>
     public sealed class QuestBoardTests
     {
@@ -38,17 +37,6 @@ namespace A305.Mission.Tests
             Assert.That(stamps[0].Centre, Is.EqualTo(TownMapArt.Tile("HOTEL").Value.center));
             Assert.That(pin.Number, Is.EqualTo(3));
             Assert.That(pin.Centre, Is.EqualTo(TownMapArt.Tile("HOTEL").Value.center));
-            Assert.That(
-                QuestStampMap.Path(quest),
-                Is.EqualTo(
-                    new[]
-                    {
-                        TownMapArt.Tile("HOTEL").Value.center,
-                        TownMapArt.Tile("CAFE").Value.center,
-                        TownMapArt.Tile("HOTEL").Value.center,
-                    }
-                )
-            );
         }
 
         [Test]

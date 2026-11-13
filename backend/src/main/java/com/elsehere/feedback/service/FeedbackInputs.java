@@ -11,6 +11,7 @@ import com.elsehere.mission.entity.PracticeScenario;
 import com.elsehere.mission.entity.ShowcaseStage;
 import com.elsehere.mission.entity.TownStoryStage;
 import com.elsehere.world.entity.Npc;
+import com.elsehere.world.service.ConversationPlace;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -26,7 +27,7 @@ final class FeedbackInputs {
 
   static final String SCHEMA_VERSION = "0.3.0";
   // 모델·프롬프트·검증 정책을 바꾸면 올린다. 같은 대화라도 버전이 다르면 다른 결과로 본다.
-  static final String ANALYSIS_CONFIG_VERSION = "elsehere-feedback-v6";
+  static final String ANALYSIS_CONFIG_VERSION = "elsehere-feedback-v7";
 
   // 학습자 수준 설명. 워커 힌트·추천 단어(ai/worker/app/prompts.py LEVEL_LEARNER)와 같은 말을 쓴다.
   private static final Map<Integer, String> LEVEL_LEARNER =
@@ -88,7 +89,7 @@ final class FeedbackInputs {
         turns.isEmpty() ? 0 : turns.get(turns.size() - 1).getSeq(),
         ANALYSIS_CONFIG_VERSION,
         new FeedbackInput.Context(
-            npc.getScene().getCode(),
+            conversationPlace(conversation, npc),
             situation == null ? "free_chat" : "quest",
             npc.getScene().getName()
                 + " · "
@@ -103,6 +104,16 @@ final class FeedbackInputs {
             null),
         inputTurns,
         List.of());
+  }
+
+  private static String conversationPlace(Conversation conversation, Npc npc) {
+    return ConversationPlace.recordedCode(conversation.getNpcTravelSituation())
+        .or(
+            () ->
+                conversation.isNpcOffDuty()
+                    ? Optional.empty()
+                    : ConversationPlace.workplaceCode(npc.getPlaceName()))
+        .orElseGet(() -> npc.getScene().getCode());
   }
 
   // 퀘스트가 없는 대화의 상황. 근무 시간이 아닌 NPC와의 대화는 응대 상황으로 평가하지 않도록 일상 대화라고 알린다.
@@ -138,6 +149,8 @@ final class FeedbackInputs {
                 .map(
                     id ->
                         TownStoryStage.goalTitle(id)
+                            + ": "
+                            + TownStoryStage.goalHint(id)
                             + " ("
                             + TownStoryStage.goalDescription(id)
                             + ")")
@@ -155,7 +168,14 @@ final class FeedbackInputs {
             ? "없음"
             : stage.goals().stream()
                 .filter(goal -> goalIds.contains(goal.id()))
-                .map(goal -> goal.title() + " (" + goal.description() + ")")
+                .map(
+                    goal ->
+                        goal.title()
+                            + ": "
+                            + goal.hint().replace("{name}", "본인")
+                            + " ("
+                            + goal.description()
+                            + ")")
                 .collect(Collectors.joining(", "));
     return stage.title() + " · 이번 대화의 할 일: " + goals + ". 이 목록에 없는 다른 목표는 누락으로 평가하지 않습니다.";
   }

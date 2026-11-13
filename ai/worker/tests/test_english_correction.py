@@ -123,12 +123,12 @@ def test_gpu_judgment_and_profile_fallback_both_return_the_correction(provider, 
     assert response.json()["translation"] == {"english": "I want coffee.", "error": None}
     expected_models = [GPU_MODEL, PROFILE_INTENT] if gpu_fails else [GPU_MODEL]
     assert provider.calls == [("intent", model) for model in expected_models]
-    assert all(body["max_tokens"] == 200 for body in seen)
+    assert all(body["max_tokens"] == 320 for body in seen)
     assert all("english_correction" in body["response_format"]["json_schema"]["schema"]["required"] for body in seen)
 
 
 # ---------------------------------------------------------------------
-# 틀리진 않았지만 어색하거나 짧은 영어: '이럴 때 쓰면 좋아요!' 문장 (S15P31A305-847)
+# 같은 뜻의 다른 표현: 모든 발화에 1~3개 (S15P31A305-847, S15P31A305-862)
 # ---------------------------------------------------------------------
 LATTE_BETTER = ["Can I get a latte, please?", "I'd like a latte, please.", "Could I have a latte?"]
 
@@ -169,22 +169,64 @@ def test_better_sentences_keep_up_to_three_distinct_english_lines_unlike_the_lea
 @pytest.mark.parametrize(
     ("text", "answer"),
     [
-        ("I wants coffee.", {"english_correction": "I want coffee.", "better_expressions": ["I'd like a coffee."]}),
-        ("라떼 하나요", {"english_correction": None, "better_expressions": LATTE_BETTER}),
         ("Latte.", {"english_correction": None}),
         ("Latte.", {"english_correction": None, "better_expressions": "Can I get a latte?"}),
     ],
 )
-def test_no_better_sentences_for_a_corrected_or_korean_line_or_a_missing_answer(client, provider, text, answer):
+def test_no_other_sentences_for_a_missing_answer(client, provider, text, answer):
     provider.answers["intent"] = lambda body: ok(json.dumps({"intents": ["unclear"], **answer}))
-    provider.answers["translate"] = lambda body: ok("One latte, please.")
 
     result = client.post("/v1/judge", json=judge_body(text)).json()
 
     assert result["better_expressions"] == []
 
 
-def test_intent_schema_and_prompt_ask_for_better_sentences_only_for_awkward_or_short_english(client, provider):
+def test_a_corrected_line_also_gets_other_sentences_unlike_its_correction(client, provider):
+    # 고친 문장 아래에도 다른 표현을 접어 둔다(S15P31A305-862). 고친 문장과 같은 문장은 뺀다
+    answer = {"english_correction": "I want coffee.", "better_expressions": ["I want coffee.", "I'd like a coffee."]}
+    provider.answers["intent"] = lambda body: ok(json.dumps({"intents": ["unclear"], **answer}))
+
+    result = client.post("/v1/judge", json=judge_body("I wants coffee.")).json()
+
+    assert result["translation"]["english"] == "I want coffee."
+    assert result["better_expressions"] == ["I'd like a coffee."]
+
+
+def test_a_korean_line_also_gets_other_sentences_unlike_its_translation(client, provider):
+    # 한국어를 섞어 말해도 다른 표현을 준다. 영어 번역과 같은 문장은 뺀다
+    answer = {"english_correction": None, "better_expressions": ["One latte, please.", "Can I get a latte?"]}
+    provider.answers["intent"] = lambda body: ok(json.dumps({"intents": ["unclear"], **answer}))
+    provider.answers["translate"] = lambda body: ok("One latte, please.")
+
+    result = client.post("/v1/judge", json=judge_body("라떼 하나요")).json()
+
+    assert result["translation"]["english"] == "One latte, please."
+    assert result["better_expressions"] == ["Can I get a latte?"]
+
+
+def test_intent_prompt_asks_one_to_three_other_ways_for_every_line_with_room_to_write_them(client, provider):
+    # '더 좋은 문장'이 아니라 같은 뜻의 다른 표현이다. 억지로 3개를 채우지 않고, 고친 문장·한국어가 섞인 말에도 준다.
+    # 판정 출력에 고친 문장과 다른 표현이 함께 들어가도 잘리지 않게 출력 상한을 넉넉히 둔다
+    seen = {}
+
+    def answer(body):
+        seen.update(body)
+        return ok(json.dumps({"intents": ["unclear"], "english_correction": None, "better_expressions": []}))
+
+    provider.answers["intent"] = answer
+
+    client.post("/v1/judge", json=judge_body("No, thanks."))
+
+    system = seen["messages"][0]["content"]
+    assert "other natural ways the learner could say the same thing" in system
+    assert "including a line with a grammar error or Korean words" in system
+    assert "Give 1 to 3, only as many as sound natural" in system
+    assert "need not be better" in system
+    assert "no grammar error but sounds awkward or unnatural, or is too short" not in system
+    assert seen["max_tokens"] >= 320
+
+
+def test_intent_schema_requests_other_sentences_as_a_string_list(client, provider):
     seen = {}
 
     def answer(body):
@@ -199,8 +241,6 @@ def test_intent_schema_and_prompt_ask_for_better_sentences_only_for_awkward_or_s
     assert schema["properties"]["better_expressions"] == {"type": "array", "items": {"type": "string"}}
     assert "better_expressions" in schema["required"]
     system = seen["messages"][0]["content"]
-    assert "no grammar error but sounds awkward or unnatural, or is too short" in system
-    assert "return 3 natural sentences with the same meaning" in system
     # 상대 대답에 맞는 짧은 답(For here, please.)에도 완전한 문장을 준다
     assert 'Short answers and fragments such as "For here, please." also get them' in system
     assert "A short answer that fully and naturally answers the partner" not in system

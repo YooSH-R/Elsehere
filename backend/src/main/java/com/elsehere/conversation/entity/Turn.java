@@ -66,7 +66,7 @@ public class Turn extends BaseEntity {
   @Column(columnDefinition = "text")
   private String translationEn;
 
-  // 틀리진 않았지만 어색하거나 짧은 영어에 보여 줄 같은 뜻의 더 좋은 문장(JSON 문자열 배열). 없으면 null
+  // 표현 카드에 접어 둘 같은 뜻의 다른 표현(JSON 문자열 배열). 컬럼 이름은 처음 만들 때의 better_expressions를 그대로 쓴다. 없으면 null
   @Column(columnDefinition = "jsonb")
   @ColumnTransformer(write = "?::jsonb")
   private String betterExpressions;
@@ -169,7 +169,7 @@ public class Turn extends BaseEntity {
     policeDispatchPlaceCode = placeCode;
   }
 
-  /** 판정이 준 더 좋은 문장(JSON 문자열 배열)을 남긴다. 없으면 null. */
+  /** 판정이 준 같은 뜻의 다른 표현(JSON 문자열 배열)을 남긴다. 없으면 null. */
   public void recordBetterExpressions(String json) {
     betterExpressions = json;
   }

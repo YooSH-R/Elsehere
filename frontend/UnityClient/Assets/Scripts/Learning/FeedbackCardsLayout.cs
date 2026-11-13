@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using A305.Dialogue;
 using TMPro;
 using UnityEngine;
@@ -122,7 +123,8 @@ namespace A305.Learning
             float width,
             Sprite saidChip,
             Sprite betterChip,
-            Sprite pickSprite
+            Sprite pickSprite,
+            ICollection<(FeedbackExpressionExample Example, Button Pick)> examplePicks = null
         )
         {
             bool small = model.Kind == CorrectionKind.WellSaid;
@@ -131,6 +133,8 @@ namespace A305.Learning
             float right = model.CanSave ? 151 : 23;
             TMP_Text said = Text(card, "Said");
             TMP_Text better = Text(card, "Better");
+            Button pick = card.Find("SaveButton").GetComponent<Button>();
+            bool canSave = pick.gameObject.activeSelf;
             Style(said, model, better);
             // 칩과 글자는 글자 아래 기준선을 맞춘다. 한 줄 높이(칩 30·19px 글자 23)에서 시안이 둔 자리다.
             float saidChipTop = small ? 1.5f : 0;
@@ -154,21 +158,104 @@ namespace A305.Learning
                 float room = width / Px - right - betterX;
                 int betterLines = PlaceText(better, model.Better, betterX, lineTop + 3, room);
                 y = lineTop + 35.5f + (betterLines - 1) * 33.75f;
+                if (!string.IsNullOrWhiteSpace(model.BetterMeaning))
+                {
+                    TMP_Text meaning = Object.Instantiate(Text(card, "Reason"), card);
+                    meaning.name = "BetterMeaning";
+                    PlaceText(meaning, model.BetterMeaning, betterX, y + 5, room);
+                    y += Height(meaning, room) + 9;
+                }
             }
 
             TMP_Text reason = Text(card, "Reason");
             float reasonWidth = width / Px - side - right;
-            int reasonLines = PlaceText(reason, model.Reason, side, y + 12.5f, reasonWidth);
+            int reasonLines = PlaceText(
+                reason,
+                model.AssessmentReason,
+                side,
+                y + 12.5f,
+                reasonWidth
+            );
             if (reasonLines > 0)
                 y += 10 + reasonLines * 24;
+            float mainBottom = y;
+            foreach (FeedbackExpressionExample example in model.Examples)
+            {
+                y += 24;
+                var row = new GameObject(
+                    "ExpressionExample",
+                    typeof(RectTransform)
+                ).GetComponent<RectTransform>();
+                row.SetParent(card, false);
+                float rowHeight = ExpressionRow(
+                    row,
+                    example,
+                    card,
+                    width,
+                    side,
+                    betterChip,
+                    pickSprite,
+                    canSave,
+                    out Button examplePick
+                );
+                Pin(row, 0, y * Px, width, rowHeight * Px);
+                if (canSave)
+                    examplePicks?.Add((example, examplePick));
+                y += rowHeight;
+            }
             float height = y + top;
             Pin(card, 0, 0, width, height * Px);
             Tile(card.Find("Tile"), width, height * Px);
-            Button pick = card.Find("SaveButton").GetComponent<Button>();
             pick.gameObject.SetActive(pick.gameObject.activeSelf && model.CanSave);
             if (pick.gameObject.activeSelf)
-                PlacePick(pick, pickSprite, width - 23 * Px, height * Px / 2);
+                PlacePick(pick, pickSprite, width - 23 * Px, (mainBottom + top) * Px / 2);
             return height * Px;
+        }
+
+        private static float ExpressionRow(
+            RectTransform row,
+            FeedbackExpressionExample example,
+            RectTransform template,
+            float width,
+            float side,
+            Sprite betterChip,
+            Sprite pickSprite,
+            bool canSave,
+            out Button pick
+        )
+        {
+            float right = canSave ? 151 : 23;
+            float room = width / Px - side - right;
+            TMP_Text condition = Object.Instantiate(Text(template, "Reason"), row);
+            condition.name = "Condition";
+            condition.color = KoreanInk;
+            PlaceText(condition, example.ConditionKo, side, 0, room);
+            float y = string.IsNullOrWhiteSpace(example.ConditionKo)
+                ? 0
+                : Height(condition, room) + 10;
+            Transform chip = Object.Instantiate(template.Find("BetterChip"), row);
+            chip.gameObject.SetActive(true);
+            float englishX = side + Chip(chip, betterChip, side, y + 5.5f) + 12;
+            float englishRoom = width / Px - right - englishX;
+            TMP_Text english = Object.Instantiate(Text(template, "Better"), row);
+            english.name = "Expression";
+            english.color = Ink;
+            english.fontStyle = FontStyles.Normal;
+            PlaceText(english, example.Expression, englishX, y + 3, englishRoom);
+            y += Mathf.Max(36, Height(english, englishRoom) + 8);
+            TMP_Text meaning = Object.Instantiate(Text(template, "Reason"), row);
+            meaning.name = "Meaning";
+            meaning.color = KoreanInk;
+            PlaceText(meaning, example.MeaningKo, englishX, y + 4, englishRoom);
+            if (!string.IsNullOrWhiteSpace(example.MeaningKo))
+                y += Height(meaning, englishRoom) + 8;
+            pick = Object.Instantiate(template.Find("SaveButton").GetComponent<Button>(), row);
+            pick.name = "SaveButton";
+            pick.onClick = new Button.ButtonClickedEvent();
+            pick.gameObject.SetActive(canSave);
+            if (canSave)
+                PlacePick(pick, pickSprite, width - 23 * Px, y * Px / 2);
+            return y;
         }
 
         /// <summary>[담기]를 오른쪽 끝(<paramref name="right"/>)과 세로 가운데(<paramref name="middle"/>)에 맞춰 둔다.</summary>

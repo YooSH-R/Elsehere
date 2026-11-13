@@ -34,6 +34,7 @@ namespace A305.Learning
             bool loadingMeanings,
             Action retryMeanings,
             Func<GlossaryWord, Task<bool>> saveWord,
+            Func<RectTransform, CorrectionCard, float, RectTransform> correctionCard,
             out float height
         )
         {
@@ -56,7 +57,8 @@ namespace A305.Learning
                     buttonTemplate,
                     feedback,
                     selectedReview.Value,
-                    back
+                    back,
+                    correctionCard
                 );
             else
                 height = Conversation(
@@ -274,7 +276,8 @@ namespace A305.Learning
             Button buttonTemplate,
             ConversationFeedback feedback,
             int reviewIndex,
-            Action back
+            Action back,
+            Func<RectTransform, CorrectionCard, float, RectTransform> correctionCard
         )
         {
             float width = root.rect.width;
@@ -340,6 +343,12 @@ namespace A305.Learning
             float y = 108;
             // 문장 교정 카드와 같은 이름표를 쓴다. 한국어로 한 말은 "내가 한 말 · 한국어"와 "영어로는"이다.
             CorrectionCard card = CorrectionCard.From(review);
+            if (card.Examples.Count > 0)
+            {
+                RectTransform combined = correctionCard(root, card, cardWidth);
+                Pin(combined, Margin, y, cardWidth, combined.sizeDelta.y);
+                return y + combined.sizeDelta.y + 24;
+            }
             string saidLabel = card.SaidLabel;
             if (card.Kind == CorrectionKind.WellSaid)
                 saidLabel = "잘 표현했어요";
@@ -530,15 +539,19 @@ namespace A305.Learning
         // 이유 칸의 제목과 글. 한국어로 한 말에는 "자연스럽게 전달됐다"는 칭찬을 붙이지 않고, 이유가 없으면 칸을 두지 않는다.
         private static (string Label, string Text) ReasonOf(CorrectionCard card)
         {
-            bool hasReason = !string.IsNullOrWhiteSpace(card.Reason);
+            string reason = card.AssessmentReason;
+            if (!string.IsNullOrWhiteSpace(card.BetterMeaning))
+                reason =
+                    card.BetterMeaning + (string.IsNullOrWhiteSpace(reason) ? "" : "\n\n" + reason);
+            bool hasReason = !string.IsNullOrWhiteSpace(reason);
             if (card.Better != null)
-                return ("이 표현을 쓰는 이유", hasReason ? card.Reason : NoCorrectionReason);
+                return ("이 표현을 쓰는 이유", hasReason ? reason : NoCorrectionReason);
             if (
                 card.Kind == CorrectionKind.Korean
                 || card.Kind == CorrectionKind.ExpressionPractice
             )
-                return ("설명", hasReason ? card.Reason : null);
-            return ("자연스러웠던 점", hasReason ? card.Reason : NoCorrectionReason);
+                return ("설명", hasReason ? reason : null);
+            return ("자연스러웠던 점", hasReason ? reason : NoCorrectionReason);
         }
 
         private static float TextHeight(

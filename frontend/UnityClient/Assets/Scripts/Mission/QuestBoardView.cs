@@ -15,8 +15,8 @@ namespace A305.Mission
     /// 목록은 서버가 준 퀘스트를 한 줄에 세 장씩 카드로 보이고(지금 하는 퀘스트는 코랄 테두리, 잠긴 퀘스트는 카드째 흐리게 하고 자물쇠),
     /// 쪽이 여럿이면 아래에서 넘긴다.
     /// 퀘스트를 끝내고 [다음]을 누르면 다음 퀘스트 카드의 잠금을 푸는 연출을 한다.
-    /// 도장 지도는 가 본 곳의 잉크 도장,
-    /// 지금 갈 곳의 번호 핀, 지나온 길을 마을 지도 위에 얹는다. 자리는 시안 px × 1.2이고 버튼 연결은 QuestBoardBuilder가 넣는다.
+    /// 도장 지도는 가 본 곳의 잉크 도장과 지금 갈 곳의 번호 핀을 마을 지도 위에 얹는다.
+    /// 자리는 시안 px × 1.2이고 버튼 연결은 QuestBoardBuilder가 넣는다.
     /// 장소 연습 쪽(<see cref="PracticeBoardView"/>)에서 상황의 [연습하기]를 누르면 창을 닫고 그 가게 직원에게 연습하러 가자고 알린다(<see cref="PracticeVisit"/>).
     /// </summary>
     public sealed class QuestBoardView : MonoBehaviour
@@ -50,7 +50,6 @@ namespace A305.Mission
         private const float MapScaleX = 1168f / 2000f;
         private const float MapScaleY = 467f / 800f;
         private const float StampLift = 24;
-        private const float DotSpacing = 15;
 
         [SerializeField]
         [Tooltip("목록과 도장 지도를 담는 판. 보이는 쪽에 따라 높이를 바꾼다.")]
@@ -128,14 +127,11 @@ namespace A305.Mission
         private TMP_Text countText;
 
         [SerializeField]
-        [Tooltip("지도 그림. 도장·핀·길 점은 이 위에 그림 왼쪽 위 기준으로 얹는다.")]
+        [Tooltip("지도 그림. 도장과 핀은 이 위에 그림 왼쪽 위 기준으로 얹는다.")]
         private RectTransform map;
 
         [SerializeField]
         private Image stampTemplate;
-
-        [SerializeField]
-        private RectTransform dotTemplate;
 
         [SerializeField]
         private RectTransform pin;
@@ -335,7 +331,6 @@ namespace A305.Mission
             );
             startButton.gameObject.SetActive(quest.Status == QuestEntry.Available);
 
-            DrawPath(QuestStampMap.Path(quest));
             foreach (QuestStamp stamp in QuestStampMap.Stamps(quest))
             {
                 GameObject made = Track(Make(stampTemplate.gameObject, map));
@@ -523,28 +518,6 @@ namespace A305.Mission
 
         private static readonly Color SlotInk = new Color32(163, 149, 128, 255);
 
-        private void DrawPath(List<Vector2> points)
-        {
-            for (int i = 1; i < points.Count; i++)
-            {
-                Vector2 from = OnMap(points[i - 1]);
-                Vector2 to = OnMap(points[i]);
-                int dots = Mathf.Max(
-                    1,
-                    Mathf.RoundToInt(Vector2.Distance(from, to) / (DotSpacing * Px))
-                );
-                for (int dot = 0; dot <= dots; dot++)
-                {
-                    GameObject made = Track(Make(dotTemplate.gameObject, map));
-                    ((RectTransform)made.transform).anchoredPosition = Vector2.Lerp(
-                        from,
-                        to,
-                        dot / (float)dots
-                    );
-                }
-            }
-        }
-
         // 지도 그림 좌표(왼쪽 위 0, 아래로 +)를 지도 위 자리(왼쪽 위 기준, 위로 +)로 바꾼다.
         private static Vector2 OnMap(Vector2 art) =>
             new Vector2(art.x * MapScaleX, -art.y * MapScaleY) * Px;
@@ -572,7 +545,7 @@ namespace A305.Mission
             return item;
         }
 
-        // 도장 지도에 얹은 것(도장·길 점·들르는 곳 칸)은 다른 퀘스트를 고르면 지운다.
+        // 도장과 들르는 곳 칸은 다른 퀘스트를 고르면 지운다.
         private GameObject Track(GameObject item)
         {
             made.Add(item);

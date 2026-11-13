@@ -30,13 +30,18 @@ namespace A305.Learning
                     string explanation = !string.IsNullOrWhiteSpace(target?.UsageKo)
                         ? target.UsageKo
                         : target?.MeaningKo;
+                    string spoken = item
+                        .Evidence?.Select(evidence => evidence?.Text)
+                        .FirstOrDefault(text => !string.IsNullOrWhiteSpace(text));
+                    bool corrected = !string.IsNullOrWhiteSpace(target?.OriginalText);
                     return new ReviewExpressionFeedback(
                         item.Expression,
                         string.IsNullOrWhiteSpace(explanation)
                             ? "이 상황에서 써 볼 수 있는 표현이에요."
                             : explanation,
-                        item.Evidence?.Any(evidence => !string.IsNullOrWhiteSpace(evidence?.Text))
-                            == true
+                        spoken != null,
+                        corrected ? target.OriginalText : null,
+                        corrected ? spoken : null
                     );
                 })
                 .ToArray();
@@ -44,6 +49,14 @@ namespace A305.Learning
 
         public static string Summary(IReadOnlyList<ReviewExpressionFeedback> expressions) =>
             $"{expressions.Count}개 중 {expressions.Count(item => item.Used)}개 써봤어요";
+
+        /// <summary>고친 문장의 "지난번 · 내가 한 말".</summary>
+        public static string LastTime(ReviewExpressionFeedback expression) =>
+            "지난번 · " + expression.OriginalText;
+
+        /// <summary>고친 문장의 "이번 · 이번에 한 말". 말하지 않았으면 틀렸다고 하지 않고 아직이라고 알린다.</summary>
+        public static string ThisTime(ReviewExpressionFeedback expression) =>
+            "이번 · " + (expression.SpokenText ?? "아직 말하지 않았어요");
 
         public static string Format(ReviewCard card, ReviewPracticeResult result)
         {
@@ -55,6 +68,9 @@ namespace A305.Learning
             {
                 text.Append(expression.Used ? "✓ " : "○ ")
                     .AppendLine(ReviewResultRow.Escape(expression.Expression));
+                if (expression.OriginalText != null)
+                    text.AppendLine(ReviewResultRow.Escape(LastTime(expression)))
+                        .AppendLine(ReviewResultRow.Escape(ThisTime(expression)));
                 text.AppendLine(ReviewResultRow.Escape(expression.Explanation)).AppendLine();
             }
             return text.ToString();
@@ -67,11 +83,25 @@ namespace A305.Learning
         public string Explanation { get; }
         public bool Used { get; }
 
-        public ReviewExpressionFeedback(string expression, string explanation, bool used)
+        /// <summary>고친 문장이면 지난 대화에서 학습자가 한 말. 상황 표현은 null이다.</summary>
+        public string OriginalText { get; }
+
+        /// <summary>고친 문장을 이번 연습에서 말한 문장. 말하지 않았거나 상황 표현이면 null이다.</summary>
+        public string SpokenText { get; }
+
+        public ReviewExpressionFeedback(
+            string expression,
+            string explanation,
+            bool used,
+            string originalText = null,
+            string spokenText = null
+        )
         {
             Expression = expression;
             Explanation = explanation;
             Used = used;
+            OriginalText = originalText;
+            SpokenText = spokenText;
         }
     }
 }

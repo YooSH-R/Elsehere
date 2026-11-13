@@ -46,6 +46,10 @@ namespace A305.Learning
         private Button closeButton;
 
         [SerializeField]
+        [Tooltip("아래 줄의 [다시 연습]. 다시 연습할 수 있는 피드백에서만 보인다")]
+        private Button practiceButton;
+
+        [SerializeField]
         private Button topCloseButton;
 
         [SerializeField]
@@ -208,6 +212,9 @@ namespace A305.Learning
         /// <summary>[닫기]를 누르면 알린다.</summary>
         public event Action CloseRequested;
 
+        /// <summary>아래 줄의 [다시 연습]을 눌렀다.</summary>
+        public event Action PracticeRequested;
+
         /// <summary>[담기]로 그 영어 표현·문장과 한국어 뜻을 알린다. 고친 문장은 뜻이 없어 빈 문자열이다.</summary>
         public event Action<string, string> SaveRequested;
 
@@ -237,6 +244,13 @@ namespace A305.Learning
         public void SetMeaningSource(TranscriptMeanings source) => meaningSource = source;
 
         public void SetWordSaver(Func<GlossaryWord, Task<bool>> saver) => wordSaver = saver;
+
+        /// <summary>아래 줄의 [다시 연습]을 보여 줄지. 완성된 서버 피드백이 아니면 끈다.</summary>
+        public void SetPracticeAvailable(bool available)
+        {
+            if (practiceButton != null)
+                practiceButton.gameObject.SetActive(available);
+        }
 
         /// <summary>[담기]를 보여 줄지. 저장할 곳이 없으면 끈다.</summary>
         public void SetSaveAvailable(bool available)
@@ -384,6 +398,8 @@ namespace A305.Learning
             detailButton.onClick.AddListener(ToggleDetail);
             vocabularyButton.onClick.AddListener(() => VocabularyRequested?.Invoke());
             closeButton.onClick.AddListener(() => CloseRequested?.Invoke());
+            if (practiceButton != null)
+                practiceButton.onClick.AddListener(() => PracticeRequested?.Invoke());
             topCloseButton.onClick.AddListener(() => CloseRequested?.Invoke());
             expandButton.onClick.AddListener(ToggleExpanded);
             regenerateButton.onClick.AddListener(() => RegenerateRequested?.Invoke());
@@ -594,6 +610,7 @@ namespace A305.Learning
                 isMeaningLoading,
                 () => _ = LoadTranscriptMeaningsAsync(true),
                 wordSaver,
+                BuildCorrectionCard,
                 out float cardsHeight
             );
             builtItems.Add(conversation);
@@ -651,28 +668,49 @@ namespace A305.Learning
             float y = 0;
             foreach (CorrectionCard model in CorrectionCard.From(feedback))
             {
-                RectTransform card = Instantiate(correctionCardTemplate, scroll.content);
-                card.name = "CorrectionCard";
-                card.gameObject.SetActive(true);
+                RectTransform card = BuildCorrectionCard(scroll.content, model, width);
                 builtItems.Add(card.gameObject);
-                Button pick = card.Find("SaveButton").GetComponent<Button>();
-                pick.gameObject.SetActive(isSaveAvailable);
-                string english = model.Better;
-                pick.onClick.AddListener(() => SaveRequested?.Invoke(english, ""));
-                float height = FeedbackCardsLayout.Correction(
-                    card,
-                    model,
-                    width,
-                    SaidChip(model.Kind),
-                    model.Kind == CorrectionKind.Korean ? englishChipSprite : betterChipSprite,
-                    pickSprite
-                );
                 PlaceAt(card, y);
-                if (pick.gameObject.activeSelf)
-                    RegisterPick(english, pick);
-                y += height + GapBetweenCards;
+                y += card.sizeDelta.y + GapBetweenCards;
             }
             return Mathf.Max(0, y - GapBetweenCards);
+        }
+
+        private RectTransform BuildCorrectionCard(
+            RectTransform parent,
+            CorrectionCard model,
+            float width
+        )
+        {
+            RectTransform card = Instantiate(correctionCardTemplate, parent);
+            card.name = "CorrectionCard";
+            card.gameObject.SetActive(true);
+            Button pick = card.Find("SaveButton").GetComponent<Button>();
+            pick.gameObject.SetActive(isSaveAvailable);
+            string english = model.Better;
+            var examplePicks = new List<(FeedbackExpressionExample Example, Button Pick)>();
+            FeedbackCardsLayout.Correction(
+                card,
+                model,
+                width,
+                SaidChip(model.Kind),
+                model.Kind == CorrectionKind.Korean ? englishChipSprite : betterChipSprite,
+                pickSprite,
+                examplePicks
+            );
+            pick.onClick.AddListener(() =>
+                SaveRequested?.Invoke(english, model.BetterMeaning ?? "")
+            );
+            foreach (var (example, examplePick) in examplePicks)
+            {
+                examplePick.onClick.AddListener(() =>
+                    SaveRequested?.Invoke(example.Expression, example.MeaningKo ?? "")
+                );
+                RegisterPick(example.Expression, examplePick);
+            }
+            if (pick.gameObject.activeSelf)
+                RegisterPick(english, pick);
+            return card;
         }
 
         private Sprite SaidChip(CorrectionKind kind) =>

@@ -338,7 +338,7 @@ Table review_cards [headercolor: #2E6B4F] {
   scene_code varchar(30) [not null, note: '원본 대화의 장소 코드']
   situation_summary text [not null, note: '저장 당시 피드백의 상황 요약']
   scenario jsonb [note: '복습 한 상황의 키·제목·시작 상황·학습자 역할·전달 정보 스냅샷. 이전 카드는 원본 대화의 단계에서 복원']
-  targets jsonb [not null, note: '저장된 situationExpressions에서 가져온 서로 다른 표현 2~3개와 뜻·활용·예문']
+  targets jsonb [not null, note: '복습 목표 2~5개. 문장 교정이 고쳐 준 학습자 발화(고친 문장·원래 한 말·이유) 최대 3개와 저장된 situationExpressions의 표현(뜻·활용·예문) 최대 3개']
   practice_count int [not null, default: 0]
   last_practiced_at timestamptz
   used_expressions jsonb [not null, note: '최근 복습에서 확인한 표현 · 최초 저장은 빈 배열']

@@ -26,7 +26,8 @@ while true; do
   if ! pgrep -u "$(id -un)" -f "vllm serve Qwen/Qwen3.8-27B" > /dev/null; then  # 읽는 중(health 응답 전)에는 건드리지 않는다
     echo "$(date +%T) 판정 vLLM 다시 띄움"
     if [ -d "$G/models/npc-qwen3.8-27b-r16" ]; then set -- "$ADAPTER" "$NPC_ADAPTER"; else set -- "$ADAPTER"; fi
-    setsid nohup "$G/serve.sh" Qwen/Qwen3.8-27B --host 127.0.0.1 --gpu-memory-utilization 0.5 --max-num-seqs 32 \
+    # 메모리 비율은 공용 H200(141GB)의 절반(약 71GB)이 기본이다. 80GB 카드인 임대 서버는 start.sh가 0.9로 지정한다.
+    setsid nohup "$G/serve.sh" Qwen/Qwen3.8-27B --host 127.0.0.1 --gpu-memory-utilization "${GUARD_GPU_MEMORY:-0.5}" --max-num-seqs 32 \
       --compilation-config '{"cudagraph_capture_sizes": [1, 2, 4, 8, 16, 32]}' \
       --enable-lora --max-loras 2 --max-lora-rank 16 --max-model-len 8192 --lora-modules "$@" >> "$G/serve-service.log" 2>&1 &
   fi

@@ -258,12 +258,13 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator HotelStaff_UsingTheReceptionDesk_KeepSeparateStandingPlaces()
+        public IEnumerator HotelStaff_KeepSeparateStandingPlacesBeforeAndDuringService()
         {
             yield return LoadAt("HotelScene", 12 * 60, paused: true);
-            Object
-                .FindFirstObjectByType<PlayerMover>()
-                .Teleport(new Vector3(0, .12f, -20), Quaternion.identity);
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+            player.Teleport(new Vector3(0, .12f, -20), Quaternion.identity);
+            NpcRoutine jake = Routine("HOTEL_STAFF");
+            Bounds counter = SolidBounds(NearestPlaced("reception_desk", jake.transform));
             NpcRoutine[] staff = Object
                 .FindObjectsByType<NpcRoutine>(FindObjectsSortMode.None)
                 .Where(npc => npc.GetComponent<NpcIdentity>().Code.StartsWith("HOTEL_"))
@@ -275,42 +276,23 @@ namespace A305.Npc.PlayModeTests
             NpcRoutine[] serving = staff
                 .Where(npc => npc.IsUsing && npc.Doing.ObjectKey == "reception_desk")
                 .ToArray();
-            for (int first = 0; first < serving.Length; first++)
-            {
-                for (int second = first + 1; second < serving.Length; second++)
-                {
-                    Assert.That(
-                        HorizontalDistance(
-                            serving[first].transform.position,
-                            serving[second].transform.position
-                        ),
-                        Is.GreaterThanOrEqualTo(1.2f),
-                        "같은 데스크에서 일하는 NPC의 머리가 겹치지 않아야 합니다."
-                    );
-                }
-            }
-        }
+            Assert.That(serving, Has.Length.GreaterThanOrEqualTo(2));
+            AssertSeparateStaff(serving, "손님이 오기 전");
 
-        [UnityTest]
-        public IEnumerator HotelStaff_WhenServingACustomer_KeepTheirHeadsApart()
-        {
-            yield return LoadAt("HotelScene", 12 * 60, paused: true);
-            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
-            player.Teleport(new Vector3(0, .12f, -20), Quaternion.identity);
-            NpcRoutine jake = Routine("HOTEL_STAFF");
-            Bounds counter = SolidBounds(NearestPlaced("reception_desk", jake.transform));
-            yield return new WaitForSeconds(8);
             player.Teleport(
                 new Vector3(counter.center.x, player.transform.position.y, counter.min.z - .8f),
                 Quaternion.identity
             );
             yield return new WaitForSeconds(12);
-            NpcRoutine[] staff = Object
-                .FindObjectsByType<NpcRoutine>(FindObjectsSortMode.None)
-                .Where(npc =>
-                    npc.GetComponent<NpcIdentity>().Code.StartsWith("HOTEL_") && !npc.IsOffDuty
-                )
+            NpcRoutine[] onDuty = staff
+                .Where(npc => npc.isActiveAndEnabled && !npc.IsOffDuty)
                 .ToArray();
+            Assert.That(onDuty, Has.Length.GreaterThanOrEqualTo(2));
+            AssertSeparateStaff(onDuty, "호텔 응대 중");
+        }
+
+        private static void AssertSeparateStaff(NpcRoutine[] staff, string stage)
+        {
             for (int first = 0; first < staff.Length; first++)
             for (int second = first + 1; second < staff.Length; second++)
                 Assert.That(
@@ -319,7 +301,7 @@ namespace A305.Npc.PlayModeTests
                         staff[second].transform.position
                     ),
                     Is.GreaterThanOrEqualTo(1.2f),
-                    $"호텔 응대 중 다른 직원과 머리가 겹칩니다: "
+                    $"{stage} 다른 직원과 머리가 겹칩니다: "
                         + $"{staff[first].GetComponent<NpcIdentity>().Code} {staff[first].transform.position} {staff[first].Doing?.ObjectKey}, "
                         + $"{staff[second].GetComponent<NpcIdentity>().Code} {staff[second].transform.position} {staff[second].Doing?.ObjectKey}"
                 );

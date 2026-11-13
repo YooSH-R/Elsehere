@@ -55,7 +55,7 @@ class ChildPipelineTests(unittest.TestCase):
         self.assertTrue(
             {
                 "backend:check-and-build",
-                "unity:editor-and-webgl",
+                "unity:editor-tests",
                 "ai:check-and-test",
                 "infra:app-runtime",
                 "infra:observability",
@@ -63,6 +63,15 @@ class ChildPipelineTests(unittest.TestCase):
         )
         self.assertEqual(pipeline["variables"]["A305_DEPLOY_ENVIRONMENT"], "prod")
         self.assertEqual(pipeline["variables"]["A305_CHECK_INFRA"], "true")
+
+    def test_production_web_release_requires_both_unity_jobs(self):
+        pipeline = create_child_pipeline(
+            {"checks": [], "builds": ["web"]}, "123", environment="prod"
+        )
+
+        needs = pipeline["prod:deliver"]["needs"]
+        self.assertIn({"job": "unity:editor-tests", "artifacts": False}, needs)
+        self.assertIn({"job": "unity:webgl-build", "artifacts": True}, needs)
 
     def test_production_delivery_waits_for_database_upgrade_when_migrations_change(
         self,
@@ -99,10 +108,9 @@ class ChildPipelineTests(unittest.TestCase):
         )
 
         self.assertEqual(pipeline["variables"]["A305_CHECK_DB_UPGRADE"], "false")
-        self.assertNotIn(
-            "backend:database-upgrade",
-            {need["job"] for need in pipeline["prod:deliver"]["needs"]},
-        )
+        jobs = {need["job"] for need in pipeline["prod:deliver"]["needs"]}
+        self.assertNotIn("backend:database-upgrade", jobs)
+        self.assertNotIn("unity:webgl-build", jobs)
 
     def test_first_production_release_has_no_previous_database_to_upgrade(self):
         pipeline = create_child_pipeline(
@@ -146,7 +154,7 @@ class ChildPipelineTests(unittest.TestCase):
         self.assertIn("ai:check-and-test", jobs)
         self.assertIn("ai:panel-tests", jobs)
         self.assertNotIn("backend:check-and-build", jobs)
-        self.assertNotIn("unity:editor-and-webgl", jobs)
+        self.assertNotIn("unity:editor-tests", jobs)
         self.assertEqual(pipeline["variables"]["A305_PARENT_PIPELINE_ID"], "123")
         self.assertEqual(
             json.loads(pipeline["variables"]["A305_DEPLOY_PLAN"])["builds"], ["ai"]
@@ -191,7 +199,7 @@ class ChildPipelineTests(unittest.TestCase):
         )
 
         jobs = {need["job"] for need in pipeline["dev:deliver"]["needs"]}
-        self.assertNotIn("unity:editor-and-webgl", jobs)
+        self.assertNotIn("unity:editor-tests", jobs)
         self.assertNotIn("unity:webgl-build", jobs)
         self.assertIn("backend:check-and-build", jobs)
         self.assertIn("infra:app-runtime", jobs)
@@ -205,7 +213,7 @@ class ChildPipelineTests(unittest.TestCase):
 
         jobs = {need["job"] for need in pipeline["dev:deliver"]["needs"]}
         self.assertIn("infra:app-runtime", jobs)
-        self.assertNotIn("unity:editor-and-webgl", jobs)
+        self.assertNotIn("unity:editor-tests", jobs)
 
     def test_dev_web_build_does_not_require_the_full_editor_test_job(self):
         pipeline = create_child_pipeline(
@@ -213,7 +221,7 @@ class ChildPipelineTests(unittest.TestCase):
         )
         jobs = {need["job"] for need in pipeline["dev:deliver"]["needs"]}
         self.assertIn("unity:webgl-build", jobs)
-        self.assertNotIn("unity:editor-and-webgl", jobs)
+        self.assertNotIn("unity:editor-tests", jobs)
 
     def test_reused_checks_are_restored_once_and_runtime_uses_the_reused_jar(self):
         reused = {"backend:check-and-build": {"source_commit": "a" * 40}}

@@ -157,11 +157,18 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator ClickingBenSixMetersAway_ConfirmingStartsConversation()
+        public IEnumerator ClickingBen_RespectsDistanceAndRequiresConfirmation()
         {
             yield return LoadTownAfterTutorial();
             Passerby ben = FindPasserby(BenCode);
             KeepFromApproaching(ben);
+            yield return FaceFrom(ben, 10f);
+            Single<NpcClickTalk>().Click(AimAt(ben));
+            yield return null;
+            Assert.That(Single<DialogueController>().IsTalking, Is.False);
+            Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Waiting));
+            Assert.That(Single<PasserbyOfferView>().IsShowing, Is.False);
+
             yield return FaceFrom(ben, 6f);
 
             Single<NpcClickTalk>().Click(AimAt(ben));
@@ -175,21 +182,6 @@ namespace A305.Npc.PlayModeTests
 
             Assert.That(Single<DialogueController>().IsTalking, Is.True);
             Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Talking));
-        }
-
-        [UnityTest]
-        public IEnumerator ClickingBenTenMetersAway_DoesNotStartConversation()
-        {
-            yield return LoadTownAfterTutorial();
-            Passerby ben = FindPasserby(BenCode);
-            KeepFromApproaching(ben);
-            yield return FaceFrom(ben, 10f);
-
-            Single<NpcClickTalk>().Click(AimAt(ben));
-            yield return null;
-
-            Assert.That(Single<DialogueController>().IsTalking, Is.False);
-            Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Waiting));
         }
 
         [UnityTest]

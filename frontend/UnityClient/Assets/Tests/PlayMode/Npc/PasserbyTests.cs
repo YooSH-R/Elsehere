@@ -228,28 +228,23 @@ namespace A305.Npc.PlayModeTests
             Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Offering));
         }
 
-        [UnityTest]
-        public IEnumerator OfferAppears_WhenGameRunsSlowly()
+        [Test]
+        public void OfferAppears_WhenGameRunsSlowly()
         {
-            float previousTimeScale = Time.timeScale;
-            try
+            const int framesPerSecond = 60;
+            const float gameSpeed = .05f;
+            const float walkSpeed = 1.6f;
+            var approach = new PasserbyApproach(new PasserbyRules(6f, 2f, 6f, 60f, true));
+            float distance = 3.5f;
+            // 이동 거리는 느린 게임 시각으로 줄고, 접근 상태가 받는 실제 시각은 그대로 흐른다.
+            for (int frame = 1; frame <= WaitTimeoutSeconds * 6 * framesPerSecond; frame++)
             {
-                Time.timeScale = .05f;
-                var approach = new PasserbyApproach(new PasserbyRules(6f, 2f, 6f, 60f, true));
-                float distance = 3.5f;
-                yield return WaitUntil(() =>
-                {
-                    distance -= 1.6f * Time.deltaTime;
-                    approach.Tick(Time.realtimeSinceStartupAsDouble, distance, false);
-                    return approach.Phase == PasserbyPhase.Offering;
-                });
-
-                Assert.That(approach.Phase, Is.EqualTo(PasserbyPhase.Offering));
+                distance -= walkSpeed * gameSpeed / framesPerSecond;
+                approach.Tick((double)frame / framesPerSecond, distance, false);
+                if (approach.Phase == PasserbyPhase.Offering)
+                    break;
             }
-            finally
-            {
-                Time.timeScale = previousTimeScale;
-            }
+            Assert.That(approach.Phase, Is.EqualTo(PasserbyPhase.Offering));
         }
 
         [UnityTest]
@@ -405,6 +400,8 @@ namespace A305.Npc.PlayModeTests
             // 쉬는 NPC에게 가까이 가도 버튼은 뜨지 않고, 클릭 후 확인해야 대화를 시작한다.
             yield return LoadTownWithPlayerNearBen(afterTutorial: true);
             PasserbyOfferView offer = Single<PasserbyOfferView>();
+            Passerby passerby = FindPasserby(BenCode);
+            Vector3 waitingSpot = passerby.transform.position;
             yield return WaitUntil(
                 () => offer.IsShowing,
                 () =>
@@ -414,12 +411,11 @@ namespace A305.Npc.PlayModeTests
                     + $"이동 잠금={Single<PlayerMover>().IsMovementLocked}, 다른 제안={offer.IsShowing}"
             );
             Click(offer, "DeclineButton");
-            Passerby passerby = FindPasserby(BenCode);
-            // 제자리로 돌아갈 때까지 기다린 뒤 바로 앞에 선다.
-            yield return new WaitForSeconds(3f);
+            yield return WaitUntilBenReturns(passerby, waitingSpot);
             StandNear(BenCode, 1.5f);
 
-            yield return new WaitForSeconds(.5f);
+            yield return null;
+            yield return null;
             Assert.That(offer.IsTalkPromptShowing, Is.False);
             Assert.That(offer.IsShowing, Is.False);
             Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Resting));
@@ -477,19 +473,32 @@ namespace A305.Npc.PlayModeTests
         {
             yield return LoadTownWithPlayerNearBen(afterTutorial: true);
             PasserbyOfferView offer = Single<PasserbyOfferView>();
+            Passerby passerby = FindPasserby(BenCode);
+            Vector3 waitingSpot = passerby.transform.position;
             yield return WaitUntil(() => offer.IsShowing);
             Click(offer, "DeclineButton");
             Single<DialogueController>().Allowance.Apply(GuestStatus(remaining: 1));
-            // 제자리로 돌아갈 때까지 기다린 뒤 바로 앞에 선다.
-            yield return new WaitForSeconds(3f);
+            yield return WaitUntilBenReturns(passerby, waitingSpot);
             StandNear(BenCode, 1.5f);
 
-            yield return new WaitForSeconds(.5f);
+            yield return null;
+            yield return null;
             Assert.That(offer.IsTalkPromptShowing, Is.False);
-            Passerby passerby = FindPasserby(BenCode);
             Assert.That(passerby.TalkByClick(NpcClickTalk.ReachMeters), Is.True);
             Assert.That(offer.IsShownBy(passerby), Is.True);
             Assert.That(offer.RemainingText, Is.EqualTo("게스트 남은 대화 1번"));
+        }
+
+        private static IEnumerator WaitUntilBenReturns(Passerby passerby, Vector3 waitingSpot)
+        {
+            yield return WaitUntil(
+                () =>
+                    passerby.Phase == PasserbyPhase.Resting
+                    && Vector3
+                        .ProjectOnPlane(passerby.transform.position - waitingSpot, Vector3.up)
+                        .magnitude < .3f,
+                DescribeBenOfferWait
+            );
         }
 
         private static IEnumerator LoadTown()

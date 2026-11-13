@@ -88,8 +88,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.45999998, y: 0.14, z: 0.47999996}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 0.45999998, y: 0.14000002, z: 0.47999996}
+  m_Center: {x: 0, y: 0.000000007450581, z: 0}
 --- !u!114 &619156310288160996
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -154,8 +154,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.7, y: 0.86, z: 0.7}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 0.7, y: 0.86, z: 0.6999999}
+  m_Center: {x: 0, y: 0, z: -0.000000029802322}
 --- !u!114 &5295560484307909374
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -297,6 +297,7 @@ GameObject:
   - component: {fileID: 6825796793941650409}
   - component: {fileID: 8946537614065243133}
   - component: {fileID: 2766273141217974981}
+  - component: {fileID: 1270325130498633121}
   m_Layer: 0
   m_Name: GriddleBase
   m_TagString: Untagged
@@ -377,6 +378,21 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &1270325130498633121
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3428659722035981308}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: e08a4cc7e6dabb548ae39c6113c974ee, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &3521038271267371108
 GameObject:
   m_ObjectHideFlags: 0
@@ -429,8 +445,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.08, y: 0.07, z: 0.35}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 0.08, y: 0.07000001, z: 0.34999996}
+  m_Center: {x: 0, y: 0.0000000037252903, z: -0.000000014901161}
 --- !u!114 &9077321321225168716
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -497,6 +513,7 @@ GameObject:
   - component: {fileID: 7895627653300375169}
   - component: {fileID: 5510926851152424762}
   - component: {fileID: 1751436511520347124}
+  - component: {fileID: 3724714544684634762}
   m_Layer: 0
   m_Name: GriddleTop
   m_TagString: Untagged
@@ -577,6 +594,21 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &3724714544684634762
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4716268877254714918}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: e08a4cc7e6dabb548ae39c6113c974ee, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &4727586522264220181
 GameObject:
   m_ObjectHideFlags: 0
@@ -628,6 +660,7 @@ GameObject:
   - component: {fileID: 295221815509956500}
   - component: {fileID: 1580062781459514844}
   - component: {fileID: 3015964491030073089}
+  - component: {fileID: 2395471976860510573}
   m_Layer: 0
   m_Name: FryerBasket
   m_TagString: Untagged
@@ -708,6 +741,21 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &2395471976860510573
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4823520389705478952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 299d362b42c8dbd47b05d18fd2ea66e9, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &5236583533113212288
 GameObject:
   m_ObjectHideFlags: 0
@@ -760,6 +808,7 @@ GameObject:
   - component: {fileID: 2896194873210867045}
   - component: {fileID: 2338494981856158696}
   - component: {fileID: 7840060683650774270}
+  - component: {fileID: 8963482973618833606}
   m_Layer: 0
   m_Name: FryerBody
   m_TagString: Untagged
@@ -840,6 +889,21 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &8963482973618833606
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5319435920001856593}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 299d362b42c8dbd47b05d18fd2ea66e9, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &5964103865750275648
 GameObject:
   m_ObjectHideFlags: 0
@@ -882,6 +946,7 @@ GameObject:
   - component: {fileID: 7794889760192883315}
   - component: {fileID: 1738411442697134159}
   - component: {fileID: 2869175939352381739}
+  - component: {fileID: 7175088452908984930}
   m_Layer: 0
   m_Name: FryerHandle
   m_TagString: Untagged
@@ -962,6 +1027,21 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &7175088452908984930
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6200242862883669040}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 299d362b42c8dbd47b05d18fd2ea66e9, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &7141921054016329559
 GameObject:
   m_ObjectHideFlags: 0
@@ -1014,8 +1094,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.96, y: 0.06, z: 0.5}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 0.96000004, y: 0.06, z: 0.5}
+  m_Center: {x: 0.000000029802322, y: 0, z: 0}
 --- !u!114 &1436444359446322044
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1116,8 +1196,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.05, y: 0.14, z: 0.58}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 1.05, y: 0.14, z: 0.5799999}
+  m_Center: {x: 0, y: 0, z: -0.000000029802322}
 --- !u!114 &5399813630815620722
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: jukebox
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_8d8bb12e67995f94b8af574d7ab4491e
+    languageCode: en-US
+    text: jukebox
+    meaningKo: "\uACE1\uC744 \uACE8\uB77C \uB4E3\uB294 \uC74C\uC545 \uC7AC\uC0DD
+      \uAE30\uACC4(\uC8FC\uD06C\uBC15\uC2A4)"
+    example: Let's pick a song on the jukebox.
+    exampleKo: "\uC8FC\uD06C\uBC15\uC2A4\uC5D0\uC11C \uB178\uB798\uB97C \uACE8\uB77C
+      \uBD10\uC694."
+    pronunciationAudioKey: 
+  assetGuid: 8d8bb12e67995f94b8af574d7ab4491e

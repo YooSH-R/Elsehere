@@ -2217,6 +2217,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1134391536454809450}
+  - component: {fileID: 7871066842468966658}
   m_Layer: 0
   m_Name: Umbrella
   m_TagString: Untagged
@@ -2243,6 +2244,21 @@ Transform:
   - {fileID: 360663209603547794}
   m_Father: {fileID: 3615880241693623174}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7871066842468966658
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3258198264123689914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: a115a59d89b32af4bbbe5aa6c17f8273, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &3302626450630078026
 GameObject:
   m_ObjectHideFlags: 0
@@ -2660,6 +2676,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9029809614963758068}
+  - component: {fileID: 3079719378839603624}
   m_Layer: 0
   m_Name: Umbrella
   m_TagString: Untagged
@@ -2686,6 +2703,21 @@ Transform:
   - {fileID: 5836202940112074272}
   m_Father: {fileID: 3615880241693623174}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3079719378839603624
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3842215716145270490}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: a115a59d89b32af4bbbe5aa6c17f8273, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &3884748012020939782
 GameObject:
   m_ObjectHideFlags: 0
@@ -2984,7 +3016,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
-  word: {fileID: 11400000, guid: a115a59d89b32af4bbbe5aa6c17f8273, type: 2}
+  word: {fileID: 11400000, guid: 8ab3d49930abb6049ba633b4a7b6df9d, type: 2}
   parts: {fileID: 0}
   unityKey: 
 --- !u!1 &4839334695116383985
@@ -3356,6 +3388,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5346972495294750321}
+  - component: {fileID: 4451674488185066652}
   m_Layer: 0
   m_Name: Umbrella
   m_TagString: Untagged
@@ -3382,6 +3415,21 @@ Transform:
   - {fileID: 2519433608176184598}
   m_Father: {fileID: 3615880241693623174}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4451674488185066652
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5691836772590204482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: a115a59d89b32af4bbbe5aa6c17f8273, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &5712506361255674627
 GameObject:
   m_ObjectHideFlags: 0
@@ -3391,6 +3439,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3925666612191034842}
+  - component: {fileID: 9057152784453746175}
   m_Layer: 0
   m_Name: Umbrella
   m_TagString: Untagged
@@ -3417,6 +3466,21 @@ Transform:
   - {fileID: 2446244205108444407}
   m_Father: {fileID: 3615880241693623174}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &9057152784453746175
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5712506361255674627}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: a115a59d89b32af4bbbe5aa6c17f8273, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &5772982776286458634
 GameObject:
   m_ObjectHideFlags: 0
@@ -4194,6 +4258,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7864756063785513889}
+  - component: {fileID: 594986990662333622}
   m_Layer: 0
   m_Name: Umbrella
   m_TagString: Untagged
@@ -4220,6 +4285,21 @@ Transform:
   - {fileID: 8169362388892058976}
   m_Father: {fileID: 3615880241693623174}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &594986990662333622
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7072406355128250008}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: a115a59d89b32af4bbbe5aa6c17f8273, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &7171489444736780564
 GameObject:
   m_ObjectHideFlags: 0
@@ -4769,6 +4849,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3007795169551450329}
+  - component: {fileID: 3241978451681554688}
   m_Layer: 0
   m_Name: Umbrella
   m_TagString: Untagged
@@ -4795,6 +4876,21 @@ Transform:
   - {fileID: 202813604654134884}
   m_Father: {fileID: 3615880241693623174}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3241978451681554688
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7998849123650119882}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: a115a59d89b32af4bbbe5aa6c17f8273, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &8025099205393713980
 GameObject:
   m_ObjectHideFlags: 0
@@ -4984,6 +5080,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5210903512422584647}
+  - component: {fileID: 4165997090302133404}
   m_Layer: 0
   m_Name: Umbrella
   m_TagString: Untagged
@@ -5010,6 +5107,21 @@ Transform:
   - {fileID: 7584171177113482539}
   m_Father: {fileID: 3615880241693623174}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4165997090302133404
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8099447929771740287}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: a115a59d89b32af4bbbe5aa6c17f8273, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &8198774371451407260
 GameObject:
   m_ObjectHideFlags: 0

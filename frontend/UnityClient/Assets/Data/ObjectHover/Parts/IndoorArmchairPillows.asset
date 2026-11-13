@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c20f42c716c149e40919bc87000f87c0, type: 3}
+  m_Name: IndoorArmchairPillows
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordPartsDefinition
+  parts:
+  - label: "\uBCA0\uAC1C"
+    word: {fileID: 11400000, guid: 1333d8feaeda2a941a3a5e2621bf1a03, type: 2}
+    regions:
+    - m_Center: {x: -0.20155759, y: 0.4737919, z: -0.000001013279}
+      m_Extent: {x: 0.23878694, y: 0.14019106, z: 0.20424344}

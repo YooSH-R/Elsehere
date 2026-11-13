@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: tool_cart
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_0dd11afd2a47c6245b6d8eb5e1396f67
+    languageCode: en-US
+    text: tool cart
+    meaningKo: "\uB3C4\uAD6C\uB97C \uB2F4\uC544 \uC62E\uAE30\uB294 \uBC14\uD034 \uB2EC\uB9B0
+      \uC218\uB0A9\uB300"
+    example: The scissors are on the tool cart.
+    exampleKo: "\uAC00\uC704\uB294 \uB3C4\uAD6C \uC218\uB0A9\uB300 \uC704\uC5D0 \uC788\uC5B4\uC694."
+    pronunciationAudioKey: 
+  assetGuid: 0dd11afd2a47c6245b6d8eb5e1396f67

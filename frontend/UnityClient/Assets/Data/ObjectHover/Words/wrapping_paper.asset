@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: wrapping_paper
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_d94071086b8c0a545872f1424971b9e4
+    languageCode: en-US
+    text: wrapping paper
+    meaningKo: "\uC120\uBB3C\uC744 \uC2F8\uB294 \uD3EC\uC7A5\uC9C0"
+    example: Could you use this wrapping paper?
+    exampleKo: "\uC774 \uD3EC\uC7A5\uC9C0\uB85C \uC2F8 \uC8FC\uC2E4 \uC218 \uC788\uB098\uC694?"
+    pronunciationAudioKey: 
+  assetGuid: d94071086b8c0a545872f1424971b9e4

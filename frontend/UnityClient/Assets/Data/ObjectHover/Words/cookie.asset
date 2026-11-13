@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: cookie
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_3a3bc8f216be6174fabbcd6b9129c0c9
+    languageCode: en-US
+    text: cookie
+    meaningKo: "\uC791\uACE0 \uB2EC\uCF64\uD55C \uAD6C\uC6B4 \uACFC\uC790(\uCFE0\uD0A4)"
+    example: Could I have two cookies?
+    exampleKo: "\uCFE0\uD0A4 \uB450 \uAC1C \uC8FC\uC2DC\uACA0\uC5B4\uC694?"
+    pronunciationAudioKey: 
+  assetGuid: 3a3bc8f216be6174fabbcd6b9129c0c9

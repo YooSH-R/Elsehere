@@ -493,6 +493,7 @@ namespace A305.Mission
             );
             string chip = StepChip(state.Steps);
             stepChip.text = chip ?? "";
+            FitStepChip();
             stepChip.transform.parent.gameObject.SetActive(chip != null);
             if (practiceChip != null)
                 practiceChip.SetActive(false);
@@ -516,6 +517,7 @@ namespace A305.Mission
             direction.gameObject.SetActive(!review);
             situation.gameObject.SetActive(false);
             stepChip.text = "다시 연습";
+            FitStepChip();
             stepChip.transform.parent.gameObject.SetActive(review);
             if (practiceChip != null)
                 practiceChip.SetActive(!review);
@@ -547,6 +549,58 @@ namespace A305.Mission
                 plan.Goals.Select((goal, i) => Done(i) ? pillMarkPractice : pillMarkOff)
             );
         }
+
+        // 칩은 시안 폭(1 / 7)보다 좁아지지 않고, 글자가 길면('다시 연습') 양옆 여백을 두고 넓어진다.
+        // 칩 그림은 늘리면 둥근 끝이 찌그러지므로 왼쪽·오른쪽 반쪽은 그대로 두고 가운데만 늘린다.
+        private void FitStepChip()
+        {
+            var chip = (RectTransform)stepChip.transform.parent;
+            var size = chip.GetComponent<LayoutElement>();
+            var art = chip.Find("Art") as RectTransform;
+            if (size == null || art == null)
+                return;
+            if (stepChipWidth < 0)
+            {
+                stepChipWidth = size.preferredWidth;
+                stepChipArtWidth = art.sizeDelta.x;
+            }
+            float width = Mathf.Max(
+                stepChipWidth,
+                stepChip.preferredWidth + size.preferredHeight * .9f
+            );
+            size.minWidth = size.preferredWidth = width;
+            float extra = width - stepChipWidth;
+            if (extra <= 0 && stepChipMiddle == null)
+                return;
+            if (stepChipMiddle == null)
+            {
+                stepChipMiddle = Instantiate(art, chip, false);
+                stepChipMiddle.name = "ArtMiddle";
+                stepChipRight = Instantiate(art, chip, false);
+                stepChipRight.name = "ArtRight";
+                stepChipMiddle.SetSiblingIndex(art.GetSiblingIndex());
+                stepChipRight.SetSiblingIndex(art.GetSiblingIndex() + 1);
+                Half(art.GetComponent<Image>(), left: true);
+                Half(stepChipRight.GetComponent<Image>(), left: false);
+            }
+            stepChipMiddle.sizeDelta = new Vector2(stepChipArtWidth + extra, art.sizeDelta.y);
+            stepChipRight.anchoredPosition = art.anchoredPosition + Vector2.right * extra;
+        }
+
+        private static void Half(Image image, bool left)
+        {
+            image.type = Image.Type.Filled;
+            image.fillMethod = Image.FillMethod.Horizontal;
+            image.fillOrigin = left
+                ? (int)Image.OriginHorizontal.Left
+                : (int)Image.OriginHorizontal.Right;
+            image.fillAmount = .5f;
+        }
+
+        private float stepChipWidth = -1;
+        private float stepChipArtWidth;
+        private RectTransform stepChipMiddle;
+        private RectTransform stepChipRight;
 
         // 알약: 이름(이야기·장소 연습)·진행 칸. 진행 칸이 모자라면 첫 칸을 본떠 더 만든다.
         private void ShowPill(string title, IEnumerable<Sprite> marks)

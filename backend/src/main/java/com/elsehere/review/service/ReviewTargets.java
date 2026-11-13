@@ -5,10 +5,14 @@ import com.elsehere.conversation.service.TurnRecommendations;
 import com.elsehere.feedback.entity.FeedbackReviews;
 import com.elsehere.mission.entity.ShowcaseStage;
 import com.elsehere.review.dto.ReviewTarget;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Pattern;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -138,17 +142,22 @@ final class ReviewTargets {
     for (ReviewTarget target : forPractice(targets)) {
       selected.putIfAbsent(TurnRecommendations.key(target.expression()), target);
     }
-    for (Turn turn : sourceTurns) {
-      for (String sentence : TurnRecommendations.sentences(turn, mapper)) {
+    // 추천 문장마다 어느 발화에서 나왔는지. 한 발화의 추천은 그 발화의 다른 말이라 같은 뜻이다.
+    var recommendedIn = new HashMap<String, Integer>();
+    for (int turn = 0; turn < sourceTurns.size(); turn++) {
+      for (String sentence : TurnRecommendations.sentences(sourceTurns.get(turn), mapper)) {
         if (learnerCanSay(sentence, null)) {
+          String key = TurnRecommendations.key(sentence);
+          recommendedIn.putIfAbsent(key, turn);
           selected.putIfAbsent(
-              TurnRecommendations.key(sentence),
-              new ReviewTarget(sentence, null, "지난 대화에서 같은 뜻으로 추천받은 표현이에요.", null, null));
+              key, new ReviewTarget(sentence, null, "지난 대화에서 같은 뜻으로 추천받은 표현이에요.", null, null));
         }
       }
     }
     List<ReviewTarget> included = List.copyOf(selected.values());
-    return isShowcaseOrder(sourceTurns) ? inShowcaseOrderConditionOrder(included) : included;
+    return isShowcaseOrder(sourceTurns)
+        ? inShowcaseOrderConditionOrder(oneExpressionPerMeaning(included, recommendedIn))
+        : included;
   }
 
   private static boolean isShowcaseOrder(List<Turn> sourceTurns) {
@@ -160,8 +169,44 @@ final class ReviewTargets {
   }
 
   /**
+   * 시연 주문 복습에서는 같은 뜻의 표현을 하나만 둔다. 주문 조건 하나는 한 가지를 말하므로 조건마다 하나만 남기고, 내가 실제로 한 말에서 나온 표현(고친 문장 → 그
+   * 발화의 추천)을 상황 표현보다 먼저 남긴다. 어느 조건에도 맞지 않는 표현은 고친 문장·상황 표현은 그대로 두고, 추천은 발화마다 하나만 남긴다.
+   */
+  private static List<ReviewTarget> oneExpressionPerMeaning(
+      List<ReviewTarget> targets, Map<String, Integer> recommendedIn) {
+    var kept = new ArrayList<ReviewTarget>();
+    for (int condition = 0; condition < SHOWCASE_ORDER_CONDITIONS.size(); condition++) {
+      int wanted = condition;
+      targets.stream()
+          .filter(target -> showcaseOrderCondition(target) == wanted)
+          .min(Comparator.comparingInt(target -> said(target, recommendedIn)))
+          .ifPresent(kept::add);
+    }
+    var turnsKept = new HashSet<Integer>();
+    for (ReviewTarget target : targets) {
+      if (showcaseOrderCondition(target) < SHOWCASE_ORDER_CONDITIONS.size()) {
+        continue;
+      }
+      Integer turn = recommendedIn.get(TurnRecommendations.key(target.expression()));
+      if (target.originalText() != null || turn == null || turnsKept.add(turn)) {
+        kept.add(target);
+      }
+    }
+    // 원래 차례를 지키도록 처음 목록 순서로 되돌린다.
+    return targets.stream().filter(kept::contains).toList();
+  }
+
+  // 남길 차례: 고친 문장(내가 한 말을 고침) → 그 발화의 추천 → 상황 표현
+  private static int said(ReviewTarget target, Map<String, Integer> recommendedIn) {
+    if (target.originalText() != null) {
+      return 0;
+    }
+    return recommendedIn.containsKey(TurnRecommendations.key(target.expression())) ? 1 : 2;
+  }
+
+  /**
    * 시연 주문 복습에서는 이번에 써 볼 표현을 주문 조건 차례로 둔다. 고친 문장 구역은 지금처럼 앞에 두고, 각 구역 안에서 조건 차례로 둔다. 같은 조건 안에서는 원래
-   * 차례를 지키고, 어느 조건에도 맞지 않는 표현은 뒤에 둔다. 문장을 새로 만들거나 지우지 않는다.
+   * 차례를 지키고, 어느 조건에도 맞지 않는 표현은 뒤에 둔다. 문장을 새로 만들지 않는다.
    */
   private static List<ReviewTarget> inShowcaseOrderConditionOrder(List<ReviewTarget> targets) {
     return targets.stream()

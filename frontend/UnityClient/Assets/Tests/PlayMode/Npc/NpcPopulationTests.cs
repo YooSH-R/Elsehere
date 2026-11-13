@@ -20,6 +20,99 @@ namespace A305.Npc.PlayModeTests
     public class NpcPopulationTests
     {
         [UnityTest]
+        public IEnumerator Showcase_OnlyTwoResidentsStayOnTheOppositeSidewalk()
+        {
+            NpcPopulation.UsesShowcasePopulation = true;
+            try
+            {
+                SetClock(19 * 60);
+                yield return LoadWithoutApis("TownScene");
+                foreach (int minute in new[] { 19 * 60, 21 * 60, 23 * 60 })
+                {
+                    SetClock(minute);
+                    yield return null;
+                    yield return null;
+                    var walkers = Object.FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None);
+                    Assert.That(walkers, Has.Length.EqualTo(2));
+                    foreach (NpcTownWalker walker in walkers)
+                    {
+                        Assert.That(walker.transform.position.x, Is.LessThan(-4));
+                        Assert.That(walker.Destination.x, Is.LessThan(-4));
+                        Assert.That(walker.GetComponent<Passerby>().CanTalkByClick(30), Is.False);
+                    }
+                }
+                var moving = Object.FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None);
+                Vector3[] before = moving.Select(walker => walker.transform.position).ToArray();
+                GameClock
+                    .Shared.TickAsync(
+                        new FixedClock
+                        {
+                            Time = new GameClockTime
+                            {
+                                Day = 1,
+                                MinuteOfDay = 19 * 60,
+                                Paused = false,
+                            },
+                        },
+                        Time.realtimeSinceStartupAsDouble + 2e5
+                    )
+                    .GetAwaiter()
+                    .GetResult();
+                float previousDelta = Time.captureDeltaTime;
+                try
+                {
+                    Time.captureDeltaTime = 1f / 30f;
+                    for (int frame = 0; frame < 120; frame++)
+                    {
+                        yield return null;
+                        foreach (NpcTownWalker walker in moving)
+                            Assert.That(
+                                walker.transform.position.x,
+                                Is.LessThan(-3.2f),
+                                "반대편 보도를 벗어나면 안 됩니다."
+                            );
+                    }
+                    for (int index = 0; index < moving.Length; index++)
+                        Assert.That(
+                            HorizontalDistance(before[index], moving[index].transform.position),
+                            Is.GreaterThan(.5f),
+                            "배경 주민은 제자리에 고정되지 않고 걷습니다."
+                        );
+                }
+                finally
+                {
+                    Time.captureDeltaTime = previousDelta;
+                }
+            }
+            finally
+            {
+                NpcPopulation.UsesShowcasePopulation = false;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Showcase_OnlyJakeStaysInTheHotelLobby()
+        {
+            NpcPopulation.UsesShowcasePopulation = true;
+            try
+            {
+                SetClock(19 * 60);
+                yield return LoadWithoutApis("HotelScene");
+                yield return null;
+                var hotelStaff = Object
+                    .FindObjectsByType<NpcIdentity>(FindObjectsSortMode.None)
+                    .Where(npc => npc.Code.StartsWith("HOTEL_"))
+                    .Select(npc => npc.Code)
+                    .ToArray();
+                Assert.That(hotelStaff, Is.EquivalentTo(new[] { "HOTEL_STAFF" }));
+            }
+            finally
+            {
+                NpcPopulation.UsesShowcasePopulation = false;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Town_ResidencePavingSupportsFeetAtTheVisibleSurface()
         {
             SetClock(195);

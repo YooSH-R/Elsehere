@@ -55,6 +55,18 @@ namespace A305.Npc
         {
             if (catalog == null)
                 return;
+            // 시연의 로비·주문 동선을 지나가는 방문객은 만들지 않는다. 각 매장 직원은 NpcPopulation이 유지한다.
+            if (NpcPopulation.UsesShowcasePopulation)
+            {
+                foreach (GameObject guest in guests.Values)
+                    if (guest != null)
+                    {
+                        guest.SetActive(false);
+                        Destroy(guest);
+                    }
+                guests.Clear();
+                return;
+            }
             double now = GameClock.Shared.Minutes;
             foreach (var pair in guests.ToArray())
                 if (NpcOutings.Shared.Find(pair.Key) == null || pair.Value == null)

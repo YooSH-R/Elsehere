@@ -109,6 +109,9 @@ namespace A305.Npc
         /// </summary>
         public bool IsPlayerWaiting { get; set; }
 
+        /// <summary>시연 반대편 보도에서만 걷고 플레이어에게 다가오거나 대화를 제안하지 않는다.</summary>
+        public bool UsesShowcaseBackgroundWalk { get; set; }
+
         /// <summary>튜토리얼에서 길을 묻는 중인지(튜토리얼 모드)</summary>
         public bool IsGuidingTutorial => tutorialScriptKey != null;
 
@@ -304,6 +307,14 @@ namespace A305.Npc
         private void Update()
         {
             IsWaitingAtSignal = false;
+            if (UsesShowcaseBackgroundWalk)
+            {
+                if (GameClock.Shared.IsHeld || GameClock.Shared.Current?.Paused == true)
+                    Stand();
+                else
+                    GetComponent<NpcTownWalker>().Walk();
+                return;
+            }
             // 복습은 제안·수락 단계를 거치지 않는다. 대화의 실제 상대를 기준으로 생활 이동을 멈춘다.
             if (dialogue.IsTalkingTo(identity.LookTarget))
             {
@@ -460,7 +471,7 @@ namespace A305.Npc
         /// <param name="reachMeters">클릭으로 말을 걸 수 있는 수평 거리</param>
         public bool CanTalkByClick(float reachMeters)
         {
-            if (!enabled || IsPlayerOccupied || IsCrossing)
+            if (!enabled || UsesShowcaseBackgroundWalk || IsPlayerOccupied || IsCrossing)
             {
                 return false;
             }

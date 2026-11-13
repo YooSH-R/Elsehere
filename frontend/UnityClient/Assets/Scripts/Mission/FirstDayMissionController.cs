@@ -332,6 +332,7 @@ namespace A305.Mission
                     return;
                 string finished = response.QuestFinishedSince(state);
                 state = response;
+                NpcPopulation.UsesShowcasePopulation = state.IsShowcase;
                 NpcOutings.Shared.SetClosedToVisitors(
                     FirstDayMissionState.ShowcaseRestaurant,
                     state.ClosesShowcaseRestaurantToVisitors

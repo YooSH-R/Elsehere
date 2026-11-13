@@ -531,7 +531,9 @@ namespace A305.Mission
                                 Completed = Done(i),
                             }
                     )
-                    .ToList()
+                    .ToList(),
+                // [다시 연습]은 시연 퀘스트 카드와 같은 큰 목표 글자로 보인다.
+                showcase: plan.IsReview
             );
             ShowPill(
                 plan.IsReview ? "다시 연습" : "장소 연습",

@@ -716,6 +716,21 @@ namespace A305.Mission.Tests
             Assert.That(PillMarks(), Has.Length.EqualTo(7));
         }
 
+        // [다시 연습] 중에는 장소 연습 칩 대신 '다시 연습' 알약과 지난 상황을 보인다.
+        [Test]
+        public void RetryVisit_ShowsTheRetryNameInsteadOfPlacePractice()
+        {
+            PracticeVisitPlan retry = DinerTable();
+            retry.IsReview = true;
+            PracticeVisit.Shared.Begin(retry);
+            Refresh(Journey(current: 2));
+            Field<Button>("questPill").onClick.Invoke();
+
+            Assert.That(Field<TMP_Text>("pillTitle").text, Is.EqualTo("다시 연습"));
+            Assert.That(Field<GameObject>("practiceChip").activeSelf, Is.False);
+            Assert.That(Field<TMP_Text>("place").text, Is.EqualTo("식당 · 자리 잡기"));
+        }
+
         // 펼친 연습 카드: 파란 '장소 연습' 칩, 장소 · 상황, 상황 설명, 목표마다 한 칸인 진행 막대와 목표 줄(해낸 목표는 체크)
         [Test]
         public void PracticeCard_ShowsThePlaceTheSituationAndWhichGoalsAreDone()

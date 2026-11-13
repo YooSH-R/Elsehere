@@ -42,8 +42,7 @@ namespace A305.Learning
             liveReviewProgress.Begin(card, conversationId);
             dialogue.SetReviewReference(
                 liveReviewProgress.Items,
-                liveReviewProgress.VerifiedCount,
-                ReviewScenarioPresentation.Briefing(card)
+                liveReviewProgress.VerifiedCount
             );
             bool loaded = await liveReviewProgress.RefreshAsync();
             if (
@@ -55,8 +54,7 @@ namespace A305.Learning
             if (loaded)
                 dialogue.SetReviewReference(
                     liveReviewProgress.Items,
-                    liveReviewProgress.VerifiedCount,
-                    ReviewScenarioPresentation.Briefing(card)
+                    liveReviewProgress.VerifiedCount
                 );
             else if (liveReviewProgress.ErrorCode != null)
                 Debug.LogWarning($"복습 표현 표시 갱신 실패: {liveReviewProgress.ErrorCode}", this);

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using A305.World;
@@ -25,6 +26,20 @@ namespace A305.Learning
             }
             return text.ToString();
         }
+
+        /// <summary>[다시 연습] 동안 왼쪽 위 퀘스트 카드에 보일 지난 상황. 장소 · 제목, 상황 설명, 전달할 정보(목표 줄)다.</summary>
+        public static PracticeVisitPlan QuestCard(ReviewCard card) =>
+            new PracticeVisitPlan
+            {
+                IsReview = true,
+                PlaceName = BuildingName(card),
+                Title = Title(card),
+                Description = card?.Scenario?.Situation ?? card?.SituationSummary,
+                Goals = (card?.Scenario?.LearnerNotes ?? new List<string>())
+                    .Where(note => !string.IsNullOrWhiteSpace(note))
+                    .Select(note => new PracticeVisitGoal(note, null))
+                    .ToArray(),
+            };
 
         public static string BuildingName(ReviewCard card)
         {

@@ -515,7 +515,7 @@ namespace A305.Mission
             situation.gameObject.SetActive(false);
             stepChip.transform.parent.gameObject.SetActive(false);
             if (practiceChip != null)
-                practiceChip.SetActive(true);
+                practiceChip.SetActive(!plan.IsReview);
             place.text = PracticeName(plan);
             ShowProgress(
                 plan.Goals.Select((goal, i) => Done(i) ? practiceDoneMark : upcomingMark).ToArray(),
@@ -534,7 +534,7 @@ namespace A305.Mission
                     .ToList()
             );
             ShowPill(
-                "장소 연습",
+                plan.IsReview ? "다시 연습" : "장소 연습",
                 plan.Goals.Select((goal, i) => Done(i) ? pillMarkPractice : pillMarkOff)
             );
         }

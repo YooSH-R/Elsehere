@@ -73,7 +73,7 @@ namespace A305.EditorTools.Dialogue
             );
         }
 
-        /// <summary>[다시 연습] 대화 위 참고 카드. 고친 문장 구역과 상황 표현 구역, 말한 문장의 배지를 세 테마·낮은 화면으로 그린다.</summary>
+        /// <summary>[다시 연습] 대화 위 참고 카드. 고친 문장 구역과 상황 표현 구역, 말한 문장의 배지(상황 설명은 왼쪽 위 퀘스트 카드)를 세 테마·낮은 화면으로 그린다.</summary>
         public static void CaptureRetryReference()
         {
             DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
@@ -113,7 +113,6 @@ namespace A305.EditorTools.Dialogue
                     ),
                 },
                 1,
-                "<b>음료 주문하기</b>\n카페 · 손님\n\n카페에서 음료를 주문하고 포장을 부탁해요.\n",
                 listFirst: true
             );
             string output = OutputFolder();
@@ -126,17 +125,6 @@ namespace A305.EditorTools.Dialogue
                 Path.Combine(output, "retry-reference-short.png"),
                 844,
                 390
-            );
-            // 상황 설명은 문장 목록 아래에 있어 카드를 끝까지 내린 모습도 찍는다.
-            Render(
-                camera,
-                view,
-                eye,
-                face,
-                Path.Combine(output, "retry-reference-list.png"),
-                1920,
-                1080,
-                showLatest: true
             );
             Render(
                 camera,

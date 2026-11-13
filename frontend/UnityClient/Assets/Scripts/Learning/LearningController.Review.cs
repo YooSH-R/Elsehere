@@ -211,9 +211,10 @@ namespace A305.Learning
                         target.OriginalText
                     ))
                     .ToArray(),
-                0,
-                ReviewScenarioPresentation.Briefing(card)
+                0
             );
+            // 상황 설명은 대화 위 카드 대신 왼쪽 위 퀘스트 카드에 둔다.
+            PracticeVisit.Shared.Begin(ReviewScenarioPresentation.QuestCard(card));
             return true;
         }
 

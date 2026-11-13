@@ -96,6 +96,9 @@ namespace A305.World
         public string Description { get; set; }
         public IReadOnlyList<PracticeVisitGoal> Goals { get; set; } =
             Array.Empty<PracticeVisitGoal>();
+
+        /// <summary>[다시 연습]으로 지난 상황을 다시 하는 중이다. 왼쪽 위 카드가 '장소 연습' 대신 '다시 연습'으로 보인다.</summary>
+        public bool IsReview { get; set; }
     }
 
     public sealed class PracticeVisitGoal

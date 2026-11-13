@@ -23,7 +23,7 @@ import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.service.ConversationLookup;
-import com.elsehere.dialogue.service.DialogueServiceTest;
+import com.elsehere.dialogue.service.DialogueDbTest;
 import com.elsehere.feedback.dto.ModelSpeechResponse;
 import com.elsehere.feedback.entity.TurnFeedback;
 import com.elsehere.feedback.repository.TurnFeedbackRepository;
@@ -48,7 +48,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
 
 // 상세 평가 항목의 모범 음성(FB-04). 워커는 Mock이고 음성 파일은 테스트 폴더에 저장한다.
-@DialogueServiceTest
+@DialogueDbTest
 class ModelSpeechServiceTest {
 
   private static final String BETTER_TEXT = "I'd like an iced latte, please.";

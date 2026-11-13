@@ -42,6 +42,12 @@ namespace A305.Theme
         [Tooltip("선택한 목록 행은 테마의 강조색을 옅게 사용한다")]
         private bool selection;
 
+        [SerializeField]
+        [Tooltip(
+            "밝은 카드 위의 유리 버튼. 어두운 배경용 흰 테두리·글자 대신 테마 글자색으로 칠해 같은 모양이 보이게 한다."
+        )]
+        private bool onLightSurface;
+
         // 유리 버튼일 때 Builder가 정한 9칸 배율. 고른 표시로 알약을 그렸다가 돌아올 때 되살린다.
         private float ghostPixelsPerUnit;
 
@@ -326,11 +332,16 @@ namespace A305.Theme
                 Paint(
                     image,
                     theme.GhostSprite,
-                    selection ? theme.ToneColor(UiTone.Primary) : Color.white,
+                    selection ? theme.ToneColor(UiTone.Primary)
+                        : onLightSurface ? theme.Ink
+                        : Color.white,
                     selection ? theme.HighlightedGhostMaterial : null
                 );
             }
-            Color ink = usesPopShape ? theme.ToneInk(UiTone.Primary) : Color.white;
+            Color ink =
+                usesPopShape ? theme.ToneInk(UiTone.Primary)
+                : onLightSurface ? theme.Ink
+                : Color.white;
             Image ghostIcon = Child<Image>(transform, "Icon");
             Draw(ghostIcon, theme.Icons != null ? theme.Icons.Get(icon) : null);
             if (ghostIcon != null)

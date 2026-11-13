@@ -83,7 +83,7 @@ install -m 600 infra/compose/compose.prod-worker-network.yaml \
 | `GUARD_GPU_MODEL` | `guard-qwen3.8-27b-r16` |
 | `GUARD_GPU_BASE_URL` | `http://172.30.0.1:18432/v1` |
 | `JUDGE_GPU_MODEL` | 비움. GPU 서버 의도 판정은 개발 서버에서 지연·대체 비율·사건 분포를 확인한 뒤 정함 |
-| `NPC_GPU_MODEL` | 비움. GPU 서버 NPC 대답 LoRA는 개발 서버에서 지연·대체 비율을 확인한 뒤 정함 |
+| `NPC_GPU_MODEL` | `npc-qwen3.8-27b-r16`. 무례 판정과 같은 vLLM의 NPC 대답 LoRA. 워커마다 동시 4개(`NPC_GPU_MAX_CONCURRENT`)까지 GPU, 넘치거나 첫 글자가 1.5초를 넘으면 SOL |
 | `TTS_GPU_BASE_URL` | `http://172.30.0.1:18433` |
 | `STT_GPU_TOKEN`·`GUARD_GPU_TOKEN`·`TTS_GPU_TOKEN` | 같은 GPU 서비스의 개발 설정과 일치하는 값. 화면·저장소에 출력하지 않음 |
 
@@ -105,7 +105,7 @@ permitlisten="172.30.0.1:18431",permitlisten="172.30.0.1:18432",permitlisten="17
 
 sshd 설정에만 운영 주소를 허용하면 키별 제한에 걸려 `remote port forwarding failed`가 발생할 수 있습니다. 키 옵션 변경은 다음 SSH 인증부터 적용되므로 기존 개발 연결을 끊을 필요는 없습니다.
 
-GPU 서버의 STT·TTS·판정 감시 스크립트는 각 서비스 폴더의 `prod_tunnel_enabled` 파일이 있을 때 운영 터널을 함께 유지합니다. 서버 준비 뒤 `~/stt/gpu_stt/prod_tunnel_enabled`·`~/tts/gpu_tts/prod_tunnel_enabled`·`~/guard/prod_tunnel_enabled`를 만듭니다. 감시 스크립트가 실행 중이면 끊어진 터널을 30초마다 다시 연결하고, Jupyter 서버가 다시 시작되면 [GPU 서버 자동 시작](../ai/gpu_autostart/README.md) 훅이 감시 스크립트를 다시 띄웁니다. 실행·토큰 기준은 [GPU STT](../ai/gpu_stt/README.md), [GPU TTS](../ai/gpu_tts/README.md), [무례 판정](../ai/guard/README.md)을 따릅니다. SSAFY GPU 서버를 쓸 수 없을 때 STT·TTS를 옮기는 임대 서버도 같은 터널 계정·입구·토큰을 쓰며, 절차는 [임대 GPU 서버](../ai/gpu_rental/README.md)를 따릅니다.
+GPU 서버의 STT·TTS·판정 감시 스크립트는 각 서비스 폴더의 `prod_tunnel_enabled` 파일이 있을 때 운영 터널을 함께 유지합니다. 서버 준비 뒤 `~/stt/gpu_stt/prod_tunnel_enabled`·`~/tts/gpu_tts/prod_tunnel_enabled`·`~/guard/prod_tunnel_enabled`를 만듭니다. 감시 스크립트가 실행 중이면 끊어진 터널을 30초마다 다시 연결하고, Jupyter 서버가 다시 시작되면 [GPU 서버 자동 시작](../ai/gpu_autostart/README.md) 훅이 감시 스크립트를 다시 띄웁니다. 실행·토큰 기준은 [GPU STT](../ai/gpu_stt/README.md), [GPU TTS](../ai/gpu_tts/README.md), [무례 판정](../ai/guard/README.md)을 따릅니다. SSAFY GPU 서버를 쓸 수 없을 때 STT·TTS·판정 vLLM을 옮기는 임대 서버도 같은 터널 계정·입구·토큰을 쓰며, 절차는 [임대 GPU 서버](../ai/gpu_rental/README.md)를 따릅니다.
 
 ## 예비 GPU 입구
 

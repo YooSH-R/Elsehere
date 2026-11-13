@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: range_hood
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_0a29609b3b7e1fd40a53ca476d8a6966
+    languageCode: en-US
+    text: range hood
+    meaningKo: "\uC870\uB9AC\uB300 \uC704 \uC5F0\uAE30\uB97C \uBE68\uC544\uB4E4\uC774\uB294
+      \uD658\uAE30 \uC7A5\uCE58"
+    example: Please turn on the range hood.
+    exampleKo: "\uC870\uB9AC\uB300 \uD658\uAE30 \uC7A5\uCE58\uB97C \uCF1C \uC8FC\uC138\uC694."
+    pronunciationAudioKey: 
+  assetGuid: 0a29609b3b7e1fd40a53ca476d8a6966

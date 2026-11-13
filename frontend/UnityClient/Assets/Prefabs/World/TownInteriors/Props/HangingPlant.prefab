@@ -168,6 +168,7 @@ GameObject:
   - component: {fileID: 3942450019006723488}
   - component: {fileID: 324140926216300747}
   - component: {fileID: 8777840545132613719}
+  - component: {fileID: 8873910461236403367}
   m_Layer: 0
   m_Name: Terracotta
   m_TagString: Untagged
@@ -248,6 +249,21 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &8873910461236403367
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5905725623495176850}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: aad35a402c0f8a94b8374e71f92b3404, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &6480828550420953583
 GameObject:
   m_ObjectHideFlags: 0
@@ -441,8 +457,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.28, y: 0.17999995, z: 0.28}
-  m_Center: {x: 0, y: -0.68, z: 0}
+  m_Size: {x: 0.28, y: 0.17999995, z: 0.28000003}
+  m_Center: {x: 0, y: -0.68, z: 0.000000014901161}
 --- !u!114 &5152270784189306526
 MonoBehaviour:
   m_ObjectHideFlags: 0

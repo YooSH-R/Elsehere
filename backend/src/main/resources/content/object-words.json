@@ -910,6 +910,15 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_00c53ed10cac97f4892ca258b53a656a",
+            "languageCode": "en-US",
+            "text": "hooded hair dryer",
+            "meaningKo": "머리 위에 씌워 사용하는 건조기",
+            "example": "Please sit under the hooded hair dryer.",
+            "exampleKo": "머리를 씌워 말리는 건조기 아래에 앉아 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_0161d483cee300c40b1861ae4d0e85a0",
             "languageCode": "en-US",
             "text": "washing machine",
@@ -925,6 +934,15 @@
             "meaningKo": "카드로 결제하는 단말기",
             "example": "Tap your card on the card reader.",
             "exampleKo": "단말기에 카드를 대 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_0521513012a098e4fa8b119aaf2bb29c",
+            "languageCode": "en-US",
+            "text": "chocolate bar",
+            "meaningKo": "판 모양의 초콜릿",
+            "example": "I'd like a chocolate bar, please.",
+            "exampleKo": "초콜릿 한 개 주세요.",
             "pronunciationAudioKey": ""
         },
         {
@@ -946,6 +964,33 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_07942cce8d9cedc45bbbd961b4ca7250",
+            "languageCode": "en-US",
+            "text": "barber pole",
+            "meaningKo": "이발소를 나타내는 줄무늬 기둥 간판",
+            "example": "Look for the barber pole outside.",
+            "exampleKo": "밖에 있는 이발소 줄무늬 간판을 찾아보세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_0843de0e7984e4343855cd92711938f1",
+            "languageCode": "en-US",
+            "text": "bouquet",
+            "meaningKo": "꽃을 모아 묶은 꽃다발",
+            "example": "I'd like a bouquet for my mom.",
+            "exampleKo": "엄마께 드릴 꽃다발을 사고 싶어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_0a29609b3b7e1fd40a53ca476d8a6966",
+            "languageCode": "en-US",
+            "text": "range hood",
+            "meaningKo": "조리대 위 연기를 빨아들이는 환기 장치",
+            "example": "Please turn on the range hood.",
+            "exampleKo": "조리대 환기 장치를 켜 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_0a8bd7882c5b7b04e84b90f02a9345c1",
             "languageCode": "en-US",
             "text": "arcade game",
@@ -953,6 +998,51 @@
             "example": "Let's play an arcade game.",
             "exampleKo": "오락실 게임을 해 봐요.",
             "pronunciationAudioKey": "arcade_game.wav"
+        },
+        {
+            "key": "word_0dd11afd2a47c6245b6d8eb5e1396f67",
+            "languageCode": "en-US",
+            "text": "tool cart",
+            "meaningKo": "도구를 담아 옮기는 바퀴 달린 수납대",
+            "example": "The scissors are on the tool cart.",
+            "exampleKo": "가위는 도구 수납대 위에 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_1374d18368b09b84886b1612d1c2f2e7",
+            "languageCode": "en-US",
+            "text": "watering can",
+            "meaningKo": "식물에 물을 주는 물뿌리개",
+            "example": "Fill the watering can with water.",
+            "exampleKo": "물뿌리개에 물을 채워 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_13f8944d566e92c478693e4990aa1516",
+            "languageCode": "en-US",
+            "text": "form",
+            "meaningKo": "내용을 적어 넣는 서식",
+            "example": "Where should I sign this form?",
+            "exampleKo": "이 서식 어디에 서명하면 되나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_176e8770ef9adc5489b55b2867b351a9",
+            "languageCode": "en-US",
+            "text": "envelope",
+            "meaningKo": "편지나 서류를 넣는 봉투",
+            "example": "Do you sell envelopes?",
+            "exampleKo": "봉투를 파나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_178949e5e42bef545b151088b798b039",
+            "languageCode": "en-US",
+            "text": "candy bar",
+            "meaningKo": "막대 모양으로 포장한 달콤한 간식",
+            "example": "How much is this candy bar?",
+            "exampleKo": "이 막대 과자는 얼마인가요?",
+            "pronunciationAudioKey": ""
         },
         {
             "key": "word_18c339143c3bc8948a2616297703684c",
@@ -964,12 +1054,66 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_1d323dfcc7bb3da48bf85613a7a2da71",
+            "languageCode": "en-US",
+            "text": "carrot",
+            "meaningKo": "당근",
+            "example": "Please cut up the carrot.",
+            "exampleKo": "당근을 썰어 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_1dafccb96a732a246b570b3823c944ee",
+            "languageCode": "en-US",
+            "text": "banana",
+            "meaningKo": "길고 노란 과일(바나나)",
+            "example": "I'll have a banana for a snack.",
+            "exampleKo": "간식으로 바나나를 먹을게요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_21ca4715c5c4b204e9118f326093659c",
+            "languageCode": "en-US",
+            "text": "brochure",
+            "meaningKo": "정보를 소개하는 소책자",
+            "example": "May I take a brochure?",
+            "exampleKo": "안내 책자를 가져가도 될까요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_237fdb92b9222ee418207bca306a7454",
+            "languageCode": "en-US",
+            "text": "queue barrier",
+            "meaningKo": "줄 서는 구역을 나누는 안내봉과 줄",
+            "example": "Please wait behind the queue barrier.",
+            "exampleKo": "줄 안내봉 뒤에서 기다려 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_24b2c6f48adfc0b478fa72b090877667",
+            "languageCode": "en-US",
+            "text": "burger",
+            "meaningKo": "빵 사이에 패티와 재료를 넣은 음식(햄버거)",
+            "example": "Can I get a burger without onions?",
+            "exampleKo": "양파를 뺀 햄버거를 주시겠어요?",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_27d3dc992bf0dee46a465b3bb93c0a08",
             "languageCode": "en-US",
             "text": "ice cream",
             "meaningKo": "얼려 만든 차고 단 간식(아이스크림)",
             "example": "Can I have a vanilla ice cream?",
             "exampleKo": "바닐라 아이스크림 하나 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_299d362b42c8dbd47b05d18fd2ea66e9",
+            "languageCode": "en-US",
+            "text": "deep fryer",
+            "meaningKo": "기름에 음식을 담가 튀기는 조리 기구",
+            "example": "The fries are in the deep fryer.",
+            "exampleKo": "감자튀김이 튀김기 안에 있어요.",
             "pronunciationAudioKey": ""
         },
         {
@@ -1000,6 +1144,15 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_33543d078983bee4787c92975243cb93",
+            "languageCode": "en-US",
+            "text": "frying pan",
+            "meaningKo": "음식을 볶거나 부치는 납작한 팬",
+            "example": "Heat the frying pan first.",
+            "exampleKo": "프라이팬을 먼저 달궈 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_369eb9ba5bdd95a4e82191d96b289f34",
             "languageCode": "en-US",
             "text": "stool",
@@ -1018,6 +1171,69 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_3870a9071e9519c4da91ab433ef17534",
+            "languageCode": "en-US",
+            "text": "orange",
+            "meaningKo": "주황색 감귤류 과일(오렌지)",
+            "example": "Is this orange sweet?",
+            "exampleKo": "이 오렌지는 단가요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_38e2389164ad83f419c8b2fe8626d9dc",
+            "languageCode": "en-US",
+            "text": "keyboard",
+            "meaningKo": "컴퓨터에 글자를 입력하는 자판(키보드)",
+            "example": "This keyboard is easy to use.",
+            "exampleKo": "이 키보드는 쓰기 편해요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_3a3bc8f216be6174fabbcd6b9129c0c9",
+            "languageCode": "en-US",
+            "text": "cookie",
+            "meaningKo": "작고 달콤한 구운 과자(쿠키)",
+            "example": "Could I have two cookies?",
+            "exampleKo": "쿠키 두 개 주시겠어요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_3bb3223a770f4114588c99d670bcaf33",
+            "languageCode": "en-US",
+            "text": "hair dryer",
+            "meaningKo": "머리카락을 말리는 기기(헤어드라이어)",
+            "example": "Can I use the hair dryer?",
+            "exampleKo": "헤어드라이어를 써도 될까요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_3c0259f43f2f8c54683415594d1e51c1",
+            "languageCode": "en-US",
+            "text": "pill bottle",
+            "meaningKo": "알약을 담는 약병",
+            "example": "Keep the pill bottle closed.",
+            "exampleKo": "약병 뚜껑을 닫아 두세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_3c688ce27ad5de141be523400387ab07",
+            "languageCode": "en-US",
+            "text": "comb",
+            "meaningKo": "머리카락을 빗는 빗",
+            "example": "Could I borrow a comb?",
+            "exampleKo": "빗을 빌릴 수 있을까요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_3df813d12327eb844ae12b360ceee863",
+            "languageCode": "en-US",
+            "text": "bulletin board",
+            "meaningKo": "안내문을 붙이는 게시판",
+            "example": "Check the bulletin board for updates.",
+            "exampleKo": "새 안내는 게시판에서 확인하세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_3f1b31e72fbacea48bed046e884e6255",
             "languageCode": "en-US",
             "text": "patio umbrella",
@@ -1033,6 +1249,24 @@
             "meaningKo": "사서함",
             "example": "I'd like to rent a PO box.",
             "exampleKo": "사서함을 하나 빌리고 싶어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_3feb8e1e3af14b941912724adfb4bafb",
+            "languageCode": "en-US",
+            "text": "box of medicine",
+            "meaningKo": "약이 든 상자",
+            "example": "Where can I find this box of medicine?",
+            "exampleKo": "이 상자에 든 약은 어디에 있나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_41df6087b5cdcb144b73b12f94cb4343",
+            "languageCode": "en-US",
+            "text": "nightstand",
+            "meaningKo": "침대 옆에 두는 작은 탁자나 수납장",
+            "example": "My phone is on the nightstand.",
+            "exampleKo": "제 휴대폰은 침대 옆 탁자에 있어요.",
             "pronunciationAudioKey": ""
         },
         {
@@ -1072,6 +1306,33 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_4a99d43b1e1f48a40a40950acc8d88dc",
+            "languageCode": "en-US",
+            "text": "bag of snacks",
+            "meaningKo": "간식이 든 봉지",
+            "example": "I'll take this bag of snacks.",
+            "exampleKo": "이 봉지 간식으로 할게요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_4aceb9a098a5be8459747e3c3b60c13e",
+            "languageCode": "en-US",
+            "text": "corn",
+            "meaningKo": "옥수수",
+            "example": "Do you have fresh corn?",
+            "exampleKo": "신선한 옥수수가 있나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_4cece1a51af197c4992c921a91f84919",
+            "languageCode": "en-US",
+            "text": "hot dog roller",
+            "meaningKo": "소시지를 굴리며 데우는 조리 기계",
+            "example": "The hot dogs are on the hot dog roller.",
+            "exampleKo": "핫도그용 소시지가 회전 조리기 위에 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_50a95568007664e448ac53663da03962",
             "languageCode": "en-US",
             "text": "pigeon",
@@ -1099,12 +1360,39 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_5163fa48bf1c2c2409adcfddf33095fd",
+            "languageCode": "en-US",
+            "text": "spray bottle",
+            "meaningKo": "액체를 안개처럼 뿌리는 분무기",
+            "example": "There is water in the spray bottle.",
+            "exampleKo": "분무기 안에 물이 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_552f7f037bdc47a4abe1f0b39ac7dc1d",
+            "languageCode": "en-US",
+            "text": "shirt",
+            "meaningKo": "상체에 입는 옷(셔츠)",
+            "example": "I'd like to wash this shirt.",
+            "exampleKo": "이 셔츠를 세탁하고 싶어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_57394345ad5fd5c46a1e107b2d2a7656",
             "languageCode": "en-US",
             "text": "police station",
             "meaningKo": "경찰서",
             "example": "Where is the police station?",
             "exampleKo": "경찰서가 어디에 있나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_57a59d22fdaa64a49bbaa2c045897fbd",
+            "languageCode": "en-US",
+            "text": "carton",
+            "meaningKo": "음식이나 음료를 담는 종이 용기",
+            "example": "Please put the carton in the bag.",
+            "exampleKo": "종이 용기를 가방에 넣어 주세요.",
             "pronunciationAudioKey": ""
         },
         {
@@ -1153,12 +1441,48 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_5f6208984d2beca41bcc5375e720b128",
+            "languageCode": "en-US",
+            "text": "can",
+            "meaningKo": "음식이나 음료를 담는 금속 용기(캔)",
+            "example": "Can this can be recycled?",
+            "exampleKo": "이 캔은 재활용할 수 있나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_63e4d2f608e230d4da895baa59336f47",
             "languageCode": "en-US",
             "text": "coin changer",
             "meaningKo": "지폐를 동전으로 바꿔 주는 기계",
             "example": "Does this coin changer take dollar bills?",
             "exampleKo": "이 동전 교환기에 1달러 지폐를 넣을 수 있나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_68c5e41e6b33b5048894b4f178caad6f",
+            "languageCode": "en-US",
+            "text": "peanut butter",
+            "meaningKo": "땅콩을 갈아 만든 바르는 음식(땅콩버터)",
+            "example": "I'd like a jar of peanut butter.",
+            "exampleKo": "땅콩버터 한 병 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_6b33e552c1fbec54c846130b96ae95b3",
+            "languageCode": "en-US",
+            "text": "barber tools",
+            "meaningKo": "머리를 다듬는 이발 도구",
+            "example": "The barber tools are on the counter.",
+            "exampleKo": "이발 도구는 작업대 위에 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_6e1717ab83f7ae14084d2077336f563f",
+            "languageCode": "en-US",
+            "text": "monitor",
+            "meaningKo": "컴퓨터 화면을 보여 주는 장치(모니터)",
+            "example": "The address is on the monitor.",
+            "exampleKo": "주소가 모니터에 나와 있어요.",
             "pronunciationAudioKey": ""
         },
         {
@@ -1180,12 +1504,138 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_730291e3d6b4f5f47a756b27ae7840f2",
+            "languageCode": "en-US",
+            "text": "cutting board",
+            "meaningKo": "음식 재료를 써는 도마",
+            "example": "Put the vegetables on the cutting board.",
+            "exampleKo": "채소를 도마 위에 올려 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_74c97f48c066a1f4e8387cdaebcd4f74",
+            "languageCode": "en-US",
+            "text": "broccoli",
+            "meaningKo": "초록색 꽃봉오리 모양의 채소(브로콜리)",
+            "example": "I'd like some broccoli.",
+            "exampleKo": "브로콜리를 좀 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_7de8e1740fc90ed4e9160663939779ef",
+            "languageCode": "en-US",
+            "text": "pot",
+            "meaningKo": "음식을 끓이는 냄비",
+            "example": "The soup is in the pot.",
+            "exampleKo": "수프가 냄비 안에 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_8121fa1f090622f428ec8ae558cd2df2",
+            "languageCode": "en-US",
+            "text": "cabbage",
+            "meaningKo": "양배추",
+            "example": "How much is this cabbage?",
+            "exampleKo": "이 양배추는 얼마인가요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_833e3b054c9817b4fa6b01b2f88c06e5",
+            "languageCode": "en-US",
+            "text": "hair clippers",
+            "meaningKo": "머리카락을 짧게 자르는 전기 이발기",
+            "example": "The barber uses hair clippers.",
+            "exampleKo": "이발사가 전기 이발기를 사용해요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_83e9ef9fb38b2804e844393a3d16d226",
+            "languageCode": "en-US",
+            "text": "badge",
+            "meaningKo": "소속이나 신분을 나타내는 표장(배지)",
+            "example": "The officer showed me her badge.",
+            "exampleKo": "경찰관이 제게 배지를 보여 주었어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_84a5ac74de2c17a43baca693659180a4",
+            "languageCode": "en-US",
+            "text": "broom",
+            "meaningKo": "바닥을 쓰는 빗자루",
+            "example": "Where can I find a broom?",
+            "exampleKo": "빗자루는 어디에 있나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_856ac06ac71774f41bd23a7b97da2cc1",
             "languageCode": "en-US",
             "text": "traffic light",
             "meaningKo": "신호등",
             "example": "Turn right at the traffic light.",
             "exampleKo": "신호등에서 오른쪽으로 도세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_873d7d6807d8269438e6e5a2de259633",
+            "languageCode": "en-US",
+            "text": "bag of flour",
+            "meaningKo": "밀가루 한 포대",
+            "example": "We need another bag of flour.",
+            "exampleKo": "밀가루가 한 포대 더 필요해요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_8ab3d49930abb6049ba633b4a7b6df9d",
+            "languageCode": "en-US",
+            "text": "umbrella stand",
+            "meaningKo": "우산을 세워 두는 우산꽂이",
+            "example": "Leave your umbrella in the umbrella stand.",
+            "exampleKo": "우산은 우산꽂이에 놓아 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_8d8bb12e67995f94b8af574d7ab4491e",
+            "languageCode": "en-US",
+            "text": "jukebox",
+            "meaningKo": "곡을 골라 듣는 음악 재생 기계(주크박스)",
+            "example": "Let's pick a song on the jukebox.",
+            "exampleKo": "주크박스에서 노래를 골라 봐요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_8eac099b117a22847a5834ed558d4c19",
+            "languageCode": "en-US",
+            "text": "clothes hanger",
+            "meaningKo": "옷 한 벌을 걸어 두는 옷걸이",
+            "example": "Could I have a clothes hanger?",
+            "exampleKo": "옷걸이를 하나 받을 수 있을까요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_906b428b3c0a4ab4c8822b83954dd9e8",
+            "languageCode": "en-US",
+            "text": "basket",
+            "meaningKo": "물건을 담는 바구니",
+            "example": "Can I use this basket?",
+            "exampleKo": "이 바구니를 써도 될까요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_9233893570eaa424a89483cb82309717",
+            "languageCode": "en-US",
+            "text": "rolled towels",
+            "meaningKo": "둥글게 말아 놓은 수건",
+            "example": "The rolled towels are clean.",
+            "exampleKo": "말아 놓은 수건은 깨끗해요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_9b64cd558b6c25b42a70a6ed8e3c4005",
+            "languageCode": "en-US",
+            "text": "oven",
+            "meaningKo": "음식을 굽는 조리 기구(오븐)",
+            "example": "The bread is in the oven.",
+            "exampleKo": "빵이 오븐 안에 있어요.",
             "pronunciationAudioKey": ""
         },
         {
@@ -1216,6 +1666,33 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_a935a83c01df1a448a0b6bb8bcca9581",
+            "languageCode": "en-US",
+            "text": "water cooler",
+            "meaningKo": "마실 물을 공급하는 냉온수기",
+            "example": "The water cooler is by the door.",
+            "exampleKo": "냉온수기는 문 옆에 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_abbe5b4f879c13c43aae997a34402410",
+            "languageCode": "en-US",
+            "text": "crate",
+            "meaningKo": "물건을 담아 운반하는 나무 상자",
+            "example": "The buns are in the crate.",
+            "exampleKo": "햄버거 빵은 나무 상자 안에 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_ae7b5008363d50745aa1c818547ac570",
+            "languageCode": "en-US",
+            "text": "baguette",
+            "meaningKo": "길고 겉이 바삭한 빵(바게트)",
+            "example": "I'd like one baguette, please.",
+            "exampleKo": "바게트 하나 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_af4d769b378ec384a8ef3edbaf346e9d",
             "languageCode": "en-US",
             "text": "folded towels",
@@ -1234,12 +1711,30 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_b3ac4c82f652de646a5e26ef24bf337e",
+            "languageCode": "en-US",
+            "text": "bottle",
+            "meaningKo": "액체를 담는 병",
+            "example": "Is this bottle empty?",
+            "exampleKo": "이 병은 비어 있나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_b455dfb83439d7546bf34d8766404f6f",
             "languageCode": "en-US",
             "text": "sidewalk sign",
             "meaningKo": "입간판",
             "example": "A sidewalk sign advertises fresh coffee.",
             "exampleKo": "입간판이 갓 내린 커피를 홍보해요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_b49c4fbdec17d8f4593cbcb14841fde4",
+            "languageCode": "en-US",
+            "text": "hot dog",
+            "meaningKo": "긴 빵 사이에 소시지를 넣은 음식(핫도그)",
+            "example": "Can I get a hot dog with mustard?",
+            "exampleKo": "머스타드를 넣은 핫도그를 주시겠어요?",
             "pronunciationAudioKey": ""
         },
         {
@@ -1252,6 +1747,33 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_b65574ec6b46d8c4f82294eef63dfb68",
+            "languageCode": "en-US",
+            "text": "magazine rack",
+            "meaningKo": "잡지를 세워 두는 꽂이",
+            "example": "The magazine rack is next to the chair.",
+            "exampleKo": "잡지 꽂이는 의자 옆에 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_b890e56ae5b7b2c4d8cd370d3c08cedd",
+            "languageCode": "en-US",
+            "text": "magazine",
+            "meaningKo": "여러 기사와 사진을 실은 잡지",
+            "example": "Can I read this magazine?",
+            "exampleKo": "이 잡지를 읽어도 될까요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_bcf51a025941df943b7e1d40506be643",
+            "languageCode": "en-US",
+            "text": "bun",
+            "meaningKo": "햄버거 등에 쓰는 작고 둥근 빵",
+            "example": "Could you toast the bun?",
+            "exampleKo": "햄버거 빵을 구워 주실 수 있나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_be12390675add1b488faf55f8e9aeb96",
             "languageCode": "en-US",
             "text": "police car",
@@ -1261,12 +1783,75 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_bf3706cb24f8af64e9b7c11f443f8bc0",
+            "languageCode": "en-US",
+            "text": "lollipop",
+            "meaningKo": "막대에 꽂힌 사탕",
+            "example": "Which flavor is this lollipop?",
+            "exampleKo": "이 막대사탕은 무슨 맛인가요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_c198f78cc742bb14b8d7282b458af524",
+            "languageCode": "en-US",
+            "text": "brochure rack",
+            "meaningKo": "안내 책자를 놓는 진열대",
+            "example": "The brochure rack is near the entrance.",
+            "exampleKo": "안내 책자 진열대는 입구 근처에 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_c5989f940603a984789c208e05083c5d",
+            "languageCode": "en-US",
+            "text": "ribbon",
+            "meaningKo": "장식용 띠(리본)",
+            "example": "Could you tie a ribbon around it?",
+            "exampleKo": "여기에 리본을 묶어 주실 수 있나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_c718bd56532264b48972fe8aaedfa09d",
+            "languageCode": "en-US",
+            "text": "pen",
+            "meaningKo": "글씨를 쓰는 펜",
+            "example": "May I borrow a pen?",
+            "exampleKo": "펜을 빌릴 수 있을까요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_cfa0b9fbd753a0545869552e50227e49",
+            "languageCode": "en-US",
+            "text": "takeout container",
+            "meaningKo": "음식을 포장해 가져가는 용기",
+            "example": "Could I get a takeout container?",
+            "exampleKo": "음식 포장 용기를 받을 수 있을까요?",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_cfe407d309ec44540a66769b307075c8",
             "languageCode": "en-US",
             "text": "fox",
             "meaningKo": "여우",
             "example": "The fox is curled up asleep.",
             "exampleKo": "여우가 몸을 웅크리고 자고 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_d29799f983750994a996b6408e07165a",
+            "languageCode": "en-US",
+            "text": "honey",
+            "meaningKo": "벌이 만드는 달콤한 꿀",
+            "example": "Do you have any honey?",
+            "exampleKo": "꿀이 있나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_d94071086b8c0a545872f1424971b9e4",
+            "languageCode": "en-US",
+            "text": "wrapping paper",
+            "meaningKo": "선물을 싸는 포장지",
+            "example": "Could you use this wrapping paper?",
+            "exampleKo": "이 포장지로 싸 주실 수 있나요?",
             "pronunciationAudioKey": ""
         },
         {
@@ -1288,12 +1873,39 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_de079e78ebe272842a92ac2314a3548f",
+            "languageCode": "en-US",
+            "text": "coat",
+            "meaningKo": "겉에 입는 긴 외투(코트)",
+            "example": "I left my coat by the door.",
+            "exampleKo": "문 옆에 외투를 두고 왔어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_e08a4cc7e6dabb548ae39c6113c974ee",
+            "languageCode": "en-US",
+            "text": "griddle",
+            "meaningKo": "음식을 굽는 평평한 조리용 철판",
+            "example": "The burgers are cooking on the griddle.",
+            "exampleKo": "햄버거 패티가 철판에서 익고 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_e438a4ee4f2a3494eaadb31ccfda0859",
             "languageCode": "en-US",
             "text": "bicycle",
             "meaningKo": "자전거",
             "example": "I came here by bicycle.",
             "exampleKo": "저는 자전거를 타고 왔어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_e43aa05d3f6630240be25f57a3a8c6e0",
+            "languageCode": "en-US",
+            "text": "hat",
+            "meaningKo": "머리에 쓰는 모자",
+            "example": "Is this your hat?",
+            "exampleKo": "이 모자가 당신 것인가요?",
             "pronunciationAudioKey": ""
         },
         {
@@ -1324,12 +1936,39 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_f1a35b579e2ac6e458b29c156c688a4d",
+            "languageCode": "en-US",
+            "text": "mail cart",
+            "meaningKo": "우편물을 옮기는 수레",
+            "example": "Put the packages on the mail cart.",
+            "exampleKo": "소포를 우편 수레에 올려 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_f3cd6cc8d51298a468c324f38d317eab",
+            "languageCode": "en-US",
+            "text": "bucket",
+            "meaningKo": "액체나 물건을 담는 양동이",
+            "example": "Could you bring me a bucket?",
+            "exampleKo": "양동이를 가져다주시겠어요?",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_f7bedd45ef4077348a8fb4ff422f2399",
             "languageCode": "en-US",
             "text": "taxi",
             "meaningKo": "요금을 내고 타는 영업용 차(택시)",
             "example": "Can you call a taxi for me?",
             "exampleKo": "택시 좀 불러 주실래요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_f7da3cd6ecdbab14e8a172a545bc61bc",
+            "languageCode": "en-US",
+            "text": "scale",
+            "meaningKo": "무게를 재는 저울",
+            "example": "Please put your package on the scale.",
+            "exampleKo": "소포를 저울 위에 올려 주세요.",
             "pronunciationAudioKey": ""
         },
         {
@@ -1342,12 +1981,30 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_fa36068283c56c24092c57fe3e81b8de",
+            "languageCode": "en-US",
+            "text": "apple",
+            "meaningKo": "사과",
+            "example": "I'd like two apples, please.",
+            "exampleKo": "사과 두 개 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_fae84acd881cae244bb14dd79ae14bf5",
             "languageCode": "en-US",
             "text": "dryer",
             "meaningKo": "건조기",
             "example": "How long does the dryer take?",
             "exampleKo": "건조기는 얼마나 걸려요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_fce9aafe86b550442bc40a2d09c3b75b",
+            "languageCode": "en-US",
+            "text": "coat rack",
+            "meaningKo": "외투를 거는 옷걸이",
+            "example": "You can leave your jacket on the coat rack.",
+            "exampleKo": "재킷은 옷걸이에 걸어 두셔도 돼요.",
             "pronunciationAudioKey": ""
         }
     ]

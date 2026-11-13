@@ -25,7 +25,7 @@ import com.elsehere.ai.service.AiGateway;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
-import com.elsehere.dialogue.service.DialogueServiceTest;
+import com.elsehere.dialogue.service.DialogueDbTest;
 import com.elsehere.memory.entity.UserNpcRelation;
 import com.elsehere.memory.entity.UserNpcRelationId;
 import com.elsehere.memory.repository.UserNpcRelationRepository;
@@ -43,7 +43,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 
 // 카드 생성은 AI 워커 결과를 Mock으로 정하고, 저장 결과는 방문 수와 다음 대화에 넘길 기억(memoryFor)으로 확인한다.
-@DialogueServiceTest
+@DialogueDbTest
 class MemoryServiceTest {
 
   private static final String NORMAL_OUTCOME = "The learner ended the conversation normally.";

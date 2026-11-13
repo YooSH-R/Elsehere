@@ -52,8 +52,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.36, y: 0.2331163, z: 0.07401727}
-  m_Center: {x: 0, y: 0.24, z: 0.02}
+  m_Size: {x: 0.36, y: 0.23311627, z: 0.07401727}
+  m_Center: {x: 0, y: 0.24000001, z: 0.02}
 --- !u!114 &2581783966602477301
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -118,7 +118,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.36, y: 0.23311627, z: 0.07401727}
+  m_Size: {x: 0.36, y: 0.23311639, z: 0.07401727}
   m_Center: {x: 0, y: 0.52, z: 0.02}
 --- !u!114 &5597560153657550814
 MonoBehaviour:
@@ -144,6 +144,7 @@ GameObject:
   - component: {fileID: 270686403988946193}
   - component: {fileID: 2224624168842927778}
   - component: {fileID: 1202568631271401406}
+  - component: {fileID: 3137109906580994407}
   m_Layer: 0
   m_Name: CoverE85D75
   m_TagString: Untagged
@@ -246,6 +247,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: 2a2532a23685bc14f8f5ef36ba558418, type: 2}
+--- !u!114 &3137109906580994407
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3215304141149722198}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: b890e56ae5b7b2c4d8cd370d3c08cedd, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &4030648577417989658
 GameObject:
   m_ObjectHideFlags: 0
@@ -258,6 +274,7 @@ GameObject:
   - component: {fileID: 8193456751039881139}
   - component: {fileID: 7815221023503104086}
   - component: {fileID: 7706097377161427926}
+  - component: {fileID: 7008258860673502995}
   m_Layer: 0
   m_Name: Cover4E7FA6
   m_TagString: Untagged
@@ -360,6 +377,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: 196a24f30714a304fb15161827a0b88f, type: 2}
+--- !u!114 &7008258860673502995
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4030648577417989658}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: b890e56ae5b7b2c4d8cd370d3c08cedd, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &5282971905862296730
 GameObject:
   m_ObjectHideFlags: 0
@@ -618,6 +650,7 @@ GameObject:
   - component: {fileID: 3536010989055700678}
   - component: {fileID: 7170122274923987766}
   - component: {fileID: 8845033477177406042}
+  - component: {fileID: 937872117325002814}
   m_Layer: 0
   m_Name: CoverF4C430
   m_TagString: Untagged
@@ -720,6 +753,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: 78220077ee3d0c645862d8e93edfce24, type: 2}
+--- !u!114 &937872117325002814
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9134916295013274260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: b890e56ae5b7b2c4d8cd370d3c08cedd, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &9180227608661209201
 GameObject:
   m_ObjectHideFlags: 0
@@ -768,6 +816,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
-  word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+  word: {fileID: 11400000, guid: b65574ec6b46d8c4f82294eef63dfb68, type: 2}
   parts: {fileID: 0}
   unityKey: 

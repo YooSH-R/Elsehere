@@ -30,7 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /** 대답 직후 미리 만드는 뜻 보기와 학습자의 [뜻 보기]가 실제로 서로 다른 트랜잭션에서 겹치는 경우. */
-@DialogueServiceTest
+@DialogueDbTest
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class MeaningConcurrencyTest {
 

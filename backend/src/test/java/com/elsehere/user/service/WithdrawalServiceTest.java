@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import ch.qos.logback.classic.Level;
 import com.elsehere.common.logging.LogCapture;
-import com.elsehere.dialogue.service.DialogueServiceTest;
+import com.elsehere.dialogue.service.DialogueDbTest;
 import com.elsehere.feedback.service.ModelSpeechStore;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
@@ -18,7 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 // 회원 탈퇴(USER-05). 지우는 내용의 범위는 게스트 정리와 같아 UserContentEraser가 정하고, 여기서는 탈퇴만의 개인정보 지우기를 함께 본다.
-@DialogueServiceTest
+@DialogueDbTest
 class WithdrawalServiceTest {
 
   @Autowired private WithdrawalService withdrawalService;

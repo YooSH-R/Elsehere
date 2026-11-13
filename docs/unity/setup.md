@@ -80,15 +80,15 @@ Web 빌드 메뉴와 CI는 `WebGlBuild.BuildWithDesktopPipeline`을 통해 빌�
 
 ### 웹 이용 통계
 
-웹 템플릿은 `elsehere.kr`과 `www.elsehere.kr`에서만 Google 애널리틱스 측정 ID `G-209TJ3SH81`을 사용합니다. 처음 방문하면 바로 측정을 시작하고, 통계를 수집하고 있다는 안내와 [수집 거부]·[수집 허용]을 보입니다. 거부해도 게임을 이용할 수 있고, 화면 오른쪽 아래의 **통계 수집 설정**에서 나중에 선택을 바꿀 수 있습니다. 거부하면 측정을 중지하고 분석 쿠키를 지운 뒤 페이지를 다시 불러오며, 거부한 선택은 다음 방문에도 유지됩니다. 브라우저의 사이트별 저장소를 사용하므로 두 도메인의 선택은 각각 유지됩니다. 저장소를 쓸 수 없는 브라우저는 매번 측정을 시작하고 안내를 다시 보입니다. 처리방침(`/privacy/2026-11-09`) 7절은 분석 쿠키 사용과 거부 방법을 밝히고 있어 이 방식과 맞습니다.
+웹 템플릿은 `elsehere.kr`과 `www.elsehere.kr`에서만 Google 애널리틱스 측정 ID `G-209TJ3SH81`을 사용합니다. 처음 방문부터 측정하며, 화면에 수집 안내 창이나 설정 버튼을 띄우지 않습니다. 거부 방법은 처리방침(`/privacy/2026-11-09`) 7절에 밝힌 대로 브라우저에서 쿠키를 막거나 Google 애널리틱스 차단 부가 기능을 쓰는 것이며, 막아도 게임을 이용할 수 있습니다. 예전 안내 창에서 [수집 거부]를 누른 브라우저(사이트 저장소의 `elsehere.analytics.consent`가 `denied`)는 계속 측정하지 않습니다.
 
-동의한 방문에는 페이지 조회와 WebGL 로딩 완료(`webgl_loaded`, `duration_seconds`) 또는 실패(`webgl_load_failed`, `failure_stage`)를 전송합니다. 실패 단계는 `loader` 또는 `initialization`만 사용하며 오류 원문과 사용자 정보는 보내지 않습니다. 페이지 주소는 도메인까지만, 유입 주소는 출처 도메인까지만 전달해 경로와 쿼리를 제외합니다. Google 신호와 광고 맞춤설정은 태그에서도 끕니다. 개발 주소와 로컬에서는 태그와 동의 화면이 실행되지 않습니다.
+측정하는 방문에는 페이지 조회와 WebGL 로딩 완료(`webgl_loaded`, `duration_seconds`) 또는 실패(`webgl_load_failed`, `failure_stage`)를 전송합니다. 실패 단계는 `loader` 또는 `initialization`만 사용하며 오류 원문과 사용자 정보는 보내지 않습니다. 페이지 주소는 도메인까지만, 유입 주소는 출처 도메인까지만 전달해 경로와 쿼리를 제외합니다. Google 신호와 광고 맞춤설정은 태그에서도 끕니다. 개발 주소와 로컬에서는 태그가 실행되지 않습니다.
 
-팀원 브라우저는 측정하지 않습니다. 브라우저마다 한 번 `https://elsehere.kr/?team=1`로 열면 템플릿이 팀 기기 쿠키(`elsehere_team=1`, 2년)를 남기고 주소에서 `team`을 지우며, 그 뒤로는 태그와 동의 화면을 실행하지 않습니다. `?team=0`으로 열면 쿠키를 지우고 다시 측정합니다. 같은 쿠키로 서버가 그 브라우저에서 쓴 계정을 어드민 이용 현황에서 뺍니다([운영자 어드민](../admin.md#이용-현황)).
+팀원 브라우저는 측정하지 않습니다. 브라우저마다 한 번 `https://elsehere.kr/?team=1`로 열면 템플릿이 팀 기기 쿠키(`elsehere_team=1`, 2년)를 남기고 주소에서 `team`을 지우며, 그 뒤로는 태그를 실행하지 않습니다. `?team=0`으로 열면 쿠키를 지우고 다시 측정합니다. 같은 쿠키로 서버가 그 브라우저에서 쓴 계정을 어드민 이용 현황에서 뺍니다([운영자 어드민](../admin.md#이용-현황)).
 
-템플릿의 동의 화면과 로그인 화면은 지금 버전의 개인정보 처리방침 주소(`/privacy/2026-11-09`)로 연결합니다. 웹 Nginx는 버전이 붙은 경로만 백엔드로 넘기므로 버전 없는 `/privacy`는 열리지 않습니다. 처리방침 버전을 올리면 두 링크도 함께 바꾸고, Unity EditMode 시험(`WebGlBuildTests`, `LoginScreenPrefabTests`)이 백엔드 `ConsentCatalog`의 지금 주소와 같은지 확인합니다. 변경된 처리방침과 동의 안내를 확인하기 전에는 이 템플릿을 운영에 배포하지 않습니다.
+로그인 화면은 지금 버전의 개인정보 처리방침 주소(`/privacy/2026-11-09`)로 연결합니다. 웹 Nginx는 버전이 붙은 경로만 백엔드로 넘기므로 버전 없는 `/privacy`는 열리지 않습니다. 처리방침 버전을 올리면 이 링크도 함께 바꾸고, Unity EditMode 시험(`LoginScreenPrefabTests`)이 백엔드 `ConsentCatalog`의 지금 주소와 같은지 확인합니다. 처리방침 7절의 분석 쿠키 설명이나 거부 방법을 바꾸면 이 템플릿의 측정 방식과 맞는지 함께 확인합니다.
 
-Unity EditMode 검사 외에 저장소 최상위에서 `node --test infra/tests/webgl_analytics.test.cjs`를 실행하면 동의·거부·철회, 운영 주소 제한, 팀 기기 제외와 로딩 이벤트를 네트워크 없이 검증합니다. 운영 배포 후에는 동의 전과 거부 시 요청이 없는지, 동의 후 실시간 보고서에 이벤트가 들어오는지 확인합니다.
+Unity EditMode 검사 외에 저장소 최상위에서 `node --test infra/tests/webgl_analytics.test.cjs`를 실행하면 첫 방문 측정과 안내 창이 없는 것, 예전에 거부한 브라우저 제외, 운영 주소 제한, 팀 기기 제외와 로딩 이벤트를 네트워크 없이 검증합니다. 운영 배포 후에는 첫 방문에 안내 창과 버튼 없이 측정 요청이 나가는지, 실시간 보고서에 이벤트가 들어오는지 확인합니다.
 
 ```powershell
 & "C:\Program Files\Unity\Hub\Editor\6000.3.26f1\Editor\Unity.exe" -batchmode -buildTarget WebGL -projectPath frontend/UnityClient -executeMethod A305.EditorTools.Common.WebBuildBuilder.Build -quit -logFile <저장소 밖 경로>\WebBuild.log

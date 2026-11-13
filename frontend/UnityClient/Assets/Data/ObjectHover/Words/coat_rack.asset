@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: coat_rack
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_fce9aafe86b550442bc40a2d09c3b75b
+    languageCode: en-US
+    text: coat rack
+    meaningKo: "\uC678\uD22C\uB97C \uAC70\uB294 \uC637\uAC78\uC774"
+    example: You can leave your jacket on the coat rack.
+    exampleKo: "\uC7AC\uD0B7\uC740 \uC637\uAC78\uC774\uC5D0 \uAC78\uC5B4 \uB450\uC154\uB3C4
+      \uB3FC\uC694."
+    pronunciationAudioKey: 
+  assetGuid: fce9aafe86b550442bc40a2d09c3b75b

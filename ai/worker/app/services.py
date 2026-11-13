@@ -82,17 +82,34 @@ def clean_english_correction(raw: dict, text: str) -> str | None:
     return correction if correction and spoken_words(correction) != spoken_words(text) else None
 
 
+def loose_words(value: str) -> tuple[str, ...]:
+    """아포스트로피까지 빼고 비교할 낱말. im과 I'm을 같은 낱말로 본다."""
+    return tuple(word.replace("'", "") for word in spoken_words(value))
+
+
+def apostrophe_fix(raw: dict, text: str) -> str | None:
+    """모델이 아포스트로피만 고친 학습자 말(im sorry → I'm sorry.)을 다른 표현에 넣었으면 고친 문장으로 쓴다."""
+    sentences = raw.get("better_expressions")
+    if P.HANGUL.search(text) or not isinstance(sentences, list):
+        return None
+    for sentence in map(english_line, sentences):
+        if sentence and loose_words(sentence) == loose_words(text) and spoken_words(sentence) != spoken_words(text):
+            return sentence
+    return None
+
+
 def clean_better_expressions(raw: dict, text: str, *shown: str | None) -> list[str]:
     """표현 카드에 접어 두는 같은 뜻의 다른 표현(최대 3개). 고친 문장·한국어가 섞인 말에도 준다.
-    학습자가 한 말, 카드에 이미 보이는 고친 문장·영어 번역(shown), 서로 겹치는 문장은 뺀다."""
+    학습자가 한 말, 카드에 이미 보이는 고친 문장·영어 번역(shown), 서로 겹치는 문장은 뺀다.
+    대소문자·문장 부호·아포스트로피만 다른 문장도 같은 문장으로 본다."""
     sentences = raw.get("better_expressions")
     if not isinstance(sentences, list):
         return []
-    seen = {tuple(spoken_words(line)) for line in (text, *shown) if line}
+    seen = {loose_words(line) for line in (text, *shown) if line}
     kept = []
     for sentence in map(english_line, sentences):
-        if sentence and tuple(spoken_words(sentence)) not in seen:
-            seen.add(tuple(spoken_words(sentence)))
+        if sentence and loose_words(sentence) not in seen:
+            seen.add(loose_words(sentence))
             kept.append(sentence)
     return kept[:3]
 
@@ -175,7 +192,7 @@ async def expressions(llm: LLM, req: ExpressionsRequest) -> dict:
         if isinstance(r, BaseException) and not isinstance(r, (ProviderError, ValueError)):
             raise r
     raw = {} if isinstance(res[0], BaseException) else res[0]
-    correction = clean_english_correction(raw, text)
+    correction = clean_english_correction(raw, text) or apostrophe_fix(raw, text)
     translation = {"english": correction, "error": None} if correction else None
     if len(res) == 2:
         english = "" if isinstance(res[1], BaseException) else res[1]

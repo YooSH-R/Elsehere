@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: coat
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_de079e78ebe272842a92ac2314a3548f
+    languageCode: en-US
+    text: coat
+    meaningKo: "\uAC89\uC5D0 \uC785\uB294 \uAE34 \uC678\uD22C(\uCF54\uD2B8)"
+    example: I left my coat by the door.
+    exampleKo: "\uBB38 \uC606\uC5D0 \uC678\uD22C\uB97C \uB450\uACE0 \uC654\uC5B4\uC694."
+    pronunciationAudioKey: 
+  assetGuid: de079e78ebe272842a92ac2314a3548f

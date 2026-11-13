@@ -43,7 +43,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 // 발화 전송(CONV-03)을 스트리밍으로 받을 때. 판정·대답·조각 음성은 Mock으로 정한다.
-@DialogueServiceTest
+@DialogueDbTest
 class TurnServiceStreamingTest {
 
   private static final String SAID = "Hi there";
@@ -55,7 +55,7 @@ class TurnServiceStreamingTest {
 
   @Autowired private TurnService turnService;
 
-  @Autowired private ConversationService conversationService;
+  @Autowired private DialogueStartService dialogueStartService;
 
   @Autowired private AiGateway aiGateway;
 
@@ -86,7 +86,7 @@ class TurnServiceStreamingTest {
   void setUp() {
     userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
     conversationId =
-        conversationService
+        dialogueStartService
             .start(
                 userId,
                 new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC))
@@ -306,7 +306,7 @@ class TurnServiceStreamingTest {
     Long riderId =
         UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-2", "Rider");
     Long taxiConversationId =
-        conversationService
+        dialogueStartService
             .start(
                 riderId,
                 new StartConversationRequest(UUID.randomUUID(), "TAXI_DRIVER", InitiatedBy.USER))
@@ -358,7 +358,7 @@ class TurnServiceStreamingTest {
         UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-3", "Guest");
     firstDayMissionRepository.saveAndFlush(FirstDayMission.start(guestId));
     Long hotelConversationId =
-        conversationService
+        dialogueStartService
             .start(
                 guestId,
                 new StartConversationRequest(UUID.randomUUID(), "HOTEL_STAFF", InitiatedBy.USER))

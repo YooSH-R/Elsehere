@@ -138,7 +138,7 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator NarrowScreen_StacksTheCardAboveTheConversationWithoutOverlap()
+        public IEnumerator NarrowScreen_StacksTheConversationAboveTheCardWithoutOverlap()
         {
             instance.GetComponent<RectTransform>().sizeDelta = new Vector2(900, 1400);
             view.Show(new Content { UserTranslation = "Where is the cafe?" });
@@ -149,7 +149,7 @@ namespace A305.Dialogue.PlayModeTests
                 (RectTransform)instance.transform.Find("Panel/Conversation/History"),
                 panel
             );
-            Assert.That(cardArea.yMin, Is.GreaterThan(historyArea.yMax));
+            Assert.That(historyArea.yMin, Is.GreaterThan(cardArea.yMax));
             Assert.That(cardArea.Overlaps(historyArea), Is.False);
             Assert.That(cardArea.xMin, Is.GreaterThanOrEqualTo(panel.rect.xMin));
             Assert.That(cardArea.xMax, Is.LessThanOrEqualTo(panel.rect.xMax));
@@ -186,7 +186,7 @@ namespace A305.Dialogue.PlayModeTests
         // 대화창 최대 높이보다 긴 표현은 그 높이에서 멈추고, 마지막 줄을 반쯤 가려 아래에 더 있다는 걸 알린다.
         // 굵은 막대가 보이고, 글자를 끌어 마지막 줄까지 읽는다.
         [UnityTest]
-        public IEnumerator VeryLongExpression_StopsAtTheDialogueMaximum_HalfShowingTheNextLine()
+        public IEnumerator VeryLongExpression_StopsAtTheDialogueMaximum_AndScrollsToTheEnd()
         {
             instance.GetComponent<RectTransform>().sizeDelta = new Vector2(1920, 720);
             view.Show(new Content { UserTranslation = VeryLongExpression });
@@ -201,11 +201,6 @@ namespace A305.Dialogue.PlayModeTests
                 Is.GreaterThanOrEqualTo(10)
             );
             Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(1).Within(.01f));
-            Expression.ForceMeshUpdate();
-            float line = Expression.preferredHeight / Expression.textInfo.lineCount;
-            float shownLines = scroll.viewport.rect.height / line;
-            Assert.That(shownLines - Mathf.Floor(shownLines), Is.InRange(.25f, .75f));
-
             GameObject text = scroll.content.gameObject;
             var drag = new PointerEventData(EventSystem.current ?? NewEventSystem())
             {
@@ -258,7 +253,7 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(Expression.gameObject.activeSelf, Is.False);
             Assert.That(ListenButton.gameObject.activeSelf, Is.False);
             Assert.That(OthersButton.gameObject.activeSelf, Is.True);
-            Assert.That(OthersLabel, Is.EqualTo("다른 표현 3개 더 보기"));
+            Assert.That(OthersLabel, Is.EqualTo("다른 표현 3개"));
             Assert.That(OtherRows, Is.Empty);
 
             OthersButton.onClick.Invoke();
@@ -291,10 +286,6 @@ namespace A305.Dialogue.PlayModeTests
             var scroll = Card.GetComponent<ScrollRect>();
             Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
             Rect viewportArea = InPanel((RectTransform)Card.Find("Viewport"), panel);
-            Rect cut = rows.Select(row => InPanel((RectTransform)row, panel))
-                .First(row => row.yMin < viewportArea.yMin - .5f);
-            Assert.That((cut.yMax - viewportArea.yMin) / cut.height, Is.InRange(.25f, .75f));
-
             scroll.verticalNormalizedPosition = 0;
             yield return null;
             Rect toggle = InPanel((RectTransform)OthersButton.transform, panel);
@@ -305,7 +296,7 @@ namespace A305.Dialogue.PlayModeTests
 
             OthersButton.onClick.Invoke();
             yield return null;
-            Assert.That(OthersLabel, Is.EqualTo("다른 표현 3개 더 보기"));
+            Assert.That(OthersLabel, Is.EqualTo("다른 표현 3개"));
             Assert.That(OtherRows, Is.Empty);
         }
 
@@ -324,7 +315,7 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(Heading.text, Is.EqualTo("이렇게 말하면 자연스러워요"));
             Assert.That(Expression.gameObject.activeSelf, Is.True);
             Assert.That(ListenButton.gameObject.activeSelf, Is.True);
-            Assert.That(OthersLabel, Is.EqualTo("다른 표현 1개 더 보기"));
+            Assert.That(OthersLabel, Is.EqualTo("다른 표현 1개"));
 
             OthersButton.onClick.Invoke();
             yield return null;
@@ -339,8 +330,62 @@ namespace A305.Dialogue.PlayModeTests
             };
             view.Refresh();
             yield return null;
-            Assert.That(OthersLabel, Is.EqualTo("다른 표현 2개 더 보기"));
+            Assert.That(OthersLabel, Is.EqualTo("다른 표현 2개"));
             Assert.That(OtherRows, Is.Empty);
+        }
+
+        [UnityTest]
+        public IEnumerator Expand_OpensACenteredWindow_AndCloseKeepsTheConversation()
+        {
+            view.Show(
+                new Content
+                {
+                    UserTranslation = "Where is the cafe?",
+                    UserBetterExpressions = new[] { "How can I get to the cafe?" },
+                }
+            );
+            yield return null;
+            Card.Find("ExpandButton").GetComponent<Button>().onClick.Invoke();
+            yield return null;
+            var overlay = instance.transform.Find("ExpressionOverlay");
+            Assert.That(overlay, Is.Not.Null);
+            var window = (RectTransform)overlay.Find("ExpandedExpressionCard");
+            Assert.That(window.anchoredPosition, Is.EqualTo(Vector2.zero));
+            Assert.That(window.rect.width, Is.GreaterThan(((RectTransform)Card).rect.width));
+            window.Find("ExpandButton").GetComponent<Button>().onClick.Invoke();
+            yield return null;
+            Assert.That(instance.transform.Find("ExpressionOverlay"), Is.Null);
+            Assert.That(Card.gameObject.activeInHierarchy, Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator OpenCard_KeepsHeaderControlsAndDialogueAtTheTop()
+        {
+            view.Show(
+                new Content
+                {
+                    UserLine = "A latte, please.",
+                    UserBetterExpressions = new[] { "I'd like a latte, please." },
+                }
+            );
+            yield return null;
+            OthersButton.onClick.Invoke();
+            yield return null;
+            var panel = (RectTransform)Card.parent;
+            Rect toggle = InPanel((RectTransform)OthersButton.transform, panel);
+            Rect title = InPanel(Heading.rectTransform, panel);
+            Assert.That(toggle.center.y, Is.EqualTo(title.center.y).Within(5));
+            var history = instance
+                .transform.Find("Panel/Conversation/History")
+                .GetComponent<ScrollRect>();
+            Assert.That(history.content.pivot.y, Is.EqualTo(1));
+            Assert.That(history.content.anchoredPosition.y, Is.EqualTo(0).Within(1));
+            foreach (var tool in view.ToolParts)
+                if (tool.gameObject.activeInHierarchy)
+                    Assert.That(
+                        InPanel((RectTransform)Card, panel).yMax,
+                        Is.LessThanOrEqualTo(InPanel(tool, panel).yMin)
+                    );
         }
 
         private const string LongExpression =

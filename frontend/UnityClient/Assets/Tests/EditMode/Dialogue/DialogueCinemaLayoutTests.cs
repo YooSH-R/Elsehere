@@ -12,6 +12,23 @@ namespace A305.Dialogue.Tests
         private static readonly Vector2 Wide = new Vector2(1920, 1080);
 
         [Test]
+        public void TallExpression_KeepsTheFirstLineImmediatelyBelowTheName()
+        {
+            var layout = DialogueCinemaLayout.Compute(
+                Wide,
+                90,
+                120,
+                hasTranslation: true,
+                translationHeight: 400
+            );
+            Assert.That(
+                layout.Name.yMin - layout.Lines.yMax,
+                Is.EqualTo(DialogueCinemaLayout.Gap).Within(.01f)
+            );
+            Assert.That(layout.Lines.height, Is.EqualTo(400).Within(.01f));
+        }
+
+        [Test]
         public void WideScreen_CentersAColumnOfAtMostTheReadableWidth()
         {
             DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
@@ -242,8 +259,8 @@ namespace A305.Dialogue.Tests
 
             Assert.That(small.Translation.height, Is.EqualTo(130).Within(.01f));
             Assert.That(
-                small.Translation.yMin,
-                Is.EqualTo(small.Lines.yMax + DialogueCinemaLayout.Gap).Within(.01f)
+                small.Lines.yMin,
+                Is.EqualTo(small.Translation.yMax + DialogueCinemaLayout.Gap).Within(.01f)
             );
             Assert.That(tall.Translation.height, Is.LessThan(5000));
             Assert.That(

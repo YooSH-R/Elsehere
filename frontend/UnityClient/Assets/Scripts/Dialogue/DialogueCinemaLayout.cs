@@ -118,6 +118,7 @@ namespace A305.Dialogue
                     // 대사 옆 카드는 대사 칸의 최대 높이까지 키운다. 대사보다 길면 대화창이 카드에 맞춰 커진다.
                     float cardHeight = Mathf.Clamp(translationHeight, 0, maxLines);
                     bodyTop = Mathf.Max(bodyTop, layout.Lines.yMin + cardHeight);
+                    layout.Lines.height = bodyTop - layout.Lines.yMin;
                     layout.Translation = new Rect(
                         layout.Lines.xMax + 2 * Gap,
                         layout.Lines.yMin,
@@ -133,8 +134,9 @@ namespace A305.Dialogue
                 }
                 else
                 {
-                    layout.Translation = new Rect(left, bodyTop + Gap, width, stackedCard);
-                    bodyTop += Gap + stackedCard;
+                    layout.Translation = new Rect(left, layout.Lines.yMin, width, stackedCard);
+                    layout.Lines.y += stackedCard + Gap;
+                    bodyTop = layout.Lines.yMax;
                 }
             }
             layout.Name = new Rect(left - NameOutdent, bodyTop + Gap, nameWidth, NameHeight);

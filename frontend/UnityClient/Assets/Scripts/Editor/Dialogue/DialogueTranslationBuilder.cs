@@ -155,10 +155,11 @@ namespace A305.EditorTools.Dialogue
                 .GetComponent<ThemedElement>()
                 .Use(catalog, UiThemeRole.Title);
             // 접었다 펼 수 있는 버튼임을 꺾쇠로 보인다. 화면이 펼치면 아래로 돌린다.
+            // 꺾쇠는 번호 동그라미·밑줄과 같은 강조색이고, 바탕은 화면이 옅은 강조색(고른 알약)으로 칠한다.
             RectTransform chevron = FindRect(othersButton.transform, "Chevron");
             Image chevronImage = BuilderTools.GetOrAddComponent<Image>(chevron.gameObject);
             chevronImage.sprite = Glyph(ChevronIconPath, DrawChevron);
-            chevronImage.color = GlyphInk;
+            chevronImage.color = AccentInk;
             chevronImage.raycastTarget = false;
             chevron.anchorMin = chevron.anchorMax = new Vector2(1, .5f);
             chevron.anchoredPosition = new Vector2(-24, 0);

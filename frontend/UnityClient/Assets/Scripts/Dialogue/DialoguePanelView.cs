@@ -123,6 +123,7 @@ namespace A305.Dialogue
 
         private IReadOnlyList<string> shownOthers;
         private bool othersOpen;
+        private bool othersButtonTinted;
 
         [SerializeField]
         private TMP_Text suggestText;
@@ -822,6 +823,12 @@ namespace A305.Dialogue
             translationSpeakButton.interactable = hasExpression && !content.IsBusy;
 
             othersButton.gameObject.SetActive(hasOthers);
+            // 다른 표현이 있다는 걸 알아보게 바탕을 옅은 강조색(고른 알약)으로 칠한다. 다른 알약보다 조금만 진하다.
+            if (!othersButtonTinted && othersButton.TryGetComponent(out ThemedElement othersTheme))
+            {
+                othersTheme.SetSelected(true);
+                othersButtonTinted = true;
+            }
             othersDivider.gameObject.SetActive(hasOthers);
             othersButton.GetComponentInChildren<TMP_Text>(true).text = othersOpen
                 ? "접기"

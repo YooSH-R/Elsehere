@@ -170,6 +170,14 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(folded.height, Is.LessThanOrEqualTo(110));
             Assert.That(folded.yMax, Is.EqualTo(history.yMax).Within(1));
             Assert.That(ChevronAngle, Is.EqualTo(0).Within(.5f));
+            // 다른 표현 버튼은 옅은 강조색 바탕과 강조색 꺾쇠로 다른 알약보다 조금 눈에 띈다.
+            Color othersFace = OthersButton.GetComponent<Image>().color;
+            Color plainFace = Card.Find("ExpandButton").GetComponent<Image>().color;
+            Assert.That(othersFace, Is.Not.EqualTo(plainFace));
+            Assert.That(
+                OthersButton.transform.Find("Chevron").GetComponent<Image>().color,
+                Is.EqualTo((Color)new Color32(210, 79, 47, 255))
+            );
 
             OthersButton.onClick.Invoke();
             yield return null;

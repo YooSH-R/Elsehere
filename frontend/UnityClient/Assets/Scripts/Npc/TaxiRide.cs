@@ -205,7 +205,8 @@ namespace A305.Npc
                 fare.Phase == TaxiPhase.Waiting && canBoard,
                 allowance.CanStartConversation,
                 allowance.RemainingConversations,
-                dialogue.FindNpcName(driver.Code)
+                dialogue.FindNpcName(driver.Code),
+                boarding: showcasePickupReserved
             );
             switch (prompt.Kind)
             {

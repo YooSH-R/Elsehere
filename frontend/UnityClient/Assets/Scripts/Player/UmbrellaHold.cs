@@ -47,21 +47,33 @@ namespace A305.Player
         private readonly List<(Transform Bone, Quaternion Rotation, float Curl)> fingers = new();
 
         public bool IsOpen { get; private set; }
+        private bool folded;
 
         /// <summary>펴 든 우산 모델. 처음 펴기 전에는 null이다.</summary>
         public HeldUmbrella Umbrella => umbrella;
 
         public Transform Hand => hand;
 
+        public void SetFolded(bool carried)
+        {
+            if (carried && !Prepare())
+                return;
+            SetOpen(false);
+            folded = carried;
+            if (umbrella != null)
+                umbrella.gameObject.SetActive(carried);
+        }
+
         public void SetOpen(bool open)
         {
             if (open && !Prepare())
                 return;
-            if (!open && IsOpen)
+            if (!open && (IsOpen || folded))
                 foreach (var finger in fingers)
                     if (finger.Bone != null)
                         finger.Bone.localRotation = finger.Rotation;
             IsOpen = open;
+            folded = false;
             if (umbrella != null)
                 umbrella.gameObject.SetActive(open);
         }
@@ -132,6 +144,11 @@ namespace A305.Player
 
         private void LateUpdate()
         {
+            if (folded && hand != null)
+            {
+                HoldFolded();
+                return;
+            }
             if (!IsOpen || hand == null)
                 return;
             head = headSurface.BoundsIn(transform);
@@ -210,6 +227,28 @@ namespace A305.Player
                 transform.rotation,
                 radius
             );
+        }
+
+        private void HoldFolded()
+        {
+            Vector3 shoulder = transform.InverseTransformPoint(upperArm.position);
+            Vector3 wrist = transform.TransformPoint(shoulder + new Vector3(.12f, -.42f, .12f));
+            TwoBonePose.Reach(upperArm, lowerArm, hand, wrist, transform.forward + transform.right);
+            hand.rotation =
+                Quaternion.LookRotation(transform.forward, -transform.up)
+                * Quaternion.Inverse(palmFrame);
+            foreach (var finger in fingers)
+            {
+                finger.Bone.localRotation = finger.Rotation;
+                finger.Bone.rotation =
+                    Quaternion.AngleAxis(finger.Curl, transform.right) * finger.Bone.rotation;
+            }
+            Vector3 grip = middle != null ? hand.TransformPoint(gripInHand) : hand.position;
+            umbrella.transform.SetPositionAndRotation(
+                grip,
+                Quaternion.LookRotation(transform.forward, -transform.up)
+            );
+            umbrella.FitFolded();
         }
     }
 }

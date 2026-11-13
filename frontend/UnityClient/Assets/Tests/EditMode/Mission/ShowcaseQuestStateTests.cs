@@ -23,6 +23,24 @@ namespace A305.Mission.Tests
         }
 
         [Test]
+        public void DemoCarriesFoldedUmbrellaFromHotelUntilReturningItButNotInsideShops()
+        {
+            var state = new FirstDayMissionState
+            {
+                Quest = "SHOWCASE_RAINY_EVENING",
+                Started = true,
+                Stage = 1,
+            };
+            Assert.That(state.CarriesFoldedUmbrellaIn("HOTEL"), Is.True);
+            Assert.That(state.CarriesFoldedUmbrellaIn("TOWN"), Is.True);
+            Assert.That(state.CarriesFoldedUmbrellaIn("TOWN", insideShop: true), Is.False);
+            state.Stage = 3;
+            Assert.That(state.CarriesFoldedUmbrellaIn("TOWN"), Is.True);
+            state.Completed = true;
+            Assert.That(state.CarriesFoldedUmbrellaIn("HOTEL"), Is.False);
+        }
+
+        [Test]
         public void CompletedDemoStaysAvailableForNotesWithoutStartingAnotherQuest()
         {
             var state = new FirstDayMissionState

@@ -66,6 +66,34 @@ namespace A305.Player.Tests
         }
 
         [UnityTest]
+        public IEnumerator FoldedUmbrella_StaysInTheLoweredHandAndCanBePutAway()
+        {
+            UmbrellaHold hold = null;
+            yield return LoadTownPlayer(found => hold = found);
+            Animator animator = hold.GetComponentInChildren<Animator>();
+            Transform shoulder = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
+
+            hold.SetFolded(true);
+            yield return Frames(10);
+
+            Assert.That(hold.Umbrella, Is.Not.Null);
+            Assert.That(hold.IsOpen, Is.False);
+            Assert.That(hold.Umbrella.gameObject.activeInHierarchy, Is.True);
+            Assert.That(hold.Hand.position.y, Is.LessThan(shoulder.position.y - .2f));
+            Renderer cloth = hold.Umbrella.Canopy.GetComponentInChildren<Renderer>();
+            Assert.That(
+                cloth.bounds.size.x,
+                Is.LessThan(.3f),
+                "접은 우산은 넓게 펼쳐져 있지 않습니다."
+            );
+            Assert.That(cloth.bounds.center.y, Is.LessThan(hold.Hand.position.y));
+
+            hold.SetFolded(false);
+            yield return null;
+            Assert.That(hold.Umbrella.gameObject.activeInHierarchy, Is.False);
+        }
+
+        [UnityTest]
         public IEnumerator ClosedUmbrella_IsPutAway()
         {
             UmbrellaHold hold = null;

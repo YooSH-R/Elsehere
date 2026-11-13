@@ -113,7 +113,17 @@ namespace A305.Npc
         public bool IsGuidingTutorial => tutorialScriptKey != null;
 
         /// <summary>퀘스트가 이 행인을 정한 자리에 붙잡아 두었는지(<see cref="WaitAt"/>)</summary>
-        public bool IsWaitingForQuest => questSpot.HasValue;
+        public bool IsWaitingForQuest => questSpot.HasValue || showcaseApproach;
+        private bool showcaseApproach;
+
+        public void BeginShowcaseApproach()
+        {
+            if (showcaseApproach || approach == null)
+                return;
+            showcaseApproach = true;
+            routine?.Interrupt();
+            approach = new PasserbyApproach(new PasserbyRules(30, 2, 10, 60, true));
+        }
 
         /// <summary>
         /// 퀘스트에서 이 행인을 만나야 하는 동안 정한 자리로 옮겨 기다리게 한다. 생활 대신 그 자리를 지키고,
@@ -680,7 +690,10 @@ namespace A305.Npc
 
         private void Walk(Vector3 horizontalDirection)
         {
-            WalkToward(horizontalDirection, CurrentSettings.WalkSpeedMetersPerSecond);
+            WalkToward(
+                horizontalDirection,
+                showcaseApproach ? 1.4f : CurrentSettings.WalkSpeedMetersPerSecond
+            );
         }
 
         /// <summary>횡단 목표와 물리 장애물을 먼저 정한다. 다른 사람은 이 실제 목표를 기준으로 비켜간다.</summary>

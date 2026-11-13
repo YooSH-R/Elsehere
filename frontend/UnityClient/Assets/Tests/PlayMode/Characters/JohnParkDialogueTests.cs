@@ -16,6 +16,94 @@ namespace A305.Characters.PlayModeTests
     public sealed class JohnParkDialogueTests
     {
         [UnityTest]
+        public IEnumerator AmbientRapPlaysWithoutStartingAConversationAndStopsCleanly()
+        {
+            const string path = "Assets/Scenes/Sandbox/NpcJohnParkDialogueSandbox.unity";
+            yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
+                path,
+                new LoadSceneParameters(LoadSceneMode.Additive)
+            );
+            var scene = SceneManager.GetSceneByPath(path);
+            try
+            {
+                var performance = scene
+                    .GetRootGameObjects()
+                    .SelectMany(root => root.GetComponentsInChildren<RecordedNpcPerformance>())
+                    .Single();
+                var dialogue = scene
+                    .GetRootGameObjects()
+                    .SelectMany(root => root.GetComponentsInChildren<DialogueController>())
+                    .Single();
+                Assert.That(performance.PlayAmbient(), Is.True);
+                yield return null;
+                Assert.That(performance.IsPerforming, Is.True);
+                Assert.That(
+                    dialogue.IsTalking,
+                    Is.False,
+                    "입장 공연은 대화·AI 호출을 시작하지 않습니다."
+                );
+                performance.StopAmbient();
+                Assert.That(performance.IsPerforming, Is.False);
+            }
+            finally
+            {
+                foreach (var root in scene.GetRootGameObjects())
+                    Object.Destroy(root);
+                SceneManager.UnloadSceneAsync(scene);
+            }
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator ShowcaseWelcomePlaysAtEntryAndJohnApproachesAfterTheFirstStep()
+        {
+            const string path = "Assets/Scenes/Sandbox/NpcJohnParkDialogueSandbox.unity";
+            yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
+                path,
+                new LoadSceneParameters(LoadSceneMode.Additive)
+            );
+            var scene = SceneManager.GetSceneByPath(path);
+            try
+            {
+                var roots = scene.GetRootGameObjects();
+                var npc = roots
+                    .SelectMany(root => root.GetComponentsInChildren<NpcIdentity>())
+                    .Single();
+                var player = roots
+                    .SelectMany(root => root.GetComponentsInChildren<A305.Player.PlayerMover>())
+                    .Single();
+                var dialogue = roots
+                    .SelectMany(root => root.GetComponentsInChildren<DialogueController>())
+                    .Single();
+                player.transform.position = npc.transform.position + Vector3.forward * 5;
+                var welcome = npc.gameObject.AddComponent<ShowcaseRestaurantWelcome>();
+                welcome.Configure(player, dialogue);
+                var performance = npc.GetComponent<RecordedNpcPerformance>();
+                Assert.That(performance.IsPerforming, Is.True);
+                Assert.That(welcome.HasOffered, Is.False);
+                Vector3 before = npc.transform.position;
+                player.transform.position += Vector3.right * .4f;
+                for (int i = 0; i < 15; i++)
+                    yield return null;
+                Assert.That(welcome.HasOffered, Is.True);
+                Assert.That(performance.IsPerforming, Is.False);
+                Assert.That(Vector3.Distance(before, npc.transform.position), Is.GreaterThan(.01f));
+                Assert.That(
+                    dialogue.IsTalking,
+                    Is.False,
+                    "대화는 기존 제안의 수락 후에만 시작합니다."
+                );
+            }
+            finally
+            {
+                foreach (var root in scene.GetRootGameObjects())
+                    Object.Destroy(root);
+                SceneManager.UnloadSceneAsync(scene);
+            }
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator SandboxStartsRecordedDialogueAndReleasesSpeechOnExit()
         {
             const string path = "Assets/Scenes/Sandbox/NpcJohnParkDialogueSandbox.unity";

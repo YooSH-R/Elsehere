@@ -45,6 +45,7 @@ namespace A305.Mission
         private UmbrellaHold umbrella;
         private TaxiRide taxi;
         private string pendingTaxiArrival;
+        private bool umbrellaInTaxi;
 
         // 끝낸 퀘스트의 팡파레. 대화가 끝나면 띄운다.
         private QuestBoardState finishedBoard;
@@ -101,6 +102,11 @@ namespace A305.Mission
 
         private void Update()
         {
+            if (taxi != null && umbrellaInTaxi != taxi.IsPassenger)
+            {
+                umbrellaInTaxi = taxi.IsPassenger;
+                UpdateUmbrella();
+            }
             dinerRest?.Tick(Time.unscaledDeltaTime, state, busy);
             if (state?.CountsAsCafeRest != true)
                 return;
@@ -319,10 +325,30 @@ namespace A305.Mission
             try
             {
                 FirstDayMissionState response = await action();
+                SurveyPrompt.AutomaticInvitationsPaused = response.IsShowcase && response.Started;
                 if (this == null)
                     return;
                 string finished = response.QuestFinishedSince(state);
                 state = response;
+                dialogue.UsesShowcasePresentation = state.IsShowcase && state.Started;
+                if (
+                    state.IsShowcase
+                    && state.Stage == 2
+                    && gameObject.scene.name == "MapleDinerInterior"
+                )
+                {
+                    foreach (
+                        NpcIdentity npc in FindObjectsByType<NpcIdentity>(FindObjectsSortMode.None)
+                    )
+                    {
+                        if (npc.Code != "TOWN_JOHN_PARK")
+                            continue;
+                        var welcome = npc.GetComponent<ShowcaseRestaurantWelcome>();
+                        if (welcome == null)
+                            welcome = npc.gameObject.AddComponent<ShowcaseRestaurantWelcome>();
+                        welcome.Configure(player, dialogue);
+                    }
+                }
                 // 미션이 찾아가라고 한 직원은 교대 밖이어도 자리를 지키고 응대한다. 장면을 옮겨도 남는다.
                 NpcDuty.MissionNpcCode = state.CurrentNpcCode;
                 if (finished != null)
@@ -334,13 +360,7 @@ namespace A305.Mission
                 view.ShowMessage("");
                 if (weather != null)
                     weather.Show(state.Weather, state.FallbackWeather);
-                if (umbrella != null)
-                    umbrella.SetOpen(
-                        state.OpensUmbrellaIn(
-                            sceneCode,
-                            PlaceScenes.IsTownShop(gameObject.scene.name)
-                        )
-                    );
+                UpdateUmbrella();
             }
             catch (ApiException exception)
             {
@@ -383,6 +403,17 @@ namespace A305.Mission
                     }
                 }
             }
+        }
+
+        private void UpdateUmbrella()
+        {
+            if (umbrella == null || state == null)
+                return;
+            bool insideShop = PlaceScenes.IsTownShop(gameObject.scene.name);
+            if (state.CarriesFoldedUmbrellaIn(sceneCode, insideShop))
+                umbrella.SetFolded(taxi == null || !taxi.IsPassenger);
+            else
+                umbrella.SetOpen(state.OpensUmbrellaIn(sceneCode, insideShop));
         }
 
         private void Render()

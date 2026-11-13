@@ -29,6 +29,19 @@ namespace A305.Player
         private readonly Vector3[] vertices = new Vector3[34 * Sides];
         private readonly Vector3[] normals = new Vector3[34 * Sides];
 
+        /// <summary>접은 천과 곧은 우산대를 손 아래로 늘어뜨린다. 원점은 열린 우산과 같은 손잡이다.</summary>
+        public void FitFolded()
+        {
+            for (int i = 0; i < points.Length; i++)
+                points[i] = transform.position + transform.up * (.68f * i / (points.Length - 1));
+            UpdateTube();
+            canopy.SetPositionAndRotation(
+                transform.position + transform.up * .12f,
+                transform.rotation
+            );
+            canopy.localScale = new Vector3(.07f, 1.7f, .07f);
+        }
+
         /// <summary>손잡이에서 귀 옆까지 매끄러운 곡선으로 잇고 캐노피는 수평으로 둔다.</summary>
         public void Fit(Vector3 side, Vector3 roof, Quaternion roofRotation, float radius)
         {

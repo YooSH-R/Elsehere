@@ -73,7 +73,7 @@ namespace A305.EditorTools.Dialogue
             );
         }
 
-        public static void CaptureFourLines()
+        public static void CaptureFiveLines()
         {
             DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
             view.Show(
@@ -92,8 +92,8 @@ namespace A305.EditorTools.Dialogue
                         ),
                         DialogueLine.FromUser("For here, please."),
                         DialogueLine.FromNpc(
-                            "Of course. Would you like anything else?",
-                            "그럼요. 더 필요한 건 있으세요?"
+                            "Of course. I'll bring your drink to the table when it's ready. You can take a seat by the window, and let me know if you'd like anything else with your order.",
+                            "음료가 준비되면 테이블로 가져다드릴게요. 창가에 앉으셔도 돼요. 주문에 더 필요한 것이 있으면 알려 주세요."
                         ),
                     },
                 }
@@ -108,7 +108,7 @@ namespace A305.EditorTools.Dialogue
                 view,
                 eye,
                 face,
-                Path.Combine(output, "four-lines-desktop.png"),
+                Path.Combine(output, "five-lines-desktop.png"),
                 1920,
                 1080,
                 showLatest: true
@@ -118,7 +118,7 @@ namespace A305.EditorTools.Dialogue
                 view,
                 eye,
                 face,
-                Path.Combine(output, "four-lines-short.png"),
+                Path.Combine(output, "five-lines-short.png"),
                 844,
                 390,
                 showLatest: true
@@ -593,7 +593,7 @@ namespace A305.EditorTools.Dialogue
             where T : Object =>
             (T)new SerializedObject(owner).FindProperty(field).objectReferenceValue;
 
-        private static void Render(
+        internal static void Render(
             Camera camera,
             DialoguePanelView view,
             Vector3 eye,
@@ -662,7 +662,7 @@ namespace A305.EditorTools.Dialogue
         /// [뜻 보기]로 뜻과 풀이를 받아 둔 카페 서버 대화. 마지막 Mia 대사에 한 단어(latte), 숙어(to go)와 숙어 안의 단어(go) 풀이가 있다.
         /// 서버 대화처럼 NPC 대사를 음성으로 들려주므로 [자막]을 끄면 대사를 가린다.
         /// </summary>
-        private sealed class WordPreviewContent : IDialogueContent
+        internal sealed class WordPreviewContent : IDialogueContent
         {
             public const string LatteLink = "2/0";
 
@@ -698,7 +698,8 @@ namespace A305.EditorTools.Dialogue
             public string UserTranslation { get; set; }
             public IReadOnlyList<string> UserBetterExpressions { get; set; }
             public IReadOnlyList<DialogueLine> PreviewLines { get; set; }
-            public string NpcName => "Mia";
+            public string PreviewNpcName { get; set; } = "Mia";
+            public string NpcName => PreviewNpcName;
             public IReadOnlyList<DialogueLine> Lines =>
                 PreviewLines != null ? PreviewLines
                 : UserTranslation == null ? lines

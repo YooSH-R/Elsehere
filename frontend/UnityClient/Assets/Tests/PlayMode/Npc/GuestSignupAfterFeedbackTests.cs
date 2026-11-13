@@ -98,6 +98,7 @@ namespace A305.Npc.PlayModeTests
             for (int turn = 0; turn < MaxGuidedTurns && !dialogue.IsGuidedCompleted; turn++)
             {
                 Click(panel, "HintButton");
+                Click(panel, "UseHintButton");
                 Click(panel, "SendButton");
                 yield return null;
             }

@@ -413,7 +413,9 @@ public class ConversationService {
       // 기억 카드 갱신은 따로 실행되어 피드백 생성과 함께 진행된다. 실패해도 종료·피드백에 영향이 없다.
       memoryService.updateAfterConversation(userId, conversationId, request.requestId());
       // 건넬 것 판정도 따로 실행해 피드백을 만드는 동안 끝낸다. 실패하면 없는 것으로 본다.
-      followUp = followUpService.afterConversation(userId, conversationId, request.requestId());
+      if (!ending.showcase()) {
+        followUp = followUpService.afterConversation(userId, conversationId, request.requestId());
+      }
     }
     FeedbackResponse feedback =
         feedbackService.feedbackOnEnd(
@@ -464,7 +466,8 @@ public class ConversationService {
                       conversation.isReview()
                           ? reviewPracticeResults.record(userId, conversation)
                           : null);
-          return new Ending(response, conversation.isPractice());
+          return new Ending(
+              response, conversation.isPractice(), conversation.getShowcaseStage() != null);
         });
   }
 
@@ -506,13 +509,19 @@ public class ConversationService {
     }
     // 복습과 장소 연습은 지금 퀘스트, 이 NPC와의 기억, 건넬 것을 섞지 않고 정한 상황만 연습한다.
     boolean storyDialogue = review == null && practice == null;
+    Optional<QuestTalkService.SelectedQuest> quest =
+        questTalks.forStart(userId, npcCode, review != null, practice);
+    boolean showcase =
+        quest.filter(selected -> selected.source() == QuestTalkService.Source.SHOWCASE).isPresent();
     return new StartContext(
         npc,
         dialogueContexts.learner(user, speechSpeed),
         selectedLevel(user),
         storyDialogue ? memoryService.memoryFor(userId, npc.npcId()) : null,
-        questTalks.forStart(userId, npcCode, review != null, practice),
-        storyDialogue ? followUpService.readyFor(userId, npc.npcId()) : Optional.empty(),
+        quest,
+        storyDialogue && !showcase
+            ? followUpService.readyFor(userId, npc.npcId())
+            : Optional.empty(),
         review);
   }
 
@@ -586,8 +595,19 @@ public class ConversationService {
     }
     return context
         .quest()
-        .map(quest -> quest.talk().instruction() + MISSION_GREETING)
+        .map(quest -> quest.talk().instruction() + missionGreeting(quest))
         .orElse(npcOffDuty ? OFF_DUTY_GREETING_INSTRUCTION : GREETING_INSTRUCTION);
+  }
+
+  private String missionGreeting(QuestTalkService.SelectedQuest quest) {
+    if (quest.source() == QuestTalkService.Source.SHOWCASE
+        && quest.talk() instanceof com.elsehere.mission.service.QuestTalk.Goals
+        && quest.talk().stage() == com.elsehere.mission.entity.ShowcaseStage.RETURN.ordinal()) {
+      return " Welcome the learner back and ask if they managed to stay dry with the borrowed umbrella."
+          + " For example: Welcome back! Did you stay dry?"
+          + " Do not ask what they need or begin another check-in. Wait for their answer.";
+    }
+    return MISSION_GREETING;
   }
 
   /**
@@ -610,7 +630,7 @@ public class ConversationService {
   /**
    * @param practice 장소 연습 대화인지. 종료 뒤 기억 카드와 건넬 것을 만들지 않는다
    */
-  private record Ending(EndConversationResponse response, boolean practice) {}
+  private record Ending(EndConversationResponse response, boolean practice, boolean showcase) {}
 
   /**
    * @param created 이번 요청이 대화를 새로 만들었는지. 같은 요청 ID로 이미 만든 대화를 돌려주면 false

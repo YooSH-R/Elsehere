@@ -272,6 +272,10 @@ namespace A305.Mission
         private bool? storyWasIdle;
         private FirstDayMissionState shownState;
         private PracticeVisitPlan shownPractice;
+        private readonly Dictionary<
+            TMP_Text,
+            (TMP_FontAsset Font, float Size, bool AutoSize)
+        > goalFonts = new();
 
         // 끝낸 퀘스트의 보상은 팡파레와 함께 더하므로 그때까지 코인 칩을 바꾸지 않는다. 그동안 받은 코인과 산 것을 기억한다.
         private bool rewardExpected;
@@ -475,10 +479,12 @@ namespace A305.Mission
                 step.Status == "CURRENT"
             );
             direction.text = StoryDirection(state);
+            direction.gameObject.SetActive(!state.IsShowcase);
             situation.text = state.Situation;
             string situationCopy = NormalizeCardCopy(state.Situation);
             situation.gameObject.SetActive(
-                situationCopy.Length > 0
+                !state.IsShowcase
+                    && situationCopy.Length > 0
                     && !string.Equals(
                         situationCopy,
                         NormalizeCardCopy(direction.text),
@@ -493,7 +499,7 @@ namespace A305.Mission
             place.text = current != null ? CompactTitle(current.Title) : "";
             ShowProgress(state.Steps.Select(step => MarkSprite(step.Status)).ToArray());
             // NPC가 할 일을 먼저 말하지 않으므로, 요청 안내 아래 이번 단계 목표를 보여 주어 무엇을 요청할지 알게 한다.
-            ShowGoals(state.CanRest || current == null ? null : current.Goals);
+            ShowGoals(state.CanRest || current == null ? null : current.Goals, state.IsShowcase);
             ShowPill(
                 "이야기",
                 state.Steps.Select(step => step.Status == "UPCOMING" ? pillMarkOff : pillMarkStory)
@@ -505,6 +511,7 @@ namespace A305.Mission
         {
             bool Done(int goal) => goal < done.Count && done[goal];
             direction.text = plan.Description;
+            direction.gameObject.SetActive(true);
             situation.gameObject.SetActive(false);
             stepChip.transform.parent.gameObject.SetActive(false);
             if (practiceChip != null)
@@ -609,7 +616,7 @@ namespace A305.Mission
         /// 이름 아래에 말해야 할 정보를 작게 보인다.
         /// 목표가 없으면(쉬는 차례 등) 목표 칸을 숨긴다.
         /// </summary>
-        private void ShowGoals(IReadOnlyList<FirstDayMissionGoal> current)
+        private void ShowGoals(IReadOnlyList<FirstDayMissionGoal> current, bool showcase = false)
         {
             int count = current?.Count ?? 0;
             goals.gameObject.SetActive(current != null);
@@ -628,6 +635,7 @@ namespace A305.Mission
                     ? goalDone
                     : goalOpen;
                 TMP_Text label = row.GetComponentInChildren<TMP_Text>(true);
+                StyleGoal(label, showcase, 27, heading: true);
                 label.text = goal.Title;
                 label.color = goal.Completed ? Muted : Ink;
                 label.fontStyle = goal.Completed ? FontStyles.Strikethrough : FontStyles.Normal;
@@ -637,8 +645,22 @@ namespace A305.Mission
                     continue;
                 bool showsHint = !goal.Completed && !string.IsNullOrEmpty(goal.Hint);
                 hint.gameObject.SetActive(showsHint);
-                hint.GetComponent<TMP_Text>().text = showsHint ? goal.Hint : "";
+                var hintText = hint.GetComponent<TMP_Text>();
+                hintText.text = showsHint ? goal.Hint : "";
+                StyleGoal(hintText, showcase, 21, heading: false);
             }
+        }
+
+        private void StyleGoal(TMP_Text text, bool showcase, float size, bool heading)
+        {
+            if (!goalFonts.TryGetValue(text, out var original))
+            {
+                original = (text.font, text.fontSize, text.enableAutoSizing);
+                goalFonts.Add(text, original);
+            }
+            text.font = showcase && heading ? direction.font : original.Font;
+            text.fontSize = showcase ? size : original.Size;
+            text.enableAutoSizing = showcase ? false : original.AutoSize;
         }
 
         /// <summary>단계 칩 글자. 지금 단계가 몇 번째인지 전체 단계 수와 함께 쓰고, 모두 끝냈으면 마지막 단계로, 시작 전이면 null이다.</summary>

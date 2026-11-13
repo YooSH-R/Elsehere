@@ -100,12 +100,15 @@ public class QuestTalkService {
      * 대화를 시작할 때 퀘스트 단계와 남은 목표를 대화에 남긴다. 판정할 목표가 있는 퀘스트 대화(그 단계의 대상 NPC)만 남긴다. 장소 연습은 상황을 따로 남긴다.
      */
     public void recordStage(Conversation conversation) {
+      if (source == Source.SHOWCASE) {
+        // 택시도 시작 상황을 남겨 한 발화 대화의 피드백과 후속 처리에 사용한다.
+        conversation.attachShowcaseStage(talk.stage());
+      }
       if (!(talk instanceof QuestTalk.Goals goals)) {
         return;
       }
       switch (source) {
         case SHOWCASE -> {
-          conversation.attachShowcaseStage(goals.stage());
           conversation.recordShowcaseGoals(goals.remainingGoals());
         }
         case TOWN_STORY -> {

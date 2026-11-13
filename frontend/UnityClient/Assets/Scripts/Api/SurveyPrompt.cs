@@ -21,6 +21,9 @@ namespace A305.Api
         /// <summary>안내가 접힌 뒤 남는 메인 화면의 설문 진입점.</summary>
         public static bool EntryVisible { get; private set; }
 
+        /// <summary>시연처럼 자동 설문이 진행을 방해하는 흐름에서만 잠시 멈춘다. 수동 진입은 유지한다.</summary>
+        public static bool AutomaticInvitationsPaused { get; set; }
+
         public static void RevealEntry() => EntryVisible = true;
 
         public static void RestoreEntry() =>
@@ -31,12 +34,21 @@ namespace A305.Api
 
         public static bool RequestAfterFeedback(bool isRegularConversation = true)
         {
-            if (!isRegularConversation || UnityEngine.PlayerPrefs.GetInt(InvitationKey, 0) != 0)
+            if (
+                AutomaticInvitationsPaused
+                || !isRegularConversation
+                || UnityEngine.PlayerPrefs.GetInt(InvitationKey, 0) != 0
+            )
                 return false;
             UnityEngine.PlayerPrefs.SetInt(InvitationKey, 1);
             UnityEngine.PlayerPrefs.Save();
             Request();
             return true;
         }
+
+        [UnityEngine.RuntimeInitializeOnLoadMethod(
+            UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration
+        )]
+        private static void ResetAutomaticInvitations() => AutomaticInvitationsPaused = false;
     }
 }

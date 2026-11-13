@@ -15,6 +15,33 @@ namespace A305.Dialogue.Tests
     public class ServerConversationTests
     {
         [Test]
+        public async Task ShowcaseTaxiOffersUsefulPhrasesWithoutWaitingForAnotherAiRequest()
+        {
+            api.StartResponse.OpeningTurn.SuggestWords = null;
+            api.PendingWords = new TaskCompletionSource<SuggestWordsData>();
+            var taxi = new ServerConversation("TAXI_DRIVER", "Dan", api, false, showcase: true);
+            await taxi.StartAsync();
+            Assert.That(taxi.SuggestWords, Is.Not.Null.And.Not.Empty);
+            Assert.That(taxi.HintText, Does.Contain("Maple Burger"));
+            Assert.That(taxi.HintMeaningKo, Is.Not.Null.And.Not.Empty);
+            Assert.That(api.Calls, Does.Not.Contain("GetSuggestWords"));
+        }
+
+        [Test]
+        public async Task ShowcaseStreamingShowsSpokenChunksInsteadOfUnconfirmedText()
+        {
+            var demo = new ServerConversation(CafeStaffCode, "Mia", api, false, showcase: true);
+            api.StartStreamSteps.Add(stream => stream.OnDelta("Unconfirmed unrelated text."));
+            api.StartStreamSteps.Add(_ => Assert.That(demo.Lines, Is.Empty));
+            api.StartStreamSteps.Add(stream => stream.OnSpeechChunk(0, "Welcome back!", Wav));
+            api.StartStreamSteps.Add(_ =>
+                Assert.That(demo.Lines.Single().English, Is.EqualTo("Welcome back!"))
+            );
+            await demo.StartAsync();
+            Assert.That(demo.Lines.Single().English, Is.EqualTo(Opening));
+        }
+
+        [Test]
         public async Task ReviewConflict_WhenThePreviousConversationHasAlreadyEnded_StartsAgainWithTheSameRequest()
         {
             var ids = new List<string>();

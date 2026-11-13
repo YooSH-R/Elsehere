@@ -99,6 +99,7 @@ namespace A305.Dialogue
         public event Action<GlossaryWord> WordSaveRequested;
 
         public bool IsTalking => session.IsActive;
+        public bool UsesShowcasePresentation { get; set; }
         public long? ActiveReviewConversationId =>
             serverConversation?.IsReview == true ? serverConversation.ConversationId : null;
 
@@ -530,7 +531,8 @@ namespace A305.Dialogue
                 reviewStart: reviewStart,
                 practiceScenarioId: practiceScenarioId,
                 practiceStart: practiceStart,
-                recordedOpening: recordedOpening
+                recordedOpening: recordedOpening,
+                showcase: UsesShowcasePresentation
             );
             speechRecovery = new NpcSpeechRecovery(serverConversation, PlayRecoveredSpeechAsync);
             serverConversation.Changed += panel.Refresh;

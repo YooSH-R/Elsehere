@@ -15,11 +15,11 @@ namespace A305.Player
         private HeldUmbrella umbrellaPrefab;
 
         [SerializeField]
-        [Tooltip("기본 측면 거리 0.14m에 더할 손목의 바깥쪽 거리(m)")]
+        [Tooltip("기본 측면 거리 0.08m에 더할 손목의 바깥쪽 거리(m)")]
         private float gripBesideHead = .04f;
 
         [SerializeField]
-        [Tooltip("어깨에서 기본 6cm에 더할 손목의 전방 거리(m)")]
+        [Tooltip("어깨에서 기본 14cm에 더할 손목의 전방 거리(m)")]
         private float gripForward = .06f;
 
         [SerializeField]
@@ -152,9 +152,9 @@ namespace A305.Player
             Vector3 shoulder = transform.InverseTransformPoint(upperArm.position);
             Vector3 wrist = transform.TransformPoint(
                 new Vector3(
-                    shoulder.x + .14f + gripBesideHead,
+                    shoulder.x + .08f + gripBesideHead,
                     shoulder.y - .04f - gripBelowShoulder,
-                    shoulder.z + .06f + gripForward
+                    shoulder.z + .14f + gripForward
                 )
             );
             TwoBonePose.Reach(
@@ -162,7 +162,7 @@ namespace A305.Player
                 lowerArm,
                 hand,
                 wrist,
-                -transform.up + transform.right * .5f
+                -transform.up + transform.right * .2f
             );
 
             // 뒷머리를 완전히 피하려고 팔을 비틀지 않는다. 손은 앞에 두고 우산만 뒤로 기울인다.
@@ -170,9 +170,10 @@ namespace A305.Player
             Quaternion tilt =
                 Quaternion.AngleAxis(Mathf.Clamp(leanDegrees, 35, 45), -transform.right)
                 * transform.rotation;
-            Vector3 fingersForward = transform.TransformDirection(
-                new Vector3(.6427876f, 0, .7660444f)
-            );
+            // 손을 고정된 대각선으로 비틀지 않고, 뻗은 전완을 따라 손가락 방향을 맞춘다.
+            Vector3 fingersForward = Vector3
+                .ProjectOnPlane(hand.position - lowerArm.position, tilt * Vector3.up)
+                .normalized;
             if (middle != null)
                 hand.rotation =
                     Quaternion.LookRotation(fingersForward, tilt * Vector3.up)
@@ -191,7 +192,7 @@ namespace A305.Player
                 }
             }
             umbrella.transform.SetPositionAndRotation(holdAt, tilt);
-            const float radius = .84f;
+            const float radius = 1.05f;
             // 천의 평면이 머리 전체보다 바깥에 오도록 우산대 방향으로 길이를 잰다.
             float length =
                 -headSurface.MinimumDistance(holdAt, -(tilt * Vector3.up)) + headClearance;

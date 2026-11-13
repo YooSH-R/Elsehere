@@ -480,9 +480,11 @@ namespace A305.EditorTools.Dialogue
                 int height = 1080,
                 bool showLatest = false,
                 bool midConversation = false,
-                bool scrollToEnd = false
+                bool scrollToEnd = false,
+                bool rude = false
             )
             {
+                content.UserTurnRude = rude;
                 content.PreviewLines = (midConversation ? earlier : new[] { npc })
                     .Append(DialogueLine.FromUser(said))
                     .ToArray();
@@ -518,6 +520,23 @@ namespace A305.EditorTools.Dialogue
                 null,
                 new[] { "I'd like an iced americano, please.", "Can I have an iced americano?" },
                 false
+            );
+            // 펼쳐도 카드 위쪽과 대화창은 그대로이고 아래로만 늘어난다(S15P31A305-895).
+            Capture(
+                "others-wellsaid-open.png",
+                "Can I get an iced americano, please?",
+                null,
+                new[] { "I'd like an iced americano, please.", "Can I have an iced americano?" },
+                true
+            );
+            // 무례한 말에는 같은 기분을 공손하게 말하는 다른 표현을 '무례하지 않게 말하면' 아래 보인다.
+            Capture(
+                "others-rude-open.png",
+                "뭘봐 못생긴게",
+                "What are you looking at, you ugly thing?",
+                new[] { "Why are you staring at me?", "Is something wrong?" },
+                true,
+                rude: true
             );
             Capture(
                 "others-correction-closed.png",
@@ -999,6 +1018,7 @@ namespace A305.EditorTools.Dialogue
 
             public string UserTranslation { get; set; }
             public IReadOnlyList<string> UserBetterExpressions { get; set; }
+            public bool UserTurnRude { get; set; }
             public IReadOnlyList<DialogueLine> PreviewLines { get; set; }
             public string NpcName => "Mia";
             public IReadOnlyList<DialogueLine> Lines =>

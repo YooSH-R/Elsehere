@@ -216,6 +216,45 @@ def test_a_korean_line_also_gets_other_sentences_unlike_its_translation(client, 
     assert result["better_expressions"] == ["Can I get a latte?"]
 
 
+def test_an_apostrophe_only_fix_offered_as_another_way_becomes_the_correction(client, provider):
+    # "im sorry"를 맞게 말했다고 하고 "I'm sorry."를 다른 표현으로 권하지 않는다(S15P31A305-895).
+    # 아포스트로피만 고친 학습자 말은 고친 문장으로 보이고, 다른 표현에서는 뺀다
+    answer = {"english_correction": None, "better_expressions": ["I'm sorry.", "Sorry about that."]}
+    provider.answers["expressions"] = lambda body: ok(json.dumps(answer))
+
+    result = client.post("/v1/expressions", json=expressions_body("im sorry")).json()
+
+    assert result["translation"] == {"english": "I'm sorry.", "error": None}
+    assert result["better_expressions"] == ["Sorry about that."]
+
+
+def test_other_ways_that_only_restore_an_apostrophe_of_the_correction_are_dropped(client, provider):
+    answer = {"english_correction": "It's raining.", "better_expressions": ["Its raining!", "It is raining."]}
+    provider.answers["expressions"] = lambda body: ok(json.dumps(answer))
+
+    result = client.post("/v1/expressions", json=expressions_body("Its raining.")).json()
+
+    assert result["translation"]["english"] == "It's raining."
+    assert result["better_expressions"] == ["It is raining."]
+
+
+def test_expressions_prompt_corrects_missing_apostrophes_and_rewrites_rude_lines_politely(client, provider):
+    seen = {}
+
+    def answer(body):
+        seen.update(body)
+        return ok(json.dumps({"english_correction": None, "better_expressions": []}))
+
+    provider.answers["expressions"] = answer
+
+    client.post("/v1/expressions", json=expressions_body("im sorry"))
+
+    system = seen["messages"][0]["content"]
+    assert "A missing apostrophe in a contraction" in system
+    assert "If the line is rude or insulting" in system
+    assert "polite ways to say what the learner feels or wants" in system
+
+
 def test_expressions_prompt_asks_one_to_three_other_ways_for_every_line_with_room_to_write_them(client, provider):
     # '더 좋은 문장'이 아니라 같은 뜻의 다른 표현이다. 억지로 3개를 채우지 않고, 고친 문장·한국어가 섞인 말에도 준다.
     # 판정 출력에 고친 문장과 다른 표현이 함께 들어가도 잘리지 않게 출력 상한을 넉넉히 둔다

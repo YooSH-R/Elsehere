@@ -18,7 +18,7 @@ import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.conversation.service.NpcAudioStore.StoredAudio;
 import com.elsehere.dialogue.dto.SpeechResponse;
 import com.elsehere.dialogue.dto.SpeechStatus;
-import com.elsehere.dialogue.service.DialogueServiceTest;
+import com.elsehere.dialogue.service.DialogueDbTest;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
@@ -47,7 +47,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
 
 // NPC 턴 음성 보관 정책. 실제 DB(PostgreSQL 컨테이너)와 테스트마다 빈 임시 폴더를 쓰고, 정책 시계는 고정한다.
-@DialogueServiceTest
+@DialogueDbTest
 class NpcAudioRetentionTest {
 
   private static final Instant NOW = Instant.parse("2026-10-28T00:00:00Z");

@@ -7,7 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.service.NpcAudioStore;
-import com.elsehere.dialogue.service.DialogueServiceTest;
+import com.elsehere.dialogue.service.DialogueDbTest;
 import com.elsehere.feedback.service.ModelSpeechStore;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
@@ -26,7 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 // 게스트 정리는 실제 PostgreSQL에서 SQL로 지운다. 대화·턴은 테스트 도우미로, 나머지 내용은 SQL로 넣고 활동 시각을 옮겨 확인한다.
-@DialogueServiceTest
+@DialogueDbTest
 class GuestContentCleanupTest {
 
   private static final byte[] WAV = {82, 73, 70, 70};

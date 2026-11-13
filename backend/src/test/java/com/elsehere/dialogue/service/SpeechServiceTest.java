@@ -3,7 +3,7 @@ package com.elsehere.dialogue.service;
 import static com.elsehere.conversation.DialogueTestData.conversation;
 import static com.elsehere.conversation.DialogueTestData.npcTurn;
 import static com.elsehere.conversation.DialogueTestData.textTurn;
-import static com.elsehere.dialogue.service.DialogueServiceTest.TRAINING_RECORDING_DIR;
+import static com.elsehere.dialogue.service.DialogueDbTest.TRAINING_RECORDING_DIR;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -50,7 +50,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockMultipartFile;
 
 // 음성 인식(CONV-02)과 NPC 음성 다시 듣기·다시 만들기(CONV-06·07). 워커는 Mock이고 음성 파일은 테스트 폴더에 저장한다.
-@DialogueServiceTest
+@DialogueDbTest
 class SpeechServiceTest {
 
   private static final byte[] RECORDING = {1, 2, 3};

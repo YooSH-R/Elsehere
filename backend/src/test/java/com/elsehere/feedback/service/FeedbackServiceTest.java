@@ -24,7 +24,7 @@ import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.logging.LogCapture;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
-import com.elsehere.dialogue.service.DialogueServiceTest;
+import com.elsehere.dialogue.service.DialogueDbTest;
 import com.elsehere.feedback.dto.ConversationFeedbackResponse;
 import com.elsehere.feedback.dto.DetailedFeedbackItemResponse;
 import com.elsehere.feedback.dto.FeedbackResponse;
@@ -50,7 +50,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import tools.jackson.databind.json.JsonMapper;
 
 // 피드백 생성은 AI 워커 결과를 Mock으로 정하고, 저장 결과는 종료 응답·다시 보기(FB-01)·상세 평가(FB-03)로 확인한다.
-@DialogueServiceTest
+@DialogueDbTest
 class FeedbackServiceTest {
 
   // 이미 저장된 피드백의 conversation_feedback.reviews 형식(completed()의 결과). 바꾸면 저장된 피드백을 읽지 못한다.

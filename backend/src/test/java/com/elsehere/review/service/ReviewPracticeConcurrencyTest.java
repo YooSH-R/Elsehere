@@ -10,8 +10,8 @@ import com.elsehere.conversation.entity.InitiatedBy;
 import com.elsehere.conversation.entity.InputType;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.dialogue.dto.EndConversationRequest;
-import com.elsehere.dialogue.service.ConversationService;
-import com.elsehere.dialogue.service.DialogueServiceTest;
+import com.elsehere.dialogue.service.DialogueDbTest;
+import com.elsehere.dialogue.service.DialogueEndService;
 import com.elsehere.feedback.entity.ConversationFeedback;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
@@ -29,12 +29,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /** 서로 다른 트랜잭션의 종료 재시도도 결과와 횟수를 한 번만 기록한다. */
-@DialogueServiceTest
+@DialogueDbTest
 @Import(ReviewCardService.class)
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class ReviewPracticeConcurrencyTest {
   @Autowired private ReviewCardService service;
-  @Autowired private ConversationService conversations;
+  @Autowired private DialogueEndService conversations;
   @Autowired private EntityManager entityManager;
   @Autowired private TransactionTemplate transactions;
   @Autowired private AiGateway aiGateway;

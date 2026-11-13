@@ -35,12 +35,12 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
-@DialogueServiceTest
+@DialogueDbTest
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class ConcurrentDialogueRequestsTest {
 
-  @Autowired private ConversationService conversations;
+  @Autowired private DialogueStartService conversations;
   @Autowired private TurnService turns;
   @Autowired private AiGateway ai;
   @Autowired private EntityManager entityManager;

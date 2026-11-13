@@ -38,7 +38,8 @@ import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.dialogue.dto.TurnResponse;
 import com.elsehere.dialogue.dto.UserTurnResponse;
 import com.elsehere.dialogue.service.ConversationHistoryService;
-import com.elsehere.dialogue.service.ConversationService;
+import com.elsehere.dialogue.service.DialogueEndService;
+import com.elsehere.dialogue.service.DialogueStartService;
 import com.elsehere.dialogue.service.TurnEvents;
 import com.elsehere.dialogue.service.TurnService;
 import com.elsehere.feedback.dto.FeedbackResponse;
@@ -84,7 +85,9 @@ class ConversationControllerTest {
 
   @Autowired private MockMvc mockMvc;
 
-  @MockitoBean private ConversationService conversationService;
+  @MockitoBean private DialogueStartService dialogueStartService;
+
+  @MockitoBean private DialogueEndService dialogueEndService;
 
   @MockitoBean private TurnService turnService;
 
@@ -92,7 +95,7 @@ class ConversationControllerTest {
 
   @Test
   void startReviewUsesAuthenticatedOwnerAndReturnsMode() throws Exception {
-    given(conversationService.startReview(1L, 42L, REQUEST_ID, 1.1))
+    given(dialogueStartService.startReview(1L, 42L, REQUEST_ID, 1.1))
         .willReturn(
             new ConversationStartResponse(
                 77L, ConversationStatus.ACTIVE, 1, NPC, List.of(), null, null, null, 42L));
@@ -116,12 +119,12 @@ class ConversationControllerTest {
             post("/api/v1/review-cards/42/conversations"),
             "{\"requestId\": \"" + REQUEST_ID + "\", \"speechSpeed\": 1.3}"));
 
-    then(conversationService).should().startReview(1L, 42L, REQUEST_ID, 1.3);
+    then(dialogueStartService).should().startReview(1L, 42L, REQUEST_ID, 1.3);
   }
 
   @Test
   void startPracticeUsesAuthenticatedOwnerAndReturnsScenario() throws Exception {
-    given(conversationService.startPractice(1L, "DINER_TABLE", REQUEST_ID, 1.1))
+    given(dialogueStartService.startPractice(1L, "DINER_TABLE", REQUEST_ID, 1.1))
         .willReturn(
             new ConversationStartResponse(
                 77L,
@@ -154,7 +157,7 @@ class ConversationControllerTest {
             post("/api/v1/practice-scenarios/DINER_TABLE/conversations"),
             "{\"requestId\": \"" + REQUEST_ID + "\", \"speechSpeed\": 1.4}"));
 
-    then(conversationService).should().startPractice(1L, "DINER_TABLE", REQUEST_ID, 1.4);
+    then(dialogueStartService).should().startPractice(1L, "DINER_TABLE", REQUEST_ID, 1.4);
   }
 
   @Test
@@ -250,7 +253,7 @@ class ConversationControllerTest {
   @DisplayName("POST /api/v1/conversations는 201과 첫 NPC 턴·음성 주소를 돌려준다")
   void start_respondsCreated() throws Exception {
     given(
-            conversationService.start(
+            dialogueStartService.start(
                 1L, new StartConversationRequest(REQUEST_ID, "CAFE_STAFF", InitiatedBy.NPC)))
         .willReturn(
             new ConversationStartResponse(
@@ -311,7 +314,7 @@ class ConversationControllerTest {
   @Test
   @DisplayName("대화 시작에 npcOffDuty가 true면 근무가 아닌 NPC와의 대화로 서비스에 넘긴다")
   void start_npcOffDuty_passesOffDuty() throws Exception {
-    given(conversationService.start(eq(1L), any())).willReturn(startedConversation());
+    given(dialogueStartService.start(eq(1L), any())).willReturn(startedConversation());
 
     mockMvc
         .perform(
@@ -323,7 +326,7 @@ class ConversationControllerTest {
                     + " \"initiatedBy\": \"USER\", \"npcOffDuty\": true}"))
         .andExpect(status().isCreated());
 
-    then(conversationService)
+    then(dialogueStartService)
         .should()
         .start(1L, new StartConversationRequest(REQUEST_ID, "CAFE_STAFF", InitiatedBy.USER, true));
   }
@@ -332,7 +335,7 @@ class ConversationControllerTest {
   @ValueSource(strings = {"", ", \"npcOffDuty\": null"})
   @DisplayName("npcOffDuty가 없거나 null이면 근무 중인 NPC와의 대화로 넘긴다")
   void start_withoutNpcOffDuty_passesOnDuty(String npcOffDutyField) throws Exception {
-    given(conversationService.start(eq(1L), any())).willReturn(startedConversation());
+    given(dialogueStartService.start(eq(1L), any())).willReturn(startedConversation());
 
     mockMvc
         .perform(
@@ -346,7 +349,7 @@ class ConversationControllerTest {
                     + "}"))
         .andExpect(status().isCreated());
 
-    then(conversationService)
+    then(dialogueStartService)
         .should()
         .start(1L, new StartConversationRequest(REQUEST_ID, "CAFE_STAFF", InitiatedBy.USER, false));
   }
@@ -354,7 +357,7 @@ class ConversationControllerTest {
   @Test
   @DisplayName("대화 시작에 설정창에서 고른 NPC 말 빠르기를 실어 보내면 서비스에 그대로 넘긴다")
   void start_withSpeechSpeed_passesSpeechSpeed() throws Exception {
-    given(conversationService.start(eq(1L), any())).willReturn(startedConversation());
+    given(dialogueStartService.start(eq(1L), any())).willReturn(startedConversation());
 
     mockMvc
         .perform(
@@ -368,14 +371,14 @@ class ConversationControllerTest {
 
     ArgumentCaptor<StartConversationRequest> request =
         ArgumentCaptor.forClass(StartConversationRequest.class);
-    then(conversationService).should().start(eq(1L), request.capture());
+    then(dialogueStartService).should().start(eq(1L), request.capture());
     assertThat(request.getValue().speechSpeed()).isEqualTo(1.4);
   }
 
   @Test
   @DisplayName("NPC 말 빠르기를 보내지 않는 예전 클라이언트는 기본 1.1배로 넘긴다")
   void start_withoutSpeechSpeed_passesDefaultSpeechSpeed() throws Exception {
-    given(conversationService.start(eq(1L), any())).willReturn(startedConversation());
+    given(dialogueStartService.start(eq(1L), any())).willReturn(startedConversation());
 
     mockMvc
         .perform(
@@ -388,7 +391,7 @@ class ConversationControllerTest {
 
     ArgumentCaptor<StartConversationRequest> request =
         ArgumentCaptor.forClass(StartConversationRequest.class);
-    then(conversationService).should().start(eq(1L), request.capture());
+    then(dialogueStartService).should().start(eq(1L), request.capture());
     assertThat(request.getValue().speechSpeed()).isEqualTo(1.1);
   }
 
@@ -453,7 +456,7 @@ class ConversationControllerTest {
   @Test
   @DisplayName("진행 중인 대화가 있으면 409 CONVERSATION_ALREADY_ACTIVE와 진행 중인 대화 ID를 돌려준다")
   void start_whileActive_respondsConflict() throws Exception {
-    given(conversationService.start(eq(1L), any()))
+    given(dialogueStartService.start(eq(1L), any()))
         .willThrow(
             new BusinessException(
                 ErrorCode.CONVERSATION_ALREADY_ACTIVE, Map.of("activeConversationId", 3L)));
@@ -475,7 +478,7 @@ class ConversationControllerTest {
   @DisplayName(
       "POST /api/v1/conversations에 Accept: text/event-stream이면 첫 인사 글자·조각 음성을 보내고 마지막에 REST와 같은 본문을 conversation으로 보낸다")
   void start_streamAccept_sendsDeltaAudioThenConversation() throws Exception {
-    given(conversationService.start(eq(1L), any(), any()))
+    given(dialogueStartService.start(eq(1L), any(), any()))
         .willAnswer(
             invocation -> {
               TurnEvents events = invocation.getArgument(2);
@@ -507,7 +510,7 @@ class ConversationControllerTest {
   @Test
   @DisplayName("대화 시작 스트림이어도 첫 인사를 보내기 전에 난 오류는 지금과 같은 HTTP 상태와 오류 본문으로 응답한다")
   void start_streamAccept_errorBeforeEvents_respondsHttpError() throws Exception {
-    given(conversationService.start(eq(1L), any(), any()))
+    given(dialogueStartService.start(eq(1L), any(), any()))
         .willThrow(
             new BusinessException(
                 ErrorCode.CONVERSATION_ALREADY_ACTIVE, Map.of("activeConversationId", 3L)));
@@ -524,7 +527,7 @@ class ConversationControllerTest {
   @Test
   @DisplayName("첫 인사를 보내기 시작한 뒤 난 오류는 HTTP 상태와 공통 오류 본문을 error 이벤트로 보내고 스트림을 끝낸다")
   void start_streamAccept_errorAfterEvents_sendsErrorEvent() throws Exception {
-    given(conversationService.start(eq(1L), any(), any()))
+    given(dialogueStartService.start(eq(1L), any(), any()))
         .willAnswer(
             invocation -> {
               TurnEvents events = invocation.getArgument(2);
@@ -715,7 +718,7 @@ class ConversationControllerTest {
   @Test
   @DisplayName("POST /end는 종료 상태와 짧은 피드백을 돌려준다")
   void end_respondsFeedback() throws Exception {
-    given(conversationService.end(1L, 5L, new EndConversationRequest(REQUEST_ID, false)))
+    given(dialogueEndService.end(1L, 5L, new EndConversationRequest(REQUEST_ID, false)))
         .willReturn(
             new EndConversationResponse(
                 5L,
@@ -757,12 +760,12 @@ class ConversationControllerTest {
   @Test
   @DisplayName("GET /active는 진행 중인 대화가 없으면 204, 있으면 200과 대화를 돌려준다")
   void active_respondsNoContentOrConversation() throws Exception {
-    given(conversationService.active(1L)).willReturn(Optional.empty());
+    given(conversationHistoryService.active(1L)).willReturn(Optional.empty());
     mockMvc
         .perform(get("/api/v1/conversations/active").with(authentication(loggedIn(1L))))
         .andExpect(status().isNoContent());
 
-    given(conversationService.active(1L))
+    given(conversationHistoryService.active(1L))
         .willReturn(
             Optional.of(
                 new ConversationDetailResponse(

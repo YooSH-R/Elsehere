@@ -20,7 +20,7 @@ import com.elsehere.common.config.TestClockConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
-import com.elsehere.dialogue.service.DialogueServiceTest;
+import com.elsehere.dialogue.service.DialogueDbTest;
 import com.elsehere.followup.dto.FollowUpResponse;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
@@ -36,7 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 // 판정은 AI 워커 결과를 Mock으로 정하고, 저장 결과는 기다리는 목록(waiting)과 대화 시작에 쓰는 readyFor로 확인한다.
-@DialogueServiceTest
+@DialogueDbTest
 class FollowUpServiceTest {
   @Test
   void dinerQuestDoesNotCreateAnotherLateMealCard() {

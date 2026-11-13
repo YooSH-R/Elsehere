@@ -3,10 +3,13 @@ package com.elsehere.dialogue.service;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
+import com.elsehere.conversation.entity.ConversationStatus;
 import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.conversation.repository.TurnRepository.TurnCount;
+import com.elsehere.conversation.service.ConversationLookup;
+import com.elsehere.dialogue.dto.ConversationDetailResponse;
 import com.elsehere.dialogue.dto.ConversationListResponse;
 import com.elsehere.dialogue.dto.ConversationSummaryResponse;
 import com.elsehere.feedback.entity.ConversationFeedback;
@@ -30,9 +33,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 지난 대화 목록(CONV-09). 저장된 대화만 읽으므로 AI 사용량이 소진돼도 쓸 수 있다.
+ * 지난 대화 목록(CONV-09)·대화 상세(CONV-10)·진행 중인 대화(CONV-11). 저장된 대화만 읽으므로 AI 사용량이 소진돼도 쓸 수 있다.
  *
- * <p>최근 시작순이며, 커서는 이전 페이지 마지막 대화의 ID다(단어장 VOCAB-01과 같은 방식).
+ * <p>목록은 최근 시작순이며, 커서는 이전 페이지 마지막 대화의 ID다(단어장 VOCAB-01과 같은 방식).
  */
 @Service
 @RequiredArgsConstructor
@@ -48,6 +51,21 @@ public class ConversationHistoryService {
   private final NpcRepository npcRepository;
   private final ReviewCardRepository reviewCardRepository;
   private final DialogueContexts dialogueContexts;
+  private final ConversationLookup conversationLookup;
+  private final ConversationResponses conversationResponses;
+
+  /** 내 대화 하나의 상세. 다른 사용자의 대화는 없는 대화와 같게 응답한다(ConversationLookup). */
+  public ConversationDetailResponse detail(Long userId, Long conversationId) {
+    return conversationResponses.detail(
+        conversationLookup.ownedConversation(userId, conversationId));
+  }
+
+  /** 진행 중인 대화. 없으면 빈 값이다. */
+  public Optional<ConversationDetailResponse> active(Long userId) {
+    return conversationRepository
+        .findFirstByUserIdAndStatus(userId, ConversationStatus.ACTIVE)
+        .map(conversationResponses::detail);
+  }
 
   /**
    * @param npcCode 이 NPC와 나눈 대화만 본다. null이면 모든 NPC다. 없는 코드면 빈 목록이다.

@@ -63,7 +63,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 
 // 발화 전송(CONV-03). 대화는 AI를 부르지 않는 행인 말걸기로 시작하고, 판정·대답은 Mock으로 정한다.
-@DialogueServiceTest
+@DialogueDbTest
 class TurnServiceTest {
 
   private static final String OPENING = "Hi there! Nice weather today, isn't it?";
@@ -76,7 +76,11 @@ class TurnServiceTest {
 
   @Autowired private TurnService turnService;
 
-  @Autowired private ConversationService conversationService;
+  @Autowired private DialogueStartService dialogueStartService;
+
+  @Autowired private ConversationHistoryService conversationHistoryService;
+
+  @Autowired private DialogueEndService dialogueEndService;
 
   @Autowired private SpeechService speechService;
 
@@ -207,7 +211,7 @@ class TurnServiceTest {
     assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
     assertThat(response.conversation().closing()).isFalse();
     assertThat(response.conversation().finalTurnsRemaining()).isZero();
-    assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(3);
+    assertThat(conversationHistoryService.detail(userId, conversationId).turns()).hasSize(3);
   }
 
   @Test
@@ -250,7 +254,7 @@ class TurnServiceTest {
     TurnResponse replayed = turnService.send(userId, conversationId, request);
 
     assertThat(replayed).isEqualTo(first);
-    assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(3);
+    assertThat(conversationHistoryService.detail(userId, conversationId).turns()).hasSize(3);
     then(aiGateway).should().judge(any(), any(), any(), any(), eq("One last question."));
   }
 
@@ -502,7 +506,8 @@ class TurnServiceTest {
             any(),
             eq(NpcReplyListener.NONE),
             eq("rude_warning"));
-    TurnDetailResponse saved = conversationService.detail(userId, conversationId).turns().get(1);
+    TurnDetailResponse saved =
+        conversationHistoryService.detail(userId, conversationId).turns().get(1);
     assertThat(saved.rude()).isTrue();
     assertThat(saved.translation().english()).isEqualTo("Shut up, idiot.");
   }
@@ -588,7 +593,7 @@ class TurnServiceTest {
             any(),
             eq(NpcReplyListener.NONE),
             eq("rude_final"));
-    assertThat(conversationService.detail(userId, conversationId).endedAt()).isNotNull();
+    assertThat(conversationHistoryService.detail(userId, conversationId).endedAt()).isNotNull();
   }
 
   @Test
@@ -779,7 +784,7 @@ class TurnServiceTest {
     TurnResponse replayed = turnService.send(userId, conversationId, request);
 
     assertThat(replayed).isEqualTo(first);
-    assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(3);
+    assertThat(conversationHistoryService.detail(userId, conversationId).turns()).hasSize(3);
     then(aiGateway).should().judge(any(), any(), any(), any(), anyString());
   }
 
@@ -803,7 +808,7 @@ class TurnServiceTest {
     TurnResponse first = turnService.send(userId, conversationId, request);
 
     assertThat(first).isEqualTo(retried.get());
-    assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(3);
+    assertThat(conversationHistoryService.detail(userId, conversationId).turns()).hasSize(3);
   }
 
   @Test
@@ -848,7 +853,7 @@ class TurnServiceTest {
               assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED);
               assertThat(exception.getDetails()).containsEntry("notice", "말로 표현해 주세요.");
             });
-    assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(1);
+    assertThat(conversationHistoryService.detail(userId, conversationId).turns()).hasSize(1);
     then(aiGateway)
         .should(never())
         .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any());
@@ -873,13 +878,13 @@ class TurnServiceTest {
             exception ->
                 assertThat(exception.getErrorCode())
                     .isEqualTo(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
-    assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(1);
+    assertThat(conversationHistoryService.detail(userId, conversationId).turns()).hasSize(1);
   }
 
   @Test
   @DisplayName("끝난 대화에는 보낼 수 없고 AI를 부르지 않는다")
   void send_endedConversation_throwsNotActive() {
-    conversationService.end(
+    dialogueEndService.end(
         userId, conversationId, new EndConversationRequest(UUID.randomUUID(), true));
 
     assertThatThrownBy(
@@ -921,7 +926,7 @@ class TurnServiceTest {
             BusinessException.class,
             exception ->
                 assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.CONVERSATION_NOT_ACTIVE));
-    assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(1);
+    assertThat(conversationHistoryService.detail(userId, conversationId).turns()).hasSize(1);
   }
 
   @Test
@@ -1164,7 +1169,7 @@ class TurnServiceTest {
   }
 
   private ConversationStartResponse startPasserby(Long ownerId) {
-    return conversationService.start(
+    return dialogueStartService.start(
         ownerId, new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC));
   }
 

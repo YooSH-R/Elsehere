@@ -30,7 +30,8 @@ public class AdminPageController {
           "HINT", "힌트·추천 단어",
           "MEANING", "뜻 보기",
           "FEEDBACK", "피드백",
-          "MEMORY", "기억 카드");
+          "MEMORY", "기억 카드",
+          "EXPRESSIONS", "영어 표현");
 
   private final AdminNpcService adminNpcService;
   private final AdminAiUsageService adminAiUsageService;

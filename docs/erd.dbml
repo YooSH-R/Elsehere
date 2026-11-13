@@ -249,7 +249,7 @@ Table turns [headercolor: #2E6B4F] {
   input_type varchar(10) [note: 'VOICE · TEXT']
   stt_raw_text text [note: 'STT 원본']
   text text [not null, note: '보낸 문장 / NPC 대사']
-  translation_en text [note: '학습자 말의 영어 번역 · 번역 카드·다음 요청의 history·피드백에 씀 (사용자 턴만)']
+  translation_en text [note: '학습자 말의 영어 번역 또는 교정문 (/v1/expressions) · 번역 카드·다음 요청의 history·피드백에 씀 (사용자 턴만)']
   guard_abusive boolean [note: '무례 판정 · true 무례, false 아님, null 판정 실패(무례로 세지 않음) · 사용자 턴만']
   guard_error_code varchar(30) [note: '판정 실패 이유 · empty · unparsed · timeout · provider_unavailable · provider_limit · worker_unavailable(Spring이 워커에 닿지 못함)']
   events jsonb [note: '의도 판정(/v1/judge)이 고른 대화 사건 문자열 배열 (GREETING · APOLOGY 등) · 다음 요청의 history[].events · 사용자 턴만, 워커가 보내지 않으면 null']
@@ -526,7 +526,7 @@ Table ai_requests [headercolor: #8A5A44] {
   request_id uuid [not null, note: '클라이언트 요청 ID · 재전송 시 이전 결과 반환, 한 번만 차감']
   user_id bigint [note: '어드민이 실행한 호출(사물 단어 발음 만들기)은 게임 사용자가 아니어서 null (V39)']
   conversation_id bigint
-  kind varchar(20) [not null, note: 'AI 워커 기능 단위 · STT · GUARD · JUDGE · NPC · TTS · HINT · MEANING · FEEDBACK · MEMORY (새 호출 종류가 생기면 추가)']
+  kind varchar(20) [not null, note: 'AI 워커 기능 단위 · STT · GUARD · JUDGE · NPC · TTS · HINT · MEANING · FEEDBACK · MEMORY · EXPRESSIONS(영어 번역·다른 표현) (새 호출 종류가 생기면 추가)']
   model varchar(50) [note: '호출한 모델']
   status varchar(20) [not null, note: 'RESERVED · OK · FAILED · BLOCKED']
   input_tokens int [not null, default: 0, note: '공급자가 집계한 입력 토큰']

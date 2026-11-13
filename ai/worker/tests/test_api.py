@@ -117,7 +117,7 @@ def test_intent_schema_follows_place_slots(client, provider):
     r = client.post("/v1/judge", json=judge_body("I have a headache", PHARMACY_STATE)).json()
     assert r["intent"]["id"] == "describe_symptom"
     props = seen["schema"]["properties"]
-    assert set(props) == {"intents", "items", "events", "english_correction", "better_expressions"}
+    assert set(props) == {"intents", "items", "events"}
     assert set(props["items"]["items"]["properties"]) == {"name", "qty"}
     assert "products: pain reliever, cough syrup" in seen["prompt"] and "iced" not in seen["prompt"]
 
@@ -143,18 +143,18 @@ def test_several_actions_in_one_line(client, provider):
 
 
 def test_korean_line_gets_translation_without_guard(client, provider):
-    """번역 카드를 보여 줄지(무례가 아님이 확정일 때만)는 /v1/guard 결과로 Spring이 정한다. judge는 번역만."""
-    provider.answers["intent"] = lambda b: ok(json.dumps({"intent": "unclear", "items": [], "choice": "none"}))
+    """번역 카드를 보여 줄지(무례가 아님이 확정일 때만)는 /v1/guard 결과로 Spring이 정한다. /v1/expressions는 번역만."""
+    provider.answers["expressions"] = lambda b: ok(json.dumps({"english_correction": None, "better_expressions": []}))
     provider.answers["translate"] = lambda b: ok("Shut up and give me coffee.")
-    r = client.post("/v1/judge", json=judge_body("닥치고 커피 내놔")).json()
+    r = client.post("/v1/expressions", json=judge_body("닥치고 커피 내놔")).json()
     assert r["translation"] == {"english": "Shut up and give me coffee.", "error": None}
-    assert sorted(step for step, _ in provider.calls) == ["intent", "translate"]
+    assert sorted(step for step, _ in provider.calls) == ["expressions", "translate"]
 
 
 def translated(provider, client, answer: str, text: str = "제 이름은 김사피예요") -> dict:
-    provider.answers["intent"] = lambda b: ok(json.dumps({"intent": "unclear", "items": [], "choice": "none"}))
+    provider.answers["expressions"] = lambda b: ok(json.dumps({"english_correction": None, "better_expressions": []}))
     provider.answers["translate"] = lambda b: ok(answer)
-    return client.post("/v1/judge", json=judge_body(text)).json()["translation"]
+    return client.post("/v1/expressions", json=judge_body(text)).json()["translation"]
 
 
 def test_translation_keeps_a_name_in_double_quotes_at_the_end(client, provider):
@@ -177,9 +177,9 @@ def test_translation_prompt_keeps_names_without_an_english_spelling_as_said(clie
         seen["system"] = b["messages"][0]["content"]
         return ok('My name is "김사피".')
 
-    provider.answers["intent"] = lambda b: ok(json.dumps({"intent": "unclear", "items": [], "choice": "none"}))
+    provider.answers["expressions"] = lambda b: ok(json.dumps({"english_correction": None, "better_expressions": []}))
     provider.answers["translate"] = answer
-    client.post("/v1/judge", json=judge_body("제 이름은 김사피예요"))
+    client.post("/v1/expressions", json=judge_body("제 이름은 김사피예요"))
     assert "never romanize" in seen["system"] and 'My name is "김사피".' in seen["system"]
 
 

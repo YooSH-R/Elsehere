@@ -53,14 +53,30 @@ public class QuestBoardService {
               ? chapter(quest, firstDayDone, story, names)
               : firstDayQuest(quest, mission, names));
     }
-    // 시연 퀘스트는 이야기 목록 맨 앞에 둔다. 이야기 퀘스트의 연계 순서와는 상관없다.
-    showcase.card(userId, names).ifPresent(card -> quests.add(0, card));
+    // 시연 퀘스트는 이야기 목록 맨 앞에 두고, 끝내기 전에는 그것만 열어 둔다. 시작하지 않은 나머지는 잠갔다가 시연을 끝내면 원래 규칙으로 연다.
+    showcase
+        .card(userId, names)
+        .ifPresent(
+            card -> {
+              if (!"DONE".equals(card.status())) {
+                quests.replaceAll(QuestBoardService::lockedUnlessStarted);
+              }
+              quests.add(0, card);
+            });
     int balance =
         showcase
             .activeStatus(userId)
             .map(com.elsehere.mission.dto.FirstDayMissionResponse::balance)
             .orElseGet(() -> Coins.balance(mission, story));
     return new QuestBoardResponse(balance, quests);
+  }
+
+  private static QuestBoardResponse.Quest lockedUnlessStarted(QuestBoardResponse.Quest quest) {
+    if (!"AVAILABLE".equals(quest.status())) {
+      return quest;
+    }
+    return new QuestBoardResponse.Quest(
+        quest.id(), quest.title(), quest.description(), quest.reward(), "LOCKED", quest.stops());
   }
 
   private static QuestBoardResponse.Quest firstDayQuest(

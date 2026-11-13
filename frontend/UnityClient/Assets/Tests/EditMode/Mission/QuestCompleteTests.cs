@@ -79,34 +79,6 @@ namespace A305.Mission.Tests
             Assert.That(started, Is.True, "열린 카드의 [퀘스트 시작]으로 바로 시작합니다.");
         }
 
-        [Test]
-        public void FinishingTheShowcaseAtTheFront_DoesNotUnlockTheStoryQuestAfterIt()
-        {
-            FirstDayMissionView view = Create();
-            QuestBoardState board = Board();
-            board.Quests[0].Status = QuestEntry.Available;
-            board.Quests.Insert(
-                0,
-                new QuestEntry
-                {
-                    Id = FirstDayMissionState.ShowcaseQuestId,
-                    Title = "비 오는 저녁, 햄버거 한 끼",
-                    Status = QuestEntry.Done,
-                }
-            );
-
-            view.ShowQuestComplete(board, FirstDayMissionState.ShowcaseQuestId);
-            QuestCompleteView complete = Field<QuestCompleteView>(view, "questComplete");
-            Find(complete, "Next").GetComponent<Button>().onClick.Invoke();
-
-            QuestBoardView questBoard = Field<QuestBoardView>(view, "questBoard");
-            Assert.That(
-                Find(questBoard, "UnlockToast").gameObject.activeSelf,
-                Is.False,
-                "시연 퀘스트는 이야기 퀘스트를 여는 연계가 아닙니다."
-            );
-        }
-
         [TestCase("CHECK_IN")]
         [TestCase("MORNING_AND_HAIRCUT")]
         public void QuestCompletionDoesNotAskForTheSurvey(string questId)

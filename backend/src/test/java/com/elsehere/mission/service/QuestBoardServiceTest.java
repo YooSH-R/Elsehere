@@ -50,6 +50,31 @@ class QuestBoardServiceTest {
         .startsWith("SHOWCASE_RAINY_EVENING", "CHECK_IN");
   }
 
+  // 시연 중에는 맨 앞의 시연 퀘스트만 열고, 시작하지 않은 나머지는 잠근다. 시연을 끝내면 원래 규칙으로 돌아간다.
+  @Test
+  void whileTheShowcaseIsNotDone_onlyItIsOpenAndTheRestAreLocked() {
+    when(firstDay.findById(8L)).thenReturn(Optional.empty());
+    when(stories.findById(8L)).thenReturn(Optional.empty());
+    when(showcase.card(org.mockito.ArgumentMatchers.eq(8L), org.mockito.ArgumentMatchers.any()))
+        .thenReturn(Optional.of(showcaseCard("AVAILABLE")));
+
+    assertThat(service.board(8L).quests())
+        .extracting(QuestBoardResponse.Quest::status)
+        .containsExactly("AVAILABLE", "LOCKED", "LOCKED", "LOCKED");
+
+    when(showcase.card(org.mockito.ArgumentMatchers.eq(8L), org.mockito.ArgumentMatchers.any()))
+        .thenReturn(Optional.of(showcaseCard("DONE")));
+
+    assertThat(service.board(8L).quests())
+        .extracting(QuestBoardResponse.Quest::status)
+        .containsExactly("DONE", "AVAILABLE", "LOCKED", "LOCKED");
+  }
+
+  private static QuestBoardResponse.Quest showcaseCard(String status) {
+    return new QuestBoardResponse.Quest(
+        "SHOWCASE_RAINY_EVENING", "비 오는 저녁, 햄버거 한 끼", "", 0, status, List.of());
+  }
+
   @Test
   void beforeStarting_onlyTheFirstQuestIsOpen() {
     when(firstDay.findById(8L)).thenReturn(Optional.empty());

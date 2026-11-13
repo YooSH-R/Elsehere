@@ -41,3 +41,4 @@ setsid nohup ~/guard/supervise.sh >> ~/guard/supervise.log 2>&1 &
 - `~/guard/models/npc-qwen3.8-27b-r16` 폴더가 있으면 NPC 대답 LoRA([`ai/npc_reply`](../npc_reply/README.md))를 같은 vLLM에 함께 얹습니다. 아직 워커는 이 어댑터를 부르지 않고 평가 도구만 씁니다.
 - 기본 모델과 어댑터를 읽는 데 약 3분이 걸립니다. 그동안 워커는 프로필의 판정 모델로 대체합니다.
 - Jupyter 서버가 다시 시작되면 [`ai/gpu_autostart`](../gpu_autostart/README.md) 훅이 감시 스크립트를 다시 띄웁니다.
+- SSAFY 서버를 쓸 수 없을 때는 [임대 GPU 서버](../gpu_rental/README.md)로 옮깁니다. `serve.sh`는 `GUARD_GPU_DEVICE`(기본 5), `supervise.sh`는 `GUARD_GPU_MEMORY`(기본 0.5)로 GPU 번호와 메모리 비율을 바꿀 수 있고, 임대 서버에서는 `start.sh`가 0번 GPU와 카드 크기에 맞는 비율을 지정합니다.

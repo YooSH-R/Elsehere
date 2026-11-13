@@ -125,8 +125,18 @@ namespace A305.Dialogue
             close.onClick.AddListener(CloseExpressionWindow);
             close.transform.Find("ExpandGlyph").gameObject.SetActive(false);
             var caption = close.GetComponentInChildren<TMP_Text>(true);
-            caption.text = "횞";
-            caption.fontSize = 30;
+            caption.text = string.Empty;
+            for (int index = 0; index < 2; index++)
+            {
+                var stroke = new GameObject("CloseStroke", typeof(RectTransform), typeof(Image));
+                stroke.transform.SetParent(close.transform, false);
+                var rect = (RectTransform)stroke.transform;
+                rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, .5f);
+                rect.sizeDelta = new Vector2(18, 3);
+                rect.localRotation = Quaternion.Euler(0, 0, index == 0 ? 45 : -45);
+                stroke.GetComponent<Image>().color = new Color32(57, 51, 44, 255);
+                stroke.GetComponent<Image>().raycastTarget = false;
+            }
             var body = (RectTransform)window.Find("Viewport/Body");
             foreach (Transform child in body)
                 if (child.name.StartsWith("Other "))

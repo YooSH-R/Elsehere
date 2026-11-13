@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using A305.Player;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -116,9 +117,11 @@ namespace A305.Dialogue
             window.name = "ExpandedExpressionCard";
             window.anchorMin = window.anchorMax = window.pivot = new Vector2(.5f, .5f);
             window.anchoredPosition = Vector2.zero;
-            // 화면보다 긴 내용을 위한 최대 높이로 연 뒤, 줄을 다 채우면 내용 높이만큼 줄인다.
-            float maxHeight = Mathf.Min(690, canvas.rect.height - 120);
-            window.sizeDelta = new Vector2(Mathf.Min(1050, canvas.rect.width - 96), maxHeight);
+            // 다른 창처럼 정해진 크기로 연다. 넘치는 내용은 글자 칸 안에서 스크롤한다.
+            window.sizeDelta = new Vector2(
+                Mathf.Min(1050, canvas.rect.width - 96),
+                Mathf.Min(690, canvas.rect.height - 120)
+            );
             window.Find("OthersButton").gameObject.SetActive(false);
             window.Find("OthersDivider").gameObject.SetActive(false);
             SetExpressionHeader(window, 170);
@@ -158,17 +161,32 @@ namespace A305.Dialogue
                 new List<RectTransform>(),
                 OtherExpressions ?? (IReadOnlyList<string>)System.Array.Empty<string>()
             );
-            var scroll = window.GetComponent<ScrollRect>();
-            scroll.content = body;
+            ScrollRect scroll = ScrollInsideViewport(window, body);
             body.anchoredPosition = Vector2.zero;
             LayoutRebuilder.ForceRebuildLayoutImmediate(body);
-            // 확대창은 내용 높이만큼만 차지해 문장 아래에 빈 공간을 남기지 않는다. 길면 최대 높이에서 멈추고 안에서 스크롤한다.
-            float chrome = window.rect.height - scroll.viewport.rect.height;
-            window.SetSizeWithCurrentAnchors(
-                RectTransform.Axis.Vertical,
-                Mathf.Min(maxHeight, chrome + LayoutUtility.GetPreferredHeight(body))
-            );
             scroll.verticalNormalizedPosition = 1;
+            // 다른 창처럼 PC에서는 제목 줄을 끌어 옮기고 네 변·모서리를 끌어 크기를 바꾼다. 닫았다 열면 원래 자리·크기다.
+            WindowFrame.Attach(window);
+        }
+
+        // 복제한 카드는 창 전체가 스크롤을 받아, 제목 줄을 끌어 창을 옮길 때 내용까지 함께 움직인다.
+        // 스크롤을 글자 칸(Viewport)으로 옮겨 내용을 끌 때만 넘기고, 제목 줄 끌기는 창 옮기기(WindowFrame)만 받게 한다.
+        private static ScrollRect ScrollInsideViewport(RectTransform window, RectTransform body)
+        {
+            var cardScroll = window.GetComponent<ScrollRect>();
+            Scrollbar bar = cardScroll.verticalScrollbar;
+            float sensitivity = cardScroll.scrollSensitivity;
+            DestroyImmediate(cardScroll);
+            var viewport = (RectTransform)body.parent;
+            var scroll = viewport.gameObject.AddComponent<ScrollRect>();
+            scroll.viewport = viewport;
+            scroll.content = body;
+            scroll.horizontal = false;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = sensitivity;
+            scroll.verticalScrollbar = bar;
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+            return scroll;
         }
 
         private void CloseExpressionWindow()

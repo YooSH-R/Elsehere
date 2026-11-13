@@ -5,6 +5,7 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "A305.Dialogue",
+        "A305.Player",
         "A305.Voice",
         "Unity.TextMeshPro",
         "UnityEngine.UI"

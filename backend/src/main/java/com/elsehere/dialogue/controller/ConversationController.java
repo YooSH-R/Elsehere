@@ -14,7 +14,8 @@ import com.elsehere.dialogue.dto.StartConversationRequest;
 import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.dialogue.dto.TurnResponse;
 import com.elsehere.dialogue.service.ConversationHistoryService;
-import com.elsehere.dialogue.service.ConversationService;
+import com.elsehere.dialogue.service.DialogueEndService;
+import com.elsehere.dialogue.service.DialogueStartService;
 import com.elsehere.dialogue.service.TurnService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -47,7 +48,8 @@ import tools.jackson.databind.json.JsonMapper;
 @RequiredArgsConstructor
 public class ConversationController {
 
-  private final ConversationService conversationService;
+  private final DialogueStartService dialogueStartService;
+  private final DialogueEndService dialogueEndService;
   private final TurnService turnService;
   private final ConversationHistoryService conversationHistoryService;
   private final JsonMapper jsonMapper;
@@ -67,7 +69,7 @@ public class ConversationController {
       @AuthenticationPrincipal LoginUser loginUser,
       @PathVariable Long cardId,
       @Valid @RequestBody StartReviewRequest request) {
-    return conversationService.startReview(
+    return dialogueStartService.startReview(
         loginUser.userId(), cardId, request.requestId(), request.speechSpeed());
   }
 
@@ -87,7 +89,7 @@ public class ConversationController {
       @AuthenticationPrincipal LoginUser loginUser,
       @PathVariable String scenarioId,
       @Valid @RequestBody StartPracticeRequest request) {
-    return conversationService.startPractice(
+    return dialogueStartService.startPractice(
         loginUser.userId(), scenarioId, request.requestId(), request.speechSpeed());
   }
 
@@ -96,7 +98,7 @@ public class ConversationController {
   public ConversationStartResponse start(
       @AuthenticationPrincipal LoginUser loginUser,
       @Valid @RequestBody StartConversationRequest request) {
-    return conversationService.start(loginUser.userId(), request);
+    return dialogueStartService.start(loginUser.userId(), request);
   }
 
   /**
@@ -110,7 +112,7 @@ public class ConversationController {
       HttpServletResponse response) {
     TurnEventStream stream = TurnEventStream.forOpening(response, jsonMapper);
     ConversationStartResponse started =
-        streamed(stream, () -> conversationService.start(loginUser.userId(), request, stream));
+        streamed(stream, () -> dialogueStartService.start(loginUser.userId(), request, stream));
     if (started != null) {
       stream.conversation(started);
     }
@@ -178,7 +180,7 @@ public class ConversationController {
       @AuthenticationPrincipal LoginUser loginUser,
       @PathVariable Long conversationId,
       @Valid @RequestBody EndConversationRequest request) {
-    return conversationService.end(loginUser.userId(), conversationId, request);
+    return dialogueEndService.end(loginUser.userId(), conversationId, request);
   }
 
   @GetMapping("/api/v1/conversations")
@@ -197,7 +199,7 @@ public class ConversationController {
   @GetMapping("/api/v1/conversations/active")
   public ResponseEntity<ConversationDetailResponse> active(
       @AuthenticationPrincipal LoginUser loginUser) {
-    return conversationService
+    return conversationHistoryService
         .active(loginUser.userId())
         .map(ResponseEntity::ok)
         .orElseGet(() -> ResponseEntity.noContent().build());
@@ -206,6 +208,6 @@ public class ConversationController {
   @GetMapping("/api/v1/conversations/{conversationId}")
   public ConversationDetailResponse detail(
       @AuthenticationPrincipal LoginUser loginUser, @PathVariable Long conversationId) {
-    return conversationService.detail(loginUser.userId(), conversationId);
+    return conversationHistoryService.detail(loginUser.userId(), conversationId);
   }
 }

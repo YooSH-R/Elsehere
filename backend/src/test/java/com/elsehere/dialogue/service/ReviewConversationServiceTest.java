@@ -50,11 +50,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-@DialogueServiceTest
+@DialogueDbTest
 @Import(ReviewCardService.class)
 @MockitoBean(types = {MemoryService.class, FollowUpService.class})
 class ReviewConversationServiceTest {
-  @Autowired private ConversationService conversationService;
+  @Autowired private DialogueStartService dialogueStartService;
+
+  @Autowired private ConversationHistoryService conversationHistoryService;
+
+  @Autowired private DialogueEndService dialogueEndService;
   @Autowired private TurnService turnService;
   @Autowired private TurnHelpService turnHelpService;
   @Autowired private ConversationHistoryService historyService;
@@ -96,7 +100,7 @@ class ReviewConversationServiceTest {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Welcome!", null));
 
-    conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.3);
+    dialogueStartService.startReview(userId, cardId, UUID.randomUUID(), 1.3);
 
     ArgumentCaptor<WorkerLearner> learner = ArgumentCaptor.forClass(WorkerLearner.class);
     then(aiGateway)
@@ -110,10 +114,10 @@ class ReviewConversationServiceTest {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Welcome!", null));
     UUID requestId = UUID.randomUUID();
-    conversationService.startReview(userId, cardId, requestId, 1.1);
+    dialogueStartService.startReview(userId, cardId, requestId, 1.1);
     assertThatThrownBy(
             () ->
-                conversationService.start(
+                dialogueStartService.start(
                     userId,
                     new StartConversationRequest(requestId, "HOTEL_STAFF", InitiatedBy.USER)))
         .isInstanceOfSatisfying(
@@ -131,11 +135,11 @@ class ReviewConversationServiceTest {
               return reply("Welcome!", null);
             });
     assertThatThrownBy(
-            () -> conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1))
+            () -> dialogueStartService.startReview(userId, cardId, UUID.randomUUID(), 1.1))
         .isInstanceOfSatisfying(
             BusinessException.class,
             error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
-    assertThat(conversationService.active(userId)).isEmpty();
+    assertThat(conversationHistoryService.active(userId)).isEmpty();
   }
 
   @Test
@@ -143,19 +147,20 @@ class ReviewConversationServiceTest {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Welcome!", null));
     UUID requestId = UUID.randomUUID();
-    var started = conversationService.startReview(userId, cardId, requestId, 1.1);
+    var started = dialogueStartService.startReview(userId, cardId, requestId, 1.1);
     assertThat(started.reviewCardId()).isEqualTo(cardId);
-    assertThat(conversationService.startReview(userId, cardId, requestId, 1.1)).isEqualTo(started);
-    assertThat(conversationService.active(userId).orElseThrow().reviewCardId()).isEqualTo(cardId);
-    assertThat(conversationService.detail(userId, started.conversationId()).reviewCardId())
+    assertThat(dialogueStartService.startReview(userId, cardId, requestId, 1.1)).isEqualTo(started);
+    assertThat(conversationHistoryService.active(userId).orElseThrow().reviewCardId())
+        .isEqualTo(cardId);
+    assertThat(conversationHistoryService.detail(userId, started.conversationId()).reviewCardId())
         .isEqualTo(cardId);
     var ended =
-        conversationService.end(
+        dialogueEndService.end(
             userId, started.conversationId(), new EndConversationRequest(UUID.randomUUID(), false));
     assertThat(ended.reviewCardId()).isEqualTo(cardId);
     assertThat(ended.feedback()).isNull();
     assertThat(
-            conversationService.end(
+            dialogueEndService.end(
                 userId,
                 started.conversationId(),
                 new EndConversationRequest(UUID.randomUUID(), false)))
@@ -166,7 +171,7 @@ class ReviewConversationServiceTest {
   void existingActiveConversationIsNotClosedForReview() {
     Conversation normal = conversation(entityManager, userId, "CAFE_STAFF");
     assertThatThrownBy(
-            () -> conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1))
+            () -> dialogueStartService.startReview(userId, cardId, UUID.randomUUID(), 1.1))
         .isInstanceOfSatisfying(
             BusinessException.class,
             error ->
@@ -179,7 +184,8 @@ class ReviewConversationServiceTest {
   void anotherUsersCardCannotStartReview() {
     Long other =
         UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "review-other", "Other");
-    assertThatThrownBy(() -> conversationService.startReview(other, cardId, UUID.randomUUID(), 1.1))
+    assertThatThrownBy(
+            () -> dialogueStartService.startReview(other, cardId, UUID.randomUUID(), 1.1))
         .isInstanceOfSatisfying(
             BusinessException.class,
             error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
@@ -190,7 +196,7 @@ class ReviewConversationServiceTest {
   void hintUsesSavedSituationInsteadOfCurrentQuest() {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Welcome!", null));
-    var started = conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
+    var started = dialogueStartService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
     given(aiGateway.hint(any(), any(), any(), anyString(), anyInt()))
         .willReturn(
             new HintResult(
@@ -226,7 +232,7 @@ class ReviewConversationServiceTest {
                 any(),
                 anyString()))
         .willReturn(reply("Please be polite.", null));
-    var started = conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
+    var started = dialogueStartService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
     given(aiGateway.guard(any(), any(), any(), anyString()))
         .willReturn(new GuardResult(new GuardResult.Guard(true, null), -20, List.of()));
     given(aiGateway.judge(any(), any(), any(), any(), anyString()))
@@ -254,7 +260,7 @@ class ReviewConversationServiceTest {
   void reviewIsNotListedAsAnUnreviewedMainConversation() {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Welcome!", null));
-    var started = conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
+    var started = dialogueStartService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
     assertThat(historyService.list(userId, null, null, 20).items())
         .noneMatch(item -> item.conversationId().equals(started.conversationId()));
   }
@@ -263,7 +269,7 @@ class ReviewConversationServiceTest {
   void activeReviewCannotBeDeleted() {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Welcome!", null));
-    conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
+    dialogueStartService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
 
     assertThatThrownBy(() -> reviewCardService.delete(userId, cardId))
         .isInstanceOfSatisfying(
@@ -276,7 +282,7 @@ class ReviewConversationServiceTest {
   void reviewTurnKeepsMainQuestAndAffinityUnchanged() {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Of course. How can I help?", null));
-    var started = conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
+    var started = dialogueStartService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
     given(aiGateway.guard(any(), any(), any(), anyString()))
         .willReturn(new GuardResult(new GuardResult.Guard(false, null), List.of()));
     given(aiGateway.judge(any(), any(), any(), any(), anyString()))
@@ -321,10 +327,10 @@ class ReviewConversationServiceTest {
         .willReturn(reply("Welcome! How can I help you?", null));
     given(followUpService.afterConversation(any(), any(), any()))
         .willReturn(CompletableFuture.completedFuture(Optional.empty()));
-    var started = conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
+    var started = dialogueStartService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
 
     var ended =
-        conversationService.end(
+        dialogueEndService.end(
             userId, started.conversationId(), new EndConversationRequest(UUID.randomUUID(), true));
 
     assertThat(ended.feedback()).isNull();
@@ -339,7 +345,7 @@ class ReviewConversationServiceTest {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Welcome! How can I help you?", null));
 
-    var started = conversationService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
+    var started = dialogueStartService.startReview(userId, cardId, UUID.randomUUID(), 1.1);
 
     assertThat(started).isNotNull();
     assertThat(started.npc().npcCode()).isEqualTo("HOTEL_STAFF");

@@ -13,7 +13,7 @@ import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.InputType;
 import com.elsehere.conversation.entity.Turn;
-import com.elsehere.dialogue.service.DialogueServiceTest;
+import com.elsehere.dialogue.service.DialogueDbTest;
 import com.elsehere.feedback.entity.ConversationFeedback;
 import com.elsehere.feedback.entity.FeedbackStatus;
 import com.elsehere.feedback.entity.TurnFeedback;
@@ -37,7 +37,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
-@DialogueServiceTest
+@DialogueDbTest
 @Import(ReviewCardService.class)
 class ReviewCardServiceTest {
   private static final String STORED_REVIEWS =

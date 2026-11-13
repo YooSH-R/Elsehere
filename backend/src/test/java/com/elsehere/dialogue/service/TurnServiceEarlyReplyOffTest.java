@@ -30,7 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 
 // 판정을 기다리지 않고 대답을 먼저 시작하는 것을 설정으로 껐을 때(비용이 늘면 끈다).
-@DialogueServiceTest
+@DialogueDbTest
 @TestPropertySource(properties = "elsehere.dialogue.early-reply=false")
 class TurnServiceEarlyReplyOffTest {
 
@@ -38,7 +38,7 @@ class TurnServiceEarlyReplyOffTest {
 
   @Autowired private TurnService turnService;
 
-  @Autowired private ConversationService conversationService;
+  @Autowired private DialogueStartService dialogueStartService;
 
   @Autowired private AiGateway aiGateway;
 
@@ -61,7 +61,7 @@ class TurnServiceEarlyReplyOffTest {
   void send_freeTalk_startsTheReplyAfterJudging() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
     Long conversationId =
-        conversationService
+        dialogueStartService
             .start(
                 userId,
                 new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC))

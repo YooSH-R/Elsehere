@@ -33,7 +33,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 // 지난 대화 목록(CONV-09). 저장된 대화만 조회하므로 AI 워커를 부르지 않는다.
-@DialogueServiceTest
+@DialogueDbTest
 class ConversationHistoryServiceTest {
 
   private static final Instant MORNING = Instant.parse("2026-10-21T01:00:00Z");

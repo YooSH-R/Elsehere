@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 // 음성 인식 단어(content/speech-words.json)가 시드의 NPC와 워커 장면 단어 상한에 맞는지 확인한다.
-@DialogueServiceTest
+@DialogueDbTest
 class SpeechWordsTest {
 
   // 워커가 프롬프트에 붙이는 장면 단어 상한(ai/worker/app/stt.py)

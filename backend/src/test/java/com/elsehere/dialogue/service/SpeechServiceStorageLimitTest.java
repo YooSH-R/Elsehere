@@ -25,7 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 
 // 음성 보관 상한이 다 찬 환경. 상한을 아주 작게 두어 다시 만든 음성을 저장할 수 없게 한다.
-@DialogueServiceTest
+@DialogueDbTest
 @TestPropertySource(properties = "elsehere.npc-audio.max-bytes=1")
 class SpeechServiceStorageLimitTest {
 

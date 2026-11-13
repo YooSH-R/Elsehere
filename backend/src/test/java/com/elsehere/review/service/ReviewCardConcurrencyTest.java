@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.elsehere.ai.service.AiGateway;
-import com.elsehere.dialogue.service.DialogueServiceTest;
+import com.elsehere.dialogue.service.DialogueDbTest;
 import com.elsehere.feedback.entity.ConversationFeedback;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /** 2개 요청이 실제로 서로 다른 트랜잭션에서 같은 원본을 저장하는 경우. */
-@DialogueServiceTest
+@DialogueDbTest
 @Import(ReviewCardService.class)
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class ReviewCardConcurrencyTest {

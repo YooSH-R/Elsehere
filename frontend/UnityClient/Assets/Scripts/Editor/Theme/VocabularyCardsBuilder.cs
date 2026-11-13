@@ -456,41 +456,44 @@ namespace A305.EditorTools.Theme
             BuilderTools.SetReference(view, "objectsHint", objectsHint.gameObject);
         }
 
-        // 단어 카드 버튼 묶음: 카드 안쪽 너비(440 - 좌우 여백 32×2), 버튼 높이, 버튼 사이
-        private const float ActionWidth = 376;
-        private const float ActionHeight = 44;
-        private const float ActionGap = 12;
+        private const float TooltipWidth = 480f;
+        private const int TooltipSidePadding = 32;
+        private const float TooltipContentWidth = TooltipWidth - 2 * TooltipSidePadding;
+        private const float ActionHeight = 52f;
+        private const float ActionGap = 12f;
+        private const float TooltipButtonFontSize = 24f;
 
         public static void ApplyTooltip(Transform root)
         {
             RectTransform panel = (RectTransform)root.Find("Panel");
             Skin(panel, UiThemeRole.Card);
-            panel.sizeDelta = new Vector2(440, panel.sizeDelta.y);
+            panel.sizeDelta = new Vector2(TooltipWidth, panel.sizeDelta.y);
             var column = panel.GetComponent<VerticalLayoutGroup>();
-            column.padding = new RectOffset(32, 32, 28, 28);
+            column.padding = new RectOffset(TooltipSidePadding, TooltipSidePadding, 28, 28);
             column.spacing = 12;
             column.childForceExpandWidth = false;
             foreach (
-                var spec in new[]
+                var (name, fontSize, role) in new[]
                 {
-                    ("Word", 28f, UiThemeRole.Title),
-                    ("Meaning", 22f, UiThemeRole.Accent),
-                    ("Example", 18f, UiThemeRole.Muted),
-                    ("Status", 16f, UiThemeRole.Accent),
+                    ("Word", 36f, UiThemeRole.Title),
+                    ("Meaning", 28f, UiThemeRole.Accent),
+                    ("Example", 23f, UiThemeRole.Muted),
+                    ("Status", 22f, UiThemeRole.Accent),
                 }
             )
             {
-                TMP_Text label = panel.Find(spec.Item1).GetComponent<TMP_Text>();
-                label.fontSize = spec.Item2;
+                TMP_Text label = panel.Find(name).GetComponent<TMP_Text>();
+                label.fontSize = fontSize;
                 label.enableAutoSizing = false;
                 label.textWrappingMode = TextWrappingModes.Normal;
                 label.alignment = TextAlignmentOptions.TopLeft;
-                label.margin = new Vector4(0, 0, spec.Item1 == "Word" ? 34 : 0, 0);
+                // 단어가 길어도 우측 상단 닫기 버튼과 겹치지 않도록 여백을 둔다.
+                label.margin = new Vector4(0, 0, name == "Word" ? 44 : 0, 0);
                 BuilderTools.GetOrAddComponent<LayoutElement>(label.gameObject).preferredWidth =
-                    376;
-                Skin(label.transform, spec.Item3);
+                    TooltipContentWidth;
+                Skin(label.transform, role);
             }
-            // 버튼은 카드 안쪽 너비를 한 덩어리로 채운다. [저장]·[발음]이 한 줄을 반씩, 그 아래 [알아요]가 같은 양 끝으로 한 줄.
+            // [저장]·[발음]이 한 줄을 반씩 쓰고 [숨기기]는 다음 줄 전체를 채운다.
             Transform pinHint = panel.Find("PinHint");
             if (pinHint != null)
                 Object.DestroyImmediate(pinHint.gameObject);
@@ -501,15 +504,16 @@ namespace A305.EditorTools.Theme
             rowLayout.childForceExpandWidth = true;
             rowLayout.childAlignment = TextAnchor.MiddleCenter;
             BuilderTools.GetOrAddComponent<LayoutElement>(row.gameObject).preferredWidth =
-                ActionWidth;
-            float half = (ActionWidth - ActionGap) / 2;
+                TooltipContentWidth;
+            float half = (TooltipContentWidth - ActionGap) / 2;
             ConfigureButton(
                 row.Find("SaveButton"),
                 "저장",
                 UiIcon.Save,
                 UiTone.Primary,
                 half,
-                ActionHeight
+                ActionHeight,
+                TooltipButtonFontSize
             );
             ConfigureButton(
                 row.Find("PronunciationButton"),
@@ -517,7 +521,8 @@ namespace A305.EditorTools.Theme
                 UiIcon.Replay,
                 UiTone.Neutral,
                 half,
-                ActionHeight
+                ActionHeight,
+                TooltipButtonFontSize
             );
             Transform actions = panel.Find("Actions");
             var actionLayout = actions.GetComponent<HorizontalLayoutGroup>();
@@ -525,15 +530,16 @@ namespace A305.EditorTools.Theme
             actionLayout.childForceExpandWidth = true;
             actionLayout.childAlignment = TextAnchor.MiddleCenter;
             BuilderTools.GetOrAddComponent<LayoutElement>(actions.gameObject).preferredWidth =
-                ActionWidth;
+                TooltipContentWidth;
             Transform hide = actions.Find("HideButton");
             ConfigureButton(
                 hide,
                 "숨기기",
                 UiIcon.Check,
                 UiTone.Neutral,
-                ActionWidth,
-                ActionHeight
+                TooltipContentWidth,
+                ActionHeight,
+                TooltipButtonFontSize
             );
             SetThemeFlag(hide, "quiet", false);
             hide.Find("Outline").gameObject.SetActive(true);
@@ -838,7 +844,8 @@ namespace A305.EditorTools.Theme
             UiIcon icon,
             UiTone tone,
             float width,
-            float height
+            float height,
+            float labelSize = 18f
         )
         {
             foreach (Shadow shadow in button.GetComponents<Shadow>())
@@ -870,7 +877,7 @@ namespace A305.EditorTools.Theme
             label.text = caption;
             label.gameObject.SetActive(caption.Length > 0);
             // 이름 없는 버튼은 숨긴 이름의 글자 크기로 아이콘 크기를 정한다(PillContentLayout).
-            label.fontSize = caption.Length == 0 ? Mathf.Round(height * .6f) : 18;
+            label.fontSize = caption.Length == 0 ? Mathf.Round(height * .6f) : labelSize;
             label.fontStyle = FontStyles.Bold;
             label.enableAutoSizing = false;
             label.textWrappingMode = TextWrappingModes.NoWrap;

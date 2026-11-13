@@ -68,6 +68,28 @@ namespace A305.Mission.Tests
             Assert.That(state.CarriesFoldedUmbrellaIn("HOTEL"), Is.False);
         }
 
+        // 호텔 안에서는 빌린 우산을 접어 들고, 비 오는 거리에 나가면 펴 쓴다. 비가 그친 뒤에는 다시 접어 든다.
+        [Test]
+        public void DemoOpensTheBorrowedUmbrellaOnTheRainyStreetAndFoldsItIndoors()
+        {
+            var state = new FirstDayMissionState
+            {
+                Quest = "SHOWCASE_RAINY_EVENING",
+                Started = true,
+                Stage = 1,
+                Raining = true,
+                Weather = "RAIN",
+            };
+            Assert.That(state.CarriesFoldedUmbrellaIn("HOTEL"), Is.True);
+            Assert.That(state.CarriesFoldedUmbrellaIn("TOWN"), Is.False);
+            Assert.That(state.OpensUmbrellaIn("TOWN"), Is.True);
+            state.Stage = 3;
+            state.Raining = false;
+            state.Weather = "CLEAR";
+            Assert.That(state.CarriesFoldedUmbrellaIn("TOWN"), Is.True);
+            Assert.That(state.OpensUmbrellaIn("TOWN"), Is.False);
+        }
+
         [Test]
         public void CompletedDemoStaysAvailableForNotesWithoutStartingAnotherQuest()
         {

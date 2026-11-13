@@ -696,6 +696,35 @@ namespace A305.Mission.Tests
             Assert.That(Field<Image>("autoFoldBar").gameObject.activeSelf, Is.True);
         }
 
+        // 시연 퀘스트는 시연자가 눌러 시작하면 카드를 펼치고, 하는 동안 저절로 접지 않는다.
+        // 장면을 옮겨 하던 시연을 처음 불러올 때도 펼친다.
+        [Test]
+        public void ShowcaseInProgress_KeepsTheCardExpanded()
+        {
+            FirstDayMissionState before = Journey(current: 0);
+            before.Quest = FirstDayMissionState.ShowcaseQuestId;
+            before.Started = false;
+            before.Steps.ForEach(step => step.Status = "UPCOMING");
+            Refresh(before);
+            Assert.That(Card.gameObject.activeSelf, Is.False, "시작 전");
+
+            FirstDayMissionState started = Journey(current: 0);
+            started.Quest = FirstDayMissionState.ShowcaseQuestId;
+            view.Refresh(started, false, false);
+            Assert.That(Card.gameObject.activeSelf, Is.True, "눌러 시작한 시연");
+            Assert.That(
+                Field<Image>("autoFoldBar").gameObject.activeSelf,
+                Is.False,
+                "시연 카드는 저절로 접지 않습니다."
+            );
+
+            Object.DestroyImmediate(instance);
+            FirstDayMissionState moved = Journey(current: 1);
+            moved.Quest = FirstDayMissionState.ShowcaseQuestId;
+            Refresh(moved);
+            Assert.That(Card.gameObject.activeSelf, Is.True, "장면을 옮겨 불러온 하던 시연");
+        }
+
         // 장소 연습 방문 중에는 이야기 대신 그 연습만 보이고, 방문이 끝나면 이야기 알약으로 돌아온다(시안 1-B ③).
         [Test]
         public void PracticeVisit_ShowsOnlyThePractice_ThenTheStoryAgain()

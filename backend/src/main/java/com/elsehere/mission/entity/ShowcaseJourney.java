@@ -46,13 +46,15 @@ public class ShowcaseJourney extends BaseEntity {
     ShowcaseJourney journey = new ShowcaseJourney();
     journey.userId = userId;
     journey.restart();
+    journey.resume();
     return journey;
   }
 
+  /** 처음으로 되돌리고 시작 전 상태로 둔다. 시연자가 퀘스트 창에서 눌러야 진행이 시작된다. */
   public void restart() {
     stage = 0;
     objectives = 0;
-    active = true;
+    active = false;
     umbrellaBorrowed = false;
     mealPaid = false;
     taxiRequested = false;

@@ -87,6 +87,26 @@ namespace A305.Player.Tests
                 "접은 우산은 넓게 펼쳐져 있지 않습니다."
             );
             Assert.That(cloth.bounds.center.y, Is.LessThan(hold.Hand.position.y));
+            float floor = hold.transform.position.y;
+            Vector3 tip = hold.Umbrella.ShaftPoints[hold.Umbrella.ShaftPoints.Count - 1];
+            Assert.That(
+                tip.y,
+                Is.GreaterThan(floor + .02f),
+                "접은 우산 끝이 바닥을 뚫지 않습니다."
+            );
+            Assert.That(
+                cloth.bounds.min.y,
+                Is.GreaterThan(floor),
+                "접은 천이 바닥을 뚫지 않습니다."
+            );
+            Vector3 knee = hold.transform.InverseTransformPoint(
+                animator.GetBoneTransform(HumanBodyBones.RightLowerLeg).position
+            );
+            Assert.That(
+                hold.transform.InverseTransformPoint(tip).x,
+                Is.GreaterThan(knee.x + .12f),
+                "접은 우산은 다리를 뚫지 않게 몸 바깥으로 듭니다."
+            );
 
             hold.SetFolded(false);
             yield return null;

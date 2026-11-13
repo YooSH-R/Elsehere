@@ -661,7 +661,11 @@ namespace A305.Mission
             if (PracticeVisit.Shared.Current != null && PracticeVisit.Shared.TakeAnnouncement())
             {
                 FillQuestCard();
-                fold.Announce();
+                // [다시 연습]은 연습하는 동안 말할 조건을 보도록 펼친 채로 두고, 장소 연습은 잠깐 펼쳐 알린다.
+                if (PracticeVisit.Shared.Current.IsReview)
+                    fold.Expand();
+                else
+                    fold.Announce();
                 ShowQuestHud();
             }
             else if (fold.Tick(Time.unscaledDeltaTime))

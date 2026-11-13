@@ -32,8 +32,11 @@ import com.elsehere.followup.service.FollowUpService;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.FirstDayStage;
+import com.elsehere.mission.entity.ShowcaseStage;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
+import com.elsehere.review.dto.ReviewGoal;
 import com.elsehere.review.service.ReviewCardService;
+import com.elsehere.review.service.ReviewPracticeResults;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
@@ -59,6 +62,7 @@ class ReviewConversationServiceTest {
   @Autowired private TurnHelpService turnHelpService;
   @Autowired private ConversationHistoryService historyService;
   @Autowired private ReviewCardService reviewCardService;
+  @Autowired private ReviewPracticeResults reviewPracticeResults;
   @Autowired private EntityManager entityManager;
   @Autowired private AiGateway aiGateway;
   @Autowired private MemoryService memoryService;
@@ -270,6 +274,68 @@ class ReviewConversationServiceTest {
             BusinessException.class,
             error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.REVIEW_IN_PROGRESS));
     assertThat(reviewCardService.detail(userId, cardId)).isNotNull();
+  }
+
+  // 시연 주문을 다시 연습하면 카드에 주문 조건을 보이고, 말한 조건을 판정해 진행 상황으로 알린다.
+  @Test
+  void showcaseOrderReviewJudgesTheOrderConditionsAndReportsThem() {
+    Conversation source = conversation(entityManager, userId, "DINER_STAFF");
+    source.attachShowcaseStage(ShowcaseStage.ORDER.ordinal());
+    source.recordShowcaseGoals(ShowcaseStage.ORDER.goalIds());
+    source.endByUser(Instant.parse("2026-10-27T02:05:00Z"));
+    var feedback = ConversationFeedback.of(source.getId());
+    feedback.complete(
+        "햄버거를 주문했어요.",
+        """
+        {"situationExpressions":[
+          {"expression":"Can I get a cheeseburger, please?","meaningKo":"치즈버거 주세요."},
+          {"expression":"To go, please.","meaningKo":"포장해 주세요."}
+        ]}
+        """,
+        "fixture",
+        null);
+    entityManager.persist(feedback);
+    Long showcaseCard = reviewCardService.create(userId, source.getId()).id();
+    assertThat(reviewCardService.detail(userId, showcaseCard).scenario().goals())
+        .extracting(ReviewGoal::title)
+        .containsExactly("치즈버거 주문하기", "재료 조건 말하기", "사이드와 음료 주문하기", "매장 이용 여부 말하기");
+
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Hi! What can I get you?", null));
+    var started = conversationService.startReview(userId, showcaseCard, UUID.randomUUID(), 1.0);
+    given(aiGateway.guard(any(), any(), any(), anyString()))
+        .willReturn(new GuardResult(new GuardResult.Guard(false, null), List.of()));
+    given(aiGateway.judge(any(), any(), any(), any(), anyString()))
+        .willReturn(
+            new JudgeResult(
+                "Can I get a cheeseburger, please?",
+                false,
+                null,
+                null,
+                List.of(),
+                new JudgeResult.Intent(null, List.of("order_burger"), null),
+                List.of(),
+                5));
+
+    turnService.send(
+        userId,
+        started.conversationId(),
+        new TurnRequest(
+            UUID.randomUUID(), InputType.TEXT, "Can I get a cheeseburger, please?", null));
+
+    then(aiGateway)
+        .should()
+        .judge(
+            any(),
+            any(),
+            argThat(state -> state.id().equals("showcase_review_order")),
+            any(),
+            anyString());
+    assertThat(
+            reviewPracticeResults
+                .progress(userId, showcaseCard, started.conversationId())
+                .completedGoals())
+        .containsExactly("order_burger");
   }
 
   @Test

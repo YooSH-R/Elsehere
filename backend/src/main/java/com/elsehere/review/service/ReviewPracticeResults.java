@@ -39,13 +39,18 @@ public class ReviewPracticeResults {
         cardRepository
             .findByIdAndUserId(cardId, userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-    conversationRepository
-        .findByIdAndUserId(conversationId, userId)
-        .filter(conversation -> cardId.equals(conversation.getReviewCardId()))
-        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    Conversation conversation =
+        conversationRepository
+            .findByIdAndUserId(conversationId, userId)
+            .filter(found -> cardId.equals(found.getReviewCardId()))
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     List<ReviewExpressionUsage> expressions = expressions(card, utterances(conversationId));
     return new ReviewPracticeProgressResponse(
-        conversationId, cardId, usedExpressions(expressions).size(), expressions);
+        conversationId,
+        cardId,
+        usedExpressions(expressions).size(),
+        expressions,
+        conversation.getReviewCompletedGoals());
   }
 
   @Transactional(propagation = Propagation.MANDATORY)

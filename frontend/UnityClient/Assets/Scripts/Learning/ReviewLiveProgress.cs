@@ -19,6 +19,8 @@ namespace A305.Learning
         public int VerifiedExpressionCount { get; set; }
         public List<ReviewExpressionEvidence> Expressions { get; set; } =
             new List<ReviewExpressionEvidence>();
+
+        public List<string> CompletedGoals { get; set; } = new List<string>();
     }
 
     /// <summary>진행 중인 복습 한 대화의 표시 상태. 늦게 온 다른 요청으로 덮어쓰지 않는다.</summary>
@@ -50,6 +52,12 @@ namespace A305.Learning
                         target.OriginalText
                     ))
                     .ToArray();
+
+        /// <summary>카드의 조건마다 이 대화에서 말했는지(카드 조건 차례). 조건이 없는 상황은 빈 목록이다.</summary>
+        public IReadOnlyList<bool> GoalsDone =>
+            (card?.Scenario?.Goals ?? new List<ReviewGoalInfo>())
+                .Select(goal => progress?.CompletedGoals?.Contains(goal.Id) == true)
+                .ToArray();
 
         public void Begin(ReviewCard card, long conversationId)
         {

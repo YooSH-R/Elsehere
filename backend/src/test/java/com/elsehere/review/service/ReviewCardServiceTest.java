@@ -96,6 +96,35 @@ class ReviewCardServiceTest {
     assertThat(reviewCardService.detail(userId, saved.id()).targets()).isEqualTo(saved.targets());
   }
 
+  // 채운 뜻은 카드에 저장해, 다음에 카드를 읽을 때 모델을 다시 부르지 않고 그대로 보인다.
+  @Test
+  void filledMeaningsAreSavedSoLaterReadsShowThemWithoutTheModel() {
+    Turn shortAnswer = textTurn(entityManager, source, 1, "to go please");
+    shortAnswer.recordBetterExpressions(
+        """
+        ["I'd like to take it away, please."]
+        """);
+    entityManager.flush();
+    var saved = reviewCardService.create(userId, source.getId());
+
+    reviewCardService.recordMeanings(
+        userId, saved.id(), java.util.Map.of("I'd like to take it away, please.", "포장해 갈게요."));
+    entityManager.flush();
+    entityManager.clear();
+
+    var read = reviewCardService.detail(userId, saved.id()).targets();
+    assertThat(read)
+        .filteredOn(target -> target.expression().equals("I'd like to take it away, please."))
+        .singleElement()
+        .extracting(ReviewTarget::meaningKo)
+        .isEqualTo("포장해 갈게요.");
+    assertThat(read)
+        .filteredOn(target -> target.expression().equals("Can I get that to go?"))
+        .singleElement()
+        .extracting(ReviewTarget::meaningKo)
+        .isEqualTo("포장해 주실 수 있나요?");
+  }
+
   @Test
   void liveRecommendationsFromTheLastReplyAreNotLostBehindTheOldFiveTargetLimit() {
     var expected = new java.util.ArrayList<String>();

@@ -127,6 +127,36 @@ class QuestTalkServiceTest {
   }
 
   @Test
+  @DisplayName("시연 주문을 다시 연습하면 주문 조건을 판정하고, 알아본 조건은 그 연습 대화에 남는다")
+  void reviewOfTheShowcaseOrder_judgesItsConditionsAndKeepsThemOnThatConversation() {
+    Conversation conversation = conversation();
+    conversation.attachReviewCard(5L);
+
+    var selected =
+        quests.forReview("showcase_ORDER", conversation.getReviewCompletedGoals()).orElseThrow();
+    assertThat(selected.source()).isEqualTo(QuestTalkService.Source.REVIEW);
+    quests.accept(
+        8L,
+        "DINER_STAFF",
+        conversation,
+        selected,
+        new JudgeResult.Intent(null, List.of("order_burger", "not_a_condition"), null));
+    var next =
+        quests.forReview("showcase_ORDER", conversation.getReviewCompletedGoals()).orElseThrow();
+    quests.accept(
+        8L,
+        "DINER_STAFF",
+        conversation,
+        next,
+        new JudgeResult.Intent(null, List.of("choose_dining"), null));
+
+    assertThat(conversation.getReviewCompletedGoals())
+        .containsExactly("order_burger", "choose_dining");
+    assertThat(conversation.isPractice()).isFalse();
+    assertThat(quests.forReview("first_day_FIND_BAG", List.of())).isEmpty();
+  }
+
+  @Test
   @DisplayName("마을 이야기에서 판정이 알아본 목표는 마을 이야기 진행에 남는다")
   void acceptTownStory_advancesTownProgress() {
     TownStory story = TownStory.start(8L);

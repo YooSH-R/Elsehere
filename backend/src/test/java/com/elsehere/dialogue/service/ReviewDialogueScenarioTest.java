@@ -48,6 +48,12 @@ class ReviewDialogueScenarioTest {
     String instruction = new ReviewDialogue(JsonMapper.builder().build()).instruction(card);
 
     assertThat(instruction).hasSizeLessThanOrEqualTo(3000);
+    // 시연 주문을 다시 연습하면 주문 조건 판정 지시가 붙는다. 조건을 하나도 말하지 않은 턴(가장 긴 지시)도 제한 안이다.
+    String reply =
+        com.elsehere.mission.service.ShowcaseReviewGoals.talk("showcase_ORDER", List.of())
+            .orElseThrow()
+            .replyInstruction(new com.elsehere.ai.client.JudgeResult.Intent(null, List.of(), null));
+    assertThat(instruction.length() + 1 + reply.length()).isLessThanOrEqualTo(3000);
     assertThat(instruction)
         .contains("Could I get a cheeseburger without onions, please? 9", "양파를 빼 달라고")
         .doesNotContain("화면에만 보이는 해석", "화면에만 보이는 설명", "pickles");

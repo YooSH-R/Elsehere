@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Threading.Tasks;
+using A305.World;
 using UnityEngine;
 
 namespace A305.Learning
@@ -49,10 +50,14 @@ namespace A305.Learning
             )
                 return;
             if (loaded)
+            {
                 dialogue.SetReviewReference(
                     liveReviewProgress.Items,
                     liveReviewProgress.VerifiedCount
                 );
+                // 말한 조건은 왼쪽 위 다시 연습 카드에 체크한다.
+                PracticeVisit.Shared.ReportProgress(liveReviewProgress.GoalsDone);
+            }
             else if (liveReviewProgress.ErrorCode != null)
                 Debug.LogWarning($"복습 표현 표시 갱신 실패: {liveReviewProgress.ErrorCode}", this);
         }

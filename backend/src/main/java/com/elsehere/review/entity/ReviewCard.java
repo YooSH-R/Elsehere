@@ -71,6 +71,11 @@ public class ReviewCard extends BaseEntity {
   @ColumnTransformer(write = "?::jsonb")
   private String usedExpressions;
 
+  /** 뜻을 채운 표현 목록으로 바꾼다. 표현과 차례는 그대로다. */
+  public void replaceTargets(String targets) {
+    this.targets = targets;
+  }
+
   public void recordPractice(Instant endedAt, String used) {
     practiceCount++;
     if (lastPracticedAt == null || !endedAt.isBefore(lastPracticedAt)) {

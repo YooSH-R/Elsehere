@@ -165,7 +165,7 @@ public class TurnService {
     }
     TurnContext context = selection.context();
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, conversationId);
-    // 이 턴의 퀘스트 대화 목표. 복습은 없고, 장소 연습은 고른 상황, 그 밖에는 진행 중인 퀘스트의 목표다.
+    // 이 턴의 퀘스트 대화 목표. 복습은 시연 상황을 다시 연습할 때만 그 조건이 있고, 장소 연습은 고른 상황, 그 밖에는 진행 중인 퀘스트의 목표다.
     Optional<QuestTalk> quest = context.quest().map(QuestTalkService.SelectedQuest::talk);
 
     Optional<WorkerState> missionState =
@@ -197,10 +197,11 @@ public class TurnService {
           aiGateway.judge(
               trace,
               context.npc().workerNpc(),
-              context.review() != null
-                  ? reviewDialogue.state(context.review())
-                  : missionState.orElse(
-                      policeDesk ? PoliceDesk.STATE : taxiRide ? TaxiRide.STATE : FREE_TALK),
+              missionState.orElseGet(
+                  () ->
+                      context.review() != null
+                          ? reviewDialogue.state(context.review())
+                          : policeDesk ? PoliceDesk.STATE : taxiRide ? TaxiRide.STATE : FREE_TALK),
               context.history(),
               request.text());
       if (judge.dropped()) {
@@ -504,6 +505,10 @@ public class TurnService {
       return new TurnContextSelection(null, true, false);
     }
     NpcContext npc = dialogueContexts.npcOf(conversation);
+    ReviewCardResponse review =
+        conversation.isReview()
+            ? reviewCardService.detail(userId, conversation.getReviewCardId())
+            : null;
     return new TurnContextSelection(
         new TurnContext(
             npc,
@@ -515,10 +520,12 @@ public class TurnService {
                 : memoryService.memoryFor(userId, conversation.getNpcId()),
             conversation.getRudeCount(),
             conversation.isNpcOffDuty(),
-            conversation.isReview()
-                ? reviewCardService.detail(userId, conversation.getReviewCardId())
-                : null,
-            questTalks.forTurn(userId, npc.summary().npcCode(), conversation)),
+            review,
+            review != null
+                ? questTalks.forReview(
+                    review.scenario() == null ? null : review.scenario().key(),
+                    conversation.getReviewCompletedGoals())
+                : questTalks.forTurn(userId, npc.summary().npcCode(), conversation)),
         false,
         finalTurn);
   }

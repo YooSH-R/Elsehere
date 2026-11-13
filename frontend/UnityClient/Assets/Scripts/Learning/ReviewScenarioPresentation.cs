@@ -28,8 +28,8 @@ namespace A305.Learning
         }
 
         /// <summary>
-        /// [다시 연습] 동안 왼쪽 위 퀘스트 카드에 보일 지난 상황. 시연 카드처럼 제목 아래 목표 한 줄(상황)과
-        /// 그 아래 작은 글자로 전달할 정보를 둔다.
+        /// [다시 연습] 동안 왼쪽 위 퀘스트 카드에 보일 지난 상황. 시연 주문처럼 판정할 조건이 있으면 조건마다 한 줄(이름과 그 아래 작은 말할 내용)로
+        /// 보이고 말한 조건에 체크한다. 조건이 없는 상황은 시연 카드처럼 제목 아래 목표 한 줄(상황)과 그 아래 작은 글자로 전달할 정보를 둔다.
         /// </summary>
         public static PracticeVisitPlan QuestCard(ReviewCard card)
         {
@@ -40,14 +40,19 @@ namespace A305.Learning
                     !string.IsNullOrWhiteSpace(note)
                 )
             );
+            List<ReviewGoalInfo> conditions = card?.Scenario?.Goals ?? new List<ReviewGoalInfo>();
             return new PracticeVisitPlan
             {
                 IsReview = true,
                 PlaceName = BuildingName(card),
                 Title = Title(card),
                 Description = situation,
-                Goals = string.IsNullOrWhiteSpace(situation)
-                    ? new PracticeVisitGoal[0]
+                Goals =
+                    conditions.Count > 0
+                        ? conditions
+                            .Select(goal => new PracticeVisitGoal(goal.Title, goal.Hint))
+                            .ToArray()
+                    : string.IsNullOrWhiteSpace(situation) ? new PracticeVisitGoal[0]
                     : new[] { new PracticeVisitGoal(situation, notes.Length > 0 ? notes : null) },
             };
         }

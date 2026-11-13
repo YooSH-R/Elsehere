@@ -85,6 +85,33 @@ namespace A305.Learning.Tests
             Assert.That(api.RequestedConversation, Is.EqualTo(77));
         }
 
+        // 서버가 판정한 조건은 왼쪽 위 카드의 같은 차례 조건에 체크된다.
+        [Test]
+        public async Task SaidConditionsAreCheckedInTheCardOrder()
+        {
+            var api = new ProgressApi();
+            var state = new ReviewLiveProgress(api);
+            ReviewCard card = Card();
+            card.Scenario = new ReviewScenarioInfo
+            {
+                Key = "showcase_ORDER",
+                Goals = new List<ReviewGoalInfo>
+                {
+                    new ReviewGoalInfo { Id = "order_burger" },
+                    new ReviewGoalInfo { Id = "choose_dining" },
+                },
+            };
+            state.Begin(card, 77);
+            Assert.That(state.GoalsDone, Is.EqualTo(new[] { false, false }));
+
+            ReviewPracticeProgress response = api.Response();
+            response.CompletedGoals = new List<string> { "choose_dining" };
+            api.Pending.Enqueue(Task.FromResult(response));
+            Assert.That(await state.RefreshAsync(), Is.True);
+
+            Assert.That(state.GoalsDone, Is.EqualTo(new[] { false, true }));
+        }
+
         private static ReviewCard Card() =>
             new ReviewCard
             {

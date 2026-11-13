@@ -20,8 +20,15 @@ final class ReviewTargets {
   private static final int MAX_EXPRESSIONS = 3;
   private static final int MAX_TARGETS = 5;
   private static final Pattern HANGUL = Pattern.compile("[가-힣]");
-  private static final Pattern TAKEAWAY =
-      Pattern.compile("\\b(?:to go|takeaway|take away|take it away)\\b");
+  // 시연 주문 조건 차례(버거 → 재료 → 사이드·음료 → 매장·포장)와 그 조건의 표현에 들어가는 말. 소문자·구두점을 지운 표현에 맞춘다.
+  private static final List<Pattern> SHOWCASE_ORDER_CONDITIONS =
+      List.of(
+          Pattern.compile("\\b(?:cheese)?burgers?\\b"),
+          Pattern.compile(
+              "\\b(?:onions?|tomato(?:es)?|pickles?|lettuce|without|leave out|leave off|hold the)\\b"),
+          Pattern.compile("\\b(?:fries|coke|cola|soda|lemonade|drinks?|sides?)\\b"),
+          Pattern.compile(
+              "\\b(?:to go|take away|takeaway|take it away|takeout|take out|for here|eat here|eat in|dine in)\\b"));
 
   /** 학습자가 한 말과 피드백이 고쳐 준 문장. */
   record Correction(String originalText, String betterText, String reason) {}
@@ -140,34 +147,37 @@ final class ReviewTargets {
         }
       }
     }
-    return prioritizeShowcaseTakeaway(selected, sourceTurns, mapper);
+    List<ReviewTarget> included = List.copyOf(selected.values());
+    return isShowcaseOrder(sourceTurns) ? inShowcaseOrderConditionOrder(included) : included;
   }
 
-  // 시연의 주문 복습에서는 포장 답변의 대안을 먼저 연습한다. 문장을 새로 만들거나 다른 목표를 지우지 않는다.
-  private static List<ReviewTarget> prioritizeShowcaseTakeaway(
-      LinkedHashMap<String, ReviewTarget> selected, List<Turn> sourceTurns, JsonMapper mapper) {
-    var ordered = new LinkedHashMap<String, ReviewTarget>();
-    for (Turn turn : sourceTurns) {
-      if (!Integer.valueOf(ShowcaseStage.ORDER.ordinal())
-          .equals(turn.getConversation().getShowcaseStage())) {
-        continue;
-      }
-      List<String> recommendations = TurnRecommendations.sentences(turn, mapper);
-      boolean takeaway =
-          TAKEAWAY.matcher(TurnRecommendations.key(turn.getText())).find()
-              || recommendations.stream()
-                  .anyMatch(sentence -> TAKEAWAY.matcher(TurnRecommendations.key(sentence)).find());
-      if (takeaway) {
-        for (String sentence : recommendations) {
-          String key = TurnRecommendations.key(sentence);
-          ReviewTarget target = selected.get(key);
-          if (target != null) {
-            ordered.putIfAbsent(key, target);
-          }
-        }
+  private static boolean isShowcaseOrder(List<Turn> sourceTurns) {
+    return sourceTurns.stream()
+        .anyMatch(
+            turn ->
+                Integer.valueOf(ShowcaseStage.ORDER.ordinal())
+                    .equals(turn.getConversation().getShowcaseStage()));
+  }
+
+  /**
+   * 시연 주문 복습에서는 이번에 써 볼 표현을 주문 조건 차례로 둔다. 고친 문장 구역은 지금처럼 앞에 두고, 각 구역 안에서 조건 차례로 둔다. 같은 조건 안에서는 원래
+   * 차례를 지키고, 어느 조건에도 맞지 않는 표현은 뒤에 둔다. 문장을 새로 만들거나 지우지 않는다.
+   */
+  private static List<ReviewTarget> inShowcaseOrderConditionOrder(List<ReviewTarget> targets) {
+    return targets.stream()
+        .sorted(
+            Comparator.comparing((ReviewTarget target) -> target.originalText() == null)
+                .thenComparing(ReviewTargets::showcaseOrderCondition))
+        .toList();
+  }
+
+  private static int showcaseOrderCondition(ReviewTarget target) {
+    String words = TurnRecommendations.key(target.expression());
+    for (int i = 0; i < SHOWCASE_ORDER_CONDITIONS.size(); i++) {
+      if (SHOWCASE_ORDER_CONDITIONS.get(i).matcher(words).find()) {
+        return i;
       }
     }
-    ordered.putAll(selected);
-    return List.copyOf(ordered.values());
+    return SHOWCASE_ORDER_CONDITIONS.size();
   }
 }

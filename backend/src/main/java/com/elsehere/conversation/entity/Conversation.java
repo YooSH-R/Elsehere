@@ -157,6 +157,17 @@ public class Conversation extends BaseEntity {
     practiceCompletedGoals = List.copyOf(goalIds);
   }
 
+  /**
+   * [다시 연습] 대화에서 말한 조건 ID. 장소 연습과 같은 칸(practice_completed_goals)에 남긴다. 한 대화는 장소 연습이거나 다시 연습 중 하나다.
+   */
+  public List<String> getReviewCompletedGoals() {
+    return isReview() && practiceCompletedGoals != null ? practiceCompletedGoals : List.of();
+  }
+
+  public void recordReviewGoals(List<String> goalIds) {
+    practiceCompletedGoals = List.copyOf(goalIds);
+  }
+
   /** 상황의 목표를 모두 이뤘다. 처음 이룬 시각만 남긴다. */
   public void finishPractice(Instant now) {
     if (practiceDoneAt == null) {

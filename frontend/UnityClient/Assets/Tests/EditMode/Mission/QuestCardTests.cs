@@ -725,6 +725,38 @@ namespace A305.Mission.Tests
             Assert.That(Card.gameObject.activeSelf, Is.True, "장면을 옮겨 불러온 하던 시연");
         }
 
+        // [다시 연습]은 시작하면 카드를 펼치고, 연습하는 동안 저절로 접지 않는다.
+        [Test]
+        public void ReviewPractice_KeepsTheCardExpanded()
+        {
+            Refresh(Journey(current: 2));
+            PracticeVisit.Shared.Begin(
+                new PracticeVisitPlan
+                {
+                    IsReview = true,
+                    Title = "햄버거 주문 다시 연습",
+                    Goals = new[]
+                    {
+                        new PracticeVisitGoal("치즈버거 주문하기", "한 개를 주문해 보세요."),
+                    },
+                }
+            );
+            typeof(FirstDayMissionView)
+                .GetMethod(
+                    "UpdateQuestFold",
+                    System.Reflection.BindingFlags.NonPublic
+                        | System.Reflection.BindingFlags.Instance
+                )
+                .Invoke(view, null);
+
+            Assert.That(Card.gameObject.activeSelf, Is.True, "시작하면 펼친다");
+            Assert.That(
+                Field<Image>("autoFoldBar").gameObject.activeSelf,
+                Is.False,
+                "다시 연습 카드는 저절로 접지 않습니다."
+            );
+        }
+
         // 장소 연습 방문 중에는 이야기 대신 그 연습만 보이고, 방문이 끝나면 이야기 알약으로 돌아온다(시안 1-B ③).
         [Test]
         public void PracticeVisit_ShowsOnlyThePractice_ThenTheStoryAgain()

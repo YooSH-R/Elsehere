@@ -14,8 +14,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.json.JsonMapper;
 
 class ReviewTargetsTest {
@@ -77,34 +75,37 @@ class ReviewTargetsTest {
         .containsExactly("Can I get that to go?", "Could I get less ice?");
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"to go please", "takeaway please", "포장해 주세요"})
-  void showcaseBurgerPracticePutsTheStoredTakeawayAlternativesFirst(String original) {
+  // 시연 주문을 다시 연습할 때는 이번에 써 볼 표현을 주문 조건 차례(버거 → 재료 → 사이드·음료 → 매장·포장)로 둔다.
+  // 같은 조건 안에서는 원래 차례를 지키고, 어느 조건에도 맞지 않는 표현(감사 인사 등)은 뒤에 둔다.
+  @Test
+  void showcaseBurgerPracticeListsExpressionsInTheOrderConditionOrder() {
     Conversation source = sourceConversation();
     source.attachShowcaseStage(ShowcaseStage.ORDER.ordinal());
     var takeaway =
-        new ReviewTarget("I'll take it to go, please.", "포장해 주세요.", "포장을 부탁할 때", null, null);
-    var burger = new ReviewTarget("Could I have a cheeseburger?", "치즈버거 주세요.", null, null, null);
-    Turn order = recommendedTurn(source, 2, "one burger", "Could I have a cheeseburger?");
-    Turn dining =
-        recommendedTurn(
-            source, 4, original, "I'll take it to go, please.", "To take away, please.");
+        new ReviewTarget("I'll take it to go, please.", "포장해 갈게요.", "포장을 부탁할 때", null, null);
+    var sides =
+        new ReviewTarget("Could I get a side of fries, too?", "감자튀김도 주세요.", null, null, null);
+    var onions =
+        new ReviewTarget("Could I get that without onions?", "양파 빼 주세요.", null, null, null);
+    Turn order = recommendedTurn(source, 2, "one burger", "Can I get a cheeseburger, please?");
+    Turn dining = recommendedTurn(source, 4, "to go please", "To take away, please.");
     Turn farewell = recommendedTurn(source, 6, "thanks", "Thank you for your help.");
 
     var selected =
         ReviewTargets.includeRecommendations(
-            List.of(burger, takeaway),
+            List.of(takeaway, sides, onions),
             List.of(order, dining, farewell),
             JsonMapper.builder().build());
 
     assertThat(selected)
         .extracting(ReviewTarget::expression)
         .containsExactly(
+            "Can I get a cheeseburger, please?",
+            "Could I get that without onions?",
+            "Could I get a side of fries, too?",
             "I'll take it to go, please.",
             "To take away, please.",
-            "Could I have a cheeseburger?",
             "Thank you for your help.");
-    assertThat(selected.getFirst()).isEqualTo(takeaway);
   }
 
   @Test

@@ -489,7 +489,12 @@ public class ConversationService {
     }
     // 복습과 장소 연습은 지금 퀘스트, 이 NPC와의 기억, 건넬 것을 섞지 않고 정한 상황만 연습한다.
     boolean storyDialogue = review == null && practice == null;
-    var quest = questTalks.forStart(userId, request.npcCode(), review != null, practice);
+    // 시연 상황을 다시 연습하면 그 상황의 조건을 처음부터 판정한다.
+    var quest =
+        review != null
+            ? questTalks.forReview(
+                review.scenario() == null ? null : review.scenario().key(), List.of())
+            : questTalks.forStart(userId, request.npcCode(), false, practice);
     boolean showcase =
         quest.filter(selected -> selected.source() == QuestTalkService.Source.SHOWCASE).isPresent();
     var followUp =

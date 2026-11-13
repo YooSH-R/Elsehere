@@ -481,9 +481,11 @@ namespace A305.EditorTools.Dialogue
                 bool showLatest = false,
                 bool midConversation = false,
                 bool scrollToEnd = false,
-                bool rude = false
+                bool rude = false,
+                bool expanded = false
             )
             {
+                Invoke(view, "CloseExpressionWindow");
                 content.UserTurnRude = rude;
                 content.PreviewLines = (midConversation ? earlier : new[] { npc })
                     .Append(DialogueLine.FromUser(said))
@@ -494,6 +496,8 @@ namespace A305.EditorTools.Dialogue
                 view.Show(content);
                 if (open)
                     Invoke(view, "ToggleOtherExpressions");
+                if (expanded)
+                    Invoke(view, "OpenExpressionWindow");
                 if (scrollToEnd)
                 {
                     Canvas.ForceUpdateCanvases();
@@ -537,6 +541,26 @@ namespace A305.EditorTools.Dialogue
                 new[] { "Why are you staring at me?", "Is something wrong?" },
                 true,
                 rude: true
+            );
+            // 확대창도 내용 높이만큼만 차지하고 문장마다 스피커가 있다(S15P31A305-903).
+            Capture(
+                "others-correction-expanded.png",
+                "i want to speak korea",
+                "I want to speak Korean.",
+                new[] { "I'd like to speak Korean." },
+                false,
+                expanded: true
+            );
+            Capture(
+                "others-rude-expanded.png",
+                "뭘봐 못생긴게",
+                "What are you looking at, you ugly thing?",
+                new[] { "Why are you staring at me?", "Is something wrong?" },
+                false,
+                900,
+                1400,
+                rude: true,
+                expanded: true
             );
             Capture(
                 "others-correction-closed.png",

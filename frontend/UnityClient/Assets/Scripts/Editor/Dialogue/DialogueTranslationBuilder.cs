@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using A305.Dialogue;
 using A305.EditorTools.Common;
 using A305.EditorTools.Theme;
@@ -91,16 +92,14 @@ namespace A305.EditorTools.Dialogue
             BuilderTools.GetOrAddComponent<ContentSizeFitter>(body.gameObject).verticalFit =
                 ContentSizeFitter.FitMode.PreferredSize;
 
-            TMP_Text expression = BodyText(viewport, body, "Expression", name.font, 32);
+            // 고친 문장·영어 번역과 그 오른쪽 스피커를 한 줄에 둔다(S15P31A305-895).
+            RectTransform expressionRow = SentenceRow(body, "ExpressionRow");
+            TMP_Text expression = SentenceText(viewport, body, expressionRow, name.font);
             BuilderTools
                 .GetOrAddComponent<ThemedElement>(expression.gameObject)
                 .Use(catalog, UiThemeRole.Title);
             // 바뀐 곳을 강조색 밑줄로 보이므로 꾸밈 태그를 읽는다. 문장 글자는 화면이 noparse로 감싼다.
             expression.richText = true;
-            // 고친 문장·영어 번역과 그 오른쪽 스피커를 한 줄에 둔다(S15P31A305-895).
-            RectTransform expressionRow = SentenceRow(body, "ExpressionRow");
-            expression.rectTransform.SetParent(expressionRow, false);
-            expression.rectTransform.SetSiblingIndex(0);
             BuilderTools.GetOrAddComponent<LayoutElement>(expression.gameObject).flexibleWidth = 1;
             Button speak = SpeakButton(expressionRow);
             expressionRow.SetSiblingIndex(0);
@@ -342,6 +341,30 @@ namespace A305.EditorTools.Dialogue
             line.childControlWidth = line.childControlHeight = true;
             line.childForceExpandWidth = line.childForceExpandHeight = false;
             return row;
+        }
+
+        // 고친 문장 줄의 문장 글자. 줄에 이미 있는 글자를 다시 써서 Builder를 몇 번 돌려도 하나만 남긴다.
+        // 예전 Builder가 다시 실행될 때마다 줄에 남긴 빈 글자는 지운다(S15P31A305-903).
+        private static TMP_Text SentenceText(
+            RectTransform viewport,
+            RectTransform body,
+            RectTransform row,
+            TMP_FontAsset font
+        )
+        {
+            Transform placed = row.Find("Expression");
+            foreach (
+                Transform stale in row.Cast<Transform>()
+                    .Where(child => child.name == "Expression" && child != placed)
+                    .ToList()
+            )
+                Object.DestroyImmediate(stale.gameObject);
+            if (placed != null)
+                placed.SetParent(body, false);
+            TMP_Text text = BodyText(viewport, body, "Expression", font, 32);
+            text.rectTransform.SetParent(row, false);
+            text.rectTransform.SetSiblingIndex(0);
+            return text;
         }
 
         // 문장 하나를 기기 영어 음성으로 듣는 둥근 스피커 버튼(S15P31A305-895). 화면이 누른 줄의 문장을 읽게 잇는다.

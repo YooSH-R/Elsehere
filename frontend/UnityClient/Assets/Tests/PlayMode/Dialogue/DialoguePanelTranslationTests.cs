@@ -493,6 +493,59 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(Card.gameObject.activeInHierarchy, Is.True);
         }
 
+        // 확대창은 다른 창처럼 정해진 크기로 화면 가운데에 열고, 넘치는 내용은 글자 칸 안에서 스크롤한다(S15P31A305-903).
+        // PC에서는 제목 줄을 끌어 옮기고 네 변·모서리를 끌어 크기를 바꾼다(WindowFrame). 스크롤은 글자 칸에서만 받아
+        // 창을 옮기는 끌기와 겹치지 않는다. 확대창의 문장도 옆 스피커로 듣는다.
+        [UnityTest]
+        public IEnumerator ExpandedWindow_OpensAtItsSize_AndCanBeMovedAndResized()
+        {
+            var spoken = new List<string>();
+            view.ExpressionListenRequested += spoken.Add;
+            view.Show(
+                new Content
+                {
+                    UserLine = "i want coffee",
+                    UserTranslation = "I want coffee.",
+                    UserBetterExpressions = new[] { "I'd like a coffee, please." },
+                }
+            );
+            yield return null;
+            Card.Find("ExpandButton").GetComponent<Button>().onClick.Invoke();
+            yield return null;
+            var window = (RectTransform)
+                instance.transform.Find("ExpressionOverlay/ExpandedExpressionCard");
+            Assert.That(window.rect.size, Is.EqualTo(new Vector2(1050, 690)));
+            Assert.That(window.anchoredPosition, Is.EqualTo(Vector2.zero));
+            Assert.That(window.GetComponent<ScrollRect>(), Is.Null);
+            var scroll = window.Find("Viewport").GetComponent<ScrollRect>();
+            Assert.That(scroll, Is.Not.Null);
+            Assert.That(scroll.content, Is.EqualTo(window.Find("Viewport/Body")));
+
+            var frame = window.GetComponent<A305.Player.WindowFrame>();
+            Assert.That(frame, Is.Not.Null);
+            Assert.That(frame.TryBeginMove(new Vector2(0, window.rect.yMax - 10)), Is.True);
+            frame.MoveBy(new Vector2(-120, -40));
+            Assert.That(window.anchoredPosition, Is.EqualTo(new Vector2(-120, -40)));
+            Assert.That(frame.BeginResize(new Vector2Int(1, 0)), Is.True);
+            frame.DragResize(new Vector2(-200, 0));
+            frame.EndResize();
+            Assert.That(window.rect.width, Is.EqualTo(850).Within(1));
+
+            window
+                .Find("Viewport/Body/ExpressionRow/SpeakButton")
+                .GetComponent<Button>()
+                .onClick.Invoke();
+            Transform row = window
+                .Find("Viewport/Body")
+                .Cast<Transform>()
+                .First(child => child.name.StartsWith("Other ") && child.gameObject.activeSelf);
+            row.Find("SpeakButton").GetComponent<Button>().onClick.Invoke();
+            Assert.That(
+                spoken,
+                Is.EqualTo(new[] { "I want coffee.", "I'd like a coffee, please." })
+            );
+        }
+
         [UnityTest]
         public IEnumerator OpenCard_KeepsHeaderControlsAndDialogueAtTheTop()
         {

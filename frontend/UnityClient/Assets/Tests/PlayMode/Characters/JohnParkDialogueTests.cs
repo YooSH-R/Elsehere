@@ -55,7 +55,7 @@ namespace A305.Characters.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator ShowcaseWelcomePlaysAtEntryAndJohnApproachesAfterTheFirstStep()
+        public IEnumerator ShowcaseWelcomePlaysShortlyAfterEntryAndJohnApproachesAfterTheFirstStep()
         {
             const string path = "Assets/Scenes/Sandbox/NpcJohnParkDialogueSandbox.unity";
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
@@ -75,14 +75,24 @@ namespace A305.Characters.PlayModeTests
                 var dialogue = roots
                     .SelectMany(root => root.GetComponentsInChildren<DialogueController>())
                     .Single();
-                player.transform.position = npc.transform.position + Vector3.forward * 5;
+                // 캐릭터 컨트롤러는 transform으로 옮긴 자리를 다음 프레임에 되돌리므로 끄고 옮긴다.
+                MovePlayer(player, npc.transform.position + Vector3.forward * 5);
                 var welcome = npc.gameObject.AddComponent<ShowcaseRestaurantWelcome>();
                 welcome.Configure(player, dialogue);
                 var performance = npc.GetComponent<RecordedNpcPerformance>();
+                Assert.That(
+                    performance.IsPerforming,
+                    Is.False,
+                    "장면 전환이 늦을 수 있어 바로 시작하지 않습니다."
+                );
+                Assert.That(welcome.HushesPlace, Is.True, "랩 동안 장소 생활소음을 끕니다.");
+                yield return new WaitForSecondsRealtime(
+                    ShowcaseWelcomeSequence.RapDelaySeconds + .3f
+                );
                 Assert.That(performance.IsPerforming, Is.True);
                 Assert.That(welcome.HasOffered, Is.False);
                 Vector3 before = npc.transform.position;
-                player.transform.position += Vector3.right * .4f;
+                MovePlayer(player, player.transform.position + Vector3.right * .4f);
                 for (int i = 0; i < 15; i++)
                     yield return null;
                 Assert.That(welcome.HasOffered, Is.True);
@@ -101,6 +111,14 @@ namespace A305.Characters.PlayModeTests
                 SceneManager.UnloadSceneAsync(scene);
             }
             yield return null;
+        }
+
+        private static void MovePlayer(A305.Player.PlayerMover player, Vector3 position)
+        {
+            var body = player.GetComponent<CharacterController>();
+            body.enabled = false;
+            player.transform.position = position;
+            body.enabled = true;
         }
 
         [UnityTest]

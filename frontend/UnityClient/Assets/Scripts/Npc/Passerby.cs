@@ -114,6 +114,10 @@ namespace A305.Npc
 
         /// <summary>퀘스트가 이 행인을 정한 자리에 붙잡아 두었는지(<see cref="WaitAt"/>)</summary>
         public bool IsWaitingForQuest => questSpot.HasValue || showcaseApproach;
+
+        /// <summary>다가가기·제안 상태. 시연 매장이 대화 제안에 답했는지 보는 데 쓴다.</summary>
+        public PasserbyPhase ApproachPhase =>
+            approach != null ? approach.Phase : PasserbyPhase.Waiting;
         private bool showcaseApproach;
 
         public void BeginShowcaseApproach()

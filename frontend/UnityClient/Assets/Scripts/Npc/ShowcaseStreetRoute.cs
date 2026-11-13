@@ -8,7 +8,27 @@ namespace A305.Npc
         public static bool AppliesTo(bool showcase, string scene) =>
             showcase && scene == "TownScene";
 
-        public static bool KeepsHotelWorker(string npcCode) => npcCode == "HOTEL_STAFF";
+        public static bool KeepsHotelWorker(string npcCode) =>
+            npcCode == "HOTEL_STAFF"
+            || npcCode == "HOTEL_RECEPTIONIST"
+            || npcCode == "HOTEL_BELLHOP";
+
+        public static bool KeepsRestaurantWorker(string npcCode) =>
+            npcCode == "DINER_STAFF" || npcCode == "TOWN_JOHN_PARK";
+
+        public static Pose? HotelSidePost(string npcCode) =>
+            npcCode switch
+            {
+                "HOTEL_RECEPTIONIST" => new Pose(
+                    new Vector3(2.25f, .15f, 6.15f),
+                    Quaternion.Euler(0, 180, 0)
+                ),
+                "HOTEL_BELLHOP" => new Pose(
+                    new Vector3(-4.7f, .15f, 3.7f),
+                    Quaternion.Euler(0, 135, 0)
+                ),
+                _ => null,
+            };
 
         public static bool TryGet(string npcCode, out Vector3 start, out Vector3 end)
         {

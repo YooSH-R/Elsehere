@@ -431,7 +431,9 @@ namespace A305.Npc
                 gameObject.scene.name
             );
             bool hotel = UsesShowcasePopulation && gameObject.scene.name == "HotelScene";
-            if (!street && !hotel)
+            bool restaurant =
+                UsesShowcasePopulation && gameObject.scene.name == "MapleDinerInterior";
+            if (!street && !hotel && !restaurant)
             {
                 if (wasUsingShowcasePopulation)
                     foreach (Resident resident in residents)
@@ -439,6 +441,8 @@ namespace A305.Npc
                         if (resident.TownBody != null)
                             resident.TownBody.GetComponent<Passerby>().UsesShowcaseBackgroundWalk =
                                 false;
+                        if (resident.Worker != null)
+                            resident.Worker.GetComponent<Passerby>()?.SetShowcasePost(null);
                         resident.LastPhase = null;
                     }
                 wasUsingShowcasePopulation = false;
@@ -449,13 +453,26 @@ namespace A305.Npc
             {
                 if (resident.Life == null)
                     continue;
-                if (resident.Worker != null && (hotel || LivesOnTheStreet(resident)))
+                if (resident.Worker != null && (hotel || restaurant || LivesOnTheStreet(resident)))
                 {
-                    bool receptionist =
-                        hotel && ShowcaseStreetRoute.KeepsHotelWorker(resident.Life.NpcId);
-                    resident.Worker.SetActive(receptionist);
-                    if (receptionist)
+                    bool stays =
+                        (hotel && ShowcaseStreetRoute.KeepsHotelWorker(resident.Life.NpcId))
+                        || (
+                            restaurant
+                            && ShowcaseStreetRoute.KeepsRestaurantWorker(resident.Life.NpcId)
+                        );
+                    resident.Worker.SetActive(stays);
+                    if (stays)
+                    {
                         resident.Worker.GetComponent<NpcRoutine>()?.StayAtWork();
+                        resident
+                            .Worker.GetComponent<Passerby>()
+                            ?.SetShowcasePost(
+                                hotel
+                                    ? ShowcaseStreetRoute.HotelSidePost(resident.Life.NpcId)
+                                    : null
+                            );
+                    }
                 }
                 if (resident.TownBody == null)
                     continue;

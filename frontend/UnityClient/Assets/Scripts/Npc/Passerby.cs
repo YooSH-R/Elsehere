@@ -112,6 +112,33 @@ namespace A305.Npc
         /// <summary>시연 반대편 보도에서만 걷고 플레이어에게 다가오거나 대화를 제안하지 않는다.</summary>
         public bool UsesShowcaseBackgroundWalk { get; set; }
 
+        private Pose? showcasePost;
+        private bool showcaseRoutineWasEnabled;
+
+        /// <summary>시연 호텔의 보조 직원은 통로 밖 자리를 지킨다. 해제하면 기존 생활을 다시 적용한다.</summary>
+        internal void SetShowcasePost(Pose? post)
+        {
+            if (!post.HasValue)
+            {
+                if (showcasePost.HasValue && routine != null)
+                    routine.enabled = showcaseRoutineWasEnabled;
+                showcasePost = null;
+                return;
+            }
+            if (showcasePost.HasValue && showcasePost.Value.position == post.Value.position)
+                return;
+            if (!showcasePost.HasValue && routine != null)
+                showcaseRoutineWasEnabled = routine.enabled;
+            routine?.Interrupt();
+            if (routine != null)
+                routine.enabled = false;
+            showcasePost = post;
+            bool wasEnabled = characterController.enabled;
+            characterController.enabled = false;
+            transform.SetPositionAndRotation(post.Value.position, post.Value.rotation);
+            characterController.enabled = wasEnabled;
+        }
+
         /// <summary>튜토리얼에서 길을 묻는 중인지(튜토리얼 모드)</summary>
         public bool IsGuidingTutorial => tutorialScriptKey != null;
 
@@ -307,6 +334,11 @@ namespace A305.Npc
         private void Update()
         {
             IsWaitingAtSignal = false;
+            if (showcasePost.HasValue)
+            {
+                StandFacing(showcasePost.Value.rotation);
+                return;
+            }
             if (UsesShowcaseBackgroundWalk)
             {
                 if (GameClock.Shared.IsHeld || GameClock.Shared.Current?.Paused == true)
@@ -471,7 +503,13 @@ namespace A305.Npc
         /// <param name="reachMeters">클릭으로 말을 걸 수 있는 수평 거리</param>
         public bool CanTalkByClick(float reachMeters)
         {
-            if (!enabled || UsesShowcaseBackgroundWalk || IsPlayerOccupied || IsCrossing)
+            if (
+                !enabled
+                || UsesShowcaseBackgroundWalk
+                || showcasePost.HasValue
+                || IsPlayerOccupied
+                || IsCrossing
+            )
             {
                 return false;
             }

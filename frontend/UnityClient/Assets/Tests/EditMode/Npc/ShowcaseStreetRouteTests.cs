@@ -6,12 +6,22 @@ namespace A305.Npc.Tests
     public class ShowcaseStreetRouteTests
     {
         [TestCase("HOTEL_STAFF", true)]
+        [TestCase("HOTEL_RECEPTIONIST", true)]
+        [TestCase("HOTEL_BELLHOP", true)]
         [TestCase("HOTEL_CONCIERGE", false)]
         [TestCase("HOTEL_NIGHT_STAFF", false)]
         [TestCase("DINER_STAFF", false)]
-        public void OnlyTheHotelReceptionistStaysInTheShowcaseLobby(string code, bool expected)
+        public void ReceptionistAndTwoSideStaffStayInTheShowcaseLobby(string code, bool expected)
         {
             Assert.That(ShowcaseStreetRoute.KeepsHotelWorker(code), Is.EqualTo(expected));
+        }
+
+        [TestCase("DINER_STAFF", true)]
+        [TestCase("TOWN_JOHN_PARK", true)]
+        [TestCase("FIRE_CAPTAIN", false)]
+        public void ShowcaseRestaurantUsesOneFixedServerAndJohn(string code, bool expected)
+        {
+            Assert.That(ShowcaseStreetRoute.KeepsRestaurantWorker(code), Is.EqualTo(expected));
         }
 
         [TestCase("TOWN_GRANDFATHER")]

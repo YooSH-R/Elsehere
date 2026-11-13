@@ -91,7 +91,7 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator Showcase_OnlyJakeStaysInTheHotelLobby()
+        public IEnumerator Showcase_HotelKeepsThreeStaffOutsideTheEntranceRoute()
         {
             NpcPopulation.UsesShowcasePopulation = true;
             try
@@ -102,9 +102,96 @@ namespace A305.Npc.PlayModeTests
                 var hotelStaff = Object
                     .FindObjectsByType<NpcIdentity>(FindObjectsSortMode.None)
                     .Where(npc => npc.Code.StartsWith("HOTEL_"))
-                    .Select(npc => npc.Code)
                     .ToArray();
-                Assert.That(hotelStaff, Is.EquivalentTo(new[] { "HOTEL_STAFF" }));
+                Assert.That(
+                    hotelStaff.Select(npc => npc.Code),
+                    Is.EquivalentTo(new[] { "HOTEL_STAFF", "HOTEL_RECEPTIONIST", "HOTEL_BELLHOP" })
+                );
+                foreach (NpcIdentity staff in hotelStaff.Where(npc => npc.Code != "HOTEL_STAFF"))
+                {
+                    Vector3 position = staff.transform.position;
+                    Assert.That(
+                        Mathf.Abs(position.x) > 4 || position.z > 5.5f,
+                        Is.True,
+                        "직원은 중앙 통로 밖에 머물러야 합니다."
+                    );
+                    var blockers = Physics
+                        .OverlapCapsule(
+                            position + Vector3.up * .5f,
+                            position + Vector3.up * 1.4f,
+                            .28f,
+                            ~0,
+                            QueryTriggerInteraction.Ignore
+                        )
+                        .Where(collider => !collider.transform.IsChildOf(staff.transform))
+                        .ToArray();
+                    Assert.That(
+                        blockers.Select(collider => collider.name),
+                        Is.Empty,
+                        "벽·가구·다른 직원과 겹치면 안 됩니다."
+                    );
+                }
+                var sideStaff = hotelStaff.Where(npc => npc.Code != "HOTEL_STAFF").ToArray();
+                Vector3[] before = sideStaff.Select(npc => npc.transform.position).ToArray();
+                GameClock
+                    .Shared.TickAsync(
+                        new FixedClock
+                        {
+                            Time = new GameClockTime
+                            {
+                                Day = 1,
+                                MinuteOfDay = 19 * 60,
+                                Paused = false,
+                            },
+                        },
+                        Time.realtimeSinceStartupAsDouble + 2e5
+                    )
+                    .GetAwaiter()
+                    .GetResult();
+                float previousDelta = Time.captureDeltaTime;
+                try
+                {
+                    Time.captureDeltaTime = 1f / 30f;
+                    for (int frame = 0; frame < 120; frame++)
+                        yield return null;
+                    for (int index = 0; index < sideStaff.Length; index++)
+                        Assert.That(
+                            HorizontalDistance(before[index], sideStaff[index].transform.position),
+                            Is.LessThan(.03f),
+                            "보조 직원이 자리에서 벗어나 로비 통로로 나오면 안 됩니다."
+                        );
+                }
+                finally
+                {
+                    Time.captureDeltaTime = previousDelta;
+                }
+            }
+            finally
+            {
+                NpcPopulation.UsesShowcasePopulation = false;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Showcase_RestaurantKeepsOnlyJohnAndRosaAcrossTheDay()
+        {
+            NpcPopulation.UsesShowcasePopulation = true;
+            try
+            {
+                yield return LoadWithoutApis("MapleDinerInterior");
+                foreach (int minute in new[] { 9 * 60, 19 * 60, 2 * 60 })
+                {
+                    SetClock(minute);
+                    yield return null;
+                    yield return null;
+                    Assert.That(
+                        Object
+                            .FindObjectsByType<NpcIdentity>(FindObjectsSortMode.None)
+                            .Where(npc => npc.gameObject.scene.name == "MapleDinerInterior")
+                            .Select(npc => npc.Code),
+                        Is.EquivalentTo(new[] { "DINER_STAFF", "TOWN_JOHN_PARK" })
+                    );
+                }
             }
             finally
             {
@@ -2258,6 +2345,21 @@ namespace A305.Npc.PlayModeTests
 
         private static void DisableWalkingTestApis(Scene scene, LoadSceneMode mode)
         {
+            if (NpcPopulation.UsesShowcasePopulation)
+            {
+                foreach (
+                    var mission in Object.FindObjectsByType<A305.Mission.FirstDayMissionController>(
+                        FindObjectsSortMode.None
+                    )
+                )
+                    mission.enabled = false;
+                foreach (
+                    var welcome in Object.FindObjectsByType<ShowcaseRestaurantWelcome>(
+                        FindObjectsSortMode.None
+                    )
+                )
+                    welcome.enabled = false;
+            }
             foreach (
                 var clock in Object.FindObjectsByType<GameClockDriver>(FindObjectsSortMode.None)
             )

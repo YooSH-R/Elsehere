@@ -55,6 +55,29 @@ namespace A305.EditorTools.Learning
             AssetDatabase.SaveAssets();
         }
 
+        // HudTopBarLayout 값을 바꾼 뒤에는 이 메뉴로 저장된 설문 아이콘 자리를 다시 맞춘다.
+        [MenuItem("Tools/A305/Learning/Apply Survey Entry Position")]
+        public static void ApplyEntryPositionToPrefab()
+        {
+            BuilderTools.ThrowIfPlaying();
+            BuilderTools.UpdatePrefabIfExists(
+                HudPath,
+                root => PlaceEntry((RectTransform)root.transform.Find("SurveyPrompt/EntryButton"))
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        // 휴대폰 바로 왼쪽 칸. 시계·코인 칩은 FirstDayMissionView가 이 칸만큼 왼쪽으로 비킨다.
+        private static void PlaceEntry(RectTransform entry)
+        {
+            entry.anchorMin = entry.anchorMax = entry.pivot = Vector2.one;
+            entry.anchoredPosition = new Vector2(
+                -HudTopBarLayout.SurveyRight,
+                -HudTopBarLayout.Margin
+            );
+            entry.sizeDelta = new Vector2(HudTopBarLayout.SurveyWidth, HudTopBarLayout.Size);
+        }
+
         // 접힌 버튼은 HUD에 남기고, 설문 안내 카드만 상위 레이어를 사용한다.
         private static void PlaceEntryOnHudLayer(GameObject entry)
         {
@@ -203,13 +226,7 @@ namespace A305.EditorTools.Learning
             if (old != null)
                 Object.DestroyImmediate(old.gameObject);
             entry.transform.SetParent(layer, false);
-            var entryRect = (RectTransform)entry.transform;
-            entryRect.anchorMin = entryRect.anchorMax = entryRect.pivot = Vector2.one;
-            entryRect.anchoredPosition = new Vector2(
-                -HudTopBarLayout.SurveyRight,
-                -HudTopBarLayout.Margin
-            );
-            entryRect.sizeDelta = new Vector2(HudTopBarLayout.SurveyWidth, HudTopBarLayout.Size);
+            PlaceEntry((RectTransform)entry.transform);
             Image hit = entry.GetComponent<Image>();
             hit.color = Color.clear;
             Button click = entry.GetComponent<Button>();

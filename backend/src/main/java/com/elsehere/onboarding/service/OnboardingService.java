@@ -2,6 +2,7 @@ package com.elsehere.onboarding.service;
 
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.mission.service.ShowcaseSettings;
 import com.elsehere.onboarding.dto.LanguageProfileResponse;
 import com.elsehere.onboarding.dto.LanguageSelectionResponse;
 import com.elsehere.onboarding.dto.LevelSelectionResponse;
@@ -10,6 +11,7 @@ import com.elsehere.onboarding.entity.UserLanguageProfile;
 import com.elsehere.onboarding.entity.UserLanguageProfileId;
 import com.elsehere.onboarding.repository.LevelTestRepository;
 import com.elsehere.onboarding.repository.UserLanguageProfileRepository;
+import com.elsehere.user.entity.OnboardingStep;
 import com.elsehere.user.entity.User;
 import com.elsehere.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ public class OnboardingService {
   private final LevelTestRepository levelTestRepository;
   private final LanguageCatalog languageCatalog;
   private final LevelCatalog levelCatalog;
+  private final ShowcaseSettings showcaseSettings;
 
   public LanguageSelectionResponse chooseLanguage(Long userId, String languageCode) {
     if (!languageCatalog.isSelectable(languageCode)) {
@@ -81,6 +84,10 @@ public class OnboardingService {
     profile.selectLevel(level);
     User user = profile.getUser();
     user.completeLevelSetting();
+    // 시연 서버에서는 튜토리얼 방 대신 호텔에서 바로 시작하므로 튜토리얼을 건너뛴다.
+    if (showcaseSettings.enabled() && user.getOnboardingStep() == OnboardingStep.TUTORIAL) {
+      user.finishTutorial();
+    }
     return new LevelSelectionResponse(languageCode, level, user.getOnboardingStep());
   }
 

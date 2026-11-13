@@ -39,6 +39,8 @@ import org.springframework.context.annotation.Import;
   PronunciationAudioStore.class,
   LastSceneService.class,
   BootstrapService.class,
+  com.elsehere.mission.service.ShowcaseQuestService.class,
+  com.elsehere.mission.service.ShowcaseSettings.class,
   AiStatusService.class,
   GuestConversationLimit.class,
   OptionalConsentService.class,

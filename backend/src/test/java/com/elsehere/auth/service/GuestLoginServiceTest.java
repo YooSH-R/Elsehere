@@ -38,6 +38,7 @@ import org.springframework.context.annotation.Import;
   GuestLoginService.class,
   ConsentCatalog.class,
   OnboardingService.class,
+  com.elsehere.mission.service.ShowcaseSettings.class,
   LanguageCatalog.class,
   LevelCatalog.class
 })

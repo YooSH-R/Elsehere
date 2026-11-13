@@ -33,6 +33,8 @@ import org.springframework.context.annotation.Import;
   JpaAuditingConfig.class,
   UiThemeService.class,
   BootstrapService.class,
+  com.elsehere.mission.service.ShowcaseQuestService.class,
+  com.elsehere.mission.service.ShowcaseSettings.class,
   AiStatusService.class,
   GuestConversationLimit.class,
   OptionalConsentService.class,

@@ -3,12 +3,14 @@ package com.elsehere.onboarding.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.Mockito.when;
 
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.config.TestClockConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.mission.service.ShowcaseSettings;
 import com.elsehere.onboarding.dto.LanguageProfileResponse;
 import com.elsehere.onboarding.dto.LanguageSelectionResponse;
 import com.elsehere.onboarding.dto.LevelSelectionResponse;
@@ -31,6 +33,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 @AutoConfigureTestDatabase(replace = Replace.NONE)
@@ -49,6 +52,20 @@ class OnboardingServiceTest {
   @Autowired private OnboardingService onboardingService;
 
   @Autowired private UserLanguageProfileRepository profileRepository;
+
+  @MockitoBean private ShowcaseSettings showcaseSettings;
+
+  @Test
+  @DisplayName("시연 서버에서는 난이도를 정하면 튜토리얼을 건너뛰어 방 대신 호텔에서 바로 시작한다")
+  void onTheShowcaseServer_selectingALevelSkipsTheTutorial() {
+    when(showcaseSettings.enabled()).thenReturn(true);
+    User user = persistNewUser();
+    onboardingService.chooseLanguage(user.getId(), "en-US");
+
+    LevelSelectionResponse response = onboardingService.selectLevel(user.getId(), "en-US", 1);
+
+    assertThat(response.onboardingStep()).isEqualTo(OnboardingStep.DONE);
+  }
 
   @Test
   @DisplayName("학습 언어를 고르면 언어별 학습 설정을 만들고 사용자를 레벨 테스트 단계로 넘긴다")

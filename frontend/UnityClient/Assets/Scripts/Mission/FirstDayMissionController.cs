@@ -325,7 +325,8 @@ namespace A305.Mission
             try
             {
                 FirstDayMissionState response = await action();
-                SurveyPrompt.AutomaticInvitationsPaused = response.IsShowcase && response.Started;
+                // 시연 서버에서는 시연을 시작하기 전에도 자동 설문 안내를 띄우지 않는다.
+                SurveyPrompt.AutomaticInvitationsPaused = response.IsShowcase;
                 if (this == null)
                     return;
                 string finished = response.QuestFinishedSince(state);

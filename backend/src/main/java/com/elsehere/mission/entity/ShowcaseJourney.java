@@ -43,10 +43,16 @@ public class ShowcaseJourney extends BaseEntity {
   @Version private long version;
 
   public static ShowcaseJourney start(Long userId) {
+    ShowcaseJourney journey = notStarted(userId);
+    journey.resume();
+    return journey;
+  }
+
+  /** 아직 시작하지 않은 시연. 시작 전 상태를 보일 때 쓰고, 시작할 때 저장한다. */
+  public static ShowcaseJourney notStarted(Long userId) {
     ShowcaseJourney journey = new ShowcaseJourney();
     journey.userId = userId;
     journey.restart();
-    journey.resume();
     return journey;
   }
 

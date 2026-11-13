@@ -53,13 +53,13 @@ public class QuestBoardService {
               ? chapter(quest, firstDayDone, story, names)
               : firstDayQuest(quest, mission, names));
     }
-    // 시연 카드는 완료 후에도 다시 시작할 수 있으므로, 시연 모드에서는 시작하지 않은 나머지 퀘스트를 계속 잠근다.
+    // 시연 완료 후에도 다시 시작할 수 있다. 진행 중이던 것을 포함해 끝내지 않은 다른 퀘스트는 계속 잠근다.
     showcase
         .card(userId, names)
         .ifPresent(
             card -> {
               if (!"DONE".equals(card.status())) {
-                quests.replaceAll(QuestBoardService::lockedUnlessStarted);
+                quests.replaceAll(QuestBoardService::lockedUnlessDone);
               }
               quests.add(0, card);
             });
@@ -71,8 +71,8 @@ public class QuestBoardService {
     return new QuestBoardResponse(balance, quests);
   }
 
-  private static QuestBoardResponse.Quest lockedUnlessStarted(QuestBoardResponse.Quest quest) {
-    if (!"AVAILABLE".equals(quest.status())) {
+  private static QuestBoardResponse.Quest lockedUnlessDone(QuestBoardResponse.Quest quest) {
+    if ("DONE".equals(quest.status())) {
       return quest;
     }
     return new QuestBoardResponse.Quest(

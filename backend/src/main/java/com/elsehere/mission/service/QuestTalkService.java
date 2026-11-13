@@ -75,7 +75,8 @@ public class QuestTalkService {
   // 마을 이야기를 하는 중이면 그 목표, 아니면 첫날 미션의 목표. 두 퀘스트는 앞 퀘스트를 끝내야 다음이 열려 동시에 진행되지 않는다.
   private Optional<SelectedQuest> activeQuest(Long userId, String npcCode) {
     Optional<QuestTalk> demo = showcase.context(userId, npcCode);
-    if (demo.isPresent()) {
+    // 시연 서버에서는 시연 퀘스트만 대화 목표를 낸다. 시작 전에는 진행 중이던 다른 퀘스트도 목표를 내지 않는다.
+    if (demo.isPresent() || showcase.enabled()) {
       return demo.map(talk -> new SelectedQuest(Source.SHOWCASE, talk));
     }
     Optional<QuestTalk> activeTown = town.context(userId, npcCode);

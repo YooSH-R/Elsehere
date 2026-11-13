@@ -29,17 +29,24 @@ namespace A305.Player
         private readonly Vector3[] vertices = new Vector3[34 * Sides];
         private readonly Vector3[] normals = new Vector3[34 * Sides];
 
-        /// <summary>접은 천과 곧은 우산대를 손 아래로 늘어뜨린다. 원점은 열린 우산과 같은 손잡이다.</summary>
-        public void FitFolded()
+        /// <summary>접은 우산의 손잡이부터 끝까지 가장 긴 길이(m)</summary>
+        public const float FoldedLength = .68f;
+
+        /// <summary>
+        /// 접은 천과 곧은 우산대를 원점(열린 우산과 같은 손잡이)에서 위(+Y) 방향으로 length만큼 잇는다.
+        /// 짧게 들 때는 접은 천도 같은 비율로 줄인다.
+        /// </summary>
+        public void FitFolded(float length = FoldedLength)
         {
             for (int i = 0; i < points.Length; i++)
-                points[i] = transform.position + transform.up * (.68f * i / (points.Length - 1));
+                points[i] = transform.position + transform.up * (length * i / (points.Length - 1));
             UpdateTube();
+            float share = length / FoldedLength;
             canopy.SetPositionAndRotation(
-                transform.position + transform.up * .12f,
+                transform.position + transform.up * (.12f * share),
                 transform.rotation
             );
-            canopy.localScale = new Vector3(.07f, 1.7f, .07f);
+            canopy.localScale = new Vector3(.07f, 1.7f * share, .07f);
         }
 
         /// <summary>손잡이에서 귀 옆까지 매끄러운 곡선으로 잇고 캐노피는 수평으로 둔다.</summary>

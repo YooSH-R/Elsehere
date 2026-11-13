@@ -414,10 +414,12 @@ namespace A305.Mission
             if (umbrella == null || state == null)
                 return;
             bool insideShop = PlaceScenes.IsTownShop(gameObject.scene.name);
+            // 시연에서는 택시 안에서 접은 우산도 편 우산도 숨긴다. 시연이 아니면 원래대로 둔다.
+            bool hiddenInTaxi = state.IsShowcase && taxi != null && taxi.IsPassenger;
             if (state.CarriesFoldedUmbrellaIn(sceneCode, insideShop))
-                umbrella.SetFolded(taxi == null || !taxi.IsPassenger);
+                umbrella.SetFolded(!hiddenInTaxi);
             else
-                umbrella.SetOpen(state.OpensUmbrellaIn(sceneCode, insideShop));
+                umbrella.SetOpen(!hiddenInTaxi && state.OpensUmbrellaIn(sceneCode, insideShop));
         }
 
         private void Render()

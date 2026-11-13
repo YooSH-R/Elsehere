@@ -6,6 +6,22 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class ShowcaseJourneyTest {
+  // 시연을 처음으로 되돌리면 시작 전 상태로 둔다. 시연자가 퀘스트 창에서 눌러야 진행이 시작된다.
+  @Test
+  void restartGoesBackToTheBeginningWithoutStarting() {
+    ShowcaseJourney journey = ShowcaseJourney.start(8L);
+    assertThat(journey.isActive()).isTrue();
+    journey.accept(0, "HOTEL_STAFF", List.of("ask_burger_location", "promise_umbrella_return"));
+
+    journey.restart();
+
+    assertThat(journey.getStage()).isZero();
+    assertThat(journey.hasUmbrella()).isFalse();
+    assertThat(journey.isActive()).isFalse();
+    journey.resume();
+    assertThat(journey.isActive()).isTrue();
+  }
+
   @Test
   void anotherNpcAndFutureGoalsCannotSkipTheHotel() {
     ShowcaseJourney journey = ShowcaseJourney.start(8L);

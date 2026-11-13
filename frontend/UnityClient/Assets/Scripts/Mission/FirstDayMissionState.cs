@@ -87,10 +87,14 @@ namespace A305.Mission
         /// </summary>
         public string FallbackWeather => Raining ? "RAIN" : "CLEAR";
 
+        /// <summary>
+        /// 시연에서 호텔 직원에게 빌린 우산을 접어 드는지. 호텔 안과 비가 그친 거리에서는 접어 들고, 비 오는 거리에서는 펴 쓴다.
+        /// </summary>
         public bool CarriesFoldedUmbrellaIn(string sceneCode, bool insideShop = false) =>
             IsShowcase
             && HasUmbrella
-            && (sceneCode == "HOTEL" || sceneCode == "TOWN" && !insideShop);
+            && (sceneCode == "HOTEL" || sceneCode == "TOWN" && !insideShop)
+            && !OpensUmbrellaIn(sceneCode, insideShop);
 
         /// <summary>
         /// 이 장소에서 플레이어가 우산을 펴 쓰는지. 우산은 드럭스토어 단계를 마치면 생기고, 비 오는 마을에서만 편다.

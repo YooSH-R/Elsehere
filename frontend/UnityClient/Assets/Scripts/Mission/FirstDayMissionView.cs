@@ -357,7 +357,10 @@ namespace A305.Mission
             shownState = state;
             idle = !state.Started || state.Completed;
             // 이야기를 시작했을 때만 카드를 잠깐 펼쳐 알린다. 하던 이야기를 처음 불러올 때는 접어 둔다.
-            if (storyWasIdle == true && !idle)
+            // 시연 퀘스트는 시작할 때와 장면을 옮겨 처음 불러올 때 펼치고 저절로 접지 않는다.
+            if (state.IsShowcase && !idle && storyWasIdle != false)
+                fold.Expand();
+            else if (storyWasIdle == true && !idle)
                 fold.Announce();
             storyWasIdle = idle;
             latestBalance = state.Balance;

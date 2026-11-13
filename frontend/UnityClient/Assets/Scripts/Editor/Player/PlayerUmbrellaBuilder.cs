@@ -20,7 +20,13 @@ namespace A305.EditorTools.Player
         private const int Ribs = 8;
         private const float CanopyRadius = .84f;
         private const float CanopyHeight = .3f;
-        private const string ScenePath = "Assets/Scenes/Production/TownScene.unity";
+
+        // 시연에서 호텔 직원에게 빌린 우산을 호텔 안에서 접어 들고 거리로 나가므로 호텔 플레이어도 우산을 든다.
+        private static readonly string[] ScenePaths =
+        {
+            "Assets/Scenes/Production/TownScene.unity",
+            "Assets/Scenes/Production/HotelScene.unity",
+        };
         private const string MaterialFolder = "Assets/Art/World/Drugstore/Materials/";
         private const string MaterialBuilderMenu = "Tools/A305/World/Apply Drugstore Interior";
 
@@ -29,11 +35,18 @@ namespace A305.EditorTools.Player
         {
             BuilderTools.ThrowIfPlaying();
             GameObject prefab = BuilderTools.CreatePrefabIfMissing(PrefabPath, BuildUmbrella);
-            Scene scene = EditorSceneManager.OpenScene(ScenePath);
-            PlayerMover player = BuilderTools.FindSingleInScene<PlayerMover>(scene);
-            var hold = BuilderTools.GetOrAddComponent<UmbrellaHold>(player.gameObject);
-            BuilderTools.SetReference(hold, "umbrellaPrefab", prefab.GetComponent<HeldUmbrella>());
-            BuilderTools.SaveScene(scene, ScenePath);
+            foreach (string scenePath in ScenePaths)
+            {
+                Scene scene = EditorSceneManager.OpenScene(scenePath);
+                PlayerMover player = BuilderTools.FindSingleInScene<PlayerMover>(scene);
+                var hold = BuilderTools.GetOrAddComponent<UmbrellaHold>(player.gameObject);
+                BuilderTools.SetReference(
+                    hold,
+                    "umbrellaPrefab",
+                    prefab.GetComponent<HeldUmbrella>()
+                );
+                BuilderTools.SaveScene(scene, scenePath);
+            }
             AssetDatabase.SaveAssets();
         }
 

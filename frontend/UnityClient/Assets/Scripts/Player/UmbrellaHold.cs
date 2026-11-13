@@ -229,14 +229,21 @@ namespace A305.Player
             );
         }
 
+        // 접은 우산을 내린 손에 쥐고, 끝을 몸 바깥·앞으로 조금 기울여 다리와 겹치지 않게 한다.
+        // 손 높이에 맞춰 길이를 줄여 끝이 바닥을 뚫지 않게 한다.
         private void HoldFolded()
         {
             Vector3 shoulder = transform.InverseTransformPoint(upperArm.position);
-            Vector3 wrist = transform.TransformPoint(shoulder + new Vector3(.12f, -.42f, .12f));
+            Vector3 wrist = transform.TransformPoint(shoulder + new Vector3(.15f, -.4f, .1f));
             TwoBonePose.Reach(upperArm, lowerArm, hand, wrist, transform.forward + transform.right);
-            hand.rotation =
-                Quaternion.LookRotation(transform.forward, -transform.up)
-                * Quaternion.Inverse(palmFrame);
+            Vector3 down = (
+                -transform.up + transform.right * .35f + transform.forward * .25f
+            ).normalized;
+            Quaternion hang = Quaternion.LookRotation(
+                Vector3.ProjectOnPlane(transform.forward, down).normalized,
+                down
+            );
+            hand.rotation = hang * Quaternion.Inverse(palmFrame);
             foreach (var finger in fingers)
             {
                 finger.Bone.localRotation = finger.Rotation;
@@ -244,11 +251,14 @@ namespace A305.Player
                     Quaternion.AngleAxis(finger.Curl, transform.right) * finger.Bone.rotation;
             }
             Vector3 grip = middle != null ? hand.TransformPoint(gripInHand) : hand.position;
-            umbrella.transform.SetPositionAndRotation(
-                grip,
-                Quaternion.LookRotation(transform.forward, -transform.up)
+            float aboveFloor = transform.InverseTransformPoint(grip).y - .04f;
+            float length = Mathf.Clamp(
+                aboveFloor / Vector3.Dot(down, -transform.up),
+                .2f,
+                HeldUmbrella.FoldedLength
             );
-            umbrella.FitFolded();
+            umbrella.transform.SetPositionAndRotation(grip, hang);
+            umbrella.FitFolded(length);
         }
     }
 }

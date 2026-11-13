@@ -150,7 +150,10 @@ def test_gpu_npc_from_env(monkeypatch):
     env |= {"GUARD_GPU_BASE_URL": "http://172.19.0.1:18432/v1", "GUARD_GPU_TOKEN": "t"}
     s = Settings.from_env()
     assert s.npc_gpu_model == GPU_MODEL and s.providers["gpu_llm"]["api_key"] == "t"
-    assert (s.npc_gpu_first_token_s, s.npc_gpu_max_concurrent) == (1.0, 4)
+    assert (s.npc_gpu_first_token_s, s.npc_gpu_max_concurrent) == (
+        1.5,
+        4,
+    )  # 처음 보는 프롬프트도 첫 글자 0.8~1.0초라 SOL(약 1.5초)과 같은 상한
     env |= {"NPC_GPU_FIRST_TOKEN_S": "0.8", "NPC_GPU_MAX_CONCURRENT": "6", "NPC_BREAKER_FAILURES": "5", "NPC_BREAKER_SKIP_S": "30"}
     s = Settings.from_env()
     assert (s.npc_gpu_first_token_s, s.npc_gpu_max_concurrent, s.npc_breaker_failures, s.npc_breaker_skip_s) == (0.8, 6, 5, 30.0)

@@ -135,8 +135,9 @@ class Settings:
     # GPU 서버 NPC 대답 모델(gpu_llm 공급자, NPC 대답 LoRA). 있으면 스트림을 먼저 열고, 실패하거나 첫 글자가 늦거나
     # GPU로 가는 대답이 상한만큼 있으면 구성의 npc 모델로 대답한다. 비면 끔
     npc_gpu_model: str = ""
-    # GPU 첫 글자 상한. 넘으면 구성의 npc 모델로. 실측(2026-11-13, 실제 대답 프롬프트) 동시 1개 0.35초·4개 최대 1.1초·8개 2.7초
-    npc_gpu_first_token_s: float = 1.0
+    # GPU 첫 글자 상한. 넘으면 구성의 npc 모델로. 실측(2026-11-13, 실제 대답 프롬프트) 동시 1개 0.35초·4개 최대 1.1초·8개 2.7초.
+    # 대화를 시작하거나 NPC가 바뀌어 처음 보는 프롬프트는 캐시가 없어 터널 포함 0.8~1.0초라, 1초로 두면 그런 대답이 SOL로 넘어갔다
+    npc_gpu_first_token_s: float = 1.5
     npc_gpu_max_concurrent: int = 4  # 워커 하나가 동시에 GPU로 보내는 대답 수. 넘는 대답은 처음부터 구성의 npc 모델로
     npc_breaker_failures: int = 3  # GPU 서버 NPC 대답이 이만큼 연속 실패하면 잠시 건너뜀 (0이면 끔)
     npc_breaker_skip_s: float = 60.0  # 건너뛰는 시간. 지나면 다시 시도

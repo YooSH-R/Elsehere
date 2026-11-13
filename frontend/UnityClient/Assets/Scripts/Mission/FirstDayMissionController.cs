@@ -106,6 +106,7 @@ namespace A305.Mission
             {
                 umbrellaInTaxi = taxi.IsPassenger;
                 UpdateUmbrella();
+                UpdateTaxiSignal();
             }
             dinerRest?.Tick(Time.unscaledDeltaTime, state, busy);
             if (state?.CountsAsCafeRest != true)
@@ -366,6 +367,7 @@ namespace A305.Mission
                 if (weather != null)
                     weather.Show(state.Weather, state.FallbackWeather);
                 UpdateUmbrella();
+                UpdateTaxiSignal();
             }
             catch (ApiException exception)
             {
@@ -408,6 +410,17 @@ namespace A305.Mission
                     }
                 }
             }
+        }
+
+        // 시연 중 손님을 태운 택시는 본길 신호를 초록으로 붙잡아 신호에 걸리지 않는다. 시연이 아니면 신호를 지킨다.
+        private void UpdateTaxiSignal()
+        {
+            if (taxi == null)
+                return;
+            // 택시는 LoopingCar를 늘 함께 둔다(RequireComponent).
+            TrafficLights lights = taxi.GetComponent<LoopingCar>().Lights;
+            if (lights != null)
+                lights.HoldsMainGreen = state?.HoldsGreenForTaxiRide == true && taxi.IsPassenger;
         }
 
         private void UpdateUmbrella()

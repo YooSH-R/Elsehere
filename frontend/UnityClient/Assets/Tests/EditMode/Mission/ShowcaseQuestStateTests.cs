@@ -90,6 +90,29 @@ namespace A305.Mission.Tests
             Assert.That(state.OpensUmbrellaIn("TOWN"), Is.False);
         }
 
+        // 시연을 하는 동안 손님을 태운 택시는 신호에 걸리지 않는다. 시연이 아니면 원래대로 신호를 지킨다.
+        [Test]
+        public void DemoTaxiRideHoldsTheGreenOnlyWhileTheDemoRuns()
+        {
+            var state = new FirstDayMissionState
+            {
+                Quest = "SHOWCASE_RAINY_EVENING",
+                Started = true,
+                Stage = 1,
+            };
+            Assert.That(state.HoldsGreenForTaxiRide, Is.True);
+            state.Completed = true;
+            Assert.That(state.HoldsGreenForTaxiRide, Is.False);
+            Assert.That(
+                new FirstDayMissionState
+                {
+                    Quest = "CHECK_IN",
+                    Started = true,
+                }.HoldsGreenForTaxiRide,
+                Is.False
+            );
+        }
+
         [Test]
         public void CompletedDemoStaysAvailableForNotesWithoutStartingAnotherQuest()
         {

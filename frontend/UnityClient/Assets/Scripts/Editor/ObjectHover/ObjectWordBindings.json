@@ -50,9 +50,7 @@
       "key": "counter",
       "names": [
         "Counter",
-        "ServiceCounter",
-        "PharmacyCounter",
-        "CoffeeCounter"
+        "ServiceCounter"
       ]
     },
     {

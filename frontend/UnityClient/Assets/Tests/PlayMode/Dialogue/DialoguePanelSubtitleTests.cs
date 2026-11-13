@@ -59,16 +59,16 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator FirstConversation_ShowsSubtitlesByDefault()
+        public IEnumerator FirstConversation_HidesSubtitlesByDefault()
         {
             PlayerPrefs.DeleteKey(NpcSubtitlePreference.PreferenceKey);
             NpcSubtitlePreference.Reload();
 
             yield return Show(new SpokenContent(speaksNpcLines: true));
 
-            Assert.That(VisibleNpcLetters(), Is.EqualTo(NpcSentence.Replace(" ", "").Length));
-            Assert.That(ActiveCovers(), Is.Empty);
-            Assert.That(Caption(FindButton("SubtitleButton")), Is.EqualTo("자막 끄기"));
+            Assert.That(VisibleNpcLetters(), Is.Zero);
+            Assert.That(ActiveCovers(), Has.Count.EqualTo(7));
+            Assert.That(Caption(FindButton("SubtitleButton")), Is.EqualTo("자막 켜기"));
         }
 
         [UnityTest]

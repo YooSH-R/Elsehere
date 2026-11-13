@@ -38,5 +38,6 @@ setsid nohup ~/guard/supervise.sh >> ~/guard/supervise.log 2>&1 &
 ```
 
 - 개발 터널(`172.19.0.1:18432`)은 `~/guard/tunnel_enabled`, 운영 터널(`172.30.0.1:18432`)은 `~/guard/prod_tunnel_enabled` 파일이 있을 때만 겁니다. 입구 허용과 방화벽은 [GPU 터널 네트워크](../../docs/gpu-worker-network.md)를 따릅니다.
+- `~/guard/models/npc-qwen3.8-27b-r16` 폴더가 있으면 NPC 대답 LoRA([`ai/npc_reply`](../npc_reply/README.md))를 같은 vLLM에 함께 얹습니다. 아직 워커는 이 어댑터를 부르지 않고 평가 도구만 씁니다.
 - 기본 모델과 어댑터를 읽는 데 약 3분이 걸립니다. 그동안 워커는 프로필의 판정 모델로 대체합니다.
 - Jupyter 서버가 다시 시작되면 [`ai/gpu_autostart`](../gpu_autostart/README.md) 훅이 감시 스크립트를 다시 띄웁니다.

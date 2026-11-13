@@ -16,7 +16,9 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "worker"))
@@ -25,11 +27,13 @@ import httpx
 from app import config
 from app import prompts as P
 from app.llm import model_body
+from app.npc_emotion import EMOTION_PROMPT
 from app.schemas import Learner, Line, Npc
 
 ROOT = Path(__file__).resolve().parents[2]
 CASES = Path(__file__).resolve().parent / "npc_help_eval/cases.json"
 PROFILES = ROOT / "ai/npcs"
+FACE_MARKER = re.compile(r"\[\[[^\]]*\]\]")
 
 # 백엔드가 게임 대답에 보내는 페르소나 (backend/src/main/resources/db/seed/world.sql)
 PERSONAS = {
@@ -171,17 +175,30 @@ def judge_messages(case: dict, npc: Npc, reply: str) -> list[dict]:
     return [{"role": "system", "content": JUDGE_SYSTEM}, {"role": "user", "content": user}]
 
 
-async def run_case(client: httpx.AsyncClient, s: config.Settings, case: dict, reply: str | None = None) -> dict:
-    """reply를 주면 대답을 새로 만들지 않고 채점만 다시 한다 (채점 기준을 고쳤을 때)."""
+async def run_case(
+    client: httpx.AsyncClient,
+    s: config.Settings,
+    case: dict,
+    reply: str | None = None,
+    reply_client: httpx.AsyncClient | None = None,
+    reply_model: str | None = None,
+) -> dict:
+    """reply를 주면 대답을 새로 만들지 않고 채점만 다시 한다 (채점 기준을 고쳤을 때).
+    reply_client·reply_model을 주면 대답만 그 공급자·모델로 만들고 채점은 그대로 구성의 npc 모델이 한다 (GPU 서버 모델 비교)."""
     npc = npc_of(case["npc"])
     msgs = P.npc_messages(npc, None, history_of(case), case["text"], STAGES[case["stage"]], LEVEL, None, LEARNER)
+    msgs[0] = {**msgs[0], "content": msgs[0]["content"] + "\n\n" + EMOTION_PROMPT}  # 게임 대답 스트림(app.npc)과 같게
     row = {"id": case["id"], "kind": case["kind"], "npc": case["npc"]}
     try:
         if reply is None:
-            body = {"model": s.models["npc"], "temperature": 0.6, "max_tokens": P.LEVEL_MAX_TOKENS[LEVEL], "messages": msgs}
-            r = await client.post("/chat/completions", json=model_body(body, s.model_params))
+            model = reply_model or s.models["npc"]
+            body = {"model": model, "temperature": 0.6, "max_tokens": P.LEVEL_MAX_TOKENS[LEVEL] + 64, "messages": msgs}
+            t = time.perf_counter()
+            r = await (reply_client or client).post("/chat/completions", json=model_body(body, s.model_params))
             r.raise_for_status()
+            row["reply_s"] = round(time.perf_counter() - t, 2)
             reply = r.json()["choices"][0]["message"]["content"].strip().strip('"').split("\n")[0]
+            reply = " ".join(FACE_MARKER.sub(" ", reply).split())  # 게임이 읽고 자막으로 보여 주는 말만
         row["reply"] = reply
         body = {
             "model": s.models["npc"],
@@ -241,6 +258,11 @@ async def main():
     ap.add_argument("--only", help="줄 id 고르기 (쉼표로)")
     ap.add_argument("--env", default=str(ROOT / ".env"))
     ap.add_argument("--rejudge", help="이전 결과 jsonl의 대답을 새로 만들지 않고 지금 채점 기준으로 다시 채점")
+    ap.add_argument(
+        "--reply-gpu-model",
+        help="대답만 GPU 서버 vLLM 모델로 만들기 (예: Qwen/Qwen3.8-27B, GUARD_GPU_BASE_URL·TOKEN 필요). 채점은 구성의 npc 모델 그대로",
+    )
+    ap.add_argument("--reply-model", help="대답만 같은 공급자의 다른 모델로 만들기 (예: gpt-6-luna). 채점·판정은 구성의 npc 모델 그대로")
     ap.add_argument("--out")
     a = ap.parse_args()
     config.load_dotenv(Path(a.env))
@@ -260,9 +282,20 @@ async def main():
     async with httpx.AsyncClient(
         base_url=s.base_url, headers={"Authorization": f"Bearer {s.api_key}", "User-Agent": "ai-worker/0.1"}, timeout=60
     ) as client:
-        for case, reply in jobs:
-            rows.append(await run_case(client, s, case, reply))
-    print(f"{a.profile} 대답 {s.models['npc']}")
+        reply_client = None
+        if a.reply_gpu_model:
+            gpu = s.providers["gpu_llm"]
+            reply_client = httpx.AsyncClient(base_url=gpu["base_url"], headers={"Authorization": f"Bearer {gpu['api_key']}"}, timeout=60)
+        try:
+            for case, reply in jobs:
+                rows.append(await run_case(client, s, case, reply, reply_client, a.reply_gpu_model or a.reply_model))
+        finally:
+            if reply_client:
+                await reply_client.aclose()
+    print(f"{a.profile} 대답 {a.reply_gpu_model or a.reply_model or s.models['npc']}, 채점 {s.models['npc']}")
+    took = sorted(r["reply_s"] for r in rows if "reply_s" in r)
+    if took:
+        print(f"  대답 생성 시간(스트림 아님, 끝까지) 중앙 {took[len(took) // 2]:.2f}초, 최대 {took[-1]:.2f}초")
     report(rows)
     if a.out:
         Path(a.out).parent.mkdir(parents=True, exist_ok=True)

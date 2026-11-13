@@ -77,6 +77,10 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `JUDGE_GPU_MODEL` | (없음, 꺼짐) | GPU 서버 vLLM의 의도·사건 판정 모델 이름(예: 기본 모델 `Qwen/Qwen3.8-27B`). 주면 `/v1/judge`의 의도 판정을 이 모델로 먼저 한 번 부르고, 실패·시간 초과·JSON이 아닌 답이면 구성의 `intent` 모델로 넘김. 주소·키는 `GUARD_GPU_BASE_URL`·`GUARD_GPU_TOKEN`. 번역은 그대로 구성 모델 |
 | `JUDGE_GPU_TIMEOUT_S` | 2 | GPU 서버 의도 판정 한 번의 상한. 넘으면 재시도 없이 구성의 `intent` 모델로 |
 | `JUDGE_BREAKER_FAILURES` / `JUDGE_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 의도 판정이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 구성의 `intent` 모델로 바로 감. 횟수가 0이면 끔 |
+| `NPC_GPU_MODEL` | (없음, 꺼짐) | GPU 서버 vLLM의 NPC 대답 LoRA 이름(예: `npc-qwen3.8-27b-r16`, [`ai/npc_reply`](../npc_reply/README.md)). 주면 `/v1/npc/reply` 대답 스트림을 이 모델로 먼저 열고, 실패하거나 첫 글자가 늦으면 구성의 `npc` 모델로 넘김. 주소·키는 `GUARD_GPU_BASE_URL`·`GUARD_GPU_TOKEN` |
+| `NPC_GPU_FIRST_TOKEN_S` | 1 | GPU 서버 NPC 대답의 첫 글자 상한. 넘으면 재시도 없이 구성의 `npc` 모델로 |
+| `NPC_GPU_MAX_CONCURRENT` | 4 | 워커 하나가 동시에 GPU로 보내는 NPC 대답 수. 넘는 대답은 처음부터 구성의 `npc` 모델로 (동시 8개부터 GPU 첫 글자가 SOL보다 늦어짐) |
+| `NPC_BREAKER_FAILURES` / `NPC_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 NPC 대답이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 구성의 `npc` 모델로 바로 감. 횟수가 0이면 끔 |
 | `GUARD_CONFIRM` | true | GPU 서버 판정이 무례라고 하면 구성의 `guard` 모델에 한 번 더 묻고 둘 다 무례일 때만 무례. GPU 모델이 대상 없는 단어("감자", 이름, "엄마")도 무례로 봐서 둠. 확인 호출이 실패하면 GPU 판정 그대로. `false`면 끔 |
 
 ## GPU 음성과 발음 시간표
@@ -164,7 +168,7 @@ NPC가 첫 대사를 먼저 하고 이후 한 줄마다 대답합니다. 턴마�
 
 ## NPC 막다른 거절·지어내기·연락 미룸 평가
 
-공통 규칙이나 마을 안내, 인격 카드를 고친 뒤 NPC가 손님 요청을 "잘 모르겠다"로 막지 않는지, 마을에 없는 곳이나 가격을 지어내지 않는지, 게임에 나오지 않는 사람(매니저·요리사·친구 등)에게 나중에 연락하겠다고만 하고 끝내지 않는지 잽니다. 게임 대답 경로(`/v1/npc/reply`, 인격 카드 + 백엔드 시드의 페르소나)로 대답을 만들고 판정 모델이 채점합니다.
+공통 규칙이나 마을 안내, 인격 카드를 고친 뒤 NPC가 손님 요청을 "잘 모르겠다"로 막지 않는지, 마을에 없는 곳이나 가격을 지어내지 않는지, 게임에 나오지 않는 사람(매니저·요리사·친구 등)에게 나중에 연락하겠다고만 하고 끝내지 않는지 잽니다. 게임 대답 경로(`/v1/npc/reply`, 인격 카드 + 백엔드 시드의 페르소나 + 표정 표시 지시)로 대답을 만들고, 표정 표시를 뺀 말을 판정 모델이 채점합니다.
 
 ```bash
 .venv/Scripts/python ../tools/npc_help_eval.py --runs 3 --out ../tools/results/npc_help.jsonl
@@ -177,7 +181,7 @@ NPC가 첫 대사를 먼저 하고 이후 한 줄마다 대답합니다. 턴마�
 
 ## NPC 개성 구분 평가
 
-인격 카드를 고친 뒤 같은 곳의 동료 NPC끼리 대답이 실제로 달라졌는지 잽니다. 카페·호텔·은행·경찰서·드럭스토어 동료 16명에게 같은 학습자 말 네 줄을 걸고(게임 대답 경로, 난이도 2), 판정 모델이 동료들의 성격 특징과 어조만 보고 누가 말했는지 맞힙니다. 지금 카드의 말버릇이 대답에 나온 비율과 한 대화에서 같은 말버릇을 다시 쓴 대화 수도 셉니다.
+인격 카드를 고친 뒤 같은 곳의 동료 NPC끼리 대답이 실제로 달라졌는지 잽니다. 카페·호텔·은행·경찰서·드럭스토어 동료 16명에게 같은 학습자 말 네 줄을 걸고(게임 대답 경로, 난이도 2), 판정 모델이 동료들의 성격 특징과 어조만 보고 누가 말했는지 맞힙니다. 지금 카드의 말버릇이 대답에 나온 비율, 한 대화에서 같은 말버릇을 다시 쓴 대화 수, 앞 대답에서 한 질문을 거의 그대로 다시 물은 대화 수도 셉니다. 대답은 게임처럼 표정 표시 지시를 붙여 만들고 표시는 빼고 봅니다.
 
 ```bash
 .venv/Scripts/python ../tools/npc_voice_eval.py --runs 2 --out ../tools/results/npc_voice.jsonl
@@ -185,6 +189,11 @@ NPC가 첫 대사를 먼저 하고 이후 한 줄마다 대답합니다. 턴마�
 ```
 
 - 서비스 NPC 카드는 유머·말버릇(3개 이상)·습관(2개 이상)·두려움·지난 경험을 채웁니다. 학습 수준 규칙이 대답 길이를 정해 말 길이로는 인물이 갈리지 않기 때문입니다. 말버릇은 NPC끼리 겹치지 않게 둡니다(`tests/test_npc_configs.py`).
+
+세 평가 모두 대답만 다른 모델로 만들어 비교할 수 있습니다. 채점·판정은 구성의 `npc` 모델 그대로입니다.
+
+- `--reply-model gpt-6-luna`: 같은 공급자(GMS)의 다른 모델
+- `--reply-gpu-model <모델 또는 어댑터 이름>`: GPU 서버 vLLM(`GUARD_GPU_BASE_URL`·`GUARD_GPU_TOKEN` 필요). NPC 대답 LoRA는 [`ai/npc_reply`](../npc_reply/README.md)를 봅니다.
 
 ## 난이도별 NPC 대답 비교
 

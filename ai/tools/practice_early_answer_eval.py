@@ -110,8 +110,10 @@ def reply_instruction(scenario: dict, leads: str) -> str:
         + f" This turn recognized: {first['id']}. Acknowledge these requests."
         + " Remaining objectives after this turn: "
         + ",".join(goal["id"] for goal in pending)
-        + ". Required details for those objectives:\n"
+        + ". The learner must raise these in their own words; their criteria are listed only so you keep back those answers:\n"
         + "\n".join(f"{goal['id']}: {goal['desc']}" for goal in pending)
+        + "\nDo not ask about, hint at or offer a remaining objective. Ask about one only when you cannot finish the request"
+        + " the learner just made without that detail, such as a size, payment method or what a lost item looks like."
     )
 
 

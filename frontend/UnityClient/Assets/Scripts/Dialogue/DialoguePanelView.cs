@@ -455,7 +455,7 @@ namespace A305.Dialogue
         /// <summary>주고받은 대사 칸. 튜토리얼 코치 마크가 대화 시작 티칭에서 밝힌다.</summary>
         public RectTransform LinesRect => (RectTransform)historyScroll.transform;
 
-        /// <summary>대화창 도구 줄의 [자막 켜기]·[다시 듣기]·[뜻] 중 보이는 버튼.</summary>
+        /// <summary>대화창 도구 줄의 [자막]·[다시 듣기]·[뜻] 중 보이는 버튼.</summary>
         public IReadOnlyList<RectTransform> ToolParts
         {
             get
@@ -542,8 +542,6 @@ namespace A305.Dialogue
         public void Show(IDialogueContent shownContent)
         {
             SetEndButtonHighlight(false);
-            // 자막을 켰던 기록이 있어도 새 대화는 먼저 듣도록 시작한다.
-            NpcSubtitlePreference.ShowsSubtitles = false;
             content = shownContent;
             isMeaningVisible = false;
             // 저장한 단어 표시는 이번 대화 안에서만 기억한다.

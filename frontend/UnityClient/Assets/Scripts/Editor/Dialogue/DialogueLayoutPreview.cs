@@ -607,7 +607,10 @@ namespace A305.EditorTools.Dialogue
         public static void CaptureSubtitles()
         {
             string output = OutputFolder();
-            bool savedPreference = NpcSubtitlePreference.ShowsSubtitles;
+            string preferenceKey = NpcSubtitlePreference.PreferenceKey;
+            int? savedPreference = PlayerPrefs.HasKey(preferenceKey)
+                ? PlayerPrefs.GetInt(preferenceKey)
+                : null;
             UiThemeId savedTheme = UiThemeSelection.Shared.Current;
             try
             {
@@ -618,15 +621,9 @@ namespace A305.EditorTools.Dialogue
                 );
                 foreach (bool showsSubtitles in new[] { false, true })
                 {
-                    // 이전에 켜 둔 기록이 있어도 새 대화에서는 가려지는지 함께 확인한다.
-                    NpcSubtitlePreference.ShowsSubtitles = true;
+                    NpcSubtitlePreference.ShowsSubtitles = showsSubtitles;
                     var content = new WordPreviewContent();
                     view.Show(content);
-                    if (showsSubtitles)
-                    {
-                        NpcSubtitlePreference.ShowsSubtitles = true;
-                        view.Refresh();
-                    }
                     FillHelp(view);
                     string state = showsSubtitles ? "on" : "off";
                     RenderThemes(camera, view, eye, face, output, $"subtitles-{state}");
@@ -667,7 +664,12 @@ namespace A305.EditorTools.Dialogue
             }
             finally
             {
-                NpcSubtitlePreference.ShowsSubtitles = savedPreference;
+                if (savedPreference.HasValue)
+                    PlayerPrefs.SetInt(preferenceKey, savedPreference.Value);
+                else
+                    PlayerPrefs.DeleteKey(preferenceKey);
+                PlayerPrefs.Save();
+                NpcSubtitlePreference.Reload();
                 SelectTheme(savedTheme);
             }
         }

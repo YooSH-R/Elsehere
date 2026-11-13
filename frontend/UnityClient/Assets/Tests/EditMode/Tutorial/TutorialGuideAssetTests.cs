@@ -100,8 +100,8 @@ namespace A305.Tutorial.Tests
             Assert.That(guide.GuidedLineCaption, Does.Not.Contain("연습"));
             Assert.That(guide.GuidedLineMissCaption, Does.Contain("정해진 흐름"));
             Assert.That(guide.DialogueLinesCaption, Does.Contain("Ben"));
-            // 대화창 도구 줄([자막 켜기]·[다시 듣기]·[뜻])과 오른쪽 추천 문장 카드의 [힌트]는 따로 밝혀 설명한다.
-            Assert.That(guide.DialogueToolsCaption, Does.Contain("{자막 켜기}"));
+            // 자막 버튼 문구는 상태에 따라 바뀌므로 안내는 두 상태에서 같은 이름을 쓴다.
+            Assert.That(guide.DialogueToolsCaption, Does.Contain("{자막}"));
             Assert.That(guide.DialogueToolsCaption, Does.Contain("{다시 듣기}"));
             Assert.That(guide.DialogueToolsCaption, Does.Contain("{뜻}"));
             Assert.That(guide.DialogueToolsCaption, Does.Not.Contain("{힌트}"));

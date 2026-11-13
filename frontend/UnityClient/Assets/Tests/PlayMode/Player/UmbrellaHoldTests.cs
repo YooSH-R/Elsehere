@@ -23,7 +23,7 @@ namespace A305.Player.Tests
         public void ResetSelection() => PlayerCharacterSelection.Reset();
 
         [UnityTest]
-        public IEnumerator OpenUmbrella_RaisesTheHandAndCoversTheHead()
+        public IEnumerator OpenUmbrella_HoldsTheCanopyBehindAndAboveTheHead()
         {
             UmbrellaHold hold = null;
             yield return LoadTownPlayer(found => hold = found);
@@ -43,25 +43,18 @@ namespace A305.Player.Tests
                 Is.GreaterThan(shoulder.position.y - .15f),
                 "손잡이를 쥔 손이 어깨 높이로 올라와야 합니다."
             );
+            Assert.That(canopy.z, Is.LessThan(head.center.z), "캐노피가 머리 뒤에 있어야 합니다.");
             Assert.That(
-                canopy.y,
-                Is.GreaterThan(head.max.y),
-                "캐노피 아랫면이 머리 위에 있어야 합니다."
-            );
-            Assert.That(
-                canopy.y,
-                Is.LessThan(head.max.y + .3f),
-                "캐노피가 머리에서 너무 떠 있지 않아야 합니다."
+                Vector3.Dot(hold.Umbrella.Canopy.up, hold.transform.forward),
+                Is.LessThan(-.3f),
+                "마을에서도 우산 천과 우산대가 함께 뒤로 기울어져야 합니다."
             );
             Bounds cloth = hold.Umbrella.Canopy.GetComponentInChildren<Renderer>().bounds;
-            Vector3 headCenter = hold.transform.TransformPoint(head.center);
+            float headTop = hold.transform.TransformPoint(new Vector3(0, head.max.y, 0)).y;
             Assert.That(
-                Vector2.Distance(
-                    new Vector2(headCenter.x, headCenter.z),
-                    new Vector2(cloth.center.x, cloth.center.z)
-                ),
-                Is.LessThan(cloth.extents.x - head.extents.x),
-                "캐노피가 머리 전체를 덮어야 합니다."
+                cloth.max.y,
+                Is.GreaterThan(headTop),
+                "우산 천의 위쪽이 머리 위로 올라와야 합니다."
             );
         }
 

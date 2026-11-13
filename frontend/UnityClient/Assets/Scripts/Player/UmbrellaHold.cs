@@ -4,7 +4,7 @@ using UnityEngine;
 namespace A305.Player
 {
     /// <summary>
-    /// 오른팔을 옆에서 굽혀 귀 바깥에 우산을 든다. 손목·손가락 자세는 걷기와 별도로 유지한다.
+    /// 오른손은 몸 앞에 두고 곧은 우산을 뒤쪽으로 기울여 든다. 손목·손가락 자세는 걷기와 별도로 유지한다.
     /// 외형은 실행 중에 바뀌므로 펼 때 지금 외형의 팔 뼈대와 머리 크기를 읽는다. 플레이어 루트(CharacterController)에 붙인다.
     /// </summary>
     // 걷기·팔 겹침 보정과 착석 자세(PlayerSeatPose) 뒤에 손과 우산을 함께 옮긴다.
@@ -27,19 +27,18 @@ namespace A305.Player
         private float gripBelowShoulder = .05f;
 
         [SerializeField]
-        [Tooltip("머리 꼭대기와 캐노피 아랫면 사이 여유(m)")]
+        [Tooltip("머리 표면과 기울어진 캐노피 아랫면 사이 여유(m)")]
         private float headClearance = .06f;
 
         [SerializeField]
-        [Tooltip("곡선 기둥이 시작되는 손잡이의 최소 기울기. 머리와 겹치면 더 기울입니다.")]
-        private float leanDegrees = 14f;
+        [Tooltip("뒤로 기울이는 각도(35~45도). 뒷머리 안쪽 겹침을 허용하고 팔 자세를 유지합니다.")]
+        private float leanDegrees = 35f;
 
         private HeldUmbrella umbrella;
         private Animator animator;
         private Transform upperArm;
         private Transform lowerArm;
         private Transform hand;
-        private Bounds head;
         private SkinnedVertexSamples headSurface;
         private Transform middle;
         private Quaternion palmFrame;
@@ -92,7 +91,7 @@ namespace A305.Player
                 hand = animator.GetBoneTransform(HumanBodyBones.RightHand);
                 middle = animator.GetBoneTransform(HumanBodyBones.RightMiddleProximal);
                 PrepareGrip();
-                head = HeadBounds();
+                PrepareHeadSurface();
             }
 
             if (upperArm == null || lowerArm == null || hand == null)
@@ -128,8 +127,8 @@ namespace A305.Player
             }
         }
 
-        // 머리뼈 아래 정점으로 잰 머리 크기(플레이어 기준). 렌더러 경계는 넉넉하게 잡혀 있어 쓰지 않는다.
-        private Bounds HeadBounds()
+        // 기울어진 우산 천을 머리 위에 두기 위해 실제 머리 정점을 모은다.
+        private void PrepareHeadSurface()
         {
             var names = new HashSet<string>();
             foreach (
@@ -139,7 +138,6 @@ namespace A305.Player
             )
                 names.Add(bone.name);
             headSurface = new SkinnedVertexSamples(animator, names.Contains, outermostOnly: true);
-            return headSurface.BoundsIn(transform);
         }
 
         private void LateUpdate()
@@ -151,7 +149,6 @@ namespace A305.Player
             }
             if (!IsOpen || hand == null)
                 return;
-            head = headSurface.BoundsIn(transform);
             Vector3 shoulder = transform.InverseTransformPoint(upperArm.position);
             Vector3 wrist = transform.TransformPoint(
                 new Vector3(
@@ -168,26 +165,19 @@ namespace A305.Player
                 -transform.up + transform.right * .5f
             );
 
-            // 곡선의 시작 접선을 머리 바깥으로 둔다. 제어점도 이 평면 바깥에 두어 머리를 통과하지 않는다.
-            Quaternion tilt = transform.rotation;
-            Vector3 holdAt = hand.position;
-            Vector3 outward = transform.right;
-            Vector3 tiltAxis = Vector3.Cross(transform.up, outward);
+            // 뒷머리를 완전히 피하려고 팔을 비틀지 않는다. 손은 앞에 두고 우산만 뒤로 기울인다.
+            // 기존 씬에 남은 작은 기울기 값에도 같은 자세가 적용되도록 범위를 제한한다.
+            Quaternion tilt =
+                Quaternion.AngleAxis(Mathf.Clamp(leanDegrees, 35, 45), -transform.right)
+                * transform.rotation;
             Vector3 fingersForward = transform.TransformDirection(
                 new Vector3(.6427876f, 0, .7660444f)
             );
-            for (float degrees = Mathf.Clamp(leanDegrees, 0, 60); degrees <= 60; degrees += 2)
-            {
-                tilt = Quaternion.AngleAxis(degrees, tiltAxis) * transform.rotation;
-                if (middle != null)
-                    hand.rotation =
-                        Quaternion.LookRotation(fingersForward, tilt * Vector3.up)
-                        * Quaternion.Inverse(palmFrame);
-                holdAt = middle != null ? hand.TransformPoint(gripInHand) : hand.position;
-                Vector3 inward = Vector3.ProjectOnPlane(-outward, tilt * Vector3.up).normalized;
-                if (headSurface.MinimumDistance(holdAt, inward) >= .03f)
-                    break;
-            }
+            if (middle != null)
+                hand.rotation =
+                    Quaternion.LookRotation(fingersForward, tilt * Vector3.up)
+                    * Quaternion.Inverse(palmFrame);
+            Vector3 holdAt = middle != null ? hand.TransformPoint(gripInHand) : hand.position;
             if (middle != null)
             {
                 foreach (var finger in fingers)
@@ -201,32 +191,11 @@ namespace A305.Player
                 }
             }
             umbrella.transform.SetPositionAndRotation(holdAt, tilt);
-            Vector3 localGrip = transform.InverseTransformPoint(holdAt);
-            Vector3 stemDirection = transform.InverseTransformDirection(tilt * Vector3.up);
-            float roofHeight = head.max.y + headClearance + .06f;
-            float sideX = head.max.x + .06f;
-            Vector3 side = localGrip + stemDirection * ((sideX - localGrip.x) / stemDirection.x);
-            side.z = head.center.z + .03f;
-            Vector3 center = new Vector3(side.x, roofHeight, side.z);
-            float radius = .84f;
-            for (int i = 0; i < 24; i++)
-            {
-                float angle = i * Mathf.PI * 2 / 24;
-                Vector2 edge = new Vector2(
-                    head.center.x + head.extents.x * Mathf.Cos(angle),
-                    head.center.z + head.extents.z * Mathf.Sin(angle)
-                );
-                radius = Mathf.Max(
-                    radius,
-                    Vector2.Distance(edge, new Vector2(center.x, center.z)) + headClearance
-                );
-            }
-            umbrella.Fit(
-                transform.TransformPoint(side),
-                transform.TransformPoint(center),
-                transform.rotation,
-                radius
-            );
+            const float radius = .84f;
+            // 천의 평면이 머리 전체보다 바깥에 오도록 우산대 방향으로 길이를 잰다.
+            float length =
+                -headSurface.MinimumDistance(holdAt, -(tilt * Vector3.up)) + headClearance;
+            umbrella.Fit(length, radius);
         }
 
         // 접은 우산을 내린 손에 쥐고, 끝을 몸 바깥·앞으로 조금 기울여 다리와 겹치지 않게 한다.

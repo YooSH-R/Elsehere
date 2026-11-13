@@ -19,7 +19,7 @@ namespace A305.Dialogue
     /// [뜻 보기]를 펼친 동안 대사의 풀이 단어를 누르면 그 단어 근처에 뜻과 [단어장에 저장]이 있는 호버 카드를 띄운다.
     /// NPC 대사를 음성으로 들려주는 대화는 [자막]으로 대사를 단어마다 회색 막대로 가려 듣고 이해하게 한다. 처음에는 자막이 꺼져 있다.
     /// </summary>
-    public class DialoguePanelView : MonoBehaviour
+    public partial class DialoguePanelView : MonoBehaviour
     {
         private const string TalkCaption = "말하기";
         private const string StopTalkCaption = "종료";
@@ -88,9 +88,7 @@ namespace A305.Dialogue
         private RectTransform otherRowTemplate;
 
         [SerializeField]
-        [Tooltip(
-            "카드 아래에 고정된 [다른 표현 N개 더 보기]·[접기]. 글자 칸 밖에 있어 스크롤해도 가려지지 않는다."
-        )]
+        [Tooltip("카드 머리줄의 다른 표현 펼치기·접기. 스크롤과 분리한다.")]
         private Button othersButton;
 
         [SerializeField]
@@ -103,8 +101,6 @@ namespace A305.Dialogue
         /// <summary>고친 문장 없이 다른 표현만 있을 때(맞게 말했을 때)의 카드 제목.</summary>
         public const string WellSaidHeading = "잘 말했어요";
 
-        // 카드 아래 [더 보기] 칸의 높이. 다른 표현이 없으면 이 칸을 두지 않고 글자 칸이 카드 아래까지 내려온다.
-        private const float OthersFooterHeight = 56;
         private const float CardBottomPadding = 20;
 
         private readonly List<RectTransform> otherRows = new List<RectTransform>();
@@ -561,6 +557,7 @@ namespace A305.Dialogue
 
         public void Hide()
         {
+            CloseExpressionWindow();
             SetPerformanceState(false, false, false, false);
             SetEndButtonHighlight(false);
             content = null;
@@ -752,7 +749,8 @@ namespace A305.Dialogue
             UpdateLayout();
             Canvas.ForceUpdateCanvases();
             // 대사가 쌓이면 가장 최근 대사와 뜻이 보이게 맨 아래로 내린다. 지난 대사는 위로 스크롤해 다시 본다.
-            historyScroll.verticalNormalizedPosition = 0;
+            historyScroll.verticalNormalizedPosition =
+                historyScroll.content.rect.height <= historyScroll.viewport.rect.height + 1 ? 1 : 0;
         }
 
         private string pronunciationNotice;
@@ -784,8 +782,8 @@ namespace A305.Dialogue
 
         /// <summary>
         /// 영어 표현 카드(S15P31A305-862). 위에는 상황별 제목과, 고친 문장·영어 번역이 있으면 바뀐 곳을 표시한 전체 문장과 [듣기]를 둔다.
-        /// 다른 표현이 있으면 늘 접어 두고, 아래에 고정된 [다른 표현 N개 더 보기]로 펼치면 문장마다 번호 칸으로 나눠 보인다.
-        /// 카드는 내용만큼만 차지하고 대화창을 늘리지 않으며, 넘치는 내용은 글자 칸 안에서 스크롤한다.
+        /// 다른 표현이 있으면 늘 접어 두고, 머리줄의 [다른 표현]으로 펼치면 문장마다 번호 칸으로 나눠 보인다.
+        /// 카드는 화면 안의 여유 공간까지 늘어나며, 넘치는 내용은 글자 칸 안에서 스크롤한다.
         /// </summary>
         private void ShowTranslation()
         {
@@ -798,6 +796,7 @@ namespace A305.Dialogue
             // 다음 말을 하면 다른 표현은 다시 접고 맨 위부터 보인다.
             if (shownTranslation != expression || !ReferenceEquals(shownOthers, others))
             {
+                CloseExpressionWindow();
                 othersOpen = false;
                 translationBody.anchoredPosition = Vector2.zero;
             }
@@ -823,16 +822,8 @@ namespace A305.Dialogue
             othersDivider.gameObject.SetActive(hasOthers);
             othersButton.GetComponentInChildren<TMP_Text>(true).text = othersOpen
                 ? "접기"
-                : $"다른 표현 {others?.Count ?? 0}개 더 보기";
-            // 글자 칸과 스크롤 막대는 [더 보기] 칸 위까지만 내려와 버튼과 겹치지 않는다.
-            float bottom = hasOthers ? OthersFooterHeight : CardBottomPadding;
-            var viewport = (RectTransform)translationBody.parent;
-            viewport.offsetMin = new Vector2(viewport.offsetMin.x, bottom);
-            if (TranslationScroll.verticalScrollbar != null)
-            {
-                var bar = (RectTransform)TranslationScroll.verticalScrollbar.transform;
-                bar.offsetMin = new Vector2(bar.offsetMin.x, bottom);
-            }
+                : $"다른 표현 {others?.Count ?? 0}개";
+            ApplyExpressionHeader(hasExpression, hasOthers);
             othersHeading.gameObject.SetActive(hasOthers && othersOpen);
             ShowOtherRows(hasOthers && othersOpen ? others : Array.Empty<string>());
             TranslationScroll.content = translationBody;
@@ -861,7 +852,7 @@ namespace A305.Dialogue
             }
         }
 
-        // [다른 표현 N개 더 보기]·[접기]. 펼치거나 접을 때마다 맨 위부터 보인다. 펼친 만큼 대화창이 커진다.
+        // 머리줄의 다른 표현·접기. 펼치거나 접을 때마다 맨 위부터 보인다.
         private void ToggleOtherExpressions()
         {
             othersOpen = !othersOpen;
@@ -869,46 +860,6 @@ namespace A305.Dialogue
             Refresh();
         }
 
-        // 카드가 대화창 최대 높이(maxHeight)에 걸려 내용이 남으면, 아래 경계가 다음 줄이나 문장 칸의 가운데를 지나도록 높이를 낮춘다.
-        // 다음 내용이 반쯤 보여 아래에 더 있다는 걸 알 수 있다. 맞출 곳이 없으면 그대로 둔다.
-        private float PeekingCardHeight(float maxHeight)
-        {
-            var viewport = (RectTransform)translationBody.parent;
-            float chrome = translationCard.rect.height - viewport.rect.height;
-            float room = maxHeight - chrome;
-            float cut = 0;
-            foreach ((float top, float bottom) in BodyPieces())
-            {
-                float middle = (top + bottom) / 2;
-                if (middle > room)
-                    break;
-                cut = middle;
-            }
-            return cut > 0 ? chrome + cut : maxHeight;
-        }
-
-        // 카드 글자 칸에 쌓인 조각의 (위, 아래). 고친 문장은 줄마다, '이렇게도 말할 수 있어요'와 다른 표현은 칸마다 한 조각이다.
-        private IEnumerable<(float Top, float Bottom)> BodyPieces()
-        {
-            foreach (RectTransform piece in translationBody)
-            {
-                if (!piece.gameObject.activeSelf)
-                    continue;
-                float top = -piece.anchoredPosition.y - piece.rect.height * (1 - piece.pivot.y);
-                if (piece == translationText.rectTransform)
-                {
-                    translationText.ForceMeshUpdate();
-                    int lines = Mathf.Max(1, translationText.textInfo.lineCount);
-                    float line = piece.rect.height / lines;
-                    for (int index = 0; index < lines; index++)
-                        yield return (top + index * line, top + (index + 1) * line);
-                }
-                else
-                    yield return (top, top + piece.rect.height);
-            }
-        }
-
-        /// <summary>카드의 표현이 방금 영어로 한 말의 교정문인지. 마지막 내 말에 한글이 있으면 번역이다.</summary>
         private bool IsCorrection()
         {
             DialogueLine said = content.Lines?.LastOrDefault(line => !line.IsNpc);
@@ -1563,17 +1514,6 @@ namespace A305.Dialogue
                 cardHeight,
                 roomAboveName
             );
-            // 카드가 대화창 최대 높이에 걸렸으면 다음 내용이 반쯤 보이는 높이로 다시 놓는다.
-            if (hasTranslation && layout.Translation.height < cardHeight - .5f)
-                layout = DialogueCinemaLayout.Compute(
-                    lastCanvasSize,
-                    linesHeight,
-                    nameWidth,
-                    hasEarlierLines,
-                    hasTranslation,
-                    PeekingCardHeight(layout.Translation.height),
-                    roomAboveName
-                );
             frame.anchorMin = Vector2.zero;
             frame.anchorMax = new Vector2(1, 0);
             frame.pivot = new Vector2(.5f, 0);
@@ -1626,7 +1566,11 @@ namespace A305.Dialogue
                 );
             }
             Canvas.ForceUpdateCanvases();
-            historyScroll.verticalNormalizedPosition = scroll;
+            AlignDialogueContent();
+            historyScroll.verticalNormalizedPosition =
+                historyScroll.content.rect.height <= historyScroll.viewport.rect.height + 1
+                    ? 1
+                    : scroll;
             CoverHiddenWords();
             PlaceWordCard();
             // 음성 동의처럼 긴 안내는 글자를 줄여 한 줄에 맞춘다.
@@ -1715,7 +1659,9 @@ namespace A305.Dialogue
             var viewport = (RectTransform)translationBody.parent;
             float chrome = translationCard.rect.height - viewport.rect.height;
             LayoutRebuilder.ForceRebuildLayoutImmediate(translationBody);
-            return chrome + LayoutUtility.GetPreferredHeight(translationBody);
+            return othersOpen
+                ? 490
+                : Mathf.Max(160, chrome + LayoutUtility.GetPreferredHeight(translationBody));
         }
 
         // 최근 네 대사와 그 뜻이 보이는 높이를 준다. 긴 내용·작은 화면과 그 이전 대사는 스크롤한다.

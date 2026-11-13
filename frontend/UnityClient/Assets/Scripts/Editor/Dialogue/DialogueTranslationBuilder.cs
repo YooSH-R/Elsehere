@@ -160,6 +160,43 @@ namespace A305.EditorTools.Dialogue
             othersLine.raycastTarget = false;
             othersDivider.gameObject.SetActive(false);
             Button othersButton = OthersButton(card, catalog, name.font);
+            BuilderTools
+                .GetOrAddComponent<ThemedElement>(othersButton.gameObject)
+                .Use(catalog, UiThemeRole.PillButton);
+            othersButton.GetComponent<Image>().pixelsPerUnitMultiplier = 1.4f;
+            othersButton
+                .GetComponentInChildren<TMP_Text>(true)
+                .GetComponent<ThemedElement>()
+                .Use(catalog, UiThemeRole.Title);
+
+            Transform expand = card.Find("ExpandButton");
+            if (expand == null)
+            {
+                expand = Object.Instantiate(listen.gameObject, card).transform;
+                expand.name = "ExpandButton";
+            }
+            expand.GetComponentInChildren<TMP_Text>(true).text = "";
+            var expandRect = (RectTransform)expand;
+            expandRect.anchorMin = expandRect.anchorMax = expandRect.pivot = Vector2.one;
+            expandRect.anchoredPosition = new Vector2(-20, -18);
+            expandRect.sizeDelta = new Vector2(44, 42);
+            expand.GetComponent<ThemedElement>().SetIcon(UiIcon.None);
+            RectTransform icon = FindRect(expand, "ExpandGlyph");
+            icon.anchorMin = Vector2.zero;
+            icon.anchorMax = Vector2.one;
+            icon.offsetMin = Vector2.one * 12;
+            icon.offsetMax = Vector2.one * -12;
+            var iconImage = BuilderTools.GetOrAddComponent<Image>(icon.gameObject);
+            iconImage.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(
+                "Assets/Art/UI/Feedback/FeedbackExpandIcon.png"
+            );
+            iconImage.color = new Color32(57, 51, 44, 255);
+            iconImage.raycastTarget = false;
+            BuilderTools.SetReference(
+                view,
+                "expressionExpandButton",
+                expand.GetComponent<Button>()
+            );
 
             RectTransform divider = FindRect(panel, "TranslationDivider");
             Image dividerImage = BuilderTools.GetOrAddComponent<Image>(divider.gameObject);

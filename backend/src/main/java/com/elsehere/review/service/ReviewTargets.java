@@ -156,7 +156,8 @@ final class ReviewTargets {
     }
     List<ReviewTarget> included = List.copyOf(selected.values());
     return isShowcaseOrder(sourceTurns)
-        ? inShowcaseOrderConditionOrder(oneExpressionPerMeaning(included, recommendedIn))
+        ? inShowcaseOrderConditionOrder(
+            oneExpressionPerMeaning(shownInConversation(included, recommendedIn), recommendedIn))
         : included;
   }
 
@@ -168,9 +169,20 @@ final class ReviewTargets {
                     .equals(turn.getConversation().getShowcaseStage()));
   }
 
+  /** 시연 주문 복습에서는 대화 중에 뜬 추천 문장과 고친 문장만 둔다. 대화가 끝난 뒤 피드백에서 처음 본 상황 표현은 넣지 않는다. */
+  private static List<ReviewTarget> shownInConversation(
+      List<ReviewTarget> targets, Map<String, Integer> recommendedIn) {
+    return targets.stream()
+        .filter(
+            target ->
+                target.originalText() != null
+                    || recommendedIn.containsKey(TurnRecommendations.key(target.expression())))
+        .toList();
+  }
+
   /**
-   * 시연 주문 복습에서는 같은 뜻의 표현을 하나만 둔다. 주문 조건 하나는 한 가지를 말하므로 조건마다 하나만 남기고, 내가 실제로 한 말에서 나온 표현(고친 문장 → 그
-   * 발화의 추천)을 상황 표현보다 먼저 남긴다. 어느 조건에도 맞지 않는 표현은 고친 문장·상황 표현은 그대로 두고, 추천은 발화마다 하나만 남긴다.
+   * 시연 주문 복습에서는 같은 뜻의 표현을 하나만 둔다. 주문 조건 하나는 한 가지를 말하므로 조건마다 하나만 남기고, 고친 문장을 그 발화의 추천보다 먼저 남긴다. 어느
+   * 조건에도 맞지 않는 표현은 고친 문장은 그대로 두고, 추천은 발화마다 하나만 남긴다.
    */
   private static List<ReviewTarget> oneExpressionPerMeaning(
       List<ReviewTarget> targets, Map<String, Integer> recommendedIn) {
@@ -179,7 +191,7 @@ final class ReviewTargets {
       int wanted = condition;
       targets.stream()
           .filter(target -> showcaseOrderCondition(target) == wanted)
-          .min(Comparator.comparingInt(target -> said(target, recommendedIn)))
+          .min(Comparator.comparing((ReviewTarget target) -> target.originalText() == null))
           .ifPresent(kept::add);
     }
     var turnsKept = new HashSet<Integer>();
@@ -188,20 +200,12 @@ final class ReviewTargets {
         continue;
       }
       Integer turn = recommendedIn.get(TurnRecommendations.key(target.expression()));
-      if (target.originalText() != null || turn == null || turnsKept.add(turn)) {
+      if (target.originalText() != null || turnsKept.add(turn)) {
         kept.add(target);
       }
     }
     // 원래 차례를 지키도록 처음 목록 순서로 되돌린다.
     return targets.stream().filter(kept::contains).toList();
-  }
-
-  // 남길 차례: 고친 문장(내가 한 말을 고침) → 그 발화의 추천 → 상황 표현
-  private static int said(ReviewTarget target, Map<String, Integer> recommendedIn) {
-    if (target.originalText() != null) {
-      return 0;
-    }
-    return recommendedIn.containsKey(TurnRecommendations.key(target.expression())) ? 1 : 2;
   }
 
   /**

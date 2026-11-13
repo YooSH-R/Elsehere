@@ -75,11 +75,10 @@ class ReviewTargetsTest {
         .containsExactly("Can I get that to go?", "Could I get less ice?");
   }
 
-  // 시연 주문을 다시 연습할 때는 이번에 써 볼 표현을 주문 조건 차례(버거 → 재료 → 사이드·음료 → 매장·포장)로 두고, 같은 뜻은 하나만 둔다.
-  // 한 발화의 추천은 그 발화의 다른 말이라 같은 뜻이고, 주문 조건 하나도 한 가지를 말하므로 조건마다 하나만 남긴다.
-  // 내가 실제로 한 말에서 나온 추천을 상황 표현보다 먼저 남기고, 어느 조건에도 맞지 않는 표현은 발화마다 하나만 둔다.
+  // 시연 주문을 다시 연습할 때는 대화 중에 떴던 추천 문장만 퀘스트 차례(버거 → 재료 → 사이드·음료 → 매장·포장)로 둔다.
+  // 한 발화의 추천은 그 발화의 다른 말이라 같은 뜻이므로 하나만 둔다. 대화 중에 뜨지 않은 피드백의 상황 표현은 넣지 않는다.
   @Test
-  void showcaseBurgerPracticeKeepsOneExpressionPerMeaningInTheOrderConditionOrder() {
+  void showcaseBurgerPracticeListsOnlyTheShownRecommendationsInQuestOrder() {
     Conversation source = sourceConversation();
     source.attachShowcaseStage(ShowcaseStage.ORDER.ordinal());
     var takeaway =
@@ -88,30 +87,32 @@ class ReviewTargetsTest {
         new ReviewTarget("Could I get a side of fries, too?", "감자튀김도 주세요.", null, null, null);
     var onions =
         new ReviewTarget("Could I get that without onions?", "양파 빼 주세요.", null, null, null);
+    Turn dining =
+        recommendedTurn(source, 2, "to go please", "To take away, please.", "For takeout, please.");
     Turn order =
         recommendedTurn(
             source,
-            2,
+            4,
             "one burger",
             "Can I get a cheeseburger, please?",
             "I'll have a cheeseburger, please.");
-    Turn dining =
-        recommendedTurn(source, 4, "to go please", "To take away, please.", "For takeout, please.");
+    Turn tomato =
+        recommendedTurn(
+            source, 6, "no tomato please", "No tomatoes, please.", "Please leave out the tomato.");
     Turn farewell =
-        recommendedTurn(source, 6, "thanks", "Thank you for your help.", "Thanks so much.");
+        recommendedTurn(source, 8, "thanks", "Thank you for your help.", "Thanks so much.");
 
     var selected =
         ReviewTargets.includeRecommendations(
             List.of(takeaway, sides, onions),
-            List.of(order, dining, farewell),
+            List.of(dining, order, tomato, farewell),
             JsonMapper.builder().build());
 
     assertThat(selected)
         .extracting(ReviewTarget::expression)
         .containsExactly(
             "Can I get a cheeseburger, please?",
-            "Could I get that without onions?",
-            "Could I get a side of fries, too?",
+            "No tomatoes, please.",
             "To take away, please.",
             "Thank you for your help.");
   }

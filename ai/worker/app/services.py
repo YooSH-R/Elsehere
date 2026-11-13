@@ -9,6 +9,7 @@ from . import npc_relationship
 from . import prompts as P
 from .llm import LLM, ModelOutputError, ProviderError, Usage, within
 from .schemas import (
+    ExpressionsRequest,
     FollowUpRequest,
     HintRequest,
     JudgeRequest,
@@ -97,8 +98,9 @@ def clean_better_expressions(raw: dict, text: str, *shown: str | None) -> list[s
 
 
 async def judge(llm: LLM, req: JudgeRequest) -> dict:
-    """의도·줄 사건·영어 교정·더 좋은 문장을 함께 판정하고, 한국어 번역은 동시에 받는다. 실패해도 턴은 이어 간다.
-    무례 판정은 /v1/guard가 따로 한다. 생성된 영어 번역은 무례 판정과 관계없이 Spring이 표현 카드로 전달한다.
+    """의도·줄 사건을 판정한다. 실패해도 턴은 이어 간다. 무례 판정은 /v1/guard, 표현 카드(번역·영어 교정·다른 표현)는
+    /v1/expressions가 따로 동시에 한다 — NPC 대답이 판정을 기다리므로 판정 출력은 짧게 둔다. translation·better_expressions
+    칸은 이전 Spring과 맞추려고 비운 채 남긴다.
     affinity_delta는 줄 사건으로 바로 올릴 호감이다. 무례로 확정된 턴이면 Spring이 쓰지 않고 /v1/guard의 감점만 쓴다."""
     usage = Usage()
     text, had_action = P.strip_actions(req.text)
@@ -114,31 +116,66 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
             "affinity_delta": None,
             "usage": [],
         }
-    scene = req.scene or req.npc.scene
-    hedge_after_s = llm.s.judge_hedge_after_s  # NPC 대답이 판정을 기다리므로 다른 호출보다 일찍 같은 요청을 더 보낸다
 
     async def intent():
         out = await llm.intent_chat(
-            P.intent_messages(req.npc, req.state, req.history, text), usage, P.intent_schema(req.state), hedge_after_s=hedge_after_s
+            P.intent_messages(req.npc, req.state, req.history, text),
+            usage,
+            P.intent_schema(req.state),
+            hedge_after_s=llm.s.judge_hedge_after_s,  # NPC 대답이 판정을 기다리므로 다른 호출보다 일찍 같은 요청을 더 보낸다
         )
         raw = json.loads(out)
-        it = clean_intent(raw, req.state)  # JSON 객체가 아니면 여기서 ValueError: 의도 칸만 실패
-        correction = clean_english_correction(raw, text)
-        return it, clean_events(raw), correction, raw
+        return clean_intent(raw, req.state), clean_events(raw)  # JSON 객체가 아니면 clean_intent에서 ValueError: 의도 칸만 실패
+
+    try:
+        it, events = await within(intent(), llm.s.judge_budget_s)
+    except (ProviderError, ValueError) as e:
+        it, events = {"id": "unclear", "ids": ["unclear"], "slots": {}, "error": str(e)[:160]}, []
+    return {
+        "text": text,
+        "dropped": False,
+        "notice": P.ACTION_PART_KO if had_action else None,
+        "intent": it,
+        "translation": None,
+        "better_expressions": [],
+        "events": events,
+        "affinity_delta": line_affinity(req, events),
+        "usage": usage.items,
+    }
+
+
+async def expressions(llm: LLM, req: ExpressionsRequest) -> dict:
+    """표현 카드 칸: 학습자 말의 영어 번역(한글이 섞였을 때) 또는 영어 교정문, 같은 뜻의 다른 표현(최대 3개).
+    판정과 같은 문장으로 동시에 부르고, Spring은 턴을 저장할 때 붙인다(NPC 대답을 기다리게 하지 않는다). 실패하면 빈 카드."""
+    usage = Usage()
+    text, _ = P.strip_actions(req.text)
+    if not text:
+        return {"translation": None, "better_expressions": [], "usage": []}
+    scene = req.scene or req.npc.scene
+
+    async def rewrite():
+        out = await llm.chat(
+            "expressions", "translate", P.expressions_messages(req.npc, scene, req.history, text), usage, 0.0, 320, P.EXPRESSIONS_SCHEMA
+        )
+        raw = json.loads(out)
+        if not isinstance(raw, dict):
+            raise ValueError("표현 출력이 JSON 객체가 아님")
+        return raw
 
     async def translate():
-        out = await llm.chat(
-            "translate", "translate", P.translate_messages(req.npc, scene, req.history, text), usage, 0.0, 80, hedge_after_s=hedge_after_s
-        )
+        out = await llm.chat("translate", "translate", P.translate_messages(req.npc, scene, req.history, text), usage, 0.0, 80)
         return unwrap_quotes(out.split("\n")[0].strip())
 
     budget = llm.s.judge_budget_s
-    jobs = [within(intent(), budget)]
+    jobs = [within(rewrite(), budget)]
     if P.HANGUL.search(text):
         jobs.append(within(translate(), budget))
     res = await asyncio.gather(*jobs, return_exceptions=True)
-    failed = {"id": "unclear", "ids": ["unclear"], "slots": {}, "error": str(res[0])[:160]}
-    it, events, correction, raw = res[0] if not isinstance(res[0], BaseException) else (failed, [], None, {})
+    for r in res:  # 프로그램 오류(버그)는 숨기지 않는다
+        if isinstance(r, BaseException) and not isinstance(r, (ProviderError, ValueError)):
+            raise r
+    raw = {} if isinstance(res[0], BaseException) else res[0]
+    correction = clean_english_correction(raw, text)
     translation = {"english": correction, "error": None} if correction else None
     if len(res) == 2:
         english = "" if isinstance(res[1], BaseException) else res[1]
@@ -146,20 +183,7 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
         translation = {"english": english or None, "error": str(res[1])[:160] if isinstance(res[1], BaseException) else None}
     # 다른 표현은 카드에 보일 고친 문장·영어 번역이 정해진 뒤에 겹치는 것을 뺀다
     better = clean_better_expressions(raw, text, translation and translation["english"])
-    for r in res:  # 프로그램 오류(버그)는 숨기지 않는다
-        if isinstance(r, BaseException) and not isinstance(r, (ProviderError, ValueError)):
-            raise r
-    return {
-        "text": text,
-        "dropped": False,
-        "notice": P.ACTION_PART_KO if had_action else None,
-        "intent": it,
-        "translation": translation,
-        "better_expressions": better,
-        "events": events,
-        "affinity_delta": line_affinity(req, events),
-        "usage": usage.items,
-    }
+    return {"translation": translation, "better_expressions": better, "usage": usage.items}
 
 
 def unwrap_quotes(line: str) -> str:

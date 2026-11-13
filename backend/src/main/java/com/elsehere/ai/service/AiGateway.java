@@ -1,6 +1,7 @@
 package com.elsehere.ai.service;
 
 import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.ExpressionsResult;
 import com.elsehere.ai.client.FeedbackInput;
 import com.elsehere.ai.client.FollowUpResult;
 import com.elsehere.ai.client.GuardResult;
@@ -64,7 +65,7 @@ public class AiGateway {
     return result;
   }
 
-  /** 의도·번역 판정. */
+  /** 의도 판정. */
   public JudgeResult judge(
       WorkerTrace trace, WorkerNpc npc, WorkerState state, List<WorkerLine> history, String text) {
     JudgeResult result =
@@ -82,6 +83,18 @@ public class AiGateway {
     GuardResult result =
         send(trace, AiRequestKind.GUARD, () -> aiWorkerClient.guard(trace, npc, history, text));
     record(trace, AiRequestKind.GUARD, result.usage(), true);
+    return result;
+  }
+
+  /** 학습자 말의 영어 번역·교정문과 다른 표현. 보여 줄 것이 없어도(번역 null) 워커가 답했으므로 OK로 남긴다. */
+  public ExpressionsResult expressions(
+      WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history, String text) {
+    ExpressionsResult result =
+        send(
+            trace,
+            AiRequestKind.EXPRESSIONS,
+            () -> aiWorkerClient.expressions(trace, npc, history, text));
+    record(trace, AiRequestKind.EXPRESSIONS, result.usage(), true);
     return result;
   }
 

@@ -19,6 +19,7 @@ TOKEN = "test-token"
 STEPS = {
     "You moderate": "guard",
     "You label": "intent",
+    "You coach a Korean learner of English": "expressions",
     "You help a Korean learner of English in a role-play": "translate",
     "You help a Korean learner of English (CEFR A2-B1) who is stuck": "hint",
     "# 대화 피드백": "feedback",  # ai/feedback 모듈의 지시문

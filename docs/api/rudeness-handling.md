@@ -10,8 +10,9 @@
 ## 1. 한 턴의 흐름 (CONV-03)
 
 ```
-학습자 말 ─┬▶ POST /v1/guard  (무례 판정)
-           └▶ POST /v1/judge  (의도·번역)      ← 같은 text·history로 동시에
+학습자 말 ─┬▶ POST /v1/guard        (무례 판정)
+           ├▶ POST /v1/judge        (의도)      ← 같은 text·history로 동시에
+           └▶ POST /v1/expressions  (번역·다른 표현. 대답은 기다리지 않고 턴 저장 때 합침)
               │
               ├ dropped: true      → 행동 묘사만 있음. 턴으로 세지 않고 notice만 보여 줌
               ├ guard.abusive true → 2절 "무례". 의도는 적용하지 않음

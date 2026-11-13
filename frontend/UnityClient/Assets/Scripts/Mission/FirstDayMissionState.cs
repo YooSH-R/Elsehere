@@ -20,6 +20,10 @@ namespace A305.Mission
 
         /// <summary>시연 퀘스트를 시작해 끝낼 때까지 햄버거 가게에는 직원과 John만 두고 여가 손님은 들이지 않는다.</summary>
         public bool ClosesShowcaseRestaurantToVisitors => IsShowcase && Started && !Completed;
+
+        /// <summary>시연을 하는 동안 손님을 태운 택시가 신호에 걸리지 않게 본길 신호를 초록으로 붙잡는지.</summary>
+        public bool HoldsGreenForTaxiRide => IsShowcase && Started && !Completed;
+
         public bool ShouldOfferTownStory => Completed && !IsTownStory && !IsShowcase;
         public int Stage { get; set; }
         public bool Completed { get; set; }

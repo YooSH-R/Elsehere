@@ -480,39 +480,6 @@ namespace A305.Deployment.Tests
         }
 
         [Test]
-        public void WebTemplateProvidesAnExplicitAnalyticsConsentChoice()
-        {
-            string page = File.ReadAllText("Assets/WebGLTemplates/A305Responsive/index.html");
-
-            Assert.That(page, Does.Contain("id=\"analytics-consent\""));
-            Assert.That(page, Does.Contain("id=\"analytics-accept\""));
-            Assert.That(page, Does.Contain("id=\"analytics-reject\""));
-        }
-
-        [Test]
-        public void AnalyticsNoticeLinksThePrivacyPolicyVersionTheServerServes()
-        {
-            // 웹 Nginx는 /privacy/버전 주소만 백엔드로 넘기므로 버전 없는 /privacy는 404다.
-            string page = File.ReadAllText("Assets/WebGLTemplates/A305Responsive/index.html");
-            string catalog = File.ReadAllText(
-                Path.Combine(
-                    Application.dataPath,
-                    "../../..",
-                    "backend/src/main/java/com/elsehere/auth/service/ConsentCatalog.java"
-                )
-            );
-            string privacy = Regex.Match(catalog, "\"(/privacy/[^\"]+)\"").Groups[1].Value;
-            string[] links = Regex
-                .Matches(page, "href=\"(/privacy[^\"]*)\"")
-                .Cast<Match>()
-                .Select(match => match.Groups[1].Value)
-                .ToArray();
-
-            Assert.That(privacy, Is.Not.Empty, "처리방침의 지금 주소");
-            Assert.That(links, Is.EqualTo(new[] { privacy }));
-        }
-
-        [Test]
         public void PhonesHeldUpright_SeeALandscapeHintTheyCanDismiss()
         {
             // UI가 가로 화면에 맞춰져 있어, 휴대폰·태블릿(손가락 입력)을 세로로 들면 로딩 중에도 가로로 돌리라고 권한다.

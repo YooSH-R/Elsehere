@@ -1,13 +1,12 @@
 using A305.Dialogue;
 using A305.Player;
-using A305.World;
 using UnityEngine;
 
 namespace A305.Npc
 {
     /// <summary>
     /// 시연 매장의 입장 공연과 첫 걸음 뒤 대화 제안. 실제 대화는 기존 제안·수락 흐름을 쓴다.
-    /// 장면 전환 화면이 걷히고 조금 뒤에 랩을 시작하고, 입장부터 대화 제안에 답할 때까지 장소 생활소음을 끈다(<see cref="ShowcaseWelcomeSequence"/>).
+    /// 입장하고 조금 뒤에 랩을 시작하고, 입장부터 대화 제안에 답할 때까지 장소 생활소음을 끈다(<see cref="ShowcaseWelcomeSequence"/>).
     /// </summary>
     public sealed class ShowcaseRestaurantWelcome : MonoBehaviour
     {
@@ -51,8 +50,7 @@ namespace A305.Npc
                 sequence.SeeOffer(PasserbyPhase.Talking);
                 return;
             }
-            bool screenCovered = SpaceTravel.IsTraveling || SpaceTravelCurtain.IsCoveringScreen;
-            if (sequence.TickRap(Time.unscaledDeltaTime, screenCovered))
+            if (sequence.TickRap(Time.unscaledDeltaTime))
             {
                 performance?.PlayAmbient();
                 // 첫 걸음은 랩을 시작한 자리부터 센다. 장면에 들어와 자리를 잡느라 움직인 것은 세지 않는다.

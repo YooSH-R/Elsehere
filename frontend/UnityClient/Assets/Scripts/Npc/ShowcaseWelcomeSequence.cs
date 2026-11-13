@@ -1,15 +1,15 @@
 namespace A305.Npc
 {
     /// <summary>
-    /// 시연 햄버거 가게 입장 순서. 장면 전환 화면이 걷히고 <see cref="RapDelaySeconds"/>초 뒤에 존박의 랩을 시작한다.
+    /// 시연 햄버거 가게 입장 순서. 입장하고 <see cref="RapDelaySeconds"/>초 뒤에 존박의 랩을 시작한다.
     /// 입장부터 존박의 대화 제안에 답할 때까지(거절·무시해 쉬거나 대화를 시작할 때까지) 장소 생활소음을 끈다.
     /// </summary>
     public sealed class ShowcaseWelcomeSequence
     {
-        /// <summary>장면 전환이 늦어져도 랩 앞부분을 놓치지 않게 화면이 보인 뒤 기다리는 시간</summary>
+        /// <summary>장면 전환 화면이 늦게 걷혀도 랩 앞부분을 놓치지 않게 입장 뒤 기다리는 시간. 전환 화면을 따로 기다리지 않는다.</summary>
         public const float RapDelaySeconds = 1.5f;
 
-        private float shownSeconds;
+        private float waitedSeconds;
 
         /// <summary>랩을 시작했는지. 첫 걸음은 랩을 시작한 자리부터 센다.</summary>
         public bool RapStarted { get; private set; }
@@ -17,13 +17,13 @@ namespace A305.Npc
         /// <summary>장소 생활소음을 꺼 둘지</summary>
         public bool HushesPlace { get; private set; } = true;
 
-        /// <summary>화면이 보이는 동안만 시간을 센다. 랩을 시작할 때가 되면 한 번만 true를 돌려준다.</summary>
-        public bool TickRap(float seconds, bool screenCovered)
+        /// <summary>입장 뒤 시간을 센다. 랩을 시작할 때가 되면 한 번만 true를 돌려준다.</summary>
+        public bool TickRap(float seconds)
         {
-            if (RapStarted || screenCovered)
+            if (RapStarted)
                 return false;
-            shownSeconds += seconds;
-            if (shownSeconds < RapDelaySeconds)
+            waitedSeconds += seconds;
+            if (waitedSeconds < RapDelaySeconds)
                 return false;
             RapStarted = true;
             return true;

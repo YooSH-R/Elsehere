@@ -4,5 +4,6 @@
   "mbti": "ISFP-T",
   "role": "STAFF",
   "workplace": "LAUNDROMAT",
-  "shift": "DAY"
+  "shift": "DAY",
+  "resident": true
 }

@@ -17,6 +17,7 @@ namespace A305.EditorTools.Npc
     /// 마을의 들어갈 수 있는 건물 9곳(1층 매장 6곳·북쪽 블록 3곳)에 주·야간 직원 NPC를 두고, 생활하며 자기 건물 1층 안에서만 지내게 한다.
     /// 외형과 배색은 외형 표(<see cref="NpcCast"/>)를 따르고, 색을 바꾼 재질 사본은 <see cref="NpcCastDresser"/>가 입힌다.
     /// 기존 직원의 위치는 유지하고, 전직한 인물은 새 일터 안으로 옮겨 연결·색·구역을 맞춘다.
+    /// 카운터는 24시간 상주하는 퀘스트 직원이 맡고, 전직한 교대 직원은 카운터에서 떨어진 자기 자리를 지킨다(<see cref="PlaceShiftStaffAtOwnPosts"/>).
     /// </summary>
     public static class BuildingStaffBuilder
     {
@@ -30,6 +31,9 @@ namespace A305.EditorTools.Npc
             new Vector3(7.6f, 3.3f, 7.6f)
         );
         internal static readonly Vector3 BurgerCounterStand = new Vector3(.4f, .44f, -7.15f);
+
+        // 은행 저녁·야간 직원은 교대가 겹치지 않아 같은 대기 의자 옆에 선다.
+        private static readonly Vector3 BankWaitingArea = new Vector3(-1.8f, 0, -2.6f);
 
         private static readonly Staff[] Staffs =
         {
@@ -67,61 +71,56 @@ namespace A305.EditorTools.Npc
                 "HomeLiving",
                 new Vector3(-.3f, 0, -6.6f)
             ),
-            new Staff(
-                "TOWN_EVENING_WALKER",
-                "BankEveningStaff",
-                "TownBank",
-                new Vector3(2.5f, 0, -4.6f),
-                true
-            ),
-            new Staff(
-                "TOWN_SHOPPER",
-                "BankNightStaff",
-                "TownBank",
-                new Vector3(2.5f, 0, -4.6f),
-                true
-            ),
+            // 아래 교대 직원은 카운터를 24시간 상주 직원(위 9명)에게 맡기고, 카운터에서 1.5m 넘게 떨어진 가게 안 자기 자리를 지킨다.
+            new Staff("TOWN_EVENING_WALKER", "BankEveningStaff", "TownBank", BankWaitingArea, true),
+            new Staff("TOWN_SHOPPER", "BankNightStaff", "TownBank", BankWaitingArea, true),
             new Staff(
                 "TOWN_RETIREE",
                 "PostOfficeNightStaff",
                 "PostOffice",
-                new Vector3(-1.5f, 0, -4.5f),
+                new Vector3(2.45f, 0, -3.55f),
                 true
             ),
             new Staff(
                 "TOWN_STUDENT",
                 "ArcadeNightStaff",
                 "LittleArcade",
-                new Vector3(-1.4f, 0, -4.6f),
+                new Vector3(1.9f, 0, -5f),
                 true
             ),
             new Staff(
                 "TOWN_HANDYMAN",
                 "HomeStoreNightStaff",
                 "HomeLiving",
-                new Vector3(-.3f, 0, -6.6f),
+                new Vector3(.5f, 0, -4.2f),
                 true
             ),
-            new Staff("FIRE_CAPTAIN", "DinerNightStaff", "MapleDiner", BurgerCounterStand, true),
+            new Staff(
+                "FIRE_CAPTAIN",
+                "DinerNightStaff",
+                "MapleDiner",
+                new Vector3(1.5f, 0, -3.6f),
+                true
+            ),
             new Staff(
                 "FIRE_FIGHTER",
                 "LaundromatNightStaff",
                 "SudsLaundromat",
-                new Vector3(.2f, 0, -5f),
+                new Vector3(1.8f, 0, -4.3f),
                 true
             ),
             new Staff(
                 "FIRE_ROOKIE",
                 "BarberNightStaff",
                 "MainStreetBarber",
-                new Vector3(-1.6f, 0, -4.1f),
+                new Vector3(1.1f, 0, -5f),
                 true
             ),
             new Staff(
                 "HOTEL_CONCIERGE",
                 "FlowerShopNightStaff",
                 "BloomFlowers",
-                new Vector3(.9f, 0, -6.4f),
+                new Vector3(-2f, 0, -3.6f),
                 true,
                 "HotelScene"
             ),
@@ -129,7 +128,7 @@ namespace A305.EditorTools.Npc
                 "POLICE_PATROL_OFFICER",
                 "BakeryNightStaff",
                 "MapleBakery",
-                new Vector3(-1.6f, 0, -4.4f),
+                new Vector3(-.4f, 0, -6.3f),
                 true,
                 "PoliceStationScene"
             ),
@@ -227,7 +226,51 @@ namespace A305.EditorTools.Npc
             // 생활 데이터가 있는 NPC에 생활을 붙이고 바닥을 다시 굽는다. 그 뒤 직원마다 구역을 정한다.
             NpcLifeBuilder.Build();
             LimitStaffToBuildings();
+            PlaceShiftStaffAtOwnPosts();
             Debug.Log("마을 건물 9곳에 직원 NPC를 두고 건물 안에서만 지내게 했습니다.");
+        }
+
+        /// <summary>
+        /// 교대 직원을 카운터에서 떨어진 가게 안 자기 자리에 세우고, 근무하는 동안 그 자리를 지키게 한다(<see cref="NpcRoutine"/>의 keepsOwnPost).
+        /// 카운터는 24시간 상주하는 퀘스트 직원이 맡아, 교대 직원이 같은 자리에 겹쳐 서지 않는다. 바닥을 다시 굽지 않고 자리와 표시만 바꾼다.
+        /// </summary>
+        [MenuItem("Tools/A305/Npc/Place Shift Staff At Own Posts")]
+        public static void PlaceShiftStaffAtOwnPosts()
+        {
+            BuilderTools.ThrowIfPlaying();
+            foreach (
+                IGrouping<string, Staff> building in Staffs
+                    .Where(staff => staff.Reassigned)
+                    .GroupBy(staff => staff.Building)
+            )
+            {
+                string path = ShopScenePath(building.First());
+                Scene shop = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+                foreach (Staff staff in building)
+                    PlaceAtOwnPost(shop, staff);
+                BuilderTools.SaveScene(shop, path);
+            }
+            AssetDatabase.SaveAssets();
+        }
+
+        private static void PlaceAtOwnPost(Scene shop, Staff staff)
+        {
+            Transform building = Building(shop, staff.Building);
+            NpcIdentity npc = BuilderTools
+                .FindAllInScene<NpcIdentity>(shop)
+                .Single(candidate => candidate.Code == staff.Code);
+            // 빈자리를 찾는 동안 자기 몸은 비켜 두어, 다시 실행해도 같은 자리에 선다.
+            var body = npc.GetComponent<CharacterController>();
+            bool bodyWasEnabled = body.enabled;
+            body.enabled = false;
+            npc.transform.SetPositionAndRotation(
+                NpcPlacement.FreeSpot(building, staff.Stand, GroundFloor),
+                building.rotation
+            );
+            body.enabled = bodyWasEnabled;
+            var routine = new SerializedObject(npc.GetComponent<NpcRoutine>());
+            routine.FindProperty("keepsOwnPost").boolValue = true;
+            routine.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>

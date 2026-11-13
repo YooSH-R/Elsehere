@@ -4,5 +4,6 @@
   "mbti": "ISTJ-T",
   "role": "STAFF",
   "workplace": "POST_OFFICE",
-  "shift": "DAY"
+  "shift": "DAY",
+  "resident": true
 }

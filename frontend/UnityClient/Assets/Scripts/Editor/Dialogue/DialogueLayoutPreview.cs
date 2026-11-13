@@ -20,6 +20,202 @@ namespace A305.EditorTools.Dialogue
     /// <summary>실제 NPC와 고정 대본으로 대화 구도·도움말 배치를 확인한다. Play·모델 호출 없음.</summary>
     public static class DialogueLayoutPreview
     {
+        /// <summary>승인 전 검토용 시안. 실제 카드 복제본만 바꾸며 서비스 프리팹·동작은 수정하지 않는다.</summary>
+        public static void CaptureExpressionCardDesign()
+        {
+            DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
+            var content = new WordPreviewContent
+            {
+                PreviewLines = new[]
+                {
+                    DialogueLine.FromNpc("Good morning! What can I get for you?", null),
+                    DialogueLine.FromUser("Can I get an iced americano, please?"),
+                    DialogueLine.FromNpc("Of course. Would you like anything else?", null),
+                },
+                UserBetterExpressions = new[]
+                {
+                    "I'd like an iced americano, please.",
+                    "Could I have an iced americano, please?",
+                    "An iced americano would be great, thanks.",
+                },
+            };
+            view.Show(content);
+            Invoke(view, "ToggleOtherExpressions");
+            foreach (
+                UiThemeId theme in new[] { UiThemeId.Jelly, UiThemeId.Sticker, UiThemeId.Cloud }
+            )
+            {
+                SelectTheme(theme);
+                foreach (bool expanded in new[] { false, true })
+                    Render(
+                        camera,
+                        view,
+                        eye,
+                        face,
+                        Path.Combine(
+                            OutputFolder(),
+                            $"design-{theme}-{(expanded ? "expanded" : "inline")}.png"
+                        ),
+                        1920,
+                        1080,
+                        design: current => ExpressionCardDesign(current, expanded)
+                    );
+            }
+            SelectTheme(UiThemeId.Jelly);
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(OutputFolder(), "design-mobile-inline.png"),
+                900,
+                1400,
+                design: current => ExpressionCardDesign(current, false)
+            );
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(OutputFolder(), "design-mobile-expanded.png"),
+                900,
+                1400,
+                design: current => ExpressionCardDesign(current, true)
+            );
+        }
+
+        private static void ExpressionCardDesign(DialoguePanelView view, bool expanded)
+        {
+            RectTransform card = Field<RectTransform>(view, "translationCard");
+            var canvas = (RectTransform)view.GetComponentInParent<Canvas>().transform;
+            if (canvas.Find("ExpressionDesignOverlay") != null)
+                Object.DestroyImmediate(canvas.Find("ExpressionDesignOverlay").gameObject);
+            foreach (string old in new[] { "DesignFold", "DesignExpand" })
+                if (card.Find(old) != null)
+                    Object.DestroyImmediate(card.Find(old).gameObject);
+            bool stacked =
+                Mathf.Min(DialogueCinemaLayout.ColumnWidth, canvas.rect.width - 96) < 1100;
+            float height = stacked ? 300 : 490;
+            if (!stacked)
+            {
+                DialogueSuggestionsView suggestions = Field<DialogueSuggestionsView>(
+                    view,
+                    "suggestions"
+                );
+                var corners = new Vector3[4];
+                suggestions.HintRect.GetWorldCorners(corners);
+                float availableTop = card.parent.InverseTransformPoint(corners[0]).y - 16;
+                height = Mathf.Min(height, availableTop - card.anchoredPosition.y);
+            }
+            card.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
+            CardDesignHeader(card, "잘 말했어요");
+            Button template = Field<Button>(view, "translationListenButton");
+            Button fold = DesignButton(template, card, "DesignFold", "접기", 86, 78);
+            fold.onClick.AddListener(() => Invoke(view, "ToggleOtherExpressions"));
+            Button enlarge = DesignButton(template, card, "DesignExpand", "", 44, 20);
+            var icon = new GameObject(
+                "Icon",
+                typeof(RectTransform),
+                typeof(Image)
+            ).GetComponent<Image>();
+            icon.transform.SetParent(enlarge.transform, false);
+            icon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(
+                "Assets/Art/UI/Feedback/FeedbackExpandIcon.png"
+            );
+            icon.color = new Color32(57, 51, 44, 255);
+            icon.raycastTarget = false;
+            icon.rectTransform.anchorMin = Vector2.zero;
+            icon.rectTransform.anchorMax = Vector2.one;
+            icon.rectTransform.offsetMin = Vector2.one * 12;
+            icon.rectTransform.offsetMax = Vector2.one * -12;
+            enlarge.onClick.AddListener(() => ExpressionCardDesign(view, true));
+            if (!expanded)
+                return;
+            var overlay = new GameObject(
+                "ExpressionDesignOverlay",
+                typeof(RectTransform),
+                typeof(Image)
+            );
+            overlay.transform.SetParent(canvas, false);
+            var overlayRect = (RectTransform)overlay.transform;
+            overlayRect.anchorMin = Vector2.zero;
+            overlayRect.anchorMax = Vector2.one;
+            overlayRect.offsetMin = overlayRect.offsetMax = Vector2.zero;
+            overlay.GetComponent<Image>().color = new Color(0, 0, 0, .28f);
+            RectTransform window = Object.Instantiate(card, overlay.transform);
+            window.name = "ExpandedExpressionCard";
+            window.anchorMin = window.anchorMax = window.pivot = new Vector2(.5f, .5f);
+            window.anchoredPosition = Vector2.zero;
+            window.sizeDelta = new Vector2(
+                Mathf.Min(1050, canvas.rect.width - 96),
+                Mathf.Min(690, canvas.rect.height - 120)
+            );
+            Object.DestroyImmediate(window.Find("DesignFold").gameObject);
+            Object.DestroyImmediate(window.Find("DesignExpand").gameObject);
+            CardDesignHeader(window, "잘 말했어요");
+            var header = window.Find("Heading").GetComponent<TMP_Text>();
+            header.fontSize = 28;
+            header.enableAutoSizing = false;
+            DesignButton(template, window, "Close", "×", 44, 24)
+                .onClick.AddListener(() => Object.DestroyImmediate(overlay));
+            foreach (
+                TMP_Text text in window.Find("Viewport/Body").GetComponentsInChildren<TMP_Text>()
+            )
+                if (text.transform.parent.name != "Number")
+                    text.fontSize = text.name == "OthersHeading" ? 22 : 34;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(
+                (RectTransform)window.Find("Viewport/Body")
+            );
+        }
+
+        private static void CardDesignHeader(RectTransform card, string title)
+        {
+            card.Find("OthersButton").gameObject.SetActive(false);
+            card.Find("OthersDivider").gameObject.SetActive(false);
+            var heading = card.Find("Heading").GetComponent<TMP_Text>();
+            heading.text = title;
+            heading.alignment = TextAlignmentOptions.MidlineLeft;
+            heading.rectTransform.anchorMin = new Vector2(0, 1);
+            heading.rectTransform.anchorMax = Vector2.one;
+            heading.rectTransform.offsetMin = new Vector2(26, -64);
+            heading.rectTransform.offsetMax = new Vector2(-184, -16);
+            var viewport = (RectTransform)card.Find("Viewport");
+            viewport.offsetMin = new Vector2(26, 20);
+            viewport.offsetMax = new Vector2(-26, -72);
+            Scrollbar bar = card.GetComponent<ScrollRect>().verticalScrollbar;
+            if (bar != null)
+            {
+                bar.GetComponent<RectTransform>().offsetMin = new Vector2(-12, 20);
+                bar.GetComponent<RectTransform>().offsetMax = new Vector2(-6, -72);
+            }
+        }
+
+        private static Button DesignButton(
+            Button template,
+            RectTransform parent,
+            string name,
+            string label,
+            float width,
+            float right
+        )
+        {
+            Button button = Object.Instantiate(template, parent);
+            button.name = name;
+            button.gameObject.SetActive(true);
+            button.interactable = true;
+            button.onClick = new Button.ButtonClickedEvent();
+            var rect = (RectTransform)button.transform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one;
+            rect.anchoredPosition = new Vector2(-right, -18);
+            rect.sizeDelta = new Vector2(width, 42);
+            TMP_Text text = button.GetComponentInChildren<TMP_Text>(true);
+            text.text = label;
+            text.alignment = TextAlignmentOptions.Midline;
+            text.fontSize = label == "×" ? 30 : 18;
+            text.enableAutoSizing = false;
+            return button;
+        }
+
         public static void CaptureSuggestions()
         {
             DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
@@ -801,7 +997,8 @@ namespace A305.EditorTools.Dialogue
             string path,
             int width,
             int height,
-            bool showLatest = false
+            bool showLatest = false,
+            System.Action<DialoguePanelView> design = null
         )
         {
             var target = new RenderTexture(width, height, 24);
@@ -828,6 +1025,8 @@ namespace A305.EditorTools.Dialogue
             camera.Render();
             Canvas.ForceUpdateCanvases();
             view.UpdateLayout();
+            Canvas.ForceUpdateCanvases();
+            design?.Invoke(view);
             Canvas.ForceUpdateCanvases();
             // 스크롤 막대 손잡이 크기는 Play 중 매 프레임(LateUpdate)에만 맞춰지므로 찍기 전에 한 번 맞춘다.
             // Editor에서는 ScrollRect가 늘 스크롤할 것이 있다고 보므로, Play처럼 내용이 넘칠 때만 막대를 보인다.

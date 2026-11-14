@@ -23,7 +23,7 @@ Unity 클라이언트는 `frontend/UnityClient`에서 관리합니다. 저장소
 | --- | --- | --- |
 | 개발 앱 | `https://dev.elsehere.kr/` | Unity WebGL·백엔드·AI 워커·DB. `dev` 변경의 검사·자동 배포 대상 |
 | 개발 상태 확인 | `https://dev.elsehere.kr/api/health` | HTTP 200과 `status: UP` 확인. 로그인·주요 기능의 정상 동작은 별도 검증 |
-| 운영 | `https://elsehere.kr/`, `https://www.elsehere.kr/` | 환경 확인용 응답. 실제 운영 앱 배포 전 |
+| 운영 앱 | `https://elsehere.kr/` | `main` 병합으로 배포하는 운영 앱. `https://www.elsehere.kr/`은 대표 도메인으로 301 리다이렉트 |
 | 서버 접속 | `ubuntu@k15a305.p.ssafy.io` | 키를 사용하는 SSH 접속과 관리 화면 터널 |
 
 새 개발 주소에는 `/dev` 접두사를 붙이지 않습니다. 기존 `k15a305.p.ssafy.io`의 경로 기반 주소는 호환을 위해 유지하며 신규 접속 기준은 `dev.elsehere.kr`입니다.

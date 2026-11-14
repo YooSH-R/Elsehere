@@ -137,10 +137,35 @@ def test_feedback_provider_failure_is_failed_status(client, provider):
     assert r.status_code == 200 and fb["status"] == "failed" and fb["problem"]["code"] == "AI_PROVIDER_ERROR"
 
 
-def test_feedback_broken_output_is_invalid_model_output(client, provider):
+def test_feedback_broken_output_twice_is_invalid_model_output(client, provider):
     provider.answers["feedback"] = lambda b: ok('{"result": "nope"}')
     r = client.post("/v1/feedback", json=sample("inputs/free_grammar.json"))
     assert r.status_code == 200 and r.json()["feedback"]["problem"]["code"] == "INVALID_MODEL_OUTPUT"
+    assert [step for step, _ in provider.calls] == ["feedback", "feedback"]
+
+
+def test_feedback_broken_output_is_retried_once(client, provider):
+    """모델 출력이 형식 검사에 한 번 걸리면 한 번 더 만들어 본다. 두 호출의 사용량을 모두 돌려준다."""
+    answers = iter([ok('{"result": "nope"}'), ok(json.dumps(sample("fixtures/free_grammar.llm.json"), ensure_ascii=False))])
+    provider.answers["feedback"] = lambda b: next(answers)
+    r = client.post("/v1/feedback", json=sample("inputs/free_grammar.json"))
+    assert r.json()["feedback"]["status"] == "completed"
+    assert [u["step"] for u in r.json()["usage"]] == ["feedback", "feedback"]
+
+
+def test_feedback_is_not_retried_when_whole_time_left_is_shorter_than_first_try(provider):
+    """다시 만들어도 FEEDBACK_TIMEOUT_S 안에 끝나지 못할 만큼 첫 시도가 오래 걸렸으면 다시 부르지 않는다."""
+    from conftest import make_client
+
+    async def slow_broken(b):
+        await asyncio.sleep(0.6)
+        return ok('{"result": "nope"}')
+
+    provider.answers["feedback"] = slow_broken
+    with make_client(provider, feedback_timeout_s=1.0) as c:
+        r = c.post("/v1/feedback", json=sample("inputs/free_grammar.json"))
+    assert r.json()["feedback"]["problem"]["code"] == "INVALID_MODEL_OUTPUT"
+    assert len([x for x in provider.calls if x[0] == "feedback"]) == 1
 
 
 def test_feedback_bad_input_is_invalid_request(client):

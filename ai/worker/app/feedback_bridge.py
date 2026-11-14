@@ -2,11 +2,13 @@
 
 입력·출력 형식, 프롬프트, 근거 검증은 그 모듈이 정한다(ai/feedback/README.md). 모듈은 동기 함수(generate_feedback)라
 스레드에서 돌리고, 그 안의 모델 호출(complete)은 워커 이벤트 루프의 LLM.chat(feedback 역할: 구성의 모델·재시도·대체 모델)으로 넘긴다.
+모델 출력이 모듈의 형식·근거 검사에 걸리면(INVALID_MODEL_OUTPUT) 남은 시간 안에서 한 번 더 만든다.
 워커를 배포할 때 ai/feedback 폴더도 함께 둔다.
 """
 
 import asyncio
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from pathlib import Path
@@ -30,8 +32,8 @@ FEEDBACK_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="feedback")
 class WorkerModel:
     """ai/feedback의 ModelClient. 스레드에서 불리고, 호출은 워커 이벤트 루프로 넘긴다."""
 
-    def __init__(self, llm: LLM, loop: asyncio.AbstractEventLoop, usage: Usage):
-        self.llm, self.loop, self.usage = llm, loop, usage
+    def __init__(self, llm: LLM, loop: asyncio.AbstractEventLoop, usage: Usage, deadline: float):
+        self.llm, self.loop, self.usage, self.deadline = llm, loop, usage, deadline
 
     def complete(self, messages: list[dict[str, str]]) -> str:
         # 모듈이 대화마다 만드는 출력 형식(strict json_schema)을 그대로 쓴다
@@ -48,8 +50,8 @@ class WorkerModel:
             timeout_s=self.llm.s.feedback_timeout_s,
             hedge=False,
         )
-        # 재시도·대체 모델을 거쳐도 전체를 FEEDBACK_TIMEOUT_S 안에 (호출 한 번의 상한만으로는 최대 약 4배까지 늘어남)
-        whole = within(call, self.llm.s.feedback_timeout_s)
+        # 재시도·대체 모델·형식 오류 뒤 다시 만들기를 거쳐도 전체를 FEEDBACK_TIMEOUT_S 안에 (호출 한 번의 상한만으로는 최대 약 4배까지 늘어남)
+        whole = within(call, max(self.deadline - time.monotonic(), 0.0))
         try:
             return asyncio.run_coroutine_threadsafe(whole, self.loop).result()
         except ProviderError as e:  # 모듈은 TimeoutError를 AI_TIMEOUT, ProviderCallError를 AI_PROVIDER_ERROR로 돌려준다
@@ -62,6 +64,17 @@ async def feedback(llm: LLM, payload: dict) -> dict:
     """반환: {"feedback": 모듈 출력(status·result·problem), "usage": [...]}. 입력이 계약과 다르면 pydantic.ValidationError.
     공급자 실패·출력 형식 오류는 모듈이 status: failed로 돌려준다 (HTTP는 200). 사용량 한도 판단은 Spring이 먼저 한다."""
     usage = Usage()
-    model = WorkerModel(llm, asyncio.get_running_loop(), usage)
-    result = await asyncio.get_running_loop().run_in_executor(FEEDBACK_POOL, partial(generate_feedback, payload, model, ai_allowed=True))
+    loop = asyncio.get_running_loop()
+    started = time.monotonic()
+    model = WorkerModel(llm, loop, usage, deadline=started + llm.s.feedback_timeout_s)
+    result = await loop.run_in_executor(FEEDBACK_POOL, partial(generate_feedback, payload, model, ai_allowed=True))
+    # 같은 대화라도 모델이 다시 만들면 대개 검사를 통과한다. 첫 시도만큼의 시간이 남았을 때만 한 번 더 부른다.
+    took = time.monotonic() - started
+    if _invalid_output(result) and model.deadline - time.monotonic() >= took:
+        result = await loop.run_in_executor(FEEDBACK_POOL, partial(generate_feedback, payload, model, ai_allowed=True))
     return {"feedback": result, "usage": usage.items}
+
+
+def _invalid_output(result: dict) -> bool:
+    problem = result.get("problem") or {}
+    return result.get("status") == "failed" and problem.get("code") == "INVALID_MODEL_OUTPUT"

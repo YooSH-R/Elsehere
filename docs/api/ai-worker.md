@@ -435,6 +435,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 | `failed` | `problem.code`: `AI_TIMEOUT`·`AI_PROVIDER_ERROR`·`INVALID_MODEL_OUTPUT` | `feedback.status: FAILED`, `errorCode`에 그대로 |
 
 - 공급자 실패·출력 형식 오류도 HTTP는 200이고 `feedback.status: failed`입니다(모듈이 판단). 사용량 한도는 Spring이 먼저 확인하고 부릅니다.
+- 출력이 형식·근거 검사에 걸리면(`INVALID_MODEL_OUTPUT`) 첫 시도만큼의 시간이 남았을 때 한 번 더 만듭니다. 두 호출의 사용량이 모두 `usage`에 들어갑니다. 어느 검사에서 걸렸는지는 워커 로그 `feedback_invalid_output`에 필드 위치·오류 종류만 남기고 모델 원문은 남기지 않습니다.
 - 시간 상한은 `FEEDBACK_TIMEOUT_S`(기본 60초)이며 **재시도·대체 모델을 포함한 전체 시간**입니다. 넘으면 `feedback.status: failed`, `problem.code: AI_TIMEOUT`. 길게 생성하는 호출이라 같은 요청 더 보내기(`HEDGE_AFTER_S`)를 쓰지 않습니다.
 - 백엔드 CONV-08 형식으로의 변환(예: `summary` ← `result.conversation_summary.text_ko`, `reviews.good`·`improve` ← `result.review_tags`의 `label_ko`, `suggestion` ← `result.summary_suggestion_id`가 가리키는 제안)은 `ai/feedback` 담당과 백엔드가 정합니다.
 

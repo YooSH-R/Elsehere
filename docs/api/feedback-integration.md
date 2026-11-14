@@ -39,7 +39,7 @@ null 판정은 무례가 아님을 뜻하지 않는다. 원래 null·실패 이�
 | 400 / invalid_request | 요청 형식 수정. 그대로 자동 재전송하지 않음 | 입력 검증에서 거부되면 0회 |
 | 401 등 HTTP 오류 | 내부 인증·전달 오류 정책으로 처리 | 오류 코드만으로 비용을 단정하지 않음 |
 
-`failed`의 `AI_TIMEOUT`, `AI_PROVIDER_ERROR`, `INVALID_MODEL_OUTPUT`은 교정 결과가 아니다. 예시의 잘못된 모델 출력은 HTTP 200이지만 `feedback.status: failed`이며, 생성 토큰 사용량은 남는다. 실패를 무료로 계산하지 않는다. 자동 재호출은 새 예산 승인과 중복 방지 정책을 거쳐야 한다.
+`failed`의 `AI_TIMEOUT`, `AI_PROVIDER_ERROR`, `INVALID_MODEL_OUTPUT`은 교정 결과가 아니다. 예시의 잘못된 모델 출력은 HTTP 200이지만 `feedback.status: failed`이며, 생성 토큰 사용량은 남는다. 실패를 무료로 계산하지 않는다. 워커는 `INVALID_MODEL_OUTPUT`일 때만 첫 시도만큼의 시간이 `FEEDBACK_TIMEOUT_S` 안에 남아 있으면 같은 요청으로 한 번 더 만들고, 두 호출의 사용량을 모두 `usage`에 담는다. 시간 초과·공급자 실패는 다시 부르지 않는다. 그 밖의 자동 재호출은 새 예산 승인과 중복 방지 정책을 거쳐야 한다.
 
 계약 자체에는 `blocked_by_quota`와 `processing`도 있지만, 현재 워커의 단일 동기 요청은 Spring의 사전 승인을 전제로 처리한다. Spring이 승인하지 않은 요청을 워커에 보내 quota 판정을 대신하게 하지 않는다.
 

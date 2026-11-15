@@ -94,24 +94,9 @@ namespace A305.Npc.PlayModeTests
             Assert.That(tag.Role, Is.Null, "쉬는 직원에게는 역할 칩을 달지 않습니다.");
         }
 
+        // 추적·접근 뒤 이름표가 보이는 상태에서 이동 잠금까지 확인해 같은 마을을 다시 열지 않는다.
         [UnityTest]
-        public IEnumerator PlayerWhoCannotMove_SeesNoTags()
-        {
-            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
-            yield return null;
-            NpcIdentity passerby = HoldStill(PasserbyCode);
-            yield return StandFacing(passerby, 3f);
-            Assume.That(ShownTags().Select(shown => shown.Name), Does.Contain(PasserbyName));
-
-            Object.FindFirstObjectByType<PlayerMover>().SetMovementLocked(true);
-            yield return null;
-
-            Assert.That(ShownTags(), Is.Empty);
-        }
-
-        // [이웃]에서 고른 NPC는 멀리서도 이름표와 코랄 표시가 보이고, 3m 안에 다가가면 찾기를 끝내 표시를 거둔다.
-        [UnityTest]
-        public IEnumerator TrackedNeighbor_ShowsAMarkFromFarAway_AndArrivingStopsTracking()
+        public IEnumerator TrackedNeighbor_UpdatesItsTagOnApproachAndHidesItWhileMovementIsLocked()
         {
             NpcTracking.Shared.Clear();
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
@@ -165,6 +150,21 @@ namespace A305.Npc.PlayModeTests
             Assert.That(near, Is.Not.Null);
             Assert.That(near.Tracked, Is.False);
             Assert.That(near.Role, Is.Null, "행인에게는 역할 칩을 달지 않습니다.");
+
+            player.SetMovementLocked(true);
+            try
+            {
+                yield return null;
+                Assert.That(
+                    ShownTags(),
+                    Is.Empty,
+                    "플레이어가 움직일 수 없으면 이름표를 감춥니다."
+                );
+            }
+            finally
+            {
+                player.SetMovementLocked(false);
+            }
         }
 
         // 다가와 말을 걸거나 일하러 걸어가지 않게 세워 둔다. 이름표는 NPC 키(NpcIdentity)로 그대로 찾는다.

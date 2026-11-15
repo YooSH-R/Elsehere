@@ -43,6 +43,7 @@
           "description": "TALK: 그 대화 안에서 goal을 이루면 끝. ERRAND: 해결처 직원에게 사거나 부탁한 뒤 돌아와 건넨다."
         },
         "goal": { "$ref": "#/$defs/RequestGoal", "description": "TALK일 때 이 대화에서 판정할 목표." },
+        "titleKo": { "type": "string", "minLength": 1, "maxLength": 30, "pattern": "\\S", "description": "TALK일 때 부탁 카드 제목의 할 일. 심부름은 고른 제공의 taskKo를 쓴다." },
         "offer": {
           "type": "object",
           "additionalProperties": false,
@@ -64,7 +65,7 @@
         }
       },
       "allOf": [
-        { "if": { "properties": { "solve": { "const": "TALK" } } }, "then": { "required": ["goal"], "not": { "required": ["offer"] } } },
+        { "if": { "properties": { "solve": { "const": "TALK" } } }, "then": { "required": ["goal", "titleKo"], "not": { "required": ["offer"] } } },
         { "if": { "properties": { "solve": { "const": "ERRAND" } } }, "then": { "not": { "required": ["goal"] } } }
       ]
     },
@@ -119,11 +120,13 @@
     "Offer": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["key", "en", "ko", "price", "languageFocus"],
+      "required": ["key", "en", "ko", "taskKo", "stepKo", "price", "languageFocus"],
       "properties": {
         "key": { "$ref": "#/$defs/OfferKey" },
         "en": { "type": "string", "minLength": 1, "maxLength": 80, "pattern": "\\S", "description": "지시문·판정 설명에 넣는 영어 이름(관사 포함)." },
         "ko": { "type": "string", "minLength": 1, "maxLength": 30, "pattern": "\\S", "description": "부탁 카드에 쓰는 이름." },
+        "taskKo": { "type": "string", "minLength": 1, "maxLength": 30, "pattern": "\\S", "description": "부탁 카드 제목의 할 일. 예: 크루아상 사다 주기" },
+        "stepKo": { "type": "string", "minLength": 1, "maxLength": 40, "pattern": "\\S", "description": "해결처 단계 문구. 장소 이름 뒤에 붙인다. 예: 크루아상 포장 주문하기" },
         "fills": { "$ref": "#/$defs/Fills", "description": "부탁한 NPC에게 건네면 채워지는 욕구. 없으면 상황 계기가 찾는 서비스." },
         "price": { "type": "integer", "minimum": 0, "maximum": 100, "description": "가게 값(코인). 부탁한 NPC가 먼저 건넨다는 설정이라 학습자 코인은 들지 않고 지시문에만 쓴다." },
         "languageFocus": { "$ref": "#/$defs/LanguageFocus" }

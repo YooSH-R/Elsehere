@@ -88,8 +88,8 @@
     "CAFE": {
       "name": { "en": "the corner cafe", "ko": "카페" },
       "offers": [
-        { "key": "coffee", "en": "a coffee", "ko": "커피", "fills": { "ENERGY": 25 }, "price": 4, "languageFocus": ["ordering"] },
-        { "key": "muffin", "en": "a muffin", "ko": "머핀", "fills": { "HUNGER": 40 }, "price": 3, "languageFocus": ["ordering"] }
+        { "key": "coffee", "en": "a coffee", "ko": "커피", "fills": { "ENERGY": 25 }, "price": 4, "taskKo": "커피 사다 주기", "stepKo": "커피 포장 주문하기", "languageFocus": ["ordering"] },
+        { "key": "muffin", "en": "a muffin", "ko": "머핀", "fills": { "HUNGER": 40 }, "price": 3, "taskKo": "머핀 사다 주기", "stepKo": "머핀 포장 주문하기", "languageFocus": ["ordering"] }
       ],
       "shifts": {
         "OPENING": {
@@ -155,7 +155,7 @@
     "POST_OFFICE": {
       "name": { "en": "the post office", "ko": "우체국" },
       "offers": [
-        { "key": "stamp", "en": "a stamp to send a letter", "ko": "편지 부치기", "price": 1, "languageFocus": ["polite_request"] }
+        { "key": "stamp", "en": "a stamp to send a letter", "ko": "편지 부치기", "price": 1, "taskKo": "편지 부쳐 주기", "stepKo": "우표를 사서 편지 부치기", "languageFocus": ["polite_request"] }
       ],
       "shifts": {
         "DAY": {
@@ -173,7 +173,7 @@
     "BANK": {
       "name": { "en": "Town Bank", "ko": "은행" },
       "offers": [
-        { "key": "change", "en": "change for a 20-dollar bill", "ko": "잔돈", "price": 0, "languageFocus": ["polite_request"] }
+        { "key": "change", "en": "change for a 20-dollar bill", "ko": "잔돈", "price": 0, "taskKo": "잔돈 바꿔 주기", "stepKo": "20달러를 잔돈으로 바꾸기", "languageFocus": ["polite_request"] }
       ],
       "shifts": {
         "DAY": {
@@ -196,7 +196,7 @@
     "DINER": {
       "name": { "en": "Maple Burger", "ko": "햄버거 가게" },
       "offers": [
-        { "key": "burger", "en": "a burger to go", "ko": "버거", "fills": { "HUNGER": 50 }, "price": 7, "languageFocus": ["ordering"] }
+        { "key": "burger", "en": "a burger to go", "ko": "버거", "fills": { "HUNGER": 50 }, "price": 7, "taskKo": "버거 사다 주기", "stepKo": "버거 포장 주문하기", "languageFocus": ["ordering"] }
       ],
       "shifts": {
         "DAY": {
@@ -214,8 +214,8 @@
     "BAKERY": {
       "name": { "en": "Maple Bakery", "ko": "베이커리" },
       "offers": [
-        { "key": "croissant", "en": "a croissant", "ko": "크루아상", "fills": { "HUNGER": 40 }, "price": 3, "languageFocus": ["ordering"] },
-        { "key": "coffee", "en": "a coffee", "ko": "커피", "fills": { "ENERGY": 25 }, "price": 2, "languageFocus": ["ordering"] }
+        { "key": "croissant", "en": "a croissant", "ko": "크루아상", "fills": { "HUNGER": 40 }, "price": 3, "taskKo": "크루아상 사다 주기", "stepKo": "크루아상 포장 주문하기", "languageFocus": ["ordering"] },
+        { "key": "coffee", "en": "a coffee", "ko": "커피", "fills": { "ENERGY": 25 }, "price": 2, "taskKo": "커피 사다 주기", "stepKo": "커피 포장 주문하기", "languageFocus": ["ordering"] }
       ],
       "shifts": {
         "DAY": {
@@ -247,7 +247,7 @@
     "FLOWER_SHOP": {
       "name": { "en": "Bloom Flowers", "ko": "꽃집" },
       "offers": [
-        { "key": "flower", "en": "one wrapped flower", "ko": "꽃 한 송이", "price": 2, "languageFocus": ["describing", "polite_request"] }
+        { "key": "flower", "en": "one wrapped flower", "ko": "꽃 한 송이", "price": 2, "taskKo": "꽃 한 송이 사다 주기", "stepKo": "꽃 한 송이 포장해 사기", "languageFocus": ["describing", "polite_request"] }
       ],
       "shifts": {
         "DAY": {

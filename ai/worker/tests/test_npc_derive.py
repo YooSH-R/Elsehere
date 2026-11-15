@@ -58,6 +58,7 @@ def test_the_service_rules_turn_mia_into_life_rates():
         "needRates": {"SOCIAL": 1.2, "FUN": 0.8},
         "recognitionRate": 1.2,
         "eventScale": {"RUDE": 1.16, "SMALL_TALK": 0.8},
+        "moodDecay": {"ANNOYED": 0.94},
     }
 
 

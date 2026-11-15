@@ -279,16 +279,19 @@ def test_an_npc_who_keeps_strangers_at_arms_length_opens_up_later():
 
 
 def test_rudeness_leaves_the_npc_annoyed_for_a_few_turns():
-    """Spring이 확정한 무례 줄(history의 rude)로 계산한다. 무례 뒤 학습자가 말할 때마다 decayPerTurn씩 가라앉는다."""
-    assert mood([PLAIN, RUDE])["annoyed"] is True  # 무례 바로 다음 말
-    assert mood([RUDE, PLAIN, PLAIN, PLAIN])["annoyed"] is False
-    assert mood([PLAIN, PLAIN])["annoyed"] is False
+    """Spring이 확정한 무례 줄(history의 rude)로 계산한다. 무례 뒤 학습자가 말할 때마다 decayPerTurn씩 가라앉는다.
+    무례는 칭찬보다 오래 남는다(부정 편향): 기본 NPC는 바로 다음 말에 강하게, 그 뒤 세 번은 약하게 드러난다."""
+    assert mood([PLAIN, RUDE])["annoyed"] == "strong"  # 무례 바로 다음 말
+    assert mood([RUDE, PLAIN])["annoyed"] == "mild"
+    assert mood([RUDE, PLAIN, PLAIN, PLAIN])["annoyed"] == "mild"
+    assert mood([RUDE, PLAIN, PLAIN, PLAIN, PLAIN])["annoyed"] is None
+    assert mood([PLAIN, PLAIN])["annoyed"] is None
 
 
 def test_a_touchy_npc_stays_annoyed_longer():
-    """사건 반응 크기(eventScale.RUDE)가 클수록 같은 무례에 더 오래 짜증 낸다."""
+    """사건 반응 크기(eventScale.RUDE)가 클수록 같은 무례에 더 크게 짜증 낸다."""
     calm, touchy = {"eventScale": {"RUDE": 0.6}}, {"eventScale": {"RUDE": 1.4}}
-    turns = [RUDE, PLAIN]  # 무례 뒤 두 번째 말
+    turns = [RUDE, PLAIN, PLAIN]
 
     def annoyed(rates: dict) -> float:
         return rel.moods(turns, rates, RULES).get("ANNOYED", 0)
@@ -297,35 +300,81 @@ def test_a_touchy_npc_stays_annoyed_longer():
     assert annoyed(touchy) >= RULES["mood"]["showsAt"] > annoyed(calm)
 
 
+def test_an_emotionally_steady_npc_gets_over_annoyance_sooner():
+    """짜증이 가라앉는 속도(moodDecay.ANNOYED)는 신경성으로 정한다. 부정적인 감정에서 회복하는 빠르기라서다.
+    같은 크기로 짜증 나도 신경성이 높으면 더 오래 남는다."""
+    turns = [RUDE, PLAIN, PLAIN, PLAIN]
+    slow, quick = {"moodDecay": {"ANNOYED": 0.85}}, {"moodDecay": {"ANNOYED": 1.15}}
+
+    def annoyed(rates: dict) -> float:
+        return rel.moods(turns, rates, RULES).get("ANNOYED", 0)
+
+    assert annoyed(slow) >= RULES["mood"]["showsAt"] > annoyed(quick)
+
+
+def test_the_speed_annoyance_fades_follows_neuroticism_from_the_card():
+    """Jake(신경성 0.7)는 Henry(신경성 0.3)보다 짜증이 천천히 가라앉는다."""
+
+    def decay(npc_id: str) -> float:
+        profile = NpcProfile.model_validate(card(npc_id)["npcProfile"])
+        return rel.npc_rates(profile, RULES, npc_persona.load_behaviors())["moodDecay"]["ANNOYED"]
+
+    assert decay("HOTEL_STAFF") < 1 < decay("BANK_STAFF")
+
+
+def test_a_good_mood_lasts_the_same_for_every_temperament():
+    """기분 좋음이 이어지는 시간은 성격과 상관없다. 내향·외향은 오래가는지가 아니라 드러내는 방식의 차이다."""
+    profile = NpcProfile.model_validate(card("HOTEL_STAFF")["npcProfile"])
+
+    assert "PLEASED" not in rel.npc_rates(profile, RULES, npc_persona.load_behaviors()).get("moodDecay", {})
+
+
 def test_an_apology_calms_the_annoyance():
-    assert mood([RUDE, PLAIN])["annoyed"] is True
-    assert mood([RUDE, said("APOLOGY")])["annoyed"] is False
+    assert mood([RUDE, PLAIN])["annoyed"] == "mild"
+    assert mood([RUDE, said("APOLOGY")])["annoyed"] is None
 
 
 def test_a_compliment_puts_the_npc_in_a_good_mood_for_a_few_turns():
-    assert mood([said("COMPLIMENT")])["pleased"] is True
-    assert mood([said("COMPLIMENT"), PLAIN, PLAIN, PLAIN])["pleased"] is False
+    assert mood([said("COMPLIMENT")])["pleased"] == "mild"
+    assert mood([said("COMPLIMENT"), PLAIN])["pleased"] == "mild"
+    assert mood([said("COMPLIMENT"), PLAIN, PLAIN])["pleased"] is None
+
+
+def test_good_things_one_after_another_make_the_good_mood_strong():
+    assert mood([said("COMPLIMENT"), said("COMPLIMENT")])["pleased"] == "strong"
 
 
 def test_small_talk_cheers_the_npc_up_only_when_it_goes_on():
     """잡담 한 번의 좋은 기분은 말투에 드러날 만큼 크지 않고, 이어지면 드러난다(호감은 올리지 않음)."""
-    assert mood([said("SMALL_TALK")])["pleased"] is False
-    assert mood([said("SMALL_TALK"), said("SMALL_TALK")])["pleased"] is True
+    assert mood([said("SMALL_TALK")])["pleased"] is None
+    assert mood([said("SMALL_TALK"), said("SMALL_TALK")])["pleased"] == "mild"
+
+
+def test_an_offer_of_help_cheers_the_npc_up_like_a_compliment():
+    assert mood([said("HELP")])["pleased"] == "mild"
+
+
+def test_the_good_mood_remembers_what_brought_it_on():
+    """말투가 이유에 맞게 나오도록, 기분 좋음을 가장 최근에 올린 사건을 함께 돌려준다."""
+    assert mood([said("COMPLIMENT")])["pleased_by"] == "COMPLIMENT"
+    assert mood([said("HELP")])["pleased_by"] == "HELP"
+    assert mood([said("COMPLIMENT"), said("SMALL_TALK"), said("SMALL_TALK")])["pleased_by"] == "SMALL_TALK"
+    assert mood([PLAIN])["pleased_by"] is None
 
 
 def test_events_on_a_rude_line_are_ignored():
     """무례로 확정된 줄의 다른 사건(욕하면서 칭찬 등)은 버린다(이정훈 님 협의)."""
     rude_compliment = (True, ["COMPLIMENT"])
 
-    assert mood([rude_compliment])["pleased"] is False
-    assert mood([rude_compliment])["annoyed"] is True
+    assert mood([rude_compliment])["pleased"] is None
+    assert mood([rude_compliment])["annoyed"] == "strong"
 
 
 def test_with_mixed_feelings_only_the_stronger_shows():
     """칭찬 뒤 무례면 짜증이 더 커서 짜증만 드러난다. 서로 반대인 말투 지시를 함께 주지 않는다."""
     mixed = mood([said("COMPLIMENT"), RUDE])
 
-    assert (mixed["annoyed"], mixed["pleased"]) == (True, False)
+    assert (mixed["annoyed"], mixed["pleased"]) == ("strong", None)
 
 
 # ---------- 욕구로 정하는 바탕 기분 ----------

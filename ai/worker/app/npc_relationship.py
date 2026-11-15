@@ -131,16 +131,29 @@ def turn_events(turn: LearnerTurn) -> list[str]:
 
 
 def moods(learner_turns: list[LearnerTurn], rates: dict, rules: dict) -> dict[str, float]:
-    """이번 대화에서 지금 기분 세기(감정마다 0~3). 학습자가 말할 때마다(지금 말 포함) 모든 기분이 decayPerTurn씩 가라앉고,
-    그 줄 사건의 기분 효과(conversationEvents의 mood) × NPC 반응 크기(rates["eventScale"])가 더해진다. 사과는 짜증을 줄인다."""
-    effects, scales, decay = rules["conversationEvents"], rates.get("eventScale", {}), rules["mood"]["decayPerTurn"]
+    """이번 대화에서 지금 기분 세기(감정마다 0~3). 학습자가 말할 때마다(지금 말 포함) 기분이 decayPerTurn × NPC의 그 감정
+    가라앉는 속도(rates["moodDecay"], 짜증은 신경성으로 정함)씩 가라앉고, 그 줄 사건의 기분 효과(conversationEvents의 mood)
+    × NPC 반응 크기(rates["eventScale"])가 더해진다. 사과는 짜증을 줄인다."""
+    effects, scales = rules["conversationEvents"], rates.get("eventScale", {})
+    speeds, decay = rates.get("moodDecay", {}), rules["mood"]["decayPerTurn"]
+
+    def settle(feelings: dict[str, float]) -> dict[str, float]:
+        return {emotion: max(0, value - decay * speeds.get(emotion, 1)) for emotion, value in feelings.items()}
+
     feelings: dict[str, float] = {}
     for turn in learner_turns:
-        feelings = {emotion: max(0, value - decay) for emotion, value in feelings.items()}
+        feelings = settle(feelings)
         for event in turn_events(turn):
             for emotion, amount in effects.get(event, {}).get("mood", {}).items():
                 feelings[emotion] = min(MOOD_MAX, max(0, feelings.get(emotion, 0) + amount * scales.get(event, 1)))
-    return {emotion: max(0, value - decay) for emotion, value in feelings.items()}  # 지금 학습자가 한 말만큼 가라앉음
+    return settle(feelings)  # 지금 학습자가 한 말만큼 가라앉음
+
+
+def latest_cause(learner_turns: list[LearnerTurn], emotion: str, rules: dict) -> str | None:
+    """그 기분을 가장 최근에 올린 사건. 말투가 이유에 맞게 나오도록 지시문에 함께 넣는다(칭찬받아서·도와준다고 해서 등)."""
+    effects = rules["conversationEvents"]
+    raised = [event for turn in learner_turns for event in turn_events(turn) if effects.get(event, {}).get("mood", {}).get(emotion, 0) > 0]
+    return raised[-1] if raised else None
 
 
 def person_state(relationship: dict, profile: NpcProfile | None, rules: dict, library: dict) -> dict:
@@ -181,20 +194,32 @@ def mood_state(
     - 바탕 기분: 대화를 시작할 때의 욕구(needs, 대화 중에는 게임 시간이 멈춰 그대로)로 정한다. 욕구가 오지 않으면 없다
       - low_needs: 기준보다 낮은 욕구 [(욕구, 아주 낮은지)] (low_needs 참고)
       - content: 보낸 욕구가 모두 넉넉해 여유로운지
-    - 사건 기분: 이번 대화의 사건(무례·칭찬 등)으로 짜증 나 있는지(annoyed)·기분이 좋은지(pleased). 둘 다면 더 큰 쪽만
+    - 사건 기분: 이번 대화의 사건(무례·칭찬 등)으로 짜증 나 있는지(annoyed)·기분이 좋은지(pleased). 드러나지 않으면 None,
+      드러나면 세기에 따라 mild·strong이다. 둘 다면 더 큰 쪽만. pleased_by는 기분 좋음을 가장 최근에 올린 사건
     서로 반대인 말투 지시를 함께 주지 않도록, 짜증 난 동안에는 여유로움과 말 상대가 반가움을 빼고 기분이 좋으면 여유로움을 겹쳐 넣지 않는다."""
     now = moods(learner_turns, npc_rates(profile, rules, library), rules)
     annoyed_level, pleased_level = now.get("ANNOYED", 0), now.get("PLEASED", 0)
-    shows = rules["mood"]["showsAt"]
-    annoyed = annoyed_level >= shows and annoyed_level >= pleased_level
-    pleased = pleased_level >= shows and pleased_level > annoyed_level
+    annoyed = mood_strength(annoyed_level, rules) if annoyed_level >= pleased_level else None
+    pleased = mood_strength(pleased_level, rules) if pleased_level > annoyed_level else None
 
     needs = needs or {}
     lows = low_needs(needs, rules)
     content = bool(needs) and all(value >= rules["mood"]["needs"]["comfortable"] for value in needs.values())
     if annoyed:
         lows = [(need, strong) for need, strong in lows if need not in WARM_NEEDS]
-    return {"low_needs": lows, "content": content and not annoyed and not pleased, "annoyed": annoyed, "pleased": pleased}
+    return {
+        "low_needs": lows,
+        "content": content and not annoyed and not pleased,
+        "annoyed": annoyed,
+        "pleased": pleased,
+        "pleased_by": latest_cause(learner_turns, "PLEASED", rules) if pleased else None,
+    }
+
+
+def mood_strength(level: float, rules: dict) -> str | None:
+    """기분 세기(0~3)를 말투에 드러나는 단계로. showsAt 미만은 None, strongAt 이상은 strong, 그 사이는 mild."""
+    mood = rules["mood"]
+    return "strong" if level >= mood["strongAt"] else "mild" if level >= mood["showsAt"] else None
 
 
 @cache

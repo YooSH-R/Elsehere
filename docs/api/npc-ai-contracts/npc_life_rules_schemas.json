@@ -326,7 +326,7 @@
       "properties": {
         "target": {
           "type": "string",
-          "pattern": "^(needRates\\.(HUNGER|ENERGY|SOCIAL|FUN|WORK)|recognitionRate|initiateTalkRate|personalTalkScale|eventScale\\.(GREETING|SMALL_TALK|PERSONAL_QUESTION|RUDE|APOLOGY|COMPLIMENT|HELP|TASK_DONE|LEAVE))$",
+          "pattern": "^(needRates\\.(HUNGER|ENERGY|SOCIAL|FUN|WORK)|recognitionRate|initiateTalkRate|personalTalkScale|moodDecay\\.(ANNOYED|PLEASED)|eventScale\\.(GREETING|SMALL_TALK|PERSONAL_QUESTION|RUDE|APOLOGY|COMPLIMENT|HELP|TASK_DONE|LEAVE))$",
           "description": "계산할 생활 값 배수. 이름은 행동 조각 affects와 같다."
         },
         "axis": { "$ref": "#/$defs/Axis" },
@@ -417,8 +417,8 @@
         "mood": {
           "type": "object",
           "propertyNames": { "$ref": "#/$defs/Emotion" },
-          "additionalProperties": { "type": "integer", "minimum": -3, "maximum": 3 },
-          "description": "이번 대화의 기분 변화. 대화가 이어지는 동안 mood.decayPerTurn씩 가라앉는다."
+          "additionalProperties": { "type": "number", "minimum": -3, "maximum": 3, "multipleOf": 0.5 },
+          "description": "이번 대화의 기분 변화(0.5 단위). 대화가 이어지는 동안 mood.decayPerTurn × NPC의 moodDecay씩 가라앉는다."
         },
         "impression": {
           "type": "integer",
@@ -511,10 +511,11 @@
         "mood": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["decayPerTurn", "showsAt"],
+          "required": ["decayPerTurn", "showsAt", "strongAt", "needs"],
           "properties": {
             "decayPerTurn": { "type": "number", "exclusiveMinimum": 0, "maximum": 3, "description": "학습자가 한 번 말할 때마다 기분 세기가 가라앉는 양." },
             "showsAt": { "type": "number", "exclusiveMinimum": 0, "maximum": 3, "description": "기분 세기(0~3)가 이 값 이상이면 말투에 드러난다." },
+            "strongAt": { "type": "number", "exclusiveMinimum": 0, "maximum": 3, "description": "기분 세기가 이 값 이상이면 강하게 드러난다(말투가 더 뚜렷하고 표정도 더 진함). showsAt보다 크다." },
             "needs": {
               "type": "object",
               "additionalProperties": false,

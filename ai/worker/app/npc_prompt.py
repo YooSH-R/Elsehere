@@ -5,7 +5,7 @@
 계약: docs/api/npc-ai-contracts/02_npc_inference_api_spec_v2.md
 """
 
-from app.npc_persona import temperament_lines
+from app.npc_persona import temperament_actions, temperament_lines
 from app.npc_profile_models import NpcProfile
 
 
@@ -241,6 +241,14 @@ SOUND_LIKE_YOURSELF = (
 )
 
 
+# 성격 행동을 매 턴 같은 말("there's no rush" 등)로 하면 틀처럼 들려서, 앞 대답과 다른 말로 하게 한다.
+# 실제 모델 확인에서 성격 행동이 호감 단계를 덮어(적대인 Ben이 "I hope you're doing all right"로 인사) 태도·기분을 먼저 따르게 한다
+VARY_TEMPERAMENT = (
+    "Do it in your own words, without reusing a phrase from your earlier replies. "
+    "If How you treat this person or How you feel right now says otherwise, follow those: your temperament only shapes how you say it."
+)
+
+
 def reply_system_prompt(
     profile: NpcProfile, place: str, facts: str, memory: str, level: int, note: str, learner: str = "", mood: str = ""
 ) -> str:
@@ -256,9 +264,8 @@ def reply_system_prompt(
     if mood:
         turn += f"\n{mood}"
     turn += f"\n{NOT_RUDE_UNLESS_TOLD}"
-    if profile.personality.dimensions and (habits := temperament_lines(profile.personality.dimensions.model_dump())):
-        labels = ", ".join(habit.split(":")[0] for habit in habits)
-        turn += f"\nLet your temperament show in this reply ({labels}): use at least one of those habits from your Character."
+    if profile.personality.dimensions and (actions := temperament_actions(profile.personality.dimensions.model_dump())):
+        turn += f"\nIn this reply, let your temperament show: {'; '.join(actions)}. {VARY_TEMPERAMENT}"
     if profile.speech_style.catchphrases:
         turn += f"\n{SOUND_LIKE_YOURSELF}"
     sections = [

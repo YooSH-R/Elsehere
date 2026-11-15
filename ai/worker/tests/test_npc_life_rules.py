@@ -493,6 +493,7 @@ def test_the_temperament_speech_rules_pass_the_schema():
     [
         (("axes", "openness", "low"), "", None),  # 빈 문장
         (("axes", "extraversion", "mbti"), "E-I", None),  # 두 글자를 /로
+        (("axes", "openness", "inReply", "high"), "", None),  # 이번 대답에서 할 행동도 빈 문장은 안 됨
         (("axes", "neuroticism"), {"mbti": "T/A", "high": "a", "low": "b"}, ("axes",)),  # 말투는 MBTI 네 축만 (신경성은 기분에 씀)
     ],
 )

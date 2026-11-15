@@ -247,9 +247,24 @@ def test_other_requests_accept_the_same_npc_with_its_profile(client, provider):
     assert r.status_code == 200
 
 
-def test_the_temperament_is_recalled_right_before_the_reply(client, provider):
-    """인격 칸의 네 축 말투 규칙만으로는 실제 모델 대답이 거의 바뀌지 않아(S15P31A305-928 측정), 이번 턴 칸에 네 축 이름을 한 번 더 짚는다."""
+def test_the_temperament_shows_as_concrete_actions_right_before_the_reply(client, provider):
+    """인격 칸의 말투 규칙과 네 축 이름만으로는 실제 모델 대답이 바뀌지 않았다(S15P31A305-928 블라인드 채점 0.57 → 0.55).
+    대답 바로 앞(이번 턴 칸)에 이번 대답에서 할 행동을 축마다 하나씩(temperament-speech.json의 inReply) 넣는다."""
     npc = {**NPC, "profile": profile_of("HOTEL_NIGHT_MANAGER")}  # ISTJ
     turn = system_of(reply_request(client, provider, npc)).split("## This turn")[1]
+    axes = json.loads((Path(__file__).resolve().parents[2] / "npcs/rules/temperament-speech.json").read_text(encoding="utf-8"))["axes"]
+    istj = (("extraversion", "low"), ("openness", "low"), ("agreeableness", "low"), ("conscientiousness", "high"))
+    actions = [axes[axis]["inReply"][side] for axis, side in istj]
 
-    assert "Let your temperament show in this reply (Reserved, Down-to-earth, Solutions first, Organized)" in turn
+    assert "In this reply, let your temperament show: " + "; ".join(actions) + "." in turn
+
+
+def test_the_temperament_yields_to_the_attitude_and_the_mood(client, provider):
+    """성격 행동이 호감 단계를 덮지 않게(실제 모델에서 적대인 Ben이 다정하게 인사함) 태도·기분을 먼저 따르라고 적는다.
+    같은 말을 매 턴 되풀이하지 않게도 한다."""
+    npc = {**NPC, "profile": profile_of("TOWN_PASSERBY")}
+    turn = system_of(reply_request(client, provider, npc, relationship={"recognition": 30, "affinity": -40})).split("## This turn")[1]
+
+    assert "How you treat this person:" in turn
+    assert "If How you treat this person or How you feel right now says otherwise, follow those" in turn
+    assert "without reusing a phrase from your earlier replies" in turn

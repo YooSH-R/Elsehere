@@ -74,6 +74,13 @@ def temperament_lines(dimensions: dict[str, float]) -> list[str]:
     return [axes[axis][side(dimensions[axis])] for axis in SPEECH_AXES if side(dimensions[axis]) != "middle"]
 
 
+def temperament_actions(dimensions: dict[str, float]) -> list[str]:
+    """이번 대답에서 할 행동을 축마다 하나씩(temperament-speech.json의 inReply). 대답 바로 앞(이번 턴 칸)에 넣는다.
+    인격 칸의 성격 문장만으로는 실제 모델 대답이 바뀌지 않아서(S15P31A305-928 블라인드 채점), 한 문장 대답에도 들어갈 행동으로 짚는다."""
+    axes = load_temperament_speech()["axes"]
+    return [axes[axis]["inReply"][side(dimensions[axis])] for axis in SPEECH_AXES if side(dimensions[axis]) != "middle"]
+
+
 def lean_fit(leans: dict[str, str], dimensions: dict[str, float]) -> float:
     """성격 쪽 표시(축: high/low)가 이 성격에 맞는 정도 0~1. 기운 쪽의 축 값을 평균한다. 0.5 이하면 그 성격 쪽이 아니다."""
     sides = [dimensions[axis] if side == "high" else 1 - dimensions[axis] for axis, side in leans.items()]

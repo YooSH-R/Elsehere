@@ -7,7 +7,7 @@ namespace A305.Dialogue
 {
     /// <summary>
     /// 대화 창 이름 줄의 NPC 욕구 게이지(<see cref="NpcNeedGauges"/>). 욕구마다 위에 이름, 아래에 양 끝이 둥근 막대를 둔다.
-    /// 바탕 없이 그리며, 자리는 대화 창(<see cref="DialoguePanelView"/>)이 NPC 이름표 바로 오른쪽(호감도·무례 경고 칸 앞)으로 정한다.
+    /// 바탕 없이 그리며, 자리는 대화 창(<see cref="DialoguePanelView"/>)이 무례 경고 칸과 도구 버튼 사이 가운데로 정한다.
     /// 칸은 DialogueNeedsBuilder가 만든 세 개를 앞에서부터 쓰고 남는 칸은 숨긴다.
     /// </summary>
     public sealed class DialogueNeedsView : MonoBehaviour

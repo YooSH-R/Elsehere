@@ -256,6 +256,9 @@ def reply_system_prompt(
     if mood:
         turn += f"\n{mood}"
     turn += f"\n{NOT_RUDE_UNLESS_TOLD}"
+    if profile.personality.dimensions and (habits := temperament_lines(profile.personality.dimensions.model_dump())):
+        labels = ", ".join(habit.split(":")[0] for habit in habits)
+        turn += f"\nLet your temperament show in this reply ({labels}): use at least one of those habits from your Character."
     if profile.speech_style.catchphrases:
         turn += f"\n{SOUND_LIKE_YOURSELF}"
     sections = [

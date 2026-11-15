@@ -245,3 +245,11 @@ def test_other_requests_accept_the_same_npc_with_its_profile(client, provider):
     provider.answers["hint"] = lambda b: ok(json.dumps({"say_this": say_this, "keywords": [{"en": "latte", "ko": "라테"}]}))
     r = client.post("/v1/hint", json={"npc": {**NPC, "profile": profile_of("CAFE_STAFF")}, "goal": "order", "history": []})
     assert r.status_code == 200
+
+
+def test_the_temperament_is_recalled_right_before_the_reply(client, provider):
+    """인격 칸의 네 축 말투 규칙만으로는 실제 모델 대답이 거의 바뀌지 않아(S15P31A305-928 측정), 이번 턴 칸에 네 축 이름을 한 번 더 짚는다."""
+    npc = {**NPC, "profile": profile_of("HOTEL_NIGHT_MANAGER")}  # ISTJ
+    turn = system_of(reply_request(client, provider, npc)).split("## This turn")[1]
+
+    assert "Let your temperament show in this reply (Reserved, Down-to-earth, Solutions first, Organized)" in turn

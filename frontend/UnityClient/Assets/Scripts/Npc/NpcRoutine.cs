@@ -261,7 +261,9 @@ namespace A305.Npc
             }
 
             role = entry.Role;
-            life = new NpcLife(data, entry, GameClock.Shared.Minutes);
+            // 장면을 오가도 욕구가 이어지도록 NPC마다 하나인 생활을 쓴다. 지난 장면에서 하던 행동은 이 장면에 그 사물이 없을 수 있어 내려놓는다.
+            life = NpcLives.Shared.Get(data, entry, GameClock.Shared.Minutes);
+            life.GiveUp();
             UseLifeAnimator();
         }
 

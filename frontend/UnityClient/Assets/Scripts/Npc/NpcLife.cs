@@ -13,6 +13,7 @@ namespace A305.Npc
     public sealed class NpcLife
     {
         public const string Off = "OFF";
+        private const string Work = "WORK";
         private const string Free = "FREE";
         private const float FullNeed = 100f;
 
@@ -31,6 +32,9 @@ namespace A305.Npc
             Activity = npc.ActivityAt(nowMinutes);
             StartNeedsOver();
         }
+
+        /// <summary>마지막으로 흘려 맞춘 게임 시각(1일차 0시부터 센 분)</summary>
+        public double Minutes => lastMinutes;
 
         /// <summary>지금 일과 활동(WORK·BREAK·FREE·OFF)</summary>
         public string Activity { get; private set; }
@@ -55,12 +59,21 @@ namespace A305.Npc
             while (lastMinutes < nowMinutes)
             {
                 string activity = npc.ActivityAt(lastMinutes);
-                double segmentEnd = Math.Min(nowMinutes, npc.NextChangeAfter(lastMinutes));
+                double segmentEnd = Math.Min(
+                    nowMinutes,
+                    Math.Min(npc.NextChangeAfter(lastMinutes), npc.NextMealAfter(lastMinutes))
+                );
                 Drop(segmentEnd - lastMinutes);
                 lastMinutes = segmentEnd;
-                if (activity == Off && npc.ActivityAt(lastMinutes) != Off)
+                string now = npc.ActivityAt(lastMinutes);
+                if (activity == Off && now != Off)
                 {
                     StartNeedsOver();
+                }
+
+                if (now == Work)
+                {
+                    EatAtWork(lastMinutes);
                 }
             }
 
@@ -134,6 +147,12 @@ namespace A305.Npc
         /// <summary>
         /// 학습자와 대화를 마쳤다. 공통 규칙에서 대화로 채우는 욕구(사교)를 채운다. 사교는 채우는 사물이 없어 대화로만 채워진다.
         /// </summary>
+        /// <summary>학습자가 심부름으로 가져다준 것(먹을 것·커피)만큼 욕구를 채운다. 값은 백엔드가 완료한 부탁 소식에 담아 보낸다.</summary>
+        public void FillForFavor(Dictionary<string, float> fills)
+        {
+            Fill(fills);
+        }
+
         public void FillAfterConversation()
         {
             foreach (KeyValuePair<string, NpcNeedRule> need in data.Needs)
@@ -194,6 +213,21 @@ namespace A305.Npc
             foreach (KeyValuePair<string, float> fill in fills)
             {
                 needs[fill.Key] = Math.Min(FullNeed, needs[fill.Key] + fill.Value);
+            }
+        }
+
+        // 근무 중 짧은 끼니·커피: 끼니 시각이면 그 욕구를 시작값으로 되돌린다. 심부름으로 더 채워져 있으면 그대로 둔다.
+        private void EatAtWork(double minutes)
+        {
+            double minuteOfDay =
+                ((minutes % NpcScheduleBlock.MinutesPerDay) + NpcScheduleBlock.MinutesPerDay)
+                % NpcScheduleBlock.MinutesPerDay;
+            foreach (NpcMeal meal in npc.Meals)
+            {
+                if (Math.Abs(meal.Minute - minuteOfDay) < .001 && data.Needs.ContainsKey(meal.Need))
+                {
+                    needs[meal.Need] = Math.Max(needs[meal.Need], data.Needs[meal.Need].Start);
+                }
             }
         }
 

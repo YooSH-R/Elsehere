@@ -98,6 +98,9 @@ namespace A305.Npc
 
         // 서버(FAV-03)가 이 NPC에게 맡긴 말 걸기 부탁. 플레이어에게 말을 걸어 답을 기다리는 동안만 있다.
         private FavorUpdate favorCall;
+
+        // 말 걸기 부탁을 들고 플레이어를 기다리는 시간. 멀어지고 30초 안에 돌아오지 않으면 해지한다.
+        private readonly FavorCallPatience favorCallPatience = new FavorCallPatience();
         private float? playerTalkReach;
 
         public PasserbyPhase Phase => approach != null ? approach.Phase : PasserbyPhase.Waiting;
@@ -146,9 +149,7 @@ namespace A305.Npc
                 )
             )
                 return false;
-            PasserbyRules rules = CurrentSettings.ToRules();
-            float reach = WalksToCall ? rules.DetectRadiusMeters : rules.FollowUpCallDistanceMeters;
-            return meters <= reach;
+            return meters <= FavorCallReach;
         }
 
         /// <summary>NPC 말 걸기(FAV-03)에 보낼 이 NPC와 지금 욕구.</summary>
@@ -166,7 +167,21 @@ namespace A305.Npc
         }
 
         /// <summary>서버가 고른 부탁을 들고 플레이어에게 말을 건다. 행인은 걸어오고 직원은 제자리에서 부른다.</summary>
-        public void CallForFavor(FavorUpdate favor) => favorCall = favor;
+        public void CallForFavor(FavorUpdate favor)
+        {
+            favorCall = favor;
+            favorCallPatience.Reset();
+        }
+
+        // 말 걸기 부탁을 들고 다가가거나 부를 수 있는 거리. 행인은 알아채는 거리, 직원은 부르는 거리다.
+        private float FavorCallReach
+        {
+            get
+            {
+                PasserbyRules rules = CurrentSettings.ToRules();
+                return WalksToCall ? rules.DetectRadiusMeters : rules.FollowUpCallDistanceMeters;
+            }
+        }
 
         // 걷는 NPC(행인)는 말을 걸러 걸어오고, 카운터 직원은 제자리에서 부른다.
         private bool WalksToCall => CurrentSettings.WalkSpeedMetersPerSecond > 0f;
@@ -439,9 +454,17 @@ namespace A305.Npc
                         && !IsWaitingForQuest
                         && !walksToCallForFavor
                     ),
-                // 부탁하러 가는 행인은 플레이어가 감지 거리 밖으로 가도 따라가 말을 건다. 답이 없으면 FavorCaller가 거둔다.
-                IsPlayerWaiting || walksToCallForFavor
+                IsPlayerWaiting
             );
+            // 말 걸기 부탁은 플레이어가 다가갈 수 있는 거리 밖으로 가면 따라가지 않고 기다리며, 30초 안에 돌아오지 않으면 해지한다.
+            if (
+                favorCall != null
+                && favorCallPatience.GivesUp(Now, toPlayer.magnitude <= FavorCallReach)
+            )
+            {
+                offerView.Hide(this);
+                DeclineFavorCall();
+            }
             // 튜토리얼에서 길을 물은 것도 그날 먼저 말을 건 것으로 센다. 준비한 것을 건네려고 부른 것은 세지 않는다.
             bool startedOffer =
                 approach.Phase == PasserbyPhase.Offering && before != PasserbyPhase.Offering;
@@ -457,10 +480,12 @@ namespace A305.Npc
 
             if (approach.Phase == PasserbyPhase.Resting && before != PasserbyPhase.Resting)
             {
-                // 무시하고 멀어지면 제안을 닫고 쉬는 시간을 기록한다. 말 걸기 부탁이었으면 거절로 알린다.
+                // 무시하고 멀어지면 제안을 닫고 쉬는 시간을 기록한다. 말 걸기 부탁이면 쉬지 않고 그 자리에서 기다린다(위의 기다림이 해지를 정함).
                 offerView.Hide(this);
-                PasserbyRestRecord.Save(identity.Code, approach.RestUntilSeconds);
-                DeclineFavorCall();
+                if (favorCall != null)
+                    approach.ResumeAfterIgnoredFavorCall(Now);
+                else
+                    PasserbyRestRecord.Save(identity.Code, approach.RestUntilSeconds);
             }
 
             bool isIdle =
@@ -751,6 +776,7 @@ namespace A305.Npc
                 return;
             FavorCaller.Declined(favorCall);
             favorCall = null;
+            favorCallPatience.Reset();
         }
 
         private void OnDialogueEnded(string npcCode)

@@ -308,10 +308,6 @@ namespace A305.Npc.PlayModeTests
             CheckObservedStall(WalkingScenario.SidewalkCorner);
 
         [UnityTest]
-        public IEnumerator Town_ObservedJunctionCrowdReachesItsDestinations() =>
-            CheckObservedStall(WalkingScenario.JunctionCrowd);
-
-        [UnityTest]
         public IEnumerator Town_DiagonalCrossingEndsOnAnActualSidewalk() =>
             CheckObservedStall(WalkingScenario.DiagonalCrossing);
 

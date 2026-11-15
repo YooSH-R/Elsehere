@@ -37,6 +37,7 @@
           "uniqueItems": true,
           "description": "이 활동 중일 때만 부탁한다."
         },
+        "notice": { "type": "string", "minLength": 1, "pattern": "\\S", "description": "욕구 계기를 대화 속(TALK)에서 꺼낼 때, 학습자가 NPC가 내비친 그 욕구에 반응한 것으로 볼 말(의도 판정 notice_need의 설명). 반응한 턴에만 부탁을 꺼낸다." },
         "opens": {
           "type": "array",
           "items": { "type": "string", "enum": ["TALK", "CALL"] },

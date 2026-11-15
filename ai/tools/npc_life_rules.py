@@ -280,6 +280,9 @@ def request_problems(library: dict, rules: dict) -> list[str]:
         trigger = request["trigger"]
         if request["solve"] == "ERRAND" and "need" in trigger and not offers_filling(rules, trigger["need"]):
             problems.append(f"{where}: 채우는 제공이 없는 욕구 {trigger['need']}")
+        # 대화 속 욕구 부탁은 학습자가 내비친 욕구에 반응한 턴에만 꺼낸다(설계 7.6). 반응을 판정할 설명이 있어야 한다.
+        if "need" in trigger and "TALK" in request["opens"] and not request.get("notice"):
+            problems.append(f"{where}: 대화 속(TALK) 욕구 계기에 반응으로 볼 말(notice)이 없음")
         for role in request["roles"]:
             if not set(request["activities"]) & _role_activities(rules["roles"][role]):
                 problems.append(f"{where}: {role} 일과에 {'·'.join(request['activities'])}가 없음")

@@ -640,6 +640,19 @@ def test_a_request_must_be_solvable_and_askable():
     ]
 
 
+def test_a_need_request_in_a_talk_needs_what_counts_as_noticing_it():
+    """대화 속 욕구 부탁은 학습자가 NPC가 내비친 욕구에 반응한 턴에만 꺼내므로, 반응으로 볼 말(notice)이 있어야 한다.
+    말 걸기로만 꺼내는 부탁과 상황 계기에는 필요 없다."""
+    library = load_requests()
+    del library["requests"][0]["notice"]
+    library["requests"][1]["opens"] = ["CALL"]
+    del library["requests"][1]["notice"]
+
+    assert npc_life_rules.request_problems(library, load_world_rules()) == [
+        "$.requests[0]: 대화 속(TALK) 욕구 계기에 반응으로 볼 말(notice)이 없음"
+    ]
+
+
 def test_a_request_id_is_used_once():
     library = changed(load_requests(), ("requests", 1, "id"), "bring_food")
 

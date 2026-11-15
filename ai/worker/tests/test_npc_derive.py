@@ -740,3 +740,25 @@ def test_the_cli_writes_the_derived_traits_only_into_npc_files_with_a_life_file(
     written = json.loads((tmp_path / "CAFE_STAFF.json").read_text(encoding="utf-8"))
     assert written["npcProfile"] == npc_derive.with_derived_traits(mia["npcProfile"], MIA_LIFE, service_behaviors())
     assert (tmp_path / "SHOP_STAFF.json").read_text(encoding="utf-8") == stranger
+
+
+# 근무 중 끼니·커피 시각 (공통 규칙 workMeals): NPC마다 손으로 적지 않고 npcId 씨앗으로 엇갈린다(설계 7.5)
+
+
+def test_work_meals_shift_each_time_by_at_most_the_spread_and_keep_the_need():
+    rules = service_rules()
+    spread = rules["workMeals"]["spreadMinutes"]
+
+    meals = npc_derive.work_meals("HOTEL_STAFF", rules)
+
+    assert [meal["need"] for meal in meals] == [time["need"] for time in rules["workMeals"]["times"]]
+    for meal, time in zip(meals, rules["workMeals"]["times"]):
+        shift = (npc_derive._minutes(meal["at"]) - npc_derive._minutes(time["at"]) + 720) % 1440 - 720
+        assert abs(shift) <= spread
+
+
+def test_work_meals_are_the_same_every_time_but_differ_between_npcs():
+    rules = service_rules()
+
+    assert npc_derive.work_meals("HOTEL_STAFF", rules) == npc_derive.work_meals("HOTEL_STAFF", rules)
+    assert npc_derive.work_meals("HOTEL_STAFF", rules) != npc_derive.work_meals("CAFE_STAFF", rules)

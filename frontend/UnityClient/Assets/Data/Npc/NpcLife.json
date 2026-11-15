@@ -151,6 +151,32 @@
           "to": "00:00",
           "activity": "WORK"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:24",
+          "need": "HUNGER"
+        },
+        {
+          "at": "13:34",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:44",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:53",
+          "need": "ENERGY"
+        },
+        {
+          "at": "14:33",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:26",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -170,6 +196,32 @@
           "from": "00:00",
           "to": "00:00",
           "activity": "WORK"
+        }
+      ],
+      "meals": [
+        {
+          "at": "06:34",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:01",
+          "need": "HUNGER"
+        },
+        {
+          "at": "19:07",
+          "need": "HUNGER"
+        },
+        {
+          "at": "07:41",
+          "need": "ENERGY"
+        },
+        {
+          "at": "16:00",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:02",
+          "need": "ENERGY"
         }
       ]
     },
@@ -191,6 +243,32 @@
           "to": "00:00",
           "activity": "WORK"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:42",
+          "need": "HUNGER"
+        },
+        {
+          "at": "14:00",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:58",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:02",
+          "need": "ENERGY"
+        },
+        {
+          "at": "14:53",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:05",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -210,6 +288,32 @@
           "from": "00:00",
           "to": "00:00",
           "activity": "WORK"
+        }
+      ],
+      "meals": [
+        {
+          "at": "06:13",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:56",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:40",
+          "need": "HUNGER"
+        },
+        {
+          "at": "07:11",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:05",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:31",
+          "need": "ENERGY"
         }
       ]
     },
@@ -241,6 +345,32 @@
           "to": "18:00",
           "activity": "OFF"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:46",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:01",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:22",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:00",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:26",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:56",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -271,6 +401,32 @@
           "to": "10:00",
           "activity": "OFF"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:02",
+          "need": "HUNGER"
+        },
+        {
+          "at": "14:00",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:37",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:22",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:13",
+          "need": "ENERGY"
+        },
+        {
+          "at": "21:21",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -291,6 +447,32 @@
           "to": "00:00",
           "activity": "WORK"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:00",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:47",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:41",
+          "need": "HUNGER"
+        },
+        {
+          "at": "07:21",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:07",
+          "need": "ENERGY"
+        },
+        {
+          "at": "21:18",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -310,6 +492,32 @@
           "from": "00:00",
           "to": "00:00",
           "activity": "WORK"
+        }
+      ],
+      "meals": [
+        {
+          "at": "06:24",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:53",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:06",
+          "need": "HUNGER"
+        },
+        {
+          "at": "07:02",
+          "need": "ENERGY"
+        },
+        {
+          "at": "14:27",
+          "need": "ENERGY"
+        },
+        {
+          "at": "21:57",
+          "need": "ENERGY"
         }
       ]
     },
@@ -341,6 +549,32 @@
           "to": "18:00",
           "activity": "OFF"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:18",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:23",
+          "need": "HUNGER"
+        },
+        {
+          "at": "19:09",
+          "need": "HUNGER"
+        },
+        {
+          "at": "07:59",
+          "need": "ENERGY"
+        },
+        {
+          "at": "14:36",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:22",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -370,6 +604,32 @@
           "from": "06:30",
           "to": "18:00",
           "activity": "OFF"
+        }
+      ],
+      "meals": [
+        {
+          "at": "06:10",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:15",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:19",
+          "need": "HUNGER"
+        },
+        {
+          "at": "07:27",
+          "need": "ENERGY"
+        },
+        {
+          "at": "14:14",
+          "need": "ENERGY"
+        },
+        {
+          "at": "21:57",
+          "need": "ENERGY"
         }
       ]
     },
@@ -401,6 +661,32 @@
           "to": "18:00",
           "activity": "OFF"
         }
+      ],
+      "meals": [
+        {
+          "at": "05:10",
+          "need": "HUNGER"
+        },
+        {
+          "at": "13:03",
+          "need": "HUNGER"
+        },
+        {
+          "at": "19:51",
+          "need": "HUNGER"
+        },
+        {
+          "at": "07:20",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:29",
+          "need": "ENERGY"
+        },
+        {
+          "at": "21:02",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -421,6 +707,32 @@
           "to": "00:00",
           "activity": "WORK"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:39",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:11",
+          "need": "HUNGER"
+        },
+        {
+          "at": "19:50",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:04",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:51",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:24",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -440,6 +752,32 @@
           "from": "00:00",
           "to": "00:00",
           "activity": "WORK"
+        }
+      ],
+      "meals": [
+        {
+          "at": "05:22",
+          "need": "HUNGER"
+        },
+        {
+          "at": "13:39",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:10",
+          "need": "HUNGER"
+        },
+        {
+          "at": "07:52",
+          "need": "ENERGY"
+        },
+        {
+          "at": "14:28",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:39",
+          "need": "ENERGY"
         }
       ]
     },
@@ -471,6 +809,32 @@
           "to": "10:00",
           "activity": "OFF"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:39",
+          "need": "HUNGER"
+        },
+        {
+          "at": "13:10",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:19",
+          "need": "HUNGER"
+        },
+        {
+          "at": "07:35",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:45",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:03",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -500,6 +864,32 @@
           "from": "06:30",
           "to": "18:00",
           "activity": "OFF"
+        }
+      ],
+      "meals": [
+        {
+          "at": "06:18",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:50",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:55",
+          "need": "HUNGER"
+        },
+        {
+          "at": "07:51",
+          "need": "ENERGY"
+        },
+        {
+          "at": "14:37",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:53",
+          "need": "ENERGY"
         }
       ]
     },
@@ -531,6 +921,32 @@
           "to": "18:00",
           "activity": "OFF"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:02",
+          "need": "HUNGER"
+        },
+        {
+          "at": "13:46",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:14",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:59",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:21",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:26",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -561,6 +977,32 @@
           "to": "10:00",
           "activity": "OFF"
         }
+      ],
+      "meals": [
+        {
+          "at": "05:25",
+          "need": "HUNGER"
+        },
+        {
+          "at": "13:53",
+          "need": "HUNGER"
+        },
+        {
+          "at": "19:02",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:52",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:21",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:00",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -581,6 +1023,32 @@
           "to": "00:00",
           "activity": "WORK"
         }
+      ],
+      "meals": [
+        {
+          "at": "05:21",
+          "need": "HUNGER"
+        },
+        {
+          "at": "13:29",
+          "need": "HUNGER"
+        },
+        {
+          "at": "19:05",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:09",
+          "need": "ENERGY"
+        },
+        {
+          "at": "14:56",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:22",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -600,6 +1068,32 @@
           "from": "00:00",
           "to": "00:00",
           "activity": "WORK"
+        }
+      ],
+      "meals": [
+        {
+          "at": "05:53",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:08",
+          "need": "HUNGER"
+        },
+        {
+          "at": "19:12",
+          "need": "HUNGER"
+        },
+        {
+          "at": "07:00",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:22",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:39",
+          "need": "ENERGY"
         }
       ]
     },
@@ -631,6 +1125,32 @@
           "to": "06:00",
           "activity": "OFF"
         }
+      ],
+      "meals": [
+        {
+          "at": "05:57",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:23",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:10",
+          "need": "HUNGER"
+        },
+        {
+          "at": "07:18",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:23",
+          "need": "ENERGY"
+        },
+        {
+          "at": "21:34",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -660,6 +1180,32 @@
           "from": "06:30",
           "to": "18:00",
           "activity": "OFF"
+        }
+      ],
+      "meals": [
+        {
+          "at": "06:30",
+          "need": "HUNGER"
+        },
+        {
+          "at": "13:56",
+          "need": "HUNGER"
+        },
+        {
+          "at": "19:51",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:26",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:55",
+          "need": "ENERGY"
+        },
+        {
+          "at": "21:00",
+          "need": "ENERGY"
         }
       ]
     },
@@ -691,6 +1237,32 @@
           "to": "14:00",
           "activity": "OFF"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:01",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:56",
+          "need": "HUNGER"
+        },
+        {
+          "at": "19:47",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:31",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:19",
+          "need": "ENERGY"
+        },
+        {
+          "at": "21:01",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -721,6 +1293,32 @@
           "to": "22:00",
           "activity": "OFF"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:22",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:53",
+          "need": "HUNGER"
+        },
+        {
+          "at": "19:57",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:36",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:12",
+          "need": "ENERGY"
+        },
+        {
+          "at": "21:15",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -740,6 +1338,32 @@
           "from": "00:00",
           "to": "00:00",
           "activity": "WORK"
+        }
+      ],
+      "meals": [
+        {
+          "at": "05:51",
+          "need": "HUNGER"
+        },
+        {
+          "at": "13:00",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:01",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:37",
+          "need": "ENERGY"
+        },
+        {
+          "at": "14:45",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:25",
+          "need": "ENERGY"
         }
       ]
     },
@@ -771,6 +1395,32 @@
           "to": "23:00",
           "activity": "OFF"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:18",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:05",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:55",
+          "need": "HUNGER"
+        },
+        {
+          "at": "07:04",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:05",
+          "need": "ENERGY"
+        },
+        {
+          "at": "21:41",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -801,6 +1451,32 @@
           "to": "15:00",
           "activity": "OFF"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:19",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:20",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:13",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:58",
+          "need": "ENERGY"
+        },
+        {
+          "at": "14:11",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:34",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -820,6 +1496,32 @@
           "from": "00:00",
           "to": "00:00",
           "activity": "WORK"
+        }
+      ],
+      "meals": [
+        {
+          "at": "06:53",
+          "need": "HUNGER"
+        },
+        {
+          "at": "13:46",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:56",
+          "need": "HUNGER"
+        },
+        {
+          "at": "07:38",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:41",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:01",
+          "need": "ENERGY"
         }
       ]
     },
@@ -851,6 +1553,32 @@
           "to": "00:00",
           "activity": "WORK"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:25",
+          "need": "HUNGER"
+        },
+        {
+          "at": "13:29",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:49",
+          "need": "HUNGER"
+        },
+        {
+          "at": "07:40",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:16",
+          "need": "ENERGY"
+        },
+        {
+          "at": "21:42",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -881,6 +1609,32 @@
           "to": "14:00",
           "activity": "OFF"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:59",
+          "need": "HUNGER"
+        },
+        {
+          "at": "13:12",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:14",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:12",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:18",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:57",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -906,6 +1660,32 @@
           "to": "06:00",
           "activity": "OFF"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:57",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:29",
+          "need": "HUNGER"
+        },
+        {
+          "at": "19:30",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:49",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:32",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:31",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -930,6 +1710,32 @@
           "from": "13:00",
           "to": "06:00",
           "activity": "OFF"
+        }
+      ],
+      "meals": [
+        {
+          "at": "05:21",
+          "need": "HUNGER"
+        },
+        {
+          "at": "13:41",
+          "need": "HUNGER"
+        },
+        {
+          "at": "19:53",
+          "need": "HUNGER"
+        },
+        {
+          "at": "07:44",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:57",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:04",
+          "need": "ENERGY"
         }
       ]
     },
@@ -961,6 +1767,32 @@
           "to": "18:00",
           "activity": "OFF"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:32",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:01",
+          "need": "HUNGER"
+        },
+        {
+          "at": "19:27",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:33",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:03",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:28",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -985,6 +1817,32 @@
           "from": "18:00",
           "to": "09:00",
           "activity": "OFF"
+        }
+      ],
+      "meals": [
+        {
+          "at": "06:53",
+          "need": "HUNGER"
+        },
+        {
+          "at": "13:57",
+          "need": "HUNGER"
+        },
+        {
+          "at": "19:15",
+          "need": "HUNGER"
+        },
+        {
+          "at": "07:20",
+          "need": "ENERGY"
+        },
+        {
+          "at": "14:10",
+          "need": "ENERGY"
+        },
+        {
+          "at": "21:44",
+          "need": "ENERGY"
         }
       ]
     },
@@ -1016,6 +1874,32 @@
           "to": "18:00",
           "activity": "OFF"
         }
+      ],
+      "meals": [
+        {
+          "at": "05:33",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:02",
+          "need": "HUNGER"
+        },
+        {
+          "at": "20:03",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:06",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:42",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:04",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -1046,6 +1930,32 @@
           "to": "22:00",
           "activity": "OFF"
         }
+      ],
+      "meals": [
+        {
+          "at": "06:04",
+          "need": "HUNGER"
+        },
+        {
+          "at": "13:56",
+          "need": "HUNGER"
+        },
+        {
+          "at": "19:38",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:55",
+          "need": "ENERGY"
+        },
+        {
+          "at": "14:21",
+          "need": "ENERGY"
+        },
+        {
+          "at": "21:22",
+          "need": "ENERGY"
+        }
       ]
     },
     {
@@ -1075,6 +1985,32 @@
           "from": "06:30",
           "to": "18:00",
           "activity": "OFF"
+        }
+      ],
+      "meals": [
+        {
+          "at": "06:21",
+          "need": "HUNGER"
+        },
+        {
+          "at": "12:11",
+          "need": "HUNGER"
+        },
+        {
+          "at": "19:10",
+          "need": "HUNGER"
+        },
+        {
+          "at": "08:09",
+          "need": "ENERGY"
+        },
+        {
+          "at": "15:03",
+          "need": "ENERGY"
+        },
+        {
+          "at": "22:06",
+          "need": "ENERGY"
         }
       ]
     }

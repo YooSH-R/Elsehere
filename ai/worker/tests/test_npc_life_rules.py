@@ -532,7 +532,7 @@ def test_a_conflict_points_to_another_existing_behavior():
     ]
 
 
-# 부탁 퀘스트 틀 (ai/npcs/rules/requests.json): NPC가 스스로 채우지 못하는 욕구가 학습자에게 하는 부탁이 되고, 영어로 해결하는 퀘스트가 된다
+# 돌발 부탁·사건 계기 틀 (ai/npcs/rules/requests.json): 계기와 해결 방식만 적고, 심부름 해결처는 장소 제공 목록과 조합한다(설계 7절)
 
 
 def load_requests() -> dict:
@@ -542,7 +542,16 @@ def load_requests() -> dict:
 def test_the_service_requests_pass_the_schema_without_problems():
     library = load_requests()
 
-    assert [request["id"] for request in library["requests"]] == ["bring_coffee", "bring_muffin", "recommend_a_spot"]
+    assert [request["id"] for request in library["requests"]] == [
+        "bring_food",
+        "bring_coffee",
+        "recommend_a_spot",
+        "rush_hour",
+        "sold_out",
+        "needs_change",
+        "letter_to_send",
+        "flowers_for_counter",
+    ]
     assert npc_life_rules.request_errors(library) == []
     assert npc_life_rules.request_problems(library, load_world_rules()) == []
 
@@ -550,14 +559,16 @@ def test_the_service_requests_pass_the_schema_without_problems():
 @pytest.mark.parametrize(
     ("path", "value", "where"),
     [
-        (("requests", 0, "id"), "Bring Coffee", "$.requests[0].id"),
-        (("requests", 0, "need"), "THIRST", "$.requests[0].need"),
-        (("requests", 0, "below"), 100, "$.requests[0].below"),  # 다 찬 욕구로는 부탁하지 않음
-        (("requests", 0, "role"), "CHEF", "$.requests[0].role"),
-        (("requests", 0, "activities"), ["OFF"], "$.requests[0].activities[0]"),  # 퇴근한 NPC는 마을에 없음
-        (("requests", 0, "steps"), [], "$.requests[0].steps"),
-        (("requests", 0, "steps", 0, "languageFocus"), ["shouting"], "$.requests[0].steps[0].languageFocus[0]"),
-        (("requests", 0, "reward", "fills"), {"THIRST": 10}, "$.requests[0].reward.fills"),
+        (("requests", 0, "id"), "Bring Food", "$.requests[0].id"),
+        (("requests", 0, "trigger", "need"), "THIRST", "$.requests[0].trigger"),
+        (("requests", 0, "trigger", "below"), 100, "$.requests[0].trigger"),  # 다 찬 욕구로는 부탁하지 않음
+        (("requests", 0, "roles"), ["CHEF"], "$.requests[0].roles[0]"),
+        (("requests", 0, "activities"), ["OFF"], "$.requests[0].activities[0]"),  # 퇴근한 NPC는 생활하지 않음
+        (("requests", 0, "solve"), "WALK", "$.requests[0].solve"),
+        (("requests", 0, "reward", "coins"), -1, "$.requests[0].reward.coins"),
+        (("requests", 2, "reward", "fills"), {"THIRST": 10}, "$.requests[2].reward.fills"),
+        (("requests", 2, "goal", "languageFocus"), ["shouting"], "$.requests[2].goal.languageFocus[0]"),
+        (("requests", 3, "trigger", "windows"), [{"from": "25:00", "to": "26:00"}], "$.requests[3].trigger"),
     ],
 )
 def test_values_a_request_does_not_allow_are_reported_where_they_break(path, value, where):
@@ -566,30 +577,79 @@ def test_values_a_request_does_not_allow_are_reported_where_they_break(path, val
     assert {where for where, _ in errors} == {where}
 
 
-def test_a_staff_step_needs_a_place():
-    """'그 장소의 직원에게 가서' 하는 단계라 장소가 없으면 학습자가 어디로 갈지 모른다."""
+def test_a_talk_request_needs_a_goal_and_an_errand_has_none():
+    """그 대화 안에서 끝나는 부탁은 판정할 목표가 있어야 하고, 심부름은 해결처 단계로 판정한다."""
     library = load_requests()
-    del library["requests"][0]["steps"][0]["place"]
+    del library["requests"][2]["goal"]
+    library["requests"][0]["goal"] = library["requests"][3]["goal"]
 
-    assert npc_life_rules.request_errors(library) == [("$.requests[0].steps[0]", "'place' is a required property")]
+    assert {where for where, _ in npc_life_rules.request_errors(library)} == {"$.requests[0]", "$.requests[2]"}
 
 
 def test_a_request_must_be_solvable_and_askable():
-    """들르는 장소의 직원이 그 욕구를 채울 수 있어야 하고, 부탁하는 역할의 일과에 그 활동이 있어야 한다."""
+    """심부름은 그 욕구를 채우는 제공이 있거나 해결처가 실제 제공이어야 하고, 부탁하는 역할의 일과에 그 활동이 있어야 한다."""
     library = load_requests()
-    library["requests"][1]["steps"][0]["place"] = "HOTEL"  # 호텔에는 머핀이 없음
+    library["requests"][0]["trigger"]["need"] = "FUN"  # 재미를 채우는 제공은 없음
+    library["requests"][2]["roles"] = ["PASSERBY"]
     library["requests"][2]["activities"] = ["WORK"]  # 행인 일과에는 근무가 없음
+    library["requests"][3]["trigger"]["places"] = ["CAFE", "MOON"]
+    library["requests"][5]["offer"] = {"place": "BANK", "key": "loan"}
 
     assert npc_life_rules.request_problems(library, load_world_rules()) == [
-        "$.requests[1].steps[0]: HOTEL에서는 HUNGER를 채울 수 없음",
+        "$.requests[0]: 채우는 제공이 없는 욕구 FUN",
         "$.requests[2]: PASSERBY 일과에 WORK가 없음",
+        "$.requests[3].trigger.places: 공통 규칙에 없는 장소 'MOON'",
+        "$.requests[5].offer: BANK에 'loan' 제공이 없음",
     ]
 
 
 def test_a_request_id_is_used_once():
-    library = changed(load_requests(), ("requests", 1, "id"), "bring_coffee")
+    library = changed(load_requests(), ("requests", 1, "id"), "bring_food")
 
-    assert npc_life_rules.request_problems(library, load_world_rules()) == ["$.requests[1]: id 'bring_coffee'를 $.requests[0]에서 이미 씀"]
+    assert npc_life_rules.request_problems(library, load_world_rules()) == ["$.requests[1]: id 'bring_food'를 $.requests[0]에서 이미 씀"]
+
+
+# 장소가 제공하는 것 (places.<CODE>.offers): 심부름 해결처. 가게 상황 파일과 같은 물건·값을 쓴다(설계 7.3)
+
+
+def test_the_service_offers_cover_six_shops_without_problems():
+    rules = load_world_rules()
+
+    assert sorted(code for code, place in rules["places"].items() if "offers" in place) == [
+        "BAKERY",
+        "BANK",
+        "CAFE",
+        "DINER",
+        "FLOWER_SHOP",
+        "POST_OFFICE",
+    ]
+    assert npc_life_rules.offer_problems(rules) == []
+
+
+def test_an_offer_key_is_used_once_per_place_and_a_shop_with_offers_has_a_name():
+    rules = load_world_rules()
+    rules["places"]["CAFE"]["offers"][1]["key"] = "coffee"
+    del rules["places"]["BANK"]["name"]
+
+    assert npc_life_rules.offer_problems(rules) == [
+        "places.CAFE.offers[1]: key 'coffee'를 offers[0]에서 이미 씀",
+        "places.BANK: 제공 목록이 있는데 name이 없음",
+    ]
+
+
+def test_work_meals_restore_hunger_and_energy_three_times_a_day():
+    """근무 중에도 끼니·커피로 시작값이 되돌아와, 상주 직원도 하루 내내 굶지 않는다(설계 7.5)."""
+    meals = load_world_rules()["workMeals"]
+
+    assert sorted((time["need"], time["at"]) for time in meals["times"]) == [
+        ("ENERGY", "08:00"),
+        ("ENERGY", "15:00"),
+        ("ENERGY", "22:00"),
+        ("HUNGER", "06:00"),
+        ("HUNGER", "13:00"),
+        ("HUNGER", "20:00"),
+    ]
+    assert meals["spreadMinutes"] == 60
 
 
 def test_each_side_of_every_axis_has_enough_behaviors_to_draw_from():

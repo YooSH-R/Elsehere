@@ -66,8 +66,31 @@
     { "target": "eventScale.RUDE", "axis": "neuroticism", "at0": 0.6, "at1": 1.4 },
     { "target": "eventScale.SMALL_TALK", "axis": "openness", "at0": 0.6, "at1": 1.4 }
   ],
+  "workMeals": {
+    "spreadMinutes": 60,
+    "times": [
+      { "at": "06:00", "need": "HUNGER" },
+      { "at": "13:00", "need": "HUNGER" },
+      { "at": "20:00", "need": "HUNGER" },
+      { "at": "08:00", "need": "ENERGY" },
+      { "at": "15:00", "need": "ENERGY" },
+      { "at": "22:00", "need": "ENERGY" }
+    ]
+  },
+  "favors": {
+    "checkAfterLearnerLines": 2,
+    "learnerGapMinutes": 240,
+    "errandExpiryMinutes": 720,
+    "minShiftLeftMinutes": 360,
+    "dislikedBelow": -10
+  },
   "places": {
     "CAFE": {
+      "name": { "en": "the corner cafe", "ko": "카페" },
+      "offers": [
+        { "key": "coffee", "en": "a coffee", "ko": "커피", "fills": { "ENERGY": 25 }, "price": 4, "languageFocus": ["ordering"] },
+        { "key": "muffin", "en": "a muffin", "ko": "머핀", "fills": { "HUNGER": 40 }, "price": 3, "languageFocus": ["ordering"] }
+      ],
       "shifts": {
         "OPENING": {
           "from": "06:00",
@@ -130,6 +153,10 @@
       }
     },
     "POST_OFFICE": {
+      "name": { "en": "the post office", "ko": "우체국" },
+      "offers": [
+        { "key": "stamp", "en": "a stamp to send a letter", "ko": "편지 부치기", "price": 1, "languageFocus": ["polite_request"] }
+      ],
       "shifts": {
         "DAY": {
           "from": "06:00",
@@ -144,6 +171,10 @@
       }
     },
     "BANK": {
+      "name": { "en": "Town Bank", "ko": "은행" },
+      "offers": [
+        { "key": "change", "en": "change for a 20-dollar bill", "ko": "잔돈", "price": 0, "languageFocus": ["polite_request"] }
+      ],
       "shifts": {
         "DAY": {
           "from": "06:00",
@@ -163,6 +194,10 @@
       }
     },
     "DINER": {
+      "name": { "en": "Maple Burger", "ko": "햄버거 가게" },
+      "offers": [
+        { "key": "burger", "en": "a burger to go", "ko": "버거", "fills": { "HUNGER": 50 }, "price": 7, "languageFocus": ["ordering"] }
+      ],
       "shifts": {
         "DAY": {
           "from": "06:00",
@@ -177,6 +212,11 @@
       }
     },
     "BAKERY": {
+      "name": { "en": "Maple Bakery", "ko": "베이커리" },
+      "offers": [
+        { "key": "croissant", "en": "a croissant", "ko": "크루아상", "fills": { "HUNGER": 40 }, "price": 3, "languageFocus": ["ordering"] },
+        { "key": "coffee", "en": "a coffee", "ko": "커피", "fills": { "ENERGY": 25 }, "price": 2, "languageFocus": ["ordering"] }
+      ],
       "shifts": {
         "DAY": {
           "from": "06:00",
@@ -205,6 +245,10 @@
       }
     },
     "FLOWER_SHOP": {
+      "name": { "en": "Bloom Flowers", "ko": "꽃집" },
+      "offers": [
+        { "key": "flower", "en": "one wrapped flower", "ko": "꽃 한 송이", "price": 2, "languageFocus": ["describing", "polite_request"] }
+      ],
       "shifts": {
         "DAY": {
           "from": "06:00",

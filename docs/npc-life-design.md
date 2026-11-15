@@ -301,7 +301,7 @@ Ruby·Ethan·Maya·Helen·Frank는 각 매장 직원으로 전직했습니다. W
 ```json
 {
   "favorId": 42,
-  "templateId": "bring_hunger",
+  "templateId": "bring_food",
   "status": "ACCEPTED",
   "requesterNpcCode": "HOTEL_STAFF",
   "titleKo": "Jake의 부탁 · 크루아상 사다 주기",
@@ -387,9 +387,9 @@ Unity, AI 워커, 백엔드가 같은 데이터를 읽습니다. 형식마다 JS
 | `ai/npcs/rules/world-rules.json` | 욕구별 감소 속도, 사물별 행동과 채움 값, 대화 사건 효과(기분·인상·기억 세기), 관계·기억 상수, 성격 → 생활 값 연결 규칙, 역할별로 교대를 하루 일과로 바꾸는 규칙, 장소별 영업시간·교대 |
 | `ai/npcs/life/<npcId>.json` | 인격 파일과 같은 `npcId`. NPC마다 정하는 입력 노드인 성격(`mbti`)·역할(`role`)·근무지(`workplace`)·맡은 교대(`shift`)와 선택적인 상주 여부(`resident`, 기본 false)를 둡니다 |
 | `ai/npcs/rules/behaviors.json` | 행동 조각 모음. 행동마다 성격 축 쪽, 범주, 생활 값 연결(`affects`), 함께 뽑지 않는 조각 |
-| `ai/npcs/rules/requests.json` | 부탁 퀘스트 틀. 발동 조건(욕구·기준·부탁하는 역할·활동), 말을 거는 이유, 단계(누구와 무엇을 말할지·연습하는 말하기 기능), 보상(욕구 채움·인상) |
+| `ai/npcs/rules/requests.json` | 대화 중 돌발 부탁·사건의 계기 틀(7절). 계기(욕구·기준 또는 장소·시각), 부탁하는 역할·활동, 해결 방식(그 대화 안·심부름)과 판정 목표, 꺼내는 이유, 보상(코인·인상·욕구 채움). 심부름 해결처는 공통 규칙의 장소 제공 목록(`places.<CODE>.offers`)과 조합한다 |
 
-스키마는 계약 패키지의 [npc_life_rules_schemas.json](api/npc-ai-contracts/npc_life_rules_schemas.json)에 둡니다. 공통 규칙(`WorldRules`), NPC별 생활 파일(`NpcLife`), 행동 조각 모음(`BehaviorLibrary`), 부탁 퀘스트 틀(`RequestLibrary`)을 정의했고, 검사는 `ai/tools/npc_life_rules.py`가 합니다. 스키마 검사와 함께 스키마로 볼 수 없는 것을 대조합니다.
+스키마는 계약 패키지의 [npc_life_rules_schemas.json](api/npc-ai-contracts/npc_life_rules_schemas.json)에 둡니다. 공통 규칙(`WorldRules`), NPC별 생활 파일(`NpcLife`), 행동 조각 모음(`BehaviorLibrary`), 돌발 부탁 계기 틀(`RequestLibrary`)을 정의했고, 검사는 `ai/tools/npc_life_rules.py`가 합니다. 스키마 검사와 함께 스키마로 볼 수 없는 것을 대조합니다.
 
 - 행동에 쓰는 사물이 그 장소에 배치된 사물 단어인지
 - 어느 역할이 어느 교대를 맡아도 계산한 일과가 하루 24시간을 겹치지 않고 빈틈없이 채우는지
@@ -397,7 +397,8 @@ Unity, AI 워커, 백엔드가 같은 데이터를 읽습니다. 형식마다 JS
 - 10:00~18:00 카페 2명·호텔 3명 유지, 전체 매장의 매 분 실제 `WORK` 인원 1명 이상인지(`working_staff_gaps`, 휴식 중인 직원 제외), NPC 36명과 Ben·노부부 유지
 - 생활 파일 이름이 `npcId`와 같은지, 인격 파일과 생활 파일이 서로 짝이 맞는지, 근무지와 교대가 공통 규칙의 장소·교대에 있는지
 - 행동 조각의 id 중복, 충돌 표시, 성격 축 양쪽마다 고를 조각 수
-- 부탁의 id 중복, 들르는 장소에서 그 욕구를 채울 수 있는지, 부탁하는 역할의 일과에 그 활동이 있는지
+- 계기의 id 중복, 욕구 심부름이면 그 욕구를 채우는 제공이 있는지, 상황 심부름의 해결처가 실제 제공인지, 상황 계기의 장소가 있는지, 부탁하는 역할마다 일과에 그 활동이 있는지
+- 장소 제공 목록의 키 중복, 제공 목록이 있는 장소에 이름이 있는지
 
 **하루 시뮬레이션:** `ai/tools/npc_simulate.py`가 LLM 없이 서비스 NPC 3명의 하루(뽑힌 행동 조각, 행동, 부탁, 정시 욕구)와 알아봄·기억 곡선을 보여 줍니다. 테스트가 4·5·7절의 의도(부탁 시각, 단골이 되는 대화 수, 기억 떠올림)를 지켜서, 규칙 숫자를 바꾸면 어긋난 곳이 바로 드러납니다.
 

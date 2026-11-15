@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+import npc_derive
 import npc_life_export
 import npc_life_rules
 import npc_simulate
@@ -108,3 +109,30 @@ def test_a_talk_with_the_learner_fills_social_because_no_object_does():
     assert not any("SOCIAL" in action["fills"] for action in service_rules()["actions"])
     assert needs["SOCIAL"]["conversationFill"] > 0
     assert [need for need, rule in needs.items() if rule.get("conversationFill")] == ["SOCIAL"]
+
+
+def test_each_npc_gets_its_work_meals_derived_from_the_shared_rule():
+    """근무 중 끼니·커피 시각은 NPC마다 적지 않고 공통 규칙에서 npcId 씨앗으로 계산해 옮긴다(설계 7.5)."""
+    assert exported("HOTEL_STAFF")["meals"] == npc_derive.work_meals("HOTEL_STAFF", service_rules())
+
+
+def test_the_backend_gets_offers_requests_and_favor_constants():
+    """백엔드는 부탁을 고르고 판정할 때 장소 제공 목록·계기 틀·상수와 NPC 근무지·일과를 읽는다(설계 7.12)."""
+    favors = npc_life_export.backend_favor_rules()
+    rules = service_rules()
+
+    assert favors["constants"] == rules["favors"]
+    assert favors["affinityFollowRate"] == rules["relationship"]["affinityFollowRate"]
+    assert set(favors["places"]) == {code for code, place in rules["places"].items() if "offers" in place}
+    assert favors["places"]["BAKERY"]["name"] == {"en": "Maple Bakery", "ko": "베이커리"}
+    assert [request["id"] for request in favors["requests"]][:3] == ["bring_food", "bring_coffee", "recommend_a_spot"]
+    jake = next(npc for npc in favors["npcs"] if npc["npcId"] == "HOTEL_STAFF")
+    assert (jake["role"], jake["workplace"]) == ("STAFF", "HOTEL")
+    assert jake["schedule"] == exported("HOTEL_STAFF")["schedule"]
+
+
+def test_the_backend_favor_rules_match_a_fresh_export():
+    """계기 틀이나 제공 목록을 바꾸고 다시 내보내지 않으면 여기서 드러난다: ai/.venv/Scripts/python ai/tools/npc_life_export.py"""
+    committed = json.loads(npc_life_export.BACKEND_FAVORS_FILE.read_text(encoding="utf-8"))
+
+    assert committed == npc_life_export.backend_favor_rules()

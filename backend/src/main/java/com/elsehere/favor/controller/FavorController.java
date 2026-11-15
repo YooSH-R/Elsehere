@@ -43,7 +43,7 @@ public class FavorController {
   public ResponseEntity<FavorResponse> call(
       @AuthenticationPrincipal LoginUser user, @Valid @RequestBody FavorCallRequest request) {
     return service
-        .call(user.userId(), request.toCandidates())
+        .call(user.userId(), request.candidates())
         .map(ResponseEntity::ok)
         .orElseGet(() -> ResponseEntity.noContent().build());
   }

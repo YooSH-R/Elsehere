@@ -5,6 +5,7 @@ import com.elsehere.ai.client.WorkerState;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
+import com.elsehere.favor.dto.FavorCallRequest;
 import com.elsehere.favor.dto.FavorResponse;
 import com.elsehere.favor.entity.Favor;
 import com.elsehere.favor.entity.FavorOpening;
@@ -52,13 +53,6 @@ public class FavorService {
   private final NpcAffinityService npcAffinityService;
   private final UserNpcRelationRepository relations;
   private final NpcRepository npcs;
-
-  /**
-   * NPC 말 걸기 후보. Unity가 플레이어 근처에서 지금 생활하는 NPC를 가까운 순서로 보낸다.
-   *
-   * @param needs 지금 그 NPC의 생활 욕구. 모르면 빈 맵
-   */
-  public record CallCandidate(String npcCode, Map<String, Double> needs) {}
 
   /** NPC가 말을 걸어 꺼낸 부탁으로 대화를 시작할 때의 첫마디 지시문. */
   public record CallOpening(Long favorId, String instruction) {}
@@ -292,14 +286,14 @@ public class FavorService {
    * @return 꺼낸 부탁. 말을 걸 때가 아니거나 꺼낼 부탁이 없으면 빈 값
    */
   @Transactional
-  public Optional<FavorResponse> call(Long userId, List<CallCandidate> candidates) {
+  public Optional<FavorResponse> call(Long userId, List<FavorCallRequest.Candidate> candidates) {
     GameTime time = gameClock.currentTime(userId);
     long now = absolute(time);
     if (openFavor(userId, null, null, now).isPresent()
         || !restedEnough(userId, FavorOpening.CALL, rules.constants().callGapMinutes(), now)) {
       return Optional.empty();
     }
-    for (CallCandidate candidate : candidates) {
+    for (FavorCallRequest.Candidate candidate : candidates) {
       Optional<FavorRules.Npc> npc = rules.npc(candidate.npcCode());
       Optional<Npc> entity = npcs.findByCode(candidate.npcCode());
       if (npc.isEmpty()
@@ -316,7 +310,7 @@ public class FavorService {
               npc.get().role(),
               npc.get().workplace(),
               npc.get().activityAt(time.minuteOfDay()),
-              candidate.needs() == null ? Map.of() : candidate.needs(),
+              candidate.needs(),
               time.day(),
               time.minuteOfDay(),
               false,

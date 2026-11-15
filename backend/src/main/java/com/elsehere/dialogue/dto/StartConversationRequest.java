@@ -1,6 +1,7 @@
 package com.elsehere.dialogue.dto;
 
 import com.elsehere.conversation.entity.InitiatedBy;
+import com.elsehere.favor.dto.NpcNeedValues;
 import com.elsehere.world.service.ConversationPlace;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
@@ -8,11 +9,8 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.TreeMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -38,8 +36,6 @@ public record StartConversationRequest(
     Map<String, Double> needs) {
 
   /** 공통 규칙(ai/npcs/rules/world-rules.json)의 욕구 키. */
-  public static final Set<String> NEED_KEYS = Set.of("HUNGER", "ENERGY", "SOCIAL", "FUN", "WORK");
-
   public StartConversationRequest(
       UUID requestId,
       String npcCode,
@@ -87,22 +83,7 @@ public record StartConversationRequest(
   public StartConversationRequest {
     npcOffDuty = Boolean.TRUE.equals(npcOffDuty);
     speechSpeed = NpcSpeechSpeed.orDefault(speechSpeed);
-    needs = knownNeeds(needs);
-  }
-
-  /** 생활 욕구 칸을 정리한다. 모르는 키는 버리고 0~100으로 자른다. 비었으면 null이다. */
-  public static Map<String, Double> knownNeeds(Map<String, Double> needs) {
-    if (needs == null) {
-      return null;
-    }
-    Map<String, Double> known = new TreeMap<>();
-    needs.forEach(
-        (key, value) -> {
-          if (NEED_KEYS.contains(key) && value != null) {
-            known.put(key, Math.clamp(value, 0.0, 100.0));
-          }
-        });
-    return Collections.unmodifiableMap(known);
+    needs = NpcNeedValues.known(needs);
   }
 
   /** 근무 중인 NPC와의 대화. */

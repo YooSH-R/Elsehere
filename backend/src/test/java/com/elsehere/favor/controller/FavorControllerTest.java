@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.elsehere.common.auth.LoginUser;
 import com.elsehere.common.config.SecuredWebMvcTest;
+import com.elsehere.favor.dto.FavorCallRequest;
 import com.elsehere.favor.dto.FavorResponse;
 import com.elsehere.favor.service.FavorService;
 import java.util.List;
@@ -107,7 +108,7 @@ class FavorControllerTest {
             null,
             null);
     when(service.call(
-            8L, List.of(new FavorService.CallCandidate("HOTEL_STAFF", Map.of("HUNGER", 20.0)))))
+            8L, List.of(new FavorCallRequest.Candidate("HOTEL_STAFF", Map.of("HUNGER", 20.0)))))
         .thenReturn(Optional.of(calling));
 
     mvc.perform(

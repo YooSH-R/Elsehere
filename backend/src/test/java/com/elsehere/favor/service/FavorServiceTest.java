@@ -11,12 +11,12 @@ import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.WorkerState;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.InitiatedBy;
+import com.elsehere.favor.dto.FavorCallRequest;
 import com.elsehere.favor.dto.FavorResponse;
 import com.elsehere.favor.entity.Favor;
 import com.elsehere.favor.entity.FavorOpening;
 import com.elsehere.favor.entity.FavorStatus;
 import com.elsehere.favor.repository.FavorRepository;
-import com.elsehere.favor.service.FavorService.CallCandidate;
 import com.elsehere.favor.service.FavorService.FavorTurn;
 import com.elsehere.memory.repository.UserNpcRelationRepository;
 import com.elsehere.memory.service.NpcAffinityService;
@@ -295,8 +295,8 @@ class FavorServiceTest {
         USER, opening);
   }
 
-  private static CallCandidate jakeHungry() {
-    return new CallCandidate("HOTEL_STAFF", Map.of("HUNGER", 20.0));
+  private static FavorCallRequest.Candidate jakeHungry() {
+    return new FavorCallRequest.Candidate("HOTEL_STAFF", Map.of("HUNGER", 20.0));
   }
 
   private static Conversation jakeTalk(Map<String, Double> needs) {

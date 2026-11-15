@@ -1,7 +1,5 @@
 package com.elsehere.favor.dto;
 
-import com.elsehere.dialogue.dto.StartConversationRequest;
-import com.elsehere.favor.service.FavorService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -17,18 +15,15 @@ import java.util.Map;
 public record FavorCallRequest(@NotNull @Size(max = 20) List<@Valid Candidate> candidates) {
 
   /**
-   * @param needs 지금 그 NPC의 생활 욕구(CONV-01 needs와 같은 모양). 모르는 키는 버리고 0~100으로 자른다
+   * 말 걸기 후보 한 명.
+   *
+   * @param needs 지금 그 NPC의 생활 욕구(CONV-01 needs와 같은 모양). 모르는 키는 버리고 0~100으로 자르며, 모르면 빈 맵이다
    */
-  public record Candidate(@NotBlank String npcCode, Map<String, Double> needs) {}
+  public record Candidate(@NotBlank String npcCode, Map<String, Double> needs) {
 
-  public List<FavorService.CallCandidate> toCandidates() {
-    return candidates.stream()
-        .map(
-            candidate -> {
-              Map<String, Double> needs = StartConversationRequest.knownNeeds(candidate.needs());
-              return new FavorService.CallCandidate(
-                  candidate.npcCode(), needs == null ? Map.of() : needs);
-            })
-        .toList();
+    public Candidate {
+      Map<String, Double> known = NpcNeedValues.known(needs);
+      needs = known == null ? Map.of() : known;
+    }
   }
 }

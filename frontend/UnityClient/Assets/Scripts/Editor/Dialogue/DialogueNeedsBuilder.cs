@@ -46,17 +46,16 @@ namespace A305.EditorTools.Dialogue
             Sprite round = Round();
             Transform panel = root.transform.Find("Panel");
             TMP_Text standing = panel.Find("Standing").GetComponent<TMP_Text>();
+            // 크기와 칸 자리는 DialogueNeedsView의 폭·간격에 맞춰 실행할 때마다 다시 맞춘다.
             RectTransform gauges = Child(panel, "NeedGauges", out bool isNew);
             if (isNew)
-            {
-                gauges.anchorMin = gauges.anchorMax = gauges.pivot = Vector2.zero;
-                gauges.sizeDelta = new Vector2(
-                    SlotCount * DialogueNeedsView.SlotWidth
-                        + (SlotCount - 1) * DialogueNeedsView.SlotGap,
-                    48
-                );
                 gauges.gameObject.SetActive(false);
-            }
+            gauges.anchorMin = gauges.anchorMax = gauges.pivot = Vector2.zero;
+            gauges.sizeDelta = new Vector2(
+                SlotCount * DialogueNeedsView.SlotWidth
+                    + (SlotCount - 1) * DialogueNeedsView.SlotGap,
+                48
+            );
             BuilderTools.GetOrAddComponent<LayoutElement>(gauges.gameObject).ignoreLayout = true;
             var needs = BuilderTools.GetOrAddComponent<DialogueNeedsView>(gauges.gameObject);
 
@@ -64,16 +63,13 @@ namespace A305.EditorTools.Dialogue
             var fills = new RectTransform[SlotCount];
             for (int i = 0; i < SlotCount; i++)
             {
-                RectTransform slot = Child(gauges, "Need" + i, out bool isNewSlot);
-                if (isNewSlot)
-                {
-                    slot.anchorMin = slot.anchorMax = slot.pivot = Vector2.zero;
-                    slot.anchoredPosition = new Vector2(
-                        i * (DialogueNeedsView.SlotWidth + DialogueNeedsView.SlotGap),
-                        0
-                    );
-                    slot.sizeDelta = new Vector2(DialogueNeedsView.SlotWidth, 48);
-                }
+                RectTransform slot = Child(gauges, "Need" + i, out _);
+                slot.anchorMin = slot.anchorMax = slot.pivot = Vector2.zero;
+                slot.anchoredPosition = new Vector2(
+                    i * (DialogueNeedsView.SlotWidth + DialogueNeedsView.SlotGap),
+                    0
+                );
+                slot.sizeDelta = new Vector2(DialogueNeedsView.SlotWidth, 48);
                 labels[i] = Label(slot, standing.font);
                 fills[i] = Bar(slot, round);
             }
@@ -87,11 +83,11 @@ namespace A305.EditorTools.Dialogue
         {
             RectTransform rect = Child(slot, "Label", out bool isNew);
             TMP_Text label = BuilderTools.GetOrAddComponent<TextMeshProUGUI>(rect.gameObject);
+            rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
+            rect.anchoredPosition = new Vector2(1, LabelBottom);
+            rect.sizeDelta = new Vector2(DialogueNeedsView.SlotWidth, LabelHeight);
             if (isNew)
             {
-                rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
-                rect.anchoredPosition = new Vector2(1, LabelBottom);
-                rect.sizeDelta = new Vector2(DialogueNeedsView.SlotWidth, LabelHeight);
                 label.font = font;
                 label.fontSize = LabelSize;
                 label.alignment = TextAlignmentOptions.BottomLeft;
@@ -107,13 +103,11 @@ namespace A305.EditorTools.Dialogue
         private static RectTransform Bar(RectTransform slot, Sprite round)
         {
             RectTransform track = Child(slot, "Track", out bool isNew);
+            track.anchorMin = track.anchorMax = track.pivot = Vector2.zero;
+            track.anchoredPosition = new Vector2(0, BarBottom);
+            track.sizeDelta = new Vector2(DialogueNeedsView.SlotWidth, BarHeight);
             if (isNew)
-            {
-                track.anchorMin = track.anchorMax = track.pivot = Vector2.zero;
-                track.anchoredPosition = new Vector2(0, BarBottom);
-                track.sizeDelta = new Vector2(DialogueNeedsView.SlotWidth, BarHeight);
                 Rounded(track, round, TrackColor);
-            }
 
             RectTransform fill = Child(track, "Fill", out bool isNewFill);
             if (isNewFill)

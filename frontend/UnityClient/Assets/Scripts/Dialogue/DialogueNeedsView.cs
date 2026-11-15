@@ -13,10 +13,10 @@ namespace A305.Dialogue
     public sealed class DialogueNeedsView : MonoBehaviour
     {
         /// <summary>게이지 하나의 폭</summary>
-        public const float SlotWidth = 92;
+        public const float SlotWidth = 64;
 
         /// <summary>게이지 사이 간격</summary>
-        public const float SlotGap = 18;
+        public const float SlotGap = 16;
 
         private const float BarHeight = 8;
 

@@ -299,13 +299,14 @@ KNOWN = {
 STAGE = {
     "hostile": (
         "You really dislike this person because of how they treated you before. Skip the warm greeting and open with a curt "
-        "line like asking what they need, do not take up small talk (steer back to business), give only the help your job requires, "
-        "keep it short and guarded, and do not call them by name. Face: indifferent or frown, no smiles."
+        "line like asking what they need, do not take up small talk (steer back to business), give only the help your job requires "
+        "with no recommendations or tips they did not need, keep it to one or two short, guarded sentences, and do not call them "
+        "by name. Face: indifferent or frown, no smiles."
     ),
     "cold": (
         "You do not like this person much because of how they treated you before. Give only a brief, formal greeting, answer small "
-        "talk shortly without keeping it going, do your job correctly but add nothing extra, stay correct but cool, and do not call "
-        "them by name. Face: indifferent or calm, no smiles."
+        "talk in a few words without keeping it going, do your job correctly but do not volunteer extra suggestions, stay correct "
+        "but cool, and do not call them by name. Face: indifferent or calm, no smiles."
     ),
     "warm": (
         "You like this person. Greet them like you are glad to see them, take up small talk and ask something back, offer one small "

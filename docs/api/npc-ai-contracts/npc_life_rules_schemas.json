@@ -8,7 +8,7 @@
       "additionalProperties": false,
       "required": ["schemaVersion", "requests"],
       "properties": {
-        "schemaVersion": { "const": "2.0" },
+        "schemaVersion": { "const": "2.1" },
         "requests": { "type": "array", "items": { "$ref": "#/$defs/RequestTemplate" }, "minItems": 1 }
       },
       "description": "대화 중 돌발 부탁·사건의 계기 틀(docs/npc-life-design.md 7절). 계기(욕구가 기준 아래, 또는 장소·시각)와 해결 방식(그 대화 안 / 다른 가게 심부름)만 적고, 심부름 해결처는 공통 규칙의 장소 제공 목록(places.<CODE>.offers)과 조합해 고른다. 부탁하는 쪽은 NPC id가 아니라 역할·장소로 적어 자동 생성 NPC에도 쓴다."
@@ -16,7 +16,7 @@
     "RequestTemplate": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "trigger", "roles", "activities", "solve", "reason", "ko", "reward"],
+      "required": ["id", "opens", "trigger", "roles", "activities", "solve", "reason", "ko", "reward"],
       "properties": {
         "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 64 },
         "trigger": {
@@ -36,6 +36,13 @@
           "minItems": 1,
           "uniqueItems": true,
           "description": "이 활동 중일 때만 부탁한다."
+        },
+        "opens": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["TALK", "CALL"] },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "부탁이 시작되는 곳. TALK: 학습자가 건 대화 안(욕구 계기는 NPC가 내비친 욕구에 학습자가 반응할 때, 상황 계기는 학습자의 checkAfterLearnerLines번째 정상 발화에서). CALL: NPC가 먼저 플레이어에게 말을 걸어 부탁한다(플레이어 기준 간격 callGapMinutes)."
         },
         "solve": {
           "type": "string",
@@ -589,10 +596,11 @@
         "favors": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["checkAfterLearnerLines", "learnerGapMinutes", "errandExpiryMinutes", "minShiftLeftMinutes", "dislikedBelow"],
+          "required": ["checkAfterLearnerLines", "learnerGapMinutes", "callGapMinutes", "errandExpiryMinutes", "minShiftLeftMinutes", "dislikedBelow"],
           "properties": {
-            "checkAfterLearnerLines": { "type": "integer", "minimum": 1, "maximum": 10, "description": "학습자의 이 번째 정상 발화 뒤에 부탁을 볼지 정한다." },
-            "learnerGapMinutes": { "type": "integer", "minimum": 0, "maximum": 1440, "description": "부탁이 끝난 뒤 새 부탁을 꺼내지 않는 게임 분." },
+            "checkAfterLearnerLines": { "type": "integer", "minimum": 1, "maximum": 10, "description": "대화 속 상황 계기(주문 상황)를 학습자의 이 번째 정상 발화 뒤에 볼지 정한다." },
+            "learnerGapMinutes": { "type": "integer", "minimum": 0, "maximum": 1440, "description": "대화 속 부탁이 끝난 뒤 새 대화 속 부탁을 꺼내지 않는 게임 분." },
+            "callGapMinutes": { "type": "integer", "minimum": 0, "maximum": 2880, "description": "NPC가 말 거는 부탁이 끝난 뒤 다음 말 걸기까지의 게임 분. 사용자별 게임 시각은 플레이하는 동안만 흘러 플레이어 기준 간격이다(720분 = 플레이 5분)." },
             "errandExpiryMinutes": { "type": "integer", "minimum": 60, "maximum": 2880, "description": "심부름을 수락한 뒤 기한(게임 분)." },
             "minShiftLeftMinutes": { "type": "integer", "minimum": 0, "maximum": 1440, "description": "근무가 이만큼 남은 NPC만 심부름을 부탁한다." },
             "dislikedBelow": { "type": "integer", "minimum": -100, "maximum": 0, "description": "호감이 이보다 낮으면 부탁하지 않는다." }

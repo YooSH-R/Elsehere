@@ -1,9 +1,10 @@
 {
-  "schemaVersion": "2.0",
+  "schemaVersion": "2.1",
   "requests": [
     {
       "id": "bring_food",
-      "trigger": { "need": "HUNGER", "below": 40 },
+      "opens": ["TALK", "CALL"],
+      "trigger": { "need": "HUNGER", "below": 30 },
       "roles": ["STAFF"],
       "activities": ["WORK"],
       "solve": "ERRAND",
@@ -13,7 +14,8 @@
     },
     {
       "id": "bring_coffee",
-      "trigger": { "need": "ENERGY", "below": 40 },
+      "opens": ["TALK", "CALL"],
+      "trigger": { "need": "ENERGY", "below": 30 },
       "roles": ["STAFF"],
       "activities": ["WORK"],
       "solve": "ERRAND",
@@ -23,6 +25,7 @@
     },
     {
       "id": "recommend_a_spot",
+      "opens": ["TALK"],
       "titleKo": "구경할 곳 추천하기",
       "trigger": { "need": "SOCIAL", "below": 30 },
       "roles": ["STAFF", "PASSERBY"],
@@ -35,6 +38,7 @@
     },
     {
       "id": "rush_hour",
+      "opens": ["TALK"],
       "titleKo": "주문 한 번에 말하기",
       "trigger": { "places": ["CAFE", "BAKERY", "DINER"], "windows": [{ "from": "12:00", "to": "14:00" }, { "from": "18:00", "to": "20:00" }] },
       "roles": ["STAFF"],
@@ -47,6 +51,7 @@
     },
     {
       "id": "sold_out",
+      "opens": ["TALK"],
       "titleKo": "다른 메뉴 고르기",
       "trigger": { "places": ["CAFE", "BAKERY", "DINER"], "windows": [{ "from": "00:00", "to": "12:00" }, { "from": "14:00", "to": "18:00" }, { "from": "20:00", "to": "00:00" }], "firstTalkOfDay": true },
       "roles": ["STAFF"],
@@ -59,6 +64,7 @@
     },
     {
       "id": "needs_change",
+      "opens": ["TALK"],
       "trigger": { "places": ["CAFE", "BAKERY", "DINER", "FLOWER_SHOP", "ARCADE", "SHOP", "HOME_STORE", "BARBER", "LAUNDROMAT"], "windows": [{ "from": "07:00", "to": "11:00" }] },
       "roles": ["STAFF"],
       "activities": ["WORK"],
@@ -70,6 +76,7 @@
     },
     {
       "id": "letter_to_send",
+      "opens": ["CALL"],
       "trigger": { "windows": [{ "from": "13:00", "to": "17:00" }] },
       "roles": ["STAFF"],
       "activities": ["WORK"],
@@ -81,6 +88,7 @@
     },
     {
       "id": "flowers_for_counter",
+      "opens": ["CALL"],
       "trigger": { "windows": [{ "from": "15:00", "to": "18:00" }] },
       "roles": ["STAFF"],
       "activities": ["WORK"],

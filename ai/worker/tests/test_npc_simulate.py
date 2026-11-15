@@ -140,11 +140,15 @@ def service_day(npc_id: str) -> dict:
 
 
 def test_staff_tied_to_the_post_ask_for_food_and_coffee_from_another_shop():
-    """24시간 상주하는 Jake·Mia도 끼니 사이에는 배고프고 지쳐 다른 가게의 먹을 것·커피를 부탁한다. 자기 가게로는 보내지 않는다."""
+    """24시간 상주하는 Jake·Mia도 끼니 사이에는 배고파(30 아래) 다른 가게의 먹을 것을 부탁한다. 자기 가게로는 보내지 않는다.
+    기운은 상주 직원에게서 30 아래로 내려가지 않고, 교대 직원(빵집 등)이 커피를 부탁한다."""
     jake = service_day("HOTEL_STAFF")["requests"]
     mia = service_day("CAFE_STAFF")["requests"]
+    baker = service_day("BAKERY_STAFF")["requests"]
 
-    assert {"bring_food", "bring_coffee"} <= {request["id"] for request in jake}
+    assert "bring_food" in {request["id"] for request in jake}
+    assert "bring_coffee" in {request["id"] for request in baker}
+    assert all(request.get("place") != "BAKERY" for request in baker)
     assert "bring_food" in {request["id"] for request in mia}
     assert all(request.get("place") != "CAFE" for request in mia)
     assert all(request.get("place") != "HOTEL" for request in jake)
@@ -217,7 +221,7 @@ def test_the_command_line_prints_each_service_npc_day_and_the_curves(capsys):
 
     out = capsys.readouterr().out
     assert all(npc_id in out for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"])
-    # Jake는 24시간 상주하므로 시뮬레이션 시작인 00:00부터 배고픔이 줄어, 아침 끼니 전에 다른 가게의 먹을 것을 부탁한다
-    assert "05:10 bring_food→BAKERY" in out
+    # Jake는 24시간 상주하므로 끼니 사이 배고픔이 30 아래로 내려가는 점심 끼니 전에 다른 가게의 먹을 것을 부탁한다
+    assert "12:10 bring_food→BAKERY" in out
     assert "본 적 있음" in out and "단골" in out
     assert "튜토리얼 안내 NPC" in out

@@ -80,6 +80,7 @@
   "favors": {
     "checkAfterLearnerLines": 2,
     "learnerGapMinutes": 240,
+    "callGapMinutes": 720,
     "errandExpiryMinutes": 720,
     "minShiftLeftMinutes": 360,
     "dislikedBelow": -10

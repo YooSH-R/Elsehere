@@ -307,25 +307,53 @@ PERSONAL = (
 STRONG_FEELINGS = ("friendly", "wary")
 
 # 이번 대화의 기분(app.npc_relationship.mood_state). 관계와 상관없어 처음 만나도 넣는다
+# 기분마다 말투와 함께 첫 표정(Face)을 적는다. 표정 고르기 지시(app.npc_emotion.EMOTION_PROMPT)가 이 표정을 따르게 해서
+# 무례·칭찬이 있던 턴(서버가 reaction으로 표정을 정함)이 지나도 기분이 남은 동안 표정이 이어진다
 # 바탕 기분: 대화를 시작할 때 기준보다 낮은 욕구. 몸 상태라 말투에 묻어나게만 하고, 하던 일(주문 받기)은 그대로 하게 한다
 LOW_NEED = {
-    "ENERGY": "You are tired: you have been on your feet for a while. Your replies come out a bit shorter and slower, and you may mention being tired once.",
-    "HUNGER": "You are hungry, so you are a little short-tempered and food is on your mind; it may slip into what you say.",
-    "SOCIAL": "You have had no one to talk to for a while, so you are glad someone is chatting with you: you happily keep the small talk going.",
-    "FUN": "You are bored: it has been a slow, dull day, so anything new or fun they bring up perks you up.",
-    "WORK": "Work has piled up and you are behind, so you sound a little hurried and keep things moving.",
+    "ENERGY": (
+        "You are tired: you have been on your feet for a while. Your replies come out a bit shorter and slower, "
+        "and you may mention being tired once. Face: calm, low energy, no big laughs."
+    ),
+    "HUNGER": (
+        "You are hungry, so you are a little short-tempered and food is on your mind; it may slip into what you say. "
+        "Face: calm or a slight frown."
+    ),
+    "SOCIAL": (
+        "You have had no one to talk to for a while, so you are glad someone is chatting with you: "
+        "you happily keep the small talk going. Face: warm_smile."
+    ),
+    "FUN": (
+        "You are bored: it has been a slow, dull day, so anything new or fun they bring up perks you up. "
+        "Face: indifferent until something interesting comes up, then curious."
+    ),
+    "WORK": "Work has piled up and you are behind, so you sound a little hurried and keep things moving. Face: concerned or calm.",
 }
 STRONG_NEED = "It is strong right now, so it clearly shows."
 MILD_NEED = "Only a hint of it shows."
-CONTENT = "You are rested and in an easy mood: relaxed and unhurried."
-ANNOYED = (
-    "They were rude to you a moment ago and you are still annoyed. Keep this reply short and cool; "
-    "if they apologize, accept it briefly, without warm words."
-)
-PLEASED = (
-    "They said something nice or chatted with you warmly a moment ago, so you are in a good mood: "
-    "let it show in a friendlier word or two, even if you are usually reserved."
-)
+CONTENT = "You are rested and in an easy mood: relaxed and unhurried. Face: warm_smile."
+# 사건 기분: 세기(mild·strong)마다 말투를 다르게. 기분 좋음은 이유(가장 최근에 올린 사건)를 넣어 이유에 맞게 반응하게 한다
+ANNOYED = {
+    "strong": (
+        "They were rude to you a moment ago and you are still annoyed. Keep this reply short and cold: "
+        "no small talk, no thank-yous, no jokes. If they apologize, accept it in a few flat words. Face: frown."
+    ),
+    "mild": (
+        "They were rude to you earlier and you are still annoyed, though it is fading. Stay polite but a little cool and brief; "
+        "warm up a bit if they are nice to you now. Face: indifferent, no smiles yet."
+    ),
+}
+PLEASED_BY = {
+    "COMPLIMENT": "They just complimented you",
+    "SMALL_TALK": "They have been chatting with you warmly",
+    "HELP": "They just offered to help you",
+}
+PLEASED = {
+    "strong": "{cause}, so you are in a really good mood: let it show clearly, with extra warmth or a light joke. Face: laugh or warm_smile.",
+    "mild": (
+        "{cause}, so you are in a good mood: let it show in a friendlier word or two, even if you are usually reserved. Face: warm_smile."
+    ),
+}
 
 
 def mood_note(mood: dict) -> str:
@@ -334,9 +362,9 @@ def mood_note(mood: dict) -> str:
     if mood["content"]:
         lines.append(f"- {CONTENT}")
     if mood["annoyed"]:
-        lines.append(f"- {ANNOYED}")
+        lines.append(f"- {ANNOYED[mood['annoyed']]}")
     if mood["pleased"]:
-        lines.append(f"- {PLEASED}")
+        lines.append(f"- {PLEASED[mood['pleased']].format(cause=PLEASED_BY[mood['pleased_by']])}")
     return "\n".join(["How you feel right now:", *lines]) if lines else ""
 
 

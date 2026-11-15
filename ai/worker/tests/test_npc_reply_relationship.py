@@ -134,6 +134,61 @@ def test_a_first_meeting_still_shows_a_good_mood_after_a_compliment(client, prov
     assert "good mood" in system(client, provider, history=COMPLIMENT_A_MOMENT_AGO)
 
 
+def learner_lines(*events: str | None) -> list[dict]:
+    """학습자 줄과 NPC 대답을 번갈아 둔 이력. None은 무례 줄, 빈 문자열은 사건 없는 평범한 줄."""
+    lines = []
+    for event in events:
+        if event is None:
+            lines.append({"who": "me", "text": "[withheld]", "rude": True})
+        else:
+            lines.append({"who": "me", "text": "Okay.", "events": [event] if event else []})
+        lines.append({"who": "npc", "text": "Sure."})
+    return lines
+
+
+def mood_section(prompt: str) -> str:
+    return prompt.split("How you feel right now:")[1].split("\n\n")[0]
+
+
+def test_right_after_rudeness_the_reply_is_short_and_cold_with_a_frown(client, provider):
+    mood = mood_section(system(client, provider, history=learner_lines(None)))
+
+    assert "short and cold" in mood and "Face: frown" in mood
+
+
+def test_as_annoyance_fades_the_reply_is_only_a_little_cool(client, provider):
+    mood = mood_section(system(client, provider, history=learner_lines(None, "", "")))
+
+    assert "a little cool" in mood and "Face: indifferent" in mood and "short and cold" not in mood
+
+
+@pytest.mark.parametrize(
+    ("event", "cause"),
+    [("COMPLIMENT", "complimented you"), ("HELP", "offered to help you")],
+)
+def test_the_good_mood_names_what_brought_it_on(client, provider, event, cause):
+    mood = mood_section(system(client, provider, history=learner_lines(event)))
+
+    assert cause in mood and "Face: warm_smile" in mood
+
+
+def test_good_things_one_after_another_show_a_really_good_mood(client, provider):
+    mood = mood_section(system(client, provider, history=learner_lines("COMPLIMENT", "SMALL_TALK")))
+
+    assert "really good mood" in mood and "chatting with you warmly" in mood
+
+
+def test_a_starting_mood_from_needs_also_names_a_face(client, provider):
+    mood = mood_section(system(client, provider, needs={**FULL, "ENERGY": LOW - 1}))
+
+    assert "Face: calm" in mood
+
+
+def test_the_face_rules_point_to_the_mood_lines(client, provider):
+    """표정 고르기 지시가 지금 기분 줄의 표정을 따르게 한다(앞 턴의 기분이 다음 대답 표정에도 이어지게)."""
+    assert "How you feel right now" in system(client, provider).split("Internal face timing")[1]
+
+
 @pytest.mark.parametrize("npc", [NPC, WITH_PROFILE], ids=["role-line", "profile"])
 def test_a_low_need_colors_even_the_first_greeting(client, provider, npc):
     """대화를 시작할 때의 욕구로 바탕 기분을 정한다. 아직 아무 말도 오가지 않은 첫 인사에도 드러난다."""
@@ -154,7 +209,7 @@ def test_an_npc_whose_needs_are_all_met_is_relaxed(client, provider):
 
 def test_without_needs_or_events_there_is_no_mood_line(client, provider):
     """욕구가 오지 않고(이전 앱) 기분이 드러날 일도 없으면 지시문은 지금과 같다."""
-    assert "How you feel right now" not in system(client, provider, history=[], memory=MEMORY)
+    assert "How you feel right now:" not in system(client, provider, history=[], memory=MEMORY)
 
 
 @pytest.mark.parametrize(("need", "value"), [("ENERGY", 101), ("ENERGY", -1), ("SLEEP", 50)])

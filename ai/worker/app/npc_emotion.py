@@ -31,6 +31,7 @@ EMOTION_PROMPT = """Internal face timing (metadata is not spoken):
 Prefix the first spoken phrase, and later phrases ONLY when the expression changes, with [[emotion:intensity]].
 Use one line, at most four markers, and intensity from 0 to 1. Then write only the actual spoken words.
 Choose the expression from the Character's personality, current feelings, the other person's meaning and your reply's intent.
+If "How you feel right now" gives a Face, start with that face and keep later markers in that mood unless something new changes it.
 Do not choose from isolated keywords: a polite question is not automatically confused, and saying sorry is not automatically sad.
 Use moderate intensity for everyday conversation; big_laugh or strong sadness only when the context warrants it.
 Keep a warm smile for genuinely welcoming replies, but do not smile through distress or irritation.

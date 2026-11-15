@@ -1440,18 +1440,11 @@ namespace A305.Dialogue
         private void UpdateStanding()
         {
             string text = standingDisplay.Text(content.Standing, Time.unscaledTime);
-            bool wasShown = standingText.gameObject.activeSelf;
             standingText.gameObject.SetActive(text != null);
-            bool changed = wasShown != (text != null);
-            if (text != null && standingText.text != text)
-            {
-                standingText.text = text;
-                standingText.color = npcNameText.color;
-                changed = true;
-            }
-            // 무례 경고 문구가 잠깐 길어졌다 줄어들 때 욕구 게이지도 빈칸 가운데로 다시 옮긴다.
-            if (changed)
-                PlaceNeeds();
+            if (text == null || standingText.text == text)
+                return;
+            standingText.text = text;
+            standingText.color = npcNameText.color;
         }
 
         /// <summary>
@@ -1466,14 +1459,23 @@ namespace A305.Dialogue
             PlaceNeeds();
         }
 
-        // 호감 칸 글자 끝과 도구 버튼 사이 가운데에 둔다. 좁은 화면에서 들어가지 않으면 줄이지 않고 숨긴다.
+        // 서버가 무례 한도를 보내기 전에 쓰는 기본 한도. 서버 기본값과 같다(docs/api/rudeness-handling.md).
+        private const int DefaultRudeLimit = 3;
+
+        // 호감 칸이 가장 길어질 때(무례 경고 문구가 붙은 때)의 글자 끝과 도구 버튼 사이 가운데에 고정한다.
+        // 경고 문구가 붙었다 사라지거나 호감 칸이 늦게 나타나도 게이지는 움직이지 않는다.
+        // 좁은 화면에서 들어가지 않으면 줄이지 않고 숨긴다.
         private void PlaceNeeds()
         {
             if (needsView == null)
                 return;
+            int rudeLimit =
+                content?.Standing != null && content.Standing.IsKnown
+                    ? content.Standing.RudeLimit
+                    : DefaultRudeLimit;
             float gapLeft =
                 needsRow.xMin
-                + (standingText.gameObject.activeSelf ? standingText.preferredWidth : 0);
+                + standingText.GetPreferredValues(ConversationStandingDisplay.Widest(rudeLimit)).x;
             bool centered = DialogueCinemaLayout.TryCenter(
                 gapLeft,
                 needsRow.xMax,

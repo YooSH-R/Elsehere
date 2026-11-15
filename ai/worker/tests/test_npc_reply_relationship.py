@@ -95,7 +95,7 @@ def test_a_neutral_stage_leaves_the_npc_to_its_own_personality(client, provider)
     ("stage", "behaviors"),
     [
         ("hostile", ["curt", "steer back to business", "only the help your job requires", "do not call them by name", "Face: indifferent"]),
-        ("cold", ["brief, formal greeting", "add nothing extra", "do not call them by name", "Face: indifferent"]),
+        ("cold", ["brief, formal greeting", "do not volunteer extra suggestions", "do not call them by name", "Face: indifferent"]),
         ("warm", ["glad to see them", "ask something back", "one small extra tip", "use their name", "Face: warm_smile"]),
         ("close", ["by name like a friend", "share a little", "insider tips", "Face: warm_smile"]),
     ],

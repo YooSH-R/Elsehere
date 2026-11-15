@@ -1274,6 +1274,169 @@ namespace A305.Npc.PlayModeTests
             }
         }
 
+        [UnityTest]
+        public IEnumerator Town_BlockedCommuterWaitsWithoutRapidDirectionChanges()
+        {
+            SetClock(21 * 60);
+            yield return LoadWithoutApis("TownScene");
+            Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
+            Object
+                .FindFirstObjectByType<PlayerMover>()
+                .Teleport(new Vector3(0, 100, 0), Quaternion.identity);
+            var all = Object.FindObjectsByType<NpcTownWalker>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+            var walker = all.Single(item =>
+                item.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER"
+            );
+            var blocker = all.Single(item =>
+                item.GetComponent<NpcIdentity>().Code == "CAFE_BARISTA"
+            );
+            foreach (var other in all)
+                other.gameObject.SetActive(false);
+
+            // 한 사람은 걸을 수 있지만 옆으로 비켜 지나갈 수는 없는 통로.
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            floor.transform.position = new Vector3(500, -.1f, 500);
+            floor.transform.localScale = new Vector3(1.4f, .2f, 10);
+            var walls = new List<GameObject>();
+            foreach (float side in new[] { -1f, 1f })
+            {
+                var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                wall.transform.position = new Vector3(500 + side * .8f, 1, 500);
+                wall.transform.localScale = new Vector3(.2f, 2, 10);
+                walls.Add(wall);
+            }
+            NavMeshData nav = BuildWalkingFloor(floor);
+            var instance = NavMesh.AddNavMeshData(nav);
+            float previousDelta = Time.captureDeltaTime;
+            string output = System.Environment.GetEnvironmentVariable("NPC_BLOCKED_REVIEW_OUTPUT");
+            using var capture = new NpcDailyReviewCapture(output);
+            GameObject reviewLight = null;
+            if (!string.IsNullOrEmpty(output))
+            {
+                // 캡처에서는 충돌면을 그대로 두고 가까운 벽과 HUD만 가려 몸 전체를 확인한다.
+                walls[1].GetComponent<Renderer>().enabled = false;
+                foreach (
+                    Canvas canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)
+                )
+                    if (canvas.isRootCanvas)
+                        canvas.gameObject.SetActive(false);
+                reviewLight = new GameObject("BlockedWalkingReviewLight");
+                Light light = reviewLight.AddComponent<Light>();
+                light.type = LightType.Directional;
+                light.intensity = 2f;
+                light.transform.rotation = Quaternion.Euler(50, -30, 0);
+            }
+            try
+            {
+                Time.captureDeltaTime = 1f / 60f;
+                PlaceWalker(walker, new Vector3(500, .1f, 497), Vector3.forward);
+                PlaceWalker(blocker, new Vector3(500, .1f, 500), Vector3.back);
+                for (int frame = 0; frame < 8; frame++)
+                    yield return null;
+                walker.Destination = new Vector3(500, .1f, 502);
+                var animator = walker.GetComponentInChildren<Animator>();
+                Vector3 settled = Vector3.zero;
+                float largestDrift = 0;
+                float totalTurn = 0;
+                float largestWaitingSpeed = 0;
+                float previousTurn = 0;
+                int reversals = 0;
+                var rows = new List<string> { "frame,x,z,yaw,turn,moved,speed" };
+                for (int frame = 0; frame < 780; frame++)
+                {
+                    // 앞사람이 걸어 나가면 기다리던 NPC도 다시 출발해야 한다.
+                    if (frame == 480)
+                        blocker.Destination = new Vector3(500, .1f, 504);
+                    Vector3 before = walker.transform.position;
+                    Vector3 forward = walker.transform.forward;
+                    capture.RecordScenario(
+                        "blocked-walking",
+                        walker.transform,
+                        new Vector3(4, 4, -6),
+                        frame / 60.0
+                    );
+                    yield return null;
+                    Vector3 position = walker.transform.position;
+                    float turn = Vector3.SignedAngle(forward, walker.transform.forward, Vector3.up);
+                    float moved = HorizontalDistance(before, position);
+                    float speed = animator.GetFloat("Speed");
+                    if (frame == 179)
+                        settled = position;
+                    if (frame >= 180 && frame < 480)
+                    {
+                        largestDrift = Mathf.Max(
+                            largestDrift,
+                            HorizontalDistance(settled, position)
+                        );
+                        largestWaitingSpeed = Mathf.Max(largestWaitingSpeed, speed);
+                        totalTurn += Mathf.Abs(turn);
+                        if (Mathf.Abs(turn) > .5f)
+                        {
+                            if (turn * previousTurn < 0)
+                                reversals++;
+                            previousTurn = turn;
+                        }
+                    }
+                    Assert.That(
+                        HorizontalDistance(position, blocker.transform.position),
+                        Is.GreaterThanOrEqualTo(.95f)
+                    );
+                    Assert.That(
+                        moved,
+                        Is.LessThanOrEqualTo(1.6f / 60f + .001f),
+                        "재출발할 때 순간이동하지 않습니다."
+                    );
+                    if (!string.IsNullOrEmpty(output))
+                        rows.Add(
+                            System.FormattableString.Invariant(
+                                $"{frame},{position.x:F5},{position.z:F5},{walker.transform.eulerAngles.y:F3},{turn:F3},{moved:F6},{speed:F4}"
+                            )
+                        );
+                }
+                if (!string.IsNullOrEmpty(output))
+                {
+                    Directory.CreateDirectory(output);
+                    File.WriteAllLines(Path.Combine(output, "blocked-walking.csv"), rows);
+                }
+                Debug.Log(
+                    $"BLOCKED turn={totalTurn:F1} reversals={reversals} drift={largestDrift:F5} speed={largestWaitingSpeed:F3}"
+                );
+                Assert.That(
+                    largestDrift,
+                    Is.LessThan(.001f),
+                    "막힌 통로에서 좌우로 왕복하지 않고 기다립니다."
+                );
+                Assert.That(
+                    totalTurn,
+                    Is.LessThan(1f),
+                    "기다리는 동안 몸 방향이 반복해서 바뀌지 않습니다."
+                );
+                Assert.That(
+                    largestWaitingSpeed,
+                    Is.EqualTo(0f),
+                    "제자리에서는 걷기 대신 정지 동작을 전달합니다."
+                );
+                Assert.That(
+                    HorizontalDistance(walker.transform.position, walker.Destination),
+                    Is.LessThan(.12f),
+                    "앞사람이 떠나면 목적지까지 다시 걷습니다."
+                );
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDelta;
+                instance.Remove();
+                Object.Destroy(nav);
+                Object.Destroy(floor);
+                Object.Destroy(reviewLight);
+                foreach (var wall in walls)
+                    Object.Destroy(wall);
+            }
+        }
+
         private static float HorizontalDistance(Vector3 first, Vector3 second) =>
             Vector3.ProjectOnPlane(first - second, Vector3.up).magnitude;
 

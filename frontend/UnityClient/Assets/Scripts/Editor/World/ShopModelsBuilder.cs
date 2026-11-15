@@ -126,7 +126,12 @@ namespace A305.EditorTools.World
                 if (installed.Length > 1)
                     foreach (
                         Transform duplicate in installed.Where(child =>
-                            PrefabUtility.GetCorrespondingObjectFromSource(child.gameObject) == null
+                            PrefabUtility.GetCorrespondingObjectFromSourceAtPath(
+                                child.gameObject,
+                                PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(
+                                    target.gameObject
+                                )
+                            ) == null
                         )
                     )
                         UnityEngine.Object.DestroyImmediate(duplicate.gameObject);

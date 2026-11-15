@@ -12,24 +12,23 @@ namespace A305.Dialogue.Tests
         private static readonly Vector2 Wide = new Vector2(1920, 1080);
 
         [Test]
-        public void TryCenter_PutsTheBlockInTheMiddleOfTheGap()
+        public void FitsBesideName_WhenTheLongestStandingStillFitsBeforeTheTools()
         {
-            bool fits = DialogueCinemaLayout.TryCenter(500, 1300, 300, out float left);
+            // 이름 오른쪽(400)에 게이지 300, 간격, 가장 긴 호감 줄 500, 간격을 두고도 도구 버튼(1300) 앞에 들어간다.
+            float toolsLeft = 400 + 300 + 500 + 2 * DialogueCinemaLayout.Gap;
 
-            Assert.That(fits, Is.True);
-            Assert.That(left, Is.EqualTo(750).Within(.01f), "무례 칸과 도구 버튼 사이 가운데");
+            Assert.That(DialogueCinemaLayout.FitsBesideName(400, toolsLeft, 300, 500), Is.True);
         }
 
         [Test]
-        public void TryCenter_KeepsAGapOnBothSidesOrGivesUp()
+        public void FitsBesideName_GivesWayToTheRudeNoticeOnNarrowScreens()
         {
-            float room = 300 + 2 * DialogueCinemaLayout.Gap;
+            float toolsLeft = 400 + 300 + 500 + 2 * DialogueCinemaLayout.Gap;
 
-            Assert.That(DialogueCinemaLayout.TryCenter(0, room, 300, out _), Is.True);
             Assert.That(
-                DialogueCinemaLayout.TryCenter(0, room - 1, 300, out _),
+                DialogueCinemaLayout.FitsBesideName(400, toolsLeft - 1, 300, 500),
                 Is.False,
-                "좁은 화면에서는 줄여 넣지 않고 숨긴다"
+                "무례 경고 문구가 잘리면 게이지를 숨긴다"
             );
         }
 

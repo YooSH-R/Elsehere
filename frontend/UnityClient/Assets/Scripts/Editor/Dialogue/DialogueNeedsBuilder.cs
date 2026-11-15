@@ -10,7 +10,7 @@ namespace A305.EditorTools.Dialogue
 {
     /// <summary>
     /// 대화 창 이름 줄의 NPC 욕구 게이지(<see cref="DialogueNeedsView"/>)를 만든다. 게이지 세 칸마다 위에 이름, 아래에 양 끝이 둥근 막대를 두고
-    /// 바탕은 두지 않는다. 자리는 대화 창이 무례 경고 칸과 도구 버튼 사이 가운데로 정한다. 없는 요소만 만들고 연결을 맞춘다.
+    /// 바탕은 두지 않는다. 자리는 대화 창이 NPC 이름표 바로 오른쪽으로 정한다. 없는 요소만 만들고 연결을 맞춘다.
     /// </summary>
     public static class DialogueNeedsBuilder
     {

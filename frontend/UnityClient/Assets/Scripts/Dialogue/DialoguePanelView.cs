@@ -44,13 +44,8 @@ namespace A305.Dialogue
         private TMP_Text standingText;
 
         [SerializeField]
-        [Tooltip(
-            "호감도·무례 경고 칸과 도구 버튼 사이 가운데의 NPC 욕구 게이지. 생활하지 않는 NPC면 숨긴다."
-        )]
+        [Tooltip("NPC 이름표 바로 오른쪽의 욕구 게이지. 생활하지 않는 NPC면 숨긴다.")]
         private DialogueNeedsView needsView;
-
-        // 욕구 게이지를 놓을 이름 줄 빈칸(호감 칸 왼쪽 끝 ~ 도구 버튼 왼쪽 끝). UpdateLayout이 정한다.
-        private Rect needsRow;
 
         [SerializeField]
         private Button endButton;
@@ -1456,39 +1451,44 @@ namespace A305.Dialogue
             if (needsView == null)
                 return;
             needsView.Show(NpcNeedGauges.From(needs));
-            PlaceNeeds();
+            // 대화를 시작하기 전(창이 닫혀 있을 때)이면 대화 창을 열 때 자리를 정한다.
+            if (panel.activeSelf && content != null)
+                UpdateLayout();
         }
 
         // 서버가 무례 한도를 보내기 전에 쓰는 기본 한도. 서버 기본값과 같다(docs/api/rudeness-handling.md).
         private const int DefaultRudeLimit = 3;
 
-        // 호감 칸이 가장 길어질 때(무례 경고 문구가 붙은 때)의 글자 끝과 도구 버튼 사이 가운데에 고정한다.
-        // 경고 문구가 붙었다 사라지거나 호감 칸이 늦게 나타나도 게이지는 움직이지 않는다.
-        // 좁은 화면에서 들어가지 않으면 줄이지 않고 숨긴다.
-        private void PlaceNeeds()
+        // 욕구 게이지를 이름표(와 공연 버튼) 바로 오른쪽에 두고, 호감도·무례 경고가 시작할 왼쪽 끝을 돌려준다.
+        // 자리는 이름 길이로만 정해져 무례 경고 문구가 붙었다 사라져도 움직이지 않는다.
+        // 게이지 뒤에 가장 긴 호감 줄(무례 경고 문구가 붙은 때)이 들어가지 않는 좁은 화면이면 경고가 잘리지 않게 게이지를 숨긴다.
+        private float PlaceNeeds(float left, float toolsLeft, Rect nameRow)
         {
             if (needsView == null)
-                return;
+                return left;
             int rudeLimit =
                 content?.Standing != null && content.Standing.IsKnown
                     ? content.Standing.RudeLimit
                     : DefaultRudeLimit;
-            float gapLeft =
-                needsRow.xMin
-                + standingText.GetPreferredValues(ConversationStandingDisplay.Widest(rudeLimit)).x;
-            bool centered = DialogueCinemaLayout.TryCenter(
-                gapLeft,
-                needsRow.xMax,
-                needsView.Width,
-                out float left
-            );
-            bool fits = needsView.Width > 0 && centered;
-            needsView.gameObject.SetActive(fits);
-            if (fits)
-                Place(
-                    (RectTransform)needsView.transform,
-                    new Rect(left, needsRow.yMin, needsView.Width, needsRow.height)
+            float widestStanding = standingText
+                .GetPreferredValues(ConversationStandingDisplay.Widest(rudeLimit))
+                .x;
+            bool fits =
+                needsView.Width > 0
+                && DialogueCinemaLayout.FitsBesideName(
+                    left,
+                    toolsLeft,
+                    needsView.Width,
+                    widestStanding
                 );
+            needsView.gameObject.SetActive(fits);
+            if (!fits)
+                return left;
+            Place(
+                (RectTransform)needsView.transform,
+                new Rect(left, nameRow.yMin, needsView.Width, nameRow.height)
+            );
+            return left + needsView.Width + DialogueCinemaLayout.Gap;
         }
 
         // 대화창 이름 줄 위와 택시 안내 사이 간격
@@ -1642,7 +1642,8 @@ namespace A305.Dialogue
                 if (fits)
                     standingLeft += width + DialogueCinemaLayout.Gap;
             }
-            // 호감도·무례 경고는 이름표 바로 오른쪽에 두고, 도구 버튼 앞에서 말줄임으로 자른다.
+            standingLeft = PlaceNeeds(standingLeft, toolsLeft, layout.Name);
+            // 호감도·무례 경고는 욕구 게이지(없으면 이름표) 바로 오른쪽에 두고, 도구 버튼 앞에서 말줄임으로 자른다.
             Place(
                 standingText.rectTransform,
                 Rect.MinMaxRect(
@@ -1652,8 +1653,6 @@ namespace A305.Dialogue
                     layout.Name.yMax
                 )
             );
-            needsRow = Rect.MinMaxRect(standingLeft, layout.Name.yMin, toolsLeft, layout.Name.yMax);
-            PlaceNeeds();
             // 대사 칸 높이가 달라져도 보던 아래쪽(보통 가장 최근 대사와 단어 풀이)이 가려지지 않게 스크롤 위치를 지킨다.
             float scroll = historyScroll.verticalNormalizedPosition;
             Place((RectTransform)historyScroll.transform, layout.Lines);

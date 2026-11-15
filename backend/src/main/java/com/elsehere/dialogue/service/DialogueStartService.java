@@ -182,6 +182,9 @@ public class DialogueStartService {
                           clock.instant()));
               conversation.attachStartRequest(request.requestId());
               conversation.recordNpcTravelSituation(travelSituation);
+              if (!mode.isReview()) {
+                conversation.recordNpcNeeds(request.needs());
+              }
               mode.applyTo(conversation);
               if (request.npcOffDuty()) {
                 conversation.markNpcOffDuty();
@@ -274,7 +277,8 @@ public class DialogueStartService {
     NpcContext npc =
         dialogueContexts
             .npcByCode(userId, request.npcCode(), request.npcOffDuty())
-            .withTravelSituation(travelSituation);
+            .withTravelSituation(travelSituation)
+            .withNeeds(mode.isReview() ? null : request.needs());
     if (!npc.sceneOpen()) {
       throw new BusinessException(ErrorCode.SCENE_CLOSED);
     }

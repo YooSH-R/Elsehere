@@ -291,6 +291,19 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("대화를 시작한 순간의 NPC 욕구를 npc 안이 아니라 요청 맨 위의 needs로 보낸다")
+  void reply_sendsNpcNeedsAtTheTopLevel() {
+    respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
+
+    client.reply(
+        TRACE, NPC.withNeeds(Map.of("HUNGER", 35.0)), null, List.of(), "Hello", "", 1, null);
+
+    String body = received.get("/v1/npc/reply").body();
+    assertThat(body).contains("\"needs\":{\"HUNGER\":35.0}");
+    assertThat(body.indexOf("\"needs\"")).isEqualTo(body.lastIndexOf("\"needs\""));
+  }
+
+  @Test
   @DisplayName("NPC의 인격 카드는 snake_case로 바꾸지 않고 카드의 칸 이름(camelCase) 그대로 보낸다")
   void reply_sendsProfileWithCamelCaseKeys() {
     respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");

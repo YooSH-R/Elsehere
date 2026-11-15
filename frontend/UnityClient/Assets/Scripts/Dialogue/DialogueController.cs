@@ -193,6 +193,9 @@ namespace A305.Dialogue
         /// <param name="placeCode">
         /// 대화가 열린 장소 코드(CONV-01). 비우면 플레이어가 있는 곳으로 정한다. 택시처럼 플레이어 위치와 다른 곳이면 넘긴다.
         /// </param>
+        /// <param name="npcNeeds">
+        /// 대화를 시작한 순간 NPC의 생활 욕구. 대화 창 이름 줄에 게이지로 보인다. 생활하지 않는 NPC면 비운다.
+        /// </param>
         /// <returns>대화를 시작했으면 true. 이미 대화 중이면 false.</returns>
         public bool TryStart(
             string npcCode,
@@ -205,7 +208,8 @@ namespace A305.Dialogue
             NpcTravelContext npcTravelContext = null,
             string practiceScenarioId = null,
             Func<string, Task<ConversationStart>> practiceStart = null,
-            string placeCode = null
+            string placeCode = null,
+            NpcNeeds npcNeeds = null
         )
         {
             bool isSeparatePractice = reviewCardId != null || practiceScenarioId != null;
@@ -222,6 +226,7 @@ namespace A305.Dialogue
             }
 
             GameClock.Shared.IsTalking = true;
+            panel.ShowNeeds(npcNeeds);
             if (serverLink != null)
             {
                 var speaker = lookTarget.GetComponentInParent<DialogueSpeaker>();

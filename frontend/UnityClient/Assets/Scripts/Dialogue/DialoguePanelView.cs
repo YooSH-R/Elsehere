@@ -44,6 +44,15 @@ namespace A305.Dialogue
         private TMP_Text standingText;
 
         [SerializeField]
+        [Tooltip(
+            "호감도·무례 경고 칸과 도구 버튼 사이 가운데의 NPC 욕구 게이지. 생활하지 않는 NPC면 숨긴다."
+        )]
+        private DialogueNeedsView needsView;
+
+        // 욕구 게이지를 놓을 이름 줄 빈칸(호감 칸 왼쪽 끝 ~ 도구 버튼 왼쪽 끝). UpdateLayout이 정한다.
+        private Rect needsRow;
+
+        [SerializeField]
         private Button endButton;
 
         private Outline endButtonHighlight;
@@ -1431,11 +1440,53 @@ namespace A305.Dialogue
         private void UpdateStanding()
         {
             string text = standingDisplay.Text(content.Standing, Time.unscaledTime);
+            bool wasShown = standingText.gameObject.activeSelf;
             standingText.gameObject.SetActive(text != null);
-            if (text == null || standingText.text == text)
+            bool changed = wasShown != (text != null);
+            if (text != null && standingText.text != text)
+            {
+                standingText.text = text;
+                standingText.color = npcNameText.color;
+                changed = true;
+            }
+            // 무례 경고 문구가 잠깐 길어졌다 줄어들 때 욕구 게이지도 빈칸 가운데로 다시 옮긴다.
+            if (changed)
+                PlaceNeeds();
+        }
+
+        /// <summary>
+        /// 대화하는 NPC의 욕구 게이지를 보인다. 대화를 시작한 순간의 값이며, 대화 중에는 게임 시간이 멈춰 바뀌지 않는다.
+        /// </summary>
+        /// <param name="needs">생활하지 않는 NPC(튜토리얼 Ben, 택시 기사, 출퇴근 중인 몸 등)면 null이며 게이지를 숨긴다.</param>
+        public void ShowNeeds(NpcNeeds needs)
+        {
+            if (needsView == null)
                 return;
-            standingText.text = text;
-            standingText.color = npcNameText.color;
+            needsView.Show(NpcNeedGauges.From(needs));
+            PlaceNeeds();
+        }
+
+        // 호감 칸 글자 끝과 도구 버튼 사이 가운데에 둔다. 좁은 화면에서 들어가지 않으면 줄이지 않고 숨긴다.
+        private void PlaceNeeds()
+        {
+            if (needsView == null)
+                return;
+            float gapLeft =
+                needsRow.xMin
+                + (standingText.gameObject.activeSelf ? standingText.preferredWidth : 0);
+            bool centered = DialogueCinemaLayout.TryCenter(
+                gapLeft,
+                needsRow.xMax,
+                needsView.Width,
+                out float left
+            );
+            bool fits = needsView.Width > 0 && centered;
+            needsView.gameObject.SetActive(fits);
+            if (fits)
+                Place(
+                    (RectTransform)needsView.transform,
+                    new Rect(left, needsRow.yMin, needsView.Width, needsRow.height)
+                );
         }
 
         // 대화창 이름 줄 위와 택시 안내 사이 간격
@@ -1599,6 +1650,8 @@ namespace A305.Dialogue
                     layout.Name.yMax
                 )
             );
+            needsRow = Rect.MinMaxRect(standingLeft, layout.Name.yMin, toolsLeft, layout.Name.yMax);
+            PlaceNeeds();
             // 대사 칸 높이가 달라져도 보던 아래쪽(보통 가장 최근 대사와 단어 풀이)이 가려지지 않게 스크롤 위치를 지킨다.
             float scroll = historyScroll.verticalNormalizedPosition;
             Place((RectTransform)historyScroll.transform, layout.Lines);

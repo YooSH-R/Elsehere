@@ -580,7 +580,8 @@ namespace A305.Npc
                     initiatedBy,
                     ScriptKey,
                     IsOffDuty,
-                    npcTravelContext: TravelContext
+                    npcTravelContext: TravelContext,
+                    npcNeeds: LivingRoutine?.Needs
                 )
             )
             {
@@ -661,7 +662,11 @@ namespace A305.Npc
 
             approach.EndTalk(Now);
             PasserbyRestRecord.Save(identity.Code, approach.RestUntilSeconds);
+            LivingRoutine?.FillAfterConversation();
         }
+
+        // 지금 생활(욕구·일과)로 지내는 몸의 생활. 출퇴근 중인 몸(NpcTownWalker)이나 생활 데이터가 없는 NPC는 null이다.
+        private NpcRoutine LivingRoutine => routine != null && routine.enabled ? routine : null;
 
         // 제자리(퀘스트가 붙잡아 둔 자리가 있으면 그 자리)로 돌아간다.
         private void ReturnHome()

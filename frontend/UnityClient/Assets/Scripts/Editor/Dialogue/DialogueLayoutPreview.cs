@@ -792,6 +792,85 @@ namespace A305.EditorTools.Dialogue
             }
         }
 
+        /// <summary>
+        /// 이름 줄의 NPC 욕구 게이지(S15P31A305-930). 호감도·무례 경고 칸과 도구 버튼 사이 가운데에 놓이는지, 색 단계와
+        /// 무례 경고 문구가 길어질 때를 넓은 화면·휴대폰 가로 화면으로 그린다.
+        /// </summary>
+        public static void CaptureNeeds()
+        {
+            DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
+            var standing = new ConversationStanding();
+            standing.Apply(
+                new ConversationState
+                {
+                    Affinity = 12,
+                    RudeCount = 0,
+                    RudeLimit = 3,
+                }
+            );
+            var content = new WordPreviewContent
+            {
+                Standing = standing,
+                PreviewLines = new[]
+                {
+                    DialogueLine.FromUser("I'd like an iced latte, please."),
+                    DialogueLine.FromNpc("Sure! For here or to go?", "드시고 가세요, 포장하세요?"),
+                    DialogueLine.FromUser("For here, please."),
+                    DialogueLine.FromNpc(
+                        "Of course. Would you like anything else?",
+                        "더 필요한 건 있으세요?"
+                    ),
+                },
+            };
+            view.Show(content);
+            Invoke(view, "PressHint");
+            view.ShowNeeds(
+                new NpcNeeds(
+                    new Dictionary<string, float>
+                    {
+                        ["HUNGER"] = 28,
+                        ["ENERGY"] = 61,
+                        ["SOCIAL"] = 84,
+                        ["FUN"] = 40,
+                        ["WORK"] = 70,
+                    }
+                )
+            );
+            string output = OutputFolder();
+            SelectTheme(UiThemeId.Jelly);
+            foreach (
+                Vector2Int size in new[] { new Vector2Int(1920, 1080), new Vector2Int(844, 390) }
+            )
+                Render(
+                    camera,
+                    view,
+                    eye,
+                    face,
+                    Path.Combine(output, $"needs-{size.x}x{size.y}.png"),
+                    size.x,
+                    size.y
+                );
+            // 무례로 센 직후에는 경고 문구가 몇 초 붙어 호감 칸이 길어진다.
+            standing.Apply(
+                new ConversationState
+                {
+                    Affinity = 5,
+                    RudeCount = 1,
+                    RudeLimit = 3,
+                }
+            );
+            Invoke(view, "UpdateStanding");
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "needs-rude-1920x1080.png"),
+                1920,
+                1080
+            );
+        }
+
         private static void RenderThemes(
             Camera camera,
             DialoguePanelView view,
@@ -1091,7 +1170,7 @@ namespace A305.EditorTools.Dialogue
             public bool HasHint => true;
             public string HintText => "For here, please.";
             public bool UsesVoice => true;
-            public ConversationStanding Standing => null;
+            public ConversationStanding Standing { get; set; }
             public bool CanTalk => true;
             public bool CanReplaySpeech => LastNpcLine != null;
             public bool SimulateSpeech { get; set; }

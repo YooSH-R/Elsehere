@@ -52,13 +52,20 @@ namespace A305.Dialogue.Tests
         {
             var needs = new NpcNeeds(new Dictionary<string, float> { ["SOCIAL"] = 30 });
 
-            Assert.That(NpcNeedGauges.From(needs).Select(gauge => gauge.Label), Is.EqualTo(new[] { "외로움" }));
+            Assert.That(
+                NpcNeedGauges.From(needs).Select(gauge => gauge.Label),
+                Is.EqualTo(new[] { "외로움" })
+            );
         }
 
         [Test]
         public void From_NoNeedsGivesNoGauges()
         {
-            Assert.That(NpcNeedGauges.From(null), Is.Empty, "생활하지 않는 NPC(튜토리얼 Ben, 택시 기사 등)");
+            Assert.That(
+                NpcNeedGauges.From(null),
+                Is.Empty,
+                "생활하지 않는 NPC(튜토리얼 Ben, 택시 기사 등)"
+            );
         }
 
         [Test]

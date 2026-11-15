@@ -227,7 +227,11 @@ namespace A305.Npc.Tests
             life.Advance(2 * Hour);
 
             Assert.That(needs.Values.Keys, Is.EquivalentTo(rules.Needs.Keys));
-            Assert.That(needs.Values["HUNGER"], Is.EqualTo(64f).Within(.001f), "찍은 뒤에 줄어도 그대로");
+            Assert.That(
+                needs.Values["HUNGER"],
+                Is.EqualTo(64f).Within(.001f),
+                "찍은 뒤에 줄어도 그대로"
+            );
         }
 
         [Test]
@@ -271,7 +275,11 @@ namespace A305.Npc.Tests
                 File.ReadAllText(Path.Combine(Application.dataPath, "Data/Npc/NpcLife.json"))
             );
 
-            Assert.That(data.Needs["SOCIAL"].ConversationFill, Is.GreaterThan(0), "사교를 채우는 사물이 없다");
+            Assert.That(
+                data.Needs["SOCIAL"].ConversationFill,
+                Is.GreaterThan(0),
+                "사교를 채우는 사물이 없다"
+            );
         }
 
         private static bool Anything(string objectKey) => true;

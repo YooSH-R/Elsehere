@@ -174,6 +174,15 @@ namespace A305.Npc
 
         public bool IsUsing => life != null && life.IsUsing;
 
+        /// <summary>지금 욕구 값. 대화를 시작할 때 찍어 대화 창 게이지에 보인다. 생활 데이터가 없으면 null</summary>
+        public A305.Dialogue.NpcNeeds Needs => life?.Snapshot();
+
+        /// <summary>학습자와 대화를 마쳤다. 대화로 채우는 욕구(사교)를 채운다.</summary>
+        public void FillAfterConversation()
+        {
+            life?.FillAfterConversation();
+        }
+
         public bool IsSeated => seat != null;
 
         /// <summary>

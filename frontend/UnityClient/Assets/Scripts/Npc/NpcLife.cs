@@ -140,7 +140,10 @@ namespace A305.Npc
             {
                 if (need.Value.ConversationFill > 0)
                 {
-                    needs[need.Key] = Math.Min(FullNeed, needs[need.Key] + need.Value.ConversationFill);
+                    needs[need.Key] = Math.Min(
+                        FullNeed,
+                        needs[need.Key] + need.Value.ConversationFill
+                    );
                 }
             }
         }

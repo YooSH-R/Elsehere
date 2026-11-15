@@ -1,7 +1,10 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
+using System.Reflection;
 using A305.Api;
+using A305.Dialogue;
 using A305.EditorTools.Common;
 using A305.Learning;
 using A305.Mission;
@@ -158,6 +161,12 @@ namespace A305.EditorTools.Mission
             );
             view.Refresh(state, false, false);
             Directory.CreateDirectory(output);
+            // FIRST_DAY_PREVIEW_FAVOR가 있으면 수락한 돌발 부탁과 기다리는 것 하나를 기다림 카드에 함께 그린다.
+            if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("FIRST_DAY_PREVIEW_FAVOR")))
+            {
+                RenderFavorCard(camera, view, output);
+                return;
+            }
             var fields = new SerializedObject(view);
             var drawer = (GameObject)fields.FindProperty("journal").objectReferenceValue;
             // 수첩을 펼치면 같은 내용의 목표 카드는 숨긴다.
@@ -174,12 +183,66 @@ namespace A305.EditorTools.Mission
             Render(camera, view, Path.Combine(output, "quest-mobile.png"), 1080, 1920);
         }
 
+        private static void RenderFavorCard(Camera camera, FirstDayMissionView view, string output)
+        {
+            const long deadline = 2 * 1440 + 21 * 60;
+            FavorStore.Shared.Receive(
+                new[]
+                {
+                    new FavorUpdate
+                    {
+                        FavorId = 42,
+                        Status = FavorUpdate.Accepted,
+                        RequesterNpcCode = "HOTEL_STAFF",
+                        TitleKo = "Jake의 부탁 · 크루아상 사다 주기",
+                        Steps = new List<FavorStep>
+                        {
+                            new FavorStep
+                            {
+                                PlaceCode = "BAKERY",
+                                TextKo = "Maple Bakery에서 크루아상 포장 주문하기",
+                            },
+                            new FavorStep
+                            {
+                                PlaceCode = "HOTEL",
+                                NpcCode = "HOTEL_STAFF",
+                                TextKo = "Jake에게 돌아가기",
+                            },
+                        },
+                        ExpiresAtGameMinute = deadline,
+                    },
+                }
+            );
+            FollowUpStore.Shared.Receive(
+                new FollowUpData
+                {
+                    FollowUpId = 7,
+                    Npc = new NpcSummary { NpcCode = "CAFE_STAFF", Name = "Mia" },
+                    SceneCode = "CAFE",
+                    Item = "iced latte",
+                    ItemKo = "아이스 라테",
+                    RemainingSeconds = 42,
+                }
+            );
+            var card = view.GetComponent<FollowUpCardView>();
+            card.UseGameClock(() => deadline - 300);
+            view.SetAvailable(true);
+            card.Refresh();
+            foreach (var (name, width, height) in new[] { ("favor-card-desktop.png", 1920, 1080), ("favor-card-mobile.png", 844, 390) })
+            {
+                Render(camera, view, Path.Combine(output, name), width, height, card);
+            }
+            FavorStore.Shared.Clear();
+            FollowUpStore.Shared.Clear();
+        }
+
         private static void Render(
             Camera camera,
             FirstDayMissionView view,
             string path,
             int width,
-            int height
+            int height,
+            FollowUpCardView card = null
         )
         {
             var target = new RenderTexture(width, height, 24);
@@ -193,6 +256,11 @@ namespace A305.EditorTools.Mission
                 camera.Render();
                 Canvas.ForceUpdateCanvases();
                 view.UpdateLayout();
+                // 기다림 카드는 매 프레임 퀘스트 카드 아래 자리를 잡으므로 그리기 전에 한 번 맞춘다.
+                if (card != null)
+                    typeof(FollowUpCardView)
+                        .GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .Invoke(card, null);
                 Canvas.ForceUpdateCanvases();
                 camera.Render();
                 RenderTexture.active = target;

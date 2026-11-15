@@ -64,6 +64,82 @@ def test_compliment_and_apology_are_distinct_from_an_ordinary_greeting(provider,
         assert len(provider.calls) == 1
 
 
+RUDE_LINE = {"who": "me", "text": "[withheld]", "rude": True}
+PLAIN_LINE = {"who": "me", "text": "Okay."}
+COMPLIMENT_LINE = {"who": "me", "text": "You are so kind!", "events": ["COMPLIMENT"]}
+NPC_LINE = {"who": "npc", "text": "Sure."}
+
+
+def first_face(
+    provider, history: list[dict], proposed: str | None, reaction: str | None = None, relationship: dict | None = None
+) -> str | None:
+    marker = f"[[{proposed}:0.5]]" if proposed else ""
+    provider.answers["npc"] = lambda body: stream([f"{marker}What would you like?"])
+    with make_client(provider, FakeTts(wav=True)) as client:
+        body = {**REPLY, "history": history, "reaction": reaction, "suggest_words": False, "relationship": relationship}
+        done = next(data for name, data in events(client.post("/v1/npc/reply", json=body)) if name == "done")
+        return done["speech_phrases"][0]["emotion"]
+
+
+@pytest.mark.parametrize(
+    ("history", "expected"),
+    [
+        ([RUDE_LINE, NPC_LINE], "frown"),  # 무례 바로 뒤: 강한 짜증
+        ([RUDE_LINE, NPC_LINE, PLAIN_LINE, NPC_LINE, PLAIN_LINE, NPC_LINE], "indifferent"),  # 가라앉는 중: 약한 짜증
+    ],
+)
+def test_a_lingering_annoyance_keeps_the_npc_from_smiling_in_later_turns(provider, history, expected):
+    """무례가 있던 턴(서버 reaction)이 지나도 짜증이 남은 동안에는 모델이 웃는 표정을 골라도 차가운 얼굴로 바꾼다.
+    분노를 강제하지는 않는다(표정 문서의 '무례 뒤 평범한 말에는 분노를 강제하지 않는다')."""
+    assert first_face(provider, history, "warm_smile") == expected
+    assert first_face(provider, history, "laugh") == expected
+
+
+def test_an_annoyed_npc_without_a_face_marker_does_not_fall_back_to_a_smile(provider):
+    """표시가 없으면 Unity가 기본 기분(인자한 미소)으로 재생하므로, 짜증이 남았으면 차가운 얼굴을 정해 준다."""
+    assert first_face(provider, [RUDE_LINE, NPC_LINE], None) == "frown"
+
+
+def test_an_annoyed_npc_may_still_look_concerned_or_calm(provider):
+    """반대인 표정만 막고, 짜증과 어울리는 다른 표정은 그대로 둔다."""
+    assert first_face(provider, [RUDE_LINE, NPC_LINE], "concerned") == "concerned"
+
+
+def test_a_good_mood_keeps_the_npc_from_frowning(provider):
+    assert first_face(provider, [COMPLIMENT_LINE, NPC_LINE], "frown") == "warm_smile"
+    assert first_face(provider, [COMPLIMENT_LINE, NPC_LINE], "curious") == "curious"
+
+
+def test_a_confirmed_reaction_this_turn_wins_over_the_lingering_mood(provider):
+    """이번 턴에 서버가 사과를 확정하면 남은 짜증보다 사과 반응(relieved)을 따른다."""
+    assert first_face(provider, [RUDE_LINE, NPC_LINE], "big_laugh", reaction="apology_after_rude") == "relieved"
+
+
+def relationship_at(affinity: int) -> dict:
+    return {"recognition": 30, "affinity": affinity}  # 알아보는 얼굴(본 적 있음)
+
+
+@pytest.mark.parametrize(("affinity", "proposed"), [(-40, "warm_smile"), (-40, "laugh"), (-15, "playful"), (-15, None)])
+def test_a_disliked_learner_gets_no_smile_by_default(provider, affinity, proposed):
+    """적대·냉담 단계에서는 이번 대화의 기분이 없으면 웃는 표정과 표시 없음(Unity 기본 미소)을 무표정으로 바꾼다."""
+    assert first_face(provider, [PLAIN_LINE, NPC_LINE], proposed, relationship=relationship_at(affinity)) == "indifferent"
+
+
+@pytest.mark.parametrize(("affinity", "proposed"), [(15, "frown"), (40, "angry")])
+def test_a_liked_learner_gets_no_frown_by_default(provider, affinity, proposed):
+    assert first_face(provider, [PLAIN_LINE, NPC_LINE], proposed, relationship=relationship_at(affinity)) == "warm_smile"
+
+
+def test_a_neutral_stage_keeps_the_model_s_face(provider):
+    assert first_face(provider, [PLAIN_LINE, NPC_LINE], "laugh", relationship=relationship_at(0)) == "laugh"
+
+
+def test_the_mood_of_this_conversation_comes_before_the_stage(provider):
+    """싫어하는 학습자라도 이번 대화에서 칭찬받으면 미소를, 좋아하는 학습자라도 방금 무례했으면 찡그림을 쓴다."""
+    assert first_face(provider, [COMPLIMENT_LINE, NPC_LINE], "warm_smile", relationship=relationship_at(-40)) == "warm_smile"
+    assert first_face(provider, [RUDE_LINE, NPC_LINE], "warm_smile", relationship=relationship_at(40)) == "frown"
+
+
 def test_forced_reaction_does_not_split_synthesis_at_discarded_mood_markers(provider):
     provider.answers["npc"] = lambda body: stream(["[[warm_smile:0.4]]Please [[laugh:0.8]]stop that."])
     tts = FakeTts(wav=True)

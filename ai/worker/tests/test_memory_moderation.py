@@ -9,7 +9,7 @@ from conftest import ok
 
 def test_memory_withholds_confirmed_rude_text_and_its_translation(client, provider):
     seen = {}
-    old = {"name": "Alex", "claims": ["Prefers tea."], "events": [], "attitude": "neutral", "struggled": []}
+    old = {"name": "Alex", "claims": ["Prefers tea."], "events": [], "attitude": "neutral", "struggled": [], "requests": []}
 
     def answer(body):
         seen["messages"] = body["messages"]

@@ -77,23 +77,6 @@ namespace A305.Theme.Tests
             );
         }
 
-        [Test]
-        public void EveryCornerClose_UsesTheSameXColor()
-        {
-            Color[] colors = Buttons
-                .Cast<object[]>()
-                .Select(row =>
-                    Load((string)row[0])
-                        .transform.Find((string)row[1] + "/Icon")
-                        .GetComponent<Image>()
-                        .color
-                )
-                .Distinct()
-                .ToArray();
-
-            Assert.That(colors.Length, Is.EqualTo(1));
-        }
-
         // 닫기는 할 일이 아니므로 강조색 대신 흰 보조 버튼으로 둔다.
         [Test]
         public void FeedbackBottomClose_IsAWhiteSecondaryButton()

@@ -33,7 +33,8 @@
             "says coffee is their favorite drink"
           ],
           "events": [],
-          "struggled": []
+          "struggled": [],
+          "requests": []
         },
         "impression": "neutral",
         "affinity_delta": 0,
@@ -59,7 +60,8 @@
             "says coffee is their favorite drink"
           ],
           "events": [],
-          "struggled": []
+          "struggled": [],
+          "requests": []
         }
       }
     },
@@ -88,7 +90,8 @@
           ],
           "events": [],
           "attitude": "neutral",
-          "struggled": []
+          "struggled": [],
+          "requests": []
         }
       },
       "response_http_status": 200,
@@ -100,7 +103,8 @@
             "says tea is their favorite drink"
           ],
           "events": [],
-          "struggled": []
+          "struggled": [],
+          "requests": []
         },
         "impression": "neutral",
         "affinity_delta": 0,
@@ -126,7 +130,8 @@
             "says tea is their favorite drink"
           ],
           "events": [],
-          "struggled": []
+          "struggled": [],
+          "requests": []
         }
       }
     },
@@ -155,7 +160,8 @@
           ],
           "events": [],
           "attitude": "neutral",
-          "struggled": []
+          "struggled": [],
+          "requests": []
         }
       },
       "response_http_status": 200,
@@ -165,7 +171,8 @@
           "attitude": "neutral",
           "claims": [],
           "events": [],
-          "struggled": []
+          "struggled": [],
+          "requests": []
         },
         "impression": "neutral",
         "affinity_delta": 0,
@@ -189,7 +196,8 @@
           "attitude": "neutral",
           "claims": [],
           "events": [],
-          "struggled": []
+          "struggled": [],
+          "requests": []
         }
       }
     },
@@ -218,7 +226,8 @@
           ],
           "events": [],
           "attitude": "neutral",
-          "struggled": []
+          "struggled": [],
+          "requests": []
         }
       },
       "response_http_status": 502,

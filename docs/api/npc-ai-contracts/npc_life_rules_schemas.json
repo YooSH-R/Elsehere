@@ -132,6 +132,47 @@
         "languageFocus": { "$ref": "#/$defs/LanguageFocus" }
       }
     },
+    "TemperamentSpeech": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "axes"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "axes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["extraversion", "openness", "agreeableness", "conscientiousness"],
+          "properties": {
+            "extraversion": { "$ref": "#/$defs/TemperamentAxisSpeech" },
+            "openness": { "$ref": "#/$defs/TemperamentAxisSpeech" },
+            "agreeableness": { "$ref": "#/$defs/TemperamentAxisSpeech" },
+            "conscientiousness": { "$ref": "#/$defs/TemperamentAxisSpeech" }
+          },
+          "description": "MBTI 네 축이 들어 있는 성격 축(외향성=E/I, 개방성=N/S, 친화성=F/T, 성실성=J/P). 신경성(-A/-T)은 대화 중 기분에 쓰고 말투 규칙에는 넣지 않는다."
+        }
+      },
+      "description": "성격 축마다 양쪽 말투·행동 규칙. 대답 지시문 인격 칸에 카드의 성격 5축이 기운 쪽(0.5 초과 high, 미만 low) 문장을 넣는다(ai/worker/app/npc_persona.py temperament_lines). NPC마다 적지 않는다."
+    },
+    "TemperamentAxisSpeech": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mbti", "high", "low", "inReply"],
+      "properties": {
+        "mbti": { "type": "string", "pattern": "^[A-Z]/[A-Z]$", "description": "사람이 읽기 위한 MBTI 글자(높은 쪽/낮은 쪽)." },
+        "inReply": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["high", "low"],
+          "properties": {
+            "high": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "\\S" },
+            "low": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "\\S" }
+          },
+          "description": "이번 대답에서 할 행동 하나(한 문장 대답에도 들어갈 만큼 짧게). 대답 바로 앞(이번 턴 칸)에 넣는다. 성격 문장(high·low)만으로는 실제 모델 대답이 바뀌지 않았다."
+        },
+        "high": { "type": "string", "minLength": 1, "maxLength": 300, "pattern": "\\S", "description": "축이 0.5보다 클 때 넣는 영어 문장." },
+        "low": { "type": "string", "minLength": 1, "maxLength": 300, "pattern": "\\S", "description": "축이 0.5보다 작을 때 넣는 영어 문장." }
+      }
+    },
     "BehaviorLibrary": {
       "type": "object",
       "additionalProperties": false,
@@ -412,7 +453,7 @@
       "properties": {
         "target": {
           "type": "string",
-          "pattern": "^(needRates\\.(HUNGER|ENERGY|SOCIAL|FUN|WORK)|recognitionRate|initiateTalkRate|personalTalkScale|eventScale\\.(GREETING|SMALL_TALK|PERSONAL_QUESTION|RUDE|APOLOGY|COMPLIMENT|HELP|TASK_DONE|LEAVE))$",
+          "pattern": "^(needRates\\.(HUNGER|ENERGY|SOCIAL|FUN|WORK)|recognitionRate|initiateTalkRate|personalTalkScale|moodDecay\\.(ANNOYED|PLEASED)|eventScale\\.(GREETING|SMALL_TALK|PERSONAL_QUESTION|RUDE|APOLOGY|COMPLIMENT|HELP|TASK_DONE|LEAVE))$",
           "description": "계산할 생활 값 배수. 이름은 행동 조각 affects와 같다."
         },
         "axis": { "$ref": "#/$defs/Axis" },
@@ -503,8 +544,8 @@
         "mood": {
           "type": "object",
           "propertyNames": { "$ref": "#/$defs/Emotion" },
-          "additionalProperties": { "type": "integer", "minimum": -3, "maximum": 3 },
-          "description": "이번 대화의 기분 변화. 대화가 이어지는 동안 mood.decayPerTurn씩 가라앉는다."
+          "additionalProperties": { "type": "number", "minimum": -3, "maximum": 3, "multipleOf": 0.5 },
+          "description": "이번 대화의 기분 변화(0.5 단위). 대화가 이어지는 동안 mood.decayPerTurn × NPC의 moodDecay씩 가라앉는다."
         },
         "impression": {
           "type": "integer",
@@ -629,10 +670,22 @@
         "mood": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["decayPerTurn", "showsAt"],
+          "required": ["decayPerTurn", "showsAt", "strongAt", "needs"],
           "properties": {
             "decayPerTurn": { "type": "number", "exclusiveMinimum": 0, "maximum": 3, "description": "학습자가 한 번 말할 때마다 기분 세기가 가라앉는 양." },
-            "showsAt": { "type": "number", "exclusiveMinimum": 0, "maximum": 3, "description": "기분 세기(0~3)가 이 값 이상이면 말투에 드러난다." }
+            "showsAt": { "type": "number", "exclusiveMinimum": 0, "maximum": 3, "description": "기분 세기(0~3)가 이 값 이상이면 말투에 드러난다." },
+            "strongAt": { "type": "number", "exclusiveMinimum": 0, "maximum": 3, "description": "기분 세기가 이 값 이상이면 강하게 드러난다(말투가 더 뚜렷하고 표정도 더 진함). showsAt보다 크다." },
+            "needs": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["low", "veryLow", "comfortable"],
+              "properties": {
+                "low": { "type": "number", "minimum": 0, "maximum": 100, "description": "대화를 시작할 때 욕구가 이 값보다 낮으면 그 욕구가 바탕 기분(피곤함·배고픔 등)이 된다." },
+                "veryLow": { "type": "number", "minimum": 0, "maximum": 100, "description": "이 값보다 낮으면 바탕 기분이 뚜렷하게 드러나고, 다음으로 낮은 욕구까지 두 개를 말한다." },
+                "comfortable": { "type": "number", "minimum": 0, "maximum": 100, "description": "보낸 욕구가 모두 이 값 이상이면 여유로운 기분이다." }
+              },
+              "description": "대화를 시작할 때의 욕구로 정하는 바탕 기분 기준(ai/worker/app/npc_relationship.py mood_state)."
+            }
           }
         },
         "relationship": {
@@ -642,8 +695,7 @@
             "recognitionPerConversation",
             "seenBefore",
             "regular",
-            "liked",
-            "disliked",
+            "affinityStages",
             "personalTalk",
             "graceDays",
             "recognitionDropPerDay",
@@ -661,8 +713,18 @@
             },
             "seenBefore": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 알아봄부터 '본 적 있음'." },
             "regular": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 알아봄부터 '단골'." },
-            "liked": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 호감부터 좋아하는 티가 난다." },
-            "disliked": { "type": "integer", "minimum": -100, "maximum": 0, "description": "이 호감 이하면 싫어하는 티가 난다(차갑게 대함)." },
+            "affinityStages": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["hostile", "cold", "warm", "close"],
+              "properties": {
+                "hostile": { "type": "integer", "minimum": -100, "maximum": 0, "description": "이 호감 이하면 적대: 인사 없이 용건만, 최소한의 도움, 경계하는 말투." },
+                "cold": { "type": "integer", "minimum": -100, "maximum": 0, "description": "이 호감 이하면 냉담: 형식적인 인사, 덧붙임 없이 예의 있지만 차갑게." },
+                "warm": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 호감부터 호의: 반가워하고, 잡담을 받아 주고, 말로 작은 팁·추천 하나." },
+                "close": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 호감부터 친밀: 이름을 부르며 친구처럼. 얼굴을 알아볼 때만이고, 모르는 얼굴이면 호의로 대한다." }
+              },
+              "description": "호감 단계 경계. 그 사이는 보통(성격대로). 단계마다 대답 지시문의 태도와 기본 표정이 다르다(ai/worker/app/prompts.py STAGE)."
+            },
             "personalTalk": {
               "type": "object",
               "additionalProperties": false,

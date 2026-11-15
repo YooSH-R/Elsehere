@@ -5,6 +5,7 @@
 계약: docs/api/npc-ai-contracts/02_npc_inference_api_spec_v2.md
 """
 
+from app.npc_persona import temperament_actions, temperament_lines
 from app.npc_profile_models import NpcProfile
 
 
@@ -31,9 +32,8 @@ def character_section(profile: NpcProfile) -> str:
 
     personality = profile.personality
     lines += bullets("Personality", [f"{trait.name}: {trait.description}" for trait in personality.traits])
-    if personality.dimensions:  # 창작용 상대값(0~1). 미설정이면 추정하지 않고 아예 뺀다
-        scores = ", ".join(f"{name} {value:g}" for name, value in personality.dimensions.model_dump().items())
-        lines.append(f"Temperament (relative 0 to 1, not test scores): {scores}")
+    if personality.dimensions:  # 미설정이면 추정하지 않고 아예 뺀다. 숫자는 말투로 옮겨지지 않아 MBTI 네 축의 말투 규칙으로 넣는다
+        lines += bullets("How your temperament shows", temperament_lines(personality.dimensions.model_dump()))
     lines += bullets("Values", profile.values)
     lines += bullets("Motivations", profile.motivations)
     lines += bullets("Fears", profile.fears or [])
@@ -88,6 +88,7 @@ def character_section(profile: NpcProfile) -> str:
 
 CONVERSATION_FLOW = """- Use the current game time supplied in the Situation or Place for greetings and time references. It takes precedence over routines, profile greetings and earlier dialogue. Never infer the current time from a character's usual morning or evening activity. At night, do not say good morning or describe it as morning. If no current time is supplied, use a time-neutral greeting; do not guess.
 - Your opening must reflect your first-meeting behavior, personality, familiarity and present situation. A passerby or off-duty person is not a service encounter: do not automatically offer help. A reserved or wary stranger may ask what brings them over; a sociable local may share a small observation. An on-duty employee can welcome a customer in their own voice. Do not give every character the same greeting or make every stranger hostile.
+- Use periods to separate complete thoughts. Avoid semicolons in spoken dialogue.
 - In free conversation, take the conversational lead when the learner seems unsure: share one small detail grounded in your interests or current situation and offer one easy way to respond. When the learner introduces a topic or request, acknowledge it and follow their lead with a relevant reaction or brief personal detail. Ask at most one relevant question; do not interrogate or append a question to every reply. Respect a goodbye or a wish to be left alone. Never invent memories, shared experiences or mission progress."""
 
 RULES = f"""## Rules
@@ -241,16 +242,40 @@ SOUND_LIKE_YOURSELF = (
 )
 
 
-def reply_system_prompt(profile: NpcProfile, place: str, facts: str, memory: str, level: int, note: str, learner: str = "") -> str:
+# 성격 행동을 매 턴 같은 말("there's no rush" 등)로 하면 틀처럼 들려서, 앞 대답과 다른 말로 하게 한다.
+# 실제 모델 확인에서 성격 행동이 호감 단계를 덮어(적대인 Ben이 "I hope you're doing all right"로 인사) 태도·기분을 먼저 따르게 한다
+VARY_TEMPERAMENT = (
+    "Do it in your own words, without reusing a phrase from your earlier replies. "
+    "If How you treat this person or How you feel right now says otherwise, follow those: your temperament only shapes how you say it."
+)
+# 백엔드 지시(퀘스트 단계의 빠진 정보 묻기, 물건 건네기, 결제 방법 묻기, 마무리 인사 등)는 꼭 해야 한다.
+# 적대·짜증·성격 줄("한두 문장만", "질문 없이")이 이를 덮지 않게, 그 줄들이 있을 때 지시가 먼저라고 적는다
+INSTRUCTION_FIRST = (
+    "Whatever the IMPORTANT instruction asks you to say or do comes first and must still happen in full; "
+    "your attitude, mood and temperament only change how you say it."
+)
+
+
+def reply_system_prompt(
+    profile: NpcProfile, place: str, facts: str, memory: str, level: int, note: str, learner: str = "", mood: str = ""
+) -> str:
     """게임 대화 경로(/v1/npc/reply)용. ① 공통 규칙 ② 인격은 추론 API와 같고, ③~⑤는 그 경로가 받는 값으로 채운다.
 
     place·facts는 백엔드의 NPC 장면·사실, memory는 이 학습자에 대한 기억(app.prompts.memory_note), level은 난이도 1~3,
     note는 백엔드가 정한 이번 대답에서 할 일, learner는 대답 상대의 호칭(learner_section). 기억은 상황에 넣어 '처음 만난 사이'라는
-    공통 규칙의 예외가 되게 한다.
+    공통 규칙의 예외가 되게 한다. mood는 이번 대화의 기분(app.prompts.mood_note)이고 이번 턴 칸에 넣는다: 이 칸이 '무례라고 하지
+    않으면 무례가 아니다'라고 해서, 상황 칸에 두면 모델이 남은 짜증을 무시했다.
     """
     situation = ["## Situation", f"Place: {place}", *labeled([("Facts", one_line(facts))]), *([memory] if memory else [])]
     turn = f"IMPORTANT for your next reply: {note}" if note else TURN_INSTRUCTIONS["USER_MESSAGE"]
+    if mood:
+        turn += f"\n{mood}"
     turn += f"\n{NOT_RUDE_UNLESS_TOLD}"
+    actions = temperament_actions(profile.personality.dimensions.model_dump()) if profile.personality.dimensions else []
+    if actions:
+        turn += f"\nIn this reply, let your temperament show: {'; '.join(actions)}. {VARY_TEMPERAMENT}"
+    if note and (mood or actions):
+        turn += f"\n{INSTRUCTION_FIRST}"
     if profile.speech_style.catchphrases:
         turn += f"\n{SOUND_LIKE_YOURSELF}"
     sections = [

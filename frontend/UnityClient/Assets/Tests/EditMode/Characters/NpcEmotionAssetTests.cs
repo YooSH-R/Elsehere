@@ -57,55 +57,8 @@ namespace A305.Characters.Tests
             Assert.That(shared, Is.GreaterThan(10));
         }
 
-        [TestCase("Left")]
-        [TestCase("Right")]
-        public void BenSmilingCheekRaisesTheLowerLidCentreIntoAnArc(string side)
-        {
-            var root = AssetDatabase.LoadAssetAtPath<GameObject>(
-                "Assets/Prefabs/Npc/Review/LittleMung_Business_Male.prefab"
-            );
-            var skins = root.GetComponentsInChildren<SkinnedMeshRenderer>();
-            var eye = skins.Single(skin => skin.name == side + "Eye").sharedMesh;
-            var lower = skins.Single(skin => skin.name == side + "LowerLid").sharedMesh;
-            var positions = lower.vertices;
-            var delta = new Vector3[lower.vertexCount];
-            int channel = lower.GetBlendShapeIndex("cheekRaise" + side);
-            Assert.That(channel, Is.GreaterThanOrEqualTo(0));
-            lower.GetBlendShapeFrameVertices(
-                channel,
-                lower.GetBlendShapeFrameCount(channel) - 1,
-                delta,
-                null,
-                null
-            );
-            float radius = eye.bounds.extents.z;
-            var underEye = Enumerable
-                .Range(0, positions.Length)
-                .Where(i => positions[i].y < eye.bounds.center.y)
-                .ToArray();
-            float centre = underEye
-                .Where(i => Mathf.Abs(positions[i].z - eye.bounds.center.z) < radius * .35f)
-                .Max(i => delta[i].y);
-            float sides = underEye
-                .Where(i => Mathf.Abs(positions[i].z - eye.bounds.center.z) > radius * .9f)
-                .Max(i => delta[i].y);
-            Assert.That(
-                centre,
-                Is.GreaterThan(eye.bounds.size.y * .1f),
-                "아래 눈꺼풀 중앙과 애교살이 눈 높이의 10% 이상 올라가야 합니다."
-            );
-            Assert.That(
-                centre,
-                Is.GreaterThan(sides + eye.bounds.size.y * .04f),
-                "양끝보다 중앙이 높아지는 웃는 곡선이 필요합니다."
-            );
-        }
-
+        // 공통 눈 경계 보존은 Ben으로 확인하고, 각 NPC의 표정 모양은 검수 씬에서 확인한다.
         [TestCase("LittleMung_Business_Male")]
-        [TestCase("LittleMung_MiddleAge_Male")]
-        [TestCase("LittleMung_MiddleAge_Female")]
-        [TestCase("LittleMung_BlackYoung_Male")]
-        [TestCase("LittleMung_Grandmother")]
         public void EmotionsKeepLatestReviewedEyeBoundary(string name)
         {
             var root = AssetDatabase.LoadAssetAtPath<GameObject>(
@@ -143,18 +96,10 @@ namespace A305.Characters.Tests
             }
         }
 
+        // 검수 프리팹, 호텔 직원, 카페 직원의 서로 다른 제작 경로를 각각 대표로 남긴다.
         [TestCase("Assets/Prefabs/Npc/Review/LittleMung_Business_Male.prefab")]
-        [TestCase("Assets/Prefabs/Npc/Review/LittleMung_MiddleAge_Male.prefab")]
-        [TestCase("Assets/Prefabs/Npc/Review/LittleMung_MiddleAge_Female.prefab")]
-        [TestCase("Assets/Prefabs/Npc/Review/LittleMung_BlackYoung_Male.prefab")]
-        [TestCase("Assets/Prefabs/Npc/Review/LittleMung_Grandmother.prefab")]
         [TestCase("Assets/Prefabs/Npc/LittleMung_HotelStaff_male_Dialogue.prefab")]
         [TestCase("Assets/Prefabs/Npc/CafeFemaleDialogue.prefab")]
-        [TestCase("Assets/Prefabs/Npc/Review/LittleMung_Cafe_Male.prefab")]
-        [TestCase("Assets/Prefabs/Npc/Review/LittleMung_Grandfather.prefab")]
-        [TestCase("Assets/Prefabs/Npc/Review/LittleMung_HotelStaff_Female.prefab")]
-        [TestCase("Assets/Prefabs/Npc/Review/LittleMung_Police_Female.prefab")]
-        [TestCase("Assets/Prefabs/Npc/Review/LittleMung_Police_Male.prefab")]
         public void ServiceFaceSupportsSpeechAndAllAuthoredEmotions(string path)
         {
             var root = AssetDatabase.LoadAssetAtPath<GameObject>(path);

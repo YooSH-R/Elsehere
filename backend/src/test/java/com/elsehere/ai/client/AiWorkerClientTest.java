@@ -181,7 +181,7 @@ class AiWorkerClientTest {
     client.reply(
         TRACE,
         NPC,
-        new WorkerMemory(2, null, Map.of("attitude", "friendly")),
+        new WorkerMemory(2, Map.of("attitude", "friendly")),
         List.of(WorkerLine.npc("Hi")),
         "Hello",
         "",
@@ -197,8 +197,8 @@ class AiWorkerClientTest {
     assertThat(request.body())
         .contains("\"level\":2")
         .contains("\"tts_voice\":\"af_heart\"")
-        .contains(
-            "\"memory\":{\"visits\":2,\"last_order\":null,\"card\":{\"attitude\":\"friendly\"}}");
+        .contains("\"memory\":{\"visits\":2,\"card\":{\"attitude\":\"friendly\"}}")
+        .doesNotContain("last_order");
   }
 
   @Test
@@ -797,7 +797,7 @@ class AiWorkerClientTest {
     client.reply(
         TRACE,
         NPC,
-        new WorkerMemory(2, null, null, new WorkerRelationship(23, 3, 0)),
+        new WorkerMemory(2, null, new WorkerRelationship(23, 3, 0)),
         List.of(),
         "Hello",
         "",
@@ -805,7 +805,7 @@ class AiWorkerClientTest {
         null);
 
     assertThat(received.get("/v1/npc/reply").body())
-        .contains("\"memory\":{\"visits\":2,\"last_order\":null,\"card\":null}")
+        .contains("\"memory\":{\"visits\":2,\"card\":null}")
         .contains(
             "\"relationship\":{\"recognition\":23,\"affinity\":3,\"days_since_last_talk\":0}");
   }

@@ -74,7 +74,6 @@ public class MemoryService {
             relation ->
                 new WorkerMemory(
                     relation.getTalkCount(),
-                    null,
                     readCard(relation.getMemoryCard()),
                     relationshipOf(relation, gameClockService.currentDay(userId))))
         .orElse(null);

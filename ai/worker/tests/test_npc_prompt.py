@@ -94,14 +94,52 @@ def test_social_behavior_with_nothing_set_leaves_no_heading():
     assert "With people" not in character_section(profile_of(cafe_with("npcProfile.socialBehavior", nothing)))
 
 
-def test_big_five_values_are_written_as_relative_values_when_set():
-    dimensions = {"openness": 0.8, "conscientiousness": 0.6, "extraversion": 0.7, "agreeableness": 0.9, "neuroticism": 0.3}
-    lines = character_section(profile_of(cafe_with("npcProfile.personality.dimensions", dimensions))).splitlines()
+TEMPERAMENT = json.loads((Path(__file__).resolve().parents[2] / "npcs/rules/temperament-speech.json").read_text(encoding="utf-8"))["axes"]
 
-    assert (
-        "Temperament (relative 0 to 1, not test scores): openness 0.8, conscientiousness 0.6, extraversion 0.7, agreeableness 0.9, neuroticism 0.3"
-        in lines
-    )
+
+def temperament_of(dimensions: dict | None) -> list[str]:
+    """인격 칸의 'How your temperament shows:' 아래 '- 규칙' 줄들. 제목이 없으면 빈 목록."""
+    lines = character_section(profile_of(cafe_with("npcProfile.personality.dimensions", dimensions))).splitlines()
+    if "How your temperament shows:" not in lines:
+        return []
+    rules = []
+    for line in lines[lines.index("How your temperament shows:") + 1 :]:
+        if not line.startswith("- "):
+            break
+        rules.append(line)
+    return rules
+
+
+def test_the_temperament_shows_as_speech_rules_for_the_four_mbti_axes():
+    """성격 5축 숫자 대신, 기운 쪽(0.5 초과 high, 미만 low)의 말투·행동 규칙을 MBTI 순서(E/I·N/S·F/T·J/P)로 넣는다.
+    숫자는 모델이 말투로 옮기지 못했다. NPC마다 적지 않고 공통 규칙 파일(temperament-speech.json)에서 고른다."""
+    esfj = {"extraversion": 0.75, "openness": 0.25, "agreeableness": 0.75, "conscientiousness": 0.75, "neuroticism": 0.7}
+    istp = {"extraversion": 0.25, "openness": 0.25, "agreeableness": 0.25, "conscientiousness": 0.25, "neuroticism": 0.7}
+
+    assert temperament_of(esfj) == [
+        f"- {TEMPERAMENT[axis][side]}"
+        for axis, side in (("extraversion", "high"), ("openness", "low"), ("agreeableness", "high"), ("conscientiousness", "high"))
+    ]
+    assert temperament_of(istp) == [
+        f"- {TEMPERAMENT[axis]['low']}" for axis in ("extraversion", "openness", "agreeableness", "conscientiousness")
+    ]
+
+
+def test_the_temperament_numbers_are_no_longer_in_the_prompt():
+    dimensions = {"openness": 0.8, "conscientiousness": 0.6, "extraversion": 0.7, "agreeableness": 0.9, "neuroticism": 0.3}
+
+    assert "Temperament (relative" not in character_section(profile_of(cafe_with("npcProfile.personality.dimensions", dimensions)))
+
+
+def test_a_balanced_axis_gets_no_speech_rule():
+    """딱 가운데(0.5)인 축은 어느 쪽 말투도 넣지 않는다(손으로 만든 NPC 등)."""
+    balanced = {"extraversion": 0.5, "openness": 0.5, "agreeableness": 0.5, "conscientiousness": 0.8, "neuroticism": 0.5}
+
+    assert temperament_of(balanced) == [f"- {TEMPERAMENT['conscientiousness']['high']}"]
+
+
+def test_without_temperament_there_is_no_speech_rule_heading():
+    assert temperament_of(None) == []
 
 
 def test_line_breaks_inside_values_cannot_open_a_new_section():

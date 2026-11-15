@@ -22,20 +22,19 @@
     "GREETING": { "impression": 1 },
     "SMALL_TALK": { "mood": { "PLEASED": 1 }, "memorySalience": 1 },
     "PERSONAL_QUESTION": {},
-    "RUDE": { "mood": { "ANNOYED": 2 }, "impression": -8, "memorySalience": 3 },
-    "APOLOGY": { "mood": { "ANNOYED": -1 }, "impression": 5 },
+    "RUDE": { "mood": { "ANNOYED": 2.5 }, "impression": -8, "memorySalience": 3 },
+    "APOLOGY": { "mood": { "ANNOYED": -1.5 }, "impression": 5 },
     "COMPLIMENT": { "mood": { "PLEASED": 2 }, "impression": 9, "memorySalience": 2 },
-    "HELP": { "impression": 8, "memorySalience": 2 },
+    "HELP": { "mood": { "PLEASED": 2 }, "impression": 8, "memorySalience": 2 },
     "TASK_DONE": { "impression": 2, "memorySalience": 1 },
     "LEAVE": {}
   },
-  "mood": { "decayPerTurn": 0.5, "showsAt": 1 },
+  "mood": { "decayPerTurn": 0.35, "showsAt": 1, "strongAt": 2, "needs": { "low": 30, "veryLow": 15, "comfortable": 70 } },
   "relationship": {
     "recognitionPerConversation": 20,
     "seenBefore": 20,
     "regular": 50,
-    "liked": 10,
-    "disliked": -10,
+    "affinityStages": { "hostile": -30, "cold": -10, "warm": 10, "close": 30 },
     "personalTalk": { "recognition": 50, "affinity": 20 },
     "graceDays": 30,
     "recognitionDropPerDay": 1,
@@ -64,7 +63,8 @@
     { "target": "needRates.FUN", "axis": "conscientiousness", "at0": 1.4, "at1": 0.6 },
     { "target": "recognitionRate", "axis": "agreeableness", "at0": 0.6, "at1": 1.4 },
     { "target": "eventScale.RUDE", "axis": "neuroticism", "at0": 0.6, "at1": 1.4 },
-    { "target": "eventScale.SMALL_TALK", "axis": "openness", "at0": 0.6, "at1": 1.4 }
+    { "target": "eventScale.SMALL_TALK", "axis": "openness", "at0": 0.6, "at1": 1.4 },
+    { "target": "moodDecay.ANNOYED", "axis": "neuroticism", "at0": 1.15, "at1": 0.85 }
   ],
   "workMeals": {
     "spreadMinutes": 60,

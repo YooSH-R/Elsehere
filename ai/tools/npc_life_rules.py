@@ -18,6 +18,7 @@ LIFE_FOLDER = ROOT / "ai/npcs/life"
 BEHAVIORS = ROOT / "ai/npcs/rules/behaviors.json"
 REQUESTS = ROOT / "ai/npcs/rules/requests.json"
 PERSONA_INGREDIENTS = ROOT / "ai/npcs/rules/persona-ingredients.json"
+TEMPERAMENT_SPEECH = ROOT / "ai/npcs/rules/temperament-speech.json"
 
 _schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
 WORLD_RULES_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/WorldRules"})
@@ -25,6 +26,7 @@ LIFE_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/NpcLife"})
 BEHAVIOR_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/BehaviorLibrary"})
 REQUEST_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/RequestLibrary"})
 INGREDIENT_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/PersonaIngredients"})
+TEMPERAMENT_SPEECH_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/TemperamentSpeech"})
 
 
 def _errors(validator: Draft202012Validator, data: dict) -> list[tuple[str, str]]:
@@ -226,6 +228,11 @@ def behavior_problems(library: dict) -> list[str]:
             if count < MIN_BEHAVIORS_PER_SIDE:
                 problems.append(f"{axis} {side} 쪽 조각이 {MIN_BEHAVIORS_PER_SIDE}개 미만 ({count}개)")
     return problems
+
+
+def temperament_speech_errors(data: dict) -> list[tuple[str, str]]:
+    """성격 말투 규칙(temperament-speech.json)을 원본 스키마로 검사한다."""
+    return _errors(TEMPERAMENT_SPEECH_SCHEMA, data)
 
 
 def ingredient_errors(ingredients: dict) -> list[tuple[str, str]]:

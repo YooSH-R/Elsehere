@@ -62,6 +62,37 @@
       "if": { "properties": { "with": { "const": "staff" } } },
       "then": { "required": ["place"] }
     },
+    "TemperamentSpeech": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "axes"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "axes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["extraversion", "openness", "agreeableness", "conscientiousness"],
+          "properties": {
+            "extraversion": { "$ref": "#/$defs/TemperamentAxisSpeech" },
+            "openness": { "$ref": "#/$defs/TemperamentAxisSpeech" },
+            "agreeableness": { "$ref": "#/$defs/TemperamentAxisSpeech" },
+            "conscientiousness": { "$ref": "#/$defs/TemperamentAxisSpeech" }
+          },
+          "description": "MBTI 네 축이 들어 있는 성격 축(외향성=E/I, 개방성=N/S, 친화성=F/T, 성실성=J/P). 신경성(-A/-T)은 대화 중 기분에 쓰고 말투 규칙에는 넣지 않는다."
+        }
+      },
+      "description": "성격 축마다 양쪽 말투·행동 규칙. 대답 지시문 인격 칸에 카드의 성격 5축이 기운 쪽(0.5 초과 high, 미만 low) 문장을 넣는다(ai/worker/app/npc_persona.py temperament_lines). NPC마다 적지 않는다."
+    },
+    "TemperamentAxisSpeech": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mbti", "high", "low"],
+      "properties": {
+        "mbti": { "type": "string", "pattern": "^[A-Z]/[A-Z]$", "description": "사람이 읽기 위한 MBTI 글자(높은 쪽/낮은 쪽)." },
+        "high": { "type": "string", "minLength": 1, "maxLength": 300, "pattern": "\\S", "description": "축이 0.5보다 클 때 넣는 영어 문장." },
+        "low": { "type": "string", "minLength": 1, "maxLength": 300, "pattern": "\\S", "description": "축이 0.5보다 작을 때 넣는 영어 문장." }
+      }
+    },
     "BehaviorLibrary": {
       "type": "object",
       "additionalProperties": false,

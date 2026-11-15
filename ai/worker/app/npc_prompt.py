@@ -5,6 +5,7 @@
 계약: docs/api/npc-ai-contracts/02_npc_inference_api_spec_v2.md
 """
 
+from app.npc_persona import temperament_lines
 from app.npc_profile_models import NpcProfile
 
 
@@ -31,9 +32,8 @@ def character_section(profile: NpcProfile) -> str:
 
     personality = profile.personality
     lines += bullets("Personality", [f"{trait.name}: {trait.description}" for trait in personality.traits])
-    if personality.dimensions:  # 창작용 상대값(0~1). 미설정이면 추정하지 않고 아예 뺀다
-        scores = ", ".join(f"{name} {value:g}" for name, value in personality.dimensions.model_dump().items())
-        lines.append(f"Temperament (relative 0 to 1, not test scores): {scores}")
+    if personality.dimensions:  # 미설정이면 추정하지 않고 아예 뺀다. 숫자는 말투로 옮겨지지 않아 MBTI 네 축의 말투 규칙으로 넣는다
+        lines += bullets("How your temperament shows", temperament_lines(personality.dimensions.model_dump()))
     lines += bullets("Values", profile.values)
     lines += bullets("Motivations", profile.motivations)
     lines += bullets("Fears", profile.fears or [])

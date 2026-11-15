@@ -477,6 +477,42 @@ def test_every_npc_has_a_life_file_and_every_life_file_has_an_npc(tmp_path):
     ]
 
 
+# 성격 말투 규칙 (ai/npcs/rules/temperament-speech.json): MBTI 네 축(E/I·N/S·F/T·J/P)마다 양쪽 말투·행동 문장. 대답 지시문 인격 칸에 넣는다
+
+
+def load_temperament_speech() -> dict:
+    return json.loads(npc_life_rules.TEMPERAMENT_SPEECH.read_text(encoding="utf-8"))
+
+
+def test_the_temperament_speech_rules_pass_the_schema():
+    assert npc_life_rules.temperament_speech_errors(load_temperament_speech()) == []
+
+
+@pytest.mark.parametrize(
+    ("path", "value", "where"),
+    [
+        (("axes", "openness", "low"), "", None),  # 빈 문장
+        (("axes", "extraversion", "mbti"), "E-I", None),  # 두 글자를 /로
+        (("axes", "neuroticism"), {"mbti": "T/A", "high": "a", "low": "b"}, ("axes",)),  # 말투는 MBTI 네 축만 (신경성은 기분에 씀)
+    ],
+)
+def test_temperament_speech_values_the_schema_does_not_allow_are_reported(path, value, where):
+    data = load_temperament_speech()
+    target = data
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+
+    assert {where_ for where_, _ in npc_life_rules.temperament_speech_errors(data)} == {json_path(where or path)}
+
+
+def test_temperament_speech_needs_all_four_mbti_axes():
+    data = load_temperament_speech()
+    del data["axes"]["agreeableness"]
+
+    assert npc_life_rules.temperament_speech_errors(data) == [("$.axes", "'agreeableness' is a required property")]
+
+
 # 행동 조각 모음 (ai/npcs/rules/behaviors.json): 성격 축 쪽이 표시된 행동. 생성기가 NPC 성격에 맞는 조각을 뽑아 인격 글에 넣는다
 
 

@@ -34,10 +34,10 @@ namespace A305.Dialogue
     /// </summary>
     public static class NpcNeedGauges
     {
-        /// <summary>이 값 아래면 주황(조금 부족)이다.</summary>
+        /// <summary>이 값 아래면 조금 부족한 색(옅은 모래색)이다.</summary>
         public const float LowBelow = 70;
 
-        /// <summary>이 값 아래면 산호색(급함)이다.</summary>
+        /// <summary>이 값 아래면 급한 색(차분한 산호색)이다.</summary>
         public const float UrgentBelow = 40;
 
         private static readonly (string Need, string Label)[] Shown =

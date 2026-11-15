@@ -20,11 +20,12 @@ namespace A305.Dialogue
 
         private const float BarHeight = 8;
 
-        // 도구 버튼 글자와 같은 진한 갈색. 급한 욕구는 이름도 경고색으로 바꾼다.
-        private static readonly Color LabelColor = new Color32(98, 88, 78, 255);
-        private static readonly Color FineColor = new Color32(92, 178, 120, 255);
-        private static readonly Color LowColor = new Color32(240, 178, 70, 255);
-        private static readonly Color UrgentColor = new Color32(238, 99, 82, 255);
+        // 바로 옆 호감도·무례 경고 칸이 먼저 눈에 들어오도록 채도를 낮춘 색만 쓴다. 평소는 무채색에 가까운 회갈색이고,
+        // 조금 부족하면 옅은 모래색, 급할 때만 차분한 산호색이며 그때만 이름도 같은 색으로 바꾼다.
+        private static readonly Color LabelColor = new Color32(128, 120, 112, 255);
+        private static readonly Color FineColor = new Color32(160, 152, 142, 255);
+        private static readonly Color LowColor = new Color32(212, 178, 124, 255);
+        private static readonly Color UrgentColor = new Color32(206, 120, 104, 255);
 
         [SerializeField]
         [Tooltip("게이지 이름. 칸 순서대로")]
@@ -60,8 +61,6 @@ namespace A305.Dialogue
             TMP_Text label = labels[slot];
             label.text = gauge.Label;
             label.color = gauge.Tone == NpcNeedTone.Urgent ? UrgentColor : LabelColor;
-            label.fontStyle =
-                gauge.Tone == NpcNeedTone.Urgent ? FontStyles.Bold : FontStyles.Normal;
 
             // 둥근 끝이 찌그러지지 않게 막대 높이만큼은 늘 남긴다.
             RectTransform fill = fills[slot];

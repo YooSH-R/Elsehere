@@ -36,7 +36,8 @@ namespace A305.Dialogue
             bool npcOffDuty,
             NpcTravelContext npcTravelContext = null,
             string placeCode = null,
-            ITurnStream stream = null
+            ITurnStream stream = null,
+            NpcNeeds needs = null
         )
         {
             const string path = "/api/v1/conversations";
@@ -49,6 +50,7 @@ namespace A305.Dialogue
                 NpcTravelContext = npcTravelContext,
                 SpeechSpeed = NpcSpeechSpeed.ForRequest,
                 PlaceCode = placeCode,
+                Needs = needs == null ? null : new Dictionary<string, float>(needs.Values),
             };
             return Streams(stream)
                 ? StartStreamingAsync(path, body, stream)

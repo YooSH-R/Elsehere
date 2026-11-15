@@ -264,7 +264,8 @@ namespace A305.Npc.PlayModeTests
                 bool npcOffDuty,
                 NpcTravelContext npcTravelContext = null,
                 string placeCode = null,
-                ITurnStream stream = null
+                ITurnStream stream = null,
+                NpcNeeds needs = null
             ) =>
                 Task.FromResult(
                     new ConversationStart

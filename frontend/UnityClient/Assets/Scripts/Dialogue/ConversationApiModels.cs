@@ -20,6 +20,9 @@ namespace A305.Dialogue
 
         /// <summary>대화가 열린 장소 코드. 서버가 NPC에게 지금 있는 곳으로 알린다.</summary>
         public string PlaceCode { get; set; }
+
+        /// <summary>대화를 시작한 순간 NPC의 생활 욕구(<see cref="NpcNeeds"/>). 생활하지 않는 NPC면 null이라 보내지 않는다.</summary>
+        public Dictionary<string, float> Needs { get; set; }
     }
 
     /// <summary>대화 시작 시의 실제 이동 상태. 서버는 이 값으로 만든 사실을 대화 동안 보존한다.</summary>
@@ -102,6 +105,9 @@ namespace A305.Dialogue
 
         /// <summary>이 턴에서 택시 기사가 알아들은 목적지. 목적지를 말하지 않았으면 null이다.</summary>
         public TaxiDestinationData TaxiDestination { get; set; }
+
+        /// <summary>이 턴에 생기거나 바뀐 돌발 부탁. 없으면 빈 목록이다. 같은 요청 ID로 다시 받은 응답에는 담기지 않는다.</summary>
+        public List<FavorUpdate> MissionUpdates { get; set; }
     }
 
     /// <summary>택시 기사가 대화 문맥으로 알아들은 목적지. 택시는 이 장소로 가서 내려 준다.</summary>

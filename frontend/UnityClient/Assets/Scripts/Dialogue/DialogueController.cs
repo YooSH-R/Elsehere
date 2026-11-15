@@ -37,6 +37,7 @@ namespace A305.Dialogue
         private IConversationApi conversationApi;
         private IAiStatusApi aiStatusApi;
         private IFollowUpApi followUpApi;
+        private IFavorApi favorApi;
         private VoiceConsentAgreement voiceConsentAgreement;
         private DialogueConversation conversation;
         private ServerConversation serverConversation;
@@ -264,7 +265,8 @@ namespace A305.Dialogue
                     practiceScenarioId,
                     practiceStart,
                     placeCode ?? PlayerPlaceCode(),
-                    recordedOpening
+                    recordedOpening,
+                    npcNeeds
                 );
             }
             else
@@ -393,6 +395,7 @@ namespace A305.Dialogue
                 conversationApi = serverLink.CreateApi();
                 aiStatusApi = serverLink.CreateAiStatusApi();
                 followUpApi = serverLink.CreateFollowUpApi();
+                favorApi = serverLink.CreateFavorApi();
                 voiceConsentAgreement = new VoiceConsentAgreement(
                     serverLink.CreateVoiceConsentApi(),
                     VoiceConsent.Shared
@@ -428,6 +431,12 @@ namespace A305.Dialogue
             if (followUpApi != null)
             {
                 _ = FollowUpStore.Shared.RefreshAsync(followUpApi);
+            }
+
+            // 진행 중인 돌발 부탁도 서버에서 다시 받아 부탁 카드를 복원한다(FAV-01).
+            if (favorApi != null)
+            {
+                _ = FavorStore.Shared.RefreshAsync(favorApi);
             }
         }
 
@@ -519,7 +528,8 @@ namespace A305.Dialogue
             string practiceScenarioId = null,
             Func<string, Task<ConversationStart>> practiceStart = null,
             string placeCode = null,
-            DialogueLine recordedOpening = null
+            DialogueLine recordedOpening = null,
+            NpcNeeds npcNeeds = null
         )
         {
             serverConversation = new ServerConversation(
@@ -535,7 +545,8 @@ namespace A305.Dialogue
                 reviewStart: reviewStart,
                 practiceScenarioId: practiceScenarioId,
                 practiceStart: practiceStart,
-                recordedOpening: recordedOpening
+                recordedOpening: recordedOpening,
+                npcNeeds: npcNeeds
             );
             speechRecovery = new NpcSpeechRecovery(serverConversation, PlayRecoveredSpeechAsync);
             serverConversation.Changed += panel.Refresh;

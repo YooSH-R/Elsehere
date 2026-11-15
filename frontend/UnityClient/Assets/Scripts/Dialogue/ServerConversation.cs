@@ -55,6 +55,7 @@ namespace A305.Dialogue
         private readonly NpcTravelContext npcTravelContext;
         private readonly string placeCode;
         private readonly FollowUpStore followUps;
+        private readonly FavorStore favors;
 
         // 음성 처리 동의. 서버가 동의가 없다고 거절하면 끈다.
         private bool canTalk;
@@ -86,6 +87,7 @@ namespace A305.Dialogue
         // 대답을 보낸 횟수. 조각 음성이 어느 대답의 것인지 가린다.
         private int replyCount;
         private readonly bool hasRecordedOpening;
+        private readonly NpcNeeds npcNeeds;
 
         /// <param name="npcName">서버 응답을 받기 전에 보여 줄 이름</param>
         /// <param name="canTalk">음성 처리에 동의해 [말하기]를 쓸 수 있는지</param>
@@ -93,6 +95,8 @@ namespace A305.Dialogue
         /// <param name="followUps">NPC가 준비해 건네기로 한 것을 기억할 곳. 비우면 게임 전체가 함께 쓰는 곳(<see cref="FollowUpStore.Shared"/>)이다.</param>
         /// <param name="npcOffDuty">교대 밖이라 일하지 않는 직원과의 대화인지. 서버의 대화 시작(CONV-01) npcOffDuty로 보낸다.</param>
         /// <param name="practiceStart">장소 연습 대화를 여는 요청(PRC-02). 요청 ID를 받는다.</param>
+        /// <param name="favors">진행 중인 돌발 부탁을 기억할 곳. 비우면 게임 전체가 함께 쓰는 곳(<see cref="FavorStore.Shared"/>)이다.</param>
+        /// <param name="npcNeeds">대화를 시작한 순간 NPC의 생활 욕구. 서버의 대화 시작(CONV-01) needs로 보낸다.</param>
         public ServerConversation(
             string npcCode,
             string npcName,
@@ -107,10 +111,14 @@ namespace A305.Dialogue
             string practiceScenarioId = null,
             Func<string, Task<ConversationStart>> practiceStart = null,
             string placeCode = null,
-            DialogueLine recordedOpening = null
+            DialogueLine recordedOpening = null,
+            NpcNeeds npcNeeds = null,
+            FavorStore favors = null
         )
         {
             NpcCode = npcCode;
+            this.npcNeeds = npcNeeds;
+            this.favors = favors ?? FavorStore.Shared;
             NpcName = npcName;
             this.api = api;
             ReviewCardId = reviewCardId;
@@ -379,6 +387,7 @@ namespace A305.Dialogue
             bool isVoice = lastTranscript != null && utterance == lastTranscript.Trim();
             failedText = null;
             string responseEndReason = null;
+            string favorNotice = null;
 
             await RunAsync(
                 $"{NpcName}이(가) 대답을 생각하고 있어요...",
@@ -442,10 +451,24 @@ namespace A305.Dialogue
                         );
                     if (!IsSeparatePractice && result.TaxiDestination != null)
                         TaxiDestinationChosen?.Invoke(result.TaxiDestination.PlaceCode);
+                    if (!IsSeparatePractice && result.MissionUpdates != null)
+                    {
+                        favors.Receive(result.MissionUpdates);
+                        favorNotice = result
+                            .MissionUpdates.Select(update => update?.Notice)
+                            .LastOrDefault(notice => notice != null);
+                    }
                 },
                 () => SendAsync(utterance),
                 DialogueWait.NpcReply
             );
+
+            // 부탁을 수락하거나 들어주면 상태 줄에 짧게 알린다. 대화가 끝난 턴은 종료 안내를 보인다.
+            if (favorNotice != null && !IsEnded && StatusMessage == null)
+            {
+                StatusMessage = favorNotice;
+                Changed?.Invoke();
+            }
 
             if (IsEnded)
             {
@@ -954,7 +977,8 @@ namespace A305.Dialogue
                 npcOffDuty,
                 npcTravelContext,
                 placeCode,
-                opening
+                opening,
+                npcNeeds
             );
         }
 

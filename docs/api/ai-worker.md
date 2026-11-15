@@ -277,7 +277,7 @@ GPU 모델은 상대를 향하지 않은 단어("감자", 이름 "김사피", "�
 
 기존 대사 생성 요청에서 구절별 표정 종류·강도도 함께 생성합니다. 내부 감정 표시는 `delta`·`audio`·`done`의 대사와 TTS 입력에서 제거하며, 합성한 WAV의 `e305` 청크에 실제 음성 길이 기준 시간표를 넣습니다. 추가 감정 분석 요청은 없습니다. 수준별 대사 길이는 유지하고 출력 상한에 감정 표시용 64토큰을 더합니다. `done.speech_phrases`에는 음성 성공 여부와 별개로 `[{"text":"Really?","emotion":"curious","intensity":0.6}]` 형식의 구절 목록을 반환합니다. 감정 표시가 없거나 잘못된 구절은 `emotion: null, intensity: 0`입니다. Spring은 이 목록을 턴에 저장하고 음성 재합성에 사용합니다. 형식·검증·다시 듣기는 [NPC 대화 감정 표정](../unity/npc-dialogue-emotions.md)을 따릅니다.
 
-요청: `npc`, `memory`(선택: `visits`, `last_order`, `card`), `relationship`(선택, 아래 표), `needs`(선택, 아래 설명), `history`(최대 40줄), `text`(학습자 원문, 최대 500자), `instruction`(Spring 규칙이 정한 이번 대답에서 할 일, 최대 3000자), `tts`(기본 `true`), `level`(기본 `2`), `suggest_words`(기본 `false`, 추천 단어를 스트림으로), `goal`(추천 단어용: 지금 상태에서 학습자가 할 일, 최대 300자), `learner`(선택: `nickname` 최대 32자, `avatar_type` `F`·`M`, `speech_speed` 0.8~1.5 기본 1.1). **한 턴의 대답은 난이도에 따라 한 문장에서 세 문장까지**이며 한 줄로 옵니다.
+요청: `npc`, `memory`(선택: `visits`, `card`. 예전 `last_order`는 없앴고 보내도 무시), `relationship`(선택, 아래 표), `needs`(선택, 아래 설명), `history`(최대 40줄), `text`(학습자 원문, 최대 500자), `instruction`(Spring 규칙이 정한 이번 대답에서 할 일, 최대 3000자), `tts`(기본 `true`), `level`(기본 `2`), `suggest_words`(기본 `false`, 추천 단어를 스트림으로), `goal`(추천 단어용: 지금 상태에서 학습자가 할 일, 최대 300자), `learner`(선택: `nickname` 최대 32자, `avatar_type` `F`·`M`, `speech_speed` 0.8~1.5 기본 1.1). **한 턴의 대답은 난이도에 따라 한 문장에서 세 문장까지**이며 한 줄로 옵니다.
 
 `learner`는 대답 상대인 학습자입니다. NPC는 `avatar_type`에 맞는 호칭만 씁니다(`F`는 ma'am·Ms., `M`은 sir·Mr.). 칸을 빼거나 `avatar_type`이 없으면 Mr.·Ms.·sir·ma'am처럼 성별을 짐작한 호칭을 쓰지 않습니다. `nickname`은 영어 글자로 된 실제 이름일 때만 부릅니다. Spring은 대화를 시작한 사용자의 닉네임과 캐릭터 기본형을 첫 인사와 매 턴 대답에 보냅니다. `speech_speed`는 대답 음성의 빠르기(Kokoro speed)이며, Spring이 Unity 요청의 `speechSpeed`(학습자가 마이페이지에서 고른 값)를 그대로 넣습니다. `learner`가 없거나 칸이 없으면 1.1배이고, 범위를 벗어나면 `400 invalid_request`입니다.
 
@@ -451,9 +451,9 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 요청: `npc`, `outcome`(대화 결과 한 줄), `history`(최대 200줄, 학습자 줄의 `english`·`rude` 포함), `memory_card`(이전 카드).
 
-응답: `{"memory_card": {"name": "", "claims": [], "events": [], "attitude": "neutral", "struggled": []}, "impression": "neutral", "affinity_delta": 0, "usage": [...]}`
+응답: `{"memory_card": {"name": "", "claims": [], "events": [], "attitude": "neutral", "struggled": [], "requests": []}, "impression": "neutral", "affinity_delta": 0, "usage": [...]}`
 
-- `memory_card`: `name`(최대 40자), `claims`·`events`·`struggled`(각 최대 5개, 항목당 100자), `attitude`(`friendly`·`neutral`·`wary`). 연락처(전화번호·이메일)는 지웁니다.
+- `memory_card`: `name`(최대 40자), `claims`·`events`·`struggled`·`requests`(각 최대 5개, 항목당 100자), `attitude`(`friendly`·`neutral`·`wary`). 연락처(전화번호·이메일)는 지웁니다. `requests`는 학습자가 요청하고 함께 한 일(예: `ordered an iced vanilla latte`, `asked the way to the bank`)을 모델이 자유 문장으로 적고, 되풀이된 일은 하나로 합칩니다. 다음 방문에 얼굴을 알아보면(2.3절 "본 적 있음"부터) 대답 지시에 "What they asked for or did with you before"로 넣어, 맞으면 같은 것을 권하거나 어땠는지 묻게 합니다. 공짜·할인은 약속하지 않습니다.
 - `impression`: 카드를 만드는 같은 모델 호출이 고른 **이번 대화만의** 인상(`good`·`neutral`·`bad`). 지난 방문은 보지 않습니다. 용건 밖으로 분명히 즐거웠을 때(친근한 잡담, 따뜻한 말, NPC에 대한 관심)만 `good`이고, 정중하지만 평범한 주문·요청은 `neutral`입니다. 영어 실수·한국어·짧은 대답은 인상을 나쁘게 하지 않습니다. 모델이 빠뜨리거나 정해진 값이 아니면 `neutral`로 보고 카드는 그대로 돌려줍니다.
 - `affinity_delta`: 좋은 대화로 올릴 호감(정수). `impression`이 `good`이고, 학습자가 이번 대화에서 공통 규칙의 `goodConversationMinLearnerLines`(3)줄 이상 말했으며, 무례로 확정된 줄(`rude: true`)이 없을 때만 `goodConversationAffinity`(3)이고 그 밖에는 `0`입니다. 나쁜 대화도 깎지 않습니다(무례는 대화 중에 이미 깎음). 백엔드는 카드를 저장하는 같은 트랜잭션에서 `affinity = min(100, affinity + affinity_delta)`로 더합니다. 다음 대화를 시작할 때 오른 값이 보입니다.
 - 공급자 실패는 429/503, 출력이 JSON 객체가 아니면 502 `invalid_output`. **실패하면 이전 카드를 그대로 둡니다.**

@@ -64,14 +64,41 @@ def test_a_card_without_requests_breaks_the_contract(client, provider):
     assert response.status_code == 502 and response.json()["error"]["code"] == "invalid_output"
 
 
-def test_a_familiar_face_brings_up_what_they_asked_for_last_time(client, provider):
-    prompt = system_of(
-        reply_request(client, provider, WITH_PROFILE, relationship={"recognition": RULES["seenBefore"]}, memory={"visits": 2, "card": CARD})
+def visit_prompt(client, provider, recognition: int) -> str:
+    return system_of(
+        reply_request(client, provider, WITH_PROFILE, relationship={"recognition": recognition}, memory={"visits": 2, "card": CARD})
     )
 
+
+def test_a_familiar_face_only_lightly_checks_something_asked_for_more_than_once(client, provider):
+    """한 번 온 손님의 주문을 두 번째 방문에 권하면 단골 대접이라 어색하다(설계 5절: 한 번 시키면 다음엔 못 떠올리고, 되풀이하면 떠올림).
+    본 적 있는 얼굴에는 두 번 이상 한 요청만 가볍게 확인하게 하고, 먼저 권하지 않게 한다."""
+    prompt = visit_prompt(client, provider, RULES["seenBefore"])
+
     assert "What they asked for or did with you before: ordered an iced vanilla latte; asked the way to the bank" in prompt
-    assert "want the same again" in prompt and "never say it is free" in prompt
+    assert "only bring up something they asked for more than once" in prompt and "never say it is free" in prompt
+    assert "suggest what they usually get first" not in prompt
+
+
+def test_a_regular_is_offered_what_they_usually_get(client, provider):
+    prompt = visit_prompt(client, provider, RULES["regular"])
+
     assert "if they ask what to get or seem undecided, suggest what they usually get first" in prompt
+    assert "only bring up something they asked for more than once" not in prompt
+
+
+def test_the_memory_model_writes_how_often_a_request_happened(client, provider):
+    """본 적 있는 얼굴이 '두 번 이상'을 알아볼 수 있게, 기억 모델이 되풀이된 요청에 횟수를 적는다."""
+    seen = {}
+
+    def answer(body):
+        seen["system"] = body["messages"][0]["content"]
+        return ok(json.dumps({**CARD, "impression": "neutral"}))
+
+    provider.answers["memory"] = answer
+    client.post("/v1/memory", json=memory_request())
+
+    assert "says how often" in seen["system"]
 
 
 def test_a_new_face_does_not_recall_what_they_asked_for(client, provider):

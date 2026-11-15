@@ -259,16 +259,22 @@ def memory_note(m: Memory | None) -> str:
     return "\n".join(lines + card_lines(m.card or {}))
 
 
-# 지난 요청·한 일(카드 requests)은 그대로 되풀이하지 않고 자연스럽게 꺼내게 한다. 공짜·할인은 공통 규칙처럼 약속하지 않는다
-REQUESTS_HINT = (
-    "if it fits, bring one up naturally, like asking how it was or whether they want the same again; "
-    "if they ask what to get or seem undecided, suggest what they usually get first; "
-    "never say it is free and never invent details"
-)
+# 지난 요청·한 일(카드 requests)을 얼마나 아는 사이인지에 맞게 쓴다(설계 5절: 한 번 시킨 것은 다음에 못 떠올리고, 되풀이하면 떠올림).
+# 한 번 온 손님의 주문을 두 번째 방문에 권하면 단골 대접이라 어색하다. 공짜·할인은 공통 규칙처럼 약속하지 않는다
+REQUESTS_HINT = {
+    "familiar": (
+        "only bring up something they asked for more than once, and only as a light question like whether they want it again; "
+        "do not mention a one-time request and do not suggest anything as their usual; never say it is free and never invent details"
+    ),
+    "regular": (
+        "if it fits, bring one up naturally, like asking how it was or whether they want their usual; "
+        "if they ask what to get or seem undecided, suggest what they usually get first; never say it is free and never invent details"
+    ),
+}
 
 
-def card_lines(c: dict) -> list[str]:
-    """기억 카드(/v1/memory)를 지시문 줄로."""
+def card_lines(c: dict, known: str = "familiar") -> list[str]:
+    """기억 카드(/v1/memory)를 지시문 줄로. known은 얼마나 알아보는지(familiar·regular)이고 지난 요청을 쓰는 방식을 정한다."""
     lines = []
     if c.get("name"):
         lines.append(f"- Their name: {c['name']}")
@@ -285,7 +291,7 @@ def card_lines(c: dict) -> list[str]:
             "- English they found hard last time: " + "; ".join(c["struggled"]) + " (use one of these naturally if it fits; never teach)"
         )
     if c.get("requests"):
-        lines.append("- What they asked for or did with you before: " + "; ".join(c["requests"]) + f" ({REQUESTS_HINT})")
+        lines.append("- What they asked for or did with you before: " + "; ".join(c["requests"]) + f" ({REQUESTS_HINT[known]})")
     return lines
 
 
@@ -422,7 +428,7 @@ def person_note(m: Memory | None, state: dict) -> str:
     if state["stage"] != "neutral":
         card = {key: value for key, value in card.items() if key != "attitude"}
     if state["known"] != "new":
-        lines += card_lines(card)
+        lines += card_lines(card, state["known"])
     elif strong:
         lines += card_lines({"events": card.get("events", []), "attitude": card.get("attitude")})
     if state["personal"]:
@@ -692,7 +698,8 @@ You get what the character remembered before and the conversation that just ende
 - struggled: English expressions the customer clearly had trouble with in this conversation (short phrases). Max 5.
 - requests: what the customer asked the character for or did with them, with the key details, so the character can bring it up next time
   ("ordered an iced vanilla latte", "asked the way to the bank", "left two bags before check-in"). Max 5, newest first; keep old ones
-  unless replaced, and merge repeats into one ("orders an iced latte almost every visit"). Only what really happened, never prices or promises.
+  unless replaced, and merge repeats into one item that says how often ("ordered an iced vanilla latte twice", "orders an iced latte almost every visit").
+  Only what really happened, never prices or promises.
 - impression: how this conversation alone went for the character, ignoring earlier visits. good only when it was clearly pleasant
   beyond the business: friendly chat, warmth, kind words, real interest in the character. A polite but plain order or request is neutral.
   bad when the customer was unpleasant or dismissive. English mistakes, Korean words and short answers never make it worse.

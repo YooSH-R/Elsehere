@@ -3,7 +3,7 @@
   "needs": {
     "HUNGER": { "dropPerHour": 6, "start": 70 },
     "ENERGY": { "dropPerHour": 5, "start": 70 },
-    "SOCIAL": { "dropPerHour": 4, "start": 70 },
+    "SOCIAL": { "dropPerHour": 4, "start": 70, "conversationFill": 30 },
     "FUN": { "dropPerHour": 5, "start": 70 },
     "WORK": { "dropPerHour": 8, "start": 70 }
   },

@@ -621,6 +621,12 @@
           "minimum": 0,
           "maximum": 100,
           "description": "게임 시각 한 시간에 줄어드는 양. NPC별 생활 파일의 배수를 곱한다."
+        },
+        "conversationFill": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "학습자와 대화를 마치면 채우는 양. 없으면 대화로 채우지 않는다. 채우는 사물이 없는 사교만 둔다."
         }
       }
     }

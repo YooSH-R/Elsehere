@@ -12,7 +12,8 @@
     },
     "SOCIAL": {
       "dropPerHour": 4,
-      "start": 70
+      "start": 70,
+      "conversationFill": 30
     },
     "FUN": {
       "dropPerHour": 5,

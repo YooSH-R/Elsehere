@@ -99,3 +99,12 @@ def test_the_unity_place_hours_match_a_fresh_export():
 
     assert committed == npc_life_export.unity_place_hours()
     assert committed["generatedBy"] == "ai/tools/npc_life_export.py"
+
+
+def test_a_talk_with_the_learner_fills_social_because_no_object_does():
+    """사교를 채우는 사물 행동이 없어, 학습자와 대화를 마치면 채운다. 다른 욕구는 대화로 채우지 않는다."""
+    needs = service_rules()["needs"]
+
+    assert not any("SOCIAL" in action["fills"] for action in service_rules()["actions"])
+    assert needs["SOCIAL"]["conversationFill"] > 0
+    assert [need for need, rule in needs.items() if rule.get("conversationFill")] == ["SOCIAL"]

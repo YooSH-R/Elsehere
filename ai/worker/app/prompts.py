@@ -444,13 +444,12 @@ def npc_messages(
     learner: Learner | None = None,
     needs: dict[str, float] | None = None,
 ) -> list[dict]:
-    rules = npc_relationship.service_rules()
     if relationship is None:  # 처음 만났거나 연습·복습 대화라 관계가 없으면 지난 대화 수와 기억 카드만
         about = memory_note(memory)
     else:
-        about = person_note(memory, npc_relationship.person_state(relationship.model_dump(), n.profile, *rules))
-    learner_turns = [(h.rude, h.events) for h in history if h.who == "me"]
-    mood = mood_note(npc_relationship.mood_state(learner_turns, needs, n.profile, *rules))
+        state = npc_relationship.person_state(relationship.model_dump(), n.profile, *npc_relationship.service_rules())
+        about = person_note(memory, state)
+    mood = mood_note(npc_relationship.reply_mood(history, needs, n.profile))
     note = "\n".join(part for part in (about, mood) if part)
     address = learner_section(learner.nickname, learner.avatar_type) if learner else learner_section(None, None)
     if n.profile is not None:  # 백엔드가 인격을 보내면 공통 규칙 + 인격, 아직 인격이 없는 NPC는 위의 한 줄 역할 지시문

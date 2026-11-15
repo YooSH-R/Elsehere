@@ -64,6 +64,55 @@ def test_compliment_and_apology_are_distinct_from_an_ordinary_greeting(provider,
         assert len(provider.calls) == 1
 
 
+RUDE_LINE = {"who": "me", "text": "[withheld]", "rude": True}
+PLAIN_LINE = {"who": "me", "text": "Okay."}
+COMPLIMENT_LINE = {"who": "me", "text": "You are so kind!", "events": ["COMPLIMENT"]}
+NPC_LINE = {"who": "npc", "text": "Sure."}
+
+
+def first_face(provider, history: list[dict], proposed: str | None, reaction: str | None = None) -> str | None:
+    marker = f"[[{proposed}:0.5]]" if proposed else ""
+    provider.answers["npc"] = lambda body: stream([f"{marker}What would you like?"])
+    with make_client(provider, FakeTts(wav=True)) as client:
+        body = {**REPLY, "history": history, "reaction": reaction, "suggest_words": False}
+        done = next(data for name, data in events(client.post("/v1/npc/reply", json=body)) if name == "done")
+        return done["speech_phrases"][0]["emotion"]
+
+
+@pytest.mark.parametrize(
+    ("history", "expected"),
+    [
+        ([RUDE_LINE, NPC_LINE], "frown"),  # 무례 바로 뒤: 강한 짜증
+        ([RUDE_LINE, NPC_LINE, PLAIN_LINE, NPC_LINE, PLAIN_LINE, NPC_LINE], "indifferent"),  # 가라앉는 중: 약한 짜증
+    ],
+)
+def test_a_lingering_annoyance_keeps_the_npc_from_smiling_in_later_turns(provider, history, expected):
+    """무례가 있던 턴(서버 reaction)이 지나도 짜증이 남은 동안에는 모델이 웃는 표정을 골라도 차가운 얼굴로 바꾼다.
+    분노를 강제하지는 않는다(표정 문서의 '무례 뒤 평범한 말에는 분노를 강제하지 않는다')."""
+    assert first_face(provider, history, "warm_smile") == expected
+    assert first_face(provider, history, "laugh") == expected
+
+
+def test_an_annoyed_npc_without_a_face_marker_does_not_fall_back_to_a_smile(provider):
+    """표시가 없으면 Unity가 기본 기분(인자한 미소)으로 재생하므로, 짜증이 남았으면 차가운 얼굴을 정해 준다."""
+    assert first_face(provider, [RUDE_LINE, NPC_LINE], None) == "frown"
+
+
+def test_an_annoyed_npc_may_still_look_concerned_or_calm(provider):
+    """반대인 표정만 막고, 짜증과 어울리는 다른 표정은 그대로 둔다."""
+    assert first_face(provider, [RUDE_LINE, NPC_LINE], "concerned") == "concerned"
+
+
+def test_a_good_mood_keeps_the_npc_from_frowning(provider):
+    assert first_face(provider, [COMPLIMENT_LINE, NPC_LINE], "frown") == "warm_smile"
+    assert first_face(provider, [COMPLIMENT_LINE, NPC_LINE], "curious") == "curious"
+
+
+def test_a_confirmed_reaction_this_turn_wins_over_the_lingering_mood(provider):
+    """이번 턴에 서버가 사과를 확정하면 남은 짜증보다 사과 반응(relieved)을 따른다."""
+    assert first_face(provider, [RUDE_LINE, NPC_LINE], "big_laugh", reaction="apology_after_rude") == "relieved"
+
+
 def test_forced_reaction_does_not_split_synthesis_at_discarded_mood_markers(provider):
     provider.answers["npc"] = lambda body: stream(["[[warm_smile:0.4]]Please [[laugh:0.8]]stop that."])
     tts = FakeTts(wav=True)

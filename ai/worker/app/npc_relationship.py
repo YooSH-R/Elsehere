@@ -216,6 +216,13 @@ def mood_state(
     }
 
 
+def reply_mood(history: list, needs: dict[str, float] | None, profile: NpcProfile | None) -> dict:
+    """대답 경로(/v1/npc/reply)의 이번 대화 기분. 지시문(app.prompts)과 표정 제한(app.npc_emotion.mood_face)이 같은 값을 쓴다.
+    history는 요청의 대화 줄(app.schemas.Line)이고 학습자 줄의 무례·사건만 본다."""
+    learner_turns = [(line.rude, line.events) for line in history if line.who == "me"]
+    return mood_state(learner_turns, needs, profile, *service_rules())
+
+
 def mood_strength(level: float, rules: dict) -> str | None:
     """기분 세기(0~3)를 말투에 드러나는 단계로. showsAt 미만은 None, strongAt 이상은 strong, 그 사이는 mild."""
     mood = rules["mood"]

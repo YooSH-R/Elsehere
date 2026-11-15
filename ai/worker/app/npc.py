@@ -16,7 +16,8 @@ from . import prompts as P
 from . import services
 from .config import Settings
 from .llm import LLM, ModelOutputError, ProviderError, Usage, within
-from .npc_emotion import EMOTION_PROMPT, EmotionStream, reaction_instruction, response_mood
+from .npc_emotion import EMOTION_PROMPT, EmotionStream, mood_face, reaction_instruction, response_mood
+from .npc_relationship import reply_mood
 from .schemas import Line, ReplyRequest, SuggestRequest
 from .speech_emotion import attach_emotion
 from .tts import AudioStore, Kokoro, join_wavs
@@ -73,10 +74,15 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
     closing = False
     moods = {}
     speech_phrases = []
+    feeling = reply_mood(req.history, req.needs, req.npc.profile)
+
+    def face(mood):
+        # 이번 턴에 서버가 확정한 반응(무례·칭찬·사과)이 먼저고, 없으면 이번 대화의 기분과 반대인 표정만 막는다
+        return response_mood(req.reaction, mood) if req.reaction else mood_face(feeling, mood)
 
     def schedule(text: str, mood=None):
         nonlocal last_audio_requested_at
-        mood = response_mood(req.reaction, mood)
+        mood = face(mood)
         task = None
         last_audio_requested_at = time.perf_counter()
         if use_tts:
@@ -105,7 +111,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
         def consume(parts):
             nonlocal current_mood
             for text, mood in parts:
-                mood = response_mood(req.reaction, mood)
+                mood = face(mood)
                 if mood != current_mood:
                     for part in sp.flush():
                         schedule(part, current_mood)

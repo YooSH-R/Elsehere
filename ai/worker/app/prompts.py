@@ -261,7 +261,8 @@ def memory_note(m: Memory | None) -> str:
 
 # 지난 요청·한 일(카드 requests)은 그대로 되풀이하지 않고 자연스럽게 꺼내게 한다. 공짜·할인은 공통 규칙처럼 약속하지 않는다
 REQUESTS_HINT = (
-    "if it fits, bring one up naturally, like asking how it was or whether to offer the same again; "
+    "if it fits, bring one up naturally, like asking how it was or whether they want the same again; "
+    "if they ask what to get or seem undecided, suggest what they usually get first; "
     "never say it is free and never invent details"
 )
 

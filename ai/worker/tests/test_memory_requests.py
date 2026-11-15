@@ -70,7 +70,8 @@ def test_a_familiar_face_brings_up_what_they_asked_for_last_time(client, provide
     )
 
     assert "What they asked for or did with you before: ordered an iced vanilla latte; asked the way to the bank" in prompt
-    assert "offer the same again" in prompt and "never say it is free" in prompt
+    assert "want the same again" in prompt and "never say it is free" in prompt
+    assert "if they ask what to get or seem undecided, suggest what they usually get first" in prompt
 
 
 def test_a_new_face_does_not_recall_what_they_asked_for(client, provider):

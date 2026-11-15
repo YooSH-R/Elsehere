@@ -159,20 +159,38 @@ def latest_cause(learner_turns: list[LearnerTurn], emotion: str, rules: dict) ->
 def person_state(relationship: dict, profile: NpcProfile | None, rules: dict, library: dict) -> dict:
     """대답 지시문에 말로 풀어 넣을 이 사람과의 관계. 숫자는 지시문에 넣지 않는다. 이번 대화의 기분은 mood_state가 따로 정한다.
     - known: 얼마나 알아보는지 new(처음 봄)·familiar(본 적 있음)·regular(단골). 오래 안 온 날만큼 줄어든 알아봄으로 정한다
-    - feeling: liked·disliked·None(티 나지 않음)
+    - stage: 호감 단계 hostile(적대)·cold(냉담)·neutral(보통)·warm(호의)·close(친밀). 경계는 relationship.affinityStages
     - personal: 자기 이야기를 조금 할 만큼 가까운지. 기준(알아봄·호감)에 NPC의 personalTalkScale을 곱한다(거리를 두는 성격은 늦게)"""
     thresholds = rules["relationship"]
     rates = npc_rates(profile, rules, library)
     recognition = recognition_today(relationship.get("recognition", 0), relationship.get("days_since_last_talk", 0), rules)
     affinity = relationship.get("affinity", 0)
     known = "regular" if recognition >= thresholds["regular"] else "familiar" if recognition >= thresholds["seenBefore"] else "new"
-    feeling = "liked" if affinity >= thresholds["liked"] else "disliked" if affinity <= thresholds["disliked"] else None
     personal, personal_scale = thresholds["personalTalk"], rates.get("personalTalkScale", 1)
     return {
         "known": known,
-        "feeling": feeling,
+        "stage": affinity_stage(affinity, known != "new", rules),
         "personal": recognition >= personal["recognition"] * personal_scale and affinity >= personal["affinity"] * personal_scale,
     }
+
+
+def affinity_stage(affinity: int, recognized: bool, rules: dict) -> str:
+    """호감 단계. 친밀은 얼굴을 알아볼 때만이고, 처음 보거나 오래 안 와 잊은 얼굴이면 호의로 대한다(모르는 얼굴에게 친구처럼 굴면 어색함)."""
+    stages = rules["relationship"]["affinityStages"]
+    if affinity <= stages["hostile"]:
+        return "hostile"
+    if affinity <= stages["cold"]:
+        return "cold"
+    if affinity >= stages["close"] and recognized:
+        return "close"
+    return "warm" if affinity >= stages["warm"] else "neutral"
+
+
+def reply_stage(relationship: dict | None, profile: NpcProfile | None) -> str:
+    """대답 경로의 호감 단계. 관계가 없으면(처음 만남, 연습·복습 대화) 보통. 표정 제한(app.npc_emotion.mood_face)에 쓴다."""
+    if relationship is None:
+        return "neutral"
+    return person_state(relationship, profile, *service_rules())["stage"]
 
 
 WARM_NEEDS = {"SOCIAL"}  # 낮으면 말 상대가 반가운 욕구. 짜증 난 동안에는 반대인 말투라 넣지 않는다

@@ -176,13 +176,13 @@ def test_a_friendly_learner_is_liked_sooner_than_one_who_only_orders():
             affinity += sum(rel.line_affinity_delta(events[:line], [event], {}, RULES) for line, event in enumerate(events))
         return conversations
 
-    assert (until(relationship["liked"], friendly), until(relationship["personalTalk"]["affinity"], friendly)) == (2, 3)
-    assert (until(relationship["liked"], polite), until(relationship["personalTalk"]["affinity"], polite)) == (5, 10)
+    assert (until(relationship["affinityStages"]["warm"], friendly), until(relationship["personalTalk"]["affinity"], friendly)) == (2, 3)
+    assert (until(relationship["affinityStages"]["warm"], polite), until(relationship["personalTalk"]["affinity"], polite)) == (5, 10)
 
 
 def test_two_rude_lines_make_a_service_npc_cool_but_one_does_not():
     """1차 유저 테스트 목표: 무례 한 번으로는 싫어함까지 가지 않고, 두 번이면 다음 방문에 차갑게 대한다(서비스 NPC 모두)."""
-    disliked = RULES["relationship"]["disliked"]
+    disliked = RULES["relationship"]["affinityStages"]["cold"]
     for npc_id in SERVICE_NPCS:
         rates = rel.npc_rates(NpcProfile.model_validate(card(npc_id)["npcProfile"]), RULES, npc_persona.load_behaviors())
         once = rel.rude_affinity_delta(rates, RULES)
@@ -247,12 +247,30 @@ def test_how_well_the_npc_knows_them_follows_recognition_after_the_days_away():
     assert state(faded)["known"] == "new"  # 오래 안 오면 다시 낯선 얼굴
 
 
-def test_feelings_show_only_past_the_rule_thresholds():
-    relationship = RULES["relationship"]
+STAGES = RULES["relationship"]["affinityStages"]
 
-    assert state({"recognition": 30, "affinity": relationship["liked"]})["feeling"] == "liked"
-    assert state({"recognition": 30, "affinity": relationship["disliked"]})["feeling"] == "disliked"
-    assert state({"recognition": 30, "affinity": 0})["feeling"] is None
+
+def test_affinity_falls_into_five_stages():
+    """호감을 적대·냉담·보통·호의·친밀로 나눈다. 경계값은 공통 규칙 relationship.affinityStages."""
+    known = RULES["relationship"]["seenBefore"]
+
+    def stage(affinity: int) -> str:
+        return state({"recognition": known, "affinity": affinity})["stage"]
+
+    assert [stage(STAGES["hostile"]), stage(STAGES["hostile"] + 1)] == ["hostile", "cold"]
+    assert [stage(STAGES["cold"]), stage(STAGES["cold"] + 1)] == ["cold", "neutral"]
+    assert stage(0) == "neutral"
+    assert [stage(STAGES["warm"] - 1), stage(STAGES["warm"])] == ["neutral", "warm"]
+    assert [stage(STAGES["close"] - 1), stage(STAGES["close"])] == ["warm", "close"]
+
+
+def test_a_face_they_do_not_recognize_is_never_treated_as_close():
+    """친밀은 얼굴을 알아봐야(본 적 있음부터) 쓴다. 처음 보거나 오래 안 와 잊은 얼굴에게 친구처럼 굴면 어색해서 호의로 대한다."""
+    relationship = RULES["relationship"]
+    faded = {"recognition": relationship["seenBefore"], "affinity": STAGES["close"], "days_since_last_talk": relationship["graceDays"] + 1}
+
+    assert state({"recognition": 0, "affinity": 100})["stage"] == "warm"
+    assert state(faded)["stage"] == "warm"
 
 
 def test_personal_talk_needs_both_knowing_and_liking_them():

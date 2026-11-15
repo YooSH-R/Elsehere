@@ -536,8 +536,7 @@
             "recognitionPerConversation",
             "seenBefore",
             "regular",
-            "liked",
-            "disliked",
+            "affinityStages",
             "personalTalk",
             "graceDays",
             "recognitionDropPerDay",
@@ -555,8 +554,18 @@
             },
             "seenBefore": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 알아봄부터 '본 적 있음'." },
             "regular": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 알아봄부터 '단골'." },
-            "liked": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 호감부터 좋아하는 티가 난다." },
-            "disliked": { "type": "integer", "minimum": -100, "maximum": 0, "description": "이 호감 이하면 싫어하는 티가 난다(차갑게 대함)." },
+            "affinityStages": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["hostile", "cold", "warm", "close"],
+              "properties": {
+                "hostile": { "type": "integer", "minimum": -100, "maximum": 0, "description": "이 호감 이하면 적대: 인사 없이 용건만, 최소한의 도움, 경계하는 말투." },
+                "cold": { "type": "integer", "minimum": -100, "maximum": 0, "description": "이 호감 이하면 냉담: 형식적인 인사, 덧붙임 없이 예의 있지만 차갑게." },
+                "warm": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 호감부터 호의: 반가워하고, 잡담을 받아 주고, 말로 작은 팁·추천 하나." },
+                "close": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 호감부터 친밀: 이름을 부르며 친구처럼. 얼굴을 알아볼 때만이고, 모르는 얼굴이면 호의로 대한다." }
+              },
+              "description": "호감 단계 경계. 그 사이는 보통(성격대로). 단계마다 대답 지시문의 태도와 기본 표정이 다르다(ai/worker/app/prompts.py STAGE)."
+            },
             "personalTalk": {
               "type": "object",
               "additionalProperties": false,

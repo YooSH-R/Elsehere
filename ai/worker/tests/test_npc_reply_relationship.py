@@ -64,19 +64,73 @@ def test_a_strong_feeling_from_before_is_remembered_even_without_recognizing_the
     assert "Minsu" not in prompt
 
 
+STAGES = RULES["affinityStages"]
+STAGE_LINES = {
+    "hostile": "You really dislike this person",
+    "cold": "You do not like this person much",
+    "warm": "You like this person.",
+    "close": "You are close with this person",
+}
+
+
+def stage_prompt(client, provider, affinity: int, **body) -> str:
+    return system(client, provider, relationship={"recognition": RULES["seenBefore"], "affinity": affinity}, **body)
+
+
+@pytest.mark.parametrize(("stage", "affinity"), [(stage, STAGES[stage]) for stage in STAGE_LINES])
+def test_each_affinity_stage_has_its_own_attitude(client, provider, stage, affinity):
+    prompt = stage_prompt(client, provider, affinity)
+
+    assert STAGE_LINES[stage] in prompt
+    assert all(line not in prompt for other, line in STAGE_LINES.items() if other != stage)
+
+
+def test_a_neutral_stage_leaves_the_npc_to_its_own_personality(client, provider):
+    prompt = stage_prompt(client, provider, 0)
+
+    assert "How you treat this person:" not in prompt
+
+
 @pytest.mark.parametrize(
-    ("affinity", "line"),
-    [(RULES["liked"], "You like this person."), (RULES["disliked"], "You do not like this person much")],
+    ("stage", "behaviors"),
+    [
+        ("hostile", ["curt", "steer back to business", "only the help your job requires", "do not call them by name", "Face: indifferent"]),
+        ("cold", ["brief, formal greeting", "add nothing extra", "do not call them by name", "Face: indifferent"]),
+        ("warm", ["glad to see them", "ask something back", "one small extra tip", "use their name", "Face: warm_smile"]),
+        ("close", ["by name like a friend", "share a little", "insider tips", "Face: warm_smile"]),
+    ],
 )
-def test_liking_or_disliking_them_reaches_the_prompt(client, provider, affinity, line):
-    assert line in system(client, provider, relationship={"recognition": RULES["seenBefore"], "affinity": affinity})
+def test_each_stage_spells_out_greeting_small_talk_help_name_and_face(client, provider, stage, behaviors):
+    """단계마다 인사·잡담·도움·호칭·기본 표정을 구체적으로 적는다(한 줄 '조금 더 따뜻하게'로는 작은 모델이 하던 일만 함)."""
+    prompt = stage_prompt(client, provider, STAGES[stage])
+
+    assert all(behavior in prompt for behavior in behaviors), stage
+
+
+@pytest.mark.parametrize("stage", ["warm", "close"])
+def test_the_extra_help_never_promises_free_things(client, provider, stage):
+    """덤은 말로 하는 도움(팁·추천·정보)만. 줄 수 없는 공짜 물건·할인은 약속하지 않는다(공통 규칙과 같음)."""
+    assert "never free items or discounts" in stage_prompt(client, provider, STAGES[stage])
+
+
+def test_the_attitude_sits_in_this_turn_with_the_mood(client, provider):
+    """기분 줄처럼, 대답 바로 앞(이번 턴 칸)에 둬야 실제 모델이 따른다(S15P31A305-926 실제 모델 확인)."""
+    turn = stage_prompt(client, provider, STAGES["hostile"]).split("## This turn")[1]
+
+    assert "How you treat this person:" in turn and STAGE_LINES["hostile"] in turn
+
+
+def test_a_close_stage_needs_a_face_they_recognize(client, provider):
+    prompt = system(client, provider, relationship={"recognition": 0, "affinity": STAGES["close"]})
+
+    assert STAGE_LINES["warm"] in prompt and STAGE_LINES["close"] not in prompt
 
 
 def test_the_feeling_from_affinity_replaces_the_card_attitude(client, provider):
     """호감 문장과 기억 카드의 태도(말투 참고값)를 겹쳐 넣지 않는다. 호감이 기준 안이면 카드의 태도를 쓴다."""
     friendly = {**MEMORY, "card": {**CARD, "attitude": "friendly"}}
 
-    liked = system(client, provider, relationship={"recognition": RULES["seenBefore"], "affinity": RULES["liked"]}, memory=friendly)
+    liked = system(client, provider, relationship={"recognition": RULES["seenBefore"], "affinity": STAGES["warm"]}, memory=friendly)
     neutral = system(client, provider, relationship={"recognition": RULES["seenBefore"]}, memory=friendly)
 
     assert "You like this person." in liked and "You like this customer." not in liked
@@ -86,7 +140,7 @@ def test_the_feeling_from_affinity_replaces_the_card_attitude(client, provider):
 def test_a_strong_feeling_is_remembered_without_recognizing_them_even_when_disliked(client, provider):
     wary = {**MEMORY, "card": {**CARD, "events": ["was rude to me about the wait"], "attitude": "wary"}}
 
-    prompt = system(client, provider, relationship={"recognition": 0, "affinity": RULES["disliked"]}, memory=wary)
+    prompt = system(client, provider, relationship={"recognition": 0, "affinity": STAGES["cold"]}, memory=wary)
 
     assert "was rude to me about the wait" in prompt and "You do not like this person much" in prompt
 

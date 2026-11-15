@@ -193,15 +193,16 @@ public final class FavorScript {
               + " for "
               + requester
               + ". Hand it over with a friendly word."
-          : "The learner is getting "
+          // 학습자가 누구 부탁인지 말하지 않고 주문만 해도 평소처럼 판다. 직원이 먼저 부탁한 NPC를 아는 척하지 않는다.
+          : "The learner may be getting "
               + offer.en()
-              + " for "
+              + " as an errand for "
               + requester
-              + ". Serve them as usual; it costs "
+              + ", who is paying. Serve the order as usual at the normal price ("
               + offer.price()
-              + " coins, paid with "
+              + " coins), even if they just ask for it. Only mention "
               + requester
-              + "'s money.";
+              + " if the learner does.";
     }
     if (role != Role.REQUESTER) {
       return "";

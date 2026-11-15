@@ -155,8 +155,13 @@ class FavorScriptTest {
             FavorScript.instruction(
                 RULES, errand, Role.REQUESTER, Optional.of(FavorStatus.ACCEPTED)))
         .contains("agreed", "Maple Bakery");
+    // 학습자가 누구 부탁인지 말하지 않아도 평소처럼 팔고, 직원이 먼저 Jake를 아는 척하지 않게 한다.
     assertThat(FavorScript.instruction(RULES, errand, Role.SHOP, Optional.empty()))
-        .contains("a croissant", "Jake");
+        .contains(
+            "a croissant",
+            "Jake",
+            "Serve the order as usual",
+            "Only mention Jake if the learner does");
   }
 
   private static Favor croissantForJake() {

@@ -12,10 +12,12 @@ import com.elsehere.common.config.SecuredWebMvcTest;
 import com.elsehere.favor.dto.FavorResponse;
 import com.elsehere.favor.service.FavorService;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -87,6 +89,76 @@ class FavorControllerTest {
                 .with(authentication(signedIn())))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("ABANDONED"));
+  }
+
+  @Test
+  @DisplayName("근처 NPC를 보내 말을 걸게 할 부탁이 있으면 돌려주고, 욕구 칸의 모르는 키는 버린다")
+  void callAFavor() throws Exception {
+    FavorResponse calling =
+        new FavorResponse(
+            42L,
+            "bring_food",
+            "OFFERED",
+            "HOTEL_STAFF",
+            CROISSANT.titleKo(),
+            CROISSANT.steps(),
+            6,
+            8,
+            null,
+            null);
+    when(service.call(
+            8L, List.of(new FavorService.CallCandidate("HOTEL_STAFF", Map.of("HUNGER", 20.0)))))
+        .thenReturn(Optional.of(calling));
+
+    mvc.perform(
+            post("/api/v1/favors/calls")
+                .header("X-Requested-With", "XMLHttpRequest")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"candidates\":[{\"npcCode\":\"HOTEL_STAFF\",\"needs\":{\"HUNGER\":20,\"MOOD\":5}}]}")
+                .with(authentication(signedIn())))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.requesterNpcCode").value("HOTEL_STAFF"))
+        .andExpect(jsonPath("$.status").value("OFFERED"));
+  }
+
+  @Test
+  @DisplayName("말을 걸 때가 아니면 본문 없이 204")
+  void noCallNow() throws Exception {
+    when(service.call(8L, List.of())).thenReturn(Optional.empty());
+
+    mvc.perform(
+            post("/api/v1/favors/calls")
+                .header("X-Requested-With", "XMLHttpRequest")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"candidates\":[]}")
+                .with(authentication(signedIn())))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  @DisplayName("말을 걸어 온 NPC의 제안을 거절하면 끝난 부탁을 돌려준다")
+  void declineACall() throws Exception {
+    FavorResponse declined =
+        new FavorResponse(
+            42L,
+            "bring_food",
+            "DECLINED",
+            "HOTEL_STAFF",
+            CROISSANT.titleKo(),
+            CROISSANT.steps(),
+            6,
+            8,
+            null,
+            null);
+    when(service.decline(8L, 42L)).thenReturn(declined);
+
+    mvc.perform(
+            post("/api/v1/favors/42/decline")
+                .header("X-Requested-With", "XMLHttpRequest")
+                .with(authentication(signedIn())))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("DECLINED"));
   }
 
   private static UsernamePasswordAuthenticationToken signedIn() {

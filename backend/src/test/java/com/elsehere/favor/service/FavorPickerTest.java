@@ -20,7 +20,7 @@ class FavorPickerTest {
   @Test
   @DisplayName("근무 중 배고픈 호텔 직원은 다른 가게의 먹을 것을 사다 달라고 부탁한다")
   void hungryStaffAsksForFoodFromAnotherShop() {
-    Pick pick = pick(staff("HOTEL_STAFF", "HOTEL", needs("HUNGER", 30.0), 10 * 60)).orElseThrow();
+    Pick pick = pick(staff("HOTEL_STAFF", "HOTEL", needs("HUNGER", 20.0), 10 * 60)).orElseThrow();
 
     assertThat(pick.request().id()).isEqualTo("bring_food");
     assertThat(pick.offerPlace()).isIn("CAFE", "BAKERY", "DINER");
@@ -40,14 +40,14 @@ class FavorPickerTest {
   @Test
   @DisplayName("같은 날 같은 NPC는 늘 같은 부탁을 하고, 날이 바뀌면 해결처가 달라질 수 있다")
   void theSameDayGivesTheSamePick() {
-    Situation hungry = staff("HOTEL_STAFF", "HOTEL", needs("HUNGER", 30.0), 10 * 60);
+    Situation hungry = staff("HOTEL_STAFF", "HOTEL", needs("HUNGER", 20.0), 10 * 60);
 
     assertThat(pick(hungry)).isEqualTo(pick(hungry));
     assertThat(
             java.util.stream.IntStream.rangeClosed(1, 20)
                 .mapToObj(
                     day ->
-                        pick(staff("HOTEL_STAFF", "HOTEL", needs("HUNGER", 30.0), 10 * 60, day))
+                        pick(staff("HOTEL_STAFF", "HOTEL", needs("HUNGER", 20.0), 10 * 60, day))
                             .orElseThrow()
                             .offerPlace())
                 .distinct()
@@ -139,8 +139,30 @@ class FavorPickerTest {
     assertThat(pick(lonely).orElseThrow().request().id()).isEqualTo("recommend_a_spot");
   }
 
+  @Test
+  @DisplayName("편지 심부름은 NPC가 먼저 말을 걸 때만 꺼내고, 학습자가 건 대화에서는 꺼내지 않는다")
+  void aLetterErrandOnlyComesWithAnNpcCall() {
+    Situation afternoon = staff("HOTEL_STAFF", "HOTEL", FINE, 14 * 60);
+
+    assertThat(pick(afternoon)).isEmpty();
+    assertThat(FavorPicker.pick(RULES, afternoon, FavorPicker.CALL).orElseThrow().request().id())
+        .isEqualTo("letter_to_send");
+  }
+
+  @Test
+  @DisplayName("주문 상황 사건은 학습자가 건 대화에서만 나오고, NPC가 말을 걸며 꺼내지 않는다")
+  void anOrderingSituationNeverComesWithAnNpcCall() {
+    Situation lunch = staff("CAFE_STAFF", "CAFE", FINE, 12 * 60 + 30);
+
+    assertThat(FavorPicker.pick(RULES, lunch, FavorPicker.CALL)).isEmpty();
+    assertThat(
+            FavorPicker.pick(RULES, lunch, FavorPicker.TALK_SITUATION).orElseThrow().request().id())
+        .isEqualTo("rush_hour");
+    assertThat(FavorPicker.pick(RULES, lunch, FavorPicker.TALK_NEED)).isEmpty();
+  }
+
   private static Optional<Pick> pick(Situation situation) {
-    return FavorPicker.pick(RULES, situation);
+    return FavorPicker.pick(RULES, situation, FavorPicker.TALK);
   }
 
   private static Situation staff(

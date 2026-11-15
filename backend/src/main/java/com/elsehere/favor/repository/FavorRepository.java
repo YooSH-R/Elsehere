@@ -1,6 +1,7 @@
 package com.elsehere.favor.repository;
 
 import com.elsehere.favor.entity.Favor;
+import com.elsehere.favor.entity.FavorOpening;
 import com.elsehere.favor.entity.FavorStatus;
 import java.util.Collection;
 import java.util.Optional;
@@ -22,9 +23,9 @@ public interface FavorRepository extends JpaRepository<Favor, Long> {
   /** 학습자가 그 게임 날 이미 겪은 계기인지(상황 계기는 하루 한 번). */
   boolean existsByUserIdAndTemplateIdAndGameDay(Long userId, String templateId, int gameDay);
 
-  /** 가장 최근에 끝난 부탁. 쉬는 간격을 센다. */
-  Optional<Favor> findFirstByUserIdAndEndedGameMinuteIsNotNullOrderByEndedGameMinuteDesc(
-      Long userId);
+  /** 그 곳에서 시작해 가장 최근에 끝난 부탁. 대화 속 부탁과 NPC 말 걸기의 쉬는 간격을 따로 센다. */
+  Optional<Favor> findFirstByUserIdAndOpeningAndEndedGameMinuteIsNotNullOrderByEndedGameMinuteDesc(
+      Long userId, FavorOpening opening);
 
   /** 완료한 부탁 보상 코인의 합. 코인 잔액 계산에 더한다. */
   @Query(

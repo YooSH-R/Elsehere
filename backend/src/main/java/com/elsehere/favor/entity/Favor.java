@@ -72,7 +72,12 @@ public class Favor extends BaseEntity {
   // 끝난(완료·거절·만료·그만두기) 게임 분. 쉬는 간격을 셀 때 쓴다.
   private Long endedGameMinute;
 
-  @Column(nullable = false)
+  // 부탁이 시작된 곳. 대화 속 부탁과 NPC 말 걸기는 쉬는 간격을 따로 센다.
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 4)
+  private FavorOpening opening;
+
+  // 부탁을 꺼낸 대화. NPC가 말을 걸어 꺼냈고 아직 그 대화를 시작하지 않았으면 null
   private Long offeredConversationId;
 
   @Column(nullable = false)
@@ -101,10 +106,48 @@ public class Favor extends BaseEntity {
     favor.offerKey = offerKey;
     favor.status = FavorStatus.OFFERED;
     favor.gameDay = gameDay;
+    favor.opening = FavorOpening.TALK;
     favor.offeredConversationId = conversationId;
     favor.rewardCoins = rewardCoins;
     favor.affinityDelta = affinityDelta;
     return favor;
+  }
+
+  /** NPC가 먼저 말을 걸어 꺼낸 부탁. 플레이어가 그 NPC와 대화를 시작하면 그 대화에 붙인다({@link #attachTo}). */
+  public static Favor call(
+      Long userId,
+      String requesterNpcCode,
+      String requesterName,
+      String templateId,
+      String offerPlace,
+      String offerKey,
+      int gameDay,
+      int rewardCoins,
+      int affinityDelta) {
+    Favor favor =
+        offer(
+            userId,
+            requesterNpcCode,
+            requesterName,
+            templateId,
+            offerPlace,
+            offerKey,
+            gameDay,
+            null,
+            rewardCoins,
+            affinityDelta);
+    favor.opening = FavorOpening.CALL;
+    return favor;
+  }
+
+  /** NPC가 말을 걸어 꺼낸 부탁을 그 NPC와 시작한 대화에 붙인다. 그 대화에서 수락·거절을 판정한다. */
+  public void attachTo(Long conversationId) {
+    offeredConversationId = conversationId;
+  }
+
+  /** NPC가 말을 걸어 꺼냈고 플레이어가 아직 그 NPC와 대화를 시작하지 않은 부탁인지. */
+  public boolean waitingForCallAnswer() {
+    return status == FavorStatus.OFFERED && offeredConversationId == null;
   }
 
   public boolean errand() {

@@ -90,7 +90,8 @@ public record StartConversationRequest(
     needs = knownNeeds(needs);
   }
 
-  private static Map<String, Double> knownNeeds(Map<String, Double> needs) {
+  /** 생활 욕구 칸을 정리한다. 모르는 키는 버리고 0~100으로 자른다. 비었으면 null이다. */
+  public static Map<String, Double> knownNeeds(Map<String, Double> needs) {
     if (needs == null) {
       return null;
     }

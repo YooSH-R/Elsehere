@@ -11,15 +11,31 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Predicate;
 
 /**
  * 돌발 부탁 고르기(docs/npc-life-design.md 7.4·7.6). 기준 아래인 욕구 계기와 지금 때가 맞는 상황 계기를 모두 후보로 두고, 급할수록 무겁게(욕구
  * 계기 1 + 2 × (기준 − 값) / 기준, 상황 계기 1) npcId+게임 날짜 씨앗으로 하나를 고른다. 확률을 쓰지 않아 같은 날 같은 NPC는 같은 부탁을 하고 날마다
  * 바뀐다. 심부름 해결처도 그 욕구를 채우는 제공 가운데 자기 근무지가 아닌 것에서 씨앗으로 고른다. 저장은 하지 않는다.
+ *
+ * <p>부탁이 시작되는 곳에 따라 후보 계기 틀을 거른다({@link #TALK_NEED}·{@link #TALK_SITUATION}·{@link #CALL}).
  */
 public final class FavorPicker {
 
   private FavorPicker() {}
+
+  /** 학습자가 건 대화 속 부탁 전부. */
+  public static final Predicate<Request> TALK = request -> request.opensIn("TALK");
+
+  /** 학습자가 건 대화에서 NPC가 내비친 욕구에 학습자가 반응하면 꺼내는 부탁. */
+  public static final Predicate<Request> TALK_NEED = TALK.and(Request::needTrigger);
+
+  /** 학습자가 건 대화에서 주문하다 생기는 상황 사건. 학습자의 정해진 번째 말에서 꺼낸다. */
+  public static final Predicate<Request> TALK_SITUATION =
+      TALK.and(request -> !request.needTrigger());
+
+  /** NPC가 먼저 플레이어에게 말을 걸어 꺼내는 부탁. */
+  public static final Predicate<Request> CALL = request -> request.opensIn("CALL");
 
   /**
    * 부탁을 고를 때 보는 지금 상황.
@@ -49,12 +65,17 @@ public final class FavorPicker {
    */
   public record Pick(Request request, String offerPlace, Offer offer) {}
 
-  public static Optional<Pick> pick(FavorRules rules, Situation situation) {
+  /**
+   * @param allowed 이번에 꺼낼 수 있는 계기 틀(부탁이 시작되는 곳)
+   */
+  public static Optional<Pick> pick(
+      FavorRules rules, Situation situation, Predicate<Request> allowed) {
     boolean canSendOnErrand =
         situation.shiftLeftMinutes() >= rules.constants().minShiftLeftMinutes();
     List<Candidate> candidates = new ArrayList<>();
     for (Request request : rules.requests()) {
-      if (!request.roles().contains(situation.role())
+      if (!allowed.test(request)
+          || !request.roles().contains(situation.role())
           || !request.activities().contains(situation.activity())) {
         continue;
       }

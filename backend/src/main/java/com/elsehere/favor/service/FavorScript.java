@@ -20,6 +20,9 @@ public final class FavorScript {
   static final String GET_FOR_REQUESTER = "get_for_requester";
   static final String HAND_OVER = "hand_over";
 
+  /** 학습자가 NPC가 내비친 욕구에 반응했다(대화 속 욕구 부탁을 꺼내는 계기). */
+  static final String NOTICE = "notice_need";
+
   private FavorScript() {}
 
   /** 지금 대화하는 NPC가 이 부탁에서 맡은 자리. */
@@ -92,6 +95,23 @@ public final class FavorScript {
                       + " (to go) for someone else, or orders it to go."));
       case NONE -> List.of();
     };
+  }
+
+  /** 대화 속 욕구 부탁: 학습자가 NPC가 내비친 그 욕구에 반응했는지 판정할 의도. 설명은 계기 틀의 notice다. */
+  public static WorkerState.Intent noticeIntent(FavorPicker.Pick pick) {
+    return new WorkerState.Intent(NOTICE, pick.request().notice());
+  }
+
+  /** NPC가 먼저 말을 걸어 꺼낸 부탁의 첫마디 지시문. 학습자는 아직 아무 말도 하지 않았으므로 짧게 인사하고 부탁한다. */
+  public static String callInstruction(FavorRules rules, Favor favor) {
+    FavorPicker.Pick pick =
+        new FavorPicker.Pick(
+            request(rules, favor),
+            favor.getOfferPlace(),
+            favor.errand() ? offer(rules, favor) : null);
+    return "You just walked up to the learner (or called them over) because you want to ask a favor;"
+        + " they have not said anything yet. Greet them briefly in your own way first. "
+        + offerInstruction(rules, pick);
   }
 
   /** 판정한 의도로 정해지는 다음 상태. 바뀌지 않으면 빈 값이다. */

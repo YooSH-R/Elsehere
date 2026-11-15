@@ -86,7 +86,8 @@ public class FavorRules {
    * 빈도·기한 상수.
    *
    * @param checkAfterLearnerLines 학습자의 이 번째 정상 발화 뒤에 부탁을 볼지 정한다
-   * @param learnerGapMinutes 부탁이 끝난 뒤 새 부탁을 꺼내지 않는 게임 분
+   * @param learnerGapMinutes 대화 속 부탁이 끝난 뒤 새 대화 속 부탁을 꺼내지 않는 게임 분
+   * @param callGapMinutes NPC가 말 거는 부탁이 끝난 뒤 다음 말 걸기까지의 게임 분. 사용자별 게임 시각은 플레이하는 동안만 흘러 플레이어 기준 간격이다
    * @param errandExpiryMinutes 심부름 기한(게임 분)
    * @param minShiftLeftMinutes 근무가 이만큼 남은 NPC만 심부름을 부탁한다
    * @param dislikedBelow 호감이 이보다 낮으면 부탁하지 않는다
@@ -94,6 +95,7 @@ public class FavorRules {
   public record Constants(
       int checkAfterLearnerLines,
       int learnerGapMinutes,
+      int callGapMinutes,
       int errandExpiryMinutes,
       int minShiftLeftMinutes,
       int dislikedBelow) {}
@@ -121,8 +123,10 @@ public class FavorRules {
   /** 계기 틀. 욕구 계기(need·below) 또는 상황 계기(places·windows)와 해결 방식(TALK·ERRAND). */
   public record Request(
       String id,
+      List<String> opens,
       String titleKo,
       Trigger trigger,
+      String notice,
       List<String> roles,
       List<String> activities,
       String solve,
@@ -138,6 +142,11 @@ public class FavorRules {
 
     public boolean needTrigger() {
       return trigger.need() != null;
+    }
+
+    /** 부탁이 시작될 수 있는 곳(TALK·CALL)인지. */
+    public boolean opensIn(String opening) {
+      return opens.contains(opening);
     }
   }
 

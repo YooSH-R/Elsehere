@@ -66,6 +66,7 @@ class EntitySchemaTest {
             "missions",
             "user_missions",
             "first_day_missions",
+            "npc_favors",
             "conversations",
             "turns",
             "ai_requests",

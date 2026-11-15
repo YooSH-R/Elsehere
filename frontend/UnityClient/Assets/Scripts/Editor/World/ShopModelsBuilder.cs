@@ -173,6 +173,8 @@ namespace A305.EditorTools.World
                     renderer.enabled = false;
                     PrefabUtility.RecordPrefabInstancePropertyModifications(renderer);
                 }
+                if (model == "BarberChair")
+                    BarberChairFitBuilder.Fit(target);
                 Debug.Log("SHOP_MODEL " + model + " " + target.name + " " + bounds.size);
             }
         }

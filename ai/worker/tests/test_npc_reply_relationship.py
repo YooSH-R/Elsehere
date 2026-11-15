@@ -321,3 +321,21 @@ def test_free_conversation_can_lead_or_follow_without_service_assumptions(client
     assert "take the conversational lead" in prompt
     assert "follow their lead" in prompt
     assert "not a service encounter" in prompt
+
+
+def test_the_backend_instruction_comes_before_attitude_and_mood(client, provider):
+    """퀘스트 단계 지시(빠진 정보 묻기·물건 건네기 등)는 꼭 해야 한다. 적대·짜증·성격 줄이 이를 덮지 않게, 이번 턴 칸에 지시가 먼저라고 적는다."""
+    prompt = system(
+        client,
+        provider,
+        relationship={"recognition": 30, "affinity": -40},
+        history=learner_lines(None),
+        instruction="Ask how they want to pay.",
+    )
+    turn = prompt.split("## This turn")[1]
+
+    assert "Whatever the IMPORTANT instruction asks you to say or do comes first" in turn
+
+
+def test_without_attitude_mood_or_temperament_there_is_no_extra_priority_line(client, provider):
+    assert "Whatever the IMPORTANT instruction asks" not in system(client, provider, NPC, history=[])

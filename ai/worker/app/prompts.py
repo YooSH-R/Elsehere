@@ -6,7 +6,7 @@ import re
 
 from . import npc_relationship
 from .llm import ModelOutputError
-from .npc_prompt import CONVERSATION_FLOW, MIDDLE, learner_section, reply_system_prompt
+from .npc_prompt import CONVERSATION_FLOW, INSTRUCTION_FIRST, MIDDLE, learner_section, reply_system_prompt
 from .schemas import Learner, LevelTestSpeakingItem, Line, Memory, Npc, Relationship, State
 
 TOWN = "Maple Town, a small, friendly town in the United States."
@@ -478,7 +478,7 @@ How to reply:
 - Stay in character. Never mention English lessons, practice, difficulty levels, or that you are an AI.
 - Plain spoken words only: no emojis, lists, or stage directions.
 
-IMPORTANT for your next reply: {note or "Just reply naturally."}{chr(10) + mood if mood else ""}"""
+IMPORTANT for your next reply: {note or "Just reply naturally."}{chr(10) + mood if mood else ""}{chr(10) + INSTRUCTION_FIRST if note and mood else ""}"""
 
 
 def npc_messages(

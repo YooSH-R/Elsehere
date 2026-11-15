@@ -248,6 +248,12 @@ VARY_TEMPERAMENT = (
     "Do it in your own words, without reusing a phrase from your earlier replies. "
     "If How you treat this person or How you feel right now says otherwise, follow those: your temperament only shapes how you say it."
 )
+# 백엔드 지시(퀘스트 단계의 빠진 정보 묻기, 물건 건네기, 결제 방법 묻기, 마무리 인사 등)는 꼭 해야 한다.
+# 적대·짜증·성격 줄("한두 문장만", "질문 없이")이 이를 덮지 않게, 그 줄들이 있을 때 지시가 먼저라고 적는다
+INSTRUCTION_FIRST = (
+    "Whatever the IMPORTANT instruction asks you to say or do comes first and must still happen in full; "
+    "your attitude, mood and temperament only change how you say it."
+)
 
 
 def reply_system_prompt(
@@ -265,8 +271,11 @@ def reply_system_prompt(
     if mood:
         turn += f"\n{mood}"
     turn += f"\n{NOT_RUDE_UNLESS_TOLD}"
-    if profile.personality.dimensions and (actions := temperament_actions(profile.personality.dimensions.model_dump())):
+    actions = temperament_actions(profile.personality.dimensions.model_dump()) if profile.personality.dimensions else []
+    if actions:
         turn += f"\nIn this reply, let your temperament show: {'; '.join(actions)}. {VARY_TEMPERAMENT}"
+    if note and (mood or actions):
+        turn += f"\n{INSTRUCTION_FIRST}"
     if profile.speech_style.catchphrases:
         turn += f"\n{SOUND_LIKE_YOURSELF}"
     sections = [

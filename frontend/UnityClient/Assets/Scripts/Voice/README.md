@@ -12,7 +12,7 @@
 | `AudioResampler`, `WavEncoder` | 마이크 샘플레이트(브라우저는 보통 44.1kHz·48kHz)를 16kHz로 줄이고 WAV로 만듭니다. |
 | `IMicrophone`, `BrowserMicrophone`, `UnityMicrophone` | Web 빌드는 브라우저 API(`Plugins/WebGL/VoiceMicrophone.jslib`), Editor·데스크톱은 Unity `Microphone`을 씁니다. Unity `Microphone`은 Web 빌드에서 동작하지 않습니다. |
 | `BrowserMicrophoneErrors`, `MicrophoneAccess` | 브라우저 오류 이름을 권한 거부·장치 없음·지원 안 함으로 나눕니다. |
-| `VoiceRecorderSettings` | 최대 녹음 시간(15초), 조용한 시간(3초), 조용하다고 볼 음량(`Data/Voice/VoiceRecorderSettings.asset`) |
+| `VoiceRecorderSettings` | 최대 녹음 시간(25초), 조용한 시간(5초), 조용하다고 볼 음량(`Data/Voice/VoiceRecorderSettings.asset`) |
 | `VoiceSandboxView` | 확인용 화면(Sandbox 전용). [말하기]를 눌러 시작·끝내기, 음량 막대, 목소리 표시 |
 
 ## 동작 규칙
@@ -25,8 +25,8 @@
 | 준비 중 | 녹음을 시작했지만 마이크가 아직 열리는 중이면 `IsPreparing`이 true입니다. 대화창은 버튼에 [준비 중]을 보이고, 소리를 받기 시작하면 [종료]로 바꿉니다. 무음·최대 시간은 소리를 받기 시작한 때부터 셉니다. |
 | 목소리 표시 | 녹음 중 이번 프레임 음량이 조용하다고 볼 음량 이상이면 `IsHearingVoice`가 true입니다. 녹음이 끝나면 false입니다. 대화창은 이 값으로 [종료] 버튼의 불을 초록색으로 켭니다. |
 | 마이크를 열지 못함 | 권한을 묻지 않고 바로 눌렀다가 거부했거나, 거부한 권한으로 다시 누르면 녹음을 취소하고 `RecordingFinished` 대신 `AccessChanged`로 권한 답을 알립니다. |
-| 자동 종료 | 녹음 15초에 닿거나, 음량이 기준보다 작은 상태가 3초 이어지면 끝냅니다. 소리가 들리면 조용한 시간을 처음부터 다시 셉니다. 처음부터 말하지 않아도 3초에 끝납니다. |
-| 끝 | 모은 소리를 16kHz로 줄여 WAV로 만듭니다. 15초 녹음이 약 470KB로 서버 제한(3MB)보다 작습니다. |
+| 자동 종료 | 녹음 25초에 닿거나, 음량이 기준보다 작은 상태가 5초 이어지면 끝냅니다. 소리가 들리면 조용한 시간을 처음부터 다시 셉니다. 처음부터 말하지 않아도 5초에 끝납니다. 생각하면서 천천히 말하는 학습자가 많아 말 사이 쉬는 시간을 넉넉히 둡니다. |
+| 끝 | 모은 소리를 16kHz로 줄여 WAV로 만듭니다. 25초 녹음이 약 800KB로 서버 제한(3MB)보다 작고, Whisper가 한 번에 받는 30초 안에 듭니다. |
 
 - 무음 판단은 음량 기준이라, 주변이 시끄러우면 최대 시간까지 갈 수 있고 아주 작게 말하면 일찍 끝날 수 있습니다. 기준 음량은 설정 에셋에서 조정합니다. 서버는 무음 녹음을 `STT_NO_SPEECH`로 한 번 더 거릅니다.
 - 브라우저 소리 처리는 `ScriptProcessor`를 씁니다. 표준에서는 오래된 방식이지만 Safari를 포함한 모든 브라우저가 지원하고 별도 스크립트 파일이 필요 없습니다.
@@ -50,7 +50,7 @@ talkButton.onClick.AddListener(() =>
 ## 확인 방법
 
 1. **Tools → A305 → Voice → Build**로 설정·프리팹·`Scenes/Sandbox/VoiceSandbox.unity`를 만듭니다. Editor에서 Play하면 PC 마이크로 녹음을 확인할 수 있습니다.
-2. 브라우저 마이크는 **Tools → A305 → Voice → Build Voice Check Web**으로 만든 `Builds/VoiceCheck`를 localhost나 HTTPS 주소로 열어 확인합니다. 권한 허용·거부, [말하기]로 시작·끝내기와 목소리 표시, 3초 무음 종료, 15초 종료, 다시 듣기를 확인합니다.
+2. 브라우저 마이크는 **Tools → A305 → Voice → Build Voice Check Web**으로 만든 `Builds/VoiceCheck`를 localhost나 HTTPS 주소로 열어 확인합니다. 권한 허용·거부, [말하기]로 시작·끝내기와 목소리 표시, 5초 무음 종료, 25초 종료, 다시 듣기를 확인합니다.
 
 ## 테스트
 

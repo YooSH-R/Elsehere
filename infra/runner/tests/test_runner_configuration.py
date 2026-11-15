@@ -63,7 +63,7 @@ class RunnerConfigurationTests(unittest.TestCase):
         )
         self.assertEqual(dev_parent_rule["auto_cancel"]["on_new_commit"], "none")
         self.assertEqual(dev_child_rule["auto_cancel"]["on_new_commit"], "conservative")
-        self.assertEqual(self.jobs["unity:editor-and-webgl"]["interruptible"], "false")
+        self.assertEqual(self.jobs["unity:editor-tests"]["interruptible"], "false")
         self.assertEqual(self.jobs["unity:webgl-build"]["interruptible"], "false")
         self.assertEqual(self.jobs["dev:child"]["interruptible"], "true")
         child_fallback_rule = next(

@@ -65,8 +65,8 @@ def create_child_pipeline(
     if checks & {"backend", "infra"}:
         jobs.append("infra:observability")
     if environment == "prod":
-        jobs.append("unity:editor-and-webgl")
-    elif "web" in plan["builds"]:
+        jobs.append("unity:editor-tests")
+    if "web" in plan["builds"]:
         jobs.append("unity:webgl-build")
     reused = {} if environment == "prod" else plan.get("reused_jobs", {})
     jobs = [job for job in jobs if job not in reused]
@@ -103,7 +103,9 @@ def create_child_pipeline(
         "include": [{"local": ".gitlab-ci.yml"}],
         "variables": variables,
         f"{environment}:deliver": {
-            "needs": [{"job": job, "artifacts": True} for job in jobs]
+            "needs": [
+                {"job": job, "artifacts": job != "unity:editor-tests"} for job in jobs
+            ]
         },
     }
     if environment == "prod" and check_database_upgrade:

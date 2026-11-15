@@ -23,7 +23,7 @@ namespace A305.Player.Tests
         public void ResetSelection() => PlayerCharacterSelection.Reset();
 
         [UnityTest]
-        public IEnumerator OpenUmbrella_HoldsTheCanopyBehindAndAboveTheHead()
+        public IEnumerator Umbrella_CoversTheHeadWhenOpenedAndIsPutAwayWhenClosed()
         {
             UmbrellaHold hold = null;
             yield return LoadTownPlayer(found => hold = found);
@@ -56,6 +56,12 @@ namespace A305.Player.Tests
                 Is.GreaterThan(headTop),
                 "우산 천의 위쪽이 머리 위로 올라와야 합니다."
             );
+
+            hold.SetOpen(false);
+            yield return null;
+
+            Assert.That(hold.IsOpen, Is.False);
+            Assert.That(hold.Umbrella.gameObject.activeInHierarchy, Is.False);
         }
 
         [UnityTest]
@@ -103,21 +109,6 @@ namespace A305.Player.Tests
 
             hold.SetFolded(false);
             yield return null;
-            Assert.That(hold.Umbrella.gameObject.activeInHierarchy, Is.False);
-        }
-
-        [UnityTest]
-        public IEnumerator ClosedUmbrella_IsPutAway()
-        {
-            UmbrellaHold hold = null;
-            yield return LoadTownPlayer(found => hold = found);
-
-            hold.SetOpen(true);
-            yield return null;
-            hold.SetOpen(false);
-            yield return null;
-
-            Assert.That(hold.IsOpen, Is.False);
             Assert.That(hold.Umbrella.gameObject.activeInHierarchy, Is.False);
         }
 

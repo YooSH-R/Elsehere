@@ -103,7 +103,7 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 - `EntitySchemaTest`는 마이그레이션으로 만든 스키마가 엔티티 매핑으로 만든 스키마와 같은지(컬럼·타입·NOT NULL·기본값, CHECK·유니크·외래 키, 인덱스) 비교합니다. `validate`가 보지 않는 enum CHECK 제약도 여기서 비교하므로, 마이그레이션을 빠뜨리거나 엔티티와 다르게 쓰면 이 테스트가 실패합니다.
 - 엔티티 필드와 DB 컬럼의 타입이 다르면 `validate`가 실패합니다. `Integer` 필드를 `smallint` 컬럼에 두려면 `columnDefinition` 대신 `@JdbcTypeCode(SqlTypes.SMALLINT)`를 씁니다.
 - 테스트 전용 엔티티의 테이블은 [`src/test/resources/db/test-migration`](src/test/resources/db/test-migration)에서 만듭니다. 테스트 설정이 운영 마이그레이션과 이 위치를 함께 읽습니다.
-- 대화·피드백·기억 서비스 테스트(`DialogueServiceTest`를 붙인 테스트)는 AI 워커 호출(`AiGateway`)을 Mock으로 바꾸고 실제 DB와 함께 실행합니다. AI 호출 기록은 `AiGatewayTest`가 실제 DB로 확인합니다. `AiWorkerClientTest`는 테스트 안에서 띄운 가짜 워커로 요청 형식을 확인하며 실제 AI 워커를 부르지 않습니다.
+- 대화·피드백·기억 서비스 테스트(`DialogueDbTest`를 붙인 테스트)는 AI 워커 호출(`AiGateway`)을 Mock으로 바꾸고 실제 DB와 함께 실행합니다. AI 호출 기록은 `AiGatewayTest`가 실제 DB로 확인합니다. `AiWorkerClientTest`는 테스트 안에서 띄운 가짜 워커로 요청 형식을 확인하며 실제 AI 워커를 부르지 않습니다.
 - 테스트는 실제 시계(`ClockConfig`) 대신 고정 시계 `TestClockConfig`(2026-11-02T01:00:00Z, 한국 10:00)를 불러옵니다. 지난 시간이 결과를 바꾸는 테스트는 `AdjustableClock`의 시각을 옮기고 끝나기 전에 되돌립니다. `ClockRuleTest`가 실제 시계를 불러오는 테스트를 막습니다.
 - 서비스 시간대(미션이 바뀌는 자정, 화면 날짜, 사용량 집계 날짜, 정기 작업 시각)는 `ClockConfig.SERVICE_ZONE`(`Asia/Seoul`)을 씁니다. 시간대 문자열을 다른 곳에 쓰면 `ClockRuleTest`가 실패합니다.
 

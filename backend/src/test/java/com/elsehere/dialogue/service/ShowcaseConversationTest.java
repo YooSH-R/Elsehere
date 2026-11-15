@@ -34,10 +34,11 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 
-@DialogueServiceTest
+@DialogueDbTest
 @TestPropertySource(properties = "elsehere.showcase.enabled=true")
 class ShowcaseConversationTest {
-  @Autowired private ConversationService service;
+  @Autowired private DialogueStartService dialogueStartService;
+  @Autowired private DialogueEndService dialogueEndService;
   @Autowired private AiGateway gateway;
   @Autowired private EntityManager entityManager;
   @Autowired private ShowcaseJourneyRepository journeys;
@@ -59,7 +60,7 @@ class ShowcaseConversationTest {
     given(gateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Welcome back! Did you stay dry?", null));
 
-    service.start(
+    dialogueStartService.start(
         userId, new StartConversationRequest(UUID.randomUUID(), "HOTEL_STAFF", InitiatedBy.USER));
 
     ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
@@ -82,7 +83,7 @@ class ShowcaseConversationTest {
     entityManager.flush();
 
     EndConversationResponse ended =
-        service.end(
+        dialogueEndService.end(
             userId, conversation.getId(), new EndConversationRequest(UUID.randomUUID(), true));
 
     assertThat(ended.followUp()).isNull();

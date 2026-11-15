@@ -161,21 +161,8 @@ namespace A305.Npc.PlayModeTests
                 .Teleport(new Vector3(0, .12f, -2f), Quaternion.identity);
             NpcRoutine ray = Routine("FIRE_CAPTAIN");
             NpcRoutine rosa = Routine("DINER_STAFF");
-            // 호버용 단어 영역에는 충돌체가 없을 수 있으므로 실제 카운터의 보이는 영역으로 거리를 잰다.
-            Bounds[] counters = Object
-                .FindObjectsByType<HoverableObject>(FindObjectsSortMode.None)
-                .Where(item => item.UnityKey == "counter" || item.UnityKey == "reception_desk")
-                .Select(item => item.GetComponentsInChildren<Renderer>())
-                .Where(renderers => renderers.Length > 0)
-                .Select(renderers =>
-                {
-                    Bounds bounds = renderers[0].bounds;
-                    foreach (Renderer renderer in renderers)
-                        bounds.Encapsulate(renderer.bounds);
-                    return bounds;
-                })
-                .ToArray();
-            Assert.That(counters, Is.Not.Empty, "실제 카운터가 있어야 거리 검사가 유효하다.");
+            // 주문대의 상판(Worktop)도 "counter"지만 단어 표시 영역만 있어, 충돌체가 있는 주문대 전체로 잰다.
+            Bounds counterBounds = SolidBounds(GameObject.Find("OrderCounter").transform);
             Vector3 startingPosition = ray.transform.position;
             yield return new WaitForSeconds(30);
 
@@ -184,21 +171,18 @@ namespace A305.Npc.PlayModeTests
                 Is.LessThan(.2f),
                 "밤 교대 직원은 자기 자리를 지켜야 합니다."
             );
-            foreach (Bounds counter in counters)
-            {
-                Vector3 nearestCounterPoint = counter.ClosestPoint(
-                    new Vector3(
-                        ray.transform.position.x,
-                        counter.center.y,
-                        ray.transform.position.z
-                    )
-                );
-                Assert.That(
-                    HorizontalDistance(ray.transform.position, nearestCounterPoint),
-                    Is.GreaterThan(1.5f),
-                    "밤 교대 직원은 카운터로 가지 않아야 합니다."
-                );
-            }
+            Vector3 nearestCounterPoint = counterBounds.ClosestPoint(
+                new Vector3(
+                    ray.transform.position.x,
+                    counterBounds.center.y,
+                    ray.transform.position.z
+                )
+            );
+            Assert.That(
+                HorizontalDistance(ray.transform.position, nearestCounterPoint),
+                Is.GreaterThan(1.5f),
+                "밤 교대 직원은 카운터로 가지 않아야 합니다."
+            );
             Assert.That(
                 HorizontalDistance(ray.transform, rosa.transform),
                 Is.GreaterThan(1f),
@@ -274,12 +258,13 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator HotelStaff_UsingTheReceptionDesk_KeepSeparateStandingPlaces()
+        public IEnumerator HotelStaff_KeepSeparateStandingPlacesBeforeAndDuringService()
         {
             yield return LoadAt("HotelScene", 12 * 60, paused: true);
-            Object
-                .FindFirstObjectByType<PlayerMover>()
-                .Teleport(new Vector3(0, .12f, -20), Quaternion.identity);
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+            player.Teleport(new Vector3(0, .12f, -20), Quaternion.identity);
+            NpcRoutine jake = Routine("HOTEL_STAFF");
+            Bounds counter = SolidBounds(NearestPlaced("reception_desk", jake.transform));
             NpcRoutine[] staff = Object
                 .FindObjectsByType<NpcRoutine>(FindObjectsSortMode.None)
                 .Where(npc => npc.GetComponent<NpcIdentity>().Code.StartsWith("HOTEL_"))
@@ -291,42 +276,23 @@ namespace A305.Npc.PlayModeTests
             NpcRoutine[] serving = staff
                 .Where(npc => npc.IsUsing && npc.Doing.ObjectKey == "reception_desk")
                 .ToArray();
-            for (int first = 0; first < serving.Length; first++)
-            {
-                for (int second = first + 1; second < serving.Length; second++)
-                {
-                    Assert.That(
-                        HorizontalDistance(
-                            serving[first].transform.position,
-                            serving[second].transform.position
-                        ),
-                        Is.GreaterThanOrEqualTo(1.2f),
-                        "같은 데스크에서 일하는 NPC의 머리가 겹치지 않아야 합니다."
-                    );
-                }
-            }
-        }
+            Assert.That(serving, Has.Length.GreaterThanOrEqualTo(2));
+            AssertSeparateStaff(serving, "손님이 오기 전");
 
-        [UnityTest]
-        public IEnumerator HotelStaff_WhenServingACustomer_KeepTheirHeadsApart()
-        {
-            yield return LoadAt("HotelScene", 12 * 60, paused: true);
-            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
-            player.Teleport(new Vector3(0, .12f, -20), Quaternion.identity);
-            NpcRoutine jake = Routine("HOTEL_STAFF");
-            Bounds counter = SolidBounds(NearestPlaced("reception_desk", jake.transform));
-            yield return new WaitForSeconds(8);
             player.Teleport(
                 new Vector3(counter.center.x, player.transform.position.y, counter.min.z - .8f),
                 Quaternion.identity
             );
             yield return new WaitForSeconds(12);
-            NpcRoutine[] staff = Object
-                .FindObjectsByType<NpcRoutine>(FindObjectsSortMode.None)
-                .Where(npc =>
-                    npc.GetComponent<NpcIdentity>().Code.StartsWith("HOTEL_") && !npc.IsOffDuty
-                )
+            NpcRoutine[] onDuty = staff
+                .Where(npc => npc.isActiveAndEnabled && !npc.IsOffDuty)
                 .ToArray();
+            Assert.That(onDuty, Has.Length.GreaterThanOrEqualTo(2));
+            AssertSeparateStaff(onDuty, "호텔 응대 중");
+        }
+
+        private static void AssertSeparateStaff(NpcRoutine[] staff, string stage)
+        {
             for (int first = 0; first < staff.Length; first++)
             for (int second = first + 1; second < staff.Length; second++)
                 Assert.That(
@@ -335,7 +301,7 @@ namespace A305.Npc.PlayModeTests
                         staff[second].transform.position
                     ),
                     Is.GreaterThanOrEqualTo(1.2f),
-                    $"호텔 응대 중 다른 직원과 머리가 겹칩니다: "
+                    $"{stage} 다른 직원과 머리가 겹칩니다: "
                         + $"{staff[first].GetComponent<NpcIdentity>().Code} {staff[first].transform.position} {staff[first].Doing?.ObjectKey}, "
                         + $"{staff[second].GetComponent<NpcIdentity>().Code} {staff[second].transform.position} {staff[second].Doing?.ObjectKey}"
                 );

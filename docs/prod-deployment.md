@@ -9,7 +9,7 @@
 1. `dev → main` 릴리스 MR을 병합하기 전에 [운영 통합 검증](ci-cd.md#4-운영-배포-전-통합-테스트-기준)을 완료합니다. 별도 통합 환경에서 로그인·권한·대화·음성·결과 저장과 실패 처리를 확인하고 검증한 코드·이미지·설정을 기록합니다.
 2. 운영 DB 변경이 있으면 적용 순서·복구 계획과 자동 검증으로 확인할 범위를 릴리스 MR에 기록합니다. 앱 시작 시 Flyway가 검토된 `db/migration` SQL을 버전 순서대로 적용하고 JPA가 `JPA_DDL_AUTO=validate`로 검사합니다. 앱 복구 후에도 이전 앱이 새 스키마에서 동작해야 합니다. 호환되지 않는 변경은 별도 적용 순서와 중지 계획을 병합 전에 확정합니다.
 3. [릴리스 절차](development.md#릴리스와-긴급-수정)에 따라 리뷰 후 보호된 `main`에 병합합니다. 병합으로 발생한 Push 파이프라인이 `prod:plan`을 자동 실행합니다. 별도 변수 입력이나 배포 버튼은 필요하지 않습니다. 직접 Push를 막고 리뷰·병합 권한을 제한하는 브랜치 보호 정책을 유지합니다.
-4. 마지막 운영 성공 커밋과의 누적 차이로 이미지 빌드 범위를 정합니다. `prod:child`는 운영 배포를 직렬화하며 변경 영역과 관계없이 백엔드·AI·Unity Editor·인프라·앱 실행·관측 검사를 모두 수행합니다. 부모의 중복 검사는 생략하고 실제 `main` 커밋을 자식에서 검사합니다. WebGL은 이미지 입력이 바뀐 경우에만 새로 빌드합니다. 재사용 이미지의 ID와 실제 빌드 소스도 성공 기록에 남습니다.
+4. 마지막 운영 성공 커밋과의 누적 차이로 이미지 빌드 범위를 정합니다. `prod:child`는 운영 배포를 직렬화하며 변경 영역과 관계없이 백엔드·AI·Unity Editor·인프라·앱 실행·관측 검사를 모두 수행합니다. 부모의 중복 검사는 생략하고 실제 `main` 커밋을 자식에서 검사합니다. 웹 이미지 입력이 바뀌면 `unity:editor-tests`가 통과한 뒤 `unity:webgl-build`에서 빌드하고 게시합니다. 이 작업만 실패하면 같은 파이프라인에서 재시도할 수 있습니다. 재사용 이미지의 ID와 실제 빌드 소스도 성공 기록에 남습니다.
 5. 모든 필수 검사가 성공하면 `prod:deliver`가 검증한 이미지만 자동 전달합니다. 전달 전 후보가 여전히 최신 `main`인지 확인하고, 서버는 상태 토큰·환경 이름·파이프라인 순서를 확인합니다. 개발 키나 개발 번들은 운영 수신기에서 거절합니다. DB 마이그레이션 검사가 필요한 배포에서는 서버가 앱을 교체하기 전에 운영 백업을 생성하고 복원을 검증합니다.
 6. 운영 Compose·환경 파일·관측 및 운영 워커 네트워크 추가 Compose로 필요한 앱만 교체합니다. DB·호스트 Nginx·인증서·모니터링 스택은 교체하지 않습니다.
 7. 컨테이너 상태·이미지 ID·DB health·HTTPS·공개 WebGL 버전·인증된 관리 포트·운영 Prometheus 수집을 확인합니다. 모든 점검과 이미지 보관에 성공해야 성공 기록을 갱신합니다. 실패 시 이전 앱 복구를 시도하며 성공 기록을 유지합니다.
@@ -51,7 +51,7 @@ Windows 빌드에서 운영 전달 작업으로 WebGL을 옮길 때도 [WebGL �
 
 GPU 연결 주소는 운영 게이트웨이 `172.30.0.1`을 사용합니다. 같은 GPU 서비스를 호출하는 `STT_GPU_TOKEN`·`GUARD_GPU_TOKEN`·`TTS_GPU_TOKEN`은 개발과 같은 값을 서버에서 설정하며, 환경별 `AI_WORKER_TOKEN`과 구분합니다. 예제에는 토큰을 넣지 않습니다. GPU를 사용하지 않을 때는 `STT_CHAIN`·`STT_GPU_BASE_URL`·`GUARD_GPU_MODEL`·`GUARD_GPU_BASE_URL`·`TTS_GPU_BASE_URL`을 비워 기존 API·CPU 경로를 사용합니다. 예비 GPU 항목(`STT_GPU_BACKUP_BASE_URL`·`TTS_GPU_BACKUP_BASE_URL`)은 개인정보 처리방침에 해당 GPU가 들어가기 전까지 비워 둡니다([예비 GPU 입구](gpu-worker-network.md#예비-gpu-입구)). 고정 IP·터널·방화벽과 실제 GPU 경로 검증은 [GPU 워커 네트워크 운영](gpu-worker-network.md)을 따릅니다.
 
-Google에는 `https://elsehere.kr/api/v1/auth/callback/google`을 승인된 리디렉션 URI로 등록합니다. `www.elsehere.kr`은 대표 도메인으로 리다이렉트하거나 별도 사용 시 해당 콜백도 등록합니다. [Nginx·HTTPS 운영 기준](server-operations.md#nginx-변경과-외부-접속-확인)의 기존 TLS 설정과 개발 경로를 보존합니다.
+Google에는 `https://elsehere.kr/api/v1/auth/callback/google`을 승인된 리디렉션 URI로 등록합니다. 호스트 Nginx는 `www.elsehere.kr`의 HTTP·HTTPS 요청을 같은 경로·쿼리의 `https://elsehere.kr`로 301 리다이렉트하므로 `www` 콜백은 등록하지 않습니다. `www`에서 앱을 직접 열면 로그인 시작 주소가 `www` 콜백을 만들어 Google이 `redirect_uri_mismatch`로 거절합니다. [Nginx·HTTPS 운영 기준](server-operations.md#nginx-변경과-외부-접속-확인)의 기존 TLS 설정과 개발 경로를 보존합니다.
 
 ## 최초 앱 전환
 

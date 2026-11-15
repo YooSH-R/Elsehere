@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using A305.Player;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,36 +12,37 @@ namespace A305.Dialogue
         private Button expressionExpandButton;
         private GameObject expressionOverlay;
 
-        private void ApplyExpressionHeader(bool hasExpression, bool hasOthers)
+        // 머리줄 오른쪽에 확대 버튼과 [다른 표현 N개 ›]·[접기 ⌄]를 둔다. 듣기는 문장마다 옆 스피커로 한다.
+        private void ApplyExpressionHeader(bool hasOthers)
         {
             othersDivider.gameObject.SetActive(false);
             float right = 78;
             if (hasOthers)
             {
-                float width = othersOpen ? 86 : 150;
+                float width = othersOpen ? 110 : 172;
                 PlaceHeaderButton(othersButton, right, width);
+                PlaceChevron(othersButton);
                 right += width + 12;
-            }
-            if (hasExpression)
-            {
-                PlaceHeaderButton(translationListenButton, right, 72);
-                right += 84;
             }
             SetExpressionHeader(translationCard, right + 16);
             if (expressionExpandButton != null)
             {
-                PlaceHeaderButton(expressionExpandButton, 20, 44);
+                // 글자 없는 확대 버튼은 폭과 높이를 같게 둬 타원이 아니라 원으로 그린다.
+                PlaceHeaderButton(expressionExpandButton, 20, HeaderButtonHeight);
                 expressionExpandButton.onClick.RemoveListener(OpenExpressionWindow);
                 expressionExpandButton.onClick.AddListener(OpenExpressionWindow);
             }
         }
+
+        // 머리줄 버튼 높이. Builder가 알약 그림 배율을 이 높이에 맞춘다(DialogueTranslationBuilder.FitPill).
+        private const float HeaderButtonHeight = 42;
 
         private static void PlaceHeaderButton(Button button, float right, float width)
         {
             var rect = (RectTransform)button.transform;
             rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one;
             rect.anchoredPosition = new Vector2(-right, -18);
-            rect.sizeDelta = new Vector2(width, 42);
+            rect.sizeDelta = new Vector2(width, HeaderButtonHeight);
             var label = button.GetComponentInChildren<TMP_Text>(true);
             if (label != null)
             {
@@ -47,6 +50,16 @@ namespace A305.Dialogue
                 label.fontSize = 18;
                 label.enableAutoSizing = false;
             }
+        }
+
+        // 꺾쇠는 버튼 오른쪽 끝에 둔다. 글자는 유리 버튼(PillContentLayout)이 양옆 여백을 두고 가운데에 놓는다.
+        private static void PlaceChevron(Button button)
+        {
+            var chevron = (RectTransform)button.transform.Find("Chevron");
+            chevron.anchorMin = chevron.anchorMax = new Vector2(1, .5f);
+            chevron.pivot = new Vector2(.5f, .5f);
+            chevron.anchoredPosition = new Vector2(-24, 0);
+            chevron.sizeDelta = new Vector2(16, 16);
         }
 
         private static void SetExpressionHeader(RectTransform card, float right)
@@ -104,6 +117,7 @@ namespace A305.Dialogue
             window.name = "ExpandedExpressionCard";
             window.anchorMin = window.anchorMax = window.pivot = new Vector2(.5f, .5f);
             window.anchoredPosition = Vector2.zero;
+            // 다른 창처럼 정해진 크기로 연다. 넘치는 내용은 글자 칸 안에서 스크롤한다.
             window.sizeDelta = new Vector2(
                 Mathf.Min(1050, canvas.rect.width - 96),
                 Mathf.Min(690, canvas.rect.height - 120)
@@ -114,12 +128,12 @@ namespace A305.Dialogue
             var heading = window.Find("Heading").GetComponent<TMP_Text>();
             heading.enableAutoSizing = false;
             heading.fontSize = 28;
-            var listen = window.Find("ListenButton").GetComponent<Button>();
-            listen.onClick = new Button.ButtonClickedEvent();
-            listen.onClick.AddListener(() =>
-                UserTranslationListenRequested?.Invoke(content.UserTranslation)
-            );
-            PlaceHeaderButton(listen, 78, 72);
+            // 복제한 버튼에는 화면이 코드로 단 연결이 따라오지 않으므로 스피커를 다시 잇는다.
+            var speak = window
+                .Find("Viewport/Body/ExpressionRow/SpeakButton")
+                .GetComponent<Button>();
+            speak.onClick = new Button.ButtonClickedEvent();
+            speak.onClick.AddListener(() => ListenTo(content?.UserTranslation));
             var close = window.Find("ExpandButton").GetComponent<Button>();
             close.onClick = new Button.ButtonClickedEvent();
             close.onClick.AddListener(CloseExpressionWindow);
@@ -142,20 +156,37 @@ namespace A305.Dialogue
                 if (child.name.StartsWith("Other "))
                     child.gameObject.SetActive(false);
             body.Find("OthersHeading").gameObject.SetActive(OtherExpressions != null);
-            if (OtherExpressions != null)
-                for (int i = 0; i < OtherExpressions.Count; i++)
-                {
-                    var row = Instantiate(otherRowTemplate, body);
-                    row.gameObject.SetActive(true);
-                    row.Find("Number/Label").GetComponent<TMP_Text>().text = (i + 1).ToString();
-                    row.Find("Text").GetComponent<TMP_Text>().text =
-                        $"<noparse>{OtherExpressions[i]}</noparse>";
-                }
-            var scroll = window.GetComponent<ScrollRect>();
-            scroll.content = body;
+            ShowOtherRows(
+                body,
+                new List<RectTransform>(),
+                OtherExpressions ?? (IReadOnlyList<string>)System.Array.Empty<string>()
+            );
+            ScrollRect scroll = ScrollInsideViewport(window, body);
             body.anchoredPosition = Vector2.zero;
             LayoutRebuilder.ForceRebuildLayoutImmediate(body);
             scroll.verticalNormalizedPosition = 1;
+            // 다른 창처럼 PC에서는 제목 줄을 끌어 옮기고 네 변·모서리를 끌어 크기를 바꾼다. 닫았다 열면 원래 자리·크기다.
+            WindowFrame.Attach(window);
+        }
+
+        // 복제한 카드는 창 전체가 스크롤을 받아, 제목 줄을 끌어 창을 옮길 때 내용까지 함께 움직인다.
+        // 스크롤을 글자 칸(Viewport)으로 옮겨 내용을 끌 때만 넘기고, 제목 줄 끌기는 창 옮기기(WindowFrame)만 받게 한다.
+        private static ScrollRect ScrollInsideViewport(RectTransform window, RectTransform body)
+        {
+            var cardScroll = window.GetComponent<ScrollRect>();
+            Scrollbar bar = cardScroll.verticalScrollbar;
+            float sensitivity = cardScroll.scrollSensitivity;
+            DestroyImmediate(cardScroll);
+            var viewport = (RectTransform)body.parent;
+            var scroll = viewport.gameObject.AddComponent<ScrollRect>();
+            scroll.viewport = viewport;
+            scroll.content = body;
+            scroll.horizontal = false;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = sensitivity;
+            scroll.verticalScrollbar = bar;
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+            return scroll;
         }
 
         private void CloseExpressionWindow()

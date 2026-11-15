@@ -1,6 +1,7 @@
 """독립 실행 피드백 처리. 재시도·DB·사용량 차감·Redis 처리는 호출 측 책임."""
 
 import json
+import logging
 
 from pydantic import ValidationError
 
@@ -10,6 +11,8 @@ from .models import INPUT, LLM_OUTPUT, surface_only_change, usable_turns, valida
 from .prompt import build_messages
 from .situation_catalog import keep_useful, situation_candidate
 from .spoken_usage import build_spoken_notes
+
+log = logging.getLogger("feedback")
 
 
 def _unique_object(pairs):
@@ -132,6 +135,17 @@ def generate_feedback(payload, client: ModelClient, *, ai_allowed: bool):
         result["situation_expressions"] = useful
         result["spoken_usage_notes"] = build_spoken_notes(request, checked.result, checked.spoken_usage_selection)
         return _response(request, status="completed", result=result)
-    except (ValueError, TypeError, ValidationError):
-        # 모델 원문·공급자 오류 상세를 사용자에게 출력하거나 로그에 남기지 않는다.
+    except (ValueError, TypeError, ValidationError) as error:
+        # 모델 원문·공급자 오류 상세를 사용자에게 출력하거나 로그에 남기지 않는다. 어느 검사에서 걸렸는지만 남긴다.
+        log.warning(json.dumps({"event": "feedback_invalid_output"} | _failed_check(error), ensure_ascii=False))
         return _failed(request, "INVALID_MODEL_OUTPUT", "피드백 결과를 확인하지 못했어요.")
+
+
+def _failed_check(error):
+    """검사 실패 위치. ValidationError는 필드 위치·오류 종류만(입력값 제외), 그 밖에는 우리가 정한 고정 문구를 쓴다."""
+    if isinstance(error, ValidationError):
+        where = [f"{'.'.join(str(part) for part in item['loc'])}:{item['type']}" for item in error.errors()[:3]]
+        return {"error": "ValidationError", "where": where}
+    if isinstance(error, json.JSONDecodeError):
+        return {"error": "JSONDecodeError", "where": [f"pos:{error.pos}"]}
+    return {"error": type(error).__name__, "where": [str(error)]}

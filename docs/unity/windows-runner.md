@@ -52,12 +52,12 @@ PowerShell 창과 사용자 세션을 유지하고, 빌드 중에는 절전에 �
 
 Unity 관련 MR의 전체 EditMode·PlayMode 검사는 최종 커밋의 로컬 작업 트리에서 실행하고 결과를 MR에 기록합니다. MR 파이프라인은 Windows Editor 작업을 만들지 않습니다. 다른 프로젝트의 Unity MR은 기존처럼 Linux의 `unity:external-mr`에서 차단하고 프로젝트 브랜치에서 검토·검증합니다.
 
-`unity:editor-and-webgl`은 보호된 ref의 수동 연결 시험 또는 운영 배포 자식에서 병합 결과의 전체 테스트와 필요한 WebGL 빌드를 수행합니다. 개발 배포는 `unity:webgl-build`에서 테스트 없이 WebGL 빌드·업로드만 수행합니다. 두 작업의 제한 시간은 1시간이며 MR 파이프라인에는 추가하지 않습니다. 수동 전체 연결 시험에는 `RUN_UNITY_BUILD=true`를 사용합니다. 실제 앱 전달까지 시험하는 절차는 [dev 자동 배포](../dev-auto-deployment.md)를 따릅니다.
+`unity:editor-tests`는 운영 배포 자식과 보호된 ref의 수동 연결 시험에서 EditMode·PlayMode 전체를 실행합니다. `unity:webgl-build`는 WebGL 빌드와 패키지 게시를 담당합니다. 운영 배포에서 웹 이미지가 필요하거나 보호된 ref에서 수동 연결 시험을 실행하면 전체 테스트 통과 뒤 빌드합니다. 빌드·게시 실패 때는 빌드 작업만 재시도할 수 있습니다. 개발 배포에서는 웹 이미지가 필요할 때만 빌드 작업을 실행합니다. 각 작업의 제한 시간은 1시간이며 두 작업 모두 MR 파이프라인에는 추가하지 않습니다. 수동 전체 연결 시험에는 `RUN_UNITY_BUILD=true`를 사용합니다. 실제 앱 전달까지 시험하는 절차는 [dev 자동 배포](../dev-auto-deployment.md)를 따릅니다.
 
 1. 실행할 커밋과 `.gitlab/ci/unity.yml`, `infra/scripts/run-unity-ci.ps1`을 검토합니다.
 2. 수동 빌드 시험의 대상 ref가 보호되어 있는지 확인합니다.
 3. **Build → Pipelines → New pipeline**에서 대상 ref를 고르고 `RUN_UNITY_BUILD` 값을 `true`로 지정합니다.
-4. 노트북의 `unity:editor-and-webgl` 작업이 해당 커밋을 받아 실행하는지 확인합니다. 이 작업은 Linux 검사 대기열과 독립적으로 시작할 수 있습니다.
+4. 노트북의 `unity:editor-tests` 작업이 해당 커밋을 받아 실행하고, 통과 후 `unity:webgl-build`가 시작되는지 확인합니다. Unity 작업은 Linux 검사 대기열과 독립적으로 실행됩니다.
 5. EditMode·PlayMode 테스트, WebGL 빌드와 산출물 업로드가 모두 성공하는지 확인합니다. 전체 MR의 필수 검사 통과 여부도 별도로 확인합니다.
 
 Runner에서 실행되는 코드는 Windows 실행 계정 권한으로 동작합니다. 프로젝트의 신뢰하는 팀원에게만 브랜치 작성 권한을 주고, Runner는 프로젝트에 잠근 채 지정 태그만 받습니다. `dev`·`main`의 브랜치 보호와 배포 자격 증명의 보호·환경 범위는 유지하며, 배포용 SSH 키·서버 환경 파일을 노트북 작업에 추가하지 않습니다. MR 작업에 protected 변수 접근을 허용하는 설정도 켜지 않습니다. [보호된 Runner](https://docs.gitlab.com/ci/runners/configure_runners/#protecting-sensitive-information), [Shell executor](https://docs.gitlab.com/runner/executors/shell/)

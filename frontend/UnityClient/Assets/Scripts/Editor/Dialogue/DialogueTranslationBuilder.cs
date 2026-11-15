@@ -1,5 +1,8 @@
+using System.IO;
+using System.Linq;
 using A305.Dialogue;
 using A305.EditorTools.Common;
+using A305.EditorTools.Theme;
 using A305.EditorTools.UI;
 using A305.Theme;
 using TMPro;
@@ -89,13 +92,17 @@ namespace A305.EditorTools.Dialogue
             BuilderTools.GetOrAddComponent<ContentSizeFitter>(body.gameObject).verticalFit =
                 ContentSizeFitter.FitMode.PreferredSize;
 
-            TMP_Text expression = BodyText(viewport, body, "Expression", name.font, 32);
+            // 고친 문장·영어 번역과 그 오른쪽 스피커를 한 줄에 둔다(S15P31A305-895).
+            RectTransform expressionRow = SentenceRow(body, "ExpressionRow");
+            TMP_Text expression = SentenceText(viewport, body, expressionRow, name.font);
             BuilderTools
                 .GetOrAddComponent<ThemedElement>(expression.gameObject)
                 .Use(catalog, UiThemeRole.Title);
             // 바뀐 곳을 강조색 밑줄로 보이므로 꾸밈 태그를 읽는다. 문장 글자는 화면이 noparse로 감싼다.
             expression.richText = true;
-            expression.rectTransform.SetSiblingIndex(0);
+            BuilderTools.GetOrAddComponent<LayoutElement>(expression.gameObject).flexibleWidth = 1;
+            Button speak = SpeakButton(expressionRow);
+            expressionRow.SetSiblingIndex(0);
 
             // #847의 접힌 안내와 점 목록은 번호 칸 목록으로 바뀌었다.
             foreach (string old in new[] { "Guide", "BetterList" })
@@ -121,31 +128,9 @@ namespace A305.EditorTools.Dialogue
             scroll.verticalScrollbar = FindOrCreateScrollbar(card);
             scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
 
-            Transform listen = card.Find("ListenButton");
-            if (listen == null)
-            {
-                listen = Object
-                    .Instantiate(panel.Find("Conversation/ToolRow/ReplayButton").gameObject, card)
-                    .transform;
-                listen.name = "ListenButton";
-            }
-            listen.GetComponentInChildren<TMP_Text>(true).text = "듣기";
-            var theme = new SerializedObject(listen.GetComponent<ThemedElement>());
-            theme.FindProperty("role").enumValueIndex = (int)UiThemeRole.PillButton;
-            theme.FindProperty("tone").enumValueIndex = (int)UiTone.Neutral;
-            theme.ApplyModifiedPropertiesWithoutUndo();
-            var listenRect = (RectTransform)listen;
-            listenRect.anchorMin = listenRect.anchorMax = listenRect.pivot = Vector2.one;
-            listenRect.anchoredPosition = new Vector2(-20, -16);
-            listenRect.sizeDelta = new Vector2(108, 42);
-            // 낮은 버튼의 양 끝이 둥글게 보이도록 알약 그림의 배율을 맞춘다.
-            listen.GetComponent<Image>().pixelsPerUnitMultiplier = 1.4f;
-            listen.GetComponent<ThemedElement>().ApplyCurrent();
-            BuilderTools.GetOrAddComponent<LayoutElement>(listen.gameObject).ignoreLayout = true;
-            listen.GetComponent<Button>().navigation = new Navigation
-            {
-                mode = Navigation.Mode.None,
-            };
+            // 머리줄 [듣기]는 문장마다 붙은 스피커로 바뀌었다(S15P31A305-895).
+            if (card.Find("ListenButton") != null)
+                Object.DestroyImmediate(card.Find("ListenButton").gameObject);
 
             // 카드 아래에 고정한 [다른 표현 N개 더 보기]·[접기]와 그 위 구분선. 글자 칸 밖에 있어 스크롤해도 가려지지 않는다.
             // 화면이 다른 표현이 있을 때만 켜고, 글자 칸 아래를 이 칸 높이(56)만큼 띄운다.
@@ -160,27 +145,32 @@ namespace A305.EditorTools.Dialogue
             othersLine.raycastTarget = false;
             othersDivider.gameObject.SetActive(false);
             Button othersButton = OthersButton(card, catalog, name.font);
-            BuilderTools
-                .GetOrAddComponent<ThemedElement>(othersButton.gameObject)
-                .Use(catalog, UiThemeRole.PillButton);
-            othersButton.GetComponent<Image>().pixelsPerUnitMultiplier = 1.4f;
+            GhostOnCard(othersButton.transform, catalog);
             othersButton
                 .GetComponentInChildren<TMP_Text>(true)
                 .GetComponent<ThemedElement>()
                 .Use(catalog, UiThemeRole.Title);
+            // 접었다 펼 수 있는 버튼임을 꺾쇠로 보인다. 화면이 펼치면 아래로 돌린다.
+            // 꺾쇠는 번호 동그라미·밑줄과 같은 강조색이고, 테두리는 화면이 [자막 끄기]처럼 강조색(고른 유리 버튼)으로 칠한다.
+            RectTransform chevron = FindRect(othersButton.transform, "Chevron");
+            Image chevronImage = BuilderTools.GetOrAddComponent<Image>(chevron.gameObject);
+            chevronImage.sprite = Glyph(ChevronIconPath, DrawChevron);
+            chevronImage.color = AccentInk;
+            chevronImage.raycastTarget = false;
+            chevron.anchorMin = chevron.anchorMax = new Vector2(1, .5f);
+            chevron.anchoredPosition = new Vector2(-24, 0);
+            chevron.sizeDelta = new Vector2(16, 16);
 
             Transform expand = card.Find("ExpandButton");
             if (expand == null)
-            {
-                expand = Object.Instantiate(listen.gameObject, card).transform;
-                expand.name = "ExpandButton";
-            }
+                expand = CopyToolButton(panel, card, "ExpandButton");
             expand.GetComponentInChildren<TMP_Text>(true).text = "";
             var expandRect = (RectTransform)expand;
             expandRect.anchorMin = expandRect.anchorMax = expandRect.pivot = Vector2.one;
             expandRect.anchoredPosition = new Vector2(-20, -18);
-            expandRect.sizeDelta = new Vector2(44, 42);
+            expandRect.sizeDelta = Vector2.one * HeaderButtonHeight;
             expand.GetComponent<ThemedElement>().SetIcon(UiIcon.None);
+            GhostOnCard(expand, catalog);
             RectTransform icon = FindRect(expand, "ExpandGlyph");
             icon.anchorMin = Vector2.zero;
             icon.anchorMax = Vector2.one;
@@ -204,11 +194,7 @@ namespace A305.EditorTools.Dialogue
             dividerImage.raycastTarget = false;
             BuilderTools.SetReference(view, "translationCard", card);
             BuilderTools.SetReference(view, "translationText", expression);
-            BuilderTools.SetReference(
-                view,
-                "translationListenButton",
-                listen.GetComponent<Button>()
-            );
+            BuilderTools.SetReference(view, "translationSpeakButton", speak);
             BuilderTools.SetReference(view, "translationDivider", divider);
             BuilderTools.SetReference(view, "translationHeading", heading);
             BuilderTools.SetReference(view, "translationBody", body);
@@ -334,9 +320,165 @@ namespace A305.EditorTools.Dialogue
             text.textWrappingMode = TextWrappingModes.Normal;
             text.alignment = TextAlignmentOptions.TopLeft;
             BuilderTools.GetOrAddComponent<LayoutElement>(text.gameObject).flexibleWidth = 1;
+            SpeakButton(row).transform.SetAsLastSibling();
             row.gameObject.SetActive(false);
             return row;
         }
+
+        private const string SpeakerIconPath = "Assets/Art/UI/Theme/Icons/Speaker.png";
+        private const string ChevronIconPath = "Assets/Art/UI/Theme/Icons/Chevron.png";
+
+        // 카드 위 작은 그림(스피커·꺾쇠)의 색. 확대 버튼 그림과 같은 진한 갈색이다.
+        private static readonly Color GlyphInk = new Color32(57, 51, 44, 255);
+
+        // 영어 문장과 그 오른쪽 스피커를 한 줄에 놓는 칸. 문장이 여러 줄이면 스피커는 첫 줄 높이에 둔다.
+        private static RectTransform SentenceRow(RectTransform body, string name)
+        {
+            RectTransform row = FindRect(body, name);
+            var line = BuilderTools.GetOrAddComponent<HorizontalLayoutGroup>(row.gameObject);
+            line.spacing = 10;
+            line.childAlignment = TextAnchor.UpperLeft;
+            line.childControlWidth = line.childControlHeight = true;
+            line.childForceExpandWidth = line.childForceExpandHeight = false;
+            return row;
+        }
+
+        // 고친 문장 줄의 문장 글자. 줄에 이미 있는 글자를 다시 써서 Builder를 몇 번 돌려도 하나만 남긴다.
+        // 예전 Builder가 다시 실행될 때마다 줄에 남긴 빈 글자는 지운다(S15P31A305-903).
+        private static TMP_Text SentenceText(
+            RectTransform viewport,
+            RectTransform body,
+            RectTransform row,
+            TMP_FontAsset font
+        )
+        {
+            Transform placed = row.Find("Expression");
+            foreach (
+                Transform stale in row.Cast<Transform>()
+                    .Where(child => child.name == "Expression" && child != placed)
+                    .ToList()
+            )
+                Object.DestroyImmediate(stale.gameObject);
+            if (placed != null)
+                placed.SetParent(body, false);
+            TMP_Text text = BodyText(viewport, body, "Expression", font, 32);
+            text.rectTransform.SetParent(row, false);
+            text.rectTransform.SetSiblingIndex(0);
+            return text;
+        }
+
+        // 문장 하나를 기기 영어 음성으로 듣는 둥근 스피커 버튼(S15P31A305-895). 화면이 누른 줄의 문장을 읽게 잇는다.
+        private static Button SpeakButton(Transform row)
+        {
+            RectTransform rect = FindRect(row, "SpeakButton");
+            Image face = BuilderTools.GetOrAddComponent<Image>(rect.gameObject);
+            face.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+            face.color = new Color(0, 0, 0, .07f);
+            face.raycastTarget = true;
+            var size = BuilderTools.GetOrAddComponent<LayoutElement>(rect.gameObject);
+            size.minWidth = size.preferredWidth = 40;
+            size.minHeight = size.preferredHeight = 40;
+            size.flexibleWidth = 0;
+            Button button = BuilderTools.GetOrAddComponent<Button>(rect.gameObject);
+            button.targetGraphic = face;
+            button.navigation = new Navigation { mode = Navigation.Mode.None };
+            RectTransform icon = FindRect(rect, "Icon");
+            icon.anchorMin = Vector2.zero;
+            icon.anchorMax = Vector2.one;
+            icon.offsetMin = Vector2.one * 9;
+            icon.offsetMax = Vector2.one * -9;
+            Image glyph = BuilderTools.GetOrAddComponent<Image>(icon.gameObject);
+            glyph.sprite = Glyph(SpeakerIconPath, DrawSpeaker);
+            glyph.color = GlyphInk;
+            glyph.raycastTarget = false;
+            return button;
+        }
+
+        // 도구 줄 [다시 듣기]를 복제한 머리줄 버튼. 프리팹에 없을 때만 만든다.
+        private static Transform CopyToolButton(Transform panel, RectTransform card, string name)
+        {
+            Transform button = Object
+                .Instantiate(panel.Find("Conversation/ToolRow/ReplayButton").gameObject, card)
+                .transform;
+            button.name = name;
+            BuilderTools.GetOrAddComponent<LayoutElement>(button.gameObject).ignoreLayout = true;
+            button.GetComponent<Button>().navigation = new Navigation
+            {
+                mode = Navigation.Mode.None,
+            };
+            return button;
+        }
+
+        // 도구 줄 [다시 듣기]·[뜻]과 같은 유리 알약(S15P31A305-895). 밝은 카드 위라 흰 테두리·글자 대신 테마 글자색으로 칠한다.
+        private static void GhostOnCard(Transform button, UiThemeCatalog catalog)
+        {
+            var theme = BuilderTools.GetOrAddComponent<ThemedElement>(button.gameObject);
+            var fields = new SerializedObject(theme);
+            fields.FindProperty("onLightSurface").boolValue = true;
+            fields.FindProperty("tone").enumValueIndex = (int)UiTone.Neutral;
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            theme.Use(catalog, UiThemeRole.GhostControl);
+            FitPill(button);
+        }
+
+        // 머리줄 버튼 높이. 화면이 버튼을 놓을 때도 이 높이로 둔다(DialoguePanelView.PlaceHeaderButton).
+        private const float HeaderButtonHeight = 42;
+
+        // 버튼 그림의 위아래 모서리가 머리줄 버튼 높이 안에 들어가게 9칸 배율을 맞춘다. 배율이 작으면 모서리가 높이를 넘어
+        // Unity가 세로로 눌러 그리므로 매끈한 알약이 아니라 조약돌처럼 찌그러져 보인다.
+        // 배율에 따라 그림자 여백도 달라지므로 테마로 다시 칠한다.
+        private static void FitPill(Transform button)
+        {
+            var face = button.GetComponent<Image>();
+            if (face.sprite == null)
+                return;
+            float corners = face.sprite.border.y + face.sprite.border.w;
+            face.pixelsPerUnitMultiplier = Mathf.Max(
+                1,
+                corners / (face.pixelsPerUnit * .96f * HeaderButtonHeight)
+            );
+            button.GetComponent<ThemedElement>().ApplyCurrent();
+        }
+
+        // 흰색으로 그린 작은 그림을 한 번 만들어 두고 쓴다. 색은 Image가 입힌다.
+        private static Sprite Glyph(string path, System.Action<UiArtCanvas> draw)
+        {
+            if (!File.Exists(path))
+            {
+                var art = new UiArtCanvas(64, 64);
+                draw(art);
+                Texture2D texture = art.ToTexture();
+                File.WriteAllBytes(path, texture.EncodeToPNG());
+                Object.DestroyImmediate(texture);
+                AssetDatabase.ImportAsset(path);
+                var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+                importer.textureType = TextureImporterType.Sprite;
+                importer.alphaIsTransparency = true;
+                importer.mipmapEnabled = false;
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
+        // 스피커 몸통과 소리 물결 두 겹. 좌표는 아래가 0인 64칸이다.
+        private static void DrawSpeaker(UiArtCanvas art)
+        {
+            art.Polygon(
+                Color.white,
+                new Vector2(8, 24),
+                new Vector2(19, 24),
+                new Vector2(31, 12),
+                new Vector2(31, 52),
+                new Vector2(19, 40),
+                new Vector2(8, 40)
+            );
+            art.Arc(33, 32, 10, -48, 48, 5, Color.white);
+            art.Arc(33, 32, 20, -48, 48, 5, Color.white);
+        }
+
+        // 오른쪽을 가리키는 꺾쇠(›). 펼치면 화면이 아래로 돌린다.
+        private static void DrawChevron(UiArtCanvas art) =>
+            art.Line(9, Color.white, new Vector2(22, 10), new Vector2(44, 32), new Vector2(22, 54));
 
         // 카드 아래에 고정한 글자 버튼. 바탕 없이 강조색 글자로 [다른 표현 N개 더 보기]·[접기]를 보인다.
         private static Button OthersButton(

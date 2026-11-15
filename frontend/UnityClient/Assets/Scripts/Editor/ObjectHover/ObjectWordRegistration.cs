@@ -96,6 +96,7 @@ namespace A305.EditorTools.ObjectHover
         public static void PrepareSource()
         {
             meshRegions.Clear();
+            IndoorObjectWordCatalog.EnsureWords();
             var source = ObjectWordAuthoring.RefreshSource();
             catalog = source.Words.ToDictionary(word => word.Key, StringComparer.Ordinal);
             keysByName = null;
@@ -132,6 +133,7 @@ namespace A305.EditorTools.ObjectHover
                 PrepareSource();
             LoadBindings();
             BindTree(root.transform, null);
+            IndoorObjectWordBuilder.Apply(root);
             foreach (HoverableObject target in root.GetComponentsInChildren<HoverableObject>(true))
             {
                 foreach (
@@ -146,7 +148,7 @@ namespace A305.EditorTools.ObjectHover
                     MeshFilter filter = renderer.GetComponent<MeshFilter>();
                     if (filter == null || filter.sharedMesh == null)
                         continue;
-                    Transform area = renderer.transform.Find("__WordHitArea");
+                    Transform area = FindSingleHitArea(renderer.transform, "__WordHitArea");
                     if (area == null)
                         area = BuilderTools.CreateEmpty(
                             "__WordHitArea",
@@ -155,7 +157,8 @@ namespace A305.EditorTools.ObjectHover
                             Quaternion.identity
                         );
                     Bounds[] regions = new[] { filter.sharedMesh.bounds };
-                    if (target.Parts != null)
+                    // 별도로 이름을 붙인 진열품 메시도 모양 사이의 빈 공간을 가리지 않는다.
+                    if (target.Parts != null || renderer.transform == target.transform)
                     {
                         if (!meshRegions.TryGetValue(filter.sharedMesh, out regions))
                         {
@@ -169,7 +172,7 @@ namespace A305.EditorTools.ObjectHover
                         if (index > 0)
                         {
                             string name = "__MeshPart_" + index;
-                            section = area.Find(name);
+                            section = FindSingleHitArea(area, name);
                             if (section == null)
                                 section = BuilderTools.CreateEmpty(
                                     name,
@@ -181,8 +184,12 @@ namespace A305.EditorTools.ObjectHover
                         BoxCollider box = BuilderTools.GetOrAddComponent<BoxCollider>(
                             section.gameObject
                         );
-                        box.center = regions[index].center;
-                        box.size = Vector3.Max(regions[index].size, Vector3.one * .015f);
+                        Vector3 size = Vector3.Max(regions[index].size, Vector3.one * .015f);
+                        // 메시를 분리하며 생긴 부동소수점 오차만으로 기존 프리팹을 다시 쓰지 않는다.
+                        if (box.center != regions[index].center)
+                            box.center = regions[index].center;
+                        if (box.size != size)
+                            box.size = size;
                         box.isTrigger = true;
                         box.enabled = renderer.enabled;
                         BuilderTools.GetOrAddComponent<ObjectHoverHitArea>(section.gameObject);
@@ -199,6 +206,33 @@ namespace A305.EditorTools.ObjectHover
                             Object.DestroyImmediate(child.gameObject);
                 }
             }
+        }
+
+        private static Transform FindSingleHitArea(Transform parent, string name)
+        {
+            Transform[] areas = parent
+                .Cast<Transform>()
+                .Where(child => child.name == name)
+                .ToArray();
+            // 하위 프리팹에 영역을 추가하면 상위 프리팹에 예전에 추가했던 동명 영역이 함께 남을 수 있다.
+            // 원본에서 상속한 영역을 우선해 배치별로 남은 넓은 영역이 작은 상품을 가리지 않게 한다.
+            Transform selected =
+                areas.FirstOrDefault(area =>
+                    !PrefabUtility.IsAddedGameObjectOverride(area.gameObject)
+                ) ?? areas.FirstOrDefault();
+            foreach (Transform duplicate in areas.Where(area => area != selected))
+            {
+                if (
+                    !PrefabUtility.IsPartOfPrefabInstance(duplicate.gameObject)
+                    || PrefabUtility.IsAddedGameObjectOverride(duplicate.gameObject)
+                )
+                    Object.DestroyImmediate(duplicate.gameObject);
+                else
+                    duplicate.gameObject.SetActive(false);
+            }
+            if (selected != null)
+                selected.gameObject.SetActive(true);
+            return selected;
         }
 
         private static void BindTree(Transform node, HoverableObject parentTarget)

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: flour_bag
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_873d7d6807d8269438e6e5a2de259633
+    languageCode: en-US
+    text: bag of flour
+    meaningKo: "\uBC00\uAC00\uB8E8 \uD55C \uD3EC\uB300"
+    example: We need another bag of flour.
+    exampleKo: "\uBC00\uAC00\uB8E8\uAC00 \uD55C \uD3EC\uB300 \uB354 \uD544\uC694\uD574\uC694."
+    pronunciationAudioKey: 
+  assetGuid: 873d7d6807d8269438e6e5a2de259633

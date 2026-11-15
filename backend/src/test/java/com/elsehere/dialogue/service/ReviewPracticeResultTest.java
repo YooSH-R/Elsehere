@@ -26,10 +26,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-@DialogueServiceTest
+@DialogueDbTest
 @MockitoBean(types = {MemoryService.class, FollowUpService.class})
 class ReviewPracticeResultTest {
-  @Autowired private ConversationService service;
+  @Autowired private DialogueEndService service;
   @Autowired private ReviewCardService cards;
   @Autowired private com.elsehere.user.service.UserContentEraser eraser;
   @Autowired private com.elsehere.review.service.ReviewPracticeResults results;

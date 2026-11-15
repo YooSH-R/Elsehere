@@ -154,9 +154,9 @@ namespace A305.Dialogue.Tests
             Assert.That(layout.Name.yMin, Is.GreaterThanOrEqualTo(layout.Lines.yMax));
         }
 
-        // 영어 표현 카드는 내용만큼만 차지하고, 최근 대사가 있는 대사 칸 아래쪽에 맞춰 붙는다(S15P31A305-862).
+        // 영어 표현 카드는 내용만큼만 차지하고, 대사 칸 위쪽(이름 줄 바로 아래)에 붙는다(S15P31A305-895).
         [Test]
-        public void ShortCard_ShrinksToItsContent_AtTheBottomOfTheLines()
+        public void ShortCard_ShrinksToItsContent_AtTheTopOfTheLines()
         {
             DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
                 Wide,
@@ -167,7 +167,43 @@ namespace A305.Dialogue.Tests
             );
 
             Assert.That(layout.Translation.height, Is.EqualTo(130).Within(.01f));
-            Assert.That(layout.Translation.yMin, Is.EqualTo(layout.Lines.yMin).Within(.01f));
+            Assert.That(layout.Translation.yMax, Is.EqualTo(layout.Lines.yMax).Within(.01f));
+        }
+
+        // 펼칠 높이만큼 대화창을 잡아 두고 카드는 지금 보이는 내용만큼 그린다.
+        // 접거나 펼쳐도 대화창과 카드 위쪽은 그대로이고, 카드는 아래로만 늘어난다.
+        [Test]
+        [TestCase(1920, 1080)]
+        [TestCase(900, 1400)]
+        public void OpeningTheCard_GrowsItDownward_WithoutMovingTheDialogue(
+            float width,
+            float height
+        )
+        {
+            var canvas = new Vector2(width, height);
+            DialogueCinemaLayout folded = DialogueCinemaLayout.Compute(
+                canvas,
+                linesHeight: 100,
+                nameWidth: 120,
+                hasTranslation: true,
+                translationHeight: 260,
+                shownTranslationHeight: 100
+            );
+            DialogueCinemaLayout open = DialogueCinemaLayout.Compute(
+                canvas,
+                linesHeight: 100,
+                nameWidth: 120,
+                hasTranslation: true,
+                translationHeight: 260,
+                shownTranslationHeight: 260
+            );
+
+            Assert.That(folded.Height, Is.EqualTo(open.Height).Within(.01f));
+            Assert.That(folded.Name, Is.EqualTo(open.Name));
+            Assert.That(folded.Translation.height, Is.EqualTo(100).Within(.01f));
+            Assert.That(open.Translation.height, Is.EqualTo(260).Within(.01f));
+            Assert.That(folded.Translation.yMax, Is.EqualTo(open.Translation.yMax).Within(.01f));
+            Assert.That(folded.Translation.yMin, Is.GreaterThan(open.Translation.yMin));
         }
 
         // 대사가 짧으면 빈 칸을 미리 두지 않고, 대화창이 대사에 맞는다.

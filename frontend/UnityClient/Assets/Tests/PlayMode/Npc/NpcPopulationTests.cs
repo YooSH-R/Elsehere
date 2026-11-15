@@ -343,17 +343,22 @@ namespace A305.Npc.PlayModeTests
 #endif
         }
 
+        // 우체국 밤 근무 직원(TOWN_RETIREE, 18시 출근)은 17시 5분쯤 숙소 문에서 일정대로 나타나 출근한다.
         [UnityTest]
         public IEnumerator Town_ScheduledSpawnKeepsTheVisualAboveTheGround()
         {
-            SetClock(17 * 60 + 45);
+            SetClock(17 * 60);
             yield return LoadWithoutApis("TownScene");
             Object
                 .FindFirstObjectByType<PlayerMover>()
                 .Teleport(new Vector3(0, 100, 0), Quaternion.identity);
             var walker = Object
-                .FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None)
-                .Single(item => item.GetComponent<NpcIdentity>().Code == "FIRE_ROOKIE");
+                .FindObjectsByType<NpcTownWalker>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+                .Single(item => item.GetComponent<NpcIdentity>().Code == "TOWN_RETIREE");
+            Assert.That(walker.gameObject.activeSelf, Is.False, "준비: 아직 숙소 안에 있습니다.");
             var skin = walker
                 .GetComponentsInChildren<SkinnedMeshRenderer>()
                 .OrderByDescending(item => item.sharedMesh.vertexCount)
@@ -380,7 +385,7 @@ namespace A305.Npc.PlayModeTests
                         GameClock.Shared.Minutes
                     );
 #endif
-                    if (frame % 30 != 0)
+                    if (frame % 30 != 0 || !walker.gameObject.activeSelf)
                         continue;
                     var baked = new Mesh();
                     skin.BakeMesh(baked);
@@ -404,6 +409,11 @@ namespace A305.Npc.PlayModeTests
                         $"몸체 {walker.transform.position.y}, 발 밑면 {sole.y}"
                     );
                 }
+                Assert.That(
+                    walker.gameObject.activeSelf,
+                    Is.True,
+                    "일정대로 숙소 문에서 나와 출근해야 합니다."
+                );
             }
             finally
             {
@@ -412,7 +422,7 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator Town_WorkerKnowsTheRealCommuteAndKeepsItAfterArrival()
+        public IEnumerator Town_WorkerKeepsCommuteDetailsAndRefusesTalkOnlyAfterShiftStarts()
         {
             SetClock(17 * 60 + 59);
             yield return LoadWithoutApis("TownScene");
@@ -427,6 +437,8 @@ namespace A305.Npc.PlayModeTests
             Assert.That(body.TravelContext.Phase, Is.EqualTo("GOING_TO_WORK"));
             Assert.That(body.TravelContext.RouteMeters, Is.GreaterThan(10));
             Assert.That(body.TravelContext.DepartureLeadMinutes, Is.GreaterThan(0));
+            Assert.That(walker.SchedulePhase, Is.EqualTo(NpcDayPhase.GoingToWork));
+            Assert.That(walker.DeclinesConversation, Is.False);
             float previousDelta = Time.captureDeltaTime;
             try
             {
@@ -437,21 +449,18 @@ namespace A305.Npc.PlayModeTests
                 Assert.That(body.TravelContext.WalkedMeters, Is.GreaterThan(.1));
                 double walked = body.TravelContext.WalkedMeters;
                 Vector3 door = walker.ScheduleDoor.Value;
-                GameClock
-                    .Shared.TickAsync(
-                        new FixedClock
-                        {
-                            Time = new GameClockTime
-                            {
-                                Day = 1,
-                                MinuteOfDay = 18 * 60,
-                                Paused = true,
-                            },
-                        },
-                        Time.realtimeSinceStartupAsDouble + 1e6
-                    )
-                    .GetAwaiter()
-                    .GetResult();
+                Tick(18 * 60, 1);
+                yield return null;
+                yield return null;
+                Assert.That(walker.gameObject.activeSelf, Is.True);
+                Assert.That(walker.SchedulePhase, Is.EqualTo(NpcDayPhase.Working));
+                Assert.That(walker.IsStaff, Is.True);
+                Assert.That(
+                    walker.DeclinesConversation,
+                    Is.True,
+                    "근무 시작 뒤 일터에 도착하지 못한 직원만 거절합니다."
+                );
+
                 PlaceWalker(walker, door, Vector3.forward);
                 yield return null;
                 yield return null;
@@ -802,43 +811,6 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator Town_ReturningToRestStillAllowsConversation() =>
             CheckHurryingNpc(click: true, schedule: NpcDayPhase.Resting);
 
-        [UnityTest]
-        public IEnumerator Town_WorkScheduleEnablesRefusalOnlyAfterTheShiftStarts()
-        {
-            SetClock(17 * 60 + 59);
-            yield return LoadWithoutApis("TownScene");
-            var walker = Object
-                .FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None)
-                .Single(item => item.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER");
-            PlaceWalker(walker, new Vector3(12, .1f, 22), Vector3.forward);
-            yield return null;
-            Assert.That(walker.SchedulePhase, Is.EqualTo(NpcDayPhase.GoingToWork));
-            Assert.That(walker.DeclinesConversation, Is.False);
-            var clock = new FixedClock
-            {
-                Time = new GameClockTime
-                {
-                    Day = 1,
-                    MinuteOfDay = 18 * 60,
-                    Paused = true,
-                },
-            };
-            GameClock
-                .Shared.TickAsync(clock, Time.realtimeSinceStartupAsDouble + 1e6)
-                .GetAwaiter()
-                .GetResult();
-            yield return null;
-            yield return null;
-            Assert.That(walker.gameObject.activeSelf, Is.True);
-            Assert.That(walker.SchedulePhase, Is.EqualTo(NpcDayPhase.Working));
-            Assert.That(walker.IsStaff, Is.True);
-            Assert.That(
-                walker.DeclinesConversation,
-                Is.True,
-                "근무 시작 뒤 일터에 도착하지 못한 직원만 거절합니다."
-            );
-        }
-
         private static IEnumerator CheckHurryingNpc(
             bool click,
             NpcDayPhase schedule = NpcDayPhase.Working
@@ -1147,6 +1119,38 @@ namespace A305.Npc.PlayModeTests
             );
         }
 
+        // 플레이어가 매장 안에 있을 때 직원은 근무 10분 전에 마을 문으로 들어온 것처럼 문 안쪽 도착 지점에 나타난다.
+        // 이야기 퀘스트 직원은 24시간 상주하므로 교대해 들어오는 밤 근무 직원(TOWN_RETIREE, 18시 출근)으로 확인한다.
+        [UnityTest]
+        public IEnumerator PostOffice_StaffWalkInThroughTheTownDoorBeforeTheShift()
+        {
+            SetClock(17 * 60 + 46);
+            yield return LoadWithoutApis("PostOfficeInterior");
+            NpcIdentity staff = Object
+                .FindFirstObjectByType<NpcPopulation>()
+                .FindWorker("TOWN_RETIREE");
+            Assert.That(staff.gameObject.activeSelf, Is.False, "준비: 18시 근무 14분 전");
+
+            Tick(17 * 60 + 50, 1);
+            yield return null;
+            yield return null;
+
+            Transform entry = Object
+                .FindObjectsByType<SpaceDoorway>(FindObjectsSortMode.None)
+                .Single(door => door.DestinationScene == "TownScene")
+                .ArrivalPoint;
+            Assert.That(staff.gameObject.activeSelf, Is.True);
+            Assert.That(
+                HorizontalDistance(staff.transform.position, entry.position),
+                Is.LessThan(1f)
+            );
+            Assert.That(
+                NpcWorkArrivals.HasArrived("TOWN_RETIREE", 18 * 60),
+                Is.True,
+                "마을로 나가도 이미 들어온 직원은 길에 다시 나오지 않는다."
+            );
+        }
+
         private static IEnumerator LoadWithoutApis(string sceneName)
         {
             SceneManager.sceneLoaded += DisableWalkingTestApis;
@@ -1205,17 +1209,18 @@ namespace A305.Npc.PlayModeTests
             SetClock(8 * 60);
         }
 
-        // 실제 교대 직원은 퇴근 후 복습 방문 동안만 나타나고, 상주 직원과 구분한다.
+        // 매장 직원은 근무 중에만 매장 장면 안에 있다. 복습하러 찾아가면 퇴근한 뒤에도 그 방문 동안만 매장에 나온다.
+        // 이야기 퀘스트 직원은 24시간 상주하므로 꽃집 밤 교대 직원(HOTEL_CONCIERGE, 18~6시 근무)이 쉬는 낮에 확인한다.
         [UnityTest]
         public IEnumerator ReviewVisit_OffDutyStaffAppearOnlyForTheVisit()
         {
-            SetClock(9 * 60);
+            SetClock(12 * 60);
             yield return SceneManager.LoadSceneAsync("BloomFlowersInterior");
             yield return null;
             NpcIdentity staff = Object
                 .FindFirstObjectByType<NpcPopulation>()
                 .FindWorker("HOTEL_CONCIERGE");
-            Assert.That(staff, Is.Not.Null, "꽃집 직원은 꽃집 장면에 있습니다.");
+            Assert.That(staff, Is.Not.Null, "꽃집 밤 교대 직원은 꽃집 장면에 있습니다.");
             Assert.That(staff.gameObject.activeSelf, Is.False, "퇴근 시각에는 매장에 없습니다.");
             using (var visit = new NpcReviewPresence("HOTEL_CONCIERGE"))
             {
@@ -1223,7 +1228,7 @@ namespace A305.Npc.PlayModeTests
                 yield return null;
                 Assert.That(staff.gameObject.activeInHierarchy, Is.True);
                 Assert.That(NpcDuty.MissionNpcCode, Is.Null);
-                Assert.That(GameClock.Shared.Minutes, Is.EqualTo(9 * 60));
+                Assert.That(GameClock.Shared.Minutes, Is.EqualTo(12 * 60));
             }
             yield return null;
             yield return null;
@@ -1491,6 +1496,169 @@ namespace A305.Npc.PlayModeTests
                 navInstance.Remove();
                 Object.Destroy(navData);
                 Object.Destroy(floor);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Town_BlockedCommuterWaitsWithoutRapidDirectionChanges()
+        {
+            SetClock(21 * 60);
+            yield return LoadWithoutApis("TownScene");
+            Object.FindFirstObjectByType<NpcPopulation>().enabled = false;
+            Object
+                .FindFirstObjectByType<PlayerMover>()
+                .Teleport(new Vector3(0, 100, 0), Quaternion.identity);
+            var all = Object.FindObjectsByType<NpcTownWalker>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+            var walker = all.Single(item =>
+                item.GetComponent<NpcIdentity>().Code == "HOTEL_NIGHT_MANAGER"
+            );
+            var blocker = all.Single(item =>
+                item.GetComponent<NpcIdentity>().Code == "CAFE_BARISTA"
+            );
+            foreach (var other in all)
+                other.gameObject.SetActive(false);
+
+            // 한 사람은 걸을 수 있지만 옆으로 비켜 지나갈 수는 없는 통로.
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            floor.transform.position = new Vector3(500, -.1f, 500);
+            floor.transform.localScale = new Vector3(1.4f, .2f, 10);
+            var walls = new List<GameObject>();
+            foreach (float side in new[] { -1f, 1f })
+            {
+                var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                wall.transform.position = new Vector3(500 + side * .8f, 1, 500);
+                wall.transform.localScale = new Vector3(.2f, 2, 10);
+                walls.Add(wall);
+            }
+            NavMeshData nav = BuildWalkingFloor(floor);
+            var instance = NavMesh.AddNavMeshData(nav);
+            float previousDelta = Time.captureDeltaTime;
+            string output = System.Environment.GetEnvironmentVariable("NPC_BLOCKED_REVIEW_OUTPUT");
+            using var capture = new NpcDailyReviewCapture(output);
+            GameObject reviewLight = null;
+            if (!string.IsNullOrEmpty(output))
+            {
+                // 캡처에서는 충돌면을 그대로 두고 가까운 벽과 HUD만 가려 몸 전체를 확인한다.
+                walls[1].GetComponent<Renderer>().enabled = false;
+                foreach (
+                    Canvas canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)
+                )
+                    if (canvas.isRootCanvas)
+                        canvas.gameObject.SetActive(false);
+                reviewLight = new GameObject("BlockedWalkingReviewLight");
+                Light light = reviewLight.AddComponent<Light>();
+                light.type = LightType.Directional;
+                light.intensity = 2f;
+                light.transform.rotation = Quaternion.Euler(50, -30, 0);
+            }
+            try
+            {
+                Time.captureDeltaTime = 1f / 60f;
+                PlaceWalker(walker, new Vector3(500, .1f, 497), Vector3.forward);
+                PlaceWalker(blocker, new Vector3(500, .1f, 500), Vector3.back);
+                for (int frame = 0; frame < 8; frame++)
+                    yield return null;
+                walker.Destination = new Vector3(500, .1f, 502);
+                var animator = walker.GetComponentInChildren<Animator>();
+                Vector3 settled = Vector3.zero;
+                float largestDrift = 0;
+                float totalTurn = 0;
+                float largestWaitingSpeed = 0;
+                float previousTurn = 0;
+                int reversals = 0;
+                var rows = new List<string> { "frame,x,z,yaw,turn,moved,speed" };
+                for (int frame = 0; frame < 780; frame++)
+                {
+                    // 앞사람이 걸어 나가면 기다리던 NPC도 다시 출발해야 한다.
+                    if (frame == 480)
+                        blocker.Destination = new Vector3(500, .1f, 504);
+                    Vector3 before = walker.transform.position;
+                    Vector3 forward = walker.transform.forward;
+                    capture.RecordScenario(
+                        "blocked-walking",
+                        walker.transform,
+                        new Vector3(4, 4, -6),
+                        frame / 60.0
+                    );
+                    yield return null;
+                    Vector3 position = walker.transform.position;
+                    float turn = Vector3.SignedAngle(forward, walker.transform.forward, Vector3.up);
+                    float moved = HorizontalDistance(before, position);
+                    float speed = animator.GetFloat("Speed");
+                    if (frame == 179)
+                        settled = position;
+                    if (frame >= 180 && frame < 480)
+                    {
+                        largestDrift = Mathf.Max(
+                            largestDrift,
+                            HorizontalDistance(settled, position)
+                        );
+                        largestWaitingSpeed = Mathf.Max(largestWaitingSpeed, speed);
+                        totalTurn += Mathf.Abs(turn);
+                        if (Mathf.Abs(turn) > .5f)
+                        {
+                            if (turn * previousTurn < 0)
+                                reversals++;
+                            previousTurn = turn;
+                        }
+                    }
+                    Assert.That(
+                        HorizontalDistance(position, blocker.transform.position),
+                        Is.GreaterThanOrEqualTo(.95f)
+                    );
+                    Assert.That(
+                        moved,
+                        Is.LessThanOrEqualTo(1.6f / 60f + .001f),
+                        "재출발할 때 순간이동하지 않습니다."
+                    );
+                    if (!string.IsNullOrEmpty(output))
+                        rows.Add(
+                            System.FormattableString.Invariant(
+                                $"{frame},{position.x:F5},{position.z:F5},{walker.transform.eulerAngles.y:F3},{turn:F3},{moved:F6},{speed:F4}"
+                            )
+                        );
+                }
+                if (!string.IsNullOrEmpty(output))
+                {
+                    Directory.CreateDirectory(output);
+                    File.WriteAllLines(Path.Combine(output, "blocked-walking.csv"), rows);
+                }
+                Debug.Log(
+                    $"BLOCKED turn={totalTurn:F1} reversals={reversals} drift={largestDrift:F5} speed={largestWaitingSpeed:F3}"
+                );
+                Assert.That(
+                    largestDrift,
+                    Is.LessThan(.001f),
+                    "막힌 통로에서 좌우로 왕복하지 않고 기다립니다."
+                );
+                Assert.That(
+                    totalTurn,
+                    Is.LessThan(1f),
+                    "기다리는 동안 몸 방향이 반복해서 바뀌지 않습니다."
+                );
+                Assert.That(
+                    largestWaitingSpeed,
+                    Is.EqualTo(0f),
+                    "제자리에서는 걷기 대신 정지 동작을 전달합니다."
+                );
+                Assert.That(
+                    HorizontalDistance(walker.transform.position, walker.Destination),
+                    Is.LessThan(.12f),
+                    "앞사람이 떠나면 목적지까지 다시 걷습니다."
+                );
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDelta;
+                instance.Remove();
+                Object.Destroy(nav);
+                Object.Destroy(floor);
+                Object.Destroy(reviewLight);
+                foreach (var wall in walls)
+                    Object.Destroy(wall);
             }
         }
 
@@ -1783,6 +1951,7 @@ namespace A305.Npc.PlayModeTests
                 }
                 Physics.SyncTransforms();
                 float widestDetour = 0;
+                const float arrivalDistance = .12f;
                 for (int frame = 0; frame < 480; frame++)
                 {
                     Vector3 before = walker.transform.position;
@@ -1803,6 +1972,8 @@ namespace A305.Npc.PlayModeTests
                             Is.False,
                             "장애물 내부를 통과하면 안 됩니다."
                         );
+                    if (HorizontalDistance(position, walker.Destination) < arrivalDistance)
+                        break;
                 }
                 if (height > .3f)
                     Assert.That(
@@ -1818,7 +1989,7 @@ namespace A305.Npc.PlayModeTests
                     );
                 Assert.That(
                     HorizontalDistance(walker.transform.position, walker.Destination),
-                    Is.LessThan(.12f)
+                    Is.LessThan(arrivalDistance)
                 );
 
                 if (height < .3f)
@@ -1849,11 +2020,17 @@ namespace A305.Npc.PlayModeTests
                 }
                 wall.transform.localScale = new Vector3(1, 2, 3);
                 Physics.SyncTransforms();
-                for (int frame = 0; frame < 480; frame++)
+                for (
+                    int frame = 0;
+                    frame < 480
+                        && HorizontalDistance(walker.transform.position, walker.Destination)
+                            >= arrivalDistance;
+                    frame++
+                )
                     yield return null;
                 Assert.That(
                     HorizontalDistance(walker.transform.position, walker.Destination),
-                    Is.LessThan(.12f),
+                    Is.LessThan(arrivalDistance),
                     "통로가 다시 열리면 멈춘 채 남지 않고 우회해 도착해야 합니다."
                 );
             }
@@ -2220,7 +2397,22 @@ namespace A305.Npc.PlayModeTests
                             "횡단 중에도 서로 겹치지 않고 지나가야 합니다."
                         );
                     if (!walker.IsCrossing)
+                    {
+                        // 되돌아오는 경우에는 전체 구간 동안 대기 상태를 유지하는지 본다.
+                        if (
+                            !returns
+                            && changed
+                            && HorizontalDistance(walker.transform.position, walker.Destination)
+                                < .12f
+                            && (
+                                other == null
+                                || HorizontalDistance(other.transform.position, other.Destination)
+                                    < .12f
+                            )
+                        )
+                            break;
                         continue;
+                    }
                     crossed = true;
                     Assert.That(walker.IsRunning, Is.False, "급해도 횡단보도에서는 걷습니다.");
                     Assert.That(

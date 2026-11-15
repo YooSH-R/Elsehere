@@ -31,13 +31,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 // 대화 시작(CONV-01)을 스트리밍으로 받을 때. 첫 인사와 조각 음성은 Mock으로 정한다.
-@DialogueServiceTest
-class ConversationServiceStreamingTest {
+@DialogueDbTest
+class DialogueStartServiceStreamingTest {
 
   private static final byte[] CHUNK_WAV = {82, 73, 70, 70, 1};
   private static final byte[] FULL_WAV = {82, 73, 70, 70, 2};
 
-  @Autowired private ConversationService conversationService;
+  @Autowired private DialogueStartService dialogueStartService;
 
   @Autowired private ConversationRepository conversationRepository;
 
@@ -82,7 +82,7 @@ class ConversationServiceStreamingTest {
     UUID requestId = UUID.randomUUID();
 
     ConversationStartResponse response =
-        conversationService.start(userId, staffRequest(requestId), events);
+        dialogueStartService.start(userId, staffRequest(requestId), events);
 
     assertThat(received)
         .containsExactly(
@@ -98,7 +98,7 @@ class ConversationServiceStreamingTest {
   @DisplayName("말걸기 대사가 있는 행인이 먼저 말을 걸었으면 AI를 부르지 않으므로 조각 없이 그 대사로 시작한다")
   void start_withEvents_passerbyApproach_sendsNoChunks() {
     ConversationStartResponse response =
-        conversationService.start(
+        dialogueStartService.start(
             userId,
             new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC),
             events);
@@ -116,11 +116,11 @@ class ConversationServiceStreamingTest {
     greetsWith(listener -> listener.onDelta("Hi!"));
     UUID requestId = UUID.randomUUID();
     ConversationStartResponse first =
-        conversationService.start(userId, staffRequest(requestId), events);
+        dialogueStartService.start(userId, staffRequest(requestId), events);
     received.clear();
 
     ConversationStartResponse again =
-        conversationService.start(userId, staffRequest(requestId), events);
+        dialogueStartService.start(userId, staffRequest(requestId), events);
 
     assertThat(received).isEmpty();
     assertThat(again.conversationId()).isEqualTo(first.conversationId());

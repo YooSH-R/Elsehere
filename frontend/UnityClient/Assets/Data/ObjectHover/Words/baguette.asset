@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: baguette
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_ae7b5008363d50745aa1c818547ac570
+    languageCode: en-US
+    text: baguette
+    meaningKo: "\uAE38\uACE0 \uAC89\uC774 \uBC14\uC0AD\uD55C \uBE75(\uBC14\uAC8C\uD2B8)"
+    example: I'd like one baguette, please.
+    exampleKo: "\uBC14\uAC8C\uD2B8 \uD558\uB098 \uC8FC\uC138\uC694."
+    pronunciationAudioKey: 
+  assetGuid: ae7b5008363d50745aa1c818547ac570

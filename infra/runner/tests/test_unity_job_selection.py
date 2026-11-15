@@ -83,9 +83,10 @@ class UnityJobSelectionTests(unittest.TestCase):
                 )
 
     def test_production_tests_run_the_full_suite(self):
-        job = self.jobs["unity:editor-and-webgl"]
+        job = self.jobs["unity:editor-tests"]
         self.assertNotIn("-ChangedSince", " ".join(job["script"]))
         self.assertIn("-Action test", " ".join(job["script"]))
+        self.assertNotIn("-Action build", " ".join(job["script"]))
         self.assertTrue(
             any(
                 isinstance(rule, dict)
@@ -101,8 +102,33 @@ class UnityJobSelectionTests(unittest.TestCase):
         script = " ".join(job["script"])
         self.assertIn("-Action build", script)
         self.assertNotIn("-Action test", script)
-        self.assertTrue(any('A305_BUILD_WEB == "true"' in rule.get("if", "") for rule in job["rules"]))
+        rule = next(
+            rule
+            for rule in job["rules"]
+            if 'A305_DEPLOY_ENVIRONMENT == "dev"' in rule.get("if", "")
+        )
+        self.assertIn('A305_BUILD_WEB == "true"', rule["if"])
+        self.assertNotIn("needs", rule)
         self.assertEqual(job["interruptible"], "false")
+
+    def test_production_and_manual_builds_wait_for_editor_tests(self):
+        rules = self.jobs["unity:webgl-build"]["rules"]
+        production = next(
+            rule
+            for rule in rules
+            if 'A305_DEPLOY_ENVIRONMENT == "prod"' in rule.get("if", "")
+        )
+        manual = next(
+            rule
+            for rule in rules
+            if isinstance(rule, dict) and "RUN_UNITY_BUILD" in rule.get("if", "")
+        )
+        self.assertIn('A305_BUILD_WEB == "true"', production["if"])
+        self.assertIn('CI_COMMIT_REF_PROTECTED == "true"', manual["if"])
+        for rule in (production, manual):
+            self.assertEqual(
+                rule["needs"], [{"job": "unity:editor-tests", "artifacts": "false"}]
+            )
 
     def test_external_unity_changes_remain_blocked(self):
         job = self.jobs["unity:external-mr"]
@@ -129,7 +155,7 @@ class UnityJobSelectionTests(unittest.TestCase):
     def test_unity_jobs_do_not_share_an_exclusive_resource_group(self):
         template_group = self.jobs[".unity-editor"].get("resource_group")
         self.assertIsNone(
-            self.jobs["unity:editor-and-webgl"].get("resource_group", template_group)
+            self.jobs["unity:editor-tests"].get("resource_group", template_group)
         )
 
 

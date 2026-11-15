@@ -180,8 +180,8 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `intent.ids` | 말한 순서대로 최대 3개. Spring이 **하나씩 현재 상태에서 다시 검증**해 적용. `id`는 `ids[0]` |
 | `intent.slots` | 요청 `state.slots`에 있는 칸만. 상품은 `catalog` 안의 이름만, `iced`는 `iced_ok`에 있을 때만. 선택 칸(`option`)은 `labels` 중 하나, 말하지 않았으면 `"none"`. 경찰서 창구는 이 칸(`place`)으로 신고 장소를 고름(백엔드 `PoliceDesk`, 평가 `ai/tools/police_report_eval.py`) |
 | `intent.error` | 의도 판정 실패 시 메시지, 이때 `id`는 `unclear`. **상태·금액을 바꾸지 말고 다시 물을 것** |
-| `translation` | 항상 `null`(이전 Spring과 맞추려고 남긴 칸). 번역·교정문은 `/v1/expressions`(2.2.2절)의 같은 칸. 아래는 그 칸의 규칙: 영어 번역 또는 문법 교정문을 `{"english", "error"}`로 전달. 정상 영어·동일 문장·대소문자/구두점만 다른 경우는 `null`. 생성된 표현이 있으면 무례 판정과 관계없이 기존 카드에 표시(0.1절). 교정 실패가 대화를 막지 않음. 대화에 영어로 나온 이름(상대 NPC, 마을, 가게)은 그 철자로 쓰고, 영어 철자가 없는 이름(한글 닉네임 등)은 로마자로 바꾸지 않고 따옴표 안에 말한 그대로 둡니다(`My name is "김사피".`) |
-| `better_expressions` | 항상 `[]`(이전 Spring과 맞추려고 남긴 칸). `/v1/expressions`(2.2.2절)의 같은 칸. 아래는 그 칸의 규칙: 학습자가 한 말과 같은 뜻을 다르게 말하는 자연스러운 영어 문장 1~3개(발화 전체를 다시 쓴 문장). 더 나은 정답이 아니라 골라 쓸 수 있는 다른 표현이며, 자연스러운 것이 하나뿐이면 하나만 줌(억지로 채우지 않음). 맞게 말했을 때도, 고친 문장(`translation`)이 있거나 한글이 섞였을 때도 만듦. 교정문과 같은 호출에서 만듦(출력 상한 320 토큰). 학습자가 한 말, `translation.english`, 서로 겹치는 문장은 뺌. 무슨 뜻인지 알 수 없거나 호출이 실패하면 `[]` |
+| `translation` | 항상 `null`(이전 Spring과 맞추려고 남긴 칸). 번역·교정문은 `/v1/expressions`(2.2.2절)의 같은 칸. 아래는 그 칸의 규칙: 영어 번역 또는 문법 교정문을 `{"english", "error"}`로 전달. 정상 영어·동일 문장·대소문자/구두점만 다른 경우는 `null`. 축약형의 아포스트로피 누락(im → I'm, dont → don't)은 철자 오류로 고침. 모델이 아포스트로피만 고친 학습자 말을 다른 표현에 넣으면 그 문장을 교정문으로 씀(`apostrophe_fix`). 생성된 표현이 있으면 무례 판정과 관계없이 기존 카드에 표시(0.1절). 교정 실패가 대화를 막지 않음. 대화에 영어로 나온 이름(상대 NPC, 마을, 가게)은 그 철자로 쓰고, 영어 철자가 없는 이름(한글 닉네임 등)은 로마자로 바꾸지 않고 따옴표 안에 말한 그대로 둡니다(`My name is "김사피".`) |
+| `better_expressions` | 항상 `[]`(이전 Spring과 맞추려고 남긴 칸). `/v1/expressions`(2.2.2절)의 같은 칸. 아래는 그 칸의 규칙: 학습자가 한 말과 같은 뜻을 다르게 말하는 자연스러운 영어 문장 1~3개(발화 전체를 다시 쓴 문장). 더 나은 정답이 아니라 골라 쓸 수 있는 다른 표현이며, 자연스러운 것이 하나뿐이면 하나만 줌(억지로 채우지 않음). 맞게 말했을 때도, 고친 문장(`translation`)이 있거나 한글이 섞였을 때도 만듦. 무례하거나 모욕하는 말에는 욕설 없이 같은 기분이나 바람을 공손하게 말하는 문장을 줌(Unity는 Spring의 `rude`로 '무례하지 않게 말하면' 제목을 붙임). 교정문과 같은 호출에서 만듦(출력 상한 320 토큰). 학습자가 한 말, `translation.english`, 서로 겹치는 문장은 뺌(대소문자·문장 부호·아포스트로피만 다른 문장도 같은 문장으로 봄). 무슨 뜻인지 알 수 없거나 호출이 실패하면 `[]` |
 | `events` | 이 줄에서 학습자가 한 대화 사건. `GREETING`·`SMALL_TALK`·`PERSONAL_QUESTION`·`APOLOGY`·`COMPLIMENT`·`HELP`·`TASK_DONE`·`LEAVE` 중 0개 이상. 의도 판정과 같은 호출에서 고름. 의도 판정이 실패하면 `[]`, `dropped`면 `null`. **이 줄에 저장해 다음 요청의 `history[].events`로 보냄** |
 | `affinity_delta` | 이 줄의 사건으로 바로 올릴 호감(정수, 0 이상). 의도 판정이 실패하면 `0`, `dropped`면 `null`. 아래 설명 |
 
@@ -435,6 +435,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 | `failed` | `problem.code`: `AI_TIMEOUT`·`AI_PROVIDER_ERROR`·`INVALID_MODEL_OUTPUT` | `feedback.status: FAILED`, `errorCode`에 그대로 |
 
 - 공급자 실패·출력 형식 오류도 HTTP는 200이고 `feedback.status: failed`입니다(모듈이 판단). 사용량 한도는 Spring이 먼저 확인하고 부릅니다.
+- 출력이 형식·근거 검사에 걸리면(`INVALID_MODEL_OUTPUT`) 첫 시도만큼의 시간이 남았을 때 한 번 더 만듭니다. 두 호출의 사용량이 모두 `usage`에 들어갑니다. 어느 검사에서 걸렸는지는 워커 로그 `feedback_invalid_output`에 필드 위치·오류 종류만 남기고 모델 원문은 남기지 않습니다.
 - 시간 상한은 `FEEDBACK_TIMEOUT_S`(기본 60초)이며 **재시도·대체 모델을 포함한 전체 시간**입니다. 넘으면 `feedback.status: failed`, `problem.code: AI_TIMEOUT`. 길게 생성하는 호출이라 같은 요청 더 보내기(`HEDGE_AFTER_S`)를 쓰지 않습니다.
 - 백엔드 CONV-08 형식으로의 변환(예: `summary` ← `result.conversation_summary.text_ko`, `reviews.good`·`improve` ← `result.review_tags`의 `label_ko`, `suggestion` ← `result.summary_suggestion_id`가 가리키는 제안)은 `ai/feedback` 담당과 백엔드가 정합니다.
 

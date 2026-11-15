@@ -48,7 +48,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 
 // NPC 대사 뜻 보기(CONV-04), 힌트(CONV-05), 추천 단어(CONV-12). 워커는 Mock이다.
-@DialogueServiceTest
+@DialogueDbTest
 class TurnHelpServiceTest {
 
   private static final String NPC_LINE = "Great! For here or to go?";
@@ -68,7 +68,9 @@ class TurnHelpServiceTest {
       new SuggestResult(List.of("for here", "to go"), List.of(usage("suggest")));
 
   @Autowired private TurnHelpService turnHelpService;
-  @Autowired private ConversationService conversationService;
+  @Autowired private DialogueStartService dialogueStartService;
+
+  @Autowired private ConversationHistoryService conversationHistoryService;
 
   @Autowired private AiGateway aiGateway;
 
@@ -230,7 +232,7 @@ class TurnHelpServiceTest {
             "bye — 잘 가요");
 
     assertThat(shown).containsExactly("day — 하루", "thanks — 고마워요", "see you — 또 봐요");
-    assertThat(conversationService.detail(userId, conversation.getId()).turns())
+    assertThat(conversationHistoryService.detail(userId, conversation.getId()).turns())
         .filteredOn(turn -> npcTurn.getId().equals(turn.turnId()))
         .singleElement()
         .extracting(TurnDetailResponse::suggestWords)

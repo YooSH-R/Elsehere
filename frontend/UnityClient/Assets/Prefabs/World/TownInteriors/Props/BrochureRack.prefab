@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 7784406567290950331}
   - component: {fileID: 333645869440677315}
   - component: {fileID: 6537110793214879687}
+  - component: {fileID: 3693478909104402567}
   m_Layer: 0
   m_Name: Cover5FA8D3
   m_TagString: Untagged
@@ -114,6 +115,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: c39da124cbc38f8469ac438c7f49a2f7, type: 2}
+--- !u!114 &3693478909104402567
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 396172451232841298}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 21ca4715c5c4b204e9118f326093659c, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &1159665182372609338
 GameObject:
   m_ObjectHideFlags: 0
@@ -166,7 +182,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.16, y: 0.20000002, z: 0.015000001}
+  m_Size: {x: 0.16, y: 0.20000005, z: 0.015000001}
   m_Center: {x: -0.11999999, y: 0.55, z: -0.01}
 --- !u!114 &856783041116694465
 MonoBehaviour:
@@ -233,7 +249,7 @@ BoxCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Size: {x: 0.16, y: 0.20000005, z: 0.015000001}
-  m_Center: {x: -0.11999999, y: 0.8, z: -0.01}
+  m_Center: {x: -0.11999999, y: 0.8000001, z: -0.01}
 --- !u!114 &5304135813061319274
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -258,6 +274,7 @@ GameObject:
   - component: {fileID: 892141940790710321}
   - component: {fileID: 4600025521801002479}
   - component: {fileID: 1188627949982130100}
+  - component: {fileID: 3648726094837970580}
   m_Layer: 0
   m_Name: CoverB07CC6
   m_TagString: Untagged
@@ -360,6 +377,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: e5f048009eff47c4799b167ab142aab3, type: 2}
+--- !u!114 &3648726094837970580
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2312523114384040457}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 21ca4715c5c4b204e9118f326093659c, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &2558713438717064010
 GameObject:
   m_ObjectHideFlags: 0
@@ -413,7 +445,7 @@ BoxCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Size: {x: 0.16, y: 0.20000005, z: 0.015000001}
-  m_Center: {x: 0.11999999, y: 1.05, z: -0.01}
+  m_Center: {x: 0.12, y: 1.05, z: -0.01}
 --- !u!114 &8899744303600100076
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -479,7 +511,7 @@ BoxCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Size: {x: 0.16, y: 0.20000005, z: 0.015000001}
-  m_Center: {x: 0.11999999, y: 0.8, z: -0.01}
+  m_Center: {x: 0.12, y: 0.8000001, z: -0.01}
 --- !u!114 &4187462477357368387
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -504,6 +536,7 @@ GameObject:
   - component: {fileID: 5563586506187583275}
   - component: {fileID: 605206880882586207}
   - component: {fileID: 9067219071243963858}
+  - component: {fileID: 7167553050189930637}
   m_Layer: 0
   m_Name: CoverF4C430
   m_TagString: Untagged
@@ -606,6 +639,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: f9cc77ea25ba04243bf2c281001dfc3a, type: 2}
+--- !u!114 &7167553050189930637
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3734768245894494145}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 21ca4715c5c4b204e9118f326093659c, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &4067874068154093374
 GameObject:
   m_ObjectHideFlags: 0
@@ -618,6 +666,7 @@ GameObject:
   - component: {fileID: 4886862645122975764}
   - component: {fileID: 2629000117758489238}
   - component: {fileID: 6527874683295475422}
+  - component: {fileID: 4272470203437020662}
   m_Layer: 0
   m_Name: CoverF08A4B
   m_TagString: Untagged
@@ -720,6 +769,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: 4184336b2e6e10f4e842a491930a225e, type: 2}
+--- !u!114 &4272470203437020662
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4067874068154093374}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 21ca4715c5c4b204e9118f326093659c, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &4090767300336238517
 GameObject:
   m_ObjectHideFlags: 0
@@ -952,8 +1016,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.16, y: 0.20000002, z: 0.015000001}
-  m_Center: {x: 0.11999999, y: 0.55, z: -0.01}
+  m_Size: {x: 0.16, y: 0.20000005, z: 0.015000001}
+  m_Center: {x: 0.12, y: 0.55, z: -0.01}
 --- !u!114 &1853202718517317558
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1084,7 +1148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
-  word: {fileID: 11400000, guid: 4ea359159eb455e46a07f7258d25e790, type: 2}
+  word: {fileID: 11400000, guid: c198f78cc742bb14b8d7282b458af524, type: 2}
   parts: {fileID: 0}
   unityKey: 
 --- !u!1 &5640016680629995700
@@ -1099,6 +1163,7 @@ GameObject:
   - component: {fileID: 4650974686712748888}
   - component: {fileID: 1974772446306397260}
   - component: {fileID: 2513970042124334960}
+  - component: {fileID: 4197270053256773602}
   m_Layer: 0
   m_Name: CoverE85D75
   m_TagString: Untagged
@@ -1201,6 +1266,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: fb32a87349a4aff4997e9f9902a6d802, type: 2}
+--- !u!114 &4197270053256773602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5640016680629995700}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 21ca4715c5c4b204e9118f326093659c, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &7638803992811947296
 GameObject:
   m_ObjectHideFlags: 0
@@ -1213,6 +1293,7 @@ GameObject:
   - component: {fileID: 7476658571712231878}
   - component: {fileID: 5288653027315261251}
   - component: {fileID: 2105309132748411561}
+  - component: {fileID: 2652970920904926826}
   m_Layer: 0
   m_Name: Cover7FAD50
   m_TagString: Untagged
@@ -1315,6 +1396,21 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: 34dd76f0b4065b345bc926849c373eee, type: 2}
+--- !u!114 &2652970920904926826
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7638803992811947296}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 21ca4715c5c4b204e9118f326093659c, type: 2}
+  parts: {fileID: 0}
+  unityKey: 
 --- !u!1 &8071027280972099800
 GameObject:
   m_ObjectHideFlags: 0

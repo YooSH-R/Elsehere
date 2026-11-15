@@ -408,7 +408,7 @@ namespace A305.Dialogue
             panel.TalkStopRequested += StopRecording;
             panel.ReplayRequested += ReplaySpeech;
             panel.PerformanceRequested += TogglePerformance;
-            panel.UserTranslationListenRequested += ReadUserTranslation;
+            panel.ExpressionListenRequested += ReadExpression;
             panel.MeaningRequested += RequestMeaning;
             panel.HintRequested += RequestHint;
             panel.HintOpened += RecordHintOpened;
@@ -450,7 +450,7 @@ namespace A305.Dialogue
                 panel.TalkStopRequested -= StopRecording;
                 panel.ReplayRequested -= ReplaySpeech;
                 panel.PerformanceRequested -= TogglePerformance;
-                panel.UserTranslationListenRequested -= ReadUserTranslation;
+                panel.ExpressionListenRequested -= ReadExpression;
                 panel.MeaningRequested -= RequestMeaning;
                 panel.HintRequested -= RequestHint;
                 panel.HintOpened -= RecordHintOpened;
@@ -839,12 +839,13 @@ namespace A305.Dialogue
             WordSaveRequested?.Invoke(word);
         }
 
-        private async void ReadUserTranslation(string text)
+        // 표현 카드의 스피커가 누른 문장을 기기 영어 음성으로 읽는다. 지금 카드에 보이는 문장만 읽는다.
+        private async void ReadExpression(string text)
         {
             if (
                 serverConversation == null
                 || serverConversation.IsBusy
-                || text != serverConversation.UserTranslation
+                || !serverConversation.ShowsExpression(text)
             )
                 return;
             speechRecovery?.Cancel();
@@ -854,7 +855,7 @@ namespace A305.Dialogue
                 !played
                 && this != null
                 && session.IsActive
-                && text == serverConversation?.UserTranslation
+                && serverConversation?.ShowsExpression(text) == true
             )
                 panel.ShowPronunciationFailure();
         }

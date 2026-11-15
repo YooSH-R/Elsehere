@@ -174,6 +174,13 @@ namespace A305.Dialogue
 
         public IReadOnlyList<string> UserBetterExpressions { get; private set; }
 
+        public bool UserTurnRude { get; private set; }
+
+        /// <summary>표현 카드에 지금 보이는 영어 문장(고친 문장·영어 번역·다른 표현)인지. 카드의 스피커가 이 문장만 읽게 한다.</summary>
+        public bool ShowsExpression(string text) =>
+            !string.IsNullOrWhiteSpace(text)
+            && (text == UserTranslation || UserBetterExpressions?.Contains(text) == true);
+
         // 빈 문장은 빼고, 남은 문장이 없으면 카드를 띄우지 않게 null로 둔다.
         private static IReadOnlyList<string> BetterSentences(List<string> sentences)
         {
@@ -270,6 +277,7 @@ namespace A305.Dialogue
             HintText = null;
             UserTranslation = null;
             UserBetterExpressions = null;
+            UserTurnRude = false;
             if (ConversationId != null)
             {
                 StatusMessage = null;
@@ -368,6 +376,7 @@ namespace A305.Dialogue
 
             UserTranslation = null;
             UserBetterExpressions = null;
+            UserTurnRude = false;
             string requestId = utterance == failedText ? failedRequestId : NewRequestId();
             // 보낼 문장은 앞뒤 공백을 지우므로 전사 결과도 공백을 지우고 비교한다. 서버에는 전사 원문을 그대로 보낸다.
             bool isVoice = lastTranscript != null && utterance == lastTranscript.Trim();
@@ -416,6 +425,7 @@ namespace A305.Dialogue
                         ? null
                         : expression.Trim();
                     UserBetterExpressions = BetterSentences(result.UserTurn?.BetterExpressions);
+                    UserTurnRude = result.UserTurn?.Rude == true;
                     ApplyState(result.Conversation);
                     AddNpcTurn(result.NpcTurn, reply.HasSpeech, reply.HasMissingSpeech);
                     IsEnded =

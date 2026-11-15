@@ -277,7 +277,7 @@ GPU 모델은 상대를 향하지 않은 단어("감자", 이름 "김사피", "�
 
 기존 대사 생성 요청에서 구절별 표정 종류·강도도 함께 생성합니다. 내부 감정 표시는 `delta`·`audio`·`done`의 대사와 TTS 입력에서 제거하며, 합성한 WAV의 `e305` 청크에 실제 음성 길이 기준 시간표를 넣습니다. 추가 감정 분석 요청은 없습니다. 수준별 대사 길이는 유지하고 출력 상한에 감정 표시용 64토큰을 더합니다. `done.speech_phrases`에는 음성 성공 여부와 별개로 `[{"text":"Really?","emotion":"curious","intensity":0.6}]` 형식의 구절 목록을 반환합니다. 감정 표시가 없거나 잘못된 구절은 `emotion: null, intensity: 0`입니다. Spring은 이 목록을 턴에 저장하고 음성 재합성에 사용합니다. 형식·검증·다시 듣기는 [NPC 대화 감정 표정](../unity/npc-dialogue-emotions.md)을 따릅니다.
 
-요청: `npc`, `memory`(선택: `visits`, `last_order`, `card`), `relationship`(선택, 아래 표), `history`(최대 40줄), `text`(학습자 원문, 최대 500자), `instruction`(Spring 규칙이 정한 이번 대답에서 할 일, 최대 3000자), `tts`(기본 `true`), `level`(기본 `2`), `suggest_words`(기본 `false`, 추천 단어를 스트림으로), `goal`(추천 단어용: 지금 상태에서 학습자가 할 일, 최대 300자), `learner`(선택: `nickname` 최대 32자, `avatar_type` `F`·`M`, `speech_speed` 0.8~1.5 기본 1.1). **한 턴의 대답은 난이도에 따라 한 문장에서 세 문장까지**이며 한 줄로 옵니다.
+요청: `npc`, `memory`(선택: `visits`, `last_order`, `card`), `relationship`(선택, 아래 표), `needs`(선택, 아래 설명), `history`(최대 40줄), `text`(학습자 원문, 최대 500자), `instruction`(Spring 규칙이 정한 이번 대답에서 할 일, 최대 3000자), `tts`(기본 `true`), `level`(기본 `2`), `suggest_words`(기본 `false`, 추천 단어를 스트림으로), `goal`(추천 단어용: 지금 상태에서 학습자가 할 일, 최대 300자), `learner`(선택: `nickname` 최대 32자, `avatar_type` `F`·`M`, `speech_speed` 0.8~1.5 기본 1.1). **한 턴의 대답은 난이도에 따라 한 문장에서 세 문장까지**이며 한 줄로 옵니다.
 
 `learner`는 대답 상대인 학습자입니다. NPC는 `avatar_type`에 맞는 호칭만 씁니다(`F`는 ma'am·Ms., `M`은 sir·Mr.). 칸을 빼거나 `avatar_type`이 없으면 Mr.·Ms.·sir·ma'am처럼 성별을 짐작한 호칭을 쓰지 않습니다. `nickname`은 영어 글자로 된 실제 이름일 때만 부릅니다. Spring은 대화를 시작한 사용자의 닉네임과 캐릭터 기본형을 첫 인사와 매 턴 대답에 보냅니다. `speech_speed`는 대답 음성의 빠르기(Kokoro speed)이며, Spring이 Unity 요청의 `speechSpeed`(학습자가 마이페이지에서 고른 값)를 그대로 넣습니다. `learner`가 없거나 칸이 없으면 1.1배이고, 범위를 벗어나면 `400 invalid_request`입니다.
 
@@ -288,6 +288,8 @@ GPU 모델은 상대를 향하지 않은 단어("감자", 이름 "김사피", "�
 | `recognition` | 정수 0~100 | 알아봄. 얼굴을 아는 정도 |
 | `affinity` | 정수 −100~100 | 호감. 좋게 보는 정도 |
 | `days_since_last_talk` | 정수 0 이상 | 마지막 대화 뒤 지난 **게임 속** 날 수. 1차 배포는 게임 하루 10분, 대화 중 멈춤([NPC 생활·관계 설계](../npc-life-design.md) 4·11절) |
+
+`needs`는 대화를 시작할 때 NPC의 욕구입니다. 예: `{"HUNGER": 35, "ENERGY": 12, "SOCIAL": 70, "FUN": 55, "WORK": 80}`. 키는 공통 규칙 `world-rules.json`의 `needs` 키(`HUNGER`·`ENERGY`·`SOCIAL`·`FUN`·`WORK`)이고, 값은 0~100 숫자(높을수록 채워짐)이며 일부 키만 보내도 됩니다. 범위를 벗어나거나 모르는 키면 `400 invalid_request`입니다. 칸을 빼면 바탕 기분을 넣지 않습니다. Unity가 돌리는 값을 대화를 시작할 때 백엔드가 받아 첫 인사와 매 턴 같은 값을 보내는 통로는 대화 중 돌발 미션 작업(S15P31A305-931)에서 만듭니다. 그 전에는 백엔드가 이 칸을 보내지 않습니다.
 
 응답은 `text/event-stream`이며 이벤트 순서는 다음과 같습니다.
 
@@ -309,9 +311,12 @@ delta*  →  audio*  →  words?  →  done | error
 - `relationship`이 있으면 지시문의 기억 자리에 "About this person"을 넣습니다(`app/npc_relationship.py`, `app/prompts.py`의 `person_note`). 숫자는 넣지 않고 말로 풉니다.
   - 지난 날만큼 줄어든 알아봄으로 처음 봄·본 적 있음·단골을 정합니다. 알아봐야(본 적 있음부터) 기억 카드의 이름·했던 말·지난 주문을 떠올립니다. 알아보지 못해도 카드의 `attitude`가 `friendly`·`wary`면 그 일(`events`)은 떠올립니다.
   - 호감이 기준을 넘으면 좋아하거나 차갑게 대하는 티를 내고, 알아봄과 호감이 모두 높으면 자기 이야기를 조금 합니다.
-  - 대화 중 기분은 `history`의 학습자 줄로 계산합니다. 무례 줄(`rude: true`) 뒤에는 몇 턴 동안 짜증이 남고, 사과(`events`의 `APOLOGY`)하면 줄어듭니다. 칭찬 뒤나 잡담이 이어지면 기분이 좋아집니다. 둘 다면 더 큰 쪽만 넣습니다. 무례 줄의 다른 사건은 버립니다.
-  - 기준 숫자는 공통 규칙 `ai/npcs/rules/world-rules.json`이고, 알아보는 속도와 반응 크기는 `npc.profile`의 성격으로 정합니다.
-  - `relationship`이 없으면 지금처럼 `memory.visits`와 기억 카드를 그대로 넣습니다.
+  - 기준 숫자는 공통 규칙 `ai/npcs/rules/world-rules.json`이고, 알아보는 속도는 `npc.profile`의 성격으로 정합니다.
+  - `relationship`이 없으면(처음 만난 대화, 장소 연습·복습 대화) `memory.visits`와 기억 카드를 그대로 넣습니다.
+- 이번 대화의 기분은 `relationship`과 상관없이 정해 "How you feel right now"로 넣습니다(`app/npc_relationship.py`의 `mood_state`, `app/prompts.py`의 `mood_note`). 그래서 처음 만난 대화에도 들어갑니다. 드러낼 기분이 없으면 넣지 않습니다.
+  - 바탕 기분: `needs` 가운데 `mood.needs.low`(30)보다 낮은 욕구가 피곤함(`ENERGY`)·배고픔(`HUNGER`)·말 상대가 반가움(`SOCIAL`)·지루함(`FUN`)·일이 밀려 바쁨(`WORK`)이 됩니다. 가장 낮은 욕구 하나만 넣고, 그 욕구가 `veryLow`(15)보다 낮으면 뚜렷하게 드러내며 다음으로 낮은 욕구까지 두 개를 넣습니다. 보낸 욕구가 모두 `comfortable`(70) 이상이면 여유로운 기분입니다. 대화 중에는 게임 시간이 멈추므로 한 대화 동안 같습니다.
+  - 사건 기분: `history`의 학습자 줄로 계산합니다. 무례 줄(`rude: true`) 뒤에는 몇 턴 동안 짜증이 남고, 사과(`events`의 `APOLOGY`)하면 줄어듭니다. 칭찬 뒤나 잡담이 이어지면 기분이 좋아집니다. 둘 다면 더 큰 쪽만 넣습니다. 무례 줄의 다른 사건은 버립니다. 반응 크기는 `npc.profile`의 성격으로 정합니다.
+  - 짜증 난 동안에는 반대인 바탕 기분(여유로움·말 상대가 반가움)을 빼고, 기분이 좋으면 여유로움을 겹쳐 넣지 않습니다.
 - 대답은 한 줄입니다. 모델이 줄을 바꿔 다른 사람 대사를 쓰면 버립니다.
 - 빈 대답이면 `"Sorry, could you say that again?"`로 대신합니다(`done`).
 - Spring이 연결을 끊으면 워커도 모델 호출을 멈춥니다.

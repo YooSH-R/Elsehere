@@ -265,6 +265,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | CONV-12 | `POST /api/v1/turns/{turnId}/suggest-words` | NPC 대사에 대답할 추천 단어·문장 미리 받기 | LLM | 15 |
 | CONV-13 | `GET /api/v1/follow-ups` | NPC가 곧 건네기로 했는데 아직 받지 않은 것 | - | 14 |
 | CONV-14 | `POST /api/v1/follow-ups/{followUpId}/dismiss` | 기다림 카드 닫기 | - | 14 |
+| FAV-01 | `GET /api/v1/favors/current` | 진행 중 돌발 부탁(부탁 카드 복원) | - | 14 |
+| FAV-02 | `POST /api/v1/favors/{favorId}/abandon` | 진행 중 돌발 부탁 그만두기 | - | 14 |
 | FB-01 | `GET /api/v1/conversations/{conversationId}/feedback` | 짧은 피드백·상세 평가 조회 | - | 16, 17 |
 | FB-02 | `POST /api/v1/conversations/{conversationId}/feedback` | 짧은 피드백 다시 만들기 | LLM | 16 |
 | FB-03 | `POST /api/v1/conversations/{conversationId}/detailed-feedback` | 상세 평가 조회(종료 때 만든 평가) | - | 16, 17 |
@@ -1004,6 +1006,37 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 같은 `requestId`로 다시 보내면(응답 시간 초과 뒤 재시도 등) 대화를 새로 만들지 않고 그 요청으로 시작한 대화의 응답(첫 대사 포함)을 돌려줍니다(`conversations.request_id`). 이때는 `CONVERSATION_ALREADY_ACTIVE`나 게스트 횟수로 거절하지 않고 횟수도 다시 세지 않습니다. 처음 요청이 첫 인사를 기다리는 사이 재요청이 먼저 저장했어도 같습니다. 다른 사용자가 쓴 `requestId`면 `409 REQUEST_ID_CONFLICT`입니다.
 - AI를 쓸 수 없는 상태에서는 행인 말걸기를 발생시키지 않습니다. `[제안]` 클라이언트가 BOOT-01·AI-01의 상태로 판단하고, 최종 확인은 이 API에서 합니다.
 
+**돌발 부탁** — 생활하는 NPC가 대화 중에 학습자에게 부탁을 꺼낼 수 있습니다([NPC 생활·관계 설계](../npc-life-design.md) 7절). 무엇을 부탁할지는 서버가 CONV-01 `needs`와 게임 시각·장소로 공통 규칙에서 고르고, NPC는 지시문에 따라 그 부탁을 말로만 꺼냅니다. 학습자 말의 수락·거절·건넴은 의도 판정(`accept_favor`·`decline_favor`·`hand_over` 등)으로 정합니다.
+
+- 꺼내는 때: 무례로 세지 않은 학습자의 두 번째 말 뒤. 그 대화에 판정할 퀘스트 목표가 있거나, 복습·장소 연습 대화이거나, 지난 부탁이 끝난 뒤 쉬는 간격(게임 4시간) 안이거나, 그 NPC가 그날 이미 부탁했거나, 호감도가 −10보다 낮으면 꺼내지 않습니다. 마무리하는 턴에도 꺼내지 않습니다.
+- 이 턴에 생기거나 바뀐 부탁을 `missionUpdates`에 아래 모양으로 담습니다. 같은 `requestId`로 다시 보내 저장된 응답을 돌려줄 때는 담지 않으므로, 클라이언트는 FAV-01로 다시 맞춥니다.
+
+```json
+"missionUpdates": [
+  {
+    "favorId": 42,
+    "templateId": "bring_food",
+    "status": "ACCEPTED",
+    "requesterNpcCode": "HOTEL_STAFF",
+    "titleKo": "Jake의 부탁 · 크루아상 사다 주기",
+    "steps": [
+      { "placeCode": "BAKERY", "npcCode": null, "textKo": "Maple Bakery에서 크루아상 포장 주문하기", "done": false },
+      { "placeCode": "HOTEL", "npcCode": "HOTEL_STAFF", "textKo": "호텔 Jake에게 건네기", "done": false }
+    ],
+    "rewardCoins": 6,
+    "affinityDelta": 8,
+    "fills": null,
+    "expiresAtGameMinute": 4380
+  }
+]
+```
+
+- `status`는 `OFFERED`(꺼냄)·`ACCEPTED`(수락)·`GOT`(심부름 물건을 받음)·`DONE`(완료)·`DECLINED`(거절)·`EXPIRED`(기한 지남)·`ABANDONED`(그만둠)입니다. 꺼낸 대화에서 답하지 않고 끝내면 다음 턴 처리 때 대화 안 부탁은 `EXPIRED`, 심부름은 `DECLINED`로 끝냅니다.
+- `steps`는 부탁 카드의 할 일입니다. `npcCode`가 있으면 그 NPC와, 없으면 그 장소의 직원과 말합니다. 대화 안에서 끝나는 부탁은 할 일이 하나입니다.
+- `expiresAtGameMinute`는 심부름 기한(1일차 0시부터 센 게임 분, 수락 뒤 게임 12시간)이고 수락 전·대화 안 부탁은 `null`입니다.
+- `DONE`이 되면 부탁한 NPC의 호감도에 `affinityDelta`를 더하고(`conversation.affinity`에 반영), `rewardCoins`는 퀘스트 코인 잔액(첫날 퀘스트·마을 이야기 진행과 퀘스트 목록 응답의 `balance`)에 더합니다. `fills`는 `DONE`일 때만 `{ "HUNGER": 40 }`처럼 부탁한 NPC가 채울 욕구이며, Unity가 그 NPC의 생활 욕구를 채웁니다.
+- 학습자는 한 번에 부탁 하나만 진행합니다.
+
 **스트리밍** — 요청 헤더에 `Accept: text/event-stream, application/json`을 붙이면 AI가 만드는 첫 인사의 글자와 문장 조각 음성을 만들어지는 대로 SSE(`text/event-stream`)로 받습니다. 첫 인사도 대화의 첫 턴이라 이벤트 형식은 CONV-03 **스트리밍**과 같고, 마지막 이벤트만 `conversation`입니다. 요청 본문, 첫 인사 → 대화 저장 순서, 같은 `requestId` 처리는 위와 같습니다. Accept에 `text/event-stream`이 없으면 지금처럼 JSON 한 번(201)으로 응답합니다. 첫 인사 전체와 음성을 다 기다리는 것보다 첫 글자가 먼저 보입니다.
 
 | 이벤트 | data | 뜻 |
@@ -1093,6 +1126,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 대화 시작·발화 전송은 같은 사용자·`requestId`의 처리 중 재요청도 순서대로 처리하여, 먼저 저장된 결과를 재사용하고 AI를 중복 호출하지 않습니다. 잠금은 현재 단일 백엔드 프로세스 안에서 관리하며 완료·실패 뒤 해제합니다. 실패한 요청은 같은 ID로 다시 시도할 수 있습니다. 워커에 보낼 앞선 대화는 DB에서 최근 40줄만 조회합니다.
 - TTS가 실패해도 응답은 성공으로 돌려주고 `speech.status`를 `FAILED`로 표시합니다. 클라이언트는 자막을 보여주고 CONV-07로 다시 시도합니다.
 - AI가 미션 완료나 대화 종료를 제안하면 서버가 검증해 확정합니다(`ai_candidates`). 확정된 결과만 `missionUpdates`와 `conversation.status`에 반영합니다. 한 턴에서 여러 미션이 함께 완료될 수 있습니다.
+- 지금 `missionUpdates`에는 이 턴에 생기거나 바뀐 돌발 부탁만 담습니다(아래 **돌발 부탁**). 첫날 퀘스트·마을 이야기의 진행은 퀘스트 API로 따로 조회합니다.
 - 서버는 한 턴에서 무례 판정과 의도·번역 판정을 같은 문장으로 동시에 요청하고 둘 다 기다린 뒤 NPC 대답을 만듭니다. 스트리밍 요청에서 판정 결과가 대답 지시문에 들어가지 않는 대화는 대답을 먼저 시작합니다(아래 **스트리밍**).
 
 **경찰 신고** — 경찰서 창구의 경찰관(`POLICE_OFFICER`·`POLICE_SERGEANT`·`POLICE_PATROL_OFFICER`·`POLICE_ROOKIE`)에게 한 말은 의도 판정이 정해진 단어가 아니라 문맥으로 출동할 일(도난·분실·사고·싸움·수상한 사람 등)인지와 장소를 고릅니다. 출동할 일과 장소가 나오면(본길이나 장소를 모르면 본길 순찰) `policeDispatch`에 `{ "placeCode": "BAKERY" }`처럼 출동할 곳을 담고, 경찰관이 직접 순찰차로 간다고 말하며 그 턴에 대화를 마칩니다(`ENDED_BY_NPC`). `placeCode`는 마을 장소 코드(`HOME`·`HOTEL`·`CAFE`·`SHOP`·`POST_OFFICE`·`DINER`·`BANK`·`LAUNDROMAT`·`FLOWER_SHOP`·`BARBER`·`BAKERY`·`PARK`·`ARCADE`·`HOME_STORE`·`ICE_CREAM_PLAZA`)이고, `null`이면 본길 순찰입니다. 신고만 하고 장소를 말하지 않았으면 출동하지 않고 경찰관이 장소를 묻습니다. 비번(`npcOffDuty`) 경찰관과의 대화, 출동하지 않는 턴, 무례로 센 턴에서는 `policeDispatch`가 `null`입니다. 접수 여부와 장소는 사용자 턴에 저장하므로 같은 `requestId`로 다시 보내도 동일한 출동 정보를 돌려줍니다. 클라이언트는 `userTurn.turnId`로 중복 접수를 막고 추가 신고를 순서대로 보관합니다. 경찰관은 앞선 출동이 끝난 뒤 차례로 출동하므로 정확한 출발 시각은 약속하지 않습니다. 판정 상태는 백엔드 `PoliceDesk`, 평가는 `ai/tools/police_report_eval.py`입니다.
@@ -1442,6 +1476,16 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 학습자가 기다림 카드의 X로 닫은 것입니다. 응답은 204이고 본문이 없습니다.
 - 건넨 것처럼 기다리는 목록에서 빠지고, 그 NPC가 다시 부르지 않습니다. 다른 사용자의 것이나 이미 건넨 것이면 아무것도 바꾸지 않습니다.
+
+#### FAV-01 `GET /api/v1/favors/current`
+
+- 진행 중인 돌발 부탁(`OFFERED`·`ACCEPTED`·`GOT`) 하나를 CONV-03 **돌발 부탁**의 부탁 소식 모양으로 돌려줍니다. 다시 접속하거나 장면을 옮긴 뒤 부탁 카드를 복원합니다.
+- 진행 중인 부탁이 없으면 204이고 본문이 없습니다. 조회하는 순간 기한이 지난 심부름은 `EXPIRED`로 끝내고 204를 돌려줍니다.
+
+#### FAV-02 `POST /api/v1/favors/{favorId}/abandon`
+
+- 부탁 카드의 [그만두기]입니다. 진행 중인 부탁을 `ABANDONED`로 끝내고 끝난 부탁을 같은 모양으로 돌려줍니다. 호감도와 코인은 바꾸지 않습니다.
+- 다른 사용자의 부탁이거나 없는 부탁이면 404입니다. 이미 끝난 부탁이면 그대로 돌려줍니다.
 
 ### 4.7 피드백
 

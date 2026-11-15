@@ -295,7 +295,7 @@ Ruby·Ethan·Maya·Helen·Frank는 각 매장 직원으로 전직했습니다. W
 | AI 규칙 | 제공 목록·계기·리듬·보상 상수를 원본으로 두고 Unity·백엔드로 내보냄 |
 
 - **CONV-01 요청:** `needs` — `{"HUNGER": 35, "ENERGY": 12, "SOCIAL": 70, "FUN": 55, "WORK": 80}`, 선택. 대화에 저장해 첫 인사와 매 턴 워커 `/v1/npc/reply`의 `needs`로 같은 값을 보내고, 부탁 고르기에도 씁니다.
-- **응답의 부탁 소식:** 지금 늘 빈 목록인 칸을 씁니다. CONV-01 `runningMissions`(이 NPC가 관련된 진행 중 부탁), CONV-03 `missionUpdates`(이번 턴에 바뀐 부탁), CONV-08 `completedMissions`(이 대화에서 끝난 부탁).
+- **응답의 부탁 소식:** 늘 빈 목록이던 CONV-03 `missionUpdates`에 이번 턴에 바뀐 부탁을 담습니다. 진행 중 부탁은 FAV-01로 조회하므로 CONV-01 `runningMissions`와 CONV-08 `completedMissions`는 지금처럼 비워 둡니다.
 - **부탁 소식 한 개:**
 
 ```json

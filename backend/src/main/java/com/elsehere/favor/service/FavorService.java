@@ -128,7 +128,7 @@ public class FavorService {
     Optional<Favor> active = openFavor(userId, conversation.getId(), npcCode, now);
     if (active.isPresent()) {
       Favor favor = active.get();
-      Role role = FavorScript.roleOf(rules, favor, npcCode);
+      Role role = FavorScript.roleOf(rules, favor, npcCode, conversation.isNpcOffDuty());
       return new FavorTurn(
           npcCode,
           favor.getId(),

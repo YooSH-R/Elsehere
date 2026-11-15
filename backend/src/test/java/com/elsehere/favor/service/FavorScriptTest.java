@@ -72,9 +72,31 @@ class FavorScriptTest {
     Favor favor = croissantForJake();
     favor.moveTo(FavorStatus.ACCEPTED, 4000, 720);
 
-    assertThat(FavorScript.roleOf(RULES, favor, "HOTEL_STAFF")).isEqualTo(Role.REQUESTER);
-    assertThat(FavorScript.roleOf(RULES, favor, "BAKERY_STAFF")).isEqualTo(Role.SHOP);
-    assertThat(FavorScript.roleOf(RULES, favor, "CAFE_STAFF")).isEqualTo(Role.NONE);
+    assertThat(FavorScript.roleOf(RULES, favor, "HOTEL_STAFF", false)).isEqualTo(Role.REQUESTER);
+    assertThat(FavorScript.roleOf(RULES, favor, "BAKERY_STAFF", false)).isEqualTo(Role.SHOP);
+    assertThat(FavorScript.roleOf(RULES, favor, "CAFE_STAFF", false)).isEqualTo(Role.NONE);
+  }
+
+  @Test
+  @DisplayName("퇴근해 손님을 받지 않는 해결처 직원에게는 심부름 물건을 팔라고 하지 않는다")
+  void anOffDutyShopWorkerIsNotTheShop() {
+    Favor favor = croissantForJake();
+    favor.moveTo(FavorStatus.ACCEPTED, 4000, 720);
+
+    assertThat(FavorScript.roleOf(RULES, favor, "BAKERY_STAFF", true)).isEqualTo(Role.NONE);
+    // 부탁한 NPC는 퇴근해 걷고 있어도 건넬 수 있다(설계 7.10).
+    assertThat(FavorScript.roleOf(RULES, favor, "HOTEL_STAFF", true)).isEqualTo(Role.REQUESTER);
+  }
+
+  @Test
+  @DisplayName("해결처 판정은 포장 주문뿐 아니라 누가 부탁했다고 하거나 종류를 고르는 말도 그 물건·일을 요청한 것으로 본다")
+  void theShopIntentCoversIndirectRequests() {
+    Favor favor = croissantForJake();
+    favor.moveTo(FavorStatus.ACCEPTED, 4000, 720);
+
+    String desc = FavorScript.intents(RULES, favor, Role.SHOP).getFirst().desc();
+
+    assertThat(desc).contains("a croissant", "Jake asked them", "which kind");
   }
 
   @Test

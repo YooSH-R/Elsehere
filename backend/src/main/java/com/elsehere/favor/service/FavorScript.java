@@ -37,12 +37,17 @@ public final class FavorScript {
   /** 부탁 카드의 단계 한 줄. */
   public record Step(String placeCode, String npcCode, String textKo, boolean done) {}
 
-  public static Role roleOf(FavorRules rules, Favor favor, String npcCode) {
+  /**
+   * @param npcOffDuty 지금 대화하는 NPC가 교대 밖이라 손님을 받지 않는지. 부탁한 NPC는 퇴근해 걷고 있어도 건넬 수 있지만(설계 7.10), 퇴근한
+   *     해결처 직원에게는 심부름 물건을 팔라고 하지 않는다.
+   */
+  public static Role roleOf(FavorRules rules, Favor favor, String npcCode, boolean npcOffDuty) {
     if (favor.getRequesterNpcCode().equals(npcCode)) {
       return Role.REQUESTER;
     }
     boolean atTheShop =
-        favor.errand()
+        !npcOffDuty
+            && favor.errand()
             && favor.getStatus() == FavorStatus.ACCEPTED
             && rules
                 .npc(npcCode)
@@ -92,7 +97,11 @@ public final class FavorScript {
                   GET_FOR_REQUESTER,
                   "The learner asks for "
                       + offer(rules, favor).en()
-                      + " (to go) for someone else, or orders it to go."));
+                      + " in any way: orders or asks to buy it (to go or not), says it is for "
+                      + requester
+                      + " or that "
+                      + requester
+                      + " asked them to get it, or answers which kind they want."));
       case NONE -> List.of();
     };
   }

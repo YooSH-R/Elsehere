@@ -53,6 +53,20 @@ class FavorScriptTest {
   }
 
   @Test
+  @DisplayName("상황 심부름은 물건을 사다 달라고 하지 않고 해결처에서 그 일을 대신 봐 달라고 한다")
+  void aSituationErrandAsksToTakeCareOfItThere() {
+    var request = RULES.request("letter_to_send").orElseThrow();
+    var offer = RULES.offer("POST_OFFICE", "stamp").orElseThrow();
+
+    String instruction =
+        FavorScript.offerInstruction(RULES, new FavorPicker.Pick(request, "POST_OFFICE", offer));
+
+    assertThat(instruction)
+        .contains("take care of it", "the post office")
+        .doesNotContain("get you");
+  }
+
+  @Test
   @DisplayName("부탁한 NPC, 수락한 심부름의 해결처 직원, 그 밖의 NPC를 가른다")
   void rolesOfTheNpcInTheConversation() {
     Favor favor = croissantForJake();

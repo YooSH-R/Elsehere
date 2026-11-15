@@ -150,11 +150,20 @@ public final class FavorScript {
           + " answer, then wait for their answer.";
     }
     String place = rules.places().get(pick.offerPlace()).name().en();
+    // 상황 심부름(잔돈 바꾸기·편지 부치기·꽃)은 물건 사 오기가 아니라 해결처에서 그 일을 대신 봐 주는 것이다.
+    String ask =
+        pick.request().offer() != null
+            ? "Naturally and briefly ask the learner if they could take care of it for you at "
+                + place
+                + " (it needs "
+                + pick.offer().en()
+                + ")"
+            : "Naturally and briefly ask the learner if they could get you "
+                + pick.offer().en()
+                + " from "
+                + place;
     return situation
-        + "Naturally and briefly ask the learner if they could get you "
-        + pick.offer().en()
-        + " from "
-        + place
+        + ask
         + ". Say you will give them the money and a small thank-you. Then wait for their answer.";
   }
 

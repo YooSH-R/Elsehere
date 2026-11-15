@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using A305.Dialogue;
 
 namespace A305.Npc
 {
@@ -122,6 +123,26 @@ namespace A305.Npc
         {
             Doing = null;
             IsUsing = false;
+        }
+
+        /// <summary>지금 욕구 값을 찍어 둔다. 대화 창 게이지와 대화 요청이 대화를 시작한 순간의 값을 쓴다.</summary>
+        public NpcNeeds Snapshot()
+        {
+            return new NpcNeeds(needs);
+        }
+
+        /// <summary>
+        /// 학습자와 대화를 마쳤다. 공통 규칙에서 대화로 채우는 욕구(사교)를 채운다. 사교는 채우는 사물이 없어 대화로만 채워진다.
+        /// </summary>
+        public void FillAfterConversation()
+        {
+            foreach (KeyValuePair<string, NpcNeedRule> need in data.Needs)
+            {
+                if (need.Value.ConversationFill > 0)
+                {
+                    needs[need.Key] = Math.Min(FullNeed, needs[need.Key] + need.Value.ConversationFill);
+                }
+            }
         }
 
         private bool CanDo(NpcActionRule action, Predicate<string> isPlaced)

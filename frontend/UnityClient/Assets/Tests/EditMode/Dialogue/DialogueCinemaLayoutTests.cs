@@ -12,6 +12,28 @@ namespace A305.Dialogue.Tests
         private static readonly Vector2 Wide = new Vector2(1920, 1080);
 
         [Test]
+        public void TryCenter_PutsTheBlockInTheMiddleOfTheGap()
+        {
+            bool fits = DialogueCinemaLayout.TryCenter(500, 1300, 300, out float left);
+
+            Assert.That(fits, Is.True);
+            Assert.That(left, Is.EqualTo(750).Within(.01f), "무례 칸과 도구 버튼 사이 가운데");
+        }
+
+        [Test]
+        public void TryCenter_KeepsAGapOnBothSidesOrGivesUp()
+        {
+            float room = 300 + 2 * DialogueCinemaLayout.Gap;
+
+            Assert.That(DialogueCinemaLayout.TryCenter(0, room, 300, out _), Is.True);
+            Assert.That(
+                DialogueCinemaLayout.TryCenter(0, room - 1, 300, out _),
+                Is.False,
+                "좁은 화면에서는 줄여 넣지 않고 숨긴다"
+            );
+        }
+
+        [Test]
         public void TallExpression_KeepsTheFirstLineImmediatelyBelowTheName()
         {
             var layout = DialogueCinemaLayout.Compute(

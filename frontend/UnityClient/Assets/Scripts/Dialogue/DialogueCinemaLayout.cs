@@ -171,6 +171,16 @@ namespace A305.Dialogue
             return layout;
         }
 
+        /// <summary>
+        /// 이름 줄의 빈칸(예: 무례 경고 칸과 도구 버튼 사이) 가운데에 폭이 width인 묶음을 놓을 왼쪽 끝을 구한다.
+        /// 양옆에 <see cref="Gap"/>을 남기지 못하면 줄여 넣지 않고 false를 돌려준다.
+        /// </summary>
+        public static bool TryCenter(float gapLeft, float gapRight, float width, out float left)
+        {
+            left = (gapLeft + gapRight - width) / 2f;
+            return gapRight - gapLeft >= width + 2 * Gap;
+        }
+
         public static float LinesWidth(float columnWidth, bool hasTranslation) =>
             hasTranslation && columnWidth >= TranslationSideBySideWidth
                 ? columnWidth * .54f

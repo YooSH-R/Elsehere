@@ -41,6 +41,9 @@ namespace A305.Npc
     {
         public float DropPerHour { get; set; }
         public float Start { get; set; }
+
+        /// <summary>학습자와 대화를 마치면 채우는 양. 대화로 채우지 않는 욕구는 0</summary>
+        public float ConversationFill { get; set; }
     }
 
     /// <summary>사물 하나로 하는 행동. 사물 키는 사물 단어 키와 같아 NPC가 쓰는 사물이 곧 학습 어휘다.</summary>

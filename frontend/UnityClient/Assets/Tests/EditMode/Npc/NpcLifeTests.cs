@@ -216,6 +216,64 @@ namespace A305.Npc.Tests
             Assert.That(data.Activities["WORK"].CanFill, Is.EqualTo(new[] { "WORK" }));
         }
 
+        [Test]
+        public void Snapshot_HoldsEveryNeedAtThatMoment()
+        {
+            NpcLifeData rules = Rules(Need("HUNGER", dropPerHour: 6, start: 70));
+            var life = new NpcLife(rules, AllDay("TOWN", "FREE"), 0);
+            life.Advance(Hour);
+
+            A305.Dialogue.NpcNeeds needs = life.Snapshot();
+            life.Advance(2 * Hour);
+
+            Assert.That(needs.Values.Keys, Is.EquivalentTo(rules.Needs.Keys));
+            Assert.That(needs.Values["HUNGER"], Is.EqualTo(64f).Within(.001f), "찍은 뒤에 줄어도 그대로");
+        }
+
+        [Test]
+        public void FillAfterConversation_FillsOnlyNeedsATalkFills()
+        {
+            NpcLifeData rules = Rules(
+                new KeyValuePair<string, NpcNeedRule>(
+                    "SOCIAL",
+                    new NpcNeedRule { Start = 20, ConversationFill = 30 }
+                ),
+                Need("HUNGER", start: 20)
+            );
+            var life = new NpcLife(rules, AllDay("TOWN", "FREE"), 0);
+
+            life.FillAfterConversation();
+
+            Assert.That(life.Need("SOCIAL"), Is.EqualTo(50f), "말 상대가 생겨 외로움이 풀린다");
+            Assert.That(life.Need("HUNGER"), Is.EqualTo(20f), "대화로는 배가 부르지 않다");
+        }
+
+        [Test]
+        public void FillAfterConversation_StopsAtFull()
+        {
+            NpcLifeData rules = Rules(
+                new KeyValuePair<string, NpcNeedRule>(
+                    "SOCIAL",
+                    new NpcNeedRule { Start = 90, ConversationFill = 30 }
+                )
+            );
+            var life = new NpcLife(rules, AllDay("TOWN", "FREE"), 0);
+
+            life.FillAfterConversation();
+
+            Assert.That(life.Need("SOCIAL"), Is.EqualTo(100f));
+        }
+
+        [Test]
+        public void ExportedData_LetsATalkFillSocial()
+        {
+            NpcLifeData data = NpcLifeData.Parse(
+                File.ReadAllText(Path.Combine(Application.dataPath, "Data/Npc/NpcLife.json"))
+            );
+
+            Assert.That(data.Needs["SOCIAL"].ConversationFill, Is.GreaterThan(0), "사교를 채우는 사물이 없다");
+        }
+
         private static bool Anything(string objectKey) => true;
 
         private static NpcLifeData Rules(params object[] parts)

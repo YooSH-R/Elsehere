@@ -114,8 +114,9 @@ class ExpressionsRequest(BaseModel):
 
 
 class Memory(BaseModel):
+    """다음 대화에 넘기는 기억. 지난 요청·한 일은 카드의 requests에 있다(예전 last_order 칸은 없앴고, 보내도 무시한다)."""
+
     visits: int = 0
-    last_order: str | None = None
     card: dict | None = None
 
 

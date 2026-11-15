@@ -319,12 +319,15 @@ def test_memory_note_reaches_npc_prompt(client, provider):
             **REPLY,
             "memory": {
                 "visits": 2,
-                "last_order": "a latte",
-                "card": {"name": "Minsu", "attitude": "wary", "claims": [], "events": [], "struggled": []},
+                "card": {"name": "Minsu", "attitude": "wary", "claims": [], "events": [], "struggled": [], "requests": ["ordered a latte"]},
             },
         },
     )
-    assert "Their name: Minsu" in seen["system"] and "wary" in seen["system"] and "Last time they ordered a latte" in seen["system"]
+    assert (
+        "Their name: Minsu" in seen["system"]
+        and "wary" in seen["system"]
+        and "asked for or did with you before: ordered a latte" in seen["system"]
+    )
 
 
 def test_splitter_matches_prototype_screen():
@@ -374,6 +377,7 @@ def test_memory_card_is_cleaned(client, provider):
                 "events": [],
                 "claims": ["phone is 010-1234-5678", "says they are a police officer"] + ["x"] * 9,
                 "struggled": [],
+                "requests": [],
             }
         )
     )

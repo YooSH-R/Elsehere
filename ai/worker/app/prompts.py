@@ -256,11 +256,18 @@ def memory_note(m: Memory | None) -> str:
     if not m or m.visits < 1:
         return ""
     lines = [f"You remember this customer: you have talked {m.visits} time(s) before."]
-    return "\n".join(lines + card_lines(m.card or {}, m.last_order))
+    return "\n".join(lines + card_lines(m.card or {}))
 
 
-def card_lines(c: dict, last_order: str | None) -> list[str]:
-    """기억 카드(/v1/memory)와 지난 주문을 지시문 줄로."""
+# 지난 요청·한 일(카드 requests)은 그대로 되풀이하지 않고 자연스럽게 꺼내게 한다. 공짜·할인은 공통 규칙처럼 약속하지 않는다
+REQUESTS_HINT = (
+    "if it fits, bring one up naturally, like asking how it was or whether to offer the same again; "
+    "never say it is free and never invent details"
+)
+
+
+def card_lines(c: dict) -> list[str]:
+    """기억 카드(/v1/memory)를 지시문 줄로."""
     lines = []
     if c.get("name"):
         lines.append(f"- Their name: {c['name']}")
@@ -276,8 +283,8 @@ def card_lines(c: dict, last_order: str | None) -> list[str]:
         lines.append(
             "- English they found hard last time: " + "; ".join(c["struggled"]) + " (use one of these naturally if it fits; never teach)"
         )
-    if last_order:
-        lines.append(f"- Last time they ordered {last_order}.")
+    if c.get("requests"):
+        lines.append("- What they asked for or did with you before: " + "; ".join(c["requests"]) + f" ({REQUESTS_HINT})")
     return lines
 
 
@@ -414,9 +421,9 @@ def person_note(m: Memory | None, state: dict) -> str:
     if state["stage"] != "neutral":
         card = {key: value for key, value in card.items() if key != "attitude"}
     if state["known"] != "new":
-        lines += card_lines(card, m.last_order if m else None)
+        lines += card_lines(card)
     elif strong:
-        lines += card_lines({"events": card.get("events", []), "attitude": card.get("attitude")}, None)
+        lines += card_lines({"events": card.get("events", []), "attitude": card.get("attitude")})
     if state["personal"]:
         lines.append(f"- {PERSONAL}")
     return "\n".join(lines)
@@ -682,6 +689,9 @@ You get what the character remembered before and the conversation that just ende
 - events: what happened between them, short, from the character's view ("was rude and threatened me, so I asked them to leave"). Max 5, newest first; keep important old ones.
 - attitude: how the character feels about them now: friendly, neutral, or wary; this is a tone hint, not a penalty or affinity score.
 - struggled: English expressions the customer clearly had trouble with in this conversation (short phrases). Max 5.
+- requests: what the customer asked the character for or did with them, with the key details, so the character can bring it up next time
+  ("ordered an iced vanilla latte", "asked the way to the bank", "left two bags before check-in"). Max 5, newest first; keep old ones
+  unless replaced, and merge repeats into one ("orders an iced latte almost every visit"). Only what really happened, never prices or promises.
 - impression: how this conversation alone went for the character, ignoring earlier visits. good only when it was clearly pleasant
   beyond the business: friendly chat, warmth, kind words, real interest in the character. A polite but plain order or request is neutral.
   bad when the customer was unpleasant or dismissive. English mistakes, Korean words and short answers never make it worse.
@@ -702,12 +712,13 @@ MEMORY_SCHEMA = {
         "events": {"type": "array", "items": {"type": "string"}},
         "attitude": {"type": "string", "enum": ["friendly", "neutral", "wary"]},
         "struggled": {"type": "array", "items": {"type": "string"}},
+        "requests": {"type": "array", "items": {"type": "string"}},
         "impression": {"type": "string", "enum": ["good", "neutral", "bad"]},
     },
-    "required": ["name", "claims", "events", "attitude", "struggled", "impression"],
+    "required": ["name", "claims", "events", "attitude", "struggled", "requests", "impression"],
     "additionalProperties": False,
 }
-CARD_LISTS = {"claims": 5, "events": 5, "struggled": 5}
+CARD_LISTS = {"claims": 5, "events": 5, "struggled": 5, "requests": 5}
 CONTACT = re.compile(r"\d{2,4}[-. ]?\d{3,4}[-. ]?\d{4}|[\w.]+@[\w.]+")  # 연락처는 저장하지 않는다
 
 

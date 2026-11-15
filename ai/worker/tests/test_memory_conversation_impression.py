@@ -9,7 +9,7 @@ from app import npc_relationship as rel
 from conftest import ok
 
 NPC = {"id": "emma", "name": "Emma", "role": "the barista.", "scene": "Cafe."}
-CARD = {"name": "Alex", "claims": [], "events": [], "attitude": "friendly", "struggled": []}
+CARD = {"name": "Alex", "claims": [], "events": [], "attitude": "friendly", "struggled": [], "requests": []}
 RULES = rel.load_world_rules()["relationship"]
 GOOD_BONUS = RULES["goodConversationAffinity"]
 MIN_LINES = RULES["goodConversationMinLearnerLines"]

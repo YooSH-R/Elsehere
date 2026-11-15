@@ -14,8 +14,9 @@ CARD = {
     "events": ["chatted about the rain"],
     "attitude": "neutral",
     "struggled": [],
+    "requests": ["ordered a soy latte"],
 }
-MEMORY = {"visits": 3, "last_order": "a soy latte", "card": CARD}
+MEMORY = {"visits": 3, "card": CARD}
 WITH_PROFILE = {**NPC, "profile": profile_of("CAFE_STAFF")}
 
 
@@ -41,7 +42,11 @@ def test_a_familiar_face_brings_back_what_they_remember(client, provider):
     prompt = system(client, provider, relationship={"recognition": RULES["seenBefore"]}, memory=MEMORY)
 
     assert "looks familiar" in prompt
-    assert "Their name: Minsu" in prompt and "says they love soy milk" in prompt and "Last time they ordered a soy latte" in prompt
+    assert (
+        "Their name: Minsu" in prompt
+        and "says they love soy milk" in prompt
+        and "asked for or did with you before: ordered a soy latte" in prompt
+    )
 
 
 def test_a_regular_is_known_well(client, provider):

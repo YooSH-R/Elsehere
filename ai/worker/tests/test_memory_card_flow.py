@@ -10,7 +10,14 @@ import pytest
 from conftest import make_client, ok, stream
 
 NPC = {"id": "emma", "name": "Emma", "role": "the barista.", "scene": "Cafe."}
-OLD = {"name": "Alex", "claims": ["says coffee is their favorite drink"], "events": [], "attitude": "neutral", "struggled": []}
+OLD = {
+    "name": "Alex",
+    "claims": ["says coffee is their favorite drink"],
+    "events": [],
+    "attitude": "neutral",
+    "struggled": [],
+    "requests": [],
+}
 
 
 def memory_request(card=None, text="I now prefer tea."):
@@ -87,7 +94,7 @@ def test_contact_detection_happens_before_length_truncation(client, provider):
 
 
 def test_valid_empty_replacement_is_not_merged_with_the_old_card(client, provider):
-    empty = {"name": "", "claims": [], "events": [], "attitude": "neutral", "struggled": []}
+    empty = {"name": "", "claims": [], "events": [], "attitude": "neutral", "struggled": [], "requests": []}
     provider.answers["memory"] = lambda body: ok(json.dumps(empty))
     response = client.post("/v1/memory", json=memory_request(OLD, "Please forget what I told you about myself."))
     assert response.status_code == 200 and response.json()["memory_card"] == empty
@@ -96,7 +103,7 @@ def test_valid_empty_replacement_is_not_merged_with_the_old_card(client, provide
 def test_session_cards_flow_into_next_visit_without_old_preference_restoration(client, provider):
     """저장 대역은 호출 측 역할이며 실제 Spring·DB 구현을 의미하지 않는다."""
     tea = OLD | {"claims": ["says tea is their favorite drink"]}
-    forgotten = {"name": "", "claims": [], "events": [], "attitude": "neutral", "struggled": []}
+    forgotten = {"name": "", "claims": [], "events": [], "attitude": "neutral", "struggled": [], "requests": []}
     sessions = [
         ("My name is Alex. My favorite drink is coffee.", OLD),
         ("I now prefer tea.", tea),

@@ -304,6 +304,20 @@ PERSONAL = (
     "You are close enough to share a little about your own day or life: if they ask about you, tell them one small personal thing, "
     "not only about work."
 )
+STRONG_FEELINGS = ("friendly", "wary")
+
+# 이번 대화의 기분(app.npc_relationship.mood_state). 관계와 상관없어 처음 만나도 넣는다
+# 바탕 기분: 대화를 시작할 때 기준보다 낮은 욕구. 몸 상태라 말투에 묻어나게만 하고, 하던 일(주문 받기)은 그대로 하게 한다
+LOW_NEED = {
+    "ENERGY": "You are tired: you have been on your feet for a while. Your replies come out a bit shorter and slower, and you may mention being tired once.",
+    "HUNGER": "You are hungry, so you are a little short-tempered and food is on your mind; it may slip into what you say.",
+    "SOCIAL": "You have had no one to talk to for a while, so you are glad someone is chatting with you: you happily keep the small talk going.",
+    "FUN": "You are bored: it has been a slow, dull day, so anything new or fun they bring up perks you up.",
+    "WORK": "Work has piled up and you are behind, so you sound a little hurried and keep things moving.",
+}
+STRONG_NEED = "It is strong right now, so it clearly shows."
+MILD_NEED = "Only a hint of it shows."
+CONTENT = "You are rested and in an easy mood: relaxed and unhurried."
 ANNOYED = (
     "They were rude to you a moment ago and you are still annoyed. Keep this reply short and cool; "
     "if they apologize, accept it briefly, without warm words."
@@ -312,13 +326,24 @@ PLEASED = (
     "They said something nice or chatted with you warmly a moment ago, so you are in a good mood: "
     "let it show in a friendlier word or two, even if you are usually reserved."
 )
-STRONG_FEELINGS = ("friendly", "wary")
+
+
+def mood_note(mood: dict) -> str:
+    """NPC 지시문에 넣을 '지금 기분'. 바탕 기분(욕구) 다음에 이번 대화의 사건 기분을 둔다. 드러낼 기분이 없으면 빈 문자열."""
+    lines = [f"- {LOW_NEED[need]} {STRONG_NEED if strong else MILD_NEED}" for need, strong in mood["low_needs"]]
+    if mood["content"]:
+        lines.append(f"- {CONTENT}")
+    if mood["annoyed"]:
+        lines.append(f"- {ANNOYED}")
+    if mood["pleased"]:
+        lines.append(f"- {PLEASED}")
+    return "\n".join(["How you feel right now:", *lines]) if lines else ""
 
 
 def person_note(m: Memory | None, state: dict) -> str:
     """관계가 있을 때 NPC 지시문에 넣을 '이 사람에 대해'. 얼굴을 알아봐야(본 적 있음부터) 평범한 기억(이름·했던 말·지난 주문)을 떠올리고,
     알아보지 못해도 기억 카드의 태도가 friendly·wary로 남은 강한 일(events)은 떠올린다.
-    호감이 기준을 넘으면 호감 문장을 쓰고 카드의 태도(말투 참고값)는 겹쳐 넣지 않는다."""
+    호감이 기준을 넘으면 호감 문장을 쓰고 카드의 태도(말투 참고값)는 겹쳐 넣지 않는다. 이번 대화의 기분은 mood_note가 넣는다."""
     lines = ["About this person:", f"- {KNOWN[state['known']]}"]
     card = (m.card if m else None) or {}
     strong = card.get("attitude") in STRONG_FEELINGS
@@ -332,10 +357,6 @@ def person_note(m: Memory | None, state: dict) -> str:
         lines.append(f"- {FEELING[state['feeling']]}")
     if state["personal"]:
         lines.append(f"- {PERSONAL}")
-    if state["annoyed"]:
-        lines.append(f"- {ANNOYED}")
-    if state["pleased"]:
-        lines.append(f"- {PLEASED}")
     return "\n".join(lines)
 
 
@@ -393,13 +414,16 @@ def npc_messages(
     level: int = 2,
     relationship: Relationship | None = None,
     learner: Learner | None = None,
+    needs: dict[str, float] | None = None,
 ) -> list[dict]:
-    if relationship is None:  # 백엔드가 관계를 아직 보내지 않으면 지금처럼 지난 대화 수와 기억 카드
-        note = memory_note(memory)
+    rules = npc_relationship.service_rules()
+    if relationship is None:  # 처음 만났거나 연습·복습 대화라 관계가 없으면 지난 대화 수와 기억 카드만
+        about = memory_note(memory)
     else:
-        learner_turns = [(h.rude, h.events) for h in history if h.who == "me"]
-        state = npc_relationship.person_state(relationship.model_dump(), learner_turns, n.profile, *npc_relationship.service_rules())
-        note = person_note(memory, state)
+        about = person_note(memory, npc_relationship.person_state(relationship.model_dump(), n.profile, *rules))
+    learner_turns = [(h.rude, h.events) for h in history if h.who == "me"]
+    mood = mood_note(npc_relationship.mood_state(learner_turns, needs, n.profile, *rules))
+    note = "\n".join(part for part in (about, mood) if part)
     address = learner_section(learner.nickname, learner.avatar_type) if learner else learner_section(None, None)
     if n.profile is not None:  # 백엔드가 인격을 보내면 공통 규칙 + 인격, 아직 인격이 없는 NPC는 위의 한 줄 역할 지시문
         system = reply_system_prompt(n.profile, f"{TOWN} {n.scene}", n.facts, note, level, instruction, address)

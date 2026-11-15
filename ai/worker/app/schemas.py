@@ -127,6 +127,11 @@ class Relationship(BaseModel):
     days_since_last_talk: int = Field(default=0, ge=0)
 
 
+# NPC 욕구 5개(ai/npcs/rules/world-rules.json의 needs). 높을수록 채워진 상태이고, Unity가 돌리는 값을 대화를 시작할 때 백엔드가 실어 보낸다
+NeedKey = Literal["HUNGER", "ENERGY", "SOCIAL", "FUN", "WORK"]
+NeedValue = Annotated[float, Field(ge=0, le=100)]
+
+
 class Learner(BaseModel):
     """대답 상대인 학습자. 캐릭터 기본형(F·M)과 닉네임은 NPC가 부르는 호칭을 정할 때만 쓰고, 말 빠르기는 대답 음성에 쓴다."""
 
@@ -138,7 +143,8 @@ class Learner(BaseModel):
 class ReplyRequest(BaseModel):
     npc: Npc
     memory: Memory | None = None
-    relationship: Relationship | None = None  # 있으면 알아봄·호감·기분을 말로 풀어 지시문에 넣고, 알아볼 때만 평범한 기억을 떠올린다
+    relationship: Relationship | None = None  # 있으면 알아봄·호감을 말로 풀어 지시문에 넣고, 알아볼 때만 평범한 기억을 떠올린다
+    needs: dict[NeedKey, NeedValue] | None = None  # 대화를 시작할 때 NPC의 욕구(일부만 와도 됨). 바탕 기분(피곤함 등)을 정한다
     history: list[Line] = Field(default=[], max_length=40)
     text: str = Field(max_length=500)  # 학습자 원문 그대로 (한국어 섞인 채)
     # Spring 규칙이 정한 이번 대답에서 할 일. 퀘스트 단계 지시와 진행 규칙을 합치면 1500자 안팎이다

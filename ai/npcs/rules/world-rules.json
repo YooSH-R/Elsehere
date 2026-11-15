@@ -29,7 +29,7 @@
     "TASK_DONE": { "impression": 2, "memorySalience": 1 },
     "LEAVE": {}
   },
-  "mood": { "decayPerTurn": 0.5, "showsAt": 1 },
+  "mood": { "decayPerTurn": 0.5, "showsAt": 1, "needs": { "low": 30, "veryLow": 15, "comfortable": 70 } },
   "relationship": {
     "recognitionPerConversation": 20,
     "seenBefore": 20,

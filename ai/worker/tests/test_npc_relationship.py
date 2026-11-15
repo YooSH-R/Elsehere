@@ -227,9 +227,14 @@ def said(*events: str) -> tuple[bool, list[str]]:
     return False, list(events)
 
 
-def state(relationship: dict, learner_turns: list[tuple[bool, list[str]]] | None = None, npc_id: str | None = None) -> dict:
+def state(relationship: dict, npc_id: str | None = None) -> dict:
     profile = NpcProfile.model_validate(card(npc_id)["npcProfile"]) if npc_id else None
-    return rel.person_state(relationship, learner_turns or [], profile, RULES, npc_persona.load_behaviors())
+    return rel.person_state(relationship, profile, RULES, npc_persona.load_behaviors())
+
+
+def mood(learner_turns: list[tuple[bool, list[str]]], needs: dict | None = None) -> dict:
+    """이번 대화의 기분. 관계(알아봄·호감)와 상관없이 대화 이력과 대화를 시작할 때의 욕구로 정한다."""
+    return rel.mood_state(learner_turns, needs, None, RULES, npc_persona.load_behaviors())
 
 
 def test_how_well_the_npc_knows_them_follows_recognition_after_the_days_away():
@@ -275,9 +280,9 @@ def test_an_npc_who_keeps_strangers_at_arms_length_opens_up_later():
 
 def test_rudeness_leaves_the_npc_annoyed_for_a_few_turns():
     """Spring이 확정한 무례 줄(history의 rude)로 계산한다. 무례 뒤 학습자가 말할 때마다 decayPerTurn씩 가라앉는다."""
-    assert state({}, [PLAIN, RUDE])["annoyed"] is True  # 무례 바로 다음 말
-    assert state({}, [RUDE, PLAIN, PLAIN, PLAIN])["annoyed"] is False
-    assert state({}, [PLAIN, PLAIN])["annoyed"] is False
+    assert mood([PLAIN, RUDE])["annoyed"] is True  # 무례 바로 다음 말
+    assert mood([RUDE, PLAIN, PLAIN, PLAIN])["annoyed"] is False
+    assert mood([PLAIN, PLAIN])["annoyed"] is False
 
 
 def test_a_touchy_npc_stays_annoyed_longer():
@@ -293,34 +298,79 @@ def test_a_touchy_npc_stays_annoyed_longer():
 
 
 def test_an_apology_calms_the_annoyance():
-    assert state({}, [RUDE, PLAIN])["annoyed"] is True
-    assert state({}, [RUDE, said("APOLOGY")])["annoyed"] is False
+    assert mood([RUDE, PLAIN])["annoyed"] is True
+    assert mood([RUDE, said("APOLOGY")])["annoyed"] is False
 
 
 def test_a_compliment_puts_the_npc_in_a_good_mood_for_a_few_turns():
-    assert state({}, [said("COMPLIMENT")])["pleased"] is True
-    assert state({}, [said("COMPLIMENT"), PLAIN, PLAIN, PLAIN])["pleased"] is False
+    assert mood([said("COMPLIMENT")])["pleased"] is True
+    assert mood([said("COMPLIMENT"), PLAIN, PLAIN, PLAIN])["pleased"] is False
 
 
 def test_small_talk_cheers_the_npc_up_only_when_it_goes_on():
     """잡담 한 번의 좋은 기분은 말투에 드러날 만큼 크지 않고, 이어지면 드러난다(호감은 올리지 않음)."""
-    assert state({}, [said("SMALL_TALK")])["pleased"] is False
-    assert state({}, [said("SMALL_TALK"), said("SMALL_TALK")])["pleased"] is True
+    assert mood([said("SMALL_TALK")])["pleased"] is False
+    assert mood([said("SMALL_TALK"), said("SMALL_TALK")])["pleased"] is True
 
 
 def test_events_on_a_rude_line_are_ignored():
     """무례로 확정된 줄의 다른 사건(욕하면서 칭찬 등)은 버린다(이정훈 님 협의)."""
     rude_compliment = (True, ["COMPLIMENT"])
 
-    assert state({}, [rude_compliment])["pleased"] is False
-    assert state({}, [rude_compliment])["annoyed"] is True
+    assert mood([rude_compliment])["pleased"] is False
+    assert mood([rude_compliment])["annoyed"] is True
 
 
 def test_with_mixed_feelings_only_the_stronger_shows():
     """칭찬 뒤 무례면 짜증이 더 커서 짜증만 드러난다. 서로 반대인 말투 지시를 함께 주지 않는다."""
-    mixed = state({}, [said("COMPLIMENT"), RUDE])
+    mixed = mood([said("COMPLIMENT"), RUDE])
 
     assert (mixed["annoyed"], mixed["pleased"]) == (True, False)
+
+
+# ---------- 욕구로 정하는 바탕 기분 ----------
+LOW, VERY_LOW, COMFORTABLE = (RULES["mood"]["needs"][key] for key in ("low", "veryLow", "comfortable"))
+FULL = {need: COMFORTABLE for need in RULES["needs"]}
+
+
+def test_a_low_need_sets_the_mood_the_conversation_starts_with():
+    """대화를 시작할 때 기준 아래인 욕구가 바탕 기분이 된다. 처음 만나 아직 아무 말도 안 했어도 정해진다."""
+    assert mood([], {**FULL, "ENERGY": LOW - 1})["low_needs"] == [("ENERGY", False)]
+    assert mood([], {**FULL, "ENERGY": LOW})["low_needs"] == []
+
+
+def test_only_the_lowest_need_shows_unless_it_is_very_low():
+    """지시가 많아지지 않게 가장 낮은 욕구 하나만 말한다. 아주 낮으면(강함) 다음으로 낮은 욕구까지 두 개."""
+    mild = {**FULL, "HUNGER": LOW - 2, "ENERGY": LOW - 5}
+    strong = {**FULL, "HUNGER": LOW - 2, "ENERGY": VERY_LOW - 1, "FUN": LOW - 3}
+
+    assert mood([], mild)["low_needs"] == [("ENERGY", False)]
+    assert mood([], strong)["low_needs"] == [("ENERGY", True), ("FUN", False)]
+
+
+def test_an_npc_whose_needs_are_all_met_is_at_ease():
+    assert mood([], FULL)["content"] is True
+    assert mood([], {**FULL, "FUN": COMFORTABLE - 1})["content"] is False
+    assert mood([], {**FULL, "FUN": LOW - 1})["content"] is False
+
+
+def test_without_needs_there_is_no_starting_mood():
+    """이전 앱이거나 욕구를 돌리지 않는 NPC면 욕구가 오지 않는다. 바탕 기분 없이 지금처럼 사건 기분만 쓴다."""
+    calm = mood([])
+
+    assert (calm["low_needs"], calm["content"]) == ([], False)
+
+
+def test_rudeness_outweighs_a_warm_starting_mood():
+    """짜증 난 동안에는 반대인 바탕 기분(여유·말 상대가 반가움)을 빼고, 피곤함 같은 바탕 기분은 함께 둔다."""
+    assert mood([RUDE], FULL)["content"] is False
+    assert mood([RUDE], {**FULL, "SOCIAL": LOW - 1})["low_needs"] == []
+    assert mood([RUDE], {**FULL, "ENERGY": LOW - 1})["low_needs"] == [("ENERGY", False)]
+
+
+def test_a_good_mood_from_the_conversation_replaces_simple_ease():
+    """대화로 기분이 좋아지면 여유로움 줄은 겹쳐 넣지 않는다."""
+    assert mood([said("COMPLIMENT")], FULL)["content"] is False
 
 
 def test_an_npc_without_a_card_or_temperament_reacts_at_the_base_rate():

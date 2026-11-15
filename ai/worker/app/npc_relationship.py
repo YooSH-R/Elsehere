@@ -143,12 +143,11 @@ def moods(learner_turns: list[LearnerTurn], rates: dict, rules: dict) -> dict[st
     return {emotion: max(0, value - decay) for emotion, value in feelings.items()}  # 지금 학습자가 한 말만큼 가라앉음
 
 
-def person_state(relationship: dict, learner_turns: list[LearnerTurn], profile: NpcProfile | None, rules: dict, library: dict) -> dict:
-    """대답 지시문에 말로 풀어 넣을 지금 상태. 숫자는 지시문에 넣지 않는다.
+def person_state(relationship: dict, profile: NpcProfile | None, rules: dict, library: dict) -> dict:
+    """대답 지시문에 말로 풀어 넣을 이 사람과의 관계. 숫자는 지시문에 넣지 않는다. 이번 대화의 기분은 mood_state가 따로 정한다.
     - known: 얼마나 알아보는지 new(처음 봄)·familiar(본 적 있음)·regular(단골). 오래 안 온 날만큼 줄어든 알아봄으로 정한다
     - feeling: liked·disliked·None(티 나지 않음)
-    - personal: 자기 이야기를 조금 할 만큼 가까운지. 기준(알아봄·호감)에 NPC의 personalTalkScale을 곱한다(거리를 두는 성격은 늦게)
-    - annoyed·pleased: 이번 대화의 사건으로 짜증 나 있는지·기분이 좋은지. 둘 다면 더 큰 쪽만 (반대인 말투 지시를 함께 주지 않음)"""
+    - personal: 자기 이야기를 조금 할 만큼 가까운지. 기준(알아봄·호감)에 NPC의 personalTalkScale을 곱한다(거리를 두는 성격은 늦게)"""
     thresholds = rules["relationship"]
     rates = npc_rates(profile, rules, library)
     recognition = recognition_today(relationship.get("recognition", 0), relationship.get("days_since_last_talk", 0), rules)
@@ -156,16 +155,46 @@ def person_state(relationship: dict, learner_turns: list[LearnerTurn], profile: 
     known = "regular" if recognition >= thresholds["regular"] else "familiar" if recognition >= thresholds["seenBefore"] else "new"
     feeling = "liked" if affinity >= thresholds["liked"] else "disliked" if affinity <= thresholds["disliked"] else None
     personal, personal_scale = thresholds["personalTalk"], rates.get("personalTalkScale", 1)
-    now = moods(learner_turns, rates, rules)
-    annoyed, pleased = now.get("ANNOYED", 0), now.get("PLEASED", 0)
-    shows = rules["mood"]["showsAt"]
     return {
         "known": known,
         "feeling": feeling,
         "personal": recognition >= personal["recognition"] * personal_scale and affinity >= personal["affinity"] * personal_scale,
-        "annoyed": annoyed >= shows and annoyed >= pleased,
-        "pleased": pleased >= shows and pleased > annoyed,
     }
+
+
+WARM_NEEDS = {"SOCIAL"}  # 낮으면 말 상대가 반가운 욕구. 짜증 난 동안에는 반대인 말투라 넣지 않는다
+
+
+def low_needs(needs: dict[str, float], rules: dict) -> list[tuple[str, bool]]:
+    """대화를 시작할 때 기준(mood.needs.low)보다 낮은 욕구를 (욕구, 아주 낮은지)로. 가장 낮은 욕구 하나만 고르고,
+    그 욕구가 아주 낮으면(veryLow 미만) 다음으로 낮은 욕구까지 두 개를 고른다. 지시가 많아지면 작은 모델이 하나도 제대로 따르지 않는다."""
+    limits = rules["mood"]["needs"]
+    lows = sorted((value, need) for need, value in needs.items() if value < limits["low"])
+    picked = lows[:2] if lows and lows[0][0] < limits["veryLow"] else lows[:1]
+    return [(need, value < limits["veryLow"]) for value, need in picked]
+
+
+def mood_state(
+    learner_turns: list[LearnerTurn], needs: dict[str, float] | None, profile: NpcProfile | None, rules: dict, library: dict
+) -> dict:
+    """대답 지시문에 말로 풀어 넣을 이번 대화의 기분. 관계(알아봄·호감)와 상관없어 처음 만나도, 연습·복습 대화에서도 정한다.
+    - 바탕 기분: 대화를 시작할 때의 욕구(needs, 대화 중에는 게임 시간이 멈춰 그대로)로 정한다. 욕구가 오지 않으면 없다
+      - low_needs: 기준보다 낮은 욕구 [(욕구, 아주 낮은지)] (low_needs 참고)
+      - content: 보낸 욕구가 모두 넉넉해 여유로운지
+    - 사건 기분: 이번 대화의 사건(무례·칭찬 등)으로 짜증 나 있는지(annoyed)·기분이 좋은지(pleased). 둘 다면 더 큰 쪽만
+    서로 반대인 말투 지시를 함께 주지 않도록, 짜증 난 동안에는 여유로움과 말 상대가 반가움을 빼고 기분이 좋으면 여유로움을 겹쳐 넣지 않는다."""
+    now = moods(learner_turns, npc_rates(profile, rules, library), rules)
+    annoyed_level, pleased_level = now.get("ANNOYED", 0), now.get("PLEASED", 0)
+    shows = rules["mood"]["showsAt"]
+    annoyed = annoyed_level >= shows and annoyed_level >= pleased_level
+    pleased = pleased_level >= shows and pleased_level > annoyed_level
+
+    needs = needs or {}
+    lows = low_needs(needs, rules)
+    content = bool(needs) and all(value >= rules["mood"]["needs"]["comfortable"] for value in needs.values())
+    if annoyed:
+        lows = [(need, strong) for need, strong in lows if need not in WARM_NEEDS]
+    return {"low_needs": lows, "content": content and not annoyed and not pleased, "annoyed": annoyed, "pleased": pleased}
 
 
 @cache

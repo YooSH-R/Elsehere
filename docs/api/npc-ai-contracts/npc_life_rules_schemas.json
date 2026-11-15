@@ -514,7 +514,18 @@
           "required": ["decayPerTurn", "showsAt"],
           "properties": {
             "decayPerTurn": { "type": "number", "exclusiveMinimum": 0, "maximum": 3, "description": "학습자가 한 번 말할 때마다 기분 세기가 가라앉는 양." },
-            "showsAt": { "type": "number", "exclusiveMinimum": 0, "maximum": 3, "description": "기분 세기(0~3)가 이 값 이상이면 말투에 드러난다." }
+            "showsAt": { "type": "number", "exclusiveMinimum": 0, "maximum": 3, "description": "기분 세기(0~3)가 이 값 이상이면 말투에 드러난다." },
+            "needs": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["low", "veryLow", "comfortable"],
+              "properties": {
+                "low": { "type": "number", "minimum": 0, "maximum": 100, "description": "대화를 시작할 때 욕구가 이 값보다 낮으면 그 욕구가 바탕 기분(피곤함·배고픔 등)이 된다." },
+                "veryLow": { "type": "number", "minimum": 0, "maximum": 100, "description": "이 값보다 낮으면 바탕 기분이 뚜렷하게 드러나고, 다음으로 낮은 욕구까지 두 개를 말한다." },
+                "comfortable": { "type": "number", "minimum": 0, "maximum": 100, "description": "보낸 욕구가 모두 이 값 이상이면 여유로운 기분이다." }
+              },
+              "description": "대화를 시작할 때의 욕구로 정하는 바탕 기분 기준(ai/worker/app/npc_relationship.py mood_state)."
+            }
           }
         },
         "relationship": {

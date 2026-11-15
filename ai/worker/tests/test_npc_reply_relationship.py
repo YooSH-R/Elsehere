@@ -113,6 +113,57 @@ def test_a_compliment_a_moment_ago_puts_the_npc_in_a_good_mood(client, provider)
     assert "good mood" not in system(client, provider, relationship={}, history=[{**history[0], "events": []}, history[1]])
 
 
+# ---------- 이번 대화의 기분: 관계와 상관없이 ----------
+RUDE_A_MOMENT_AGO = [{"who": "me", "text": "[withheld]", "rude": True}, {"who": "npc", "text": "Please be polite."}]
+COMPLIMENT_A_MOMENT_AGO = [
+    {"who": "me", "text": "Your latte is the best!", "events": ["COMPLIMENT"]},
+    {"who": "npc", "text": "Aw, thanks!"},
+]
+NEED_LIMITS = rel.load_world_rules()["mood"]["needs"]
+LOW = NEED_LIMITS["low"]
+FULL = dict.fromkeys(("HUNGER", "ENERGY", "SOCIAL", "FUN", "WORK"), NEED_LIMITS["comfortable"])
+
+
+@pytest.mark.parametrize("npc", [NPC, WITH_PROFILE], ids=["role-line", "profile"])
+def test_a_first_meeting_still_stays_annoyed_after_a_rude_line(client, provider, npc):
+    """처음 만난 대화에는 백엔드가 관계를 보내지 않는다. 기분은 이번 대화 이력으로 정하므로 관계 없이도 넣는다."""
+    assert "still annoyed" in system(client, provider, npc, history=RUDE_A_MOMENT_AGO)
+
+
+def test_a_first_meeting_still_shows_a_good_mood_after_a_compliment(client, provider):
+    assert "good mood" in system(client, provider, history=COMPLIMENT_A_MOMENT_AGO)
+
+
+@pytest.mark.parametrize("npc", [NPC, WITH_PROFILE], ids=["role-line", "profile"])
+def test_a_low_need_colors_even_the_first_greeting(client, provider, npc):
+    """대화를 시작할 때의 욕구로 바탕 기분을 정한다. 아직 아무 말도 오가지 않은 첫 인사에도 드러난다."""
+    prompt = system(client, provider, npc, needs={**FULL, "ENERGY": LOW - 1})
+
+    assert "You are tired" in prompt
+
+
+def test_the_starting_mood_comes_with_the_relationship_too(client, provider):
+    prompt = system(client, provider, relationship={"recognition": 0}, needs={**FULL, "HUNGER": LOW - 1})
+
+    assert "You are hungry" in prompt and "You do not recognize this person" in prompt
+
+
+def test_an_npc_whose_needs_are_all_met_is_relaxed(client, provider):
+    assert "easy mood" in system(client, provider, needs=FULL)
+
+
+def test_without_needs_or_events_there_is_no_mood_line(client, provider):
+    """욕구가 오지 않고(이전 앱) 기분이 드러날 일도 없으면 지시문은 지금과 같다."""
+    assert "How you feel right now" not in system(client, provider, history=[], memory=MEMORY)
+
+
+@pytest.mark.parametrize(("need", "value"), [("ENERGY", 101), ("ENERGY", -1), ("SLEEP", 50)])
+def test_needs_out_of_range_or_unknown_are_an_invalid_request(client, need, value):
+    r = client.post("/v1/npc/reply", json={"npc": NPC, "history": [], "text": "hi", "tts": False, "needs": {need: value}})
+
+    assert r.status_code == 400
+
+
 def test_the_prompt_never_shows_the_numbers(client, provider):
     prompt = system(client, provider, relationship={"recognition": 37, "affinity": -23, "days_since_last_talk": 2}, memory=MEMORY)
 

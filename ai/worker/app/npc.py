@@ -91,7 +91,9 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
         sp = Splitter()
         expressions = EmotionStream()
         current_mood = None
-        msgs = P.npc_messages(req.npc, req.memory, req.history, req.text, req.instruction, req.level, req.relationship, req.learner)
+        msgs = P.npc_messages(
+            req.npc, req.memory, req.history, req.text, req.instruction, req.level, req.relationship, req.learner, req.needs
+        )
         msgs[0] = {**msgs[0], "content": msgs[0]["content"] + "\n\n" + EMOTION_PROMPT}
         if note := reaction_instruction(req.reaction):
             msgs[0]["content"] += "\n" + note

@@ -441,11 +441,9 @@ namespace A305.Npc
 
             if (TryPassingDirection(passing, stayOnSidewalk, out Vector3 direction))
                 return direction;
-            passingOnRight = !passingOnRight;
-            if (TryPassingDirection(passing, stayOnSidewalk, out direction))
-                return direction;
-            passing = null;
-            return destinationOffset;
+            // 좁은 통로에서 반대쪽 한 걸음만 열렸다고 방향을 뒤집으면 같은 자리를 왕복한다.
+            // 고른 쪽을 유지해 양보하고, 상대가 움직여 공간이 생기면 그쪽으로 다시 걷는다.
+            return Vector3.zero;
         }
 
         private bool DestinationIsOccupied(Passerby other, float clearance)

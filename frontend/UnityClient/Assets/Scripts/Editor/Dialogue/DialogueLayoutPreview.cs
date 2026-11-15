@@ -793,7 +793,7 @@ namespace A305.EditorTools.Dialogue
         }
 
         /// <summary>
-        /// 이름 줄의 NPC 욕구 게이지(S15P31A305-930). 호감도·무례 경고 칸과 도구 버튼 사이 가운데에 놓이는지, 색 단계와
+        /// 이름 줄의 NPC 욕구 게이지(S15P31A305-930). 이름표 바로 오른쪽에 놓이고 호감도·무례 경고 칸이 그 뒤에 오는지, 색 단계와
         /// 무례 경고 문구가 길어질 때를 넓은 화면·휴대폰 가로 화면으로 그린다.
         /// </summary>
         public static void CaptureNeeds()

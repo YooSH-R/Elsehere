@@ -172,14 +172,15 @@ namespace A305.Dialogue
         }
 
         /// <summary>
-        /// 이름 줄의 빈칸(예: 무례 경고 칸과 도구 버튼 사이) 가운데에 폭이 width인 묶음을 놓을 왼쪽 끝을 구한다.
-        /// 양옆에 <see cref="Gap"/>을 남기지 못하면 줄여 넣지 않고 false를 돌려준다.
+        /// 이름표 바로 오른쪽(nameRight에서 시작)에 폭이 blockWidth인 묶음(욕구 게이지)을 두고도, 그 뒤에 가장 긴 호감 줄(standingWidth)이
+        /// 간격을 두고 도구 버튼 앞에 들어가는지. 들어가지 않으면 무례 경고 문구가 잘리지 않게 묶음을 숨긴다.
         /// </summary>
-        public static bool TryCenter(float gapLeft, float gapRight, float width, out float left)
-        {
-            left = (gapLeft + gapRight - width) / 2f;
-            return gapRight - gapLeft >= width + 2 * Gap;
-        }
+        public static bool FitsBesideName(
+            float nameRight,
+            float toolsLeft,
+            float blockWidth,
+            float standingWidth
+        ) => nameRight + blockWidth + Gap + standingWidth + Gap <= toolsLeft;
 
         public static float LinesWidth(float columnWidth, bool hasTranslation) =>
             hasTranslation && columnWidth >= TranslationSideBySideWidth

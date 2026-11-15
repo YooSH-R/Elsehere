@@ -358,6 +358,21 @@ namespace A305.Npc.Tests
         }
 
         [Test]
+        public void Lives_FindReturnsOnlyALifeAlreadyMet()
+        {
+            var lives = new NpcLives();
+            NpcLifeData rules = Rules(Need("HUNGER", dropPerHour: 6, start: 70));
+            NpcLifeEntry worker = AllDay("HOTEL", "WORK");
+
+            Assert.That(lives.Find(worker.NpcId), Is.Null, "아직 장면에서 만나지 않은 NPC");
+
+            NpcLife life = lives.Get(rules, worker, 0);
+
+            Assert.That(lives.Find(worker.NpcId), Is.SameAs(life));
+            Assert.That(lives.Find(null), Is.Null);
+        }
+
+        [Test]
         public void Lives_AFirstLifeMatchesTheTimeOfDayRhythm()
         {
             var lives = new NpcLives();

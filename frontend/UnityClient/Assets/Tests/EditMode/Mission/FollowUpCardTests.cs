@@ -30,6 +30,7 @@ namespace A305.Mission.Tests
         public void CreateMission()
         {
             FollowUpStore.Shared.Clear();
+            FavorStore.Shared.Clear();
             instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
             view = instance.GetComponent<FirstDayMissionView>();
             card = instance.GetComponent<FollowUpCardView>();
@@ -40,6 +41,7 @@ namespace A305.Mission.Tests
         {
             Object.DestroyImmediate(instance);
             FollowUpStore.Shared.Clear();
+            FavorStore.Shared.Clear();
             JourneyStatus.Shared.Clear();
             GuideDestination.Shared.Clear();
         }
@@ -279,6 +281,76 @@ namespace A305.Mission.Tests
 
             Assert.That(FollowUpStore.Shared.IsEmpty, Is.True);
             Assert.That(api.Dismissed, Is.EqualTo(new[] { 7L }));
+        }
+
+        // 수락한 돌발 부탁은 기다리는 것보다 위 첫 줄에 제목·다음 할 일·남은 시간으로 보인다(설계 7.11).
+        [Test]
+        public void FavorInProgress_GetsTheTopRowAboveWhatIsWaiting()
+        {
+            view.SetAvailable(true);
+            card.UseGameClock(() => Deadline - 120);
+            FollowUpStore.Shared.Receive(Item(7, "CAFE_STAFF", "Mia", "CAFE", "아이스 라테", 45));
+            FavorStore.Shared.Receive(new[] { Croissant() });
+
+            card.Refresh();
+
+            List<FollowUpRowView> rows = ShownRows();
+            Assert.That(rows, Has.Count.EqualTo(2));
+            Assert.That(Text(rows[0], "title"), Is.EqualTo("Jake의 부탁 · 크루아상 사다 주기"));
+            Assert.That(Text(rows[0], "detail"), Is.EqualTo("Maple Bakery에서 크루아상 포장 주문하기"));
+            Assert.That(Text(rows[0], "countdown"), Is.EqualTo("0:50"));
+            Assert.That(Text(rows[1], "title"), Is.EqualTo("아이스 라테"));
+        }
+
+        // 부탁 줄의 X는 부탁을 그만두고 서버에 알린다. 기다리는 것은 그대로 둔다.
+        [Test]
+        public void FavorCloseButton_AbandonsTheFavor()
+        {
+            var api = new AbandoningApi();
+            card.Bind(api);
+            FavorStore.Shared.Receive(new[] { Croissant() });
+            view.SetAvailable(true);
+            card.Refresh();
+
+            card.GetComponentsInChildren<Button>(true)
+                .First(button => button.name == "Close" && button.gameObject.activeInHierarchy)
+                .onClick.Invoke();
+
+            Assert.That(FavorStore.Shared.Current, Is.Null);
+            Assert.That(api.Abandoned, Is.EqualTo(new[] { 42L }));
+            card.Refresh();
+            Assert.That(card.Card.activeSelf, Is.False);
+        }
+
+        // 3일차 오후 9시 기한(1일차 0시부터 센 게임 분)
+        private const long Deadline = 2 * 1440 + 21 * 60;
+
+        private static FavorUpdate Croissant() =>
+            new FavorUpdate
+            {
+                FavorId = 42,
+                Status = FavorUpdate.Accepted,
+                RequesterNpcCode = "HOTEL_STAFF",
+                TitleKo = "Jake의 부탁 · 크루아상 사다 주기",
+                Steps = new List<FavorStep>
+                {
+                    new FavorStep { PlaceCode = "BAKERY", TextKo = "Maple Bakery에서 크루아상 포장 주문하기" },
+                    new FavorStep { PlaceCode = "HOTEL", NpcCode = "HOTEL_STAFF", TextKo = "Jake에게 돌아가기" },
+                },
+                ExpiresAtGameMinute = Deadline,
+            };
+
+        private sealed class AbandoningApi : IFavorApi
+        {
+            public List<long> Abandoned { get; } = new List<long>();
+
+            public Task<FavorUpdate> GetCurrentAsync() => Task.FromResult<FavorUpdate>(null);
+
+            public Task<FavorUpdate> AbandonAsync(long favorId)
+            {
+                Abandoned.Add(favorId);
+                return Task.FromResult(new FavorUpdate { FavorId = favorId, Status = "ABANDONED" });
+            }
         }
 
         private sealed class DismissingApi : IFollowUpApi

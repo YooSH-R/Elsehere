@@ -28,6 +28,10 @@ namespace A305.Npc
             return life;
         }
 
+        /// <summary>이미 만든 그 NPC의 생활. 이번에 켠 뒤로 장면에서 만난 적이 없으면 null이다.</summary>
+        public NpcLife Find(string npcId) =>
+            npcId != null && lives.TryGetValue(npcId, out NpcLife life) ? life : null;
+
         /// <summary>모든 NPC 생활을 버린다. 다음 Get에서 그 시각의 리듬으로 새로 만든다. 테스트가 서로 영향을 주지 않게 쓴다.</summary>
         public void Clear()
         {

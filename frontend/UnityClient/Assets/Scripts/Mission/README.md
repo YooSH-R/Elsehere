@@ -35,8 +35,11 @@
 | 다 됨 | 그 줄을 "아이스 라테가 준비됐어요"와 그 아래 "카페 Mia에게 받으러 가세요"로 바꾸고 남은 시간 대신 초록 체크를 보이며, 줄 바탕(강조색)이 두 번 반짝이고 통 튀어 알림임을 알립니다. 반짝임은 한 번뿐이라 씬을 옮기거나 새로고침해 서버 목록으로 다시 맞춰도 다시 반짝이지 않습니다. 카드가 숨어 있던 사이 다 된 것은 카드가 다시 보일 때 반짝입니다. |
 | NPC가 건넴 | NPC가 불러 시작한 대화든 [말 걸기]로 먼저 건 대화든, 서버가 첫 대사로 건네면(CONV-01 `deliveredFollowUpId`) 그 줄을 지웁니다. 남은 것이 없으면 카드를 숨깁니다. |
 | 새로고침·장소 이동 | 씬에 들어올 때 아직 건네지 않은 것 전부(CONV-13 `GET /api/v1/follow-ups`)를 다시 받아 맞춥니다. 받지 못하면 기억하던 것을 그대로 둡니다. |
+| 돌발 부탁 | 대화 중 NPC의 부탁을 수락하면(`FavorStore`의 `ACCEPTED`·`GOT`) 기다리는 것보다 위 첫 줄에 부탁 제목("Jake의 부탁 · 크루아상 사다 주기"), 다음 할 일("Maple Bakery에서 크루아상 포장 주문하기" → 산 뒤 "Jake에게 돌아가기"), 남은 시간을 보입니다. 남은 시간은 게임 시각 기한(`expiresAtGameMinute`)까지를 대화 밖에서 흐르는 실제 시간(게임 하루 = 600초)으로 바꾼 값입니다. 산 것을 받으면 초록 체크로 바뀝니다. 그 줄의 X는 부탁을 그만둡니다(FAV-02). 글자는 `FavorCard`가 만듭니다([NPC 생활·관계 설계](../../../../../docs/npc-life-design.md) 7.11). |
 | 숨김 | 기다리는 것이 없을 때, 미션 화면을 끈 동안(튜토리얼), 수첩·퀘스트 목록·큰 지도를 연 동안 숨깁니다. 퀘스트 카드처럼 대화 중에는 보입니다. |
 | 가운데 창 | 카드는 퀘스트 카드와 같은 폭이고 퀘스트 카드 아래에 이어집니다. 단어장이나 피드백을 열면 가운데 창이 카드 일부를 가릴 수 있습니다. |
+
+돌발 부탁의 길 안내도 이 모듈이 정합니다. 수락한 심부름은 가게를 목적지 안내(`GuideDestination`)로 가리키며 퀘스트 목적지보다 먼저 보이고, 산 것을 받은 뒤에는 부탁한 NPC를 [이웃]의 찾는 이웃 표시(`NpcTracking`)로 가리킵니다. 부탁을 들어주면(`FavorStore.Completed`) 부탁한 NPC의 생활 욕구를 채우고(`NpcLives.Find` → `FillForFavor`, 대화 중이면 이름 옆 게이지도 다시 그림), 대화를 마친 뒤 늘어난 코인을 "Jake의 부탁 +6코인" 영수증으로 보입니다(`CoinChange`).
 
 카드는 퀘스트 카드와 같은 테마 유리(`UiThemeRole.Panel`)·폭(시안 410px × 1.2)·글꼴(Jua·Pretendard)과 목표 줄의 체크 그림(`Art/UI/Hud/CheckEmpty`·`CheckDone`)을 쓰고, 알림만 보이는 카드라 누르기를 받지 않습니다. 줄 글자는 `FollowUpCardText`, 한 줄의 표시와 반짝임은 `FollowUpRowView`가 맡습니다. **Tools → A305 → Mission → Apply Follow-up Card**(`QuestCardBuilder.ApplyFollowUpCardToPrefab`)가 `Prefabs/Mission/FirstDayMission.prefab`에 카드를 지우고 다시 만들어 연결하며, **Apply Quest Card**도 마지막에 같은 카드를 만듭니다. 공간 씬은 이 프리팹을 그대로 쓰므로 씬마다 따로 놓지 않습니다.
 

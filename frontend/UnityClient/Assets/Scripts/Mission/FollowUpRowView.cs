@@ -39,14 +39,19 @@ namespace A305.Mission
         /// <summary>이 줄이 보이는 것. 카드가 줄을 채울 때 정한다.</summary>
         public long FollowUpId { get; set; }
 
-        /// <summary>줄 끝 X: 이 줄을 닫는다. 연결은 QuestCardBuilder가 넣는다.</summary>
+        /// <summary>이 줄이 보이는 돌발 부탁. 기다리는 것을 보이는 줄이면 null이다.</summary>
+        public long? FavorId { get; set; }
+
+        /// <summary>줄 끝 X: 이 줄을 닫는다. 돌발 부탁 줄이면 부탁을 그만둔다. 연결은 QuestCardBuilder가 넣는다.</summary>
         public void Close()
         {
             var card = GetComponentInParent<FollowUpCardView>(true);
-            if (card != null)
-            {
+            if (card == null)
+                return;
+            if (FavorId is long favorId)
+                card.AbandonFavor(favorId);
+            else
                 card.Dismiss(FollowUpId);
-            }
         }
 
         public void Show(FollowUpCardRow row, Sprite markSprite)

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using A305.Dialogue;
 using A305.Player;
 using A305.Theme;
 using A305.Wayfinding;
@@ -275,6 +276,9 @@ namespace A305.Mission
 
         // 끝낸 퀘스트의 보상은 팡파레와 함께 더하므로 그때까지 코인 칩을 바꾸지 않는다. 그동안 받은 코인과 산 것을 기억한다.
         private bool rewardExpected;
+
+        // 대화 중 들어준 돌발 부탁의 이름(예: Jake의 부탁). 대화를 마치면 늘어난 코인을 이 이름의 보상으로 보인다.
+        private string favorReward;
         private int latestBalance;
         private string latestPurchase;
 
@@ -357,7 +361,8 @@ namespace A305.Mission
             storyWasIdle = idle;
             latestBalance = state.Balance;
             latestPurchase = state.LastPurchase;
-            if (!rewardExpected)
+            // 대화 중 들어준 부탁의 보상은 대화를 마친 뒤 영수증으로 보인다(설계 7.11).
+            if (!rewardExpected && !(talking && favorReward != null))
                 ShowCoins(state.Balance, state.LastPurchase);
             statusBar.SetActive(!talking);
             FillQuestCard();
@@ -367,7 +372,10 @@ namespace A305.Mission
             // 폰 메뉴의 코인 위젯이 같은 잔액을 보인다.
             JourneyStatus.Shared.ShowBalance(state.Balance);
             // 길 안내가 지금 단계의 장소를 가리킨다. 시작 전과 모두 끝낸 뒤에는 목적지가 없어 안내하지 않는다.
-            GuideDestination.Shared.Show(state.Destination);
+            // 기한이 있는 돌발 부탁 심부름을 수락했으면 그 가게를 먼저 가리킨다.
+            GuideDestination.Shared.Show(
+                FavorCard.Destination(FavorStore.Shared.Current) ?? state.Destination
+            );
             journalGoal.text = state.CanRest
                 ? "의자에 앉아 잠깐 쉬기"
                 : current?.Goals.FirstOrDefault(goal => !goal.Completed)?.Title ?? "";
@@ -674,7 +682,9 @@ namespace A305.Mission
 
         private void ShowCoins(int balance, string purchase)
         {
-            CoinChange? change = CoinChange.Between(shownBalance, balance, purchase);
+            CoinChange? change = CoinChange.Between(shownBalance, balance, purchase, favorReward);
+            if (change.HasValue && change.Value.IsGain)
+                favorReward = null;
             int from = shownBalance ?? balance;
             shownBalance = balance;
             if (change.HasValue && change.Value.IsGain)
@@ -844,6 +854,9 @@ namespace A305.Mission
         /// <summary>서버에서 받은 장소 연습 목록을 보인다.</summary>
         public void ShowPracticeBoard(PracticeBoardState board) =>
             questBoard.ShowPracticePlaces(board);
+
+        /// <summary>대화 중 돌발 부탁을 들어줬다. 늘어난 코인을 대화를 마친 뒤 "Jake의 부탁 +6코인"으로 보인다.</summary>
+        public void ExpectFavorReward(string requesterLabel) => favorReward = requesterLabel;
 
         /// <summary>퀘스트를 끝냈다. 그 보상은 팡파레의 코인이 코인 칩에 닿을 때 더하도록 그때까지 코인 칩을 그대로 둔다.</summary>
         public void ExpectQuestReward() => rewardExpected = true;

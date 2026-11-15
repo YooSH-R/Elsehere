@@ -144,15 +144,15 @@ namespace A305.Npc
             return new NpcNeeds(needs);
         }
 
-        /// <summary>
-        /// 학습자와 대화를 마쳤다. 공통 규칙에서 대화로 채우는 욕구(사교)를 채운다. 사교는 채우는 사물이 없어 대화로만 채워진다.
-        /// </summary>
-        /// <summary>학습자가 심부름으로 가져다준 것(먹을 것·커피)만큼 욕구를 채운다. 값은 백엔드가 완료한 부탁 소식에 담아 보낸다.</summary>
+        /// <summary>학습자가 들어준 부탁만큼 욕구를 채운다(심부름으로 가져다준 먹을 것·커피 등). 값은 백엔드가 완료한 부탁 소식에 담아 보낸다.</summary>
         public void FillForFavor(Dictionary<string, float> fills)
         {
             Fill(fills);
         }
 
+        /// <summary>
+        /// 학습자와 대화를 마쳤다. 공통 규칙에서 대화로 채우는 욕구(사교)를 채운다. 사교는 채우는 사물이 없어 대화로만 채워진다.
+        /// </summary>
         public void FillAfterConversation()
         {
             foreach (KeyValuePair<string, NpcNeedRule> need in data.Needs)

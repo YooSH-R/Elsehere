@@ -23,5 +23,13 @@ namespace A305.Mission.Tests
             Assert.That(reward.Float, Is.EqualTo("+10"));
             Assert.That(reward.Receipt, Does.StartWith("퀘스트 보상").And.Contain("+10코인"));
         }
+
+        [Test]
+        public void Between_NamesTheFavorWhoseRewardItIs()
+        {
+            CoinChange reward = CoinChange.Between(98, 104, "우산", "Jake의 부탁").Value;
+
+            Assert.That(reward.Receipt, Does.StartWith("Jake의 부탁").And.Contain("+6코인"));
+        }
     }
 }

@@ -100,6 +100,12 @@ namespace A305.Dialogue
         public event Action<GlossaryWord> WordSaveRequested;
 
         public bool IsTalking => session.IsActive;
+
+        /// <summary>지금 대화하는 NPC 코드. 대화 중이 아니면 null이다.</summary>
+        public string ActiveNpcCode => session.IsActive ? session.ActiveNpcCode : null;
+
+        /// <summary>대화 중 NPC 욕구가 바뀌면(들어준 부탁으로 채움) 이름 옆 게이지를 다시 그린다.</summary>
+        public void ShowNpcNeeds(NpcNeeds needs) => panel.ShowNeeds(needs);
         public long? ActiveReviewConversationId =>
             serverConversation?.IsReview == true ? serverConversation.ConversationId : null;
 

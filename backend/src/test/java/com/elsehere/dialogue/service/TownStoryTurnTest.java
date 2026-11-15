@@ -54,7 +54,8 @@ class TownStoryTurnTest {
             stories,
             mock(FirstDayMissionRepository.class),
             mock(NpcRepository.class),
-            mock(com.elsehere.conversation.repository.ConversationRepository.class));
+            mock(com.elsehere.conversation.repository.ConversationRepository.class),
+            mock(com.elsehere.favor.repository.FavorRepository.class));
     var missions =
         new QuestTalkService(
             firstDay, town, mock(com.elsehere.mission.service.PlacePracticeService.class));
@@ -120,7 +121,8 @@ class TownStoryTurnTest {
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
             new DialogueRequestLocks(),
             new EarlyReplies(true),
-            mock(MeaningPreparation.class));
+            mock(MeaningPreparation.class),
+            NoFavors.service());
     TurnRequest request = new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null);
 
     assertThatThrownBy(() -> service.send(8L, 10L, request)).isInstanceOf(BusinessException.class);

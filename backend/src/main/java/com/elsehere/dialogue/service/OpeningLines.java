@@ -42,6 +42,9 @@ class OpeningLines {
           + "over, cautiously or warmly as fits your character. Only offer service if you are "
           + "actually serving customers now. Give them an easy conversational opening. 1 or 2 short sentences.";
 
+  // NPC가 먼저 말을 걸어 부탁하는 첫마디(FavorService.pendingCall). 학습자는 아직 말하지 않았다.
+  private static final String FAVOR_CALL_TEXT = "(You walk up to the learner to ask a favor.)";
+
   // 미션 지시에는 학습자가 할 일과 NPC가 해 줄 수 있는 일이 담겨 있다. 첫 인사에서 이를 먼저 다 말하면 학습자가 요청할 일이 사라진다.
   private static final String MISSION_GREETING =
       " Welcome the learner in your own voice, following your personality and first-meeting behavior. Invite their request in one short sentence for this situation."
@@ -123,6 +126,10 @@ class OpeningLines {
       StartContext context,
       StartConversationRequest request) {
     NpcContext npc = context.npc();
+    if (context.favorCall().isPresent()) {
+      return greetingOpening(
+          trace, listener, npc, context, FAVOR_CALL_TEXT, context.favorCall().get().instruction());
+    }
     if (context.streetGreeting() != null) {
       return streetOpening(trace, context);
     }

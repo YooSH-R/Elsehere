@@ -6,6 +6,7 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.ConversationStatus;
 import com.elsehere.conversation.repository.ConversationRepository;
+import com.elsehere.favor.repository.FavorRepository;
 import com.elsehere.mission.dto.FirstDayMissionResponse;
 import com.elsehere.mission.entity.Coins;
 import com.elsehere.mission.entity.FirstDayMission;
@@ -29,16 +30,19 @@ public class TownStoryService {
   private final FirstDayMissionRepository firstDay;
   private final NpcRepository npcs;
   private final ConversationRepository conversations;
+  private final FavorRepository favors;
 
   public TownStoryService(
       TownStoryRepository stories,
       FirstDayMissionRepository firstDay,
       NpcRepository npcs,
-      ConversationRepository conversations) {
+      ConversationRepository conversations,
+      FavorRepository favors) {
     this.stories = stories;
     this.firstDay = firstDay;
     this.npcs = npcs;
     this.conversations = conversations;
+    this.favors = favors;
   }
 
   public FirstDayMissionResponse receiveDinerMeal(Long userId) {
@@ -230,8 +234,8 @@ public class TownStoryService {
         started && story.canWaitForDinerMeal() && "TOWN".equals(scene),
         false,
         "CLEAR",
-        // 코인은 첫날 퀘스트와 마을 이야기 진행에서 함께 계산한다.
-        Coins.balance(firstDayMission, story),
+        // 코인은 첫날 퀘스트와 마을 이야기 진행에서 함께 계산하고, 마친 돌발 부탁의 보상을 더한다.
+        Coins.balance(firstDayMission, story) + Math.toIntExact(favors.sumDoneRewardCoins(userId)),
         Coins.lastPurchase(firstDayMission, story),
         situation,
         !started

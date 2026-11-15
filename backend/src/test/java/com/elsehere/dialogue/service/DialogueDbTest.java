@@ -107,6 +107,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   QuestTalkService.class,
   PlacePracticeService.class,
   GameClockService.class,
+  com.elsehere.favor.service.FavorService.class,
+  com.elsehere.favor.service.FavorRules.class,
   GuestContentCleanup.class,
   UserContentEraser.class,
   WithdrawalService.class

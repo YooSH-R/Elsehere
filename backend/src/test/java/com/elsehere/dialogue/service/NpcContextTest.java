@@ -20,6 +20,17 @@ class NpcContextTest {
     assertThat(ON_DUTY.withTravelSituation(null)).isEqualTo(ON_DUTY);
   }
 
+  @Test
+  @DisplayName("대화를 시작한 순간의 욕구를 워커 NPC에 싣고, 상황을 바꿔도 그대로 둔다")
+  void needsTravelWithTheWorkerNpc() {
+    Map<String, Double> needs = Map.of("HUNGER", 35.0);
+
+    NpcContext result = ON_DUTY.withNeeds(needs).withTravelSituation("walking to work");
+
+    assertThat(result.workerNpc().needs()).isEqualTo(needs);
+    assertThat(ON_DUTY.withNeeds(null)).isEqualTo(ON_DUTY);
+  }
+
   private static final Map<String, Object> PROFILE = Map.of("name", "Mia");
   private static final NpcContext ON_DUTY =
       new NpcContext(

@@ -112,7 +112,8 @@ namespace A305.Dialogue.Tests
                 bool npcOffDuty,
                 NpcTravelContext npcTravelContext = null,
                 string placeCode = null,
-                ITurnStream stream = null
+                ITurnStream stream = null,
+                NpcNeeds needs = null
             )
             {
                 throw new NotSupportedException();

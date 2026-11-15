@@ -13,6 +13,7 @@ import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.dialogue.dto.ConversationStartResponse;
 import com.elsehere.dialogue.dto.StartConversationRequest;
+import com.elsehere.favor.service.FavorService;
 import com.elsehere.followup.service.FollowUpService;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.mission.entity.PracticeScenario;
@@ -70,6 +71,7 @@ public class DialogueStartService {
   private final PlacePracticeService placePractice;
   private final MeaningPreparation meaningPreparation;
   private final OpeningLines openingLines;
+  private final FavorService favorService;
 
   public ConversationStartResponse start(Long userId, StartConversationRequest request) {
     return start(userId, request, null);
@@ -182,6 +184,9 @@ public class DialogueStartService {
                           clock.instant()));
               conversation.attachStartRequest(request.requestId());
               conversation.recordNpcTravelSituation(travelSituation);
+              if (!mode.isReview()) {
+                conversation.recordNpcNeeds(request.needs());
+              }
               mode.applyTo(conversation);
               if (request.npcOffDuty()) {
                 conversation.markNpcOffDuty();
@@ -196,6 +201,9 @@ public class DialogueStartService {
                 // 저장 공연은 원문과 번역을 함께 기록해 뜻 미리 생성에서도 AI를 부르지 않는다.
                 openingTurn.attachMeaning(opening.meaning(), "[]");
               }
+              context
+                  .favorCall()
+                  .ifPresent(call -> favorService.attachCall(call.favorId(), conversation.getId()));
               Long deliveredFollowUpId =
                   context
                       .followUp()
@@ -274,7 +282,8 @@ public class DialogueStartService {
     NpcContext npc =
         dialogueContexts
             .npcByCode(userId, request.npcCode(), request.npcOffDuty())
-            .withTravelSituation(travelSituation);
+            .withTravelSituation(travelSituation)
+            .withNeeds(mode.isReview() ? null : request.needs());
     if (!npc.sceneOpen()) {
       throw new BusinessException(ErrorCode.SCENE_CLOSED);
     }
@@ -284,10 +293,16 @@ public class DialogueStartService {
         mode.story()
             ? followUpService.readyFor(userId, npc.npcId())
             : Optional.<FollowUpService.ReadyFollowUp>empty();
+    // NPC가 먼저 말을 걸어 꺼낸 부탁이 있으면 첫마디를 그 부탁으로 한다(docs/npc-life-design.md 7.6).
+    var favorCall =
+        mode.story() && followUp.isEmpty()
+            ? favorService.pendingCall(userId, request.npcCode())
+            : Optional.<FavorService.CallOpening>empty();
     StreetGreeting streetGreeting = null;
     if (mode.story()
         && quest.isEmpty()
         && followUp.isEmpty()
+        && favorCall.isEmpty()
         && StreetGreeting.appliesTo(request)) {
       List<String> recent =
           turnRepository.findRecentNpcOpenings(
@@ -301,6 +316,7 @@ public class DialogueStartService {
         mode.story() ? memoryService.memoryFor(userId, npc.npcId()) : null,
         quest,
         followUp,
+        favorCall,
         mode,
         streetGreeting);
   }

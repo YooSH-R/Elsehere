@@ -296,6 +296,49 @@ namespace A305.Dialogue.Tests
             Assert.That(accepted, Has.Count.EqualTo(expected));
         }
 
+        [Test]
+        public async Task TurnWithAFavorUpdate_KeepsTheFavorAndNoticesTheAcceptance()
+        {
+            var favors = new FavorStore();
+            conversation = new ServerConversation(CafeStaffCode, "Jake", api, true, favors: favors);
+            await conversation.StartAsync();
+            api.TurnResponse = Reply("Sure, I'll get it.", "Thanks a lot!", "ACTIVE");
+            api.TurnResponse.MissionUpdates = new List<FavorUpdate>
+            {
+                new FavorUpdate
+                {
+                    FavorId = 42,
+                    Status = FavorUpdate.Accepted,
+                    TitleKo = "Jake의 부탁 · 크루아상 사다 주기",
+                },
+            };
+
+            await conversation.SendAsync("Sure, I'll get it.");
+
+            Assert.That(favors.Current.FavorId, Is.EqualTo(42));
+            Assert.That(conversation.StatusMessage, Is.EqualTo("Jake의 부탁을 수락했어요"));
+        }
+
+        [Test]
+        public async Task TurnWithoutAFavorUpdate_LeavesTheFavorAsItWas()
+        {
+            var favors = new FavorStore();
+            favors.Receive(
+                new[]
+                {
+                    new FavorUpdate { FavorId = 42, Status = FavorUpdate.Accepted },
+                }
+            );
+            conversation = new ServerConversation(CafeStaffCode, "Jake", api, true, favors: favors);
+            await conversation.StartAsync();
+            api.TurnResponse = Reply("How are you?", "Good!", "ACTIVE");
+
+            await conversation.SendAsync("How are you?");
+
+            Assert.That(favors.Current.FavorId, Is.EqualTo(42));
+            Assert.That(conversation.StatusMessage, Is.Null);
+        }
+
         // 경찰관은 신고를 받으면 직접 순찰차로 가려고 그 턴에 대화를 마친다. 끝난 턴이어도 출동할 곳은 전해야 한다.
         [TestCase("BAKERY")]
         [TestCase(null)]
@@ -962,6 +1005,23 @@ namespace A305.Dialogue.Tests
             await conversation.StartAsync();
 
             Assert.That(api.Starts[0].NpcOffDuty, Is.False);
+        }
+
+        [Test]
+        public async Task Start_SendsTheNpcNeedsAtConversationStart()
+        {
+            var needs = new NpcNeeds(new Dictionary<string, float> { ["HUNGER"] = 30f });
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                npcNeeds: needs
+            );
+
+            await conversation.StartAsync();
+
+            Assert.That(api.Starts[0].Needs, Is.SameAs(needs));
         }
 
         [Test]
@@ -2993,9 +3053,11 @@ namespace A305.Dialogue.Tests
                 string initiatedBy,
                 bool npcOffDuty,
                 NpcTravelContext npcTravelContext = null,
-                string placeCode = null
+                string placeCode = null,
+                NpcNeeds needs = null
             )
             {
+                Needs = needs;
                 RequestId = requestId;
                 NpcCode = npcCode;
                 InitiatedBy = initiatedBy;
@@ -3010,6 +3072,7 @@ namespace A305.Dialogue.Tests
             public bool NpcOffDuty { get; }
             public NpcTravelContext TravelContext { get; }
             public string PlaceCode { get; }
+            public NpcNeeds Needs { get; }
         }
 
         private sealed class TurnRequest
@@ -3141,7 +3204,8 @@ namespace A305.Dialogue.Tests
                 bool npcOffDuty,
                 NpcTravelContext npcTravelContext = null,
                 string placeCode = null,
-                ITurnStream stream = null
+                ITurnStream stream = null,
+                NpcNeeds needs = null
             )
             {
                 Calls.Add("Start");
@@ -3152,7 +3216,8 @@ namespace A305.Dialogue.Tests
                         initiatedBy,
                         npcOffDuty,
                         npcTravelContext,
-                        placeCode
+                        placeCode,
+                        needs
                     )
                 );
                 if (StartErrors.Count > 0)

@@ -216,6 +216,184 @@ namespace A305.Npc.Tests
             Assert.That(data.Activities["WORK"].CanFill, Is.EqualTo(new[] { "WORK" }));
         }
 
+        [Test]
+        public void Snapshot_HoldsEveryNeedAtThatMoment()
+        {
+            NpcLifeData rules = Rules(Need("HUNGER", dropPerHour: 6, start: 70));
+            var life = new NpcLife(rules, AllDay("TOWN", "FREE"), 0);
+            life.Advance(Hour);
+
+            A305.Dialogue.NpcNeeds needs = life.Snapshot();
+            life.Advance(2 * Hour);
+
+            Assert.That(needs.Values.Keys, Is.EquivalentTo(rules.Needs.Keys));
+            Assert.That(
+                needs.Values["HUNGER"],
+                Is.EqualTo(64f).Within(.001f),
+                "찍은 뒤에 줄어도 그대로"
+            );
+        }
+
+        [Test]
+        public void FillAfterConversation_FillsOnlyNeedsATalkFills()
+        {
+            NpcLifeData rules = Rules(
+                new KeyValuePair<string, NpcNeedRule>(
+                    "SOCIAL",
+                    new NpcNeedRule { Start = 20, ConversationFill = 30 }
+                ),
+                Need("HUNGER", start: 20)
+            );
+            var life = new NpcLife(rules, AllDay("TOWN", "FREE"), 0);
+
+            life.FillAfterConversation();
+
+            Assert.That(life.Need("SOCIAL"), Is.EqualTo(50f), "말 상대가 생겨 외로움이 풀린다");
+            Assert.That(life.Need("HUNGER"), Is.EqualTo(20f), "대화로는 배가 부르지 않다");
+        }
+
+        [Test]
+        public void FillAfterConversation_StopsAtFull()
+        {
+            NpcLifeData rules = Rules(
+                new KeyValuePair<string, NpcNeedRule>(
+                    "SOCIAL",
+                    new NpcNeedRule { Start = 90, ConversationFill = 30 }
+                )
+            );
+            var life = new NpcLife(rules, AllDay("TOWN", "FREE"), 0);
+
+            life.FillAfterConversation();
+
+            Assert.That(life.Need("SOCIAL"), Is.EqualTo(100f));
+        }
+
+        [Test]
+        public void ExportedData_LetsATalkFillSocial()
+        {
+            NpcLifeData data = NpcLifeData.Parse(
+                File.ReadAllText(Path.Combine(Application.dataPath, "Data/Npc/NpcLife.json"))
+            );
+
+            Assert.That(
+                data.Needs["SOCIAL"].ConversationFill,
+                Is.GreaterThan(0),
+                "사교를 채우는 사물이 없다"
+            );
+            Assert.That(
+                data.FindNpc("HOTEL_STAFF").Meals,
+                Has.Count.EqualTo(6),
+                "끼니 세 번, 커피 세 번"
+            );
+        }
+
+        [Test]
+        public void Advance_AWorkMealBringsTheNeedBackToItsStart()
+        {
+            NpcLifeData rules = Rules(Need("HUNGER", dropPerHour: 6, start: 70));
+            NpcLifeEntry worker = WithMeal(AllDay("HOTEL", "WORK"), "02:00", "HUNGER");
+            var life = new NpcLife(rules, worker, 0);
+
+            life.Advance(2 * Hour);
+            Assert.That(life.Need("HUNGER"), Is.EqualTo(70f).Within(.001f), "근무 중 짧은 끼니");
+
+            life.Advance(3 * Hour);
+            Assert.That(life.Need("HUNGER"), Is.EqualTo(64f).Within(.001f));
+        }
+
+        [Test]
+        public void Advance_AWorkMealDoesNotLowerAFullerNeed()
+        {
+            NpcLifeData rules = Rules(Need("HUNGER", start: 70));
+            NpcLifeEntry worker = WithMeal(AllDay("HOTEL", "WORK"), "02:00", "HUNGER");
+            var life = new NpcLife(rules, worker, 0);
+            life.FillForFavor(new Dictionary<string, float> { ["HUNGER"] = 20 });
+
+            life.Advance(3 * Hour);
+
+            Assert.That(
+                life.Need("HUNGER"),
+                Is.EqualTo(90f),
+                "심부름으로 받은 먹을 것이 끼니보다 배부르다"
+            );
+        }
+
+        [Test]
+        public void Advance_MealsOnlyCountWhileWorking()
+        {
+            NpcLifeData rules = Rules(Need("HUNGER", dropPerHour: 6, start: 70));
+            NpcLifeEntry walker = WithMeal(AllDay("TOWN", "FREE"), "02:00", "HUNGER");
+            var life = new NpcLife(rules, walker, 0);
+
+            life.Advance(3 * Hour);
+
+            Assert.That(
+                life.Need("HUNGER"),
+                Is.EqualTo(52f).Within(.001f),
+                "쉬는 동안은 사물로 채운다"
+            );
+        }
+
+        [Test]
+        public void Lives_KeepOneLifePerNpcAcrossScenes()
+        {
+            var lives = new NpcLives();
+            NpcLifeData rules = Rules(Need("HUNGER", dropPerHour: 6, start: 70));
+            NpcLifeEntry worker = AllDay("HOTEL", "WORK");
+
+            NpcLife first = lives.Get(rules, worker, 0);
+            first.FillForFavor(new Dictionary<string, float> { ["HUNGER"] = 10 });
+            NpcLife again = lives.Get(rules, worker, Hour);
+
+            Assert.That(
+                again,
+                Is.SameAs(first),
+                "호텔에 다시 들어와도 심부름으로 채운 배고픔이 남는다"
+            );
+            Assert.That(
+                again.Need("HUNGER"),
+                Is.EqualTo(4f).Within(.001f),
+                "하루 전부터 흘려 굶은 상태(0)에서 받은 10이 한 시간 동안 6 줄었다"
+            );
+        }
+
+        [Test]
+        public void Lives_FindReturnsOnlyALifeAlreadyMet()
+        {
+            var lives = new NpcLives();
+            NpcLifeData rules = Rules(Need("HUNGER", dropPerHour: 6, start: 70));
+            NpcLifeEntry worker = AllDay("HOTEL", "WORK");
+
+            Assert.That(lives.Find(worker.NpcId), Is.Null, "아직 장면에서 만나지 않은 NPC");
+
+            NpcLife life = lives.Get(rules, worker, 0);
+
+            Assert.That(lives.Find(worker.NpcId), Is.SameAs(life));
+            Assert.That(lives.Find(null), Is.Null);
+        }
+
+        [Test]
+        public void Lives_AFirstLifeMatchesTheTimeOfDayRhythm()
+        {
+            var lives = new NpcLives();
+            NpcLifeData rules = Rules(Need("HUNGER", dropPerHour: 6, start: 70));
+            NpcLifeEntry worker = WithMeal(AllDay("HOTEL", "WORK"), "06:00", "HUNGER");
+
+            NpcLife life = lives.Get(rules, worker, 24 * Hour + 11 * Hour);
+
+            Assert.That(
+                life.Need("HUNGER"),
+                Is.EqualTo(40f).Within(.001f),
+                "장면에 처음 들어와도 아침 끼니(06시)에서 5시간 지난 값"
+            );
+        }
+
+        private static NpcLifeEntry WithMeal(NpcLifeEntry npc, string at, string need)
+        {
+            npc.Meals.Add(new NpcMeal { At = at, Need = need });
+            return npc;
+        }
+
         private static bool Anything(string objectKey) => true;
 
         private static NpcLifeData Rules(params object[] parts)

@@ -39,6 +39,9 @@ namespace A305.Mission
         private bool cafeRestPending;
         private bool dinerMealPending;
         private IFollowUpApi followUpApi;
+
+        // 부탁한 NPC를 찾도록 이 컨트롤러가 켠 찾는 이웃 표시. 없으면 null이다.
+        private string favorTrackedNpc;
         private RestSeat[] cafeSeats;
         private DinerMealRest dinerRest;
         private QuestNpcWaitSpot[] waitSpots;
@@ -75,10 +78,15 @@ namespace A305.Mission
             view.BindMap(sceneCode, player.transform);
             umbrella = player.GetComponent<UmbrellaHold>();
             followUpApi = new FollowUpApi(apiSettings.CreateClient());
-            // 기다리는 카드의 X로 닫은 것을 서버에 알린다.
+            // 기다리는 카드의 X로 닫은 것과 그만둔 돌발 부탁을 서버에 알린다.
             var followUps = view.GetComponent<FollowUpCardView>();
             if (followUps != null)
+            {
                 followUps.Bind(followUpApi);
+                followUps.Bind(new FavorApi(apiSettings.CreateClient()));
+            }
+            FavorStore.Shared.Changed += OnFavorChanged;
+            FavorStore.Shared.Completed += OnFavorCompleted;
             view.StartRequested += StartMission;
             view.RestRequested += Rest;
             view.RetryRequested += RequestRefresh;
@@ -138,6 +146,43 @@ namespace A305.Mission
                 dialogue.Ended -= OnEnded;
                 dialogue.Started -= OnStarted;
             }
+            FavorStore.Shared.Changed -= OnFavorChanged;
+            FavorStore.Shared.Completed -= OnFavorCompleted;
+        }
+
+        // 돌발 부탁이 생기거나 바뀌면 길 안내를 다시 정한다. 수락한 심부름은 가게를, 산 것을 받은 뒤에는 부탁한 NPC를 가리킨다.
+        private void OnFavorChanged()
+        {
+            Render();
+            FavorUpdate favor = FavorStore.Shared.Current;
+            string npcToFind = FavorCard.NpcToFind(favor);
+            if (npcToFind != null && !NpcTracking.Shared.IsTracking(npcToFind))
+            {
+                NpcTracking.Shared.Track(npcToFind, FavorCard.RequesterName(favor), null);
+                favorTrackedNpc = npcToFind;
+            }
+            else if (npcToFind == null && favorTrackedNpc != null)
+            {
+                // 부탁 때문에 찾던 NPC만 거둔다. 학습자가 [이웃]에서 고른 다른 이웃은 그대로 둔다.
+                if (NpcTracking.Shared.IsTracking(favorTrackedNpc))
+                    NpcTracking.Shared.Clear();
+                favorTrackedNpc = null;
+            }
+        }
+
+        // 부탁을 들어줬다. 부탁한 NPC의 욕구를 채우고, 대화를 마치면 늘어난 코인을 그 부탁의 보상으로 보인다.
+        private void OnFavorCompleted(FavorUpdate favor)
+        {
+            view.ExpectFavorReward(favor.RequesterLabel);
+            NpcLife life = NpcLives.Shared.Find(favor.RequesterNpcCode);
+            if (life == null || favor.Fills == null)
+                return;
+            var fills = new System.Collections.Generic.Dictionary<string, float>();
+            foreach (var fill in favor.Fills)
+                fills[fill.Key] = fill.Value;
+            life.FillForFavor(fills);
+            if (dialogue.ActiveNpcCode == favor.RequesterNpcCode)
+                dialogue.ShowNpcNeeds(life.Snapshot());
         }
 
         private void OnStarted(string npcCode) => Render();

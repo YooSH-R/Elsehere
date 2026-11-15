@@ -12,6 +12,7 @@ import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -167,7 +168,8 @@ public class AiWorkerClient {
             false,
             "",
             learner,
-            reaction);
+            reaction,
+            npc.needs());
     long startedAt = System.nanoTime();
     HttpResponse<Stream<String>> response =
         send(
@@ -639,7 +641,8 @@ public class AiWorkerClient {
       boolean suggestWords,
       String goal,
       WorkerLearner learner,
-      String reaction) {}
+      String reaction,
+      Map<String, Double> needs) {}
 
   record MeaningBody(WorkerNpc npc, String text, int level) {}
 

@@ -171,6 +171,17 @@ namespace A305.Dialogue
             return layout;
         }
 
+        /// <summary>
+        /// 이름표 바로 오른쪽(nameRight에서 시작)에 폭이 blockWidth인 묶음(욕구 게이지)을 두고도, 그 뒤에 가장 긴 호감 줄(standingWidth)이
+        /// 간격을 두고 도구 버튼 앞에 들어가는지. 들어가지 않으면 무례 경고 문구가 잘리지 않게 묶음을 숨긴다.
+        /// </summary>
+        public static bool FitsBesideName(
+            float nameRight,
+            float toolsLeft,
+            float blockWidth,
+            float standingWidth
+        ) => nameRight + blockWidth + Gap + standingWidth + Gap <= toolsLeft;
+
         public static float LinesWidth(float columnWidth, bool hasTranslation) =>
             hasTranslation && columnWidth >= TranslationSideBySideWidth
                 ? columnWidth * .54f

@@ -181,7 +181,7 @@ class AiWorkerClientTest {
     client.reply(
         TRACE,
         NPC,
-        new WorkerMemory(2, null, Map.of("attitude", "friendly")),
+        new WorkerMemory(2, Map.of("attitude", "friendly")),
         List.of(WorkerLine.npc("Hi")),
         "Hello",
         "",
@@ -197,8 +197,8 @@ class AiWorkerClientTest {
     assertThat(request.body())
         .contains("\"level\":2")
         .contains("\"tts_voice\":\"af_heart\"")
-        .contains(
-            "\"memory\":{\"visits\":2,\"last_order\":null,\"card\":{\"attitude\":\"friendly\"}}");
+        .contains("\"memory\":{\"visits\":2,\"card\":{\"attitude\":\"friendly\"}}")
+        .doesNotContain("last_order");
   }
 
   @Test
@@ -288,6 +288,19 @@ class AiWorkerClientTest {
 
     assertThat(received.get("/v1/npc/reply").body())
         .contains("\"learner\":{\"nickname\":\"Sun\",\"avatar_type\":\"F\",\"speech_speed\":1.3}");
+  }
+
+  @Test
+  @DisplayName("대화를 시작한 순간의 NPC 욕구를 npc 안이 아니라 요청 맨 위의 needs로 보낸다")
+  void reply_sendsNpcNeedsAtTheTopLevel() {
+    respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
+
+    client.reply(
+        TRACE, NPC.withNeeds(Map.of("HUNGER", 35.0)), null, List.of(), "Hello", "", 1, null);
+
+    String body = received.get("/v1/npc/reply").body();
+    assertThat(body).contains("\"needs\":{\"HUNGER\":35.0}");
+    assertThat(body.indexOf("\"needs\"")).isEqualTo(body.lastIndexOf("\"needs\""));
   }
 
   @Test
@@ -784,7 +797,7 @@ class AiWorkerClientTest {
     client.reply(
         TRACE,
         NPC,
-        new WorkerMemory(2, null, null, new WorkerRelationship(23, 3, 0)),
+        new WorkerMemory(2, null, new WorkerRelationship(23, 3, 0)),
         List.of(),
         "Hello",
         "",
@@ -792,7 +805,7 @@ class AiWorkerClientTest {
         null);
 
     assertThat(received.get("/v1/npc/reply").body())
-        .contains("\"memory\":{\"visits\":2,\"last_order\":null,\"card\":null}")
+        .contains("\"memory\":{\"visits\":2,\"card\":null}")
         .contains(
             "\"relationship\":{\"recognition\":23,\"affinity\":3,\"days_since_last_talk\":0}");
   }

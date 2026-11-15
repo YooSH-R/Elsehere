@@ -114,8 +114,9 @@ class ExpressionsRequest(BaseModel):
 
 
 class Memory(BaseModel):
+    """다음 대화에 넘기는 기억. 지난 요청·한 일은 카드의 requests에 있다(예전 last_order 칸은 없앴고, 보내도 무시한다)."""
+
     visits: int = 0
-    last_order: str | None = None
     card: dict | None = None
 
 
@@ -125,6 +126,11 @@ class Relationship(BaseModel):
     recognition: int = Field(default=0, ge=0, le=100)  # 알아봄
     affinity: int = Field(default=0, ge=-100, le=100)  # 호감
     days_since_last_talk: int = Field(default=0, ge=0)
+
+
+# NPC 욕구 5개(ai/npcs/rules/world-rules.json의 needs). 높을수록 채워진 상태이고, Unity가 돌리는 값을 대화를 시작할 때 백엔드가 실어 보낸다
+NeedKey = Literal["HUNGER", "ENERGY", "SOCIAL", "FUN", "WORK"]
+NeedValue = Annotated[float, Field(ge=0, le=100)]
 
 
 class Learner(BaseModel):
@@ -138,7 +144,8 @@ class Learner(BaseModel):
 class ReplyRequest(BaseModel):
     npc: Npc
     memory: Memory | None = None
-    relationship: Relationship | None = None  # 있으면 알아봄·호감·기분을 말로 풀어 지시문에 넣고, 알아볼 때만 평범한 기억을 떠올린다
+    relationship: Relationship | None = None  # 있으면 알아봄·호감을 말로 풀어 지시문에 넣고, 알아볼 때만 평범한 기억을 떠올린다
+    needs: dict[NeedKey, NeedValue] | None = None  # 대화를 시작할 때 NPC의 욕구(일부만 와도 됨). 바탕 기분(피곤함 등)을 정한다
     history: list[Line] = Field(default=[], max_length=40)
     text: str = Field(max_length=500)  # 학습자 원문 그대로 (한국어 섞인 채)
     # Spring 규칙이 정한 이번 대답에서 할 일. 퀘스트 단계 지시와 진행 규칙을 합치면 1500자 안팎이다

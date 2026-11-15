@@ -44,6 +44,10 @@ namespace A305.Dialogue
         private TMP_Text standingText;
 
         [SerializeField]
+        [Tooltip("NPC 이름표 바로 오른쪽의 욕구 게이지. 생활하지 않는 NPC면 숨긴다.")]
+        private DialogueNeedsView needsView;
+
+        [SerializeField]
         private Button endButton;
 
         private Outline endButtonHighlight;
@@ -1438,6 +1442,55 @@ namespace A305.Dialogue
             standingText.color = npcNameText.color;
         }
 
+        /// <summary>
+        /// 대화하는 NPC의 욕구 게이지를 보인다. 대화를 시작한 순간의 값이며, 대화 중에는 게임 시간이 멈춰 바뀌지 않는다.
+        /// </summary>
+        /// <param name="needs">생활하지 않는 NPC(튜토리얼 Ben, 택시 기사, 출퇴근 중인 몸 등)면 null이며 게이지를 숨긴다.</param>
+        public void ShowNeeds(NpcNeeds needs)
+        {
+            if (needsView == null)
+                return;
+            needsView.Show(NpcNeedGauges.From(needs));
+            // 대화를 시작하기 전(창이 닫혀 있을 때)이면 대화 창을 열 때 자리를 정한다.
+            if (panel.activeSelf && content != null)
+                UpdateLayout();
+        }
+
+        // 서버가 무례 한도를 보내기 전에 쓰는 기본 한도. 서버 기본값과 같다(docs/api/rudeness-handling.md).
+        private const int DefaultRudeLimit = 3;
+
+        // 욕구 게이지를 이름표(와 공연 버튼) 바로 오른쪽에 두고, 호감도·무례 경고가 시작할 왼쪽 끝을 돌려준다.
+        // 자리는 이름 길이로만 정해져 무례 경고 문구가 붙었다 사라져도 움직이지 않는다.
+        // 게이지 뒤에 가장 긴 호감 줄(무례 경고 문구가 붙은 때)이 들어가지 않는 좁은 화면이면 경고가 잘리지 않게 게이지를 숨긴다.
+        private float PlaceNeeds(float left, float toolsLeft, Rect nameRow)
+        {
+            if (needsView == null)
+                return left;
+            int rudeLimit =
+                content?.Standing != null && content.Standing.IsKnown
+                    ? content.Standing.RudeLimit
+                    : DefaultRudeLimit;
+            float widestStanding = standingText
+                .GetPreferredValues(ConversationStandingDisplay.Widest(rudeLimit))
+                .x;
+            bool fits =
+                needsView.Width > 0
+                && DialogueCinemaLayout.FitsBesideName(
+                    left,
+                    toolsLeft,
+                    needsView.Width,
+                    widestStanding
+                );
+            needsView.gameObject.SetActive(fits);
+            if (!fits)
+                return left;
+            Place(
+                (RectTransform)needsView.transform,
+                new Rect(left, nameRow.yMin, needsView.Width, nameRow.height)
+            );
+            return left + needsView.Width + DialogueCinemaLayout.Gap;
+        }
+
         // 대화창 이름 줄 위와 택시 안내 사이 간격
         private const float VehicleStatusGap = 16;
 
@@ -1589,7 +1642,8 @@ namespace A305.Dialogue
                 if (fits)
                     standingLeft += width + DialogueCinemaLayout.Gap;
             }
-            // 호감도·무례 경고는 이름표 바로 오른쪽에 두고, 도구 버튼 앞에서 말줄임으로 자른다.
+            standingLeft = PlaceNeeds(standingLeft, toolsLeft, layout.Name);
+            // 호감도·무례 경고는 욕구 게이지(없으면 이름표) 바로 오른쪽에 두고, 도구 버튼 앞에서 말줄임으로 자른다.
             Place(
                 standingText.rectTransform,
                 Rect.MinMaxRect(

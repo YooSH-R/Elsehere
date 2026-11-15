@@ -41,6 +41,9 @@ namespace A305.Npc
     {
         public float DropPerHour { get; set; }
         public float Start { get; set; }
+
+        /// <summary>학습자와 대화를 마치면 채우는 양. 대화로 채우지 않는 욕구는 0</summary>
+        public float ConversationFill { get; set; }
     }
 
     /// <summary>사물 하나로 하는 행동. 사물 키는 사물 단어 키와 같아 NPC가 쓰는 사물이 곧 학습 어휘다.</summary>
@@ -82,6 +85,29 @@ namespace A305.Npc
 
         public List<NpcScheduleBlock> Schedule { get; set; } = new List<NpcScheduleBlock>();
 
+        /// <summary>근무 중 짧은 끼니·커피 시각. 공통 규칙(workMeals)에서 npcId 씨앗으로 엇갈린 시각을 내보낸 것이다.</summary>
+        public List<NpcMeal> Meals { get; set; } = new List<NpcMeal>();
+
+        /// <summary>minutes 뒤로 처음 오는 끼니 시각(1일차 0시부터 센 분). 끼니가 없으면 무한대</summary>
+        public double NextMealAfter(double minutes)
+        {
+            double next = double.PositiveInfinity;
+            foreach (NpcMeal meal in Meals)
+            {
+                next = Math.Min(next, NextAt(meal.Minute, minutes));
+            }
+
+            return next;
+        }
+
+        private static double NextAt(double minuteOfDay, double after)
+        {
+            double dayStart =
+                Math.Floor(after / NpcScheduleBlock.MinutesPerDay) * NpcScheduleBlock.MinutesPerDay;
+            double at = dayStart + minuteOfDay;
+            return at <= after ? at + NpcScheduleBlock.MinutesPerDay : at;
+        }
+
         /// <param name="minutes">1일차 0시부터 센 게임 시각(분)</param>
         public string ActivityAt(double minutes)
         {
@@ -114,6 +140,24 @@ namespace A305.Npc
         private static double PositiveModulo(double value, double divisor)
         {
             return ((value % divisor) + divisor) % divisor;
+        }
+    }
+
+    /// <summary>근무 중 짧은 끼니·커피 한 번. 이 시각에 근무 중이면 그 욕구를 시작값으로 되돌린다.</summary>
+    public sealed class NpcMeal
+    {
+        /// <summary>"12:40" 형식</summary>
+        public string At { get; set; }
+        public string Need { get; set; }
+
+        internal double Minute
+        {
+            get
+            {
+                string[] parts = At.Split(':');
+                return int.Parse(parts[0], CultureInfo.InvariantCulture) * 60
+                    + int.Parse(parts[1], CultureInfo.InvariantCulture);
+            }
         }
     }
 

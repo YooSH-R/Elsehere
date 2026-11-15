@@ -7,6 +7,7 @@ MBTI → 성격 5축, 행동 조각 뽑기, 인격 카드 자동 칸은 AI 워�
 """
 
 import argparse
+import hashlib
 import json
 import math
 import sys
@@ -78,6 +79,18 @@ def shift_day(shift: dict, role: dict) -> list[dict]:
         for block_start, block_end, activity in blocks
         if block_end > block_start
     ]
+
+
+def work_meals(npc_id: str, rules: dict) -> list[dict]:
+    """근무 중 짧은 끼니·커피 시각(공통 규칙 workMeals). 정한 시각에서 NPC마다 ±spreadMinutes 안으로 엇갈린다.
+    npcId·시각·욕구가 씨앗이라 늘 같은 시각이고, 모든 NPC가 한꺼번에 배고프거나 지치지 않는다(docs/npc-life-design.md 7.5)."""
+    spread = rules["workMeals"]["spreadMinutes"]
+    meals = []
+    for time in rules["workMeals"]["times"]:
+        seed = hashlib.sha256(f"{npc_id}|{time['at']}|{time['need']}".encode()).digest()
+        shift = int.from_bytes(seed[:4], "big") % (2 * spread + 1) - spread
+        meals.append({"at": _clock((_minutes(time["at"]) + shift) % (24 * 60)), "need": time["need"]})
+    return meals
 
 
 def _nearest_half_hour(minute: float) -> int:

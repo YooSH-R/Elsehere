@@ -277,7 +277,7 @@ GPU 모델은 상대를 향하지 않은 단어("감자", 이름 "김사피", "�
 
 기존 대사 생성 요청에서 구절별 표정 종류·강도도 함께 생성합니다. 내부 감정 표시는 `delta`·`audio`·`done`의 대사와 TTS 입력에서 제거하며, 합성한 WAV의 `e305` 청크에 실제 음성 길이 기준 시간표를 넣습니다. 추가 감정 분석 요청은 없습니다. 수준별 대사 길이는 유지하고 출력 상한에 감정 표시용 64토큰을 더합니다. `done.speech_phrases`에는 음성 성공 여부와 별개로 `[{"text":"Really?","emotion":"curious","intensity":0.6}]` 형식의 구절 목록을 반환합니다. 감정 표시가 없거나 잘못된 구절은 `emotion: null, intensity: 0`입니다. Spring은 이 목록을 턴에 저장하고 음성 재합성에 사용합니다. 형식·검증·다시 듣기는 [NPC 대화 감정 표정](../unity/npc-dialogue-emotions.md)을 따릅니다.
 
-요청: `npc`, `memory`(선택: `visits`, `last_order`, `card`), `relationship`(선택, 아래 표), `history`(최대 40줄), `text`(학습자 원문, 최대 500자), `instruction`(Spring 규칙이 정한 이번 대답에서 할 일, 최대 3000자), `tts`(기본 `true`), `level`(기본 `2`), `suggest_words`(기본 `false`, 추천 단어를 스트림으로), `goal`(추천 단어용: 지금 상태에서 학습자가 할 일, 최대 300자), `learner`(선택: `nickname` 최대 32자, `avatar_type` `F`·`M`, `speech_speed` 0.8~1.5 기본 1.1). **한 턴의 대답은 난이도에 따라 한 문장에서 세 문장까지**이며 한 줄로 옵니다.
+요청: `npc`, `memory`(선택: `visits`, `card`. 예전 `last_order`는 없앴고 보내도 무시), `relationship`(선택, 아래 표), `needs`(선택, 아래 설명), `history`(최대 40줄), `text`(학습자 원문, 최대 500자), `instruction`(Spring 규칙이 정한 이번 대답에서 할 일, 최대 3000자), `tts`(기본 `true`), `level`(기본 `2`), `suggest_words`(기본 `false`, 추천 단어를 스트림으로), `goal`(추천 단어용: 지금 상태에서 학습자가 할 일, 최대 300자), `learner`(선택: `nickname` 최대 32자, `avatar_type` `F`·`M`, `speech_speed` 0.8~1.5 기본 1.1). **한 턴의 대답은 난이도에 따라 한 문장에서 세 문장까지**이며 한 줄로 옵니다.
 
 `learner`는 대답 상대인 학습자입니다. NPC는 `avatar_type`에 맞는 호칭만 씁니다(`F`는 ma'am·Ms., `M`은 sir·Mr.). 칸을 빼거나 `avatar_type`이 없으면 Mr.·Ms.·sir·ma'am처럼 성별을 짐작한 호칭을 쓰지 않습니다. `nickname`은 영어 글자로 된 실제 이름일 때만 부릅니다. Spring은 대화를 시작한 사용자의 닉네임과 캐릭터 기본형을 첫 인사와 매 턴 대답에 보냅니다. `speech_speed`는 대답 음성의 빠르기(Kokoro speed)이며, Spring이 Unity 요청의 `speechSpeed`(학습자가 마이페이지에서 고른 값)를 그대로 넣습니다. `learner`가 없거나 칸이 없으면 1.1배이고, 범위를 벗어나면 `400 invalid_request`입니다.
 
@@ -288,6 +288,8 @@ GPU 모델은 상대를 향하지 않은 단어("감자", 이름 "김사피", "�
 | `recognition` | 정수 0~100 | 알아봄. 얼굴을 아는 정도 |
 | `affinity` | 정수 −100~100 | 호감. 좋게 보는 정도 |
 | `days_since_last_talk` | 정수 0 이상 | 마지막 대화 뒤 지난 **게임 속** 날 수. 1차 배포는 게임 하루 10분, 대화 중 멈춤([NPC 생활·관계 설계](../npc-life-design.md) 4·11절) |
+
+`needs`는 대화를 시작할 때 NPC의 욕구입니다. 예: `{"HUNGER": 35, "ENERGY": 12, "SOCIAL": 70, "FUN": 55, "WORK": 80}`. 키는 공통 규칙 `world-rules.json`의 `needs` 키(`HUNGER`·`ENERGY`·`SOCIAL`·`FUN`·`WORK`)이고, 값은 0~100 숫자(높을수록 채워짐)이며 일부 키만 보내도 됩니다. 범위를 벗어나거나 모르는 키면 `400 invalid_request`입니다. 칸을 빼면 바탕 기분을 넣지 않습니다. Unity가 돌리는 값을 대화를 시작할 때 백엔드가 받아 첫 인사와 매 턴 같은 값을 보내는 통로는 대화 중 돌발 미션 작업(S15P31A305-931)에서 만듭니다. 그 전에는 백엔드가 이 칸을 보내지 않습니다.
 
 응답은 `text/event-stream`이며 이벤트 순서는 다음과 같습니다.
 
@@ -305,13 +307,20 @@ delta*  →  audio*  →  words?  →  done | error
 | `done` | `{"text": "...", "first_token_s": 0.62, "total_s": 2.1, "audio_full_id": "7c1e...", "audio_full_s": 3.4, "usage": [...]}` | **생성 완료**. 클라이언트 재생 완료가 아님. `text`가 대답 전문. `audio_full_id`는 모든 조각을 순서대로 이어 붙인 **턴 전체 음성**(다시 듣기용, `GET /v1/audio/{id}`). 조각 하나라도 합성에 실패했거나 요청이 `tts: false`면 `null` → `/v1/tts`로 다시 만듦(늦은 조각은 마지막 합성 요청부터 TTS_FULL_BUDGET_S 안에서만 기다림). `usage`에 추천 단어(`suggest`)도 포함 |
 | `error` | `{"code": "provider_unavailable", "message": "...", "usage": [...]}` | 생성 실패. 이미 보낸 `delta`·`audio`는 유효. `code`는 `provider_unavailable`·`provider_limit`·`timeout` |
 
-- `npc.profile`이 있으면 대답 지시문을 공통 규칙 → 인격 → 마을 안내 → 상황(장소·`facts`·기억) → 학습 수준 → 이번 턴(`instruction`) 순서로 만듭니다(`app/npc_prompt.py`의 공통 시스템 프롬프트). 마을 안내(`TOWN_GUIDE`)는 모든 NPC가 같이 받는 3D 마을(TownScene)의 장소 목록과 자리(남북 본길의 끝·교차로·맞은편)이며, 길을 물으면 이 자리로 안내합니다. 마을에 장소가 생기거나 옮겨지면 이 목록도 고칩니다. 공통 규칙은 가격·결제·예약·`facts`의 물건과 마을에 없는 장소만 지어내지 못하게 하고, 그 밖에는 그 직업의 실제 사람처럼 처리하게 합니다(담당자 호출, 길 안내, 방으로 올려 보내기 등). 못 하는 일이어도 갈 곳이나 물을 사람을 알려 주며, "잘 모르겠다"로만 끝내지 않습니다. 매니저·요리사·친구처럼 게임에 나오지 않는 사람에게 연락해야 하면 같은 대답 안에서 바로 연락하고 그 답을 전하며, 나중에 연락하겠다는 약속은 하지 않습니다(지킬 방법이 없음). 평가는 `ai/tools/npc_help_eval.py`(막다른 거절·알 만한 걸 모름·지어내기·길 틀림·연락 미룸)입니다. 학습 수준은 말투를 정하지 않는 규칙을 써서 인격의 말투를 덮지 않고, 출력 상한은 `profile`이 없을 때와 같습니다. 무례 여부는 NPC가 스스로 판단하지 않습니다. 이번 턴에는 "`instruction`이 무례라고 하지 않으면 퉁명하거나 재촉해도 무례가 아니다"를 늘 붙여, 무례를 못 참는 인격도 백엔드가 무례 경고·퇴장 지시문을 보낼 때만 무례에 반응합니다(사적인 질문처럼 인격이 정한 반응은 그대로). `profile`이 없으면 `name`·`role` 한 줄로 만든 지금 지시문을 씁니다.
+- `npc.profile`이 있으면 대답 지시문을 공통 규칙 → 인격 → 마을 안내 → 상황(장소·`facts`·기억) → 학습 수준 → 이번 턴(`instruction`) 순서로 만듭니다(`app/npc_prompt.py`의 공통 시스템 프롬프트). 마을 안내(`TOWN_GUIDE`)는 모든 NPC가 같이 받는 3D 마을(TownScene)의 장소 목록과 자리(남북 본길의 끝·교차로·맞은편)이며, 길을 물으면 이 자리로 안내합니다. 마을에 장소가 생기거나 옮겨지면 이 목록도 고칩니다. 공통 규칙은 가격·결제·예약·`facts`의 물건과 마을에 없는 장소만 지어내지 못하게 하고, 그 밖에는 그 직업의 실제 사람처럼 처리하게 합니다(담당자 호출, 길 안내, 방으로 올려 보내기 등). 못 하는 일이어도 갈 곳이나 물을 사람을 알려 주며, "잘 모르겠다"로만 끝내지 않습니다. 매니저·요리사·친구처럼 게임에 나오지 않는 사람에게 연락해야 하면 같은 대답 안에서 바로 연락하고 그 답을 전하며, 나중에 연락하겠다는 약속은 하지 않습니다(지킬 방법이 없음). 평가는 `ai/tools/npc_help_eval.py`(막다른 거절·알 만한 걸 모름·지어내기·길 틀림·연락 미룸)입니다. 인격의 성격 5축은 숫자 대신 MBTI 네 축의 말투 규칙(`ai/npcs/rules/temperament-speech.json`, `app/npc_persona.py`의 `temperament_lines`)으로 인격 칸에 넣고, 이번 턴 칸에는 축마다 이번 대답에서 할 행동(`inReply`)을 넣습니다. 이 행동은 앞 대답의 말을 되풀이하지 않고, 호감 단계·기분과 다르면 그쪽을 따릅니다. 학습 수준은 말투를 정하지 않는 규칙을 써서 인격의 말투를 덮지 않고, 출력 상한은 `profile`이 없을 때와 같습니다. 무례 여부는 NPC가 스스로 판단하지 않습니다. 이번 턴에는 "`instruction`이 무례라고 하지 않으면 퉁명하거나 재촉해도 무례가 아니다"를 늘 붙여, 무례를 못 참는 인격도 백엔드가 무례 경고·퇴장 지시문을 보낼 때만 무례에 반응합니다(사적인 질문처럼 인격이 정한 반응은 그대로). `profile`이 없으면 `name`·`role` 한 줄로 만든 지금 지시문을 씁니다.
 - `relationship`이 있으면 지시문의 기억 자리에 "About this person"을 넣습니다(`app/npc_relationship.py`, `app/prompts.py`의 `person_note`). 숫자는 넣지 않고 말로 풉니다.
   - 지난 날만큼 줄어든 알아봄으로 처음 봄·본 적 있음·단골을 정합니다. 알아봐야(본 적 있음부터) 기억 카드의 이름·했던 말·지난 주문을 떠올립니다. 알아보지 못해도 카드의 `attitude`가 `friendly`·`wary`면 그 일(`events`)은 떠올립니다.
-  - 호감이 기준을 넘으면 좋아하거나 차갑게 대하는 티를 내고, 알아봄과 호감이 모두 높으면 자기 이야기를 조금 합니다.
-  - 대화 중 기분은 `history`의 학습자 줄로 계산합니다. 무례 줄(`rude: true`) 뒤에는 몇 턴 동안 짜증이 남고, 사과(`events`의 `APOLOGY`)하면 줄어듭니다. 칭찬 뒤나 잡담이 이어지면 기분이 좋아집니다. 둘 다면 더 큰 쪽만 넣습니다. 무례 줄의 다른 사건은 버립니다.
-  - 기준 숫자는 공통 규칙 `ai/npcs/rules/world-rules.json`이고, 알아보는 속도와 반응 크기는 `npc.profile`의 성격으로 정합니다.
-  - `relationship`이 없으면 지금처럼 `memory.visits`와 기억 카드를 그대로 넣습니다.
+  - 알아봄과 호감이 모두 높으면 자기 이야기를 조금 합니다.
+  - 호감은 공통 규칙 `relationship.affinityStages`로 적대(−30 이하)·냉담(−10 이하)·보통·호의(10 이상)·친밀(30 이상, 알아볼 때만)로 나눕니다. 보통이 아니면 이번 턴 칸에 "How you treat this person"으로 그 단계의 인사·잡담·도움·말투·호칭·첫 표정을 넣습니다(`app/prompts.py`의 `STAGE`). 적대·냉담은 이름을 부르지 않고 묻지 않은 추천을 덧붙이지 않으며, 호의·친밀은 이름을 부르고 말로 하는 팁·추천을 더합니다(공짜 물건·할인은 약속하지 않음). 이번 턴에 서버 `reaction`과 대화 중 기분이 없으면 표정도 단계에 맞춥니다: 적대·냉담은 웃는 표정·표시 없음을 `indifferent`로, 호의·친밀은 `frown`·`angry`·`furious`를 `warm_smile`로 바꿉니다.
+  - 기준 숫자는 공통 규칙 `ai/npcs/rules/world-rules.json`이고, 알아보는 속도는 `npc.profile`의 성격으로 정합니다.
+  - `relationship`이 없으면(처음 만난 대화, 장소 연습·복습 대화) `memory.visits`와 기억 카드를 그대로 넣습니다.
+- 기분·호감 단계·성격 줄이 들어가면 이번 턴 칸에 "IMPORTANT 지시가 먼저이고 태도·기분·성격은 말하는 방식만 바꾼다"를 함께 넣습니다(`app/npc_prompt.py`의 `INSTRUCTION_FIRST`). 퀘스트 단계의 빠진 정보 묻기, 결제 방법 묻기, 물건 건네기, 마무리 인사 같은 백엔드 지시가 적대·짜증의 "짧게" 지시에 밀리지 않게 하려는 것입니다.
+- 이번 대화의 기분은 `relationship`과 상관없이 정해 대답 바로 앞(인격이 있으면 "This turn" 칸, 없으면 "IMPORTANT for your next reply" 다음)에 "How you feel right now"로 넣습니다. 이번 턴 칸은 "이 칸이 무례라고 하지 않으면 무례가 아니다"라고 해서, 상황 칸에 두면 실제 모델이 남은 짜증을 무시했습니다(`app/npc_relationship.py`의 `mood_state`, `app/prompts.py`의 `mood_note`). 그래서 처음 만난 대화에도 들어갑니다. 드러낼 기분이 없으면 넣지 않습니다.
+  - 바탕 기분: `needs` 가운데 `mood.needs.low`(30)보다 낮은 욕구가 피곤함(`ENERGY`)·배고픔(`HUNGER`)·말 상대가 반가움(`SOCIAL`)·지루함(`FUN`)·일이 밀려 바쁨(`WORK`)이 됩니다. 가장 낮은 욕구 하나만 넣고, 그 욕구가 `veryLow`(15)보다 낮으면 뚜렷하게 드러내며 다음으로 낮은 욕구까지 두 개를 넣습니다. 보낸 욕구가 모두 `comfortable`(70) 이상이면 여유로운 기분입니다. 대화 중에는 게임 시간이 멈추므로 한 대화 동안 같습니다.
+  - 사건 기분: `history`의 학습자 줄로 계산합니다. 무례 줄(`rude: true`) 뒤에는 몇 턴 동안 짜증이 남고, 사과(`events`의 `APOLOGY`)하면 줄어듭니다. 칭찬·도움 제공 뒤나 잡담이 이어지면 기분이 좋아집니다. 둘 다면 더 큰 쪽만 넣습니다. 무례 줄의 다른 사건은 버립니다. 반응 크기와 짜증이 가라앉는 속도는 `npc.profile`의 성격(신경성)으로 정하고, 기분 좋음이 이어지는 시간은 성격과 상관없습니다.
+  - 세기는 두 단계입니다. 약하면(`mood.showsAt` 1 이상) 친근한 덧말 없이 사무적으로 또는 다정한 말 한마디를 더하고, 강하면(`mood.strongAt` 2 이상) 필요한 것만 짧은 한 문장으로 차갑게 또는 눈에 띄게 반깁니다. 아주 낮은 욕구(바탕 기분)는 그 대화에서 아직 말하지 않았으면 한 번 짧게 말하고, 그 뒤로는 말투로만 드러냅니다. 기분 좋음에는 가장 최근 원인(칭찬·잡담·도움 제공)을 넣어 이유에 맞게 반응하게 합니다.
+  - 줄마다 첫 표정(`Face:`)을 붙이고, 표정 지시가 이를 따르게 합니다. 이번 턴에 서버 `reaction`이 없으면 기분과 반대인 표정을 워커가 바꿉니다(`app/npc_emotion.py`의 `mood_face`). 짜증이 남은 동안 웃는 표정(`warm_smile`·`laugh`·`big_laugh`·`playful`·`shy`)이나 표시 없음은 강하면 `frown`, 약하면 `indifferent`이고, 기분 좋은 동안 `frown`·`angry`·`furious`·`indifferent`는 `warm_smile`입니다. 다른 표정은 그대로 둡니다. 실시간 음성·`speech_phrases`·턴 전체 음성에 같게 적용합니다.
+  - 짜증 난 동안에는 반대인 바탕 기분(여유로움·말 상대가 반가움)을 빼고, 기분이 좋으면 여유로움을 겹쳐 넣지 않습니다.
 - 대답은 한 줄입니다. 모델이 줄을 바꿔 다른 사람 대사를 쓰면 버립니다.
 - 빈 대답이면 `"Sorry, could you say that again?"`로 대신합니다(`done`).
 - Spring이 연결을 끊으면 워커도 모델 호출을 멈춥니다.
@@ -443,9 +452,9 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 요청: `npc`, `outcome`(대화 결과 한 줄), `history`(최대 200줄, 학습자 줄의 `english`·`rude` 포함), `memory_card`(이전 카드).
 
-응답: `{"memory_card": {"name": "", "claims": [], "events": [], "attitude": "neutral", "struggled": []}, "impression": "neutral", "affinity_delta": 0, "usage": [...]}`
+응답: `{"memory_card": {"name": "", "claims": [], "events": [], "attitude": "neutral", "struggled": [], "requests": []}, "impression": "neutral", "affinity_delta": 0, "usage": [...]}`
 
-- `memory_card`: `name`(최대 40자), `claims`·`events`·`struggled`(각 최대 5개, 항목당 100자), `attitude`(`friendly`·`neutral`·`wary`). 연락처(전화번호·이메일)는 지웁니다.
+- `memory_card`: `name`(최대 40자), `claims`·`events`·`struggled`·`requests`(각 최대 5개, 항목당 100자), `attitude`(`friendly`·`neutral`·`wary`). 연락처(전화번호·이메일)는 지웁니다. `requests`는 학습자가 요청하고 함께 한 일(예: `ordered an iced vanilla latte`, `asked the way to the bank`)을 모델이 자유 문장으로 적고, 되풀이된 일은 하나로 합칩니다. 되풀이된 요청은 "twice"·"almost every visit"처럼 횟수를 적습니다. 다음 방문에 얼굴을 알아보면(2.3절 "본 적 있음"부터) 대답 지시에 "What they asked for or did with you before"로 넣습니다. 본 적 있음은 두 번 이상 한 요청만 가볍게 확인하고 먼저 권하지 않으며, 단골부터 늘 하던 것을 권합니다. 공짜·할인은 약속하지 않습니다.
 - `impression`: 카드를 만드는 같은 모델 호출이 고른 **이번 대화만의** 인상(`good`·`neutral`·`bad`). 지난 방문은 보지 않습니다. 용건 밖으로 분명히 즐거웠을 때(친근한 잡담, 따뜻한 말, NPC에 대한 관심)만 `good`이고, 정중하지만 평범한 주문·요청은 `neutral`입니다. 영어 실수·한국어·짧은 대답은 인상을 나쁘게 하지 않습니다. 모델이 빠뜨리거나 정해진 값이 아니면 `neutral`로 보고 카드는 그대로 돌려줍니다.
 - `affinity_delta`: 좋은 대화로 올릴 호감(정수). `impression`이 `good`이고, 학습자가 이번 대화에서 공통 규칙의 `goodConversationMinLearnerLines`(3)줄 이상 말했으며, 무례로 확정된 줄(`rude: true`)이 없을 때만 `goodConversationAffinity`(3)이고 그 밖에는 `0`입니다. 나쁜 대화도 깎지 않습니다(무례는 대화 중에 이미 깎음). 백엔드는 카드를 저장하는 같은 트랜잭션에서 `affinity = min(100, affinity + affinity_delta)`로 더합니다. 다음 대화를 시작할 때 오른 값이 보입니다.
 - 공급자 실패는 429/503, 출력이 JSON 객체가 아니면 502 `invalid_output`. **실패하면 이전 카드를 그대로 둡니다.**

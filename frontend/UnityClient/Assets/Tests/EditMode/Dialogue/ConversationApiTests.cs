@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using A305.Api;
 using NUnit.Framework;
@@ -77,6 +78,32 @@ namespace A305.Dialogue.Tests
             Assert.That(transport.Request.Url, Is.EqualTo("/api/v1/conversations"));
             Assert.That(transport.Request.JsonBody, Does.Contain("\"npcCode\":\"CAFE_STAFF\""));
             Assert.That(transport.Request.JsonBody, Does.Contain(expected));
+        }
+
+        [Test]
+        public async Task StartAsync_SendsTheNpcNeedsAtStart()
+        {
+            var transport = new RecordingTransport();
+            var needs = new NpcNeeds(
+                new Dictionary<string, float> { ["HUNGER"] = 35f, ["ENERGY"] = 12.5f }
+            );
+
+            await CreateApi(transport)
+                .StartAsync("request-1", "CAFE_STAFF", "USER", false, needs: needs);
+
+            Assert.That(transport.Request.JsonBody, Does.Contain("\"needs\":{"));
+            Assert.That(transport.Request.JsonBody, Does.Contain("\"HUNGER\":35.0"));
+            Assert.That(transport.Request.JsonBody, Does.Contain("\"ENERGY\":12.5"));
+        }
+
+        [Test]
+        public async Task StartAsync_LeavesOutNeedsForANpcWithoutALife()
+        {
+            var transport = new RecordingTransport();
+
+            await CreateApi(transport).StartAsync("request-1", "CAFE_STAFF", "USER", false);
+
+            Assert.That(transport.Request.JsonBody, Does.Not.Contain("needs"));
         }
 
         [Test]

@@ -37,6 +37,7 @@ namespace A305.Dialogue
         private IConversationApi conversationApi;
         private IAiStatusApi aiStatusApi;
         private IFollowUpApi followUpApi;
+        private IFavorApi favorApi;
         private VoiceConsentAgreement voiceConsentAgreement;
         private DialogueConversation conversation;
         private ServerConversation serverConversation;
@@ -99,6 +100,16 @@ namespace A305.Dialogue
         public event Action<GlossaryWord> WordSaveRequested;
 
         public bool IsTalking => session.IsActive;
+
+        /// <summary>돌발 부탁 API. 서버 없이 띄운 장면이면 null이다. NPC 말 걸기(Npc 모듈)가 쓴다.</summary>
+        public IFavorApi FavorApi => favorApi;
+
+        /// <summary>지금 대화하는 NPC 코드. 대화 중이 아니면 null이다.</summary>
+        public string ActiveNpcCode => session.IsActive ? session.ActiveNpcCode : null;
+
+        /// <summary>대화 중 NPC 욕구가 바뀌면(들어준 부탁으로 채움) 이름 옆 게이지를 다시 그린다.</summary>
+        public void ShowNpcNeeds(NpcNeeds needs) => panel.ShowNeeds(needs);
+
         public long? ActiveReviewConversationId =>
             serverConversation?.IsReview == true ? serverConversation.ConversationId : null;
 
@@ -193,6 +204,9 @@ namespace A305.Dialogue
         /// <param name="placeCode">
         /// 대화가 열린 장소 코드(CONV-01). 비우면 플레이어가 있는 곳으로 정한다. 택시처럼 플레이어 위치와 다른 곳이면 넘긴다.
         /// </param>
+        /// <param name="npcNeeds">
+        /// 대화를 시작한 순간 NPC의 생활 욕구. 대화 창 이름 줄에 게이지로 보인다. 생활하지 않는 NPC면 비운다.
+        /// </param>
         /// <returns>대화를 시작했으면 true. 이미 대화 중이면 false.</returns>
         public bool TryStart(
             string npcCode,
@@ -205,7 +219,8 @@ namespace A305.Dialogue
             NpcTravelContext npcTravelContext = null,
             string practiceScenarioId = null,
             Func<string, Task<ConversationStart>> practiceStart = null,
-            string placeCode = null
+            string placeCode = null,
+            NpcNeeds npcNeeds = null
         )
         {
             bool isSeparatePractice = reviewCardId != null || practiceScenarioId != null;
@@ -222,6 +237,7 @@ namespace A305.Dialogue
             }
 
             GameClock.Shared.IsTalking = true;
+            panel.ShowNeeds(npcNeeds);
             if (serverLink != null)
             {
                 var speaker = lookTarget.GetComponentInParent<DialogueSpeaker>();
@@ -259,7 +275,8 @@ namespace A305.Dialogue
                     practiceScenarioId,
                     practiceStart,
                     placeCode ?? PlayerPlaceCode(),
-                    recordedOpening
+                    recordedOpening,
+                    npcNeeds
                 );
             }
             else
@@ -388,6 +405,7 @@ namespace A305.Dialogue
                 conversationApi = serverLink.CreateApi();
                 aiStatusApi = serverLink.CreateAiStatusApi();
                 followUpApi = serverLink.CreateFollowUpApi();
+                favorApi = serverLink.CreateFavorApi();
                 voiceConsentAgreement = new VoiceConsentAgreement(
                     serverLink.CreateVoiceConsentApi(),
                     VoiceConsent.Shared
@@ -423,6 +441,12 @@ namespace A305.Dialogue
             if (followUpApi != null)
             {
                 _ = FollowUpStore.Shared.RefreshAsync(followUpApi);
+            }
+
+            // 진행 중인 돌발 부탁도 서버에서 다시 받아 부탁 카드를 복원한다(FAV-01).
+            if (favorApi != null)
+            {
+                _ = FavorStore.Shared.RefreshAsync(favorApi);
             }
         }
 
@@ -514,7 +538,8 @@ namespace A305.Dialogue
             string practiceScenarioId = null,
             Func<string, Task<ConversationStart>> practiceStart = null,
             string placeCode = null,
-            DialogueLine recordedOpening = null
+            DialogueLine recordedOpening = null,
+            NpcNeeds npcNeeds = null
         )
         {
             serverConversation = new ServerConversation(
@@ -530,7 +555,8 @@ namespace A305.Dialogue
                 reviewStart: reviewStart,
                 practiceScenarioId: practiceScenarioId,
                 practiceStart: practiceStart,
-                recordedOpening: recordedOpening
+                recordedOpening: recordedOpening,
+                npcNeeds: npcNeeds
             );
             speechRecovery = new NpcSpeechRecovery(serverConversation, PlayRecoveredSpeechAsync);
             serverConversation.Changed += panel.Refresh;

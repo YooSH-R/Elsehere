@@ -23,6 +23,8 @@ import com.elsehere.dialogue.dto.PoliceDispatchResponse;
 import com.elsehere.dialogue.dto.TaxiDestinationResponse;
 import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.dialogue.dto.TurnResponse;
+import com.elsehere.favor.dto.FavorResponse;
+import com.elsehere.favor.service.FavorService;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.service.QuestTalk;
@@ -105,6 +107,7 @@ public class TurnService {
   private final DialogueRequestLocks requestLocks;
   private final EarlyReplies earlyReplies;
   private final MeaningPreparation meaningPreparation;
+  private final FavorService favorService;
 
   public TurnResponse send(Long userId, Long conversationId, TurnRequest request) {
     return send(userId, conversationId, request, null);
@@ -199,8 +202,14 @@ public class TurnService {
               context.npc().workerNpc(),
               context.review() != null
                   ? reviewDialogue.state(context.review())
-                  : missionState.orElse(
-                      policeDesk ? PoliceDesk.STATE : taxiRide ? TaxiRide.STATE : FREE_TALK),
+                  // 돌발 부탁이 걸린 대화는 부탁 의도(수락·건넴 등)를 함께 판정한다.
+                  : context
+                      .favor()
+                      .mergeInto(
+                          missionState.orElse(
+                              policeDesk
+                                  ? PoliceDesk.STATE
+                                  : taxiRide ? TaxiRide.STATE : FREE_TALK)),
               context.history(),
               request.text());
       if (judge.dropped()) {
@@ -299,6 +308,16 @@ public class TurnService {
                 conversation.getStatus(),
                 conversation.getEndReason());
           }
+          List<FavorResponse> favorUpdates =
+              favorService.apply(
+                  userId,
+                  conversation,
+                  conversation.getNpcId(),
+                  context.npc().summary().name(),
+                  context.favor(),
+                  judge.intent(),
+                  rude,
+                  wrapUp);
           if (!rude) {
             context
                 .quest()
@@ -313,7 +332,7 @@ public class TurnService {
           }
           dispatch.ifPresent(value -> userTurn.recordPoliceDispatch(value.placeCode()));
           destination.ifPresent(value -> userTurn.recordTaxiDestination(value.placeCode()));
-          return response(conversation, userTurn, npcTurn);
+          return response(conversation, userTurn, npcTurn, favorUpdates);
         });
   }
 
@@ -341,6 +360,11 @@ public class TurnService {
     }
     if (scope.taxiRide() && !rude) {
       instruction = join(instruction, TaxiRide.instruction(judge, destination));
+    }
+    // 돌발 부탁: 진행 중 부탁의 다음 할 일이나 이번에 꺼낼 부탁. 부탁이 없는 대화는 지시문을 바꾸지 않는다.
+    String favor = favorService.instruction(context.favor(), judge.intent(), rude, wrapUp);
+    if (!favor.isEmpty()) {
+      instruction = join(instruction, favor);
     }
     if (wrapUp) {
       instruction = WrapUp.instruction(instruction);
@@ -504,6 +528,15 @@ public class TurnService {
       return new TurnContextSelection(null, true, false);
     }
     NpcContext npc = dialogueContexts.npcOf(conversation);
+    Optional<QuestTalkService.SelectedQuest> quest =
+        questTalks.forTurn(userId, npc.summary().npcCode(), conversation);
+    FavorService.FavorTurn favor =
+        favorService.plan(
+            userId,
+            conversation,
+            npc.summary().npcCode(),
+            userTurns - conversation.getRudeCount(),
+            quest.map(selected -> selected.talk().hasGoals()).orElse(false));
     return new TurnContextSelection(
         new TurnContext(
             npc,
@@ -518,17 +551,24 @@ public class TurnService {
             conversation.isReview()
                 ? reviewCardService.detail(userId, conversation.getReviewCardId())
                 : null,
-            questTalks.forTurn(userId, npc.summary().npcCode(), conversation)),
+            quest,
+            favor),
         false,
         finalTurn);
   }
 
   private TurnResponse response(Conversation conversation, Turn userTurn, Turn npcTurn) {
+    return response(conversation, userTurn, npcTurn, List.of());
+  }
+
+  // favorUpdates: 이번 턴에 바뀐 돌발 부탁. 같은 요청 ID로 다시 보낸 응답에는 담지 않으며, 클라이언트는 FAV-01로 다시 맞춘다.
+  private TurnResponse response(
+      Conversation conversation, Turn userTurn, Turn npcTurn, List<FavorResponse> favorUpdates) {
     return new TurnResponse(
         conversationResponses.userTurn(userTurn),
         conversationResponses.npcTurn(npcTurn),
         conversationResponses.state(conversation),
-        List.of(),
+        List.<Object>copyOf(favorUpdates),
         userTurn.isPoliceDispatch()
             ? new PoliceDispatchResponse(userTurn.getPoliceDispatchPlaceCode())
             : null,
@@ -542,6 +582,7 @@ public class TurnService {
    * @param memory 이 NPC와의 이전 대화 기억. 처음 만나면 null
    * @param rudeCount 이 턴 전까지 무례로 센 말 수
    * @param quest 이 턴의 퀘스트 대화 목표와 그 목표를 낸 쪽. 장소 연습은 이 턴 전까지 남은 목표다. 복습이거나 진행 중인 퀘스트가 없으면 빈 값
+   * @param favor 이 턴의 돌발 부탁 계획(진행 중 부탁의 의도나 꺼낼 부탁). 없으면 {@link FavorService.FavorTurn#NONE}
    */
   private record TurnContext(
       NpcContext npc,
@@ -552,7 +593,8 @@ public class TurnService {
       int rudeCount,
       boolean npcOffDuty,
       ReviewCardResponse review,
-      Optional<QuestTalkService.SelectedQuest> quest) {}
+      Optional<QuestTalkService.SelectedQuest> quest,
+      FavorService.FavorTurn favor) {}
 
   private record TurnContextSelection(TurnContext context, boolean rejected, boolean finalTurn) {}
 
@@ -572,7 +614,10 @@ public class TurnService {
     // 판정한 의도·목적지가 대답 지시문에 들어가는 대화인지. 퀘스트는 판정할 목표가 있는 대화(미션 대상 NPC·장소 연습)만 판정한 목표를
     // 지시문에 넣고, 안내만 하는 대화(미션 중 다른 NPC, 미션을 마친 뒤)는 정해진 안내만 넣는다.
     boolean judgeShapesInstruction() {
-      return quest.flatMap(QuestTalk::goals).isPresent() || policeDesk || taxiRide;
+      return quest.flatMap(QuestTalk::goals).isPresent()
+          || policeDesk
+          || taxiRide
+          || context.favor().shapesInstruction();
     }
   }
 

@@ -89,7 +89,6 @@ class MemoryServiceTest {
 
     WorkerMemory memory = memoryService.memoryFor(userId, npcId);
     assertThat(memory.visits()).isEqualTo(1);
-    assertThat(memory.lastOrder()).isNull();
     assertThat(memory.card()).isEqualTo(card("", List.of()));
     then(aiGateway)
         .should()

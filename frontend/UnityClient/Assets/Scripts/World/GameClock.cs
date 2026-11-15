@@ -102,6 +102,9 @@ namespace A305.World
 
         private bool InteractionPaused => held || learningOpen || dialogueOpen;
 
+        /// <summary>대화·학습 창이 열려 게임 시각이 멈춰 있는지. 플레이어 기준 시간(NPC 말 걸기 간격 등)을 셀 때 이 동안은 뺀다.</summary>
+        public bool IsInteractionPaused => InteractionPaused;
+
         /// <summary>
         /// 실제 시간 realSeconds만큼 게임 시각을 흘린다. 진행 흐름이 시계를 붙잡아 두었거나, 서버가 대화 중·튜토리얼 중이라 멈췄다고 알려 주면 흘리지 않는다.
         /// </summary>

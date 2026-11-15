@@ -8,59 +8,178 @@
       "additionalProperties": false,
       "required": ["schemaVersion", "requests"],
       "properties": {
-        "schemaVersion": { "const": "1.0" },
+        "schemaVersion": { "const": "2.1" },
         "requests": { "type": "array", "items": { "$ref": "#/$defs/RequestTemplate" }, "minItems": 1 }
       },
-      "description": "부탁 퀘스트 틀. NPC가 스스로 채우지 못하는 욕구가 학습자에게 하는 부탁이 되고, 영어로 해결하는 퀘스트가 된다. 부탁하는 쪽과 들르는 곳은 NPC id가 아니라 역할·장소로 적어 자동 생성 NPC에도 쓴다."
+      "description": "대화 중 돌발 부탁·사건의 계기 틀(docs/npc-life-design.md 7절). 계기(욕구가 기준 아래, 또는 장소·시각)와 해결 방식(그 대화 안 / 다른 가게 심부름)만 적고, 심부름 해결처는 공통 규칙의 장소 제공 목록(places.<CODE>.offers)과 조합해 고른다. 부탁하는 쪽은 NPC id가 아니라 역할·장소로 적어 자동 생성 NPC에도 쓴다."
     },
     "RequestTemplate": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "need", "below", "role", "activities", "reason", "ko", "steps", "reward"],
+      "required": ["id", "opens", "trigger", "roles", "activities", "solve", "reason", "ko", "reward"],
       "properties": {
         "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 64 },
-        "need": { "$ref": "#/$defs/NeedId", "description": "이 욕구가 below 아래로 떨어지면 부탁한다." },
-        "below": { "type": "integer", "minimum": 1, "maximum": 99 },
-        "role": { "$ref": "#/$defs/Role", "description": "부탁하는 NPC의 역할." },
+        "trigger": {
+          "oneOf": [{ "$ref": "#/$defs/NeedTrigger" }, { "$ref": "#/$defs/SituationTrigger" }],
+          "description": "욕구 계기(need·below) 또는 상황 계기(places·windows)."
+        },
+        "roles": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Role" },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "부탁하는 NPC의 역할."
+        },
         "activities": {
           "type": "array",
           "items": { "type": "string", "enum": ["WORK", "BREAK", "FREE"] },
           "minItems": 1,
           "uniqueItems": true,
-          "description": "이 활동 중이고 자리를 비울 수 없을 때(canLeave false) 부탁한다."
+          "description": "이 활동 중일 때만 부탁한다."
         },
-        "reason": { "type": "string", "minLength": 1, "maxLength": 300, "pattern": "\\S", "description": "NPC가 말을 거는 이유. 첫 대사 요청에 담아 LLM이 자연스럽게 부탁하게 한다." },
+        "notice": { "type": "string", "minLength": 1, "pattern": "\\S", "description": "욕구 계기를 대화 속(TALK)에서 꺼낼 때, 학습자가 NPC가 내비친 그 욕구에 반응한 것으로 볼 말(의도 판정 notice_need의 설명). 반응한 턴에만 부탁을 꺼낸다." },
+        "opens": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["TALK", "CALL"] },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "부탁이 시작되는 곳. TALK: 학습자가 건 대화 안(욕구 계기는 NPC가 내비친 욕구에 학습자가 반응할 때, 상황 계기는 학습자의 checkAfterLearnerLines번째 정상 발화에서). CALL: NPC가 먼저 플레이어에게 말을 걸어 부탁한다(플레이어 기준 간격 callGapMinutes)."
+        },
+        "solve": {
+          "type": "string",
+          "enum": ["TALK", "ERRAND"],
+          "description": "TALK: 그 대화 안에서 goal을 이루면 끝. ERRAND: 해결처 직원에게 사거나 부탁한 뒤 돌아와 건넨다."
+        },
+        "goal": { "$ref": "#/$defs/RequestGoal", "description": "TALK일 때 이 대화에서 판정할 목표." },
+        "titleKo": { "type": "string", "minLength": 1, "maxLength": 30, "pattern": "\\S", "description": "TALK일 때 부탁 카드 제목의 할 일. 심부름은 고른 제공의 taskKo를 쓴다." },
+        "offer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["place", "key"],
+          "properties": { "place": { "$ref": "#/$defs/Code" }, "key": { "$ref": "#/$defs/OfferKey" } },
+          "description": "상황 계기의 심부름 해결처. 욕구 계기의 심부름은 비우고, 그 욕구를 채우는 제공 가운데 자기 근무지가 아닌 것을 고른다."
+        },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 300, "pattern": "\\S", "description": "NPC가 부탁을 꺼내는 이유(영어). 백엔드가 대답 지시문에 담아 LLM이 자연스럽게 꺼내게 한다." },
         "ko": { "type": "string", "minLength": 1, "maxLength": 150, "pattern": "\\S" },
-        "steps": { "type": "array", "items": { "$ref": "#/$defs/RequestStep" }, "minItems": 1 },
         "reward": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["fills", "impression"],
+          "required": ["coins", "impression"],
           "properties": {
-            "fills": { "$ref": "#/$defs/Fills", "description": "부탁을 들어주면 부탁한 NPC의 욕구가 채워지는 양." },
-            "impression": { "type": "integer", "minimum": 0, "maximum": 100, "description": "부탁한 NPC가 학습자에게 갖는 이번 대화 인상." }
+            "coins": { "type": "integer", "minimum": 0, "maximum": 50, "description": "완료하면 받는 코인." },
+            "impression": { "type": "integer", "minimum": 0, "maximum": 100, "description": "완료하면 부탁한 NPC가 갖는 인상. 호감은 relationship.affinityFollowRate만큼 오른다." },
+            "fills": { "$ref": "#/$defs/Fills", "description": "완료하면 부탁한 NPC의 욕구가 채워지는 양. 욕구 심부름은 비우고 고른 제공의 fills를 쓴다." }
           }
         }
-      }
+      },
+      "allOf": [
+        { "if": { "properties": { "solve": { "const": "TALK" } } }, "then": { "required": ["goal", "titleKo"], "not": { "required": ["offer"] } } },
+        { "if": { "properties": { "solve": { "const": "ERRAND" } } }, "then": { "not": { "required": ["goal"] } } }
+      ]
     },
-    "RequestStep": {
+    "NeedTrigger": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["with", "goal", "languageFocus"],
+      "required": ["need", "below"],
       "properties": {
-        "with": { "type": "string", "enum": ["requester", "staff"], "description": "requester: 부탁한 NPC, staff: place의 직원(STAFF)." },
-        "place": { "$ref": "#/$defs/Code" },
-        "goal": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "\\S", "description": "학습자가 이 대화에서 할 일(영어)." },
-        "languageFocus": {
+        "need": { "$ref": "#/$defs/NeedId", "description": "이 욕구가 below 아래로 떨어지면 부탁한다." },
+        "below": { "type": "integer", "minimum": 1, "maximum": 99 }
+      }
+    },
+    "SituationTrigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["windows"],
+      "properties": {
+        "places": {
           "type": "array",
-          "items": { "type": "string", "enum": ["ordering", "polite_request", "giving_directions", "recommending", "describing", "thanking", "small_talk"] },
+          "items": { "$ref": "#/$defs/Code" },
           "minItems": 1,
           "uniqueItems": true,
-          "description": "이 대화에서 연습하는 말하기 기능."
+          "description": "이 장소에서 일하는 NPC만. 없으면 어느 근무지든."
+        },
+        "windows": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TimeRange" },
+          "minItems": 1,
+          "description": "게임 시각이 이 안일 때만."
+        },
+        "firstTalkOfDay": { "type": "boolean", "description": "그 게임 날 그 학습자와의 첫 대화일 때만." }
+      }
+    },
+    "RequestGoal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["intent", "desc", "languageFocus"],
+      "properties": {
+        "intent": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 64, "description": "의도 판정(/v1/judge)에 넘기는 의도 id." },
+        "desc": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "\\S", "description": "판정 모델에 주는 의도 설명(영어)." },
+        "languageFocus": { "$ref": "#/$defs/LanguageFocus" }
+      }
+    },
+    "LanguageFocus": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["ordering", "polite_request", "giving_directions", "recommending", "describing", "thanking", "small_talk"] },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "연습하는 말하기 기능."
+    },
+    "OfferKey": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 32 },
+    "Offer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "en", "ko", "taskKo", "stepKo", "price", "languageFocus"],
+      "properties": {
+        "key": { "$ref": "#/$defs/OfferKey" },
+        "en": { "type": "string", "minLength": 1, "maxLength": 80, "pattern": "\\S", "description": "지시문·판정 설명에 넣는 영어 이름(관사 포함)." },
+        "ko": { "type": "string", "minLength": 1, "maxLength": 30, "pattern": "\\S", "description": "부탁 카드에 쓰는 이름." },
+        "taskKo": { "type": "string", "minLength": 1, "maxLength": 30, "pattern": "\\S", "description": "부탁 카드 제목의 할 일. 예: 크루아상 사다 주기" },
+        "stepKo": { "type": "string", "minLength": 1, "maxLength": 40, "pattern": "\\S", "description": "해결처 단계 문구. 장소 이름 뒤에 붙인다. 예: 크루아상 포장 주문하기" },
+        "fills": { "$ref": "#/$defs/Fills", "description": "부탁한 NPC에게 건네면 채워지는 욕구. 없으면 상황 계기가 찾는 서비스." },
+        "price": { "type": "integer", "minimum": 0, "maximum": 100, "description": "가게 값(코인). 부탁한 NPC가 먼저 건넨다는 설정이라 학습자 코인은 들지 않고 지시문에만 쓴다." },
+        "languageFocus": { "$ref": "#/$defs/LanguageFocus" }
+      }
+    },
+    "TemperamentSpeech": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "axes"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "axes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["extraversion", "openness", "agreeableness", "conscientiousness"],
+          "properties": {
+            "extraversion": { "$ref": "#/$defs/TemperamentAxisSpeech" },
+            "openness": { "$ref": "#/$defs/TemperamentAxisSpeech" },
+            "agreeableness": { "$ref": "#/$defs/TemperamentAxisSpeech" },
+            "conscientiousness": { "$ref": "#/$defs/TemperamentAxisSpeech" }
+          },
+          "description": "MBTI 네 축이 들어 있는 성격 축(외향성=E/I, 개방성=N/S, 친화성=F/T, 성실성=J/P). 신경성(-A/-T)은 대화 중 기분에 쓰고 말투 규칙에는 넣지 않는다."
         }
       },
-      "if": { "properties": { "with": { "const": "staff" } } },
-      "then": { "required": ["place"] }
+      "description": "성격 축마다 양쪽 말투·행동 규칙. 대답 지시문 인격 칸에 카드의 성격 5축이 기운 쪽(0.5 초과 high, 미만 low) 문장을 넣는다(ai/worker/app/npc_persona.py temperament_lines). NPC마다 적지 않는다."
+    },
+    "TemperamentAxisSpeech": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mbti", "high", "low", "inReply"],
+      "properties": {
+        "mbti": { "type": "string", "pattern": "^[A-Z]/[A-Z]$", "description": "사람이 읽기 위한 MBTI 글자(높은 쪽/낮은 쪽)." },
+        "inReply": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["high", "low"],
+          "properties": {
+            "high": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "\\S" },
+            "low": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "\\S" }
+          },
+          "description": "이번 대답에서 할 행동 하나(한 문장 대답에도 들어갈 만큼 짧게). 대답 바로 앞(이번 턴 칸)에 넣는다. 성격 문장(high·low)만으로는 실제 모델 대답이 바뀌지 않았다."
+        },
+        "high": { "type": "string", "minLength": 1, "maxLength": 300, "pattern": "\\S", "description": "축이 0.5보다 클 때 넣는 영어 문장." },
+        "low": { "type": "string", "minLength": 1, "maxLength": 300, "pattern": "\\S", "description": "축이 0.5보다 작을 때 넣는 영어 문장." }
+      }
     },
     "BehaviorLibrary": {
       "type": "object",
@@ -306,6 +425,22 @@
       "additionalProperties": false,
       "required": ["shifts"],
       "properties": {
+        "name": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["en", "ko"],
+          "properties": {
+            "en": { "type": "string", "minLength": 1, "maxLength": 60, "pattern": "\\S" },
+            "ko": { "type": "string", "minLength": 1, "maxLength": 30, "pattern": "\\S" }
+          },
+          "description": "지시문(영어)과 부탁 카드(한국어)에 쓰는 장소 이름. 제공 목록이 있는 장소는 둔다(검사 도구가 확인)."
+        },
+        "offers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Offer" },
+          "minItems": 1,
+          "description": "학습자가 이 장소에서 남을 대신해 사거나 부탁할 수 있는 것. 돌발 부탁의 심부름 해결처가 된다(docs/npc-life-design.md 7.3)."
+        },
         "hours": {
           "$ref": "#/$defs/TimeRange",
           "description": "영업시간. 없으면 24시간 연다. 있으면 문을 연 동안은 교대가 하나 이상 맡고, 영업시간 밖에 걸친 교대가 없어야 한다(검사 도구가 확인)."
@@ -326,7 +461,7 @@
       "properties": {
         "target": {
           "type": "string",
-          "pattern": "^(needRates\\.(HUNGER|ENERGY|SOCIAL|FUN|WORK)|recognitionRate|initiateTalkRate|personalTalkScale|eventScale\\.(GREETING|SMALL_TALK|PERSONAL_QUESTION|RUDE|APOLOGY|COMPLIMENT|HELP|TASK_DONE|LEAVE))$",
+          "pattern": "^(needRates\\.(HUNGER|ENERGY|SOCIAL|FUN|WORK)|recognitionRate|initiateTalkRate|personalTalkScale|moodDecay\\.(ANNOYED|PLEASED)|eventScale\\.(GREETING|SMALL_TALK|PERSONAL_QUESTION|RUDE|APOLOGY|COMPLIMENT|HELP|TASK_DONE|LEAVE))$",
           "description": "계산할 생활 값 배수. 이름은 행동 조각 affects와 같다."
         },
         "axis": { "$ref": "#/$defs/Axis" },
@@ -417,8 +552,8 @@
         "mood": {
           "type": "object",
           "propertyNames": { "$ref": "#/$defs/Emotion" },
-          "additionalProperties": { "type": "integer", "minimum": -3, "maximum": 3 },
-          "description": "이번 대화의 기분 변화. 대화가 이어지는 동안 mood.decayPerTurn씩 가라앉는다."
+          "additionalProperties": { "type": "number", "minimum": -3, "maximum": 3, "multipleOf": 0.5 },
+          "description": "이번 대화의 기분 변화(0.5 단위). 대화가 이어지는 동안 mood.decayPerTurn × NPC의 moodDecay씩 가라앉는다."
         },
         "impression": {
           "type": "integer",
@@ -437,9 +572,42 @@
     "WorldRules": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schemaVersion", "needs", "actions", "conversationEvents", "mood", "relationship", "memory", "derivation", "roles", "activities", "places"],
+      "required": ["schemaVersion", "needs", "actions", "conversationEvents", "mood", "relationship", "memory", "derivation", "roles", "activities", "workMeals", "favors", "places"],
       "properties": {
         "schemaVersion": { "const": "1.0" },
+        "workMeals": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["spreadMinutes", "times"],
+          "properties": {
+            "spreadMinutes": { "type": "integer", "minimum": 0, "maximum": 180, "description": "NPC마다 npcId 씨앗으로 ±이만큼 엇갈린다." },
+            "times": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["at", "need"],
+                "properties": { "at": { "$ref": "#/$defs/Clock" }, "need": { "$ref": "#/$defs/NeedId" } }
+              },
+              "minItems": 1
+            }
+          },
+          "description": "근무 중 짧은 끼니·커피. 근무 중인 NPC도 이 때 그 욕구를 시작값으로 되돌린다(이미 높으면 그대로). 끼니 사이에는 자리를 비울 수 없어 부탁이 된다(docs/npc-life-design.md 7.5)."
+        },
+        "favors": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["checkAfterLearnerLines", "learnerGapMinutes", "callGapMinutes", "errandExpiryMinutes", "minShiftLeftMinutes", "dislikedBelow"],
+          "properties": {
+            "checkAfterLearnerLines": { "type": "integer", "minimum": 1, "maximum": 10, "description": "대화 속 상황 계기(주문 상황)를 학습자의 이 번째 정상 발화 뒤에 볼지 정한다." },
+            "learnerGapMinutes": { "type": "integer", "minimum": 0, "maximum": 1440, "description": "대화 속 부탁이 끝난 뒤 새 대화 속 부탁을 꺼내지 않는 게임 분." },
+            "callGapMinutes": { "type": "integer", "minimum": 0, "maximum": 2880, "description": "NPC가 말 거는 부탁이 끝난 뒤 다음 말 걸기까지의 게임 분. 사용자별 게임 시각은 플레이하는 동안만 흘러 플레이어 기준 간격이다(720분 = 플레이 5분)." },
+            "errandExpiryMinutes": { "type": "integer", "minimum": 60, "maximum": 2880, "description": "심부름을 수락한 뒤 기한(게임 분)." },
+            "minShiftLeftMinutes": { "type": "integer", "minimum": 0, "maximum": 1440, "description": "근무가 이만큼 남은 NPC만 심부름을 부탁한다." },
+            "dislikedBelow": { "type": "integer", "minimum": -100, "maximum": 0, "description": "호감이 이보다 낮으면 부탁하지 않는다." }
+          },
+          "description": "대화 중 돌발 부탁의 빈도·기한 상수(docs/npc-life-design.md 7.6·7.10)."
+        },
         "activities": {
           "type": "object",
           "additionalProperties": false,
@@ -511,10 +679,22 @@
         "mood": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["decayPerTurn", "showsAt"],
+          "required": ["decayPerTurn", "showsAt", "strongAt", "needs"],
           "properties": {
             "decayPerTurn": { "type": "number", "exclusiveMinimum": 0, "maximum": 3, "description": "학습자가 한 번 말할 때마다 기분 세기가 가라앉는 양." },
-            "showsAt": { "type": "number", "exclusiveMinimum": 0, "maximum": 3, "description": "기분 세기(0~3)가 이 값 이상이면 말투에 드러난다." }
+            "showsAt": { "type": "number", "exclusiveMinimum": 0, "maximum": 3, "description": "기분 세기(0~3)가 이 값 이상이면 말투에 드러난다." },
+            "strongAt": { "type": "number", "exclusiveMinimum": 0, "maximum": 3, "description": "기분 세기가 이 값 이상이면 강하게 드러난다(말투가 더 뚜렷하고 표정도 더 진함). showsAt보다 크다." },
+            "needs": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["low", "veryLow", "comfortable"],
+              "properties": {
+                "low": { "type": "number", "minimum": 0, "maximum": 100, "description": "대화를 시작할 때 욕구가 이 값보다 낮으면 그 욕구가 바탕 기분(피곤함·배고픔 등)이 된다." },
+                "veryLow": { "type": "number", "minimum": 0, "maximum": 100, "description": "이 값보다 낮으면 바탕 기분이 뚜렷하게 드러나고, 다음으로 낮은 욕구까지 두 개를 말한다." },
+                "comfortable": { "type": "number", "minimum": 0, "maximum": 100, "description": "보낸 욕구가 모두 이 값 이상이면 여유로운 기분이다." }
+              },
+              "description": "대화를 시작할 때의 욕구로 정하는 바탕 기분 기준(ai/worker/app/npc_relationship.py mood_state)."
+            }
           }
         },
         "relationship": {
@@ -524,8 +704,7 @@
             "recognitionPerConversation",
             "seenBefore",
             "regular",
-            "liked",
-            "disliked",
+            "affinityStages",
             "personalTalk",
             "graceDays",
             "recognitionDropPerDay",
@@ -543,8 +722,18 @@
             },
             "seenBefore": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 알아봄부터 '본 적 있음'." },
             "regular": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 알아봄부터 '단골'." },
-            "liked": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 호감부터 좋아하는 티가 난다." },
-            "disliked": { "type": "integer", "minimum": -100, "maximum": 0, "description": "이 호감 이하면 싫어하는 티가 난다(차갑게 대함)." },
+            "affinityStages": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["hostile", "cold", "warm", "close"],
+              "properties": {
+                "hostile": { "type": "integer", "minimum": -100, "maximum": 0, "description": "이 호감 이하면 적대: 인사 없이 용건만, 최소한의 도움, 경계하는 말투." },
+                "cold": { "type": "integer", "minimum": -100, "maximum": 0, "description": "이 호감 이하면 냉담: 형식적인 인사, 덧붙임 없이 예의 있지만 차갑게." },
+                "warm": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 호감부터 호의: 반가워하고, 잡담을 받아 주고, 말로 작은 팁·추천 하나." },
+                "close": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 호감부터 친밀: 이름을 부르며 친구처럼. 얼굴을 알아볼 때만이고, 모르는 얼굴이면 호의로 대한다." }
+              },
+              "description": "호감 단계 경계. 그 사이는 보통(성격대로). 단계마다 대답 지시문의 태도와 기본 표정이 다르다(ai/worker/app/prompts.py STAGE)."
+            },
             "personalTalk": {
               "type": "object",
               "additionalProperties": false,
@@ -621,6 +810,12 @@
           "minimum": 0,
           "maximum": 100,
           "description": "게임 시각 한 시간에 줄어드는 양. NPC별 생활 파일의 배수를 곱한다."
+        },
+        "conversationFill": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "학습자와 대화를 마치면 채우는 양. 없으면 대화로 채우지 않는다. 채우는 사물이 없는 사교만 둔다."
         }
       }
     }

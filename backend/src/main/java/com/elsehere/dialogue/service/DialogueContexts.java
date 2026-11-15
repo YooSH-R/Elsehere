@@ -65,7 +65,8 @@ class DialogueContexts {
     NpcContext npc = npcById(conversation.getNpcId());
     return atCurrentTime(
             conversation.isNpcOffDuty() ? npc.offDuty() : npc, conversation.getUserId())
-        .withTravelSituation(conversation.getNpcTravelSituation());
+        .withTravelSituation(conversation.getNpcTravelSituation())
+        .withNeeds(conversation.getNpcNeeds());
   }
 
   // 대화 중에는 게임 시계가 멈춘다. PC 시각이나 인격의 평소 일과 대신 사용자별 게임 시각을 매 요청에 싣는다.

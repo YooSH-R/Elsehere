@@ -8,6 +8,7 @@ MBTI를 성격의 정답으로 다루지 않고 캐릭터 재료로만 쓴다. �
 import json
 import random
 import re
+from functools import cache
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -55,6 +56,29 @@ def _lean(high: bool) -> float:
 def side(value: float) -> str:
     """성격 축 값이 어느 쪽인지: 0.5보다 크면 high, 작으면 low, 같으면 middle."""
     return "high" if value > 0.5 else "low" if value < 0.5 else "middle"
+
+
+SPEECH_AXES = ("extraversion", "openness", "agreeableness", "conscientiousness")  # MBTI 순서 E/I·N/S·F/T·J/P
+
+
+@cache
+def load_temperament_speech() -> dict:
+    """성격 말투 규칙(ai/npcs/rules/temperament-speech.json). 대답마다 읽지 않도록 한 번만 읽는다(바꾸지 말고 읽기만)."""
+    return json.loads((RULES / "temperament-speech.json").read_text(encoding="utf-8"))
+
+
+def temperament_lines(dimensions: dict[str, float]) -> list[str]:
+    """성격 5축에서 MBTI 네 축의 말투·행동 규칙 문장을 고른다. 축이 기운 쪽(side)의 문장이고, 딱 가운데(0.5)인 축은 뺀다.
+    MBTI에서 만든 카드는 축이 0.25·0.75라 네 문장이 모두 들어가고, MBTI 없이 5축만 적은 NPC도 같은 규칙을 쓴다."""
+    axes = load_temperament_speech()["axes"]
+    return [axes[axis][side(dimensions[axis])] for axis in SPEECH_AXES if side(dimensions[axis]) != "middle"]
+
+
+def temperament_actions(dimensions: dict[str, float]) -> list[str]:
+    """이번 대답에서 할 행동을 축마다 하나씩(temperament-speech.json의 inReply). 대답 바로 앞(이번 턴 칸)에 넣는다.
+    인격 칸의 성격 문장만으로는 실제 모델 대답이 바뀌지 않아서(S15P31A305-928 블라인드 채점), 한 문장 대답에도 들어갈 행동으로 짚는다."""
+    axes = load_temperament_speech()["axes"]
+    return [axes[axis]["inReply"][side(dimensions[axis])] for axis in SPEECH_AXES if side(dimensions[axis]) != "middle"]
 
 
 def lean_fit(leans: dict[str, str], dimensions: dict[str, float]) -> float:

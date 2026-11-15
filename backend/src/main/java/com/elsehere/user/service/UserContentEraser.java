@@ -44,6 +44,8 @@ public class UserContentEraser {
           "user_missions",
           "first_day_missions",
           "town_stories",
+          // 돌발 부탁: 학습자가 한 말이 없고, 완료한 부탁 보상이 퀘스트 코인 잔액에 들어가는 진행 기록이다.
+          "npc_favors",
           "user_consents",
           "user_language_profiles",
           "user_game_clocks",

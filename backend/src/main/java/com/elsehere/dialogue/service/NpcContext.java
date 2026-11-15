@@ -2,6 +2,7 @@ package com.elsehere.dialogue.service;
 
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.conversation.dto.NpcSummaryResponse;
+import java.util.Map;
 
 /**
  * 대화에 필요한 NPC 정보. AI 호출 동안 트랜잭션을 열어 두지 않도록 엔티티에서 미리 꺼내 둔다.
@@ -19,6 +20,22 @@ public record NpcContext(
     String voiceId,
     String approachLine,
     String approachAudioKey) {
+
+  /** 대화를 시작한 순간 NPC의 생활 욕구를 워커 NPC에 싣는다. 대답 요청의 needs로 가서 바탕 기분이 된다. 없으면 그대로 둔다. */
+  NpcContext withNeeds(Map<String, Double> needs) {
+    if (needs == null) {
+      return this;
+    }
+    return new NpcContext(
+        npcId,
+        summary,
+        sceneCode,
+        sceneOpen,
+        workerNpc.withNeeds(needs),
+        voiceId,
+        approachLine,
+        approachAudioKey);
+  }
 
   NpcContext withTravelSituation(String situation) {
     if (situation == null || situation.isBlank()) {

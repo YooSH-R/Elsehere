@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using A305.Characters;
 using A305.Dialogue;
 using A305.Player;
@@ -94,6 +95,12 @@ namespace A305.Npc
 
         // 퀘스트가 붙잡아 둔 자리. 있으면 생활 대신 이 자리에서 기다린다.
         private Pose? questSpot;
+
+        // 서버(FAV-03)가 이 NPC에게 맡긴 말 걸기 부탁. 플레이어에게 말을 걸어 답을 기다리는 동안만 있다.
+        private FavorUpdate favorCall;
+
+        // 말 걸기 부탁을 들고 플레이어를 기다리는 시간. 멀어지고 30초 안에 돌아오지 않으면 해지한다.
+        private readonly FavorCallPatience favorCallPatience = new FavorCallPatience();
         private float? playerTalkReach;
 
         public PasserbyPhase Phase => approach != null ? approach.Phase : PasserbyPhase.Waiting;
@@ -114,6 +121,70 @@ namespace A305.Npc
 
         /// <summary>퀘스트가 이 행인을 정한 자리에 붙잡아 두었는지(<see cref="WaitAt"/>)</summary>
         public bool IsWaitingForQuest => questSpot.HasValue;
+
+        /// <summary>이 NPC의 코드</summary>
+        public string NpcCode => identity.Code;
+
+        /// <summary>
+        /// 지금 플레이어에게 말을 걸어 부탁할 수 있는지(NPC 말 걸기 후보). 지금 생활(욕구·일과)로 지내는 몸이 튜토리얼·퀘스트·다른 제안 없이 쉬고 있고,
+        /// 행인은 다가갈 수 있는 거리, 직원은 제자리에서 부를 수 있는 거리 안이어야 한다.
+        /// </summary>
+        public bool CanCallForFavor(Vector3 playerPosition, out float meters)
+        {
+            Vector3 toPlayer = playerPosition - transform.position;
+            toPlayer.y = 0f;
+            meters = toPlayer.magnitude;
+            if (
+                !isActiveAndEnabled
+                || approach == null
+                || LivingRoutine == null
+                || IsGuidingTutorial
+                || IsWaitingForQuest
+                || !IsApproachAllowed
+                || IsOffDuty
+                || favorCall != null
+                || (
+                    approach.Phase != PasserbyPhase.Waiting
+                    && approach.Phase != PasserbyPhase.Approaching
+                )
+            )
+                return false;
+            return meters <= FavorCallReach;
+        }
+
+        /// <summary>NPC 말 걸기(FAV-03)에 보낼 이 NPC와 지금 욕구.</summary>
+        public FavorCallCandidate FavorCallCandidate()
+        {
+            NpcNeeds needs = LivingRoutine?.Needs;
+            return new FavorCallCandidate
+            {
+                NpcCode = identity.Code,
+                Needs =
+                    needs == null
+                        ? new Dictionary<string, float>()
+                        : new Dictionary<string, float>(needs.Values),
+            };
+        }
+
+        /// <summary>서버가 고른 부탁을 들고 플레이어에게 말을 건다. 행인은 걸어오고 직원은 제자리에서 부른다.</summary>
+        public void CallForFavor(FavorUpdate favor)
+        {
+            favorCall = favor;
+            favorCallPatience.Reset();
+        }
+
+        // 말 걸기 부탁을 들고 다가가거나 부를 수 있는 거리. 행인은 알아채는 거리, 직원은 부르는 거리다.
+        private float FavorCallReach
+        {
+            get
+            {
+                PasserbyRules rules = CurrentSettings.ToRules();
+                return WalksToCall ? rules.DetectRadiusMeters : rules.FollowUpCallDistanceMeters;
+            }
+        }
+
+        // 걷는 NPC(행인)는 말을 걸러 걸어오고, 카운터 직원은 제자리에서 부른다.
+        private bool WalksToCall => CurrentSettings.WalkSpeedMetersPerSecond > 0f;
 
         /// <summary>
         /// 퀘스트에서 이 행인을 만나야 하는 동안 정한 자리로 옮겨 기다리게 한다. 생활 대신 그 자리를 지키고,
@@ -226,6 +297,8 @@ namespace A305.Npc
                 return;
             }
 
+            // 이 장면의 NPC 말 걸기를 둔다(장면마다 하나).
+            FavorCaller.Ensure(dialogue, player);
             homePose = new Pose(transform.position, transform.rotation);
             routine = GetComponent<NpcRoutine>();
             approach = new PasserbyApproach(
@@ -357,31 +430,62 @@ namespace A305.Npc
                 approach.TryCall(Now, toPlayer.magnitude, isPlayerBusy || cannotStartConversation);
             }
 
+            // 서버가 맡긴 말 걸기 부탁이 끝났거나 바뀌었으면 거둔다.
+            if (favorCall != null && FavorStore.Shared.Current?.FavorId != favorCall.FavorId)
+                favorCall = null;
+            bool walksToCallForFavor = favorCall != null && WalksToCall;
+            if (favorCall != null && !walksToCallForFavor && readyFollowUp == null)
+            {
+                approach.TryCall(Now, toPlayer.magnitude, isPlayerBusy || cannotStartConversation);
+            }
+
             approach.Tick(
                 Now,
                 // 매대 끝에서도 응대하며 카운터 밖으로 걸어 나오지 않는다.
                 servesCustomer ? 0f : toPlayer.magnitude,
                 isPlayerBusy
                     || cannotStartConversation
-                    || notReadyToOffer
-                    // 튜토리얼에서 이 행인을 기다리며 붙잡힌 플레이어와 퀘스트로 이 행인을 만나야 하는 플레이어에게는
-                    // 그날 이미 말을 걸었어도 다가온다.
-                    || (offeredToday && !IsPlayerWaiting && !IsWaitingForQuest),
+                    || (notReadyToOffer && !walksToCallForFavor)
+                    // 튜토리얼에서 이 행인을 기다리며 붙잡힌 플레이어와 퀘스트로 이 행인을 만나야 하는 플레이어, 부탁하러 가는
+                    // 행인은 그날 이미 말을 걸었어도 다가온다.
+                    || (
+                        offeredToday
+                        && !IsPlayerWaiting
+                        && !IsWaitingForQuest
+                        && !walksToCallForFavor
+                    ),
                 IsPlayerWaiting
             );
+            // 말 걸기 부탁은 플레이어가 다가갈 수 있는 거리 밖으로 가면 따라가지 않고 기다리며, 30초 안에 돌아오지 않으면 해지한다.
+            if (
+                favorCall != null
+                && favorCallPatience.GivesUp(Now, toPlayer.magnitude <= FavorCallReach)
+            )
+            {
+                offerView.Hide(this);
+                DeclineFavorCall();
+            }
             // 튜토리얼에서 길을 물은 것도 그날 먼저 말을 건 것으로 센다. 준비한 것을 건네려고 부른 것은 세지 않는다.
             bool startedOffer =
                 approach.Phase == PasserbyPhase.Offering && before != PasserbyPhase.Offering;
-            if (startedOffer && settings.ApproachesOncePerDay && !approach.IsCalling)
+            if (
+                startedOffer
+                && settings.ApproachesOncePerDay
+                && !approach.IsCalling
+                && favorCall == null
+            )
             {
                 PasserbyOfferRecord.Save(identity.Code, today);
             }
 
             if (approach.Phase == PasserbyPhase.Resting && before != PasserbyPhase.Resting)
             {
-                // 무시하고 멀어지면 제안을 닫고 쉬는 시간을 기록한다.
+                // 무시하고 멀어지면 제안을 닫고 쉬는 시간을 기록한다. 말 걸기 부탁이면 쉬지 않고 그 자리에서 기다린다(위의 기다림이 해지를 정함).
                 offerView.Hide(this);
-                PasserbyRestRecord.Save(identity.Code, approach.RestUntilSeconds);
+                if (favorCall != null)
+                    approach.ResumeAfterIgnoredFavorCall(Now);
+                else
+                    PasserbyRestRecord.Save(identity.Code, approach.RestUntilSeconds);
             }
 
             bool isIdle =
@@ -580,7 +684,8 @@ namespace A305.Npc
                     initiatedBy,
                     ScriptKey,
                     IsOffDuty,
-                    npcTravelContext: TravelContext
+                    npcTravelContext: TravelContext,
+                    npcNeeds: LivingRoutine?.Needs
                 )
             )
             {
@@ -603,7 +708,12 @@ namespace A305.Npc
         {
             string hint;
             string greeting;
-            if (approach.IsCalling && readyFollowUp != null)
+            if (favorCall != null)
+            {
+                hint = PasserbyOfferText.FavorHint(dialogue.FindNpcName(ScriptKey));
+                greeting = PasserbyOfferText.FavorLine;
+            }
+            else if (approach.IsCalling && readyFollowUp != null)
             {
                 hint = PasserbyOfferText.CallHint(
                     readyFollowUp.NpcName ?? dialogue.FindNpcName(ScriptKey)
@@ -638,6 +748,12 @@ namespace A305.Npc
             }
 
             offerView.Hide(this);
+            // 말 걸기 부탁이면 서버가 첫마디를 그 부탁으로 하고 그 대화에서 수락·거절을 판정한다.
+            if (favorCall != null)
+            {
+                FavorCaller.Answered();
+                favorCall = null;
+            }
             StartConversation(ConversationInitiator.Npc);
         }
 
@@ -650,6 +766,17 @@ namespace A305.Npc
 
             offerView.Hide(this);
             PasserbyRestRecord.Save(identity.Code, approach.RestUntilSeconds);
+            DeclineFavorCall();
+        }
+
+        // 말을 걸어 부탁했는데 거절하거나 무시했으면 서버에 거절로 알린다.
+        private void DeclineFavorCall()
+        {
+            if (favorCall == null)
+                return;
+            FavorCaller.Declined(favorCall);
+            favorCall = null;
+            favorCallPatience.Reset();
         }
 
         private void OnDialogueEnded(string npcCode)
@@ -661,7 +788,11 @@ namespace A305.Npc
 
             approach.EndTalk(Now);
             PasserbyRestRecord.Save(identity.Code, approach.RestUntilSeconds);
+            LivingRoutine?.FillAfterConversation();
         }
+
+        // 지금 생활(욕구·일과)로 지내는 몸의 생활. 출퇴근 중인 몸(NpcTownWalker)이나 생활 데이터가 없는 NPC는 null이다.
+        private NpcRoutine LivingRoutine => routine != null && routine.enabled ? routine : null;
 
         // 제자리(퀘스트가 붙잡아 둔 자리가 있으면 그 자리)로 돌아간다.
         private void ReturnHome()

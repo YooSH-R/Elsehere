@@ -126,7 +126,8 @@ class QuestTalkServiceTest {
             stories,
             mock(FirstDayMissionRepository.class),
             mock(NpcRepository.class),
-            mock(ConversationRepository.class));
+            mock(ConversationRepository.class),
+            mock(com.elsehere.favor.repository.FavorRepository.class));
     QuestTalkService withRealTown = new QuestTalkService(firstDay, realTown, practice);
     var selected = withRealTown.forStart(8L, "DINER_STAFF", false, null).orElseThrow();
 

@@ -6,7 +6,7 @@ import re
 
 from . import npc_relationship
 from .llm import ModelOutputError
-from .npc_prompt import CONVERSATION_FLOW, MIDDLE, learner_section, reply_system_prompt
+from .npc_prompt import CONVERSATION_FLOW, INSTRUCTION_FIRST, MIDDLE, learner_section, reply_system_prompt
 from .schemas import Learner, LevelTestSpeakingItem, Line, Memory, Npc, Relationship, State
 
 TOWN = "Maple Town, a small, friendly town in the United States."
@@ -256,11 +256,25 @@ def memory_note(m: Memory | None) -> str:
     if not m or m.visits < 1:
         return ""
     lines = [f"You remember this customer: you have talked {m.visits} time(s) before."]
-    return "\n".join(lines + card_lines(m.card or {}, m.last_order))
+    return "\n".join(lines + card_lines(m.card or {}))
 
 
-def card_lines(c: dict, last_order: str | None) -> list[str]:
-    """기억 카드(/v1/memory)와 지난 주문을 지시문 줄로."""
+# 지난 요청·한 일(카드 requests)을 얼마나 아는 사이인지에 맞게 쓴다(설계 5절: 한 번 시킨 것은 다음에 못 떠올리고, 되풀이하면 떠올림).
+# 한 번 온 손님의 주문을 두 번째 방문에 권하면 단골 대접이라 어색하다. 공짜·할인은 공통 규칙처럼 약속하지 않는다
+REQUESTS_HINT = {
+    "familiar": (
+        "only bring up something they asked for more than once, and only as a light question like whether they want it again; "
+        "do not mention a one-time request and do not suggest anything as their usual; never say it is free and never invent details"
+    ),
+    "regular": (
+        "if it fits, bring one up naturally, like asking how it was or whether they want their usual; "
+        "if they ask what to get or seem undecided, suggest what they usually get first; never say it is free and never invent details"
+    ),
+}
+
+
+def card_lines(c: dict, known: str = "familiar") -> list[str]:
+    """기억 카드(/v1/memory)를 지시문 줄로. known은 얼마나 알아보는지(familiar·regular)이고 지난 요청을 쓰는 방식을 정한다."""
     lines = []
     if c.get("name"):
         lines.append(f"- Their name: {c['name']}")
@@ -276,8 +290,8 @@ def card_lines(c: dict, last_order: str | None) -> list[str]:
         lines.append(
             "- English they found hard last time: " + "; ".join(c["struggled"]) + " (use one of these naturally if it fits; never teach)"
         )
-    if last_order:
-        lines.append(f"- Last time they ordered {last_order}.")
+    if c.get("requests"):
+        lines.append("- What they asked for or did with you before: " + "; ".join(c["requests"]) + f" ({REQUESTS_HINT[known]})")
     return lines
 
 
@@ -294,48 +308,131 @@ KNOWN = {
         "and if you know what they usually get, offer it."
     ),
 }
-FEELING = {
-    "liked": "You like this person. Be a little warmer with them than with others.",
-    "disliked": (
-        "You do not like this person much because of how they treated you before. Stay correct but cool: no small talk, no extra warmth."
+# 호감 단계(app.npc_relationship.affinity_stage)마다 인사·잡담·도움·말투·호칭·기본 표정을 적는다. 보통 단계는 성격대로 두어 넣지 않는다.
+# 덤은 말로 하는 도움(팁·추천·정보)만: 공통 규칙이 공짜 물건·할인을 지어내지 못하게 하고, 게임에 NPC가 물건을 주는 기능도 없다
+STAGE = {
+    "hostile": (
+        "You really dislike this person because of how they treated you before. Skip the warm greeting and open with a curt "
+        "line like asking what they need, do not take up small talk (steer back to business), give only the help your job requires "
+        "with no recommendations or tips they did not need, keep it to one or two short, guarded sentences, and do not call them "
+        "by name. Face: indifferent or frown, no smiles."
+    ),
+    "cold": (
+        "You do not like this person much because of how they treated you before. Give only a brief, formal greeting, answer small "
+        "talk in a few words without keeping it going, do your job correctly but do not volunteer extra suggestions, stay correct "
+        "but cool, and do not call them by name. Face: indifferent or calm, no smiles."
+    ),
+    "warm": (
+        "You like this person. Greet them like you are glad to see them, take up small talk and ask something back, offer one small "
+        "extra tip or recommendation in words (never free items or discounts), be warm in your own way, and use their name if you "
+        "know it. Face: warm_smile."
+    ),
+    "close": (
+        "You are close with this person, like a friendly regular. Greet them by name like a friend if you know it, chat easily, "
+        "share a little or joke, bring up things you know about them, and go out of your way with insider tips or by offering what "
+        "they usually get (never free items or discounts), relaxed and friendly in your own way. Face: warm_smile or playful."
     ),
 }
 PERSONAL = (
     "You are close enough to share a little about your own day or life: if they ask about you, tell them one small personal thing, "
     "not only about work."
 )
-ANNOYED = (
-    "They were rude to you a moment ago and you are still annoyed. Keep this reply short and cool; "
-    "if they apologize, accept it briefly, without warm words."
-)
-PLEASED = (
-    "They said something nice or chatted with you warmly a moment ago, so you are in a good mood: "
-    "let it show in a friendlier word or two, even if you are usually reserved."
-)
 STRONG_FEELINGS = ("friendly", "wary")
+
+# 이번 대화의 기분(app.npc_relationship.mood_state). 관계와 상관없어 처음 만나도 넣는다
+# 기분마다 말투와 함께 첫 표정(Face)을 적는다. 표정 고르기 지시(app.npc_emotion.EMOTION_PROMPT)가 이 표정을 따르게 해서
+# 무례·칭찬이 있던 턴(서버가 reaction으로 표정을 정함)이 지나도 기분이 남은 동안 표정이 이어진다
+# 바탕 기분: 대화를 시작할 때 기준보다 낮은 욕구. 몸 상태라 말투에 묻어나게만 하고, 하던 일(주문 받기)은 그대로 하게 한다
+LOW_NEED = {
+    "ENERGY": (
+        "You are tired: you have been on your feet for a while. Your replies come out a bit shorter and slower, "
+        "and you may mention being tired once. Face: calm, low energy, no big laughs."
+    ),
+    "HUNGER": (
+        "You are hungry, so you are a little short-tempered and food is on your mind; it may slip into what you say. "
+        "Face: calm or a slight frown."
+    ),
+    "SOCIAL": (
+        "You have had no one to talk to for a while, so you are glad someone is chatting with you: "
+        "you happily keep the small talk going. Face: warm_smile."
+    ),
+    "FUN": (
+        "You are bored: it has been a slow, dull day, so anything new or fun they bring up perks you up. "
+        "Face: indifferent until something interesting comes up, then curious."
+    ),
+    "WORK": "Work has piled up and you are behind, so you sound a little hurried and keep things moving. Face: concerned or calm.",
+}
+# 실제 모델(gpt-6.1-sol)은 "드러나게" 같은 막연한 말로는 하던 일(체크인 안내)만 이어 가서, 이번 대답에서 무엇을 할지 구체적으로 적는다
+STRONG_NEED = (
+    "It is strong right now: if you have not mentioned it yet in this conversation, mention it briefly in this reply, "
+    "in your own words, while still doing your job; after that, let it show only in your tone."
+)
+MILD_NEED = "Only a hint of it shows."
+CONTENT = "You are rested and in an easy mood: relaxed and unhurried. Face: warm_smile."
+# 사건 기분: 세기(mild·strong)마다 말투를 다르게. 기분 좋음은 이유(가장 최근에 올린 사건)를 넣어 이유에 맞게 반응하게 한다
+ANNOYED = {
+    "strong": (
+        "They were rude to you a moment ago and you are still annoyed. Keep this reply short and cold: one short, flat sentence "
+        "that gives only what they need, with no small talk, no thank-yous, no jokes and no friendly follow-up question. "
+        "If they apologize, accept it in a few flat words. Face: frown."
+    ),
+    "mild": (
+        "They were rude to you earlier and you are still annoyed, though it is fading. Stay polite but a little cool: brief, "
+        "matter-of-fact, without the friendly extras you would usually add; warm up a bit if they are nice to you now. "
+        "Face: indifferent, no smiles yet."
+    ),
+}
+PLEASED_BY = {
+    "COMPLIMENT": "They just complimented you",
+    "SMALL_TALK": "They have been chatting with you warmly",
+    "HELP": "They just offered to help you",
+}
+PLEASED = {
+    "strong": (
+        "{cause}, so you are in a really good mood: show it clearly in this reply with an extra warm remark or a light joke "
+        "in your own way. Face: laugh or warm_smile."
+    ),
+    "mild": (
+        "{cause}, so you are in a good mood: add one warm, friendly phrase to this reply in your own way "
+        "(a thank-you, a kind word, or happy-to-help), even if you are usually reserved. Face: warm_smile."
+    ),
+}
+
+
+def mood_note(mood: dict) -> str:
+    """NPC 지시문에 넣을 '지금 기분'. 바탕 기분(욕구) 다음에 이번 대화의 사건 기분을 둔다. 드러낼 기분이 없으면 빈 문자열."""
+    lines = [f"- {LOW_NEED[need]} {STRONG_NEED if strong else MILD_NEED}" for need, strong in mood["low_needs"]]
+    if mood["content"]:
+        lines.append(f"- {CONTENT}")
+    if mood["annoyed"]:
+        lines.append(f"- {ANNOYED[mood['annoyed']]}")
+    if mood["pleased"]:
+        lines.append(f"- {PLEASED[mood['pleased']].format(cause=PLEASED_BY[mood['pleased_by']])}")
+    return "\n".join(["How you feel right now:", *lines]) if lines else ""
+
+
+def stage_note(state: dict | None) -> str:
+    """NPC 지시문 이번 턴 칸에 넣을 '이 사람을 어떻게 대할지'. 관계가 없거나 보통 단계면 빈 문자열(성격대로)."""
+    if state is None or state["stage"] == "neutral":
+        return ""
+    return f"How you treat this person:\n- {STAGE[state['stage']]}"
 
 
 def person_note(m: Memory | None, state: dict) -> str:
     """관계가 있을 때 NPC 지시문에 넣을 '이 사람에 대해'. 얼굴을 알아봐야(본 적 있음부터) 평범한 기억(이름·했던 말·지난 주문)을 떠올리고,
     알아보지 못해도 기억 카드의 태도가 friendly·wary로 남은 강한 일(events)은 떠올린다.
-    호감이 기준을 넘으면 호감 문장을 쓰고 카드의 태도(말투 참고값)는 겹쳐 넣지 않는다."""
+    호감 단계가 보통이 아니면 카드의 태도(말투 참고값)는 겹쳐 넣지 않는다. 호감 단계의 태도는 stage_note, 이번 대화의 기분은 mood_note가 넣는다."""
     lines = ["About this person:", f"- {KNOWN[state['known']]}"]
     card = (m.card if m else None) or {}
     strong = card.get("attitude") in STRONG_FEELINGS
-    if state["feeling"]:
+    if state["stage"] != "neutral":
         card = {key: value for key, value in card.items() if key != "attitude"}
     if state["known"] != "new":
-        lines += card_lines(card, m.last_order if m else None)
+        lines += card_lines(card, state["known"])
     elif strong:
-        lines += card_lines({"events": card.get("events", []), "attitude": card.get("attitude")}, None)
-    if state["feeling"]:
-        lines.append(f"- {FEELING[state['feeling']]}")
+        lines += card_lines({"events": card.get("events", []), "attitude": card.get("attitude")})
     if state["personal"]:
         lines.append(f"- {PERSONAL}")
-    if state["annoyed"]:
-        lines.append(f"- {ANNOYED}")
-    if state["pleased"]:
-        lines.append(f"- {PLEASED}")
     return "\n".join(lines)
 
 
@@ -363,7 +460,7 @@ LEVEL_LEARNER = {  # 힌트·추천 단어·단어 풀이에서 학습자 수준
 }
 
 
-def npc_system(n: Npc, memory: str, note: str, level: int = 2, learner: str = "") -> str:
+def npc_system(n: Npc, memory: str, note: str, level: int = 2, learner: str = "", mood: str = "") -> str:
     return f"""You are {n.name}, {n.role}
 Place: {TOWN} {n.scene}
 What you know: {n.facts}{chr(10) + memory if memory else ""}
@@ -381,7 +478,7 @@ How to reply:
 - Stay in character. Never mention English lessons, practice, difficulty levels, or that you are an AI.
 - Plain spoken words only: no emojis, lists, or stage directions.
 
-IMPORTANT for your next reply: {note or "Just reply naturally."}"""
+IMPORTANT for your next reply: {note or "Just reply naturally."}{chr(10) + mood if mood else ""}{chr(10) + INSTRUCTION_FIRST if note and mood else ""}"""
 
 
 def npc_messages(
@@ -393,18 +490,22 @@ def npc_messages(
     level: int = 2,
     relationship: Relationship | None = None,
     learner: Learner | None = None,
+    needs: dict[str, float] | None = None,
 ) -> list[dict]:
-    if relationship is None:  # 백엔드가 관계를 아직 보내지 않으면 지금처럼 지난 대화 수와 기억 카드
-        note = memory_note(memory)
+    state = None
+    if relationship is None:  # 처음 만났거나 연습·복습 대화라 관계가 없으면 지난 대화 수와 기억 카드만
+        about = memory_note(memory)
     else:
-        learner_turns = [(h.rude, h.events) for h in history if h.who == "me"]
-        state = npc_relationship.person_state(relationship.model_dump(), learner_turns, n.profile, *npc_relationship.service_rules())
-        note = person_note(memory, state)
+        state = npc_relationship.person_state(relationship.model_dump(), n.profile, *npc_relationship.service_rules())
+        about = person_note(memory, state)
+    # 호감 단계의 태도와 이번 대화의 기분은 모델이 가장 잘 따르는 대답 바로 앞(이번 턴)에 넣는다
+    mood = mood_note(npc_relationship.reply_mood(history, needs, n.profile))
+    now = "\n".join(part for part in (stage_note(state), mood) if part)
     address = learner_section(learner.nickname, learner.avatar_type) if learner else learner_section(None, None)
     if n.profile is not None:  # 백엔드가 인격을 보내면 공통 규칙 + 인격, 아직 인격이 없는 NPC는 위의 한 줄 역할 지시문
-        system = reply_system_prompt(n.profile, f"{TOWN} {n.scene}", n.facts, note, level, instruction, address)
+        system = reply_system_prompt(n.profile, f"{TOWN} {n.scene}", n.facts, about, level, instruction, address, now)
     else:
-        system = npc_system(n, note, instruction, level, address)
+        system = npc_system(n, about, instruction, level, address, now)
     msgs = [{"role": "system", "content": system}]
     for h in history[-12:]:
         msgs.append({"role": "assistant" if h.who == "npc" else "user", "content": h.text})
@@ -595,6 +696,10 @@ You get what the character remembered before and the conversation that just ende
 - events: what happened between them, short, from the character's view ("was rude and threatened me, so I asked them to leave"). Max 5, newest first; keep important old ones.
 - attitude: how the character feels about them now: friendly, neutral, or wary; this is a tone hint, not a penalty or affinity score.
 - struggled: English expressions the customer clearly had trouble with in this conversation (short phrases). Max 5.
+- requests: what the customer asked the character for or did with them, with the key details, so the character can bring it up next time
+  ("ordered an iced vanilla latte", "asked the way to the bank", "left two bags before check-in"). Max 5, newest first; keep old ones
+  unless replaced, and merge repeats into one item that says how often ("ordered an iced vanilla latte twice", "orders an iced latte almost every visit").
+  Only what really happened, never prices or promises.
 - impression: how this conversation alone went for the character, ignoring earlier visits. good only when it was clearly pleasant
   beyond the business: friendly chat, warmth, kind words, real interest in the character. A polite but plain order or request is neutral.
   bad when the customer was unpleasant or dismissive. English mistakes, Korean words and short answers never make it worse.
@@ -615,12 +720,13 @@ MEMORY_SCHEMA = {
         "events": {"type": "array", "items": {"type": "string"}},
         "attitude": {"type": "string", "enum": ["friendly", "neutral", "wary"]},
         "struggled": {"type": "array", "items": {"type": "string"}},
+        "requests": {"type": "array", "items": {"type": "string"}},
         "impression": {"type": "string", "enum": ["good", "neutral", "bad"]},
     },
-    "required": ["name", "claims", "events", "attitude", "struggled", "impression"],
+    "required": ["name", "claims", "events", "attitude", "struggled", "requests", "impression"],
     "additionalProperties": False,
 }
-CARD_LISTS = {"claims": 5, "events": 5, "struggled": 5}
+CARD_LISTS = {"claims": 5, "events": 5, "struggled": 5, "requests": 5}
 CONTACT = re.compile(r"\d{2,4}[-. ]?\d{3,4}[-. ]?\d{4}|[\w.]+@[\w.]+")  # 연락처는 저장하지 않는다
 
 

@@ -12,6 +12,8 @@ import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -162,6 +164,18 @@ public class Conversation extends BaseEntity {
   // 대화를 시작할 때 Unity가 알린 NPC의 이동 사실과 지금 있는 곳(CONV-01 npcTravelContext·placeCode). 대화 동안 워커에 덧붙인다.
   @Column(length = 1600)
   private String npcTravelSituation;
+
+  // 대화를 시작한 순간 NPC의 생활 욕구(CONV-01 needs). 대화 중에는 게임 시각이 멈추므로 매 턴 같은 값을 워커에 보내고, 돌발 부탁을 고르는 데 쓴다.
+  // 생활하지 않는 NPC·복습이거나 이 칸을 넣기 전의 대화는 null이다.
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(columnDefinition = "jsonb")
+  private Map<String, Double> npcNeeds;
+
+  public void recordNpcNeeds(Map<String, Double> needs) {
+    if (npcNeeds == null && needs != null) {
+      npcNeeds = new TreeMap<>(needs);
+    }
+  }
 
   public void recordNpcTravelSituation(String situation) {
     if (npcTravelSituation == null) {

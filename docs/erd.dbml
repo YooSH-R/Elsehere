@@ -229,6 +229,7 @@ Table conversations [headercolor: #2E6B4F] {
   time_limit_final_request_id uuid [note: '30번째 발화를 선점한 요청 ID · 실패 시 해제. 기존 컬럼 이름 유지']
   npc_off_duty boolean [not null, default: false, note: '근무 시간(교대) 밖의 NPC와 시작한 대화 (CONV-01 npcOffDuty) · AI 워커에 응대 상황 대신 일상 상황을 보냄 · V11 전 대화는 false']
   npc_travel_situation varchar(1600) [note: '대화 시작 당시 실제 이동 상태·거리·출발 여유·지각으로 만든 상황. 대화 동안 같은 사실을 워커에 전달하며 기존 대화는 null']
+  npc_needs jsonb [note: '대화 시작 당시 NPC의 생활 욕구(HUNGER·ENERGY·SOCIAL·FUN·WORK, 0~100). 매 턴 워커에 보내고 돌발 부탁을 고르는 데 쓴다. 생활하지 않는 NPC·복습·기존 대화는 null']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
 
@@ -481,6 +482,33 @@ Table user_missions [headercolor: #5B4B9A] {
   }
 
   Note: '미션 진행. 수락 없이 그날 첫 미션 조회 때 RUN으로 자동 생성'
+}
+
+Table npc_favors [headercolor: #5B4B9A] {
+  id bigint [pk, increment]
+  user_id bigint [not null]
+  requester_npc_code varchar(64) [not null, note: '부탁한 NPC 코드(npcs.code)']
+  requester_name varchar(50) [not null, note: '부탁 카드에 쓰는 부탁한 NPC 이름']
+  template_id varchar(64) [not null, note: '계기 틀 id (ai/npcs/rules/requests.json, content/npc-favors.json)']
+  offer_place varchar(64) [note: '심부름 해결처 장소 코드. 그 대화 안에서 끝나는 부탁이면 null']
+  offer_key varchar(32) [note: '해결처 제공 키(places.<CODE>.offers). 대화 안 부탁이면 null']
+  status varchar(10) [not null, note: 'OFFERED · ACCEPTED · GOT · DONE · DECLINED · EXPIRED · ABANDONED']
+  game_day int [not null, note: '부탁을 꺼낸 게임 날짜. 같은 NPC는 게임 하루에 한 번']
+  expires_game_minute bigint [note: '심부름 기한(1일차 0시부터 센 게임 분). 수락 전·대화 안 부탁은 null']
+  ended_game_minute bigint [note: '끝난 게임 분. 다음 부탁까지 쉬는 간격을 센다']
+  opening varchar(4) [not null, note: 'TALK(학습자가 건 대화 속) · CALL(NPC가 먼저 말을 걸어 부탁). 쉬는 간격을 따로 센다']
+  offered_conversation_id bigint [note: '부탁을 꺼낸 대화. NPC가 말을 걸어 꺼냈고 아직 대화를 시작하지 않았으면 null']
+  reward_coins int [not null, note: '완료하면 받는 코인. 잔액은 저장하지 않고 완료한 부탁 보상을 더해 계산']
+  affinity_delta int [not null, note: '완료하면 부탁한 NPC 호감에 더하는 값(인상 × affinityFollowRate)']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (user_id, requester_npc_code, game_day) [unique]
+    (user_id, status)
+  }
+
+  Note: '대화 중 돌발 부탁·사건(docs/npc-life-design.md 7절). 진행 중 부탁은 학습자당 하나'
 }
 
 Table first_day_missions [headercolor: #5B4B9A] {

@@ -17,6 +17,18 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public void Widest_IsTheLineWithTheBiggestDropAndTheLongerRudeNotice()
+        {
+            // 이름 줄의 욕구 게이지는 이 폭 뒤에 자리를 잡아, 무례 경고 문구가 붙었다 사라져도 움직이지 않는다.
+            Assert.That(
+                ConversationStandingDisplay.Widest(3),
+                Is.EqualTo(
+                    $"{Heart} -100 <color=#E05252>-9</color>   ●○○   <size=80%>무례한 말 1/3 · 3번이면 대화가 끝나요</size>"
+                )
+            );
+        }
+
+        [Test]
         public void AtStart_ShowsAffinityAndEmptyStrikes()
         {
             var display = new ConversationStandingDisplay();

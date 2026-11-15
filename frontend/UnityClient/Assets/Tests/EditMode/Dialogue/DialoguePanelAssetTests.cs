@@ -10,6 +10,24 @@ namespace A305.Dialogue.Tests
     {
         private const string PanelPrefabPath = "Assets/Prefabs/Dialogue/DialoguePanel.prefab";
 
+        // 이름 줄의 욕구 게이지는 바탕 없이 세 칸(배고픔·피로·외로움)이 있고, 대화 창이 자리를 정하도록 레이아웃에서 뺀다.
+        [Test]
+        public void NeedGauges_HaveThreeSlotsWithoutABackdrop()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PanelPrefabPath);
+            var view = prefab.GetComponent<DialoguePanelView>();
+            var needs = (DialogueNeedsView)
+                new SerializedObject(view).FindProperty("needsView").objectReferenceValue;
+
+            Assert.That(needs, Is.Not.Null);
+            Assert.That(needs.transform.parent.name, Is.EqualTo("Panel"), "호감 칸과 같은 좌표");
+            Assert.That(needs.GetComponent<Image>(), Is.Null, "흰 바탕은 튀어 보여 두지 않는다");
+            Assert.That(needs.GetComponent<LayoutElement>().ignoreLayout, Is.True);
+            var serialized = new SerializedObject(needs);
+            Assert.That(serialized.FindProperty("labels").arraySize, Is.EqualTo(3));
+            Assert.That(serialized.FindProperty("fills").arraySize, Is.EqualTo(3));
+        }
+
         // 도움 칸은 배경 없이 장면 위에 놓여, 카드 밖의 안내 글씨는 읽을 수 없다. 할 일은 튜토리얼 설명이 위쪽에서 알린다.
         // 추천 문장은 [힌트]를 누르면 입력창에 바로 들어가므로 따로 카드를 두지 않는다.
         [Test]

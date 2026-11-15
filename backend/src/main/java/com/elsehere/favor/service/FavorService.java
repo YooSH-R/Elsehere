@@ -358,14 +358,17 @@ public class FavorService {
         .ifPresent(favor -> favor.attachTo(conversationId));
   }
 
-  /** 말을 걸어 온 NPC의 제안을 거절하거나 무시했다(FAV-04). 대화 전의 부탁만 거절로 끝내고, 그 밖에는 그대로 돌려준다. */
+  /**
+   * 아직 답하지 않은 부탁을 거절로 끝낸다(FAV-04). 말을 걸어 온 NPC의 제안을 거절·무시했거나, 부탁을 꺼낸 대화가 답 없이 끝났을 때 Unity가 부른다.
+   * 수락했거나 이미 끝난 부탁은 그대로 돌려준다.
+   */
   @Transactional
   public FavorResponse decline(Long userId, Long favorId) {
     Favor favor =
         favors
             .findByIdAndUserId(favorId, userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-    if (favor.waitingForCallAnswer()) {
+    if (favor.getStatus() == FavorStatus.OFFERED) {
       favor.moveTo(
           FavorStatus.DECLINED,
           absolute(gameClock.currentTime(userId)),

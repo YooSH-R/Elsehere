@@ -271,6 +271,19 @@ class FavorServiceTest {
     assertThat(another.getStatus()).isEqualTo(FavorStatus.DECLINED);
   }
 
+  @Test
+  @DisplayName("꺼낸 대화가 답 없이 끝난 부탁도 거절로 끝내 다음 말 걸기를 막지 않는다")
+  void aFavorLeftUnansweredAfterTheTalkIsDeclined() {
+    Favor asked = croissant(FavorStatus.OFFERED, CONVERSATION);
+    when(favors.findByIdAndUserId(42L, USER)).thenReturn(Optional.of(asked));
+
+    assertThat(service.decline(USER, 42L).status()).isEqualTo("DECLINED");
+
+    Favor accepted = croissant(FavorStatus.ACCEPTED, CONVERSATION);
+    when(favors.findByIdAndUserId(43L, USER)).thenReturn(Optional.of(accepted));
+    assertThat(service.decline(USER, 43L).status()).isEqualTo("ACCEPTED");
+  }
+
   private Optional<Favor> active() {
     return favors.findFirstByUserIdAndStatusInOrderByIdDesc(USER, FavorStatus.ACTIVE);
   }

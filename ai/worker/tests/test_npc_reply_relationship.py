@@ -280,6 +280,15 @@ def test_an_npc_whose_needs_are_all_met_is_relaxed(client, provider):
     assert "easy mood" in system(client, provider, needs=FULL)
 
 
+@pytest.mark.parametrize("needs", [FULL, {**FULL, "SOCIAL": LOW - 1}], ids=["content", "lonely"])
+def test_a_mood_from_needs_alone_keeps_the_face_of_the_personality(client, provider, needs):
+    """욕구로 정한 바탕 기분(여유로움·말 상대가 반가움)은 웃는 얼굴을 지정하지 않는다. 무뚝뚝한 NPC(Jake)도
+    욕구가 넉넉하면 warm_smile로 시작하던 문제(실제 모델 확인). 웃음은 성격과 이번 대화의 사건(칭찬 등)이 정한다."""
+    mood = mood_section(system(client, provider, needs=needs))
+
+    assert "warm_smile" not in mood and "usual face" in mood
+
+
 def test_without_needs_or_events_there_is_no_mood_line(client, provider):
     """욕구가 오지 않고(이전 앱) 기분이 드러날 일도 없으면 지시문은 지금과 같다."""
     assert "How you feel right now:" not in system(client, provider, history=[], memory=MEMORY)

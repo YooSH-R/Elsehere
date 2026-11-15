@@ -17,7 +17,7 @@ from . import services
 from .config import Settings
 from .llm import LLM, ModelOutputError, ProviderError, Usage, within
 from .npc_emotion import EMOTION_PROMPT, EmotionStream, mood_face, reaction_instruction, response_mood
-from .npc_relationship import reply_mood
+from .npc_relationship import reply_mood, reply_stage
 from .schemas import Line, ReplyRequest, SuggestRequest
 from .speech_emotion import attach_emotion
 from .tts import AudioStore, Kokoro, join_wavs
@@ -75,10 +75,11 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
     moods = {}
     speech_phrases = []
     feeling = reply_mood(req.history, req.needs, req.npc.profile)
+    stage = reply_stage(req.relationship.model_dump() if req.relationship else None, req.npc.profile)
 
     def face(mood):
-        # 이번 턴에 서버가 확정한 반응(무례·칭찬·사과)이 먼저고, 없으면 이번 대화의 기분과 반대인 표정만 막는다
-        return response_mood(req.reaction, mood) if req.reaction else mood_face(feeling, mood)
+        # 이번 턴에 서버가 확정한 반응(무례·칭찬·사과)이 먼저고, 없으면 이번 대화의 기분·호감 단계와 반대인 표정만 막는다
+        return response_mood(req.reaction, mood) if req.reaction else mood_face(feeling, mood, stage)
 
     def schedule(text: str, mood=None):
         nonlocal last_audio_requested_at

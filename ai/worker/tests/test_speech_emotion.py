@@ -70,11 +70,13 @@ COMPLIMENT_LINE = {"who": "me", "text": "You are so kind!", "events": ["COMPLIME
 NPC_LINE = {"who": "npc", "text": "Sure."}
 
 
-def first_face(provider, history: list[dict], proposed: str | None, reaction: str | None = None) -> str | None:
+def first_face(
+    provider, history: list[dict], proposed: str | None, reaction: str | None = None, relationship: dict | None = None
+) -> str | None:
     marker = f"[[{proposed}:0.5]]" if proposed else ""
     provider.answers["npc"] = lambda body: stream([f"{marker}What would you like?"])
     with make_client(provider, FakeTts(wav=True)) as client:
-        body = {**REPLY, "history": history, "reaction": reaction, "suggest_words": False}
+        body = {**REPLY, "history": history, "reaction": reaction, "suggest_words": False, "relationship": relationship}
         done = next(data for name, data in events(client.post("/v1/npc/reply", json=body)) if name == "done")
         return done["speech_phrases"][0]["emotion"]
 
@@ -111,6 +113,31 @@ def test_a_good_mood_keeps_the_npc_from_frowning(provider):
 def test_a_confirmed_reaction_this_turn_wins_over_the_lingering_mood(provider):
     """이번 턴에 서버가 사과를 확정하면 남은 짜증보다 사과 반응(relieved)을 따른다."""
     assert first_face(provider, [RUDE_LINE, NPC_LINE], "big_laugh", reaction="apology_after_rude") == "relieved"
+
+
+def relationship_at(affinity: int) -> dict:
+    return {"recognition": 30, "affinity": affinity}  # 알아보는 얼굴(본 적 있음)
+
+
+@pytest.mark.parametrize(("affinity", "proposed"), [(-40, "warm_smile"), (-40, "laugh"), (-15, "playful"), (-15, None)])
+def test_a_disliked_learner_gets_no_smile_by_default(provider, affinity, proposed):
+    """적대·냉담 단계에서는 이번 대화의 기분이 없으면 웃는 표정과 표시 없음(Unity 기본 미소)을 무표정으로 바꾼다."""
+    assert first_face(provider, [PLAIN_LINE, NPC_LINE], proposed, relationship=relationship_at(affinity)) == "indifferent"
+
+
+@pytest.mark.parametrize(("affinity", "proposed"), [(15, "frown"), (40, "angry")])
+def test_a_liked_learner_gets_no_frown_by_default(provider, affinity, proposed):
+    assert first_face(provider, [PLAIN_LINE, NPC_LINE], proposed, relationship=relationship_at(affinity)) == "warm_smile"
+
+
+def test_a_neutral_stage_keeps_the_model_s_face(provider):
+    assert first_face(provider, [PLAIN_LINE, NPC_LINE], "laugh", relationship=relationship_at(0)) == "laugh"
+
+
+def test_the_mood_of_this_conversation_comes_before_the_stage(provider):
+    """싫어하는 학습자라도 이번 대화에서 칭찬받으면 미소를, 좋아하는 학습자라도 방금 무례했으면 찡그림을 쓴다."""
+    assert first_face(provider, [COMPLIMENT_LINE, NPC_LINE], "warm_smile", relationship=relationship_at(-40)) == "warm_smile"
+    assert first_face(provider, [RUDE_LINE, NPC_LINE], "warm_smile", relationship=relationship_at(40)) == "frown"
 
 
 def test_forced_reaction_does_not_split_synthesis_at_discarded_mood_markers(provider):

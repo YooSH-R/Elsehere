@@ -19,20 +19,28 @@ def response_mood(reaction: str | None, proposed: Mood | None) -> Mood | None:
 
 CHEERFUL = {"warm_smile", "laugh", "big_laugh", "playful", "shy"}
 COLD = {"frown", "angry", "furious", "indifferent"}
+SCOWL = {"frown", "angry", "furious"}  # 호감이 높은 단계의 기본 표정에서 막는 찌푸린 얼굴(무표정은 성격일 수 있어 둔다)
 ANNOYED_FACE = {"strong": "frown", "mild": "indifferent"}
+DISTANT_STAGES, FRIENDLY_STAGES = {"hostile", "cold"}, {"warm", "close"}
 DEFAULT_INTENSITY = 0.5
 
 
-def mood_face(feeling: dict, proposed: Mood | None) -> Mood | None:
-    """서버가 반응(reaction)을 정하지 않은 턴에, 이번 대화의 기분(app.npc_relationship.mood_state)과 반대인 표정을 막는다.
-    무례가 있던 턴이 지나도 짜증이 남은 동안 웃지 않고(강하면 frown, 약하면 indifferent), 기분 좋은 동안 찌푸리지 않는다(warm_smile).
-    분노를 강제하지 않고, 기분과 어울리는 다른 표정(concerned·curious 등)은 그대로 둔다. 표시가 없으면 Unity가 기본 기분(인자한 미소)으로
-    재생하므로, 짜증이 남았으면 차가운 얼굴을 정해 준다."""
+def mood_face(feeling: dict, proposed: Mood | None, stage: str = "neutral") -> Mood | None:
+    """서버가 반응(reaction)을 정하지 않은 턴에, 이번 대화의 기분(app.npc_relationship.mood_state)과 호감 단계에 반대인 표정을 막는다.
+    - 기분이 먼저: 짜증이 남은 동안 웃지 않고(강하면 frown, 약하면 indifferent), 기분 좋은 동안 찌푸리지 않는다(warm_smile)
+    - 기분이 없으면 호감 단계의 기본 표정: 적대·냉담은 웃지 않고(indifferent), 호의·친밀은 찌푸리지 않는다(warm_smile). 보통은 그대로
+    분노를 강제하지 않고, 어울리는 다른 표정(concerned·curious 등)은 그대로 둔다. 표시가 없으면 Unity가 기본 기분(인자한 미소)으로
+    재생하므로, 웃으면 안 될 때는 차가운 얼굴을 정해 준다."""
+    intensity = proposed.intensity if proposed else DEFAULT_INTENSITY
+    no_smile = proposed is None or proposed.emotion in CHEERFUL
     if feeling["annoyed"]:
-        if proposed is None or proposed.emotion in CHEERFUL:
-            return Mood(ANNOYED_FACE[feeling["annoyed"]], proposed.intensity if proposed else DEFAULT_INTENSITY)
-    elif feeling["pleased"] and proposed is not None and proposed.emotion in COLD:
-        return Mood("warm_smile", proposed.intensity)
+        return Mood(ANNOYED_FACE[feeling["annoyed"]], intensity) if no_smile else proposed
+    if feeling["pleased"]:
+        return Mood("warm_smile", intensity) if proposed is not None and proposed.emotion in COLD else proposed
+    if stage in DISTANT_STAGES and no_smile:
+        return Mood("indifferent", intensity)
+    if stage in FRIENDLY_STAGES and proposed is not None and proposed.emotion in SCOWL:
+        return Mood("warm_smile", intensity)
     return proposed
 
 

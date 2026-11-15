@@ -70,7 +70,8 @@ class FavorServiceTest {
     FavorTurn turn = service.plan(USER, talk, "HOTEL_STAFF", 0, false);
 
     assertThat(turn.intents()).extracting(WorkerState.Intent::id).contains("notice_need");
-    assertThat(turn.shapesInstruction()).isTrue();
+    // 반응을 기다리는 턴은 대답을 판정과 동시에 시작한다. 반응했을 때만 먼저 만든 대답을 버리고 다시 만든다.
+    assertThat(turn.shapesInstruction()).isFalse();
     assertThat(service.instruction(turn, intent("chat"), false, false)).isEmpty();
     assertThat(service.apply(USER, talk, JAKE_ID, "Jake", turn, intent("chat"), false, false))
         .isEmpty();
@@ -109,6 +110,7 @@ class FavorServiceTest {
 
     FavorTurn second = service.plan(USER, order, "CAFE_STAFF", 1, false);
     assertThat(second.offer().orElseThrow().request().id()).isEqualTo("rush_hour");
+    assertThat(second.shapesInstruction()).isTrue();
     assertThat(service.instruction(second, intent("chat"), false, false)).isNotEmpty();
   }
 

@@ -87,9 +87,12 @@ public class FavorService {
     public static final FavorTurn NONE =
         new FavorTurn(null, null, null, Role.NONE, Optional.empty(), List.of(), false, 0, 0);
 
-    /** 판정 결과가 대답 지시문에 들어가는지. 부탁이 걸린 턴은 판정을 기다려 대답한다. */
+    /**
+     * 판정 결과가 대답 지시문에 들어가는지. 진행 중 부탁과 바로 꺼낼 부탁이 걸린 턴은 판정을 기다려 대답한다. 학습자 반응을 기다리는 욕구 부탁은 대답을 판정과 동시에
+     * 시작하고(반응 없음으로 가정), 반응했을 때만 먼저 만든 대답을 버리고 부탁하는 대답으로 다시 만든다. 배고픈 NPC와의 평소 대화가 늦어지지 않게 한다.
+     */
     public boolean shapesInstruction() {
-      return (favor != null && role != Role.NONE) || offer.isPresent();
+      return (favor != null && role != Role.NONE) || (offer.isPresent() && !waitsForNotice);
     }
 
     /** 판정 상태에 부탁 의도를 더한다. 더할 의도가 없으면 그대로 둔다. */

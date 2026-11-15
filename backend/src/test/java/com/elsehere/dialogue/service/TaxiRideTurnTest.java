@@ -95,7 +95,8 @@ class TaxiRideTurnTest {
             mock(TownStoryRepository.class),
             mock(FirstDayMissionRepository.class),
             mock(NpcRepository.class),
-            mock(com.elsehere.conversation.repository.ConversationRepository.class));
+            mock(com.elsehere.conversation.repository.ConversationRepository.class),
+            mock(com.elsehere.favor.repository.FavorRepository.class));
     service =
         new TurnService(
             turns,
@@ -117,7 +118,8 @@ class TaxiRideTurnTest {
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
             new DialogueRequestLocks(),
             new EarlyReplies(true),
-            mock(MeaningPreparation.class));
+            mock(MeaningPreparation.class),
+            NoFavors.service());
   }
 
   @Test

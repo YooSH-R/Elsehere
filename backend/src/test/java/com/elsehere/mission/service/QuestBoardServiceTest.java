@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.elsehere.favor.repository.FavorRepository;
 import com.elsehere.mission.dto.QuestBoardResponse;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.TownStory;
@@ -23,7 +24,8 @@ class QuestBoardServiceTest {
   private final FirstDayMissionRepository firstDay = mock(FirstDayMissionRepository.class);
   private final TownStoryRepository stories = mock(TownStoryRepository.class);
   private final NpcRepository npcs = mock(NpcRepository.class);
-  private final QuestBoardService service = new QuestBoardService(firstDay, stories, npcs);
+  private final FavorRepository favors = mock(FavorRepository.class);
+  private final QuestBoardService service = new QuestBoardService(firstDay, stories, npcs, favors);
 
   @BeforeEach
   void knowTheNpcNames() {
@@ -48,6 +50,15 @@ class QuestBoardServiceTest {
         .allSatisfy(quest -> assertThat(quest.title()).doesNotContain("첫날", "여정"));
     assertThat(board.quests().getFirst().stops()).hasSize(7);
     assertThat(board.balance()).isEqualTo(100);
+  }
+
+  @Test
+  void finishedFavorRewardsAreAddedToTheBalance() {
+    when(firstDay.findById(8L)).thenReturn(Optional.empty());
+    when(stories.findById(8L)).thenReturn(Optional.empty());
+    when(favors.sumDoneRewardCoins(8L)).thenReturn(11L);
+
+    assertThat(service.board(8L).balance()).isEqualTo(111);
   }
 
   @Test

@@ -69,7 +69,8 @@ class FirstDayTurnTest {
             missions,
             mock(ConversationRepository.class),
             mock(UserRepository.class),
-            mock(NpcRepository.class));
+            mock(NpcRepository.class),
+            mock(com.elsehere.favor.repository.FavorRepository.class));
     TurnRepository turns = mock(TurnRepository.class);
     when(turns.findByRequestId(any())).thenReturn(Optional.empty());
     when(turns.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -130,7 +131,8 @@ class FirstDayTurnTest {
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
             new DialogueRequestLocks(),
             new EarlyReplies(true),
-            mock(MeaningPreparation.class));
+            mock(MeaningPreparation.class),
+            NoFavors.service());
   }
 
   @Test

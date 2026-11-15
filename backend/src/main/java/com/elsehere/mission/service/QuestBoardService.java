@@ -1,5 +1,6 @@
 package com.elsehere.mission.service;
 
+import com.elsehere.favor.repository.FavorRepository;
 import com.elsehere.mission.dto.QuestBoardResponse;
 import com.elsehere.mission.entity.Coins;
 import com.elsehere.mission.entity.FirstDayMission;
@@ -26,12 +27,17 @@ public class QuestBoardService {
   private final FirstDayMissionRepository firstDay;
   private final TownStoryRepository stories;
   private final NpcRepository npcs;
+  private final FavorRepository favors;
 
   public QuestBoardService(
-      FirstDayMissionRepository firstDay, TownStoryRepository stories, NpcRepository npcs) {
+      FirstDayMissionRepository firstDay,
+      TownStoryRepository stories,
+      NpcRepository npcs,
+      FavorRepository favors) {
     this.firstDay = firstDay;
     this.stories = stories;
     this.npcs = npcs;
+    this.favors = favors;
   }
 
   public QuestBoardResponse board(Long userId) {
@@ -48,7 +54,10 @@ public class QuestBoardService {
               ? chapter(quest, firstDayDone, story, names)
               : firstDayQuest(quest, mission, names));
     }
-    return new QuestBoardResponse(Coins.balance(mission, story), quests);
+    // 돌발 부탁을 마치고 받은 코인도 같은 잔액에 더한다.
+    int balance =
+        Coins.balance(mission, story) + Math.toIntExact(favors.sumDoneRewardCoins(userId));
+    return new QuestBoardResponse(balance, quests);
   }
 
   private static QuestBoardResponse.Quest firstDayQuest(

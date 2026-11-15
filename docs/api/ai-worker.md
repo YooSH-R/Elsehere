@@ -313,10 +313,10 @@ delta*  →  audio*  →  words?  →  done | error
   - 호감이 기준을 넘으면 좋아하거나 차갑게 대하는 티를 내고, 알아봄과 호감이 모두 높으면 자기 이야기를 조금 합니다.
   - 기준 숫자는 공통 규칙 `ai/npcs/rules/world-rules.json`이고, 알아보는 속도는 `npc.profile`의 성격으로 정합니다.
   - `relationship`이 없으면(처음 만난 대화, 장소 연습·복습 대화) `memory.visits`와 기억 카드를 그대로 넣습니다.
-- 이번 대화의 기분은 `relationship`과 상관없이 정해 "How you feel right now"로 넣습니다(`app/npc_relationship.py`의 `mood_state`, `app/prompts.py`의 `mood_note`). 그래서 처음 만난 대화에도 들어갑니다. 드러낼 기분이 없으면 넣지 않습니다.
+- 이번 대화의 기분은 `relationship`과 상관없이 정해 대답 바로 앞(인격이 있으면 "This turn" 칸, 없으면 "IMPORTANT for your next reply" 다음)에 "How you feel right now"로 넣습니다. 이번 턴 칸은 "이 칸이 무례라고 하지 않으면 무례가 아니다"라고 해서, 상황 칸에 두면 실제 모델이 남은 짜증을 무시했습니다(`app/npc_relationship.py`의 `mood_state`, `app/prompts.py`의 `mood_note`). 그래서 처음 만난 대화에도 들어갑니다. 드러낼 기분이 없으면 넣지 않습니다.
   - 바탕 기분: `needs` 가운데 `mood.needs.low`(30)보다 낮은 욕구가 피곤함(`ENERGY`)·배고픔(`HUNGER`)·말 상대가 반가움(`SOCIAL`)·지루함(`FUN`)·일이 밀려 바쁨(`WORK`)이 됩니다. 가장 낮은 욕구 하나만 넣고, 그 욕구가 `veryLow`(15)보다 낮으면 뚜렷하게 드러내며 다음으로 낮은 욕구까지 두 개를 넣습니다. 보낸 욕구가 모두 `comfortable`(70) 이상이면 여유로운 기분입니다. 대화 중에는 게임 시간이 멈추므로 한 대화 동안 같습니다.
   - 사건 기분: `history`의 학습자 줄로 계산합니다. 무례 줄(`rude: true`) 뒤에는 몇 턴 동안 짜증이 남고, 사과(`events`의 `APOLOGY`)하면 줄어듭니다. 칭찬·도움 제공 뒤나 잡담이 이어지면 기분이 좋아집니다. 둘 다면 더 큰 쪽만 넣습니다. 무례 줄의 다른 사건은 버립니다. 반응 크기와 짜증이 가라앉는 속도는 `npc.profile`의 성격(신경성)으로 정하고, 기분 좋음이 이어지는 시간은 성격과 상관없습니다.
-  - 세기는 두 단계입니다. 약하면(`mood.showsAt` 1 이상) 조금 차갑거나 다정한 한두 마디, 강하면(`mood.strongAt` 2 이상) 짧고 차갑게 또는 눈에 띄게 반깁니다. 기분 좋음에는 가장 최근 원인(칭찬·잡담·도움 제공)을 넣어 이유에 맞게 반응하게 합니다.
+  - 세기는 두 단계입니다. 약하면(`mood.showsAt` 1 이상) 친근한 덧말 없이 사무적으로 또는 다정한 말 한마디를 더하고, 강하면(`mood.strongAt` 2 이상) 필요한 것만 짧은 한 문장으로 차갑게 또는 눈에 띄게 반깁니다. 아주 낮은 욕구(바탕 기분)는 그 대화에서 아직 말하지 않았으면 한 번 짧게 말하고, 그 뒤로는 말투로만 드러냅니다. 기분 좋음에는 가장 최근 원인(칭찬·잡담·도움 제공)을 넣어 이유에 맞게 반응하게 합니다.
   - 줄마다 첫 표정(`Face:`)을 붙이고, 표정 지시가 이를 따르게 합니다. 이번 턴에 서버 `reaction`이 없으면 기분과 반대인 표정을 워커가 바꿉니다(`app/npc_emotion.py`의 `mood_face`). 짜증이 남은 동안 웃는 표정(`warm_smile`·`laugh`·`big_laugh`·`playful`·`shy`)이나 표시 없음은 강하면 `frown`, 약하면 `indifferent`이고, 기분 좋은 동안 `frown`·`angry`·`furious`·`indifferent`는 `warm_smile`입니다. 다른 표정은 그대로 둡니다. 실시간 음성·`speech_phrases`·턴 전체 음성에 같게 적용합니다.
   - 짜증 난 동안에는 반대인 바탕 기분(여유로움·말 상대가 반가움)을 빼고, 기분이 좋으면 여유로움을 겹쳐 넣지 않습니다.
 - 대답은 한 줄입니다. 모델이 줄을 바꿔 다른 사람 대사를 쓰면 버립니다.

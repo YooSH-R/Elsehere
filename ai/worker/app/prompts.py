@@ -329,18 +329,24 @@ LOW_NEED = {
     ),
     "WORK": "Work has piled up and you are behind, so you sound a little hurried and keep things moving. Face: concerned or calm.",
 }
-STRONG_NEED = "It is strong right now, so it clearly shows."
+# 실제 모델(gpt-6.1-sol)은 "드러나게" 같은 막연한 말로는 하던 일(체크인 안내)만 이어 가서, 이번 대답에서 무엇을 할지 구체적으로 적는다
+STRONG_NEED = (
+    "It is strong right now: if you have not mentioned it yet in this conversation, mention it briefly in this reply, "
+    "in your own words, while still doing your job; after that, let it show only in your tone."
+)
 MILD_NEED = "Only a hint of it shows."
 CONTENT = "You are rested and in an easy mood: relaxed and unhurried. Face: warm_smile."
 # 사건 기분: 세기(mild·strong)마다 말투를 다르게. 기분 좋음은 이유(가장 최근에 올린 사건)를 넣어 이유에 맞게 반응하게 한다
 ANNOYED = {
     "strong": (
-        "They were rude to you a moment ago and you are still annoyed. Keep this reply short and cold: "
-        "no small talk, no thank-yous, no jokes. If they apologize, accept it in a few flat words. Face: frown."
+        "They were rude to you a moment ago and you are still annoyed. Keep this reply short and cold: one short, flat sentence "
+        "that gives only what they need, with no small talk, no thank-yous, no jokes and no friendly follow-up question. "
+        "If they apologize, accept it in a few flat words. Face: frown."
     ),
     "mild": (
-        "They were rude to you earlier and you are still annoyed, though it is fading. Stay polite but a little cool and brief; "
-        "warm up a bit if they are nice to you now. Face: indifferent, no smiles yet."
+        "They were rude to you earlier and you are still annoyed, though it is fading. Stay polite but a little cool: brief, "
+        "matter-of-fact, without the friendly extras you would usually add; warm up a bit if they are nice to you now. "
+        "Face: indifferent, no smiles yet."
     ),
 }
 PLEASED_BY = {
@@ -349,9 +355,13 @@ PLEASED_BY = {
     "HELP": "They just offered to help you",
 }
 PLEASED = {
-    "strong": "{cause}, so you are in a really good mood: let it show clearly, with extra warmth or a light joke. Face: laugh or warm_smile.",
+    "strong": (
+        "{cause}, so you are in a really good mood: show it clearly in this reply with an extra warm remark or a light joke "
+        "in your own way. Face: laugh or warm_smile."
+    ),
     "mild": (
-        "{cause}, so you are in a good mood: let it show in a friendlier word or two, even if you are usually reserved. Face: warm_smile."
+        "{cause}, so you are in a good mood: add one warm, friendly phrase to this reply in your own way "
+        "(a thank-you, a kind word, or happy-to-help), even if you are usually reserved. Face: warm_smile."
     ),
 }
 
@@ -412,7 +422,7 @@ LEVEL_LEARNER = {  # 힌트·추천 단어·단어 풀이에서 학습자 수준
 }
 
 
-def npc_system(n: Npc, memory: str, note: str, level: int = 2, learner: str = "") -> str:
+def npc_system(n: Npc, memory: str, note: str, level: int = 2, learner: str = "", mood: str = "") -> str:
     return f"""You are {n.name}, {n.role}
 Place: {TOWN} {n.scene}
 What you know: {n.facts}{chr(10) + memory if memory else ""}
@@ -430,7 +440,7 @@ How to reply:
 - Stay in character. Never mention English lessons, practice, difficulty levels, or that you are an AI.
 - Plain spoken words only: no emojis, lists, or stage directions.
 
-IMPORTANT for your next reply: {note or "Just reply naturally."}"""
+IMPORTANT for your next reply: {note or "Just reply naturally."}{chr(10) + mood if mood else ""}"""
 
 
 def npc_messages(
@@ -449,13 +459,12 @@ def npc_messages(
     else:
         state = npc_relationship.person_state(relationship.model_dump(), n.profile, *npc_relationship.service_rules())
         about = person_note(memory, state)
-    mood = mood_note(npc_relationship.reply_mood(history, needs, n.profile))
-    note = "\n".join(part for part in (about, mood) if part)
+    mood = mood_note(npc_relationship.reply_mood(history, needs, n.profile))  # 모델이 가장 잘 따르는 대답 바로 앞(이번 턴)에 넣는다
     address = learner_section(learner.nickname, learner.avatar_type) if learner else learner_section(None, None)
     if n.profile is not None:  # 백엔드가 인격을 보내면 공통 규칙 + 인격, 아직 인격이 없는 NPC는 위의 한 줄 역할 지시문
-        system = reply_system_prompt(n.profile, f"{TOWN} {n.scene}", n.facts, note, level, instruction, address)
+        system = reply_system_prompt(n.profile, f"{TOWN} {n.scene}", n.facts, about, level, instruction, address, mood)
     else:
-        system = npc_system(n, note, instruction, level, address)
+        system = npc_system(n, about, instruction, level, address, mood)
     msgs = [{"role": "system", "content": system}]
     for h in history[-12:]:
         msgs.append({"role": "assistant" if h.who == "npc" else "user", "content": h.text})

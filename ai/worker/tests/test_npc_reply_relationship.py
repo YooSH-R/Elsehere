@@ -184,6 +184,20 @@ def test_a_starting_mood_from_needs_also_names_a_face(client, provider):
     assert "Face: calm" in mood
 
 
+def test_the_mood_sits_in_this_turn_where_rudeness_is_allowed_to_matter(client, provider):
+    """인격 카드가 있는 NPC는 '이번 턴' 칸이 '이 칸이 무례라고 하지 않으면 무례가 아니다'라고 한다. 기분 줄이 상황 칸에 있으면
+    모델이 남은 짜증을 무시해서(실제 모델 확인), 대답 바로 앞인 이번 턴 칸에 넣는다."""
+    turn = system(client, provider, history=learner_lines(None)).split("## This turn")[1]
+
+    assert "How you feel right now:" in turn and "still annoyed" in turn
+
+
+def test_on_the_role_line_prompt_the_mood_comes_right_before_the_reply(client, provider):
+    prompt = system(client, provider, NPC, history=learner_lines(None))
+
+    assert "still annoyed" in prompt.split("IMPORTANT for your next reply")[1]
+
+
 def test_the_face_rules_point_to_the_mood_lines(client, provider):
     """표정 고르기 지시가 지금 기분 줄의 표정을 따르게 한다(앞 턴의 기분이 다음 대답 표정에도 이어지게)."""
     assert "How you feel right now" in system(client, provider).split("Internal face timing")[1]

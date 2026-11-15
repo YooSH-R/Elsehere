@@ -241,15 +241,20 @@ SOUND_LIKE_YOURSELF = (
 )
 
 
-def reply_system_prompt(profile: NpcProfile, place: str, facts: str, memory: str, level: int, note: str, learner: str = "") -> str:
+def reply_system_prompt(
+    profile: NpcProfile, place: str, facts: str, memory: str, level: int, note: str, learner: str = "", mood: str = ""
+) -> str:
     """게임 대화 경로(/v1/npc/reply)용. ① 공통 규칙 ② 인격은 추론 API와 같고, ③~⑤는 그 경로가 받는 값으로 채운다.
 
     place·facts는 백엔드의 NPC 장면·사실, memory는 이 학습자에 대한 기억(app.prompts.memory_note), level은 난이도 1~3,
     note는 백엔드가 정한 이번 대답에서 할 일, learner는 대답 상대의 호칭(learner_section). 기억은 상황에 넣어 '처음 만난 사이'라는
-    공통 규칙의 예외가 되게 한다.
+    공통 규칙의 예외가 되게 한다. mood는 이번 대화의 기분(app.prompts.mood_note)이고 이번 턴 칸에 넣는다: 이 칸이 '무례라고 하지
+    않으면 무례가 아니다'라고 해서, 상황 칸에 두면 모델이 남은 짜증을 무시했다.
     """
     situation = ["## Situation", f"Place: {place}", *labeled([("Facts", one_line(facts))]), *([memory] if memory else [])]
     turn = f"IMPORTANT for your next reply: {note}" if note else TURN_INSTRUCTIONS["USER_MESSAGE"]
+    if mood:
+        turn += f"\n{mood}"
     turn += f"\n{NOT_RUDE_UNLESS_TOLD}"
     if profile.speech_style.catchphrases:
         turn += f"\n{SOUND_LIKE_YOURSELF}"

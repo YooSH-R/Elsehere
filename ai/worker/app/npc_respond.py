@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 from .llm import LLM, ProviderError, Usage, within
 from .npc_profile_models import NpcProfile
 from .npc_prompt import REPLY_FORMAT, npc_messages
+from .npc_punctuation import NpcSentencePunctuation
 
 MAX_REPLY_TOKENS = 150  # 대답 길이는 학습 수준 규칙이 정하고, 이 값은 넘치지 않게 막는 상한 (ai/tools/npc_chat.py와 같은 값)
 REPLY_TEMPERATURE = 0.6  # 같은 말에도 매번 똑같이 답하지 않게 (기존 NPC 스트림과 같은 값)
@@ -169,6 +170,6 @@ async def respond(llm: LLM, request: NpcRespondRequest, budget_s: float) -> NpcR
         requestId=request.requestId,
         sessionId=request.sessionId,
         npcId=request.npcId,
-        replyText=reply.replyText.strip(),
+        replyText=NpcSentencePunctuation().feed(reply.replyText.strip()),
         conversationControl=to_control(end_signal),
     )

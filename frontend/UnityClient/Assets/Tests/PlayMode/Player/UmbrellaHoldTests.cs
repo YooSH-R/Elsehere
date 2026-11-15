@@ -23,7 +23,7 @@ namespace A305.Player.Tests
         public void ResetSelection() => PlayerCharacterSelection.Reset();
 
         [UnityTest]
-        public IEnumerator OpenUmbrella_RaisesTheHandAndCoversTheHead()
+        public IEnumerator Umbrella_CoversTheHeadWhenOpenedAndIsPutAwayWhenClosed()
         {
             UmbrellaHold hold = null;
             yield return LoadTownPlayer(found => hold = found);
@@ -63,16 +63,7 @@ namespace A305.Player.Tests
                 Is.LessThan(cloth.extents.x - head.extents.x),
                 "캐노피가 머리 전체를 덮어야 합니다."
             );
-        }
 
-        [UnityTest]
-        public IEnumerator ClosedUmbrella_IsPutAway()
-        {
-            UmbrellaHold hold = null;
-            yield return LoadTownPlayer(found => hold = found);
-
-            hold.SetOpen(true);
-            yield return null;
             hold.SetOpen(false);
             yield return null;
 

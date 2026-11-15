@@ -10,13 +10,6 @@ namespace A305.World.Tests
         [TestCase("HOTEL", "HotelScene")]
         [TestCase("SHOP", "ShopScene")]
         [TestCase("POLICE_STATION", "PoliceStationScene")]
-        public void SceneOf_Place_ReturnsItsUnityScene(string placeCode, string unitySceneName)
-        {
-            Assert.That(PlaceScenes.SceneOf(placeCode), Is.EqualTo(unitySceneName));
-            Assert.That(PlaceScenes.CodeOf(unitySceneName), Is.EqualTo(placeCode));
-        }
-
-        // 마을 매장도 실내마다 따로 씬이다. 마을 문으로 들어가고 나온다.
         [TestCase("POST_OFFICE", "PostOfficeInterior")]
         [TestCase("DINER", "MapleDinerInterior")]
         [TestCase("BANK", "TownBankInterior")]
@@ -26,7 +19,7 @@ namespace A305.World.Tests
         [TestCase("BAKERY", "MapleBakeryInterior")]
         [TestCase("ARCADE", "LittleArcadeInterior")]
         [TestCase("HOME_STORE", "HomeLivingInterior")]
-        public void SceneOf_TownShop_ReturnsItsInteriorScene(
+        public void KnownPlace_RoundTripsBetweenItsCodeAndUnityScene(
             string placeCode,
             string unitySceneName
         )
@@ -110,19 +103,6 @@ namespace A305.World.Tests
         public void ServerCodeOf_SceneThatIsNotAPlace_ReturnsNull(string unitySceneName)
         {
             Assert.That(PlaceScenes.ServerCodeOf(unitySceneName), Is.Null);
-        }
-
-        // 대화를 시작할 때 보내는, 플레이어가 지금 있는 장소. 마을 매장도 따로 장면이라 장면 이름으로 그 매장 코드를 안다.
-        [TestCase("SudsLaundromatInterior", "LAUNDROMAT")]
-        [TestCase("TownScene", "TOWN")]
-        [TestCase("CafeScene", "CAFE")]
-        [TestCase("EntryScene", null)]
-        public void CodeOf_SceneThePlayerStandsIn_ReturnsThatPlace(
-            string unitySceneName,
-            string expected
-        )
-        {
-            Assert.That(PlaceScenes.CodeOf(unitySceneName), Is.EqualTo(expected));
         }
     }
 }

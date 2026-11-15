@@ -268,6 +268,24 @@ def test_reply_stream_events_in_order(provider):
         assert c.get("/v1/audio/nope").status_code == 404
 
 
+@pytest.mark.parametrize("stream_chunks", [True, False])
+def test_reply_replaces_semicolons_in_subtitles_and_speech(provider, stream_chunks):
+    provider.answers["npc"] = lambda b: stream(["I'm out with Pepper", ";", " ", "[[curious:0.4]]", "how are you?"])
+    tts = FakeTts(wav=True)
+    with make_client(provider, tts) as client:
+        reply = events(client.post("/v1/npc/reply", json={**REPLY, "stream_chunks": stream_chunks}))
+
+    expected = "I'm out with Pepper. How are you?"
+    subtitles = [data["text"] for name, data in reply if name == "delta"]
+    audio_phrases = [data["text"] for name, data in reply if name == "audio"]
+    assert reply[-1][0] == "done"
+    assert reply[-1][1]["text"] == expected
+    assert tts.texts == ["I'm out with Pepper.", "How are you?"]
+    assert [phrase["text"] for phrase in reply[-1][1]["speech_phrases"]] == tts.texts
+    assert "".join(subtitles) == (expected if stream_chunks else "")
+    assert audio_phrases == (tts.texts if stream_chunks else [])
+
+
 def test_slow_tts_chunk_falls_back(provider):
     provider.answers["npc"] = lambda b: stream(["Sure. ", "One latte."])
     with make_client(provider, FakeTts(delay=0.3), tts_chunk_budget_s=0.1) as c:

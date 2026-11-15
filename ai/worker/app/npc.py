@@ -17,6 +17,7 @@ from . import services
 from .config import Settings
 from .llm import LLM, ModelOutputError, ProviderError, Usage, within
 from .npc_emotion import EMOTION_PROMPT, EmotionStream, mood_face, reaction_instruction, response_mood
+from .npc_punctuation import NpcSentencePunctuation
 from .npc_relationship import reply_mood, reply_stage
 from .schemas import Line, ReplyRequest, SuggestRequest
 from .speech_emotion import attach_emotion
@@ -25,7 +26,7 @@ from .tts import AudioStore, Kokoro, join_wavs
 log = logging.getLogger("ai_worker")
 
 SENTENCE = re.compile(r"^.*?[.!?]\s")
-FIRST = re.compile(r"^.{12,}?[,;:]\s")
+FIRST = re.compile(r"^.{12,}?[:,]\s")
 FALLBACK_REPLY = "Sorry, could you say that again?"
 
 
@@ -97,6 +98,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
     async def run_llm():
         sp = Splitter()
         expressions = EmotionStream()
+        punctuation = NpcSentencePunctuation()
         current_mood = None
         msgs = P.npc_messages(
             req.npc, req.memory, req.history, req.text, req.instruction, req.level, req.relationship, req.learner, req.needs
@@ -117,6 +119,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
                     for part in sp.flush():
                         schedule(part, current_mood)
                     current_mood = mood
+                text = punctuation.feed(text)
                 if not text:
                     continue
                 if st["first"] is None:

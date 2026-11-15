@@ -133,6 +133,12 @@ namespace A305.Dialogue.Tests
                 Abandoned.Add(favorId);
                 return Task.FromResult(new FavorUpdate { FavorId = favorId, Status = "ABANDONED" });
             }
+
+            public Task<FavorUpdate> CallAsync(IReadOnlyList<FavorCallCandidate> candidates) =>
+                Task.FromResult<FavorUpdate>(null);
+
+            public Task<FavorUpdate> DeclineAsync(long favorId) =>
+                Task.FromResult(new FavorUpdate { FavorId = favorId, Status = "DECLINED" });
         }
     }
 }

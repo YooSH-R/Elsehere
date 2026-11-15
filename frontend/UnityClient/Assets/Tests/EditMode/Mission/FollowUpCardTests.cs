@@ -297,7 +297,10 @@ namespace A305.Mission.Tests
             List<FollowUpRowView> rows = ShownRows();
             Assert.That(rows, Has.Count.EqualTo(2));
             Assert.That(Text(rows[0], "title"), Is.EqualTo("Jake의 부탁 · 크루아상 사다 주기"));
-            Assert.That(Text(rows[0], "detail"), Is.EqualTo("Maple Bakery에서 크루아상 포장 주문하기"));
+            Assert.That(
+                Text(rows[0], "detail"),
+                Is.EqualTo("Maple Bakery에서 크루아상 포장 주문하기")
+            );
             Assert.That(Text(rows[0], "countdown"), Is.EqualTo("0:50"));
             Assert.That(Text(rows[1], "title"), Is.EqualTo("아이스 라테"));
         }
@@ -334,8 +337,17 @@ namespace A305.Mission.Tests
                 TitleKo = "Jake의 부탁 · 크루아상 사다 주기",
                 Steps = new List<FavorStep>
                 {
-                    new FavorStep { PlaceCode = "BAKERY", TextKo = "Maple Bakery에서 크루아상 포장 주문하기" },
-                    new FavorStep { PlaceCode = "HOTEL", NpcCode = "HOTEL_STAFF", TextKo = "Jake에게 돌아가기" },
+                    new FavorStep
+                    {
+                        PlaceCode = "BAKERY",
+                        TextKo = "Maple Bakery에서 크루아상 포장 주문하기",
+                    },
+                    new FavorStep
+                    {
+                        PlaceCode = "HOTEL",
+                        NpcCode = "HOTEL_STAFF",
+                        TextKo = "Jake에게 돌아가기",
+                    },
                 },
                 ExpiresAtGameMinute = Deadline,
             };
@@ -351,6 +363,12 @@ namespace A305.Mission.Tests
                 Abandoned.Add(favorId);
                 return Task.FromResult(new FavorUpdate { FavorId = favorId, Status = "ABANDONED" });
             }
+
+            public Task<FavorUpdate> CallAsync(IReadOnlyList<FavorCallCandidate> candidates) =>
+                Task.FromResult<FavorUpdate>(null);
+
+            public Task<FavorUpdate> DeclineAsync(long favorId) =>
+                Task.FromResult(new FavorUpdate { FavorId = favorId, Status = "DECLINED" });
         }
 
         private sealed class DismissingApi : IFollowUpApi

@@ -108,6 +108,16 @@ namespace A305.Api
             return string.IsNullOrWhiteSpace(body) ? null : ApiJson.Deserialize<T>(body);
         }
 
+        /// <summary>보낼 것이 없으면 본문 없이 204로 답하는 POST. 빈 본문이면 null을 돌려준다.</summary>
+        public async Task<T> PostOrNullAsync<T>(string path, object body)
+            where T : class
+        {
+            string responseBody = await SendAsync("POST", path, body);
+            return string.IsNullOrWhiteSpace(responseBody)
+                ? null
+                : ApiJson.Deserialize<T>(responseBody);
+        }
+
         public async Task<T> PostAsync<T>(string path, object body)
         {
             string responseBody = await SendAsync("POST", path, body);

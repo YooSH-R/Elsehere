@@ -62,6 +62,19 @@ namespace A305.Dialogue
             };
     }
 
+    /// <summary>NPC 말 걸기(FAV-03) 후보 한 명. needs는 대화 시작(CONV-01)의 needs와 같은 모양이다.</summary>
+    public sealed class FavorCallCandidate
+    {
+        public string NpcCode { get; set; }
+        public Dictionary<string, float> Needs { get; set; }
+    }
+
+    /// <summary>FAV-03 요청 본문. 후보는 플레이어에게 가까운 순서다.</summary>
+    public sealed class FavorCallBody
+    {
+        public List<FavorCallCandidate> Candidates { get; set; }
+    }
+
     /// <summary>부탁 카드의 할 일 한 줄. NpcCode가 있으면 그 NPC와, 없으면 그 장소의 직원과 말한다.</summary>
     public sealed class FavorStep
     {

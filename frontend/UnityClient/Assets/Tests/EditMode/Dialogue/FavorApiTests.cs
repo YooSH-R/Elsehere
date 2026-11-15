@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using A305.Api;
 using NUnit.Framework;
@@ -57,6 +58,58 @@ namespace A305.Dialogue.Tests
             Assert.That(transport.Request.Method, Is.EqualTo("POST"));
             Assert.That(transport.Request.Url, Is.EqualTo("/api/v1/favors/42/abandon"));
             Assert.That(favor.IsActive, Is.False);
+        }
+
+        [Test]
+        public async Task CallAsync_SendsNearbyNpcsAndReadsTheFavorTheyAsk()
+        {
+            var transport = new RecordingTransport
+            {
+                ReplyBody = Croissant.Replace("ACCEPTED", "OFFERED"),
+            };
+            var candidates = new[]
+            {
+                new FavorCallCandidate
+                {
+                    NpcCode = "HOTEL_STAFF",
+                    Needs = new Dictionary<string, float> { ["HUNGER"] = 20f },
+                },
+            };
+
+            FavorUpdate favor = await new FavorApi(new ApiClient("", transport)).CallAsync(
+                candidates
+            );
+
+            Assert.That(transport.Request.Method, Is.EqualTo("POST"));
+            Assert.That(transport.Request.Url, Is.EqualTo("/api/v1/favors/calls"));
+            Assert.That(transport.Request.JsonBody, Does.Contain("\"npcCode\":\"HOTEL_STAFF\""));
+            Assert.That(transport.Request.JsonBody, Does.Contain("\"HUNGER\":20.0"));
+            Assert.That(favor.Status, Is.EqualTo(FavorUpdate.Offered));
+        }
+
+        [Test]
+        public async Task CallAsync_ReadsNoContentAsNoCall()
+        {
+            var transport = new RecordingTransport { StatusCode = 204, ReplyBody = "" };
+
+            FavorUpdate favor = await new FavorApi(new ApiClient("", transport)).CallAsync(
+                new FavorCallCandidate[0]
+            );
+
+            Assert.That(favor, Is.Null);
+        }
+
+        [Test]
+        public async Task DeclineAsync_PostsToTheFavor()
+        {
+            var transport = new RecordingTransport
+            {
+                ReplyBody = Croissant.Replace("ACCEPTED", "DECLINED"),
+            };
+
+            await new FavorApi(new ApiClient("", transport)).DeclineAsync(42);
+
+            Assert.That(transport.Request.Url, Is.EqualTo("/api/v1/favors/42/decline"));
         }
 
         [Test]

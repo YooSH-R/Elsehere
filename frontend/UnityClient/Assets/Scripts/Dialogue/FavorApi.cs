@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using A305.Api;
 
@@ -21,6 +22,17 @@ namespace A305.Dialogue
         public Task<FavorUpdate> AbandonAsync(long favorId)
         {
             return client.PostAsync<FavorUpdate>($"/api/v1/favors/{favorId}/abandon", null);
+        }
+
+        public async Task<FavorUpdate> CallAsync(IReadOnlyList<FavorCallCandidate> candidates)
+        {
+            var body = new FavorCallBody { Candidates = new List<FavorCallCandidate>(candidates) };
+            return await client.PostOrNullAsync<FavorUpdate>("/api/v1/favors/calls", body);
+        }
+
+        public Task<FavorUpdate> DeclineAsync(long favorId)
+        {
+            return client.PostAsync<FavorUpdate>($"/api/v1/favors/{favorId}/decline", null);
         }
     }
 }

@@ -49,6 +49,17 @@ namespace A305.Npc
 
         /// <summary>부를 때 건네는 말. 음료·식사·빨래 등 무엇이든 같은 문장이다. 예: "기다리던 아이스 라테가 준비됐어요"</summary>
         /// <param name="itemKo">준비한 것의 한국어 이름. 모르면 null.</param>
+        /// <summary>NPC가 부탁하려고 말을 걸 때의 알림. 예: Jake가 부탁할 게 있대요</summary>
+        public static string FavorHint(string npcName)
+        {
+            return string.IsNullOrEmpty(npcName)
+                ? "누군가 부탁할 게 있대요"
+                : $"{npcName}{SubjectParticle(npcName)} 부탁할 게 있대요";
+        }
+
+        /// <summary>부탁하려고 말을 걸 때의 첫마디. 무엇을 부탁할지는 대화를 시작하면 NPC가 말한다.</summary>
+        public const string FavorLine = "Excuse me! Could I ask you a small favor?";
+
         public static string CallLine(string itemKo)
         {
             string item = string.IsNullOrEmpty(itemKo) ? "것" : itemKo;

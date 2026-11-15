@@ -1,7 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Collections.Generic;
 using System.Reflection;
 using A305.Api;
 using A305.Dialogue;
@@ -162,7 +162,11 @@ namespace A305.EditorTools.Mission
             view.Refresh(state, false, false);
             Directory.CreateDirectory(output);
             // FIRST_DAY_PREVIEW_FAVOR가 있으면 수락한 돌발 부탁과 기다리는 것 하나를 기다림 카드에 함께 그린다.
-            if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("FIRST_DAY_PREVIEW_FAVOR")))
+            if (
+                !string.IsNullOrWhiteSpace(
+                    Environment.GetEnvironmentVariable("FIRST_DAY_PREVIEW_FAVOR")
+                )
+            )
             {
                 RenderFavorCard(camera, view, output);
                 return;
@@ -228,7 +232,13 @@ namespace A305.EditorTools.Mission
             card.UseGameClock(() => deadline - 300);
             view.SetAvailable(true);
             card.Refresh();
-            foreach (var (name, width, height) in new[] { ("favor-card-desktop.png", 1920, 1080), ("favor-card-mobile.png", 844, 390) })
+            foreach (
+                var (name, width, height) in new[]
+                {
+                    ("favor-card-desktop.png", 1920, 1080),
+                    ("favor-card-mobile.png", 844, 390),
+                }
+            )
             {
                 Render(camera, view, Path.Combine(output, name), width, height, card);
             }

@@ -51,6 +51,22 @@ namespace A305.Npc.Tests
         }
 
         [Test]
+        public void Advance_AnNpcWithoutTimeOff_StartsItsNeedsOverWhenTheDayChanges()
+        {
+            // 출근할 때 시작값으로 돌아가는 교대 근무자처럼, 퇴근이 없는 상주 직원은 날이 바뀌면 다시 시작한다(AI 하루 시뮬레이션과 같음).
+            NpcLifeData rules = Rules(Need("SOCIAL", dropPerHour: 4, start: 70));
+            var life = new NpcLife(rules, AllDay("HOTEL", "WORK"), 20 * Hour);
+
+            life.Advance(24 * Hour + 2 * Hour);
+
+            Assert.That(
+                life.Need("SOCIAL"),
+                Is.EqualTo(62f).Within(.001f),
+                "0시에 70, 그 뒤 2시간 × 4"
+            );
+        }
+
+        [Test]
         public void ChooseNext_PicksWhatFillsTheMostUrgentNeed()
         {
             NpcLifeData rules = Rules(
@@ -352,8 +368,8 @@ namespace A305.Npc.Tests
             );
             Assert.That(
                 again.Need("HUNGER"),
-                Is.EqualTo(4f).Within(.001f),
-                "하루 전부터 흘려 굶은 상태(0)에서 받은 10이 한 시간 동안 6 줄었다"
+                Is.EqualTo(74f).Within(.001f),
+                "퇴근이 없어 0시에 시작값(70)부터 하고, 받은 10이 한 시간 동안 6 줄었다"
             );
         }
 

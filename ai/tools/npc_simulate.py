@@ -60,9 +60,14 @@ def simulate_day(npc: dict, rules: dict, requests: dict, tick: int = 10, tutoria
                 day["requests"].append(entry)
 
         for name, rule in rules["needs"].items():
-            rate = npc["rates"].get("needRates", {}).get(name, 1)
+            rate = need_rate(npc, name)
             needs[name] = max(0.0, needs[name] - rule["dropPerHour"] * rate * tick / 60)
     return day
+
+
+def need_rate(npc: dict, need: str) -> float:
+    """욕구가 줄어드는 속도 배수: 성격 배수(rates.needRates) × 근무 형태 배수(needDrain, 퇴근 없는 NPC는 하루에 나눠 줆)."""
+    return npc["rates"].get("needRates", {}).get(need, 1) * npc.get("needDrain", {}).get(need, 1)
 
 
 def _allowed_actions(npc: dict, block: dict, rules: dict) -> list[dict]:

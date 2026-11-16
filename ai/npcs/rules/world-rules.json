@@ -77,6 +77,7 @@
       { "at": "22:00", "need": "ENERGY" }
     ]
   },
+  "allDayWork": { "drainHours": 8 },
   "favors": {
     "checkAfterLearnerLines": 2,
     "learnerGapMinutes": 240,

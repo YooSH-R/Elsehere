@@ -572,9 +572,22 @@
     "WorldRules": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schemaVersion", "needs", "actions", "conversationEvents", "mood", "relationship", "memory", "derivation", "roles", "activities", "workMeals", "favors", "places"],
+      "required": ["schemaVersion", "needs", "actions", "conversationEvents", "mood", "relationship", "memory", "derivation", "roles", "activities", "workMeals", "allDayWork", "favors", "places"],
       "properties": {
         "schemaVersion": { "const": "1.0" },
+        "allDayWork": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["drainHours"],
+          "properties": {
+            "drainHours": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 24,
+              "description": "퇴근이 없는 NPC(상주 직원 등)는 끼니로 되돌아오지 않는 욕구가 하루 24시간 동안 이 시간 근무자만큼만 줄어든다(배수 drainHours/24). 날이 바뀌면 시작값부터."
+            }
+          }
+        },
         "workMeals": {
           "type": "object",
           "additionalProperties": false,

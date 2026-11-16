@@ -1,5 +1,33 @@
-package com.elsehere.ai.client;
+package com.elsehere.ai.service;
 
+import com.elsehere.ai.client.ExpressionsResult;
+import com.elsehere.ai.client.FeedbackInput;
+import com.elsehere.ai.client.FollowUpResult;
+import com.elsehere.ai.client.GuardResult;
+import com.elsehere.ai.client.HintResult;
+import com.elsehere.ai.client.JudgeResult;
+import com.elsehere.ai.client.LevelTestSpeakingResult;
+import com.elsehere.ai.client.MeaningResult;
+import com.elsehere.ai.client.MemoryCardResult;
+import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.NpcReplyChunk;
+import com.elsehere.ai.client.NpcReplyListener;
+import com.elsehere.ai.client.PerformanceIntentResult;
+import com.elsehere.ai.client.RelationshipChange;
+import com.elsehere.ai.client.SttResult;
+import com.elsehere.ai.client.SuggestResult;
+import com.elsehere.ai.client.WorkerFeedback;
+import com.elsehere.ai.client.WorkerLearner;
+import com.elsehere.ai.client.WorkerLevelTestSpeakingItem;
+import com.elsehere.ai.client.WorkerLine;
+import com.elsehere.ai.client.WorkerMemory;
+import com.elsehere.ai.client.WorkerNpc;
+import com.elsehere.ai.client.WorkerRelationship;
+import com.elsehere.ai.client.WorkerSpeechPhrase;
+import com.elsehere.ai.client.WorkerState;
+import com.elsehere.ai.client.WorkerText;
+import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.client.WorkerUsage;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import java.io.ByteArrayOutputStream;
@@ -38,7 +66,7 @@ import tools.jackson.databind.json.JsonMapper;
  */
 @Slf4j
 @Component
-public class AiWorkerClient {
+class AiWorkerClient {
 
   private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
   // 의도·무례 판정은 워커가 5초 안에 끝낸다(JUDGE_BUDGET_S·GUARD_BUDGET_S). NPC 대답은 응답 헤더까지의 상한이며, 스트림은 워커의 시간 상한을

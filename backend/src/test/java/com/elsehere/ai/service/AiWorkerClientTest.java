@@ -1,10 +1,35 @@
-package com.elsehere.ai.client;
+package com.elsehere.ai.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.groups.Tuple.tuple;
 
 import ch.qos.logback.classic.Level;
+import com.elsehere.ai.client.ExpressionsResult;
+import com.elsehere.ai.client.FeedbackInput;
+import com.elsehere.ai.client.FollowUpResult;
+import com.elsehere.ai.client.GuardResult;
+import com.elsehere.ai.client.HintResult;
+import com.elsehere.ai.client.JudgeResult;
+import com.elsehere.ai.client.MeaningResult;
+import com.elsehere.ai.client.MemoryCardResult;
+import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.NpcReplyChunk;
+import com.elsehere.ai.client.NpcReplyListener;
+import com.elsehere.ai.client.RelationshipChange;
+import com.elsehere.ai.client.SttResult;
+import com.elsehere.ai.client.SuggestResult;
+import com.elsehere.ai.client.WorkerFeedback;
+import com.elsehere.ai.client.WorkerFollowUp;
+import com.elsehere.ai.client.WorkerLearner;
+import com.elsehere.ai.client.WorkerLine;
+import com.elsehere.ai.client.WorkerMemory;
+import com.elsehere.ai.client.WorkerNpc;
+import com.elsehere.ai.client.WorkerRelationship;
+import com.elsehere.ai.client.WorkerSpeechPhrase;
+import com.elsehere.ai.client.WorkerState;
+import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.client.WorkerUsage;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.logging.LogCapture;

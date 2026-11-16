@@ -62,7 +62,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | code | HTTP | 뜻 | Spring 처리 |
 |---|---|---|---|
 | `unauthorized` | 401 | 내부 토큰 틀림 | 설정 오류. 재시도하지 않음 |
-| `invalid_request` | 400 | 요청 형식 오류 (메시지에 어느 칸인지) | 재시도하지 않음 |
+| `invalid_request` | 400 | 요청 형식 오류 (메시지에 어느 칸인지). 요청 본문 검사에서 거절하면 `fields`에 칸 위치와 오류 종류만 담음 (아래) | 재시도하지 않음. `fields`를 `ai_worker_error` 로그에 남김 |
 | `audio_too_large` | 413 | 녹음이 3MB를 넘음 (`/v1/stt`) | `AUDIO_TOO_LARGE` |
 | `audio_format_unsupported` | 415 | 지원하지 않는 녹음 형식 (`/v1/stt`) | `AUDIO_FORMAT_UNSUPPORTED` |
 | `provider_limit` | 429 | 공급자 한도 (대체 모델까지 소진) | 잠시 뒤 재시도 안내 |
@@ -72,6 +72,12 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | `not_found` | 404 | 음성 조각 없음·보관 시간 지남, 없는 주소 | 음성이면 자막만 |
 | `method_not_allowed` | 405 | 주소는 있지만 HTTP 메서드가 다름 | 호출 코드 오류 |
 | `internal_error` | 500 | 워커 프로그램 오류 (원인은 워커 로그) | 재시도 안내, 워커 로그 확인 |
+
+요청 본문 검사에서 거절한 `invalid_request`는 `fields`에 문제 칸(최대 5개)을 담습니다. `loc`은 칸 위치(목록은 순번), `type`은 검사 오류 종류이고 보낸 값은 담지 않습니다. 메시지에는 사용자 입력이 섞일 수 있어 Spring은 `fields`만 로그에 남깁니다.
+
+```json
+{"error": {"code": "invalid_request", "message": "요청 형식 오류 (instruction: String should have at most 3000 characters)", "fields": [{"loc": "instruction", "type": "string_too_long"}]}}
+```
 
 **부분 실패** — `/v1/guard`는 판정이 실패해도 **HTTP 200**에 `abusive: null`로 돌려줍니다(2.2.1절). `/v1/judge`는 일부가 실패해도 **HTTP 200**으로 돌려주고 실패한 칸에 오류를 적습니다(2.2절). `/v1/feedback`은 실패도 200 안의 `feedback.status: failed`로 알립니다(2.7절). NPC 대답은 SSE `error` 이벤트로 알립니다(2.3절).
 

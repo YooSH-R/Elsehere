@@ -213,6 +213,107 @@ namespace A305.EditorTools.Dialogue
             );
         }
 
+        /// <summary>
+        /// [다시 연습] 참고 카드와 영어 표현 카드가 함께 있을 때. 대화 전에는 참고 카드가 남는 자리만큼 커지고, 길게 말해
+        /// 영어 표현 카드가 다른 표현까지 잡혀도 참고 카드 자리가 남는지 세 테마와 낮은·좁은 화면으로 그린다.
+        /// </summary>
+        public static void CaptureRetryReferenceWithExpression()
+        {
+            DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);
+            string output = OutputFolder();
+            var before = new WordPreviewContent
+            {
+                PreviewLines = new[]
+                {
+                    DialogueLine.FromNpc("Good morning. What do you need?", null),
+                },
+            };
+            var after = new WordPreviewContent
+            {
+                PreviewLines = new[]
+                {
+                    DialogueLine.FromNpc("Good morning. What do you need?", null),
+                    DialogueLine.FromUser(
+                        "글쎄 근데 너는 사람을 처음 봤는데 왜 표정을 그따위로 지으면서 하고 있지? 나는 진짜 이해가 안되네 너 서비스직 아니야? 서비스 제공을 하려면 웃으면서 좀 해라 어?"
+                    ),
+                    DialogueLine.FromNpc(
+                        "I can handle your request without smiling. What room help do you need?",
+                        null
+                    ),
+                },
+                UserTranslation =
+                    "I don't know, but why are you making that kind of face when you're meeting someone for the first time? I really don't get it. Aren't you in customer service? If you're going to provide service, at least smile, okay?",
+                UserBetterExpressions = new[]
+                {
+                    "I don't understand why you're making that face when we've just met. Aren't you supposed to be providing customer service? Please try to smile.",
+                    "Why the long face when we've only just met? You work in service, don't you? A smile would be nice.",
+                },
+            };
+            void Show(WordPreviewContent content)
+            {
+                view.SetReviewReference(null);
+                view.Show(content);
+                view.SetReviewReference(
+                    new[]
+                    {
+                        new ReviewReferenceItem(
+                            "Could I get a room for two nights, please?",
+                            "이틀 묵을 방 하나 주세요",
+                            true,
+                            "방 이틀 줘"
+                        ),
+                        new ReviewReferenceItem(
+                            "I'd like a room with a view, if possible.",
+                            "요청할 때는 I'd like로 시작하면 더 부드러워요.",
+                            false,
+                            "I want room good view"
+                        ),
+                        new ReviewReferenceItem(
+                            "What time is check-out?",
+                            "체크아웃은 몇 시예요?",
+                            false
+                        ),
+                    },
+                    1,
+                    "<b>방 잡기</b>\n호텔 · 손님\n\n호텔 프런트에서 방을 잡고 체크아웃 시간을 물어봐요.\n",
+                    listFirst: true
+                );
+            }
+
+            Show(before);
+            RenderThemes(camera, view, eye, face, output, "retry-expression-start");
+            Show(after);
+            RenderThemes(camera, view, eye, face, output, "retry-expression-talked");
+            foreach (
+                Vector2Int size in new[]
+                {
+                    new Vector2Int(1920, 720),
+                    new Vector2Int(844, 390),
+                    new Vector2Int(900, 1400),
+                }
+            )
+                Render(
+                    camera,
+                    view,
+                    eye,
+                    face,
+                    Path.Combine(output, $"retry-expression-talked-{size.x}x{size.y}.png"),
+                    size.x,
+                    size.y
+                );
+            // 다른 표현을 펼쳐도 참고 카드는 그대로다.
+            Invoke(view, "ToggleOtherExpressions");
+            Render(
+                camera,
+                view,
+                eye,
+                face,
+                Path.Combine(output, "retry-expression-talked-open.png"),
+                1920,
+                1080
+            );
+        }
+
         public static void CaptureFiveLines()
         {
             DialoguePanelView view = OpenCafe(out Camera camera, out Vector3 eye, out Vector3 face);

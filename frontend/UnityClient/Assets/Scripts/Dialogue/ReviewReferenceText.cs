@@ -61,9 +61,10 @@ namespace A305.Dialogue
                         .Append(item.IsCorrection ? CorrectionHeading : ExpressionHeading)
                         .Append("</b></size>");
                 }
-                text.Append("\n\n<indent=38><b>");
+                // 말해 볼 문장은 그 아래 설명(85%)보다 크게 보여 한눈에 찾는다.
+                text.Append("\n\n<indent=38><size=117%><b>");
                 markers.Add(new ReviewReferenceMarker(text.Length, item.Used));
-                text.Append(Escape(item.Expression)).Append("</b>");
+                text.Append(Escape(item.Expression)).Append("</b></size>");
                 if (item.IsCorrection)
                     text.Append("\n<size=85%>내가 한 말 · ")
                         .Append(Said(item.OriginalText))

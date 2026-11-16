@@ -12,7 +12,14 @@ namespace A305.Learning
     internal static class FeedbackConversationLayout
     {
         private const float FontSize = 25;
-        private const string NoCorrectionReason = "별도의 교정 없이도 자연스럽게 전달됐어요.";
+
+        // 칸 그림(FeedbackTile)은 1.7배로 줄여 그린다(높이 165 아래는 더 줄인다). 둘레의 투명 여백(왼 38·오른 42·위 29px)도
+        // 그만큼 줄어 보이므로, 문장 교정 카드와 가장자리를 맞출 때 칸을 이만큼 바깥으로 넓힌다.
+        private const float TileScale = 1.7f;
+        private const float TileLeftPad = 38 / TileScale;
+        private const float TileRightPad = 42 / TileScale;
+        private const float TileTopPad = 29 / TileScale;
+
         private static readonly Color Ink = new Color32(47, 37, 27, 255);
         private static readonly Color Coral = new Color32(242, 99, 63, 255);
         private static readonly Color Muted = new Color32(117, 98, 80, 255);
@@ -339,131 +346,15 @@ namespace A305.Learning
             const float Margin = 24;
             const float Gap = 20;
             float cardWidth = width - Margin * 2;
-            float columnWidth = (cardWidth - Gap) / 2;
             float y = 108;
-            // 문장 교정 카드와 같은 이름표를 쓴다. 한국어로 한 말은 "내가 한 말 · 한국어"와 "영어로는"이다.
-            CorrectionCard card = CorrectionCard.From(review);
-            if (card.Examples.Count > 0)
-            {
-                RectTransform combined = correctionCard(root, card, cardWidth);
-                Pin(combined, Margin, y, cardWidth, combined.sizeDelta.y);
-                return y + combined.sizeDelta.y + 24;
-            }
-            string saidLabel = card.SaidLabel;
-            if (card.Kind == CorrectionKind.WellSaid)
-                saidLabel = "잘 표현했어요";
-            string betterLabel = card.BetterLabel;
-            string better = card.Better;
-            if (better == null)
-            {
-                y =
-                    DetailTile(
-                        root,
-                        fontSource,
-                        displayFont,
-                        tileSprite,
-                        Color.white,
-                        saidLabel,
-                        review.Utterance,
-                        Margin,
-                        y,
-                        cardWidth,
-                        CardHeight(root, fontSource, review.Utterance, cardWidth, displayFont, 32),
-                        displayFont,
-                        32
-                    ) + Gap;
-            }
-            else if (columnWidth >= 300)
-            {
-                float pairHeight = Mathf.Max(
-                    CardHeight(root, fontSource, review.Utterance, columnWidth, displayFont, 32),
-                    CardHeight(root, fontSource, better, columnWidth, displayFont, 32)
-                );
-                DetailTile(
-                    root,
-                    fontSource,
-                    displayFont,
-                    tileSprite,
-                    Color.white,
-                    saidLabel,
-                    review.Utterance,
-                    Margin,
-                    y,
-                    columnWidth,
-                    pairHeight,
-                    displayFont,
-                    32
-                );
-                y =
-                    DetailTile(
-                        root,
-                        fontSource,
-                        displayFont,
-                        tileSprite,
-                        Color.white,
-                        betterLabel,
-                        better,
-                        Margin + columnWidth + Gap,
-                        y,
-                        columnWidth,
-                        pairHeight,
-                        displayFont,
-                        32
-                    ) + Gap;
-            }
-            else
-            {
-                y =
-                    DetailTile(
-                        root,
-                        fontSource,
-                        displayFont,
-                        tileSprite,
-                        Color.white,
-                        saidLabel,
-                        review.Utterance,
-                        Margin,
-                        y,
-                        cardWidth,
-                        CardHeight(root, fontSource, review.Utterance, cardWidth, displayFont, 32),
-                        displayFont,
-                        32
-                    ) + Gap;
-                y =
-                    DetailTile(
-                        root,
-                        fontSource,
-                        displayFont,
-                        tileSprite,
-                        Color.white,
-                        betterLabel,
-                        better,
-                        Margin,
-                        y,
-                        cardWidth,
-                        CardHeight(root, fontSource, better, cardWidth, displayFont, 32),
-                        displayFont,
-                        32
-                    ) + Gap;
-            }
-            (string reasonLabel, string reason) = ReasonOf(card);
-            if (reason != null)
-                y =
-                    DetailTile(
-                        root,
-                        fontSource,
-                        displayFont,
-                        tileSprite,
-                        new Color(1f, 1f, 1f, .86f),
-                        reasonLabel,
-                        reason,
-                        Margin,
-                        y,
-                        cardWidth,
-                        CardHeight(root, fontSource, reason, cardWidth)
-                    ) + Gap;
+            // 문장 교정 탭과 같은 카드 한 장으로 보인다. 상황별 예문이 있으면 카드 안에 함께 둔다.
+            RectTransform card = correctionCard(root, CorrectionCard.From(review), cardWidth);
+            Pin(card, Margin, y, cardWidth, card.sizeDelta.y);
+            y += card.sizeDelta.y;
+            // 문장 교정 탭에 없는 회화 표현은 카드 아래 칸에 남긴다.
             if (review.Idiom != null)
             {
+                y += Gap;
                 string english = review.Idiom.English ?? "";
                 string meaning = review.Idiom.Korean ?? "";
                 float englishHeight = TextHeight(
@@ -483,14 +374,16 @@ namespace A305.Learning
                     FontSize
                 );
                 float height = englishHeight + meaningHeight + 182;
+                // 칸의 보이는 가장자리를 위 카드와 맞춘다.
+                y -= TileTopPad;
                 Image tile = Tile(
                     root,
                     "DetailCard",
                     tileSprite,
                     Color.white,
-                    Margin,
+                    Margin - TileLeftPad,
                     y,
-                    cardWidth,
+                    cardWidth + TileLeftPad + TileRightPad,
                     height
                 );
                 Label(
@@ -531,27 +424,9 @@ namespace A305.Learning
                     cardWidth - 112,
                     meaningHeight + 8
                 );
-                y += height + Gap;
+                y += height;
             }
-            return y + 16;
-        }
-
-        // 이유 칸의 제목과 글. 한국어로 한 말에는 "자연스럽게 전달됐다"는 칭찬을 붙이지 않고, 이유가 없으면 칸을 두지 않는다.
-        private static (string Label, string Text) ReasonOf(CorrectionCard card)
-        {
-            string reason = card.AssessmentReason;
-            if (!string.IsNullOrWhiteSpace(card.BetterMeaning))
-                reason =
-                    card.BetterMeaning + (string.IsNullOrWhiteSpace(reason) ? "" : "\n\n" + reason);
-            bool hasReason = !string.IsNullOrWhiteSpace(reason);
-            if (card.Better != null)
-                return ("이 표현을 쓰는 이유", hasReason ? reason : NoCorrectionReason);
-            if (
-                card.Kind == CorrectionKind.Korean
-                || card.Kind == CorrectionKind.ExpressionPractice
-            )
-                return ("설명", hasReason ? reason : null);
-            return ("자연스러웠던 점", hasReason ? reason : NoCorrectionReason);
+            return y + 24;
         }
 
         private static float TextHeight(
@@ -582,62 +457,6 @@ namespace A305.Learning
             return Mathf.Ceil(height);
         }
 
-        private static float CardHeight(
-            RectTransform root,
-            TMP_Text source,
-            string body,
-            float width,
-            TMP_FontAsset font = null,
-            float size = FontSize
-        ) => Mathf.Max(190, TextHeight(root, source, body, width - 112, font, size) + 168);
-
-        private static float DetailTile(
-            RectTransform root,
-            TMP_Text source,
-            TMP_FontAsset displayFont,
-            Sprite sprite,
-            Color tint,
-            string heading,
-            string body,
-            float x,
-            float y,
-            float width,
-            float height,
-            TMP_FontAsset bodyFont = null,
-            float bodySize = FontSize
-        )
-        {
-            Image tile = Tile(root, "DetailCard", sprite, tint, x, y, width, height);
-            const float Inset = 56;
-            Label(
-                tile.rectTransform,
-                source,
-                "Heading",
-                heading,
-                26,
-                Coral,
-                Inset,
-                38,
-                width - Inset * 2,
-                40,
-                displayFont
-            );
-            Label(
-                tile.rectTransform,
-                source,
-                "Body",
-                body ?? "",
-                bodySize,
-                Ink,
-                Inset,
-                90,
-                width - Inset * 2,
-                height - 148,
-                bodyFont
-            );
-            return y + height;
-        }
-
         private static Image Tile(
             RectTransform parent,
             string name,
@@ -661,7 +480,7 @@ namespace A305.Learning
                 sprite != null && sprite.border != Vector4.zero
                     ? Image.Type.Sliced
                     : Image.Type.Simple;
-            image.pixelsPerUnitMultiplier = Mathf.Max(1.7f, 280f / Mathf.Max(1, height));
+            image.pixelsPerUnitMultiplier = Mathf.Max(TileScale, 280f / Mathf.Max(1, height));
             image.color = color;
             image.raycastTarget = false;
             Pin(image.rectTransform, x, y, width, height);

@@ -354,7 +354,8 @@ LOW_NEED = {
     ),
     "SOCIAL": (
         "You have had no one to talk to for a while, so you are glad someone is chatting with you: "
-        "you happily keep the small talk going. Face: your usual face, a little softer; no smile your personality would not give."
+        "you happily keep the small talk going. Face: sad, lightly (you have been lonely); later faces brighten only as far as "
+        "your personality would."
     ),
     "FUN": (
         "You are bored: it has been a slow, dull day, so anything new or fun they bring up perks you up. "

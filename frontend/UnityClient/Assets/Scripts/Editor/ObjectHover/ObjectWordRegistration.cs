@@ -355,7 +355,7 @@ namespace A305.EditorTools.ObjectHover
                     throw new InvalidOperationException("Unknown word: " + target.UnityKey);
             foreach (MeshRenderer renderer in environment.GetComponentsInChildren<MeshRenderer>())
             {
-                if (!renderer.enabled || renderer.GetComponent<TMPro.TMP_Text>() != null)
+                if (!RequiresWord(renderer))
                     continue;
                 if (renderer.GetComponentInParent<HoverableObject>() == null)
                     report.AppendLine(
@@ -366,6 +366,11 @@ namespace A305.EditorTools.ObjectHover
                     );
             }
         }
+
+        public static bool RequiresWord(MeshRenderer renderer) =>
+            renderer.enabled
+            && renderer.gameObject.layer != LayerMask.NameToLayer("Ignore Raycast")
+            && renderer.GetComponent<TMPro.TMP_Text>() == null;
 
         private static string Hierarchy(Transform node, Transform root)
         {

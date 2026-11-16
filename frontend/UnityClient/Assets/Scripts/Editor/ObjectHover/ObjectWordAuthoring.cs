@@ -333,8 +333,7 @@ namespace A305.EditorTools.ObjectHover
         {
             foreach (MeshRenderer renderer in root.GetComponentsInChildren<MeshRenderer>())
                 if (
-                    renderer.enabled
-                    && renderer.GetComponent<TMPro.TMP_Text>() == null
+                    ObjectWordRegistration.RequiresWord(renderer)
                     && renderer.GetComponentInParent<HoverableObject>() == null
                 )
                     throw new InvalidOperationException(

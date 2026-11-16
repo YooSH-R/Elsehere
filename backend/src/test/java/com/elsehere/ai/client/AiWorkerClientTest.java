@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -582,6 +584,26 @@ class AiWorkerClientTest {
         .contains("\"goal\":\"\"")
         .contains("\"history\":[{\"who\":\"npc\",\"text\":\"For here or to go?\"")
         .contains("\"level\":1");
+  }
+
+  @Test
+  @DisplayName("추천 단어 목표가 워커 상한 300자를 넘으면 잘라서 보낸다")
+  void suggest_clipsGoalLongerThanWorkerLimit() {
+    respond("/v1/suggest", 200, "application/json", "{\"words\": [\"wrap\"], \"usage\": []}");
+    String goal = "The learner asks for flowers. ".repeat(15);
+
+    client.suggest(TRACE, NPC, List.of(WorkerLine.npc("Who are they for?")), goal, 1);
+
+    // 테스트 서버는 본문을 ISO-8859-1로 받아 두므로, 글자 수를 세려고 UTF-8로 다시 읽는다.
+    String body =
+        new String(
+            received.get("/v1/suggest").body().getBytes(StandardCharsets.ISO_8859_1),
+            StandardCharsets.UTF_8);
+    Matcher sent = Pattern.compile("\"goal\":\"([^\"]*)\"").matcher(body);
+    assertThat(sent.find()).isTrue();
+    assertThat(sent.group(1))
+        .hasSizeLessThanOrEqualTo(300)
+        .startsWith("The learner asks for flowers.");
   }
 
   @Test

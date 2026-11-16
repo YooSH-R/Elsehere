@@ -55,6 +55,8 @@ public class AiWorkerClient {
   private static final Duration RELATIONSHIP_TIMEOUT = Duration.ofSeconds(10);
   // 뜻 보기·힌트는 짧은 모델 호출 한 번이다. 재시도·대체 모델까지 기다리도록 NPC 대답과 같게 둔다.
   private static final Duration HELP_TIMEOUT = Duration.ofSeconds(30);
+  // 워커 SuggestRequest.goal의 최대 길이(ai/worker/app/schemas.py)
+  private static final int SUGGEST_GOAL_LENGTH = 300;
 
   private final HttpClient httpClient =
       HttpClient.newBuilder()
@@ -279,10 +281,10 @@ public class AiWorkerClient {
    */
   public SuggestResult suggest(
       WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history, String goal, int level) {
-    // 장소(scene)를 비우면 워커가 NPC의 장소를 쓴다.
-    HttpRequest request =
-        jsonRequest(
-            "/v1/suggest", trace, HELP_TIMEOUT, new SuggestBody(npc, "", goal, history, level));
+    // 장소(scene)를 비우면 워커가 NPC의 장소를 쓴다. 목표는 판정 기준이라 길 수 있어 워커 상한에 맞춰 자른다.
+    SuggestBody body =
+        new SuggestBody(npc, "", WorkerText.clip(goal, SUGGEST_GOAL_LENGTH), history, level);
+    HttpRequest request = jsonRequest("/v1/suggest", trace, HELP_TIMEOUT, body);
     return readJson(send(request, HttpResponse.BodyHandlers.ofString()), SuggestResult.class);
   }
 

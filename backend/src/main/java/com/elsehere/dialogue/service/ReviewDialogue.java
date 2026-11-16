@@ -1,5 +1,7 @@
 package com.elsehere.dialogue.service;
 
+import static com.elsehere.ai.client.WorkerText.clip;
+
 import com.elsehere.ai.client.WorkerState;
 import com.elsehere.review.dto.ReviewCardResponse;
 import com.elsehere.review.dto.ReviewScenario;
@@ -81,17 +83,5 @@ class ReviewDialogue {
         .limit(EXPRESSION_COUNT)
         .map(target -> clip(target.expression(), EXPRESSION_LENGTH))
         .toList();
-  }
-
-  private static String clip(String text, int maxLength) {
-    if (text == null || text.length() <= maxLength) {
-      return text;
-    }
-    int end = maxLength - 1;
-    // 이모지처럼 두 칸인 글자를 반으로 자르면 깨진 문자열이 되므로 그 글자 앞에서 자른다.
-    if (Character.isHighSurrogate(text.charAt(end - 1))) {
-      end--;
-    }
-    return text.substring(0, end).strip() + "…";
   }
 }

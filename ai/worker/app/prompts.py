@@ -366,9 +366,13 @@ LOW_NEED = {
 # 실제 모델(gpt-6.1-sol)은 "드러나게" 같은 막연한 말로는 하던 일(체크인 안내)만 이어 가서, 이번 대답에서 무엇을 할지 구체적으로 적는다
 STRONG_NEED = (
     "It is strong right now: if you have not mentioned it yet in this conversation, mention it briefly in this reply, "
-    "in your own words, while still doing your job; after that, let it show only in your tone."
+    "in your own words, while still doing your job; after that, do not bring it up again unless they ask about it, "
+    "and let it show only in your tone."
 )
-MILD_NEED = "Only a hint of it shows."
+# 한 번 말한 뒤에도 대답마다 다시 꺼냈다(실제 모델, 여러 턴 대화: "batteries are low"). 부탁 계기로 알아챌 만큼은 남긴다
+MILD_NEED = "Only a hint of it shows, and once it has come up, do not bring it up again unless they ask about it."
+# 욕구 줄이 성격·직업·상대의 말을 밀어내고 대답 내용을 차지하지 않게 한다
+NEEDS_IN_THE_TONE = "These needs color your tone; your personality, your job and what they just said still decide what you say."
 # 바탕 기분은 웃는 얼굴을 지정하지 않는다: 무뚝뚝한 성격(Jake)도 욕구가 넉넉하면 웃으며 시작했다(실제 모델 확인). 웃음은 성격과 사건 기분이 정한다
 CONTENT = "You are rested and in an easy mood: relaxed and unhurried. Face: your usual face for your personality, just relaxed."
 # 사건 기분: 세기(mild·strong)마다 말투를 다르게. 기분 좋음은 이유(가장 최근에 올린 사건)를 넣어 이유에 맞게 반응하게 한다
@@ -404,6 +408,8 @@ PLEASED = {
 def mood_note(mood: dict) -> str:
     """NPC 지시문에 넣을 '지금 기분'. 바탕 기분(욕구) 다음에 이번 대화의 사건 기분을 둔다. 드러낼 기분이 없으면 빈 문자열."""
     lines = [f"- {LOW_NEED[need]} {STRONG_NEED if strong else MILD_NEED}" for need, strong in mood["low_needs"]]
+    if lines:
+        lines.append(f"- {NEEDS_IN_THE_TONE}")
     if mood["content"]:
         lines.append(f"- {CONTENT}")
     if mood["annoyed"]:

@@ -977,6 +977,79 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("워커가 요청 형식으로 거절하면 문제 칸과 오류 종류를 남기고 메시지는 남기지 않는다")
+  void invalidRequest_logsRejectedFieldsWithoutMessage() {
+    respond(
+        "/v1/guard",
+        400,
+        "application/json",
+        """
+        {"error": {"code": "invalid_request", "message": "요청 형식 오류 (my secret plan)",
+          "fields": [{"loc": "instruction", "type": "string_too_long"},
+                     {"loc": "history.3.text", "type": "missing"}]}}
+        """);
+
+    try (LogCapture logs = LogCapture.atInfo(AiWorkerClient.class)) {
+      assertThatThrownBy(() -> client.guard(TRACE, NPC, List.of(), "hello"))
+          .isInstanceOf(BusinessException.class);
+
+      assertThat(logs.messages(Level.WARN))
+          .singleElement()
+          .asString()
+          .isEqualTo(
+              "ai_worker_error status=400 code=invalid_request"
+                  + " fields=instruction:string_too_long,history.3.text:missing")
+          .doesNotContain("my secret plan");
+    }
+  }
+
+  @Test
+  @DisplayName("문제 칸 이름에 이름 글자가 아닌 것이 오면 지우고 남긴다")
+  void invalidRequest_dropsUnexpectedCharactersFromFields() {
+    respond(
+        "/v1/guard",
+        400,
+        "application/json",
+        """
+        {"error": {"code": "invalid_request", "message": "",
+          "fields": [{"loc": "needs.my secret=1", "type": "literal error"}]}}
+        """);
+
+    try (LogCapture logs = LogCapture.atInfo(AiWorkerClient.class)) {
+      assertThatThrownBy(() -> client.guard(TRACE, NPC, List.of(), "hello"))
+          .isInstanceOf(BusinessException.class);
+
+      assertThat(logs.messages(Level.WARN))
+          .singleElement()
+          .asString()
+          .isEqualTo(
+              "ai_worker_error status=400 code=invalid_request fields=needs.mysecret1:literalerror");
+    }
+  }
+
+  @Test
+  @DisplayName("문제 칸이 없는 워커 오류는 지금처럼 상태와 코드만 남긴다")
+  void workerErrorWithoutFields_logsStatusAndCode() {
+    respond(
+        "/v1/guard",
+        503,
+        "application/json",
+        """
+        {"error": {"code": "provider_unavailable", "message": "모든 모델이 응답하지 않음"}}
+        """);
+
+    try (LogCapture logs = LogCapture.atInfo(AiWorkerClient.class)) {
+      assertThatThrownBy(() -> client.guard(TRACE, NPC, List.of(), "hello"))
+          .isInstanceOf(BusinessException.class);
+
+      assertThat(logs.messages(Level.WARN))
+          .singleElement()
+          .asString()
+          .isEqualTo("ai_worker_error status=503 code=provider_unavailable");
+    }
+  }
+
+  @Test
   @DisplayName("운영(INFO)에서는 성공한 워커 호출을 남기지 않는다")
   void successfulCall_isNotLoggedAtInfo() {
     respond(

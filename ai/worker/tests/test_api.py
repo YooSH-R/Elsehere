@@ -74,6 +74,15 @@ def test_request_id_echoed_and_bad_request_format(client):
     assert r.json()["error"]["code"] == "invalid_request" and "state" in r.json()["error"]["message"]
 
 
+def test_bad_request_names_only_the_field_and_reason(client):
+    """Spring이 로그에 남길 수 있게 문제 칸과 오류 종류만 따로 준다. 보낸 값(학습자 말·지시문)은 담지 않는다."""
+    secret = "my secret plan " * 300
+    r = client.post("/v1/npc/reply", json={"npc": NPC, "history": [], "text": "hi", "instruction": secret, "tts": False})
+    assert r.status_code == 400
+    assert r.json()["error"]["fields"] == [{"loc": "instruction", "type": "string_too_long"}]
+    assert "my secret plan" not in r.text
+
+
 # ---------------------------------------------------------------------
 # 판정
 # ---------------------------------------------------------------------

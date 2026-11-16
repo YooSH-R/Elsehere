@@ -601,17 +601,43 @@ public class AiWorkerClient {
     return response.body();
   }
 
-  // 오류 본문은 {"error": {"code", "message"}}다. 메시지에는 사용자 입력이 섞일 수 있어 코드만 남긴다.
+  // 오류 본문은 {"error": {"code", "message", "fields"}}다. 메시지에는 사용자 입력이 섞일 수 있어 남기지 않고,
+  // 요청 형식 오류면 어느 칸이 왜 거절됐는지(fields)만 함께 남긴다.
   private BusinessException toError(int status, String body) {
-    String code = null;
+    ErrorDetail detail = null;
     try {
-      ErrorBody error = jsonMapper.readValue(body, ErrorBody.class);
-      code = error.error() == null ? null : error.error().code();
+      detail = jsonMapper.readValue(body, ErrorBody.class).error();
     } catch (JacksonException exception) {
       // 오류 형식이 아닌 본문(프록시 오류 등)
     }
-    log.warn("ai_worker_error status={} code={}", status, code);
+    String code = detail == null ? null : detail.code();
+    String fields = detail == null ? "" : rejectedFields(detail.fields());
+    if (fields.isEmpty()) {
+      log.warn("ai_worker_error status={} code={}", status, code);
+    } else {
+      log.warn("ai_worker_error status={} code={} fields={}", status, code, fields);
+    }
     return new BusinessException(toErrorCode(code));
+  }
+
+  // "instruction:string_too_long,history.3.text:missing"처럼 칸 위치와 오류 종류만 잇는다. 이름에 쓰지 않는 글자는 지운다.
+  private static String rejectedFields(List<RejectedField> fields) {
+    if (fields == null) {
+      return "";
+    }
+    return fields.stream()
+        .filter(Objects::nonNull)
+        .limit(5)
+        .map(field -> nameOnly(field.loc()) + ":" + nameOnly(field.type()))
+        .collect(Collectors.joining(","));
+  }
+
+  private static String nameOnly(String text) {
+    if (text == null) {
+      return "";
+    }
+    String name = text.replaceAll("[^A-Za-z0-9_.]", "");
+    return name.length() > 60 ? name.substring(0, 60) : name;
   }
 
   public PerformanceIntentResult performanceIntent(WorkerTrace trace, String text) {
@@ -693,5 +719,8 @@ public class AiWorkerClient {
 
   record ErrorBody(ErrorDetail error) {}
 
-  record ErrorDetail(String code) {}
+  record ErrorDetail(String code, List<RejectedField> fields) {}
+
+  /** 요청 형식 오류에서 워커가 거절한 칸. 보낸 값은 담기지 않는다. */
+  record RejectedField(String loc, String type) {}
 }

@@ -21,7 +21,7 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 
 이 헤더는 전송 요청의 추적용입니다. 중복 처리를 방지하는 API 본문의 UUID `requestId`와는 용도가 다르며, 재시도 요청은 같은 본문 ID를 사용해도 새로운 HTTP 추적 ID를 받습니다.
 
-저장소의 [AiWorkerClient](../backend/src/main/java/com/elsehere/ai/client/AiWorkerClient.java)는 HTTP 요청 문맥의 추적 ID를 워커의 `X-Request-Id`로 전달합니다. HTTP 요청 문맥이 없으면 `WorkerTrace`의 UUID를 사용합니다. 실제 배포본에서도 Spring과 워커의 로그를 같은 ID로 찾을 수 있는지 확인합니다.
+저장소의 [AiWorkerClient](../backend/src/main/java/com/elsehere/ai/service/AiWorkerClient.java)는 HTTP 요청 문맥의 추적 ID를 워커의 `X-Request-Id`로 전달합니다. HTTP 요청 문맥이 없으면 `WorkerTrace`의 UUID를 사용합니다. 실제 배포본에서도 Spring과 워커의 로그를 같은 ID로 찾을 수 있는지 확인합니다.
 
 ### 백엔드 업무 흐름 로그
 

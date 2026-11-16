@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
 import com.elsehere.TestcontainersConfiguration;
-import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.ExpressionsResult;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.HintResult;

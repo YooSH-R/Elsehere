@@ -1,6 +1,5 @@
 package com.elsehere.ai.service;
 
-import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.ExpressionsResult;
 import com.elsehere.ai.client.FeedbackInput;
 import com.elsehere.ai.client.FollowUpResult;

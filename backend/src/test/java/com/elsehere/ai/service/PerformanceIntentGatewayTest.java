@@ -7,7 +7,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.PerformanceIntentResult;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.client.WorkerUsage;

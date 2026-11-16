@@ -108,6 +108,9 @@ namespace A305.Npc
             return at <= after ? at + NpcScheduleBlock.MinutesPerDay : at;
         }
 
+        /// <summary>일과에 퇴근(OFF)이 없는지(상주 직원 등). 이런 NPC는 날이 바뀌면 욕구를 시작값부터 한다.</summary>
+        public bool NeverOff => Schedule.TrueForAll(block => block.Activity != "OFF");
+
         /// <param name="minutes">1일차 0시부터 센 게임 시각(분)</param>
         public string ActivityAt(double minutes)
         {

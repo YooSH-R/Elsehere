@@ -35,13 +35,12 @@ def unity_life_data() -> dict:
 def _npc(npc_id: str, rules: dict) -> dict:
     npc = npc_simulate.service_npc(npc_id)
     source = json.loads((npc_life_rules.LIFE_FOLDER / f"{npc_id}.json").read_text(encoding="utf-8"))
-    rates = npc["rates"].get("needRates", {})
     return {
         "npcId": npc_id,
         "role": npc["role"],
         "scene": npc["place"],
         "workplace": source["workplace"],
-        "needRates": {need: rates.get(need, 1) for need in rules["needs"]},
+        "needRates": {need: npc_simulate.need_rate(npc, need) for need in rules["needs"]},
         "schedule": [{key: block[key] for key in ("from", "to", "activity")} for block in npc["schedule"]],
         "meals": npc_derive.work_meals(npc_id, rules),
     }

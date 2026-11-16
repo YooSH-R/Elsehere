@@ -354,7 +354,8 @@ LOW_NEED = {
     ),
     "SOCIAL": (
         "You have had no one to talk to for a while, so you are glad someone is chatting with you: "
-        "you happily keep the small talk going. Face: warm_smile."
+        "you happily keep the small talk going. Face: sad, lightly (you have been lonely); later faces brighten only as far as "
+        "your personality would."
     ),
     "FUN": (
         "You are bored: it has been a slow, dull day, so anything new or fun they bring up perks you up. "
@@ -368,7 +369,8 @@ STRONG_NEED = (
     "in your own words, while still doing your job; after that, let it show only in your tone."
 )
 MILD_NEED = "Only a hint of it shows."
-CONTENT = "You are rested and in an easy mood: relaxed and unhurried. Face: warm_smile."
+# 바탕 기분은 웃는 얼굴을 지정하지 않는다: 무뚝뚝한 성격(Jake)도 욕구가 넉넉하면 웃으며 시작했다(실제 모델 확인). 웃음은 성격과 사건 기분이 정한다
+CONTENT = "You are rested and in an easy mood: relaxed and unhurried. Face: your usual face for your personality, just relaxed."
 # 사건 기분: 세기(mild·strong)마다 말투를 다르게. 기분 좋음은 이유(가장 최근에 올린 사건)를 넣어 이유에 맞게 반응하게 한다
 ANNOYED = {
     "strong": (

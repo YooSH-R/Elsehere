@@ -186,6 +186,21 @@ def test_resident_staff_stay_at_their_workplace_all_day_without_a_commute_or_bre
     assert values["schedule"] == [{"from": "00:00", "to": "00:00", "activity": "WORK", "scene": place, "canLeave": False}]
 
 
+@pytest.mark.parametrize("npc_id", ["CAFE_STAFF", "HOTEL_STAFF"])
+def test_npcs_without_time_off_spread_a_workday_of_need_drop_over_the_whole_day(npc_id):
+    """퇴근이 없어 출근 때 욕구가 시작값으로 돌아가지 않는 NPC(상주 직원)는, 끼니로 되돌아오지 않는 욕구(사교·재미·업무)가
+    하루 24시간 동안 allDayWork.drainHours 시간 근무자만큼만 줄어든다. 하루 전부터 흘려 맞추면 사교가 바닥인 채로
+    처음 만나던 문제(Jake). 배고픔·피로는 근무 중 끼니 리듬이 있어 그대로다. 성격 배수(rates)는 근무 형태와 따로 둔다."""
+    rules = service_rules()
+    resident = npc_derive.npc_life_values({**load_life(npc_id), "resident": True}, rules, service_behaviors(), home_of(npc_id))
+    on_shift = npc_derive.npc_life_values({**load_life(npc_id), "resident": False}, rules, service_behaviors(), home_of(npc_id))
+    spread = rules["allDayWork"]["drainHours"] / 24
+
+    assert resident["needDrain"] == {"SOCIAL": spread, "FUN": spread, "WORK": spread}
+    assert on_shift["needDrain"] == {}
+    assert resident["rates"] == on_shift["rates"]
+
+
 def test_mia_jake_alex_and_the_town_story_staff_are_permanent_residents():
     """이야기 퀘스트가 찾아가라고 하는 거리 매장 직원 9명도 상주해, 퀘스트가 퇴근한 직원을 다시 불러내지 않는다(임시 배치)."""
     residents = {

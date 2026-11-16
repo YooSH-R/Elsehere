@@ -280,6 +280,21 @@ def test_an_npc_whose_needs_are_all_met_is_relaxed(client, provider):
     assert "easy mood" in system(client, provider, needs=FULL)
 
 
+def test_a_relaxed_mood_keeps_the_face_of_the_personality(client, provider):
+    """욕구로 정한 여유로움은 웃는 얼굴을 지정하지 않는다. 무뚝뚝한 NPC(Jake)도 욕구가 넉넉하면 warm_smile로
+    시작하던 문제(실제 모델 확인). 웃음은 성격과 이번 대화의 사건(칭찬 등)이 정한다."""
+    mood = mood_section(system(client, provider, needs=FULL))
+
+    assert "warm_smile" not in mood and "usual face" in mood
+
+
+def test_a_lonely_npc_starts_a_little_sad_instead_of_smiling(client, provider):
+    """외로움(사교 욕구 낮음)은 외로움 전용 표정이 없어 가장 가까운 sad로 시작한다. 밝아지는 건 성격만큼만."""
+    mood = mood_section(system(client, provider, needs={**FULL, "SOCIAL": LOW - 1}))
+
+    assert "warm_smile" not in mood and "Face: sad" in mood
+
+
 def test_without_needs_or_events_there_is_no_mood_line(client, provider):
     """욕구가 오지 않고(이전 앱) 기분이 드러날 일도 없으면 지시문은 지금과 같다."""
     assert "How you feel right now:" not in system(client, provider, history=[], memory=MEMORY)

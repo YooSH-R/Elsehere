@@ -66,7 +66,8 @@ namespace A305.Npc
                 Drop(segmentEnd - lastMinutes);
                 lastMinutes = segmentEnd;
                 string now = npc.ActivityAt(lastMinutes);
-                if (activity == Off && now != Off)
+                // 출근하면 시작값부터. 퇴근이 없는 NPC(상주 직원)는 날이 바뀔 때 시작값부터 한다(AI 하루 시뮬레이션과 같음).
+                if ((activity == Off && now != Off) || (npc.NeverOff && IsMidnight(lastMinutes)))
                 {
                     StartNeedsOver();
                 }
@@ -229,6 +230,11 @@ namespace A305.Npc
                     needs[meal.Need] = Math.Max(needs[meal.Need], data.Needs[meal.Need].Start);
                 }
             }
+        }
+
+        private static bool IsMidnight(double minutes)
+        {
+            return Math.Abs(minutes % NpcScheduleBlock.MinutesPerDay) < .001;
         }
 
         private void StartNeedsOver()

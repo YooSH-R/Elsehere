@@ -36,13 +36,15 @@ def test_an_npc_gets_its_role_place_and_the_schedule_derived_from_its_shift():
     assert mia["schedule"] == [{key: block[key] for key in ("from", "to", "activity")} for block in derived["schedule"]]
 
 
-def test_need_rates_come_from_the_personality_and_default_to_one():
-    """성격에서 계산한 배수가 없는 욕구는 1. Unity가 빠진 욕구를 따로 다루지 않게 다섯 욕구를 모두 채운다."""
+def test_need_rates_are_the_personality_times_the_way_the_npc_works():
+    """Unity 배수 = 성격 배수 × 근무 형태 배수(퇴근 없는 Jake는 사교·재미·업무가 하루에 나눠 줆). 없는 배수는 1이고,
+    Unity가 빠진 욕구를 따로 다루지 않게 다섯 욕구를 모두 채운다."""
     jake, derived = exported("HOTEL_STAFF"), npc_simulate.service_npc("HOTEL_STAFF")
-    rates = derived["rates"].get("needRates", {})
+    rates, drain = derived["rates"].get("needRates", {}), derived["needDrain"]
 
     assert set(jake["needRates"]) == NEEDS
-    assert jake["needRates"] == {need: rates.get(need, 1) for need in NEEDS}
+    assert jake["needRates"] == {need: rates.get(need, 1) * drain.get(need, 1) for need in NEEDS}
+    assert jake["needRates"]["SOCIAL"] < rates["SOCIAL"] and jake["needRates"]["HUNGER"] == rates.get("HUNGER", 1)
 
 
 def test_street_staff_keeps_its_workplace_separate_from_the_town_scene():

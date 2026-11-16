@@ -24,15 +24,27 @@ def npc_life_values(life: dict, rules: dict, library: dict, place: str) -> dict:
     """생활 파일의 입력 노드(mbti·role·workplace·shift)와 npcId, 인격 파일의 기본 장소(place)에서 NPC 생활 값을 계산한다.
     - behaviors: 뽑힌 행동 조각 id. npcId를 씨앗으로 써서 같은 NPC는 늘 같은 결과다
     - rates: 성격 계산(derive_rates) × 뽑힌 조각 affects
+    - needDrain: 근무 형태에 따른 욕구 감소 배수(all_day_drain). 성격 배수(rates.needRates)와 곱해 쓴다
     - schedule: 근무지에서 맡은 교대를 역할 규칙으로 하루 일과 틀로 바꾸고 기본 장소를 넣은 일과"""
     dimensions = mbti_to_dimensions(life["mbti"])
     behaviors = pick_behaviors(dimensions, library, seed=life["npcId"])
     rates = combine_rates(derive_rates(dimensions, rules), *(behavior.get("affects", {}) for behavior in behaviors))
+    day = life_day(life, rules)
     return {
         "behaviors": [behavior["id"] for behavior in behaviors],
         "rates": rates,
-        "schedule": npc_schedule(life_day(life, rules), place),
+        "needDrain": all_day_drain(rules) if all(block["activity"] != "OFF" for block in day) else {},
+        "schedule": npc_schedule(day, place),
     }
+
+
+def all_day_drain(rules: dict) -> dict[str, float]:
+    """퇴근이 없는 NPC(상주 직원 등)의 욕구 감소 배수. 출근 때 시작값으로 돌아가지 않아 하루 내내 줄어드니, 하루 24시간 동안
+    allDayWork.drainHours 시간 근무자만큼만 줄게 drainHours/24를 곱한다(날이 바뀌면 시작값부터).
+    근무 중 끼니 시각(workMeals)에 되돌아오는 배고픔·피로는 끼니 사이 리듬이 있어 그대로 둔다."""
+    spread = rules["allDayWork"]["drainHours"] / 24
+    meal_needs = {meal["need"] for meal in rules["workMeals"]["times"]}
+    return {need: spread for need in rules["needs"] if need not in meal_needs}
 
 
 def life_day(life: dict, rules: dict) -> list[dict]:

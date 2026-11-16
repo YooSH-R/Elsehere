@@ -141,9 +141,9 @@
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
-        "SOCIAL": 1.2,
-        "FUN": 1.2,
-        "WORK": 1
+        "SOCIAL": 0.39999999999999997,
+        "FUN": 0.39999999999999997,
+        "WORK": 0.3333333333333333
       },
       "schedule": [
         {
@@ -187,9 +187,9 @@
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
-        "SOCIAL": 1.2,
-        "FUN": 0.8,
-        "WORK": 1
+        "SOCIAL": 0.39999999999999997,
+        "FUN": 0.26666666666666666,
+        "WORK": 0.3333333333333333
       },
       "schedule": [
         {
@@ -233,9 +233,9 @@
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
-        "SOCIAL": 0.8,
-        "FUN": 0.8,
-        "WORK": 1
+        "SOCIAL": 0.26666666666666666,
+        "FUN": 0.26666666666666666,
+        "WORK": 0.3333333333333333
       },
       "schedule": [
         {
@@ -279,9 +279,9 @@
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
-        "SOCIAL": 1.2,
-        "FUN": 1.56,
-        "WORK": 1
+        "SOCIAL": 0.39999999999999997,
+        "FUN": 0.52,
+        "WORK": 0.3333333333333333
       },
       "schedule": [
         {
@@ -437,9 +437,9 @@
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
-        "SOCIAL": 1.2,
-        "FUN": 0.8,
-        "WORK": 1
+        "SOCIAL": 0.39999999999999997,
+        "FUN": 0.26666666666666666,
+        "WORK": 0.3333333333333333
       },
       "schedule": [
         {
@@ -483,9 +483,9 @@
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
-        "SOCIAL": 1.2,
-        "FUN": 0.8,
-        "WORK": 1
+        "SOCIAL": 0.39999999999999997,
+        "FUN": 0.26666666666666666,
+        "WORK": 0.3333333333333333
       },
       "schedule": [
         {
@@ -697,9 +697,9 @@
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
-        "SOCIAL": 0.8,
-        "FUN": 1.2,
-        "WORK": 1
+        "SOCIAL": 0.26666666666666666,
+        "FUN": 0.39999999999999997,
+        "WORK": 0.3333333333333333
       },
       "schedule": [
         {
@@ -743,9 +743,9 @@
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
-        "SOCIAL": 0.8,
-        "FUN": 0.8,
-        "WORK": 1
+        "SOCIAL": 0.26666666666666666,
+        "FUN": 0.26666666666666666,
+        "WORK": 0.3333333333333333
       },
       "schedule": [
         {
@@ -1013,9 +1013,9 @@
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
-        "SOCIAL": 0.8,
-        "FUN": 1.2,
-        "WORK": 1
+        "SOCIAL": 0.26666666666666666,
+        "FUN": 0.39999999999999997,
+        "WORK": 0.3333333333333333
       },
       "schedule": [
         {
@@ -1059,9 +1059,9 @@
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
-        "SOCIAL": 0.8,
-        "FUN": 1.2,
-        "WORK": 1
+        "SOCIAL": 0.26666666666666666,
+        "FUN": 0.39999999999999997,
+        "WORK": 0.3333333333333333
       },
       "schedule": [
         {
@@ -1329,9 +1329,9 @@
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
-        "SOCIAL": 0.8,
-        "FUN": 0.8,
-        "WORK": 1
+        "SOCIAL": 0.26666666666666666,
+        "FUN": 0.26666666666666666,
+        "WORK": 0.3333333333333333
       },
       "schedule": [
         {
@@ -1487,9 +1487,9 @@
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
-        "SOCIAL": 0.8,
-        "FUN": 0.8,
-        "WORK": 1
+        "SOCIAL": 0.26666666666666666,
+        "FUN": 0.26666666666666666,
+        "WORK": 0.3333333333333333
       },
       "schedule": [
         {
@@ -1533,9 +1533,9 @@
       "needRates": {
         "HUNGER": 1,
         "ENERGY": 1,
-        "SOCIAL": 1.2,
-        "FUN": 1.56,
-        "WORK": 1
+        "SOCIAL": 0.39999999999999997,
+        "FUN": 0.52,
+        "WORK": 0.3333333333333333
       },
       "schedule": [
         {

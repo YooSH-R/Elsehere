@@ -629,6 +629,78 @@ namespace A305.Dialogue.PlayModeTests
             );
         }
 
+        // 복습·다시 연습 중에 길게 말해 영어 표현 카드가 커져도, 말해 볼 문장을 알려 주는 참고 카드 자리는 남긴다.
+        [UnityTest]
+        public IEnumerator LongLineInReview_KeepsRoomForTheReferenceCard()
+        {
+            view.Show(
+                new Content
+                {
+                    UserLine = VeryLongExpression,
+                    UserTranslation = VeryLongExpression,
+                    UserBetterExpressions = new[] { VeryLongExpression, VeryLongExpression },
+                }
+            );
+            ShowReviewReference();
+            yield return null;
+            var root = (RectTransform)instance.transform;
+            Rect reference = InPanel((RectTransform)instance.transform.Find("HelpPanel"), root);
+            Rect tools = InPanel(
+                (RectTransform)instance.transform.Find("Panel/Conversation/ToolRow"),
+                root
+            );
+            Assert.That(reference.height, Is.GreaterThanOrEqualTo(520 - .5f));
+            Assert.That(reference.yMin, Is.GreaterThanOrEqualTo(tools.yMax));
+        }
+
+        // 대사가 짧아 자리가 남으면 참고 카드는 넓게, 내용이 보이는 만큼 아래로 더 커진다.
+        [UnityTest]
+        public IEnumerator ShortConversationInReview_GivesTheReferenceCardTheFreeRoom()
+        {
+            view.Show(
+                new Content { Conversation = new[] { DialogueLine.FromNpc("Hello!", null) } }
+            );
+            ShowReviewReference();
+            yield return null;
+            var root = (RectTransform)instance.transform;
+            Rect reference = InPanel((RectTransform)instance.transform.Find("HelpPanel"), root);
+            Rect tools = InPanel(
+                (RectTransform)instance.transform.Find("Panel/Conversation/ToolRow"),
+                root
+            );
+            Assert.That(reference.width, Is.EqualTo(520).Within(.5f));
+            Assert.That(reference.height, Is.GreaterThan(600));
+            Assert.That(reference.yMin, Is.GreaterThanOrEqualTo(tools.yMax));
+            Assert.That(reference.yMax, Is.LessThanOrEqualTo(1080 / 2f));
+        }
+
+        private void ShowReviewReference() =>
+            view.SetReviewReference(
+                new[]
+                {
+                    new ReviewReferenceItem(
+                        "Could I get a room for two nights, please?",
+                        "이틀 묵을 방 하나 주세요",
+                        true,
+                        "방 이틀 줘"
+                    ),
+                    new ReviewReferenceItem(
+                        "I'd like a room with a view, if possible.",
+                        "요청할 때는 I'd like로 시작하면 더 부드러워요.",
+                        false,
+                        "I want room good view"
+                    ),
+                    new ReviewReferenceItem(
+                        "What time is check-out?",
+                        "체크아웃은 몇 시예요?",
+                        false
+                    ),
+                },
+                1,
+                "<b>방 잡기</b>\n호텔 · 손님\n\n호텔 프런트에서 방을 잡고 체크아웃 시간을 물어봐요.\n",
+                listFirst: true
+            );
+
         private const string VeryLongExpression =
             "You have no conscience, do you? I should've just left you to die. "
             + "What were you even thinking back there? I waited for you at the bus stop "

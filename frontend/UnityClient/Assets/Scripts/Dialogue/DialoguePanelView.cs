@@ -1601,10 +1601,16 @@ namespace A305.Dialogue
             float reservedCard = ExpressionCardHeight(cardWidth, OtherExpressions != null);
             float shownCard = ExpressionCardHeight(cardWidth, othersOpen);
             // 오른쪽 위 단어·추천 문장 카드 자리. 대사와 영어 표현 카드는 이 자리를 넘지 않는 높이까지만 키운다.
+            // 복습·연습 중에는 말해 볼 문장을 알려 주는 참고 카드 자리를 먼저 남긴다.
+            float reviewCardHeight = reviewReference != null ? FitReviewCard() : 0;
             float roomAboveName =
-                suggestions != null && reviewReference == null
+                reviewReference != null
+                    ? ReviewCardTop
+                        + Mathf.Min(reviewCardHeight, ReviewCardReservedHeight)
+                        + 2 * DialogueCinemaLayout.Gap
+                : suggestions != null
                     ? SuggestionsTop + MinSuggestionsHeight + 2 * DialogueCinemaLayout.Gap
-                    : 0;
+                : 0;
             DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
                 lastCanvasSize,
                 linesHeight,
@@ -1719,35 +1725,60 @@ namespace A305.Dialogue
             PlaceVehicleStatus(layout);
             if (reviewReference != null)
             {
-                helpPanel.localScale = Vector3.one;
-                // 일반 도움말의 축소 비율을 되돌린 뒤 높이도 실제 여유 공간으로 되돌린다.
-                // 내용 길이에 따라 창을 늘리지 않고 기존 Viewport 안에서 스크롤한다.
+                // 일반 도움말의 축소 비율과 크기를 되돌린다. 카드는 대화창 위 남은 높이 안에서 내용만큼 커지고,
+                // 넘치는 내용은 카드 안에서 스크롤한다.
+                FitReviewCard();
+                helpPanel.anchoredPosition = new Vector2(-HelpMargin, -ReviewCardTop);
                 helpPanel.SetSizeWithCurrentAnchors(
                     RectTransform.Axis.Vertical,
-                    Mathf.Clamp(helpRoom, 0, 440)
+                    Mathf.Clamp(
+                        lastCanvasSize.y
+                            - ReviewCardTop
+                            - layout.Name.yMax
+                            - 2 * DialogueCinemaLayout.Gap,
+                        0,
+                        reviewCardHeight
+                    )
                 );
-                helpPanel.SetSizeWithCurrentAnchors(
-                    RectTransform.Axis.Horizontal,
-                    Mathf.Min(400, lastCanvasSize.x - 2 * HelpMargin)
-                );
-                var card = (RectTransform)suggestText.transform.parent;
-                var list = card.GetComponent<VerticalLayoutGroup>();
-                if (list != null)
-                    list.padding = new RectOffset(12, 12, 16, 20);
-                suggestText.fontSize = 24;
-                suggestText.enableAutoSizing = false;
-                suggestText.rectTransform.SetSizeWithCurrentAnchors(
-                    RectTransform.Axis.Horizontal,
-                    helpPanel.rect.width - 72
-                );
-                var size = suggestText.GetComponent<LayoutElement>();
-                if (size != null)
-                    size.preferredHeight =
-                        suggestText
-                            .GetPreferredValues(suggestText.text, helpPanel.rect.width - 72, 0)
-                            .y + 12;
-                LayoutRebuilder.ForceRebuildLayoutImmediate(helpContent);
             }
+        }
+
+        // 복습·연습 참고 카드 자리. 대화 중에는 오른쪽 위 HUD가 숨으므로 화면 위 여백부터 쓴다.
+        private const float ReviewCardTop = HudTopBarLayout.Margin;
+        private const float ReviewCardWidth = 520;
+
+        // 대사와 영어 표현 카드가 길어져도 참고 카드에 남겨 두는 높이. 고친 문장 두 개와 '내가 한 말'이 보이는 높이다.
+        private const float ReviewCardReservedHeight = 520;
+
+        // 참고 카드의 폭과 글자 줄바꿈을 맞추고, 내용을 다 보이는 데 필요한 카드 높이를 준다.
+        private float FitReviewCard()
+        {
+            helpPanel.anchorMin = helpPanel.anchorMax = helpPanel.pivot = Vector2.one;
+            helpPanel.localScale = Vector3.one;
+            helpPanel.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Horizontal,
+                // 세로 화면처럼 좁은 화면에서는 가운데 NPC 얼굴을 덮지 않게 화면 폭의 45%까지만 쓴다.
+                Mathf.Min(ReviewCardWidth, lastCanvasSize.x * .45f)
+            );
+            var card = (RectTransform)suggestText.transform.parent;
+            var list = card.GetComponent<VerticalLayoutGroup>();
+            if (list != null)
+                list.padding = new RectOffset(12, 12, 16, 20);
+            suggestText.fontSize = 24;
+            suggestText.enableAutoSizing = false;
+            float textWidth = helpPanel.rect.width - 72;
+            suggestText.rectTransform.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Horizontal,
+                textWidth
+            );
+            var size = suggestText.GetComponent<LayoutElement>();
+            if (size != null)
+                size.preferredHeight =
+                    suggestText.GetPreferredValues(suggestText.text, textWidth, 0).y + 12;
+            var helpContent = (RectTransform)helpPanel.Find("Viewport/Content");
+            LayoutRebuilder.ForceRebuildLayoutImmediate(helpContent);
+            // 카드 안 Viewport의 위아래 여백(20씩)을 더한다.
+            return LayoutUtility.GetPreferredHeight(helpContent) + 40;
         }
 
         // 카드가 내용을 다 보이는 데 필요한 높이. 카드 폭을 먼저 맞춘 뒤, 다른 표현을 펼친(open) 또는 접은 상태로

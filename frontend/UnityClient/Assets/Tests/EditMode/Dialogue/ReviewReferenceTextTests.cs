@@ -119,6 +119,29 @@ namespace A305.Dialogue.Tests
             Assert.That(text, Does.Not.Contain("이 상황에서 자주 써요"));
         }
 
+        // 말해 볼 문장은 그 아래 설명보다 크게 보여 한눈에 찾는다.
+        [Test]
+        public void SentencesToSay_AreLargerThanTheirNotes()
+        {
+            var formatted = ReviewReferenceText.Format(
+                new[]
+                {
+                    new ReviewReferenceItem("Could I get less ice?", "얼음을 조금만요", false),
+                },
+                0
+            );
+
+            Assert.That(
+                formatted.Text,
+                Does.Contain("<size=117%><b>Could I get less ice?</b></size>")
+            );
+            Assert.That(formatted.Text, Does.Contain("<size=85%>얼음을 조금만요</size>"));
+            Assert.That(
+                formatted.Text.Substring(formatted.Markers[0].SourceIndex),
+                Does.StartWith("Could I get less ice?")
+            );
+        }
+
         [Test]
         public void PracticeGoals_CountWhatWasDoneWithTheirOwnWording()
         {

@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec28378ca8349b947981aad185a762cc, type: 3}
   m_Name: VoiceRecorderSettings
   m_EditorClassIdentifier: A305.Voice::A305.Voice.VoiceRecorderSettings
-  maxRecordingSeconds: 15
-  silenceSeconds: 3
+  maxRecordingSeconds: 25
+  silenceSeconds: 5
   silenceLevel: 0.02

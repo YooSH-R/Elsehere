@@ -9,12 +9,12 @@ namespace A305.Voice
         [SerializeField]
         [Min(1f)]
         [Tooltip("이 시간에 닿으면 녹음을 끝낸다")]
-        private float maxRecordingSeconds = 15f;
+        private float maxRecordingSeconds = 25f;
 
         [SerializeField]
         [Min(0.5f)]
         [Tooltip("조용한 상태가 이만큼 이어지면 녹음을 끝낸다")]
-        private float silenceSeconds = 3f;
+        private float silenceSeconds = 5f;
 
         [SerializeField]
         [Range(0.001f, 0.2f)]

@@ -1079,7 +1079,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 인식 대상은 영어입니다. 한국어로 말하면 거르거나 번역하지 않고 한글 그대로 전사합니다. 그 문장의 번역은 CONV-03이 맡습니다.
 - 서버는 인식에 철자 힌트를 함께 보냅니다. 학습자 닉네임(게스트 제외), `TURN`이면 대화 NPC 이름·같은 장소 NPC 이름·그 장소의 메뉴·상품 이름(예: 카페의 `Iced Americano`)과 직전 NPC 대사, 그리고 늘 마을·가게 이름(`Maple Town`, `Maple Bakery` 등)입니다. 장소별 단어와 마을 단어는 [`content/speech-words.json`](../../backend/src/main/resources/content/speech-words.json)에 둡니다.
 - 녹음 형식은 `webm`, `ogg`, `mp4`, `wav`, `mpeg`이며 Unity는 16kHz 모노 16비트 WAV로 보냅니다. `audio` 파일 부분에 `Content-Type`(예: `audio/wav`)을 붙입니다.
-- 녹음은 최대 3MB입니다. 서버는 AI를 호출하기 전에 크기와 형식을 확인해 `AUDIO_TOO_LARGE`(413), `AUDIO_FORMAT_UNSUPPORTED`(415)로 거절합니다. 녹음 길이(최대 15초, 무음이 3초 넘게 이어지면 자동 종료)는 클라이언트 녹음 규칙으로 지킵니다. `durationMs`는 인식 뒤에 알 수 있으므로 거절 기준으로 쓰지 않습니다.
+- 녹음은 최대 3MB입니다. 서버는 AI를 호출하기 전에 크기와 형식을 확인해 `AUDIO_TOO_LARGE`(413), `AUDIO_FORMAT_UNSUPPORTED`(415)로 거절합니다. 녹음 길이(최대 25초, 무음이 5초 넘게 이어지면 자동 종료)는 클라이언트 녹음 규칙으로 지킵니다. `durationMs`는 인식 뒤에 알 수 있으므로 거절 기준으로 쓰지 않습니다.
 - 받은 음성은 전사 후 보관하지 않습니다. 녹음 음성 활용(`TRAINING_VOICE`)에 동의한 사용자의 대화·튜토리얼 녹음만 인식 결과와 함께 학습용으로 보관합니다. 레벨 테스트(`LEVEL_TEST`) 녹음은 보관하지 않습니다(`training_recordings`, [AI 개선 데이터 활용 기준](../ai-training-data.md)). 무음·인식 실패는 보관하지 않고, 보관에 실패해도 전사 응답은 그대로 돌려줍니다.
 - 음성은 외부 음성 인식 공급자로 가므로 지금 버전의 음성 처리(`VOICE`)에 동의한 사용자만 쓸 수 있습니다. 동의하지 않았으면 녹음을 확인하거나 AI를 부르기 전에 `403 VOICE_CONSENT_REQUIRED`로 거절합니다. 클라이언트는 BOOT-01의 `user.voiceConsent`로 미리 녹음을 막고, 회색 [말하기]를 누르면 동의 창(USER-03)을 띄웁니다.
 

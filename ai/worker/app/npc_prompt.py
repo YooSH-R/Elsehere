@@ -242,6 +242,12 @@ SOUND_LIKE_YOURSELF = (
 )
 
 
+# 축마다 행동 하나를 두 문장 대답에 모두 넣으라고 하면 "고마워요 + 답 + 비유 + 그래서 무슨 일로 오셨어요?"처럼 이어 붙인 대답이 됐다
+# (실제 모델, Owen: "Do you like working here?" → "... so what brings you here?"). 하는 말에 먼저 답하고 맞는 행동만 섞게 한다
+TEMPERAMENT_LEAD = (
+    "Answer what they actually said first, as one natural line of thought. "
+    "Let your temperament shape that answer with whichever of these fit it, not as a checklist to tick off: "
+)
 # 성격 행동을 매 턴 같은 말("there's no rush" 등)로 하면 틀처럼 들려서, 앞 대답과 다른 말로 하게 한다.
 # 실제 모델 확인에서 성격 행동이 호감 단계를 덮어(적대인 Ben이 "I hope you're doing all right"로 인사) 태도·기분을 먼저 따르게 한다
 VARY_TEMPERAMENT = (
@@ -273,7 +279,7 @@ def reply_system_prompt(
     turn += f"\n{NOT_RUDE_UNLESS_TOLD}"
     actions = temperament_actions(profile.personality.dimensions.model_dump()) if profile.personality.dimensions else []
     if actions:
-        turn += f"\nIn this reply, let your temperament show: {'; '.join(actions)}. {VARY_TEMPERAMENT}"
+        turn += f"\n{TEMPERAMENT_LEAD}{'; '.join(actions)}. {VARY_TEMPERAMENT}"
     if note and (mood or actions):
         turn += f"\n{INSTRUCTION_FIRST}"
     if profile.speech_style.catchphrases:

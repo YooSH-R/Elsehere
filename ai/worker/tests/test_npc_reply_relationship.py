@@ -180,6 +180,7 @@ COMPLIMENT_A_MOMENT_AGO = [
 ]
 NEED_LIMITS = rel.load_world_rules()["mood"]["needs"]
 LOW = NEED_LIMITS["low"]
+VERY_LOW = NEED_LIMITS["veryLow"]
 FULL = dict.fromkeys(("HUNGER", "ENERGY", "SOCIAL", "FUN", "WORK"), NEED_LIMITS["comfortable"])
 
 
@@ -293,6 +294,22 @@ def test_a_lonely_npc_starts_a_little_sad_instead_of_smiling(client, provider):
     mood = mood_section(system(client, provider, needs={**FULL, "SOCIAL": LOW - 1}))
 
     assert "warm_smile" not in mood and "Face: sad" in mood
+
+
+@pytest.mark.parametrize("value", [VERY_LOW - 1, LOW - 1], ids=["strong", "mild"])
+def test_a_need_that_came_up_once_stays_in_the_tone(client, provider, value):
+    """피곤·외로운 NPC가 첫 인사에서 말한 뒤에도 저녁·일·칭찬 대답마다 "batteries are low"처럼 다시 꺼냈다(실제 모델, 여러 턴 대화).
+    한 번 나온 뒤에는 상대가 묻지 않으면 말투에만 남긴다."""
+    mood = mood_section(system(client, provider, needs={**FULL, "ENERGY": value}))
+
+    assert "do not bring it up again unless they ask" in mood
+
+
+def test_needs_color_the_tone_while_the_character_and_the_job_lead(client, provider):
+    """욕구 줄이 성격·직업·상대의 말보다 앞서 대답 내용을 정하지 않게 한다."""
+    mood = mood_section(system(client, provider, needs={**FULL, "SOCIAL": LOW - 1}))
+
+    assert "your personality, your job and what they just said still decide what you say" in mood
 
 
 def test_without_needs_or_events_there_is_no_mood_line(client, provider):

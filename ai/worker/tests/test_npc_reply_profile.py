@@ -256,7 +256,24 @@ def test_the_temperament_shows_as_concrete_actions_right_before_the_reply(client
     istj = (("extraversion", "low"), ("openness", "low"), ("agreeableness", "low"), ("conscientiousness", "high"))
     actions = [axes[axis]["inReply"][side] for axis, side in istj]
 
-    assert "In this reply, let your temperament show: " + "; ".join(actions) + "." in turn
+    assert "; ".join(actions) + "." in turn
+
+
+def test_the_reply_answers_their_words_before_the_temperament_actions(client, provider):
+    """행동 네 개를 두 문장 대답에 모두 넣다 보니 "고마워요 + 답 + 비유 + 그래서 무슨 일로 오셨어요?"를 이어 붙인 대답이 됐다
+    (Owen, "Do you like working here?" → "... so what brings you here?"). 하는 말에 먼저 답하고 행동은 맞는 것만 쓰게 한다."""
+    npc = {**NPC, "profile": profile_of("HOTEL_RECEPTIONIST")}
+    turn = system_of(reply_request(client, provider, npc)).split("## This turn")[1]
+
+    assert "Answer what they actually said first" in turn
+    assert "not as a checklist" in turn
+
+
+def test_an_organized_npc_does_not_cut_small_talk_back_to_business():
+    """J(계획형) 행동 '다음 단계로 끝내기'가 잡담 중에도 "what brings you here?"로 용건을 물었다. 잡담이면 그 이야기를 잇는다."""
+    axes = json.loads((Path(__file__).resolve().parents[2] / "npcs/rules/temperament-speech.json").read_text(encoding="utf-8"))["axes"]
+
+    assert "just chatting" in axes["conscientiousness"]["inReply"]["high"]
 
 
 def test_the_temperament_yields_to_the_attitude_and_the_mood(client, provider):

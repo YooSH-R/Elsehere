@@ -104,8 +104,75 @@ namespace A305.Learning.PlayModeTests
                     .ToArray();
                 Assert.That(shown.Count(text => text.text == sentence), Is.EqualTo(1));
                 Assert.That(shown.Any(text => text.text == "이렇게 말해요"), Is.False);
-                Assert.That(shown.Any(text => text.text == "잘 표현했어요"), Is.True);
+                // 문장 교정 탭과 같은 카드에 초록 "잘했어요" 칩을 붙인다.
+                Assert.That(
+                    ShownCorrectionCard().Find("SaidChip").GetComponent<Image>().sprite,
+                    Is.EqualTo(Field<Sprite>("goodChipSprite"))
+                );
             }
+        }
+
+        [UnityTest]
+        public IEnumerator SentenceWithoutExamples_UsesTheCorrectionCardInTheConversation()
+        {
+            const string said = "너 외로워?";
+            const string english = "Are you lonely?";
+            const string idiom = "Feeling a bit lonely?";
+            instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
+            view = instance.GetComponentInChildren<FeedbackView>(true);
+            var saved = new List<string>();
+            view.SaveRequested += (sentence, meaning) => saved.Add(sentence);
+            view.SetSaveAvailable(true);
+            view.Show(
+                ConversationFeedback.FromServer(
+                    "Jake",
+                    1,
+                    new ServerFeedback(
+                        new FeedbackData { Status = "DONE" },
+                        new List<DetailedFeedbackItem>
+                        {
+                            new DetailedFeedbackItem
+                            {
+                                UserText = said,
+                                BetterText = english,
+                                Reason = "외로운지 물을 때는 Are you lonely?라고 하면 돼요.",
+                                Idiom = new IdiomData { Text = idiom, MeaningKo = "좀 외로워?" },
+                            },
+                        },
+                        null
+                    )
+                ),
+                new[] { DialogueLine.FromUser(said) }
+            );
+            view.SelectSection(FeedbackSection.Conversation);
+            view.SelectReview(0);
+            yield return null;
+            yield return null;
+
+            // 상황별 예문이 없는 문장도 문장 교정 탭과 같은 카드 한 장으로 보인다.
+            var card = (RectTransform)ShownCorrectionCard();
+            TMP_Text[] shown = instance
+                .GetComponentsInChildren<TMP_Text>()
+                .Where(text => text.gameObject.activeInHierarchy)
+                .ToArray();
+            Assert.That(
+                shown.Any(text => text.text == "영어로는" || text.text == "이 표현을 쓰는 이유"),
+                Is.False,
+                "예전 칸 배치를 함께 그리지 않습니다."
+            );
+            Button pick = card.Find("SaveButton").GetComponent<Button>();
+            Assert.That(pick.isActiveAndEnabled, Is.True);
+            pick.onClick.Invoke();
+            Assert.That(saved, Is.EqualTo(new[] { english }));
+
+            // 관용 표현 칸은 카드 아래에 남긴다.
+            TMP_Text idiomText = shown.SingleOrDefault(text => text.text == idiom);
+            Assert.That(idiomText, Is.Not.Null);
+            var cardCorners = new Vector3[4];
+            var idiomCorners = new Vector3[4];
+            card.GetWorldCorners(cardCorners);
+            idiomText.rectTransform.GetWorldCorners(idiomCorners);
+            Assert.That(idiomCorners[1].y, Is.LessThanOrEqualTo(cardCorners[0].y + .01f));
         }
 
         [UnityTest]
@@ -314,6 +381,15 @@ namespace A305.Learning.PlayModeTests
                 .Where(child => child.name == "SituationRow")
                 .Select(child => child.gameObject)
                 .ToList();
+
+        private Transform ShownCorrectionCard()
+        {
+            Transform card = instance
+                .GetComponentsInChildren<Transform>()
+                .SingleOrDefault(child => child.name == "CorrectionCard");
+            Assert.That(card, Is.Not.Null, "문장 교정 탭과 같은 카드로 보여야 합니다.");
+            return card;
+        }
 
         private T Field<T>(string name)
             where T : Object =>

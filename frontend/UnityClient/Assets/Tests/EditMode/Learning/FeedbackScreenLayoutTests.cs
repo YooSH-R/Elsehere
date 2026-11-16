@@ -234,7 +234,7 @@ namespace A305.Learning.Tests
             Assert.That(ArtOf(Pick(Cards()[0])), Is.EqualTo("FeedbackPick"));
         }
 
-        // 전체 대화에서 한국어로 한 말을 누르면 카드와 같이 "영어로는"으로 보이고, 잘 표현했다고 칭찬하지 않는다.
+        // 전체 대화에서 한국어로 한 말을 누르면 문장 교정 카드와 같은 칩으로 "영어로는"을 보이고, 잘했다고 칭찬하지 않는다.
         [TestCase("My passport wallet is in the bag.")]
         [TestCase(null)]
         public void KoreanSentenceDetail_IsLabelledLikeTheCorrectionCard(string english)
@@ -243,17 +243,16 @@ namespace A305.Learning.Tests
             view.SelectSection(FeedbackSection.Conversation);
             view.SelectReview(1);
 
-            string[] headings = instance
-                .GetComponentsInChildren<TMP_Text>()
-                .Where(text => text.name == "Heading")
-                .Select(text => text.text)
-                .ToArray();
-
-            Assert.That(headings, Does.Contain("내가 한 말 · 한국어"));
-            Assert.That(headings.Contains("영어로는"), Is.EqualTo(english != null));
-            Assert.That(headings, Does.Not.Contain("잘 표현했어요"));
-            Assert.That(headings, Does.Not.Contain("자연스러웠던 점"));
-            Assert.That(headings, Does.Not.Contain("이렇게 말해요"));
+            List<GameObject> cards = Cards();
+            Assert.That(cards, Has.Count.EqualTo(1));
+            Assert.That(
+                Chips(cards[0]),
+                Is.EqualTo(
+                    english != null
+                        ? new[] { "FeedbackChipSaidKorean", "FeedbackChipEnglish" }
+                        : new[] { "FeedbackChipSaidKorean" }
+                )
+            );
         }
 
         // 전체 대화 탭은 NPC와 사용자의 모든 발화를 순서대로 보여 준다.

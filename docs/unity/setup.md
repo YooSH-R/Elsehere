@@ -13,7 +13,7 @@ Unity 클라이언트는 `frontend/UnityClient`에서 관리하며 WebGL 기반 
 | 스크립트 | C# |
 | 시작 Scene | `Assets/Scenes/Production/HomeScene.unity` |
 
-Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Packages/manifest.json`과 `Packages/packages-lock.json`을 기준으로 맞춥니다. 버전 변경은 호환성을 검증하고 MR에 변경 내용을 기록해 공유합니다. 모바일 화면은 아래 반응형 Web 템플릿으로 대응하며, 모바일 터치 조작과 대상 브라우저의 기능 지원 범위는 별도로 검증합니다. 이용자 기기에 필요한 조건은 [이용 환경과 최소 사양](client-requirements.md)에 정리합니다.
+Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Packages/manifest.json`과 `Packages/packages-lock.json`을 기준으로 맞춥니다. 버전 변경은 호환성을 검증하고 MR에 변경 내용을 기록해 공유합니다. 모바일 화면은 아래 반응형 Web 템플릿으로 대응하며, 모바일 터치 조작과 대상 브라우저의 기능 지원 범위는 별도로 검증합니다. 이용자 기기에 필요한 조건은 [이용 환경과 최소·권장 사양](client-requirements.md)에 정리합니다.
 
 ## 설치와 프로젝트 열기
 

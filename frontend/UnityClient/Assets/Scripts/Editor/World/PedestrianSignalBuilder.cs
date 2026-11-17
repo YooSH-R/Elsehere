@@ -18,6 +18,28 @@ namespace A305.EditorTools.World
         private const string ScenePath = "Assets/Scenes/Production/TownScene.unity";
         private const string GroupName = "PedestrianSignals";
 
+        // 횡단보도 입구의 보도 가장자리에 두어 테라스 파라솔과 가운데 통행 공간을 피한다.
+        private static readonly Vector3 CafeSideSignalPosition = new Vector3(-3.5f, .1f, -12.1f);
+        private static readonly Vector3 HomeSideSignalPosition = new Vector3(3.5f, .1f, -12.1f);
+
+        [MenuItem("Tools/A305/World/Move Cafe Crosswalk Signals")]
+        public static void MoveCafeCrosswalkSignals()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            var scene = EditorSceneManager.OpenScene(ScenePath);
+            Transform group = BuilderTools
+                .FindSingleInScene<TrafficLights>(scene)
+                .transform.parent.Find(GroupName);
+            group.Find("CafeA").localPosition = CafeSideSignalPosition;
+            group.Find("CafeB").localPosition = HomeSideSignalPosition;
+            Physics.SyncTransforms();
+            NpcLifeBuilder.RebakeWalkArea(scene);
+            if (!EditorSceneManager.SaveScene(scene, ScenePath))
+                throw new InvalidOperationException($"씬을 저장하지 못했습니다: {ScenePath}");
+            AssetDatabase.SaveAssets();
+        }
+
         [MenuItem("Tools/A305/World/Apply Pedestrian Signals")]
         public static void Apply()
         {
@@ -82,7 +104,7 @@ namespace A305.EditorTools.World
                 group,
                 "CafeA",
                 new Vector3(0, .1f, -11),
-                new Vector3(-5.7f, .1f, -13.4f),
+                CafeSideSignalPosition,
                 Vector3.right,
                 true,
                 ownPole: true
@@ -91,7 +113,7 @@ namespace A305.EditorTools.World
                 group,
                 "CafeB",
                 new Vector3(0, .1f, -11),
-                new Vector3(5.7f, .1f, -13.4f),
+                HomeSideSignalPosition,
                 Vector3.left,
                 true,
                 ownPole: true
@@ -423,6 +445,11 @@ namespace A305.EditorTools.World
                 new Vector3(5.7f, 2.15f, 6.97f)
             );
             Save(camera, "stop", new Vector3(-4.1f, 2.2f, 6.85f), new Vector3(5.28f, 2.15f, 6.55f));
+            Save(camera, "cafe-crosswalk", new Vector3(0, 9, -22), new Vector3(0, .7f, -11));
+            Save(camera, "cafe-side", new Vector3(1, 4, -17), new Vector3(-4.2f, 1.3f, -11.8f));
+            Save(camera, "home-side", new Vector3(-1, 4, -17), new Vector3(4.2f, 1.3f, -11.8f));
+            Save(camera, "from-cafe", new Vector3(-4, 1.7f, -11), new Vector3(3.5f, 2.15f, -12.1f));
+            Save(camera, "from-home", new Vector3(4, 1.7f, -11), new Vector3(-3.5f, 2.15f, -12.1f));
             Object.DestroyImmediate(camera.gameObject);
         }
 

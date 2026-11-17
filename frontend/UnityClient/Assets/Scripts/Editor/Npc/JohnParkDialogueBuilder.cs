@@ -274,12 +274,48 @@ namespace A305.EditorTools.Npc
             BuilderTools.SetReference(passerby, "player", player);
             BuilderTools.SetReference(passerby, "dialogue", dialogue);
             BuilderTools.SetReference(passerby, "offerView", offer);
-            BuilderTools.SetReference(passerby, "animationDriver", null);
+            ConnectLocomotion(passerby);
             var configuration = new SerializedObject(passerby);
             configuration.FindProperty("talkGesture").boolValue = false;
             configuration.ApplyModifiedPropertiesWithoutUndo();
             // 몸·팔을 공용 Humanoid 손짓으로 덮어쓰지 않고 전용 Generic 리듬을 계속 쓴다.
             PrefabUtility.RecordPrefabInstancePropertyModifications(passerby);
+        }
+
+        // 걸어서 다가갈 때 이동 속도를 전용 컨트롤러의 Speed로 넘겨 JohnParkLocomotion이 걷는 다리를 덮게 한다.
+        // 전용 컨트롤러에는 Action이 없어 공용 손짓은 전달되지 않는다.
+        private static void ConnectLocomotion(Passerby passerby)
+        {
+            var driver = passerby.GetComponent<CharacterAnimationDriver>();
+            if (driver == null)
+                throw new InvalidOperationException("John의 이동 애니메이션 연결이 없습니다.");
+            BuilderTools.SetReference(passerby, "animationDriver", driver);
+            PrefabUtility.RecordPrefabInstancePropertyModifications(passerby);
+        }
+
+        [MenuItem("Tools/A305/Npc/John Park/Connect Walking Animation")]
+        public static void ConnectWalkingAnimation()
+        {
+            BuilderTools.ThrowIfPlaying();
+            var setup = EditorSceneManager.GetSceneManagerSetup();
+            try
+            {
+                foreach (string path in new[] { ScenePath, RestaurantScenePath })
+                {
+                    var scene = EditorSceneManager.OpenScene(path);
+                    var identity = BuilderTools
+                        .FindAllInScene<NpcIdentity>(scene)
+                        .Single(n => n.Code == JohnParkEmotionBuilder.NpcCode);
+                    ConnectLocomotion(identity.GetComponent<Passerby>());
+                    EditorSceneManager.MarkSceneDirty(scene);
+                    EditorSceneManager.SaveScene(scene);
+                }
+            }
+            finally
+            {
+                if (setup.Any(item => item.isLoaded && item.isActive))
+                    EditorSceneManager.RestoreSceneManagerSetup(setup);
+            }
         }
 
         private static MockDialogueScriptSource BuildReviewScript()

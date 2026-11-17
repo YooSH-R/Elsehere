@@ -23,9 +23,34 @@ namespace A305.EditorTools.Onboarding
             AssetDatabase.SaveAssets();
         }
 
+        /// <summary>
+        /// 효과음 카드에 크기 막대 줄만 덧붙이고 칠한다(S15P31A305-949). 창 전체를 다시 맞추면 휴대폰 메뉴 아이콘까지
+        /// 새로 만들어지므로 이 카드만 다룬다. 다시 실행해도 결과가 같다.
+        /// </summary>
+        [MenuItem("Tools/A305/Onboarding/Add Sound Volume Slider")]
+        public static void ApplySoundVolumeToPrefab()
+        {
+            BuilderTools.ThrowIfPlaying();
+            BuilderTools.UpdatePrefabIfExists(
+                HudPath,
+                hud =>
+                {
+                    LearningBuilder.AddSoundVolume(hud);
+                    MyPageLayoutBuilder.ApplySoundEffects(hud);
+                    foreach (
+                        ThemedElement element in hud
+                            .transform.Find("Settings/Window/SoundEffects")
+                            .GetComponentsInChildren<ThemedElement>(true)
+                    )
+                        element.ApplyCurrent();
+                }
+            );
+            AssetDatabase.SaveAssets();
+        }
+
         public static void Apply(GameObject hud)
         {
-            // 효과음은 설정 창의 [켜기]·[끄기]로 바꾼다.
+            // 효과음은 설정 창의 [켜기]·[끄기]와 크기 막대로 바꾼다.
             foreach (string speaker in new[] { "BackgroundSoundButton", "BackgroundSoundVolume" })
             {
                 Transform old = hud.transform.Find(speaker);

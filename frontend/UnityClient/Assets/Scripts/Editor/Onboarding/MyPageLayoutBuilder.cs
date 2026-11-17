@@ -90,7 +90,7 @@ namespace A305.EditorTools.Onboarding
             if (sound != null)
             {
                 sound.SetSiblingIndex(window.Find("NpcSpeechSpeed").GetSiblingIndex() + 1);
-                ChoiceSetting(sound, catalog, "효과음");
+                SoundEffects(sound, catalog);
             }
             note.transform.SetSiblingIndex(
                 (sound != null ? sound : window.Find("NpcSpeechSpeed")).GetSiblingIndex() + 1
@@ -118,6 +118,24 @@ namespace A305.EditorTools.Onboarding
             consent.textWrappingMode = TextWrappingModes.Normal;
             Size(consent.transform, 0, 48, flexibleWidth: 1);
             Button(row.Find("ViewButton"), catalog, 76, 40, "보기");
+        }
+
+        /// <summary>설정 창의 효과음 카드만 다시 맞춘다. 두 창의 다른 줄은 건드리지 않는다.</summary>
+        public static void ApplySoundEffects(GameObject root) =>
+            SoundEffects(
+                root.transform.Find("Settings/Window/SoundEffects"),
+                AssetDatabase.LoadAssetAtPath<UiThemeCatalog>(CatalogPath)
+            );
+
+        // 제목과 [켜기]·[끄기] 줄 아래에 크기 막대 줄을 다른 설정 막대와 같은 모양으로 둔다.
+        private static void SoundEffects(Transform sound, UiThemeCatalog catalog)
+        {
+            ChoiceSetting(sound, catalog, "효과음");
+            Transform volume = sound.Find("VolumeRow");
+            if (volume == null)
+                return;
+            sound.GetComponent<VerticalLayoutGroup>().spacing = 8;
+            SliderRow(volume, catalog, "Quiet", "Loud");
         }
 
         private static void Frame(Transform window, UiThemeCatalog catalog)
@@ -155,11 +173,21 @@ namespace A305.EditorTools.Onboarding
             TMP_Text description = Text(group.Find("Help"), catalog, UiThemeRole.Muted, 17);
             description.text = help;
             Size(description.transform, 0, 23, flexibleWidth: 1);
-            Transform row = group.Find("Row");
+            SliderRow(group.Find("Row"), catalog, "Slow", "Fast");
+        }
+
+        // [낮은 쪽 이름] 막대 [높은 쪽 이름] 현재값 한 줄. 막대는 서비스 강조색으로 채운다.
+        private static void SliderRow(
+            Transform row,
+            UiThemeCatalog catalog,
+            string lowLabel,
+            string highLabel
+        )
+        {
             var layout = row.GetComponent<HorizontalLayoutGroup>();
             layout.spacing = 12;
             Size(row, 0, 36, flexibleWidth: 1);
-            foreach (string name in new[] { "Slow", "Fast" })
+            foreach (string name in new[] { lowLabel, highLabel })
             {
                 TMP_Text label = Text(row.Find(name), catalog, UiThemeRole.Muted, 17);
                 Size(label.transform, 55, 36);

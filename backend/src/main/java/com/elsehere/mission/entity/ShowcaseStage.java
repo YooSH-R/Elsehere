@@ -7,19 +7,14 @@ public enum ShowcaseStage {
       "호텔에서 저녁 나들이 준비",
       "HOTEL",
       "HOTEL_STAFF",
-      "호텔 직원에게 햄버거 가게 위치를 묻고 우산을 빌려 나중에 돌려주겠다고 말해 보세요.",
-      "You are the hotel receptionist, not a food seller. Greet briefly and wait for the learner to ask for help. After they ask where Maple Burger is, explain it is down the street, offer a taxi because it is raining and offer to lend an umbrella. Let them say they will bring it back; do not supply their answer or place a food order. A promise in mixed Korean and English counts by meaning.",
+      "호텔 직원에게 햄버거 가게 위치를 물어보세요.",
+      "You are the hotel receptionist, not a food seller. Greet briefly and wait for the learner to ask for help. After they ask where Maple Burger is, explain it is down the street, offer a taxi because it is raining and lend them an umbrella for the walk out. They do not need to promise anything; do not ask for a promise, supply their answer or place a food order.",
       List.of(
           new Goal(
               "ask_burger_location",
               "햄버거 가게 위치 묻기",
               "Asks where the burger shop or Maple Burger is, or how to get there.",
-              "햄버거 가게가 어디인지 물어보세요."),
-          new Goal(
-              "promise_umbrella_return",
-              "우산을 빌리고 반환 약속하기",
-              "Accepts the offered umbrella and promises to return or bring it back later, including a mixed Korean-English promise.",
-              "빌린 우산을 이따가 돌려주겠다고 말해 보세요."))),
+              "햄버거 가게가 어디인지 물어보세요."))),
   TAXI(
       "택시로 햄버거 가게 가기",
       "TOWN",
@@ -37,7 +32,7 @@ public enum ShowcaseStage {
       "TOWN",
       "DINER_STAFF",
       "치즈버거에서 양파를 빼고, 감자튀김과 콜라를 주문해 보세요. 여기서 먹을지 포장할지도 말해 주세요.",
-      "You work at Maple Burger. This is a new order, not the breakfast-spill or laundry story. Greet briefly and let the learner choose their food. Offer no completed order in the greeting. Listen for the burger, an ingredient preference, sides and a drink, and whether they will eat here or take it away. Preserve every requested removal. Ask at most one short follow-up about what is still missing; do not give the learner their answer. When asking about dining, say 'Are you eating here?' or 'Will you be eating in?' Never ask 'For here or to go?' and never supply the learner's 'to go' answer. The complete meal costs 7 coins with no surcharge. Both for here and to go are valid. Once all choices are made, confirm briefly and hand over the meal now; there is no preparation timer, seat wait, spill or laundromat errand in this demonstration.",
+      "You work at Maple Burger. This is a new order, not the breakfast-spill or laundry story. Greet briefly. If you remember what this regular usually gets, you may ask in the greeting whether they want their usual; otherwise let the learner choose their food. If they want something different, take the new order without pushing the usual again, and never assume an order they have not chosen. Listen for the burger, an ingredient preference, sides and a drink, and whether they will eat here or take it away. Preserve every requested removal. Ask at most one short follow-up about what is still missing; do not give the learner their answer. When asking about dining, say 'Are you eating here?' or 'Will you be eating in?' Never ask 'For here or to go?' and never supply the learner's 'to go' answer. The complete meal costs 7 coins with no surcharge. Both for here and to go are valid. Once all choices are made, confirm briefly and hand over the meal now; there is no preparation timer, seat wait, spill or laundromat errand in this demonstration.",
       List.of(
           new Goal(
               "order_burger",

@@ -11,7 +11,7 @@ class ShowcaseJourneyTest {
   void restartGoesBackToTheBeginningWithoutStarting() {
     ShowcaseJourney journey = ShowcaseJourney.start(8L);
     assertThat(journey.isActive()).isTrue();
-    journey.accept(0, "HOTEL_STAFF", List.of("ask_burger_location", "promise_umbrella_return"));
+    journey.accept(0, "HOTEL_STAFF", List.of("ask_burger_location"));
 
     journey.restart();
 
@@ -25,8 +25,8 @@ class ShowcaseJourneyTest {
   @Test
   void anotherNpcAndFutureGoalsCannotSkipTheHotel() {
     ShowcaseJourney journey = ShowcaseJourney.start(8L);
-    journey.accept(0, "DINER_STAFF", List.of("ask_burger_location", "promise_umbrella_return"));
-    journey.accept(2, "HOTEL_STAFF", List.of("ask_burger_location", "promise_umbrella_return"));
+    journey.accept(0, "DINER_STAFF", List.of("ask_burger_location"));
+    journey.accept(2, "HOTEL_STAFF", List.of("ask_burger_location"));
     journey.accept(0, "HOTEL_STAFF", List.of("order_burger", "thank_for_umbrella"));
     assertThat(journey.getStage()).isZero();
     assertThat(journey.hasUmbrella()).isFalse();
@@ -66,11 +66,20 @@ class ShowcaseJourneyTest {
     assertThat(FirstDayMission.start(8L).getStage()).isZero();
   }
 
+  // 시연 대본에서는 우산 반환 약속을 하지 않는다. 길만 물으면 호텔 단계를 마치고, 직원이 빌려준 우산을 든다.
+  @Test
+  void askingTheWayAloneFinishesTheHotelWithTheLentUmbrella() {
+    ShowcaseJourney journey = ShowcaseJourney.start(8L);
+
+    journey.accept(0, "HOTEL_STAFF", List.of("ask_burger_location"));
+
+    assertThat(journey.current()).isEqualTo(ShowcaseStage.TAXI);
+    assertThat(journey.hasUmbrella()).isTrue();
+  }
+
   private static ShowcaseJourney leaveHotel() {
     ShowcaseJourney journey = ShowcaseJourney.start(8L);
     journey.accept(0, "HOTEL_STAFF", List.of("ask_burger_location"));
-    assertThat(journey.getStage()).isZero();
-    journey.accept(0, "HOTEL_STAFF", List.of("promise_umbrella_return"));
     assertThat(journey.hasUmbrella()).isTrue();
     return journey;
   }

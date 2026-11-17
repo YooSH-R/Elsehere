@@ -55,8 +55,7 @@ class ShowcaseQuestServiceTest {
   @Test
   void taxiKeepsTheNormalDestinationJudgeAndOrderOnlyUsesItsOwnGoals() {
     ShowcaseJourney journey = ShowcaseJourney.start(8L);
-    journey.accept(
-        0, "HOTEL_STAFF", java.util.List.of("ask_burger_location", "promise_umbrella_return"));
+    journey.accept(0, "HOTEL_STAFF", java.util.List.of("ask_burger_location"));
     when(journeys.findById(8L)).thenReturn(Optional.of(journey));
     assertThat(service(true).context(8L, "TAXI_DRIVER").orElseThrow().goals()).isEmpty();
     journey.chooseTaxiDestination("TAXI_DRIVER", "DINER");
@@ -66,6 +65,37 @@ class ShowcaseQuestServiceTest {
     assertThat(order.remainingGoals())
         .containsExactly("order_burger", "customize_burger", "add_sides_drink", "choose_dining");
     assertThat(order.instruction()).contains("Both for here and to go are valid", "7 coins");
+  }
+
+  // 호텔 직원은 길과 택시·우산만 안내하고, 학습자의 우산 반환 약속을 목표로 기다리지 않는다.
+  @Test
+  void hotelStaffOnlyWaitsForTheWayToTheBurgerShop() {
+    when(journeys.findById(8L)).thenReturn(Optional.of(ShowcaseJourney.start(8L)));
+
+    QuestTalk.Goals hotel =
+        service(true).context(8L, "HOTEL_STAFF").orElseThrow().goals().orElseThrow();
+
+    assertThat(hotel.remainingGoals()).containsExactly("ask_burger_location");
+    assertThat(hotel.instruction())
+        .contains("lend them an umbrella")
+        .doesNotContain("bring it back");
+  }
+
+  // 단골을 기억하면 인사에서 늘 시키던 메뉴를 물을 수 있고, 학습자가 다른 걸 고르면 그 주문을 받는다.
+  @Test
+  void burgerStaffMayOfferARegularsUsualButTakesANewChoice() {
+    ShowcaseJourney journey = ShowcaseJourney.start(8L);
+    journey.accept(0, "HOTEL_STAFF", java.util.List.of("ask_burger_location"));
+    journey.chooseTaxiDestination("TAXI_DRIVER", "DINER");
+    journey.arriveByTaxi("DINER");
+    when(journeys.findById(8L)).thenReturn(Optional.of(journey));
+
+    QuestTalk.Goals order =
+        service(true).context(8L, "DINER_STAFF").orElseThrow().goals().orElseThrow();
+
+    assertThat(order.instruction())
+        .contains("their usual", "take the new order")
+        .doesNotContain("Offer no completed order");
   }
 
   // 시연 서버에서는 시작 전에도 시연 퀘스트를 보여, 다른 퀘스트가 진행 중으로 보이지 않는다. 눌러야 시작된다.

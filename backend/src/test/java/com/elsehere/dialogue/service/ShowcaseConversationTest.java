@@ -72,6 +72,29 @@ class ShowcaseConversationTest {
         .doesNotContain("Invite their request");
   }
 
+  // 버거 가게 첫 인사는 단골이면 늘 시키던 메뉴를 묻게 한다. 다른 퀘스트의 "제안을 먼저 말하지 말라"는 문구가 이를 막지 않게 한다.
+  @Test
+  void burgerShopGreetingAsksARegularAboutTheirUsual() {
+    ShowcaseJourney journey = ShowcaseJourney.start(userId);
+    journey.accept(0, "HOTEL_STAFF", ShowcaseStage.HOTEL.goalIds());
+    journey.chooseTaxiDestination("TAXI_DRIVER", "DINER");
+    journey.arriveByTaxi("DINER");
+    journeys.saveAndFlush(journey);
+    given(gateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Hi, hon! The usual?", null));
+
+    dialogueStartService.start(
+        userId, new StartConversationRequest(UUID.randomUUID(), "DINER_STAFF", InitiatedBy.USER));
+
+    ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
+    then(gateway)
+        .should()
+        .reply(any(), any(), any(), any(), anyString(), instruction.capture(), anyInt(), any());
+    assertThat(instruction.getValue())
+        .contains("their usual", "name it")
+        .doesNotContain("your offers or directions yet");
+  }
+
   @Test
   void burgerDemoKeepsFeedbackButNeverCreatesAWaitingItem() {
     Conversation conversation = conversation(entityManager, userId, "DINER_STAFF");

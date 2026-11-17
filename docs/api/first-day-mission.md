@@ -34,7 +34,7 @@
 | 메서드 | 경로 | 본문 | 동작 |
 | --- | --- | --- | --- |
 | GET | `/api/v1/missions/first-day` | 없음 | 진행 조회. 시작 전에도 200과 `started:false` |
-| POST | `/api/v1/missions/first-day/start` | 없음 | 없으면 생성, 있으면 기존 진행 반환 |
+| POST | `/api/v1/missions/first-day/start` | 없음 | 없으면 생성, 있으면 기존 진행 반환. 하다 멈춘 시연 퀘스트는 취소한다([시연 퀘스트](../demo-rainy-evening.md)) |
 | POST | `/api/v1/missions/first-day/visit` | `{"scene":"CAFE"}` | 현재 씬 보고와 진행 조회. 미션 완료 권한을 주지 않음 |
 | POST | `/api/v1/missions/first-day/rest` | 없음 | 카페 주문 목표를 모두 마치고 대화 종료한 경우에만 stage 1→2 |
 

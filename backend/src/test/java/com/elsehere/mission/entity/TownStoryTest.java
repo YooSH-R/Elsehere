@@ -49,4 +49,54 @@ class TownStoryTest {
     story.accept(11, "POST_OFFICE_STAFF", List.of("ask_parcel", "ask_price"));
     assertThat(story.getStage()).isEqualTo(12);
   }
+
+  // 하던 퀘스트를 취소하면 그 퀘스트의 첫 단계로 돌아가 시작을 기다린다. 앞서 끝낸 퀘스트는 그대로 둔다.
+  @Test
+  void cancellingReturnsToTheFirstStageOfTheCurrentQuestAndWaitsForAStart() {
+    TownStory first = TownStory.start(8L);
+    first.accept(0, "DINER_STAFF", List.of("order_breakfast", "explain_spill"));
+    first.accept(1, "LAUNDROMAT_STAFF", List.of("ask_laundry"));
+
+    first.cancelQuest();
+
+    assertThat(first.getStage()).isZero();
+    assertThat(first.hasGoal(0)).isFalse();
+    assertThat(first.isPaused()).isTrue();
+
+    TownStory second = TownStory.start(8L);
+    while (second.getStage() < 7) {
+      second.accept(second.getStage(), second.current().npcCode(), second.current().goalIds());
+    }
+    second.resume();
+    second.accept(7, "BAKERY_STAFF", List.of("choose_snack"));
+    second.accept(8, "LAUNDROMAT_STAFF", List.of("collect_laundry"));
+
+    second.cancelQuest();
+
+    assertThat(second.getStage()).isEqualTo(7);
+    assertThat(second.hasGoal(0)).isFalse();
+    assertThat(second.isPaused()).isTrue();
+  }
+
+  // 시작을 기다리는 중이거나 이야기를 모두 끝냈으면 취소할 퀘스트가 없다.
+  @Test
+  void cancellingDoesNothingWhenNoQuestIsRunning() {
+    TownStory waiting = TownStory.start(8L);
+    while (waiting.getStage() < 7) {
+      waiting.accept(waiting.getStage(), waiting.current().npcCode(), waiting.current().goalIds());
+    }
+    TownStory finished = TownStory.start(8L);
+    while (!finished.isCompleted()) {
+      finished.resume();
+      finished.accept(
+          finished.getStage(), finished.current().npcCode(), finished.current().goalIds());
+    }
+
+    waiting.cancelQuest();
+    finished.cancelQuest();
+
+    assertThat(waiting.getStage()).isEqualTo(7);
+    assertThat(finished.isCompleted()).isTrue();
+    assertThat(finished.isPaused()).isFalse();
+  }
 }

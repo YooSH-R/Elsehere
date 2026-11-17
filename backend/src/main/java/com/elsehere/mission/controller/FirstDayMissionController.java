@@ -28,7 +28,10 @@ public class FirstDayMissionController {
 
   @PostMapping("/start")
   public FirstDayMissionResponse start(@AuthenticationPrincipal LoginUser user) {
-    return service.start(user.userId());
+    FirstDayMissionResponse started = service.start(user.userId());
+    // 새 퀘스트를 시작하면 하다 멈춘 시연은 취소한다.
+    showcase.cancelUnfinished(user.userId());
+    return started;
   }
 
   @PostMapping("/visit")

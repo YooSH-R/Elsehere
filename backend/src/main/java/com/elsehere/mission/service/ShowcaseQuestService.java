@@ -10,7 +10,10 @@ import com.elsehere.mission.dto.FirstDayMissionResponse;
 import com.elsehere.mission.dto.QuestBoardResponse;
 import com.elsehere.mission.entity.ShowcaseJourney;
 import com.elsehere.mission.entity.ShowcaseStage;
+import com.elsehere.mission.entity.TownStory;
+import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.repository.ShowcaseJourneyRepository;
+import com.elsehere.mission.repository.TownStoryRepository;
 import com.elsehere.user.repository.UserRepository;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +32,8 @@ public class ShowcaseQuestService {
   private final UserRepository users;
   private final ConversationRepository conversations;
   private final ShowcaseScene scene;
+  private final FirstDayMissionRepository firstDay;
+  private final TownStoryRepository stories;
 
   @Transactional(readOnly = true)
   public Optional<QuestTalk> context(Long userId, String npcCode) {
@@ -181,7 +186,30 @@ public class ShowcaseQuestService {
     } else {
       scene.resume(userId);
     }
+    cancelOtherQuests(userId);
     return response(journey);
+  }
+
+  // 새 퀘스트를 시작하면 하던 퀘스트는 취소한다. 시연을 끝내도 이어지지 않고, 목록에서 다시 시작하면 그 퀘스트의 처음부터 한다.
+  private void cancelOtherQuests(Long userId) {
+    // 첫날 퀘스트는 진행 행이 없는 것이 시작 전이다.
+    firstDay
+        .findForUpdate(userId)
+        .filter(mission -> !mission.isCompleted())
+        .ifPresent(firstDay::delete);
+    stories.findForUpdate(userId).ifPresent(TownStory::cancelQuest);
+  }
+
+  /** 다른 퀘스트를 시작해, 하다 멈춘 시연을 취소한다. 처음으로 되돌리고 시연이 덮어쓴 계정 상태도 돌려놓는다. 끝낸 시연은 그대로 둔다. */
+  public void cancelUnfinished(Long userId) {
+    journeys
+        .findForUpdate(userId)
+        .filter(journey -> !journey.isCompleted())
+        .ifPresent(
+            journey -> {
+              journey.restart();
+              scene.leave(userId);
+            });
   }
 
   public FirstDayMissionResponse reset(Long userId) {

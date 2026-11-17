@@ -74,5 +74,9 @@ class TownStoryControllerTest {
                 .header("X-Requested-With", "ElsehereClient"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.started").value(true));
+    // 마을 퀘스트를 시작하면 하다 멈춘 시연은 취소된다.
+    org.mockito.Mockito.verify(showcase).cancelUnfinished(8L);
   }
+
+  @MockitoBean private com.elsehere.mission.service.ShowcaseQuestService showcase;
 }

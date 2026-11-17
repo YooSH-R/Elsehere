@@ -54,6 +54,8 @@ class FirstDayMissionControllerTest {
         .andExpect(jsonPath("$.stage").value(0))
         .andExpect(jsonPath("$.raining").value(false))
         .andExpect(jsonPath("$.weather").value("CLEAR"));
+    // 첫날 퀘스트를 시작하면 하다 멈춘 시연은 취소된다.
+    org.mockito.Mockito.verify(showcase).cancelUnfinished(8L);
   }
 
   // 시연 서버에서는 시작 전에도 시연 퀘스트를 보여, 다른 퀘스트가 진행 중으로 보이지 않는다.

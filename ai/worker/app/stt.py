@@ -17,6 +17,8 @@ KOREAN_ENDING = "음, 잠깐만요."
 STT_MAX_BYTES = 3 * 1024 * 1024
 AUDIO_EXT = {"audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "mp4", "audio/wav": "wav", "audio/x-wav": "wav", "audio/mpeg": "mp3"}
 NORM = re.compile(r"[^a-z0-9가-힣 ]")
+# 장면 단어 안의 말 → Whisper가 그 자리에 대신 적는, 소리가 같은 말
+HOMOPHONES = {"to": ("two", "too", "2"), "for": ("four", "4")}
 
 
 def stt_prompt(scene_words: list[str], npc_line: str = "") -> str:
@@ -71,9 +73,29 @@ def prompt_endings(scene_words: list[str], npc_line: str) -> set[str]:
     return endings
 
 
+def fix_scene_homophones(text: str, scene_words: list[str]) -> str:
+    """약하게 말한 to·for를 소리가 같은 two·four로 적은 것('Two go please.')을 장면 단어('to go')에 맞춰 고친다.
+    직전 NPC 대사가 질문('Are you eating here?')으로 끝나면 이렇게 적는 일이 늘었다 (S15P31A305-961).
+    장면 단어와 소리가 같은 자리만 고치고, 장면 단어에 없는 말은 그대로 둔다."""
+    for scene_word in scene_words:
+        words = scene_word.lower().split()
+        if len(words) < 2 or not set(words) & HOMOPHONES.keys():
+            continue
+        heard = r"\s+".join(f"(?:{'|'.join([word, *HOMOPHONES[word]])})" if word in HOMOPHONES else re.escape(word) for word in words)
+        text = re.sub(rf"\b{heard}\b", lambda found: as_heard(found.group(), " ".join(words)), text, flags=re.IGNORECASE)
+    return text
+
+
+def as_heard(heard: str, scene_word: str) -> str:
+    """고친 말의 첫 글자 대소문자는 인식 결과를 따른다. 이미 장면 단어와 같으면 손대지 않는다."""
+    if heard.lower() == scene_word:
+        return heard
+    return scene_word.capitalize() if heard[0].isupper() else scene_word
+
+
 async def stt(llm: LLM, audio: bytes, mime: str, scene_words: list[str], npc_line: str = "") -> dict:
     """mime은 AUDIO_EXT에 있는 형식만 받는다 (라우트가 매개변수를 떼고 걸러 415로 돌려줌)."""
     usage = Usage()
     out = await llm.transcribe(audio, f"speech.{AUDIO_EXT[mime]}", mime, stt_prompt(scene_words, npc_line), usage)
-    text = "" if is_prompt_echo(out["text"], scene_words, npc_line) else out["text"]
+    text = "" if is_prompt_echo(out["text"], scene_words, npc_line) else fix_scene_homophones(out["text"], scene_words)
     return {"text": text, "latency_s": out["latency_s"], "audio_s": out["audio_s"], "usage": usage.items}

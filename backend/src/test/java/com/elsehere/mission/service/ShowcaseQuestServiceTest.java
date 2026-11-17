@@ -82,7 +82,7 @@ class ShowcaseQuestServiceTest {
     ShowcaseJourney journey = saved.getValue();
     when(journeys.findForUpdate(8L)).thenReturn(Optional.of(journey));
 
-    journey.accept(0, "HOTEL_STAFF", List.of("ask_burger_location"));
+    journey.accept(0, "HOTEL_STAFF", List.of("ask_for_taxi"));
     journey.stop();
     service.start(8L);
 
@@ -135,7 +135,7 @@ class ShowcaseQuestServiceTest {
   @Test
   void taxiKeepsTheNormalDestinationJudgeAndOrderOnlyUsesItsOwnGoals() {
     ShowcaseJourney journey = ShowcaseJourney.start(8L);
-    journey.accept(0, "HOTEL_STAFF", java.util.List.of("ask_burger_location"));
+    journey.accept(0, "HOTEL_STAFF", java.util.List.of("ask_for_taxi"));
     when(journeys.findById(8L)).thenReturn(Optional.of(journey));
     assertThat(service(true).context(8L, "TAXI_DRIVER").orElseThrow().goals()).isEmpty();
     journey.chooseTaxiDestination("TAXI_DRIVER", "DINER");
@@ -147,25 +147,33 @@ class ShowcaseQuestServiceTest {
     assertThat(order.instruction()).contains("Both for here and to go are valid", "7 coins");
   }
 
-  // 호텔 직원은 길과 택시·우산만 안내하고, 학습자의 우산 반환 약속을 목표로 기다리지 않는다.
+  // 호텔 직원은 택시 부탁을 기다려 호텔 앞 택시와 우산을 안내하고, 학습자의 우산 반환 약속을 목표로 기다리지 않는다.
   @Test
-  void hotelStaffOnlyWaitsForTheWayToTheBurgerShop() {
+  void hotelStaffOnlyWaitsForTheTaxiRequest() {
     when(journeys.findById(8L)).thenReturn(Optional.of(ShowcaseJourney.start(8L)));
 
     QuestTalk.Goals hotel =
         service(true).context(8L, "HOTEL_STAFF").orElseThrow().goals().orElseThrow();
 
-    assertThat(hotel.remainingGoals()).containsExactly("ask_burger_location");
+    assertThat(hotel.remainingGoals()).containsExactly("ask_for_taxi");
     assertThat(hotel.instruction())
-        .contains("lend them an umbrella")
+        .contains("a taxi is waiting right outside", "lend them an umbrella")
         .doesNotContain("bring it back");
+  }
+
+  // 대본과 달리 길을 물어도 호텔 단계가 막히지 않도록, 택시 부탁과 길 묻기를 같은 목표로 인정한다.
+  @Test
+  void hotelGoalAlsoCountsAskingTheWayToTheBurgerShop() {
+    ShowcaseStage.Goal goal = ShowcaseStage.HOTEL.goals().get(0);
+
+    assertThat(goal.description()).contains("taxi", "where the burger shop or Maple Burger is");
   }
 
   // 단골을 기억하면 인사에서 늘 시키던 메뉴를 물을 수 있고, 학습자가 다른 걸 고르면 그 주문을 받는다.
   @Test
   void burgerStaffMayOfferARegularsUsualButTakesANewChoice() {
     ShowcaseJourney journey = ShowcaseJourney.start(8L);
-    journey.accept(0, "HOTEL_STAFF", java.util.List.of("ask_burger_location"));
+    journey.accept(0, "HOTEL_STAFF", java.util.List.of("ask_for_taxi"));
     journey.chooseTaxiDestination("TAXI_DRIVER", "DINER");
     journey.arriveByTaxi("DINER");
     when(journeys.findById(8L)).thenReturn(Optional.of(journey));

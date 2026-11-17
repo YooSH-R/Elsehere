@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings, profile_models
 from app.main import create_app
-from app.stt import is_prompt_echo
+from app.stt import fix_scene_homophones, is_prompt_echo
 from conftest import TOKEN
 
 WHISPER_OK = {"text": "Muffin.", "duration": 0.6}
@@ -423,3 +423,30 @@ def test_stt_last_provider_is_never_skipped():
         for _ in range(2):
             r = c.post("/v1/stt", files=AUDIO)
     assert r.status_code == 503 and [h for h, _ in seen][-1] == "groq.test" and [h for h, _ in seen][3:] == ["groq.test"]
+
+
+@pytest.mark.parametrize(
+    ("heard", "fixed"),
+    [
+        ("Two go please.", "To go please."),  # 약하게 말한 to를 two로 적었다 (S15P31A305-961)
+        ("I'd like it too go, please.", "I'd like it to go, please."),
+        ("2 go please", "to go please"),
+        ("Four here, please.", "For here, please."),
+        ("Two cheeseburgers to go.", "Two cheeseburgers to go."),  # 장면 단어와 소리가 같은 자리만 고친다
+        ("Two golf balls.", "Two golf balls."),
+        ("To go please.", "To go please."),
+    ],
+)
+def test_scene_homophones_follow_scene_words(heard, fixed):
+    assert fix_scene_homophones(heard, ["Rosa", "fries", "for here", "to go"]) == fixed
+
+
+def test_scene_homophones_need_the_scene_word():
+    # 장면 단어에 없는 말은 그대로 둔다. 카페 밖에서 'two go'가 포장이라는 근거가 없다
+    assert fix_scene_homophones("Two go please.", ["Rosa", "fries"]) == "Two go please."
+
+
+def test_stt_fixes_scene_homophones(client, provider):
+    provider.answers["stt"] = lambda b: httpx.Response(200, json={"text": "Two go please.", "duration": 1.1})
+    r = client.post("/v1/stt", files=AUDIO, data={"scene_words": '["for here", "to go"]', "npc_line": "Are you eating here?"})
+    assert r.json()["text"] == "To go please."

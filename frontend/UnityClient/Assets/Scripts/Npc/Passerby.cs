@@ -166,6 +166,15 @@ namespace A305.Npc
             approach = new PasserbyApproach(new PasserbyRules(30, 2, 10, 60, true));
         }
 
+        /// <summary>시연 매장 환영이 끝났다. 평소 걸음과 다가가기 규칙으로 돌아간다.</summary>
+        public void EndShowcaseApproach()
+        {
+            if (!showcaseApproach)
+                return;
+            showcaseApproach = false;
+            approach = new PasserbyApproach(CurrentSettings.ToRules(), approach.RestUntilSeconds);
+        }
+
         /// <summary>이 NPC의 코드</summary>
         public string NpcCode => identity.Code;
 

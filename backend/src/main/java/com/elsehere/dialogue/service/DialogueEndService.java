@@ -11,6 +11,7 @@ import com.elsehere.feedback.service.FeedbackService;
 import com.elsehere.followup.dto.FollowUpResponse;
 import com.elsehere.followup.service.FollowUpService;
 import com.elsehere.memory.service.MemoryService;
+import com.elsehere.mission.service.ShowcaseQuestService;
 import com.elsehere.review.service.ReviewPracticeResults;
 import java.time.Clock;
 import java.time.Instant;
@@ -39,6 +40,7 @@ public class DialogueEndService {
   private final MemoryService memoryService;
   private final FollowUpService followUpService;
   private final ReviewPracticeResults reviewPracticeResults;
+  private final ShowcaseQuestService showcase;
   private final TransactionTemplate transactionTemplate;
   private final Clock clock;
 
@@ -57,7 +59,7 @@ public class DialogueEndService {
     }
     CompletableFuture<Optional<FollowUpResponse>> followUp =
         CompletableFuture.completedFuture(Optional.empty());
-    if (!ending.practice()) {
+    if (!ending.practice() && !ending.leftShowcase()) {
       // 기억 카드 갱신은 따로 실행되어 피드백 생성과 함께 진행된다. 실패해도 종료·피드백에 영향이 없다.
       memoryService.updateAfterConversation(userId, conversationId, request.requestId());
     }
@@ -114,14 +116,18 @@ public class DialogueEndService {
                       conversation.isReview()
                           ? reviewPracticeResults.record(userId, conversation)
                           : null);
-          return new Ending(
-              response, conversation.isPractice(), conversation.getShowcaseStage() != null);
+          boolean showcaseTalk = conversation.getShowcaseStage() != null;
+          // 시연을 끝낸 대화를 닫으면 시연이 덮어쓴 NPC 관계와 게임 시각을 시작 전 값으로 돌려놓는다.
+          boolean leftShowcase = showcaseTalk && showcase.leaveIfFinished(userId);
+          return new Ending(response, conversation.isPractice(), showcaseTalk, leftShowcase);
         });
   }
 
   /**
    * @param practice 장소 연습 대화인지. 종료 뒤 기억 카드와 건넬 것을 만들지 않는다
    * @param showcase 시연 퀘스트 대화인지. 종료 뒤 건넬 것을 만들지 않는다
+   * @param leftShowcase 이 대화를 닫으며 시연 전 상태로 돌려놓았는지. 돌려놓은 기억 카드에 시연 대화를 반영하지 않는다
    */
-  private record Ending(EndConversationResponse response, boolean practice, boolean showcase) {}
+  private record Ending(
+      EndConversationResponse response, boolean practice, boolean showcase, boolean leftShowcase) {}
 }

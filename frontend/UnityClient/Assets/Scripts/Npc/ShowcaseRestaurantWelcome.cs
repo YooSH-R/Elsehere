@@ -67,6 +67,13 @@ namespace A305.Npc
             passerby?.BeginShowcaseApproach();
         }
 
+        /// <summary>시연이 끝나거나 멈췄다. 공연과 시연용 다가가기를 그만두고 평소 NPC로 돌아간다.</summary>
+        public void End()
+        {
+            GetComponent<Passerby>()?.EndShowcaseApproach();
+            Destroy(this);
+        }
+
         private void OnDisable() => performance?.StopAmbient();
     }
 }

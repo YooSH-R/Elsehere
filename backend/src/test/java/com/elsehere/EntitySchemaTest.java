@@ -68,6 +68,7 @@ class EntitySchemaTest {
             "first_day_missions",
             "npc_favors",
             "showcase_journeys",
+            "showcase_saved_states",
             "conversations",
             "turns",
             "ai_requests",

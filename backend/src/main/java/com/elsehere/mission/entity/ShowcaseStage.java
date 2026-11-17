@@ -50,10 +50,11 @@ public enum ShowcaseStage {
               "사이드와 음료 주문하기",
               "Orders a side and drink, for example fries and cola, or clearly declines one while choosing the other.",
               "감자튀김과 콜라를 함께 주문해 보세요."),
+          // 이 설명은 추천 문장을 만들 때도 쓰인다. 시연 대본이 포장이라 포장을 예로 들어 'To go, please.'가 추천되게 한다.
           new Goal(
               "choose_dining",
               "매장 이용 여부 말하기",
-              "Chooses to eat here or take the order away. Short answers such as for here or to go and full sentences are equally valid.",
+              "Chooses to take the order away, for example 'To go, please.' Choosing to eat here instead and full sentences are equally valid.",
               "매장에서 먹을지 포장할지 알려 주세요.")));
 
   public static final String QUEST_ID = "SHOWCASE_RAINY_EVENING";

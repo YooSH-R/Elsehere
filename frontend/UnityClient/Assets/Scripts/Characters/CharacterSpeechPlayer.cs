@@ -43,10 +43,14 @@ namespace A305.Characters
         private FaceEmotionSample initialEmotion;
         private FaceEmotionSample lastEmotion;
         private FaceEmotionSample heldEmotion;
+        private bool hasRestingMood;
         private bool ApplicationSuspended => !applicationFocused || applicationPaused;
         public bool IsPlaying => active && !IsPaused;
         public bool IsPaused => active && (paused || ApplicationSuspended);
         public bool IsHoldingEmotion => !active && expressionReleaseAt >= 0;
+        public bool HasRestingMood => hasRestingMood;
+        private FaceEmotionSample RestingExpression =>
+            hasRestingMood ? emotionProfile.Sample(speakingMood, moodIntensity) : default;
         public CharacterSpeechClip Speech => speech;
         public CharacterFaceController Face => face;
         public SpeechExpressionProfile Expressions => expressions;
@@ -71,6 +75,27 @@ namespace A305.Characters
         }
 
         public void ConfigureExpressions(SpeechExpressionProfile profile) => expressions = profile;
+
+        // NPC의 평소 인상을 대기·중단·감정 정보 없는 음성에 함께 사용한다.
+        public void ConfigureRestingMood(CharacterEmotion mood)
+        {
+            ConfigureMood(ResolveEmotionProfile(), mood);
+            hasRestingMood = true;
+            if (!active && !IsHoldingEmotion)
+                face.ApplySpeech(SpeechMouthSample.Rest, RestingExpression, 0);
+        }
+
+        private EmotionExpressionProfile ResolveEmotionProfile()
+        {
+            if (emotionProfile != null)
+                return emotionProfile;
+            if (runtimeEmotions == null)
+            {
+                runtimeEmotions = ScriptableObject.CreateInstance<EmotionExpressionProfile>();
+                runtimeEmotions.hideFlags = HideFlags.DontSave;
+            }
+            return runtimeEmotions;
+        }
 
         // Sets the mood for subsequent utterances. An explicit per-utterance
         // emotion track always takes priority, including its neutral gaps.
@@ -136,19 +161,7 @@ namespace A305.Characters
             if (phonemes != null && Mathf.Abs(phonemes.Duration - audio.length) > .02f)
                 throw new ArgumentException("Phoneme timing does not match the voice length.");
             if (reactions != null && profile == null)
-            {
-                profile = emotionProfile;
-                if (profile == null)
-                {
-                    if (runtimeEmotions == null)
-                    {
-                        runtimeEmotions =
-                            ScriptableObject.CreateInstance<EmotionExpressionProfile>();
-                        runtimeEmotions.hideFlags = HideFlags.DontSave;
-                    }
-                    profile = runtimeEmotions;
-                }
-            }
+                profile = ResolveEmotionProfile();
             if (reactions == null && emotionProfile != null)
             {
                 reactions = new SpeechEmotionTrack(
@@ -171,7 +184,7 @@ namespace A305.Characters
                 && (profile == null || Mathf.Abs(reactions.Duration - audio.length) > .02f)
             )
                 throw new ArgumentException("표정 시간표와 음성 길이·프로필을 확인하세요.");
-            var previousEmotion = continueSpeech && streaming ? lastEmotion : default;
+            var previousEmotion = continueSpeech && streaming ? lastEmotion : RestingExpression;
             float previousEmotionSeconds =
                 continueSpeech && streaming && reactions != null
                     ? reactions.ContinuationSeconds(emotionTrack, emotionTimeOffset)
@@ -286,7 +299,30 @@ namespace A305.Characters
             expressionReleaseAt = -1;
             initialEmotion = lastEmotion = heldEmotion = default;
             if (face != null)
-                face.SetPose(CharacterFacePose.Neutral);
+                face.ApplySpeech(SpeechMouthSample.Rest, RestingExpression, 0);
+        }
+
+        public void StopForListening()
+        {
+            if (IsHoldingEmotion)
+                return;
+            float seconds = PlaybackTime;
+            if (!active || emotionTrack == null || seconds <= 0)
+            {
+                Stop();
+                return;
+            }
+            ApplyAtAudioTime(seconds);
+            emotionTrack = emotionTrack.Truncate(seconds);
+            speechSource.Stop();
+            active = paused = awaitingAudioResume = false;
+            activeAudio = null;
+            timeline = null;
+            streaming = false;
+            keepEmotionAfterSpeech = true;
+            expressionReleaseAt = Time.unscaledTime;
+            heldEmotion = lastEmotion;
+            face.ApplySpeech(SpeechMouthSample.Rest, heldEmotion, 0);
         }
 
         // Offline rendering uses the same evaluator as real AudioSource playback.
@@ -347,6 +383,14 @@ namespace A305.Characters
                     if (release >= 1)
                         Stop();
                 }
+                else if (hasRestingMood)
+                {
+                    float blink =
+                        expressions != null
+                            ? expressions.Sample(Time.unscaledTime % 14f, 15f).Blink
+                            : 0;
+                    face.ApplySpeech(SpeechMouthSample.Rest, RestingExpression, blink);
+                }
                 return;
             }
             if (IsPaused)
@@ -379,7 +423,7 @@ namespace A305.Characters
         private void ApplyListeningExpression()
         {
             float elapsed = Time.unscaledTime - expressionReleaseAt;
-            float seconds = (streamTimeOffset + activeAudio.length + elapsed) % 14f;
+            float seconds = (streamTimeOffset + emotionTrack.Duration + elapsed) % 14f;
             float blink = expressions != null ? expressions.Sample(seconds, 15f).Blink : 0;
             lastEmotion = SampleHeldEmotion(elapsed);
             face.ApplySpeech(SpeechMouthSample.Rest, lastEmotion, blink);
@@ -388,7 +432,7 @@ namespace A305.Characters
         private FaceEmotionSample SampleHeldEmotion(float elapsed) =>
             emotionTrack != null && activeEmotions != null
                 ? emotionTrack.Sample(
-                    activeAudio.length + elapsed,
+                    emotionTrack.Duration + elapsed,
                     activeEmotions,
                     initialEmotion,
                     holdLast: true,

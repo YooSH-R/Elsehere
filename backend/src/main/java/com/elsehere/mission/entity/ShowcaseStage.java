@@ -54,19 +54,7 @@ public enum ShowcaseStage {
               "choose_dining",
               "매장 이용 여부 말하기",
               "Chooses to eat here or take the order away. Short answers such as for here or to go and full sentences are equally valid.",
-              "매장에서 먹을지 포장할지 알려 주세요."))),
-  RETURN(
-      "다시 만난 호텔 직원",
-      "HOTEL",
-      "HOTEL_STAFF",
-      "비가 그친 마을을 걸어 호텔로 돌아가세요. 같은 직원에게 우산을 빌려줘서 고맙다고 말해 보세요.",
-      "You are the same hotel receptionist meeting the learner again after their burger trip. Use the real memories supplied with this conversation when available, without inventing an unspoken order or preference. Welcome them back, and respond naturally when they thank you for the umbrella or return it. Do not repeat check-in, lost-bag or cafe missions. Do not treat this as a food order.",
-      List.of(
-          new Goal(
-              "thank_for_umbrella",
-              "우산 감사 인사하기",
-              "Thanks the receptionist for lending the umbrella, or returns it with appreciation. Equivalent natural wording in Korean or English counts.",
-              "우산을 빌려줘서 고마웠다고 말해 보세요.")));
+              "매장에서 먹을지 포장할지 알려 주세요.")));
 
   public static final String QUEST_ID = "SHOWCASE_RAINY_EVENING";
   private final String title;

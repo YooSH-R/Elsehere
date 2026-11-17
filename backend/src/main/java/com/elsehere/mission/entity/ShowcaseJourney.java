@@ -79,8 +79,9 @@ public class ShowcaseJourney extends BaseEntity {
     return isCompleted() ? null : ShowcaseStage.values()[stage];
   }
 
+  /** 마지막 단계(주문)까지 마쳤는지. 단계가 더 많던 때 끝낸 계정은 단계 값이 더 크게 남아 있어 그 이상도 끝낸 것으로 본다. */
   public boolean isCompleted() {
-    return stage == ShowcaseStage.values().length;
+    return stage >= ShowcaseStage.values().length;
   }
 
   public boolean hasUmbrella() {
@@ -96,7 +97,7 @@ public class ShowcaseJourney extends BaseEntity {
   }
 
   public String weather() {
-    return stage < ShowcaseStage.RETURN.ordinal() ? "RAIN" : "CLEAR";
+    return isCompleted() ? "CLEAR" : "RAIN";
   }
 
   public void visit(String scene) {

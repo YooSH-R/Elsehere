@@ -45,7 +45,7 @@ public class ShowcaseQuestService {
     if (!stage.npcCode().equals(npcCode)) {
       String destination =
           switch (stage) {
-            case HOTEL, RETURN -> "the hotel";
+            case HOTEL -> "the hotel";
             case TAXI -> "the taxi outside the hotel";
             case ORDER -> "Maple Burger";
           };
@@ -159,12 +159,8 @@ public class ShowcaseQuestService {
   public FirstDayMissionResponse start(Long userId) {
     lockUserWithoutConversation(userId);
     ShowcaseJourney journey = journeys.findForUpdate(userId).orElse(null);
-    // 끝냈으면 처음부터 다시 한다. 시연 대본은 주문·다시 연습에서 끝나 귀환 단계(Jake 감사)를 하지 않으므로, 귀환 단계를 진행 중일 때 카드를
-    // 다시 누르는 것도 새로 시작으로 본다. 귀환 단계에서 다른 퀘스트로 넘어가 멈췄다면 이어 한다.
-    boolean finished =
-        journey != null
-            && (journey.isCompleted()
-                || (journey.isActive() && journey.current() == ShowcaseStage.RETURN));
+    // 끝냈으면(주문 완료) 처음부터 다시 한다.
+    boolean finished = journey != null && journey.isCompleted();
     // 처음부터 시작할 때만 대본의 출발 상태(NPC 관계·게임 시각)를 맞춘다. 멈췄다 이어 하면 그대로 둔다.
     boolean fromBeginning =
         journey == null || finished || (journey.getStage() == 0 && !journey.isActive());
@@ -234,7 +230,7 @@ public class ShowcaseQuestService {
       int index = stage.ordinal();
       String place =
           switch (stage) {
-            case HOTEL, RETURN -> "호텔";
+            case HOTEL -> "호텔";
             case TAXI -> "거리";
             case ORDER -> "햄버거 가게";
           };
@@ -256,7 +252,7 @@ public class ShowcaseQuestService {
         new QuestBoardResponse.Quest(
             ShowcaseStage.QUEST_ID,
             "비 오는 저녁, 햄버거 한 끼",
-            "[시연] 우산을 빌려 택시로 햄버거 가게에 다녀오고, 같은 호텔 직원에게 감사 인사를 전해요.",
+            "[시연] 우산을 빌려 택시로 햄버거 가게에 가서 햄버거를 주문해요.",
             0,
             status,
             stops));

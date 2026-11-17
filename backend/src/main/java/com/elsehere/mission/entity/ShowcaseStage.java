@@ -7,14 +7,15 @@ public enum ShowcaseStage {
       "호텔에서 저녁 나들이 준비",
       "HOTEL",
       "HOTEL_STAFF",
-      "호텔 직원에게 햄버거 가게 위치를 물어보세요.",
-      "You are the hotel receptionist, not a food seller. Greet briefly and wait for the learner to ask for help. After they ask where Maple Burger is, explain it is down the street, offer a taxi because it is raining and lend them an umbrella for the walk out. They do not need to promise anything; do not ask for a promise, supply their answer or place a food order.",
+      "비가 와요. 호텔 직원에게 택시를 잡아 달라고 부탁해 보세요.",
+      "You are the hotel receptionist, not a food seller. Greet briefly and wait for the learner to ask for help. When they ask you to get or call a taxi, tell them a taxi is waiting right outside the hotel and lend them an umbrella because it is raining. If they ask where Maple Burger is instead, say it is down the street, then tell them a taxi is waiting right outside and lend them an umbrella. Do not ask where they are going; the driver will ask. They do not need to promise anything; do not ask for a promise, supply their answer or place a food order.",
       List.of(
+          // 대본은 택시 부탁이지만, 길을 물어도 단계가 막히지 않도록 같은 목표로 인정한다.
           new Goal(
-              "ask_burger_location",
-              "햄버거 가게 위치 묻기",
-              "Asks where the burger shop or Maple Burger is, or how to get there.",
-              "햄버거 가게가 어디인지 물어보세요."))),
+              "ask_for_taxi",
+              "택시 부탁하기",
+              "Asks the receptionist to get, call or find a taxi, for example because it is raining. Asking where the burger shop or Maple Burger is, or how to get there, also counts.",
+              "택시를 잡아 달라고 부탁해 보세요."))),
   TAXI(
       "택시로 햄버거 가게 가기",
       "TOWN",

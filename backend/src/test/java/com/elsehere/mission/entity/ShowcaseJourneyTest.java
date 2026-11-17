@@ -11,7 +11,7 @@ class ShowcaseJourneyTest {
   void restartGoesBackToTheBeginningWithoutStarting() {
     ShowcaseJourney journey = ShowcaseJourney.start(8L);
     assertThat(journey.isActive()).isTrue();
-    journey.accept(0, "HOTEL_STAFF", List.of("ask_burger_location"));
+    journey.accept(0, "HOTEL_STAFF", List.of("ask_for_taxi"));
 
     journey.restart();
 
@@ -25,8 +25,8 @@ class ShowcaseJourneyTest {
   @Test
   void anotherNpcAndFutureGoalsCannotSkipTheHotel() {
     ShowcaseJourney journey = ShowcaseJourney.start(8L);
-    journey.accept(0, "DINER_STAFF", List.of("ask_burger_location"));
-    journey.accept(2, "HOTEL_STAFF", List.of("ask_burger_location"));
+    journey.accept(0, "DINER_STAFF", List.of("ask_for_taxi"));
+    journey.accept(2, "HOTEL_STAFF", List.of("ask_for_taxi"));
     journey.accept(0, "HOTEL_STAFF", List.of("order_burger", "thank_for_umbrella"));
     assertThat(journey.getStage()).isZero();
     assertThat(journey.hasUmbrella()).isFalse();
@@ -66,12 +66,12 @@ class ShowcaseJourneyTest {
     assertThat(FirstDayMission.start(8L).getStage()).isZero();
   }
 
-  // 시연 대본에서는 우산 반환 약속을 하지 않는다. 길만 물으면 호텔 단계를 마치고, 직원이 빌려준 우산을 든다.
+  // 시연 대본에서는 우산 반환 약속을 하지 않는다. 택시만 부탁하면 호텔 단계를 마치고, 직원이 빌려준 우산을 든다.
   @Test
-  void askingTheWayAloneFinishesTheHotelWithTheLentUmbrella() {
+  void askingForATaxiAloneFinishesTheHotelWithTheLentUmbrella() {
     ShowcaseJourney journey = ShowcaseJourney.start(8L);
 
-    journey.accept(0, "HOTEL_STAFF", List.of("ask_burger_location"));
+    journey.accept(0, "HOTEL_STAFF", List.of("ask_for_taxi"));
 
     assertThat(journey.current()).isEqualTo(ShowcaseStage.TAXI);
     assertThat(journey.hasUmbrella()).isTrue();
@@ -79,7 +79,7 @@ class ShowcaseJourneyTest {
 
   private static ShowcaseJourney leaveHotel() {
     ShowcaseJourney journey = ShowcaseJourney.start(8L);
-    journey.accept(0, "HOTEL_STAFF", List.of("ask_burger_location"));
+    journey.accept(0, "HOTEL_STAFF", List.of("ask_for_taxi"));
     assertThat(journey.hasUmbrella()).isTrue();
     return journey;
   }

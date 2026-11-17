@@ -16,8 +16,11 @@ import com.elsehere.conversation.entity.ConversationStatus;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.mission.dto.FirstDayMissionResponse;
 import com.elsehere.mission.dto.QuestBoardResponse;
+import com.elsehere.mission.entity.FirstDayMission;
+import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.mission.entity.ShowcaseJourney;
 import com.elsehere.mission.entity.ShowcaseStage;
+import com.elsehere.mission.entity.TownStory;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.repository.ShowcaseJourneyRepository;
 import com.elsehere.mission.repository.TownStoryRepository;
@@ -34,6 +37,8 @@ class ShowcaseQuestServiceTest {
   private final UserRepository users = mock(UserRepository.class);
   private final ConversationRepository conversations = mock(ConversationRepository.class);
   private final ShowcaseScene scene = mock(ShowcaseScene.class);
+  private final FirstDayMissionRepository firstDay = mock(FirstDayMissionRepository.class);
+  private final TownStoryRepository stories = mock(TownStoryRepository.class);
 
   // 공용 서버(시연 설정 꺼짐)에서는 모든 계정의 퀘스트 목록에 시연 카드가 보이지만, 시작하기 전에는 일반 진행 그대로다.
   @Test
@@ -240,7 +245,77 @@ class ShowcaseQuestServiceTest {
 
   private ShowcaseQuestService service(boolean enabled) {
     return new ShowcaseQuestService(
-        new ShowcaseSettings(enabled), journeys, users, conversations, scene);
+        new ShowcaseSettings(enabled), journeys, users, conversations, scene, firstDay, stories);
+  }
+
+  // 시연을 시작하면 하던 첫날 퀘스트는 취소되어 시작 전으로 돌아간다. 시연을 끝내도 이어지지 않는다.
+  @Test
+  void startingCancelsAnUnfinishedFirstDayQuest() {
+    FirstDayMission mission = FirstDayMission.start(8L);
+    mission.accept(0, FirstDayStage.values()[0].npc(), FirstDayStage.values()[0].intentIds());
+    when(firstDay.findForUpdate(8L)).thenReturn(Optional.of(mission));
+    when(journeys.findForUpdate(8L)).thenReturn(Optional.of(ShowcaseJourney.notStarted(8L)));
+    when(users.findForUpdate(8L)).thenReturn(Optional.of(mock(User.class)));
+
+    service(false).start(8L);
+
+    verify(firstDay).delete(mission);
+  }
+
+  // 시연을 시작하면 하던 마을 퀘스트는 취소되어 그 퀘스트의 처음에서 시작을 기다린다.
+  @Test
+  void startingCancelsATownQuestInProgress() {
+    TownStory story = TownStory.start(8L);
+    story.accept(0, "DINER_STAFF", List.of("order_breakfast", "explain_spill"));
+    when(stories.findForUpdate(8L)).thenReturn(Optional.of(story));
+    when(journeys.findForUpdate(8L)).thenReturn(Optional.of(ShowcaseJourney.notStarted(8L)));
+    when(users.findForUpdate(8L)).thenReturn(Optional.of(mock(User.class)));
+
+    service(false).start(8L);
+
+    assertThat(story.getStage()).isZero();
+    assertThat(story.isPaused()).isTrue();
+  }
+
+  // 끝낸 첫날 퀘스트는 취소하지 않는다. 받은 보상과 다음 퀘스트가 그대로다.
+  @Test
+  void startingKeepsAFinishedFirstDayQuest() {
+    FirstDayMission mission = mock(FirstDayMission.class);
+    when(mission.isCompleted()).thenReturn(true);
+    when(firstDay.findForUpdate(8L)).thenReturn(Optional.of(mission));
+    when(journeys.findForUpdate(8L)).thenReturn(Optional.of(ShowcaseJourney.notStarted(8L)));
+    when(users.findForUpdate(8L)).thenReturn(Optional.of(mock(User.class)));
+
+    service(false).start(8L);
+
+    verify(firstDay, never()).delete(any());
+  }
+
+  // 다른 퀘스트를 시작하면 하다 멈춘 시연은 취소되어 처음으로 돌아가고, 계정도 시작 전 상태로 돌아간다.
+  @Test
+  void cancellingAnUnfinishedShowcaseRestartsItAndPutsTheAccountBack() {
+    ShowcaseJourney journey = atBurgerShop();
+    journey.stop();
+    when(journeys.findForUpdate(8L)).thenReturn(Optional.of(journey));
+
+    service(false).cancelUnfinished(8L);
+
+    assertThat(journey.getStage()).isZero();
+    assertThat(journey.isActive()).isFalse();
+    assertThat(journey.isUmbrellaBorrowed()).isFalse();
+    verify(scene).leave(8L);
+  }
+
+  // 끝낸 시연은 취소할 것이 없다. 다시 누르면 처음부터 시작하는 것도 그대로다.
+  @Test
+  void cancellingLeavesAFinishedShowcaseAlone() {
+    ShowcaseJourney journey = completedJourney();
+    when(journeys.findForUpdate(8L)).thenReturn(Optional.of(journey));
+
+    service(false).cancelUnfinished(8L);
+
+    assertThat(journey.isCompleted()).isTrue();
+    verifyNoInteractions(scene);
   }
 
   // 주문을 마치면 시연이 끝난다. 호텔로 돌아가 감사 인사를 하는 단계는 없다.

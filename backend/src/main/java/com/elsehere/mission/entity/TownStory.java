@@ -74,6 +74,16 @@ public class TownStory extends BaseEntity {
     paused = false;
   }
 
+  /** 하던 퀘스트를 취소한다. 그 퀘스트의 첫 단계로 돌아가 목록에서 다시 시작하기를 기다린다. 앞서 끝낸 퀘스트는 그대로다. */
+  public void cancelQuest() {
+    if (paused || isCompleted()) {
+      return;
+    }
+    stage = Quest.townQuestAt(stage).firstStoryStage();
+    completedGoals = 0;
+    paused = true;
+  }
+
   public boolean hasGoal(int index) {
     return (completedGoals & (1 << index)) != 0;
   }

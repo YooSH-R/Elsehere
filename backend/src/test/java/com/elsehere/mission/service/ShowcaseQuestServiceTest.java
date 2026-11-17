@@ -186,6 +186,41 @@ class ShowcaseQuestServiceTest {
         .doesNotContain("Offer no completed order");
   }
 
+  // 주문 단계는 세부 목표가 넷이라, 하나를 마치면 직원이 순서대로 다음 목표를 묻는 질문으로 이끈다.
+  @Test
+  void burgerStaffAsksAboutTheNextPendingGoalAfterOneIsDone() {
+    when(journeys.findById(8L)).thenReturn(Optional.of(atBurgerShop()));
+    QuestTalk order = service(true).context(8L, "DINER_STAFF").orElseThrow();
+
+    String afterBurger =
+        order.replyInstruction(new JudgeResult.Intent(null, List.of("order_burger"), null));
+    String afterBurgerAndSides =
+        order.replyInstruction(
+            new JudgeResult.Intent(null, List.of("order_burger", "add_sides_drink"), null));
+
+    assertThat(afterBurger)
+        .contains("ask one short question that leads the learner to customize_burger")
+        .doesNotContain("Do not ask about, hint at or offer a remaining objective");
+    assertThat(afterBurgerAndSides)
+        .contains("ask one short question that leads the learner to customize_burger");
+    assertThat(order.instruction())
+        .contains("ask about the next missing choice in this order")
+        .doesNotContain("Ask at most one short follow-up");
+  }
+
+  // 목표가 하나인 호텔 단계는 그대로 학습자가 먼저 택시를 부탁하기를 기다린다.
+  @Test
+  void hotelStaffStillWaitsInsteadOfLeadingToTheTaxiRequest() {
+    when(journeys.findById(8L)).thenReturn(Optional.of(ShowcaseJourney.start(8L)));
+    QuestTalk hotel = service(true).context(8L, "HOTEL_STAFF").orElseThrow();
+
+    String reply = hotel.replyInstruction(new JudgeResult.Intent(null, List.of(), null));
+
+    assertThat(reply)
+        .contains("Do not ask about, hint at or offer a remaining objective")
+        .doesNotContain("ask one short question that leads the learner to");
+  }
+
   // 시연 서버에서는 시작 전에도 시연 퀘스트를 보여, 다른 퀘스트가 진행 중으로 보이지 않는다. 눌러야 시작된다.
   @Test
   void showcaseServerShowsTheDemoNotStartedUntilItIsPressed() {

@@ -38,6 +38,8 @@ public class User extends BaseEntity {
   /** 닉네임 중복을 막는 DB 제약 이름. 사전 검사를 지나친 동시 가입을 이 이름으로 알아본다. */
   public static final String NICKNAME_UNIQUE_CONSTRAINT = "uk_users_nickname";
 
+  private static final String GUEST_NAME_FOR_NPCS = "kimssafy";
+
   // 회원 닉네임 규칙은 '-'를 허용하지 않으므로 탈퇴한 사용자의 닉네임은 회원·게스트 닉네임과 겹치지 않는다.
   private static final String WITHDRAWN_PREFIX = "withdrawn-";
 
@@ -150,6 +152,14 @@ public class User extends BaseEntity {
   /** 게스트로 시작한 사용자(AUTH-07)인지. */
   public boolean isGuest() {
     return provider == AuthProvider.GUEST;
+  }
+
+  /**
+   * NPC가 이 사용자를 부를 이름. 게스트 닉네임(guest-000123)은 사람 이름이 아니라서 게스트는 모두 같은 이름으로 부른다. 닉네임은 겹칠 수 없어 게스트 닉네임
+   * 자체를 이 이름으로 바꾸지는 않는다.
+   */
+  public String nameForNpcs() {
+    return isGuest() ? GUEST_NAME_FOR_NPCS : nickname;
   }
 
   /**

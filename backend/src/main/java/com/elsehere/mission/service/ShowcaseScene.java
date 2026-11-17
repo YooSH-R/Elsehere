@@ -1,5 +1,6 @@
 package com.elsehere.mission.service;
 
+import com.elsehere.user.entity.User;
 import com.elsehere.world.service.GameTime;
 import jakarta.persistence.EntityManager;
 import java.sql.Timestamp;
@@ -64,7 +65,7 @@ public class ShowcaseScene {
         .executeUpdate();
   }
 
-  // 기억 카드 이름은 계정 닉네임이다. NPC가 시연자를 이름으로 부른다.
+  // 기억 카드 이름은 NPC가 부를 이름(회원은 닉네임, 게스트는 kimssafy)이다. NPC가 시연자를 이름으로 부른다.
   private void remember(
       Long userId,
       String npcCode,
@@ -81,7 +82,7 @@ public class ShowcaseScene {
               (user_id, npc_id, affinity, recognition, talk_count, last_talked_at,
                last_talk_game_day, memory_card, memory_conversation_id, created_at, updated_at)
             select ?1, n.id, ?2, ?3, ?4, ?5, ?6,
-                   jsonb_build_object('name', coalesce(u.nickname, ''), 'claims', '[]'::jsonb,
+                   jsonb_build_object('name', cast(?10 as text), 'claims', '[]'::jsonb,
                                       'events', jsonb_build_array(cast(?7 as text)),
                                       'attitude', cast(?8 as text), 'struggled', '[]'::jsonb),
                    null, ?5, ?5
@@ -102,6 +103,7 @@ public class ShowcaseScene {
         .setParameter(7, memory)
         .setParameter(8, attitude)
         .setParameter(9, npcCode)
+        .setParameter(10, entityManager.getReference(User.class, userId).nameForNpcs())
         .executeUpdate();
   }
 

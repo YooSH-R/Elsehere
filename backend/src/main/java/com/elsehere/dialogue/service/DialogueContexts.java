@@ -34,10 +34,13 @@ class DialogueContexts {
   private final WorkerLines workerLines;
   private final GameClockService gameClockService;
 
-  /** NPC 대답의 상대인 학습자. NPC가 캐릭터에 맞는 호칭을 쓰도록 닉네임과 캐릭터 기본형을, 대답 음성에 쓸 수 있게 학습자가 고른 말 빠르기를 보낸다. */
+  /**
+   * NPC 대답의 상대인 학습자. NPC가 캐릭터에 맞는 호칭을 쓰도록 NPC가 부를 이름(회원은 닉네임)과 캐릭터 기본형을, 대답 음성에 쓸 수 있게 학습자가 고른 말
+   * 빠르기를 보낸다.
+   */
   WorkerLearner learner(User user, double speechSpeed) {
     return new WorkerLearner(
-        user.getNickname(),
+        user.nameForNpcs(),
         user.getAvatarType() == null ? null : user.getAvatarType().name(),
         speechSpeed);
   }

@@ -132,6 +132,13 @@ namespace A305.Npc.PlayModeTests
                     );
                 }
                 var sideStaff = hotelStaff.Where(npc => npc.Code != "HOTEL_STAFF").ToArray();
+                // 자리를 지키는 보조 직원은 먼저 다가오지 않을 뿐, 시연자가 클릭하면 말을 걸 수 있어야 한다(Owen 무례 장면).
+                foreach (NpcIdentity staff in sideStaff)
+                    Assert.That(
+                        staff.GetComponentInParent<Passerby>().CanTalkByClick(30),
+                        Is.True,
+                        $"{staff.Code}에게 클릭으로 말을 걸 수 있어야 합니다."
+                    );
                 Vector3[] before = sideStaff.Select(npc => npc.transform.position).ToArray();
                 GameClock
                     .Shared.TickAsync(

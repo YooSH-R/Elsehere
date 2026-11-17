@@ -55,6 +55,55 @@ namespace A305.Characters.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator EndingTheShowcaseWelcomeReturnsJohnToHisUsualApproach()
+        {
+            const string path = "Assets/Scenes/Sandbox/NpcJohnParkDialogueSandbox.unity";
+            yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
+                path,
+                new LoadSceneParameters(LoadSceneMode.Additive)
+            );
+            var scene = SceneManager.GetSceneByPath(path);
+            try
+            {
+                var roots = scene.GetRootGameObjects();
+                var npc = roots
+                    .SelectMany(root => root.GetComponentsInChildren<NpcIdentity>())
+                    .Single();
+                var player = roots
+                    .SelectMany(root => root.GetComponentsInChildren<A305.Player.PlayerMover>())
+                    .Single();
+                var dialogue = roots
+                    .SelectMany(root => root.GetComponentsInChildren<DialogueController>())
+                    .Single();
+                var passerby = npc.GetComponent<Passerby>();
+                var performance = npc.GetComponent<RecordedNpcPerformance>();
+                var welcome = npc.gameObject.AddComponent<ShowcaseRestaurantWelcome>();
+                welcome.Configure(player, dialogue);
+                performance.PlayAmbient();
+                passerby.BeginShowcaseApproach();
+                Assert.That(passerby.IsWaitingForQuest, Is.True);
+
+                welcome.End();
+                yield return null;
+
+                Assert.That(
+                    passerby.IsWaitingForQuest,
+                    Is.False,
+                    "시연이 끝나면 시연용 다가가기를 그만둡니다."
+                );
+                Assert.That(performance.IsPerforming, Is.False);
+                Assert.That(npc.GetComponent<ShowcaseRestaurantWelcome>() == null, Is.True);
+            }
+            finally
+            {
+                foreach (var root in scene.GetRootGameObjects())
+                    Object.Destroy(root);
+                SceneManager.UnloadSceneAsync(scene);
+            }
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator ShowcaseWelcomePlaysShortlyAfterEntryAndJohnApproachesAfterTheFirstStep()
         {
             const string path = "Assets/Scenes/Sandbox/NpcJohnParkDialogueSandbox.unity";

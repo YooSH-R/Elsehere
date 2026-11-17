@@ -383,6 +383,60 @@ class ShowcaseQuestServiceTest {
     assertThat(journey.isCompleted()).isTrue();
   }
 
+  // 시연을 멈추면 계정을 시작 전 상태로 돌려놓고, 이어 하면 멈춘 때의 시연 상태로 되돌린다.
+  @Test
+  void stoppingPutsTheAccountBackAndResumingBringsTheShowcaseBack() {
+    ShowcaseJourney journey = atBurgerShop();
+    when(journeys.findForUpdate(8L)).thenReturn(Optional.of(journey));
+    when(users.findForUpdate(8L)).thenReturn(Optional.of(mock(User.class)));
+    ShowcaseQuestService service = service(false);
+
+    service.stop(8L);
+
+    verify(scene).pause(8L);
+    verify(scene, never()).resume(8L);
+
+    service.start(8L);
+
+    verify(scene).resume(8L);
+    verify(scene, never()).setUp(8L);
+  }
+
+  // 처음으로 되돌리면 계정도 시작 전 상태로 돌아간다.
+  @Test
+  void resettingPutsTheAccountBack() {
+    when(journeys.findForUpdate(8L)).thenReturn(Optional.of(atBurgerShop()));
+    when(users.findForUpdate(8L)).thenReturn(Optional.of(mock(User.class)));
+
+    service(false).reset(8L);
+
+    verify(scene).leave(8L);
+  }
+
+  // 공용 서버에서는 주문을 마쳐 시연이 끝나면 계정을 시작 전 상태로 돌려놓는다. 진행 중이거나 시연 전용 서버면 그대로 둔다.
+  @Test
+  void aFinishedShowcaseOnThePublicServerPutsTheAccountBack() {
+    when(journeys.findById(8L)).thenReturn(Optional.of(atBurgerShop()));
+    assertThat(service(false).leaveIfFinished(8L)).isFalse();
+
+    when(journeys.findById(8L)).thenReturn(Optional.of(completedJourney()));
+    assertThat(service(true).leaveIfFinished(8L)).isFalse();
+    verifyNoInteractions(scene);
+
+    when(scene.leave(8L)).thenReturn(true);
+    assertThat(service(false).leaveIfFinished(8L)).isTrue();
+  }
+
+  // 끝낸 대화를 닫지 않고 나갔어도, 다음에 장소에 들어올 때 계정을 시작 전 상태로 돌려놓는다.
+  @Test
+  void visitingAPlaceAfterTheShowcaseFinishedPutsTheAccountBack() {
+    when(journeys.findById(8L)).thenReturn(Optional.of(completedJourney()));
+
+    assertThat(service(false).visit(8L, "TOWN")).isEmpty();
+
+    verify(scene).leave(8L);
+  }
+
   private static ShowcaseJourney atBurgerShop() {
     ShowcaseJourney journey = ShowcaseJourney.start(8L);
     journey.accept(0, "HOTEL_STAFF", ShowcaseStage.HOTEL.goalIds());

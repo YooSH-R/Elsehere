@@ -11,7 +11,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/** 시연 진행과 결제를 일반 퀘스트와 분리한다. 대화·기억·호감도는 기존 실제 기록을 사용한다. */
+/** 시연 진행과 결제를 일반 퀘스트와 분리한다. 대본이 덮어쓰는 NPC 관계와 게임 시각은 ShowcaseScene이 보관했다 되돌린다. */
 @Entity
 @Table(name = "showcase_journeys")
 @Getter

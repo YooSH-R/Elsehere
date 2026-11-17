@@ -146,6 +146,8 @@ public class ShowcaseQuestService {
   /** 장소에 들어왔다. 하는 중이면 장소를 남기고, 시작 전이어도 시연 퀘스트를 돌려준다. 시연이 꺼져 있으면 비어 있다. */
   public Optional<FirstDayMissionResponse> visit(Long userId, String scene) {
     if (!settings.enabled() && active(userId).isEmpty()) {
+      // 시연을 끝낸 대화를 닫지 않고 나갔어도 다음에 장소에 들어올 때 계정을 돌려놓는다.
+      leaveIfFinished(userId);
       return Optional.empty();
     }
     if (!List.of("HOME", "TOWN", "HOTEL", "CAFE", "SHOP").contains(scene)) {
@@ -164,7 +166,7 @@ public class ShowcaseQuestService {
     ShowcaseJourney journey = journeys.findForUpdate(userId).orElse(null);
     // 끝냈으면(주문 완료) 처음부터 다시 한다.
     boolean finished = journey != null && journey.isCompleted();
-    // 처음부터 시작할 때만 대본의 출발 상태(NPC 관계·게임 시각)를 맞춘다. 멈췄다 이어 하면 그대로 둔다.
+    // 처음부터 시작할 때만 대본의 출발 상태(NPC 관계·게임 시각)를 맞춘다. 멈췄다 이어 하면 멈춘 때의 시연 상태를 되살린다.
     boolean fromBeginning =
         journey == null || finished || (journey.getStage() == 0 && !journey.isActive());
     if (journey == null) {
@@ -176,6 +178,8 @@ public class ShowcaseQuestService {
     journey.resume();
     if (fromBeginning) {
       scene.setUp(userId);
+    } else {
+      scene.resume(userId);
     }
     return response(journey);
   }
@@ -187,6 +191,7 @@ public class ShowcaseQuestService {
             .findForUpdate(userId)
             .orElseGet(() -> journeys.save(ShowcaseJourney.start(userId)));
     journey.restart();
+    scene.leave(userId);
     return response(journey);
   }
 
@@ -197,7 +202,24 @@ public class ShowcaseQuestService {
             .findForUpdate(userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.MISSION_NOT_READY));
     journey.stop();
+    scene.pause(userId);
     return response(journey);
+  }
+
+  /**
+   * 공용 서버에서 시연을 끝냈으면 시연이 덮어쓴 NPC 관계와 게임 시각을 시작 전 값으로 돌려놓는다. 시연 전용 서버는 끝낸 뒤에도 시연 맥락을 유지해 돌려놓지 않는다.
+   *
+   * @return 이번에 돌려놓았는지
+   */
+  public boolean leaveIfFinished(Long userId) {
+    if (settings.enabled()) {
+      return false;
+    }
+    return journeys
+        .findById(userId)
+        .filter(ShowcaseJourney::isCompleted)
+        .map(journey -> scene.leave(userId))
+        .orElse(false);
   }
 
   public FirstDayMissionResponse taxiArrival(Long userId, String destination) {

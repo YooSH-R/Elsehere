@@ -406,6 +406,16 @@ namespace A305.Mission
                         welcome.Configure(player, dialogue);
                     }
                 }
+                else
+                {
+                    // 주문을 마치거나 시연을 멈추면 John도 평소 손님으로 돌아간다.
+                    foreach (
+                        ShowcaseRestaurantWelcome welcome in FindObjectsByType<ShowcaseRestaurantWelcome>(
+                            FindObjectsSortMode.None
+                        )
+                    )
+                        welcome.End();
+                }
                 // 미션이 찾아가라고 한 직원은 교대 밖이어도 자리를 지키고 응대한다. 장면을 옮겨도 남는다.
                 NpcDuty.MissionNpcCode = state.CurrentNpcCode;
                 if (finished != null)

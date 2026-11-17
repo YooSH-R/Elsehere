@@ -409,7 +409,15 @@ namespace A305.Npc
             IsWaitingAtSignal = false;
             if (showcasePost.HasValue)
             {
-                StandFacing(showcasePost.Value.rotation);
+                // 자리를 지키되, 시연자가 말을 걸면 대화하는 동안 플레이어 쪽을 본다.
+                if (dialogue.IsTalkingTo(identity.LookTarget))
+                {
+                    Stand();
+                    TurnToward(HorizontalOffsetToPlayer());
+                    ShowAnimation(TalkAnimation);
+                }
+                else
+                    StandFacing(showcasePost.Value.rotation);
                 return;
             }
             if (UsesShowcaseBackgroundWalk)
@@ -607,13 +615,8 @@ namespace A305.Npc
         /// <param name="reachMeters">클릭으로 말을 걸 수 있는 수평 거리</param>
         public bool CanTalkByClick(float reachMeters)
         {
-            if (
-                !enabled
-                || UsesShowcaseBackgroundWalk
-                || showcasePost.HasValue
-                || IsPlayerOccupied
-                || IsCrossing
-            )
+            // 시연 거리의 배경 주민은 말을 걸 수 없다. 시연 호텔의 보조 직원(지정 위치)은 먼저 다가오지 않을 뿐 클릭하면 말을 걸 수 있다.
+            if (!enabled || UsesShowcaseBackgroundWalk || IsPlayerOccupied || IsCrossing)
             {
                 return false;
             }

@@ -52,8 +52,12 @@ namespace A305.Dialogue
         {
             if (ambientClip == null)
                 return;
-            speech.Stop();
-            StopMotion();
+            // 그사이 대화 음성으로 바뀌었으면 그 음성과 동작은 끊지 않는다.
+            if (source.clip == ambientClip)
+            {
+                speech.Stop();
+                StopMotion();
+            }
             source.volume = ambientVolume;
             Destroy(ambientClip);
             ambientClip = null;

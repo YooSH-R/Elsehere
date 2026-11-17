@@ -8,15 +8,16 @@ namespace A305.Npc.Tests
     /// </summary>
     public class ShowcaseWelcomeSequenceTests
     {
-        // 1.5초는 장면 전환 화면이 늦게 걷히는 것을 감안한 지연이다. 전환 화면을 따로 기다리지 않고 입장하고 1.5초 뒤에 시작한다.
+        // 전환 화면을 따로 기다리지 않고 입장하고 1초 뒤에 랩을 시작하며 다가간다.
         [Test]
-        public void RapStartsTheDelayAfterEntry()
+        public void RapStartsOneSecondAfterEntry()
         {
             var sequence = new ShowcaseWelcomeSequence();
 
-            Assert.That(sequence.TickRap(1f), Is.False, "입장하고 1초");
+            Assert.That(ShowcaseWelcomeSequence.RapDelaySeconds, Is.EqualTo(1f));
+            Assert.That(sequence.TickRap(.6f), Is.False, "입장하고 0.6초");
             Assert.That(sequence.RapStarted, Is.False);
-            Assert.That(sequence.TickRap(.6f), Is.True, "1.5초가 지나면 시작");
+            Assert.That(sequence.TickRap(.5f), Is.True, "1초가 지나면 시작");
             Assert.That(sequence.RapStarted, Is.True);
             Assert.That(sequence.TickRap(1f), Is.False, "한 번만 시작");
         }

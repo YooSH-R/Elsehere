@@ -17097,6 +17097,7 @@ MonoBehaviour:
   previewTheme: 0
   quiet: 0
   selection: 0
+  onLightSurface: 0
 --- !u!114 &690376114
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -22325,7 +22326,7 @@ Transform:
   m_GameObject: {fileID: 853245443}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0.7071068, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 5.7, y: 0.1, z: -13.4}
+  m_LocalPosition: {x: 3.5, y: 0.1, z: -12.1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -55388,7 +55389,7 @@ Transform:
   m_GameObject: {fileID: 1997119286}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -5.7, y: 0.1, z: -13.4}
+  m_LocalPosition: {x: -3.5, y: 0.1, z: -12.1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

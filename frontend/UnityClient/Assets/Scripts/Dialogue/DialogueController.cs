@@ -1041,7 +1041,7 @@ namespace A305.Dialogue
             if (serverConversation != null && serverConversation.CanSend)
             {
                 speechRecovery?.Cancel();
-                serverLink.StopSpeech();
+                serverLink.StopSpeech(preserveEmotion: true);
                 serverLink.VoiceRecorder.StartRecording();
                 serverConversation.ShowListening(serverLink.VoiceRecorder.MaxRecordingSeconds);
             }

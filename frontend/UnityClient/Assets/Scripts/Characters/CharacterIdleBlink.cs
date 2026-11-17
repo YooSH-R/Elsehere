@@ -28,7 +28,15 @@ namespace A305.Characters
                 return;
             // The speech player owns the complete facial state, including its blink.
             var speech = GetComponentInParent<CharacterSpeechPlayer>();
-            if (speech != null && (speech.IsPlaying || speech.IsPaused || speech.IsHoldingEmotion))
+            if (
+                speech != null
+                && (
+                    speech.IsPlaying
+                    || speech.IsPaused
+                    || speech.IsHoldingEmotion
+                    || speech.HasRestingMood
+                )
+            )
                 return;
             if (timing == null)
                 timing = ScriptableObject.CreateInstance<SpeechExpressionProfile>();

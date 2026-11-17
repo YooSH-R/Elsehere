@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace A305.Characters
@@ -69,6 +70,27 @@ namespace A305.Characters
                     intensity = 1,
                 };
             return new SpeechEmotionTrack(completed, duration);
+        }
+
+        // 녹음으로 음성을 끊으면 아직 말하지 않은 구절의 감정으로 넘어가지 않는다.
+        internal SpeechEmotionTrack Truncate(float endSeconds)
+        {
+            var played = new List<SpeechEmotionCue>();
+            foreach (var cue in cues)
+            {
+                if (cue.start >= endSeconds)
+                    break;
+                played.Add(
+                    new SpeechEmotionCue
+                    {
+                        start = cue.start,
+                        end = Mathf.Min(cue.end, endSeconds),
+                        emotion = cue.emotion,
+                        intensity = cue.intensity,
+                    }
+                );
+            }
+            return new SpeechEmotionTrack(played.ToArray(), endSeconds);
         }
 
         public FaceEmotionSample Sample(

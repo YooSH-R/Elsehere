@@ -345,13 +345,18 @@ namespace A305.Dialogue
             ReleaseVoice();
         }
 
-        public void StopSpeech()
+        public void StopSpeech(bool preserveEmotion = false)
         {
             playbackRequest++;
             pendingRequest?.Abort();
             chunkQueue.Clear();
             if (speaker != null)
-                speaker.Stop();
+            {
+                if (preserveEmotion)
+                    speaker.StopForListening();
+                else
+                    speaker.Stop();
+            }
             if (speechSource != null)
                 speechSource.Stop();
         }

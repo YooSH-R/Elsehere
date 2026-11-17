@@ -954,6 +954,13 @@ namespace A305.Mission
             JournalOpened?.Invoke();
         }
 
+        /// <summary>선택한 퀘스트의 시작이 성공하면 목록을 닫고 지금 할 일을 펼쳐 보인다.</summary>
+        public void ShowStartedQuest()
+        {
+            questBoard?.Close();
+            ExpandQuestCard();
+        }
+
         /// <summary>서버에서 받은 장소 연습 목록을 보인다.</summary>
         public void ShowPracticeBoard(PracticeBoardState board) =>
             questBoard.ShowPracticePlaces(board);

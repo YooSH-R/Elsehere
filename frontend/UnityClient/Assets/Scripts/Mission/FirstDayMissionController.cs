@@ -210,7 +210,8 @@ namespace A305.Mission
             ShowFinishedQuest();
         }
 
-        private void StartMission() => _ = ExecuteAsync(StartSelectedMissionAsync);
+        private void StartMission() =>
+            _ = ExecuteAsync(StartSelectedMissionAsync, startingQuest: true);
 
         private async Task<FirstDayMissionState> StartSelectedMissionAsync()
         {
@@ -362,7 +363,10 @@ namespace A305.Mission
             finishedBoard = null;
         }
 
-        private async Task ExecuteAsync(Func<Task<FirstDayMissionState>> action)
+        private async Task ExecuteAsync(
+            Func<Task<FirstDayMissionState>> action,
+            bool startingQuest = false
+        )
         {
             if (busy || api == null)
                 return;
@@ -375,7 +379,8 @@ namespace A305.Mission
                 SurveyPrompt.AutomaticInvitationsPaused = response.IsShowcase;
                 if (this == null)
                     return;
-                string finished = response.QuestFinishedSince(state);
+                // 목록에서 다른 퀘스트를 시작한 것은 이전 퀘스트의 완료가 아니다.
+                string finished = startingQuest ? null : response.QuestFinishedSince(state);
                 state = response;
                 NpcPopulation.UsesShowcasePopulation = state.IsShowcase;
                 NpcOutings.Shared.SetClosedToVisitors(
@@ -414,6 +419,8 @@ namespace A305.Mission
                     weather.Show(state.Weather, state.FallbackWeather);
                 UpdateUmbrella();
                 UpdateTaxiSignal();
+                if (startingQuest)
+                    view.ShowStartedQuest();
             }
             catch (ApiException exception)
             {

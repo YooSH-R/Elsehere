@@ -14,6 +14,13 @@ namespace A305.Npc
     [DefaultExecutionOrder(-50)]
     public sealed class NpcPopulation : MonoBehaviour
     {
+        public static bool UsesShowcasePopulation { get; set; }
+
+        private bool wasUsingShowcasePopulation;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetShowcasePopulation() => UsesShowcasePopulation = false;
+
         private const float DoorArrivalMeters = .4f;
 
         // 장면을 열 때 일터 문에 닿았어야 할 출근 직원을 이만큼 앞에서 걸어 들어오게 한다.
@@ -160,6 +167,8 @@ namespace A305.Npc
         {
             // 장면을 내릴 때 대화 처리가 먼저 사라질 수 있다. 연결이 끊긴 출퇴근 NPC를 그 사이에 새로 깨우지 않는다.
             if (dialogue == null)
+                return;
+            if (UpdateShowcasePopulation())
                 return;
             NpcOutings.Shared.Synchronize(GameClock.Shared);
             // 초기 불러오기·시각을 크게 건너뛴 경우에는 그 시각의 위치를 복원한다.
@@ -415,6 +424,86 @@ namespace A305.Npc
             }
         }
 
+        private bool UpdateShowcasePopulation()
+        {
+            bool street = ShowcaseStreetRoute.AppliesTo(
+                UsesShowcasePopulation,
+                gameObject.scene.name
+            );
+            bool hotel = UsesShowcasePopulation && gameObject.scene.name == "HotelScene";
+            bool restaurant =
+                UsesShowcasePopulation && gameObject.scene.name == "MapleDinerInterior";
+            if (!street && !hotel && !restaurant)
+            {
+                if (wasUsingShowcasePopulation)
+                    foreach (Resident resident in residents)
+                    {
+                        if (resident.TownBody != null)
+                            resident.TownBody.GetComponent<Passerby>().UsesShowcaseBackgroundWalk =
+                                false;
+                        if (resident.Worker != null)
+                            resident.Worker.GetComponent<Passerby>()?.SetShowcasePost(null);
+                        resident.LastPhase = null;
+                    }
+                wasUsingShowcasePopulation = false;
+                return false;
+            }
+            wasUsingShowcasePopulation = true;
+            foreach (Resident resident in residents)
+            {
+                if (resident.Life == null)
+                    continue;
+                if (resident.Worker != null && (hotel || restaurant || LivesOnTheStreet(resident)))
+                {
+                    bool stays =
+                        (hotel && ShowcaseStreetRoute.KeepsHotelWorker(resident.Life.NpcId))
+                        || (
+                            restaurant
+                            && ShowcaseStreetRoute.KeepsRestaurantWorker(resident.Life.NpcId)
+                        );
+                    resident.Worker.SetActive(stays);
+                    if (stays)
+                    {
+                        resident.Worker.GetComponent<NpcRoutine>()?.StayAtWork();
+                        resident
+                            .Worker.GetComponent<Passerby>()
+                            ?.SetShowcasePost(
+                                hotel
+                                    ? ShowcaseStreetRoute.HotelSidePost(resident.Life.NpcId)
+                                    : null
+                            );
+                    }
+                }
+                if (resident.TownBody == null)
+                    continue;
+                bool walks =
+                    street && ShowcaseStreetRoute.TryGet(resident.Life.NpcId, out _, out _);
+                if (!walks)
+                {
+                    resident.TownBody.SetActive(false);
+                    continue;
+                }
+                ShowcaseStreetRoute.TryGet(resident.Life.NpcId, out Vector3 start, out Vector3 end);
+                var walker = resident.TownBody.GetComponent<NpcTownWalker>();
+                resident.TownBody.GetComponent<Passerby>().UsesShowcaseBackgroundWalk = true;
+                if (!resident.TownBody.activeSelf)
+                {
+                    resident.TownBody.transform.position = start;
+                    walker.Destination = end;
+                }
+                else if (
+                    Vector3.Distance(resident.TownBody.transform.position, walker.Destination) < .4f
+                )
+                    walker.Destination = walker.Destination == end ? start : end;
+                walker.HasScheduleDeadline = false;
+                walker.ScheduleDoor = null;
+                walker.SchedulePhase = NpcDayPhase.Leisure;
+                walker.IsStaff = false;
+                resident.TownBody.SetActive(true);
+            }
+            return true;
+        }
+
         private static void TrackJourney(Resident resident, bool continuous, double minutes)
         {
             if (resident.TownBody == null || !resident.TownBody.activeSelf)
@@ -497,7 +586,7 @@ namespace A305.Npc
                     until,
                     outings.Venues,
                     venue =>
-                        OpeningHours.IsOpenNow(venue.Code)
+                        NpcOutings.Shared.Welcomes(venue.Code)
                         && NpcOutings.Suits(plan, venue)
                         && CanVisit(resident, venue, until - now)
                         && (
@@ -514,7 +603,7 @@ namespace A305.Npc
             bool visiting =
                 NpcOutings.CanGoOut(plan)
                 && now < trip.Until
-                && OpeningHours.IsOpenNow(trip.Venue.Code)
+                && NpcOutings.Shared.Welcomes(trip.Venue.Code)
                 && !trip.ReadyToLeave;
             if (!trip.Venue.IsOutdoor && trip.Arrived)
             {

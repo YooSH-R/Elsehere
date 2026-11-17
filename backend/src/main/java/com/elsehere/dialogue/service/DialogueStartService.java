@@ -287,10 +287,17 @@ public class DialogueStartService {
     if (!npc.sceneOpen()) {
       throw new BusinessException(ErrorCode.SCENE_CLOSED);
     }
-    // 복습과 장소 연습은 지금 퀘스트, 이 NPC와의 기억, 건넬 것을 섞지 않고 정한 상황만 연습한다.
-    var quest = questTalks.forStart(userId, request.npcCode(), mode.isReview(), mode.practice());
+    // 복습은 카드에 저장된 시연 조건을 처음부터 연습하고, 장소 연습은 선택한 상황만 연습한다.
+    var review = mode.review();
+    var quest =
+        review != null
+            ? questTalks.forReview(
+                review.scenario() == null ? null : review.scenario().key(), List.of())
+            : questTalks.forStart(userId, request.npcCode(), false, mode.practice());
+    boolean showcase =
+        quest.filter(selected -> selected.source() == QuestTalkService.Source.SHOWCASE).isPresent();
     var followUp =
-        mode.story()
+        mode.story() && !showcase
             ? followUpService.readyFor(userId, npc.npcId())
             : Optional.<FollowUpService.ReadyFollowUp>empty();
     // NPC가 먼저 말을 걸어 꺼낸 부탁이 있으면 첫마디를 그 부탁으로 한다(docs/npc-life-design.md 7.6).

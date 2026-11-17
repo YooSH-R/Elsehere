@@ -28,6 +28,28 @@ namespace A305.Mission.Tests
         }
 
         [Test]
+        public void ShowcaseSelectionKeepsItsOwnQuestIdForTheStartAction()
+        {
+            FirstDayMissionView mission = Create();
+            QuestBoardView board = Field<QuestBoardView>(mission, "questBoard");
+            QuestBoardState state = Board();
+            state.Quests.Add(
+                new QuestEntry
+                {
+                    Id = FirstDayMissionState.ShowcaseQuestId,
+                    Title = "비 오는 저녁, 햄버거 한 끼",
+                    Description = "시연",
+                    Status = QuestEntry.Available,
+                }
+            );
+            board.Show(state);
+            board.ShowMap(state.Quests.Count - 1);
+            Assert.That(mission.SelectedQuestId, Is.EqualTo(FirstDayMissionState.ShowcaseQuestId));
+            board.ShowMap(0);
+            Assert.That(mission.SelectedQuestId, Is.EqualTo(state.Quests[0].Id));
+        }
+
+        [Test]
         public void QuestCard_OpensTheQuestListInsteadOfTheJournal()
         {
             FirstDayMissionView mission = Create();
@@ -130,6 +152,29 @@ namespace A305.Mission.Tests
                 Field<RectTransform>(board, "sheet").rect.size,
                 Is.EqualTo(new Vector2(1520, 800) * 1.2f),
                 "퀘스트 창 크기는 그대로"
+            );
+        }
+
+        [Test]
+        public void TheChooserShowsPlacePracticeOnTheLeftAndStoryOnTheRight()
+        {
+            FirstDayMissionView mission = Create();
+            QuestBoardView board = Field<QuestBoardView>(mission, "questBoard");
+
+            board.Open();
+
+            float place = ((RectTransform)ActiveButton(board, "PlaceOption").transform)
+                .anchoredPosition
+                .x;
+            float story = ((RectTransform)ActiveButton(board, "StoryOption").transform)
+                .anchoredPosition
+                .x;
+            Assert.That(place, Is.LessThan(story), "장소 연습이 왼쪽, 이야기가 오른쪽");
+            var placeRect = (RectTransform)ActiveButton(board, "PlaceOption").transform;
+            Assert.That(
+                place + placeRect.sizeDelta.x,
+                Is.LessThanOrEqualTo(story),
+                "누르는 칸이 겹치지 않는다"
             );
         }
 

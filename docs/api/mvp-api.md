@@ -826,6 +826,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 첫날을 마친 뒤의 새 여행 이야기는 [마을 여정 계약](town-story.md)의 `/api/v1/missions/town-story`를 사용한다. 첫날의 완료 기록과 새 여정의 진행은 별도로 저장한다.
 
+시연 전용의 별도 진행은 [비 오는 저녁 시연 퀘스트](../demo-rainy-evening.md)의 `/api/v1/missions/showcase`를 사용한다. 시연 전용 서버는 설정으로 모든 계정에 켠다. dev·운영 같은 공용 서버는 모든 계정의 퀘스트 목록에 시연 카드를 보이고, `POST /api/v1/missions/showcase/start`로 시작한 계정에 한해 진행하는 동안 첫날 상태·방문 응답을 시연 상태로 제공한다. 기존 일반 퀘스트 진행과 잔액은 유지한다.
+
 미션은 자동으로 시작됩니다. 수락 버튼이 없고, 사용자가 미션에 맞는 행동을 하면 서버가 완료로 판정합니다. 한 대화에서 여러 미션을 동시에 완료할 수 있습니다.
 
 #### MIS-01 `GET /api/v1/missions`
@@ -1563,6 +1565,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 화면 16의 [상세 보기]에서 호출하고 화면 17을 그립니다. 대화 종료(CONV-08) 때 짧은 피드백과 함께 만든 평가를 돌려주며 AI를 다시 호출하지 않습니다. 피드백이 `FAILED`였다면 FB-02로 다시 만들 때 함께 만듭니다.
 - 사용자 턴마다 한 항목입니다. 고칠 것이 없는 적절한 발화는 `betterText`가 `null`입니다.
+- `verdict`·`suggestionKind`는 저장된 모델 판정을 유지합니다. `expressionExamples`는 대화 중 해당 턴에 실제로 추천한 `better_expressions`를 먼저 담고 저장된 피드백 예문을 중복 없이 합친 목록(발화당 최대 3개)입니다. 항목은 `conditionKo`, `expression`, `meaningKo`이며, 영어만 저장된 추천의 `meaningKo`는 null일 수 있습니다. 짧지만 맞는 답도 오류로 바꾸지 않고 같은 대체 문장을 다시 보여 줍니다. FB-01·CONV-08·FB-03에 동일하게 적용하며, 조회 시 AI를 호출하거나 완료 피드백을 재생성하지 않습니다. [상황 복습장](review-workbook.md)도 이 저장 문장을 복습 목표에 포함합니다.
 - STT 오인식을 발음 오류로 평가하지 않습니다. 평가 기준은 사용자가 보낸 `text`입니다.
 - `idiom.text`는 `turn_feedback.idiom`, `idiom.meaningKo`는 `turn_feedback.idiom_meaning_ko`입니다.
 

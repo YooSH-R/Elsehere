@@ -110,6 +110,7 @@ namespace A305.Dialogue
         /// <summary>대화 중 NPC 욕구가 바뀌면(들어준 부탁으로 채움) 이름 옆 게이지를 다시 그린다.</summary>
         public void ShowNpcNeeds(NpcNeeds needs) => panel.ShowNeeds(needs);
 
+        public bool UsesShowcasePresentation { get; set; }
         public long? ActiveReviewConversationId =>
             serverConversation?.IsReview == true ? serverConversation.ConversationId : null;
 
@@ -556,7 +557,8 @@ namespace A305.Dialogue
                 practiceScenarioId: practiceScenarioId,
                 practiceStart: practiceStart,
                 recordedOpening: recordedOpening,
-                npcNeeds: npcNeeds
+                npcNeeds: npcNeeds,
+                showcase: UsesShowcasePresentation
             );
             speechRecovery = new NpcSpeechRecovery(serverConversation, PlayRecoveredSpeechAsync);
             serverConversation.Changed += panel.Refresh;
@@ -829,7 +831,7 @@ namespace A305.Dialogue
 
         public void SetReviewReference(string text) => panel.SetReviewReference(text);
 
-        /// <summary>복습 대화 위 참고 카드. 다시 말해 볼 문장을 먼저 보이고 상황 설명은 그 아래에 둔다.</summary>
+        /// <summary>복습 대화 위 참고 카드. 다시 말해 볼 문장을 보인다. [다시 연습]의 상황 설명은 왼쪽 위 퀘스트 카드가 보인다.</summary>
         public void SetReviewReference(
             IReadOnlyList<ReviewReferenceItem> items,
             int count,

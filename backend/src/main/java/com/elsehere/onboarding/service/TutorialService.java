@@ -3,6 +3,7 @@ package com.elsehere.onboarding.service;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.mission.service.FirstDayMissionService;
+import com.elsehere.mission.service.ShowcaseSettings;
 import com.elsehere.onboarding.dto.TutorialResponse;
 import com.elsehere.user.entity.OnboardingStep;
 import com.elsehere.user.entity.User;
@@ -20,6 +21,7 @@ public class TutorialService {
   private final UserRepository userRepository;
   private final TutorialRelationshipService tutorialRelationshipService;
   private final FirstDayMissionService firstDayMissionService;
+  private final ShowcaseSettings showcaseSettings;
 
   public TutorialResponse complete(Long userId) {
     return finishTutorial(userId, true);
@@ -48,7 +50,10 @@ public class TutorialService {
       }
       // 건너뛴 사용자는 퀘스트 카드 안내를 보지 못해 퀘스트가 있는지 모르므로, 마치는 방법과 상관없이 첫 퀘스트를 시작해
       // 왼쪽 위 카드와 길 안내가 바로 보이게 한다. 이미 시작했으면 그 진행을 그대로 둔다.
-      firstDayMissionService.start(userId);
+      // 시연 서버에서는 시연자가 퀘스트 창에서 시연 퀘스트를 직접 눌러 시작하므로 미리 시작하지 않는다.
+      if (!showcaseSettings.enabled()) {
+        firstDayMissionService.start(userId);
+      }
     }
     user.finishTutorial();
     return new TutorialResponse(user.getOnboardingStep());

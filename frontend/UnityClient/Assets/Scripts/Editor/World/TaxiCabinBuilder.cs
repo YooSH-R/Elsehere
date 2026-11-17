@@ -39,6 +39,35 @@ namespace A305.EditorTools.World
             AssetDatabase.SaveAssets();
         }
 
+        [MenuItem("Tools/A305/World/Align Burger Taxi Stop")]
+        public static void AlignBurgerTaxiStop()
+        {
+            Scene scene = EditorSceneManager.OpenScene(TownPath);
+            var burger = TownStorefrontBuilder.Storefronts.Single(storefront =>
+                storefront.PlaceCode == "DINER"
+            );
+            foreach (TaxiRide taxi in BuilderTools.FindAllInScene<TaxiRide>(scene))
+            {
+                var fields = new SerializedObject(taxi);
+                SerializedProperty destinations = fields.FindProperty("destinations");
+                for (int index = 0; index < destinations.arraySize; index++)
+                {
+                    SerializedProperty destination = destinations.GetArrayElementAtIndex(index);
+                    if (destination.FindPropertyRelative("code").stringValue != burger.PlaceCode)
+                        continue;
+                    SetDestination(
+                        destination,
+                        burger.PlaceCode,
+                        burger.KoreanName,
+                        burger.TaxiStop,
+                        burger.TaxiAlighting
+                    );
+                }
+                fields.ApplyModifiedPropertiesWithoutUndo();
+            }
+            EditorSceneManager.SaveScene(scene);
+        }
+
         internal static void Configure(Scene scene, TaxiRide taxi)
         {
             Transform root = taxi.transform;

@@ -273,6 +273,10 @@ namespace A305.Mission
         private bool? storyWasIdle;
         private FirstDayMissionState shownState;
         private PracticeVisitPlan shownPractice;
+        private readonly Dictionary<
+            TMP_Text,
+            (TMP_FontAsset Font, float Size, bool AutoSize)
+        > goalFonts = new();
 
         // 끝낸 퀘스트의 보상은 팡파레와 함께 더하므로 그때까지 코인 칩을 바꾸지 않는다. 그동안 받은 코인과 산 것을 기억한다.
         private bool rewardExpected;
@@ -310,6 +314,7 @@ namespace A305.Mission
         public bool IsJournalOpen => journal.activeSelf;
 
         public bool IsQuestBoardOpen => questBoard != null && questBoard.IsOpen;
+        public string SelectedQuestId => questBoard != null ? questBoard.SelectedQuestId : null;
 
         public bool IsQuestCompleteOpen => questComplete != null && questComplete.IsOpen;
 
@@ -356,7 +361,10 @@ namespace A305.Mission
             shownState = state;
             idle = !state.Started || state.Completed;
             // 이야기를 시작했을 때만 카드를 잠깐 펼쳐 알린다. 하던 이야기를 처음 불러올 때는 접어 둔다.
-            if (storyWasIdle == true && !idle)
+            // 시연 퀘스트는 시작할 때와 장면을 옮겨 처음 불러올 때 펼치고 저절로 접지 않는다.
+            if (state.IsShowcase && !idle && storyWasIdle != false)
+                fold.Expand();
+            else if (storyWasIdle == true && !idle)
                 fold.Announce();
             storyWasIdle = idle;
             latestBalance = state.Balance;
@@ -407,6 +415,16 @@ namespace A305.Mission
                 );
             }
             journey.text = lines.ToString().TrimEnd();
+            if (state.IsShowcase)
+            {
+                belongings.text =
+                    (
+                        state.Completed ? "우산 · 호텔에 반납"
+                        : state.Stage >= 1 ? "우산 · 호텔에서 빌림"
+                        : "호텔에서 우산을 빌려요"
+                    ) + $"\n{state.Balance}코인";
+                return;
+            }
             int firstDayStage = state.IsTownStory ? 7 : state.Stage;
             string suitcase =
                 firstDayStage >= 7 ? "캐리어 · 찾음"
@@ -472,10 +490,12 @@ namespace A305.Mission
                 step.Status == "CURRENT"
             );
             direction.text = StoryDirection(state);
+            direction.gameObject.SetActive(!state.IsShowcase);
             situation.text = state.Situation;
             string situationCopy = NormalizeCardCopy(state.Situation);
             situation.gameObject.SetActive(
-                situationCopy.Length > 0
+                !state.IsShowcase
+                    && situationCopy.Length > 0
                     && !string.Equals(
                         situationCopy,
                         NormalizeCardCopy(direction.text),
@@ -484,13 +504,14 @@ namespace A305.Mission
             );
             string chip = StepChip(state.Steps);
             stepChip.text = chip ?? "";
+            FitStepChip();
             stepChip.transform.parent.gameObject.SetActive(chip != null);
             if (practiceChip != null)
                 practiceChip.SetActive(false);
             place.text = current != null ? CompactTitle(current.Title) : "";
             ShowProgress(state.Steps.Select(step => MarkSprite(step.Status)).ToArray());
             // NPC가 할 일을 먼저 말하지 않으므로, 요청 안내 아래 이번 단계 목표를 보여 주어 무엇을 요청할지 알게 한다.
-            ShowGoals(state.CanRest || current == null ? null : current.Goals);
+            ShowGoals(state.CanRest || current == null ? null : current.Goals, state.IsShowcase);
             ShowPill(
                 "이야기",
                 state.Steps.Select(step => step.Status == "UPCOMING" ? pillMarkOff : pillMarkStory)
@@ -501,15 +522,24 @@ namespace A305.Mission
         private void FillPracticeCard(PracticeVisitPlan plan, IReadOnlyList<bool> done)
         {
             bool Done(int goal) => goal < done.Count && done[goal];
+            // [다시 연습]은 시연 카드처럼 칩·제목 한 줄과 목표 줄만 두고, 긴 설명은 목표 줄로 옮긴다.
+            bool review = plan.IsReview;
             direction.text = plan.Description;
+            direction.gameObject.SetActive(!review);
             situation.gameObject.SetActive(false);
-            stepChip.transform.parent.gameObject.SetActive(false);
+            stepChip.text = "다시 연습";
+            FitStepChip();
+            stepChip.transform.parent.gameObject.SetActive(review);
             if (practiceChip != null)
-                practiceChip.SetActive(true);
-            place.text = PracticeName(plan);
+                practiceChip.SetActive(!review);
+            place.text = review ? plan.Title : PracticeName(plan);
             ShowProgress(
-                plan.Goals.Select((goal, i) => Done(i) ? practiceDoneMark : upcomingMark).ToArray(),
-                fill: true
+                review
+                    ? new[] { currentMark }
+                    : plan
+                        .Goals.Select((goal, i) => Done(i) ? practiceDoneMark : upcomingMark)
+                        .ToArray(),
+                fill: !review
             );
             ShowGoals(
                 plan.Goals.Select(
@@ -521,13 +551,67 @@ namespace A305.Mission
                                 Completed = Done(i),
                             }
                     )
-                    .ToList()
+                    .ToList(),
+                // [다시 연습]은 시연 퀘스트 카드와 같은 큰 목표 글자로 보인다.
+                showcase: plan.IsReview
             );
             ShowPill(
-                "장소 연습",
+                plan.IsReview ? "다시 연습" : "장소 연습",
                 plan.Goals.Select((goal, i) => Done(i) ? pillMarkPractice : pillMarkOff)
             );
         }
+
+        // 칩은 시안 폭(1 / 7)보다 좁아지지 않고, 글자가 길면('다시 연습') 양옆 여백을 두고 넓어진다.
+        // 칩 그림은 늘리면 둥근 끝이 찌그러지므로 왼쪽·오른쪽 반쪽은 그대로 두고 가운데만 늘린다.
+        private void FitStepChip()
+        {
+            var chip = (RectTransform)stepChip.transform.parent;
+            var size = chip.GetComponent<LayoutElement>();
+            var art = chip.Find("Art") as RectTransform;
+            if (size == null || art == null)
+                return;
+            if (stepChipWidth < 0)
+            {
+                stepChipWidth = size.preferredWidth;
+                stepChipArtWidth = art.sizeDelta.x;
+            }
+            float width = Mathf.Max(
+                stepChipWidth,
+                stepChip.preferredWidth + size.preferredHeight * .9f
+            );
+            size.minWidth = size.preferredWidth = width;
+            float extra = width - stepChipWidth;
+            if (extra <= 0 && stepChipMiddle == null)
+                return;
+            if (stepChipMiddle == null)
+            {
+                stepChipMiddle = Instantiate(art, chip, false);
+                stepChipMiddle.name = "ArtMiddle";
+                stepChipRight = Instantiate(art, chip, false);
+                stepChipRight.name = "ArtRight";
+                stepChipMiddle.SetSiblingIndex(art.GetSiblingIndex());
+                stepChipRight.SetSiblingIndex(art.GetSiblingIndex() + 1);
+                Half(art.GetComponent<Image>(), left: true);
+                Half(stepChipRight.GetComponent<Image>(), left: false);
+            }
+            stepChipMiddle.sizeDelta = new Vector2(stepChipArtWidth + extra, art.sizeDelta.y);
+            stepChipRight.anchoredPosition = art.anchoredPosition + Vector2.right * extra;
+        }
+
+        private static void Half(Image image, bool left)
+        {
+            image.type = Image.Type.Filled;
+            image.fillMethod = Image.FillMethod.Horizontal;
+            image.fillOrigin = left
+                ? (int)Image.OriginHorizontal.Left
+                : (int)Image.OriginHorizontal.Right;
+            image.fillAmount = .5f;
+        }
+
+        private float stepChipWidth = -1;
+        private float stepChipArtWidth;
+        private RectTransform stepChipMiddle;
+        private RectTransform stepChipRight;
 
         // 알약: 이름(이야기·장소 연습)·진행 칸. 진행 칸이 모자라면 첫 칸을 본떠 더 만든다.
         private void ShowPill(string title, IEnumerable<Sprite> marks)
@@ -585,7 +669,11 @@ namespace A305.Mission
             if (PracticeVisit.Shared.Current != null && PracticeVisit.Shared.TakeAnnouncement())
             {
                 FillQuestCard();
-                fold.Announce();
+                // [다시 연습]은 연습하는 동안 말할 조건을 보도록 펼친 채로 두고, 장소 연습은 잠깐 펼쳐 알린다.
+                if (PracticeVisit.Shared.Current.IsReview)
+                    fold.Expand();
+                else
+                    fold.Announce();
                 ShowQuestHud();
             }
             else if (fold.Tick(Time.unscaledDeltaTime))
@@ -606,7 +694,7 @@ namespace A305.Mission
         /// 이름 아래에 말해야 할 정보를 작게 보인다.
         /// 목표가 없으면(쉬는 차례 등) 목표 칸을 숨긴다.
         /// </summary>
-        private void ShowGoals(IReadOnlyList<FirstDayMissionGoal> current)
+        private void ShowGoals(IReadOnlyList<FirstDayMissionGoal> current, bool showcase = false)
         {
             int count = current?.Count ?? 0;
             goals.gameObject.SetActive(current != null);
@@ -625,6 +713,7 @@ namespace A305.Mission
                     ? goalDone
                     : goalOpen;
                 TMP_Text label = row.GetComponentInChildren<TMP_Text>(true);
+                StyleGoal(label, showcase, 27, heading: true);
                 label.text = goal.Title;
                 label.color = goal.Completed ? Muted : Ink;
                 label.fontStyle = goal.Completed ? FontStyles.Strikethrough : FontStyles.Normal;
@@ -634,8 +723,22 @@ namespace A305.Mission
                     continue;
                 bool showsHint = !goal.Completed && !string.IsNullOrEmpty(goal.Hint);
                 hint.gameObject.SetActive(showsHint);
-                hint.GetComponent<TMP_Text>().text = showsHint ? goal.Hint : "";
+                var hintText = hint.GetComponent<TMP_Text>();
+                hintText.text = showsHint ? goal.Hint : "";
+                StyleGoal(hintText, showcase, 21, heading: false);
             }
+        }
+
+        private void StyleGoal(TMP_Text text, bool showcase, float size, bool heading)
+        {
+            if (!goalFonts.TryGetValue(text, out var original))
+            {
+                original = (text.font, text.fontSize, text.enableAutoSizing);
+                goalFonts.Add(text, original);
+            }
+            text.font = showcase && heading ? direction.font : original.Font;
+            text.fontSize = showcase ? size : original.Size;
+            text.enableAutoSizing = showcase ? false : original.AutoSize;
         }
 
         /// <summary>단계 칩 글자. 지금 단계가 몇 번째인지 전체 단계 수와 함께 쓰고, 모두 끝냈으면 마지막 단계로, 시작 전이면 null이다.</summary>

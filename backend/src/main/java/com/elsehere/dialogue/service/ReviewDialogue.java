@@ -39,6 +39,7 @@ class ReviewDialogue {
         List.of(new WorkerState.Intent("chat", "Respond within the saved situation.")));
   }
 
+  // 워커는 NPC 지시문을 3,000자까지 받는다. 해석·설명·예문은 화면에만 쓰므로 NPC에게는 연습할 영어 표현만 보낸다.
   String instruction(ReviewCardResponse card) {
     Map<String, Object> data = new LinkedHashMap<>();
     data.put(

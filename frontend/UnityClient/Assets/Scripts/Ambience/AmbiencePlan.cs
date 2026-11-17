@@ -64,6 +64,10 @@ namespace A305.Ambience
         public static float Volume(float normal, bool talking) =>
             Math.Max(0, Math.Min(1, normal)) * (talking ? .15f : 1f);
 
+        /// <summary>장소 생활소음을 꺼 둔 동안(hushed)에는 대화 중이어도 0이다.</summary>
+        public static float Volume(float normal, bool talking, bool hushed) =>
+            hushed ? 0 : Volume(normal, talking);
+
         public static float EffectVolume(AmbienceEffect effect, float normal, bool talking) =>
             Volume(normal, talking && effect != AmbienceEffect.TaxiDoorClose);
 

@@ -1,6 +1,7 @@
 package com.elsehere.bootstrap.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.ai.dto.AiStatus;
@@ -17,6 +18,8 @@ import com.elsehere.conversation.entity.InputType;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.service.TrainingRecordingService;
 import com.elsehere.conversation.service.TrainingRecordingStore;
+import com.elsehere.mission.dto.FirstDayMissionResponse;
+import com.elsehere.mission.service.ShowcaseQuestService;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.AvatarType;
@@ -25,6 +28,8 @@ import com.elsehere.user.entity.UiTheme;
 import com.elsehere.user.entity.User;
 import com.elsehere.user.service.OptionalConsentService;
 import jakarta.persistence.EntityManager;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,6 +38,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @DataJpaTest(
     properties = {
@@ -57,6 +63,8 @@ class BootstrapServiceTest {
   @Autowired private EntityManager entityManager;
 
   @Autowired private BootstrapService bootstrapService;
+
+  @MockitoBean private ShowcaseQuestService showcase;
 
   @Test
   @DisplayName("가입한 사용자면 로그인 상태와 사용자 정보, 초기 설정 단계를 돌려준다")
@@ -127,6 +135,37 @@ class BootstrapServiceTest {
     BootstrapResponse response = bootstrapService.findSignedIn(userId).orElseThrow();
 
     assertThat(response.lastSceneCode()).isEqualTo("CAFE");
+  }
+
+  @Test
+  @DisplayName("시연 서버에서는 시연을 하는 중이 아니면 마지막 장소와 상관없이 호텔에서 시작한다")
+  void onTheShowcaseServer_startsInTheHotelUnlessTheDemoIsRunning() {
+    when(showcase.isShowcaseServer()).thenReturn(true);
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    setLastScene(userId, "CAFE");
+
+    assertThat(bootstrapService.findSignedIn(userId).orElseThrow().lastSceneCode())
+        .isEqualTo("HOTEL");
+
+    when(showcase.activeStatus(userId))
+        .thenReturn(
+            Optional.of(
+                new FirstDayMissionResponse(
+                    true,
+                    1,
+                    "SHOWCASE_RAINY_EVENING",
+                    false,
+                    "TOWN",
+                    false,
+                    true,
+                    "RAIN",
+                    100,
+                    null,
+                    "",
+                    "",
+                    List.of())));
+    assertThat(bootstrapService.findSignedIn(userId).orElseThrow().lastSceneCode())
+        .isEqualTo("CAFE");
   }
 
   @Test

@@ -58,7 +58,10 @@ class TownStoryTurnTest {
             mock(com.elsehere.favor.repository.FavorRepository.class));
     var missions =
         new QuestTalkService(
-            firstDay, town, mock(com.elsehere.mission.service.PlacePracticeService.class));
+            firstDay,
+            town,
+            mock(com.elsehere.mission.service.PlacePracticeService.class),
+            mock(com.elsehere.mission.service.ShowcaseQuestService.class));
     TurnRepository turns = mock(TurnRepository.class);
     when(turns.findByRequestId(any())).thenReturn(Optional.empty());
     when(turns.save(any())).thenAnswer(call -> call.getArgument(0));

@@ -39,6 +39,25 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator ShowcaseTaxiWaitsOutsideHotelUntilTheLearnerBoardsOrStopsDemo()
+        {
+            yield return LoadTown();
+            TaxiRide taxi = Single<TaxiRide>();
+            LoopingCar car = taxi.GetComponent<LoopingCar>();
+            taxi.PrepareShowcasePickup();
+            Assert.That(taxi.Phase, Is.EqualTo(TaxiPhase.Waiting));
+            Vector3 waitingAt = taxi.transform.position;
+            Assert.That(taxi.IsPassenger, Is.False);
+            Single<PlayerMover>().Teleport(waitingAt + Vector3.right * 20, Quaternion.identity);
+            yield return new WaitForSeconds(.3f);
+            taxi.PrepareShowcasePickup();
+            Assert.That(Vector3.Distance(waitingAt, taxi.transform.position), Is.LessThan(.01f));
+            taxi.ReleaseShowcasePickup();
+            Assert.That(taxi.Phase, Is.EqualTo(TaxiPhase.Cruising));
+            Assert.That(car.HasPulledOver, Is.False);
+        }
+
+        [UnityTest]
         public IEnumerator HailingTaxiFromBehind_BoardsWithoutMovingTaxi_ThenDrivesOnAfterTalk()
         {
             yield return LoadTown();
@@ -226,6 +245,8 @@ namespace A305.Npc.PlayModeTests
             PlayerMover player = Single<PlayerMover>();
             PasserbyOfferView offer = Single<PasserbyOfferView>();
             CarLoopRoute.Pose pose = car.Route.PoseAt(car.Distance);
+            var arrivals = new System.Collections.Generic.List<string>();
+            taxi.ArrivedAtDestination += arrivals.Add;
             player.Teleport(
                 pose.Position
                     + pose.Forward * 5
@@ -288,6 +309,10 @@ namespace A305.Npc.PlayModeTests
             Assert.That(player.enabled, Is.True);
             Assert.That(player.GetComponent<CharacterController>().enabled, Is.True);
             Assert.That(player.CameraRig.ViewMode, Is.Not.EqualTo(CameraViewMode.Dialogue));
+            Assert.That(
+                arrivals,
+                endEarly ? Is.Empty : Is.EqualTo(new[] { changeTo ?? destination })
+            );
             if (endEarly)
                 yield break;
             Assert.That(Mathf.Abs(player.transform.position.z - arrivalZ), Is.LessThan(.5f));

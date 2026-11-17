@@ -6,6 +6,9 @@ import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.service.AiGateway;
 import com.elsehere.conversation.entity.InitiatedBy;
 import com.elsehere.dialogue.dto.StartConversationRequest;
+import com.elsehere.mission.entity.ShowcaseStage;
+import com.elsehere.mission.service.QuestTalk;
+import com.elsehere.mission.service.QuestTalkService;
 import com.elsehere.world.service.PoliceOfficers;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -223,8 +226,29 @@ class OpeningLines {
     }
     return context
         .quest()
-        .map(quest -> quest.talk().instruction() + MISSION_GREETING)
+        .map(quest -> quest.talk().instruction() + missionGreeting(quest))
         .orElse(npcOffDuty ? OFF_DUTY_GREETING_INSTRUCTION : GREETING_INSTRUCTION);
+  }
+
+  private String missionGreeting(QuestTalkService.SelectedQuest quest) {
+    if (quest.source() == QuestTalkService.Source.SHOWCASE
+        && quest.talk() instanceof QuestTalk.Goals
+        && quest.talk().stage() == ShowcaseStage.RETURN.ordinal()) {
+      return " Welcome the learner back and ask if they managed to stay dry with the borrowed umbrella."
+          + " For example: Welcome back! Did you stay dry?"
+          + " Do not ask what they need or begin another check-in. Wait for their answer.";
+    }
+    // 시연 버거 가게는 단골을 알아보는 장면이다. 다른 퀘스트처럼 제안을 숨기게 하면 늘 시키던 메뉴를 묻지 못한다.
+    if (quest.source() == QuestTalkService.Source.SHOWCASE
+        && quest.talk() instanceof QuestTalk.Goals
+        && quest.talk().stage() == ShowcaseStage.ORDER.ordinal()) {
+      return " Welcome the learner in your own voice, by name if you know it."
+          + " If you remember what this regular usually gets, ask in one short question whether they"
+          + " want their usual and name it, for example: The usual? A Crispy Chicken burger and a lemonade?"
+          + " If you do not remember their usual, invite their order in one short sentence."
+          + " Do not mention the price or the learner's tasks yet.";
+    }
+    return MISSION_GREETING;
   }
 
   /**

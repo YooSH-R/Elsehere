@@ -4,6 +4,7 @@ import com.elsehere.common.auth.LoginUser;
 import com.elsehere.review.dto.ReviewCardListResponse;
 import com.elsehere.review.dto.ReviewCardResponse;
 import com.elsehere.review.service.ReviewCardService;
+import com.elsehere.review.service.ReviewMeanings;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ReviewCardController {
   private final ReviewCardService reviewCardService;
+  private final ReviewMeanings reviewMeanings;
 
   public record CreateRequest(@NotNull @Positive Long conversationId) {}
 
@@ -31,7 +33,9 @@ public class ReviewCardController {
   @ResponseStatus(HttpStatus.CREATED)
   public ReviewCardResponse create(
       @AuthenticationPrincipal LoginUser loginUser, @Valid @RequestBody CreateRequest request) {
-    return reviewCardService.create(loginUser.userId(), request.conversationId());
+    // [다시 연습]을 누르면 이 저장을 먼저 부르므로, 뜻이 없는 표현은 여기서 한 번 채운다.
+    return reviewMeanings.fill(
+        loginUser.userId(), reviewCardService.create(loginUser.userId(), request.conversationId()));
   }
 
   @GetMapping("/api/v1/review-cards")

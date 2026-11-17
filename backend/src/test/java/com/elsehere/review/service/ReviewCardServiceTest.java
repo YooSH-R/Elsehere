@@ -25,6 +25,7 @@ import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.service.UserContentEraser;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,6 +73,79 @@ class ReviewCardServiceTest {
     feedback.complete("카페에서 음료를 주문하고 포장을 부탁했어요.", STORED_REVIEWS, "fixture", null);
     entityManager.persist(feedback);
     entityManager.flush();
+  }
+
+  @Test
+  void createAndExistingCardsKeepTheExactLiveRecommendationsForPractice() {
+    Turn shortAnswer = textTurn(entityManager, source, 1, "to go please");
+    shortAnswer.recordBetterExpressions(
+        """
+        ["I'd like to take it away, please.", "Could I have it to take away?"]
+        """);
+    entityManager.flush();
+
+    var saved = reviewCardService.create(userId, source.getId());
+    assertThat(saved.targets())
+        .extracting(ReviewTarget::expression)
+        .contains("I'd like to take it away, please.", "Could I have it to take away?");
+    assertThat(saved.targets())
+        .filteredOn(target -> target.expression().equals("I'd like to take it away, please."))
+        .allSatisfy(target -> assertThat(target.originalText()).isNull());
+    entityManager.flush();
+    entityManager.clear();
+    assertThat(reviewCardService.detail(userId, saved.id()).targets()).isEqualTo(saved.targets());
+  }
+
+  // 채운 뜻은 카드에 저장해, 다음에 카드를 읽을 때 모델을 다시 부르지 않고 그대로 보인다.
+  @Test
+  void filledMeaningsAreSavedSoLaterReadsShowThemWithoutTheModel() {
+    Turn shortAnswer = textTurn(entityManager, source, 1, "to go please");
+    shortAnswer.recordBetterExpressions(
+        """
+        ["I'd like to take it away, please."]
+        """);
+    entityManager.flush();
+    var saved = reviewCardService.create(userId, source.getId());
+
+    reviewCardService.recordMeanings(
+        userId, saved.id(), java.util.Map.of("I'd like to take it away, please.", "포장해 갈게요."));
+    entityManager.flush();
+    entityManager.clear();
+
+    var read = reviewCardService.detail(userId, saved.id()).targets();
+    assertThat(read)
+        .filteredOn(target -> target.expression().equals("I'd like to take it away, please."))
+        .singleElement()
+        .extracting(ReviewTarget::meaningKo)
+        .isEqualTo("포장해 갈게요.");
+    assertThat(read)
+        .filteredOn(target -> target.expression().equals("Can I get that to go?"))
+        .singleElement()
+        .extracting(ReviewTarget::meaningKo)
+        .isEqualTo("포장해 주실 수 있나요?");
+  }
+
+  @Test
+  void liveRecommendationsFromTheLastReplyAreNotLostBehindTheOldFiveTargetLimit() {
+    var expected = new java.util.ArrayList<String>();
+    for (int i = 0; i < 4; i++) {
+      Turn turn = textTurn(entityManager, source, i + 1, "short request " + i);
+      List<String> recommendations =
+          List.of("Could I have item " + i + "?", "I'd like item " + i + ", please.");
+      turn.recordBetterExpressions(
+          tools.jackson.databind.json.JsonMapper.builder()
+              .build()
+              .writeValueAsString(recommendations));
+      expected.addAll(recommendations);
+    }
+    entityManager.flush();
+
+    var saved = reviewCardService.create(userId, source.getId());
+    assertThat(saved.targets())
+        .extracting(ReviewTarget::expression)
+        .containsAll(expected)
+        .doesNotHaveDuplicates()
+        .hasSizeGreaterThan(5);
   }
 
   @Test

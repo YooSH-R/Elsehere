@@ -24,6 +24,15 @@ namespace A305.Ambience.Tests
             AmbienceBed expected
         ) => Assert.That(AmbiencePlan.Resolve(scene, shop, taxi, rain), Is.EqualTo(expected));
 
+        // 시연 햄버거 가게에서 존박이 랩을 하고 대화를 제안하는 동안에는 장소 생활소음을 아예 끈다.
+        [Test]
+        public void HushedPlaceIsSilentEvenWhileTalking()
+        {
+            Assert.That(AmbiencePlan.Volume(.6f, false, hushed: true), Is.Zero);
+            Assert.That(AmbiencePlan.Volume(.6f, true, hushed: true), Is.Zero);
+            Assert.That(AmbiencePlan.Volume(.6f, false, hushed: false), Is.EqualTo(.6f));
+        }
+
         [Test]
         public void ConversationLowersAmbienceWithoutChangingTheOriginalMix()
         {

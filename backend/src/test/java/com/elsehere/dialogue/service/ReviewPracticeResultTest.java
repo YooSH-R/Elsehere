@@ -40,6 +40,30 @@ class ReviewPracticeResultTest {
   private Conversation review;
 
   @Test
+  void storedLiveRecommendationIsCheckedInProgressAndTheFinalPracticeResult() {
+    var source = em.find(Conversation.class, cards.detail(userId, cardId).sourceConversationId());
+    Turn original =
+        com.elsehere.conversation.DialogueTestData.textTurn(em, source, 1, "to go please");
+    original.recordBetterExpressions(
+        """
+        ["Could I get that to go?", "I'd like to take it away, please."]
+        """);
+    em.flush();
+    userTurn(1, "I'd like to take it away, please.", false);
+
+    var progress = results.progress(userId, cardId, review.getId());
+    assertThat(progress.expressions())
+        .filteredOn(item -> item.expression().equals("I'd like to take it away, please."))
+        .singleElement()
+        .satisfies(item -> assertThat(item.evidence()).hasSize(1));
+    assertThat(progress.verifiedExpressionCount()).isEqualTo(1);
+    var ended =
+        service.end(userId, review.getId(), new EndConversationRequest(UUID.randomUUID(), false));
+    assertThat(ended.reviewResult().expressions()).isEqualTo(progress.expressions());
+    org.mockito.BDDMockito.then(gateway).shouldHaveNoInteractions();
+  }
+
+  @Test
   void lastSpokenFarewellIsIncludedWhenPracticeEndsImmediately() {
     var original = cards.detail(userId, cardId);
     var source = conversation(em, userId, "HOTEL_STAFF");

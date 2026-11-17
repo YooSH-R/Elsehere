@@ -93,6 +93,9 @@ namespace A305.World
                 && mainGreenSeconds + yellowSeconds - phase >= secondsNeeded;
         }
 
+        /// <summary><paramref name="seconds"/> 뒤에 오는 첫 본길 초록의 시작 시각</summary>
+        public float NextMainGreen(float seconds) => Mathf.Ceil(seconds / Length) * Length;
+
         public SignalLight MainAt(float seconds)
         {
             float t = Mathf.Repeat(seconds, Length);

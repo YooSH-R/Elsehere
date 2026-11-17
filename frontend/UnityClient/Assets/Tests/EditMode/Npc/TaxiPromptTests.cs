@@ -5,6 +5,14 @@ namespace A305.Npc.Tests
     public class TaxiPromptTests
     {
         [Test]
+        public void WaitingShowcaseTaxiShowsBoardingInsteadOfAnOrdinaryNpcTalkAction()
+        {
+            TaxiPrompt prompt = TaxiPrompt.Choose(false, true, true, null, "Joe", boarding: true);
+            Assert.That(prompt.Kind, Is.EqualTo(TaxiPromptKind.Talk));
+            Assert.That(prompt.Label, Is.EqualTo("택시 타기"));
+        }
+
+        [Test]
         public void Choose_PassingTaxi_ShowsHailWithGuestRemainingConversations()
         {
             // 택시에 타면 바로 기사와 대화하므로 [택시 타기]에도 남은 대화 수를 붙인다.

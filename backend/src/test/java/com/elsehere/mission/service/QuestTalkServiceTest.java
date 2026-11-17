@@ -37,7 +37,19 @@ class QuestTalkServiceTest {
           mock(ConversationRepository.class),
           mock(NpcRepository.class),
           Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
-  private final QuestTalkService quests = new QuestTalkService(firstDay, town, practice);
+  private final ShowcaseQuestService showcase = mock(ShowcaseQuestService.class);
+  private final QuestTalkService quests = new QuestTalkService(firstDay, town, practice, showcase);
+
+  @Test
+  @DisplayName("시연 서버에서 시연을 시작하기 전에는 진행 중이던 다른 퀘스트도 대화 목표를 내지 않는다")
+  void onTheShowcaseServer_otherQuestsGiveNoGoalsBeforeTheDemoStarts() {
+    when(showcase.isShowcaseServer()).thenReturn(true);
+    when(showcase.context(8L, "HOTEL_STAFF")).thenReturn(Optional.empty());
+    when(town.context(8L, "HOTEL_STAFF")).thenReturn(Optional.of(TOWN_GOALS));
+    when(firstDay.context(8L, "HOTEL_STAFF")).thenReturn(Optional.of(FIRST_DAY_GUIDE));
+
+    assertThat(quests.forStart(8L, "HOTEL_STAFF", false, null)).isEmpty();
+  }
 
   @Test
   @DisplayName("마을 이야기를 하는 중이면 첫날 미션보다 마을 이야기의 대화 목표를 고른다")
@@ -115,6 +127,36 @@ class QuestTalkServiceTest {
   }
 
   @Test
+  @DisplayName("시연 주문을 다시 연습하면 주문 조건을 판정하고, 알아본 조건은 그 연습 대화에 남는다")
+  void reviewOfTheShowcaseOrder_judgesItsConditionsAndKeepsThemOnThatConversation() {
+    Conversation conversation = conversation();
+    conversation.attachReviewCard(5L);
+
+    var selected =
+        quests.forReview("showcase_ORDER", conversation.getReviewCompletedGoals()).orElseThrow();
+    assertThat(selected.source()).isEqualTo(QuestTalkService.Source.REVIEW);
+    quests.accept(
+        8L,
+        "DINER_STAFF",
+        conversation,
+        selected,
+        new JudgeResult.Intent(null, List.of("order_burger", "not_a_condition"), null));
+    var next =
+        quests.forReview("showcase_ORDER", conversation.getReviewCompletedGoals()).orElseThrow();
+    quests.accept(
+        8L,
+        "DINER_STAFF",
+        conversation,
+        next,
+        new JudgeResult.Intent(null, List.of("choose_dining"), null));
+
+    assertThat(conversation.getReviewCompletedGoals())
+        .containsExactly("order_burger", "choose_dining");
+    assertThat(conversation.isPractice()).isFalse();
+    assertThat(quests.forReview("first_day_FIND_BAG", List.of())).isEmpty();
+  }
+
+  @Test
   @DisplayName("마을 이야기에서 판정이 알아본 목표는 마을 이야기 진행에 남는다")
   void acceptTownStory_advancesTownProgress() {
     TownStory story = TownStory.start(8L);
@@ -128,7 +170,12 @@ class QuestTalkServiceTest {
             mock(NpcRepository.class),
             mock(ConversationRepository.class),
             mock(com.elsehere.favor.repository.FavorRepository.class));
-    QuestTalkService withRealTown = new QuestTalkService(firstDay, realTown, practice);
+    QuestTalkService withRealTown =
+        new QuestTalkService(
+            firstDay,
+            realTown,
+            practice,
+            mock(com.elsehere.mission.service.ShowcaseQuestService.class));
     var selected = withRealTown.forStart(8L, "DINER_STAFF", false, null).orElseThrow();
 
     withRealTown.accept(

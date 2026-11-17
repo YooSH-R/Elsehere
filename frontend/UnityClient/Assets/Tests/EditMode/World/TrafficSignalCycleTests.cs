@@ -19,6 +19,41 @@ namespace A305.World.Tests
             cycle = new TrafficSignalCycle(MainGreen, CrossGreen, Yellow);
         }
 
+        // 본길 초록을 붙잡을 때는 다음 주기의 본길 초록 시작으로 넘어간다. 주기는 12 + 3 + 7 + 3 = 25초다.
+        [TestCase(20f, 25f)]
+        [TestCase(30f, 50f)]
+        public void NextMainGreen_IsTheStartOfTheNextMainGreen(float now, float expected)
+        {
+            Assert.That(cycle.NextMainGreen(now), Is.EqualTo(expected).Within(.001f));
+            Assert.That(cycle.MainAt(cycle.NextMainGreen(now)), Is.EqualTo(SignalLight.Green));
+        }
+
+        // 손님을 태운 택시가 지나는 동안 본길 신호를 초록으로 붙잡는다. 풀면 원래 주기대로 다시 흐른다.
+        [Test]
+        public void TrafficLights_HoldingTheMainGreen_KeepsItGreenUntilReleased()
+        {
+            var lights = new UnityEngine.GameObject("Lights").AddComponent<TrafficLights>();
+            try
+            {
+                lights.Advance(20f);
+                Assert.That(lights.Main, Is.Not.EqualTo(SignalLight.Green), "본길 빨간불");
+
+                lights.HoldsMainGreen = true;
+                lights.Advance(1f);
+                Assert.That(lights.Main, Is.EqualTo(SignalLight.Green), "붙잡으면 바로 초록");
+                lights.Advance(100f);
+                Assert.That(lights.Main, Is.EqualTo(SignalLight.Green), "붙잡는 동안 계속 초록");
+
+                lights.HoldsMainGreen = false;
+                lights.Advance(20f);
+                Assert.That(lights.Main, Is.Not.EqualTo(SignalLight.Green), "풀면 다시 주기대로");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(lights.gameObject);
+            }
+        }
+
         [Test]
         public void SecondsToCross_IsTheWalkAtPedestrianPacePlusAMargin()
         {

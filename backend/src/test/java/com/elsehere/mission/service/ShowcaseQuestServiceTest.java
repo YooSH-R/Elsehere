@@ -91,10 +91,10 @@ class ShowcaseQuestServiceTest {
     assertThat(journey.current()).isEqualTo(ShowcaseStage.TAXI);
   }
 
-  // 시연 대본은 주문과 다시 연습에서 끝나 Jake 감사(귀환 단계)를 하지 않는다. 주문을 마친 뒤 카드를 다시 누르면 처음부터 시작해 대본 상태를 다시 맞춘다.
+  // 시연은 주문에서 끝난다. 주문을 마친 뒤 카드를 다시 누르면 처음부터 시작해 대본 상태를 다시 맞춘다.
   @Test
   void startingAfterTheOrderBeginsAgainFromTheHotelWithTheScriptedScene() {
-    ShowcaseJourney journey = readyToThankJake();
+    ShowcaseJourney journey = completedJourney();
     when(journeys.findForUpdate(8L)).thenReturn(Optional.of(journey));
     when(users.findForUpdate(8L)).thenReturn(Optional.of(mock(User.class)));
 
@@ -208,25 +208,43 @@ class ShowcaseQuestServiceTest {
         new ShowcaseSettings(enabled), journeys, users, conversations, scene);
   }
 
+  // 주문을 마치면 시연이 끝난다. 호텔로 돌아가 감사 인사를 하는 단계는 없다.
   @Test
-  void completingTheThanksKeepsCompletionAndShowcaseContextForTheNextTurn() {
-    ShowcaseJourney journey = readyToThankJake();
+  void completingTheOrderCompletesTheQuestAndKeepsShowcaseContextForTheNextTurn() {
+    ShowcaseJourney journey = atBurgerShop();
     when(journeys.findForUpdate(8L)).thenReturn(Optional.of(journey));
     when(journeys.findById(8L)).thenReturn(Optional.of(journey));
     ShowcaseQuestService service = service(true);
 
     service.accept(
-        8L, 3, "HOTEL_STAFF", new JudgeResult.Intent(null, ShowcaseStage.RETURN.goalIds(), null));
+        8L, 2, "DINER_STAFF", new JudgeResult.Intent(null, ShowcaseStage.ORDER.goalIds(), null));
 
     assertThat(service.status(8L).completed()).isTrue();
+    assertThat(service.status(8L).steps())
+        .extracting(FirstDayMissionResponse.Step::status)
+        .containsExactly("DONE", "DONE", "DONE");
     assertThat(service.activeStatus(8L))
         .hasValueSatisfying(state -> assertThat(state.completed()).isTrue());
     assertThat(service.context(8L, "HOTEL_STAFF").orElseThrow().instruction())
         .contains("rainy-evening trip is complete", "without starting check-in");
     service.accept(
-        8L, 3, "HOTEL_STAFF", new JudgeResult.Intent(null, ShowcaseStage.RETURN.goalIds(), null));
+        8L, 2, "DINER_STAFF", new JudgeResult.Intent(null, ShowcaseStage.ORDER.goalIds(), null));
     assertThat(journey.getStage()).isEqualTo(ShowcaseStage.values().length);
     assertThat(journey.balance()).isEqualTo(93);
+  }
+
+  // 퀘스트 카드와 목록에 우산 감사 단계가 보이지 않는다.
+  @Test
+  void questNoLongerShowsTheUmbrellaThanksStep() {
+    when(journeys.findById(8L)).thenReturn(Optional.of(ShowcaseJourney.start(8L)));
+    ShowcaseQuestService service = service(true);
+
+    assertThat(service.status(8L).steps())
+        .extracting(FirstDayMissionResponse.Step::npcCode)
+        .containsExactly("HOTEL_STAFF", "TAXI_DRIVER", "DINER_STAFF");
+    QuestBoardResponse.Quest card = service.card(8L, Map.of()).orElseThrow();
+    assertThat(card.stops()).hasSize(3);
+    assertThat(card.description()).doesNotContain("감사");
   }
 
   @Test
@@ -238,7 +256,7 @@ class ShowcaseQuestServiceTest {
 
     assertThat(card.status()).isEqualTo("AVAILABLE");
     assertThat(card.stops())
-        .hasSize(4)
+        .hasSize(3)
         .allSatisfy(
             stop -> {
               assertThat(stop.done()).isFalse();
@@ -272,7 +290,7 @@ class ShowcaseQuestServiceTest {
     assertThat(state.lastPurchase()).isNull();
     assertThat(state.steps())
         .extracting(FirstDayMissionResponse.Step::status)
-        .containsExactly("CURRENT", "PENDING", "PENDING", "PENDING");
+        .containsExactly("CURRENT", "PENDING", "PENDING");
     assertThat(journey.isUmbrellaBorrowed()).isFalse();
     assertThat(journey.isMealPaid()).isFalse();
     assertThat(journey.isTaxiRequested()).isFalse();
@@ -281,7 +299,8 @@ class ShowcaseQuestServiceTest {
 
   @Test
   void startDuringAnUnfinishedJourneyResumesWithoutLosingProgress() {
-    ShowcaseJourney journey = readyToThankJake();
+    ShowcaseJourney journey = atBurgerShop();
+    journey.accept(2, "DINER_STAFF", List.of("order_burger"));
     journey.stop();
     when(journeys.findForUpdate(8L)).thenReturn(Optional.of(journey));
     when(users.findForUpdate(8L)).thenReturn(Optional.of(mock(User.class)));
@@ -289,10 +308,13 @@ class ShowcaseQuestServiceTest {
     FirstDayMissionResponse state = service(true).start(8L);
 
     assertThat(state.started()).isTrue();
-    assertThat(state.stage()).isEqualTo(3);
-    assertThat(state.balance()).isEqualTo(93);
-    assertThat(state.weather()).isEqualTo("CLEAR");
+    assertThat(state.stage()).isEqualTo(2);
+    assertThat(state.steps().get(2).goals())
+        .extracting(FirstDayMissionResponse.Goal::completed)
+        .containsExactly(true, false, false, false);
+    assertThat(state.weather()).isEqualTo("RAIN");
     assertThat(journey.isUmbrellaBorrowed()).isTrue();
+    verify(scene, never()).setUp(8L);
   }
 
   @Test
@@ -326,19 +348,17 @@ class ShowcaseQuestServiceTest {
     assertThat(journey.isCompleted()).isTrue();
   }
 
-  private static ShowcaseJourney readyToThankJake() {
+  private static ShowcaseJourney atBurgerShop() {
     ShowcaseJourney journey = ShowcaseJourney.start(8L);
     journey.accept(0, "HOTEL_STAFF", ShowcaseStage.HOTEL.goalIds());
     journey.chooseTaxiDestination("TAXI_DRIVER", "DINER");
     journey.arriveByTaxi("DINER");
-    journey.accept(2, "DINER_STAFF", ShowcaseStage.ORDER.goalIds());
-    journey.visit("HOTEL");
     return journey;
   }
 
   private static ShowcaseJourney completedJourney() {
-    ShowcaseJourney journey = readyToThankJake();
-    journey.accept(3, "HOTEL_STAFF", ShowcaseStage.RETURN.goalIds());
+    ShowcaseJourney journey = atBurgerShop();
+    journey.accept(2, "DINER_STAFF", ShowcaseStage.ORDER.goalIds());
     return journey;
   }
 }

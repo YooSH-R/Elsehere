@@ -231,13 +231,6 @@ class OpeningLines {
   }
 
   private String missionGreeting(QuestTalkService.SelectedQuest quest) {
-    if (quest.source() == QuestTalkService.Source.SHOWCASE
-        && quest.talk() instanceof QuestTalk.Goals
-        && quest.talk().stage() == ShowcaseStage.RETURN.ordinal()) {
-      return " Welcome the learner back and ask if they managed to stay dry with the borrowed umbrella."
-          + " For example: Welcome back! Did you stay dry?"
-          + " Do not ask what they need or begin another check-in. Wait for their answer.";
-    }
     // 시연 버거 가게는 단골을 알아보는 장면이다. 다른 퀘스트처럼 제안을 숨기게 하면 늘 시키던 메뉴를 묻지 못한다.
     if (quest.source() == QuestTalkService.Source.SHOWCASE
         && quest.talk() instanceof QuestTalk.Goals

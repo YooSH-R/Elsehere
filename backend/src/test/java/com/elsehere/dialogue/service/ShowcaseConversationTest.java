@@ -51,29 +51,6 @@ class ShowcaseConversationTest {
     userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "showcase-test");
   }
 
-  @Test
-  void returningToHotelAsksWhetherTheLearnerStayedDryInsteadOfOfferingNewService() {
-    ShowcaseJourney journey = ShowcaseJourney.start(userId);
-    journey.accept(0, "HOTEL_STAFF", ShowcaseStage.HOTEL.goalIds());
-    journey.chooseTaxiDestination("TAXI_DRIVER", "DINER");
-    journey.arriveByTaxi("DINER");
-    journey.accept(2, "DINER_STAFF", ShowcaseStage.ORDER.goalIds());
-    journeys.saveAndFlush(journey);
-    given(gateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
-        .willReturn(reply("Welcome back! Did you stay dry?", null));
-
-    dialogueStartService.start(
-        userId, new StartConversationRequest(UUID.randomUUID(), "HOTEL_STAFF", InitiatedBy.USER));
-
-    ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
-    then(gateway)
-        .should()
-        .reply(any(), any(), any(), any(), anyString(), instruction.capture(), anyInt(), any());
-    assertThat(instruction.getValue())
-        .contains("stay dry", "umbrella")
-        .doesNotContain("Invite their request");
-  }
-
   // 시연을 처음부터 시작하면 대본대로 Owen은 사이가 나쁘고 Rosa는 단골을 알아보며, Jake·택시 기사는 처음 만나는 상태다. 시각은 해 지기 전 저녁이다.
   @Test
   void sceneSetUpPutsTheScriptedRelationsAndEveningClock() {

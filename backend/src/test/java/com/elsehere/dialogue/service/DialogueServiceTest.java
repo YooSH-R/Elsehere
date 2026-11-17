@@ -1001,6 +1001,24 @@ class DialogueServiceTest {
   }
 
   @Test
+  @DisplayName("게스트는 닉네임(guest-000001) 대신 kimssafy라는 이름을 실어 NPC가 그 이름으로 부르게 한다")
+  void start_guest_sendsTheGuestNameInsteadOfTheNickname() {
+    Long guestId =
+        UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1", "guest-000001");
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Hi!", null));
+
+    dialogueStartService.start(
+        guestId, new StartConversationRequest(UUID.randomUUID(), "CAFE_STAFF", InitiatedBy.NPC));
+
+    ArgumentCaptor<WorkerLearner> learner = ArgumentCaptor.forClass(WorkerLearner.class);
+    then(aiGateway)
+        .should()
+        .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), learner.capture());
+    assertThat(learner.getValue().nickname()).isEqualTo("kimssafy");
+  }
+
+  @Test
   @DisplayName("AI 첫인사는 학습자가 설정창에서 고른 NPC 말 빠르기로 말한다")
   void start_aiGreeting_sendsTheChosenSpeechSpeed() {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))

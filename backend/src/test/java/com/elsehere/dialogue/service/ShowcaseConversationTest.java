@@ -95,6 +95,26 @@ class ShowcaseConversationTest {
         .isEqualTo(237L);
   }
 
+  // 게스트 닉네임(guest-000001)은 사람 이름이 아니라서, 기억 카드에는 NPC가 부를 이름 kimssafy를 남긴다.
+  @Test
+  void sceneSetUpRemembersAGuestByTheGuestName() {
+    Long guestId =
+        UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1", "guest-000001");
+
+    showcaseScene.setUp(guestId);
+    entityManager.clear();
+
+    assertThat(
+            entityManager
+                .createNativeQuery(
+                    "select memory_card ->> 'name' from user_npc_relations r"
+                        + " join npcs n on n.id = r.npc_id"
+                        + " where r.user_id = ?1 and n.code = 'DINER_STAFF'")
+                .setParameter(1, guestId)
+                .getSingleResult())
+        .isEqualTo("kimssafy");
+  }
+
   private List<Object> relation(String npcCode) {
     Object[] row =
         (Object[])

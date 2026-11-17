@@ -78,7 +78,10 @@ public class ShowcaseQuestService {
                 .map(goal -> new WorkerState.Intent(goal.id(), goal.description()))
                 .toList(),
             true);
-    return new QuestTalk.Goals(journey.getStage(), state, instruction, List.copyOf(pending));
+    // 주문 단계는 세부 목표가 넷이라, 하나를 마치면 직원이 다음 목표를 물어 대화를 이끈다. 호텔 단계는 학습자의 부탁을 기다린다.
+    boolean leadsToNextGoal = stage == ShowcaseStage.ORDER;
+    return new QuestTalk.Goals(
+        journey.getStage(), state, instruction, List.copyOf(pending), leadsToNextGoal);
   }
 
   public void accept(Long userId, int expectedStage, String npcCode, JudgeResult.Intent intent) {

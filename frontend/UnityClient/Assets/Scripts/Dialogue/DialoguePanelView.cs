@@ -1159,7 +1159,8 @@ namespace A305.Dialogue
         private void ShowSubtitleButton()
         {
             subtitleButton.gameObject.SetActive(content.SpeaksNpcLines);
-            bool showsSubtitles = NpcSubtitlePreference.ShowsSubtitles;
+            subtitleButton.interactable = !isMeaningVisible;
+            bool showsSubtitles = isMeaningVisible || NpcSubtitlePreference.ShowsSubtitles;
             subtitleButton.GetComponentInChildren<TMP_Text>(true).text = showsSubtitles
                 ? DisableSubtitlesCaption
                 : EnableSubtitlesCaption;
@@ -1169,6 +1170,10 @@ namespace A305.Dialogue
 
         private void ToggleSubtitles()
         {
+            // 뜻과 원문을 함께 보는 동안에는 저장된 자막 선택도 바꾸지 않는다.
+            if (isMeaningVisible)
+                return;
+
             NpcSubtitlePreference.ShowsSubtitles = !NpcSubtitlePreference.ShowsSubtitles;
             Refresh();
         }

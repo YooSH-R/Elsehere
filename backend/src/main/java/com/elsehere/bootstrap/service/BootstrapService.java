@@ -2,6 +2,7 @@ package com.elsehere.bootstrap.service;
 
 import com.elsehere.ai.service.AiStatusService;
 import com.elsehere.bootstrap.dto.BootstrapResponse;
+import com.elsehere.mission.service.ShowcaseQuestService;
 import com.elsehere.user.dto.UserResponse;
 import com.elsehere.user.entity.ConsentType;
 import com.elsehere.user.entity.User;
@@ -22,6 +23,7 @@ public class BootstrapService {
   private final UserRepository userRepository;
   private final AiStatusService aiStatusService;
   private final OptionalConsentService optionalConsentService;
+  private final ShowcaseQuestService showcase;
 
   /** 로그인한 사용자의 상태. 사용자가 없으면(탈퇴 등) 빈 값이다. */
   public Optional<BootstrapResponse> findSignedIn(Long userId) {
@@ -32,7 +34,7 @@ public class BootstrapService {
                 BootstrapResponse.signedIn(
                     UserResponse.from(
                         user, optionalConsentService.hasAgreed(userId, ConsentType.VOICE)),
-                    lastSceneCode(user),
+                    startSceneCode(user),
                     aiStatusService.statusOf(user)));
   }
 
@@ -40,6 +42,15 @@ public class BootstrapService {
   @Transactional
   public void markTeamAccount(Long userId) {
     userRepository.findById(userId).ifPresent(User::markTeamAccount);
+  }
+
+  // 시연 서버에서는 시연을 하는 중이 아니면 마지막 장소와 상관없이 호텔에서 시작한다. 하는 중이면 마지막 장소로 돌아간다.
+  private String startSceneCode(User user) {
+    if (showcase.isShowcaseServer()
+        && showcase.activeStatus(user.getId()).filter(status -> !status.completed()).isEmpty()) {
+      return "HOTEL";
+    }
+    return lastSceneCode(user);
   }
 
   private static String lastSceneCode(User user) {

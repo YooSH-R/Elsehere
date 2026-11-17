@@ -85,6 +85,23 @@ public class Conversation extends BaseEntity {
 
   private Integer firstDayStage;
 
+  // 시연의 시작 상황을 보존해, 퀘스트가 끝난 뒤에도 같은 주문만 다시 연습한다.
+  private Integer showcaseStage;
+
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(columnDefinition = "jsonb")
+  private List<String> showcaseGoalIds;
+
+  public void attachShowcaseStage(Integer stage) {
+    this.showcaseStage = stage;
+  }
+
+  public void recordShowcaseGoals(List<String> goals) {
+    if (showcaseGoalIds == null) {
+      showcaseGoalIds = List.copyOf(goals);
+    }
+  }
+
   // 같은 단계에 다시 말을 걸어도 이전 대화에서 끝낸 목표를 다시 요구하지 않는다.
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(columnDefinition = "jsonb")
@@ -139,6 +156,17 @@ public class Conversation extends BaseEntity {
   }
 
   public void recordPracticeGoals(List<String> goalIds) {
+    practiceCompletedGoals = List.copyOf(goalIds);
+  }
+
+  /**
+   * [다시 연습] 대화에서 말한 조건 ID. 장소 연습과 같은 칸(practice_completed_goals)에 남긴다. 한 대화는 장소 연습이거나 다시 연습 중 하나다.
+   */
+  public List<String> getReviewCompletedGoals() {
+    return isReview() && practiceCompletedGoals != null ? practiceCompletedGoals : List.of();
+  }
+
+  public void recordReviewGoals(List<String> goalIds) {
     practiceCompletedGoals = List.copyOf(goalIds);
   }
 

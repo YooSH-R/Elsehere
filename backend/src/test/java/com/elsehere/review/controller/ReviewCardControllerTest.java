@@ -16,6 +16,7 @@ import com.elsehere.review.dto.ReviewCardListResponse;
 import com.elsehere.review.dto.ReviewCardResponse;
 import com.elsehere.review.dto.ReviewTarget;
 import com.elsehere.review.service.ReviewCardService;
+import com.elsehere.review.service.ReviewMeanings;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -45,6 +46,15 @@ class ReviewCardControllerTest {
 
   @Autowired private MockMvc mockMvc;
   @MockitoBean private ReviewCardService reviewCardService;
+  @MockitoBean private ReviewMeanings reviewMeanings;
+
+  @org.junit.jupiter.api.BeforeEach
+  void meaningsKeepTheCard() {
+    org.mockito.BDDMockito.given(
+            reviewMeanings.fill(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+        .willAnswer(call -> call.getArgument(1));
+  }
 
   @Test
   void createUsesTheAuthenticatedOwnerAndReturnsTheStoredCard() throws Exception {

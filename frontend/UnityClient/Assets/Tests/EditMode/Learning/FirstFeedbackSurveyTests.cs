@@ -38,6 +38,24 @@ namespace A305.Learning.Tests
         }
 
         [Test]
+        public void PausedShowcaseDoesNotInviteOrConsumeTheRegularInvitation()
+        {
+            bool previous = SurveyPrompt.AutomaticInvitationsPaused;
+            try
+            {
+                SurveyPrompt.AutomaticInvitationsPaused = true;
+                Assert.That(SurveyPrompt.RequestAfterFeedback(), Is.False);
+                Assert.That(PlayerPrefs.HasKey(SurveyPrompt.InvitationKey), Is.False);
+                SurveyPrompt.AutomaticInvitationsPaused = false;
+                Assert.That(SurveyPrompt.RequestAfterFeedback(), Is.True);
+            }
+            finally
+            {
+                SurveyPrompt.AutomaticInvitationsPaused = previous;
+            }
+        }
+
+        [Test]
         public void TutorialDoesNotConsumeInvitationAndTheNextRegularFeedbackInvitesOnce()
         {
             Assert.That(SurveyPrompt.RequestAfterFeedback(isRegularConversation: false), Is.False);

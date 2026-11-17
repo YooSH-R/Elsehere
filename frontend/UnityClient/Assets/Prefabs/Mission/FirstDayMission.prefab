@@ -1935,7 +1935,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 22.800001, y: 48}
+  m_AnchoredPosition: {x: -13.200001, y: 48}
   m_SizeDelta: {x: 816.00006, y: 432.00003}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &915948537571002022
@@ -23994,7 +23994,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 70.8, y: -342.52176}
+  m_AnchoredPosition: {x: 34.800003, y: -342.52176}
   m_SizeDelta: {x: 720, y: 72}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &9076444789680089912
@@ -27110,8 +27110,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 913.2, y: -270}
-  m_SizeDelta: {x: 861.60004, y: 420.00003}
+  m_AnchoredPosition: {x: 121.200005, y: -270}
+  m_SizeDelta: {x: 789.60004, y: 420.00003}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &9214161359719660701
 CanvasRenderer:
@@ -43239,8 +43239,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 49.2, y: -270}
-  m_SizeDelta: {x: 861.60004, y: 420.00003}
+  m_AnchoredPosition: {x: 913.2, y: -270}
+  m_SizeDelta: {x: 789.60004, y: 420.00003}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &2552174382602053731
 CanvasRenderer:
@@ -43445,7 +43445,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 22.800001, y: 48}
+  m_AnchoredPosition: {x: -13.200001, y: 48}
   m_SizeDelta: {x: 816.00006, y: 432.00003}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &6184535005806922153
@@ -47532,7 +47532,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 70.8, y: -342.52176}
+  m_AnchoredPosition: {x: 34.800003, y: -342.52176}
   m_SizeDelta: {x: 720, y: 72}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &8108990253063214841

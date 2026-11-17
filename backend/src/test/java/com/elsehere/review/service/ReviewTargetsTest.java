@@ -2,10 +2,19 @@ package com.elsehere.review.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.elsehere.conversation.entity.Conversation;
+import com.elsehere.conversation.entity.InitiatedBy;
+import com.elsehere.conversation.entity.InputType;
+import com.elsehere.conversation.entity.Turn;
 import com.elsehere.feedback.entity.FeedbackReviews.SituationExpression;
+import com.elsehere.mission.entity.ShowcaseStage;
+import com.elsehere.review.dto.ReviewTarget;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.json.JsonMapper;
 
 class ReviewTargetsTest {
   @Test
@@ -64,6 +73,85 @@ class ReviewTargetsTest {
     assertThat(selected)
         .extracting(target -> target.expression())
         .containsExactly("Can I get that to go?", "Could I get less ice?");
+  }
+
+  // 시연 주문을 다시 연습할 때는 대화 중에 떴던 추천 문장만 퀘스트 차례(버거 → 재료 → 사이드·음료 → 매장·포장)로 둔다.
+  // 한 발화의 추천은 그 발화의 다른 말이라 같은 뜻이므로 하나만 둔다. 대화 중에 뜨지 않은 피드백의 상황 표현은 넣지 않는다.
+  @Test
+  void showcaseBurgerPracticeListsOnlyTheShownRecommendationsInQuestOrder() {
+    Conversation source = sourceConversation();
+    source.attachShowcaseStage(ShowcaseStage.ORDER.ordinal());
+    var takeaway =
+        new ReviewTarget("I'll take it to go, please.", "포장해 갈게요.", "포장을 부탁할 때", null, null);
+    var sides =
+        new ReviewTarget("Could I get a side of fries, too?", "감자튀김도 주세요.", null, null, null);
+    var onions =
+        new ReviewTarget("Could I get that without onions?", "양파 빼 주세요.", null, null, null);
+    Turn dining =
+        recommendedTurn(source, 2, "to go please", "To take away, please.", "For takeout, please.");
+    Turn order =
+        recommendedTurn(
+            source,
+            4,
+            "one burger",
+            "Can I get a cheeseburger, please?",
+            "I'll have a cheeseburger, please.");
+    Turn tomato =
+        recommendedTurn(
+            source, 6, "no tomato please", "No tomatoes, please.", "Please leave out the tomato.");
+    Turn farewell =
+        recommendedTurn(source, 8, "thanks", "Thank you for your help.", "Thanks so much.");
+
+    var selected =
+        ReviewTargets.includeRecommendations(
+            List.of(takeaway, sides, onions),
+            List.of(dining, order, tomato, farewell),
+            JsonMapper.builder().build());
+
+    assertThat(selected)
+        .extracting(ReviewTarget::expression)
+        .containsExactly(
+            "Can I get a cheeseburger, please?",
+            "No tomatoes, please.",
+            "To take away, please.",
+            "Thank you for your help.");
+  }
+
+  @Test
+  void normalPracticeKeepsItsOrderEvenWhenItHasTakeawayRecommendations() {
+    Conversation source = sourceConversation();
+    var burger = new ReviewTarget("Could I have a cheeseburger?", "치즈버거 주세요.", null, null, null);
+    Turn dining = recommendedTurn(source, 4, "to go please", "I'll take it to go, please.");
+
+    var selected =
+        ReviewTargets.includeRecommendations(
+            List.of(burger), List.of(dining), JsonMapper.builder().build());
+
+    assertThat(selected)
+        .extracting(ReviewTarget::expression)
+        .containsExactly("Could I have a cheeseburger?", "I'll take it to go, please.");
+  }
+
+  private static Conversation sourceConversation() {
+    return Conversation.start(1L, 1L, InitiatedBy.USER, 1, Instant.parse("2026-11-13T01:00:00Z"));
+  }
+
+  private static Turn recommendedTurn(
+      Conversation source, int seq, String original, String... alternatives) {
+    Turn turn =
+        Turn.user(
+            source,
+            seq,
+            UUID.randomUUID(),
+            InputType.TEXT,
+            original,
+            null,
+            null,
+            false,
+            null,
+            null);
+    turn.recordBetterExpressions(JsonMapper.builder().build().writeValueAsString(alternatives));
+    return turn;
   }
 
   private static SituationExpression expression(String text, String meaning) {

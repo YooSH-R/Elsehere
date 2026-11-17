@@ -32,6 +32,7 @@ namespace A305.Npc
         public static NpcOutings Shared { get; private set; } = new NpcOutings();
         private readonly Dictionary<string, NpcOuting> trips = new Dictionary<string, NpcOuting>();
         private readonly Dictionary<string, Visits> visited = new Dictionary<string, Visits>();
+        private readonly HashSet<string> closedToVisitors = new HashSet<string>();
         private GameClock observedClock;
         public IEnumerable<NpcOuting> Trips => trips.Values;
 
@@ -95,7 +96,12 @@ namespace A305.Npc
             for (int offset = 0; offset < venues.Count; offset++)
             {
                 NpcOutingVenue venue = venues[(hash % venues.Count + offset) % venues.Count];
-                if (venue.Code == workplace || skip(venue.Code) || !available(venue))
+                if (
+                    venue.Code == workplace
+                    || skip(venue.Code)
+                    || closedToVisitors.Contains(venue.Code)
+                    || !available(venue)
+                )
                     continue;
                 int occupied = 0;
                 foreach (NpcOuting trip in trips.Values)
@@ -139,6 +145,22 @@ namespace A305.Npc
         /// <summary>행인은 자유 시간에 이미 거리를 걸으므로 들를 때는 가게만 고른다.</summary>
         public static bool Suits(NpcDayPlan plan, NpcOutingVenue venue) =>
             !plan.IsErrand || !venue.IsOutdoor;
+
+        /// <summary>
+        /// 여가 손님에게 가게를 닫거나 다시 연다. 시연 퀘스트 동안 햄버거 가게에 직원과 John만 두는 데 쓴다.
+        /// 가게 자체는 열려 있어 그 가게 직원은 일하고 플레이어도 들어간다.
+        /// </summary>
+        public void SetClosedToVisitors(string code, bool closed)
+        {
+            if (closed)
+                closedToVisitors.Add(code);
+            else
+                closedToVisitors.Remove(code);
+        }
+
+        /// <summary>여가 손님이 지금 들를 수 있는지. 영업시간 밖이거나 손님을 받지 않는 동안은 고르지 않고, 안에 있던 손님도 나간다.</summary>
+        public bool Welcomes(string code) =>
+            OpeningHours.IsOpenNow(code) && !closedToVisitors.Contains(code);
 
         /// <summary>예약을 지운다. 들어갔다 나온 곳으로 기록하지 않는다.</summary>
         public void Release(string npc) => trips.Remove(npc);

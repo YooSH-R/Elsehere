@@ -168,7 +168,7 @@ public class TurnService {
     }
     TurnContext context = selection.context();
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, conversationId);
-    // 이 턴의 퀘스트 대화 목표. 복습은 없고, 장소 연습은 고른 상황, 그 밖에는 진행 중인 퀘스트의 목표다.
+    // 이 턴의 퀘스트 대화 목표. 복습은 시연 상황을 다시 연습할 때만 그 조건이 있고, 장소 연습은 고른 상황, 그 밖에는 진행 중인 퀘스트의 목표다.
     Optional<QuestTalk> quest = context.quest().map(QuestTalkService.SelectedQuest::talk);
 
     Optional<WorkerState> missionState =
@@ -200,7 +200,8 @@ public class TurnService {
           aiGateway.judge(
               trace,
               context.npc().workerNpc(),
-              context.review() != null
+              // 시연 주문 다시 연습은 조건 판정 목표가 있으면 그것으로, 다른 복습은 복습 판정으로 한다.
+              missionState.isEmpty() && context.review() != null
                   ? reviewDialogue.state(context.review())
                   // 돌발 부탁이 걸린 대화는 부탁 의도(수락·건넴 등)를 함께 판정한다.
                   : context
@@ -528,8 +529,17 @@ public class TurnService {
       return new TurnContextSelection(null, true, false);
     }
     NpcContext npc = dialogueContexts.npcOf(conversation);
+    ReviewCardResponse review =
+        conversation.isReview()
+            ? reviewCardService.detail(userId, conversation.getReviewCardId())
+            : null;
+    // 시연 주문 다시 연습은 그 상황의 조건 목표로, 그 밖에는 진행 중인 퀘스트 목표로 판정한다.
     Optional<QuestTalkService.SelectedQuest> quest =
-        questTalks.forTurn(userId, npc.summary().npcCode(), conversation);
+        review != null
+            ? questTalks.forReview(
+                review.scenario() == null ? null : review.scenario().key(),
+                conversation.getReviewCompletedGoals())
+            : questTalks.forTurn(userId, npc.summary().npcCode(), conversation);
     FavorService.FavorTurn favor =
         favorService.plan(
             userId,
@@ -548,9 +558,7 @@ public class TurnService {
                 : memoryService.memoryFor(userId, conversation.getNpcId()),
             conversation.getRudeCount(),
             conversation.isNpcOffDuty(),
-            conversation.isReview()
-                ? reviewCardService.detail(userId, conversation.getReviewCardId())
-                : null,
+            review,
             quest,
             favor),
         false,

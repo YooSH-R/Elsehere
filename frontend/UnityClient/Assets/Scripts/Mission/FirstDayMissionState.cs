@@ -12,7 +12,19 @@ namespace A305.Mission
         /// <summary>지금 퀘스트(하는 중이 아니면 다음에 시작할 퀘스트)의 코드. 퀘스트 목록의 퀘스트 Id와 같다.</summary>
         public string Quest { get; set; }
         public bool IsTownStory { get; set; }
-        public bool ShouldOfferTownStory => Completed && !IsTownStory;
+        public const string ShowcaseQuestId = "SHOWCASE_RAINY_EVENING";
+        public bool IsShowcase => Quest == ShowcaseQuestId;
+
+        /// <summary>시연 퀘스트의 햄버거 가게 장소 코드</summary>
+        public const string ShowcaseRestaurant = "DINER";
+
+        /// <summary>시연 퀘스트를 시작해 끝낼 때까지 햄버거 가게에는 직원과 John만 두고 여가 손님은 들이지 않는다.</summary>
+        public bool ClosesShowcaseRestaurantToVisitors => IsShowcase && Started && !Completed;
+
+        /// <summary>시연을 하는 동안 손님을 태운 택시가 신호에 걸리지 않게 본길 신호를 초록으로 붙잡는지.</summary>
+        public bool HoldsGreenForTaxiRide => IsShowcase && Started && !Completed;
+
+        public bool ShouldOfferTownStory => Completed && !IsTownStory && !IsShowcase;
         public int Stage { get; set; }
         public bool Completed { get; set; }
         public string Scene { get; set; }
@@ -38,7 +50,11 @@ namespace A305.Mission
                 if (!Started || Completed)
                     return null;
                 FirstDayMissionStep current = Steps.Find(step => step.Status == "CURRENT");
-                if (IsTownStory && current?.Scene == "TOWN" && current.NpcCode != null)
+                if (
+                    (IsTownStory || IsShowcase)
+                    && current?.Scene == "TOWN"
+                    && current.NpcCode != null
+                )
                     return TownMapArt.Shops.ContainsKey(current.NpcCode) ? current.NpcCode : null;
                 return current?.Scene;
             }
@@ -67,12 +83,22 @@ namespace A305.Mission
             sceneCode == "TOWN" && !insideShop;
 
         /// <summary>이번 휴식이 미션의 '카페에서 잠깐 쉬기'로 인정되는지. 주문을 마친 뒤 처음 쉬는 한 번뿐이다.</summary>
-        public bool CountsAsCafeRest => Started && !Completed && Stage == 1 && CanRest;
+        public bool CountsAsCafeRest =>
+            !IsShowcase && Started && !Completed && Stage == 1 && CanRest;
 
         /// <summary>
         /// Weather를 보내기 전의 서버이거나 Unity에 없는 날씨일 때 대신 보여 줄 날씨. Raining으로 비와 맑음만 나눈다.
         /// </summary>
         public string FallbackWeather => Raining ? "RAIN" : "CLEAR";
+
+        /// <summary>
+        /// 시연에서 호텔 직원에게 빌린 우산을 접어 드는지. 호텔 안과 비가 그친 거리에서는 접어 들고, 비 오는 거리에서는 펴 쓴다.
+        /// </summary>
+        public bool CarriesFoldedUmbrellaIn(string sceneCode, bool insideShop = false) =>
+            IsShowcase
+            && HasUmbrella
+            && (sceneCode == "HOTEL" || sceneCode == "TOWN" && !insideShop)
+            && !OpensUmbrellaIn(sceneCode, insideShop);
 
         /// <summary>
         /// 이 장소에서 플레이어가 우산을 펴 쓰는지. 우산은 드럭스토어 단계를 마치면 생기고, 비 오는 마을에서만 편다.
@@ -100,7 +126,9 @@ namespace A305.Mission
                 ? before.Quest
                 : null;
 
-        private bool HasUmbrella => Started && (Completed || Stage > BuyUmbrellaStage);
+        private bool HasUmbrella =>
+            Started
+            && (IsShowcase ? !Completed && Stage >= 1 : Completed || Stage > BuyUmbrellaStage);
     }
 
     public sealed class FirstDayMissionStep

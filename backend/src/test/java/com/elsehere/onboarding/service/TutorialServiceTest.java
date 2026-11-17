@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.common.config.JpaAuditingConfig;
@@ -14,6 +15,7 @@ import com.elsehere.common.error.ErrorCode;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.service.FirstDayMissionService;
+import com.elsehere.mission.service.ShowcaseSettings;
 import com.elsehere.onboarding.dto.TutorialResponse;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
@@ -52,6 +54,8 @@ class TutorialServiceTest {
   @Autowired private EntityManager entityManager;
 
   @MockitoBean private TutorialRelationshipService tutorialRelationshipService;
+
+  @MockitoBean private ShowcaseSettings showcaseSettings;
 
   @Test
   @DisplayName("Ben 길 안내 완료는 튜토리얼 단계를 유지하면서 관계를 기록한다")
@@ -168,6 +172,18 @@ class TutorialServiceTest {
     tutorialService.complete(userId);
 
     assertThat(firstQuestStage(userId)).contains(0);
+  }
+
+  @Test
+  @DisplayName("시연 서버에서는 튜토리얼을 마쳐도 퀘스트를 시작하지 않는다. 시연자가 퀘스트 창에서 직접 시작한다")
+  void finish_onShowcaseServer_startsNoQuest() {
+    when(showcaseSettings.enabled()).thenReturn(true);
+    Long userId = insertUserAt(OnboardingStep.TUTORIAL);
+
+    tutorialService.skip(userId);
+
+    assertThat(firstQuestStage(userId)).isEmpty();
+    assertThat(onboardingStep(userId)).isEqualTo(OnboardingStep.DONE);
   }
 
   @Test

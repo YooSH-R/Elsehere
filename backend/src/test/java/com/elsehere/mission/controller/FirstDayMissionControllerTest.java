@@ -12,6 +12,7 @@ import com.elsehere.common.config.SecuredWebMvcTest;
 import com.elsehere.mission.dto.FirstDayMissionResponse;
 import com.elsehere.mission.service.FirstDayMissionService;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -23,6 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class FirstDayMissionControllerTest {
   @Autowired private MockMvc mvc;
   @MockitoBean private FirstDayMissionService service;
+  @MockitoBean private com.elsehere.mission.service.ShowcaseQuestService showcase;
 
   @Test
   void unauthenticatedUserCannotReadMission() throws Exception {
@@ -52,6 +54,43 @@ class FirstDayMissionControllerTest {
         .andExpect(jsonPath("$.stage").value(0))
         .andExpect(jsonPath("$.raining").value(false))
         .andExpect(jsonPath("$.weather").value("CLEAR"));
+  }
+
+  // 시연 서버에서는 시작 전에도 시연 퀘스트를 보여, 다른 퀘스트가 진행 중으로 보이지 않는다.
+  @Test
+  void showcaseServerShowsTheDemoInsteadOfOtherQuests() throws Exception {
+    var auth =
+        UsernamePasswordAuthenticationToken.authenticated(new LoginUser(8L), null, List.of());
+    var demo =
+        new FirstDayMissionResponse(
+            false,
+            0,
+            "SHOWCASE_RAINY_EVENING",
+            false,
+            "HOTEL",
+            false,
+            true,
+            "RAIN",
+            100,
+            null,
+            "",
+            "",
+            List.of());
+    when(showcase.shownStatus(8L)).thenReturn(Optional.of(demo));
+    when(showcase.visit(8L, "HOTEL")).thenReturn(Optional.of(demo));
+
+    mvc.perform(get("/api/v1/missions/first-day").with(authentication(auth)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.quest").value("SHOWCASE_RAINY_EVENING"))
+        .andExpect(jsonPath("$.started").value(false));
+    mvc.perform(
+            post("/api/v1/missions/first-day/visit")
+                .with(authentication(auth))
+                .header("X-Requested-With", "ElsehereClient")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"scene\":\"HOTEL\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.quest").value("SHOWCASE_RAINY_EVENING"));
   }
 
   @Test

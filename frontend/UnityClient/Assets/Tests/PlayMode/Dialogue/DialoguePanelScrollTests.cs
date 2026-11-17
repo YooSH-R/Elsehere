@@ -51,7 +51,7 @@ namespace A305.Dialogue.PlayModeTests
         [UnityTest]
         public IEnumerator LongConversation_ShowsAScrollbar()
         {
-            yield return Show(Conversation);
+            yield return Show(Conversation.Concat(Conversation).ToArray());
 
             ScrollRect historyScroll = Field<ScrollRect>("historyScroll");
             Scrollbar bar = historyScroll.verticalScrollbar;

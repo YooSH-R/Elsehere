@@ -128,7 +128,9 @@ namespace A305.EditorTools.World
                 "#A8402F",
                 "#F3E2C7",
                 "#FFFFFF",
-                checkerFloor: true
+                checkerFloor: true,
+                // 문 앞 가로수(3.65, 39)를 피하고 입구까지 보도로 걸어갈 수 있게 정차한다.
+                taxiOffsetZ: 2.2f
             ),
             new Storefront(
                 "TownBank",

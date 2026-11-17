@@ -23,6 +23,7 @@ namespace A305.Ambience
         private PlayerMover player;
         private TaxiRide taxi;
         private WeatherPresenter weather;
+        private ShowcaseRestaurantWelcome welcome;
         private AmbienceBed bed;
         private int current;
         private bool wasPassenger;
@@ -31,6 +32,9 @@ namespace A305.Ambience
 
         // 대화 중이거나, 튜토리얼처럼 대화 뒤에도 낮춰 두라고 하면 장소 소리를 대화 중 크기로 둔다.
         private bool Quiet => (dialogue != null && dialogue.IsTalking) || AmbienceQuiet.IsHeld;
+
+        // 시연 햄버거 가게에서 존박이 랩을 하고 대화를 제안하는 동안에는 장소 소리를 아예 끈다.
+        private bool Hushed => welcome != null && welcome.HushesPlace;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void StartServiceAudio()
@@ -88,6 +92,7 @@ namespace A305.Ambience
             player = FindAnyObjectByType<PlayerMover>();
             taxi = FindAnyObjectByType<TaxiRide>();
             weather = FindAnyObjectByType<WeatherPresenter>();
+            welcome = FindAnyObjectByType<ShowcaseRestaurantWelcome>();
             DialogueController next = FindAnyObjectByType<DialogueController>();
             if (dialogue != next)
             {
@@ -134,7 +139,7 @@ namespace A305.Ambience
             if (next != bed)
                 ChangePlace(next);
             float gain =
-                AmbiencePlan.Volume(NormalVolume, Quiet) * BackgroundSoundPreference.Volume;
+                AmbiencePlan.Volume(NormalVolume, Quiet, Hushed) * BackgroundSoundPreference.Volume;
             bool muted = !BackgroundSoundPreference.Enabled;
             for (int index = 0; index < loops.Length; index++)
             {
@@ -144,7 +149,7 @@ namespace A305.Ambience
                 source.volume = Mathf.MoveTowards(
                     source.volume,
                     target,
-                    Time.unscaledDeltaTime * (Quiet ? 2.4f : .8f)
+                    Time.unscaledDeltaTime * (Quiet || Hushed ? 2.4f : .8f)
                 );
                 if (target == 0 && source.volume == 0 && source.isPlaying)
                     source.Stop();
@@ -182,7 +187,7 @@ namespace A305.Ambience
 
         private void Play(AmbienceEffect effect)
         {
-            if (!BackgroundSoundPreference.Enabled)
+            if (!BackgroundSoundPreference.Enabled || Hushed)
                 return;
             AudioClip clip = catalog.Effect(effect);
             if (clip == null)

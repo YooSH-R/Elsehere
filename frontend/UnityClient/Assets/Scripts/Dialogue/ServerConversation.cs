@@ -88,6 +88,7 @@ namespace A305.Dialogue
         private int replyCount;
         private readonly bool hasRecordedOpening;
         private readonly NpcNeeds npcNeeds;
+        private readonly bool showcase;
 
         /// <param name="npcName">서버 응답을 받기 전에 보여 줄 이름</param>
         /// <param name="canTalk">음성 처리에 동의해 [말하기]를 쓸 수 있는지</param>
@@ -113,7 +114,8 @@ namespace A305.Dialogue
             string placeCode = null,
             DialogueLine recordedOpening = null,
             NpcNeeds npcNeeds = null,
-            FavorStore favors = null
+            FavorStore favors = null,
+            bool showcase = false
         )
         {
             NpcCode = npcCode;
@@ -125,6 +127,7 @@ namespace A305.Dialogue
             this.reviewStart = reviewStart;
             PracticeScenarioId = practiceScenarioId;
             this.practiceStart = practiceStart;
+            this.showcase = showcase;
             this.canTalk = canTalk;
             this.initiatedBy = initiatedBy;
             this.npcOffDuty = npcOffDuty;
@@ -450,7 +453,10 @@ namespace A305.Dialogue
                             result.PoliceDispatch.PlaceCode
                         );
                     if (!IsSeparatePractice && result.TaxiDestination != null)
+                    {
+                        ShowTaxiPhrases(headingToDestination: true);
                         TaxiDestinationChosen?.Invoke(result.TaxiDestination.PlaceCode);
+                    }
                     if (!IsSeparatePractice && result.MissionUpdates != null)
                     {
                         favors.Receive(result.MissionUpdates);
@@ -1069,7 +1075,24 @@ namespace A305.Dialogue
             HintText = null;
             HintMeaningKo = null;
             suggestionsRequest = Task.CompletedTask;
+            ShowTaxiPhrases(headingToDestination: false);
             NpcSpoke?.Invoke(turn);
+        }
+
+        private void ShowTaxiPhrases(bool headingToDestination)
+        {
+            if (!showcase || NpcCode != "TAXI_DRIVER")
+                return;
+            SuggestWords = new[] { "drop off — 내려 주다", "fare — 택시 요금", "nearby — 근처의" };
+            if (LastNpcTurn != null)
+                LastNpcTurn.SuggestWords = SuggestWords.ToList();
+            HintText = headingToDestination
+                ? "About how long will it take to get there?"
+                : "Could you take me to Maple Burger, please?";
+            HintMeaningKo = headingToDestination
+                ? "거기까지 대략 얼마나 걸리나요?"
+                : "Maple Burger로 가 주시겠어요?";
+            IsSuggestingWords = false;
         }
 
         private void ApplyState(ConversationState state)
@@ -1159,6 +1182,7 @@ namespace A305.Dialogue
             private readonly string utterance;
             private readonly int reply;
             private readonly System.Text.StringBuilder text = new System.Text.StringBuilder();
+            private readonly System.Text.StringBuilder spokenText = new System.Text.StringBuilder();
             private bool started;
             private DialogueLine userLine;
             private DialogueLine npcLine;
@@ -1183,6 +1207,13 @@ namespace A305.Dialogue
                 }
 
                 text.Append(delta);
+                if (owner.showcase)
+                    return;
+                ShowText(text.ToString());
+            }
+
+            private void ShowText(string value)
+            {
                 if (!started)
                 {
                     started = true;
@@ -1194,7 +1225,7 @@ namespace A305.Dialogue
                     }
                 }
 
-                DialogueLine growing = DialogueLine.FromNpc(text.ToString(), null);
+                DialogueLine growing = DialogueLine.FromNpc(value, null);
                 int index = npcLine == null ? -1 : owner.lines.IndexOf(npcLine);
                 if (index >= 0)
                 {
@@ -1221,6 +1252,13 @@ namespace A305.Dialogue
                     return;
 
                 HasSpeech = true;
+                if (owner.showcase && !string.IsNullOrWhiteSpace(chunkText))
+                {
+                    if (spokenText.Length > 0)
+                        spokenText.Append(' ');
+                    spokenText.Append(chunkText.Trim());
+                    ShowText(spokenText.ToString());
+                }
                 owner.NpcSpeechChunk?.Invoke(new NpcSpeechChunkData(reply, seq, wav));
             }
 

@@ -60,6 +60,8 @@ public class DialogueEndService {
     if (!ending.practice()) {
       // 기억 카드 갱신은 따로 실행되어 피드백 생성과 함께 진행된다. 실패해도 종료·피드백에 영향이 없다.
       memoryService.updateAfterConversation(userId, conversationId, request.requestId());
+    }
+    if (!ending.practice() && !ending.showcase()) {
       // 건넬 것 판정도 따로 실행해 피드백을 만드는 동안 끝낸다. 실패하면 없는 것으로 본다.
       followUp = followUpService.afterConversation(userId, conversationId, request.requestId());
     }
@@ -112,12 +114,14 @@ public class DialogueEndService {
                       conversation.isReview()
                           ? reviewPracticeResults.record(userId, conversation)
                           : null);
-          return new Ending(response, conversation.isPractice());
+          return new Ending(
+              response, conversation.isPractice(), conversation.getShowcaseStage() != null);
         });
   }
 
   /**
    * @param practice 장소 연습 대화인지. 종료 뒤 기억 카드와 건넬 것을 만들지 않는다
+   * @param showcase 시연 퀘스트 대화인지. 종료 뒤 건넬 것을 만들지 않는다
    */
-  private record Ending(EndConversationResponse response, boolean practice) {}
+  private record Ending(EndConversationResponse response, boolean practice, boolean showcase) {}
 }

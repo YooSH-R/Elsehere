@@ -28,16 +28,19 @@ public class QuestBoardService {
   private final TownStoryRepository stories;
   private final NpcRepository npcs;
   private final FavorRepository favors;
+  private final ShowcaseQuestService showcase;
 
   public QuestBoardService(
       FirstDayMissionRepository firstDay,
       TownStoryRepository stories,
       NpcRepository npcs,
-      FavorRepository favors) {
+      FavorRepository favors,
+      ShowcaseQuestService showcase) {
     this.firstDay = firstDay;
     this.stories = stories;
     this.npcs = npcs;
     this.favors = favors;
+    this.showcase = showcase;
   }
 
   public QuestBoardResponse board(Long userId) {
@@ -54,10 +57,34 @@ public class QuestBoardService {
               ? chapter(quest, firstDayDone, story, names)
               : firstDayQuest(quest, mission, names));
     }
-    // 돌발 부탁을 마치고 받은 코인도 같은 잔액에 더한다.
+    // 시연 완료 후에도 다시 시작할 수 있다. 진행 중이던 것을 포함해 끝내지 않은 다른 퀘스트는 계속 잠근다.
+    showcase
+        .card(userId, names)
+        .ifPresent(
+            card -> {
+              if (showcase.locksOtherQuests(card)) {
+                quests.replaceAll(QuestBoardService::lockedUnlessDone);
+              }
+              quests.add(0, card);
+            });
+    // 시연 중에는 시연 잔액을, 아니면 퀘스트 잔액에 돌발 부탁을 마치고 받은 코인을 더해 보인다.
     int balance =
-        Coins.balance(mission, story) + Math.toIntExact(favors.sumDoneRewardCoins(userId));
+        showcase
+            .activeStatus(userId)
+            .map(com.elsehere.mission.dto.FirstDayMissionResponse::balance)
+            .orElseGet(
+                () ->
+                    Coins.balance(mission, story)
+                        + Math.toIntExact(favors.sumDoneRewardCoins(userId)));
     return new QuestBoardResponse(balance, quests);
+  }
+
+  private static QuestBoardResponse.Quest lockedUnlessDone(QuestBoardResponse.Quest quest) {
+    if ("DONE".equals(quest.status())) {
+      return quest;
+    }
+    return new QuestBoardResponse.Quest(
+        quest.id(), quest.title(), quest.description(), quest.reward(), "LOCKED", quest.stops());
   }
 
   private static QuestBoardResponse.Quest firstDayQuest(

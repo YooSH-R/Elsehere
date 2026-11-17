@@ -13,6 +13,7 @@ namespace A305.Npc
 
         // 일터에서 말을 걸러 다가오는 속도는 0인 직원도 있으므로 출퇴근 속도와 분리한다.
         private const float PassingLookAheadMeters = 1.25f;
+        private const float PassingRetrySeconds = .5f;
         private const float CrossingLookAheadMeters = .6f;
         private const float SignalRadiusMeters = 8f;
 
@@ -31,6 +32,7 @@ namespace A305.Npc
         private Passerby passing;
         private Vector3 passingForward;
         private bool passingOnRight;
+        private float nextPassingRetryTime;
         private float passingClearance;
         private readonly NpcHurry hurry = new NpcHurry();
         private readonly NpcStuckRecovery stuckRecovery = new NpcStuckRecovery();
@@ -441,8 +443,22 @@ namespace A305.Npc
 
             if (TryPassingDirection(passing, stayOnSidewalk, out Vector3 direction))
                 return direction;
-            // 좁은 통로에서 반대쪽 한 걸음만 열렸다고 방향을 뒤집으면 같은 자리를 왕복한다.
-            // 고른 쪽을 유지해 양보하고, 상대가 움직여 공간이 생기면 그쪽으로 다시 걷는다.
+
+            // 앞을 막은 NPC도 누군가를 피하는 중이면 여러 사람이 서로 기다릴 수 있다.
+            // 이때만 시간을 두고 다른 길을 확인해, 한 사람 뒤에서 좌우로 떨리는 것을 막는다.
+            if (
+                Time.time >= nextPassingRetryTime
+                && passing.TryGetComponent(out NpcTownWalker otherWalker)
+                && otherWalker.passing != null
+            )
+            {
+                nextPassingRetryTime = Time.time + PassingRetrySeconds;
+                passingOnRight = !passingOnRight;
+                if (TryPassingDirection(passing, stayOnSidewalk, out direction))
+                    return direction;
+                passing = null;
+                return destinationOffset;
+            }
             return Vector3.zero;
         }
 

@@ -46,6 +46,9 @@ namespace A305.Mission
         private DinerMealRest dinerRest;
         private QuestNpcWaitSpot[] waitSpots;
         private UmbrellaHold umbrella;
+        private TaxiRide taxi;
+        private string pendingTaxiArrival;
+        private bool umbrellaInTaxi;
 
         // 끝낸 퀘스트의 팡파레. 대화가 끝나면 띄운다.
         private QuestBoardState finishedBoard;
@@ -77,6 +80,12 @@ namespace A305.Mission
             waitSpots = FindObjectsByType<QuestNpcWaitSpot>(FindObjectsSortMode.None);
             view.BindMap(sceneCode, player.transform);
             umbrella = player.GetComponent<UmbrellaHold>();
+            if (sceneCode == "TOWN" && !PlaceScenes.IsTownShop(gameObject.scene.name))
+            {
+                taxi = FindAnyObjectByType<TaxiRide>();
+                if (taxi != null)
+                    taxi.ArrivedAtDestination += OnTaxiArrived;
+            }
             followUpApi = new FollowUpApi(apiSettings.CreateClient());
             // 기다리는 카드의 X로 닫은 것과 그만둔 돌발 부탁을 서버에 알린다.
             var followUps = view.GetComponent<FollowUpCardView>();
@@ -101,6 +110,12 @@ namespace A305.Mission
 
         private void Update()
         {
+            if (taxi != null && umbrellaInTaxi != taxi.IsPassenger)
+            {
+                umbrellaInTaxi = taxi.IsPassenger;
+                UpdateUmbrella();
+                UpdateTaxiSignal();
+            }
             dinerRest?.Tick(Time.unscaledDeltaTime, state, busy);
             if (state?.CountsAsCafeRest != true)
                 return;
@@ -123,6 +138,8 @@ namespace A305.Mission
 
         private void OnDestroy()
         {
+            if (taxi != null)
+                taxi.ArrivedAtDestination -= OnTaxiArrived;
             dinerRest?.Dispose();
             if (cafeSeats != null)
             {
@@ -193,10 +210,40 @@ namespace A305.Mission
             ShowFinishedQuest();
         }
 
-        private void StartMission() =>
-            _ = ExecuteAsync(() =>
-                api.StartCurrentAsync(sceneCode, state != null && state.IsTownStory)
-            );
+        private void StartMission() => _ = ExecuteAsync(StartSelectedMissionAsync);
+
+        private async Task<FirstDayMissionState> StartSelectedMissionAsync()
+        {
+            if (view.SelectedQuestId == FirstDayMissionState.ShowcaseQuestId)
+            {
+                await api.StartShowcaseAsync();
+                return await api.LoadCurrentAsync(sceneCode);
+            }
+            if (state?.IsShowcase == true)
+            {
+                await api.StopShowcaseAsync();
+                FirstDayMissionState original = await api.LoadCurrentAsync(sceneCode);
+                return await api.StartCurrentAsync(sceneCode, original.IsTownStory);
+            }
+            return await api.StartCurrentAsync(sceneCode, state != null && state.IsTownStory);
+        }
+
+        private void OnTaxiArrived(string destination)
+        {
+            if (state?.IsShowcase != true || state.Stage != 1 || destination != "DINER")
+                return;
+            pendingTaxiArrival = destination;
+            FlushTaxiArrival();
+        }
+
+        private void FlushTaxiArrival()
+        {
+            if (busy || pendingTaxiArrival == null)
+                return;
+            string destination = pendingTaxiArrival;
+            pendingTaxiArrival = null;
+            _ = ExecuteAsync(() => api.ConfirmShowcaseTaxiArrivalAsync(destination));
+        }
 
         private void Rest()
         {
@@ -324,10 +371,36 @@ namespace A305.Mission
             try
             {
                 FirstDayMissionState response = await action();
+                // 시연 서버에서는 시연을 시작하기 전에도 자동 설문 안내를 띄우지 않는다.
+                SurveyPrompt.AutomaticInvitationsPaused = response.IsShowcase;
                 if (this == null)
                     return;
                 string finished = response.QuestFinishedSince(state);
                 state = response;
+                NpcPopulation.UsesShowcasePopulation = state.IsShowcase;
+                NpcOutings.Shared.SetClosedToVisitors(
+                    FirstDayMissionState.ShowcaseRestaurant,
+                    state.ClosesShowcaseRestaurantToVisitors
+                );
+                dialogue.UsesShowcasePresentation = state.IsShowcase && state.Started;
+                if (
+                    state.IsShowcase
+                    && state.Stage == 2
+                    && gameObject.scene.name == "MapleDinerInterior"
+                )
+                {
+                    foreach (
+                        NpcIdentity npc in FindObjectsByType<NpcIdentity>(FindObjectsSortMode.None)
+                    )
+                    {
+                        if (npc.Code != "TOWN_JOHN_PARK")
+                            continue;
+                        var welcome = npc.GetComponent<ShowcaseRestaurantWelcome>();
+                        if (welcome == null)
+                            welcome = npc.gameObject.AddComponent<ShowcaseRestaurantWelcome>();
+                        welcome.Configure(player, dialogue);
+                    }
+                }
                 // 미션이 찾아가라고 한 직원은 교대 밖이어도 자리를 지키고 응대한다. 장면을 옮겨도 남는다.
                 NpcDuty.MissionNpcCode = state.CurrentNpcCode;
                 if (finished != null)
@@ -339,13 +412,8 @@ namespace A305.Mission
                 view.ShowMessage("");
                 if (weather != null)
                     weather.Show(state.Weather, state.FallbackWeather);
-                if (umbrella != null)
-                    umbrella.SetOpen(
-                        state.OpensUmbrellaIn(
-                            sceneCode,
-                            PlaceScenes.IsTownShop(gameObject.scene.name)
-                        )
-                    );
+                UpdateUmbrella();
+                UpdateTaxiSignal();
             }
             catch (ApiException exception)
             {
@@ -366,6 +434,7 @@ namespace A305.Mission
                 if (this != null)
                 {
                     Render();
+                    FlushTaxiArrival();
                     // 퀘스트를 시작하거나 진행이 바뀌면 열려 있는 목록도 새로 받는다.
                     // 진행은 방금 읽었으므로 목록만 받는다. 진행을 다시 읽으면 실패할 때마다 끝없이 되풀이한다.
                     if (view.IsQuestBoardOpen)
@@ -389,8 +458,44 @@ namespace A305.Mission
             }
         }
 
+        // 시연 중 손님을 태운 택시는 본길 신호를 초록으로 붙잡아 신호에 걸리지 않는다. 시연이 아니면 신호를 지킨다.
+        private void UpdateTaxiSignal()
+        {
+            if (taxi == null)
+                return;
+            // 택시는 LoopingCar를 늘 함께 둔다(RequireComponent).
+            TrafficLights lights = taxi.GetComponent<LoopingCar>().Lights;
+            if (lights != null)
+                lights.HoldsMainGreen = state?.HoldsGreenForTaxiRide == true && taxi.IsPassenger;
+        }
+
+        private void UpdateUmbrella()
+        {
+            if (umbrella == null || state == null)
+                return;
+            bool insideShop = PlaceScenes.IsTownShop(gameObject.scene.name);
+            // 시연에서는 택시 안에서 접은 우산도 편 우산도 숨긴다. 시연이 아니면 원래대로 둔다.
+            bool hiddenInTaxi = state.IsShowcase && taxi != null && taxi.IsPassenger;
+            if (state.CarriesFoldedUmbrellaIn(sceneCode, insideShop))
+                umbrella.SetFolded(!hiddenInTaxi);
+            else
+                umbrella.SetOpen(!hiddenInTaxi && state.OpensUmbrellaIn(sceneCode, insideShop));
+        }
+
         private void Render()
         {
+            if (taxi != null)
+            {
+                if (
+                    state?.IsShowcase == true
+                    && state.Started
+                    && !state.Completed
+                    && state.Stage == 1
+                )
+                    taxi.PrepareShowcasePickup();
+                else
+                    taxi.ReleaseShowcasePickup();
+            }
             if (state != null)
             {
                 view.Refresh(state, busy, dialogue.IsTalking);

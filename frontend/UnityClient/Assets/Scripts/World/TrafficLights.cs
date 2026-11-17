@@ -45,6 +45,22 @@ namespace A305.World
 
         public SignalLight Main => Cycle.MainAt(elapsedSeconds);
 
+        /// <summary>
+        /// 본길 신호를 초록으로 붙잡는지. 시연 중 손님을 태운 택시가 신호에 걸리지 않게 미션이 켠다.
+        /// 붙잡는 동안 주기가 멈추고, 풀면 그 자리부터 다시 흐른다.
+        /// </summary>
+        public bool HoldsMainGreen { get; set; }
+
+        /// <summary>신호 시간을 흘리고 신호등에 보인다. 본길 초록을 붙잡는 동안에는 본길을 초록으로 바꾸고 멈춰 둔다.</summary>
+        public void Advance(float seconds)
+        {
+            if (!HoldsMainGreen)
+                elapsedSeconds += seconds;
+            else if (Main != SignalLight.Green)
+                elapsedSeconds = Cycle.NextMainGreen(elapsedSeconds);
+            Show();
+        }
+
         public float MaximumPedestrianWaitSeconds(bool crossesMainRoad) =>
             Cycle.MaximumPedestrianWaitSeconds(crossesMainRoad);
 
@@ -66,11 +82,7 @@ namespace A305.World
             Show();
         }
 
-        private void Update()
-        {
-            elapsedSeconds += Time.deltaTime;
-            Show();
-        }
+        private void Update() => Advance(Time.deltaTime);
 
         private void Show()
         {

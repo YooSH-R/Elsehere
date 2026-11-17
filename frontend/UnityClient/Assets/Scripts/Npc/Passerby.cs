@@ -116,11 +116,55 @@ namespace A305.Npc
         /// </summary>
         public bool IsPlayerWaiting { get; set; }
 
+        /// <summary>시연 반대편 보도에서만 걷고 플레이어에게 다가오거나 대화를 제안하지 않는다.</summary>
+        public bool UsesShowcaseBackgroundWalk { get; set; }
+
+        private Pose? showcasePost;
+        private bool showcaseRoutineWasEnabled;
+
+        /// <summary>시연 호텔의 보조 직원은 통로 밖 자리를 지킨다. 해제하면 기존 생활을 다시 적용한다.</summary>
+        internal void SetShowcasePost(Pose? post)
+        {
+            if (!post.HasValue)
+            {
+                if (showcasePost.HasValue && routine != null)
+                    routine.enabled = showcaseRoutineWasEnabled;
+                showcasePost = null;
+                return;
+            }
+            if (showcasePost.HasValue && showcasePost.Value.position == post.Value.position)
+                return;
+            if (!showcasePost.HasValue && routine != null)
+                showcaseRoutineWasEnabled = routine.enabled;
+            routine?.Interrupt();
+            if (routine != null)
+                routine.enabled = false;
+            showcasePost = post;
+            bool wasEnabled = characterController.enabled;
+            characterController.enabled = false;
+            transform.SetPositionAndRotation(post.Value.position, post.Value.rotation);
+            characterController.enabled = wasEnabled;
+        }
+
         /// <summary>튜토리얼에서 길을 묻는 중인지(튜토리얼 모드)</summary>
         public bool IsGuidingTutorial => tutorialScriptKey != null;
 
         /// <summary>퀘스트가 이 행인을 정한 자리에 붙잡아 두었는지(<see cref="WaitAt"/>)</summary>
-        public bool IsWaitingForQuest => questSpot.HasValue;
+        public bool IsWaitingForQuest => questSpot.HasValue || showcaseApproach;
+
+        /// <summary>다가가기·제안 상태. 시연 매장이 대화 제안에 답했는지 보는 데 쓴다.</summary>
+        public PasserbyPhase ApproachPhase =>
+            approach != null ? approach.Phase : PasserbyPhase.Waiting;
+        private bool showcaseApproach;
+
+        public void BeginShowcaseApproach()
+        {
+            if (showcaseApproach || approach == null)
+                return;
+            showcaseApproach = true;
+            routine?.Interrupt();
+            approach = new PasserbyApproach(new PasserbyRules(30, 2, 10, 60, true));
+        }
 
         /// <summary>이 NPC의 코드</summary>
         public string NpcCode => identity.Code;
@@ -363,6 +407,19 @@ namespace A305.Npc
         private void Update()
         {
             IsWaitingAtSignal = false;
+            if (showcasePost.HasValue)
+            {
+                StandFacing(showcasePost.Value.rotation);
+                return;
+            }
+            if (UsesShowcaseBackgroundWalk)
+            {
+                if (GameClock.Shared.IsHeld || GameClock.Shared.Current?.Paused == true)
+                    Stand();
+                else
+                    GetComponent<NpcTownWalker>().Walk();
+                return;
+            }
             // 복습은 제안·수락 단계를 거치지 않는다. 대화의 실제 상대를 기준으로 생활 이동을 멈춘다.
             if (dialogue.IsTalkingTo(identity.LookTarget))
             {
@@ -550,7 +607,13 @@ namespace A305.Npc
         /// <param name="reachMeters">클릭으로 말을 걸 수 있는 수평 거리</param>
         public bool CanTalkByClick(float reachMeters)
         {
-            if (!enabled || IsPlayerOccupied || IsCrossing)
+            if (
+                !enabled
+                || UsesShowcaseBackgroundWalk
+                || showcasePost.HasValue
+                || IsPlayerOccupied
+                || IsCrossing
+            )
             {
                 return false;
             }
@@ -811,7 +874,10 @@ namespace A305.Npc
 
         private void Walk(Vector3 horizontalDirection)
         {
-            WalkToward(horizontalDirection, CurrentSettings.WalkSpeedMetersPerSecond);
+            WalkToward(
+                horizontalDirection,
+                showcaseApproach ? 1.4f : CurrentSettings.WalkSpeedMetersPerSecond
+            );
         }
 
         /// <summary>횡단 목표와 물리 장애물을 먼저 정한다. 다른 사람은 이 실제 목표를 기준으로 비켜간다.</summary>

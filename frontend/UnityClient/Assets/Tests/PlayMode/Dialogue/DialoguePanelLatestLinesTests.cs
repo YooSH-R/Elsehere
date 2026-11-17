@@ -13,7 +13,7 @@ using UnityEngine.UI;
 namespace A305.Dialogue.PlayModeTests
 {
     /// <summary>
-    /// 대사 칸에는 가장 최근 네 대사가 보이고, 그 전 대사는 위로 스크롤해 다시 본다.
+    /// 대사 칸은 줄바꿈과 뜻을 포함해 최대 다섯 줄만 보이고, 지난 내용은 스크롤해 다시 본다.
     /// 서버 없이 대화 내용을 흉내 낸다.
     /// </summary>
     public class DialoguePanelLatestLinesTests
@@ -51,28 +51,14 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator LongConversation_ShowsTheLatestFourLines()
+        public IEnumerator LongConversation_ShowsAtMostFiveRenderedLinesAndKeepsHistory()
         {
-            yield return Show(Conversation);
+            yield return Show(Conversation.Concat(Conversation).ToArray());
 
             TMP_Text lines = Field<TMP_Text>("linesText");
             var scroll = Field<ScrollRect>("historyScroll");
             float viewport = ((RectTransform)scroll.transform).rect.height;
-            string latestFour = DialogueLinesText.Format(
-                Conversation.Skip(Conversation.Length - 4).ToArray(),
-                "Jake",
-                false,
-                null
-            );
-            float latestHeight = lines
-                .GetPreferredValues(latestFour, lines.rectTransform.rect.width, 0)
-                .y;
-
-            Assert.That(
-                viewport,
-                Is.EqualTo(latestHeight).Within(2f),
-                "최근 네 대사 높이만큼 보입니다."
-            );
+            AssertFiveLineLimit(lines, scroll);
             Assert.That(
                 lines.preferredHeight,
                 Is.GreaterThan(viewport + 1f),
@@ -84,6 +70,42 @@ namespace A305.Dialogue.PlayModeTests
                 "맨 아래(최근 대사)가 보입니다."
             );
             Assert.That(scroll.vertical, Is.True, "위로 스크롤해 지난 대사를 봅니다.");
+            scroll.verticalNormalizedPosition = 1;
+            yield return null;
+            Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(1f).Within(.01f));
+            Assert.That(lines.text, Does.Contain(Conversation[0].English));
+        }
+
+        [UnityTest]
+        public IEnumerator OneLongUtterance_DoesNotGrowPastFiveRenderedLines()
+        {
+            string longSentence = string.Join(
+                " ",
+                Enumerable.Repeat("Could I have a cheeseburger without onions and some fries?", 18)
+            );
+            yield return Show(new[] { DialogueLine.FromNpc(longSentence, null) });
+
+            TMP_Text lines = Field<TMP_Text>("linesText");
+            var scroll = Field<ScrollRect>("historyScroll");
+            Assert.That(lines.textInfo.lineCount, Is.GreaterThan(5));
+            AssertFiveLineLimit(lines, scroll);
+            Assert.That(lines.text, Does.Contain(longSentence), "원문을 잘라 버리지 않습니다.");
+        }
+
+        [UnityTest]
+        public IEnumerator MeaningAndNarrowWidth_StillUseFiveRenderedLines()
+        {
+            yield return Show(Conversation, canvasWidth: 900);
+            Field<Button>("meaningButton").onClick.Invoke();
+            yield return null;
+            view.UpdateLayout();
+            Canvas.ForceUpdateCanvases();
+            yield return null;
+
+            TMP_Text lines = Field<TMP_Text>("linesText");
+            var scroll = Field<ScrollRect>("historyScroll");
+            Assert.That(lines.text, Does.Contain(Conversation.Last().Korean));
+            AssertFiveLineLimit(lines, scroll);
         }
 
         [UnityTest]
@@ -99,7 +121,43 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(lines.preferredHeight, Is.LessThanOrEqualTo(viewport + .5f));
         }
 
-        private IEnumerator Show(DialogueLine[] shown)
+        private static void AssertFiveLineLimit(TMP_Text lines, ScrollRect scroll)
+        {
+            lines.ForceMeshUpdate();
+            TMP_TextInfo info = lines.textInfo;
+            int first = Mathf.Max(0, info.lineCount - 5);
+            float fiveLines =
+                info.lineInfo[first].ascender - info.lineInfo[info.lineCount - 1].descender;
+            Assert.That(
+                scroll.viewport.rect.height,
+                Is.LessThanOrEqualTo(fiveLines + .5f),
+                "발화 개수가 아니라 실제로 줄바꿈된 다섯 줄을 상한으로 삼습니다."
+            );
+            int visible = 0;
+            for (int i = 0; i < info.lineCount; i++)
+            {
+                TMP_LineInfo line = info.lineInfo[i];
+                float top = scroll
+                    .viewport.InverseTransformPoint(
+                        lines.transform.TransformPoint(new Vector3(0, line.ascender))
+                    )
+                    .y;
+                float bottom = scroll
+                    .viewport.InverseTransformPoint(
+                        lines.transform.TransformPoint(new Vector3(0, line.descender))
+                    )
+                    .y;
+                if (
+                    top > scroll.viewport.rect.yMin + .5f
+                    && bottom < scroll.viewport.rect.yMax - .5f
+                )
+                    visible++;
+            }
+            Assert.That(visible, Is.InRange(1, 5), "실제 화면에서도 다섯 줄을 넘지 않습니다.");
+            Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(0f).Within(.01f));
+        }
+
+        private IEnumerator Show(DialogueLine[] shown, float canvasWidth = CanvasWidth)
         {
             eventSystemObject = new GameObject("EventSystem", typeof(EventSystem));
             panelObject = Object.Instantiate(
@@ -107,7 +165,7 @@ namespace A305.Dialogue.PlayModeTests
             );
             var scaler = panelObject.GetComponentInChildren<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
-            scaler.scaleFactor = Screen.width / CanvasWidth;
+            scaler.scaleFactor = Screen.width / canvasWidth;
             view = panelObject.GetComponentInChildren<DialoguePanelView>(true);
             view.Show(new Content(shown));
             yield return null;

@@ -127,7 +127,8 @@ class FirstDayTurnTest {
             new com.elsehere.mission.service.QuestTalkService(
                 firstDay,
                 mock(com.elsehere.mission.service.TownStoryService.class),
-                mock(com.elsehere.mission.service.PlacePracticeService.class)),
+                mock(com.elsehere.mission.service.PlacePracticeService.class),
+                mock(com.elsehere.mission.service.ShowcaseQuestService.class)),
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
             new DialogueRequestLocks(),
             new EarlyReplies(true),

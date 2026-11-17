@@ -421,8 +421,8 @@ namespace A305.Dialogue
         // 풀이가 여럿이면 카드 아래쪽에 다음 풀이의 제목이 보이도록 한 줄보다 이만큼 더 높게 두고 나머지는 스크롤한다.
         private const float NextWordPeek = 64;
 
-        // 대사 칸에 한 번에 보이는 최근 대사 수(바로 앞 대사와 그다음 대사)
-        private const int VisibleLineCount = 4;
+        // 대사·뜻·가사의 실제 줄바꿈 기준 상한.
+        private const int MaxVisibleTextLines = 5;
 
         /// <summary>녹음 중 목소리가 들릴 때 [종료] 버튼의 불 색.</summary>
         public static readonly Color VoiceHeardColor = new Color32(76, 217, 100, 255);
@@ -1573,9 +1573,10 @@ namespace A305.Dialogue
                 DialogueCinemaLayout.LinesWidth(column, hasTranslation),
                 out bool hasEarlierLines
             );
-            // 모든 가사는 기록에 남기고, 실제 글꼴·줄바꿈으로 잰 한 세트 높이 안에서만 스크롤한다.
             if (performanceVisible && !string.IsNullOrEmpty(performanceLyrics))
             {
+                // 짧은 랩도 반복할 때 창이 커지지 않게 한 곡 높이를 유지한다.
+                // 긴 가사는 위에서 계산한 다섯 줄 상한을 그대로 적용한다.
                 string onePerformance = DialogueLinesText.Format(
                     new[] { DialogueLine.FromNpc(performanceLyrics, null) },
                     content.NpcName,
@@ -1583,13 +1584,14 @@ namespace A305.Dialogue
                     null,
                     sentenceIndent: SentenceIndent()
                 );
-                linesHeight = linesText
+                float performanceHeight = linesText
                     .GetPreferredValues(
                         onePerformance,
                         DialogueCinemaLayout.LinesWidth(column, hasTranslation),
                         0
                     )
                     .y;
+                linesHeight = Mathf.Min(linesHeight, performanceHeight);
             }
             float nameWidth = Mathf.Max(
                 MinNameWidth,
@@ -1799,23 +1801,34 @@ namespace A305.Dialogue
             return height;
         }
 
-        // 최근 네 대사와 그 뜻이 보이는 높이를 준다. 긴 내용·작은 화면과 그 이전 대사는 스크롤한다.
+        // 발화 수가 아니라 실제 글꼴·폭으로 줄바꿈된 다섯 줄을 상한으로 삼는다.
+        // 뜻·가사도 같은 제한을 쓰며, 전체 기록은 잘라내지 않고 ScrollRect에 남긴다.
         private float VisibleLinesHeight(float width, out bool hasEarlierLines)
         {
-            IReadOnlyList<DialogueLine> lines = content?.Lines;
-            hasEarlierLines = lines != null && lines.Count > VisibleLineCount;
-            if (!hasEarlierLines)
-                return linesText.GetPreferredValues(linesText.text, width, 0).y;
-            string latest = DialogueLinesText.Format(
-                lines.Skip(lines.Count - VisibleLineCount).ToArray(),
-                content.NpcName,
-                isMeaningVisible,
-                content.LastNpcGlossary,
-                glossaryCard.Word,
-                SentenceIndent(),
-                HidesNpcLines
+            // 스크롤바 안쪽 여백까지 적용된 실제 폭에서 먼저 줄바꿈을 계산한다.
+            ((RectTransform)historyScroll.transform).SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Horizontal,
+                width
             );
-            return linesText.GetPreferredValues(latest, width, 0).y;
+            Canvas.ForceUpdateCanvases();
+            linesText.ForceMeshUpdate();
+            TMP_TextInfo info = linesText.textInfo;
+            hasEarlierLines = info.lineCount > MaxVisibleTextLines;
+            if (!hasEarlierLines)
+                return linesText.preferredHeight;
+
+            // 뜻은 영어보다 작은 글씨다. 어느 위치로 스크롤해도 여섯 줄이 한꺼번에
+            // 들어오지 않도록 다섯 줄 구간 중 가장 짧은 높이로 제한한다.
+            float height = float.PositiveInfinity;
+            for (int first = 0; first <= info.lineCount - MaxVisibleTextLines; first++)
+            {
+                int last = first + MaxVisibleTextLines - 1;
+                height = Mathf.Min(
+                    height,
+                    info.lineInfo[first].ascender - info.lineInfo[last].descender
+                );
+            }
+            return Mathf.Max(0, height);
         }
 
         private const float ToolButtonPadding = 24f;

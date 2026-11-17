@@ -27,6 +27,15 @@ namespace A305.Learning
         public string Situation { get; set; }
         public string LearnerRole { get; set; }
         public List<string> LearnerNotes { get; set; } = new List<string>();
+
+        public List<ReviewGoalInfo> Goals { get; set; } = new List<ReviewGoalInfo>();
+    }
+
+    public sealed class ReviewGoalInfo
+    {
+        public string Id { get; set; }
+        public string Title { get; set; }
+        public string Hint { get; set; }
     }
 
     public sealed class ReviewTarget

@@ -1,8 +1,12 @@
 # ELSEHERE 외부 서비스 설정
 
-아래 공급자와 환경 변수는 `dev`의 `f925fa353`을 기준으로 정리했습니다.
+새 환경을 실행하려면 아래 네 값을 준비해 [빌드·배포 매뉴얼의 환경 파일](01-build-and-deploy.md#4-서버-환경-파일-작성)에 넣습니다.
 
-서비스를 새 환경에 연결하려면 Google OAuth 클라이언트, SSAFY GMS 키, Groq API 키를 준비합니다. 서버 실행 값은 해당 환경의 `deploy.env`에 설정합니다. 아래에는 값을 발급받는 곳과 코드에서 읽는 위치를 적었습니다. [배포 환경 설정 예제](../infra/compose/deploy.prod.env.example)
+| 발급처 | 환경 변수 | 용도 |
+| --- | --- | --- |
+| Google Cloud | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google 로그인 |
+| SSAFY GMS | `GMS_KEY` | NPC 응답, 판정, 피드백 등 텍스트 기능 |
+| GroqCloud | `GROQ_API_KEY` | 음성 인식 |
 
 ## Google 로그인
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using A305.Characters;
 using A305.Dialogue;
 using UnityEngine;
 
@@ -31,6 +32,14 @@ namespace A305.Npc
         private void OnEnable()
         {
             active.Add(this);
+        }
+
+        private void Start()
+        {
+            // 호텔 외형은 여러 직원이 공유하므로 Jake의 성격은 NPC 코드로 적용한다.
+            if (code == "HOTEL_STAFF")
+                GetComponent<DialogueSpeaker>()
+                    .Player?.ConfigureRestingMood(CharacterEmotion.Indifferent);
         }
 
         private void OnDisable()

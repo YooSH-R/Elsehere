@@ -6,6 +6,9 @@ import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.service.AiGateway;
 import com.elsehere.conversation.entity.InitiatedBy;
 import com.elsehere.dialogue.dto.StartConversationRequest;
+import com.elsehere.mission.entity.ShowcaseStage;
+import com.elsehere.mission.service.QuestTalk;
+import com.elsehere.mission.service.QuestTalkService;
 import com.elsehere.world.service.PoliceOfficers;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +44,9 @@ class OpeningLines {
           + "as a local approached by someone, not a shop assistant: you may ask what brings them "
           + "over, cautiously or warmly as fits your character. Only offer service if you are "
           + "actually serving customers now. Give them an easy conversational opening. 1 or 2 short sentences.";
+
+  // NPC가 먼저 말을 걸어 부탁하는 첫마디(FavorService.pendingCall). 학습자는 아직 말하지 않았다.
+  private static final String FAVOR_CALL_TEXT = "(You walk up to the learner to ask a favor.)";
 
   // 미션 지시에는 학습자가 할 일과 NPC가 해 줄 수 있는 일이 담겨 있다. 첫 인사에서 이를 먼저 다 말하면 학습자가 요청할 일이 사라진다.
   private static final String MISSION_GREETING =
@@ -123,6 +129,10 @@ class OpeningLines {
       StartContext context,
       StartConversationRequest request) {
     NpcContext npc = context.npc();
+    if (context.favorCall().isPresent()) {
+      return greetingOpening(
+          trace, listener, npc, context, FAVOR_CALL_TEXT, context.favorCall().get().instruction());
+    }
     if (context.streetGreeting() != null) {
       return streetOpening(trace, context);
     }
@@ -216,8 +226,22 @@ class OpeningLines {
     }
     return context
         .quest()
-        .map(quest -> quest.talk().instruction() + MISSION_GREETING)
+        .map(quest -> quest.talk().instruction() + missionGreeting(quest))
         .orElse(npcOffDuty ? OFF_DUTY_GREETING_INSTRUCTION : GREETING_INSTRUCTION);
+  }
+
+  private String missionGreeting(QuestTalkService.SelectedQuest quest) {
+    // 시연 버거 가게는 단골을 알아보는 장면이다. 다른 퀘스트처럼 제안을 숨기게 하면 늘 시키던 메뉴를 묻지 못한다.
+    if (quest.source() == QuestTalkService.Source.SHOWCASE
+        && quest.talk() instanceof QuestTalk.Goals
+        && quest.talk().stage() == ShowcaseStage.ORDER.ordinal()) {
+      return " Welcome the learner in your own voice, by name if you know it."
+          + " If you remember what this regular usually gets, ask in one short question whether they"
+          + " want their usual and name it, for example: The usual? A Crispy Chicken burger and a lemonade?"
+          + " If you do not remember their usual, invite their order in one short sentence."
+          + " Do not mention the price or the learner's tasks yet.";
+    }
+    return MISSION_GREETING;
   }
 
   /**

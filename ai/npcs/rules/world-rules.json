@@ -3,7 +3,7 @@
   "needs": {
     "HUNGER": { "dropPerHour": 6, "start": 70 },
     "ENERGY": { "dropPerHour": 5, "start": 70 },
-    "SOCIAL": { "dropPerHour": 4, "start": 70 },
+    "SOCIAL": { "dropPerHour": 4, "start": 70, "conversationFill": 30 },
     "FUN": { "dropPerHour": 5, "start": 70 },
     "WORK": { "dropPerHour": 8, "start": 70 }
   },
@@ -22,20 +22,19 @@
     "GREETING": { "impression": 1 },
     "SMALL_TALK": { "mood": { "PLEASED": 1 }, "memorySalience": 1 },
     "PERSONAL_QUESTION": {},
-    "RUDE": { "mood": { "ANNOYED": 2 }, "impression": -8, "memorySalience": 3 },
-    "APOLOGY": { "mood": { "ANNOYED": -1 }, "impression": 5 },
+    "RUDE": { "mood": { "ANNOYED": 2.5 }, "impression": -8, "memorySalience": 3 },
+    "APOLOGY": { "mood": { "ANNOYED": -1.5 }, "impression": 5 },
     "COMPLIMENT": { "mood": { "PLEASED": 2 }, "impression": 9, "memorySalience": 2 },
-    "HELP": { "impression": 8, "memorySalience": 2 },
+    "HELP": { "mood": { "PLEASED": 2 }, "impression": 8, "memorySalience": 2 },
     "TASK_DONE": { "impression": 2, "memorySalience": 1 },
     "LEAVE": {}
   },
-  "mood": { "decayPerTurn": 0.5, "showsAt": 1 },
+  "mood": { "decayPerTurn": 0.35, "showsAt": 1, "strongAt": 2, "needs": { "low": 30, "veryLow": 15, "comfortable": 70 } },
   "relationship": {
     "recognitionPerConversation": 20,
     "seenBefore": 20,
     "regular": 50,
-    "liked": 10,
-    "disliked": -10,
+    "affinityStages": { "hostile": -30, "cold": -10, "warm": 10, "close": 30 },
     "personalTalk": { "recognition": 50, "affinity": 20 },
     "graceDays": 30,
     "recognitionDropPerDay": 1,
@@ -64,10 +63,36 @@
     { "target": "needRates.FUN", "axis": "conscientiousness", "at0": 1.4, "at1": 0.6 },
     { "target": "recognitionRate", "axis": "agreeableness", "at0": 0.6, "at1": 1.4 },
     { "target": "eventScale.RUDE", "axis": "neuroticism", "at0": 0.6, "at1": 1.4 },
-    { "target": "eventScale.SMALL_TALK", "axis": "openness", "at0": 0.6, "at1": 1.4 }
+    { "target": "eventScale.SMALL_TALK", "axis": "openness", "at0": 0.6, "at1": 1.4 },
+    { "target": "moodDecay.ANNOYED", "axis": "neuroticism", "at0": 1.15, "at1": 0.85 }
   ],
+  "workMeals": {
+    "spreadMinutes": 60,
+    "times": [
+      { "at": "06:00", "need": "HUNGER" },
+      { "at": "13:00", "need": "HUNGER" },
+      { "at": "20:00", "need": "HUNGER" },
+      { "at": "08:00", "need": "ENERGY" },
+      { "at": "15:00", "need": "ENERGY" },
+      { "at": "22:00", "need": "ENERGY" }
+    ]
+  },
+  "allDayWork": { "drainHours": 8 },
+  "favors": {
+    "checkAfterLearnerLines": 2,
+    "learnerGapMinutes": 240,
+    "callGapMinutes": 720,
+    "errandExpiryMinutes": 720,
+    "minShiftLeftMinutes": 360,
+    "dislikedBelow": -10
+  },
   "places": {
     "CAFE": {
+      "name": { "en": "the corner cafe", "ko": "카페" },
+      "offers": [
+        { "key": "coffee", "en": "a coffee", "ko": "커피", "fills": { "ENERGY": 25 }, "price": 4, "taskKo": "커피 사다 주기", "stepKo": "커피 포장 주문하기", "languageFocus": ["ordering"] },
+        { "key": "muffin", "en": "a muffin", "ko": "머핀", "fills": { "HUNGER": 40 }, "price": 3, "taskKo": "머핀 사다 주기", "stepKo": "머핀 포장 주문하기", "languageFocus": ["ordering"] }
+      ],
       "shifts": {
         "OPENING": {
           "from": "06:00",
@@ -130,6 +155,10 @@
       }
     },
     "POST_OFFICE": {
+      "name": { "en": "the post office", "ko": "우체국" },
+      "offers": [
+        { "key": "stamp", "en": "a stamp to send a letter", "ko": "편지 부치기", "price": 1, "taskKo": "편지 부쳐 주기", "stepKo": "우표를 사서 편지 부치기", "languageFocus": ["polite_request"] }
+      ],
       "shifts": {
         "DAY": {
           "from": "06:00",
@@ -144,6 +173,10 @@
       }
     },
     "BANK": {
+      "name": { "en": "Town Bank", "ko": "은행" },
+      "offers": [
+        { "key": "change", "en": "change for a 20-dollar bill", "ko": "잔돈", "price": 0, "taskKo": "잔돈 바꿔 주기", "stepKo": "20달러를 잔돈으로 바꾸기", "languageFocus": ["polite_request"] }
+      ],
       "shifts": {
         "DAY": {
           "from": "06:00",
@@ -163,6 +196,10 @@
       }
     },
     "DINER": {
+      "name": { "en": "Maple Burger", "ko": "햄버거 가게" },
+      "offers": [
+        { "key": "burger", "en": "a burger to go", "ko": "버거", "fills": { "HUNGER": 50 }, "price": 7, "taskKo": "버거 사다 주기", "stepKo": "버거 포장 주문하기", "languageFocus": ["ordering"] }
+      ],
       "shifts": {
         "DAY": {
           "from": "06:00",
@@ -177,6 +214,11 @@
       }
     },
     "BAKERY": {
+      "name": { "en": "Maple Bakery", "ko": "베이커리" },
+      "offers": [
+        { "key": "croissant", "en": "a croissant", "ko": "크루아상", "fills": { "HUNGER": 40 }, "price": 3, "taskKo": "크루아상 사다 주기", "stepKo": "크루아상 포장 주문하기", "languageFocus": ["ordering"] },
+        { "key": "coffee", "en": "a coffee", "ko": "커피", "fills": { "ENERGY": 25 }, "price": 2, "taskKo": "커피 사다 주기", "stepKo": "커피 포장 주문하기", "languageFocus": ["ordering"] }
+      ],
       "shifts": {
         "DAY": {
           "from": "06:00",
@@ -205,6 +247,10 @@
       }
     },
     "FLOWER_SHOP": {
+      "name": { "en": "Bloom Flowers", "ko": "꽃집" },
+      "offers": [
+        { "key": "flower", "en": "one wrapped flower", "ko": "꽃 한 송이", "price": 2, "taskKo": "꽃 한 송이 사다 주기", "stepKo": "꽃 한 송이 포장해 사기", "languageFocus": ["describing", "polite_request"] }
+      ],
       "shifts": {
         "DAY": {
           "from": "06:00",

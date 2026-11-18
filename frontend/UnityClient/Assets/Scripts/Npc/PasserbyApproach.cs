@@ -194,6 +194,18 @@ namespace A305.Npc
             }
         }
 
+        /// <summary>
+        /// 말 걸기 부탁을 들고 온 NPC의 제안을 플레이어가 무시하고 멀어졌다. 쉬는 시간 없이 바로 기다림으로 돌아가, 플레이어가 다시 다가갈 수 있는
+        /// 거리 안에 오면 또 다가가거나 부른다. 언제 그만둘지는 <see cref="FavorCallPatience"/>가 정한다.
+        /// </summary>
+        public void ResumeAfterIgnoredFavorCall(double nowSeconds)
+        {
+            Phase = PasserbyPhase.Waiting;
+            RestUntilSeconds = nowSeconds;
+            IsCalling = false;
+            callRestUntilSeconds = nowSeconds;
+        }
+
         private void Rest(double nowSeconds)
         {
             Phase = PasserbyPhase.Resting;

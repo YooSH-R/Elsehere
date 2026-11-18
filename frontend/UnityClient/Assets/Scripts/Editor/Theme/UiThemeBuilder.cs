@@ -578,6 +578,12 @@ namespace A305.EditorTools.Theme
                 Role(root, "Settings/Window/SoundEffects/Row/Title", UiThemeRole.Title);
                 QuietButton(root, "Settings/Window/SoundEffects/Row/Choices/OnButton", "켜기");
                 QuietButton(root, "Settings/Window/SoundEffects/Row/Choices/OffButton", "끄기");
+                if (root.Find("Settings/Window/SoundEffects/VolumeRow") != null)
+                {
+                    Role(root, "Settings/Window/SoundEffects/VolumeRow/Quiet", UiThemeRole.Caption);
+                    Role(root, "Settings/Window/SoundEffects/VolumeRow/Loud", UiThemeRole.Caption);
+                    Role(root, "Settings/Window/SoundEffects/VolumeRow/Value", UiThemeRole.Accent);
+                }
             }
             ActionPill(
                 root,

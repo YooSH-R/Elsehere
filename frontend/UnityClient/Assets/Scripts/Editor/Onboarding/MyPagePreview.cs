@@ -96,7 +96,10 @@ namespace A305.EditorTools.Onboarding
             SetSlider(settings, "Window/LookSensitivity", "1.0배", 1f);
             SetSlider(settings, "Window/NpcSpeechSpeed", "1.1배", 1.1f);
             ShowLevels(settings.Find("Window/ConversationLevel/Row/Choices"), selected: 2);
-            // 효과음은 켜진 상태로 찍어 고른 버튼의 강조색을 본다.
+            // 효과음은 켜진 상태로 찍어 고른 버튼의 강조색과 크기 막대를 본다.
+            Transform volume = settings.Find("Window/SoundEffects/VolumeRow");
+            volume.Find("Slider").GetComponent<Slider>().SetValueWithoutNotify(.8f);
+            volume.Find("Value").GetComponent<TMPro.TMP_Text>().text = "80%";
             Transform sound = settings.Find("Window/SoundEffects/Row/Choices");
             sound.Find("OnButton").GetComponent<ThemedElement>().SetSelected(true);
             sound.Find("OffButton").GetComponent<ThemedElement>().SetSelected(false);

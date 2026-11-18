@@ -18,6 +18,7 @@ LIFE_FOLDER = ROOT / "ai/npcs/life"
 BEHAVIORS = ROOT / "ai/npcs/rules/behaviors.json"
 REQUESTS = ROOT / "ai/npcs/rules/requests.json"
 PERSONA_INGREDIENTS = ROOT / "ai/npcs/rules/persona-ingredients.json"
+TEMPERAMENT_SPEECH = ROOT / "ai/npcs/rules/temperament-speech.json"
 
 _schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
 WORLD_RULES_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/WorldRules"})
@@ -25,6 +26,7 @@ LIFE_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/NpcLife"})
 BEHAVIOR_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/BehaviorLibrary"})
 REQUEST_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/RequestLibrary"})
 INGREDIENT_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/PersonaIngredients"})
+TEMPERAMENT_SPEECH_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/TemperamentSpeech"})
 
 
 def _errors(validator: Draft202012Validator, data: dict) -> list[tuple[str, str]]:
@@ -228,6 +230,11 @@ def behavior_problems(library: dict) -> list[str]:
     return problems
 
 
+def temperament_speech_errors(data: dict) -> list[tuple[str, str]]:
+    """성격 말투 규칙(temperament-speech.json)을 원본 스키마로 검사한다."""
+    return _errors(TEMPERAMENT_SPEECH_SCHEMA, data)
+
+
 def ingredient_errors(ingredients: dict) -> list[tuple[str, str]]:
     return _errors(INGREDIENT_SCHEMA, ingredients)
 
@@ -260,33 +267,63 @@ def request_errors(library: dict) -> list[tuple[str, str]]:
 
 
 def request_problems(library: dict, rules: dict) -> list[str]:
-    """부탁 퀘스트 틀과 공통 규칙의 대조: id는 한 번만, 들르는 장소에서 그 욕구를 채울 수 있는지,
-    부탁하는 역할의 일과에 그 활동이 있는지."""
+    """돌발 부탁 계기 틀과 공통 규칙의 대조: id는 한 번만, 욕구 심부름은 그 욕구를 채우는 제공이 있는지,
+    상황 심부름의 해결처가 실제 제공인지, 상황 계기의 장소가 공통 규칙에 있는지,
+    부탁하는 역할마다 일과에 그 활동이 하나라도 있는지."""
     problems, first_at = [], {}
     for i, request in enumerate(library["requests"]):
+        where = f"$.requests[{i}]"
         if request["id"] in first_at:
-            problems.append(f"$.requests[{i}]: id '{request['id']}'를 $.requests[{first_at[request['id']]}]에서 이미 씀")
+            problems.append(f"{where}: id '{request['id']}'를 $.requests[{first_at[request['id']]}]에서 이미 씀")
             continue
         first_at[request["id"]] = i
-        for j, step in enumerate(request["steps"]):
-            if step["with"] == "staff" and not _can_fill_at(rules, step["place"], request["need"]):
-                problems.append(f"$.requests[{i}].steps[{j}]: {step['place']}에서는 {request['need']}를 채울 수 없음")
-        role_activities = _role_activities(rules["roles"][request["role"]])
+        trigger = request["trigger"]
+        if request["solve"] == "ERRAND" and "need" in trigger and not offers_filling(rules, trigger["need"]):
+            problems.append(f"{where}: 채우는 제공이 없는 욕구 {trigger['need']}")
+        # 대화 속 욕구 부탁은 학습자가 내비친 욕구에 반응한 턴에만 꺼낸다(설계 7.6). 반응을 판정할 설명이 있어야 한다.
+        if "need" in trigger and "TALK" in request["opens"] and not request.get("notice"):
+            problems.append(f"{where}: 대화 속(TALK) 욕구 계기에 반응으로 볼 말(notice)이 없음")
+        for role in request["roles"]:
+            if not set(request["activities"]) & _role_activities(rules["roles"][role]):
+                problems.append(f"{where}: {role} 일과에 {'·'.join(request['activities'])}가 없음")
         problems += [
-            f"$.requests[{i}]: {request['role']} 일과에 {activity}가 없음"
-            for activity in request["activities"]
-            if activity not in role_activities
+            f"{where}.trigger.places: 공통 규칙에 없는 장소 '{place}'"
+            for place in trigger.get("places", [])
+            if place not in rules["places"]
         ]
+        offer = request.get("offer")
+        if offer and not any(item["key"] == offer["key"] for item in rules["places"].get(offer["place"], {}).get("offers", [])):
+            problems.append(f"{where}.offer: {offer['place']}에 '{offer['key']}' 제공이 없음")
     return problems
+
+
+def offer_problems(rules: dict) -> list[str]:
+    """장소 제공 목록 대조: 한 장소에서 제공 키는 한 번만, 제공 목록이 있는 장소는 지시문·부탁 카드에 쓸 이름이 있어야 한다."""
+    problems = []
+    for code, place in rules["places"].items():
+        first_at = {}
+        for j, offer in enumerate(place.get("offers", [])):
+            if offer["key"] in first_at:
+                problems.append(f"places.{code}.offers[{j}]: key '{offer['key']}'를 offers[{first_at[offer['key']]}]에서 이미 씀")
+            first_at.setdefault(offer["key"], j)
+        if place.get("offers") and "name" not in place:
+            problems.append(f"places.{code}: 제공 목록이 있는데 name이 없음")
+    return problems
+
+
+def offers_filling(rules: dict, need: str) -> list[tuple[str, dict]]:
+    """그 욕구를 채우는 (장소 코드, 제공) 목록. 장소 이름 순."""
+    return [
+        (code, offer)
+        for code, place in sorted(rules["places"].items())
+        for offer in place.get("offers", [])
+        if need in offer.get("fills", {})
+    ]
 
 
 def _role_activities(role: dict) -> set[str]:
     """역할의 하루에 나올 수 있는 활동: 교대 중 활동, 쉬는 시간이 있으면 BREAK, 교대 밖 퇴근."""
     return {role["onShift"], "OFF"} | ({"BREAK"} if "break" in role else set())
-
-
-def _can_fill_at(rules: dict, place: str, need: str) -> bool:
-    return any(action["scene"] == place and need in action["fills"] for action in rules["actions"])
 
 
 def _placed_words() -> dict[str, set[str]]:

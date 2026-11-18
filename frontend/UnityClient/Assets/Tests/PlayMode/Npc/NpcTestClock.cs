@@ -14,6 +14,8 @@ namespace A305.Npc.PlayModeTests
         // 서버가 이 시각에 시계를 멈춰 두었다고 알려 준 상태로 맞춘다. 서버가 멈춘 시계는 GameClock.Flow로 흐르지 않는다.
         public static void SetTime(int minuteOfDay)
         {
+            // 장면 사이에 유지되는 NPC 생활도 비워, 앞선 테스트의 욕구가 남지 않게 한다.
+            NpcLives.Shared.Clear();
             typeof(GameClock)
                 .GetMethod("ResetShared", BindingFlags.NonPublic | BindingFlags.Static)
                 .Invoke(null, null);
@@ -30,6 +32,7 @@ namespace A305.Npc.PlayModeTests
                 var driver in Object.FindObjectsByType<GameClockDriver>(FindObjectsSortMode.None)
             )
                 driver.enabled = false;
+            NpcLives.Shared.Clear();
             typeof(GameClock)
                 .GetMethod("ResetShared", BindingFlags.NonPublic | BindingFlags.Static)
                 .Invoke(null, null);

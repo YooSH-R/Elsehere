@@ -31,20 +31,18 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator PreparingSpeech_KeepsTheNpcSentenceBehindTheWaitCard()
+        public IEnumerator DialogueWait_UpdatesTheLoadingCardThroughOpeningReplySpeechAndReady()
         {
-            yield return Show(new Content(DialogueWait.NpcSpeech, null));
-            Assert.That(Field<GameObject>("waitPanel").activeInHierarchy, Is.True);
-            Assert.That(Field<TMP_Text>("linesText").enabled, Is.False);
-            Assert.That(Field<TMP_Text>("waitText").text, Does.Contain("음성"));
-        }
+            var content = new Content(DialogueWait.Opening, "대화를 시작하고 있어요...");
+            yield return Show(content);
 
-        [UnityTest]
-        public IEnumerator WaitingForTheNpcReply_ShowsLoadingInPlaceOfTheLines()
-        {
-            yield return Show(
-                new Content(DialogueWait.NpcReply, "Jake이(가) 대답을 생각하고 있어요...")
-            );
+            Assert.That(Field<GameObject>("waitPanel").activeInHierarchy, Is.True);
+            Assert.That(Field<TMP_Text>("waitText").text, Does.Contain("대화를 준비하고 있어요"));
+
+            content.Waiting = DialogueWait.NpcReply;
+            content.StatusMessage = "Jake이(가) 대답을 생각하고 있어요...";
+            view.Refresh();
+            yield return null;
 
             Assert.That(Field<GameObject>("waitPanel").activeInHierarchy, Is.True);
             Assert.That(
@@ -53,15 +51,22 @@ namespace A305.Dialogue.PlayModeTests
             );
             Assert.That(Field<TMP_Text>("statusText").gameObject.activeInHierarchy, Is.False);
             Assert.That(Field<GameObject>("feedbackWait").activeInHierarchy, Is.False);
-        }
 
-        [UnityTest]
-        public IEnumerator WaitingForTheOpeningLine_ShowsLoadingInPlaceOfTheLines()
-        {
-            yield return Show(new Content(DialogueWait.Opening, "대화를 시작하고 있어요..."));
+            content.Waiting = DialogueWait.NpcSpeech;
+            content.StatusMessage = null;
+            view.Refresh();
+            yield return null;
 
             Assert.That(Field<GameObject>("waitPanel").activeInHierarchy, Is.True);
-            Assert.That(Field<TMP_Text>("waitText").text, Does.Contain("대화를 준비하고 있어요"));
+            Assert.That(Field<TMP_Text>("linesText").enabled, Is.False);
+            Assert.That(Field<TMP_Text>("waitText").text, Does.Contain("음성"));
+
+            content.Waiting = DialogueWait.None;
+            view.Refresh();
+            yield return null;
+
+            Assert.That(Field<GameObject>("waitPanel").activeInHierarchy, Is.False);
+            Assert.That(Field<GameObject>("feedbackWait").activeInHierarchy, Is.False);
         }
 
         // 피드백은 오래 걸리므로 화면 전체를 덮는 가운데 로딩 창으로 알린다.
@@ -104,15 +109,6 @@ namespace A305.Dialogue.PlayModeTests
             view.SetVehicleLayout(false);
             Assert.That(arrival.gameObject.activeSelf, Is.False);
             Assert.That(feedback.activeInHierarchy, Is.True);
-        }
-
-        [UnityTest]
-        public IEnumerator NotWaiting_HidesBothLoadingViews()
-        {
-            yield return Show(new Content(DialogueWait.None, null));
-
-            Assert.That(Field<GameObject>("waitPanel").activeInHierarchy, Is.False);
-            Assert.That(Field<GameObject>("feedbackWait").activeInHierarchy, Is.False);
         }
 
         [UnityTest]
@@ -197,7 +193,7 @@ namespace A305.Dialogue.PlayModeTests
                 StatusMessage = status;
             }
 
-            public DialogueWait Waiting { get; }
+            public DialogueWait Waiting { get; set; }
             public string UserTranslation { get; set; }
             public string NpcName => "Jake";
             public IReadOnlyList<DialogueLine> Lines => new[] { Opening };
@@ -208,7 +204,7 @@ namespace A305.Dialogue.PlayModeTests
             public string SuggestedKorean => null;
             public string ExampleSentence => null;
             public bool IsBusy => Waiting != DialogueWait.None;
-            public string StatusMessage { get; }
+            public string StatusMessage { get; set; }
             public string RecoveryGuide => null;
             public bool CanRetry => false;
             public IReadOnlyList<string> SuggestWords => null;

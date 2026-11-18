@@ -21,7 +21,7 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 
 이 헤더는 전송 요청의 추적용입니다. 중복 처리를 방지하는 API 본문의 UUID `requestId`와는 용도가 다르며, 재시도 요청은 같은 본문 ID를 사용해도 새로운 HTTP 추적 ID를 받습니다.
 
-저장소의 [AiWorkerClient](../backend/src/main/java/com/elsehere/ai/client/AiWorkerClient.java)는 HTTP 요청 문맥의 추적 ID를 워커의 `X-Request-Id`로 전달합니다. HTTP 요청 문맥이 없으면 `WorkerTrace`의 UUID를 사용합니다. 실제 배포본에서도 Spring과 워커의 로그를 같은 ID로 찾을 수 있는지 확인합니다.
+저장소의 [AiWorkerClient](../backend/src/main/java/com/elsehere/ai/service/AiWorkerClient.java)는 HTTP 요청 문맥의 추적 ID를 워커의 `X-Request-Id`로 전달합니다. HTTP 요청 문맥이 없으면 `WorkerTrace`의 UUID를 사용합니다. 실제 배포본에서도 Spring과 워커의 로그를 같은 ID로 찾을 수 있는지 확인합니다.
 
 ### 백엔드 업무 흐름 로그
 
@@ -58,7 +58,7 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 | --- | --- | --- | --- |
 | WARN | `ai_worker_timeout` | `path` | AI 워커 응답 시간 초과 |
 | WARN | `ai_worker_unreachable` | `path` | AI 워커에 연결하지 못함 |
-| WARN | `ai_worker_error` | `status`, `code` | AI 워커가 오류로 응답함. `code`는 워커 오류 코드 |
+| WARN | `ai_worker_error` | `status`, `code`, `fields`(요청 형식 오류일 때만) | AI 워커가 오류로 응답함. `code`는 워커 오류 코드. `fields`는 워커가 거절한 칸 위치와 오류 종류(예: `instruction:string_too_long`)이며 보낸 값과 오류 메시지는 남기지 않음 |
 | WARN | `npc_reply_failed` | `code` | NPC 대답 스트림이 오류로 끝남 |
 | WARN | `npc_reply_stream_cut` | 없음 | NPC 대답 스트림이 끝 이벤트 없이 끊김 |
 | WARN | `npc_audio_download_failed` | `code` | NPC 대답 음성을 워커에서 받지 못함. 자막만 보임 |

@@ -44,6 +44,8 @@ Fab 에셋은 Unity에서 편집하고 서비스에 포함해 상업적으로 �
 
 ## 마을 매장 실내
 
+세탁기·건조기·이발 의자·일반 오락기는 자체 제작한 Tripo 모델의 로컬 변환본을 사용한다. 외부 무료 팩과 구분하여 `Assets/Art/World/ShopModels/`에 두며, 출처와 적용 방법은 [매장 전용 모델](../../../docs/unity/shop-models.md)에서 관리한다. 일반 오락기의 초기 도형 모델은 충돌·호버 연결을 보존하는 숨겨진 구조로 남는다.
+
 | 에셋 | 위치 | 출처 | 라이선스 | 사용 |
 | --- | --- | --- | --- | --- |
 | Furniture Bits 1.0 — Kay Lousberg (KayKit) | `KayKitFurnitureBits/` | [GitHub](https://github.com/KayKit-Game-Assets/KayKit-Furniture-Bits-1.0), [itch.io](https://kaylousberg.itch.io/furniture-bits) | CC0 1.0, 동봉 `License.txt` | Unity용 FBX 27개와 아틀라스. 의자·탁자·장식장·벽 선반·스탠드·작은 액자·깔개·베개·책·선인장 |

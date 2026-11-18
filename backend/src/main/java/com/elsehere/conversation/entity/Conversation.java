@@ -12,6 +12,8 @@ import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -83,6 +85,23 @@ public class Conversation extends BaseEntity {
 
   private Integer firstDayStage;
 
+  // 시연의 시작 상황을 보존해, 퀘스트가 끝난 뒤에도 같은 주문만 다시 연습한다.
+  private Integer showcaseStage;
+
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(columnDefinition = "jsonb")
+  private List<String> showcaseGoalIds;
+
+  public void attachShowcaseStage(Integer stage) {
+    this.showcaseStage = stage;
+  }
+
+  public void recordShowcaseGoals(List<String> goals) {
+    if (showcaseGoalIds == null) {
+      showcaseGoalIds = List.copyOf(goals);
+    }
+  }
+
   // 같은 단계에 다시 말을 걸어도 이전 대화에서 끝낸 목표를 다시 요구하지 않는다.
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(columnDefinition = "jsonb")
@@ -140,6 +159,17 @@ public class Conversation extends BaseEntity {
     practiceCompletedGoals = List.copyOf(goalIds);
   }
 
+  /**
+   * [다시 연습] 대화에서 말한 조건 ID. 장소 연습과 같은 칸(practice_completed_goals)에 남긴다. 한 대화는 장소 연습이거나 다시 연습 중 하나다.
+   */
+  public List<String> getReviewCompletedGoals() {
+    return isReview() && practiceCompletedGoals != null ? practiceCompletedGoals : List.of();
+  }
+
+  public void recordReviewGoals(List<String> goalIds) {
+    practiceCompletedGoals = List.copyOf(goalIds);
+  }
+
   /** 상황의 목표를 모두 이뤘다. 처음 이룬 시각만 남긴다. */
   public void finishPractice(Instant now) {
     if (practiceDoneAt == null) {
@@ -162,6 +192,18 @@ public class Conversation extends BaseEntity {
   // 대화를 시작할 때 Unity가 알린 NPC의 이동 사실과 지금 있는 곳(CONV-01 npcTravelContext·placeCode). 대화 동안 워커에 덧붙인다.
   @Column(length = 1600)
   private String npcTravelSituation;
+
+  // 대화를 시작한 순간 NPC의 생활 욕구(CONV-01 needs). 대화 중에는 게임 시각이 멈추므로 매 턴 같은 값을 워커에 보내고, 돌발 부탁을 고르는 데 쓴다.
+  // 생활하지 않는 NPC·복습이거나 이 칸을 넣기 전의 대화는 null이다.
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(columnDefinition = "jsonb")
+  private Map<String, Double> npcNeeds;
+
+  public void recordNpcNeeds(Map<String, Double> needs) {
+    if (npcNeeds == null && needs != null) {
+      npcNeeds = new TreeMap<>(needs);
+    }
+  }
 
   public void recordNpcTravelSituation(String situation) {
     if (npcTravelSituation == null) {

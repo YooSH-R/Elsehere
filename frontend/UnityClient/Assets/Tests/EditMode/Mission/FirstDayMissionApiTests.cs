@@ -7,6 +7,25 @@ namespace A305.Mission.Tests
     public class FirstDayMissionApiTests
     {
         [Test]
+        public async Task ShowcaseUsesSeparateAuthenticatedRoutesAndExplicitArrivalDestination()
+        {
+            var transport = new RecordingTransport();
+            var api = new FirstDayMissionApi(new ApiClient("", transport));
+            await api.StartShowcaseAsync();
+            Assert.That(transport.Request.Url, Is.EqualTo("/api/v1/missions/showcase/start"));
+            await api.ConfirmShowcaseTaxiArrivalAsync("DINER");
+            Assert.That(
+                transport.Request.Url,
+                Is.EqualTo("/api/v1/missions/showcase/taxi-arrival")
+            );
+            Assert.That(transport.Request.JsonBody, Does.Contain("\"destination\":\"DINER\""));
+            Assert.That(transport.Request.JsonBody, Does.Not.Contain("stage"));
+            Assert.That(transport.Request.Headers.ContainsKey(ApiClient.CsrfHeaderName), Is.True);
+            await api.StopShowcaseAsync();
+            Assert.That(transport.Request.Url, Is.EqualTo("/api/v1/missions/showcase/stop"));
+        }
+
+        [Test]
         public async Task TownStoryCanBeReadAndStartedThroughItsOwnEndpoints()
         {
             var transport = new RecordingTransport();

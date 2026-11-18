@@ -25,6 +25,9 @@ namespace A305.EditorTools.Dialogue
         private const float ToolHeight = DialogueCinemaLayout.NameHeight;
         private const float ToolFontSize = 20;
 
+        // 이름 옆 호감도·무례 경고 칸 글자 크기. 시연 화면에서 잘 보이도록 이름(26px)과 같은 크기까지 키웠고, 이름보다 크게 하지 않는다.
+        internal const float StandingFontSize = 26;
+
         // 72px 높이의 입력칸·[보내기]를 양 끝이 둥근 알약·원으로 그리는 9칸 나누기 배율
         private const float RoundEnds = .75f;
 
@@ -83,7 +86,7 @@ namespace A305.EditorTools.Dialogue
             Theme(title, UiThemeRole.TitleOnDark);
 
             Transform standing = panel.Find("Standing");
-            standing.GetComponent<TMP_Text>().fontSize = 20;
+            standing.GetComponent<TMP_Text>().fontSize = StandingFontSize;
             Theme(standing, UiThemeRole.BodyOnDark);
 
             Transform buttons = panel.Find("Buttons");

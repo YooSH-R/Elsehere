@@ -58,6 +58,7 @@ def test_the_service_rules_turn_mia_into_life_rates():
         "needRates": {"SOCIAL": 1.2, "FUN": 0.8},
         "recognitionRate": 1.2,
         "eventScale": {"RUDE": 1.16, "SMALL_TALK": 0.8},
+        "moodDecay": {"ANNOYED": 0.94},
     }
 
 
@@ -183,6 +184,21 @@ def test_resident_staff_stay_at_their_workplace_all_day_without_a_commute_or_bre
     values = npc_derive.npc_life_values(life, service_rules(), service_behaviors(), place)
 
     assert values["schedule"] == [{"from": "00:00", "to": "00:00", "activity": "WORK", "scene": place, "canLeave": False}]
+
+
+@pytest.mark.parametrize("npc_id", ["CAFE_STAFF", "HOTEL_STAFF"])
+def test_npcs_without_time_off_spread_a_workday_of_need_drop_over_the_whole_day(npc_id):
+    """퇴근이 없어 출근 때 욕구가 시작값으로 돌아가지 않는 NPC(상주 직원)는, 끼니로 되돌아오지 않는 욕구(사교·재미·업무)가
+    하루 24시간 동안 allDayWork.drainHours 시간 근무자만큼만 줄어든다. 하루 전부터 흘려 맞추면 사교가 바닥인 채로
+    처음 만나던 문제(Jake). 배고픔·피로는 근무 중 끼니 리듬이 있어 그대로다. 성격 배수(rates)는 근무 형태와 따로 둔다."""
+    rules = service_rules()
+    resident = npc_derive.npc_life_values({**load_life(npc_id), "resident": True}, rules, service_behaviors(), home_of(npc_id))
+    on_shift = npc_derive.npc_life_values({**load_life(npc_id), "resident": False}, rules, service_behaviors(), home_of(npc_id))
+    spread = rules["allDayWork"]["drainHours"] / 24
+
+    assert resident["needDrain"] == {"SOCIAL": spread, "FUN": spread, "WORK": spread}
+    assert on_shift["needDrain"] == {}
+    assert resident["rates"] == on_shift["rates"]
 
 
 def test_mia_jake_alex_and_the_town_story_staff_are_permanent_residents():
@@ -740,3 +756,25 @@ def test_the_cli_writes_the_derived_traits_only_into_npc_files_with_a_life_file(
     written = json.loads((tmp_path / "CAFE_STAFF.json").read_text(encoding="utf-8"))
     assert written["npcProfile"] == npc_derive.with_derived_traits(mia["npcProfile"], MIA_LIFE, service_behaviors())
     assert (tmp_path / "SHOP_STAFF.json").read_text(encoding="utf-8") == stranger
+
+
+# 근무 중 끼니·커피 시각 (공통 규칙 workMeals): NPC마다 손으로 적지 않고 npcId 씨앗으로 엇갈린다(설계 7.5)
+
+
+def test_work_meals_shift_each_time_by_at_most_the_spread_and_keep_the_need():
+    rules = service_rules()
+    spread = rules["workMeals"]["spreadMinutes"]
+
+    meals = npc_derive.work_meals("HOTEL_STAFF", rules)
+
+    assert [meal["need"] for meal in meals] == [time["need"] for time in rules["workMeals"]["times"]]
+    for meal, time in zip(meals, rules["workMeals"]["times"]):
+        shift = (npc_derive._minutes(meal["at"]) - npc_derive._minutes(time["at"]) + 720) % 1440 - 720
+        assert abs(shift) <= spread
+
+
+def test_work_meals_are_the_same_every_time_but_differ_between_npcs():
+    rules = service_rules()
+
+    assert npc_derive.work_meals("HOTEL_STAFF", rules) == npc_derive.work_meals("HOTEL_STAFF", rules)
+    assert npc_derive.work_meals("HOTEL_STAFF", rules) != npc_derive.work_meals("CAFE_STAFF", rules)

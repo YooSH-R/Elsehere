@@ -5,7 +5,7 @@ namespace A305.Dialogue
     /// <summary>
     /// 상자 없는 대화창의 배치. 화면 아래 전체 폭에 어두운 그라데이션을 깔고, 가운데 읽기 좋은 폭의 열 안에
     /// 아래부터 입력 줄(입력칸·보내기·말하기) → 상태 줄 → 대사 → 이름표와 도구 줄 순서로 쌓는다.
-    /// 대사 칸은 최근 네 대사에 맞춰 위로 키우되 화면 높이 안에 두고, 그 전 대사와 넘치는 대사는 안에서 스크롤한다.
+    /// 대사 칸은 실제 줄바꿈 기준 최대 다섯 줄 높이를 받아 화면 높이 안에 두고, 지난 내용과 넘치는 내용은 안에서 스크롤한다.
     /// </summary>
     public struct DialogueCinemaLayout
     {
@@ -170,6 +170,17 @@ namespace A305.Dialogue
             layout.Height = layout.Name.yMax + FadeHeight;
             return layout;
         }
+
+        /// <summary>
+        /// 이름표 바로 오른쪽(nameRight에서 시작)에 폭이 blockWidth인 묶음(욕구 게이지)을 두고도, 그 뒤에 가장 긴 호감 줄(standingWidth)이
+        /// 간격을 두고 도구 버튼 앞에 들어가는지. 들어가지 않으면 무례 경고 문구가 잘리지 않게 묶음을 숨긴다.
+        /// </summary>
+        public static bool FitsBesideName(
+            float nameRight,
+            float toolsLeft,
+            float blockWidth,
+            float standingWidth
+        ) => nameRight + blockWidth + Gap + standingWidth + Gap <= toolsLeft;
 
         public static float LinesWidth(float columnWidth, bool hasTranslation) =>
             hasTranslation && columnWidth >= TranslationSideBySideWidth

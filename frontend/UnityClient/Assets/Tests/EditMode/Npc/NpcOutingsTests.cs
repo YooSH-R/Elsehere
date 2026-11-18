@@ -162,6 +162,31 @@ namespace A305.Npc.Tests
             Assert.That(again.Venue.Code, Is.EqualTo(first.Venue.Code));
         }
 
+        [Test]
+        public void AShopClosedToVisitors_IsNotChosenButStaysOpenForStaffAndThePlayer()
+        {
+            // 시연 퀘스트 동안 햄버거 가게에는 직원과 John만 둔다. 여가로 들르는 손님만 막고 가게 자체는 열어 둔다.
+            var outings = new NpcOutings();
+            var venues = new[] { Venue("DINER"), Venue("CAFE") };
+            outings.SetClosedToVisitors("DINER", true);
+
+            for (int i = 0; i < 4; i++)
+                Assert.That(
+                    outings.Reserve("NPC" + i, "WORK", 100, 200, venues, _ => true)?.Venue.Code,
+                    Is.Not.EqualTo("DINER")
+                );
+            Assert.That(outings.Welcomes("DINER"), Is.False);
+            Assert.That(outings.Welcomes("CAFE"), Is.True);
+            Assert.That(A305.World.OpeningHours.IsOpenNow("DINER"), Is.True);
+
+            outings.SetClosedToVisitors("DINER", false);
+            Assert.That(outings.Welcomes("DINER"), Is.True);
+            Assert.That(
+                outings.Reserve("Ben", "WORK", 100, 200, new[] { Venue("DINER") }, _ => true),
+                Is.Not.Null
+            );
+        }
+
         private static NpcOutingVenue Venue(string code) =>
             new NpcOutingVenue { Code = code, Capacity = 2 };
 

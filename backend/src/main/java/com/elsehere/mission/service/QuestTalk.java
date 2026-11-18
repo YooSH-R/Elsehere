@@ -43,10 +43,21 @@ public sealed interface QuestTalk {
    * 이 NPC에게 판정할 목표가 있는 대화.
    *
    * @param state 의도 판정에 보내는 상태. 판정할 목표(의도) 목록을 담는다
-   * @param remainingGoals 이 턴 전까지 남은 목표. 단계의 목표를 다 마쳤으면 빈 목록이다
+   * @param remainingGoals 이 턴 전까지 남은 목표. 단계의 목표를 다 마쳤으면 빈 목록이다. 순서는 단계의 목표 순서다
+   * @param leadsToNextGoal NPC가 남은 목표 중 첫째를 묻는 질문으로 이끄는지. 시연 주문 단계만 그렇고, 그 밖에는 학습자가 먼저 꺼내기를 기다린다
    */
-  record Goals(int stage, WorkerState state, String instruction, List<String> remainingGoals)
+  record Goals(
+      int stage,
+      WorkerState state,
+      String instruction,
+      List<String> remainingGoals,
+      boolean leadsToNextGoal)
       implements QuestTalk {
+
+    /** 학습자가 남은 목표를 먼저 꺼내기를 기다리는 대화. */
+    public Goals(int stage, WorkerState state, String instruction, List<String> remainingGoals) {
+      this(stage, state, instruction, remainingGoals, false);
+    }
 
     /**
      * 남은 목표는 학습자가 꺼낼 말이다. 목표의 판정 기준을 붙여 주면 NPC가 그것을 물어볼 정보로 여겨 다음 목표를 먼저 묻기 쉬워, 묻지 말라고 함께 적는다. 학습자가
@@ -72,20 +83,30 @@ public sealed interface QuestTalk {
               .filter(goal -> pending.contains(goal.id()))
               .map(goal -> goal.id() + ": " + goal.desc())
               .collect(Collectors.joining("\n"));
-      String nextQuestion =
-          pending.isEmpty()
-              ? " No objectives remain for this stage. Acknowledge what was completed without asking another mission question or assuming later stages are complete."
-              : " Remaining objectives after this turn: "
-                  + String.join(",", pending)
-                  + ". The learner must raise these in their own words; their criteria are listed only so you keep back those answers:\n"
-                  + pendingDetails
-                  + "\n"
-                  + NO_LEADING;
       return instruction
           + " This turn recognized: "
           + String.join(",", recognized)
           + ". Acknowledge these requests."
-          + nextQuestion;
+          + nextStep(pending, pendingDetails);
+    }
+
+    private String nextStep(List<String> pending, String pendingDetails) {
+      if (pending.isEmpty()) {
+        return " No objectives remain for this stage. Acknowledge what was completed without asking another mission question or assuming later stages are complete.";
+      }
+      String remaining = " Remaining objectives after this turn: " + String.join(",", pending);
+      if (leadsToNextGoal) {
+        return remaining
+            + ". After acknowledging, ask one short question that leads the learner to "
+            + pending.get(0)
+            + ", the first one still remaining, and leave the later ones for the following turns. Ask an open question; never put the learner's answer in it. Criteria:\n"
+            + pendingDetails;
+      }
+      return remaining
+          + ". The learner must raise these in their own words; their criteria are listed only so you keep back those answers:\n"
+          + pendingDetails
+          + "\n"
+          + NO_LEADING;
     }
 
     @Override

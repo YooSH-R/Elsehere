@@ -13,7 +13,7 @@ Unity 클라이언트는 `frontend/UnityClient`에서 관리하며 WebGL 기반 
 | 스크립트 | C# |
 | 시작 Scene | `Assets/Scenes/Production/HomeScene.unity` |
 
-Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Packages/manifest.json`과 `Packages/packages-lock.json`을 기준으로 맞춥니다. 버전 변경은 호환성을 검증하고 MR에 변경 내용을 기록해 공유합니다. 모바일 화면은 아래 반응형 Web 템플릿으로 대응하며, 모바일 터치 조작과 대상 브라우저의 기능 지원 범위는 별도로 검증합니다. 이용자 기기에 필요한 조건은 [이용 환경과 최소 사양](client-requirements.md)에 정리합니다.
+Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Packages/manifest.json`과 `Packages/packages-lock.json`을 기준으로 맞춥니다. 버전 변경은 호환성을 검증하고 MR에 변경 내용을 기록해 공유합니다. 모바일 화면은 아래 반응형 Web 템플릿으로 대응하며, 모바일 터치 조작과 대상 브라우저의 기능 지원 범위는 별도로 검증합니다. 이용자 기기에 필요한 조건은 [이용 환경과 최소·권장 사양](client-requirements.md)에 정리합니다.
 
 ## 설치와 프로젝트 열기
 
@@ -166,6 +166,8 @@ CLI 검사는 Unity가 만든 프로젝트·참조를 그대로 읽고 `UnityCod
 `infra/scripts/run-unity-ci.ps1 -Action test`는 회귀 검사 입력을 준비하고 EditMode·PlayMode를 실행합니다. `TRIPO_MASTER_RECORD`와 `TRIPO_MASTER_SCENE`이 없으면 저장소의 카페 캐릭터 작업 기록(`Assets/Data/Tripo/100e191da12a84145a71d737bcfd57c2.asset`)과 손 바인딩 검수 씬(`Assets/Scenes/Sandbox/Tripo/LittleMung_Cafe_Female_112b39c5_HandBinding.unity`)을 사용해 마스터 골격·모션·이동 검사가 빠지지 않게 합니다. EditMode는 작업 기록의 원본 모델을 복사해 현재 마스터 적용 절차를 실행한 임시 후보를 검사하며, 저장된 옛 후보를 승인하거나 원본 기록을 갱신하지 않습니다. PlayMode는 지정된 검수 씬에서 이동을 검사합니다. 다른 캐릭터를 검사할 때는 두 환경 변수에 해당 Unity 에셋 경로를 지정합니다. 자동 검사 통과와 실제 외관 승인은 별도로 확인합니다.
 
 Production 씬을 여는 PlayMode 검사는 씬의 `ApiSettings`가 가리키는 백엔드가 실행 중인지도 확인해야 합니다. 현재 일부 씬 검사는 서버 통신을 완전히 대체하지 않아, 로그인 없는 검사에 실제 서버가 `401 UNAUTHENTICATED`를 반환하면 접속 만료 안내가 이동을 잠그고 NPC 클릭·이동 검사에 영향을 줍니다. 전체 검사는 해당 백엔드가 없는 CI와 같은 환경에서 실행하고, 실제 서버 연결 검증은 따로 수행합니다. 본인이 실행한 로컬 서버를 잠시 중지한다면 검사 실패·시간 초과 때도 복구하도록 준비하며, 다른 작업이 사용하는 서버는 중지하지 않습니다. 이 환경 차이를 없애기 위해 게임의 인증 처리나 검사의 합격 기준을 완화하지 않습니다.
+
+공통 NPC 제작 결과는 제작 경로가 다른 대표 프리팹으로 골격·얼굴 채널·모션 연결을 검사하고, 운영 씬 연결은 마을과 대표 실내에서 확인합니다. 캐릭터별 외형·표정 곡선과 고정 UI 그림은 검수 씬과 화면 검수로 확인합니다. NPC 에셋을 다시 제작할 때는 제작 도구의 전체 검수(`ServiceNpcReviewBuilder.ValidateAndScenes`, `NpcEmotionBuilder.Audit`)도 수행합니다. PlayMode에서는 같은 씬이나 UI를 준비하는 연속 상태를 한 흐름으로 검사하되, 우산 열기·닫기, 이름표 추적·접근·이동 잠금, 대화 대기 단계별 표시 등 각 상태의 확인 내용은 유지합니다.
 
 ## 후속 검증 범위
 

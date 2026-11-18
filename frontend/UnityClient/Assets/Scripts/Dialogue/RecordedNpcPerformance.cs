@@ -22,8 +22,47 @@ namespace A305.Dialogue
         private float previousSpeed;
         private bool driving;
         private JohnParkLocomotion locomotion;
+        private AudioClip ambientClip;
+        private float ambientVolume;
         public RecordedPerformanceDefinition Definition => definition;
         public bool IsPerforming => driving;
+
+        public bool PlayAmbient()
+        {
+            if (!IsReady)
+                return false;
+            StopAmbient();
+            var decoded = DialogueSpeechWav.Read(definition.Voice.bytes);
+            ambientClip = AudioClip.Create(
+                "John entry performance",
+                decoded.Samples.Length / decoded.Channels,
+                decoded.Channels,
+                decoded.Frequency,
+                false
+            );
+            ambientClip.SetData(decoded.Samples, 0);
+            ambientVolume = source.volume;
+            source.volume = Mathf.Min(source.volume, .5f);
+            speech.Play(ambientClip, decoded.Timeline, decoded.Emotions);
+            BeginMotion();
+            return true;
+        }
+
+        public void StopAmbient()
+        {
+            if (ambientClip == null)
+                return;
+            // 그사이 대화 음성으로 바뀌었으면 그 음성과 동작은 끊지 않는다.
+            if (source.clip == ambientClip)
+            {
+                speech.Stop();
+                StopMotion();
+            }
+            source.volume = ambientVolume;
+            Destroy(ambientClip);
+            ambientClip = null;
+        }
+
         public bool IsReady =>
             definition != null
             && definition.Voice != null
@@ -60,15 +99,21 @@ namespace A305.Dialogue
                 || link == null
             )
                 return false;
+            StopAmbient();
             StopMotion();
             if (!link.PlayRecordedSpeech(definition.Voice.bytes))
                 return false;
+            BeginMotion();
+            return true;
+        }
+
+        private void BeginMotion()
+        {
             playingClip = source.clip;
             previousSpeed = animator.speed;
             animator.speed = 0;
             driving = true;
             SampleMotion(0);
-            return true;
         }
 
         private void LateUpdate()
@@ -111,6 +156,10 @@ namespace A305.Dialogue
             playingClip = null;
         }
 
-        private void OnDisable() => StopMotion();
+        private void OnDisable()
+        {
+            StopAmbient();
+            StopMotion();
+        }
     }
 }

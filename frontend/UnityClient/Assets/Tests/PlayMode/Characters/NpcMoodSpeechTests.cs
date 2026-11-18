@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Linq;
 using A305.Dialogue;
+using A305.Npc;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -16,6 +17,154 @@ namespace A305.Characters.PlayModeTests
 {
     public sealed class NpcMoodSpeechTests
     {
+        [UnityTest]
+        public IEnumerator JakeKeepsHisReservedDefaultFaceBeforeSpeechAndAfterStopping()
+        {
+            var root = CreateHotelSpeaker("HOTEL_STAFF");
+            try
+            {
+                yield return null;
+                var player = root.GetComponent<DialogueSpeaker>().Player;
+                var link = root.AddComponent<DialogueServerLink>();
+                link.SetSpeaker(player);
+                Assert.That(MaxWeight(root, "mouthFrownLeft"), Is.EqualTo(25).Within(.1));
+                Assert.That(MaxWeight(root, "mouthSmileLeft"), Is.Zero);
+                var idleBlink = player.Face.gameObject.AddComponent<CharacterIdleBlink>();
+                idleBlink.ApplyAtTime(0);
+                Assert.That(MaxWeight(root, "eyeBlinkLeft"), Is.EqualTo(55).Within(.1));
+
+                byte[] voice = AssetDatabase
+                    .LoadAssetAtPath<TextAsset>(
+                        "Assets/Audio/Characters/CafeDialogue/CafeThanksSpeech.bytes"
+                    )
+                    .bytes;
+                Assert.That(link.PlayRecordedSpeech(voice), Is.True);
+                player.Pause();
+                player.Seek(.65f);
+                Assert.That(MaxWeight(root, "mouthSmileLeft"), Is.Zero);
+                Assert.That(MaxWeight(root, "browDownLeft"), Is.EqualTo(8).Within(.1));
+                link.StopSpeech();
+                Assert.That(MaxWeight(root, "mouthFrownLeft"), Is.EqualTo(25).Within(.1));
+                Assert.That(MaxWeight(root, "viseme_AA"), Is.Zero);
+            }
+            finally
+            {
+                Object.Destroy(root);
+            }
+        }
+
+        private static GameObject CreateHotelSpeaker(string npcCode)
+        {
+            var root = new GameObject("Hotel NPC speech fixture");
+            root.SetActive(false);
+            var visual = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/Prefabs/Npc/LittleMung_HotelStaff_male_Dialogue.prefab"
+                ),
+                root.transform
+            );
+            foreach (var behaviour in visual.GetComponentsInChildren<MonoBehaviour>(true))
+                if (behaviour != null && behaviour.GetType().Namespace == "A305.Player")
+                    Object.DestroyImmediate(behaviour);
+            foreach (var animator in visual.GetComponentsInChildren<Animator>(true))
+                animator.enabled = false;
+            var identity = root.AddComponent<NpcIdentity>();
+            var serialized = new SerializedObject(identity);
+            serialized.FindProperty("code").stringValue = npcCode;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            visual.GetComponentInChildren<AudioSource>(true).mute = true;
+            root.SetActive(true);
+            return root;
+        }
+
+        [UnityTest]
+        public IEnumerator JakeKeepsCurrentExpressionWhenRecordingInterruptsSpeech()
+        {
+            var root = CreateHotelSpeaker("HOTEL_STAFF");
+            try
+            {
+                yield return null;
+                var player = root.GetComponent<DialogueSpeaker>().Player;
+                var link = root.AddComponent<DialogueServerLink>();
+                link.SetSpeaker(player);
+                link.PlayRecordedSpeech(EmotionalVoice());
+                player.Pause();
+                player.Seek(.65f);
+                Assert.That(MaxWeight(root, "browDownLeft"), Is.EqualTo(85).Within(.1));
+                link.StopSpeech(preserveEmotion: true);
+                yield return new WaitForSecondsRealtime(2.2f);
+                Assert.That(player.IsPlaying, Is.False);
+                Assert.That(player.IsPaused, Is.False);
+                Assert.That(MaxWeight(root, "viseme_AA"), Is.Zero);
+                Assert.That(MaxWeight(root, "browDownLeft"), Is.EqualTo(85).Within(.1));
+                link.StopSpeech(preserveEmotion: true);
+                Assert.That(MaxWeight(root, "browDownLeft"), Is.EqualTo(85).Within(.1));
+                link.SetSpeaker(null);
+                Assert.That(MaxWeight(root, "mouthFrownLeft"), Is.EqualTo(25).Within(.1));
+            }
+            finally
+            {
+                Object.Destroy(root);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator HotelColleagueSharingJakesAppearanceKeepsHisOriginalDefault()
+        {
+            var root = CreateHotelSpeaker("HOTEL_RECEPTIONIST");
+            try
+            {
+                yield return null;
+                var player = root.GetComponent<DialogueSpeaker>().Player;
+                Assert.That(player.HasRestingMood, Is.False);
+                Assert.That(MaxWeight(root, "mouthFrownLeft"), Is.Zero);
+                var link = root.AddComponent<DialogueServerLink>();
+                link.SetSpeaker(player);
+                byte[] voice = AssetDatabase
+                    .LoadAssetAtPath<TextAsset>(
+                        "Assets/Audio/Characters/CafeDialogue/CafeThanksSpeech.bytes"
+                    )
+                    .bytes;
+                link.PlayRecordedSpeech(voice);
+                player.Pause();
+                player.Seek(.65f);
+                Assert.That(MaxWeight(root, "mouthSmileLeft"), Is.GreaterThan(0));
+                link.StopSpeech();
+                Assert.That(MaxWeight(root, "mouthSmileLeft"), Is.Zero);
+            }
+            finally
+            {
+                Object.Destroy(root);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator RecordingDuringAWinkLetsTheEyeOpenWhileKeepingTheSmile()
+        {
+            var root = CreateCafeSpeaker();
+            var profile = ScriptableObject.CreateInstance<EmotionExpressionProfile>();
+            var clip = AudioClip.Create("Interrupted wink", 16000, 1, 16000, false);
+            try
+            {
+                var player = root.GetComponent<CharacterSpeechPlayer>();
+                player.GetComponent<AudioSource>().mute = true;
+                player.Play(clip, null, PlayfulTrack(1), profile, holdEmotionAfterSpeech: true);
+                player.Pause();
+                player.Seek(.38f);
+                Assert.That(MaxWeight(root, "eyeBlinkRight"), Is.EqualTo(100).Within(.1));
+                player.StopForListening();
+                yield return new WaitForSecondsRealtime(.5f);
+                Assert.That(MaxWeight(root, "eyeBlinkRight"), Is.LessThan(95));
+                Assert.That(MaxWeight(root, "mouthSmileLeft"), Is.GreaterThan(30));
+            }
+            finally
+            {
+                Object.Destroy(root);
+                Object.Destroy(profile);
+                Object.Destroy(clip);
+            }
+        }
+
         internal static byte[] EmotionalVoice(
             float frownIntensity = 1,
             string firstEmotion = "frown"

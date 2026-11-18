@@ -696,6 +696,67 @@ namespace A305.Mission.Tests
             Assert.That(Field<Image>("autoFoldBar").gameObject.activeSelf, Is.True);
         }
 
+        // 시연 퀘스트는 시연자가 눌러 시작하면 카드를 펼치고, 하는 동안 저절로 접지 않는다.
+        // 장면을 옮겨 하던 시연을 처음 불러올 때도 펼친다.
+        [Test]
+        public void ShowcaseInProgress_KeepsTheCardExpanded()
+        {
+            FirstDayMissionState before = Journey(current: 0);
+            before.Quest = FirstDayMissionState.ShowcaseQuestId;
+            before.Started = false;
+            before.Steps.ForEach(step => step.Status = "UPCOMING");
+            Refresh(before);
+            Assert.That(Card.gameObject.activeSelf, Is.False, "시작 전");
+
+            FirstDayMissionState started = Journey(current: 0);
+            started.Quest = FirstDayMissionState.ShowcaseQuestId;
+            view.Refresh(started, false, false);
+            Assert.That(Card.gameObject.activeSelf, Is.True, "눌러 시작한 시연");
+            Assert.That(
+                Field<Image>("autoFoldBar").gameObject.activeSelf,
+                Is.False,
+                "시연 카드는 저절로 접지 않습니다."
+            );
+
+            Object.DestroyImmediate(instance);
+            FirstDayMissionState moved = Journey(current: 1);
+            moved.Quest = FirstDayMissionState.ShowcaseQuestId;
+            Refresh(moved);
+            Assert.That(Card.gameObject.activeSelf, Is.True, "장면을 옮겨 불러온 하던 시연");
+        }
+
+        // [다시 연습]은 시작하면 카드를 펼치고, 연습하는 동안 저절로 접지 않는다.
+        [Test]
+        public void ReviewPractice_KeepsTheCardExpanded()
+        {
+            Refresh(Journey(current: 2));
+            PracticeVisit.Shared.Begin(
+                new PracticeVisitPlan
+                {
+                    IsReview = true,
+                    Title = "햄버거 주문 다시 연습",
+                    Goals = new[]
+                    {
+                        new PracticeVisitGoal("치즈버거 주문하기", "한 개를 주문해 보세요."),
+                    },
+                }
+            );
+            typeof(FirstDayMissionView)
+                .GetMethod(
+                    "UpdateQuestFold",
+                    System.Reflection.BindingFlags.NonPublic
+                        | System.Reflection.BindingFlags.Instance
+                )
+                .Invoke(view, null);
+
+            Assert.That(Card.gameObject.activeSelf, Is.True, "시작하면 펼친다");
+            Assert.That(
+                Field<Image>("autoFoldBar").gameObject.activeSelf,
+                Is.False,
+                "다시 연습 카드는 저절로 접지 않습니다."
+            );
+        }
+
         // 장소 연습 방문 중에는 이야기 대신 그 연습만 보이고, 방문이 끝나면 이야기 알약으로 돌아온다(시안 1-B ③).
         [Test]
         public void PracticeVisit_ShowsOnlyThePractice_ThenTheStoryAgain()
@@ -714,6 +775,34 @@ namespace A305.Mission.Tests
             view.Refresh(Journey(current: 2), false, false);
             Assert.That(Field<TMP_Text>("pillTitle").text, Is.EqualTo("이야기"));
             Assert.That(PillMarks(), Has.Length.EqualTo(7));
+        }
+
+        // [다시 연습] 중에는 장소 연습 칩 대신 '다시 연습' 칩·알약과 지난 상황을 시연 카드 모양으로 보인다.
+        [Test]
+        public void RetryVisit_ShowsTheRetryNameInsteadOfPlacePractice()
+        {
+            PracticeVisitPlan retry = DinerTable();
+            retry.IsReview = true;
+            PracticeVisit.Shared.Begin(retry);
+            Refresh(Journey(current: 2));
+            Field<Button>("questPill").onClick.Invoke();
+
+            Assert.That(Field<TMP_Text>("pillTitle").text, Is.EqualTo("다시 연습"));
+            Assert.That(Field<GameObject>("practiceChip").activeSelf, Is.False);
+            // 시연 카드처럼 위 칩과 제목 한 줄, 긴 설명 없이 목표 줄만 보인다.
+            TMP_Text chip = Field<TMP_Text>("stepChip");
+            Assert.That(chip.transform.parent.gameObject.activeSelf, Is.True);
+            Assert.That(chip.text, Is.EqualTo("다시 연습"));
+            LayoutRebuilder.ForceRebuildLayoutImmediate(
+                (RectTransform)chip.transform.parent.parent
+            );
+            Assert.That(
+                ((RectTransform)chip.transform.parent).rect.width,
+                Is.GreaterThan(chip.preferredWidth),
+                "칩이 글자보다 넓다"
+            );
+            Assert.That(Field<TMP_Text>("place").text, Is.EqualTo("자리 잡기"));
+            Assert.That(Field<TMP_Text>("direction").gameObject.activeSelf, Is.False);
         }
 
         // 펼친 연습 카드: 파란 '장소 연습' 칩, 장소 · 상황, 상황 설명, 목표마다 한 칸인 진행 막대와 목표 줄(해낸 목표는 체크)

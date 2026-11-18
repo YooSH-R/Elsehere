@@ -201,9 +201,10 @@ namespace A305.EditorTools.Mission
             BuilderTools.SetReference(mission, "questBoard", view);
         }
 
-        // 고르기(시안 2-B ① c2): 머리줄 퀘스트 책 아이콘·'퀘스트'·닫기, 가운데에 큰 그림 두 개(600×280, 왼쪽 100·820, 위 225)와
+        // 고르기(시안 2-B ① c2): 머리줄 퀘스트 책 아이콘·'퀘스트'·닫기, 가운데에 큰 그림 두 개(600×280, 왼쪽 130·790, 위 225)와
         // 그 아래 이름(Jua 60, 위 515), 사이에 세로 줄(2×460, 왼쪽 759·위 170). 그림은 시안을 그림자·빛 번짐(사방 40)까지 렌더링했다.
-        // 그림과 이름을 덮는 칸(718×350)을 누르면 그 쪽을 연다.
+        // 그림과 이름을 덮는 칸(658×350, 가운데 세로 줄에서 나뉨)을 누르면 그 쪽을 연다.
+        // 장소 연습을 왼쪽, 이야기를 오른쪽에 두고, 시안보다 두 그림을 가운데로 30씩 당겨 사이를 좁혔다.
         private static void BuildChooser(
             QuestBoardView view,
             SerializedObject fields,
@@ -215,8 +216,8 @@ namespace A305.EditorTools.Mission
             Option(
                 page,
                 "StoryOption",
-                41,
-                100,
+                761,
+                790,
                 "이야기",
                 Art("QuestPickStory", default, true),
                 view.ShowStory
@@ -224,8 +225,8 @@ namespace A305.EditorTools.Mission
             Option(
                 page,
                 "PlaceOption",
-                761,
-                820,
+                101,
+                130,
                 "장소 연습",
                 Art("QuestPickPlace", default, true),
                 view.ShowPractice
@@ -233,7 +234,7 @@ namespace A305.EditorTools.Mission
             Set(fields, "choosePage", page.gameObject);
         }
 
-        // 고르기 칸 하나: 누르는 자리(왼쪽 left, 위 225, 718×350), 그림(왼쪽 stageLeft, 600×280), 그 아래 이름
+        // 고르기 칸 하나: 누르는 자리(왼쪽 left, 위 225, 658×350), 그림(왼쪽 stageLeft, 600×280), 그 아래 이름
         private static void Option(
             RectTransform page,
             string name,
@@ -245,7 +246,7 @@ namespace A305.EditorTools.Mission
         )
         {
             RectTransform option = Ui.Rect(name, page);
-            Ui.TopLeft(option, left, 225, 718, 350);
+            Ui.TopLeft(option, left, 225, 658, 350);
             option.gameObject.AddComponent<Image>().color = Color.clear;
             Image picture = Picture(
                 option,

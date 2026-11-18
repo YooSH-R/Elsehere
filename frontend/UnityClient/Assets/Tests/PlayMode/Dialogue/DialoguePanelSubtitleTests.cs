@@ -16,6 +16,7 @@ namespace A305.Dialogue.PlayModeTests
     {
         private const string PanelPrefabPath = "Assets/Prefabs/Dialogue/DialoguePanel.prefab";
         private const string NpcSentence = "Hi, welcome in. What would you like?";
+        private const string NpcMeaning = "어서 오세요. 무엇을 드릴까요?";
 
         private GameObject panelObject;
         private GameObject eventSystemObject;
@@ -129,6 +130,51 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(Caption(subtitle), Is.EqualTo("자막 켜기"));
             NpcSubtitlePreference.Reload();
             Assert.That(NpcSubtitlePreference.ShowsSubtitles, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator MeaningOpen_LocksSubtitlesOnAndRestoresThePreviousChoiceWhenClosed()
+        {
+            yield return Show(new SpokenContent(speaksNpcLines: true));
+            Button subtitle = FindButton("SubtitleButton");
+            Button meaning = FindButton("MeaningButton");
+            ClickCenterOf(meaning);
+            yield return null;
+
+            Assert.That(VisibleLetters(NpcSentence), Is.Positive);
+            Assert.That(VisibleLetters(NpcMeaning), Is.Positive);
+            Assert.That(ActiveCovers(), Is.Empty);
+            Assert.That(Caption(subtitle), Is.EqualTo("자막 끄기"));
+            Assert.That(subtitle.IsInteractable(), Is.False);
+
+            ClickCenterOf(subtitle);
+            yield return null;
+
+            Assert.That(NpcSubtitlePreference.ShowsSubtitles, Is.False);
+            Assert.That(VisibleLetters(NpcSentence), Is.Positive);
+
+            ClickCenterOf(meaning);
+            yield return null;
+
+            Assert.That(subtitle.IsInteractable(), Is.True);
+            Assert.That(Caption(subtitle), Is.EqualTo("자막 켜기"));
+            Assert.That(VisibleLetters(NpcSentence), Is.Zero);
+            Assert.That(ActiveCovers(), Has.Count.EqualTo(7));
+
+            ClickCenterOf(subtitle);
+            ClickCenterOf(meaning);
+            yield return null;
+
+            Assert.That(subtitle.IsInteractable(), Is.False);
+            ClickCenterOf(subtitle);
+            yield return null;
+            Assert.That(NpcSubtitlePreference.ShowsSubtitles, Is.True);
+
+            ClickCenterOf(meaning);
+            yield return null;
+            Assert.That(subtitle.IsInteractable(), Is.True);
+            Assert.That(VisibleLetters(NpcSentence), Is.Positive);
+            Assert.That(ActiveCovers(), Is.Empty);
         }
 
         // 강조 재질을 쓰더라도 둥근 테두리와 버튼의 크기는 그대로여야 한다.
@@ -310,6 +356,23 @@ namespace A305.Dialogue.PlayModeTests
 
         private TMP_Text LinesText() => FindChild("Lines").GetComponent<TMP_Text>();
 
+        private int VisibleLetters(string text)
+        {
+            TMP_Text lines = LinesText();
+            lines.ForceMeshUpdate();
+            int start = lines.GetParsedText().IndexOf(text, System.StringComparison.Ordinal);
+            Assert.That(start, Is.GreaterThanOrEqualTo(0), text);
+            int visible = 0;
+            for (int i = start; i < start + text.Length; i++)
+            {
+                TMP_CharacterInfo character = lines.textInfo.characterInfo[i];
+                if (character.isVisible && character.color.a > 0)
+                    visible++;
+            }
+
+            return visible;
+        }
+
         // NPC 이름 뒤의 대사에서 화면에 보이는 글자만 센다.
         private int VisibleNpcLetters(string npcName = "Alex")
         {
@@ -396,7 +459,10 @@ namespace A305.Dialogue.PlayModeTests
         /// <summary>NPC가 첫 대사를 마치고 사용자가 답할 차례인 대화. 대답을 기다리는 상태로 바꿔 볼 수 있다.</summary>
         private class SpokenContent : IDialogueContent
         {
-            private static readonly DialogueLine Opening = DialogueLine.FromNpc(NpcSentence, null);
+            private static readonly DialogueLine Opening = DialogueLine.FromNpc(
+                NpcSentence,
+                NpcMeaning
+            );
             private readonly bool speechReady;
 
             public SpokenContent(bool speaksNpcLines, bool isNpcSpeechReady = true)

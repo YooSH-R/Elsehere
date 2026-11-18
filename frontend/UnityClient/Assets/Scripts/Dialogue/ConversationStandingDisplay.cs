@@ -18,6 +18,32 @@ namespace A305.Dialogue
         private int shownVersion;
         private float flashUntil;
 
+        /// <summary>
+        /// 이 칸이 가장 길어지는 줄: 호감도 -100에 깎인 변화량과, 두 무례 문구 가운데 긴 "n번이면 대화가 끝나요"가 붙은 때.
+        /// 이름 줄의 욕구 게이지가 이 폭 뒤에 자리를 잡아, 무례 경고 문구가 붙었다 사라져도 움직이지 않는다.
+        /// </summary>
+        public static string Widest(int rudeLimit)
+        {
+            var standing = new ConversationStanding();
+            standing.Apply(
+                new ConversationState
+                {
+                    Affinity = -91,
+                    RudeCount = 0,
+                    RudeLimit = rudeLimit,
+                }
+            );
+            standing.Apply(
+                new ConversationState
+                {
+                    Affinity = -100,
+                    RudeCount = 1,
+                    RudeLimit = rudeLimit,
+                }
+            );
+            return new ConversationStandingDisplay().Text(standing, 0f);
+        }
+
         /// <param name="now">지금 시각(초). 화면은 실제 시간을 넘긴다.</param>
         /// <returns>보일 문구. 서버가 호감도를 보내지 않았으면 null이며 화면은 숨긴다.</returns>
         public string Text(ConversationStanding standing, float now)

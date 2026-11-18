@@ -1,0 +1,1113 @@
+{
+  "generatedBy": "ai/tools/npc_life_export.py — 직접 고치지 않고 AI 규칙 원본을 고친 뒤 다시 내보냅니다",
+  "constants": {
+    "checkAfterLearnerLines": 2,
+    "learnerGapMinutes": 240,
+    "callGapMinutes": 720,
+    "errandExpiryMinutes": 720,
+    "minShiftLeftMinutes": 360,
+    "dislikedBelow": -10
+  },
+  "affinityFollowRate": 0.75,
+  "places": {
+    "CAFE": {
+      "name": {
+        "en": "the corner cafe",
+        "ko": "카페"
+      },
+      "offers": [
+        {
+          "key": "coffee",
+          "en": "a coffee",
+          "ko": "커피",
+          "fills": {
+            "ENERGY": 25
+          },
+          "price": 4,
+          "taskKo": "커피 사다 주기",
+          "stepKo": "커피 포장 주문하기",
+          "languageFocus": [
+            "ordering"
+          ]
+        },
+        {
+          "key": "muffin",
+          "en": "a muffin",
+          "ko": "머핀",
+          "fills": {
+            "HUNGER": 40
+          },
+          "price": 3,
+          "taskKo": "머핀 사다 주기",
+          "stepKo": "머핀 포장 주문하기",
+          "languageFocus": [
+            "ordering"
+          ]
+        }
+      ]
+    },
+    "POST_OFFICE": {
+      "name": {
+        "en": "the post office",
+        "ko": "우체국"
+      },
+      "offers": [
+        {
+          "key": "stamp",
+          "en": "a stamp to send a letter",
+          "ko": "편지 부치기",
+          "price": 1,
+          "taskKo": "편지 부쳐 주기",
+          "stepKo": "우표를 사서 편지 부치기",
+          "languageFocus": [
+            "polite_request"
+          ]
+        }
+      ]
+    },
+    "BANK": {
+      "name": {
+        "en": "Town Bank",
+        "ko": "은행"
+      },
+      "offers": [
+        {
+          "key": "change",
+          "en": "change for a 20-dollar bill",
+          "ko": "잔돈",
+          "price": 0,
+          "taskKo": "잔돈 바꿔 주기",
+          "stepKo": "20달러를 잔돈으로 바꾸기",
+          "languageFocus": [
+            "polite_request"
+          ]
+        }
+      ]
+    },
+    "DINER": {
+      "name": {
+        "en": "Maple Burger",
+        "ko": "햄버거 가게"
+      },
+      "offers": [
+        {
+          "key": "burger",
+          "en": "a burger to go",
+          "ko": "버거",
+          "fills": {
+            "HUNGER": 50
+          },
+          "price": 7,
+          "taskKo": "버거 사다 주기",
+          "stepKo": "버거 포장 주문하기",
+          "languageFocus": [
+            "ordering"
+          ]
+        }
+      ]
+    },
+    "BAKERY": {
+      "name": {
+        "en": "Maple Bakery",
+        "ko": "베이커리"
+      },
+      "offers": [
+        {
+          "key": "croissant",
+          "en": "a croissant",
+          "ko": "크루아상",
+          "fills": {
+            "HUNGER": 40
+          },
+          "price": 3,
+          "taskKo": "크루아상 사다 주기",
+          "stepKo": "크루아상 포장 주문하기",
+          "languageFocus": [
+            "ordering"
+          ]
+        },
+        {
+          "key": "coffee",
+          "en": "a coffee",
+          "ko": "커피",
+          "fills": {
+            "ENERGY": 25
+          },
+          "price": 2,
+          "taskKo": "커피 사다 주기",
+          "stepKo": "커피 포장 주문하기",
+          "languageFocus": [
+            "ordering"
+          ]
+        }
+      ]
+    },
+    "FLOWER_SHOP": {
+      "name": {
+        "en": "Bloom Flowers",
+        "ko": "꽃집"
+      },
+      "offers": [
+        {
+          "key": "flower",
+          "en": "one wrapped flower",
+          "ko": "꽃 한 송이",
+          "price": 2,
+          "taskKo": "꽃 한 송이 사다 주기",
+          "stepKo": "꽃 한 송이 포장해 사기",
+          "languageFocus": [
+            "describing",
+            "polite_request"
+          ]
+        }
+      ]
+    }
+  },
+  "requests": [
+    {
+      "id": "bring_food",
+      "opens": [
+        "TALK",
+        "CALL"
+      ],
+      "trigger": {
+        "need": "HUNGER",
+        "below": 30
+      },
+      "notice": "The learner reacts to the character seeming hungry: asks whether they are hungry or have eaten, sympathizes, or offers to get them something to eat.",
+      "roles": [
+        "STAFF"
+      ],
+      "activities": [
+        "WORK"
+      ],
+      "solve": "ERRAND",
+      "reason": "Is getting hungry but cannot leave their post during the shift, so asks the learner to buy something to eat from another shop.",
+      "ko": "배고픈데 근무 중이라 자리를 비울 수 없어 학습자에게 다른 가게의 먹을 것을 사다 달라고 부탁한다",
+      "reward": {
+        "coins": 6,
+        "impression": 10
+      }
+    },
+    {
+      "id": "bring_coffee",
+      "opens": [
+        "TALK",
+        "CALL"
+      ],
+      "trigger": {
+        "need": "ENERGY",
+        "below": 30
+      },
+      "notice": "The learner reacts to the character seeming tired: asks whether they are tired or okay, sympathizes, or offers to get them a coffee.",
+      "roles": [
+        "STAFF"
+      ],
+      "activities": [
+        "WORK"
+      ],
+      "solve": "ERRAND",
+      "reason": "Feels worn out but cannot leave their post during the shift, so asks the learner to buy a coffee from another shop.",
+      "ko": "지쳤는데 근무 중이라 자리를 비울 수 없어 학습자에게 다른 가게의 커피를 사다 달라고 부탁한다",
+      "reward": {
+        "coins": 6,
+        "impression": 10
+      }
+    },
+    {
+      "id": "recommend_a_spot",
+      "opens": [
+        "TALK"
+      ],
+      "titleKo": "구경할 곳 추천하기",
+      "trigger": {
+        "need": "SOCIAL",
+        "below": 30
+      },
+      "notice": "The learner reacts to the character seeming bored or lonely: asks how they are doing, chats about the character's own day, or offers to keep them company.",
+      "roles": [
+        "STAFF",
+        "PASSERBY"
+      ],
+      "activities": [
+        "WORK",
+        "FREE"
+      ],
+      "solve": "TALK",
+      "goal": {
+        "intent": "recommend_place",
+        "desc": "The learner recommends a specific place in town and gives a reason.",
+        "languageFocus": [
+          "recommending",
+          "describing"
+        ]
+      },
+      "reason": "Has had no one to talk to for a while, so asks the learner to recommend a place in town worth seeing and why.",
+      "ko": "한동안 말 상대가 없어 학습자에게 마을에서 구경할 만한 곳과 이유를 묻는다",
+      "reward": {
+        "coins": 4,
+        "impression": 8,
+        "fills": {
+          "SOCIAL": 20
+        }
+      }
+    },
+    {
+      "id": "rush_hour",
+      "opens": [
+        "TALK"
+      ],
+      "titleKo": "주문 한 번에 말하기",
+      "trigger": {
+        "places": [
+          "CAFE",
+          "BAKERY",
+          "DINER"
+        ],
+        "windows": [
+          {
+            "from": "12:00",
+            "to": "14:00"
+          },
+          {
+            "from": "18:00",
+            "to": "20:00"
+          }
+        ]
+      },
+      "roles": [
+        "STAFF"
+      ],
+      "activities": [
+        "WORK"
+      ],
+      "solve": "TALK",
+      "goal": {
+        "intent": "order_in_one_go",
+        "desc": "The learner states their whole order (item, option, and here or to go) clearly in one turn.",
+        "languageFocus": [
+          "ordering"
+        ]
+      },
+      "reason": "The shop just got very busy, so politely asks the learner to give their whole order in one sentence.",
+      "ko": "손님이 밀려 바빠 학습자에게 주문을 한 문장으로 말해 달라고 한다",
+      "reward": {
+        "coins": 2,
+        "impression": 4
+      }
+    },
+    {
+      "id": "sold_out",
+      "opens": [
+        "TALK"
+      ],
+      "titleKo": "다른 메뉴 고르기",
+      "trigger": {
+        "places": [
+          "CAFE",
+          "BAKERY",
+          "DINER"
+        ],
+        "windows": [
+          {
+            "from": "00:00",
+            "to": "12:00"
+          },
+          {
+            "from": "14:00",
+            "to": "18:00"
+          },
+          {
+            "from": "20:00",
+            "to": "00:00"
+          }
+        ],
+        "firstTalkOfDay": true
+      },
+      "roles": [
+        "STAFF"
+      ],
+      "activities": [
+        "WORK"
+      ],
+      "solve": "TALK",
+      "goal": {
+        "intent": "choose_alternative",
+        "desc": "The learner politely picks another item after hearing one is sold out.",
+        "languageFocus": [
+          "ordering",
+          "polite_request"
+        ]
+      },
+      "reason": "One item on the menu sold out today, so tells the learner and asks what they would like instead.",
+      "ko": "메뉴 하나가 다 팔려 학습자에게 알리고 다른 것을 고르게 한다",
+      "reward": {
+        "coins": 2,
+        "impression": 4
+      }
+    },
+    {
+      "id": "needs_change",
+      "opens": [
+        "TALK"
+      ],
+      "trigger": {
+        "places": [
+          "CAFE",
+          "BAKERY",
+          "DINER",
+          "FLOWER_SHOP",
+          "ARCADE",
+          "SHOP",
+          "HOME_STORE",
+          "BARBER",
+          "LAUNDROMAT"
+        ],
+        "windows": [
+          {
+            "from": "07:00",
+            "to": "11:00"
+          }
+        ]
+      },
+      "roles": [
+        "STAFF"
+      ],
+      "activities": [
+        "WORK"
+      ],
+      "solve": "ERRAND",
+      "offer": {
+        "place": "BANK",
+        "key": "change"
+      },
+      "reason": "The register is short of small bills and they cannot leave the counter, so asks the learner to get change for a 20-dollar bill at the bank.",
+      "ko": "계산대에 잔돈이 모자라 학습자에게 은행에서 20달러를 잔돈으로 바꿔 달라고 부탁한다",
+      "reward": {
+        "coins": 5,
+        "impression": 8
+      }
+    },
+    {
+      "id": "letter_to_send",
+      "opens": [
+        "CALL"
+      ],
+      "trigger": {
+        "windows": [
+          {
+            "from": "13:00",
+            "to": "17:00"
+          }
+        ]
+      },
+      "roles": [
+        "STAFF"
+      ],
+      "activities": [
+        "WORK"
+      ],
+      "solve": "ERRAND",
+      "offer": {
+        "place": "POST_OFFICE",
+        "key": "stamp"
+      },
+      "reason": "Has a letter that must go out today but cannot leave their post, so asks the learner to send it at the post office.",
+      "ko": "오늘 부쳐야 할 편지가 있는데 자리를 비울 수 없어 학습자에게 우체국에서 부쳐 달라고 부탁한다",
+      "reward": {
+        "coins": 5,
+        "impression": 8
+      }
+    },
+    {
+      "id": "flowers_for_counter",
+      "opens": [
+        "CALL"
+      ],
+      "trigger": {
+        "windows": [
+          {
+            "from": "15:00",
+            "to": "18:00"
+          }
+        ]
+      },
+      "roles": [
+        "STAFF"
+      ],
+      "activities": [
+        "WORK"
+      ],
+      "solve": "ERRAND",
+      "offer": {
+        "place": "FLOWER_SHOP",
+        "key": "flower"
+      },
+      "reason": "Wants to brighten up the counter but cannot leave their post, so asks the learner to bring one wrapped flower from the flower shop.",
+      "ko": "계산대를 밝히고 싶은데 자리를 비울 수 없어 학습자에게 꽃집에서 꽃 한 송이를 포장해 와 달라고 부탁한다",
+      "reward": {
+        "coins": 5,
+        "impression": 8
+      }
+    }
+  ],
+  "npcs": [
+    {
+      "npcId": "ARCADE_STAFF",
+      "role": "STAFF",
+      "workplace": "ARCADE",
+      "schedule": [
+        {
+          "from": "00:00",
+          "to": "00:00",
+          "activity": "WORK"
+        }
+      ]
+    },
+    {
+      "npcId": "BAKERY_STAFF",
+      "role": "STAFF",
+      "workplace": "BAKERY",
+      "schedule": [
+        {
+          "from": "00:00",
+          "to": "00:00",
+          "activity": "WORK"
+        }
+      ]
+    },
+    {
+      "npcId": "BANK_STAFF",
+      "role": "STAFF",
+      "workplace": "BANK",
+      "schedule": [
+        {
+          "from": "00:00",
+          "to": "00:00",
+          "activity": "WORK"
+        }
+      ]
+    },
+    {
+      "npcId": "BARBER_STAFF",
+      "role": "STAFF",
+      "workplace": "BARBER",
+      "schedule": [
+        {
+          "from": "00:00",
+          "to": "00:00",
+          "activity": "WORK"
+        }
+      ]
+    },
+    {
+      "npcId": "CAFE_BARISTA",
+      "role": "STAFF",
+      "workplace": "CAFE",
+      "schedule": [
+        {
+          "from": "18:00",
+          "to": "06:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "18:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "CAFE_SERVER",
+      "role": "STAFF",
+      "workplace": "CAFE",
+      "schedule": [
+        {
+          "from": "10:00",
+          "to": "18:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "18:00",
+          "to": "18:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "18:30",
+          "to": "10:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "CAFE_STAFF",
+      "role": "STAFF",
+      "workplace": "CAFE",
+      "schedule": [
+        {
+          "from": "00:00",
+          "to": "00:00",
+          "activity": "WORK"
+        }
+      ]
+    },
+    {
+      "npcId": "DINER_STAFF",
+      "role": "STAFF",
+      "workplace": "DINER",
+      "schedule": [
+        {
+          "from": "00:00",
+          "to": "00:00",
+          "activity": "WORK"
+        }
+      ]
+    },
+    {
+      "npcId": "FIRE_CAPTAIN",
+      "role": "STAFF",
+      "workplace": "DINER",
+      "schedule": [
+        {
+          "from": "18:00",
+          "to": "06:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "18:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "FIRE_FIGHTER",
+      "role": "STAFF",
+      "workplace": "LAUNDROMAT",
+      "schedule": [
+        {
+          "from": "18:00",
+          "to": "06:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "18:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "FIRE_ROOKIE",
+      "role": "STAFF",
+      "workplace": "BARBER",
+      "schedule": [
+        {
+          "from": "18:00",
+          "to": "06:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "18:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "FLOWER_SHOP_STAFF",
+      "role": "STAFF",
+      "workplace": "FLOWER_SHOP",
+      "schedule": [
+        {
+          "from": "00:00",
+          "to": "00:00",
+          "activity": "WORK"
+        }
+      ]
+    },
+    {
+      "npcId": "HOME_STORE_STAFF",
+      "role": "STAFF",
+      "workplace": "HOME_STORE",
+      "schedule": [
+        {
+          "from": "00:00",
+          "to": "00:00",
+          "activity": "WORK"
+        }
+      ]
+    },
+    {
+      "npcId": "HOTEL_BELLHOP",
+      "role": "STAFF",
+      "workplace": "HOTEL",
+      "schedule": [
+        {
+          "from": "10:00",
+          "to": "22:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "22:00",
+          "to": "22:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "22:30",
+          "to": "10:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "HOTEL_CONCIERGE",
+      "role": "STAFF",
+      "workplace": "FLOWER_SHOP",
+      "schedule": [
+        {
+          "from": "18:00",
+          "to": "06:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "18:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "HOTEL_NIGHT_MANAGER",
+      "role": "STAFF",
+      "workplace": "HOTEL",
+      "schedule": [
+        {
+          "from": "18:00",
+          "to": "06:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "18:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "HOTEL_RECEPTIONIST",
+      "role": "STAFF",
+      "workplace": "HOTEL",
+      "schedule": [
+        {
+          "from": "10:00",
+          "to": "22:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "22:00",
+          "to": "22:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "22:30",
+          "to": "10:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "HOTEL_STAFF",
+      "role": "STAFF",
+      "workplace": "HOTEL",
+      "schedule": [
+        {
+          "from": "00:00",
+          "to": "00:00",
+          "activity": "WORK"
+        }
+      ]
+    },
+    {
+      "npcId": "LAUNDROMAT_STAFF",
+      "role": "STAFF",
+      "workplace": "LAUNDROMAT",
+      "schedule": [
+        {
+          "from": "00:00",
+          "to": "00:00",
+          "activity": "WORK"
+        }
+      ]
+    },
+    {
+      "npcId": "POLICE_OFFICER",
+      "role": "STAFF",
+      "workplace": "POLICE_STATION",
+      "schedule": [
+        {
+          "from": "06:00",
+          "to": "14:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "14:00",
+          "to": "14:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "14:30",
+          "to": "06:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "POLICE_PATROL_OFFICER",
+      "role": "STAFF",
+      "workplace": "BAKERY",
+      "schedule": [
+        {
+          "from": "18:00",
+          "to": "06:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "18:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "POLICE_ROOKIE",
+      "role": "STAFF",
+      "workplace": "POLICE_STATION",
+      "schedule": [
+        {
+          "from": "14:00",
+          "to": "22:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "22:00",
+          "to": "22:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "22:30",
+          "to": "14:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "POLICE_SERGEANT",
+      "role": "STAFF",
+      "workplace": "POLICE_STATION",
+      "schedule": [
+        {
+          "from": "22:00",
+          "to": "06:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "22:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "POST_OFFICE_STAFF",
+      "role": "STAFF",
+      "workplace": "POST_OFFICE",
+      "schedule": [
+        {
+          "from": "00:00",
+          "to": "00:00",
+          "activity": "WORK"
+        }
+      ]
+    },
+    {
+      "npcId": "SHOP_NIGHT_CLERK",
+      "role": "STAFF",
+      "workplace": "SHOP",
+      "schedule": [
+        {
+          "from": "23:00",
+          "to": "07:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "07:00",
+          "to": "07:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "07:30",
+          "to": "23:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "SHOP_PHARMACIST",
+      "role": "STAFF",
+      "workplace": "SHOP",
+      "schedule": [
+        {
+          "from": "15:00",
+          "to": "23:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "23:00",
+          "to": "23:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "23:30",
+          "to": "15:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "SHOP_STAFF",
+      "role": "STAFF",
+      "workplace": "SHOP",
+      "schedule": [
+        {
+          "from": "00:00",
+          "to": "00:00",
+          "activity": "WORK"
+        }
+      ]
+    },
+    {
+      "npcId": "TAXI_DRIVER",
+      "role": "STAFF",
+      "workplace": "TAXI",
+      "schedule": [
+        {
+          "from": "00:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "00:00",
+          "activity": "WORK"
+        }
+      ]
+    },
+    {
+      "npcId": "TOWN_EVENING_WALKER",
+      "role": "STAFF",
+      "workplace": "BANK",
+      "schedule": [
+        {
+          "from": "14:00",
+          "to": "22:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "22:00",
+          "to": "22:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "22:30",
+          "to": "14:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "TOWN_GRANDFATHER",
+      "role": "PASSERBY",
+      "workplace": "TOWN",
+      "schedule": [
+        {
+          "from": "06:00",
+          "to": "13:00",
+          "activity": "FREE"
+        },
+        {
+          "from": "13:00",
+          "to": "06:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "TOWN_GRANDMOTHER",
+      "role": "PASSERBY",
+      "workplace": "TOWN",
+      "schedule": [
+        {
+          "from": "06:00",
+          "to": "13:00",
+          "activity": "FREE"
+        },
+        {
+          "from": "13:00",
+          "to": "06:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "TOWN_HANDYMAN",
+      "role": "STAFF",
+      "workplace": "HOME_STORE",
+      "schedule": [
+        {
+          "from": "18:00",
+          "to": "06:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "18:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "TOWN_PASSERBY",
+      "role": "PASSERBY",
+      "workplace": "TOWN",
+      "schedule": [
+        {
+          "from": "09:00",
+          "to": "18:00",
+          "activity": "FREE"
+        },
+        {
+          "from": "18:00",
+          "to": "09:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "TOWN_RETIREE",
+      "role": "STAFF",
+      "workplace": "POST_OFFICE",
+      "schedule": [
+        {
+          "from": "18:00",
+          "to": "06:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "18:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "TOWN_SHOPPER",
+      "role": "STAFF",
+      "workplace": "BANK",
+      "schedule": [
+        {
+          "from": "22:00",
+          "to": "06:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "22:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "TOWN_STUDENT",
+      "role": "STAFF",
+      "workplace": "ARCADE",
+      "schedule": [
+        {
+          "from": "18:00",
+          "to": "06:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "06:00",
+          "to": "06:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "06:30",
+          "to": "18:00",
+          "activity": "OFF"
+        }
+      ]
+    }
+  ]
+}

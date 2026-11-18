@@ -118,14 +118,14 @@ def test_with_a_profile_the_place_facts_memory_level_and_instruction_still_reach
         client,
         provider,
         {**NPC, "profile": profile_of("CAFE_STAFF")},
-        memory={"visits": 2, "last_order": "a latte", "card": {"name": "Minsu", "claims": [], "events": [], "struggled": []}},
+        memory={"visits": 2, "card": {"name": "Minsu", "claims": [], "events": [], "struggled": [], "requests": ["ordered a latte"]}},
         instruction="Ask what size they want.",
         level=1,
     )
     system = system_of(body)
     assert "Maple Town" in system and "The counter of the corner cafe." in system  # 장소
     assert "Menu: latte $5." in system  # 백엔드가 보낸 사실
-    assert "Their name: Minsu" in system and "Last time they ordered a latte" in system  # 기억
+    assert "Their name: Minsu" in system and "asked for or did with you before: ordered a latte" in system  # 기억
     assert "each under 12 words" in system and body["max_tokens"] == 154  # 난이도 1 대사 규칙 + 표정 표시 64토큰
     assert "Ask what size they want." in system  # 이번 대답에서 할 일
 
@@ -245,3 +245,43 @@ def test_other_requests_accept_the_same_npc_with_its_profile(client, provider):
     provider.answers["hint"] = lambda b: ok(json.dumps({"say_this": say_this, "keywords": [{"en": "latte", "ko": "라테"}]}))
     r = client.post("/v1/hint", json={"npc": {**NPC, "profile": profile_of("CAFE_STAFF")}, "goal": "order", "history": []})
     assert r.status_code == 200
+
+
+def test_the_temperament_shows_as_concrete_actions_right_before_the_reply(client, provider):
+    """인격 칸의 말투 규칙과 네 축 이름만으로는 실제 모델 대답이 바뀌지 않았다(S15P31A305-928 블라인드 채점 0.57 → 0.55).
+    대답 바로 앞(이번 턴 칸)에 이번 대답에서 할 행동을 축마다 하나씩(temperament-speech.json의 inReply) 넣는다."""
+    npc = {**NPC, "profile": profile_of("HOTEL_NIGHT_MANAGER")}  # ISTJ
+    turn = system_of(reply_request(client, provider, npc)).split("## This turn")[1]
+    axes = json.loads((Path(__file__).resolve().parents[2] / "npcs/rules/temperament-speech.json").read_text(encoding="utf-8"))["axes"]
+    istj = (("extraversion", "low"), ("openness", "low"), ("agreeableness", "low"), ("conscientiousness", "high"))
+    actions = [axes[axis]["inReply"][side] for axis, side in istj]
+
+    assert "; ".join(actions) + "." in turn
+
+
+def test_the_reply_answers_their_words_before_the_temperament_actions(client, provider):
+    """행동 네 개를 두 문장 대답에 모두 넣다 보니 "고마워요 + 답 + 비유 + 그래서 무슨 일로 오셨어요?"를 이어 붙인 대답이 됐다
+    (Owen, "Do you like working here?" → "... so what brings you here?"). 하는 말에 먼저 답하고 행동은 맞는 것만 쓰게 한다."""
+    npc = {**NPC, "profile": profile_of("HOTEL_RECEPTIONIST")}
+    turn = system_of(reply_request(client, provider, npc)).split("## This turn")[1]
+
+    assert "Answer what they actually said first" in turn
+    assert "not as a checklist" in turn
+
+
+def test_an_organized_npc_does_not_cut_small_talk_back_to_business():
+    """J(계획형) 행동 '다음 단계로 끝내기'가 잡담 중에도 "what brings you here?"로 용건을 물었다. 잡담이면 그 이야기를 잇는다."""
+    axes = json.loads((Path(__file__).resolve().parents[2] / "npcs/rules/temperament-speech.json").read_text(encoding="utf-8"))["axes"]
+
+    assert "just chatting" in axes["conscientiousness"]["inReply"]["high"]
+
+
+def test_the_temperament_yields_to_the_attitude_and_the_mood(client, provider):
+    """성격 행동이 호감 단계를 덮지 않게(실제 모델에서 적대인 Ben이 다정하게 인사함) 태도·기분을 먼저 따르라고 적는다.
+    같은 말을 매 턴 되풀이하지 않게도 한다."""
+    npc = {**NPC, "profile": profile_of("TOWN_PASSERBY")}
+    turn = system_of(reply_request(client, provider, npc, relationship={"recognition": 30, "affinity": -40})).split("## This turn")[1]
+
+    assert "How you treat this person:" in turn
+    assert "If How you treat this person or How you feel right now says otherwise, follow those" in turn
+    assert "without reusing a phrase from your earlier replies" in turn

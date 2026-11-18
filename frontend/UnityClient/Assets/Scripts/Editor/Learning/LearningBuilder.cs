@@ -117,6 +117,15 @@ namespace A305.EditorTools.Learning
                 UiBuilderTools.BoldFont()
             );
 
+        /// <summary>HUD 설정 창의 효과음 카드에 크기 막대 줄만 덧붙인다(S15P31A305-949). HUD의 다른 구성은 건드리지 않는다.</summary>
+        public static void AddSoundVolume(GameObject hud) =>
+            SetUpSoundEffects(
+                hud.GetComponent<SettingsView>(),
+                (RectTransform)hud.transform.Find("Settings/Window"),
+                UiBuilderTools.BoldFont(),
+                UiBuilderTools.RegularFont()
+            );
+
         // 내 정보 창에서 설정 창으로 옮긴 줄
         private static readonly string[] SettingRows =
         {
@@ -1054,7 +1063,7 @@ namespace A305.EditorTools.Learning
             lookSensitivity.SetSiblingIndex(status.transform.GetSiblingIndex() + 1);
             SetUpNpcSpeechSpeed(view, window, bold, regular);
             SetUpConversationLevel(view, window, bold);
-            SetUpSoundEffects(view, window);
+            SetUpSoundEffects(view, window, bold, regular);
             // 선택 동의(음성 처리·AI 개선)는 받은 목록대로 줄을 복제한다(USER-02·03). 게스트는 음성 처리만 받는다.
             UiBuilderTools.FindOrCreateText(
                 window,
@@ -1083,7 +1092,13 @@ namespace A305.EditorTools.Learning
 
         // 이 기기에 저장하는 설정이라 NPC 말 빠르기 줄 아래에 둔다. 제목과 [켜기]·[끄기]를 한 줄에 둔 카드로, 대화 난이도 카드를 복제해
         // 버튼 모양과 강조색을 그대로 쓰고, 지금 상태의 버튼은 SettingsView가 강조색으로 칠한다.
-        private static void SetUpSoundEffects(Component view, RectTransform window)
+        // 그 아래 [작게] 막대 [크게] 현재 크기(%) 줄로 크기를 고른다. 막대 모양은 MyPageLayoutBuilder가 다른 설정 막대와 맞춘다.
+        private static void SetUpSoundEffects(
+            Component view,
+            RectTransform window,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
         {
             Transform level = window.Find("ConversationLevel");
             Transform group = window.Find("SoundEffects");
@@ -1122,6 +1137,37 @@ namespace A305.EditorTools.Learning
                 "soundOffButton",
                 choices.Find("OffButton").GetComponent<Button>()
             );
+
+            RectTransform volume = UiBuilderTools.FindOrCreateButtonRow(group, "VolumeRow");
+            volume.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+            FixWidth(
+                UiBuilderTools.FindOrCreateText(
+                    volume,
+                    "Quiet",
+                    regular,
+                    20f,
+                    SubTextColor,
+                    "작게"
+                ),
+                72f
+            );
+            Slider slider = UiBuilderTools.FindOrCreateSlider(volume, "Slider", 0f, 1f, 1f);
+            FixWidth(
+                UiBuilderTools.FindOrCreateText(volume, "Loud", regular, 20f, SubTextColor, "크게"),
+                72f
+            );
+            TMP_Text value = UiBuilderTools.FindOrCreateText(
+                volume,
+                "Value",
+                bold,
+                30f,
+                Color.white,
+                "100%"
+            );
+            value.alignment = TextAlignmentOptions.Right;
+            FixWidth(value, 96f);
+            BuilderTools.SetReference(view, "soundVolumeSlider", slider);
+            BuilderTools.SetReference(view, "soundVolumeText", value);
         }
 
         // 테마 Builder가 닫기를 창 오른쪽 위로 옮겼으면 그 버튼을 쓰고, 아니면 버튼 줄에서 찾거나 만든다.

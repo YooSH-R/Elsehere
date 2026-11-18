@@ -1,10 +1,35 @@
-package com.elsehere.ai.client;
+package com.elsehere.ai.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.groups.Tuple.tuple;
 
 import ch.qos.logback.classic.Level;
+import com.elsehere.ai.client.ExpressionsResult;
+import com.elsehere.ai.client.FeedbackInput;
+import com.elsehere.ai.client.FollowUpResult;
+import com.elsehere.ai.client.GuardResult;
+import com.elsehere.ai.client.HintResult;
+import com.elsehere.ai.client.JudgeResult;
+import com.elsehere.ai.client.MeaningResult;
+import com.elsehere.ai.client.MemoryCardResult;
+import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.NpcReplyChunk;
+import com.elsehere.ai.client.NpcReplyListener;
+import com.elsehere.ai.client.RelationshipChange;
+import com.elsehere.ai.client.SttResult;
+import com.elsehere.ai.client.SuggestResult;
+import com.elsehere.ai.client.WorkerFeedback;
+import com.elsehere.ai.client.WorkerFollowUp;
+import com.elsehere.ai.client.WorkerLearner;
+import com.elsehere.ai.client.WorkerLine;
+import com.elsehere.ai.client.WorkerMemory;
+import com.elsehere.ai.client.WorkerNpc;
+import com.elsehere.ai.client.WorkerRelationship;
+import com.elsehere.ai.client.WorkerSpeechPhrase;
+import com.elsehere.ai.client.WorkerState;
+import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.client.WorkerUsage;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.logging.LogCapture;
@@ -17,6 +42,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -181,7 +208,7 @@ class AiWorkerClientTest {
     client.reply(
         TRACE,
         NPC,
-        new WorkerMemory(2, null, Map.of("attitude", "friendly")),
+        new WorkerMemory(2, Map.of("attitude", "friendly")),
         List.of(WorkerLine.npc("Hi")),
         "Hello",
         "",
@@ -197,8 +224,8 @@ class AiWorkerClientTest {
     assertThat(request.body())
         .contains("\"level\":2")
         .contains("\"tts_voice\":\"af_heart\"")
-        .contains(
-            "\"memory\":{\"visits\":2,\"last_order\":null,\"card\":{\"attitude\":\"friendly\"}}");
+        .contains("\"memory\":{\"visits\":2,\"card\":{\"attitude\":\"friendly\"}}")
+        .doesNotContain("last_order");
   }
 
   @Test
@@ -288,6 +315,19 @@ class AiWorkerClientTest {
 
     assertThat(received.get("/v1/npc/reply").body())
         .contains("\"learner\":{\"nickname\":\"Sun\",\"avatar_type\":\"F\",\"speech_speed\":1.3}");
+  }
+
+  @Test
+  @DisplayName("대화를 시작한 순간의 NPC 욕구를 npc 안이 아니라 요청 맨 위의 needs로 보낸다")
+  void reply_sendsNpcNeedsAtTheTopLevel() {
+    respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
+
+    client.reply(
+        TRACE, NPC.withNeeds(Map.of("HUNGER", 35.0)), null, List.of(), "Hello", "", 1, null);
+
+    String body = received.get("/v1/npc/reply").body();
+    assertThat(body).contains("\"needs\":{\"HUNGER\":35.0}");
+    assertThat(body.indexOf("\"needs\"")).isEqualTo(body.lastIndexOf("\"needs\""));
   }
 
   @Test
@@ -572,6 +612,26 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("추천 단어 목표가 워커 상한 300자를 넘으면 잘라서 보낸다")
+  void suggest_clipsGoalLongerThanWorkerLimit() {
+    respond("/v1/suggest", 200, "application/json", "{\"words\": [\"wrap\"], \"usage\": []}");
+    String goal = "The learner asks for flowers. ".repeat(15);
+
+    client.suggest(TRACE, NPC, List.of(WorkerLine.npc("Who are they for?")), goal, 1);
+
+    // 테스트 서버는 본문을 ISO-8859-1로 받아 두므로, 글자 수를 세려고 UTF-8로 다시 읽는다.
+    String body =
+        new String(
+            received.get("/v1/suggest").body().getBytes(StandardCharsets.ISO_8859_1),
+            StandardCharsets.UTF_8);
+    Matcher sent = Pattern.compile("\"goal\":\"([^\"]*)\"").matcher(body);
+    assertThat(sent.find()).isTrue();
+    assertThat(sent.group(1))
+        .hasSizeLessThanOrEqualTo(300)
+        .startsWith("The learner asks for flowers.");
+  }
+
+  @Test
   @DisplayName("뜻 보기는 NPC·대사·난이도를 보내고 한국어 뜻·단어 풀이·사용량을 읽는다")
   void meaning_sendsLineAndReadsMeaningAndGlossary() {
     respond(
@@ -784,7 +844,7 @@ class AiWorkerClientTest {
     client.reply(
         TRACE,
         NPC,
-        new WorkerMemory(2, null, null, new WorkerRelationship(23, 3, 0)),
+        new WorkerMemory(2, null, new WorkerRelationship(23, 3, 0)),
         List.of(),
         "Hello",
         "",
@@ -792,7 +852,7 @@ class AiWorkerClientTest {
         null);
 
     assertThat(received.get("/v1/npc/reply").body())
-        .contains("\"memory\":{\"visits\":2,\"last_order\":null,\"card\":null}")
+        .contains("\"memory\":{\"visits\":2,\"card\":null}")
         .contains(
             "\"relationship\":{\"recognition\":23,\"affinity\":3,\"days_since_last_talk\":0}");
   }
@@ -938,6 +998,79 @@ class AiWorkerClientTest {
           .asString()
           .matches("ai_worker_call path=/v1/guard status=200 duration_ms=\\d+")
           .doesNotContain("my secret plan");
+    }
+  }
+
+  @Test
+  @DisplayName("워커가 요청 형식으로 거절하면 문제 칸과 오류 종류를 남기고 메시지는 남기지 않는다")
+  void invalidRequest_logsRejectedFieldsWithoutMessage() {
+    respond(
+        "/v1/guard",
+        400,
+        "application/json",
+        """
+        {"error": {"code": "invalid_request", "message": "요청 형식 오류 (my secret plan)",
+          "fields": [{"loc": "instruction", "type": "string_too_long"},
+                     {"loc": "history.3.text", "type": "missing"}]}}
+        """);
+
+    try (LogCapture logs = LogCapture.atInfo(AiWorkerClient.class)) {
+      assertThatThrownBy(() -> client.guard(TRACE, NPC, List.of(), "hello"))
+          .isInstanceOf(BusinessException.class);
+
+      assertThat(logs.messages(Level.WARN))
+          .singleElement()
+          .asString()
+          .isEqualTo(
+              "ai_worker_error status=400 code=invalid_request"
+                  + " fields=instruction:string_too_long,history.3.text:missing")
+          .doesNotContain("my secret plan");
+    }
+  }
+
+  @Test
+  @DisplayName("문제 칸 이름에 이름 글자가 아닌 것이 오면 지우고 남긴다")
+  void invalidRequest_dropsUnexpectedCharactersFromFields() {
+    respond(
+        "/v1/guard",
+        400,
+        "application/json",
+        """
+        {"error": {"code": "invalid_request", "message": "",
+          "fields": [{"loc": "needs.my secret=1", "type": "literal error"}]}}
+        """);
+
+    try (LogCapture logs = LogCapture.atInfo(AiWorkerClient.class)) {
+      assertThatThrownBy(() -> client.guard(TRACE, NPC, List.of(), "hello"))
+          .isInstanceOf(BusinessException.class);
+
+      assertThat(logs.messages(Level.WARN))
+          .singleElement()
+          .asString()
+          .isEqualTo(
+              "ai_worker_error status=400 code=invalid_request fields=needs.mysecret1:literalerror");
+    }
+  }
+
+  @Test
+  @DisplayName("문제 칸이 없는 워커 오류는 지금처럼 상태와 코드만 남긴다")
+  void workerErrorWithoutFields_logsStatusAndCode() {
+    respond(
+        "/v1/guard",
+        503,
+        "application/json",
+        """
+        {"error": {"code": "provider_unavailable", "message": "모든 모델이 응답하지 않음"}}
+        """);
+
+    try (LogCapture logs = LogCapture.atInfo(AiWorkerClient.class)) {
+      assertThatThrownBy(() -> client.guard(TRACE, NPC, List.of(), "hello"))
+          .isInstanceOf(BusinessException.class);
+
+      assertThat(logs.messages(Level.WARN))
+          .singleElement()
+          .asString()
+          .isEqualTo("ai_worker_error status=503 code=provider_unavailable");
     }
   }
 

@@ -14,8 +14,10 @@ import com.elsehere.feedback.entity.FeedbackReviews;
 import com.elsehere.feedback.entity.FeedbackStatus;
 import com.elsehere.feedback.repository.ConversationFeedbackRepository;
 import com.elsehere.feedback.repository.TurnFeedbackRepository;
+import com.elsehere.mission.service.ShowcaseReviewGoals;
 import com.elsehere.review.dto.ReviewCardListResponse;
 import com.elsehere.review.dto.ReviewCardResponse;
+import com.elsehere.review.dto.ReviewGoal;
 import com.elsehere.review.dto.ReviewScenario;
 import com.elsehere.review.dto.ReviewTarget;
 import com.elsehere.review.entity.ReviewCard;
@@ -128,6 +130,39 @@ public class ReviewCardService {
     throw new BusinessException(ErrorCode.VALIDATION_FAILED);
   }
 
+  /**
+   * 뜻이 비어 있던 표현에 채운 뜻을 카드에 저장한다. 대화 중 추천 문장도 뜻과 함께 카드 표현으로 남겨, 다음부터는 저장한 뜻을 그대로 읽고 모델을 다시 부르지 않는다.
+   * 이미 뜻이 있는 표현은 바꾸지 않는다.
+   */
+  @Transactional
+  public ReviewCardResponse recordMeanings(Long userId, Long cardId, Map<String, String> meanings) {
+    ReviewCard card = owned(userId, cardId);
+    Npc npc =
+        npcRepository
+            .findById(card.getNpcId())
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    List<ReviewTarget> targets =
+        response(card, npc).targets().stream()
+            .map(target -> withMeaning(target, meanings))
+            .toList();
+    card.replaceTargets(jsonMapper.writeValueAsString(targets));
+    return response(card, npc);
+  }
+
+  private static ReviewTarget withMeaning(ReviewTarget target, Map<String, String> meanings) {
+    String meaning = meanings.get(target.expression());
+    if (meaning == null || (target.meaningKo() != null && !target.meaningKo().isBlank())) {
+      return target;
+    }
+    return new ReviewTarget(
+        target.expression(),
+        meaning,
+        target.usageKo(),
+        target.exampleEn(),
+        target.exampleKo(),
+        target.originalText());
+  }
+
   /** 같은 원본 대화에 대한 동시 저장을 원본 행 잠금으로 직렬화한다. */
   @Transactional
   public ReviewCardResponse create(Long userId, Long conversationId) {
@@ -151,7 +186,10 @@ public class ReviewCardService {
     }
     var savedReviews = jsonMapper.readValue(feedback.getReviews(), FeedbackReviews.class);
     var targets =
-        ReviewTargets.select(corrections(conversationId), savedReviews.situationExpressions());
+        ReviewTargets.includeRecommendations(
+            ReviewTargets.select(corrections(conversationId), savedReviews.situationExpressions()),
+            turnRepository.findAllByConversationIdOrderBySeqAsc(conversationId),
+            jsonMapper);
     if (targets.size() < 2) {
       throw new BusinessException(ErrorCode.REVIEW_NOT_READY);
     }
@@ -189,8 +227,10 @@ public class ReviewCardService {
 
   private ReviewCardResponse response(ReviewCard card, Npc npc) {
     List<ReviewTarget> targets =
-        ReviewTargets.forPractice(
-            Arrays.asList(jsonMapper.readValue(card.getTargets(), ReviewTarget[].class)));
+        ReviewTargets.includeRecommendations(
+            Arrays.asList(jsonMapper.readValue(card.getTargets(), ReviewTarget[].class)),
+            turnRepository.findAllByConversationIdOrderBySeqAsc(card.getSourceConversationId()),
+            jsonMapper);
     List<String> used =
         Arrays.asList(jsonMapper.readValue(card.getUsedExpressions(), String[].class));
     return new ReviewCardResponse(
@@ -204,11 +244,28 @@ public class ReviewCardService {
         card.getPracticeCount(),
         card.getLastPracticedAt(),
         used,
-        card.getScenario() != null
-            ? jsonMapper.readValue(card.getScenario(), ReviewScenario.class)
-            : ReviewScenarios.capture(
-                conversationRepository.findById(card.getSourceConversationId()).orElse(null),
-                npc.getCode(),
-                card.getSituationSummary()));
+        withGoals(
+            card.getScenario() != null
+                ? jsonMapper.readValue(card.getScenario(), ReviewScenario.class)
+                : ReviewScenarios.capture(
+                    conversationRepository.findById(card.getSourceConversationId()).orElse(null),
+                    npc.getCode(),
+                    card.getSituationSummary())));
+  }
+
+  // 시연 상황처럼 판정할 조건이 있으면 카드에 조건을 함께 보인다. 저장한 상황에는 넣지 않고 읽을 때 붙인다.
+  private static ReviewScenario withGoals(ReviewScenario scenario) {
+    if (scenario == null) {
+      return null;
+    }
+    return new ReviewScenario(
+        scenario.key(),
+        scenario.title(),
+        scenario.situation(),
+        scenario.learnerRole(),
+        scenario.learnerNotes(),
+        ShowcaseReviewGoals.goals(scenario.key()).stream()
+            .map(goal -> new ReviewGoal(goal.id(), goal.title(), goal.hint()))
+            .toList());
   }
 }

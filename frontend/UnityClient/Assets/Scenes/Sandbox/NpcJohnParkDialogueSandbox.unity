@@ -1027,7 +1027,7 @@ MonoBehaviour:
   player: {fileID: 1563196669}
   dialogue: {fileID: 739146611}
   offerView: {fileID: 1168672352}
-  animationDriver: {fileID: 0}
+  animationDriver: {fileID: 1555536763}
   talkGesture: 0
 --- !u!143 &1555536762
 CharacterController:
@@ -1054,6 +1054,17 @@ CharacterController:
   m_SkinWidth: 0.005
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0.85, z: 0}
+--- !u!114 &1555536763 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1760771313265633058, guid: ecacae2fe218fd84185cb05b45aa83b3, type: 3}
+  m_PrefabInstance: {fileID: 1555536758}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1555536760}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a054ece7e06fd5643a2986a078abca13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Characters::A305.Characters.CharacterAnimationDriver
 --- !u!1001 &1563196667
 PrefabInstance:
   m_ObjectHideFlags: 0

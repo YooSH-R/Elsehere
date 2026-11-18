@@ -40,7 +40,12 @@ class DinerMealTest {
   private final FirstDayMissionRepository firstDays = mock(FirstDayMissionRepository.class);
   private final ConversationRepository conversations = mock(ConversationRepository.class);
   private final TownStoryService service =
-      new TownStoryService(stories, firstDays, mock(NpcRepository.class), conversations);
+      new TownStoryService(
+          stories,
+          firstDays,
+          mock(NpcRepository.class),
+          conversations,
+          mock(com.elsehere.favor.repository.FavorRepository.class));
 
   @Test
   void orderWaitReceiveAndSpillAreSeparateAndReceiptIsIdempotent() {

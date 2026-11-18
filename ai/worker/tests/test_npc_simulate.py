@@ -78,35 +78,44 @@ def test_an_action_for_another_role_is_not_done():
     assert npc_simulate.simulate_day(npc("HOTEL", "FREE", role="PASSERBY"), world, NO_REQUESTS)["actions"] == []
 
 
-HUNGRY_AT_WORK = rules(
-    {"HUNGER": {"dropPerHour": 6, "start": 35}},
-    [action("EAT", "CAFE", {"HUNGER": 40})],
-    {"WORK": ["WORK"]},
-)
-BRING_MUFFIN = {
+HUNGRY_AT_WORK = {
+    **rules({"HUNGER": {"dropPerHour": 6, "start": 35}}, [action("EAT", "CAFE", {"HUNGER": 40})], {"WORK": ["WORK"]}),
+    "places": {"CAFE": {"offers": [{"key": "muffin", "fills": {"HUNGER": 40}}]}},
+}
+BRING_FOOD = {
     "requests": [
         {
-            "id": "bring_muffin",
-            "need": "HUNGER",
-            "below": 30,
-            "role": "STAFF",
+            "id": "bring_food",
+            "trigger": {"need": "HUNGER", "below": 30},
+            "roles": ["STAFF"],
             "activities": ["WORK"],
-            "steps": [{"with": "staff", "place": "CAFE"}, {"with": "requester"}],
+            "solve": "ERRAND",
         }
     ]
 }
 
 
 def test_an_unmet_need_while_tied_to_the_post_becomes_a_request_once():
-    """35에서 시간당 6씩 줄면 1시간째에 29로 기준(30) 아래. 하루에 한 번만."""
-    day = npc_simulate.simulate_day(npc("HOTEL", "WORK"), HUNGRY_AT_WORK, BRING_MUFFIN)
+    """35에서 시간당 6씩 줄면 1시간째에 29로 기준(30) 아래. 하루에 한 번만. 그 욕구를 채우는 가게가 해결처다."""
+    day = npc_simulate.simulate_day(npc("HOTEL", "WORK"), HUNGRY_AT_WORK, BRING_FOOD)
 
-    assert day["requests"] == [{"time": "01:00", "id": "bring_muffin"}]
+    assert day["requests"] == [{"time": "01:00", "id": "bring_food", "place": "CAFE"}]
 
 
 def test_an_npc_does_not_ask_to_fetch_something_from_its_own_place():
-    """카페 직원이 학습자에게 '카페 직원에게 머핀을 사다 달라'고 하지 않는다."""
-    assert npc_simulate.simulate_day(npc("CAFE", "WORK"), HUNGRY_AT_WORK, BRING_MUFFIN)["requests"] == []
+    """카페 직원이 학습자에게 '카페 직원에게 머핀을 사다 달라'고 하지 않는다. 다른 가게에 먹을 것이 없으면 부탁하지 않는다."""
+    assert npc_simulate.simulate_day(npc("CAFE", "WORK"), HUNGRY_AT_WORK, BRING_FOOD)["requests"] == []
+
+
+def test_a_work_meal_brings_the_need_back_to_its_start():
+    """근무 중에도 끼니 때는 시작값으로 되돌아간다(설계 7.5). 그 전에 기준 아래로 내려가면 부탁한다."""
+    worker = {**npc("HOTEL", "WORK"), "meals": [{"at": "02:00", "need": "HUNGER"}]}
+    world = {**HUNGRY_AT_WORK, "needs": {**HUNGRY_AT_WORK["needs"], "HUNGER": {"dropPerHour": 6, "start": 70}}}
+
+    day = npc_simulate.simulate_day(worker, world, NO_REQUESTS)
+
+    assert day["needsAt"]["02:00"]["HUNGER"] == 70
+    assert day["needsAt"]["03:00"]["HUNGER"] == 64
 
 
 def test_an_npc_off_duty_is_not_simulated():
@@ -130,13 +139,27 @@ def service_day(npc_id: str) -> dict:
     return npc_simulate.simulate_service_day(npc_id)
 
 
-def test_staff_away_from_food_ask_the_learner_but_cafe_staff_look_after_themselves():
-    """Jake는 06~18시 근무 중 호텔에서 채우지 못하는 음식·커피를 부탁한다. Mia는 자기 카페로 심부름을 보내지 않는다."""
+def test_staff_tied_to_the_post_ask_for_food_and_coffee_from_another_shop():
+    """24시간 상주하는 Jake·Mia도 끼니 사이에는 배고파(30 아래) 다른 가게의 먹을 것을 부탁한다. 자기 가게로는 보내지 않는다.
+    기운은 상주 직원에게서 30 아래로 내려가지 않고, 교대 직원(빵집 등)이 커피를 부탁한다."""
     jake = service_day("HOTEL_STAFF")["requests"]
+    mia = service_day("CAFE_STAFF")["requests"]
+    baker = service_day("BAKERY_STAFF")["requests"]
 
-    assert [request["id"] for request in jake] == ["bring_muffin", "bring_coffee"]
-    assert all("06:00" <= request["time"] < "18:00" for request in jake)
-    assert service_day("CAFE_STAFF")["requests"] == []
+    assert "bring_food" in {request["id"] for request in jake}
+    assert "bring_coffee" in {request["id"] for request in baker}
+    assert all(request.get("place") != "BAKERY" for request in baker)
+    assert "bring_food" in {request["id"] for request in mia}
+    assert all(request.get("place") != "CAFE" for request in mia)
+    assert all(request.get("place") != "HOTEL" for request in jake)
+
+
+def test_a_resident_is_not_hungry_all_day():
+    """끼니 리듬이 없으면 상주 직원은 하루 내내 0에 붙는다. 끼니 사이 몇 시간만 기준(40) 아래다."""
+    needs = service_day("HOTEL_STAFF")["needsAt"]
+
+    hungry = [clock for clock, values in needs.items() if values["HUNGER"] < 40]
+    assert 0 < len(hungry) <= 12
 
 
 def test_a_passerby_new_in_town_asks_the_learner_to_chat_in_the_afternoon():
@@ -198,6 +221,7 @@ def test_the_command_line_prints_each_service_npc_day_and_the_curves(capsys):
 
     out = capsys.readouterr().out
     assert all(npc_id in out for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"])
-    assert "06:50 bring_muffin" in out  # Jake는 24시간 상주하므로 시뮬레이션 시작인 00:00부터 배고픔이 줄어든다
+    # Jake는 24시간 상주하므로 끼니 사이 배고픔이 30 아래로 내려가는 점심 끼니 전에 다른 가게의 먹을 것을 부탁한다
+    assert "12:10 bring_food→BAKERY" in out
     assert "본 적 있음" in out and "단골" in out
     assert "튜토리얼 안내 NPC" in out

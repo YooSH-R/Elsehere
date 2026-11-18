@@ -270,8 +270,7 @@ namespace A305.EditorTools.Npc
                 BuilderTools.SetReference(passerby, "dialogue", dialogue);
                 BuilderTools.SetReference(passerby, "offerView", offer);
                 // 튜토리얼 설정은 튜토리얼에서 길을 묻는 Ben에게만 있다.
-                // 식당 존박은 전용 리듬 동작을 쓰려고 공용 애니메이션 연결을 비워 둔다.
-                BuilderTools.RequireReferences(passerby, "tutorialSettings", "animationDriver");
+                BuilderTools.RequireReferences(passerby, "tutorialSettings");
             }
         }
 

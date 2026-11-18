@@ -39,13 +39,18 @@ public class ReviewPracticeResults {
         cardRepository
             .findByIdAndUserId(cardId, userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-    conversationRepository
-        .findByIdAndUserId(conversationId, userId)
-        .filter(conversation -> cardId.equals(conversation.getReviewCardId()))
-        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    Conversation conversation =
+        conversationRepository
+            .findByIdAndUserId(conversationId, userId)
+            .filter(found -> cardId.equals(found.getReviewCardId()))
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     List<ReviewExpressionUsage> expressions = expressions(card, utterances(conversationId));
     return new ReviewPracticeProgressResponse(
-        conversationId, cardId, usedExpressions(expressions).size(), expressions);
+        conversationId,
+        cardId,
+        usedExpressions(expressions).size(),
+        expressions,
+        conversation.getReviewCompletedGoals());
   }
 
   @Transactional(propagation = Propagation.MANDATORY)
@@ -88,8 +93,11 @@ public class ReviewPracticeResults {
 
   private List<ReviewExpressionUsage> expressions(
       ReviewCard card, List<ReviewUtterance> utterances) {
-    return Arrays.stream(jsonMapper.readValue(card.getTargets(), ReviewTarget[].class))
-        .filter(target -> ReviewTargets.learnerCanSay(target.expression(), target.usageKo()))
+    return ReviewTargets.includeRecommendations(
+            Arrays.asList(jsonMapper.readValue(card.getTargets(), ReviewTarget[].class)),
+            turnRepository.findAllByConversationIdOrderBySeqAsc(card.getSourceConversationId()),
+            jsonMapper)
+        .stream()
         .map(
             target ->
                 new ReviewExpressionUsage(

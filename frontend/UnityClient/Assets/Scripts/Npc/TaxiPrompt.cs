@@ -46,7 +46,8 @@ namespace A305.Npc
             bool canTalk,
             bool canStartConversation,
             int? remainingConversations,
-            string driverName
+            string driverName,
+            bool boarding = false
         )
         {
             if (!canHail && !canTalk)
@@ -77,7 +78,7 @@ namespace A305.Npc
                 ? new TaxiPrompt(TaxiPromptKind.Hail, HailLabel, remaining)
                 : new TaxiPrompt(
                     TaxiPromptKind.Talk,
-                    PasserbyOfferText.TalkLabel(driverName),
+                    boarding ? HailLabel : PasserbyOfferText.TalkLabel(driverName),
                     remaining
                 );
         }

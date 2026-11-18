@@ -23,12 +23,28 @@ Unity 클라이언트는 `frontend/UnityClient`에서 관리합니다. 저장소
 | --- | --- | --- |
 | 개발 앱 | `https://dev.elsehere.kr/` | Unity WebGL·백엔드·AI 워커·DB. `dev` 변경의 검사·자동 배포 대상 |
 | 개발 상태 확인 | `https://dev.elsehere.kr/api/health` | HTTP 200과 `status: UP` 확인. 로그인·주요 기능의 정상 동작은 별도 검증 |
-| 운영 | `https://elsehere.kr/`, `https://www.elsehere.kr/` | 환경 확인용 응답. 실제 운영 앱 배포 전 |
+| 운영 앱 | `https://elsehere.kr/` | `main` 병합으로 배포하는 운영 앱. `https://www.elsehere.kr/`은 대표 도메인으로 301 리다이렉트 |
 | 서버 접속 | `ubuntu@k15a305.p.ssafy.io` | 키를 사용하는 SSH 접속과 관리 화면 터널 |
 
 새 개발 주소에는 `/dev` 접두사를 붙이지 않습니다. 기존 `k15a305.p.ssafy.io`의 경로 기반 주소는 호환을 위해 유지하며 신규 접속 기준은 `dev.elsehere.kr`입니다.
 
 `dev` 변경은 필요한 영역의 검사·빌드가 통과하면 자동 배포하며, 배포 후 점검에 성공해야 성공 기록을 갱신합니다. 병합만으로 서버가 최신이라고 판단하지 않고 [배포 결과](docs/dev-auto-deployment.md)를 확인합니다. 웹 커밋은 `/version.json`으로 확인하고 백엔드·AI 이미지도 함께 대조합니다. 검사·배포 기준은 [CI/CD 문서](docs/ci-cd.md), HTTPS·갱신·브라우저 검증은 [HTTPS 운영 문서](docs/https.md), 서버 로그·관리 화면·경보는 [관측 운영 문서](docs/observability.md)를 따릅니다.
+
+## 이용 환경과 최소·권장 사양
+
+설치 없이 브라우저에서 실행합니다. WebGL 2를 지원하는 최신 Chrome·Edge·Firefox·Safari와 HTTPS 접속이 필요하고, 정식 지원 대상은 PC 웹입니다. 첫 접속에 게임 파일을 PC 약 125~130MB, 휴대폰 약 135~140MB 받습니다.
+
+아래 하드웨어 값은 빌드 크기·탭 메모리 상한·그래픽 설정으로 잡은 **추정값**이며, 실제 기기에서 로딩 시간·프레임·탭 메모리를 측정한 뒤 확정합니다. 확정된 조건과 추정 근거는 [이용 환경과 최소·권장 사양](docs/unity/client-requirements.md)에 있습니다.
+
+| 항목 | 최소 사양(추정) | 권장 사양(추정) |
+| --- | --- | --- |
+| PC CPU | 4코어, Intel 8세대 Core i5·AMD Ryzen 3000 시리즈급 | Intel 11세대 Core i5·AMD Ryzen 5 5000 시리즈급 이상 |
+| PC 그래픽 | WebGL 2가 동작하는 내장 그래픽(Intel UHD 620급) | Intel Iris Xe·AMD Radeon 내장 그래픽 이상, 또는 GeForce GTX 1650급 외장 그래픽 |
+| PC RAM | 8GB | 16GB |
+| Mac | Intel Mac은 위 PC 기준, Apple M1 | Apple M1 이상 |
+| Android (지원 범위 미정) | RAM 6GB 중급 기기 | RAM 8GB 이상 상위 기기 |
+| iPhone (지원 범위 미정) | RAM 6GB(iPhone 12 Pro·13 Pro·14 이상) | RAM 8GB(iPhone 15 Pro 이상) |
+| 네트워크 | 10Mbps(첫 접속 내려받기 약 100초) | 50Mbps 이상(약 20초) |
 
 ## 담당 영역
 
@@ -83,7 +99,7 @@ AI 워커는 Spring과 같은 서버에서 별도 프로세스(컨테이너)로 
 - [공통 코드 규약](docs/code-conventions.md)
 - [변경 영역별 CI/CD와 운영 통합 검증 기준](docs/ci-cd.md)
 - [Unity 개발 환경과 Web 실행](docs/unity/setup.md)
-- [이용 환경과 최소 사양](docs/unity/client-requirements.md)
+- [이용 환경과 최소·권장 사양](docs/unity/client-requirements.md)
 - [Unity 개발 규약](docs/unity/conventions.md)
 - [AI 코드·문서 작성 지침](AGENTS.md)
 - [AI 공통 검사와 테스트](ai/README.md)

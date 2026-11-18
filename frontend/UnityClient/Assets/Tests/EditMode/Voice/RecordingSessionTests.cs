@@ -2,7 +2,8 @@ using NUnit.Framework;
 
 namespace A305.Voice.Tests
 {
-    // 녹음 규칙(API 명세 CONV-02): 최대 15초, 조용한 상태가 3초 이어지면 자동 종료.
+    // 녹음 규칙(API 명세 CONV-02): 최대 시간에 닿거나 조용한 상태가 정한 시간만큼 이어지면 자동 종료.
+    // 아래 15초·3초는 규칙을 확인하려고 고른 값이다. 실제 값은 Data/Voice/VoiceRecorderSettings.asset에 있다.
     public class RecordingSessionTests
     {
         private const float Quiet = 0.005f;

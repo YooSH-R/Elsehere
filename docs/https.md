@@ -7,7 +7,8 @@ Unity WebGL과 API의 외부 HTTPS 연결은 Ubuntu 호스트 Nginx에서 종료
 | 용도 | 주소 | 내부 대상과 현재 역할 |
 | --- | --- | --- |
 | 개발 앱 | `https://dev.elsehere.kr/` | `127.0.0.1:8081`, WebGL과 같은 출처의 `/api/` |
-| 운영 | `https://elsehere.kr/`, `https://www.elsehere.kr/` | `127.0.0.1:8080`, 운영 앱 전환 전의 확인용 서비스 |
+| 운영 | `https://elsehere.kr/` | `127.0.0.1:8080`, 운영 앱 |
+| 운영 www | `https://www.elsehere.kr/` | 같은 경로·쿼리의 `https://elsehere.kr`로 301 리다이렉트 |
 | 기존 주소 | `https://k15a305.p.ssafy.io/` | 개발 `/dev/`·`/dev/api/`, 운영 `/api/` 경로 호환 |
 | 서버 관리 | `ubuntu@k15a305.p.ssafy.io` | PEM 인증키를 사용하는 SSH |
 
@@ -49,10 +50,10 @@ curl -I 'http://dev.elsehere.kr/api/health?check=redirect'
 curl --fail --silent --show-error -w '\n' https://dev.elsehere.kr/api/health
 curl --fail --silent --show-error -w '\n' https://dev.elsehere.kr/version.json
 curl --fail --silent --show-error -w '\n' https://elsehere.kr/api/health
-curl --fail --silent --show-error -w '\n' https://www.elsehere.kr/api/health
+curl -sI 'https://www.elsehere.kr/api/health?check=www'
 ```
 
-HTTP 응답은 301이며 `Location`은 같은 경로·쿼리의 HTTPS 주소여야 합니다. 루트와 운영·www의 리다이렉트도 확인합니다. 개발 health는 HTTP 200과 `status: UP`, 운영·www는 실제 운영 앱 전환 전까지 `service: environment-check`·`environment: prod`·`status: ok`가 기준입니다. TLS 검증을 건너뛰는 `curl -k` 결과로 인증서 정상 여부를 판단하지 않습니다.
+HTTP 응답은 301이며 `Location`은 같은 경로·쿼리의 HTTPS 주소여야 합니다. 루트와 운영·www의 리다이렉트도 확인합니다. 개발·운영 health는 HTTP 200과 `status: UP`이 기준입니다. `www`는 HTTP·HTTPS 모두 301이며 `Location`이 같은 경로·쿼리의 `https://elsehere.kr` 주소여야 합니다. Google OAuth 콜백을 대표 도메인 하나로 유지하기 위한 설정입니다. TLS 검증을 건너뛰는 `curl -k` 결과로 인증서 정상 여부를 판단하지 않습니다.
 
 PC 브라우저에서도 [개발 앱](https://dev.elsehere.kr/)·[개발 상태](https://dev.elsehere.kr/api/health)와 [운영 상태](https://elsehere.kr/api/health)를 열어 인증서 오류와 환경을 확인합니다. `/version.json`은 웹 이미지의 소스 커밋입니다. 변경 없는 웹 이미지를 재사용하면 백엔드·전체 배포 후보의 커밋과 다를 수 있습니다.
 

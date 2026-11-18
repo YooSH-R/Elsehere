@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+import npc_derive
 import npc_life_export
 import npc_life_rules
 import npc_simulate
@@ -35,13 +36,15 @@ def test_an_npc_gets_its_role_place_and_the_schedule_derived_from_its_shift():
     assert mia["schedule"] == [{key: block[key] for key in ("from", "to", "activity")} for block in derived["schedule"]]
 
 
-def test_need_rates_come_from_the_personality_and_default_to_one():
-    """성격에서 계산한 배수가 없는 욕구는 1. Unity가 빠진 욕구를 따로 다루지 않게 다섯 욕구를 모두 채운다."""
+def test_need_rates_are_the_personality_times_the_way_the_npc_works():
+    """Unity 배수 = 성격 배수 × 근무 형태 배수(퇴근 없는 Jake는 사교·재미·업무가 하루에 나눠 줆). 없는 배수는 1이고,
+    Unity가 빠진 욕구를 따로 다루지 않게 다섯 욕구를 모두 채운다."""
     jake, derived = exported("HOTEL_STAFF"), npc_simulate.service_npc("HOTEL_STAFF")
-    rates = derived["rates"].get("needRates", {})
+    rates, drain = derived["rates"].get("needRates", {}), derived["needDrain"]
 
     assert set(jake["needRates"]) == NEEDS
-    assert jake["needRates"] == {need: rates.get(need, 1) for need in NEEDS}
+    assert jake["needRates"] == {need: rates.get(need, 1) * drain.get(need, 1) for need in NEEDS}
+    assert jake["needRates"]["SOCIAL"] < rates["SOCIAL"] and jake["needRates"]["HUNGER"] == rates.get("HUNGER", 1)
 
 
 def test_street_staff_keeps_its_workplace_separate_from_the_town_scene():
@@ -99,3 +102,39 @@ def test_the_unity_place_hours_match_a_fresh_export():
 
     assert committed == npc_life_export.unity_place_hours()
     assert committed["generatedBy"] == "ai/tools/npc_life_export.py"
+
+
+def test_a_talk_with_the_learner_fills_social_because_no_object_does():
+    """사교를 채우는 사물 행동이 없어, 학습자와 대화를 마치면 채운다. 다른 욕구는 대화로 채우지 않는다."""
+    needs = service_rules()["needs"]
+
+    assert not any("SOCIAL" in action["fills"] for action in service_rules()["actions"])
+    assert needs["SOCIAL"]["conversationFill"] > 0
+    assert [need for need, rule in needs.items() if rule.get("conversationFill")] == ["SOCIAL"]
+
+
+def test_each_npc_gets_its_work_meals_derived_from_the_shared_rule():
+    """근무 중 끼니·커피 시각은 NPC마다 적지 않고 공통 규칙에서 npcId 씨앗으로 계산해 옮긴다(설계 7.5)."""
+    assert exported("HOTEL_STAFF")["meals"] == npc_derive.work_meals("HOTEL_STAFF", service_rules())
+
+
+def test_the_backend_gets_offers_requests_and_favor_constants():
+    """백엔드는 부탁을 고르고 판정할 때 장소 제공 목록·계기 틀·상수와 NPC 근무지·일과를 읽는다(설계 7.12)."""
+    favors = npc_life_export.backend_favor_rules()
+    rules = service_rules()
+
+    assert favors["constants"] == rules["favors"]
+    assert favors["affinityFollowRate"] == rules["relationship"]["affinityFollowRate"]
+    assert set(favors["places"]) == {code for code, place in rules["places"].items() if "offers" in place}
+    assert favors["places"]["BAKERY"]["name"] == {"en": "Maple Bakery", "ko": "베이커리"}
+    assert [request["id"] for request in favors["requests"]][:3] == ["bring_food", "bring_coffee", "recommend_a_spot"]
+    jake = next(npc for npc in favors["npcs"] if npc["npcId"] == "HOTEL_STAFF")
+    assert (jake["role"], jake["workplace"]) == ("STAFF", "HOTEL")
+    assert jake["schedule"] == exported("HOTEL_STAFF")["schedule"]
+
+
+def test_the_backend_favor_rules_match_a_fresh_export():
+    """계기 틀이나 제공 목록을 바꾸고 다시 내보내지 않으면 여기서 드러난다: ai/.venv/Scripts/python ai/tools/npc_life_export.py"""
+    committed = json.loads(npc_life_export.BACKEND_FAVORS_FILE.read_text(encoding="utf-8"))
+
+    assert committed == npc_life_export.backend_favor_rules()

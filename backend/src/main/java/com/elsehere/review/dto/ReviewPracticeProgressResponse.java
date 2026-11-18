@@ -7,4 +7,18 @@ public record ReviewPracticeProgressResponse(
     Long conversationId,
     Long reviewCardId,
     int verifiedExpressionCount,
-    List<ReviewExpressionUsage> expressions) {}
+    List<ReviewExpressionUsage> expressions,
+    List<String> completedGoals) {
+
+  public ReviewPracticeProgressResponse {
+    completedGoals = completedGoals == null ? List.of() : List.copyOf(completedGoals);
+  }
+
+  public ReviewPracticeProgressResponse(
+      Long conversationId,
+      Long reviewCardId,
+      int verifiedExpressionCount,
+      List<ReviewExpressionUsage> expressions) {
+    this(conversationId, reviewCardId, verifiedExpressionCount, expressions, List.of());
+  }
+}

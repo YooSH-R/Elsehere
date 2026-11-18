@@ -16,6 +16,241 @@ namespace A305.Characters.PlayModeTests
     public sealed class JohnParkDialogueTests
     {
         [UnityTest]
+        public IEnumerator AmbientRapPlaysWithoutStartingAConversationAndStopsCleanly()
+        {
+            const string path = "Assets/Scenes/Sandbox/NpcJohnParkDialogueSandbox.unity";
+            yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
+                path,
+                new LoadSceneParameters(LoadSceneMode.Additive)
+            );
+            var scene = SceneManager.GetSceneByPath(path);
+            try
+            {
+                var performance = scene
+                    .GetRootGameObjects()
+                    .SelectMany(root => root.GetComponentsInChildren<RecordedNpcPerformance>())
+                    .Single();
+                var dialogue = scene
+                    .GetRootGameObjects()
+                    .SelectMany(root => root.GetComponentsInChildren<DialogueController>())
+                    .Single();
+                Assert.That(performance.PlayAmbient(), Is.True);
+                yield return null;
+                Assert.That(performance.IsPerforming, Is.True);
+                Assert.That(
+                    dialogue.IsTalking,
+                    Is.False,
+                    "입장 공연은 대화·AI 호출을 시작하지 않습니다."
+                );
+                performance.StopAmbient();
+                Assert.That(performance.IsPerforming, Is.False);
+            }
+            finally
+            {
+                foreach (var root in scene.GetRootGameObjects())
+                    Object.Destroy(root);
+                SceneManager.UnloadSceneAsync(scene);
+            }
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator EndingTheShowcaseWelcomeReturnsJohnToHisUsualApproach()
+        {
+            const string path = "Assets/Scenes/Sandbox/NpcJohnParkDialogueSandbox.unity";
+            yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
+                path,
+                new LoadSceneParameters(LoadSceneMode.Additive)
+            );
+            var scene = SceneManager.GetSceneByPath(path);
+            try
+            {
+                var roots = scene.GetRootGameObjects();
+                var npc = roots
+                    .SelectMany(root => root.GetComponentsInChildren<NpcIdentity>())
+                    .Single();
+                var player = roots
+                    .SelectMany(root => root.GetComponentsInChildren<A305.Player.PlayerMover>())
+                    .Single();
+                var dialogue = roots
+                    .SelectMany(root => root.GetComponentsInChildren<DialogueController>())
+                    .Single();
+                var passerby = npc.GetComponent<Passerby>();
+                var performance = npc.GetComponent<RecordedNpcPerformance>();
+                var welcome = npc.gameObject.AddComponent<ShowcaseRestaurantWelcome>();
+                welcome.Configure(player, dialogue);
+                performance.PlayAmbient();
+                passerby.BeginShowcaseApproach();
+                Assert.That(passerby.IsWaitingForQuest, Is.True);
+
+                welcome.End();
+                yield return null;
+
+                Assert.That(
+                    passerby.IsWaitingForQuest,
+                    Is.False,
+                    "시연이 끝나면 시연용 다가가기를 그만둡니다."
+                );
+                Assert.That(performance.IsPerforming, Is.False);
+                Assert.That(npc.GetComponent<ShowcaseRestaurantWelcome>() == null, Is.True);
+            }
+            finally
+            {
+                foreach (var root in scene.GetRootGameObjects())
+                    Object.Destroy(root);
+                SceneManager.UnloadSceneAsync(scene);
+            }
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator ShowcaseWelcomeRapsWhileApproachingUntilTheOfferIsAnswered()
+        {
+            const string path = "Assets/Scenes/Sandbox/NpcJohnParkDialogueSandbox.unity";
+            yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
+                path,
+                new LoadSceneParameters(LoadSceneMode.Additive)
+            );
+            var scene = SceneManager.GetSceneByPath(path);
+            try
+            {
+                var roots = scene.GetRootGameObjects();
+                var npc = roots
+                    .SelectMany(root => root.GetComponentsInChildren<NpcIdentity>())
+                    .Single();
+                var player = roots
+                    .SelectMany(root => root.GetComponentsInChildren<A305.Player.PlayerMover>())
+                    .Single();
+                var dialogue = roots
+                    .SelectMany(root => root.GetComponentsInChildren<DialogueController>())
+                    .Single();
+                // 캐릭터 컨트롤러는 transform으로 옮긴 자리를 다음 프레임에 되돌리므로 끄고 옮긴다.
+                MovePlayer(player, npc.transform.position + Vector3.forward * 5);
+                var welcome = npc.gameObject.AddComponent<ShowcaseRestaurantWelcome>();
+                welcome.Configure(player, dialogue);
+                var performance = npc.GetComponent<RecordedNpcPerformance>();
+                var speech = npc.GetComponent<DialogueSpeaker>().Player;
+                var source = npc.GetComponent<AudioSource>();
+                Assert.That(
+                    performance.IsPerforming,
+                    Is.False,
+                    "장면 전환이 늦을 수 있어 바로 시작하지 않습니다."
+                );
+                Assert.That(welcome.HushesPlace, Is.True, "랩 동안 장소 생활소음을 끕니다.");
+                Vector3 before = npc.transform.position;
+                yield return new WaitForSecondsRealtime(
+                    ShowcaseWelcomeSequence.RapDelaySeconds + .5f
+                );
+                // 플레이어가 가만히 있어도 랩을 시작하면서 바로 다가온다.
+                Assert.That(welcome.HasOffered, Is.True);
+                Assert.That(Vector3.Distance(before, npc.transform.position), Is.GreaterThan(.01f));
+                Assert.That(performance.IsPerforming, Is.True, "랩을 하면서 다가옵니다.");
+                Assert.That(speech.IsPlaying, Is.True, "다가오는 동안에도 랩 소리가 납니다.");
+                Assert.That(source.isPlaying && !source.mute && source.volume > 0, Is.True);
+
+                // 걸어오는 동안에도 랩 전용 동작이 음성 시각에 맞춰 재생되고, 다리는 걷는다.
+                var animator = npc.GetComponentInChildren<Animator>();
+                var definition = performance.Definition;
+                float loopSeconds =
+                    60 * definition.BeatsPerAnimationLoop / definition.BeatsPerMinute;
+                var bones = animator.GetComponentsInChildren<Transform>();
+                var shin = bones.Single(bone => bone.name == "Left_LowerLeg");
+                var upperBody = bones
+                    .Where(bone =>
+                        bone.name == "Chest"
+                        || bone.name == "Head"
+                        || bone.name.Contains("Arm")
+                        || bone.name.Contains("Shoulder")
+                    )
+                    .ToArray();
+                Assert.That(upperBody, Is.Not.Empty);
+                var firstUpper = upperBody.Select(bone => bone.localRotation).ToArray();
+                var firstShin = shin.localRotation;
+                float legMotion = 0,
+                    upperMotion = 0,
+                    mouthPeak = 0;
+                for (int sample = 0; sample < 8; sample++)
+                {
+                    yield return new WaitForSecondsRealtime(.1f);
+                    Assert.That(
+                        npc.GetComponent<Passerby>().ApproachPhase,
+                        Is.EqualTo(PasserbyPhase.Approaching),
+                        "동작은 걸어오는 동안에 잽니다."
+                    );
+                    var state = animator.GetCurrentAnimatorStateInfo(0);
+                    Assert.That(state.IsName(definition.AnimationState), Is.True);
+                    Assert.That(
+                        state.normalizedTime,
+                        Is.EqualTo(speech.PlaybackTime / loopSeconds).Within(.1f),
+                        "랩 동작은 음성 재생 시각을 따라갑니다."
+                    );
+                    Assert.That(animator.GetFloat("Speed"), Is.GreaterThan(.02f));
+                    legMotion = Mathf.Max(
+                        legMotion,
+                        Quaternion.Angle(firstShin, shin.localRotation)
+                    );
+                    for (int i = 0; i < upperBody.Length; i++)
+                        upperMotion = Mathf.Max(
+                            upperMotion,
+                            Quaternion.Angle(firstUpper[i], upperBody[i].localRotation)
+                        );
+                    foreach (var skin in npc.GetComponentsInChildren<SkinnedMeshRenderer>())
+                        for (int i = 0; i < skin.sharedMesh.blendShapeCount; i++)
+                            if (skin.sharedMesh.GetBlendShapeName(i).StartsWith("viseme_"))
+                                mouthPeak = Mathf.Max(mouthPeak, skin.GetBlendShapeWeight(i));
+                }
+                Assert.That(legMotion, Is.GreaterThan(10), "랩을 하면서도 다리는 걷습니다.");
+                Assert.That(upperMotion, Is.GreaterThan(3), "걸으면서도 상체 랩 동작을 합니다.");
+                Assert.That(mouthPeak, Is.GreaterThan(20), "걸으면서도 입모양이 랩을 따라갑니다.");
+
+                // 랩이 끝까지 가도 제안에 답하기 전에는 처음부터 이어서 한다.
+                speech.Seek(source.clip.length - .05f);
+                yield return new WaitForSecondsRealtime(.4f);
+                Assert.That(
+                    performance.IsPerforming,
+                    Is.True,
+                    "답하기 전에는 랩을 멈추지 않습니다."
+                );
+                Assert.That(speech.IsPlaying, Is.True);
+                Assert.That(speech.PlaybackTime, Is.LessThan(2f));
+                Assert.That(welcome.HushesPlace, Is.True);
+                Assert.That(
+                    dialogue.IsTalking,
+                    Is.False,
+                    "대화는 기존 제안의 수락 후에만 시작합니다."
+                );
+
+                // 제안에 답해 대화를 시작하면 입장 랩은 그치고 대화의 음성만 남는다.
+                Assert.That(dialogue.TryStart(npc.Code, npc.LookTarget), Is.True);
+                AudioClip talking = source.clip;
+                for (int i = 0; i < 3; i++)
+                    yield return null;
+                Assert.That(welcome.HushesPlace, Is.False);
+                Assert.That(
+                    source.clip == talking && speech.IsPlaying,
+                    Is.True,
+                    "입장 랩을 끄면서 대화 음성을 끊지 않습니다."
+                );
+                dialogue.End();
+            }
+            finally
+            {
+                foreach (var root in scene.GetRootGameObjects())
+                    Object.Destroy(root);
+                SceneManager.UnloadSceneAsync(scene);
+            }
+            yield return null;
+        }
+
+        private static void MovePlayer(A305.Player.PlayerMover player, Vector3 position)
+        {
+            var body = player.GetComponent<CharacterController>();
+            body.enabled = false;
+            player.transform.position = position;
+            body.enabled = true;
+        }
+
+        [UnityTest]
         public IEnumerator SandboxStartsRecordedDialogueAndReleasesSpeechOnExit()
         {
             const string path = "Assets/Scenes/Sandbox/NpcJohnParkDialogueSandbox.unity";

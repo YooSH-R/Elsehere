@@ -56,8 +56,11 @@ class ApiError(Exception):
         self.code, self.message, self.http = code, message, http
 
 
-def error(code: str, message: str, http: int) -> JSONResponse:
-    return JSONResponse({"error": {"code": code, "message": message}}, status_code=http)
+def error(code: str, message: str, http: int, fields: list[dict] | None = None) -> JSONResponse:
+    body = {"code": code, "message": message}
+    if fields is not None:
+        body["fields"] = fields
+    return JSONResponse({"error": body}, status_code=http)
 
 
 def sse(name: str, data: dict) -> str:
@@ -166,8 +169,11 @@ def create_app(
 
     @app.exception_handler(RequestValidationError)
     async def bad_request(_: Request, e: RequestValidationError):
-        where = "; ".join(f"{'.'.join(str(x) for x in err['loc'][1:])}: {err['msg']}" for err in e.errors()[:5])
-        return error("invalid_request", f"요청 형식 오류 ({where})", 400)
+        errors = e.errors()[:5]
+        where = "; ".join(f"{'.'.join(str(x) for x in err['loc'][1:])}: {err['msg']}" for err in errors)
+        # Spring이 로그에 남기는 칸. 보낸 값이 섞일 수 있는 메시지와 달리 칸 위치와 오류 종류만 담는다.
+        fields = [{"loc": ".".join(str(x) for x in err["loc"][1:]), "type": err["type"]} for err in errors]
+        return error("invalid_request", f"요청 형식 오류 ({where})", 400, fields)
 
     @app.exception_handler(ProviderError)
     async def provider_failed(_: Request, e: ProviderError):

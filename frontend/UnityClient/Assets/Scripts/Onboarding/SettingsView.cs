@@ -14,7 +14,7 @@ namespace A305.Onboarding
 {
     /// <summary>
     /// 공간 화면의 설정 창. 휴대폰 [설정]으로 열어 시점 회전 감도와 NPC 말 빠르기(<see cref="LookSensitivity"/>,
-    /// <see cref="NpcSpeechSpeed"/>), 효과음(<see cref="BackgroundSoundPreference"/>)을 이 기기에 저장하고,
+    /// <see cref="NpcSpeechSpeed"/>), 효과음 켜기·끄기와 크기(<see cref="BackgroundSoundPreference"/>)를 이 기기에 저장하고,
     /// 대화 난이도(ONB-09)와 선택 동의(USER-03)는 서버에 저장한다. 로그아웃과 회원 탈퇴는 <see cref="MyPageView"/>가 맡는다.
     /// 단어장 HUD 프리팹에 붙어 있어 장소 씬마다 따로 배치하지 않는다.
     /// </summary>
@@ -77,6 +77,14 @@ namespace A305.Onboarding
         private Button soundOffButton;
 
         [SerializeField]
+        [Tooltip("효과음 크기(0~1). 0으로 내리면 끄고, 올리면 그 크기로 켠다.")]
+        private Slider soundVolumeSlider;
+
+        [SerializeField]
+        [Tooltip("막대 옆에 지금 효과음 크기를 퍼센트로 보여 준다. 꺼져 있으면 0%다.")]
+        private TMP_Text soundVolumeText;
+
+        [SerializeField]
         [Tooltip("선택 동의(음성 처리·AI 개선) 줄을 넣을 곳")]
         private Transform consentsParent;
 
@@ -120,6 +128,9 @@ namespace A305.Onboarding
             npcSpeechSpeedSlider.minValue = NpcSpeechSpeed.Min;
             npcSpeechSpeedSlider.maxValue = NpcSpeechSpeed.Max;
             npcSpeechSpeedSlider.onValueChanged.AddListener(ChangeNpcSpeechSpeed);
+            soundVolumeSlider.minValue = 0;
+            soundVolumeSlider.maxValue = 1;
+            soundVolumeSlider.onValueChanged.AddListener(ChangeSoundVolume);
             overlay.SetActive(false);
             UiLayer.Close(this);
             escape = new UiEscapeWindow(() => overlay.activeSelf, Close);
@@ -237,9 +248,20 @@ namespace A305.Onboarding
             RenderSound();
         }
 
+        // 5% 단위로 저장한다. 0까지 내리면 끄되 전에 고른 크기는 남겨, [켜기]를 누르면 그 크기로 돌아온다.
+        private void ChangeSoundVolume(float value)
+        {
+            BackgroundSoundPreference.SetLevel(Mathf.Round(value * 20f) / 20f);
+            RenderSound();
+        }
+
+        // 꺼져 있으면 막대를 0%로 보여 [끄기]와 막대가 같은 상태를 가리키게 한다.
         private void RenderSound()
         {
             bool enabled = BackgroundSoundPreference.Enabled;
+            float level = BackgroundSoundPreference.Level;
+            soundVolumeSlider.SetValueWithoutNotify(level);
+            soundVolumeText.text = $"{level * 100f:0}%";
             soundOnButton.GetComponent<ThemedElement>().SetSelected(enabled);
             soundOffButton.GetComponent<ThemedElement>().SetSelected(!enabled);
         }

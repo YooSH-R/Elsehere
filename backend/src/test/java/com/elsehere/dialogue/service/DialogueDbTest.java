@@ -23,6 +23,8 @@ import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.mission.service.PlacePracticeService;
 import com.elsehere.mission.service.QuestTalkService;
+import com.elsehere.mission.service.ShowcaseQuestService;
+import com.elsehere.mission.service.ShowcaseSettings;
 import com.elsehere.mission.service.TownStoryService;
 import com.elsehere.review.service.ReviewCardService;
 import com.elsehere.user.service.GuestContentCleanup;
@@ -105,8 +107,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   FirstDayMissionService.class,
   TownStoryService.class,
   QuestTalkService.class,
+  ShowcaseQuestService.class,
+  com.elsehere.mission.service.ShowcaseScene.class,
+  ShowcaseSettings.class,
   PlacePracticeService.class,
   GameClockService.class,
+  com.elsehere.favor.service.FavorService.class,
+  com.elsehere.favor.service.FavorRules.class,
   GuestContentCleanup.class,
   UserContentEraser.class,
   WithdrawalService.class

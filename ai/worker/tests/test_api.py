@@ -74,6 +74,15 @@ def test_request_id_echoed_and_bad_request_format(client):
     assert r.json()["error"]["code"] == "invalid_request" and "state" in r.json()["error"]["message"]
 
 
+def test_bad_request_names_only_the_field_and_reason(client):
+    """Spring이 로그에 남길 수 있게 문제 칸과 오류 종류만 따로 준다. 보낸 값(학습자 말·지시문)은 담지 않는다."""
+    secret = "my secret plan " * 300
+    r = client.post("/v1/npc/reply", json={"npc": NPC, "history": [], "text": "hi", "instruction": secret, "tts": False})
+    assert r.status_code == 400
+    assert r.json()["error"]["fields"] == [{"loc": "instruction", "type": "string_too_long"}]
+    assert "my secret plan" not in r.text
+
+
 # ---------------------------------------------------------------------
 # 판정
 # ---------------------------------------------------------------------
@@ -268,6 +277,24 @@ def test_reply_stream_events_in_order(provider):
         assert c.get("/v1/audio/nope").status_code == 404
 
 
+@pytest.mark.parametrize("stream_chunks", [True, False])
+def test_reply_replaces_semicolons_in_subtitles_and_speech(provider, stream_chunks):
+    provider.answers["npc"] = lambda b: stream(["I'm out with Pepper", ";", " ", "[[curious:0.4]]", "how are you?"])
+    tts = FakeTts(wav=True)
+    with make_client(provider, tts) as client:
+        reply = events(client.post("/v1/npc/reply", json={**REPLY, "stream_chunks": stream_chunks}))
+
+    expected = "I'm out with Pepper. How are you?"
+    subtitles = [data["text"] for name, data in reply if name == "delta"]
+    audio_phrases = [data["text"] for name, data in reply if name == "audio"]
+    assert reply[-1][0] == "done"
+    assert reply[-1][1]["text"] == expected
+    assert tts.texts == ["I'm out with Pepper.", "How are you?"]
+    assert [phrase["text"] for phrase in reply[-1][1]["speech_phrases"]] == tts.texts
+    assert "".join(subtitles) == (expected if stream_chunks else "")
+    assert audio_phrases == (tts.texts if stream_chunks else [])
+
+
 def test_slow_tts_chunk_falls_back(provider):
     provider.answers["npc"] = lambda b: stream(["Sure. ", "One latte."])
     with make_client(provider, FakeTts(delay=0.3), tts_chunk_budget_s=0.1) as c:
@@ -319,12 +346,15 @@ def test_memory_note_reaches_npc_prompt(client, provider):
             **REPLY,
             "memory": {
                 "visits": 2,
-                "last_order": "a latte",
-                "card": {"name": "Minsu", "attitude": "wary", "claims": [], "events": [], "struggled": []},
+                "card": {"name": "Minsu", "attitude": "wary", "claims": [], "events": [], "struggled": [], "requests": ["ordered a latte"]},
             },
         },
     )
-    assert "Their name: Minsu" in seen["system"] and "wary" in seen["system"] and "Last time they ordered a latte" in seen["system"]
+    assert (
+        "Their name: Minsu" in seen["system"]
+        and "wary" in seen["system"]
+        and "asked for or did with you before: ordered a latte" in seen["system"]
+    )
 
 
 def test_splitter_matches_prototype_screen():
@@ -374,6 +404,7 @@ def test_memory_card_is_cleaned(client, provider):
                 "events": [],
                 "claims": ["phone is 010-1234-5678", "says they are a police officer"] + ["x"] * 9,
                 "struggled": [],
+                "requests": [],
             }
         )
     )

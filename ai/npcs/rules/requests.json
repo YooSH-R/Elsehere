@@ -1,46 +1,105 @@
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "2.1",
   "requests": [
     {
-      "id": "bring_coffee",
-      "need": "ENERGY",
-      "below": 30,
-      "role": "STAFF",
+      "id": "bring_food",
+      "opens": ["TALK", "CALL"],
+      "trigger": { "need": "HUNGER", "below": 30 },
+      "notice": "The learner reacts to the character seeming hungry: asks whether they are hungry or have eaten, sympathizes, or offers to get them something to eat.",
+      "roles": ["STAFF"],
       "activities": ["WORK"],
-      "reason": "Feels worn out but cannot leave their post, so asks the learner to bring a coffee.",
-      "ko": "지쳤는데 자리를 비울 수 없어 학습자에게 커피를 부탁한다",
-      "steps": [
-        { "with": "staff", "place": "CAFE", "goal": "Order a coffee to go.", "languageFocus": ["ordering"] },
-        { "with": "requester", "goal": "Hand over the coffee.", "languageFocus": ["polite_request"] }
-      ],
-      "reward": { "fills": { "ENERGY": 25 }, "impression": 10 }
+      "solve": "ERRAND",
+      "reason": "Is getting hungry but cannot leave their post during the shift, so asks the learner to buy something to eat from another shop.",
+      "ko": "배고픈데 근무 중이라 자리를 비울 수 없어 학습자에게 다른 가게의 먹을 것을 사다 달라고 부탁한다",
+      "reward": { "coins": 6, "impression": 10 }
     },
     {
-      "id": "bring_muffin",
-      "need": "HUNGER",
-      "below": 30,
-      "role": "STAFF",
+      "id": "bring_coffee",
+      "opens": ["TALK", "CALL"],
+      "trigger": { "need": "ENERGY", "below": 30 },
+      "notice": "The learner reacts to the character seeming tired: asks whether they are tired or okay, sympathizes, or offers to get them a coffee.",
+      "roles": ["STAFF"],
       "activities": ["WORK"],
-      "reason": "Is hungry but cannot leave their post, so asks the learner to buy a muffin.",
-      "ko": "배고픈데 자리를 비울 수 없어 학습자에게 머핀을 사다 달라고 부탁한다",
-      "steps": [
-        { "with": "staff", "place": "CAFE", "goal": "Buy a muffin to take away.", "languageFocus": ["ordering"] },
-        { "with": "requester", "goal": "Hand over the muffin.", "languageFocus": ["polite_request"] }
-      ],
-      "reward": { "fills": { "HUNGER": 40 }, "impression": 10 }
+      "solve": "ERRAND",
+      "reason": "Feels worn out but cannot leave their post during the shift, so asks the learner to buy a coffee from another shop.",
+      "ko": "지쳤는데 근무 중이라 자리를 비울 수 없어 학습자에게 다른 가게의 커피를 사다 달라고 부탁한다",
+      "reward": { "coins": 6, "impression": 10 }
     },
     {
       "id": "recommend_a_spot",
-      "need": "SOCIAL",
-      "below": 40,
-      "role": "PASSERBY",
-      "activities": ["FREE"],
-      "reason": "Feels a bit lonely in a new town and wants someone to talk to, so asks the learner for a place worth seeing.",
-      "ko": "새 마을에서 말 상대가 그리워 학습자에게 구경할 만한 곳을 묻는다",
-      "steps": [
-        { "with": "requester", "goal": "Recommend a place in town worth seeing.", "languageFocus": ["recommending", "describing"] }
-      ],
-      "reward": { "fills": { "SOCIAL": 20 }, "impression": 8 }
+      "opens": ["TALK"],
+      "titleKo": "구경할 곳 추천하기",
+      "trigger": { "need": "SOCIAL", "below": 30 },
+      "notice": "The learner reacts to the character seeming bored or lonely: asks how they are doing, chats about the character's own day, or offers to keep them company.",
+      "roles": ["STAFF", "PASSERBY"],
+      "activities": ["WORK", "FREE"],
+      "solve": "TALK",
+      "goal": { "intent": "recommend_place", "desc": "The learner recommends a specific place in town and gives a reason.", "languageFocus": ["recommending", "describing"] },
+      "reason": "Has had no one to talk to for a while, so asks the learner to recommend a place in town worth seeing and why.",
+      "ko": "한동안 말 상대가 없어 학습자에게 마을에서 구경할 만한 곳과 이유를 묻는다",
+      "reward": { "coins": 4, "impression": 8, "fills": { "SOCIAL": 20 } }
+    },
+    {
+      "id": "rush_hour",
+      "opens": ["TALK"],
+      "titleKo": "주문 한 번에 말하기",
+      "trigger": { "places": ["CAFE", "BAKERY", "DINER"], "windows": [{ "from": "12:00", "to": "14:00" }, { "from": "18:00", "to": "20:00" }] },
+      "roles": ["STAFF"],
+      "activities": ["WORK"],
+      "solve": "TALK",
+      "goal": { "intent": "order_in_one_go", "desc": "The learner states their whole order (item, option, and here or to go) clearly in one turn.", "languageFocus": ["ordering"] },
+      "reason": "The shop just got very busy, so politely asks the learner to give their whole order in one sentence.",
+      "ko": "손님이 밀려 바빠 학습자에게 주문을 한 문장으로 말해 달라고 한다",
+      "reward": { "coins": 2, "impression": 4 }
+    },
+    {
+      "id": "sold_out",
+      "opens": ["TALK"],
+      "titleKo": "다른 메뉴 고르기",
+      "trigger": { "places": ["CAFE", "BAKERY", "DINER"], "windows": [{ "from": "00:00", "to": "12:00" }, { "from": "14:00", "to": "18:00" }, { "from": "20:00", "to": "00:00" }], "firstTalkOfDay": true },
+      "roles": ["STAFF"],
+      "activities": ["WORK"],
+      "solve": "TALK",
+      "goal": { "intent": "choose_alternative", "desc": "The learner politely picks another item after hearing one is sold out.", "languageFocus": ["ordering", "polite_request"] },
+      "reason": "One item on the menu sold out today, so tells the learner and asks what they would like instead.",
+      "ko": "메뉴 하나가 다 팔려 학습자에게 알리고 다른 것을 고르게 한다",
+      "reward": { "coins": 2, "impression": 4 }
+    },
+    {
+      "id": "needs_change",
+      "opens": ["TALK"],
+      "trigger": { "places": ["CAFE", "BAKERY", "DINER", "FLOWER_SHOP", "ARCADE", "SHOP", "HOME_STORE", "BARBER", "LAUNDROMAT"], "windows": [{ "from": "07:00", "to": "11:00" }] },
+      "roles": ["STAFF"],
+      "activities": ["WORK"],
+      "solve": "ERRAND",
+      "offer": { "place": "BANK", "key": "change" },
+      "reason": "The register is short of small bills and they cannot leave the counter, so asks the learner to get change for a 20-dollar bill at the bank.",
+      "ko": "계산대에 잔돈이 모자라 학습자에게 은행에서 20달러를 잔돈으로 바꿔 달라고 부탁한다",
+      "reward": { "coins": 5, "impression": 8 }
+    },
+    {
+      "id": "letter_to_send",
+      "opens": ["CALL"],
+      "trigger": { "windows": [{ "from": "13:00", "to": "17:00" }] },
+      "roles": ["STAFF"],
+      "activities": ["WORK"],
+      "solve": "ERRAND",
+      "offer": { "place": "POST_OFFICE", "key": "stamp" },
+      "reason": "Has a letter that must go out today but cannot leave their post, so asks the learner to send it at the post office.",
+      "ko": "오늘 부쳐야 할 편지가 있는데 자리를 비울 수 없어 학습자에게 우체국에서 부쳐 달라고 부탁한다",
+      "reward": { "coins": 5, "impression": 8 }
+    },
+    {
+      "id": "flowers_for_counter",
+      "opens": ["CALL"],
+      "trigger": { "windows": [{ "from": "15:00", "to": "18:00" }] },
+      "roles": ["STAFF"],
+      "activities": ["WORK"],
+      "solve": "ERRAND",
+      "offer": { "place": "FLOWER_SHOP", "key": "flower" },
+      "reason": "Wants to brighten up the counter but cannot leave their post, so asks the learner to bring one wrapped flower from the flower shop.",
+      "ko": "계산대를 밝히고 싶은데 자리를 비울 수 없어 학습자에게 꽃집에서 꽃 한 송이를 포장해 와 달라고 부탁한다",
+      "reward": { "coins": 5, "impression": 8 }
     }
   ]
 }

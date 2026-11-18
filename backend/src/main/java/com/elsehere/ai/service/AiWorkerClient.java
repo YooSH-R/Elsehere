@@ -1,5 +1,33 @@
-package com.elsehere.ai.client;
+package com.elsehere.ai.service;
 
+import com.elsehere.ai.client.ExpressionsResult;
+import com.elsehere.ai.client.FeedbackInput;
+import com.elsehere.ai.client.FollowUpResult;
+import com.elsehere.ai.client.GuardResult;
+import com.elsehere.ai.client.HintResult;
+import com.elsehere.ai.client.JudgeResult;
+import com.elsehere.ai.client.LevelTestSpeakingResult;
+import com.elsehere.ai.client.MeaningResult;
+import com.elsehere.ai.client.MemoryCardResult;
+import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.NpcReplyChunk;
+import com.elsehere.ai.client.NpcReplyListener;
+import com.elsehere.ai.client.PerformanceIntentResult;
+import com.elsehere.ai.client.RelationshipChange;
+import com.elsehere.ai.client.SttResult;
+import com.elsehere.ai.client.SuggestResult;
+import com.elsehere.ai.client.WorkerFeedback;
+import com.elsehere.ai.client.WorkerLearner;
+import com.elsehere.ai.client.WorkerLevelTestSpeakingItem;
+import com.elsehere.ai.client.WorkerLine;
+import com.elsehere.ai.client.WorkerMemory;
+import com.elsehere.ai.client.WorkerNpc;
+import com.elsehere.ai.client.WorkerRelationship;
+import com.elsehere.ai.client.WorkerSpeechPhrase;
+import com.elsehere.ai.client.WorkerState;
+import com.elsehere.ai.client.WorkerText;
+import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.client.WorkerUsage;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import java.io.ByteArrayOutputStream;
@@ -12,6 +40,7 @@ import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -37,7 +66,7 @@ import tools.jackson.databind.json.JsonMapper;
  */
 @Slf4j
 @Component
-public class AiWorkerClient {
+class AiWorkerClient {
 
   private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
   // 의도·무례 판정은 워커가 5초 안에 끝낸다(JUDGE_BUDGET_S·GUARD_BUDGET_S). NPC 대답은 응답 헤더까지의 상한이며, 스트림은 워커의 시간 상한을
@@ -54,6 +83,8 @@ public class AiWorkerClient {
   private static final Duration RELATIONSHIP_TIMEOUT = Duration.ofSeconds(10);
   // 뜻 보기·힌트는 짧은 모델 호출 한 번이다. 재시도·대체 모델까지 기다리도록 NPC 대답과 같게 둔다.
   private static final Duration HELP_TIMEOUT = Duration.ofSeconds(30);
+  // 워커 SuggestRequest.goal의 최대 길이(ai/worker/app/schemas.py)
+  private static final int SUGGEST_GOAL_LENGTH = 300;
 
   private final HttpClient httpClient =
       HttpClient.newBuilder()
@@ -167,7 +198,8 @@ public class AiWorkerClient {
             false,
             "",
             learner,
-            reaction);
+            reaction,
+            npc.needs());
     long startedAt = System.nanoTime();
     HttpResponse<Stream<String>> response =
         send(
@@ -277,10 +309,10 @@ public class AiWorkerClient {
    */
   public SuggestResult suggest(
       WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history, String goal, int level) {
-    // 장소(scene)를 비우면 워커가 NPC의 장소를 쓴다.
-    HttpRequest request =
-        jsonRequest(
-            "/v1/suggest", trace, HELP_TIMEOUT, new SuggestBody(npc, "", goal, history, level));
+    // 장소(scene)를 비우면 워커가 NPC의 장소를 쓴다. 목표는 판정 기준이라 길 수 있어 워커 상한에 맞춰 자른다.
+    SuggestBody body =
+        new SuggestBody(npc, "", WorkerText.clip(goal, SUGGEST_GOAL_LENGTH), history, level);
+    HttpRequest request = jsonRequest("/v1/suggest", trace, HELP_TIMEOUT, body);
     return readJson(send(request, HttpResponse.BodyHandlers.ofString()), SuggestResult.class);
   }
 
@@ -597,17 +629,43 @@ public class AiWorkerClient {
     return response.body();
   }
 
-  // 오류 본문은 {"error": {"code", "message"}}다. 메시지에는 사용자 입력이 섞일 수 있어 코드만 남긴다.
+  // 오류 본문은 {"error": {"code", "message", "fields"}}다. 메시지에는 사용자 입력이 섞일 수 있어 남기지 않고,
+  // 요청 형식 오류면 어느 칸이 왜 거절됐는지(fields)만 함께 남긴다.
   private BusinessException toError(int status, String body) {
-    String code = null;
+    ErrorDetail detail = null;
     try {
-      ErrorBody error = jsonMapper.readValue(body, ErrorBody.class);
-      code = error.error() == null ? null : error.error().code();
+      detail = jsonMapper.readValue(body, ErrorBody.class).error();
     } catch (JacksonException exception) {
       // 오류 형식이 아닌 본문(프록시 오류 등)
     }
-    log.warn("ai_worker_error status={} code={}", status, code);
+    String code = detail == null ? null : detail.code();
+    String fields = detail == null ? "" : rejectedFields(detail.fields());
+    if (fields.isEmpty()) {
+      log.warn("ai_worker_error status={} code={}", status, code);
+    } else {
+      log.warn("ai_worker_error status={} code={} fields={}", status, code, fields);
+    }
     return new BusinessException(toErrorCode(code));
+  }
+
+  // "instruction:string_too_long,history.3.text:missing"처럼 칸 위치와 오류 종류만 잇는다. 이름에 쓰지 않는 글자는 지운다.
+  private static String rejectedFields(List<RejectedField> fields) {
+    if (fields == null) {
+      return "";
+    }
+    return fields.stream()
+        .filter(Objects::nonNull)
+        .limit(5)
+        .map(field -> nameOnly(field.loc()) + ":" + nameOnly(field.type()))
+        .collect(Collectors.joining(","));
+  }
+
+  private static String nameOnly(String text) {
+    if (text == null) {
+      return "";
+    }
+    String name = text.replaceAll("[^A-Za-z0-9_.]", "");
+    return name.length() > 60 ? name.substring(0, 60) : name;
   }
 
   public PerformanceIntentResult performanceIntent(WorkerTrace trace, String text) {
@@ -639,7 +697,8 @@ public class AiWorkerClient {
       boolean suggestWords,
       String goal,
       WorkerLearner learner,
-      String reaction) {}
+      String reaction,
+      Map<String, Double> needs) {}
 
   record MeaningBody(WorkerNpc npc, String text, int level) {}
 
@@ -688,5 +747,8 @@ public class AiWorkerClient {
 
   record ErrorBody(ErrorDetail error) {}
 
-  record ErrorDetail(String code) {}
+  record ErrorDetail(String code, List<RejectedField> fields) {}
+
+  /** 요청 형식 오류에서 워커가 거절한 칸. 보낸 값은 담기지 않는다. */
+  record RejectedField(String loc, String type) {}
 }

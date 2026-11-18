@@ -690,7 +690,7 @@
       },
       "mock_fixture": "fixtures/free_grammar.llm.json",
       "mock_content_override": "not JSON",
-      "expected_model_calls": 1,
+      "expected_model_calls": 2,
       "response_http_status": 200,
       "response": {
         "feedback": {
@@ -712,6 +712,14 @@
           }
         },
         "usage": [
+          {
+            "step": "feedback",
+            "model": "openai/gpt-oss-120b",
+            "input_tokens": 100,
+            "output_tokens": 5,
+            "latency_s": 0.0,
+            "fallback": false
+          },
           {
             "step": "feedback",
             "model": "openai/gpt-oss-120b",

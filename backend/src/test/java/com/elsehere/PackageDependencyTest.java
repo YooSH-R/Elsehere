@@ -31,8 +31,8 @@ import org.junit.jupiter.params.provider.ValueSource;
  * common을 쓰는 모든 패키지가 순환에 묶인다. 응답 DTO가 서비스 타입을 담으면 dto와 service가 서로 참조하므로, 응답은 자기 칸 타입을 두고 서비스·컨트롤러가
  * 옮겨 담는다.
  *
- * <p>AI 워커는 창구(ai.service.AiGateway)로만 부른다. 워커 클라이언트(ai.client)와 호출 기록기는 다른 패키지에서 보일 수 있어, 창구 말고 쓰는
- * 곳이 없는지 이름으로 검사한다.
+ * <p>AI 워커는 창구(ai.service.AiGateway)로만 부른다. 워커 클라이언트와 호출 기록기는 창구와 같은 ai.service에 package-private으로
+ * 두어 다른 패키지에서 쓰면 컴파일되지 않는다. 같은 패키지의 다른 클래스는 컴파일러가 막지 못하므로 창구 말고 쓰는 곳이 없는지 이름으로 검사한다.
  */
 class PackageDependencyTest {
 
@@ -52,6 +52,17 @@ class PackageDependencyTest {
     assertThat(codeUsersOf("AiWorkerClient", "AiRequestRecorder"))
         .as("AI 워커 클라이언트·호출 기록기를 쓰는 클래스")
         .containsOnly("AiGateway");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"AiWorkerClient", "AiRequestRecorder"})
+  @DisplayName(
+      "AI 워커 클라이언트와 호출 기록기는 창구와 같은 ai.service에 package-private으로 둔다. 다른 패키지에서 쓰면 컴파일되지 않는다")
+  void workerClientAndRecorder_arePackagePrivateBesideTheGateway(String className) {
+    Path source = SOURCES.resolve("ai/service/" + className + ".java");
+
+    assertThat(source).as(className + " 소스 위치").exists();
+    assertThat(read(source)).as(className + " 선언").containsPattern("(?m)^class " + className + " ");
   }
 
   @Test

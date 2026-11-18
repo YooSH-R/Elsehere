@@ -94,7 +94,12 @@ class FirstDayMissionServiceTest {
   private final UserRepository users = mock(UserRepository.class);
   private final NpcRepository npcs = mock(NpcRepository.class);
   private final FirstDayMissionService service =
-      new FirstDayMissionService(repository, mock(ConversationRepository.class), users, npcs);
+      new FirstDayMissionService(
+          repository,
+          mock(ConversationRepository.class),
+          users,
+          npcs,
+          mock(com.elsehere.favor.repository.FavorRepository.class));
 
   @BeforeEach
   void nameTheMissionNpcs() {

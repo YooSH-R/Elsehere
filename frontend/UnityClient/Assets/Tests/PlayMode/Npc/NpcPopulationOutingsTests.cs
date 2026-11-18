@@ -24,6 +24,11 @@ namespace A305.Npc.PlayModeTests
             // 밤 근무를 마친 주민들이 함께 쉬는 아침 7시. 이야기 퀘스트 직원은 24시간 매장에 있어 외출하지 않는다.
             yield return LoadTown(7 * 60);
             var trips = NpcOutings.Shared.Trips.ToArray();
+            // 24시간 상주 직원 대신 밤 근무를 마친 교대 직원들의 여가를 확인한다.
+            Assert.That(
+                trips.Any(trip => trip.Npc == "BARBER_STAFF" || trip.Npc == "POST_OFFICE_STAFF"),
+                Is.False
+            );
             Assert.That(trips.Length, Is.GreaterThan(4));
             Assert.That(
                 trips.Select(trip => trip.Venue.Code).Distinct().Count(),

@@ -174,6 +174,15 @@ namespace A305.Npc
 
         public bool IsUsing => life != null && life.IsUsing;
 
+        /// <summary>지금 욕구 값. 대화를 시작할 때 찍어 대화 창 게이지에 보인다. 생활 데이터가 없으면 null</summary>
+        public A305.Dialogue.NpcNeeds Needs => life?.Snapshot();
+
+        /// <summary>학습자와 대화를 마쳤다. 대화로 채우는 욕구(사교)를 채운다.</summary>
+        public void FillAfterConversation()
+        {
+            life?.FillAfterConversation();
+        }
+
         public bool IsSeated => seat != null;
 
         /// <summary>
@@ -252,7 +261,9 @@ namespace A305.Npc
             }
 
             role = entry.Role;
-            life = new NpcLife(data, entry, GameClock.Shared.Minutes);
+            // 장면을 오가도 욕구가 이어지도록 NPC마다 하나인 생활을 쓴다. 지난 장면에서 하던 행동은 이 장면에 그 사물이 없을 수 있어 내려놓는다.
+            life = NpcLives.Shared.Get(data, entry, GameClock.Shared.Minutes);
+            life.GiveUp();
             UseLifeAnimator();
         }
 

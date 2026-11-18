@@ -412,6 +412,18 @@ class FeedbackTests(unittest.TestCase):
                 response = generate_feedback(sample()[0], CallableClient(lambda _: raw), ai_allowed=True)
                 self.assertEqual(response["problem"]["code"], "INVALID_MODEL_OUTPUT")
 
+    def test_invalid_output_logs_which_check_failed_without_model_text(self):
+        _, body = sample()
+        body["result"]["turn_reviews"][0]["verdict"] = "SECRET_MODEL_TEXT"
+        with self.assertLogs("feedback", level="WARNING") as logs:
+            response = self.run_body(body)
+        self.assertEqual(response["problem"]["code"], "INVALID_MODEL_OUTPUT")
+        line = json.loads(logs.records[0].getMessage())
+        self.assertEqual(line["event"], "feedback_invalid_output")
+        self.assertEqual(line["error"], "ValidationError")
+        self.assertTrue(any("turn_reviews.0.verdict" in where for where in line["where"]))
+        self.assertNotIn("SECRET_MODEL_TEXT", logs.output[0])
+
     def test_context_insufficiency_and_false_no_user_reason(self):
         for code, expected in (("INSUFFICIENT_CONTEXT", "insufficient_evidence"), ("NO_USABLE_USER_TURNS", "failed")):
             body = {"outcome": "insufficient_evidence", "result": None, "problem": {"code": code, "message_ko": "근거 부족"}}

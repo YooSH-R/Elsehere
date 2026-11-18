@@ -39,7 +39,7 @@ null 판정은 무례가 아님을 뜻하지 않는다. 원래 null·실패 이�
 | 400 / invalid_request | 요청 형식 수정. 그대로 자동 재전송하지 않음 | 입력 검증에서 거부되면 0회 |
 | 401 등 HTTP 오류 | 내부 인증·전달 오류 정책으로 처리 | 오류 코드만으로 비용을 단정하지 않음 |
 
-`failed`의 `AI_TIMEOUT`, `AI_PROVIDER_ERROR`, `INVALID_MODEL_OUTPUT`은 교정 결과가 아니다. 예시의 잘못된 모델 출력은 HTTP 200이지만 `feedback.status: failed`이며, 생성 토큰 사용량은 남는다. 실패를 무료로 계산하지 않는다. 자동 재호출은 새 예산 승인과 중복 방지 정책을 거쳐야 한다.
+`failed`의 `AI_TIMEOUT`, `AI_PROVIDER_ERROR`, `INVALID_MODEL_OUTPUT`은 교정 결과가 아니다. 예시의 잘못된 모델 출력은 HTTP 200이지만 `feedback.status: failed`이며, 생성 토큰 사용량은 남는다. 실패를 무료로 계산하지 않는다. 워커는 `INVALID_MODEL_OUTPUT`일 때만 첫 시도만큼의 시간이 `FEEDBACK_TIMEOUT_S` 안에 남아 있으면 같은 요청으로 한 번 더 만들고, 두 호출의 사용량을 모두 `usage`에 담는다. 시간 초과·공급자 실패는 다시 부르지 않는다. 그 밖의 자동 재호출은 새 예산 승인과 중복 방지 정책을 거쳐야 한다.
 
 계약 자체에는 `blocked_by_quota`와 `processing`도 있지만, 현재 워커의 단일 동기 요청은 Spring의 사전 승인을 전제로 처리한다. Spring이 승인하지 않은 요청을 워커에 보내 quota 판정을 대신하게 하지 않는다.
 
@@ -47,7 +47,9 @@ null 판정은 무례가 아님을 뜻하지 않는다. 원래 null·실패 이�
 
 - 짧은 피드백: conversation_summary는 실제 대화의 요청·답변·결정만 담는다. 남은 목표는 게임의 퀘스트 진행으로 표시한다. review_tags의 아쉬운 점은 상세 문장 교정과 같은 발화·이유를 워커가 연결하며, 교정이 없으면 장점만 남긴다. 대표 개선 표현은 summary_suggestion_id가 가리킨다.
 - 상세 피드백: 원래 순서의 turn_reviews. 문법·어휘 오류와 context_fit을 구별하고, 적절한 표현을 오류로 표시하지 않는다.
-- 발화별 표현 연습: `turn_reviews[].expression_examples`의 상황(`condition_ko`)·영어(`expression`)·뜻(`meaning_ko`) 2~3개를 같은 피드백 호출에서 받는다. 문법이 맞아도 표현이 부족한 말은 실용적인 문장으로 확장하고, 모호한 요청은 조건부 선택지로 안내한다. BE는 원본 `conversation_feedback.result`에서 판정·제안 종류·예문을 읽어 상세 항목의 `verdict`, `suggestionKind`, `expressionExamples`로 제공한다. 새 DB 컬럼이나 다시 보기 시 AI 호출은 없다. Unity는 자연스러운 대안·의도 확인을 문법 오류와 구분하고, 대표 문장과 겹치는 예문은 한 번만 보인다. 기존 결과에 필드가 없으면 예문은 빈 목록이며 완료된 피드백을 자동 재생성하지 않는다.
+- 발화별 표현 연습: `turn_reviews[].expression_examples`의 상황(`condition_ko`)·영어(`expression`)·뜻(`meaning_ko`) 2~3개를 같은 피드백 호출에서 받는다. 문법이 맞아도 표현이 부족한 말은 실용적인 문장으로 확장하고, 모호한 요청은 조건부 선택지로 안내한다. BE는 원본 `conversation_feedback.result`에서 판정·제안 종류·예문을 읽어 상세 항목의 `verdict`, `suggestionKind`, `expressionExamples`로 제공한다.
+- 대화 중 보여 준 대체 표현은 사용자 턴의 `better_expressions`를 그대로 읽어 `expressionExamples` 앞에 둔다. 별도 피드백 모델이 예문을 생략했어도 이 문장들은 빠지지 않는다. 원문·중복을 제외하고 발화당 최대 3개를 제공하며, 적절한 짧은 답의 판정을 문법 오류로 바꾸지 않는다. 같은 영어의 뜻·상황이 모델 결과에 있으면 보존하고, 영어만 저장된 추천에는 `meaningKo: null`을 허용한다. 무례로 차단한 턴은 제외한다.
+- 기존 피드백도 조회 시 저장된 추천을 결합하므로 다시 생성할 필요가 없다. 새 DB 컬럼이나 다시 보기 시 AI 호출은 없다. Unity는 자연스러운 대안·의도 확인을 문법 오류와 구분하고, 대표 문장과 겹치는 예문은 한 번만 보인다. 모델 예문과 저장된 추천이 모두 없으면 빈 목록이다. [다시 연습](review-workbook.md)도 같은 저장 문장을 사용한다.
 - 단어장: vocab_candidates는 저장 후보다. 사용자 선택과 백엔드 저장 성공 전에는 저장 완료라고 표시하지 않는다. BE는 단어장이 단어·숙어·문장을 모두 저장하므로 후보를 종류와 상관없이 `conversation_feedback.reviews`에 함께 저장하고 FB-01·CONV-08 응답의 `feedback.vocabCandidates`로 내려 준다. 저장은 VOCAB-02 `FEEDBACK`이 이 목록과 `situationExpressions`(이 상황에서 자주 써요)로 단어·숙어·문장을 확인한다.
 - 회화 보충: `spoken_usage_notes`는 교정 아래의 선택적 설명 0~1개다. 현재 로컬 확장 필드이며 BE·Unity 적용 합의가 별도로 필요하다. 필드 누락은 빈 목록으로 처리할 수 있어야 하며, 설명이 없다고 실패로 처리하지 않는다.
 - 상황 표현: `situation_expressions`는 실제 대화 목적에 맞는 추천 표현 0~3개(표현·뜻·쓰는 때·학습 예문과 번역)다. 워커는 장소와 학습자 발화에 맞는 고정 후보를 최대 한 개 참고하며, 목적이 분명하면 1~3개를 생성한다. 필드가 없던 결과는 빈 목록으로 처리한다. BE는 `conversation_feedback.reviews`에 함께 저장하고 FB-01·CONV-08 응답의 `feedback.situationExpressions`로 내려 준다. Unity는 피드백 화면의 회화 칸에 "이 상황에서 자주 써요"로 보여 준다.

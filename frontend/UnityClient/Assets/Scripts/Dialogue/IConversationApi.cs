@@ -13,6 +13,7 @@ namespace A305.Dialogue
         /// <param name="stream">
         /// AI가 만드는 첫 인사의 글자와 문장 조각 음성을 만들어지는 대로 받을 쪽(스트리밍). null이면 시작한 대화만 한 번에 받는다.
         /// </param>
+        /// <param name="needs">대화를 시작한 순간 NPC의 생활 욕구. 서버가 대화에 저장해 NPC 대답과 돌발 부탁에 쓴다. 생활하지 않는 NPC면 null이다.</param>
         Task<ConversationStart> StartAsync(
             string requestId,
             string npcCode,
@@ -20,7 +21,8 @@ namespace A305.Dialogue
             bool npcOffDuty,
             NpcTravelContext npcTravelContext = null,
             string placeCode = null,
-            ITurnStream stream = null
+            ITurnStream stream = null,
+            NpcNeeds needs = null
         );
 
         /// <summary>CONV-03 발화 전송.</summary>

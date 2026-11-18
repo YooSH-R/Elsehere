@@ -34,7 +34,7 @@
 | 메서드 | 경로 | 본문 | 동작 |
 | --- | --- | --- | --- |
 | GET | `/api/v1/missions/first-day` | 없음 | 진행 조회. 시작 전에도 200과 `started:false` |
-| POST | `/api/v1/missions/first-day/start` | 없음 | 없으면 생성, 있으면 기존 진행 반환 |
+| POST | `/api/v1/missions/first-day/start` | 없음 | 없으면 생성, 있으면 기존 진행 반환. 하다 멈춘 시연 퀘스트는 취소한다([시연 퀘스트](../demo-rainy-evening.md)) |
 | POST | `/api/v1/missions/first-day/visit` | `{"scene":"CAFE"}` | 현재 씬 보고와 진행 조회. 미션 완료 권한을 주지 않음 |
 | POST | `/api/v1/missions/first-day/rest` | 없음 | 카페 주문 목표를 모두 마치고 대화 종료한 경우에만 stage 1→2 |
 
@@ -98,6 +98,8 @@
 백엔드 시드에 SHOP·SHOP_STAFF가 추가되고 Unity Build Settings에 ShopScene이 추가된다. **백엔드와 WebGL을 같은 변경 묶음으로 배포**한다. 기본 테이블과 단계 컬럼은 `V1__create_schema.sql`, 대화별 남은 목표 컬럼은 `V29__add_conversation_first_day_goals.sql`에 정의되어 Flyway가 백엔드 시작 시 반영한다. 기존 진행 상태는 유지하고 과거 대화의 목표 목록은 채우지 않는다. 비밀 환경변수나 패키지 추가는 없다.
 
 Unity 에셋은 **Tools → A305 → Mission → Build First Day Journey**로 생성·연결한다. 기존 씬 아트는 유지하고 없는 상점 실내만 만든다. 이미 있는 간판은 글자만 DRUGSTORE로 맞추고, 수첩의 마을 지도는 실행할 때마다 TownScene 배치로 다시 그린다. 우산 공용 단어와 상점 단어 목록은 ObjectHover 내보내기로 생성한다.
+
+플레이어는 손을 몸 앞에 자연스럽게 두고 곧은 우산대를 뒤로 비스듬하게 든다. 우산 천도 함께 기울이며, 머리 크기에 맞춰 우산대 길이를 조절한다. 팔을 뒤로 비틀지 않도록 우산대와 뒷머리 안쪽의 겹침은 허용하되 얼굴 앞면과 우산 천의 머리 관통은 막는다. 접은 우산은 기존처럼 내린 손에 쥐고 몸 바깥으로 기울인다.
 
 상점은 미국 소도시의 드럭스토어(DRUGSTORE)다. 미국에서는 갑자기 비가 오면 CVS·Walgreens 같은 드럭스토어에서 우산을 사는 일이 흔해 이 형태로 정했다. 실내는 **Tools → A305 → World → Apply Drugstore Interior**가 꾸미며 Build First Day Journey도 같은 작업을 실행한다. 입구 우산 통·음료 냉장고 벽·과자·식료품·약 선반·커피 코너·과일 상자를 두고, 조각과 실내 프리팹은 `Assets/Prefabs/World/Drugstore/`에 없을 때만 만든다. 우산 통은 기존 우산 공용 단어를 그대로 쓴다.
 

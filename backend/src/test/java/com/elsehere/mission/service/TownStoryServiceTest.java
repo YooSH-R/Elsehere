@@ -152,7 +152,8 @@ class TownStoryServiceTest {
           stories,
           firstDay,
           npcs,
-          mock(com.elsehere.conversation.repository.ConversationRepository.class));
+          mock(com.elsehere.conversation.repository.ConversationRepository.class),
+          mock(com.elsehere.favor.repository.FavorRepository.class));
 
   @Test
   void washObjectiveUsesTheSelfServiceMachineWithoutAPickupTime() {

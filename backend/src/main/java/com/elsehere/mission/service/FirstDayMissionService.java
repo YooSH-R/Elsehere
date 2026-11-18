@@ -6,6 +6,7 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.ConversationStatus;
 import com.elsehere.conversation.repository.ConversationRepository;
+import com.elsehere.favor.repository.FavorRepository;
 import com.elsehere.mission.dto.FirstDayMissionResponse;
 import com.elsehere.mission.entity.Coins;
 import com.elsehere.mission.entity.FirstDayMission;
@@ -33,10 +34,11 @@ public class FirstDayMissionService {
   private final ConversationRepository conversations;
   private final UserRepository users;
   private final NpcRepository npcs;
+  private final FavorRepository favors;
 
   @Transactional(readOnly = true)
   public FirstDayMissionResponse status(Long userId) {
-    return response(repository.findById(userId).orElse(null), reservationHolder(userId));
+    return response(userId, repository.findById(userId).orElse(null));
   }
 
   public FirstDayMissionResponse start(Long userId) {
@@ -44,7 +46,7 @@ public class FirstDayMissionService {
     users.findForUpdate(userId).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     FirstDayMission mission =
         repository.findById(userId).orElseGet(() -> repository.save(FirstDayMission.start(userId)));
-    return response(mission, reservationHolder(userId));
+    return response(userId, mission);
   }
 
   public FirstDayMissionResponse visit(Long userId, String scene) {
@@ -53,7 +55,7 @@ public class FirstDayMissionService {
     }
     Optional<FirstDayMission> mission = repository.findForUpdate(userId);
     mission.ifPresent(value -> value.visit(scene));
-    return response(mission.orElse(null), reservationHolder(userId));
+    return response(userId, mission.orElse(null));
   }
 
   public FirstDayMissionResponse rest(Long userId) {
@@ -62,7 +64,7 @@ public class FirstDayMissionService {
             .findForUpdate(userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.MISSION_NOT_READY));
     if (mission.getStage() == 2) {
-      return response(mission, reservationHolder(userId)); // 성공한 휴식의 재전송
+      return response(userId, mission); // 성공한 휴식의 재전송
     }
     if (!"CAFE".equals(mission.getScene())
         || !mission.canRest()
@@ -72,7 +74,7 @@ public class FirstDayMissionService {
       throw new BusinessException(ErrorCode.MISSION_NOT_READY);
     }
     mission.restAtCafe();
-    return response(mission, reservationHolder(userId));
+    return response(userId, mission);
   }
 
   @Transactional(readOnly = true)
@@ -176,7 +178,8 @@ public class FirstDayMissionService {
         .orElse("내 이름");
   }
 
-  private FirstDayMissionResponse response(FirstDayMission mission, String holder) {
+  private FirstDayMissionResponse response(Long userId, FirstDayMission mission) {
+    String holder = reservationHolder(userId);
     boolean started = mission != null;
     int current = started ? mission.getStage() : 0;
     List<FirstDayMissionResponse.Step> steps =
@@ -232,8 +235,8 @@ public class FirstDayMissionService {
         started && "CAFE".equals(scene) && mission.canRest(),
         started && current >= 4 && current <= 6 && "TOWN".equals(scene),
         !started || complete ? CLEAR_WEATHER : mission.current().weather(),
-        // 코인은 진행에서 계산한다. 산 만큼 줄고 끝내면 보상이 더해진다.
-        Coins.balance(mission, null),
+        // 코인은 진행에서 계산한다. 산 만큼 줄고 끝내면 보상이 더해지며, 마친 돌발 부탁의 보상도 더한다.
+        Coins.balance(mission, null) + Math.toIntExact(favors.sumDoneRewardCoins(userId)),
         Coins.lastPurchase(mission, null),
         situation,
         direction,

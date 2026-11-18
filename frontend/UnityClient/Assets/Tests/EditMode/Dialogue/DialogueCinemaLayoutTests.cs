@@ -12,6 +12,27 @@ namespace A305.Dialogue.Tests
         private static readonly Vector2 Wide = new Vector2(1920, 1080);
 
         [Test]
+        public void FitsBesideName_WhenTheLongestStandingStillFitsBeforeTheTools()
+        {
+            // 이름 오른쪽(400)에 게이지 300, 간격, 가장 긴 호감 줄 500, 간격을 두고도 도구 버튼(1300) 앞에 들어간다.
+            float toolsLeft = 400 + 300 + 500 + 2 * DialogueCinemaLayout.Gap;
+
+            Assert.That(DialogueCinemaLayout.FitsBesideName(400, toolsLeft, 300, 500), Is.True);
+        }
+
+        [Test]
+        public void FitsBesideName_GivesWayToTheRudeNoticeOnNarrowScreens()
+        {
+            float toolsLeft = 400 + 300 + 500 + 2 * DialogueCinemaLayout.Gap;
+
+            Assert.That(
+                DialogueCinemaLayout.FitsBesideName(400, toolsLeft - 1, 300, 500),
+                Is.False,
+                "무례 경고 문구가 잘리면 게이지를 숨긴다"
+            );
+        }
+
+        [Test]
         public void TallExpression_KeepsTheFirstLineImmediatelyBelowTheName()
         {
             var layout = DialogueCinemaLayout.Compute(

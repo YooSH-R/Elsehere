@@ -57,6 +57,15 @@ def test_opening_returns_the_model_line_with_the_request_ids_and_continue(client
     assert sent[0]["response_format"]["json_schema"]["schema"] == npc_respond.REPLY_SCHEMA  # 형식 강제
 
 
+def test_respond_replaces_semicolons_with_sentence_boundaries(client, provider):
+    answer_with(provider, "Take a seat； I'll bring the menu; would you like some water?")
+
+    response = client.post(RESPOND, json=example_request("followup"))
+
+    assert response.status_code == 200
+    assert response.json()["replyText"] == "Take a seat. I'll bring the menu. Would you like some water?"
+
+
 def test_followup_sends_the_history_and_the_user_line_last(client, provider):
     sent = answer_with(provider, "Sure! Small or large?")
     request = example_request("followup")

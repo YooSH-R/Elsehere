@@ -33,6 +33,12 @@ public interface UserNpcRelationRepository
           + " where relation.id.userId = :userId and relation.id.npcId = :npcId")
   Optional<Integer> findAffinity(Long userId, Long npcId);
 
+  /** 이 NPC와 마지막으로 대화를 끝낸 게임 날짜. 처음 만났거나 날짜를 남기기 전이면 빈 값이다. */
+  @Query(
+      "select relation.lastTalkGameDay from UserNpcRelation relation"
+          + " where relation.id.userId = :userId and relation.id.npcId = :npcId")
+  Optional<Integer> findLastTalkGameDay(Long userId, Long npcId);
+
   /** 대화 뒤 관계 갱신의 알아봄 변화량을 더하고 0~100으로 자른다. 관계 행은 대화 종료 처리에서 이미 만들어져 있다. */
   @Modifying
   @Query(

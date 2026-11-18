@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using A305.Dialogue;
 
 namespace A305.Npc
 {
@@ -12,6 +13,7 @@ namespace A305.Npc
     public sealed class NpcLife
     {
         public const string Off = "OFF";
+        private const string Work = "WORK";
         private const string Free = "FREE";
         private const float FullNeed = 100f;
 
@@ -30,6 +32,9 @@ namespace A305.Npc
             Activity = npc.ActivityAt(nowMinutes);
             StartNeedsOver();
         }
+
+        /// <summary>마지막으로 흘려 맞춘 게임 시각(1일차 0시부터 센 분)</summary>
+        public double Minutes => lastMinutes;
 
         /// <summary>지금 일과 활동(WORK·BREAK·FREE·OFF)</summary>
         public string Activity { get; private set; }
@@ -54,12 +59,22 @@ namespace A305.Npc
             while (lastMinutes < nowMinutes)
             {
                 string activity = npc.ActivityAt(lastMinutes);
-                double segmentEnd = Math.Min(nowMinutes, npc.NextChangeAfter(lastMinutes));
+                double segmentEnd = Math.Min(
+                    nowMinutes,
+                    Math.Min(npc.NextChangeAfter(lastMinutes), npc.NextMealAfter(lastMinutes))
+                );
                 Drop(segmentEnd - lastMinutes);
                 lastMinutes = segmentEnd;
-                if (activity == Off && npc.ActivityAt(lastMinutes) != Off)
+                string now = npc.ActivityAt(lastMinutes);
+                // 출근하면 시작값부터. 퇴근이 없는 NPC(상주 직원)는 날이 바뀔 때 시작값부터 한다(AI 하루 시뮬레이션과 같음).
+                if ((activity == Off && now != Off) || (npc.NeverOff && IsMidnight(lastMinutes)))
                 {
                     StartNeedsOver();
+                }
+
+                if (now == Work)
+                {
+                    EatAtWork(lastMinutes);
                 }
             }
 
@@ -124,6 +139,35 @@ namespace A305.Npc
             IsUsing = false;
         }
 
+        /// <summary>지금 욕구 값을 찍어 둔다. 대화 창 게이지와 대화 요청이 대화를 시작한 순간의 값을 쓴다.</summary>
+        public NpcNeeds Snapshot()
+        {
+            return new NpcNeeds(needs);
+        }
+
+        /// <summary>학습자가 들어준 부탁만큼 욕구를 채운다(심부름으로 가져다준 먹을 것·커피 등). 값은 백엔드가 완료한 부탁 소식에 담아 보낸다.</summary>
+        public void FillForFavor(Dictionary<string, float> fills)
+        {
+            Fill(fills);
+        }
+
+        /// <summary>
+        /// 학습자와 대화를 마쳤다. 공통 규칙에서 대화로 채우는 욕구(사교)를 채운다. 사교는 채우는 사물이 없어 대화로만 채워진다.
+        /// </summary>
+        public void FillAfterConversation()
+        {
+            foreach (KeyValuePair<string, NpcNeedRule> need in data.Needs)
+            {
+                if (need.Value.ConversationFill > 0)
+                {
+                    needs[need.Key] = Math.Min(
+                        FullNeed,
+                        needs[need.Key] + need.Value.ConversationFill
+                    );
+                }
+            }
+        }
+
         private bool CanDo(NpcActionRule action, Predicate<string> isPlaced)
         {
             return action.Scene == npc.Scene
@@ -171,6 +215,26 @@ namespace A305.Npc
             {
                 needs[fill.Key] = Math.Min(FullNeed, needs[fill.Key] + fill.Value);
             }
+        }
+
+        // 근무 중 짧은 끼니·커피: 끼니 시각이면 그 욕구를 시작값으로 되돌린다. 심부름으로 더 채워져 있으면 그대로 둔다.
+        private void EatAtWork(double minutes)
+        {
+            double minuteOfDay =
+                ((minutes % NpcScheduleBlock.MinutesPerDay) + NpcScheduleBlock.MinutesPerDay)
+                % NpcScheduleBlock.MinutesPerDay;
+            foreach (NpcMeal meal in npc.Meals)
+            {
+                if (Math.Abs(meal.Minute - minuteOfDay) < .001 && data.Needs.ContainsKey(meal.Need))
+                {
+                    needs[meal.Need] = Math.Max(needs[meal.Need], data.Needs[meal.Need].Start);
+                }
+            }
+        }
+
+        private static bool IsMidnight(double minutes)
+        {
+            return Math.Abs(minutes % NpcScheduleBlock.MinutesPerDay) < .001;
         }
 
         private void StartNeedsOver()

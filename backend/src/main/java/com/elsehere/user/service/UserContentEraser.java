@@ -29,6 +29,7 @@ public class UserContentEraser {
           "turn_feedback",
           "conversation_feedback",
           "user_npc_relations",
+          "showcase_saved_states",
           "npc_follow_ups",
           "review_cards",
           "user_vocab",
@@ -44,6 +45,10 @@ public class UserContentEraser {
           "user_missions",
           "first_day_missions",
           "town_stories",
+          // 돌발 부탁: 학습자가 한 말이 없고, 완료한 부탁 보상이 퀘스트 코인 잔액에 들어가는 진행 기록이다.
+          "npc_favors",
+          // 시연 진행: 시연 퀘스트 단계·우산·시연 결제 기록이다.
+          "showcase_journeys",
           "user_consents",
           "user_language_profiles",
           "user_game_clocks",
@@ -93,6 +98,8 @@ public class UserContentEraser {
     // 대화 메타데이터는 보존하지만 결과에 복사한 발화 원문은 보존하지 않는다.
     jdbcTemplate.update("update conversations set review_result = null where user_id = ?", userId);
     jdbcTemplate.update("delete from user_npc_relations where user_id = ?", userId);
+    // 시연이 보관해 둔 NPC 관계에도 기억 카드가 들어 있어 함께 지운다.
+    jdbcTemplate.update("delete from showcase_saved_states where user_id = ?", userId);
     // NPC가 곧 건네기로 한 것은 주문한 내용이 담겨 있어 함께 지운다.
     jdbcTemplate.update("delete from npc_follow_ups where user_id = ?", userId);
     jdbcTemplate.update("delete from review_cards where user_id = ?", userId);

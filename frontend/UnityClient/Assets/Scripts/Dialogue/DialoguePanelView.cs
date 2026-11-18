@@ -44,6 +44,10 @@ namespace A305.Dialogue
         private TMP_Text standingText;
 
         [SerializeField]
+        [Tooltip("NPC 이름표 바로 오른쪽의 욕구 게이지. 생활하지 않는 NPC면 숨긴다.")]
+        private DialogueNeedsView needsView;
+
+        [SerializeField]
         private Button endButton;
 
         private Outline endButtonHighlight;
@@ -417,8 +421,8 @@ namespace A305.Dialogue
         // 풀이가 여럿이면 카드 아래쪽에 다음 풀이의 제목이 보이도록 한 줄보다 이만큼 더 높게 두고 나머지는 스크롤한다.
         private const float NextWordPeek = 64;
 
-        // 대사 칸에 한 번에 보이는 최근 대사 수(바로 앞 대사와 그다음 대사)
-        private const int VisibleLineCount = 4;
+        // 대사·뜻·가사의 실제 줄바꿈 기준 상한.
+        private const int MaxVisibleTextLines = 5;
 
         /// <summary>녹음 중 목소리가 들릴 때 [종료] 버튼의 불 색.</summary>
         public static readonly Color VoiceHeardColor = new Color32(76, 217, 100, 255);
@@ -1155,7 +1159,8 @@ namespace A305.Dialogue
         private void ShowSubtitleButton()
         {
             subtitleButton.gameObject.SetActive(content.SpeaksNpcLines);
-            bool showsSubtitles = NpcSubtitlePreference.ShowsSubtitles;
+            subtitleButton.interactable = !isMeaningVisible;
+            bool showsSubtitles = isMeaningVisible || NpcSubtitlePreference.ShowsSubtitles;
             subtitleButton.GetComponentInChildren<TMP_Text>(true).text = showsSubtitles
                 ? DisableSubtitlesCaption
                 : EnableSubtitlesCaption;
@@ -1165,6 +1170,10 @@ namespace A305.Dialogue
 
         private void ToggleSubtitles()
         {
+            // 뜻과 원문을 함께 보는 동안에는 저장된 자막 선택도 바꾸지 않는다.
+            if (isMeaningVisible)
+                return;
+
             NpcSubtitlePreference.ShowsSubtitles = !NpcSubtitlePreference.ShowsSubtitles;
             Refresh();
         }
@@ -1438,6 +1447,55 @@ namespace A305.Dialogue
             standingText.color = npcNameText.color;
         }
 
+        /// <summary>
+        /// 대화하는 NPC의 욕구 게이지를 보인다. 대화를 시작한 순간의 값이며, 대화 중에는 게임 시간이 멈춰 바뀌지 않는다.
+        /// </summary>
+        /// <param name="needs">생활하지 않는 NPC(튜토리얼 Ben, 택시 기사, 출퇴근 중인 몸 등)면 null이며 게이지를 숨긴다.</param>
+        public void ShowNeeds(NpcNeeds needs)
+        {
+            if (needsView == null)
+                return;
+            needsView.Show(NpcNeedGauges.From(needs));
+            // 대화를 시작하기 전(창이 닫혀 있을 때)이면 대화 창을 열 때 자리를 정한다.
+            if (panel.activeSelf && content != null)
+                UpdateLayout();
+        }
+
+        // 서버가 무례 한도를 보내기 전에 쓰는 기본 한도. 서버 기본값과 같다(docs/api/rudeness-handling.md).
+        private const int DefaultRudeLimit = 3;
+
+        // 욕구 게이지를 이름표(와 공연 버튼) 바로 오른쪽에 두고, 호감도·무례 경고가 시작할 왼쪽 끝을 돌려준다.
+        // 자리는 이름 길이로만 정해져 무례 경고 문구가 붙었다 사라져도 움직이지 않는다.
+        // 게이지 뒤에 가장 긴 호감 줄(무례 경고 문구가 붙은 때)이 들어가지 않는 좁은 화면이면 경고가 잘리지 않게 게이지를 숨긴다.
+        private float PlaceNeeds(float left, float toolsLeft, Rect nameRow)
+        {
+            if (needsView == null)
+                return left;
+            int rudeLimit =
+                content?.Standing != null && content.Standing.IsKnown
+                    ? content.Standing.RudeLimit
+                    : DefaultRudeLimit;
+            float widestStanding = standingText
+                .GetPreferredValues(ConversationStandingDisplay.Widest(rudeLimit))
+                .x;
+            bool fits =
+                needsView.Width > 0
+                && DialogueCinemaLayout.FitsBesideName(
+                    left,
+                    toolsLeft,
+                    needsView.Width,
+                    widestStanding
+                );
+            needsView.gameObject.SetActive(fits);
+            if (!fits)
+                return left;
+            Place(
+                (RectTransform)needsView.transform,
+                new Rect(left, nameRow.yMin, needsView.Width, nameRow.height)
+            );
+            return left + needsView.Width + DialogueCinemaLayout.Gap;
+        }
+
         // 대화창 이름 줄 위와 택시 안내 사이 간격
         private const float VehicleStatusGap = 16;
 
@@ -1520,9 +1578,10 @@ namespace A305.Dialogue
                 DialogueCinemaLayout.LinesWidth(column, hasTranslation),
                 out bool hasEarlierLines
             );
-            // 모든 가사는 기록에 남기고, 실제 글꼴·줄바꿈으로 잰 한 세트 높이 안에서만 스크롤한다.
             if (performanceVisible && !string.IsNullOrEmpty(performanceLyrics))
             {
+                // 짧은 랩도 반복할 때 창이 커지지 않게 한 곡 높이를 유지한다.
+                // 긴 가사는 위에서 계산한 다섯 줄 상한을 그대로 적용한다.
                 string onePerformance = DialogueLinesText.Format(
                     new[] { DialogueLine.FromNpc(performanceLyrics, null) },
                     content.NpcName,
@@ -1530,13 +1589,14 @@ namespace A305.Dialogue
                     null,
                     sentenceIndent: SentenceIndent()
                 );
-                linesHeight = linesText
+                float performanceHeight = linesText
                     .GetPreferredValues(
                         onePerformance,
                         DialogueCinemaLayout.LinesWidth(column, hasTranslation),
                         0
                     )
                     .y;
+                linesHeight = Mathf.Min(linesHeight, performanceHeight);
             }
             float nameWidth = Mathf.Max(
                 MinNameWidth,
@@ -1548,10 +1608,16 @@ namespace A305.Dialogue
             float reservedCard = ExpressionCardHeight(cardWidth, OtherExpressions != null);
             float shownCard = ExpressionCardHeight(cardWidth, othersOpen);
             // 오른쪽 위 단어·추천 문장 카드 자리. 대사와 영어 표현 카드는 이 자리를 넘지 않는 높이까지만 키운다.
+            // 복습·연습 중에는 말해 볼 문장을 알려 주는 참고 카드 자리를 먼저 남긴다.
+            float reviewCardHeight = reviewReference != null ? FitReviewCard() : 0;
             float roomAboveName =
-                suggestions != null && reviewReference == null
+                reviewReference != null
+                    ? ReviewCardTop
+                        + Mathf.Min(reviewCardHeight, ReviewCardReservedHeight)
+                        + 2 * DialogueCinemaLayout.Gap
+                : suggestions != null
                     ? SuggestionsTop + MinSuggestionsHeight + 2 * DialogueCinemaLayout.Gap
-                    : 0;
+                : 0;
             DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
                 lastCanvasSize,
                 linesHeight,
@@ -1589,7 +1655,8 @@ namespace A305.Dialogue
                 if (fits)
                     standingLeft += width + DialogueCinemaLayout.Gap;
             }
-            // 호감도·무례 경고는 이름표 바로 오른쪽에 두고, 도구 버튼 앞에서 말줄임으로 자른다.
+            standingLeft = PlaceNeeds(standingLeft, toolsLeft, layout.Name);
+            // 호감도·무례 경고는 욕구 게이지(없으면 이름표) 바로 오른쪽에 두고, 도구 버튼 앞에서 말줄임으로 자른다.
             Place(
                 standingText.rectTransform,
                 Rect.MinMaxRect(
@@ -1665,35 +1732,60 @@ namespace A305.Dialogue
             PlaceVehicleStatus(layout);
             if (reviewReference != null)
             {
-                helpPanel.localScale = Vector3.one;
-                // 일반 도움말의 축소 비율을 되돌린 뒤 높이도 실제 여유 공간으로 되돌린다.
-                // 내용 길이에 따라 창을 늘리지 않고 기존 Viewport 안에서 스크롤한다.
+                // 일반 도움말의 축소 비율과 크기를 되돌린다. 카드는 대화창 위 남은 높이 안에서 내용만큼 커지고,
+                // 넘치는 내용은 카드 안에서 스크롤한다.
+                FitReviewCard();
+                helpPanel.anchoredPosition = new Vector2(-HelpMargin, -ReviewCardTop);
                 helpPanel.SetSizeWithCurrentAnchors(
                     RectTransform.Axis.Vertical,
-                    Mathf.Clamp(helpRoom, 0, 440)
+                    Mathf.Clamp(
+                        lastCanvasSize.y
+                            - ReviewCardTop
+                            - layout.Name.yMax
+                            - 2 * DialogueCinemaLayout.Gap,
+                        0,
+                        reviewCardHeight
+                    )
                 );
-                helpPanel.SetSizeWithCurrentAnchors(
-                    RectTransform.Axis.Horizontal,
-                    Mathf.Min(400, lastCanvasSize.x - 2 * HelpMargin)
-                );
-                var card = (RectTransform)suggestText.transform.parent;
-                var list = card.GetComponent<VerticalLayoutGroup>();
-                if (list != null)
-                    list.padding = new RectOffset(12, 12, 16, 20);
-                suggestText.fontSize = 24;
-                suggestText.enableAutoSizing = false;
-                suggestText.rectTransform.SetSizeWithCurrentAnchors(
-                    RectTransform.Axis.Horizontal,
-                    helpPanel.rect.width - 72
-                );
-                var size = suggestText.GetComponent<LayoutElement>();
-                if (size != null)
-                    size.preferredHeight =
-                        suggestText
-                            .GetPreferredValues(suggestText.text, helpPanel.rect.width - 72, 0)
-                            .y + 12;
-                LayoutRebuilder.ForceRebuildLayoutImmediate(helpContent);
             }
+        }
+
+        // 복습·연습 참고 카드 자리. 대화 중에는 오른쪽 위 HUD가 숨으므로 화면 위 여백부터 쓴다.
+        private const float ReviewCardTop = HudTopBarLayout.Margin;
+        private const float ReviewCardWidth = 520;
+
+        // 대사와 영어 표현 카드가 길어져도 참고 카드에 남겨 두는 높이. 고친 문장 두 개와 '내가 한 말'이 보이는 높이다.
+        private const float ReviewCardReservedHeight = 520;
+
+        // 참고 카드의 폭과 글자 줄바꿈을 맞추고, 내용을 다 보이는 데 필요한 카드 높이를 준다.
+        private float FitReviewCard()
+        {
+            helpPanel.anchorMin = helpPanel.anchorMax = helpPanel.pivot = Vector2.one;
+            helpPanel.localScale = Vector3.one;
+            helpPanel.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Horizontal,
+                // 세로 화면처럼 좁은 화면에서는 가운데 NPC 얼굴을 덮지 않게 화면 폭의 45%까지만 쓴다.
+                Mathf.Min(ReviewCardWidth, lastCanvasSize.x * .45f)
+            );
+            var card = (RectTransform)suggestText.transform.parent;
+            var list = card.GetComponent<VerticalLayoutGroup>();
+            if (list != null)
+                list.padding = new RectOffset(12, 12, 16, 20);
+            suggestText.fontSize = 24;
+            suggestText.enableAutoSizing = false;
+            float textWidth = helpPanel.rect.width - 72;
+            suggestText.rectTransform.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Horizontal,
+                textWidth
+            );
+            var size = suggestText.GetComponent<LayoutElement>();
+            if (size != null)
+                size.preferredHeight =
+                    suggestText.GetPreferredValues(suggestText.text, textWidth, 0).y + 12;
+            var helpContent = (RectTransform)helpPanel.Find("Viewport/Content");
+            LayoutRebuilder.ForceRebuildLayoutImmediate(helpContent);
+            // 카드 안 Viewport의 위아래 여백(20씩)을 더한다.
+            return LayoutUtility.GetPreferredHeight(helpContent) + 40;
         }
 
         // 카드가 내용을 다 보이는 데 필요한 높이. 카드 폭을 먼저 맞춘 뒤, 다른 표현을 펼친(open) 또는 접은 상태로
@@ -1714,23 +1806,34 @@ namespace A305.Dialogue
             return height;
         }
 
-        // 최근 네 대사와 그 뜻이 보이는 높이를 준다. 긴 내용·작은 화면과 그 이전 대사는 스크롤한다.
+        // 발화 수가 아니라 실제 글꼴·폭으로 줄바꿈된 다섯 줄을 상한으로 삼는다.
+        // 뜻·가사도 같은 제한을 쓰며, 전체 기록은 잘라내지 않고 ScrollRect에 남긴다.
         private float VisibleLinesHeight(float width, out bool hasEarlierLines)
         {
-            IReadOnlyList<DialogueLine> lines = content?.Lines;
-            hasEarlierLines = lines != null && lines.Count > VisibleLineCount;
-            if (!hasEarlierLines)
-                return linesText.GetPreferredValues(linesText.text, width, 0).y;
-            string latest = DialogueLinesText.Format(
-                lines.Skip(lines.Count - VisibleLineCount).ToArray(),
-                content.NpcName,
-                isMeaningVisible,
-                content.LastNpcGlossary,
-                glossaryCard.Word,
-                SentenceIndent(),
-                HidesNpcLines
+            // 스크롤바 안쪽 여백까지 적용된 실제 폭에서 먼저 줄바꿈을 계산한다.
+            ((RectTransform)historyScroll.transform).SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Horizontal,
+                width
             );
-            return linesText.GetPreferredValues(latest, width, 0).y;
+            Canvas.ForceUpdateCanvases();
+            linesText.ForceMeshUpdate();
+            TMP_TextInfo info = linesText.textInfo;
+            hasEarlierLines = info.lineCount > MaxVisibleTextLines;
+            if (!hasEarlierLines)
+                return linesText.preferredHeight;
+
+            // 뜻은 영어보다 작은 글씨다. 어느 위치로 스크롤해도 여섯 줄이 한꺼번에
+            // 들어오지 않도록 다섯 줄 구간 중 가장 짧은 높이로 제한한다.
+            float height = float.PositiveInfinity;
+            for (int first = 0; first <= info.lineCount - MaxVisibleTextLines; first++)
+            {
+                int last = first + MaxVisibleTextLines - 1;
+                height = Mathf.Min(
+                    height,
+                    info.lineInfo[first].ascender - info.lineInfo[last].descender
+                );
+            }
+            return Mathf.Max(0, height);
         }
 
         private const float ToolButtonPadding = 24f;

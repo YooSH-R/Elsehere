@@ -79,7 +79,8 @@ PC 브라우저에서 다음 주소를 열어 환경에 맞는 응답을 확인�
 
 - [개발 앱](https://dev.elsehere.kr/): `/dev/` 없이 WebGL 접속
 - [개발 상태](https://dev.elsehere.kr/api/health): HTTP 200·`status: UP`
-- [운영 상태](https://elsehere.kr/api/health)·[www 상태](https://www.elsehere.kr/api/health): 운영 앱 전환 전의 `environment: prod` 확인용 응답
+- [운영 상태](https://elsehere.kr/api/health): HTTP 200·`status: UP`
+- [www 주소](https://www.elsehere.kr/): 같은 경로의 `https://elsehere.kr`로 301 리다이렉트. Google 로그인 콜백을 대표 도메인 하나로 유지하므로 `www` 서버 블록은 앱으로 직접 프록시하지 않습니다
 
 기존 SSAFY `/dev/`·`/dev/api/`·`/api/`는 호환을 위해 유지합니다. 403이면 해당 location의 접근 제한과 웹 파일 권한을 확인합니다. 공유 Nginx를 수정한 뒤 새 도메인과 호환 경로를 모두 확인합니다.
 

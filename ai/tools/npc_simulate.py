@@ -36,6 +36,8 @@ def simulate_day(npc: dict, rules: dict, requests: dict, tick: int = 10, tutoria
             continue
         if needs is None:
             needs = {name: rule["start"] for name, rule in rules["needs"].items()}
+        if block["activity"] == "WORK":
+            _eat_at_work(npc, minute, tick, needs, rules)
         if minute % 60 == 0:
             day["needsAt"][_clock(minute)] = {name: round(value, 1) for name, value in needs.items()}
 
@@ -50,14 +52,22 @@ def simulate_day(npc: dict, rules: dict, requests: dict, tick: int = 10, tutoria
                 day["actions"].append({"time": _clock(minute), "action": doing["action"]})
 
         for request in requests["requests"]:
-            if request["id"] not in asked and _asks(request, npc, block, needs, allowed):
+            if request["id"] not in asked and _asks(request, npc, block, needs, allowed, rules):
                 asked.add(request["id"])
-                day["requests"].append({"time": _clock(minute), "id": request["id"]})
+                entry = {"time": _clock(minute), "id": request["id"]}
+                if request["solve"] == "ERRAND":
+                    entry["place"] = _errand_places(request, npc, rules)[0]
+                day["requests"].append(entry)
 
         for name, rule in rules["needs"].items():
-            rate = npc["rates"].get("needRates", {}).get(name, 1)
+            rate = need_rate(npc, name)
             needs[name] = max(0.0, needs[name] - rule["dropPerHour"] * rate * tick / 60)
     return day
+
+
+def need_rate(npc: dict, need: str) -> float:
+    """욕구가 줄어드는 속도 배수: 성격 배수(rates.needRates) × 근무 형태 배수(needDrain, 퇴근 없는 NPC는 하루에 나눠 줆)."""
+    return npc["rates"].get("needRates", {}).get(need, 1) * npc.get("needDrain", {}).get(need, 1)
 
 
 def _allowed_actions(npc: dict, block: dict, rules: dict) -> list[dict]:
@@ -80,19 +90,42 @@ def _most_urgent(actions: list[dict], needs: dict, can_fill: list[str]) -> dict 
     return best if best and score(best) >= MIN_SCORE else None
 
 
-def _asks(request: dict, npc: dict, block: dict, needs: dict, allowed: list[dict]) -> bool:
-    """부탁하는 역할·활동이고, 자리를 못 비우고, 욕구가 기준 아래인데 지금 여기서 스스로 못 채우면 부탁한다.
-    자기 장소의 직원에게 다녀오라는 부탁(카페 직원이 카페 머핀을)은 하지 않는다."""
-    own_place_errand = any(step["with"] == "staff" and step["place"] == npc["place"] for step in request["steps"])
-    can_fill_here = any(request["need"] in action["fills"] for action in allowed)
+def _asks(request: dict, npc: dict, block: dict, needs: dict, allowed: list[dict], rules: dict) -> bool:
+    """욕구 계기만 본다(상황 계기는 학습자와 대화하는 시각·장소로 백엔드가 정한다).
+    부탁하는 역할·활동이고, 자리를 못 비우고, 욕구가 기준 아래인데 지금 여기서 스스로 못 채우면 부탁한다.
+    심부름은 자기 근무지가 아닌 가게에 그 욕구를 채우는 제공이 있을 때만(카페 직원이 카페 머핀을 부탁하지 않음)."""
+    trigger = request["trigger"]
+    if "need" not in trigger:
+        return False
+    need = trigger["need"]
+    can_fill_here = any(need in action["fills"] for action in allowed)
     return (
-        request["role"] == npc["role"]
+        npc["role"] in request["roles"]
         and block["activity"] in request["activities"]
         and not block["canLeave"]
-        and needs[request["need"]] < request["below"]
+        and needs[need] < trigger["below"]
         and not can_fill_here
-        and not own_place_errand
+        and (request["solve"] != "ERRAND" or bool(_errand_places(request, npc, rules)))
     )
+
+
+def _errand_places(request: dict, npc: dict, rules: dict) -> list[str]:
+    """욕구 심부름의 해결처 후보: 그 욕구를 채우는 제공이 있는, 자기 근무지가 아닌 장소(이름 순)."""
+    own = npc.get("workplace", npc["place"])
+    need = request["trigger"]["need"]
+    return [
+        code
+        for code, place in sorted(rules.get("places", {}).items())
+        if code != own and any(need in offer.get("fills", {}) for offer in place.get("offers", []))
+    ]
+
+
+def _eat_at_work(npc: dict, minute: int, tick: int, needs: dict, rules: dict):
+    """근무 중 짧은 끼니·커피: 그 칸에 끼니 시각이 들면 그 욕구를 시작값으로 되돌린다(이미 높으면 그대로)."""
+    for meal in npc.get("meals", []):
+        at = _minutes(meal["at"])
+        if minute <= at < minute + tick:
+            needs[meal["need"]] = max(needs[meal["need"]], rules["needs"][meal["need"]]["start"])
 
 
 def _fill(needs: dict, fills: dict):
@@ -129,8 +162,17 @@ def service_npc(npc_id: str) -> dict:
     """서비스 NPC 하나의 시뮬레이션 입력: npcId·role·place와 npc_derive가 계산한 behaviors·rates·schedule."""
     life = _load(npc_life_rules.LIFE_FOLDER / f"{npc_id}.json")
     place = _load(npc_life_rules.ROOT / "ai/npcs" / f"{npc_id}.json")["defaultLocationId"]
-    values = npc_derive.npc_life_values(life, _load(npc_life_rules.WORLD_RULES), _load(npc_life_rules.BEHAVIORS), place)
-    return {"npcId": npc_id, "role": life["role"], "place": place, "tutorialGuide": life.get("tutorialGuide", False), **values}
+    rules = _load(npc_life_rules.WORLD_RULES)
+    values = npc_derive.npc_life_values(life, rules, _load(npc_life_rules.BEHAVIORS), place)
+    return {
+        "npcId": npc_id,
+        "role": life["role"],
+        "place": place,
+        "workplace": life["workplace"],
+        "meals": npc_derive.work_meals(npc_id, rules),
+        "tutorialGuide": life.get("tutorialGuide", False),
+        **values,
+    }
 
 
 def conversations_to_reach(threshold: float, rate: float, rules: dict) -> int:
@@ -161,6 +203,12 @@ def _load(path: Path) -> dict:
 SERVICE_NPCS = ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"]
 
 
+def _request_text(request: dict) -> str:
+    """예: 05:10 bring_food→DINER (심부름이면 해결처 장소를 붙인다)."""
+    place = f"→{request['place']}" if "place" in request else ""
+    return f"{request['time']} {request['id']}{place}"
+
+
 def main() -> int:
     """서비스 NPC 3명의 하루(부탁·행동·정시 욕구)와 알아봄·기억 곡선을 표로 보여 준다."""
     rules = _load(npc_life_rules.WORLD_RULES)
@@ -172,7 +220,7 @@ def main() -> int:
         print(f"\n== {npc_id} ({npc['role']}, {npc['place']}) 행동 조각: {', '.join(npc['behaviors'])}")
         if npc["tutorialGuide"]:
             print("튜토리얼 안내 NPC: 학습자가 튜토리얼을 마치기 전에는 정해진 흐름만 따른다. 아래는 마친 뒤의 하루")
-        print("부탁:", ", ".join(f"{request['time']} {request['id']}" for request in day["requests"]) or "없음")
+        print("부탁:", ", ".join(_request_text(request) for request in day["requests"]) or "없음")
         print("행동:", ", ".join(f"{name}×{count}" for name, count in counts.items()) or "없음")
         print("시각  " + " ".join(f"{need:>6}" for need in rules["needs"]))
         for clock, needs in day["needsAt"].items():

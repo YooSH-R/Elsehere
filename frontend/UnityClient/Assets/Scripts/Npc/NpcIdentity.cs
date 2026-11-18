@@ -34,12 +34,22 @@ namespace A305.Npc
             active.Add(this);
         }
 
-        private void Start()
+        private CharacterEmotion? restingMood;
+
+        // 시연을 시작하거나 끝내면 장면을 다시 열지 않아도 평소 인상이 바뀐다.
+        private void Update()
         {
-            // 호텔 외형은 여러 직원이 공유하므로 Jake의 성격은 NPC 코드로 적용한다.
-            if (code == "HOTEL_STAFF")
-                GetComponent<DialogueSpeaker>()
-                    .Player?.ConfigureRestingMood(CharacterEmotion.Indifferent);
+            CharacterEmotion? mood = NpcRestingMood.Of(code, NpcPopulation.UsesShowcasePopulation);
+            if (mood == restingMood)
+                return;
+            restingMood = mood;
+            CharacterSpeechPlayer player = GetComponent<DialogueSpeaker>().Player;
+            if (player == null)
+                return;
+            if (mood.HasValue)
+                player.ConfigureRestingMood(mood.Value);
+            else
+                player.ClearRestingMood();
         }
 
         private void OnDisable()

@@ -120,7 +120,7 @@ Game 탭에서 NPC 몸·이름표를 클릭하고 대화 시작을 확인합니�
 
 ## 실제 대화의 기분 설정
 
-각 프리팹의 `CharacterSpeechPlayer`에 공통 `CafeFemaleEmotions.asset`과 기본 기분 `WarmSmile`을 연결합니다. Jake(`HOTEL_STAFF`)는 실행 시 `NpcIdentity`가 대기와 감정 정보 없는 음성에 `Indifferent`를 적용합니다. `DialogueSpeaker`는 해당 NPC 안의 재생기를 찾아 기존 `DialogueServerLink` 음성과 발음 시간표를 재생합니다. 새로운 대사에도 별도 예문 제작 없이 같은 설정이 적용됩니다.
+각 프리팹의 `CharacterSpeechPlayer`에 공통 `CafeFemaleEmotions.asset`과 기본 기분 `WarmSmile`을 연결합니다. Jake(`HOTEL_STAFF`)는 실행 시 `NpcIdentity`가 대기와 감정 정보 없는 음성에 `Indifferent`를 적용합니다. 시연 퀘스트 동안에는 Jake 대신 Owen(`HOTEL_RECEPTIONIST`)에게 적용합니다. `DialogueSpeaker`는 해당 NPC 안의 재생기를 찾아 기존 `DialogueServerLink` 음성과 발음 시간표를 재생합니다. 새로운 대사에도 별도 예문 제작 없이 같은 설정이 적용됩니다.
 
 게임 로직은 `player.ConfigureMood(profile, CharacterEmotion.Sad, 0.8f)`처럼 다음 발화의 기분을 설정할 수 있습니다. Inspector의 `Speaking Mood`와 `Mood Intensity`로도 지정합니다. 이미 재생 중인 음성에는 소급하지 않습니다. 발화별 `SpeechEmotionTrack`과 프로필을 명시적으로 전달하면 기본 기분보다 우선합니다. 실제 대화의 음성 종료·녹음 시작에는 직전 감정을 유지하며, 대화 종료·화자 변경에는 대기 표정으로 돌아옵니다. `ConfigureRestingMood`를 적용한 Jake의 대기 표정은 무신경이고, 나머지는 중립입니다. 기본 기분 설정 자체는 유지됩니다.
 

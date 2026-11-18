@@ -139,6 +139,81 @@ namespace A305.Characters.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator DuringTheShowcase_JakeGreetsWithHisDefaultFaceAndSmilesWhileSpeaking()
+        {
+            NpcPopulation.UsesShowcasePopulation = true;
+            var root = CreateHotelSpeaker("HOTEL_STAFF");
+            try
+            {
+                yield return null;
+                var player = root.GetComponent<DialogueSpeaker>().Player;
+                Assert.That(MaxWeight(root, "mouthFrownLeft"), Is.Zero);
+                Assert.That(MaxWeight(root, "eyeBlinkLeft"), Is.Zero);
+                var link = root.AddComponent<DialogueServerLink>();
+                link.SetSpeaker(player);
+                byte[] voice = AssetDatabase
+                    .LoadAssetAtPath<TextAsset>(
+                        "Assets/Audio/Characters/CafeDialogue/CafeThanksSpeech.bytes"
+                    )
+                    .bytes;
+                link.PlayRecordedSpeech(voice);
+                player.Pause();
+                player.Seek(.65f);
+                Assert.That(MaxWeight(root, "mouthSmileLeft"), Is.GreaterThan(0));
+                link.StopSpeech();
+                Assert.That(MaxWeight(root, "mouthFrownLeft"), Is.Zero);
+            }
+            finally
+            {
+                NpcPopulation.UsesShowcasePopulation = false;
+                Object.Destroy(root);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator JakeChangesFaceWhenTheShowcaseStartsAndReturnsWhenItEnds()
+        {
+            var root = CreateHotelSpeaker("HOTEL_STAFF");
+            try
+            {
+                yield return null;
+                Assert.That(MaxWeight(root, "mouthFrownLeft"), Is.EqualTo(25).Within(.1));
+                NpcPopulation.UsesShowcasePopulation = true;
+                yield return null;
+                Assert.That(MaxWeight(root, "mouthFrownLeft"), Is.Zero);
+                NpcPopulation.UsesShowcasePopulation = false;
+                yield return null;
+                Assert.That(MaxWeight(root, "mouthFrownLeft"), Is.EqualTo(25).Within(.1));
+            }
+            finally
+            {
+                NpcPopulation.UsesShowcasePopulation = false;
+                Object.Destroy(root);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator DuringTheShowcase_OwenLooksIndifferentInContrastToJake()
+        {
+            NpcPopulation.UsesShowcasePopulation = true;
+            var root = CreateHotelSpeaker("HOTEL_RECEPTIONIST");
+            try
+            {
+                yield return null;
+                Assert.That(MaxWeight(root, "mouthFrownLeft"), Is.EqualTo(25).Within(.1));
+                Assert.That(MaxWeight(root, "mouthSmileLeft"), Is.Zero);
+                NpcPopulation.UsesShowcasePopulation = false;
+                yield return null;
+                Assert.That(MaxWeight(root, "mouthFrownLeft"), Is.Zero);
+            }
+            finally
+            {
+                NpcPopulation.UsesShowcasePopulation = false;
+                Object.Destroy(root);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator RecordingDuringAWinkLetsTheEyeOpenWhileKeepingTheSmile()
         {
             var root = CreateCafeSpeaker();

@@ -212,6 +212,17 @@ public class ShowcaseQuestService {
             });
   }
 
+  /** 하던 시연을 그만둔다. 처음으로 되돌리고 시연이 덮어쓴 계정 상태도 돌려놓는다. 하는 중이 아니면 그만둘 것이 없다. */
+  public void cancel(Long userId) {
+    ShowcaseJourney journey =
+        journeys
+            .findForUpdate(userId)
+            .filter(running -> running.isActive() && !running.isCompleted())
+            .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS));
+    journey.restart();
+    scene.leave(userId);
+  }
+
   public FirstDayMissionResponse reset(Long userId) {
     lockUserWithoutConversation(userId);
     ShowcaseJourney journey =

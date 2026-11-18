@@ -44,6 +44,11 @@ namespace A305.Characters
         private FaceEmotionSample lastEmotion;
         private FaceEmotionSample heldEmotion;
         private bool hasRestingMood;
+        private (
+            EmotionExpressionProfile profile,
+            CharacterEmotion mood,
+            float intensity
+        ) moodBeforeResting;
         private bool ApplicationSuspended => !applicationFocused || applicationPaused;
         public bool IsPlaying => active && !IsPaused;
         public bool IsPaused => active && (paused || ApplicationSuspended);
@@ -79,8 +84,21 @@ namespace A305.Characters
         // NPC의 평소 인상을 대기·중단·감정 정보 없는 음성에 함께 사용한다.
         public void ConfigureRestingMood(CharacterEmotion mood)
         {
+            if (!hasRestingMood)
+                moodBeforeResting = (emotionProfile, speakingMood, moodIntensity);
             ConfigureMood(ResolveEmotionProfile(), mood);
             hasRestingMood = true;
+            if (!active && !IsHoldingEmotion)
+                face.ApplySpeech(SpeechMouthSample.Rest, RestingExpression, 0);
+        }
+
+        // 평소 인상을 걷어 내고 그 전의 기본 얼굴과 말할 때 기분으로 돌아간다.
+        public void ClearRestingMood()
+        {
+            if (!hasRestingMood)
+                return;
+            hasRestingMood = false;
+            (emotionProfile, speakingMood, moodIntensity) = moodBeforeResting;
             if (!active && !IsHoldingEmotion)
                 face.ApplySpeech(SpeechMouthSample.Rest, RestingExpression, 0);
         }

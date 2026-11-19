@@ -47,8 +47,14 @@ namespace A305.Mission
         private const float TabWidth = 1520;
         private const float TabHeight = 800;
 
-        /// <summary>도장 지도에 지도 그림(2000×800)을 까는 배율. 지도 창(990×396)에 마을 전체가 꼭 맞는다.</summary>
-        public const float MapZoom = .495f;
+        /// <summary>
+        /// 도장 지도의 판 높이. 머리줄(141) 아래에 지도 카드(지도 + 안쪽 여백 12씩)를 두고 아래 41을 남긴다.
+        /// 판 높이를 카드에 맞춰 줄여, 지도 위아래에 빈 곳을 남기지 않는다. 폭은 목록과 같다.
+        /// </summary>
+        public const float MapSheetHeight = 141 + 800 * MapZoom + 12 * 2 + 41;
+
+        /// <summary>도장 지도에 지도 그림(2000×800)을 까는 배율. 흰 카드(990) 안쪽 지도 창(966×386.4)에 마을 전체가 꼭 맞는다.</summary>
+        public const float MapZoom = 966f / 2000f;
 
         // 도장은 건물이 보이게 18 위로 찍고, 핀(60)은 코랄 지붕에 묻히지 않게 지붕 위 56에 띄운다.
         // '지금 갈 곳' 칩(높이 40)은 핀 오른쪽 12에 둔다.
@@ -175,6 +181,10 @@ namespace A305.Mission
         private RectTransform nowLabel;
 
         [SerializeField]
+        [Tooltip("시작 전 퀘스트에서 처음 들를 곳에 '지금 갈 곳' 대신 붙이는 '처음 갈 곳' 칩")]
+        private RectTransform firstLabel;
+
+        [SerializeField]
         private PlaceStamp[] placeStamps;
 
         [SerializeField]
@@ -204,8 +214,15 @@ namespace A305.Mission
         // 진행 중인 퀘스트로 열었을 때 목록을 받으면 바로 열 퀘스트. 다른 쪽으로 가면 지운다.
         private string openingQuest;
 
-        // 아직 차례가 안 된 칸의 회색 바탕(칸 그림에 곱한다)
-        private static readonly Color LaterRow = new Color32(226, 222, 217, 255);
+        // 순서 목록 칸의 색(칸 그림에 곱한다). 시작 전 퀘스트의 처음 들를 칸은 옅은 코랄, 아직 차례가 안 된 칸은 따뜻한 아이보리이고
+        // 그 칸의 글자·번호는 갈색 기운으로 낮춘다. 회색만 남지 않게 따뜻한 색을 쓴다.
+        private static readonly Color FirstRow = new Color32(253, 235, 227, 255);
+        private static readonly Color LaterRow = new Color32(248, 242, 234, 255);
+        private static readonly Color LaterTitle = new Color32(110, 91, 74, 255);
+        private static readonly Color LaterTodo = new Color32(168, 149, 127, 255);
+        private static readonly Color LaterNumber = new Color32(179, 158, 134, 255);
+        private static readonly Color LaterSlot = new Color32(232, 214, 192, 255);
+        private static readonly Color StopTodo = new Color32(134, 127, 119, 255);
 
         /// <summary>목록을 열 때마다 서버에 퀘스트 목록을 묻는다.</summary>
         public event Action Requested;
@@ -442,11 +459,16 @@ namespace A305.Mission
         }
 
         // 다음에 갈 곳(하는 중이면 지금, 시작 전이면 처음 들를 곳)에 번호 핀과 퍼지는 빛·'지금 갈 곳' 칩을 얹는다.
+        // 시작 전 퀘스트는 진한 코랄 '지금 갈 곳' 대신 흰 '처음 갈 곳' 칩을 붙인다.
         private void ShowNextStop(QuestEntry quest)
         {
             QuestPin? next = QuestStampMap.Pin(quest);
-            foreach (RectTransform mark in new[] { pinHalo, pin, nowLabel })
-                mark.gameObject.SetActive(next.HasValue);
+            bool notStarted = quest.Status == QuestEntry.Available;
+            RectTransform label = notStarted ? firstLabel : nowLabel;
+            pinHalo.gameObject.SetActive(next.HasValue);
+            pin.gameObject.SetActive(next.HasValue);
+            nowLabel.gameObject.SetActive(next.HasValue && !notStarted);
+            firstLabel.gameObject.SetActive(next.HasValue && notStarted);
             if (next.HasValue)
             {
                 pinNumber.text = next.Value.Number.ToString();
@@ -454,7 +476,7 @@ namespace A305.Mission
                 Place(pinHalo, next.Value.Centre, PinLift);
                 // 칩은 핀 오른쪽에 세로 가운데를 맞춘다.
                 Vector2 at = OnMap(next.Value.Centre);
-                nowLabel.anchoredPosition = new Vector2(
+                label.anchoredPosition = new Vector2(
                     at.x + (PinRadius + LabelGap) * Px,
                     at.y + (PinLift + LabelHeight / 2) * Px
                 );
@@ -462,7 +484,7 @@ namespace A305.Mission
             // 새로 찍은 도장이 빛·핀·칩을 가리지 않게 맨 위로 올린다.
             pinHalo.SetAsLastSibling();
             pin.SetAsLastSibling();
-            nowLabel.SetAsLastSibling();
+            label.SetAsLastSibling();
         }
 
         // 회색 지도 위에 건물 칸 하나를 원래 색 지도로 보인다. 창을 칸 자리에 두고, 안의 원래 색 지도를 거꾸로 옮겨 맞춘다.
@@ -530,7 +552,10 @@ namespace A305.Mission
                 pager.gameObject.SetActive(paged);
             pageText.gameObject.SetActive(paged);
             sheet.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, TabWidth * Px);
-            sheet.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, TabHeight * Px);
+            sheet.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Vertical,
+                (mapPage.activeSelf ? MapSheetHeight : TabHeight) * Px
+            );
         }
 
         private void FillCards()
@@ -665,12 +690,18 @@ namespace A305.Mission
                 QuestStop stop = quest.Stops[i];
                 GameObject made = Track(Make(stopTemplate.Root.gameObject, stopsList.content));
                 QuestStopSlot slot = stopTemplate.CopyIn(made.transform);
+                bool first = quest.Status == QuestEntry.Available && i == next;
                 bool later = next >= 0 && i > next && !stop.Done;
                 slot.Background.sprite = stop.Current ? currentStopSprite : stopSprite;
-                slot.Background.color = later ? LaterRow : Color.white;
+                slot.Background.color =
+                    first ? FirstRow
+                    : later ? LaterRow
+                    : Color.white;
                 slot.Lock.SetActive(later);
                 slot.Title.text = QuestBoardText.StopTitle(stop);
+                slot.Title.color = later ? LaterTitle : RouteInk;
                 slot.Todo.text = stop.Todo;
+                slot.Todo.color = later ? LaterTodo : StopTodo;
                 slot.Todo.gameObject.SetActive(!string.IsNullOrEmpty(stop.Todo));
                 slot.Stamp.gameObject.SetActive(stop.Done);
                 slot.Slot.gameObject.SetActive(!stop.Done);
@@ -678,9 +709,14 @@ namespace A305.Mission
                     slot.Stamp.sprite = StampOf(stop.Place);
                 else
                 {
-                    slot.Slot.sprite = stop.Current ? currentSlotSprite : slotSprite;
+                    bool now = stop.Current || first;
+                    slot.Slot.sprite = now ? currentSlotSprite : slotSprite;
+                    slot.Slot.color = later ? LaterSlot : Color.white;
                     slot.Number.text = (i + 1).ToString();
-                    slot.Number.color = stop.Current ? VisitedInk : SlotInk;
+                    slot.Number.color =
+                        now ? VisitedInk
+                        : later ? LaterNumber
+                        : SlotInk;
                 }
             }
         }
@@ -704,6 +740,9 @@ namespace A305.Mission
                     );
             stopsList.StopMovement();
             stopsList.content.anchoredPosition = new Vector2(0, top);
+            // 넘칠 때만 스크롤 막대를 보인다(실행 중에는 ScrollRect도 같은 기준으로 숨긴다).
+            if (stopsList.verticalScrollbar != null)
+                stopsList.verticalScrollbar.gameObject.SetActive(scroll > 0);
             // 스크롤 막대가 예전 값(맨 위)을 들고 있으면 화면을 다시 그릴 때 목록을 맨 위로 되돌리므로 막대도 같은 자리로 맞춘다.
             if (stopsList.verticalScrollbar != null)
                 stopsList.verticalScrollbar.SetValueWithoutNotify(

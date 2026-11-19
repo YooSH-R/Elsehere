@@ -23,6 +23,12 @@ namespace A305.Mission
         public static string StopTitle(QuestStop stop) =>
             string.IsNullOrEmpty(stop.NpcName) ? stop.Place : $"{stop.Place} · {stop.NpcName}";
 
+        /// <summary>시작 전 퀘스트의 도장 지도에서 처음 들를 곳에 붙이는 칩</summary>
+        public const string FirstStop = "처음 갈 곳";
+
+        /// <summary>지도 그림에는 옛 이름 '식당'으로 그려진 가게의 지금 이름. 도장 지도에서 그 이름표 위에 얹는다.</summary>
+        public const string DinerName = "햄버거 가게";
+
         public const string CancelTitle = "퀘스트를 그만둘까요?";
         public const string CancelConfirm = "그만두기";
 

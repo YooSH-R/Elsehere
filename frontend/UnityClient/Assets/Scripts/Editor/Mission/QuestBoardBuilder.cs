@@ -743,15 +743,15 @@ namespace A305.EditorTools.Mission
 
         // 도장 지도: 목록과 같은 판(1520×800)에 머리줄(둥근 ‹ 41·35, 퀘스트 이름 Jua 40과 그 아래 퀘스트 설명, 도장 수 칩,
         // 오른쪽에 [퀘스트 시작]·[퀘스트 그만두기], 둥근 닫기 1403), 왼쪽 순서 목록(장소 연습 목록과 같은 자리 41·141, 420×620),
-        // 오른쪽 지도 창(489, 990×396, 목록 높이 가운데)을 둔다. 지도 그림은 QuestBoardView.MapZoom배로 깔아 마을 전체가 창에 꼭 맞는다.
+        // 오른쪽 흰 지도 카드(489·141, 990×410.4, 안쪽 12에 지도 창)를 둔다. 지도 그림은 QuestBoardView.MapZoom배로 깔아 마을 전체가 창에 꼭 맞는다.
+        // 판 높이(QuestBoardView.MapSheetHeight)를 카드에 맞춰 줄이고, 순서 목록도 카드와 같은 높이로 둔다.
         private const float BodyTop = 141;
-        private const float BodyHeight = 620;
+        private const float MapCardPadding = 12;
+        private const float BodyHeight = 800 * QuestBoardView.MapZoom + MapCardPadding * 2;
         private const float ListLeft = 41;
         private const float ListWidth = 420;
         private const float RightLeft = 489;
         private const float RightWidth = 990;
-        private const float MapHeight = 800 * QuestBoardView.MapZoom;
-        private const float MapTop = BodyTop + (BodyHeight - MapHeight) / 2;
 
         // 머리줄 오른쪽 버튼은 둥근 닫기(1403) 왼쪽 22에서 끝나고, 머리줄 가운데(73)에 세로를 맞춘다.
         // 제목(46)과 설명(24)은 사이 2로 묶어 위 33부터 둔다.
@@ -944,7 +944,16 @@ namespace A305.EditorTools.Mission
             scroll.vertical = true;
             scroll.movementType = ScrollRect.MovementType.Clamped;
             scroll.scrollSensitivity = 30;
-            scroll.verticalScrollbar = PracticeBoardBuilder.Scrollbar(page);
+            // 스크롤 막대: 장소 연습 목록의 막대를 목록 높이에 맞춘다(목록 오른쪽 밖 8, 위아래 6 안쪽).
+            Scrollbar bar = PracticeBoardBuilder.Scrollbar(page);
+            Ui.TopLeft(
+                (RectTransform)bar.transform,
+                ListLeft + ListWidth + 8,
+                BodyTop + 6,
+                6,
+                BodyHeight - 12
+            );
+            scroll.verticalScrollbar = bar;
             scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
             BuildStop(fields.FindProperty("stopTemplate"), rows);
             Set(fields, "stopsList", scroll);
@@ -1057,13 +1066,29 @@ namespace A305.EditorTools.Mission
         // 다른 색을 넣지 않고 나머지 지도를 회색으로 눌러 코랄 핀과 도장이 살아나게 한다. 빛은 도장처럼 보이지 않도록 테두리 없는 둥근 빛 그림을 쓴다.
         private static void BuildMapBox(SerializedObject fields, RectTransform page)
         {
+            // 흰 카드(장소 연습 판 그림): 회색 지도가 회색빛 판에 섞여 떠 보이지 않게 지도를 담는다.
+            RectTransform card = Ui.Rect("MapCard", page);
+            Ui.TopLeft(card, RightLeft, BodyTop, RightWidth, BodyHeight);
+            RectTransform cardArt = Ui.Rect("Card", card);
+            Ui.Spread(cardArt, 30, 20, 30, 40);
+            Image cardFace = cardArt.gameObject.AddComponent<Image>();
+            // 그림 2.4배: 모서리 36 + 그림자 여백(왼 30, 위 20, 오른 30, 아래 40)
+            Ui.Sliced(cardFace, Art("PracticePane", new Vector4(159, 183, 159, 135)));
+            cardFace.raycastTarget = false;
+
+            const float mapWidth = 2000 * QuestBoardView.MapZoom;
+            const float mapHeight = 800 * QuestBoardView.MapZoom;
             RectTransform box = Ui.Rect("MapBox", page);
-            Ui.TopLeft(box, RightLeft, MapTop, RightWidth, MapHeight);
+            Ui.TopLeft(
+                box,
+                RightLeft + MapCardPadding,
+                BodyTop + MapCardPadding,
+                mapWidth,
+                mapHeight
+            );
             Image mask = box.gameObject.AddComponent<Image>();
             Ui.Sliced(mask, Art("QuestMapMask", Vector4.one * Mathf.Ceil(26 * ArtPixels)));
             box.gameObject.AddComponent<Mask>().showMaskGraphic = false;
-            const float mapWidth = 2000 * QuestBoardView.MapZoom;
-            const float mapHeight = 800 * QuestBoardView.MapZoom;
             RectTransform map = Ui.Rect("MapArt", box);
             Ui.TopLeft(map, 0, 0, mapWidth, mapHeight);
             Ui.Picture(map.gameObject, GrayMap());
@@ -1094,6 +1119,32 @@ namespace A305.EditorTools.Mission
             RectTransform nowArt = Ui.Rect("Art", now);
             Ui.Spread(nowArt, 10 * grow, 6 * grow, 10 * grow, 14 * grow);
             Ui.Picture(nowArt.gameObject, Art("QuestNowChip"));
+            // 시작 전 퀘스트의 '처음 갈 곳' 칩: 옅은 코랄 알약(퀘스트 카드의 지나온 곳 알약)에 코랄 글자(Jua 18), 높이 40.
+            // 진한 코랄 '지금 갈 곳'과 구분하고, 순서 목록의 처음 들를 칸(옅은 코랄)과 맞춘다.
+            RectTransform first = Ui.Rect("FirstLabel", map);
+            Ui.TopLeft(first, 0, 0, 120, 32 * grow);
+            Image firstFace = first.gameObject.AddComponent<Image>();
+            Ui.Sliced(firstFace, Art("QuestRoutePillDone", new Vector4(17, 0, 17, 0) * ArtPixels));
+            firstFace.raycastTarget = false;
+            TMP_Text firstText = Text(
+                first,
+                "FirstLabelText",
+                0,
+                0,
+                120,
+                32 * grow,
+                Ui.DisplayFontPath,
+                18,
+                Coral
+            );
+            Ui.Fill(firstText.rectTransform);
+            firstText.alignment = TextAlignmentOptions.Midline;
+            firstText.text = QuestBoardText.FirstStop;
+            first.gameObject.SetActive(false);
+
+            // 지도 그림의 '식당' 이름표(그림 1387·664, 66×30) 위에 지금 이름 '햄버거 가게'를 같은 모양(흰 알약, 주황 글자)으로 얹는다.
+            // 지도 그림 위 맨 앞에 두려고 지도 창의 지도 다음 칸에 둔다.
+            BuildPlaceLabel(box, QuestBoardText.DinerName, new Vector2(1419.5f, 678.5f));
 
             Set(fields, "map", map);
             Set(fields, "stampTemplate", stamp.GetComponent<Image>());
@@ -1101,7 +1152,75 @@ namespace A305.EditorTools.Mission
             Set(fields, "pin", pin);
             Set(fields, "pinNumber", pinNumber);
             Set(fields, "nowLabel", now);
+            Set(fields, "firstLabel", first);
             Set(fields, "colorTemplate", color);
+        }
+
+        // 지도 그림의 가게 이름표를 바꿔 얹는다. centre는 그림 좌표(왼쪽 위 0, 아래로 +)의 이름표 가운데, 높이는 그림 30이다.
+        private static void BuildPlaceLabel(RectTransform box, string name, Vector2 centre)
+        {
+            const float artHeight = 30;
+            const float artFont = 19;
+            float zoom = QuestBoardView.MapZoom;
+            RectTransform label = Ui.Rect("PlaceLabel", box);
+            label.anchorMin = label.anchorMax = new Vector2(0, 1);
+            label.pivot = new Vector2(.5f, .5f);
+            label.anchoredPosition = new Vector2(centre.x, -centre.y) * zoom * Px;
+            Image face = label.gameObject.AddComponent<Image>();
+            Ui.Sliced(face, WhitePill());
+            face.pixelsPerUnitMultiplier = WhitePillHeight / (artHeight * zoom * Px);
+            face.raycastTarget = false;
+            TMP_Text text = Text(
+                label,
+                "PlaceLabelText",
+                0,
+                0,
+                10,
+                10,
+                Ui.DisplayFontPath,
+                artFont * zoom,
+                PlaceLabelInk
+            );
+            Ui.Fill(text.rectTransform);
+            text.alignment = TextAlignmentOptions.Midline;
+            text.text = name;
+            float width = text.GetPreferredValues(name).x / Px + artHeight * zoom;
+            label.sizeDelta = new Vector2(width, artHeight * zoom) * Px;
+        }
+
+        private static readonly Color PlaceLabelInk = new Color32(198, 115, 46, 255);
+
+        // 지도 그림의 이름표와 같은 순백 알약(높이 48, 양 끝 반원). 없을 때만 그린다.
+        private const int WhitePillHeight = 48;
+
+        private static Sprite WhitePill()
+        {
+            const string name = "QuestPlaceLabel";
+            string path = $"{ArtFolder}/{name}.png";
+            if (!File.Exists(path))
+            {
+                var art = new UiArtCanvas(WhitePillHeight * 2, WhitePillHeight);
+                art.RoundRect(
+                    0,
+                    0,
+                    WhitePillHeight * 2,
+                    WhitePillHeight,
+                    WhitePillHeight / 2f,
+                    Color.white
+                );
+                Texture2D texture = art.ToTexture();
+                try
+                {
+                    File.WriteAllBytes(path, texture.EncodeToPNG());
+                    AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+                }
+                finally
+                {
+                    Object.DestroyImmediate(texture);
+                }
+            }
+            float edge = WhitePillHeight / 2f;
+            return Art(name, new Vector4(edge, 0, edge, 0));
         }
 
         // 지도 그림(QuestMap)을 회색으로 바꾼 그림. 없을 때만 만든다. 밝기만 남기고 조금 밝게 해 원래 색 건물 칸보다 물러나 보이게 한다.

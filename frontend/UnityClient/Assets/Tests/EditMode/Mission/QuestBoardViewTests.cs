@@ -165,7 +165,7 @@ namespace A305.Mission.Tests
                 Is.Empty,
                 "순서 목록의 칸은 누르는 단추가 아닙니다."
             );
-            // 아직 차례가 안 된 칸(4~7)은 아이보리 바탕에 자물쇠를 붙인다. 지나온 칸과 지금 칸은 그대로다.
+            // 아직 차례가 안 된 칸(4~7)은 아이보리 바탕에 자물쇠를 붙인다. 지금 칸(3)은 코랄 테두리에 옅은 코랄 바탕이다.
             RectTransform[] rows = stops
                 .content.GetComponentsInChildren<RectTransform>()
                 .Where(row => row.name == "Stop")
@@ -179,8 +179,16 @@ namespace A305.Mission.Tests
                 Is.Not.EqualTo(Color.white),
                 "아직 차례가 안 된 칸은 아이보리 바탕입니다."
             );
+            Image now = rows[2].Find("Background").GetComponent<Image>();
+            Assert.That(now.sprite, Is.EqualTo(Field<Sprite>(board, "currentStopSprite")));
             Assert.That(
-                rows[2].Find("Background").GetComponent<Image>().color,
+                now.color,
+                Is.Not.EqualTo(Color.white)
+                    .And.Not.EqualTo(rows[3].Find("Background").GetComponent<Image>().color),
+                "지금 칸은 옅은 코랄 바탕입니다."
+            );
+            Assert.That(
+                rows[1].Find("Background").GetComponent<Image>().color,
                 Is.EqualTo(Color.white)
             );
             Assert.That(
@@ -229,9 +237,9 @@ namespace A305.Mission.Tests
             Assert.That(top > 0, Is.EqualTo(scrolled));
         }
 
-        // 시작 전 퀘스트는 처음 들를 칸을 옅은 코랄 바탕으로(진행 중의 코랄 테두리와 달리) 보이고, 지도 칩은 '처음 갈 곳'이다.
+        // 시작 전 퀘스트는 처음 들를 칸을 코랄 테두리만으로(진행 중의 테두리+옅은 코랄 바탕과 달리) 보이고, 지도 칩은 '처음 갈 곳'이다.
         [Test]
-        public void AQuestNotStartedYet_MarksItsFirstStopSoftly()
+        public void AQuestNotStartedYet_MarksItsFirstStopWithABorderOnly()
         {
             FirstDayMissionView mission = Create();
             QuestBoardView board = Field<QuestBoardView>(mission, "questBoard");
@@ -256,13 +264,13 @@ namespace A305.Mission.Tests
             Image first = rows[0].Find("Background").GetComponent<Image>();
             Assert.That(
                 first.sprite,
-                Is.EqualTo(Field<Sprite>(board, "stopSprite")),
-                "시작 전에는 코랄 테두리를 쓰지 않습니다."
+                Is.EqualTo(Field<Sprite>(board, "currentStopSprite")),
+                "처음 들를 칸은 코랄 테두리입니다."
             );
             Assert.That(
                 first.color,
-                Is.Not.EqualTo(Color.white),
-                "처음 들를 칸은 옅은 코랄 바탕입니다."
+                Is.EqualTo(Color.white),
+                "시작 전에는 바탕을 칠하지 않습니다."
             );
             Assert.That(
                 rows.Skip(1).Select(row => row.Find("Lock").gameObject.activeSelf),

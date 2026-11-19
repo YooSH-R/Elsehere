@@ -214,9 +214,9 @@ namespace A305.Mission
         // 진행 중인 퀘스트로 열었을 때 목록을 받으면 바로 열 퀘스트. 다른 쪽으로 가면 지운다.
         private string openingQuest;
 
-        // 순서 목록 칸의 색(칸 그림에 곱한다). 시작 전 퀘스트의 처음 들를 칸은 옅은 코랄, 아직 차례가 안 된 칸은 따뜻한 아이보리이고
-        // 그 칸의 글자·번호는 갈색 기운으로 낮춘다. 회색만 남지 않게 따뜻한 색을 쓴다.
-        private static readonly Color FirstRow = new Color32(253, 235, 227, 255);
+        // 순서 목록 칸의 색(칸 그림에 곱한다). 지금 할 칸은 코랄 테두리 칸 그림에 옅은 코랄을 더하고, 아직 차례가 안 된 칸은 따뜻한
+        // 아이보리이며 그 칸의 글자·번호는 갈색 기운으로 낮춘다. 회색만 남지 않게 따뜻한 색을 쓴다.
+        private static readonly Color NowRow = new Color32(253, 235, 227, 255);
         private static readonly Color LaterRow = new Color32(248, 242, 234, 255);
         private static readonly Color LaterTitle = new Color32(110, 91, 74, 255);
         private static readonly Color LaterTodo = new Color32(168, 149, 127, 255);
@@ -680,8 +680,8 @@ namespace A305.Mission
         private static readonly Color RouteInk = new Color32(47, 37, 27, 255);
         private static readonly Color VisitedInk = new Color32(214, 93, 64, 255);
 
-        // 순서 목록: 칸마다 번호(지나온 곳은 도장)·장소와 사람·할 일을 채운다. 지금 할 칸은 코랄 테두리와 코랄 번호로,
-        // 아직 차례가 안 된 칸은 회색 바탕에 자물쇠로 보인다.
+        // 순서 목록: 칸마다 번호(지나온 곳은 도장)·장소와 사람·할 일을 채운다. 지금 할 칸은 코랄 테두리·옅은 코랄 바탕·코랄 번호로,
+        // 시작 전 퀘스트의 처음 들를 칸은 바탕 없이 코랄 테두리·코랄 번호로, 아직 차례가 안 된 칸은 아이보리 바탕에 자물쇠로 보인다.
         private void FillStops(QuestEntry quest)
         {
             int next = quest.NextStopIndex;
@@ -692,9 +692,10 @@ namespace A305.Mission
                 QuestStopSlot slot = stopTemplate.CopyIn(made.transform);
                 bool first = quest.Status == QuestEntry.Available && i == next;
                 bool later = next >= 0 && i > next && !stop.Done;
-                slot.Background.sprite = stop.Current ? currentStopSprite : stopSprite;
+                bool now = stop.Current || first;
+                slot.Background.sprite = now ? currentStopSprite : stopSprite;
                 slot.Background.color =
-                    first ? FirstRow
+                    stop.Current ? NowRow
                     : later ? LaterRow
                     : Color.white;
                 slot.Lock.SetActive(later);
@@ -709,7 +710,6 @@ namespace A305.Mission
                     slot.Stamp.sprite = StampOf(stop.Place);
                 else
                 {
-                    bool now = stop.Current || first;
                     slot.Slot.sprite = now ? currentSlotSprite : slotSprite;
                     slot.Slot.color = later ? LaterSlot : Color.white;
                     slot.Number.text = (i + 1).ToString();

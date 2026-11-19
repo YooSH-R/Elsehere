@@ -492,8 +492,9 @@ namespace A305.Mission
             FirstDayMissionStep current = state.Steps.FirstOrDefault(step =>
                 step.Status == "CURRENT"
             );
-            direction.text = StoryDirection(state);
-            direction.gameObject.SetActive(!state.IsShowcase);
+            // 시연은 이것이 시연이라는 것과 따라갈 순서를 보인다. 요청 안내 줄 자리에 순서(호텔 › 택시 › 햄버거 가게)를 쓴다.
+            direction.text = state.IsShowcase ? ShowcaseRoute(state.Steps) : StoryDirection(state);
+            direction.gameObject.SetActive(true);
             situation.text = state.Situation;
             string situationCopy = NormalizeCardCopy(state.Situation);
             situation.gameObject.SetActive(
@@ -505,7 +506,10 @@ namespace A305.Mission
                         StringComparison.OrdinalIgnoreCase
                     )
             );
+            // 시연은 칩으로 시연이라는 것만 알린다. 단계 위치는 순서 줄과 진행 막대가 보이고, 칩이 넓어져 제목이 밀리지 않게 한다.
             string chip = StepChip(state.Steps);
+            if (chip != null && state.IsShowcase)
+                chip = "시연";
             stepChip.text = chip ?? "";
             FitStepChip();
             stepChip.transform.parent.gameObject.SetActive(chip != null);
@@ -516,7 +520,7 @@ namespace A305.Mission
             // NPC가 할 일을 먼저 말하지 않으므로, 요청 안내 아래 이번 단계 목표를 보여 주어 무엇을 요청할지 알게 한다.
             ShowGoals(state.CanRest || current == null ? null : current.Goals, state.IsShowcase);
             ShowPill(
-                "이야기",
+                state.IsShowcase ? "시연" : "이야기",
                 state.Steps.Select(step => step.Status == "UPCOMING" ? pillMarkOff : pillMarkStory)
             );
         }
@@ -745,6 +749,34 @@ namespace A305.Mission
         }
 
         /// <summary>단계 칩 글자. 지금 단계가 몇 번째인지 전체 단계 수와 함께 쓰고, 모두 끝냈으면 마지막 단계로, 시작 전이면 null이다.</summary>
+        /// <summary>
+        /// 시연 카드의 따라갈 순서(예: 호텔 › 택시 › 햄버거 가게). 지나온 곳은 초록, 지금 갈 곳은 굵은 코랄, 남은 곳은 옅게 쓴다.
+        /// 시연 단계는 담당 NPC로 장소를 부르고, 모르는 단계는 단계 제목을 쓴다.
+        /// </summary>
+        public static string ShowcaseRoute(IReadOnlyList<FirstDayMissionStep> steps)
+        {
+            var places = new List<string>();
+            foreach (FirstDayMissionStep step in steps)
+            {
+                string place = step.NpcCode switch
+                {
+                    "HOTEL_STAFF" => "호텔",
+                    "TAXI_DRIVER" => "택시",
+                    "DINER_STAFF" => "햄버거 가게",
+                    _ => CompactTitle(step.Title),
+                };
+                places.Add(
+                    step.Status switch
+                    {
+                        "DONE" => $"<color=#699B75>{place}</color>",
+                        "CURRENT" => $"<color=#BD7049><b>{place}</b></color>",
+                        _ => $"<color=#A0968B>{place}</color>",
+                    }
+                );
+            }
+            return string.Join(" › ", places);
+        }
+
         public static string StepChip(IReadOnlyList<FirstDayMissionStep> steps)
         {
             for (int i = 0; i < steps.Count; i++)

@@ -61,6 +61,8 @@
 
 시연 거리에는 호텔·햄버거 가게가 있는 동쪽 보도를 비워 두고, 반대편 서쪽 보도에서만 주민 두 명이 짧은 구간을 왕복한다. 이들은 먼저 다가오거나 대화를 제안하지 않는다. 호텔에는 Jake 외에 리셉션 보조 직원과 벨보이를 남기되 각각 프런트 뒤와 로비 가장자리의 지정 위치에 머물게 한다. 중앙 출입 통로에는 직원을 두지 않는다. 햄버거 가게에는 시연 시간과 무관하게 주문 담당 Rosa와 John만 둔다. 시연 중 시설 방문객은 생성하지 않으며, 일반 퀘스트로 전환하면 기존 NPC 일과와 방문을 다시 적용한다.
 
+시연을 하는 동안 왼쪽 위 퀘스트 카드는 단계 칩과 접은 알약 제목을 '시연'으로 쓰고, 단계 이름 아래에 따라갈 순서(호텔 › 택시 › 햄버거 가게)를 보인다. 지나온 곳은 초록, 지금 갈 곳은 굵은 코랄, 남은 곳은 옅게 써서 시연이라는 것과 어디로 가야 하는지를 함께 알 수 있다.
+
 시연 때문에 일부러 막아 둔 것은 누르면 막은 까닭을 보인다. 아무 반응이 없거나 엉뚱한 대답이 나와 구현이 무너진 것처럼 보이지 않게 하기 위해서다.
 
 | 막아 둔 것 | 누르면 |
@@ -99,7 +101,7 @@
 | S15P31A305-853 | `git log --grep '단골 메뉴를 묻'` | `OpeningLines`가 시연 버거 가게 주문 단계의 첫 인사에 "단골이면 늘 시키던 메뉴를 이름까지 넣어 묻기"를 붙이고, 다른 퀘스트의 "제안을 먼저 말하지 말라" 문구는 붙이지 않음 | 시연 퀘스트 대화가 없어 그대로 |
 | S15P31A305-853 | `git log --grep '누구나 시연'` | `QuestBoardService`가 공용 서버에서도 시연 카드를 보이고 다른 퀘스트 잠금은 `ShowcaseQuestService.locksOtherQuests`(전용 서버는 끝내기 전까지, 공용 서버는 진행하는 동안만)로 정함, `BootstrapService`·`QuestTalkService`는 `isShowcaseServer()`로 전용 서버만 확인, 테스트 대역 세 곳(`DialogueDbTest`·`UiThemeServiceTest`·`LastSceneServiceTest`)에 `ShowcaseScene` 등록 | **모든 계정에 시연 카드가 보인다.** 누르지 않으면 일반 진행 그대로 |
 | S15P31A305-963 | `git log --grep S15P31A305-963` | `ShowcaseQuestService.start`가 끝내지 않은 첫날 퀘스트 진행 행을 지우고 하던 마을 퀘스트를 첫 단계로 되돌림(`TownStory.cancelQuest`), `FirstDayMissionController`·`TownStoryController`의 시작이 멈춘 시연을 취소(`cancelUnfinished`) | 시연 카드를 누르지 않으면 일반 진행 그대로. **누른 계정은 하던 퀘스트가 처음으로 돌아간다** |
-| S15P31A305-965 | `git log --grep S15P31A305-965` | `QuestBoardService`가 잠긴 퀘스트에 `lockReason`을 붙이고 시연이 잠근 카드는 `ShowcaseQuestService.lockReason`을 씀, `ShowcaseQuestService`가 같은 장소의 시연 인물에게 담당자를 가리키게 함, Unity `FirstDayMissionView`가 시연 완료 뒤 잠금 해제 연출을 하지 않음, `FirstDayMissionState.ShowcaseTalkLocks`·`ShowcaseTalkLock`으로 `Passerby`·`NpcClickTalk`·`TaxiRide`가 막은 NPC·택시의 까닭을 보임 | 시연 응답이 없어 막는 NPC·택시가 없고 시연 잠금 까닭도 없다. **퀘스트 그만두기(`QuestCancelService`, `POST /api/v1/missions/quests/{questId}/cancel`, 퀘스트 창 [퀘스트 그만두기]·확인 창), 앞 퀘스트 잠금 까닭, 다른 퀘스트를 하는 중에 시작할 때 묻는 확인 창은 모두에게 적용된다** |
+| S15P31A305-965 | `git log --grep S15P31A305-965` | `QuestBoardService`가 잠긴 퀘스트에 `lockReason`을 붙이고 시연이 잠근 카드는 `ShowcaseQuestService.lockReason`을 씀, `ShowcaseQuestService`가 같은 장소의 시연 인물에게 담당자를 가리키게 함, Unity `FirstDayMissionView`가 시연 완료 뒤 잠금 해제 연출을 하지 않고 시연 카드에 '시연' 칩·알약과 순서 줄(`ShowcaseRoute`)을 보임, `FirstDayMissionState.ShowcaseTalkLocks`·`ShowcaseTalkLock`으로 `Passerby`·`NpcClickTalk`·`TaxiRide`가 막은 NPC·택시의 까닭을 보임 | 시연 응답이 없어 막는 NPC·택시가 없고 시연 잠금 까닭도 없다. **퀘스트 그만두기(`QuestCancelService`, `POST /api/v1/missions/quests/{questId}/cancel`, 퀘스트 창 [퀘스트 그만두기]·확인 창), 앞 퀘스트 잠금 까닭, 다른 퀘스트를 하는 중에 시작할 때 묻는 확인 창은 모두에게 적용된다** |
 
 ## 검증 경계
 

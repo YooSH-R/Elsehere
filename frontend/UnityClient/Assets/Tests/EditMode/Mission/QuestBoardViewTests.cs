@@ -93,6 +93,55 @@ namespace A305.Mission.Tests
                 Does.Not.Contain("Dot"),
                 "장소 사이에 점선 경로를 그리지 않습니다."
             );
+
+            // 목록과 같은 크기의 판에, 왼쪽은 순서 목록·오른쪽 위는 지금 할 일·오른쪽 아래는 지도를 둔다.
+            Assert.That(
+                Field<RectTransform>(board, "sheet").rect.size,
+                Is.EqualTo(new Vector2(1520, 800) * 1.2f),
+                "목록에서 지도로 가도 창 크기가 그대로입니다."
+            );
+            Assert.That(Text(board, "NextLabel"), Is.EqualTo("지금 할 일 · 3 / 7"));
+            Assert.That(Text(board, "NextTitle"), Is.EqualTo("호텔 · Jake"));
+            Assert.That(Text(board, "NextTodo"), Is.EqualTo("예약 확인"));
+            ScrollRect stops = Field<ScrollRect>(board, "stopsList");
+            Assert.That(
+                stops.vertical && !stops.horizontal,
+                Is.True,
+                "순서 목록은 위아래로 넘깁니다."
+            );
+            Assert.That(
+                stops
+                    .content.GetComponentsInChildren<Transform>()
+                    .Count(item => item.name == "Stop"),
+                Is.EqualTo(7)
+            );
+            var box = (RectTransform)map.parent;
+            Vector2 pin =
+                map.anchoredPosition + Field<RectTransform>(board, "pin").anchoredPosition;
+            Assert.That(pin.x, Is.InRange(0f, box.rect.width), "갈 곳이 지도 창 안에 보입니다.");
+            Assert.That(pin.y, Is.InRange(-box.rect.height, 0f), "갈 곳이 지도 창 안에 보입니다.");
+        }
+
+        // 들르는 곳이 많아 목록이 넘치면 지금 할 칸이 보이도록 목록을 넘겨 둔다.
+        [TestCase(0, false)]
+        [TestCase(6, true)]
+        public void ALongStopList_ShowsTheStopToDoNow(int current, bool scrolled)
+        {
+            FirstDayMissionView mission = Create();
+            QuestBoardView board = Field<QuestBoardView>(mission, "questBoard");
+            QuestBoardState state = Board();
+            for (int i = 0; i < state.Quests[0].Stops.Count; i++)
+            {
+                state.Quests[0].Stops[i].Done = i < current;
+                state.Quests[0].Stops[i].Current = i == current;
+            }
+            board.Open();
+            board.Show(state);
+
+            board.ShowMap(0);
+
+            float top = Field<ScrollRect>(board, "stopsList").content.anchoredPosition.y;
+            Assert.That(top > 0, Is.EqualTo(scrolled));
         }
 
         [TestCase(false)]

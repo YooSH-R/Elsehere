@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace A305.Mission.Tests
 {
@@ -64,6 +65,105 @@ namespace A305.Mission.Tests
             );
         }
 
+        // 시작하지 않은 퀘스트는 처음 들를 곳에 1번 핀을 꽂아 어디서 시작하는지 보인다.
+        [Test]
+        public void StampMap_PinsTheFirstStopOfAQuestNotStartedYet()
+        {
+            QuestEntry quest = NotStarted(CheckInQuest(doneStops: 0));
+
+            QuestPin pin = QuestStampMap.Pin(quest).Value;
+
+            Assert.That(pin.Number, Is.EqualTo(1));
+            Assert.That(pin.Centre, Is.EqualTo(TownMapArt.Tile("HOTEL").Value.center));
+        }
+
+        // 택시는 호텔 앞에서 기다리므로 택시 기사 차례의 핀은 호텔에 꽂는다.
+        [Test]
+        public void StampMap_PinsTheTaxiInFrontOfTheHotel()
+        {
+            var quest = new QuestEntry
+            {
+                Stops =
+                {
+                    new QuestStop
+                    {
+                        Place = "거리",
+                        Scene = "TOWN",
+                        NpcCode = "TAXI_DRIVER",
+                        Current = true,
+                    },
+                },
+            };
+
+            Assert.That(
+                QuestStampMap.Pin(quest).Value.Centre,
+                Is.EqualTo(TownMapArt.Tile("HOTEL").Value.center)
+            );
+        }
+
+        // 지도는 갈 곳이 창 가운데에 오도록 옮기되, 지도 그림 밖이 보이지 않게 가장자리에서 멈춘다.
+        // 돌려주는 값은 창 왼쪽 위에서 지도 그림 왼쪽 위까지(왼쪽으로 -, 위로 +)다.
+        [TestCase(800, 320, -305, 106)]
+        [TestCase(0, 0, 0, 0)]
+        [TestCase(1600, 640, -610, 212)]
+        public void StampMap_CentresWhereToGoButKeepsTheMapInView(
+            float x,
+            float y,
+            float left,
+            float up
+        )
+        {
+            Vector2 offset = QuestStampMap.Pan(
+                new Vector2(x, y),
+                view: new Vector2(990, 428),
+                map: new Vector2(1600, 640)
+            );
+
+            Assert.That(offset, Is.EqualTo(new Vector2(left, up)));
+        }
+
+        // 도장 지도 오른쪽 위 카드: 하는 중이면 지금 할 일(몇 번째인지·장소와 사람·할 일), 시작 전이면 처음 할 일,
+        // 끝냈으면 완료와 퀘스트 설명을 보인다.
+        [Test]
+        public void NextStepCard_SaysWhatToDoNow()
+        {
+            QuestEntry running = CheckInQuest(doneStops: 2);
+            QuestEntry fresh = NotStarted(CheckInQuest(doneStops: 0));
+            QuestEntry done = CheckInQuest(doneStops: 7);
+            done.Status = QuestEntry.Done;
+            done.Description = "체크인하고, 잃어버린 가방을 찾아요.";
+
+            Assert.That(QuestBoardText.NextLabel(running), Is.EqualTo("지금 할 일 · 3 / 7"));
+            Assert.That(QuestBoardText.NextTitle(running), Is.EqualTo("호텔 · Jake"));
+            Assert.That(QuestBoardText.NextTodo(running), Is.EqualTo("할 일 3"));
+            Assert.That(QuestBoardText.NextLabel(fresh), Is.EqualTo("시작하면 처음 할 일"));
+            Assert.That(QuestBoardText.NextTitle(fresh), Is.EqualTo("호텔 · Jake"));
+            Assert.That(QuestBoardText.NextTodo(fresh), Is.EqualTo("할 일 1"));
+            Assert.That(QuestBoardText.NextLabel(done), Is.EqualTo("완료"));
+            Assert.That(QuestBoardText.NextTitle(done), Is.EqualTo("모든 곳에서 도장을 받았어요"));
+            Assert.That(QuestBoardText.NextTodo(done), Is.EqualTo(done.Description));
+        }
+
+        // 서버가 할 일이나 설명을 비워 보내도 카드 글자는 빈 줄이다(null이 아니다).
+        [Test]
+        public void NextStepCard_LeavesTheTodoEmptyWhenThereIsNone()
+        {
+            QuestEntry running = CheckInQuest(doneStops: 2);
+            running.Stops[2].Todo = null;
+            QuestEntry done = CheckInQuest(doneStops: 7);
+            done.Status = QuestEntry.Done;
+
+            Assert.That(QuestBoardText.NextTodo(running), Is.EqualTo(""));
+            Assert.That(QuestBoardText.NextTodo(done), Is.EqualTo(""));
+        }
+
+        private static QuestEntry NotStarted(QuestEntry quest)
+        {
+            quest.Status = QuestEntry.Available;
+            quest.Stops.ForEach(stop => stop.Current = false);
+            return quest;
+        }
+
         // 첫날 퀘스트의 일곱 곳: 호텔·카페·호텔·카페·거리·드럭스토어·호텔
         private static QuestEntry CheckInQuest(int doneStops)
         {
@@ -86,6 +186,8 @@ namespace A305.Mission.Tests
                         Place = stops[i].place,
                         Scene = stops[i].scene,
                         NpcCode = stops[i].scene == "TOWN" ? "TOWN_PASSERBY" : null,
+                        NpcName = "Jake",
+                        Todo = $"할 일 {i + 1}",
                         Done = i < doneStops,
                         Current = i == doneStops,
                     }

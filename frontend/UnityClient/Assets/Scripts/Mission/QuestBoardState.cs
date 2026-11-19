@@ -36,6 +36,18 @@ namespace A305.Mission
 
         /// <summary>들르는 곳. 진행 단계마다 하나다.</summary>
         public List<QuestStop> Stops { get; set; } = new List<QuestStop>();
+
+        /// <summary>다음에 들를 곳의 차례(0부터). 하는 중이면 지금 들를 곳, 시작 전이면 처음 들를 곳이고, 끝냈거나 갈 곳이 없으면 -1이다.</summary>
+        public int NextStopIndex
+        {
+            get
+            {
+                int current = Stops.FindIndex(stop => stop.Current);
+                if (current >= 0)
+                    return current;
+                return Status == Available && Stops.Count > 0 ? 0 : -1;
+            }
+        }
     }
 
     public sealed class QuestStop

@@ -138,6 +138,13 @@ public class ShowcaseQuestService {
     return settings.enabled() ? !"DONE".equals(card.status()) : "IN_PROGRESS".equals(card.status());
   }
 
+  /** 시연 때문에 잠긴 퀘스트에 보일 이유. 잠그는 기간이 {@link #locksOtherQuests}처럼 서버마다 다르다. */
+  public String lockReason() {
+    return settings.enabled()
+        ? "시연 서버에서는 시연 퀘스트를 마쳐야 열려요."
+        : "시연 퀘스트를 하는 중이라 잠겼어요. 시연을 마치거나 그만두면 열려요.";
+  }
+
   /** 첫날 상태 대신 보일 시연 상태. 시연 전용 서버는 시작 전에도 보여 다른 퀘스트가 진행 중으로 보이지 않게 하고, 그 밖의 서버는 시연을 진행하는 동안만 보인다. */
   @Transactional(readOnly = true)
   public Optional<FirstDayMissionResponse> shownStatus(Long userId) {

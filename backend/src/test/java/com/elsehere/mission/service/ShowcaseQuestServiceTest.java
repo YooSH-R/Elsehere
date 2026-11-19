@@ -248,6 +248,13 @@ class ShowcaseQuestServiceTest {
         new ShowcaseSettings(enabled), journeys, users, conversations, scene, firstDay, stories);
   }
 
+  // 시연 때문에 잠긴 퀘스트에 보일 이유. 공용 서버는 시연을 마치거나 그만두면 열리고, 시연 전용 서버는 시연을 마쳐야 열린다.
+  @Test
+  void theLockReasonSaysTheShowcaseLockedTheQuest() {
+    assertThat(service(false).lockReason()).contains("시연 퀘스트", "그만두면");
+    assertThat(service(true).lockReason()).contains("시연 서버", "마쳐야").doesNotContain("그만두면");
+  }
+
   // 시연을 시작하면 하던 첫날 퀘스트는 취소되어 시작 전으로 돌아간다. 시연을 끝내도 이어지지 않는다.
   @Test
   void startingCancelsAnUnfinishedFirstDayQuest() {

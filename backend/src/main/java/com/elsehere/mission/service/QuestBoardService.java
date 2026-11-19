@@ -63,7 +63,8 @@ public class QuestBoardService {
         .ifPresent(
             card -> {
               if (showcase.locksOtherQuests(card)) {
-                quests.replaceAll(QuestBoardService::lockedUnlessDone);
+                String reason = showcase.lockReason();
+                quests.replaceAll(quest -> lockedUnlessDone(quest, reason));
               }
               quests.add(0, card);
             });
@@ -79,12 +80,20 @@ public class QuestBoardService {
     return new QuestBoardResponse(balance, quests);
   }
 
-  private static QuestBoardResponse.Quest lockedUnlessDone(QuestBoardResponse.Quest quest) {
-    if ("DONE".equals(quest.status())) {
+  // 시연이 잠그는 퀘스트. 끝낸 퀘스트는 그대로 두고, 이미 앞 퀘스트 때문에 잠긴 퀘스트는 그 이유를 남긴다.
+  private static QuestBoardResponse.Quest lockedUnlessDone(
+      QuestBoardResponse.Quest quest, String reason) {
+    if ("DONE".equals(quest.status()) || "LOCKED".equals(quest.status())) {
       return quest;
     }
     return new QuestBoardResponse.Quest(
-        quest.id(), quest.title(), quest.description(), quest.reward(), "LOCKED", quest.stops());
+        quest.id(),
+        quest.title(),
+        quest.description(),
+        quest.reward(),
+        "LOCKED",
+        quest.stops(),
+        reason);
   }
 
   private static QuestBoardResponse.Quest firstDayQuest(
@@ -142,8 +151,16 @@ public class QuestBoardService {
       status = "LOCKED";
     }
     return new QuestBoardResponse.Quest(
-        quest.name(), quest.title(), quest.description(), quest.reward(), status, stops);
+        quest.name(),
+        quest.title(),
+        quest.description(),
+        quest.reward(),
+        status,
+        stops,
+        "LOCKED".equals(status) ? PREVIOUS_QUEST_FIRST : null);
   }
+
+  private static final String PREVIOUS_QUEST_FIRST = "앞 퀘스트를 마치면 열려요.";
 
   private static final Map<String, String> FIRST_DAY_PLACES =
       Map.of("HOTEL", "호텔", "CAFE", "카페", "SHOP", "드럭스토어", "TOWN", "거리");

@@ -157,10 +157,14 @@ public class QuestBoardService {
         quest.reward(),
         status,
         stops,
-        "LOCKED".equals(status) ? PREVIOUS_QUEST_FIRST : null);
+        "LOCKED".equals(status) ? previousQuestFirst(quest) : null);
   }
 
-  private static final String PREVIOUS_QUEST_FIRST = "앞 퀘스트를 마치면 열려요.";
+  // 잠긴 이야기 퀘스트는 바로 앞 퀘스트를 마치면 열린다. 어느 퀘스트인지 이름으로 알린다.
+  private static String previousQuestFirst(Quest quest) {
+    Quest previous = Quest.values()[quest.ordinal() - 1];
+    return "'" + previous.title() + "' 퀘스트를 마치면 열려요.";
+  }
 
   private static final Map<String, String> FIRST_DAY_PLACES =
       Map.of("HOTEL", "호텔", "CAFE", "카페", "SHOP", "드럭스토어", "TOWN", "거리");

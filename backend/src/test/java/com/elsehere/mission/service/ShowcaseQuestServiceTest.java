@@ -269,11 +269,34 @@ class ShowcaseQuestServiceTest {
   @Test
   void theLockReasonNamesTheQuestThatLockedItWithoutCallingItAShowcase() {
     assertThat(service(false).lockReason())
-        .contains("비 오는 저녁, 햄버거 한 끼", "그만두면")
-        .doesNotContain("시연");
-    assertThat(service(true).lockReason())
-        .contains("비 오는 저녁, 햄버거 한 끼", "마쳐야")
-        .doesNotContain("시연", "그만두면");
+        .isEqualTo("'비 오는 저녁, 햄버거 한 끼' 퀘스트를 하는 중이라 잠겼어요. 마치거나 그만두면 열려요.");
+    assertThat(service(true).lockReason()).isEqualTo("'비 오는 저녁, 햄버거 한 끼' 퀘스트를 먼저 마쳐야 열려요.");
+  }
+
+  // 왼쪽 위 카드는 다른 이야기 퀘스트처럼 단계마다 누구에게 무엇을 할지 짧은 한 줄과, 그 아래 상황 설명을 따로 받는다.
+  @Test
+  void eachStageGivesAShortRequestLineLikeTheOtherStoryQuests() {
+    when(journeys.findForUpdate(8L)).thenReturn(Optional.empty());
+    when(journeys.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+    when(users.findForUpdate(8L)).thenReturn(Optional.of(mock(User.class)));
+    ShowcaseQuestService service = service(false);
+
+    FirstDayMissionResponse hotel = service.start(8L);
+    org.mockito.ArgumentCaptor<ShowcaseJourney> saved =
+        org.mockito.ArgumentCaptor.forClass(ShowcaseJourney.class);
+    verify(journeys).save(saved.capture());
+    ShowcaseJourney journey = saved.getValue();
+    when(journeys.findForUpdate(8L)).thenReturn(Optional.of(journey));
+    journey.accept(0, "HOTEL_STAFF", List.of("ask_for_taxi"));
+    FirstDayMissionResponse taxi = service.start(8L);
+    journey.chooseTaxiDestination("TAXI_DRIVER", "DINER");
+    journey.arriveByTaxi("DINER");
+    FirstDayMissionResponse order = service.start(8L);
+
+    assertThat(List.of(hotel, taxi, order))
+        .extracting(FirstDayMissionResponse::direction)
+        .containsExactly("호텔 직원에게 요청하세요.", "택시 기사에게 요청하세요.", "햄버거 가게 직원에게 주문하세요.");
+    assertThat(hotel.situation()).isEqualTo(ShowcaseStage.HOTEL.situation());
   }
 
   // 퀘스트 목록 카드도 '시연'이라고 부르지 않는다. 정해진 순서대로 하는 이야기 퀘스트로 보인다.

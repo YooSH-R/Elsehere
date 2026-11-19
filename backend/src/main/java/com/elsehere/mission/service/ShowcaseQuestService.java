@@ -153,8 +153,8 @@ public class ShowcaseQuestService {
    */
   public String lockReason() {
     return settings.enabled()
-        ? "먼저 '" + TITLE + "'를 마쳐야 열려요."
-        : "'" + TITLE + "'를 하는 중이라 잠겼어요. 그 퀘스트를 마치거나 그만두면 열려요.";
+        ? "'" + TITLE + "' 퀘스트를 먼저 마쳐야 열려요."
+        : "'" + TITLE + "' 퀘스트를 하는 중이라 잠겼어요. 마치거나 그만두면 열려요.";
   }
 
   private static final String TITLE = "비 오는 저녁, 햄버거 한 끼";
@@ -367,6 +367,7 @@ public class ShowcaseQuestService {
     }
     String situation =
         journey.isCompleted() ? "대화 노트에서 햄버거 주문 대화를 열고 다시 연습해 보세요." : journey.current().situation();
+    String direction = journey.isCompleted() ? situation : journey.current().direction();
     return new FirstDayMissionResponse(
         journey.isActive(),
         journey.getStage(),
@@ -379,7 +380,7 @@ public class ShowcaseQuestService {
         journey.balance(),
         journey.isMealPaid() ? "햄버거 세트" : null,
         situation,
-        situation,
+        direction,
         steps);
   }
 }

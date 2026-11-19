@@ -20,22 +20,24 @@ namespace A305.Mission
                 .ToList();
 
         /// <summary>다음에 들를 곳(하는 중이면 지금 들를 곳, 시작 전이면 처음 들를 곳)의 번호 핀. 지도에 칸이 없으면 null이다.</summary>
-        public static QuestPin? Pin(QuestEntry quest)
+        public static QuestPin? Pin(QuestEntry quest) => Pin(quest, quest.NextStopIndex);
+
+        /// <summary>index번째(0부터) 들르는 곳의 번호 핀. 순서 목록에서 고른 곳에 꽂는다. 지도에 칸이 없으면 null이다.</summary>
+        public static QuestPin? Pin(QuestEntry quest, int index)
         {
-            int index = quest.NextStopIndex;
-            Vector2? centre = index < 0 ? null : Centre(quest.Stops[index]);
+            Vector2? centre =
+                index < 0 || index >= quest.Stops.Count ? null : Centre(quest.Stops[index]);
             return centre.HasValue ? new QuestPin(index + 1, centre.Value) : null;
         }
 
-        /// <summary>
-        /// 지도 창(view)에 지도 그림(map)을 놓을 자리. focus(그림 위 자리, 왼쪽 위 0·아래로 +)가 창 가운데에 오게 하되,
-        /// 그림 밖이 보이지 않게 가장자리에서 멈춘다. 창 왼쪽 위에서 그림 왼쪽 위까지(왼쪽으로 -, 위로 +)를 돌려준다.
-        /// </summary>
-        public static Vector2 Pan(Vector2 focus, Vector2 view, Vector2 map) =>
-            new Vector2(
-                Mathf.Clamp(view.x / 2 - focus.x, Mathf.Min(0, view.x - map.x), 0),
-                Mathf.Clamp(focus.y - view.y / 2, 0, Mathf.Max(0, map.y - view.y))
-            );
+        /// <summary>퀘스트에서 들르는 건물 칸. 지도는 이 칸만 원래 색으로 보인다. 같은 곳은 처음 들르는 차례에 한 번, 칸이 없는 거리는 뺀다.</summary>
+        public static List<Rect> Tiles(QuestEntry quest) =>
+            quest
+                .Stops.Select(stop => TownMapArt.Tile(Tile(stop)))
+                .Where(tile => tile.HasValue)
+                .Select(tile => tile.Value)
+                .Distinct()
+                .ToList();
 
         private static Vector2? Centre(QuestStop stop) => TownMapArt.Tile(Tile(stop))?.center;
 

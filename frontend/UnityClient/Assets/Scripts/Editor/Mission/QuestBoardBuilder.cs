@@ -742,15 +742,15 @@ namespace A305.EditorTools.Mission
         }
 
         // 도장 지도: 목록과 같은 판(1520×800)에 머리줄(둥근 ‹ 41·35, 퀘스트 이름 Jua 40, 도장 수 칩, 오른쪽에 [퀘스트 시작]·[퀘스트 그만두기], 둥근 닫기 1403),
-        // 왼쪽 순서 목록(장소 연습 목록과 같은 자리 41·141, 420×620), 오른쪽 위 지금 할 일 카드(489·141, 990×176),
-        // 오른쪽 아래 지도 창(489·333, 990×428)을 둔다. 지도 그림은 QuestBoardView.MapZoom배로 깔고, 보기가 갈 곳에 맞춰 옮긴다.
+        // 왼쪽 순서 목록(장소 연습 목록과 같은 자리 41·141, 420×620), 오른쪽 위 단계 카드(489·141, 990×208),
+        // 오른쪽 아래 지도 창(489·365, 990×396)을 둔다. 지도 그림은 QuestBoardView.MapZoom배로 깔아 마을 전체가 창에 꼭 맞는다.
         private const float BodyTop = 141;
         private const float BodyHeight = 620;
         private const float ListLeft = 41;
         private const float ListWidth = 420;
         private const float RightLeft = 489;
         private const float RightWidth = 990;
-        private const float NextHeight = 176;
+        private const float NextHeight = 208;
         private const float MapTop = BodyTop + NextHeight + 16;
 
         // 머리줄 오른쪽 버튼은 둥근 닫기(1403) 왼쪽 22에서 끝나고, 머리줄 가운데(73)에 세로를 맞춘다.
@@ -952,6 +952,14 @@ namespace A305.EditorTools.Mission
                 null
             );
             Ui.Sliced(background, Art("QuestStop", StopBorder));
+            // 칸을 누르면 그 단계를 고른다(QuestBoardView가 복사한 칸마다 연결한다).
+            var button = stop.gameObject.AddComponent<Button>();
+            button.targetGraphic = background;
+            ColorBlock colors = ColorBlock.defaultColorBlock;
+            colors.highlightedColor = new Color(.97f, .97f, .97f);
+            colors.pressedColor = new Color(.9f, .9f, .9f);
+            colors.selectedColor = Color.white;
+            button.colors = colors;
             Image number = Picture(stop, "Slot", 15, 19, 58, 58, (4, 4, 4, 4), Art("QuestSlot"));
             TMP_Text numberText = Text(
                 number.transform,
@@ -1046,11 +1054,12 @@ namespace A305.EditorTools.Mission
 
             const float wordsLeft = 136;
             const float wordsWidth = RightWidth - wordsLeft - 44;
+            const float wordsTop = (NextHeight - 108) / 2;
             TMP_Text label = Text(
                 next,
                 "NextLabel",
                 wordsLeft,
-                34,
+                wordsTop,
                 wordsWidth,
                 26,
                 Ui.DisplayFontPath,
@@ -1061,7 +1070,7 @@ namespace A305.EditorTools.Mission
                 next,
                 "NextTitle",
                 wordsLeft,
-                62,
+                wordsTop + 28,
                 wordsWidth,
                 46,
                 Ui.DisplayFontPath,
@@ -1073,7 +1082,7 @@ namespace A305.EditorTools.Mission
                 next,
                 "NextTodo",
                 wordsLeft,
-                114,
+                wordsTop + 80,
                 wordsWidth,
                 28,
                 Ui.BodyFontPath,
@@ -1090,14 +1099,18 @@ namespace A305.EditorTools.Mission
             Set(fields, "nextTodo", todo);
         }
 
-        // 지나온 곳의 도장은 이 불투명도로 옅게 찍는다. 도장과 같은 코랄인 지금 갈 곳의 핀·빛·칩만 또렷하게 보이게 한다.
-        private const float DoneStampAlpha = .35f;
+        // 받은 도장은 원래 진하기로, 건물 위 작은 인장처럼(88) 찍어 지금 갈 곳의 핀 자리까지 번지지 않게 한다.
+        private const float StampSize = 88;
+
+        // 원래 색 건물 칸의 가장자리를 흐리게 자르는 폭(캔버스 단위)
+        private const int ColorSoftness = 9;
 
         // 핀 아래에서 퍼지는 빛의 색. 노란 빛 그림에 곱해 코랄 빛으로 만든다.
         private static readonly Color PinGlow = new Color32(255, 120, 90, 255);
 
-        // 오른쪽 아래 지도 창: 둥근 모서리로 자른 창 안에 크게 깐 지도 그림과 옅은 도장 견본, 퍼지는 빛(190)·번호 핀(60)·'지금 갈 곳' 칩(높이 40).
-        // 빛은 도장처럼 보이지 않도록 테두리 없는 둥근 빛 그림을 쓴다.
+        // 오른쪽 아래 지도 창: 둥근 모서리로 자른 창 안에 크게 깐 회색 지도 그림, 퀘스트 건물 칸만 원래 색 지도를 보이는 창 견본,
+        // 도장 견본, 퍼지는 빛(120)·번호 핀(60)·'지금 갈 곳' 칩(높이 40).
+        // 다른 색을 넣지 않고 나머지 지도를 회색으로 눌러 코랄 핀과 도장이 살아나게 한다. 빛은 도장처럼 보이지 않도록 테두리 없는 둥근 빛 그림을 쓴다.
         private static void BuildMapBox(SerializedObject fields, RectTransform page)
         {
             RectTransform box = Ui.Rect("MapBox", page);
@@ -1105,14 +1118,25 @@ namespace A305.EditorTools.Mission
             Image mask = box.gameObject.AddComponent<Image>();
             Ui.Sliced(mask, Art("QuestMapMask", Vector4.one * Mathf.Ceil(26 * ArtPixels)));
             box.gameObject.AddComponent<Mask>().showMaskGraphic = false;
+            const float mapWidth = 2000 * QuestBoardView.MapZoom;
+            const float mapHeight = 800 * QuestBoardView.MapZoom;
             RectTransform map = Ui.Rect("MapArt", box);
-            Ui.TopLeft(map, 0, 0, 2000 * QuestBoardView.MapZoom, 800 * QuestBoardView.MapZoom);
-            Ui.Picture(map.gameObject, Art("QuestMap", default, mipmaps: true));
+            Ui.TopLeft(map, 0, 0, mapWidth, mapHeight);
+            Ui.Picture(map.gameObject, GrayMap());
 
-            RectTransform stamp = Mark(map, "Stamp", 190, 190, Art("QuestStampHotel"));
-            stamp.GetComponent<Image>().color = new Color(1, 1, 1, DoneStampAlpha);
+            // 원래 색 창: 자리·크기는 QuestBoardView가 건물 칸마다 정하고, 안의 원래 색 지도를 거꾸로 옮겨 칸에 맞춘다.
+            RectTransform color = Ui.Rect("Color", map);
+            color.anchorMin = color.anchorMax = color.pivot = new Vector2(0, 1);
+            color.gameObject.AddComponent<RectMask2D>().softness = Vector2Int.one * ColorSoftness;
+            RectTransform colorArt = Ui.Rect("Art", color);
+            Ui.TopLeft(colorArt, 0, 0, mapWidth, mapHeight);
+            Ui.Picture(colorArt.gameObject, Art("QuestMap", default, mipmaps: true)).raycastTarget =
+                false;
+            color.gameObject.SetActive(false);
+
+            RectTransform stamp = Mark(map, "Stamp", StampSize, StampSize, Art("QuestStampHotel"));
             stamp.gameObject.SetActive(false);
-            RectTransform halo = Mark(map, "PinHalo", 190, 190, Art("QuestCompleteGlow"));
+            RectTransform halo = Mark(map, "PinHalo", 120, 120, Art("QuestCompleteGlow"));
             Image glow = halo.GetComponent<Image>();
             glow.color = PinGlow;
             glow.raycastTarget = false;
@@ -1133,6 +1157,32 @@ namespace A305.EditorTools.Mission
             Set(fields, "pin", pin);
             Set(fields, "pinNumber", pinNumber);
             Set(fields, "nowLabel", now);
+            Set(fields, "colorTemplate", color);
+        }
+
+        // 지도 그림(QuestMap)을 회색으로 바꾼 그림. 없을 때만 만든다. 밝기만 남기고 조금 밝게 해 원래 색 건물 칸보다 물러나 보이게 한다.
+        private static Sprite GrayMap()
+        {
+            const string name = "QuestMapGray";
+            string path = $"{ArtFolder}/{name}.png";
+            if (!File.Exists(path))
+            {
+                var texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                texture.LoadImage(File.ReadAllBytes($"{ArtFolder}/QuestMap.png"));
+                Color32[] pixels = texture.GetPixels32();
+                for (int i = 0; i < pixels.Length; i++)
+                {
+                    Color32 pixel = pixels[i];
+                    float light = (.299f * pixel.r + .587f * pixel.g + .114f * pixel.b) / 255;
+                    var gray = (byte)Mathf.RoundToInt(Mathf.Lerp(light, .93f, .35f) * 255);
+                    pixels[i] = new Color32(gray, gray, gray, pixel.a);
+                }
+                texture.SetPixels32(pixels);
+                File.WriteAllBytes(path, texture.EncodeToPNG());
+                Object.DestroyImmediate(texture);
+                AssetDatabase.ImportAsset(path);
+            }
+            return Art(name, default, mipmaps: true);
         }
 
         // 번호 핀 그림(높이 44 핀을 그림자 여백 16·16·16·24까지 그림)을 size로 키우고, 아래 두께만큼 내린 흰 번호를 얹는다.

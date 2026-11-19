@@ -88,19 +88,23 @@ namespace A305.Mission.Tests
             );
             Assert.That(Text(board, "PinNumber"), Is.EqualTo("3"));
             RectTransform map = Field<RectTransform>(board, "map");
-            // 지나온 곳의 도장은 옅게 찍어, 같은 코랄인 지금 갈 곳의 핀·빛·칩만 또렷하게 보인다.
+            // 받은 도장은 원래 진하기로, 건물 위 작은 인장처럼(88) 찍어 핀 자리까지 번지지 않게 한다.
+            Image[] stamps = map.GetComponentsInChildren<Image>()
+                .Where(image => image.name == "Stamp")
+                .ToArray();
+            Assert.That(stamps.Select(image => image.color.a), Is.All.EqualTo(1f));
             Assert.That(
-                map.GetComponentsInChildren<Image>()
-                    .Where(image => image.name == "Stamp")
-                    .Select(image => image.color.a),
-                Is.All.LessThanOrEqualTo(.4f),
-                "받은 도장은 옅게 찍습니다."
+                stamps.Select(image => image.rectTransform.sizeDelta),
+                Is.All.EqualTo(new Vector2(88, 88) * 1.2f)
             );
-            Assert.That(
-                Field<RectTransform>(board, "pin").GetComponentInChildren<Image>().color.a,
-                Is.EqualTo(1f),
-                "지금 갈 곳 핀은 진하게 둡니다."
-            );
+            // 지도는 회색으로 깔고, 퀘스트에서 들르는 건물 칸(호텔·카페·드럭스토어)만 원래 색으로 보인다.
+            Assert.That(map.GetComponent<Image>().sprite.name, Is.EqualTo("QuestMapGray"));
+            Image[] colours = map.GetComponentsInChildren<RectMask2D>()
+                .Where(window => window.name == "Color")
+                .Select(window => window.GetComponentInChildren<Image>())
+                .ToArray();
+            Assert.That(colours, Has.Length.EqualTo(3));
+            Assert.That(colours.Select(image => image.sprite.name), Is.All.EqualTo("QuestMap"));
             Assert.That(
                 map.GetComponentsInChildren<Image>().Select(image => image.name),
                 Does.Not.Contain("Dot"),
@@ -128,11 +132,54 @@ namespace A305.Mission.Tests
                     .Count(item => item.name == "Stop"),
                 Is.EqualTo(7)
             );
+            // 지도는 처음부터 마을 전체를 지도 창에 꼭 맞게 보인다. 옮기거나 키우지 않는다.
             var box = (RectTransform)map.parent;
-            Vector2 pin =
-                map.anchoredPosition + Field<RectTransform>(board, "pin").anchoredPosition;
-            Assert.That(pin.x, Is.InRange(0f, box.rect.width), "갈 곳이 지도 창 안에 보입니다.");
-            Assert.That(pin.y, Is.InRange(-box.rect.height, 0f), "갈 곳이 지도 창 안에 보입니다.");
+            Assert.That(
+                map.rect.size,
+                Is.EqualTo(box.rect.size),
+                "지도 그림이 지도 창에 꼭 맞습니다."
+            );
+            Assert.That(map.anchoredPosition, Is.EqualTo(Vector2.zero));
+            Assert.That(map.localScale, Is.EqualTo(Vector3.one));
+        }
+
+        // 순서 목록의 칸을 누르면 그 단계를 고른다. 오른쪽 위 카드와 지도의 번호 핀이 그 단계로 바뀌고,
+        // '지금 갈 곳' 칩은 지금 할 단계에만 붙는다. 지나온 곳은 카드에 그곳의 도장을 보인다.
+        [Test]
+        public void PickingAnotherStep_ShowsThatStepOnTheCardAndMap()
+        {
+            FirstDayMissionView mission = Create();
+            QuestBoardView board = Field<QuestBoardView>(mission, "questBoard");
+            board.Open();
+            board.Show(Board());
+            board.ShowMap(0);
+            RectTransform[] rows = Field<ScrollRect>(board, "stopsList")
+                .content.GetComponentsInChildren<RectTransform>()
+                .Where(row => row.name == "Stop")
+                .ToArray();
+
+            rows[0].GetComponent<Button>().onClick.Invoke();
+
+            Assert.That(Text(board, "NextLabel"), Is.EqualTo("지나온 곳 · 1 / 7"));
+            Assert.That(Text(board, "NextTitle"), Is.EqualTo("호텔 · Jake"));
+            Assert.That(Text(board, "PinNumber"), Is.EqualTo("1"));
+            Assert.That(Field<RectTransform>(board, "nowLabel").gameObject.activeSelf, Is.False);
+            Assert.That(Field<Image>(board, "nextStamp").gameObject.activeSelf, Is.True);
+            Assert.That(
+                rows[0].Find("Background").GetComponent<Image>().sprite,
+                Is.EqualTo(Field<Sprite>(board, "currentStopSprite")),
+                "고른 칸을 코랄 테두리로 보입니다."
+            );
+            Assert.That(
+                rows[2].Find("Background").GetComponent<Image>().sprite,
+                Is.EqualTo(Field<Sprite>(board, "stopSprite"))
+            );
+
+            rows[2].GetComponent<Button>().onClick.Invoke();
+
+            Assert.That(Text(board, "NextLabel"), Is.EqualTo("지금 할 일 · 3 / 7"));
+            Assert.That(Text(board, "PinNumber"), Is.EqualTo("3"));
+            Assert.That(Field<RectTransform>(board, "nowLabel").gameObject.activeSelf, Is.True);
         }
 
         // 들르는 곳이 많아 목록이 넘치면 지금 할 칸이 보이도록 목록을 넘겨 둔다.

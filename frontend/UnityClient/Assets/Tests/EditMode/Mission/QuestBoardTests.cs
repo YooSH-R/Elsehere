@@ -101,27 +101,6 @@ namespace A305.Mission.Tests
             );
         }
 
-        // 지도는 갈 곳이 창 가운데에 오도록 옮기되, 지도 그림 밖이 보이지 않게 가장자리에서 멈춘다.
-        // 돌려주는 값은 창 왼쪽 위에서 지도 그림 왼쪽 위까지(왼쪽으로 -, 위로 +)다.
-        [TestCase(800, 320, -305, 106)]
-        [TestCase(0, 0, 0, 0)]
-        [TestCase(1600, 640, -610, 212)]
-        public void StampMap_CentresWhereToGoButKeepsTheMapInView(
-            float x,
-            float y,
-            float left,
-            float up
-        )
-        {
-            Vector2 offset = QuestStampMap.Pan(
-                new Vector2(x, y),
-                view: new Vector2(990, 428),
-                map: new Vector2(1600, 640)
-            );
-
-            Assert.That(offset, Is.EqualTo(new Vector2(left, up)));
-        }
-
         // 도장 지도 오른쪽 위 카드: 하는 중이면 지금 할 일(몇 번째인지·장소와 사람·할 일), 시작 전이면 처음 할 일,
         // 끝냈으면 완료와 퀘스트 설명을 보인다.
         [Test]
@@ -142,6 +121,51 @@ namespace A305.Mission.Tests
             Assert.That(QuestBoardText.NextLabel(done), Is.EqualTo("완료"));
             Assert.That(QuestBoardText.NextTitle(done), Is.EqualTo("모든 곳에서 도장을 받았어요"));
             Assert.That(QuestBoardText.NextTodo(done), Is.EqualTo(done.Description));
+        }
+
+        // 순서 목록에서 고른 곳에도 그 차례의 번호 핀을 꽂는다.
+        [Test]
+        public void StampMap_PinsAStopPickedFromTheList()
+        {
+            QuestEntry quest = CheckInQuest(doneStops: 2);
+
+            QuestPin pin = QuestStampMap.Pin(quest, 5).Value;
+
+            Assert.That(pin.Number, Is.EqualTo(6));
+            Assert.That(pin.Centre, Is.EqualTo(TownMapArt.Tile("SHOP").Value.center));
+        }
+
+        // 지도는 퀘스트에서 들르는 건물 칸만 원래 색으로 보인다. 같은 곳은 한 번, 칸이 없는 거리는 빼고 처음 들르는 순서대로다.
+        [Test]
+        public void StampMap_ListsTheQuestBuildingsToColourOnce()
+        {
+            QuestEntry quest = CheckInQuest(doneStops: 2);
+
+            Assert.That(
+                QuestStampMap.Tiles(quest),
+                Is.EqualTo(
+                    new[]
+                    {
+                        TownMapArt.Tile("HOTEL").Value,
+                        TownMapArt.Tile("CAFE").Value,
+                        TownMapArt.Tile("SHOP").Value,
+                    }
+                )
+            );
+        }
+
+        // 순서 목록에서 고른 단계의 카드 머리 글자: 지나온 곳, 지금 할 일, 다음에 할 일, 시작 전이면 처음 할 일
+        [Test]
+        public void StepCard_SaysWhetherThePickedStepIsDoneNowOrLater()
+        {
+            QuestEntry running = CheckInQuest(doneStops: 2);
+            QuestEntry fresh = NotStarted(CheckInQuest(doneStops: 0));
+
+            Assert.That(QuestBoardText.StopLabel(running, 0), Is.EqualTo("지나온 곳 · 1 / 7"));
+            Assert.That(QuestBoardText.StopLabel(running, 2), Is.EqualTo("지금 할 일 · 3 / 7"));
+            Assert.That(QuestBoardText.StopLabel(running, 6), Is.EqualTo("다음에 할 일 · 7 / 7"));
+            Assert.That(QuestBoardText.StopLabel(fresh, 0), Is.EqualTo("시작하면 처음 할 일"));
+            Assert.That(QuestBoardText.StopLabel(fresh, 1), Is.EqualTo("다음에 할 일 · 2 / 7"));
         }
 
         // 서버가 할 일이나 설명을 비워 보내도 카드 글자는 빈 줄이다(null이 아니다).

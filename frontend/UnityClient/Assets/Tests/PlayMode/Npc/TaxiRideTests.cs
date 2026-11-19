@@ -97,6 +97,50 @@ namespace A305.Npc.PlayModeTests
             Assert.That(Vector3.Distance(stoppedAt, taxi.transform.position), Is.GreaterThan(1f));
         }
 
+        // 시연이 택시를 막아 둔 동안(호텔 단계) 지나가는 택시를 세우려 하면 타지 않고 막은 까닭을 보인다.
+        [UnityTest]
+        public IEnumerator HailingWhileTheShowcaseLocksTheTaxi_ShowsWhyInsteadOfBoarding()
+        {
+            yield return LoadTown();
+            TaxiRide taxi = Single<TaxiRide>();
+            LoopingCar car = taxi.GetComponent<LoopingCar>();
+            PlayerMover player = Single<PlayerMover>();
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            car.enabled = false;
+            CarLoopRoute.Pose pose = car.Route.PoseAt(car.Distance);
+            Vector3 curbside = Vector3.Cross(Vector3.up, pose.Forward);
+            player.Teleport(
+                taxi.transform.position - pose.Forward * 5f + curbside * 2.6f + Vector3.up * .2f,
+                Quaternion.identity
+            );
+            yield return WaitUntil(() => offer.IsTalkPromptShowing);
+            const string reason = "시연 퀘스트는 순서대로 해요.";
+            ShowcaseTalkLock.Set(
+                new System.Collections.Generic.Dictionary<string, string> { [DriverCode] = reason }
+            );
+            try
+            {
+                Click(offer, "TalkButton");
+                yield return null;
+
+                Assert.That(taxi.IsPassenger, Is.False, "막아 둔 동안에는 타지 않습니다.");
+                Assert.That(Single<DialogueController>().IsTalking, Is.False);
+                Assert.That(offer.IsShownBy(taxi), Is.True);
+                Assert.That(
+                    offer
+                        .GetComponentsInChildren<TMPro.TMP_Text>()
+                        .Any(text => text.text.Contains(reason)),
+                    Is.True,
+                    "막은 까닭을 보여야 합니다."
+                );
+            }
+            finally
+            {
+                ShowcaseTalkLock.Clear();
+                car.enabled = true;
+            }
+        }
+
         [UnityTest]
         public IEnumerator BoardingPrompt_TracksRadiusAndTutorialGate_AndRechecksDistanceOnClick()
         {

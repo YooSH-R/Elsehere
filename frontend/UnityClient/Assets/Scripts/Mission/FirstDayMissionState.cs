@@ -24,6 +24,32 @@ namespace A305.Mission
         /// <summary>시연을 하는 동안 손님을 태운 택시가 신호에 걸리지 않게 본길 신호를 초록으로 붙잡는지.</summary>
         public bool HoldsGreenForTaxiRide => IsShowcase && Started && !Completed;
 
+        /// <summary>
+        /// 시연이 순서를 지키려고 막아 둔 대화와 택시(NPC 키 → 화면에 보일 까닭). 주문 단계 전에는 햄버거 가게 직원이 주문을 받지 않고,
+        /// 호텔 단계에는 지나가는 택시를 세우지 않는다(호텔 앞에서 기다리는 시연 택시는 택시 단계에 탄다). 시연을 하는 중이 아니면 비어 있다.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> ShowcaseTalkLocks
+        {
+            get
+            {
+                var locks = new Dictionary<string, string>();
+                if (!IsShowcase || !Started || Completed || Stage >= ShowcaseOrderStage)
+                    return locks;
+                string current = Steps.Find(step => step.Status == "CURRENT")?.Title;
+                string reason = string.IsNullOrEmpty(current)
+                    ? ShowcaseInOrder
+                    : $"{ShowcaseInOrder}\n지금은 '{current}' 차례예요.";
+                locks["DINER_STAFF"] = reason;
+                if (Stage == 0)
+                    locks["TAXI_DRIVER"] = reason;
+                return locks;
+            }
+        }
+
+        // 시연 퀘스트의 햄버거 주문 단계(0부터 센다)
+        private const int ShowcaseOrderStage = 2;
+        private const string ShowcaseInOrder = "시연 퀘스트는 순서대로 해요.";
+
         public bool ShouldOfferTownStory => Completed && !IsTownStory && !IsShowcase;
         public int Stage { get; set; }
         public bool Completed { get; set; }

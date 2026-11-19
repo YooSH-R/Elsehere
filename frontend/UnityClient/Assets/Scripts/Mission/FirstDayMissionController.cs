@@ -434,6 +434,8 @@ namespace A305.Mission
                 }
                 // 미션이 찾아가라고 한 직원은 교대 밖이어도 자리를 지키고 응대한다. 장면을 옮겨도 남는다.
                 NpcDuty.MissionNpcCode = state.CurrentNpcCode;
+                // 시연이 순서를 지키려고 막아 둔 NPC·택시는 누르면 대화 대신 까닭을 보인다.
+                ShowcaseTalkLock.Set(state.ShowcaseTalkLocks);
                 if (finished != null)
                 {
                     // 보상은 팡파레와 함께 더한다.

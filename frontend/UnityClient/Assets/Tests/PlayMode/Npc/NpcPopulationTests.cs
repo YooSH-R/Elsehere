@@ -41,6 +41,18 @@ namespace A305.Npc.PlayModeTests
                         Assert.That(walker.GetComponent<Passerby>().CanTalkByClick(30), Is.False);
                     }
                 }
+                // 말을 걸 수 없는 배경 주민을 누르면 아무 반응 없이 두지 않고 시연 중이라 막았다고 알린다.
+                Passerby resident = Object
+                    .FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None)[0]
+                    .GetComponent<Passerby>();
+                Assert.That(resident.ExplainLockedTalk(100), Is.True);
+                Assert.That(
+                    Object
+                        .FindFirstObjectByType<PasserbyOfferView>()
+                        .GetComponentsInChildren<TMPro.TMP_Text>()
+                        .Any(text => text.text.Contains("시연 중에는")),
+                    Is.True
+                );
                 var moving = Object.FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None);
                 Vector3[] before = moving.Select(walker => walker.transform.position).ToArray();
                 GameClock

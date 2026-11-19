@@ -48,15 +48,9 @@ public class ShowcaseQuestService {
     }
     ShowcaseStage stage = journey.current();
     if (!stage.npcCode().equals(npcCode)) {
-      String destination =
-          switch (stage) {
-            case HOTEL -> "the hotel";
-            case TAXI -> "the taxi outside the hotel";
-            case ORDER -> "Maple Burger";
-          };
       return new QuestTalk.Guide(
           journey.getStage(),
-          QuestPrompts.sendToOwner(destination, null)
+          redirect(stage, npcCode)
               + " Stay in your own role. Never offer, sell, lend or claim to have done another NPC's task.");
     }
     // 기사에게 판정 목표를 주지 않아 기존 목적지 슬롯(go_to / destination)을 그대로 사용한다.
@@ -87,6 +81,21 @@ public class ShowcaseQuestService {
     boolean leadsToNextGoal = stage == ShowcaseStage.ORDER;
     return new QuestTalk.Goals(
         journey.getStage(), state, instruction, List.copyOf(pending), leadsToNextGoal);
+  }
+
+  // 지금 단계의 담당자에게 보낸다. 그 장소에 시연 동안 함께 있는 인물(호텔 보조 직원, 버거 가게의 John)은 이미 와 있는 곳으로 보내지 않고 담당자를 가리킨다.
+  private static String redirect(ShowcaseStage stage, String npcCode) {
+    return switch (stage) {
+      case HOTEL ->
+          List.of("HOTEL_RECEPTIONIST", "HOTEL_BELLHOP").contains(npcCode)
+              ? QuestPrompts.pointToNearbyOwner("Jake at the front desk")
+              : QuestPrompts.sendToOwner("the hotel", null);
+      case TAXI -> QuestPrompts.sendToOwner("the taxi outside the hotel", null);
+      case ORDER ->
+          "TOWN_JOHN_PARK".equals(npcCode)
+              ? QuestPrompts.pointToNearbyOwner("Rosa at the order counter")
+              : QuestPrompts.sendToOwner("Maple Burger", null);
+    };
   }
 
   public void accept(Long userId, int expectedStage, String npcCode, JudgeResult.Intent intent) {

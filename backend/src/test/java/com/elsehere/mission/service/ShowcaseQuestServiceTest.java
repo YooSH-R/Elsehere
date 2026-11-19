@@ -137,6 +137,23 @@ class ShowcaseQuestServiceTest {
     assertThat(talk.instruction()).contains("hotel", "own role").doesNotContain("lend an umbrella");
   }
 
+  // 지금 단계 장소에 함께 있는 시연 인물(호텔 보조 직원 Owen·Diego, 버거 가게의 John)은 이미 와 있는 곳으로 가라고 하지 않고 그곳의 담당자를 가리킨다.
+  @Test
+  void peopleAlreadyAtTheStagePlacePointToItsOwnerInsteadOfSendingTheLearnerThere() {
+    when(journeys.findById(8L)).thenReturn(Optional.of(ShowcaseJourney.start(8L)));
+    for (String npc : List.of("HOTEL_RECEPTIONIST", "HOTEL_BELLHOP")) {
+      assertThat(service(false).context(8L, npc).orElseThrow().instruction())
+          .contains("Jake at the front desk", "own role")
+          .doesNotContain("next stop is the hotel");
+    }
+
+    when(journeys.findById(8L)).thenReturn(Optional.of(atBurgerShop()));
+
+    assertThat(service(false).context(8L, "TOWN_JOHN_PARK").orElseThrow().instruction())
+        .contains("Rosa at the order counter", "own role")
+        .doesNotContain("next stop is Maple Burger");
+  }
+
   @Test
   void taxiKeepsTheNormalDestinationJudgeAndOrderOnlyUsesItsOwnGoals() {
     ShowcaseJourney journey = ShowcaseJourney.start(8L);

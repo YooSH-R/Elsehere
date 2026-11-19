@@ -105,6 +105,20 @@ namespace A305.Mission.Tests
             Assert.That(Field<QuestConfirmView>(board, "confirm").IsOpen, Is.False);
         }
 
+        // 잠긴 까닭은 퀘스트 이름을 한 줄에 두고, 그 뒤와 문장마다 줄을 바꿔 줄 가운데에서 어색하게 끊기지 않게 한다.
+        [TestCase(
+            "'호텔 체크인과 잃어버린 가방' 퀘스트를 마치면 열려요.",
+            "'호텔 체크인과 잃어버린 가방'\n퀘스트를 마치면 열려요."
+        )]
+        [TestCase("", "")]
+        public void LockReason_KeepsTheQuestNameOnItsOwnLine(string reason, string shown)
+        {
+            Assert.That(
+                QuestBoardText.LockReason(new QuestEntry { LockReason = reason }),
+                Is.EqualTo(shown)
+            );
+        }
+
         [Test]
         public void ALockedCardSaysWhyItIsLocked()
         {
@@ -113,7 +127,7 @@ namespace A305.Mission.Tests
             QuestBoardState state = Board(checkIn: QuestEntry.Locked);
             state.Quests[0].Status = QuestEntry.InProgress;
             state.Quests[1].LockReason =
-                "'비 오는 저녁, 햄버거 한 끼'를 하는 중이라 잠겼어요. 그 퀘스트를 마치거나 그만두면 열려요.";
+                "'비 오는 저녁, 햄버거 한 끼' 퀘스트를 하는 중이라 잠겼어요. 마치거나 그만두면 열려요.";
             board.Open();
             board.ShowList();
             board.Show(state);
@@ -129,9 +143,9 @@ namespace A305.Mission.Tests
             Assert.That(
                 reason.text,
                 Is.EqualTo(
-                    "'비 오는 저녁, 햄버거 한 끼'를 하는 중이라 잠겼어요.\n그 퀘스트를 마치거나 그만두면 열려요."
+                    "'비 오는 저녁, 햄버거 한 끼'\n퀘스트를 하는 중이라 잠겼어요.\n마치거나 그만두면 열려요."
                 ),
-                "문장마다 줄을 바꿔 보입니다."
+                "퀘스트 이름은 한 줄에 두고, 그 뒤와 문장마다 줄을 바꿔 보입니다."
             );
             Assert.That(
                 cards[1].GetComponentsInChildren<RectTransform>().Any(item => item.name == "Route"),

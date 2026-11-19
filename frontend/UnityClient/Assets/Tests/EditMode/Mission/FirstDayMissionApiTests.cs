@@ -30,7 +30,7 @@ namespace A305.Mission.Tests
         {
             var transport = new BodyTransport(
                 "{\"balance\":100,\"quests\":[{\"id\":\"CHECK_IN\",\"status\":\"AVAILABLE\",\"lockReason\":null},"
-                    + "{\"id\":\"MORNING_AND_HAIRCUT\",\"status\":\"LOCKED\",\"lockReason\":\"앞 퀘스트를 마치면 열려요.\"}]}"
+                    + "{\"id\":\"MORNING_AND_HAIRCUT\",\"status\":\"LOCKED\",\"lockReason\":\"'호텔 체크인과 잃어버린 가방' 퀘스트를 마치면 열려요.\"}]}"
             );
             var api = new FirstDayMissionApi(new ApiClient("", transport));
 
@@ -43,7 +43,10 @@ namespace A305.Mission.Tests
             Assert.That(transport.Request.Method, Is.EqualTo("POST"));
             Assert.That(transport.Request.Headers.ContainsKey(ApiClient.CsrfHeaderName), Is.True);
             Assert.That(board.Quests[0].Status, Is.EqualTo(QuestEntry.Available));
-            Assert.That(board.Quests[1].LockReason, Is.EqualTo("앞 퀘스트를 마치면 열려요."));
+            Assert.That(
+                board.Quests[1].LockReason,
+                Is.EqualTo("'호텔 체크인과 잃어버린 가방' 퀘스트를 마치면 열려요.")
+            );
         }
 
         [Test]

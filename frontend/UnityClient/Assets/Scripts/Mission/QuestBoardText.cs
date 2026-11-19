@@ -30,9 +30,14 @@ namespace A305.Mission
         public static string CancelBody(QuestEntry quest) =>
             $"'{quest.Title}'의 진행이 처음으로 돌아가요.\n다시 시작하면 처음부터 해요.";
 
-        /// <summary>카드의 잠긴 까닭. 문장이 줄 가운데에서 끊기지 않게 문장마다 줄을 바꾼다.</summary>
+        /// <summary>
+        /// 카드의 잠긴 까닭. 줄 가운데에서 어색하게 끊기지 않게 따옴표로 묶은 퀘스트 이름을 한 줄에 두고, 그 뒤와 문장마다 줄을 바꾼다.
+        /// 예: '호텔 체크인과 잃어버린 가방' ⏎ 퀘스트를 마치면 열려요.
+        /// </summary>
         public static string LockReason(QuestEntry quest) =>
-            string.IsNullOrEmpty(quest.LockReason) ? "" : quest.LockReason.Replace(". ", ".\n");
+            string.IsNullOrEmpty(quest.LockReason)
+                ? ""
+                : quest.LockReason.Replace("' ", "'\n").Replace(". ", ".\n");
 
         public const string SwitchTitle = "하던 퀘스트를 그만둘까요?";
         public const string SwitchConfirm = "그만두고 시작";

@@ -108,7 +108,7 @@ class QuestBoardServiceTest {
   @Test
   void aQuestLockedByTheShowcaseSaysTheShowcaseLockedIt() {
     when(showcase.locksOtherQuests(org.mockito.ArgumentMatchers.any())).thenReturn(true);
-    when(showcase.lockReason()).thenReturn("시연 퀘스트를 하는 중이라 잠겼어요.");
+    when(showcase.lockReason()).thenReturn("'비 오는 저녁, 햄버거 한 끼'를 하는 중이라 잠겼어요.");
     when(firstDay.findById(8L)).thenReturn(Optional.empty());
     when(stories.findById(8L)).thenReturn(Optional.empty());
     when(showcase.card(org.mockito.ArgumentMatchers.eq(8L), org.mockito.ArgumentMatchers.any()))
@@ -116,7 +116,8 @@ class QuestBoardServiceTest {
 
     assertThat(service.board(8L).quests())
         .extracting(QuestBoardResponse.Quest::lockReason)
-        .containsExactly(null, "시연 퀘스트를 하는 중이라 잠겼어요.", "앞 퀘스트를 마치면 열려요.", "앞 퀘스트를 마치면 열려요.");
+        .containsExactly(
+            null, "'비 오는 저녁, 햄버거 한 끼'를 하는 중이라 잠겼어요.", "앞 퀘스트를 마치면 열려요.", "앞 퀘스트를 마치면 열려요.");
   }
 
   private static QuestBoardResponse.Quest showcaseCard(String status) {

@@ -84,7 +84,7 @@ class QuestFlowTest {
     assertThat(status(userId, ShowcaseStage.QUEST_ID)).isEqualTo("IN_PROGRESS");
     QuestBoardResponse.Quest hotel = quest(userId, "CHECK_IN");
     assertThat(hotel.status()).isEqualTo("LOCKED").isNotEqualTo("DONE");
-    assertThat(hotel.lockReason()).contains("시연");
+    assertThat(hotel.lockReason()).contains("비 오는 저녁, 햄버거 한 끼");
     assertThat(missions.findById(userId)).isEmpty();
 
     cancels.cancel(userId, ShowcaseStage.QUEST_ID);

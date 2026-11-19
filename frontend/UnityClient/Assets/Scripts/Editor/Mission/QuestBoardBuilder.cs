@@ -1090,7 +1090,14 @@ namespace A305.EditorTools.Mission
             Set(fields, "nextTodo", todo);
         }
 
-        // 오른쪽 아래 지도 창: 둥근 모서리로 자른 창 안에 크게 깐 지도 그림과 도장 견본, 퍼지는 고리(130)·번호 핀(60)·'지금 갈 곳' 칩(높이 40)
+        // 지나온 곳의 도장은 이 불투명도로 옅게 찍는다. 도장과 같은 코랄인 지금 갈 곳의 핀·빛·칩만 또렷하게 보이게 한다.
+        private const float DoneStampAlpha = .35f;
+
+        // 핀 아래에서 퍼지는 빛의 색. 노란 빛 그림에 곱해 코랄 빛으로 만든다.
+        private static readonly Color PinGlow = new Color32(255, 120, 90, 255);
+
+        // 오른쪽 아래 지도 창: 둥근 모서리로 자른 창 안에 크게 깐 지도 그림과 옅은 도장 견본, 퍼지는 빛(190)·번호 핀(60)·'지금 갈 곳' 칩(높이 40).
+        // 빛은 도장처럼 보이지 않도록 테두리 없는 둥근 빛 그림을 쓴다.
         private static void BuildMapBox(SerializedObject fields, RectTransform page)
         {
             RectTransform box = Ui.Rect("MapBox", page);
@@ -1103,11 +1110,13 @@ namespace A305.EditorTools.Mission
             Ui.Picture(map.gameObject, Art("QuestMap", default, mipmaps: true));
 
             RectTransform stamp = Mark(map, "Stamp", 190, 190, Art("QuestStampHotel"));
+            stamp.GetComponent<Image>().color = new Color(1, 1, 1, DoneStampAlpha);
             stamp.gameObject.SetActive(false);
-            RectTransform halo = Mark(map, "PinHalo", 130, 130, Art("QuestSlotNow"));
-            Image ring = halo.GetComponent<Image>();
-            ring.raycastTarget = false;
-            BuilderTools.SetReference(halo.gameObject.AddComponent<QuestPinPulse>(), "ring", ring);
+            RectTransform halo = Mark(map, "PinHalo", 190, 190, Art("QuestCompleteGlow"));
+            Image glow = halo.GetComponent<Image>();
+            glow.color = PinGlow;
+            glow.raycastTarget = false;
+            BuilderTools.SetReference(halo.gameObject.AddComponent<QuestPinPulse>(), "glow", glow);
             RectTransform pin = Mark(map, "Pin", 60, 60, null);
             TMP_Text pinNumber = PinFace(pin, "PinNumber", 60, 26);
             // '지금 갈 곳' 칩 그림(높이 32 칩을 그림자 여백 10·6·10·14까지 그림)을 높이 40으로 키운다.

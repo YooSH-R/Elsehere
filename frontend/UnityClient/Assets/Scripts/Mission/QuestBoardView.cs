@@ -16,7 +16,7 @@ namespace A305.Mission
     /// 쪽이 여럿이면 아래에서 넘긴다.
     /// 퀘스트를 끝내고 [다음]을 누르면 다음 퀘스트 카드의 잠금을 푸는 연출을 한다.
     /// 도장 지도는 목록과 같은 크기의 판에 왼쪽 순서 목록(위아래로 넘김), 오른쪽 위 지금 할 일 카드, 오른쪽 아래 마을 지도를 둔다.
-    /// 지도에는 가 본 곳의 잉크 도장과 다음에 갈 곳의 번호 핀(퍼지는 고리와 '지금 갈 곳' 칩)을 얹고, 갈 곳이 창 가운데에 오게 지도를 옮긴다.
+    /// 지도에는 가 본 곳의 옅은 잉크 도장과 다음에 갈 곳의 번호 핀(퍼지는 코랄 빛과 '지금 갈 곳' 칩)을 얹고, 갈 곳이 창 가운데에 오게 지도를 옮긴다.
     /// 자리는 시안 px × 1.2이고 버튼 연결은 QuestBoardBuilder가 넣는다.
     /// 장소 연습 쪽(<see cref="PracticeBoardView"/>)에서 상황의 [연습하기]를 누르면 창을 닫고 그 가게 직원에게 연습하러 가자고 알린다(<see cref="PracticeVisit"/>).
     /// </summary>
@@ -48,7 +48,7 @@ namespace A305.Mission
         /// <summary>도장 지도에 지도 그림(2000×800)을 까는 배율. 0.8배(1600×640)로 창보다 크게 깔고, 갈 곳이 창 가운데에 오게 옮긴다.</summary>
         public const float MapZoom = .8f;
 
-        // 도장은 건물이 보이게 30 위로 찍고, 핀(60)은 지붕 위 72에 꽂는다. 위쪽 줄 건물에서도 핀 아래 고리(130)가 지도 창 안에 들어온다.
+        // 도장은 건물이 보이게 30 위로 찍고, 핀(60)은 지붕 위 72에 꽂는다. 위쪽 줄 건물에서도 핀과 그 아래 빛이 지도 창 안에 들어온다.
         // '지금 갈 곳' 칩(높이 40)은 핀 오른쪽 12에 둔다.
         private const float StampLift = 30;
         private const float PinLift = 72;
@@ -150,7 +150,7 @@ namespace A305.Mission
         private RectTransform pin;
 
         [SerializeField]
-        [Tooltip("핀 아래에서 퍼지는 고리")]
+        [Tooltip("핀 아래에서 퍼지는 빛")]
         private RectTransform pinHalo;
 
         [SerializeField]
@@ -420,7 +420,7 @@ namespace A305.Mission
                     at.y + (PinLift + LabelHeight / 2) * Px
                 );
             }
-            // 새로 찍은 도장이 고리·핀·칩을 가리지 않게 맨 위로 올린다.
+            // 새로 찍은 도장이 빛·핀·칩을 가리지 않게 맨 위로 올린다.
             pinHalo.SetAsLastSibling();
             pin.SetAsLastSibling();
             nowLabel.SetAsLastSibling();

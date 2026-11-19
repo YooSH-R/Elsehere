@@ -88,6 +88,19 @@ namespace A305.Mission.Tests
             );
             Assert.That(Text(board, "PinNumber"), Is.EqualTo("3"));
             RectTransform map = Field<RectTransform>(board, "map");
+            // 지나온 곳의 도장은 옅게 찍어, 같은 코랄인 지금 갈 곳의 핀·빛·칩만 또렷하게 보인다.
+            Assert.That(
+                map.GetComponentsInChildren<Image>()
+                    .Where(image => image.name == "Stamp")
+                    .Select(image => image.color.a),
+                Is.All.LessThanOrEqualTo(.4f),
+                "받은 도장은 옅게 찍습니다."
+            );
+            Assert.That(
+                Field<RectTransform>(board, "pin").GetComponentInChildren<Image>().color.a,
+                Is.EqualTo(1f),
+                "지금 갈 곳 핀은 진하게 둡니다."
+            );
             Assert.That(
                 map.GetComponentsInChildren<Image>().Select(image => image.name),
                 Does.Not.Contain("Dot"),

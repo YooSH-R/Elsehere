@@ -114,14 +114,14 @@ namespace A305.Mission.Tests
             );
             Assert.That(Text(board, "PinNumber"), Is.EqualTo("3"));
             RectTransform map = Field<RectTransform>(board, "map");
-            // 받은 도장은 원래 진하기로, 건물 위 작은 인장처럼(110) 찍어 핀 자리까지 번지지 않게 한다.
+            // 받은 도장은 원래 진하기로, 건물 위 작은 인장처럼(88) 찍어 핀 자리까지 번지지 않게 한다.
             Image[] stamps = map.GetComponentsInChildren<Image>()
                 .Where(image => image.name == "Stamp")
                 .ToArray();
             Assert.That(stamps.Select(image => image.color.a), Is.All.EqualTo(1f));
             Assert.That(
                 stamps.Select(image => image.rectTransform.sizeDelta),
-                Is.All.EqualTo(new Vector2(110, 110) * 1.2f)
+                Is.All.EqualTo(new Vector2(88, 88) * 1.2f)
             );
             // 지도는 회색으로 깔고, 퀘스트에서 들르는 건물 칸(호텔·카페·드럭스토어)만 원래 색으로 보인다.
             Assert.That(map.GetComponent<Image>().sprite.name, Is.EqualTo("QuestMapGray"));
@@ -137,21 +137,55 @@ namespace A305.Mission.Tests
                 "장소 사이에 점선 경로를 그리지 않습니다."
             );
 
-            // 한 장 화면: 제목 아래 퀘스트 설명, 위 지도, 아래 들르는 곳 칸 줄(옆으로 넘김)
+            // 목록과 같은 크기의 판에 제목 아래 퀘스트 설명, 왼쪽 순서 목록(위아래로 넘김), 오른쪽 전체 지도 한 장을 둔다.
+            Assert.That(
+                Field<RectTransform>(board, "sheet").rect.size,
+                Is.EqualTo(new Vector2(1520, 800) * 1.2f),
+                "목록에서 지도로 가도 창 크기가 그대로입니다."
+            );
             Assert.That(
                 Text(board, "MapDescription"),
                 Is.EqualTo("체크인하고, 잃어버린 가방을 찾고, 비 오는 날 우산을 사요.")
             );
-            RectTransform stops = Field<RectTransform>(board, "stopsContent");
-            Assert.That(stops.GetComponent<HorizontalLayoutGroup>(), Is.Not.Null);
+            ScrollRect stops = Field<ScrollRect>(board, "stopsList");
             Assert.That(
-                stops.GetComponentsInChildren<Transform>().Count(item => item.name == "Stop"),
+                stops.vertical && !stops.horizontal,
+                Is.True,
+                "순서 목록은 위아래로 넘깁니다."
+            );
+            Assert.That(
+                stops
+                    .content.GetComponentsInChildren<Transform>()
+                    .Count(item => item.name == "Stop"),
                 Is.EqualTo(7)
             );
             Assert.That(
-                stops.GetComponentsInChildren<Button>().Where(button => button.name == "Stop"),
+                stops.content.GetComponentsInChildren<Button>(),
                 Is.Empty,
-                "들르는 곳 칸은 누르는 단추가 아닙니다."
+                "순서 목록의 칸은 누르는 단추가 아닙니다."
+            );
+            // 아직 차례가 안 된 칸(4~7)은 회색 바탕에 자물쇠를 붙인다. 지나온 칸과 지금 칸은 그대로다.
+            RectTransform[] rows = stops
+                .content.GetComponentsInChildren<RectTransform>()
+                .Where(row => row.name == "Stop")
+                .ToArray();
+            Assert.That(
+                rows.Select(row => row.Find("Lock").gameObject.activeSelf),
+                Is.EqualTo(new[] { false, false, false, true, true, true, true })
+            );
+            Assert.That(
+                rows[3].Find("Background").GetComponent<Image>().color,
+                Is.Not.EqualTo(Color.white),
+                "아직 차례가 안 된 칸은 회색 바탕입니다."
+            );
+            Assert.That(
+                rows[2].Find("Background").GetComponent<Image>().color,
+                Is.EqualTo(Color.white)
+            );
+            Assert.That(
+                board.GetComponentsInChildren<TMP_Text>(true).Select(text => text.name),
+                Does.Not.Contain("NextTitle"),
+                "오른쪽에는 지도만 둡니다."
             );
             // 지도는 마을 전체를 지도 창에 꼭 맞게 보인다. 옮기거나 키우지 않는다.
             var box = (RectTransform)map.parent;
@@ -164,10 +198,10 @@ namespace A305.Mission.Tests
             Assert.That(map.localScale, Is.EqualTo(Vector3.one));
         }
 
-        // 들르는 곳이 많아 칸 줄이 넘치면 지금 할 칸이 보이도록 옆으로 넘겨 둔다.
+        // 들르는 곳이 많아 순서 목록이 넘치면 지금 할 칸이 보이도록 목록을 넘겨 둔다.
         [TestCase(0, false)]
         [TestCase(6, true)]
-        public void ALongStopRow_ShowsTheStopToDoNow(int current, bool scrolled)
+        public void ALongStopList_ShowsTheStopToDoNow(int current, bool scrolled)
         {
             FirstDayMissionView mission = Create();
             QuestBoardView board = Field<QuestBoardView>(mission, "questBoard");
@@ -182,8 +216,8 @@ namespace A305.Mission.Tests
 
             board.ShowMap(0);
 
-            float left = Field<RectTransform>(board, "stopsContent").anchoredPosition.x;
-            Assert.That(left < 0, Is.EqualTo(scrolled));
+            float top = Field<ScrollRect>(board, "stopsList").content.anchoredPosition.y;
+            Assert.That(top > 0, Is.EqualTo(scrolled));
         }
 
         [TestCase(false)]

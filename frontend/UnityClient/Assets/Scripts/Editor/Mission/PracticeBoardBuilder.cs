@@ -24,7 +24,7 @@ namespace A305.EditorTools.Mission
 
         // 머리줄(시안 .head 높이 76, 칸 사이 22): 고르기 화면은 아이콘 타일(76) 왼쪽 41·위 35와 '퀘스트'(Jua 46) 왼쪽 139,
         // 이야기·장소 연습 쪽(시안 c4)은 둥근 ‹(76) 41, 아이콘 타일 139, 제목 237과 그 뒤 14에 '퀘스트'(Jua 22, 위 64). 둥근 닫기(76)는 1403이다.
-        private static readonly (float left, float top, float right, float bottom) HeadPad = (
+        internal static readonly (float left, float top, float right, float bottom) HeadPad = (
             16,
             10,
             16,
@@ -309,7 +309,7 @@ namespace A305.EditorTools.Mission
         }
 
         // 목록 오른쪽 스크롤 막대(시안 .scroll 6 폭, 목록 오른쪽 밖 8, 위 6). 막대 길이는 보이는 비율을 따른다.
-        private static Scrollbar Scrollbar(RectTransform page)
+        internal static Scrollbar Scrollbar(RectTransform page)
         {
             RectTransform bar = Ui.Rect("Scrollbar", page);
             Ui.TopLeft(bar, 469, 147 - BodyLift, 6, 608);

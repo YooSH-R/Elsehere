@@ -953,7 +953,11 @@ namespace A305.Mission
         public void OpenQuestBoard()
         {
             ShowLargeMap(false);
-            questBoard.Open();
+            // 진행 중인 퀘스트가 있으면 고르기 화면 대신 그 퀘스트의 도장 지도를 바로 연다. 장소 연습 중이면 고르기 화면부터 연다.
+            bool running =
+                shownState is { Started: true, Completed: false }
+                && PracticeVisit.Shared.Current == null;
+            questBoard.Open(running ? shownState.Quest : null);
             UpdateBoardLayer();
             JournalOpened?.Invoke();
         }

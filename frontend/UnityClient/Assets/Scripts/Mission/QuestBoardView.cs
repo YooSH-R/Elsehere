@@ -15,9 +15,9 @@ namespace A305.Mission
     /// 목록은 서버가 준 퀘스트를 한 줄에 세 장씩 카드로 보이고(지금 하는 퀘스트는 코랄 테두리, 잠긴 퀘스트는 카드째 흐리게 하고 자물쇠),
     /// 쪽이 여럿이면 아래에서 넘긴다.
     /// 퀘스트를 끝내고 [다음]을 누르면 다음 퀘스트 카드의 잠금을 푸는 연출을 한다.
-    /// 도장 지도는 목록과 같은 크기의 판에 왼쪽 순서 목록(위아래로 넘김), 오른쪽 위 지금 할 일 카드, 오른쪽 아래 마을 지도를 둔다.
-    /// 지도는 마을 전체를 지도 창에 맞춰 회색으로 깔고, 퀘스트 건물 칸만 원래 색으로 보인다. 가 본 곳에 잉크 도장, 고른 단계에 번호 핀을 얹고,
-    /// 다음에 할 단계면 퍼지는 코랄 빛과 '지금 갈 곳' 칩도 붙인다. 순서 목록의 칸을 누르면 그 단계를 고른다.
+    /// 도장 지도는 제목 아래 퀘스트 설명, 마을 전체 지도, 아래 들르는 곳 칸 줄을 한 장에 둔다. 지도는 회색으로 깔고 퀘스트 건물 칸만 원래 색으로 보이며,
+    /// 가 본 곳에 잉크 도장, 지금 갈 곳에 번호 핀과 퍼지는 빛·'지금 갈 곳' 칩을 얹는다. 칸 줄이 넘치면 지금 할 칸까지 옆으로 넘겨 둔다.
+    /// 진행 중인 퀘스트로 열면 고르기 화면 대신 그 퀘스트의 도장 지도를 바로 연다.
     /// 자리는 시안 px × 1.2이고 버튼 연결은 QuestBoardBuilder가 넣는다.
     /// 장소 연습 쪽(<see cref="PracticeBoardView"/>)에서 상황의 [연습하기]를 누르면 창을 닫고 그 가게 직원에게 연습하러 가자고 알린다(<see cref="PracticeVisit"/>).
     /// </summary>
@@ -42,23 +42,24 @@ namespace A305.Mission
         private const float CurrentBorderInset = 1.5f;
         private const float LockedAlpha = .55f;
 
-        // 판 크기: [이야기]·[장소 연습] 탭(시안 #story·#place .panel)과 도장 지도는 같은 1520×800이다.
+        // 판 크기: [이야기]·[장소 연습] 탭(시안 #story·#place .panel)은 같은 1520×800, 도장 지도(시안 q2)는 1240×770이다.
         private const float TabWidth = 1520;
         private const float TabHeight = 800;
+        private const float MapWidth = 1240;
+        private const float MapHeight = 770;
 
-        /// <summary>도장 지도에 지도 그림(2000×800)을 까는 배율. 지도 창(990×396)에 마을 전체가 꼭 맞는다.</summary>
-        public const float MapZoom = .495f;
+        /// <summary>도장 지도에 지도 그림(2000×800)을 까는 배율. 시안 1168×467에 마을 전체가 담긴다.</summary>
+        public const float MapZoom = 1168f / 2000f;
 
-        // 도장은 건물이 보이게 18 위로 찍고, 핀(60)은 코랄 지붕에 묻히지 않게 지붕 위 56에 띄운다.
-        // '지금 갈 곳' 칩(높이 40)은 핀 오른쪽 12에 둔다.
-        private const float StampLift = 18;
-        private const float PinLift = 56;
+        // 도장(110)은 건물이 보이게 20 위로 찍고, 핀(52)은 코랄 지붕에 묻히지 않게 지붕 위 74에 띄운다. '지금 갈 곳' 칩(높이 36)은 핀 오른쪽 12에 둔다.
+        private const float StampLift = 20;
+        private const float PinLift = 74;
+        private const float PinRadius = 26;
+        private const float LabelGap = 12;
+        private const float LabelHeight = 36;
 
         // 원래 색으로 보일 건물 칸은 가장자리를 흐리게 자르므로 칸보다 사방 10 넓힌다.
         private const float ColorMargin = 10;
-        private const float PinRadius = 30;
-        private const float LabelGap = 12;
-        private const float LabelHeight = 40;
 
         [SerializeField]
         [Tooltip("목록과 도장 지도를 담는 판. 보이는 쪽에 따라 높이를 바꾼다.")]
@@ -138,6 +139,10 @@ namespace A305.Mission
         private TMP_Text mapTitle;
 
         [SerializeField]
+        [Tooltip("도장 지도 제목 아래의 퀘스트 설명")]
+        private TMP_Text mapDescription;
+
+        [SerializeField]
         private RectTransform countChip;
 
         [SerializeField]
@@ -173,29 +178,7 @@ namespace A305.Mission
         private PlaceStamp[] placeStamps;
 
         [SerializeField]
-        [Tooltip(
-            "오른쪽 위 지금 할 일 카드의 번호 핀. 끝낸 퀘스트는 대신 마지막 곳의 도장을 보인다."
-        )]
-        private GameObject nextPin;
-
-        [SerializeField]
-        private TMP_Text nextNumber;
-
-        [SerializeField]
-        private Image nextStamp;
-
-        [SerializeField]
-        private TMP_Text nextLabel;
-
-        [SerializeField]
-        private TMP_Text nextTitle;
-
-        [SerializeField]
-        private TMP_Text nextTodo;
-
-        [SerializeField]
-        [Tooltip("왼쪽 순서 목록. 위아래로 넘긴다.")]
-        private ScrollRect stopsList;
+        private RectTransform stopsContent;
 
         [SerializeField]
         private QuestStopSlot stopTemplate;
@@ -215,11 +198,10 @@ namespace A305.Mission
         private QuestBoardState board;
         private int page;
         private int shownQuest = -1;
-        private readonly List<GameObject> made = new List<GameObject>();
 
-        // 도장 지도에서 순서 목록으로 고른 단계(0부터, 없으면 -1). 지도를 열면 다음에 할 단계로 돌아간다.
-        private int pickedStop = -1;
-        private readonly List<QuestStopSlot> stopRows = new List<QuestStopSlot>();
+        // 진행 중인 퀘스트로 열었을 때 목록을 받으면 바로 열 퀘스트. 다른 쪽으로 가면 지운다.
+        private string openingQuest;
+        private readonly List<GameObject> made = new List<GameObject>();
 
         /// <summary>목록을 열 때마다 서버에 퀘스트 목록을 묻는다.</summary>
         public event Action Requested;
@@ -245,17 +227,40 @@ namespace A305.Mission
                 : null;
 
         /// <summary>창을 열면 이야기·장소 연습 고르기부터 보인다. 이야기 목록은 미리 서버에 묻는다.</summary>
-        public void Open()
+        public void Open() => Open(null);
+
+        /// <summary>
+        /// 퀘스트 창을 연다. 진행 중인 퀘스트(questId)를 주면 고르기 화면 대신 그 퀘스트의 도장 지도를 연다.
+        /// 목록을 아직 받지 않았으면 목록 쪽에서 기다렸다가 받는 대로 연다.
+        /// </summary>
+        public void Open(string questId)
         {
             gameObject.SetActive(true);
-            ShowChooser();
+            if (questId == null)
+                ShowChooser();
+            else if (!ShowQuest(questId))
+            {
+                ShowList();
+                openingQuest = questId;
+            }
             OpenChanged?.Invoke(true);
             Requested?.Invoke();
+        }
+
+        // 목록에서 questId 퀘스트의 도장 지도를 연다. 목록에 없거나 잠겼으면 열지 않는다.
+        private bool ShowQuest(string questId)
+        {
+            int index = board?.Quests.FindIndex(quest => quest.Id == questId) ?? -1;
+            if (index < 0 || board.Quests[index].Status == QuestEntry.Locked)
+                return false;
+            ShowMap(index);
+            return true;
         }
 
         /// <summary>이야기·장소 연습을 큰 그림으로 고르는 쪽(시안 2-B ①). 두 쪽 머리줄의 ‹ 도 여기로 돌아온다.</summary>
         public void ShowChooser()
         {
+            openingQuest = null;
             ShowOnly(choosePage);
             shownQuest = -1;
             FitSheet();
@@ -283,12 +288,17 @@ namespace A305.Mission
             board = state;
             page = Mathf.Clamp(page, 0, PageCount - 1);
             FillCards();
+            string opening = openingQuest;
+            openingQuest = null;
+            if (opening != null && ShowQuest(opening))
+                return;
             if (mapPage.activeSelf && shownQuest >= 0 && shownQuest < board.Quests.Count)
                 ShowMap(shownQuest);
         }
 
         public void ShowList()
         {
+            openingQuest = null;
             ShowOnly(listPage);
             shownQuest = -1;
             FitSheet();
@@ -399,6 +409,7 @@ namespace A305.Mission
             ClearMade();
 
             mapTitle.text = quest.Title;
+            mapDescription.text = quest.Description ?? "";
             countText.text = QuestBoardText.StampCount(quest);
             // 제목 뒤 16에 도장 수 칩을 둔다. 칩 폭은 글자 + 양옆 14
             float titleWidth = mapTitle.GetPreferredValues(quest.Title).x;
@@ -421,39 +432,16 @@ namespace A305.Mission
                 Place(made, stamp.Centre, StampLift);
                 made.GetComponent<Image>().sprite = StampOf(stamp.Place);
             }
-            pickedStop = quest.NextStopIndex;
-            FillStops(quest);
-            ScrollToStop(pickedStop, quest.Stops.Count);
-            ShowPickedStop();
-        }
-
-        /// <summary>순서 목록의 칸을 눌러 그 단계를 고른다. 오른쪽 위 카드와 지도의 번호 핀이 그 단계로 바뀐다.</summary>
-        public void PickStop(int stop)
-        {
-            pickedStop = stop;
-            ShowPickedStop();
-        }
-
-        // 고른 단계를 카드·순서 목록·지도에 보인다. '지금 갈 곳' 칩과 퍼지는 빛은 다음에 할 단계에만 붙인다.
-        private void ShowPickedStop()
-        {
-            QuestEntry quest = board.Quests[shownQuest];
-            for (int i = 0; i < stopRows.Count; i++)
-                stopRows[i].Background.sprite = i == pickedStop ? currentStopSprite : stopSprite;
-            FillCard(quest);
-
-            QuestPin? picked = QuestStampMap.Pin(quest, pickedStop);
-            bool now = picked.HasValue && pickedStop == quest.NextStopIndex;
-            pinHalo.gameObject.SetActive(now);
-            pin.gameObject.SetActive(picked.HasValue);
-            nowLabel.gameObject.SetActive(now);
-            if (picked.HasValue)
+            QuestPin? next = QuestStampMap.Pin(quest);
+            foreach (RectTransform mark in new[] { pinHalo, pin, nowLabel })
+                mark.gameObject.SetActive(next.HasValue);
+            if (next.HasValue)
             {
-                pinNumber.text = picked.Value.Number.ToString();
-                Place(pin, picked.Value.Centre, PinLift);
-                Place(pinHalo, picked.Value.Centre, PinLift);
+                pinNumber.text = next.Value.Number.ToString();
+                Place(pin, next.Value.Centre, PinLift);
+                Place(pinHalo, next.Value.Centre, PinLift);
                 // 칩은 핀 오른쪽에 세로 가운데를 맞춘다.
-                Vector2 at = OnMap(picked.Value.Centre);
+                Vector2 at = OnMap(next.Value.Centre);
                 nowLabel.anchoredPosition = new Vector2(
                     at.x + (PinRadius + LabelGap) * Px,
                     at.y + (PinLift + LabelHeight / 2) * Px
@@ -463,37 +451,8 @@ namespace A305.Mission
             pinHalo.SetAsLastSibling();
             pin.SetAsLastSibling();
             nowLabel.SetAsLastSibling();
-        }
-
-        // 오른쪽 위 카드: 고른 단계의 번호 핀(지나온 곳이면 그곳의 도장)과 머리 글자·장소와 사람·할 일.
-        // 고른 단계가 없으면(끝낸 퀘스트) 완료와 마지막 곳의 도장, 퀘스트 설명을 보인다.
-        private void FillCard(QuestEntry quest)
-        {
-            QuestStop stop = pickedStop >= 0 ? quest.Stops[pickedStop] : null;
-            nextPin.SetActive(stop != null && !stop.Done);
-            nextStamp.gameObject.SetActive(stop?.Done ?? quest.Status == QuestEntry.Done);
-            nextNumber.text = stop != null ? (pickedStop + 1).ToString() : "";
-            QuestStop stamped = stop ?? (quest.Stops.Count > 0 ? quest.Stops[^1] : null);
-            if (stamped != null)
-                nextStamp.sprite = StampOf(stamped.Place);
-            nextLabel.text =
-                stop != null
-                    ? QuestBoardText.StopLabel(quest, pickedStop)
-                    : QuestBoardText.NextLabel(quest);
-            nextTitle.text =
-                stop != null ? QuestBoardText.StopTitle(stop) : QuestBoardText.NextTitle(quest);
-            nextTodo.text = stop != null ? stop.Todo ?? "" : QuestBoardText.NextTodo(quest);
-            nextTodo.gameObject.SetActive(nextTodo.text.Length > 0);
-        }
-
-        // 회색 지도 위에 건물 칸 하나를 원래 색 지도로 보인다. 창을 칸 자리에 두고, 안의 원래 색 지도를 거꾸로 옮겨 맞춘다.
-        private void ShowColor(Rect tile)
-        {
-            var window = (RectTransform)Track(Make(colorTemplate.gameObject, map)).transform;
-            var corner = new Vector2(tile.xMin - ColorMargin, tile.yMin - ColorMargin);
-            window.anchoredPosition = OnMap(corner);
-            window.sizeDelta = (tile.size + Vector2.one * ColorMargin * 2) * MapZoom * Px;
-            ((RectTransform)window.GetChild(0)).anchoredPosition = -OnMap(corner);
+            FillStops(quest);
+            ScrollToStop(quest.NextStopIndex, quest.Stops.Count);
         }
 
         /// <summary>고른 퀘스트를 바로 시작한다. 잠금을 푼 카드의 [퀘스트 시작]도 이것을 부른다.</summary>
@@ -550,8 +509,15 @@ namespace A305.Mission
             foreach (Selectable pager in new Selectable[] { previousButton, nextButton })
                 pager.gameObject.SetActive(paged);
             pageText.gameObject.SetActive(paged);
-            sheet.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, TabWidth * Px);
-            sheet.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, TabHeight * Px);
+            bool map = mapPage.activeSelf;
+            sheet.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Horizontal,
+                (map ? MapWidth : TabWidth) * Px
+            );
+            sheet.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Vertical,
+                (map ? MapHeight : TabHeight) * Px
+            );
         }
 
         private void FillCards()
@@ -676,19 +642,14 @@ namespace A305.Mission
         private static readonly Color RouteInk = new Color32(47, 37, 27, 255);
         private static readonly Color VisitedInk = new Color32(214, 93, 64, 255);
 
-        // 순서 목록: 칸마다 번호(지나온 곳은 도장)·장소와 사람·할 일을 채우고, 누르면 그 단계를 고르게 한다.
-        // 지금 할 단계의 번호는 코랄로 보이고, 고른 칸의 코랄 테두리는 ShowPickedStop이 칠한다.
         private void FillStops(QuestEntry quest)
         {
-            stopRows.Clear();
             for (int i = 0; i < quest.Stops.Count; i++)
             {
                 QuestStop stop = quest.Stops[i];
-                GameObject made = Track(Make(stopTemplate.Root.gameObject, stopsList.content));
+                GameObject made = Track(Make(stopTemplate.Root.gameObject, stopsContent));
                 QuestStopSlot slot = stopTemplate.CopyIn(made.transform);
-                stopRows.Add(slot);
-                int index = i;
-                made.GetComponent<Button>().onClick.AddListener(() => PickStop(index));
+                slot.Background.sprite = stop.Current ? currentStopSprite : stopSprite;
                 slot.Title.text = QuestBoardText.StopTitle(stop);
                 slot.Todo.text = stop.Todo;
                 slot.Todo.gameObject.SetActive(!string.IsNullOrEmpty(stop.Todo));
@@ -705,33 +666,37 @@ namespace A305.Mission
             }
         }
 
-        // 목록이 넘치면 다음에 들를 칸이 목록 창 가운데쯤 오게 넘긴다. 목록 끝을 넘지는 않는다.
+        private static readonly Color SlotInk = new Color32(163, 149, 128, 255);
+
+        // 칸 줄이 넘치면 다음에 들를 칸이 줄 가운데쯤 오게 옆으로 넘긴다. 줄 끝을 넘지는 않는다.
         private void ScrollToStop(int index, int count)
         {
-            var column = stopsList.content.GetComponent<VerticalLayoutGroup>();
-            float row = stopTemplate.Root.sizeDelta.y;
-            float view = stopsList.viewport.rect.height;
+            var row = stopsContent.GetComponent<HorizontalLayoutGroup>();
+            float width = stopTemplate.Root.sizeDelta.x;
+            float view = ((RectTransform)stopsContent.parent).rect.width;
             float content =
-                column.padding.vertical + count * row + Mathf.Max(0, count - 1) * column.spacing;
-            float scroll = Mathf.Max(0, content - view);
-            float top =
+                row.padding.horizontal + count * width + Mathf.Max(0, count - 1) * row.spacing;
+            float left =
                 index < 0
                     ? 0
                     : Mathf.Clamp(
-                        column.padding.top + index * (row + column.spacing) - (view - row) / 2,
+                        row.padding.left + index * (width + row.spacing) - (view - width) / 2,
                         0,
-                        scroll
+                        Mathf.Max(0, content - view)
                     );
-            stopsList.StopMovement();
-            stopsList.content.anchoredPosition = new Vector2(0, top);
-            // 스크롤 막대가 예전 값(맨 위)을 들고 있으면 화면을 다시 그릴 때 목록을 맨 위로 되돌리므로 막대도 같은 자리로 맞춘다.
-            if (stopsList.verticalScrollbar != null)
-                stopsList.verticalScrollbar.SetValueWithoutNotify(
-                    scroll > 0 ? 1 - top / scroll : 1
-                );
+            stopsContent.GetComponentInParent<ScrollRect>(true).StopMovement();
+            stopsContent.anchoredPosition = new Vector2(-left, stopsContent.anchoredPosition.y);
         }
 
-        private static readonly Color SlotInk = new Color32(163, 149, 128, 255);
+        // 회색 지도 위에 건물 칸 하나를 원래 색 지도로 보인다. 창을 칸 자리에 두고, 안의 원래 색 지도를 거꾸로 옮겨 맞춘다.
+        private void ShowColor(Rect tile)
+        {
+            var window = (RectTransform)Track(Make(colorTemplate.gameObject, map)).transform;
+            var corner = new Vector2(tile.xMin - ColorMargin, tile.yMin - ColorMargin);
+            window.anchoredPosition = OnMap(corner);
+            window.sizeDelta = (tile.size + Vector2.one * ColorMargin * 2) * MapZoom * Px;
+            ((RectTransform)window.GetChild(0)).anchoredPosition = -OnMap(corner);
+        }
 
         // 지도 그림 좌표(왼쪽 위 0, 아래로 +)를 지도 위 자리(왼쪽 위 기준, 위로 +)로 바꾼다.
         private static Vector2 OnMap(Vector2 art) => new Vector2(art.x, -art.y) * MapZoom * Px;

@@ -20,13 +20,10 @@ namespace A305.Mission
                 .ToList();
 
         /// <summary>다음에 들를 곳(하는 중이면 지금 들를 곳, 시작 전이면 처음 들를 곳)의 번호 핀. 지도에 칸이 없으면 null이다.</summary>
-        public static QuestPin? Pin(QuestEntry quest) => Pin(quest, quest.NextStopIndex);
-
-        /// <summary>index번째(0부터) 들르는 곳의 번호 핀. 순서 목록에서 고른 곳에 꽂는다. 지도에 칸이 없으면 null이다.</summary>
-        public static QuestPin? Pin(QuestEntry quest, int index)
+        public static QuestPin? Pin(QuestEntry quest)
         {
-            Vector2? centre =
-                index < 0 || index >= quest.Stops.Count ? null : Centre(quest.Stops[index]);
+            int index = quest.NextStopIndex;
+            Vector2? centre = index < 0 ? null : Centre(quest.Stops[index]);
             return centre.HasValue ? new QuestPin(index + 1, centre.Value) : null;
         }
 

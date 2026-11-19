@@ -23,44 +23,6 @@ namespace A305.Mission
         public static string StopTitle(QuestStop stop) =>
             string.IsNullOrEmpty(stop.NpcName) ? stop.Place : $"{stop.Place} · {stop.NpcName}";
 
-        /// <summary>순서 목록에서 고른 단계의 카드 머리 글자. 예: 지나온 곳 · 1 / 7, 지금 할 일 · 3 / 7, 다음에 할 일 · 7 / 7, 시작하면 처음 할 일</summary>
-        public static string StopLabel(QuestEntry quest, int index)
-        {
-            string order = $"{index + 1} / {quest.Stops.Count}";
-            if (quest.Stops[index].Done)
-                return $"지나온 곳 · {order}";
-            if (index != quest.NextStopIndex)
-                return $"다음에 할 일 · {order}";
-            return quest.Status == QuestEntry.Available
-                ? "시작하면 처음 할 일"
-                : $"지금 할 일 · {order}";
-        }
-
-        /// <summary>도장 지도 오른쪽 위 카드의 머리 글자. 예: 지금 할 일 · 3 / 7, 시작하면 처음 할 일, 완료</summary>
-        public static string NextLabel(QuestEntry quest)
-        {
-            int next = quest.NextStopIndex;
-            if (next < 0)
-                return quest.Status == QuestEntry.Done ? "완료" : "";
-            return StopLabel(quest, next);
-        }
-
-        /// <summary>카드 제목: 다음에 들를 곳(장소 · 사람). 끝냈으면 완료 안내, 갈 곳이 없으면 퀘스트 이름이다.</summary>
-        public static string NextTitle(QuestEntry quest)
-        {
-            int next = quest.NextStopIndex;
-            if (next >= 0)
-                return StopTitle(quest.Stops[next]);
-            return quest.Status == QuestEntry.Done ? "모든 곳에서 도장을 받았어요" : quest.Title;
-        }
-
-        /// <summary>카드 설명: 다음에 들를 곳에서 할 일. 갈 곳이 없으면 퀘스트 설명이고, 둘 다 없으면 빈 글자다.</summary>
-        public static string NextTodo(QuestEntry quest)
-        {
-            int next = quest.NextStopIndex;
-            return (next >= 0 ? quest.Stops[next].Todo : quest.Description) ?? "";
-        }
-
         public const string CancelTitle = "퀘스트를 그만둘까요?";
         public const string CancelConfirm = "그만두기";
 

@@ -37,6 +37,12 @@ namespace A305.Mission
         public const string SwitchTitle = "하던 퀘스트를 그만둘까요?";
         public const string SwitchConfirm = "그만두고 시작";
 
+        public const string PracticeConfirm = "그만두고 연습";
+
+        /// <summary>정해진 순서대로만 하는 퀘스트를 하는 중에는 장소 연습을 하려면 그 퀘스트를 그만둬야 한다.</summary>
+        public static string PracticeBody(QuestEntry running) =>
+            $"'{running.Title}' 퀘스트는 정해진 순서대로만 진행해요.\n장소 연습을 하려면 이 퀘스트를 그만둬야 해요.";
+
         /// <summary>다른 퀘스트를 시작하면 서버가 하던 퀘스트를 처음으로 되돌린다.</summary>
         public static string SwitchBody(QuestEntry running) =>
             $"새 퀘스트를 시작하면 하던 '{running.Title}'의 진행이 처음으로 돌아가요.";

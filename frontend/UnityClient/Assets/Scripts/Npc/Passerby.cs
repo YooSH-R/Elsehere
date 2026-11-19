@@ -668,17 +668,18 @@ namespace A305.Npc
             return true;
         }
 
-        // 시연이 막아 둔 대화의 까닭. 시연 거리의 배경 주민과, 퀘스트 쪽이 순서를 지키려고 막은 NPC다. 막지 않았으면 null
+        // 막아 둔 대화의 까닭. 정해진 순서대로만 하는 퀘스트를 하는 동안 지금 단계에 나오지 않는 NPC는 지금 차례를 보인다.
+        // 시연 거리의 배경 주민은 그 퀘스트를 하지 않을 때(시연 전용 서버의 시작 전)에도 말을 걸 수 없다. 막지 않았으면 null
         private string LockedTalkReason =>
             UsesShowcaseBackgroundWalk
-                ? PasserbyOfferText.ShowcaseBackgroundResident
+                ? ShowcaseTalkLock.Reason ?? PasserbyOfferText.QuietResident
                 : ShowcaseTalkLock.ReasonFor(identity.Code);
 
         private void ShowLockedTalk(string reason)
         {
             offerView.DeclineShownOffer();
             string name = dialogue.FindNpcName(ScriptKey) ?? "이 NPC";
-            offerView.ShowEvent(this, PasserbyOfferText.ShowcaseLockHint(name), reason);
+            offerView.ShowEvent(this, PasserbyOfferText.NotYourTurnHint(name), reason);
         }
 
         /// <summary>

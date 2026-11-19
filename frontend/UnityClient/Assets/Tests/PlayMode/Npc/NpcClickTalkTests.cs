@@ -157,7 +157,7 @@ namespace A305.Npc.PlayModeTests
             Assert.That(Single<DialogueController>().IsTalking, Is.False);
         }
 
-        // 시연이 막아 둔 NPC는 테두리를 그리지 않고, 누르면 대화를 묻는 대신 막은 까닭을 보인다.
+        // 정해진 순서대로만 하는 퀘스트가 막아 둔 NPC는 테두리를 그리지 않고, 누르면 대화를 묻는 대신 막은 까닭을 보인다.
         [UnityTest]
         public IEnumerator ClickingANpcTheShowcaseLocked_ShowsWhyInsteadOfTalking()
         {
@@ -165,8 +165,8 @@ namespace A305.Npc.PlayModeTests
             Passerby ben = FindPasserby(BenCode);
             KeepFromApproaching(ben);
             yield return FaceFrom(ben, 6f);
-            const string reason = "시연 퀘스트는 순서대로 해요.";
-            ShowcaseTalkLock.Set(new Dictionary<string, string> { [BenCode] = reason });
+            const string reason = "이 퀘스트는 정해진 순서대로 진행해요.";
+            ShowcaseTalkLock.Set(reason, new string[0]);
             try
             {
                 var clickTalk = Single<NpcClickTalk>();
@@ -194,6 +194,11 @@ namespace A305.Npc.PlayModeTests
                         .GetComponentsInChildren<TMP_Text>()
                         .Any(text => text.text == "Ben에게 말을 걸까요?"),
                     Is.False
+                );
+                Assert.That(
+                    offer.GetComponentsInChildren<TMP_Text>().Select(text => text.text),
+                    Has.None.Contains("시연"),
+                    "막은 까닭에 '시연'이라고 쓰지 않습니다."
                 );
                 Assert.That(Single<DialogueController>().IsTalking, Is.False);
             }

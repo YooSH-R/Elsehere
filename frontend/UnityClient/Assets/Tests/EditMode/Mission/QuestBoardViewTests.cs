@@ -264,6 +264,48 @@ namespace A305.Mission.Tests
             );
         }
 
+        // 정해진 순서대로만 하는 퀘스트를 하는 중에는 장소 연습을 바로 시작하지 않는다. 하던 퀘스트를 그만둘지 먼저 묻고,
+        // [그만두고 연습]을 누르면 그 퀘스트를 그만두고 연습하러 간다.
+        [Test]
+        public void DuringAnOrderedQuest_PracticeAsksToStopThatQuestFirst()
+        {
+            QuestBoardView board = OpenPractice();
+            board.Show(Board());
+            ActiveButtons(board, "PlaceRow")[2].onClick.Invoke();
+            PracticeVisitPlan plan = null;
+            string cancelled = null;
+            Action<PracticeVisitPlan> listen = chosen => plan = chosen;
+            board.CancelRequested += id => cancelled = id;
+            PracticeVisit.Shared.Requested += listen;
+            A305.Npc.ShowcaseTalkLock.Set("이 퀘스트는 정해진 순서대로 진행해요.", new string[0]);
+            try
+            {
+                Slots(board)[1].Find("Start").GetComponent<Button>().onClick.Invoke();
+
+                Assert.That(plan, Is.Null, "묻기 전에는 연습하러 가지 않습니다.");
+                Assert.That(board.IsOpen, Is.True);
+                Assert.That(
+                    Text(board, "ConfirmBody"),
+                    Does.Contain("호텔 체크인과 잃어버린 가방")
+                );
+
+                board
+                    .transform.Find("QuestConfirm/Card/Confirm")
+                    .GetComponent<Button>()
+                    .onClick.Invoke();
+            }
+            finally
+            {
+                PracticeVisit.Shared.Requested -= listen;
+                A305.Npc.ShowcaseTalkLock.Clear();
+            }
+
+            Assert.That(cancelled, Is.EqualTo("CHECK_IN"));
+            Assert.That(plan, Is.Not.Null);
+            Assert.That(plan.ScenarioId, Is.EqualTo("DINER_ALLERGY"));
+            Assert.That(board.IsOpen, Is.False);
+        }
+
         [Test]
         public void PracticeButton_ClosesTheWindowAndGoesToPracticeThatScenario()
         {

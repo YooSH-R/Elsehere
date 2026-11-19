@@ -25,30 +25,36 @@ namespace A305.Mission
         public bool HoldsGreenForTaxiRide => IsShowcase && Started && !Completed;
 
         /// <summary>
-        /// 시연이 순서를 지키려고 막아 둔 대화와 택시(NPC 키 → 화면에 보일 까닭). 주문 단계 전에는 햄버거 가게 직원이 주문을 받지 않고,
-        /// 호텔 단계에는 지나가는 택시를 세우지 않는다(호텔 앞에서 기다리는 시연 택시는 택시 단계에 탄다). 시연을 하는 중이 아니면 비어 있다.
+        /// 이 퀘스트(비 오는 저녁)는 정해진 순서대로만 한다. 하는 동안 순서 밖의 대화·택시를 누르면 보일 까닭(지금 차례)이다.
+        /// 하는 중이 아니면 null이다. 화면에서는 '시연'이라고 부르지 않는다.
         /// </summary>
-        public IReadOnlyDictionary<string, string> ShowcaseTalkLocks
+        public string ShowcaseOrderReason
         {
             get
             {
-                var locks = new Dictionary<string, string>();
-                if (!IsShowcase || !Started || Completed || Stage >= ShowcaseOrderStage)
-                    return locks;
+                if (!IsShowcase || !Started || Completed)
+                    return null;
                 string current = Steps.Find(step => step.Status == "CURRENT")?.Title;
-                string reason = string.IsNullOrEmpty(current)
-                    ? ShowcaseInOrder
-                    : $"{ShowcaseInOrder}\n지금은 '{current}' 차례예요.";
-                locks["DINER_STAFF"] = reason;
-                if (Stage == 0)
-                    locks["TAXI_DRIVER"] = reason;
-                return locks;
+                return string.IsNullOrEmpty(current)
+                    ? InOrder
+                    : $"{InOrder}\n지금은 '{current}' 차례예요.";
             }
         }
 
-        // 시연 퀘스트의 햄버거 주문 단계(0부터 센다)
-        private const int ShowcaseOrderStage = 2;
-        private const string ShowcaseInOrder = "시연 퀘스트는 순서대로 해요.";
+        /// <summary>
+        /// 지금 단계에 말을 걸 수 있는 사람. 호텔에서는 Jake와 프런트·벨보이 직원, 택시 단계에서는 호텔 앞 택시 기사,
+        /// 주문 단계에서는 Rosa와 가게의 John이다. 그 밖의 NPC와 지나가는 택시는 막는다.
+        /// </summary>
+        public IReadOnlyCollection<string> ShowcaseStepNpcs =>
+            Stage switch
+            {
+                0 => new[] { "HOTEL_STAFF", "HOTEL_RECEPTIONIST", "HOTEL_BELLHOP" },
+                1 => new[] { "TAXI_DRIVER" },
+                2 => new[] { "DINER_STAFF", "TOWN_JOHN_PARK" },
+                _ => new string[0],
+            };
+
+        private const string InOrder = "이 퀘스트는 정해진 순서대로 진행해요.";
 
         public bool ShouldOfferTownStory => Completed && !IsTownStory && !IsShowcase;
         public int Stage { get; set; }

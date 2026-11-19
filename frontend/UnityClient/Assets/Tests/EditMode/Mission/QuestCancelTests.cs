@@ -113,7 +113,7 @@ namespace A305.Mission.Tests
             QuestBoardState state = Board(checkIn: QuestEntry.Locked);
             state.Quests[0].Status = QuestEntry.InProgress;
             state.Quests[1].LockReason =
-                "시연 퀘스트를 하는 중이라 잠겼어요. 시연을 마치거나 그만두면 열려요.";
+                "'비 오는 저녁, 햄버거 한 끼'를 하는 중이라 잠겼어요. 그 퀘스트를 마치거나 그만두면 열려요.";
             board.Open();
             board.ShowList();
             board.Show(state);
@@ -128,7 +128,9 @@ namespace A305.Mission.Tests
             Assert.That(reason, Is.Not.Null, "잠긴 카드에는 잠긴 까닭을 보입니다.");
             Assert.That(
                 reason.text,
-                Is.EqualTo("시연 퀘스트를 하는 중이라 잠겼어요.\n시연을 마치거나 그만두면 열려요."),
+                Is.EqualTo(
+                    "'비 오는 저녁, 햄버거 한 끼'를 하는 중이라 잠겼어요.\n그 퀘스트를 마치거나 그만두면 열려요."
+                ),
                 "문장마다 줄을 바꿔 보입니다."
             );
             Assert.That(

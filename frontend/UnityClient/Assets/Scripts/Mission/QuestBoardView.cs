@@ -276,6 +276,27 @@ namespace A305.Mission
             PracticeVisitPlan plan = practicePage.PlanFor(slot);
             if (plan == null)
                 return;
+            // 정해진 순서대로만 하는 퀘스트를 하는 중에는 순서 밖의 연습을 바로 시작하지 않고, 그 퀘스트를 그만둘지 먼저 묻는다.
+            QuestEntry running = board?.RunningOtherThan(null);
+            if (A305.Npc.ShowcaseTalkLock.IsActive && running != null)
+            {
+                confirm.Show(
+                    QuestBoardText.SwitchTitle,
+                    QuestBoardText.PracticeBody(running),
+                    QuestBoardText.PracticeConfirm,
+                    () =>
+                    {
+                        CancelRequested?.Invoke(running.Id);
+                        GoPractice(plan);
+                    }
+                );
+                return;
+            }
+            GoPractice(plan);
+        }
+
+        private void GoPractice(PracticeVisitPlan plan)
+        {
             Close();
             PracticeVisit.Shared.Request(plan);
         }

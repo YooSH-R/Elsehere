@@ -50,7 +50,7 @@ namespace A305.Npc.PlayModeTests
                     Object
                         .FindFirstObjectByType<PasserbyOfferView>()
                         .GetComponentsInChildren<TMPro.TMP_Text>()
-                        .Any(text => text.text.Contains("시연 중에는")),
+                        .Any(text => text.text.Contains("이야기할 수 없어요")),
                     Is.True
                 );
                 var moving = Object.FindObjectsByType<NpcTownWalker>(FindObjectsSortMode.None);

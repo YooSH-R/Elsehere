@@ -97,7 +97,7 @@ namespace A305.Npc.PlayModeTests
             Assert.That(Vector3.Distance(stoppedAt, taxi.transform.position), Is.GreaterThan(1f));
         }
 
-        // 시연이 택시를 막아 둔 동안(호텔 단계) 지나가는 택시를 세우려 하면 타지 않고 막은 까닭을 보인다.
+        // 정해진 순서대로만 하는 퀘스트가 택시를 막아 둔 동안 지나가는 택시를 세우려 하면 타지 않고 막은 까닭을 보인다.
         [UnityTest]
         public IEnumerator HailingWhileTheShowcaseLocksTheTaxi_ShowsWhyInsteadOfBoarding()
         {
@@ -114,10 +114,8 @@ namespace A305.Npc.PlayModeTests
                 Quaternion.identity
             );
             yield return WaitUntil(() => offer.IsTalkPromptShowing);
-            const string reason = "시연 퀘스트는 순서대로 해요.";
-            ShowcaseTalkLock.Set(
-                new System.Collections.Generic.Dictionary<string, string> { [DriverCode] = reason }
-            );
+            const string reason = "이 퀘스트는 정해진 순서대로 진행해요.";
+            ShowcaseTalkLock.Set(reason, new string[0]);
             try
             {
                 Click(offer, "TalkButton");

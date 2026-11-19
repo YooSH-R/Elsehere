@@ -506,10 +506,7 @@ namespace A305.Mission
                         StringComparison.OrdinalIgnoreCase
                     )
             );
-            // 시연은 칩으로 시연이라는 것만 알린다. 단계 위치는 순서 줄과 진행 막대가 보이고, 칩이 넓어져 제목이 밀리지 않게 한다.
             string chip = StepChip(state.Steps);
-            if (chip != null && state.IsShowcase)
-                chip = "시연";
             stepChip.text = chip ?? "";
             FitStepChip();
             stepChip.transform.parent.gameObject.SetActive(chip != null);
@@ -520,7 +517,7 @@ namespace A305.Mission
             // NPC가 할 일을 먼저 말하지 않으므로, 요청 안내 아래 이번 단계 목표를 보여 주어 무엇을 요청할지 알게 한다.
             ShowGoals(state.CanRest || current == null ? null : current.Goals, state.IsShowcase);
             ShowPill(
-                state.IsShowcase ? "시연" : "이야기",
+                "이야기",
                 state.Steps.Select(step => step.Status == "UPCOMING" ? pillMarkOff : pillMarkStory)
             );
         }

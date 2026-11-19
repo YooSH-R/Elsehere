@@ -264,13 +264,13 @@ namespace A305.Npc
 
         private void Hail()
         {
-            // 시연이 순서를 지키려고 지나가는 택시를 막아 둔 동안(호텔 단계)에는 태우지 않고 까닭을 보인다.
+            // 정해진 순서대로만 하는 퀘스트가 지나가는 택시를 막아 둔 동안(택시 단계가 아닐 때)에는 태우지 않고 지금 차례를 보인다.
             string locked = ShowcaseTalkLock.ReasonFor(driver.Code);
             if (locked != null)
             {
                 HidePrompt();
                 string name = dialogue.FindNpcName(driver.Code) ?? "택시 기사";
-                offerView.ShowEvent(this, PasserbyOfferText.ShowcaseLockHint(name), locked);
+                offerView.ShowEvent(this, PasserbyOfferText.NotYourTurnHint(name), locked);
                 return;
             }
             Vector3 customer = player.transform.position;

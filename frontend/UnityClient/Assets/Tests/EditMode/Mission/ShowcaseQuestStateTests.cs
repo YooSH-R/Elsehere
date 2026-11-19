@@ -32,44 +32,47 @@ namespace A305.Mission.Tests
             );
         }
 
-        // 시연은 순서대로 한다. 주문 단계 전에는 햄버거 가게 직원이 주문을 받지 않고, 호텔 단계에는 지나가는 택시를 세우지 않는다.
-        // 막은 까닭은 지금 단계를 알려 준다.
+        // 이 퀘스트는 정해진 순서대로만 한다. 단계마다 그 단계에 나오는 사람만 말을 걸 수 있고, 나머지(다른 NPC·지나가는 택시)는
+        // 지금 차례를 까닭으로 막는다. 까닭에 '시연'이라는 말은 쓰지 않는다.
         [Test]
-        public void BeforeTheOrderStep_RosaAndTheHailedTaxiWaitWithTheCurrentStepAsTheReason()
+        public void EachStepAllowsOnlyItsOwnPeopleAndTellsWhoseTurnItIs()
         {
-            var locks = Showcase(stage: 0, "호텔에서 저녁 나들이 준비").ShowcaseTalkLocks;
-
-            Assert.That(locks.Keys, Is.EquivalentTo(new[] { "DINER_STAFF", "TAXI_DRIVER" }));
-            Assert.That(
-                locks["DINER_STAFF"],
-                Does.Contain("시연").And.Contain("호텔에서 저녁 나들이 준비")
-            );
-
-            locks = Showcase(stage: 1, "택시로 햄버거 가게 가기").ShowcaseTalkLocks;
+            FirstDayMissionState hotel = Showcase(stage: 0, "호텔에서 저녁 나들이 준비");
 
             Assert.That(
-                locks.Keys,
-                Is.EquivalentTo(new[] { "DINER_STAFF" }),
-                "택시 단계에는 택시를 탄다."
+                hotel.ShowcaseStepNpcs,
+                Is.EquivalentTo(new[] { "HOTEL_STAFF", "HOTEL_RECEPTIONIST", "HOTEL_BELLHOP" })
             );
-            Assert.That(locks["DINER_STAFF"], Does.Contain("택시로 햄버거 가게 가기"));
+            Assert.That(
+                hotel.ShowcaseOrderReason,
+                Does.Contain("정해진 순서")
+                    .And.Contain("호텔에서 저녁 나들이 준비")
+                    .And.Not.Contain("시연")
+            );
+            Assert.That(
+                Showcase(stage: 1, "택시로 햄버거 가게 가기").ShowcaseStepNpcs,
+                Is.EquivalentTo(new[] { "TAXI_DRIVER" })
+            );
+            Assert.That(
+                Showcase(stage: 2, "햄버거와 사이드 주문").ShowcaseStepNpcs,
+                Is.EquivalentTo(new[] { "DINER_STAFF", "TOWN_JOHN_PARK" })
+            );
         }
 
         [Test]
-        public void AtTheOrderStep_AfterFinishing_OrOutsideTheShowcase_NothingIsLocked()
+        public void AfterFinishing_OrOutsideTheQuest_NothingIsHeldToTheOrder()
         {
-            Assert.That(Showcase(stage: 2, "햄버거와 사이드 주문").ShowcaseTalkLocks, Is.Empty);
             FirstDayMissionState finished = Showcase(stage: 3, null);
             finished.Completed = true;
-            Assert.That(finished.ShowcaseTalkLocks, Is.Empty);
+            Assert.That(finished.ShowcaseOrderReason, Is.Null);
             Assert.That(
-                new FirstDayMissionState { Quest = "CHECK_IN", Started = true }.ShowcaseTalkLocks,
-                Is.Empty
+                new FirstDayMissionState { Quest = "CHECK_IN", Started = true }.ShowcaseOrderReason,
+                Is.Null
             );
             Assert.That(
-                new FirstDayMissionState { Quest = "SHOWCASE_RAINY_EVENING" }.ShowcaseTalkLocks,
-                Is.Empty,
-                "시작하지 않은 시연은 아무것도 막지 않는다."
+                new FirstDayMissionState { Quest = "SHOWCASE_RAINY_EVENING" }.ShowcaseOrderReason,
+                Is.Null,
+                "시작하지 않았으면 아무것도 막지 않는다."
             );
         }
 

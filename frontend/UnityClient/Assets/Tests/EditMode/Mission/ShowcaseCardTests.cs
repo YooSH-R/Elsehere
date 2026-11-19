@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using A305.Wayfinding;
 using A305.World;
@@ -29,20 +30,21 @@ namespace A305.Mission.Tests
         }
 
         [Test]
-        public void ShowcaseCard_SaysItIsTheShowcaseAndShowsTheOrderToFollow()
+        public void OrderedQuestCard_ShowsTheOrderToFollowWithoutCallingItAShowcase()
         {
             Refresh(Showcase(stage: 1));
 
-            Assert.That(
-                Field<TMP_Text>("stepChip").text,
-                Is.EqualTo("시연"),
-                "단계 위치는 순서 줄과 진행 막대가 보이므로 칩은 시연이라는 것만 알린다."
-            );
+            Assert.That(Field<TMP_Text>("stepChip").text, Is.EqualTo("2 / 3"));
             TMP_Text route = Field<TMP_Text>("direction");
             Assert.That(route.gameObject.activeSelf, Is.True, "따라갈 순서를 보여야 합니다.");
             Assert.That(WithoutTags(route.text), Is.EqualTo("호텔 › 택시 › 햄버거 가게"));
             Assert.That(route.text, Does.Contain("<b>택시</b>"), "지금 갈 곳을 강조합니다.");
-            Assert.That(Field<TMP_Text>("pillTitle").text, Is.EqualTo("시연"));
+            Assert.That(Field<TMP_Text>("pillTitle").text, Is.EqualTo("이야기"));
+            Assert.That(
+                instance.GetComponentsInChildren<TMP_Text>().Select(text => text.text),
+                Has.None.Contains("시연"),
+                "화면에 '시연'이라고 쓰지 않습니다."
+            );
         }
 
         [Test]

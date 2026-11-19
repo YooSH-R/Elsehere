@@ -73,6 +73,14 @@ namespace A305.Mission
         private Button startButton;
 
         [SerializeField]
+        [Tooltip("도장 지도의 [퀘스트 그만두기]. 하는 중인 퀘스트에만 보인다.")]
+        private Button cancelButton;
+
+        [SerializeField]
+        [Tooltip("그만두기와, 하던 퀘스트를 처음으로 되돌리는 퀘스트 바꾸기를 묻는 확인 창")]
+        private QuestConfirmView confirm;
+
+        [SerializeField]
         private Button previousButton;
 
         [SerializeField]
@@ -174,15 +182,21 @@ namespace A305.Mission
         /// <summary>도장 지도의 [퀘스트 시작]</summary>
         public event Action StartRequested;
 
+        /// <summary>도장 지도의 [퀘스트 그만두기]를 확인했다. 그만둘 퀘스트 ID를 준다.</summary>
+        public event Action<string> CancelRequested;
+
         public event Action<bool> OpenChanged;
 
         /// <summary>장소 연습 탭을 열 때마다 서버에 장소 목록을 묻는다.</summary>
         public event Action PracticeRequested;
 
         public bool IsOpen => gameObject.activeSelf;
-        public string SelectedQuestId =>
+        public bool IsConfirmOpen => confirm.IsOpen;
+        public string SelectedQuestId => SelectedQuest?.Id;
+
+        private QuestEntry SelectedQuest =>
             board != null && shownQuest >= 0 && shownQuest < board.Quests.Count
-                ? board.Quests[shownQuest].Id
+                ? board.Quests[shownQuest]
                 : null;
 
         /// <summary>창을 열면 이야기·장소 연습 고르기부터 보인다. 이야기 목록은 미리 서버에 묻는다.</summary>
@@ -214,6 +228,7 @@ namespace A305.Mission
         public void Close()
         {
             unlock.Hide();
+            confirm.Close();
             gameObject.SetActive(false);
             OpenChanged?.Invoke(false);
         }
@@ -330,6 +345,7 @@ namespace A305.Mission
                 countChip.sizeDelta.y
             );
             startButton.gameObject.SetActive(quest.Status == QuestEntry.Available);
+            cancelButton.gameObject.SetActive(quest.Status == QuestEntry.InProgress);
 
             foreach (QuestStamp stamp in QuestStampMap.Stamps(quest))
             {
@@ -354,7 +370,52 @@ namespace A305.Mission
             FillStops(quest);
         }
 
+        /// <summary>고른 퀘스트를 바로 시작한다. 잠금을 푼 카드의 [퀘스트 시작]도 이것을 부른다.</summary>
         public void RequestStart() => StartRequested?.Invoke();
+
+        /// <summary>고른 퀘스트를 바로 그만둔다.</summary>
+        public void RequestCancel()
+        {
+            string questId = SelectedQuestId;
+            if (questId != null)
+                CancelRequested?.Invoke(questId);
+        }
+
+        /// <summary>
+        /// 도장 지도의 [퀘스트 시작]. 다른 퀘스트를 하는 중이면 서버가 그 퀘스트를 처음으로 되돌리므로 먼저 묻고, 아니면 바로 시작한다.
+        /// </summary>
+        public void AskToStart()
+        {
+            QuestEntry running = board?.RunningOtherThan(SelectedQuestId);
+            if (running == null)
+            {
+                RequestStart();
+                return;
+            }
+            confirm.Show(
+                QuestBoardText.SwitchTitle,
+                QuestBoardText.SwitchBody(running),
+                QuestBoardText.SwitchConfirm,
+                RequestStart
+            );
+        }
+
+        /// <summary>도장 지도의 [퀘스트 그만두기]. 진행이 처음으로 돌아간다고 먼저 묻는다.</summary>
+        public void AskToCancel()
+        {
+            QuestEntry quest = SelectedQuest;
+            if (quest == null)
+                return;
+            confirm.Show(
+                QuestBoardText.CancelTitle,
+                QuestBoardText.CancelBody(quest),
+                QuestBoardText.CancelConfirm,
+                RequestCancel
+            );
+        }
+
+        /// <summary>확인 창을 아무것도 바꾸지 않고 닫는다(ESC).</summary>
+        public void CloseConfirm() => confirm.Close();
 
         // 판 크기를 보이는 쪽에 맞춘다(두 탭은 같은 크기). 목록은 쪽이 하나면 쪽 넘기기를 숨긴다.
         private void FitSheet()
@@ -403,11 +464,15 @@ namespace A305.Mission
             card.Title.text = quest.Title;
             card.Description.text = quest.Description;
             card.Meta.text = QuestBoardText.Meta(quest);
-            // 잠긴 퀘스트는 카드째 흐리게 하고 가운데에 자물쇠를 둔다.
+            // 잠긴 퀘스트는 카드째 흐리게 하고 가운데에 자물쇠를 둔다. 잠긴 까닭은 자물쇠 아래에 흐리지 않게 쓰고, 겹치지 않게 들르는 곳을 숨긴다.
             bool locked = quest.Status == QuestEntry.Locked;
             card.Button.interactable = !locked;
             card.Group.alpha = locked ? LockedAlpha : 1;
             card.Locked.SetActive(locked);
+            bool explained = locked && !string.IsNullOrEmpty(quest.LockReason);
+            card.LockReason.gameObject.SetActive(explained);
+            card.LockReason.text = explained ? QuestBoardText.LockReason(quest) : "";
+            card.Route.gameObject.SetActive(!explained);
 
             Sprite chip = quest.Status switch
             {
@@ -588,6 +653,9 @@ namespace A305.Mission
 
         /// <summary>잠긴 퀘스트에만 켜는 자물쇠</summary>
         public GameObject Locked;
+
+        /// <summary>자물쇠 아래의 잠긴 까닭. 카드를 흐려도 또렷하게 보이도록 따로 둔다.</summary>
+        public TMP_Text LockReason;
     }
 
     [Serializable]

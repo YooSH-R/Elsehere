@@ -298,6 +298,9 @@ namespace A305.Mission
 
         public event Action StartRequested;
 
+        /// <summary>퀘스트 창에서 하던 퀘스트를 그만두기로 했다. 그만둘 퀘스트 ID를 준다.</summary>
+        public event Action<string> CancelRequested;
+
         /// <summary>퀘스트 카드를 눌러 수첩을 열면 알린다.</summary>
         public event Action JournalOpened;
         public event Action RestRequested;
@@ -980,7 +983,7 @@ namespace A305.Mission
 
         /// <summary>
         /// 끝낸 퀘스트의 '퀘스트 완료!' 팡파레를 띄운다(시안 f1). 같은 대화에서 산 것이 있으면 먼저 줄이고, 보상은 날아간 코인이 칩에 닿을 때 더한다.
-        /// [다음]을 누르면 목록에서 바로 다음 퀘스트의 잠금을 푼다(시안 f2).
+        /// [다음]을 누르면 목록에서 바로 다음 퀘스트의 잠금을 푼다(시안 f2). 연계 퀘스트가 아닌 시연 퀘스트는 잠금을 풀지 않는다.
         /// </summary>
         public void ShowQuestComplete(QuestBoardState board, string questId)
         {
@@ -996,8 +999,10 @@ namespace A305.Mission
                 ShowCoins(latestBalance - finished.Reward, latestPurchase);
             finishedBoard = board;
             finishedQuestId = questId;
+            // 시연 퀘스트는 연계 퀘스트가 아니다. 시연 동안 잠갔던 다음 카드가 다시 열려도 잠금을 푸는 연출을 하지 않는다.
             bool opensNext =
-                index + 1 < board.Quests.Count
+                questId != FirstDayMissionState.ShowcaseQuestId
+                && index + 1 < board.Quests.Count
                 && board.Quests[index + 1].Status == QuestEntry.Available;
             unlockedQuest = opensNext ? index + 1 : -1;
             ShowLargeMap(false);
@@ -1083,6 +1088,7 @@ namespace A305.Mission
                 questBoard.Requested += RequestQuestBoard;
                 questBoard.PracticeRequested += RequestPracticeBoard;
                 questBoard.StartRequested += StartMission;
+                questBoard.CancelRequested += CancelQuest;
                 questBoard.OpenChanged += OnBoardOpenChanged;
             }
             if (miniMapButton != null)
@@ -1108,6 +1114,10 @@ namespace A305.Mission
                     CloseLargeMap
                 ),
                 new UiEscapeWindow(() => IsQuestBoardOpen, () => questBoard.Close()),
+                new UiEscapeWindow(
+                    () => IsQuestBoardOpen && questBoard.IsConfirmOpen,
+                    () => questBoard.CloseConfirm()
+                ),
             };
         }
 
@@ -1124,6 +1134,7 @@ namespace A305.Mission
                 questBoard.Requested -= RequestQuestBoard;
                 questBoard.PracticeRequested -= RequestPracticeBoard;
                 questBoard.StartRequested -= StartMission;
+                questBoard.CancelRequested -= CancelQuest;
                 questBoard.OpenChanged -= OnBoardOpenChanged;
             }
             if (miniMapButton != null)
@@ -1309,6 +1320,8 @@ namespace A305.Mission
         }
 
         private void StartMission() => StartRequested?.Invoke();
+
+        private void CancelQuest(string questId) => CancelRequested?.Invoke(questId);
 
         private void Rest() => RestRequested?.Invoke();
 

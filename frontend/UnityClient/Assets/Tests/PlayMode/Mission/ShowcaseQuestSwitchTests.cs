@@ -128,6 +128,26 @@ namespace A305.Mission.PlayModeTests
             AssertNoCompletionOrSignup();
         }
 
+        // 시연을 그만두면 서버에 그만두기를 보내고 일반 진행으로 돌아간다. 그만둔 것을 완료로 처리하지 않는다.
+        [UnityTest]
+        public IEnumerator CancellingTheShowcaseReturnsToNormalProgressWithoutCompletingIt()
+        {
+            SelectAndStart(1);
+            yield return null;
+            view.OpenQuestBoard();
+            var board = view.GetComponentInChildren<QuestBoardView>(true);
+            board.ShowMap(1);
+            board.RequestCancel();
+            yield return null;
+
+            Assert.That(transport.Cancelled, Is.EqualTo(FirstDayMissionState.ShowcaseQuestId));
+            Assert.That(NpcPopulation.UsesShowcasePopulation, Is.False);
+            AssertNoCompletionOrSignup();
+            view.GetComponentInChildren<QuestBoardView>(true).Close();
+            view.ExpandQuestCard();
+            Assert.That(ShowsGoal("호텔 체크인하기"), Is.True);
+        }
+
         private void SelectAndStart(int index)
         {
             view.OpenQuestBoard();
@@ -156,11 +176,18 @@ namespace A305.Mission.PlayModeTests
             public int ShowcaseStarts { get; private set; }
             public int ShowcaseStops { get; private set; }
             public bool FailShowcaseStart { get; set; }
+            public string Cancelled { get; private set; }
 
             public void FinishShowcase() => showcaseStarted = false;
 
             public Task<ApiTransportResponse> SendAsync(ApiTransportRequest request)
             {
+                if (request.Url.EndsWith("/cancel"))
+                {
+                    Cancelled = request.Url.Split('/').Reverse().Skip(1).First();
+                    showcaseStarted = false;
+                    return Response(Board());
+                }
                 if (request.Url.EndsWith("/missions/showcase/start"))
                 {
                     ShowcaseStarts++;
@@ -181,32 +208,31 @@ namespace A305.Mission.PlayModeTests
                 )
                     return Response(CurrentState());
                 if (request.Url.EndsWith("/missions/quests"))
-                    return Response(
-                        new QuestBoardState
-                        {
-                            Balance = 100,
-                            Quests =
-                            {
-                                new QuestEntry
-                                {
-                                    Id = "CHECK_IN",
-                                    Title = "호텔 체크인과 잃어버린 가방",
-                                    Status = QuestEntry.InProgress,
-                                    Reward = 10,
-                                },
-                                new QuestEntry
-                                {
-                                    Id = FirstDayMissionState.ShowcaseQuestId,
-                                    Title = "비 오는 저녁, 햄버거 한 끼",
-                                    Status = showcaseStarted
-                                        ? QuestEntry.InProgress
-                                        : QuestEntry.Available,
-                                },
-                            },
-                        }
-                    );
+                    return Response(Board());
                 return Task.FromResult(ApiTransportResponse.NetworkFailed());
             }
+
+            private QuestBoardState Board() =>
+                new QuestBoardState
+                {
+                    Balance = 100,
+                    Quests =
+                    {
+                        new QuestEntry
+                        {
+                            Id = "CHECK_IN",
+                            Title = "호텔 체크인과 잃어버린 가방",
+                            Status = QuestEntry.InProgress,
+                            Reward = 10,
+                        },
+                        new QuestEntry
+                        {
+                            Id = FirstDayMissionState.ShowcaseQuestId,
+                            Title = "비 오는 저녁, 햄버거 한 끼",
+                            Status = showcaseStarted ? QuestEntry.InProgress : QuestEntry.Available,
+                        },
+                    },
+                };
 
             private FirstDayMissionState CurrentState() =>
                 new FirstDayMissionState

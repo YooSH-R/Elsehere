@@ -189,6 +189,7 @@ namespace A305.EditorTools.Mission
             BuildList(view, fields, Page("List", sheet));
             BuildMap(view, fields, Page("Map", sheet));
             PracticeBoardBuilder.Build(view, fields, sheet);
+            BuildConfirm(fields, board);
             fields.ApplyModifiedPropertiesWithoutUndo();
             board.gameObject.SetActive(false);
 
@@ -516,6 +517,23 @@ namespace A305.EditorTools.Mission
                 LockBadgePad,
                 Art("QuestLockBadge")
             );
+            // 잠긴 까닭: 자물쇠 아래 10에 가운데 맞춰 쓴다. QuestBoardView가 이때 들르는 곳 알약을 숨긴다.
+            // 카드째 흐리게 해도 또렷하도록 카드의 흐림을 따르지 않는다.
+            TMP_Text reason = Text(
+                locked,
+                "LockReason",
+                31,
+                CardHeight * .52f + 88 / 2f + 10,
+                338,
+                80,
+                Ui.DisplayFontPath,
+                18,
+                Ink
+            );
+            reason.alignment = TextAlignmentOptions.Top;
+            reason.textWrappingMode = TextWrappingModes.Normal;
+            reason.gameObject.AddComponent<CanvasGroup>().ignoreParentGroups = true;
+            reason.gameObject.SetActive(false);
             locked.gameObject.SetActive(false);
 
             Set(slot, "Root", card);
@@ -531,6 +549,7 @@ namespace A305.EditorTools.Mission
             Set(slot, "Route", route);
             Set(slot, "Meta", metaText);
             Set(slot, "Locked", locked.gameObject);
+            Set(slot, "LockReason", reason);
             card.gameObject.SetActive(false);
         }
 
@@ -780,7 +799,20 @@ namespace A305.EditorTools.Mission
                 (22, 12, 22, 40),
                 Art("QuestStartButton")
             );
-            Listen(start, view.RequestStart);
+            // 다른 퀘스트를 하는 중이면 그 퀘스트가 처음으로 돌아간다고 먼저 묻는다.
+            Listen(start, view.AskToStart);
+            // [퀘스트 그만두기]: 하는 중인 퀘스트에서 [퀘스트 시작] 자리에 오른쪽 끝을 맞추고 세로 가운데를 맞춘다.
+            Button cancel = PillButton(
+                page,
+                "Cancel",
+                1137 - CancelWidth,
+                28 + (50 - PillHeight) / 2,
+                CancelWidth,
+                "퀘스트 그만두기",
+                primary: false
+            );
+            Listen(cancel, view.AskToCancel);
+            cancel.gameObject.SetActive(false);
             Listen(Close(page), view.Close);
 
             RectTransform box = Ui.Rect("MapBox", page);
@@ -844,6 +876,7 @@ namespace A305.EditorTools.Mission
 
             Set(fields, "mapPage", page.gameObject);
             Set(fields, "startButton", start);
+            Set(fields, "cancelButton", cancel);
             Set(fields, "mapTitle", title);
             Set(fields, "countChip", count);
             Set(fields, "countText", countText);
@@ -943,6 +976,150 @@ namespace A305.EditorTools.Mission
             Set(slot, "Title", title);
             Set(slot, "Todo", todo);
             stop.gameObject.SetActive(false);
+        }
+
+        // 확인 창: 화면 전체를 살짝 어둡게 덮고(바깥을 누르면 [계속하기]와 같다), 가운데 흰 카드(560×272)에 제목(Jua 30)·설명(본문 18)과
+        // 아래 40에 [계속하기]·확인 버튼(180×40, 사이 20)을 둔다. 확인 버튼 글자는 묻는 일에 따라 QuestConfirmView가 바꾼다.
+        private const float ConfirmWidth = 560;
+        private const float ConfirmHeight = 272;
+        private const float ConfirmButtonWidth = 180;
+
+        private static void BuildConfirm(SerializedObject boardFields, RectTransform board)
+        {
+            RectTransform root = Ui.Rect("QuestConfirm", board);
+            Ui.Fill(root);
+            root.SetAsLastSibling();
+            var view = root.gameObject.AddComponent<QuestConfirmView>();
+            root.gameObject.AddComponent<Image>().color = new Color32(47, 37, 27, 90);
+            Listen(Plain(root.gameObject.AddComponent<Button>()), view.Close);
+
+            RectTransform card = Ui.Rect("Card", root);
+            card.anchorMin = card.anchorMax = card.pivot = new Vector2(.5f, .5f);
+            card.anchoredPosition = Vector2.zero;
+            card.sizeDelta = new Vector2(ConfirmWidth, ConfirmHeight) * Px;
+            // 카드 안을 누르면 닫지 않도록 보이지 않는 바탕으로 막는다.
+            card.gameObject.AddComponent<Image>().color = Color.clear;
+            // 카드 그림은 반투명 유리라 뒤의 지도가 비친다. 같은 그림을 두 겹 깔아 글자 뒤를 거의 불투명하게 한다.
+            foreach (string layer in new[] { "Backing", "Background" })
+            {
+                Image face = Picture(card, layer, 0, 0, ConfirmWidth, ConfirmHeight, CardPad, null);
+                Ui.Sliced(face, Art("QuestCardLarge", CardBorder));
+            }
+
+            TMP_Text title = Text(
+                card,
+                "ConfirmTitle",
+                40,
+                38,
+                ConfirmWidth - 80,
+                40,
+                Ui.DisplayFontPath,
+                30,
+                Ink
+            );
+            title.alignment = TextAlignmentOptions.Midline;
+            TMP_Text body = Text(
+                card,
+                "ConfirmBody",
+                40,
+                94,
+                ConfirmWidth - 80,
+                84,
+                Ui.BodyFontPath,
+                18,
+                Muted
+            );
+            body.alignment = TextAlignmentOptions.Top;
+            body.textWrappingMode = TextWrappingModes.Normal;
+
+            float buttonsTop = ConfirmHeight - 40 - PillHeight;
+            Button keep = PillButton(
+                card,
+                "Keep",
+                ConfirmWidth / 2 - 10 - ConfirmButtonWidth,
+                buttonsTop,
+                ConfirmButtonWidth,
+                "계속하기",
+                primary: false
+            );
+            Listen(keep, view.Close);
+            Button confirm = PillButton(
+                card,
+                "Confirm",
+                ConfirmWidth / 2 + 10,
+                buttonsTop,
+                ConfirmButtonWidth,
+                QuestBoardText.CancelConfirm,
+                primary: true
+            );
+            Listen(confirm, view.Confirm);
+
+            var fields = new SerializedObject(view);
+            Set(fields, "title", title);
+            Set(fields, "body", body);
+            Set(fields, "confirmLabel", confirm.GetComponentInChildren<TMP_Text>());
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            root.gameObject.SetActive(false);
+            Set(boardFields, "confirm", view);
+        }
+
+        // 글자를 얹는 알약 버튼(높이 40). 보조 동작은 아이보리 알약(QuestPill, 그림 높이 그대로)에 잉크 글자,
+        // 확인 동작은 산호색 칩(QuestCountChip, 높이 32 알약을 그림자 여백 10·6·10·14까지 그림)을 높이에 맞춰 모서리·그림자째 키우고 흰 글자를 얹는다.
+        private const float PillHeight = 40;
+        private const float CancelWidth = 170;
+
+        private static Button PillButton(
+            Transform parent,
+            string name,
+            float x,
+            float y,
+            float width,
+            string label,
+            bool primary
+        )
+        {
+            RectTransform rect = Ui.Rect(name, parent);
+            Ui.TopLeft(rect, x, y, width, PillHeight);
+            rect.gameObject.AddComponent<Image>().color = Color.clear;
+            RectTransform art = Ui.Rect("Art", rect);
+            Image face = art.gameObject.AddComponent<Image>();
+            face.raycastTarget = false;
+            if (primary)
+            {
+                const float grow = PillHeight / 32f;
+                Ui.Spread(art, 10 * grow, 6 * grow, 10 * grow, 14 * grow);
+                Ui.Sliced(face, Art("QuestCountChip", new Vector4(26, 30, 26, 22) * ArtPixels));
+                face.pixelsPerUnitMultiplier /= grow;
+            }
+            else
+            {
+                Ui.Fill(art);
+                Ui.Sliced(face, Art("QuestPill", new Vector4(48, 0, 48, 0)));
+                // 흰 유리 판 위에서도 누르는 곳으로 보이도록 아이보리를 조금 진하게 한다.
+                face.color = new Color32(232, 226, 218, 255);
+            }
+            TMP_Text text = Text(
+                rect,
+                "Label",
+                0,
+                0,
+                width,
+                PillHeight,
+                Ui.DisplayFontPath,
+                19,
+                primary ? Color.white : Ink
+            );
+            Ui.Fill(text.rectTransform);
+            text.alignment = TextAlignmentOptions.Midline;
+            text.text = label;
+            var button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = face;
+            ColorBlock colors = ColorBlock.defaultColorBlock;
+            colors.highlightedColor = new Color(.96f, .96f, .96f);
+            colors.pressedColor = new Color(.86f, .86f, .86f);
+            colors.disabledColor = new Color(1, 1, 1, .45f);
+            button.colors = colors;
+            return button;
         }
 
         private static RectTransform Page(string name, RectTransform sheet)

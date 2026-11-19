@@ -22,6 +22,24 @@ namespace A305.Mission
         /// <summary>도장 지도 아래 칸의 제목. 예: 호텔 · Jake</summary>
         public static string StopTitle(QuestStop stop) =>
             string.IsNullOrEmpty(stop.NpcName) ? stop.Place : $"{stop.Place} · {stop.NpcName}";
+
+        public const string CancelTitle = "퀘스트를 그만둘까요?";
+        public const string CancelConfirm = "그만두기";
+
+        /// <summary>그만두면 서버가 그 퀘스트를 처음으로 되돌린다.</summary>
+        public static string CancelBody(QuestEntry quest) =>
+            $"'{quest.Title}'의 진행이 처음으로 돌아가요.\n다시 시작하면 처음부터 해요.";
+
+        /// <summary>카드의 잠긴 까닭. 문장이 줄 가운데에서 끊기지 않게 문장마다 줄을 바꾼다.</summary>
+        public static string LockReason(QuestEntry quest) =>
+            string.IsNullOrEmpty(quest.LockReason) ? "" : quest.LockReason.Replace(". ", ".\n");
+
+        public const string SwitchTitle = "하던 퀘스트를 그만둘까요?";
+        public const string SwitchConfirm = "그만두고 시작";
+
+        /// <summary>다른 퀘스트를 시작하면 서버가 하던 퀘스트를 처음으로 되돌린다.</summary>
+        public static string SwitchBody(QuestEntry running) =>
+            $"새 퀘스트를 시작하면 하던 '{running.Title}'의 진행이 처음으로 돌아가요.";
     }
 
     public readonly struct RoutePlace

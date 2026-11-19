@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using A305.Api;
 
@@ -50,6 +51,13 @@ namespace A305.Mission
 
         public Task<QuestBoardState> GetQuestBoardAsync() =>
             client.GetAsync<QuestBoardState>("/api/v1/missions/quests");
+
+        /// <summary>하던 퀘스트를 그만둬 그 퀘스트의 처음으로 되돌리고, 바뀐 퀘스트 목록을 받는다.</summary>
+        public Task<QuestBoardState> CancelQuestAsync(string questId) =>
+            client.PostAsync<QuestBoardState>(
+                $"/api/v1/missions/quests/{Uri.EscapeDataString(questId)}/cancel",
+                null
+            );
 
         public Task<PracticeBoardState> GetPracticeBoardAsync() =>
             client.GetAsync<PracticeBoardState>("/api/v1/practice-places");

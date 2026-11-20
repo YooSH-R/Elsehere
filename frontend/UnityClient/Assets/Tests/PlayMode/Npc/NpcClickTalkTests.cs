@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using A305.Dialogue;
@@ -154,6 +155,57 @@ namespace A305.Npc.PlayModeTests
                 .onClick.Invoke();
             Assert.That(offer.IsShowing, Is.False);
             Assert.That(Single<DialogueController>().IsTalking, Is.False);
+        }
+
+        // 정해진 순서대로만 하는 퀘스트가 막아 둔 NPC는 테두리를 그리지 않고, 누르면 대화를 묻는 대신 막은 까닭을 보인다.
+        [UnityTest]
+        public IEnumerator ClickingANpcTheShowcaseLocked_ShowsWhyInsteadOfTalking()
+        {
+            yield return LoadTownAfterTutorial();
+            Passerby ben = FindPasserby(BenCode);
+            KeepFromApproaching(ben);
+            yield return FaceFrom(ben, 6f);
+            const string reason = "이 퀘스트는 정해진 순서대로 진행해요.";
+            ShowcaseTalkLock.Set(reason, new string[0]);
+            try
+            {
+                var clickTalk = Single<NpcClickTalk>();
+                clickTalk.RefreshHighlight(AimAt(ben));
+                Assert.That(
+                    clickTalk.HighlightedNpc,
+                    Is.Null,
+                    "말을 걸 수 없는 NPC에는 테두리를 그리지 않습니다."
+                );
+
+                clickTalk.Click(AimAt(ben));
+                yield return null;
+
+                var offer = Single<PasserbyOfferView>();
+                Assert.That(offer.IsShownBy(ben), Is.True);
+                Assert.That(
+                    offer
+                        .GetComponentsInChildren<TMP_Text>()
+                        .Any(text => text.text.Contains(reason)),
+                    Is.True,
+                    "막은 까닭을 보여야 합니다."
+                );
+                Assert.That(
+                    offer
+                        .GetComponentsInChildren<TMP_Text>()
+                        .Any(text => text.text == "Ben에게 말을 걸까요?"),
+                    Is.False
+                );
+                Assert.That(
+                    offer.GetComponentsInChildren<TMP_Text>().Select(text => text.text),
+                    Has.None.Contains("시연"),
+                    "막은 까닭에 '시연'이라고 쓰지 않습니다."
+                );
+                Assert.That(Single<DialogueController>().IsTalking, Is.False);
+            }
+            finally
+            {
+                ShowcaseTalkLock.Clear();
+            }
         }
 
         [UnityTest]

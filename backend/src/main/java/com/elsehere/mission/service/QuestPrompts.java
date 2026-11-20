@@ -25,6 +25,15 @@ final class QuestPrompts {
           + " Use details the learner already gave or clearly selected. If the request is complete, answer it without another question. Do not ask for known details, introduce an unrelated pending goal, or correct grammar in the reply."
           + " In ordinary small talk, react to their topic and share brief details fitting your personality and current situation. If they seem unsure what to say, offer a small observation or an easy question in your own voice without naming undisclosed mission tasks.";
 
+  /** 지금 단계 담당자와 같은 곳에 있는 NPC에게 보내는 안내. 학습자가 이미 와 있는 곳으로 다시 보내지 않고 가까이 있는 담당자를 가리키게 한다. */
+  static String pointToNearbyOwner(String owner) {
+    return "The learner's current task is with "
+        + owner
+        + ", who is here in the same place. If the learner asks about their current task or who can help, point them to "
+        + owner
+        + " instead of sending them somewhere else or saying you do not know.";
+  }
+
   /** 지금 단계 담당이 아닌 NPC에게 보내는 안내. 지금 할 일을 물으면 모른다고 하지 않고 담당 NPC와 장소를 알려 주게 한다. 이름을 찾지 못하면 장소만 알린다. */
   static String sendToOwner(String place, String owner) {
     String whom = owner == null ? "" : " and talk to " + owner;

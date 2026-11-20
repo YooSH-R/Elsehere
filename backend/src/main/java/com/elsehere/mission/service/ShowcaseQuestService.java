@@ -48,15 +48,9 @@ public class ShowcaseQuestService {
     }
     ShowcaseStage stage = journey.current();
     if (!stage.npcCode().equals(npcCode)) {
-      String destination =
-          switch (stage) {
-            case HOTEL -> "the hotel";
-            case TAXI -> "the taxi outside the hotel";
-            case ORDER -> "Maple Burger";
-          };
       return new QuestTalk.Guide(
           journey.getStage(),
-          QuestPrompts.sendToOwner(destination, null)
+          redirect(stage, npcCode)
               + " Stay in your own role. Never offer, sell, lend or claim to have done another NPC's task.");
     }
     // 기사에게 판정 목표를 주지 않아 기존 목적지 슬롯(go_to / destination)을 그대로 사용한다.
@@ -87,6 +81,21 @@ public class ShowcaseQuestService {
     boolean leadsToNextGoal = stage == ShowcaseStage.ORDER;
     return new QuestTalk.Goals(
         journey.getStage(), state, instruction, List.copyOf(pending), leadsToNextGoal);
+  }
+
+  // 지금 단계의 담당자에게 보낸다. 그 장소에 시연 동안 함께 있는 인물(호텔 보조 직원, 버거 가게의 John)은 이미 와 있는 곳으로 보내지 않고 담당자를 가리킨다.
+  private static String redirect(ShowcaseStage stage, String npcCode) {
+    return switch (stage) {
+      case HOTEL ->
+          List.of("HOTEL_RECEPTIONIST", "HOTEL_BELLHOP").contains(npcCode)
+              ? QuestPrompts.pointToNearbyOwner("Jake at the front desk")
+              : QuestPrompts.sendToOwner("the hotel", null);
+      case TAXI -> QuestPrompts.sendToOwner("the taxi outside the hotel", null);
+      case ORDER ->
+          "TOWN_JOHN_PARK".equals(npcCode)
+              ? QuestPrompts.pointToNearbyOwner("Rosa at the order counter")
+              : QuestPrompts.sendToOwner("Maple Burger", null);
+    };
   }
 
   public void accept(Long userId, int expectedStage, String npcCode, JudgeResult.Intent intent) {
@@ -137,6 +146,18 @@ public class ShowcaseQuestService {
   public boolean locksOtherQuests(QuestBoardResponse.Quest card) {
     return settings.enabled() ? !"DONE".equals(card.status()) : "IN_PROGRESS".equals(card.status());
   }
+
+  /**
+   * 이 퀘스트 때문에 잠긴 퀘스트에 보일 이유. 화면에서는 '시연'이라고 부르지 않고 퀘스트 이름으로 알린다. 잠그는 기간이 {@link #locksOtherQuests}처럼
+   * 서버마다 다르다.
+   */
+  public String lockReason() {
+    return settings.enabled()
+        ? "'" + TITLE + "' 퀘스트를 먼저 마쳐야 열려요."
+        : "'" + TITLE + "' 퀘스트를 하는 중이라 잠겼어요. 마치거나 그만두면 열려요.";
+  }
+
+  private static final String TITLE = "비 오는 저녁, 햄버거 한 끼";
 
   /** 첫날 상태 대신 보일 시연 상태. 시연 전용 서버는 시작 전에도 보여 다른 퀘스트가 진행 중으로 보이지 않게 하고, 그 밖의 서버는 시연을 진행하는 동안만 보인다. */
   @Transactional(readOnly = true)
@@ -210,6 +231,17 @@ public class ShowcaseQuestService {
               journey.restart();
               scene.leave(userId);
             });
+  }
+
+  /** 하던 시연을 그만둔다. 처음으로 되돌리고 시연이 덮어쓴 계정 상태도 돌려놓는다. 하는 중이 아니면 그만둘 것이 없다. */
+  public void cancel(Long userId) {
+    ShowcaseJourney journey =
+        journeys
+            .findForUpdate(userId)
+            .filter(running -> running.isActive() && !running.isCompleted())
+            .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS));
+    journey.restart();
+    scene.leave(userId);
   }
 
   public FirstDayMissionResponse reset(Long userId) {
@@ -304,8 +336,8 @@ public class ShowcaseQuestService {
     return Optional.of(
         new QuestBoardResponse.Quest(
             ShowcaseStage.QUEST_ID,
-            "비 오는 저녁, 햄버거 한 끼",
-            "[시연] 우산을 빌려 택시로 햄버거 가게에 가서 햄버거를 주문해요.",
+            TITLE,
+            "우산을 빌려 택시로 햄버거 가게에 가서 햄버거를 주문해요. 정해진 순서대로 진행해요.",
             0,
             status,
             stops));
@@ -335,6 +367,7 @@ public class ShowcaseQuestService {
     }
     String situation =
         journey.isCompleted() ? "대화 노트에서 햄버거 주문 대화를 열고 다시 연습해 보세요." : journey.current().situation();
+    String direction = journey.isCompleted() ? situation : journey.current().direction();
     return new FirstDayMissionResponse(
         journey.isActive(),
         journey.getStage(),
@@ -347,7 +380,7 @@ public class ShowcaseQuestService {
         journey.balance(),
         journey.isMealPaid() ? "햄버거 세트" : null,
         situation,
-        situation,
+        direction,
         steps);
   }
 }

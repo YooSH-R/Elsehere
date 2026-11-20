@@ -10,6 +10,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 namespace A305.Mission.PlayModeTests
@@ -58,6 +59,8 @@ namespace A305.Mission.PlayModeTests
             SurveyPrompt.AutomaticInvitationsPaused = surveyWasPaused;
             NpcPopulation.UsesShowcasePopulation = wasShowcasePopulation;
             NpcDuty.MissionNpcCode = previousMissionNpc;
+            // 비 오는 저녁을 읽으면 대화 잠금이 걸린다. 장면을 내려도 남으므로 지워 다음 NPC 테스트를 막지 않게 한다.
+            ShowcaseTalkLock.Clear();
             NpcOutings.Shared.SetClosedToVisitors(FirstDayMissionState.ShowcaseRestaurant, false);
         }
 
@@ -128,6 +131,88 @@ namespace A305.Mission.PlayModeTests
             AssertNoCompletionOrSignup();
         }
 
+        // 시연을 그만두면 서버에 그만두기를 보내고 일반 진행으로 돌아간다. 그만둔 것을 완료로 처리하지 않는다.
+        [UnityTest]
+        public IEnumerator CancellingTheShowcaseReturnsToNormalProgressWithoutCompletingIt()
+        {
+            SelectAndStart(1);
+            yield return null;
+            view.OpenQuestBoard();
+            var board = view.GetComponentInChildren<QuestBoardView>(true);
+            board.ShowMap(1);
+            board.RequestCancel();
+            yield return null;
+
+            Assert.That(transport.Cancelled, Is.EqualTo(FirstDayMissionState.ShowcaseQuestId));
+            Assert.That(NpcPopulation.UsesShowcasePopulation, Is.False);
+            AssertNoCompletionOrSignup();
+            view.GetComponentInChildren<QuestBoardView>(true).Close();
+            view.ExpandQuestCard();
+            Assert.That(ShowsGoal("호텔 체크인하기"), Is.True);
+        }
+
+        // 처음 들어와 저절로 시작한 호텔 퀘스트를 [퀘스트 그만두기] → [그만두기]로 그만둔다. 완료 팡파레 없이 시작 전으로 돌아가
+        // 도장 지도에는 다시 [퀘스트 시작]이 보인다.
+        [UnityTest]
+        public IEnumerator HotelQuestStartedOnFirstVisitCanBeCancelledWithTheButtons()
+        {
+            view.OpenQuestBoard();
+            var board = view.GetComponentInChildren<QuestBoardView>(true);
+            yield return null;
+            board.ShowMap(0);
+            Button cancel = MapButton(board, "Cancel");
+            Assert.That(
+                cancel.gameObject.activeInHierarchy,
+                Is.True,
+                "하는 중인 호텔 퀘스트에 [퀘스트 그만두기]가 보여야 합니다."
+            );
+
+            cancel.onClick.Invoke();
+            ConfirmButton(board).onClick.Invoke();
+            yield return null;
+            yield return null;
+
+            Assert.That(transport.Cancelled, Is.EqualTo("CHECK_IN"));
+            AssertNoCompletionOrSignup();
+            Assert.That(MapButton(board, "Start").gameObject.activeInHierarchy, Is.True);
+            Assert.That(cancel.gameObject.activeInHierarchy, Is.False);
+        }
+
+        // 호텔 퀘스트를 하는 중에 시연 카드의 [퀘스트 시작]을 누르면 호텔 퀘스트가 처음으로 돌아간다고 먼저 묻고,
+        // [그만두고 시작]을 누르면 시연을 시작한다. 호텔 퀘스트를 완료로 처리하지 않는다.
+        [UnityTest]
+        public IEnumerator StartingTheShowcaseWithTheButtonsDuringTheHotelQuestAsksAndDoesNotCompleteIt()
+        {
+            view.OpenQuestBoard();
+            var board = view.GetComponentInChildren<QuestBoardView>(true);
+            yield return null;
+            board.ShowMap(1);
+
+            MapButton(board, "Start").onClick.Invoke();
+            Assert.That(transport.ShowcaseStarts, Is.Zero, "확인하기 전에는 시작하지 않습니다.");
+            Assert.That(
+                board
+                    .GetComponentsInChildren<TMP_Text>()
+                    .Any(text => text.text.Contains("호텔 체크인과 잃어버린 가방")),
+                Is.True,
+                "처음으로 돌아갈 호텔 퀘스트를 알려야 합니다."
+            );
+            ConfirmButton(board).onClick.Invoke();
+            yield return null;
+
+            Assert.That(transport.ShowcaseStarts, Is.EqualTo(1));
+            Assert.That(ShowsGoal("호텔에서 저녁 나들이 준비"), Is.True);
+            AssertNoCompletionOrSignup();
+        }
+
+        // 도장 지도 머리줄의 버튼([퀘스트 시작]·[퀘스트 그만두기])
+        private static Button MapButton(QuestBoardView board, string name) =>
+            board.transform.Find("Sheet/Map/" + name).GetComponent<Button>();
+
+        // 확인 창의 확인 버튼([그만두기]·[그만두고 시작])
+        private static Button ConfirmButton(QuestBoardView board) =>
+            board.transform.Find("QuestConfirm/Card/Confirm").GetComponent<Button>();
+
         private void SelectAndStart(int index)
         {
             view.OpenQuestBoard();
@@ -153,14 +238,29 @@ namespace A305.Mission.PlayModeTests
         private sealed class QuestTransport : IApiTransport
         {
             private bool showcaseStarted;
+
+            // 처음 들어온 사용자처럼 튜토리얼 뒤 호텔 퀘스트가 시작된 상태로 둔다. 그만두면 시작 전이 된다.
+            private bool hotelStarted = true;
             public int ShowcaseStarts { get; private set; }
             public int ShowcaseStops { get; private set; }
             public bool FailShowcaseStart { get; set; }
+            public string Cancelled { get; private set; }
 
             public void FinishShowcase() => showcaseStarted = false;
 
             public Task<ApiTransportResponse> SendAsync(ApiTransportRequest request)
             {
+                if (request.Url.EndsWith("/cancel"))
+                {
+                    Cancelled = request.Url.Split('/').Reverse().Skip(1).First();
+                    if (Cancelled == "CHECK_IN")
+                        hotelStarted = false;
+                    else
+                        showcaseStarted = false;
+                    return Response(Board());
+                }
+                if (request.Url.EndsWith("/missions/first-day/start"))
+                    hotelStarted = true;
                 if (request.Url.EndsWith("/missions/showcase/start"))
                 {
                     ShowcaseStarts++;
@@ -181,38 +281,37 @@ namespace A305.Mission.PlayModeTests
                 )
                     return Response(CurrentState());
                 if (request.Url.EndsWith("/missions/quests"))
-                    return Response(
-                        new QuestBoardState
-                        {
-                            Balance = 100,
-                            Quests =
-                            {
-                                new QuestEntry
-                                {
-                                    Id = "CHECK_IN",
-                                    Title = "호텔 체크인과 잃어버린 가방",
-                                    Status = QuestEntry.InProgress,
-                                    Reward = 10,
-                                },
-                                new QuestEntry
-                                {
-                                    Id = FirstDayMissionState.ShowcaseQuestId,
-                                    Title = "비 오는 저녁, 햄버거 한 끼",
-                                    Status = showcaseStarted
-                                        ? QuestEntry.InProgress
-                                        : QuestEntry.Available,
-                                },
-                            },
-                        }
-                    );
+                    return Response(Board());
                 return Task.FromResult(ApiTransportResponse.NetworkFailed());
             }
+
+            private QuestBoardState Board() =>
+                new QuestBoardState
+                {
+                    Balance = 100,
+                    Quests =
+                    {
+                        new QuestEntry
+                        {
+                            Id = "CHECK_IN",
+                            Title = "호텔 체크인과 잃어버린 가방",
+                            Status = hotelStarted ? QuestEntry.InProgress : QuestEntry.Available,
+                            Reward = 10,
+                        },
+                        new QuestEntry
+                        {
+                            Id = FirstDayMissionState.ShowcaseQuestId,
+                            Title = "비 오는 저녁, 햄버거 한 끼",
+                            Status = showcaseStarted ? QuestEntry.InProgress : QuestEntry.Available,
+                        },
+                    },
+                };
 
             private FirstDayMissionState CurrentState() =>
                 new FirstDayMissionState
                 {
                     Quest = showcaseStarted ? FirstDayMissionState.ShowcaseQuestId : "CHECK_IN",
-                    Started = true,
+                    Started = showcaseStarted || hotelStarted,
                     Balance = 100,
                     Scene = "HOTEL",
                     Situation = "",

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace A305.Mission.Tests
 {
@@ -64,6 +65,68 @@ namespace A305.Mission.Tests
             );
         }
 
+        // 시작하지 않은 퀘스트는 처음 들를 곳에 1번 핀을 꽂아 어디서 시작하는지 보인다.
+        [Test]
+        public void StampMap_PinsTheFirstStopOfAQuestNotStartedYet()
+        {
+            QuestEntry quest = NotStarted(CheckInQuest(doneStops: 0));
+
+            QuestPin pin = QuestStampMap.Pin(quest).Value;
+
+            Assert.That(pin.Number, Is.EqualTo(1));
+            Assert.That(pin.Centre, Is.EqualTo(TownMapArt.Tile("HOTEL").Value.center));
+        }
+
+        // 택시는 호텔 앞에서 기다리므로 택시 기사 차례의 핀은 호텔에 꽂는다.
+        [Test]
+        public void StampMap_PinsTheTaxiInFrontOfTheHotel()
+        {
+            var quest = new QuestEntry
+            {
+                Stops =
+                {
+                    new QuestStop
+                    {
+                        Place = "거리",
+                        Scene = "TOWN",
+                        NpcCode = "TAXI_DRIVER",
+                        Current = true,
+                    },
+                },
+            };
+
+            Assert.That(
+                QuestStampMap.Pin(quest).Value.Centre,
+                Is.EqualTo(TownMapArt.Tile("HOTEL").Value.center)
+            );
+        }
+
+        // 지도는 퀘스트에서 들르는 건물 칸만 원래 색으로 보인다. 같은 곳은 한 번, 칸이 없는 거리는 빼고 처음 들르는 순서대로다.
+        [Test]
+        public void StampMap_ListsTheQuestBuildingsToColourOnce()
+        {
+            QuestEntry quest = CheckInQuest(doneStops: 2);
+
+            Assert.That(
+                QuestStampMap.Tiles(quest),
+                Is.EqualTo(
+                    new[]
+                    {
+                        TownMapArt.Tile("HOTEL").Value,
+                        TownMapArt.Tile("CAFE").Value,
+                        TownMapArt.Tile("SHOP").Value,
+                    }
+                )
+            );
+        }
+
+        private static QuestEntry NotStarted(QuestEntry quest)
+        {
+            quest.Status = QuestEntry.Available;
+            quest.Stops.ForEach(stop => stop.Current = false);
+            return quest;
+        }
+
         // 첫날 퀘스트의 일곱 곳: 호텔·카페·호텔·카페·거리·드럭스토어·호텔
         private static QuestEntry CheckInQuest(int doneStops)
         {
@@ -86,6 +149,8 @@ namespace A305.Mission.Tests
                         Place = stops[i].place,
                         Scene = stops[i].scene,
                         NpcCode = stops[i].scene == "TOWN" ? "TOWN_PASSERBY" : null,
+                        NpcName = "Jake",
+                        Todo = $"할 일 {i + 1}",
                         Done = i < doneStops,
                         Current = i == doneStops,
                     }

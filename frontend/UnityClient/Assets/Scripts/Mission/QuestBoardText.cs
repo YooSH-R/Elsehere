@@ -22,6 +22,41 @@ namespace A305.Mission
         /// <summary>도장 지도 아래 칸의 제목. 예: 호텔 · Jake</summary>
         public static string StopTitle(QuestStop stop) =>
             string.IsNullOrEmpty(stop.NpcName) ? stop.Place : $"{stop.Place} · {stop.NpcName}";
+
+        /// <summary>시작 전 퀘스트의 도장 지도에서 처음 들를 곳에 붙이는 칩</summary>
+        public const string FirstStop = "처음 갈 곳";
+
+        /// <summary>지도 그림에는 옛 이름 '식당'으로 그려진 가게의 지금 이름. 도장 지도에서 그 이름표 위에 얹는다.</summary>
+        public const string DinerName = "햄버거 가게";
+
+        public const string CancelTitle = "퀘스트를 그만둘까요?";
+        public const string CancelConfirm = "그만두기";
+
+        /// <summary>그만두면 서버가 그 퀘스트를 처음으로 되돌린다.</summary>
+        public static string CancelBody(QuestEntry quest) =>
+            $"'{quest.Title}'의 진행이 처음으로 돌아가요.\n다시 시작하면 처음부터 해요.";
+
+        /// <summary>
+        /// 카드의 잠긴 까닭. 줄 가운데에서 어색하게 끊기지 않게 따옴표로 묶은 퀘스트 이름을 한 줄에 두고, 그 뒤와 문장마다 줄을 바꾼다.
+        /// 예: '호텔 체크인과 잃어버린 가방' ⏎ 퀘스트를 마치면 열려요.
+        /// </summary>
+        public static string LockReason(QuestEntry quest) =>
+            string.IsNullOrEmpty(quest.LockReason)
+                ? ""
+                : quest.LockReason.Replace("' ", "'\n").Replace(". ", ".\n");
+
+        public const string SwitchTitle = "하던 퀘스트를 그만둘까요?";
+        public const string SwitchConfirm = "그만두고 시작";
+
+        public const string PracticeConfirm = "그만두고 연습";
+
+        /// <summary>정해진 순서대로만 하는 퀘스트를 하는 중에는 장소 연습을 하려면 그 퀘스트를 그만둬야 한다.</summary>
+        public static string PracticeBody(QuestEntry running) =>
+            $"'{running.Title}' 퀘스트는 정해진 순서대로만 진행해요.\n장소 연습을 하려면 이 퀘스트를 그만둬야 해요.";
+
+        /// <summary>다른 퀘스트를 시작하면 서버가 하던 퀘스트를 처음으로 되돌린다.</summary>
+        public static string SwitchBody(QuestEntry running) =>
+            $"새 퀘스트를 시작하면 하던 '{running.Title}'의 진행이 처음으로 돌아가요.";
     }
 
     public readonly struct RoutePlace

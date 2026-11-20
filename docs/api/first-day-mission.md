@@ -93,7 +93,7 @@
 
 ## 저장과 배포
 
-`first_day_missions`에 사용자당 한 행을 저장한다. 업데이트 시 행 잠금을 사용하며 버전도 기록한다. 새로 시작할 때는 사용자 행 잠금으로 중복 생성을 막는다. 자정 초기화·재시작·삭제 API는 제공하지 않는다. ERD는 `docs/erd.dbml`을 따른다.
+`first_day_missions`에 사용자당 한 행을 저장한다. 업데이트 시 행 잠금을 사용하며 버전도 기록한다. 새로 시작할 때는 사용자 행 잠금으로 중복 생성을 막는다. 자정 초기화·재시작 API는 제공하지 않는다. 끝내지 않은 퀘스트는 퀘스트 창에서 그만두거나(`POST /api/v1/missions/quests/CHECK_IN/cancel`, [퀘스트 목록](town-story.md#서버-계약)) 시연 퀘스트를 시작하면 진행 행을 지워 시작 전으로 되돌린다. 끝낸 퀘스트의 행은 지우지 않는다. ERD는 `docs/erd.dbml`을 따른다.
 
 백엔드 시드에 SHOP·SHOP_STAFF가 추가되고 Unity Build Settings에 ShopScene이 추가된다. **백엔드와 WebGL을 같은 변경 묶음으로 배포**한다. 기본 테이블과 단계 컬럼은 `V1__create_schema.sql`, 대화별 남은 목표 컬럼은 `V29__add_conversation_first_day_goals.sql`에 정의되어 Flyway가 백엔드 시작 시 반영한다. 기존 진행 상태는 유지하고 과거 대화의 목표 목록은 채우지 않는다. 비밀 환경변수나 패키지 추가는 없다.
 

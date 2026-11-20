@@ -32,6 +32,73 @@ namespace A305.Mission.Tests
             );
         }
 
+        // 이 퀘스트는 정해진 순서대로만 한다. 단계마다 그 단계에 나오는 사람만 말을 걸 수 있고, 나머지(다른 NPC·지나가는 택시)는
+        // 지금 차례를 까닭으로 막는다. 까닭에 '시연'이라는 말은 쓰지 않는다.
+        [Test]
+        public void EachStepAllowsOnlyItsOwnPeopleAndTellsWhoseTurnItIs()
+        {
+            FirstDayMissionState hotel = Showcase(stage: 0, "호텔에서 저녁 나들이 준비");
+
+            Assert.That(
+                hotel.ShowcaseStepNpcs,
+                Is.EquivalentTo(new[] { "HOTEL_STAFF", "HOTEL_RECEPTIONIST", "HOTEL_BELLHOP" })
+            );
+            Assert.That(
+                hotel.ShowcaseOrderReason,
+                Does.Contain("정해진 순서")
+                    .And.Contain("호텔에서 저녁 나들이 준비")
+                    .And.Not.Contain("시연")
+            );
+            Assert.That(
+                Showcase(stage: 1, "택시로 햄버거 가게 가기").ShowcaseStepNpcs,
+                Is.EquivalentTo(new[] { "TAXI_DRIVER" })
+            );
+            Assert.That(
+                Showcase(stage: 2, "햄버거와 사이드 주문").ShowcaseStepNpcs,
+                Is.EquivalentTo(new[] { "DINER_STAFF", "TOWN_JOHN_PARK" })
+            );
+        }
+
+        [Test]
+        public void AfterFinishing_OrOutsideTheQuest_NothingIsHeldToTheOrder()
+        {
+            FirstDayMissionState finished = Showcase(stage: 3, null);
+            finished.Completed = true;
+            Assert.That(finished.ShowcaseOrderReason, Is.Null);
+            Assert.That(
+                new FirstDayMissionState { Quest = "CHECK_IN", Started = true }.ShowcaseOrderReason,
+                Is.Null
+            );
+            Assert.That(
+                new FirstDayMissionState { Quest = "SHOWCASE_RAINY_EVENING" }.ShowcaseOrderReason,
+                Is.Null,
+                "시작하지 않았으면 아무것도 막지 않는다."
+            );
+        }
+
+        private static FirstDayMissionState Showcase(int stage, string currentTitle)
+        {
+            var state = new FirstDayMissionState
+            {
+                Quest = "SHOWCASE_RAINY_EVENING",
+                Started = true,
+                Stage = stage,
+            };
+            for (int i = 0; i < 3; i++)
+                state.Steps.Add(
+                    new FirstDayMissionStep
+                    {
+                        Index = i,
+                        Title = i == stage ? currentTitle : "다른 단계",
+                        Status =
+                            i < stage ? "DONE"
+                            : i == stage ? "CURRENT"
+                            : "PENDING",
+                    }
+                );
+            return state;
+        }
+
         [Test]
         public void BorrowedUmbrellaOpensAfterHotelOnlyOnRainyStreet()
         {

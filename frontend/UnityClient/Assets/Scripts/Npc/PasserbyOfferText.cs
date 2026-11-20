@@ -8,6 +8,13 @@ namespace A305.Npc
 
         public static string HurryHint(string npcName) => $"{npcName} · 서두르는 중";
 
+        /// <summary>정해진 순서대로만 하는 퀘스트가 막아 둔 NPC·택시를 눌렀을 때 위에 붙이는 이름 줄</summary>
+        public static string NotYourTurnHint(string npcName) =>
+            $"{npcName} · 지금은 차례가 아니에요";
+
+        /// <summary>말을 걸 수 없게 해 둔 거리 주민(시연 동선의 배경 주민)을 눌렀을 때</summary>
+        public const string QuietResident = "지금은 이 주민과 이야기할 수 없어요.";
+
         /// <summary>대화 수락 버튼. 키보드를 쓰는 화면에만 E 안내를 붙인다.</summary>
         public static string AcceptLabel(bool showKeyHint) =>
             InteractionLabel("대화하기", showKeyHint);

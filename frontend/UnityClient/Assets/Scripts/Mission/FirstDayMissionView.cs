@@ -298,6 +298,9 @@ namespace A305.Mission
 
         public event Action StartRequested;
 
+        /// <summary>퀘스트 창에서 하던 퀘스트를 그만두기로 했다. 그만둘 퀘스트 ID를 준다.</summary>
+        public event Action<string> CancelRequested;
+
         /// <summary>퀘스트 카드를 눌러 수첩을 열면 알린다.</summary>
         public event Action JournalOpened;
         public event Action RestRequested;
@@ -489,13 +492,13 @@ namespace A305.Mission
             FirstDayMissionStep current = state.Steps.FirstOrDefault(step =>
                 step.Status == "CURRENT"
             );
+            // 정해진 순서대로 하는 퀘스트(비 오는 저녁)도 다른 이야기 퀘스트와 같은 모양으로, 요청 한 줄과 상황 설명을 보인다.
             direction.text = StoryDirection(state);
-            direction.gameObject.SetActive(!state.IsShowcase);
+            direction.gameObject.SetActive(true);
             situation.text = state.Situation;
             string situationCopy = NormalizeCardCopy(state.Situation);
             situation.gameObject.SetActive(
-                !state.IsShowcase
-                    && situationCopy.Length > 0
+                situationCopy.Length > 0
                     && !string.Equals(
                         situationCopy,
                         NormalizeCardCopy(direction.text),
@@ -511,7 +514,7 @@ namespace A305.Mission
             place.text = current != null ? CompactTitle(current.Title) : "";
             ShowProgress(state.Steps.Select(step => MarkSprite(step.Status)).ToArray());
             // NPC가 할 일을 먼저 말하지 않으므로, 요청 안내 아래 이번 단계 목표를 보여 주어 무엇을 요청할지 알게 한다.
-            ShowGoals(state.CanRest || current == null ? null : current.Goals, state.IsShowcase);
+            ShowGoals(state.CanRest || current == null ? null : current.Goals);
             ShowPill(
                 "이야기",
                 state.Steps.Select(step => step.Status == "UPCOMING" ? pillMarkOff : pillMarkStory)
@@ -552,8 +555,8 @@ namespace A305.Mission
                             }
                     )
                     .ToList(),
-                // [다시 연습]은 시연 퀘스트 카드와 같은 큰 목표 글자로 보인다.
-                showcase: plan.IsReview
+                // [다시 연습]은 목표를 큰 글자로 보인다.
+                large: plan.IsReview
             );
             ShowPill(
                 plan.IsReview ? "다시 연습" : "장소 연습",
@@ -694,7 +697,7 @@ namespace A305.Mission
         /// 이름 아래에 말해야 할 정보를 작게 보인다.
         /// 목표가 없으면(쉬는 차례 등) 목표 칸을 숨긴다.
         /// </summary>
-        private void ShowGoals(IReadOnlyList<FirstDayMissionGoal> current, bool showcase = false)
+        private void ShowGoals(IReadOnlyList<FirstDayMissionGoal> current, bool large = false)
         {
             int count = current?.Count ?? 0;
             goals.gameObject.SetActive(current != null);
@@ -713,7 +716,7 @@ namespace A305.Mission
                     ? goalDone
                     : goalOpen;
                 TMP_Text label = row.GetComponentInChildren<TMP_Text>(true);
-                StyleGoal(label, showcase, 27, heading: true);
+                StyleGoal(label, large, 27, heading: true);
                 label.text = goal.Title;
                 label.color = goal.Completed ? Muted : Ink;
                 label.fontStyle = goal.Completed ? FontStyles.Strikethrough : FontStyles.Normal;
@@ -725,20 +728,21 @@ namespace A305.Mission
                 hint.gameObject.SetActive(showsHint);
                 var hintText = hint.GetComponent<TMP_Text>();
                 hintText.text = showsHint ? goal.Hint : "";
-                StyleGoal(hintText, showcase, 21, heading: false);
+                StyleGoal(hintText, large, 21, heading: false);
             }
         }
 
-        private void StyleGoal(TMP_Text text, bool showcase, float size, bool heading)
+        // 큰 목표 글자: 목표 이름은 요청 줄과 같은 글꼴, 정해 둔 크기로 쓴다. 아니면 프리팹의 원래 글자로 되돌린다.
+        private void StyleGoal(TMP_Text text, bool large, float size, bool heading)
         {
             if (!goalFonts.TryGetValue(text, out var original))
             {
                 original = (text.font, text.fontSize, text.enableAutoSizing);
                 goalFonts.Add(text, original);
             }
-            text.font = showcase && heading ? direction.font : original.Font;
-            text.fontSize = showcase ? size : original.Size;
-            text.enableAutoSizing = showcase ? false : original.AutoSize;
+            text.font = large && heading ? direction.font : original.Font;
+            text.fontSize = large ? size : original.Size;
+            text.enableAutoSizing = large ? false : original.AutoSize;
         }
 
         /// <summary>단계 칩 글자. 지금 단계가 몇 번째인지 전체 단계 수와 함께 쓰고, 모두 끝냈으면 마지막 단계로, 시작 전이면 null이다.</summary>
@@ -949,7 +953,11 @@ namespace A305.Mission
         public void OpenQuestBoard()
         {
             ShowLargeMap(false);
-            questBoard.Open();
+            // 진행 중인 퀘스트가 있으면 고르기 화면 대신 그 퀘스트의 도장 지도를 바로 연다. 장소 연습 중이면 고르기 화면부터 연다.
+            bool running =
+                shownState is { Started: true, Completed: false }
+                && PracticeVisit.Shared.Current == null;
+            questBoard.Open(running ? shownState.Quest : null);
             UpdateBoardLayer();
             JournalOpened?.Invoke();
         }
@@ -980,7 +988,7 @@ namespace A305.Mission
 
         /// <summary>
         /// 끝낸 퀘스트의 '퀘스트 완료!' 팡파레를 띄운다(시안 f1). 같은 대화에서 산 것이 있으면 먼저 줄이고, 보상은 날아간 코인이 칩에 닿을 때 더한다.
-        /// [다음]을 누르면 목록에서 바로 다음 퀘스트의 잠금을 푼다(시안 f2).
+        /// [다음]을 누르면 목록에서 바로 다음 퀘스트의 잠금을 푼다(시안 f2). 연계 퀘스트가 아닌 시연 퀘스트는 잠금을 풀지 않는다.
         /// </summary>
         public void ShowQuestComplete(QuestBoardState board, string questId)
         {
@@ -996,8 +1004,10 @@ namespace A305.Mission
                 ShowCoins(latestBalance - finished.Reward, latestPurchase);
             finishedBoard = board;
             finishedQuestId = questId;
+            // 시연 퀘스트는 연계 퀘스트가 아니다. 시연 동안 잠갔던 다음 카드가 다시 열려도 잠금을 푸는 연출을 하지 않는다.
             bool opensNext =
-                index + 1 < board.Quests.Count
+                questId != FirstDayMissionState.ShowcaseQuestId
+                && index + 1 < board.Quests.Count
                 && board.Quests[index + 1].Status == QuestEntry.Available;
             unlockedQuest = opensNext ? index + 1 : -1;
             ShowLargeMap(false);
@@ -1083,6 +1093,7 @@ namespace A305.Mission
                 questBoard.Requested += RequestQuestBoard;
                 questBoard.PracticeRequested += RequestPracticeBoard;
                 questBoard.StartRequested += StartMission;
+                questBoard.CancelRequested += CancelQuest;
                 questBoard.OpenChanged += OnBoardOpenChanged;
             }
             if (miniMapButton != null)
@@ -1108,6 +1119,10 @@ namespace A305.Mission
                     CloseLargeMap
                 ),
                 new UiEscapeWindow(() => IsQuestBoardOpen, () => questBoard.Close()),
+                new UiEscapeWindow(
+                    () => IsQuestBoardOpen && questBoard.IsConfirmOpen,
+                    () => questBoard.CloseConfirm()
+                ),
             };
         }
 
@@ -1124,6 +1139,7 @@ namespace A305.Mission
                 questBoard.Requested -= RequestQuestBoard;
                 questBoard.PracticeRequested -= RequestPracticeBoard;
                 questBoard.StartRequested -= StartMission;
+                questBoard.CancelRequested -= CancelQuest;
                 questBoard.OpenChanged -= OnBoardOpenChanged;
             }
             if (miniMapButton != null)
@@ -1309,6 +1325,8 @@ namespace A305.Mission
         }
 
         private void StartMission() => StartRequested?.Invoke();
+
+        private void CancelQuest(string questId) => CancelRequested?.Invoke(questId);
 
         private void Rest() => RestRequested?.Invoke();
 

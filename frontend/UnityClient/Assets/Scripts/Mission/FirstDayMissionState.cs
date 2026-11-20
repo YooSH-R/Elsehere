@@ -24,6 +24,38 @@ namespace A305.Mission
         /// <summary>시연을 하는 동안 손님을 태운 택시가 신호에 걸리지 않게 본길 신호를 초록으로 붙잡는지.</summary>
         public bool HoldsGreenForTaxiRide => IsShowcase && Started && !Completed;
 
+        /// <summary>
+        /// 이 퀘스트(비 오는 저녁)는 정해진 순서대로만 한다. 하는 동안 순서 밖의 대화·택시를 누르면 보일 까닭(지금 차례)이다.
+        /// 하는 중이 아니면 null이다. 화면에서는 '시연'이라고 부르지 않는다.
+        /// </summary>
+        public string ShowcaseOrderReason
+        {
+            get
+            {
+                if (!IsShowcase || !Started || Completed)
+                    return null;
+                string current = Steps.Find(step => step.Status == "CURRENT")?.Title;
+                return string.IsNullOrEmpty(current)
+                    ? InOrder
+                    : $"{InOrder}\n지금은 '{current}' 차례예요.";
+            }
+        }
+
+        /// <summary>
+        /// 지금 단계에 말을 걸 수 있는 사람. 호텔에서는 Jake와 프런트·벨보이 직원, 택시 단계에서는 호텔 앞 택시 기사,
+        /// 주문 단계에서는 Rosa와 가게의 John이다. 그 밖의 NPC와 지나가는 택시는 막는다.
+        /// </summary>
+        public IReadOnlyCollection<string> ShowcaseStepNpcs =>
+            Stage switch
+            {
+                0 => new[] { "HOTEL_STAFF", "HOTEL_RECEPTIONIST", "HOTEL_BELLHOP" },
+                1 => new[] { "TAXI_DRIVER" },
+                2 => new[] { "DINER_STAFF", "TOWN_JOHN_PARK" },
+                _ => new string[0],
+            };
+
+        private const string InOrder = "이 퀘스트는 정해진 순서대로 진행해요.";
+
         public bool ShouldOfferTownStory => Completed && !IsTownStory && !IsShowcase;
         public int Stage { get; set; }
         public bool Completed { get; set; }

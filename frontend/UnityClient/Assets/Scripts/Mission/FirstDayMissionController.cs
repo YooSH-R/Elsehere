@@ -97,6 +97,7 @@ namespace A305.Mission
             FavorStore.Shared.Changed += OnFavorChanged;
             FavorStore.Shared.Completed += OnFavorCompleted;
             view.StartRequested += StartMission;
+            view.CancelRequested += CancelQuest;
             view.RestRequested += Rest;
             view.RetryRequested += RequestRefresh;
             view.QuestBoardRequested += LoadQuestBoard;
@@ -152,6 +153,7 @@ namespace A305.Mission
             if (view != null)
             {
                 view.StartRequested -= StartMission;
+                view.CancelRequested -= CancelQuest;
                 view.RestRequested -= Rest;
                 view.RetryRequested -= RequestRefresh;
                 view.QuestBoardRequested -= LoadQuestBoard;
@@ -212,6 +214,18 @@ namespace A305.Mission
 
         private void StartMission() =>
             _ = ExecuteAsync(StartSelectedMissionAsync, startingQuest: true);
+
+        private void CancelQuest(string questId) =>
+            _ = ExecuteAsync(() => CancelQuestAsync(questId), cancellingQuest: true);
+
+        // 서버가 그 퀘스트를 처음으로 되돌린다. 바뀐 목록을 바로 보이고 진행을 다시 읽는다.
+        private async Task<FirstDayMissionState> CancelQuestAsync(string questId)
+        {
+            QuestBoardState board = await api.CancelQuestAsync(questId);
+            if (this != null && view.IsQuestBoardOpen)
+                view.ShowQuestBoard(board);
+            return await api.LoadCurrentAsync(sceneCode);
+        }
 
         private async Task<FirstDayMissionState> StartSelectedMissionAsync()
         {
@@ -365,7 +379,8 @@ namespace A305.Mission
 
         private async Task ExecuteAsync(
             Func<Task<FirstDayMissionState>> action,
-            bool startingQuest = false
+            bool startingQuest = false,
+            bool cancellingQuest = false
         )
         {
             if (busy || api == null)
@@ -379,8 +394,9 @@ namespace A305.Mission
                 SurveyPrompt.AutomaticInvitationsPaused = response.IsShowcase;
                 if (this == null)
                     return;
-                // 목록에서 다른 퀘스트를 시작한 것은 이전 퀘스트의 완료가 아니다.
-                string finished = startingQuest ? null : response.QuestFinishedSince(state);
+                // 목록에서 다른 퀘스트를 시작하거나 하던 퀘스트를 그만둔 것은 그 퀘스트의 완료가 아니다.
+                string finished =
+                    startingQuest || cancellingQuest ? null : response.QuestFinishedSince(state);
                 state = response;
                 NpcPopulation.UsesShowcasePopulation = state.IsShowcase;
                 NpcOutings.Shared.SetClosedToVisitors(
@@ -418,6 +434,11 @@ namespace A305.Mission
                 }
                 // 미션이 찾아가라고 한 직원은 교대 밖이어도 자리를 지키고 응대한다. 장면을 옮겨도 남는다.
                 NpcDuty.MissionNpcCode = state.CurrentNpcCode;
+                // 시연이 순서를 지키려고 막아 둔 NPC·택시는 누르면 대화 대신 까닭을 보인다.
+                if (state.ShowcaseOrderReason != null)
+                    ShowcaseTalkLock.Set(state.ShowcaseOrderReason, state.ShowcaseStepNpcs);
+                else
+                    ShowcaseTalkLock.Clear();
                 if (finished != null)
                 {
                     // 보상은 팡파레와 함께 더한다.

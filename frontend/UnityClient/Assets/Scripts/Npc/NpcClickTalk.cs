@@ -98,7 +98,12 @@ namespace A305.Npc
             if (target != null)
             {
                 target.TalkByClick(ReachMeters);
+                return;
             }
+
+            // 시연이 막아 둔 NPC는 말을 걸 수 없지만, 누르면 아무 반응 없이 두지 않고 막은 까닭을 보인다.
+            Passerby pointed = FindPointedNpc(pointerScreenPosition) ?? pressedNpc;
+            pointed?.ExplainLockedTalk(ReachMeters);
         }
 
         /// <summary>포인터 아래 말을 걸 수 있는 NPC에 테두리를 그린다. 매 프레임 Update에서 호출하며, 직접 호출해 확인할 수 있다.</summary>

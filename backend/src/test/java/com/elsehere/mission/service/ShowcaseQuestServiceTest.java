@@ -137,6 +137,23 @@ class ShowcaseQuestServiceTest {
     assertThat(talk.instruction()).contains("hotel", "own role").doesNotContain("lend an umbrella");
   }
 
+  // 지금 단계 장소에 함께 있는 시연 인물(호텔 보조 직원 Owen·Diego, 버거 가게의 John)은 이미 와 있는 곳으로 가라고 하지 않고 그곳의 담당자를 가리킨다.
+  @Test
+  void peopleAlreadyAtTheStagePlacePointToItsOwnerInsteadOfSendingTheLearnerThere() {
+    when(journeys.findById(8L)).thenReturn(Optional.of(ShowcaseJourney.start(8L)));
+    for (String npc : List.of("HOTEL_RECEPTIONIST", "HOTEL_BELLHOP")) {
+      assertThat(service(false).context(8L, npc).orElseThrow().instruction())
+          .contains("Jake at the front desk", "own role")
+          .doesNotContain("next stop is the hotel");
+    }
+
+    when(journeys.findById(8L)).thenReturn(Optional.of(atBurgerShop()));
+
+    assertThat(service(false).context(8L, "TOWN_JOHN_PARK").orElseThrow().instruction())
+        .contains("Rosa at the order counter", "own role")
+        .doesNotContain("next stop is Maple Burger");
+  }
+
   @Test
   void taxiKeepsTheNormalDestinationJudgeAndOrderOnlyUsesItsOwnGoals() {
     ShowcaseJourney journey = ShowcaseJourney.start(8L);
@@ -246,6 +263,48 @@ class ShowcaseQuestServiceTest {
   private ShowcaseQuestService service(boolean enabled) {
     return new ShowcaseQuestService(
         new ShowcaseSettings(enabled), journeys, users, conversations, scene, firstDay, stories);
+  }
+
+  // 이 퀘스트 때문에 잠긴 퀘스트에 보일 이유. 시연이라고 부르지 않고 퀘스트 이름으로 알린다. 공용 서버는 마치거나 그만두면 열리고, 시연 전용 서버는 마쳐야 열린다.
+  @Test
+  void theLockReasonNamesTheQuestThatLockedItWithoutCallingItAShowcase() {
+    assertThat(service(false).lockReason())
+        .isEqualTo("'비 오는 저녁, 햄버거 한 끼' 퀘스트를 하는 중이라 잠겼어요. 마치거나 그만두면 열려요.");
+    assertThat(service(true).lockReason()).isEqualTo("'비 오는 저녁, 햄버거 한 끼' 퀘스트를 먼저 마쳐야 열려요.");
+  }
+
+  // 왼쪽 위 카드는 다른 이야기 퀘스트처럼 단계마다 누구에게 무엇을 할지 짧은 한 줄과, 그 아래 상황 설명을 따로 받는다.
+  @Test
+  void eachStageGivesAShortRequestLineLikeTheOtherStoryQuests() {
+    when(journeys.findForUpdate(8L)).thenReturn(Optional.empty());
+    when(journeys.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+    when(users.findForUpdate(8L)).thenReturn(Optional.of(mock(User.class)));
+    ShowcaseQuestService service = service(false);
+
+    FirstDayMissionResponse hotel = service.start(8L);
+    org.mockito.ArgumentCaptor<ShowcaseJourney> saved =
+        org.mockito.ArgumentCaptor.forClass(ShowcaseJourney.class);
+    verify(journeys).save(saved.capture());
+    ShowcaseJourney journey = saved.getValue();
+    when(journeys.findForUpdate(8L)).thenReturn(Optional.of(journey));
+    journey.accept(0, "HOTEL_STAFF", List.of("ask_for_taxi"));
+    FirstDayMissionResponse taxi = service.start(8L);
+    journey.chooseTaxiDestination("TAXI_DRIVER", "DINER");
+    journey.arriveByTaxi("DINER");
+    FirstDayMissionResponse order = service.start(8L);
+
+    assertThat(List.of(hotel, taxi, order))
+        .extracting(FirstDayMissionResponse::direction)
+        .containsExactly("호텔 직원에게 요청하세요.", "택시 기사에게 요청하세요.", "햄버거 가게 직원에게 주문하세요.");
+    assertThat(hotel.situation()).isEqualTo(ShowcaseStage.HOTEL.situation());
+  }
+
+  // 퀘스트 목록 카드도 '시연'이라고 부르지 않는다. 정해진 순서대로 하는 이야기 퀘스트로 보인다.
+  @Test
+  void theCardDoesNotCallItselfAShowcase() {
+    QuestBoardResponse.Quest card = service(false).card(8L, Map.of()).orElseThrow();
+
+    assertThat(card.title() + card.description()).doesNotContain("시연");
   }
 
   // 시연을 시작하면 하던 첫날 퀘스트는 취소되어 시작 전으로 돌아간다. 시연을 끝내도 이어지지 않는다.

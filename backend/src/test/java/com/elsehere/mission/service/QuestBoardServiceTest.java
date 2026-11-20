@@ -93,6 +93,36 @@ class QuestBoardServiceTest {
         .containsExactly("AVAILABLE", "LOCKED", "LOCKED", "LOCKED");
   }
 
+  // 잠긴 퀘스트는 왜 잠겼는지 함께 준다. 어느 퀘스트를 마쳐야 하는지 앞 퀘스트 이름으로 알린다. 열린 퀘스트에는 이유가 없다.
+  @Test
+  void aQuestLockedUntilThePreviousOneIsDoneNamesThatQuest() {
+    when(firstDay.findById(8L)).thenReturn(Optional.empty());
+    when(stories.findById(8L)).thenReturn(Optional.empty());
+
+    assertThat(service.board(8L).quests())
+        .extracting(QuestBoardResponse.Quest::lockReason)
+        .containsExactly(null, "'호텔 체크인과 잃어버린 가방' 퀘스트를 마치면 열려요.", "'옷에 쏟은 아침과 새 머리' 퀘스트를 마치면 열려요.");
+  }
+
+  // 시연 때문에 잠긴 퀘스트는 시연이 잠갔다고 알린다. 원래 앞 퀘스트 때문에 잠긴 퀘스트는 그 이유를 그대로 둔다.
+  @Test
+  void aQuestLockedByTheShowcaseSaysTheShowcaseLockedIt() {
+    when(showcase.locksOtherQuests(org.mockito.ArgumentMatchers.any())).thenReturn(true);
+    when(showcase.lockReason()).thenReturn("'비 오는 저녁, 햄버거 한 끼' 퀘스트를 하는 중이라 잠겼어요.");
+    when(firstDay.findById(8L)).thenReturn(Optional.empty());
+    when(stories.findById(8L)).thenReturn(Optional.empty());
+    when(showcase.card(org.mockito.ArgumentMatchers.eq(8L), org.mockito.ArgumentMatchers.any()))
+        .thenReturn(Optional.of(showcaseCard("IN_PROGRESS")));
+
+    assertThat(service.board(8L).quests())
+        .extracting(QuestBoardResponse.Quest::lockReason)
+        .containsExactly(
+            null,
+            "'비 오는 저녁, 햄버거 한 끼' 퀘스트를 하는 중이라 잠겼어요.",
+            "'호텔 체크인과 잃어버린 가방' 퀘스트를 마치면 열려요.",
+            "'옷에 쏟은 아침과 새 머리' 퀘스트를 마치면 열려요.");
+  }
+
   private static QuestBoardResponse.Quest showcaseCard(String status) {
     return new QuestBoardResponse.Quest(
         "SHOWCASE_RAINY_EVENING", "비 오는 저녁, 햄버거 한 끼", "", 0, status, List.of());

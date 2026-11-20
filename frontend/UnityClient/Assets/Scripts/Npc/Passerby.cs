@@ -473,8 +473,9 @@ namespace A305.Npc
                 }
             }
             bool isPlayerBusy = IsPlayerOccupied || IsOtherOfferShowing || IsCrossing;
-            // 새 대화를 시작할 수 없으면(게스트 대화 횟수를 다 씀) 먼저 다가오지 않는다(기능 명세 F-39).
-            bool cannotStartConversation = !dialogue.Allowance.CanStartConversation;
+            // 새 대화를 시작할 수 없으면(게스트 대화 횟수를 다 씀, 시연이 막아 둠) 먼저 다가오지 않는다(기능 명세 F-39).
+            bool cannotStartConversation =
+                !dialogue.Allowance.CanStartConversation || LockedTalkReason != null;
             // 튜토리얼·퀘스트와 카운터 응대 때 먼저 제안한다. 직원은 응대할 수 있는 자리인지도 확인한다.
             bool servesCustomer =
                 routine != null
@@ -624,8 +625,9 @@ namespace A305.Npc
         /// <param name="reachMeters">클릭으로 말을 걸 수 있는 수평 거리</param>
         public bool CanTalkByClick(float reachMeters)
         {
-            // 시연 거리의 배경 주민은 말을 걸 수 없다. 시연 호텔의 보조 직원(지정 위치)은 먼저 다가오지 않을 뿐 클릭하면 말을 걸 수 있다.
-            if (!enabled || UsesShowcaseBackgroundWalk || IsPlayerOccupied || IsCrossing)
+            // 시연 거리의 배경 주민과 시연이 순서를 지키려고 막아 둔 NPC는 말을 걸 수 없다(누르면 까닭을 보인다, ExplainLockedTalk).
+            // 시연 호텔의 보조 직원(지정 위치)은 먼저 다가오지 않을 뿐 클릭하면 말을 걸 수 있다.
+            if (!enabled || LockedTalkReason != null || IsPlayerOccupied || IsCrossing)
             {
                 return false;
             }
@@ -644,6 +646,40 @@ namespace A305.Npc
             }
 
             return !IsOtherOfferShowing || offerView.IsDeclineShown;
+        }
+
+        /// <summary>
+        /// 시연이 막아 둔 이 NPC를 클릭·탭했다. 클릭 거리 안이면 대화를 묻지 않고 막은 까닭을 잠깐 보인다.
+        /// 아무 반응이 없으면 기능이 망가진 것처럼 보이므로 일부러 막았다는 것을 알린다.
+        /// </summary>
+        /// <returns>까닭을 보였으면 true. 막지 않았거나 멀거나 다른 대화 중이면 false</returns>
+        public bool ExplainLockedTalk(float reachMeters)
+        {
+            string reason = LockedTalkReason;
+            if (
+                reason == null
+                || !enabled
+                || dialogue.IsTalking
+                || player.IsMovementLocked
+                || HorizontalOffsetToPlayer().magnitude > reachMeters
+            )
+                return false;
+            ShowLockedTalk(reason);
+            return true;
+        }
+
+        // 막아 둔 대화의 까닭. 정해진 순서대로만 하는 퀘스트를 하는 동안 지금 단계에 나오지 않는 NPC는 지금 차례를 보인다.
+        // 시연 거리의 배경 주민은 그 퀘스트를 하지 않을 때(시연 전용 서버의 시작 전)에도 말을 걸 수 없다. 막지 않았으면 null
+        private string LockedTalkReason =>
+            UsesShowcaseBackgroundWalk
+                ? ShowcaseTalkLock.Reason ?? PasserbyOfferText.QuietResident
+                : ShowcaseTalkLock.ReasonFor(identity.Code);
+
+        private void ShowLockedTalk(string reason)
+        {
+            offerView.DeclineShownOffer();
+            string name = dialogue.FindNpcName(ScriptKey) ?? "이 NPC";
+            offerView.ShowEvent(this, PasserbyOfferText.NotYourTurnHint(name), reason);
         }
 
         /// <summary>
@@ -752,6 +788,14 @@ namespace A305.Npc
         // 대화를 시작한다. 다른 대화가 진행 중이면 대화 없이 쉬게 한다.
         private void StartConversation(ConversationInitiator initiatedBy)
         {
+            // 제안을 띄운 뒤 시연 단계가 바뀌어 막혔으면 대화 대신 까닭을 보인다.
+            string locked = LockedTalkReason;
+            if (locked != null)
+            {
+                approach.EndTalk(Now);
+                ShowLockedTalk(locked);
+                return;
+            }
             if (
                 dialogue.TryStart(
                     identity.Code,

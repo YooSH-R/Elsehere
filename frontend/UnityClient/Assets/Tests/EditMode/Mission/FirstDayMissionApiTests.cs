@@ -26,6 +26,30 @@ namespace A305.Mission.Tests
         }
 
         [Test]
+        public async Task CancellingAQuest_PostsToItsCancelRouteAndReadsTheNewBoardWithLockReasons()
+        {
+            var transport = new BodyTransport(
+                "{\"balance\":100,\"quests\":[{\"id\":\"CHECK_IN\",\"status\":\"AVAILABLE\",\"lockReason\":null},"
+                    + "{\"id\":\"MORNING_AND_HAIRCUT\",\"status\":\"LOCKED\",\"lockReason\":\"'호텔 체크인과 잃어버린 가방' 퀘스트를 마치면 열려요.\"}]}"
+            );
+            var api = new FirstDayMissionApi(new ApiClient("", transport));
+
+            QuestBoardState board = await api.CancelQuestAsync("CHECK_IN");
+
+            Assert.That(
+                transport.Request.Url,
+                Is.EqualTo("/api/v1/missions/quests/CHECK_IN/cancel")
+            );
+            Assert.That(transport.Request.Method, Is.EqualTo("POST"));
+            Assert.That(transport.Request.Headers.ContainsKey(ApiClient.CsrfHeaderName), Is.True);
+            Assert.That(board.Quests[0].Status, Is.EqualTo(QuestEntry.Available));
+            Assert.That(
+                board.Quests[1].LockReason,
+                Is.EqualTo("'호텔 체크인과 잃어버린 가방' 퀘스트를 마치면 열려요.")
+            );
+        }
+
+        [Test]
         public async Task TownStoryCanBeReadAndStartedThroughItsOwnEndpoints()
         {
             var transport = new RecordingTransport();

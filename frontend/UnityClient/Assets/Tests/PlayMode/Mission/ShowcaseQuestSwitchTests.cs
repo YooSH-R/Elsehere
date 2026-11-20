@@ -59,6 +59,8 @@ namespace A305.Mission.PlayModeTests
             SurveyPrompt.AutomaticInvitationsPaused = surveyWasPaused;
             NpcPopulation.UsesShowcasePopulation = wasShowcasePopulation;
             NpcDuty.MissionNpcCode = previousMissionNpc;
+            // 비 오는 저녁을 읽으면 대화 잠금이 걸린다. 장면을 내려도 남으므로 지워 다음 NPC 테스트를 막지 않게 한다.
+            ShowcaseTalkLock.Clear();
             NpcOutings.Shared.SetClosedToVisitors(FirstDayMissionState.ShowcaseRestaurant, false);
         }
 
